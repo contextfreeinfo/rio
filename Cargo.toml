@@ -1,0 +1,6 @@
+[package]
+name = "rio"
+version = "0.1.0"
+authors = ["Tom <tjpalmer@tjpalmer.com>"]
+
+[dependencies]
