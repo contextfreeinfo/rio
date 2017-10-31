@@ -1,0 +1,8 @@
+alpha = { 'a'..'z' | 'A'..'Z' | '_'..'_' }
+digit = { '0'..'9' }
+
+hspace = {(" " | "\t")+}
+
+ident = { (alpha | digit)+ }
+
+ident_list = _{ !digit ~ ident ~ (hspace ~ ident)+ }

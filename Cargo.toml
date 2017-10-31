@@ -1,6 +1,8 @@
 [package]
 name = "rio"
 version = "0.1.0"
-authors = ["Tom <tjpalmer@tjpalmer.com>"]
+authors = ["Tom"]
 
 [dependencies]
+pest = "1.0.0-beta.16"
+pest_derive = "1.0.0-beta.16"
