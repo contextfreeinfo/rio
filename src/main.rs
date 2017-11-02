@@ -33,25 +33,34 @@ fn parse() -> Result<(), io::Error> {
   file.read_to_string(&mut buffer)?;
   println!("{}", buffer);
   let mut index = 0;
+  let mut last_start = 0;
   let mut state = TokenState::Any;
-  let chars = buffer.chars();
   let mut token = String::new();
-  for char in chars {
+  // TODO How to avoid copies and use chars.as_str instead?
+  let mut iter = buffer.chars();
+  for char in buffer.chars() {
     let new_state = match state {
       _ => {
-        // TODO Match char on the outside and only on state as needed?
         match char {
           ' ' | '\t' => TokenState::HSpace,
-          'a'...'z' => TokenState::Id,
+          'A'...'Z' | 'a'...'z' => TokenState::Id,
           '\n' | '\r' => TokenState::VSpace,
           _ => TokenState::Error,
         }
       }
     };
     if new_state != state {
-      println!("Change from {:?} to {:?} at {}: {}", state, new_state, index, token);
+      let t = iter.as_str();
+      let mut u = t.char_indices();
+      // let (i, _) = u.skip(index - last_start - 1).next().unwrap();
+      println!("Change from {:?} ({}) to {:?} at {}: {:?}", state, token, new_state, index, u.next().unwrap());
       state = new_state;
       token.clear();
+      // iter.skip(index - last_start);
+      for _ in 0..(index - last_start) {
+        iter.next();
+      }
+      last_start = index;
     }
     token.push(char);
     index += 1;
