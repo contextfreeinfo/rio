@@ -10,7 +10,7 @@ use std::io::prelude::*;
 
 #[derive(Parser)]
 #[grammar = "rio.pest"]
-struct IdentParser;
+struct RioParser;
 
 fn main() {
   parse().expect("Failed to parse");
@@ -22,7 +22,7 @@ fn parse() -> Result<(), io::Error> {
   let mut file = File::open(name)?;
   let mut buffer = String::new();
   file.read_to_string(&mut buffer)?;
-  let pairs = IdentParser::parse_str(Rule::ident_list, buffer.as_str()).unwrap_or_else(|e| panic!("{}", e));
+  let pairs = RioParser::parse_str(Rule::rows, buffer.as_str()).unwrap_or_else(|e| panic!("{}", e));
 
   // Because ident_list is silent, the iterator will contain idents
   for pair in pairs {

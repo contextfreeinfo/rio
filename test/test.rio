@@ -1,1 +1,4 @@
-print h   there_2
+out.print "Hello, \"world\"!"
+if a do
+  say "Hi!"
+end

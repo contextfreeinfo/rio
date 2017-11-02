@@ -1,9 +1,31 @@
 alpha = { 'a'..'z' | 'A'..'Z' | '_'..'_' }
+
 digit = { '0'..'9' }
 
+do_block = {"do" ~ vspace ~ (row ~ vspace)* ~ "end"}
+
+escape = @{ "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
+
+atom = {do_block | ident | string}
+
+expr = {get}
+
+expr_list = { get ~ (hspace ~ get)+ }
+
+get = {atom ~ ("." ~ atom)*}
+
 hspace = {(" " | "\t")+}
-// vspace = ...
+
+hex = { '0'..'9' | 'a'..'f' | 'A'..'F' }
 
 ident = { alpha ~ (alpha | digit)* }
 
-ident_list = { !digit ~ ident ~ (hspace ~ ident)+ }
+string = @{ "\"" ~ (escape | !("\"" | "\\") ~ any)* ~ "\"" }
+
+unicode = @{ "u" ~ hex ~ hex ~ hex ~ hex }
+
+row = {expr_list}
+
+rows = {vspace? ~ row ~ (vspace ~ row)*}
+
+vspace = {("\n" | "\r")+}
