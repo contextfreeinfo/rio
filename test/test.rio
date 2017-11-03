@@ -1,6 +1,8 @@
 out.print "Hello, \"world\"!"
-if a do
+if a1 do
   say 'Hi!
 end
+
+z = x + 1 - 0.3 * y
 
 hi

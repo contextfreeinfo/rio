@@ -18,8 +18,12 @@ enum TokenState {
   Error,
   EscapeStart,
   Escape,
+  Fraction,
   HSpace,
   Id,
+  Int,
+  Op1,
+  Op2,
   Start,
   StringStart,
   StringStop,
@@ -71,7 +75,28 @@ fn tokenize() -> Result<(), io::Error> {
       _ => {
         match char {
           ' ' | '\t' => TokenState::HSpace,
-          'A'...'Z' | 'a'...'z' => TokenState::Id,
+          'A'...'Z' | 'a'...'z' | '_' => TokenState::Id,
+          '0'...'9' => {
+            match state {
+              TokenState::Fraction => TokenState::Fraction,
+              TokenState::Id => TokenState::Id,
+              _ => TokenState::Int,
+            }
+          },
+          '.' => {
+            if state == TokenState::Int {
+              TokenState::Fraction
+            } else {
+              TokenState::Op1
+            }
+          }
+          ',' | ';' | ':' | '(' | ')' | '[' | ']' | '{' | '}' => {
+            TokenState::Op1
+          },
+          '+' | '-' | '*' | '/' | '=' => {
+            // TODO Deal with compound operators on these.
+            TokenState::Op2
+          },
           '\'' | '"' => {
             string_start = char;
             TokenState::StringStart
