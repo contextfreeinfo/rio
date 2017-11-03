@@ -1,6 +1,6 @@
 out.print "Hello, \"world\"!"
 if a do
-  say "Hi!"
+  say "Hi!
 end
 
 hi

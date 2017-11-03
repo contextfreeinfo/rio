@@ -16,9 +16,14 @@ use std::io::prelude::*;
 enum TokenState {
   // Any,
   Error,
+  EscapeStart,
+  Escape,
   HSpace,
   Id,
   Start,
+  StringStart,
+  StringStop,
+  StringText,
   VSpace,
 }
 
@@ -42,10 +47,25 @@ fn tokenize() -> Result<(), io::Error> {
   for (index, char) in buffer.char_indices() {
     // println!("{}, {}", index, char);
     let new_state = match state {
+      TokenState::Escape => {
+        TokenState::StringText
+      }
+      TokenState::EscapeStart => {
+        TokenState::Escape
+      }
+      TokenState::StringStart | TokenState::StringText => {
+        match char {
+          '\\' => TokenState::EscapeStart,
+          '"' => TokenState::StringStop,
+          '\n' | '\r' => TokenState::VSpace,
+          _ => TokenState::StringText,
+        }
+      },
       _ => {
         match char {
           ' ' | '\t' => TokenState::HSpace,
           'A'...'Z' | 'a'...'z' => TokenState::Id,
+          '"' => TokenState::StringStart,
           '\n' | '\r' => TokenState::VSpace,
           _ => TokenState::Error,
         }
@@ -71,6 +91,7 @@ fn tokenize() -> Result<(), io::Error> {
       col_index = 0;
     }
   }
+  // Get the last token, which we should always have if it's not an empty file.
   if buffer.len() > last_start {
     let token = &buffer[last_start..];
     println!(
