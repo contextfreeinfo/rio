@@ -12,32 +12,35 @@ use std::io::prelude::*;
 // #[grammar = "rio.pest"]
 // struct RioParser;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum TokenState {
-  Any,
+  // Any,
   Error,
   HSpace,
   Id,
+  Start,
   VSpace,
 }
 
 fn main() {
-  parse().expect("Failed to parse");
+  tokenize().expect("Failed to parse");
 }
 
-fn parse() -> Result<(), io::Error> {
+fn tokenize() -> Result<(), io::Error> {
   let args: Vec<String> = env::args().collect();
   let name = &args[1];
   let mut file = File::open(name)?;
   let mut buffer = String::new();
   file.read_to_string(&mut buffer)?;
   // println!("{}", buffer);
-  let mut last_start = 0;
-  let mut state = TokenState::Any;
-  // let mut token = String::new();
-  // TODO How to avoid copies and use chars.as_str instead?
-  // let mut iter = buffer.chars();
+  let mut col_index = 0;
+  let mut line_index = 0;
+  let mut last_start: usize = 0;
+  let mut start_line = 0;
+  let mut start_col = 0;
+  let mut state = TokenState::Start;
   for (index, char) in buffer.char_indices() {
+    // println!("{}, {}", index, char);
     let new_state = match state {
       _ => {
         match char {
@@ -52,12 +55,29 @@ fn parse() -> Result<(), io::Error> {
       if index > last_start {
         let token = &buffer[last_start..index];
         println!(
-          "Change from {:?} ({}) to {:?} at {}", state, token, new_state, index,
+          "Token {:?} ({}) at {}, {} (char {})",
+          state, token, start_line + 1, start_col + 1, last_start,
         );
       }
       state = new_state;
       last_start = index;
+      start_line = line_index;
+      start_col = col_index;
+    }
+    // Count rows and cols.
+    col_index += 1;
+    if char == '\n' {
+      line_index += 1;
+      col_index = 0;
     }
   }
+  if buffer.len() > last_start {
+    let token = &buffer[last_start..];
+    println!(
+      "Token {:?} ({}) at {}, {} (char {})",
+      state, token, start_line + 1, start_col + 1, last_start,
+    );
+  }
+  // println!("size {}", buffer.len());
   Ok(())
 }

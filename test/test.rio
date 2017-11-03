@@ -2,3 +2,5 @@ out.print "Hello, \"world\"!"
 if a do
   say "Hi!"
 end
+
+hi
