@@ -14,7 +14,7 @@ use std::io::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum TokenState {
-  // Any,
+  Dot,
   Error,
   EscapeStart,
   Escape,
@@ -78,18 +78,13 @@ fn tokenize() -> Result<(), io::Error> {
           'A'...'Z' | 'a'...'z' | '_' => TokenState::Id,
           '0'...'9' => {
             match state {
+              TokenState::Dot => TokenState::Fraction,
               TokenState::Fraction => TokenState::Fraction,
               TokenState::Id => TokenState::Id,
               _ => TokenState::Int,
             }
           },
-          '.' => {
-            if state == TokenState::Int {
-              TokenState::Fraction
-            } else {
-              TokenState::Op1
-            }
-          }
+          '.' => TokenState::Dot,
           ',' | ';' | ':' | '(' | ')' | '[' | ']' | '{' | '}' => {
             TokenState::Op1
           },
