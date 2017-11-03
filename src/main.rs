@@ -44,6 +44,7 @@ fn tokenize() -> Result<(), io::Error> {
   let mut start_line = 0;
   let mut start_col = 0;
   let mut state = TokenState::Start;
+  let mut string_start = '?';
   for (index, char) in buffer.char_indices() {
     // println!("{}, {}", index, char);
     let new_state = match state {
@@ -56,7 +57,13 @@ fn tokenize() -> Result<(), io::Error> {
       TokenState::StringStart | TokenState::StringText => {
         match char {
           '\\' => TokenState::EscapeStart,
-          '"' => TokenState::StringStop,
+          '\'' | '"' => {
+            if char == string_start {
+              TokenState::StringStop
+            } else {
+              TokenState::StringText
+            }
+          },
           '\n' | '\r' => TokenState::VSpace,
           _ => TokenState::StringText,
         }
@@ -65,7 +72,10 @@ fn tokenize() -> Result<(), io::Error> {
         match char {
           ' ' | '\t' => TokenState::HSpace,
           'A'...'Z' | 'a'...'z' => TokenState::Id,
-          '"' => TokenState::StringStart,
+          '\'' | '"' => {
+            string_start = char;
+            TokenState::StringStart
+          },
           '\n' | '\r' => TokenState::VSpace,
           _ => TokenState::Error,
         }
