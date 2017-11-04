@@ -18,6 +18,7 @@ fn process(name: &str) -> Result<(), io::Error> {
   let mut file = File::open(name)?;
   let mut buffer = String::new();
   file.read_to_string(&mut buffer)?;
-  parse(tokenize(buffer.as_str()));
+  let tokens = tokenize(buffer.as_str());
+  parse(&tokens);
   Ok(())
 }

@@ -9,9 +9,21 @@ pub enum ParseState {
   PostHSpace,
 }
 
-pub fn parse<'a>(tokens: Vec<Token<'a>>) {
+pub struct Node<'a> {
+  kids: Vec<Node<'a>>,
+  state: ParseState,
+  token: Option<Token<'a>>,
+}
+
+pub fn parse<'a>(tokens: &'a Vec<Token<'a>>) -> Node<'a> {
+  let mut root = Node {kids: vec![], state: ParseState::Expr, token: None};
+  let mut parser = Parser {index: 0, tokens: tokens};
+  parser.parse_block(&root);
   let mut state = ParseState::Expr;
+  let mut stack: Vec<ParseState> = vec![ParseState::Expr];
   for token in tokens {
+    let parent = &stack.last().unwrap();
+    let last = &root.kids.last();
     let new_state = match state {
       ParseState::Error | ParseState::Expr => {
         match token.state {
@@ -63,5 +75,17 @@ pub fn parse<'a>(tokens: Vec<Token<'a>>) {
     };
     println!("{:?}: {:?}", state, token);
     state = new_state;
+  }
+  root
+}
+
+struct Parser<'a> {
+  index: usize,
+  tokens: &'a Vec<Token<'a>>,
+}
+
+impl<'a> Parser<'a> {
+  fn parse_block(&mut self, parent: &Node) {
+    //
   }
 }
