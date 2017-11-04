@@ -12,7 +12,7 @@ pub enum ParseState {
 pub struct Node<'a> {
   kids: Vec<Node<'a>>,
   state: ParseState,
-  token: Option<Token<'a>>,
+  token: Option<&'a Token<'a>>,
 }
 
 pub fn parse<'a>(tokens: &'a Vec<Token<'a>>) -> Node<'a> {
@@ -85,7 +85,21 @@ struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
+
   fn parse_block(&mut self, parent: &Node) {
     //
   }
+
+  fn next(&mut self) -> Option<&Token> {
+    let index = self.index;
+    if index < self.tokens.len() {
+      self.index += 1;
+    }
+    self.tokens.get(index)
+  }
+
+  fn peek(&mut self) -> Option<&Token> {
+    self.tokens.get(self.index)
+  }
+
 }
