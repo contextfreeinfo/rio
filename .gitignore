@@ -1,4 +1,4 @@
+/build/
 /notes/
-/target/
+/rust/target/
 /.vs/
-/CMakeSettings.json
