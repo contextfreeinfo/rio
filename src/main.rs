@@ -1,5 +1,7 @@
+mod parser;
 mod tokenizer;
 
+use parser::*;
 use std::env;
 use std::fs::File;
 use std::io;
@@ -16,8 +18,6 @@ fn process(name: &str) -> Result<(), io::Error> {
   let mut file = File::open(name)?;
   let mut buffer = String::new();
   file.read_to_string(&mut buffer)?;
-  for token in tokenize(buffer.as_str()) {
-    println!("{:?}", token);
-  }
+  parse(tokenize(buffer.as_str()));
   Ok(())
 }

@@ -2,10 +2,13 @@ use std::str::*;
 
 #[derive(Debug)]
 pub struct Token<'a> {
-  col: usize,
-  line: usize,
-  state: TokenState,
-  text: &'a str,
+  pub line: usize,
+  // Col in code points.
+  pub col: usize,
+  // Index in bytes.
+  pub index: usize,
+  pub state: TokenState,
+  pub text: &'a str,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -153,7 +156,11 @@ impl<'a> Iterator for Tokenizer<'a> {
     if stop_index > last_start {
       let text = &self.buffer[last_start..stop_index];
       Some(Token {
-        col: start_col, line: start_line, state: state, text: text,
+        line: start_line + 1,
+        col: start_col + 1,
+        index: last_start,
+        state: state,
+        text: text,
       })
     } else {
       None
