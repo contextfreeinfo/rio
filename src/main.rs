@@ -77,7 +77,7 @@ impl<'a> Iterator for Tokenizer<'a> {
   type Item = Token<'a>;
 
   fn next(&mut self) -> Option<Self::Item> {
-    let mut stop_index: usize = 0;
+    let mut stop_index: usize;
     let last_start = self.last_start;
     let start_col = self.start_col;
     let start_line = self.start_line;
@@ -137,7 +137,7 @@ impl<'a> Iterator for Tokenizer<'a> {
           };
           stop_index = index;
           state = self.state;
-          let state_changed = new_state != self.state;
+          let state_changed = new_state != state;
           if state_changed {
             self.state = new_state;
             self.last_start = index;
@@ -151,11 +151,13 @@ impl<'a> Iterator for Tokenizer<'a> {
             self.col_index = 0;
           }
           // If the first char, we might need to keep going.
-          if state_changed && index > self.last_start {
+          if state_changed && index > last_start {
             break;
           }
         }
         None => {
+          stop_index = self.buffer.len();
+          self.last_start = stop_index;
           break;
         }
       }
