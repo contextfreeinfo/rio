@@ -1,2 +1,4 @@
 /notes/
 /target/
+/.vs/
+/CMakeSettings.json
