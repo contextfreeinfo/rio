@@ -1,5 +1,6 @@
 /build/
 /notes/
 /rust/target/
+/target/
 /.vs/
 /.vscode/
