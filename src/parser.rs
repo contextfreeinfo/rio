@@ -48,7 +48,7 @@ struct Parser<'a> {
 
 impl<'a> Parser<'a> {
 
-  fn parse_block(&mut self, parent: &mut Node) {
+  fn parse_block(&mut self, parent: &mut Node<'a>) {
     loop {
       let mut row = Node::new(ParseState::Expr);
       match self.peek() {
@@ -63,7 +63,7 @@ impl<'a> Parser<'a> {
     }
   }
 
-  fn parse_row(&mut self, parent: &mut Node) {
+  fn parse_row(&mut self, parent: &mut Node<'a>) {
     loop {
       match self.next() {
         Some(ref token) => {
@@ -79,7 +79,7 @@ impl<'a> Parser<'a> {
     }
   }
 
-  fn next(&mut self) -> Option<&Token> {
+  fn next(&mut self) -> Option<&'a Token<'a>> {
     let index = self.index;
     if index < self.tokens.len() {
       self.index += 1;
@@ -87,7 +87,7 @@ impl<'a> Parser<'a> {
     self.tokens.get(index)
   }
 
-  fn peek(&mut self) -> Option<&Token> {
+  fn peek(&mut self) -> Option<&'a Token<'a>> {
     self.tokens.get(self.index)
   }
 
