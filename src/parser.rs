@@ -9,6 +9,7 @@ pub enum ParseState {
   PostHSpace,
 }
 
+#[derive(Clone, Debug)]
 pub struct Node<'a> {
   kids: Vec<Node<'a>>,
   state: ParseState,
@@ -52,8 +53,12 @@ impl<'a> Parser<'a> {
     loop {
       let mut row = Node::new(ParseState::Expr);
       match self.peek() {
-        Some(_) => {
-          self.parse_row(&mut row);
+        Some(ref token) => match token.state {
+          TokenState::VSpace => {
+            parent.kids.push(Node::new_token(&token));
+            self.next();
+          }
+          _ => self.parse_row(&mut row),
         }
         None => {
           break;
@@ -66,13 +71,12 @@ impl<'a> Parser<'a> {
   fn parse_row(&mut self, parent: &mut Node<'a>) {
     loop {
       match self.next() {
-        Some(ref token) => {
-          match token.state {
-            TokenState::VSpace => break,
-            _ => {
-              parent.kids.push(Node::new_token(&token));
-            }
+        Some(ref token) => match token.state {
+          TokenState::VSpace => {
+            self.prev();
+            break;
           }
+          _ => parent.kids.push(Node::new_token(&token)),
         }
         None => break,
       }
@@ -89,6 +93,12 @@ impl<'a> Parser<'a> {
 
   fn peek(&mut self) -> Option<&'a Token<'a>> {
     self.tokens.get(self.index)
+  }
+
+  fn prev(&mut self) {
+    if self.index > 0 {
+      self.index -= 1;
+    }
   }
 
 }
