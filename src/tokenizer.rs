@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::str::*;
 
 #[derive(Debug)]
@@ -13,6 +14,7 @@ pub struct Token<'a> {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TokenState {
+  Do,
   Dot,
   Error,
   EscapeStart,
@@ -39,6 +41,7 @@ struct Tokenizer<'a> {
   buffer: &'a str,
   char_indices: CharIndices<'a>,
   col_index: usize,
+  keys: HashMap<&'a str, TokenState>,
   last_start: usize,
   line_index: usize,
   start_col: usize,
@@ -48,19 +51,29 @@ struct Tokenizer<'a> {
 }
 
 impl<'a> Tokenizer<'a> {
+
   pub fn new(buffer: &str) -> Tokenizer {
+    let mut keys = HashMap::new();
+    keys.insert("do", TokenState::Do);
     Tokenizer {
       buffer: buffer,
       char_indices: buffer.char_indices(),
       col_index: 0,
       last_start: 0,
       line_index: 0,
+      keys,
       start_line: 0,
       start_col: 0,
       state: TokenState::Start,
       string_start: '?',
     }
   }
+
+  fn find_key(&self, text: &str) -> TokenState {
+    // TODO Replace with state machine for speed?
+    *self.keys.get(text).unwrap_or(&TokenState::Id)
+  }
+
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
@@ -155,6 +168,10 @@ impl<'a> Iterator for Tokenizer<'a> {
     }
     if stop_index > last_start {
       let text = &self.buffer[last_start..stop_index];
+      state = match state {
+        TokenState::Id => self.find_key(text),
+        _ => state,
+      };
       Some(Token {
         line: start_line + 1,
         col: start_col + 1,

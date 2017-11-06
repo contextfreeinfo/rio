@@ -1,30 +1,28 @@
 use tokenizer::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ParseState {
-  Error,
-  Expr,
-  Fraction,
-  PostAtom,
-  PostHSpace,
+pub enum NodeType {
+  Block,
+  Row,
+  Token,
 }
 
 #[derive(Clone, Debug)]
 pub struct Node<'a> {
   kids: Vec<Node<'a>>,
-  state: ParseState,
+  state: NodeType,
   token: Option<&'a Token<'a>>,
 }
 
 impl<'a> Node<'a> {
 
-  fn new(state: ParseState) -> Node<'a> {
+  fn new(state: NodeType) -> Node<'a> {
     Node {kids: vec![], state, token: None}
   }
 
   fn new_token(token: &'a Token<'a>) -> Node<'a> {
     // TODO Control state? Some token state?
-    Node {kids: vec![], state: ParseState::Expr, token: Some(&token)}
+    Node {kids: vec![], state: NodeType::Token, token: Some(&token)}
   }
 
   pub fn print(&self) {
@@ -35,7 +33,8 @@ impl<'a> Node<'a> {
     if self.token.is_some() {
       let token = &self.token.unwrap();
       println!(
-        "{}token at {}, {}: ({})", prefix, token.line, token.col, token.text,
+        "{}Token at {}, {}: {:?} ({})",
+        prefix, token.line, token.col, token.state, token.text,
       );
     } else {
       println!("{}{:?}", prefix, self.state);
@@ -59,7 +58,7 @@ impl<'a> Node<'a> {
 }
 
 pub fn parse<'a>(tokens: &'a Vec<Token<'a>>) -> Node<'a> {
-  let mut root = Node::new(ParseState::Expr);
+  let mut root = Node::new(NodeType::Block);
   let mut parser = Parser {index: 0, tokens: tokens};
   parser.parse_block(&mut root);
   root
@@ -74,7 +73,7 @@ impl<'a> Parser<'a> {
 
   fn parse_block(&mut self, parent: &mut Node<'a>) {
     loop {
-      let mut row = Node::new(ParseState::Expr);
+      let mut row = Node::new(NodeType::Row);
       match self.peek() {
         Some(ref token) => match token.state {
           TokenState::VSpace => {
