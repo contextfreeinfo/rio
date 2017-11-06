@@ -27,6 +27,25 @@ impl<'a> Node<'a> {
     Node {kids: vec![], state: ParseState::Expr, token: Some(&token)}
   }
 
+  pub fn print(&self) {
+    self.print_at("  ");
+  }
+
+  fn print_at(&self, prefix: &str) {
+    if self.token.is_some() {
+      let token = &self.token.unwrap();
+      println!(
+        "{}token at {}, {}: ({})", prefix, token.line, token.col, token.text,
+      );
+    } else {
+      println!("{}{:?}", prefix, self.state);
+      let deeper = format!("{}  ", prefix);
+      for kid in &self.kids {
+        kid.print_at(deeper.as_str());
+      }
+    }
+  }
+
   fn push_if(&mut self, node: Node<'a>) {
     if !node.kids.is_empty() {
       self.kids.push(node);
@@ -60,9 +79,7 @@ impl<'a> Parser<'a> {
           }
           _ => self.parse_row(&mut row),
         }
-        None => {
-          break;
-        }
+        None => break,
       }
       parent.push_if(row);
     }

@@ -20,6 +20,6 @@ fn process(name: &str) -> Result<(), io::Error> {
   file.read_to_string(&mut buffer)?;
   let tokens = tokenize(buffer.as_str());
   let tree = parse(&tokens);
-  println!("{:#?}", tree);
+  tree.print();
   Ok(())
 }
