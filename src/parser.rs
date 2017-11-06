@@ -52,6 +52,10 @@ impl<'a> Node<'a> {
     }
   }
 
+  fn push_token(&mut self, token: &'a Token<'a>) {
+    self.kids.push(Node::new_token(token));
+  }
+
 }
 
 pub fn parse<'a>(tokens: &'a Vec<Token<'a>>) -> Node<'a> {
@@ -74,7 +78,7 @@ impl<'a> Parser<'a> {
       match self.peek() {
         Some(ref token) => match token.state {
           TokenState::VSpace => {
-            parent.kids.push(Node::new_token(&token));
+            parent.push_token(&token);
             self.next();
           }
           _ => self.parse_row(&mut row),
@@ -93,7 +97,7 @@ impl<'a> Parser<'a> {
             self.prev();
             break;
           }
-          _ => parent.kids.push(Node::new_token(&token)),
+          _ => parent.push_token(&token),
         }
         None => break,
       }
