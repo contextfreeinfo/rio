@@ -3,6 +3,7 @@ use tokenizer::*;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum NodeType {
   Block,
+  Do,
   Row,
   Token,
 }
@@ -76,6 +77,10 @@ impl<'a> Parser<'a> {
       let mut row = Node::new(NodeType::Row);
       match self.peek() {
         Some(ref token) => match token.state {
+          TokenState::End => {
+            // TODO Ignore with error if at top level or otherwise non-matching.
+            break;
+          }
           TokenState::VSpace => {
             parent.push_token(&token);
             self.next();
@@ -88,10 +93,43 @@ impl<'a> Parser<'a> {
     }
   }
 
+  fn parse_do(&mut self, parent: &mut Node<'a>) {
+    let mut current = Node::new(NodeType::Do);
+    current.push_token(self.next().unwrap());
+    match self.next() {
+      Some(ref token) => match token.state {
+        TokenState::VSpace => {
+          self.prev();
+          self.parse_block(&mut current);
+          match self.next() {
+            Some(ref token) => match token.state {
+              TokenState::End => {
+                current.push_token(token);
+              }
+              _ => {}
+            }
+            _ => {}
+          }
+        }
+        _ => {}
+      }
+      None => {}
+    }
+    parent.kids.push(current);
+  }
+
   fn parse_row(&mut self, parent: &mut Node<'a>) {
     loop {
       match self.next() {
         Some(ref token) => match token.state {
+          TokenState::Do => {
+            self.prev();
+            self.parse_do(parent);
+          }
+          TokenState::End => {
+            self.prev();
+            break;
+          }
           TokenState::VSpace => {
             self.prev();
             break;

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::str::*;
 
 #[derive(Debug)]
@@ -16,6 +15,7 @@ pub struct Token<'a> {
 pub enum TokenState {
   Do,
   Dot,
+  End,
   Error,
   EscapeStart,
   Escape,
@@ -71,6 +71,16 @@ impl<'a> Tokenizer<'a> {
       Some('d') => match chars.next() {
         Some('o') => match chars.next() {
           None => TokenState::Do,
+          _ => TokenState::Id,
+        }
+        _ => TokenState::Id,
+      }
+      Some('e') => match chars.next() {
+        Some('n') => match chars.next() {
+          Some('d') => match chars.next() {
+            None => TokenState::End,
+            _ => TokenState::Id,
+          }
           _ => TokenState::Id,
         }
         _ => TokenState::Id,
