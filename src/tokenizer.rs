@@ -41,7 +41,6 @@ struct Tokenizer<'a> {
   buffer: &'a str,
   char_indices: CharIndices<'a>,
   col_index: usize,
-  keys: HashMap<&'a str, TokenState>,
   last_start: usize,
   line_index: usize,
   start_col: usize,
@@ -53,15 +52,12 @@ struct Tokenizer<'a> {
 impl<'a> Tokenizer<'a> {
 
   pub fn new(buffer: &str) -> Tokenizer {
-    let mut keys = HashMap::new();
-    keys.insert("do", TokenState::Do);
     Tokenizer {
-      buffer: buffer,
+      buffer,
       char_indices: buffer.char_indices(),
       col_index: 0,
       last_start: 0,
       line_index: 0,
-      keys,
       start_line: 0,
       start_col: 0,
       state: TokenState::Start,
@@ -70,8 +66,17 @@ impl<'a> Tokenizer<'a> {
   }
 
   fn find_key(&self, text: &str) -> TokenState {
-    // TODO Replace with state machine for speed?
-    *self.keys.get(text).unwrap_or(&TokenState::Id)
+    let mut chars = text.chars();
+    match chars.next() {
+      Some('d') => match chars.next() {
+        Some('o') => match chars.next() {
+          None => TokenState::Do,
+          _ => TokenState::Id,
+        }
+        _ => TokenState::Id,
+      }
+      _ => TokenState::Id,
+    }
   }
 
 }
