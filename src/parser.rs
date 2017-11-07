@@ -6,6 +6,7 @@ pub enum NodeType {
   Do,
   Row,
   Token,
+  Top,
 }
 
 #[derive(Clone, Debug)]
@@ -46,20 +47,24 @@ impl<'a> Node<'a> {
     }
   }
 
+  fn push(&mut self, node: Node<'a>) {
+    self.kids.push(node);
+  }
+
   fn push_if(&mut self, node: Node<'a>) {
     if !node.kids.is_empty() {
-      self.kids.push(node);
+      self.push(node);
     }
   }
 
   fn push_token(&mut self, token: &'a Token<'a>) {
-    self.kids.push(Node::new_token(token));
+    self.push(Node::new_token(token));
   }
 
 }
 
 pub fn parse<'a>(tokens: &'a Vec<Token<'a>>) -> Node<'a> {
-  let mut root = Node::new(NodeType::Block);
+  let mut root = Node::new(NodeType::Top);
   let mut parser = Parser {index: 0, tokens: tokens};
   parser.parse_block(&mut root);
   root
@@ -78,8 +83,17 @@ impl<'a> Parser<'a> {
       match self.peek() {
         Some(ref token) => match token.state {
           TokenState::End => {
-            // TODO Ignore with error if at top level or otherwise non-matching.
-            break;
+            // TODO Flag error.
+            // TODO Also error and remain if non-matching.
+            // TODO Or separate validation rules from initial parsing, maybe.
+            // TODO Separation of concerns at all might keep code cleaner.
+            if parent.state == NodeType::Top {
+              // Keep on trucking.
+              parent.push_token(&token);
+              self.next();
+            } else {
+              break;
+            }
           }
           TokenState::VSpace => {
             parent.push_token(&token);
@@ -96,11 +110,28 @@ impl<'a> Parser<'a> {
   fn parse_do(&mut self, parent: &mut Node<'a>) {
     let mut current = Node::new(NodeType::Do);
     current.push_token(self.next().unwrap());
+    // TODO Parse args, etc.
+    loop {
+      match self.peek() {
+        Some(ref token) => match token.state {
+          TokenState::HSpace => {
+            current.push_token(&token);
+            self.next();
+          }
+          _ => break,
+        }
+        _ => break,
+      }
+    }
+    // See if we have a block.
+    // TODO Or a token!
     match self.next() {
       Some(ref token) => match token.state {
         TokenState::VSpace => {
           self.prev();
-          self.parse_block(&mut current);
+          let mut block = Node::new(NodeType::Block);
+          self.parse_block(&mut block);
+          current.push(block);
           match self.next() {
             Some(ref token) => match token.state {
               TokenState::End => {
@@ -115,7 +146,7 @@ impl<'a> Parser<'a> {
       }
       None => {}
     }
-    parent.kids.push(current);
+    parent.push(current);
   }
 
   fn parse_row(&mut self, parent: &mut Node<'a>) {
