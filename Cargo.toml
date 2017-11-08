@@ -4,3 +4,7 @@ version = "0.1.0"
 authors = ["Tom"]
 
 [dependencies]
+
+[[bin]]
+name = "rio"
+doc = false
