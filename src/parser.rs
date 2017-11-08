@@ -27,23 +27,27 @@ impl<'a> Node<'a> {
     Node {kids: vec![], state: NodeType::Token, token: Some(&token)}
   }
 
-  pub fn print(&self) {
-    self.print_at("  ");
+  pub fn format(&self) -> String {
+    self.format_at("  ")
   }
 
-  fn print_at(&self, prefix: &str) {
+  fn format_at(&self, prefix: &str) -> String {
+    // Might not be the most efficient, since it doesn't work on a single big
+    // buffer, but it shouldn't be needed except for debugging.
+    // TODO Pass down the string to append to?
     if self.token.is_some() {
       let token = &self.token.unwrap();
-      println!(
+      format!(
         "{}Token at {}, {}: {:?} ({})",
         prefix, token.line, token.col, token.state, token.text,
-      );
+      )
     } else {
       println!("{}{:?}", prefix, self.state);
       let deeper = format!("{}  ", prefix);
-      for kid in &self.kids {
-        kid.print_at(deeper.as_str());
-      }
+      let kids: Vec<_> = self.kids.iter().map(|ref kid| {
+        kid.format_at(deeper.as_str())
+      }).collect();
+      kids[..].join("\n")
     }
   }
 
