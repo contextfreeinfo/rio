@@ -1,75 +1,75 @@
-  Top
-    Row
-    Row
-      Do
-        Block
-          Row
-    Row
-    Row
-      Token at 1, 1: Id (out)
-      Token at 1, 4: Dot (.)
-      Token at 1, 5: Id (print)
-      Token at 1, 10: HSpace ( )
-      Token at 1, 11: StringStart (")
-      Token at 1, 12: StringText (Hello, )
-      Token at 1, 19: EscapeStart (\)
-      Token at 1, 20: Escape (")
-      Token at 1, 21: StringText (world)
-      Token at 1, 26: EscapeStart (\)
-      Token at 1, 27: Escape (")
-      Token at 1, 28: StringText (!)
-      Token at 1, 29: StringStop (")
-    Token at 1, 30: VSpace (
+Top
+  Row
+    Token at 1, 1: Id (out)
+    Token at 1, 4: Dot (.)
+    Token at 1, 5: Id (print)
+    Token at 1, 10: HSpace ( )
+    Token at 1, 11: StringStart (")
+    Token at 1, 12: StringText (Hello, )
+    Token at 1, 19: EscapeStart (\)
+    Token at 1, 20: Escape (")
+    Token at 1, 21: StringText (world)
+    Token at 1, 26: EscapeStart (\)
+    Token at 1, 27: Escape (")
+    Token at 1, 28: StringText (!)
+    Token at 1, 29: StringStop (")
+  Token at 1, 30: VSpace (
 )
-      Token at 2, 1: Id (if)
-      Token at 2, 3: HSpace ( )
-      Token at 2, 4: Id (a1)
-      Token at 2, 6: HSpace ( )
-        Token at 2, 7: Do (do)
-          Token at 2, 9: VSpace (
+  Row
+    Token at 2, 1: Id (if)
+    Token at 2, 3: HSpace ( )
+    Token at 2, 4: Id (a1)
+    Token at 2, 6: HSpace ( )
+    Do
+      Token at 2, 7: Do (do)
+      Block
+        Token at 2, 9: VSpace (
 )
-            Token at 3, 1: HSpace (  )
-            Token at 3, 3: Id (say)
-            Token at 3, 6: HSpace ( )
-            Token at 3, 7: StringStart (')
-            Token at 3, 8: StringText (Hi!)
-          Token at 3, 11: VSpace (
+        Row
+          Token at 3, 1: HSpace (  )
+          Token at 3, 3: Id (say)
+          Token at 3, 6: HSpace ( )
+          Token at 3, 7: StringStart (')
+          Token at 3, 8: StringText (Hi!)
+        Token at 3, 11: VSpace (
 )
-        Token at 4, 1: End (end)
-    Token at 4, 4: VSpace (
+      Token at 4, 1: End (end)
+  Token at 4, 4: VSpace (
 
 )
-    Token at 6, 1: End (end)
-    Token at 6, 4: VSpace (
+  Token at 6, 1: End (end)
+  Token at 6, 4: VSpace (
 
 )
-      Token at 8, 1: Id (z)
-      Token at 8, 2: HSpace ( )
-      Token at 8, 3: Op2 (=)
-      Token at 8, 4: HSpace ( )
-      Token at 8, 5: Id (x)
-      Token at 8, 6: HSpace ( )
-      Token at 8, 7: Op2 (+)
-      Token at 8, 8: HSpace ( )
-      Token at 8, 9: Int (1)
-      Token at 8, 10: HSpace ( )
-      Token at 8, 11: Op2 (-)
-      Token at 8, 12: HSpace ( )
-      Token at 8, 13: Int (0)
-      Token at 8, 14: Dot (.)
-      Token at 8, 15: Fraction (3)
-      Token at 8, 16: HSpace ( )
-      Token at 8, 17: Op2 (*)
-      Token at 8, 18: HSpace ( )
-      Token at 8, 19: Id (y)
-      Token at 8, 20: HSpace ( )
-      Token at 8, 21: Op2 (/)
-      Token at 8, 22: HSpace ( )
-      Token at 8, 23: Dot (.)
-      Token at 8, 24: Fraction (2)
-    Token at 8, 25: VSpace (
+  Row
+    Token at 8, 1: Id (z)
+    Token at 8, 2: HSpace ( )
+    Token at 8, 3: Op2 (=)
+    Token at 8, 4: HSpace ( )
+    Token at 8, 5: Id (x)
+    Token at 8, 6: HSpace ( )
+    Token at 8, 7: Op2 (+)
+    Token at 8, 8: HSpace ( )
+    Token at 8, 9: Int (1)
+    Token at 8, 10: HSpace ( )
+    Token at 8, 11: Op2 (-)
+    Token at 8, 12: HSpace ( )
+    Token at 8, 13: Int (0)
+    Token at 8, 14: Dot (.)
+    Token at 8, 15: Fraction (3)
+    Token at 8, 16: HSpace ( )
+    Token at 8, 17: Op2 (*)
+    Token at 8, 18: HSpace ( )
+    Token at 8, 19: Id (y)
+    Token at 8, 20: HSpace ( )
+    Token at 8, 21: Op2 (/)
+    Token at 8, 22: HSpace ( )
+    Token at 8, 23: Dot (.)
+    Token at 8, 24: Fraction (2)
+  Token at 8, 25: VSpace (
 
 )
-      Token at 10, 1: Id (hi)
-    Token at 10, 3: VSpace (
+  Row
+    Token at 10, 1: Id (hi)
+  Token at 10, 3: VSpace (
 )

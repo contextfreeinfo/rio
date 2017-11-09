@@ -3,8 +3,15 @@ name = "rio"
 version = "0.1.0"
 authors = ["Tom"]
 
-[dependencies]
-
 [[bin]]
 name = "rio"
 doc = false
+
+[[bin]]
+name = "testup"
+path = "util/testup.rs"
+
+[dependencies]
+
+[dev-dependencies]
+difference = "1.0"

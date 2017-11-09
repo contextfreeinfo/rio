@@ -28,7 +28,7 @@ impl<'a> Node<'a> {
   }
 
   pub fn format(&self) -> String {
-    self.format_at("  ")
+    self.format_at("")
   }
 
   fn format_at(&self, prefix: &str) -> String {
@@ -42,12 +42,13 @@ impl<'a> Node<'a> {
         prefix, token.line, token.col, token.state, token.text,
       )
     } else {
-      println!("{}{:?}", prefix, self.state);
+      let mut head = format!("{}{:?}\n", prefix, self.state);
       let deeper = format!("{}  ", prefix);
       let kids: Vec<_> = self.kids.iter().map(|ref kid| {
         kid.format_at(deeper.as_str())
       }).collect();
-      kids[..].join("\n")
+      head.push_str(kids[..].join("\n").as_str());
+      head
     }
   }
 
