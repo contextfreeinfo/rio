@@ -4,15 +4,16 @@ Top
     Token at 1, 4: Dot (.)
     Token at 1, 5: Id (print)
     Token at 1, 10: HSpace ( )
-    Token at 1, 11: StringStart (")
-    Token at 1, 12: StringText (Hello, )
-    Token at 1, 19: EscapeStart (\)
-    Token at 1, 20: Escape (")
-    Token at 1, 21: StringText (world)
-    Token at 1, 26: EscapeStart (\)
-    Token at 1, 27: Escape (")
-    Token at 1, 28: StringText (!)
-    Token at 1, 29: StringStop (")
+    String
+      Token at 1, 11: StringStart (")
+      Token at 1, 12: StringText (Hello, )
+      Token at 1, 19: EscapeStart (\)
+      Token at 1, 20: Escape (")
+      Token at 1, 21: StringText (world)
+      Token at 1, 26: EscapeStart (\)
+      Token at 1, 27: Escape (")
+      Token at 1, 28: StringText (!)
+      Token at 1, 29: StringStop (")
   Token at 1, 30: VSpace (
 )
   Row
@@ -29,8 +30,9 @@ Top
           Token at 3, 1: HSpace (  )
           Token at 3, 3: Id (say)
           Token at 3, 6: HSpace ( )
-          Token at 3, 7: StringStart (')
-          Token at 3, 8: StringText (Hi!)
+          String
+            Token at 3, 7: StringStart (')
+            Token at 3, 8: StringText (Hi!)
         Token at 3, 11: VSpace (
 )
       Token at 4, 1: End (end)

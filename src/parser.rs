@@ -5,6 +5,7 @@ pub enum NodeType {
   Block,
   Do,
   Row,
+  String,
   Token,
   Top,
 }
@@ -154,27 +155,58 @@ impl<'a> Parser<'a> {
     parent.push(current);
   }
 
+  fn parse_item(&mut self, parent: &mut Node<'a>) {
+    match self.peek() {
+      Some(ref token) => match token.state {
+        TokenState::StringStart => self.parse_string(parent),
+        _ => {
+          parent.push_token(token);
+          self.next();
+        }
+      }
+      _ => {}
+    }
+  }
+
   fn parse_row(&mut self, parent: &mut Node<'a>) {
+    loop {
+      match self.peek() {
+        Some(ref token) => match token.state {
+          TokenState::Do => self.parse_do(parent),
+          TokenState::End => break,
+          TokenState::VSpace => break,
+          _ => self.parse_item(parent),
+        }
+        None => {
+          self.next();
+          break;
+        },
+      }
+    }
+  }
+
+  fn parse_string(&mut self, parent: &mut Node<'a>) {
+    let mut string = Node::new(NodeType::String);
     loop {
       match self.next() {
         Some(ref token) => match token.state {
-          TokenState::Do => {
-            self.prev();
-            self.parse_do(parent);
-          }
-          TokenState::End => {
-            self.prev();
+          TokenState::StringStop => {
+            string.push_token(token);
             break;
           }
           TokenState::VSpace => {
+            // TODO In what pass do we link juxtaposed strings?
+            // TODO Look ahead now?
             self.prev();
             break;
           }
-          _ => parent.push_token(&token),
+          _ => string.push_token(token),
         }
-        None => break,
+        _ => break,
       }
     }
+    // We shouldn't be here in the first place if there weren't a start.
+    parent.push(string);
   }
 
   fn next(&mut self) -> Option<&'a Token<'a>> {
