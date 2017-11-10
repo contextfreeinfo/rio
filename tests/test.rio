@@ -1,6 +1,9 @@
-out.print "Hello, \"world\"!"
+# Maybe spaced items are allowed only at the row level?
+# Do commas separate spaced lists for three levels deep???
+
+out.print "Hello, \"world\"!" # Should be a comment.
 if a1 do
-  say 'Hi!
+  say 'Hi! # Should be in the string.
 end
 
 end

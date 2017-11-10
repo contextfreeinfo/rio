@@ -13,6 +13,7 @@ pub struct Token<'a> {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TokenState {
+  Comment,
   Do,
   Dot,
   End,
@@ -105,6 +106,12 @@ impl<'a> Iterator for Tokenizer<'a> {
       match self.char_indices.next() {
         Some((index, char)) => {
           let new_state = match self.state {
+            TokenState::Comment => {
+              match char {
+                '\n' | '\r' => TokenState::VSpace,
+                _ => TokenState::Comment,
+              }
+            }
             TokenState::Escape => {
               TokenState::StringText
             }
@@ -127,6 +134,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             },
             _ => {
               match char {
+                '#' => TokenState::Comment,
                 ' ' | '\t' => TokenState::HSpace,
                 'A'...'Z' | 'a'...'z' | '_' => TokenState::Id,
                 '0'...'9' => {
