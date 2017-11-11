@@ -18,6 +18,7 @@ pub enum TokenState {
   Do,
   Dot,
   End,
+  Eof,
   Error,
   EscapeStart,
   Escape,
@@ -44,6 +45,7 @@ struct Tokenizer<'a> {
   buffer: &'a str,
   char_indices: CharIndices<'a>,
   col_index: usize,
+  gave_eof: bool,
   last_start: usize,
   line_index: usize,
   start_col: usize,
@@ -59,6 +61,7 @@ impl<'a> Tokenizer<'a> {
       buffer,
       char_indices: buffer.char_indices(),
       col_index: 0,
+      gave_eof: false,
       last_start: 0,
       line_index: 0,
       start_line: 0,
@@ -202,23 +205,28 @@ impl<'a> Iterator for Tokenizer<'a> {
         }
       }
     }
-    if stop_index > last_start {
-      let text = &self.buffer[last_start..stop_index];
-      state = match state {
-        TokenState::Id => self.find_key(text),
-        TokenState::Op1 | TokenState::Op2 => self.find_op(text),
-        _ => state,
-      };
-      Some(Token {
-        line: start_line + 1,
-        col: start_col + 1,
-        index: last_start,
-        state: state,
-        text: text,
-      })
-    } else {
-      None
+    if stop_index == last_start {
+      if self.gave_eof {
+        return None;
+      }
+      // Eof token lets parser ignore None case better.
+      state = TokenState::Eof;
+      self.gave_eof = true;
     }
+    // We have a token to give.
+    let text = &self.buffer[last_start..stop_index];
+    state = match state {
+      TokenState::Id => self.find_key(text),
+      TokenState::Op1 | TokenState::Op2 => self.find_op(text),
+      _ => state,
+    };
+    Some(Token {
+      line: start_line + 1,
+      col: start_col + 1,
+      index: last_start,
+      state: state,
+      text: text,
+    })
   }
 
 }

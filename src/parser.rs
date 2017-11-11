@@ -88,17 +88,15 @@ impl<'a> Parser<'a> {
     let mut assign = Node::new(NodeType::Assign);
     let mut has_assign = false;
     loop {
-      match self.peek() {
-        Some(ref token) => match token.state {
-          TokenState::Assign => {
-            assign.push_token(token);
-            has_assign = true;
-            self.next();
-          }
-          TokenState::End | TokenState::VSpace => break,
-          _ => self.parse_item(&mut assign),
+      let token = self.peek();
+      match token.state {
+        TokenState::Assign => {
+          assign.push_token(token);
+          has_assign = true;
+          self.next();
         }
-        None => break,
+        TokenState::End | TokenState::Eof | TokenState::VSpace => break,
+        _ => self.parse_item(&mut assign),
       }
     }
     if has_assign {
@@ -111,28 +109,27 @@ impl<'a> Parser<'a> {
   fn parse_block(&mut self, parent: &mut Node<'a>) {
     loop {
       let mut row = Node::new(NodeType::Row);
-      match self.peek() {
-        Some(ref token) => match token.state {
-          TokenState::End => {
-            // TODO Flag error.
-            // TODO Also error and remain if non-matching.
-            // TODO Or separate validation rules from initial parsing, maybe.
-            // TODO Separation of concerns at all might keep code cleaner.
-            if parent.state == NodeType::Top {
-              // Keep on trucking.
-              parent.push_token(&token);
-              self.next();
-            } else {
-              break;
-            }
-          }
-          TokenState::VSpace => {
+      let token = self.peek();
+      match token.state {
+        TokenState::End => {
+          // TODO Flag error.
+          // TODO Also error and remain if non-matching.
+          // TODO Or separate validation rules from initial parsing, maybe.
+          // TODO Separation of concerns at all might keep code cleaner.
+          if parent.state == NodeType::Top {
+            // Keep on trucking.
             parent.push_token(&token);
             self.next();
+          } else {
+            break;
           }
-          _ => self.parse_row(&mut row),
         }
-        None => break,
+        TokenState::Eof => break,
+        TokenState::VSpace => {
+          parent.push_token(&token);
+          self.next();
+        }
+        _ => self.parse_row(&mut row),
       }
       parent.push_if(row);
     }
@@ -140,73 +137,56 @@ impl<'a> Parser<'a> {
 
   fn parse_do(&mut self, parent: &mut Node<'a>) {
     let mut current = Node::new(NodeType::Do);
-    current.push_token(self.next().unwrap());
+    current.push_token(self.next());
     // TODO Parse args, etc.
     loop {
-      match self.peek() {
-        Some(ref token) => match token.state {
-          TokenState::HSpace => {
-            current.push_token(&token);
-            self.next();
-          }
-          _ => break,
+      let token = self.peek();
+      match token.state {
+        TokenState::HSpace => {
+          current.push_token(&token);
+          self.next();
         }
         _ => break,
       }
     }
     // See if we have a block.
-    // TODO Or a token!
-    match self.next() {
-      Some(ref token) => match token.state {
-        TokenState::VSpace => {
-          self.prev();
-          let mut block = Node::new(NodeType::Block);
-          self.parse_block(&mut block);
-          current.push(block);
-          match self.next() {
-            Some(ref token) => match token.state {
-              TokenState::End => {
-                current.push_token(token);
-              }
-              _ => {}
-            }
-            _ => {}
+    match self.next().state {
+      TokenState::VSpace => {
+        self.prev();
+        let mut block = Node::new(NodeType::Block);
+        self.parse_block(&mut block);
+        current.push(block);
+        let token = self.next();
+        match token.state {
+          TokenState::End => {
+            current.push_token(token);
           }
+          _ => {}
         }
-        _ => {}
       }
-      None => {}
+      _ => {}
     }
     parent.push(current);
   }
 
   fn parse_item(&mut self, parent: &mut Node<'a>) {
-    match self.peek() {
-      Some(ref token) => match token.state {
-        TokenState::Assign | TokenState::End => {},
-        TokenState::Do => self.parse_do(parent),
-        TokenState::StringStart => self.parse_string(parent),
-        _ => {
-          parent.push_token(token);
-          self.next();
-        }
+    let token = self.peek();
+    match token.state {
+      TokenState::Assign | TokenState::End | TokenState::Eof => {},
+      TokenState::Do => self.parse_do(parent),
+      TokenState::StringStart => self.parse_string(parent),
+      _ => {
+        parent.push_token(token);
+        self.next();
       }
-      _ => {}
     }
   }
 
   fn parse_row(&mut self, parent: &mut Node<'a>) {
     loop {
-      match self.peek() {
-        Some(ref token) => match token.state {
-          TokenState::End => break,
-          TokenState::VSpace => break,
-          _ => self.parse_assign(parent),
-        }
-        None => {
-          self.next();
-          break;
-        },
+      match self.peek().state {
+        TokenState::End | TokenState::Eof | TokenState::VSpace => break,
+        _ => self.parse_assign(parent),
       }
     }
   }
@@ -214,37 +194,35 @@ impl<'a> Parser<'a> {
   fn parse_string(&mut self, parent: &mut Node<'a>) {
     let mut string = Node::new(NodeType::String);
     loop {
-      match self.next() {
-        Some(ref token) => match token.state {
-          TokenState::StringStop => {
-            string.push_token(token);
-            break;
-          }
-          TokenState::VSpace => {
-            // TODO In what pass do we link juxtaposed strings?
-            // TODO Look ahead now?
-            self.prev();
-            break;
-          }
-          _ => string.push_token(token),
+      let token = self.next();
+      match token.state {
+        TokenState::StringStop => {
+          string.push_token(token);
+          break;
         }
-        _ => break,
+        TokenState::Eof | TokenState::VSpace => {
+          // TODO In what pass do we link juxtaposed strings?
+          // TODO Look ahead now?
+          self.prev();
+          break;
+        }
+        _ => string.push_token(token),
       }
     }
     // We shouldn't be here in the first place if there weren't a start.
     parent.push(string);
   }
 
-  fn next(&mut self) -> Option<&'a Token<'a>> {
+  fn next(&mut self) -> &'a Token<'a> {
     let index = self.index;
     if index < self.tokens.len() {
       self.index += 1;
     }
-    self.tokens.get(index)
+    self.tokens.get(index).unwrap()
   }
 
-  fn peek(&mut self) -> Option<&'a Token<'a>> {
-    self.tokens.get(self.index)
+  fn peek(&mut self) -> &'a Token<'a> {
+    self.tokens.get(self.index).unwrap()
   }
 
   fn prev(&mut self) {

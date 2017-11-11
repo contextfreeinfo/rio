@@ -13,7 +13,7 @@ pub fn process(name: &str) -> Result<(), io::Error> {
   let mut buffer = String::new();
   file.read_to_string(&mut buffer)?;
   let tokens = tokenize(buffer.as_str());
-  let tree = parse(&tokens);
-  println!("{}", tree.format());
+  let _tree = parse(&tokens);
+  // println!("{}", _tree.format());
   Ok(())
 }
