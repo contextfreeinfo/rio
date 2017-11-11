@@ -87,16 +87,32 @@ impl<'a> Parser<'a> {
   fn parse_assign(&mut self, parent: &mut Node<'a>) {
     let mut assign = Node::new(NodeType::Assign);
     let mut has_assign = false;
+    let mut skip_vspace = false;
     loop {
       let token = self.peek();
       match token.state {
         TokenState::Assign => {
           assign.push_token(token);
           has_assign = true;
+          skip_vspace = true;
           self.next();
         }
-        TokenState::End | TokenState::Eof | TokenState::VSpace => break,
-        _ => self.parse_item(&mut assign),
+        TokenState::Comment | TokenState::HSpace => {
+          assign.push_token(token);
+          self.next();
+        }
+        TokenState::End | TokenState::Eof => break,
+        TokenState::VSpace => {
+          if !skip_vspace {
+            break;
+          }
+          assign.push_token(token);
+          self.next();
+        }
+        _ => {
+          self.parse_item(&mut assign);
+          skip_vspace = false;
+        }
       }
     }
     if has_assign {

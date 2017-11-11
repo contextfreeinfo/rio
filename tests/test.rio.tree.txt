@@ -60,30 +60,47 @@ Top
       Token at 11, 2: HSpace ( )
       Token at 11, 3: Assign (=)
       Token at 11, 4: HSpace ( )
-      Token at 11, 5: Id (x)
-      Token at 11, 6: HSpace ( )
-      Token at 11, 7: Op (+)
-      Token at 11, 8: HSpace ( )
-      Token at 11, 9: Int (1)
-      Token at 11, 10: HSpace ( )
-      Token at 11, 11: Op (-)
-      Token at 11, 12: HSpace ( )
-      Token at 11, 13: Int (0)
-      Token at 11, 14: Dot (.)
-      Token at 11, 15: Fraction (3)
-      Token at 11, 16: HSpace ( )
-      Token at 11, 17: Op (*)
-      Token at 11, 18: HSpace ( )
-      Token at 11, 19: Id (y)
-      Token at 11, 20: HSpace ( )
-      Token at 11, 21: Op (/)
-      Token at 11, 22: HSpace ( )
-      Token at 11, 23: Dot (.)
-      Token at 11, 24: Fraction (2)
-  Token at 11, 25: VSpace (
+      Token at 11, 5: Comment (# This should be ignored)
+      Token at 11, 29: VSpace (
+
+)
+      Token at 13, 1: HSpace (  )
+      Token at 13, 3: Comment (# All this, too.)
+      Token at 13, 19: VSpace (
+
+)
+      Token at 15, 1: HSpace (  )
+      Token at 15, 3: Id (x)
+      Token at 15, 4: HSpace ( )
+      Token at 15, 5: Op (+)
+      Token at 15, 6: HSpace ( )
+      Token at 15, 7: Int (1)
+      Token at 15, 8: HSpace ( )
+      Token at 15, 9: Op (-)
+      Token at 15, 10: HSpace ( )
+      Token at 15, 11: Int (0)
+      Token at 15, 12: Dot (.)
+      Token at 15, 13: Fraction (3)
+      Token at 15, 14: HSpace ( )
+      Token at 15, 15: Op (*)
+      Token at 15, 16: HSpace ( )
+      Token at 15, 17: Id (y)
+      Token at 15, 18: HSpace ( )
+      Token at 15, 19: Op (/)
+      Token at 15, 20: HSpace ( )
+      Token at 15, 21: Dot (.)
+      Token at 15, 22: Fraction (2)
+  Token at 15, 23: VSpace (
 
 )
   Row
-    Token at 13, 1: Id (hi)
-  Token at 13, 3: VSpace (
+    Token at 17, 1: Id (hi)
+  Token at 17, 3: VSpace (
+)
+  Row
+    Assign
+      Token at 18, 1: Assign (=)
+      Token at 18, 2: HSpace ( )
+      Token at 18, 3: Id (ha)
+  Token at 18, 5: VSpace (
 )
