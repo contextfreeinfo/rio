@@ -1,52 +1,57 @@
 Top
   Row
-    Token at 1, 1: Comment (# Maybe spaced items are allowed only at the row level?)
+    Assign
+      Token at 1, 1: Comment (# Maybe spaced items are allowed only at the row level?)
   Token at 1, 56: VSpace (
 )
   Row
-    Token at 2, 1: Comment (# Do commas separate spaced lists for three levels deep???)
+    Assign
+      Token at 2, 1: Comment (# Do commas separate spaced lists for three levels deep???)
   Token at 2, 59: VSpace (
 
 )
   Row
-    Token at 4, 1: Id (out)
-    Token at 4, 4: Dot (.)
-    Token at 4, 5: Id (print)
-    Token at 4, 10: HSpace ( )
-    String
-      Token at 4, 11: StringStart (")
-      Token at 4, 12: StringText (Hello, )
-      Token at 4, 19: EscapeStart (\)
-      Token at 4, 20: Escape (")
-      Token at 4, 21: StringText (world)
-      Token at 4, 26: EscapeStart (\)
-      Token at 4, 27: Escape (")
-      Token at 4, 28: StringText (!)
-      Token at 4, 29: StringStop (")
-    Token at 4, 30: HSpace ( )
-    Token at 4, 31: Comment (# Should be a comment.)
+    Assign
+      Token at 4, 1: Id (out)
+      Token at 4, 4: Dot (.)
+      Token at 4, 5: Id (print)
+      Token at 4, 10: HSpace ( )
+      String
+        Token at 4, 11: StringStart (")
+        Token at 4, 12: StringText (Hello, )
+        Token at 4, 19: EscapeStart (\)
+        Token at 4, 20: Escape (")
+        Token at 4, 21: StringText (world)
+        Token at 4, 26: EscapeStart (\)
+        Token at 4, 27: Escape (")
+        Token at 4, 28: StringText (!)
+        Token at 4, 29: StringStop (")
+      Token at 4, 30: HSpace ( )
+      Token at 4, 31: Comment (# Should be a comment.)
   Token at 4, 53: VSpace (
 )
   Row
-    Token at 5, 1: Id (if)
-    Token at 5, 3: HSpace ( )
-    Token at 5, 4: Id (a1)
-    Token at 5, 6: HSpace ( )
-    Do
-      Token at 5, 7: Do (do)
-      Block
-        Token at 5, 9: VSpace (
+    Assign
+      Token at 5, 1: Id (if)
+      Token at 5, 3: HSpace ( )
+      Token at 5, 4: Id (a1)
+      Token at 5, 6: HSpace ( )
+      Do
+        Token at 5, 7: Do (do)
+        Block
+          Token at 5, 9: VSpace (
 )
-        Row
-          Token at 6, 1: HSpace (  )
-          Token at 6, 3: Id (say)
-          Token at 6, 6: HSpace ( )
-          String
-            Token at 6, 7: StringStart (')
-            Token at 6, 8: StringText (Hi! # Should be in the string.)
-        Token at 6, 38: VSpace (
+          Row
+            Assign
+              Token at 6, 1: HSpace (  )
+              Token at 6, 3: Id (say)
+              Token at 6, 6: HSpace ( )
+              String
+                Token at 6, 7: StringStart (')
+                Token at 6, 8: StringText (Hi! # Should be in the string.)
+          Token at 6, 38: VSpace (
 )
-      Token at 7, 1: End (end)
+        Token at 7, 1: End (end)
   Token at 7, 4: VSpace (
 
 )
@@ -55,34 +60,36 @@ Top
 
 )
   Row
-    Token at 11, 1: Id (z)
-    Token at 11, 2: HSpace ( )
-    Token at 11, 3: Op2 (=)
-    Token at 11, 4: HSpace ( )
-    Token at 11, 5: Id (x)
-    Token at 11, 6: HSpace ( )
-    Token at 11, 7: Op2 (+)
-    Token at 11, 8: HSpace ( )
-    Token at 11, 9: Int (1)
-    Token at 11, 10: HSpace ( )
-    Token at 11, 11: Op2 (-)
-    Token at 11, 12: HSpace ( )
-    Token at 11, 13: Int (0)
-    Token at 11, 14: Dot (.)
-    Token at 11, 15: Fraction (3)
-    Token at 11, 16: HSpace ( )
-    Token at 11, 17: Op2 (*)
-    Token at 11, 18: HSpace ( )
-    Token at 11, 19: Id (y)
-    Token at 11, 20: HSpace ( )
-    Token at 11, 21: Op2 (/)
-    Token at 11, 22: HSpace ( )
-    Token at 11, 23: Dot (.)
-    Token at 11, 24: Fraction (2)
+    Assign
+      Token at 11, 1: Id (z)
+      Token at 11, 2: HSpace ( )
+      Token at 11, 3: Assign (=)
+      Token at 11, 4: HSpace ( )
+      Token at 11, 5: Id (x)
+      Token at 11, 6: HSpace ( )
+      Token at 11, 7: Op (+)
+      Token at 11, 8: HSpace ( )
+      Token at 11, 9: Int (1)
+      Token at 11, 10: HSpace ( )
+      Token at 11, 11: Op (-)
+      Token at 11, 12: HSpace ( )
+      Token at 11, 13: Int (0)
+      Token at 11, 14: Dot (.)
+      Token at 11, 15: Fraction (3)
+      Token at 11, 16: HSpace ( )
+      Token at 11, 17: Op (*)
+      Token at 11, 18: HSpace ( )
+      Token at 11, 19: Id (y)
+      Token at 11, 20: HSpace ( )
+      Token at 11, 21: Op (/)
+      Token at 11, 22: HSpace ( )
+      Token at 11, 23: Dot (.)
+      Token at 11, 24: Fraction (2)
   Token at 11, 25: VSpace (
 
 )
   Row
-    Token at 13, 1: Id (hi)
+    Assign
+      Token at 13, 1: Id (hi)
   Token at 13, 3: VSpace (
 )

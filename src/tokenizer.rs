@@ -13,6 +13,7 @@ pub struct Token<'a> {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TokenState {
+  Assign,
   Comment,
   Do,
   Dot,
@@ -24,6 +25,7 @@ pub enum TokenState {
   HSpace,
   Id,
   Int,
+  Op,
   Op1,
   Op2,
   Start,
@@ -87,6 +89,17 @@ impl<'a> Tokenizer<'a> {
         _ => TokenState::Id,
       }
       _ => TokenState::Id,
+    }
+  }
+
+  fn find_op(&self, text: &str) -> TokenState {
+    let mut chars = text.chars();
+    match chars.next() {
+      Some('=') => match chars.next() {
+        None => TokenState::Assign,
+        _ => TokenState::Op,
+      }
+      _ => TokenState::Op,
     }
   }
 
@@ -193,6 +206,7 @@ impl<'a> Iterator for Tokenizer<'a> {
       let text = &self.buffer[last_start..stop_index];
       state = match state {
         TokenState::Id => self.find_key(text),
+        TokenState::Op1 | TokenState::Op2 => self.find_op(text),
         _ => state,
       };
       Some(Token {

@@ -2,6 +2,7 @@ use tokenizer::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum NodeType {
+  Assign,
   Block,
   Do,
   Row,
@@ -83,6 +84,27 @@ struct Parser<'a> {
 
 impl<'a> Parser<'a> {
 
+  fn parse_assign(&mut self, parent: &mut Node<'a>) {
+    let mut assign = Node::new(NodeType::Assign);
+    let mut has_assign = false;
+    loop {
+      match self.peek() {
+        Some(ref token) => match token.state {
+          TokenState::Assign => {
+            assign.push_token(token);
+            has_assign = true;
+            self.next();
+          }
+          TokenState::End | TokenState::VSpace => break,
+          _ => self.parse_item(&mut assign),
+        }
+        None => break,
+      }
+    }
+    // TODO Pull up all children to parent if no assign present.
+    parent.push(assign);
+  }
+
   fn parse_block(&mut self, parent: &mut Node<'a>) {
     loop {
       let mut row = Node::new(NodeType::Row);
@@ -158,6 +180,8 @@ impl<'a> Parser<'a> {
   fn parse_item(&mut self, parent: &mut Node<'a>) {
     match self.peek() {
       Some(ref token) => match token.state {
+        TokenState::Assign | TokenState::End => {},
+        TokenState::Do => self.parse_do(parent),
         TokenState::StringStart => self.parse_string(parent),
         _ => {
           parent.push_token(token);
@@ -172,10 +196,9 @@ impl<'a> Parser<'a> {
     loop {
       match self.peek() {
         Some(ref token) => match token.state {
-          TokenState::Do => self.parse_do(parent),
           TokenState::End => break,
           TokenState::VSpace => break,
-          _ => self.parse_item(parent),
+          _ => self.parse_assign(parent),
         }
         None => {
           self.next();
