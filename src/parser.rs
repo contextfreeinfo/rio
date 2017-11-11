@@ -101,8 +101,11 @@ impl<'a> Parser<'a> {
         None => break,
       }
     }
-    // TODO Pull up all children to parent if no assign present.
-    parent.push(assign);
+    if has_assign {
+      parent.push(assign);
+    } else {
+      parent.kids.extend_from_slice(assign.kids.as_slice());
+    }
   }
 
   fn parse_block(&mut self, parent: &mut Node<'a>) {
