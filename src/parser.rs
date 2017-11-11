@@ -5,6 +5,7 @@ pub enum NodeType {
   Assign,
   Block,
   Do,
+  Number,
   Row,
   String,
   Token,
@@ -190,12 +191,59 @@ impl<'a> Parser<'a> {
     match token.state {
       TokenState::Assign | TokenState::End | TokenState::Eof => {},
       TokenState::Do => self.parse_do(parent),
+      TokenState::Dot | TokenState::Int => self.parse_number(parent),
       TokenState::StringStart => self.parse_string(parent),
       _ => {
         parent.push_token(token);
         self.next();
       }
     }
+  }
+
+  fn parse_number(&mut self, parent: &mut Node<'a>) {
+    let mut number = Node::new(NodeType::Number);
+    let mut token = self.next();
+    let mut has_int = false;
+    match token.state {
+      TokenState::Int => {
+        number.push_token(token);
+        has_int = true;
+        token = self.next();
+      }
+      _ => {}
+    };
+    // Just a block, not a loop.
+    // See https://github.com/rust-lang/rfcs/pull/2046
+    loop {
+      let dot = token;
+      match token.state {
+        TokenState::Dot => {
+          number.push_token(token);
+          token = self.next();
+        }
+        _ => {
+          self.prev();
+          break;
+        },
+      };
+      match token.state {
+        TokenState::Fraction => {
+          number.push_token(token);
+        }
+        _ => {
+          self.prev();
+          if !has_int {
+            // TODO Parse this as member access even if there was preceding
+            // TODO whitespace!
+            parent.push_token(dot);
+            return;
+          }
+          break;
+        },
+      }
+      break;
+    }
+    parent.push(number);
   }
 
   fn parse_row(&mut self, parent: &mut Node<'a>) {

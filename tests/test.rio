@@ -14,5 +14,5 @@ z = # This should be ignored
 
   x + 1 - 0.3 * y / .2
 
-hi
+hi 1.
 = ha

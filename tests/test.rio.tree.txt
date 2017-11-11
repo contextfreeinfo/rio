@@ -74,13 +74,15 @@ Top
       Token at 15, 4: HSpace ( )
       Token at 15, 5: Op (+)
       Token at 15, 6: HSpace ( )
-      Token at 15, 7: Int (1)
+      Number
+        Token at 15, 7: Int (1)
       Token at 15, 8: HSpace ( )
       Token at 15, 9: Op (-)
       Token at 15, 10: HSpace ( )
-      Token at 15, 11: Int (0)
-      Token at 15, 12: Dot (.)
-      Token at 15, 13: Fraction (3)
+      Number
+        Token at 15, 11: Int (0)
+        Token at 15, 12: Dot (.)
+        Token at 15, 13: Fraction (3)
       Token at 15, 14: HSpace ( )
       Token at 15, 15: Op (*)
       Token at 15, 16: HSpace ( )
@@ -88,14 +90,19 @@ Top
       Token at 15, 18: HSpace ( )
       Token at 15, 19: Op (/)
       Token at 15, 20: HSpace ( )
-      Token at 15, 21: Dot (.)
-      Token at 15, 22: Fraction (2)
+      Number
+        Token at 15, 21: Dot (.)
+        Token at 15, 22: Fraction (2)
   Token at 15, 23: VSpace (
 
 )
   Row
     Token at 17, 1: Id (hi)
-  Token at 17, 3: VSpace (
+    Token at 17, 3: HSpace ( )
+    Number
+      Token at 17, 4: Int (1)
+      Token at 17, 5: Dot (.)
+  Token at 17, 6: VSpace (
 )
   Row
     Assign
