@@ -7,6 +7,7 @@ pub enum NodeType {
   Do,
   Number,
   Row,
+  Spaced,
   String,
   Token,
   Top,
@@ -111,7 +112,7 @@ impl<'a> Parser<'a> {
           self.next();
         }
         _ => {
-          self.parse_item(&mut assign);
+          self.parse_spaced(&mut assign);
           skip_vspace = false;
         }
       }
@@ -252,6 +253,40 @@ impl<'a> Parser<'a> {
         TokenState::End | TokenState::Eof | TokenState::VSpace => break,
         _ => self.parse_assign(parent),
       }
+    }
+  }
+
+  fn parse_spaced(&mut self, parent: &mut Node<'a>) {
+    let mut result = Node::new(NodeType::Spaced);
+    let mut item_count = 0;
+    let mut has_space = false;
+    loop {
+      let token = self.peek();
+      match token.state {
+        // All outer operators need to go here.
+        TokenState::Assign | TokenState::End | TokenState::Eof |
+        TokenState::VSpace => {
+          break;
+        }
+        TokenState::Comment | TokenState::HSpace => {
+          // For now, comments are always until vspace, but maybe could change
+          // someday, and the vspace will end things anyway.
+          result.push_token(token);
+          if item_count > 0 {
+            has_space = true;
+          }
+          self.next();
+        }
+        _ => {
+          self.parse_item(&mut result);
+          item_count += 1;
+        }
+      }
+    }
+    if has_space && item_count > 1 {
+      parent.push(result);
+    } else {
+      parent.kids.extend_from_slice(result.kids.as_slice());
     }
   }
 
