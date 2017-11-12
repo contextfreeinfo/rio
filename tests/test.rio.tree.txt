@@ -73,15 +73,15 @@ Top
 
 )
       Token at 15, 1: HSpace (  )
-      Spaced
+      Add
         Token at 15, 3: Id (x)
         Token at 15, 4: HSpace ( )
-        Token at 15, 5: Op (+)
+        Token at 15, 5: Plus (+)
         Token at 15, 6: HSpace ( )
         Number
           Token at 15, 7: Int (1)
         Token at 15, 8: HSpace ( )
-        Token at 15, 9: Op (-)
+        Token at 15, 9: Plus (-)
         Token at 15, 10: HSpace ( )
         Number
           Token at 15, 11: Int (0)

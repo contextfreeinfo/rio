@@ -29,6 +29,7 @@ pub enum TokenState {
   Op,
   Op1,
   Op2,
+  Plus,
   Start,
   StringStart,
   StringStop,
@@ -100,6 +101,10 @@ impl<'a> Tokenizer<'a> {
     match chars.next() {
       Some('=') => match chars.next() {
         None => TokenState::Assign,
+        _ => TokenState::Op,
+      }
+      Some('+') | Some('-') => match chars.next() {
+        None => TokenState::Plus,
         _ => TokenState::Op,
       }
       _ => TokenState::Op,
