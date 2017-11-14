@@ -34,6 +34,7 @@ pub enum TokenState {
   StringStart,
   StringStop,
   StringText,
+  Times,
   VSpace,
 }
 
@@ -105,6 +106,10 @@ impl<'a> Tokenizer<'a> {
       }
       Some('+') | Some('-') => match chars.next() {
         None => TokenState::Plus,
+        _ => TokenState::Op,
+      }
+      Some('*') | Some('/') => match chars.next() {
+        None => TokenState::Times,
         _ => TokenState::Op,
       }
       _ => TokenState::Op,

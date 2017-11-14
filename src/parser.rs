@@ -6,6 +6,7 @@ pub enum NodeType {
   Assign,
   Block,
   Do,
+  Multiply,
   Number,
   Row,
   Spaced,
@@ -117,7 +118,7 @@ impl<'a> Parser<'a> {
           self.next();
         }
         _ => {
-          self.parse_item(&mut result);
+          self.parse_multiply(&mut result);
           skip_vspace = false;
         }
       }
@@ -249,6 +250,54 @@ impl<'a> Parser<'a> {
     }
   }
 
+  fn parse_multiply(&mut self, parent: &mut Node<'a>) {
+    // TODO Macro or other parameterized combo with assign, etc.
+    let mut result = Node::new(NodeType::Multiply);
+    let mut has_op = false;
+    let mut skip_vspace = false;
+    loop {
+      let token = self.peek();
+      match token.state {
+        TokenState::Times => {
+          // TODO Also track whitespace so we can tell spaced ops or not?
+          result.push_token(token);
+          has_op = true;
+          skip_vspace = true;
+          self.next();
+        }
+        TokenState::Comment | TokenState::HSpace => {
+          result.push_token(token);
+          self.next();
+        }
+        // This knowledge of inner or outer precedence makes things a bit hard
+        // to generalize.
+        TokenState::Assign | TokenState::End | TokenState::Eof |
+        TokenState::Plus => {
+          break;
+        },
+        TokenState::VSpace => {
+          if !skip_vspace {
+            break;
+          }
+          result.push_token(token);
+          self.next();
+        }
+        _ => {
+          self.parse_item(&mut result);
+          skip_vspace = false;
+        }
+      }
+    }
+    if has_op {
+      parent.push(result);
+    } else {
+      // TODO This multi push keeps Spaced from knowing there were multi.
+      // TODO Figure out the return nodes thing?
+      // TODO Make a catch-all to gather things that others don't for now?
+      parent.kids.extend_from_slice(result.kids.as_slice());
+    }
+  }
+
   fn parse_number(&mut self, parent: &mut Node<'a>) {
     let mut number = Node::new(NodeType::Number);
     let mut token = self.next();
@@ -322,6 +371,7 @@ impl<'a> Parser<'a> {
       }
     }
     // See if we had multiple.
+    // Check after the fact in case kid parsing added things behind our back.
     let mut item_count = 0;
     for kid in &result.kids {
       let is_item = match kid.state {

@@ -83,20 +83,21 @@ Top
         Token at 15, 8: HSpace ( )
         Token at 15, 9: Plus (-)
         Token at 15, 10: HSpace ( )
-        Number
-          Token at 15, 11: Int (0)
-          Token at 15, 12: Dot (.)
-          Token at 15, 13: Fraction (3)
-        Token at 15, 14: HSpace ( )
-        Token at 15, 15: Op (*)
-        Token at 15, 16: HSpace ( )
-        Token at 15, 17: Id (y)
-        Token at 15, 18: HSpace ( )
-        Token at 15, 19: Op (/)
-        Token at 15, 20: HSpace ( )
-        Number
-          Token at 15, 21: Dot (.)
-          Token at 15, 22: Fraction (2)
+        Multiply
+          Number
+            Token at 15, 11: Int (0)
+            Token at 15, 12: Dot (.)
+            Token at 15, 13: Fraction (3)
+          Token at 15, 14: HSpace ( )
+          Token at 15, 15: Times (*)
+          Token at 15, 16: HSpace ( )
+          Token at 15, 17: Id (y)
+          Token at 15, 18: HSpace ( )
+          Token at 15, 19: Times (/)
+          Token at 15, 20: HSpace ( )
+          Number
+            Token at 15, 21: Dot (.)
+            Token at 15, 22: Fraction (2)
   Token at 15, 23: VSpace (
 
 )
