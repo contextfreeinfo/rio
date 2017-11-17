@@ -1,0 +1,11 @@
+Top
+  Row
+    Spaced
+      Token at 1, 1: Id (print)
+      Token at 1, 6: HSpace ( )
+      String
+        Token at 1, 7: StringStart (")
+        Token at 1, 8: StringText (Hi!)
+        Token at 1, 11: StringStop (")
+  Token at 1, 12: VSpace (
+)

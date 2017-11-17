@@ -19,6 +19,7 @@ Time log:
 - 2017110? Switched to state machine. Slightly faster.
 - 20171111 Parsing. Wasted assigns. About 1.3 seconds.
 - 20171111 Wasted spaceds. About 1.5 seconds. Real effect?
+- 20171116 Growing steadily with each layer. Maybe 2.2 seconds. Sad.
 
 My concern is that temporary vecs for context of holding parsed kids is wasting
 time by allocating and freeing ram.
@@ -26,3 +27,5 @@ But I don't know if this is a real effect or not.
 Will it go up as I add other binary operator levels?
 If so, I'll need to redo the parsing to avoid collecting on possible waste
 space.
+
+Maybe should profile sometime, though.

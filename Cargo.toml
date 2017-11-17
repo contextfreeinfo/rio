@@ -12,6 +12,8 @@ name = "testup"
 path = "util/testup.rs"
 
 [dependencies]
+app_dirs = "1.1.1"
+cc = "1.0.3"
 
 [dev-dependencies]
 difference = "1.0"
