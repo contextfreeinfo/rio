@@ -1,9 +1,10 @@
 extern crate app_dirs;
-extern crate cc;
+extern crate cbuild;
 extern crate rio;
 
 use app_dirs::*;
-use cc::Build;
+use cbuild::Build;
+use cbuild::BuildKind;
 use rio::process;
 use std::env;
 
@@ -18,11 +19,16 @@ fn main() {
   // TODO Hash by project file if there is one?
   let out_dir = app_dir(AppDataType::UserCache, &APP_INFO, "cache").unwrap();
   println!("{}", out_dir.to_str().unwrap());
+  // TODO Remember host and target from own build as defaults?
+  // TODO Determine both live probably, actually ...
+  // x86_64 vs i686
   Build::new().
-    host("x86_64-pc-windows-msvc").
+    host("i686-pc-windows-msvc").
+    kind(BuildKind::Executable).
     opt_level(0).
     out_dir(out_dir).
-    target("x86_64-pc-windows-msvc").
+    target("i686-pc-windows-msvc").
+    // verbose(true).
     file("notes/hello.c").
     compile("hello");
 }
