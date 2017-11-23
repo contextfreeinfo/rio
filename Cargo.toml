@@ -13,7 +13,10 @@ path = "util/testup.rs"
 
 [dependencies]
 app_dirs = "1.1.1"
-cbuild = {path = "../cbuild-rs"}
+cbuild = {git = "https://github.com/tjpalmer/cbuild-rs"}
 
 [dev-dependencies]
 difference = "1.0"
+
+[patch.crates-io]
+# cbuild = {path = "../cbuild-rs"}
