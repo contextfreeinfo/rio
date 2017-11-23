@@ -5,6 +5,8 @@ extern crate rio;
 use app_dirs::*;
 use cbuild::prelude::*;
 use rio::process;
+use std::fs::File;
+use std::io::prelude::*;
 use std::process::*;
 use std::env;
 
@@ -19,6 +21,18 @@ fn main() {
   // TODO Hash full path for scripts without project files?
   // TODO Hash by project file if there is one?
   let out_dir = app_dir(AppDataType::UserCache, &APP_INFO, "cache").unwrap();
+  let name = "hello";
+  let c_name = format!("{}.c", name);
+  let c_path = out_dir.join(c_name);
+  {
+    let mut file = File::create(c_path.clone()).unwrap();
+    file.write_all(r###"
+      #include <stdio.h>
+      int main() {
+        printf("Hi there!\n");
+      }
+    "###.as_bytes()).unwrap();
+  }
   // println!("{}", out_dir.to_str().unwrap());
   // Build exe.
   // TODO Remember host and target from own build as defaults?
@@ -33,7 +47,7 @@ fn main() {
     out_dir(out_dir.clone()).
     target("i686-pc-windows-msvc").
     // verbose(true).
-    file("notes/hello.c").
+    file(c_path.clone()).
     compile("hello");
   // Run exe.
   Command::new(out_dir.join("hello")).status().expect("failed to run exe");
