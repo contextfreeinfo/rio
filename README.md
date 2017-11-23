@@ -1,3 +1,5 @@
+## Overview
+
 Just some quick plan notes for now:
 
 - No GC
@@ -11,6 +13,25 @@ Just some quick plan notes for now:
 - Operator overloading
 - Tensors (ND arrays)
 
+
+## Running
+
+This command parses the test files to rebuild the cached AST output, for manual
+comparison:
+
+```
+cargo run --bin testup
+```
+
+Once I've stabilized AST, it will make more sense to have unit tests that
+actually check the output.
+
+You can also pretend to compile and run, but it's not real yet.
+So I won't bother to give that run here.
+
+
+## Performance
+
 Time log:
 - 20171104 I tokenized 23M of file in 20+ seconds debug, 1-2 seconds release
   mode.
@@ -21,6 +42,8 @@ Time log:
 - 20171111 Wasted spaceds. About 1.5 seconds. Real effect?
 - 20171116 Growing steadily with each layer. Maybe 2.2 seconds. Sad.
 
+Maybe should actually profile sometime.
+
 My concern is that temporary vecs for context of holding parsed kids is wasting
 time by allocating and freeing ram.
 But I don't know if this is a real effect or not.
@@ -28,4 +51,6 @@ Will it go up as I add other binary operator levels?
 If so, I'll need to redo the parsing to avoid collecting on possible waste
 space.
 
-Maybe should profile sometime, though.
+I'm looking into redoing things to return nodes and keep a common buffer for
+intermediate nodes.
+Also looking into Pratt parsers.
