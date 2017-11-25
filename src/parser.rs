@@ -27,11 +27,11 @@ pub struct Node<'a> {
 impl<'a> Node<'a> {
 
   fn new(kind: NodeType) -> Node<'a> {
+    // Vec shouldn't allocate on empty.
     Node {kids: vec![], kind, token: None}
   }
 
   fn new_token(token: &'a Token<'a>) -> Node<'a> {
-    // TODO Control kind? Some token kind?
     Node {kids: vec![], kind: NodeType::Token, token: Some(&token)}
   }
 
