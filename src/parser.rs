@@ -8,6 +8,7 @@ pub enum NodeType {
   Do,
   Multiply,
   Number,
+  Other,
   Row,
   Spaced,
   String,
@@ -62,12 +63,6 @@ impl<'a> Node<'a> {
     self.kids.push(node);
   }
 
-  fn push_if(&mut self, node: Node<'a>) {
-    if !node.kids.is_empty() {
-      self.push(node);
-    }
-  }
-
   fn push_token(&mut self, token: &'a Token<'a>) {
     self.push(Node::new_token(token));
   }
@@ -75,230 +70,91 @@ impl<'a> Node<'a> {
 }
 
 pub fn parse<'a>(tokens: &'a Vec<Token<'a>>) -> Node<'a> {
-  let mut root = Node::new(NodeType::Top);
-  let mut parser = Parser {index: 0, tokens: tokens};
-  parser.parse_block(&mut root);
-  root
+  let mut parser = Parser {
+    found_index: 0, index: 0, last_index: 0, tokens: tokens,
+  };
+  parser.parse_expr(0)
 }
 
 struct Parser<'a> {
+  found_index: usize,
   index: usize,
+  last_index: usize,
   tokens: &'a Vec<Token<'a>>,
 }
 
 impl<'a> Parser<'a> {
 
-  fn parse_add(&mut self, parent: &mut Node<'a>) {
-    // TODO Macro or other parameterized combo with assign, etc.
-    let mut result = Node::new(NodeType::Add);
-    let mut has_op = false;
-    let mut skip_vspace = false;
-    loop {
-      let token = self.peek();
-      match token.state {
-        TokenState::Plus => {
-          // TODO Also track whitespace so we can tell spaced ops or not?
-          result.push_token(token);
-          has_op = true;
-          skip_vspace = true;
-          self.next();
-        }
-        TokenState::Comment | TokenState::HSpace => {
-          result.push_token(token);
-          self.next();
-        }
-        // This knowledge of inner or outer precedence makes things a bit hard
-        // to generalize.
-        TokenState::Assign | TokenState::End | TokenState::Eof => break,
-        TokenState::VSpace => {
-          if !skip_vspace {
-            break;
-          }
-          result.push_token(token);
-          self.next();
-        }
-        _ => {
-          self.parse_multiply(&mut result);
-          skip_vspace = false;
-        }
-      }
-    }
-    if has_op {
-      parent.push(result);
-    } else {
-      // TODO This multi push keeps Spaced from knowing there were multi.
-      // TODO Figure out the return nodes thing?
-      // TODO Make a catch-all to gather things that others don't for now?
-      parent.kids.extend_from_slice(result.kids.as_slice());
-    }
+  fn focus(&mut self) {
+    self.index = self.found_index;
   }
 
-  fn parse_assign(&mut self, parent: &mut Node<'a>) {
-    let mut assign = Node::new(NodeType::Assign);
-    let mut has_assign = false;
-    let mut skip_vspace = false;
+  fn next(&mut self) -> &'a Token<'a> {
+    let mut index = self.index;
+    self.last_index = index;
+    let mut token;
     loop {
-      let token = self.peek();
+      token = self.tokens.get(index).unwrap();
       match token.state {
-        TokenState::Assign => {
-          assign.push_token(token);
-          has_assign = true;
-          skip_vspace = true;
-          self.next();
-        }
-        TokenState::Comment | TokenState::HSpace => {
-          assign.push_token(token);
-          self.next();
-        }
-        TokenState::End | TokenState::Eof => break,
-        TokenState::VSpace => {
-          if !skip_vspace {
-            break;
-          }
-          assign.push_token(token);
-          self.next();
-        }
-        _ => {
-          self.parse_spaced(&mut assign);
-          skip_vspace = false;
-        }
-      }
-    }
-    if has_assign {
-      parent.push(assign);
-    } else {
-      parent.kids.extend_from_slice(assign.kids.as_slice());
-    }
-  }
-
-  fn parse_block(&mut self, parent: &mut Node<'a>) {
-    loop {
-      let mut row = Node::new(NodeType::Row);
-      let token = self.peek();
-      match token.state {
-        TokenState::End => {
-          // TODO Flag error.
-          // TODO Also error and remain if non-matching.
-          // TODO Or separate validation rules from initial parsing, maybe.
-          // TODO Separation of concerns at all might keep code cleaner.
-          if parent.state == NodeType::Top {
-            // Keep on trucking.
-            parent.push_token(&token);
-            self.next();
-          } else {
-            break;
-          }
-        }
-        TokenState::Eof => break,
-        TokenState::VSpace => {
-          parent.push_token(&token);
-          self.next();
-        }
-        _ => self.parse_row(&mut row),
-      }
-      parent.push_if(row);
-    }
-  }
-
-  fn parse_do(&mut self, parent: &mut Node<'a>) {
-    let mut current = Node::new(NodeType::Do);
-    current.push_token(self.next());
-    // TODO Parse args, etc.
-    loop {
-      let token = self.peek();
-      match token.state {
-        TokenState::HSpace => {
-          current.push_token(&token);
-          self.next();
-        }
+        TokenState::Comment | TokenState::HSpace => index += 1,
         _ => break,
       }
     }
-    // See if we have a block.
-    match self.next().state {
-      TokenState::VSpace => {
-        self.prev();
-        let mut block = Node::new(NodeType::Block);
-        self.parse_block(&mut block);
-        current.push(block);
-        let token = self.next();
-        match token.state {
-          TokenState::End => {
-            current.push_token(token);
-          }
-          _ => {}
-        }
-      }
-      _ => {}
+    self.found_index = index;
+    if index < self.tokens.len() {
+      index += 1;
     }
-    parent.push(current);
+    self.index = index;
+    token
   }
 
-  fn parse_item(&mut self, parent: &mut Node<'a>) {
-    let token = self.peek();
-    match token.state {
-      // Once we handle all correct cases here, always go up on others, so we'll
-      // can remove this list of ignores.
-      TokenState::Assign | TokenState::End | TokenState::Eof => {},
-      TokenState::Do => self.parse_do(parent),
-      TokenState::Dot | TokenState::Int => self.parse_number(parent),
-      TokenState::StringStart => self.parse_string(parent),
-      _ => {
-        parent.push_token(token);
-        self.next();
-      }
-    }
-  }
-
-  fn parse_multiply(&mut self, parent: &mut Node<'a>) {
-    // TODO Macro or other parameterized combo with assign, etc.
-    let mut result = Node::new(NodeType::Multiply);
-    let mut has_op = false;
-    let mut skip_vspace = false;
+  fn parse_expr(&mut self, precedence: u8) -> Node<'a> {
+    // Node::new(NodeType::Top)
+    let mut expr = self.parse_prefix();
+    let mut first = true;
     loop {
       let token = self.peek();
-      match token.state {
-        TokenState::Times => {
-          // TODO Also track whitespace so we can tell spaced ops or not?
-          result.push_token(token);
-          has_op = true;
-          skip_vspace = true;
-          self.next();
-        }
-        TokenState::Comment | TokenState::HSpace => {
-          result.push_token(token);
-          self.next();
-        }
-        // This knowledge of inner or outer precedence makes things a bit hard
-        // to generalize.
-        TokenState::Assign | TokenState::End | TokenState::Eof |
-        TokenState::Plus => {
-          break;
-        },
-        TokenState::VSpace => {
-          if !skip_vspace {
-            break;
-          }
-          result.push_token(token);
-          self.next();
-        }
-        _ => {
-          self.parse_item(&mut result);
-          skip_vspace = false;
-        }
+      if token.state == TokenState::Eof {
+        break;
       }
+      // TODO Not infix if postfix instead (attached then space).
+      let infix = token.infix();
+      let node_kind: NodeType;
+      let op_precedence = if infix {
+        node_kind = token_to_node_kind(token.state);
+        token.precedence()
+      } else {
+        // TODO Check if spaced or directly attached.
+        node_kind = NodeType::Spaced;
+        TokenState::HSpace.precedence()
+      };
+      // println!("Peeked at {:?}, infix: {}", token, infix);
+      if precedence >= op_precedence {
+        // Go to outer level.
+        break;
+      }
+      if first {
+        // println!("Got one inside");
+        // TODO Figure out types.
+        let mut outer = Node::new(node_kind);
+        outer.push(expr);
+        expr = outer;
+        // Past first.
+        first = false;
+      }
+      if infix {
+        expr.push(Node::new_token(self.next()));
+      } else {
+        self.focus();
+      }
+      // println!("Post at {:?}", self.peek());
+      let kid = self.parse_expr(op_precedence);
+      expr.push(kid);
     }
-    if has_op {
-      parent.push(result);
-    } else {
-      // TODO This multi push keeps Spaced from knowing there were multi.
-      // TODO Figure out the return nodes thing?
-      // TODO Make a catch-all to gather things that others don't for now?
-      parent.kids.extend_from_slice(result.kids.as_slice());
-    }
+    expr
   }
 
-  fn parse_number(&mut self, parent: &mut Node<'a>) {
+  fn parse_number(&mut self) -> Node<'a> {
     let mut number = Node::new(NodeType::Number);
     let mut token = self.next();
     let mut has_int = false;
@@ -333,106 +189,64 @@ impl<'a> Parser<'a> {
           if !has_int {
             // TODO Parse this as member access even if there was preceding
             // TODO whitespace!
-            parent.push_token(dot);
-            return;
+            return Node::new_token(dot);
           }
           break;
         },
       }
       break;
     }
-    parent.push(number);
+    number
   }
 
-  fn parse_row(&mut self, parent: &mut Node<'a>) {
+  fn parse_prefix(&mut self) -> Node<'a> {
+    match self.peek().state {
+      TokenState::Dot | TokenState::Int => self.parse_number(),
+      TokenState::Eof => Node::new_token(self.peek()),
+      TokenState::StringStart => self.parse_string(),
+      // TODO Branch on space, paren, do, string, number, ...
+      _ => Node::new_token(self.next()),
+    }
+  }
+
+  fn parse_string(&mut self) -> Node<'a> {
+    let mut node = Node::new(NodeType::String);
+    // StringStart, then loop through contents.
+    node.push_token(self.next());
     loop {
       match self.peek().state {
-        TokenState::End | TokenState::Eof | TokenState::VSpace => break,
-        _ => self.parse_assign(parent),
-      }
-    }
-  }
-
-  fn parse_spaced(&mut self, parent: &mut Node<'a>) {
-    let mut result = Node::new(NodeType::Spaced);
-    loop {
-      let token = self.peek();
-      match token.state {
-        // All outer operators need to go here.
-        TokenState::Assign | TokenState::End | TokenState::Eof |
-        TokenState::VSpace => {
-          break;
-        }
-        TokenState::Comment | TokenState::HSpace => {
-          result.push_token(token);
-          self.next();
-        }
-        _ => self.parse_add(&mut result),
-      }
-    }
-    // See if we had multiple.
-    // Check after the fact in case kid parsing added things behind our back.
-    let mut item_count = 0;
-    for kid in &result.kids {
-      let is_item = match kid.state {
-        NodeType::Token => match kid.token.unwrap().state {
-          // For now, comments are always until vspace, but maybe could change
-          // someday, and the vspace will end things anyway.
-          TokenState::Comment | TokenState::HSpace => false,
-          _ => true,
-        }
-        _ => true,
-      };
-      if is_item {
-        item_count += 1;
-      }
-    }
-    // Finalize.
-    if item_count > 1 {
-      parent.push(result);
-    } else {
-      parent.kids.extend_from_slice(result.kids.as_slice());
-    }
-  }
-
-  fn parse_string(&mut self, parent: &mut Node<'a>) {
-    let mut string = Node::new(NodeType::String);
-    loop {
-      let token = self.next();
-      match token.state {
         TokenState::StringStop => {
-          string.push_token(token);
+          node.push_token(self.next());
           break;
         }
         TokenState::Eof | TokenState::VSpace => {
-          // TODO In what pass do we link juxtaposed strings?
-          // TODO Look ahead now?
-          self.prev();
           break;
         }
-        _ => string.push_token(token),
+        _ => node.push_token(self.next()),
       }
     }
-    // We shouldn't be here in the first place if there weren't a start.
-    parent.push(string);
-  }
-
-  fn next(&mut self) -> &'a Token<'a> {
-    let index = self.index;
-    if index < self.tokens.len() {
-      self.index += 1;
-    }
-    self.tokens.get(index).unwrap()
+    node
   }
 
   fn peek(&mut self) -> &'a Token<'a> {
-    self.tokens.get(self.index).unwrap()
+    let token = self.next();
+    self.prev();
+    token
   }
 
   fn prev(&mut self) {
-    if self.index > 0 {
-      self.index -= 1;
-    }
+    // TODO This results in iterating over space multiple times.
+    // TODO Instead remember where the next is.
+    self.index = self.last_index;
   }
 
+}
+
+fn token_to_node_kind(token_state: TokenState) -> NodeType {
+  match token_state {
+    TokenState::HSpace => NodeType::Spaced,
+    TokenState::Plus => NodeType::Add,
+    TokenState::Times => NodeType::Multiply,
+    _ => NodeType::Other,
+  }
 }

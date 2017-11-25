@@ -11,6 +11,18 @@ pub struct Token<'a> {
   pub text: &'a str,
 }
 
+impl<'a> Token<'a> {
+
+  pub fn infix(&self) -> bool {
+    self.state.infix()
+  }
+
+  pub fn precedence(&self) -> u8 {
+    self.state.precedence()
+  }
+
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TokenState {
   Assign,
@@ -36,6 +48,31 @@ pub enum TokenState {
   StringText,
   Times,
   VSpace,
+}
+
+impl TokenState {
+
+  pub fn infix(self) -> bool {
+    match self {
+      TokenState::Assign | TokenState::Op | TokenState::Op1 | TokenState::Op2 |
+      TokenState::Plus | TokenState::Times => {
+        true
+      }
+      _ => false,
+    }
+  }
+
+  pub fn precedence(self) -> u8 {
+    match self {
+      TokenState::Eof => 0,
+      TokenState::Comment | TokenState::VSpace => 10,
+      TokenState::HSpace => 20,
+      TokenState::Plus => 30,
+      TokenState::Times => 40,
+      _ => 20,
+    }
+  }
+
 }
 
 // TODO Prefer impl Iterator<type = Token<'a>> when impl trait is done.
