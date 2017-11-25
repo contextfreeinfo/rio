@@ -7,6 +7,7 @@ pub enum NodeType {
   Block,
   Do,
   Multiply,
+  None,
   Number,
   Other,
   Row,
@@ -19,19 +20,19 @@ pub enum NodeType {
 #[derive(Clone, Debug)]
 pub struct Node<'a> {
   kids: Vec<Node<'a>>,
-  state: NodeType,
+  kind: NodeType,
   token: Option<&'a Token<'a>>,
 }
 
 impl<'a> Node<'a> {
 
-  fn new(state: NodeType) -> Node<'a> {
-    Node {kids: vec![], state, token: None}
+  fn new(kind: NodeType) -> Node<'a> {
+    Node {kids: vec![], kind, token: None}
   }
 
   fn new_token(token: &'a Token<'a>) -> Node<'a> {
-    // TODO Control state? Some token state?
-    Node {kids: vec![], state: NodeType::Token, token: Some(&token)}
+    // TODO Control kind? Some token kind?
+    Node {kids: vec![], kind: NodeType::Token, token: Some(&token)}
   }
 
   pub fn format(&self) -> String {
@@ -49,7 +50,7 @@ impl<'a> Node<'a> {
         prefix, token.line, token.col, token.state, token.text,
       )
     } else {
-      let mut head = format!("{}{:?}\n", prefix, self.state);
+      let mut head = format!("{}{:?}\n", prefix, self.kind);
       let deeper = format!("{}  ", prefix);
       let kids: Vec<_> = self.kids.iter().map(|ref kid| {
         kid.format_at(deeper.as_str())
@@ -204,7 +205,9 @@ impl<'a> Parser<'a> {
       TokenState::Dot | TokenState::Int => self.parse_number(),
       TokenState::Eof => Node::new_token(self.peek()),
       TokenState::StringStart => self.parse_string(),
-      // TODO Branch on space, paren, do, string, number, ...
+      // TODO Add others that are always infix.
+      TokenState::VSpace => Node::new(NodeType::None),
+      // TODO Branch on paren, do, string, number, ...
       _ => Node::new_token(self.next()),
     }
   }

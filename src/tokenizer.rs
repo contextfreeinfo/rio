@@ -55,7 +55,7 @@ impl TokenState {
   pub fn infix(self) -> bool {
     match self {
       TokenState::Assign | TokenState::Op | TokenState::Op1 | TokenState::Op2 |
-      TokenState::Plus | TokenState::Times => {
+      TokenState::Plus | TokenState::Times | TokenState::VSpace => {
         true
       }
       _ => false,
