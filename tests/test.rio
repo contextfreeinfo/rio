@@ -1,4 +1,5 @@
-# Maybe spaced items are allowed only at the row level?
+a + b # <-- Start higher than vspace. Make sure addition is nested in the block.
+
 # Do commas separate spaced lists for three levels deep???
 
 out.print "Hello, \"world\"!" # Should be a comment.

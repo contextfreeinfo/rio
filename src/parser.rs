@@ -91,6 +91,10 @@ impl<'a> Parser<'a> {
   }
 
   fn next(&mut self) -> &'a Token<'a> {
+    self.next_skipv(false)
+  }
+
+  fn next_skipv(&mut self, skipv: bool) -> &'a Token<'a> {
     let mut index = self.index;
     self.last_index = index;
     let mut token;
@@ -98,6 +102,11 @@ impl<'a> Parser<'a> {
       token = self.tokens.get(index).unwrap();
       match token.state {
         TokenState::Comment | TokenState::HSpace => index += 1,
+        TokenState::VSpace => if skipv {
+          index += 1;
+        } else {
+          break;
+        }
         _ => break,
       }
     }
@@ -113,6 +122,7 @@ impl<'a> Parser<'a> {
     // Node::new(NodeType::Top)
     let mut expr = self.parse_prefix();
     let mut first = true;
+    let mut last_precedence = precedence;
     loop {
       let token = self.peek();
       if token.state == TokenState::Eof {
@@ -134,7 +144,15 @@ impl<'a> Parser<'a> {
         // Go to outer level.
         break;
       }
-      if first {
+      // In https://github.com/KeepCalmAndLearnRust/pratt-parser they always
+      // nest binary ops left to right, so there's no need for this, but I
+      // want a flatter tree here, and I also want to keep skip tokens in
+      // the tree, so I can't always just nest.
+      // So we have to build out manually when precedence falls.
+      // If precedence rises, we'll go deeper into the call stack.
+      // The precedence issue here is more for reset situations like new blocks
+      // and such.
+      if first || last_precedence > op_precedence {
         // println!("Got one inside");
         // TODO Figure out types.
         let mut outer = Node::new(node_kind);
@@ -145,12 +163,17 @@ impl<'a> Parser<'a> {
       }
       if infix {
         expr.push(Node::new_token(self.next()));
-      } else {
-        self.focus();
+        // We can skip vertical after an infix operator.
+        // This includes skipping other empty rows of vspace.
+        self.next_skipv(true);
       }
+      // Look at the next nonskippable.
+      self.focus();
       // println!("Post at {:?}", self.peek());
       let kid = self.parse_expr(op_precedence);
       expr.push(kid);
+      // Reset expectations for next time.
+      last_precedence = op_precedence;
     }
     expr
   }
@@ -250,6 +273,7 @@ fn token_to_node_kind(token_state: TokenState) -> NodeType {
     TokenState::HSpace => NodeType::Spaced,
     TokenState::Plus => NodeType::Add,
     TokenState::Times => NodeType::Multiply,
+    TokenState::VSpace => NodeType::Block,
     _ => NodeType::Other,
   }
 }
