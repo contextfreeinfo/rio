@@ -41,6 +41,10 @@ Time log:
 - 20171111 Parsing. Wasted assigns. About 1.3 seconds.
 - 20171111 Wasted spaceds. About 1.5 seconds. Real effect?
 - 20171116 Growing steadily with each layer. Maybe 2.2 seconds. Sad.
+- 20171130 Maybe back down to about 1.1 seconds with new parser.
+  I don't have the whitespace and comments in the ast again yet, though.
+  Also, maybe even as low as about 1 second, with 0.1 seconds or more now on
+  compiling bogus c output.
 
 Maybe should actually profile sometime.
 
