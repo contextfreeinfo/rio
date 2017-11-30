@@ -13,6 +13,10 @@ pub struct Token<'a> {
 
 impl<'a> Token<'a> {
 
+  pub fn close(&self) -> bool {
+    self.state.close()
+  }
+
   pub fn infix(&self) -> bool {
     self.state.infix()
   }
@@ -52,6 +56,15 @@ pub enum TokenState {
 
 impl TokenState {
 
+  pub fn close(self) -> bool {
+    match self {
+      TokenState::End => {
+        true
+      }
+      _ => false,
+    }
+  }
+
   pub fn infix(self) -> bool {
     match self {
       TokenState::Assign | TokenState::Op | TokenState::Op1 | TokenState::Op2 |
@@ -65,6 +78,7 @@ impl TokenState {
   pub fn precedence(self) -> u8 {
     match self {
       TokenState::Eof => 0,
+      TokenState::End => 5,
       TokenState::Comment | TokenState::VSpace => 10,
       TokenState::HSpace => 20,
       TokenState::Plus => 30,

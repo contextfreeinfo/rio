@@ -1,7 +1,7 @@
 use tokenizer::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum NodeType {
+pub enum NodeKind {
   Add,
   Assign,
   Block,
@@ -12,6 +12,7 @@ pub enum NodeType {
   Other,
   Row,
   Spaced,
+  Stray,
   String,
   Token,
   Top,
@@ -20,19 +21,19 @@ pub enum NodeType {
 #[derive(Clone, Debug)]
 pub struct Node<'a> {
   kids: Vec<Node<'a>>,
-  kind: NodeType,
+  kind: NodeKind,
   token: Option<&'a Token<'a>>,
 }
 
 impl<'a> Node<'a> {
 
-  fn new(kind: NodeType) -> Node<'a> {
+  fn new(kind: NodeKind) -> Node<'a> {
     Node {kids: vec![], kind, token: None}
   }
 
   fn new_token(token: &'a Token<'a>) -> Node<'a> {
     // TODO Control kind? Some token kind?
-    Node {kids: vec![], kind: NodeType::Token, token: Some(&token)}
+    Node {kids: vec![], kind: NodeKind::Token, token: Some(&token)}
   }
 
   pub fn format(&self) -> String {
@@ -50,13 +51,12 @@ impl<'a> Node<'a> {
         prefix, token.line, token.col, token.state, token.text,
       )
     } else {
-      let mut head = format!("{}{:?}\n", prefix, self.kind);
+      let mut group: Vec<String> = vec![format!("{}{:?}", prefix, self.kind)];
       let deeper = format!("{}  ", prefix);
-      let kids: Vec<_> = self.kids.iter().map(|ref kid| {
+      group.extend(self.kids.iter().map(|ref kid| {
         kid.format_at(deeper.as_str())
-      }).collect();
-      head.push_str(kids[..].join("\n").as_str());
-      head
+      }));
+      group[..].join("\n")
     }
   }
 
@@ -118,8 +118,26 @@ impl<'a> Parser<'a> {
     token
   }
 
+  fn parse_do(&mut self) -> Node<'a> {
+    // Build the do.
+    // println!("start do");
+    let mut node = Node::new(NodeKind::Do);
+    node.push_token(self.next());
+    // Go inside. TODO Skip adding if none.
+    let content = self.parse_expr(TokenState::End.precedence());
+    node.push(content);
+    // See where we ended.
+    // println!("after do at {:?}", self.peek());
+    match self.peek().state {
+      TokenState::End => node.push_token(self.next()),
+      // Must be eof. Just move on.
+      _ => (),
+    }
+    // println!("then at {:?}", self.peek());
+    node
+  }
+
   fn parse_expr(&mut self, precedence: u8) -> Node<'a> {
-    // Node::new(NodeType::Top)
     let mut expr = self.parse_prefix();
     let mut first = true;
     let mut last_precedence = precedence;
@@ -130,20 +148,21 @@ impl<'a> Parser<'a> {
       }
       // TODO Not infix if postfix instead (attached then space).
       let infix = token.infix();
-      let node_kind: NodeType;
-      let op_precedence = if infix {
-        node_kind = token_to_node_kind(token.state);
-        token.precedence()
-      } else {
-        // TODO Check if spaced or directly attached.
-        node_kind = NodeType::Spaced;
-        TokenState::HSpace.precedence()
-      };
-      // println!("Peeked at {:?}, infix: {}", token, infix);
+      let mut op_precedence = token.precedence();
+      // println!(
+      //   "Peeked at {:?}, {} vs {}, infix: {}",
+      //   token, precedence, op_precedence, infix,
+      // );
       if precedence >= op_precedence {
         // Go to outer level.
         break;
       }
+      let node_kind = if infix {
+        token_to_node_kind(token.state)
+      } else {
+        op_precedence = TokenState::HSpace.precedence();
+        NodeKind::Spaced
+      };
       // In https://github.com/KeepCalmAndLearnRust/pratt-parser they always
       // nest binary ops left to right, so there's no need for this, but I
       // want a flatter tree here, and I also want to keep skip tokens in
@@ -162,10 +181,21 @@ impl<'a> Parser<'a> {
         first = false;
       }
       if infix {
-        expr.push(Node::new_token(self.next()));
+        expr.push_token(self.next());
         // We can skip vertical after an infix operator.
         // This includes skipping other empty rows of vspace.
         self.next_skipv(true);
+      } else if token.close() {
+        // We should have broken out on a close.
+        // Must be a stray inside something larger, like a paren before end, or
+        // end at top file level.
+        // TODO Track stack of what opens we have, so we can break even better
+        // TODO than just looking at precedence.
+        let mut stray = Node::new(NodeKind::Stray);
+        stray.push_token(self.next());
+        expr.push(stray);
+        // Try again to see what we can see.
+        continue;
       }
       // Look at the next nonskippable.
       self.focus();
@@ -179,7 +209,7 @@ impl<'a> Parser<'a> {
   }
 
   fn parse_number(&mut self) -> Node<'a> {
-    let mut number = Node::new(NodeType::Number);
+    let mut number = Node::new(NodeKind::Number);
     let mut token = self.next();
     let mut has_int = false;
     match token.state {
@@ -225,18 +255,19 @@ impl<'a> Parser<'a> {
 
   fn parse_prefix(&mut self) -> Node<'a> {
     match self.peek().state {
+      TokenState::Do => self.parse_do(),
       TokenState::Dot | TokenState::Int => self.parse_number(),
+      TokenState::End | TokenState::VSpace => Node::new(NodeKind::None),
       TokenState::Eof => Node::new_token(self.peek()),
       TokenState::StringStart => self.parse_string(),
       // TODO Add others that are always infix.
-      TokenState::VSpace => Node::new(NodeType::None),
       // TODO Branch on paren, do, string, number, ...
       _ => Node::new_token(self.next()),
     }
   }
 
   fn parse_string(&mut self) -> Node<'a> {
-    let mut node = Node::new(NodeType::String);
+    let mut node = Node::new(NodeKind::String);
     // StringStart, then loop through contents.
     node.push_token(self.next());
     loop {
@@ -268,12 +299,12 @@ impl<'a> Parser<'a> {
 
 }
 
-fn token_to_node_kind(token_state: TokenState) -> NodeType {
+fn token_to_node_kind(token_state: TokenState) -> NodeKind {
   match token_state {
-    TokenState::HSpace => NodeType::Spaced,
-    TokenState::Plus => NodeType::Add,
-    TokenState::Times => NodeType::Multiply,
-    TokenState::VSpace => NodeType::Block,
-    _ => NodeType::Other,
+    TokenState::HSpace => NodeKind::Spaced,
+    TokenState::Plus => NodeKind::Add,
+    TokenState::Times => NodeKind::Multiply,
+    TokenState::VSpace => NodeKind::Block,
+    _ => NodeKind::Other,
   }
 }
