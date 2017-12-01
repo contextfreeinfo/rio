@@ -72,7 +72,7 @@ impl<'a> Node<'a> {
 
 pub fn parse<'a>(tokens: &'a Vec<Token<'a>>) -> Node<'a> {
   let mut parser = Parser {
-    found_index: 0, index: 0, last_index: 0, tokens: tokens,
+    found_index: 0, index: 0, last_index: 0, last_skipped: 0, tokens: tokens,
   };
   parser.parse_expr(0)
 }
@@ -81,6 +81,7 @@ struct Parser<'a> {
   found_index: usize,
   index: usize,
   last_index: usize,
+  last_skipped: usize,
   tokens: &'a Vec<Token<'a>>,
 }
 
@@ -122,14 +123,14 @@ impl<'a> Parser<'a> {
     // Build the do.
     // println!("start do");
     let mut node = Node::new(NodeKind::Do);
-    node.push_token(self.next());
+    self.push_next(&mut node);
     // Go inside. TODO Skip adding if none.
     let content = self.parse_expr(TokenState::End.precedence());
-    node.push(content);
+    self.push(&mut node, content);
     // See where we ended.
     // println!("after do at {:?}", self.peek());
     match self.peek().state {
-      TokenState::End => node.push_token(self.next()),
+      TokenState::End => self.push_next(&mut node),
       // Must be eof. Just move on.
       _ => (),
     }
@@ -175,13 +176,13 @@ impl<'a> Parser<'a> {
         // println!("Got one inside");
         // TODO Figure out types.
         let mut outer = Node::new(node_kind);
-        outer.push(expr);
+        self.push(&mut outer, expr);
         expr = outer;
         // Past first.
         first = false;
       }
       if infix {
-        expr.push_token(self.next());
+        self.push_next(&mut expr);
         // We can skip vertical after an infix operator.
         // This includes skipping other empty rows of vspace.
         self.next_skipv(true);
@@ -192,8 +193,8 @@ impl<'a> Parser<'a> {
         // TODO Track stack of what opens we have, so we can break even better
         // TODO than just looking at precedence.
         let mut stray = Node::new(NodeKind::Stray);
-        stray.push_token(self.next());
-        expr.push(stray);
+        self.push_next(&mut stray);
+        self.push(&mut expr, stray);
         // Try again to see what we can see.
         continue;
       }
@@ -201,7 +202,7 @@ impl<'a> Parser<'a> {
       self.focus();
       // println!("Post at {:?}", self.peek());
       let kid = self.parse_expr(op_precedence);
-      expr.push(kid);
+      self.push(&mut expr, kid);
       // Reset expectations for next time.
       last_precedence = op_precedence;
     }
@@ -214,7 +215,7 @@ impl<'a> Parser<'a> {
     let mut has_int = false;
     match token.state {
       TokenState::Int => {
-        number.push_token(token);
+        self.push_token(&mut number, token);
         has_int = true;
         token = self.next();
       }
@@ -226,7 +227,7 @@ impl<'a> Parser<'a> {
       let dot = token;
       match token.state {
         TokenState::Dot => {
-          number.push_token(token);
+          self.push_token(&mut number, token);
           token = self.next();
         }
         _ => {
@@ -236,7 +237,7 @@ impl<'a> Parser<'a> {
       };
       match token.state {
         TokenState::Fraction => {
-          number.push_token(token);
+          self.push_token(&mut number, token);
         }
         _ => {
           self.prev();
@@ -269,17 +270,17 @@ impl<'a> Parser<'a> {
   fn parse_string(&mut self) -> Node<'a> {
     let mut node = Node::new(NodeKind::String);
     // StringStart, then loop through contents.
-    node.push_token(self.next());
+    self.push_next(&mut node);
     loop {
       match self.peek().state {
         TokenState::StringStop => {
-          node.push_token(self.next());
+          self.push_next(&mut node);
           break;
         }
         TokenState::Eof | TokenState::VSpace => {
           break;
         }
-        _ => node.push_token(self.next()),
+        _ => self.push_next(&mut node),
       }
     }
     node
@@ -295,6 +296,29 @@ impl<'a> Parser<'a> {
     // TODO This results in iterating over space multiple times.
     // TODO Instead remember where the next is.
     self.index = self.last_index;
+  }
+
+  fn push(&mut self, parent: &mut Node<'a>, node: Node<'a>) {
+    // Push all skipped tokens.
+    if self.last_skipped < self.index {
+      for token in &self.tokens[self.last_skipped..(self.index - 1)] {
+        parent.push_token(token);
+      }
+    }
+    self.last_skipped = self.index + 1;
+    if node.kind != NodeKind::None {
+      // Now push the requested node.
+      parent.push(node);
+    }
+  }
+
+  fn push_next(&mut self, parent: &mut Node<'a>) {
+    let token = self.next();
+    self.push_token(parent, token);
+  }
+
+  fn push_token(&mut self, parent: &mut Node<'a>, token: &'a Token<'a>) {
+    self.push(parent, Node::new_token(token));
   }
 
 }
