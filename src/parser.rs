@@ -301,6 +301,7 @@ impl<'a> Parser<'a> {
 
 fn token_to_node_kind(token_state: TokenState) -> NodeKind {
   match token_state {
+    TokenState::Assign => NodeKind::Assign,
     TokenState::HSpace => NodeKind::Spaced,
     TokenState::Plus => NodeKind::Add,
     TokenState::Times => NodeKind::Multiply,
