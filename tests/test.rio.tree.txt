@@ -52,71 +52,103 @@ Block
             Token at 7, 8: StringText (Hi! # Should be in the string.)
         Token at 7, 38: VSpace (
 )
-      Token at 8, 1: End (end)
-  Token at 8, 4: VSpace (
-
+        Token at 8, 1: HSpace (  )
+        Token at 8, 3: Comment (# Keep one "do" non-ident, so we don't leave out an end here.)
+        Token at 8, 64: VSpace (
 )
-  Stray
-    Token at 10, 1: End (end)
+        Token at 9, 1: HSpace (  )
+        Spaced
+          Token at 9, 3: Id (what)
+          Token at 9, 7: HSpace ( )
+          Parens
+            Token at 9, 8: ParenOpen (()
+            Block
+              Spaced
+                String
+                  Token at 9, 9: StringStart (")
+                  Token at 9, 10: StringText (do you)
+                  Token at 9, 16: StringStop (")
+                Token at 9, 17: HSpace ( )
+                Do
+                  Token at 9, 18: Do (do)
+                  Spaced
+                    Token at 9, 20: HSpace ( )
+                    Token at 9, 21: Id (without)
+                    Token at 9, 28: HSpace ( )
+                    Token at 9, 29: Id (an)
+                  Token at 9, 31: HSpace ( )
+                  Token at 9, 32: End (end)
+                Token at 9, 35: Error (?)
+              Token at 9, 36: VSpace (
+)
+      Token at 10, 1: End (end)
   Token at 10, 4: VSpace (
 
 )
-  Assign
-    Token at 12, 1: Id (z)
-    Token at 12, 2: HSpace ( )
-    Token at 12, 3: Assign (=)
-    Token at 12, 4: HSpace ( )
-    Token at 12, 5: Comment (# This should be ignored)
-    Token at 12, 29: VSpace (
+  Stray
+    Token at 12, 1: End (end)
+  Token at 12, 4: VSpace (
 
 )
-    Token at 14, 1: HSpace (  )
-    Token at 14, 3: Comment (# All this, too.)
-    Token at 14, 19: VSpace (
+  Assign
+    Token at 14, 1: Id (z)
+    Token at 14, 2: HSpace ( )
+    Token at 14, 3: Assign (=)
+    Token at 14, 4: HSpace ( )
+    Token at 14, 5: Comment (# This should be ignored)
+    Token at 14, 29: VSpace (
 
 )
     Token at 16, 1: HSpace (  )
-    Add
-      Token at 16, 3: Id (x)
-      Token at 16, 4: HSpace ( )
-      Token at 16, 5: Plus (+)
-      Token at 16, 6: HSpace ( )
+    Token at 16, 3: Comment (# All this, too.)
+    Token at 16, 19: VSpace (
+
+)
+    Token at 18, 1: HSpace (  )
+    Multiply
+      Parens
+        Token at 18, 3: ParenOpen (()
+        Add
+          Token at 18, 4: Id (x)
+          Token at 18, 5: HSpace ( )
+          Token at 18, 6: Plus (+)
+          Token at 18, 7: HSpace ( )
+          Number
+            Token at 18, 8: Int (1)
+          Token at 18, 9: HSpace ( )
+          Token at 18, 10: Plus (-)
+          Token at 18, 11: HSpace ( )
+          Number
+            Token at 18, 12: Int (0)
+            Token at 18, 13: Dot (.)
+            Token at 18, 14: Fraction (3)
+        Token at 18, 15: ParenClose ())
+      Token at 18, 16: HSpace ( )
+      Token at 18, 17: Times (*)
+      Token at 18, 18: HSpace ( )
+      Token at 18, 19: Id (y)
+      Token at 18, 20: HSpace ( )
+      Token at 18, 21: Times (/)
+      Token at 18, 22: HSpace ( )
       Number
-        Token at 16, 7: Int (1)
-      Token at 16, 8: HSpace ( )
-      Token at 16, 9: Plus (-)
-      Token at 16, 10: HSpace ( )
-      Multiply
-        Number
-          Token at 16, 11: Int (0)
-          Token at 16, 12: Dot (.)
-          Token at 16, 13: Fraction (3)
-        Token at 16, 14: HSpace ( )
-        Token at 16, 15: Times (*)
-        Token at 16, 16: HSpace ( )
-        Token at 16, 17: Id (y)
-        Token at 16, 18: HSpace ( )
-        Token at 16, 19: Times (/)
-        Token at 16, 20: HSpace ( )
-        Number
-          Token at 16, 21: Dot (.)
-          Token at 16, 22: Fraction (2)
-  Token at 16, 23: VSpace (
+        Token at 18, 23: Dot (.)
+        Token at 18, 24: Fraction (2)
+  Token at 18, 25: VSpace (
 
 )
   Spaced
-    Token at 18, 1: Id (hi)
-    Token at 18, 3: HSpace ( )
+    Token at 20, 1: Id (hi)
+    Token at 20, 3: HSpace ( )
     Number
-      Token at 18, 4: Int (1)
-      Token at 18, 5: Dot (.)
-  Token at 18, 6: VSpace (
+      Token at 20, 4: Int (1)
+      Token at 20, 5: Dot (.)
+  Token at 20, 6: VSpace (
 )
   Spaced
-    Token at 19, 1: Assign (=)
-    Token at 19, 2: HSpace ( )
-    Token at 19, 3: Id (ha)
-  Token at 19, 5: VSpace (
+    Token at 21, 1: Assign (=)
+    Token at 21, 2: HSpace ( )
+    Token at 21, 3: Id (ha)
+  Token at 21, 5: VSpace (
 
 )
-  Token at 21, 1: Id (hi)
+  Token at 23, 1: Id (hi)

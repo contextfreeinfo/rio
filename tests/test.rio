@@ -5,6 +5,8 @@ a + b # <-- Start higher than vspace. Make sure addition is nested in the block.
 out.print "Hello, \"world\"!" # Should be a comment.
 if a1 do
   say 'Hi! # Should be in the string.
+  # Keep one "do" non-ident, so we don't leave out an end here.
+  what ("do you" do without an end?
 end
 
 end
@@ -13,7 +15,7 @@ z = # This should be ignored
 
   # All this, too.
 
-  x + 1 - 0.3 * y / .2
+  (x + 1 - 0.3) * y / .2
 
 hi 1.
 = ha

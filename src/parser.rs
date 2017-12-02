@@ -10,6 +10,7 @@ pub enum NodeKind {
   None,
   Number,
   Other,
+  Parens,
   Row,
   Spaced,
   Stray,
@@ -136,7 +137,7 @@ impl<'a> Parser<'a> {
     // println!("start do");
     let mut node = Node::new(NodeKind::Do);
     self.push_next(&mut node);
-    // Go inside. TODO Skip adding if none.
+    // Go inside.
     let content = self.parse_expr(TokenState::End.precedence());
     self.push(&mut node, content);
     // See where we ended.
@@ -266,12 +267,32 @@ impl<'a> Parser<'a> {
     number
   }
 
+  fn parse_parens(&mut self) -> Node<'a> {
+    // Build the parent.
+    let mut node = Node::new(NodeKind::Parens);
+    self.push_next(&mut node);
+    // Go inside.
+    let content = self.parse_expr(TokenState::ParenClose.precedence());
+    self.push(&mut node, content);
+    // See where we ended.
+    match self.peek().state {
+      TokenState::ParenClose => self.push_next(&mut node),
+      // Must be end or eof. Just move on.
+      _ => (),
+    }
+    // println!("then at {:?}", self.peek());
+    node
+  }
+
   fn parse_prefix(&mut self) -> Node<'a> {
     match self.peek().state {
       TokenState::Do => self.parse_do(),
       TokenState::Dot | TokenState::Int => self.parse_number(),
-      TokenState::End | TokenState::VSpace => Node::new(NodeKind::None),
+      TokenState::ParenClose | TokenState::End | TokenState::VSpace => {
+        Node::new(NodeKind::None)
+      }
       TokenState::Eof => Node::new_token(self.peek()),
+      TokenState::ParenOpen => self.parse_parens(),
       TokenState::StringStart => self.parse_string(),
       // TODO Add others that are always infix.
       // TODO Branch on paren, do, string, number, ...

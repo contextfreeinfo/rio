@@ -45,6 +45,8 @@ pub enum TokenState {
   Op,
   Op1,
   Op2,
+  ParenOpen,
+  ParenClose,
   Plus,
   Start,
   StringStart,
@@ -79,6 +81,8 @@ impl TokenState {
     match self {
       TokenState::Eof => 0,
       TokenState::End => 5,
+      // TODO Same precedence as End but with open-token stack tracking?
+      TokenState::ParenClose => 7,
       TokenState::Comment | TokenState::VSpace => 10,
       TokenState::HSpace => 20,
       TokenState::Plus => 30,
@@ -155,6 +159,8 @@ impl<'a> Tokenizer<'a> {
         None => TokenState::Assign,
         _ => TokenState::Op,
       }
+      Some('(') => TokenState::ParenOpen,
+      Some(')') => TokenState::ParenClose,
       Some('+') | Some('-') => match chars.next() {
         None => TokenState::Plus,
         _ => TokenState::Op,
@@ -224,6 +230,7 @@ impl<'a> Iterator for Tokenizer<'a> {
                 },
                 '.' => TokenState::Dot,
                 ',' | ';' | ':' | '(' | ')' | '[' | ']' | '{' | '}' => {
+                  // Parens!!!
                   TokenState::Op1
                 },
                 '+' | '-' | '*' | '/' | '=' => {
