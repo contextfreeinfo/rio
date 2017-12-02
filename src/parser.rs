@@ -305,7 +305,7 @@ impl<'a> Parser<'a> {
         parent.push_token(token);
       }
     }
-    self.last_skipped = self.index + 1;
+    self.last_skipped = self.index;
     if node.kind != NodeKind::None {
       // Now push the requested node.
       parent.push(node);
