@@ -45,6 +45,9 @@ Time log:
   I don't have the whitespace and comments in the ast again yet, though.
   Also, maybe even as low as about 1 second, with 0.1 seconds or more now on
   compiling bogus c output.
+- 20171201 Prettier skip fill puts me at over 1.3 seconds rather than over 1.1.
+  I don't understand why that would make a difference, though, since I iterate
+  to append them either way.
 
 Maybe should actually profile sometime.
 

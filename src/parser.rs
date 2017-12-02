@@ -87,8 +87,20 @@ struct Parser<'a> {
 
 impl<'a> Parser<'a> {
 
-  fn focus(&mut self) {
+  fn chew(&mut self, parent: &mut Node<'a>, index: usize) {
+    // Push all skipped tokens.
+    if self.last_skipped < index {
+      for token in &self.tokens[self.last_skipped..(index - 1)] {
+        parent.push_token(token);
+      }
+    }
+    self.last_skipped = index;
+  }
+
+  fn focus(&mut self, parent: &mut Node<'a>) {
     self.index = self.found_index;
+    let index = self.index;
+    self.chew(parent, index + 1);
   }
 
   fn next(&mut self) -> &'a Token<'a> {
@@ -199,7 +211,7 @@ impl<'a> Parser<'a> {
         continue;
       }
       // Look at the next nonskippable.
-      self.focus();
+      self.focus(&mut expr);
       // println!("Post at {:?}", self.peek());
       let kid = self.parse_expr(op_precedence);
       self.push(&mut expr, kid);
@@ -299,13 +311,8 @@ impl<'a> Parser<'a> {
   }
 
   fn push(&mut self, parent: &mut Node<'a>, node: Node<'a>) {
-    // Push all skipped tokens.
-    if self.last_skipped < self.index {
-      for token in &self.tokens[self.last_skipped..(self.index - 1)] {
-        parent.push_token(token);
-      }
-    }
-    self.last_skipped = self.index;
+    let index = self.index;
+    self.chew(parent, index);
     if node.kind != NodeKind::None {
       // Now push the requested node.
       parent.push(node);
