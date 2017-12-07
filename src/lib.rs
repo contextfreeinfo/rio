@@ -1,7 +1,9 @@
 mod parser;
+mod resolver;
 mod tokenizer;
 
 pub use parser::*;
+pub use resolver::*;
 pub use tokenizer::*;
 
 use std::fs::File;
@@ -13,7 +15,10 @@ pub fn process(name: &str) -> Result<(), io::Error> {
   let mut buffer = String::new();
   file.read_to_string(&mut buffer)?;
   let tokens = tokenize(buffer.as_str());
-  let _tree = parse(&tokens);
-  // println!("{}", _tree.format());
+  let tree = parse(&tokens);
+  // println!("{}", tree.format());
+  let mut context = Context::new();
+  context.init();
+  resolve(&tree, &context);
   Ok(())
 }

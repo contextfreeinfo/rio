@@ -28,7 +28,7 @@ pub struct Node<'a> {
 
 impl<'a> Node<'a> {
 
-  fn new(kind: NodeKind) -> Node<'a> {
+  pub fn new(kind: NodeKind) -> Node<'a> {
     // Vec shouldn't allocate on empty.
     Node {kids: vec![], kind, token: None}
   }
