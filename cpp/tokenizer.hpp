@@ -1,8 +1,11 @@
 #pragma once
 
 #include <string_view>
+#include <vector>
 
 namespace rio {
+
+using Index = size_t;
 
 enum struct TokenState {
   Assign,
@@ -32,7 +35,7 @@ enum struct TokenState {
   VSpace,
 };
 
-bool closing(TokenState state) {
+auto closing(TokenState state) -> bool {
   switch (state) {
     case TokenState::End: {
       return true;
@@ -43,7 +46,7 @@ bool closing(TokenState state) {
   }
 }
 
-bool infix(TokenState state) {
+auto infix(TokenState state) -> bool {
   switch (state) {
     case TokenState::Assign:
     case TokenState::Op:
@@ -60,7 +63,7 @@ bool infix(TokenState state) {
   }
 }
 
-int precedence(TokenState state) {
+auto precedence(TokenState state) -> int {
   switch (state) {
     case TokenState::Eof: return 0;
     case TokenState::End: return 5;
@@ -79,13 +82,13 @@ struct Token {
 
   // Fields.
 
-  int line;
+  Index line;
 
   // Col in code points.
-  int col;
+  Index col;
 
   // Index in bytes.
-  int index;
+  Index index;
 
   TokenState state;
 
@@ -93,55 +96,69 @@ struct Token {
 
   // Functions.
 
-  bool closing() {
+  auto closing() -> bool {
     return ::rio::closing(state);
   }
 
-  bool infix() {
+  auto infix() -> bool {
     return ::rio::infix(state);
   }
 
-  bool precedence() {
+  auto precedence() -> bool {
     return ::rio::precedence(state);
   }
 
 };
 
-# if 0
-// TODO Prefer impl Iterator<type = Token<'a>> when impl trait is done.
-pub fn tokenize<'a>(buffer: &'a str) -> Vec<Token<'a>> {
-  Tokenizer::new(buffer).collect()
-}
+struct Tokenizer {
 
-struct Tokenizer<'a> {
-  buffer: &'a str,
-  char_indices: CharIndices<'a>,
-  col_index: usize,
-  gave_eof: bool,
-  last_start: usize,
-  line_index: usize,
-  start_col: usize,
-  start_line: usize,
-  state: TokenState,
-  string_start: char,
-}
+  Tokenizer(std::string_view buffer) {
+    this->buffer = buffer;
+    col_index = 0;
+    gave_eof = false;
+    last_start = 0;
+    line_index = 0;
+    start_line = 0;
+    start_col = 0;
+    state = TokenState::Start;
+    string_start = '?';
+  }
+
+  auto collect() -> std::vector<Token> {
+    std::vector<Token> tokens;
+    return tokens;
+  }
+
+  private:
+
+  // Fields.
+
+  std::string_view buffer;
+
+  Index char_index;
+
+  Index col_index;
+
+  bool gave_eof;
+
+  Index last_start;
+
+  Index line_index;
+
+  Index start_col;
+
+  Index start_line;
+
+  TokenState state;
+
+  // TODO Code point type?
+  char string_start;
+
+};
+
+# if 0
 
 impl<'a> Tokenizer<'a> {
-
-  pub fn new(buffer: &str) -> Tokenizer {
-    Tokenizer {
-      buffer,
-      char_indices: buffer.char_indices(),
-      col_index: 0,
-      gave_eof: false,
-      last_start: 0,
-      line_index: 0,
-      start_line: 0,
-      start_col: 0,
-      state: TokenState::Start,
-      string_start: '?',
-    }
-  }
 
   fn find_key(&self, text: &str) -> TokenState {
     let mut chars = text.chars();
