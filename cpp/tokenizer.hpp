@@ -126,6 +126,13 @@ struct Tokenizer {
 
   auto collect() -> std::vector<Token> {
     std::vector<Token> tokens;
+    while (true) {
+      auto token = next();
+      tokens.push_back(token);
+      if (token.state == TokenState::Eof) {
+        break;
+      }
+    }
     return tokens;
   }
 
@@ -154,182 +161,187 @@ struct Tokenizer {
   // TODO Code point type?
   char string_start;
 
-};
+  // Functions.
 
 # if 0
-
-impl<'a> Tokenizer<'a> {
-
-  fn find_key(&self, text: &str) -> TokenState {
-    let mut chars = text.chars();
-    match chars.next() {
-      Some('d') => match chars.next() {
-        Some('o') => match chars.next() {
-          None => TokenState::Do,
+  
+  impl<'a> Tokenizer<'a> {
+  
+    fn find_key(&self, text: &str) -> TokenState {
+      let mut chars = text.chars();
+      match chars.next() {
+        Some('d') => match chars.next() {
+          Some('o') => match chars.next() {
+            None => TokenState::Do,
+            _ => TokenState::Id,
+          }
           _ => TokenState::Id,
         }
-        _ => TokenState::Id,
-      }
-      Some('e') => match chars.next() {
-        Some('n') => match chars.next() {
-          Some('d') => match chars.next() {
-            None => TokenState::End,
+        Some('e') => match chars.next() {
+          Some('n') => match chars.next() {
+            Some('d') => match chars.next() {
+              None => TokenState::End,
+              _ => TokenState::Id,
+            }
             _ => TokenState::Id,
           }
           _ => TokenState::Id,
         }
         _ => TokenState::Id,
       }
-      _ => TokenState::Id,
     }
+  
+    fn find_op(&self, text: &str) -> TokenState {
+      let mut chars = text.chars();
+      match chars.next() {
+        Some('=') => match chars.next() {
+          None => TokenState::Assign,
+          _ => TokenState::Op,
+        }
+        Some('(') => TokenState::ParenOpen,
+        Some(')') => TokenState::ParenClose,
+        Some('+') | Some('-') => match chars.next() {
+          None => TokenState::Plus,
+          _ => TokenState::Op,
+        }
+        Some('*') | Some('/') => match chars.next() {
+          None => TokenState::Times,
+          _ => TokenState::Op,
+        }
+        _ => TokenState::Op,
+      }
+    }
+  
   }
 
-  fn find_op(&self, text: &str) -> TokenState {
-    let mut chars = text.chars();
-    match chars.next() {
-      Some('=') => match chars.next() {
-        None => TokenState::Assign,
-        _ => TokenState::Op,
-      }
-      Some('(') => TokenState::ParenOpen,
-      Some(')') => TokenState::ParenClose,
-      Some('+') | Some('-') => match chars.next() {
-        None => TokenState::Plus,
-        _ => TokenState::Op,
-      }
-      Some('*') | Some('/') => match chars.next() {
-        None => TokenState::Times,
-        _ => TokenState::Op,
-      }
-      _ => TokenState::Op,
-    }
-  }
+#endif
 
+  auto find_new_state(char c) -> TokenState {
+    switch (state) {
+      case TokenState::Comment: {
+        switch (c) {
+          case '\n': case '\r': return TokenState::VSpace;
+          default: return TokenState::Comment;
+        }
+      }
+      case TokenState::Escape: return TokenState::StringText;
+      case TokenState::EscapeStart: return TokenState::Escape;
+      case TokenState::StringStart: case TokenState::StringText: {
+        switch (c) {
+          case '\\': return TokenState::EscapeStart;
+          case '\'': case '"': {
+            if (c == string_start) {
+              return TokenState::StringStop;
+            } else {
+              return TokenState::StringText;
+            }
+          }
+          case '\n': case '\r': return TokenState::VSpace;
+          default: return TokenState::StringText;
+        }
+      }
+      default: {
+        switch (c) {
+          case '#': return TokenState::Comment;
+          case ' ': case '\t': return TokenState::HSpace;
+          case '.': return TokenState::Dot;
+          // TODO '_' as digits separator.
+          case '_': return TokenState::Id;
+          case ',': case ';': case ':': case '(': case ')': case '[': case ']':
+          case '{': case '}': {
+            return TokenState::Op1;
+          }
+          case '+': case '-': case '*': case '/': case '=': {
+            // TODO Deal with compound operators on these.
+            return TokenState::Op2;
+          }
+          case '\'': case '"': {
+            // Side effect!
+            string_start = c;
+            return TokenState::StringStart;
+          }
+          case '\n': case '\r': return TokenState::VSpace;
+          default: {
+            if (c >= '0' && c <= '9') {
+              switch (this->state) {
+                case TokenState::Dot: return TokenState::Fraction;
+                case TokenState::Fraction: return TokenState::Fraction;
+                case TokenState::Id: return TokenState::Id;
+                default: return TokenState::Int;
+              }
+            } else if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+              return TokenState::Id;
+            } else {
+              return TokenState::Error;
+            }
+          }
+        }
+      }
+    };
 }
 
-impl<'a> Iterator for Tokenizer<'a> {
-
-  type Item = Token<'a>;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    let mut stop_index: usize;
-    let last_start = self.last_start;
-    let start_col = self.start_col;
-    let start_line = self.start_line;
-    let mut state = self.state;
-    loop {
-      match self.char_indices.next() {
-        Some((index, char)) => {
-          let new_state = match self.state {
-            TokenState::Comment => {
-              match char {
-                '\n' | '\r' => TokenState::VSpace,
-                _ => TokenState::Comment,
-              }
-            }
-            TokenState::Escape => {
-              TokenState::StringText
-            }
-            TokenState::EscapeStart => {
-              TokenState::Escape
-            }
-            TokenState::StringStart | TokenState::StringText => {
-              match char {
-                '\\' => TokenState::EscapeStart,
-                '\'' | '"' => {
-                  if char == self.string_start {
-                    TokenState::StringStop
-                  } else {
-                    TokenState::StringText
-                  }
-                },
-                '\n' | '\r' => TokenState::VSpace,
-                _ => TokenState::StringText,
-              }
-            },
-            _ => {
-              match char {
-                '#' => TokenState::Comment,
-                ' ' | '\t' => TokenState::HSpace,
-                'A'...'Z' | 'a'...'z' | '_' => TokenState::Id,
-                '0'...'9' => {
-                  match self.state {
-                    TokenState::Dot => TokenState::Fraction,
-                    TokenState::Fraction => TokenState::Fraction,
-                    TokenState::Id => TokenState::Id,
-                    _ => TokenState::Int,
-                  }
-                },
-                '.' => TokenState::Dot,
-                ',' | ';' | ':' | '(' | ')' | '[' | ']' | '{' | '}' => {
-                  // Parens!!!
-                  TokenState::Op1
-                },
-                '+' | '-' | '*' | '/' | '=' => {
-                  // TODO Deal with compound operators on these.
-                  TokenState::Op2
-                },
-                '\'' | '"' => {
-                  self.string_start = char;
-                  TokenState::StringStart
-                },
-                '\n' | '\r' => TokenState::VSpace,
-                _ => TokenState::Error,
-              }
-            }
-          };
-          stop_index = index;
-          state = self.state;
-          let state_changed = new_state != state;
-          if state_changed {
-            self.state = new_state;
-            self.last_start = index;
-            self.start_line = self.line_index;
-            self.start_col = self.col_index;
-          }
-          // Count rows and cols.
-          self.col_index += 1;
-          if char == '\n' {
-            self.line_index += 1;
-            self.col_index = 0;
-          }
-          // If the first char, we might need to keep going.
-          if state_changed && index > last_start {
-            break;
-          }
-        }
-        None => {
-          stop_index = self.buffer.len();
-          self.last_start = stop_index;
-          break;
-        }
+  auto next() -> Token {
+    Index stop_index;
+    Index last_start = this->last_start;
+    Index start_col = this->start_col;
+    Index start_line = this->start_line;
+    auto state = this->state;
+    while (true) {
+      Index index = char_index;
+      if (index >= buffer.size()) {
+        stop_index = buffer.size();
+        this->last_start = stop_index;
+        break;
+      }
+      char c = buffer[index];
+      // TODO(tjp): Advance by utf8 code points.
+      ++char_index;
+      auto new_state = find_new_state(c);
+      stop_index = index;
+      state = this->state;
+      auto state_changed = new_state != state;
+      if (state_changed) {
+        this->state = new_state;
+        this->last_start = index;
+        this->start_line = this->line_index;
+        this->start_col = this->col_index;
+      }
+      // Count rows and cols.
+      this->col_index += 1;
+      if (c == '\n') {
+        this->line_index += 1;
+        this->col_index = 0;
+      }
+      // If the first char, we might need to keep going.
+      if (state_changed && index > last_start) {
+        break;
       }
     }
-    if stop_index == last_start {
-      if self.gave_eof {
-        return None;
-      }
+    if (stop_index == last_start) {
+      // if (this->gave_eof) {
+      // TODO Fail out somehow?
+      //   return None;
+      // }
       // Eof token lets parser ignore None case better.
       state = TokenState::Eof;
-      self.gave_eof = true;
+      gave_eof = true;
     }
     // We have a token to give.
-    let text = &self.buffer[last_start..stop_index];
-    state = match state {
-      TokenState::Id => self.find_key(text),
-      TokenState::Op1 | TokenState::Op2 => self.find_op(text),
-      _ => state,
-    };
-    Some(Token {
-      line: start_line + 1,
-      col: start_col + 1,
-      index: last_start,
-      state: state,
-      text: text,
-    })
+    auto text = buffer.substr(last_start, stop_index - last_start);
+    // state = match state {
+    //   TokenState::Id => self.find_key(text),
+    //   TokenState::Op1 | TokenState::Op2 => self.find_op(text),
+    //   _ => state,
+    // };
+    auto token = Token{};
+    token.line = start_line + 1;
+    token.col = start_col + 1;
+    token.index = last_start;
+    token.state = state;
+    token.text = text;
+    return token;
   }
-
-}
-#endif
+  
+};
 
 }
