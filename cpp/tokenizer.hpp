@@ -146,6 +146,13 @@ struct Token {
 
 };
 
+auto operator<<(std::ostream& stream, const Token& token) -> std::ostream& {
+  return stream
+    << token.state << "["
+    << token.line << ", " << token.col << "]("
+    << token.text << ")";
+}
+
 struct Tokenizer {
 
   Tokenizer(std::string_view buffer) {
@@ -202,58 +209,63 @@ struct Tokenizer {
 
   // Functions.
 
-# if 0
-  
-  impl<'a> Tokenizer<'a> {
-  
-    fn find_key(&self, text: &str) -> TokenState {
-      let mut chars = text.chars();
-      match chars.next() {
-        Some('d') => match chars.next() {
-          Some('o') => match chars.next() {
-            None => TokenState::Do,
-            _ => TokenState::Id,
-          }
-          _ => TokenState::Id,
-        }
-        Some('e') => match chars.next() {
-          Some('n') => match chars.next() {
-            Some('d') => match chars.next() {
-              None => TokenState::End,
-              _ => TokenState::Id,
+  auto find_key(std::string_view text) -> TokenState {
+    // Everything we care about is ascii here, so no code points needed.
+    auto c = text.cbegin();
+    auto end = text.cend();
+    if (c < end) {
+      switch (*c) {
+        case 'd': {
+          if (++c < end) {
+            switch (*c) {
+              case 'o': return TokenState::Do;
             }
-            _ => TokenState::Id,
           }
-          _ => TokenState::Id,
+          break;
         }
-        _ => TokenState::Id,
+        case 'e': {
+          if (++c < end) {
+            switch (*c) {
+              case 'n': {
+                if (++c < end) {
+                  switch (*c) {
+                    case 'd': return TokenState::End;
+                  }
+                }
+                break;
+              }
+            }
+          }
+          break;
+        }
       }
     }
-  
-    fn find_op(&self, text: &str) -> TokenState {
-      let mut chars = text.chars();
-      match chars.next() {
-        Some('=') => match chars.next() {
-          None => TokenState::Assign,
-          _ => TokenState::Op,
-        }
-        Some('(') => TokenState::ParenOpen,
-        Some(')') => TokenState::ParenClose,
-        Some('+') | Some('-') => match chars.next() {
-          None => TokenState::Plus,
-          _ => TokenState::Op,
-        }
-        Some('*') | Some('/') => match chars.next() {
-          None => TokenState::Times,
-          _ => TokenState::Op,
-        }
-        _ => TokenState::Op,
-      }
-    }
-  
+    return TokenState::Id;
   }
 
-#endif
+  auto find_op(std::string_view text) -> TokenState {
+    auto c = text.cbegin();
+    auto end = text.cend();
+    if (c < end) {
+      switch (*c) {
+        case '=': {
+          if (++c == end) return TokenState::Assign;
+          break;
+        }
+        case '(': return TokenState::ParenOpen;
+        case ')': return TokenState::ParenClose;
+        case '+': case '-': {
+          if (++c == end) return TokenState::Plus;
+          break;
+        }
+        case '*': case '/': {
+          if (++c == end) return TokenState::Times;
+          break;
+        }
+      }
+    }
+    return TokenState::Op;
+  }
 
   auto find_new_state(char c) -> TokenState {
     switch (state) {
@@ -316,8 +328,8 @@ struct Tokenizer {
           }
         }
       }
-    };
-}
+    }
+  }
 
   auto next() -> Token {
     Index stop_index;
@@ -372,11 +384,16 @@ struct Tokenizer {
     }
     // We have a token to give.
     auto text = buffer.substr(last_start, stop_index - last_start);
-    // state = match state {
-    //   TokenState::Id => self.find_key(text),
-    //   TokenState::Op1 | TokenState::Op2 => self.find_op(text),
-    //   _ => state,
-    // };
+    switch (state) {
+      case TokenState::Id: {
+        state = find_key(text);
+        break;
+      }
+      case TokenState::Op1: case TokenState::Op2: {
+        state = find_op(text);
+        break;
+      }
+    }
     auto token = Token{};
     token.line = start_line + 1;
     token.col = start_col + 1;
