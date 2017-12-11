@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <string_view>
 #include <vector>
 
@@ -34,6 +35,41 @@ enum struct TokenState {
   Times,
   VSpace,
 };
+
+auto name(TokenState state) -> std::string_view {
+  switch (state) {
+    case TokenState::Assign: return "Assign";
+    case TokenState::Comment: return "Comment";
+    case TokenState::Do: return "Do";
+    case TokenState::Dot: return "Dot";
+    case TokenState::End: return "End";
+    case TokenState::Eof: return "Eof";
+    case TokenState::Error: return "Error";
+    case TokenState::EscapeStart: return "EscapeStart";
+    case TokenState::Escape: return "Escape";
+    case TokenState::Fraction: return "Fraction";
+    case TokenState::HSpace: return "HSpace";
+    case TokenState::Id: return "Id";
+    case TokenState::Int: return "Int";
+    case TokenState::Op: return "Op";
+    case TokenState::Op1: return "Op1";
+    case TokenState::Op2: return "Op2";
+    case TokenState::ParenOpen: return "ParenOpen";
+    case TokenState::ParenClose: return "ParenClose";
+    case TokenState::Plus: return "Plus";
+    case TokenState::Start: return "Start";
+    case TokenState::StringStart: return "StringStart";
+    case TokenState::StringStop: return "StringStop";
+    case TokenState::StringText: return "StringText";
+    case TokenState::Times: return "Times";
+    case TokenState::VSpace: return "VSpace";
+    default: return "?";
+  }
+}
+
+auto operator<<(std::ostream& stream, TokenState state) -> std::ostream& {
+  return stream << name(state);
+}
 
 auto closing(TokenState state) -> bool {
   switch (state) {
@@ -114,6 +150,7 @@ struct Tokenizer {
 
   Tokenizer(std::string_view buffer) {
     this->buffer = buffer;
+    char_index = 0;
     col_index = 0;
     gave_eof = false;
     last_start = 0;
@@ -142,6 +179,8 @@ struct Tokenizer {
 
   std::string_view buffer;
 
+  // This should be tracking utf8 code point positions.
+  // TODO Actual utf8 handling.
   Index char_index;
 
   Index col_index;
@@ -286,17 +325,22 @@ struct Tokenizer {
     Index start_col = this->start_col;
     Index start_line = this->start_line;
     auto state = this->state;
+    // std::cout << "Finding next at " << start_line << ", " << start_col << std::endl;
     while (true) {
       Index index = char_index;
+      // std::cout << "Index " << index << std::endl;
       if (index >= buffer.size()) {
         stop_index = buffer.size();
         this->last_start = stop_index;
+        // std::cout << "Done!" << std::endl;
         break;
       }
       char c = buffer[index];
+      // std::cout << "At " << index << " found " << c << " (" << static_cast<int>(c) << ")" << std::endl;
       // TODO(tjp): Advance by utf8 code points.
       ++char_index;
       auto new_state = find_new_state(c);
+      // std::cout << "On " << c << " change from " << state << " to " << new_state << std::endl;
       stop_index = index;
       state = this->state;
       auto state_changed = new_state != state;
