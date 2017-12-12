@@ -1,13 +1,13 @@
 #pragma once
 
 #include "tokenizer.hpp"
+// #include <functional>
+// #include <optional>
+#include <sstream>
 
-#if 0
+namespace rio {
 
-use tokenizer::*;
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum NodeKind {
+enum struct NodeKind {
   Add,
   Assign,
   Block,
@@ -23,49 +23,85 @@ pub enum NodeKind {
   String,
   Token,
   Top,
+};
+
+auto name(NodeKind kind) -> std::string_view {
+  switch (kind) {
+    case NodeKind::Add: return "Add";
+    case NodeKind::Assign: return "Assign";
+    case NodeKind::Block: return "Block";
+    case NodeKind::Do: return "Do";
+    case NodeKind::Multiply: return "Multiply";
+    case NodeKind::None: return "None";
+    case NodeKind::Number: return "Number";
+    case NodeKind::Other: return "Other";
+    case NodeKind::Parens: return "Parens";
+    case NodeKind::Row: return "Row";
+    case NodeKind::Spaced: return "Spaced";
+    case NodeKind::Stray: return "Stray";
+    case NodeKind::String: return "String";
+    case NodeKind::Token: return "Token";
+    case NodeKind::Top: return "Top";
+    default: return "?";
+  }
 }
 
-#[derive(Clone, Debug)]
-pub struct Node<'a> {
-  kids: Vec<Node<'a>>,
-  kind: NodeKind,
-  token: Option<&'a Token<'a>>,
+auto operator<<(std::ostream& stream, NodeKind kind) -> std::ostream& {
+  return stream << name(kind);
 }
 
-impl<'a> Node<'a> {
+template<typename Item>
+using optref = Item*;
+// Alternative that seems perhaps overkill:
+// using optref = std::optional<std::reference_wrapper<Item>>;
 
-  pub fn new(kind: NodeKind) -> Node<'a> {
-    // Vec shouldn't allocate on empty.
-    Node {kids: vec![], kind, token: None}
+struct Node {
+
+  // Fields.
+
+  std::vector<Node> kids;
+
+  NodeKind kind;
+
+  optref<Token> token;
+
+  // Functions.
+
+  Node(NodeKind kind_): kind(kind_) {}
+
+  Node(Token& token_): kind(NodeKind::Token), token(&token_) {}
+
+  auto format() -> std::string {
+    format_at("");
   }
 
-  fn new_token(token: &'a Token<'a>) -> Node<'a> {
-    Node {kids: vec![], kind: NodeKind::Token, token: Some(&token)}
-  }
+  private:
 
-  pub fn format(&self) -> String {
-    self.format_at("")
-  }
-
-  fn format_at(&self, prefix: &str) -> String {
+  auto format_at(std::string_view prefix) -> std::string {
     // Might not be the most efficient, since it doesn't work on a single big
     // buffer, but it shouldn't be needed except for debugging.
     // TODO Pass down the string to append to?
-    if self.token.is_some() {
-      let token = &self.token.unwrap();
-      format!(
-        "{}Token at {}, {}: {:?} ({})",
-        prefix, token.line, token.col, token.state, token.text,
-      )
+    std::stringstream buffer;
+    buffer << prefix << kind;
+    if (token) {
+      buffer << " " << *token;
     } else {
-      let mut group: Vec<String> = vec![format!("{}{:?}", prefix, self.kind)];
-      let deeper = format!("{}  ", prefix);
-      group.extend(self.kids.iter().map(|ref kid| {
-        kid.format_at(deeper.as_str())
-      }));
-      group[..].join("\n")
+      std::string deeper{prefix};
+      deeper += "  ";
+      for (auto& kid: kids) {
+        buffer << "\n" << kid.format_at(deeper);
+      }
     }
+    return buffer.str();
   }
+
+};
+
+}
+
+#if 0
+
+impl<'a> Node<'a> {
 
   fn push(&mut self, node: Node<'a>) {
     self.kids.push(node);
