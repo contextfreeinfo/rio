@@ -63,16 +63,26 @@ struct Node {
 
   NodeKind kind;
 
-  optref<Token> token;
-
+  optref<const Token> token;
+  // optref<Token> token;
+  
   // Functions.
 
   Node(NodeKind kind_): kind(kind_) {}
 
-  Node(Token& token_): kind(NodeKind::Token), token(&token_) {}
-
+  Node(const Token& token_): kind(NodeKind::Token), token(&token_) {}
+  // Node(Token& token_): kind(NodeKind::Token), token(&token_) {}
+  
   auto format() -> std::string {
     format_at("");
+  }
+
+  auto push(Node&& node) {
+    kids.push_back(std::move(node));
+  }
+
+  auto push_token(const Token& token) {
+    push(Node(token));
   }
 
   private:
@@ -97,19 +107,55 @@ struct Node {
 
 };
 
-}
+struct Parser {
+
+  // Fields.
+
+  Index found_index;
+
+  Index index;
+
+  Index last_index;
+
+  Index last_skipped;
+
+  const std::vector<Token>& tokens;
+
+  // Functions.
+
+  Parser(const std::vector<Token>& tokens_):
+    found_index(0),
+    index(0),
+    last_index(0),
+    last_skipped(0),
+    tokens(tokens_)
+  {}
+
+  auto parse() -> Node {
+    return parse_expr();
+  }
+
+  private:
+
+  auto chew(Node& parent, Index index) {
+    if (last_skipped < index) {
+      auto end = tokens.begin() + index - 1;
+      for (auto token = tokens.begin() + last_skipped; token < end; ++token) {
+        parent.push_token(*token);
+      }
+    }
+    last_skipped = index;
+  }
+
+  auto parse_expr() -> Node {
+    return Node(NodeKind::Other);
+  }
+
+};
 
 #if 0
 
 impl<'a> Node<'a> {
-
-  fn push(&mut self, node: Node<'a>) {
-    self.kids.push(node);
-  }
-
-  fn push_token(&mut self, token: &'a Token<'a>) {
-    self.push(Node::new_token(token));
-  }
 
 }
 
@@ -118,14 +164,6 @@ pub fn parse<'a>(tokens: &'a Vec<Token<'a>>) -> Node<'a> {
     found_index: 0, index: 0, last_index: 0, last_skipped: 0, tokens: tokens,
   };
   parser.parse_expr(0)
-}
-
-struct Parser<'a> {
-  found_index: usize,
-  index: usize,
-  last_index: usize,
-  last_skipped: usize,
-  tokens: &'a Vec<Token<'a>>,
 }
 
 impl<'a> Parser<'a> {
@@ -405,3 +443,5 @@ fn token_to_node_kind(token_state: TokenState) -> NodeKind {
 }
 
 #endif
+
+}
