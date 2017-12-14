@@ -137,7 +137,7 @@ struct Parser {
 
   private:
 
-  auto chew(Node& parent, Index index) {
+  void chew(Node& parent, Index index) {
     // Push all skipped tokens.
     if (last_skipped < index) {
       auto end = tokens.begin() + index - 1;
@@ -148,7 +148,7 @@ struct Parser {
     last_skipped = index;
   }
 
-  auto focus(Node& parent) {
+  void focus(Node& parent) {
     index = found_index;
     chew(parent, index + 1);
   }
@@ -188,31 +188,25 @@ struct Parser {
     return *token;
   }
 
-#if 0
   auto parse_do() -> Node {
     // Build the do.
-    Node node{NodeKind::Do};
-  }
-
-  fn parse_do(&mut self) -> Node<'a> {
-    // Build the do.
     // println!("start do");
-    let mut node = Node::new(NodeKind::Do);
-    self.push_next(&mut node);
+    Node node{NodeKind::Do};
+    push_next(node);
     // Go inside.
-    let content = self.parse_expr(TokenState::End.precedence());
-    self.push(&mut node, content);
+    auto content = parse_expr(precedence(TokenState::End));
+    push(node, std::move(content));
     // See where we ended.
     // println!("after do at {:?}", self.peek());
-    match self.peek().state {
-      TokenState::End => self.push_next(&mut node),
-      // Must be eof. Just move on.
-      _ => (),
+    switch (peek().state) {
+      case TokenState::End: {
+        push_next(node);
+        break;
+      }  // else must be eof. Just move on.
     }
     // println!("then at {:?}", self.peek());
-    node
+    return node;
   }
-#endif
 
   auto parse_expr(int precedence) -> Node {
     return Node(NodeKind::Other);
@@ -230,7 +224,7 @@ struct Parser {
     index = last_index;
   }
 
-  auto push(Node& parent, Node&& node) {
+  void push(Node& parent, Node&& node) {
     chew(parent, index);
     if (node.kind != NodeKind::None) {
       // Now push the requested node.
@@ -238,7 +232,7 @@ struct Parser {
     }
   }
 
-  auto push_next(Node& parent) {
+  void push_next(Node& parent) {
     push_token(parent, next());
   }
 
