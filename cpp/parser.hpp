@@ -78,7 +78,7 @@ struct Node {
   }
 
   auto push(Node&& node) {
-    kids.push_back(std::move(node));
+    kids.push_back(node);
   }
 
   auto push_token(const Token& token) {
@@ -132,12 +132,13 @@ struct Parser {
   {}
 
   auto parse() -> Node {
-    return parse_expr();
+    return parse_expr(0);
   }
 
   private:
 
   auto chew(Node& parent, Index index) {
+    // Push all skipped tokens.
     if (last_skipped < index) {
       auto end = tokens.begin() + index - 1;
       for (auto token = tokens.begin() + last_skipped; token < end; ++token) {
@@ -147,7 +148,47 @@ struct Parser {
     last_skipped = index;
   }
 
-  auto parse_expr() -> Node {
+  auto focus(Node& parent) {
+    index = found_index;
+    chew(parent, index + 1);
+  }
+
+  auto next(bool skipv = false) -> const Token& {
+    // We never pass eof, so we'll have a token for sure.
+    const Token* token;
+    auto index = this->index;
+    last_index = index;
+    auto done = false;
+    while (!done) {
+      token = &tokens[index];
+      switch (token->state) {
+        case TokenState::Comment: case TokenState::HSpace: {
+          ++index;
+          break;
+        }
+        case TokenState::VSpace: {
+          if (skipv) {
+            ++index;
+          } else {
+            done = true;
+          }
+          break;
+        }
+        default: {
+          done = true;
+          break;
+        }
+      }
+    }
+    found_index = index;
+    if (index < tokens.size()) {
+      ++index;
+    }
+    this->index = index;
+    return *token;
+  }
+
+  auto parse_expr(int precedence) -> Node {
     return Node(NodeKind::Other);
   }
 
@@ -155,62 +196,7 @@ struct Parser {
 
 #if 0
 
-impl<'a> Node<'a> {
-
-}
-
-pub fn parse<'a>(tokens: &'a Vec<Token<'a>>) -> Node<'a> {
-  let mut parser = Parser {
-    found_index: 0, index: 0, last_index: 0, last_skipped: 0, tokens: tokens,
-  };
-  parser.parse_expr(0)
-}
-
 impl<'a> Parser<'a> {
-
-  fn chew(&mut self, parent: &mut Node<'a>, index: usize) {
-    // Push all skipped tokens.
-    if self.last_skipped < index {
-      for token in &self.tokens[self.last_skipped..(index - 1)] {
-        parent.push_token(token);
-      }
-    }
-    self.last_skipped = index;
-  }
-
-  fn focus(&mut self, parent: &mut Node<'a>) {
-    self.index = self.found_index;
-    let index = self.index;
-    self.chew(parent, index + 1);
-  }
-
-  fn next(&mut self) -> &'a Token<'a> {
-    self.next_skipv(false)
-  }
-
-  fn next_skipv(&mut self, skipv: bool) -> &'a Token<'a> {
-    let mut index = self.index;
-    self.last_index = index;
-    let mut token;
-    loop {
-      token = self.tokens.get(index).unwrap();
-      match token.state {
-        TokenState::Comment | TokenState::HSpace => index += 1,
-        TokenState::VSpace => if skipv {
-          index += 1;
-        } else {
-          break;
-        }
-        _ => break,
-      }
-    }
-    self.found_index = index;
-    if index < self.tokens.len() {
-      index += 1;
-    }
-    self.index = index;
-    token
-  }
 
   fn parse_do(&mut self) -> Node<'a> {
     // Build the do.
