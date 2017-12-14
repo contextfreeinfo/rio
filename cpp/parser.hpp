@@ -209,7 +209,106 @@ struct Parser {
   }
 
   auto parse_expr(int precedence) -> Node {
-    return Node(NodeKind::Other);
+    return Node{NodeKind::Other};
+  }
+
+  auto parse_number() -> Node {
+    Node number{NodeKind::Number};
+    // Juggle our latest token, due to so many optional parts.
+    auto* token = &next();
+    auto has_int = false;
+    switch (token->state) {
+      case TokenState::Int: {
+        push_token(number, *token);
+        has_int = true;
+        token = &next();
+        break;
+      }
+    };
+    // Just a block for breaking from, not a loop.
+    do {
+      auto& dot = *token;
+      if (token->state == TokenState::Dot) {
+        push_token(number, *token);
+        token = &next();
+      } else {
+        prev();
+        break;
+      }
+      if (token->state == TokenState::Fraction) {
+        push_token(number, *token);
+      } else {
+        prev();
+        if (!has_int) {
+          // TODO Parse this as member access even if there was preceding
+          // TODO whitespace!
+          return Node{dot};
+        }
+        break;
+      }
+      // TODO Exponent.
+    } while (false);
+    return number;
+  }
+
+  auto parse_parens() -> Node {
+    // Build the parent.
+    Node node{NodeKind::Parens};
+    push_next(node);
+    // Go inside.
+    auto content = parse_expr(precedence(TokenState::ParenClose));
+    push(node, std::move(content));
+    // See where we ended.
+    switch (peek().state) {
+      case TokenState::ParenClose: {
+        push_next(node);
+        break;
+      }  // else must be end or eof. Just move on.
+    }
+    // println!("then at {:?}", self.peek());
+    return node;
+  }
+
+  auto parse_prefix() -> Node {
+    switch (peek().state) {
+      case TokenState::Do: return parse_do();
+      case TokenState::Dot: case TokenState::Int: return parse_number();
+      case TokenState::ParenClose: case TokenState::End:
+      case TokenState::VSpace: {
+        return Node{NodeKind::None};
+      }
+      case TokenState::Eof: return Node{peek()};
+      case TokenState::ParenOpen: return parse_parens();
+      case TokenState::StringStart: return parse_string();
+      // TODO Add others that are always infix.
+      // TODO Branch on paren, do, string, number, ...
+      default: return Node{next()};
+    }
+  }
+
+  auto parse_string() -> Node {
+    Node node{NodeKind::String};
+    // StringStart, then loop through contents.
+    push_next(node);
+    auto done = false;
+    while (!done) {
+      switch (peek().state) {
+        case TokenState::StringStop: {
+          push_next(node);
+          done = true;
+          break;
+        }
+        case TokenState::Eof: case TokenState::VSpace: {
+          done = true;
+          break;
+        }
+        default: {
+          push_next(node);
+          break;
+        }
+      }
+    }
+    return node;
   }
 
   auto peek() -> const Token& {
@@ -241,6 +340,17 @@ struct Parser {
   }
 
 };
+
+auto token_to_node_kind(TokenState token_state) -> NodeKind {
+  switch (token_state) {
+    case TokenState::Assign: return NodeKind::Assign;
+    case TokenState::HSpace: return NodeKind::Spaced;
+    case TokenState::Plus: return NodeKind::Add;
+    case TokenState::Times: return NodeKind::Multiply;
+    case TokenState::VSpace: return NodeKind::Block;
+    default: return NodeKind::Other;
+  }
+}
 
 #if 0
 
@@ -317,114 +427,6 @@ impl<'a> Parser<'a> {
     expr
   }
 
-  fn parse_number(&mut self) -> Node<'a> {
-    let mut number = Node::new(NodeKind::Number);
-    let mut token = self.next();
-    let mut has_int = false;
-    match token.state {
-      TokenState::Int => {
-        self.push_token(&mut number, token);
-        has_int = true;
-        token = self.next();
-      }
-      _ => {}
-    };
-    // Just a block, not a loop.
-    // See https://github.com/rust-lang/rfcs/pull/2046
-    loop {
-      let dot = token;
-      match token.state {
-        TokenState::Dot => {
-          self.push_token(&mut number, token);
-          token = self.next();
-        }
-        _ => {
-          self.prev();
-          break;
-        },
-      };
-      match token.state {
-        TokenState::Fraction => {
-          self.push_token(&mut number, token);
-        }
-        _ => {
-          self.prev();
-          if !has_int {
-            // TODO Parse this as member access even if there was preceding
-            // TODO whitespace!
-            return Node::new_token(dot);
-          }
-          break;
-        },
-      }
-      break;
-    }
-    number
-  }
-
-  fn parse_parens(&mut self) -> Node<'a> {
-    // Build the parent.
-    let mut node = Node::new(NodeKind::Parens);
-    self.push_next(&mut node);
-    // Go inside.
-    let content = self.parse_expr(TokenState::ParenClose.precedence());
-    self.push(&mut node, content);
-    // See where we ended.
-    match self.peek().state {
-      TokenState::ParenClose => self.push_next(&mut node),
-      // Must be end or eof. Just move on.
-      _ => (),
-    }
-    // println!("then at {:?}", self.peek());
-    node
-  }
-
-  fn parse_prefix(&mut self) -> Node<'a> {
-    match self.peek().state {
-      TokenState::Do => self.parse_do(),
-      TokenState::Dot | TokenState::Int => self.parse_number(),
-      TokenState::ParenClose | TokenState::End | TokenState::VSpace => {
-        Node::new(NodeKind::None)
-      }
-      TokenState::Eof => Node::new_token(self.peek()),
-      TokenState::ParenOpen => self.parse_parens(),
-      TokenState::StringStart => self.parse_string(),
-      // TODO Add others that are always infix.
-      // TODO Branch on paren, do, string, number, ...
-      _ => Node::new_token(self.next()),
-    }
-  }
-
-  fn parse_string(&mut self) -> Node<'a> {
-    let mut node = Node::new(NodeKind::String);
-    // StringStart, then loop through contents.
-    self.push_next(&mut node);
-    loop {
-      match self.peek().state {
-        TokenState::StringStop => {
-          self.push_next(&mut node);
-          break;
-        }
-        TokenState::Eof | TokenState::VSpace => {
-          break;
-        }
-        _ => self.push_next(&mut node),
-      }
-    }
-    node
-  }
-
-}
-
-fn token_to_node_kind(token_state: TokenState) -> NodeKind {
-  match token_state {
-    TokenState::Assign => NodeKind::Assign,
-    TokenState::HSpace => NodeKind::Spaced,
-    TokenState::Plus => NodeKind::Add,
-    TokenState::Times => NodeKind::Multiply,
-    TokenState::VSpace => NodeKind::Block,
-    _ => NodeKind::Other,
-  }
 }
 
 #endif
