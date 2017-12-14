@@ -188,15 +188,11 @@ struct Parser {
     return *token;
   }
 
-  auto parse_expr(int precedence) -> Node {
-    return Node(NodeKind::Other);
-  }
-
-};
-
 #if 0
-
-impl<'a> Parser<'a> {
+  auto parse_do() -> Node {
+    // Build the do.
+    Node node{NodeKind::Do};
+  }
 
   fn parse_do(&mut self) -> Node<'a> {
     // Build the do.
@@ -216,6 +212,45 @@ impl<'a> Parser<'a> {
     // println!("then at {:?}", self.peek());
     node
   }
+#endif
+
+  auto parse_expr(int precedence) -> Node {
+    return Node(NodeKind::Other);
+  }
+
+  auto peek() -> const Token& {
+    auto token = next();
+    prev();
+    return token;
+  }
+
+  void prev() {
+    // TODO This results in iterating over space multiple times.
+    // TODO Instead remember where the next is.
+    index = last_index;
+  }
+
+  auto push(Node& parent, Node&& node) {
+    chew(parent, index);
+    if (node.kind != NodeKind::None) {
+      // Now push the requested node.
+      parent.push(std::move(node));
+    }
+  }
+
+  auto push_next(Node& parent) {
+    push_token(parent, next());
+  }
+
+  void push_token(Node& parent, const Token& token) {
+    push(parent, Node{token});
+  }
+
+};
+
+#if 0
+
+impl<'a> Parser<'a> {
 
   fn parse_expr(&mut self, precedence: u8) -> Node<'a> {
     let mut expr = self.parse_prefix();
@@ -383,36 +418,6 @@ impl<'a> Parser<'a> {
       }
     }
     node
-  }
-
-  fn peek(&mut self) -> &'a Token<'a> {
-    let token = self.next();
-    self.prev();
-    token
-  }
-
-  fn prev(&mut self) {
-    // TODO This results in iterating over space multiple times.
-    // TODO Instead remember where the next is.
-    self.index = self.last_index;
-  }
-
-  fn push(&mut self, parent: &mut Node<'a>, node: Node<'a>) {
-    let index = self.index;
-    self.chew(parent, index);
-    if node.kind != NodeKind::None {
-      // Now push the requested node.
-      parent.push(node);
-    }
-  }
-
-  fn push_next(&mut self, parent: &mut Node<'a>) {
-    let token = self.next();
-    self.push_token(parent, token);
-  }
-
-  fn push_token(&mut self, parent: &mut Node<'a>, token: &'a Token<'a>) {
-    self.push(parent, Node::new_token(token));
   }
 
 }
