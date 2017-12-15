@@ -17,8 +17,14 @@ int main(int argc, char** argv) {
     std::string content = buffer.str();
     rio::Tokenizer tokenizer{content};
     auto tokens = tokenizer.collect();
-    for (auto& token: tokens) {
-      std::cout << token << std::endl;
+    if (true) {
+      rio::Parser parser{tokens};
+      auto root = parser.parse();
+      std::cout << root.format() << std::endl;
+    } else {
+      for (auto& token: tokens) {
+        std::cout << token << std::endl;
+      }
     }
   } catch (std::exception& error) {
     std::cout << "Error: " << error.what() << std::endl;

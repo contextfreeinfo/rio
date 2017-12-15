@@ -85,7 +85,7 @@ struct Node {
   // Node(Token& token_): kind(NodeKind::Token), token(&token_) {}
   
   auto format() -> std::string {
-    format_at("");
+    return format_at("");
   }
 
   auto push(Node&& node) {
@@ -390,7 +390,7 @@ struct Parser {
   }
 
   auto peek() -> const Token& {
-    auto token = next();
+    auto& token = next();
     prev();
     return token;
   }
