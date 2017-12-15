@@ -50,6 +50,17 @@ auto operator<<(std::ostream& stream, NodeKind kind) -> std::ostream& {
   return stream << name(kind);
 }
 
+auto token_to_node_kind(TokenState token_state) -> NodeKind {
+  switch (token_state) {
+    case TokenState::Assign: return NodeKind::Assign;
+    case TokenState::HSpace: return NodeKind::Spaced;
+    case TokenState::Plus: return NodeKind::Add;
+    case TokenState::Times: return NodeKind::Multiply;
+    case TokenState::VSpace: return NodeKind::Block;
+    default: return NodeKind::Other;
+  }
+}
+
 template<typename Item>
 using optref = Item*;
 // Alternative that seems perhaps overkill:
@@ -209,7 +220,74 @@ struct Parser {
   }
 
   auto parse_expr(int precedence) -> Node {
-    return Node{NodeKind::Other};
+    auto expr = parse_prefix();
+    auto first = true;
+    auto last_precedence = precedence;
+    while (true) {
+      auto& token = peek();
+      if (token.state == TokenState::Eof) {
+        break;
+      }
+      // TODO Not infix if postfix instead (attached then space).
+      auto infix = token.infix();
+      auto op_precedence = token.precedence();
+      // println!(
+      //   "Peeked at {:?}, {} vs {}, infix: {}",
+      //   token, precedence, op_precedence, infix,
+      // );
+      if (precedence >= op_precedence) {
+        // Go to outer level.
+        break;
+      }
+      auto node_kind = infix ?
+        token_to_node_kind(token.state) :
+        (
+          op_precedence = rio::precedence(TokenState::HSpace),
+          NodeKind::Spaced
+        );
+      // In https://github.com/KeepCalmAndLearnRust/pratt-parser they always
+      // nest binary ops left to right, so there's no need for this, but I
+      // want a flatter tree here, and I also want to keep skip tokens in
+      // the tree, so I can't always just nest.
+      // So we have to build out manually when precedence falls.
+      // If precedence rises, we'll go deeper into the call stack.
+      // The precedence issue here is more for reset situations like new blocks
+      // and such.
+      if (first || last_precedence > op_precedence) {
+        // println!("Got one inside");
+        // TODO Figure out types.
+        Node outer{node_kind};
+        push(outer, std::move(expr));
+        expr = std::move(outer);
+        // Past first.
+        first = false;
+      }
+      if (infix) {
+        push_next(expr);
+        // We can skip vertical after an infix operator.
+        // This includes skipping other empty rows of vspace.
+        next(true);
+      } else if (token.closing()) {
+        // We should have broken out on a close.
+        // Must be a stray inside something larger, like a paren before end, or
+        // end at top file level.
+        // TODO Track stack of what opens we have, so we can break even better
+        // TODO than just looking at precedence.
+        Node stray{NodeKind::Stray};
+        push_next(stray);
+        push(expr, std::move(stray));
+        // Try again to see what we can see.
+        continue;
+      }
+      // Look at the next nonskippable.
+      focus(expr);
+      // println!("Post at {:?}", self.peek());
+      auto kid = parse_expr(op_precedence);
+      push(expr, std::move(kid));
+      // Reset expectations for next time.
+      last_precedence = op_precedence;
+    }
+    return expr;
   }
 
   auto parse_number() -> Node {
@@ -340,95 +418,5 @@ struct Parser {
   }
 
 };
-
-auto token_to_node_kind(TokenState token_state) -> NodeKind {
-  switch (token_state) {
-    case TokenState::Assign: return NodeKind::Assign;
-    case TokenState::HSpace: return NodeKind::Spaced;
-    case TokenState::Plus: return NodeKind::Add;
-    case TokenState::Times: return NodeKind::Multiply;
-    case TokenState::VSpace: return NodeKind::Block;
-    default: return NodeKind::Other;
-  }
-}
-
-#if 0
-
-impl<'a> Parser<'a> {
-
-  fn parse_expr(&mut self, precedence: u8) -> Node<'a> {
-    let mut expr = self.parse_prefix();
-    let mut first = true;
-    let mut last_precedence = precedence;
-    loop {
-      let token = self.peek();
-      if token.state == TokenState::Eof {
-        break;
-      }
-      // TODO Not infix if postfix instead (attached then space).
-      let infix = token.infix();
-      let mut op_precedence = token.precedence();
-      // println!(
-      //   "Peeked at {:?}, {} vs {}, infix: {}",
-      //   token, precedence, op_precedence, infix,
-      // );
-      if precedence >= op_precedence {
-        // Go to outer level.
-        break;
-      }
-      let node_kind = if infix {
-        token_to_node_kind(token.state)
-      } else {
-        op_precedence = TokenState::HSpace.precedence();
-        NodeKind::Spaced
-      };
-      // In https://github.com/KeepCalmAndLearnRust/pratt-parser they always
-      // nest binary ops left to right, so there's no need for this, but I
-      // want a flatter tree here, and I also want to keep skip tokens in
-      // the tree, so I can't always just nest.
-      // So we have to build out manually when precedence falls.
-      // If precedence rises, we'll go deeper into the call stack.
-      // The precedence issue here is more for reset situations like new blocks
-      // and such.
-      if first || last_precedence > op_precedence {
-        // println!("Got one inside");
-        // TODO Figure out types.
-        let mut outer = Node::new(node_kind);
-        self.push(&mut outer, expr);
-        expr = outer;
-        // Past first.
-        first = false;
-      }
-      if infix {
-        self.push_next(&mut expr);
-        // We can skip vertical after an infix operator.
-        // This includes skipping other empty rows of vspace.
-        self.next_skipv(true);
-      } else if token.close() {
-        // We should have broken out on a close.
-        // Must be a stray inside something larger, like a paren before end, or
-        // end at top file level.
-        // TODO Track stack of what opens we have, so we can break even better
-        // TODO than just looking at precedence.
-        let mut stray = Node::new(NodeKind::Stray);
-        self.push_next(&mut stray);
-        self.push(&mut expr, stray);
-        // Try again to see what we can see.
-        continue;
-      }
-      // Look at the next nonskippable.
-      self.focus(&mut expr);
-      // println!("Post at {:?}", self.peek());
-      let kid = self.parse_expr(op_precedence);
-      self.push(&mut expr, kid);
-      // Reset expectations for next time.
-      last_precedence = op_precedence;
-    }
-    expr
-  }
-
-}
-
-#endif
 
 }

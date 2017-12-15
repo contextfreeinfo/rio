@@ -132,15 +132,15 @@ struct Token {
 
   // Functions.
 
-  auto closing() -> bool {
+  auto closing() const -> bool {
     return ::rio::closing(state);
   }
 
-  auto infix() -> bool {
+  auto infix() const -> bool {
     return ::rio::infix(state);
   }
 
-  auto precedence() -> bool {
+  auto precedence() const -> int {
     return ::rio::precedence(state);
   }
 
