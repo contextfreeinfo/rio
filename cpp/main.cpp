@@ -19,6 +19,7 @@ int main(int argc, char** argv) {
     auto root = rio::parse(content);
     // Write tree.
     std::cout << root.format() << std::endl;
+    // std::cout << rio::std_root.format() << std::endl;
   } catch (std::exception& error) {
     std::cout << "Error: " << error.what() << std::endl;
   }

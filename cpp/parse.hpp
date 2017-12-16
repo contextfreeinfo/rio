@@ -85,7 +85,7 @@ struct Node {
   // Node(Token& token_): kind(NodeKind::Token), token(&token_) {}
 
   // TODO Change this to writing to an ostream!
-  auto format() -> std::string {
+  auto format() const -> std::string {
     return format_at("");
   }
 
@@ -99,7 +99,7 @@ struct Node {
 
   private:
 
-  auto format_at(std::string_view prefix) -> std::string {
+  auto format_at(std::string_view prefix) const -> std::string {
     // Might not be the most efficient, since it doesn't work on a single big
     // buffer, but it shouldn't be needed except for debugging.
     // TODO Pass down the string to append to?
