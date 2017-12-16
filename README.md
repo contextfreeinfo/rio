@@ -52,6 +52,8 @@ Time log:
   Not sure what was faster about Rust, because I think the logic is pretty
   close.
   Maybe I'm not using my std::moves right?
+- 20171216b Added a new std::move, and allocations are down, and time's down to
+  1.7 seconds, using msvc in release mode.
 
 Maybe should actually profile sometime.
 

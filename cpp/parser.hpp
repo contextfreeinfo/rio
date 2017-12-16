@@ -89,7 +89,7 @@ struct Node {
   }
 
   auto push(Node&& node) {
-    kids.push_back(node);
+    kids.push_back(std::move(node));
   }
 
   auto push_token(const Token& token) {
