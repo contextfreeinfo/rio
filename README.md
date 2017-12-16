@@ -48,6 +48,10 @@ Time log:
 - 20171201 Prettier skip fill puts me at over 1.3 seconds rather than over 1.1.
   I don't understand why that would make a difference, though, since I iterate
   to append them either way.
+- 20171216 Ported to c++. Taking more like 2.3 seconds now.
+  Not sure what was faster about Rust, because I think the logic is pretty
+  close.
+  Maybe I'm not using my std::moves right?
 
 Maybe should actually profile sometime.
 
