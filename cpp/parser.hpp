@@ -79,7 +79,7 @@ struct Node {
   
   // Functions.
 
-  Node(NodeKind kind_): kind(kind_) {}
+  Node(NodeKind kind_): kind(kind_), token(nullptr) {}
 
   Node(const Token& token_): kind(NodeKind::Token), token(&token_) {}
   // Node(Token& token_): kind(NodeKind::Token), token(&token_) {}
