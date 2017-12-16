@@ -1,11 +1,11 @@
 Block
   Spaced
-    Token at 1, 1: Id (print)
-    Token at 1, 6: HSpace ( )
+    Token Id[1, 1](print)
+    Token HSpace[1, 6]( )
     String
-      Token at 1, 7: StringStart (")
-      Token at 1, 8: StringText (Hi!)
-      Token at 1, 11: StringStop (")
-  Token at 1, 12: VSpace (
+      Token StringStart[1, 7](")
+      Token StringText[1, 8](Hi!)
+      Token StringStop[1, 11](")
+  Token VSpace[1, 12](
 )
-  Token at 1, 12: Eof ()
+  Token Eof[1, 12]()
