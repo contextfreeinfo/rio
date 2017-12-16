@@ -1,4 +1,4 @@
-#include "parser.hpp"
+#include "resolve.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -10,22 +10,15 @@ int main(int argc, char** argv) {
     if (argc < 2) {
       throw std::runtime_error("need 2 args");
     }
+    // Read source.
     std::ifstream file{argv[1]};
     std::stringstream buffer;
     buffer << file.rdbuf();
-    // Tokenize.
+    // Parse.
     std::string content = buffer.str();
-    rio::Tokenizer tokenizer{content};
-    auto tokens = tokenizer.collect();
-    if (true) {
-      rio::Parser parser{tokens};
-      auto root = parser.parse();
-      std::cout << root.format() << std::endl;
-    } else {
-      for (auto& token: tokens) {
-        std::cout << token << std::endl;
-      }
-    }
+    auto root = rio::parse(content);
+    // Write tree.
+    std::cout << root.format() << std::endl;
   } catch (std::exception& error) {
     std::cout << "Error: " << error.what() << std::endl;
   }

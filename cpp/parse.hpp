@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tokenizer.hpp"
+#include "tokenize.hpp"
 // #include <functional>
 // #include <optional>
 #include <sstream>
@@ -83,7 +83,8 @@ struct Node {
 
   Node(const Token& token_): kind(NodeKind::Token), token(&token_) {}
   // Node(Token& token_): kind(NodeKind::Token), token(&token_) {}
-  
+
+  // TODO Change this to writing to an ostream!
   auto format() -> std::string {
     return format_at("");
   }
@@ -246,6 +247,8 @@ struct Parser {
       // nest binary ops left to right, so there's no need for this, but I
       // want a flatter tree here, and I also want to keep skip tokens in
       // the tree, so I can't always just nest.
+      // TODO Deep tree for binary ops even if not for lists/rows!!!!!
+      // TODO The type could change and therefore the referent at every pair!!!
       // So we have to build out manually when precedence falls.
       // If precedence rises, we'll go deeper into the call stack.
       // The precedence issue here is more for reset situations like new blocks
@@ -414,5 +417,14 @@ struct Parser {
   }
 
 };
+
+auto parse(std::string_view source) -> Node {
+  // Tokenize.
+  rio::Tokenizer tokenizer{source};
+  auto tokens = tokenizer.collect();
+  // Parse.
+  rio::Parser parser{tokens};
+  return parser.parse();
+}
 
 }
