@@ -393,6 +393,8 @@ struct Tokenizer {
         state = find_op(text);
         break;
       }
+      // Keep the current state.
+      default: break;
     }
     auto token = Token{};
     token.line = start_line + 1;

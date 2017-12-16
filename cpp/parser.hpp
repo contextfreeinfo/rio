@@ -209,12 +209,9 @@ struct Parser {
     push(node, std::move(content));
     // See where we ended.
     // println!("after do at {:?}", self.peek());
-    switch (peek().state) {
-      case TokenState::End: {
-        push_next(node);
-        break;
-      }  // else must be eof. Just move on.
-    }
+    if (peek().state == TokenState::End) {
+      push_next(node);
+    }  // else must be eof. Just move on.
     // println!("then at {:?}", self.peek());
     return node;
   }
@@ -295,14 +292,11 @@ struct Parser {
     // Juggle our latest token, due to so many optional parts.
     auto* token = &next();
     auto has_int = false;
-    switch (token->state) {
-      case TokenState::Int: {
-        push_token(number, *token);
-        has_int = true;
-        token = &next();
-        break;
-      }
-    };
+    if (token->state == TokenState::Int) {
+      push_token(number, *token);
+      has_int = true;
+      token = &next();
+    }
     // Just a block for breaking from, not a loop.
     do {
       auto& dot = *token;
@@ -341,7 +335,9 @@ struct Parser {
       case TokenState::ParenClose: {
         push_next(node);
         break;
-      }  // else must be end or eof. Just move on.
+      }
+      // Must be end or eof. Just move on.
+      default: break;
     }
     // println!("then at {:?}", self.peek());
     return node;
