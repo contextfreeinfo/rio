@@ -418,13 +418,29 @@ struct Parser {
 
 };
 
-auto parse(std::string_view source) -> Node {
-  // Tokenize.
-  rio::Tokenizer tokenizer{source};
-  auto tokens = tokenizer.collect();
-  // Parse.
-  rio::Parser parser{tokens};
-  return parser.parse();
-}
+struct Script {
+  // Holds all the resources for a script as well as providing access to script
+  // info, such as the ast.
+
+  // Fields.
+
+  Node root;
+
+  // Functions.
+
+  Script(std::string_view source): root(NodeKind::Other) {
+    // Tokenize.
+    rio::Tokenizer tokenizer{source};
+    tokens = tokenizer.collect();
+    // Parse.
+    rio::Parser parser{tokens};
+    root = parser.parse();
+  }
+
+  private:
+
+  std::vector<Token> tokens;
+
+};
 
 }

@@ -16,9 +16,9 @@ int main(int argc, char** argv) {
     buffer << file.rdbuf();
     // Parse.
     std::string content = buffer.str();
-    auto root = rio::parse(content);
+    rio::Script script{content};
     // Write tree.
-    std::cout << root.format() << std::endl;
+    // std::cout << script.root.format() << std::endl;
     // std::cout << rio::std_root.format() << std::endl;
   } catch (std::exception& error) {
     std::cout << "Error: " << error.what() << std::endl;
