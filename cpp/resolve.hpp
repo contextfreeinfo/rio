@@ -22,6 +22,6 @@ struct Resolver {
   //
 };
 
-// const auto std_root = parse(std_source);
+const Script std_script{std_source};
 
 }

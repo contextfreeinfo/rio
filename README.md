@@ -54,6 +54,7 @@ Time log:
   Maybe I'm not using my std::moves right?
 - 20171216b Added a new std::move, and allocations are down, and time's down to
   1.7 seconds, using msvc in release mode.
+- 20171218 Seems gcc gives about 1.5 seconds. I wonder what clang would do.
 
 Maybe should actually profile sometime.
 

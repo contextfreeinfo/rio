@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     rio::Script script{content};
     // Write tree.
     // std::cout << script.root.format() << std::endl;
-    // std::cout << rio::std_root.format() << std::endl;
+    std::cout << rio::std_script.root.format() << std::endl;
   } catch (std::exception& error) {
     std::cout << "Error: " << error.what() << std::endl;
   }
