@@ -1,3 +1,5 @@
+let a: Float = pow(3.14, -0.5)
+
 a + b # <-- Start higher than vspace. Make sure addition is nested in the block.
 
 # Do commas separate spaced lists for three levels deep???

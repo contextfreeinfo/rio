@@ -1,154 +1,185 @@
 Block
-  Add
-    Token Id[1, 1](a)
-    Token HSpace[1, 2]( )
-    Token Plus[1, 3](+)
+  Spaced
+    Token Id[1, 1](let)
     Token HSpace[1, 4]( )
-    Token Id[1, 5](b)
-  Token HSpace[1, 6]( )
-  Token Comment[1, 7](# <-- Start higher than vspace. Make sure addition is nested in the block.)
-  Token VSpace[1, 81](
+    Colon
+      Token Id[1, 5](a)
+      Token Colon[1, 6](:)
+      Token HSpace[1, 7]( )
+      Token Id[1, 8](Float)
+    Token HSpace[1, 13]( )
+    Token Assign[1, 14](=)
+    Token HSpace[1, 15]( )
+    Token Id[1, 16](pow)
+    Parens
+      Token ParenOpen[1, 19](()
+      Spaced
+        Comma
+          Number
+            Token Int[1, 20](3)
+            Token Dot[1, 21](.)
+            Token Fraction[1, 22](14)
+          Token Comma[1, 24](,)
+          Token HSpace[1, 25]( )
+          Token Plus[1, 26](-)
+        Number
+          Token Int[1, 27](0)
+          Token Dot[1, 28](.)
+          Token Fraction[1, 29](5)
+      Token ParenClose[1, 30]())
+  Token VSpace[1, 31](
 
 )
-  Token Comment[3, 1](# Do commas separate spaced lists for three levels deep???)
-  Token VSpace[3, 59](
+  Add
+    Token Id[3, 1](a)
+    Token HSpace[3, 2]( )
+    Token Plus[3, 3](+)
+    Token HSpace[3, 4]( )
+    Token Id[3, 5](b)
+  Token HSpace[3, 6]( )
+  Token Comment[3, 7](# <-- Start higher than vspace. Make sure addition is nested in the block.)
+  Token VSpace[3, 81](
+
+)
+  Token Comment[5, 1](# Do commas separate spaced lists for three levels deep???)
+  Token VSpace[5, 59](
 
 )
   Spaced
-    Token Id[5, 1](out)
-    Token Dot[5, 4](.)
-    Token Id[5, 5](print)
-    Token HSpace[5, 10]( )
+    Token Id[7, 1](out)
+    Token Dot[7, 4](.)
+    Token Id[7, 5](print)
+    Token HSpace[7, 10]( )
     String
-      Token StringStart[5, 11](")
-      Token StringText[5, 12](Hello, )
-      Token EscapeStart[5, 19](\)
-      Token Escape[5, 20](")
-      Token StringText[5, 21](world)
-      Token EscapeStart[5, 26](\)
-      Token Escape[5, 27](")
-      Token StringText[5, 28](!)
-      Token StringStop[5, 29](")
-  Token HSpace[5, 30]( )
-  Token Comment[5, 31](# Should be a comment.)
-  Token VSpace[5, 53](
+      Token StringStart[7, 11](")
+      Token StringText[7, 12](Hello, )
+      Token EscapeStart[7, 19](\)
+      Token Escape[7, 20](")
+      Token StringText[7, 21](world)
+      Token EscapeStart[7, 26](\)
+      Token Escape[7, 27](")
+      Token StringText[7, 28](!)
+      Token StringStop[7, 29](")
+  Token HSpace[7, 30]( )
+  Token Comment[7, 31](# Should be a comment.)
+  Token VSpace[7, 53](
 )
   Spaced
-    Token Id[6, 1](if)
-    Token HSpace[6, 3]( )
-    Token Id[6, 4](a1)
-    Token HSpace[6, 6]( )
+    Token Id[8, 1](if)
+    Token HSpace[8, 3]( )
+    Token Id[8, 4](a1)
+    Token HSpace[8, 6]( )
     Do
-      Token Do[6, 7](do)
+      Token Do[8, 7](do)
       Block
-        Token VSpace[6, 9](
-)
-        Token HSpace[7, 1](  )
-        Spaced
-          Token Id[7, 3](say)
-          Token HSpace[7, 6]( )
-          String
-            Token StringStart[7, 7](')
-            Token StringText[7, 8](Hi! # Should be in the string.)
-        Token VSpace[7, 38](
-)
-        Token HSpace[8, 1](  )
-        Token Comment[8, 3](# Keep one "do" non-ident, so we don't leave out an end here.)
-        Token VSpace[8, 64](
+        Token VSpace[8, 9](
 )
         Token HSpace[9, 1](  )
         Spaced
-          Token Id[9, 3](what)
-          Token HSpace[9, 7]( )
+          Token Id[9, 3](say)
+          Token HSpace[9, 6]( )
+          String
+            Token StringStart[9, 7](')
+            Token StringText[9, 8](Hi! # Should be in the string.)
+        Token VSpace[9, 38](
+)
+        Token HSpace[10, 1](  )
+        Token Comment[10, 3](# Keep one "do" non-ident, so we don't leave out an end here.)
+        Token VSpace[10, 64](
+)
+        Token HSpace[11, 1](  )
+        Spaced
+          Token Id[11, 3](what)
+          Token HSpace[11, 7]( )
           Parens
-            Token ParenOpen[9, 8](()
+            Token ParenOpen[11, 8](()
             Block
               Spaced
                 String
-                  Token StringStart[9, 9](")
-                  Token StringText[9, 10](do you)
-                  Token StringStop[9, 16](")
-                Token HSpace[9, 17]( )
+                  Token StringStart[11, 9](")
+                  Token StringText[11, 10](do you)
+                  Token StringStop[11, 16](")
+                Token HSpace[11, 17]( )
                 Do
-                  Token Do[9, 18](do)
+                  Token Do[11, 18](do)
                   Spaced
-                    Token HSpace[9, 20]( )
-                    Token Id[9, 21](without)
-                    Token HSpace[9, 28]( )
-                    Token Id[9, 29](an)
-                  Token HSpace[9, 31]( )
-                  Token End[9, 32](end)
-                Token Error[9, 35](?)
-              Token VSpace[9, 36](
+                    Token HSpace[11, 20]( )
+                    Token Id[11, 21](without)
+                    Token HSpace[11, 28]( )
+                    Token Id[11, 29](an)
+                  Token HSpace[11, 31]( )
+                  Token End[11, 32](end)
+                Token Error[11, 35](?)
+              Token VSpace[11, 36](
 )
-      Token End[10, 1](end)
-  Token VSpace[10, 4](
-
-)
-  Stray
-    Token End[12, 1](end)
+      Token End[12, 1](end)
   Token VSpace[12, 4](
 
 )
-  Assign
-    Token Id[14, 1](z)
-    Token HSpace[14, 2]( )
-    Token Assign[14, 3](=)
-    Token HSpace[14, 4]( )
-    Token Comment[14, 5](# This should be ignored)
-    Token VSpace[14, 29](
+  Stray
+    Token End[14, 1](end)
+  Token VSpace[14, 4](
 
 )
-    Token HSpace[16, 1](  )
-    Token Comment[16, 3](# All this, too.)
-    Token VSpace[16, 19](
+  Assign
+    Token Id[16, 1](z)
+    Token HSpace[16, 2]( )
+    Token Assign[16, 3](=)
+    Token HSpace[16, 4]( )
+    Token Comment[16, 5](# This should be ignored)
+    Token VSpace[16, 29](
 
 )
     Token HSpace[18, 1](  )
+    Token Comment[18, 3](# All this, too.)
+    Token VSpace[18, 19](
+
+)
+    Token HSpace[20, 1](  )
     Multiply
       Parens
-        Token ParenOpen[18, 3](()
+        Token ParenOpen[20, 3](()
         Add
-          Token Id[18, 4](x)
-          Token HSpace[18, 5]( )
-          Token Plus[18, 6](+)
-          Token HSpace[18, 7]( )
+          Token Id[20, 4](x)
+          Token HSpace[20, 5]( )
+          Token Plus[20, 6](+)
+          Token HSpace[20, 7]( )
           Number
-            Token Int[18, 8](1)
-          Token HSpace[18, 9]( )
-          Token Plus[18, 10](-)
-          Token HSpace[18, 11]( )
+            Token Int[20, 8](1)
+          Token HSpace[20, 9]( )
+          Token Plus[20, 10](-)
+          Token HSpace[20, 11]( )
           Number
-            Token Int[18, 12](0)
-            Token Dot[18, 13](.)
-            Token Fraction[18, 14](3)
-        Token ParenClose[18, 15]())
-      Token HSpace[18, 16]( )
-      Token Times[18, 17](*)
-      Token HSpace[18, 18]( )
-      Token Id[18, 19](y)
-      Token HSpace[18, 20]( )
-      Token Times[18, 21](/)
-      Token HSpace[18, 22]( )
+            Token Int[20, 12](0)
+            Token Dot[20, 13](.)
+            Token Fraction[20, 14](3)
+        Token ParenClose[20, 15]())
+      Token HSpace[20, 16]( )
+      Token Times[20, 17](*)
+      Token HSpace[20, 18]( )
+      Token Id[20, 19](y)
+      Token HSpace[20, 20]( )
+      Token Times[20, 21](/)
+      Token HSpace[20, 22]( )
       Number
-        Token Dot[18, 23](.)
-        Token Fraction[18, 24](2)
-  Token VSpace[18, 25](
+        Token Dot[20, 23](.)
+        Token Fraction[20, 24](2)
+  Token VSpace[20, 25](
 
 )
   Spaced
-    Token Id[20, 1](hi)
-    Token HSpace[20, 3]( )
+    Token Id[22, 1](hi)
+    Token HSpace[22, 3]( )
     Number
-      Token Int[20, 4](1)
-      Token Dot[20, 5](.)
-  Token VSpace[20, 6](
+      Token Int[22, 4](1)
+      Token Dot[22, 5](.)
+  Token VSpace[22, 6](
 )
   Spaced
-    Token Assign[21, 1](=)
-    Token HSpace[21, 2]( )
-    Token Id[21, 3](ha)
-  Token VSpace[21, 5](
+    Token Assign[23, 1](=)
+    Token HSpace[23, 2]( )
+    Token Id[23, 3](ha)
+  Token VSpace[23, 5](
 
 )
-  Token Id[23, 1](hi)
+  Token Id[25, 1](hi)

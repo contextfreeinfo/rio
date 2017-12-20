@@ -10,6 +10,8 @@ using Index = size_t;
 
 enum struct TokenState {
   Assign,
+  Colon,
+  Comma,
   Comment,
   Do,
   Dot,
@@ -39,6 +41,8 @@ enum struct TokenState {
 auto name(TokenState state) -> std::string_view {
   switch (state) {
     case TokenState::Assign: return "Assign";
+    case TokenState::Colon: return "Colon";
+    case TokenState::Comma: return "Comma";
     case TokenState::Comment: return "Comment";
     case TokenState::Do: return "Do";
     case TokenState::Dot: return "Dot";
@@ -85,6 +89,8 @@ auto closing(TokenState state) -> bool {
 auto infix(TokenState state) -> bool {
   switch (state) {
     case TokenState::Assign:
+    case TokenState::Colon:
+    case TokenState::Comma:
     case TokenState::Op:
     case TokenState::Op1:
     case TokenState::Op2:
@@ -108,8 +114,10 @@ auto precedence(TokenState state) -> int {
     case TokenState::Comment:
     case TokenState::VSpace: return 10;
     case TokenState::HSpace: return 20;
-    case TokenState::Plus: return 30;
-    case TokenState::Times: return 40;
+    case TokenState::Comma: return 25;
+    case TokenState::Colon: return 30;
+    case TokenState::Plus: return 40;
+    case TokenState::Times: return 50;
     default: return 20;
   }
 }
@@ -252,6 +260,8 @@ struct Tokenizer {
           if (++c == end) return TokenState::Assign;
           break;
         }
+        case ':': return TokenState::Colon;
+        case ',': return TokenState::Comma;
         case '(': return TokenState::ParenOpen;
         case ')': return TokenState::ParenClose;
         case '+': case '-': {
@@ -355,7 +365,7 @@ struct Tokenizer {
       // std::cout << "On " << c << " change from " << state << " to " << new_state << std::endl;
       stop_index = index;
       state = this->state;
-      auto state_changed = new_state != state;
+      auto state_changed = new_state != state || state == TokenState::Op1;
       if (state_changed) {
         this->state = new_state;
         this->last_start = index;

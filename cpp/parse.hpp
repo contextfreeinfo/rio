@@ -11,6 +11,8 @@ enum struct NodeKind {
   Add,
   Assign,
   Block,
+  Colon,
+  Comma,
   Do,
   Multiply,
   None,
@@ -30,6 +32,8 @@ auto name(NodeKind kind) -> std::string_view {
     case NodeKind::Add: return "Add";
     case NodeKind::Assign: return "Assign";
     case NodeKind::Block: return "Block";
+    case NodeKind::Colon: return "Colon";
+    case NodeKind::Comma: return "Comma";
     case NodeKind::Do: return "Do";
     case NodeKind::Multiply: return "Multiply";
     case NodeKind::None: return "None";
@@ -53,6 +57,8 @@ auto operator<<(std::ostream& stream, NodeKind kind) -> std::ostream& {
 auto token_to_node_kind(TokenState token_state) -> NodeKind {
   switch (token_state) {
     case TokenState::Assign: return NodeKind::Assign;
+    case TokenState::Colon: return NodeKind::Colon;
+    case TokenState::Comma: return NodeKind::Comma;
     case TokenState::HSpace: return NodeKind::Spaced;
     case TokenState::Plus: return NodeKind::Add;
     case TokenState::Times: return NodeKind::Multiply;
