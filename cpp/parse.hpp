@@ -300,6 +300,10 @@ struct Parser {
     Node number{NodeKind::Number};
     // Juggle our latest token, due to so many optional parts.
     auto* token = &next();
+    if (token->state == TokenState::Plus) {
+      push_token(number, *token);
+      token = &next();
+    }
     auto has_int = false;
     if (token->state == TokenState::Int) {
       push_token(number, *token);
@@ -355,7 +359,8 @@ struct Parser {
   auto parse_prefix() -> Node {
     switch (peek().state) {
       case TokenState::Do: return parse_do();
-      case TokenState::Dot: case TokenState::Int: return parse_number();
+      case TokenState::Dot: case TokenState::Int: case TokenState::Plus:
+        return parse_number();
       case TokenState::ParenClose: case TokenState::End:
       case TokenState::VSpace: {
         return Node{NodeKind::None};

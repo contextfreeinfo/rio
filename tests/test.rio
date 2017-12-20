@@ -17,7 +17,7 @@ z = # This should be ignored
 
   # All this, too.
 
-  (x + 1 - 0.3) * y / .2
+  (x + 1 - +0.3) * y / .2
 
 hi 1.
 = ha

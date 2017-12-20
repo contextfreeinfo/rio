@@ -13,16 +13,15 @@ Block
     Token Id[1, 16](pow)
     Parens
       Token ParenOpen[1, 19](()
-      Spaced
-        Comma
-          Number
-            Token Int[1, 20](3)
-            Token Dot[1, 21](.)
-            Token Fraction[1, 22](14)
-          Token Comma[1, 24](,)
-          Token HSpace[1, 25]( )
-          Token Plus[1, 26](-)
+      Comma
         Number
+          Token Int[1, 20](3)
+          Token Dot[1, 21](.)
+          Token Fraction[1, 22](14)
+        Token Comma[1, 24](,)
+        Token HSpace[1, 25]( )
+        Number
+          Token Plus[1, 26](-)
           Token Int[1, 27](0)
           Token Dot[1, 28](.)
           Token Fraction[1, 29](5)
@@ -150,21 +149,22 @@ Block
           Token Plus[20, 10](-)
           Token HSpace[20, 11]( )
           Number
-            Token Int[20, 12](0)
-            Token Dot[20, 13](.)
-            Token Fraction[20, 14](3)
-        Token ParenClose[20, 15]())
-      Token HSpace[20, 16]( )
-      Token Times[20, 17](*)
-      Token HSpace[20, 18]( )
-      Token Id[20, 19](y)
-      Token HSpace[20, 20]( )
-      Token Times[20, 21](/)
-      Token HSpace[20, 22]( )
+            Token Plus[20, 12](+)
+            Token Int[20, 13](0)
+            Token Dot[20, 14](.)
+            Token Fraction[20, 15](3)
+        Token ParenClose[20, 16]())
+      Token HSpace[20, 17]( )
+      Token Times[20, 18](*)
+      Token HSpace[20, 19]( )
+      Token Id[20, 20](y)
+      Token HSpace[20, 21]( )
+      Token Times[20, 22](/)
+      Token HSpace[20, 23]( )
       Number
-        Token Dot[20, 23](.)
-        Token Fraction[20, 24](2)
-  Token VSpace[20, 25](
+        Token Dot[20, 24](.)
+        Token Fraction[20, 25](2)
+  Token VSpace[20, 26](
 
 )
   Spaced
