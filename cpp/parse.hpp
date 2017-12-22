@@ -61,8 +61,8 @@ auto token_to_node_kind(TokenState token_state) -> NodeKind {
     case TokenState::Comma: return NodeKind::Comma;
     case TokenState::HSpace: return NodeKind::Spaced;
     case TokenState::Plus: return NodeKind::Add;
+    case TokenState::Semi: case TokenState::VSpace: return NodeKind::Block;
     case TokenState::Times: return NodeKind::Multiply;
-    case TokenState::VSpace: return NodeKind::Block;
     default: return NodeKind::Other;
   }
 }
@@ -287,6 +287,7 @@ struct Parser {
       }
       // Look at the next nonskippable.
       focus(expr);
+      // TODO If infix (vs prefix +/-?), put a None instead of parsing.
       // println!("Post at {:?}", self.peek());
       auto kid = parse_expr(op_precedence);
       push(expr, std::move(kid));

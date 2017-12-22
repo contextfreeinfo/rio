@@ -1,31 +1,33 @@
 Block
-  Spaced
-    Token Id[1, 1](let)
-    Token HSpace[1, 4]( )
-    Colon
-      Token Id[1, 5](a)
-      Token Colon[1, 6](:)
-      Token HSpace[1, 7]( )
-      Token Id[1, 8](Float)
+  Assign
+    Spaced
+      Token Id[1, 1](let)
+      Token HSpace[1, 4]( )
+      Colon
+        Token Id[1, 5](a)
+        Token Colon[1, 6](:)
+        Token HSpace[1, 7]( )
+        Token Id[1, 8](Float)
     Token HSpace[1, 13]( )
     Token Assign[1, 14](=)
     Token HSpace[1, 15]( )
-    Token Id[1, 16](pow)
-    Parens
-      Token ParenOpen[1, 19](()
-      Comma
-        Number
-          Token Int[1, 20](3)
-          Token Dot[1, 21](.)
-          Token Fraction[1, 22](14)
-        Token Comma[1, 24](,)
-        Token HSpace[1, 25]( )
-        Number
-          Token Plus[1, 26](-)
-          Token Int[1, 27](0)
-          Token Dot[1, 28](.)
-          Token Fraction[1, 29](5)
-      Token ParenClose[1, 30]())
+    Spaced
+      Token Id[1, 16](pow)
+      Parens
+        Token ParenOpen[1, 19](()
+        Comma
+          Number
+            Token Int[1, 20](3)
+            Token Dot[1, 21](.)
+            Token Fraction[1, 22](14)
+          Token Comma[1, 24](,)
+          Token HSpace[1, 25]( )
+          Number
+            Token Plus[1, 26](-)
+            Token Int[1, 27](0)
+            Token Dot[1, 28](.)
+            Token Fraction[1, 29](5)
+        Token ParenClose[1, 30]())
   Token VSpace[1, 31](
 
 )
@@ -183,3 +185,70 @@ Block
 
 )
   Token Id[25, 1](hi)
+  Token VSpace[25, 3](
+
+)
+  Comma
+    Token Id[27, 1](a)
+    Token Comma[27, 2](,)
+    Token HSpace[27, 3]( )
+    Assign
+      Token Id[27, 4](b)
+      Token HSpace[27, 5]( )
+      Token Assign[27, 6](=)
+      Token HSpace[27, 7]( )
+      Token Id[27, 8](c)
+    Token Comma[27, 9](,)
+    Token HSpace[27, 10]( )
+    Spaced
+      Token Id[27, 11](d)
+      Token HSpace[27, 12]( )
+      Token Id[27, 13](e)
+  Token VSpace[27, 14](
+)
+  Parens
+    Token ParenOpen[28, 1](()
+    Block
+      Comma
+        Spaced
+          Token Id[28, 2](a)
+          Token HSpace[28, 3]( )
+          Token Id[28, 4](b)
+        Token Comma[28, 5](,)
+        Token HSpace[28, 6]( )
+        Spaced
+          Token Id[28, 7](c)
+          Token HSpace[28, 8]( )
+          Token Id[28, 9](d)
+      Token Semi[28, 10](;)
+      Token HSpace[28, 11]( )
+      Comma
+        Spaced
+          Token Id[28, 12](e)
+          Token HSpace[28, 13]( )
+          Token Id[28, 14](f)
+        Token Comma[28, 15](,)
+        Token HSpace[28, 16]( )
+        Spaced
+          Token Id[28, 17](g)
+          Token HSpace[28, 18]( )
+          Token Id[28, 19](h)
+    Token ParenClose[28, 20]())
+  Token Semi[28, 21](;)
+  Token HSpace[28, 22]( )
+  Token Id[28, 23](again)
+  Token VSpace[28, 28](
+
+)
+  Spaced
+    Add
+      Number
+        Token Int[30, 1](1)
+      Token HSpace[30, 2]( )
+      Token Plus[30, 3](+)
+      Number
+        Token Int[30, 4](1)
+      Token HSpace[30, 5]( )
+      Token Plus[30, 6](+)
+      Token Semi[30, 7](;)
+    Token Id[30, 8](again)

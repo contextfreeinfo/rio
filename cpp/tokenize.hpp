@@ -30,6 +30,7 @@ enum struct TokenState {
   ParenOpen,
   ParenClose,
   Plus,
+  Semi,
   Start,
   StringStart,
   StringStop,
@@ -61,6 +62,7 @@ auto name(TokenState state) -> std::string_view {
     case TokenState::ParenOpen: return "ParenOpen";
     case TokenState::ParenClose: return "ParenClose";
     case TokenState::Plus: return "Plus";
+    case TokenState::Semi: return "Semi";
     case TokenState::Start: return "Start";
     case TokenState::StringStart: return "StringStart";
     case TokenState::StringStop: return "StringStop";
@@ -95,6 +97,7 @@ auto infix(TokenState state) -> bool {
     case TokenState::Op1:
     case TokenState::Op2:
     case TokenState::Plus:
+    case TokenState::Semi:
     case TokenState::Times:
     case TokenState::VSpace: {
       return true;
@@ -111,14 +114,15 @@ auto precedence(TokenState state) -> int {
     case TokenState::End: return 5;
     // TODO Same precedence as End but with open-token stack tracking?
     case TokenState::ParenClose: return 7;
-    case TokenState::Comment:
-    case TokenState::VSpace: return 10;
-    case TokenState::HSpace: return 20;
-    case TokenState::Comma: return 25;
+    case TokenState::Comment: case TokenState::Semi: case TokenState::VSpace:
+      return 10;
+    case TokenState::Comma: return 20;
+    case TokenState::Assign: return 22;
+    case TokenState::HSpace: return 25;
     case TokenState::Colon: return 30;
     case TokenState::Plus: return 40;
     case TokenState::Times: return 50;
-    default: return 20;
+    default: return 25;
   }
 }
 
@@ -268,6 +272,7 @@ struct Tokenizer {
           if (++c == end) return TokenState::Plus;
           break;
         }
+        case ';': return TokenState::Semi;
         case '*': case '/': {
           if (++c == end) return TokenState::Times;
           break;
