@@ -1,7 +1,7 @@
 Block
   Assign
     Spaced
-      Token Id[1, 1](let)
+      Token Let[1, 1](let)
       Token HSpace[1, 4]( )
       Colon
         Token Id[1, 5](a)
@@ -252,3 +252,44 @@ Block
       Token Plus[30, 6](+)
       Token Semi[30, 7](;)
     Token Id[30, 8](again)
+  Token VSpace[30, 13](
+
+)
+  Spaced
+    Token Type[32, 1](type)
+    Token HSpace[32, 5]( )
+    Token Id[32, 6](Yo)
+  Token VSpace[32, 8](
+
+)
+  Spaced
+    Token Def[34, 1](def)
+    Token HSpace[34, 4]( )
+    Token Id[34, 5](a)
+    Colon
+      Parens
+        Token ParenOpen[34, 6](()
+        Token ParenClose[34, 7]())
+      Token Colon[34, 8](:)
+      Token HSpace[34, 9]( )
+      Token Id[34, 10](String)
+    Token HSpace[34, 16]( )
+    Do
+      Token Do[34, 17](do)
+      Block
+        Token VSpace[34, 19](
+)
+        Token HSpace[35, 1](  )
+        Spaced
+          Token Id[35, 3](return)
+          Token HSpace[35, 9]( )
+          String
+            Token StringStart[35, 10](')
+            Token StringText[35, 11](hi)
+            Token StringStop[35, 13](')
+        Token VSpace[35, 14](
+)
+      Token End[36, 1](end)
+  Token VSpace[36, 4](
+)
+  Token Eof[36, 4]()

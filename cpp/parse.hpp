@@ -1,8 +1,8 @@
 #pragma once
 
 #include "tokenize.hpp"
-// #include <functional>
-// #include <optional>
+#include <map>
+#include <memory>
 #include <sstream>
 
 namespace rio {
@@ -80,9 +80,11 @@ struct Node {
 
   NodeKind kind;
 
+  std::unique_ptr<std::map<std::string_view, Node&>> symbols;
+
   optref<const Token> token;
   // optref<Token> token;
-  
+
   // Functions.
 
   Node(NodeKind kind_): kind(kind_), token(nullptr) {}
@@ -255,6 +257,7 @@ struct Parser {
       // the tree, so I can't always just nest.
       // TODO Deep tree for binary ops even if not for lists/rows!!!!!
       // TODO The type could change and therefore the referent at every pair!!!
+      // TODO Also right-to-left nesting for assignments!
       // So we have to build out manually when precedence falls.
       // If precedence rises, we'll go deeper into the call stack.
       // The precedence issue here is more for reset situations like new blocks

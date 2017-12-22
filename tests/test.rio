@@ -28,3 +28,9 @@ a, b = c, d e
 (a b, c d; e f, g h); again
 
 1 +1 +;again
+
+type Yo
+
+def a(): String do
+  return 'hi'
+end

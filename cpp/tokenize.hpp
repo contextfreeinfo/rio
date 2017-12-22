@@ -13,6 +13,7 @@ enum struct TokenState {
   Colon,
   Comma,
   Comment,
+  Def,
   Do,
   Dot,
   End,
@@ -24,6 +25,7 @@ enum struct TokenState {
   HSpace,
   Id,
   Int,
+  Let,
   Op,
   Op1,
   Op2,
@@ -36,6 +38,7 @@ enum struct TokenState {
   StringStop,
   StringText,
   Times,
+  Type,
   VSpace,
 };
 
@@ -45,6 +48,7 @@ auto name(TokenState state) -> std::string_view {
     case TokenState::Colon: return "Colon";
     case TokenState::Comma: return "Comma";
     case TokenState::Comment: return "Comment";
+    case TokenState::Def: return "Def";
     case TokenState::Do: return "Do";
     case TokenState::Dot: return "Dot";
     case TokenState::End: return "End";
@@ -55,6 +59,7 @@ auto name(TokenState state) -> std::string_view {
     case TokenState::Fraction: return "Fraction";
     case TokenState::HSpace: return "HSpace";
     case TokenState::Id: return "Id";
+    case TokenState::Let: return "Let";
     case TokenState::Int: return "Int";
     case TokenState::Op: return "Op";
     case TokenState::Op1: return "Op1";
@@ -68,6 +73,7 @@ auto name(TokenState state) -> std::string_view {
     case TokenState::StringStop: return "StringStop";
     case TokenState::StringText: return "StringText";
     case TokenState::Times: return "Times";
+    case TokenState::Type: return "Type";
     case TokenState::VSpace: return "VSpace";
     default: return "?";
   }
@@ -230,7 +236,21 @@ struct Tokenizer {
         case 'd': {
           if (++c < end) {
             switch (*c) {
-              case 'o': return TokenState::Do;
+              case 'e': {
+                if (++c < end) {
+                  switch (*c) {
+                    case 'f': {
+                      if (++c >= end) return TokenState::Def;
+                      break;
+                    }
+                  }
+                }
+                break;
+              }
+              case 'o': {
+                if (++c >= end) return TokenState::Do;
+                break;
+              }
             }
           }
           break;
@@ -241,7 +261,53 @@ struct Tokenizer {
               case 'n': {
                 if (++c < end) {
                   switch (*c) {
-                    case 'd': return TokenState::End;
+                    case 'd': {
+                      if (++c >= end) return TokenState::End;
+                      break;
+                    }
+                  }
+                }
+                break;
+              }
+            }
+          }
+          break;
+        }
+        case 'l': {
+          if (++c < end) {
+            switch (*c) {
+              case 'e': {
+                if (++c < end) {
+                  switch (*c) {
+                    case 't': {
+                      if (++c >= end) return TokenState::Let;
+                      break;
+                    }
+                  }
+                }
+                break;
+              }
+            }
+          }
+          break;
+        }
+        case 't': {
+          if (++c < end) {
+            switch (*c) {
+              case 'y': {
+                if (++c < end) {
+                  switch (*c) {
+                    case 'p': {
+                      if (++c < end) {
+                        switch (*c) {
+                          case 'e': {
+                            if (++c >= end) return TokenState::Type;
+                            break;
+                          }
+                        }
+                      }
+                      break;
+                    }
                   }
                 }
                 break;
