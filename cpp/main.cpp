@@ -1,5 +1,4 @@
 #include "args.hxx"
-// #include "cxxopts.hpp"
 #include "resolve.hpp"
 #include <fstream>
 #include <iostream>
@@ -7,11 +6,12 @@
 #include <stdexcept>
 
 int main(int argc, char** argv) {
-  // TODO Tokenize something.
   args::ArgumentParser parser{"Rio language compiler and executor."};
+  args::HelpFlag help{parser, "help", "Show help", {'h', "help"}};
+  // TODO Show std tree arg.
   args::Flag show_tree{parser, "tree", "Show parse trees", {"tree"}};
   args::Positional<std::string> script_name{
-    parser, "script", "The name of the script", args::Options::Required,
+    parser, "SCRIPT", "The name of the script", args::Options::Required,
   };
   try {
     parser.ParseCLI(argc, argv);
