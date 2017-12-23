@@ -1,5 +1,5 @@
 #include "args.hxx"
-#include "resolve.hpp"
+#include "std.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>

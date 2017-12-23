@@ -4,16 +4,6 @@
 
 namespace rio {
 
-// TODO Define externally and include (preparsed?) during build.
-const std::string_view std_source = R"std_source(
-
-type String
-type Void
-
-def print(line: String): Void = extern
-
-)std_source";
-
 auto extract(Node& node) -> void {
   for (auto& kid: node.kids) {
     // See if we have any definitions.
@@ -72,7 +62,5 @@ struct Script {
   std::vector<Token> tokens;
 
 };
-
-const Script std_script{std_source};
 
 }
