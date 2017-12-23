@@ -1,4 +1,7 @@
-Block
+Block {
+  Yo,
+  a,
+}
   Let
     Token Let[1, 1](let)
     Assign
@@ -277,20 +280,34 @@ Block
       Token HSpace[34, 16]( )
       Do
         Token Do[34, 17](do)
-        Block
+        Block {
+          b,
+        }
           Token VSpace[34, 19](
 )
           Token HSpace[35, 1](  )
+          Let
+            Token Let[35, 3](let)
+            Assign
+              Token HSpace[35, 6]( )
+              Token Id[35, 7](b)
+              Token HSpace[35, 8]( )
+              Token Assign[35, 9](=)
+              Token HSpace[35, 10]( )
+              Token Id[35, 11](c)
+          Token VSpace[35, 12](
+)
+          Token HSpace[36, 1](  )
           Spaced
-            Token Id[35, 3](return)
-            Token HSpace[35, 9]( )
+            Token Id[36, 3](return)
+            Token HSpace[36, 9]( )
             String
-              Token StringStart[35, 10](')
-              Token StringText[35, 11](hi)
-              Token StringStop[35, 13](')
-          Token VSpace[35, 14](
+              Token StringStart[36, 10](')
+              Token StringText[36, 11](hi)
+              Token StringStop[36, 13](')
+          Token VSpace[36, 14](
 )
-        Token End[36, 1](end)
-  Token VSpace[36, 4](
+        Token End[37, 1](end)
+  Token VSpace[37, 4](
 )
-  Token Eof[36, 4]()
+  Token Eof[37, 4]()

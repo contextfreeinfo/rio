@@ -1,5 +1,9 @@
 Token Eof[1, 1]()
-Block
+Block {
+  String,
+  Void,
+  print,
+}
   Token VSpace[1, 1](
 
 )

@@ -89,7 +89,7 @@ struct Node {
 
   NodeKind kind;
 
-  std::unique_ptr<std::map<std::string_view, Node&>> symbols;
+  std::unique_ptr<std::map<std::string_view, Node*>> symbols;
 
   optref<const Token> token;
   // optref<Token> token;
@@ -100,6 +100,29 @@ struct Node {
 
   Node(const Token& token_): kind(NodeKind::Token), token(&token_) {}
   // Node(Token& token_): kind(NodeKind::Token), token(&token_) {}
+
+  auto define(std::string_view id, Node& node) -> bool {
+    if (!symbols) {
+      symbols.reset(new std::map<std::string_view, Node*>);
+    }
+    auto result = symbols->insert({id, &node});
+    return result.second;
+  }
+
+  template<typename Select>
+  auto find(Select&& select) -> optref<Node> {
+    for (auto& kid: kids) {
+      if (select(kid)) {
+        return &kid;
+      } else {
+        auto result = kid.find(select);
+        if (result) {
+          return result;
+        }
+      }
+    }
+    return nullptr;
+  }
 
   // TODO Change this to writing to an ostream!
   auto format() const -> std::string {
@@ -114,6 +137,18 @@ struct Node {
     push(Node(token));
   }
 
+  auto token_at(Index index) -> optref<const Token> {
+    Index count = 0;
+    auto token_node = find([&count, index](Node& node) {
+      if (node.token && node.token->important()) {
+        if (count == index) return true;
+        count += 1;
+      }
+      return false;
+    });
+    return token_node ? token_node->token : nullptr;
+  }
+
   private:
 
   auto format_at(std::string_view prefix) const -> std::string {
@@ -122,6 +157,13 @@ struct Node {
     // TODO Pass down the string to append to?
     std::stringstream buffer;
     buffer << prefix << kind;
+    if (symbols) {
+      buffer << " {\n";
+      for (auto& [key, _]: *symbols) { (void)_;
+        buffer << prefix << "  " << key << ",\n";
+      }
+      buffer << prefix << "}";
+    }
     if (token) {
       buffer << " " << *token;
     } else {
@@ -447,31 +489,6 @@ struct Parser {
   void push_token(Node& parent, const Token& token) {
     push(parent, Node{token});
   }
-
-};
-
-struct Script {
-  // Holds all the resources for a script as well as providing access to script
-  // info, such as the ast.
-
-  // Fields.
-
-  Node root;
-
-  // Functions.
-
-  Script(std::string_view source): root(NodeKind::Other) {
-    // Tokenize.
-    rio::Tokenizer tokenizer{source};
-    tokens = tokenizer.collect();
-    // Parse.
-    rio::Parser parser{tokens};
-    root = parser.parse();
-  }
-
-  private:
-
-  std::vector<Token> tokens;
 
 };
 

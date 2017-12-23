@@ -32,5 +32,6 @@ a, b = c, d e
 type Yo
 
 def a(): String do
+  let b = c
   return 'hi'
 end

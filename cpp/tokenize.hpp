@@ -94,6 +94,14 @@ auto closing(TokenState state) -> bool {
   }
 }
 
+auto important(TokenState state) -> bool {
+  switch (state) {
+    case TokenState::Comment: case TokenState::HSpace: case TokenState::VSpace:
+      return false;
+    default: return true;
+  }
+}
+
 auto infix(TokenState state) -> bool {
   switch (state) {
     case TokenState::Assign:
@@ -152,6 +160,10 @@ struct Token {
 
   auto closing() const -> bool {
     return ::rio::closing(state);
+  }
+
+  auto important() const -> bool {
+    return ::rio::important(state);
   }
 
   auto infix() const -> bool {
