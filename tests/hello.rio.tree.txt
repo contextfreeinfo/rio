@@ -1,6 +1,7 @@
+--- main ---
 Block
   Spaced
-    Token Id[1, 1](print)
+    Token Id[1, 1](print) @ 0x7fffc3345f48
     Token HSpace[1, 6]( )
     String
       Token StringStart[1, 7](")

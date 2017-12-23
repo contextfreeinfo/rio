@@ -58,6 +58,9 @@ Time log:
 - 20171220 Still at about 1.5 seconds on gcc.
 - 20171222 1.8 seconds for release. 2 seconds for minsizerel.
 - 20171223 Still about 2 seconds for minsizerel.
+- 20171223 After referents, 2.3 seconds and up from 1.08G to 1.19G
+  (says /usr/bin/time).
+  How much ram does g++ take in common cases for 13M of source?
 
 Maybe should actually profile sometime.
 

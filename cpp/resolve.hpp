@@ -31,14 +31,22 @@ auto extract(Node& node) -> void {
 
 struct Context {
 
-  Context* parent;
+  const Context* parent;
 
-  Node& scope;
+  const Node& scope;
 
-  Context(Node& scope_, Context* parent_ = nullptr):
+  Context(const Node& scope_, optref<const Context> parent_ = nullptr):
     parent(parent_), scope(scope_) {}
 
-  auto resolve(Node& node) -> void {
+  auto get_def(std::string_view id) const -> optref<Node> {
+    auto node = scope.get_def(id);
+    if (!node && parent) {
+      node = parent->get_def(id);
+    }
+    return node;
+  }
+
+  auto resolve(Node& node) const -> void {
     if (&node != &scope && node.symbols) {
       // Deeper context.
       Context inner{node, this};
@@ -49,6 +57,8 @@ struct Context {
           if (kid.token->state == TokenState::Id) {
             // Resolve this!
             // std::cout << "Resolve: " << kid.token->text << std::endl;
+            kid.referent = get_def(kid.token->text);
+            // std::cout << "Referent: " << kid.referent << std::endl;
           }
         } else {
           // Deeper node.
@@ -72,7 +82,7 @@ struct Script {
   // Functions.
 
   Script(
-    std::string_view source, Context* env = nullptr
+    std::string_view source, optref<const Context> env = nullptr
   ): root(NodeKind::Other) {
     // Tokenize.
     rio::Tokenizer tokenizer{source};

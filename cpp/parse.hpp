@@ -78,28 +78,34 @@ auto token_to_node_kind(TokenState token_state) -> NodeKind {
 
 template<typename Item>
 using optref = Item*;
-// Alternative that seems perhaps overkill:
-// using optref = std::optional<std::reference_wrapper<Item>>;
 
 struct Node {
 
   // Fields.
 
+  // Never applies to tokens.
   std::vector<Node> kids;
 
   NodeKind kind;
 
+  // Only applies to tokens.
+  // TODO Use a single pointer to all custom data by type?
+  // TODO Some entity component system?
+  // TODO Separate ast/ir that's entirely specialized if most nodes have some?
+  optref<Node> referent;
+
+  // Only applies scopes with symbols defined.
   std::unique_ptr<std::map<std::string_view, Node*>> symbols;
 
+  // Only applies to tokens.
   optref<const Token> token;
-  // optref<Token> token;
 
   // Functions.
 
-  Node(NodeKind kind_): kind(kind_), token(nullptr) {}
+  Node(NodeKind kind_): kind(kind_), referent(nullptr), token(nullptr) {}
 
-  Node(const Token& token_): kind(NodeKind::Token), token(&token_) {}
-  // Node(Token& token_): kind(NodeKind::Token), token(&token_) {}
+  Node(const Token& token_):
+    kind(NodeKind::Token), referent(nullptr), token(&token_) {}
 
   auto define(std::string_view id, Node& node) -> bool {
     if (!symbols) {
@@ -129,7 +135,7 @@ struct Node {
     return format_at("");
   }
 
-  auto get_def(std::string_view id) -> Node* {
+  auto get_def(std::string_view id) const -> optref<Node> {
     if (!symbols) return nullptr;
     auto entry = symbols->find(id);
     return entry == symbols->end() ? nullptr : entry->second;
@@ -165,13 +171,16 @@ struct Node {
     buffer << prefix << kind;
     if (symbols) {
       buffer << " {\n";
-      for (auto& [key, _]: *symbols) { (void)_;
-        buffer << prefix << "  " << key << ",\n";
+      for (auto& [key, ref]: *symbols) {
+        buffer << prefix << "  " << key << ": " << ref << ",\n";
       }
       buffer << prefix << "}";
     }
     if (token) {
       buffer << " " << *token;
+      if (referent) {
+        buffer << " @ " << referent;
+      }
     } else {
       std::string deeper{prefix};
       deeper += "  ";
