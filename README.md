@@ -57,6 +57,7 @@ Time log:
 - 20171218 Seems gcc gives about 1.5 seconds. I wonder what clang would do.
 - 20171220 Still at about 1.5 seconds on gcc.
 - 20171222 1.8 seconds for release. 2 seconds for minsizerel.
+- 20171223 Still about 2 seconds for minsizerel.
 
 Maybe should actually profile sometime.
 

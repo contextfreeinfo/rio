@@ -8,9 +8,10 @@ auto extract(Node& node) -> void {
   for (auto& kid: node.kids) {
     // See if we have any definitions.
     switch (kid.kind) {
-      // TODO Eventually have class, for, and struct here, too?
+      // TODO Eventually have class, for, params, and struct here, too.
       // TODO Consolidate class, struct, and/or type?
       case NodeKind::Def: case NodeKind::Let: case NodeKind::Type: {
+        // TODO Instead recurse manually to deal with lists, etc?
         auto id = kid.token_at(1);
         if (id) {
           // std::cout << "Found " << id->text << std::endl;
@@ -29,11 +30,35 @@ auto extract(Node& node) -> void {
 }
 
 struct Context {
-  //
-};
 
-struct Resolver {
-  //
+  Context* parent;
+
+  Node& scope;
+
+  Context(Node& scope_, Context* parent_ = nullptr):
+    parent(parent_), scope(scope_) {}
+
+  auto resolve(Node& node) -> void {
+    if (&node != &scope && node.symbols) {
+      // Deeper context.
+      Context inner{node, this};
+      inner.resolve(node);
+    } else {
+      for (auto& kid: node.kids) {
+        if (kid.token) {
+          if (kid.token->state == TokenState::Id) {
+            // Resolve this!
+            // std::cout << "Resolve: " << kid.token->text << std::endl;
+          }
+        } else {
+          // Deeper node.
+          // Tokens shouldn't have kids, so `else` is okay.
+          resolve(kid);
+        }
+      }
+    }
+  }
+
 };
 
 struct Script {
@@ -46,7 +71,9 @@ struct Script {
 
   // Functions.
 
-  Script(std::string_view source): root(NodeKind::Other) {
+  Script(
+    std::string_view source, Context* env = nullptr
+  ): root(NodeKind::Other) {
     // Tokenize.
     rio::Tokenizer tokenizer{source};
     tokens = tokenizer.collect();
@@ -55,6 +82,9 @@ struct Script {
     root = parser.parse();
     // Extract.
     extract(root);
+    // Resolve.
+    Context context{root, env};
+    context.resolve(root);
   }
 
   private:

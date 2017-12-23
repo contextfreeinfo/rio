@@ -129,6 +129,12 @@ struct Node {
     return format_at("");
   }
 
+  auto get_def(std::string_view id) -> Node* {
+    if (!symbols) return nullptr;
+    auto entry = symbols->find(id);
+    return entry == symbols->end() ? nullptr : entry->second;
+  }
+
   auto push(Node&& node) {
     kids.push_back(std::move(node));
   }
