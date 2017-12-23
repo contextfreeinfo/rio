@@ -10,6 +10,9 @@ int main(int argc, char** argv) {
   args::HelpFlag help{parser, "help", "Show help", {'h', "help"}};
   // TODO Show std tree arg.
   args::Flag show_tree{parser, "tree", "Show parse trees", {"tree"}};
+  args::Flag verbose{
+    parser, "verbose", "Show additional info", {'v', "verbose"},
+  };
   args::Positional<std::string> script_name{
     parser, "SCRIPT", "The name of the script", args::Options::Required,
   };
@@ -25,7 +28,9 @@ int main(int argc, char** argv) {
     if (show_tree) {
       // Write tree.
       std::cout << script.root.format() << std::endl;
-      // std::cout << rio::std_script.root.format() << std::endl;
+      if (verbose) {
+        std::cout << rio::std_script.root.format() << std::endl;
+      }
     }
   } catch (args::Help&) {
     std::cout << parser;

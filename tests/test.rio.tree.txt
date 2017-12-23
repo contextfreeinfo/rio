@@ -1,33 +1,33 @@
 Block
-  Assign
-    Spaced
-      Token Let[1, 1](let)
-      Token HSpace[1, 4]( )
+  Let
+    Token Let[1, 1](let)
+    Assign
       Colon
+        Token HSpace[1, 4]( )
         Token Id[1, 5](a)
         Token Colon[1, 6](:)
         Token HSpace[1, 7]( )
         Token Id[1, 8](Float)
-    Token HSpace[1, 13]( )
-    Token Assign[1, 14](=)
-    Token HSpace[1, 15]( )
-    Spaced
-      Token Id[1, 16](pow)
-      Parens
-        Token ParenOpen[1, 19](()
-        Comma
-          Number
-            Token Int[1, 20](3)
-            Token Dot[1, 21](.)
-            Token Fraction[1, 22](14)
-          Token Comma[1, 24](,)
-          Token HSpace[1, 25]( )
-          Number
-            Token Plus[1, 26](-)
-            Token Int[1, 27](0)
-            Token Dot[1, 28](.)
-            Token Fraction[1, 29](5)
-        Token ParenClose[1, 30]())
+      Token HSpace[1, 13]( )
+      Token Assign[1, 14](=)
+      Token HSpace[1, 15]( )
+      Spaced
+        Token Id[1, 16](pow)
+        Parens
+          Token ParenOpen[1, 19](()
+          Comma
+            Number
+              Token Int[1, 20](3)
+              Token Dot[1, 21](.)
+              Token Fraction[1, 22](14)
+            Token Comma[1, 24](,)
+            Token HSpace[1, 25]( )
+            Number
+              Token Plus[1, 26](-)
+              Token Int[1, 27](0)
+              Token Dot[1, 28](.)
+              Token Fraction[1, 29](5)
+          Token ParenClose[1, 30]())
   Token VSpace[1, 31](
 
 )
@@ -255,41 +255,42 @@ Block
   Token VSpace[30, 13](
 
 )
-  Spaced
+  Type
     Token Type[32, 1](type)
     Token HSpace[32, 5]( )
     Token Id[32, 6](Yo)
   Token VSpace[32, 8](
 
 )
-  Spaced
+  Def
     Token Def[34, 1](def)
-    Token HSpace[34, 4]( )
-    Token Id[34, 5](a)
-    Colon
-      Parens
-        Token ParenOpen[34, 6](()
-        Token ParenClose[34, 7]())
-      Token Colon[34, 8](:)
-      Token HSpace[34, 9]( )
-      Token Id[34, 10](String)
-    Token HSpace[34, 16]( )
-    Do
-      Token Do[34, 17](do)
-      Block
-        Token VSpace[34, 19](
+    Spaced
+      Token HSpace[34, 4]( )
+      Token Id[34, 5](a)
+      Colon
+        Parens
+          Token ParenOpen[34, 6](()
+          Token ParenClose[34, 7]())
+        Token Colon[34, 8](:)
+        Token HSpace[34, 9]( )
+        Token Id[34, 10](String)
+      Token HSpace[34, 16]( )
+      Do
+        Token Do[34, 17](do)
+        Block
+          Token VSpace[34, 19](
 )
-        Token HSpace[35, 1](  )
-        Spaced
-          Token Id[35, 3](return)
-          Token HSpace[35, 9]( )
-          String
-            Token StringStart[35, 10](')
-            Token StringText[35, 11](hi)
-            Token StringStop[35, 13](')
-        Token VSpace[35, 14](
+          Token HSpace[35, 1](  )
+          Spaced
+            Token Id[35, 3](return)
+            Token HSpace[35, 9]( )
+            String
+              Token StringStart[35, 10](')
+              Token StringText[35, 11](hi)
+              Token StringStop[35, 13](')
+          Token VSpace[35, 14](
 )
-      Token End[36, 1](end)
+        Token End[36, 1](end)
   Token VSpace[36, 4](
 )
   Token Eof[36, 4]()

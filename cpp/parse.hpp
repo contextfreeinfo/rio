@@ -13,7 +13,9 @@ enum struct NodeKind {
   Block,
   Colon,
   Comma,
+  Def,
   Do,
+  Let,
   Multiply,
   None,
   Number,
@@ -25,6 +27,7 @@ enum struct NodeKind {
   String,
   Token,
   Top,
+  Type,
 };
 
 auto name(NodeKind kind) -> std::string_view {
@@ -34,7 +37,9 @@ auto name(NodeKind kind) -> std::string_view {
     case NodeKind::Block: return "Block";
     case NodeKind::Colon: return "Colon";
     case NodeKind::Comma: return "Comma";
+    case NodeKind::Def: return "Def";
     case NodeKind::Do: return "Do";
+    case NodeKind::Let: return "Let";
     case NodeKind::Multiply: return "Multiply";
     case NodeKind::None: return "None";
     case NodeKind::Number: return "Number";
@@ -46,6 +51,7 @@ auto name(NodeKind kind) -> std::string_view {
     case NodeKind::String: return "String";
     case NodeKind::Token: return "Token";
     case NodeKind::Top: return "Top";
+    case NodeKind::Type: return "Type";
     default: return "?";
   }
 }
@@ -59,10 +65,13 @@ auto token_to_node_kind(TokenState token_state) -> NodeKind {
     case TokenState::Assign: return NodeKind::Assign;
     case TokenState::Colon: return NodeKind::Colon;
     case TokenState::Comma: return NodeKind::Comma;
+    case TokenState::Def: return NodeKind::Def;
     case TokenState::HSpace: return NodeKind::Spaced;
+    case TokenState::Let: return NodeKind::Let;
     case TokenState::Plus: return NodeKind::Add;
     case TokenState::Semi: case TokenState::VSpace: return NodeKind::Block;
     case TokenState::Times: return NodeKind::Multiply;
+    case TokenState::Type: return NodeKind::Type;
     default: return NodeKind::Other;
   }
 }
@@ -361,7 +370,15 @@ struct Parser {
   }
 
   auto parse_prefix() -> Node {
-    switch (peek().state) {
+    auto state = peek().state;
+    switch (state) {
+      case TokenState::Def: case TokenState::Let: case TokenState::Type: {
+        // Later, we probably need to diversify here, but this is a start.
+        Node node{token_to_node_kind(state)};
+        push_next(node);
+        push(node, parse_expr(precedence(TokenState::VSpace)));
+        return node;
+      }
       case TokenState::Do: return parse_do();
       case TokenState::Dot: case TokenState::Int: case TokenState::Plus:
         return parse_number();
