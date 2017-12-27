@@ -230,7 +230,9 @@ auto ParentNode::push_token(Token& token) -> void {
   push(Node{token});
 }
 
-auto ParentNode::write(std::ostream& stream, std::string_view prefix) const -> void {
+auto ParentNode::write(std::ostream& stream, std::string_view prefix) const
+  -> void
+{
   // Symbols.
   if (symbols) {
     stream << " {\n";

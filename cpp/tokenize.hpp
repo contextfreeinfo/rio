@@ -21,6 +21,7 @@ enum struct TokenState {
   Error,
   EscapeStart,
   Escape,
+  Extern,
   Fraction,
   HSpace,
   Id,
@@ -56,6 +57,7 @@ auto name(TokenState state) -> std::string_view {
     case TokenState::Error: return "Error";
     case TokenState::EscapeStart: return "EscapeStart";
     case TokenState::Escape: return "Escape";
+    case TokenState::Extern: return "Extern";
     case TokenState::Fraction: return "Fraction";
     case TokenState::HSpace: return "HSpace";
     case TokenState::Id: return "Id";
@@ -275,6 +277,21 @@ struct Tokenizer {
                   switch (*c) {
                     case 'd': {
                       if (++c >= end) return TokenState::End;
+                      break;
+                    }
+                  }
+                }
+                break;
+              }
+              case 'x': {
+                if (++c < end) {
+                  switch (*c) {
+                    case 't': {
+                      // Without deeper tree, this means slightly slower parsing
+                      // of all ids starting with "ext".
+                      if (text == "extern") {
+                        return TokenState::Extern;
+                      }
                       break;
                     }
                   }

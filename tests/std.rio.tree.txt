@@ -1,8 +1,8 @@
 --- std ---
 Block {
-  String: 0x7fffed670e68,
-  Void: 0x7fffed670ed8,
-  print: 0x7fffed670f48,
+  String: 0x7fffbc130020,
+  Void: 0x7fffbc130080,
+  print: 0x7fffbc1300e0,
 }
   Token VSpace[1, 1](
 
@@ -10,13 +10,13 @@ Block {
   Type
     Token Type[3, 1](type)
     Token HSpace[3, 5]( )
-    Token Id[3, 6](String) @ 0x7fffed670e68
+    Token Id[3, 6](String) @ 0x7fffbc130020
   Token VSpace[3, 12](
 )
   Type
     Token Type[4, 1](type)
     Token HSpace[4, 5]( )
-    Token Id[4, 6](Void) @ 0x7fffed670ed8
+    Token Id[4, 6](Void) @ 0x7fffbc130080
   Token VSpace[4, 10](
 
 )
@@ -25,7 +25,7 @@ Block {
     Assign
       Spaced
         Token HSpace[6, 4]( )
-        Token Id[6, 5](print) @ 0x7fffed670f48
+        Token Id[6, 5](print) @ 0x7fffbc1300e0
         Colon
           Parens
             Token ParenOpen[6, 10](()
@@ -33,15 +33,15 @@ Block {
               Token Id[6, 11](line)
               Token Colon[6, 15](:)
               Token HSpace[6, 16]( )
-              Token Id[6, 17](String) @ 0x7fffed670e68
+              Token Id[6, 17](String) @ 0x7fffbc130020
             Token ParenClose[6, 23]())
           Token Colon[6, 24](:)
           Token HSpace[6, 25]( )
-          Token Id[6, 26](Void) @ 0x7fffed670ed8
+          Token Id[6, 26](Void) @ 0x7fffbc130080
       Token HSpace[6, 30]( )
       Token Assign[6, 31](=)
       Token HSpace[6, 32]( )
-      Token Id[6, 33](extern)
+      Token Extern[6, 33](extern)
   Token VSpace[6, 39](
 
 )
