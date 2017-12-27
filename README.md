@@ -61,6 +61,7 @@ Time log:
 - 20171223 After referents, 2.3 seconds and up from 1.08G to 1.19G
   (says /usr/bin/time).
   How much ram does g++ take in common cases for 13M of source?
+- 20171227 After variants, back down to 1.08G. Time at about 2.24 seconds.
 
 Maybe should actually profile sometime.
 
