@@ -138,32 +138,13 @@ struct Node {
 
   NodeKind kind;
 
-  // union {
-  //   ParentNode parent;
-  //   TokenNode token;
-  // };
   std::variant<ParentNode, TokenNode> info;
 
   // Functions.
 
-  // Node(NodeKind kind_): kind(kind_), parent() {}
   Node(NodeKind kind_): kind(kind_), info(ParentNode{}) {}
 
-  // Node(Token& token_): kind(NodeKind::Token), token(token_) {}
   Node(Token& token_): kind(NodeKind::Token), info(TokenNode{&token_}) {}
-
-  // ~Node() {
-  //   switch (kind) {
-  //     case NodeKind::Token: {
-  //       token.~TokenNode();
-  //       break;
-  //     }
-  //     default: {
-  //       parent.~ParentNode();
-  //       break;
-  //     }
-  //   }
-  // }
 
   auto define(std::string_view id, Node& node) -> bool {
     return std::get<ParentNode>(info).define(id, node);
