@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <variant>
 
 namespace rio {
 
@@ -79,33 +80,14 @@ auto token_to_node_kind(TokenState token_state) -> NodeKind {
 template<typename Item>
 using optref = Item*;
 
-struct Node {
+struct Node;
 
-  // Fields.
+struct ParentNode {
 
   // Never applies to tokens.
   std::vector<Node> kids;
-
-  NodeKind kind;
-
-  // Only applies to tokens.
-  // TODO Use a single pointer to all custom data by type?
-  // TODO Some entity component system?
-  // TODO Separate ast/ir that's entirely specialized if most nodes have some?
-  optref<Node> referent;
-
   // Only applies scopes with symbols defined.
   std::unique_ptr<std::map<std::string_view, Node*>> symbols;
-
-  // Only applies to tokens.
-  optref<const Token> token;
-
-  // Functions.
-
-  Node(NodeKind kind_): kind(kind_), referent(nullptr), token(nullptr) {}
-
-  Node(const Token& token_):
-    kind(NodeKind::Token), referent(nullptr), token(&token_) {}
 
   auto define(std::string_view id, Node& node) -> bool {
     if (!symbols) {
@@ -116,24 +98,7 @@ struct Node {
   }
 
   template<typename Select>
-  auto find(Select&& select) -> optref<Node> {
-    for (auto& kid: kids) {
-      if (select(kid)) {
-        return &kid;
-      } else {
-        auto result = kid.find(select);
-        if (result) {
-          return result;
-        }
-      }
-    }
-    return nullptr;
-  }
-
-  // TODO Change this to writing to an ostream!
-  auto format() const -> std::string {
-    return format_at("");
-  }
+  auto find(Select&& select) -> optref<Node>;
 
   auto get_def(std::string_view id) const -> optref<Node> {
     if (!symbols) return nullptr;
@@ -141,57 +106,165 @@ struct Node {
     return entry == symbols->end() ? nullptr : entry->second;
   }
 
-  auto push(Node&& node) {
+  auto push(Node&& node) -> void {
     kids.push_back(std::move(node));
   }
 
-  auto push_token(const Token& token) {
-    push(Node(token));
+  auto push_token(Token& token) -> void;
+
+  auto write(std::ostream& stream, std::string_view prefix) const -> void;
+
+};
+
+struct TokenNode {
+
+  optref<Node> referent;
+  optref<Token> token;
+
+  TokenNode(Token* token_ = nullptr): referent(nullptr), token(token_) {}
+
+  auto write(std::ostream& stream) const -> void {
+    stream << " " << *token;
+    if (referent) {
+      stream << " @ " << referent;
+    }
   }
 
-  auto token_at(Index index) -> optref<const Token> {
+};
+
+struct Node {
+
+  // Fields.
+
+  NodeKind kind;
+
+  // union {
+  //   ParentNode parent;
+  //   TokenNode token;
+  // };
+  std::variant<ParentNode, TokenNode> info;
+
+  // Functions.
+
+  // Node(NodeKind kind_): kind(kind_), parent() {}
+  Node(NodeKind kind_): kind(kind_), info(ParentNode{}) {}
+
+  // Node(Token& token_): kind(NodeKind::Token), token(token_) {}
+  Node(Token& token_): kind(NodeKind::Token), info(TokenNode{&token_}) {}
+
+  // ~Node() {
+  //   switch (kind) {
+  //     case NodeKind::Token: {
+  //       token.~TokenNode();
+  //       break;
+  //     }
+  //     default: {
+  //       parent.~ParentNode();
+  //       break;
+  //     }
+  //   }
+  // }
+
+  auto define(std::string_view id, Node& node) -> bool {
+    return std::get<ParentNode>(info).define(id, node);
+  }
+
+  template<typename Select>
+  auto find(Select&& select) -> optref<Node> {
+    if (std::holds_alternative<ParentNode>(info)) {
+      return std::get<ParentNode>(info).find(select);
+    } else {
+      return nullptr;
+    }
+  }
+
+  // TODO Change this to writing to an ostream!
+  auto format() const -> std::string {
+    return format_at("");
+  }
+
+  auto format_at(std::string_view prefix) const -> std::string {
+    // This wasn't just streaming because I had trouble working that out in the
+    // Rust version.
+    // TODO Go back to streams.
+    std::stringstream buffer;
+    buffer << prefix << kind;
+    if (kind == NodeKind::Token) {
+      std::get<TokenNode>(info).write(buffer);
+    } else {
+      std::get<ParentNode>(info).write(buffer, prefix);
+    }
+    return buffer.str();
+  }
+
+  auto get_def(std::string_view id) const -> optref<Node> {
+    return std::get<ParentNode>(info).get_def(id);
+  }
+
+  auto push(Node&& node) -> void {
+    std::get<ParentNode>(info).push(std::move(node));
+  }
+
+  auto push_token(Token& token) -> void {
+    std::get<ParentNode>(info).push_token(token);
+  }
+
+  auto token() -> optref<Token> {
+    if (kind == NodeKind::Token) {
+      return std::get<TokenNode>(info).token;
+    }
+    return nullptr;
+  }
+
+  auto token_at(Index index) -> optref<Token> {
     Index count = 0;
     auto token_node = find([&count, index](Node& node) {
-      if (node.token && node.token->important()) {
+      if (node.token() && node.token()->important()) {
         if (count == index) return true;
         count += 1;
       }
       return false;
     });
-    return token_node ? token_node->token : nullptr;
-  }
-
-  private:
-
-  auto format_at(std::string_view prefix) const -> std::string {
-    // Might not be the most efficient, since it doesn't work on a single big
-    // buffer, but it shouldn't be needed except for debugging.
-    // TODO Pass down the string to append to?
-    std::stringstream buffer;
-    buffer << prefix << kind;
-    if (symbols) {
-      buffer << " {\n";
-      for (auto& [key, ref]: *symbols) {
-        buffer << prefix << "  " << key << ": " << ref << ",\n";
-      }
-      buffer << prefix << "}";
-    }
-    if (token) {
-      buffer << " " << *token;
-      if (referent) {
-        buffer << " @ " << referent;
-      }
-    } else {
-      std::string deeper{prefix};
-      deeper += "  ";
-      for (auto& kid: kids) {
-        buffer << "\n" << kid.format_at(deeper);
-      }
-    }
-    return buffer.str();
+    return token_node ? token_node->token() : nullptr;
   }
 
 };
+
+template<typename Select>
+auto ParentNode::find(Select&& select) -> optref<Node> {
+  for (auto& kid: kids) {
+    if (select(kid)) {
+      return &kid;
+    } else {
+      auto result = kid.find(select);
+      if (result) {
+        return result;
+      }
+    }
+  }
+  return nullptr;
+}
+
+auto ParentNode::push_token(Token& token) -> void {
+  push(Node{token});
+}
+
+auto ParentNode::write(std::ostream& stream, std::string_view prefix) const -> void {
+  // Symbols.
+  if (symbols) {
+    stream << " {\n";
+    for (auto& [key, ref]: *symbols) {
+      stream << prefix << "  " << key << ": " << ref << ",\n";
+    }
+    stream << prefix << "}";
+  }
+  // Kids.
+  std::string deeper{prefix};
+  deeper += "  ";
+  for (auto& kid: kids) {
+    stream << "\n" << kid.format_at(deeper);
+  }
+}
 
 struct Parser {
 
@@ -205,11 +278,11 @@ struct Parser {
 
   Index last_skipped;
 
-  const std::vector<Token>& tokens;
+  std::vector<Token>& tokens;
 
   // Functions.
 
-  Parser(const std::vector<Token>& tokens_):
+  Parser(std::vector<Token>& tokens_):
     found_index(0),
     index(0),
     last_index(0),
@@ -239,9 +312,9 @@ struct Parser {
     chew(parent, index + 1);
   }
 
-  auto next(bool skipv = false) -> const Token& {
+  auto next(bool skipv = false) -> Token& {
     // We never pass eof, so we'll have a token for sure.
-    const Token* token;
+    Token* token;
     auto index = this->index;
     last_index = index;
     auto done = false;
@@ -477,7 +550,7 @@ struct Parser {
     return node;
   }
 
-  auto peek() -> const Token& {
+  auto peek() -> Token& {
     auto& token = next();
     prev();
     return token;
@@ -501,7 +574,7 @@ struct Parser {
     push_token(parent, next());
   }
 
-  void push_token(Node& parent, const Token& token) {
+  void push_token(Node& parent, Token& token) {
     push(parent, Node{token});
   }
 

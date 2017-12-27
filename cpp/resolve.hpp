@@ -5,7 +5,9 @@
 namespace rio {
 
 auto extract(Node& node) -> void {
-  for (auto& kid: node.kids) {
+  if (node.kind == NodeKind::Token) return;
+  auto& info = std::get<ParentNode>(node.info);
+  for (auto& kid: info.kids) {
     // See if we have any definitions.
     switch (kid.kind) {
       // TODO Eventually have class, for, params, and struct here, too.
@@ -47,17 +49,20 @@ struct Context {
   }
 
   auto resolve(Node& node) const -> void {
-    if (&node != &scope && node.symbols) {
+    if (node.kind == NodeKind::Token) return;
+    auto& info = std::get<ParentNode>(node.info);
+    if (&node != &scope && info.symbols) {
       // Deeper context.
       Context inner{node, this};
       inner.resolve(node);
     } else {
-      for (auto& kid: node.kids) {
-        if (kid.token) {
-          if (kid.token->state == TokenState::Id) {
+      for (auto& kid: info.kids) {
+        if (kid.token()) {
+          auto& kid_info = std::get<TokenNode>(kid.info);
+          if (kid_info.token->state == TokenState::Id) {
             // Resolve this!
             // std::cout << "Resolve: " << kid.token->text << std::endl;
-            kid.referent = get_def(kid.token->text);
+            kid_info.referent = get_def(kid_info.token->text);
             // std::cout << "Referent: " << kid.referent << std::endl;
           }
         } else {
