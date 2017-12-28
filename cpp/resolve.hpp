@@ -57,7 +57,8 @@ struct Context {
       inner.resolve(node);
     } else {
       for (auto& kid: info.kids) {
-        if (kid.referent()) {
+        auto token = kid.token();
+        if (token && token->state == TokenState::Id) {
           // Resolve this!
           auto& kid_info = static_cast<IdNode&>(*kid.info);
           // std::cout << "Resolve: " << kid.token->text << std::endl;
