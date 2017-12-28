@@ -62,6 +62,8 @@ Time log:
   (says /usr/bin/time).
   How much ram does g++ take in common cases for 13M of source?
 - 20171227 After variants, back down to 1.08G. Time at about 2.24 seconds.
+- 20171228 After individual allocations/unique_ptr, down to 0.96G.
+  Time at about 2.3 seconds.
 
 Maybe should actually profile sometime.
 

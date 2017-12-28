@@ -4,7 +4,6 @@
 #include <map>
 #include <memory>
 #include <sstream>
-#include <variant>
 
 namespace rio {
 
@@ -82,7 +81,13 @@ using optref = Item*;
 
 struct Node;
 
-struct ParentNode {
+struct NodeInfo {
+  virtual ~NodeInfo() {}
+  virtual auto write(std::ostream& stream, std::string_view prefix) const
+    -> void = 0;
+};
+
+struct ParentNode: NodeInfo {
 
   // Never applies to tokens.
   std::vector<Node> kids;
@@ -112,18 +117,22 @@ struct ParentNode {
 
   auto push_token(Token& token) -> void;
 
-  auto write(std::ostream& stream, std::string_view prefix) const -> void;
+  auto write(std::ostream& stream, std::string_view prefix) const
+    -> void override;
 
 };
 
-struct TokenNode {
+struct TokenNode: NodeInfo {
 
   optref<Node> referent;
   optref<Token> token;
 
   TokenNode(Token* token_ = nullptr): referent(nullptr), token(token_) {}
 
-  auto write(std::ostream& stream) const -> void {
+  auto write(std::ostream& stream, std::string_view prefix) const
+    -> void override
+  {
+    (void)prefix;
     stream << " " << *token;
     if (referent) {
       stream << " @ " << referent;
@@ -138,22 +147,23 @@ struct Node {
 
   NodeKind kind;
 
-  std::variant<ParentNode, TokenNode> info;
+  std::unique_ptr<NodeInfo> info;
 
   // Functions.
 
-  Node(NodeKind kind_): kind(kind_), info(ParentNode{}) {}
+  Node(NodeKind kind_): kind(kind_), info(new ParentNode{}) {}
 
-  Node(Token& token_): kind(NodeKind::Token), info(TokenNode{&token_}) {}
+  Node(Token& token_): kind(NodeKind::Token), info(new TokenNode{&token_}) {}
 
   auto define(std::string_view id, Node& node) -> bool {
-    return std::get<ParentNode>(info).define(id, node);
+    return dynamic_cast<ParentNode&>(*info.get()).define(id, node);
   }
 
   template<typename Select>
   auto find(Select&& select) -> optref<Node> {
-    if (std::holds_alternative<ParentNode>(info)) {
-      return std::get<ParentNode>(info).find(select);
+    auto parent = dynamic_cast<ParentNode*>(info.get());
+    if (parent) {
+      return parent->find(select);
     } else {
       return nullptr;
     }
@@ -170,29 +180,25 @@ struct Node {
     // TODO Go back to streams.
     std::stringstream buffer;
     buffer << prefix << kind;
-    if (kind == NodeKind::Token) {
-      std::get<TokenNode>(info).write(buffer);
-    } else {
-      std::get<ParentNode>(info).write(buffer, prefix);
-    }
+    info->write(buffer, prefix);
     return buffer.str();
   }
 
   auto get_def(std::string_view id) const -> optref<Node> {
-    return std::get<ParentNode>(info).get_def(id);
+    return dynamic_cast<ParentNode&>(*info).get_def(id);
   }
 
   auto push(Node&& node) -> void {
-    std::get<ParentNode>(info).push(std::move(node));
+    dynamic_cast<ParentNode&>(*info).push(std::move(node));
   }
 
   auto push_token(Token& token) -> void {
-    std::get<ParentNode>(info).push_token(token);
+    dynamic_cast<ParentNode&>(*info).push_token(token);
   }
 
   auto token() -> optref<Token> {
     if (kind == NodeKind::Token) {
-      return std::get<TokenNode>(info).token;
+      return static_cast<TokenNode&>(*info).token;
     }
     return nullptr;
   }
