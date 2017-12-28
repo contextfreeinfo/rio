@@ -124,16 +124,29 @@ struct ParentNode: NodeInfo {
 
 struct TokenNode: NodeInfo {
 
-  optref<Node> referent;
   optref<Token> token;
 
-  TokenNode(Token* token_ = nullptr): referent(nullptr), token(token_) {}
+  TokenNode(Token* token_ = nullptr): token(token_) {}
 
   auto write(std::ostream& stream, std::string_view prefix) const
     -> void override
   {
     (void)prefix;
     stream << " " << *token;
+  }
+
+};
+
+struct IdNode: TokenNode {
+
+  optref<Node> referent;
+
+  IdNode(Token* token = nullptr): TokenNode(token), referent(nullptr) {}
+
+  auto write(std::ostream& stream, std::string_view prefix) const
+    -> void override
+  {
+    TokenNode::write(stream, prefix);
     if (referent) {
       stream << " @ " << referent;
     }
@@ -153,7 +166,9 @@ struct Node {
 
   Node(NodeKind kind_): kind(kind_), info(new ParentNode{}) {}
 
-  Node(Token& token_): kind(NodeKind::Token), info(new TokenNode{&token_}) {}
+  Node(Token& token): kind(NodeKind::Token), info(
+    token.state == TokenState::Id ? new IdNode{&token} : new TokenNode{&token}
+  ) {}
 
   auto define(std::string_view id, Node& node) -> bool {
     return dynamic_cast<ParentNode&>(*info.get()).define(id, node);
@@ -194,6 +209,14 @@ struct Node {
 
   auto push_token(Token& token) -> void {
     dynamic_cast<ParentNode&>(*info).push_token(token);
+  }
+
+  auto referent() -> optref<Node> {
+    auto token = this->token();
+    if (token && token->state == TokenState::Id) {
+      return static_cast<IdNode&>(*info).referent;
+    }
+    return nullptr;
   }
 
   auto token() -> optref<Token> {

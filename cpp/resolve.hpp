@@ -57,14 +57,12 @@ struct Context {
       inner.resolve(node);
     } else {
       for (auto& kid: info.kids) {
-        if (kid.token()) {
-          auto& kid_info = static_cast<TokenNode&>(*kid.info);
-          if (kid_info.token->state == TokenState::Id) {
-            // Resolve this!
-            // std::cout << "Resolve: " << kid.token->text << std::endl;
-            kid_info.referent = get_def(kid_info.token->text);
-            // std::cout << "Referent: " << kid.referent << std::endl;
-          }
+        if (kid.referent()) {
+          // Resolve this!
+          auto& kid_info = static_cast<IdNode&>(*kid.info);
+          // std::cout << "Resolve: " << kid.token->text << std::endl;
+          kid_info.referent = get_def(kid_info.token->text);
+          // std::cout << "Referent: " << kid.referent << std::endl;
         } else {
           // Deeper node.
           // Tokens shouldn't have kids, so `else` is okay.
