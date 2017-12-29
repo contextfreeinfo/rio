@@ -1,8 +1,10 @@
 #pragma once
 
 #include "tokenize.hpp"
+#include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <sstream>
 
 namespace rio {
@@ -117,9 +119,13 @@ struct ParentNode: NodeInfo {
 
   auto push_token(Token& token) -> void;
 
-  auto write(std::ostream& stream, std::string_view prefix) const
-    -> void override;
+  auto write(std::ostream& stream, std::string_view prefix) const -> void
+    override;
 
+};
+
+struct DefNode: ParentNode {
+  std::optional<std::function<void(std::ostream& stream, Node& node)>> write;
 };
 
 struct TokenNode: NodeInfo {
@@ -128,8 +134,8 @@ struct TokenNode: NodeInfo {
 
   TokenNode(Token* token_ = nullptr): token(token_) {}
 
-  auto write(std::ostream& stream, std::string_view prefix) const
-    -> void override
+  auto write(std::ostream& stream, std::string_view prefix) const -> void
+    override
   {
     (void)prefix;
     stream << " " << *token;
@@ -143,8 +149,8 @@ struct IdNode: TokenNode {
 
   IdNode(Token* token = nullptr): TokenNode(token), referent(nullptr) {}
 
-  auto write(std::ostream& stream, std::string_view prefix) const
-    -> void override
+  auto write(std::ostream& stream, std::string_view prefix) const -> void
+    override
   {
     TokenNode::write(stream, prefix);
     if (referent) {
@@ -164,7 +170,18 @@ struct Node {
 
   // Functions.
 
-  Node(NodeKind kind_): kind(kind_), info(new ParentNode{}) {}
+  Node(NodeKind kind_): kind(kind_) {
+    switch (kind) {
+      case NodeKind::Def: {
+        info.reset(new DefNode);
+        break;
+      }
+      default: {
+        info.reset(new ParentNode);
+        break;
+      }
+    }
+  }
 
   Node(Token& token): kind(NodeKind::Token), info(
     token.state == TokenState::Id ? new IdNode{&token} : new TokenNode{&token}

@@ -24,13 +24,14 @@ int main(int argc, char** argv) {
     buffer << file.rdbuf();
     // Parse.
     std::string content = buffer.str();
-    rio::Context std_context{rio::std_script.root};
+    auto std_script = rio::std_init_c();
+    rio::Context std_context{std_script.root};
     rio::Script script{content, &std_context};
     if (show_tree) {
       // Write tree.
       if (verbose) {
         std::cout << "--- std ---" << std::endl;
-        std::cout << rio::std_script.root.format() << std::endl;
+        std::cout << std_script.root.format() << std::endl;
         std::cout << std::endl;
       }
       std::cout << "--- main ---" << std::endl;
