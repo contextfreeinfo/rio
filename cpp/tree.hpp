@@ -125,7 +125,7 @@ struct ParentNode: NodeInfo {
 };
 
 struct DefNode: ParentNode {
-  std::optional<std::function<void(std::ostream& stream, Node& node)>> write;
+  std::optional<std::function<void(std::ostream& stream, Node& node)>> generate;
 };
 
 struct StringNode: ParentNode {

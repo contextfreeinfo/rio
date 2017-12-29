@@ -18,7 +18,7 @@ auto std_init_c() -> Script {
   Script script{std_source};
   // std::cout << "print: " << script.root.get_def("print") << std::endl;
   auto& print = static_cast<DefNode&>(*script.root.get_def("print")->info);
-  print.write = [](std::ostream& out, Node& call) {
+  print.generate = [](std::ostream& out, Node& call) {
     //
   };
   return script;
