@@ -1,5 +1,5 @@
 #include "args.hxx"
-#include "std.hpp"
+#include "rio.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     parser, "verbose", "Show additional info", {'v', "verbose"},
   };
   args::Positional<std::string> script_name{
-    parser, "SCRIPT", "The name of the script", args::Options::Required,
+    parser, "MAIN", "The path to the main script", args::Options::Required,
   };
   try {
     parser.ParseCLI(argc, argv);
@@ -26,17 +26,20 @@ int main(int argc, char** argv) {
     std::string content = buffer.str();
     auto std_script = rio::std_init_c();
     rio::Context std_context{std_script.root};
-    rio::Script script{content, &std_context};
+    rio::Script main{content, &std_context};
+    // Diagnostics.
     if (show_tree) {
-      // Write tree.
       if (verbose) {
         std::cout << "--- std ---" << std::endl;
         std::cout << std_script.root.format() << std::endl;
         std::cout << std::endl;
       }
       std::cout << "--- main ---" << std::endl;
-      std::cout << script.root.format() << std::endl;
+      std::cout << main.root.format() << std::endl;
     }
+    // Generate.
+    rio::CGenerator generator{std::cout};
+    generator.generate(main);
   } catch (args::Help&) {
     std::cout << parser;
   } catch (args::Error& error) {

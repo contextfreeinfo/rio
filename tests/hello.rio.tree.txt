@@ -1,12 +1,16 @@
 --- main ---
 Block
   Spaced
-    Token Id[1, 1](print) @ 0x1495670
+    Token Id[1, 1](print) @ 0x7fffbb02c560
     Token HSpace[1, 6]( )
-    String "Hi!"
-      Token StringStart[1, 7](")
-      Token StringText[1, 8](Hi!)
-      Token StringStop[1, 11](")
-  Token VSpace[1, 12](
+    String "I say, "Hi!""
+      Token StringStart[1, 7](')
+      Token StringText[1, 8](I say, "Hi!")
+      Token StringStop[1, 20](')
+  Token VSpace[1, 21](
 )
-  Token Eof[1, 12]()
+  Token Eof[1, 21]()
+int main() {
+  print("I say, \"Hi!\"");
+  return 0;
+}

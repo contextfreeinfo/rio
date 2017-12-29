@@ -17,10 +17,10 @@ def print(line: String): Void = extern
 auto std_init_c() -> Script {
   Script script{std_source};
   // std::cout << "print: " << script.root.get_def("print") << std::endl;
-  auto& print = static_cast<DefNode&>(*script.root.get_def("print")->info);
-  print.generate = [](std::ostream& out, Node& call) {
-    //
-  };
+  // auto& print = static_cast<DefNode&>(*script.root.get_def("print")->info);
+  // print.generate = [](std::ostream& out, Node& call) {
+  //   //
+  // };
   return script;
 }
 

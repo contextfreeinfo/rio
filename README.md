@@ -64,16 +64,10 @@ Time log:
 - 20171227 After variants, back down to 1.08G. Time at about 2.24 seconds.
 - 20171228 After individual allocations/unique_ptr, down to 0.96G.
   Time at about 2.3 seconds.
+- 20171228b After string data, about 2.45 seconds and 0.97G.
+- 20171229 After function names (and generation that breaks for big which has
+  bogus content), still about 2.45s and 0.97G.
 
 Maybe should actually profile sometime.
-
-My concern is that temporary vecs for context of holding parsed kids is wasting
-time by allocating and freeing ram.
-But I don't know if this is a real effect or not.
-Will it go up as I add other binary operator levels?
-If so, I'll need to redo the parsing to avoid collecting on possible waste
-space.
-
-I'm looking into redoing things to return nodes and keep a common buffer for
-intermediate nodes.
-Also looking into Pratt parsers.
+I'm also concerned about the high ram usage for the large file parse.
+I'm not really sure how that breaks down.

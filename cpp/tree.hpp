@@ -124,8 +124,16 @@ struct ParentNode: NodeInfo {
 
 };
 
-struct DefNode: ParentNode {
-  std::optional<std::function<void(std::ostream& stream, Node& node)>> generate;
+struct NamedNode: ParentNode {
+  // TODO Qualified names.
+  std::string name;
+};
+
+struct DefNode: NamedNode {
+  // TODO Mark and sweep to reduce output size for exes.
+  // TODO Do we want custom generators????
+  // std::optional<std::function<void(std::ostream& stream, Node& node)>>
+  //   generate;
 };
 
 struct StringNode: ParentNode {
@@ -190,6 +198,10 @@ struct Node {
         info.reset(new DefNode);
         break;
       }
+      case NodeKind::Let: case NodeKind::Type: {
+        info.reset(new NamedNode);
+        break;
+      }
       case NodeKind::String: {
         info.reset(new StringNode);
         break;
@@ -204,6 +216,11 @@ struct Node {
   Node(Token& token): kind(NodeKind::Token), info(
     token.state == TokenState::Id ? new IdNode{&token} : new TokenNode{&token}
   ) {}
+
+  template<typename Type>
+  auto as() -> Type& {
+    return static_cast<Type&>(*info);
+  }
 
   auto define(std::string_view id, Node& node) -> bool {
     return dynamic_cast<ParentNode&>(*info.get()).define(id, node);

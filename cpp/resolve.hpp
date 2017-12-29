@@ -43,6 +43,8 @@ auto extract(Node& node) -> void {
         auto id = kid.token_at(1);
         if (id) {
           // std::cout << "Found " << id->text << std::endl;
+          auto& kid_info = kid.as<NamedNode>();
+          kid_info.name = id->text;
           if (!node.define(id->text, kid)) {
             // TODO Store vector of errors in nodes and/or script?
             // std::cout << "Extra definition: " << *id << std::endl;
