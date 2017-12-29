@@ -1,14 +1,14 @@
 --- main ---
 Block {
-  Yo: 0x7fffb913f2c8,
-  a: 0x7fffb913eb90,
+  Yo: 0x1ee5ee0,
+  a: 0x1ee5cd0,
 }
   Let
     Token Let[1, 1](let)
     Assign
       Colon
         Token HSpace[1, 4]( )
-        Token Id[1, 5](a) @ 0x7fffb913eb90
+        Token Id[1, 5](a) @ 0x1ee5cd0
         Token Colon[1, 6](:)
         Token HSpace[1, 7]( )
         Token Id[1, 8](Float)
@@ -36,7 +36,7 @@ Block {
 
 )
   Add
-    Token Id[3, 1](a) @ 0x7fffb913eb90
+    Token Id[3, 1](a) @ 0x1ee5cd0
     Token HSpace[3, 2]( )
     Token Plus[3, 3](+)
     Token HSpace[3, 4]( )
@@ -53,9 +53,9 @@ Block {
   Spaced
     Token Id[7, 1](out)
     Token Dot[7, 4](.)
-    Token Id[7, 5](print) @ 0x7fffb9133f48
+    Token Id[7, 5](print) @ 0x1edeaf0
     Token HSpace[7, 10]( )
-    String
+    String "Hello, "world"!"
       Token StringStart[7, 11](")
       Token StringText[7, 12](Hello, )
       Token EscapeStart[7, 19](\)
@@ -83,7 +83,8 @@ Block {
         Spaced
           Token Id[9, 3](say)
           Token HSpace[9, 6]( )
-          String
+          String "Hi! # Should be in the string.
+"
             Token StringStart[9, 7](')
             Token StringText[9, 8](Hi! # Should be in the string.)
         Token VSpace[9, 38](
@@ -100,7 +101,7 @@ Block {
             Token ParenOpen[11, 8](()
             Block
               Spaced
-                String
+                String "do you"
                   Token StringStart[11, 9](")
                   Token StringText[11, 10](do you)
                   Token StringStop[11, 16](")
@@ -193,7 +194,7 @@ Block {
 
 )
   Comma
-    Token Id[27, 1](a) @ 0x7fffb913eb90
+    Token Id[27, 1](a) @ 0x1ee5cd0
     Token Comma[27, 2](,)
     Token HSpace[27, 3]( )
     Assign
@@ -215,7 +216,7 @@ Block {
     Block
       Comma
         Spaced
-          Token Id[28, 2](a) @ 0x7fffb913eb90
+          Token Id[28, 2](a) @ 0x1ee5cd0
           Token HSpace[28, 3]( )
           Token Id[28, 4](b)
         Token Comma[28, 5](,)
@@ -262,7 +263,7 @@ Block {
   Type
     Token Type[32, 1](type)
     Token HSpace[32, 5]( )
-    Token Id[32, 6](Yo) @ 0x7fffb913f2c8
+    Token Id[32, 6](Yo) @ 0x1ee5ee0
   Token VSpace[32, 8](
 
 )
@@ -270,19 +271,19 @@ Block {
     Token Def[34, 1](def)
     Spaced
       Token HSpace[34, 4]( )
-      Token Id[34, 5](a) @ 0x7fffb913eb90
+      Token Id[34, 5](a) @ 0x1ee5cd0
       Colon
         Parens
           Token ParenOpen[34, 6](()
           Token ParenClose[34, 7]())
         Token Colon[34, 8](:)
         Token HSpace[34, 9]( )
-        Token Id[34, 10](String) @ 0x7fffb9133e68
+        Token Id[34, 10](String) @ 0x1edeab0
       Token HSpace[34, 16]( )
       Do
         Token Do[34, 17](do)
         Block {
-          b: 0x7fffb913fa10,
+          b: 0x1ee6640,
         }
           Token VSpace[34, 19](
 )
@@ -291,7 +292,7 @@ Block {
             Token Let[35, 3](let)
             Assign
               Token HSpace[35, 6]( )
-              Token Id[35, 7](b) @ 0x7fffb913fa10
+              Token Id[35, 7](b) @ 0x1ee6640
               Token HSpace[35, 8]( )
               Token Assign[35, 9](=)
               Token HSpace[35, 10]( )
@@ -302,7 +303,7 @@ Block {
           Spaced
             Token Id[36, 3](return)
             Token HSpace[36, 9]( )
-            String
+            String "hi"
               Token StringStart[36, 10](')
               Token StringText[36, 11](hi)
               Token StringStop[36, 13](')

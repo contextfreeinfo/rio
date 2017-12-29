@@ -128,6 +128,20 @@ struct DefNode: ParentNode {
   std::optional<std::function<void(std::ostream& stream, Node& node)>> write;
 };
 
+struct StringNode: ParentNode {
+
+  std::string data;
+
+  auto write(std::ostream& stream, std::string_view prefix) const -> void
+    override
+  {
+    // TODO Escape all over again.
+    stream << " \"" << data << "\"";
+    ParentNode::write(stream, prefix);
+  }
+
+};
+
 struct TokenNode: NodeInfo {
 
   optref<Token> token;
@@ -174,6 +188,10 @@ struct Node {
     switch (kind) {
       case NodeKind::Def: {
         info.reset(new DefNode);
+        break;
+      }
+      case NodeKind::String: {
+        info.reset(new StringNode);
         break;
       }
       default: {

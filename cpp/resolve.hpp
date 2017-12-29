@@ -4,6 +4,32 @@
 
 namespace rio {
 
+auto extract_string_data(StringNode& node) {
+  auto& data = node.data;
+  for (auto& kid: node.kids) {
+    auto token = kid.token();
+    if (token) {
+      switch (token->state) {
+        // TODO Different handling of fancier escapes.
+        case TokenState::Escape:
+        case TokenState::StringText: {
+          data += token->text;
+          break;
+        }
+        default: break;
+      }
+    }
+  }
+  // If unterminated, give newline.
+  if (!node.kids.empty()) {
+    auto& last = node.kids.back();
+    auto token = last.token();
+    if (token && token->state != TokenState::StringStop) {
+      data += "\n";
+    }
+  }
+}
+
 auto extract(Node& node) -> void {
   if (node.kind == NodeKind::Token) return;
   auto& info = static_cast<ParentNode&>(*node.info);
@@ -22,6 +48,10 @@ auto extract(Node& node) -> void {
             // std::cout << "Extra definition: " << *id << std::endl;
           }
         }
+        break;
+      }
+      case NodeKind::String: {
+        extract_string_data(static_cast<StringNode&>(*kid.info));
         break;
       }
       default: break;

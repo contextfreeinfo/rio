@@ -385,6 +385,7 @@ struct Tokenizer {
           default: return TokenState::Comment;
         }
       }
+      // TODO Longer escape sequences.
       case TokenState::Escape: return TokenState::StringText;
       case TokenState::EscapeStart: return TokenState::Escape;
       case TokenState::StringStart: case TokenState::StringText: {
