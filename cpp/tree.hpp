@@ -81,6 +81,20 @@ auto token_to_node_kind(TokenState token_state) -> NodeKind {
 template<typename Item>
 using optref = Item*;
 
+struct GenState {
+
+  std::string_view prefix;
+
+  std::ostream& stream;
+
+  GenState(std::ostream& stream_, std::string_view prefix_ = ""):
+    prefix(prefix_), stream(stream_) {}
+
+  GenState(GenState& state, std::string_view prefix = ""):
+    GenState(state.stream, prefix) {}
+
+};
+
 struct Node;
 
 struct NodeInfo {
@@ -132,8 +146,7 @@ struct NamedNode: ParentNode {
 struct DefNode: NamedNode {
   // TODO Mark and sweep to reduce output size for exes.
   // TODO Do we want custom generators????
-  // std::optional<std::function<void(std::ostream& stream, Node& node)>>
-  //   generate;
+  // std::optional<std::function<void(GenState& stream, Node& node)>> generate;
 };
 
 struct StringNode: ParentNode {

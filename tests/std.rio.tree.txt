@@ -1,8 +1,8 @@
 --- std ---
 Block {
-  String: 0x7fffee7e22f0,
-  Void: 0x7fffee7e2310,
-  print: 0x7fffee7e2330,
+  String: 0x7fffd793a2f0,
+  Void: 0x7fffd793a310,
+  print: 0x7fffd793a330,
 }
   Token VSpace[1, 1](
 
@@ -10,13 +10,13 @@ Block {
   Type
     Token Type[3, 1](type)
     Token HSpace[3, 5]( )
-    Token Id[3, 6](String) @ 0x7fffee7e22f0
+    Token Id[3, 6](String) @ 0x7fffd793a2f0
   Token VSpace[3, 12](
 )
   Type
     Token Type[4, 1](type)
     Token HSpace[4, 5]( )
-    Token Id[4, 6](Void) @ 0x7fffee7e2310
+    Token Id[4, 6](Void) @ 0x7fffd793a310
   Token VSpace[4, 10](
 
 )
@@ -25,7 +25,7 @@ Block {
     Assign
       Spaced
         Token HSpace[6, 4]( )
-        Token Id[6, 5](print) @ 0x7fffee7e2330
+        Token Id[6, 5](print) @ 0x7fffd793a330
         Colon
           Parens
             Token ParenOpen[6, 10](()
@@ -33,11 +33,11 @@ Block {
               Token Id[6, 11](line)
               Token Colon[6, 15](:)
               Token HSpace[6, 16]( )
-              Token Id[6, 17](String) @ 0x7fffee7e22f0
+              Token Id[6, 17](String) @ 0x7fffd793a2f0
             Token ParenClose[6, 23]())
           Token Colon[6, 24](:)
           Token HSpace[6, 25]( )
-          Token Id[6, 26](Void) @ 0x7fffee7e2310
+          Token Id[6, 26](Void) @ 0x7fffd793a310
       Token HSpace[6, 30]( )
       Token Assign[6, 31](=)
       Token HSpace[6, 32]( )
@@ -49,6 +49,26 @@ Block {
 
 --- main ---
 Token Eof[1, 1]()
+
+
+#include <stdio.h>
+
+typedef struct rio_String {
+  size_t size;
+  char* data;
+} rio_String;
+
+rio_String rio_string(size_t size, char* data) {
+  rio_String string = {size, data};
+  return string;
+}
+
+void print(rio_String string) {
+  fwrite(string.data, 1, string.size, stdout);
+  fwrite("\n", 1, 1, stdout);
+  fflush(stdout);
+}
+
 int main() {
   return 0;
 }

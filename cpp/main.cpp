@@ -38,8 +38,9 @@ int main(int argc, char** argv) {
       std::cout << main.root.format() << std::endl;
     }
     // Generate.
-    rio::CGenerator generator{std::cout};
-    generator.generate(main);
+    rio::GenState gen_state{std::cout};
+    rio::CGenerator generator;
+    generator.generate(gen_state, main);
   } catch (args::Help&) {
     std::cout << parser;
   } catch (args::Error& error) {

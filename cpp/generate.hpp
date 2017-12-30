@@ -1,27 +1,20 @@
 #pragma once
 
 #include "resolve.hpp"
+#include "std.hpp"
 #include <stdexcept>
 
 namespace rio {
 
-struct GenState {
-  std::string_view prefix;
-  GenState(std::string_view prefix_ = "  "): prefix(prefix_) {}
-};
-
 struct CGenerator {
 
-  std::ostream& stream;
-
-  CGenerator(std::ostream& stream_): stream(stream_) {}
-
-  auto generate(Script& main) -> void {
-    GenState state;
-    stream << "int main() {" << std::endl;
-    generate_node(state, main.root);
-    stream << state.prefix << "return 0;\n";
-    stream << "}\n";
+  auto generate(GenState& state, Script& main) -> void {
+    GenState indented{state, "  "};
+    state.stream << std_print;
+    state.stream << "int main() {" << std::endl;
+    generate_node(indented, main.root);
+    state.stream << indented.prefix << "return 0;\n";
+    state.stream << "}\n";
   }
 
   private:
@@ -54,7 +47,7 @@ struct CGenerator {
 
   auto generate_spaced(GenState& state, ParentNode& node) -> void {
     Index count = 0;
-    stream << state.prefix;
+    state.stream << state.prefix;
     for (auto& kid: node.kids) {
       if (kid.token() && !kid.token()->important()) continue;
       if (!count) {
@@ -66,36 +59,36 @@ struct CGenerator {
           // TODO This shouldn't be needed once we have prior validation.
           throw std::runtime_error("unresolved call");
         }
-        stream << referent->as<NamedNode>().name << "(";
+        state.stream << referent->as<NamedNode>().name << "(";
       } else {
         // Args.
         if (count > 1) {
-          stream << ", ";
+          state.stream << ", ";
         }
         generate_node(state, kid);
       }
       count += 1;
     }
-    stream << ");\n";
+    state.stream << ");\n";
   }
 
   auto generate_string(GenState& state, StringNode& node) -> void {
     (void)state;
-    stream << "\"";
+    state.stream << "rio_string(" << node.data.size() << ", \"";
     for (auto c: node.data) {
       switch (c) {
         // TODO Other escapes.
         case '\\': case '"': {
-          stream << "\\" << c;
+          state.stream << "\\" << c;
           break;
         }
         default: {
-          stream << c;
+          state.stream << c;
           break;
         }
       }
     }
-    stream << "\"";
+    state.stream << "\")";
   }
 
 };

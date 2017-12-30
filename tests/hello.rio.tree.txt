@@ -1,7 +1,7 @@
 --- main ---
 Block
   Spaced
-    Token Id[1, 1](print) @ 0x7fffbb02c560
+    Token Id[1, 1](print) @ 0x7fffda124560
     Token HSpace[1, 6]( )
     String "I say, "Hi!""
       Token StringStart[1, 7](')
@@ -10,7 +10,27 @@ Block
   Token VSpace[1, 21](
 )
   Token Eof[1, 21]()
+
+
+#include <stdio.h>
+
+typedef struct rio_String {
+  size_t size;
+  char* data;
+} rio_String;
+
+rio_String rio_string(size_t size, char* data) {
+  rio_String string = {size, data};
+  return string;
+}
+
+void print(rio_String string) {
+  fwrite(string.data, 1, string.size, stdout);
+  fwrite("\n", 1, 1, stdout);
+  fflush(stdout);
+}
+
 int main() {
-  print("I say, \"Hi!\"");
+  print(rio_string(12, "I say, \"Hi!\""));
   return 0;
 }
