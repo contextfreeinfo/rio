@@ -1,4 +1,5 @@
 #include "args.hxx"
+#include "picosha2.h"
 #include "rio.hpp"
 #include <fstream>
 #include <iostream>
@@ -36,6 +37,19 @@ int main(int argc, char** argv) {
       }
       std::cout << "--- main ---" << std::endl;
       std::cout << main.root.format() << std::endl;
+    }
+    // Paths.
+    auto script_path = fs::absolute(args::get(script_name));
+    // std::cout << "script: " << script_path << std::endl;
+    auto script_path_hash = picosha2::hash256_hex_string(script_path.string());
+    auto dir = rio::get_cache_dir() / "rio-lang" / "build" / script_path_hash;
+    if (!fs::exists(dir)) {
+      if (!fs::create_directories(dir)) {
+        throw std::runtime_error("failed to create build dir");
+      }
+    }
+    if (verbose) {
+      std::cout << "cache dir: " << dir << std::endl;
     }
     // Generate.
     rio::GenState gen_state{std::cout};
