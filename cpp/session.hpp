@@ -23,9 +23,11 @@ struct Session {
 
   auto run() -> void {
     // Read source.
-    std::ifstream file{main_path};
     std::stringstream buffer;
-    buffer << file.rdbuf();
+    {
+      std::ifstream file{main_path};
+      buffer << file.rdbuf();
+    }
     // Parse.
     std::string content = buffer.str();
     auto std_script = std_init_c();
@@ -51,11 +53,15 @@ struct Session {
         throw std::runtime_error("failed to create build dir");
       }
     }
+    // Output.
+    auto gen_path = build_path / main_path.stem();
+    gen_path += ".c";
     if (verbose) {
-      std::cout << "cache dir: " << build_path << std::endl;
+      std::cout << "out file: " << gen_path << std::endl;
     }
+    std::ofstream out{gen_path};
     // Generate.
-    GenState gen_state{std::cout};
+    GenState gen_state{out};
     CGenerator generator;
     generator.generate(gen_state, main);
   }
