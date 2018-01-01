@@ -45,7 +45,7 @@ struct Session {
     }
     // Paths.
     auto main_abs = fs::absolute(main_path);
-    // std::cout << "script: " << main_path << std::endl;
+    // std::cout << "script: " << main_abs << std::endl;
     auto main_abs_hash = picosha2::hash256_hex_string(main_abs.string());
     build_path = get_cache_dir() / "rio-lang" / "build" / main_abs_hash;
     if (!fs::exists(build_path)) {
