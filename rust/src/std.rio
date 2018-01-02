@@ -1,1 +1,0 @@
-def print(message: string): void = extern
