@@ -5,6 +5,7 @@
 #include "picosha2.h"
 #include "resolve.hpp"
 #include "std.hpp"
+#include "sub.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -22,6 +23,9 @@ struct Session {
   bool verbose = false;
 
   auto run() -> void {
+    auto output = Process{"ls", "-l"}.check_output();
+    std::cout << output << std::endl;
+    return;
     // Read source.
     std::stringstream buffer;
     {
