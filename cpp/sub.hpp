@@ -6,11 +6,187 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <sys/types.h>
 #include <vector>
-#include <unistd.h>
+
+#ifdef _WIN32
+# include <windows.h>
+#else
+# include <sys/types.h>
+# include <unistd.h>
+#endif
 
 namespace rio {
+
+#ifdef _WIN32
+
+struct Pipe {
+
+  HANDLE in;
+  HANDLE out;
+
+  Pipe() {
+    SECURITY_ATTRIBUTES security;
+    security.nLength = sizeof(SECURITY_ATTRIBUTES);
+    security.bInheritHandle = TRUE;
+    security.lpSecurityDescriptor = NULL;
+    if (!CreatePipe(&in, &out, &security, 0)) {
+      throw std::runtime_error("failed to open pipe");
+    }
+  }
+
+  ~Pipe() {
+    // Don't bother to check these for now.
+    // Do they fail on double-close? Can we check if closed?
+    CloseHandle(in);
+    CloseHandle(out);
+  }
+
+};
+
+struct Process {
+
+  std::vector<std::string> args;
+
+  Process(const std::initializer_list<std::string>& args_): args(args_) {}
+
+  auto check_output() -> std::string {
+    // Kick off.
+    start();
+    // Read all into string.
+    std::stringstream result; 
+    constexpr size_t size = 8192;
+    char buffer[size];
+    DWORD count;
+    // std::cout << "Reading ..." << std::endl;
+    while (true) {
+      auto success = ReadFile(out.in, buffer, size, &count, NULL);
+      if (!success) {
+        if (GetLastError() != ERROR_BROKEN_PIPE) {
+          // std::cout << "error: " << GetLastError() << std::endl;
+          throw std::runtime_error("failed to read from pipe");
+        }
+      }
+      if (!count) {
+        break;
+      }
+      // std::cout << "Read: " << std::string_view(buffer, count) << std::endl;
+      result << std::string_view(buffer, count);
+    }
+    // Return result.
+    return result.str();
+  }
+
+  private:
+
+  Pipe in;
+  Pipe out;
+
+  auto make_command_line() -> std::wstring {
+    // Build utf8 command line.
+    std::string command_line;
+    size_t index = 0;
+    for (auto& arg: args) {
+      if (index) {
+        command_line += ' ';
+      }
+      std::string escaped;
+      if (arg.find(' ') == std::string::npos) {
+        // Without spaces, no need for quotes in Windows.
+        // Backslashes are just backslashes.
+        escaped = arg;
+      } else {
+        // Need to wrap in quotes.
+        escaped += '"';
+        // First see if there are quotes or backslashes already present.
+        // This won't matter for file names, but I'm trying to be vaguely
+        // general.
+        if (arg.find_first_of("\\\"") == std::string::npos) {
+          // Nope, so this is easy.
+          escaped += arg;
+        } else {
+          // Yep, so escape by sane rules for now, although maybe should escape
+          // by crazy CommandLineToArgvW rules instead, if that's what most
+          // Windows software uses.
+          for (auto c: arg) {
+            if (c == '\\' || c == '"') {
+              escaped += '\\';
+            }
+            escaped += c;
+          }
+        }
+        escaped += '"';
+      }
+      command_line += escaped;
+      index += 1;
+    }
+    // Convert to utf16.
+    std::wstring command_line_w;
+    // Find utf8 size.
+    // TODO Use std c++ functions?
+    auto size =
+      MultiByteToWideChar(CP_UTF8, 0, command_line.c_str(), -1, NULL, 0);
+    if (!size) {
+      throw std::runtime_error("bad utf16 size");
+    }
+    // Make the size large enough, not just the reserved space.
+    // C++11 and later require implicit null char after string content, so this
+    // is safe.
+    command_line_w.assign(static_cast<size_t>(size), ' ');
+    auto new_size = MultiByteToWideChar(
+      CP_UTF8, 0, command_line.data(), -1, command_line_w.data(), size
+    );
+    if (new_size != size) {
+      throw std::runtime_error("bad utf16 size");
+    }
+    return command_line_w;
+  }
+
+  auto start() -> void {
+    // Prevent wrong inheritance of pipe ends.
+    if (!SetHandleInformation(out.in, HANDLE_FLAG_INHERIT, 0)) {
+      throw std::runtime_error("failed to configure pipe");
+    }
+    if (!SetHandleInformation(in.out, HANDLE_FLAG_INHERIT, 0)) {
+      throw std::runtime_error("failed to configure pipe");
+    }
+    // Start child.
+    start_child();
+    // For the moment, we don't care about writing to the child.
+    // Also close the inherited sides, or our reads won't terminate.
+    in.~Pipe();
+    CloseHandle(out.out);
+  }
+
+  auto start_child() -> void {
+    // Prep startup.
+    STARTUPINFOW startup_info;
+    ZeroMemory(&startup_info, sizeof(STARTUPINFOW));
+    startup_info.cb = sizeof(STARTUPINFOW);
+    startup_info.hStdError = out.out;
+    startup_info.hStdInput = in.in;
+    startup_info.hStdOutput = out.out;
+    startup_info.dwFlags |= STARTF_USESTDHANDLES;
+    // Command line.
+    auto command_line = make_command_line();
+    // Prep to receive process info.
+    PROCESS_INFORMATION process_info;
+    ZeroMemory(&process_info, sizeof(PROCESS_INFORMATION));
+    // Kick it off.
+    auto success = CreateProcessW(
+      NULL, command_line.data(), NULL, NULL, TRUE, 0, NULL, NULL,
+      &startup_info, &process_info
+    );
+    if (!success) {
+      throw std::runtime_error("failed to exec child");
+    }
+    // We're only monitoring by pipes, so we don't need these.
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
+  }
+
+};
+
+#else // Posix
 
 struct Pipe {
 
@@ -73,6 +249,8 @@ struct Process {
       return read_all(this->out.in());
     });
     // Just join together for now.
+    // Better might be to interleave, but I'd have to coordinate across threads
+    // for that or something.
     // TODO Check return code!
     return out_future.get() + err_future.get();
   }
@@ -84,7 +262,7 @@ struct Process {
   Pipe out;
 
   auto start() -> void {
-    pid_t pid = fork();
+    auto pid = fork();
     if (!pid) {
       run_child();
     }
@@ -123,5 +301,7 @@ struct Process {
   }
 
 };
+
+#endif // Posix
 
 }
