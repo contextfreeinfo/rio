@@ -57,19 +57,16 @@ struct Process {
     constexpr size_t size = 8192;
     char buffer[size];
     DWORD count;
-    // std::cout << "Reading ..." << std::endl;
     while (true) {
       auto success = ReadFile(out.in, buffer, size, &count, NULL);
       if (!success) {
         if (GetLastError() != ERROR_BROKEN_PIPE) {
-          // std::cout << "error: " << GetLastError() << std::endl;
           throw std::runtime_error("failed to read from pipe");
         }
       }
       if (!count) {
         break;
       }
-      // std::cout << "Read: " << std::string_view(buffer, count) << std::endl;
       result << std::string_view(buffer, count);
     }
     // Return result.
@@ -152,7 +149,8 @@ struct Process {
     // Start child.
     start_child();
     // For the moment, we don't care about writing to the child.
-    // Also close the inherited sides, or our reads won't terminate.
+    // Also close the inherited sides, or our reads won't terminate. See:
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365782.aspx
     in.~Pipe();
     CloseHandle(out.out);
   }
