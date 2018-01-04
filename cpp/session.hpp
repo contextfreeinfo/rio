@@ -6,6 +6,7 @@
 #include "picosha2.h"
 #include "resolve.hpp"
 #include "std.hpp"
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -22,7 +23,7 @@ struct Session {
 
   bool verbose = false;
 
-  auto run() -> void {
+  auto run() -> int {
     // Read source.
     std::stringstream buffer;
     {
@@ -73,10 +74,11 @@ struct Session {
     // TODO Check by hash (or even date/size?) if already good.
     compile_c(gen_path.string(), verbose);
     // Run it in current dir.
-    Process script_process{(gen_path.parent_path() / gen_path.stem()).string()};
-    // TODO Use current stdin/out/err!
-    auto output = script_process.check_output();
-    std::cout << output << std::endl;
+    auto exe_name = (gen_path.parent_path() / gen_path.stem()).string();
+    // TODO How does this work with winmain vs console on Windows?
+    // TODO Also, probably need something other than system eventually.
+    auto result = std::system(exe_name.data());
+    return result;
   }
 
 };
