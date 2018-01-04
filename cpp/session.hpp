@@ -1,11 +1,11 @@
 #pragma once
 
+#include "cc.hpp"
 #include "dirs.hpp"
 #include "generate.hpp"
 #include "picosha2.h"
 #include "resolve.hpp"
 #include "std.hpp"
-#include "sub.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -23,9 +23,6 @@ struct Session {
   bool verbose = false;
 
   auto run() -> void {
-    auto output = Process{"ls", "-l"}.check_output();
-    std::cout << output << std::endl;
-    return;
     // Read source.
     std::stringstream buffer;
     {
@@ -57,17 +54,22 @@ struct Session {
         throw std::runtime_error("failed to create build dir");
       }
     }
-    // Output.
+    // Output path.
     auto gen_path = build_path / main_path.stem();
     gen_path += ".c";
     if (verbose) {
       std::cout << "out file: " << gen_path << std::endl;
     }
-    std::ofstream out{gen_path};
-    // Generate.
-    GenState gen_state{out};
+    // Produce output, in constrained scope for flushing.
     CGenerator generator;
-    generator.generate(gen_state, main);
+    {
+      std::ofstream out{gen_path};
+      // Generate.
+      GenState gen_state{out};
+      generator.generate(gen_state, main);
+    }
+    // Compile c.
+    compile_c(gen_path.string());
   }
 
 };

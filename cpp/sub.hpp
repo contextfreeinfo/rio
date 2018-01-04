@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dirs.hpp"
 #include <future>
 #include <initializer_list>
 #include <stdexcept>
@@ -46,6 +47,8 @@ struct Pipe {
 struct Process {
 
   std::vector<std::string> args;
+
+  fs::path dir;
 
   Process(const std::initializer_list<std::string>& args_): args(args_) {}
 
@@ -117,25 +120,7 @@ struct Process {
       index += 1;
     }
     // Convert to utf16.
-    std::wstring command_line_w;
-    // Find utf8 size.
-    // TODO Use std c++ functions?
-    auto size =
-      MultiByteToWideChar(CP_UTF8, 0, command_line.c_str(), -1, NULL, 0);
-    if (!size) {
-      throw std::runtime_error("bad utf16 size");
-    }
-    // Make the size large enough, not just the reserved space.
-    // C++11 and later require implicit null char after string content, so this
-    // is safe.
-    command_line_w.assign(static_cast<size_t>(size), ' ');
-    auto new_size = MultiByteToWideChar(
-      CP_UTF8, 0, command_line.data(), -1, command_line_w.data(), size
-    );
-    if (new_size != size) {
-      throw std::runtime_error("bad utf16 size");
-    }
-    return command_line_w;
+    return u8_to_wstr(command_line);
   }
 
   auto start() -> void {
@@ -170,9 +155,10 @@ struct Process {
     PROCESS_INFORMATION process_info;
     ZeroMemory(&process_info, sizeof(PROCESS_INFORMATION));
     // Kick it off.
+    auto wdir = u8_to_wstr(dir.string());
     auto success = CreateProcessW(
-      NULL, command_line.data(), NULL, NULL, TRUE, 0, NULL, NULL,
-      &startup_info, &process_info
+      NULL, command_line.data(), NULL, NULL, TRUE, 0, NULL,
+      wdir.empty() ? NULL : wdir.data(), &startup_info, &process_info
     );
     if (!success) {
       throw std::runtime_error("failed to exec child");
@@ -216,6 +202,8 @@ struct Pipe {
 struct Process {
 
   std::vector<std::string> args;
+
+  fs::path dir;
 
   Process(const std::initializer_list<std::string>& args_): args(args_) {}
 
@@ -286,6 +274,12 @@ struct Process {
     err.~Pipe();
     in.~Pipe();
     out.~Pipe();
+    // Change dir.
+    if (!dir.empty()) {
+      if (chdir(dir.string().data())) {
+        throw std::runtime_error("failed to chdir");
+      }
+    }
     // Prep args for exec.
     std::vector<char*> exec_args;
     for (auto& arg: args) {
