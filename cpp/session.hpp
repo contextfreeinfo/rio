@@ -69,7 +69,7 @@ struct Session {
       generator.generate(gen_state, main);
     }
     // Compile c.
-    compile_c(gen_path.string());
+    compile_c(gen_path.string(), verbose);
   }
 
 };

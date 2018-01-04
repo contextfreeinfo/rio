@@ -7,6 +7,7 @@
 #include <string_view>
 
 #ifdef _WIN32
+// Seems slower: # define WIN32_LEAN_AND_MEAN
 # include <shlobj.h>
 # include <windows.h>
 // #elif __APPLE__ // TODO What for Apple?

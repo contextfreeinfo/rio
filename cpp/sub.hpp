@@ -10,6 +10,7 @@
 #include <vector>
 
 #ifdef _WIN32
+// Seems slower: # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
 #else
 # include <sys/types.h>
@@ -155,7 +156,7 @@ struct Process {
     PROCESS_INFORMATION process_info;
     ZeroMemory(&process_info, sizeof(PROCESS_INFORMATION));
     // Kick it off.
-    auto wdir = u8_to_wstr(dir.string());
+    auto wdir = u8_to_wstr(fs::absolute(dir).string());
     auto success = CreateProcessW(
       NULL, command_line.data(), NULL, NULL, TRUE, 0, NULL,
       wdir.empty() ? NULL : wdir.data(), &startup_info, &process_info

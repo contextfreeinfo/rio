@@ -7,15 +7,15 @@ namespace rio {
 
 #ifdef _WIN32
 
-auto compile_c(const fs::path& path) -> void {
+auto compile_c(const fs::path& path, bool verbose = false) -> void {
   Process compile{
-    // TODO
-    // "cl", path.filename().string(),
-    "cat", path.filename().string(),
+    // TODO Find cl. Set env!
+    "cl", path.filename().string(),
+    // "cat", path.filename().string(),
   };
   compile.dir = path.parent_path();
   // Debug.
-  if (true) {
+  if (verbose) {
     std::cout << compile.dir << ":";
     for (auto& arg: compile.args) {
       std::cout << " " << arg;
@@ -24,19 +24,21 @@ auto compile_c(const fs::path& path) -> void {
   }
   auto output = compile.check_output();
   // Debug.
-  std::cout << output << std::endl;
+  if (verbose) {
+    std::cout << output << std::endl;
+  }
 }
 
 #else
 
-auto compile_c(const fs::path& path) -> void {
+auto compile_c(const fs::path& path, bool verbose = false) -> void {
   Process compile{
     "cc", "-o", path.stem().string(), path.filename().string(),
     // "cat", path.filename().string(),
   };
   compile.dir = path.parent_path();
   // Debug.
-  if (false) {
+  if (verbose) {
     std::cout << compile.dir << ":";
     for (auto& arg: compile.args) {
       std::cout << " " << arg;
@@ -45,7 +47,9 @@ auto compile_c(const fs::path& path) -> void {
   }
   auto output = compile.check_output();
   // Debug.
-  std::cout << output << std::endl;
+  if (verbose) {
+    std::cout << output << std::endl;
+  }
 }
 
 #endif
