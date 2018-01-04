@@ -10,8 +10,27 @@ auto extract_string_data(StringNode& node) {
     auto token = kid.token();
     if (token) {
       switch (token->state) {
-        // TODO Different handling of fancier escapes.
-        case TokenState::Escape:
+        case TokenState::Escape: {
+          if (token->text.size() == 1) {
+            switch (token->text[0]) {
+              case '"': case '\'': case '\\': {
+                data += token->text[0];
+                break;
+              }
+              case 'n': {
+                data += '\n';
+                break;
+              }
+              default: {
+                // TODO What others?
+                break;
+              }
+            }
+          } else {
+            // TODO Fancier escapes.
+          }
+          break;
+        }
         case TokenState::StringText: {
           data += token->text;
           break;

@@ -55,6 +55,7 @@ struct Session {
       }
     }
     // Output path.
+    // TODO Check by hash (or even date/size?) if already good.
     auto gen_path = build_path / main_path.stem();
     gen_path += ".c";
     if (verbose) {
@@ -69,7 +70,13 @@ struct Session {
       generator.generate(gen_state, main);
     }
     // Compile c.
+    // TODO Check by hash (or even date/size?) if already good.
     compile_c(gen_path.string(), verbose);
+    // Run it in current dir.
+    Process script_process{(gen_path.parent_path() / gen_path.stem()).string()};
+    // TODO Use current stdin/out/err!
+    auto output = script_process.check_output();
+    std::cout << output << std::endl;
   }
 
 };

@@ -74,12 +74,18 @@ struct CGenerator {
 
   auto generate_string(GenState& state, StringNode& node) -> void {
     (void)state;
+    // TODO Size last so we can be streaming and counting at the same time?
+    // TODO Or is the size always the size?
     state.stream << "rio_string(" << node.data.size() << ", \"";
     for (auto c: node.data) {
       switch (c) {
         // TODO Other escapes.
         case '\\': case '"': {
           state.stream << "\\" << c;
+          break;
+        }
+        case '\n': {
+          state.stream << "\\n";
           break;
         }
         default: {
