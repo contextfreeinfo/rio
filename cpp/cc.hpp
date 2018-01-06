@@ -2,6 +2,7 @@
 
 #include "dirs.hpp"
 #include "sub.hpp"
+#include <cstdlib>
 
 #ifdef _WIN32
 # include "Setup.Configuration.h"
@@ -44,7 +45,7 @@ struct CoInstance {
   }
 };
 
-auto find_msvc() -> void {
+auto find_msvs() -> std::string {
   // Based on Setup.Configuration.ZeroDeps.VC.cpp.
   // Not using atl since it seems not always available by default (such as for
   // my setup), and I want easy building.
@@ -80,12 +81,14 @@ auto find_msvc() -> void {
       if (instance2->GetInstallationPath(&wpath)) {
         throw std::runtime_error("instance path failed");
       }
-      auto path = wstr_to_u8(wpath.bstr);
-      std::cout << "path: " << path << std::endl;
+      // TODO Check versions using setup_helper to make sure we have the most
+      // TODO recent version, then return that.
+      return wstr_to_u8(wpath.bstr);
     } else {
       break;
     }
   }
+  // Alternative and/or getting started for older msvs versions.
   // HKEY hKey;
   // auto result = RegOpenKeyExW(
   //   HKEY_LOCAL_MACHINE,
@@ -95,7 +98,18 @@ auto find_msvc() -> void {
   // if (result) {
   //   throw std::runtime_error("failed to read registry");
   // }
-  std::cout << "Yo!!" << std::endl;
+  return "";
+}
+
+auto find_msvc() -> void {
+  fs::path msvs{find_msvs()};
+  auto aux = msvs / "VC" / "Auxiliary" / "Build";
+  // std::cout << aux << std::endl;
+  // See "https://superuser.com/questions/321988/".
+  auto arch = Process{"wmic", "os", "get", "osarchitecture"}.check_output();
+  arch = arch.find("64-bit") == std::string::npos ? "32" : "64";
+  auto vcvars_bat = aux / (std::string{"vcvars"} + arch + ".bat");
+  std::cout << vcvars_bat << std::endl;
 }
 
 auto compile_c(const fs::path& path, bool verbose = false) -> void {
