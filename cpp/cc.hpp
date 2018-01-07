@@ -131,8 +131,7 @@ auto find_vcvars_bat() -> fs::path {
   return vcvars_bat;
 }
 
-auto find_msvc_vars(const fs::path& work_dir) -> StringMap {
-  std::stringstream vcvars_text;
+auto make_cc_bat(const fs::path& work_dir) -> fs::path {
   // Going to parent path caches across all builds.
   // TODO Use other info to know if the cache is stale:
   // TODO - msvs path
@@ -142,12 +141,8 @@ auto find_msvc_vars(const fs::path& work_dir) -> StringMap {
   // TODO - hash all the above (after normalizing env sort order)
   // TODO - store vars there
   auto top_dir = work_dir.parent_path().parent_path();
-  auto vcvars_file = top_dir / "vcvars.txt";
-  if (fs::exists(vcvars_file)) {
-    // Already cached. Use it.
-    std::ifstream vcvars_in{vcvars_file};
-    vcvars_text << vcvars_in.rdbuf();
-  } else {
+  auto cc_bat = top_dir / "cc.bat";
+  if (!fs::exists(cc_bat)) {
     // Need to rebuild it.
     auto vcvars_bat = find_vcvars_bat();
     auto finder = top_dir / "finder.bat";
@@ -158,22 +153,18 @@ auto find_msvc_vars(const fs::path& work_dir) -> StringMap {
       finder_out << "set" << std::endl;
     }
     auto vcvars_str = Process{finder.string()}.check_output();
-    // Cache because this is too slow to use every time.
-    std::ofstream vcvars_out{vcvars_file};
-    vcvars_out << vcvars_str;
+    std::stringstream vcvars_text;
     vcvars_text << vcvars_str;
+    // Got the text. Write out a compile script.
+    std::ofstream cc_out{cc_bat};
+    for (std::string line; std::getline(vcvars_text, line);) {
+      auto split = line.find('=');
+      if (split == std::string::npos) continue;
+      cc_out << "@set " << line << std::endl;
+    }
+    cc_out << "@cl %*" << std::endl;
   }
-  // Got the text. Parse it into a map.
-  StringMap vcvars;
-  for (std::string line; std::getline(vcvars_text, line);) {
-    auto split = line.find('=');
-    if (split == std::string::npos) continue;
-    auto name = line.substr(0, split);
-    auto value = line.substr(split + 1);
-    // std::cout << name << ": " << value << std::endl;
-    vcvars[name] = value;
-  }
-  return vcvars;
+  return cc_bat;
 }
 
 auto compile_c(const fs::path& path, bool verbose = false) -> void {
@@ -182,16 +173,17 @@ auto compile_c(const fs::path& path, bool verbose = false) -> void {
   // https://blogs.msdn.microsoft.com/heaths/2017/03/11/vswhere-now-searches-older-versions-of-visual-studio/
   // HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\SxS\VS7
   auto dir = path.parent_path();
-  auto cl = find_cl();
+  // auto cl = find_cl();
+  auto cc = make_cc_bat(dir);
   Process compile{
     // TODO Find cl. Set env!
-    cl.string(), path.filename().string(),
+    cc.string(), path.filename().string(),
     // "cat", path.filename().string(),
     // "cmd", "/c", "echo %SYSTEMROOT%",
     // "echo"
   };
   compile.dir = dir;
-  compile.env = std::move(find_msvc_vars(dir));
+  // compile.env = std::move(find_msvc_vars(dir));
   // Debug.
   if (verbose) {
     std::cout << compile.dir << ":";
