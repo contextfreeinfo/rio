@@ -3,6 +3,9 @@
 #include "dirs.hpp"
 #include "sub.hpp"
 #include <cstdlib>
+#include <fstream>
+#include <map>
+#include <sstream>
 
 #ifdef _WIN32
 # include "Setup.Configuration.h"
@@ -76,7 +79,7 @@ auto find_msvs() -> std::string {
       if (instance->QueryInterface(IID_ISetupInstance2, instance2)) {
         throw std::runtime_error("instance2 failed");
       }
-      std::cout << "Got instance2" << std::endl;
+      // std::cout << "Got instance2" << std::endl;
       CoBstr wpath;
       if (instance2->GetInstallationPath(&wpath)) {
         throw std::runtime_error("instance path failed");
@@ -101,7 +104,7 @@ auto find_msvs() -> std::string {
   return "";
 }
 
-auto find_msvc() -> void {
+auto find_vcvars_bat() -> fs::path {
   fs::path msvs{find_msvs()};
   auto aux = msvs / "VC" / "Auxiliary" / "Build";
   // std::cout << aux << std::endl;
@@ -109,7 +112,55 @@ auto find_msvc() -> void {
   auto arch = Process{"wmic", "os", "get", "osarchitecture"}.check_output();
   arch = arch.find("64-bit") == std::string::npos ? "32" : "64";
   auto vcvars_bat = aux / (std::string{"vcvars"} + arch + ".bat");
-  std::cout << vcvars_bat << std::endl;
+  // std::cout << vcvars_bat << std::endl;
+  return vcvars_bat;
+}
+
+using StringMap = std::map<std::string, std::string>;
+
+auto find_msvc_vars(const fs::path& work_dir) -> StringMap {
+  std::stringstream vcvars_text;
+  // Going to parent path caches across all builds.
+  // TODO Use other info to know if the cache is stale:
+  // TODO - msvs path
+  // TODO - version from VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt
+  // TODO - starting environment
+  // TODO - rio config
+  // TODO - hash all the above (after normalizing env sort order)
+  // TODO - store vars there
+  auto top_dir = work_dir.parent_path().parent_path();
+  auto vcvars_file = top_dir / "vcvars.txt";
+  if (fs::exists(vcvars_file)) {
+    // Already cached. Use it.
+    std::ifstream vcvars_in{vcvars_file};
+    vcvars_text << vcvars_in.rdbuf();
+  } else {
+    // Need to rebuild it.
+    auto vcvars_bat = find_vcvars_bat();
+    auto finder = top_dir / "finder.bat";
+    {
+      std::ofstream finder_out{finder};
+      // TODO What if there are quotes in the vcvars_bat?
+      finder_out << "call \"" << vcvars_bat.string() << '"' << std::endl;
+      finder_out << "set" << std::endl;
+    }
+    auto vcvars_str = Process{finder.string()}.check_output();
+    // Cache because this is too slow to use every time.
+    std::ofstream vcvars_out{vcvars_file};
+    vcvars_out << vcvars_str;
+    vcvars_text << vcvars_str;
+  }
+  // Got the text. Parse it into a map.
+  StringMap vcvars;
+  for (std::string line; std::getline(vcvars_text, line);) {
+    auto split = line.find('=');
+    if (split == std::string::npos) continue;
+    auto name = line.substr(0, split);
+    auto value = line.substr(split + 1);
+    // std::cout << name << ": " << value << std::endl;
+    vcvars[name] = value;
+  }
+  return vcvars;
 }
 
 auto compile_c(const fs::path& path, bool verbose = false) -> void {
@@ -117,13 +168,14 @@ auto compile_c(const fs::path& path, bool verbose = false) -> void {
   // https://blogs.msdn.microsoft.com/vcblog/2017/03/06/finding-the-visual-c-compiler-tools-in-visual-studio-2017/
   // https://blogs.msdn.microsoft.com/heaths/2017/03/11/vswhere-now-searches-older-versions-of-visual-studio/
   // HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\SxS\VS7
-  find_msvc();
+  auto dir = path.parent_path();
+  find_msvc_vars(dir);
   Process compile{
     // TODO Find cl. Set env!
     "cl", path.filename().string(),
     // "cat", path.filename().string(),
   };
-  compile.dir = path.parent_path();
+  compile.dir = dir;
   // Debug.
   if (verbose) {
     std::cout << compile.dir << ":";
