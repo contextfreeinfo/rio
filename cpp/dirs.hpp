@@ -33,7 +33,8 @@ auto u8_to_wstr(std::string_view u8) -> std::wstring {
   // Make the size large enough, not just the reserved space.
   // C++11 and later require implicit null char after string content, so this
   // is safe.
-  wstr.assign(static_cast<size_t>(size), ' ');
+  // Go -1 because they count the null char, which we get following.
+  wstr.assign(static_cast<size_t>(size - 1), ' ');
   auto new_size = MultiByteToWideChar(
     CP_UTF8, 0, u8.data(), -1, wstr.data(), size
   );

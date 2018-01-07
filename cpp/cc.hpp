@@ -104,6 +104,21 @@ auto find_msvs() -> std::string {
   return "";
 }
 
+auto find_cl() -> fs::path {
+  fs::path msvs{find_msvs()};
+  auto aux = msvs / "VC" / "Auxiliary" / "Build";
+  auto version_file = aux / "Microsoft.VCToolsVersion.default.txt";
+  std::ifstream version_in{version_file};
+  std::string version;
+  version_in >> version;
+  std::cout << version << std::endl;
+  auto cl =
+    msvs / "VC" / "Tools" / "MSVC" / version / "bin" /
+    // TODO Look up architecture!
+    "Hostx64" / "x64" / "cl.exe";
+  return cl;
+}
+
 auto find_vcvars_bat() -> fs::path {
   fs::path msvs{find_msvs()};
   auto aux = msvs / "VC" / "Auxiliary" / "Build";
@@ -115,8 +130,6 @@ auto find_vcvars_bat() -> fs::path {
   // std::cout << vcvars_bat << std::endl;
   return vcvars_bat;
 }
-
-using StringMap = std::map<std::string, std::string>;
 
 auto find_msvc_vars(const fs::path& work_dir) -> StringMap {
   std::stringstream vcvars_text;
@@ -169,13 +182,16 @@ auto compile_c(const fs::path& path, bool verbose = false) -> void {
   // https://blogs.msdn.microsoft.com/heaths/2017/03/11/vswhere-now-searches-older-versions-of-visual-studio/
   // HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\SxS\VS7
   auto dir = path.parent_path();
-  find_msvc_vars(dir);
+  auto cl = find_cl();
   Process compile{
     // TODO Find cl. Set env!
-    "cl", path.filename().string(),
+    cl.string(), path.filename().string(),
     // "cat", path.filename().string(),
+    // "cmd", "/c", "echo %SYSTEMROOT%",
+    // "echo"
   };
   compile.dir = dir;
+  compile.env = std::move(find_msvc_vars(dir));
   // Debug.
   if (verbose) {
     std::cout << compile.dir << ":";

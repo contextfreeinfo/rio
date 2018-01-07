@@ -3,6 +3,7 @@
 #include "dirs.hpp"
 #include <future>
 #include <initializer_list>
+#include <map>
 #include <stdexcept>
 #include <sstream>
 #include <string>
@@ -18,6 +19,8 @@
 #endif
 
 namespace rio {
+
+using StringMap = std::map<std::string, std::string>;
 
 #ifdef _WIN32
 
@@ -50,6 +53,8 @@ struct Process {
   std::vector<std::string> args;
 
   fs::path dir;
+
+  StringMap env;
 
   Process(const std::initializer_list<std::string>& args_): args(args_) {}
 
@@ -155,13 +160,43 @@ struct Process {
     // Prep to receive process info.
     PROCESS_INFORMATION process_info;
     ZeroMemory(&process_info, sizeof(PROCESS_INFORMATION));
+    // Environment.
+    std::wstring wenv;
+    if (!env.empty()) {
+      // std::stringstream u8env;
+      for (auto& [name, value]: env) {
+        // u8env << name << "=" << value << '\0';
+        // if (name != "PATH") continue;
+        wenv += u8_to_wstr(name);
+        // std::wcout << wenv << ": " << wenv.size() << std::endl;
+        // for (auto c: wenv) {
+        //   std::wcout << static_cast<int>(c) << std::endl;
+        // }
+        wenv += L'=';
+        wenv += u8_to_wstr(value);
+        // wenv += L"\r\n";
+        wenv += L'\0';
+        // std::cout << name << "=" << value << std::endl;
+      }
+      // wenv = std::move(u8_to_wstr(u8env.str()));
+    }
+    // std::wcout << wenv << std::endl;
+    // std::cout << wenv.size() << std::endl;
+    // wenv += L'\0';
+    // std::wcout << wenv << std::endl;
+    // std::cout << wenv.size() << std::endl;
     // Kick it off.
     auto wdir = u8_to_wstr(fs::absolute(dir).string());
     auto success = CreateProcessW(
-      NULL, command_line.data(), NULL, NULL, TRUE, 0, NULL,
-      wdir.empty() ? NULL : wdir.data(), &startup_info, &process_info
+      NULL, command_line.data(), NULL, NULL, TRUE, CREATE_UNICODE_ENVIRONMENT,
+      wenv.empty() ? NULL : wenv.data(),
+      // NULL,
+      // LR"(PATH=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.12.25827\bin\HostX64\x64)" L"\0",
+      wdir.empty() ? NULL : wdir.data(),
+      &startup_info, &process_info
     );
     if (!success) {
+      std::cout << GetLastError() << std::endl;
       throw std::runtime_error("failed to exec child");
     }
     // We're only monitoring by pipes, so we don't need these.
