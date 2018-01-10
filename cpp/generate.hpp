@@ -11,6 +11,10 @@ struct CGenerator {
   auto generate(GenState& state, Script& main) -> void {
     GenState indented{state, "  "};
     state.stream << std_print;
+    // TODO Need wmain on windows for unicode.
+    // TODO Need winmain on windows for non-console.
+    // TODO Or winmain for all and alloc console on the fly???
+    // TODO Can we have stdout/stderr/stdin without a visible console?
     state.stream << "int main() {" << std::endl;
     generate_node(indented, main.root);
     state.stream << indented.prefix << "return 0;\n";
@@ -37,6 +41,7 @@ struct CGenerator {
       }
       case NodeKind::String: {
         generate_string(state, node.as<StringNode>());
+        break;
       }
       default: {
         // TODO Report skipping.

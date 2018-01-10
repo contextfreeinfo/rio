@@ -1,0 +1,29 @@
+--- main ---
+Block {
+  x: 0x7fffd53a8840,
+}
+  Let
+    Token Let[1, 1](let)
+    Assign
+      Token HSpace[1, 4]( )
+      Token Id[1, 5](x) @ 0x7fffd53a8840
+      Token HSpace[1, 6]( )
+      Token Assign[1, 7](=)
+      Token HSpace[1, 8]( )
+      Number
+        Token Int[1, 9](5)
+  Token VSpace[1, 10](
+)
+  Token Comment[2, 1](# let y = x + 1)
+  Token VSpace[2, 16](
+)
+  Token Comment[3, 1](# let z = y + 1.5 - 2)
+  Token VSpace[3, 22](
+)
+  Spaced
+    Token Id[4, 1](print) @ 0x7fffd53a74b0
+    Token HSpace[4, 6]( )
+    Token Id[4, 7](x) @ 0x7fffd53a8840
+  Token VSpace[4, 8](
+)
+  Token Eof[4, 8]()

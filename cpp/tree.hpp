@@ -149,6 +149,14 @@ struct DefNode: NamedNode {
   // std::optional<std::function<void(GenState& stream, Node& node)>> generate;
 };
 
+struct NumberNode: ParentNode {
+
+  auto is_fraction() -> bool {
+    //
+  }
+
+}
+
 struct StringNode: ParentNode {
 
   std::string data;

@@ -44,6 +44,7 @@ struct Session {
       }
       std::cout << "--- main ---" << std::endl;
       std::cout << main.root.format() << std::endl;
+      return 0;
     }
     // Paths.
     auto main_abs = fs::absolute(main_path);
