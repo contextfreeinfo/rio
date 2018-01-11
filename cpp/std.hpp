@@ -7,10 +7,44 @@ namespace rio {
 // TODO Define externally and include (preparsed?) during build.
 const std::string_view std_source = R"std_source(
 
-type String
+# TODO Static 1D vs ND?
+type Array  # [Item]
+
+# TODO Formally, should be Octets.
+type Bytes: Array  # [U8]
+
+type Float: F64
+
+type I8
+
+type I16
+
+type I32
+
+type I64
+
+type Int
+
+# TODO Slices don't own, and Arrays do? Is that all?
+type Slice  # [Item]
+
+type F32
+
+type F64
+
+type U8
+
+type U16
+
+type U32
+
+type U64
+
+type Unsigned
+
 type Void
 
-def print(line: String): Void = extern
+def print(line: Bytes): Void = extern
 
 )std_source";
 

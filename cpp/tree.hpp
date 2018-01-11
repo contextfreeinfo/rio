@@ -151,11 +151,9 @@ struct DefNode: NamedNode {
 
 struct NumberNode: ParentNode {
 
-  auto is_fraction() -> bool {
-    //
-  }
+  auto is_fraction() -> bool;
 
-}
+};
 
 struct StringNode: ParentNode {
 
@@ -221,6 +219,10 @@ struct Node {
       }
       case NodeKind::Let: case NodeKind::Type: {
         info.reset(new NamedNode);
+        break;
+      }
+      case NodeKind::Number: {
+        info.reset(new NumberNode);
         break;
       }
       case NodeKind::String: {
@@ -313,8 +315,14 @@ struct Node {
 
 };
 
+inline auto NumberNode::is_fraction() -> bool {
+  return find([&](Node& node) {
+    return node.token() && node.token()->state == TokenState::Dot;
+  });
+}
+
 template<typename Select>
-auto ParentNode::find(Select&& select) -> optref<Node> {
+inline auto ParentNode::find(Select&& select) -> optref<Node> {
   for (auto& kid: kids) {
     if (select(kid)) {
       return &kid;
@@ -328,12 +336,12 @@ auto ParentNode::find(Select&& select) -> optref<Node> {
   return nullptr;
 }
 
-auto ParentNode::push_token(Token& token) -> void {
+inline auto ParentNode::push_token(Token& token) -> void {
   push(Node{token});
 }
 
-auto ParentNode::write(std::ostream& stream, std::string_view prefix) const
-  -> void
+inline auto ParentNode::write(std::ostream& stream, std::string_view prefix)
+  const -> void
 {
   // Symbols.
   if (symbols) {

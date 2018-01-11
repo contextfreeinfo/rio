@@ -1,52 +1,195 @@
 --- std ---
 Block {
-  String: 0x7ffff5e88550,
-  Void: 0x7ffff5e88570,
-  print: 0x7ffff5e88590,
+  Array: 0x7fffc6fb2770,
+  Bytes: 0x7fffc6fb27d0,
+  F32: 0x7fffc6fb2930,
+  F64: 0x7fffc6fb2950,
+  Float: 0x7fffc6fb2810,
+  I16: 0x7fffc6fb2850,
+  I32: 0x7fffc6fb2870,
+  I64: 0x7fffc6fb2890,
+  I8: 0x7fffc6fb2830,
+  Int: 0x7fffc6fb28b0,
+  Slice: 0x7fffc6fb28f0,
+  U16: 0x7fffc6fb2990,
+  U32: 0x7fffc6fb29b0,
+  U64: 0x7fffc6fb29d0,
+  U8: 0x7fffc6fb2970,
+  Unsigned: 0x7fffc6fb29f0,
+  Void: 0x7fffc6fb2a10,
+  print: 0x7fffc6fb2a30,
 }
   Token VSpace[1, 1](
 
 )
-  Type
-    Token Type[3, 1](type)
-    Token HSpace[3, 5]( )
-    Token Id[3, 6](String) @ 0x7ffff5e88550
-  Token VSpace[3, 12](
+  Token Comment[3, 1](# TODO Static 1D vs ND?)
+  Token VSpace[3, 24](
 )
   Type
     Token Type[4, 1](type)
     Token HSpace[4, 5]( )
-    Token Id[4, 6](Void) @ 0x7ffff5e88570
-  Token VSpace[4, 10](
+    Token Id[4, 6](Array) @ 0x7fffc6fb2770
+  Token HSpace[4, 11](  )
+  Token Comment[4, 13](# [Item])
+  Token VSpace[4, 21](
+
+)
+  Token Comment[6, 1](# TODO Formally, should be Octets.)
+  Token VSpace[6, 35](
+)
+  Type
+    Token Type[7, 1](type)
+    Colon
+      Token HSpace[7, 5]( )
+      Token Id[7, 6](Bytes) @ 0x7fffc6fb27d0
+      Token Colon[7, 11](:)
+      Token HSpace[7, 12]( )
+      Token Id[7, 13](Array) @ 0x7fffc6fb2770
+  Token HSpace[7, 18](  )
+  Token Comment[7, 20](# [U8])
+  Token VSpace[7, 26](
+
+)
+  Type
+    Token Type[9, 1](type)
+    Colon
+      Token HSpace[9, 5]( )
+      Token Id[9, 6](Float) @ 0x7fffc6fb2810
+      Token Colon[9, 11](:)
+      Token HSpace[9, 12]( )
+      Token Id[9, 13](F64) @ 0x7fffc6fb2950
+  Token VSpace[9, 16](
+
+)
+  Type
+    Token Type[11, 1](type)
+    Token HSpace[11, 5]( )
+    Token Id[11, 6](I8) @ 0x7fffc6fb2830
+  Token VSpace[11, 8](
+
+)
+  Type
+    Token Type[13, 1](type)
+    Token HSpace[13, 5]( )
+    Token Id[13, 6](I16) @ 0x7fffc6fb2850
+  Token VSpace[13, 9](
+
+)
+  Type
+    Token Type[15, 1](type)
+    Token HSpace[15, 5]( )
+    Token Id[15, 6](I32) @ 0x7fffc6fb2870
+  Token VSpace[15, 9](
+
+)
+  Type
+    Token Type[17, 1](type)
+    Token HSpace[17, 5]( )
+    Token Id[17, 6](I64) @ 0x7fffc6fb2890
+  Token VSpace[17, 9](
+
+)
+  Type
+    Token Type[19, 1](type)
+    Token HSpace[19, 5]( )
+    Token Id[19, 6](Int) @ 0x7fffc6fb28b0
+  Token VSpace[19, 9](
+
+)
+  Token Comment[21, 1](# TODO Slices don't own, and Arrays do? Is that all?)
+  Token VSpace[21, 53](
+)
+  Type
+    Token Type[22, 1](type)
+    Token HSpace[22, 5]( )
+    Token Id[22, 6](Slice) @ 0x7fffc6fb28f0
+  Token HSpace[22, 11](  )
+  Token Comment[22, 13](# [Item])
+  Token VSpace[22, 21](
+
+)
+  Type
+    Token Type[24, 1](type)
+    Token HSpace[24, 5]( )
+    Token Id[24, 6](F32) @ 0x7fffc6fb2930
+  Token VSpace[24, 9](
+
+)
+  Type
+    Token Type[26, 1](type)
+    Token HSpace[26, 5]( )
+    Token Id[26, 6](F64) @ 0x7fffc6fb2950
+  Token VSpace[26, 9](
+
+)
+  Type
+    Token Type[28, 1](type)
+    Token HSpace[28, 5]( )
+    Token Id[28, 6](U8) @ 0x7fffc6fb2970
+  Token VSpace[28, 8](
+
+)
+  Type
+    Token Type[30, 1](type)
+    Token HSpace[30, 5]( )
+    Token Id[30, 6](U16) @ 0x7fffc6fb2990
+  Token VSpace[30, 9](
+
+)
+  Type
+    Token Type[32, 1](type)
+    Token HSpace[32, 5]( )
+    Token Id[32, 6](U32) @ 0x7fffc6fb29b0
+  Token VSpace[32, 9](
+
+)
+  Type
+    Token Type[34, 1](type)
+    Token HSpace[34, 5]( )
+    Token Id[34, 6](U64) @ 0x7fffc6fb29d0
+  Token VSpace[34, 9](
+
+)
+  Type
+    Token Type[36, 1](type)
+    Token HSpace[36, 5]( )
+    Token Id[36, 6](Unsigned) @ 0x7fffc6fb29f0
+  Token VSpace[36, 14](
+
+)
+  Type
+    Token Type[38, 1](type)
+    Token HSpace[38, 5]( )
+    Token Id[38, 6](Void) @ 0x7fffc6fb2a10
+  Token VSpace[38, 10](
 
 )
   Def
-    Token Def[6, 1](def)
+    Token Def[40, 1](def)
     Assign
       Spaced
-        Token HSpace[6, 4]( )
-        Token Id[6, 5](print) @ 0x7ffff5e88590
+        Token HSpace[40, 4]( )
+        Token Id[40, 5](print) @ 0x7fffc6fb2a30
         Colon
           Parens
-            Token ParenOpen[6, 10](()
+            Token ParenOpen[40, 10](()
             Colon
-              Token Id[6, 11](line)
-              Token Colon[6, 15](:)
-              Token HSpace[6, 16]( )
-              Token Id[6, 17](String) @ 0x7ffff5e88550
-            Token ParenClose[6, 23]())
-          Token Colon[6, 24](:)
-          Token HSpace[6, 25]( )
-          Token Id[6, 26](Void) @ 0x7ffff5e88570
-      Token HSpace[6, 30]( )
-      Token Assign[6, 31](=)
-      Token HSpace[6, 32]( )
-      Token Extern[6, 33](extern)
-  Token VSpace[6, 39](
+              Token Id[40, 11](line)
+              Token Colon[40, 15](:)
+              Token HSpace[40, 16]( )
+              Token Id[40, 17](Bytes) @ 0x7fffc6fb27d0
+            Token ParenClose[40, 22]())
+          Token Colon[40, 23](:)
+          Token HSpace[40, 24]( )
+          Token Id[40, 25](Void) @ 0x7fffc6fb2a10
+      Token HSpace[40, 29]( )
+      Token Assign[40, 30](=)
+      Token HSpace[40, 31]( )
+      Token Extern[40, 32](extern)
+  Token VSpace[40, 38](
 
 )
-  Token Eof[6, 39]()
+  Token Eof[40, 38]()
 
 --- main ---
 Token Eof[1, 1]()
-out file: "/home/tjpalmer/.cache/rio-lang/build/fd5d32feb2d3562582258990ecfca9b88376957e512d5caac72ad89fc78d2df4/null.c"

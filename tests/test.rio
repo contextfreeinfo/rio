@@ -31,7 +31,7 @@ a, b = c, d e
 
 type Yo
 
-def a(): String do
+def a(): Bytes do
   let b = c
   return 'hi'
 end
