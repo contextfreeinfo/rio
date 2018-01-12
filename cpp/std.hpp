@@ -7,13 +7,35 @@ namespace rio {
 // TODO Define externally and include (preparsed?) during build.
 const std::string_view std_source = R"std_source(
 
-# TODO Static 1D vs ND?
-type Array  # [Item]
+# Always 1D for now.
+# Sometime to support ND later or in separate library.
+type Array[Item]
+# type Array[Item, let size: Int]
+
+type Bool
+# type Bool: Opt[Void] # Could be?
+# let false = Bool::None
+# let true = Bool::Some()
+# enum Bool # Maybe?
+#    False
+#    True
+# end
+
+type Box[Item]
+# type Box[Item]: Array[Item, 1] ???
 
 # TODO Formally, should be Octets.
-type Bytes: Array  # [U8]
+# TODO No force null-terminated here? Just on literals?
+# TODO Slices won't have 
+type Bytes: Array[U8]
 
-type Float: F64
+type Error
+
+type F32
+
+type F64
+
+# type Function[... what here ...?]
 
 type I8
 
@@ -23,14 +45,25 @@ type I32
 
 type I64
 
-type Int
+type ISize
+
+type Opt[Item]
+# enum Opt[Item]
+#   None
+#   Some(Item)
+# end
+
+# TODO Can enum be a library-level thing with vararg or tuple generics?
+# TODO Like variant in c++?
+# TODO Also, allow arbitary sum types of other types?
+# enum Result[Item, E]
+#   Ok(Item)
+#   Err(E)
+# end
 
 # TODO Slices don't own, and Arrays do? Is that all?
-type Slice  # [Item]
-
-type F32
-
-type F64
+# TODO Dimensionality on slices?
+type Slice[Item]
 
 type U8
 
@@ -40,7 +73,7 @@ type U32
 
 type U64
 
-type Unsigned
+type USize
 
 type Void
 

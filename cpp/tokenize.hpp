@@ -10,6 +10,8 @@ using Index = size_t;
 
 enum struct TokenState {
   Assign,
+  BracketClose,
+  BracketOpen,
   Colon,
   Comma,
   Comment,
@@ -46,6 +48,8 @@ enum struct TokenState {
 auto name(TokenState state) -> std::string_view {
   switch (state) {
     case TokenState::Assign: return "Assign";
+    case TokenState::BracketOpen: return "BracketOpen";
+    case TokenState::BracketClose: return "BracketClose";
     case TokenState::Colon: return "Colon";
     case TokenState::Comma: return "Comma";
     case TokenState::Comment: return "Comment";
@@ -359,6 +363,8 @@ struct Tokenizer {
           if (++c == end) return TokenState::Assign;
           break;
         }
+        case '[': return TokenState::BracketOpen;
+        case ']': return TokenState::BracketClose;
         case ':': return TokenState::Colon;
         case ',': return TokenState::Comma;
         case '(': return TokenState::ParenOpen;

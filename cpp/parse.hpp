@@ -217,22 +217,17 @@ struct Parser {
     return number;
   }
 
-  auto parse_parens() -> Node {
+  auto parse_parens(TokenState end_state) -> Node {
     // Build the parent.
     Node node{NodeKind::Parens};
     push_next(node);
     // Go inside.
-    auto content = parse_expr(precedence(TokenState::ParenClose));
+    auto content = parse_expr(precedence(end_state));
     push(node, std::move(content));
     // See where we ended.
-    switch (peek().state) {
-      case TokenState::ParenClose: {
-        push_next(node);
-        break;
-      }
-      // Must be end or eof. Just move on.
-      default: break;
-    }
+    if (peek().state == end_state) {
+      push_next(node);
+    } // Else must be end or eof. Just move on.
     // println!("then at {:?}", self.peek());
     return node;
   }
@@ -255,7 +250,9 @@ struct Parser {
         return Node{NodeKind::None};
       }
       case TokenState::Eof: return Node{peek()};
-      case TokenState::ParenOpen: return parse_parens();
+      case TokenState::BracketOpen:
+        return parse_parens(TokenState::BracketClose);
+      case TokenState::ParenOpen: return parse_parens(TokenState::ParenClose);
       case TokenState::StringStart: return parse_string();
       // TODO Add others that are always infix.
       // TODO Branch on paren, do, string, number, ...
