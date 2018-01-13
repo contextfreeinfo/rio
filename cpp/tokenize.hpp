@@ -9,6 +9,7 @@ namespace rio {
 using Index = size_t;
 
 enum struct TokenState {
+  Arrow,
   Assign,
   BracketClose,
   BracketOpen,
@@ -47,6 +48,7 @@ enum struct TokenState {
 
 auto name(TokenState state) -> std::string_view {
   switch (state) {
+    case TokenState::Arrow: return "Arrow";
     case TokenState::Assign: return "Assign";
     case TokenState::BracketOpen: return "BracketOpen";
     case TokenState::BracketClose: return "BracketClose";
@@ -110,6 +112,7 @@ auto important(TokenState state) -> bool {
 
 auto infix(TokenState state) -> bool {
   switch (state) {
+    case TokenState::Arrow:
     case TokenState::Assign:
     case TokenState::Colon:
     case TokenState::Comma:
@@ -139,6 +142,7 @@ auto precedence(TokenState state) -> int {
     case TokenState::Comma: return 20;
     case TokenState::Assign: return 22;
     case TokenState::HSpace: return 25;
+    case TokenState::Arrow: return 27;
     case TokenState::Colon: return 30;
     case TokenState::Plus: return 40;
     case TokenState::Times: return 50;
@@ -371,6 +375,12 @@ struct Tokenizer {
         case ')': return TokenState::ParenClose;
         case '+': case '-': {
           if (++c == end) return TokenState::Plus;
+          switch (*c) {
+            case '>': {
+              if (++c == end) return TokenState::Arrow;
+              break;
+            }
+          }
           break;
         }
         case ';': return TokenState::Semi;
@@ -384,7 +394,8 @@ struct Tokenizer {
   }
 
   auto find_new_state(char c) -> TokenState {
-    switch (state) {
+    auto state = this->state;
+    top: switch (state) {
       case TokenState::Comment: {
         switch (c) {
           case '\n': case '\r': return TokenState::VSpace;
@@ -394,6 +405,21 @@ struct Tokenizer {
       // TODO Longer escape sequences.
       case TokenState::Escape: return TokenState::StringText;
       case TokenState::EscapeStart: return TokenState::Escape;
+      case TokenState::Op2: {
+        switch (c) {
+          case '+': case '-': case '*': case '/': case '=':
+          case '>': case '<': {
+            return TokenState::Op2;
+          }
+          default: {
+            // We've left op land, so figure out where we are from scratch.
+            // Perhaps making it a loop might seem better, but without labeled
+            // loops, people could get lost here.
+            state = TokenState::Start;
+            goto top;
+          }
+        }
+      }
       case TokenState::StringStart: case TokenState::StringText: {
         switch (c) {
           case '\\': return TokenState::EscapeStart;
@@ -417,10 +443,12 @@ struct Tokenizer {
           case '_': return TokenState::Id;
           case ',': case ';': case ':': case '(': case ')': case '[': case ']':
           case '{': case '}': {
+            // These need to be separate tokens even when side-by-side.
             return TokenState::Op1;
           }
-          case '+': case '-': case '*': case '/': case '=': {
-            // TODO Deal with compound operators on these.
+          case '+': case '-': case '*': case '/': case '=':
+          case '>': case '<': {
+            // These can compound.
             return TokenState::Op2;
           }
           case '\'': case '"': {
@@ -431,7 +459,7 @@ struct Tokenizer {
           case '\n': case '\r': return TokenState::VSpace;
           default: {
             if (c >= '0' && c <= '9') {
-              switch (this->state) {
+              switch (state) {
                 case TokenState::Dot: return TokenState::Fraction;
                 case TokenState::Fraction: return TokenState::Fraction;
                 case TokenState::Id: return TokenState::Id;

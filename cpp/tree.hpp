@@ -11,6 +11,7 @@ namespace rio {
 
 enum struct NodeKind {
   Add,
+  Arrow,
   Assign,
   Block,
   Colon,
@@ -35,6 +36,7 @@ enum struct NodeKind {
 auto name(NodeKind kind) -> std::string_view {
   switch (kind) {
     case NodeKind::Add: return "Add";
+    case NodeKind::Arrow: return "Arrow";
     case NodeKind::Assign: return "Assign";
     case NodeKind::Block: return "Block";
     case NodeKind::Colon: return "Colon";
@@ -65,6 +67,7 @@ auto operator<<(std::ostream& stream, NodeKind kind) -> std::ostream& {
 auto token_to_node_kind(TokenState token_state) -> NodeKind {
   switch (token_state) {
     case TokenState::Assign: return NodeKind::Assign;
+    case TokenState::Arrow: return NodeKind::Arrow;
     case TokenState::Colon: return NodeKind::Colon;
     case TokenState::Comma: return NodeKind::Comma;
     case TokenState::Def: return NodeKind::Def;

@@ -56,7 +56,7 @@ type Opt[Item]
 # TODO Can enum be a library-level thing with vararg or tuple generics?
 # TODO Like variant in c++?
 # TODO Also, allow arbitary sum types of other types?
-# enum Result[Item, E]
+# enum Result[Item, E: Error]
 #   Ok(Item)
 #   Err(E)
 # end
@@ -77,7 +77,7 @@ type USize
 
 type Void
 
-def print(line: Bytes): Void = extern
+def print(line: Bytes) -> Void = extern
 
 )std_source";
 
