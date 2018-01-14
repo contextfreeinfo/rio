@@ -16,18 +16,24 @@ Just some quick plan notes for now:
 
 ## Running
 
-This command parses the test files to rebuild the cached AST output, for manual
-comparison:
+Build using standard CMake methods.
+
+You can then run hello world using the following, presuming you built in
+`build`:
 
 ```
-cargo run --bin testup
+build/cpp/rio tests/hello.rio
 ```
 
-Once I've stabilized AST, it will make more sense to have unit tests that
-actually check the output.
+**Nothing more than hello runs.** *I recommend against even trying.* Maybe later.
 
-You can also pretend to compile and run, but it's not real yet.
-So I won't bother to give that run here.
+You can also output parse trees (of any scripts) like so:
+
+```
+build/cpp/rio --tree tests/hello.rio
+```
+
+There's also a `--verbose` switch for fun.
 
 
 ## Performance

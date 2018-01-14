@@ -124,6 +124,7 @@ auto find_vcvars_bat() -> fs::path {
   auto aux = msvs / "VC" / "Auxiliary" / "Build";
   // std::cout << aux << std::endl;
   // See "https://superuser.com/questions/321988/".
+  // TODO Just check for existence of two program files dirs?
   auto arch = Process{"wmic", "os", "get", "osarchitecture"}.check_output();
   arch = arch.find("64-bit") == std::string::npos ? "32" : "64";
   auto vcvars_bat = aux / (std::string{"vcvars"} + arch + ".bat");
@@ -133,6 +134,7 @@ auto find_vcvars_bat() -> fs::path {
 
 auto make_cc_bat(const fs::path& work_dir) -> fs::path {
   // Going to parent path caches across all builds.
+  // TODO Put under {rio-lang}/cc/{hash}.bat
   // TODO Use other info to know if the cache is stale:
   // TODO - msvs path
   // TODO - version from VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt
@@ -176,8 +178,8 @@ auto compile_c(const fs::path& path, bool verbose = false) -> void {
   // auto cl = find_cl();
   auto cc = make_cc_bat(dir);
   Process compile{
-    // TODO Find cl. Set env!
     cc.string(), path.filename().string(),
+    // "cl", path.filename().string(),
     // "cat", path.filename().string(),
     // "cmd", "/c", "echo %SYSTEMROOT%",
     // "echo"
