@@ -4,6 +4,10 @@
 
 int main(int argc, char** argv) {
   args::ArgumentParser parser{"Rio language compiler and executor."};
+  // TODO Instead some kind of mode thing?
+  args::Flag generate{
+    parser, "generate", "Generate without building", {"generate"},
+  };
   args::HelpFlag help{parser, "help", "Show help", {'h', "help"}};
   args::Flag show_tree{parser, "tree", "Show parse trees", {"tree"}};
   args::Flag verbose{
@@ -19,6 +23,7 @@ int main(int argc, char** argv) {
   try {
     parser.ParseCLI(argc, argv);
     rio::Session session;
+    session.generate_only = args::get(generate);
     session.main_path = args::get(script_name);
     session.show_tree = args::get(show_tree);
     session.verbose = args::get(verbose);

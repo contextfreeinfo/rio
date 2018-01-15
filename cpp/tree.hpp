@@ -100,10 +100,24 @@ struct GenState {
 
 struct Node;
 
+struct NodeFormatContext {
+
+  std::string_view prefix;
+  const std::map<Node*, Index>& symbol_indices;
+
+  NodeFormatContext(
+    const std::map<Node*, Index>& symbol_indices_, std::string_view prefix_
+  ): prefix(prefix_), symbol_indices(symbol_indices_) {}
+
+  NodeFormatContext(const NodeFormatContext& parent, std::string_view prefix_):
+    NodeFormatContext(parent.symbol_indices, prefix_) {}
+
+};
+
 struct NodeInfo {
   virtual ~NodeInfo() {}
-  virtual auto write(std::ostream& stream, std::string_view prefix) const
-    -> void = 0;
+  virtual auto write(std::ostream& stream, const NodeFormatContext& context)
+    const -> void = 0;
 };
 
 struct ParentNode: NodeInfo {
@@ -136,8 +150,8 @@ struct ParentNode: NodeInfo {
 
   auto push_token(Token& token) -> void;
 
-  auto write(std::ostream& stream, std::string_view prefix) const -> void
-    override;
+  auto write(std::ostream& stream, const NodeFormatContext& context) const
+    -> void override;
 
 };
 
@@ -162,12 +176,12 @@ struct StringNode: ParentNode {
 
   std::string data;
 
-  auto write(std::ostream& stream, std::string_view prefix) const -> void
-    override
+  auto write(std::ostream& stream, const NodeFormatContext& context) const
+    -> void override
   {
     // TODO Escape all over again.
     stream << " \"" << data << "\"";
-    ParentNode::write(stream, prefix);
+    ParentNode::write(stream, context);
   }
 
 };
@@ -178,10 +192,10 @@ struct TokenNode: NodeInfo {
 
   TokenNode(Token* token_ = nullptr): token(token_) {}
 
-  auto write(std::ostream& stream, std::string_view prefix) const -> void
-    override
+  auto write(std::ostream& stream, const NodeFormatContext& context) const
+    -> void override
   {
-    (void)prefix;
+    (void)&context;
     stream << " " << *token;
   }
 
@@ -193,12 +207,12 @@ struct IdNode: TokenNode {
 
   IdNode(Token* token = nullptr): TokenNode(token), referent(nullptr) {}
 
-  auto write(std::ostream& stream, std::string_view prefix) const -> void
-    override
+  auto write(std::ostream& stream, const NodeFormatContext& context) const
+    -> void override
   {
-    TokenNode::write(stream, prefix);
+    TokenNode::write(stream, context);
     if (referent) {
-      stream << " @ " << referent;
+      stream << " @ " << context.symbol_indices.at(referent);
     }
   }
 
@@ -263,17 +277,20 @@ struct Node {
   }
 
   // TODO Change this to writing to an ostream!
-  auto format() const -> std::string {
-    return format_at("");
+  auto format(const std::map<Node*, Index>& symbol_indices) const
+    -> std::string
+  {
+    NodeFormatContext context{symbol_indices, ""};
+    return format_at(context);
   }
 
-  auto format_at(std::string_view prefix) const -> std::string {
+  auto format_at(const NodeFormatContext& context) const -> std::string {
     // This wasn't just streaming because I had trouble working that out in the
     // Rust version.
     // TODO Go back to streams.
     std::stringstream buffer;
-    buffer << prefix << kind;
-    info->write(buffer, prefix);
+    buffer << context.prefix << kind;
+    info->write(buffer, context);
     return buffer.str();
   }
 
@@ -343,20 +360,22 @@ inline auto ParentNode::push_token(Token& token) -> void {
   push(Node{token});
 }
 
-inline auto ParentNode::write(std::ostream& stream, std::string_view prefix)
-  const -> void
-{
+inline auto ParentNode::write(
+  std::ostream& stream, const NodeFormatContext& context
+) const -> void {
   // Symbols.
   if (symbols) {
     stream << " {\n";
     for (auto& [key, ref]: *symbols) {
-      stream << prefix << "  " << key << ": " << ref << ",\n";
+      auto index = context.symbol_indices.at(ref);
+      stream << context.prefix << "  " << key << ": " << index << ",\n";
     }
-    stream << prefix << "}";
+    stream << context.prefix << "}";
   }
   // Kids.
-  std::string deeper{prefix};
-  deeper += "  ";
+  std::string deeper_prefix{context.prefix};
+  deeper_prefix += "  ";
+  NodeFormatContext deeper{context, deeper_prefix};
   for (auto& kid: kids) {
     stream << "\n" << kid.format_at(deeper);
   }

@@ -49,7 +49,8 @@ auto extract_string_data(StringNode& node) {
   }
 }
 
-auto extract(Node& node) -> void {
+template<typename Tracker>
+auto extract(Node& node, Tracker&& tracker) -> void {
   if (node.kind == NodeKind::Token) return;
   auto& info = static_cast<ParentNode&>(*node.info);
   for (auto& kid: info.kids) {
@@ -68,6 +69,7 @@ auto extract(Node& node) -> void {
             // TODO Store vector of errors in nodes and/or script?
             // std::cout << "Extra definition: " << *id << std::endl;
           }
+          tracker(kid);
         }
         break;
       }
@@ -78,7 +80,7 @@ auto extract(Node& node) -> void {
       default: break;
     }
     // Recurse down.
-    extract(kid);
+    extract(kid, tracker);
   }
 }
 
@@ -132,6 +134,7 @@ struct Script {
 
   // Fields.
 
+  std::vector<Node*> defs;
   Node root;
 
   // Functions.
@@ -146,7 +149,10 @@ struct Script {
     rio::Parser parser{tokens};
     root = parser.parse();
     // Extract.
-    extract(root);
+    extract(root, [this](Node& def) {
+      defs.push_back(&def);
+    });
+    // std::cout << "Found defs: " << defs.size() << std::endl;
     // Resolve.
     Context context{root, env};
     context.resolve(root);

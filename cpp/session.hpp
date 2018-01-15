@@ -15,6 +15,8 @@ namespace rio {
 
 struct Session {
 
+  bool generate_only = false;
+
   fs::path build_path;
 
   fs::path main_path;
@@ -34,16 +36,24 @@ struct Session {
     std::string content = buffer.str();
     auto std_script = std_init_c();
     Context std_context{std_script.root};
+    // TODO Include session here for counting defined ids.
     Script main{content, &std_context};
     // Diagnostics.
     if (show_tree) {
+      std::map<Node*, Index> def_indices;
+      Index def_index = 0;
+      for (auto script: std::vector<Script*>{&std_script, &main}) {
+        for (auto def: script->defs) {
+          def_indices[def] = def_index++;
+        }
+      }
       if (verbose) {
         std::cout << "--- std ---" << std::endl;
-        std::cout << std_script.root.format() << std::endl;
+        std::cout << std_script.root.format(def_indices) << std::endl;
         std::cout << std::endl;
       }
       std::cout << "--- main ---" << std::endl;
-      std::cout << main.root.format() << std::endl;
+      std::cout << main.root.format(def_indices) << std::endl;
       return 0;
     }
     // Paths.
@@ -70,6 +80,10 @@ struct Session {
       // Generate.
       GenState gen_state{out};
       generator.generate(gen_state, main);
+    }
+    if (generate_only) {
+      // std::cout << "generate done; ending" << std::endl;
+      return 0;
     }
     // Compile c.
     // TODO Check by hash (or even date/size?) if already good.

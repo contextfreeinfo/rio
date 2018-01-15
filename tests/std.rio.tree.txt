@@ -1,26 +1,26 @@
 --- std ---
 Block {
-  Array: 0x7fffe9041d80,
-  Bool: 0x7fffe9041dc0,
-  Box: 0x7fffe9041ec0,
-  Bytes: 0x7fffe9041f60,
-  Error: 0x7fffe9041f80,
-  F32: 0x7fffe9041fa0,
-  F64: 0x7fffe9041fc0,
-  I16: 0x7fffe9042020,
-  I32: 0x7fffe9042040,
-  I64: 0x7fffe9042060,
-  I8: 0x7fffe9042000,
-  ISize: 0x7fffe9042080,
-  Opt: 0x7fffe90420a0,
-  Slice: 0x7fffe9042260,
-  U16: 0x7fffe90422a0,
-  U32: 0x7fffe90422c0,
-  U64: 0x7fffe90422e0,
-  U8: 0x7fffe9042280,
-  USize: 0x7fffe9042300,
-  Void: 0x7fffe9042320,
-  print: 0x7fffe9042340,
+  Array: 0,
+  Bool: 1,
+  Box: 2,
+  Bytes: 3,
+  Error: 4,
+  F32: 5,
+  F64: 6,
+  I16: 8,
+  I32: 9,
+  I64: 10,
+  I8: 7,
+  ISize: 11,
+  Opt: 12,
+  Slice: 13,
+  U16: 15,
+  U32: 16,
+  U64: 17,
+  U8: 14,
+  USize: 18,
+  Void: 19,
+  print: 20,
 }
   Token VSpace[1, 1](
 
@@ -35,7 +35,7 @@ Block {
     Token Type[5, 1](type)
     Spaced
       Token HSpace[5, 5]( )
-      Token Id[5, 6](Array) @ 0x7fffe9041d80
+      Token Id[5, 6](Array) @ 0
       Parens
         Token BracketOpen[5, 11]([)
         Token Id[5, 12](Item)
@@ -49,7 +49,7 @@ Block {
   Type
     Token Type[8, 1](type)
     Token HSpace[8, 5]( )
-    Token Id[8, 6](Bool) @ 0x7fffe9041dc0
+    Token Id[8, 6](Bool) @ 1
   Token VSpace[8, 10](
 )
   Token Comment[9, 1](# type Bool: Opt[Void] # Could be?)
@@ -78,7 +78,7 @@ Block {
     Token Type[17, 1](type)
     Spaced
       Token HSpace[17, 5]( )
-      Token Id[17, 6](Box) @ 0x7fffe9041ec0
+      Token Id[17, 6](Box) @ 2
       Parens
         Token BracketOpen[17, 9]([)
         Token Id[17, 10](Item)
@@ -103,13 +103,13 @@ Block {
     Spaced
       Colon
         Token HSpace[23, 5]( )
-        Token Id[23, 6](Bytes) @ 0x7fffe9041f60
+        Token Id[23, 6](Bytes) @ 3
         Token Colon[23, 11](:)
         Token HSpace[23, 12]( )
-        Token Id[23, 13](Array) @ 0x7fffe9041d80
+        Token Id[23, 13](Array) @ 0
       Parens
         Token BracketOpen[23, 18]([)
-        Token Id[23, 19](U8) @ 0x7fffe9042280
+        Token Id[23, 19](U8) @ 14
         Token BracketClose[23, 21](])
   Token VSpace[23, 22](
 
@@ -117,21 +117,21 @@ Block {
   Type
     Token Type[25, 1](type)
     Token HSpace[25, 5]( )
-    Token Id[25, 6](Error) @ 0x7fffe9041f80
+    Token Id[25, 6](Error) @ 4
   Token VSpace[25, 11](
 
 )
   Type
     Token Type[27, 1](type)
     Token HSpace[27, 5]( )
-    Token Id[27, 6](F32) @ 0x7fffe9041fa0
+    Token Id[27, 6](F32) @ 5
   Token VSpace[27, 9](
 
 )
   Type
     Token Type[29, 1](type)
     Token HSpace[29, 5]( )
-    Token Id[29, 6](F64) @ 0x7fffe9041fc0
+    Token Id[29, 6](F64) @ 6
   Token VSpace[29, 9](
 
 )
@@ -142,35 +142,35 @@ Block {
   Type
     Token Type[33, 1](type)
     Token HSpace[33, 5]( )
-    Token Id[33, 6](I8) @ 0x7fffe9042000
+    Token Id[33, 6](I8) @ 7
   Token VSpace[33, 8](
 
 )
   Type
     Token Type[35, 1](type)
     Token HSpace[35, 5]( )
-    Token Id[35, 6](I16) @ 0x7fffe9042020
+    Token Id[35, 6](I16) @ 8
   Token VSpace[35, 9](
 
 )
   Type
     Token Type[37, 1](type)
     Token HSpace[37, 5]( )
-    Token Id[37, 6](I32) @ 0x7fffe9042040
+    Token Id[37, 6](I32) @ 9
   Token VSpace[37, 9](
 
 )
   Type
     Token Type[39, 1](type)
     Token HSpace[39, 5]( )
-    Token Id[39, 6](I64) @ 0x7fffe9042060
+    Token Id[39, 6](I64) @ 10
   Token VSpace[39, 9](
 
 )
   Type
     Token Type[41, 1](type)
     Token HSpace[41, 5]( )
-    Token Id[41, 6](ISize) @ 0x7fffe9042080
+    Token Id[41, 6](ISize) @ 11
   Token VSpace[41, 11](
 
 )
@@ -178,7 +178,7 @@ Block {
     Token Type[43, 1](type)
     Spaced
       Token HSpace[43, 5]( )
-      Token Id[43, 6](Opt) @ 0x7fffe90420a0
+      Token Id[43, 6](Opt) @ 12
       Parens
         Token BracketOpen[43, 9]([)
         Token Id[43, 10](Item)
@@ -230,7 +230,7 @@ Block {
     Token Type[59, 1](type)
     Spaced
       Token HSpace[59, 5]( )
-      Token Id[59, 6](Slice) @ 0x7fffe9042260
+      Token Id[59, 6](Slice) @ 13
       Parens
         Token BracketOpen[59, 11]([)
         Token Id[59, 12](Item)
@@ -241,42 +241,42 @@ Block {
   Type
     Token Type[61, 1](type)
     Token HSpace[61, 5]( )
-    Token Id[61, 6](U8) @ 0x7fffe9042280
+    Token Id[61, 6](U8) @ 14
   Token VSpace[61, 8](
 
 )
   Type
     Token Type[63, 1](type)
     Token HSpace[63, 5]( )
-    Token Id[63, 6](U16) @ 0x7fffe90422a0
+    Token Id[63, 6](U16) @ 15
   Token VSpace[63, 9](
 
 )
   Type
     Token Type[65, 1](type)
     Token HSpace[65, 5]( )
-    Token Id[65, 6](U32) @ 0x7fffe90422c0
+    Token Id[65, 6](U32) @ 16
   Token VSpace[65, 9](
 
 )
   Type
     Token Type[67, 1](type)
     Token HSpace[67, 5]( )
-    Token Id[67, 6](U64) @ 0x7fffe90422e0
+    Token Id[67, 6](U64) @ 17
   Token VSpace[67, 9](
 
 )
   Type
     Token Type[69, 1](type)
     Token HSpace[69, 5]( )
-    Token Id[69, 6](USize) @ 0x7fffe9042300
+    Token Id[69, 6](USize) @ 18
   Token VSpace[69, 11](
 
 )
   Type
     Token Type[71, 1](type)
     Token HSpace[71, 5]( )
-    Token Id[71, 6](Void) @ 0x7fffe9042320
+    Token Id[71, 6](Void) @ 19
   Token VSpace[71, 10](
 
 )
@@ -285,7 +285,7 @@ Block {
     Assign
       Spaced
         Token HSpace[73, 4]( )
-        Token Id[73, 5](print) @ 0x7fffe9042340
+        Token Id[73, 5](print) @ 20
         Arrow
           Parens
             Token ParenOpen[73, 10](()
@@ -293,12 +293,12 @@ Block {
               Token Id[73, 11](line)
               Token Colon[73, 15](:)
               Token HSpace[73, 16]( )
-              Token Id[73, 17](Bytes) @ 0x7fffe9041f60
+              Token Id[73, 17](Bytes) @ 3
             Token ParenClose[73, 22]())
           Token HSpace[73, 23]( )
           Token Arrow[73, 24](->)
           Token HSpace[73, 26]( )
-          Token Id[73, 27](Void) @ 0x7fffe9042320
+          Token Id[73, 27](Void) @ 19
       Token HSpace[73, 31]( )
       Token Assign[73, 32](=)
       Token HSpace[73, 33]( )

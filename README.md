@@ -67,6 +67,9 @@ Time log:
 - 20171228b After string data, about 2.45 seconds and 0.97G.
 - 20171229 After function names (and generation that breaks for big which has
   bogus content), still about 2.45s and 0.97G.
+- 20170115 Could be different state that slower right now, but about 3s and
+  still 0.97G. I don't think anything meaningful for speed has changed.
+  The high memory use still bothers me.
 
 Maybe should actually profile sometime.
 I'm also concerned about the high ram usage for the large file parse.

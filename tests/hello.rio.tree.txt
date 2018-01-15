@@ -1,7 +1,7 @@
 --- main ---
 Block
   Spaced
-    Token Id[1, 1](print) @ 0x7fffd9158430
+    Token Id[1, 1](print) @ 20
     Token HSpace[1, 6]( )
     String "I say, "Hi!""
       Token StringStart[1, 7](')
