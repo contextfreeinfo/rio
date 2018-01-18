@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tokenize.hpp"
+#include "type.hpp"
 #include <functional>
 #include <map>
 #include <memory>

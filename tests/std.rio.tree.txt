@@ -7,20 +7,22 @@ Block {
   Error: 4,
   F32: 5,
   F64: 6,
-  I16: 8,
-  I32: 9,
-  I64: 10,
-  I8: 7,
-  ISize: 11,
-  Opt: 12,
-  Slice: 13,
-  U16: 15,
-  U32: 16,
-  U64: 17,
-  U8: 14,
-  USize: 18,
-  Void: 19,
-  print: 20,
+  Float: 7,
+  I16: 9,
+  I32: 10,
+  I64: 11,
+  I8: 8,
+  ISize: 13,
+  Int: 12,
+  Opt: 14,
+  Slice: 15,
+  U16: 17,
+  U32: 18,
+  U64: 19,
+  U8: 16,
+  USize: 20,
+  Void: 21,
+  print: 22,
 }
   Token VSpace[1, 1](
 
@@ -109,7 +111,7 @@ Block {
         Token Id[23, 13](Array) @ 0
       Parens
         Token BracketOpen[23, 18]([)
-        Token Id[23, 19](U8) @ 14
+        Token Id[23, 19](U8) @ 16
         Token BracketClose[23, 21](])
   Token VSpace[23, 22](
 
@@ -135,178 +137,206 @@ Block {
   Token VSpace[29, 9](
 
 )
-  Token Comment[31, 1](# type Function[... what here ...?])
-  Token VSpace[31, 36](
+  Token Comment[31, 1](# Rust default float type.)
+  Token VSpace[31, 27](
+)
+  Type
+    Token Type[32, 1](type)
+    Colon
+      Token HSpace[32, 5]( )
+      Token Id[32, 6](Float) @ 7
+      Token Colon[32, 11](:)
+      Token HSpace[32, 12]( )
+      Token Id[32, 13](F64) @ 6
+  Token VSpace[32, 16](
+
+)
+  Token Comment[34, 1](# type Function[... what here ...?])
+  Token VSpace[34, 36](
 
 )
   Type
-    Token Type[33, 1](type)
-    Token HSpace[33, 5]( )
-    Token Id[33, 6](I8) @ 7
-  Token VSpace[33, 8](
+    Token Type[36, 1](type)
+    Token HSpace[36, 5]( )
+    Token Id[36, 6](I8) @ 8
+  Token VSpace[36, 8](
 
 )
   Type
-    Token Type[35, 1](type)
-    Token HSpace[35, 5]( )
-    Token Id[35, 6](I16) @ 8
-  Token VSpace[35, 9](
+    Token Type[38, 1](type)
+    Token HSpace[38, 5]( )
+    Token Id[38, 6](I16) @ 9
+  Token VSpace[38, 9](
 
 )
   Type
-    Token Type[37, 1](type)
-    Token HSpace[37, 5]( )
-    Token Id[37, 6](I32) @ 9
-  Token VSpace[37, 9](
+    Token Type[40, 1](type)
+    Token HSpace[40, 5]( )
+    Token Id[40, 6](I32) @ 10
+  Token VSpace[40, 9](
 
 )
   Type
-    Token Type[39, 1](type)
-    Token HSpace[39, 5]( )
-    Token Id[39, 6](I64) @ 10
-  Token VSpace[39, 9](
+    Token Type[42, 1](type)
+    Token HSpace[42, 5]( )
+    Token Id[42, 6](I64) @ 11
+  Token VSpace[42, 9](
+
+)
+  Token Comment[44, 1](# Rust default integer type, even for 64-bit systems.)
+  Token VSpace[44, 54](
+)
+  Type
+    Token Type[45, 1](type)
+    Colon
+      Token HSpace[45, 5]( )
+      Token Id[45, 6](Int) @ 12
+      Token Colon[45, 9](:)
+      Token HSpace[45, 10]( )
+      Token Id[45, 11](I32) @ 10
+  Token VSpace[45, 14](
 
 )
   Type
-    Token Type[41, 1](type)
-    Token HSpace[41, 5]( )
-    Token Id[41, 6](ISize) @ 11
-  Token VSpace[41, 11](
+    Token Type[47, 1](type)
+    Token HSpace[47, 5]( )
+    Token Id[47, 6](ISize) @ 13
+  Token VSpace[47, 11](
 
 )
   Type
-    Token Type[43, 1](type)
+    Token Type[49, 1](type)
     Spaced
-      Token HSpace[43, 5]( )
-      Token Id[43, 6](Opt) @ 12
+      Token HSpace[49, 5]( )
+      Token Id[49, 6](Opt) @ 14
       Parens
-        Token BracketOpen[43, 9]([)
-        Token Id[43, 10](Item)
-        Token BracketClose[43, 14](])
-  Token VSpace[43, 15](
+        Token BracketOpen[49, 9]([)
+        Token Id[49, 10](Item)
+        Token BracketClose[49, 14](])
+  Token VSpace[49, 15](
 )
-  Token Comment[44, 1](# enum Opt[Item])
-  Token VSpace[44, 17](
+  Token Comment[50, 1](# enum Opt[Item])
+  Token VSpace[50, 17](
 )
-  Token Comment[45, 1](#   None)
-  Token VSpace[45, 9](
+  Token Comment[51, 1](#   None)
+  Token VSpace[51, 9](
 )
-  Token Comment[46, 1](#   Some(Item))
-  Token VSpace[46, 15](
+  Token Comment[52, 1](#   Some(Item))
+  Token VSpace[52, 15](
 )
-  Token Comment[47, 1](# end)
-  Token VSpace[47, 6](
+  Token Comment[53, 1](# end)
+  Token VSpace[53, 6](
 
 )
-  Token Comment[49, 1](# TODO Can enum be a library-level thing with vararg or tuple generics?)
-  Token VSpace[49, 72](
+  Token Comment[55, 1](# TODO Can enum be a library-level thing with vararg or tuple generics?)
+  Token VSpace[55, 72](
 )
-  Token Comment[50, 1](# TODO Like variant in c++?)
-  Token VSpace[50, 28](
+  Token Comment[56, 1](# TODO Like variant in c++?)
+  Token VSpace[56, 28](
 )
-  Token Comment[51, 1](# TODO Also, allow arbitary sum types of other types?)
-  Token VSpace[51, 54](
+  Token Comment[57, 1](# TODO Also, allow arbitary sum types of other types?)
+  Token VSpace[57, 54](
 )
-  Token Comment[52, 1](# enum Result[Item, E: Error])
-  Token VSpace[52, 30](
+  Token Comment[58, 1](# enum Result[Item, E: Error])
+  Token VSpace[58, 30](
 )
-  Token Comment[53, 1](#   Ok(Item))
-  Token VSpace[53, 13](
+  Token Comment[59, 1](#   Ok(Item))
+  Token VSpace[59, 13](
 )
-  Token Comment[54, 1](#   Err(E))
-  Token VSpace[54, 11](
+  Token Comment[60, 1](#   Err(E))
+  Token VSpace[60, 11](
 )
-  Token Comment[55, 1](# end)
-  Token VSpace[55, 6](
+  Token Comment[61, 1](# end)
+  Token VSpace[61, 6](
 
 )
-  Token Comment[57, 1](# TODO Slices don't own, and Arrays do? Is that all?)
-  Token VSpace[57, 53](
+  Token Comment[63, 1](# TODO Slices don't own, and Arrays do? Is that all?)
+  Token VSpace[63, 53](
 )
-  Token Comment[58, 1](# TODO Dimensionality on slices?)
-  Token VSpace[58, 33](
-)
-  Type
-    Token Type[59, 1](type)
-    Spaced
-      Token HSpace[59, 5]( )
-      Token Id[59, 6](Slice) @ 13
-      Parens
-        Token BracketOpen[59, 11]([)
-        Token Id[59, 12](Item)
-        Token BracketClose[59, 16](])
-  Token VSpace[59, 17](
-
-)
-  Type
-    Token Type[61, 1](type)
-    Token HSpace[61, 5]( )
-    Token Id[61, 6](U8) @ 14
-  Token VSpace[61, 8](
-
-)
-  Type
-    Token Type[63, 1](type)
-    Token HSpace[63, 5]( )
-    Token Id[63, 6](U16) @ 15
-  Token VSpace[63, 9](
-
+  Token Comment[64, 1](# TODO Dimensionality on slices?)
+  Token VSpace[64, 33](
 )
   Type
     Token Type[65, 1](type)
-    Token HSpace[65, 5]( )
-    Token Id[65, 6](U32) @ 16
-  Token VSpace[65, 9](
+    Spaced
+      Token HSpace[65, 5]( )
+      Token Id[65, 6](Slice) @ 15
+      Parens
+        Token BracketOpen[65, 11]([)
+        Token Id[65, 12](Item)
+        Token BracketClose[65, 16](])
+  Token VSpace[65, 17](
 
 )
   Type
     Token Type[67, 1](type)
     Token HSpace[67, 5]( )
-    Token Id[67, 6](U64) @ 17
-  Token VSpace[67, 9](
+    Token Id[67, 6](U8) @ 16
+  Token VSpace[67, 8](
 
 )
   Type
     Token Type[69, 1](type)
     Token HSpace[69, 5]( )
-    Token Id[69, 6](USize) @ 18
-  Token VSpace[69, 11](
+    Token Id[69, 6](U16) @ 17
+  Token VSpace[69, 9](
 
 )
   Type
     Token Type[71, 1](type)
     Token HSpace[71, 5]( )
-    Token Id[71, 6](Void) @ 19
-  Token VSpace[71, 10](
+    Token Id[71, 6](U32) @ 18
+  Token VSpace[71, 9](
+
+)
+  Type
+    Token Type[73, 1](type)
+    Token HSpace[73, 5]( )
+    Token Id[73, 6](U64) @ 19
+  Token VSpace[73, 9](
+
+)
+  Type
+    Token Type[75, 1](type)
+    Token HSpace[75, 5]( )
+    Token Id[75, 6](USize) @ 20
+  Token VSpace[75, 11](
+
+)
+  Type
+    Token Type[77, 1](type)
+    Token HSpace[77, 5]( )
+    Token Id[77, 6](Void) @ 21
+  Token VSpace[77, 10](
 
 )
   Def
-    Token Def[73, 1](def)
+    Token Def[79, 1](def)
     Assign
       Spaced
-        Token HSpace[73, 4]( )
-        Token Id[73, 5](print) @ 20
+        Token HSpace[79, 4]( )
+        Token Id[79, 5](print) @ 22
         Arrow
           Parens
-            Token ParenOpen[73, 10](()
+            Token ParenOpen[79, 10](()
             Colon
-              Token Id[73, 11](line)
-              Token Colon[73, 15](:)
-              Token HSpace[73, 16]( )
-              Token Id[73, 17](Bytes) @ 3
-            Token ParenClose[73, 22]())
-          Token HSpace[73, 23]( )
-          Token Arrow[73, 24](->)
-          Token HSpace[73, 26]( )
-          Token Id[73, 27](Void) @ 19
-      Token HSpace[73, 31]( )
-      Token Assign[73, 32](=)
-      Token HSpace[73, 33]( )
-      Token Extern[73, 34](extern)
-  Token VSpace[73, 40](
+              Token Id[79, 11](line)
+              Token Colon[79, 15](:)
+              Token HSpace[79, 16]( )
+              Token Id[79, 17](Bytes) @ 3
+            Token ParenClose[79, 22]())
+          Token HSpace[79, 23]( )
+          Token Arrow[79, 24](->)
+          Token HSpace[79, 26]( )
+          Token Id[79, 27](Void) @ 21
+      Token HSpace[79, 31]( )
+      Token Assign[79, 32](=)
+      Token HSpace[79, 33]( )
+      Token Extern[79, 34](extern)
+  Token VSpace[79, 40](
 
 )
-  Token Eof[73, 40]()
+  Token Eof[79, 40]()
 
 --- main ---
 Token Eof[1, 1]()

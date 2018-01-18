@@ -13,7 +13,7 @@ type Array[Item]
 # type Array[Item, let size: Int]
 
 type Bool
-# type Bool: Opt[Void] # Could be?
+# type Bool: Opt[Void] # Could be? Array of 0 or 1 (Opt) vs Void as array of 0?
 # let false = Bool::None
 # let true = Bool::Some()
 # enum Bool # Maybe?
@@ -35,6 +35,9 @@ type F32
 
 type F64
 
+# Rust default float type.
+type Float: F64
+
 # type Function[... what here ...?]
 
 type I8
@@ -44,6 +47,9 @@ type I16
 type I32
 
 type I64
+
+# Rust default integer type, even for 64-bit systems.
+type Int: I32
 
 type ISize
 
@@ -75,6 +81,8 @@ type U64
 
 type USize
 
+# TODO Or is Unit better? Or call it Void but use as Unit?
+# TODO Just that Unit and Uint are so close. Maybe that's why () as a type?
 type Void
 
 def print(line: Bytes) -> Void = extern

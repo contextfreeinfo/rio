@@ -1,12 +1,12 @@
 --- main ---
 Block {
-  x: 21,
+  x: 23,
 }
   Let
     Token Let[1, 1](let)
     Assign
       Token HSpace[1, 4]( )
-      Token Id[1, 5](x) @ 21
+      Token Id[1, 5](x) @ 23
       Token HSpace[1, 6]( )
       Token Assign[1, 7](=)
       Token HSpace[1, 8]( )
@@ -21,9 +21,9 @@ Block {
   Token VSpace[3, 22](
 )
   Spaced
-    Token Id[4, 1](print) @ 20
+    Token Id[4, 1](print) @ 22
     Token HSpace[4, 6]( )
-    Token Id[4, 7](x) @ 21
+    Token Id[4, 7](x) @ 23
   Token VSpace[4, 8](
 )
   Token Eof[4, 8]()

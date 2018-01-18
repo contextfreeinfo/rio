@@ -1,17 +1,17 @@
 --- main ---
 Block {
-  Yo: 22,
-  a: 21,
+  Yo: 24,
+  a: 23,
 }
   Let
     Token Let[1, 1](let)
     Assign
       Colon
         Token HSpace[1, 4]( )
-        Token Id[1, 5](a) @ 21
+        Token Id[1, 5](a) @ 23
         Token Colon[1, 6](:)
         Token HSpace[1, 7]( )
-        Token Id[1, 8](Float)
+        Token Id[1, 8](Float) @ 7
       Token HSpace[1, 13]( )
       Token Assign[1, 14](=)
       Token HSpace[1, 15]( )
@@ -36,7 +36,7 @@ Block {
 
 )
   Add
-    Token Id[3, 1](a) @ 21
+    Token Id[3, 1](a) @ 23
     Token HSpace[3, 2]( )
     Token Plus[3, 3](+)
     Token HSpace[3, 4]( )
@@ -53,7 +53,7 @@ Block {
   Spaced
     Token Id[7, 1](out)
     Token Dot[7, 4](.)
-    Token Id[7, 5](print) @ 20
+    Token Id[7, 5](print) @ 22
     Token HSpace[7, 10]( )
     String "Hello, "world"!"
       Token StringStart[7, 11](")
@@ -194,7 +194,7 @@ Block {
 
 )
   Comma
-    Token Id[27, 1](a) @ 21
+    Token Id[27, 1](a) @ 23
     Token Comma[27, 2](,)
     Token HSpace[27, 3]( )
     Assign
@@ -216,7 +216,7 @@ Block {
     Block
       Comma
         Spaced
-          Token Id[28, 2](a) @ 21
+          Token Id[28, 2](a) @ 23
           Token HSpace[28, 3]( )
           Token Id[28, 4](b)
         Token Comma[28, 5](,)
@@ -263,7 +263,7 @@ Block {
   Type
     Token Type[32, 1](type)
     Token HSpace[32, 5]( )
-    Token Id[32, 6](Yo) @ 22
+    Token Id[32, 6](Yo) @ 24
   Token VSpace[32, 8](
 
 )
@@ -271,7 +271,7 @@ Block {
     Token Def[34, 1](def)
     Spaced
       Token HSpace[34, 4]( )
-      Token Id[34, 5](a) @ 21
+      Token Id[34, 5](a) @ 23
       Colon
         Parens
           Token ParenOpen[34, 6](()
@@ -283,7 +283,7 @@ Block {
       Do
         Token Do[34, 16](do)
         Block {
-          b: 24,
+          b: 26,
         }
           Token VSpace[34, 18](
 )
@@ -292,7 +292,7 @@ Block {
             Token Let[35, 3](let)
             Assign
               Token HSpace[35, 6]( )
-              Token Id[35, 7](b) @ 24
+              Token Id[35, 7](b) @ 26
               Token HSpace[35, 8]( )
               Token Assign[35, 9](=)
               Token HSpace[35, 10]( )
