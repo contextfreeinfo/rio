@@ -7,8 +7,6 @@
 
 namespace rio {
 
-using USize = size_t;
-
 enum struct TokenState {
   Arrow,
   Assign,
