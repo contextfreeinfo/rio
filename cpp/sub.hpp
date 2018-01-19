@@ -20,7 +20,7 @@
 
 namespace rio {
 
-using StringMap = std::map<std::string, std::string>;
+using StringMap = Map<std::string, std::string>;
 
 #ifdef _WIN32
 

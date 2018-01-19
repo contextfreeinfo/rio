@@ -102,10 +102,10 @@ struct Node;
 struct NodeFormatContext {
 
   std::string_view prefix;
-  const std::map<Node*, USize>& symbol_indices;
+  const Map<Node*, USize>& symbol_indices;
 
   NodeFormatContext(
-    const std::map<Node*, USize>& symbol_indices_, std::string_view prefix_
+    const Map<Node*, USize>& symbol_indices_, std::string_view prefix_
   ): prefix(prefix_), symbol_indices(symbol_indices_) {}
 
   NodeFormatContext(const NodeFormatContext& parent, std::string_view prefix_):
@@ -124,11 +124,11 @@ struct ParentNode: NodeInfo {
   // Never applies to tokens.
   std::vector<Node> kids;
   // Only applies scopes with symbols defined.
-  std::unique_ptr<std::map<std::string_view, Node*>> symbols;
+  std::unique_ptr<Map<std::string_view, Node*>> symbols;
 
   auto define(std::string_view id, Node& node) -> bool {
     if (!symbols) {
-      symbols.reset(new std::map<std::string_view, Node*>);
+      symbols.reset(new Map<std::string_view, Node*>);
     }
     auto result = symbols->insert({id, &node});
     return result.second;
@@ -276,7 +276,7 @@ struct Node {
   }
 
   // TODO Change this to writing to an ostream!
-  auto format(const std::map<Node*, USize>& symbol_indices) const
+  auto format(const Map<Node*, USize>& symbol_indices) const
     -> std::string
   {
     NodeFormatContext context{symbol_indices, ""};

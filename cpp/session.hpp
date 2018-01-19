@@ -40,7 +40,7 @@ struct Session {
     Script main{content, &std_context};
     // Diagnostics.
     if (show_tree) {
-      std::map<Node*, USize> def_indices;
+      Map<Node*, USize> def_indices;
       USize def_index = 0;
       for (auto script: std::vector<Script*>{&std_script, &main}) {
         for (auto def: script->defs) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util.hpp"
 #include <cstdlib>
 #include <experimental/filesystem>
 #include <iostream>

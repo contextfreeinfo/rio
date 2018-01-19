@@ -13,6 +13,8 @@ struct NumberType;
 struct StructType;
 struct TypeParam;
 
+// In most cases, types should live on the typedefs.
+// They can then be references from the existing symbol scopes.
 using Type = std::variant<EnumType, StructType, NumberType, TypeParam>;
 
 struct TypeBase {
@@ -42,14 +44,13 @@ struct TypeParam: TypeBase {
 
 struct GenericType: TypeBase {
 
-  // TODO Where do the types live?
-  std::unordered_map<std::string, Type*> arg_map;
+  Map<std::string, Type*> arg_map;
 
   std::vector<TypeParam> args;
 
   Opt<Type> generic;
 
-  std::unordered_map<std::string, Type*> param_map;
+  Map<std::string, Type*> param_map;
 
   std::vector<TypeParam> params;
 
@@ -66,7 +67,7 @@ struct EnumType: GenericType {
 
 struct StructType: GenericType {
 
-  std::map<std::string, Type*> fields;
+  Map<std::string, Type*> fields;
 
 };
 
