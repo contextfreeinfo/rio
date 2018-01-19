@@ -2,6 +2,7 @@
 
 #include "tokenize.hpp"
 #include "type.hpp"
+#include "util.hpp"
 #include <functional>
 #include <map>
 #include <memory>
@@ -81,9 +82,6 @@ auto token_to_node_kind(TokenState token_state) -> NodeKind {
     default: return NodeKind::Other;
   }
 }
-
-template<typename Item>
-using optref = Item*;
 
 struct GenState {
 

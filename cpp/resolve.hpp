@@ -59,6 +59,7 @@ auto extract(Node& node, Tracker&& tracker) -> void {
       // TODO Eventually have class, for, params, and struct here, too.
       // TODO Consolidate class, struct, and/or type?
       case NodeKind::Def: case NodeKind::Let: case NodeKind::Type: {
+        // TODO Infer types.
         // TODO Instead recurse manually to deal with lists, etc?
         auto id = kid.token_at(1);
         if (id) {

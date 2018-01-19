@@ -1,30 +1,50 @@
 #pragma once
 
+#include "util.hpp"
+#include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace rio {
+
+struct Type;
 
 struct TypeParam {
 
   std::string name;
 
-  // TODO Constraints
+  // Intersection. (TODO Generally elsewhere?)
+  std::vector<Type*> constraints;
 
 };
 
-struct GenericType {
+struct Type {
+
+  // TODO Where do the types live?
+  std::unordered_map<std::string, Type*> arg_map;
+
+  std::vector<TypeParam> args;
+
+  optref<Type> generic;
+
+  std::unordered_map<std::string, Type*> param_map;
 
   std::vector<TypeParam> params;
 
-  // std::vector<...> positionals;
+  std::vector<std::unique_ptr<Type*>> specifics;
 
 };
 
-struct StructType {
+// TODO Arbitrary sum/union types?
+struct EnumType: Type {
 
-  // std::map<std::string, ...> fields;
+  std::vector<Type*> cases;
 
-  // std::vector<...> positionals;
+};
+
+struct StructType: Type {
+
+  std::map<std::string, Type*> fields;
 
 };
 
