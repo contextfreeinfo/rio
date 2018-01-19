@@ -8,13 +8,13 @@ struct Parser {
 
   // Fields.
 
-  Index found_index;
+  USize found_index;
 
-  Index index;
+  USize index;
 
-  Index last_index;
+  USize last_index;
 
-  Index last_skipped;
+  USize last_skipped;
 
   std::vector<Token>& tokens;
 
@@ -34,7 +34,7 @@ struct Parser {
 
   private:
 
-  void chew(Node& parent, Index index) {
+  void chew(Node& parent, USize index) {
     // Push all skipped tokens.
     if (last_skipped < index) {
       auto end = tokens.begin() + index - 1;

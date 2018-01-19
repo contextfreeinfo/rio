@@ -91,10 +91,10 @@ struct Context {
 
   const Node& scope;
 
-  Context(const Node& scope_, optref<const Context> parent_ = nullptr):
+  Context(const Node& scope_, Opt<const Context> parent_ = nullptr):
     parent(parent_), scope(scope_) {}
 
-  auto get_def(std::string_view id) const -> optref<Node> {
+  auto get_def(std::string_view id) const -> Opt<Node> {
     auto node = scope.get_def(id);
     if (!node && parent) {
       node = parent->get_def(id);
@@ -141,7 +141,7 @@ struct Script {
   // Functions.
 
   Script(
-    std::string_view source, optref<const Context> env = nullptr
+    std::string_view source, Opt<const Context> env = nullptr
   ): root(NodeKind::Other) {
     // Tokenize.
     rio::Tokenizer tokenizer{source};

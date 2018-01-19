@@ -3,29 +3,51 @@
 #include "util.hpp"
 #include <memory>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace rio {
 
-struct Type;
+struct EnumType;
+struct NumberType;
+struct StructType;
+struct TypeParam;
 
-struct TypeParam {
+using Type = std::variant<EnumType, StructType, NumberType, TypeParam>;
 
+struct TypeBase {
   std::string name;
+};
+
+enum struct NumberKind {
+  Float,
+  Signed,
+  Unsigned,
+};
+
+struct NumberType: TypeBase {
+
+  NumberKind kind;
+
+  USize nbits;
+
+};
+
+struct TypeParam: TypeBase {
 
   // Intersection. (TODO Generally elsewhere?)
   std::vector<Type*> constraints;
 
 };
 
-struct Type {
+struct GenericType: TypeBase {
 
   // TODO Where do the types live?
   std::unordered_map<std::string, Type*> arg_map;
 
   std::vector<TypeParam> args;
 
-  optref<Type> generic;
+  Opt<Type> generic;
 
   std::unordered_map<std::string, Type*> param_map;
 
@@ -36,13 +58,13 @@ struct Type {
 };
 
 // TODO Arbitrary sum/union types?
-struct EnumType: Type {
+struct EnumType: GenericType {
 
   std::vector<Type*> cases;
 
 };
 
-struct StructType: Type {
+struct StructType: GenericType {
 
   std::map<std::string, Type*> fields;
 

@@ -51,7 +51,7 @@ struct CGenerator {
   }
 
   auto generate_spaced(GenState& state, ParentNode& node) -> void {
-    Index count = 0;
+    USize count = 0;
     state.stream << state.prefix;
     for (auto& kid: node.kids) {
       if (kid.token() && !kid.token()->important()) continue;

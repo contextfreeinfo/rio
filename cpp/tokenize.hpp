@@ -1,12 +1,13 @@
 #pragma once
 
+#include "util.hpp"
 #include <iostream>
 #include <string_view>
 #include <vector>
 
 namespace rio {
 
-using Index = size_t;
+using USize = size_t;
 
 enum struct TokenState {
   Arrow,
@@ -154,13 +155,13 @@ struct Token {
 
   // Fields.
 
-  Index line;
+  USize line;
 
   // Col in code points.
-  Index col;
+  USize col;
 
-  // Index in bytes.
-  Index index;
+  // USize in bytes.
+  USize index;
 
   TokenState state;
 
@@ -228,19 +229,19 @@ struct Tokenizer {
 
   // This should be tracking utf8 code point positions.
   // TODO Actual utf8 handling.
-  Index char_index;
+  USize char_index;
 
-  Index col_index;
+  USize col_index;
 
   bool gave_eof;
 
-  Index last_start;
+  USize last_start;
 
-  Index line_index;
+  USize line_index;
 
-  Index start_col;
+  USize start_col;
 
-  Index start_line;
+  USize start_line;
 
   TokenState state;
 
@@ -477,15 +478,15 @@ struct Tokenizer {
   }
 
   auto next() -> Token {
-    Index stop_index;
-    Index last_start = this->last_start;
-    Index start_col = this->start_col;
-    Index start_line = this->start_line;
+    USize stop_index;
+    USize last_start = this->last_start;
+    USize start_col = this->start_col;
+    USize start_line = this->start_line;
     auto state = this->state;
     // std::cout << "Finding next at " << start_line << ", " << start_col << std::endl;
     while (true) {
-      Index index = char_index;
-      // std::cout << "Index " << index << std::endl;
+      USize index = char_index;
+      // std::cout << "USize " << index << std::endl;
       if (index >= buffer.size()) {
         stop_index = buffer.size();
         this->last_start = stop_index;

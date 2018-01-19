@@ -38,7 +38,13 @@ type F64
 # Rust default float type.
 type Float: F64
 
-# type Function[... what here ...?]
+# type Function[Input, Output]
+# struct Function[Input, Output, throws: Bool]
+#   # Need specialization for throws or not ...
+#   call: CFunction[Input: (Void&, ...Input), Output]
+#   data: Void&
+# end
+# Input -> Output throws
 
 type I8
 
@@ -49,6 +55,7 @@ type I32
 type I64
 
 # Rust default integer type, even for 64-bit systems.
+# TODO(tjp): But it runs higher risk of overflow in math ...
 type Int: I32
 
 type ISize

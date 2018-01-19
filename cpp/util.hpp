@@ -3,6 +3,8 @@
 namespace rio {
 
 template<typename Item>
-using optref = Item*;
+using Opt = Item*;
+
+using Index = size_t;
 
 }

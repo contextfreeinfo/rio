@@ -102,10 +102,10 @@ struct Node;
 struct NodeFormatContext {
 
   std::string_view prefix;
-  const std::map<Node*, Index>& symbol_indices;
+  const std::map<Node*, USize>& symbol_indices;
 
   NodeFormatContext(
-    const std::map<Node*, Index>& symbol_indices_, std::string_view prefix_
+    const std::map<Node*, USize>& symbol_indices_, std::string_view prefix_
   ): prefix(prefix_), symbol_indices(symbol_indices_) {}
 
   NodeFormatContext(const NodeFormatContext& parent, std::string_view prefix_):
@@ -135,9 +135,9 @@ struct ParentNode: NodeInfo {
   }
 
   template<typename Select>
-  auto find(Select&& select) -> optref<Node>;
+  auto find(Select&& select) -> Opt<Node>;
 
-  auto get_def(std::string_view id) const -> optref<Node> {
+  auto get_def(std::string_view id) const -> Opt<Node> {
     if (!symbols) return nullptr;
     auto entry = symbols->find(id);
     return entry == symbols->end() ? nullptr : entry->second;
@@ -187,7 +187,7 @@ struct StringNode: ParentNode {
 
 struct TokenNode: NodeInfo {
 
-  optref<Token> token;
+  Opt<Token> token;
 
   TokenNode(Token* token_ = nullptr): token(token_) {}
 
@@ -202,7 +202,7 @@ struct TokenNode: NodeInfo {
 
 struct IdNode: TokenNode {
 
-  optref<Node> referent;
+  Opt<Node> referent;
 
   IdNode(Token* token = nullptr): TokenNode(token), referent(nullptr) {}
 
@@ -266,7 +266,7 @@ struct Node {
   }
 
   template<typename Select>
-  auto find(Select&& select) -> optref<Node> {
+  auto find(Select&& select) -> Opt<Node> {
     auto parent = dynamic_cast<ParentNode*>(info.get());
     if (parent) {
       return parent->find(select);
@@ -276,7 +276,7 @@ struct Node {
   }
 
   // TODO Change this to writing to an ostream!
-  auto format(const std::map<Node*, Index>& symbol_indices) const
+  auto format(const std::map<Node*, USize>& symbol_indices) const
     -> std::string
   {
     NodeFormatContext context{symbol_indices, ""};
@@ -293,7 +293,7 @@ struct Node {
     return buffer.str();
   }
 
-  auto get_def(std::string_view id) const -> optref<Node> {
+  auto get_def(std::string_view id) const -> Opt<Node> {
     return dynamic_cast<ParentNode&>(*info).get_def(id);
   }
 
@@ -305,7 +305,7 @@ struct Node {
     dynamic_cast<ParentNode&>(*info).push_token(token);
   }
 
-  auto referent() -> optref<Node> {
+  auto referent() -> Opt<Node> {
     auto token = this->token();
     if (token && token->state == TokenState::Id) {
       return static_cast<IdNode&>(*info).referent;
@@ -313,15 +313,15 @@ struct Node {
     return nullptr;
   }
 
-  auto token() -> optref<Token> {
+  auto token() -> Opt<Token> {
     if (kind == NodeKind::Token) {
       return static_cast<TokenNode&>(*info).token;
     }
     return nullptr;
   }
 
-  auto token_at(Index index) -> optref<Token> {
-    Index count = 0;
+  auto token_at(USize index) -> Opt<Token> {
+    USize count = 0;
     auto token_node = find([&count, index](Node& node) {
       if (node.token() && node.token()->important()) {
         if (count == index) return true;
@@ -341,7 +341,7 @@ inline auto NumberNode::is_fraction() -> bool {
 }
 
 template<typename Select>
-inline auto ParentNode::find(Select&& select) -> optref<Node> {
+inline auto ParentNode::find(Select&& select) -> Opt<Node> {
   for (auto& kid: kids) {
     if (select(kid)) {
       return &kid;
