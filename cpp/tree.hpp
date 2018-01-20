@@ -124,7 +124,7 @@ struct ParentNode: NodeInfo {
   // Never applies to tokens.
   std::vector<Node> kids;
   // Only applies scopes with symbols defined.
-  std::unique_ptr<Map<std::string_view, Node*>> symbols;
+  Box<Map<std::string_view, Node*>> symbols;
 
   auto define(std::string_view id, Node& node) -> bool {
     if (!symbols) {
@@ -163,6 +163,10 @@ struct DefNode: NamedNode {
   // TODO Mark and sweep to reduce output size for exes.
   // TODO Do we want custom generators????
   // std::optional<std::function<void(GenState& stream, Node& node)>> generate;
+};
+
+struct TypeNode: NamedNode {
+  Type type;
 };
 
 struct NumberNode: ParentNode {
@@ -223,7 +227,7 @@ struct Node {
 
   NodeKind kind;
 
-  std::unique_ptr<NodeInfo> info;
+  Box<NodeInfo> info;
 
   // Functions.
 
@@ -233,7 +237,7 @@ struct Node {
         info.reset(new DefNode);
         break;
       }
-      case NodeKind::Let: case NodeKind::Type: {
+      case NodeKind::Let: {
         info.reset(new NamedNode);
         break;
       }
@@ -243,6 +247,10 @@ struct Node {
       }
       case NodeKind::String: {
         info.reset(new StringNode);
+        break;
+      }
+      case NodeKind::Type: {
+        info.reset(new TypeNode);
         break;
       }
       default: {
@@ -332,6 +340,13 @@ struct Node {
     return token_node ? token_node->token() : nullptr;
   }
 
+  auto type() const -> Opt<Type> {
+    if (kind == NodeKind::Type) {
+      return &static_cast<TypeNode&>(*info).type;
+    }
+    return nullptr;
+  }
+
 };
 
 inline auto NumberNode::is_fraction() -> bool {
@@ -365,8 +380,30 @@ inline auto ParentNode::write(
   // Symbols.
   if (symbols) {
     stream << " {\n";
-    for (auto& [key, ref]: *symbols) {
-      auto index = context.symbol_indices.at(ref);
+    // We don't store order in the node, but we want to output by order.
+    // First, get a stable vector of pairs.
+    std::vector<Map<Str, Node*>::iterator> pairs;
+    for (auto pair = symbols->begin(); pair != symbols->end(); ++pair) {
+      pairs.push_back(pair);
+    }
+    // Figure out their indices.
+    std::vector<USize> indices;
+    for (auto pair = pairs.begin(); pair < pairs.end(); ++pair) {
+      indices.push_back(context.symbol_indices.at((*pair)->second));
+    }
+    // Get the sorting order.
+    std::vector<USize> order;
+    order.reserve(indices.size());
+    for (USize i = 0; i < indices.size(); ++i) {
+      order.push_back(i);
+    }
+    std::sort(order.begin(), order.end(), [&indices](USize a, USize b) {
+      return indices[a] < indices[b];
+    });
+    // Now output in order.
+    for (auto i: order) {
+      auto index = indices[i];
+      auto& key = pairs[i]->first;
       stream << context.prefix << "  " << key << ": " << index << ",\n";
     }
     stream << context.prefix << "}";

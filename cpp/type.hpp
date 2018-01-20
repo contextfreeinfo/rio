@@ -9,25 +9,58 @@
 namespace rio {
 
 struct EnumType;
+struct FunctionType;
 struct NumberType;
 struct StructType;
 struct TypeParam;
 
+struct VoidType {};
+
+struct Type;
+
+struct TypeInfo {
+
+  std::string name;
+
+  virtual ~TypeInfo() {}
+
+};
+
+enum TypeKind {
+  Enum,
+  Function,
+  Number,
+  Param,
+  Struct,
+  Void,
+};
+
 // In most cases, types should live on the typedefs.
 // They can then be references from the existing symbol scopes.
-using Type = std::variant<EnumType, StructType, NumberType, TypeParam>;
+struct Type {
 
-struct TypeBase {
-  std::string name;
+  TypeKind kind = TypeKind::Void;
+
+  Box<TypeInfo> info;
+
+  template<typename Info>
+  auto make() -> Info& {
+    kind = Info::type_kind;
+    info.reset(new Info);
+    return static_cast<Info&>(*info);
+  }
+
 };
 
 enum struct NumberKind {
   Float,
-  Signed,
-  Unsigned,
+  Int,
+  UInt,
 };
 
-struct NumberType: TypeBase {
+struct NumberType: TypeInfo {
+
+  static constexpr auto type_kind = TypeKind::Number;
 
   NumberKind kind;
 
@@ -35,14 +68,19 @@ struct NumberType: TypeBase {
 
 };
 
-struct TypeParam: TypeBase {
+struct TypeParam: TypeInfo {
+
+  static constexpr auto type_kind = TypeKind::Param;
 
   // Intersection. (TODO Generally elsewhere?)
   std::vector<Type*> constraints;
 
 };
 
-struct GenericType: TypeBase {
+struct GenericType: TypeInfo {
+
+  // TODO This takes up lots of ram.
+  // TODO Some way to pay the price only where needed?
 
   Map<std::string, Type*> arg_map;
 
@@ -59,7 +97,10 @@ struct GenericType: TypeBase {
 };
 
 // TODO Arbitrary sum/union types?
+// TODO C has unions but no type indicator. Have "union" and "union_raw"?
 struct EnumType: GenericType {
+
+  static constexpr auto type_kind = TypeKind::Enum;
 
   std::vector<Type*> cases;
 
@@ -67,7 +108,20 @@ struct EnumType: GenericType {
 
 struct StructType: GenericType {
 
+  static constexpr auto type_kind = TypeKind::Struct;
+
   Map<std::string, Type*> fields;
+
+};
+
+struct FunctionType: GenericType {
+
+  static constexpr auto type_kind = TypeKind::Function;
+
+  // Opt<Type> capture;
+  // Opt<Type> error;
+  Type input;
+  Type output;
 
 };
 

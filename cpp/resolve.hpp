@@ -135,7 +135,9 @@ struct Script {
 
   // Fields.
 
+  // We track these so far just so we can order them for nicer ast output.
   std::vector<Node*> defs;
+
   Node root;
 
   // Functions.

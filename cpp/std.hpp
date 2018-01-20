@@ -29,6 +29,9 @@ type Box[Item]
 # TODO Slices won't have 
 type Bytes: Array[U8]
 
+# Somewhat equivalent to U4 but different default stringification.
+# type Char: U32
+
 type Error
 
 type F32
@@ -36,7 +39,7 @@ type F32
 type F64
 
 # Rust default float type.
-type Float: F64
+type Float = F64
 
 # type Function[Input, Output]
 # struct Function[Input, Output, throws: Bool]
@@ -56,7 +59,7 @@ type I64
 
 # Rust default integer type, even for 64-bit systems.
 # TODO(tjp): But it runs higher risk of overflow in math ...
-type Int: I32
+type Int = I32
 
 type ISize
 
@@ -120,6 +123,29 @@ void print(rio_String string) {
 
 auto std_init_c() -> Script {
   Script script{std_source};
+  auto make_number_builder = [](NumberKind kind, USize nbits) {
+    return [=](Node& node) {
+      auto& info = node.type()->make<NumberType>();
+      info.kind = kind;
+      info.nbits = nbits;
+    };
+  };
+  Map<Str, std::function<void(Node&)>> type_builders = {
+    {"F32", make_number_builder(NumberKind::Float, 32)},
+    {"F64", make_number_builder(NumberKind::Float, 64)},
+    {"I8", make_number_builder(NumberKind::Int, 8)},
+    {"I16", make_number_builder(NumberKind::Int, 16)},
+    {"I32", make_number_builder(NumberKind::Int, 32)},
+    {"I64", make_number_builder(NumberKind::Int, 64)},
+    {"U8", make_number_builder(NumberKind::UInt, 8)},
+    {"U16", make_number_builder(NumberKind::UInt, 16)},
+    {"U32", make_number_builder(NumberKind::UInt, 32)},
+    {"U64", make_number_builder(NumberKind::UInt, 64)},
+  };
+  for (auto [id, builder]: type_builders) {
+    auto node = script.root.get_def(id);
+    builder(*node);
+  }
   // std::cout << "print: " << script.root.get_def("print") << std::endl;
   // auto& print = static_cast<DefNode&>(*script.root.get_def("print")->info);
   // print.generate = [](GenState& state, Node& call) {
