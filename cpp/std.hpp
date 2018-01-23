@@ -125,7 +125,8 @@ auto std_init_c() -> Script {
   Script script{std_source};
   auto make_number_builder = [](NumberKind kind, USize nbits) {
     return [=](Node& node) {
-      auto& info = node.type()->make<NumberType>();
+      auto& info = node.type_defined()->make<NumberType>(&node);
+      node.type = node.type_defined();
       info.kind = kind;
       info.nbits = nbits;
     };

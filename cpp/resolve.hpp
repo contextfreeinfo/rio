@@ -59,7 +59,6 @@ auto extract(Node& node, Tracker&& tracker) -> void {
       // TODO Eventually have class, for, params, and struct here, too.
       // TODO Consolidate class, struct, and/or type?
       case NodeKind::Def: case NodeKind::Let: case NodeKind::Type: {
-        // TODO Infer types.
         // TODO Instead recurse manually to deal with lists, etc?
         auto id = kid.token_at(1);
         if (id) {
@@ -91,8 +90,10 @@ struct Context {
 
   const Node& scope;
 
+  const Context& std;
+
   Context(const Node& scope_, Opt<const Context> parent_ = nullptr):
-    parent(parent_), scope(scope_) {}
+    parent(parent_), scope(scope_), std(parent_ ? parent_->std : *this) {}
 
   auto get_def(std::string_view id) const -> Opt<Node> {
     auto node = scope.get_def(id);
@@ -109,22 +110,43 @@ struct Context {
       // Deeper context.
       Context inner{node, this};
       inner.resolve(node);
-    } else {
-      for (auto& kid: info.kids) {
-        auto token = kid.token();
-        if (token && token->state == TokenState::Id) {
-          // Resolve this!
-          auto& kid_info = static_cast<IdNode&>(*kid.info);
-          // std::cout << "Resolve: " << kid.token->text << std::endl;
-          kid_info.referent = get_def(kid_info.token->text);
-          // std::cout << "Referent: " << kid.referent << std::endl;
-        } else {
+      return;
+    }
+    // Resolve kids.
+    for (auto& kid: info.kids) {
+      switch (kid.kind) {
+        case NodeKind::Number: {
+          if (static_cast<NumberNode&>(*kid.info).is_fraction()) {
+            kid.type = std.get_def("F64")->type;
+          } else {
+            kid.type = std.get_def("I64")->type;
+          }
+          break;
+        }
+        case NodeKind::String: {
+          break;
+        }
+        case NodeKind::Token: {
+          auto token = kid.token();
+          if (token->state == TokenState::Id) {
+            // Resolve this!
+            // TODO Get the type of the referent.
+            // TODO If this is member access, we'll need to look elsewhere.
+            auto& kid_info = static_cast<IdNode&>(*kid.info);
+            // std::cout << "Resolve: " << kid.token->text << std::endl;
+            kid_info.referent = get_def(kid_info.token->text);
+            // std::cout << "Referent: " << kid.referent << std::endl;
+          }
+          break;
+        }
+        default: {
           // Deeper node.
-          // Tokens shouldn't have kids, so `else` is okay.
           resolve(kid);
+          break;
         }
       }
     }
+    // TODO Kids done, determine the type of this node.
   }
 
 };

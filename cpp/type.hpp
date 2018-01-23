@@ -8,6 +8,8 @@
 
 namespace rio {
 
+struct Node;
+
 struct EnumType;
 struct FunctionType;
 struct NumberType;
@@ -43,8 +45,11 @@ struct Type {
 
   Box<TypeInfo> info;
 
+  Opt<Node> node = nullptr;
+
   template<typename Info>
-  auto make() -> Info& {
+  auto make(Opt<Node> node = nullptr) -> Info& {
+    this->node = node;
     kind = Info::type_kind;
     info.reset(new Info);
     return static_cast<Info&>(*info);

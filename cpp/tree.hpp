@@ -171,7 +171,14 @@ struct TypeNode: NamedNode {
 
 struct NumberNode: ParentNode {
 
+  union {
+    F64 f64;
+    I64 i64;
+  } data;
+
   auto is_fraction() -> bool;
+
+  // TODO Something to calculate the value.
 
 };
 
@@ -228,6 +235,8 @@ struct Node {
   NodeKind kind;
 
   Box<NodeInfo> info;
+
+  Opt<Type> type = nullptr;
 
   // Functions.
 
@@ -297,6 +306,14 @@ struct Node {
     // TODO Go back to streams.
     std::stringstream buffer;
     buffer << context.prefix << kind;
+    if (type && type->node) {
+      buffer << " <" << static_cast<TypeNode&>(*type->node->info).name;
+      auto pair = context.symbol_indices.find(type->node);
+      if (pair != context.symbol_indices.end()) {
+        buffer << " @ " << pair->second;
+      }
+      buffer << ">";
+    }
     info->write(buffer, context);
     return buffer.str();
   }
@@ -340,7 +357,7 @@ struct Node {
     return token_node ? token_node->token() : nullptr;
   }
 
-  auto type() const -> Opt<Type> {
+  auto type_defined() const -> Opt<Type> {
     if (kind == NodeKind::Type) {
       return &static_cast<TypeNode&>(*info).type;
     }
@@ -350,7 +367,7 @@ struct Node {
 };
 
 inline auto NumberNode::is_fraction() -> bool {
-  return find([&](Node& node) {
+  return find([](Node& node) {
     return node.token() && node.token()->state == TokenState::Dot;
   });
 }

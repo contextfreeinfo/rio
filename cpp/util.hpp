@@ -10,6 +10,11 @@ namespace rio {
 template<typename Item>
 using Box = std::unique_ptr<Item>;
 
+using F32 = float;
+using F64 = double;
+
+using I64 = int64_t;
+
 template<typename Item>
 using Opt = Item*;
 
