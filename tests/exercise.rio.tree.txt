@@ -10,7 +10,7 @@ Block {
       Token HSpace[1, 6]( )
       Token Assign[1, 7](=)
       Token HSpace[1, 8]( )
-      Number
+      Number <I64 @ 11>
         Token Int[1, 9](5)
   Token VSpace[1, 10](
 )

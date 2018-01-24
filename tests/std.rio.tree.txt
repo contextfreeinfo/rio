@@ -130,14 +130,14 @@ Block {
   Token VSpace[28, 11](
 
 )
-  Type
+  Type <F32 @ 5>
     Token Type[30, 1](type)
     Token HSpace[30, 5]( )
     Token Id[30, 6](F32) @ 5
   Token VSpace[30, 9](
 
 )
-  Type
+  Type <F64 @ 6>
     Token Type[32, 1](type)
     Token HSpace[32, 5]( )
     Token Id[32, 6](F64) @ 6
@@ -181,28 +181,28 @@ Block {
   Token VSpace[43, 25](
 
 )
-  Type
+  Type <I8 @ 8>
     Token Type[45, 1](type)
     Token HSpace[45, 5]( )
     Token Id[45, 6](I8) @ 8
   Token VSpace[45, 8](
 
 )
-  Type
+  Type <I16 @ 9>
     Token Type[47, 1](type)
     Token HSpace[47, 5]( )
     Token Id[47, 6](I16) @ 9
   Token VSpace[47, 9](
 
 )
-  Type
+  Type <I32 @ 10>
     Token Type[49, 1](type)
     Token HSpace[49, 5]( )
     Token Id[49, 6](I32) @ 10
   Token VSpace[49, 9](
 
 )
-  Type
+  Type <I64 @ 11>
     Token Type[51, 1](type)
     Token HSpace[51, 5]( )
     Token Id[51, 6](I64) @ 11
@@ -298,28 +298,28 @@ Block {
   Token VSpace[75, 17](
 
 )
-  Type
+  Type <U8 @ 16>
     Token Type[77, 1](type)
     Token HSpace[77, 5]( )
     Token Id[77, 6](U8) @ 16
   Token VSpace[77, 8](
 
 )
-  Type
+  Type <U16 @ 17>
     Token Type[79, 1](type)
     Token HSpace[79, 5]( )
     Token Id[79, 6](U16) @ 17
   Token VSpace[79, 9](
 
 )
-  Type
+  Type <U32 @ 18>
     Token Type[81, 1](type)
     Token HSpace[81, 5]( )
     Token Id[81, 6](U32) @ 18
   Token VSpace[81, 9](
 
 )
-  Type
+  Type <U64 @ 19>
     Token Type[83, 1](type)
     Token HSpace[83, 5]( )
     Token Id[83, 6](U64) @ 19
