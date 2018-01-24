@@ -103,50 +103,71 @@ struct Context {
     return node;
   }
 
-  auto resolve(Node& node) const -> void {
-    if (node.kind == NodeKind::Token) return;
-    auto& info = static_cast<ParentNode&>(*node.info);
-    if (&node != &scope && info.symbols) {
-      // Deeper context.
-      Context inner{node, this};
-      inner.resolve(node);
-      return;
+  auto infer_type(Node& node) const -> void {
+    switch (node.kind) {
+      case NodeKind::Assign: {
+        // TODO If the thing in the left is untyped, infer from the right.
+        break;
+      }
+      default: {
+        // TODO Other cases.
+        break;
+      }
     }
-    // Resolve kids.
-    for (auto& kid: info.kids) {
-      switch (kid.kind) {
-        case NodeKind::Number: {
-          if (static_cast<NumberNode&>(*kid.info).is_fraction()) {
-            kid.type = std.get_def("F64")->type;
-          } else {
-            kid.type = std.get_def("I64")->type;
-          }
-          break;
+  }
+
+  auto resolve(Node& node) const -> void {
+    // Some base and other special cases.
+    switch (node.kind) {
+      case NodeKind::Number: {
+        if (static_cast<NumberNode&>(*node.info).is_fraction()) {
+          node.type = std.get_def("F64")->type;
+        } else {
+          node.type = std.get_def("I64")->type;
         }
-        case NodeKind::String: {
-          break;
+        return;
+      }
+      case NodeKind::String: {
+        // TODO String/array type!
+        return;
+      }
+      case NodeKind::Token: {
+        auto token = node.token();
+        if (token->state == TokenState::Id) {
+          // Resolve this!
+          // TODO Get the type of the referent.
+          // TODO If this is member access, we'll need to look elsewhere.
+          auto& info = static_cast<IdNode&>(*node.info);
+          // std::cout << "Resolve: " << node.token->text << std::endl;
+          info.referent = get_def(info.token->text);
+          // std::cout << "Referent: " << node.referent << std::endl;
         }
-        case NodeKind::Token: {
-          auto token = kid.token();
-          if (token->state == TokenState::Id) {
-            // Resolve this!
-            // TODO Get the type of the referent.
-            // TODO If this is member access, we'll need to look elsewhere.
-            auto& kid_info = static_cast<IdNode&>(*kid.info);
-            // std::cout << "Resolve: " << kid.token->text << std::endl;
-            kid_info.referent = get_def(kid_info.token->text);
-            // std::cout << "Referent: " << kid.referent << std::endl;
-          }
-          break;
-        }
-        default: {
-          // Deeper node.
-          resolve(kid);
+        return;
+      }
+      default: {
+        // First see if we have a new scope.
+        auto& info = static_cast<ParentNode&>(*node.info);
+        if (&node != &scope && info.symbols) {
+          // Deeper context.
+          Context inner{node, this};
+          inner.resolve(node);
+          return;
+        } else {
+          // Move on in the current context.
           break;
         }
       }
     }
-    // TODO Kids done, determine the type of this node.
+    // Parent with arbitrary kids, so recurse down.
+    auto& info = static_cast<ParentNode&>(*node.info);
+    for (auto& kid: info.kids) {
+      resolve(kid);
+    }
+    // TODO Also resolve overloaded operators.
+    // Kids done, determine the type of this node.
+    // TODO We also need to pass in expected type for some literal type like
+    // TODO objects, anonymous function return types, ...
+    infer_type(node);
   }
 
 };

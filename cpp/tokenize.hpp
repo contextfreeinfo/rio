@@ -45,6 +45,12 @@ enum struct TokenState {
   VSpace,
 };
 
+enum struct Nesting {
+  Flat,
+  LeftToRight,
+  RightToLeft,
+};
+
 auto name(TokenState state) -> std::string_view {
   switch (state) {
     case TokenState::Arrow: return "Arrow";
@@ -130,6 +136,22 @@ auto infix(TokenState state) -> bool {
   }
 }
 
+auto nesting(TokenState state) -> Nesting {
+  switch (state) {
+    case TokenState::Assign: {
+      return Nesting::RightToLeft;
+    }
+    case TokenState::Comma:
+    case TokenState::HSpace:
+    case TokenState::VSpace: {
+      return Nesting::Flat;
+    }
+    default: {
+      return Nesting::LeftToRight;
+    }
+  }
+};
+
 auto precedence(TokenState state) -> int {
   switch (state) {
     case TokenState::Eof: return 0;
@@ -177,6 +199,10 @@ struct Token {
 
   auto infix() const -> bool {
     return ::rio::infix(state);
+  }
+
+  auto nesting() const -> Nesting {
+    return ::rio::nesting(state);
   }
 
   auto precedence() const -> int {
