@@ -143,6 +143,7 @@ auto nesting(TokenState state) -> Nesting {
     }
     case TokenState::Comma:
     case TokenState::HSpace:
+    case TokenState::Semi:
     case TokenState::VSpace: {
       return Nesting::Flat;
     }

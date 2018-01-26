@@ -35,3 +35,5 @@ def a(): Bytes do
   let b = c
   return 'hi'
 end
+
+a = b = c + 1

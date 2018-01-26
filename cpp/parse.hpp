@@ -106,6 +106,7 @@ struct Parser {
     auto expr = parse_prefix();
     auto first = true;
     auto last_precedence = precedence;
+    One<Node> current = &expr;
     while (true) {
       auto& token = peek();
       if (token.state == TokenState::Eof) {
@@ -122,33 +123,37 @@ struct Parser {
         // Go to outer level.
         break;
       }
+      auto nesting = token.nesting();
       auto node_kind = infix ?
         token_to_node_kind(token.state) :
         (
+          nesting = Nesting::Flat,
           op_precedence = rio::precedence(TokenState::HSpace),
           NodeKind::Spaced
         );
-      // In https://github.com/KeepCalmAndLearnRust/pratt-parser they always
-      // nest binary ops left to right, so there's no need for this, but I
-      // want a flatter tree here, and I also want to keep skip tokens in
-      // the tree, so I can't always just nest.
-      // TODO Deep tree for binary ops even if not for lists/rows!!!!!
-      // TODO The type could change and therefore the referent at every pair!!!
-      // TODO Also right-to-left nesting for assignments!
-      // So we have to build out manually when precedence falls.
+      // We need a parent node for this expression.
+      // Also, we have to build out manually when precedence falls.
       // If precedence rises, we'll go deeper into the call stack.
-      // The precedence issue here is more for reset situations like new blocks
-      // and such.
-      if (first || last_precedence > op_precedence) {
+      // The precedence issue here is more for reset situations like new
+      // blocks and such.
+      // TODO ^ What does that ("reset situations") mean?
+      if (
+        first ||
+        last_precedence > op_precedence ||
+        nesting == Nesting::LeftToRight  // or RightToLeft changing curr?
+      ) {
         // println!("Got one inside");
         // TODO Figure out types.
         Node outer{node_kind};
+        // TODO Replace current, not expr, which is our outermost result.
         push(outer, std::move(expr));
         expr = std::move(outer);
+        current = &expr;
         // Past first.
         first = false;
       }
       if (infix) {
+        // TODO What for RightToLeft nesting?
         push_next(expr);
         // We can skip vertical after an infix operator.
         // This includes skipping other empty rows of vspace.
@@ -171,6 +176,7 @@ struct Parser {
       // println!("Post at {:?}", self.peek());
       auto kid = parse_expr(op_precedence);
       push(expr, std::move(kid));
+      // TODO For RightToLeft, make current be the newest??
       // Reset expectations for next time.
       last_precedence = op_precedence;
     }

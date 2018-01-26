@@ -15,6 +15,11 @@ using F64 = double;
 
 using I64 = int64_t;
 
+// Indicate a non-null pointer to a single item.
+// This is for cases where reassignment is needed so refs won't do.
+template<typename Item>
+using One = Item*;
+
 template<typename Item>
 using Opt = Item*;
 

@@ -143,28 +143,30 @@ Block {
 )
     Token HSpace[20, 1](  )
     Multiply
-      Parens
-        Token ParenOpen[20, 3](()
-        Add
-          Token Id[20, 4](x)
-          Token HSpace[20, 5]( )
-          Token Plus[20, 6](+)
-          Token HSpace[20, 7]( )
-          Number <I64 @ 11>
-            Token Int[20, 8](1)
-          Token HSpace[20, 9]( )
-          Token Plus[20, 10](-)
-          Token HSpace[20, 11]( )
-          Number <F64 @ 6>
-            Token Plus[20, 12](+)
-            Token Int[20, 13](0)
-            Token Dot[20, 14](.)
-            Token Fraction[20, 15](3)
-        Token ParenClose[20, 16]())
-      Token HSpace[20, 17]( )
-      Token Times[20, 18](*)
-      Token HSpace[20, 19]( )
-      Token Id[20, 20](y)
+      Multiply
+        Parens
+          Token ParenOpen[20, 3](()
+          Add
+            Add
+              Token Id[20, 4](x)
+              Token HSpace[20, 5]( )
+              Token Plus[20, 6](+)
+              Token HSpace[20, 7]( )
+              Number <I64 @ 11>
+                Token Int[20, 8](1)
+            Token HSpace[20, 9]( )
+            Token Plus[20, 10](-)
+            Token HSpace[20, 11]( )
+            Number <F64 @ 6>
+              Token Plus[20, 12](+)
+              Token Int[20, 13](0)
+              Token Dot[20, 14](.)
+              Token Fraction[20, 15](3)
+          Token ParenClose[20, 16]())
+        Token HSpace[20, 17]( )
+        Token Times[20, 18](*)
+        Token HSpace[20, 19]( )
+        Token Id[20, 20](y)
       Token HSpace[20, 21]( )
       Token Times[20, 22](/)
       Token HSpace[20, 23]( )
@@ -247,12 +249,13 @@ Block {
 )
   Spaced
     Add
-      Number <I64 @ 11>
-        Token Int[30, 1](1)
-      Token HSpace[30, 2]( )
-      Token Plus[30, 3](+)
-      Number <I64 @ 11>
-        Token Int[30, 4](1)
+      Add
+        Number <I64 @ 11>
+          Token Int[30, 1](1)
+        Token HSpace[30, 2]( )
+        Token Plus[30, 3](+)
+        Number <I64 @ 11>
+          Token Int[30, 4](1)
       Token HSpace[30, 5]( )
       Token Plus[30, 6](+)
       Token Semi[30, 7](;)
@@ -311,5 +314,24 @@ Block {
 )
         Token End[37, 1](end)
   Token VSpace[37, 4](
+
 )
-  Token Eof[37, 4]()
+  Assign
+    Token Id[39, 1](a) @ 23
+    Token HSpace[39, 2]( )
+    Token Assign[39, 3](=)
+    Token HSpace[39, 4]( )
+    Token Id[39, 5](b)
+    Token HSpace[39, 6]( )
+    Token Assign[39, 7](=)
+    Token HSpace[39, 8]( )
+    Add
+      Token Id[39, 9](c)
+      Token HSpace[39, 10]( )
+      Token Plus[39, 11](+)
+      Token HSpace[39, 12]( )
+      Number <I64 @ 11>
+        Token Int[39, 13](1)
+  Token VSpace[39, 14](
+)
+  Token Eof[39, 14]()
