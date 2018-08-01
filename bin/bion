@@ -1,0 +1,8 @@
+export IONHOME="$(dirname "$(dirname "$(readlink -f "$0")")")"
+export IONOS=linux
+
+if [ ! -e "$IONHOME/bin/ion" ]; then
+  "$IONHOME/build"
+fi
+
+"$IONHOME/bin/ion" "$@"

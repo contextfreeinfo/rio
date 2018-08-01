@@ -1,0 +1,14 @@
+export IONHOME="$(dirname "$(readlink -f "$0")")"
+export IONOS=linux
+
+cd "$IONHOME"
+
+if [ -e bin/ion ]; then
+  bin/ion -nosourcemap -notypeinfo -o c/out_ion_linux.c ion
+else
+  echo
+  echo "-- No ion binary found; using previously built c/out_ion_linux.c --"
+  echo
+fi
+
+gcc -o bin/ion c/ion.c

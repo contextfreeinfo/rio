@@ -1,0 +1,72 @@
+#foreign(header = "<dirent.h>")
+#foreign(preamble = "typedef struct dirent dirent;")
+
+@foreign
+const DT_DIR = 4;
+
+@foreign
+typedef DIR = void;
+
+@foreign
+struct dirent {
+    d_name: char*;
+    d_type: uchar;
+}
+
+@foreign
+func closedir(dirp: DIR*): int;
+
+@foreign
+func opendir(name: char const*): DIR*;
+
+@foreign
+func readdir(dir: DIR*): dirent*;
+
+@foreign
+func realpath(path: char const*, resolved_path: char const*): char*;
+
+@foreign
+func strdup(str: char const*): char*;
+
+func path_absolute(path: char[MAX_PATH]) {
+    rel_path: char[MAX_PATH];
+    path_copy(rel_path, path);
+    realpath(rel_path, path);
+}
+
+func dir_list_free(iter: DirListIter*) {
+    if (iter.valid) {
+        iter.valid = false;
+        iter.error = false;
+        closedir(iter.handle);
+    }
+}
+
+func dir_list_next(iter: DirListIter*) {
+    if (!iter.valid) {
+        return;
+    }
+    do {
+        entry := readdir(iter.handle);
+        if (!entry) {
+            dir_list_free(iter);
+            return;
+        }
+        path_copy(iter.name, entry.d_name);
+        iter.is_dir = entry.d_type & DT_DIR;
+    } while (dir_excluded(iter));
+}
+
+func dir_list(iter: DirListIter*, path: char const*) {
+    memset(iter, 0, sizeof(*iter));
+    dir := opendir(path);
+    if (!dir) {
+        iter.valid = false;
+        iter.error = true;
+        return;
+    }
+    iter.handle = dir;
+    path_copy(iter.base, path);
+    iter.valid = true;
+    dir_list_next(iter);
+}

@@ -1,0 +1,16 @@
+import libc {...}
+
+// Keep everything for now, because c code needs to access some things that ion
+// doesn't.
+#always
+
+var flag_verbose: bool;
+var flag_lazy: bool;
+var flag_nosourcemap: bool;
+var flag_notypeinfo: bool;
+var flag_fullgen: bool;
+
+func main(argc: int, argv: char const**): int {
+    // main_test();
+    return ion_main(argc, argv, gen_all, "c");
+}

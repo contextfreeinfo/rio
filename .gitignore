@@ -1,7 +1,9 @@
-/build*/
+/bin/ion
+/bin/ion.*
+/old/build*/
 /notes/
-/rust/target/
-/target/
+/old/rust/target/
+/old/target/
 /.vs/
 /.vscode/
 *.swp

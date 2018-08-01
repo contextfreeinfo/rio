@@ -1,0 +1,88 @@
+#foreign(header = "<errno.h>")
+#foreign(header = "<io.h>")
+// TODO: For some reason _finddata_t alone doesn't work. I have to be explicit.
+// #foreign(preamble = "typedef struct _finddata_t FindData;")
+#foreign(preamble = "typedef struct _finddata64i32_t FindData;")
+
+@foreign
+const _A_SUBDIR = 0x10;
+
+@foreign
+const ENOENT = 3025;
+
+@foreign
+struct FindData {
+    attrib: uint;
+    size: uint32;
+    name: char[MAX_PATH];
+}
+
+@foreign
+func _findclose(handle: intptr): int;
+
+@foreign
+func _findfirst(filespec: char const*, fileinfo: FindData*): intptr;
+
+@foreign
+func _findnext(handle: intptr, fileinfo: FindData*): int;
+
+@foreign
+func _fullpath(absPath: char*, relPath: char const*, maxLength: usize): char*;
+
+@foreign("_strdup")
+func strdup(strSource: char const*): char*;
+
+func path_absolute(path: char[MAX_PATH]) {
+    rel_path: char[MAX_PATH];
+    path_copy(rel_path, path);
+    _fullpath(path, rel_path, MAX_PATH);
+}
+
+func dir_list_free(iter: DirListIter*) {
+    if (iter.valid) {
+        _findclose((:intptr)iter.handle);
+        iter.valid = false;
+        iter.error = false;
+    }
+}
+
+func dir__update(iter: DirListIter*, done: bool, fileinfo: FindData*) {
+    iter.valid = !done;
+    iter.error = done && errno != ENOENT;
+    if (!done) {
+        iter.size = fileinfo.size;
+        memcpy(iter.name, fileinfo.name, sizeof(iter.name) - 1);
+        iter.name[MAX_PATH - 1] = 0;
+        iter.is_dir = fileinfo.attrib & _A_SUBDIR;
+    }
+}
+
+func dir_list_next(iter: DirListIter*) {
+    if (!iter.valid) {
+        return;
+    }
+    do {
+        fileinfo: FindData;
+        result := _findnext((:intptr)iter.handle, &fileinfo);
+        dir__update(iter, result != 0, &fileinfo);
+        if (result != 0) {
+            dir_list_free(iter);
+            return;
+        }
+    } while (dir_excluded(iter));
+}
+
+func dir_list(iter: DirListIter*, path: char const*) {
+    memset(iter, 0, sizeof(*iter));
+    path_copy(iter.base, path);
+    filespec: char[MAX_PATH];
+    path_copy(filespec, path);
+    path_join(filespec, "*");
+    fileinfo: FindData;
+    handle := _findfirst(filespec, &fileinfo);
+    iter.handle = (:void*)handle;
+    dir__update(iter, handle == -1, &fileinfo);
+    if (dir_excluded(iter)) {
+        dir_list_next(iter);
+    }
+}

@@ -1,0 +1,230 @@
+@foreign
+const MAX_PATH = 256;
+
+func path_normalize(path: char*) {
+    ptr: char*;
+    for (ptr = path; *ptr; ptr++) {
+        if (*ptr == '\\') {
+            *ptr = '/';
+        }
+    }
+    if (ptr != path && ptr[-1] == '/') {
+        ptr[-1] = 0;
+    }
+}
+
+func path_copy(path: char[MAX_PATH], src: char const*) {
+    strncpy(path, src, MAX_PATH);
+    path[MAX_PATH - 1] = 0;
+    path_normalize(path);
+}
+
+func path_join(path: char[MAX_PATH], src: char const*) {
+    ptr := path + strlen(path);
+    if (ptr != path && ptr[-1] == '/') {
+        ptr--;
+    }
+    if (*src == '/') {
+        src++;
+    }
+    snprintf(ptr, path + MAX_PATH - ptr, "/%s", src);
+}
+
+func path_file(path: char[MAX_PATH]): char* {
+    path_normalize(path);
+    for (ptr := path + strlen(path); ptr != path; ptr--) {
+        if (ptr[-1] == '/') {
+            return ptr;
+        }
+    }
+    return path;
+}
+
+func path_ext(path: char[MAX_PATH]): char* {
+    for (ptr: char* = path + strlen(path); ptr != path; ptr--) {
+        if (ptr[-1] == '.') {
+            return ptr;
+        }
+    }
+    return path;
+}
+
+struct DirListIter {
+    valid: bool;
+    error: bool;
+
+    base: char[MAX_PATH];
+    name: char[MAX_PATH];
+    size: usize;
+    is_dir: bool;
+
+    handle: void*;
+}
+
+func dir_excluded(iter: DirListIter*): bool {
+    return iter.valid && (strcmp(iter.name, ".") == 0 || strcmp(iter.name, "..") == 0);
+}
+
+func dir_list_subdir(iter: DirListIter*): bool {
+    if (!iter.valid || !iter.is_dir) {
+        return false;
+    }
+    subdir_iter: DirListIter;
+    path_join(iter.base, iter.name);
+    dir_list(&subdir_iter, iter.base);
+    dir_list_free(iter);
+    *iter = subdir_iter;
+    return true;
+}
+
+func dir_list_buf(filespec: char const*): char const** {
+    buf: char const** = NULL;
+    iter: DirListIter;
+    for (dir_list(&iter, filespec); iter.valid; dir_list_next(&iter)) {
+        name: char const* = strdup(iter.name);
+        buf_push((:void**)&buf, &name, sizeof(name));
+    }
+    return buf;
+}
+
+// Command line flag parsing
+
+enum FlagKind {
+    FLAG_BOOL,
+    FLAG_STR,
+    FLAG_ENUM,
+}
+
+struct FlagDef {
+    kind: FlagKind;
+    name: char const*;
+    help: char const*;
+    options: char const**;
+    arg_name: char const*;
+    num_options: int;
+    ptr: FlagDefPtr;
+}
+
+struct FlagDefPtr {
+    i: int*;
+    b: bool*;
+    s: char const**;
+}
+
+var flag_defs: FlagDef*;
+
+func add_flag_bool(name: char const*, ptr: bool*, help: char const*) {
+    def: FlagDef = {kind = FLAG_BOOL, name = name, help = help, ptr = {b = ptr}};
+    buf_push((:void**)&flag_defs, &def, sizeof(def));
+}
+
+func add_flag_str(name: char const*, ptr: char const**, arg_name: char const*, help: char const*) {
+    def: FlagDef = {kind = FLAG_STR, name = name, help = help, arg_name = arg_name, ptr = {s = ptr}};
+    buf_push((:void**)&flag_defs, &def, sizeof(def));
+}
+
+func add_flag_enum(name: char const*, ptr: int*, help: char const*, options: char const**, num_options: int) {
+    def: FlagDef = {kind = FLAG_ENUM, name = name, help = help, ptr = {i = ptr}, options = options, num_options = num_options};
+    buf_push((:void**)&flag_defs, &def, sizeof(def));
+}
+
+func get_flag_def(name: char const*): FlagDef* {
+    for (i: usize = 0; i < buf_len(flag_defs); i++) {
+        if (strcmp(flag_defs[i].name, name) == 0) {
+            return &flag_defs[i];
+        }
+    }
+    return NULL;
+}
+
+func print_flags_usage() {
+    printf("Flags:\n");
+    for (i: usize = 0; i < buf_len(flag_defs); i++) {
+        flag := flag_defs[i];
+        note: char[256];
+        format: char[256];
+        switch (flag.kind) {
+        case FLAG_STR:
+            snprintf(format, sizeof(format), "%s <%s>", flag.name, flag.arg_name ? flag.arg_name : (:char const*)"value");
+            if (*flag.ptr.s) {
+                snprintf(note, sizeof(note), "(default: %s)", *flag.ptr.s);
+            }
+        case FLAG_ENUM: {
+            end := format + sizeof(format);
+            ptr := format;
+            ptr += snprintf(ptr, end - ptr, "%s <", flag.name);
+            for (k := 0; k < flag.num_options; k++) {
+                ptr += snprintf(ptr, end - ptr, "%s%s", k == 0 ? "" : "|", flag.options[k]);
+                if (k == *flag.ptr.i) {
+                    snprintf(note, sizeof(note), " (default: %s)", flag.options[k]);
+                }
+            }
+            snprintf(ptr, end - ptr, ">");
+        }
+        case FLAG_BOOL:
+        default:
+            snprintf(format, sizeof(format), "%s", flag.name);
+        }
+        printf(" -%-32s %s%s\n", format, flag.help ? flag.help : (:char const*)"", note);
+    }
+}
+
+func parse_flags(argc_ptr: int*, argv_ptr: char const***): char const* {
+    argc := *argc_ptr;
+    argv := *argv_ptr;
+    i: int;
+    for (i = 1; i < argc; i++) {
+        arg := argv[i];
+        name := arg;
+        if (*name == '-') {
+            name++;
+            if (*name == '-') {
+                name++;
+            }
+            flag := get_flag_def(name);
+            if (!flag) {
+                printf("Unknown flag %s\n", arg);
+                continue;
+            }
+            switch (flag.kind) {
+            case FLAG_BOOL:
+                *flag.ptr.b = true;
+            case FLAG_STR:
+                if (i + 1 < argc) {
+                    i++;
+                    *flag.ptr.s = argv[i];
+                } else {
+                    printf("No value argument after -%s\n", arg);
+                }
+            case FLAG_ENUM: {
+                option: char const*;
+                if (i + 1 < argc) {
+                    i++;
+                    option = argv[i];
+                } else {
+                    printf("No value after %s\n", arg);
+                    break;
+                }
+                found := false;
+                for (k := 0; k < flag.num_options; k++) {
+                    if (strcmp(flag.options[k], option) == 0) {
+                        *flag.ptr.i = k;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    printf("Invalid value '%s' for %s\n", option, arg);
+                }
+            }
+            default:
+                printf("Unhandled flag kind\n");
+            }
+        } else {
+            break;
+        }
+    }
+    *argc_ptr = argc - i;
+    *argv_ptr = argv + i;
+    return path_file(strdup(argv[0]));
+}

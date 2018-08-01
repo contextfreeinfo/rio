@@ -1,0 +1,6 @@
+ion_dir="$(dirname "$(readlink -f "$0")")"
+. "$ion_dir/build"
+export PATH="$ion_dir/bin:$PATH"
+cd "$ion_dir/tests"
+bion -nosourcemap -o c\out_test1_linux.c test1
+bion -nosourcemap -o c\out_test2_linux.c test2
