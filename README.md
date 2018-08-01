@@ -1,10 +1,16 @@
-# Ion
+# Ion -> Rio
 
 
 ## Overview
 
 At present, this is a port of the Ion compiler from C to Ion, derived directly
 from Per Vognsen's [Bitwise](https://github.com/pervognsen/bitwise) project.
+
+I've moved it here to my old Rio project to give myself more permission to
+evolve it a different direction.
+And Ion bootstraps me a lot further than I'd gotten on my own.
+
+Updates might be coming.
 
 
 ## Usage
