@@ -8767,7 +8767,7 @@ bool ion_is_package_dir(char const ((*search_path)), char const ((*package_path)
     ion_DirListIter iter = {0};
     for (ion_dir_list(&(iter), path); iter.valid; ion_dir_list_next(&(iter))) {
         char const ((*ext)) = ion_path_ext(iter.name);
-        if (((ext) != (iter.name)) && ((strcmp(ext, "ion")) == (0))) {
+        if (((ext) != (iter.name)) && (!(strcmp(ext, "rio")))) {
             ion_dir_list_free(&(iter));
             return true;
         }
@@ -8871,7 +8871,7 @@ bool ion_parse_package(ion_Package (*package)) {
         char (name[MAX_PATH]) = {0};
         ion_path_copy(name, iter.name);
         char (*ext) = ion_path_ext(name);
-        if (((ext) == (name)) || ((strcmp(ext, "ion")) != (0))) {
+        if (((ext) == (name)) || (strcmp(ext, "rio"))) {
             continue;
         }
         ext[-(1)] = 0;

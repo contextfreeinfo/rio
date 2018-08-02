@@ -2038,7 +2038,7 @@ fn is_package_dir(search_path: char const*, package_path: char const*): bool {
     iter: DirListIter;
     for (dir_list(&iter, path); iter.valid; dir_list_next(&iter)) {
         ext: char const* = path_ext(iter.name);
-        if (ext != iter.name && strcmp(ext, "ion") == 0) {
+        if (ext != iter.name && !strcmp(ext, "rio")) {
             dir_list_free(&iter);
             return true;
         }
@@ -2143,7 +2143,7 @@ fn parse_package(package: Package*): bool {
         name: char[MAX_PATH];
         path_copy(name, iter.name);
         ext: char* = path_ext(name);
-        if (ext == name || strcmp(ext, "ion") != 0) {
+        if (ext == name || strcmp(ext, "rio")) {
             continue;
         }
         ext[-1] = 0;
