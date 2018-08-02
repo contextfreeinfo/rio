@@ -1,338 +1,338 @@
 #foreign(header = "<math.h>")
 
 @foreign("acosf")
-func acos(x: float): float;
+fn acos(x: float): float;
 
 @foreign("acos")
-func acosd(x: double): double;
+fn acosd(x: double): double;
 
 @foreign("asinf")
-func asin(x: float): float;
+fn asin(x: float): float;
 
 @foreign("asin")
-func asind(x: double): double;
+fn asind(x: double): double;
 
 @foreign("atanf")
-func atan(x: float): float;
+fn atan(x: float): float;
 
 @foreign("atan")
-func atand(x: double): double;
+fn atand(x: double): double;
 
 @foreign("atan2f")
-func atan2(y: float, x: float): float;
+fn atan2(y: float, x: float): float;
 
 @foreign("atan2")
-func atan2d(y: double, x: double): double;
+fn atan2d(y: double, x: double): double;
 
 @foreign("cosf")
-func cos(x: float): float;
+fn cos(x: float): float;
 
 @foreign("cos")
-func cosd(x: double): double;
+fn cosd(x: double): double;
 
 @foreign("sinf")
-func sin(x: float): float;
+fn sin(x: float): float;
 
 @foreign("sin")
-func sind(x: double): double;
+fn sind(x: double): double;
 
 @foreign("tanf")
-func tan(x: float): float;
+fn tan(x: float): float;
 
 @foreign("tan")
-func tand(x: double): double;
+fn tand(x: double): double;
 
 @foreign("acoshf")
-func acosh(x: float): float;
+fn acosh(x: float): float;
 
 @foreign("acosh")
-func acoshd(x: double): double;
+fn acoshd(x: double): double;
 
 @foreign("asinhf")
-func asinh(x: float): float;
+fn asinh(x: float): float;
 
 @foreign("asinh")
-func asinhd(x: double): double;
+fn asinhd(x: double): double;
 
 @foreign("atanhf")
-func atanh(x: float): float;
+fn atanh(x: float): float;
 
 @foreign("atanh")
-func atanhd(x: double): double;
+fn atanhd(x: double): double;
 
 @foreign("coshf")
-func cosh(x: float): float;
+fn cosh(x: float): float;
 
 @foreign("cosh")
-func coshd(x: double): double;
+fn coshd(x: double): double;
 
 @foreign("sinhf")
-func sinh(x: float): float;
+fn sinh(x: float): float;
 
 @foreign("sinh")
-func sinhd(x: double): double;
+fn sinhd(x: double): double;
 
 @foreign("tanhf")
-func tanh(x: float): float;
+fn tanh(x: float): float;
 
 @foreign("tanh")
-func tanhd(x: double): double;
+fn tanhd(x: double): double;
 
 @foreign("expf")
-func exp(x: float): float;
+fn exp(x: float): float;
 
 @foreign("exp")
-func expd(x: double): double;
+fn expd(x: double): double;
 
 @foreign("exp2f")
-func exp2(x: float): float;
+fn exp2(x: float): float;
 
 @foreign("exp2")
-func exp2d(x: double): double;
+fn exp2d(x: double): double;
 
 @foreign("expm1f")
-func expm1(x: float): float;
+fn expm1(x: float): float;
 
 @foreign("expm1")
-func expm1d(x: double): double;
+fn expm1d(x: double): double;
 
 @foreign("frexpf")
-func frexp(value: float, exp: int*): float;
+fn frexp(value: float, exp: int*): float;
 
 @foreign("frexp")
-func frexpd(value: double, exp: int*): double;
+fn frexpd(value: double, exp: int*): double;
 
 @foreign("ilogbf")
-func ilogb(x: float): int;
+fn ilogb(x: float): int;
 
 @foreign("ilogb")
-func ilogbd(x: double): int;
+fn ilogbd(x: double): int;
 
 @foreign("ldexpf")
-func ldexp(x: float, exp: int): float;
+fn ldexp(x: float, exp: int): float;
 
 @foreign("ldexp")
-func ldexpd(x: double, exp: int): double;
+fn ldexpd(x: double, exp: int): double;
 
 @foreign("logf")
-func log(x: float): float;
+fn log(x: float): float;
 
 @foreign("log")
-func logd(x: double): double;
+fn logd(x: double): double;
 
 @foreign("log10f")
-func log10(x: float): float;
+fn log10(x: float): float;
 
 @foreign("log10")
-func log10d(x: double): double;
+fn log10d(x: double): double;
 
 @foreign("log1pf")
-func log1p(x: float): float;
+fn log1p(x: float): float;
 
 @foreign("log1p")
-func log1pd(x: double): double;
+fn log1pd(x: double): double;
 
 @foreign("log2f")
-func log2(x: float): float;
+fn log2(x: float): float;
 
 @foreign("log2")
-func log2d(x: double): double;
+fn log2d(x: double): double;
 
 @foreign("logbf")
-func logb(x: float): float;
+fn logb(x: float): float;
 
 @foreign("logb")
-func logbd(x: double): double;
+fn logbd(x: double): double;
 
 @foreign("modff")
-func modf(value: float, iptr: float*): float;
+fn modf(value: float, iptr: float*): float;
 
 @foreign("modf")
-func modfd(value: double, iptr: double*): double;
+fn modfd(value: double, iptr: double*): double;
 
 @foreign("scalbnf")
-func scalbn(x: float, n: int): float;
+fn scalbn(x: float, n: int): float;
 
 @foreign("scalbn")
-func scalbnd(x: double, n: int): double;
+fn scalbnd(x: double, n: int): double;
 
 @foreign("scalblnf")
-func scalbln(x: float, n: long): float;
+fn scalbln(x: float, n: long): float;
 
 @foreign("scalbln")
-func scalblnd(x: double, n: long): double;
+fn scalblnd(x: double, n: long): double;
 
 @foreign("cbrtf")
-func cbrt(x: float): float;
+fn cbrt(x: float): float;
 
 @foreign("cbrt")
-func cbrtd(x: double): double;
+fn cbrtd(x: double): double;
 
 @foreign("fabsf")
-func fabs(x: float): float;
+fn fabs(x: float): float;
 
 @foreign("fabs")
-func fabsd(x: double): double;
+fn fabsd(x: double): double;
 
 @foreign("hypotf")
-func hypot(x: float, y: float): float;
+fn hypot(x: float, y: float): float;
 
 @foreign("hypot")
-func hypotd(x: double, y: double): double;
+fn hypotd(x: double, y: double): double;
 
 @foreign("powf")
-func pow(x: float, y: float): float;
+fn pow(x: float, y: float): float;
 
 @foreign("pow")
-func powd(x: double, y: double): double;
+fn powd(x: double, y: double): double;
 
 @foreign("sqrtf")
-func sqrt(x: float): float;
+fn sqrt(x: float): float;
 
 @foreign("sqrt")
-func sqrtd(x: double): double;
+fn sqrtd(x: double): double;
 
 @foreign("erff")
-func erf(x: float): float;
+fn erf(x: float): float;
 
 @foreign("erf")
-func erfd(x: double): double;
+fn erfd(x: double): double;
 
 @foreign("erfcf")
-func erfc(x: float): float;
+fn erfc(x: float): float;
 
 @foreign("erfc")
-func erfcd(x: double): double;
+fn erfcd(x: double): double;
 
 @foreign("lgammaf")
-func lgamma(x: float): float;
+fn lgamma(x: float): float;
 
 @foreign("lgamma")
-func lgammad(x: double): double;
+fn lgammad(x: double): double;
 
 @foreign("tgammaf")
-func tgamma(x: float): float;
+fn tgamma(x: float): float;
 
 @foreign("tgamma")
-func tgammad(x: double): double;
+fn tgammad(x: double): double;
 
 @foreign("ceilf")
-func ceil(x: float): float;
+fn ceil(x: float): float;
 
 @foreign("ceil")
-func ceild(x: double): double;
+fn ceild(x: double): double;
 
 @foreign("floorf")
-func floor(x: float): float;
+fn floor(x: float): float;
 
 @foreign("floor")
-func floord(x: double): double;
+fn floord(x: double): double;
 
 @foreign("nearbyintf")
-func nearbyint(x: float): float;
+fn nearbyint(x: float): float;
 
 @foreign("nearbyint")
-func nearbyintd(x: double): double;
+fn nearbyintd(x: double): double;
 
 @foreign("rintf")
-func rint(x: float): float;
+fn rint(x: float): float;
 
 @foreign("rint")
-func rintd(x: double): double;
+fn rintd(x: double): double;
 
 @foreign("lrintf")
-func lrint(x: float): long;
+fn lrint(x: float): long;
 
 @foreign("lrint")
-func lrintd(x: double): long;
+fn lrintd(x: double): long;
 
 @foreign("llrintf")
-func llrint(x: float): llong;
+fn llrint(x: float): llong;
 
 @foreign("llrint")
-func llrintd(x: double): llong;
+fn llrintd(x: double): llong;
 
 @foreign("roundf")
-func round(x: float): float;
+fn round(x: float): float;
 
 @foreign("round")
-func roundd(x: double): double;
+fn roundd(x: double): double;
 
 @foreign("lroundf")
-func lroun(x: float): long;
+fn lroun(x: float): long;
 
 @foreign("lround")
-func lroundd(x: double): long;
+fn lroundd(x: double): long;
 
 @foreign("lroundf")
-func llround(x: float): llong;
+fn llround(x: float): llong;
 
 @foreign("lround")
-func llroundd(x: double): llong;
+fn llroundd(x: double): llong;
 
 @foreign("truncf")
-func trunc(x: float): float;
+fn trunc(x: float): float;
 
 @foreign("trunc")
-func truncd(x: double): double;
+fn truncd(x: double): double;
 
 @foreign("fmodf")
-func fmod(x: float, y: float): float;
+fn fmod(x: float, y: float): float;
 
 @foreign("fmod")
-func fmodd(x: double, y: double): double;
+fn fmodd(x: double, y: double): double;
 
 @foreign("remainderf")
-func remainder(x: float, y: float): float;
+fn remainder(x: float, y: float): float;
 
 @foreign("remainder")
-func remainderd(x: double, y: double): double;
+fn remainderd(x: double, y: double): double;
 
 @foreign("remquof")
-func remquo(x: float, y: float, quo: int*): float;
+fn remquo(x: float, y: float, quo: int*): float;
 
 @foreign("remquo")
-func remquod(x: double, y: double, quo: int*): double;
+fn remquod(x: double, y: double, quo: int*): double;
 
 @foreign("copysignf")
-func copysign(x: float, y: float): float;
+fn copysign(x: float, y: float): float;
 
 @foreign("copysign")
-func copysignd(x: double, y: double): double;
+fn copysignd(x: double, y: double): double;
 
 @foreign("nanf")
-func nan(tagp: char const*): float;
+fn nan(tagp: char const*): float;
 
 @foreign("nan")
-func nand(tagp: char const*): double;
+fn nand(tagp: char const*): double;
 
 @foreign("nextafterf")
-func nextafter(x: float, y: float): float;
+fn nextafter(x: float, y: float): float;
 
 @foreign("nextafter")
-func nextafterd(x: double, y: double): double;
+fn nextafterd(x: double, y: double): double;
 
 @foreign("fdimf")
-func fdim(x: float, y: float): float;
+fn fdim(x: float, y: float): float;
 
 @foreign("fdim")
-func fdimd(x: double, y: double): double;
+fn fdimd(x: double, y: double): double;
 
 @foreign("fmaxf")
-func fmax(x: float, y: float): float;
+fn fmax(x: float, y: float): float;
 
 @foreign("fmax")
-func fmaxd(x: double, y: double): double;
+fn fmaxd(x: double, y: double): double;
 
 @foreign("fminf")
-func fmin(x: float, y: float): float;
+fn fmin(x: float, y: float): float;
 
 @foreign("fmin")
-func fmind(x: double, y: double): double;
+fn fmind(x: double, y: double): double;
 
 @foreign("fmaf")
-func fma(x: float, y: float, z: float): float;
+fn fma(x: float, y: float, z: float): float;
 
 @foreign("fma")
-func fmad(x: double, y: double, z: double): double;
+fn fmad(x: double, y: double, z: double): double;
 

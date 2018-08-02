@@ -58,11 +58,11 @@ enum {
 
 var reachable_phase: uint8 = REACHABLE_NATURAL;
 
-func get_package_sym(package: Package*, name: char const*): Sym* {
+fn get_package_sym(package: Package*, name: char const*): Sym* {
     return map_get(&package.syms_map, name);
 }
 
-func add_package(package: Package*) {
+fn add_package(package: Package*) {
     old_package: Package* = map_get(&package_map, package.path);
     if (old_package != package) {
         #assert(!old_package);
@@ -71,13 +71,13 @@ func add_package(package: Package*) {
     }
 }
 
-func enter_package(new_package: Package*): Package* {
+fn enter_package(new_package: Package*): Package* {
     old_package := current_package;
     current_package = new_package;
     return old_package;
 }
 
-func leave_package(old_package: Package*) {
+fn leave_package(old_package: Package*) {
     current_package = old_package;
 }
 
@@ -86,11 +86,11 @@ var sorted_syms: Sym**;
 var local_syms: Sym[MAX_LOCAL_SYMS];
 var local_syms_end: Sym* = local_syms;
 
-func is_local_sym(sym: Sym*): bool {
+fn is_local_sym(sym: Sym*): bool {
     return local_syms <= sym && sym < local_syms_end;
 }
 
-func sym_new(kind: SymKind, name: char const*, decl: Decl*): Sym* {
+fn sym_new(kind: SymKind, name: char const*, decl: Decl*): Sym* {
     sym: Sym* = xcalloc(1, sizeof(Sym));
     sym.kind = kind;
     sym.name = name;
@@ -100,7 +100,7 @@ func sym_new(kind: SymKind, name: char const*, decl: Decl*): Sym* {
     return sym;
 }
 
-func process_decl_notes(decl: Decl*, sym: Sym*) {
+fn process_decl_notes(decl: Decl*, sym: Sym*) {
     foreign_note := get_decl_note(decl, foreign_name);
     if (foreign_note) {
         if (foreign_note.num_args > 1) {
@@ -120,7 +120,7 @@ func process_decl_notes(decl: Decl*, sym: Sym*) {
     }
 }
 
-func sym_decl(decl: Decl*): Sym* {
+fn sym_decl(decl: Decl*): Sym* {
     kind: SymKind = SYM_NONE;
     switch (decl.kind) {
     case DECL_STRUCT:
@@ -143,7 +143,7 @@ func sym_decl(decl: Decl*): Sym* {
     return sym;
 }
 
-func sym_get_local(name: char const*): Sym* {
+fn sym_get_local(name: char const*): Sym* {
     for (it := local_syms_end; it != local_syms; it--) {
         sym := it-1;
         if (sym.name == name) {
@@ -153,12 +153,12 @@ func sym_get_local(name: char const*): Sym* {
     return NULL;
 }
 
-func sym_get(name: char const*): Sym* {
+fn sym_get(name: char const*): Sym* {
     sym := sym_get_local(name);
     return sym ? sym : get_package_sym(current_package, name);
 }
 
-func sym_push_var(name: char const*, type: Type*): bool {
+fn sym_push_var(name: char const*, type: Type*): bool {
     if (sym_get_local(name)) {
         return false;
     }
@@ -174,15 +174,15 @@ func sym_push_var(name: char const*, type: Type*): bool {
     return true;
 }
 
-func sym_enter(): Sym* {
+fn sym_enter(): Sym* {
     return local_syms_end;
 }
 
-func sym_leave(sym: Sym*) {
+fn sym_leave(sym: Sym*) {
     local_syms_end = sym;
 }
 
-func sym_global_put(name: char const*, sym: Sym*) {
+fn sym_global_put(name: char const*, sym: Sym*) {
     old_sym: Sym* = map_get(&current_package.syms_map, name);
     if (old_sym) {
         if (sym == old_sym) {
@@ -201,7 +201,7 @@ func sym_global_put(name: char const*, sym: Sym*) {
     buf_push((:void**)&current_package.syms, &sym, sizeof(sym));
 }
 
-func sym_global_type(name: char const*, type: Type*): Sym* {
+fn sym_global_type(name: char const*, type: Type*): Sym* {
     name = str_intern(name);
     sym := sym_new(SYM_TYPE, name, NULL);
     sym.state = SYM_RESOLVED;
@@ -211,7 +211,7 @@ func sym_global_type(name: char const*, type: Type*): Sym* {
     return sym;
 }
 
-func sym_global_decl(decl: Decl*): Sym* {
+fn sym_global_decl(decl: Decl*): Sym* {
     sym: Sym* = NULL;
     if (decl.name) {
         sym = sym_decl(decl);
@@ -239,7 +239,7 @@ func sym_global_decl(decl: Decl*): Sym* {
     return sym;
 }
 
-func put_type_name(buf: char**, type: Type*) {
+fn put_type_name(buf: char**, type: Type*) {
     type_name := type_names[type.kind];
     if (type_name) {
         buf_printf(buf, "%s", type_name);
@@ -261,7 +261,7 @@ func put_type_name(buf: char**, type: Type*) {
             put_type_name(buf, type.base);
             buf_printf(buf, "[%zu]", type.num_elems);
         case CMPL_TYPE_FUNC:
-            buf_printf(buf, "func(");
+            buf_printf(buf, "fn(");
             for (i: usize = 0; i < type.function.num_params; i++) {
                 if (i != 0) {
                     buf_printf(buf, ", ");
@@ -282,7 +282,7 @@ func put_type_name(buf: char**, type: Type*) {
     }
 }
 
-func get_type_name(type: Type*): char* {
+fn get_type_name(type: Type*): char* {
     buf: char* = NULL;
     put_type_name(&buf, type);
     return buf;
@@ -297,20 +297,20 @@ struct Operand {
 
 var operand_null: Operand;
 
-func operand_rvalue(type: Type*): Operand {
+fn operand_rvalue(type: Type*): Operand {
     return Operand {
         type = unqualify_type(type),
     };
 }
 
-func operand_lvalue(type: Type*): Operand {
+fn operand_lvalue(type: Type*): Operand {
     return Operand {
         type = type,
         is_lvalue = true,
     };
 }
 
-func operand_const(type: Type*, val: Val): Operand {
+fn operand_const(type: Type*, val: Val): Operand {
     return Operand {
         type = unqualify_type(type),
         is_const = true,
@@ -318,7 +318,7 @@ func operand_const(type: Type*, val: Val): Operand {
     };
 }
 
-func type_decay(type: Type*): Type* {
+fn type_decay(type: Type*): Type* {
     type = unqualify_type(type);
     if (type.kind == CMPL_TYPE_ARRAY) {
         type = type_ptr(type.base);
@@ -326,7 +326,7 @@ func type_decay(type: Type*): Type* {
     return type;
 }
 
-func operand_decay(operand: Operand): Operand {
+fn operand_decay(operand: Operand): Operand {
     operand.type = type_decay(operand.type);
     operand.is_lvalue = false;
     return operand;
@@ -334,7 +334,7 @@ func operand_decay(operand: Operand): Operand {
 
 // #define CASE(k, t)
 
-func is_convertible(operand: Operand*, dest: Type*): bool {
+fn is_convertible(operand: Operand*, dest: Type*): bool {
     dest = unqualify_type(dest);
     src := unqualify_type(operand.type);
     if (dest == src) {
@@ -361,7 +361,7 @@ func is_convertible(operand: Operand*, dest: Type*): bool {
     }
 }
 
-func is_castable(operand: Operand*, dest: Type*): bool {
+fn is_castable(operand: Operand*, dest: Type*): bool {
     src := operand.type;
     if (is_convertible(operand, dest)) {
         return true;
@@ -377,9 +377,9 @@ func is_castable(operand: Operand*, dest: Type*): bool {
 }
 
 @foreign
-func cast_operand(operand: Operand*, type: Type*): bool;
+fn cast_operand(operand: Operand*, type: Type*): bool;
 
-func convert_operand(operand: Operand*, type: Type*): bool {
+fn convert_operand(operand: Operand*, type: Type*): bool {
     if (is_convertible(operand, type)) {
         cast_operand(operand, type);
         operand.type = unqualify_type(operand.type);
@@ -391,7 +391,7 @@ func convert_operand(operand: Operand*, type: Type*): bool {
 
 // #undef CASE
 
-func is_null_ptr(operand: Operand): bool {
+fn is_null_ptr(operand: Operand): bool {
     if (operand.is_const && (is_ptr_type(operand.type) || is_integer_type(operand.type))) {
         cast_operand(&operand, type_ullong);
         return operand.val.ull == 0;
@@ -400,7 +400,7 @@ func is_null_ptr(operand: Operand): bool {
     }
 }
 
-func promote_operand(operand: Operand*) {
+fn promote_operand(operand: Operand*) {
     switch (operand.type.kind) {
     case CMPL_TYPE_BOOL:
     case CMPL_TYPE_CHAR:
@@ -415,7 +415,7 @@ func promote_operand(operand: Operand*) {
     }
 }
 
-func unify_arithmetic_operands(left: Operand*, right: Operand*) {
+fn unify_arithmetic_operands(left: Operand*, right: Operand*) {
     if (left.type == type_double) {
         cast_operand(right, type_double);
     } else if (right.type == type_double) {
@@ -456,7 +456,7 @@ func unify_arithmetic_operands(left: Operand*, right: Operand*) {
 
 var resolved_val_map: Map;
 
-func get_resolved_val(ptr: void*): Val {
+fn get_resolved_val(ptr: void*): Val {
     u64: uint64 = map_get_uint64(&resolved_val_map, ptr);
     val: Val;
     #assert(sizeof(val) == sizeof(u64));
@@ -464,7 +464,7 @@ func get_resolved_val(ptr: void*): Val {
     return val;
 }
 
-func set_resolved_val(ptr: void*, val: Val) {
+fn set_resolved_val(ptr: void*, val: Val) {
     u64: uint64;
     #assert(sizeof(val) == sizeof(u64));
     memcpy(&u64, &val, sizeof(val));
@@ -473,21 +473,21 @@ func set_resolved_val(ptr: void*, val: Val) {
 
 var resolved_type_map: Map;
 
-func get_resolved_type(ptr: void*): Type* {
+fn get_resolved_type(ptr: void*): Type* {
     return map_get(&resolved_type_map, ptr);
 }
 
-func set_resolved_type(ptr: void*, type: Type*) {
+fn set_resolved_type(ptr: void*, type: Type*) {
     map_put(&resolved_type_map, ptr, type);
 }
 
 var resolved_sym_map: Map;
 
-func get_resolved_sym(ptr: void const*): Sym* {
+fn get_resolved_sym(ptr: void const*): Sym* {
     return map_get(&resolved_sym_map, ptr);
 }
 
-func set_resolved_sym(ptr: void const*, sym: Sym*) {
+fn set_resolved_sym(ptr: void const*, sym: Sym*) {
     if (!is_local_sym(sym)) {
         map_put(&resolved_sym_map, ptr, sym);
     }
@@ -495,29 +495,29 @@ func set_resolved_sym(ptr: void const*, sym: Sym*) {
 
 var resolved_expected_type_map: Map;
 
-func get_resolved_expected_type(expr: Expr*): Type* {
+fn get_resolved_expected_type(expr: Expr*): Type* {
     return map_get(&resolved_expected_type_map, expr);
 }
 
-func set_resolved_expected_type(expr: Expr*, type: Type*) {
+fn set_resolved_expected_type(expr: Expr*, type: Type*) {
     if (expr && type) {
         map_put(&resolved_expected_type_map, expr, type);
     }
 }
 
-func resolve_expr(expr: Expr*): Operand {
+fn resolve_expr(expr: Expr*): Operand {
     return resolve_expected_expr(expr, NULL);
 }
 
-func resolve_expr_rvalue(expr: Expr*): Operand {
+fn resolve_expr_rvalue(expr: Expr*): Operand {
     return operand_decay(resolve_expr(expr));
 }
 
-func resolve_expected_expr_rvalue(expr: Expr*, expected_type: Type*): Operand {
+fn resolve_expected_expr_rvalue(expr: Expr*, expected_type: Type*): Operand {
     return operand_decay(resolve_expected_expr(expr, expected_type));
 }
 
-func resolve_typespec(typespec: Typespec*): Type* {
+fn resolve_typespec(typespec: Typespec*): Type* {
     if (!typespec) {
         return type_void;
     }
@@ -580,7 +580,7 @@ func resolve_typespec(typespec: Typespec*): Type* {
     return result;
 }
 
-func complete_aggregate(type: Type*, aggregate: Aggregate*): Type* {
+fn complete_aggregate(type: Type*, aggregate: Aggregate*): Type* {
     fields: TypeField*;
     for (i: usize = 0; i < aggregate.num_items; i++) {
         item := aggregate.items[i];
@@ -620,7 +620,7 @@ func complete_aggregate(type: Type*, aggregate: Aggregate*): Type* {
     return type;
 }
 
-func complete_type(type: Type*) {
+fn complete_type(type: Type*) {
     if (type.kind == CMPL_TYPE_COMPLETING) {
         fatal_error(type.sym.decl.pos, "Type completion cycle");
         return;
@@ -640,7 +640,7 @@ func complete_type(type: Type*) {
     leave_package(old_package);
 }
 
-func resolve_typed_init(pos: SrcPos, type: Type*, expr: Expr*): Type* {
+fn resolve_typed_init(pos: SrcPos, type: Type*, expr: Expr*): Type* {
     expected_type := unqualify_type(type);
     operand: Operand = resolve_expected_expr(expr, expected_type);
     if (is_incomplete_array_type(type) && is_array_type(operand.type) && type.base == operand.type.base) {
@@ -657,7 +657,7 @@ func resolve_typed_init(pos: SrcPos, type: Type*, expr: Expr*): Type* {
     return operand.type;
 }
 
-func resolve_init(pos: SrcPos, typespec: Typespec*, expr: Expr*): Type* {
+fn resolve_init(pos: SrcPos, typespec: Typespec*, expr: Expr*): Type* {
     type: Type*;
     if (typespec) {
         declared_type := resolve_typespec(typespec);
@@ -684,12 +684,12 @@ func resolve_init(pos: SrcPos, typespec: Typespec*, expr: Expr*): Type* {
     return type;
 }
 
-func resolve_decl_var(decl: Decl*): Type* {
+fn resolve_decl_var(decl: Decl*): Type* {
     #assert(decl.kind == DECL_VAR);
     return resolve_init(decl.pos, decl.var_decl.type, decl.var_decl.expr);
 }
 
-func resolve_decl_const(decl: Decl*, val: Val*): Type* {
+fn resolve_decl_const(decl: Decl*, val: Val*): Type* {
     #assert(decl.kind == DECL_CONST);
     result := resolve_const_expr(decl.const_decl.expr);
     if (!is_scalar_type(result.type)) {
@@ -705,7 +705,7 @@ func resolve_decl_const(decl: Decl*, val: Val*): Type* {
     return result.type;
 }
 
-func resolve_decl_func(decl: Decl*): Type* {
+fn resolve_decl_func(decl: Decl*): Type* {
     #assert(decl.kind == DECL_FUNC);
     params: Type** = NULL;
     for (i: usize = 0; i < decl.function.num_params; i++) {
@@ -744,7 +744,7 @@ const MAX_LABELS = 256;
 var labels: Label[MAX_LABELS];
 var labels_end: Label* = labels;
 
-func get_label(pos: SrcPos, name: char const*): Label* {
+fn get_label(pos: SrcPos, name: char const*): Label* {
     label: Label*;
     for (label = labels; label != labels_end; label++) {
         if (label.name == name) {
@@ -759,12 +759,12 @@ func get_label(pos: SrcPos, name: char const*): Label* {
     return label;
 }
 
-func reference_label(pos: SrcPos, name: char const*) {
+fn reference_label(pos: SrcPos, name: char const*) {
     label := get_label(pos, name);
     label.referenced = true;
 }
 
-func define_label(pos: SrcPos, name: char const*) {
+fn define_label(pos: SrcPos, name: char const*) {
     label := get_label(pos, name);
     if (label.defined) {
         fatal_error(pos, "Multiple definitions of label '%s'", name);
@@ -772,7 +772,7 @@ func define_label(pos: SrcPos, name: char const*) {
     label.defined = true;
 }
 
-func resolve_labels() {
+fn resolve_labels() {
     for (label := labels; label != labels_end; label++) {
         if (label.referenced && !label.defined) {
             fatal_error(label.pos, "Label '%s' referenced but not defined", label.name);
@@ -784,19 +784,19 @@ func resolve_labels() {
     labels_end = labels;
 }
 
-func is_cond_operand(operand: Operand): bool {
+fn is_cond_operand(operand: Operand): bool {
     operand = operand_decay(operand);
     return is_scalar_type(operand.type);
 }
 
-func resolve_cond_expr(expr: Expr*) {
+fn resolve_cond_expr(expr: Expr*) {
     cond := resolve_expr_rvalue(expr);
     if (!is_cond_operand(cond)) {
         fatal_error(expr.pos, "Conditional expression must have scalar type");
     }
 }
 
-func resolve_stmt_block(block: StmtList, ret_type: Type*, ctx: StmtCtx): bool {
+fn resolve_stmt_block(block: StmtList, ret_type: Type*, ctx: StmtCtx): bool {
     scope := sym_enter();
     returns := false;
     for (i: usize = 0; i < block.num_stmts; i++) {
@@ -806,7 +806,7 @@ func resolve_stmt_block(block: StmtList, ret_type: Type*, ctx: StmtCtx): bool {
     return returns;
 }
 
-func resolve_stmt_assign(stmt: Stmt*) {
+fn resolve_stmt_assign(stmt: Stmt*) {
     #assert(stmt.kind == STMT_ASSIGN);
     left := resolve_expr(stmt.assign.left);
     if (!left.is_lvalue) {
@@ -840,7 +840,7 @@ func resolve_stmt_assign(stmt: Stmt*) {
     }
 }
 
-func resolve_stmt_init(stmt: Stmt*) {
+fn resolve_stmt_init(stmt: Stmt*) {
     #assert(stmt.kind == STMT_INIT);
     type := resolve_init(stmt.pos, stmt.init.type, stmt.init.expr);
     if (!sym_push_var(stmt.init.name, type)) {
@@ -848,7 +848,7 @@ func resolve_stmt_init(stmt: Stmt*) {
     }
 }
 
-func resolve_static_assert(note: Note) {
+fn resolve_static_assert(note: Note) {
     if (note.num_args != 1) {
         fatal_error(note.pos, "#static_assert takes 1 argument");
     }
@@ -858,7 +858,7 @@ func resolve_static_assert(note: Note) {
     }
 }
 
-func resolve_stmt(stmt: Stmt*, ret_type: Type*, ctx: StmtCtx): bool {
+fn resolve_stmt(stmt: Stmt*, ret_type: Type*, ctx: StmtCtx): bool {
     switch (stmt.kind) {
     case STMT_RETURN:
         if (stmt.expr) {
@@ -1014,7 +1014,7 @@ func resolve_stmt(stmt: Stmt*, ret_type: Type*, ctx: StmtCtx): bool {
     }
 }
 
-func resolve_func_body(sym: Sym*) {
+fn resolve_func_body(sym: Sym*) {
     decl := sym.decl;
     #assert(decl.kind == DECL_FUNC);
     #assert(sym.state == SYM_RESOLVED);
@@ -1042,7 +1042,7 @@ func resolve_func_body(sym: Sym*) {
     leave_package(old_package);
 }
 
-func resolve_sym(sym: Sym*) {
+fn resolve_sym(sym: Sym*) {
     if (sym.state == SYM_RESOLVED) {
         return;
     } else if (sym.state == SYM_RESOLVING) {
@@ -1090,7 +1090,7 @@ func resolve_sym(sym: Sym*) {
     }
 }
 
-func finalize_sym(sym: Sym*) {
+fn finalize_sym(sym: Sym*) {
     #assert(sym.state == SYM_RESOLVED);
     if (sym.decl && !is_decl_foreign(sym.decl) && !sym.decl.is_incomplete) {
         if (sym.kind == SYM_TYPE) {
@@ -1101,7 +1101,7 @@ func finalize_sym(sym: Sym*) {
     }
 }
 
-func resolve_name(name: char const*): Sym* {
+fn resolve_name(name: char const*): Sym* {
     sym := sym_get(name);
     if (!sym) {
         return NULL;
@@ -1110,7 +1110,7 @@ func resolve_name(name: char const*): Sym* {
     return sym;
 }
 
-func try_resolve_package(expr: Expr*): Package* {
+fn try_resolve_package(expr: Expr*): Package* {
     if (expr.kind == EXPR_NAME) {
         sym := resolve_name(expr.name);
         if (sym && sym.kind == SYM_PACKAGE) {
@@ -1128,7 +1128,7 @@ func try_resolve_package(expr: Expr*): Package* {
     return NULL;
 }
 
-func resolve_expr_field(expr: Expr*): Operand {
+fn resolve_expr_field(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_FIELD);
     package := try_resolve_package(expr.field.expr);
     if (package) {
@@ -1167,7 +1167,7 @@ func resolve_expr_field(expr: Expr*): Operand {
     return operand_null;
 }
 
-func eval_unary_op_ll(op: TokenKind, val: llong): llong {
+fn eval_unary_op_ll(op: TokenKind, val: llong): llong {
     switch (op) {
     case TOKEN_ADD:
         return +val;
@@ -1183,7 +1183,7 @@ func eval_unary_op_ll(op: TokenKind, val: llong): llong {
     return 0;
 }
 
-func eval_unary_op_ull(op: TokenKind, val: ullong): ullong {
+fn eval_unary_op_ull(op: TokenKind, val: ullong): ullong {
     switch (op) {
     case TOKEN_ADD:
         return +val;
@@ -1199,7 +1199,7 @@ func eval_unary_op_ull(op: TokenKind, val: ullong): ullong {
     return 0;
 }
 
-func eval_binary_op_ll(op: TokenKind, left: llong, right: llong): llong {
+fn eval_binary_op_ll(op: TokenKind, left: llong, right: llong): llong {
     switch (op) {
     case TOKEN_MUL:
         return left * right;
@@ -1239,7 +1239,7 @@ func eval_binary_op_ll(op: TokenKind, left: llong, right: llong): llong {
     return 0;
 }
 
-func eval_binary_op_ull(op: TokenKind, left: ullong, right: ullong): ullong {
+fn eval_binary_op_ull(op: TokenKind, left: ullong, right: ullong): ullong {
     switch (op) {
     case TOKEN_MUL:
         return left * right;
@@ -1279,7 +1279,7 @@ func eval_binary_op_ull(op: TokenKind, left: ullong, right: ullong): ullong {
     return 0;
 }
 
-func eval_unary_op(op: TokenKind, type: Type*, val: Val): Val {
+fn eval_unary_op(op: TokenKind, type: Type*, val: Val): Val {
     if (is_integer_type(type)) {
         operand := operand_const(type, val);
         if (is_signed_type(type)) {
@@ -1296,7 +1296,7 @@ func eval_unary_op(op: TokenKind, type: Type*, val: Val): Val {
     }
 }
 
-func eval_binary_op(op: TokenKind, type: Type*, left: Val, right: Val): Val {
+fn eval_binary_op(op: TokenKind, type: Type*, left: Val, right: Val): Val {
     if (is_integer_type(type)) {
         left_operand := operand_const(type, left);
         right_operand := operand_const(type, right);
@@ -1317,7 +1317,7 @@ func eval_binary_op(op: TokenKind, type: Type*, left: Val, right: Val): Val {
     }
 }
 
-func resolve_name_operand(pos: SrcPos, name: char const*): Operand {
+fn resolve_name_operand(pos: SrcPos, name: char const*): Operand {
     sym := resolve_name(name);
     if (!sym) {
         fatal_error(pos, "Unresolved name '%s'", name);
@@ -1338,12 +1338,12 @@ func resolve_name_operand(pos: SrcPos, name: char const*): Operand {
     }
 }
 
-func resolve_expr_name(expr: Expr*): Operand {
+fn resolve_expr_name(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_NAME);
     return resolve_name_operand(expr.pos, expr.name);
 }
 
-func resolve_unary_op(op: TokenKind, operand: Operand): Operand {
+fn resolve_unary_op(op: TokenKind, operand: Operand): Operand {
     promote_operand(&operand);
     if (operand.is_const) {
         return operand_const(operand.type, eval_unary_op(op, operand.type, operand.val));
@@ -1352,7 +1352,7 @@ func resolve_unary_op(op: TokenKind, operand: Operand): Operand {
     }
 }
 
-func resolve_expr_unary(expr: Expr*): Operand {
+fn resolve_expr_unary(expr: Expr*): Operand {
     operand := resolve_expr_rvalue(expr.unary.expr);
     type := operand.type;
     switch (expr.unary.op) {
@@ -1383,7 +1383,7 @@ func resolve_expr_unary(expr: Expr*): Operand {
     return Operand {0};
 }
 
-func resolve_binary_op(op: TokenKind, left: Operand, right: Operand): Operand {
+fn resolve_binary_op(op: TokenKind, left: Operand, right: Operand): Operand {
     if (left.is_const && right.is_const) {
         return operand_const(left.type, eval_binary_op(op, left.type, left.val, right.val));
     } else {
@@ -1391,12 +1391,12 @@ func resolve_binary_op(op: TokenKind, left: Operand, right: Operand): Operand {
     }
 }
 
-func resolve_binary_arithmetic_op(op: TokenKind, left: Operand, right: Operand): Operand {
+fn resolve_binary_arithmetic_op(op: TokenKind, left: Operand, right: Operand): Operand {
     unify_arithmetic_operands(&left, &right);
     return resolve_binary_op(op, left, right);
 }
 
-func resolve_expr_binary_op(op: TokenKind, op_name: char const*, pos: SrcPos, left: Operand, right: Operand): Operand {
+fn resolve_expr_binary_op(op: TokenKind, op_name: char const*, pos: SrcPos, left: Operand, right: Operand): Operand {
     switch (op) {
     case TOKEN_MUL:
     case TOKEN_DIV:
@@ -1536,7 +1536,7 @@ func resolve_expr_binary_op(op: TokenKind, op_name: char const*, pos: SrcPos, le
     return Operand {0};
 }
 
-func resolve_expr_binary(expr: Expr*): Operand {
+fn resolve_expr_binary(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_BINARY);
     left := resolve_expr_rvalue(expr.binary.left);
     right := resolve_expr_rvalue(expr.binary.right);
@@ -1545,7 +1545,7 @@ func resolve_expr_binary(expr: Expr*): Operand {
     return resolve_expr_binary_op(op, op_name, expr.pos, left, right);
 }
 
-func resolve_expr_compound(expr: Expr*, expected_type: Type*): Operand {
+fn resolve_expr_compound(expr: Expr*, expected_type: Type*): Operand {
     #assert(expr.kind == EXPR_COMPOUND);
     if (!expected_type && !expr.compound.type) {
         fatal_error(expr.pos, "Implicitly typed compound literals used in context without expected type");
@@ -1629,7 +1629,7 @@ func resolve_expr_compound(expr: Expr*, expected_type: Type*): Operand {
     return operand_lvalue(is_const ? type_const(type) : type);
 }
 
-func resolve_expr_call(expr: Expr*): Operand {
+fn resolve_expr_call(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_CALL);
     if (expr.call.expr.kind == EXPR_NAME) {
         sym := resolve_name(expr.call.expr.name);
@@ -1672,7 +1672,7 @@ func resolve_expr_call(expr: Expr*): Operand {
     return operand_rvalue(function.type.function.ret);
 }
 
-func resolve_expr_ternary(expr: Expr*, expected_type: Type*): Operand {
+fn resolve_expr_ternary(expr: Expr*, expected_type: Type*): Operand {
     #assert(expr.kind == EXPR_TERNARY);
     cond := resolve_expr_rvalue(expr.ternary.cond);
     if (!is_scalar_type(cond.type)) {
@@ -1701,7 +1701,7 @@ func resolve_expr_ternary(expr: Expr*, expected_type: Type*): Operand {
     return Operand {};
 }
 
-func resolve_expr_index(expr: Expr*): Operand {
+fn resolve_expr_index(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_INDEX);
     operand := resolve_expr_rvalue(expr.index.expr);
     if (!is_ptr_type(operand.type)) {
@@ -1714,7 +1714,7 @@ func resolve_expr_index(expr: Expr*): Operand {
     return operand_lvalue(operand.type.base);
 }
 
-func resolve_expr_cast(expr: Expr*): Operand {
+fn resolve_expr_cast(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_CAST);
     type := resolve_typespec(expr.cast.type);
     operand := resolve_expr_rvalue(expr.cast.expr);
@@ -1724,7 +1724,7 @@ func resolve_expr_cast(expr: Expr*): Operand {
     return operand;
 }
 
-func resolve_expr_int(expr: Expr*): Operand {
+fn resolve_expr_int(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_INT);
     int_max: ullong = type_metrics[CMPL_TYPE_INT].max;
     uint_max: ullong = type_metrics[CMPL_TYPE_UINT].max;
@@ -1834,7 +1834,7 @@ func resolve_expr_int(expr: Expr*): Operand {
     return operand;
 }
 
-func resolve_expr_modify(expr: Expr*): Operand {
+fn resolve_expr_modify(expr: Expr*): Operand {
     operand := resolve_expr(expr.modify.expr);
     type := operand.type;
     complete_type(type);
@@ -1850,7 +1850,7 @@ func resolve_expr_modify(expr: Expr*): Operand {
     return operand_rvalue(type);
 }
 
-func resolve_expected_expr(expr: Expr*, expected_type: Type*): Operand {
+fn resolve_expected_expr(expr: Expr*, expected_type: Type*): Operand {
     result: Operand;
     switch (expr.kind) {
     case EXPR_PAREN:
@@ -1972,7 +1972,7 @@ func resolve_expected_expr(expr: Expr*, expected_type: Type*): Operand {
     return result;
 }
 
-func resolve_const_expr(expr: Expr*): Operand {
+fn resolve_const_expr(expr: Expr*): Operand {
     operand := resolve_expr(expr);
     if (!operand.is_const) {
         fatal_error(expr.pos, "Expected constant expression");
@@ -1982,7 +1982,7 @@ func resolve_const_expr(expr: Expr*): Operand {
 
 var decl_note_names: Map;
 
-func init_builtin_syms() {
+fn init_builtin_syms() {
     #assert(current_package);
     sym_global_type("void", type_void);
     sym_global_type("bool", type_bool);
@@ -2001,7 +2001,7 @@ func init_builtin_syms() {
     sym_global_type("double", type_double);
 }
 
-func add_package_decls(package: Package*) {
+fn add_package_decls(package: Package*) {
     for (i: usize = 0; i < package.num_decls; i++) {
         decl := package.decls[i];
         if (decl.kind == DECL_NOTE) {
@@ -2031,7 +2031,7 @@ func add_package_decls(package: Package*) {
     }
 }
 
-func is_package_dir(search_path: char const*, package_path: char const*): bool {
+fn is_package_dir(search_path: char const*, package_path: char const*): bool {
     path: char[MAX_PATH];
     path_copy(path, search_path);
     path_join(path, package_path);
@@ -2046,7 +2046,7 @@ func is_package_dir(search_path: char const*, package_path: char const*): bool {
     return false;
 }
 
-func copy_package_full_path(dest: char[MAX_PATH], package_path: char const*): bool {
+fn copy_package_full_path(dest: char[MAX_PATH], package_path: char const*): bool {
     for (i := 0; i < num_package_search_paths; i++) {
         if (is_package_dir(package_search_paths[i], package_path)) {
             path_copy(dest, package_search_paths[i]);
@@ -2057,7 +2057,7 @@ func copy_package_full_path(dest: char[MAX_PATH], package_path: char const*): bo
     return false;
 }
 
-func import_package(package_path: char const*): Package* {
+fn import_package(package_path: char const*): Package* {
     package_path = str_intern(package_path);
     package: Package* = map_get(&package_map, package_path);
     if (!package) {
@@ -2077,7 +2077,7 @@ func import_package(package_path: char const*): Package* {
     return package;
 }
 
-func import_all_package_symbols(package: Package*) {
+fn import_all_package_symbols(package: Package*) {
     // TODO: should have a more general mechanism
     main_name: char const* = str_intern("main");
     for (i: usize = 0; i < buf_len(package.syms); i++) {
@@ -2087,7 +2087,7 @@ func import_all_package_symbols(package: Package*) {
     }
 }
 
-func import_package_symbols(decl: Decl*, package: Package*) {
+fn import_package_symbols(decl: Decl*, package: Package*) {
     for (i: usize = 0; i < decl.import_decl.num_items; i++) {
         item := decl.import_decl.items[i];
         sym := get_package_sym(package, item.name);
@@ -2098,7 +2098,7 @@ func import_package_symbols(decl: Decl*, package: Package*) {
     }
 }
 
-func process_package_imports(package: Package*) {
+fn process_package_imports(package: Package*) {
     for (i: usize = 0; i < package.num_decls; i++) {
         decl := package.decls[i];
         if (decl.kind == DECL_NOTE) {
@@ -2133,7 +2133,7 @@ func process_package_imports(package: Package*) {
     }
 }
 
-func parse_package(package: Package*): bool {
+fn parse_package(package: Package*): bool {
     decls: Decl** = NULL;
     iter: DirListIter;
     for (dir_list(&iter, package.full_path); iter.valid; dir_list_next(&iter)) {
@@ -2169,7 +2169,7 @@ func parse_package(package: Package*): bool {
     return package != NULL;
 }
 
-func compile_package(package: Package*): bool {
+fn compile_package(package: Package*): bool {
     if (!parse_package(package)) {
         return false;
     }
@@ -2186,7 +2186,7 @@ func compile_package(package: Package*): bool {
     return true;
 }
 
-func resolve_package_syms(package: Package*) {
+fn resolve_package_syms(package: Package*) {
     old_package := enter_package(package);
     for (i: usize = 0; i < buf_len(package.syms); i++) {
         if (package.syms[i].home_package == package) {
@@ -2196,7 +2196,7 @@ func resolve_package_syms(package: Package*) {
     leave_package(old_package);
 }
 
-func finalize_reachable_syms() {
+fn finalize_reachable_syms() {
     if (flag_verbose) {
         printf("Finalizing reachable symbols\n");
     }

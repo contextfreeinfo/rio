@@ -853,7 +853,7 @@ extern char const ((*ion_var_keyword));
 
 extern char const ((*ion_const_keyword));
 
-extern char const ((*ion_func_keyword));
+extern char const ((*ion_fn_keyword));
 
 extern char const ((*ion_sizeof_keyword));
 
@@ -4367,7 +4367,7 @@ void ion_gen_typeinfo(ion_Type (*type)) {
         break;
     }
     case ION_CMPL_TYPE_FUNC: {
-        ion_buf_printf(&(ion_gen_buf), "NULL, // Func");
+        ion_buf_printf(&(ion_gen_buf), "NULL, // Function");
         break;
     }
     case ION_CMPL_TYPE_ENUM: {
@@ -4636,7 +4636,7 @@ char const ((*ion_struct_keyword));
 char const ((*ion_union_keyword));
 char const ((*ion_var_keyword));
 char const ((*ion_const_keyword));
-char const ((*ion_func_keyword));
+char const ((*ion_fn_keyword));
 char const ((*ion_sizeof_keyword));
 char const ((*ion_alignof_keyword));
 char const ((*ion_typeof_keyword));
@@ -4681,7 +4681,7 @@ void ion_init_keywords(void) {
     ion_union_keyword = ion_init_keyword("union");
     ion_const_keyword = ion_init_keyword("const");
     ion_var_keyword = ion_init_keyword("var");
-    ion_func_keyword = ion_init_keyword("func");
+    ion_fn_keyword = ion_init_keyword("fn");
     ion_import_keyword = ion_init_keyword("import");
     ion_goto_keyword = ion_init_keyword("goto");
     ion_sizeof_keyword = ion_init_keyword("sizeof");
@@ -5683,7 +5683,7 @@ ion_Typespec (*ion_parse_type_func_param(void)) {
     ion_Typespec (*type) = ion_parse_type();
     if (ion_match_token(ION_TOKEN_COLON)) {
         if ((type->kind) != (ION_TYPESPEC_NAME)) {
-            ion_error(ion_token.pos, "Colons in parameters of func types must be preceded by names.");
+            ion_error(ion_token.pos, "Colons in parameters of fn types must be preceded by names.");
         }
         type = ion_parse_type();
     }
@@ -5726,7 +5726,7 @@ ion_Typespec (*ion_parse_type_base(void)) {
         char const ((*name)) = ion_token.name;
         ion_next_token();
         return ion_new_typespec_name(pos, name);
-    } else if (ion_match_keyword(ion_func_keyword)) {
+    } else if (ion_match_keyword(ion_fn_keyword)) {
         return ion_parse_type_func();
     } else if (ion_match_token(ION_TOKEN_LPAREN)) {
         ion_Typespec (*type) = ion_parse_type();
@@ -6525,7 +6525,7 @@ ion_Decl (*ion_parse_decl_opt(void)) {
         return ion_parse_decl_const(pos);
     } else if (ion_match_keyword(ion_typedef_keyword)) {
         return ion_parse_decl_typedef(pos);
-    } else if (ion_match_keyword(ion_func_keyword)) {
+    } else if (ion_match_keyword(ion_fn_keyword)) {
         return ion_parse_decl_func(pos);
     } else if (ion_match_keyword(ion_var_keyword)) {
         return ion_parse_decl_var(pos);
@@ -6777,7 +6777,7 @@ void ion_put_type_name(char (*(*buf)), ion_Type (*type)) {
             break;
         }
         case ION_CMPL_TYPE_FUNC: {
-            ion_buf_printf(buf, "func(");
+            ion_buf_printf(buf, "fn(");
             for (size_t i = 0; (i) < (type->function.num_params); (i)++) {
                 if ((i) != (0)) {
                     ion_buf_printf(buf, ", ");

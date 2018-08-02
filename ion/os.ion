@@ -1,7 +1,7 @@
 @foreign
 const MAX_PATH = 256;
 
-func path_normalize(path: char*) {
+fn path_normalize(path: char*) {
     ptr: char*;
     for (ptr = path; *ptr; ptr++) {
         if (*ptr == '\\') {
@@ -13,13 +13,13 @@ func path_normalize(path: char*) {
     }
 }
 
-func path_copy(path: char[MAX_PATH], src: char const*) {
+fn path_copy(path: char[MAX_PATH], src: char const*) {
     strncpy(path, src, MAX_PATH);
     path[MAX_PATH - 1] = 0;
     path_normalize(path);
 }
 
-func path_join(path: char[MAX_PATH], src: char const*) {
+fn path_join(path: char[MAX_PATH], src: char const*) {
     ptr := path + strlen(path);
     if (ptr != path && ptr[-1] == '/') {
         ptr--;
@@ -30,7 +30,7 @@ func path_join(path: char[MAX_PATH], src: char const*) {
     snprintf(ptr, path + MAX_PATH - ptr, "/%s", src);
 }
 
-func path_file(path: char[MAX_PATH]): char* {
+fn path_file(path: char[MAX_PATH]): char* {
     path_normalize(path);
     for (ptr := path + strlen(path); ptr != path; ptr--) {
         if (ptr[-1] == '/') {
@@ -40,7 +40,7 @@ func path_file(path: char[MAX_PATH]): char* {
     return path;
 }
 
-func path_ext(path: char[MAX_PATH]): char* {
+fn path_ext(path: char[MAX_PATH]): char* {
     for (ptr: char* = path + strlen(path); ptr != path; ptr--) {
         if (ptr[-1] == '.') {
             return ptr;
@@ -61,11 +61,11 @@ struct DirListIter {
     handle: void*;
 }
 
-func dir_excluded(iter: DirListIter*): bool {
+fn dir_excluded(iter: DirListIter*): bool {
     return iter.valid && (strcmp(iter.name, ".") == 0 || strcmp(iter.name, "..") == 0);
 }
 
-func dir_list_subdir(iter: DirListIter*): bool {
+fn dir_list_subdir(iter: DirListIter*): bool {
     if (!iter.valid || !iter.is_dir) {
         return false;
     }
@@ -77,7 +77,7 @@ func dir_list_subdir(iter: DirListIter*): bool {
     return true;
 }
 
-func dir_list_buf(filespec: char const*): char const** {
+fn dir_list_buf(filespec: char const*): char const** {
     buf: char const** = NULL;
     iter: DirListIter;
     for (dir_list(&iter, filespec); iter.valid; dir_list_next(&iter)) {
@@ -113,22 +113,22 @@ struct FlagDefPtr {
 
 var flag_defs: FlagDef*;
 
-func add_flag_bool(name: char const*, ptr: bool*, help: char const*) {
+fn add_flag_bool(name: char const*, ptr: bool*, help: char const*) {
     def: FlagDef = {kind = FLAG_BOOL, name = name, help = help, ptr = {b = ptr}};
     buf_push((:void**)&flag_defs, &def, sizeof(def));
 }
 
-func add_flag_str(name: char const*, ptr: char const**, arg_name: char const*, help: char const*) {
+fn add_flag_str(name: char const*, ptr: char const**, arg_name: char const*, help: char const*) {
     def: FlagDef = {kind = FLAG_STR, name = name, help = help, arg_name = arg_name, ptr = {s = ptr}};
     buf_push((:void**)&flag_defs, &def, sizeof(def));
 }
 
-func add_flag_enum(name: char const*, ptr: int*, help: char const*, options: char const**, num_options: int) {
+fn add_flag_enum(name: char const*, ptr: int*, help: char const*, options: char const**, num_options: int) {
     def: FlagDef = {kind = FLAG_ENUM, name = name, help = help, ptr = {i = ptr}, options = options, num_options = num_options};
     buf_push((:void**)&flag_defs, &def, sizeof(def));
 }
 
-func get_flag_def(name: char const*): FlagDef* {
+fn get_flag_def(name: char const*): FlagDef* {
     for (i: usize = 0; i < buf_len(flag_defs); i++) {
         if (strcmp(flag_defs[i].name, name) == 0) {
             return &flag_defs[i];
@@ -137,7 +137,7 @@ func get_flag_def(name: char const*): FlagDef* {
     return NULL;
 }
 
-func print_flags_usage() {
+fn print_flags_usage() {
     printf("Flags:\n");
     for (i: usize = 0; i < buf_len(flag_defs); i++) {
         flag := flag_defs[i];
@@ -169,7 +169,7 @@ func print_flags_usage() {
     }
 }
 
-func parse_flags(argc_ptr: int*, argv_ptr: char const***): char const* {
+fn parse_flags(argc_ptr: int*, argv_ptr: char const***): char const* {
     argc := *argc_ptr;
     argv := *argv_ptr;
     i: int;

@@ -93,18 +93,18 @@ var type_ssize: Type*;
 
 var typeid_map: Map;
 
-func get_type_from_typeid(typeid: int): Type* {
+fn get_type_from_typeid(typeid: int): Type* {
     if (typeid == 0) {
         return NULL;
     }
     return map_get(&typeid_map, (:void*)(:uintptr)typeid);
 }
 
-func register_typeid(type: Type*) {
+fn register_typeid(type: Type*) {
     map_put(&typeid_map, (:void*)(:uintptr)type.typeid, type);
 }
 
-func type_alloc(kind: TypeKind): Type* {
+fn type_alloc(kind: TypeKind): Type* {
     type: Type* = xcalloc(1, sizeof(Type));
     type.kind = kind;
     type.typeid = next_typeid++;
@@ -112,51 +112,51 @@ func type_alloc(kind: TypeKind): Type* {
     return type;
 }
 
-func is_ptr_type(type: Type*): bool {
+fn is_ptr_type(type: Type*): bool {
     return type.kind == CMPL_TYPE_PTR;
 }
 
-func is_func_type(type: Type*): bool {
+fn is_func_type(type: Type*): bool {
     return type.kind == CMPL_TYPE_FUNC;
 }
 
-func is_ptr_like_type(type: Type*): bool {
+fn is_ptr_like_type(type: Type*): bool {
     return type.kind == CMPL_TYPE_PTR || type.kind == CMPL_TYPE_FUNC;
 }
 
-func is_const_type(type: Type*): bool {
+fn is_const_type(type: Type*): bool {
     return type.kind == CMPL_TYPE_CONST;
 }
 
-func is_array_type(type: Type*): bool {
+fn is_array_type(type: Type*): bool {
     return type.kind == CMPL_TYPE_ARRAY;
 }
 
-func is_incomplete_array_type(type: Type*): bool {
+fn is_incomplete_array_type(type: Type*): bool {
     return is_array_type(type) && type.num_elems == 0;
 }
 
-func is_integer_type(type: Type*): bool {
+fn is_integer_type(type: Type*): bool {
     return CMPL_TYPE_BOOL <= type.kind && type.kind <= CMPL_TYPE_ENUM;
 }
 
-func is_floating_type(type: Type*): bool {
+fn is_floating_type(type: Type*): bool {
     return CMPL_TYPE_FLOAT <= type.kind && type.kind <= CMPL_TYPE_DOUBLE;
 }
 
-func is_arithmetic_type(type: Type*): bool {
+fn is_arithmetic_type(type: Type*): bool {
     return CMPL_TYPE_BOOL <= type.kind && type.kind <= CMPL_TYPE_DOUBLE;
 }
 
-func is_scalar_type(type: Type*): bool {
+fn is_scalar_type(type: Type*): bool {
     return CMPL_TYPE_BOOL <= type.kind && type.kind <= CMPL_TYPE_FUNC;
 }
 
-func is_aggregate_type(type: Type*): bool {
+fn is_aggregate_type(type: Type*): bool {
     return type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION;
 }
 
-func is_signed_type(type: Type*): bool {
+fn is_signed_type(type: Type*): bool {
     switch (type.kind) {
     case CMPL_TYPE_CHAR:
         return type_metrics[CMPL_TYPE_CHAR].sign;
@@ -204,13 +204,13 @@ var type_ranks: int[NUM_CMPL_TYPE_KINDS] = {
     [CMPL_TYPE_ULLONG] = 6,
 };
 
-func type_rank(type: Type*): int {
+fn type_rank(type: Type*): int {
     rank := type_ranks[type.kind];
     #assert(rank != 0);
     return rank;
 }
 
-func unsigned_type(type: Type*): Type* {
+fn unsigned_type(type: Type*): Type* {
     switch (type.kind) {
     case CMPL_TYPE_BOOL:
         return type_bool;
@@ -236,19 +236,19 @@ func unsigned_type(type: Type*): Type* {
     }
 }
 
-func type_sizeof(type: Type*): usize {
+fn type_sizeof(type: Type*): usize {
     #assert(type.kind > CMPL_TYPE_COMPLETING);
     return type.size;
 }
 
-func type_alignof(type: Type*): usize {
+fn type_alignof(type: Type*): usize {
     #assert(type.kind > CMPL_TYPE_COMPLETING);
     return type.align;
 }
 
 var cached_ptr_types: Map;
 
-func type_ptr(base: Type*): Type* {
+fn type_ptr(base: Type*): Type* {
     type: Type* = map_get(&cached_ptr_types, base);
     if (!type) {
         type = type_alloc(CMPL_TYPE_PTR);
@@ -262,7 +262,7 @@ func type_ptr(base: Type*): Type* {
 
 var cached_const_types: Map;
 
-func type_const(base: Type*): Type* {
+fn type_const(base: Type*): Type* {
     if (base.kind == CMPL_TYPE_CONST) {
         return base;
     }
@@ -279,7 +279,7 @@ func type_const(base: Type*): Type* {
     return type;
 }
 
-func unqualify_type(type: Type*): Type* {
+fn unqualify_type(type: Type*): Type* {
     if (type.kind == CMPL_TYPE_CONST) {
         return type.base;
     } else {
@@ -294,7 +294,7 @@ struct CachedArrayType {
 
 var cached_array_types: Map;
 
-func type_array(base: Type*, num_elems: usize): Type* {
+fn type_array(base: Type*, num_elems: usize): Type* {
     hash := hash_mix(hash_ptr(base), hash_uint64(num_elems));
     key: uint64 = hash ? hash : 1;
     cached: CachedArrayType* = map_get_from_uint64(&cached_array_types, key);
@@ -325,7 +325,7 @@ struct CachedFuncType {
 
 var cached_func_types: Map;
 
-func type_func(params: Type**, num_params: usize, ret: Type*, has_varargs: bool): Type* {
+fn type_func(params: Type**, num_params: usize, ret: Type*, has_varargs: bool): Type* {
     params_size := num_params * sizeof(*params);
     hash := hash_mix(hash_bytes(params, params_size), hash_ptr(ret));
     key: uint64 = hash ? hash : 1;
@@ -352,7 +352,7 @@ func type_func(params: Type**, num_params: usize, ret: Type*, has_varargs: bool)
     return type;
 }
 
-func has_duplicate_fields(type: Type*): bool {
+fn has_duplicate_fields(type: Type*): bool {
     for (i: usize = 0; i < type.aggregate.num_fields; i++) {
         for (j: usize = i+1; j < type.aggregate.num_fields; j++) {
             if (type.aggregate.fields[i].name == type.aggregate.fields[j].name) {
@@ -363,7 +363,7 @@ func has_duplicate_fields(type: Type*): bool {
     return false;
 }
 
-func add_type_fields(fields: TypeField**, type: Type*, offset: usize) {
+fn add_type_fields(fields: TypeField**, type: Type*, offset: usize) {
     #assert(type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION);
     for (i: usize = 0; i < type.aggregate.num_fields; i++) {
         field := &type.aggregate.fields[i];
@@ -372,7 +372,7 @@ func add_type_fields(fields: TypeField**, type: Type*, offset: usize) {
     }
 }
 
-func type_complete_struct(type: Type*, fields: TypeField*, num_fields: usize) {
+fn type_complete_struct(type: Type*, fields: TypeField*, num_fields: usize) {
     #assert(type.kind == CMPL_TYPE_COMPLETING);
     type.kind = CMPL_TYPE_STRUCT;
     type.size = 0;
@@ -397,7 +397,7 @@ func type_complete_struct(type: Type*, fields: TypeField*, num_fields: usize) {
     type.nonmodifiable = nonmodifiable;
 }
 
-func type_complete_union(type: Type*, fields: TypeField*, num_fields: usize) {
+fn type_complete_union(type: Type*, fields: TypeField*, num_fields: usize) {
     #assert(type.kind == CMPL_TYPE_COMPLETING);
     type.kind = CMPL_TYPE_UNION;
     type.size = 0;
@@ -422,13 +422,13 @@ func type_complete_union(type: Type*, fields: TypeField*, num_fields: usize) {
     type.nonmodifiable = nonmodifiable;
 }
 
-func type_incomplete(sym: Sym*): Type* {
+fn type_incomplete(sym: Sym*): Type* {
     type := type_alloc(CMPL_TYPE_INCOMPLETE);
     type.sym = sym;
     return type;
 }
 
-func type_enum(sym: Sym*, base: Type*): Type* {
+fn type_enum(sym: Sym*, base: Type*): Type* {
     type := type_alloc(CMPL_TYPE_ENUM);
     type.sym = sym;
     type.base = base;
@@ -437,14 +437,14 @@ func type_enum(sym: Sym*, base: Type*): Type* {
     return type;
 }
 
-func init_builtin_type(type: Type*) {
+fn init_builtin_type(type: Type*) {
     type.typeid = next_typeid++;
     register_typeid(type);
     type.size = type_metrics[type.kind].size;
     type.align = type_metrics[type.kind].align;
 }
 
-func init_builtin_types() {
+fn init_builtin_types() {
     init_builtin_type(type_void);
     init_builtin_type(type_bool);
     init_builtin_type(type_char);
@@ -462,7 +462,7 @@ func init_builtin_types() {
     init_builtin_type(type_double);
 }
 
-func aggregate_item_field_index(type: Type*, name: char const*): int {
+fn aggregate_item_field_index(type: Type*, name: char const*): int {
     #assert(is_aggregate_type(type));
     for (i: usize = 0; i < type.aggregate.num_fields; i++) {
         if (type.aggregate.fields[i].name == name) {
@@ -472,13 +472,13 @@ func aggregate_item_field_index(type: Type*, name: char const*): int {
     return -1;
 }
 
-func aggregate_item_field_type_from_index(type: Type*, index: int): Type* {
+fn aggregate_item_field_type_from_index(type: Type*, index: int): Type* {
     #assert(is_aggregate_type(type));
     #assert(0 <= index && index < (:int)type.aggregate.num_fields);
     return type.aggregate.fields[index].type;
 }
 
-func aggregate_item_field_type_from_name(type: Type*, name: char const*): Type* {
+fn aggregate_item_field_type_from_name(type: Type*, name: char const*): Type* {
     #assert(is_aggregate_type(type));
     index := aggregate_item_field_index(type, name);
     if (index < 0) {

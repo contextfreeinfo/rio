@@ -4,7 +4,7 @@ var struct_keyword: char const*;
 var union_keyword: char const*;
 var var_keyword: char const*;
 var const_keyword: char const*;
-var func_keyword: char const*;
+var fn_keyword: char const*;
 var sizeof_keyword: char const*;
 var alignof_keyword: char const*;
 var typeof_keyword: char const*;
@@ -35,7 +35,7 @@ var declare_note_name: char const*;
 var static_assert_name: char const*;
 
 // #define KEYWORD(name) name##_keyword = str_intern(#name); buf_push(keywords, name##_keyword)
-func init_keyword(keyword: char const*): char const* {
+fn init_keyword(keyword: char const*): char const* {
     keyword = str_intern(keyword);
     // TODO If ion doesn't give warnings, the underlying compiler also shouldn't.
     buf_push((:void**)&keywords, (:void*)&keyword, sizeof(keyword));
@@ -44,7 +44,7 @@ func init_keyword(keyword: char const*): char const* {
 
 var keywords_inited = false;
 
-func init_keywords() {
+fn init_keywords() {
     if (keywords_inited) {
         return;
     }
@@ -55,7 +55,7 @@ func init_keywords() {
     union_keyword = init_keyword("union");
     const_keyword = init_keyword("const");
     var_keyword = init_keyword("var");
-    func_keyword = init_keyword("func");
+    fn_keyword = init_keyword("fn");
     import_keyword = init_keyword("import");
     goto_keyword = init_keyword("goto");
     sizeof_keyword = init_keyword("sizeof");
@@ -89,7 +89,7 @@ func init_keywords() {
 
 // #undef KEYWORD
 
-func is_keyword_name(name: char const*): bool {
+fn is_keyword_name(name: char const*): bool {
     return first_keyword <= name && name <= last_keyword;
 }
 
@@ -249,7 +249,7 @@ var token_kind_names: char const*[] = {
     [TOKEN_COLON_ASSIGN] = ":=",
 };
 
-func token_kind_name(kind: TokenKind): char const* {
+fn token_kind_name(kind: TokenKind): char const* {
     if (kind < sizeof(token_kind_names)/sizeof(*token_kind_names)) {
         return token_kind_names[kind];
     } else {
@@ -296,7 +296,7 @@ var token: Token;
 var stream: char const*;
 var line_start: char const*;
 
-func vnotice(level: char const*, pos: SrcPos, fmt: char const*, args: va_list) {
+fn vnotice(level: char const*, pos: SrcPos, fmt: char const*, args: va_list) {
     if (pos.name == NULL) {
         pos = pos_builtin;
     }
@@ -305,25 +305,25 @@ func vnotice(level: char const*, pos: SrcPos, fmt: char const*, args: va_list) {
     printf("\n");
 }
 
-func warning(pos: SrcPos, fmt: char const*, ...) {
+fn warning(pos: SrcPos, fmt: char const*, ...) {
     args: va_list;
     va_start(&args, &fmt);
     vnotice("warning", pos, fmt, args);
     va_end(&args);
 }
 
-func verror(pos: SrcPos, fmt: char const*, args: va_list) {
+fn verror(pos: SrcPos, fmt: char const*, args: va_list) {
     vnotice("error", pos, fmt, args);
 }
 
-func error(pos: SrcPos, fmt: char const*, ...) {
+fn error(pos: SrcPos, fmt: char const*, ...) {
     args: va_list;
     va_start(&args, &fmt);
     verror(pos, fmt, args);
     va_end(&args);
 }
 
-func fatal_error(pos: SrcPos, fmt: char const*, ...) {
+fn fatal_error(pos: SrcPos, fmt: char const*, ...) {
     args: va_list;
     va_start(&args, &fmt);
     verror(pos, fmt, args);
@@ -336,7 +336,7 @@ func fatal_error(pos: SrcPos, fmt: char const*, ...) {
 // #define warning_here(...) (error(token.pos, __VA_ARGS__))
 // #define fatal_error(token.pos, ...) (error(token.pos, __VA_ARGS__), exit(1))
 
-func token_info(): char const* {
+fn token_info(): char const* {
     if (token.kind == TOKEN_NAME || token.kind == TOKEN_KEYWORD) {
         return token.name;
     } else {
@@ -363,7 +363,7 @@ var char_to_digit: uint8[256] = {
     ['f'] = 15, ['F'] = 15,
 };
 
-func scan_int() {
+fn scan_int() {
     base := 10;
     start_digits := stream;
     if (*stream == '0') {
@@ -438,7 +438,7 @@ func scan_int() {
 // TODO Why do I have to give a value, and is it used??? I hope not.
 @foreign const HUGE_VAL = 0.0;
 
-func scan_float() {
+fn scan_float() {
     start := stream;
     while (isdigit(*stream)) {
         stream++;
@@ -486,7 +486,7 @@ var escape_to_char: char[256] = {
     ['a'] = '\a',
 };
 
-func scan_hex_escape(): int {
+fn scan_hex_escape(): int {
     #assert(*stream == 'x');
     stream++;
     val := char_to_digit[(:uchar)*stream];
@@ -507,7 +507,7 @@ func scan_hex_escape(): int {
     return val;
 }
 
-func scan_char() {
+fn scan_char() {
     #assert(*stream == '\'');
     stream++;
     val := 0;
@@ -541,7 +541,7 @@ func scan_char() {
     token.mod = MOD_CHAR;
 }
 
-func scan_str() {
+fn scan_str() {
     #assert(*stream == '"');
     stream++;
     str: char* = NULL;
@@ -629,7 +629,7 @@ func scan_str() {
 //         } \
 //         break;
 
-func next_token() {
+fn next_token() {
 :repeat
     token.start = stream;
     token.mod = 0;
@@ -878,7 +878,7 @@ func next_token() {
 // #undef CASE2
 // #undef CASE3
 
-func init_stream(name: char const*, buf: char const*) {
+fn init_stream(name: char const*, buf: char const*) {
     stream = buf;
     line_start = stream;
     token.pos.name = name ? name : (:char const*)"<string>";
@@ -886,23 +886,23 @@ func init_stream(name: char const*, buf: char const*) {
     next_token();
 }
 
-func is_token(kind: TokenKind): bool {
+fn is_token(kind: TokenKind): bool {
     return token.kind == kind;
 }
 
-func is_token_eof(): bool {
+fn is_token_eof(): bool {
     return token.kind == TOKEN_EOF;
 }
 
-func is_token_name(name: char const*): bool {
+fn is_token_name(name: char const*): bool {
     return token.kind == TOKEN_NAME && token.name == name;
 }
 
-func is_keyword(name: char const*): bool {
+fn is_keyword(name: char const*): bool {
     return is_token(TOKEN_KEYWORD) && token.name == name;
 }
 
-func match_keyword(name: char const*): bool {
+fn match_keyword(name: char const*): bool {
     if (is_keyword(name)) {
         next_token();
         return true;
@@ -911,7 +911,7 @@ func match_keyword(name: char const*): bool {
     }
 }
 
-func match_token(kind: TokenKind): bool {
+fn match_token(kind: TokenKind): bool {
     if (is_token(kind)) {
         next_token();
         return true;
@@ -920,7 +920,7 @@ func match_token(kind: TokenKind): bool {
     }
 }
 
-func expect_token(kind: TokenKind): bool {
+fn expect_token(kind: TokenKind): bool {
     if (is_token(kind)) {
         next_token();
         return true;

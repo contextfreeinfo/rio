@@ -10,7 +10,7 @@ var flag_nosourcemap: bool;
 var flag_notypeinfo: bool;
 var flag_fullgen: bool;
 
-func main(argc: int, argv: char const**): int {
+fn main(argc: int, argv: char const**): int {
     // main_test();
     return ion_main(argc, argv, gen_all, "c");
 }

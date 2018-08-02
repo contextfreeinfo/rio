@@ -1,15 +1,15 @@
-func parse_type_func_param(): Typespec* {
+fn parse_type_func_param(): Typespec* {
     type := parse_type();
     if (match_token(TOKEN_COLON)) {
         if (type.kind != TYPESPEC_NAME) {
-            error(token.pos, "Colons in parameters of func types must be preceded by names.");
+            error(token.pos, "Colons in parameters of fn types must be preceded by names.");
         }
         type = parse_type();
     }
     return type;
 }
 
-func parse_type_func(): Typespec* {
+fn parse_type_func(): Typespec* {
     pos := token.pos;
     args: Typespec** = NULL;
     has_varargs: bool = false;
@@ -39,13 +39,13 @@ func parse_type_func(): Typespec* {
     return new_typespec_func(pos, args, buf_len(args), ret, has_varargs);
 }
 
-func parse_type_base(): Typespec* {
+fn parse_type_base(): Typespec* {
     if (is_token(TOKEN_NAME)) {
         pos := token.pos;
         name := token.name;
         next_token();
         return new_typespec_name(pos, name);
-    } else if (match_keyword(func_keyword)) {
+    } else if (match_keyword(fn_keyword)) {
         return parse_type_func();
     } else if (match_token(TOKEN_LPAREN)) {
         type := parse_type();
@@ -57,7 +57,7 @@ func parse_type_base(): Typespec* {
     }
 }
 
-func parse_type(): Typespec* {
+fn parse_type(): Typespec* {
     type := parse_type_base();
     pos := token.pos;
     while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_MUL) || is_keyword(const_keyword)) {
@@ -79,7 +79,7 @@ func parse_type(): Typespec* {
     return type;
 }
 
-func parse_expr_compound_field(): CompoundField {
+fn parse_expr_compound_field(): CompoundField {
     pos := token.pos;
     if (match_token(TOKEN_LBRACKET)) {
         index := parse_expr();
@@ -99,7 +99,7 @@ func parse_expr_compound_field(): CompoundField {
     }
 }
 
-func parse_expr_compound(type: Typespec*): Expr* {
+fn parse_expr_compound(type: Typespec*): Expr* {
     pos := token.pos;
     expect_token(TOKEN_LBRACE);
     fields: CompoundField* = NULL;
@@ -114,7 +114,7 @@ func parse_expr_compound(type: Typespec*): Expr* {
     return new_expr_compound(pos, type, fields, buf_len(fields));
 }
 
-func parse_expr_operand(): Expr* {
+fn parse_expr_operand(): Expr* {
     pos := token.pos;
     if (is_token(TOKEN_INT)) {
         val := token.int_val;
@@ -204,7 +204,7 @@ func parse_expr_operand(): Expr* {
     }
 }
 
-func parse_expr_base(): Expr* {
+fn parse_expr_base(): Expr* {
     expr := parse_expr_operand();
     while (is_token(TOKEN_LPAREN) || is_token(TOKEN_LBRACKET) || is_token(TOKEN_DOT) || is_token(TOKEN_INC) || is_token(TOKEN_DEC)) {
         pos := token.pos;
@@ -238,7 +238,7 @@ func parse_expr_base(): Expr* {
     return expr;
 }
 
-func is_unary_op(): bool {
+fn is_unary_op(): bool {
     return
         is_token(TOKEN_ADD) ||
         is_token(TOKEN_SUB) ||
@@ -250,7 +250,7 @@ func is_unary_op(): bool {
         is_token(TOKEN_DEC);
 }
 
-func parse_expr_unary(): Expr* {
+fn parse_expr_unary(): Expr* {
     if (is_unary_op()) {
         pos := token.pos;
         op := token.kind;
@@ -265,11 +265,11 @@ func parse_expr_unary(): Expr* {
     }
 }
 
-func is_mul_op(): bool {
+fn is_mul_op(): bool {
     return TOKEN_FIRST_MUL <= token.kind && token.kind <= TOKEN_LAST_MUL;
 }
 
-func parse_expr_mul(): Expr* {
+fn parse_expr_mul(): Expr* {
     expr := parse_expr_unary();
     while (is_mul_op()) {
         pos := token.pos;
@@ -280,11 +280,11 @@ func parse_expr_mul(): Expr* {
     return expr;
 }
 
-func is_add_op(): bool {
+fn is_add_op(): bool {
     return TOKEN_FIRST_ADD <= token.kind && token.kind <= TOKEN_LAST_ADD;
 }
 
-func parse_expr_add(): Expr* {
+fn parse_expr_add(): Expr* {
     expr := parse_expr_mul();
     while (is_add_op()) {
         pos := token.pos;
@@ -295,11 +295,11 @@ func parse_expr_add(): Expr* {
     return expr;
 }
 
-func is_cmp_op(): bool {
+fn is_cmp_op(): bool {
     return TOKEN_FIRST_CMP <= token.kind && token.kind <= TOKEN_LAST_CMP;
 }
 
-func parse_expr_cmp(): Expr* {
+fn parse_expr_cmp(): Expr* {
     expr := parse_expr_add();
     while (is_cmp_op()) {
         pos := token.pos;
@@ -310,7 +310,7 @@ func parse_expr_cmp(): Expr* {
     return expr;
 }
 
-func parse_expr_and(): Expr* {
+fn parse_expr_and(): Expr* {
     expr := parse_expr_cmp();
     while (match_token(TOKEN_AND_AND)) {
         pos := token.pos;
@@ -319,7 +319,7 @@ func parse_expr_and(): Expr* {
     return expr;
 }
 
-func parse_expr_or(): Expr* {
+fn parse_expr_or(): Expr* {
     expr := parse_expr_and();
     while (match_token(TOKEN_OR_OR)) {
         pos := token.pos;
@@ -328,7 +328,7 @@ func parse_expr_or(): Expr* {
     return expr;
 }
 
-func parse_expr_ternary(): Expr* {
+fn parse_expr_ternary(): Expr* {
     pos := token.pos;
     expr := parse_expr_or();
     if (match_token(TOKEN_QUESTION)) {
@@ -340,18 +340,18 @@ func parse_expr_ternary(): Expr* {
     return expr;
 }
 
-func parse_expr(): Expr* {
+fn parse_expr(): Expr* {
     return parse_expr_ternary();
 }
 
-func parse_paren_expr(): Expr* {
+fn parse_paren_expr(): Expr* {
     expect_token(TOKEN_LPAREN);
     expr := parse_expr();
     expect_token(TOKEN_RPAREN);
     return expr;
 }
 
-func parse_stmt_block(): StmtList {
+fn parse_stmt_block(): StmtList {
     pos := token.pos;
     expect_token(TOKEN_LBRACE);
     stmts: Stmt** = NULL;
@@ -363,7 +363,7 @@ func parse_stmt_block(): StmtList {
     return new_stmt_list(pos, stmts, buf_len(stmts));
 }
 
-func parse_stmt_if(pos: SrcPos): Stmt* {
+fn parse_stmt_if(pos: SrcPos): Stmt* {
     expect_token(TOKEN_LPAREN);
     cond := parse_expr();
     init := parse_init_stmt(cond);
@@ -391,12 +391,12 @@ func parse_stmt_if(pos: SrcPos): Stmt* {
     return new_stmt_if(pos, init, cond, then_block, elseifs, buf_len(elseifs), else_block);
 }
 
-func parse_stmt_while(pos: SrcPos): Stmt* {
+fn parse_stmt_while(pos: SrcPos): Stmt* {
     cond: Expr* = parse_paren_expr();
     return new_stmt_while(pos, cond, parse_stmt_block());
 }
 
-func parse_stmt_do_while(pos: SrcPos): Stmt* {
+fn parse_stmt_do_while(pos: SrcPos): Stmt* {
     block: StmtList = parse_stmt_block();
     if (!match_keyword(while_keyword)) {
         fatal_error(token.pos, "Expected 'while' after 'do' block");
@@ -407,11 +407,11 @@ func parse_stmt_do_while(pos: SrcPos): Stmt* {
     return stmt;
 }
 
-func is_assign_op(): bool {
+fn is_assign_op(): bool {
     return TOKEN_FIRST_ASSIGN <= token.kind && token.kind <= TOKEN_LAST_ASSIGN;
 }
 
-func parse_init_stmt(left: Expr*): Stmt* {
+fn parse_init_stmt(left: Expr*): Stmt* {
     if (match_token(TOKEN_COLON_ASSIGN)) {
         if (left.kind != EXPR_NAME) {
             fatal_error(token.pos, ":= must be preceded by a name");
@@ -435,7 +435,7 @@ func parse_init_stmt(left: Expr*): Stmt* {
     }
 }
 
-func parse_simple_stmt(): Stmt* {
+fn parse_simple_stmt(): Stmt* {
     pos := token.pos;
     expr := parse_expr();
     stmt := parse_init_stmt(expr);
@@ -451,7 +451,7 @@ func parse_simple_stmt(): Stmt* {
     return stmt;
 }
 
-func parse_stmt_for(pos: SrcPos): Stmt* {
+fn parse_stmt_for(pos: SrcPos): Stmt* {
     expect_token(TOKEN_LPAREN);
     init: Stmt* = NULL;
     if (!is_token(TOKEN_SEMICOLON)) {
@@ -475,7 +475,7 @@ func parse_stmt_for(pos: SrcPos): Stmt* {
     return new_stmt_for(pos, init, cond, next, parse_stmt_block());
 }
 
-func parse_switch_case_pattern(): SwitchCasePattern {
+fn parse_switch_case_pattern(): SwitchCasePattern {
     start := parse_expr();
     end: Expr* = NULL;
     if (match_token(TOKEN_ELLIPSIS)) {
@@ -484,7 +484,7 @@ func parse_switch_case_pattern(): SwitchCasePattern {
     return SwitchCasePattern {start, end};
 }
 
-func parse_stmt_switch_case(): SwitchCase {
+fn parse_stmt_switch_case(): SwitchCase {
     patterns: SwitchCasePattern* = NULL;
     is_default: bool = false;
     is_first_case: bool = true;
@@ -519,7 +519,7 @@ func parse_stmt_switch_case(): SwitchCase {
     return SwitchCase {patterns, buf_len(patterns), is_default, new_stmt_list(pos, stmts, buf_len(stmts))};
 }
 
-func parse_stmt_switch(pos: SrcPos): Stmt* {
+fn parse_stmt_switch(pos: SrcPos): Stmt* {
     expr: Expr* = parse_paren_expr();
     cases: SwitchCase*;
     expect_token(TOKEN_LBRACE);
@@ -531,7 +531,7 @@ func parse_stmt_switch(pos: SrcPos): Stmt* {
     return new_stmt_switch(pos, expr, cases, buf_len(cases));
 }
 
-func parse_stmt(): Stmt* {
+fn parse_stmt(): Stmt* {
     notes := parse_notes();
     pos := token.pos;
     stmt: Stmt*;
@@ -577,13 +577,13 @@ func parse_stmt(): Stmt* {
     return stmt;
 }
 
-func parse_name(): char const* {
+fn parse_name(): char const* {
     name := token.name;
     expect_token(TOKEN_NAME);
     return name;
 }
 
-func parse_decl_enum_item(): EnumItem {
+fn parse_decl_enum_item(): EnumItem {
     pos := token.pos;
     name := parse_name();
     init: Expr* = NULL;
@@ -593,7 +593,7 @@ func parse_decl_enum_item(): EnumItem {
     return EnumItem {pos, name, init};
 }
 
-func parse_decl_enum(pos: SrcPos): Decl* {
+fn parse_decl_enum(pos: SrcPos): Decl* {
     name: char const* = NULL;
     if (is_token(TOKEN_NAME)) {
         name = parse_name();
@@ -615,7 +615,7 @@ func parse_decl_enum(pos: SrcPos): Decl* {
     return new_decl_enum(pos, name, type, items, buf_len(items));
 }
 
-func parse_decl_aggregate_item(): AggregateItem {
+fn parse_decl_aggregate_item(): AggregateItem {
     pos := token.pos;
     if (match_keyword(struct_keyword)) {
         return AggregateItem {
@@ -650,7 +650,7 @@ func parse_decl_aggregate_item(): AggregateItem {
     }
 }
 
-func parse_aggregate(kind: AggregateKind): Aggregate* {
+fn parse_aggregate(kind: AggregateKind): Aggregate* {
     pos := token.pos;
     expect_token(TOKEN_LBRACE);
     items: AggregateItem* = NULL;
@@ -662,7 +662,7 @@ func parse_aggregate(kind: AggregateKind): Aggregate* {
     return new_aggregate(pos, kind, items, buf_len(items));
 }
 
-func parse_decl_aggregate(pos: SrcPos, kind: DeclKind): Decl* {
+fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind): Decl* {
     #assert(kind == DECL_STRUCT || kind == DECL_UNION);
     name := parse_name();
     aggregate_kind := kind == DECL_STRUCT ? AGGREGATE_STRUCT : AGGREGATE_UNION;
@@ -675,7 +675,7 @@ func parse_decl_aggregate(pos: SrcPos, kind: DeclKind): Decl* {
     }
 }
 
-func parse_decl_var(pos: SrcPos): Decl* {
+fn parse_decl_var(pos: SrcPos): Decl* {
     name := parse_name();
     if (match_token(TOKEN_ASSIGN)) {
         expr := parse_expr();
@@ -695,7 +695,7 @@ func parse_decl_var(pos: SrcPos): Decl* {
     }
 }
 
-func parse_decl_const(pos: SrcPos): Decl* {
+fn parse_decl_const(pos: SrcPos): Decl* {
     name := parse_name();
     type: Typespec* = NULL;
     if (match_token(TOKEN_COLON)) {
@@ -707,7 +707,7 @@ func parse_decl_const(pos: SrcPos): Decl* {
     return new_decl_const(pos, name, type, expr);
 }
 
-func parse_decl_typedef(pos: SrcPos): Decl* {
+fn parse_decl_typedef(pos: SrcPos): Decl* {
     name := parse_name();
     expect_token(TOKEN_ASSIGN);
     type := parse_type();
@@ -715,7 +715,7 @@ func parse_decl_typedef(pos: SrcPos): Decl* {
     return new_decl_typedef(pos, name, type);
 }
 
-func parse_decl_func_param(): FuncParam {
+fn parse_decl_func_param(): FuncParam {
     pos := token.pos;
     name := parse_name();
     expect_token(TOKEN_COLON);
@@ -723,7 +723,7 @@ func parse_decl_func_param(): FuncParam {
     return FuncParam {pos, name, type};
 }
 
-func parse_decl_func(pos: SrcPos): Decl* {
+fn parse_decl_func(pos: SrcPos): Decl* {
     name := parse_name();
     expect_token(TOKEN_LPAREN);
     params: FuncParam* = NULL;
@@ -763,7 +763,7 @@ func parse_decl_func(pos: SrcPos): Decl* {
     return decl;
 }
 
-func parse_note_arg(): NoteArg {
+fn parse_note_arg(): NoteArg {
     pos := token.pos;
     expr := parse_expr();
     name: char const* = NULL;
@@ -777,7 +777,7 @@ func parse_note_arg(): NoteArg {
     return NoteArg {pos = pos, name = name, expr = expr};
 }
 
-func parse_note(): Note {
+fn parse_note(): Note {
     pos := token.pos;
     name := parse_name();
     args: NoteArg* = NULL;
@@ -793,7 +793,7 @@ func parse_note(): Note {
     return new_note(pos, name, args, buf_len(args));
 }
 
-func parse_notes(): Notes {
+fn parse_notes(): Notes {
     notes: Note* = NULL;
     while (match_token(TOKEN_AT)) {
         note := parse_note();
@@ -802,11 +802,11 @@ func parse_notes(): Notes {
     return new_notes(notes, buf_len(notes));
 }
 
-func parse_decl_note(pos: SrcPos): Decl* {
+fn parse_decl_note(pos: SrcPos): Decl* {
     return new_decl_note(pos, parse_note());
 }
 
-func parse_decl_import(pos: SrcPos): Decl* {
+fn parse_decl_import(pos: SrcPos): Decl* {
     rename_name: char const*;
     is_relative: bool;
     :repeat
@@ -854,7 +854,7 @@ func parse_decl_import(pos: SrcPos): Decl* {
     return new_decl_import(pos, rename_name, is_relative, names, buf_len(names), import_all, items, buf_len(items));
 }
 
-func parse_decl_opt(): Decl* {
+fn parse_decl_opt(): Decl* {
     pos := token.pos;
     if (match_keyword(enum_keyword)) {
         return parse_decl_enum(pos);
@@ -866,7 +866,7 @@ func parse_decl_opt(): Decl* {
         return parse_decl_const(pos);
     } else if (match_keyword(typedef_keyword)) {
         return parse_decl_typedef(pos);
-    } else if (match_keyword(func_keyword)) {
+    } else if (match_keyword(fn_keyword)) {
         return parse_decl_func(pos);
     } else if (match_keyword(var_keyword)) {
         return parse_decl_var(pos);
@@ -879,7 +879,7 @@ func parse_decl_opt(): Decl* {
     }
 }
 
-func parse_decl(): Decl* {
+fn parse_decl(): Decl* {
     notes := parse_notes();
     decl: Decl* = parse_decl_opt();
     if (!decl) {
@@ -889,7 +889,7 @@ func parse_decl(): Decl* {
     return decl;
 }
 
-func parse_decls(): Decls* {
+fn parse_decls(): Decls* {
     decls: Decl** = NULL;
     while (!is_token(TOKEN_EOF)) {
         decl := parse_decl();

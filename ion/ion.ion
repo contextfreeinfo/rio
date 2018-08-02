@@ -3,14 +3,14 @@ var static_package_search_paths: char const*[MAX_SEARCH_PATHS];
 var package_search_paths: char const** = static_package_search_paths;
 var num_package_search_paths: int;
 
-func add_package_search_path(path: char const*) {
+fn add_package_search_path(path: char const*) {
     if (flag_verbose) {
         printf("Adding package search path %s\n", path);
     }
     package_search_paths[num_package_search_paths++] = str_intern(path);
 }
 
-func add_package_search_path_range(start: char const*, end: char const*) {
+fn add_package_search_path_range(start: char const*, end: char const*) {
     path: char[MAX_PATH];
     len: usize = clamp_max(end - start, MAX_PATH - 1);
     memcpy(path, start, len);
@@ -18,7 +18,7 @@ func add_package_search_path_range(start: char const*, end: char const*) {
     add_package_search_path(path);
 }
 
-func init_package_search_paths() {
+fn init_package_search_paths() {
     ionhome_var := getenv("IONHOME");
     if (!ionhome_var) {
         printf("error: Set the environment variable IONHOME to the Ion home directory (where system_packages is located)\n");
@@ -44,7 +44,7 @@ func init_package_search_paths() {
     }
 }
 
-func init_compiler() {
+fn init_compiler() {
     init_target();
     init_package_search_paths();
     init_keywords();
@@ -52,7 +52,7 @@ func init_compiler() {
     map_put(&decl_note_names, declare_note_name, (:void*)1);
 }
 
-func parse_env_vars() {
+fn parse_env_vars() {
     ionos_var := getenv("IONOS");
     if (ionos_var) {
         os := get_os(ionos_var);
@@ -73,7 +73,7 @@ func parse_env_vars() {
     }
 }
 
-func ion_main(argc: int, argv: char const**, gen_all: func(), extension: char const*): int {
+fn ion_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*): int {
     parse_env_vars();
     output_name: char const*;
     flag_check := false;

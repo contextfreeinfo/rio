@@ -25,7 +25,7 @@ var arch_names: char const*[NUM_ARCHES] = {
 var target_os: int;
 var target_arch: int;
 
-func get_os(name: char const*): int {
+fn get_os(name: char const*): int {
     for (i := 0; i < NUM_OSES; i++) {
         if (strcmp(os_names[i], name) == 0) {
             return i;
@@ -34,7 +34,7 @@ func get_os(name: char const*): int {
     return -1;
 }
 
-func get_arch(name: char const*): int {
+fn get_arch(name: char const*): int {
     for (i := 0; i < NUM_ARCHES; i++) {
         if (strcmp(arch_names[i], name) == 0) {
             return i;
@@ -43,7 +43,7 @@ func get_arch(name: char const*): int {
     return -1;
 }
 
-func init_default_type_metrics(metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS]) {
+fn init_default_type_metrics(metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS]) {
     metrics[CMPL_TYPE_BOOL] = {size = 1, align = 1};
     metrics[CMPL_TYPE_CHAR] = {size = 1, align = 1, max = 0x7f, sign = true};
     metrics[CMPL_TYPE_SCHAR] = {size = 1, align = 1, max = 0x7f, sign = true};
@@ -86,7 +86,7 @@ var lp64_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
     [CMPL_TYPE_ULONG] = {size = 8, align = 8, max = 0xffffffffffffffff, sign = true},
 };
 
-func init_target() {
+fn init_target() {
     type_metrics = NULL;
     switch (target_os) {
     case OS_WIN32:
@@ -130,7 +130,7 @@ func init_target() {
     }
 }
 
-func is_excluded_target_filename(name: char const*): bool {
+fn is_excluded_target_filename(name: char const*): bool {
     end := name + strlen(name);
 
     ptr1 := end;
