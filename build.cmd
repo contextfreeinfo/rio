@@ -1,10 +1,10 @@
 @echo off
 setlocal
 
-set IONHOME=%~dp0
-set IONOS=win32
+set RIOHOME=%~dp0
+set RIOOS=win32
 
-pushd %IONHOME%
+pushd %RIOHOME%
 
 call bin\vsenv -arch=x64
 

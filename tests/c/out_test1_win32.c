@@ -77,9 +77,9 @@ typedef union test1_IntOrPtr test1_IntOrPtr;
 // Sorted declarations
 int main(int argc, char (*(*argv)));
 
-extern char const ((*IONOS));
+extern char const ((*RIOOS));
 
-extern char const ((*IONARCH));
+extern char const ((*RIOARCH));
 
 typedef ullong typeid;
 
@@ -681,8 +681,8 @@ int main(int argc, char (*(*argv))) {
     return 0;
 }
 
-char const ((*IONOS)) = "win32";
-char const ((*IONARCH)) = "x64";
+char const ((*RIOOS)) = "win32";
+char const ((*RIOARCH)) = "x64";
 TypeKind typeid_kind(typeid type) {
     return (TypeKind)((((type) >> (24))) & (0xff));
 }
@@ -778,8 +778,8 @@ void test1_test_va_list(char const ((*fmt)), ...) {
 }
 
 void test1_test_os_arch(void) {
-    printf("Target operating system: %s\n", IONOS);
-    printf("Target machine architecture: %s\n", IONARCH);
+    printf("Target operating system: %s\n", RIOOS);
+    printf("Target machine architecture: %s\n", RIOARCH);
 }
 
 void test1_test_packages(void) {

@@ -69,9 +69,9 @@ typedef struct Any Any;
 // Sorted declarations
 int main(int argc, char (*(*argv)));
 
-extern char const ((*IONOS));
+extern char const ((*RIOOS));
 
-extern char const ((*IONARCH));
+extern char const ((*RIOARCH));
 
 typedef ullong typeid;
 
@@ -400,8 +400,8 @@ int main(int argc, char (*(*argv))) {
     return 0;
 }
 
-char const ((*IONOS)) = "win32";
-char const ((*IONARCH)) = "x64";
+char const ((*RIOOS)) = "win32";
+char const ((*RIOARCH)) = "x64";
 TypeKind typeid_kind(typeid type) {
     return (TypeKind)((((type) >> (24))) & (0xff));
 }

@@ -1,1 +1,1 @@
-var IONOS: char const* = "win32";
+var RIOOS: char const* = "win32";

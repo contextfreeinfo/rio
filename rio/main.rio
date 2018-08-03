@@ -1,6 +1,6 @@
 import libc {...}
 
-// Keep everything for now, because c code needs to access some things that ion
+// Keep everything for now, because c code needs to access some things that rio
 // doesn't.
 #always
 
@@ -12,5 +12,5 @@ var flag_fullgen: bool;
 
 fn main(argc: int, argv: char const**): int {
     // main_test();
-    return ion_main(argc, argv, gen_all, "c");
+    return rio_main(argc, argv, gen_all, "c");
 }

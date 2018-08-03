@@ -136,9 +136,9 @@ typedef struct rio_CachedFuncType rio_CachedFuncType;
 // Sorted declarations
 int main(int argc, char const ((*(*argv))));
 
-extern char const ((*IONOS));
+extern char const ((*RIOOS));
 
-extern char const ((*IONARCH));
+extern char const ((*RIOARCH));
 
 typedef ullong typeid;
 
@@ -839,7 +839,7 @@ void rio_init_compiler(void);
 
 void rio_parse_env_vars(void);
 
-int rio_ion_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char const ((*extension)));
+int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char const ((*extension)));
 
 extern char const ((*rio_typedef_keyword));
 
@@ -2216,11 +2216,11 @@ const TypeInfo **typeinfos;
 
 // Definitions
 int main(int argc, char const ((*(*argv)))) {
-    return rio_ion_main(argc, argv, rio_gen_all, "c");
+    return rio_rio_main(argc, argv, rio_gen_all, "c");
 }
 
-char const ((*IONOS)) = "win32";
-char const ((*IONARCH)) = "x64";
+char const ((*RIOOS)) = "win32";
+char const ((*RIOARCH)) = "x64";
 TypeKind typeid_kind(typeid type) {
     return (TypeKind)((((type) >> (24))) & (0xff));
 }
@@ -4495,20 +4495,20 @@ void rio_add_package_search_path_range(char const ((*start)), char const ((*end)
 }
 
 void rio_init_package_search_paths(void) {
-    char (*ionhome_var) = getenv("IONHOME");
-    if (!(ionhome_var)) {
-        printf("error: Set the environment variable IONHOME to the Ion home directory (where system_packages is located)\n");
+    char (*riohome_var) = getenv("RIOHOME");
+    if (!(riohome_var)) {
+        printf("error: Set the environment variable RIOHOME to the Ion home directory (where system_packages is located)\n");
         exit(1);
     }
     char (path[MAX_PATH]) = {0};
-    rio_path_copy(path, ionhome_var);
+    rio_path_copy(path, riohome_var);
     rio_path_join(path, "system_packages");
     rio_add_package_search_path(path);
     rio_add_package_search_path(".");
-    char (*ionpath_var) = getenv("IONPATH");
-    if (ionpath_var) {
-        char (*start) = ionpath_var;
-        for (char (*ptr) = ionpath_var; *(ptr); (ptr)++) {
+    char (*riopath_var) = getenv("RIOPATH");
+    if (riopath_var) {
+        char (*start) = riopath_var;
+        for (char (*ptr) = riopath_var; *(ptr); (ptr)++) {
             if ((*(ptr)) == (';')) {
                 rio_add_package_search_path_range(start, ptr);
                 start = (ptr) + (1);
@@ -4529,27 +4529,27 @@ void rio_init_compiler(void) {
 }
 
 void rio_parse_env_vars(void) {
-    char (*ionos_var) = getenv("IONOS");
-    if (ionos_var) {
-        int os = rio_get_os(ionos_var);
+    char (*rioos_var) = getenv("RIOOS");
+    if (rioos_var) {
+        int os = rio_get_os(rioos_var);
         if ((os) == (-(1))) {
-            printf("Unknown target operating system in IONOS environment variable: %s\n", ionos_var);
+            printf("Unknown target operating system in RIOOS environment variable: %s\n", rioos_var);
         } else {
             rio_target_os = os;
         }
     }
-    char (*ionarch_var) = getenv("IONARCH");
-    if (ionarch_var) {
-        int arch = rio_get_arch(ionarch_var);
+    char (*rioarch_var) = getenv("RIOARCH");
+    if (rioarch_var) {
+        int arch = rio_get_arch(rioarch_var);
         if ((arch) == (-(1))) {
-            printf("Unknown target architecture in IONARCH environment variable: %s\n", ionarch_var);
+            printf("Unknown target architecture in RIOARCH environment variable: %s\n", rioarch_var);
         } else {
             rio_target_arch = arch;
         }
     }
 }
 
-int rio_ion_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char const ((*extension))) {
+int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char const ((*extension))) {
     rio_parse_env_vars();
     char const ((*output_name)) = {0};
     bool flag_check = false;

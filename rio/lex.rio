@@ -37,7 +37,7 @@ var static_assert_name: char const*;
 // #define KEYWORD(name) name##_keyword = str_intern(#name); buf_push(keywords, name##_keyword)
 fn init_keyword(keyword: char const*): char const* {
     keyword = str_intern(keyword);
-    // TODO If ion doesn't give warnings, the underlying compiler also shouldn't.
+    // TODO If rio doesn't give warnings, the underlying compiler also shouldn't.
     buf_push((:void**)&keywords, (:void*)&keyword, sizeof(keyword));
     return keyword;
 }
@@ -593,7 +593,7 @@ fn scan_str() {
             error(token.pos, "Unexpected end of file within string literal");
         }
     }
-    // TODO: If I say just "", I get a random byte in the c output from c ion.
+    // TODO: If I say just "", I get a random byte in the c output from c rio.
     nul := '\0';
     buf_push((:void**)&str, &nul, 1);
     token.kind = TOKEN_STR;

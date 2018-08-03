@@ -1,4 +1,4 @@
-// This file contains code that can't easily be expressed in ion at present.
+// This file contains code that can't easily be expressed in rio at present.
 // Ideally, this file goes away sometime.
 
 #if _MSC_VER >= 1900 || __STDC_VERSION__ >= 201112L

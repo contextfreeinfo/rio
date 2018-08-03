@@ -5,14 +5,14 @@ call "%~dp0\vsenv" -arch=x64
 
 setlocal
 
-call :resolve "%~dp0\.." IONHOME
-set IONOS=win32
+call :resolve "%~dp0\.." RIOHOME
+set RIOOS=win32
 
-if not exist "%IONHOME%\bin\rio.exe" (
-  call "%IONHOME%\build"
+if not exist "%RIOHOME%\bin\rio.exe" (
+  call "%RIOHOME%\build"
 )
 
-"%IONHOME%\bin\rio.exe" %*
+"%RIOHOME%\bin\rio.exe" %*
 
 endlocal
 

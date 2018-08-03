@@ -788,8 +788,8 @@ fn test_reachable() {
 }
 
 fn test_os_arch() {
-    printf("Target operating system: %s\n", IONOS);
-    printf("Target machine architecture: %s\n", IONARCH);
+    printf("Target operating system: %s\n", RIOOS);
+    printf("Target machine architecture: %s\n", RIOARCH);
 }
 
 struct Bar {

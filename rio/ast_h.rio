@@ -1,4 +1,4 @@
-// Kept separate from ast.ion for easier diffing with original source split.
+// Kept separate from ast.rio for easier diffing with original source split.
 
 struct NoteArg {
     pos: SrcPos;

@@ -1,7 +1,7 @@
-export IONHOME="$(dirname "$(readlink -f "$0")")"
-export IONOS=linux
+export RIOHOME="$(dirname "$(readlink -f "$0")")"
+export RIOOS=linux
 
-cd "$IONHOME"
+cd "$RIOHOME"
 
 if [ -e bin/rio ]; then
   bin/rio -nosourcemap -notypeinfo -o c/out_rio_linux.c rio

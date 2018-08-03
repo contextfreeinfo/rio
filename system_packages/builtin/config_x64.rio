@@ -1,1 +1,1 @@
-var IONARCH: char const* = "x64";
+var RIOARCH: char const* = "x64";

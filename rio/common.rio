@@ -132,7 +132,7 @@ fn write_file(path: char const*, buf: char const*, len: usize): bool {
 struct BufHdr {
     len: usize;
     cap: usize;
-    // Should be char[], but ion doesn't allow size 0.
+    // Should be char[], but rio doesn't allow size 0.
     buf: char[1];
 }
 

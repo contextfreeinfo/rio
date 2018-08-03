@@ -19,20 +19,20 @@ fn add_package_search_path_range(start: char const*, end: char const*) {
 }
 
 fn init_package_search_paths() {
-    ionhome_var := getenv("IONHOME");
-    if (!ionhome_var) {
-        printf("error: Set the environment variable IONHOME to the Ion home directory (where system_packages is located)\n");
+    riohome_var := getenv("RIOHOME");
+    if (!riohome_var) {
+        printf("error: Set the environment variable RIOHOME to the Ion home directory (where system_packages is located)\n");
         exit(1);
     }
     path: char[MAX_PATH];
-    path_copy(path, ionhome_var);
+    path_copy(path, riohome_var);
     path_join(path, "system_packages");
     add_package_search_path(path);
     add_package_search_path(".");
-    ionpath_var := getenv("IONPATH");
-    if (ionpath_var) {
-        start := ionpath_var;
-        for (ptr := ionpath_var; *ptr; ptr++) {
+    riopath_var := getenv("RIOPATH");
+    if (riopath_var) {
+        start := riopath_var;
+        for (ptr := riopath_var; *ptr; ptr++) {
             if (*ptr == ';') {
                 add_package_search_path_range(start, ptr);
                 start = ptr + 1;
@@ -53,27 +53,27 @@ fn init_compiler() {
 }
 
 fn parse_env_vars() {
-    ionos_var := getenv("IONOS");
-    if (ionos_var) {
-        os := get_os(ionos_var);
+    rioos_var := getenv("RIOOS");
+    if (rioos_var) {
+        os := get_os(rioos_var);
         if (os == -1) {
-            printf("Unknown target operating system in IONOS environment variable: %s\n", ionos_var);
+            printf("Unknown target operating system in RIOOS environment variable: %s\n", rioos_var);
         } else {
             target_os = os;
         }
     }
-    ionarch_var := getenv("IONARCH");
-    if (ionarch_var) {
-        arch := get_arch(ionarch_var);
+    rioarch_var := getenv("RIOARCH");
+    if (rioarch_var) {
+        arch := get_arch(rioarch_var);
         if (arch == -1) {
-            printf("Unknown target architecture in IONARCH environment variable: %s\n", ionarch_var);
+            printf("Unknown target architecture in RIOARCH environment variable: %s\n", rioarch_var);
         } else {
             target_arch = arch;
         }
     }
 }
 
-fn ion_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*): int {
+fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*): int {
     parse_env_vars();
     output_name: char const*;
     flag_check := false;
