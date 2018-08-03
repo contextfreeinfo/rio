@@ -54,7 +54,7 @@ fn fatal(fmt: char const*, ...) {
 }
 
 fn xcalloc(num_elems: usize, elem_size: usize): void* {
-    ptr := calloc(num_elems, elem_size);
+    let ptr = calloc(num_elems, elem_size);
     if (!ptr) {
         perror("xcalloc failed");
         exit(1);
@@ -72,7 +72,7 @@ fn xrealloc(ptr: void*, num_bytes: usize): void* {
 }
 
 fn xmalloc(num_bytes: usize): void* {
-    ptr := malloc(num_bytes);
+    let ptr = malloc(num_bytes);
     if (!ptr) {
         perror("xmalloc failed");
         exit(1);
@@ -81,7 +81,7 @@ fn xmalloc(num_bytes: usize): void* {
 }
 
 fn memdup(src: void*, size: usize): void* {
-    dest := xmalloc(size);
+    let dest = xmalloc(size);
     memcpy(dest, src, size);
     return dest;
 }
@@ -89,7 +89,7 @@ fn memdup(src: void*, size: usize): void* {
 fn strf(fmt: char const*, ...): char* {
     args: va_list;
     va_start(&args, &fmt);
-    n := 1 + vsnprintf(NULL, 0, fmt, args);
+    let n = 1 + vsnprintf(NULL, 0, fmt, args);
     va_end(&args);
     str: char* = xmalloc(n);
     va_start(&args, &fmt);
@@ -99,12 +99,12 @@ fn strf(fmt: char const*, ...): char* {
 }
 
 fn read_file(path: char const*): char* {
-    file := fopen(path, "rb");
+    let file = fopen(path, "rb");
     if (!file) {
         return NULL;
     }
     fseek(file, 0, SEEK_END);
-    len := ftell(file);
+    let len = ftell(file);
     fseek(file, 0, SEEK_SET);
     buf: char* = xmalloc(len + 1);
     if (len && fread(buf, len, 1, file) != 1) {
@@ -118,11 +118,11 @@ fn read_file(path: char const*): char* {
 }
 
 fn write_file(path: char const*, buf: char const*, len: usize): bool {
-    file := fopen(path, "w");
+    let file = fopen(path, "w");
     if (!file) {
         return false;
     }
-    n := fwrite(buf, len, 1, file);
+    let n = fwrite(buf, len, 1, file);
     fclose(file);
     return n == 1;
 }
@@ -188,10 +188,10 @@ fn buf_push(b: void**, elem: void*, elem_size: usize) {
 
 fn buf__grow(buf: void const*, new_len: usize, elem_size: usize): void* {
     #assert(buf_cap(buf) <= (USIZE_MAX - 1)/2);
-    new_cap := clamp_min(2*buf_cap(buf), max(new_len, 16));
+    let new_cap = clamp_min(2*buf_cap(buf), max(new_len, 16));
     #assert(new_len <= new_cap);
     #assert(new_cap <= (USIZE_MAX - offsetof(BufHdr, buf))/elem_size);
-    new_size := offsetof(BufHdr, buf) + new_cap*elem_size;
+    let new_size = offsetof(BufHdr, buf) + new_cap*elem_size;
     new_hdr: BufHdr*;
     if (buf) {
         new_hdr = xrealloc(buf__hdr((:void*)buf), new_size);
@@ -206,13 +206,13 @@ fn buf__grow(buf: void const*, new_len: usize, elem_size: usize): void* {
 fn buf_printf(buf: char**, fmt: char const*, ...) {
     args: va_list;
     va_start(&args, &fmt);
-    cap := buf_cap(*buf) - buf_len(*buf);
-    n := 1 + vsnprintf(buf_end(*buf, 1), cap, fmt, args);
+    let cap = buf_cap(*buf) - buf_len(*buf);
+    let n = 1 + vsnprintf(buf_end(*buf, 1), cap, fmt, args);
     va_end(&args);
     if (n > cap) {
         buf_fit((:void**)buf, n + buf_len(*buf), 1);
         va_start(&args, &fmt);
-        new_cap := buf_cap(*buf) - buf_len(*buf);
+        let new_cap = buf_cap(*buf) - buf_len(*buf);
         n = 1 + vsnprintf(buf_end(*buf, 1), new_cap, fmt, args);
         #assert(n <= new_cap);
         va_end(&args);
@@ -254,7 +254,7 @@ const ARENA_BLOCK_SIZE = 1024 * 1024;
 // const ARENA_BLOCK_SIZE = 1024;
 
 fn arena_grow(arena: Arena*, min_size: usize) {
-    size := align_up(clamp_min(min_size, ARENA_BLOCK_SIZE), ARENA_ALIGNMENT);
+    let size = align_up(clamp_min(min_size, ARENA_BLOCK_SIZE), ARENA_ALIGNMENT);
     arena.ptr = xmalloc(size);
     #assert(arena.ptr == align_down_ptr(arena.ptr, ARENA_ALIGNMENT));
     arena.end = arena.ptr + size;
@@ -266,7 +266,7 @@ fn arena_alloc(arena: Arena*, size: usize): void* {
         arena_grow(arena, size);
         #assert(size <= (:usize)(arena.end - arena.ptr));
     }
-    ptr := arena.ptr;
+    let ptr = arena.ptr;
     arena.ptr = align_up_ptr(arena.ptr + size, ARENA_ALIGNMENT);
     #assert(arena.ptr <= arena.end);
     #assert(ptr == align_down_ptr(ptr, ARENA_ALIGNMENT));
@@ -274,7 +274,7 @@ fn arena_alloc(arena: Arena*, size: usize): void* {
 }
 
 fn arena_free(arena: Arena*) {
-    end := buf_end(arena.blocks, sizeof(arena.ptr));
+    let end = buf_end(arena.blocks, sizeof(arena.ptr));
     for (it: char** = arena.blocks; it != end; it++) {
         free(*it);
     }
@@ -302,7 +302,7 @@ fn hash_mix(x: uint64, y: uint64): uint64 {
 
 fn hash_bytes(ptr: void const*, len: usize): uint64 {
     x: uint64 = 0xcbf29ce484222325;
-    buf := (:char const*)ptr;
+    let buf = (:char const*)ptr;
     for (i: usize = 0; i < len; i++) {
         x ^= buf[i];
         x *= 0x100000001b3;
@@ -323,7 +323,7 @@ fn map_get_uint64_from_uint64(map: Map*, key: uint64): uint64 {
         return 0;
     }
     #assert(is_pow2(map.cap));
-    i := (:usize)hash_uint64(key);
+    let i = (:usize)hash_uint64(key);
     #assert(map.len < map.cap);
     for (;;) {
         i &= map.cap - 1;
@@ -339,7 +339,7 @@ fn map_get_uint64_from_uint64(map: Map*, key: uint64): uint64 {
 
 fn map_grow(map: Map*, new_cap: usize) {
     new_cap = clamp_min(new_cap, 16);
-    new_map := Map {
+    let new_map = Map {
         keys = xcalloc(new_cap, sizeof(:uint64)),
         vals = xmalloc(new_cap * sizeof(:uint64)),
         cap = new_cap,
@@ -364,7 +364,7 @@ fn map_put_uint64_from_uint64(map: Map*, key: uint64, val: uint64) {
     }
     #assert(2*map.len < map.cap);
     #assert(is_pow2(map.cap));
-    i := (:usize)hash_uint64(key);
+    let i = (:usize)hash_uint64(key);
     for (;;) {
         i &= map.cap - 1;
         if (!map.keys[i]) {
@@ -429,10 +429,10 @@ let interns: Map;
 
 fn str_intern_range(start: char const*, end: char const*): char const* {
     len: usize = end - start;
-    hash := hash_bytes(start, len);
+    let hash = hash_bytes(start, len);
     key: uint64 = hash ? hash : 1;
     intern: Intern* = map_get_from_uint64(&interns, key);
-    for (it := intern; it; it = it.next) {
+    for (let it = intern; it; it = it.next) {
         if (it.len == len && strncmp(it.str, start, len) == 0) {
             return it.str;
         }

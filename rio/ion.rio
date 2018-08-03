@@ -19,7 +19,7 @@ fn add_package_search_path_range(start: char const*, end: char const*) {
 }
 
 fn init_package_search_paths() {
-    riohome_var := getenv("RIOHOME");
+    let riohome_var = getenv("RIOHOME");
     if (!riohome_var) {
         printf("error: Set the environment variable RIOHOME to the Ion home directory (where system_packages is located)\n");
         exit(1);
@@ -29,10 +29,10 @@ fn init_package_search_paths() {
     path_join(path, "system_packages");
     add_package_search_path(path);
     add_package_search_path(".");
-    riopath_var := getenv("RIOPATH");
+    let riopath_var = getenv("RIOPATH");
     if (riopath_var) {
-        start := riopath_var;
-        for (ptr := riopath_var; *ptr; ptr++) {
+        let start = riopath_var;
+        for (let ptr = riopath_var; *ptr; ptr++) {
             if (*ptr == ';') {
                 add_package_search_path_range(start, ptr);
                 start = ptr + 1;
@@ -53,18 +53,18 @@ fn init_compiler() {
 }
 
 fn parse_env_vars() {
-    rioos_var := getenv("RIOOS");
+    let rioos_var = getenv("RIOOS");
     if (rioos_var) {
-        os := get_os(rioos_var);
+        let os = get_os(rioos_var);
         if (os == -1) {
             printf("Unknown target operating system in RIOOS environment variable: %s\n", rioos_var);
         } else {
             target_os = os;
         }
     }
-    rioarch_var := getenv("RIOARCH");
+    let rioarch_var = getenv("RIOARCH");
     if (rioarch_var) {
-        arch := get_arch(rioarch_var);
+        let arch = get_arch(rioarch_var);
         if (arch == -1) {
             printf("Unknown target architecture in RIOARCH environment variable: %s\n", rioarch_var);
         } else {
@@ -76,7 +76,7 @@ fn parse_env_vars() {
 fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*): int {
     parse_env_vars();
     output_name: char const*;
-    flag_check := false;
+    let flag_check = false;
     add_flag_str("o", &output_name, "file", "Output file (default: out_<main-package>.c)");
     add_flag_enum("os", &target_os, "Target operating system", os_names, NUM_OSES);
     add_flag_enum("arch", &target_arch, "Target machine architecture", arch_names, NUM_ARCHES);
@@ -86,13 +86,13 @@ fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*
     add_flag_bool("notypeinfo", &flag_notypeinfo, "Don't generate any typeinfo tables");
     add_flag_bool("fullgen", &flag_fullgen, "Force full code generation even for non-reachable symbols");
     add_flag_bool("verbose", &flag_verbose, "Extra diagnostic information");
-    program_name := parse_flags(&argc, &argv);
+    let program_name = parse_flags(&argc, &argv);
     if (argc != 1) {
         printf("Usage: %s [flags] <main-package>\n", program_name);
         print_flags_usage();
         return 1;
     }
-    package_name := argv[0];
+    let package_name = argv[0];
     if (flag_verbose) {
         printf("Target operating system: %s\n", os_names[target_os]);
         printf("Target architecture: %s\n", arch_names[target_arch]);
@@ -104,13 +104,13 @@ fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*
         return 1;
     }
     builtin_package.external_name = str_intern("");
-    main_package := import_package(package_name);
+    let main_package = import_package(package_name);
     if (!main_package) {
         printf("error: Failed to compile package '%s'\n", package_name);
         return 1;
     }
-    main_name := str_intern("main");
-    main_sym := get_package_sym(main_package, main_name);
+    let main_name = str_intern("main");
+    let main_sym = get_package_sym(main_package, main_name);
     if (!main_sym) {
         printf("error: No 'main' entry point defined in package '%s'\n", package_name);
         return 1;
@@ -143,7 +143,7 @@ fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*
             snprintf(c_path, sizeof(c_path), "out_%s.%s", package_name, extension);
         }
         gen_all();
-        c_code := gen_buf;
+        let c_code = gen_buf;
         gen_buf = NULL;
         if (!write_file(c_path, c_code, buf_len(c_code))) {
             printf("error: Failed to write file: %s\n", c_path);

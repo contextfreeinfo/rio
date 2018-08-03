@@ -47,7 +47,7 @@ fn dir2(a: vec2, b: vec2): vec2 {
 }
 
 fn rot2(a: float, b: vec2): vec2 {
-    c := cos(a);
-    s := sin(a);
+    let c = cos(a);
+    let s = sin(a);
     return {c*b.x - s*b.y, s*b.x + c*b.y};
 }

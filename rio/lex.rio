@@ -364,8 +364,8 @@ let char_to_digit: uint8[256] = {
 };
 
 fn scan_int() {
-    base := 10;
-    start_digits := stream;
+    let base = 10;
+    let start_digits = stream;
     if (*stream == '0') {
         stream++;
         if (tolower(*stream) == 'x') {
@@ -390,7 +390,7 @@ fn scan_int() {
             stream++;
             continue;
         }
-        digit := char_to_digit[(:uchar)*stream];
+        let digit = char_to_digit[(:uchar)*stream];
         if (digit == 0 && *stream != '0') {
             break;
         }
@@ -439,7 +439,7 @@ fn scan_int() {
 @foreign const HUGE_VAL = 0.0;
 
 fn scan_float() {
-    start := stream;
+    let start = stream;
     while (isdigit(*stream)) {
         stream++;
     }
@@ -461,7 +461,7 @@ fn scan_float() {
             stream++;
         }
     }
-    val := strtod(start, NULL);
+    let val = strtod(start, NULL);
     if (val == HUGE_VAL) {
         error(token.pos, "Float literal overflow");
     }
@@ -489,12 +489,12 @@ let escape_to_char: char[256] = {
 fn scan_hex_escape(): int {
     #assert(*stream == 'x');
     stream++;
-    val := char_to_digit[(:uchar)*stream];
+    let val = char_to_digit[(:uchar)*stream];
     if (!val && *stream != '0') {
         error(token.pos, "\\x needs at least 1 hex digit");
     }
     stream++;
-    digit := char_to_digit[(:uchar)*stream];
+    let digit = char_to_digit[(:uchar)*stream];
     if (digit || *stream == '0') {
         val *= 16;
         val += digit;
@@ -510,7 +510,7 @@ fn scan_hex_escape(): int {
 fn scan_char() {
     #assert(*stream == '\'');
     stream++;
-    val := 0;
+    let val = 0;
     if (*stream == '\'') {
         error(token.pos, "Char literal cannot be empty");
         stream++;
@@ -567,7 +567,7 @@ fn scan_str() {
         token.mod = MOD_MULTILINE;
     } else {
         while (*stream && *stream != '"') {
-            val := *stream;
+            let val = *stream;
             if (val == '\n') {
                 error(token.pos, "String literal cannot contain newline");
                 break;
@@ -594,7 +594,7 @@ fn scan_str() {
         }
     }
     // TODO: If I say just "", I get a random byte in the c output from c rio.
-    nul := '\0';
+    let nul = '\0';
     buf_push((:void**)&str, &nul, 1);
     token.kind = TOKEN_STR;
     token.str_val = str;
@@ -661,7 +661,7 @@ fn next_token() {
         while (isdigit(*stream)) {
             stream++;
         }
-        c := *stream;
+        let c = *stream;
         stream = token.start;
         if (c == '.' || tolower(c) == 'e') {
             scan_float();
@@ -723,7 +723,7 @@ fn next_token() {
             goto repeat;
         } else if (*stream == '*') {
             stream++;
-            level := 1;
+            let level = 1;
             while (*stream && level > 0) {
                 if (stream[0] == '/' && stream[1] == '*') {
                     level++;

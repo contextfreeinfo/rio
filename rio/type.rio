@@ -205,7 +205,7 @@ let type_ranks: int[NUM_CMPL_TYPE_KINDS] = {
 };
 
 fn type_rank(type: Type*): int {
-    rank := type_ranks[type.kind];
+    let rank = type_ranks[type.kind];
     #assert(rank != 0);
     return rank;
 }
@@ -295,17 +295,17 @@ struct CachedArrayType {
 let cached_array_types: Map;
 
 fn type_array(base: Type*, num_elems: usize): Type* {
-    hash := hash_mix(hash_ptr(base), hash_uint64(num_elems));
+    let hash = hash_mix(hash_ptr(base), hash_uint64(num_elems));
     key: uint64 = hash ? hash : 1;
     cached: CachedArrayType* = map_get_from_uint64(&cached_array_types, key);
     for (it: CachedArrayType* = cached; it; it = it.next) {
-        type := it.type;
+        let type = it.type;
         if (type.base == base && type.num_elems == num_elems) {
             return type;
         }
     }
     complete_type(base);
-    type := type_alloc(CMPL_TYPE_ARRAY);
+    let type = type_alloc(CMPL_TYPE_ARRAY);
     type.nonmodifiable = base.nonmodifiable;
     type.size = num_elems * type_sizeof(base);
     type.align = type_alignof(base);
@@ -326,12 +326,12 @@ struct CachedFuncType {
 let cached_func_types: Map;
 
 fn type_func(params: Type**, num_params: usize, ret: Type*, has_varargs: bool): Type* {
-    params_size := num_params * sizeof(*params);
-    hash := hash_mix(hash_bytes(params, params_size), hash_ptr(ret));
+    let params_size = num_params * sizeof(*params);
+    let hash = hash_mix(hash_bytes(params, params_size), hash_ptr(ret));
     key: uint64 = hash ? hash : 1;
     cached: CachedFuncType* = map_get_from_uint64(&cached_func_types, key);
-    for (it := cached; it; it = it.next) {
-        type := it.type;
+    for (let it = cached; it; it = it.next) {
+        let type = it.type;
         if (type.function.num_params == num_params && type.function.ret == ret && type.function.has_varargs == has_varargs) {
             if (memcmp(type.function.params, params, params_size) == 0) {
                 return type;
@@ -366,8 +366,8 @@ fn has_duplicate_fields(type: Type*): bool {
 fn add_type_fields(fields: TypeField**, type: Type*, offset: usize) {
     #assert(type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION);
     for (i: usize = 0; i < type.aggregate.num_fields; i++) {
-        field := &type.aggregate.fields[i];
-        new_field := TypeField {field.name, field.type, field.offset + offset};
+        let field = &type.aggregate.fields[i];
+        let new_field = TypeField {field.name, field.type, field.offset + offset};
         buf_push((:void**)fields, &new_field, sizeof(new_field));
     }
 }
@@ -379,7 +379,7 @@ fn type_complete_struct(type: Type*, fields: TypeField*, num_fields: usize) {
     type.align = 0;
     nonmodifiable: bool = false;
     new_fields: TypeField*;
-    for (it := fields; it != fields + num_fields; it++) {
+    for (let it = fields; it != fields + num_fields; it++) {
         #assert(is_pow2(type_alignof(it.type)));
         if (it.name) {
             it.offset = type.size;
@@ -404,7 +404,7 @@ fn type_complete_union(type: Type*, fields: TypeField*, num_fields: usize) {
     type.align = 0;
     nonmodifiable: bool = false;
     new_fields: TypeField*;
-    for (it := fields; it != fields + num_fields; it++) {
+    for (let it = fields; it != fields + num_fields; it++) {
         #assert(it.type.kind > CMPL_TYPE_COMPLETING);
         if (it.name) {
             it.offset = type.size;
@@ -423,13 +423,13 @@ fn type_complete_union(type: Type*, fields: TypeField*, num_fields: usize) {
 }
 
 fn type_incomplete(sym: Sym*): Type* {
-    type := type_alloc(CMPL_TYPE_INCOMPLETE);
+    let type = type_alloc(CMPL_TYPE_INCOMPLETE);
     type.sym = sym;
     return type;
 }
 
 fn type_enum(sym: Sym*, base: Type*): Type* {
-    type := type_alloc(CMPL_TYPE_ENUM);
+    let type = type_alloc(CMPL_TYPE_ENUM);
     type.sym = sym;
     type.base = base;
     type.size = type_int.size;
@@ -480,7 +480,7 @@ fn aggregate_item_field_type_from_index(type: Type*, index: int): Type* {
 
 fn aggregate_item_field_type_from_name(type: Type*, name: char const*): Type* {
     #assert(is_aggregate_type(type));
-    index := aggregate_item_field_index(type, name);
+    let index = aggregate_item_field_index(type, name);
     if (index < 0) {
         return NULL;
     }

@@ -72,7 +72,7 @@ fn add_package(package: Package*) {
 }
 
 fn enter_package(new_package: Package*): Package* {
-    old_package := current_package;
+    let old_package = current_package;
     current_package = new_package;
     return old_package;
 }
@@ -101,7 +101,7 @@ fn sym_new(kind: SymKind, name: char const*, decl: Decl*): Sym* {
 }
 
 fn process_decl_notes(decl: Decl*, sym: Sym*) {
-    foreign_note := get_decl_note(decl, foreign_name);
+    let foreign_note = get_decl_note(decl, foreign_name);
     if (foreign_note) {
         if (foreign_note.num_args > 1) {
             fatal_error(decl.pos, "@foreign takes 0 or 1 argument");
@@ -110,7 +110,7 @@ fn process_decl_notes(decl: Decl*, sym: Sym*) {
         if (foreign_note.num_args == 0) {
             external_name = sym.name;
         } else {
-            arg := foreign_note.args[0].expr;
+            let arg = foreign_note.args[0].expr;
             if (arg.kind != EXPR_STR) {
                 fatal_error(decl.pos, "@foreign argument 1 must be a string literal");
             }
@@ -137,15 +137,15 @@ fn sym_decl(decl: Decl*): Sym* {
     default:
         #assert(0);
     }
-    sym := sym_new(kind, decl.name, decl);
+    let sym = sym_new(kind, decl.name, decl);
     set_resolved_sym(decl, sym);
     process_decl_notes(decl, sym);
     return sym;
 }
 
 fn sym_get_local(name: char const*): Sym* {
-    for (it := local_syms_end; it != local_syms; it--) {
-        sym := it-1;
+    for (let it = local_syms_end; it != local_syms; it--) {
+        let sym = it-1;
         if (sym.name == name) {
             return sym;
         }
@@ -154,7 +154,7 @@ fn sym_get_local(name: char const*): Sym* {
 }
 
 fn sym_get(name: char const*): Sym* {
-    sym := sym_get_local(name);
+    let sym = sym_get_local(name);
     return sym ? sym : get_package_sym(current_package, name);
 }
 
@@ -191,7 +191,7 @@ fn sym_global_put(name: char const*, sym: Sym*) {
         if (sym.kind == SYM_PACKAGE && old_sym.kind == SYM_PACKAGE && sym.package == old_sym.package) {
             return;
         }
-        pos := sym.decl ? sym.decl.pos : pos_builtin;
+        let pos = sym.decl ? sym.decl.pos : pos_builtin;
         if (old_sym.decl) {
             warning(old_sym.decl.pos, "Previous definition of '%s'", name);
         }
@@ -203,7 +203,7 @@ fn sym_global_put(name: char const*, sym: Sym*) {
 
 fn sym_global_type(name: char const*, type: Type*): Sym* {
     name = str_intern(name);
-    sym := sym_new(SYM_TYPE, name, NULL);
+    let sym = sym_new(SYM_TYPE, name, NULL);
     sym.state = SYM_RESOLVED;
     sym.type = type;
     sym.external_name = name;
@@ -218,10 +218,10 @@ fn sym_global_decl(decl: Decl*): Sym* {
         sym_global_put(sym.name, sym);
     }
     if (decl.kind == DECL_ENUM) {
-        enum_typespec := new_typespec_name(decl.pos, sym ? sym.name : str_intern("int"));
+        let enum_typespec = new_typespec_name(decl.pos, sym ? sym.name : str_intern("int"));
         prev_item_name: char const* = NULL;
         for (i: usize = 0; i < decl.enum_decl.num_items; i++) {
-            item := decl.enum_decl.items[i];
+            let item = decl.enum_decl.items[i];
             init: Expr*;
             if (item.init) {
                 init = item.init;
@@ -230,7 +230,7 @@ fn sym_global_decl(decl: Decl*): Sym* {
             } else {
                 init = new_expr_int(item.pos, 0, 0, 0);
             }
-            item_decl := new_decl_const(item.pos, item.name, enum_typespec, init);
+            let item_decl = new_decl_const(item.pos, item.name, enum_typespec, init);
             item_decl.notes = decl.notes;
             sym_global_decl(item_decl);
             prev_item_name = item.name;
@@ -240,7 +240,7 @@ fn sym_global_decl(decl: Decl*): Sym* {
 }
 
 fn put_type_name(buf: char**, type: Type*) {
-    type_name := type_names[type.kind];
+    let type_name = type_names[type.kind];
     if (type_name) {
         buf_printf(buf, "%s", type_name);
     } else {
@@ -336,7 +336,7 @@ fn operand_decay(operand: Operand): Operand {
 
 fn is_convertible(operand: Operand*, dest: Type*): bool {
     dest = unqualify_type(dest);
-    src := unqualify_type(operand.type);
+    let src = unqualify_type(operand.type);
     if (dest == src) {
         return true;
     } else if (is_arithmetic_type(dest) && is_arithmetic_type(src)) {
@@ -347,7 +347,7 @@ fn is_convertible(operand: Operand*, dest: Type*): bool {
         if (is_const_type(dest.base) && is_const_type(src.base)) {
             return dest.base.base == src.base.base || dest.base.base == type_void || src.base.base == type_void;
         } else {
-            unqual_dest_base := unqualify_type(dest.base);
+            let unqual_dest_base = unqualify_type(dest.base);
             if (unqual_dest_base == src.base) {
                 return true;
             } else if (unqual_dest_base == type_void) {
@@ -362,7 +362,7 @@ fn is_convertible(operand: Operand*, dest: Type*): bool {
 }
 
 fn is_castable(operand: Operand*, dest: Type*): bool {
-    src := operand.type;
+    let src = operand.type;
     if (is_convertible(operand, dest)) {
         return true;
     } else if (is_integer_type(dest)) {
@@ -524,7 +524,7 @@ fn resolve_typespec(typespec: Typespec*): Type* {
     result: Type* = NULL;
     switch (typespec.kind) {
     case TYPESPEC_NAME: {
-        sym := resolve_name(typespec.name);
+        let sym = resolve_name(typespec.name);
         if (!sym) {
             fatal_error(typespec.pos, "Unresolved type name '%s'", typespec.name);
         }
@@ -540,9 +540,9 @@ fn resolve_typespec(typespec: Typespec*): Type* {
     case TYPESPEC_PTR:
         result = type_ptr(resolve_typespec(typespec.base));
     case TYPESPEC_ARRAY: {
-        size := 0;
+        let size = 0;
         if (typespec.num_elems) {
-            operand := resolve_const_expr(typespec.num_elems);
+            let operand = resolve_const_expr(typespec.num_elems);
             if (!is_integer_type(operand.type)) {
                 fatal_error(typespec.pos, "Array size constant expression must have integer type");
             }
@@ -557,7 +557,7 @@ fn resolve_typespec(typespec: Typespec*): Type* {
     case TYPESPEC_FUNC: {
         args: Type** = NULL;
         for (i: usize = 0; i < typespec.function.num_args; i++) {
-            arg := resolve_typespec(typespec.function.args[i]);
+            let arg = resolve_typespec(typespec.function.args[i]);
             if (arg == type_void) {
                 fatal_error(typespec.pos, "Function parameter type cannot be void");
             }
@@ -583,21 +583,21 @@ fn resolve_typespec(typespec: Typespec*): Type* {
 fn complete_aggregate(type: Type*, aggregate: Aggregate*): Type* {
     fields: TypeField*;
     for (i: usize = 0; i < aggregate.num_items; i++) {
-        item := aggregate.items[i];
+        let item = aggregate.items[i];
         if (item.kind == AGGREGATE_ITEM_FIELD) {
-            item_type := resolve_typespec(item.type);
+            let item_type = resolve_typespec(item.type);
             complete_type(item_type);
             if (type_sizeof(item_type) == 0) {
                 fatal_error(item.pos, "Field type of size 0 is not allowed");
             }
             for (j: usize = 0; j < item.num_names; j++) {
-                type_field := TypeField {item.names[j], item_type};
+                let type_field = TypeField {item.names[j], item_type};
                 buf_push((:void**)&fields, &type_field, sizeof(type_field));
             }
         } else {
             #assert(item.kind == AGGREGATE_ITEM_SUBAGGREGATE);
-            item_type := complete_aggregate(NULL, item.subaggregate);
-            type_field := TypeField {NULL, item_type};
+            let item_type = complete_aggregate(NULL, item.subaggregate);
+            let type_field = TypeField {NULL, item_type};
             buf_push((:void**)&fields, &type_field, sizeof(type_field));
         }
     }
@@ -628,8 +628,8 @@ fn complete_type(type: Type*) {
         return;
     }
     sym: Sym* = type.sym;
-    old_package := enter_package(sym.home_package);
-    decl := sym.decl;
+    let old_package = enter_package(sym.home_package);
+    let decl = sym.decl;
     if (decl.is_incomplete) {
         fatal_error(decl.pos, "Trying to use incomplete type as complete type");
     }
@@ -641,7 +641,7 @@ fn complete_type(type: Type*) {
 }
 
 fn resolve_typed_init(pos: SrcPos, type: Type*, expr: Expr*): Type* {
-    expected_type := unqualify_type(type);
+    let expected_type = unqualify_type(type);
     operand: Operand = resolve_expected_expr(expr, expected_type);
     if (is_incomplete_array_type(type) && is_array_type(operand.type) && type.base == operand.type.base) {
         // Incomplete array size, so infer the size from the initializer expression's type.
@@ -660,7 +660,7 @@ fn resolve_typed_init(pos: SrcPos, type: Type*, expr: Expr*): Type* {
 fn resolve_init(pos: SrcPos, typespec: Typespec*, expr: Expr*): Type* {
     type: Type*;
     if (typespec) {
-        declared_type := resolve_typespec(typespec);
+        let declared_type = resolve_typespec(typespec);
         type = declared_type;
         if (expr) {
             type = resolve_typed_init(pos, declared_type, expr);
@@ -691,12 +691,12 @@ fn resolve_decl_var(decl: Decl*): Type* {
 
 fn resolve_decl_const(decl: Decl*, val: Val*): Type* {
     #assert(decl.kind == DECL_CONST);
-    result := resolve_const_expr(decl.const_decl.expr);
+    let result = resolve_const_expr(decl.const_decl.expr);
     if (!is_scalar_type(result.type)) {
         fatal_error(decl.pos, "Const declarations must have scalar type");
     }
     if (decl.const_decl.type) {
-        type := resolve_typespec(decl.const_decl.type);
+        let type = resolve_typespec(decl.const_decl.type);
         if (!convert_operand(&result, type)) {
             fatal_error(decl.pos, "Invalid type in constant declaration. Expected %s, got %s", get_type_name(type), get_type_name(result.type));
         }
@@ -709,7 +709,7 @@ fn resolve_decl_func(decl: Decl*): Type* {
     #assert(decl.kind == DECL_FUNC);
     params: Type** = NULL;
     for (i: usize = 0; i < decl.function.num_params; i++) {
-        param := resolve_typespec(decl.function.params[i].type);
+        let param = resolve_typespec(decl.function.params[i].type);
         complete_type(param);
         if (param == type_void) {
             fatal_error(decl.pos, "Function parameter type cannot be void");
@@ -760,12 +760,12 @@ fn get_label(pos: SrcPos, name: char const*): Label* {
 }
 
 fn reference_label(pos: SrcPos, name: char const*) {
-    label := get_label(pos, name);
+    let label = get_label(pos, name);
     label.referenced = true;
 }
 
 fn define_label(pos: SrcPos, name: char const*) {
-    label := get_label(pos, name);
+    let label = get_label(pos, name);
     if (label.defined) {
         fatal_error(pos, "Multiple definitions of label '%s'", name);
     }
@@ -773,7 +773,7 @@ fn define_label(pos: SrcPos, name: char const*) {
 }
 
 fn resolve_labels() {
-    for (label := labels; label != labels_end; label++) {
+    for (let label = labels; label != labels_end; label++) {
         if (label.referenced && !label.defined) {
             fatal_error(label.pos, "Label '%s' referenced but not defined", label.name);
         }
@@ -790,15 +790,15 @@ fn is_cond_operand(operand: Operand): bool {
 }
 
 fn resolve_cond_expr(expr: Expr*) {
-    cond := resolve_expr_rvalue(expr);
+    let cond = resolve_expr_rvalue(expr);
     if (!is_cond_operand(cond)) {
         fatal_error(expr.pos, "Conditional expression must have scalar type");
     }
 }
 
 fn resolve_stmt_block(block: StmtList, ret_type: Type*, ctx: StmtCtx): bool {
-    scope := sym_enter();
-    returns := false;
+    let scope = sym_enter();
+    let returns = false;
     for (i: usize = 0; i < block.num_stmts; i++) {
         returns = resolve_stmt(block.stmts[i], ret_type, ctx) || returns;
     }
@@ -808,7 +808,7 @@ fn resolve_stmt_block(block: StmtList, ret_type: Type*, ctx: StmtCtx): bool {
 
 fn resolve_stmt_assign(stmt: Stmt*) {
     #assert(stmt.kind == STMT_ASSIGN);
-    left := resolve_expr(stmt.assign.left);
+    let left = resolve_expr(stmt.assign.left);
     if (!left.is_lvalue) {
         fatal_error(stmt.pos, "Cannot assign to non-lvalue");
     }
@@ -818,9 +818,9 @@ fn resolve_stmt_assign(stmt: Stmt*) {
     if (left.type.nonmodifiable) {
         fatal_error(stmt.pos, "Left-hand side of assignment has non-modifiable type");
     }
-    assign_op_name := token_kind_name(stmt.assign.op);
-    binary_op := assign_token_to_binary_token[stmt.assign.op];
-    right := resolve_expected_expr_rvalue(stmt.assign.right, left.type);
+    let assign_op_name = token_kind_name(stmt.assign.op);
+    let binary_op = assign_token_to_binary_token[stmt.assign.op];
+    let right = resolve_expected_expr_rvalue(stmt.assign.right, left.type);
     result: Operand;
     if (stmt.assign.op == TOKEN_ASSIGN) {
         result = right;
@@ -842,7 +842,7 @@ fn resolve_stmt_assign(stmt: Stmt*) {
 
 fn resolve_stmt_init(stmt: Stmt*) {
     #assert(stmt.kind == STMT_INIT);
-    type := resolve_init(stmt.pos, stmt.init.type, stmt.init.expr);
+    let type = resolve_init(stmt.pos, stmt.init.type, stmt.init.expr);
     if (!sym_push_var(stmt.init.name, type)) {
         fatal_error(stmt.pos, "Shadowed definition of local symbol");
     }
@@ -852,7 +852,7 @@ fn resolve_static_assert(note: Note) {
     if (note.num_args != 1) {
         fatal_error(note.pos, "#static_assert takes 1 argument");
     }
-    operand := resolve_const_expr(note.args[0].expr);
+    let operand = resolve_const_expr(note.args[0].expr);
     if (!operand.val.ull) {
         fatal_error(note.pos, "#static_assert failed");
     }
@@ -862,7 +862,7 @@ fn resolve_stmt(stmt: Stmt*, ret_type: Type*, ctx: StmtCtx): bool {
     switch (stmt.kind) {
     case STMT_RETURN:
         if (stmt.expr) {
-            operand := resolve_expected_expr_rvalue(stmt.expr, ret_type);
+            let operand = resolve_expected_expr_rvalue(stmt.expr, ret_type);
             if (!convert_operand(&operand, ret_type)) {
                 fatal_error(stmt.pos, "Invalid type in return expression. Expected %s, got %s", get_type_name(ret_type), get_type_name(operand.type));
             }
@@ -895,7 +895,7 @@ fn resolve_stmt(stmt: Stmt*, ret_type: Type*, ctx: StmtCtx): bool {
         }
         return false;
     case STMT_IF: {
-        scope := sym_enter();
+        let scope = sym_enter();
         if (stmt.if_stmt.init) {
             resolve_stmt_init(stmt.if_stmt.init);
         }
@@ -926,7 +926,7 @@ fn resolve_stmt(stmt: Stmt*, ret_type: Type*, ctx: StmtCtx): bool {
         resolve_stmt_block(stmt.while_stmt.block, ret_type, ctx);
         return false;
     case STMT_FOR: {
-        scope := sym_enter();
+        let scope = sym_enter();
         if (stmt.for_stmt.init) {
             resolve_stmt(stmt.for_stmt.init, ret_type, ctx);
         }
@@ -943,25 +943,25 @@ fn resolve_stmt(stmt: Stmt*, ret_type: Type*, ctx: StmtCtx): bool {
         return false;
     }
     case STMT_SWITCH: {
-        operand := resolve_expr_rvalue(stmt.switch_stmt.expr);
+        let operand = resolve_expr_rvalue(stmt.switch_stmt.expr);
         if (!is_integer_type(operand.type)) {
             fatal_error(stmt.pos, "Switch expression must have integer type");
         }
         ctx.is_break_legal = true;
-        returns := true;
-        has_default := false;
+        let returns = true;
+        let has_default = false;
         for (i: usize = 0; i < stmt.switch_stmt.num_cases; i++) {
             switch_case: SwitchCase = stmt.switch_stmt.cases[i];
             for (j: usize = 0; j < switch_case.num_patterns; j++) {
                 pattern: SwitchCasePattern = switch_case.patterns[j];
                 start_expr: Expr* = pattern.start;
-                start_operand := resolve_const_expr(start_expr);
+                let start_operand = resolve_const_expr(start_expr);
                 if (!convert_operand(&start_operand, operand.type)) {
                     fatal_error(start_expr.pos, "Invalid type in switch case expression. Expected %s, got %s", get_type_name(operand.type), get_type_name(start_operand.type));
                 }
-                end_expr := pattern.end;
+                let end_expr = pattern.end;
                 if (end_expr) {
-                    end_operand := resolve_const_expr(end_expr);
+                    let end_operand = resolve_const_expr(end_expr);
                     if (!convert_operand(&end_operand, operand.type)) {
                         fatal_error(end_expr.pos, "Invalid type in switch case expression. Expected %s, got %s", get_type_name(operand.type), get_type_name(end_operand.type));
                     }
@@ -1015,25 +1015,25 @@ fn resolve_stmt(stmt: Stmt*, ret_type: Type*, ctx: StmtCtx): bool {
 }
 
 fn resolve_func_body(sym: Sym*) {
-    decl := sym.decl;
+    let decl = sym.decl;
     #assert(decl.kind == DECL_FUNC);
     #assert(sym.state == SYM_RESOLVED);
     if (decl.is_incomplete) {
         return;
     }
-    old_package := enter_package(sym.home_package);
-    scope := sym_enter();
+    let old_package = enter_package(sym.home_package);
+    let scope = sym_enter();
     for (i: usize = 0; i < decl.function.num_params; i++) {
-        param := decl.function.params[i];
-        param_type := resolve_typespec(param.type);
+        let param = decl.function.params[i];
+        let param_type = resolve_typespec(param.type);
         if (is_array_type(param_type)) {
             param_type = type_ptr(param_type.base);
         }
         sym_push_var(param.name, param_type);
     }
-    ret_type := resolve_typespec(decl.function.ret_type);
+    let ret_type = resolve_typespec(decl.function.ret_type);
     #assert(!is_array_type(ret_type));
-    returns := resolve_stmt_block(decl.function.block, ret_type, StmtCtx {0});
+    let returns = resolve_stmt_block(decl.function.block, ret_type, StmtCtx {0});
     resolve_labels();
     sym_leave(scope);
     if (ret_type != type_void && !returns) {
@@ -1056,8 +1056,8 @@ fn resolve_sym(sym: Sym*) {
         sym.reachable = reachable_phase;
     }
     sym.state = SYM_RESOLVING;
-    decl := sym.decl;
-    old_package := enter_package(sym.home_package);
+    let decl = sym.decl;
+    let old_package = enter_package(sym.home_package);
     switch (sym.kind) {
     case SYM_TYPE:
         if (decl && decl.kind == DECL_TYPEDEF) {
@@ -1102,7 +1102,7 @@ fn finalize_sym(sym: Sym*) {
 }
 
 fn resolve_name(name: char const*): Sym* {
-    sym := sym_get(name);
+    let sym = sym_get(name);
     if (!sym) {
         return NULL;
     }
@@ -1112,14 +1112,14 @@ fn resolve_name(name: char const*): Sym* {
 
 fn try_resolve_package(expr: Expr*): Package* {
     if (expr.kind == EXPR_NAME) {
-        sym := resolve_name(expr.name);
+        let sym = resolve_name(expr.name);
         if (sym && sym.kind == SYM_PACKAGE) {
             return sym.package;
         }
     } else if (expr.kind == EXPR_FIELD) {
-        package := try_resolve_package(expr.field.expr);
+        let package = try_resolve_package(expr.field.expr);
         if (package) {
-            sym := get_package_sym(package, expr.field.name);
+            let sym = get_package_sym(package, expr.field.name);
             if (sym && sym.kind == SYM_PACKAGE) {
                 return sym.package;
             }
@@ -1130,18 +1130,18 @@ fn try_resolve_package(expr: Expr*): Package* {
 
 fn resolve_expr_field(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_FIELD);
-    package := try_resolve_package(expr.field.expr);
+    let package = try_resolve_package(expr.field.expr);
     if (package) {
-        old_package := enter_package(package);
-        sym := resolve_name(expr.field.name);
-        operand := resolve_name_operand(expr.pos, expr.field.name);
+        let old_package = enter_package(package);
+        let sym = resolve_name(expr.field.name);
+        let operand = resolve_name_operand(expr.pos, expr.field.name);
         leave_package(old_package);
         set_resolved_sym(expr, sym);
         return operand;
     }
-    operand := resolve_expr(expr.field.expr);
-    was_const_type := is_const_type(operand.type);
-    type := unqualify_type(operand.type);
+    let operand = resolve_expr(expr.field.expr);
+    let was_const_type = is_const_type(operand.type);
+    let type = unqualify_type(operand.type);
     complete_type(type);
     if (is_ptr_type(type)) {
         operand = operand_lvalue(type.base);
@@ -1154,9 +1154,9 @@ fn resolve_expr_field(expr: Expr*): Operand {
         return operand_null;
     }
     for (i: usize = 0; i < type.aggregate.num_fields; i++) {
-        field := type.aggregate.fields[i];
+        let field = type.aggregate.fields[i];
         if (field.name == expr.field.name) {
-            field_operand := operand.is_lvalue ? operand_lvalue(field.type) : operand_rvalue(field.type);
+            let field_operand = operand.is_lvalue ? operand_lvalue(field.type) : operand_rvalue(field.type);
             if (was_const_type) {
                 field_operand.type = type_const(field_operand.type);
             }
@@ -1281,7 +1281,7 @@ fn eval_binary_op_ull(op: TokenKind, left: ullong, right: ullong): ullong {
 
 fn eval_unary_op(op: TokenKind, type: Type*, val: Val): Val {
     if (is_integer_type(type)) {
-        operand := operand_const(type, val);
+        let operand = operand_const(type, val);
         if (is_signed_type(type)) {
             cast_operand(&operand, type_llong);
             operand.val.ll = eval_unary_op_ll(op, operand.val.ll);
@@ -1298,8 +1298,8 @@ fn eval_unary_op(op: TokenKind, type: Type*, val: Val): Val {
 
 fn eval_binary_op(op: TokenKind, type: Type*, left: Val, right: Val): Val {
     if (is_integer_type(type)) {
-        left_operand := operand_const(type, left);
-        right_operand := operand_const(type, right);
+        let left_operand = operand_const(type, left);
+        let right_operand = operand_const(type, right);
         result_operand: Operand;
         if (is_signed_type(type)) {
             cast_operand(&left_operand, type_llong);
@@ -1318,12 +1318,12 @@ fn eval_binary_op(op: TokenKind, type: Type*, left: Val, right: Val): Val {
 }
 
 fn resolve_name_operand(pos: SrcPos, name: char const*): Operand {
-    sym := resolve_name(name);
+    let sym = resolve_name(name);
     if (!sym) {
         fatal_error(pos, "Unresolved name '%s'", name);
     }
     if (sym.kind == SYM_VAR) {
-        operand := operand_lvalue(sym.type);
+        let operand = operand_lvalue(sym.type);
         if (is_array_type(operand.type)) {
             operand = operand_decay(operand);
         }
@@ -1353,8 +1353,8 @@ fn resolve_unary_op(op: TokenKind, operand: Operand): Operand {
 }
 
 fn resolve_expr_unary(expr: Expr*): Operand {
-    operand := resolve_expr_rvalue(expr.unary.expr);
-    type := operand.type;
+    let operand = resolve_expr_rvalue(expr.unary.expr);
+    let type = operand.type;
     switch (expr.unary.op) {
     case TOKEN_MUL:
         if (!is_ptr_type(type)) {
@@ -1451,7 +1451,7 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: char const*, pos: SrcPos, left
         if (is_integer_type(left.type) && is_integer_type(right.type)) {
             promote_operand(&left);
             promote_operand(&right);
-            result_type := left.type;
+            let result_type = left.type;
             result: Operand;
             if (is_signed_type(left.type)) {
                 cast_operand(&left, type_llong);
@@ -1469,12 +1469,12 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: char const*, pos: SrcPos, left
     case TOKEN_EQ:
     case TOKEN_NOTEQ:
         if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
-            result := resolve_binary_arithmetic_op(op, left, right);
+            let result = resolve_binary_arithmetic_op(op, left, right);
             cast_operand(&result, type_int);
             return result;
         } else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
-            unqual_left_base := unqualify_type(left.type.base);
-            unqual_right_base := unqualify_type(right.type.base);
+            let unqual_left_base = unqualify_type(left.type.base);
+            let unqual_right_base = unqualify_type(right.type.base);
             if (unqual_left_base != unqual_right_base && unqual_left_base != type_void && unqual_right_base != type_void) {
                 fatal_error(pos, "Cannot compare pointers to different types");
             }
@@ -1489,7 +1489,7 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: char const*, pos: SrcPos, left
     case TOKEN_GT:
     case TOKEN_GTEQ:
         if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
-            result := resolve_binary_arithmetic_op(op, left, right);
+            let result = resolve_binary_arithmetic_op(op, left, right);
             cast_operand(&result, type_int);
             return result;
         } else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
@@ -1538,10 +1538,10 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: char const*, pos: SrcPos, left
 
 fn resolve_expr_binary(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_BINARY);
-    left := resolve_expr_rvalue(expr.binary.left);
-    right := resolve_expr_rvalue(expr.binary.right);
+    let left = resolve_expr_rvalue(expr.binary.left);
+    let right = resolve_expr_rvalue(expr.binary.right);
     op: TokenKind = expr.binary.op;
-    op_name := token_kind_name(op);
+    let op_name = token_kind_name(op);
     return resolve_expr_binary_op(op, op_name, expr.pos, left, right);
 }
 
@@ -1557,10 +1557,10 @@ fn resolve_expr_compound(expr: Expr*, expected_type: Type*): Operand {
         type = expected_type;
     }
     complete_type(type);
-    is_const := is_const_type(type);
+    let is_const = is_const_type(type);
     type = unqualify_type(type);
     if (type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION) {
-        index := 0;
+        let index = 0;
         for (i: usize = 0; i < expr.compound.num_fields; i++) {
             field: CompoundField = expr.compound.fields[i];
             if (field.kind == FIELD_INDEX) {
@@ -1574,7 +1574,7 @@ fn resolve_expr_compound(expr: Expr*, expected_type: Type*): Operand {
             if (index >= (:int)type.aggregate.num_fields) {
                 fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
             }
-            field_type := type.aggregate.fields[index].type;
+            let field_type = type.aggregate.fields[index].type;
             if (!resolve_typed_init(field.pos, field_type, field.init)) {
                 fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected %s", get_type_name(field_type));
             }
@@ -1585,11 +1585,11 @@ fn resolve_expr_compound(expr: Expr*, expected_type: Type*): Operand {
         index: usize = 0;
         max_index: usize = 0;
         for (i: usize = 0; i < expr.compound.num_fields; i++) {
-            field := expr.compound.fields[i];
+            let field = expr.compound.fields[i];
             if (field.kind == FIELD_NAME) {
                 fatal_error(field.pos, "Named field initializer not allowed for array compound literals");
             } else if (field.kind == FIELD_INDEX) {
-                operand := resolve_const_expr(field.index);
+                let operand = resolve_const_expr(field.index);
                 if (!is_integer_type(operand.type)) {
                     fatal_error(field.pos, "Field initializer index expression must have type int");
                 }
@@ -1619,8 +1619,8 @@ fn resolve_expr_compound(expr: Expr*, expected_type: Type*): Operand {
             fatal_error(expr.pos, "Compound literal for scalar type cannot have more than one operand");
         }
         if (expr.compound.num_fields == 1) {
-            field := expr.compound.fields[0];
-            init := resolve_expected_expr_rvalue(field.init, type);
+            let field = expr.compound.fields[0];
+            let init = resolve_expected_expr_rvalue(field.init, type);
             if (!convert_operand(&init, type)) {
                 fatal_error(field.pos, "Invalid type in compound literal initializer. Expected %s, got %s", get_type_name(type), get_type_name(init.type));
             }
@@ -1632,12 +1632,12 @@ fn resolve_expr_compound(expr: Expr*, expected_type: Type*): Operand {
 fn resolve_expr_call(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_CALL);
     if (expr.call.expr.kind == EXPR_NAME) {
-        sym := resolve_name(expr.call.expr.name);
+        let sym = resolve_name(expr.call.expr.name);
         if (sym && sym.kind == SYM_TYPE) {
             if (expr.call.num_args != 1) {
                 fatal_error(expr.pos, "Type conversion operator takes 1 argument");
             }
-            operand := resolve_expr_rvalue(expr.call.args[0]);
+            let operand = resolve_expr_rvalue(expr.call.args[0]);
             if (!cast_operand(&operand, sym.type)) {
                 fatal_error(expr.pos, "Invalid type cast from %s to %s", get_type_name(operand.type), get_type_name(sym.type));
             }
@@ -1645,7 +1645,7 @@ fn resolve_expr_call(expr: Expr*): Operand {
             return operand;
         }
     }
-    function := resolve_expr_rvalue(expr.call.expr);
+    let function = resolve_expr_rvalue(expr.call.expr);
     if (function.type.kind != CMPL_TYPE_FUNC) {
         fatal_error(expr.pos, "Cannot call non-function value");
     }
@@ -1658,7 +1658,7 @@ fn resolve_expr_call(expr: Expr*): Operand {
     }
     for (i: usize = 0; i < num_params; i++) {
         param_type: Type* = function.type.function.params[i];
-        arg := resolve_expected_expr_rvalue(expr.call.args[i], param_type);
+        let arg = resolve_expected_expr_rvalue(expr.call.args[i], param_type);
         if (is_array_type(param_type)) {
             param_type = type_ptr(param_type.base);
         }
@@ -1674,12 +1674,12 @@ fn resolve_expr_call(expr: Expr*): Operand {
 
 fn resolve_expr_ternary(expr: Expr*, expected_type: Type*): Operand {
     #assert(expr.kind == EXPR_TERNARY);
-    cond := resolve_expr_rvalue(expr.ternary.cond);
+    let cond = resolve_expr_rvalue(expr.ternary.cond);
     if (!is_scalar_type(cond.type)) {
         fatal_error(expr.pos, "Ternary conditional must have scalar type");
     }
-    left := resolve_expected_expr_rvalue(expr.ternary.then_expr, expected_type);
-    right := resolve_expected_expr_rvalue(expr.ternary.else_expr, expected_type);
+    let left = resolve_expected_expr_rvalue(expr.ternary.then_expr, expected_type);
+    let right = resolve_expected_expr_rvalue(expr.ternary.else_expr, expected_type);
     if (left.type == right.type) {
         return operand_rvalue(left.type);
     } else if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
@@ -1703,11 +1703,11 @@ fn resolve_expr_ternary(expr: Expr*, expected_type: Type*): Operand {
 
 fn resolve_expr_index(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_INDEX);
-    operand := resolve_expr_rvalue(expr.index.expr);
+    let operand = resolve_expr_rvalue(expr.index.expr);
     if (!is_ptr_type(operand.type)) {
         fatal_error(expr.pos, "Can only index arrays and pointers");
     }
-    index := resolve_expr_rvalue(expr.index.index);
+    let index = resolve_expr_rvalue(expr.index.index);
     if (!is_integer_type(index.type)) {
         fatal_error(expr.pos, "Index must have integer type");
     }
@@ -1716,8 +1716,8 @@ fn resolve_expr_index(expr: Expr*): Operand {
 
 fn resolve_expr_cast(expr: Expr*): Operand {
     #assert(expr.kind == EXPR_CAST);
-    type := resolve_typespec(expr.cast.type);
-    operand := resolve_expr_rvalue(expr.cast.expr);
+    let type = resolve_typespec(expr.cast.type);
+    let operand = resolve_expr_rvalue(expr.cast.expr);
     if (!cast_operand(&operand, type)) {
         fatal_error(expr.pos, "Invalid type cast from %s to %s", get_type_name(operand.type), get_type_name(type));
     }
@@ -1732,10 +1732,10 @@ fn resolve_expr_int(expr: Expr*): Operand {
     ulong_max: ullong = type_metrics[CMPL_TYPE_ULONG].max;
     llong_max: ullong = type_metrics[CMPL_TYPE_LLONG].max;
     val: ullong = expr.int_lit.val;
-    operand := operand_const(type_ullong, Val {ull = val});
-    type := type_ullong;
+    let operand = operand_const(type_ullong, Val {ull = val});
+    let type = type_ullong;
     if (expr.int_lit.mod == MOD_NONE) {
-        overflow := false;
+        let overflow = false;
         switch (expr.int_lit.suffix) {
         case SUFFIX_NONE:
             type = type_int;
@@ -1835,8 +1835,8 @@ fn resolve_expr_int(expr: Expr*): Operand {
 }
 
 fn resolve_expr_modify(expr: Expr*): Operand {
-    operand := resolve_expr(expr.modify.expr);
-    type := operand.type;
+    let operand = resolve_expr(expr.modify.expr);
+    let type = operand.type;
     complete_type(type);
     if (!operand.is_lvalue) {
         fatal_error(expr.pos, "Cannot modify non-lvalue");
@@ -1895,7 +1895,7 @@ fn resolve_expected_expr(expr: Expr*, expected_type: Type*): Operand {
         result = resolve_expr_ternary(expr, expected_type);
     case EXPR_SIZEOF_EXPR: {
         if (expr.sizeof_expr.kind == EXPR_NAME) {
-            sym := resolve_name(expr.sizeof_expr.name);
+            let sym = resolve_name(expr.sizeof_expr.name);
             if (sym && sym.kind == SYM_TYPE) {
                 complete_type(sym.type);
                 result = operand_const(type_usize, Val {ull = type_sizeof(sym.type)});
@@ -1909,13 +1909,13 @@ fn resolve_expected_expr(expr: Expr*, expected_type: Type*): Operand {
         result = operand_const(type_usize, Val {ull = type_sizeof(type)});
     }
     case EXPR_SIZEOF_TYPE: {
-        type := resolve_typespec(expr.sizeof_type);
+        let type = resolve_typespec(expr.sizeof_type);
         complete_type(type);
         result = operand_const(type_usize, Val {ull = type_sizeof(type)});
     }
     case EXPR_ALIGNOF_EXPR: {
         if (expr.sizeof_expr.kind == EXPR_NAME) {
-            sym := resolve_name(expr.alignof_expr.name);
+            let sym = resolve_name(expr.alignof_expr.name);
             if (sym && sym.kind == SYM_TYPE) {
                 complete_type(sym.type);
                 result = operand_const(type_usize, Val {ull = type_alignof(sym.type)});
@@ -1929,17 +1929,17 @@ fn resolve_expected_expr(expr: Expr*, expected_type: Type*): Operand {
         result = operand_const(type_usize, Val {ull = type_alignof(type)});
     }
     case EXPR_ALIGNOF_TYPE: {
-        type := resolve_typespec(expr.alignof_type);
+        let type = resolve_typespec(expr.alignof_type);
         complete_type(type);
         result = operand_const(type_usize, Val {ull = type_alignof(type)});
     }
     case EXPR_TYPEOF_TYPE: {
-        type := resolve_typespec(expr.typeof_type);
+        let type = resolve_typespec(expr.typeof_type);
         result = operand_const(type_ullong, Val {ull = type.typeid});
     }
     case EXPR_TYPEOF_EXPR: {
         if (expr.typeof_expr.kind == EXPR_NAME) {
-            sym := resolve_name(expr.typeof_expr.name);
+            let sym = resolve_name(expr.typeof_expr.name);
             if (sym && sym.kind == SYM_TYPE) {
                 result = operand_const(type_ullong, Val {ull = sym.type.typeid});
                 set_resolved_type(expr.typeof_expr, sym.type);
@@ -1951,12 +1951,12 @@ fn resolve_expected_expr(expr: Expr*, expected_type: Type*): Operand {
         result = operand_const(type_ullong, Val {ull = type.typeid});
     }
     case EXPR_OFFSETOF: {
-        type := resolve_typespec(expr.offsetof_field.type);
+        let type = resolve_typespec(expr.offsetof_field.type);
         complete_type(type);
         if (type.kind != CMPL_TYPE_STRUCT && type.kind != CMPL_TYPE_UNION) {
             fatal_error(expr.pos, "offsetof can only be used with struct/union types");
         }
-        field := aggregate_item_field_index(type, expr.offsetof_field.name);
+        let field = aggregate_item_field_index(type, expr.offsetof_field.name);
         if (field < 0) {
             fatal_error(expr.pos, "No field '%s' in type", expr.offsetof_field.name);
         }
@@ -1973,7 +1973,7 @@ fn resolve_expected_expr(expr: Expr*, expected_type: Type*): Operand {
 }
 
 fn resolve_const_expr(expr: Expr*): Operand {
-    operand := resolve_expr(expr);
+    let operand = resolve_expr(expr);
     if (!operand.is_const) {
         fatal_error(expr.pos, "Expected constant expression");
     }
@@ -2003,7 +2003,7 @@ fn init_builtin_syms() {
 
 fn add_package_decls(package: Package*) {
     for (i: usize = 0; i < package.num_decls; i++) {
-        decl := package.decls[i];
+        let decl = package.decls[i];
         if (decl.kind == DECL_NOTE) {
             if (!map_get(&decl_note_names, decl.note.name)) {
                 warning(decl.pos, "Unknown declaration #directive '%s'", decl.note.name);
@@ -2047,7 +2047,7 @@ fn is_package_dir(search_path: char const*, package_path: char const*): bool {
 }
 
 fn copy_package_full_path(dest: char[MAX_PATH], package_path: char const*): bool {
-    for (i := 0; i < num_package_search_paths; i++) {
+    for (let i = 0; i < num_package_search_paths; i++) {
         if (is_package_dir(package_search_paths[i], package_path)) {
             path_copy(dest, package_search_paths[i]);
             path_join(dest, package_path);
@@ -2089,8 +2089,8 @@ fn import_all_package_symbols(package: Package*) {
 
 fn import_package_symbols(decl: Decl*, package: Package*) {
     for (i: usize = 0; i < decl.import_decl.num_items; i++) {
-        item := decl.import_decl.items[i];
-        sym := get_package_sym(package, item.name);
+        let item = decl.import_decl.items[i];
+        let sym = get_package_sym(package, item.name);
         if (!sym) {
             fatal_error(decl.pos, "Symbol '%s' does not exist in package '%s'", item.name, package.path);
         }
@@ -2100,7 +2100,7 @@ fn import_package_symbols(decl: Decl*, package: Package*) {
 
 fn process_package_imports(package: Package*) {
     for (i: usize = 0; i < package.num_decls; i++) {
-        decl := package.decls[i];
+        let decl = package.decls[i];
         if (decl.kind == DECL_NOTE) {
             if (decl.note.name == always_name) {
                 package.always_reachable = true;
@@ -2125,8 +2125,8 @@ fn process_package_imports(package: Package*) {
             if (decl.import_decl.import_all) {
                 import_all_package_symbols(imported_package);
             }
-            sym_name := decl.name ? decl.name : decl.import_decl.names[decl.import_decl.num_names - 1];
-            sym := sym_new(SYM_PACKAGE, sym_name, decl);
+            let sym_name = decl.name ? decl.name : decl.import_decl.names[decl.import_decl.num_names - 1];
+            let sym = sym_new(SYM_PACKAGE, sym_name, decl);
             sym.package = imported_package;
             sym_global_put(sym_name, sym);
         }
@@ -2173,7 +2173,7 @@ fn compile_package(package: Package*): bool {
     if (!parse_package(package)) {
         return false;
     }
-    old_package := enter_package(package);
+    let old_package = enter_package(package);
     if (buf_len(package_list) == 1) {
         init_builtin_syms();
     }
@@ -2187,7 +2187,7 @@ fn compile_package(package: Package*): bool {
 }
 
 fn resolve_package_syms(package: Package*) {
-    old_package := enter_package(package);
+    let old_package = enter_package(package);
     for (i: usize = 0; i < buf_len(package.syms); i++) {
         if (package.syms[i].home_package == package) {
             resolve_sym(package.syms[i]);
@@ -2201,7 +2201,7 @@ fn finalize_reachable_syms() {
         printf("Finalizing reachable symbols\n");
     }
     prev_num_reachable: usize = 0;
-    num_reachable := buf_len(reachable_syms);
+    let num_reachable = buf_len(reachable_syms);
     for (i: usize = 0; i < num_reachable; i++) {
         finalize_sym(reachable_syms[i]);
         if (i == num_reachable - 1) {

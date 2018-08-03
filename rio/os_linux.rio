@@ -47,7 +47,7 @@ fn dir_list_next(iter: DirListIter*) {
         return;
     }
     do {
-        entry := readdir(iter.handle);
+        let entry = readdir(iter.handle);
         if (!entry) {
             dir_list_free(iter);
             return;
@@ -59,7 +59,7 @@ fn dir_list_next(iter: DirListIter*) {
 
 fn dir_list(iter: DirListIter*, path: char const*) {
     memset(iter, 0, sizeof(*iter));
-    dir := opendir(path);
+    let dir = opendir(path);
     if (!dir) {
         iter.valid = false;
         iter.error = true;

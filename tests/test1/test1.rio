@@ -62,12 +62,12 @@ fn test_packages() {
 }
 
 fn test_modify() {
-    i := 42;
+    let i = 42;
     #static_assert(typeof(i) == typeof(int));
-    p := &i;
+    let p = &i;
     #static_assert(typeof(p) == typeof(:int*));
     p--;
-    x := *p++;
+    let x = *p++;
     #assert(x == *--p);
     (*p)++;
     (*p)--;
@@ -90,9 +90,9 @@ fn test_arrays() {
     a: wchar[] = {1, 2, 3};
     // a = a;
     f10(a);
-    b := a;
+    let b = a;
     w1: wchar;
-    w2 := w1;
+    let w2 = w1;
 }
 
 fn test_loops() {
@@ -113,20 +113,20 @@ fn test_loops() {
     }
     while (0) {
     }
-    for (i := 0; i < 10; i++) {
+    for (let i = 0; i < 10; i++) {
     }   
     for (;;) {
         break;
     }
-    for (i := 0;;) {
+    for (let i = 0;;) {
         break;
     }
     for (; 0; ) {
     }
-    for (i := 0;; i++) {
+    for (let i = 0;; i++) {
         break;
     }
-    i := 0;
+    let i = 0;
     for (;; i++) {
         break;
     }
@@ -159,20 +159,20 @@ fn unpack(word: uint32): UartCtrl {
 }
 
 fn test_uart() {
-    tx_enable := unpack(*UART_CTRL_REG).tx_enable;
+    let tx_enable = unpack(*UART_CTRL_REG).tx_enable;
     *UART_CTRL_REG = pack({tx_enable = !tx_enable, rx_enable = false});
-    ctrl := unpack(*UART_CTRL_REG);
+    let ctrl = unpack(*UART_CTRL_REG);
     ctrl.rx_enable = true;
     *UART_CTRL_REG = pack(ctrl);
 }
 
 fn h(): uchar {
     Vector{x = 1, y = 2}.x = 42;
-    v := &Vector{1, 2};
+    let v = &Vector{1, 2};
     v.x = 42;
-    p := &int{0};
-    x := uint{1} + long{2};
-    y := +c;
+    let p = &int{0};
+    let x = uint{1} + long{2};
+    let y = +c;
     return uchar(x);
 }
 
@@ -186,7 +186,7 @@ fn k(vp: void*, ip: int*) {
 }
 
 fn f1() {
-    p := &int{0};
+    let p = &int{0};
     *p = 42;
 }
 
@@ -234,7 +234,7 @@ let a2: int[] = {1, 2, 3, [10]=4};
 // let a3: int[];
 
 fn is_even(digit: int): int {
-    b := 0;
+    let b = 0;
     switch (digit) {
     case 0, 2, 4, 6, 8:
         b = 1;
@@ -243,8 +243,8 @@ fn is_even(digit: int): int {
 }
 
 // fn f() {
-//     u1 := IntOrPtr{i = 42};
-//     u2 := IntOrPtr{p = (:int*)42};
+//     let u1 = IntOrPtr{i = 42};
+//     let u2 = IntOrPtr{p = (:int*)42};
 //     u1.i = 0;
 //     u2.p = (:int*)0;
 // }
@@ -260,8 +260,8 @@ fn f2(v: Vector) {
 }
 
 fn fact_iter(n: int): int {
-    r := 1;
-    for (i := 0; i <= n; i++) {
+    let r = 1;
+    for (let i = 0; i <= n; i++) {
         r *= i;
     }
     return r;
@@ -310,16 +310,16 @@ let color_names: char const*[NUM_COLORS] = {
 
 fn test_enum() {
     a: Color = COLOR_RED;
-    b := COLOR_RED;
-    c := a + b;
+    let b = COLOR_RED;
+    let c = a + b;
     i: int = a;
     a = i;
     printf(
         "%d %d %d %d\n",
         COLOR_NONE, COLOR_RED, COLOR_GREEN, COLOR_BLUE,
     );
-    d := BAR;
-    e := QUUX;
+    let d = BAR;
+    let e = QUUX;
     #static_assert(typeof(e) == typeof(TypedEnum));
     f: TypedEnum;
     f = BAZ;
@@ -347,8 +347,8 @@ fn test_assign() {
 }
 
 fn benchmark(n: int) {
-    r := 1;
-    for (i := 1; i <= n; i++) {
+    let r = 1;
+    for (let i = 1; i <= n; i++) {
         r *= i;
     }
 }
@@ -360,39 +360,39 @@ fn va_test(x: int, ...): int {
 typedef F = fn(x: int, ...): int;
 
 fn test_lits() {
-    f := 3.14;
-    d := 3.14d;
-    i := 1;
-    u := 0xffffffffu;
-    l := 1l;
-    ul := 1ul;
-    ll := 0x100000000ll;
-    ull := 0xffffffffffffffffull;
-    x1 := 0xffffffff;
-    x2 := 4294967295;
-    x3 := 0xffffffffffffffff;
-    x4 := 0b10101010 + 0b01010101;
+    let f = 3.14;
+    let d = 3.14d;
+    let i = 1;
+    let u = 0xffffffffu;
+    let l = 1l;
+    let ul = 1ul;
+    let ll = 0x100000000ll;
+    let ull = 0xffffffffffffffffull;
+    let x1 = 0xffffffff;
+    let x2 = 4294967295;
+    let x3 = 0xffffffffffffffff;
+    let x4 = 0b10101010 + 0b01010101;
     // u = 0b0;
     // u = 0x0;
 }
 
 fn test_ops() {
-    pi := 3.14;
-    f := 0.0;
+    let pi = 3.14;
+    let f = 0.0;
     f = +pi;
     f = -pi;
-    n := -1;
+    let n = -1;
     n = ~n;
     f = f * pi + n;
     f = pi / pi;
     n = 3 % 2;
     n = n + (:uchar)1;
-    p := &n;
+    let p = &n;
     p = p + 1;
     n = int((p + 1) - p);
     n = n << 1;
     n = n >> 1;
-    b := p + 1 > p;
+    let b = p + 1 > p;
     b = p + 1 >= p;
     b = p + 1 < p;
     b = p + 1 <= p;
@@ -409,9 +409,9 @@ fn test_ops() {
 const IS_DEBUG = true;
 
 fn test_bool() {
-    b := false;
+    let b = false;
     b = true;
-    i := 0;
+    let i = 0;
     i = IS_DEBUG;
 }
 
@@ -448,21 +448,21 @@ fn test_convert() {
 }
 
 fn test_const() {
-    cv2 := ConstVector{1, 2};
+    let cv2 = ConstVector{1, 2};
     // cv2 = {};
-    i := 0;
+    let i = 0;
     i = 1;
     // j = 0;
     // *q = 0;
-    x := cv.x;
+    let x = cv.x;
     // cv.x = {};
-    c := escape_to_char[0];
+    let c = escape_to_char[0];
     c = char_to_escape[c];
     c = esc_test_str[0];
     f4(escape_to_char);
-    p := (:char const*)0; // (:int*)0
+    let p = (:char const*)0; // (:int*)0
     p = escape_to_char + 1;
-    q := (:char*)escape_to_char;
+    let q = (:char*)escape_to_char;
     c = q['n'];
     // q = escape_to_char;
     p = (:char const*)1;
@@ -474,7 +474,7 @@ fn test_const() {
 #static_assert(sizeof(int) == 4)
 
 fn test_init() {
-    x := (:int const)0;
+    let x = (:int const)0;
     #static_assert(sizeof(x) == 4);
     y: int;
     y = 0;
@@ -490,8 +490,8 @@ fn test_init() {
 }
 
 fn test_sizeof() {
-    i := 0;
-    n := sizeof(i);
+    let i = 0;
+    let n = sizeof(i);
     n = sizeof(int);
     n = sizeof(:int);
     n = sizeof(:int*);
@@ -525,12 +525,12 @@ fn println_any(any: Any) {
 }
 
 fn print_typeid(type: typeid) {
-    index := typeid_index(type);
+    let index = typeid_index(type);
     printf("typeid(%d)", index);
 }
 
 fn print_type(type: typeid) {
-    typeinfo := get_typeinfo(type);
+    let typeinfo = get_typeinfo(type);
     if (!typeinfo) {
         print_typeid(type);
         return;
@@ -560,7 +560,7 @@ fn println_type(type: typeid) {
 }
 
 fn print_typeinfo(type: typeid) {
-    typeinfo := get_typeinfo(type);
+    let typeinfo = get_typeinfo(type);
     if (!typeinfo) {
         print_typeid(type);
         return;
@@ -571,8 +571,8 @@ fn print_typeinfo(type: typeid) {
     switch (typeinfo.kind) {
     case TYPE_STRUCT, TYPE_UNION:
         printf(" %s={ ", typeinfo.kind == TYPE_STRUCT ? "struct" : "union");
-        for (i := 0; i < typeinfo.num_fields; i++) {
-            field := typeinfo.fields[i];
+        for (let i = 0; i < typeinfo.num_fields; i++) {
+            let field = typeinfo.fields[i];
             printf("@offset(%d) %s: ", field.offset, field.name);
             print_type(field.type);
             printf("; ");
@@ -588,9 +588,9 @@ fn println_typeinfo(type: typeid) {
 }
 
 fn test_typeinfo() {
-    i := 42;
-    f := 3.14;
-    p := NULL;
+    let i = 42;
+    let f = 3.14;
+    let p = NULL;
 
     println_any({&i, typeof(i)});
     println_any({&f, typeof(f)});
@@ -632,10 +632,10 @@ fn test_va_list(fmt: char const*, ...) {
 fn test_compound_literals() {
     w: Vector*;
     w = &{1, 2};
-    a := (:int[]){1, 2, 3};
-    i := 42;
+    let a = (:int[]){1, 2, 3};
+    let i = 42;
     x: Any const = {&i, typeof(i)};
-    y := (:Any const){&i, typeof(i)};
+    let y = (:Any const){&i, typeof(i)};
     v: Ints = {
         num_ints = 3,
         int_ptr = (:int[]){1, 2, 3},
@@ -648,10 +648,10 @@ fn test_compound_literals() {
 }
 
 fn test_complete() {
-    x := 0;
-    // x := 1;
-    // x := 2;
-    y := 0;
+    let x = 0;
+    // let x = 1;
+    // let x = 2;
+    let y = 0;
     @complete
     if (x == 0) {
         y = 1;
@@ -676,65 +676,65 @@ fn test_complete() {
 }
 
 fn test_limits() {
-    char_min := CHAR_MIN;
-    char_max := CHAR_MAX;
-    schar_min := SCHAR_MIN;
-    schar_max := SCHAR_MAX;
-    uchar_min := UCHAR_MIN;
-    uchar_max := UCHAR_MAX;
-    short_min := SHORT_MIN;
-    short_max := SHORT_MAX;
-    ushort_min := USHORT_MIN;
-    ushort_max := USHORT_MAX;
-    int_min := INT_MIN;
-    int_max := INT_MAX;
-    uint_min := UINT_MIN;
-    uint_max := UINT_MAX;
-    long_min := LONG_MIN;
-    long_max := LONG_MAX;
-    ulong_min := ULONG_MIN;
-    ulong_max := ULONG_MAX;
-    llong_min := LLONG_MIN;
-    llong_max := LLONG_MAX;
-    ullong_min := ULLONG_MIN;
-    ullong_max := ULLONG_MAX;
+    let char_min = CHAR_MIN;
+    let char_max = CHAR_MAX;
+    let schar_min = SCHAR_MIN;
+    let schar_max = SCHAR_MAX;
+    let uchar_min = UCHAR_MIN;
+    let uchar_max = UCHAR_MAX;
+    let short_min = SHORT_MIN;
+    let short_max = SHORT_MAX;
+    let ushort_min = USHORT_MIN;
+    let ushort_max = USHORT_MAX;
+    let int_min = INT_MIN;
+    let int_max = INT_MAX;
+    let uint_min = UINT_MIN;
+    let uint_max = UINT_MAX;
+    let long_min = LONG_MIN;
+    let long_max = LONG_MAX;
+    let ulong_min = ULONG_MIN;
+    let ulong_max = ULONG_MAX;
+    let llong_min = LLONG_MIN;
+    let llong_max = LLONG_MAX;
+    let ullong_min = ULLONG_MIN;
+    let ullong_max = ULLONG_MAX;
 
-    wchar_min := WCHAR_MIN;
-    wchar_max := WCHAR_MAX;
+    let wchar_min = WCHAR_MIN;
+    let wchar_max = WCHAR_MAX;
 
-    int8_min := INT8_MIN;
-    int8_max := INT8_MAX;
-    uint8_min := UINT8_MIN;
-    uint8_max := UINT8_MAX;
-    int16_min := INT16_MIN;
-    int16_max := INT16_MAX;
-    uint16_min := UINT16_MIN;
-    uint16_max := UINT16_MAX;
-    int32_min := INT32_MIN;
-    int32_max := INT32_MAX;
-    uint32_min := UINT32_MIN;
-    uint32_max := UINT32_MAX;
-    int64_min := INT64_MIN;
-    int64_max := INT64_MAX;
-    uint64_min := UINT64_MIN;
-    uint64_max := UINT64_MAX;
+    let int8_min = INT8_MIN;
+    let int8_max = INT8_MAX;
+    let uint8_min = UINT8_MIN;
+    let uint8_max = UINT8_MAX;
+    let int16_min = INT16_MIN;
+    let int16_max = INT16_MAX;
+    let uint16_min = UINT16_MIN;
+    let uint16_max = UINT16_MAX;
+    let int32_min = INT32_MIN;
+    let int32_max = INT32_MAX;
+    let uint32_min = UINT32_MIN;
+    let uint32_max = UINT32_MAX;
+    let int64_min = INT64_MIN;
+    let int64_max = INT64_MAX;
+    let uint64_min = UINT64_MIN;
+    let uint64_max = UINT64_MAX;
 
-    usize_min := USIZE_MIN;
-    usize_max := USIZE_MAX;
-    ssize_min := SSIZE_MIN;
-    ssize_max := SSIZE_MAX;
-    uintptr_min := UINTPTR_MIN;
-    uintptr_max := UINTPTR_MAX;
-    intptr_min := INTPTR_MIN;
-    intptr_max := INTPTR_MAX;
+    let usize_min = USIZE_MIN;
+    let usize_max = USIZE_MAX;
+    let ssize_min = SSIZE_MIN;
+    let ssize_max = SSIZE_MAX;
+    let uintptr_min = UINTPTR_MIN;
+    let uintptr_max = UINTPTR_MAX;
+    let intptr_min = INTPTR_MIN;
+    let intptr_max = INTPTR_MAX;
 }
 
 fn test_alignof() {
-    i := 42;
-    n1 := alignof(i);
-    n2 := alignof(i+1);
-    n3 := alignof(ullong);
-    n4 := alignof(:int*);
+    let i = 42;
+    let n1 = alignof(i);
+    let n2 = alignof(i+1);
+    let n3 = alignof(ullong);
+    let n4 = alignof(:int*);
 }
 
 struct BufHdr {
@@ -745,7 +745,7 @@ struct BufHdr {
 }
 
 fn test_offsetof() {
-    n := offsetof(BufHdr, buf);
+    let n = offsetof(BufHdr, buf);
 //    n = offsetof(BufHdr, foo);
 }
 
@@ -766,14 +766,14 @@ fn returns_ptr_to_const(): Thing const* {
 fn test_lvalue() {
     returns_ptr().a = 5;
 //    returns_ptr_to_const().a = 5;
-    p := returns_ptr_to_const();
+    let p = returns_ptr_to_const();
 //    p.a = 42;
 }
 
 fn test_if() {
     if (1) {
     }
-//    if (x := Thing{}) {
+//    if (let x = Thing{}) {
 //    }
     if (x := 42) {
     }
@@ -801,9 +801,9 @@ struct Foo {
 }
 
 fn test_const_ptr_deref() {
-    bar := Bar{rc = 42};
-    foo := Foo{bar = &bar};
-    i := foo.bar.rc;
+    let bar = Bar{rc = 42};
+    let foo = Foo{bar = &bar};
+    let i = foo.bar.rc;
 }
 
 fn main(argc: int, argv: char**): int {

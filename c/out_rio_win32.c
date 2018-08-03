@@ -6041,7 +6041,12 @@ rio_StmtList rio_parse_stmt_block(void) {
 rio_Stmt (*rio_parse_stmt_if(rio_SrcPos pos)) {
     rio_expect_token(RIO_TOKEN_LPAREN);
     rio_Expr (*cond) = rio_parse_expr();
-    rio_Stmt (*init) = rio_parse_init_stmt(cond);
+    rio_Stmt (*init) = {0};
+    if (rio_match_keyword(rio_let_keyword)) {
+        init = rio_parse_let_stmt(pos);
+    } else {
+        init = rio_parse_init_stmt(cond);
+    }
     if (init) {
         if (rio_match_token(RIO_TOKEN_SEMICOLON)) {
             cond = rio_parse_expr();
@@ -6129,15 +6134,20 @@ rio_Stmt (*rio_parse_init_stmt(rio_Expr (*left))) {
 
 rio_Stmt (*rio_parse_simple_stmt(void)) {
     rio_SrcPos pos = rio_token.pos;
-    rio_Expr (*expr) = rio_parse_expr();
-    rio_Stmt (*stmt) = rio_parse_init_stmt(expr);
-    if (!(stmt)) {
-        if (rio_is_assign_op()) {
-            rio_TokenKind op = rio_token.kind;
-            rio_next_token();
-            stmt = rio_new_stmt_assign(pos, op, expr, rio_parse_expr());
-        } else {
-            stmt = rio_new_stmt_expr(pos, expr);
+    rio_Stmt (*stmt) = {0};
+    if (rio_match_keyword(rio_let_keyword)) {
+        stmt = rio_parse_let_stmt(pos);
+    } else {
+        rio_Expr (*expr) = rio_parse_expr();
+        stmt = rio_parse_init_stmt(expr);
+        if (!(stmt)) {
+            if (rio_is_assign_op()) {
+                rio_TokenKind op = rio_token.kind;
+                rio_next_token();
+                stmt = rio_new_stmt_assign(pos, op, expr, rio_parse_expr());
+            } else {
+                stmt = rio_new_stmt_expr(pos, expr);
+            }
         }
     }
     return stmt;
@@ -6260,9 +6270,6 @@ rio_Stmt (*rio_parse_stmt(void)) {
         stmt = rio_new_stmt_label(pos, rio_parse_name());
     } else if (rio_match_keyword(rio_goto_keyword)) {
         stmt = rio_new_stmt_goto(pos, rio_parse_name());
-        rio_expect_token(RIO_TOKEN_SEMICOLON);
-    } else if (rio_match_keyword(rio_let_keyword)) {
-        stmt = rio_parse_let_stmt(pos);
         rio_expect_token(RIO_TOKEN_SEMICOLON);
     } else {
         stmt = rio_parse_simple_stmt();

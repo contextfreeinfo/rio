@@ -63,7 +63,7 @@ fn dir_list_next(iter: DirListIter*) {
     }
     do {
         fileinfo: FindData;
-        result := _findnext((:intptr)iter.handle, &fileinfo);
+        let result = _findnext((:intptr)iter.handle, &fileinfo);
         dir__update(iter, result != 0, &fileinfo);
         if (result != 0) {
             dir_list_free(iter);
@@ -79,7 +79,7 @@ fn dir_list(iter: DirListIter*, path: char const*) {
     path_copy(filespec, path);
     path_join(filespec, "*");
     fileinfo: FindData;
-    handle := _findfirst(filespec, &fileinfo);
+    let handle = _findfirst(filespec, &fileinfo);
     iter.handle = (:void*)handle;
     dir__update(iter, handle == -1, &fileinfo);
     if (dir_excluded(iter)) {

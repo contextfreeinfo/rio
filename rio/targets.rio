@@ -26,7 +26,7 @@ let target_os: int;
 let target_arch: int;
 
 fn get_os(name: char const*): int {
-    for (i := 0; i < NUM_OSES; i++) {
+    for (let i = 0; i < NUM_OSES; i++) {
         if (strcmp(os_names[i], name) == 0) {
             return i;
         }
@@ -35,7 +35,7 @@ fn get_os(name: char const*): int {
 }
 
 fn get_arch(name: char const*): int {
-    for (i := 0; i < NUM_ARCHES; i++) {
+    for (let i = 0; i < NUM_ARCHES; i++) {
         if (strcmp(arch_names[i], name) == 0) {
             return i;
         }
@@ -131,9 +131,9 @@ fn init_target() {
 }
 
 fn is_excluded_target_filename(name: char const*): bool {
-    end := name + strlen(name);
+    let end = name + strlen(name);
 
-    ptr1 := end;
+    let ptr1 = end;
     while (ptr1 != name && ptr1[-1] != '_') {
         ptr1--;
     }
@@ -146,7 +146,7 @@ fn is_excluded_target_filename(name: char const*): bool {
         ptr1--;
     }
 
-    ptr2 := ptr1;
+    let ptr2 = ptr1;
     while (ptr2 != name && ptr2[-1] != '_') {
         ptr2--;
     }
@@ -158,10 +158,10 @@ fn is_excluded_target_filename(name: char const*): bool {
         str2[ptr1 - ptr2] = 0;
     }
 
-    os1 := get_os(str1);
-    arch1 := get_arch(str1);
-    os2 := get_os(str2);
-    arch2 := get_arch(str2);
+    let os1 = get_os(str1);
+    let arch1 = get_arch(str1);
+    let os2 = get_os(str2);
+    let arch2 = get_arch(str2);
     if (arch1 != -1 && os2 != -1) {
         return arch1 != target_arch || os2 != target_os;
     } else if (arch2 != -1 && os1 != -1) {

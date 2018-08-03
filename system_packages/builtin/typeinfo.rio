@@ -61,7 +61,7 @@ fn typeid_size(type: typeid): usize {
 }
 
 fn get_typeinfo(type: typeid): TypeInfo const* {
-    index := typeid_index(type);
+    let index = typeid_index(type);
     if (typeinfos && index < num_typeinfos) {
         return typeinfos[index];
     } else {
