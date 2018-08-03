@@ -365,11 +365,12 @@ fn parse_stmt_block(): StmtList {
 
 fn parse_stmt_if(pos: SrcPos): Stmt* {
     expect_token(TOKEN_LPAREN);
-    let cond = parse_expr();
+    let cond: Expr*;
     let init: Stmt*;
     if (match_keyword(let_keyword)) {
         init = parse_let_stmt(pos);
     } else {
+        cond = parse_expr();
         init = parse_init_stmt(cond);
     }
     if (init) {
@@ -434,13 +435,7 @@ fn parse_let_stmt(pos: SrcPos): Stmt* {
 }
 
 fn parse_init_stmt(left: Expr*): Stmt* {
-    if (match_token(TOKEN_COLON_ASSIGN)) {
-        if (left.kind != EXPR_NAME) {
-            fatal_error(token.pos, ":= must be preceded by a name");
-            return NULL;
-        }
-        return new_stmt_init(left.pos, left.name, NULL, parse_expr());
-    } else if (match_token(TOKEN_COLON)) {
+    if (match_token(TOKEN_COLON)) {
         if (left.kind != EXPR_NAME) {
             fatal_error(token.pos, ": must be preceded by a name");
             return NULL;

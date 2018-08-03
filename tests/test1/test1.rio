@@ -775,11 +775,11 @@ fn test_if() {
     }
 //    if (let x = Thing{}) {
 //    }
-    if (x := 42) {
+    if (let x = 42) {
     }
-    if (x := 42; x >= 0) {
+    if (let x = 42; x >= 0) {
     }
-    if (x: int = 42; x >= 0) {
+    if (let x: int = 42; x >= 0) {
     }
 }
 

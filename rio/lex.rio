@@ -159,7 +159,6 @@ enum TokenKind {
     TOKEN_LAST_ASSIGN = TOKEN_MOD_ASSIGN,
     TOKEN_INC,
     TOKEN_DEC,
-    TOKEN_COLON_ASSIGN,
     NUM_TOKEN_KINDS,
 }
 
@@ -246,7 +245,6 @@ let token_kind_names: char const*[] = {
     [TOKEN_RSHIFT_ASSIGN] = ">>=",
     [TOKEN_INC] = "++",
     [TOKEN_DEC] = "--",
-    [TOKEN_COLON_ASSIGN] = ":=",
 };
 
 fn token_kind_name(kind: TokenKind): char const* {
@@ -793,10 +791,6 @@ fn next_token() {
     case ':':
         token.kind = TOKEN_COLON;
         stream++;
-        if (*stream == '=') {
-            token.kind = TOKEN_COLON_ASSIGN;
-            stream++;
-        }
     case '=':
         token.kind = TOKEN_ASSIGN;
         stream++;

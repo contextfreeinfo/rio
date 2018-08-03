@@ -1037,9 +1037,7 @@ bool rio_is_keyword_name(char const ((*name)));
 
 #define RIO_TOKEN_DEC ((rio_TokenKind)((RIO_TOKEN_INC) + (1)))
 
-#define RIO_TOKEN_COLON_ASSIGN ((rio_TokenKind)((RIO_TOKEN_DEC) + (1)))
-
-#define RIO_NUM_TOKEN_KINDS ((rio_TokenKind)((RIO_TOKEN_COLON_ASSIGN) + (1)))
+#define RIO_NUM_TOKEN_KINDS ((rio_TokenKind)((RIO_TOKEN_DEC) + (1)))
 
 #define RIO_MOD_NONE ((rio_TokenMod)(0))
 
@@ -1069,7 +1067,7 @@ bool rio_is_keyword_name(char const ((*name)));
 
 extern char const ((*(rio_token_suffix_names[7])));
 
-extern char const ((*(rio_token_kind_names[54])));
+extern char const ((*(rio_token_kind_names[53])));
 
 char const ((*rio_token_kind_name(rio_TokenKind kind)));
 
@@ -4716,7 +4714,7 @@ bool rio_is_keyword_name(char const ((*name))) {
 }
 
 char const ((*(rio_token_suffix_names[7]))) = {[RIO_SUFFIX_NONE] = "", [RIO_SUFFIX_D] = "d", [RIO_SUFFIX_U] = "u", [RIO_SUFFIX_L] = "l", [RIO_SUFFIX_UL] = "ul", [RIO_SUFFIX_LL] = "ll", [RIO_SUFFIX_ULL] = "ull"};
-char const ((*(rio_token_kind_names[54]))) = {[RIO_TOKEN_EOF] = "EOF", [RIO_TOKEN_COLON] = ":", [RIO_TOKEN_LPAREN] = "(", [RIO_TOKEN_RPAREN] = ")", [RIO_TOKEN_LBRACE] = "{", [RIO_TOKEN_RBRACE] = "}", [RIO_TOKEN_LBRACKET] = "[", [RIO_TOKEN_RBRACKET] = "]", [RIO_TOKEN_COMMA] = ",", [RIO_TOKEN_DOT] = ".", [RIO_TOKEN_AT] = "@", [RIO_TOKEN_POUND] = "#", [RIO_TOKEN_ELLIPSIS] = "...", [RIO_TOKEN_QUESTION] = "?", [RIO_TOKEN_SEMICOLON] = ";", [RIO_TOKEN_KEYWORD] = "keyword", [RIO_TOKEN_INT] = "int", [RIO_TOKEN_FLOAT] = "float", [RIO_TOKEN_STR] = "string", [RIO_TOKEN_NAME] = "name", [RIO_TOKEN_NEG] = "~", [RIO_TOKEN_NOT] = "!", [RIO_TOKEN_MUL] = "*", [RIO_TOKEN_DIV] = "/", [RIO_TOKEN_MOD] = "%", [RIO_TOKEN_AND] = "&", [RIO_TOKEN_LSHIFT] = "<<", [RIO_TOKEN_RSHIFT] = ">>", [RIO_TOKEN_ADD] = "+", [RIO_TOKEN_SUB] = "-", [RIO_TOKEN_OR] = "|", [RIO_TOKEN_XOR] = "^", [RIO_TOKEN_EQ] = "==", [RIO_TOKEN_NOTEQ] = "!=", [RIO_TOKEN_LT] = "<", [RIO_TOKEN_GT] = ">", [RIO_TOKEN_LTEQ] = "<=", [RIO_TOKEN_GTEQ] = ">=", [RIO_TOKEN_AND_AND] = "&&", [RIO_TOKEN_OR_OR] = "||", [RIO_TOKEN_ASSIGN] = "=", [RIO_TOKEN_ADD_ASSIGN] = "+=", [RIO_TOKEN_SUB_ASSIGN] = "-=", [RIO_TOKEN_OR_ASSIGN] = "|=", [RIO_TOKEN_AND_ASSIGN] = "&=", [RIO_TOKEN_XOR_ASSIGN] = "^=", [RIO_TOKEN_MUL_ASSIGN] = "*=", [RIO_TOKEN_DIV_ASSIGN] = "/=", [RIO_TOKEN_MOD_ASSIGN] = "%=", [RIO_TOKEN_LSHIFT_ASSIGN] = "<<=", [RIO_TOKEN_RSHIFT_ASSIGN] = ">>=", [RIO_TOKEN_INC] = "++", [RIO_TOKEN_DEC] = "--", [RIO_TOKEN_COLON_ASSIGN] = ":="};
+char const ((*(rio_token_kind_names[53]))) = {[RIO_TOKEN_EOF] = "EOF", [RIO_TOKEN_COLON] = ":", [RIO_TOKEN_LPAREN] = "(", [RIO_TOKEN_RPAREN] = ")", [RIO_TOKEN_LBRACE] = "{", [RIO_TOKEN_RBRACE] = "}", [RIO_TOKEN_LBRACKET] = "[", [RIO_TOKEN_RBRACKET] = "]", [RIO_TOKEN_COMMA] = ",", [RIO_TOKEN_DOT] = ".", [RIO_TOKEN_AT] = "@", [RIO_TOKEN_POUND] = "#", [RIO_TOKEN_ELLIPSIS] = "...", [RIO_TOKEN_QUESTION] = "?", [RIO_TOKEN_SEMICOLON] = ";", [RIO_TOKEN_KEYWORD] = "keyword", [RIO_TOKEN_INT] = "int", [RIO_TOKEN_FLOAT] = "float", [RIO_TOKEN_STR] = "string", [RIO_TOKEN_NAME] = "name", [RIO_TOKEN_NEG] = "~", [RIO_TOKEN_NOT] = "!", [RIO_TOKEN_MUL] = "*", [RIO_TOKEN_DIV] = "/", [RIO_TOKEN_MOD] = "%", [RIO_TOKEN_AND] = "&", [RIO_TOKEN_LSHIFT] = "<<", [RIO_TOKEN_RSHIFT] = ">>", [RIO_TOKEN_ADD] = "+", [RIO_TOKEN_SUB] = "-", [RIO_TOKEN_OR] = "|", [RIO_TOKEN_XOR] = "^", [RIO_TOKEN_EQ] = "==", [RIO_TOKEN_NOTEQ] = "!=", [RIO_TOKEN_LT] = "<", [RIO_TOKEN_GT] = ">", [RIO_TOKEN_LTEQ] = "<=", [RIO_TOKEN_GTEQ] = ">=", [RIO_TOKEN_AND_AND] = "&&", [RIO_TOKEN_OR_OR] = "||", [RIO_TOKEN_ASSIGN] = "=", [RIO_TOKEN_ADD_ASSIGN] = "+=", [RIO_TOKEN_SUB_ASSIGN] = "-=", [RIO_TOKEN_OR_ASSIGN] = "|=", [RIO_TOKEN_AND_ASSIGN] = "&=", [RIO_TOKEN_XOR_ASSIGN] = "^=", [RIO_TOKEN_MUL_ASSIGN] = "*=", [RIO_TOKEN_DIV_ASSIGN] = "/=", [RIO_TOKEN_MOD_ASSIGN] = "%=", [RIO_TOKEN_LSHIFT_ASSIGN] = "<<=", [RIO_TOKEN_RSHIFT_ASSIGN] = ">>=", [RIO_TOKEN_INC] = "++", [RIO_TOKEN_DEC] = "--"};
 char const ((*rio_token_kind_name(rio_TokenKind kind))) {
     if ((kind) < ((sizeof(rio_token_kind_names)) / (sizeof(*(rio_token_kind_names))))) {
         return rio_token_kind_names[kind];
@@ -5260,10 +5258,6 @@ void rio_next_token(void) {
     case ':': {
         rio_token.kind = RIO_TOKEN_COLON;
         (rio_stream)++;
-        if ((*(rio_stream)) == ('=')) {
-            rio_token.kind = RIO_TOKEN_COLON_ASSIGN;
-            (rio_stream)++;
-        }
         break;
     }
     case '=': {
@@ -6026,11 +6020,12 @@ rio_StmtList rio_parse_stmt_block(void) {
 
 rio_Stmt (*rio_parse_stmt_if(rio_SrcPos pos)) {
     rio_expect_token(RIO_TOKEN_LPAREN);
-    rio_Expr (*cond) = rio_parse_expr();
+    rio_Expr (*cond) = {0};
     rio_Stmt (*init) = {0};
     if (rio_match_keyword(rio_let_keyword)) {
         init = rio_parse_let_stmt(pos);
     } else {
+        cond = rio_parse_expr();
         init = rio_parse_init_stmt(cond);
     }
     if (init) {
@@ -6095,13 +6090,7 @@ rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos)) {
 }
 
 rio_Stmt (*rio_parse_init_stmt(rio_Expr (*left))) {
-    if (rio_match_token(RIO_TOKEN_COLON_ASSIGN)) {
-        if ((left->kind) != (RIO_EXPR_NAME)) {
-            rio_fatal_error(rio_token.pos, ":= must be preceded by a name");
-            return NULL;
-        }
-        return rio_new_stmt_init(left->pos, left->name, NULL, rio_parse_expr());
-    } else if (rio_match_token(RIO_TOKEN_COLON)) {
+    if (rio_match_token(RIO_TOKEN_COLON)) {
         if ((left->kind) != (RIO_EXPR_NAME)) {
             rio_fatal_error(rio_token.pos, ": must be preceded by a name");
             return NULL;
