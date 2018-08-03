@@ -1,5 +1,5 @@
-/bin/ion
-/bin/ion.*
+/bin/rio
+/bin/rio.*
 /old/build*/
 /notes/
 /old/rust/target/

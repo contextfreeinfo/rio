@@ -8,11 +8,11 @@ setlocal
 call :resolve "%~dp0\.." IONHOME
 set IONOS=win32
 
-if not exist "%IONHOME%\bin\ion.exe" (
+if not exist "%IONHOME%\bin\rio.exe" (
   call "%IONHOME%\build"
 )
 
-"%IONHOME%\bin\ion.exe" %*
+"%IONHOME%\bin\rio.exe" %*
 
 endlocal
 

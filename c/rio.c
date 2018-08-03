@@ -24,62 +24,62 @@
 #   endif
 #endif
 
-struct ion_Operand;
-struct ion_Type;
+struct rio_Operand;
+struct rio_Type;
 
-bool cast_operand(struct ion_Operand *operand, struct ion_Type *type);
+bool cast_operand(struct rio_Operand *operand, struct rio_Type *type);
 
 #ifdef _WIN32
-#   include "out_ion_win32.c"
+#   include "out_rio_win32.c"
 #else
-#   include "out_ion_linux.c"
+#   include "out_rio_linux.c"
 #endif
 
 #define CASE(k, t) \
     case k: \
         switch (type->kind) { \
-        case ION_CMPL_TYPE_BOOL: \
+        case RIO_CMPL_TYPE_BOOL: \
             operand->val.b = (bool)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_CHAR: \
+        case RIO_CMPL_TYPE_CHAR: \
             operand->val.c = (char)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_UCHAR: \
+        case RIO_CMPL_TYPE_UCHAR: \
             operand->val.uc = (unsigned char)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_SCHAR: \
+        case RIO_CMPL_TYPE_SCHAR: \
             operand->val.sc = (signed char)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_SHORT: \
+        case RIO_CMPL_TYPE_SHORT: \
             operand->val.s = (short)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_USHORT: \
+        case RIO_CMPL_TYPE_USHORT: \
             operand->val.us = (unsigned short)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_INT: \
-        case ION_CMPL_TYPE_ENUM: \
+        case RIO_CMPL_TYPE_INT: \
+        case RIO_CMPL_TYPE_ENUM: \
             operand->val.i = (int)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_UINT: \
+        case RIO_CMPL_TYPE_UINT: \
             operand->val.u = (unsigned)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_LONG: \
+        case RIO_CMPL_TYPE_LONG: \
             operand->val.l = (long)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_ULONG: \
+        case RIO_CMPL_TYPE_ULONG: \
             operand->val.ul = (unsigned long)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_LLONG: \
+        case RIO_CMPL_TYPE_LLONG: \
             operand->val.ll = (long long)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_ULLONG: \
+        case RIO_CMPL_TYPE_ULLONG: \
             operand->val.ull = (unsigned long long)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_PTR: \
+        case RIO_CMPL_TYPE_PTR: \
             operand->val.p = (uintptr_t)operand->val.t; \
             break; \
-        case ION_CMPL_TYPE_FLOAT: \
-        case ION_CMPL_TYPE_DOUBLE: \
+        case RIO_CMPL_TYPE_FLOAT: \
+        case RIO_CMPL_TYPE_DOUBLE: \
             break; \
         default: \
             operand->is_const = false; \
@@ -87,39 +87,39 @@ bool cast_operand(struct ion_Operand *operand, struct ion_Type *type);
         } \
         break;
 
-bool cast_operand(ion_Operand *operand, ion_Type *type) {
-    ion_Type *qual_type = type;
-    type = ion_unqualify_type(type);
-    operand->type = ion_unqualify_type(operand->type);
+bool cast_operand(rio_Operand *operand, rio_Type *type) {
+    rio_Type *qual_type = type;
+    type = rio_unqualify_type(type);
+    operand->type = rio_unqualify_type(operand->type);
     if (operand->type != type) {
-        if (!ion_is_castable(operand, type)) {
+        if (!rio_is_castable(operand, type)) {
             return false;
         }
         if (operand->is_const) {
-            if (ion_is_floating_type(operand->type)) {
-                operand->is_const = !ion_is_integer_type(type);
+            if (rio_is_floating_type(operand->type)) {
+                operand->is_const = !rio_is_integer_type(type);
             } else {
-                if (type->kind == ION_CMPL_TYPE_ENUM) {
+                if (type->kind == RIO_CMPL_TYPE_ENUM) {
                     type = type->base;
                 }
-                ion_Type *operand_type = operand->type;
-                if (operand_type->kind == ION_CMPL_TYPE_ENUM) {
+                rio_Type *operand_type = operand->type;
+                if (operand_type->kind == RIO_CMPL_TYPE_ENUM) {
                     operand_type = operand_type->base;
                 }
                 switch (operand_type->kind) {
-                CASE(ION_CMPL_TYPE_BOOL, b)
-                CASE(ION_CMPL_TYPE_CHAR, c)
-                CASE(ION_CMPL_TYPE_UCHAR, uc)
-                CASE(ION_CMPL_TYPE_SCHAR, sc)
-                CASE(ION_CMPL_TYPE_SHORT, s)
-                CASE(ION_CMPL_TYPE_USHORT, us)
-                CASE(ION_CMPL_TYPE_INT, i)
-                CASE(ION_CMPL_TYPE_UINT, u)
-                CASE(ION_CMPL_TYPE_LONG, l)
-                CASE(ION_CMPL_TYPE_ULONG, ul)
-                CASE(ION_CMPL_TYPE_LLONG, ll)
-                CASE(ION_CMPL_TYPE_ULLONG, ull)
-                CASE(ION_CMPL_TYPE_PTR, p)
+                CASE(RIO_CMPL_TYPE_BOOL, b)
+                CASE(RIO_CMPL_TYPE_CHAR, c)
+                CASE(RIO_CMPL_TYPE_UCHAR, uc)
+                CASE(RIO_CMPL_TYPE_SCHAR, sc)
+                CASE(RIO_CMPL_TYPE_SHORT, s)
+                CASE(RIO_CMPL_TYPE_USHORT, us)
+                CASE(RIO_CMPL_TYPE_INT, i)
+                CASE(RIO_CMPL_TYPE_UINT, u)
+                CASE(RIO_CMPL_TYPE_LONG, l)
+                CASE(RIO_CMPL_TYPE_ULONG, ul)
+                CASE(RIO_CMPL_TYPE_LLONG, ll)
+                CASE(RIO_CMPL_TYPE_ULLONG, ull)
+                CASE(RIO_CMPL_TYPE_PTR, p)
                 default:
                     operand->is_const = false;
                     break;

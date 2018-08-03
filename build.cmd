@@ -8,15 +8,15 @@ pushd %IONHOME%
 
 call bin\vsenv -arch=x64
 
-if exist bin\ion.exe (
-  bin\ion.exe -nosourcemap -notypeinfo -o c\out_ion_win32.c ion
+if exist bin\rio.exe (
+  bin\rio.exe -nosourcemap -notypeinfo -o c\out_rio_win32.c rio
 ) else (
   echo.
-  echo -- No ion binary found; using previously built c\out_ion_win32.c --
+  echo -- No rio binary found; using previously built c\out_rio_win32.c --
   echo.
 )
 
-cl /Fe:bin\ion /Fo:bin\ion c\ion.c
+cl /Fe:bin\rio /Fo:bin\rio c\rio.c
 
 popd
 
