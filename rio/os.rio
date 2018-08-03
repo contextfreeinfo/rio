@@ -111,7 +111,7 @@ struct FlagDefPtr {
     s: char const**;
 }
 
-var flag_defs: FlagDef*;
+let flag_defs: FlagDef*;
 
 fn add_flag_bool(name: char const*, ptr: bool*, help: char const*) {
     def: FlagDef = {kind = FLAG_BOOL, name = name, help = help, ptr = {b = ptr}};

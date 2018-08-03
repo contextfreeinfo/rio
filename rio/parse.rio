@@ -411,6 +411,23 @@ fn is_assign_op(): bool {
     return TOKEN_FIRST_ASSIGN <= token.kind && token.kind <= TOKEN_LAST_ASSIGN;
 }
 
+fn parse_let_stmt(pos: SrcPos): Stmt* {
+    let name = parse_name();
+    if (match_token(TOKEN_ASSIGN)) {
+        return new_stmt_init(pos, name, NULL, parse_expr());
+    } else if (match_token(TOKEN_COLON)) {
+        let type = parse_type();
+        let expr: Expr*;
+        if (match_token(TOKEN_ASSIGN)) {
+            expr = parse_expr();
+        }
+        return new_stmt_init(pos, name, type, expr);
+    } else {
+        fatal_error(token.pos, "Expected : or = after let, got %s", token_info());
+        return NULL;
+    }
+}
+
 fn parse_init_stmt(left: Expr*): Stmt* {
     if (match_token(TOKEN_COLON_ASSIGN)) {
         if (left.kind != EXPR_NAME) {
@@ -423,9 +440,9 @@ fn parse_init_stmt(left: Expr*): Stmt* {
             fatal_error(token.pos, ": must be preceded by a name");
             return NULL;
         }
-        name: char const* = left.name;
-        type := parse_type();
-        expr: Expr* = NULL;
+        let name = left.name;
+        let type = parse_type();
+        let expr: Expr*;
         if (match_token(TOKEN_ASSIGN)) {
             expr = parse_expr();
         }
@@ -569,6 +586,9 @@ fn parse_stmt(): Stmt* {
     } else if (match_keyword(goto_keyword)) {
         stmt = new_stmt_goto(pos, parse_name());
         expect_token(TOKEN_SEMICOLON);
+    } else if (match_keyword(let_keyword)) {
+        stmt = parse_let_stmt(pos);
+        expect_token(TOKEN_SEMICOLON);
     } else {
         stmt = parse_simple_stmt();
         expect_token(TOKEN_SEMICOLON);
@@ -690,7 +710,7 @@ fn parse_decl_var(pos: SrcPos): Decl* {
         expect_token(TOKEN_SEMICOLON);
         return new_decl_var(pos, name, type, expr);
     } else {
-        fatal_error(token.pos, "Expected : or = after var, got %s", token_info());
+        fatal_error(token.pos, "Expected : or = after let, got %s", token_info());
         return NULL;
     }
 }
@@ -868,7 +888,7 @@ fn parse_decl_opt(): Decl* {
         return parse_decl_typedef(pos);
     } else if (match_keyword(fn_keyword)) {
         return parse_decl_func(pos);
-    } else if (match_keyword(var_keyword)) {
+    } else if (match_keyword(let_keyword)) {
         return parse_decl_var(pos);
     } else if (match_keyword(import_keyword)) {
         return parse_decl_import(pos);

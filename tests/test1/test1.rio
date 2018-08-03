@@ -3,14 +3,14 @@ import libc {gc = getchar, ...}
 
 #static_assert('\xFF' == 255)
 
-var esc_test_str = "Hello\nworld\nHex: \x01\x10\xFHello\xFF";
+let esc_test_str = "Hello\nworld\nHex: \x01\x10\xFHello\xFF";
 
-var some_array: int* = (:int[]){1, 2, 3};
+let some_array: int* = (:int[]){1, 2, 3};
 
 struct SomeIncompleteType;
 
-var incomplete_ptr: SomeIncompleteType*;
-// var incomplete_val: Incomplete;
+let incomplete_ptr: SomeIncompleteType*;
+// let incomplete_val: Incomplete;
 
 /* This is a block comment */
 
@@ -27,9 +27,9 @@ const PI2 = PI + PI;
 
 const U8: uint8 = 42;
 
-var c: char = 1;
-var uc: uchar = 1;
-var sc: schar = 1;
+let c: char = 1;
+let uc: uchar = 1;
+let sc: schar = 1;
 
 typedef F1 = fn();
 typedef F2 = fn(f: fn(int, int,): int): int;
@@ -39,7 +39,7 @@ const N = (:char)42 + 8 != 0;
 
 typedef A = int[1 + 2*sizeof(h())];
 
-var code = """
+let code = """
 #include <stdio.h>
 
 int main(int argc, char **argv) {
@@ -204,7 +204,7 @@ union IntOrPtr {
     p: int*;
 }
 
-var char_to_escape: char const[256] = {
+let char_to_escape: char const[256] = {
     ['\0'] = '0',
     ['\n'] = 'n',
     ['\r'] = 'r',
@@ -217,7 +217,7 @@ var char_to_escape: char const[256] = {
     ['\''] = '\'',
 };
 
-var escape_to_char: char const[256] = {
+let escape_to_char: char const[256] = {
     ['0'] = '\0',
     ['\''] = '\'',
     ['"'] = '"',
@@ -230,8 +230,8 @@ var escape_to_char: char const[256] = {
     ['a'] = '\a',
 };
 
-var a2: int[] = {1, 2, 3, [10]=4};
-// var a3: int[];
+let a2: int[] = {1, 2, 3, [10]=4};
+// let a3: int[];
 
 fn is_even(digit: int): int {
     b := 0;
@@ -249,7 +249,7 @@ fn is_even(digit: int): int {
 //     u2.p = (:int*)0;
 // }
 
-var i: int;
+let i: int;
 
 struct Vector {
     x, y: int;
@@ -277,7 +277,7 @@ fn fact_rec(n: int): int {
 
 const M = 1 + sizeof(p);
 
-var p: T*;
+let p: T*;
 
 struct T {
     a: int[M];
@@ -301,7 +301,7 @@ enum TypedEnum = int8 {
     QUUX
 }
 
-var color_names: char const*[NUM_COLORS] = {
+let color_names: char const*[NUM_COLORS] = {
     [COLOR_NONE] = "none",
     [COLOR_RED] = "red",
     [COLOR_GREEN] = "green",
@@ -425,9 +425,9 @@ fn test_ctrl(): int {
 //    return 0;
 }
 
-var j: int const;
-var q: int const*;
-var cv: Vector const;
+let j: int const;
+let q: int const*;
+let cv: Vector const;
 
 fn f4(x: char const*) {
 }
@@ -753,7 +753,7 @@ struct Thing {
     a: int;
 }
 
-var thing: Thing;
+let thing: Thing;
 
 fn returns_ptr(): Thing* {
     return &thing;

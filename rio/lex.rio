@@ -1,38 +1,38 @@
-var typedef_keyword: char const*;
-var enum_keyword: char const*;
-var struct_keyword: char const*;
-var union_keyword: char const*;
-var var_keyword: char const*;
-var const_keyword: char const*;
-var fn_keyword: char const*;
-var sizeof_keyword: char const*;
-var alignof_keyword: char const*;
-var typeof_keyword: char const*;
-var offsetof_keyword: char const*;
-var break_keyword: char const*;
-var continue_keyword: char const*;
-var return_keyword: char const*;
-var if_keyword: char const*;
-var else_keyword: char const*;
-var while_keyword: char const*;
-var do_keyword: char const*;
-var for_keyword: char const*;
-var switch_keyword: char const*;
-var case_keyword: char const*;
-var default_keyword: char const*;
-var import_keyword: char const*;
-var goto_keyword: char const*;
+let typedef_keyword: char const*;
+let enum_keyword: char const*;
+let struct_keyword: char const*;
+let union_keyword: char const*;
+let let_keyword: char const*;
+let const_keyword: char const*;
+let fn_keyword: char const*;
+let sizeof_keyword: char const*;
+let alignof_keyword: char const*;
+let typeof_keyword: char const*;
+let offsetof_keyword: char const*;
+let break_keyword: char const*;
+let continue_keyword: char const*;
+let return_keyword: char const*;
+let if_keyword: char const*;
+let else_keyword: char const*;
+let while_keyword: char const*;
+let do_keyword: char const*;
+let for_keyword: char const*;
+let switch_keyword: char const*;
+let case_keyword: char const*;
+let default_keyword: char const*;
+let import_keyword: char const*;
+let goto_keyword: char const*;
 
-var first_keyword: char const*;
-var last_keyword: char const*;
-var keywords: char const**;
+let first_keyword: char const*;
+let last_keyword: char const*;
+let keywords: char const**;
 
-var always_name: char const*;
-var foreign_name: char const*;
-var complete_name: char const*;
-var assert_name: char const*;
-var declare_note_name: char const*;
-var static_assert_name: char const*;
+let always_name: char const*;
+let foreign_name: char const*;
+let complete_name: char const*;
+let assert_name: char const*;
+let declare_note_name: char const*;
+let static_assert_name: char const*;
 
 // #define KEYWORD(name) name##_keyword = str_intern(#name); buf_push(keywords, name##_keyword)
 fn init_keyword(keyword: char const*): char const* {
@@ -42,7 +42,7 @@ fn init_keyword(keyword: char const*): char const* {
     return keyword;
 }
 
-var keywords_inited = false;
+let keywords_inited = false;
 
 fn init_keywords() {
     if (keywords_inited) {
@@ -54,7 +54,7 @@ fn init_keywords() {
     struct_keyword = init_keyword("struct");
     union_keyword = init_keyword("union");
     const_keyword = init_keyword("const");
-    var_keyword = init_keyword("var");
+    let_keyword = init_keyword("let");
     fn_keyword = init_keyword("fn");
     import_keyword = init_keyword("import");
     goto_keyword = init_keyword("goto");
@@ -182,7 +182,7 @@ enum TokenSuffix {
     SUFFIX_ULL,
 }
 
-var token_suffix_names: char const*[] = {
+let token_suffix_names: char const*[] = {
     [SUFFIX_NONE] = "",
     [SUFFIX_D] = "d",
     [SUFFIX_U] = "u",
@@ -192,7 +192,7 @@ var token_suffix_names: char const*[] = {
     [SUFFIX_ULL] = "ull",
 };
 
-var token_kind_names: char const*[] = {
+let token_kind_names: char const*[] = {
     [TOKEN_EOF] = "EOF",
     [TOKEN_COLON] = ":",
     [TOKEN_LPAREN] = "(",
@@ -257,7 +257,7 @@ fn token_kind_name(kind: TokenKind): char const* {
     }
 }
 
-var assign_token_to_binary_token: TokenKind[NUM_TOKEN_KINDS] = {
+let assign_token_to_binary_token: TokenKind[NUM_TOKEN_KINDS] = {
     [TOKEN_ADD_ASSIGN] = TOKEN_ADD,
     [TOKEN_SUB_ASSIGN] = TOKEN_SUB,
     [TOKEN_OR_ASSIGN] = TOKEN_OR,
@@ -275,7 +275,7 @@ struct SrcPos {
     line: int;
 }
 
-var pos_builtin: SrcPos = {name = "<builtin>"};
+let pos_builtin: SrcPos = {name = "<builtin>"};
 
 struct Token {
     kind: TokenKind;
@@ -292,9 +292,9 @@ struct Token {
     }
 }
 
-var token: Token;
-var stream: char const*;
-var line_start: char const*;
+let token: Token;
+let stream: char const*;
+let line_start: char const*;
 
 fn vnotice(level: char const*, pos: SrcPos, fmt: char const*, args: va_list) {
     if (pos.name == NULL) {
@@ -344,7 +344,7 @@ fn token_info(): char const* {
     }
 }
 
-var char_to_digit: uint8[256] = {
+let char_to_digit: uint8[256] = {
     ['0'] = 0,
     ['1'] = 1,
     ['2'] = 2,
@@ -473,7 +473,7 @@ fn scan_float() {
     }
 }
 
-var escape_to_char: char[256] = {
+let escape_to_char: char[256] = {
     ['0'] = '\0',
     ['\''] = '\'',
     ['"'] = '"',

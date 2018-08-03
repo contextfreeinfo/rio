@@ -849,7 +849,7 @@ extern char const ((*rio_struct_keyword));
 
 extern char const ((*rio_union_keyword));
 
-extern char const ((*rio_var_keyword));
+extern char const ((*rio_let_keyword));
 
 extern char const ((*rio_const_keyword));
 
@@ -1259,6 +1259,8 @@ rio_Stmt (*rio_parse_stmt_while(rio_SrcPos pos));
 rio_Stmt (*rio_parse_stmt_do_while(rio_SrcPos pos));
 
 bool rio_is_assign_op(void);
+
+rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos));
 
 rio_Stmt (*rio_parse_init_stmt(rio_Expr (*left)));
 
@@ -4632,7 +4634,7 @@ char const ((*rio_typedef_keyword));
 char const ((*rio_enum_keyword));
 char const ((*rio_struct_keyword));
 char const ((*rio_union_keyword));
-char const ((*rio_var_keyword));
+char const ((*rio_let_keyword));
 char const ((*rio_const_keyword));
 char const ((*rio_fn_keyword));
 char const ((*rio_sizeof_keyword));
@@ -4678,7 +4680,7 @@ void rio_init_keywords(void) {
     rio_struct_keyword = rio_init_keyword("struct");
     rio_union_keyword = rio_init_keyword("union");
     rio_const_keyword = rio_init_keyword("const");
-    rio_var_keyword = rio_init_keyword("var");
+    rio_let_keyword = rio_init_keyword("let");
     rio_fn_keyword = rio_init_keyword("fn");
     rio_import_keyword = rio_init_keyword("import");
     rio_goto_keyword = rio_init_keyword("goto");
@@ -6070,6 +6072,23 @@ bool rio_is_assign_op(void) {
     return ((RIO_TOKEN_FIRST_ASSIGN) <= (rio_token.kind)) && ((rio_token.kind) <= (RIO_TOKEN_LAST_ASSIGN));
 }
 
+rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos)) {
+    char const ((*name)) = rio_parse_name();
+    if (rio_match_token(RIO_TOKEN_ASSIGN)) {
+        return rio_new_stmt_init(pos, name, NULL, rio_parse_expr());
+    } else if (rio_match_token(RIO_TOKEN_COLON)) {
+        rio_Typespec (*type) = rio_parse_type();
+        rio_Expr (*expr) = {0};
+        if (rio_match_token(RIO_TOKEN_ASSIGN)) {
+            expr = rio_parse_expr();
+        }
+        return rio_new_stmt_init(pos, name, type, expr);
+    } else {
+        rio_fatal_error(rio_token.pos, "Expected : or = after let, got %s", rio_token_info());
+        return NULL;
+    }
+}
+
 rio_Stmt (*rio_parse_init_stmt(rio_Expr (*left))) {
     if (rio_match_token(RIO_TOKEN_COLON_ASSIGN)) {
         if ((left->kind) != (RIO_EXPR_NAME)) {
@@ -6084,7 +6103,7 @@ rio_Stmt (*rio_parse_init_stmt(rio_Expr (*left))) {
         }
         char const ((*name)) = left->name;
         rio_Typespec (*type) = rio_parse_type();
-        rio_Expr (*expr) = NULL;
+        rio_Expr (*expr) = {0};
         if (rio_match_token(RIO_TOKEN_ASSIGN)) {
             expr = rio_parse_expr();
         }
@@ -6228,6 +6247,9 @@ rio_Stmt (*rio_parse_stmt(void)) {
     } else if (rio_match_keyword(rio_goto_keyword)) {
         stmt = rio_new_stmt_goto(pos, rio_parse_name());
         rio_expect_token(RIO_TOKEN_SEMICOLON);
+    } else if (rio_match_keyword(rio_let_keyword)) {
+        stmt = rio_parse_let_stmt(pos);
+        rio_expect_token(RIO_TOKEN_SEMICOLON);
     } else {
         stmt = rio_parse_simple_stmt();
         rio_expect_token(RIO_TOKEN_SEMICOLON);
@@ -6335,7 +6357,7 @@ rio_Decl (*rio_parse_decl_var(rio_SrcPos pos)) {
         rio_expect_token(RIO_TOKEN_SEMICOLON);
         return rio_new_decl_var(pos, name, type, expr);
     } else {
-        rio_fatal_error(rio_token.pos, "Expected : or = after var, got %s", rio_token_info());
+        rio_fatal_error(rio_token.pos, "Expected : or = after let, got %s", rio_token_info());
         return NULL;
     }
 }
@@ -6513,7 +6535,7 @@ rio_Decl (*rio_parse_decl_opt(void)) {
         return rio_parse_decl_typedef(pos);
     } else if (rio_match_keyword(rio_fn_keyword)) {
         return rio_parse_decl_func(pos);
-    } else if (rio_match_keyword(rio_var_keyword)) {
+    } else if (rio_match_keyword(rio_let_keyword)) {
         return rio_parse_decl_var(pos);
     } else if (rio_match_keyword(rio_import_keyword)) {
         return rio_parse_decl_import(pos);
@@ -7945,7 +7967,7 @@ rio_Operand rio_resolve_name_operand(rio_SrcPos pos, char const ((*name))) {
     } else if ((sym->kind) == (RIO_SYM_FUNC)) {
         return rio_operand_rvalue(sym->type);
     } else {
-        rio_fatal_error(pos, "%s must be a var or const", name);
+        rio_fatal_error(pos, "%s must be a let or const", name);
         return rio_operand_null;
     }
 }

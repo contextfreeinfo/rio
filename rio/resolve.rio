@@ -45,10 +45,10 @@ enum {
     MAX_LOCAL_SYMS = 1024
 }
 
-var current_package: Package*;
-var builtin_package: Package*;
-var package_map: Map;
-var package_list: Package**;
+let current_package: Package*;
+let builtin_package: Package*;
+let package_map: Map;
+let package_list: Package**;
 
 enum {
     REACHABLE_NONE,
@@ -56,7 +56,7 @@ enum {
     REACHABLE_FORCED,
 }
 
-var reachable_phase: uint8 = REACHABLE_NATURAL;
+let reachable_phase: uint8 = REACHABLE_NATURAL;
 
 fn get_package_sym(package: Package*, name: char const*): Sym* {
     return map_get(&package.syms_map, name);
@@ -81,10 +81,10 @@ fn leave_package(old_package: Package*) {
     current_package = old_package;
 }
 
-var reachable_syms: Sym**;
-var sorted_syms: Sym**;
-var local_syms: Sym[MAX_LOCAL_SYMS];
-var local_syms_end: Sym* = local_syms;
+let reachable_syms: Sym**;
+let sorted_syms: Sym**;
+let local_syms: Sym[MAX_LOCAL_SYMS];
+let local_syms_end: Sym* = local_syms;
 
 fn is_local_sym(sym: Sym*): bool {
     return local_syms <= sym && sym < local_syms_end;
@@ -295,7 +295,7 @@ struct Operand {
     val: Val;
 }
 
-var operand_null: Operand;
+let operand_null: Operand;
 
 fn operand_rvalue(type: Type*): Operand {
     return Operand {
@@ -454,7 +454,7 @@ fn unify_arithmetic_operands(left: Operand*, right: Operand*) {
     #assert(left.type == right.type);
 }
 
-var resolved_val_map: Map;
+let resolved_val_map: Map;
 
 fn get_resolved_val(ptr: void*): Val {
     u64: uint64 = map_get_uint64(&resolved_val_map, ptr);
@@ -471,7 +471,7 @@ fn set_resolved_val(ptr: void*, val: Val) {
     map_put_uint64(&resolved_val_map, ptr, u64);
 }
 
-var resolved_type_map: Map;
+let resolved_type_map: Map;
 
 fn get_resolved_type(ptr: void*): Type* {
     return map_get(&resolved_type_map, ptr);
@@ -481,7 +481,7 @@ fn set_resolved_type(ptr: void*, type: Type*) {
     map_put(&resolved_type_map, ptr, type);
 }
 
-var resolved_sym_map: Map;
+let resolved_sym_map: Map;
 
 fn get_resolved_sym(ptr: void const*): Sym* {
     return map_get(&resolved_sym_map, ptr);
@@ -493,7 +493,7 @@ fn set_resolved_sym(ptr: void const*, sym: Sym*) {
     }
 }
 
-var resolved_expected_type_map: Map;
+let resolved_expected_type_map: Map;
 
 fn get_resolved_expected_type(expr: Expr*): Type* {
     return map_get(&resolved_expected_type_map, expr);
@@ -741,8 +741,8 @@ struct Label {
 
 const MAX_LABELS = 256;
 
-var labels: Label[MAX_LABELS];
-var labels_end: Label* = labels;
+let labels: Label[MAX_LABELS];
+let labels_end: Label* = labels;
 
 fn get_label(pos: SrcPos, name: char const*): Label* {
     label: Label*;
@@ -1333,7 +1333,7 @@ fn resolve_name_operand(pos: SrcPos, name: char const*): Operand {
     } else if (sym.kind == SYM_FUNC) {
         return operand_rvalue(sym.type);
     } else {
-        fatal_error(pos, "%s must be a var or const", name);
+        fatal_error(pos, "%s must be a let or const", name);
         return operand_null;
     }
 }
@@ -1980,7 +1980,7 @@ fn resolve_const_expr(expr: Expr*): Operand {
     return operand;
 }
 
-var decl_note_names: Map;
+let decl_note_names: Map;
 
 fn init_builtin_syms() {
     #assert(current_package);

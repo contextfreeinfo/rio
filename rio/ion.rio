@@ -1,7 +1,7 @@
 enum { MAX_SEARCH_PATHS = 256 }
-var static_package_search_paths: char const*[MAX_SEARCH_PATHS];
-var package_search_paths: char const** = static_package_search_paths;
-var num_package_search_paths: int;
+let static_package_search_paths: char const*[MAX_SEARCH_PATHS];
+let package_search_paths: char const** = static_package_search_paths;
+let num_package_search_paths: int;
 
 fn add_package_search_path(path: char const*) {
     if (flag_verbose) {

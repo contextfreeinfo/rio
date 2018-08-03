@@ -1,1 +1,1 @@
-var RIOOS: char const* = "linux";
+let RIOOS: char const* = "linux";

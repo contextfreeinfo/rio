@@ -1,1 +1,1 @@
-var RIOARCH: char const* = "x64";
+let RIOARCH: char const* = "x64";

@@ -5,7 +5,7 @@ enum Os {
     NUM_OSES,
 }
 
-var os_names: char const*[NUM_OSES] = {
+let os_names: char const*[NUM_OSES] = {
     [OS_WIN32] = "win32",
     [OS_LINUX] = "linux",
     [OS_OSX] = "osx",
@@ -17,13 +17,13 @@ enum Arch {
     NUM_ARCHES,
 }
 
-var arch_names: char const*[NUM_ARCHES] = {
+let arch_names: char const*[NUM_ARCHES] = {
     [ARCH_X64] = "x64",
     [ARCH_X86] = "x86",
 };
 
-var target_os: int;
-var target_arch: int;
+let target_os: int;
+let target_arch: int;
 
 fn get_os(name: char const*): int {
     for (i := 0; i < NUM_OSES; i++) {
@@ -58,28 +58,28 @@ fn init_default_type_metrics(metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS]) {
     metrics[CMPL_TYPE_DOUBLE] = {size = 8, align = 8};
 }
 
-var win32_x86_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
+let win32_x86_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
     // DEFAULT_TYPE_METRICS,
     [CMPL_TYPE_PTR] = {size = 4, align = 4},
     [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
     [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
-var win32_x64_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
+let win32_x64_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
     // DEFAULT_TYPE_METRICS,
     [CMPL_TYPE_PTR] = {size = 8, align = 8},
     [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
     [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
-var ilp32_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
+let ilp32_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
     // DEFAULT_TYPE_METRICS,
     [CMPL_TYPE_PTR] = {size = 4, align = 4},
     [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
     [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
-var lp64_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
+let lp64_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
     // DEFAULT_TYPE_METRICS,
     [CMPL_TYPE_PTR] = {size = 8, align = 8},
     [CMPL_TYPE_LONG] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true},

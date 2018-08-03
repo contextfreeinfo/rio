@@ -241,7 +241,7 @@ fn buf_printf(buf: char**, fmt: char const*, ...) {
 //     assert(strcmp(str, "One: 1\nHex: 0x12345678\n") == 0);
 // }
 
-var allocator: Arena;
+let allocator: Arena;
 
 struct Arena {
     ptr: char*;
@@ -424,8 +424,8 @@ struct Intern {
     str: char[1];
 }
 
-var intern_arena: Arena;
-var interns: Map;
+let intern_arena: Arena;
+let interns: Map;
 
 fn str_intern_range(start: char const*, end: char const*): char const* {
     len: usize = end - start;

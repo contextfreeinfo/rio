@@ -67,31 +67,31 @@ struct TypeMetrics {
     max: ullong;
 }
 
-var type_metrics: TypeMetrics*;
+let type_metrics: TypeMetrics*;
 
-var type_void: Type* = &{CMPL_TYPE_VOID};
-var type_bool: Type* = &{CMPL_TYPE_BOOL};
-var type_char: Type* = &{CMPL_TYPE_CHAR};
-var type_uchar: Type* = &{CMPL_TYPE_UCHAR};
-var type_schar: Type* = &{CMPL_TYPE_SCHAR};
-var type_short: Type* = &{CMPL_TYPE_SHORT};
-var type_ushort: Type* = &{CMPL_TYPE_USHORT};
-var type_int: Type* = &{CMPL_TYPE_INT};
-var type_uint: Type* = &{CMPL_TYPE_UINT};
-var type_long: Type* = &{CMPL_TYPE_LONG};
-var type_ulong: Type* = &{CMPL_TYPE_ULONG};
-var type_llong: Type* = &{CMPL_TYPE_LLONG};
-var type_ullong: Type* = &{CMPL_TYPE_ULLONG};
-var type_float: Type* = &{CMPL_TYPE_FLOAT};
-var type_double: Type* = &{CMPL_TYPE_DOUBLE};
+let type_void: Type* = &{CMPL_TYPE_VOID};
+let type_bool: Type* = &{CMPL_TYPE_BOOL};
+let type_char: Type* = &{CMPL_TYPE_CHAR};
+let type_uchar: Type* = &{CMPL_TYPE_UCHAR};
+let type_schar: Type* = &{CMPL_TYPE_SCHAR};
+let type_short: Type* = &{CMPL_TYPE_SHORT};
+let type_ushort: Type* = &{CMPL_TYPE_USHORT};
+let type_int: Type* = &{CMPL_TYPE_INT};
+let type_uint: Type* = &{CMPL_TYPE_UINT};
+let type_long: Type* = &{CMPL_TYPE_LONG};
+let type_ulong: Type* = &{CMPL_TYPE_ULONG};
+let type_llong: Type* = &{CMPL_TYPE_LLONG};
+let type_ullong: Type* = &{CMPL_TYPE_ULLONG};
+let type_float: Type* = &{CMPL_TYPE_FLOAT};
+let type_double: Type* = &{CMPL_TYPE_DOUBLE};
 
-var next_typeid: int = 1;
+let next_typeid: int = 1;
 
-var type_uintptr: Type*;
-var type_usize: Type*;
-var type_ssize: Type*;
+let type_uintptr: Type*;
+let type_usize: Type*;
+let type_ssize: Type*;
 
-var typeid_map: Map;
+let typeid_map: Map;
 
 fn get_type_from_typeid(typeid: int): Type* {
     if (typeid == 0) {
@@ -171,7 +171,7 @@ fn is_signed_type(type: Type*): bool {
     }
 }
 
-var type_names: char const*[NUM_CMPL_TYPE_KINDS] = {
+let type_names: char const*[NUM_CMPL_TYPE_KINDS] = {
     [CMPL_TYPE_VOID] = "void",
     [CMPL_TYPE_BOOL] = "bool",
     [CMPL_TYPE_CHAR] = "char",
@@ -189,7 +189,7 @@ var type_names: char const*[NUM_CMPL_TYPE_KINDS] = {
     [CMPL_TYPE_DOUBLE] = "double",
 };
 
-var type_ranks: int[NUM_CMPL_TYPE_KINDS] = {
+let type_ranks: int[NUM_CMPL_TYPE_KINDS] = {
     [CMPL_TYPE_BOOL] = 1,
     [CMPL_TYPE_CHAR] = 2,
     [CMPL_TYPE_SCHAR] = 2,
@@ -246,7 +246,7 @@ fn type_alignof(type: Type*): usize {
     return type.align;
 }
 
-var cached_ptr_types: Map;
+let cached_ptr_types: Map;
 
 fn type_ptr(base: Type*): Type* {
     type: Type* = map_get(&cached_ptr_types, base);
@@ -260,7 +260,7 @@ fn type_ptr(base: Type*): Type* {
     return type;
 }
 
-var cached_const_types: Map;
+let cached_const_types: Map;
 
 fn type_const(base: Type*): Type* {
     if (base.kind == CMPL_TYPE_CONST) {
@@ -292,7 +292,7 @@ struct CachedArrayType {
     next: CachedArrayType*;
 }
 
-var cached_array_types: Map;
+let cached_array_types: Map;
 
 fn type_array(base: Type*, num_elems: usize): Type* {
     hash := hash_mix(hash_ptr(base), hash_uint64(num_elems));
@@ -323,7 +323,7 @@ struct CachedFuncType {
     next: CachedFuncType*;
 }
 
-var cached_func_types: Map;
+let cached_func_types: Map;
 
 fn type_func(params: Type**, num_params: usize, ret: Type*, has_varargs: bool): Type* {
     params_size := num_params * sizeof(*params);

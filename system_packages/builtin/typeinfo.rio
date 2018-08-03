@@ -43,10 +43,10 @@ struct TypeInfo {
 }
 
 @foreign
-var typeinfos: TypeInfo const**;
+let typeinfos: TypeInfo const**;
 
 @foreign
-var num_typeinfos: int;
+let num_typeinfos: int;
 
 fn typeid_kind(type: typeid): TypeKind {
     return TypeKind((type >> 24) & 0xFF);

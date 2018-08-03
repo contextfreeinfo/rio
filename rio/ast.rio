@@ -1,4 +1,4 @@
-var ast_arena: Arena;
+let ast_arena: Arena;
 
 fn ast_alloc(size: usize): void* {
     #assert(size != 0);

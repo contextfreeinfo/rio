@@ -1,14 +1,14 @@
-var gen_buf: char* = NULL;  // No auto init to NULL on globals?
+let gen_buf: char* = NULL;  // No auto init to NULL on globals?
 
 // #define genf(...) buf_printf(gen_buf, __VA_ARGS__)
 // #define genlnf(...) (genln(), genf(__VA_ARGS__))
 
-var gen_indent: int;
-var gen_pos: SrcPos;
+let gen_indent: int;
+let gen_pos: SrcPos;
 
-var gen_headers_buf: char const**;
+let gen_headers_buf: char const**;
 
-var gen_preamble_str = """// Preamble
+let gen_preamble_str = """// Preamble
 #define __USE_MINGW_ANSI_STDIO 1
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
@@ -56,7 +56,7 @@ struct Any;
 static void va_arg_ptr(va_list *args, struct Any any);
 """;
 
-var gen_postamble_str = """
+let gen_postamble_str = """
 static void va_arg_ptr(va_list *args, Any any) {
     switch (typeid_kind(any.type)) {
     case TYPE_BOOL:
@@ -125,7 +125,7 @@ fn is_incomplete_array_typespec(typespec: Typespec*): bool {
     return typespec.kind == TYPESPEC_ARRAY && !typespec.num_elems;
 }
 
-var char_to_escape: char[256] = {
+let char_to_escape: char[256] = {
     ['\0'] = '0',
     ['\n'] = 'n',
     ['\r'] = 'r',
@@ -252,7 +252,7 @@ fn gen_expr_str(expr: Expr*): char const* {
     return result;
 }
 
-var gen_name_map: Map;
+let gen_name_map: Map;
 
 fn get_gen_name_or_default(ptr: void const*, default_name: char const*): char const* {
     name: char const* = map_get(&gen_name_map, ptr);
@@ -451,7 +451,7 @@ fn gen_expr_compound(expr: Expr*) {
     buf_printf(&gen_buf, "}");
 }
 
-var typeid_kind_names: char const*[NUM_CMPL_TYPE_KINDS] = {
+let typeid_kind_names: char const*[NUM_CMPL_TYPE_KINDS] = {
     [CMPL_TYPE_NONE] = "TYPE_NONE",
     [CMPL_TYPE_VOID] = "TYPE_VOID",
     [CMPL_TYPE_BOOL] = "TYPE_BOOL",
@@ -916,8 +916,8 @@ fn gen_defs() {
     }
 }
 
-var gen_foreign_headers_map: Map;
-var gen_foreign_headers_buf: char const**;
+let gen_foreign_headers_map: Map;
+let gen_foreign_headers_buf: char const**;
 
 fn add_foreign_header(name: char const*) {
     name = str_intern(name);
@@ -927,7 +927,7 @@ fn add_foreign_header(name: char const*) {
     }
 }
 
-var gen_foreign_sources_buf: char const**;
+let gen_foreign_sources_buf: char const**;
 
 fn add_foreign_source(name: char const*) {
     interned := str_intern(name);
@@ -958,7 +958,7 @@ fn gen_foreign_sources() {
     }
 }
 
-var gen_sources_buf: char const**;
+let gen_sources_buf: char const**;
 
 fn put_include_path(path: char[MAX_PATH], package: Package*, filename: char const*) {
     if (*filename == '<') {
@@ -970,8 +970,8 @@ fn put_include_path(path: char[MAX_PATH], package: Package*, filename: char cons
     }
 }
 
-var gen_preamble_buf: char*;
-var gen_postamble_buf: char*;
+let gen_preamble_buf: char*;
+let gen_postamble_buf: char*;
 
 fn preprocess_package(package: Package*) {
     if (!package.external_name) {
