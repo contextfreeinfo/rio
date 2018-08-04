@@ -835,6 +835,6 @@ fn main(argc: int, argv: char**): int {
     test_ops();
     test_typeinfo();
     test_reachable();
-    gc();
+    // gc();
     return 0;
 }
