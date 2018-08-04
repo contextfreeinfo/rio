@@ -49,7 +49,7 @@ fn init_keywords() {
         return;
     }
     typedef_keyword = init_keyword("typedef");
-    arena_end: char* = intern_arena.end;
+    let arena_end: char* = intern_arena.end;
     enum_keyword = init_keyword("enum");
     struct_keyword = init_keyword("struct");
     union_keyword = init_keyword("union");
@@ -304,7 +304,7 @@ fn vnotice(level: char const*, pos: SrcPos, fmt: char const*, args: va_list) {
 }
 
 fn warning(pos: SrcPos, fmt: char const*, ...) {
-    args: va_list;
+    let args: va_list;
     va_start(&args, &fmt);
     vnotice("warning", pos, fmt, args);
     va_end(&args);
@@ -315,14 +315,14 @@ fn verror(pos: SrcPos, fmt: char const*, args: va_list) {
 }
 
 fn error(pos: SrcPos, fmt: char const*, ...) {
-    args: va_list;
+    let args: va_list;
     va_start(&args, &fmt);
     verror(pos, fmt, args);
     va_end(&args);
 }
 
 fn fatal_error(pos: SrcPos, fmt: char const*, ...) {
-    args: va_list;
+    let args: va_list;
     va_start(&args, &fmt);
     verror(pos, fmt, args);
     va_end(&args);
@@ -382,7 +382,7 @@ fn scan_int() {
             start_digits = stream;
         }
     }
-    val: ullong = 0;
+    let val: ullong = 0;
     for (;;) {
         if (*stream == '_') {
             stream++;
@@ -542,7 +542,7 @@ fn scan_char() {
 fn scan_str() {
     #assert(*stream == '"');
     stream++;
-    str: char* = NULL;
+    let str: char* = NULL;
     if (stream[0] == '"' && stream[1] == '"') {
         stream += 2;
         while (*stream) {

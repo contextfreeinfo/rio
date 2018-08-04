@@ -29,7 +29,7 @@ fn realpath(path: char const*, resolved_path: char const*): char*;
 fn strdup(str: char const*): char*;
 
 fn path_absolute(path: char[MAX_PATH]) {
-    rel_path: char[MAX_PATH];
+    let rel_path: char[MAX_PATH];
     path_copy(rel_path, path);
     realpath(rel_path, path);
 }

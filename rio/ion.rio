@@ -11,8 +11,8 @@ fn add_package_search_path(path: char const*) {
 }
 
 fn add_package_search_path_range(start: char const*, end: char const*) {
-    path: char[MAX_PATH];
-    len: usize = clamp_max(end - start, MAX_PATH - 1);
+    let path: char[MAX_PATH];
+    let len: usize = clamp_max(end - start, MAX_PATH - 1);
     memcpy(path, start, len);
     path[len] = 0;
     add_package_search_path(path);
@@ -24,7 +24,7 @@ fn init_package_search_paths() {
         printf("error: Set the environment variable RIOHOME to the Ion home directory (where system_packages is located)\n");
         exit(1);
     }
-    path: char[MAX_PATH];
+    let path: char[MAX_PATH];
     path_copy(path, riohome_var);
     path_join(path, "system_packages");
     add_package_search_path(path);
@@ -75,7 +75,7 @@ fn parse_env_vars() {
 
 fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*): int {
     parse_env_vars();
-    output_name: char const*;
+    let output_name: char const*;
     let flag_check = false;
     add_flag_str("o", &output_name, "file", "Output file (default: out_<main-package>.c)");
     add_flag_enum("os", &target_os, "Target operating system", os_names, NUM_OSES);
@@ -118,7 +118,7 @@ fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*
     main_sym.external_name = main_name;
     reachable_phase = REACHABLE_NATURAL;
     resolve_sym(main_sym);
-    for (i: usize = 0; i < buf_len(package_list); i++) {
+    for (let i: usize = 0; i < buf_len(package_list); i++) {
         if (package_list[i].always_reachable) {
             resolve_package_syms(package_list[i]);
         }
@@ -129,14 +129,14 @@ fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*
     }
     if (!flag_lazy) {
         reachable_phase = REACHABLE_FORCED;
-        for (i: usize = 0; i < buf_len(package_list); i++) {
+        for (let i: usize = 0; i < buf_len(package_list); i++) {
             resolve_package_syms(package_list[i]);
         }
         finalize_reachable_syms();
     }
     printf("Processed %d symbols in %d packages\n", (:int)buf_len(reachable_syms), (:int)buf_len(package_list));
     if (!flag_check) {
-        c_path: char[MAX_PATH];
+        let c_path: char[MAX_PATH];
         if (output_name) {
             path_copy(c_path, output_name);
         } else {

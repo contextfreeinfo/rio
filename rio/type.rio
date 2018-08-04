@@ -105,7 +105,7 @@ fn register_typeid(type: Type*) {
 }
 
 fn type_alloc(kind: TypeKind): Type* {
-    type: Type* = xcalloc(1, sizeof(Type));
+    let type: Type* = xcalloc(1, sizeof(Type));
     type.kind = kind;
     type.typeid = next_typeid++;
     register_typeid(type);
@@ -249,7 +249,7 @@ fn type_alignof(type: Type*): usize {
 let cached_ptr_types: Map;
 
 fn type_ptr(base: Type*): Type* {
-    type: Type* = map_get(&cached_ptr_types, base);
+    let type: Type* = map_get(&cached_ptr_types, base);
     if (!type) {
         type = type_alloc(CMPL_TYPE_PTR);
         type.size = type_metrics[CMPL_TYPE_PTR].size;
@@ -266,7 +266,7 @@ fn type_const(base: Type*): Type* {
     if (base.kind == CMPL_TYPE_CONST) {
         return base;
     }
-    type: Type* = map_get(&cached_const_types, base);
+    let type: Type* = map_get(&cached_const_types, base);
     if (!type) {
         complete_type(base);
         type = type_alloc(CMPL_TYPE_CONST);
@@ -296,9 +296,9 @@ let cached_array_types: Map;
 
 fn type_array(base: Type*, num_elems: usize): Type* {
     let hash = hash_mix(hash_ptr(base), hash_uint64(num_elems));
-    key: uint64 = hash ? hash : 1;
-    cached: CachedArrayType* = map_get_from_uint64(&cached_array_types, key);
-    for (it: CachedArrayType* = cached; it; it = it.next) {
+    let key: uint64 = hash ? hash : 1;
+    let cached: CachedArrayType* = map_get_from_uint64(&cached_array_types, key);
+    for (let it: CachedArrayType* = cached; it; it = it.next) {
         let type = it.type;
         if (type.base == base && type.num_elems == num_elems) {
             return type;
@@ -311,7 +311,7 @@ fn type_array(base: Type*, num_elems: usize): Type* {
     type.align = type_alignof(base);
     type.base = base;
     type.num_elems = num_elems;
-    new_cached: CachedArrayType* = xmalloc(sizeof(CachedArrayType));
+    let new_cached: CachedArrayType* = xmalloc(sizeof(CachedArrayType));
     new_cached.type = type;
     new_cached.next = cached;
     map_put_from_uint64(&cached_array_types, key, new_cached);
@@ -328,8 +328,8 @@ let cached_func_types: Map;
 fn type_func(params: Type**, num_params: usize, ret: Type*, has_varargs: bool): Type* {
     let params_size = num_params * sizeof(*params);
     let hash = hash_mix(hash_bytes(params, params_size), hash_ptr(ret));
-    key: uint64 = hash ? hash : 1;
-    cached: CachedFuncType* = map_get_from_uint64(&cached_func_types, key);
+    let key: uint64 = hash ? hash : 1;
+    let cached: CachedFuncType* = map_get_from_uint64(&cached_func_types, key);
     for (let it = cached; it; it = it.next) {
         let type = it.type;
         if (type.function.num_params == num_params && type.function.ret == ret && type.function.has_varargs == has_varargs) {
@@ -338,14 +338,14 @@ fn type_func(params: Type**, num_params: usize, ret: Type*, has_varargs: bool): 
             }
         }
     }
-    type: Type* = type_alloc(CMPL_TYPE_FUNC);
+    let type: Type* = type_alloc(CMPL_TYPE_FUNC);
     type.size = type_metrics[CMPL_TYPE_PTR].size;
     type.align = type_metrics[CMPL_TYPE_PTR].align;
     type.function.params = memdup(params, params_size);
     type.function.num_params = num_params;
     type.function.has_varargs = has_varargs;
     type.function.ret = ret;
-    new_cached: CachedFuncType* = xmalloc(sizeof(CachedFuncType));
+    let new_cached: CachedFuncType* = xmalloc(sizeof(CachedFuncType));
     new_cached.type = type;
     new_cached.next = cached;
     map_put_from_uint64(&cached_func_types, key, new_cached);
@@ -353,8 +353,8 @@ fn type_func(params: Type**, num_params: usize, ret: Type*, has_varargs: bool): 
 }
 
 fn has_duplicate_fields(type: Type*): bool {
-    for (i: usize = 0; i < type.aggregate.num_fields; i++) {
-        for (j: usize = i+1; j < type.aggregate.num_fields; j++) {
+    for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
+        for (let j: usize = i+1; j < type.aggregate.num_fields; j++) {
             if (type.aggregate.fields[i].name == type.aggregate.fields[j].name) {
                 return true;
             }
@@ -365,7 +365,7 @@ fn has_duplicate_fields(type: Type*): bool {
 
 fn add_type_fields(fields: TypeField**, type: Type*, offset: usize) {
     #assert(type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION);
-    for (i: usize = 0; i < type.aggregate.num_fields; i++) {
+    for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
         let field = &type.aggregate.fields[i];
         let new_field = TypeField {field.name, field.type, field.offset + offset};
         buf_push((:void**)fields, &new_field, sizeof(new_field));
@@ -377,8 +377,8 @@ fn type_complete_struct(type: Type*, fields: TypeField*, num_fields: usize) {
     type.kind = CMPL_TYPE_STRUCT;
     type.size = 0;
     type.align = 0;
-    nonmodifiable: bool = false;
-    new_fields: TypeField*;
+    let nonmodifiable: bool = false;
+    let new_fields: TypeField*;
     for (let it = fields; it != fields + num_fields; it++) {
         #assert(is_pow2(type_alignof(it.type)));
         if (it.name) {
@@ -402,8 +402,8 @@ fn type_complete_union(type: Type*, fields: TypeField*, num_fields: usize) {
     type.kind = CMPL_TYPE_UNION;
     type.size = 0;
     type.align = 0;
-    nonmodifiable: bool = false;
-    new_fields: TypeField*;
+    let nonmodifiable: bool = false;
+    let new_fields: TypeField*;
     for (let it = fields; it != fields + num_fields; it++) {
         #assert(it.type.kind > CMPL_TYPE_COMPLETING);
         if (it.name) {
@@ -464,7 +464,7 @@ fn init_builtin_types() {
 
 fn aggregate_item_field_index(type: Type*, name: char const*): int {
     #assert(is_aggregate_type(type));
-    for (i: usize = 0; i < type.aggregate.num_fields; i++) {
+    for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
         if (type.aggregate.fields[i].name == name) {
             return (:int)i;
         }

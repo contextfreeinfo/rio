@@ -31,7 +31,7 @@ fn new_stmt_list(pos: SrcPos, stmts: Stmt**, num_stmts: usize): StmtList {
 }
 
 fn new_typespec(kind: TypespecKind, pos: SrcPos): Typespec* {
-    t: Typespec* = ast_alloc(sizeof(Typespec));
+    let t: Typespec* = ast_alloc(sizeof(Typespec));
     t.kind = kind;
     t.pos = pos;
     return t;
@@ -72,14 +72,14 @@ fn new_typespec_func(pos: SrcPos, args: Typespec**, num_args: usize, ret: Typesp
 }
 
 fn new_decls(decls: Decl**, num_decls: usize): Decls* {
-    d: Decls* = ast_alloc(sizeof(Decls));
+    let d: Decls* = ast_alloc(sizeof(Decls));
     d.decls = ast_dup(decls, num_decls * sizeof(*decls));
     d.num_decls = num_decls;
     return d;
 }
 
 fn new_decl(kind: DeclKind, pos: SrcPos, name: char const*): Decl* {
-    d: Decl* = ast_alloc(sizeof(Decl));
+    let d: Decl* = ast_alloc(sizeof(Decl));
     d.kind = kind;
     d.pos = pos;
     d.name = name;
@@ -87,8 +87,8 @@ fn new_decl(kind: DeclKind, pos: SrcPos, name: char const*): Decl* {
 }
 
 fn get_decl_note(decl: Decl*, name: char const*): Note* {
-    for (i: usize = 0; i < decl.notes.num_notes; i++) {
-        note: Note* = decl.notes.notes + i;
+    for (let i: usize = 0; i < decl.notes.num_notes; i++) {
+        let note: Note* = decl.notes.notes + i;
         if (note.name == name) {
             return note;
         }
@@ -109,7 +109,7 @@ fn new_decl_enum(pos: SrcPos, name: char const*, type: Typespec*, items: EnumIte
 }
 
 fn new_aggregate(pos: SrcPos, kind: AggregateKind, items: AggregateItem*, num_items: usize): Aggregate* {
-    aggregate: Aggregate* = ast_alloc(sizeof(Aggregate));
+    let aggregate: Aggregate* = ast_alloc(sizeof(Aggregate));
     aggregate.pos = pos;
     aggregate.kind = kind;
     aggregate.items = ast_dup(items, num_items * sizeof(*items));
@@ -173,7 +173,7 @@ fn new_decl_import(pos: SrcPos, rename_name: char const*, is_relative: bool, nam
 }
 
 fn new_expr(kind: ExprKind, pos: SrcPos): Expr* {
-    e: Expr* = ast_alloc(sizeof(Expr));
+    let e: Expr* = ast_alloc(sizeof(Expr));
     e.kind = kind;
     e.pos = pos;
     return e;
@@ -327,7 +327,7 @@ fn new_expr_ternary(pos: SrcPos, cond: Expr*, then_expr: Expr*, else_expr: Expr*
 }
 
 fn get_stmt_note(stmt: Stmt*, name: char const*): Note* {
-    for (i: usize = 0; i < stmt.notes.num_notes; i++) {
+    for (let i: usize = 0; i < stmt.notes.num_notes; i++) {
         let note = stmt.notes.notes + i;
         if (note.name == name) {
             return note;
@@ -337,7 +337,7 @@ fn get_stmt_note(stmt: Stmt*, name: char const*): Note* {
 }
 
 fn new_stmt(kind: StmtKind, pos: SrcPos): Stmt* {
-    s: Stmt* = ast_alloc(sizeof(Stmt));
+    let s: Stmt* = ast_alloc(sizeof(Stmt));
     s.kind = kind;
     s.pos = pos;
     return s;

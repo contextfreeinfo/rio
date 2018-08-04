@@ -33,7 +33,7 @@ fn _fullpath(absPath: char*, relPath: char const*, maxLength: usize): char*;
 fn strdup(strSource: char const*): char*;
 
 fn path_absolute(path: char[MAX_PATH]) {
-    rel_path: char[MAX_PATH];
+    let rel_path: char[MAX_PATH];
     path_copy(rel_path, path);
     _fullpath(path, rel_path, MAX_PATH);
 }
@@ -62,7 +62,7 @@ fn dir_list_next(iter: DirListIter*) {
         return;
     }
     do {
-        fileinfo: FindData;
+        let fileinfo: FindData;
         let result = _findnext((:intptr)iter.handle, &fileinfo);
         dir__update(iter, result != 0, &fileinfo);
         if (result != 0) {
@@ -75,10 +75,10 @@ fn dir_list_next(iter: DirListIter*) {
 fn dir_list(iter: DirListIter*, path: char const*) {
     memset(iter, 0, sizeof(*iter));
     path_copy(iter.base, path);
-    filespec: char[MAX_PATH];
+    let filespec: char[MAX_PATH];
     path_copy(filespec, path);
     path_join(filespec, "*");
-    fileinfo: FindData;
+    let fileinfo: FindData;
     let handle = _findfirst(filespec, &fileinfo);
     iter.handle = (:void*)handle;
     dir__update(iter, handle == -1, &fileinfo);

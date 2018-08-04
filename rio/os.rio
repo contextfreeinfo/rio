@@ -2,7 +2,7 @@
 const MAX_PATH = 256;
 
 fn path_normalize(path: char*) {
-    ptr: char*;
+    let ptr: char*;
     for (ptr = path; *ptr; ptr++) {
         if (*ptr == '\\') {
             *ptr = '/';
@@ -41,7 +41,7 @@ fn path_file(path: char[MAX_PATH]): char* {
 }
 
 fn path_ext(path: char[MAX_PATH]): char* {
-    for (ptr: char* = path + strlen(path); ptr != path; ptr--) {
+    for (let ptr: char* = path + strlen(path); ptr != path; ptr--) {
         if (ptr[-1] == '.') {
             return ptr;
         }
@@ -69,7 +69,7 @@ fn dir_list_subdir(iter: DirListIter*): bool {
     if (!iter.valid || !iter.is_dir) {
         return false;
     }
-    subdir_iter: DirListIter;
+    let subdir_iter: DirListIter;
     path_join(iter.base, iter.name);
     dir_list(&subdir_iter, iter.base);
     dir_list_free(iter);
@@ -78,10 +78,10 @@ fn dir_list_subdir(iter: DirListIter*): bool {
 }
 
 fn dir_list_buf(filespec: char const*): char const** {
-    buf: char const** = NULL;
-    iter: DirListIter;
+    let buf: char const** = NULL;
+    let iter: DirListIter;
     for (dir_list(&iter, filespec); iter.valid; dir_list_next(&iter)) {
-        name: char const* = strdup(iter.name);
+        let name: char const* = strdup(iter.name);
         buf_push((:void**)&buf, &name, sizeof(name));
     }
     return buf;
@@ -114,22 +114,22 @@ struct FlagDefPtr {
 let flag_defs: FlagDef*;
 
 fn add_flag_bool(name: char const*, ptr: bool*, help: char const*) {
-    def: FlagDef = {kind = FLAG_BOOL, name = name, help = help, ptr = {b = ptr}};
+    let def: FlagDef = {kind = FLAG_BOOL, name = name, help = help, ptr = {b = ptr}};
     buf_push((:void**)&flag_defs, &def, sizeof(def));
 }
 
 fn add_flag_str(name: char const*, ptr: char const**, arg_name: char const*, help: char const*) {
-    def: FlagDef = {kind = FLAG_STR, name = name, help = help, arg_name = arg_name, ptr = {s = ptr}};
+    let def: FlagDef = {kind = FLAG_STR, name = name, help = help, arg_name = arg_name, ptr = {s = ptr}};
     buf_push((:void**)&flag_defs, &def, sizeof(def));
 }
 
 fn add_flag_enum(name: char const*, ptr: int*, help: char const*, options: char const**, num_options: int) {
-    def: FlagDef = {kind = FLAG_ENUM, name = name, help = help, ptr = {i = ptr}, options = options, num_options = num_options};
+    let def: FlagDef = {kind = FLAG_ENUM, name = name, help = help, ptr = {i = ptr}, options = options, num_options = num_options};
     buf_push((:void**)&flag_defs, &def, sizeof(def));
 }
 
 fn get_flag_def(name: char const*): FlagDef* {
-    for (i: usize = 0; i < buf_len(flag_defs); i++) {
+    for (let i: usize = 0; i < buf_len(flag_defs); i++) {
         if (strcmp(flag_defs[i].name, name) == 0) {
             return &flag_defs[i];
         }
@@ -139,10 +139,10 @@ fn get_flag_def(name: char const*): FlagDef* {
 
 fn print_flags_usage() {
     printf("Flags:\n");
-    for (i: usize = 0; i < buf_len(flag_defs); i++) {
+    for (let i: usize = 0; i < buf_len(flag_defs); i++) {
         let flag = flag_defs[i];
-        note: char[256];
-        format: char[256];
+        let note: char[256];
+        let format: char[256];
         switch (flag.kind) {
         case FLAG_STR:
             snprintf(format, sizeof(format), "%s <%s>", flag.name, flag.arg_name ? flag.arg_name : (:char const*)"value");
@@ -172,7 +172,7 @@ fn print_flags_usage() {
 fn parse_flags(argc_ptr: int*, argv_ptr: char const***): char const* {
     let argc = *argc_ptr;
     let argv = *argv_ptr;
-    i: int;
+    let i: int;
     for (i = 1; i < argc; i++) {
         let arg = argv[i];
         let name = arg;
@@ -197,7 +197,7 @@ fn parse_flags(argc_ptr: int*, argv_ptr: char const***): char const* {
                     printf("No value argument after -%s\n", arg);
                 }
             case FLAG_ENUM: {
-                option: char const*;
+                let option: char const*;
                 if (i + 1 < argc) {
                     i++;
                     option = argv[i];
