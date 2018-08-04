@@ -12,9 +12,9 @@ const ENOENT = 3025;
 
 @foreign
 struct FindData {
-    attrib: uint;
-    size: uint32;
-    name: char[MAX_PATH];
+  attrib: uint;
+  size: uint32;
+  name: char[MAX_PATH];
 }
 
 @foreign
@@ -33,56 +33,56 @@ fn _fullpath(absPath: char*, relPath: char const*, maxLength: usize): char*;
 fn strdup(strSource: char const*): char*;
 
 fn path_absolute(path: char[MAX_PATH]) {
-    let rel_path: char[MAX_PATH];
-    path_copy(rel_path, path);
-    _fullpath(path, rel_path, MAX_PATH);
+  let rel_path: char[MAX_PATH];
+  path_copy(rel_path, path);
+  _fullpath(path, rel_path, MAX_PATH);
 }
 
 fn dir_list_free(iter: DirListIter*) {
-    if (iter.valid) {
-        _findclose((:intptr)iter.handle);
-        iter.valid = false;
-        iter.error = false;
-    }
+  if (iter.valid) {
+    _findclose((:intptr)iter.handle);
+    iter.valid = false;
+    iter.error = false;
+  }
 }
 
 fn dir__update(iter: DirListIter*, done: bool, fileinfo: FindData*) {
-    iter.valid = !done;
-    iter.error = done && errno != ENOENT;
-    if (!done) {
-        iter.size = fileinfo.size;
-        memcpy(iter.name, fileinfo.name, sizeof(iter.name) - 1);
-        iter.name[MAX_PATH - 1] = 0;
-        iter.is_dir = fileinfo.attrib & _A_SUBDIR;
-    }
+  iter.valid = !done;
+  iter.error = done && errno != ENOENT;
+  if (!done) {
+    iter.size = fileinfo.size;
+    memcpy(iter.name, fileinfo.name, sizeof(iter.name) - 1);
+    iter.name[MAX_PATH - 1] = 0;
+    iter.is_dir = fileinfo.attrib & _A_SUBDIR;
+  }
 }
 
 fn dir_list_next(iter: DirListIter*) {
-    if (!iter.valid) {
-        return;
+  if (!iter.valid) {
+    return;
+  }
+  do {
+    let fileinfo: FindData;
+    let result = _findnext((:intptr)iter.handle, &fileinfo);
+    dir__update(iter, result != 0, &fileinfo);
+    if (result != 0) {
+      dir_list_free(iter);
+      return;
     }
-    do {
-        let fileinfo: FindData;
-        let result = _findnext((:intptr)iter.handle, &fileinfo);
-        dir__update(iter, result != 0, &fileinfo);
-        if (result != 0) {
-            dir_list_free(iter);
-            return;
-        }
-    } while (dir_excluded(iter));
+  } while (dir_excluded(iter));
 }
 
 fn dir_list(iter: DirListIter*, path: char const*) {
-    memset(iter, 0, sizeof(*iter));
-    path_copy(iter.base, path);
-    let filespec: char[MAX_PATH];
-    path_copy(filespec, path);
-    path_join(filespec, "*");
-    let fileinfo: FindData;
-    let handle = _findfirst(filespec, &fileinfo);
-    iter.handle = (:void*)handle;
-    dir__update(iter, handle == -1, &fileinfo);
-    if (dir_excluded(iter)) {
-        dir_list_next(iter);
-    }
+  memset(iter, 0, sizeof(*iter));
+  path_copy(iter.base, path);
+  let filespec: char[MAX_PATH];
+  path_copy(filespec, path);
+  path_join(filespec, "*");
+  let fileinfo: FindData;
+  let handle = _findfirst(filespec, &fileinfo);
+  iter.handle = (:void*)handle;
+  dir__update(iter, handle == -1, &fileinfo);
+  if (dir_excluded(iter)) {
+    dir_list_next(iter);
+  }
 }

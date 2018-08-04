@@ -9,8 +9,8 @@ typedef DIR = void;
 
 @foreign
 struct dirent {
-    d_name: char*;
-    d_type: uchar;
+  d_name: char*;
+  d_type: uchar;
 }
 
 @foreign
@@ -29,44 +29,44 @@ fn realpath(path: char const*, resolved_path: char const*): char*;
 fn strdup(str: char const*): char*;
 
 fn path_absolute(path: char[MAX_PATH]) {
-    let rel_path: char[MAX_PATH];
-    path_copy(rel_path, path);
-    realpath(rel_path, path);
+  let rel_path: char[MAX_PATH];
+  path_copy(rel_path, path);
+  realpath(rel_path, path);
 }
 
 fn dir_list_free(iter: DirListIter*) {
-    if (iter.valid) {
-        iter.valid = false;
-        iter.error = false;
-        closedir(iter.handle);
-    }
+  if (iter.valid) {
+    iter.valid = false;
+    iter.error = false;
+    closedir(iter.handle);
+  }
 }
 
 fn dir_list_next(iter: DirListIter*) {
-    if (!iter.valid) {
-        return;
+  if (!iter.valid) {
+    return;
+  }
+  do {
+    let entry = readdir(iter.handle);
+    if (!entry) {
+      dir_list_free(iter);
+      return;
     }
-    do {
-        let entry = readdir(iter.handle);
-        if (!entry) {
-            dir_list_free(iter);
-            return;
-        }
-        path_copy(iter.name, entry.d_name);
-        iter.is_dir = entry.d_type & DT_DIR;
-    } while (dir_excluded(iter));
+    path_copy(iter.name, entry.d_name);
+    iter.is_dir = entry.d_type & DT_DIR;
+  } while (dir_excluded(iter));
 }
 
 fn dir_list(iter: DirListIter*, path: char const*) {
-    memset(iter, 0, sizeof(*iter));
-    let dir = opendir(path);
-    if (!dir) {
-        iter.valid = false;
-        iter.error = true;
-        return;
-    }
-    iter.handle = dir;
-    path_copy(iter.base, path);
-    iter.valid = true;
-    dir_list_next(iter);
+  memset(iter, 0, sizeof(*iter));
+  let dir = opendir(path);
+  if (!dir) {
+    iter.valid = false;
+    iter.error = true;
+    return;
+  }
+  iter.handle = dir;
+  path_copy(iter.base, path);
+  iter.valid = true;
+  dir_list_next(iter);
 }

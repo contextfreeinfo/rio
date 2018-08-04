@@ -11,6 +11,6 @@ let flag_notypeinfo: bool;
 let flag_fullgen: bool;
 
 fn main(argc: int, argv: char const**): int {
-    // main_test();
-    return rio_main(argc, argv, gen_all, "c");
+  // main_test();
+  return rio_main(argc, argv, gen_all, "c");
 }

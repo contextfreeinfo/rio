@@ -1,176 +1,176 @@
 enum Os {
-    OS_WIN32,
-    OS_LINUX,
-    OS_OSX,
-    NUM_OSES,
+  OS_WIN32,
+  OS_LINUX,
+  OS_OSX,
+  NUM_OSES,
 }
 
 let os_names: char const*[NUM_OSES] = {
-    [OS_WIN32] = "win32",
-    [OS_LINUX] = "linux",
-    [OS_OSX] = "osx",
+  [OS_WIN32] = "win32",
+  [OS_LINUX] = "linux",
+  [OS_OSX] = "osx",
 };
 
 enum Arch {
-    ARCH_X64,
-    ARCH_X86,
-    NUM_ARCHES,
+  ARCH_X64,
+  ARCH_X86,
+  NUM_ARCHES,
 }
 
 let arch_names: char const*[NUM_ARCHES] = {
-    [ARCH_X64] = "x64",
-    [ARCH_X86] = "x86",
+  [ARCH_X64] = "x64",
+  [ARCH_X86] = "x86",
 };
 
 let target_os: int;
 let target_arch: int;
 
 fn get_os(name: char const*): int {
-    for (let i = 0; i < NUM_OSES; i++) {
-        if (strcmp(os_names[i], name) == 0) {
-            return i;
-        }
+  for (let i = 0; i < NUM_OSES; i++) {
+    if (strcmp(os_names[i], name) == 0) {
+      return i;
     }
-    return -1;
+  }
+  return -1;
 }
 
 fn get_arch(name: char const*): int {
-    for (let i = 0; i < NUM_ARCHES; i++) {
-        if (strcmp(arch_names[i], name) == 0) {
-            return i;
-        }
+  for (let i = 0; i < NUM_ARCHES; i++) {
+    if (strcmp(arch_names[i], name) == 0) {
+      return i;
     }
-    return -1;
+  }
+  return -1;
 }
 
 fn init_default_type_metrics(metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS]) {
-    metrics[CMPL_TYPE_BOOL] = {size = 1, align = 1};
-    metrics[CMPL_TYPE_CHAR] = {size = 1, align = 1, max = 0x7f, sign = true};
-    metrics[CMPL_TYPE_SCHAR] = {size = 1, align = 1, max = 0x7f, sign = true};
-    metrics[CMPL_TYPE_UCHAR] = {size = 1, align = 1, max = 0xff};
-    metrics[CMPL_TYPE_SHORT] = {size = 2, align = 2, max = 0x7fff, sign = true};
-    metrics[CMPL_TYPE_USHORT] = {size = 2, align = 2, max = 0xffff};
-    metrics[CMPL_TYPE_INT] = {size = 4, align = 4, max = 0x7fffffff, sign = true};
-    metrics[CMPL_TYPE_UINT] = {size = 4, align = 4, max = 0xffffffff};
-    metrics[CMPL_TYPE_LLONG] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true};
-    metrics[CMPL_TYPE_ULLONG] = {size = 8, align = 8, max = 0xffffffffffffffff};
-    metrics[CMPL_TYPE_FLOAT] = {size = 4, align = 4};
-    metrics[CMPL_TYPE_DOUBLE] = {size = 8, align = 8};
+  metrics[CMPL_TYPE_BOOL] = {size = 1, align = 1};
+  metrics[CMPL_TYPE_CHAR] = {size = 1, align = 1, max = 0x7f, sign = true};
+  metrics[CMPL_TYPE_SCHAR] = {size = 1, align = 1, max = 0x7f, sign = true};
+  metrics[CMPL_TYPE_UCHAR] = {size = 1, align = 1, max = 0xff};
+  metrics[CMPL_TYPE_SHORT] = {size = 2, align = 2, max = 0x7fff, sign = true};
+  metrics[CMPL_TYPE_USHORT] = {size = 2, align = 2, max = 0xffff};
+  metrics[CMPL_TYPE_INT] = {size = 4, align = 4, max = 0x7fffffff, sign = true};
+  metrics[CMPL_TYPE_UINT] = {size = 4, align = 4, max = 0xffffffff};
+  metrics[CMPL_TYPE_LLONG] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true};
+  metrics[CMPL_TYPE_ULLONG] = {size = 8, align = 8, max = 0xffffffffffffffff};
+  metrics[CMPL_TYPE_FLOAT] = {size = 4, align = 4};
+  metrics[CMPL_TYPE_DOUBLE] = {size = 8, align = 8};
 }
 
 let win32_x86_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
-    // DEFAULT_TYPE_METRICS,
-    [CMPL_TYPE_PTR] = {size = 4, align = 4},
-    [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
-    [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  // DEFAULT_TYPE_METRICS,
+  [CMPL_TYPE_PTR] = {size = 4, align = 4},
+  [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
 let win32_x64_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
-    // DEFAULT_TYPE_METRICS,
-    [CMPL_TYPE_PTR] = {size = 8, align = 8},
-    [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
-    [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  // DEFAULT_TYPE_METRICS,
+  [CMPL_TYPE_PTR] = {size = 8, align = 8},
+  [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
 let ilp32_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
-    // DEFAULT_TYPE_METRICS,
-    [CMPL_TYPE_PTR] = {size = 4, align = 4},
-    [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
-    [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  // DEFAULT_TYPE_METRICS,
+  [CMPL_TYPE_PTR] = {size = 4, align = 4},
+  [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
 let lp64_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
-    // DEFAULT_TYPE_METRICS,
-    [CMPL_TYPE_PTR] = {size = 8, align = 8},
-    [CMPL_TYPE_LONG] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true},
-    [CMPL_TYPE_ULONG] = {size = 8, align = 8, max = 0xffffffffffffffff, sign = true},
+  // DEFAULT_TYPE_METRICS,
+  [CMPL_TYPE_PTR] = {size = 8, align = 8},
+  [CMPL_TYPE_LONG] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true},
+  [CMPL_TYPE_ULONG] = {size = 8, align = 8, max = 0xffffffffffffffff, sign = true},
 };
 
 fn init_target() {
-    type_metrics = NULL;
-    switch (target_os) {
-    case OS_WIN32:
-        switch (target_arch) {
-        case ARCH_X86:
-            type_metrics = win32_x86_metrics;
-        case ARCH_X64:
-            type_metrics = win32_x64_metrics;
-        default:
-        }
-    case OS_LINUX:
-        switch (target_arch) {
-        case ARCH_X86:
-            type_metrics = ilp32_metrics;
-        case ARCH_X64:
-            type_metrics = lp64_metrics;
-        default:
-        }
-    case OS_OSX:
-        switch (target_arch) {
-        case ARCH_X64:
-            type_metrics = lp64_metrics;
-        default:
-        }
+  type_metrics = NULL;
+  switch (target_os) {
+  case OS_WIN32:
+    switch (target_arch) {
+    case ARCH_X86:
+      type_metrics = win32_x86_metrics;
+    case ARCH_X64:
+      type_metrics = win32_x64_metrics;
     default:
     }
-    if (!type_metrics) {
-        printf("Unsupported os/arch combination: %s/%s\n", os_names[target_os], arch_names[target_arch]);
-        exit(1);
+  case OS_LINUX:
+    switch (target_arch) {
+    case ARCH_X86:
+      type_metrics = ilp32_metrics;
+    case ARCH_X64:
+      type_metrics = lp64_metrics;
+    default:
     }
-    init_default_type_metrics(type_metrics);
-    if (type_metrics[CMPL_TYPE_PTR].size == 4) {
-        type_uintptr = type_uint;
-        type_usize = type_uint;
-        type_ssize = type_int;
-    } else {
-        #assert(type_metrics[CMPL_TYPE_PTR].size == 8);
-        type_uintptr = type_ullong;
-        type_usize = type_ullong;
-        type_ssize = type_llong;
+  case OS_OSX:
+    switch (target_arch) {
+    case ARCH_X64:
+      type_metrics = lp64_metrics;
+    default:
     }
+  default:
+  }
+  if (!type_metrics) {
+    printf("Unsupported os/arch combination: %s/%s\n", os_names[target_os], arch_names[target_arch]);
+    exit(1);
+  }
+  init_default_type_metrics(type_metrics);
+  if (type_metrics[CMPL_TYPE_PTR].size == 4) {
+    type_uintptr = type_uint;
+    type_usize = type_uint;
+    type_ssize = type_int;
+  } else {
+    #assert(type_metrics[CMPL_TYPE_PTR].size == 8);
+    type_uintptr = type_ullong;
+    type_usize = type_ullong;
+    type_ssize = type_llong;
+  }
 }
 
 fn is_excluded_target_filename(name: char const*): bool {
-    let end = name + strlen(name);
+  let end = name + strlen(name);
 
-    let ptr1 = end;
-    while (ptr1 != name && ptr1[-1] != '_') {
-        ptr1--;
-    }
-    let str1: char[MAX_PATH];
-    if (ptr1 == name) {
-        str1[0] = 0;
-    } else {
-        memcpy(str1, ptr1, end - ptr1);
-        str1[end - ptr1] = 0;
-        ptr1--;
-    }
+  let ptr1 = end;
+  while (ptr1 != name && ptr1[-1] != '_') {
+    ptr1--;
+  }
+  let str1: char[MAX_PATH];
+  if (ptr1 == name) {
+    str1[0] = 0;
+  } else {
+    memcpy(str1, ptr1, end - ptr1);
+    str1[end - ptr1] = 0;
+    ptr1--;
+  }
 
-    let ptr2 = ptr1;
-    while (ptr2 != name && ptr2[-1] != '_') {
-        ptr2--;
-    }
-    let str2: char[MAX_PATH];
-    if (ptr2 == name) {
-        str2[0] = 0;
-    } else {
-        memcpy(str2, ptr2, ptr1 - ptr2);
-        str2[ptr1 - ptr2] = 0;
-    }
+  let ptr2 = ptr1;
+  while (ptr2 != name && ptr2[-1] != '_') {
+    ptr2--;
+  }
+  let str2: char[MAX_PATH];
+  if (ptr2 == name) {
+    str2[0] = 0;
+  } else {
+    memcpy(str2, ptr2, ptr1 - ptr2);
+    str2[ptr1 - ptr2] = 0;
+  }
 
-    let os1 = get_os(str1);
-    let arch1 = get_arch(str1);
-    let os2 = get_os(str2);
-    let arch2 = get_arch(str2);
-    if (arch1 != -1 && os2 != -1) {
-        return arch1 != target_arch || os2 != target_os;
-    } else if (arch2 != -1 && os1 != -1) {
-        return arch2 != target_arch || os1 != target_os;
-    } else if (os1 != -1) {
-        return os1 != target_os;
-    } else if (arch1 != -1) {
-        return arch1 != target_arch;
-    } else {
-        return false;
-    }
+  let os1 = get_os(str1);
+  let arch1 = get_arch(str1);
+  let os2 = get_os(str2);
+  let arch2 = get_arch(str2);
+  if (arch1 != -1 && os2 != -1) {
+    return arch1 != target_arch || os2 != target_os;
+  } else if (arch2 != -1 && os1 != -1) {
+    return arch2 != target_arch || os1 != target_os;
+  } else if (os1 != -1) {
+    return os1 != target_os;
+  } else if (arch1 != -1) {
+    return arch1 != target_arch;
+  } else {
+    return false;
+  }
 }

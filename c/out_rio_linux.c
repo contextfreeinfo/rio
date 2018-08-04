@@ -3112,57 +3112,57 @@ char (*rio_gen_preamble_str) =
 char (*rio_gen_postamble_str) = 
     "\n"
     "static void va_arg_ptr(va_list *args, Any any) {\n"
-    "    switch (typeid_kind(any.type)) {\n"
-    "    case TYPE_BOOL:\n"
-    "        *(bool *)any.ptr = (bool)va_arg(*args, int);\n"
-    "        break;\n"
-    "    case TYPE_CHAR:\n"
-    "        *(char *)any.ptr = (char)va_arg(*args, int);\n"
-    "        break;\n"
-    "    case TYPE_UCHAR:\n"
-    "        *(uchar *)any.ptr = (uchar)va_arg(*args, int);\n"
-    "        break;\n"
-    "    case TYPE_SCHAR:\n"
-    "        *(schar *)any.ptr = (schar)va_arg(*args, int);\n"
-    "        break;\n"
-    "    case TYPE_SHORT:\n"
-    "        *(short *)any.ptr = (short)va_arg(*args, int);\n"
-    "        break;\n"
-    "    case TYPE_USHORT:\n"
-    "        *(ushort *)any.ptr = (ushort)va_arg(*args, int);\n"
-    "        break;\n"
-    "    case TYPE_INT:\n"
-    "        *(int *)any.ptr = va_arg(*args, int);\n"
-    "        break;\n"
-    "    case TYPE_UINT:\n"
-    "        *(uint *)any.ptr = va_arg(*args, uint);\n"
-    "        break;\n"
-    "    case TYPE_LONG:\n"
-    "        *(long *)any.ptr = va_arg(*args, long);\n"
-    "        break;\n"
-    "    case TYPE_ULONG:\n"
-    "        *(ulong *)any.ptr = va_arg(*args, ulong);\n"
-    "        break;\n"
-    "    case TYPE_LLONG:\n"
-    "        *(llong *)any.ptr = va_arg(*args, llong);\n"
-    "        break;\n"
-    "    case TYPE_ULLONG:\n"
-    "        *(ullong *)any.ptr = va_arg(*args, ullong);\n"
-    "        break;\n"
-    "    case TYPE_FLOAT:\n"
-    "        *(float *)any.ptr = (float)va_arg(*args, double);\n"
-    "        break;\n"
-    "    case TYPE_DOUBLE:\n"
-    "        *(double *)any.ptr = va_arg(*args, double);\n"
-    "        break;\n"
-    "    case TYPE_FUNC:\n"
-    "    case TYPE_PTR:\n"
-    "        *(void **)any.ptr = va_arg(*args, void *);\n"
-    "        break;\n"
-    "    default:\n"
-    "        assert(0 && \"argument type not supported\");\n"
-    "        break;\n"
-    "    }\n"
+    "  switch (typeid_kind(any.type)) {\n"
+    "  case TYPE_BOOL:\n"
+    "    *(bool *)any.ptr = (bool)va_arg(*args, int);\n"
+    "    break;\n"
+    "  case TYPE_CHAR:\n"
+    "    *(char *)any.ptr = (char)va_arg(*args, int);\n"
+    "    break;\n"
+    "  case TYPE_UCHAR:\n"
+    "    *(uchar *)any.ptr = (uchar)va_arg(*args, int);\n"
+    "    break;\n"
+    "  case TYPE_SCHAR:\n"
+    "    *(schar *)any.ptr = (schar)va_arg(*args, int);\n"
+    "    break;\n"
+    "  case TYPE_SHORT:\n"
+    "    *(short *)any.ptr = (short)va_arg(*args, int);\n"
+    "    break;\n"
+    "  case TYPE_USHORT:\n"
+    "    *(ushort *)any.ptr = (ushort)va_arg(*args, int);\n"
+    "    break;\n"
+    "  case TYPE_INT:\n"
+    "    *(int *)any.ptr = va_arg(*args, int);\n"
+    "    break;\n"
+    "  case TYPE_UINT:\n"
+    "    *(uint *)any.ptr = va_arg(*args, uint);\n"
+    "    break;\n"
+    "  case TYPE_LONG:\n"
+    "    *(long *)any.ptr = va_arg(*args, long);\n"
+    "    break;\n"
+    "  case TYPE_ULONG:\n"
+    "    *(ulong *)any.ptr = va_arg(*args, ulong);\n"
+    "    break;\n"
+    "  case TYPE_LLONG:\n"
+    "    *(llong *)any.ptr = va_arg(*args, llong);\n"
+    "    break;\n"
+    "  case TYPE_ULLONG:\n"
+    "    *(ullong *)any.ptr = va_arg(*args, ullong);\n"
+    "    break;\n"
+    "  case TYPE_FLOAT:\n"
+    "    *(float *)any.ptr = (float)va_arg(*args, double);\n"
+    "    break;\n"
+    "  case TYPE_DOUBLE:\n"
+    "    *(double *)any.ptr = va_arg(*args, double);\n"
+    "    break;\n"
+    "  case TYPE_FUNC:\n"
+    "  case TYPE_PTR:\n"
+    "    *(void **)any.ptr = va_arg(*args, void *);\n"
+    "    break;\n"
+    "  default:\n"
+    "    assert(0 && \"argument type not supported\");\n"
+    "    break;\n"
+    "  }\n"
     "}\n"
     "\n"
     "#ifdef __GNUC__\n"
@@ -3170,7 +3170,7 @@ char (*rio_gen_postamble_str) =
     "#endif\n";
 void rio_genln(void) {
     rio_buf_printf(&(rio_gen_buf), "\n"
-    "%.*s", (rio_gen_indent) * (4), "                                                                  ");
+    "%.*s", (rio_gen_indent) * (2), "                                  ");
     (rio_gen_pos.line)++;
 }
 
@@ -9477,57 +9477,57 @@ rio_Type (*rio_aggregate_item_field_type_from_name(rio_Type (*type), char const 
 // Foreign source files
 
 static void va_arg_ptr(va_list *args, Any any) {
-    switch (typeid_kind(any.type)) {
-    case TYPE_BOOL:
-        *(bool *)any.ptr = (bool)va_arg(*args, int);
-        break;
-    case TYPE_CHAR:
-        *(char *)any.ptr = (char)va_arg(*args, int);
-        break;
-    case TYPE_UCHAR:
-        *(uchar *)any.ptr = (uchar)va_arg(*args, int);
-        break;
-    case TYPE_SCHAR:
-        *(schar *)any.ptr = (schar)va_arg(*args, int);
-        break;
-    case TYPE_SHORT:
-        *(short *)any.ptr = (short)va_arg(*args, int);
-        break;
-    case TYPE_USHORT:
-        *(ushort *)any.ptr = (ushort)va_arg(*args, int);
-        break;
-    case TYPE_INT:
-        *(int *)any.ptr = va_arg(*args, int);
-        break;
-    case TYPE_UINT:
-        *(uint *)any.ptr = va_arg(*args, uint);
-        break;
-    case TYPE_LONG:
-        *(long *)any.ptr = va_arg(*args, long);
-        break;
-    case TYPE_ULONG:
-        *(ulong *)any.ptr = va_arg(*args, ulong);
-        break;
-    case TYPE_LLONG:
-        *(llong *)any.ptr = va_arg(*args, llong);
-        break;
-    case TYPE_ULLONG:
-        *(ullong *)any.ptr = va_arg(*args, ullong);
-        break;
-    case TYPE_FLOAT:
-        *(float *)any.ptr = (float)va_arg(*args, double);
-        break;
-    case TYPE_DOUBLE:
-        *(double *)any.ptr = va_arg(*args, double);
-        break;
-    case TYPE_FUNC:
-    case TYPE_PTR:
-        *(void **)any.ptr = va_arg(*args, void *);
-        break;
-    default:
-        assert(0 && "argument type not supported");
-        break;
-    }
+  switch (typeid_kind(any.type)) {
+  case TYPE_BOOL:
+    *(bool *)any.ptr = (bool)va_arg(*args, int);
+    break;
+  case TYPE_CHAR:
+    *(char *)any.ptr = (char)va_arg(*args, int);
+    break;
+  case TYPE_UCHAR:
+    *(uchar *)any.ptr = (uchar)va_arg(*args, int);
+    break;
+  case TYPE_SCHAR:
+    *(schar *)any.ptr = (schar)va_arg(*args, int);
+    break;
+  case TYPE_SHORT:
+    *(short *)any.ptr = (short)va_arg(*args, int);
+    break;
+  case TYPE_USHORT:
+    *(ushort *)any.ptr = (ushort)va_arg(*args, int);
+    break;
+  case TYPE_INT:
+    *(int *)any.ptr = va_arg(*args, int);
+    break;
+  case TYPE_UINT:
+    *(uint *)any.ptr = va_arg(*args, uint);
+    break;
+  case TYPE_LONG:
+    *(long *)any.ptr = va_arg(*args, long);
+    break;
+  case TYPE_ULONG:
+    *(ulong *)any.ptr = va_arg(*args, ulong);
+    break;
+  case TYPE_LLONG:
+    *(llong *)any.ptr = va_arg(*args, llong);
+    break;
+  case TYPE_ULLONG:
+    *(ullong *)any.ptr = va_arg(*args, ullong);
+    break;
+  case TYPE_FLOAT:
+    *(float *)any.ptr = (float)va_arg(*args, double);
+    break;
+  case TYPE_DOUBLE:
+    *(double *)any.ptr = va_arg(*args, double);
+    break;
+  case TYPE_FUNC:
+  case TYPE_PTR:
+    *(void **)any.ptr = va_arg(*args, void *);
+    break;
+  default:
+    assert(0 && "argument type not supported");
+    break;
+  }
 }
 
 #ifdef __GNUC__

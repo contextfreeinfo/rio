@@ -1,252 +1,252 @@
 // #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 fn min(x: usize, y: usize): usize {
-    return x <= y ? x : y;
+  return x <= y ? x : y;
 }
 
 // #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 fn max(x: usize, y: usize): usize {
-    return x >= y ? x : y;
+  return x >= y ? x : y;
 }
 
 // #define CLAMP_MAX(x, max) MIN(x, max)
 fn clamp_max(x: usize, max: usize): usize {
-    return min(x, max);
+  return min(x, max);
 }
 
 // #define CLAMP_MIN(x, min) MAX(x, min)
 fn clamp_min(x: usize, min: usize): usize {
-    return max(x, min);
+  return max(x, min);
 }
 
 // #define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
 fn is_pow2(x: usize): usize {
-    return x != 0 && x & (x - 1) == 0;
+  return x != 0 && x & (x - 1) == 0;
 }
 
 // #define ALIGN_DOWN(n, a) ((n) & ~((a) - 1))
 fn align_down(n: uintptr, a: usize): uintptr {
-    return n & ~(a - 1);
+  return n & ~(a - 1);
 }
 
 // #define ALIGN_UP(n, a) ALIGN_DOWN((n) + (a) - 1, (a))
 fn align_up(n: uintptr, a: usize): uintptr {
-    return align_down(n + a - 1, a);
+  return align_down(n + a - 1, a);
 }
 
 // #define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
 fn align_down_ptr(p: void*, a: usize): void* {
-    return (:void*)align_down((:uintptr)p, a);
+  return (:void*)align_down((:uintptr)p, a);
 }
 
 // #define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
 fn align_up_ptr(p: void*, a: usize): void* {
-    return (:void*)align_up((:uintptr)p, a);
+  return (:void*)align_up((:uintptr)p, a);
 }
 
 fn fatal(fmt: char const*, ...) {
-    let args: va_list;
-    va_start(&args, &fmt);
-    printf("FATAL: ");
-    vprintf(fmt, args);
-    printf("\n");
-    va_end(&args);
-    exit(1);
+  let args: va_list;
+  va_start(&args, &fmt);
+  printf("FATAL: ");
+  vprintf(fmt, args);
+  printf("\n");
+  va_end(&args);
+  exit(1);
 }
 
 fn xcalloc(num_elems: usize, elem_size: usize): void* {
-    let ptr = calloc(num_elems, elem_size);
-    if (!ptr) {
-        perror("xcalloc failed");
-        exit(1);
-    }
-    return ptr;
+  let ptr = calloc(num_elems, elem_size);
+  if (!ptr) {
+    perror("xcalloc failed");
+    exit(1);
+  }
+  return ptr;
 }
 
 fn xrealloc(ptr: void*, num_bytes: usize): void* {
-    ptr = realloc(ptr, num_bytes);
-    if (!ptr) {
-        perror("xrealloc failed");
-        exit(1);
-    }
-    return ptr;
+  ptr = realloc(ptr, num_bytes);
+  if (!ptr) {
+    perror("xrealloc failed");
+    exit(1);
+  }
+  return ptr;
 }
 
 fn xmalloc(num_bytes: usize): void* {
-    let ptr = malloc(num_bytes);
-    if (!ptr) {
-        perror("xmalloc failed");
-        exit(1);
-    }
-    return ptr;
+  let ptr = malloc(num_bytes);
+  if (!ptr) {
+    perror("xmalloc failed");
+    exit(1);
+  }
+  return ptr;
 }
 
 fn memdup(src: void*, size: usize): void* {
-    let dest = xmalloc(size);
-    memcpy(dest, src, size);
-    return dest;
+  let dest = xmalloc(size);
+  memcpy(dest, src, size);
+  return dest;
 }
 
 fn strf(fmt: char const*, ...): char* {
-    let args: va_list;
-    va_start(&args, &fmt);
-    let n = 1 + vsnprintf(NULL, 0, fmt, args);
-    va_end(&args);
-    let str: char* = xmalloc(n);
-    va_start(&args, &fmt);
-    vsnprintf(str, n, fmt, args);
-    va_end(&args);
-    return str;
+  let args: va_list;
+  va_start(&args, &fmt);
+  let n = 1 + vsnprintf(NULL, 0, fmt, args);
+  va_end(&args);
+  let str: char* = xmalloc(n);
+  va_start(&args, &fmt);
+  vsnprintf(str, n, fmt, args);
+  va_end(&args);
+  return str;
 }
 
 fn read_file(path: char const*): char* {
-    let file = fopen(path, "rb");
-    if (!file) {
-        return NULL;
-    }
-    fseek(file, 0, SEEK_END);
-    let len = ftell(file);
-    fseek(file, 0, SEEK_SET);
-    let buf: char* = xmalloc(len + 1);
-    if (len && fread(buf, len, 1, file) != 1) {
-        fclose(file);
-        free(buf);
-        return NULL;
-    }
-    fclose(file);   
-    buf[len] = 0;
-    return buf;
+  let file = fopen(path, "rb");
+  if (!file) {
+    return NULL;
+  }
+  fseek(file, 0, SEEK_END);
+  let len = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  let buf: char* = xmalloc(len + 1);
+  if (len && fread(buf, len, 1, file) != 1) {
+    fclose(file);
+    free(buf);
+    return NULL;
+  }
+  fclose(file);   
+  buf[len] = 0;
+  return buf;
 }
 
 fn write_file(path: char const*, buf: char const*, len: usize): bool {
-    let file = fopen(path, "w");
-    if (!file) {
-        return false;
-    }
-    let n = fwrite(buf, len, 1, file);
-    fclose(file);
-    return n == 1;
+  let file = fopen(path, "w");
+  if (!file) {
+    return false;
+  }
+  let n = fwrite(buf, len, 1, file);
+  fclose(file);
+  return n == 1;
 }
 
 // Stretchy buffers, invented (?) by Sean Barrett
 
 struct BufHdr {
-    len: usize;
-    cap: usize;
-    // Should be char[], but rio doesn't allow size 0.
-    buf: char[1];
+  len: usize;
+  cap: usize;
+  // Should be char[], but rio doesn't allow size 0.
+  buf: char[1];
 }
 
 // #define buf__hdr(b) ((BufHdr *)((char *)(b) - offsetof(BufHdr, buf)))
 fn buf__hdr(b: void*): BufHdr* {
-    return (:BufHdr*)((:char*)b - offsetof(BufHdr, buf));
+  return (:BufHdr*)((:char*)b - offsetof(BufHdr, buf));
 }
 
 // #define buf_len(b) ((b) ? buf__hdr(b)->len : 0)
 fn buf_len(b: void*): usize {
-    return b ? buf__hdr(b).len : 0;
+  return b ? buf__hdr(b).len : 0;
 }
 
 // #define buf_cap(b) ((b) ? buf__hdr(b)->cap : 0)
 fn buf_cap(b: void const*): usize {
-    return b ? buf__hdr((:void*)b).cap : 0;
+  return b ? buf__hdr((:void*)b).cap : 0;
 }
 
 // #define buf_end(b) ((b) + buf_len(b))
 fn buf_end(b: void*, elem_size: usize): void* {
-    return (:char*)b + elem_size * buf_len(b);
+  return (:char*)b + elem_size * buf_len(b);
 }
 
 // #define buf_sizeof(b) ((b) ? buf_len(b)*sizeof(*b) : 0)
 fn buf_sizeof(b: void*, elem_size: usize): usize {
-    return b ? buf_len(b) * elem_size : 0;
+  return b ? buf_len(b) * elem_size : 0;
 }
 
 // #define buf_free(b) ((b) ? (free(buf__hdr(b)), (b) = NULL) : 0)
 fn buf_free(b: void**) {
-    if (b) {
-        free(buf__hdr(*b));
-        *b = NULL;
-    }
+  if (b) {
+    free(buf__hdr(*b));
+    *b = NULL;
+  }
 }
 
 // #define buf_fit(b, n) ((n) <= buf_cap(b) ? 0 : ((b) = buf__grow((b), (n), sizeof(*(b)))))
 fn buf_fit(b: void**, new_len: usize, elem_size: usize) {
-    if (new_len > buf_cap(*b)) {
-        *b = buf__grow(*b, new_len, elem_size);
-    }
+  if (new_len > buf_cap(*b)) {
+    *b = buf__grow(*b, new_len, elem_size);
+  }
 }
 
 // TODO: We need templates or macros to make this better generic.
 // #define buf_push(b, ...) (buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->len++] = (__VA_ARGS__))
 fn buf_push(b: void**, elem: void*, elem_size: usize) {
-    buf_fit(b, 1 + buf_len(*b), elem_size);
-    memcpy((:char*)*b + elem_size * buf__hdr(*b).len++, elem, elem_size);
+  buf_fit(b, 1 + buf_len(*b), elem_size);
+  memcpy((:char*)*b + elem_size * buf__hdr(*b).len++, elem, elem_size);
 }
 
 // #define buf_printf(b, ...) ((b) = buf__printf((b), __VA_ARGS__))
 // #define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)
 
 fn buf__grow(buf: void const*, new_len: usize, elem_size: usize): void* {
-    #assert(buf_cap(buf) <= (USIZE_MAX - 1)/2);
-    let new_cap = clamp_min(2*buf_cap(buf), max(new_len, 16));
-    #assert(new_len <= new_cap);
-    #assert(new_cap <= (USIZE_MAX - offsetof(BufHdr, buf))/elem_size);
-    let new_size = offsetof(BufHdr, buf) + new_cap*elem_size;
-    let new_hdr: BufHdr*;
-    if (buf) {
-        new_hdr = xrealloc(buf__hdr((:void*)buf), new_size);
-    } else {
-        new_hdr = xmalloc(new_size);
-        new_hdr.len = 0;
-    }
-    new_hdr.cap = new_cap;
-    return new_hdr.buf;
+  #assert(buf_cap(buf) <= (USIZE_MAX - 1)/2);
+  let new_cap = clamp_min(2*buf_cap(buf), max(new_len, 16));
+  #assert(new_len <= new_cap);
+  #assert(new_cap <= (USIZE_MAX - offsetof(BufHdr, buf))/elem_size);
+  let new_size = offsetof(BufHdr, buf) + new_cap*elem_size;
+  let new_hdr: BufHdr*;
+  if (buf) {
+    new_hdr = xrealloc(buf__hdr((:void*)buf), new_size);
+  } else {
+    new_hdr = xmalloc(new_size);
+    new_hdr.len = 0;
+  }
+  new_hdr.cap = new_cap;
+  return new_hdr.buf;
 }
 
 fn buf_printf(buf: char**, fmt: char const*, ...) {
-    let args: va_list;
+  let args: va_list;
+  va_start(&args, &fmt);
+  let cap = buf_cap(*buf) - buf_len(*buf);
+  let n = 1 + vsnprintf(buf_end(*buf, 1), cap, fmt, args);
+  va_end(&args);
+  if (n > cap) {
+    buf_fit((:void**)buf, n + buf_len(*buf), 1);
     va_start(&args, &fmt);
-    let cap = buf_cap(*buf) - buf_len(*buf);
-    let n = 1 + vsnprintf(buf_end(*buf, 1), cap, fmt, args);
+    let new_cap = buf_cap(*buf) - buf_len(*buf);
+    n = 1 + vsnprintf(buf_end(*buf, 1), new_cap, fmt, args);
+    #assert(n <= new_cap);
     va_end(&args);
-    if (n > cap) {
-        buf_fit((:void**)buf, n + buf_len(*buf), 1);
-        va_start(&args, &fmt);
-        let new_cap = buf_cap(*buf) - buf_len(*buf);
-        n = 1 + vsnprintf(buf_end(*buf, 1), new_cap, fmt, args);
-        #assert(n <= new_cap);
-        va_end(&args);
-    }
-    buf__hdr(*buf).len += n - 1;
+  }
+  buf__hdr(*buf).len += n - 1;
 }
 
 // fn buf_test() {
-//     let buf: int* = NULL;
-//     assert(buf_len(buf) == 0);
-//     int n = 1024;
-//     for (int i = 0; i < n; i++) {
-//         buf_push(buf, i);
-//     }
-//     assert(buf_len(buf) == n);
-//     for (size_t i = 0; i < buf_len(buf); i++) {
-//         assert(buf[i] == i);
-//     }
-//     buf_free(buf);
-//     assert(buf == NULL);
-//     assert(buf_len(buf) == 0);
-//     let str: char* = NULL;
-//     buf_printf(str, "One: %d\n", 1);
-//     assert(strcmp(str, "One: 1\n") == 0);
-//     buf_printf(str, "Hex: 0x%x\n", 0x12345678);
-//     assert(strcmp(str, "One: 1\nHex: 0x12345678\n") == 0);
+//   let buf: int* = NULL;
+//   assert(buf_len(buf) == 0);
+//   int n = 1024;
+//   for (int i = 0; i < n; i++) {
+//     buf_push(buf, i);
+//   }
+//   assert(buf_len(buf) == n);
+//   for (size_t i = 0; i < buf_len(buf); i++) {
+//     assert(buf[i] == i);
+//   }
+//   buf_free(buf);
+//   assert(buf == NULL);
+//   assert(buf_len(buf) == 0);
+//   let str: char* = NULL;
+//   buf_printf(str, "One: %d\n", 1);
+//   assert(strcmp(str, "One: 1\n") == 0);
+//   buf_printf(str, "Hex: 0x%x\n", 0x12345678);
+//   assert(strcmp(str, "One: 1\nHex: 0x12345678\n") == 0);
 // }
 
 let allocator: Arena;
 
 struct Arena {
-    ptr: char*;
-    end: char*;
-    blocks: char**;
+  ptr: char*;
+  end: char*;
+  blocks: char**;
 }
 
 const ARENA_ALIGNMENT = 8;
@@ -254,226 +254,226 @@ const ARENA_BLOCK_SIZE = 1024 * 1024;
 // const ARENA_BLOCK_SIZE = 1024;
 
 fn arena_grow(arena: Arena*, min_size: usize) {
-    let size = align_up(clamp_min(min_size, ARENA_BLOCK_SIZE), ARENA_ALIGNMENT);
-    arena.ptr = xmalloc(size);
-    #assert(arena.ptr == align_down_ptr(arena.ptr, ARENA_ALIGNMENT));
-    arena.end = arena.ptr + size;
-    buf_push((:void**)&arena.blocks, &arena.ptr, sizeof(arena.ptr));
+  let size = align_up(clamp_min(min_size, ARENA_BLOCK_SIZE), ARENA_ALIGNMENT);
+  arena.ptr = xmalloc(size);
+  #assert(arena.ptr == align_down_ptr(arena.ptr, ARENA_ALIGNMENT));
+  arena.end = arena.ptr + size;
+  buf_push((:void**)&arena.blocks, &arena.ptr, sizeof(arena.ptr));
 }
 
 fn arena_alloc(arena: Arena*, size: usize): void* {
-    if (size > (:usize)(arena.end - arena.ptr)) {
-        arena_grow(arena, size);
-        #assert(size <= (:usize)(arena.end - arena.ptr));
-    }
-    let ptr = arena.ptr;
-    arena.ptr = align_up_ptr(arena.ptr + size, ARENA_ALIGNMENT);
-    #assert(arena.ptr <= arena.end);
-    #assert(ptr == align_down_ptr(ptr, ARENA_ALIGNMENT));
-    return ptr;
+  if (size > (:usize)(arena.end - arena.ptr)) {
+    arena_grow(arena, size);
+    #assert(size <= (:usize)(arena.end - arena.ptr));
+  }
+  let ptr = arena.ptr;
+  arena.ptr = align_up_ptr(arena.ptr + size, ARENA_ALIGNMENT);
+  #assert(arena.ptr <= arena.end);
+  #assert(ptr == align_down_ptr(ptr, ARENA_ALIGNMENT));
+  return ptr;
 }
 
 fn arena_free(arena: Arena*) {
-    let end = buf_end(arena.blocks, sizeof(arena.ptr));
-    for (let it: char** = arena.blocks; it != end; it++) {
-        free(*it);
-    }
-    buf_free((:void**)&arena.blocks);
+  let end = buf_end(arena.blocks, sizeof(arena.ptr));
+  for (let it: char** = arena.blocks; it != end; it++) {
+    free(*it);
+  }
+  buf_free((:void**)&arena.blocks);
 }
 
 // Hash map
 
 fn hash_uint64(x: uint64): uint64 {
-    x *= 0xff51afd7ed558ccd;
-    x ^= x >> 32;
-    return x;
+  x *= 0xff51afd7ed558ccd;
+  x ^= x >> 32;
+  return x;
 }
 
 fn hash_ptr(ptr: void const*): uint64 {
-    return hash_uint64((:uintptr)ptr);
+  return hash_uint64((:uintptr)ptr);
 }
 
 fn hash_mix(x: uint64, y: uint64): uint64 {
-    x ^= y;
-    x *= 0xff51afd7ed558ccd;
-    x ^= x >> 32;
-    return x;
+  x ^= y;
+  x *= 0xff51afd7ed558ccd;
+  x ^= x >> 32;
+  return x;
 }
 
 fn hash_bytes(ptr: void const*, len: usize): uint64 {
-    let x: uint64 = 0xcbf29ce484222325;
-    let buf = (:char const*)ptr;
-    for (let i: usize = 0; i < len; i++) {
-        x ^= buf[i];
-        x *= 0x100000001b3;
-        x ^= x >> 32;
-    }
-    return x;
+  let x: uint64 = 0xcbf29ce484222325;
+  let buf = (:char const*)ptr;
+  for (let i: usize = 0; i < len; i++) {
+    x ^= buf[i];
+    x *= 0x100000001b3;
+    x ^= x >> 32;
+  }
+  return x;
 }
 
 struct Map {
-    keys: uint64*;
-    vals: uint64*;
-    len: usize;
-    cap: usize;
+  keys: uint64*;
+  vals: uint64*;
+  len: usize;
+  cap: usize;
 }
 
 fn map_get_uint64_from_uint64(map: Map*, key: uint64): uint64 {
-    if (map.len == 0) {
-        return 0;
-    }
-    #assert(is_pow2(map.cap));
-    let i = (:usize)hash_uint64(key);
-    #assert(map.len < map.cap);
-    for (;;) {
-        i &= map.cap - 1;
-        if (map.keys[i] == key) {
-            return map.vals[i];
-        } else if (!map.keys[i]) {
-            return 0;
-        }
-        i++;
-    }
+  if (map.len == 0) {
     return 0;
+  }
+  #assert(is_pow2(map.cap));
+  let i = (:usize)hash_uint64(key);
+  #assert(map.len < map.cap);
+  for (;;) {
+    i &= map.cap - 1;
+    if (map.keys[i] == key) {
+      return map.vals[i];
+    } else if (!map.keys[i]) {
+      return 0;
+    }
+    i++;
+  }
+  return 0;
 }
 
 fn map_grow(map: Map*, new_cap: usize) {
-    new_cap = clamp_min(new_cap, 16);
-    let new_map = Map {
-        keys = xcalloc(new_cap, sizeof(:uint64)),
-        vals = xmalloc(new_cap * sizeof(:uint64)),
-        cap = new_cap,
-    };
-    for (let i: usize = 0; i < map.cap; i++) {
-        if (map.keys[i]) {
-            map_put_uint64_from_uint64(&new_map, map.keys[i], map.vals[i]);
-        }
+  new_cap = clamp_min(new_cap, 16);
+  let new_map = Map {
+    keys = xcalloc(new_cap, sizeof(:uint64)),
+    vals = xmalloc(new_cap * sizeof(:uint64)),
+    cap = new_cap,
+  };
+  for (let i: usize = 0; i < map.cap; i++) {
+    if (map.keys[i]) {
+      map_put_uint64_from_uint64(&new_map, map.keys[i], map.vals[i]);
     }
-    free((:void*)map.keys);
-    free(map.vals);
-    *map = new_map;
+  }
+  free((:void*)map.keys);
+  free(map.vals);
+  *map = new_map;
 }
 
 fn map_put_uint64_from_uint64(map: Map*, key: uint64, val: uint64) {
-    #assert(key);
-    if (!val) {
-        return;
+  #assert(key);
+  if (!val) {
+    return;
+  }
+  if (2*map.len >= map.cap) {
+    map_grow(map, 2*map.cap);
+  }
+  #assert(2*map.len < map.cap);
+  #assert(is_pow2(map.cap));
+  let i = (:usize)hash_uint64(key);
+  for (;;) {
+    i &= map.cap - 1;
+    if (!map.keys[i]) {
+      map.len++;
+      map.keys[i] = key;
+      map.vals[i] = val;
+      return;
+    } else if (map.keys[i] == key) {
+      map.vals[i] = val;
+      return;
     }
-    if (2*map.len >= map.cap) {
-        map_grow(map, 2*map.cap);
-    }
-    #assert(2*map.len < map.cap);
-    #assert(is_pow2(map.cap));
-    let i = (:usize)hash_uint64(key);
-    for (;;) {
-        i &= map.cap - 1;
-        if (!map.keys[i]) {
-            map.len++;
-            map.keys[i] = key;
-            map.vals[i] = val;
-            return;
-        } else if (map.keys[i] == key) {
-            map.vals[i] = val;
-            return;
-        }
-        i++;
-    }
+    i++;
+  }
 }
 
 fn map_get(map: Map*, key: void const*): void* {
-    return (:void*)(:uintptr)map_get_uint64_from_uint64(map, (:uint64)(:uintptr)key);
+  return (:void*)(:uintptr)map_get_uint64_from_uint64(map, (:uint64)(:uintptr)key);
 }
 
 fn map_put(map: Map*, key: void const*, val: void*) {
-    map_put_uint64_from_uint64(map, (:uint64)(:uintptr)key, (:uint64)(:uintptr)val);
+  map_put_uint64_from_uint64(map, (:uint64)(:uintptr)key, (:uint64)(:uintptr)val);
 }
 
 fn map_get_from_uint64(map: Map*, key: uint64): void* {
-    return (:void*)(:uintptr)map_get_uint64_from_uint64(map, key);
+  return (:void*)(:uintptr)map_get_uint64_from_uint64(map, key);
 }
 
 fn map_put_from_uint64(map: Map*, key: uint64, val: void*) {
-    map_put_uint64_from_uint64(map, key, (:uint64)(:uintptr)val);
+  map_put_uint64_from_uint64(map, key, (:uint64)(:uintptr)val);
 }
 
 fn map_get_uint64(map: Map*, key: void*): uint64 {
-    return map_get_uint64_from_uint64(map, (:uint64)(:uintptr)key);
+  return map_get_uint64_from_uint64(map, (:uint64)(:uintptr)key);
 }
 
 fn map_put_uint64(map: Map*, key: void*, val: uint64) {
-    map_put_uint64_from_uint64(map, (:uint64)(:uintptr)key, val);
+  map_put_uint64_from_uint64(map, (:uint64)(:uintptr)key, val);
 }
 
 // fn map_test() {
-//     Map map = {0};
-//     enum { N = 1024 };
-//     for (size_t i = 1; i < N; i++) {
-//         map_put(&map, (void *)i, (void *)(i+1));
-//     }
-//     for (size_t i = 1; i < N; i++) {
-//         void *val = map_get(&map, (void *)i);
-//         assert(val == (void *)(i+1));
-//     }
+//   Map map = {0};
+//   enum { N = 1024 };
+//   for (size_t i = 1; i < N; i++) {
+//     map_put(&map, (void *)i, (void *)(i+1));
+//   }
+//   for (size_t i = 1; i < N; i++) {
+//     void *val = map_get(&map, (void *)i);
+//     assert(val == (void *)(i+1));
+//   }
 // }
 
 // String interning
 
 struct Intern {
-    len: usize;
-    next: Intern*;
-    str: char[1];
+  len: usize;
+  next: Intern*;
+  str: char[1];
 }
 
 let intern_arena: Arena;
 let interns: Map;
 
 fn str_intern_range(start: char const*, end: char const*): char const* {
-    let len: usize = end - start;
-    let hash = hash_bytes(start, len);
-    let key: uint64 = hash ? hash : 1;
-    let intern: Intern* = map_get_from_uint64(&interns, key);
-    for (let it = intern; it; it = it.next) {
-        if (it.len == len && strncmp(it.str, start, len) == 0) {
-            return it.str;
-        }
+  let len: usize = end - start;
+  let hash = hash_bytes(start, len);
+  let key: uint64 = hash ? hash : 1;
+  let intern: Intern* = map_get_from_uint64(&interns, key);
+  for (let it = intern; it; it = it.next) {
+    if (it.len == len && strncmp(it.str, start, len) == 0) {
+      return it.str;
     }
-    let new_intern: Intern* = arena_alloc(&intern_arena, offsetof(Intern, str) + len + 1);
-    new_intern.len = len;
-    new_intern.next = intern;
-    memcpy(new_intern.str, start, len);
-    new_intern.str[len] = 0;
-    map_put_from_uint64(&interns, key, new_intern);
-    return new_intern.str;
+  }
+  let new_intern: Intern* = arena_alloc(&intern_arena, offsetof(Intern, str) + len + 1);
+  new_intern.len = len;
+  new_intern.next = intern;
+  memcpy(new_intern.str, start, len);
+  new_intern.str[len] = 0;
+  map_put_from_uint64(&interns, key, new_intern);
+  return new_intern.str;
 }
 
 fn str_intern(str: char const*): char const* {
-    return str_intern_range(str, str + strlen(str));
+  return str_intern_range(str, str + strlen(str));
 }
 
 fn str_islower(str: char const*): bool {
-    while (*str) {
-        if (isalpha(*str) && !islower(*str)) {
-            return false;
-        }
-        str++;
+  while (*str) {
+    if (isalpha(*str) && !islower(*str)) {
+      return false;
     }
-    return true;
+    str++;
+  }
+  return true;
 }
 
 // Value union
 
 union Val {
-    b: bool;
-    c: char;
-    uc: uchar;
-    sc: schar;
-    s: short;
-    us: ushort;
-    i: int;
-    u: uint;
-    l: long;
-    ul: ulong;
-    ll: llong;
-    ull: ullong;
-    p: uintptr;
+  b: bool;
+  c: char;
+  uc: uchar;
+  sc: schar;
+  s: short;
+  us: ushort;
+  i: int;
+  u: uint;
+  l: long;
+  ul: ulong;
+  ll: llong;
+  ull: ullong;
+  p: uintptr;
 }

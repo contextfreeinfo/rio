@@ -58,57 +58,57 @@ static void va_arg_ptr(va_list *args, struct Any any);
 
 let gen_postamble_str = """
 static void va_arg_ptr(va_list *args, Any any) {
-    switch (typeid_kind(any.type)) {
-    case TYPE_BOOL:
-        *(bool *)any.ptr = (bool)va_arg(*args, int);
-        break;
-    case TYPE_CHAR:
-        *(char *)any.ptr = (char)va_arg(*args, int);
-        break;
-    case TYPE_UCHAR:
-        *(uchar *)any.ptr = (uchar)va_arg(*args, int);
-        break;
-    case TYPE_SCHAR:
-        *(schar *)any.ptr = (schar)va_arg(*args, int);
-        break;
-    case TYPE_SHORT:
-        *(short *)any.ptr = (short)va_arg(*args, int);
-        break;
-    case TYPE_USHORT:
-        *(ushort *)any.ptr = (ushort)va_arg(*args, int);
-        break;
-    case TYPE_INT:
-        *(int *)any.ptr = va_arg(*args, int);
-        break;
-    case TYPE_UINT:
-        *(uint *)any.ptr = va_arg(*args, uint);
-        break;
-    case TYPE_LONG:
-        *(long *)any.ptr = va_arg(*args, long);
-        break;
-    case TYPE_ULONG:
-        *(ulong *)any.ptr = va_arg(*args, ulong);
-        break;
-    case TYPE_LLONG:
-        *(llong *)any.ptr = va_arg(*args, llong);
-        break;
-    case TYPE_ULLONG:
-        *(ullong *)any.ptr = va_arg(*args, ullong);
-        break;
-    case TYPE_FLOAT:
-        *(float *)any.ptr = (float)va_arg(*args, double);
-        break;
-    case TYPE_DOUBLE:
-        *(double *)any.ptr = va_arg(*args, double);
-        break;
-    case TYPE_FUNC:
-    case TYPE_PTR:
-        *(void **)any.ptr = va_arg(*args, void *);
-        break;
-    default:
-        assert(0 && "argument type not supported");
-        break;
-    }
+  switch (typeid_kind(any.type)) {
+  case TYPE_BOOL:
+    *(bool *)any.ptr = (bool)va_arg(*args, int);
+    break;
+  case TYPE_CHAR:
+    *(char *)any.ptr = (char)va_arg(*args, int);
+    break;
+  case TYPE_UCHAR:
+    *(uchar *)any.ptr = (uchar)va_arg(*args, int);
+    break;
+  case TYPE_SCHAR:
+    *(schar *)any.ptr = (schar)va_arg(*args, int);
+    break;
+  case TYPE_SHORT:
+    *(short *)any.ptr = (short)va_arg(*args, int);
+    break;
+  case TYPE_USHORT:
+    *(ushort *)any.ptr = (ushort)va_arg(*args, int);
+    break;
+  case TYPE_INT:
+    *(int *)any.ptr = va_arg(*args, int);
+    break;
+  case TYPE_UINT:
+    *(uint *)any.ptr = va_arg(*args, uint);
+    break;
+  case TYPE_LONG:
+    *(long *)any.ptr = va_arg(*args, long);
+    break;
+  case TYPE_ULONG:
+    *(ulong *)any.ptr = va_arg(*args, ulong);
+    break;
+  case TYPE_LLONG:
+    *(llong *)any.ptr = va_arg(*args, llong);
+    break;
+  case TYPE_ULLONG:
+    *(ullong *)any.ptr = va_arg(*args, ullong);
+    break;
+  case TYPE_FLOAT:
+    *(float *)any.ptr = (float)va_arg(*args, double);
+    break;
+  case TYPE_DOUBLE:
+    *(double *)any.ptr = va_arg(*args, double);
+    break;
+  case TYPE_FUNC:
+  case TYPE_PTR:
+    *(void **)any.ptr = va_arg(*args, void *);
+    break;
+  default:
+    assert(0 && "argument type not supported");
+    break;
+  }
 }
 
 #ifdef __GNUC__
@@ -117,1111 +117,1111 @@ static void va_arg_ptr(va_list *args, Any any) {
 """;
 
 fn genln() {
-    buf_printf(&gen_buf, "\n%.*s", gen_indent * 4, "                                                                  ");
-    gen_pos.line++;
+  buf_printf(&gen_buf, "\n%.*s", gen_indent * 2, "                                  ");
+  gen_pos.line++;
 }
 
 fn is_incomplete_array_typespec(typespec: Typespec*): bool {
-    return typespec.kind == TYPESPEC_ARRAY && !typespec.num_elems;
+  return typespec.kind == TYPESPEC_ARRAY && !typespec.num_elems;
 }
 
 let char_to_escape: char[256] = {
-    ['\0'] = '0',
-    ['\n'] = 'n',
-    ['\r'] = 'r',
-    ['\t'] = 't',
-    ['\v'] = 'v',
-    ['\b'] = 'b',
-    ['\a'] = 'a',
-    ['\\'] = '\\',
-    ['"'] = '"',
-    ['\''] = '\'',
+  ['\0'] = '0',
+  ['\n'] = 'n',
+  ['\r'] = 'r',
+  ['\t'] = 't',
+  ['\v'] = 'v',
+  ['\b'] = 'b',
+  ['\a'] = 'a',
+  ['\\'] = '\\',
+  ['"'] = '"',
+  ['\''] = '\'',
 };
 
 fn gen_char(c: char) {
-    if (char_to_escape[(:uchar)c]) {
-        buf_printf(&gen_buf, "'\\%c'", char_to_escape[(:uchar)c]);
-    } else if (isprint(c)) {
-        buf_printf(&gen_buf, "'%c'", c);
-    } else {
-        buf_printf(&gen_buf, "'\\x%X'", (:uchar)c);
-    }
+  if (char_to_escape[(:uchar)c]) {
+    buf_printf(&gen_buf, "'\\%c'", char_to_escape[(:uchar)c]);
+  } else if (isprint(c)) {
+    buf_printf(&gen_buf, "'%c'", c);
+  } else {
+    buf_printf(&gen_buf, "'\\x%X'", (:uchar)c);
+  }
 }
 
 fn gen_str(str: char const*, multiline: bool) {
-    if (multiline) {
-        gen_indent++;
-        genln();
+  if (multiline) {
+    gen_indent++;
+    genln();
+  }
+  buf_printf(&gen_buf, "\"");
+  while (*str) {
+    let start: char const* = str;
+    while (*str && isprint(*str) && !char_to_escape[(:uchar)*str]) {
+      str++;
     }
-    buf_printf(&gen_buf, "\"");
-    while (*str) {
-        let start: char const* = str;
-        while (*str && isprint(*str) && !char_to_escape[(:uchar)*str]) {
-            str++;
-        }
-        if (start != str) {
-            buf_printf(&gen_buf, "%.*s", str - start, start);
-        }
-        if (*str) {
-            if (char_to_escape[(:uchar)*str]) {
-                buf_printf(&gen_buf, "\\%c", char_to_escape[(:uchar)*str]);
-                if (str[0] == '\n' && str[1]) {
-                    buf_printf(&gen_buf, "\"");
-                    genln(); buf_printf(&gen_buf, "\"");
-                }
-            } else {
-                #assert(!isprint(*str));
-                buf_printf(&gen_buf, "\\x%X", (:uchar)*str);
-            }
-            str++;
-        }
+    if (start != str) {
+      buf_printf(&gen_buf, "%.*s", str - start, start);
     }
-    buf_printf(&gen_buf, "\"");
-    if (multiline) {
-        gen_indent--;
+    if (*str) {
+      if (char_to_escape[(:uchar)*str]) {
+        buf_printf(&gen_buf, "\\%c", char_to_escape[(:uchar)*str]);
+        if (str[0] == '\n' && str[1]) {
+          buf_printf(&gen_buf, "\"");
+          genln(); buf_printf(&gen_buf, "\"");
+        }
+      } else {
+        #assert(!isprint(*str));
+        buf_printf(&gen_buf, "\\x%X", (:uchar)*str);
+      }
+      str++;
     }
+  }
+  buf_printf(&gen_buf, "\"");
+  if (multiline) {
+    gen_indent--;
+  }
 }
 
 fn gen_sync_pos(pos: SrcPos) {
-    if (flag_nosourcemap) {
-        return;
+  if (flag_nosourcemap) {
+    return;
+  }
+  if (gen_pos.line != pos.line || gen_pos.name != pos.name) {
+    genln(); buf_printf(&gen_buf, "#line %d", pos.line);
+    if (gen_pos.name != pos.name) {
+      buf_printf(&gen_buf, " ");
+      gen_str(pos.name, false);
     }
-    if (gen_pos.line != pos.line || gen_pos.name != pos.name) {
-        genln(); buf_printf(&gen_buf, "#line %d", pos.line);
-        if (gen_pos.name != pos.name) {
-            buf_printf(&gen_buf, " ");
-            gen_str(pos.name, false);
-        }
-        gen_pos = pos;
-    }
+    gen_pos = pos;
+  }
 }
 
 fn cdecl_paren(str: char const*, c: char): char const* {
-    return c && c != '[' ? (:char const*)strf("(%s)", str) : str;
+  return c && c != '[' ? (:char const*)strf("(%s)", str) : str;
 }
 
 fn cdecl_name(type: Type*): char const* {
-    let type_name: char const* = type_names[type.kind];
-    if (type_name) {
-        return type_name;
-    } else {
-        #assert(type.sym);
-        return get_gen_name(type.sym);
-    }
+  let type_name: char const* = type_names[type.kind];
+  if (type_name) {
+    return type_name;
+  } else {
+    #assert(type.sym);
+    return get_gen_name(type.sym);
+  }
 }
 
 fn type_to_cdecl(type: Type*, str: char const*): char* {
-    switch (type.kind) {
-    case CMPL_TYPE_PTR:
-        return type_to_cdecl(type.base, cdecl_paren(strf("*%s", str), *str));
-    case CMPL_TYPE_CONST:
-        return type_to_cdecl(type.base, strf("const %s", cdecl_paren(str, *str)));
-    case CMPL_TYPE_ARRAY:
-        if (type.num_elems == 0) {
-            return type_to_cdecl(type.base, cdecl_paren(strf("%s[]", str), *str));
-        } else {
-            return type_to_cdecl(type.base, cdecl_paren(strf("%s[%zu]", str, type.num_elems), *str));
-        }
-    case CMPL_TYPE_FUNC: {
-        let result: char* = NULL;
-        buf_printf(&result, "(*%s)(", str);
-        if (type.function.num_params == 0) {
-            buf_printf(&result, "void");
-        } else {
-            for (let i: usize = 0; i < type.function.num_params; i++) {
-                buf_printf(&result, "%s%s", i == 0 ? "" : ", ", type_to_cdecl(type.function.params[i], ""));
-            }
-        }
-        if (type.function.has_varargs) {
-            buf_printf(&result, ", ...");
-        }
-        buf_printf(&result, ")");
-        return type_to_cdecl(type.function.ret, result);
+  switch (type.kind) {
+  case CMPL_TYPE_PTR:
+    return type_to_cdecl(type.base, cdecl_paren(strf("*%s", str), *str));
+  case CMPL_TYPE_CONST:
+    return type_to_cdecl(type.base, strf("const %s", cdecl_paren(str, *str)));
+  case CMPL_TYPE_ARRAY:
+    if (type.num_elems == 0) {
+      return type_to_cdecl(type.base, cdecl_paren(strf("%s[]", str), *str));
+    } else {
+      return type_to_cdecl(type.base, cdecl_paren(strf("%s[%zu]", str, type.num_elems), *str));
     }
-    default:
-        return strf("%s%s%s", cdecl_name(type), *str ? " " : "", str);
+  case CMPL_TYPE_FUNC: {
+    let result: char* = NULL;
+    buf_printf(&result, "(*%s)(", str);
+    if (type.function.num_params == 0) {
+      buf_printf(&result, "void");
+    } else {
+      for (let i: usize = 0; i < type.function.num_params; i++) {
+        buf_printf(&result, "%s%s", i == 0 ? "" : ", ", type_to_cdecl(type.function.params[i], ""));
+      }
     }
+    if (type.function.has_varargs) {
+      buf_printf(&result, ", ...");
+    }
+    buf_printf(&result, ")");
+    return type_to_cdecl(type.function.ret, result);
+  }
+  default:
+    return strf("%s%s%s", cdecl_name(type), *str ? " " : "", str);
+  }
 }
 
 fn gen_expr_str(expr: Expr*): char const* {
-    let temp: char* = gen_buf;
-    gen_buf = NULL;
-    gen_expr(expr);
-    let result = gen_buf;
-    gen_buf = temp;
-    return result;
+  let temp: char* = gen_buf;
+  gen_buf = NULL;
+  gen_expr(expr);
+  let result = gen_buf;
+  gen_buf = temp;
+  return result;
 }
 
 let gen_name_map: Map;
 
 fn get_gen_name_or_default(ptr: void const*, default_name: char const*): char const* {
-    let name: char const* = map_get(&gen_name_map, ptr);
-    if (!name) {
-        let sym = get_resolved_sym(ptr);
-        if (sym) {
-            if (sym.external_name) {
-                name = sym.external_name;
-            } else if (sym.home_package.external_name) {
-                let external_name = sym.home_package.external_name;
-                let buf: char[256];
-                if (sym.kind == SYM_CONST) {
-                    let ptr2 = buf;
-                    for (let str = external_name; *str && ptr2 < buf + sizeof(buf) - 1; str++) {
-                        *ptr2 = toupper(*str);
-                        ptr2++;
-                    }
-                    *ptr2 = 0;
-                    if (ptr2 < buf + sizeof(buf)) {
-                        external_name = buf;
-                    }
-                }
-                name = strf("%s%s", external_name, sym.name);
-            } else {
-                name = sym.name;
-            }
-        } else {
-            #assert(default_name);
-            name = default_name;
+  let name: char const* = map_get(&gen_name_map, ptr);
+  if (!name) {
+    let sym = get_resolved_sym(ptr);
+    if (sym) {
+      if (sym.external_name) {
+        name = sym.external_name;
+      } else if (sym.home_package.external_name) {
+        let external_name = sym.home_package.external_name;
+        let buf: char[256];
+        if (sym.kind == SYM_CONST) {
+          let ptr2 = buf;
+          for (let str = external_name; *str && ptr2 < buf + sizeof(buf) - 1; str++) {
+            *ptr2 = toupper(*str);
+            ptr2++;
+          }
+          *ptr2 = 0;
+          if (ptr2 < buf + sizeof(buf)) {
+            external_name = buf;
+          }
         }
-        map_put(&gen_name_map, ptr, (:void*)name);
+        name = strf("%s%s", external_name, sym.name);
+      } else {
+        name = sym.name;
+      }
+    } else {
+      #assert(default_name);
+      name = default_name;
     }
-    return name;
+    map_put(&gen_name_map, ptr, (:void*)name);
+  }
+  return name;
 }
 
 fn get_gen_name(ptr: void const*): char const* {
-    return get_gen_name_or_default(ptr, "ERROR");
+  return get_gen_name_or_default(ptr, "ERROR");
 }
 
 fn typespec_to_cdecl(typespec: Typespec*, str: char const*): char* {
-    if (!typespec) {
-        return strf("void%s%s", *str ? " " : "", str);
+  if (!typespec) {
+    return strf("void%s%s", *str ? " " : "", str);
+  }
+  switch (typespec.kind) {
+  case TYPESPEC_NAME:
+    return strf("%s%s%s", get_gen_name_or_default(typespec, typespec.name), *str ? " " : "", str);
+  case TYPESPEC_PTR:
+    return typespec_to_cdecl(typespec.base, cdecl_paren(strf("*%s", str), *str));
+  case TYPESPEC_CONST:
+    return typespec_to_cdecl(typespec.base, strf("const %s", cdecl_paren(str, *str)));
+  case TYPESPEC_ARRAY:
+    if (typespec.num_elems == 0) {
+      return typespec_to_cdecl(typespec.base, cdecl_paren(strf("%s[]", str), *str));
+    } else {
+      return typespec_to_cdecl(typespec.base, cdecl_paren(strf("%s[%s]", str, gen_expr_str(typespec.num_elems)), *str));
     }
-    switch (typespec.kind) {
-    case TYPESPEC_NAME:
-        return strf("%s%s%s", get_gen_name_or_default(typespec, typespec.name), *str ? " " : "", str);
-    case TYPESPEC_PTR:
-        return typespec_to_cdecl(typespec.base, cdecl_paren(strf("*%s", str), *str));
-    case TYPESPEC_CONST:
-        return typespec_to_cdecl(typespec.base, strf("const %s", cdecl_paren(str, *str)));
-    case TYPESPEC_ARRAY:
-        if (typespec.num_elems == 0) {
-            return typespec_to_cdecl(typespec.base, cdecl_paren(strf("%s[]", str), *str));
-        } else {
-            return typespec_to_cdecl(typespec.base, cdecl_paren(strf("%s[%s]", str, gen_expr_str(typespec.num_elems)), *str));
-        }
-    case TYPESPEC_FUNC: {
-        let result: char* = NULL;
-        buf_printf(&result, "(*%s)(", str);
-        if (typespec.function.num_args == 0) {
-            buf_printf(&result, "void");
-        } else {
-            for (let i: usize = 0; i < typespec.function.num_args; i++) {
-                buf_printf(&result, "%s%s", i == 0 ? "" : ", ", typespec_to_cdecl(typespec.function.args[i], ""));
-            }
-        }
-        if (typespec.function.has_varargs) {
-            buf_printf(&result, ", ...");
-        }
-        buf_printf(&result, ")");
-        return typespec_to_cdecl(typespec.function.ret, result);
+  case TYPESPEC_FUNC: {
+    let result: char* = NULL;
+    buf_printf(&result, "(*%s)(", str);
+    if (typespec.function.num_args == 0) {
+      buf_printf(&result, "void");
+    } else {
+      for (let i: usize = 0; i < typespec.function.num_args; i++) {
+        buf_printf(&result, "%s%s", i == 0 ? "" : ", ", typespec_to_cdecl(typespec.function.args[i], ""));
+      }
     }
-    default:
-        #assert(0);
-        return NULL;
+    if (typespec.function.has_varargs) {
+      buf_printf(&result, ", ...");
     }
+    buf_printf(&result, ")");
+    return typespec_to_cdecl(typespec.function.ret, result);
+  }
+  default:
+    #assert(0);
+    return NULL;
+  }
 }
 
 fn gen_func_decl(decl: Decl*) {
-    #assert(decl.kind == DECL_FUNC);
-    let result: char* = NULL;
-    buf_printf(&result, "%s(", get_gen_name(decl));
-    if (decl.function.num_params == 0) {
-        buf_printf(&result, "void");
-    } else {
-        for (let i: usize = 0; i < decl.function.num_params; i++) {
-            let param = decl.function.params[i];
-            if (i != 0) {
-                buf_printf(&result, ", ");
-            }
-            buf_printf(&result, "%s", typespec_to_cdecl(param.type, param.name));
-        }
+  #assert(decl.kind == DECL_FUNC);
+  let result: char* = NULL;
+  buf_printf(&result, "%s(", get_gen_name(decl));
+  if (decl.function.num_params == 0) {
+    buf_printf(&result, "void");
+  } else {
+    for (let i: usize = 0; i < decl.function.num_params; i++) {
+      let param = decl.function.params[i];
+      if (i != 0) {
+        buf_printf(&result, ", ");
+      }
+      buf_printf(&result, "%s", typespec_to_cdecl(param.type, param.name));
     }
-    if (decl.function.has_varargs) {
-        buf_printf(&result, ", ...");
-    }
-    buf_printf(&result, ")");
-    gen_sync_pos(decl.pos);
-    if (decl.function.ret_type) {
-        genln(); buf_printf(&gen_buf, "%s", typespec_to_cdecl(decl.function.ret_type, result));
-    } else {
-        genln(); buf_printf(&gen_buf, "void %s", result);
-    }
+  }
+  if (decl.function.has_varargs) {
+    buf_printf(&result, ", ...");
+  }
+  buf_printf(&result, ")");
+  gen_sync_pos(decl.pos);
+  if (decl.function.ret_type) {
+    genln(); buf_printf(&gen_buf, "%s", typespec_to_cdecl(decl.function.ret_type, result));
+  } else {
+    genln(); buf_printf(&gen_buf, "void %s", result);
+  }
 }
 
 fn gen_reachable(sym: Sym*): bool {
-    return flag_fullgen || sym.reachable == REACHABLE_NATURAL;
+  return flag_fullgen || sym.reachable == REACHABLE_NATURAL;
 }
 
 fn gen_forward_decls() {
-    for (let it: Sym** = sorted_syms; it != buf_end(sorted_syms, sizeof(*sorted_syms)); it++) {
-        let sym = *it;
-        let decl = sym.decl;
-        if (!decl || !gen_reachable(sym)) {
-            continue;
-        }
-        if (is_decl_foreign(decl)) {
-            continue;
-        }
-        switch (decl.kind) {
-        case DECL_STRUCT:
-        case DECL_UNION: {
-            let name = get_gen_name(sym);
-            genln(); buf_printf(&gen_buf, "typedef %s %s %s;", decl.kind == DECL_STRUCT ? "struct" : "union", name, name);
-            break;
-        }
-        default:
-            // Do nothing.
-            break;
-        }
+  for (let it: Sym** = sorted_syms; it != buf_end(sorted_syms, sizeof(*sorted_syms)); it++) {
+    let sym = *it;
+    let decl = sym.decl;
+    if (!decl || !gen_reachable(sym)) {
+      continue;
     }
+    if (is_decl_foreign(decl)) {
+      continue;
+    }
+    switch (decl.kind) {
+    case DECL_STRUCT:
+    case DECL_UNION: {
+      let name = get_gen_name(sym);
+      genln(); buf_printf(&gen_buf, "typedef %s %s %s;", decl.kind == DECL_STRUCT ? "struct" : "union", name, name);
+      break;
+    }
+    default:
+      // Do nothing.
+      break;
+    }
+  }
 }
 
 fn gen_aggregate_items(aggregate: Aggregate*) {
-    gen_indent++;
-    for (let i: usize = 0; i < aggregate.num_items; i++) {
-        let item = aggregate.items[i];
-        if (item.kind == AGGREGATE_ITEM_FIELD) {
-            for (let j: usize = 0; j < item.num_names; j++) {
-                gen_sync_pos(item.pos);
-                genln(); buf_printf(&gen_buf, "%s;", typespec_to_cdecl(item.type, item.names[j]));
-            }
-        } else if (item.kind == AGGREGATE_ITEM_SUBAGGREGATE) {
-            genln(); buf_printf(&gen_buf, "%s {", item.subaggregate.kind == AGGREGATE_STRUCT ? "struct" : "union");
-            gen_aggregate_items(item.subaggregate);
-            genln(); buf_printf(&gen_buf, "};");
-        } else {
-            #assert(0);
-        }
+  gen_indent++;
+  for (let i: usize = 0; i < aggregate.num_items; i++) {
+    let item = aggregate.items[i];
+    if (item.kind == AGGREGATE_ITEM_FIELD) {
+      for (let j: usize = 0; j < item.num_names; j++) {
+        gen_sync_pos(item.pos);
+        genln(); buf_printf(&gen_buf, "%s;", typespec_to_cdecl(item.type, item.names[j]));
+      }
+    } else if (item.kind == AGGREGATE_ITEM_SUBAGGREGATE) {
+      genln(); buf_printf(&gen_buf, "%s {", item.subaggregate.kind == AGGREGATE_STRUCT ? "struct" : "union");
+      gen_aggregate_items(item.subaggregate);
+      genln(); buf_printf(&gen_buf, "};");
+    } else {
+      #assert(0);
     }
-    gen_indent--;
+  }
+  gen_indent--;
 }
 
 fn gen_aggregate(decl: Decl*) {
-    #assert(decl.kind == DECL_STRUCT || decl.kind == DECL_UNION);
-    if (decl.is_incomplete) {
-        return;
-    }
-    genln(); buf_printf(&gen_buf, "%s %s {", decl.kind == DECL_STRUCT ? "struct" : "union", get_gen_name(decl));
-    gen_aggregate_items(decl.aggregate);
-    genln(); buf_printf(&gen_buf, "};");
+  #assert(decl.kind == DECL_STRUCT || decl.kind == DECL_UNION);
+  if (decl.is_incomplete) {
+    return;
+  }
+  genln(); buf_printf(&gen_buf, "%s %s {", decl.kind == DECL_STRUCT ? "struct" : "union", get_gen_name(decl));
+  gen_aggregate_items(decl.aggregate);
+  genln(); buf_printf(&gen_buf, "};");
 }
 
 fn gen_paren_expr(expr: Expr*) {
-    buf_printf(&gen_buf, "(");
-    gen_expr(expr);
-    buf_printf(&gen_buf, ")");
+  buf_printf(&gen_buf, "(");
+  gen_expr(expr);
+  buf_printf(&gen_buf, ")");
 }
 
 fn gen_expr_compound(expr: Expr*) {
-    let expected_type = get_resolved_expected_type(expr);
-    if (expected_type && !is_ptr_type(expected_type)) {
-        buf_printf(&gen_buf, "{");
-    } else if (expr.compound.type) {
-        buf_printf(&gen_buf, "(%s){", typespec_to_cdecl(expr.compound.type, ""));
-    } else {
-        buf_printf(&gen_buf, "(%s){", type_to_cdecl(get_resolved_type(expr), ""));
+  let expected_type = get_resolved_expected_type(expr);
+  if (expected_type && !is_ptr_type(expected_type)) {
+    buf_printf(&gen_buf, "{");
+  } else if (expr.compound.type) {
+    buf_printf(&gen_buf, "(%s){", typespec_to_cdecl(expr.compound.type, ""));
+  } else {
+    buf_printf(&gen_buf, "(%s){", type_to_cdecl(get_resolved_type(expr), ""));
+  }
+  for (let i: usize = 0; i < expr.compound.num_fields; i++) {
+    if (i != 0) {
+      buf_printf(&gen_buf, ", ");
     }
-    for (let i: usize = 0; i < expr.compound.num_fields; i++) {
-        if (i != 0) {
-            buf_printf(&gen_buf, ", ");
-        }
-        let field = expr.compound.fields[i];
-        if (field.kind == FIELD_NAME) {
-            buf_printf(&gen_buf, ".%s = ", field.name);
-        } else if (field.kind == FIELD_INDEX) {
-            buf_printf(&gen_buf, "[");
-            gen_expr(field.index);
-            buf_printf(&gen_buf, "] = ");
-        }
-        gen_expr(field.init);
+    let field = expr.compound.fields[i];
+    if (field.kind == FIELD_NAME) {
+      buf_printf(&gen_buf, ".%s = ", field.name);
+    } else if (field.kind == FIELD_INDEX) {
+      buf_printf(&gen_buf, "[");
+      gen_expr(field.index);
+      buf_printf(&gen_buf, "] = ");
     }
-    if (expr.compound.num_fields == 0) {
-        buf_printf(&gen_buf, "0");
-    }
-    buf_printf(&gen_buf, "}");
+    gen_expr(field.init);
+  }
+  if (expr.compound.num_fields == 0) {
+    buf_printf(&gen_buf, "0");
+  }
+  buf_printf(&gen_buf, "}");
 }
 
 let typeid_kind_names: char const*[NUM_CMPL_TYPE_KINDS] = {
-    [CMPL_TYPE_NONE] = "TYPE_NONE",
-    [CMPL_TYPE_VOID] = "TYPE_VOID",
-    [CMPL_TYPE_BOOL] = "TYPE_BOOL",
-    [CMPL_TYPE_CHAR] = "TYPE_CHAR",
-    [CMPL_TYPE_UCHAR] = "TYPE_UCHAR",
-    [CMPL_TYPE_SCHAR] = "TYPE_SCHAR",
-    [CMPL_TYPE_SHORT] = "TYPE_SHORT",
-    [CMPL_TYPE_USHORT] = "TYPE_USHORT",
-    [CMPL_TYPE_INT] =  "TYPE_INT",
-    [CMPL_TYPE_UINT] = "TYPE_UINT",
-    [CMPL_TYPE_LONG] = "TYPE_LONG",
-    [CMPL_TYPE_ULONG] = "TYPE_ULONG",
-    [CMPL_TYPE_LLONG] = "TYPE_LLONG",
-    [CMPL_TYPE_ULLONG] = "TYPE_ULLONG",
-    [CMPL_TYPE_FLOAT] = "TYPE_FLOAT",
-    [CMPL_TYPE_DOUBLE] = "TYPE_DOUBLE",
-    [CMPL_TYPE_CONST] = "TYPE_CONST",
-    [CMPL_TYPE_PTR] = "TYPE_PTR",
-    [CMPL_TYPE_ARRAY] = "TYPE_ARRAY",
-    [CMPL_TYPE_STRUCT] = "TYPE_STRUCT",
-    [CMPL_TYPE_UNION] = "TYPE_UNION",
-    [CMPL_TYPE_FUNC] = "TYPE_FUNC",
+  [CMPL_TYPE_NONE] = "TYPE_NONE",
+  [CMPL_TYPE_VOID] = "TYPE_VOID",
+  [CMPL_TYPE_BOOL] = "TYPE_BOOL",
+  [CMPL_TYPE_CHAR] = "TYPE_CHAR",
+  [CMPL_TYPE_UCHAR] = "TYPE_UCHAR",
+  [CMPL_TYPE_SCHAR] = "TYPE_SCHAR",
+  [CMPL_TYPE_SHORT] = "TYPE_SHORT",
+  [CMPL_TYPE_USHORT] = "TYPE_USHORT",
+  [CMPL_TYPE_INT] =  "TYPE_INT",
+  [CMPL_TYPE_UINT] = "TYPE_UINT",
+  [CMPL_TYPE_LONG] = "TYPE_LONG",
+  [CMPL_TYPE_ULONG] = "TYPE_ULONG",
+  [CMPL_TYPE_LLONG] = "TYPE_LLONG",
+  [CMPL_TYPE_ULLONG] = "TYPE_ULLONG",
+  [CMPL_TYPE_FLOAT] = "TYPE_FLOAT",
+  [CMPL_TYPE_DOUBLE] = "TYPE_DOUBLE",
+  [CMPL_TYPE_CONST] = "TYPE_CONST",
+  [CMPL_TYPE_PTR] = "TYPE_PTR",
+  [CMPL_TYPE_ARRAY] = "TYPE_ARRAY",
+  [CMPL_TYPE_STRUCT] = "TYPE_STRUCT",
+  [CMPL_TYPE_UNION] = "TYPE_UNION",
+  [CMPL_TYPE_FUNC] = "TYPE_FUNC",
 };
 
 fn typeid_kind_name(type: Type*): char const* {
-    if (type.kind < NUM_CMPL_TYPE_KINDS) {
-        let name = typeid_kind_names[type.kind];
-        if (name) {
-            return name;
-        }
+  if (type.kind < NUM_CMPL_TYPE_KINDS) {
+    let name = typeid_kind_names[type.kind];
+    if (name) {
+      return name;
     }
-    return "TYPE_NONE";
+  }
+  return "TYPE_NONE";
 }
 
 fn is_excluded_typeinfo(type: Type*): bool {
-    while (type.kind == CMPL_TYPE_ARRAY || type.kind == CMPL_TYPE_CONST || type.kind == CMPL_TYPE_PTR) {
-        type = type.base;
-    }
-    if (type.sym) {
-        return !gen_reachable(type.sym);
-    } else {
-        return !type.sym && (type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION);
-    }
+  while (type.kind == CMPL_TYPE_ARRAY || type.kind == CMPL_TYPE_CONST || type.kind == CMPL_TYPE_PTR) {
+    type = type.base;
+  }
+  if (type.sym) {
+    return !gen_reachable(type.sym);
+  } else {
+    return !type.sym && (type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION);
+  }
 }
 
 fn gen_typeid(type: Type*) {
-    if (type.size == 0 || is_excluded_typeinfo(type)) {
-        buf_printf(&gen_buf, "TYPEID0(%d, %s)", type.typeid, typeid_kind_name(type));
-    } else {
-        buf_printf(&gen_buf, "TYPEID(%d, %s, %s)", type.typeid, typeid_kind_name(type), type_to_cdecl(type, ""));
-    }
+  if (type.size == 0 || is_excluded_typeinfo(type)) {
+    buf_printf(&gen_buf, "TYPEID0(%d, %s)", type.typeid, typeid_kind_name(type));
+  } else {
+    buf_printf(&gen_buf, "TYPEID(%d, %s, %s)", type.typeid, typeid_kind_name(type), type_to_cdecl(type, ""));
+  }
 }
 
 fn gen_expr(expr: Expr*) {
-    switch (expr.kind) {
-    case EXPR_PAREN:
-        buf_printf(&gen_buf, "(");
-        gen_expr(expr.paren.expr);
-        buf_printf(&gen_buf, ")");
-    case EXPR_INT: {
-        let suffix_name: char const* = token_suffix_names[expr.int_lit.suffix];
-        switch (expr.int_lit.mod) {
-        case MOD_BIN:
-        case MOD_HEX:
-            buf_printf(&gen_buf, "0x%llx%s", expr.int_lit.val, suffix_name);
-        case MOD_OCT:
-            buf_printf(&gen_buf, "0%llo%s", expr.int_lit.val, suffix_name);
-        case MOD_CHAR:
-            gen_char((:char)expr.int_lit.val);
-        default:
-            buf_printf(&gen_buf, "%llu%s", expr.int_lit.val, suffix_name);
-        }
-    }
-    case EXPR_FLOAT: {
-        let is_double = expr.float_lit.suffix == SUFFIX_D;
-        let len: usize = expr.float_lit.end - expr.float_lit.start;
-        buf_printf(&gen_buf, "%.*s%s", is_double ? len-1 : len, expr.float_lit.start, is_double ? "" : "f");
-    }
-    case EXPR_STR:
-        gen_str(expr.str_lit.val, expr.str_lit.mod == MOD_MULTILINE);
-    case EXPR_NAME:
-        buf_printf(&gen_buf, "%s", get_gen_name_or_default(expr, expr.name));
-    case EXPR_CAST:
-        buf_printf(&gen_buf, "(%s)(", typespec_to_cdecl(expr.cast.type, ""));
-        gen_expr(expr.cast.expr);
-        buf_printf(&gen_buf, ")");
-    case EXPR_CALL: {
-        let sym: Sym* = get_resolved_sym(expr.call.expr);
-        if (sym && sym.kind == SYM_TYPE) {
-            buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
-        } else {
-            gen_expr(expr.call.expr);
-        }
-        buf_printf(&gen_buf, "(");
-        for (let i: usize = 0; i < expr.call.num_args; i++) {
-            if (i != 0) {
-                buf_printf(&gen_buf, ", ");
-            }
-            gen_expr(expr.call.args[i]);
-        }
-        buf_printf(&gen_buf, ")");
-    }
-    case EXPR_INDEX:
-        gen_expr(expr.index.expr);
-        buf_printf(&gen_buf, "[");
-        gen_expr(expr.index.index);
-        buf_printf(&gen_buf, "]");
-    case EXPR_FIELD: {
-        let sym = get_resolved_sym(expr);
-        if (sym) {
-            buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
-        } else {
-            gen_expr(expr.field.expr);
-            let type = unqualify_type(get_resolved_type(expr.field.expr));
-            buf_printf(&gen_buf, "%s%s", type.kind == CMPL_TYPE_PTR ? "->" : ".", expr.field.name);
-        }
-    }
-    case EXPR_COMPOUND:
-        gen_expr_compound(expr);
-    case EXPR_UNARY:
-        buf_printf(&gen_buf, "%s(", token_kind_name(expr.unary.op));
-        gen_expr(expr.unary.expr);
-        buf_printf(&gen_buf, ")");
-    case EXPR_BINARY:
-        buf_printf(&gen_buf, "(");
-        gen_expr(expr.binary.left);
-        buf_printf(&gen_buf, ") %s (", token_kind_name(expr.binary.op));
-        gen_expr(expr.binary.right);
-        buf_printf(&gen_buf, ")");
-    case EXPR_TERNARY:
-        buf_printf(&gen_buf, "(");
-        gen_expr(expr.ternary.cond);
-        buf_printf(&gen_buf, " ? ");
-        gen_expr(expr.ternary.then_expr);
-        buf_printf(&gen_buf, " : ");
-        gen_expr(expr.ternary.else_expr);
-        buf_printf(&gen_buf, ")");
-    case EXPR_SIZEOF_EXPR:
-        buf_printf(&gen_buf, "sizeof(");
-        gen_expr(expr.sizeof_expr);
-        buf_printf(&gen_buf, ")");
-    case EXPR_SIZEOF_TYPE:
-        buf_printf(&gen_buf, "sizeof(%s)", typespec_to_cdecl(expr.sizeof_type, ""));
-    case EXPR_ALIGNOF_EXPR:
-        buf_printf(&gen_buf, "alignof(%s)", type_to_cdecl(get_resolved_type(expr.alignof_expr), ""));
-    case EXPR_ALIGNOF_TYPE:
-        buf_printf(&gen_buf, "alignof(%s)", typespec_to_cdecl(expr.alignof_type, ""));
-    case EXPR_TYPEOF_EXPR: {
-        let type: Type* = get_resolved_type(expr.typeof_expr);
-        #assert(type.typeid);
-        gen_typeid(type);
-    }
-    case EXPR_TYPEOF_TYPE: {
-        let type: Type* = get_resolved_type(expr.typeof_type);
-        #assert(type.typeid);
-        gen_typeid(type);
-    }
-    case EXPR_OFFSETOF:
-        buf_printf(&gen_buf, "offsetof(%s, %s)", typespec_to_cdecl(expr.offsetof_field.type, ""), expr.offsetof_field.name);
-    case EXPR_MODIFY:
-        if (!expr.modify.post) {
-            buf_printf(&gen_buf, "%s", token_kind_name(expr.modify.op));
-        }
-        gen_paren_expr(expr.modify.expr);
-        if (expr.modify.post) {
-            buf_printf(&gen_buf, "%s", token_kind_name(expr.modify.op));
-        }
+  switch (expr.kind) {
+  case EXPR_PAREN:
+    buf_printf(&gen_buf, "(");
+    gen_expr(expr.paren.expr);
+    buf_printf(&gen_buf, ")");
+  case EXPR_INT: {
+    let suffix_name: char const* = token_suffix_names[expr.int_lit.suffix];
+    switch (expr.int_lit.mod) {
+    case MOD_BIN:
+    case MOD_HEX:
+      buf_printf(&gen_buf, "0x%llx%s", expr.int_lit.val, suffix_name);
+    case MOD_OCT:
+      buf_printf(&gen_buf, "0%llo%s", expr.int_lit.val, suffix_name);
+    case MOD_CHAR:
+      gen_char((:char)expr.int_lit.val);
     default:
-        #assert(0);
+      buf_printf(&gen_buf, "%llu%s", expr.int_lit.val, suffix_name);
     }
+  }
+  case EXPR_FLOAT: {
+    let is_double = expr.float_lit.suffix == SUFFIX_D;
+    let len: usize = expr.float_lit.end - expr.float_lit.start;
+    buf_printf(&gen_buf, "%.*s%s", is_double ? len-1 : len, expr.float_lit.start, is_double ? "" : "f");
+  }
+  case EXPR_STR:
+    gen_str(expr.str_lit.val, expr.str_lit.mod == MOD_MULTILINE);
+  case EXPR_NAME:
+    buf_printf(&gen_buf, "%s", get_gen_name_or_default(expr, expr.name));
+  case EXPR_CAST:
+    buf_printf(&gen_buf, "(%s)(", typespec_to_cdecl(expr.cast.type, ""));
+    gen_expr(expr.cast.expr);
+    buf_printf(&gen_buf, ")");
+  case EXPR_CALL: {
+    let sym: Sym* = get_resolved_sym(expr.call.expr);
+    if (sym && sym.kind == SYM_TYPE) {
+      buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
+    } else {
+      gen_expr(expr.call.expr);
+    }
+    buf_printf(&gen_buf, "(");
+    for (let i: usize = 0; i < expr.call.num_args; i++) {
+      if (i != 0) {
+        buf_printf(&gen_buf, ", ");
+      }
+      gen_expr(expr.call.args[i]);
+    }
+    buf_printf(&gen_buf, ")");
+  }
+  case EXPR_INDEX:
+    gen_expr(expr.index.expr);
+    buf_printf(&gen_buf, "[");
+    gen_expr(expr.index.index);
+    buf_printf(&gen_buf, "]");
+  case EXPR_FIELD: {
+    let sym = get_resolved_sym(expr);
+    if (sym) {
+      buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
+    } else {
+      gen_expr(expr.field.expr);
+      let type = unqualify_type(get_resolved_type(expr.field.expr));
+      buf_printf(&gen_buf, "%s%s", type.kind == CMPL_TYPE_PTR ? "->" : ".", expr.field.name);
+    }
+  }
+  case EXPR_COMPOUND:
+    gen_expr_compound(expr);
+  case EXPR_UNARY:
+    buf_printf(&gen_buf, "%s(", token_kind_name(expr.unary.op));
+    gen_expr(expr.unary.expr);
+    buf_printf(&gen_buf, ")");
+  case EXPR_BINARY:
+    buf_printf(&gen_buf, "(");
+    gen_expr(expr.binary.left);
+    buf_printf(&gen_buf, ") %s (", token_kind_name(expr.binary.op));
+    gen_expr(expr.binary.right);
+    buf_printf(&gen_buf, ")");
+  case EXPR_TERNARY:
+    buf_printf(&gen_buf, "(");
+    gen_expr(expr.ternary.cond);
+    buf_printf(&gen_buf, " ? ");
+    gen_expr(expr.ternary.then_expr);
+    buf_printf(&gen_buf, " : ");
+    gen_expr(expr.ternary.else_expr);
+    buf_printf(&gen_buf, ")");
+  case EXPR_SIZEOF_EXPR:
+    buf_printf(&gen_buf, "sizeof(");
+    gen_expr(expr.sizeof_expr);
+    buf_printf(&gen_buf, ")");
+  case EXPR_SIZEOF_TYPE:
+    buf_printf(&gen_buf, "sizeof(%s)", typespec_to_cdecl(expr.sizeof_type, ""));
+  case EXPR_ALIGNOF_EXPR:
+    buf_printf(&gen_buf, "alignof(%s)", type_to_cdecl(get_resolved_type(expr.alignof_expr), ""));
+  case EXPR_ALIGNOF_TYPE:
+    buf_printf(&gen_buf, "alignof(%s)", typespec_to_cdecl(expr.alignof_type, ""));
+  case EXPR_TYPEOF_EXPR: {
+    let type: Type* = get_resolved_type(expr.typeof_expr);
+    #assert(type.typeid);
+    gen_typeid(type);
+  }
+  case EXPR_TYPEOF_TYPE: {
+    let type: Type* = get_resolved_type(expr.typeof_type);
+    #assert(type.typeid);
+    gen_typeid(type);
+  }
+  case EXPR_OFFSETOF:
+    buf_printf(&gen_buf, "offsetof(%s, %s)", typespec_to_cdecl(expr.offsetof_field.type, ""), expr.offsetof_field.name);
+  case EXPR_MODIFY:
+    if (!expr.modify.post) {
+      buf_printf(&gen_buf, "%s", token_kind_name(expr.modify.op));
+    }
+    gen_paren_expr(expr.modify.expr);
+    if (expr.modify.post) {
+      buf_printf(&gen_buf, "%s", token_kind_name(expr.modify.op));
+    }
+  default:
+    #assert(0);
+  }
 }
 
 fn gen_stmt_block(block: StmtList) {
-    buf_printf(&gen_buf, "{");
-    gen_indent++;
-    for (let i: usize = 0; i < block.num_stmts; i++) {
-        gen_stmt(block.stmts[i]);
-    }
-    gen_indent--;
-    genln(); buf_printf(&gen_buf, "}");
+  buf_printf(&gen_buf, "{");
+  gen_indent++;
+  for (let i: usize = 0; i < block.num_stmts; i++) {
+    gen_stmt(block.stmts[i]);
+  }
+  gen_indent--;
+  genln(); buf_printf(&gen_buf, "}");
 }
 
 fn gen_simple_stmt(stmt: Stmt*) {
-    switch (stmt.kind) {
-    case STMT_EXPR:
-        gen_expr(stmt.expr);
-    case STMT_INIT:
-        if (stmt.init.type) {
-            let init_typespec = stmt.init.type;
-            if (is_incomplete_array_typespec(stmt.init.type)) {
-                let size = new_expr_int(init_typespec.pos, get_resolved_type(stmt.init.expr).num_elems, 0, 0);
-                init_typespec = new_typespec_array(init_typespec.pos, init_typespec.base, size);
-            }
-            buf_printf(&gen_buf, "%s = ", typespec_to_cdecl(stmt.init.type, stmt.init.name));
-            if (stmt.init.expr) {
-                gen_expr(stmt.init.expr);
-            } else {
-                buf_printf(&gen_buf, "{0}");
-            }
-        } else {
-            buf_printf(&gen_buf, "%s = ", type_to_cdecl(unqualify_type(get_resolved_type(stmt.init.expr)), stmt.init.name));
-            gen_expr(stmt.init.expr);
-        }
-    case STMT_ASSIGN:
-        gen_expr(stmt.assign.left);
-        buf_printf(&gen_buf, " %s ", token_kind_name(stmt.assign.op));
-        gen_expr(stmt.assign.right);
-    default:
-        #assert(0);
+  switch (stmt.kind) {
+  case STMT_EXPR:
+    gen_expr(stmt.expr);
+  case STMT_INIT:
+    if (stmt.init.type) {
+      let init_typespec = stmt.init.type;
+      if (is_incomplete_array_typespec(stmt.init.type)) {
+        let size = new_expr_int(init_typespec.pos, get_resolved_type(stmt.init.expr).num_elems, 0, 0);
+        init_typespec = new_typespec_array(init_typespec.pos, init_typespec.base, size);
+      }
+      buf_printf(&gen_buf, "%s = ", typespec_to_cdecl(stmt.init.type, stmt.init.name));
+      if (stmt.init.expr) {
+        gen_expr(stmt.init.expr);
+      } else {
+        buf_printf(&gen_buf, "{0}");
+      }
+    } else {
+      buf_printf(&gen_buf, "%s = ", type_to_cdecl(unqualify_type(get_resolved_type(stmt.init.expr)), stmt.init.name));
+      gen_expr(stmt.init.expr);
     }
+  case STMT_ASSIGN:
+    gen_expr(stmt.assign.left);
+    buf_printf(&gen_buf, " %s ", token_kind_name(stmt.assign.op));
+    gen_expr(stmt.assign.right);
+  default:
+    #assert(0);
+  }
 }
 
 fn is_char_lit(expr: Expr*): bool {
-    return expr.kind == EXPR_INT && expr.int_lit.mod == MOD_CHAR;
+  return expr.kind == EXPR_INT && expr.int_lit.mod == MOD_CHAR;
 }
 
 fn gen_stmt(stmt: Stmt*) {
+  gen_sync_pos(stmt.pos);
+  switch (stmt.kind) {
+  case STMT_RETURN:
+    genln(); buf_printf(&gen_buf, "return");
+    if (stmt.expr) {
+      buf_printf(&gen_buf, " ");
+      gen_expr(stmt.expr);
+    }
+    buf_printf(&gen_buf, ";");
+  case STMT_BREAK:
+    genln(); buf_printf(&gen_buf, "break;");
+  case STMT_CONTINUE:
+    genln(); buf_printf(&gen_buf, "continue;");
+  case STMT_BLOCK:
+    genln();
+    gen_stmt_block(stmt.block);
+  case STMT_NOTE:
+    if (stmt.note.name == assert_name) {
+      genln(); buf_printf(&gen_buf, "assert(");
+      #assert(stmt.note.num_args == 1);
+      gen_expr(stmt.note.args[0].expr);
+      buf_printf(&gen_buf, ");");
+    }
+  case STMT_IF:
+    if (stmt.if_stmt.init) {
+      genln(); buf_printf(&gen_buf, "{");
+      gen_indent++;
+      gen_stmt(stmt.if_stmt.init);
+    }
     gen_sync_pos(stmt.pos);
-    switch (stmt.kind) {
-    case STMT_RETURN:
-        genln(); buf_printf(&gen_buf, "return");
-        if (stmt.expr) {
-            buf_printf(&gen_buf, " ");
-            gen_expr(stmt.expr);
-        }
-        buf_printf(&gen_buf, ";");
-    case STMT_BREAK:
-        genln(); buf_printf(&gen_buf, "break;");
-    case STMT_CONTINUE:
-        genln(); buf_printf(&gen_buf, "continue;");
-    case STMT_BLOCK:
-        genln();
-        gen_stmt_block(stmt.block);
-    case STMT_NOTE:
-        if (stmt.note.name == assert_name) {
-            genln(); buf_printf(&gen_buf, "assert(");
-            #assert(stmt.note.num_args == 1);
-            gen_expr(stmt.note.args[0].expr);
-            buf_printf(&gen_buf, ");");
-        }
-    case STMT_IF:
-        if (stmt.if_stmt.init) {
-            genln(); buf_printf(&gen_buf, "{");
-            gen_indent++;
-            gen_stmt(stmt.if_stmt.init);
-        }
-        gen_sync_pos(stmt.pos);
-        genln(); buf_printf(&gen_buf, "if (");
-        if (stmt.if_stmt.cond) {
-            gen_expr(stmt.if_stmt.cond);
-        } else {
-            buf_printf(&gen_buf, "%s", stmt.if_stmt.init.init.name);
-        }
-        buf_printf(&gen_buf, ") ");
-        gen_stmt_block(stmt.if_stmt.then_block);
-        for (let i: usize = 0; i < stmt.if_stmt.num_elseifs; i++) {
-            let elseif = stmt.if_stmt.elseifs[i];
-            buf_printf(&gen_buf, " else if (");
-            gen_expr(elseif.cond);
-            buf_printf(&gen_buf, ") ");
-            gen_stmt_block(elseif.block);
-        }
-        if (stmt.if_stmt.else_block.stmts) {
-            buf_printf(&gen_buf, " else ");
-            gen_stmt_block(stmt.if_stmt.else_block);
-        } else {
-            let complete_note: Note* = get_stmt_note(stmt, complete_name);
-            if (complete_note) {
-                buf_printf(&gen_buf, " else {");
-                gen_indent++;
-                gen_sync_pos(complete_note.pos);
-                genln(); buf_printf(&gen_buf, "assert(\"@complete if/elseif chain failed to handle case\" && 0);");
-                gen_indent--;
-                genln(); buf_printf(&gen_buf, "}");
-            }
-        }
-        if (stmt.if_stmt.init) {
-            gen_indent--;
-            genln(); buf_printf(&gen_buf, "}");
-        }
-    case STMT_WHILE:
-        genln(); buf_printf(&gen_buf, "while (");
-        gen_expr(stmt.while_stmt.cond);
-        buf_printf(&gen_buf, ") ");
-        gen_stmt_block(stmt.while_stmt.block);
-    case STMT_DO_WHILE:
-        genln(); buf_printf(&gen_buf, "do ");
-        gen_stmt_block(stmt.while_stmt.block);
-        buf_printf(&gen_buf, " while (");
-        gen_expr(stmt.while_stmt.cond);
-        buf_printf(&gen_buf, ");");
-    case STMT_FOR:
-        genln(); buf_printf(&gen_buf, "for (");
-        if (stmt.for_stmt.init) {
-            gen_simple_stmt(stmt.for_stmt.init);
-        }
-        buf_printf(&gen_buf, ";");
-        if (stmt.for_stmt.cond) {
-            buf_printf(&gen_buf, " ");
-            gen_expr(stmt.for_stmt.cond);
-        }
-        buf_printf(&gen_buf, ";");
-        if (stmt.for_stmt.next) {
-            buf_printf(&gen_buf, " ");
-            gen_simple_stmt(stmt.for_stmt.next);
-        }
-        buf_printf(&gen_buf, ") ");
-        gen_stmt_block(stmt.for_stmt.block);
-    case STMT_SWITCH: {
-        genln(); buf_printf(&gen_buf, "switch (");
-        gen_expr(stmt.switch_stmt.expr);
-        buf_printf(&gen_buf, ") {");
-        let has_default = false;
-        for (let i: usize = 0; i < stmt.switch_stmt.num_cases; i++) {
-            let switch_case = stmt.switch_stmt.cases[i];
-            for (let j: usize = 0; j < switch_case.num_patterns; j++) {
-                let pattern = switch_case.patterns[j];
-                if (pattern.end) {
-                    let start_val = get_resolved_val(pattern.start);
-                    let end_val = get_resolved_val(pattern.end);
-                    if (is_char_lit(pattern.start) && is_char_lit(pattern.end)) {
-                        genln();
-                        for (let c = (:int)start_val.ll; c <= (:int)end_val.ll; c++) {
-                            buf_printf(&gen_buf, "case ");
-                            gen_char(c);
-                            buf_printf(&gen_buf, ": ");
-                        }
-                    } else {
-                        genln(); buf_printf(&gen_buf, "// ");
-                        gen_expr(pattern.start);
-                        buf_printf(&gen_buf, "...");
-                        gen_expr(pattern.end);
-                        genln();
-                        for (let ll: llong = start_val.ll; ll <= end_val.ll; ll++) {
-                            buf_printf(&gen_buf, "case %lld: ", ll);
-                        }
-                    }
-                } else {
-                    genln(); buf_printf(&gen_buf, "case ");
-                    gen_expr(pattern.start);
-                    buf_printf(&gen_buf, ":");
-                }
-            }
-            if (switch_case.is_default) {
-                has_default = true;
-                genln(); buf_printf(&gen_buf, "default:");
-            }
-            buf_printf(&gen_buf, " ");
-            buf_printf(&gen_buf, "{");
-            gen_indent++;
-            let block = switch_case.block;
-            for (let j: usize = 0; j < block.num_stmts; j++) {
-                gen_stmt(block.stmts[j]);
-            }
-            genln(); buf_printf(&gen_buf, "break;");
-            gen_indent--;
-            genln(); buf_printf(&gen_buf, "}");
-        }
-        if (!has_default) {
-            let note: Note* = get_stmt_note(stmt, complete_name);
-            if (note) {
-                genln(); buf_printf(&gen_buf, "default:");
-                gen_indent++;
-                genln(); buf_printf(&gen_buf, "assert(\"@complete switch failed to handle case\" && 0);");
-                genln(); buf_printf(&gen_buf, "break;");
-                gen_indent--;
-            }
-        }
+    genln(); buf_printf(&gen_buf, "if (");
+    if (stmt.if_stmt.cond) {
+      gen_expr(stmt.if_stmt.cond);
+    } else {
+      buf_printf(&gen_buf, "%s", stmt.if_stmt.init.init.name);
+    }
+    buf_printf(&gen_buf, ") ");
+    gen_stmt_block(stmt.if_stmt.then_block);
+    for (let i: usize = 0; i < stmt.if_stmt.num_elseifs; i++) {
+      let elseif = stmt.if_stmt.elseifs[i];
+      buf_printf(&gen_buf, " else if (");
+      gen_expr(elseif.cond);
+      buf_printf(&gen_buf, ") ");
+      gen_stmt_block(elseif.block);
+    }
+    if (stmt.if_stmt.else_block.stmts) {
+      buf_printf(&gen_buf, " else ");
+      gen_stmt_block(stmt.if_stmt.else_block);
+    } else {
+      let complete_note: Note* = get_stmt_note(stmt, complete_name);
+      if (complete_note) {
+        buf_printf(&gen_buf, " else {");
+        gen_indent++;
+        gen_sync_pos(complete_note.pos);
+        genln(); buf_printf(&gen_buf, "assert(\"@complete if/elseif chain failed to handle case\" && 0);");
+        gen_indent--;
         genln(); buf_printf(&gen_buf, "}");
+      }
     }
-    case STMT_LABEL:
-        genln(); buf_printf(&gen_buf, "%s: ;", stmt.label);
-    case STMT_GOTO:
-        genln(); buf_printf(&gen_buf, "goto %s;", stmt.label);
-    default:
-        genln();
-        gen_simple_stmt(stmt);
-        buf_printf(&gen_buf, ";");
+    if (stmt.if_stmt.init) {
+      gen_indent--;
+      genln(); buf_printf(&gen_buf, "}");
     }
+  case STMT_WHILE:
+    genln(); buf_printf(&gen_buf, "while (");
+    gen_expr(stmt.while_stmt.cond);
+    buf_printf(&gen_buf, ") ");
+    gen_stmt_block(stmt.while_stmt.block);
+  case STMT_DO_WHILE:
+    genln(); buf_printf(&gen_buf, "do ");
+    gen_stmt_block(stmt.while_stmt.block);
+    buf_printf(&gen_buf, " while (");
+    gen_expr(stmt.while_stmt.cond);
+    buf_printf(&gen_buf, ");");
+  case STMT_FOR:
+    genln(); buf_printf(&gen_buf, "for (");
+    if (stmt.for_stmt.init) {
+      gen_simple_stmt(stmt.for_stmt.init);
+    }
+    buf_printf(&gen_buf, ";");
+    if (stmt.for_stmt.cond) {
+      buf_printf(&gen_buf, " ");
+      gen_expr(stmt.for_stmt.cond);
+    }
+    buf_printf(&gen_buf, ";");
+    if (stmt.for_stmt.next) {
+      buf_printf(&gen_buf, " ");
+      gen_simple_stmt(stmt.for_stmt.next);
+    }
+    buf_printf(&gen_buf, ") ");
+    gen_stmt_block(stmt.for_stmt.block);
+  case STMT_SWITCH: {
+    genln(); buf_printf(&gen_buf, "switch (");
+    gen_expr(stmt.switch_stmt.expr);
+    buf_printf(&gen_buf, ") {");
+    let has_default = false;
+    for (let i: usize = 0; i < stmt.switch_stmt.num_cases; i++) {
+      let switch_case = stmt.switch_stmt.cases[i];
+      for (let j: usize = 0; j < switch_case.num_patterns; j++) {
+        let pattern = switch_case.patterns[j];
+        if (pattern.end) {
+          let start_val = get_resolved_val(pattern.start);
+          let end_val = get_resolved_val(pattern.end);
+          if (is_char_lit(pattern.start) && is_char_lit(pattern.end)) {
+            genln();
+            for (let c = (:int)start_val.ll; c <= (:int)end_val.ll; c++) {
+              buf_printf(&gen_buf, "case ");
+              gen_char(c);
+              buf_printf(&gen_buf, ": ");
+            }
+          } else {
+            genln(); buf_printf(&gen_buf, "// ");
+            gen_expr(pattern.start);
+            buf_printf(&gen_buf, "...");
+            gen_expr(pattern.end);
+            genln();
+            for (let ll: llong = start_val.ll; ll <= end_val.ll; ll++) {
+              buf_printf(&gen_buf, "case %lld: ", ll);
+            }
+          }
+        } else {
+          genln(); buf_printf(&gen_buf, "case ");
+          gen_expr(pattern.start);
+          buf_printf(&gen_buf, ":");
+        }
+      }
+      if (switch_case.is_default) {
+        has_default = true;
+        genln(); buf_printf(&gen_buf, "default:");
+      }
+      buf_printf(&gen_buf, " ");
+      buf_printf(&gen_buf, "{");
+      gen_indent++;
+      let block = switch_case.block;
+      for (let j: usize = 0; j < block.num_stmts; j++) {
+        gen_stmt(block.stmts[j]);
+      }
+      genln(); buf_printf(&gen_buf, "break;");
+      gen_indent--;
+      genln(); buf_printf(&gen_buf, "}");
+    }
+    if (!has_default) {
+      let note: Note* = get_stmt_note(stmt, complete_name);
+      if (note) {
+        genln(); buf_printf(&gen_buf, "default:");
+        gen_indent++;
+        genln(); buf_printf(&gen_buf, "assert(\"@complete switch failed to handle case\" && 0);");
+        genln(); buf_printf(&gen_buf, "break;");
+        gen_indent--;
+      }
+    }
+    genln(); buf_printf(&gen_buf, "}");
+  }
+  case STMT_LABEL:
+    genln(); buf_printf(&gen_buf, "%s: ;", stmt.label);
+  case STMT_GOTO:
+    genln(); buf_printf(&gen_buf, "goto %s;", stmt.label);
+  default:
+    genln();
+    gen_simple_stmt(stmt);
+    buf_printf(&gen_buf, ";");
+  }
 }
 
 fn gen_decl(sym: Sym*) {
-    let decl = sym.decl;
-    if (!decl || is_decl_foreign(decl)) {
-        return;
+  let decl = sym.decl;
+  if (!decl || is_decl_foreign(decl)) {
+    return;
+  }
+  gen_sync_pos(decl.pos);
+  switch (decl.kind) {
+  case DECL_CONST:
+    genln(); buf_printf(&gen_buf, "#define %s (", get_gen_name(sym));
+    if (decl.const_decl.type) {
+      buf_printf(&gen_buf, "(%s)(", typespec_to_cdecl(decl.const_decl.type, ""));
     }
-    gen_sync_pos(decl.pos);
-    switch (decl.kind) {
-    case DECL_CONST:
-        genln(); buf_printf(&gen_buf, "#define %s (", get_gen_name(sym));
-        if (decl.const_decl.type) {
-            buf_printf(&gen_buf, "(%s)(", typespec_to_cdecl(decl.const_decl.type, ""));
-        }
-        gen_expr(decl.const_decl.expr);
-        if (decl.const_decl.type) {
-            buf_printf(&gen_buf, ")");
-        }
-        buf_printf(&gen_buf, ")");
-    case DECL_VAR:
-        genln(); buf_printf(&gen_buf, "extern ");
-        if (decl.var_decl.type && !is_incomplete_array_typespec(decl.var_decl.type)) {
-            buf_printf(&gen_buf, "%s", typespec_to_cdecl(decl.var_decl.type, get_gen_name(sym)));
-        } else {
-            buf_printf(&gen_buf, "%s", type_to_cdecl(sym.type, get_gen_name(sym)));
-        }
-        buf_printf(&gen_buf, ";");
-    case DECL_FUNC:
-        gen_func_decl(decl);
-        buf_printf(&gen_buf, ";");
-    case DECL_STRUCT:
-    case DECL_UNION:
-        gen_aggregate(decl);
-    case DECL_TYPEDEF:
-        genln(); buf_printf(&gen_buf, "typedef %s;", typespec_to_cdecl(decl.typedef_decl.type, get_gen_name(sym)));
-    case DECL_ENUM:
-        if (decl.enum_decl.type) {
-            genln(); buf_printf(&gen_buf, "typedef %s;", typespec_to_cdecl(decl.enum_decl.type, get_gen_name(decl)));
-        } else {
-            genln(); buf_printf(&gen_buf, "typedef int %s;", get_gen_name(decl));
-        }
-    case DECL_IMPORT:
-        // Do nothing
-        break;
-    default:
-        #assert(0);
+    gen_expr(decl.const_decl.expr);
+    if (decl.const_decl.type) {
+      buf_printf(&gen_buf, ")");
     }
-    genln();
+    buf_printf(&gen_buf, ")");
+  case DECL_VAR:
+    genln(); buf_printf(&gen_buf, "extern ");
+    if (decl.var_decl.type && !is_incomplete_array_typespec(decl.var_decl.type)) {
+      buf_printf(&gen_buf, "%s", typespec_to_cdecl(decl.var_decl.type, get_gen_name(sym)));
+    } else {
+      buf_printf(&gen_buf, "%s", type_to_cdecl(sym.type, get_gen_name(sym)));
+    }
+    buf_printf(&gen_buf, ";");
+  case DECL_FUNC:
+    gen_func_decl(decl);
+    buf_printf(&gen_buf, ";");
+  case DECL_STRUCT:
+  case DECL_UNION:
+    gen_aggregate(decl);
+  case DECL_TYPEDEF:
+    genln(); buf_printf(&gen_buf, "typedef %s;", typespec_to_cdecl(decl.typedef_decl.type, get_gen_name(sym)));
+  case DECL_ENUM:
+    if (decl.enum_decl.type) {
+      genln(); buf_printf(&gen_buf, "typedef %s;", typespec_to_cdecl(decl.enum_decl.type, get_gen_name(decl)));
+    } else {
+      genln(); buf_printf(&gen_buf, "typedef int %s;", get_gen_name(decl));
+    }
+  case DECL_IMPORT:
+    // Do nothing
+    break;
+  default:
+    #assert(0);
+  }
+  genln();
 }
 
 fn gen_sorted_decls() {
-    for (let i: usize = 0; i < buf_len(sorted_syms); i++) {
-        if (sorted_syms[i].reachable == REACHABLE_NATURAL) {
-            gen_decl(sorted_syms[i]);
-        }
+  for (let i: usize = 0; i < buf_len(sorted_syms); i++) {
+    if (sorted_syms[i].reachable == REACHABLE_NATURAL) {
+      gen_decl(sorted_syms[i]);
     }
+  }
 }
 
 fn gen_defs() {
-    for (let it: Sym** = sorted_syms; it != buf_end(sorted_syms, sizeof(*sorted_syms)); it++) {
-        let sym = *it;
-        let decl = sym.decl;
-        if (sym.state != SYM_RESOLVED || !decl || is_decl_foreign(decl) || decl.is_incomplete || sym.reachable != REACHABLE_NATURAL) {
-            continue;
-        }
-        if (decl.kind == DECL_FUNC) {
-            gen_func_decl(decl);
-            buf_printf(&gen_buf, " ");
-            gen_stmt_block(decl.function.block);
-            genln();
-        } else if (decl.kind == DECL_VAR) {
-            if (decl.var_decl.type && !is_incomplete_array_typespec(decl.var_decl.type)) {
-                genln(); buf_printf(&gen_buf, "%s", typespec_to_cdecl(decl.var_decl.type, get_gen_name(sym)));
-            } else {
-                genln(); buf_printf(&gen_buf, "%s", type_to_cdecl(sym.type, get_gen_name(sym)));
-            }
-            if (decl.var_decl.expr) {
-                buf_printf(&gen_buf, " = ");
-                gen_expr(decl.var_decl.expr);
-            }
-            buf_printf(&gen_buf, ";");
-        }
+  for (let it: Sym** = sorted_syms; it != buf_end(sorted_syms, sizeof(*sorted_syms)); it++) {
+    let sym = *it;
+    let decl = sym.decl;
+    if (sym.state != SYM_RESOLVED || !decl || is_decl_foreign(decl) || decl.is_incomplete || sym.reachable != REACHABLE_NATURAL) {
+      continue;
     }
+    if (decl.kind == DECL_FUNC) {
+      gen_func_decl(decl);
+      buf_printf(&gen_buf, " ");
+      gen_stmt_block(decl.function.block);
+      genln();
+    } else if (decl.kind == DECL_VAR) {
+      if (decl.var_decl.type && !is_incomplete_array_typespec(decl.var_decl.type)) {
+        genln(); buf_printf(&gen_buf, "%s", typespec_to_cdecl(decl.var_decl.type, get_gen_name(sym)));
+      } else {
+        genln(); buf_printf(&gen_buf, "%s", type_to_cdecl(sym.type, get_gen_name(sym)));
+      }
+      if (decl.var_decl.expr) {
+        buf_printf(&gen_buf, " = ");
+        gen_expr(decl.var_decl.expr);
+      }
+      buf_printf(&gen_buf, ";");
+    }
+  }
 }
 
 let gen_foreign_headers_map: Map;
 let gen_foreign_headers_buf: char const**;
 
 fn add_foreign_header(name: char const*) {
-    name = str_intern(name);
-    if (!map_get(&gen_foreign_headers_map, name)) {
-        map_put(&gen_foreign_headers_map, name, (:void*)1);
-        buf_push((:void**)&gen_foreign_headers_buf, &name, sizeof(name));
-    }
+  name = str_intern(name);
+  if (!map_get(&gen_foreign_headers_map, name)) {
+    map_put(&gen_foreign_headers_map, name, (:void*)1);
+    buf_push((:void**)&gen_foreign_headers_buf, &name, sizeof(name));
+  }
 }
 
 let gen_foreign_sources_buf: char const**;
 
 fn add_foreign_source(name: char const*) {
-    let interned = str_intern(name);
-    buf_push((:void**)&gen_foreign_sources_buf, &interned, sizeof(interned));
+  let interned = str_intern(name);
+  buf_push((:void**)&gen_foreign_sources_buf, &interned, sizeof(interned));
 }
 
 fn gen_include(path: char const*) {
-    genln(); buf_printf(&gen_buf, "#include ");
-    if (*path == '<') {
-        buf_printf(&gen_buf, "%s", path);
-    } else {
-        gen_str(path, false);
-    }
+  genln(); buf_printf(&gen_buf, "#include ");
+  if (*path == '<') {
+    buf_printf(&gen_buf, "%s", path);
+  } else {
+    gen_str(path, false);
+  }
 }
 
 fn gen_foreign_headers() {
-    if (gen_foreign_headers_buf) {
-        genln(); buf_printf(&gen_buf, "// Foreign header files");
-        for (let i: usize = 0; i < buf_len(gen_foreign_headers_buf); i++) {
-            gen_include(gen_foreign_headers_buf[i]);
-        }
+  if (gen_foreign_headers_buf) {
+    genln(); buf_printf(&gen_buf, "// Foreign header files");
+    for (let i: usize = 0; i < buf_len(gen_foreign_headers_buf); i++) {
+      gen_include(gen_foreign_headers_buf[i]);
     }
+  }
 }
 
 fn gen_foreign_sources() {
-    for (let i: usize = 0; i < buf_len(gen_foreign_sources_buf); i++) {
-        gen_include(gen_foreign_sources_buf[i]);
-    }
+  for (let i: usize = 0; i < buf_len(gen_foreign_sources_buf); i++) {
+    gen_include(gen_foreign_sources_buf[i]);
+  }
 }
 
 let gen_sources_buf: char const**;
 
 fn put_include_path(path: char[MAX_PATH], package: Package*, filename: char const*) {
-    if (*filename == '<') {
-        path_copy(path, filename);
-    } else {
-        path_copy(path, package.full_path);
-        path_join(path, filename);
-        path_absolute(path);
-    }
+  if (*filename == '<') {
+    path_copy(path, filename);
+  } else {
+    path_copy(path, package.full_path);
+    path_join(path, filename);
+    path_absolute(path);
+  }
 }
 
 let gen_preamble_buf: char*;
 let gen_postamble_buf: char*;
 
 fn preprocess_package(package: Package*) {
-    if (!package.external_name) {
-        let external_name: char* = NULL;
-        for (let ptr: char const* = package.path; *ptr; ptr++) {
-            buf_printf(&external_name, "%c", *ptr == '/' ? '_' : *ptr);
-        }
-        buf_printf(&external_name, "_");
-        package.external_name = str_intern(external_name);
+  if (!package.external_name) {
+    let external_name: char* = NULL;
+    for (let ptr: char const* = package.path; *ptr; ptr++) {
+      buf_printf(&external_name, "%c", *ptr == '/' ? '_' : *ptr);
     }
-    let header_name = str_intern("header");
-    let source_name = str_intern("source");
-    let preamble_name = str_intern("preamble");
-    let postamble_name = str_intern("postamble");
-    for (let i: usize = 0; i < package.num_decls; i++) {
-        let decl: Decl* = package.decls[i];
-        if (decl.kind != DECL_NOTE) {
-            continue;
-        }
-        let note = decl.note;
-        if (note.name == foreign_name) {
-            for (let k: usize = 0; k < note.num_args; k++) {
-                let arg = note.args[k];
-                let expr = note.args[k].expr;
-                if (expr.kind != EXPR_STR) {
-                    fatal_error(decl.pos, "#foreign argument must be a string");
-                }
-                let str = expr.str_lit.val;
-                if (arg.name == header_name) {
-                    let path: char[MAX_PATH];
-                    put_include_path(path, package, str);
-                    add_foreign_header(path);
-                } else if (arg.name == source_name) {
-                    let path: char[MAX_PATH];
-                    put_include_path(path, package, str);
-                    add_foreign_source(path);
-                } else if (arg.name == preamble_name) {
-                    buf_printf(&gen_preamble_buf, "%s\n", str);
-                } else if (arg.name == postamble_name) {
-                    buf_printf(&gen_postamble_buf, "%s\n", str);
-                } else {
-                    fatal_error(decl.pos, "Unknown #foreign named argument '%s'", arg.name);
-                }
-            }
-        }
+    buf_printf(&external_name, "_");
+    package.external_name = str_intern(external_name);
+  }
+  let header_name = str_intern("header");
+  let source_name = str_intern("source");
+  let preamble_name = str_intern("preamble");
+  let postamble_name = str_intern("postamble");
+  for (let i: usize = 0; i < package.num_decls; i++) {
+    let decl: Decl* = package.decls[i];
+    if (decl.kind != DECL_NOTE) {
+      continue;
     }
+    let note = decl.note;
+    if (note.name == foreign_name) {
+      for (let k: usize = 0; k < note.num_args; k++) {
+        let arg = note.args[k];
+        let expr = note.args[k].expr;
+        if (expr.kind != EXPR_STR) {
+          fatal_error(decl.pos, "#foreign argument must be a string");
+        }
+        let str = expr.str_lit.val;
+        if (arg.name == header_name) {
+          let path: char[MAX_PATH];
+          put_include_path(path, package, str);
+          add_foreign_header(path);
+        } else if (arg.name == source_name) {
+          let path: char[MAX_PATH];
+          put_include_path(path, package, str);
+          add_foreign_source(path);
+        } else if (arg.name == preamble_name) {
+          buf_printf(&gen_preamble_buf, "%s\n", str);
+        } else if (arg.name == postamble_name) {
+          buf_printf(&gen_postamble_buf, "%s\n", str);
+        } else {
+          fatal_error(decl.pos, "Unknown #foreign named argument '%s'", arg.name);
+        }
+      }
+    }
+  }
 }
 
 fn preprocess_packages() {
-    for (let i: usize = 0; i < buf_len(package_list); i++) {
-        preprocess_package(package_list[i]);
-    }
+  for (let i: usize = 0; i < buf_len(package_list); i++) {
+    preprocess_package(package_list[i]);
+  }
 }
 
 fn gen_typeinfo_header(kind: char const*, type: Type*) {
-    if (type_sizeof(type) == 0) {
-        buf_printf(&gen_buf, "&(TypeInfo){%s, .size = 0, .align = 0", kind);
-    } else {
-        let ctype = type_to_cdecl(type, "");
-        buf_printf(&gen_buf, "&(TypeInfo){%s, .size = sizeof(%s), .align = alignof(%s)", kind, ctype, ctype);
-    }
+  if (type_sizeof(type) == 0) {
+    buf_printf(&gen_buf, "&(TypeInfo){%s, .size = 0, .align = 0", kind);
+  } else {
+    let ctype = type_to_cdecl(type, "");
+    buf_printf(&gen_buf, "&(TypeInfo){%s, .size = sizeof(%s), .align = alignof(%s)", kind, ctype, ctype);
+  }
 }
 
 fn gen_typeinfo_fields(type: Type*) {
-    gen_indent++;
-    for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
-        let field = type.aggregate.fields[i];
-        genln(); buf_printf(&gen_buf, "{");
-        gen_str(field.name, false);
-        buf_printf(&gen_buf, ", .type = ");
-        gen_typeid(field.type);
-        buf_printf(&gen_buf, ", .offset = offsetof(%s, %s)},", get_gen_name(type.sym), field.name);
-    }
-    gen_indent--;
+  gen_indent++;
+  for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
+    let field = type.aggregate.fields[i];
+    genln(); buf_printf(&gen_buf, "{");
+    gen_str(field.name, false);
+    buf_printf(&gen_buf, ", .type = ");
+    gen_typeid(field.type);
+    buf_printf(&gen_buf, ", .offset = offsetof(%s, %s)},", get_gen_name(type.sym), field.name);
+  }
+  gen_indent--;
 }
 
 // #define CASE(kind, name) \
-//     case kind:
-//         buf_printf(&gen_buf, "&(TypeInfo){$1, .size = sizeof($2), .align = sizeof($2), .name = ");
-//         gen_str($2, false);
-//         buf_printf(&gen_buf, "},");
+//   case kind:
+//     buf_printf(&gen_buf, "&(TypeInfo){$1, .size = sizeof($2), .align = sizeof($2), .name = ");
+//     gen_str($2, false);
+//     buf_printf(&gen_buf, "},");
 
 fn gen_typeinfo(type: Type*) {
-    switch (type.kind) {
-    case CMPL_TYPE_BOOL:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_BOOL, .size = sizeof(bool), .align = sizeof(bool), .name = ");
-         gen_str("bool", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_CHAR:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_CHAR, .size = sizeof(char), .align = sizeof(char), .name = ");
-         gen_str("char", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_UCHAR:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_UCHAR, .size = sizeof(uchar), .align = sizeof(uchar), .name = ");
-         gen_str("uchar", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_SCHAR:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_SCHAR, .size = sizeof(schar), .align = sizeof(schar), .name = ");
-         gen_str("schar", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_SHORT:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_SHORT, .size = sizeof(short), .align = sizeof(short), .name = ");
-         gen_str("short", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_USHORT:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_USHORT, .size = sizeof(ushort), .align = sizeof(ushort), .name = ");
-         gen_str("ushort", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_INT:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_INT, .size = sizeof(int), .align = sizeof(int), .name = ");
-         gen_str("int", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_UINT:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_UINT, .size = sizeof(uint), .align = sizeof(uint), .name = ");
-         gen_str("uint", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_LONG:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_LONG, .size = sizeof(long), .align = sizeof(long), .name = ");
-         gen_str("long", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_ULONG:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_ULONG, .size = sizeof(ulong), .align = sizeof(ulong), .name = ");
-         gen_str("ulong", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_LLONG:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_LLONG, .size = sizeof(llong), .align = sizeof(llong), .name = ");
-         gen_str("llong", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_ULLONG:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_ULLONG, .size = sizeof(ullong), .align = sizeof(ullong), .name = ");
-         gen_str("ullong", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_FLOAT:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_FLOAT, .size = sizeof(float), .align = sizeof(float), .name = ");
-         gen_str("float", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_DOUBLE:
-         buf_printf(&gen_buf, "&(TypeInfo){TYPE_DOUBLE, .size = sizeof(double), .align = sizeof(double), .name = ");
-         gen_str("double", false);
-         buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_VOID:
-        buf_printf(&gen_buf, "&(TypeInfo){TYPE_VOID, .name = \"void\", .size = 0, .align = 0},");
-    case CMPL_TYPE_PTR:
-        buf_printf(&gen_buf, "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ");
-        gen_typeid(type.base);
-        buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_CONST:
-        gen_typeinfo_header("TYPE_CONST", type);
-        buf_printf(&gen_buf, ", .base = ");
-        gen_typeid(type.base);
-        buf_printf(&gen_buf, "},");
-    case CMPL_TYPE_ARRAY:
-        if (is_incomplete_array_type(type)) {
-            buf_printf(&gen_buf, "NULL, // Incomplete array type");
-        } else {
-            gen_typeinfo_header("TYPE_ARRAY", type);
-            buf_printf(&gen_buf, ", .base = ");
-            gen_typeid(type.base);
-            buf_printf(&gen_buf, ", .count = %d},", type.num_elems);
-        }
-    case CMPL_TYPE_STRUCT:
-    case CMPL_TYPE_UNION:
-        gen_typeinfo_header(type.kind == CMPL_TYPE_STRUCT ? "TYPE_STRUCT" : "TYPE_UNION", type);
-        buf_printf(&gen_buf, ", .name = ");
-        gen_str(get_gen_name(type.sym), false);
-        buf_printf(&gen_buf, ", .num_fields = %d, .fields = (TypeFieldInfo[]) {", type.aggregate.num_fields);
-        gen_typeinfo_fields(type);
-        genln(); buf_printf(&gen_buf, "}},");
-    case CMPL_TYPE_FUNC:
-        buf_printf(&gen_buf, "NULL, // Function");
-    case CMPL_TYPE_ENUM:
-        buf_printf(&gen_buf, "NULL, // Enum");
-    case CMPL_TYPE_INCOMPLETE:
-        buf_printf(&gen_buf, "NULL, // Incomplete: %s", get_gen_name(type.sym));
-    default:
-        buf_printf(&gen_buf, "NULL, // Unhandled");
+  switch (type.kind) {
+  case CMPL_TYPE_BOOL:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_BOOL, .size = sizeof(bool), .align = sizeof(bool), .name = ");
+     gen_str("bool", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_CHAR:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_CHAR, .size = sizeof(char), .align = sizeof(char), .name = ");
+     gen_str("char", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_UCHAR:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_UCHAR, .size = sizeof(uchar), .align = sizeof(uchar), .name = ");
+     gen_str("uchar", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_SCHAR:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_SCHAR, .size = sizeof(schar), .align = sizeof(schar), .name = ");
+     gen_str("schar", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_SHORT:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_SHORT, .size = sizeof(short), .align = sizeof(short), .name = ");
+     gen_str("short", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_USHORT:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_USHORT, .size = sizeof(ushort), .align = sizeof(ushort), .name = ");
+     gen_str("ushort", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_INT:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_INT, .size = sizeof(int), .align = sizeof(int), .name = ");
+     gen_str("int", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_UINT:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_UINT, .size = sizeof(uint), .align = sizeof(uint), .name = ");
+     gen_str("uint", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_LONG:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_LONG, .size = sizeof(long), .align = sizeof(long), .name = ");
+     gen_str("long", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_ULONG:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_ULONG, .size = sizeof(ulong), .align = sizeof(ulong), .name = ");
+     gen_str("ulong", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_LLONG:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_LLONG, .size = sizeof(llong), .align = sizeof(llong), .name = ");
+     gen_str("llong", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_ULLONG:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_ULLONG, .size = sizeof(ullong), .align = sizeof(ullong), .name = ");
+     gen_str("ullong", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_FLOAT:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_FLOAT, .size = sizeof(float), .align = sizeof(float), .name = ");
+     gen_str("float", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_DOUBLE:
+     buf_printf(&gen_buf, "&(TypeInfo){TYPE_DOUBLE, .size = sizeof(double), .align = sizeof(double), .name = ");
+     gen_str("double", false);
+     buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_VOID:
+    buf_printf(&gen_buf, "&(TypeInfo){TYPE_VOID, .name = \"void\", .size = 0, .align = 0},");
+  case CMPL_TYPE_PTR:
+    buf_printf(&gen_buf, "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ");
+    gen_typeid(type.base);
+    buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_CONST:
+    gen_typeinfo_header("TYPE_CONST", type);
+    buf_printf(&gen_buf, ", .base = ");
+    gen_typeid(type.base);
+    buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_ARRAY:
+    if (is_incomplete_array_type(type)) {
+      buf_printf(&gen_buf, "NULL, // Incomplete array type");
+    } else {
+      gen_typeinfo_header("TYPE_ARRAY", type);
+      buf_printf(&gen_buf, ", .base = ");
+      gen_typeid(type.base);
+      buf_printf(&gen_buf, ", .count = %d},", type.num_elems);
     }
+  case CMPL_TYPE_STRUCT:
+  case CMPL_TYPE_UNION:
+    gen_typeinfo_header(type.kind == CMPL_TYPE_STRUCT ? "TYPE_STRUCT" : "TYPE_UNION", type);
+    buf_printf(&gen_buf, ", .name = ");
+    gen_str(get_gen_name(type.sym), false);
+    buf_printf(&gen_buf, ", .num_fields = %d, .fields = (TypeFieldInfo[]) {", type.aggregate.num_fields);
+    gen_typeinfo_fields(type);
+    genln(); buf_printf(&gen_buf, "}},");
+  case CMPL_TYPE_FUNC:
+    buf_printf(&gen_buf, "NULL, // Function");
+  case CMPL_TYPE_ENUM:
+    buf_printf(&gen_buf, "NULL, // Enum");
+  case CMPL_TYPE_INCOMPLETE:
+    buf_printf(&gen_buf, "NULL, // Incomplete: %s", get_gen_name(type.sym));
+  default:
+    buf_printf(&gen_buf, "NULL, // Unhandled");
+  }
 }
 
 // #undef CASE
 
 fn gen_typeinfos() {
-    genln(); buf_printf(&gen_buf, "#define TYPEID0(index, kind) ((ullong)(index) | ((ullong)(kind) << 24))");
-    genln(); buf_printf(&gen_buf, "#define TYPEID(index, kind, ...) ((ullong)(index) | ((ullong)sizeof(__VA_ARGS__) << 32) | ((ullong)(kind) << 24))");
-    genln();
-    if (flag_notypeinfo) {
-        genln(); buf_printf(&gen_buf, "int num_typeinfos;");
-        genln(); buf_printf(&gen_buf, "const TypeInfo **typeinfos;");
-    } else {
-        let num_typeinfos = next_typeid;
-        genln(); buf_printf(&gen_buf, "const TypeInfo *typeinfo_table[%d] = {", num_typeinfos);
-        gen_indent++;
-        for (let typeid: int = 0; typeid < num_typeinfos; typeid++) {
-            genln(); buf_printf(&gen_buf, "[%d] = ", typeid);
-            let type = get_type_from_typeid(typeid);
-            if (type && !is_excluded_typeinfo(type)) {
-                gen_typeinfo(type);
-            } else {
-                buf_printf(&gen_buf, "NULL, // No associated type");
-            }
-        }
-        gen_indent--;
-        genln(); buf_printf(&gen_buf, "};");
-        genln();
-        genln(); buf_printf(&gen_buf, "int num_typeinfos = %d;", num_typeinfos);
-        genln(); buf_printf(&gen_buf, "const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;");
+  genln(); buf_printf(&gen_buf, "#define TYPEID0(index, kind) ((ullong)(index) | ((ullong)(kind) << 24))");
+  genln(); buf_printf(&gen_buf, "#define TYPEID(index, kind, ...) ((ullong)(index) | ((ullong)sizeof(__VA_ARGS__) << 32) | ((ullong)(kind) << 24))");
+  genln();
+  if (flag_notypeinfo) {
+    genln(); buf_printf(&gen_buf, "int num_typeinfos;");
+    genln(); buf_printf(&gen_buf, "const TypeInfo **typeinfos;");
+  } else {
+    let num_typeinfos = next_typeid;
+    genln(); buf_printf(&gen_buf, "const TypeInfo *typeinfo_table[%d] = {", num_typeinfos);
+    gen_indent++;
+    for (let typeid: int = 0; typeid < num_typeinfos; typeid++) {
+      genln(); buf_printf(&gen_buf, "[%d] = ", typeid);
+      let type = get_type_from_typeid(typeid);
+      if (type && !is_excluded_typeinfo(type)) {
+        gen_typeinfo(type);
+      } else {
+        buf_printf(&gen_buf, "NULL, // No associated type");
+      }
     }
+    gen_indent--;
+    genln(); buf_printf(&gen_buf, "};");
+    genln();
+    genln(); buf_printf(&gen_buf, "int num_typeinfos = %d;", num_typeinfos);
+    genln(); buf_printf(&gen_buf, "const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;");
+  }
 }
 
 fn gen_package_external_names() {
-    for (let i: usize = 0; i < buf_len(package_list); i++) {
-    }
+  for (let i: usize = 0; i < buf_len(package_list); i++) {
+  }
 }
 
 fn gen_preamble() {
-    buf_printf(&gen_buf, "%s", gen_preamble_str);
-    if (gen_preamble_buf) {
-        genln();
-        genln(); buf_printf(&gen_buf, "// Foreign preamble");
-        genln(); buf_printf(&gen_buf, "%s", gen_preamble_buf);
-    }
+  buf_printf(&gen_buf, "%s", gen_preamble_str);
+  if (gen_preamble_buf) {
+    genln();
+    genln(); buf_printf(&gen_buf, "// Foreign preamble");
+    genln(); buf_printf(&gen_buf, "%s", gen_preamble_buf);
+  }
 }
 
 fn gen_postamble() {
-    buf_printf(&gen_buf, "%s", gen_postamble_str);
-    if (gen_postamble_buf) {
-        genln();
-        genln(); buf_printf(&gen_buf, "// Foreign postamble");
-        genln(); buf_printf(&gen_buf, "%s", gen_postamble_buf);
-    }
+  buf_printf(&gen_buf, "%s", gen_postamble_str);
+  if (gen_postamble_buf) {
+    genln();
+    genln(); buf_printf(&gen_buf, "// Foreign postamble");
+    genln(); buf_printf(&gen_buf, "%s", gen_postamble_buf);
+  }
 }
 
 fn gen_all() {
-    preprocess_packages();
-    gen_buf = NULL;
-    gen_preamble();
-    gen_foreign_headers();
-    genln();
-    genln(); buf_printf(&gen_buf, "// Forward declarations");
-    gen_forward_decls();
-    genln();
-    genln(); buf_printf(&gen_buf, "// Sorted declarations");
-    gen_sorted_decls();
-    genln(); buf_printf(&gen_buf, "// Typeinfo");
-    gen_typeinfos();
-    genln();
-    genln(); buf_printf(&gen_buf, "// Definitions");
-    gen_defs();
-    genln(); buf_printf(&gen_buf, "// Foreign source files");
-    gen_foreign_sources();
-    genln();
-    gen_postamble();
+  preprocess_packages();
+  gen_buf = NULL;
+  gen_preamble();
+  gen_foreign_headers();
+  genln();
+  genln(); buf_printf(&gen_buf, "// Forward declarations");
+  gen_forward_decls();
+  genln();
+  genln(); buf_printf(&gen_buf, "// Sorted declarations");
+  gen_sorted_decls();
+  genln(); buf_printf(&gen_buf, "// Typeinfo");
+  gen_typeinfos();
+  genln();
+  genln(); buf_printf(&gen_buf, "// Definitions");
+  gen_defs();
+  genln(); buf_printf(&gen_buf, "// Foreign source files");
+  gen_foreign_sources();
+  genln();
+  gen_postamble();
 }

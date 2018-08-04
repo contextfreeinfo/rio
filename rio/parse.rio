@@ -1,899 +1,899 @@
 fn parse_type_func_param(): Typespec* {
-    let type = parse_type();
-    if (match_token(TOKEN_COLON)) {
-        if (type.kind != TYPESPEC_NAME) {
-            error(token.pos, "Colons in parameters of fn types must be preceded by names.");
-        }
-        type = parse_type();
+  let type = parse_type();
+  if (match_token(TOKEN_COLON)) {
+    if (type.kind != TYPESPEC_NAME) {
+      error(token.pos, "Colons in parameters of fn types must be preceded by names.");
     }
-    return type;
+    type = parse_type();
+  }
+  return type;
 }
 
 fn parse_type_func(): Typespec* {
-    let pos = token.pos;
-    let args: Typespec** = NULL;
-    let has_varargs: bool = false;
-    expect_token(TOKEN_LPAREN);
-    while (!is_token(TOKEN_RPAREN)) {
-        if (match_token(TOKEN_ELLIPSIS)) {
-            if (has_varargs) {
-                error(token.pos, "Multiple ellipsis instances in function type");
-            }
-            has_varargs = true;
-        } else {
-            if (has_varargs) {
-                error(token.pos, "Ellipsis must be last parameter in function type");
-            }
-            let param = parse_type_func_param();
-            buf_push((:void**)&args, &param, sizeof(param));
-        }
-        if (!match_token(TOKEN_COMMA)) {
-            break;
-        }
+  let pos = token.pos;
+  let args: Typespec** = NULL;
+  let has_varargs: bool = false;
+  expect_token(TOKEN_LPAREN);
+  while (!is_token(TOKEN_RPAREN)) {
+    if (match_token(TOKEN_ELLIPSIS)) {
+      if (has_varargs) {
+        error(token.pos, "Multiple ellipsis instances in function type");
+      }
+      has_varargs = true;
+    } else {
+      if (has_varargs) {
+        error(token.pos, "Ellipsis must be last parameter in function type");
+      }
+      let param = parse_type_func_param();
+      buf_push((:void**)&args, &param, sizeof(param));
     }
-    expect_token(TOKEN_RPAREN);
-    let ret: Typespec* = NULL;
-    if (match_token(TOKEN_COLON)) {
-        ret = parse_type();
+    if (!match_token(TOKEN_COMMA)) {
+      break;
     }
-    return new_typespec_func(pos, args, buf_len(args), ret, has_varargs);
+  }
+  expect_token(TOKEN_RPAREN);
+  let ret: Typespec* = NULL;
+  if (match_token(TOKEN_COLON)) {
+    ret = parse_type();
+  }
+  return new_typespec_func(pos, args, buf_len(args), ret, has_varargs);
 }
 
 fn parse_type_base(): Typespec* {
-    if (is_token(TOKEN_NAME)) {
-        let pos = token.pos;
-        let name = token.name;
-        next_token();
-        return new_typespec_name(pos, name);
-    } else if (match_keyword(fn_keyword)) {
-        return parse_type_func();
-    } else if (match_token(TOKEN_LPAREN)) {
-        let type = parse_type();
-        expect_token(TOKEN_RPAREN);
-        return type;
-    } else {
-        fatal_error(token.pos, "Unexpected token %s in type", token_info());
-        return NULL;
-    }
+  if (is_token(TOKEN_NAME)) {
+    let pos = token.pos;
+    let name = token.name;
+    next_token();
+    return new_typespec_name(pos, name);
+  } else if (match_keyword(fn_keyword)) {
+    return parse_type_func();
+  } else if (match_token(TOKEN_LPAREN)) {
+    let type = parse_type();
+    expect_token(TOKEN_RPAREN);
+    return type;
+  } else {
+    fatal_error(token.pos, "Unexpected token %s in type", token_info());
+    return NULL;
+  }
 }
 
 fn parse_type(): Typespec* {
-    let type = parse_type_base();
-    let pos = token.pos;
-    while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_MUL) || is_keyword(const_keyword)) {
-        if (match_token(TOKEN_LBRACKET)) {
-            let size: Expr* = NULL;
-            if (!is_token(TOKEN_RBRACKET)) {
-                size = parse_expr();
-            }
-            expect_token(TOKEN_RBRACKET);
-            type = new_typespec_array(pos, type, size);
-        } else if (match_keyword(const_keyword)) {
-            type = new_typespec_const(pos, type);
-        } else {
-            #assert(is_token(TOKEN_MUL));
-            next_token();
-            type = new_typespec_ptr(pos, type);
-        }
+  let type = parse_type_base();
+  let pos = token.pos;
+  while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_MUL) || is_keyword(const_keyword)) {
+    if (match_token(TOKEN_LBRACKET)) {
+      let size: Expr* = NULL;
+      if (!is_token(TOKEN_RBRACKET)) {
+        size = parse_expr();
+      }
+      expect_token(TOKEN_RBRACKET);
+      type = new_typespec_array(pos, type, size);
+    } else if (match_keyword(const_keyword)) {
+      type = new_typespec_const(pos, type);
+    } else {
+      #assert(is_token(TOKEN_MUL));
+      next_token();
+      type = new_typespec_ptr(pos, type);
     }
-    return type;
+  }
+  return type;
 }
 
 fn parse_expr_compound_field(): CompoundField {
-    let pos = token.pos;
-    if (match_token(TOKEN_LBRACKET)) {
-        let index = parse_expr();
-        expect_token(TOKEN_RBRACKET);
-        expect_token(TOKEN_ASSIGN);
-        return CompoundField {FIELD_INDEX, pos, parse_expr(), index = index};
+  let pos = token.pos;
+  if (match_token(TOKEN_LBRACKET)) {
+    let index = parse_expr();
+    expect_token(TOKEN_RBRACKET);
+    expect_token(TOKEN_ASSIGN);
+    return CompoundField {FIELD_INDEX, pos, parse_expr(), index = index};
+  } else {
+    let expr = parse_expr();
+    if (match_token(TOKEN_ASSIGN)) {
+      if (expr.kind != EXPR_NAME) {
+        fatal_error(token.pos, "Named initializer in compound literal must be preceded by field name");
+      }
+      return CompoundField {FIELD_NAME, pos, parse_expr(), name = expr.name};
     } else {
-        let expr = parse_expr();
-        if (match_token(TOKEN_ASSIGN)) {
-            if (expr.kind != EXPR_NAME) {
-                fatal_error(token.pos, "Named initializer in compound literal must be preceded by field name");
-            }
-            return CompoundField {FIELD_NAME, pos, parse_expr(), name = expr.name};
-        } else {
-            return CompoundField {FIELD_DEFAULT, pos, expr};
-        }
+      return CompoundField {FIELD_DEFAULT, pos, expr};
     }
+  }
 }
 
 fn parse_expr_compound(type: Typespec*): Expr* {
-    let pos = token.pos;
-    expect_token(TOKEN_LBRACE);
-    let fields: CompoundField* = NULL;
-    while (!is_token(TOKEN_RBRACE)) {
-        let field = parse_expr_compound_field();
-        buf_push((:void**)&fields, &field, sizeof(field));
-        if (!match_token(TOKEN_COMMA)) {
-            break;
-        }
+  let pos = token.pos;
+  expect_token(TOKEN_LBRACE);
+  let fields: CompoundField* = NULL;
+  while (!is_token(TOKEN_RBRACE)) {
+    let field = parse_expr_compound_field();
+    buf_push((:void**)&fields, &field, sizeof(field));
+    if (!match_token(TOKEN_COMMA)) {
+      break;
     }
-    expect_token(TOKEN_RBRACE);
-    return new_expr_compound(pos, type, fields, buf_len(fields));
+  }
+  expect_token(TOKEN_RBRACE);
+  return new_expr_compound(pos, type, fields, buf_len(fields));
 }
 
 fn parse_expr_operand(): Expr* {
-    let pos = token.pos;
-    if (is_token(TOKEN_INT)) {
-        let val = token.int_val;
-        let mod = token.mod;
-        let suffix = token.suffix;
-        next_token();
-        return new_expr_int(pos, val, mod, suffix);
-    } else if (is_token(TOKEN_FLOAT)) {
-        let start = token.start;
-        let end = token.end;
-        let val = token.float_val;
-        let suffix = token.suffix;
-        next_token();
-        return new_expr_float(pos, start, end, val, suffix);
-    } else if (is_token(TOKEN_STR)) {
-        let val = token.str_val;
-        let mod = token.mod;
-        next_token();
-        return new_expr_str(pos, val, mod);
-    } else if (is_token(TOKEN_NAME)) {
-        let name = token.name;
-        next_token();
-        if (is_token(TOKEN_LBRACE)) {
-            return parse_expr_compound(new_typespec_name(pos, name));
-        } else {
-            return new_expr_name(pos, name);
-        }
-    } else if (match_keyword(sizeof_keyword)) {
-        expect_token(TOKEN_LPAREN);
-        if (match_token(TOKEN_COLON)) {
-            let type = parse_type();
-            expect_token(TOKEN_RPAREN);
-            return new_expr_sizeof_type(pos, type);
-        } else {
-            let expr = parse_expr();
-            expect_token(TOKEN_RPAREN);
-            return new_expr_sizeof_expr(pos, expr);
-        }
-    } else if (match_keyword(alignof_keyword)) {
-        expect_token(TOKEN_LPAREN);
-        if (match_token(TOKEN_COLON)) {
-            let type = parse_type();
-            expect_token(TOKEN_RPAREN);
-            return new_expr_alignof_type(pos, type);
-        } else {
-            let expr = parse_expr();
-            expect_token(TOKEN_RPAREN);
-            return new_expr_alignof_expr(pos, expr);
-        }
-    } else if (match_keyword(typeof_keyword)) {
-        expect_token(TOKEN_LPAREN);
-        if (match_token(TOKEN_COLON)) {
-            let type = parse_type();
-            expect_token(TOKEN_RPAREN);
-            return new_expr_typeof_type(pos, type);
-        } else {
-            let expr = parse_expr();
-            expect_token(TOKEN_RPAREN);
-            return new_expr_typeof_expr(pos, expr);
-        }
-    } else if (match_keyword(offsetof_keyword)) {
-        expect_token(TOKEN_LPAREN);
-        let type = parse_type();
-        expect_token(TOKEN_COMMA);
-        let name = parse_name();
-        expect_token(TOKEN_RPAREN);
-        return new_expr_offsetof(pos, type, name);
-    } else if (is_token(TOKEN_LBRACE)) {
-        return parse_expr_compound(NULL);
-    } else if (match_token(TOKEN_LPAREN)) {
-        if (match_token(TOKEN_COLON)) {
-            let type = parse_type();
-            expect_token(TOKEN_RPAREN);
-            if (is_token(TOKEN_LBRACE)) {
-                return parse_expr_compound(type);
-            } else {
-                return new_expr_cast(pos, type, parse_expr_unary());
-            }
-        } else {
-            let expr = parse_expr();
-            expect_token(TOKEN_RPAREN);
-            return new_expr_paren(pos, expr);
-        }
+  let pos = token.pos;
+  if (is_token(TOKEN_INT)) {
+    let val = token.int_val;
+    let mod = token.mod;
+    let suffix = token.suffix;
+    next_token();
+    return new_expr_int(pos, val, mod, suffix);
+  } else if (is_token(TOKEN_FLOAT)) {
+    let start = token.start;
+    let end = token.end;
+    let val = token.float_val;
+    let suffix = token.suffix;
+    next_token();
+    return new_expr_float(pos, start, end, val, suffix);
+  } else if (is_token(TOKEN_STR)) {
+    let val = token.str_val;
+    let mod = token.mod;
+    next_token();
+    return new_expr_str(pos, val, mod);
+  } else if (is_token(TOKEN_NAME)) {
+    let name = token.name;
+    next_token();
+    if (is_token(TOKEN_LBRACE)) {
+      return parse_expr_compound(new_typespec_name(pos, name));
     } else {
-        fatal_error(token.pos, "Unexpected token %s in expression", token_info());
-        return NULL;
+      return new_expr_name(pos, name);
     }
+  } else if (match_keyword(sizeof_keyword)) {
+    expect_token(TOKEN_LPAREN);
+    if (match_token(TOKEN_COLON)) {
+      let type = parse_type();
+      expect_token(TOKEN_RPAREN);
+      return new_expr_sizeof_type(pos, type);
+    } else {
+      let expr = parse_expr();
+      expect_token(TOKEN_RPAREN);
+      return new_expr_sizeof_expr(pos, expr);
+    }
+  } else if (match_keyword(alignof_keyword)) {
+    expect_token(TOKEN_LPAREN);
+    if (match_token(TOKEN_COLON)) {
+      let type = parse_type();
+      expect_token(TOKEN_RPAREN);
+      return new_expr_alignof_type(pos, type);
+    } else {
+      let expr = parse_expr();
+      expect_token(TOKEN_RPAREN);
+      return new_expr_alignof_expr(pos, expr);
+    }
+  } else if (match_keyword(typeof_keyword)) {
+    expect_token(TOKEN_LPAREN);
+    if (match_token(TOKEN_COLON)) {
+      let type = parse_type();
+      expect_token(TOKEN_RPAREN);
+      return new_expr_typeof_type(pos, type);
+    } else {
+      let expr = parse_expr();
+      expect_token(TOKEN_RPAREN);
+      return new_expr_typeof_expr(pos, expr);
+    }
+  } else if (match_keyword(offsetof_keyword)) {
+    expect_token(TOKEN_LPAREN);
+    let type = parse_type();
+    expect_token(TOKEN_COMMA);
+    let name = parse_name();
+    expect_token(TOKEN_RPAREN);
+    return new_expr_offsetof(pos, type, name);
+  } else if (is_token(TOKEN_LBRACE)) {
+    return parse_expr_compound(NULL);
+  } else if (match_token(TOKEN_LPAREN)) {
+    if (match_token(TOKEN_COLON)) {
+      let type = parse_type();
+      expect_token(TOKEN_RPAREN);
+      if (is_token(TOKEN_LBRACE)) {
+        return parse_expr_compound(type);
+      } else {
+        return new_expr_cast(pos, type, parse_expr_unary());
+      }
+    } else {
+      let expr = parse_expr();
+      expect_token(TOKEN_RPAREN);
+      return new_expr_paren(pos, expr);
+    }
+  } else {
+    fatal_error(token.pos, "Unexpected token %s in expression", token_info());
+    return NULL;
+  }
 }
 
 fn parse_expr_base(): Expr* {
-    let expr = parse_expr_operand();
-    while (is_token(TOKEN_LPAREN) || is_token(TOKEN_LBRACKET) || is_token(TOKEN_DOT) || is_token(TOKEN_INC) || is_token(TOKEN_DEC)) {
-        let pos = token.pos;
-        if (match_token(TOKEN_LPAREN)) {
-            let args: Expr** = NULL;
-            while (!is_token(TOKEN_RPAREN)) {
-                let arg = parse_expr();
-                buf_push((:void**)&args, &arg, sizeof(arg));
-                if (!match_token(TOKEN_COMMA)) {
-                    break;
-                }
-            }
-            expect_token(TOKEN_RPAREN);
-            expr = new_expr_call(pos, expr, args, buf_len(args));
-        } else if (match_token(TOKEN_LBRACKET)) {
-            let index = parse_expr();
-            expect_token(TOKEN_RBRACKET);
-            expr = new_expr_index(pos, expr, index);
-        } else if (is_token(TOKEN_DOT)) {
-            next_token();
-            let field = token.name;
-            expect_token(TOKEN_NAME);
-            expr = new_expr_field(pos, expr, field);
-        } else {
-            #assert(is_token(TOKEN_INC) || is_token(TOKEN_DEC));
-            let op = token.kind;
-            next_token();
-            expr = new_expr_modify(pos, op, true, expr);
+  let expr = parse_expr_operand();
+  while (is_token(TOKEN_LPAREN) || is_token(TOKEN_LBRACKET) || is_token(TOKEN_DOT) || is_token(TOKEN_INC) || is_token(TOKEN_DEC)) {
+    let pos = token.pos;
+    if (match_token(TOKEN_LPAREN)) {
+      let args: Expr** = NULL;
+      while (!is_token(TOKEN_RPAREN)) {
+        let arg = parse_expr();
+        buf_push((:void**)&args, &arg, sizeof(arg));
+        if (!match_token(TOKEN_COMMA)) {
+          break;
         }
+      }
+      expect_token(TOKEN_RPAREN);
+      expr = new_expr_call(pos, expr, args, buf_len(args));
+    } else if (match_token(TOKEN_LBRACKET)) {
+      let index = parse_expr();
+      expect_token(TOKEN_RBRACKET);
+      expr = new_expr_index(pos, expr, index);
+    } else if (is_token(TOKEN_DOT)) {
+      next_token();
+      let field = token.name;
+      expect_token(TOKEN_NAME);
+      expr = new_expr_field(pos, expr, field);
+    } else {
+      #assert(is_token(TOKEN_INC) || is_token(TOKEN_DEC));
+      let op = token.kind;
+      next_token();
+      expr = new_expr_modify(pos, op, true, expr);
     }
-    return expr;
+  }
+  return expr;
 }
 
 fn is_unary_op(): bool {
-    return
-        is_token(TOKEN_ADD) ||
-        is_token(TOKEN_SUB) ||
-        is_token(TOKEN_MUL) ||
-        is_token(TOKEN_AND) ||
-        is_token(TOKEN_NEG) ||
-        is_token(TOKEN_NOT) ||
-        is_token(TOKEN_INC) ||
-        is_token(TOKEN_DEC);
+  return
+    is_token(TOKEN_ADD) ||
+    is_token(TOKEN_SUB) ||
+    is_token(TOKEN_MUL) ||
+    is_token(TOKEN_AND) ||
+    is_token(TOKEN_NEG) ||
+    is_token(TOKEN_NOT) ||
+    is_token(TOKEN_INC) ||
+    is_token(TOKEN_DEC);
 }
 
 fn parse_expr_unary(): Expr* {
-    if (is_unary_op()) {
-        let pos = token.pos;
-        let op = token.kind;
-        next_token();
-        if (op == TOKEN_INC || op == TOKEN_DEC) {
-            return new_expr_modify(pos, op, false, parse_expr_unary());
-        } else {
-            return new_expr_unary(pos, op, parse_expr_unary());
-        }
+  if (is_unary_op()) {
+    let pos = token.pos;
+    let op = token.kind;
+    next_token();
+    if (op == TOKEN_INC || op == TOKEN_DEC) {
+      return new_expr_modify(pos, op, false, parse_expr_unary());
     } else {
-        return parse_expr_base();
+      return new_expr_unary(pos, op, parse_expr_unary());
     }
+  } else {
+    return parse_expr_base();
+  }
 }
 
 fn is_mul_op(): bool {
-    return TOKEN_FIRST_MUL <= token.kind && token.kind <= TOKEN_LAST_MUL;
+  return TOKEN_FIRST_MUL <= token.kind && token.kind <= TOKEN_LAST_MUL;
 }
 
 fn parse_expr_mul(): Expr* {
-    let expr = parse_expr_unary();
-    while (is_mul_op()) {
-        let pos = token.pos;
-        let op = token.kind;
-        next_token();
-        expr = new_expr_binary(pos, op, expr, parse_expr_unary());
-    }
-    return expr;
+  let expr = parse_expr_unary();
+  while (is_mul_op()) {
+    let pos = token.pos;
+    let op = token.kind;
+    next_token();
+    expr = new_expr_binary(pos, op, expr, parse_expr_unary());
+  }
+  return expr;
 }
 
 fn is_add_op(): bool {
-    return TOKEN_FIRST_ADD <= token.kind && token.kind <= TOKEN_LAST_ADD;
+  return TOKEN_FIRST_ADD <= token.kind && token.kind <= TOKEN_LAST_ADD;
 }
 
 fn parse_expr_add(): Expr* {
-    let expr = parse_expr_mul();
-    while (is_add_op()) {
-        let pos = token.pos;
-        let op = token.kind;
-        next_token();
-        expr = new_expr_binary(pos, op, expr, parse_expr_mul());
-    }
-    return expr;
+  let expr = parse_expr_mul();
+  while (is_add_op()) {
+    let pos = token.pos;
+    let op = token.kind;
+    next_token();
+    expr = new_expr_binary(pos, op, expr, parse_expr_mul());
+  }
+  return expr;
 }
 
 fn is_cmp_op(): bool {
-    return TOKEN_FIRST_CMP <= token.kind && token.kind <= TOKEN_LAST_CMP;
+  return TOKEN_FIRST_CMP <= token.kind && token.kind <= TOKEN_LAST_CMP;
 }
 
 fn parse_expr_cmp(): Expr* {
-    let expr = parse_expr_add();
-    while (is_cmp_op()) {
-        let pos = token.pos;
-        let op = token.kind;
-        next_token();
-        expr = new_expr_binary(pos, op, expr, parse_expr_add());
-    }
-    return expr;
+  let expr = parse_expr_add();
+  while (is_cmp_op()) {
+    let pos = token.pos;
+    let op = token.kind;
+    next_token();
+    expr = new_expr_binary(pos, op, expr, parse_expr_add());
+  }
+  return expr;
 }
 
 fn parse_expr_and(): Expr* {
-    let expr = parse_expr_cmp();
-    while (match_token(TOKEN_AND_AND)) {
-        let pos = token.pos;
-        expr = new_expr_binary(pos, TOKEN_AND_AND, expr, parse_expr_cmp());
-    }
-    return expr;
+  let expr = parse_expr_cmp();
+  while (match_token(TOKEN_AND_AND)) {
+    let pos = token.pos;
+    expr = new_expr_binary(pos, TOKEN_AND_AND, expr, parse_expr_cmp());
+  }
+  return expr;
 }
 
 fn parse_expr_or(): Expr* {
-    let expr = parse_expr_and();
-    while (match_token(TOKEN_OR_OR)) {
-        let pos = token.pos;
-        expr = new_expr_binary(pos, TOKEN_OR_OR, expr, parse_expr_and());
-    }
-    return expr;
+  let expr = parse_expr_and();
+  while (match_token(TOKEN_OR_OR)) {
+    let pos = token.pos;
+    expr = new_expr_binary(pos, TOKEN_OR_OR, expr, parse_expr_and());
+  }
+  return expr;
 }
 
 fn parse_expr_ternary(): Expr* {
-    let pos = token.pos;
-    let expr = parse_expr_or();
-    if (match_token(TOKEN_QUESTION)) {
-        let then_expr = parse_expr_ternary();
-        expect_token(TOKEN_COLON);
-        let else_expr = parse_expr_ternary();
-        expr = new_expr_ternary(pos, expr, then_expr, else_expr);
-    }
-    return expr;
+  let pos = token.pos;
+  let expr = parse_expr_or();
+  if (match_token(TOKEN_QUESTION)) {
+    let then_expr = parse_expr_ternary();
+    expect_token(TOKEN_COLON);
+    let else_expr = parse_expr_ternary();
+    expr = new_expr_ternary(pos, expr, then_expr, else_expr);
+  }
+  return expr;
 }
 
 fn parse_expr(): Expr* {
-    return parse_expr_ternary();
+  return parse_expr_ternary();
 }
 
 fn parse_paren_expr(): Expr* {
-    expect_token(TOKEN_LPAREN);
-    let expr = parse_expr();
-    expect_token(TOKEN_RPAREN);
-    return expr;
+  expect_token(TOKEN_LPAREN);
+  let expr = parse_expr();
+  expect_token(TOKEN_RPAREN);
+  return expr;
 }
 
 fn parse_stmt_block(): StmtList {
-    let pos = token.pos;
-    expect_token(TOKEN_LBRACE);
-    let stmts: Stmt** = NULL;
-    while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
-        let stmt = parse_stmt();
-        buf_push((:void**)&stmts, &stmt, sizeof(stmt));
-    }
-    expect_token(TOKEN_RBRACE);
-    return new_stmt_list(pos, stmts, buf_len(stmts));
+  let pos = token.pos;
+  expect_token(TOKEN_LBRACE);
+  let stmts: Stmt** = NULL;
+  while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
+    let stmt = parse_stmt();
+    buf_push((:void**)&stmts, &stmt, sizeof(stmt));
+  }
+  expect_token(TOKEN_RBRACE);
+  return new_stmt_list(pos, stmts, buf_len(stmts));
 }
 
 fn parse_stmt_if(pos: SrcPos): Stmt* {
-    expect_token(TOKEN_LPAREN);
-    let cond: Expr*;
-    let init: Stmt*;
-    if (match_keyword(let_keyword)) {
-        init = parse_let_stmt(pos);
-        if (match_token(TOKEN_SEMICOLON)) {
-            cond = parse_expr();
-        }
-    } else {
-        cond = parse_expr();
+  expect_token(TOKEN_LPAREN);
+  let cond: Expr*;
+  let init: Stmt*;
+  if (match_keyword(let_keyword)) {
+    init = parse_let_stmt(pos);
+    if (match_token(TOKEN_SEMICOLON)) {
+      cond = parse_expr();
     }
-    expect_token(TOKEN_RPAREN);
-    let then_block: StmtList = parse_stmt_block();
-    let else_block: StmtList = {{NULL, 0}, NULL, 0};  // TODO Automatic null???
-    let elseifs: ElseIf*;
-    while (match_keyword(else_keyword)) {
-        if (!match_keyword(if_keyword)) {
-            else_block = parse_stmt_block();
-            break;
-        }
-        let elseif_cond: Expr* = parse_paren_expr();
-        let elseif_block: StmtList = parse_stmt_block();
-        let elseif = ElseIf {elseif_cond, elseif_block};
-        buf_push((:void**)&elseifs, &elseif, sizeof(elseif));
+  } else {
+    cond = parse_expr();
+  }
+  expect_token(TOKEN_RPAREN);
+  let then_block: StmtList = parse_stmt_block();
+  let else_block: StmtList = {{NULL, 0}, NULL, 0};  // TODO Automatic null???
+  let elseifs: ElseIf*;
+  while (match_keyword(else_keyword)) {
+    if (!match_keyword(if_keyword)) {
+      else_block = parse_stmt_block();
+      break;
     }
-    return new_stmt_if(pos, init, cond, then_block, elseifs, buf_len(elseifs), else_block);
+    let elseif_cond: Expr* = parse_paren_expr();
+    let elseif_block: StmtList = parse_stmt_block();
+    let elseif = ElseIf {elseif_cond, elseif_block};
+    buf_push((:void**)&elseifs, &elseif, sizeof(elseif));
+  }
+  return new_stmt_if(pos, init, cond, then_block, elseifs, buf_len(elseifs), else_block);
 }
 
 fn parse_stmt_while(pos: SrcPos): Stmt* {
-    let cond: Expr* = parse_paren_expr();
-    return new_stmt_while(pos, cond, parse_stmt_block());
+  let cond: Expr* = parse_paren_expr();
+  return new_stmt_while(pos, cond, parse_stmt_block());
 }
 
 fn parse_stmt_do_while(pos: SrcPos): Stmt* {
-    let block: StmtList = parse_stmt_block();
-    if (!match_keyword(while_keyword)) {
-        fatal_error(token.pos, "Expected 'while' after 'do' block");
-        return NULL;
-    }
-    let stmt: Stmt* = new_stmt_do_while(pos, parse_paren_expr(), block);
-    expect_token(TOKEN_SEMICOLON);
-    return stmt;
+  let block: StmtList = parse_stmt_block();
+  if (!match_keyword(while_keyword)) {
+    fatal_error(token.pos, "Expected 'while' after 'do' block");
+    return NULL;
+  }
+  let stmt: Stmt* = new_stmt_do_while(pos, parse_paren_expr(), block);
+  expect_token(TOKEN_SEMICOLON);
+  return stmt;
 }
 
 fn is_assign_op(): bool {
-    return TOKEN_FIRST_ASSIGN <= token.kind && token.kind <= TOKEN_LAST_ASSIGN;
+  return TOKEN_FIRST_ASSIGN <= token.kind && token.kind <= TOKEN_LAST_ASSIGN;
 }
 
 fn parse_let_stmt(pos: SrcPos): Stmt* {
-    let is_mut = match_keyword(mut_keyword);
-    let name = parse_name();
+  let is_mut = match_keyword(mut_keyword);
+  let name = parse_name();
+  if (match_token(TOKEN_ASSIGN)) {
+    return new_stmt_init(pos, name, is_mut, NULL, parse_expr());
+  } else if (match_token(TOKEN_COLON)) {
+    let type = parse_type();
+    let expr: Expr*;
     if (match_token(TOKEN_ASSIGN)) {
-        return new_stmt_init(pos, name, is_mut, NULL, parse_expr());
-    } else if (match_token(TOKEN_COLON)) {
-        let type = parse_type();
-        let expr: Expr*;
-        if (match_token(TOKEN_ASSIGN)) {
-            expr = parse_expr();
-        } else {
-            // For now, just let all later assignments slide.
-            is_mut = true;
-        }
-        return new_stmt_init(pos, name, is_mut, type, expr);
+      expr = parse_expr();
     } else {
-        fatal_error(token.pos, "Expected : or = after let, got %s", token_info());
-        return NULL;
+      // For now, just let all later assignments slide.
+      is_mut = true;
     }
+    return new_stmt_init(pos, name, is_mut, type, expr);
+  } else {
+    fatal_error(token.pos, "Expected : or = after let, got %s", token_info());
+    return NULL;
+  }
 }
 
 fn parse_simple_stmt(): Stmt* {
-    let pos = token.pos;
-    let stmt: Stmt*;
-    if (match_keyword(let_keyword)) {
-        stmt = parse_let_stmt(pos);
+  let pos = token.pos;
+  let stmt: Stmt*;
+  if (match_keyword(let_keyword)) {
+    stmt = parse_let_stmt(pos);
+  } else {
+    let expr = parse_expr();
+    if (is_assign_op()) {
+      let op = token.kind;
+      next_token();
+      stmt = new_stmt_assign(pos, op, expr, parse_expr());
     } else {
-        let expr = parse_expr();
-        if (is_assign_op()) {
-            let op = token.kind;
-            next_token();
-            stmt = new_stmt_assign(pos, op, expr, parse_expr());
-        } else {
-            stmt = new_stmt_expr(pos, expr);
-        }
+      stmt = new_stmt_expr(pos, expr);
     }
-    return stmt;
+  }
+  return stmt;
 }
 
 fn parse_stmt_for(pos: SrcPos): Stmt* {
-    expect_token(TOKEN_LPAREN);
-    let init: Stmt* = NULL;
-    if (!is_token(TOKEN_SEMICOLON)) {
-        init = parse_simple_stmt();
+  expect_token(TOKEN_LPAREN);
+  let init: Stmt* = NULL;
+  if (!is_token(TOKEN_SEMICOLON)) {
+    init = parse_simple_stmt();
+  }
+  expect_token(TOKEN_SEMICOLON);
+  let cond: Expr* = NULL;
+  if (!is_token(TOKEN_SEMICOLON)) {
+    cond = parse_expr();
+  }
+  let next: Stmt* = NULL;
+  if (match_token(TOKEN_SEMICOLON)) {
+    if (!is_token(TOKEN_RPAREN)) {
+      next = parse_simple_stmt();
+      if (next.kind == STMT_INIT) {
+        error(token.pos, "Init statements not allowed in for-statement's next clause");
+      }
     }
-    expect_token(TOKEN_SEMICOLON);
-    let cond: Expr* = NULL;
-    if (!is_token(TOKEN_SEMICOLON)) {
-        cond = parse_expr();
-    }
-    let next: Stmt* = NULL;
-    if (match_token(TOKEN_SEMICOLON)) {
-        if (!is_token(TOKEN_RPAREN)) {
-            next = parse_simple_stmt();
-            if (next.kind == STMT_INIT) {
-                error(token.pos, "Init statements not allowed in for-statement's next clause");
-            }
-        }
-    }
-    expect_token(TOKEN_RPAREN);
-    return new_stmt_for(pos, init, cond, next, parse_stmt_block());
+  }
+  expect_token(TOKEN_RPAREN);
+  return new_stmt_for(pos, init, cond, next, parse_stmt_block());
 }
 
 fn parse_switch_case_pattern(): SwitchCasePattern {
-    let start = parse_expr();
-    let end: Expr* = NULL;
-    if (match_token(TOKEN_ELLIPSIS)) {
-        end = parse_expr();
-    }
-    return SwitchCasePattern {start, end};
+  let start = parse_expr();
+  let end: Expr* = NULL;
+  if (match_token(TOKEN_ELLIPSIS)) {
+    end = parse_expr();
+  }
+  return SwitchCasePattern {start, end};
 }
 
 fn parse_stmt_switch_case(): SwitchCase {
-    let patterns: SwitchCasePattern* = NULL;
-    let is_default: bool = false;
-    let is_first_case: bool = true;
-    while (is_keyword(case_keyword) || is_keyword(default_keyword)) {
-        if (match_keyword(case_keyword)) {
-            if (!is_first_case) {
-                error(token.pos, "Use comma-separated expressions to match multiple values with one case label");
-                is_first_case = false;
-            }
-            let pattern = parse_switch_case_pattern();
-            buf_push((:void**)&patterns, &pattern, sizeof(pattern));
-            while (match_token(TOKEN_COMMA)) {
-                pattern = parse_switch_case_pattern();
-                buf_push((:void**)&patterns, &pattern, sizeof(pattern));
-            }
-        } else {
-            #assert(is_keyword(default_keyword));
-            next_token();
-            if (is_default) {
-                error(token.pos, "Duplicate default labels in same switch clause");
-            }
-            is_default = true;
-        }
-        expect_token(TOKEN_COLON);
+  let patterns: SwitchCasePattern* = NULL;
+  let is_default: bool = false;
+  let is_first_case: bool = true;
+  while (is_keyword(case_keyword) || is_keyword(default_keyword)) {
+    if (match_keyword(case_keyword)) {
+      if (!is_first_case) {
+        error(token.pos, "Use comma-separated expressions to match multiple values with one case label");
+        is_first_case = false;
+      }
+      let pattern = parse_switch_case_pattern();
+      buf_push((:void**)&patterns, &pattern, sizeof(pattern));
+      while (match_token(TOKEN_COMMA)) {
+        pattern = parse_switch_case_pattern();
+        buf_push((:void**)&patterns, &pattern, sizeof(pattern));
+      }
+    } else {
+      #assert(is_keyword(default_keyword));
+      next_token();
+      if (is_default) {
+        error(token.pos, "Duplicate default labels in same switch clause");
+      }
+      is_default = true;
     }
-    let pos = token.pos;
-    let stmts: Stmt**;
-    while (!is_token_eof() && !is_token(TOKEN_RBRACE) && !is_keyword(case_keyword) && !is_keyword(default_keyword)) {
-        let stmt = parse_stmt();
-        buf_push((:void**)&stmts, &stmt, sizeof(stmt));
-    }
-    return SwitchCase {patterns, buf_len(patterns), is_default, new_stmt_list(pos, stmts, buf_len(stmts))};
+    expect_token(TOKEN_COLON);
+  }
+  let pos = token.pos;
+  let stmts: Stmt**;
+  while (!is_token_eof() && !is_token(TOKEN_RBRACE) && !is_keyword(case_keyword) && !is_keyword(default_keyword)) {
+    let stmt = parse_stmt();
+    buf_push((:void**)&stmts, &stmt, sizeof(stmt));
+  }
+  return SwitchCase {patterns, buf_len(patterns), is_default, new_stmt_list(pos, stmts, buf_len(stmts))};
 }
 
 fn parse_stmt_switch(pos: SrcPos): Stmt* {
-    let expr: Expr* = parse_paren_expr();
-    let cases: SwitchCase*;
-    expect_token(TOKEN_LBRACE);
-    while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
-        let case_stmt = parse_stmt_switch_case();
-        buf_push((:void**)&cases, &case_stmt, sizeof(case_stmt));
-    }
-    expect_token(TOKEN_RBRACE);
-    return new_stmt_switch(pos, expr, cases, buf_len(cases));
+  let expr: Expr* = parse_paren_expr();
+  let cases: SwitchCase*;
+  expect_token(TOKEN_LBRACE);
+  while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
+    let case_stmt = parse_stmt_switch_case();
+    buf_push((:void**)&cases, &case_stmt, sizeof(case_stmt));
+  }
+  expect_token(TOKEN_RBRACE);
+  return new_stmt_switch(pos, expr, cases, buf_len(cases));
 }
 
 fn parse_stmt(): Stmt* {
-    let notes = parse_notes();
-    let pos = token.pos;
-    let stmt: Stmt*;
-    if (match_keyword(if_keyword)) {
-        stmt = parse_stmt_if(pos);
-    } else if (match_keyword(while_keyword)) {
-        stmt = parse_stmt_while(pos);
-    } else if (match_keyword(do_keyword)) {
-        stmt = parse_stmt_do_while(pos);
-    } else if (match_keyword(for_keyword)) {
-        stmt = parse_stmt_for(pos);
-    } else if (match_keyword(switch_keyword)) {
-        stmt = parse_stmt_switch(pos);
-    } else if (is_token(TOKEN_LBRACE)) {
-        stmt = new_stmt_block(pos, parse_stmt_block());
-    } else if (match_keyword(break_keyword)) {
-        expect_token(TOKEN_SEMICOLON);
-        stmt = new_stmt_break(pos);
-    } else if (match_keyword(continue_keyword)) {
-        expect_token(TOKEN_SEMICOLON);
-        stmt = new_stmt_continue(pos);
-    } else if (match_keyword(return_keyword)) {
-        let expr: Expr*;
-        if (!is_token(TOKEN_SEMICOLON)) {
-            expr = parse_expr();
-        }
-        expect_token(TOKEN_SEMICOLON);
-        stmt = new_stmt_return(pos, expr);
-    } else if (match_token(TOKEN_POUND)) {
-        let note: Note = parse_note();
-        expect_token(TOKEN_SEMICOLON);
-        stmt = new_stmt_note(pos, note);
-    } else if (match_token(TOKEN_COLON)) {
-        stmt = new_stmt_label(pos, parse_name());
-    } else if (match_keyword(goto_keyword)) {
-        stmt = new_stmt_goto(pos, parse_name());
-        expect_token(TOKEN_SEMICOLON);
-    } else {
-        stmt = parse_simple_stmt();
-        expect_token(TOKEN_SEMICOLON);
+  let notes = parse_notes();
+  let pos = token.pos;
+  let stmt: Stmt*;
+  if (match_keyword(if_keyword)) {
+    stmt = parse_stmt_if(pos);
+  } else if (match_keyword(while_keyword)) {
+    stmt = parse_stmt_while(pos);
+  } else if (match_keyword(do_keyword)) {
+    stmt = parse_stmt_do_while(pos);
+  } else if (match_keyword(for_keyword)) {
+    stmt = parse_stmt_for(pos);
+  } else if (match_keyword(switch_keyword)) {
+    stmt = parse_stmt_switch(pos);
+  } else if (is_token(TOKEN_LBRACE)) {
+    stmt = new_stmt_block(pos, parse_stmt_block());
+  } else if (match_keyword(break_keyword)) {
+    expect_token(TOKEN_SEMICOLON);
+    stmt = new_stmt_break(pos);
+  } else if (match_keyword(continue_keyword)) {
+    expect_token(TOKEN_SEMICOLON);
+    stmt = new_stmt_continue(pos);
+  } else if (match_keyword(return_keyword)) {
+    let expr: Expr*;
+    if (!is_token(TOKEN_SEMICOLON)) {
+      expr = parse_expr();
     }
-    stmt.notes = notes;
-    return stmt;
+    expect_token(TOKEN_SEMICOLON);
+    stmt = new_stmt_return(pos, expr);
+  } else if (match_token(TOKEN_POUND)) {
+    let note: Note = parse_note();
+    expect_token(TOKEN_SEMICOLON);
+    stmt = new_stmt_note(pos, note);
+  } else if (match_token(TOKEN_COLON)) {
+    stmt = new_stmt_label(pos, parse_name());
+  } else if (match_keyword(goto_keyword)) {
+    stmt = new_stmt_goto(pos, parse_name());
+    expect_token(TOKEN_SEMICOLON);
+  } else {
+    stmt = parse_simple_stmt();
+    expect_token(TOKEN_SEMICOLON);
+  }
+  stmt.notes = notes;
+  return stmt;
 }
 
 fn parse_name(): char const* {
-    let name = token.name;
-    expect_token(TOKEN_NAME);
-    return name;
+  let name = token.name;
+  expect_token(TOKEN_NAME);
+  return name;
 }
 
 fn parse_decl_enum_item(): EnumItem {
-    let pos = token.pos;
-    let name = parse_name();
-    let init: Expr* = NULL;
-    if (match_token(TOKEN_ASSIGN)) {
-        init = parse_expr();
-    }
-    return EnumItem {pos, name, init};
+  let pos = token.pos;
+  let name = parse_name();
+  let init: Expr* = NULL;
+  if (match_token(TOKEN_ASSIGN)) {
+    init = parse_expr();
+  }
+  return EnumItem {pos, name, init};
 }
 
 fn parse_decl_enum(pos: SrcPos): Decl* {
-    let name: char const* = NULL;
-    if (is_token(TOKEN_NAME)) {
-        name = parse_name();
+  let name: char const* = NULL;
+  if (is_token(TOKEN_NAME)) {
+    name = parse_name();
+  }
+  let type: Typespec* = NULL;
+  if (match_token(TOKEN_ASSIGN)) {
+    type = parse_type();
+  }
+  expect_token(TOKEN_LBRACE);
+  let items: EnumItem* = NULL;
+  while (!is_token(TOKEN_RBRACE)) {
+    let item = parse_decl_enum_item();
+    buf_push((:void**)&items, &item, sizeof(item));
+    if (!match_token(TOKEN_COMMA)) {
+      break;
     }
-    let type: Typespec* = NULL;
-    if (match_token(TOKEN_ASSIGN)) {
-        type = parse_type();
-    }
-    expect_token(TOKEN_LBRACE);
-    let items: EnumItem* = NULL;
-    while (!is_token(TOKEN_RBRACE)) {
-        let item = parse_decl_enum_item();
-        buf_push((:void**)&items, &item, sizeof(item));
-        if (!match_token(TOKEN_COMMA)) {
-            break;
-        }
-    }
-    expect_token(TOKEN_RBRACE);
-    return new_decl_enum(pos, name, type, items, buf_len(items));
+  }
+  expect_token(TOKEN_RBRACE);
+  return new_decl_enum(pos, name, type, items, buf_len(items));
 }
 
 fn parse_decl_aggregate_item(): AggregateItem {
-    let pos = token.pos;
-    if (match_keyword(struct_keyword)) {
-        return AggregateItem {
-            pos = pos,
-            kind = AGGREGATE_ITEM_SUBAGGREGATE,
-            subaggregate = parse_aggregate(AGGREGATE_STRUCT),
-        };
-    } else if (match_keyword(union_keyword)) {
-        return AggregateItem {
-            pos = pos,
-            kind = AGGREGATE_ITEM_SUBAGGREGATE,
-            subaggregate = parse_aggregate(AGGREGATE_UNION),
-        };
-    } else {
-        let names: char const** = NULL;
-        let name = parse_name();
-        buf_push((:void**)&names, &name, sizeof(name));
-        while (match_token(TOKEN_COMMA)) {
-            name = parse_name();
-            buf_push((:void**)&names, &name, sizeof(name));
-        }
-        expect_token(TOKEN_COLON);
-        let type = parse_type();
-        expect_token(TOKEN_SEMICOLON);
-        return AggregateItem {
-            pos = pos,
-            kind = AGGREGATE_ITEM_FIELD,
-            names = names,
-            num_names = buf_len(names),
-            type = type,
-        };
+  let pos = token.pos;
+  if (match_keyword(struct_keyword)) {
+    return AggregateItem {
+      pos = pos,
+      kind = AGGREGATE_ITEM_SUBAGGREGATE,
+      subaggregate = parse_aggregate(AGGREGATE_STRUCT),
+    };
+  } else if (match_keyword(union_keyword)) {
+    return AggregateItem {
+      pos = pos,
+      kind = AGGREGATE_ITEM_SUBAGGREGATE,
+      subaggregate = parse_aggregate(AGGREGATE_UNION),
+    };
+  } else {
+    let names: char const** = NULL;
+    let name = parse_name();
+    buf_push((:void**)&names, &name, sizeof(name));
+    while (match_token(TOKEN_COMMA)) {
+      name = parse_name();
+      buf_push((:void**)&names, &name, sizeof(name));
     }
+    expect_token(TOKEN_COLON);
+    let type = parse_type();
+    expect_token(TOKEN_SEMICOLON);
+    return AggregateItem {
+      pos = pos,
+      kind = AGGREGATE_ITEM_FIELD,
+      names = names,
+      num_names = buf_len(names),
+      type = type,
+    };
+  }
 }
 
 fn parse_aggregate(kind: AggregateKind): Aggregate* {
-    let pos = token.pos;
-    expect_token(TOKEN_LBRACE);
-    let items: AggregateItem* = NULL;
-    while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
-        let item = parse_decl_aggregate_item();
-        buf_push((:void**)&items, &item, sizeof(item));
-    }
-    expect_token(TOKEN_RBRACE);
-    return new_aggregate(pos, kind, items, buf_len(items));
+  let pos = token.pos;
+  expect_token(TOKEN_LBRACE);
+  let items: AggregateItem* = NULL;
+  while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
+    let item = parse_decl_aggregate_item();
+    buf_push((:void**)&items, &item, sizeof(item));
+  }
+  expect_token(TOKEN_RBRACE);
+  return new_aggregate(pos, kind, items, buf_len(items));
 }
 
 fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind): Decl* {
-    #assert(kind == DECL_STRUCT || kind == DECL_UNION);
-    let name = parse_name();
-    let aggregate_kind = kind == DECL_STRUCT ? AGGREGATE_STRUCT : AGGREGATE_UNION;
-    if (match_token(TOKEN_SEMICOLON)) {
-        let decl = new_decl_aggregate(pos, kind, name, new_aggregate(pos, aggregate_kind, NULL, 0));
-        decl.is_incomplete = true;
-        return decl;
-    } else {
-        return new_decl_aggregate(pos, kind, name, parse_aggregate(aggregate_kind));
-    }
+  #assert(kind == DECL_STRUCT || kind == DECL_UNION);
+  let name = parse_name();
+  let aggregate_kind = kind == DECL_STRUCT ? AGGREGATE_STRUCT : AGGREGATE_UNION;
+  if (match_token(TOKEN_SEMICOLON)) {
+    let decl = new_decl_aggregate(pos, kind, name, new_aggregate(pos, aggregate_kind, NULL, 0));
+    decl.is_incomplete = true;
+    return decl;
+  } else {
+    return new_decl_aggregate(pos, kind, name, parse_aggregate(aggregate_kind));
+  }
 }
 
 fn parse_decl_var(pos: SrcPos): Decl* {
-    let name = parse_name();
+  let name = parse_name();
+  if (match_token(TOKEN_ASSIGN)) {
+    let expr = parse_expr();
+    expect_token(TOKEN_SEMICOLON);
+    return new_decl_var(pos, name, NULL, expr);
+  } else if (match_token(TOKEN_COLON)) {
+    let type = parse_type();
+    let expr: Expr* = NULL;
     if (match_token(TOKEN_ASSIGN)) {
-        let expr = parse_expr();
-        expect_token(TOKEN_SEMICOLON);
-        return new_decl_var(pos, name, NULL, expr);
-    } else if (match_token(TOKEN_COLON)) {
-        let type = parse_type();
-        let expr: Expr* = NULL;
-        if (match_token(TOKEN_ASSIGN)) {
-            expr = parse_expr();
-        }
-        expect_token(TOKEN_SEMICOLON);
-        return new_decl_var(pos, name, type, expr);
-    } else {
-        fatal_error(token.pos, "Expected : or = after let, got %s", token_info());
-        return NULL;
+      expr = parse_expr();
     }
+    expect_token(TOKEN_SEMICOLON);
+    return new_decl_var(pos, name, type, expr);
+  } else {
+    fatal_error(token.pos, "Expected : or = after let, got %s", token_info());
+    return NULL;
+  }
 }
 
 fn parse_decl_const(pos: SrcPos): Decl* {
-    let name = parse_name();
-    let type: Typespec* = NULL;
-    if (match_token(TOKEN_COLON)) {
-        type = parse_type();
-    }
-    expect_token(TOKEN_ASSIGN);
-    let expr = parse_expr();
-    expect_token(TOKEN_SEMICOLON);
-    return new_decl_const(pos, name, type, expr);
+  let name = parse_name();
+  let type: Typespec* = NULL;
+  if (match_token(TOKEN_COLON)) {
+    type = parse_type();
+  }
+  expect_token(TOKEN_ASSIGN);
+  let expr = parse_expr();
+  expect_token(TOKEN_SEMICOLON);
+  return new_decl_const(pos, name, type, expr);
 }
 
 fn parse_decl_typedef(pos: SrcPos): Decl* {
-    let name = parse_name();
-    expect_token(TOKEN_ASSIGN);
-    let type = parse_type();
-    expect_token(TOKEN_SEMICOLON);
-    return new_decl_typedef(pos, name, type);
+  let name = parse_name();
+  expect_token(TOKEN_ASSIGN);
+  let type = parse_type();
+  expect_token(TOKEN_SEMICOLON);
+  return new_decl_typedef(pos, name, type);
 }
 
 fn parse_decl_func_param(): FuncParam {
-    let pos = token.pos;
-    let name = parse_name();
-    expect_token(TOKEN_COLON);
-    let type = parse_type();
-    return FuncParam {pos, name, type};
+  let pos = token.pos;
+  let name = parse_name();
+  expect_token(TOKEN_COLON);
+  let type = parse_type();
+  return FuncParam {pos, name, type};
 }
 
 fn parse_decl_func(pos: SrcPos): Decl* {
-    let name = parse_name();
-    expect_token(TOKEN_LPAREN);
-    let params: FuncParam* = NULL;
-    let has_varargs: bool = false;
-    while (!is_token(TOKEN_RPAREN)) {
-        if (match_token(TOKEN_ELLIPSIS)) {
-            if (has_varargs) {
-                error(token.pos, "Multiple ellipsis in function declaration");
-            }
-            has_varargs = true;
-        } else {
-            if (has_varargs) {
-                error(token.pos, "Ellipsis must be last parameter in function declaration");
-            }
-            let param = parse_decl_func_param();
-            buf_push((:void**)&params, &param, sizeof(param));
-        }
-        if (!match_token(TOKEN_COMMA)) {
-            break;
-        }
-    }
-    expect_token(TOKEN_RPAREN);
-    let ret_type: Typespec* = NULL;
-    if (match_token(TOKEN_COLON)) {
-        ret_type = parse_type();
-    }
-    let block: StmtList;  // TODO Auto initialized? = {0};
-    let is_incomplete: bool;
-    if (match_token(TOKEN_SEMICOLON)) {
-        is_incomplete = true;
+  let name = parse_name();
+  expect_token(TOKEN_LPAREN);
+  let params: FuncParam* = NULL;
+  let has_varargs: bool = false;
+  while (!is_token(TOKEN_RPAREN)) {
+    if (match_token(TOKEN_ELLIPSIS)) {
+      if (has_varargs) {
+        error(token.pos, "Multiple ellipsis in function declaration");
+      }
+      has_varargs = true;
     } else {
-        block = parse_stmt_block();
-        is_incomplete = false;
+      if (has_varargs) {
+        error(token.pos, "Ellipsis must be last parameter in function declaration");
+      }
+      let param = parse_decl_func_param();
+      buf_push((:void**)&params, &param, sizeof(param));
     }
-    let decl: Decl* = new_decl_func(pos, name, params, buf_len(params), ret_type, has_varargs, block);
-    decl.is_incomplete = is_incomplete;
-    return decl;
+    if (!match_token(TOKEN_COMMA)) {
+      break;
+    }
+  }
+  expect_token(TOKEN_RPAREN);
+  let ret_type: Typespec* = NULL;
+  if (match_token(TOKEN_COLON)) {
+    ret_type = parse_type();
+  }
+  let block: StmtList;  // TODO Auto initialized? = {0};
+  let is_incomplete: bool;
+  if (match_token(TOKEN_SEMICOLON)) {
+    is_incomplete = true;
+  } else {
+    block = parse_stmt_block();
+    is_incomplete = false;
+  }
+  let decl: Decl* = new_decl_func(pos, name, params, buf_len(params), ret_type, has_varargs, block);
+  decl.is_incomplete = is_incomplete;
+  return decl;
 }
 
 fn parse_note_arg(): NoteArg {
-    let pos = token.pos;
-    let expr = parse_expr();
-    let name: char const* = NULL;
-    if (match_token(TOKEN_ASSIGN)) {
-        if (expr.kind != EXPR_NAME) {
-            fatal_error(token.pos, "Left of: operand = in note argument must be a name");
-        }
-        name = expr.name;
-        expr = parse_expr();
+  let pos = token.pos;
+  let expr = parse_expr();
+  let name: char const* = NULL;
+  if (match_token(TOKEN_ASSIGN)) {
+    if (expr.kind != EXPR_NAME) {
+      fatal_error(token.pos, "Left of: operand = in note argument must be a name");
     }
-    return NoteArg {pos = pos, name = name, expr = expr};
+    name = expr.name;
+    expr = parse_expr();
+  }
+  return NoteArg {pos = pos, name = name, expr = expr};
 }
 
 fn parse_note(): Note {
-    let pos = token.pos;
-    let name = parse_name();
-    let args: NoteArg* = NULL;
-    if (match_token(TOKEN_LPAREN)) {
-        let arg = parse_note_arg();
-        buf_push((:void**)&args, &arg, sizeof(arg));
-        while (match_token(TOKEN_COMMA)) {
-            arg = parse_note_arg();
-            buf_push((:void**)&args, &arg, sizeof(arg));
-        }
-        expect_token(TOKEN_RPAREN);
+  let pos = token.pos;
+  let name = parse_name();
+  let args: NoteArg* = NULL;
+  if (match_token(TOKEN_LPAREN)) {
+    let arg = parse_note_arg();
+    buf_push((:void**)&args, &arg, sizeof(arg));
+    while (match_token(TOKEN_COMMA)) {
+      arg = parse_note_arg();
+      buf_push((:void**)&args, &arg, sizeof(arg));
     }
-    return new_note(pos, name, args, buf_len(args));
+    expect_token(TOKEN_RPAREN);
+  }
+  return new_note(pos, name, args, buf_len(args));
 }
 
 fn parse_notes(): Notes {
-    let notes: Note* = NULL;
-    while (match_token(TOKEN_AT)) {
-        let note = parse_note();
-        buf_push((:void**)&notes, &note, sizeof(note));
-    }
-    return new_notes(notes, buf_len(notes));
+  let notes: Note* = NULL;
+  while (match_token(TOKEN_AT)) {
+    let note = parse_note();
+    buf_push((:void**)&notes, &note, sizeof(note));
+  }
+  return new_notes(notes, buf_len(notes));
 }
 
 fn parse_decl_note(pos: SrcPos): Decl* {
-    return new_decl_note(pos, parse_note());
+  return new_decl_note(pos, parse_note());
 }
 
 fn parse_decl_import(pos: SrcPos): Decl* {
-    let rename_name: char const*;
-    let is_relative: bool;
-    :repeat
-    is_relative = false;
-    if (match_token(TOKEN_DOT)) {
-        is_relative = true;
+  let rename_name: char const*;
+  let is_relative: bool;
+  :repeat
+  is_relative = false;
+  if (match_token(TOKEN_DOT)) {
+    is_relative = true;
+  }
+  let name = token.name;
+  expect_token(TOKEN_NAME);
+  if (!is_relative && match_token(TOKEN_ASSIGN)) {
+    if (rename_name) {
+      fatal_error(pos, "Only one import assignment is allowed");
     }
-    let name = token.name;
+    rename_name = name;
+    goto repeat;
+  }
+  let names: char const** = NULL;
+  buf_push((:void**)&names, &name, sizeof(name));
+  while (match_token(TOKEN_DOT)) {
+    buf_push((:void**)&names, &token.name, sizeof(token.name));
     expect_token(TOKEN_NAME);
-    if (!is_relative && match_token(TOKEN_ASSIGN)) {
-        if (rename_name) {
-            fatal_error(pos, "Only one import assignment is allowed");
+  }
+  let import_all = false;
+  let items: ImportItem*;
+  if (match_token(TOKEN_LBRACE)) {
+    while (!is_token(TOKEN_RBRACE)) {
+      if (match_token(TOKEN_ELLIPSIS)) {
+        import_all = true;
+      } else {
+        let item_name = parse_name();
+        if (match_token(TOKEN_ASSIGN)) {
+          let item = ImportItem {name = parse_name(), rename = item_name};
+          buf_push((:void**)&items, &item, sizeof(item));
+        } else {
+          let item = ImportItem {name = item_name};
+          buf_push((:void**)&items, &item, sizeof(item));
         }
-        rename_name = name;
-        goto repeat;
-    }
-    let names: char const** = NULL;
-    buf_push((:void**)&names, &name, sizeof(name));
-    while (match_token(TOKEN_DOT)) {
-        buf_push((:void**)&names, &token.name, sizeof(token.name));
-        expect_token(TOKEN_NAME);
-    }
-    let import_all = false;
-    let items: ImportItem*;
-    if (match_token(TOKEN_LBRACE)) {
-        while (!is_token(TOKEN_RBRACE)) {
-            if (match_token(TOKEN_ELLIPSIS)) {
-                import_all = true;
-            } else {
-                let item_name = parse_name();
-                if (match_token(TOKEN_ASSIGN)) {
-                    let item = ImportItem {name = parse_name(), rename = item_name};
-                    buf_push((:void**)&items, &item, sizeof(item));
-                } else {
-                    let item = ImportItem {name = item_name};
-                    buf_push((:void**)&items, &item, sizeof(item));
-                }
-                if (!match_token(TOKEN_COMMA)) {
-                    break;
-                }
-            }
+        if (!match_token(TOKEN_COMMA)) {
+          break;
         }
-        expect_token(TOKEN_RBRACE);
+      }
     }
-    return new_decl_import(pos, rename_name, is_relative, names, buf_len(names), import_all, items, buf_len(items));
+    expect_token(TOKEN_RBRACE);
+  }
+  return new_decl_import(pos, rename_name, is_relative, names, buf_len(names), import_all, items, buf_len(items));
 }
 
 fn parse_decl_opt(): Decl* {
-    let pos = token.pos;
-    if (match_keyword(enum_keyword)) {
-        return parse_decl_enum(pos);
-    } else if (match_keyword(struct_keyword)) {
-        return parse_decl_aggregate(pos, DECL_STRUCT);
-    } else if (match_keyword(union_keyword)) {
-        return parse_decl_aggregate(pos, DECL_UNION);
-    } else if (match_keyword(const_keyword)) {
-        return parse_decl_const(pos);
-    } else if (match_keyword(typedef_keyword)) {
-        return parse_decl_typedef(pos);
-    } else if (match_keyword(fn_keyword)) {
-        return parse_decl_func(pos);
-    } else if (match_keyword(let_keyword)) {
-        return parse_decl_var(pos);
-    } else if (match_keyword(import_keyword)) {
-        return parse_decl_import(pos);
-    } else if (match_token(TOKEN_POUND)) {
-        return parse_decl_note(pos);
-    } else {
-        return NULL;
-    }
+  let pos = token.pos;
+  if (match_keyword(enum_keyword)) {
+    return parse_decl_enum(pos);
+  } else if (match_keyword(struct_keyword)) {
+    return parse_decl_aggregate(pos, DECL_STRUCT);
+  } else if (match_keyword(union_keyword)) {
+    return parse_decl_aggregate(pos, DECL_UNION);
+  } else if (match_keyword(const_keyword)) {
+    return parse_decl_const(pos);
+  } else if (match_keyword(typedef_keyword)) {
+    return parse_decl_typedef(pos);
+  } else if (match_keyword(fn_keyword)) {
+    return parse_decl_func(pos);
+  } else if (match_keyword(let_keyword)) {
+    return parse_decl_var(pos);
+  } else if (match_keyword(import_keyword)) {
+    return parse_decl_import(pos);
+  } else if (match_token(TOKEN_POUND)) {
+    return parse_decl_note(pos);
+  } else {
+    return NULL;
+  }
 }
 
 fn parse_decl(): Decl* {
-    let notes = parse_notes();
-    let decl: Decl* = parse_decl_opt();
-    if (!decl) {
-        fatal_error(token.pos, "Expected declaration keyword, got %s", token_info());
-    }
-    decl.notes = notes;
-    return decl;
+  let notes = parse_notes();
+  let decl: Decl* = parse_decl_opt();
+  if (!decl) {
+    fatal_error(token.pos, "Expected declaration keyword, got %s", token_info());
+  }
+  decl.notes = notes;
+  return decl;
 }
 
 fn parse_decls(): Decls* {
-    let decls: Decl** = NULL;
-    while (!is_token(TOKEN_EOF)) {
-        let decl = parse_decl();
-        buf_push((:void**)&decls, &decl, sizeof(decl));
-    }
-    return new_decls(decls, buf_len(decls));
+  let decls: Decl** = NULL;
+  while (!is_token(TOKEN_EOF)) {
+    let decl = parse_decl();
+    buf_push((:void**)&decls, &decl, sizeof(decl));
+  }
+  return new_decls(decls, buf_len(decls));
 }
