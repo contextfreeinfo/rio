@@ -1,0 +1,10 @@
+import libc {...}
+
+fn main(): int {
+  let i = 1;
+  let j: int const = 2;
+  let k = 3;
+  // j += k;
+  printf("Hello, %d!\n", i);
+  return 0;
+}

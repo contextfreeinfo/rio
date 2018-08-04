@@ -663,9 +663,15 @@ fn resolve_init(pos: SrcPos, typespec: Typespec*, expr: Expr*): Type* {
     let declared_type = resolve_typespec(typespec);
     type = declared_type;
     if (expr) {
-      type = resolve_typed_init(pos, declared_type, expr);
-      if (!type) {
+      let expr_type = resolve_typed_init(pos, declared_type, expr);
+      if (!expr_type) {
         fatal_error(pos, "Invalid type in initialization. Expected %s", get_type_name(declared_type));
+      }
+      // Hack to support inferred array sizes, but we might also be losing
+      // things from the declared type.
+      // TODO Make a new declared type with the size added in.
+      if (expr_type.kind == CMPL_TYPE_ARRAY) {
+        type = expr_type;
       }
     }
   } else {
