@@ -821,26 +821,6 @@ void rio_gen_postamble(void);
 
 void rio_gen_all(void);
 
-#define RIO_MAX_SEARCH_PATHS ((int)(256))
-
-extern char const ((*(rio_static_package_search_paths[RIO_MAX_SEARCH_PATHS])));
-
-extern char const ((*(*rio_package_search_paths)));
-
-extern int rio_num_package_search_paths;
-
-void rio_add_package_search_path(char const ((*path)));
-
-void rio_add_package_search_path_range(char const ((*start)), char const ((*end)));
-
-void rio_init_package_search_paths(void);
-
-void rio_init_compiler(void);
-
-void rio_parse_env_vars(void);
-
-int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char const ((*extension)));
-
 extern char const ((*rio_typedef_keyword));
 
 extern char const ((*rio_enum_keyword));
@@ -1674,6 +1654,26 @@ bool rio_compile_package(rio_Package (*package));
 void rio_resolve_package_syms(rio_Package (*package));
 
 void rio_finalize_reachable_syms(void);
+
+#define RIO_MAX_SEARCH_PATHS ((int)(256))
+
+extern char const ((*(rio_static_package_search_paths[RIO_MAX_SEARCH_PATHS])));
+
+extern char const ((*(*rio_package_search_paths)));
+
+extern int rio_num_package_search_paths;
+
+void rio_add_package_search_path(char const ((*path)));
+
+void rio_add_package_search_path_range(char const ((*start)), char const ((*end)));
+
+void rio_init_package_search_paths(void);
+
+void rio_init_compiler(void);
+
+void rio_parse_env_vars(void);
+
+int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char const ((*extension)));
 
 typedef int rio_Os;
 
@@ -4476,160 +4476,6 @@ void rio_gen_all(void) {
   rio_gen_foreign_sources();
   rio_genln();
   rio_gen_postamble();
-}
-
-char const ((*(rio_static_package_search_paths[RIO_MAX_SEARCH_PATHS])));
-char const ((*(*rio_package_search_paths))) = rio_static_package_search_paths;
-int rio_num_package_search_paths;
-void rio_add_package_search_path(char const ((*path))) {
-  if (rio_flag_verbose) {
-    printf("Adding package search path %s\n", path);
-  }
-  rio_package_search_paths[(rio_num_package_search_paths)++] = rio_str_intern(path);
-}
-
-void rio_add_package_search_path_range(char const ((*start)), char const ((*end))) {
-  char (path[MAX_PATH]) = {0};
-  size_t len = rio_clamp_max((end) - (start), (MAX_PATH) - (1));
-  memcpy(path, start, len);
-  path[len] = 0;
-  rio_add_package_search_path(path);
-}
-
-void rio_init_package_search_paths(void) {
-  char (*riohome_var) = getenv("RIOHOME");
-  if (!(riohome_var)) {
-    printf("error: Set the environment variable RIOHOME to the Ion home directory (where system_packages is located)\n");
-    exit(1);
-  }
-  char (path[MAX_PATH]) = {0};
-  rio_path_copy(path, riohome_var);
-  rio_path_join(path, "system_packages");
-  rio_add_package_search_path(path);
-  rio_add_package_search_path(".");
-  char (*riopath_var) = getenv("RIOPATH");
-  if (riopath_var) {
-    char (*start) = riopath_var;
-    for (char (*ptr) = riopath_var; *(ptr); (ptr)++) {
-      if ((*(ptr)) == (';')) {
-        rio_add_package_search_path_range(start, ptr);
-        start = (ptr) + (1);
-      }
-    }
-    if (*(start)) {
-      rio_add_package_search_path(start);
-    }
-  }
-}
-
-void rio_init_compiler(void) {
-  rio_init_target();
-  rio_init_package_search_paths();
-  rio_init_keywords();
-  rio_init_builtin_types();
-  rio_map_put(&(rio_decl_note_names), rio_declare_note_name, (void *)(1));
-}
-
-void rio_parse_env_vars(void) {
-  char (*rioos_var) = getenv("RIOOS");
-  if (rioos_var) {
-    int os = rio_get_os(rioos_var);
-    if ((os) == (-(1))) {
-      printf("Unknown target operating system in RIOOS environment variable: %s\n", rioos_var);
-    } else {
-      rio_target_os = os;
-    }
-  }
-  char (*rioarch_var) = getenv("RIOARCH");
-  if (rioarch_var) {
-    int arch = rio_get_arch(rioarch_var);
-    if ((arch) == (-(1))) {
-      printf("Unknown target architecture in RIOARCH environment variable: %s\n", rioarch_var);
-    } else {
-      rio_target_arch = arch;
-    }
-  }
-}
-
-int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char const ((*extension))) {
-  rio_parse_env_vars();
-  char const ((*output_name)) = {0};
-  bool flag_check = false;
-  rio_add_flag_str("o", &(output_name), "file", "Output file (default: out_<main-package>.c)");
-  rio_add_flag_enum("os", &(rio_target_os), "Target operating system", rio_os_names, RIO_NUM_OSES);
-  rio_add_flag_enum("arch", &(rio_target_arch), "Target machine architecture", rio_arch_names, RIO_NUM_ARCHES);
-  rio_add_flag_bool("check", &(flag_check), "Semantic checking with no code generation");
-  rio_add_flag_bool("lazy", &(rio_flag_lazy), "Only compile what\'s reachable from the main package");
-  rio_add_flag_bool("nosourcemap", &(rio_flag_nosourcemap), "Don\'t generate any source map information");
-  rio_add_flag_bool("notypeinfo", &(rio_flag_notypeinfo), "Don\'t generate any typeinfo tables");
-  rio_add_flag_bool("fullgen", &(rio_flag_fullgen), "Force full code generation even for non-reachable symbols");
-  rio_add_flag_bool("verbose", &(rio_flag_verbose), "Extra diagnostic information");
-  char const ((*program_name)) = rio_parse_flags(&(argc), &(argv));
-  if ((argc) != (1)) {
-    printf("Usage: %s [flags] <main-package>\n", program_name);
-    rio_print_flags_usage();
-    return 1;
-  }
-  char const ((*package_name)) = argv[0];
-  if (rio_flag_verbose) {
-    printf("Target operating system: %s\n", rio_os_names[rio_target_os]);
-    printf("Target architecture: %s\n", rio_arch_names[rio_target_arch]);
-  }
-  rio_init_compiler();
-  rio_builtin_package = rio_import_package("builtin");
-  if (!(rio_builtin_package)) {
-    printf("error: Failed to compile package \'builtin\'.\n");
-    return 1;
-  }
-  rio_builtin_package->external_name = rio_str_intern("");
-  rio_Package (*main_package) = rio_import_package(package_name);
-  if (!(main_package)) {
-    printf("error: Failed to compile package \'%s\'\n", package_name);
-    return 1;
-  }
-  char const ((*main_name)) = rio_str_intern("main");
-  rio_Sym (*main_sym) = rio_get_package_sym(main_package, main_name);
-  if (!(main_sym)) {
-    printf("error: No \'main\' entry point defined in package \'%s\'\n", package_name);
-    return 1;
-  }
-  main_sym->external_name = main_name;
-  rio_reachable_phase = RIO_REACHABLE_NATURAL;
-  rio_resolve_sym(main_sym);
-  for (size_t i = 0; (i) < (rio_buf_len(rio_package_list)); (i)++) {
-    if (rio_package_list[i]->always_reachable) {
-      rio_resolve_package_syms(rio_package_list[i]);
-    }
-  }
-  rio_finalize_reachable_syms();
-  if (rio_flag_verbose) {
-    printf("Reached %d symbols in %d packages from %s/main\n", (int)(rio_buf_len(rio_reachable_syms)), (int)(rio_buf_len(rio_package_list)), package_name);
-  }
-  if (!(rio_flag_lazy)) {
-    rio_reachable_phase = RIO_REACHABLE_FORCED;
-    for (size_t i = 0; (i) < (rio_buf_len(rio_package_list)); (i)++) {
-      rio_resolve_package_syms(rio_package_list[i]);
-    }
-    rio_finalize_reachable_syms();
-  }
-  printf("Processed %d symbols in %d packages\n", (int)(rio_buf_len(rio_reachable_syms)), (int)(rio_buf_len(rio_package_list)));
-  if (!(flag_check)) {
-    char (c_path[MAX_PATH]) = {0};
-    if (output_name) {
-      rio_path_copy(c_path, output_name);
-    } else {
-      snprintf(c_path, sizeof(c_path), "out_%s.%s", package_name, extension);
-    }
-    gen_all();
-    char (*c_code) = rio_gen_buf;
-    rio_gen_buf = NULL;
-    if (!(rio_write_file(c_path, c_code, rio_buf_len(c_code)))) {
-      printf("error: Failed to write file: %s\n", c_path);
-      return 1;
-    }
-    printf("Generated %s\n", c_path);
-  }
-  return 0;
 }
 
 char const ((*rio_typedef_keyword));
@@ -8945,6 +8791,160 @@ void rio_finalize_reachable_syms(void) {
       num_reachable = rio_buf_len(rio_reachable_syms);
     }
   }
+}
+
+char const ((*(rio_static_package_search_paths[RIO_MAX_SEARCH_PATHS])));
+char const ((*(*rio_package_search_paths))) = rio_static_package_search_paths;
+int rio_num_package_search_paths;
+void rio_add_package_search_path(char const ((*path))) {
+  if (rio_flag_verbose) {
+    printf("Adding package search path %s\n", path);
+  }
+  rio_package_search_paths[(rio_num_package_search_paths)++] = rio_str_intern(path);
+}
+
+void rio_add_package_search_path_range(char const ((*start)), char const ((*end))) {
+  char (path[MAX_PATH]) = {0};
+  size_t len = rio_clamp_max((end) - (start), (MAX_PATH) - (1));
+  memcpy(path, start, len);
+  path[len] = 0;
+  rio_add_package_search_path(path);
+}
+
+void rio_init_package_search_paths(void) {
+  char (*riohome_var) = getenv("RIOHOME");
+  if (!(riohome_var)) {
+    printf("error: Set the environment variable RIOHOME to the Ion home directory (where system_packages is located)\n");
+    exit(1);
+  }
+  char (path[MAX_PATH]) = {0};
+  rio_path_copy(path, riohome_var);
+  rio_path_join(path, "system_packages");
+  rio_add_package_search_path(path);
+  rio_add_package_search_path(".");
+  char (*riopath_var) = getenv("RIOPATH");
+  if (riopath_var) {
+    char (*start) = riopath_var;
+    for (char (*ptr) = riopath_var; *(ptr); (ptr)++) {
+      if ((*(ptr)) == (';')) {
+        rio_add_package_search_path_range(start, ptr);
+        start = (ptr) + (1);
+      }
+    }
+    if (*(start)) {
+      rio_add_package_search_path(start);
+    }
+  }
+}
+
+void rio_init_compiler(void) {
+  rio_init_target();
+  rio_init_package_search_paths();
+  rio_init_keywords();
+  rio_init_builtin_types();
+  rio_map_put(&(rio_decl_note_names), rio_declare_note_name, (void *)(1));
+}
+
+void rio_parse_env_vars(void) {
+  char (*rioos_var) = getenv("RIOOS");
+  if (rioos_var) {
+    int os = rio_get_os(rioos_var);
+    if ((os) == (-(1))) {
+      printf("Unknown target operating system in RIOOS environment variable: %s\n", rioos_var);
+    } else {
+      rio_target_os = os;
+    }
+  }
+  char (*rioarch_var) = getenv("RIOARCH");
+  if (rioarch_var) {
+    int arch = rio_get_arch(rioarch_var);
+    if ((arch) == (-(1))) {
+      printf("Unknown target architecture in RIOARCH environment variable: %s\n", rioarch_var);
+    } else {
+      rio_target_arch = arch;
+    }
+  }
+}
+
+int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char const ((*extension))) {
+  rio_parse_env_vars();
+  char const ((*output_name)) = {0};
+  bool flag_check = false;
+  rio_add_flag_str("o", &(output_name), "file", "Output file (default: out_<main-package>.c)");
+  rio_add_flag_enum("os", &(rio_target_os), "Target operating system", rio_os_names, RIO_NUM_OSES);
+  rio_add_flag_enum("arch", &(rio_target_arch), "Target machine architecture", rio_arch_names, RIO_NUM_ARCHES);
+  rio_add_flag_bool("check", &(flag_check), "Semantic checking with no code generation");
+  rio_add_flag_bool("lazy", &(rio_flag_lazy), "Only compile what\'s reachable from the main package");
+  rio_add_flag_bool("nosourcemap", &(rio_flag_nosourcemap), "Don\'t generate any source map information");
+  rio_add_flag_bool("notypeinfo", &(rio_flag_notypeinfo), "Don\'t generate any typeinfo tables");
+  rio_add_flag_bool("fullgen", &(rio_flag_fullgen), "Force full code generation even for non-reachable symbols");
+  rio_add_flag_bool("verbose", &(rio_flag_verbose), "Extra diagnostic information");
+  char const ((*program_name)) = rio_parse_flags(&(argc), &(argv));
+  if ((argc) != (1)) {
+    printf("Usage: %s [flags] <main-package>\n", program_name);
+    rio_print_flags_usage();
+    return 1;
+  }
+  char const ((*package_name)) = argv[0];
+  if (rio_flag_verbose) {
+    printf("Target operating system: %s\n", rio_os_names[rio_target_os]);
+    printf("Target architecture: %s\n", rio_arch_names[rio_target_arch]);
+  }
+  rio_init_compiler();
+  rio_builtin_package = rio_import_package("builtin");
+  if (!(rio_builtin_package)) {
+    printf("error: Failed to compile package \'builtin\'.\n");
+    return 1;
+  }
+  rio_builtin_package->external_name = rio_str_intern("");
+  rio_Package (*main_package) = rio_import_package(package_name);
+  if (!(main_package)) {
+    printf("error: Failed to compile package \'%s\'\n", package_name);
+    return 1;
+  }
+  char const ((*main_name)) = rio_str_intern("main");
+  rio_Sym (*main_sym) = rio_get_package_sym(main_package, main_name);
+  if (!(main_sym)) {
+    printf("error: No \'main\' entry point defined in package \'%s\'\n", package_name);
+    return 1;
+  }
+  main_sym->external_name = main_name;
+  rio_reachable_phase = RIO_REACHABLE_NATURAL;
+  rio_resolve_sym(main_sym);
+  for (size_t i = 0; (i) < (rio_buf_len(rio_package_list)); (i)++) {
+    if (rio_package_list[i]->always_reachable) {
+      rio_resolve_package_syms(rio_package_list[i]);
+    }
+  }
+  rio_finalize_reachable_syms();
+  if (rio_flag_verbose) {
+    printf("Reached %d symbols in %d packages from %s/main\n", (int)(rio_buf_len(rio_reachable_syms)), (int)(rio_buf_len(rio_package_list)), package_name);
+  }
+  if (!(rio_flag_lazy)) {
+    rio_reachable_phase = RIO_REACHABLE_FORCED;
+    for (size_t i = 0; (i) < (rio_buf_len(rio_package_list)); (i)++) {
+      rio_resolve_package_syms(rio_package_list[i]);
+    }
+    rio_finalize_reachable_syms();
+  }
+  printf("Processed %d symbols in %d packages\n", (int)(rio_buf_len(rio_reachable_syms)), (int)(rio_buf_len(rio_package_list)));
+  if (!(flag_check)) {
+    char (c_path[MAX_PATH]) = {0};
+    if (output_name) {
+      rio_path_copy(c_path, output_name);
+    } else {
+      snprintf(c_path, sizeof(c_path), "out_%s.%s", package_name, extension);
+    }
+    gen_all();
+    char (*c_code) = rio_gen_buf;
+    rio_gen_buf = NULL;
+    if (!(rio_write_file(c_path, c_code, rio_buf_len(c_code)))) {
+      printf("error: Failed to write file: %s\n", c_path);
+      return 1;
+    }
+    printf("Generated %s\n", c_path);
+  }
+  return 0;
 }
 
 char const ((*(rio_os_names[RIO_NUM_OSES]))) = {[RIO_OS_WIN32] = "win32", [RIO_OS_LINUX] = "linux", [RIO_OS_OSX] = "osx"};
