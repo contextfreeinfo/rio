@@ -369,21 +369,16 @@ fn parse_stmt_if(pos: SrcPos): Stmt* {
     let init: Stmt*;
     if (match_keyword(let_keyword)) {
         init = parse_let_stmt(pos);
-    } else {
-        cond = parse_expr();
-        init = parse_init_stmt(cond);
-    }
-    if (init) {
         if (match_token(TOKEN_SEMICOLON)) {
             cond = parse_expr();
-        } else {
-            cond = NULL;
         }
+    } else {
+        cond = parse_expr();
     }
     expect_token(TOKEN_RPAREN);
     let then_block: StmtList = parse_stmt_block();
     let else_block: StmtList = {{NULL, 0}, NULL, 0};  // TODO Automatic null???
-    let elseifs: ElseIf* = NULL;
+    let elseifs: ElseIf*;
     while (match_keyword(else_keyword)) {
         if (!match_keyword(if_keyword)) {
             else_block = parse_stmt_block();
@@ -434,24 +429,6 @@ fn parse_let_stmt(pos: SrcPos): Stmt* {
     }
 }
 
-fn parse_init_stmt(left: Expr*): Stmt* {
-    if (match_token(TOKEN_COLON)) {
-        if (left.kind != EXPR_NAME) {
-            fatal_error(token.pos, ": must be preceded by a name");
-            return NULL;
-        }
-        let name = left.name;
-        let type = parse_type();
-        let expr: Expr*;
-        if (match_token(TOKEN_ASSIGN)) {
-            expr = parse_expr();
-        }
-        return new_stmt_init(left.pos, name, type, expr);
-    } else {
-        return NULL;
-    }
-}
-
 fn parse_simple_stmt(): Stmt* {
     let pos = token.pos;
     let stmt: Stmt*;
@@ -459,15 +436,12 @@ fn parse_simple_stmt(): Stmt* {
         stmt = parse_let_stmt(pos);
     } else {
         let expr = parse_expr();
-        stmt = parse_init_stmt(expr);
-        if (!stmt) {
-            if (is_assign_op()) {
-                let op = token.kind;
-                next_token();
-                stmt = new_stmt_assign(pos, op, expr, parse_expr());
-            } else {
-                stmt = new_stmt_expr(pos, expr);
-            }
+        if (is_assign_op()) {
+            let op = token.kind;
+            next_token();
+            stmt = new_stmt_assign(pos, op, expr, parse_expr());
+        } else {
+            stmt = new_stmt_expr(pos, expr);
         }
     }
     return stmt;

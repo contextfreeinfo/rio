@@ -137,7 +137,7 @@ fn is_excluded_target_filename(name: char const*): bool {
     while (ptr1 != name && ptr1[-1] != '_') {
         ptr1--;
     }
-    str1: char[MAX_PATH];
+    let str1: char[MAX_PATH];
     if (ptr1 == name) {
         str1[0] = 0;
     } else {
@@ -150,7 +150,7 @@ fn is_excluded_target_filename(name: char const*): bool {
     while (ptr2 != name && ptr2[-1] != '_') {
         ptr2--;
     }
-    str2: char[MAX_PATH];
+    let str2: char[MAX_PATH];
     if (ptr2 == name) {
         str2[0] = 0;
     } else {

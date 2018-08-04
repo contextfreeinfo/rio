@@ -476,7 +476,7 @@ fn test_const() {
 fn test_init() {
     let x = (:int const)0;
     #static_assert(sizeof(x) == 4);
-    y: int;
+    let y: int;
     y = 0;
     let z: int = 42;
     let a: int[] = {1, 2, 3};

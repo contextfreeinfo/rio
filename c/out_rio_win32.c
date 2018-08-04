@@ -1262,8 +1262,6 @@ bool rio_is_assign_op(void);
 
 rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos));
 
-rio_Stmt (*rio_parse_init_stmt(rio_Expr (*left)));
-
 rio_Stmt (*rio_parse_simple_stmt(void));
 
 rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos));
@@ -6038,21 +6036,16 @@ rio_Stmt (*rio_parse_stmt_if(rio_SrcPos pos)) {
     rio_Stmt (*init) = {0};
     if (rio_match_keyword(rio_let_keyword)) {
         init = rio_parse_let_stmt(pos);
-    } else {
-        cond = rio_parse_expr();
-        init = rio_parse_init_stmt(cond);
-    }
-    if (init) {
         if (rio_match_token(RIO_TOKEN_SEMICOLON)) {
             cond = rio_parse_expr();
-        } else {
-            cond = NULL;
         }
+    } else {
+        cond = rio_parse_expr();
     }
     rio_expect_token(RIO_TOKEN_RPAREN);
     rio_StmtList then_block = rio_parse_stmt_block();
     rio_StmtList else_block = {{NULL, 0}, NULL, 0};
-    rio_ElseIf (*elseifs) = NULL;
+    rio_ElseIf (*elseifs) = {0};
     while (rio_match_keyword(rio_else_keyword)) {
         if (!(rio_match_keyword(rio_if_keyword))) {
             else_block = rio_parse_stmt_block();
@@ -6103,24 +6096,6 @@ rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos)) {
     }
 }
 
-rio_Stmt (*rio_parse_init_stmt(rio_Expr (*left))) {
-    if (rio_match_token(RIO_TOKEN_COLON)) {
-        if ((left->kind) != (RIO_EXPR_NAME)) {
-            rio_fatal_error(rio_token.pos, ": must be preceded by a name");
-            return NULL;
-        }
-        char const ((*name)) = left->name;
-        rio_Typespec (*type) = rio_parse_type();
-        rio_Expr (*expr) = {0};
-        if (rio_match_token(RIO_TOKEN_ASSIGN)) {
-            expr = rio_parse_expr();
-        }
-        return rio_new_stmt_init(left->pos, name, type, expr);
-    } else {
-        return NULL;
-    }
-}
-
 rio_Stmt (*rio_parse_simple_stmt(void)) {
     rio_SrcPos pos = rio_token.pos;
     rio_Stmt (*stmt) = {0};
@@ -6128,15 +6103,12 @@ rio_Stmt (*rio_parse_simple_stmt(void)) {
         stmt = rio_parse_let_stmt(pos);
     } else {
         rio_Expr (*expr) = rio_parse_expr();
-        stmt = rio_parse_init_stmt(expr);
-        if (!(stmt)) {
-            if (rio_is_assign_op()) {
-                rio_TokenKind op = rio_token.kind;
-                rio_next_token();
-                stmt = rio_new_stmt_assign(pos, op, expr, rio_parse_expr());
-            } else {
-                stmt = rio_new_stmt_expr(pos, expr);
-            }
+        if (rio_is_assign_op()) {
+            rio_TokenKind op = rio_token.kind;
+            rio_next_token();
+            stmt = rio_new_stmt_assign(pos, op, expr, rio_parse_expr());
+        } else {
+            stmt = rio_new_stmt_expr(pos, expr);
         }
     }
     return stmt;
