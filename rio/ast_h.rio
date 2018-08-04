@@ -406,6 +406,7 @@ struct StmtAssign {
 
 struct StmtInit {
     name: char const*;
+    is_mut: bool;
     type: Typespec*;
     expr: Expr*;
 }

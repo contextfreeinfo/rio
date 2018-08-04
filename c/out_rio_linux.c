@@ -400,7 +400,7 @@ rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_SwitchCase 
 
 rio_Stmt (*rio_new_stmt_assign(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left), rio_Expr (*right)));
 
-rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr)));
+rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, rio_Typespec (*type), rio_Expr (*expr)));
 
 rio_Stmt (*rio_new_stmt_expr(rio_SrcPos pos, rio_Expr (*expr)));
 
@@ -850,6 +850,8 @@ extern char const ((*rio_struct_keyword));
 extern char const ((*rio_union_keyword));
 
 extern char const ((*rio_let_keyword));
+
+extern char const ((*rio_mut_keyword));
 
 extern char const ((*rio_const_keyword));
 
@@ -1920,6 +1922,7 @@ struct rio_StmtAssign {
 
 struct rio_StmtInit {
     char const ((*name));
+    bool is_mut;
     rio_Typespec (*type);
     rio_Expr (*expr);
 };
@@ -2674,9 +2677,10 @@ rio_Stmt (*rio_new_stmt_assign(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left
     return s;
 }
 
-rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr))) {
+rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, rio_Typespec (*type), rio_Expr (*expr))) {
     rio_Stmt (*s) = rio_new_stmt(RIO_STMT_INIT, pos);
     s->init.name = name;
+    s->init.is_mut = is_mut;
     s->init.type = type;
     s->init.expr = expr;
     return s;
@@ -4631,6 +4635,7 @@ char const ((*rio_enum_keyword));
 char const ((*rio_struct_keyword));
 char const ((*rio_union_keyword));
 char const ((*rio_let_keyword));
+char const ((*rio_mut_keyword));
 char const ((*rio_const_keyword));
 char const ((*rio_fn_keyword));
 char const ((*rio_sizeof_keyword));
@@ -4677,6 +4682,7 @@ void rio_init_keywords(void) {
     rio_union_keyword = rio_init_keyword("union");
     rio_const_keyword = rio_init_keyword("const");
     rio_let_keyword = rio_init_keyword("let");
+    rio_mut_keyword = rio_init_keyword("mut");
     rio_fn_keyword = rio_init_keyword("fn");
     rio_import_keyword = rio_init_keyword("import");
     rio_goto_keyword = rio_init_keyword("goto");
@@ -6066,16 +6072,19 @@ bool rio_is_assign_op(void) {
 }
 
 rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos)) {
+    bool is_mut = rio_match_keyword(rio_mut_keyword);
     char const ((*name)) = rio_parse_name();
     if (rio_match_token(RIO_TOKEN_ASSIGN)) {
-        return rio_new_stmt_init(pos, name, NULL, rio_parse_expr());
+        return rio_new_stmt_init(pos, name, is_mut, NULL, rio_parse_expr());
     } else if (rio_match_token(RIO_TOKEN_COLON)) {
         rio_Typespec (*type) = rio_parse_type();
         rio_Expr (*expr) = {0};
         if (rio_match_token(RIO_TOKEN_ASSIGN)) {
             expr = rio_parse_expr();
+        } else {
+            is_mut = true;
         }
-        return rio_new_stmt_init(pos, name, type, expr);
+        return rio_new_stmt_init(pos, name, is_mut, type, expr);
     } else {
         rio_fatal_error(rio_token.pos, "Expected : or = after let, got %s", rio_token_info());
         return NULL;
@@ -7313,6 +7322,8 @@ void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
 void rio_resolve_stmt_init(rio_Stmt (*stmt)) {
     assert((stmt->kind) == (RIO_STMT_INIT));
     rio_Type (*type) = rio_resolve_init(stmt->pos, stmt->init.type, stmt->init.expr);
+    if (!(stmt->init.is_mut)) {
+    }
     if (!(rio_sym_push_var(stmt->init.name, type))) {
         rio_fatal_error(stmt->pos, "Shadowed definition of local symbol");
     }

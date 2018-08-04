@@ -3,6 +3,7 @@ let enum_keyword: char const*;
 let struct_keyword: char const*;
 let union_keyword: char const*;
 let let_keyword: char const*;
+let mut_keyword: char const*;
 let const_keyword: char const*;
 let fn_keyword: char const*;
 let sizeof_keyword: char const*;
@@ -55,6 +56,7 @@ fn init_keywords() {
     union_keyword = init_keyword("union");
     const_keyword = init_keyword("const");
     let_keyword = init_keyword("let");
+    mut_keyword = init_keyword("mut");
     fn_keyword = init_keyword("fn");
     import_keyword = init_keyword("import");
     goto_keyword = init_keyword("goto");

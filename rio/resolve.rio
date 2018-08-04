@@ -843,6 +843,9 @@ fn resolve_stmt_assign(stmt: Stmt*) {
 fn resolve_stmt_init(stmt: Stmt*) {
     #assert(stmt.kind == STMT_INIT);
     let type = resolve_init(stmt.pos, stmt.init.type, stmt.init.expr);
+    if (!stmt.init.is_mut) {
+        // type.nonmodifiable = true;
+    }
     if (!sym_push_var(stmt.init.name, type)) {
         fatal_error(stmt.pos, "Shadowed definition of local symbol");
     }

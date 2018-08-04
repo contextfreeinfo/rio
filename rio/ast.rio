@@ -437,9 +437,10 @@ fn new_stmt_assign(pos: SrcPos, op: TokenKind, left: Expr*, right: Expr*): Stmt*
     return s;
 }
 
-fn new_stmt_init(pos: SrcPos, name: char const*, type: Typespec*, expr: Expr*): Stmt* {
+fn new_stmt_init(pos: SrcPos, name: char const*, is_mut: bool, type: Typespec*, expr: Expr*): Stmt* {
     let s = new_stmt(STMT_INIT, pos);
     s.init.name = name;
+    s.init.is_mut = is_mut;
     s.init.type = type;
     s.init.expr = expr;
     return s;

@@ -413,16 +413,20 @@ fn is_assign_op(): bool {
 }
 
 fn parse_let_stmt(pos: SrcPos): Stmt* {
+    let is_mut = match_keyword(mut_keyword);
     let name = parse_name();
     if (match_token(TOKEN_ASSIGN)) {
-        return new_stmt_init(pos, name, NULL, parse_expr());
+        return new_stmt_init(pos, name, is_mut, NULL, parse_expr());
     } else if (match_token(TOKEN_COLON)) {
         let type = parse_type();
         let expr: Expr*;
         if (match_token(TOKEN_ASSIGN)) {
             expr = parse_expr();
+        } else {
+            // For now, just let all later assignments slide.
+            is_mut = true;
         }
-        return new_stmt_init(pos, name, type, expr);
+        return new_stmt_init(pos, name, is_mut, type, expr);
     } else {
         fatal_error(token.pos, "Expected : or = after let, got %s", token_info());
         return NULL;
