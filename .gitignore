@@ -4,8 +4,7 @@
 /notes/
 /old/rust/target/
 /old/target/
-/tests/run/*.exe
-/tests/run/*.obj
+/tests/run/test*
 /.vs/
 /.vscode/
 *.swp

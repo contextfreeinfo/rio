@@ -2,5 +2,13 @@ rio_dir="$(dirname "$(readlink -f "$0")")"
 . "$rio_dir/build"
 export PATH="$rio_dir/bin:$PATH"
 cd "$rio_dir/tests"
+
 brio -nosourcemap -o c/out_test1_linux.c test1
+gcc -o run/test1 c/out_test1_linux.c
+
 brio -nosourcemap -o c/out_test2_linux.c test2
+gcc -o run/test2 c/out_test2_linux.c -lm
+
+cd run
+./test1 > out_test1_linux.txt
+./test2 > out_test2_linux.txt
