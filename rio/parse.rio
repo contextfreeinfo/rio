@@ -57,7 +57,7 @@ fn parse_type_base(): Typespec* {
   }
 }
 
-fn parse_type(): Typespec* {
+fn parse_type(): Typespec *own {
   let type = parse_type_base();
   let pos = token.pos;
   while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_MUL) || is_keyword(const_keyword)) {
@@ -73,7 +73,8 @@ fn parse_type(): Typespec* {
     } else {
       #assert(is_token(TOKEN_MUL));
       next_token();
-      type = new_typespec_ptr(pos, type);
+      let is_owned = match_keyword(own_keyword);
+      type = new_typespec_ptr(pos, type, is_owned);
     }
   }
   return type;
@@ -99,7 +100,7 @@ fn parse_expr_compound_field(): CompoundField {
   }
 }
 
-fn parse_expr_compound(type: Typespec*): Expr* {
+fn parse_expr_compound(type: Typespec*): Expr *own {
   let pos = token.pos;
   expect_token(TOKEN_LBRACE);
   let fields: CompoundField* = NULL;

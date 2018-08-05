@@ -37,6 +37,7 @@ struct Typespec {
   kind: TypespecKind;
   pos: SrcPos;
   base: Typespec*;
+  is_owned: bool;
   union {
     name: char const*;
     function: TypespecFunc;

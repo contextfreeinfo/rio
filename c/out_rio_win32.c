@@ -276,7 +276,7 @@ rio_Typespec (*rio_new_typespec(rio_TypespecKind kind, rio_SrcPos pos));
 
 rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, char const ((*name))));
 
-rio_Typespec (*rio_new_typespec_ptr(rio_SrcPos pos, rio_Typespec (*base)));
+rio_Typespec (*rio_new_typespec_ptr(rio_SrcPos pos, rio_Typespec (*base), bool is_owned));
 
 rio_Typespec (*rio_new_typespec_const(rio_SrcPos pos, rio_Typespec (*base)));
 
@@ -832,6 +832,8 @@ extern char const ((*rio_union_keyword));
 extern char const ((*rio_let_keyword));
 
 extern char const ((*rio_mut_keyword));
+
+extern char const ((*rio_own_keyword));
 
 extern char const ((*rio_const_keyword));
 
@@ -1959,6 +1961,7 @@ struct rio_Typespec {
   rio_TypespecKind kind;
   rio_SrcPos pos;
   rio_Typespec (*base);
+  bool is_owned;
   union {
     char const ((*name));
     rio_TypespecFunc function;
@@ -2285,9 +2288,10 @@ rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, char const ((*name)))) {
   return t;
 }
 
-rio_Typespec (*rio_new_typespec_ptr(rio_SrcPos pos, rio_Typespec (*base))) {
+rio_Typespec (*rio_new_typespec_ptr(rio_SrcPos pos, rio_Typespec (*base), bool is_owned)) {
   rio_Typespec (*t) = rio_new_typespec(RIO_TYPESPEC_PTR, pos);
   t->base = base;
+  t->is_owned = is_owned;
   return t;
 }
 
@@ -4484,6 +4488,7 @@ char const ((*rio_struct_keyword));
 char const ((*rio_union_keyword));
 char const ((*rio_let_keyword));
 char const ((*rio_mut_keyword));
+char const ((*rio_own_keyword));
 char const ((*rio_const_keyword));
 char const ((*rio_fn_keyword));
 char const ((*rio_sizeof_keyword));
@@ -4531,6 +4536,7 @@ void rio_init_keywords(void) {
   rio_const_keyword = rio_init_keyword("const");
   rio_let_keyword = rio_init_keyword("let");
   rio_mut_keyword = rio_init_keyword("mut");
+  rio_own_keyword = rio_init_keyword("own");
   rio_fn_keyword = rio_init_keyword("fn");
   rio_import_keyword = rio_init_keyword("import");
   rio_goto_keyword = rio_init_keyword("goto");
@@ -5600,7 +5606,8 @@ rio_Typespec (*rio_parse_type(void)) {
     } else {
       assert(rio_is_token(RIO_TOKEN_MUL));
       rio_next_token();
-      type = rio_new_typespec_ptr(pos, type);
+      bool is_owned = rio_match_keyword(rio_own_keyword);
+      type = rio_new_typespec_ptr(pos, type, is_owned);
     }
   }
   return type;

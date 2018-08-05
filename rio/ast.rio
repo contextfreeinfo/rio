@@ -43,9 +43,10 @@ fn new_typespec_name(pos: SrcPos, name: char const*): Typespec* {
   return t;
 }
 
-fn new_typespec_ptr(pos: SrcPos, base: Typespec*): Typespec* {
+fn new_typespec_ptr(pos: SrcPos, base: Typespec*, is_owned: bool): Typespec* {
   let t = new_typespec(TYPESPEC_PTR, pos);
   t.base = base;
+  t.is_owned = is_owned;
   return t;
 }
 
