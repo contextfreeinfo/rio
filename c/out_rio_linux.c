@@ -7003,9 +7003,12 @@ rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (
     rio_Type (*declared_type) = rio_resolve_typespec(typespec);
     type = declared_type;
     if (expr) {
-      type = rio_resolve_typed_init(pos, declared_type, expr);
-      if (!(type)) {
+      rio_Type (*expr_type) = rio_resolve_typed_init(pos, declared_type, expr);
+      if (!(expr_type)) {
         rio_fatal_error(pos, "Invalid type in initialization. Expected %s", rio_get_type_name(declared_type));
+      }
+      if ((expr_type->kind) == (RIO_CMPL_TYPE_ARRAY)) {
+        type = expr_type;
       }
     }
   } else {
