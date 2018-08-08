@@ -57,7 +57,7 @@ fn parse_type_base(): Typespec* {
   }
 }
 
-fn parse_type(): Typespec *own {
+fn parse_type(): Typespec* {
   let type = parse_type_base();
   let pos = token.pos;
   while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_MUL) || is_keyword(const_keyword)) {
@@ -100,7 +100,7 @@ fn parse_expr_compound_field(): CompoundField {
   }
 }
 
-fn parse_expr_compound(type: Typespec*): Expr *own {
+fn parse_expr_compound(type: Typespec*): Expr* {
   let pos = token.pos;
   expect_token(TOKEN_LBRACE);
   let fields: CompoundField* = NULL;
