@@ -5951,7 +5951,9 @@ rio_Stmt (*rio_parse_simple_stmt(void)) {
     stmt = rio_parse_let_stmt(pos);
   } else {
     rio_Expr (*expr) = rio_parse_expr();
-    if (rio_is_assign_op()) {
+    if (((expr->kind) == (RIO_EXPR_NAME)) && (rio_match_token(RIO_TOKEN_COLON))) {
+      stmt = rio_new_stmt_label(pos, expr->name);
+    } else if (rio_is_assign_op()) {
       rio_TokenKind op = rio_token.kind;
       rio_next_token();
       stmt = rio_new_stmt_assign(pos, op, expr, rio_parse_expr());
@@ -6075,14 +6077,14 @@ rio_Stmt (*rio_parse_stmt(void)) {
     rio_Note note = rio_parse_note();
     rio_expect_token(RIO_TOKEN_SEMICOLON);
     stmt = rio_new_stmt_note(pos, note);
-  } else if (rio_match_token(RIO_TOKEN_COLON)) {
-    stmt = rio_new_stmt_label(pos, rio_parse_name());
   } else if (rio_match_keyword(rio_goto_keyword)) {
     stmt = rio_new_stmt_goto(pos, rio_parse_name());
     rio_expect_token(RIO_TOKEN_SEMICOLON);
   } else {
     stmt = rio_parse_simple_stmt();
-    rio_expect_token(RIO_TOKEN_SEMICOLON);
+    if ((stmt->kind) != (RIO_STMT_LABEL)) {
+      rio_expect_token(RIO_TOKEN_SEMICOLON);
+    }
   }
   stmt->notes = notes;
   return stmt;

@@ -441,7 +441,9 @@ fn parse_simple_stmt(): Stmt* {
     stmt = parse_let_stmt(pos);
   } else {
     let expr = parse_expr();
-    if (is_assign_op()) {
+    if (expr.kind == EXPR_NAME && match_token(TOKEN_COLON)) {
+      stmt = new_stmt_label(pos, expr.name);
+    } else if (is_assign_op()) {
       let op = token.kind;
       next_token();
       stmt = new_stmt_assign(pos, op, expr, parse_expr());
@@ -565,14 +567,14 @@ fn parse_stmt(): Stmt* {
     let note: Note = parse_note();
     expect_token(TOKEN_SEMICOLON);
     stmt = new_stmt_note(pos, note);
-  } else if (match_token(TOKEN_COLON)) {
-    stmt = new_stmt_label(pos, parse_name());
   } else if (match_keyword(goto_keyword)) {
     stmt = new_stmt_goto(pos, parse_name());
     expect_token(TOKEN_SEMICOLON);
   } else {
     stmt = parse_simple_stmt();
-    expect_token(TOKEN_SEMICOLON);
+    if (stmt.kind != STMT_LABEL) {
+      expect_token(TOKEN_SEMICOLON);
+    }
   }
   stmt.notes = notes;
   return stmt;
@@ -810,7 +812,7 @@ fn parse_decl_note(pos: SrcPos): Decl* {
 fn parse_decl_import(pos: SrcPos): Decl* {
   let rename_name: char const*;
   let is_relative: bool;
-  :repeat
+  repeat:
   is_relative = false;
   if (match_token(TOKEN_DOT)) {
     is_relative = true;
