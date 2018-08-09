@@ -32,7 +32,7 @@ let uc: uchar = 1;
 let sc: schar = 1;
 
 typedef F1 = fn();
-typedef F2 = fn(f: fn(int, int,): int): int;
+typedef F2 = fn(f: fn(int, int,) -> int) -> int;
 typedef F3 = fn(f: fn());
 
 const N = (:char)42 + 8 != 0;

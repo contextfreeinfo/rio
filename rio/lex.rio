@@ -100,6 +100,7 @@ fn is_keyword_name(name: char const*): bool {
 enum TokenKind {
   TOKEN_EOF,
   TOKEN_COLON,
+  TOKEN_ARROW,
   TOKEN_LPAREN,
   TOKEN_RPAREN,
   TOKEN_LBRACE,
@@ -198,6 +199,7 @@ let token_suffix_names: char const*[] = {
 let token_kind_names: char const*[] = {
   [TOKEN_EOF] = "EOF",
   [TOKEN_COLON] = ":",
+  [TOKEN_ARROW] = "->",
   [TOKEN_LPAREN] = "(",
   [TOKEN_RPAREN] = ")",
   [TOKEN_LBRACE] = "{",
@@ -842,6 +844,9 @@ fn next_token() {
       stream++;
     } else if (*stream == '-') {
       token.kind = TOKEN_DEC;
+      stream++;
+    } else if (*stream == '>') {
+      token.kind = TOKEN_ARROW;
       stream++;
     }
   case '&':

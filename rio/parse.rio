@@ -33,7 +33,7 @@ fn parse_type_func(): Typespec* {
   }
   expect_token(TOKEN_RPAREN);
   let ret: Typespec* = NULL;
-  if (match_token(TOKEN_COLON)) {
+  if (match_token(TOKEN_COLON) || match_token(TOKEN_ARROW)) {
     ret = parse_type();
   }
   return new_typespec_func(pos, args, buf_len(args), ret, has_varargs);
@@ -750,7 +750,7 @@ fn parse_decl_func(pos: SrcPos): Decl* {
   }
   expect_token(TOKEN_RPAREN);
   let ret_type: Typespec* = NULL;
-  if (match_token(TOKEN_COLON)) {
+  if (match_token(TOKEN_COLON) || match_token(TOKEN_ARROW)) {
     ret_type = parse_type();
   }
   let block: StmtList;  // TODO Auto initialized? = {0};
