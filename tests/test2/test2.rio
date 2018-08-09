@@ -22,7 +22,7 @@ fn addmul2(
     a: vec2,
     b: float,
     c: vec2,
-): vec2 {
+) -> vec2 {
     return add2(a, mul2(b, c));
 }
 

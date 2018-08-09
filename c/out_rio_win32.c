@@ -5571,7 +5571,7 @@ rio_Typespec (*rio_parse_type_func(void)) {
   }
   rio_expect_token(RIO_TOKEN_RPAREN);
   rio_Typespec (*ret) = NULL;
-  if ((rio_match_token(RIO_TOKEN_COLON)) || (rio_match_token(RIO_TOKEN_ARROW))) {
+  if (rio_match_token(RIO_TOKEN_ARROW)) {
     ret = rio_parse_type();
   }
   return rio_new_typespec_func(pos, args, rio_buf_len(args), ret, has_varargs);
@@ -6265,7 +6265,7 @@ rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
   }
   rio_expect_token(RIO_TOKEN_RPAREN);
   rio_Typespec (*ret_type) = NULL;
-  if ((rio_match_token(RIO_TOKEN_COLON)) || (rio_match_token(RIO_TOKEN_ARROW))) {
+  if (rio_match_token(RIO_TOKEN_ARROW)) {
     ret_type = rio_parse_type();
   }
   rio_StmtList block = {0};
