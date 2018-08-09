@@ -632,7 +632,7 @@ fn scan_str() {
 //     break;
 
 fn next_token() {
-:repeat
+  repeat:
   token.start = stream;
   token.mod = 0;
   token.suffix = 0;
