@@ -150,11 +150,11 @@ struct UartCtrl {
 
 const UART_CTRL_REG = (:uint32*)0x12345678;
 
-fn pack(ctrl: UartCtrl): uint32 {
+fn pack(ctrl: UartCtrl) -> uint32 {
   return (ctrl.tx_enable & 1) | ((ctrl.rx_enable & 1) << 1);
 }
 
-fn unpack(word: uint32): UartCtrl {
+fn unpack(word: uint32) -> UartCtrl {
   return {tx_enable = word & 0b01, rx_enable = (word & 0b10) >> 1};
 }
 
@@ -166,7 +166,7 @@ fn test_uart() {
   *UART_CTRL_REG = pack(ctrl);
 }
 
-fn h(): uchar {
+fn h() -> uchar {
   Vector{x = 1, y = 2}.x = 42;
   let v = &Vector{1, 2};
   v.x = 42;
@@ -176,7 +176,7 @@ fn h(): uchar {
   return uchar(x);
 }
 
-fn g(u: U): int {
+fn g(u: U) -> int {
   return u.i;
 }
 
@@ -195,7 +195,7 @@ fn f3(a: int[]) {
 
 typedef U = IntOrPtr;
 
-fn example_test(): int {
+fn example_test() -> int {
   return fact_rec(10) == fact_iter(10);
 }
 
@@ -233,7 +233,7 @@ let escape_to_char: char const[256] = {
 let a2: int[] = {1, 2, 3, [10]=4};
 // let a3: int[];
 
-fn is_even(digit: int): int {
+fn is_even(digit: int) -> int {
   let b = 0;
   switch (digit) {
   case 0, 2, 4, 6, 8:
@@ -259,7 +259,7 @@ fn f2(v: Vector) {
   v = {};
 }
 
-fn fact_iter(n: int): int {
+fn fact_iter(n: int) -> int {
   let r = 1;
   for (let i = 0; i <= n; i++) {
     r *= i;
@@ -267,7 +267,7 @@ fn fact_iter(n: int): int {
   return r;
 }
 
-fn fact_rec(n: int): int {
+fn fact_rec(n: int) -> int {
   if (n == 0) {
     return 1;
   } else {
@@ -353,11 +353,11 @@ fn benchmark(n: int) {
   }
 }
 
-fn va_test(x: int, ...): int {
+fn va_test(x: int, ...) -> int {
   return 0;
 }
 
-typedef F = fn(x: int, ...): int;
+typedef F = fn(x: int, ...) -> int;
 
 fn test_lits() {
   let f = 3.14;
@@ -415,7 +415,7 @@ fn test_bool() {
   i = IS_DEBUG;
 }
 
-fn test_ctrl(): int {
+fn test_ctrl() -> int {
   switch (1) {
   case 0:
     return 0;
@@ -755,11 +755,11 @@ struct Thing {
 
 let thing: Thing;
 
-fn returns_ptr(): Thing* {
+fn returns_ptr() -> Thing* {
   return &thing;
 }
 
-fn returns_ptr_to_const(): Thing const* {
+fn returns_ptr_to_const() -> Thing const* {
   return &thing;
 }
 
@@ -806,7 +806,7 @@ fn test_const_ptr_deref() {
   let i = foo.bar.rc;
 }
 
-fn main(argc: int, argv: char**): int {
+fn main(argc: int, argv: char**) -> int {
   if (argv == 0) {
     printf("argv is null\n");
   }

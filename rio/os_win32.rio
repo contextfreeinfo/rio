@@ -18,19 +18,19 @@ struct FindData {
 }
 
 @foreign
-fn _findclose(handle: intptr): int;
+fn _findclose(handle: intptr) -> int;
 
 @foreign
-fn _findfirst(filespec: char const*, fileinfo: FindData*): intptr;
+fn _findfirst(filespec: char const*, fileinfo: FindData*) -> intptr;
 
 @foreign
-fn _findnext(handle: intptr, fileinfo: FindData*): int;
+fn _findnext(handle: intptr, fileinfo: FindData*) -> int;
 
 @foreign
-fn _fullpath(absPath: char*, relPath: char const*, maxLength: usize): char*;
+fn _fullpath(absPath: char*, relPath: char const*, maxLength: usize) -> char*;
 
 @foreign("_strdup")
-fn strdup(strSource: char const*): char*;
+fn strdup(strSource: char const*) -> char*;
 
 fn path_absolute(path: char[MAX_PATH]) {
   let rel_path: char[MAX_PATH];

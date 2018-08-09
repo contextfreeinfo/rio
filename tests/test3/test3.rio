@@ -1,6 +1,6 @@
 import libc {...}
 
-fn main(): int {
+fn main() -> int {
   let i = 1;
   let j: int const = 2;
   let k = 3;

@@ -24,127 +24,127 @@ struct fpos_t;
 @foreign const SEEK_END = 2;
 
 @foreign
-fn remove(filename: char const*): int;
+fn remove(filename: char const*) -> int;
 
 @foreign
-fn rename(old: char const*, new: char const*): int;
+fn rename(old: char const*, new: char const*) -> int;
 
 @foreign
-fn tmpfile(): FILE*;
+fn tmpfile() -> FILE*;
 
 @foreign
-fn tmpnam(s: char*): char*;
+fn tmpnam(s: char*) -> char*;
 
 @foreign
-fn fclose(stream: FILE*): int;
+fn fclose(stream: FILE*) -> int;
 
 @foreign
-fn fflush(stream: FILE*): int;
+fn fflush(stream: FILE*) -> int;
 
 @foreign
-fn fopen(filename: char const*, mode: char const*): FILE*;
+fn fopen(filename: char const*, mode: char const*) -> FILE*;
 
 @foreign
-fn freopen(filename: char const*, mode: char const*, stream: FILE*): FILE*;
+fn freopen(filename: char const*, mode: char const*, stream: FILE*) -> FILE*;
 
 @foreign
 fn setbuf(stream: FILE*, buf: char*);
 
 @foreign
-fn setvbuf(stream: FILE*, buf: char*, mode: int, size: usize): int;
+fn setvbuf(stream: FILE*, buf: char*, mode: int, size: usize) -> int;
 
 @foreign
-fn fprintf(stream: FILE*, format: char const*, ...): int;
+fn fprintf(stream: FILE*, format: char const*, ...) -> int;
 
 @foreign
-fn fscanf(stream: FILE*, format: char const*, ...): int;
+fn fscanf(stream: FILE*, format: char const*, ...) -> int;
 
 @foreign
-fn printf(format: char const*, ...): int;
+fn printf(format: char const*, ...) -> int;
 
 @foreign
-fn scanf(format: char const*, ...): int;
+fn scanf(format: char const*, ...) -> int;
 
 @foreign
-fn snprintf(s: char*, n: usize, format: char const*, ...): int;
+fn snprintf(s: char*, n: usize, format: char const*, ...) -> int;
 
 @foreign
-fn sprintf(s: char*, format: char const*, ...): int;
+fn sprintf(s: char*, format: char const*, ...) -> int;
 
 @foreign
-fn sscanf(s: char const*, format: char const*, ...): int;
+fn sscanf(s: char const*, format: char const*, ...) -> int;
 
 @foreign
-fn vfprintf(stream: FILE*, format: char const*, arg: va_list): int;
+fn vfprintf(stream: FILE*, format: char const*, arg: va_list) -> int;
 
 @foreign
-fn vfscanf(stream: FILE*, format: char const*, arg: va_list): int;
+fn vfscanf(stream: FILE*, format: char const*, arg: va_list) -> int;
 
 @foreign
-fn vprintf(format: char const*, arg: va_list): int;
+fn vprintf(format: char const*, arg: va_list) -> int;
 
 @foreign
-fn vscanf(format: char const*, arg: va_list): int;
+fn vscanf(format: char const*, arg: va_list) -> int;
 
 @foreign
-fn vsnprintf(s: char*, n: usize, format: char const*, arg: va_list): int;
+fn vsnprintf(s: char*, n: usize, format: char const*, arg: va_list) -> int;
 
 @foreign
-fn vsprintf(s: char*, format: char const*, arg: va_list): int;
+fn vsprintf(s: char*, format: char const*, arg: va_list) -> int;
 
 @foreign
-fn vsscanf(s: char const*, format: char const*, arg: va_list): int;
+fn vsscanf(s: char const*, format: char const*, arg: va_list) -> int;
 
 @foreign
-fn fgetc(stream: FILE*): int;
+fn fgetc(stream: FILE*) -> int;
 
 @foreign
-fn fgets(s: char*, n: int, stream: FILE*): char*;
+fn fgets(s: char*, n: int, stream: FILE*) -> char*;
 
 @foreign
-fn fputc(c: int, stream: FILE*): int;
+fn fputc(c: int, stream: FILE*) -> int;
 
 @foreign
-fn fputs(s: char const*, stream: FILE*): int;
+fn fputs(s: char const*, stream: FILE*) -> int;
 
 @foreign
-fn getc(stream: FILE*): int;
+fn getc(stream: FILE*) -> int;
 
 @foreign
-fn getchar(): int;
+fn getchar() -> int;
 
 @foreign
-fn gets(s: char*): char*;
+fn gets(s: char*) -> char*;
 
 @foreign
-fn putc(c: int, stream: FILE*): int;
+fn putc(c: int, stream: FILE*) -> int;
 
 @foreign
-fn putchar(c: int): int;
+fn putchar(c: int) -> int;
 
 @foreign
-fn puts(s: char const*): int;
+fn puts(s: char const*) -> int;
 
 @foreign
-fn ungetc(c: int, stream: FILE*): int;
+fn ungetc(c: int, stream: FILE*) -> int;
 
 @foreign
-fn fread(ptr: void*, size: usize, nmemb: usize, stream: FILE*): usize;
+fn fread(ptr: void*, size: usize, nmemb: usize, stream: FILE*) -> usize;
 
 @foreign
-fn fwrite(ptr: void const*, size: usize, nmemb: usize, stream: FILE*): usize;
+fn fwrite(ptr: void const*, size: usize, nmemb: usize, stream: FILE*) -> usize;
 
 @foreign
-fn fgetpos(stream: FILE*, pos: fpos_t*): int;
+fn fgetpos(stream: FILE*, pos: fpos_t*) -> int;
 
 @foreign
-fn fseek(stream: FILE*, offset: long, whence: int): int;
+fn fseek(stream: FILE*, offset: long, whence: int) -> int;
 
 @foreign
-fn fsetpos(stream: FILE*, pos: fpos_t*): int;
+fn fsetpos(stream: FILE*, pos: fpos_t*) -> int;
 
 @foreign
-fn ftell(stream: FILE*): long;
+fn ftell(stream: FILE*) -> long;
 
 @foreign
 fn rewind(stream: FILE*);
@@ -153,10 +153,10 @@ fn rewind(stream: FILE*);
 fn clearerr(stream: FILE*);
 
 @foreign
-fn feof(stream: FILE*): int;
+fn feof(stream: FILE*) -> int;
 
 @foreign
-fn ferror(stream: FILE*): int;
+fn ferror(stream: FILE*) -> int;
 
 @foreign
 fn perror(s: char const*);

@@ -121,7 +121,7 @@ fn genln() {
   gen_pos.line++;
 }
 
-fn is_incomplete_array_typespec(typespec: Typespec*): bool {
+fn is_incomplete_array_typespec(typespec: Typespec*) -> bool {
   return typespec.kind == TYPESPEC_ARRAY && !typespec.num_elems;
 }
 
@@ -196,11 +196,11 @@ fn gen_sync_pos(pos: SrcPos) {
   }
 }
 
-fn cdecl_paren(str: char const*, c: char): char const* {
+fn cdecl_paren(str: char const*, c: char) -> char const* {
   return c && c != '[' ? (:char const*)strf("(%s)", str) : str;
 }
 
-fn cdecl_name(type: Type*): char const* {
+fn cdecl_name(type: Type*) -> char const* {
   let type_name: char const* = type_names[type.kind];
   if (type_name) {
     return type_name;
@@ -210,7 +210,7 @@ fn cdecl_name(type: Type*): char const* {
   }
 }
 
-fn type_to_cdecl(type: Type*, str: char const*): char* {
+fn type_to_cdecl(type: Type*, str: char const*) -> char* {
   switch (type.kind) {
   case CMPL_TYPE_PTR:
     return type_to_cdecl(type.base, cdecl_paren(strf("*%s", str), *str));
@@ -243,7 +243,7 @@ fn type_to_cdecl(type: Type*, str: char const*): char* {
   }
 }
 
-fn gen_expr_str(expr: Expr*): char const* {
+fn gen_expr_str(expr: Expr*) -> char const* {
   let temp: char* = gen_buf;
   gen_buf = NULL;
   gen_expr(expr);
@@ -254,7 +254,7 @@ fn gen_expr_str(expr: Expr*): char const* {
 
 let gen_name_map: Map;
 
-fn get_gen_name_or_default(ptr: void const*, default_name: char const*): char const* {
+fn get_gen_name_or_default(ptr: void const*, default_name: char const*) -> char const* {
   let name: char const* = map_get(&gen_name_map, ptr);
   if (!name) {
     let sym = get_resolved_sym(ptr);
@@ -288,11 +288,11 @@ fn get_gen_name_or_default(ptr: void const*, default_name: char const*): char co
   return name;
 }
 
-fn get_gen_name(ptr: void const*): char const* {
+fn get_gen_name(ptr: void const*) -> char const* {
   return get_gen_name_or_default(ptr, "ERROR");
 }
 
-fn typespec_to_cdecl(typespec: Typespec*, str: char const*): char* {
+fn typespec_to_cdecl(typespec: Typespec*, str: char const*) -> char* {
   if (!typespec) {
     return strf("void%s%s", *str ? " " : "", str);
   }
@@ -358,7 +358,7 @@ fn gen_func_decl(decl: Decl*) {
   }
 }
 
-fn gen_reachable(sym: Sym*): bool {
+fn gen_reachable(sym: Sym*) -> bool {
   return flag_fullgen || sym.reachable == REACHABLE_NATURAL;
 }
 
@@ -476,7 +476,7 @@ let typeid_kind_names: char const*[NUM_CMPL_TYPE_KINDS] = {
   [CMPL_TYPE_FUNC] = "TYPE_FUNC",
 };
 
-fn typeid_kind_name(type: Type*): char const* {
+fn typeid_kind_name(type: Type*) -> char const* {
   if (type.kind < NUM_CMPL_TYPE_KINDS) {
     let name = typeid_kind_names[type.kind];
     if (name) {
@@ -486,7 +486,7 @@ fn typeid_kind_name(type: Type*): char const* {
   return "TYPE_NONE";
 }
 
-fn is_excluded_typeinfo(type: Type*): bool {
+fn is_excluded_typeinfo(type: Type*) -> bool {
   while (type.kind == CMPL_TYPE_ARRAY || type.kind == CMPL_TYPE_CONST || type.kind == CMPL_TYPE_PTR) {
     type = type.base;
   }
@@ -664,7 +664,7 @@ fn gen_simple_stmt(stmt: Stmt*) {
   }
 }
 
-fn is_char_lit(expr: Expr*): bool {
+fn is_char_lit(expr: Expr*) -> bool {
   return expr.kind == EXPR_INT && expr.int_lit.mod == MOD_CHAR;
 }
 

@@ -1,6 +1,6 @@
 import libc {...}
 
-fn main(argc: int, argv: char**): int {
+fn main(argc: int, argv: char**) -> int {
     printf("Hello, world!\n");
     let a = 0;
     let v = vec2{1, 0};

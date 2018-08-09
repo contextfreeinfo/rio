@@ -73,7 +73,7 @@ fn parse_env_vars() {
   }
 }
 
-fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*): int {
+fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*) -> int {
   parse_env_vars();
   let output_name: char const*;
   let flag_check = false;

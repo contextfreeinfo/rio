@@ -1,13 +1,13 @@
 let ast_arena: Arena;
 
-fn ast_alloc(size: usize): void* {
+fn ast_alloc(size: usize) -> void* {
   #assert(size != 0);
   let ptr = arena_alloc(&ast_arena, size);
   memset(ptr, 0, size);
   return ptr;
 }
 
-fn ast_dup(src: void const*, size: usize): void* {
+fn ast_dup(src: void const*, size: usize) -> void* {
   if (size == 0) {
     return NULL;
   }
@@ -18,52 +18,52 @@ fn ast_dup(src: void const*, size: usize): void* {
 
 // #define AST_DUP(x) ast_dup(x, num_##x * sizeof(*x))
 
-fn new_note(pos: SrcPos, name: char const*, args: NoteArg*, num_args: usize): Note {
+fn new_note(pos: SrcPos, name: char const*, args: NoteArg*, num_args: usize) -> Note {
   return {pos = pos, name = name, args = ast_dup(args, num_args * sizeof(*args)), num_args = num_args};
 }
 
-fn new_notes(notes: Note*, num_notes: usize): Notes {
+fn new_notes(notes: Note*, num_notes: usize) -> Notes {
   return {ast_dup(notes, num_notes * sizeof(*notes)), num_notes};
 }
 
-fn new_stmt_list(pos: SrcPos, stmts: Stmt**, num_stmts: usize): StmtList {
+fn new_stmt_list(pos: SrcPos, stmts: Stmt**, num_stmts: usize) -> StmtList {
   return {pos, ast_dup(stmts, num_stmts * sizeof(*stmts)), num_stmts};
 }
 
-fn new_typespec(kind: TypespecKind, pos: SrcPos): Typespec* {
+fn new_typespec(kind: TypespecKind, pos: SrcPos) -> Typespec* {
   let t: Typespec* = ast_alloc(sizeof(Typespec));
   t.kind = kind;
   t.pos = pos;
   return t;
 }
 
-fn new_typespec_name(pos: SrcPos, name: char const*): Typespec* {
+fn new_typespec_name(pos: SrcPos, name: char const*) -> Typespec* {
   let t = new_typespec(TYPESPEC_NAME, pos);
   t.name = name;
   return t;
 }
 
-fn new_typespec_ptr(pos: SrcPos, base: Typespec*, is_owned: bool): Typespec* {
+fn new_typespec_ptr(pos: SrcPos, base: Typespec*, is_owned: bool) -> Typespec* {
   let t = new_typespec(TYPESPEC_PTR, pos);
   t.base = base;
   t.is_owned = is_owned;
   return t;
 }
 
-fn new_typespec_const(pos: SrcPos, base: Typespec*): Typespec* {
+fn new_typespec_const(pos: SrcPos, base: Typespec*) -> Typespec* {
   let t = new_typespec(TYPESPEC_CONST, pos);
   t.base = base;
   return t;
 }
 
-fn new_typespec_array(pos: SrcPos, elem: Typespec*, size: Expr*): Typespec* {
+fn new_typespec_array(pos: SrcPos, elem: Typespec*, size: Expr*) -> Typespec* {
   let t = new_typespec(TYPESPEC_ARRAY, pos);
   t.base = elem;
   t.num_elems = size;
   return t;
 }
 
-fn new_typespec_func(pos: SrcPos, args: Typespec**, num_args: usize, ret: Typespec*, has_varargs: bool): Typespec* {
+fn new_typespec_func(pos: SrcPos, args: Typespec**, num_args: usize, ret: Typespec*, has_varargs: bool) -> Typespec* {
   let t = new_typespec(TYPESPEC_FUNC, pos);
   t.function.args = ast_dup(args, num_args * sizeof(*args));
   t.function.num_args = num_args;
@@ -72,14 +72,14 @@ fn new_typespec_func(pos: SrcPos, args: Typespec**, num_args: usize, ret: Typesp
   return t;
 }
 
-fn new_decls(decls: Decl**, num_decls: usize): Decls* {
+fn new_decls(decls: Decl**, num_decls: usize) -> Decls* {
   let d: Decls* = ast_alloc(sizeof(Decls));
   d.decls = ast_dup(decls, num_decls * sizeof(*decls));
   d.num_decls = num_decls;
   return d;
 }
 
-fn new_decl(kind: DeclKind, pos: SrcPos, name: char const*): Decl* {
+fn new_decl(kind: DeclKind, pos: SrcPos, name: char const*) -> Decl* {
   let d: Decl* = ast_alloc(sizeof(Decl));
   d.kind = kind;
   d.pos = pos;
@@ -87,7 +87,7 @@ fn new_decl(kind: DeclKind, pos: SrcPos, name: char const*): Decl* {
   return d;
 }
 
-fn get_decl_note(decl: Decl*, name: char const*): Note* {
+fn get_decl_note(decl: Decl*, name: char const*) -> Note* {
   for (let i: usize = 0; i < decl.notes.num_notes; i++) {
     let note: Note* = decl.notes.notes + i;
     if (note.name == name) {
@@ -97,11 +97,11 @@ fn get_decl_note(decl: Decl*, name: char const*): Note* {
   return NULL;
 }
 
-fn is_decl_foreign(decl: Decl*): bool {
+fn is_decl_foreign(decl: Decl*) -> bool {
   return get_decl_note(decl, foreign_name) != NULL;
 }
 
-fn new_decl_enum(pos: SrcPos, name: char const*, type: Typespec*, items: EnumItem*, num_items: usize): Decl* {
+fn new_decl_enum(pos: SrcPos, name: char const*, type: Typespec*, items: EnumItem*, num_items: usize) -> Decl* {
   let d = new_decl(DECL_ENUM, pos, name);
   d.enum_decl.type = type;
   d.enum_decl.items = ast_dup(items, num_items * sizeof(*items));
@@ -109,7 +109,7 @@ fn new_decl_enum(pos: SrcPos, name: char const*, type: Typespec*, items: EnumIte
   return d;
 }
 
-fn new_aggregate(pos: SrcPos, kind: AggregateKind, items: AggregateItem*, num_items: usize): Aggregate* {
+fn new_aggregate(pos: SrcPos, kind: AggregateKind, items: AggregateItem*, num_items: usize) -> Aggregate* {
   let aggregate: Aggregate* = ast_alloc(sizeof(Aggregate));
   aggregate.pos = pos;
   aggregate.kind = kind;
@@ -118,21 +118,21 @@ fn new_aggregate(pos: SrcPos, kind: AggregateKind, items: AggregateItem*, num_it
   return aggregate;
 }
 
-fn new_decl_aggregate(pos: SrcPos, kind: DeclKind, name: char const*, aggregate: Aggregate*): Decl* {
+fn new_decl_aggregate(pos: SrcPos, kind: DeclKind, name: char const*, aggregate: Aggregate*) -> Decl* {
   #assert(kind == DECL_STRUCT || kind == DECL_UNION);
   let d = new_decl(kind, pos, name);
   d.aggregate = aggregate;
   return d;
 }
 
-fn new_decl_var(pos: SrcPos, name: char const*, type: Typespec*, expr: Expr*): Decl* {
+fn new_decl_var(pos: SrcPos, name: char const*, type: Typespec*, expr: Expr*) -> Decl* {
   let d = new_decl(DECL_VAR, pos, name);
   d.var_decl.type = type;
   d.var_decl.expr = expr;
   return d;
 }
 
-fn new_decl_func(pos: SrcPos, name: char const*, params: FuncParam*, num_params: usize, ret_type: Typespec*, has_varargs: bool, block: StmtList): Decl* {
+fn new_decl_func(pos: SrcPos, name: char const*, params: FuncParam*, num_params: usize, ret_type: Typespec*, has_varargs: bool, block: StmtList) -> Decl* {
   let d = new_decl(DECL_FUNC, pos, name);
   d.function.params = ast_dup(params, num_params * sizeof(*params));
   d.function.num_params = num_params;
@@ -142,26 +142,26 @@ fn new_decl_func(pos: SrcPos, name: char const*, params: FuncParam*, num_params:
   return d;
 }
 
-fn new_decl_const(pos: SrcPos, name: char const*, type: Typespec*, expr: Expr*): Decl* {
+fn new_decl_const(pos: SrcPos, name: char const*, type: Typespec*, expr: Expr*) -> Decl* {
   let d = new_decl(DECL_CONST, pos, name);
   d.const_decl.type = type;
   d.const_decl.expr = expr;
   return d;
 }
 
-fn new_decl_typedef(pos: SrcPos, name: char const*, type: Typespec*): Decl* {
+fn new_decl_typedef(pos: SrcPos, name: char const*, type: Typespec*) -> Decl* {
   let d = new_decl(DECL_TYPEDEF, pos, name);
   d.typedef_decl.type = type;
   return d;
 }
 
-fn new_decl_note(pos: SrcPos, note: Note): Decl* {
+fn new_decl_note(pos: SrcPos, note: Note) -> Decl* {
   let d = new_decl(DECL_NOTE, pos, NULL);
   d.note = note;
   return d;
 }
 
-fn new_decl_import(pos: SrcPos, rename_name: char const*, is_relative: bool, names: char const**, num_names: usize, import_all: bool, items: ImportItem*, num_items: usize): Decl* {
+fn new_decl_import(pos: SrcPos, rename_name: char const*, is_relative: bool, names: char const**, num_names: usize, import_all: bool, items: ImportItem*, num_items: usize) -> Decl* {
   let d = new_decl(DECL_IMPORT, pos, NULL);
   d.name = rename_name;
   d.import_decl.is_relative = is_relative;
@@ -173,63 +173,63 @@ fn new_decl_import(pos: SrcPos, rename_name: char const*, is_relative: bool, nam
   return d;
 }
 
-fn new_expr(kind: ExprKind, pos: SrcPos): Expr* {
+fn new_expr(kind: ExprKind, pos: SrcPos) -> Expr* {
   let e: Expr* = ast_alloc(sizeof(Expr));
   e.kind = kind;
   e.pos = pos;
   return e;
 }
 
-fn new_expr_paren(pos: SrcPos, expr: Expr*): Expr* {
+fn new_expr_paren(pos: SrcPos, expr: Expr*) -> Expr* {
   let e = new_expr(EXPR_PAREN, pos);
   e.paren.expr = expr;
   return e;
 }
 
-fn new_expr_sizeof_expr(pos: SrcPos, expr: Expr*): Expr* {
+fn new_expr_sizeof_expr(pos: SrcPos, expr: Expr*) -> Expr* {
   let e = new_expr(EXPR_SIZEOF_EXPR, pos);
   e.sizeof_expr = expr;
   return e;
 }
 
-fn new_expr_sizeof_type(pos: SrcPos, type: Typespec*): Expr* {
+fn new_expr_sizeof_type(pos: SrcPos, type: Typespec*) -> Expr* {
   let e = new_expr(EXPR_SIZEOF_TYPE, pos);
   e.sizeof_type = type;
   return e;
 }
 
-fn new_expr_typeof_expr(pos: SrcPos, expr: Expr*): Expr* {
+fn new_expr_typeof_expr(pos: SrcPos, expr: Expr*) -> Expr* {
   let e = new_expr(EXPR_TYPEOF_EXPR, pos);
   e.typeof_expr  = expr;
   return e;
 }
 
-fn new_expr_typeof_type(pos: SrcPos, type: Typespec*): Expr* {
+fn new_expr_typeof_type(pos: SrcPos, type: Typespec*) -> Expr* {
   let e = new_expr(EXPR_TYPEOF_TYPE, pos);
   e.typeof_type = type;
   return e;
 }
 
-fn new_expr_alignof_expr(pos: SrcPos, expr: Expr*): Expr* {
+fn new_expr_alignof_expr(pos: SrcPos, expr: Expr*) -> Expr* {
   let e = new_expr(EXPR_ALIGNOF_EXPR, pos);
   e.alignof_expr = expr;
   return e;
 }
 
-fn new_expr_alignof_type(pos: SrcPos, type: Typespec*): Expr* {
+fn new_expr_alignof_type(pos: SrcPos, type: Typespec*) -> Expr* {
   let e = new_expr(EXPR_ALIGNOF_TYPE, pos);
   e.alignof_type = type;
   return e;
 }
 
-fn new_expr_offsetof(pos: SrcPos, type: Typespec*, name: char const*): Expr* {
+fn new_expr_offsetof(pos: SrcPos, type: Typespec*, name: char const*) -> Expr* {
   let e = new_expr(EXPR_OFFSETOF, pos);
   e.offsetof_field.type = type;
   e.offsetof_field.name = name;
   return e;
 }
 
-fn new_expr_modify(pos: SrcPos, op: TokenKind, post: bool, expr: Expr*): Expr* {
+fn new_expr_modify(pos: SrcPos, op: TokenKind, post: bool, expr: Expr*) -> Expr* {
   let e = new_expr(EXPR_MODIFY, pos);
   e.modify.op = op;
   e.modify.post = post;
@@ -237,7 +237,7 @@ fn new_expr_modify(pos: SrcPos, op: TokenKind, post: bool, expr: Expr*): Expr* {
   return e;
 }
 
-fn new_expr_int(pos: SrcPos, val: ullong, mod: TokenMod, suffix: TokenSuffix): Expr* {
+fn new_expr_int(pos: SrcPos, val: ullong, mod: TokenMod, suffix: TokenSuffix) -> Expr* {
   let e = new_expr(EXPR_INT, pos);
   e.int_lit.val = val;
   e.int_lit.mod = mod;
@@ -245,7 +245,7 @@ fn new_expr_int(pos: SrcPos, val: ullong, mod: TokenMod, suffix: TokenSuffix): E
   return e;
 }
 
-fn new_expr_float(pos: SrcPos, start: char const*, end: char const*, val: double, suffix: TokenSuffix): Expr* {
+fn new_expr_float(pos: SrcPos, start: char const*, end: char const*, val: double, suffix: TokenSuffix) -> Expr* {
   let e = new_expr(EXPR_FLOAT, pos);
   e.float_lit.start = start;
   e.float_lit.end = end;
@@ -254,20 +254,20 @@ fn new_expr_float(pos: SrcPos, start: char const*, end: char const*, val: double
   return e;
 }
 
-fn new_expr_str(pos: SrcPos, val: char const*, mod: TokenMod): Expr* {
+fn new_expr_str(pos: SrcPos, val: char const*, mod: TokenMod) -> Expr* {
   let e = new_expr(EXPR_STR, pos);
   e.str_lit.val = val;
   e.str_lit.mod = mod;
   return e;
 }
 
-fn new_expr_name(pos: SrcPos, name: char const*): Expr* {
+fn new_expr_name(pos: SrcPos, name: char const*) -> Expr* {
   let e = new_expr(EXPR_NAME, pos);
   e.name = name;
   return e;
 }
 
-fn new_expr_compound(pos: SrcPos, type: Typespec*, fields: CompoundField*, num_fields: usize): Expr* {
+fn new_expr_compound(pos: SrcPos, type: Typespec*, fields: CompoundField*, num_fields: usize) -> Expr* {
   let e = new_expr(EXPR_COMPOUND, pos);
   e.compound.type = type;
   e.compound.fields = ast_dup(fields, num_fields * sizeof(*fields));
@@ -275,14 +275,14 @@ fn new_expr_compound(pos: SrcPos, type: Typespec*, fields: CompoundField*, num_f
   return e;
 }
 
-fn new_expr_cast(pos: SrcPos, type: Typespec*, expr: Expr*): Expr* {
+fn new_expr_cast(pos: SrcPos, type: Typespec*, expr: Expr*) -> Expr* {
   let e = new_expr(EXPR_CAST, pos);
   e.cast.type = type;
   e.cast.expr = expr;
   return e;
 }
 
-fn new_expr_call(pos: SrcPos, expr: Expr*, args: Expr**, num_args: usize): Expr* {
+fn new_expr_call(pos: SrcPos, expr: Expr*, args: Expr**, num_args: usize) -> Expr* {
   let e = new_expr(EXPR_CALL, pos);
   e.call.expr = expr;
   e.call.args = ast_dup(args, num_args * sizeof(*args));
@@ -290,28 +290,28 @@ fn new_expr_call(pos: SrcPos, expr: Expr*, args: Expr**, num_args: usize): Expr*
   return e;
 }
 
-fn new_expr_index(pos: SrcPos, expr: Expr*, index: Expr*): Expr* {
+fn new_expr_index(pos: SrcPos, expr: Expr*, index: Expr*) -> Expr* {
   let e = new_expr(EXPR_INDEX, pos);
   e.index.expr = expr;
   e.index.index = index;
   return e;
 }
 
-fn new_expr_field(pos: SrcPos, expr: Expr*, name: char const*): Expr* {
+fn new_expr_field(pos: SrcPos, expr: Expr*, name: char const*) -> Expr* {
   let e = new_expr(EXPR_FIELD, pos);
   e.field.expr = expr;
   e.field.name = name;
   return e;
 }
 
-fn new_expr_unary(pos: SrcPos, op: TokenKind, expr: Expr*): Expr* {
+fn new_expr_unary(pos: SrcPos, op: TokenKind, expr: Expr*) -> Expr* {
   let e = new_expr(EXPR_UNARY, pos);
   e.unary.op = op;
   e.unary.expr = expr;
   return e;
 }
 
-fn new_expr_binary(pos: SrcPos, op: TokenKind, left: Expr*, right: Expr*): Expr* {
+fn new_expr_binary(pos: SrcPos, op: TokenKind, left: Expr*, right: Expr*) -> Expr* {
   let e = new_expr(EXPR_BINARY, pos);
   e.binary.op = op;
   e.binary.left = left;
@@ -319,7 +319,7 @@ fn new_expr_binary(pos: SrcPos, op: TokenKind, left: Expr*, right: Expr*): Expr*
   return e;
 }
 
-fn new_expr_ternary(pos: SrcPos, cond: Expr*, then_expr: Expr*, else_expr: Expr*): Expr* {
+fn new_expr_ternary(pos: SrcPos, cond: Expr*, then_expr: Expr*, else_expr: Expr*) -> Expr* {
   let e = new_expr(EXPR_TERNARY, pos);
   e.ternary.cond = cond;
   e.ternary.then_expr = then_expr;
@@ -327,7 +327,7 @@ fn new_expr_ternary(pos: SrcPos, cond: Expr*, then_expr: Expr*, else_expr: Expr*
   return e;
 }
 
-fn get_stmt_note(stmt: Stmt*, name: char const*): Note* {
+fn get_stmt_note(stmt: Stmt*, name: char const*) -> Note* {
   for (let i: usize = 0; i < stmt.notes.num_notes; i++) {
     let note = stmt.notes.notes + i;
     if (note.name == name) {
@@ -337,58 +337,58 @@ fn get_stmt_note(stmt: Stmt*, name: char const*): Note* {
   return NULL;
 }
 
-fn new_stmt(kind: StmtKind, pos: SrcPos): Stmt* {
+fn new_stmt(kind: StmtKind, pos: SrcPos) -> Stmt* {
   let s: Stmt* = ast_alloc(sizeof(Stmt));
   s.kind = kind;
   s.pos = pos;
   return s;
 }
 
-fn new_stmt_label(pos: SrcPos, label: char const*): Stmt* {
+fn new_stmt_label(pos: SrcPos, label: char const*) -> Stmt* {
   let s = new_stmt(STMT_LABEL, pos);
   s.label = label;
   return s;
 }
 
-fn new_stmt_goto(pos: SrcPos, label: char const*): Stmt* {
+fn new_stmt_goto(pos: SrcPos, label: char const*) -> Stmt* {
   let s = new_stmt(STMT_GOTO, pos);
   s.label = label;
   return s;
 }
 
-fn new_stmt_note(pos: SrcPos, note: Note): Stmt* {
+fn new_stmt_note(pos: SrcPos, note: Note) -> Stmt* {
   let s = new_stmt(STMT_NOTE, pos);
   s.note = note;
   return s;
 }
 
-fn new_stmt_decl(pos: SrcPos, decl: Decl*): Stmt* {
+fn new_stmt_decl(pos: SrcPos, decl: Decl*) -> Stmt* {
   let s = new_stmt(STMT_DECL, pos);
   s.decl = decl;
   return s;
 }
 
-fn new_stmt_return(pos: SrcPos, expr: Expr*): Stmt* {
+fn new_stmt_return(pos: SrcPos, expr: Expr*) -> Stmt* {
   let s = new_stmt(STMT_RETURN, pos);
   s.expr = expr;
   return s;
 }
 
-fn new_stmt_break(pos: SrcPos): Stmt* {
+fn new_stmt_break(pos: SrcPos) -> Stmt* {
   return new_stmt(STMT_BREAK, pos);
 }
 
-fn new_stmt_continue(pos: SrcPos): Stmt* {
+fn new_stmt_continue(pos: SrcPos) -> Stmt* {
   return new_stmt(STMT_CONTINUE, pos);
 }
 
-fn new_stmt_block(pos: SrcPos, block: StmtList): Stmt* {
+fn new_stmt_block(pos: SrcPos, block: StmtList) -> Stmt* {
   let s = new_stmt(STMT_BLOCK, pos);
   s.block = block;
   return s;
 }
 
-fn new_stmt_if(pos: SrcPos, init: Stmt*, cond: Expr*, then_block: StmtList, elseifs: ElseIf*, num_elseifs: usize, else_block: StmtList): Stmt* {
+fn new_stmt_if(pos: SrcPos, init: Stmt*, cond: Expr*, then_block: StmtList, elseifs: ElseIf*, num_elseifs: usize, else_block: StmtList) -> Stmt* {
   let s = new_stmt(STMT_IF, pos);
   s.if_stmt.init = init;
   s.if_stmt.cond = cond;
@@ -399,21 +399,21 @@ fn new_stmt_if(pos: SrcPos, init: Stmt*, cond: Expr*, then_block: StmtList, else
   return s;
 }
 
-fn new_stmt_while(pos: SrcPos, cond: Expr*, block: StmtList): Stmt* {
+fn new_stmt_while(pos: SrcPos, cond: Expr*, block: StmtList) -> Stmt* {
   let s = new_stmt(STMT_WHILE, pos);
   s.while_stmt.cond = cond;
   s.while_stmt.block = block;
   return s;
 }
 
-fn new_stmt_do_while(pos: SrcPos, cond: Expr*, block: StmtList): Stmt* {
+fn new_stmt_do_while(pos: SrcPos, cond: Expr*, block: StmtList) -> Stmt* {
   let s = new_stmt(STMT_DO_WHILE, pos);
   s.while_stmt.cond = cond;
   s.while_stmt.block = block;
   return s;
 }
 
-fn new_stmt_for(pos: SrcPos, init: Stmt*, cond: Expr*, next: Stmt*, block: StmtList): Stmt* {
+fn new_stmt_for(pos: SrcPos, init: Stmt*, cond: Expr*, next: Stmt*, block: StmtList) -> Stmt* {
   let s = new_stmt(STMT_FOR, pos);
   s.for_stmt.init = init;
   s.for_stmt.cond = cond;
@@ -422,7 +422,7 @@ fn new_stmt_for(pos: SrcPos, init: Stmt*, cond: Expr*, next: Stmt*, block: StmtL
   return s;
 }
 
-fn new_stmt_switch(pos: SrcPos, expr: Expr*, cases: SwitchCase*, num_cases: usize): Stmt* {
+fn new_stmt_switch(pos: SrcPos, expr: Expr*, cases: SwitchCase*, num_cases: usize) -> Stmt* {
   let s = new_stmt(STMT_SWITCH, pos);
   s.switch_stmt.expr = expr;
   s.switch_stmt.cases = ast_dup(cases, num_cases * sizeof(*cases));
@@ -430,7 +430,7 @@ fn new_stmt_switch(pos: SrcPos, expr: Expr*, cases: SwitchCase*, num_cases: usiz
   return s;
 }
 
-fn new_stmt_assign(pos: SrcPos, op: TokenKind, left: Expr*, right: Expr*): Stmt* {
+fn new_stmt_assign(pos: SrcPos, op: TokenKind, left: Expr*, right: Expr*) -> Stmt* {
   let s = new_stmt(STMT_ASSIGN, pos);
   s.assign.op = op;
   s.assign.left = left;
@@ -438,7 +438,7 @@ fn new_stmt_assign(pos: SrcPos, op: TokenKind, left: Expr*, right: Expr*): Stmt*
   return s;
 }
 
-fn new_stmt_init(pos: SrcPos, name: char const*, is_mut: bool, type: Typespec*, expr: Expr*): Stmt* {
+fn new_stmt_init(pos: SrcPos, name: char const*, is_mut: bool, type: Typespec*, expr: Expr*) -> Stmt* {
   let s = new_stmt(STMT_INIT, pos);
   s.init.name = name;
   s.init.is_mut = is_mut;
@@ -447,7 +447,7 @@ fn new_stmt_init(pos: SrcPos, name: char const*, is_mut: bool, type: Typespec*, 
   return s;
 }
 
-fn new_stmt_expr(pos: SrcPos, expr: Expr*): Stmt* {
+fn new_stmt_expr(pos: SrcPos, expr: Expr*) -> Stmt* {
   let s = new_stmt(STMT_EXPR, pos);
   s.expr = expr;
   return s;

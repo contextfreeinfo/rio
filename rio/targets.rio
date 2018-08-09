@@ -25,7 +25,7 @@ let arch_names: char const*[NUM_ARCHES] = {
 let target_os: int;
 let target_arch: int;
 
-fn get_os(name: char const*): int {
+fn get_os(name: char const*) -> int {
   for (let i = 0; i < NUM_OSES; i++) {
     if (strcmp(os_names[i], name) == 0) {
       return i;
@@ -34,7 +34,7 @@ fn get_os(name: char const*): int {
   return -1;
 }
 
-fn get_arch(name: char const*): int {
+fn get_arch(name: char const*) -> int {
   for (let i = 0; i < NUM_ARCHES; i++) {
     if (strcmp(arch_names[i], name) == 0) {
       return i;
@@ -130,7 +130,7 @@ fn init_target() {
   }
 }
 
-fn is_excluded_target_filename(name: char const*): bool {
+fn is_excluded_target_filename(name: char const*) -> bool {
   let end = name + strlen(name);
 
   let ptr1 = end;

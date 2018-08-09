@@ -14,19 +14,19 @@ struct dirent {
 }
 
 @foreign
-fn closedir(dirp: DIR*): int;
+fn closedir(dirp: DIR*) -> int;
 
 @foreign
-fn opendir(name: char const*): DIR*;
+fn opendir(name: char const*) -> DIR*;
 
 @foreign
-fn readdir(dir: DIR*): dirent*;
+fn readdir(dir: DIR*) -> dirent*;
 
 @foreign
-fn realpath(path: char const*, resolved_path: char const*): char*;
+fn realpath(path: char const*, resolved_path: char const*) -> char*;
 
 @foreign
-fn strdup(str: char const*): char*;
+fn strdup(str: char const*) -> char*;
 
 fn path_absolute(path: char[MAX_PATH]) {
   let rel_path: char[MAX_PATH];

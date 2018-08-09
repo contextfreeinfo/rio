@@ -37,7 +37,7 @@ let declare_note_name: char const*;
 let static_assert_name: char const*;
 
 // #define KEYWORD(name) name##_keyword = str_intern(#name); buf_push(keywords, name##_keyword)
-fn init_keyword(keyword: char const*): char const* {
+fn init_keyword(keyword: char const*) -> char const* {
   keyword = str_intern(keyword);
   // TODO If rio doesn't give warnings, the underlying compiler also shouldn't.
   buf_push((:void**)&keywords, (:void*)&keyword, sizeof(keyword));
@@ -93,7 +93,7 @@ fn init_keywords() {
 
 // #undef KEYWORD
 
-fn is_keyword_name(name: char const*): bool {
+fn is_keyword_name(name: char const*) -> bool {
   return first_keyword <= name && name <= last_keyword;
 }
 
@@ -253,7 +253,7 @@ let token_kind_names: char const*[] = {
   [TOKEN_DEC] = "--",
 };
 
-fn token_kind_name(kind: TokenKind): char const* {
+fn token_kind_name(kind: TokenKind) -> char const* {
   if (kind < sizeof(token_kind_names)/sizeof(*token_kind_names)) {
     return token_kind_names[kind];
   } else {
@@ -340,7 +340,7 @@ fn fatal_error(pos: SrcPos, fmt: char const*, ...) {
 // #define warning_here(...) (error(token.pos, __VA_ARGS__))
 // #define fatal_error(token.pos, ...) (error(token.pos, __VA_ARGS__), exit(1))
 
-fn token_info(): char const* {
+fn token_info() -> char const* {
   if (token.kind == TOKEN_NAME || token.kind == TOKEN_KEYWORD) {
     return token.name;
   } else {
@@ -490,7 +490,7 @@ let escape_to_char: char[256] = {
   ['a'] = '\a',
 };
 
-fn scan_hex_escape(): int {
+fn scan_hex_escape() -> int {
   #assert(*stream == 'x');
   stream++;
   let val = char_to_digit[(:uchar)*stream];
@@ -889,23 +889,23 @@ fn init_stream(name: char const*, buf: char const*) {
   next_token();
 }
 
-fn is_token(kind: TokenKind): bool {
+fn is_token(kind: TokenKind) -> bool {
   return token.kind == kind;
 }
 
-fn is_token_eof(): bool {
+fn is_token_eof() -> bool {
   return token.kind == TOKEN_EOF;
 }
 
-fn is_token_name(name: char const*): bool {
+fn is_token_name(name: char const*) -> bool {
   return token.kind == TOKEN_NAME && token.name == name;
 }
 
-fn is_keyword(name: char const*): bool {
+fn is_keyword(name: char const*) -> bool {
   return is_token(TOKEN_KEYWORD) && token.name == name;
 }
 
-fn match_keyword(name: char const*): bool {
+fn match_keyword(name: char const*) -> bool {
   if (is_keyword(name)) {
     next_token();
     return true;
@@ -914,7 +914,7 @@ fn match_keyword(name: char const*): bool {
   }
 }
 
-fn match_token(kind: TokenKind): bool {
+fn match_token(kind: TokenKind) -> bool {
   if (is_token(kind)) {
     next_token();
     return true;
@@ -923,7 +923,7 @@ fn match_token(kind: TokenKind): bool {
   }
 }
 
-fn expect_token(kind: TokenKind): bool {
+fn expect_token(kind: TokenKind) -> bool {
   if (is_token(kind)) {
     next_token();
     return true;
