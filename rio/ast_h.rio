@@ -3,7 +3,7 @@
 struct NoteArg {
   pos: SrcPos;
   name: char const*;
-  expr: Expr*;
+  expr: Expr&;
 }
 
 struct Note {
@@ -20,7 +20,7 @@ struct Notes {
 
 struct StmtList {
   pos: SrcPos;
-  stmts: Stmt**;
+  stmts: Stmt&*;
   num_stmts: usize;
 }
 
@@ -37,7 +37,7 @@ enum TypespecKind {
 struct Typespec {
   kind: TypespecKind;
   pos: SrcPos;
-  base: Typespec*;
+  base: Typespec&;
   is_owned: bool;
   union {
     name: char const*;
@@ -47,16 +47,16 @@ struct Typespec {
 }
 
 struct TypespecFunc {
-  args: Typespec**;
+  args: Typespec&*;
   num_args: usize;
   has_varargs: bool;
-  ret: Typespec*;
+  ret: Typespec&;
 }
 
 struct FuncParam {
   pos: SrcPos;
   name: char const*;
-  type: Typespec*;
+  type: Typespec&;
 }
 
 enum AggregateItemKind {
@@ -72,16 +72,16 @@ struct AggregateItem {
     struct {
       names: char const**;
       num_names: usize;
-      type: Typespec*;
+      type: Typespec&;
     }
-    subaggregate: Aggregate*;
+    subaggregate: Aggregate&;
   }
 }
 
 struct EnumItem {
   pos: SrcPos;
   name: char const*;
-  init: Expr*;
+  init: Expr&;
 }
 
 struct ImportItem {
@@ -135,7 +135,7 @@ struct Decl {
 
 
 struct DeclEnum {
-  type: Typespec*;
+  type: Typespec&;
   items: EnumItem*;
   num_items: usize;
 }
@@ -143,18 +143,18 @@ struct DeclEnum {
 struct DeclFunc {
   params: FuncParam*;
   num_params: usize;
-  ret_type: Typespec*;
+  ret_type: Typespec&;
   has_varargs: bool;
   block: StmtList;
 }
 
 struct DeclTypedef {
-  type: Typespec*;
+  type: Typespec&;
 }
 
 struct DeclVar {
-  type: Typespec*;
-  expr: Expr*;
+  type: Typespec&;
+  expr: Expr&;
 }
 
 struct DeclImport {
@@ -167,7 +167,7 @@ struct DeclImport {
 }
 
 struct Decls {
-  decls: Decl**;
+  decls: Decl&*;
   num_decls: usize;
 }
 
@@ -205,10 +205,10 @@ enum CompoundFieldKind {
 struct CompoundField {
   kind: CompoundFieldKind;
   pos: SrcPos;
-  init: Expr*;
+  init: Expr&;
   union {
     name: char const*;
-    index: Expr*;
+    index: Expr&;
   }
 }
 
@@ -221,12 +221,12 @@ struct Expr {
     float_lit: ExprFloatLit;
     str_lit: ExprStrLit;
     name: char const*;
-    sizeof_expr: Expr*;
-    sizeof_type: Typespec*;
-    typeof_expr: Expr*;
-    typeof_type: Typespec*;
-    alignof_expr: Expr*;
-    alignof_type: Typespec*;
+    sizeof_expr: Expr&;
+    sizeof_type: Typespec&;
+    typeof_expr: Expr&;
+    typeof_type: Typespec&;
+    alignof_expr: Expr&;
+    alignof_type: Typespec&;
     offsetof_field: ExprOffsetofField;
     compound: ExprCompound;
     cast: ExprCast;
@@ -241,7 +241,7 @@ struct Expr {
 }
 
 struct ExprParen {
-  expr: Expr*;
+  expr: Expr&;
 }
 
 struct ExprIntLit {
@@ -263,68 +263,68 @@ struct ExprStrLit {
 }
 
 struct ExprOffsetofField {
-  type: Typespec*;
+  type: Typespec&;
   name: char const*;
 }
 
 struct ExprCompound {
-  type: Typespec*;
+  type: Typespec&;
   fields: CompoundField*;
   num_fields: usize;
 }
 
 struct ExprCast {
-  type: Typespec*;
-  expr: Expr*;
+  type: Typespec&;
+  expr: Expr&;
 }
 
 struct ExprModify {
   op: TokenKind;
   post: bool;
-  expr: Expr*;
+  expr: Expr&;
 }
 
 struct ExprUnary {
   op: TokenKind;
-  expr: Expr*;
+  expr: Expr&;
 }
 
 struct ExprBinary {
   op: TokenKind;
-  left: Expr*;
-  right: Expr*;
+  left: Expr&;
+  right: Expr&;
 }
 
 struct ExprTernary {
-  cond: Expr*;
-  then_expr: Expr*;
-  else_expr: Expr*;
+  cond: Expr&;
+  then_expr: Expr&;
+  else_expr: Expr&;
 }
 
 struct ExprCall {
-  expr: Expr*;
-  args: Expr**;
+  expr: Expr&;
+  args: Expr&*;
   num_args: usize;
 }
 
 struct ExprIndex {
-  expr: Expr*;
-  index: Expr*;
+  expr: Expr&;
+  index: Expr&;
 }
 
 struct ExprField {
-  expr: Expr*;
+  expr: Expr&;
   name: char const*;
 }
 
 struct ElseIf {
-  cond: Expr*;
+  cond: Expr&;
   block: StmtList;
 }
 
 struct SwitchCasePattern {
-  start: Expr*;
-  end: Expr*;
+  start: Expr&;
+  end: Expr&;
 }
 
 struct SwitchCase {
@@ -360,8 +360,8 @@ struct Stmt {
   pos: SrcPos;
   union {
     note: Note;
-    expr: Expr*;
-    decl: Decl*;
+    expr: Expr&;
+    decl: Decl&;
     if_stmt: StmtIf;
     while_stmt: StmtWhile;
     for_stmt: StmtFor;
@@ -374,8 +374,8 @@ struct Stmt {
 }
 
 struct StmtIf {
-  init: Stmt*;
-  cond: Expr*;
+  init: Stmt&;
+  cond: Expr&;
   then_block: StmtList;
   elseifs: ElseIf*;
   num_elseifs: usize;
@@ -383,32 +383,32 @@ struct StmtIf {
 }
 
 struct StmtWhile {
-  cond: Expr*;
+  cond: Expr&;
   block: StmtList;
 }
 
 struct StmtFor {
-  init: Stmt*;
-  cond: Expr*;
-  next: Stmt*;
+  init: Stmt&;
+  cond: Expr&;
+  next: Stmt&;
   block: StmtList;
 }
 
 struct StmtSwitch {
-  expr: Expr*;
+  expr: Expr&;
   cases: SwitchCase*;
   num_cases: usize;
 }
 
 struct StmtAssign {
   op: TokenKind;
-  left: Expr*;
-  right: Expr*;
+  left: Expr&;
+  right: Expr&;
 }
 
 struct StmtInit {
   name: char const*;
   is_mut: bool;
-  type: Typespec*;
-  expr: Expr*;
+  type: Typespec&;
+  expr: Expr&;
 }

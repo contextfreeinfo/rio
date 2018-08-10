@@ -1,4 +1,4 @@
-fn parse_type_func_param() -> Typespec* {
+fn parse_type_func_param() -> Typespec& {
   let type = parse_type();
   if (match_token(TOKEN_COLON)) {
     if (type.kind != TYPESPEC_NAME) {
@@ -9,9 +9,9 @@ fn parse_type_func_param() -> Typespec* {
   return type;
 }
 
-fn parse_type_func() -> Typespec* {
+fn parse_type_func() -> Typespec& {
   let pos = token.pos;
-  let args: Typespec** = NULL;
+  let args: Typespec&* = NULL;
   let has_varargs: bool = false;
   expect_token(TOKEN_LPAREN);
   while (!is_token(TOKEN_RPAREN)) {
@@ -32,14 +32,14 @@ fn parse_type_func() -> Typespec* {
     }
   }
   expect_token(TOKEN_RPAREN);
-  let ret: Typespec* = NULL;
+  let ret: Typespec& = NULL;
   if (match_token(TOKEN_ARROW)) {
     ret = parse_type();
   }
   return new_typespec_func(pos, args, buf_len(args), ret, has_varargs);
 }
 
-fn parse_type_base() -> Typespec* {
+fn parse_type_base() -> Typespec& {
   if (is_token(TOKEN_NAME)) {
     let pos = token.pos;
     let name = token.name;
@@ -57,12 +57,12 @@ fn parse_type_base() -> Typespec* {
   }
 }
 
-fn parse_type() -> Typespec* {
+fn parse_type() -> Typespec& {
   let type = parse_type_base();
   let pos = token.pos;
   while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_AND) || is_token(TOKEN_MUL) || is_keyword(const_keyword)) {
     if (match_token(TOKEN_LBRACKET)) {
-      let size: Expr* = NULL;
+      let size: Expr& = NULL;
       if (!is_token(TOKEN_RBRACKET)) {
         size = parse_expr();
       }
@@ -107,7 +107,7 @@ fn parse_expr_compound_field() -> CompoundField {
   }
 }
 
-fn parse_expr_compound(type: Typespec*) -> Expr* {
+fn parse_expr_compound(type: Typespec&) -> Expr& {
   let pos = token.pos;
   expect_token(TOKEN_LBRACE);
   let fields: CompoundField* = NULL;
@@ -122,7 +122,7 @@ fn parse_expr_compound(type: Typespec*) -> Expr* {
   return new_expr_compound(pos, type, fields, buf_len(fields));
 }
 
-fn parse_expr_operand() -> Expr* {
+fn parse_expr_operand() -> Expr& {
   let pos = token.pos;
   if (is_token(TOKEN_INT)) {
     let val = token.int_val;
@@ -212,12 +212,12 @@ fn parse_expr_operand() -> Expr* {
   }
 }
 
-fn parse_expr_base() -> Expr* {
+fn parse_expr_base() -> Expr& {
   let expr = parse_expr_operand();
   while (is_token(TOKEN_LPAREN) || is_token(TOKEN_LBRACKET) || is_token(TOKEN_DOT) || is_token(TOKEN_INC) || is_token(TOKEN_DEC)) {
     let pos = token.pos;
     if (match_token(TOKEN_LPAREN)) {
-      let args: Expr** = NULL;
+      let args: Expr&* = NULL;
       while (!is_token(TOKEN_RPAREN)) {
         let arg = parse_expr();
         buf_push((:void**)&args, &arg, sizeof(arg));
@@ -258,7 +258,7 @@ fn is_unary_op() -> bool {
     is_token(TOKEN_DEC);
 }
 
-fn parse_expr_unary() -> Expr* {
+fn parse_expr_unary() -> Expr& {
   if (is_unary_op()) {
     let pos = token.pos;
     let op = token.kind;
@@ -277,7 +277,7 @@ fn is_mul_op() -> bool {
   return TOKEN_FIRST_MUL <= token.kind && token.kind <= TOKEN_LAST_MUL;
 }
 
-fn parse_expr_mul() -> Expr* {
+fn parse_expr_mul() -> Expr& {
   let expr = parse_expr_unary();
   while (is_mul_op()) {
     let pos = token.pos;
@@ -292,7 +292,7 @@ fn is_add_op() -> bool {
   return TOKEN_FIRST_ADD <= token.kind && token.kind <= TOKEN_LAST_ADD;
 }
 
-fn parse_expr_add() -> Expr* {
+fn parse_expr_add() -> Expr& {
   let expr = parse_expr_mul();
   while (is_add_op()) {
     let pos = token.pos;
@@ -307,7 +307,7 @@ fn is_cmp_op() -> bool {
   return TOKEN_FIRST_CMP <= token.kind && token.kind <= TOKEN_LAST_CMP;
 }
 
-fn parse_expr_cmp() -> Expr* {
+fn parse_expr_cmp() -> Expr& {
   let expr = parse_expr_add();
   while (is_cmp_op()) {
     let pos = token.pos;
@@ -318,7 +318,7 @@ fn parse_expr_cmp() -> Expr* {
   return expr;
 }
 
-fn parse_expr_and() -> Expr* {
+fn parse_expr_and() -> Expr& {
   let expr = parse_expr_cmp();
   while (match_token(TOKEN_AND_AND)) {
     let pos = token.pos;
@@ -327,7 +327,7 @@ fn parse_expr_and() -> Expr* {
   return expr;
 }
 
-fn parse_expr_or() -> Expr* {
+fn parse_expr_or() -> Expr& {
   let expr = parse_expr_and();
   while (match_token(TOKEN_OR_OR)) {
     let pos = token.pos;
@@ -336,7 +336,7 @@ fn parse_expr_or() -> Expr* {
   return expr;
 }
 
-fn parse_expr_ternary() -> Expr* {
+fn parse_expr_ternary() -> Expr& {
   let pos = token.pos;
   let expr = parse_expr_or();
   if (match_token(TOKEN_QUESTION)) {
@@ -348,11 +348,11 @@ fn parse_expr_ternary() -> Expr* {
   return expr;
 }
 
-fn parse_expr() -> Expr* {
+fn parse_expr() -> Expr& {
   return parse_expr_ternary();
 }
 
-fn parse_paren_expr() -> Expr* {
+fn parse_paren_expr() -> Expr& {
   expect_token(TOKEN_LPAREN);
   let expr = parse_expr();
   expect_token(TOKEN_RPAREN);
@@ -362,7 +362,7 @@ fn parse_paren_expr() -> Expr* {
 fn parse_stmt_block() -> StmtList {
   let pos = token.pos;
   expect_token(TOKEN_LBRACE);
-  let stmts: Stmt** = NULL;
+  let stmts: Stmt&* = NULL;
   while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
     let stmt = parse_stmt();
     buf_push((:void**)&stmts, &stmt, sizeof(stmt));
@@ -371,10 +371,10 @@ fn parse_stmt_block() -> StmtList {
   return new_stmt_list(pos, stmts, buf_len(stmts));
 }
 
-fn parse_stmt_if(pos: SrcPos) -> Stmt* {
+fn parse_stmt_if(pos: SrcPos) -> Stmt& {
   expect_token(TOKEN_LPAREN);
-  let cond: Expr*;
-  let init: Stmt*;
+  let cond: Expr&;
+  let init: Stmt&;
   if (match_keyword(let_keyword)) {
     init = parse_let_stmt(pos);
     if (match_token(TOKEN_SEMICOLON)) {
@@ -392,7 +392,7 @@ fn parse_stmt_if(pos: SrcPos) -> Stmt* {
       else_block = parse_stmt_block();
       break;
     }
-    let elseif_cond: Expr* = parse_paren_expr();
+    let elseif_cond: Expr& = parse_paren_expr();
     let elseif_block: StmtList = parse_stmt_block();
     let elseif = ElseIf {elseif_cond, elseif_block};
     buf_push((:void**)&elseifs, &elseif, sizeof(elseif));
@@ -400,18 +400,18 @@ fn parse_stmt_if(pos: SrcPos) -> Stmt* {
   return new_stmt_if(pos, init, cond, then_block, elseifs, buf_len(elseifs), else_block);
 }
 
-fn parse_stmt_while(pos: SrcPos) -> Stmt* {
-  let cond: Expr* = parse_paren_expr();
+fn parse_stmt_while(pos: SrcPos) -> Stmt& {
+  let cond: Expr& = parse_paren_expr();
   return new_stmt_while(pos, cond, parse_stmt_block());
 }
 
-fn parse_stmt_do_while(pos: SrcPos) -> Stmt* {
+fn parse_stmt_do_while(pos: SrcPos) -> Stmt& {
   let block: StmtList = parse_stmt_block();
   if (!match_keyword(while_keyword)) {
     fatal_error(token.pos, "Expected 'while' after 'do' block");
     return NULL;
   }
-  let stmt: Stmt* = new_stmt_do_while(pos, parse_paren_expr(), block);
+  let stmt: Stmt& = new_stmt_do_while(pos, parse_paren_expr(), block);
   expect_token(TOKEN_SEMICOLON);
   return stmt;
 }
@@ -420,14 +420,14 @@ fn is_assign_op() -> bool {
   return TOKEN_FIRST_ASSIGN <= token.kind && token.kind <= TOKEN_LAST_ASSIGN;
 }
 
-fn parse_let_stmt(pos: SrcPos) -> Stmt* {
+fn parse_let_stmt(pos: SrcPos) -> Stmt& {
   let is_mut = match_keyword(mut_keyword);
   let name = parse_name();
   if (match_token(TOKEN_ASSIGN)) {
     return new_stmt_init(pos, name, is_mut, NULL, parse_expr());
   } else if (match_token(TOKEN_COLON)) {
     let type = parse_type();
-    let expr: Expr*;
+    let expr: Expr&;
     if (match_token(TOKEN_ASSIGN)) {
       expr = parse_expr();
     } else {
@@ -441,9 +441,9 @@ fn parse_let_stmt(pos: SrcPos) -> Stmt* {
   }
 }
 
-fn parse_simple_stmt() -> Stmt* {
+fn parse_simple_stmt() -> Stmt& {
   let pos = token.pos;
-  let stmt: Stmt*;
+  let stmt: Stmt&;
   if (match_keyword(let_keyword)) {
     stmt = parse_let_stmt(pos);
   } else {
@@ -461,18 +461,18 @@ fn parse_simple_stmt() -> Stmt* {
   return stmt;
 }
 
-fn parse_stmt_for(pos: SrcPos) -> Stmt* {
+fn parse_stmt_for(pos: SrcPos) -> Stmt& {
   expect_token(TOKEN_LPAREN);
-  let init: Stmt* = NULL;
+  let init: Stmt& = NULL;
   if (!is_token(TOKEN_SEMICOLON)) {
     init = parse_simple_stmt();
   }
   expect_token(TOKEN_SEMICOLON);
-  let cond: Expr* = NULL;
+  let cond: Expr& = NULL;
   if (!is_token(TOKEN_SEMICOLON)) {
     cond = parse_expr();
   }
-  let next: Stmt* = NULL;
+  let next: Stmt& = NULL;
   if (match_token(TOKEN_SEMICOLON)) {
     if (!is_token(TOKEN_RPAREN)) {
       next = parse_simple_stmt();
@@ -487,7 +487,7 @@ fn parse_stmt_for(pos: SrcPos) -> Stmt* {
 
 fn parse_switch_case_pattern() -> SwitchCasePattern {
   let start = parse_expr();
-  let end: Expr* = NULL;
+  let end: Expr& = NULL;
   if (match_token(TOKEN_ELLIPSIS)) {
     end = parse_expr();
   }
@@ -521,7 +521,7 @@ fn parse_stmt_switch_case() -> SwitchCase {
     expect_token(TOKEN_COLON);
   }
   let pos = token.pos;
-  let stmts: Stmt**;
+  let stmts: Stmt&*;
   while (!is_token_eof() && !is_token(TOKEN_RBRACE) && !is_keyword(case_keyword) && !is_keyword(default_keyword)) {
     let stmt = parse_stmt();
     buf_push((:void**)&stmts, &stmt, sizeof(stmt));
@@ -529,8 +529,8 @@ fn parse_stmt_switch_case() -> SwitchCase {
   return SwitchCase {patterns, buf_len(patterns), is_default, new_stmt_list(pos, stmts, buf_len(stmts))};
 }
 
-fn parse_stmt_switch(pos: SrcPos) -> Stmt* {
-  let expr: Expr* = parse_paren_expr();
+fn parse_stmt_switch(pos: SrcPos) -> Stmt& {
+  let expr: Expr& = parse_paren_expr();
   let cases: SwitchCase*;
   expect_token(TOKEN_LBRACE);
   while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
@@ -541,10 +541,10 @@ fn parse_stmt_switch(pos: SrcPos) -> Stmt* {
   return new_stmt_switch(pos, expr, cases, buf_len(cases));
 }
 
-fn parse_stmt() -> Stmt* {
+fn parse_stmt() -> Stmt& {
   let notes = parse_notes();
   let pos = token.pos;
-  let stmt: Stmt*;
+  let stmt: Stmt&;
   if (match_keyword(if_keyword)) {
     stmt = parse_stmt_if(pos);
   } else if (match_keyword(while_keyword)) {
@@ -564,7 +564,7 @@ fn parse_stmt() -> Stmt* {
     expect_token(TOKEN_SEMICOLON);
     stmt = new_stmt_continue(pos);
   } else if (match_keyword(return_keyword)) {
-    let expr: Expr*;
+    let expr: Expr&;
     if (!is_token(TOKEN_SEMICOLON)) {
       expr = parse_expr();
     }
@@ -596,19 +596,19 @@ fn parse_name() -> char const* {
 fn parse_decl_enum_item() -> EnumItem {
   let pos = token.pos;
   let name = parse_name();
-  let init: Expr* = NULL;
+  let init: Expr& = NULL;
   if (match_token(TOKEN_ASSIGN)) {
     init = parse_expr();
   }
   return EnumItem {pos, name, init};
 }
 
-fn parse_decl_enum(pos: SrcPos) -> Decl* {
+fn parse_decl_enum(pos: SrcPos) -> Decl& {
   let name: char const* = NULL;
   if (is_token(TOKEN_NAME)) {
     name = parse_name();
   }
-  let type: Typespec* = NULL;
+  let type: Typespec& = NULL;
   if (match_token(TOKEN_ASSIGN)) {
     type = parse_type();
   }
@@ -660,7 +660,7 @@ fn parse_decl_aggregate_item() -> AggregateItem {
   }
 }
 
-fn parse_aggregate(kind: AggregateKind) -> Aggregate* {
+fn parse_aggregate(kind: AggregateKind) -> Aggregate& {
   let pos = token.pos;
   expect_token(TOKEN_LBRACE);
   let items: AggregateItem* = NULL;
@@ -672,7 +672,7 @@ fn parse_aggregate(kind: AggregateKind) -> Aggregate* {
   return new_aggregate(pos, kind, items, buf_len(items));
 }
 
-fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind) -> Decl* {
+fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind) -> Decl& {
   #assert(kind == DECL_STRUCT || kind == DECL_UNION);
   let name = parse_name();
   let aggregate_kind = kind == DECL_STRUCT ? AGGREGATE_STRUCT : AGGREGATE_UNION;
@@ -685,7 +685,7 @@ fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind) -> Decl* {
   }
 }
 
-fn parse_decl_var(pos: SrcPos) -> Decl* {
+fn parse_decl_var(pos: SrcPos) -> Decl& {
   let name = parse_name();
   if (match_token(TOKEN_ASSIGN)) {
     let expr = parse_expr();
@@ -693,7 +693,7 @@ fn parse_decl_var(pos: SrcPos) -> Decl* {
     return new_decl_var(pos, name, NULL, expr);
   } else if (match_token(TOKEN_COLON)) {
     let type = parse_type();
-    let expr: Expr* = NULL;
+    let expr: Expr& = NULL;
     if (match_token(TOKEN_ASSIGN)) {
       expr = parse_expr();
     }
@@ -705,9 +705,9 @@ fn parse_decl_var(pos: SrcPos) -> Decl* {
   }
 }
 
-fn parse_decl_const(pos: SrcPos) -> Decl* {
+fn parse_decl_const(pos: SrcPos) -> Decl& {
   let name = parse_name();
-  let type: Typespec* = NULL;
+  let type: Typespec& = NULL;
   if (match_token(TOKEN_COLON)) {
     type = parse_type();
   }
@@ -717,7 +717,7 @@ fn parse_decl_const(pos: SrcPos) -> Decl* {
   return new_decl_const(pos, name, type, expr);
 }
 
-fn parse_decl_typedef(pos: SrcPos) -> Decl* {
+fn parse_decl_typedef(pos: SrcPos) -> Decl& {
   let name = parse_name();
   expect_token(TOKEN_ASSIGN);
   let type = parse_type();
@@ -733,7 +733,7 @@ fn parse_decl_func_param() -> FuncParam {
   return FuncParam {pos, name, type};
 }
 
-fn parse_decl_func(pos: SrcPos) -> Decl* {
+fn parse_decl_func(pos: SrcPos) -> Decl& {
   let name = parse_name();
   expect_token(TOKEN_LPAREN);
   let params: FuncParam* = NULL;
@@ -756,7 +756,7 @@ fn parse_decl_func(pos: SrcPos) -> Decl* {
     }
   }
   expect_token(TOKEN_RPAREN);
-  let ret_type: Typespec* = NULL;
+  let ret_type: Typespec& = NULL;
   if (match_token(TOKEN_ARROW)) {
     ret_type = parse_type();
   }
@@ -768,7 +768,7 @@ fn parse_decl_func(pos: SrcPos) -> Decl* {
     block = parse_stmt_block();
     is_incomplete = false;
   }
-  let decl: Decl* = new_decl_func(pos, name, params, buf_len(params), ret_type, has_varargs, block);
+  let decl = new_decl_func(pos, name, params, buf_len(params), ret_type, has_varargs, block);
   decl.is_incomplete = is_incomplete;
   return decl;
 }
@@ -812,11 +812,11 @@ fn parse_notes() -> Notes {
   return new_notes(notes, buf_len(notes));
 }
 
-fn parse_decl_note(pos: SrcPos) -> Decl* {
+fn parse_decl_note(pos: SrcPos) -> Decl& {
   return new_decl_note(pos, parse_note());
 }
 
-fn parse_decl_import(pos: SrcPos) -> Decl* {
+fn parse_decl_import(pos: SrcPos) -> Decl& {
   let rename_name: char const*;
   let is_relative: bool;
   repeat:
@@ -864,7 +864,7 @@ fn parse_decl_import(pos: SrcPos) -> Decl* {
   return new_decl_import(pos, rename_name, is_relative, names, buf_len(names), import_all, items, buf_len(items));
 }
 
-fn parse_decl_opt() -> Decl* {
+fn parse_decl_opt() -> Decl& {
   let pos = token.pos;
   if (match_keyword(enum_keyword)) {
     return parse_decl_enum(pos);
@@ -889,9 +889,9 @@ fn parse_decl_opt() -> Decl* {
   }
 }
 
-fn parse_decl() -> Decl* {
+fn parse_decl() -> Decl& {
   let notes = parse_notes();
-  let decl: Decl* = parse_decl_opt();
+  let decl: Decl& = parse_decl_opt();
   if (!decl) {
     fatal_error(token.pos, "Expected declaration keyword, got %s", token_info());
   }
@@ -899,8 +899,8 @@ fn parse_decl() -> Decl* {
   return decl;
 }
 
-fn parse_decls() -> Decls* {
-  let decls: Decl** = NULL;
+fn parse_decls() -> Decls& {
+  let decls: Decl&* = NULL;
   while (!is_token(TOKEN_EOF)) {
     let decl = parse_decl();
     buf_push((:void**)&decls, &decl, sizeof(decl));
