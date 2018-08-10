@@ -1,4 +1,4 @@
-# Ion -> Rio
+# Rio Programming Language
 
 
 ## Overview
