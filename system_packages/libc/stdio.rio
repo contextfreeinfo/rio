@@ -129,7 +129,7 @@ fn puts(s: char const*) -> int;
 fn ungetc(c: int, stream: FILE*) -> int;
 
 @foreign
-fn fread(ptr: void*, size: usize, nmemb: usize, stream: FILE*) -> usize;
+fn fread(ptr: void&, size: usize, nmemb: usize, stream: FILE*) -> usize;
 
 @foreign
 fn fwrite(ptr: void const*, size: usize, nmemb: usize, stream: FILE*) -> usize;

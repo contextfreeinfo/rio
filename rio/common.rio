@@ -34,13 +34,13 @@ fn align_up(n: uintptr, a: usize) -> uintptr {
 }
 
 // #define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
-fn align_down_ptr(p: void*, a: usize) -> void* {
-  return (:void*)align_down((:uintptr)p, a);
+fn align_down_ptr(p: void&, a: usize) -> void& {
+  return (:void&)align_down((:uintptr)p, a);
 }
 
 // #define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
-fn align_up_ptr(p: void*, a: usize) -> void* {
-  return (:void*)align_up((:uintptr)p, a);
+fn align_up_ptr(p: void&, a: usize) -> void& {
+  return (:void&)align_up((:uintptr)p, a);
 }
 
 fn fatal(fmt: char const*, ...) {
@@ -53,7 +53,7 @@ fn fatal(fmt: char const*, ...) {
   exit(1);
 }
 
-fn xcalloc(num_elems: usize, elem_size: usize) -> void* {
+fn xcalloc(num_elems: usize, elem_size: usize) -> void& {
   let ptr = calloc(num_elems, elem_size);
   if (!ptr) {
     perror("xcalloc failed");
@@ -62,7 +62,7 @@ fn xcalloc(num_elems: usize, elem_size: usize) -> void* {
   return ptr;
 }
 
-fn xrealloc(ptr: void*, num_bytes: usize) -> void* {
+fn xrealloc(ptr: void&, num_bytes: usize) -> void& {
   ptr = realloc(ptr, num_bytes);
   if (!ptr) {
     perror("xrealloc failed");
@@ -71,7 +71,7 @@ fn xrealloc(ptr: void*, num_bytes: usize) -> void* {
   return ptr;
 }
 
-fn xmalloc(num_bytes: usize) -> void* {
+fn xmalloc(num_bytes: usize) -> void& {
   let ptr = malloc(num_bytes);
   if (!ptr) {
     perror("xmalloc failed");
@@ -80,7 +80,7 @@ fn xmalloc(num_bytes: usize) -> void* {
   return ptr;
 }
 
-fn memdup(src: void*, size: usize) -> void* {
+fn memdup(src: void&, size: usize) -> void& {
   let dest = xmalloc(size);
   memcpy(dest, src, size);
   return dest;
@@ -137,32 +137,32 @@ struct BufHdr {
 }
 
 // #define buf__hdr(b) ((BufHdr *)((char *)(b) - offsetof(BufHdr, buf)))
-fn buf__hdr(b: void*) -> BufHdr* {
+fn buf__hdr(b: void&) -> BufHdr* {
   return (:BufHdr*)((:char*)b - offsetof(BufHdr, buf));
 }
 
 // #define buf_len(b) ((b) ? buf__hdr(b)->len : 0)
-fn buf_len(b: void*) -> usize {
+fn buf_len(b: void&) -> usize {
   return b ? buf__hdr(b).len : 0;
 }
 
 // #define buf_cap(b) ((b) ? buf__hdr(b)->cap : 0)
 fn buf_cap(b: void const*) -> usize {
-  return b ? buf__hdr((:void*)b).cap : 0;
+  return b ? buf__hdr((:void&)b).cap : 0;
 }
 
 // #define buf_end(b) ((b) + buf_len(b))
-fn buf_end(b: void*, elem_size: usize) -> void* {
+fn buf_end(b: void&, elem_size: usize) -> void& {
   return (:char*)b + elem_size * buf_len(b);
 }
 
 // #define buf_sizeof(b) ((b) ? buf_len(b)*sizeof(*b) : 0)
-fn buf_sizeof(b: void*, elem_size: usize) -> usize {
+fn buf_sizeof(b: void&, elem_size: usize) -> usize {
   return b ? buf_len(b) * elem_size : 0;
 }
 
 // #define buf_free(b) ((b) ? (free(buf__hdr(b)), (b) = NULL) : 0)
-fn buf_free(b: void**) {
+fn buf_free(b: void&*) {
   if (b) {
     free(buf__hdr(*b));
     *b = NULL;
@@ -170,7 +170,7 @@ fn buf_free(b: void**) {
 }
 
 // #define buf_fit(b, n) ((n) <= buf_cap(b) ? 0 : ((b) = buf__grow((b), (n), sizeof(*(b)))))
-fn buf_fit(b: void**, new_len: usize, elem_size: usize) {
+fn buf_fit(b: void&*, new_len: usize, elem_size: usize) {
   if (new_len > buf_cap(*b)) {
     *b = buf__grow(*b, new_len, elem_size);
   }
@@ -178,7 +178,7 @@ fn buf_fit(b: void**, new_len: usize, elem_size: usize) {
 
 // TODO: We need templates or macros to make this better generic.
 // #define buf_push(b, ...) (buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->len++] = (__VA_ARGS__))
-fn buf_push(b: void**, elem: void*, elem_size: usize) {
+fn buf_push(b: void&*, elem: void&, elem_size: usize) {
   buf_fit(b, 1 + buf_len(*b), elem_size);
   memcpy((:char*)*b + elem_size * buf__hdr(*b).len++, elem, elem_size);
 }
@@ -186,7 +186,7 @@ fn buf_push(b: void**, elem: void*, elem_size: usize) {
 // #define buf_printf(b, ...) ((b) = buf__printf((b), __VA_ARGS__))
 // #define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)
 
-fn buf__grow(buf: void const*, new_len: usize, elem_size: usize) -> void* {
+fn buf__grow(buf: void const*, new_len: usize, elem_size: usize) -> void& {
   #assert(buf_cap(buf) <= (USIZE_MAX - 1)/2);
   let new_cap = clamp_min(2*buf_cap(buf), max(new_len, 16));
   #assert(new_len <= new_cap);
@@ -194,7 +194,7 @@ fn buf__grow(buf: void const*, new_len: usize, elem_size: usize) -> void* {
   let new_size = offsetof(BufHdr, buf) + new_cap*elem_size;
   let new_hdr: BufHdr*;
   if (buf) {
-    new_hdr = xrealloc(buf__hdr((:void*)buf), new_size);
+    new_hdr = xrealloc(buf__hdr((:void&)buf), new_size);
   } else {
     new_hdr = xmalloc(new_size);
     new_hdr.len = 0;
@@ -210,7 +210,7 @@ fn buf_printf(buf: char**, fmt: char const*, ...) {
   let n = 1 + vsnprintf(buf_end(*buf, 1), cap, fmt, args);
   va_end(&args);
   if (n > cap) {
-    buf_fit((:void**)buf, n + buf_len(*buf), 1);
+    buf_fit((:void&*)buf, n + buf_len(*buf), 1);
     va_start(&args, &fmt);
     let new_cap = buf_cap(*buf) - buf_len(*buf);
     n = 1 + vsnprintf(buf_end(*buf, 1), new_cap, fmt, args);
@@ -258,10 +258,10 @@ fn arena_grow(arena: Arena*, min_size: usize) {
   arena.ptr = xmalloc(size);
   #assert(arena.ptr == align_down_ptr(arena.ptr, ARENA_ALIGNMENT));
   arena.end = arena.ptr + size;
-  buf_push((:void**)&arena.blocks, &arena.ptr, sizeof(arena.ptr));
+  buf_push((:void&*)&arena.blocks, &arena.ptr, sizeof(arena.ptr));
 }
 
-fn arena_alloc(arena: Arena*, size: usize) -> void* {
+fn arena_alloc(arena: Arena*, size: usize) -> void& {
   if (size > (:usize)(arena.end - arena.ptr)) {
     arena_grow(arena, size);
     #assert(size <= (:usize)(arena.end - arena.ptr));
@@ -278,7 +278,7 @@ fn arena_free(arena: Arena*) {
   for (let it: char** = arena.blocks; it != end; it++) {
     free(*it);
   }
-  buf_free((:void**)&arena.blocks);
+  buf_free((:void&*)&arena.blocks);
 }
 
 // Hash map
@@ -349,7 +349,7 @@ fn map_grow(map: Map*, new_cap: usize) {
       map_put_uint64_from_uint64(&new_map, map.keys[i], map.vals[i]);
     }
   }
-  free((:void*)map.keys);
+  free((:void&)map.keys);
   free(map.vals);
   *map = new_map;
 }
@@ -380,27 +380,27 @@ fn map_put_uint64_from_uint64(map: Map*, key: uint64, val: uint64) {
   }
 }
 
-fn map_get(map: Map*, key: void const*) -> void* {
-  return (:void*)(:uintptr)map_get_uint64_from_uint64(map, (:uint64)(:uintptr)key);
+fn map_get(map: Map*, key: void const*) -> void& {
+  return (:void&)(:uintptr)map_get_uint64_from_uint64(map, (:uint64)(:uintptr)key);
 }
 
-fn map_put(map: Map*, key: void const*, val: void*) {
+fn map_put(map: Map*, key: void const*, val: void&) {
   map_put_uint64_from_uint64(map, (:uint64)(:uintptr)key, (:uint64)(:uintptr)val);
 }
 
-fn map_get_from_uint64(map: Map*, key: uint64) -> void* {
-  return (:void*)(:uintptr)map_get_uint64_from_uint64(map, key);
+fn map_get_from_uint64(map: Map*, key: uint64) -> void& {
+  return (:void&)(:uintptr)map_get_uint64_from_uint64(map, key);
 }
 
-fn map_put_from_uint64(map: Map*, key: uint64, val: void*) {
+fn map_put_from_uint64(map: Map*, key: uint64, val: void&) {
   map_put_uint64_from_uint64(map, key, (:uint64)(:uintptr)val);
 }
 
-fn map_get_uint64(map: Map*, key: void*) -> uint64 {
+fn map_get_uint64(map: Map*, key: void&) -> uint64 {
   return map_get_uint64_from_uint64(map, (:uint64)(:uintptr)key);
 }
 
-fn map_put_uint64(map: Map*, key: void*, val: uint64) {
+fn map_put_uint64(map: Map*, key: void&, val: uint64) {
   map_put_uint64_from_uint64(map, (:uint64)(:uintptr)key, val);
 }
 

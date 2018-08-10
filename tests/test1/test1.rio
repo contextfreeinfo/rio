@@ -443,7 +443,7 @@ fn test_convert() {
   let a: int const* = 0;
   let b: int* = 0;
   a = b;
-  let p: void* = 0;
+  let p: void& = 0;
   f5(p);
 }
 

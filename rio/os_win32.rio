@@ -80,7 +80,7 @@ fn dir_list(iter: DirListIter*, path: char const*) {
   path_join(filespec, "*");
   let fileinfo: FindData;
   let handle = _findfirst(filespec, &fileinfo);
-  iter.handle = (:void*)handle;
+  iter.handle = (:void&)handle;
   dir__update(iter, handle == -1, &fileinfo);
   if (dir_excluded(iter)) {
     dir_list_next(iter);

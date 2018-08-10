@@ -1,4 +1,4 @@
-#static_assert(sizeof(:void*) == 8)
+#static_assert(sizeof(:void&) == 8)
 
 @foreign("size_t")
 typedef usize = uint64;

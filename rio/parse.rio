@@ -25,7 +25,7 @@ fn parse_type_func() -> Typespec& {
         error(token.pos, "Ellipsis must be last parameter in function type");
       }
       let param = parse_type_func_param();
-      buf_push((:void**)&args, &param, sizeof(param));
+      buf_push((:void&*)&args, &param, sizeof(param));
     }
     if (!match_token(TOKEN_COMMA)) {
       break;
@@ -113,7 +113,7 @@ fn parse_expr_compound(type: Typespec&) -> Expr& {
   let fields: CompoundField* = NULL;
   while (!is_token(TOKEN_RBRACE)) {
     let field = parse_expr_compound_field();
-    buf_push((:void**)&fields, &field, sizeof(field));
+    buf_push((:void&*)&fields, &field, sizeof(field));
     if (!match_token(TOKEN_COMMA)) {
       break;
     }
@@ -220,7 +220,7 @@ fn parse_expr_base() -> Expr& {
       let args: Expr&* = NULL;
       while (!is_token(TOKEN_RPAREN)) {
         let arg = parse_expr();
-        buf_push((:void**)&args, &arg, sizeof(arg));
+        buf_push((:void&*)&args, &arg, sizeof(arg));
         if (!match_token(TOKEN_COMMA)) {
           break;
         }
@@ -365,7 +365,7 @@ fn parse_stmt_block() -> StmtList {
   let stmts: Stmt&* = NULL;
   while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
     let stmt = parse_stmt();
-    buf_push((:void**)&stmts, &stmt, sizeof(stmt));
+    buf_push((:void&*)&stmts, &stmt, sizeof(stmt));
   }
   expect_token(TOKEN_RBRACE);
   return new_stmt_list(pos, stmts, buf_len(stmts));
@@ -395,7 +395,7 @@ fn parse_stmt_if(pos: SrcPos) -> Stmt& {
     let elseif_cond: Expr& = parse_paren_expr();
     let elseif_block: StmtList = parse_stmt_block();
     let elseif = ElseIf {elseif_cond, elseif_block};
-    buf_push((:void**)&elseifs, &elseif, sizeof(elseif));
+    buf_push((:void&*)&elseifs, &elseif, sizeof(elseif));
   }
   return new_stmt_if(pos, init, cond, then_block, elseifs, buf_len(elseifs), else_block);
 }
@@ -505,10 +505,10 @@ fn parse_stmt_switch_case() -> SwitchCase {
         is_first_case = false;
       }
       let pattern = parse_switch_case_pattern();
-      buf_push((:void**)&patterns, &pattern, sizeof(pattern));
+      buf_push((:void&*)&patterns, &pattern, sizeof(pattern));
       while (match_token(TOKEN_COMMA)) {
         pattern = parse_switch_case_pattern();
-        buf_push((:void**)&patterns, &pattern, sizeof(pattern));
+        buf_push((:void&*)&patterns, &pattern, sizeof(pattern));
       }
     } else {
       #assert(is_keyword(default_keyword));
@@ -524,7 +524,7 @@ fn parse_stmt_switch_case() -> SwitchCase {
   let stmts: Stmt&*;
   while (!is_token_eof() && !is_token(TOKEN_RBRACE) && !is_keyword(case_keyword) && !is_keyword(default_keyword)) {
     let stmt = parse_stmt();
-    buf_push((:void**)&stmts, &stmt, sizeof(stmt));
+    buf_push((:void&*)&stmts, &stmt, sizeof(stmt));
   }
   return SwitchCase {patterns, buf_len(patterns), is_default, new_stmt_list(pos, stmts, buf_len(stmts))};
 }
@@ -535,7 +535,7 @@ fn parse_stmt_switch(pos: SrcPos) -> Stmt& {
   expect_token(TOKEN_LBRACE);
   while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
     let case_stmt = parse_stmt_switch_case();
-    buf_push((:void**)&cases, &case_stmt, sizeof(case_stmt));
+    buf_push((:void&*)&cases, &case_stmt, sizeof(case_stmt));
   }
   expect_token(TOKEN_RBRACE);
   return new_stmt_switch(pos, expr, cases, buf_len(cases));
@@ -616,7 +616,7 @@ fn parse_decl_enum(pos: SrcPos) -> Decl& {
   let items: EnumItem* = NULL;
   while (!is_token(TOKEN_RBRACE)) {
     let item = parse_decl_enum_item();
-    buf_push((:void**)&items, &item, sizeof(item));
+    buf_push((:void&*)&items, &item, sizeof(item));
     if (!match_token(TOKEN_COMMA)) {
       break;
     }
@@ -642,10 +642,10 @@ fn parse_decl_aggregate_item() -> AggregateItem {
   } else {
     let names: char const** = NULL;
     let name = parse_name();
-    buf_push((:void**)&names, &name, sizeof(name));
+    buf_push((:void&*)&names, &name, sizeof(name));
     while (match_token(TOKEN_COMMA)) {
       name = parse_name();
-      buf_push((:void**)&names, &name, sizeof(name));
+      buf_push((:void&*)&names, &name, sizeof(name));
     }
     expect_token(TOKEN_COLON);
     let type = parse_type();
@@ -666,7 +666,7 @@ fn parse_aggregate(kind: AggregateKind) -> Aggregate& {
   let items: AggregateItem* = NULL;
   while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
     let item = parse_decl_aggregate_item();
-    buf_push((:void**)&items, &item, sizeof(item));
+    buf_push((:void&*)&items, &item, sizeof(item));
   }
   expect_token(TOKEN_RBRACE);
   return new_aggregate(pos, kind, items, buf_len(items));
@@ -749,7 +749,7 @@ fn parse_decl_func(pos: SrcPos) -> Decl& {
         error(token.pos, "Ellipsis must be last parameter in function declaration");
       }
       let param = parse_decl_func_param();
-      buf_push((:void**)&params, &param, sizeof(param));
+      buf_push((:void&*)&params, &param, sizeof(param));
     }
     if (!match_token(TOKEN_COMMA)) {
       break;
@@ -793,10 +793,10 @@ fn parse_note() -> Note {
   let args: NoteArg* = NULL;
   if (match_token(TOKEN_LPAREN)) {
     let arg = parse_note_arg();
-    buf_push((:void**)&args, &arg, sizeof(arg));
+    buf_push((:void&*)&args, &arg, sizeof(arg));
     while (match_token(TOKEN_COMMA)) {
       arg = parse_note_arg();
-      buf_push((:void**)&args, &arg, sizeof(arg));
+      buf_push((:void&*)&args, &arg, sizeof(arg));
     }
     expect_token(TOKEN_RPAREN);
   }
@@ -807,7 +807,7 @@ fn parse_notes() -> Notes {
   let notes: Note* = NULL;
   while (match_token(TOKEN_AT)) {
     let note = parse_note();
-    buf_push((:void**)&notes, &note, sizeof(note));
+    buf_push((:void&*)&notes, &note, sizeof(note));
   }
   return new_notes(notes, buf_len(notes));
 }
@@ -834,9 +834,9 @@ fn parse_decl_import(pos: SrcPos) -> Decl& {
     goto repeat;
   }
   let names: char const** = NULL;
-  buf_push((:void**)&names, &name, sizeof(name));
+  buf_push((:void&*)&names, &name, sizeof(name));
   while (match_token(TOKEN_DOT)) {
-    buf_push((:void**)&names, &token.name, sizeof(token.name));
+    buf_push((:void&*)&names, &token.name, sizeof(token.name));
     expect_token(TOKEN_NAME);
   }
   let import_all = false;
@@ -849,10 +849,10 @@ fn parse_decl_import(pos: SrcPos) -> Decl& {
         let item_name = parse_name();
         if (match_token(TOKEN_ASSIGN)) {
           let item = ImportItem {name = parse_name(), rename = item_name};
-          buf_push((:void**)&items, &item, sizeof(item));
+          buf_push((:void&*)&items, &item, sizeof(item));
         } else {
           let item = ImportItem {name = item_name};
-          buf_push((:void**)&items, &item, sizeof(item));
+          buf_push((:void&*)&items, &item, sizeof(item));
         }
         if (!match_token(TOKEN_COMMA)) {
           break;
@@ -903,7 +903,7 @@ fn parse_decls() -> Decls& {
   let decls: Decl&* = NULL;
   while (!is_token(TOKEN_EOF)) {
     let decl = parse_decl();
-    buf_push((:void**)&decls, &decl, sizeof(decl));
+    buf_push((:void&*)&decls, &decl, sizeof(decl));
   }
   return new_decls(decls, buf_len(decls));
 }

@@ -71,6 +71,6 @@ fn get_typeinfo(type: typeid) -> TypeInfo const* {
 }
 
 struct Any {
-    ptr: void*;
+    ptr: void&;
     type: typeid;
 }
