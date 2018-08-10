@@ -213,6 +213,7 @@ fn cdecl_name(type: Type*) -> char const* {
 fn type_to_cdecl(type: Type*, str: char const*) -> char* {
   switch (type.kind) {
   case CMPL_TYPE_PTR:
+  case CMPL_TYPE_PTR1:
     return type_to_cdecl(type.base, cdecl_paren(strf("*%s", str), *str));
   case CMPL_TYPE_CONST:
     return type_to_cdecl(type.base, strf("const %s", cdecl_paren(str, *str)));
@@ -300,6 +301,7 @@ fn typespec_to_cdecl(typespec: Typespec*, str: char const*) -> char* {
   case TYPESPEC_NAME:
     return strf("%s%s%s", get_gen_name_or_default(typespec, typespec.name), *str ? " " : "", str);
   case TYPESPEC_PTR:
+  case TYPESPEC_PTR1:
     return typespec_to_cdecl(typespec.base, cdecl_paren(strf("*%s", str), *str));
   case TYPESPEC_CONST:
     return typespec_to_cdecl(typespec.base, strf("const %s", cdecl_paren(str, *str)));
@@ -470,6 +472,7 @@ let typeid_kind_names: char const*[NUM_CMPL_TYPE_KINDS] = {
   [CMPL_TYPE_DOUBLE] = "TYPE_DOUBLE",
   [CMPL_TYPE_CONST] = "TYPE_CONST",
   [CMPL_TYPE_PTR] = "TYPE_PTR",
+  [CMPL_TYPE_PTR1] = "TYPE_PTR1",
   [CMPL_TYPE_ARRAY] = "TYPE_ARRAY",
   [CMPL_TYPE_STRUCT] = "TYPE_STRUCT",
   [CMPL_TYPE_UNION] = "TYPE_UNION",
@@ -487,7 +490,7 @@ fn typeid_kind_name(type: Type*) -> char const* {
 }
 
 fn is_excluded_typeinfo(type: Type*) -> bool {
-  while (type.kind == CMPL_TYPE_ARRAY || type.kind == CMPL_TYPE_CONST || type.kind == CMPL_TYPE_PTR) {
+  while (type.kind == CMPL_TYPE_ARRAY || type.kind == CMPL_TYPE_CONST || is_ptr_type(type)) {
     type = type.base;
   }
   if (type.sym) {
@@ -566,7 +569,7 @@ fn gen_expr(expr: Expr*) {
     } else {
       gen_expr(expr.field.expr);
       let type = unqualify_type(get_resolved_type(expr.field.expr));
-      buf_printf(&gen_buf, "%s%s", type.kind == CMPL_TYPE_PTR ? "->" : ".", expr.field.name);
+      buf_printf(&gen_buf, "%s%s", is_ptr_type(type) ? "->" : ".", expr.field.name);
     }
   }
   case EXPR_COMPOUND:
@@ -1116,6 +1119,10 @@ fn gen_typeinfo(type: Type*) {
     buf_printf(&gen_buf, "&(TypeInfo){TYPE_VOID, .name = \"void\", .size = 0, .align = 0},");
   case CMPL_TYPE_PTR:
     buf_printf(&gen_buf, "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ");
+    gen_typeid(type.base);
+    buf_printf(&gen_buf, "},");
+  case CMPL_TYPE_PTR1:
+    buf_printf(&gen_buf, "&(TypeInfo){TYPE_PTR1, .size = sizeof(void *), .align = alignof(void *), .base = ");
     gen_typeid(type.base);
     buf_printf(&gen_buf, "},");
   case CMPL_TYPE_CONST:

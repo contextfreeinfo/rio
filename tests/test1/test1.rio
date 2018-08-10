@@ -64,7 +64,7 @@ fn test_packages() {
 fn test_modify() {
   let i = 42;
   #static_assert(typeof(i) == typeof(int));
-  let p = &i;
+  let p: int* = &i;
   #static_assert(typeof(p) == typeof(:int*));
   p--;
   let x = *p++;
@@ -387,7 +387,7 @@ fn test_ops() {
   f = pi / pi;
   n = 3 % 2;
   n = n + (:uchar)1;
-  let p = &n;
+  let p: int* = &n;
   p = p + 1;
   n = int((p + 1) - p);
   n = n << 1;
@@ -806,10 +806,21 @@ fn test_const_ptr_deref() {
   let i = foo.bar.rc;
 }
 
+fn test_ptr1() {
+  let i = 1;
+  let p: int& = (:int&)&i;
+  let q: int* = &i;
+  // Should cause error.
+  // let r = p + 1;
+  let s = q + 1;
+  *p = 2;
+}
+
 fn main(argc: int, argv: char**) -> int {
   if (argv == 0) {
     printf("argv is null\n");
   }
+  test_ptr1();
   test_const_ptr_deref();
   test_limits();
   test_va_list("whatever", char(123), int(123123), llong(123123123123));

@@ -60,7 +60,7 @@ fn parse_type_base() -> Typespec* {
 fn parse_type() -> Typespec* {
   let type = parse_type_base();
   let pos = token.pos;
-  while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_MUL) || is_keyword(const_keyword)) {
+  while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_AND) || is_token(TOKEN_MUL) || is_keyword(const_keyword)) {
     if (match_token(TOKEN_LBRACKET)) {
       let size: Expr* = NULL;
       if (!is_token(TOKEN_RBRACKET)) {
@@ -71,10 +71,17 @@ fn parse_type() -> Typespec* {
     } else if (match_keyword(const_keyword)) {
       type = new_typespec_const(pos, type);
     } else {
-      #assert(is_token(TOKEN_MUL));
-      next_token();
+      let is_ptr1 = match_token(TOKEN_AND);
+      if (!is_ptr1) {
+        #assert(is_token(TOKEN_MUL));
+        next_token();
+      }
       let is_owned = match_keyword(own_keyword);
-      type = new_typespec_ptr(pos, type, is_owned);
+      if (is_ptr1) {
+        type = new_typespec_ptr1(pos, type, is_owned);
+      } else {
+        type = new_typespec_ptr(pos, type, is_owned);
+      }
     }
   }
   return type;

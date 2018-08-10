@@ -257,6 +257,9 @@ fn put_type_name(buf: char**, type: Type*) {
     case CMPL_TYPE_PTR:
       put_type_name(buf, type.base);
       buf_printf(buf, "*");
+    case CMPL_TYPE_PTR1:
+      put_type_name(buf, type.base);
+      buf_printf(buf, "&");
     case CMPL_TYPE_ARRAY:
       put_type_name(buf, type.base);
       buf_printf(buf, "[%zu]", type.num_elems);
@@ -539,6 +542,8 @@ fn resolve_typespec(typespec: Typespec*) -> Type* {
     result = type_const(resolve_typespec(typespec.base));
   case TYPESPEC_PTR:
     result = type_ptr(resolve_typespec(typespec.base));
+  case TYPESPEC_PTR1:
+    result = type_ptr1(resolve_typespec(typespec.base));
   case TYPESPEC_ARRAY: {
     let size = 0;
     if (typespec.num_elems) {
@@ -831,7 +836,7 @@ fn resolve_stmt_assign(stmt: Stmt*) {
   if (stmt.assign.op == TOKEN_ASSIGN) {
     result = right;
   } else if (stmt.assign.op == TOKEN_ADD_ASSIGN || stmt.assign.op == TOKEN_SUB_ASSIGN) {
-    if (left.type.kind == CMPL_TYPE_PTR && is_integer_type(right.type)) {
+    if (is_ptr_type(left.type) && is_integer_type(right.type)) {
       result = operand_rvalue(left.type);
     } else if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
       result = resolve_expr_binary_op(binary_op, assign_op_name, stmt.pos, left, right);
@@ -1427,13 +1432,13 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: char const*, pos: SrcPos, left
   case TOKEN_ADD:
     if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
       return resolve_binary_arithmetic_op(op, left, right);
-    } else if (is_ptr_type(left.type) && is_integer_type(right.type)) {
+    } else if (is_ptr_star_type(left.type) && is_integer_type(right.type)) {
       complete_type(left.type.base);
       if (type_sizeof(left.type.base) == 0) {
         fatal_error(pos, "Cannot do pointer arithmetic with size 0 base type");
       }
       return operand_rvalue(left.type);
-    } else if (is_ptr_type(right.type) && is_integer_type(left.type)) {
+    } else if (is_ptr_star_type(right.type) && is_integer_type(left.type)) {
       complete_type(right.type.base);
       if (type_sizeof(right.type.base) == 0) {
         fatal_error(pos, "Cannot do pointer arithmetic with size 0 base type");
@@ -1445,9 +1450,9 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: char const*, pos: SrcPos, left
   case TOKEN_SUB:
     if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
       return resolve_binary_arithmetic_op(op, left, right);
-    } else if (is_ptr_type(left.type) && is_integer_type(right.type)) {
+    } else if (is_ptr_star_type(left.type) && is_integer_type(right.type)) {
       return operand_rvalue(left.type);
-    } else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
+    } else if (is_ptr_star_type(left.type) && is_ptr_star_type(right.type)) {
       if (left.type.base != right.type.base) {
         fatal_error(pos, "Cannot subtract pointers to different types");
       }
@@ -1894,7 +1899,7 @@ fn resolve_expected_expr(expr: Expr*, expected_type: Type*) -> Operand {
       if (!operand.is_lvalue) {
         fatal_error(expr.pos, "Cannot take address of non-lvalue");
       }
-      result = operand_rvalue(type_ptr(operand.type));
+      result = operand_rvalue(type_ptr1(operand.type));
     } else {
       result = resolve_expr_unary(expr);
     }

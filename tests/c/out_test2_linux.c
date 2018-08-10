@@ -113,7 +113,9 @@ typedef int TypeKind;
 
 #define TYPE_PTR ((TypeKind)((TYPE_CONST) + (1)))
 
-#define TYPE_ARRAY ((TypeKind)((TYPE_PTR) + (1)))
+#define TYPE_PTR1 ((TypeKind)((TYPE_PTR) + (1)))
+
+#define TYPE_ARRAY ((TypeKind)((TYPE_PTR1) + (1)))
 
 #define TYPE_STRUCT ((TypeKind)((TYPE_ARRAY) + (1)))
 
