@@ -38,48 +38,48 @@ bool cast_operand(struct rio_Operand *operand, struct rio_Type *type);
 #define CASE(k, t) \
     case k: \
         switch (type->kind) { \
-        case RIO_CMPL_TYPE_BOOL: \
+        case rio_CMPL_TYPE_BOOL: \
             operand->val.b = (bool)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_CHAR: \
+        case rio_CMPL_TYPE_CHAR: \
             operand->val.c = (char)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_UCHAR: \
+        case rio_CMPL_TYPE_UCHAR: \
             operand->val.uc = (unsigned char)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_SCHAR: \
+        case rio_CMPL_TYPE_SCHAR: \
             operand->val.sc = (signed char)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_SHORT: \
+        case rio_CMPL_TYPE_SHORT: \
             operand->val.s = (short)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_USHORT: \
+        case rio_CMPL_TYPE_USHORT: \
             operand->val.us = (unsigned short)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_INT: \
-        case RIO_CMPL_TYPE_ENUM: \
+        case rio_CMPL_TYPE_INT: \
+        case rio_CMPL_TYPE_ENUM: \
             operand->val.i = (int)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_UINT: \
+        case rio_CMPL_TYPE_UINT: \
             operand->val.u = (unsigned)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_LONG: \
+        case rio_CMPL_TYPE_LONG: \
             operand->val.l = (long)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_ULONG: \
+        case rio_CMPL_TYPE_ULONG: \
             operand->val.ul = (unsigned long)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_LLONG: \
+        case rio_CMPL_TYPE_LLONG: \
             operand->val.ll = (long long)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_ULLONG: \
+        case rio_CMPL_TYPE_ULLONG: \
             operand->val.ull = (unsigned long long)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_PTR: \
+        case rio_CMPL_TYPE_PTR: \
             operand->val.p = (uintptr_t)operand->val.t; \
             break; \
-        case RIO_CMPL_TYPE_FLOAT: \
-        case RIO_CMPL_TYPE_DOUBLE: \
+        case rio_CMPL_TYPE_FLOAT: \
+        case rio_CMPL_TYPE_DOUBLE: \
             break; \
         default: \
             operand->is_const = false; \
@@ -99,27 +99,27 @@ bool cast_operand(rio_Operand *operand, rio_Type *type) {
             if (rio_is_floating_type(operand->type)) {
                 operand->is_const = !rio_is_integer_type(type);
             } else {
-                if (type->kind == RIO_CMPL_TYPE_ENUM) {
+                if (type->kind == rio_CMPL_TYPE_ENUM) {
                     type = type->base;
                 }
                 rio_Type *operand_type = operand->type;
-                if (operand_type->kind == RIO_CMPL_TYPE_ENUM) {
+                if (operand_type->kind == rio_CMPL_TYPE_ENUM) {
                     operand_type = operand_type->base;
                 }
                 switch (operand_type->kind) {
-                CASE(RIO_CMPL_TYPE_BOOL, b)
-                CASE(RIO_CMPL_TYPE_CHAR, c)
-                CASE(RIO_CMPL_TYPE_UCHAR, uc)
-                CASE(RIO_CMPL_TYPE_SCHAR, sc)
-                CASE(RIO_CMPL_TYPE_SHORT, s)
-                CASE(RIO_CMPL_TYPE_USHORT, us)
-                CASE(RIO_CMPL_TYPE_INT, i)
-                CASE(RIO_CMPL_TYPE_UINT, u)
-                CASE(RIO_CMPL_TYPE_LONG, l)
-                CASE(RIO_CMPL_TYPE_ULONG, ul)
-                CASE(RIO_CMPL_TYPE_LLONG, ll)
-                CASE(RIO_CMPL_TYPE_ULLONG, ull)
-                CASE(RIO_CMPL_TYPE_PTR, p)
+                CASE(rio_CMPL_TYPE_BOOL, b)
+                CASE(rio_CMPL_TYPE_CHAR, c)
+                CASE(rio_CMPL_TYPE_UCHAR, uc)
+                CASE(rio_CMPL_TYPE_SCHAR, sc)
+                CASE(rio_CMPL_TYPE_SHORT, s)
+                CASE(rio_CMPL_TYPE_USHORT, us)
+                CASE(rio_CMPL_TYPE_INT, i)
+                CASE(rio_CMPL_TYPE_UINT, u)
+                CASE(rio_CMPL_TYPE_LONG, l)
+                CASE(rio_CMPL_TYPE_ULONG, ul)
+                CASE(rio_CMPL_TYPE_LLONG, ll)
+                CASE(rio_CMPL_TYPE_ULLONG, ull)
+                CASE(rio_CMPL_TYPE_PTR, p)
                 default:
                     operand->is_const = false;
                     break;

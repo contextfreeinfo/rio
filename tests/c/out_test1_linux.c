@@ -272,23 +272,23 @@ struct test1_Ints {
 
 typedef int test1_Color;
 
-#define TEST1_COLOR_NONE ((test1_Color)(0))
+#define test1_COLOR_NONE ((test1_Color)(0))
 
-#define TEST1_COLOR_RED ((test1_Color)((TEST1_COLOR_NONE) + (1)))
+#define test1_COLOR_RED ((test1_Color)((test1_COLOR_NONE) + (1)))
 
-#define TEST1_COLOR_GREEN ((test1_Color)((TEST1_COLOR_RED) + (1)))
+#define test1_COLOR_GREEN ((test1_Color)((test1_COLOR_RED) + (1)))
 
-#define TEST1_COLOR_BLUE ((test1_Color)((TEST1_COLOR_GREEN) + (1)))
+#define test1_COLOR_BLUE ((test1_Color)((test1_COLOR_GREEN) + (1)))
 
-#define TEST1_FOO ((int)(0))
+#define test1_FOO ((int)(0))
 
-#define TEST1_BAR ((int)((TEST1_FOO) + (1)))
+#define test1_BAR ((int)((test1_FOO) + (1)))
 
 typedef int8_t test1_TypedEnum;
 
-#define TEST1_BAZ ((test1_TypedEnum)(0))
+#define test1_BAZ ((test1_TypedEnum)(0))
 
-#define TEST1_QUUX ((test1_TypedEnum)((TEST1_BAZ) + (1)))
+#define test1_QUUX ((test1_TypedEnum)((test1_BAZ) + (1)))
 
 void test1_f10(wchar_t (a[3]));
 
@@ -307,7 +307,7 @@ extern char (*test1_esc_test_str);
 
 void test1_f4(char const ((*x)));
 
-#define TEST1_IS_DEBUG (true)
+#define test1_IS_DEBUG (true)
 
 void test1_println_any(Any any);
 
@@ -966,16 +966,16 @@ void test1_test_assign(void) {
 }
 
 void test1_test_enum(void) {
-  test1_Color a = TEST1_COLOR_RED;
-  test1_Color b = TEST1_COLOR_RED;
+  test1_Color a = test1_COLOR_RED;
+  test1_Color b = test1_COLOR_RED;
   int c = (a) + (b);
   int i = a;
   a = i;
-  printf("%d %d %d %d\n", TEST1_COLOR_NONE, TEST1_COLOR_RED, TEST1_COLOR_GREEN, TEST1_COLOR_BLUE);
-  int d = TEST1_BAR;
-  test1_TypedEnum e = TEST1_QUUX;
+  printf("%d %d %d %d\n", test1_COLOR_NONE, test1_COLOR_RED, test1_COLOR_GREEN, test1_COLOR_BLUE);
+  int d = test1_BAR;
+  test1_TypedEnum e = test1_QUUX;
   test1_TypedEnum f = {0};
-  f = TEST1_BAZ;
+  f = test1_BAZ;
 }
 
 void test1_test_arrays(void) {
@@ -1042,7 +1042,7 @@ void test1_test_bool(void) {
   bool b = false;
   b = true;
   int i = 0;
-  i = TEST1_IS_DEBUG;
+  i = test1_IS_DEBUG;
 }
 
 void test1_test_ops(void) {

@@ -264,18 +264,6 @@ fn get_gen_name_or_default(ptr: void const*, default_name: char const*) -> char 
         name = sym.external_name;
       } else if (sym.home_package.external_name) {
         let external_name = sym.home_package.external_name;
-        let buf: char[256];
-        if (sym.kind == SYM_CONST) {
-          let ptr2 = buf;
-          for (let str = external_name; *str && ptr2 < buf + sizeof(buf) - 1; str++) {
-            *ptr2 = toupper(*str);
-            ptr2++;
-          }
-          *ptr2 = 0;
-          if (ptr2 < buf + sizeof(buf)) {
-            external_name = buf;
-          }
-        }
         name = strf("%s%s", external_name, sym.name);
       } else {
         name = sym.name;
