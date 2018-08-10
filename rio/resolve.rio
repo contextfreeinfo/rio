@@ -1445,7 +1445,7 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: char const*, pos: SrcPos, left
       }
       return operand_rvalue(right.type);
     } else {
-      fatal_error(pos, "Operands of + must both have arithmetic type, or pointer and integer type");
+      fatal_error(pos, "Operands of + must both have arithmetic type, or star pointer and integer type");
     }
   case TOKEN_SUB:
     if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
@@ -1718,8 +1718,8 @@ fn resolve_expr_ternary(expr: Expr*, expected_type: Type*) -> Operand {
 fn resolve_expr_index(expr: Expr*) -> Operand {
   #assert(expr.kind == EXPR_INDEX);
   let operand = resolve_expr_rvalue(expr.index.expr);
-  if (!is_ptr_type(operand.type)) {
-    fatal_error(expr.pos, "Can only index arrays and pointers");
+  if (!is_ptr_star_type(operand.type)) {
+    fatal_error(expr.pos, "Can only index arrays and star pointers");
   }
   let index = resolve_expr_rvalue(expr.index.index);
   if (!is_integer_type(index.type)) {

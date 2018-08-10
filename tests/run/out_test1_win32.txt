@@ -23,4 +23,5 @@ test1_UartCtrl
 <int size=4 align=4>
 <test1_UartCtrl size=2 align=1 struct={ @offset(0) tx_enable: bool; @offset(1) rx_enable: bool; }>
 <test1_IntOrPtr* size=8 align=8>
+<test1_IntOrPtr& size=8 align=8>
 <test1_IntOrPtr size=8 align=8 union={ @offset(0) i: int; @offset(0) p: int*; }>

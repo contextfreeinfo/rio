@@ -180,7 +180,7 @@ fn g(u: U) -> int {
   return u.i;
 }
 
-fn k(vp: void*, ip: int*) {
+fn k(vp: void&, ip: int&) {
   vp = ip;
   ip = vp;
 }
@@ -539,6 +539,9 @@ fn print_type(type: typeid) {
   case TYPE_PTR:
     print_type(typeinfo.base);
     printf("*");
+  case TYPE_PTR1:
+    print_type(typeinfo.base);
+    printf("&");
   case TYPE_CONST:
     print_type(typeinfo.base);
     printf(" const");
@@ -604,6 +607,7 @@ fn test_typeinfo() {
   println_typeinfo(typeof(int));
   println_typeinfo(typeof(UartCtrl));
   println_typeinfo(typeof(:IntOrPtr*));
+  println_typeinfo(typeof(:IntOrPtr&));
   println_typeinfo(typeof(IntOrPtr));
 }
 
@@ -755,11 +759,11 @@ struct Thing {
 
 let thing: Thing;
 
-fn returns_ptr() -> Thing* {
+fn returns_ptr() -> Thing& {
   return &thing;
 }
 
-fn returns_ptr_to_const() -> Thing const* {
+fn returns_ptr_to_const() -> Thing const& {
   return &thing;
 }
 
@@ -808,10 +812,11 @@ fn test_const_ptr_deref() {
 
 fn test_ptr1() {
   let i = 1;
-  let p: int& = (:int&)&i;
+  let p = &i;
   let q: int* = &i;
   // Should cause error.
   // let r = p + 1;
+  // p[0] = 3;
   let s = q + 1;
   *p = 2;
 }

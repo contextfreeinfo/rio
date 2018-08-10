@@ -7968,7 +7968,7 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
       }
       return rio_operand_rvalue(right.type);
     } else {
-      rio_fatal_error(pos, "Operands of + must both have arithmetic type, or pointer and integer type");
+      rio_fatal_error(pos, "Operands of + must both have arithmetic type, or star pointer and integer type");
     }
     break;
   }
@@ -8254,8 +8254,8 @@ rio_Operand rio_resolve_expr_ternary(rio_Expr (*expr), rio_Type (*expected_type)
 rio_Operand rio_resolve_expr_index(rio_Expr (*expr)) {
   assert((expr->kind) == (RIO_EXPR_INDEX));
   rio_Operand operand = rio_resolve_expr_rvalue(expr->index.expr);
-  if (!(rio_is_ptr_type(operand.type))) {
-    rio_fatal_error(expr->pos, "Can only index arrays and pointers");
+  if (!(rio_is_ptr_star_type(operand.type))) {
+    rio_fatal_error(expr->pos, "Can only index arrays and star pointers");
   }
   rio_Operand index = rio_resolve_expr_rvalue(expr->index.index);
   if (!(rio_is_integer_type(index.type))) {
