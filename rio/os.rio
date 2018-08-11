@@ -61,11 +61,11 @@ struct DirListIter {
   handle: void&;
 }
 
-fn dir_excluded(iter: DirListIter*) -> bool {
+fn dir_excluded(iter: DirListIter&) -> bool {
   return iter.valid && (strcmp(iter.name, ".") == 0 || strcmp(iter.name, "..") == 0);
 }
 
-fn dir_list_subdir(iter: DirListIter*) -> bool {
+fn dir_list_subdir(iter: DirListIter&) -> bool {
   if (!iter.valid || !iter.is_dir) {
     return false;
   }
@@ -106,14 +106,14 @@ struct FlagDef {
 }
 
 struct FlagDefPtr {
-  i: int*;
-  b: bool*;
+  i: int&;
+  b: bool&;
   s: char const**;
 }
 
 let flag_defs: FlagDef*;
 
-fn add_flag_bool(name: char const*, ptr: bool*, help: char const*) {
+fn add_flag_bool(name: char const*, ptr: bool&, help: char const*) {
   let def: FlagDef = {kind = FLAG_BOOL, name = name, help = help, ptr = {b = ptr}};
   buf_push((:void&*)&flag_defs, &def, sizeof(def));
 }
@@ -123,12 +123,12 @@ fn add_flag_str(name: char const*, ptr: char const**, arg_name: char const*, hel
   buf_push((:void&*)&flag_defs, &def, sizeof(def));
 }
 
-fn add_flag_enum(name: char const*, ptr: int*, help: char const*, options: char const**, num_options: int) {
+fn add_flag_enum(name: char const*, ptr: int&, help: char const*, options: char const**, num_options: int) {
   let def: FlagDef = {kind = FLAG_ENUM, name = name, help = help, ptr = {i = ptr}, options = options, num_options = num_options};
   buf_push((:void&*)&flag_defs, &def, sizeof(def));
 }
 
-fn get_flag_def(name: char const*) -> FlagDef* {
+fn get_flag_def(name: char const*) -> FlagDef& {
   for (let i: usize = 0; i < buf_len(flag_defs); i++) {
     if (strcmp(flag_defs[i].name, name) == 0) {
       return &flag_defs[i];
@@ -169,7 +169,7 @@ fn print_flags_usage() {
   }
 }
 
-fn parse_flags(argc_ptr: int*, argv_ptr: char const***) -> char const* {
+fn parse_flags(argc_ptr: int&, argv_ptr: char const**&) -> char const* {
   let argc = *argc_ptr;
   let argv = *argv_ptr;
   let i: int;

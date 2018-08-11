@@ -377,13 +377,13 @@ const TypeInfo *typeinfo_table[179] = {
   [166] = NULL, // Function
   [167] = NULL, // No associated type
   [168] = NULL, // Function
-  [169] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(12, TYPE_LLONG, llong)},
+  [169] = &(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(12, TYPE_LLONG, llong)},
   [170] = NULL, // Function
   [171] = NULL, // No associated type
   [172] = NULL, // No associated type
   [173] = NULL, // Function
   [174] = &(TypeInfo){TYPE_CONST, .size = sizeof(llong const ), .align = alignof(llong const ), .base = TYPEID(12, TYPE_LLONG, llong)},
-  [175] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(174, TYPE_CONST, llong const )},
+  [175] = &(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(174, TYPE_CONST, llong const )},
   [176] = NULL, // Function
   [177] = NULL, // Function
   [178] = NULL, // Function

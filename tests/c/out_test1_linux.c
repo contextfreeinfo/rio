@@ -642,13 +642,13 @@ const TypeInfo *typeinfo_table[266] = {
   [251] = NULL, // Function
   [252] = NULL, // No associated type
   [253] = NULL, // Function
-  [254] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(10, TYPE_LONG, long)},
+  [254] = &(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(10, TYPE_LONG, long)},
   [255] = NULL, // Function
   [256] = NULL, // No associated type
   [257] = NULL, // No associated type
   [258] = NULL, // Function
   [259] = &(TypeInfo){TYPE_CONST, .size = sizeof(long const ), .align = alignof(long const ), .base = TYPEID(10, TYPE_LONG, long)},
-  [260] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(259, TYPE_CONST, long const )},
+  [260] = &(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(259, TYPE_CONST, long const )},
   [261] = NULL, // Function
   [262] = NULL, // Function
   [263] = NULL, // Function

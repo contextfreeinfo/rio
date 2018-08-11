@@ -21,10 +21,10 @@ struct FindData {
 fn _findclose(handle: intptr) -> int;
 
 @foreign
-fn _findfirst(filespec: char const*, fileinfo: FindData*) -> intptr;
+fn _findfirst(filespec: char const*, fileinfo: FindData&) -> intptr;
 
 @foreign
-fn _findnext(handle: intptr, fileinfo: FindData*) -> int;
+fn _findnext(handle: intptr, fileinfo: FindData&) -> int;
 
 @foreign
 fn _fullpath(absPath: char*, relPath: char const*, maxLength: usize) -> char*;
@@ -38,7 +38,7 @@ fn path_absolute(path: char[MAX_PATH]) {
   _fullpath(path, rel_path, MAX_PATH);
 }
 
-fn dir_list_free(iter: DirListIter*) {
+fn dir_list_free(iter: DirListIter&) {
   if (iter.valid) {
     _findclose((:intptr)iter.handle);
     iter.valid = false;
@@ -46,7 +46,7 @@ fn dir_list_free(iter: DirListIter*) {
   }
 }
 
-fn dir__update(iter: DirListIter*, done: bool, fileinfo: FindData*) {
+fn dir__update(iter: DirListIter&, done: bool, fileinfo: FindData&) {
   iter.valid = !done;
   iter.error = done && errno != ENOENT;
   if (!done) {
@@ -57,7 +57,7 @@ fn dir__update(iter: DirListIter*, done: bool, fileinfo: FindData*) {
   }
 }
 
-fn dir_list_next(iter: DirListIter*) {
+fn dir_list_next(iter: DirListIter&) {
   if (!iter.valid) {
     return;
   }
@@ -72,7 +72,7 @@ fn dir_list_next(iter: DirListIter*) {
   } while (dir_excluded(iter));
 }
 
-fn dir_list(iter: DirListIter*, path: char const*) {
+fn dir_list(iter: DirListIter&, path: char const*) {
   memset(iter, 0, sizeof(*iter));
   path_copy(iter.base, path);
   let filespec: char[MAX_PATH];

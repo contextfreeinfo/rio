@@ -22,22 +22,22 @@ fn clock() -> clock_t;
 fn difftime(time1: time_t, time0: time_t) -> double;
 
 @foreign
-fn mktime(timeptr: tm_t*) -> time_t;
+fn mktime(timeptr: tm_t&) -> time_t;
 
 @foreign
-fn time(timer: time_t*) -> time_t;
+fn time(timer: time_t&) -> time_t;
 
 @foreign
-fn asctime(timeptr: tm_t const*) -> char*;
+fn asctime(timeptr: tm_t const&) -> char*;
 
 @foreign
-fn ctime(timer: time_t const*) -> char*;
+fn ctime(timer: time_t const&) -> char*;
 
 @foreign
-fn gmtime(timer: time_t const*) -> tm_t*;
+fn gmtime(timer: time_t const&) -> tm_t&;
 
 @foreign
-fn localtime(timer: time_t const*) -> tm_t*;
+fn localtime(timer: time_t const&) -> tm_t&;
 
 @foreign
-fn strftime(s: char*, maxsize: usize, format: char const*, timeptr: tm_t const*) -> usize;
+fn strftime(s: char*, maxsize: usize, format: char const*, timeptr: tm_t const&) -> usize;

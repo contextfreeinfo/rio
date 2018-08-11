@@ -410,7 +410,7 @@ fn scan_int() {
       val = 0;
       break;
     }
-    val = val*base + digit;
+    val = val * base + digit;
     stream++;
   }
   if (stream == start_digits) {

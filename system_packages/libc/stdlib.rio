@@ -124,4 +124,3 @@ fn mbstowcs(pwcs: short*, s: char const*, n: usize) -> usize;
 
 @foreign
 fn wcstombs(s: char*, pwcs: short const*, n: usize) -> usize;
-
