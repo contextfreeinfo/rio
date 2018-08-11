@@ -5631,7 +5631,7 @@ rio_Typespec (*rio_parse_type(void)) {
   } else if (rio_match_keyword(rio_const_keyword)) {
     type = rio_new_typespec_const(pos, rio_parse_type());
   } else if (rio_match_keyword(rio_own_keyword)) {
-    type = rio_parse_type_base();
+    type = rio_parse_type();
   } else {
     type = rio_parse_type_base();
   }

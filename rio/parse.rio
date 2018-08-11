@@ -76,7 +76,7 @@ fn parse_type() -> &Typespec {
     type = new_typespec_const(pos, parse_type());
   } else if (match_keyword(own_keyword)) {
     // TODO Track owning.
-    type = parse_type_base();
+    type = parse_type();
   } else {
     type = parse_type_base();
   }
