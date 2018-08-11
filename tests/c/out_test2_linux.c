@@ -113,9 +113,9 @@ typedef int TypeKind;
 
 #define TYPE_PTR ((TypeKind)((TYPE_CONST) + (1)))
 
-#define TYPE_PTR1 ((TypeKind)((TYPE_PTR) + (1)))
+#define TYPE_REF ((TypeKind)((TYPE_PTR) + (1)))
 
-#define TYPE_ARRAY ((TypeKind)((TYPE_PTR1) + (1)))
+#define TYPE_ARRAY ((TypeKind)((TYPE_REF) + (1)))
 
 #define TYPE_STRUCT ((TypeKind)((TYPE_ARRAY) + (1)))
 
@@ -205,7 +205,7 @@ const TypeInfo *typeinfo_table[179] = {
   [13] = &(TypeInfo){TYPE_ULLONG, .size = sizeof(ullong), .align = sizeof(ullong), .name = "ullong"},
   [14] = &(TypeInfo){TYPE_FLOAT, .size = sizeof(float), .align = sizeof(float), .name = "float"},
   [15] = &(TypeInfo){TYPE_DOUBLE, .size = sizeof(double), .align = sizeof(double), .name = "double"},
-  [16] = &(TypeInfo){TYPE_PTR1, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(1, TYPE_VOID)},
+  [16] = &(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(1, TYPE_VOID)},
   [17] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(3, TYPE_CHAR, char)},
   [18] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(17, TYPE_PTR, char *)},
   [19] = NULL, // Function
@@ -238,7 +238,7 @@ const TypeInfo *typeinfo_table[179] = {
   [33] = NULL, // Function
   [34] = NULL, // Function
   [35] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(Any), .align = alignof(Any), .name = "Any", .num_fields = 2, .fields = (TypeFieldInfo[]) {
-    {"ptr", .type = TYPEID(16, TYPE_PTR1, void *), .offset = offsetof(Any, ptr)},
+    {"ptr", .type = TYPEID(16, TYPE_REF, void *), .offset = offsetof(Any, ptr)},
     {"type", .type = TYPEID(13, TYPE_ULLONG, ullong), .offset = offsetof(Any, type)},
   }},
   [36] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(1, TYPE_VOID)},
@@ -283,7 +283,7 @@ const TypeInfo *typeinfo_table[179] = {
   [72] = NULL, // Function
   [73] = NULL, // Function
   [74] = &(TypeInfo){TYPE_CONST, .size = 0, .align = 0, .base = TYPEID0(1, TYPE_VOID)},
-  [75] = &(TypeInfo){TYPE_PTR1, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(74, TYPE_CONST)},
+  [75] = &(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(74, TYPE_CONST)},
   [76] = NULL, // Function
   [77] = NULL, // Function
   [78] = NULL, // Function

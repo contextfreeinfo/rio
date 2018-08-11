@@ -213,7 +213,7 @@ fn cdecl_name(type: Type*) -> char const* {
 fn type_to_cdecl(type: Type*, str: char const*) -> char* {
   switch (type.kind) {
   case CMPL_TYPE_PTR:
-  case CMPL_TYPE_PTR1:
+  case CMPL_TYPE_REF:
     return type_to_cdecl(type.base, cdecl_paren(strf("*%s", str), *str));
   case CMPL_TYPE_CONST:
     return type_to_cdecl(type.base, strf("const %s", cdecl_paren(str, *str)));
@@ -289,7 +289,7 @@ fn typespec_to_cdecl(typespec: Typespec*, str: char const*) -> char* {
   case TYPESPEC_NAME:
     return strf("%s%s%s", get_gen_name_or_default(typespec, typespec.name), *str ? " " : "", str);
   case TYPESPEC_PTR:
-  case TYPESPEC_PTR1:
+  case TYPESPEC_REF:
     return typespec_to_cdecl(typespec.base, cdecl_paren(strf("*%s", str), *str));
   case TYPESPEC_CONST:
     return typespec_to_cdecl(typespec.base, strf("const %s", cdecl_paren(str, *str)));
@@ -460,7 +460,7 @@ let typeid_kind_names: char const*[NUM_CMPL_TYPE_KINDS] = {
   [CMPL_TYPE_DOUBLE] = "TYPE_DOUBLE",
   [CMPL_TYPE_CONST] = "TYPE_CONST",
   [CMPL_TYPE_PTR] = "TYPE_PTR",
-  [CMPL_TYPE_PTR1] = "TYPE_PTR1",
+  [CMPL_TYPE_REF] = "TYPE_REF",
   [CMPL_TYPE_ARRAY] = "TYPE_ARRAY",
   [CMPL_TYPE_STRUCT] = "TYPE_STRUCT",
   [CMPL_TYPE_UNION] = "TYPE_UNION",
@@ -1109,8 +1109,8 @@ fn gen_typeinfo(type: Type*) {
     buf_printf(&gen_buf, "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ");
     gen_typeid(type.base);
     buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_PTR1:
-    buf_printf(&gen_buf, "&(TypeInfo){TYPE_PTR1, .size = sizeof(void *), .align = alignof(void *), .base = ");
+  case CMPL_TYPE_REF:
+    buf_printf(&gen_buf, "&(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = ");
     gen_typeid(type.base);
     buf_printf(&gen_buf, "},");
   case CMPL_TYPE_CONST:

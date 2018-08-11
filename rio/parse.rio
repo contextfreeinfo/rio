@@ -71,14 +71,14 @@ fn parse_type() -> Typespec& {
     } else if (match_keyword(const_keyword)) {
       type = new_typespec_const(pos, type);
     } else {
-      let is_ptr1 = match_token(TOKEN_AND);
-      if (!is_ptr1) {
+      let is_ref = match_token(TOKEN_AND);
+      if (!is_ref) {
         #assert(is_token(TOKEN_MUL));
         next_token();
       }
       let is_owned = match_keyword(own_keyword);
-      if (is_ptr1) {
-        type = new_typespec_ptr1(pos, type, is_owned);
+      if (is_ref) {
+        type = new_typespec_ref(pos, type, is_owned);
       } else {
         type = new_typespec_ptr(pos, type, is_owned);
       }

@@ -257,7 +257,7 @@ fn put_type_name(buf: char**, type: Type*) {
     case CMPL_TYPE_PTR:
       put_type_name(buf, type.base);
       buf_printf(buf, "*");
-    case CMPL_TYPE_PTR1:
+    case CMPL_TYPE_REF:
       put_type_name(buf, type.base);
       buf_printf(buf, "&");
     case CMPL_TYPE_ARRAY:
@@ -542,8 +542,8 @@ fn resolve_typespec(typespec: Typespec*) -> Type* {
     result = type_const(resolve_typespec(typespec.base));
   case TYPESPEC_PTR:
     result = type_ptr(resolve_typespec(typespec.base));
-  case TYPESPEC_PTR1:
-    result = type_ptr1(resolve_typespec(typespec.base));
+  case TYPESPEC_REF:
+    result = type_ref(resolve_typespec(typespec.base));
   case TYPESPEC_ARRAY: {
     let size = 0;
     if (typespec.num_elems) {
@@ -1899,7 +1899,7 @@ fn resolve_expected_expr(expr: Expr*, expected_type: Type*) -> Operand {
       if (!operand.is_lvalue) {
         fatal_error(expr.pos, "Cannot take address of non-lvalue");
       }
-      result = operand_rvalue(type_ptr1(operand.type));
+      result = operand_rvalue(type_ref(operand.type));
     } else {
       result = resolve_expr_unary(expr);
     }

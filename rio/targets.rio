@@ -44,7 +44,7 @@ fn get_arch(name: char const*) -> int {
 }
 
 fn init_default_type_metrics(metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS]) {
-  metrics[CMPL_TYPE_PTR1] = metrics[CMPL_TYPE_PTR];
+  metrics[CMPL_TYPE_REF] = metrics[CMPL_TYPE_PTR];
   metrics[CMPL_TYPE_BOOL] = {size = 1, align = 1};
   metrics[CMPL_TYPE_CHAR] = {size = 1, align = 1, max = 0x7f, sign = true};
   metrics[CMPL_TYPE_SCHAR] = {size = 1, align = 1, max = 0x7f, sign = true};

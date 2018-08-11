@@ -19,7 +19,7 @@ enum TypeKind {
     TYPE_DOUBLE,
     TYPE_CONST,
     TYPE_PTR,
-    TYPE_PTR1,
+    TYPE_REF,
     TYPE_ARRAY,
     TYPE_STRUCT,
     TYPE_UNION,

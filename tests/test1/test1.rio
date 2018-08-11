@@ -539,7 +539,7 @@ fn print_type(type: typeid) {
   case TYPE_PTR:
     print_type(typeinfo.base);
     printf("*");
-  case TYPE_PTR1:
+  case TYPE_REF:
     print_type(typeinfo.base);
     printf("&");
   case TYPE_CONST:
@@ -810,7 +810,7 @@ fn test_const_ptr_deref() {
   let i = foo.bar.rc;
 }
 
-fn test_ptr1() {
+fn test_ref() {
   let i = 1;
   let p = &i;
   let q: int* = &i;
@@ -825,7 +825,7 @@ fn main(argc: int, argv: char**) -> int {
   if (argv == 0) {
     printf("argv is null\n");
   }
-  test_ptr1();
+  test_ref();
   test_const_ptr_deref();
   test_limits();
   test_va_list("whatever", char(123), int(123123), llong(123123123123));

@@ -50,8 +50,8 @@ fn new_typespec_ptr(pos: SrcPos, base: Typespec&, is_owned: bool) -> Typespec& {
   return t;
 }
 
-fn new_typespec_ptr1(pos: SrcPos, base: Typespec&, is_owned: bool) -> Typespec& {
-  let t = new_typespec(TYPESPEC_PTR1, pos);
+fn new_typespec_ref(pos: SrcPos, base: Typespec&, is_owned: bool) -> Typespec& {
+  let t = new_typespec(TYPESPEC_REF, pos);
   t.base = base;
   t.is_owned = is_owned;
   return t;

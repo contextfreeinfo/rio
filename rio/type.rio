@@ -19,7 +19,7 @@ enum CompilerTypeKind {
   CMPL_TYPE_FLOAT,
   CMPL_TYPE_DOUBLE,
   CMPL_TYPE_PTR,
-  CMPL_TYPE_PTR1,
+  CMPL_TYPE_REF,
   CMPL_TYPE_FUNC,
   CMPL_TYPE_ARRAY,
   CMPL_TYPE_STRUCT,
@@ -114,7 +114,7 @@ fn type_alloc(kind: TypeKind) -> Type* {
 }
 
 fn is_ptr_type(type: Type*) -> bool {
-  return type.kind == CMPL_TYPE_PTR || type.kind == CMPL_TYPE_PTR1;
+  return type.kind == CMPL_TYPE_PTR || type.kind == CMPL_TYPE_REF;
 }
 
 fn is_ptr_star_type(type: Type*) -> bool {
@@ -252,7 +252,7 @@ fn type_alignof(type: Type*) -> usize {
 }
 
 let cached_ptr_types: Map;
-let cached_ptr1_types: Map;
+let cached_ref_types: Map;
 
 fn type_ptr_any(kind: CompilerTypeKind, base: Type*) -> Type* {
   let cache: Map*;
@@ -260,8 +260,8 @@ fn type_ptr_any(kind: CompilerTypeKind, base: Type*) -> Type* {
   switch (kind) {
   case CMPL_TYPE_PTR:
     cache = &cached_ptr_types;
-  case CMPL_TYPE_PTR1:
-    cache = &cached_ptr1_types;
+  case CMPL_TYPE_REF:
+    cache = &cached_ref_types;
   }
   let type: Type* = map_get(cache, base);
   if (!type) {
@@ -279,8 +279,8 @@ fn type_ptr(base: Type*) -> Type* {
   return type_ptr_any(CMPL_TYPE_PTR, base);
 }
 
-fn type_ptr1(base: Type*) -> Type* {
-  return type_ptr_any(CMPL_TYPE_PTR1, base);
+fn type_ref(base: Type*) -> Type* {
+  return type_ptr_any(CMPL_TYPE_REF, base);
 }
 
 let cached_const_types: Map;
