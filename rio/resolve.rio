@@ -486,11 +486,11 @@ fn set_resolved_type(ptr: void&, type: Type*) {
 
 let resolved_sym_map: Map;
 
-fn get_resolved_sym(ptr: void const*) -> Sym* {
+fn get_resolved_sym(ptr: void const&) -> Sym* {
   return map_get(&resolved_sym_map, ptr);
 }
 
-fn set_resolved_sym(ptr: void const*, sym: Sym*) {
+fn set_resolved_sym(ptr: void const&, sym: Sym*) {
   if (!is_local_sym(sym)) {
     map_put(&resolved_sym_map, ptr, sym);
   }

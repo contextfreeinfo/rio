@@ -1,10 +1,10 @@
 #foreign(header = "<string.h>")
 
 @foreign
-fn memcpy(s1: void&, s2: void const*, n: usize) -> void&;
+fn memcpy(s1: void&, s2: void const&, n: usize) -> void&;
 
 @foreign
-fn memmove(s1: void&, s2: void const*, n: usize) -> void&;
+fn memmove(s1: void&, s2: void const&, n: usize) -> void&;
 
 @foreign
 fn strcpy(s1: char*, s2: char const*) -> char*;
@@ -19,7 +19,7 @@ fn strcat(s1: char*, s2: char const*) -> char*;
 fn strncat(s1: char*, s2: char const*, n: usize) -> char*;
 
 @foreign
-fn memcmp(s1: void const*, s2: void const*, n: usize) -> int;
+fn memcmp(s1: void const&, s2: void const&, n: usize) -> int;
 
 @foreign
 fn strcmp(s1: char const*, s2: char const*) -> int;
@@ -34,7 +34,7 @@ fn strncmp(s1: char const*, s2: char const*, n: usize) -> int;
 fn strxfrm(s1: char*, s2: char const*, n: usize) -> usize;
 
 @foreign
-fn memchr(s: void const*, c: int, n: usize) -> void&;
+fn memchr(s: void const&, c: int, n: usize) -> void&;
 
 @foreign
 fn strchr(s: char const*, c: int) -> char*;

@@ -1,5 +1,5 @@
 @foreign("va_start_ptr")
-fn va_start(args: va_list*, arg: void const*);
+fn va_start(args: va_list*, arg: void const&);
 
 @foreign("va_arg_ptr")
 fn va_arg(args: va_list*, arg: Any);

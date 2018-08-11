@@ -255,7 +255,7 @@ fn gen_expr_str(expr: Expr*) -> char const* {
 
 let gen_name_map: Map;
 
-fn get_gen_name_or_default(ptr: void const*, default_name: char const*) -> char const* {
+fn get_gen_name_or_default(ptr: void const&, default_name: char const*) -> char const* {
   let name: char const* = map_get(&gen_name_map, ptr);
   if (!name) {
     let sym = get_resolved_sym(ptr);
@@ -277,7 +277,7 @@ fn get_gen_name_or_default(ptr: void const*, default_name: char const*) -> char 
   return name;
 }
 
-fn get_gen_name(ptr: void const*) -> char const* {
+fn get_gen_name(ptr: void const&) -> char const* {
   return get_gen_name_or_default(ptr, "ERROR");
 }
 

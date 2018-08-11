@@ -132,7 +132,7 @@ fn ungetc(c: int, stream: FILE*) -> int;
 fn fread(ptr: void&, size: usize, nmemb: usize, stream: FILE*) -> usize;
 
 @foreign
-fn fwrite(ptr: void const*, size: usize, nmemb: usize, stream: FILE*) -> usize;
+fn fwrite(ptr: void const&, size: usize, nmemb: usize, stream: FILE*) -> usize;
 
 @foreign
 fn fgetpos(stream: FILE*, pos: fpos_t*) -> int;

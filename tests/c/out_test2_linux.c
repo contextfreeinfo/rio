@@ -283,7 +283,7 @@ const TypeInfo *typeinfo_table[179] = {
   [72] = NULL, // Function
   [73] = NULL, // Function
   [74] = &(TypeInfo){TYPE_CONST, .size = 0, .align = 0, .base = TYPEID0(1, TYPE_VOID)},
-  [75] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(74, TYPE_CONST)},
+  [75] = &(TypeInfo){TYPE_PTR1, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(74, TYPE_CONST)},
   [76] = NULL, // Function
   [77] = NULL, // Function
   [78] = NULL, // Function
