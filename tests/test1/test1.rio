@@ -5,11 +5,11 @@ import libc {gc = getchar, ...}
 
 let esc_test_str = "Hello\nworld\nHex: \x01\x10\xFHello\xFF";
 
-let some_array: int* = (:int[]){1, 2, 3};
+let some_array: *int = (:[]int){1, 2, 3};
 
 struct SomeIncompleteType;
 
-let incomplete_ptr: SomeIncompleteType*;
+let incomplete_ptr: *SomeIncompleteType;
 // let incomplete_val: Incomplete;
 
 /* This is a block comment */
@@ -37,7 +37,7 @@ typedef F3 = fn(f: fn());
 
 const N = (:char)42 + 8 != 0;
 
-typedef A = int[1 + 2*sizeof(h())];
+typedef A = int[1 + 2 * sizeof(h())];
 
 let code = """
 #include <stdio.h>
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 
 struct S1 {
   a: int;
-  b: int const;
+  b: const int;
 }
 
 struct S2 {
@@ -64,15 +64,15 @@ fn test_packages() {
 fn test_modify() {
   let i = 42;
   #static_assert(typeof(i) == typeof(int));
-  let p: int* = &i;
-  #static_assert(typeof(p) == typeof(:int*));
+  let p: *int = &i;
+  #static_assert(typeof(p) == typeof(:*int));
   p--;
   let x = *p++;
   #assert(x == *--p);
   (*p)++;
   (*p)--;
-  let stk: int[16];
-  let sp: int* = stk;
+  let stk: [16]int;
+  let sp: *int = stk;
   *sp++ = 1;
   *sp++ = 2;
   x = *--sp;
@@ -82,12 +82,12 @@ fn test_modify() {
   #assert(sp == stk);
 }
 
-fn f10(a: wchar[3]) {
+fn f10(a: [3]wchar) {
   a[1] = 42;
 }
 
 fn test_arrays() {
-  let a: wchar[] = {1, 2, 3};
+  let a: []wchar = {1, 2, 3};
   // a = a;
   f10(a);
   let b = a;
@@ -148,7 +148,7 @@ struct UartCtrl {
   tx_enable, rx_enable: bool;
 }
 
-const UART_CTRL_REG = (:uint32*)0x12345678;
+const UART_CTRL_REG = (:*uint32)0x12345678;
 
 fn pack(ctrl: UartCtrl) -> uint32 {
   return (ctrl.tx_enable & 1) | ((ctrl.rx_enable & 1) << 1);
@@ -180,7 +180,7 @@ fn g(u: U) -> int {
   return u.i;
 }
 
-fn k(vp: void&, ip: int&) {
+fn k(vp: &void, ip: &int) {
   vp = ip;
   ip = vp;
 }
@@ -190,7 +190,7 @@ fn f1() {
   *p = 42;
 }
 
-fn f3(a: int[]) {
+fn f3(a: []int) {
 }
 
 typedef U = IntOrPtr;
@@ -201,10 +201,10 @@ fn example_test() -> int {
 
 union IntOrPtr {
   i: int;
-  p: int*;
+  p: *int;
 }
 
-let char_to_escape: char const[256] = {
+let char_to_escape: [256]const char = {
   ['\0'] = '0',
   ['\n'] = 'n',
   ['\r'] = 'r',
@@ -217,7 +217,7 @@ let char_to_escape: char const[256] = {
   ['\''] = '\'',
 };
 
-let escape_to_char: char const[256] = {
+let escape_to_char: [256]const char = {
   ['0'] = '\0',
   ['\''] = '\'',
   ['"'] = '"',
@@ -230,8 +230,8 @@ let escape_to_char: char const[256] = {
   ['a'] = '\a',
 };
 
-let a2: int[] = {1, 2, 3, [10]=4};
-// let a3: int[];
+let a2: []int = {1, 2, 3, [10]=4};
+// let a3: []int;
 
 fn is_even(digit: int) -> int {
   let b = 0;
@@ -244,9 +244,9 @@ fn is_even(digit: int) -> int {
 
 // fn f() {
 //   let u1 = IntOrPtr{i = 42};
-//   let u2 = IntOrPtr{p = (:int*)42};
+//   let u2 = IntOrPtr{p = (:*int)42};
 //   u1.i = 0;
-//   u2.p = (:int*)0;
+//   u2.p = (:*int)0;
 // }
 
 let i: int;
@@ -277,10 +277,10 @@ fn fact_rec(n: int) -> int {
 
 const M = 1 + sizeof(p);
 
-let p: T*;
+let p: *T;
 
 struct T {
-  a: int[M];
+  a: [M]int;
 }
 
 enum Color {
@@ -301,7 +301,8 @@ enum TypedEnum = int8 {
   QUUX
 }
 
-let color_names: char const*[NUM_COLORS] = {
+let color_names: [NUM_COLORS]*const char = {
+// let color_names: [*const char; NUM_COLORS] = {
   [COLOR_NONE] = "none",
   [COLOR_RED] = "red",
   [COLOR_GREEN] = "green",
@@ -328,7 +329,7 @@ fn test_enum() {
 fn test_assign() {
   let i: int = 0;
   let f: float = 3.14;
-  let p: int* = &i;
+  let p: *int = &i;
   i++;
   i--;
   p++;
@@ -387,7 +388,7 @@ fn test_ops() {
   f = pi / pi;
   n = 3 % 2;
   n = n + (:uchar)1;
-  let p: int* = &n;
+  let p: *int = &n;
   p = p + 1;
   n = int((p + 1) - p);
   n = n << 1;
@@ -425,25 +426,25 @@ fn test_ctrl() -> int {
 //  return 0;
 }
 
-let j: int const;
-let q: int const*;
-let cv: Vector const;
+let j: const int;
+let q: *const int;
+let cv: const Vector;
 
-fn f4(x: char const*) {
+fn f4(x: *const char) {
 }
 
 struct ConstVector {
-  x, y: int const;
+  x, y: const int;
 }
 
-fn f5(p: int const*) {
+fn f5(p: *const int) {
 }
 
 fn test_convert() {
-  let a: int const* = 0;
-  let b: int* = 0;
+  let a: *const int = 0;
+  let b: *int = 0;
   a = b;
-  let p: void& = 0;
+  let p: &void = 0;
   f5(p);
 }
 
@@ -460,12 +461,12 @@ fn test_const() {
   c = char_to_escape[c];
   c = esc_test_str[0];
   f4(escape_to_char);
-  let p = (:char const*)0; // (:int*)0
+  let p = (:*const char)0; // (:*int)0
   p = escape_to_char + 1;
-  let q = (:char*)escape_to_char;
+  let q = (:*char)escape_to_char;
   c = q['n'];
   // q = escape_to_char;
-  p = (:char const*)1;
+  p = (:*const char)1;
   // p = 1;
   // i = p;
   i = int(ullong(p));
@@ -474,18 +475,18 @@ fn test_const() {
 #static_assert(sizeof(int) == 4)
 
 fn test_init() {
-  let x = (:int const)0;
+  let x = (:const int)0;
   #static_assert(sizeof(x) == 4);
   let y: int;
   y = 0;
   let z: int = 42;
-  let a: int[] = {1, 2, 3};
-  // a2: int[];
+  let a: []int = {1, 2, 3};
+  // a2: []int;
   // v: void;
   for (let i: ullong = 0; i < 10; i++) {
     printf("%llu\n", i);
   }
-  let b: int[4] = {1, 2, 3, 4};
+  let b: [4]int = {1, 2, 3, 4};
   b[0] = a[2];
 }
 
@@ -494,24 +495,24 @@ fn test_sizeof() {
   let n = sizeof(i);
   n = sizeof(int);
   n = sizeof(:int);
-  n = sizeof(:int*);
+  n = sizeof(:*int);
 }
 
 fn test_cast() {
-  let p: int* = 0;
+  let p: *int = 0;
   let a: uint64 = 0;
   // a = p;
   a = uint64(p);
   // p = a;
-  p = (:int*)a;
+  p = (:*int)a;
 }
 
 fn print_any(any: Any) {
   switch (any.type) {
   case typeof(int):
-    printf("%d", *(:int const*)any.ptr);
+    printf("%d", *(:*const int)any.ptr);
   case typeof(float):
-    printf("%f", *(:float const *)any.ptr);
+    printf("%f", *(:*const float)any.ptr);
   default:
     printf("<unknown>");
   }
@@ -600,24 +601,24 @@ fn test_typeinfo() {
   println_any({&p, typeof(p)});
 
   println_type(typeof(int));
-  println_type(typeof(:int const*));
-  println_type(typeof(:int const*[42]));
+  println_type(typeof(:*const int));
+  println_type(typeof(:[42]*const int));
   println_type(typeof(UartCtrl));
 
   println_typeinfo(typeof(int));
   println_typeinfo(typeof(UartCtrl));
-  println_typeinfo(typeof(:IntOrPtr*));
-  println_typeinfo(typeof(:IntOrPtr&));
+  println_typeinfo(typeof(:*IntOrPtr));
+  println_typeinfo(typeof(:&IntOrPtr));
   println_typeinfo(typeof(IntOrPtr));
 }
 
 struct Ints {
   num_ints: int;
-  int_ptr: int*;
-  int_arr: int[3];
+  int_ptr: *int;
+  int_arr: [3]int;
 }
 
-fn test_va_list(fmt: char const*, ...) {
+fn test_va_list(fmt: *const char, ...) {
   let init_args: va_list;
   va_start(&init_args, &fmt);
   let args: va_list;
@@ -634,20 +635,20 @@ fn test_va_list(fmt: char const*, ...) {
 }
 
 fn test_compound_literals() {
-  let w: Vector*;
+  let w: *Vector;
   w = &{1, 2};
-  let a = (:int[]){1, 2, 3};
+  let a = (:[]int){1, 2, 3};
   let i = 42;
-  let x: Any const = {&i, typeof(i)};
-  let y = (:Any const){&i, typeof(i)};
+  let x: const Any = {&i, typeof(i)};
+  let y = (:const Any){&i, typeof(i)};
   let v: Ints = {
     num_ints = 3,
-    int_ptr = (:int[]){1, 2, 3},
+    int_ptr = (:[]int){1, 2, 3},
     int_arr = {1, 2, 3},
   };
-  let ints_of_ints: Ints[] = {
+  let ints_of_ints: []Ints = {
     {num_ints = 3, int_arr = {1, 2, 3}},
-    {num_ints = 2, int_ptr = (:int[2]){-1, -2}},
+    {num_ints = 2, int_ptr = (:[2]int){-1, -2}},
   };
 }
 
@@ -738,14 +739,14 @@ fn test_alignof() {
   let n1 = alignof(i);
   let n2 = alignof(i+1);
   let n3 = alignof(ullong);
-  let n4 = alignof(:int*);
+  let n4 = alignof(:*int);
 }
 
 struct BufHdr {
   cap, len: usize;
-  buf: char[1];
-  //  buf: char[];
-  //  buf: char[0];
+  buf: [1]char;
+  //  buf: []char;
+  //  buf: [0]char;
 }
 
 fn test_offsetof() {
@@ -759,11 +760,11 @@ struct Thing {
 
 let thing: Thing;
 
-fn returns_ptr() -> Thing& {
+fn returns_ptr() -> &Thing {
   return &thing;
 }
 
-fn returns_ptr_to_const() -> Thing const& {
+fn returns_ptr_to_const() -> &const Thing {
   return &thing;
 }
 
@@ -801,7 +802,7 @@ struct Bar {
 }
 
 struct Foo {
-  bar: Bar* const;
+  bar: const *Bar;
 }
 
 fn test_const_ptr_deref() {
@@ -813,7 +814,7 @@ fn test_const_ptr_deref() {
 fn test_ref() {
   let i = 1;
   let p = &i;
-  let q: int* = &i;
+  let q: *int = &i;
   // Should cause error.
   // let r = p + 1;
   // p[0] = 3;
@@ -821,7 +822,7 @@ fn test_ref() {
   *p = 2;
 }
 
-fn main(argc: int, argv: char**) -> int {
+fn main(argc: int, argv: **char) -> int {
   if (argv == 0) {
     printf("argv is null\n");
   }

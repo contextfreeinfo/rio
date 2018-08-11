@@ -3,24 +3,24 @@
 struct NoteArg {
   pos: SrcPos;
   name: char const*;
-  expr: Expr&;
+  expr: &Expr;
 }
 
 struct Note {
   pos: SrcPos;
   name: char const*;
-  args: NoteArg*;
+  args: *NoteArg;
   num_args: usize;
 }
 
 struct Notes {
-  notes: Note*;
+  notes: *Note;
   num_notes: usize;
 }
 
 struct StmtList {
   pos: SrcPos;
-  stmts: Stmt&*;
+  stmts: *&Stmt;
   num_stmts: usize;
 }
 
@@ -37,26 +37,26 @@ enum TypespecKind {
 struct Typespec {
   kind: TypespecKind;
   pos: SrcPos;
-  base: Typespec&;
+  base: &Typespec;
   is_owned: bool;
   union {
     name: char const*;
     function: TypespecFunc;
-    num_elems: Expr*;
+    num_elems: *Expr;
   }
 }
 
 struct TypespecFunc {
-  args: Typespec&*;
+  args: *&Typespec;
   num_args: usize;
   has_varargs: bool;
-  ret: Typespec&;
+  ret: &Typespec;
 }
 
 struct FuncParam {
   pos: SrcPos;
   name: char const*;
-  type: Typespec&;
+  type: &Typespec;
 }
 
 enum AggregateItemKind {
@@ -72,16 +72,16 @@ struct AggregateItem {
     struct {
       names: char const**;
       num_names: usize;
-      type: Typespec&;
+      type: &Typespec;
     }
-    subaggregate: Aggregate&;
+    subaggregate: &Aggregate;
   }
 }
 
 struct EnumItem {
   pos: SrcPos;
   name: char const*;
-  init: Expr&;
+  init: &Expr;
 }
 
 struct ImportItem {
@@ -111,7 +111,7 @@ enum AggregateKind {
 struct Aggregate {
   pos: SrcPos;
   kind: AggregateKind;
-  items: AggregateItem*;
+  items: *AggregateItem;
   num_items: usize;
 }
 
@@ -124,7 +124,7 @@ struct Decl {
   union {
     note: Note;
     enum_decl: DeclEnum;
-    aggregate: Aggregate*;
+    aggregate: Aggregate&;
     function: DeclFunc;
     typedef_decl: DeclTypedef;
     var_decl: DeclVar;
@@ -133,10 +133,9 @@ struct Decl {
   }
 }
 
-
 struct DeclEnum {
-  type: Typespec&;
-  items: EnumItem*;
+  type: &Typespec;
+  items: *EnumItem;
   num_items: usize;
 }
 
