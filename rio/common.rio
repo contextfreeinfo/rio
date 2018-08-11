@@ -420,7 +420,8 @@ fn map_put_uint64(map: Map&, key: void&, val: uint64) {
 
 struct Intern {
   len: usize;
-  next: Intern*;
+  next: Intern&;
+  // TODO Zero-size arrays.
   str: char[1];
 }
 
@@ -431,13 +432,13 @@ fn str_intern_range(start: char const*, end: char const*) -> char const* {
   let len: usize = end - start;
   let hash = hash_bytes(start, len);
   let key: uint64 = hash ? hash : 1;
-  let intern: Intern* = map_get_from_uint64(&interns, key);
+  let intern: Intern& = map_get_from_uint64(&interns, key);
   for (let it = intern; it; it = it.next) {
     if (it.len == len && strncmp(it.str, start, len) == 0) {
       return it.str;
     }
   }
-  let new_intern: Intern* = arena_alloc(&intern_arena, offsetof(Intern, str) + len + 1);
+  let new_intern: Intern& = arena_alloc(&intern_arena, offsetof(Intern, str) + len + 1);
   new_intern.len = len;
   new_intern.next = intern;
   memcpy(new_intern.str, start, len);

@@ -82,7 +82,7 @@ fn leave_package(old_package: Package*) {
 }
 
 let reachable_syms: Sym**;
-let sorted_syms: Sym**;
+let sorted_syms: Sym&*;
 let local_syms: Sym[MAX_LOCAL_SYMS];
 let local_syms_end: Sym* = local_syms;
 
