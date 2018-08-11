@@ -87,10 +87,10 @@ fn getenv(name: *const char) -> *char;
 fn system(string: *const char) -> int;
 
 @foreign
-fn bsearch(key: &const void, base: &const void, nmemb: usize, size: usize, compar: fn(const void&, void const&) -> int) -> &void;
+fn bsearch(key: &const void, base: &const void, nmemb: usize, size: usize, compar: fn(&const void, &const void) -> int) -> &void;
 
 @foreign
-fn qsort(base: &void, nmemb: usize, size: usize, compar: fn(const void&, void const&) -> int);
+fn qsort(base: &void, nmemb: usize, size: usize, compar: fn(&const void, &const void) -> int);
 
 @foreign
 fn abs(j: int) -> int;

@@ -4,7 +4,7 @@
 struct FILE;
 
 @foreign
-let stdin:  FILE&;
+let stdin: &FILE;
 
 @foreign
 let stdout: &FILE;
@@ -13,7 +13,7 @@ let stdout: &FILE;
 let stderr: &FILE;
 
 @foreign
-typedef va_list = char*;
+typedef va_list = *char;
 
 @foreign
 struct fpos_t;

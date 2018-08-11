@@ -37,7 +37,7 @@ typedef F3 = fn(f: fn());
 
 const N = (:char)42 + 8 != 0;
 
-typedef A = int[1 + 2 * sizeof(h())];
+typedef A = [1 + 2 * sizeof(h())]int;
 
 let code = """
 #include <stdio.h>

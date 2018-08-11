@@ -76,36 +76,9 @@ fn parse_type() -> &Typespec {
     type = new_typespec_const(pos, parse_type());
   } else if (match_keyword(own_keyword)) {
     // TODO Track owning.
-  }
-  if (type) {
-    return type;
-  }
-  // Go to base type.
-  type = parse_type_base();
-  pos = token.pos;
-  while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_AND) || is_token(TOKEN_MUL) || is_keyword(const_keyword)) {
-    if (match_token(TOKEN_LBRACKET)) {
-      let size: &Expr = NULL;
-      if (!is_token(TOKEN_RBRACKET)) {
-        size = parse_expr();
-      }
-      expect_token(TOKEN_RBRACKET);
-      type = new_typespec_array(pos, type, size);
-    } else if (match_keyword(const_keyword)) {
-      type = new_typespec_const(pos, type);
-    } else {
-      let is_ref = match_token(TOKEN_AND);
-      if (!is_ref) {
-        #assert(is_token(TOKEN_MUL));
-        next_token();
-      }
-      let is_owned = match_keyword(own_keyword);
-      if (is_ref) {
-        type = new_typespec_ref(pos, type, is_owned);
-      } else {
-        type = new_typespec_ptr(pos, type, is_owned);
-      }
-    }
+    type = parse_type_base();
+  } else {
+    type = parse_type_base();
   }
   return type;
 }

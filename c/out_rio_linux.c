@@ -5617,35 +5617,9 @@ rio_Typespec (*rio_parse_type(void)) {
   } else if (rio_match_keyword(rio_const_keyword)) {
     type = rio_new_typespec_const(pos, rio_parse_type());
   } else if (rio_match_keyword(rio_own_keyword)) {
-  }
-  if (type) {
-    return type;
-  }
-  type = rio_parse_type_base();
-  pos = rio_token.pos;
-  while ((((rio_is_token(rio_TOKEN_LBRACKET)) || (rio_is_token(rio_TOKEN_AND))) || (rio_is_token(rio_TOKEN_MUL))) || (rio_is_keyword(rio_const_keyword))) {
-    if (rio_match_token(rio_TOKEN_LBRACKET)) {
-      rio_Expr (*size) = NULL;
-      if (!(rio_is_token(rio_TOKEN_RBRACKET))) {
-        size = rio_parse_expr();
-      }
-      rio_expect_token(rio_TOKEN_RBRACKET);
-      type = rio_new_typespec_array(pos, type, size);
-    } else if (rio_match_keyword(rio_const_keyword)) {
-      type = rio_new_typespec_const(pos, type);
-    } else {
-      bool is_ref = rio_match_token(rio_TOKEN_AND);
-      if (!(is_ref)) {
-        assert(rio_is_token(rio_TOKEN_MUL));
-        rio_next_token();
-      }
-      bool is_owned = rio_match_keyword(rio_own_keyword);
-      if (is_ref) {
-        type = rio_new_typespec_ref(pos, type, is_owned);
-      } else {
-        type = rio_new_typespec_ptr(pos, type, is_owned);
-      }
-    }
+    type = rio_parse_type_base();
+  } else {
+    type = rio_parse_type_base();
   }
   return type;
 }

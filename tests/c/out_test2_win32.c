@@ -188,7 +188,7 @@ struct Any {
 #define TYPEID0(index, kind) ((ullong)(index) | ((ullong)(kind) << 24))
 #define TYPEID(index, kind, ...) ((ullong)(index) | ((ullong)sizeof(__VA_ARGS__) << 32) | ((ullong)(kind) << 24))
 
-const TypeInfo *typeinfo_table[180] = {
+const TypeInfo *typeinfo_table[179] = {
   [0] = NULL, // No associated type
   [1] = &(TypeInfo){TYPE_VOID, .name = "void", .size = 0, .align = 0},
   [2] = &(TypeInfo){TYPE_BOOL, .size = sizeof(bool), .align = sizeof(bool), .name = "bool"},
@@ -343,7 +343,7 @@ const TypeInfo *typeinfo_table[180] = {
   [132] = NULL, // Function
   [133] = NULL, // Function
   [134] = NULL, // Function
-  [135] = &(TypeInfo){TYPE_CONST, .size = sizeof(void (*const )), .align = alignof(void (*const )), .base = TYPEID(16, TYPE_REF, void *)},
+  [135] = NULL, // Function
   [136] = NULL, // Function
   [137] = NULL, // Function
   [138] = NULL, // Function
@@ -352,13 +352,13 @@ const TypeInfo *typeinfo_table[180] = {
   [141] = NULL, // Function
   [142] = NULL, // Function
   [143] = NULL, // Function
-  [144] = NULL, // Function
-  [145] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(6, TYPE_SHORT, short)},
+  [144] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(6, TYPE_SHORT, short)},
+  [145] = NULL, // Function
   [146] = NULL, // Function
   [147] = NULL, // Function
-  [148] = NULL, // Function
-  [149] = &(TypeInfo){TYPE_CONST, .size = sizeof(short const ), .align = alignof(short const ), .base = TYPEID(6, TYPE_SHORT, short)},
-  [150] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(149, TYPE_CONST, short const )},
+  [148] = &(TypeInfo){TYPE_CONST, .size = sizeof(short const ), .align = alignof(short const ), .base = TYPEID(6, TYPE_SHORT, short)},
+  [149] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(148, TYPE_CONST, short const )},
+  [150] = NULL, // Function
   [151] = NULL, // Function
   [152] = NULL, // Function
   [153] = NULL, // Function
@@ -372,25 +372,24 @@ const TypeInfo *typeinfo_table[180] = {
   [161] = NULL, // Function
   [162] = NULL, // Function
   [163] = NULL, // Function
-  [164] = NULL, // Function
-  [165] = NULL, // No associated type
+  [164] = NULL, // No associated type
+  [165] = NULL, // Function
   [166] = NULL, // Function
-  [167] = NULL, // Function
-  [168] = NULL, // No associated type
-  [169] = NULL, // Function
-  [170] = &(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(12, TYPE_LLONG, llong)},
-  [171] = NULL, // Function
+  [167] = NULL, // No associated type
+  [168] = NULL, // Function
+  [169] = &(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(12, TYPE_LLONG, llong)},
+  [170] = NULL, // Function
+  [171] = NULL, // No associated type
   [172] = NULL, // No associated type
-  [173] = NULL, // No associated type
-  [174] = NULL, // Function
-  [175] = &(TypeInfo){TYPE_CONST, .size = sizeof(llong const ), .align = alignof(llong const ), .base = TYPEID(12, TYPE_LLONG, llong)},
-  [176] = &(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(175, TYPE_CONST, llong const )},
+  [173] = NULL, // Function
+  [174] = &(TypeInfo){TYPE_CONST, .size = sizeof(llong const ), .align = alignof(llong const ), .base = TYPEID(12, TYPE_LLONG, llong)},
+  [175] = &(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(174, TYPE_CONST, llong const )},
+  [176] = NULL, // Function
   [177] = NULL, // Function
   [178] = NULL, // Function
-  [179] = NULL, // Function
 };
 
-int num_typeinfos = 180;
+int num_typeinfos = 179;
 const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;
 
 // Definitions
