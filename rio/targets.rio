@@ -5,7 +5,7 @@ enum Os {
   NUM_OSES,
 }
 
-let os_names: char const*[NUM_OSES] = {
+let os_names: [NUM_OSES]*const char = {
   [OS_WIN32] = "win32",
   [OS_LINUX] = "linux",
   [OS_OSX] = "osx",
@@ -17,7 +17,7 @@ enum Arch {
   NUM_ARCHES,
 }
 
-let arch_names: char const*[NUM_ARCHES] = {
+let arch_names: [NUM_ARCHES]*const char = {
   [ARCH_X64] = "x64",
   [ARCH_X86] = "x86",
 };
@@ -25,7 +25,7 @@ let arch_names: char const*[NUM_ARCHES] = {
 let target_os: int;
 let target_arch: int;
 
-fn get_os(name: char const*) -> int {
+fn get_os(name: *const char) -> int {
   for (let i = 0; i < NUM_OSES; i++) {
     if (strcmp(os_names[i], name) == 0) {
       return i;
@@ -34,7 +34,7 @@ fn get_os(name: char const*) -> int {
   return -1;
 }
 
-fn get_arch(name: char const*) -> int {
+fn get_arch(name: *const char) -> int {
   for (let i = 0; i < NUM_ARCHES; i++) {
     if (strcmp(arch_names[i], name) == 0) {
       return i;
@@ -43,7 +43,7 @@ fn get_arch(name: char const*) -> int {
   return -1;
 }
 
-fn init_default_type_metrics(metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS]) {
+fn init_default_type_metrics(metrics: [NUM_CMPL_TYPE_KINDS]TypeMetrics) {
   metrics[CMPL_TYPE_REF] = metrics[CMPL_TYPE_PTR];
   metrics[CMPL_TYPE_BOOL] = {size = 1, align = 1};
   metrics[CMPL_TYPE_CHAR] = {size = 1, align = 1, max = 0x7f, sign = true};
@@ -59,28 +59,28 @@ fn init_default_type_metrics(metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS]) {
   metrics[CMPL_TYPE_DOUBLE] = {size = 8, align = 8};
 }
 
-let win32_x86_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
+let win32_x86_metrics: [NUM_CMPL_TYPE_KINDS]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
   [CMPL_TYPE_PTR] = {size = 4, align = 4},
   [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
   [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
-let win32_x64_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
+let win32_x64_metrics: [NUM_CMPL_TYPE_KINDS]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
   [CMPL_TYPE_PTR] = {size = 8, align = 8},
   [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
   [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
-let ilp32_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
+let ilp32_metrics: [NUM_CMPL_TYPE_KINDS]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
   [CMPL_TYPE_PTR] = {size = 4, align = 4},
   [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
   [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
-let lp64_metrics: TypeMetrics[NUM_CMPL_TYPE_KINDS] = {
+let lp64_metrics: [NUM_CMPL_TYPE_KINDS]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
   [CMPL_TYPE_PTR] = {size = 8, align = 8},
   [CMPL_TYPE_LONG] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true},
@@ -131,14 +131,14 @@ fn init_target() {
   }
 }
 
-fn is_excluded_target_filename(name: char const*) -> bool {
+fn is_excluded_target_filename(name: *const char) -> bool {
   let end = name + strlen(name);
 
   let ptr1 = end;
   while (ptr1 != name && ptr1[-1] != '_') {
     ptr1--;
   }
-  let str1: char[MAX_PATH];
+  let str1: [MAX_PATH]char;
   if (ptr1 == name) {
     str1[0] = 0;
   } else {
@@ -151,7 +151,7 @@ fn is_excluded_target_filename(name: char const*) -> bool {
   while (ptr2 != name && ptr2[-1] != '_') {
     ptr2--;
   }
-  let str2: char[MAX_PATH];
+  let str2: [MAX_PATH]char;
   if (ptr2 == name) {
     str2[0] = 0;
   } else {

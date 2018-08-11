@@ -55,7 +55,7 @@ typedef uint64 = ullong;
 
 @foreign
 // TODO Why is void* const but not void&???
-const NULL = (:void*)0;
+const NULL = (:*void)0;
 
 @foreign
 const false = bool(0);

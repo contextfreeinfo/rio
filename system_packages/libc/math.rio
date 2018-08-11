@@ -97,10 +97,10 @@ fn expm1(x: float) -> float;
 fn expm1d(x: double) -> double;
 
 @foreign("frexpf")
-fn frexp(value: float, exp: int*) -> float;
+fn frexp(value: float, exp: *int) -> float;
 
 @foreign("frexp")
-fn frexpd(value: double, exp: int*) -> double;
+fn frexpd(value: double, exp: *int) -> double;
 
 @foreign("ilogbf")
 fn ilogb(x: float) -> int;
@@ -145,10 +145,10 @@ fn logb(x: float) -> float;
 fn logbd(x: double) -> double;
 
 @foreign("modff")
-fn modf(value: float, iptr: float*) -> float;
+fn modf(value: float, iptr: *float) -> float;
 
 @foreign("modf")
-fn modfd(value: double, iptr: double*) -> double;
+fn modfd(value: double, iptr: *double) -> double;
 
 @foreign("scalbnf")
 fn scalbn(x: float, n: int) -> float;
@@ -289,10 +289,10 @@ fn remainder(x: float, y: float) -> float;
 fn remainderd(x: double, y: double) -> double;
 
 @foreign("remquof")
-fn remquo(x: float, y: float, quo: int*) -> float;
+fn remquo(x: float, y: float, quo: *int) -> float;
 
 @foreign("remquo")
-fn remquod(x: double, y: double, quo: int*) -> double;
+fn remquod(x: double, y: double, quo: *int) -> double;
 
 @foreign("copysignf")
 fn copysign(x: float, y: float) -> float;
@@ -301,10 +301,10 @@ fn copysign(x: float, y: float) -> float;
 fn copysignd(x: double, y: double) -> double;
 
 @foreign("nanf")
-fn nan(tagp: char const*) -> float;
+fn nan(tagp: *const char) -> float;
 
 @foreign("nan")
-fn nand(tagp: char const*) -> double;
+fn nand(tagp: *const char) -> double;
 
 @foreign("nextafterf")
 fn nextafter(x: float, y: float) -> float;

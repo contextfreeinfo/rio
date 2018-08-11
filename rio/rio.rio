@@ -1,17 +1,17 @@
 enum { MAX_SEARCH_PATHS = 256 }
-let static_package_search_paths: char const*[MAX_SEARCH_PATHS];
-let package_search_paths: char const** = static_package_search_paths;
+let static_package_search_paths: [MAX_SEARCH_PATHS]*const char;
+let package_search_paths: **const char = static_package_search_paths;
 let num_package_search_paths: int;
 
-fn add_package_search_path(path: char const*) {
+fn add_package_search_path(path: *const char) {
   if (flag_verbose) {
     printf("Adding package search path %s\n", path);
   }
   package_search_paths[num_package_search_paths++] = str_intern(path);
 }
 
-fn add_package_search_path_range(start: char const*, end: char const*) {
-  let path: char[MAX_PATH];
+fn add_package_search_path_range(start: *const char, end: *const char) {
+  let path: [MAX_PATH]char;
   let len: usize = clamp_max(end - start, MAX_PATH - 1);
   memcpy(path, start, len);
   path[len] = 0;
@@ -24,7 +24,7 @@ fn init_package_search_paths() {
     printf("error: Set the environment variable RIOHOME to the Rio home directory (where system_packages is located)\n");
     exit(1);
   }
-  let path: char[MAX_PATH];
+  let path: [MAX_PATH]char;
   path_copy(path, riohome_var);
   path_join(path, "system_packages");
   add_package_search_path(path);
@@ -49,7 +49,7 @@ fn init_compiler() {
   init_package_search_paths();
   init_keywords();
   init_builtin_types();
-  map_put(&decl_note_names, declare_note_name, (:void&)1);
+  map_put(&decl_note_names, declare_note_name, (:&void)1);
 }
 
 fn parse_env_vars() {
@@ -73,9 +73,9 @@ fn parse_env_vars() {
   }
 }
 
-fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*) -> int {
+fn rio_main(argc: int, argv: **const char, gen_all: fn(), extension: *const char) -> int {
   parse_env_vars();
-  let output_name: char const*;
+  let output_name: *const char;
   let flag_check = false;
   add_flag_str("o", &output_name, "file", "Output file (default: out_<main-package>.c)");
   add_flag_enum("os", &target_os, "Target operating system", os_names, NUM_OSES);
@@ -136,7 +136,7 @@ fn rio_main(argc: int, argv: char const**, gen_all: fn(), extension: char const*
   }
   printf("Processed %d symbols in %d packages\n", (:int)buf_len(reachable_syms), (:int)buf_len(package_list));
   if (!flag_check) {
-    let c_path: char[MAX_PATH];
+    let c_path: [MAX_PATH]char;
     if (output_name) {
       path_copy(c_path, output_name);
     } else {

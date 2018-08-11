@@ -1,1 +1,1 @@
-let RIOOS: char const* = "win32";
+let RIOOS: *const char = "win32";

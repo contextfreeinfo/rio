@@ -1,68 +1,68 @@
 #foreign(header = "<string.h>")
 
 @foreign
-fn memcpy(s1: void&, s2: void const&, n: usize) -> void&;
+fn memcpy(s1: &void, s2: &const void, n: usize) -> &void;
 
 @foreign
-fn memmove(s1: void&, s2: void const&, n: usize) -> void&;
+fn memmove(s1: &void, s2: &const void, n: usize) -> &void;
 
 @foreign
-fn strcpy(s1: char*, s2: char const*) -> char*;
+fn strcpy(s1: *char, s2: *const char) -> *char;
 
 @foreign
-fn strncpy(s1: char*, s2: char const*, n: usize) -> char*;
+fn strncpy(s1: *char, s2: *const char, n: usize) -> *char;
 
 @foreign
-fn strcat(s1: char*, s2: char const*) -> char*;
+fn strcat(s1: *char, s2: *const char) -> *char;
 
 @foreign
-fn strncat(s1: char*, s2: char const*, n: usize) -> char*;
+fn strncat(s1: *char, s2: *const char, n: usize) -> *char;
 
 @foreign
-fn memcmp(s1: void const&, s2: void const&, n: usize) -> int;
+fn memcmp(s1: &const void, s2: &const void, n: usize) -> int;
 
 @foreign
-fn strcmp(s1: char const*, s2: char const*) -> int;
+fn strcmp(s1: *const char, s2: *const char) -> int;
 
 @foreign
-fn strcoll(s1: char const*, s2: char const*) -> int;
+fn strcoll(s1: *const char, s2: *const char) -> int;
 
 @foreign
-fn strncmp(s1: char const*, s2: char const*, n: usize) -> int;
+fn strncmp(s1: *const char, s2: *const char, n: usize) -> int;
 
 @foreign
-fn strxfrm(s1: char*, s2: char const*, n: usize) -> usize;
+fn strxfrm(s1: *char, s2: *const char, n: usize) -> usize;
 
 @foreign
-fn memchr(s: void const&, c: int, n: usize) -> void&;
+fn memchr(s: &const void, c: int, n: usize) -> &void;
 
 @foreign
-fn strchr(s: char const*, c: int) -> char*;
+fn strchr(s: *const char, c: int) -> *char;
 
 @foreign
-fn strcspn(s1: char const*, s2: char const*) -> usize;
+fn strcspn(s1: *const char, s2: *const char) -> usize;
 
 @foreign
-fn strpbrk(s1: char const*, s2: char const*) -> char*;
+fn strpbrk(s1: *const char, s2: *const char) -> *char;
 
 @foreign
-fn strrchr(s: char const*, c: int) -> char*;
+fn strrchr(s: *const char, c: int) -> *char;
 
 @foreign
-fn strspn(s1: char const*, s2: char const*) -> usize;
+fn strspn(s1: *const char, s2: *const char) -> usize;
 
 @foreign
-fn strstr(s1: char const*, s2: char const*) -> char*;
+fn strstr(s1: *const char, s2: *const char) -> *char;
 
 @foreign
-fn strtok(s1: char*, s2: char const*) -> char*;
+fn strtok(s1: *char, s2: *const char) -> *char;
 
 @foreign
-fn memset(s: void&, c: int, n: usize) -> void&;
+fn memset(s: &void, c: int, n: usize) -> &void;
 
 @foreign
-fn strerror(errnum: int) -> char*;
+fn strerror(errnum: int) -> *char;
 
 @foreign
-fn strlen(s: char const*) -> usize;
+fn strlen(s: *const char) -> usize;
 

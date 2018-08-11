@@ -10,7 +10,7 @@ let flag_nosourcemap: bool;
 let flag_notypeinfo: bool;
 let flag_fullgen: bool;
 
-fn main(argc: int, argv: char const**) -> int {
+fn main(argc: int, argv: **const char) -> int {
   // main_test();
   return rio_main(argc, argv, gen_all, "c");
 }

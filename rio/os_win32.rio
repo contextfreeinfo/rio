@@ -14,31 +14,31 @@ const ENOENT = 3025;
 struct FindData {
   attrib: uint;
   size: uint32;
-  name: char[MAX_PATH];
+  name: [MAX_PATH]char;
 }
 
 @foreign
 fn _findclose(handle: intptr) -> int;
 
 @foreign
-fn _findfirst(filespec: char const*, fileinfo: FindData&) -> intptr;
+fn _findfirst(filespec: *const char, fileinfo: &FindData) -> intptr;
 
 @foreign
-fn _findnext(handle: intptr, fileinfo: FindData&) -> int;
+fn _findnext(handle: intptr, fileinfo: &FindData) -> int;
 
 @foreign
-fn _fullpath(absPath: char*, relPath: char const*, maxLength: usize) -> char*;
+fn _fullpath(absPath: *char, relPath: *const char, maxLength: usize) -> *char;
 
 @foreign("_strdup")
-fn strdup(strSource: char const*) -> char*;
+fn strdup(strSource: *const char) -> *char;
 
-fn path_absolute(path: char[MAX_PATH]) {
-  let rel_path: char[MAX_PATH];
+fn path_absolute(path: [MAX_PATH]char) {
+  let rel_path: [MAX_PATH]char;
   path_copy(rel_path, path);
   _fullpath(path, rel_path, MAX_PATH);
 }
 
-fn dir_list_free(iter: DirListIter&) {
+fn dir_list_free(iter: &DirListIter) {
   if (iter.valid) {
     _findclose((:intptr)iter.handle);
     iter.valid = false;
@@ -46,7 +46,7 @@ fn dir_list_free(iter: DirListIter&) {
   }
 }
 
-fn dir__update(iter: DirListIter&, done: bool, fileinfo: FindData&) {
+fn dir__update(iter: &DirListIter, done: bool, fileinfo: &FindData) {
   iter.valid = !done;
   iter.error = done && errno != ENOENT;
   if (!done) {
@@ -57,7 +57,7 @@ fn dir__update(iter: DirListIter&, done: bool, fileinfo: FindData&) {
   }
 }
 
-fn dir_list_next(iter: DirListIter&) {
+fn dir_list_next(iter: &DirListIter) {
   if (!iter.valid) {
     return;
   }
@@ -72,15 +72,15 @@ fn dir_list_next(iter: DirListIter&) {
   } while (dir_excluded(iter));
 }
 
-fn dir_list(iter: DirListIter&, path: char const*) {
+fn dir_list(iter: &DirListIter, path: *const char) {
   memset(iter, 0, sizeof(*iter));
   path_copy(iter.base, path);
-  let filespec: char[MAX_PATH];
+  let filespec: [MAX_PATH]char;
   path_copy(filespec, path);
   path_join(filespec, "*");
   let fileinfo: FindData;
   let handle = _findfirst(filespec, &fileinfo);
-  iter.handle = (:void&)handle;
+  iter.handle = (:&void)handle;
   dir__update(iter, handle == -1, &fileinfo);
   if (dir_excluded(iter)) {
     dir_list_next(iter);

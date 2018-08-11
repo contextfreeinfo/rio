@@ -27,7 +27,7 @@ fn addmul2(
 }
 
 fn dot2(a: vec2, b: vec2) -> float {
-    return a.x*b.x + a.y*b.y;
+    return a.x * b.x + a.y * b.y;
 }
 
 fn len2(a: vec2) -> float {
@@ -49,5 +49,5 @@ fn dir2(a: vec2, b: vec2) -> vec2 {
 fn rot2(a: float, b: vec2) -> vec2 {
     let c = cos(a);
     let s = sin(a);
-    return {c*b.x - s*b.y, s*b.x + c*b.y};
+    return {c * b.x - s * b.y, s * b.x + c * b.y};
 }

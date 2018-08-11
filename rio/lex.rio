@@ -1,46 +1,46 @@
-let typedef_keyword: char const*;
-let enum_keyword: char const*;
-let struct_keyword: char const*;
-let union_keyword: char const*;
-let let_keyword: char const*;
-let mut_keyword: char const*;
-let own_keyword: char const*;
-let const_keyword: char const*;
-let fn_keyword: char const*;
-let sizeof_keyword: char const*;
-let alignof_keyword: char const*;
-let typeof_keyword: char const*;
-let offsetof_keyword: char const*;
-let break_keyword: char const*;
-let continue_keyword: char const*;
-let return_keyword: char const*;
-let if_keyword: char const*;
-let else_keyword: char const*;
-let while_keyword: char const*;
-let do_keyword: char const*;
-let for_keyword: char const*;
-let switch_keyword: char const*;
-let case_keyword: char const*;
-let default_keyword: char const*;
-let import_keyword: char const*;
-let goto_keyword: char const*;
+let typedef_keyword: *const char;
+let enum_keyword: *const char;
+let struct_keyword: *const char;
+let union_keyword: *const char;
+let let_keyword: *const char;
+let mut_keyword: *const char;
+let own_keyword: *const char;
+let const_keyword: *const char;
+let fn_keyword: *const char;
+let sizeof_keyword: *const char;
+let alignof_keyword: *const char;
+let typeof_keyword: *const char;
+let offsetof_keyword: *const char;
+let break_keyword: *const char;
+let continue_keyword: *const char;
+let return_keyword: *const char;
+let if_keyword: *const char;
+let else_keyword: *const char;
+let while_keyword: *const char;
+let do_keyword: *const char;
+let for_keyword: *const char;
+let switch_keyword: *const char;
+let case_keyword: *const char;
+let default_keyword: *const char;
+let import_keyword: *const char;
+let goto_keyword: *const char;
 
-let first_keyword: char const*;
-let last_keyword: char const*;
-let keywords: char const**;
+let first_keyword: *const char;
+let last_keyword: *const char;
+let keywords: **const char;
 
-let always_name: char const*;
-let foreign_name: char const*;
-let complete_name: char const*;
-let assert_name: char const*;
-let declare_note_name: char const*;
-let static_assert_name: char const*;
+let always_name: *const char;
+let foreign_name: *const char;
+let complete_name: *const char;
+let assert_name: *const char;
+let declare_note_name: *const char;
+let static_assert_name: *const char;
 
 // #define KEYWORD(name) name##_keyword = str_intern(#name); buf_push(keywords, name##_keyword)
-fn init_keyword(keyword: char const*) -> char const* {
+fn init_keyword(keyword: *const char) -> *const char {
   keyword = str_intern(keyword);
   // TODO If rio doesn't give warnings, the underlying compiler also shouldn't.
-  buf_push((:void&*)&keywords, (:void&)&keyword, sizeof(keyword));
+  buf_push((:*&void)&keywords, (:&void)&keyword, sizeof(keyword));
   return keyword;
 }
 
@@ -51,7 +51,7 @@ fn init_keywords() {
     return;
   }
   typedef_keyword = init_keyword("typedef");
-  let arena_end: char* = intern_arena.end;
+  let arena_end: *char = intern_arena.end;
   enum_keyword = init_keyword("enum");
   struct_keyword = init_keyword("struct");
   union_keyword = init_keyword("union");
@@ -93,7 +93,7 @@ fn init_keywords() {
 
 // #undef KEYWORD
 
-fn is_keyword_name(name: char const*) -> bool {
+fn is_keyword_name(name: *const char) -> bool {
   return first_keyword <= name && name <= last_keyword;
 }
 
@@ -186,7 +186,7 @@ enum TokenSuffix {
   SUFFIX_ULL,
 }
 
-let token_suffix_names: char const*[] = {
+let token_suffix_names: []*const char = {
   [SUFFIX_NONE] = "",
   [SUFFIX_D] = "d",
   [SUFFIX_U] = "u",
@@ -196,7 +196,7 @@ let token_suffix_names: char const*[] = {
   [SUFFIX_ULL] = "ull",
 };
 
-let token_kind_names: char const*[] = {
+let token_kind_names: []*const char = {
   [TOKEN_EOF] = "EOF",
   [TOKEN_COLON] = ":",
   [TOKEN_ARROW] = "->",
@@ -253,7 +253,7 @@ let token_kind_names: char const*[] = {
   [TOKEN_DEC] = "--",
 };
 
-fn token_kind_name(kind: TokenKind) -> char const* {
+fn token_kind_name(kind: TokenKind) -> *const char {
   if (kind < sizeof(token_kind_names)/sizeof(*token_kind_names)) {
     return token_kind_names[kind];
   } else {
@@ -261,7 +261,7 @@ fn token_kind_name(kind: TokenKind) -> char const* {
   }
 }
 
-let assign_token_to_binary_token: TokenKind[NUM_TOKEN_KINDS] = {
+let assign_token_to_binary_token: [NUM_TOKEN_KINDS]TokenKind = {
   [TOKEN_ADD_ASSIGN] = TOKEN_ADD,
   [TOKEN_SUB_ASSIGN] = TOKEN_SUB,
   [TOKEN_OR_ASSIGN] = TOKEN_OR,
@@ -275,7 +275,7 @@ let assign_token_to_binary_token: TokenKind[NUM_TOKEN_KINDS] = {
 };
 
 struct SrcPos {
-  name: char const*;
+  name: *const char;
   line: int;
 }
 
@@ -286,21 +286,21 @@ struct Token {
   mod: TokenMod;
   suffix: TokenSuffix;
   pos: SrcPos;
-  start: char const*;
-  end: char const*;
+  start: *const char;
+  end: *const char;
   union {
     int_val: ullong;
     float_val: double;
-    str_val: char const*;
-    name: char const*;
+    str_val: *const char;
+    name: *const char;
   }
 }
 
 let token: Token;
-let stream: char const*;
-let line_start: char const*;
+let stream: *const char;
+let line_start: *const char;
 
-fn vnotice(level: char const*, pos: SrcPos, fmt: char const*, args: va_list) {
+fn vnotice(level: *const char, pos: SrcPos, fmt: *const char, args: va_list) {
   if (pos.name == NULL) {
     pos = pos_builtin;
   }
@@ -309,25 +309,25 @@ fn vnotice(level: char const*, pos: SrcPos, fmt: char const*, args: va_list) {
   printf("\n");
 }
 
-fn warning(pos: SrcPos, fmt: char const*, ...) {
+fn warning(pos: SrcPos, fmt: *const char, ...) {
   let args: va_list;
   va_start(&args, &fmt);
   vnotice("warning", pos, fmt, args);
   va_end(&args);
 }
 
-fn verror(pos: SrcPos, fmt: char const*, args: va_list) {
+fn verror(pos: SrcPos, fmt: *const char, args: va_list) {
   vnotice("error", pos, fmt, args);
 }
 
-fn error(pos: SrcPos, fmt: char const*, ...) {
+fn error(pos: SrcPos, fmt: *const char, ...) {
   let args: va_list;
   va_start(&args, &fmt);
   verror(pos, fmt, args);
   va_end(&args);
 }
 
-fn fatal_error(pos: SrcPos, fmt: char const*, ...) {
+fn fatal_error(pos: SrcPos, fmt: *const char, ...) {
   let args: va_list;
   va_start(&args, &fmt);
   verror(pos, fmt, args);
@@ -340,7 +340,7 @@ fn fatal_error(pos: SrcPos, fmt: char const*, ...) {
 // #define warning_here(...) (error(token.pos, __VA_ARGS__))
 // #define fatal_error(token.pos, ...) (error(token.pos, __VA_ARGS__), exit(1))
 
-fn token_info() -> char const* {
+fn token_info() -> *const char {
   if (token.kind == TOKEN_NAME || token.kind == TOKEN_KEYWORD) {
     return token.name;
   } else {
@@ -348,7 +348,7 @@ fn token_info() -> char const* {
   }
 }
 
-let char_to_digit: uint8[256] = {
+let char_to_digit: [256]uint8 = {
   ['0'] = 0,
   ['1'] = 1,
   ['2'] = 2,
@@ -477,7 +477,7 @@ fn scan_float() {
   }
 }
 
-let escape_to_char: char[256] = {
+let escape_to_char: [256]char = {
   ['0'] = '\0',
   ['\''] = '\'',
   ['"'] = '"',
@@ -548,7 +548,7 @@ fn scan_char() {
 fn scan_str() {
   #assert(*stream == '"');
   stream++;
-  let str: char* = NULL;
+  let str: *char = NULL;
   if (stream[0] == '"' && stream[1] == '"') {
     stream += 2;
     while (*stream) {
@@ -558,7 +558,7 @@ fn scan_str() {
       }
       if (*stream != '\r') {
         // TODO: Should probably just read files in text mode instead.
-        buf_push((:void&*)&str, (:void&)stream, 1);
+        buf_push((:*&void)&str, (:&void)stream, 1);
       }
       if (*stream == '\n') {
         token.pos.line++;
@@ -589,7 +589,7 @@ fn scan_str() {
       } else {
         stream++;
       }
-      buf_push((:void&*)&str, &val, 1);
+      buf_push((:*&void)&str, &val, 1);
     }
     if (*stream) {
       stream++;
@@ -599,7 +599,7 @@ fn scan_str() {
   }
   // TODO: If I say just "", I get a random byte in the c output from c rio.
   let nul = '\0';
-  buf_push((:void&*)&str, &nul, 1);
+  buf_push((:*&void)&str, &nul, 1);
   token.kind = TOKEN_STR;
   token.str_val = str;
 }
@@ -881,10 +881,10 @@ fn next_token() {
 // #undef CASE2
 // #undef CASE3
 
-fn init_stream(name: char const*, buf: char const*) {
+fn init_stream(name: *const char, buf: *const char) {
   stream = buf;
   line_start = stream;
-  token.pos.name = name ? name : (:char const*)"<string>";
+  token.pos.name = name ? name : (:*const char)"<string>";
   token.pos.line = 1;
   next_token();
 }
@@ -897,15 +897,15 @@ fn is_token_eof() -> bool {
   return token.kind == TOKEN_EOF;
 }
 
-fn is_token_name(name: char const*) -> bool {
+fn is_token_name(name: *const char) -> bool {
   return token.kind == TOKEN_NAME && token.name == name;
 }
 
-fn is_keyword(name: char const*) -> bool {
+fn is_keyword(name: *const char) -> bool {
   return is_token(TOKEN_KEYWORD) && token.name == name;
 }
 
-fn match_keyword(name: char const*) -> bool {
+fn match_keyword(name: *const char) -> bool {
   if (is_keyword(name)) {
     next_token();
     return true;
