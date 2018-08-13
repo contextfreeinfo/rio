@@ -313,6 +313,7 @@ fn test_enum() {
   let a: Color = COLOR_RED;
   let b = COLOR_RED;
   let c = a + b;
+  let d = Color.COLOR_RED;
   let i: int = a;
   a = i;
   printf(

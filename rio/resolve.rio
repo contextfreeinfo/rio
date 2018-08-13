@@ -234,6 +234,15 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
       item_decl.notes = decl.notes;
       sym_global_decl(item_decl);
       prev_item_name = item.name;
+      // Type-name-qualified version.
+      if (decl.name) {
+        // TODO How do we know which strings need freed when?
+        let qual_name: *char;
+        buf_printf(&qual_name, "%s_%s", decl.name, item.name);
+        let qual_decl = new_decl_const(item.pos, qual_name, enum_typespec, init);
+        qual_decl.notes = decl.notes;
+        sym_global_decl(qual_decl);
+      }
     }
   }
   return sym;
@@ -295,6 +304,7 @@ struct Operand {
   type: &Type;
   is_lvalue: bool;
   is_const: bool;
+  is_type: bool;
   val: Val;
 }
 
@@ -333,6 +343,13 @@ fn operand_decay(operand: Operand) -> Operand {
   operand.type = type_decay(operand.type);
   operand.is_lvalue = false;
   return operand;
+}
+
+fn operand_type(type: &Type) -> Operand {
+  return Operand {
+    type = type,
+    is_type = true,
+  };
 }
 
 // #define CASE(k, t)
@@ -1154,6 +1171,20 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
     return operand;
   }
   let operand = resolve_expr(expr.field.expr);
+  if (operand.is_type){
+    if (operand.type.kind == CMPL_TYPE_ENUM) {
+      let decl = operand.type.sym.decl.enum_decl;
+      printf("It's an enum!\n");
+      for (let i: usize = 0; i < decl.num_items; ++i) {
+        let item = decl.items[i];
+        if (item.name == expr.field.name) {
+          printf("Found item: %s    <---------<<<\n", item.name);
+        }
+      }
+    }
+    fatal_error(expr.pos, "Field operand is a type: %s", operand.type.sym.decl.name);
+    return operand_null;
+  }
   let was_const_type = is_const_type(operand.type);
   let type = unqualify_type(operand.type);
   complete_type(type);
@@ -1346,7 +1377,10 @@ fn resolve_name_operand(pos: SrcPos, name: *const char) -> Operand {
     return operand_const(sym.type, sym.val);
   } else if (sym.kind == SYM_FUNC) {
     return operand_rvalue(sym.type);
+  } else if (sym.kind == SYM_TYPE) {
+    return operand_type(sym.type);
   } else {
+    #assert(false);
     fatal_error(pos, "%s must be a let or const", name);
     return operand_null;
   }

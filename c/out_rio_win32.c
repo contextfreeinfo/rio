@@ -6621,6 +6621,13 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
       item_decl->notes = decl->notes;
       rio_sym_global_decl(item_decl);
       prev_item_name = item.name;
+      if (decl->name) {
+        char (*qual_name) = {0};
+        rio_buf_printf(&(qual_name), "%s_%s", decl->name, item.name);
+        rio_Decl (*qual_decl) = rio_new_decl_const(item.pos, qual_name, enum_typespec, init);
+        qual_decl->notes = decl->notes;
+        rio_sym_global_decl(qual_decl);
+      }
     }
   }
   return sym;
