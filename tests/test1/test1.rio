@@ -301,25 +301,25 @@ enum TypedEnum = int8 {
   QUUX
 }
 
-let color_names: [NUM_COLORS]*const char = {
+let color_names: [Color.NUM_COLORS]*const char = {
 // let color_names: [*const char; NUM_COLORS] = {
-  [COLOR_NONE] = "none",
-  [COLOR_RED] = "red",
-  [COLOR_GREEN] = "green",
-  [COLOR_BLUE] = "blue",
+  [Color.COLOR_NONE] = "none",
+  [Color.COLOR_RED] = "red",
+  [Color.COLOR_GREEN] = "green",
+  [Color.COLOR_BLUE] = "blue",
 };
 
 fn test_enum() {
-  let a: Color = COLOR_RED;
-  let b = COLOR_RED;
+  let a: Color = Color.COLOR_RED;
+  let b = Color.COLOR_RED;
   let c = a + b;
-  let d = Color.COLOR_RED;
   let i: int = a;
   a = i;
   printf(
     "%d %d %d %d\n",
-    COLOR_NONE, COLOR_RED, COLOR_GREEN, COLOR_BLUE,
+    Color.COLOR_NONE, Color.COLOR_RED, Color.COLOR_GREEN, Color.COLOR_BLUE,
   );
+  printf("No color: %s\n", color_names[Color.COLOR_NONE]);
   let d = BAR;
   let e = QUUX;
   #static_assert(typeof(e) == typeof(TypedEnum));

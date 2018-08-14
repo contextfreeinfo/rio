@@ -3,6 +3,7 @@ Target operating system: linux
 Target machine architecture: x64
 func3
 0 1 2 3
+No color: none
 0
 1
 2

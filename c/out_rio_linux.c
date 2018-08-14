@@ -1731,13 +1731,21 @@ extern rio_Map rio_package_map;
 
 extern rio_Package (*(*rio_package_list));
 
-#define rio_REACHABLE_NONE ((int)(0))
+typedef uint8_t rio_ReachablePhase;
 
-#define rio_REACHABLE_NATURAL ((int)((rio_REACHABLE_NONE) + (1)))
+#define rio_REACHABLE_NONE ((rio_ReachablePhase)(0))
 
-#define rio_REACHABLE_FORCED ((int)((rio_REACHABLE_NATURAL) + (1)))
+#define rio_ReachablePhase_REACHABLE_NONE ((rio_ReachablePhase)(0))
 
-extern uint8_t rio_reachable_phase;
+#define rio_REACHABLE_NATURAL ((rio_ReachablePhase)((rio_REACHABLE_NONE) + (1)))
+
+#define rio_ReachablePhase_REACHABLE_NATURAL ((rio_ReachablePhase)((rio_REACHABLE_NONE) + (1)))
+
+#define rio_REACHABLE_FORCED ((rio_ReachablePhase)((rio_REACHABLE_NATURAL) + (1)))
+
+#define rio_ReachablePhase_REACHABLE_FORCED ((rio_ReachablePhase)((rio_REACHABLE_NATURAL) + (1)))
+
+extern rio_ReachablePhase rio_reachable_phase;
 
 rio_Sym (*rio_get_package_sym(rio_Package (*package), char const ((*name))));
 
@@ -1772,7 +1780,7 @@ struct rio_Sym {
   rio_Package (*home_package);
   rio_SymKind kind;
   rio_SymState state;
-  uint8_t reachable;
+  rio_ReachablePhase reachable;
   rio_Decl (*decl);
   char const ((*external_name));
   union {
@@ -1809,6 +1817,8 @@ void rio_sym_leave(rio_Sym (*sym));
 void rio_sym_global_put(char const ((*name)), rio_Sym (*sym));
 
 rio_Sym (*rio_sym_global_type(char const ((*name)), rio_Type (*type)));
+
+char const ((*rio_build_qual_name(char const ((*space)), char const ((*name)))));
 
 rio_Sym (*rio_sym_global_decl(rio_Decl (*decl)));
 
@@ -4090,7 +4100,7 @@ void rio_gen_expr(rio_Expr (*expr)) {
       } else {
         rio_gen_expr(expr->field.expr);
         rio_Type (*type) = rio_unqualify_type(rio_get_resolved_type(expr->field.expr));
-        rio_buf_printf(&(rio_gen_buf), "%s%s", (rio_is_ptr_type(type) ? "->" : "."), expr->field.name);
+        rio_buf_printf(&(rio_gen_buf), "%s%s", ((type->kind) == (rio_CMPL_TYPE_ENUM) ? "_" : (rio_is_ptr_type(type) ? "->" : ".")), expr->field.name);
       }
     }
     break;
@@ -6849,7 +6859,7 @@ rio_Package (*rio_current_package);
 rio_Package (*rio_builtin_package);
 rio_Map rio_package_map;
 rio_Package (*(*rio_package_list));
-uint8_t rio_reachable_phase = rio_REACHABLE_NATURAL;
+rio_ReachablePhase rio_reachable_phase = rio_REACHABLE_NATURAL;
 rio_Sym (*rio_get_package_sym(rio_Package (*package), char const ((*name)))) {
   return rio_map_get(&(package->syms_map), name);
 }
@@ -7007,6 +7017,14 @@ rio_Sym (*rio_sym_global_type(char const ((*name)), rio_Type (*type))) {
   return sym;
 }
 
+char const ((*rio_build_qual_name(char const ((*space)), char const ((*name))))) {
+  char (*qual_name_buf) = {0};
+  rio_buf_printf(&(qual_name_buf), "%s_%s", space, name);
+  char const ((*qual_name)) = rio_str_intern(qual_name_buf);
+  rio_buf_free((void (**))(&(qual_name_buf)));
+  return qual_name;
+}
+
 rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
   rio_Sym (*sym) = NULL;
   if (decl->name) {
@@ -7031,8 +7049,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
       rio_sym_global_decl(item_decl);
       prev_item_name = item.name;
       if (decl->name) {
-        char (*qual_name) = {0};
-        rio_buf_printf(&(qual_name), "%s_%s", decl->name, item.name);
+        char const ((*qual_name)) = rio_build_qual_name(decl->name, item.name);
         rio_Decl (*qual_decl) = rio_new_decl_const(item.pos, qual_name, enum_typespec, init);
         qual_decl->notes = decl->notes;
         rio_sym_global_decl(qual_decl);
@@ -7993,16 +8010,19 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
   rio_Operand operand = rio_resolve_expr(expr->field.expr);
   if (operand.is_type) {
     if ((operand.type->kind) == (rio_CMPL_TYPE_ENUM)) {
-      rio_DeclEnum decl = operand.type->sym->decl->enum_decl;
-      printf("It\'s an enum!\n");
-      for (size_t i = 0; (i) < (decl.num_items); ++(i)) {
-        rio_EnumItem item = decl.items[i];
+      rio_Decl (*decl) = operand.type->sym->decl;
+      rio_DeclEnum enum_decl = decl->enum_decl;
+      for (size_t i = 0; (i) < (enum_decl.num_items); ++(i)) {
+        rio_EnumItem item = enum_decl.items[i];
         if ((item.name) == (expr->field.name)) {
-          printf("Found item: %s    <---------<<<\n", item.name);
+          rio_Sym (*sym) = rio_resolve_name(rio_build_qual_name(decl->name, item.name));
+          assert((sym->kind) == (rio_SYM_CONST));
+          rio_Operand item_operand = rio_operand_const(sym->type, sym->val);
+          return item_operand;
         }
       }
     }
-    rio_fatal_error(expr->pos, "Field operand is a type: %s", operand.type->sym->decl->name);
+    rio_fatal_error(expr->pos, "No item %s found in type %s", expr->field.name, operand.type->sym->decl->name);
     return rio_operand_null;
   }
   bool was_const_type = rio_is_const_type(operand.type);

@@ -18,7 +18,7 @@ struct Sym {
   home_package: &Package;
   kind: SymKind;
   state: SymState;
-  reachable: uint8;
+  reachable: ReachablePhase;
   decl: &Decl;
   external_name: *const char;
   union {
@@ -50,13 +50,13 @@ let builtin_package: &Package;
 let package_map: Map;
 let package_list: *&Package;
 
-enum {
+enum ReachablePhase = uint8 {
   REACHABLE_NONE,
   REACHABLE_NATURAL,
   REACHABLE_FORCED,
 }
 
-let reachable_phase: uint8 = REACHABLE_NATURAL;
+let reachable_phase = REACHABLE_NATURAL;
 
 fn get_package_sym(package: &Package, name: *const char) -> &Sym {
   return map_get(&package.syms_map, name);
@@ -211,6 +211,14 @@ fn sym_global_type(name: *const char, type: &Type) -> &Sym {
   return sym;
 }
 
+fn build_qual_name(space: *const char, name: *const char) -> *const char {
+  let qual_name_buf: *char;
+  buf_printf(&qual_name_buf, "%s_%s", space, name);
+  let qual_name = str_intern(qual_name_buf);
+  buf_free((:*&void)&qual_name_buf);
+  return qual_name;
+}
+
 fn sym_global_decl(decl: &Decl) -> &Sym {
   let sym: &Sym = NULL;
   if (decl.name) {
@@ -235,10 +243,13 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
       sym_global_decl(item_decl);
       prev_item_name = item.name;
       // Type-name-qualified version.
+      // TODO This is specific to C, not general Rio.
+      // TODO Move this out to being handled at early/pre-gen time.
+      // TODO It's currently here for easy symbol reachability calculation.
+      // TODO Maybe use Type.Item instead of Type_Item for semantic meaning and
+      // TODO later interpretation at gen time????
       if (decl.name) {
-        // TODO How do we know which strings need freed when?
-        let qual_name: *char;
-        buf_printf(&qual_name, "%s_%s", decl.name, item.name);
+        let qual_name = build_qual_name(decl.name, item.name);
         let qual_decl = new_decl_const(item.pos, qual_name, enum_typespec, init);
         qual_decl.notes = decl.notes;
         sym_global_decl(qual_decl);
@@ -346,6 +357,7 @@ fn operand_decay(operand: Operand) -> Operand {
 }
 
 fn operand_type(type: &Type) -> Operand {
+  // TODO Make sure other uses fail (like i = type, or type = blah, or ...).
   return Operand {
     type = type,
     is_type = true,
@@ -1094,6 +1106,7 @@ fn resolve_sym(sym: &Sym) {
     if (decl && decl.kind == DECL_TYPEDEF) {
       sym.type = resolve_typespec(decl.typedef_decl.type);
     } else if (decl.kind == DECL_ENUM) {
+      // Here's where the base type is set for enums.
       let base = decl.enum_decl.type ? resolve_typespec(decl.enum_decl.type) : type_int;
       if (!is_integer_type(base)) {
         fatal_error(decl.pos, "Base type of enum must be integer type");
@@ -1173,16 +1186,22 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
   let operand = resolve_expr(expr.field.expr);
   if (operand.is_type){
     if (operand.type.kind == CMPL_TYPE_ENUM) {
-      let decl = operand.type.sym.decl.enum_decl;
-      printf("It's an enum!\n");
-      for (let i: usize = 0; i < decl.num_items; ++i) {
-        let item = decl.items[i];
+      let decl = operand.type.sym.decl;
+      let enum_decl = decl.enum_decl;
+      for (let i: usize = 0; i < enum_decl.num_items; ++i) {
+        let item = enum_decl.items[i];
         if (item.name == expr.field.name) {
-          printf("Found item: %s    <---------<<<\n", item.name);
+          let sym = resolve_name(build_qual_name(decl.name, item.name));
+          #assert(sym.kind == SYM_CONST);
+          let item_operand = operand_const(sym.type, sym.val);
+          return item_operand;
         }
       }
     }
-    fatal_error(expr.pos, "Field operand is a type: %s", operand.type.sym.decl.name);
+    fatal_error(
+      expr.pos, "No item %s found in type %s",
+      expr.field.name, operand.type.sym.decl.name,
+    );
     return operand_null;
   }
   let was_const_type = is_const_type(operand.type);

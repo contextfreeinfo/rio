@@ -557,7 +557,13 @@ fn gen_expr(expr: &Expr) {
     } else {
       gen_expr(expr.field.expr);
       let type = unqualify_type(get_resolved_type(expr.field.expr));
-      buf_printf(&gen_buf, "%s%s", is_ptr_type(type) ? "->" : ".", expr.field.name);
+      buf_printf(
+        &gen_buf, "%s%s",
+        type.kind == CMPL_TYPE_ENUM ? "_" :
+          is_ptr_type(type) ? "->" :
+          ".",
+        expr.field.name,
+      );
     }
   }
   case EXPR_COMPOUND:
