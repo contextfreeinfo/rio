@@ -82,91 +82,91 @@ typedef int TypeKind;
 
 #define TYPE_VOID ((TypeKind)((TYPE_NONE) + (1)))
 
-#define TypeKind_TYPE_VOID ((TypeKind)((TYPE_NONE) + (1)))
+#define TypeKind_TYPE_VOID ((TypeKind)((TypeKind_TYPE_NONE) + (1)))
 
 #define TYPE_BOOL ((TypeKind)((TYPE_VOID) + (1)))
 
-#define TypeKind_TYPE_BOOL ((TypeKind)((TYPE_VOID) + (1)))
+#define TypeKind_TYPE_BOOL ((TypeKind)((TypeKind_TYPE_VOID) + (1)))
 
 #define TYPE_CHAR ((TypeKind)((TYPE_BOOL) + (1)))
 
-#define TypeKind_TYPE_CHAR ((TypeKind)((TYPE_BOOL) + (1)))
+#define TypeKind_TYPE_CHAR ((TypeKind)((TypeKind_TYPE_BOOL) + (1)))
 
 #define TYPE_UCHAR ((TypeKind)((TYPE_CHAR) + (1)))
 
-#define TypeKind_TYPE_UCHAR ((TypeKind)((TYPE_CHAR) + (1)))
+#define TypeKind_TYPE_UCHAR ((TypeKind)((TypeKind_TYPE_CHAR) + (1)))
 
 #define TYPE_SCHAR ((TypeKind)((TYPE_UCHAR) + (1)))
 
-#define TypeKind_TYPE_SCHAR ((TypeKind)((TYPE_UCHAR) + (1)))
+#define TypeKind_TYPE_SCHAR ((TypeKind)((TypeKind_TYPE_UCHAR) + (1)))
 
 #define TYPE_SHORT ((TypeKind)((TYPE_SCHAR) + (1)))
 
-#define TypeKind_TYPE_SHORT ((TypeKind)((TYPE_SCHAR) + (1)))
+#define TypeKind_TYPE_SHORT ((TypeKind)((TypeKind_TYPE_SCHAR) + (1)))
 
 #define TYPE_USHORT ((TypeKind)((TYPE_SHORT) + (1)))
 
-#define TypeKind_TYPE_USHORT ((TypeKind)((TYPE_SHORT) + (1)))
+#define TypeKind_TYPE_USHORT ((TypeKind)((TypeKind_TYPE_SHORT) + (1)))
 
 #define TYPE_INT ((TypeKind)((TYPE_USHORT) + (1)))
 
-#define TypeKind_TYPE_INT ((TypeKind)((TYPE_USHORT) + (1)))
+#define TypeKind_TYPE_INT ((TypeKind)((TypeKind_TYPE_USHORT) + (1)))
 
 #define TYPE_UINT ((TypeKind)((TYPE_INT) + (1)))
 
-#define TypeKind_TYPE_UINT ((TypeKind)((TYPE_INT) + (1)))
+#define TypeKind_TYPE_UINT ((TypeKind)((TypeKind_TYPE_INT) + (1)))
 
 #define TYPE_LONG ((TypeKind)((TYPE_UINT) + (1)))
 
-#define TypeKind_TYPE_LONG ((TypeKind)((TYPE_UINT) + (1)))
+#define TypeKind_TYPE_LONG ((TypeKind)((TypeKind_TYPE_UINT) + (1)))
 
 #define TYPE_ULONG ((TypeKind)((TYPE_LONG) + (1)))
 
-#define TypeKind_TYPE_ULONG ((TypeKind)((TYPE_LONG) + (1)))
+#define TypeKind_TYPE_ULONG ((TypeKind)((TypeKind_TYPE_LONG) + (1)))
 
 #define TYPE_LLONG ((TypeKind)((TYPE_ULONG) + (1)))
 
-#define TypeKind_TYPE_LLONG ((TypeKind)((TYPE_ULONG) + (1)))
+#define TypeKind_TYPE_LLONG ((TypeKind)((TypeKind_TYPE_ULONG) + (1)))
 
 #define TYPE_ULLONG ((TypeKind)((TYPE_LLONG) + (1)))
 
-#define TypeKind_TYPE_ULLONG ((TypeKind)((TYPE_LLONG) + (1)))
+#define TypeKind_TYPE_ULLONG ((TypeKind)((TypeKind_TYPE_LLONG) + (1)))
 
 #define TYPE_FLOAT ((TypeKind)((TYPE_ULLONG) + (1)))
 
-#define TypeKind_TYPE_FLOAT ((TypeKind)((TYPE_ULLONG) + (1)))
+#define TypeKind_TYPE_FLOAT ((TypeKind)((TypeKind_TYPE_ULLONG) + (1)))
 
 #define TYPE_DOUBLE ((TypeKind)((TYPE_FLOAT) + (1)))
 
-#define TypeKind_TYPE_DOUBLE ((TypeKind)((TYPE_FLOAT) + (1)))
+#define TypeKind_TYPE_DOUBLE ((TypeKind)((TypeKind_TYPE_FLOAT) + (1)))
 
 #define TYPE_CONST ((TypeKind)((TYPE_DOUBLE) + (1)))
 
-#define TypeKind_TYPE_CONST ((TypeKind)((TYPE_DOUBLE) + (1)))
+#define TypeKind_TYPE_CONST ((TypeKind)((TypeKind_TYPE_DOUBLE) + (1)))
 
 #define TYPE_PTR ((TypeKind)((TYPE_CONST) + (1)))
 
-#define TypeKind_TYPE_PTR ((TypeKind)((TYPE_CONST) + (1)))
+#define TypeKind_TYPE_PTR ((TypeKind)((TypeKind_TYPE_CONST) + (1)))
 
 #define TYPE_REF ((TypeKind)((TYPE_PTR) + (1)))
 
-#define TypeKind_TYPE_REF ((TypeKind)((TYPE_PTR) + (1)))
+#define TypeKind_TYPE_REF ((TypeKind)((TypeKind_TYPE_PTR) + (1)))
 
 #define TYPE_ARRAY ((TypeKind)((TYPE_REF) + (1)))
 
-#define TypeKind_TYPE_ARRAY ((TypeKind)((TYPE_REF) + (1)))
+#define TypeKind_TYPE_ARRAY ((TypeKind)((TypeKind_TYPE_REF) + (1)))
 
 #define TYPE_STRUCT ((TypeKind)((TYPE_ARRAY) + (1)))
 
-#define TypeKind_TYPE_STRUCT ((TypeKind)((TYPE_ARRAY) + (1)))
+#define TypeKind_TYPE_STRUCT ((TypeKind)((TypeKind_TYPE_ARRAY) + (1)))
 
 #define TYPE_UNION ((TypeKind)((TYPE_STRUCT) + (1)))
 
-#define TypeKind_TYPE_UNION ((TypeKind)((TYPE_STRUCT) + (1)))
+#define TypeKind_TYPE_UNION ((TypeKind)((TypeKind_TYPE_STRUCT) + (1)))
 
 #define TYPE_FUNC ((TypeKind)((TYPE_UNION) + (1)))
 
-#define TypeKind_TYPE_FUNC ((TypeKind)((TYPE_UNION) + (1)))
+#define TypeKind_TYPE_FUNC ((TypeKind)((TypeKind_TYPE_UNION) + (1)))
 
 struct TypeInfo {
   TypeKind kind;

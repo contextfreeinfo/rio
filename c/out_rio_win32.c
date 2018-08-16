@@ -7048,6 +7048,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
   if ((decl->kind) == (rio_DECL_ENUM)) {
     rio_Typespec (*enum_typespec) = rio_new_typespec_name(decl->pos, (sym ? sym->name : rio_str_intern("int")));
     char const ((*prev_item_name)) = NULL;
+    char const ((*prev_qual_name)) = NULL;
     for (size_t i = 0; (i) < (decl->enum_decl.num_items); (i)++) {
       rio_EnumItem item = decl->enum_decl.items[i];
       rio_Expr (*init) = {0};
@@ -7064,9 +7065,13 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
       prev_item_name = item.name;
       if (decl->name) {
         char const ((*qual_name)) = rio_build_qual_name(decl->name, item.name);
+        if (prev_qual_name) {
+          init = rio_new_expr_binary(item.pos, rio_TOKEN_ADD, rio_new_expr_name(item.pos, prev_qual_name), rio_new_expr_int(item.pos, 1, 0, 0));
+        }
         rio_Decl (*qual_decl) = rio_new_decl_const(item.pos, qual_name, enum_typespec, init);
         qual_decl->notes = decl->notes;
         rio_sym_global_decl(qual_decl);
+        prev_qual_name = qual_name;
       }
     }
   }

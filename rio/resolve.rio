@@ -228,6 +228,7 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
   if (decl.kind == DECL_ENUM) {
     let enum_typespec = new_typespec_name(decl.pos, sym ? sym.name : str_intern("int"));
     let prev_item_name: *const char = NULL;
+    let prev_qual_name: *const char = NULL;
     for (let i: usize = 0; i < decl.enum_decl.num_items; i++) {
       let item = decl.enum_decl.items[i];
       let init: &Expr;
@@ -243,16 +244,25 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
       sym_global_decl(item_decl);
       prev_item_name = item.name;
       // Type-name-qualified version.
-      // TODO This is specific to C, not general Rio.
-      // TODO Move this out to being handled at early/pre-gen time.
-      // TODO It's currently here for easy symbol reachability calculation.
-      // TODO Maybe use Type.Item instead of Type_Item for semantic meaning and
-      // TODO later interpretation at gen time????
+      // Even if generating outside C, we need namespace conflicts at this
+      // level, because this is the canonical top-level namespace
+      // interpretation.
       if (decl.name) {
         let qual_name = build_qual_name(decl.name, item.name);
+        if (prev_qual_name) {
+          init = new_expr_binary(
+            item.pos,
+            TOKEN_ADD,
+            new_expr_name(item.pos, prev_qual_name),
+            new_expr_int(item.pos, 1, 0, 0),
+          );
+        }
+        // TODO Start switching everything over to qualified.
+        // TODO Make @exposed note or something to force non-qual for named enum types.
         let qual_decl = new_decl_const(item.pos, qual_name, enum_typespec, init);
         qual_decl.notes = decl.notes;
         sym_global_decl(qual_decl);
+        prev_qual_name = qual_name;
       }
     }
   }
