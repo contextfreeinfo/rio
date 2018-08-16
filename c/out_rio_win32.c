@@ -150,91 +150,91 @@ typedef int TypeKind;
 
 #define TYPE_VOID ((TypeKind)((TYPE_NONE) + (1)))
 
-#define TypeKind_TYPE_VOID ((TypeKind)((TYPE_NONE) + (1)))
+#define TypeKind_TYPE_VOID ((TypeKind)((TypeKind_TYPE_NONE) + (1)))
 
 #define TYPE_BOOL ((TypeKind)((TYPE_VOID) + (1)))
 
-#define TypeKind_TYPE_BOOL ((TypeKind)((TYPE_VOID) + (1)))
+#define TypeKind_TYPE_BOOL ((TypeKind)((TypeKind_TYPE_VOID) + (1)))
 
 #define TYPE_CHAR ((TypeKind)((TYPE_BOOL) + (1)))
 
-#define TypeKind_TYPE_CHAR ((TypeKind)((TYPE_BOOL) + (1)))
+#define TypeKind_TYPE_CHAR ((TypeKind)((TypeKind_TYPE_BOOL) + (1)))
 
 #define TYPE_UCHAR ((TypeKind)((TYPE_CHAR) + (1)))
 
-#define TypeKind_TYPE_UCHAR ((TypeKind)((TYPE_CHAR) + (1)))
+#define TypeKind_TYPE_UCHAR ((TypeKind)((TypeKind_TYPE_CHAR) + (1)))
 
 #define TYPE_SCHAR ((TypeKind)((TYPE_UCHAR) + (1)))
 
-#define TypeKind_TYPE_SCHAR ((TypeKind)((TYPE_UCHAR) + (1)))
+#define TypeKind_TYPE_SCHAR ((TypeKind)((TypeKind_TYPE_UCHAR) + (1)))
 
 #define TYPE_SHORT ((TypeKind)((TYPE_SCHAR) + (1)))
 
-#define TypeKind_TYPE_SHORT ((TypeKind)((TYPE_SCHAR) + (1)))
+#define TypeKind_TYPE_SHORT ((TypeKind)((TypeKind_TYPE_SCHAR) + (1)))
 
 #define TYPE_USHORT ((TypeKind)((TYPE_SHORT) + (1)))
 
-#define TypeKind_TYPE_USHORT ((TypeKind)((TYPE_SHORT) + (1)))
+#define TypeKind_TYPE_USHORT ((TypeKind)((TypeKind_TYPE_SHORT) + (1)))
 
 #define TYPE_INT ((TypeKind)((TYPE_USHORT) + (1)))
 
-#define TypeKind_TYPE_INT ((TypeKind)((TYPE_USHORT) + (1)))
+#define TypeKind_TYPE_INT ((TypeKind)((TypeKind_TYPE_USHORT) + (1)))
 
 #define TYPE_UINT ((TypeKind)((TYPE_INT) + (1)))
 
-#define TypeKind_TYPE_UINT ((TypeKind)((TYPE_INT) + (1)))
+#define TypeKind_TYPE_UINT ((TypeKind)((TypeKind_TYPE_INT) + (1)))
 
 #define TYPE_LONG ((TypeKind)((TYPE_UINT) + (1)))
 
-#define TypeKind_TYPE_LONG ((TypeKind)((TYPE_UINT) + (1)))
+#define TypeKind_TYPE_LONG ((TypeKind)((TypeKind_TYPE_UINT) + (1)))
 
 #define TYPE_ULONG ((TypeKind)((TYPE_LONG) + (1)))
 
-#define TypeKind_TYPE_ULONG ((TypeKind)((TYPE_LONG) + (1)))
+#define TypeKind_TYPE_ULONG ((TypeKind)((TypeKind_TYPE_LONG) + (1)))
 
 #define TYPE_LLONG ((TypeKind)((TYPE_ULONG) + (1)))
 
-#define TypeKind_TYPE_LLONG ((TypeKind)((TYPE_ULONG) + (1)))
+#define TypeKind_TYPE_LLONG ((TypeKind)((TypeKind_TYPE_ULONG) + (1)))
 
 #define TYPE_ULLONG ((TypeKind)((TYPE_LLONG) + (1)))
 
-#define TypeKind_TYPE_ULLONG ((TypeKind)((TYPE_LLONG) + (1)))
+#define TypeKind_TYPE_ULLONG ((TypeKind)((TypeKind_TYPE_LLONG) + (1)))
 
 #define TYPE_FLOAT ((TypeKind)((TYPE_ULLONG) + (1)))
 
-#define TypeKind_TYPE_FLOAT ((TypeKind)((TYPE_ULLONG) + (1)))
+#define TypeKind_TYPE_FLOAT ((TypeKind)((TypeKind_TYPE_ULLONG) + (1)))
 
 #define TYPE_DOUBLE ((TypeKind)((TYPE_FLOAT) + (1)))
 
-#define TypeKind_TYPE_DOUBLE ((TypeKind)((TYPE_FLOAT) + (1)))
+#define TypeKind_TYPE_DOUBLE ((TypeKind)((TypeKind_TYPE_FLOAT) + (1)))
 
 #define TYPE_CONST ((TypeKind)((TYPE_DOUBLE) + (1)))
 
-#define TypeKind_TYPE_CONST ((TypeKind)((TYPE_DOUBLE) + (1)))
+#define TypeKind_TYPE_CONST ((TypeKind)((TypeKind_TYPE_DOUBLE) + (1)))
 
 #define TYPE_PTR ((TypeKind)((TYPE_CONST) + (1)))
 
-#define TypeKind_TYPE_PTR ((TypeKind)((TYPE_CONST) + (1)))
+#define TypeKind_TYPE_PTR ((TypeKind)((TypeKind_TYPE_CONST) + (1)))
 
 #define TYPE_REF ((TypeKind)((TYPE_PTR) + (1)))
 
-#define TypeKind_TYPE_REF ((TypeKind)((TYPE_PTR) + (1)))
+#define TypeKind_TYPE_REF ((TypeKind)((TypeKind_TYPE_PTR) + (1)))
 
 #define TYPE_ARRAY ((TypeKind)((TYPE_REF) + (1)))
 
-#define TypeKind_TYPE_ARRAY ((TypeKind)((TYPE_REF) + (1)))
+#define TypeKind_TYPE_ARRAY ((TypeKind)((TypeKind_TYPE_REF) + (1)))
 
 #define TYPE_STRUCT ((TypeKind)((TYPE_ARRAY) + (1)))
 
-#define TypeKind_TYPE_STRUCT ((TypeKind)((TYPE_ARRAY) + (1)))
+#define TypeKind_TYPE_STRUCT ((TypeKind)((TypeKind_TYPE_ARRAY) + (1)))
 
 #define TYPE_UNION ((TypeKind)((TYPE_STRUCT) + (1)))
 
-#define TypeKind_TYPE_UNION ((TypeKind)((TYPE_STRUCT) + (1)))
+#define TypeKind_TYPE_UNION ((TypeKind)((TypeKind_TYPE_STRUCT) + (1)))
 
 #define TYPE_FUNC ((TypeKind)((TYPE_UNION) + (1)))
 
-#define TypeKind_TYPE_FUNC ((TypeKind)((TYPE_UNION) + (1)))
+#define TypeKind_TYPE_FUNC ((TypeKind)((TypeKind_TYPE_UNION) + (1)))
 
 struct TypeInfo {
   TypeKind kind;
@@ -454,33 +454,19 @@ rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, 
 
 rio_Stmt (*rio_new_stmt_expr(rio_SrcPos pos, rio_Expr (*expr)));
 
-#define rio_TYPESPEC_NONE ((rio_TypespecKind)(0))
+#define rio_TypespecKind_None ((rio_TypespecKind)(0))
 
-#define rio_TypespecKind_TYPESPEC_NONE ((rio_TypespecKind)(0))
+#define rio_TypespecKind_Name ((rio_TypespecKind)((rio_TypespecKind_None) + (1)))
 
-#define rio_TYPESPEC_NAME ((rio_TypespecKind)((rio_TYPESPEC_NONE) + (1)))
+#define rio_TypespecKind_Func ((rio_TypespecKind)((rio_TypespecKind_Name) + (1)))
 
-#define rio_TypespecKind_TYPESPEC_NAME ((rio_TypespecKind)((rio_TYPESPEC_NONE) + (1)))
+#define rio_TypespecKind_Array ((rio_TypespecKind)((rio_TypespecKind_Func) + (1)))
 
-#define rio_TYPESPEC_FUNC ((rio_TypespecKind)((rio_TYPESPEC_NAME) + (1)))
+#define rio_TypespecKind_Ptr ((rio_TypespecKind)((rio_TypespecKind_Array) + (1)))
 
-#define rio_TypespecKind_TYPESPEC_FUNC ((rio_TypespecKind)((rio_TYPESPEC_NAME) + (1)))
+#define rio_TypespecKind_Ref ((rio_TypespecKind)((rio_TypespecKind_Ptr) + (1)))
 
-#define rio_TYPESPEC_ARRAY ((rio_TypespecKind)((rio_TYPESPEC_FUNC) + (1)))
-
-#define rio_TypespecKind_TYPESPEC_ARRAY ((rio_TypespecKind)((rio_TYPESPEC_FUNC) + (1)))
-
-#define rio_TYPESPEC_PTR ((rio_TypespecKind)((rio_TYPESPEC_ARRAY) + (1)))
-
-#define rio_TypespecKind_TYPESPEC_PTR ((rio_TypespecKind)((rio_TYPESPEC_ARRAY) + (1)))
-
-#define rio_TYPESPEC_REF ((rio_TypespecKind)((rio_TYPESPEC_PTR) + (1)))
-
-#define rio_TypespecKind_TYPESPEC_REF ((rio_TypespecKind)((rio_TYPESPEC_PTR) + (1)))
-
-#define rio_TYPESPEC_CONST ((rio_TypespecKind)((rio_TYPESPEC_REF) + (1)))
-
-#define rio_TypespecKind_TYPESPEC_CONST ((rio_TypespecKind)((rio_TYPESPEC_REF) + (1)))
+#define rio_TypespecKind_Const ((rio_TypespecKind)((rio_TypespecKind_Ref) + (1)))
 
 typedef int rio_AggregateItemKind;
 
@@ -490,11 +476,11 @@ typedef int rio_AggregateItemKind;
 
 #define rio_AGGREGATE_ITEM_FIELD ((rio_AggregateItemKind)((rio_AGGREGATE_ITEM_NONE) + (1)))
 
-#define rio_AggregateItemKind_AGGREGATE_ITEM_FIELD ((rio_AggregateItemKind)((rio_AGGREGATE_ITEM_NONE) + (1)))
+#define rio_AggregateItemKind_AGGREGATE_ITEM_FIELD ((rio_AggregateItemKind)((rio_AggregateItemKind_AGGREGATE_ITEM_NONE) + (1)))
 
 #define rio_AGGREGATE_ITEM_SUBAGGREGATE ((rio_AggregateItemKind)((rio_AGGREGATE_ITEM_FIELD) + (1)))
 
-#define rio_AggregateItemKind_AGGREGATE_ITEM_SUBAGGREGATE ((rio_AggregateItemKind)((rio_AGGREGATE_ITEM_FIELD) + (1)))
+#define rio_AggregateItemKind_AGGREGATE_ITEM_SUBAGGREGATE ((rio_AggregateItemKind)((rio_AggregateItemKind_AGGREGATE_ITEM_FIELD) + (1)))
 
 #define rio_DECL_NONE ((rio_DeclKind)(0))
 
@@ -502,39 +488,39 @@ typedef int rio_AggregateItemKind;
 
 #define rio_DECL_ENUM ((rio_DeclKind)((rio_DECL_NONE) + (1)))
 
-#define rio_DeclKind_DECL_ENUM ((rio_DeclKind)((rio_DECL_NONE) + (1)))
+#define rio_DeclKind_DECL_ENUM ((rio_DeclKind)((rio_DeclKind_DECL_NONE) + (1)))
 
 #define rio_DECL_STRUCT ((rio_DeclKind)((rio_DECL_ENUM) + (1)))
 
-#define rio_DeclKind_DECL_STRUCT ((rio_DeclKind)((rio_DECL_ENUM) + (1)))
+#define rio_DeclKind_DECL_STRUCT ((rio_DeclKind)((rio_DeclKind_DECL_ENUM) + (1)))
 
 #define rio_DECL_UNION ((rio_DeclKind)((rio_DECL_STRUCT) + (1)))
 
-#define rio_DeclKind_DECL_UNION ((rio_DeclKind)((rio_DECL_STRUCT) + (1)))
+#define rio_DeclKind_DECL_UNION ((rio_DeclKind)((rio_DeclKind_DECL_STRUCT) + (1)))
 
 #define rio_DECL_VAR ((rio_DeclKind)((rio_DECL_UNION) + (1)))
 
-#define rio_DeclKind_DECL_VAR ((rio_DeclKind)((rio_DECL_UNION) + (1)))
+#define rio_DeclKind_DECL_VAR ((rio_DeclKind)((rio_DeclKind_DECL_UNION) + (1)))
 
 #define rio_DECL_CONST ((rio_DeclKind)((rio_DECL_VAR) + (1)))
 
-#define rio_DeclKind_DECL_CONST ((rio_DeclKind)((rio_DECL_VAR) + (1)))
+#define rio_DeclKind_DECL_CONST ((rio_DeclKind)((rio_DeclKind_DECL_VAR) + (1)))
 
 #define rio_DECL_TYPEDEF ((rio_DeclKind)((rio_DECL_CONST) + (1)))
 
-#define rio_DeclKind_DECL_TYPEDEF ((rio_DeclKind)((rio_DECL_CONST) + (1)))
+#define rio_DeclKind_DECL_TYPEDEF ((rio_DeclKind)((rio_DeclKind_DECL_CONST) + (1)))
 
 #define rio_DECL_FUNC ((rio_DeclKind)((rio_DECL_TYPEDEF) + (1)))
 
-#define rio_DeclKind_DECL_FUNC ((rio_DeclKind)((rio_DECL_TYPEDEF) + (1)))
+#define rio_DeclKind_DECL_FUNC ((rio_DeclKind)((rio_DeclKind_DECL_TYPEDEF) + (1)))
 
 #define rio_DECL_NOTE ((rio_DeclKind)((rio_DECL_FUNC) + (1)))
 
-#define rio_DeclKind_DECL_NOTE ((rio_DeclKind)((rio_DECL_FUNC) + (1)))
+#define rio_DeclKind_DECL_NOTE ((rio_DeclKind)((rio_DeclKind_DECL_FUNC) + (1)))
 
 #define rio_DECL_IMPORT ((rio_DeclKind)((rio_DECL_NOTE) + (1)))
 
-#define rio_DeclKind_DECL_IMPORT ((rio_DeclKind)((rio_DECL_NOTE) + (1)))
+#define rio_DeclKind_DECL_IMPORT ((rio_DeclKind)((rio_DeclKind_DECL_NOTE) + (1)))
 
 #define rio_AGGREGATE_NONE ((rio_AggregateKind)(0))
 
@@ -542,11 +528,11 @@ typedef int rio_AggregateItemKind;
 
 #define rio_AGGREGATE_STRUCT ((rio_AggregateKind)((rio_AGGREGATE_NONE) + (1)))
 
-#define rio_AggregateKind_AGGREGATE_STRUCT ((rio_AggregateKind)((rio_AGGREGATE_NONE) + (1)))
+#define rio_AggregateKind_AGGREGATE_STRUCT ((rio_AggregateKind)((rio_AggregateKind_AGGREGATE_NONE) + (1)))
 
 #define rio_AGGREGATE_UNION ((rio_AggregateKind)((rio_AGGREGATE_STRUCT) + (1)))
 
-#define rio_AggregateKind_AGGREGATE_UNION ((rio_AggregateKind)((rio_AGGREGATE_STRUCT) + (1)))
+#define rio_AggregateKind_AGGREGATE_UNION ((rio_AggregateKind)((rio_AggregateKind_AGGREGATE_STRUCT) + (1)))
 
 #define rio_EXPR_NONE ((rio_ExprKind)(0))
 
@@ -554,87 +540,87 @@ typedef int rio_AggregateItemKind;
 
 #define rio_EXPR_PAREN ((rio_ExprKind)((rio_EXPR_NONE) + (1)))
 
-#define rio_ExprKind_EXPR_PAREN ((rio_ExprKind)((rio_EXPR_NONE) + (1)))
+#define rio_ExprKind_EXPR_PAREN ((rio_ExprKind)((rio_ExprKind_EXPR_NONE) + (1)))
 
 #define rio_EXPR_INT ((rio_ExprKind)((rio_EXPR_PAREN) + (1)))
 
-#define rio_ExprKind_EXPR_INT ((rio_ExprKind)((rio_EXPR_PAREN) + (1)))
+#define rio_ExprKind_EXPR_INT ((rio_ExprKind)((rio_ExprKind_EXPR_PAREN) + (1)))
 
 #define rio_EXPR_FLOAT ((rio_ExprKind)((rio_EXPR_INT) + (1)))
 
-#define rio_ExprKind_EXPR_FLOAT ((rio_ExprKind)((rio_EXPR_INT) + (1)))
+#define rio_ExprKind_EXPR_FLOAT ((rio_ExprKind)((rio_ExprKind_EXPR_INT) + (1)))
 
 #define rio_EXPR_STR ((rio_ExprKind)((rio_EXPR_FLOAT) + (1)))
 
-#define rio_ExprKind_EXPR_STR ((rio_ExprKind)((rio_EXPR_FLOAT) + (1)))
+#define rio_ExprKind_EXPR_STR ((rio_ExprKind)((rio_ExprKind_EXPR_FLOAT) + (1)))
 
 #define rio_EXPR_NAME ((rio_ExprKind)((rio_EXPR_STR) + (1)))
 
-#define rio_ExprKind_EXPR_NAME ((rio_ExprKind)((rio_EXPR_STR) + (1)))
+#define rio_ExprKind_EXPR_NAME ((rio_ExprKind)((rio_ExprKind_EXPR_STR) + (1)))
 
 #define rio_EXPR_CAST ((rio_ExprKind)((rio_EXPR_NAME) + (1)))
 
-#define rio_ExprKind_EXPR_CAST ((rio_ExprKind)((rio_EXPR_NAME) + (1)))
+#define rio_ExprKind_EXPR_CAST ((rio_ExprKind)((rio_ExprKind_EXPR_NAME) + (1)))
 
 #define rio_EXPR_CALL ((rio_ExprKind)((rio_EXPR_CAST) + (1)))
 
-#define rio_ExprKind_EXPR_CALL ((rio_ExprKind)((rio_EXPR_CAST) + (1)))
+#define rio_ExprKind_EXPR_CALL ((rio_ExprKind)((rio_ExprKind_EXPR_CAST) + (1)))
 
 #define rio_EXPR_INDEX ((rio_ExprKind)((rio_EXPR_CALL) + (1)))
 
-#define rio_ExprKind_EXPR_INDEX ((rio_ExprKind)((rio_EXPR_CALL) + (1)))
+#define rio_ExprKind_EXPR_INDEX ((rio_ExprKind)((rio_ExprKind_EXPR_CALL) + (1)))
 
 #define rio_EXPR_FIELD ((rio_ExprKind)((rio_EXPR_INDEX) + (1)))
 
-#define rio_ExprKind_EXPR_FIELD ((rio_ExprKind)((rio_EXPR_INDEX) + (1)))
+#define rio_ExprKind_EXPR_FIELD ((rio_ExprKind)((rio_ExprKind_EXPR_INDEX) + (1)))
 
 #define rio_EXPR_COMPOUND ((rio_ExprKind)((rio_EXPR_FIELD) + (1)))
 
-#define rio_ExprKind_EXPR_COMPOUND ((rio_ExprKind)((rio_EXPR_FIELD) + (1)))
+#define rio_ExprKind_EXPR_COMPOUND ((rio_ExprKind)((rio_ExprKind_EXPR_FIELD) + (1)))
 
 #define rio_EXPR_UNARY ((rio_ExprKind)((rio_EXPR_COMPOUND) + (1)))
 
-#define rio_ExprKind_EXPR_UNARY ((rio_ExprKind)((rio_EXPR_COMPOUND) + (1)))
+#define rio_ExprKind_EXPR_UNARY ((rio_ExprKind)((rio_ExprKind_EXPR_COMPOUND) + (1)))
 
 #define rio_EXPR_BINARY ((rio_ExprKind)((rio_EXPR_UNARY) + (1)))
 
-#define rio_ExprKind_EXPR_BINARY ((rio_ExprKind)((rio_EXPR_UNARY) + (1)))
+#define rio_ExprKind_EXPR_BINARY ((rio_ExprKind)((rio_ExprKind_EXPR_UNARY) + (1)))
 
 #define rio_EXPR_TERNARY ((rio_ExprKind)((rio_EXPR_BINARY) + (1)))
 
-#define rio_ExprKind_EXPR_TERNARY ((rio_ExprKind)((rio_EXPR_BINARY) + (1)))
+#define rio_ExprKind_EXPR_TERNARY ((rio_ExprKind)((rio_ExprKind_EXPR_BINARY) + (1)))
 
 #define rio_EXPR_MODIFY ((rio_ExprKind)((rio_EXPR_TERNARY) + (1)))
 
-#define rio_ExprKind_EXPR_MODIFY ((rio_ExprKind)((rio_EXPR_TERNARY) + (1)))
+#define rio_ExprKind_EXPR_MODIFY ((rio_ExprKind)((rio_ExprKind_EXPR_TERNARY) + (1)))
 
 #define rio_EXPR_SIZEOF_EXPR ((rio_ExprKind)((rio_EXPR_MODIFY) + (1)))
 
-#define rio_ExprKind_EXPR_SIZEOF_EXPR ((rio_ExprKind)((rio_EXPR_MODIFY) + (1)))
+#define rio_ExprKind_EXPR_SIZEOF_EXPR ((rio_ExprKind)((rio_ExprKind_EXPR_MODIFY) + (1)))
 
 #define rio_EXPR_SIZEOF_TYPE ((rio_ExprKind)((rio_EXPR_SIZEOF_EXPR) + (1)))
 
-#define rio_ExprKind_EXPR_SIZEOF_TYPE ((rio_ExprKind)((rio_EXPR_SIZEOF_EXPR) + (1)))
+#define rio_ExprKind_EXPR_SIZEOF_TYPE ((rio_ExprKind)((rio_ExprKind_EXPR_SIZEOF_EXPR) + (1)))
 
 #define rio_EXPR_TYPEOF_EXPR ((rio_ExprKind)((rio_EXPR_SIZEOF_TYPE) + (1)))
 
-#define rio_ExprKind_EXPR_TYPEOF_EXPR ((rio_ExprKind)((rio_EXPR_SIZEOF_TYPE) + (1)))
+#define rio_ExprKind_EXPR_TYPEOF_EXPR ((rio_ExprKind)((rio_ExprKind_EXPR_SIZEOF_TYPE) + (1)))
 
 #define rio_EXPR_TYPEOF_TYPE ((rio_ExprKind)((rio_EXPR_TYPEOF_EXPR) + (1)))
 
-#define rio_ExprKind_EXPR_TYPEOF_TYPE ((rio_ExprKind)((rio_EXPR_TYPEOF_EXPR) + (1)))
+#define rio_ExprKind_EXPR_TYPEOF_TYPE ((rio_ExprKind)((rio_ExprKind_EXPR_TYPEOF_EXPR) + (1)))
 
 #define rio_EXPR_ALIGNOF_EXPR ((rio_ExprKind)((rio_EXPR_TYPEOF_TYPE) + (1)))
 
-#define rio_ExprKind_EXPR_ALIGNOF_EXPR ((rio_ExprKind)((rio_EXPR_TYPEOF_TYPE) + (1)))
+#define rio_ExprKind_EXPR_ALIGNOF_EXPR ((rio_ExprKind)((rio_ExprKind_EXPR_TYPEOF_TYPE) + (1)))
 
 #define rio_EXPR_ALIGNOF_TYPE ((rio_ExprKind)((rio_EXPR_ALIGNOF_EXPR) + (1)))
 
-#define rio_ExprKind_EXPR_ALIGNOF_TYPE ((rio_ExprKind)((rio_EXPR_ALIGNOF_EXPR) + (1)))
+#define rio_ExprKind_EXPR_ALIGNOF_TYPE ((rio_ExprKind)((rio_ExprKind_EXPR_ALIGNOF_EXPR) + (1)))
 
 #define rio_EXPR_OFFSETOF ((rio_ExprKind)((rio_EXPR_ALIGNOF_TYPE) + (1)))
 
-#define rio_ExprKind_EXPR_OFFSETOF ((rio_ExprKind)((rio_EXPR_ALIGNOF_TYPE) + (1)))
+#define rio_ExprKind_EXPR_OFFSETOF ((rio_ExprKind)((rio_ExprKind_EXPR_ALIGNOF_TYPE) + (1)))
 
 typedef int rio_CompoundFieldKind;
 
@@ -644,11 +630,11 @@ typedef int rio_CompoundFieldKind;
 
 #define rio_FIELD_NAME ((rio_CompoundFieldKind)((rio_FIELD_DEFAULT) + (1)))
 
-#define rio_CompoundFieldKind_FIELD_NAME ((rio_CompoundFieldKind)((rio_FIELD_DEFAULT) + (1)))
+#define rio_CompoundFieldKind_FIELD_NAME ((rio_CompoundFieldKind)((rio_CompoundFieldKind_FIELD_DEFAULT) + (1)))
 
 #define rio_FIELD_INDEX ((rio_CompoundFieldKind)((rio_FIELD_NAME) + (1)))
 
-#define rio_CompoundFieldKind_FIELD_INDEX ((rio_CompoundFieldKind)((rio_FIELD_NAME) + (1)))
+#define rio_CompoundFieldKind_FIELD_INDEX ((rio_CompoundFieldKind)((rio_CompoundFieldKind_FIELD_NAME) + (1)))
 
 #define rio_STMT_NONE ((rio_StmtKind)(0))
 
@@ -656,67 +642,67 @@ typedef int rio_CompoundFieldKind;
 
 #define rio_STMT_DECL ((rio_StmtKind)((rio_STMT_NONE) + (1)))
 
-#define rio_StmtKind_STMT_DECL ((rio_StmtKind)((rio_STMT_NONE) + (1)))
+#define rio_StmtKind_STMT_DECL ((rio_StmtKind)((rio_StmtKind_STMT_NONE) + (1)))
 
 #define rio_STMT_RETURN ((rio_StmtKind)((rio_STMT_DECL) + (1)))
 
-#define rio_StmtKind_STMT_RETURN ((rio_StmtKind)((rio_STMT_DECL) + (1)))
+#define rio_StmtKind_STMT_RETURN ((rio_StmtKind)((rio_StmtKind_STMT_DECL) + (1)))
 
 #define rio_STMT_BREAK ((rio_StmtKind)((rio_STMT_RETURN) + (1)))
 
-#define rio_StmtKind_STMT_BREAK ((rio_StmtKind)((rio_STMT_RETURN) + (1)))
+#define rio_StmtKind_STMT_BREAK ((rio_StmtKind)((rio_StmtKind_STMT_RETURN) + (1)))
 
 #define rio_STMT_CONTINUE ((rio_StmtKind)((rio_STMT_BREAK) + (1)))
 
-#define rio_StmtKind_STMT_CONTINUE ((rio_StmtKind)((rio_STMT_BREAK) + (1)))
+#define rio_StmtKind_STMT_CONTINUE ((rio_StmtKind)((rio_StmtKind_STMT_BREAK) + (1)))
 
 #define rio_STMT_BLOCK ((rio_StmtKind)((rio_STMT_CONTINUE) + (1)))
 
-#define rio_StmtKind_STMT_BLOCK ((rio_StmtKind)((rio_STMT_CONTINUE) + (1)))
+#define rio_StmtKind_STMT_BLOCK ((rio_StmtKind)((rio_StmtKind_STMT_CONTINUE) + (1)))
 
 #define rio_STMT_IF ((rio_StmtKind)((rio_STMT_BLOCK) + (1)))
 
-#define rio_StmtKind_STMT_IF ((rio_StmtKind)((rio_STMT_BLOCK) + (1)))
+#define rio_StmtKind_STMT_IF ((rio_StmtKind)((rio_StmtKind_STMT_BLOCK) + (1)))
 
 #define rio_STMT_WHILE ((rio_StmtKind)((rio_STMT_IF) + (1)))
 
-#define rio_StmtKind_STMT_WHILE ((rio_StmtKind)((rio_STMT_IF) + (1)))
+#define rio_StmtKind_STMT_WHILE ((rio_StmtKind)((rio_StmtKind_STMT_IF) + (1)))
 
 #define rio_STMT_DO_WHILE ((rio_StmtKind)((rio_STMT_WHILE) + (1)))
 
-#define rio_StmtKind_STMT_DO_WHILE ((rio_StmtKind)((rio_STMT_WHILE) + (1)))
+#define rio_StmtKind_STMT_DO_WHILE ((rio_StmtKind)((rio_StmtKind_STMT_WHILE) + (1)))
 
 #define rio_STMT_FOR ((rio_StmtKind)((rio_STMT_DO_WHILE) + (1)))
 
-#define rio_StmtKind_STMT_FOR ((rio_StmtKind)((rio_STMT_DO_WHILE) + (1)))
+#define rio_StmtKind_STMT_FOR ((rio_StmtKind)((rio_StmtKind_STMT_DO_WHILE) + (1)))
 
 #define rio_STMT_SWITCH ((rio_StmtKind)((rio_STMT_FOR) + (1)))
 
-#define rio_StmtKind_STMT_SWITCH ((rio_StmtKind)((rio_STMT_FOR) + (1)))
+#define rio_StmtKind_STMT_SWITCH ((rio_StmtKind)((rio_StmtKind_STMT_FOR) + (1)))
 
 #define rio_STMT_ASSIGN ((rio_StmtKind)((rio_STMT_SWITCH) + (1)))
 
-#define rio_StmtKind_STMT_ASSIGN ((rio_StmtKind)((rio_STMT_SWITCH) + (1)))
+#define rio_StmtKind_STMT_ASSIGN ((rio_StmtKind)((rio_StmtKind_STMT_SWITCH) + (1)))
 
 #define rio_STMT_INIT ((rio_StmtKind)((rio_STMT_ASSIGN) + (1)))
 
-#define rio_StmtKind_STMT_INIT ((rio_StmtKind)((rio_STMT_ASSIGN) + (1)))
+#define rio_StmtKind_STMT_INIT ((rio_StmtKind)((rio_StmtKind_STMT_ASSIGN) + (1)))
 
 #define rio_STMT_EXPR ((rio_StmtKind)((rio_STMT_INIT) + (1)))
 
-#define rio_StmtKind_STMT_EXPR ((rio_StmtKind)((rio_STMT_INIT) + (1)))
+#define rio_StmtKind_STMT_EXPR ((rio_StmtKind)((rio_StmtKind_STMT_INIT) + (1)))
 
 #define rio_STMT_NOTE ((rio_StmtKind)((rio_STMT_EXPR) + (1)))
 
-#define rio_StmtKind_STMT_NOTE ((rio_StmtKind)((rio_STMT_EXPR) + (1)))
+#define rio_StmtKind_STMT_NOTE ((rio_StmtKind)((rio_StmtKind_STMT_EXPR) + (1)))
 
 #define rio_STMT_LABEL ((rio_StmtKind)((rio_STMT_NOTE) + (1)))
 
-#define rio_StmtKind_STMT_LABEL ((rio_StmtKind)((rio_STMT_NOTE) + (1)))
+#define rio_StmtKind_STMT_LABEL ((rio_StmtKind)((rio_StmtKind_STMT_NOTE) + (1)))
 
 #define rio_STMT_GOTO ((rio_StmtKind)((rio_STMT_LABEL) + (1)))
 
-#define rio_StmtKind_STMT_GOTO ((rio_StmtKind)((rio_STMT_LABEL) + (1)))
+#define rio_StmtKind_STMT_GOTO ((rio_StmtKind)((rio_StmtKind_STMT_LABEL) + (1)))
 
 size_t rio_min(size_t x, size_t y);
 
@@ -1067,6 +1053,8 @@ extern char const ((*rio_always_name));
 
 extern char const ((*rio_foreign_name));
 
+extern char const ((*rio_scoped_name));
+
 extern char const ((*rio_complete_name));
 
 extern char const ((*rio_assert_name));
@@ -1089,251 +1077,251 @@ bool rio_is_keyword_name(char const ((*name)));
 
 #define rio_TOKEN_COLON ((rio_TokenKind)((rio_TOKEN_EOF) + (1)))
 
-#define rio_TokenKind_TOKEN_COLON ((rio_TokenKind)((rio_TOKEN_EOF) + (1)))
+#define rio_TokenKind_TOKEN_COLON ((rio_TokenKind)((rio_TokenKind_TOKEN_EOF) + (1)))
 
 #define rio_TOKEN_ARROW ((rio_TokenKind)((rio_TOKEN_COLON) + (1)))
 
-#define rio_TokenKind_TOKEN_ARROW ((rio_TokenKind)((rio_TOKEN_COLON) + (1)))
+#define rio_TokenKind_TOKEN_ARROW ((rio_TokenKind)((rio_TokenKind_TOKEN_COLON) + (1)))
 
 #define rio_TOKEN_LPAREN ((rio_TokenKind)((rio_TOKEN_ARROW) + (1)))
 
-#define rio_TokenKind_TOKEN_LPAREN ((rio_TokenKind)((rio_TOKEN_ARROW) + (1)))
+#define rio_TokenKind_TOKEN_LPAREN ((rio_TokenKind)((rio_TokenKind_TOKEN_ARROW) + (1)))
 
 #define rio_TOKEN_RPAREN ((rio_TokenKind)((rio_TOKEN_LPAREN) + (1)))
 
-#define rio_TokenKind_TOKEN_RPAREN ((rio_TokenKind)((rio_TOKEN_LPAREN) + (1)))
+#define rio_TokenKind_TOKEN_RPAREN ((rio_TokenKind)((rio_TokenKind_TOKEN_LPAREN) + (1)))
 
 #define rio_TOKEN_LBRACE ((rio_TokenKind)((rio_TOKEN_RPAREN) + (1)))
 
-#define rio_TokenKind_TOKEN_LBRACE ((rio_TokenKind)((rio_TOKEN_RPAREN) + (1)))
+#define rio_TokenKind_TOKEN_LBRACE ((rio_TokenKind)((rio_TokenKind_TOKEN_RPAREN) + (1)))
 
 #define rio_TOKEN_RBRACE ((rio_TokenKind)((rio_TOKEN_LBRACE) + (1)))
 
-#define rio_TokenKind_TOKEN_RBRACE ((rio_TokenKind)((rio_TOKEN_LBRACE) + (1)))
+#define rio_TokenKind_TOKEN_RBRACE ((rio_TokenKind)((rio_TokenKind_TOKEN_LBRACE) + (1)))
 
 #define rio_TOKEN_LBRACKET ((rio_TokenKind)((rio_TOKEN_RBRACE) + (1)))
 
-#define rio_TokenKind_TOKEN_LBRACKET ((rio_TokenKind)((rio_TOKEN_RBRACE) + (1)))
+#define rio_TokenKind_TOKEN_LBRACKET ((rio_TokenKind)((rio_TokenKind_TOKEN_RBRACE) + (1)))
 
 #define rio_TOKEN_RBRACKET ((rio_TokenKind)((rio_TOKEN_LBRACKET) + (1)))
 
-#define rio_TokenKind_TOKEN_RBRACKET ((rio_TokenKind)((rio_TOKEN_LBRACKET) + (1)))
+#define rio_TokenKind_TOKEN_RBRACKET ((rio_TokenKind)((rio_TokenKind_TOKEN_LBRACKET) + (1)))
 
 #define rio_TOKEN_COMMA ((rio_TokenKind)((rio_TOKEN_RBRACKET) + (1)))
 
-#define rio_TokenKind_TOKEN_COMMA ((rio_TokenKind)((rio_TOKEN_RBRACKET) + (1)))
+#define rio_TokenKind_TOKEN_COMMA ((rio_TokenKind)((rio_TokenKind_TOKEN_RBRACKET) + (1)))
 
 #define rio_TOKEN_DOT ((rio_TokenKind)((rio_TOKEN_COMMA) + (1)))
 
-#define rio_TokenKind_TOKEN_DOT ((rio_TokenKind)((rio_TOKEN_COMMA) + (1)))
+#define rio_TokenKind_TOKEN_DOT ((rio_TokenKind)((rio_TokenKind_TOKEN_COMMA) + (1)))
 
 #define rio_TOKEN_AT ((rio_TokenKind)((rio_TOKEN_DOT) + (1)))
 
-#define rio_TokenKind_TOKEN_AT ((rio_TokenKind)((rio_TOKEN_DOT) + (1)))
+#define rio_TokenKind_TOKEN_AT ((rio_TokenKind)((rio_TokenKind_TOKEN_DOT) + (1)))
 
 #define rio_TOKEN_POUND ((rio_TokenKind)((rio_TOKEN_AT) + (1)))
 
-#define rio_TokenKind_TOKEN_POUND ((rio_TokenKind)((rio_TOKEN_AT) + (1)))
+#define rio_TokenKind_TOKEN_POUND ((rio_TokenKind)((rio_TokenKind_TOKEN_AT) + (1)))
 
 #define rio_TOKEN_ELLIPSIS ((rio_TokenKind)((rio_TOKEN_POUND) + (1)))
 
-#define rio_TokenKind_TOKEN_ELLIPSIS ((rio_TokenKind)((rio_TOKEN_POUND) + (1)))
+#define rio_TokenKind_TOKEN_ELLIPSIS ((rio_TokenKind)((rio_TokenKind_TOKEN_POUND) + (1)))
 
 #define rio_TOKEN_QUESTION ((rio_TokenKind)((rio_TOKEN_ELLIPSIS) + (1)))
 
-#define rio_TokenKind_TOKEN_QUESTION ((rio_TokenKind)((rio_TOKEN_ELLIPSIS) + (1)))
+#define rio_TokenKind_TOKEN_QUESTION ((rio_TokenKind)((rio_TokenKind_TOKEN_ELLIPSIS) + (1)))
 
 #define rio_TOKEN_SEMICOLON ((rio_TokenKind)((rio_TOKEN_QUESTION) + (1)))
 
-#define rio_TokenKind_TOKEN_SEMICOLON ((rio_TokenKind)((rio_TOKEN_QUESTION) + (1)))
+#define rio_TokenKind_TOKEN_SEMICOLON ((rio_TokenKind)((rio_TokenKind_TOKEN_QUESTION) + (1)))
 
 #define rio_TOKEN_KEYWORD ((rio_TokenKind)((rio_TOKEN_SEMICOLON) + (1)))
 
-#define rio_TokenKind_TOKEN_KEYWORD ((rio_TokenKind)((rio_TOKEN_SEMICOLON) + (1)))
+#define rio_TokenKind_TOKEN_KEYWORD ((rio_TokenKind)((rio_TokenKind_TOKEN_SEMICOLON) + (1)))
 
 #define rio_TOKEN_INT ((rio_TokenKind)((rio_TOKEN_KEYWORD) + (1)))
 
-#define rio_TokenKind_TOKEN_INT ((rio_TokenKind)((rio_TOKEN_KEYWORD) + (1)))
+#define rio_TokenKind_TOKEN_INT ((rio_TokenKind)((rio_TokenKind_TOKEN_KEYWORD) + (1)))
 
 #define rio_TOKEN_FLOAT ((rio_TokenKind)((rio_TOKEN_INT) + (1)))
 
-#define rio_TokenKind_TOKEN_FLOAT ((rio_TokenKind)((rio_TOKEN_INT) + (1)))
+#define rio_TokenKind_TOKEN_FLOAT ((rio_TokenKind)((rio_TokenKind_TOKEN_INT) + (1)))
 
 #define rio_TOKEN_STR ((rio_TokenKind)((rio_TOKEN_FLOAT) + (1)))
 
-#define rio_TokenKind_TOKEN_STR ((rio_TokenKind)((rio_TOKEN_FLOAT) + (1)))
+#define rio_TokenKind_TOKEN_STR ((rio_TokenKind)((rio_TokenKind_TOKEN_FLOAT) + (1)))
 
 #define rio_TOKEN_NAME ((rio_TokenKind)((rio_TOKEN_STR) + (1)))
 
-#define rio_TokenKind_TOKEN_NAME ((rio_TokenKind)((rio_TOKEN_STR) + (1)))
+#define rio_TokenKind_TOKEN_NAME ((rio_TokenKind)((rio_TokenKind_TOKEN_STR) + (1)))
 
 #define rio_TOKEN_NEG ((rio_TokenKind)((rio_TOKEN_NAME) + (1)))
 
-#define rio_TokenKind_TOKEN_NEG ((rio_TokenKind)((rio_TOKEN_NAME) + (1)))
+#define rio_TokenKind_TOKEN_NEG ((rio_TokenKind)((rio_TokenKind_TOKEN_NAME) + (1)))
 
 #define rio_TOKEN_NOT ((rio_TokenKind)((rio_TOKEN_NEG) + (1)))
 
-#define rio_TokenKind_TOKEN_NOT ((rio_TokenKind)((rio_TOKEN_NEG) + (1)))
+#define rio_TokenKind_TOKEN_NOT ((rio_TokenKind)((rio_TokenKind_TOKEN_NEG) + (1)))
 
 #define rio_TOKEN_FIRST_MUL ((rio_TokenKind)((rio_TOKEN_NOT) + (1)))
 
-#define rio_TokenKind_TOKEN_FIRST_MUL ((rio_TokenKind)((rio_TOKEN_NOT) + (1)))
+#define rio_TokenKind_TOKEN_FIRST_MUL ((rio_TokenKind)((rio_TokenKind_TOKEN_NOT) + (1)))
 
 #define rio_TOKEN_MUL ((rio_TokenKind)(rio_TOKEN_FIRST_MUL))
 
-#define rio_TokenKind_TOKEN_MUL ((rio_TokenKind)(rio_TOKEN_FIRST_MUL))
+#define rio_TokenKind_TOKEN_MUL ((rio_TokenKind)((rio_TokenKind_TOKEN_FIRST_MUL) + (1)))
 
 #define rio_TOKEN_DIV ((rio_TokenKind)((rio_TOKEN_MUL) + (1)))
 
-#define rio_TokenKind_TOKEN_DIV ((rio_TokenKind)((rio_TOKEN_MUL) + (1)))
+#define rio_TokenKind_TOKEN_DIV ((rio_TokenKind)((rio_TokenKind_TOKEN_MUL) + (1)))
 
 #define rio_TOKEN_MOD ((rio_TokenKind)((rio_TOKEN_DIV) + (1)))
 
-#define rio_TokenKind_TOKEN_MOD ((rio_TokenKind)((rio_TOKEN_DIV) + (1)))
+#define rio_TokenKind_TOKEN_MOD ((rio_TokenKind)((rio_TokenKind_TOKEN_DIV) + (1)))
 
 #define rio_TOKEN_AND ((rio_TokenKind)((rio_TOKEN_MOD) + (1)))
 
-#define rio_TokenKind_TOKEN_AND ((rio_TokenKind)((rio_TOKEN_MOD) + (1)))
+#define rio_TokenKind_TOKEN_AND ((rio_TokenKind)((rio_TokenKind_TOKEN_MOD) + (1)))
 
 #define rio_TOKEN_LSHIFT ((rio_TokenKind)((rio_TOKEN_AND) + (1)))
 
-#define rio_TokenKind_TOKEN_LSHIFT ((rio_TokenKind)((rio_TOKEN_AND) + (1)))
+#define rio_TokenKind_TOKEN_LSHIFT ((rio_TokenKind)((rio_TokenKind_TOKEN_AND) + (1)))
 
 #define rio_TOKEN_RSHIFT ((rio_TokenKind)((rio_TOKEN_LSHIFT) + (1)))
 
-#define rio_TokenKind_TOKEN_RSHIFT ((rio_TokenKind)((rio_TOKEN_LSHIFT) + (1)))
+#define rio_TokenKind_TOKEN_RSHIFT ((rio_TokenKind)((rio_TokenKind_TOKEN_LSHIFT) + (1)))
 
 #define rio_TOKEN_LAST_MUL ((rio_TokenKind)(rio_TOKEN_RSHIFT))
 
-#define rio_TokenKind_TOKEN_LAST_MUL ((rio_TokenKind)(rio_TOKEN_RSHIFT))
+#define rio_TokenKind_TOKEN_LAST_MUL ((rio_TokenKind)((rio_TokenKind_TOKEN_RSHIFT) + (1)))
 
 #define rio_TOKEN_FIRST_ADD ((rio_TokenKind)((rio_TOKEN_LAST_MUL) + (1)))
 
-#define rio_TokenKind_TOKEN_FIRST_ADD ((rio_TokenKind)((rio_TOKEN_LAST_MUL) + (1)))
+#define rio_TokenKind_TOKEN_FIRST_ADD ((rio_TokenKind)((rio_TokenKind_TOKEN_LAST_MUL) + (1)))
 
 #define rio_TOKEN_ADD ((rio_TokenKind)(rio_TOKEN_FIRST_ADD))
 
-#define rio_TokenKind_TOKEN_ADD ((rio_TokenKind)(rio_TOKEN_FIRST_ADD))
+#define rio_TokenKind_TOKEN_ADD ((rio_TokenKind)((rio_TokenKind_TOKEN_FIRST_ADD) + (1)))
 
 #define rio_TOKEN_SUB ((rio_TokenKind)((rio_TOKEN_ADD) + (1)))
 
-#define rio_TokenKind_TOKEN_SUB ((rio_TokenKind)((rio_TOKEN_ADD) + (1)))
+#define rio_TokenKind_TOKEN_SUB ((rio_TokenKind)((rio_TokenKind_TOKEN_ADD) + (1)))
 
 #define rio_TOKEN_XOR ((rio_TokenKind)((rio_TOKEN_SUB) + (1)))
 
-#define rio_TokenKind_TOKEN_XOR ((rio_TokenKind)((rio_TOKEN_SUB) + (1)))
+#define rio_TokenKind_TOKEN_XOR ((rio_TokenKind)((rio_TokenKind_TOKEN_SUB) + (1)))
 
 #define rio_TOKEN_OR ((rio_TokenKind)((rio_TOKEN_XOR) + (1)))
 
-#define rio_TokenKind_TOKEN_OR ((rio_TokenKind)((rio_TOKEN_XOR) + (1)))
+#define rio_TokenKind_TOKEN_OR ((rio_TokenKind)((rio_TokenKind_TOKEN_XOR) + (1)))
 
 #define rio_TOKEN_LAST_ADD ((rio_TokenKind)(rio_TOKEN_OR))
 
-#define rio_TokenKind_TOKEN_LAST_ADD ((rio_TokenKind)(rio_TOKEN_OR))
+#define rio_TokenKind_TOKEN_LAST_ADD ((rio_TokenKind)((rio_TokenKind_TOKEN_OR) + (1)))
 
 #define rio_TOKEN_FIRST_CMP ((rio_TokenKind)((rio_TOKEN_LAST_ADD) + (1)))
 
-#define rio_TokenKind_TOKEN_FIRST_CMP ((rio_TokenKind)((rio_TOKEN_LAST_ADD) + (1)))
+#define rio_TokenKind_TOKEN_FIRST_CMP ((rio_TokenKind)((rio_TokenKind_TOKEN_LAST_ADD) + (1)))
 
 #define rio_TOKEN_EQ ((rio_TokenKind)(rio_TOKEN_FIRST_CMP))
 
-#define rio_TokenKind_TOKEN_EQ ((rio_TokenKind)(rio_TOKEN_FIRST_CMP))
+#define rio_TokenKind_TOKEN_EQ ((rio_TokenKind)((rio_TokenKind_TOKEN_FIRST_CMP) + (1)))
 
 #define rio_TOKEN_NOTEQ ((rio_TokenKind)((rio_TOKEN_EQ) + (1)))
 
-#define rio_TokenKind_TOKEN_NOTEQ ((rio_TokenKind)((rio_TOKEN_EQ) + (1)))
+#define rio_TokenKind_TOKEN_NOTEQ ((rio_TokenKind)((rio_TokenKind_TOKEN_EQ) + (1)))
 
 #define rio_TOKEN_LT ((rio_TokenKind)((rio_TOKEN_NOTEQ) + (1)))
 
-#define rio_TokenKind_TOKEN_LT ((rio_TokenKind)((rio_TOKEN_NOTEQ) + (1)))
+#define rio_TokenKind_TOKEN_LT ((rio_TokenKind)((rio_TokenKind_TOKEN_NOTEQ) + (1)))
 
 #define rio_TOKEN_GT ((rio_TokenKind)((rio_TOKEN_LT) + (1)))
 
-#define rio_TokenKind_TOKEN_GT ((rio_TokenKind)((rio_TOKEN_LT) + (1)))
+#define rio_TokenKind_TOKEN_GT ((rio_TokenKind)((rio_TokenKind_TOKEN_LT) + (1)))
 
 #define rio_TOKEN_LTEQ ((rio_TokenKind)((rio_TOKEN_GT) + (1)))
 
-#define rio_TokenKind_TOKEN_LTEQ ((rio_TokenKind)((rio_TOKEN_GT) + (1)))
+#define rio_TokenKind_TOKEN_LTEQ ((rio_TokenKind)((rio_TokenKind_TOKEN_GT) + (1)))
 
 #define rio_TOKEN_GTEQ ((rio_TokenKind)((rio_TOKEN_LTEQ) + (1)))
 
-#define rio_TokenKind_TOKEN_GTEQ ((rio_TokenKind)((rio_TOKEN_LTEQ) + (1)))
+#define rio_TokenKind_TOKEN_GTEQ ((rio_TokenKind)((rio_TokenKind_TOKEN_LTEQ) + (1)))
 
 #define rio_TOKEN_LAST_CMP ((rio_TokenKind)(rio_TOKEN_GTEQ))
 
-#define rio_TokenKind_TOKEN_LAST_CMP ((rio_TokenKind)(rio_TOKEN_GTEQ))
+#define rio_TokenKind_TOKEN_LAST_CMP ((rio_TokenKind)((rio_TokenKind_TOKEN_GTEQ) + (1)))
 
 #define rio_TOKEN_AND_AND ((rio_TokenKind)((rio_TOKEN_LAST_CMP) + (1)))
 
-#define rio_TokenKind_TOKEN_AND_AND ((rio_TokenKind)((rio_TOKEN_LAST_CMP) + (1)))
+#define rio_TokenKind_TOKEN_AND_AND ((rio_TokenKind)((rio_TokenKind_TOKEN_LAST_CMP) + (1)))
 
 #define rio_TOKEN_OR_OR ((rio_TokenKind)((rio_TOKEN_AND_AND) + (1)))
 
-#define rio_TokenKind_TOKEN_OR_OR ((rio_TokenKind)((rio_TOKEN_AND_AND) + (1)))
+#define rio_TokenKind_TOKEN_OR_OR ((rio_TokenKind)((rio_TokenKind_TOKEN_AND_AND) + (1)))
 
 #define rio_TOKEN_FIRST_ASSIGN ((rio_TokenKind)((rio_TOKEN_OR_OR) + (1)))
 
-#define rio_TokenKind_TOKEN_FIRST_ASSIGN ((rio_TokenKind)((rio_TOKEN_OR_OR) + (1)))
+#define rio_TokenKind_TOKEN_FIRST_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_OR_OR) + (1)))
 
 #define rio_TOKEN_ASSIGN ((rio_TokenKind)(rio_TOKEN_FIRST_ASSIGN))
 
-#define rio_TokenKind_TOKEN_ASSIGN ((rio_TokenKind)(rio_TOKEN_FIRST_ASSIGN))
+#define rio_TokenKind_TOKEN_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_FIRST_ASSIGN) + (1)))
 
 #define rio_TOKEN_ADD_ASSIGN ((rio_TokenKind)((rio_TOKEN_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_ADD_ASSIGN ((rio_TokenKind)((rio_TOKEN_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_ADD_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_ASSIGN) + (1)))
 
 #define rio_TOKEN_SUB_ASSIGN ((rio_TokenKind)((rio_TOKEN_ADD_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_SUB_ASSIGN ((rio_TokenKind)((rio_TOKEN_ADD_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_SUB_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_ADD_ASSIGN) + (1)))
 
 #define rio_TOKEN_OR_ASSIGN ((rio_TokenKind)((rio_TOKEN_SUB_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_OR_ASSIGN ((rio_TokenKind)((rio_TOKEN_SUB_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_OR_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_SUB_ASSIGN) + (1)))
 
 #define rio_TOKEN_AND_ASSIGN ((rio_TokenKind)((rio_TOKEN_OR_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_AND_ASSIGN ((rio_TokenKind)((rio_TOKEN_OR_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_AND_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_OR_ASSIGN) + (1)))
 
 #define rio_TOKEN_XOR_ASSIGN ((rio_TokenKind)((rio_TOKEN_AND_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_XOR_ASSIGN ((rio_TokenKind)((rio_TOKEN_AND_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_XOR_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_AND_ASSIGN) + (1)))
 
 #define rio_TOKEN_LSHIFT_ASSIGN ((rio_TokenKind)((rio_TOKEN_XOR_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_LSHIFT_ASSIGN ((rio_TokenKind)((rio_TOKEN_XOR_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_LSHIFT_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_XOR_ASSIGN) + (1)))
 
 #define rio_TOKEN_RSHIFT_ASSIGN ((rio_TokenKind)((rio_TOKEN_LSHIFT_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_RSHIFT_ASSIGN ((rio_TokenKind)((rio_TOKEN_LSHIFT_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_RSHIFT_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_LSHIFT_ASSIGN) + (1)))
 
 #define rio_TOKEN_MUL_ASSIGN ((rio_TokenKind)((rio_TOKEN_RSHIFT_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_MUL_ASSIGN ((rio_TokenKind)((rio_TOKEN_RSHIFT_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_MUL_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_RSHIFT_ASSIGN) + (1)))
 
 #define rio_TOKEN_DIV_ASSIGN ((rio_TokenKind)((rio_TOKEN_MUL_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_DIV_ASSIGN ((rio_TokenKind)((rio_TOKEN_MUL_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_DIV_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_MUL_ASSIGN) + (1)))
 
 #define rio_TOKEN_MOD_ASSIGN ((rio_TokenKind)((rio_TOKEN_DIV_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_MOD_ASSIGN ((rio_TokenKind)((rio_TOKEN_DIV_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_MOD_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_DIV_ASSIGN) + (1)))
 
 #define rio_TOKEN_LAST_ASSIGN ((rio_TokenKind)(rio_TOKEN_MOD_ASSIGN))
 
-#define rio_TokenKind_TOKEN_LAST_ASSIGN ((rio_TokenKind)(rio_TOKEN_MOD_ASSIGN))
+#define rio_TokenKind_TOKEN_LAST_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_MOD_ASSIGN) + (1)))
 
 #define rio_TOKEN_INC ((rio_TokenKind)((rio_TOKEN_LAST_ASSIGN) + (1)))
 
-#define rio_TokenKind_TOKEN_INC ((rio_TokenKind)((rio_TOKEN_LAST_ASSIGN) + (1)))
+#define rio_TokenKind_TOKEN_INC ((rio_TokenKind)((rio_TokenKind_TOKEN_LAST_ASSIGN) + (1)))
 
 #define rio_TOKEN_DEC ((rio_TokenKind)((rio_TOKEN_INC) + (1)))
 
-#define rio_TokenKind_TOKEN_DEC ((rio_TokenKind)((rio_TOKEN_INC) + (1)))
+#define rio_TokenKind_TOKEN_DEC ((rio_TokenKind)((rio_TokenKind_TOKEN_INC) + (1)))
 
 #define rio_NUM_TOKEN_KINDS ((rio_TokenKind)((rio_TOKEN_DEC) + (1)))
 
-#define rio_TokenKind_NUM_TOKEN_KINDS ((rio_TokenKind)((rio_TOKEN_DEC) + (1)))
+#define rio_TokenKind_NUM_TOKEN_KINDS ((rio_TokenKind)((rio_TokenKind_TOKEN_DEC) + (1)))
 
 #define rio_MOD_NONE ((rio_TokenMod)(0))
 
@@ -1341,23 +1329,23 @@ bool rio_is_keyword_name(char const ((*name)));
 
 #define rio_MOD_HEX ((rio_TokenMod)((rio_MOD_NONE) + (1)))
 
-#define rio_TokenMod_MOD_HEX ((rio_TokenMod)((rio_MOD_NONE) + (1)))
+#define rio_TokenMod_MOD_HEX ((rio_TokenMod)((rio_TokenMod_MOD_NONE) + (1)))
 
 #define rio_MOD_BIN ((rio_TokenMod)((rio_MOD_HEX) + (1)))
 
-#define rio_TokenMod_MOD_BIN ((rio_TokenMod)((rio_MOD_HEX) + (1)))
+#define rio_TokenMod_MOD_BIN ((rio_TokenMod)((rio_TokenMod_MOD_HEX) + (1)))
 
 #define rio_MOD_OCT ((rio_TokenMod)((rio_MOD_BIN) + (1)))
 
-#define rio_TokenMod_MOD_OCT ((rio_TokenMod)((rio_MOD_BIN) + (1)))
+#define rio_TokenMod_MOD_OCT ((rio_TokenMod)((rio_TokenMod_MOD_BIN) + (1)))
 
 #define rio_MOD_CHAR ((rio_TokenMod)((rio_MOD_OCT) + (1)))
 
-#define rio_TokenMod_MOD_CHAR ((rio_TokenMod)((rio_MOD_OCT) + (1)))
+#define rio_TokenMod_MOD_CHAR ((rio_TokenMod)((rio_TokenMod_MOD_OCT) + (1)))
 
 #define rio_MOD_MULTILINE ((rio_TokenMod)((rio_MOD_CHAR) + (1)))
 
-#define rio_TokenMod_MOD_MULTILINE ((rio_TokenMod)((rio_MOD_CHAR) + (1)))
+#define rio_TokenMod_MOD_MULTILINE ((rio_TokenMod)((rio_TokenMod_MOD_CHAR) + (1)))
 
 #define rio_SUFFIX_NONE ((rio_TokenSuffix)(0))
 
@@ -1365,27 +1353,27 @@ bool rio_is_keyword_name(char const ((*name)));
 
 #define rio_SUFFIX_D ((rio_TokenSuffix)((rio_SUFFIX_NONE) + (1)))
 
-#define rio_TokenSuffix_SUFFIX_D ((rio_TokenSuffix)((rio_SUFFIX_NONE) + (1)))
+#define rio_TokenSuffix_SUFFIX_D ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_NONE) + (1)))
 
 #define rio_SUFFIX_U ((rio_TokenSuffix)((rio_SUFFIX_D) + (1)))
 
-#define rio_TokenSuffix_SUFFIX_U ((rio_TokenSuffix)((rio_SUFFIX_D) + (1)))
+#define rio_TokenSuffix_SUFFIX_U ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_D) + (1)))
 
 #define rio_SUFFIX_L ((rio_TokenSuffix)((rio_SUFFIX_U) + (1)))
 
-#define rio_TokenSuffix_SUFFIX_L ((rio_TokenSuffix)((rio_SUFFIX_U) + (1)))
+#define rio_TokenSuffix_SUFFIX_L ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_U) + (1)))
 
 #define rio_SUFFIX_UL ((rio_TokenSuffix)((rio_SUFFIX_L) + (1)))
 
-#define rio_TokenSuffix_SUFFIX_UL ((rio_TokenSuffix)((rio_SUFFIX_L) + (1)))
+#define rio_TokenSuffix_SUFFIX_UL ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_L) + (1)))
 
 #define rio_SUFFIX_LL ((rio_TokenSuffix)((rio_SUFFIX_UL) + (1)))
 
-#define rio_TokenSuffix_SUFFIX_LL ((rio_TokenSuffix)((rio_SUFFIX_UL) + (1)))
+#define rio_TokenSuffix_SUFFIX_LL ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_UL) + (1)))
 
 #define rio_SUFFIX_ULL ((rio_TokenSuffix)((rio_SUFFIX_LL) + (1)))
 
-#define rio_TokenSuffix_SUFFIX_ULL ((rio_TokenSuffix)((rio_SUFFIX_LL) + (1)))
+#define rio_TokenSuffix_SUFFIX_ULL ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_LL) + (1)))
 
 extern char const ((*(rio_token_suffix_names[7])));
 
@@ -1496,11 +1484,11 @@ typedef int rio_FlagKind;
 
 #define rio_FLAG_STR ((rio_FlagKind)((rio_FLAG_BOOL) + (1)))
 
-#define rio_FlagKind_FLAG_STR ((rio_FlagKind)((rio_FLAG_BOOL) + (1)))
+#define rio_FlagKind_FLAG_STR ((rio_FlagKind)((rio_FlagKind_FLAG_BOOL) + (1)))
 
 #define rio_FLAG_ENUM ((rio_FlagKind)((rio_FLAG_STR) + (1)))
 
-#define rio_FlagKind_FLAG_ENUM ((rio_FlagKind)((rio_FLAG_STR) + (1)))
+#define rio_FlagKind_FLAG_ENUM ((rio_FlagKind)((rio_FlagKind_FLAG_STR) + (1)))
 
 extern rio_FlagDef (*rio_flag_defs);
 
@@ -1691,23 +1679,23 @@ typedef int rio_SymKind;
 
 #define rio_SYM_VAR ((rio_SymKind)((rio_SYM_NONE) + (1)))
 
-#define rio_SymKind_SYM_VAR ((rio_SymKind)((rio_SYM_NONE) + (1)))
+#define rio_SymKind_SYM_VAR ((rio_SymKind)((rio_SymKind_SYM_NONE) + (1)))
 
 #define rio_SYM_CONST ((rio_SymKind)((rio_SYM_VAR) + (1)))
 
-#define rio_SymKind_SYM_CONST ((rio_SymKind)((rio_SYM_VAR) + (1)))
+#define rio_SymKind_SYM_CONST ((rio_SymKind)((rio_SymKind_SYM_VAR) + (1)))
 
 #define rio_SYM_FUNC ((rio_SymKind)((rio_SYM_CONST) + (1)))
 
-#define rio_SymKind_SYM_FUNC ((rio_SymKind)((rio_SYM_CONST) + (1)))
+#define rio_SymKind_SYM_FUNC ((rio_SymKind)((rio_SymKind_SYM_CONST) + (1)))
 
 #define rio_SYM_TYPE ((rio_SymKind)((rio_SYM_FUNC) + (1)))
 
-#define rio_SymKind_SYM_TYPE ((rio_SymKind)((rio_SYM_FUNC) + (1)))
+#define rio_SymKind_SYM_TYPE ((rio_SymKind)((rio_SymKind_SYM_FUNC) + (1)))
 
 #define rio_SYM_PACKAGE ((rio_SymKind)((rio_SYM_TYPE) + (1)))
 
-#define rio_SymKind_SYM_PACKAGE ((rio_SymKind)((rio_SYM_TYPE) + (1)))
+#define rio_SymKind_SYM_PACKAGE ((rio_SymKind)((rio_SymKind_SYM_TYPE) + (1)))
 
 typedef int rio_SymState;
 
@@ -1717,11 +1705,11 @@ typedef int rio_SymState;
 
 #define rio_SYM_RESOLVING ((rio_SymState)((rio_SYM_UNRESOLVED) + (1)))
 
-#define rio_SymState_SYM_RESOLVING ((rio_SymState)((rio_SYM_UNRESOLVED) + (1)))
+#define rio_SymState_SYM_RESOLVING ((rio_SymState)((rio_SymState_SYM_UNRESOLVED) + (1)))
 
 #define rio_SYM_RESOLVED ((rio_SymState)((rio_SYM_RESOLVING) + (1)))
 
-#define rio_SymState_SYM_RESOLVED ((rio_SymState)((rio_SYM_RESOLVING) + (1)))
+#define rio_SymState_SYM_RESOLVED ((rio_SymState)((rio_SymState_SYM_RESOLVING) + (1)))
 
 #define rio_MAX_LOCAL_SYMS ((int)(1024))
 
@@ -1741,11 +1729,11 @@ typedef uint8_t rio_ReachablePhase;
 
 #define rio_REACHABLE_NATURAL ((rio_ReachablePhase)((rio_REACHABLE_NONE) + (1)))
 
-#define rio_ReachablePhase_REACHABLE_NATURAL ((rio_ReachablePhase)((rio_REACHABLE_NONE) + (1)))
+#define rio_ReachablePhase_REACHABLE_NATURAL ((rio_ReachablePhase)((rio_ReachablePhase_REACHABLE_NONE) + (1)))
 
 #define rio_REACHABLE_FORCED ((rio_ReachablePhase)((rio_REACHABLE_NATURAL) + (1)))
 
-#define rio_ReachablePhase_REACHABLE_FORCED ((rio_ReachablePhase)((rio_REACHABLE_NATURAL) + (1)))
+#define rio_ReachablePhase_REACHABLE_FORCED ((rio_ReachablePhase)((rio_ReachablePhase_REACHABLE_NATURAL) + (1)))
 
 extern rio_ReachablePhase rio_reachable_phase;
 
@@ -2060,15 +2048,15 @@ typedef int rio_Os;
 
 #define rio_OS_LINUX ((rio_Os)((rio_OS_WIN32) + (1)))
 
-#define rio_Os_OS_LINUX ((rio_Os)((rio_OS_WIN32) + (1)))
+#define rio_Os_OS_LINUX ((rio_Os)((rio_Os_OS_WIN32) + (1)))
 
 #define rio_OS_OSX ((rio_Os)((rio_OS_LINUX) + (1)))
 
-#define rio_Os_OS_OSX ((rio_Os)((rio_OS_LINUX) + (1)))
+#define rio_Os_OS_OSX ((rio_Os)((rio_Os_OS_LINUX) + (1)))
 
 #define rio_NUM_OSES ((rio_Os)((rio_OS_OSX) + (1)))
 
-#define rio_Os_NUM_OSES ((rio_Os)((rio_OS_OSX) + (1)))
+#define rio_Os_NUM_OSES ((rio_Os)((rio_Os_OS_OSX) + (1)))
 
 extern char const ((*(rio_os_names[rio_NUM_OSES])));
 
@@ -2080,11 +2068,11 @@ typedef int rio_Arch;
 
 #define rio_ARCH_X86 ((rio_Arch)((rio_ARCH_X64) + (1)))
 
-#define rio_Arch_ARCH_X86 ((rio_Arch)((rio_ARCH_X64) + (1)))
+#define rio_Arch_ARCH_X86 ((rio_Arch)((rio_Arch_ARCH_X64) + (1)))
 
 #define rio_NUM_ARCHES ((rio_Arch)((rio_ARCH_X86) + (1)))
 
-#define rio_Arch_NUM_ARCHES ((rio_Arch)((rio_ARCH_X86) + (1)))
+#define rio_Arch_NUM_ARCHES ((rio_Arch)((rio_Arch_ARCH_X86) + (1)))
 
 extern char const ((*(rio_arch_names[rio_NUM_ARCHES])));
 
@@ -2119,57 +2107,57 @@ bool rio_is_excluded_target_filename(char const ((*name)));
 
 #define rio_CompilerTypeKind_CMPL_TYPE_NONE ((rio_CompilerTypeKind)(0))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_INCOMPLETE ((rio_CompilerTypeKind)((rio_CMPL_TYPE_NONE) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_INCOMPLETE ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_NONE) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_COMPLETING ((rio_CompilerTypeKind)((rio_CMPL_TYPE_INCOMPLETE) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_COMPLETING ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_INCOMPLETE) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_VOID ((rio_CompilerTypeKind)((rio_CMPL_TYPE_COMPLETING) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_VOID ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_COMPLETING) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_BOOL ((rio_CompilerTypeKind)((rio_CMPL_TYPE_VOID) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_BOOL ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_VOID) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_CHAR ((rio_CompilerTypeKind)((rio_CMPL_TYPE_BOOL) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_CHAR ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_BOOL) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_SCHAR ((rio_CompilerTypeKind)((rio_CMPL_TYPE_CHAR) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_SCHAR ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_CHAR) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_UCHAR ((rio_CompilerTypeKind)((rio_CMPL_TYPE_SCHAR) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_UCHAR ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_SCHAR) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_SHORT ((rio_CompilerTypeKind)((rio_CMPL_TYPE_UCHAR) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_SHORT ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_UCHAR) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_USHORT ((rio_CompilerTypeKind)((rio_CMPL_TYPE_SHORT) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_USHORT ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_SHORT) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_INT ((rio_CompilerTypeKind)((rio_CMPL_TYPE_USHORT) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_INT ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_USHORT) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_UINT ((rio_CompilerTypeKind)((rio_CMPL_TYPE_INT) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_UINT ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_INT) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_LONG ((rio_CompilerTypeKind)((rio_CMPL_TYPE_UINT) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_LONG ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_UINT) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_ULONG ((rio_CompilerTypeKind)((rio_CMPL_TYPE_LONG) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_ULONG ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_LONG) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_LLONG ((rio_CompilerTypeKind)((rio_CMPL_TYPE_ULONG) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_LLONG ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_ULONG) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_ULLONG ((rio_CompilerTypeKind)((rio_CMPL_TYPE_LLONG) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_ULLONG ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_LLONG) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_ENUM ((rio_CompilerTypeKind)((rio_CMPL_TYPE_ULLONG) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_ENUM ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_ULLONG) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_FLOAT ((rio_CompilerTypeKind)((rio_CMPL_TYPE_ENUM) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_FLOAT ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_ENUM) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_DOUBLE ((rio_CompilerTypeKind)((rio_CMPL_TYPE_FLOAT) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_DOUBLE ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_FLOAT) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_PTR ((rio_CompilerTypeKind)((rio_CMPL_TYPE_DOUBLE) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_PTR ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_DOUBLE) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_REF ((rio_CompilerTypeKind)((rio_CMPL_TYPE_PTR) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_REF ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_PTR) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_FUNC ((rio_CompilerTypeKind)((rio_CMPL_TYPE_REF) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_FUNC ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_REF) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_ARRAY ((rio_CompilerTypeKind)((rio_CMPL_TYPE_FUNC) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_ARRAY ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_FUNC) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_STRUCT ((rio_CompilerTypeKind)((rio_CMPL_TYPE_ARRAY) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_STRUCT ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_ARRAY) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_UNION ((rio_CompilerTypeKind)((rio_CMPL_TYPE_STRUCT) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_UNION ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_STRUCT) + (1)))
 
-#define rio_CompilerTypeKind_CMPL_TYPE_CONST ((rio_CompilerTypeKind)((rio_CMPL_TYPE_UNION) + (1)))
+#define rio_CompilerTypeKind_CMPL_TYPE_CONST ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_UNION) + (1)))
 
-#define rio_CompilerTypeKind_NUM_CMPL_TYPE_KINDS ((rio_CompilerTypeKind)((rio_CMPL_TYPE_CONST) + (1)))
+#define rio_CompilerTypeKind_NUM_CMPL_TYPE_KINDS ((rio_CompilerTypeKind)((rio_CompilerTypeKind_CMPL_TYPE_CONST) + (1)))
 
 extern rio_TypeMetrics (*rio_type_metrics);
 
@@ -2734,40 +2722,40 @@ rio_Typespec (*rio_new_typespec(rio_TypespecKind kind, rio_SrcPos pos)) {
 }
 
 rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, char const ((*name)))) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TYPESPEC_NAME, pos);
+  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Name, pos);
   t->name = name;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_ptr(rio_SrcPos pos, rio_Typespec (*base), bool is_owned)) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TYPESPEC_PTR, pos);
+  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Ptr, pos);
   t->base = base;
   t->is_owned = is_owned;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_ref(rio_SrcPos pos, rio_Typespec (*base), bool is_owned)) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TYPESPEC_REF, pos);
+  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Ref, pos);
   t->base = base;
   t->is_owned = is_owned;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_const(rio_SrcPos pos, rio_Typespec (*base))) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TYPESPEC_CONST, pos);
+  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Const, pos);
   t->base = base;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_array(rio_SrcPos pos, rio_Typespec (*elem), rio_Expr (*size))) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TYPESPEC_ARRAY, pos);
+  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Array, pos);
   t->base = elem;
   t->num_elems = size;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Typespec (*(*args)), size_t num_args, rio_Typespec (*ret), bool has_varargs)) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TYPESPEC_FUNC, pos);
+  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Func, pos);
   t->function.args = rio_ast_dup(args, (num_args) * (sizeof(*(args))));
   t->function.num_args = num_args;
   t->function.ret = ret;
@@ -3639,7 +3627,7 @@ void rio_genln(void) {
 }
 
 bool rio_is_incomplete_array_typespec(rio_Typespec (*typespec)) {
-  return ((typespec->kind) == (rio_TYPESPEC_ARRAY)) && (!(typespec->num_elems));
+  return ((typespec->kind) == (rio_TypespecKind_Array)) && (!(typespec->num_elems));
 }
 
 char (rio_char_to_escape[256]) = {['\0'] = '0', ['\n'] = 'n', ['\r'] = 'r', ['\t'] = 't', ['\v'] = 'v', ['\b'] = 'b', ['\a'] = 'a', ['\\'] = '\\', ['\"'] = '\"', ['\''] = '\''};
@@ -3803,20 +3791,20 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
     return rio_strf("void%s%s", (*(str) ? " " : ""), str);
   }
   switch (typespec->kind) {
-  case rio_TYPESPEC_NAME: {
+  case rio_TypespecKind_Name: {
     return rio_strf("%s%s%s", rio_get_gen_name_or_default(typespec, typespec->name), (*(str) ? " " : ""), str);
     break;
   }
-  case rio_TYPESPEC_PTR:
-  case rio_TYPESPEC_REF: {
+  case rio_TypespecKind_Ptr:
+  case rio_TypespecKind_Ref: {
     return rio_typespec_to_cdecl(typespec->base, rio_cdecl_paren(rio_strf("*%s", str), *(str)));
     break;
   }
-  case rio_TYPESPEC_CONST: {
+  case rio_TypespecKind_Const: {
     return rio_typespec_to_cdecl(typespec->base, rio_strf("const %s", rio_cdecl_paren(str, *(str))));
     break;
   }
-  case rio_TYPESPEC_ARRAY: {
+  case rio_TypespecKind_Array: {
     if ((typespec->num_elems) == (0)) {
       return rio_typespec_to_cdecl(typespec->base, rio_cdecl_paren(rio_strf("%s[]", str), *(str)));
     } else {
@@ -3824,7 +3812,7 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
     }
     break;
   }
-  case rio_TYPESPEC_FUNC: {
+  case rio_TypespecKind_Func: {
     {
       char (*result) = NULL;
       rio_buf_printf(&(result), "(*%s)(", str);
@@ -4967,6 +4955,7 @@ char const ((*rio_last_keyword));
 char const ((*(*rio_keywords)));
 char const ((*rio_always_name));
 char const ((*rio_foreign_name));
+char const ((*rio_scoped_name));
 char const ((*rio_complete_name));
 char const ((*rio_assert_name));
 char const ((*rio_declare_note_name));
@@ -5014,6 +5003,7 @@ void rio_init_keywords(void) {
   rio_last_keyword = rio_default_keyword;
   rio_always_name = rio_str_intern("always");
   rio_foreign_name = rio_str_intern("foreign");
+  rio_scoped_name = rio_str_intern("scoped");
   rio_complete_name = rio_str_intern("complete");
   rio_assert_name = rio_str_intern("assert");
   rio_declare_note_name = rio_str_intern("declare_note");
@@ -5991,7 +5981,7 @@ void rio_dir_list(rio_DirListIter (*iter), char const ((*path))) {
 rio_Typespec (*rio_parse_type_func_param(void)) {
   rio_Typespec (*type) = rio_parse_type();
   if (rio_match_token(rio_TOKEN_COLON)) {
-    if ((type->kind) != (rio_TYPESPEC_NAME)) {
+    if ((type->kind) != (rio_TypespecKind_Name)) {
       rio_error(rio_token.pos, "Colons in parameters of fn types must be preceded by names.");
     }
     type = rio_parse_type();
@@ -7046,6 +7036,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
     rio_sym_global_put(sym->name, sym);
   }
   if ((decl->kind) == (rio_DECL_ENUM)) {
+    rio_Note (*scoped) = rio_get_decl_note(decl, rio_scoped_name);
     rio_Typespec (*enum_typespec) = rio_new_typespec_name(decl->pos, (sym ? sym->name : rio_str_intern("int")));
     char const ((*prev_item_name)) = NULL;
     char const ((*prev_qual_name)) = NULL;
@@ -7059,10 +7050,12 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
       } else {
         init = rio_new_expr_int(item.pos, 0, 0, 0);
       }
-      rio_Decl (*item_decl) = rio_new_decl_const(item.pos, item.name, enum_typespec, init);
-      item_decl->notes = decl->notes;
-      rio_sym_global_decl(item_decl);
-      prev_item_name = item.name;
+      if (!(scoped)) {
+        rio_Decl (*item_decl) = rio_new_decl_const(item.pos, item.name, enum_typespec, init);
+        item_decl->notes = decl->notes;
+        rio_sym_global_decl(item_decl);
+        prev_item_name = item.name;
+      }
       if (decl->name) {
         char const ((*qual_name)) = rio_build_qual_name(decl->name, item.name);
         if (prev_qual_name) {
@@ -7358,7 +7351,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
   }
   rio_Type (*result) = NULL;
   switch (typespec->kind) {
-  case rio_TYPESPEC_NAME: {
+  case rio_TypespecKind_Name: {
     {
       rio_Sym (*sym) = rio_resolve_name(typespec->name);
       if (!(sym)) {
@@ -7373,19 +7366,19 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     }
     break;
   }
-  case rio_TYPESPEC_CONST: {
+  case rio_TypespecKind_Const: {
     result = rio_type_const(rio_resolve_typespec(typespec->base));
     break;
   }
-  case rio_TYPESPEC_PTR: {
+  case rio_TypespecKind_Ptr: {
     result = rio_type_ptr(rio_resolve_typespec(typespec->base));
     break;
   }
-  case rio_TYPESPEC_REF: {
+  case rio_TypespecKind_Ref: {
     result = rio_type_ref(rio_resolve_typespec(typespec->base));
     break;
   }
-  case rio_TYPESPEC_ARRAY: {
+  case rio_TypespecKind_Array: {
     {
       int size = 0;
       if (typespec->num_elems) {
@@ -7403,7 +7396,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     }
     break;
   }
-  case rio_TYPESPEC_FUNC: {
+  case rio_TypespecKind_Func: {
     {
       rio_Type (*(*args)) = NULL;
       for (size_t i = 0; (i) < (typespec->function.num_args); (i)++) {

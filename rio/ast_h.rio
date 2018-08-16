@@ -24,14 +24,15 @@ struct StmtList {
   num_stmts: usize;
 }
 
+@scoped
 enum TypespecKind {
-  TYPESPEC_NONE,
-  TYPESPEC_NAME,
-  TYPESPEC_FUNC,
-  TYPESPEC_ARRAY,
-  TYPESPEC_PTR,
-  TYPESPEC_REF,
-  TYPESPEC_CONST,
+  None,
+  Name,
+  Func,
+  Array,
+  Ptr,
+  Ref,
+  Const,
 }
 
 struct Typespec {

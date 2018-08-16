@@ -122,7 +122,7 @@ fn genln() {
 }
 
 fn is_incomplete_array_typespec(typespec: &Typespec) -> bool {
-  return typespec.kind == TYPESPEC_ARRAY && !typespec.num_elems;
+  return typespec.kind == TypespecKind.Array && !typespec.num_elems;
 }
 
 let char_to_escape: [256]char = {
@@ -286,20 +286,20 @@ fn typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
     return strf("void%s%s", *str ? " " : "", str);
   }
   switch (typespec.kind) {
-  case TYPESPEC_NAME:
+  case TypespecKind.Name:
     return strf("%s%s%s", get_gen_name_or_default(typespec, typespec.name), *str ? " " : "", str);
-  case TYPESPEC_PTR:
-  case TYPESPEC_REF:
+  case TypespecKind.Ptr:
+  case TypespecKind.Ref:
     return typespec_to_cdecl(typespec.base, cdecl_paren(strf("*%s", str), *str));
-  case TYPESPEC_CONST:
+  case TypespecKind.Const:
     return typespec_to_cdecl(typespec.base, strf("const %s", cdecl_paren(str, *str)));
-  case TYPESPEC_ARRAY:
+  case TypespecKind.Array:
     if (typespec.num_elems == 0) {
       return typespec_to_cdecl(typespec.base, cdecl_paren(strf("%s[]", str), *str));
     } else {
       return typespec_to_cdecl(typespec.base, cdecl_paren(strf("%s[%s]", str, gen_expr_str(typespec.num_elems)), *str));
     }
-  case TYPESPEC_FUNC: {
+  case TypespecKind.Func: {
     let result: *char = NULL;
     buf_printf(&result, "(*%s)(", str);
     if (typespec.function.num_args == 0) {

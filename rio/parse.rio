@@ -1,7 +1,7 @@
 fn parse_type_func_param() -> &Typespec {
   let type = parse_type();
   if (match_token(TOKEN_COLON)) {
-    if (type.kind != TYPESPEC_NAME) {
+    if (type.kind != TypespecKind.Name) {
       error(token.pos, "Colons in parameters of fn types must be preceded by names.");
     }
     type = parse_type();

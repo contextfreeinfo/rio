@@ -226,6 +226,7 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
     sym_global_put(sym.name, sym);
   }
   if (decl.kind == DECL_ENUM) {
+    let scoped = get_decl_note(decl, scoped_name);
     let enum_typespec = new_typespec_name(decl.pos, sym ? sym.name : str_intern("int"));
     let prev_item_name: *const char = NULL;
     let prev_qual_name: *const char = NULL;
@@ -239,10 +240,12 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
       } else {
         init = new_expr_int(item.pos, 0, 0, 0);
       }
-      let item_decl = new_decl_const(item.pos, item.name, enum_typespec, init);
-      item_decl.notes = decl.notes;
-      sym_global_decl(item_decl);
-      prev_item_name = item.name;
+      if (!scoped) {
+        let item_decl = new_decl_const(item.pos, item.name, enum_typespec, init);
+        item_decl.notes = decl.notes;
+        sym_global_decl(item_decl);
+        prev_item_name = item.name;
+      }
       // Type-name-qualified version.
       // Even if generating outside C, we need namespace conflicts at this
       // level, because this is the canonical top-level namespace
@@ -565,7 +568,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
   }
   let result: &Type = NULL;
   switch (typespec.kind) {
-  case TYPESPEC_NAME: {
+  case TypespecKind.Name: {
     let sym = resolve_name(typespec.name);
     if (!sym) {
       fatal_error(typespec.pos, "Unresolved type name '%s'", typespec.name);
@@ -577,13 +580,13 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
     set_resolved_sym(typespec, sym);
     result = sym.type;
   }
-  case TYPESPEC_CONST:
+  case TypespecKind.Const:
     result = type_const(resolve_typespec(typespec.base));
-  case TYPESPEC_PTR:
+  case TypespecKind.Ptr:
     result = type_ptr(resolve_typespec(typespec.base));
-  case TYPESPEC_REF:
+  case TypespecKind.Ref:
     result = type_ref(resolve_typespec(typespec.base));
-  case TYPESPEC_ARRAY: {
+  case TypespecKind.Array: {
     let size = 0;
     if (typespec.num_elems) {
       let operand = resolve_const_expr(typespec.num_elems);
@@ -598,7 +601,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
     }
     result = type_array(resolve_typespec(typespec.base), size);
   }
-  case TYPESPEC_FUNC: {
+  case TypespecKind.Func: {
     let args: *&Type = NULL;
     for (let i: usize = 0; i < typespec.function.num_args; i++) {
       let arg = resolve_typespec(typespec.function.args[i]);

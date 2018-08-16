@@ -38,40 +38,40 @@ fn new_typespec(kind: TypespecKind, pos: SrcPos) -> &Typespec {
 }
 
 fn new_typespec_name(pos: SrcPos, name: *const char) -> &Typespec {
-  let t = new_typespec(TYPESPEC_NAME, pos);
+  let t = new_typespec(TypespecKind.Name, pos);
   t.name = name;
   return t;
 }
 
 fn new_typespec_ptr(pos: SrcPos, base: &Typespec, is_owned: bool) -> &Typespec {
-  let t = new_typespec(TYPESPEC_PTR, pos);
+  let t = new_typespec(TypespecKind.Ptr, pos);
   t.base = base;
   t.is_owned = is_owned;
   return t;
 }
 
 fn new_typespec_ref(pos: SrcPos, base: &Typespec, is_owned: bool) -> &Typespec {
-  let t = new_typespec(TYPESPEC_REF, pos);
+  let t = new_typespec(TypespecKind.Ref, pos);
   t.base = base;
   t.is_owned = is_owned;
   return t;
 }
 
 fn new_typespec_const(pos: SrcPos, base: &Typespec) -> &Typespec {
-  let t = new_typespec(TYPESPEC_CONST, pos);
+  let t = new_typespec(TypespecKind.Const, pos);
   t.base = base;
   return t;
 }
 
 fn new_typespec_array(pos: SrcPos, elem: &Typespec, size: &Expr) -> &Typespec {
-  let t = new_typespec(TYPESPEC_ARRAY, pos);
+  let t = new_typespec(TypespecKind.Array, pos);
   t.base = elem;
   t.num_elems = size;
   return t;
 }
 
 fn new_typespec_func(pos: SrcPos, args: *&Typespec, num_args: usize, ret: &Typespec, has_varargs: bool) -> &Typespec {
-  let t = new_typespec(TYPESPEC_FUNC, pos);
+  let t = new_typespec(TypespecKind.Func, pos);
   t.function.args = ast_dup(args, num_args * sizeof(*args));
   t.function.num_args = num_args;
   t.function.ret = ret;
