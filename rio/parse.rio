@@ -626,13 +626,13 @@ fn parse_decl_aggregate_item() -> AggregateItem {
   if (match_keyword(struct_keyword)) {
     return AggregateItem {
       pos = pos,
-      kind = AGGREGATE_ITEM_SUBAGGREGATE,
+      kind = AggregateItemKind.Subaggregate,
       subaggregate = parse_aggregate(AGGREGATE_STRUCT),
     };
   } else if (match_keyword(union_keyword)) {
     return AggregateItem {
       pos = pos,
-      kind = AGGREGATE_ITEM_SUBAGGREGATE,
+      kind = AggregateItemKind.Subaggregate,
       subaggregate = parse_aggregate(AGGREGATE_UNION),
     };
   } else {
@@ -648,7 +648,7 @@ fn parse_decl_aggregate_item() -> AggregateItem {
     expect_token(TOKEN_SEMICOLON);
     return AggregateItem {
       pos = pos,
-      kind = AGGREGATE_ITEM_FIELD,
+      kind = AggregateItemKind.Field,
       names = names,
       num_names = buf_len(names),
       type = type,
@@ -669,9 +669,9 @@ fn parse_aggregate(kind: AggregateKind) -> &Aggregate {
 }
 
 fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind) -> &Decl {
-  #assert(kind == DECL_STRUCT || kind == DECL_UNION);
+  #assert(kind == DeclKind.Struct || kind == DeclKind.Union);
   let name = parse_name();
-  let aggregate_kind = kind == DECL_STRUCT ? AGGREGATE_STRUCT : AGGREGATE_UNION;
+  let aggregate_kind = kind == DeclKind.Struct ? AGGREGATE_STRUCT : AGGREGATE_UNION;
   if (match_token(TOKEN_SEMICOLON)) {
     let decl = new_decl_aggregate(pos, kind, name, new_aggregate(pos, aggregate_kind, NULL, 0));
     decl.is_incomplete = true;
@@ -865,9 +865,9 @@ fn parse_decl_opt() -> &Decl {
   if (match_keyword(enum_keyword)) {
     return parse_decl_enum(pos);
   } else if (match_keyword(struct_keyword)) {
-    return parse_decl_aggregate(pos, DECL_STRUCT);
+    return parse_decl_aggregate(pos, DeclKind.Struct);
   } else if (match_keyword(union_keyword)) {
-    return parse_decl_aggregate(pos, DECL_UNION);
+    return parse_decl_aggregate(pos, DeclKind.Union);
   } else if (match_keyword(const_keyword)) {
     return parse_decl_const(pos);
   } else if (match_keyword(typedef_keyword)) {

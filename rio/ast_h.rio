@@ -60,10 +60,11 @@ struct FuncParam {
   type: &Typespec;
 }
 
+@scoped
 enum AggregateItemKind {
-  AGGREGATE_ITEM_NONE,
-  AGGREGATE_ITEM_FIELD,
-  AGGREGATE_ITEM_SUBAGGREGATE,
+  None,
+  Field,
+  Subaggregate,
 }
 
 struct AggregateItem {
@@ -90,17 +91,18 @@ struct ImportItem {
   rename: *const char;
 }
 
+@scoped
 enum DeclKind {
-  DECL_NONE,
-  DECL_ENUM,
-  DECL_STRUCT,
-  DECL_UNION,
-  DECL_VAR,
-  DECL_CONST,
-  DECL_TYPEDEF,
-  DECL_FUNC,
-  DECL_NOTE,
-  DECL_IMPORT,
+  None,
+  Enum,
+  Struct,
+  Union,
+  Var,
+  Const,
+  Typedef,
+  Func,
+  Note,
+  Import,
 }
 
 enum AggregateKind {

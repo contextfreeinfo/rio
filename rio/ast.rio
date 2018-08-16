@@ -109,7 +109,7 @@ fn is_decl_foreign(decl: &Decl) -> bool {
 }
 
 fn new_decl_enum(pos: SrcPos, name: *const char, type: &Typespec, items: *EnumItem, num_items: usize) -> &Decl {
-  let d = new_decl(DECL_ENUM, pos, name);
+  let d = new_decl(DeclKind.Enum, pos, name);
   d.enum_decl.type = type;
   d.enum_decl.items = ast_dup(items, num_items * sizeof(*items));
   d.enum_decl.num_items = num_items;
@@ -126,21 +126,21 @@ fn new_aggregate(pos: SrcPos, kind: AggregateKind, items: *AggregateItem, num_it
 }
 
 fn new_decl_aggregate(pos: SrcPos, kind: DeclKind, name: *const char, aggregate: &Aggregate) -> &Decl {
-  #assert(kind == DECL_STRUCT || kind == DECL_UNION);
+  #assert(kind == DeclKind.Struct || kind == DeclKind.Union);
   let d = new_decl(kind, pos, name);
   d.aggregate = aggregate;
   return d;
 }
 
 fn new_decl_var(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) -> &Decl {
-  let d = new_decl(DECL_VAR, pos, name);
+  let d = new_decl(DeclKind.Var, pos, name);
   d.var_decl.type = type;
   d.var_decl.expr = expr;
   return d;
 }
 
 fn new_decl_func(pos: SrcPos, name: *const char, params: *FuncParam, num_params: usize, ret_type: &Typespec, has_varargs: bool, block: StmtList) -> &Decl {
-  let d = new_decl(DECL_FUNC, pos, name);
+  let d = new_decl(DeclKind.Func, pos, name);
   d.function.params = ast_dup(params, num_params * sizeof(*params));
   d.function.num_params = num_params;
   d.function.ret_type = ret_type;
@@ -150,26 +150,26 @@ fn new_decl_func(pos: SrcPos, name: *const char, params: *FuncParam, num_params:
 }
 
 fn new_decl_const(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) -> &Decl {
-  let d = new_decl(DECL_CONST, pos, name);
+  let d = new_decl(DeclKind.Const, pos, name);
   d.const_decl.type = type;
   d.const_decl.expr = expr;
   return d;
 }
 
 fn new_decl_typedef(pos: SrcPos, name: *const char, type: &Typespec) -> &Decl {
-  let d = new_decl(DECL_TYPEDEF, pos, name);
+  let d = new_decl(DeclKind.Typedef, pos, name);
   d.typedef_decl.type = type;
   return d;
 }
 
 fn new_decl_note(pos: SrcPos, note: Note) -> &Decl {
-  let d = new_decl(DECL_NOTE, pos, NULL);
+  let d = new_decl(DeclKind.Note, pos, NULL);
   d.note = note;
   return d;
 }
 
 fn new_decl_import(pos: SrcPos, rename_name: *const char, is_relative: bool, names: **const char, num_names: usize, import_all: bool, items: *ImportItem, num_items: usize) -> &Decl {
-  let d = new_decl(DECL_IMPORT, pos, NULL);
+  let d = new_decl(DeclKind.Import, pos, NULL);
   d.name = rename_name;
   d.import_decl.is_relative = is_relative;
   d.import_decl.names = ast_dup(names, num_names * sizeof(*names));
