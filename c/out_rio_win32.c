@@ -1210,17 +1210,11 @@ char const ((*(*rio_dir_list_buf(char const ((*filespec))))));
 
 typedef int rio_FlagKind;
 
-#define rio_FLAG_BOOL ((rio_FlagKind)(0))
+#define rio_FlagKind_Bool ((rio_FlagKind)(0))
 
-#define rio_FlagKind_FLAG_BOOL ((rio_FlagKind)(0))
+#define rio_FlagKind_Str ((rio_FlagKind)((rio_FlagKind_Bool) + (1)))
 
-#define rio_FLAG_STR ((rio_FlagKind)((rio_FLAG_BOOL) + (1)))
-
-#define rio_FlagKind_FLAG_STR ((rio_FlagKind)((rio_FlagKind_FLAG_BOOL) + (1)))
-
-#define rio_FLAG_ENUM ((rio_FlagKind)((rio_FLAG_STR) + (1)))
-
-#define rio_FlagKind_FLAG_ENUM ((rio_FlagKind)((rio_FlagKind_FLAG_STR) + (1)))
+#define rio_FlagKind_Enum ((rio_FlagKind)((rio_FlagKind_Str) + (1)))
 
 extern rio_FlagDef (*rio_flag_defs);
 
@@ -5524,17 +5518,17 @@ char const ((*(*rio_dir_list_buf(char const ((*filespec)))))) {
 
 rio_FlagDef (*rio_flag_defs);
 void rio_add_flag_bool(char const ((*name)), bool (*ptr), char const ((*help))) {
-  rio_FlagDef def = {.kind = rio_FLAG_BOOL, .name = name, .help = help, .ptr = {.b = ptr}};
+  rio_FlagDef def = {.kind = rio_FlagKind_Bool, .name = name, .help = help, .ptr = {.b = ptr}};
   rio_buf_push((void (**))(&(rio_flag_defs)), &(def), sizeof(def));
 }
 
 void rio_add_flag_str(char const ((*name)), char const ((*(*ptr))), char const ((*arg_name)), char const ((*help))) {
-  rio_FlagDef def = {.kind = rio_FLAG_STR, .name = name, .help = help, .arg_name = arg_name, .ptr = {.s = ptr}};
+  rio_FlagDef def = {.kind = rio_FlagKind_Str, .name = name, .help = help, .arg_name = arg_name, .ptr = {.s = ptr}};
   rio_buf_push((void (**))(&(rio_flag_defs)), &(def), sizeof(def));
 }
 
 void rio_add_flag_enum(char const ((*name)), int (*ptr), char const ((*help)), char const ((*(*options))), int num_options) {
-  rio_FlagDef def = {.kind = rio_FLAG_ENUM, .name = name, .help = help, .ptr = {.i = ptr}, .options = options, .num_options = num_options};
+  rio_FlagDef def = {.kind = rio_FlagKind_Enum, .name = name, .help = help, .ptr = {.i = ptr}, .options = options, .num_options = num_options};
   rio_buf_push((void (**))(&(rio_flag_defs)), &(def), sizeof(def));
 }
 
@@ -5554,14 +5548,14 @@ void rio_print_flags_usage(void) {
     char (note[256]) = {0};
     char (format[256]) = {0};
     switch (flag.kind) {
-    case rio_FLAG_STR: {
+    case rio_FlagKind_Str: {
       snprintf(format, sizeof(format), "%s <%s>", flag.name, (flag.arg_name ? flag.arg_name : (char const (*))("value")));
       if (*(flag.ptr.s)) {
         snprintf(note, sizeof(note), "(default: %s)", *(flag.ptr.s));
       }
       break;
     }
-    case rio_FLAG_ENUM: {
+    case rio_FlagKind_Enum: {
       {
         char (*end) = (format) + (sizeof(format));
         char (*ptr) = format;
@@ -5576,7 +5570,7 @@ void rio_print_flags_usage(void) {
       }
       break;
     }
-    case rio_FLAG_BOOL:
+    case rio_FlagKind_Bool:
     default: {
       snprintf(format, sizeof(format), "%s", flag.name);
       break;
@@ -5604,11 +5598,11 @@ char const ((*rio_parse_flags(int (*argc_ptr), char const ((*(*(*argv_ptr)))))))
         continue;
       }
       switch (flag->kind) {
-      case rio_FLAG_BOOL: {
+      case rio_FlagKind_Bool: {
         *(flag->ptr.b) = true;
         break;
       }
-      case rio_FLAG_STR: {
+      case rio_FlagKind_Str: {
         if (((i) + (1)) < (argc)) {
           (i)++;
           *(flag->ptr.s) = argv[i];
@@ -5617,7 +5611,7 @@ char const ((*rio_parse_flags(int (*argc_ptr), char const ((*(*(*argv_ptr)))))))
         }
         break;
       }
-      case rio_FLAG_ENUM: {
+      case rio_FlagKind_Enum: {
         {
           char const ((*option)) = {0};
           if (((i) + (1)) < (argc)) {

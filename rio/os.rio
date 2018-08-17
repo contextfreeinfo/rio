@@ -89,10 +89,11 @@ fn dir_list_buf(filespec: *const char) -> **const char {
 
 // Command line flag parsing
 
+@scoped
 enum FlagKind {
-  FLAG_BOOL,
-  FLAG_STR,
-  FLAG_ENUM,
+  Bool,
+  Str,
+  Enum,
 }
 
 struct FlagDef {
@@ -114,17 +115,17 @@ struct FlagDefPtr {
 let flag_defs: *FlagDef;
 
 fn add_flag_bool(name: *const char, ptr: &bool, help: *const char) {
-  let def: FlagDef = {kind = FLAG_BOOL, name = name, help = help, ptr = {b = ptr}};
+  let def: FlagDef = {kind = FlagKind.Bool, name = name, help = help, ptr = {b = ptr}};
   buf_push((:*&void)&flag_defs, &def, sizeof(def));
 }
 
 fn add_flag_str(name: *const char, ptr: **const char, arg_name: *const char, help: *const char) {
-  let def: FlagDef = {kind = FLAG_STR, name = name, help = help, arg_name = arg_name, ptr = {s = ptr}};
+  let def: FlagDef = {kind = FlagKind.Str, name = name, help = help, arg_name = arg_name, ptr = {s = ptr}};
   buf_push((:*&void)&flag_defs, &def, sizeof(def));
 }
 
 fn add_flag_enum(name: *const char, ptr: &int, help: *const char, options: **const char, num_options: int) {
-  let def: FlagDef = {kind = FLAG_ENUM, name = name, help = help, ptr = {i = ptr}, options = options, num_options = num_options};
+  let def: FlagDef = {kind = FlagKind.Enum, name = name, help = help, ptr = {i = ptr}, options = options, num_options = num_options};
   buf_push((:*&void)&flag_defs, &def, sizeof(def));
 }
 
@@ -144,12 +145,12 @@ fn print_flags_usage() {
     let note: [256]char;
     let format: [256]char;
     switch (flag.kind) {
-    case FLAG_STR:
+    case FlagKind.Str:
       snprintf(format, sizeof(format), "%s <%s>", flag.name, flag.arg_name ? flag.arg_name : (:*const char)"value");
       if (*flag.ptr.s) {
         snprintf(note, sizeof(note), "(default: %s)", *flag.ptr.s);
       }
-    case FLAG_ENUM: {
+    case FlagKind.Enum: {
       let end = format + sizeof(format);
       let ptr = format;
       ptr += snprintf(ptr, end - ptr, "%s <", flag.name);
@@ -161,7 +162,7 @@ fn print_flags_usage() {
       }
       snprintf(ptr, end - ptr, ">");
     }
-    case FLAG_BOOL:
+    case FlagKind.Bool:
     default:
       snprintf(format, sizeof(format), "%s", flag.name);
     }
@@ -187,16 +188,16 @@ fn parse_flags(argc_ptr: &int, argv_ptr: &**const char) -> *const char {
         continue;
       }
       switch (flag.kind) {
-      case FLAG_BOOL:
+      case FlagKind.Bool:
         *flag.ptr.b = true;
-      case FLAG_STR:
+      case FlagKind.Str:
         if (i + 1 < argc) {
           i++;
           *flag.ptr.s = argv[i];
         } else {
           printf("No value argument after -%s\n", arg);
         }
-      case FLAG_ENUM: {
+      case FlagKind.Enum: {
         let option: *const char;
         if (i + 1 < argc) {
           i++;
