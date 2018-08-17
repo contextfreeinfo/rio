@@ -496,187 +496,97 @@ typedef int rio_AggregateItemKind;
 
 #define rio_DeclKind_Import ((rio_DeclKind)((rio_DeclKind_Note) + (1)))
 
-#define rio_AGGREGATE_NONE ((rio_AggregateKind)(0))
+#define rio_AggregateKind_None ((rio_AggregateKind)(0))
 
-#define rio_AggregateKind_AGGREGATE_NONE ((rio_AggregateKind)(0))
+#define rio_AggregateKind_Struct ((rio_AggregateKind)((rio_AggregateKind_None) + (1)))
 
-#define rio_AGGREGATE_STRUCT ((rio_AggregateKind)((rio_AGGREGATE_NONE) + (1)))
+#define rio_AggregateKind_Union ((rio_AggregateKind)((rio_AggregateKind_Struct) + (1)))
 
-#define rio_AggregateKind_AGGREGATE_STRUCT ((rio_AggregateKind)((rio_AggregateKind_AGGREGATE_NONE) + (1)))
+#define rio_ExprKind_None ((rio_ExprKind)(0))
 
-#define rio_AGGREGATE_UNION ((rio_AggregateKind)((rio_AGGREGATE_STRUCT) + (1)))
+#define rio_ExprKind_Paren ((rio_ExprKind)((rio_ExprKind_None) + (1)))
 
-#define rio_AggregateKind_AGGREGATE_UNION ((rio_AggregateKind)((rio_AggregateKind_AGGREGATE_STRUCT) + (1)))
+#define rio_ExprKind_Int ((rio_ExprKind)((rio_ExprKind_Paren) + (1)))
 
-#define rio_EXPR_NONE ((rio_ExprKind)(0))
+#define rio_ExprKind_Float ((rio_ExprKind)((rio_ExprKind_Int) + (1)))
 
-#define rio_ExprKind_EXPR_NONE ((rio_ExprKind)(0))
+#define rio_ExprKind_Str ((rio_ExprKind)((rio_ExprKind_Float) + (1)))
 
-#define rio_EXPR_PAREN ((rio_ExprKind)((rio_EXPR_NONE) + (1)))
+#define rio_ExprKind_Name ((rio_ExprKind)((rio_ExprKind_Str) + (1)))
 
-#define rio_ExprKind_EXPR_PAREN ((rio_ExprKind)((rio_ExprKind_EXPR_NONE) + (1)))
+#define rio_ExprKind_Cast ((rio_ExprKind)((rio_ExprKind_Name) + (1)))
 
-#define rio_EXPR_INT ((rio_ExprKind)((rio_EXPR_PAREN) + (1)))
+#define rio_ExprKind_Call ((rio_ExprKind)((rio_ExprKind_Cast) + (1)))
 
-#define rio_ExprKind_EXPR_INT ((rio_ExprKind)((rio_ExprKind_EXPR_PAREN) + (1)))
+#define rio_ExprKind_Index ((rio_ExprKind)((rio_ExprKind_Call) + (1)))
 
-#define rio_EXPR_FLOAT ((rio_ExprKind)((rio_EXPR_INT) + (1)))
+#define rio_ExprKind_Field ((rio_ExprKind)((rio_ExprKind_Index) + (1)))
 
-#define rio_ExprKind_EXPR_FLOAT ((rio_ExprKind)((rio_ExprKind_EXPR_INT) + (1)))
+#define rio_ExprKind_Compound ((rio_ExprKind)((rio_ExprKind_Field) + (1)))
 
-#define rio_EXPR_STR ((rio_ExprKind)((rio_EXPR_FLOAT) + (1)))
+#define rio_ExprKind_Unary ((rio_ExprKind)((rio_ExprKind_Compound) + (1)))
 
-#define rio_ExprKind_EXPR_STR ((rio_ExprKind)((rio_ExprKind_EXPR_FLOAT) + (1)))
+#define rio_ExprKind_Binary ((rio_ExprKind)((rio_ExprKind_Unary) + (1)))
 
-#define rio_EXPR_NAME ((rio_ExprKind)((rio_EXPR_STR) + (1)))
+#define rio_ExprKind_Ternary ((rio_ExprKind)((rio_ExprKind_Binary) + (1)))
 
-#define rio_ExprKind_EXPR_NAME ((rio_ExprKind)((rio_ExprKind_EXPR_STR) + (1)))
+#define rio_ExprKind_Modify ((rio_ExprKind)((rio_ExprKind_Ternary) + (1)))
 
-#define rio_EXPR_CAST ((rio_ExprKind)((rio_EXPR_NAME) + (1)))
+#define rio_ExprKind_SizeofExpr ((rio_ExprKind)((rio_ExprKind_Modify) + (1)))
 
-#define rio_ExprKind_EXPR_CAST ((rio_ExprKind)((rio_ExprKind_EXPR_NAME) + (1)))
+#define rio_ExprKind_SizeofType ((rio_ExprKind)((rio_ExprKind_SizeofExpr) + (1)))
 
-#define rio_EXPR_CALL ((rio_ExprKind)((rio_EXPR_CAST) + (1)))
+#define rio_ExprKind_TypeofExpr ((rio_ExprKind)((rio_ExprKind_SizeofType) + (1)))
 
-#define rio_ExprKind_EXPR_CALL ((rio_ExprKind)((rio_ExprKind_EXPR_CAST) + (1)))
+#define rio_ExprKind_TypeofType ((rio_ExprKind)((rio_ExprKind_TypeofExpr) + (1)))
 
-#define rio_EXPR_INDEX ((rio_ExprKind)((rio_EXPR_CALL) + (1)))
+#define rio_ExprKind_AlignofExpr ((rio_ExprKind)((rio_ExprKind_TypeofType) + (1)))
 
-#define rio_ExprKind_EXPR_INDEX ((rio_ExprKind)((rio_ExprKind_EXPR_CALL) + (1)))
+#define rio_ExprKind_AlignofType ((rio_ExprKind)((rio_ExprKind_AlignofExpr) + (1)))
 
-#define rio_EXPR_FIELD ((rio_ExprKind)((rio_EXPR_INDEX) + (1)))
-
-#define rio_ExprKind_EXPR_FIELD ((rio_ExprKind)((rio_ExprKind_EXPR_INDEX) + (1)))
-
-#define rio_EXPR_COMPOUND ((rio_ExprKind)((rio_EXPR_FIELD) + (1)))
-
-#define rio_ExprKind_EXPR_COMPOUND ((rio_ExprKind)((rio_ExprKind_EXPR_FIELD) + (1)))
-
-#define rio_EXPR_UNARY ((rio_ExprKind)((rio_EXPR_COMPOUND) + (1)))
-
-#define rio_ExprKind_EXPR_UNARY ((rio_ExprKind)((rio_ExprKind_EXPR_COMPOUND) + (1)))
-
-#define rio_EXPR_BINARY ((rio_ExprKind)((rio_EXPR_UNARY) + (1)))
-
-#define rio_ExprKind_EXPR_BINARY ((rio_ExprKind)((rio_ExprKind_EXPR_UNARY) + (1)))
-
-#define rio_EXPR_TERNARY ((rio_ExprKind)((rio_EXPR_BINARY) + (1)))
-
-#define rio_ExprKind_EXPR_TERNARY ((rio_ExprKind)((rio_ExprKind_EXPR_BINARY) + (1)))
-
-#define rio_EXPR_MODIFY ((rio_ExprKind)((rio_EXPR_TERNARY) + (1)))
-
-#define rio_ExprKind_EXPR_MODIFY ((rio_ExprKind)((rio_ExprKind_EXPR_TERNARY) + (1)))
-
-#define rio_EXPR_SIZEOF_EXPR ((rio_ExprKind)((rio_EXPR_MODIFY) + (1)))
-
-#define rio_ExprKind_EXPR_SIZEOF_EXPR ((rio_ExprKind)((rio_ExprKind_EXPR_MODIFY) + (1)))
-
-#define rio_EXPR_SIZEOF_TYPE ((rio_ExprKind)((rio_EXPR_SIZEOF_EXPR) + (1)))
-
-#define rio_ExprKind_EXPR_SIZEOF_TYPE ((rio_ExprKind)((rio_ExprKind_EXPR_SIZEOF_EXPR) + (1)))
-
-#define rio_EXPR_TYPEOF_EXPR ((rio_ExprKind)((rio_EXPR_SIZEOF_TYPE) + (1)))
-
-#define rio_ExprKind_EXPR_TYPEOF_EXPR ((rio_ExprKind)((rio_ExprKind_EXPR_SIZEOF_TYPE) + (1)))
-
-#define rio_EXPR_TYPEOF_TYPE ((rio_ExprKind)((rio_EXPR_TYPEOF_EXPR) + (1)))
-
-#define rio_ExprKind_EXPR_TYPEOF_TYPE ((rio_ExprKind)((rio_ExprKind_EXPR_TYPEOF_EXPR) + (1)))
-
-#define rio_EXPR_ALIGNOF_EXPR ((rio_ExprKind)((rio_EXPR_TYPEOF_TYPE) + (1)))
-
-#define rio_ExprKind_EXPR_ALIGNOF_EXPR ((rio_ExprKind)((rio_ExprKind_EXPR_TYPEOF_TYPE) + (1)))
-
-#define rio_EXPR_ALIGNOF_TYPE ((rio_ExprKind)((rio_EXPR_ALIGNOF_EXPR) + (1)))
-
-#define rio_ExprKind_EXPR_ALIGNOF_TYPE ((rio_ExprKind)((rio_ExprKind_EXPR_ALIGNOF_EXPR) + (1)))
-
-#define rio_EXPR_OFFSETOF ((rio_ExprKind)((rio_EXPR_ALIGNOF_TYPE) + (1)))
-
-#define rio_ExprKind_EXPR_OFFSETOF ((rio_ExprKind)((rio_ExprKind_EXPR_ALIGNOF_TYPE) + (1)))
+#define rio_ExprKind_Offsetof ((rio_ExprKind)((rio_ExprKind_AlignofType) + (1)))
 
 typedef int rio_CompoundFieldKind;
 
-#define rio_FIELD_DEFAULT ((rio_CompoundFieldKind)(0))
+#define rio_CompoundFieldKind_Default ((rio_CompoundFieldKind)(0))
 
-#define rio_CompoundFieldKind_FIELD_DEFAULT ((rio_CompoundFieldKind)(0))
+#define rio_CompoundFieldKind_Name ((rio_CompoundFieldKind)((rio_CompoundFieldKind_Default) + (1)))
 
-#define rio_FIELD_NAME ((rio_CompoundFieldKind)((rio_FIELD_DEFAULT) + (1)))
+#define rio_CompoundFieldKind_Index ((rio_CompoundFieldKind)((rio_CompoundFieldKind_Name) + (1)))
 
-#define rio_CompoundFieldKind_FIELD_NAME ((rio_CompoundFieldKind)((rio_CompoundFieldKind_FIELD_DEFAULT) + (1)))
+#define rio_StmtKind_None ((rio_StmtKind)(0))
 
-#define rio_FIELD_INDEX ((rio_CompoundFieldKind)((rio_FIELD_NAME) + (1)))
+#define rio_StmtKind_Decl ((rio_StmtKind)((rio_StmtKind_None) + (1)))
 
-#define rio_CompoundFieldKind_FIELD_INDEX ((rio_CompoundFieldKind)((rio_CompoundFieldKind_FIELD_NAME) + (1)))
+#define rio_StmtKind_Return ((rio_StmtKind)((rio_StmtKind_Decl) + (1)))
 
-#define rio_STMT_NONE ((rio_StmtKind)(0))
+#define rio_StmtKind_Break ((rio_StmtKind)((rio_StmtKind_Return) + (1)))
 
-#define rio_StmtKind_STMT_NONE ((rio_StmtKind)(0))
+#define rio_StmtKind_Continue ((rio_StmtKind)((rio_StmtKind_Break) + (1)))
 
-#define rio_STMT_DECL ((rio_StmtKind)((rio_STMT_NONE) + (1)))
+#define rio_StmtKind_Block ((rio_StmtKind)((rio_StmtKind_Continue) + (1)))
 
-#define rio_StmtKind_STMT_DECL ((rio_StmtKind)((rio_StmtKind_STMT_NONE) + (1)))
+#define rio_StmtKind_If ((rio_StmtKind)((rio_StmtKind_Block) + (1)))
 
-#define rio_STMT_RETURN ((rio_StmtKind)((rio_STMT_DECL) + (1)))
+#define rio_StmtKind_While ((rio_StmtKind)((rio_StmtKind_If) + (1)))
 
-#define rio_StmtKind_STMT_RETURN ((rio_StmtKind)((rio_StmtKind_STMT_DECL) + (1)))
+#define rio_StmtKind_DoWhile ((rio_StmtKind)((rio_StmtKind_While) + (1)))
 
-#define rio_STMT_BREAK ((rio_StmtKind)((rio_STMT_RETURN) + (1)))
+#define rio_StmtKind_For ((rio_StmtKind)((rio_StmtKind_DoWhile) + (1)))
 
-#define rio_StmtKind_STMT_BREAK ((rio_StmtKind)((rio_StmtKind_STMT_RETURN) + (1)))
+#define rio_StmtKind_Switch ((rio_StmtKind)((rio_StmtKind_For) + (1)))
 
-#define rio_STMT_CONTINUE ((rio_StmtKind)((rio_STMT_BREAK) + (1)))
+#define rio_StmtKind_Assign ((rio_StmtKind)((rio_StmtKind_Switch) + (1)))
 
-#define rio_StmtKind_STMT_CONTINUE ((rio_StmtKind)((rio_StmtKind_STMT_BREAK) + (1)))
+#define rio_StmtKind_Init ((rio_StmtKind)((rio_StmtKind_Assign) + (1)))
 
-#define rio_STMT_BLOCK ((rio_StmtKind)((rio_STMT_CONTINUE) + (1)))
+#define rio_StmtKind_Expr ((rio_StmtKind)((rio_StmtKind_Init) + (1)))
 
-#define rio_StmtKind_STMT_BLOCK ((rio_StmtKind)((rio_StmtKind_STMT_CONTINUE) + (1)))
+#define rio_StmtKind_Note ((rio_StmtKind)((rio_StmtKind_Expr) + (1)))
 
-#define rio_STMT_IF ((rio_StmtKind)((rio_STMT_BLOCK) + (1)))
+#define rio_StmtKind_Label ((rio_StmtKind)((rio_StmtKind_Note) + (1)))
 
-#define rio_StmtKind_STMT_IF ((rio_StmtKind)((rio_StmtKind_STMT_BLOCK) + (1)))
-
-#define rio_STMT_WHILE ((rio_StmtKind)((rio_STMT_IF) + (1)))
-
-#define rio_StmtKind_STMT_WHILE ((rio_StmtKind)((rio_StmtKind_STMT_IF) + (1)))
-
-#define rio_STMT_DO_WHILE ((rio_StmtKind)((rio_STMT_WHILE) + (1)))
-
-#define rio_StmtKind_STMT_DO_WHILE ((rio_StmtKind)((rio_StmtKind_STMT_WHILE) + (1)))
-
-#define rio_STMT_FOR ((rio_StmtKind)((rio_STMT_DO_WHILE) + (1)))
-
-#define rio_StmtKind_STMT_FOR ((rio_StmtKind)((rio_StmtKind_STMT_DO_WHILE) + (1)))
-
-#define rio_STMT_SWITCH ((rio_StmtKind)((rio_STMT_FOR) + (1)))
-
-#define rio_StmtKind_STMT_SWITCH ((rio_StmtKind)((rio_StmtKind_STMT_FOR) + (1)))
-
-#define rio_STMT_ASSIGN ((rio_StmtKind)((rio_STMT_SWITCH) + (1)))
-
-#define rio_StmtKind_STMT_ASSIGN ((rio_StmtKind)((rio_StmtKind_STMT_SWITCH) + (1)))
-
-#define rio_STMT_INIT ((rio_StmtKind)((rio_STMT_ASSIGN) + (1)))
-
-#define rio_StmtKind_STMT_INIT ((rio_StmtKind)((rio_StmtKind_STMT_ASSIGN) + (1)))
-
-#define rio_STMT_EXPR ((rio_StmtKind)((rio_STMT_INIT) + (1)))
-
-#define rio_StmtKind_STMT_EXPR ((rio_StmtKind)((rio_StmtKind_STMT_INIT) + (1)))
-
-#define rio_STMT_NOTE ((rio_StmtKind)((rio_STMT_EXPR) + (1)))
-
-#define rio_StmtKind_STMT_NOTE ((rio_StmtKind)((rio_StmtKind_STMT_EXPR) + (1)))
-
-#define rio_STMT_LABEL ((rio_StmtKind)((rio_STMT_NOTE) + (1)))
-
-#define rio_StmtKind_STMT_LABEL ((rio_StmtKind)((rio_StmtKind_STMT_NOTE) + (1)))
-
-#define rio_STMT_GOTO ((rio_StmtKind)((rio_STMT_LABEL) + (1)))
-
-#define rio_StmtKind_STMT_GOTO ((rio_StmtKind)((rio_StmtKind_STMT_LABEL) + (1)))
+#define rio_StmtKind_Goto ((rio_StmtKind)((rio_StmtKind_Label) + (1)))
 
 size_t rio_min(size_t x, size_t y);
 
@@ -2846,56 +2756,56 @@ rio_Expr (*rio_new_expr(rio_ExprKind kind, rio_SrcPos pos)) {
 }
 
 rio_Expr (*rio_new_expr_paren(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_PAREN, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Paren, pos);
   e->paren.expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_sizeof_expr(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_SIZEOF_EXPR, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_SizeofExpr, pos);
   e->sizeof_expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_sizeof_type(rio_SrcPos pos, rio_Typespec (*type))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_SIZEOF_TYPE, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_SizeofType, pos);
   e->sizeof_type = type;
   return e;
 }
 
 rio_Expr (*rio_new_expr_typeof_expr(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_TYPEOF_EXPR, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_TypeofExpr, pos);
   e->typeof_expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_typeof_type(rio_SrcPos pos, rio_Typespec (*type))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_TYPEOF_TYPE, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_TypeofType, pos);
   e->typeof_type = type;
   return e;
 }
 
 rio_Expr (*rio_new_expr_alignof_expr(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_ALIGNOF_EXPR, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_AlignofExpr, pos);
   e->alignof_expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_alignof_type(rio_SrcPos pos, rio_Typespec (*type))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_ALIGNOF_TYPE, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_AlignofType, pos);
   e->alignof_type = type;
   return e;
 }
 
 rio_Expr (*rio_new_expr_offsetof(rio_SrcPos pos, rio_Typespec (*type), char const ((*name)))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_OFFSETOF, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Offsetof, pos);
   e->offsetof_field.type = type;
   e->offsetof_field.name = name;
   return e;
 }
 
 rio_Expr (*rio_new_expr_modify(rio_SrcPos pos, rio_TokenKind op, bool post, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_MODIFY, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Modify, pos);
   e->modify.op = op;
   e->modify.post = post;
   e->modify.expr = expr;
@@ -2903,7 +2813,7 @@ rio_Expr (*rio_new_expr_modify(rio_SrcPos pos, rio_TokenKind op, bool post, rio_
 }
 
 rio_Expr (*rio_new_expr_int(rio_SrcPos pos, ullong val, rio_TokenMod mod, rio_TokenSuffix suffix)) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_INT, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Int, pos);
   e->int_lit.val = val;
   e->int_lit.mod = mod;
   e->int_lit.suffix = suffix;
@@ -2911,7 +2821,7 @@ rio_Expr (*rio_new_expr_int(rio_SrcPos pos, ullong val, rio_TokenMod mod, rio_To
 }
 
 rio_Expr (*rio_new_expr_float(rio_SrcPos pos, char const ((*start)), char const ((*end)), double val, rio_TokenSuffix suffix)) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_FLOAT, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Float, pos);
   e->float_lit.start = start;
   e->float_lit.end = end;
   e->float_lit.val = val;
@@ -2920,20 +2830,20 @@ rio_Expr (*rio_new_expr_float(rio_SrcPos pos, char const ((*start)), char const 
 }
 
 rio_Expr (*rio_new_expr_str(rio_SrcPos pos, char const ((*val)), rio_TokenMod mod)) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_STR, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Str, pos);
   e->str_lit.val = val;
   e->str_lit.mod = mod;
   return e;
 }
 
 rio_Expr (*rio_new_expr_name(rio_SrcPos pos, char const ((*name)))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_NAME, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Name, pos);
   e->name = name;
   return e;
 }
 
 rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_CompoundField (*fields), size_t num_fields)) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_COMPOUND, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Compound, pos);
   e->compound.type = type;
   e->compound.fields = rio_ast_dup(fields, (num_fields) * (sizeof(*(fields))));
   e->compound.num_fields = num_fields;
@@ -2941,14 +2851,14 @@ rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_Compo
 }
 
 rio_Expr (*rio_new_expr_cast(rio_SrcPos pos, rio_Typespec (*type), rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_CAST, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Cast, pos);
   e->cast.type = type;
   e->cast.expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_call(rio_SrcPos pos, rio_Expr (*expr), rio_Expr (*(*args)), size_t num_args)) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_CALL, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Call, pos);
   e->call.expr = expr;
   e->call.args = rio_ast_dup(args, (num_args) * (sizeof(*(args))));
   e->call.num_args = num_args;
@@ -2956,28 +2866,28 @@ rio_Expr (*rio_new_expr_call(rio_SrcPos pos, rio_Expr (*expr), rio_Expr (*(*args
 }
 
 rio_Expr (*rio_new_expr_index(rio_SrcPos pos, rio_Expr (*expr), rio_Expr (*index))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_INDEX, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Index, pos);
   e->index.expr = expr;
   e->index.index = index;
   return e;
 }
 
 rio_Expr (*rio_new_expr_field(rio_SrcPos pos, rio_Expr (*expr), char const ((*name)))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_FIELD, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Field, pos);
   e->field.expr = expr;
   e->field.name = name;
   return e;
 }
 
 rio_Expr (*rio_new_expr_unary(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_UNARY, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Unary, pos);
   e->unary.op = op;
   e->unary.expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_binary(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left), rio_Expr (*right))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_BINARY, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Binary, pos);
   e->binary.op = op;
   e->binary.left = left;
   e->binary.right = right;
@@ -2985,7 +2895,7 @@ rio_Expr (*rio_new_expr_binary(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left
 }
 
 rio_Expr (*rio_new_expr_ternary(rio_SrcPos pos, rio_Expr (*cond), rio_Expr (*then_expr), rio_Expr (*else_expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_EXPR_TERNARY, pos);
+  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Ternary, pos);
   e->ternary.cond = cond;
   e->ternary.then_expr = then_expr;
   e->ternary.else_expr = else_expr;
@@ -3010,51 +2920,51 @@ rio_Stmt (*rio_new_stmt(rio_StmtKind kind, rio_SrcPos pos)) {
 }
 
 rio_Stmt (*rio_new_stmt_label(rio_SrcPos pos, char const ((*label)))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_LABEL, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Label, pos);
   s->label = label;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_goto(rio_SrcPos pos, char const ((*label)))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_GOTO, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Goto, pos);
   s->label = label;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_note(rio_SrcPos pos, rio_Note note)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_NOTE, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Note, pos);
   s->note = note;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_decl(rio_SrcPos pos, rio_Decl (*decl))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_DECL, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Decl, pos);
   s->decl = decl;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_return(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_RETURN, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Return, pos);
   s->expr = expr;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_break(rio_SrcPos pos)) {
-  return rio_new_stmt(rio_STMT_BREAK, pos);
+  return rio_new_stmt(rio_StmtKind_Break, pos);
 }
 
 rio_Stmt (*rio_new_stmt_continue(rio_SrcPos pos)) {
-  return rio_new_stmt(rio_STMT_CONTINUE, pos);
+  return rio_new_stmt(rio_StmtKind_Continue, pos);
 }
 
 rio_Stmt (*rio_new_stmt_block(rio_SrcPos pos, rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_BLOCK, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Block, pos);
   s->block = block;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_StmtList then_block, rio_ElseIf (*elseifs), size_t num_elseifs, rio_StmtList else_block)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_IF, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_If, pos);
   s->if_stmt.init = init;
   s->if_stmt.cond = cond;
   s->if_stmt.then_block = then_block;
@@ -3065,21 +2975,21 @@ rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), r
 }
 
 rio_Stmt (*rio_new_stmt_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_WHILE, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_While, pos);
   s->while_stmt.cond = cond;
   s->while_stmt.block = block;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_do_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_DO_WHILE, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_DoWhile, pos);
   s->while_stmt.cond = cond;
   s->while_stmt.block = block;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_Stmt (*next), rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_FOR, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_For, pos);
   s->for_stmt.init = init;
   s->for_stmt.cond = cond;
   s->for_stmt.next = next;
@@ -3088,7 +2998,7 @@ rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), 
 }
 
 rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_SwitchCase (*cases), size_t num_cases)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_SWITCH, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Switch, pos);
   s->switch_stmt.expr = expr;
   s->switch_stmt.cases = rio_ast_dup(cases, (num_cases) * (sizeof(*(cases))));
   s->switch_stmt.num_cases = num_cases;
@@ -3096,7 +3006,7 @@ rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_SwitchCase 
 }
 
 rio_Stmt (*rio_new_stmt_assign(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left), rio_Expr (*right))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_ASSIGN, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Assign, pos);
   s->assign.op = op;
   s->assign.left = left;
   s->assign.right = right;
@@ -3104,7 +3014,7 @@ rio_Stmt (*rio_new_stmt_assign(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left
 }
 
 rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, rio_Typespec (*type), rio_Expr (*expr))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_INIT, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Init, pos);
   s->init.name = name;
   s->init.is_mut = is_mut;
   s->init.type = type;
@@ -3113,7 +3023,7 @@ rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, 
 }
 
 rio_Stmt (*rio_new_stmt_expr(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_STMT_EXPR, pos);
+  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Expr, pos);
   s->expr = expr;
   return s;
 }
@@ -3887,7 +3797,7 @@ void rio_gen_aggregate_items(rio_Aggregate (*aggregate)) {
       }
     } else if ((item.kind) == (rio_AggregateItemKind_Subaggregate)) {
       rio_genln();
-      rio_buf_printf(&(rio_gen_buf), "%s {", ((item.subaggregate->kind) == (rio_AGGREGATE_STRUCT) ? "struct" : "union"));
+      rio_buf_printf(&(rio_gen_buf), "%s {", ((item.subaggregate->kind) == (rio_AggregateKind_Struct) ? "struct" : "union"));
       rio_gen_aggregate_items(item.subaggregate);
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "};");
@@ -3930,9 +3840,9 @@ void rio_gen_expr_compound(rio_Expr (*expr)) {
       rio_buf_printf(&(rio_gen_buf), ", ");
     }
     rio_CompoundField field = expr->compound.fields[i];
-    if ((field.kind) == (rio_FIELD_NAME)) {
+    if ((field.kind) == (rio_CompoundFieldKind_Name)) {
       rio_buf_printf(&(rio_gen_buf), ".%s = ", field.name);
-    } else if ((field.kind) == (rio_FIELD_INDEX)) {
+    } else if ((field.kind) == (rio_CompoundFieldKind_Index)) {
       rio_buf_printf(&(rio_gen_buf), "[");
       rio_gen_expr(field.index);
       rio_buf_printf(&(rio_gen_buf), "] = ");
@@ -3977,13 +3887,13 @@ void rio_gen_typeid(rio_Type (*type)) {
 
 void rio_gen_expr(rio_Expr (*expr)) {
   switch (expr->kind) {
-  case rio_EXPR_PAREN: {
+  case rio_ExprKind_Paren: {
     rio_buf_printf(&(rio_gen_buf), "(");
     rio_gen_expr(expr->paren.expr);
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_EXPR_INT: {
+  case rio_ExprKind_Int: {
     {
       char const ((*suffix_name)) = rio_token_suffix_names[expr->int_lit.suffix];
       switch (expr->int_lit.mod) {
@@ -4008,7 +3918,7 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  case rio_EXPR_FLOAT: {
+  case rio_ExprKind_Float: {
     {
       int is_double = (expr->float_lit.suffix) == (rio_SUFFIX_D);
       size_t len = (expr->float_lit.end) - (expr->float_lit.start);
@@ -4016,21 +3926,21 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  case rio_EXPR_STR: {
+  case rio_ExprKind_Str: {
     rio_gen_str(expr->str_lit.val, (expr->str_lit.mod) == (rio_MOD_MULTILINE));
     break;
   }
-  case rio_EXPR_NAME: {
+  case rio_ExprKind_Name: {
     rio_buf_printf(&(rio_gen_buf), "%s", rio_get_gen_name_or_default(expr, expr->name));
     break;
   }
-  case rio_EXPR_CAST: {
+  case rio_ExprKind_Cast: {
     rio_buf_printf(&(rio_gen_buf), "(%s)(", rio_typespec_to_cdecl(expr->cast.type, ""));
     rio_gen_expr(expr->cast.expr);
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_EXPR_CALL: {
+  case rio_ExprKind_Call: {
     {
       rio_Sym (*sym) = rio_get_resolved_sym(expr->call.expr);
       if ((sym) && ((sym->kind) == (rio_SYM_TYPE))) {
@@ -4049,14 +3959,14 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  case rio_EXPR_INDEX: {
+  case rio_ExprKind_Index: {
     rio_gen_expr(expr->index.expr);
     rio_buf_printf(&(rio_gen_buf), "[");
     rio_gen_expr(expr->index.index);
     rio_buf_printf(&(rio_gen_buf), "]");
     break;
   }
-  case rio_EXPR_FIELD: {
+  case rio_ExprKind_Field: {
     {
       rio_Sym (*sym) = rio_get_resolved_sym(expr);
       if (sym) {
@@ -4069,17 +3979,17 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  case rio_EXPR_COMPOUND: {
+  case rio_ExprKind_Compound: {
     rio_gen_expr_compound(expr);
     break;
   }
-  case rio_EXPR_UNARY: {
+  case rio_ExprKind_Unary: {
     rio_buf_printf(&(rio_gen_buf), "%s(", rio_token_kind_name(expr->unary.op));
     rio_gen_expr(expr->unary.expr);
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_EXPR_BINARY: {
+  case rio_ExprKind_Binary: {
     rio_buf_printf(&(rio_gen_buf), "(");
     rio_gen_expr(expr->binary.left);
     rio_buf_printf(&(rio_gen_buf), ") %s (", rio_token_kind_name(expr->binary.op));
@@ -4087,7 +3997,7 @@ void rio_gen_expr(rio_Expr (*expr)) {
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_EXPR_TERNARY: {
+  case rio_ExprKind_Ternary: {
     rio_buf_printf(&(rio_gen_buf), "(");
     rio_gen_expr(expr->ternary.cond);
     rio_buf_printf(&(rio_gen_buf), " ? ");
@@ -4097,25 +4007,25 @@ void rio_gen_expr(rio_Expr (*expr)) {
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_EXPR_SIZEOF_EXPR: {
+  case rio_ExprKind_SizeofExpr: {
     rio_buf_printf(&(rio_gen_buf), "sizeof(");
     rio_gen_expr(expr->sizeof_expr);
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_EXPR_SIZEOF_TYPE: {
+  case rio_ExprKind_SizeofType: {
     rio_buf_printf(&(rio_gen_buf), "sizeof(%s)", rio_typespec_to_cdecl(expr->sizeof_type, ""));
     break;
   }
-  case rio_EXPR_ALIGNOF_EXPR: {
+  case rio_ExprKind_AlignofExpr: {
     rio_buf_printf(&(rio_gen_buf), "alignof(%s)", rio_type_to_cdecl(rio_get_resolved_type(expr->alignof_expr), ""));
     break;
   }
-  case rio_EXPR_ALIGNOF_TYPE: {
+  case rio_ExprKind_AlignofType: {
     rio_buf_printf(&(rio_gen_buf), "alignof(%s)", rio_typespec_to_cdecl(expr->alignof_type, ""));
     break;
   }
-  case rio_EXPR_TYPEOF_EXPR: {
+  case rio_ExprKind_TypeofExpr: {
     {
       rio_Type (*type) = rio_get_resolved_type(expr->typeof_expr);
       assert(type->typeid);
@@ -4123,7 +4033,7 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  case rio_EXPR_TYPEOF_TYPE: {
+  case rio_ExprKind_TypeofType: {
     {
       rio_Type (*type) = rio_get_resolved_type(expr->typeof_type);
       assert(type->typeid);
@@ -4131,11 +4041,11 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  case rio_EXPR_OFFSETOF: {
+  case rio_ExprKind_Offsetof: {
     rio_buf_printf(&(rio_gen_buf), "offsetof(%s, %s)", rio_typespec_to_cdecl(expr->offsetof_field.type, ""), expr->offsetof_field.name);
     break;
   }
-  case rio_EXPR_MODIFY: {
+  case rio_ExprKind_Modify: {
     if (!(expr->modify.post)) {
       rio_buf_printf(&(rio_gen_buf), "%s", rio_token_kind_name(expr->modify.op));
     }
@@ -4165,11 +4075,11 @@ void rio_gen_stmt_block(rio_StmtList block) {
 
 void rio_gen_simple_stmt(rio_Stmt (*stmt)) {
   switch (stmt->kind) {
-  case rio_STMT_EXPR: {
+  case rio_StmtKind_Expr: {
     rio_gen_expr(stmt->expr);
     break;
   }
-  case rio_STMT_INIT: {
+  case rio_StmtKind_Init: {
     if (stmt->init.type) {
       rio_Typespec (*init_typespec) = stmt->init.type;
       if (rio_is_incomplete_array_typespec(stmt->init.type)) {
@@ -4188,7 +4098,7 @@ void rio_gen_simple_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case rio_STMT_ASSIGN: {
+  case rio_StmtKind_Assign: {
     rio_gen_expr(stmt->assign.left);
     rio_buf_printf(&(rio_gen_buf), " %s ", rio_token_kind_name(stmt->assign.op));
     rio_gen_expr(stmt->assign.right);
@@ -4202,13 +4112,13 @@ void rio_gen_simple_stmt(rio_Stmt (*stmt)) {
 }
 
 bool rio_is_char_lit(rio_Expr (*expr)) {
-  return ((expr->kind) == (rio_EXPR_INT)) && ((expr->int_lit.mod) == (rio_MOD_CHAR));
+  return ((expr->kind) == (rio_ExprKind_Int)) && ((expr->int_lit.mod) == (rio_MOD_CHAR));
 }
 
 void rio_gen_stmt(rio_Stmt (*stmt)) {
   rio_gen_sync_pos(stmt->pos);
   switch (stmt->kind) {
-  case rio_STMT_RETURN: {
+  case rio_StmtKind_Return: {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "return");
     if (stmt->expr) {
@@ -4218,22 +4128,22 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_buf_printf(&(rio_gen_buf), ";");
     break;
   }
-  case rio_STMT_BREAK: {
+  case rio_StmtKind_Break: {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "break;");
     break;
   }
-  case rio_STMT_CONTINUE: {
+  case rio_StmtKind_Continue: {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "continue;");
     break;
   }
-  case rio_STMT_BLOCK: {
+  case rio_StmtKind_Block: {
     rio_genln();
     rio_gen_stmt_block(stmt->block);
     break;
   }
-  case rio_STMT_NOTE: {
+  case rio_StmtKind_Note: {
     if ((stmt->note.name) == (rio_assert_name)) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "assert(");
@@ -4243,7 +4153,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case rio_STMT_IF: {
+  case rio_StmtKind_If: {
     if (stmt->if_stmt.init) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "{");
@@ -4290,7 +4200,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case rio_STMT_WHILE: {
+  case rio_StmtKind_While: {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "while (");
     rio_gen_expr(stmt->while_stmt.cond);
@@ -4298,7 +4208,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_gen_stmt_block(stmt->while_stmt.block);
     break;
   }
-  case rio_STMT_DO_WHILE: {
+  case rio_StmtKind_DoWhile: {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "do ");
     rio_gen_stmt_block(stmt->while_stmt.block);
@@ -4307,7 +4217,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_buf_printf(&(rio_gen_buf), ");");
     break;
   }
-  case rio_STMT_FOR: {
+  case rio_StmtKind_For: {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "for (");
     if (stmt->for_stmt.init) {
@@ -4327,7 +4237,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_gen_stmt_block(stmt->for_stmt.block);
     break;
   }
-  case rio_STMT_SWITCH: {
+  case rio_StmtKind_Switch: {
     {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "switch (");
@@ -4402,12 +4312,12 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case rio_STMT_LABEL: {
+  case rio_StmtKind_Label: {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "%s: ;", stmt->label);
     break;
   }
-  case rio_STMT_GOTO: {
+  case rio_StmtKind_Goto: {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "goto %s;", stmt->label);
     break;
@@ -4604,7 +4514,7 @@ void rio_preprocess_package(rio_Package (*package)) {
       for (size_t k = 0; (k) < (note.num_args); (k)++) {
         rio_NoteArg arg = note.args[k];
         rio_Expr (*expr) = note.args[k].expr;
-        if ((expr->kind) != (rio_EXPR_STR)) {
+        if ((expr->kind) != (rio_ExprKind_Str)) {
           rio_fatal_error(decl->pos, "#foreign argument must be a string");
         }
         char const ((*str)) = expr->str_lit.val;
@@ -6041,16 +5951,16 @@ rio_CompoundField rio_parse_expr_compound_field(void) {
     rio_Expr (*index) = rio_parse_expr();
     rio_expect_token(rio_TOKEN_RBRACKET);
     rio_expect_token(rio_TOKEN_ASSIGN);
-    return (rio_CompoundField){rio_FIELD_INDEX, pos, rio_parse_expr(), .index = index};
+    return (rio_CompoundField){rio_CompoundFieldKind_Index, pos, rio_parse_expr(), .index = index};
   } else {
     rio_Expr (*expr) = rio_parse_expr();
     if (rio_match_token(rio_TOKEN_ASSIGN)) {
-      if ((expr->kind) != (rio_EXPR_NAME)) {
+      if ((expr->kind) != (rio_ExprKind_Name)) {
         rio_fatal_error(rio_token.pos, "Named initializer in compound literal must be preceded by field name");
       }
-      return (rio_CompoundField){rio_FIELD_NAME, pos, rio_parse_expr(), .name = expr->name};
+      return (rio_CompoundField){rio_CompoundFieldKind_Name, pos, rio_parse_expr(), .name = expr->name};
     } else {
-      return (rio_CompoundField){rio_FIELD_DEFAULT, pos, expr};
+      return (rio_CompoundField){rio_CompoundFieldKind_Default, pos, expr};
     }
   }
 }
@@ -6387,7 +6297,7 @@ rio_Stmt (*rio_parse_simple_stmt(void)) {
     stmt = rio_parse_let_stmt(pos);
   } else {
     rio_Expr (*expr) = rio_parse_expr();
-    if (((expr->kind) == (rio_EXPR_NAME)) && (rio_match_token(rio_TOKEN_COLON))) {
+    if (((expr->kind) == (rio_ExprKind_Name)) && (rio_match_token(rio_TOKEN_COLON))) {
       stmt = rio_new_stmt_label(pos, expr->name);
     } else if (rio_is_assign_op()) {
       rio_TokenKind op = rio_token.kind;
@@ -6415,7 +6325,7 @@ rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
   if (rio_match_token(rio_TOKEN_SEMICOLON)) {
     if (!(rio_is_token(rio_TOKEN_RPAREN))) {
       next = rio_parse_simple_stmt();
-      if ((next->kind) == (rio_STMT_INIT)) {
+      if ((next->kind) == (rio_StmtKind_Init)) {
         rio_error(rio_token.pos, "Init statements not allowed in for-statement\'s next clause");
       }
     }
@@ -6518,7 +6428,7 @@ rio_Stmt (*rio_parse_stmt(void)) {
     rio_expect_token(rio_TOKEN_SEMICOLON);
   } else {
     stmt = rio_parse_simple_stmt();
-    if ((stmt->kind) != (rio_STMT_LABEL)) {
+    if ((stmt->kind) != (rio_StmtKind_Label)) {
       rio_expect_token(rio_TOKEN_SEMICOLON);
     }
   }
@@ -6567,9 +6477,9 @@ rio_Decl (*rio_parse_decl_enum(rio_SrcPos pos)) {
 rio_AggregateItem rio_parse_decl_aggregate_item(void) {
   rio_SrcPos pos = rio_token.pos;
   if (rio_match_keyword(rio_struct_keyword)) {
-    return (rio_AggregateItem){.pos = pos, .kind = rio_AggregateItemKind_Subaggregate, .subaggregate = rio_parse_aggregate(rio_AGGREGATE_STRUCT)};
+    return (rio_AggregateItem){.pos = pos, .kind = rio_AggregateItemKind_Subaggregate, .subaggregate = rio_parse_aggregate(rio_AggregateKind_Struct)};
   } else if (rio_match_keyword(rio_union_keyword)) {
-    return (rio_AggregateItem){.pos = pos, .kind = rio_AggregateItemKind_Subaggregate, .subaggregate = rio_parse_aggregate(rio_AGGREGATE_UNION)};
+    return (rio_AggregateItem){.pos = pos, .kind = rio_AggregateItemKind_Subaggregate, .subaggregate = rio_parse_aggregate(rio_AggregateKind_Union)};
   } else {
     char const ((*(*names))) = NULL;
     char const ((*name)) = rio_parse_name();
@@ -6600,7 +6510,7 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind)) {
 rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind)) {
   assert(((kind) == (rio_DeclKind_Struct)) || ((kind) == (rio_DeclKind_Union)));
   char const ((*name)) = rio_parse_name();
-  rio_AggregateKind aggregate_kind = ((kind) == (rio_DeclKind_Struct) ? rio_AGGREGATE_STRUCT : rio_AGGREGATE_UNION);
+  rio_AggregateKind aggregate_kind = ((kind) == (rio_DeclKind_Struct) ? rio_AggregateKind_Struct : rio_AggregateKind_Union);
   if (rio_match_token(rio_TOKEN_SEMICOLON)) {
     rio_Decl (*decl) = rio_new_decl_aggregate(pos, kind, name, rio_new_aggregate(pos, aggregate_kind, NULL, 0));
     decl->is_incomplete = true;
@@ -6703,7 +6613,7 @@ rio_NoteArg rio_parse_note_arg(void) {
   rio_Expr (*expr) = rio_parse_expr();
   char const ((*name)) = NULL;
   if (rio_match_token(rio_TOKEN_ASSIGN)) {
-    if ((expr->kind) != (rio_EXPR_NAME)) {
+    if ((expr->kind) != (rio_ExprKind_Name)) {
       rio_fatal_error(rio_token.pos, "Left of: operand = in note argument must be a name");
     }
     name = expr->name;
@@ -6890,7 +6800,7 @@ void rio_process_decl_notes(rio_Decl (*decl), rio_Sym (*sym)) {
       external_name = sym->name;
     } else {
       rio_Expr (*arg) = foreign_note->args[0].expr;
-      if ((arg->kind) != (rio_EXPR_STR)) {
+      if ((arg->kind) != (rio_ExprKind_Str)) {
         rio_fatal_error(decl->pos, "@foreign argument 1 must be a string literal");
       }
       external_name = arg->str_lit.val;
@@ -7426,10 +7336,10 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
     type = rio_type_incomplete(NULL);
     type->kind = rio_CMPL_TYPE_COMPLETING;
   }
-  if ((aggregate->kind) == (rio_AGGREGATE_STRUCT)) {
+  if ((aggregate->kind) == (rio_AggregateKind_Struct)) {
     rio_type_complete_struct(type, fields, rio_buf_len(fields));
   } else {
-    assert((aggregate->kind) == (rio_AGGREGATE_UNION));
+    assert((aggregate->kind) == (rio_AggregateKind_Union));
     rio_type_complete_union(type, fields, rio_buf_len(fields));
   }
   if ((type->aggregate.num_fields) == (0)) {
@@ -7494,7 +7404,7 @@ rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (
   } else {
     assert(expr);
     type = rio_unqualify_type(rio_resolve_expr(expr).type);
-    if ((rio_is_array_type(type)) && ((expr->kind) != (rio_EXPR_COMPOUND))) {
+    if ((rio_is_array_type(type)) && ((expr->kind) != (rio_ExprKind_Compound))) {
       type = rio_type_decay(type);
       rio_set_resolved_type(expr, type);
     }
@@ -7615,7 +7525,7 @@ bool rio_resolve_stmt_block(rio_StmtList block, rio_Type (*ret_type), rio_StmtCt
 }
 
 void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
-  assert((stmt->kind) == (rio_STMT_ASSIGN));
+  assert((stmt->kind) == (rio_StmtKind_Assign));
   rio_Operand left = rio_resolve_expr(stmt->assign.left);
   if (!(left.is_lvalue)) {
     rio_fatal_error(stmt->pos, "Cannot assign to non-lvalue");
@@ -7649,7 +7559,7 @@ void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
 }
 
 void rio_resolve_stmt_init(rio_Stmt (*stmt)) {
-  assert((stmt->kind) == (rio_STMT_INIT));
+  assert((stmt->kind) == (rio_StmtKind_Init));
   rio_Type (*type) = rio_resolve_init(stmt->pos, stmt->init.type, stmt->init.expr);
   if (!(stmt->init.is_mut)) {
   }
@@ -7670,7 +7580,7 @@ void rio_resolve_static_assert(rio_Note note) {
 
 bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
   switch (stmt->kind) {
-  case rio_STMT_RETURN: {
+  case rio_StmtKind_Return: {
     if (stmt->expr) {
       rio_Operand operand = rio_resolve_expected_expr_rvalue(stmt->expr, ret_type);
       if (!(rio_convert_operand(&(operand), ret_type))) {
@@ -7682,25 +7592,25 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return true;
     break;
   }
-  case rio_STMT_BREAK: {
+  case rio_StmtKind_Break: {
     if (!(ctx.is_break_legal)) {
       rio_fatal_error(stmt->pos, "Illegal break");
     }
     return false;
     break;
   }
-  case rio_STMT_CONTINUE: {
+  case rio_StmtKind_Continue: {
     if (!(ctx.is_continue_legal)) {
       rio_fatal_error(stmt->pos, "Illegal continue");
     }
     return false;
     break;
   }
-  case rio_STMT_BLOCK: {
+  case rio_StmtKind_Block: {
     return rio_resolve_stmt_block(stmt->block, ret_type, ctx);
     break;
   }
-  case rio_STMT_NOTE: {
+  case rio_StmtKind_Note: {
     if ((stmt->note.name) == (rio_assert_name)) {
       if ((stmt->note.num_args) != (1)) {
         rio_fatal_error(stmt->pos, "#assert takes 1 argument");
@@ -7714,7 +7624,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return false;
     break;
   }
-  case rio_STMT_IF: {
+  case rio_StmtKind_If: {
     {
       rio_Sym (*scope) = rio_sym_enter();
       if (stmt->if_stmt.init) {
@@ -7741,8 +7651,8 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     }
     break;
   }
-  case rio_STMT_WHILE:
-  case rio_STMT_DO_WHILE: {
+  case rio_StmtKind_While:
+  case rio_StmtKind_DoWhile: {
     rio_resolve_cond_expr(stmt->while_stmt.cond);
     ctx.is_break_legal = true;
     ctx.is_continue_legal = true;
@@ -7750,7 +7660,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return false;
     break;
   }
-  case rio_STMT_FOR: {
+  case rio_StmtKind_For: {
     {
       rio_Sym (*scope) = rio_sym_enter();
       if (stmt->for_stmt.init) {
@@ -7770,7 +7680,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     }
     break;
   }
-  case rio_STMT_SWITCH: {
+  case rio_StmtKind_Switch: {
     {
       rio_Operand operand = rio_resolve_expr_rvalue(stmt->switch_stmt.expr);
       if (!(rio_is_integer_type(operand.type))) {
@@ -7814,7 +7724,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
         }
         if ((switch_case.block.num_stmts) > (1)) {
           rio_Stmt (*last_stmt) = switch_case.block.stmts[(switch_case.block.num_stmts) - (1)];
-          if ((last_stmt->kind) == (rio_STMT_BREAK)) {
+          if ((last_stmt->kind) == (rio_StmtKind_Break)) {
             rio_warning(last_stmt->pos, "Case blocks already end with an implicit break");
           }
         }
@@ -7824,27 +7734,27 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     }
     break;
   }
-  case rio_STMT_ASSIGN: {
+  case rio_StmtKind_Assign: {
     rio_resolve_stmt_assign(stmt);
     return false;
     break;
   }
-  case rio_STMT_INIT: {
+  case rio_StmtKind_Init: {
     rio_resolve_stmt_init(stmt);
     return false;
     break;
   }
-  case rio_STMT_EXPR: {
+  case rio_StmtKind_Expr: {
     rio_resolve_expr(stmt->expr);
     return false;
     break;
   }
-  case rio_STMT_LABEL: {
+  case rio_StmtKind_Label: {
     rio_define_label(stmt->pos, stmt->label);
     return false;
     break;
   }
-  case rio_STMT_GOTO: {
+  case rio_StmtKind_Goto: {
     rio_reference_label(stmt->pos, stmt->label);
     return false;
     break;
@@ -7965,12 +7875,12 @@ rio_Sym (*rio_resolve_name(char const ((*name)))) {
 }
 
 rio_Package (*rio_try_resolve_package(rio_Expr (*expr))) {
-  if ((expr->kind) == (rio_EXPR_NAME)) {
+  if ((expr->kind) == (rio_ExprKind_Name)) {
     rio_Sym (*sym) = rio_resolve_name(expr->name);
     if ((sym) && ((sym->kind) == (rio_SYM_PACKAGE))) {
       return sym->package;
     }
-  } else if ((expr->kind) == (rio_EXPR_FIELD)) {
+  } else if ((expr->kind) == (rio_ExprKind_Field)) {
     rio_Package (*package) = rio_try_resolve_package(expr->field.expr);
     if (package) {
       rio_Sym (*sym) = rio_get_package_sym(package, expr->field.name);
@@ -7983,7 +7893,7 @@ rio_Package (*rio_try_resolve_package(rio_Expr (*expr))) {
 }
 
 rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_EXPR_FIELD));
+  assert((expr->kind) == (rio_ExprKind_Field));
   rio_Package (*package) = rio_try_resolve_package(expr->field.expr);
   if (package) {
     rio_Package (*old_package) = rio_enter_package(package);
@@ -8301,7 +8211,7 @@ rio_Operand rio_resolve_name_operand(rio_SrcPos pos, char const ((*name))) {
 }
 
 rio_Operand rio_resolve_expr_name(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_EXPR_NAME));
+  assert((expr->kind) == (rio_ExprKind_Name));
   return rio_resolve_name_operand(expr->pos, expr->name);
 }
 
@@ -8529,7 +8439,7 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
 }
 
 rio_Operand rio_resolve_expr_binary(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_EXPR_BINARY));
+  assert((expr->kind) == (rio_ExprKind_Binary));
   rio_Operand left = rio_resolve_expr_rvalue(expr->binary.left);
   rio_Operand right = rio_resolve_expr_rvalue(expr->binary.right);
   rio_TokenKind op = expr->binary.op;
@@ -8538,7 +8448,7 @@ rio_Operand rio_resolve_expr_binary(rio_Expr (*expr)) {
 }
 
 rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type)) {
-  assert((expr->kind) == (rio_EXPR_COMPOUND));
+  assert((expr->kind) == (rio_ExprKind_Compound));
   if ((!(expected_type)) && (!(expr->compound.type))) {
     rio_fatal_error(expr->pos, "Implicitly typed compound literals used in context without expected type");
   }
@@ -8555,9 +8465,9 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
     int index = 0;
     for (size_t i = 0; (i) < (expr->compound.num_fields); (i)++) {
       rio_CompoundField field = expr->compound.fields[i];
-      if ((field.kind) == (rio_FIELD_INDEX)) {
+      if ((field.kind) == (rio_CompoundFieldKind_Index)) {
         rio_fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
-      } else if ((field.kind) == (rio_FIELD_NAME)) {
+      } else if ((field.kind) == (rio_CompoundFieldKind_Name)) {
         index = rio_aggregate_item_field_index(type, field.name);
         if ((index) == (-(1))) {
           rio_fatal_error(field.pos, "Named field in compound literal does not exist");
@@ -8577,9 +8487,9 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
     size_t max_index = 0;
     for (size_t i = 0; (i) < (expr->compound.num_fields); (i)++) {
       rio_CompoundField field = expr->compound.fields[i];
-      if ((field.kind) == (rio_FIELD_NAME)) {
+      if ((field.kind) == (rio_CompoundFieldKind_Name)) {
         rio_fatal_error(field.pos, "Named field initializer not allowed for array compound literals");
-      } else if ((field.kind) == (rio_FIELD_INDEX)) {
+      } else if ((field.kind) == (rio_CompoundFieldKind_Index)) {
         rio_Operand operand = rio_resolve_const_expr(field.index);
         if (!(rio_is_integer_type(operand.type))) {
           rio_fatal_error(field.pos, "Field initializer index expression must have type int");
@@ -8621,8 +8531,8 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
 }
 
 rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_EXPR_CALL));
-  if ((expr->call.expr->kind) == (rio_EXPR_NAME)) {
+  assert((expr->kind) == (rio_ExprKind_Call));
+  if ((expr->call.expr->kind) == (rio_ExprKind_Name)) {
     rio_Sym (*sym) = rio_resolve_name(expr->call.expr->name);
     if ((sym) && ((sym->kind) == (rio_SYM_TYPE))) {
       if ((expr->call.num_args) != (1)) {
@@ -8664,7 +8574,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
 }
 
 rio_Operand rio_resolve_expr_ternary(rio_Expr (*expr), rio_Type (*expected_type)) {
-  assert((expr->kind) == (rio_EXPR_TERNARY));
+  assert((expr->kind) == (rio_ExprKind_Ternary));
   rio_Operand cond = rio_resolve_expr_rvalue(expr->ternary.cond);
   if (!(rio_is_scalar_type(cond.type))) {
     rio_fatal_error(expr->pos, "Ternary conditional must have scalar type");
@@ -8691,7 +8601,7 @@ rio_Operand rio_resolve_expr_ternary(rio_Expr (*expr), rio_Type (*expected_type)
 }
 
 rio_Operand rio_resolve_expr_index(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_EXPR_INDEX));
+  assert((expr->kind) == (rio_ExprKind_Index));
   rio_Operand operand = rio_resolve_expr_rvalue(expr->index.expr);
   if (!(rio_is_ptr_star_type(operand.type))) {
     rio_fatal_error(expr->pos, "Can only index arrays and star pointers");
@@ -8704,7 +8614,7 @@ rio_Operand rio_resolve_expr_index(rio_Expr (*expr)) {
 }
 
 rio_Operand rio_resolve_expr_cast(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_EXPR_CAST));
+  assert((expr->kind) == (rio_ExprKind_Cast));
   rio_Type (*type) = rio_resolve_typespec(expr->cast.type);
   rio_Operand operand = rio_resolve_expr_rvalue(expr->cast.expr);
   if (!(cast_operand(&(operand), type))) {
@@ -8714,7 +8624,7 @@ rio_Operand rio_resolve_expr_cast(rio_Expr (*expr)) {
 }
 
 rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_EXPR_INT));
+  assert((expr->kind) == (rio_ExprKind_Int));
   ullong int_max = rio_type_metrics[rio_CMPL_TYPE_INT].max;
   ullong uint_max = rio_type_metrics[rio_CMPL_TYPE_UINT].max;
   ullong long_max = rio_type_metrics[rio_CMPL_TYPE_LONG].max;
@@ -8870,48 +8780,48 @@ rio_Operand rio_resolve_expr_modify(rio_Expr (*expr)) {
 rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type)) {
   rio_Operand result = {0};
   switch (expr->kind) {
-  case rio_EXPR_PAREN: {
+  case rio_ExprKind_Paren: {
     result = rio_resolve_expected_expr(expr->paren.expr, expected_type);
     break;
   }
-  case rio_EXPR_INT: {
+  case rio_ExprKind_Int: {
     result = rio_resolve_expr_int(expr);
     break;
   }
-  case rio_EXPR_FLOAT: {
+  case rio_ExprKind_Float: {
     result = rio_operand_const(((expr->float_lit.suffix) == (rio_SUFFIX_D) ? rio_type_double : rio_type_float), (rio_Val){0});
     break;
   }
-  case rio_EXPR_STR: {
+  case rio_ExprKind_Str: {
     result = rio_operand_rvalue(rio_type_array(rio_type_char, (strlen(expr->str_lit.val)) + (1)));
     break;
   }
-  case rio_EXPR_NAME: {
+  case rio_ExprKind_Name: {
     result = rio_resolve_expr_name(expr);
     rio_set_resolved_sym(expr, rio_resolve_name(expr->name));
     break;
   }
-  case rio_EXPR_CAST: {
+  case rio_ExprKind_Cast: {
     result = rio_resolve_expr_cast(expr);
     break;
   }
-  case rio_EXPR_CALL: {
+  case rio_ExprKind_Call: {
     result = rio_resolve_expr_call(expr);
     break;
   }
-  case rio_EXPR_INDEX: {
+  case rio_ExprKind_Index: {
     result = rio_resolve_expr_index(expr);
     break;
   }
-  case rio_EXPR_FIELD: {
+  case rio_ExprKind_Field: {
     result = rio_resolve_expr_field(expr);
     break;
   }
-  case rio_EXPR_COMPOUND: {
+  case rio_ExprKind_Compound: {
     result = rio_resolve_expr_compound(expr, expected_type);
     break;
   }
-  case rio_EXPR_UNARY: {
+  case rio_ExprKind_Unary: {
     if ((expr->unary.op) == (rio_TOKEN_AND)) {
       rio_Operand operand = {0};
       if ((expected_type) && (rio_is_ptr_type(expected_type))) {
@@ -8928,17 +8838,17 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_EXPR_BINARY: {
+  case rio_ExprKind_Binary: {
     result = rio_resolve_expr_binary(expr);
     break;
   }
-  case rio_EXPR_TERNARY: {
+  case rio_ExprKind_Ternary: {
     result = rio_resolve_expr_ternary(expr, expected_type);
     break;
   }
-  case rio_EXPR_SIZEOF_EXPR: {
+  case rio_ExprKind_SizeofExpr: {
     {
-      if ((expr->sizeof_expr->kind) == (rio_EXPR_NAME)) {
+      if ((expr->sizeof_expr->kind) == (rio_ExprKind_Name)) {
         rio_Sym (*sym) = rio_resolve_name(expr->sizeof_expr->name);
         if ((sym) && ((sym->kind) == (rio_SYM_TYPE))) {
           rio_complete_type(sym->type);
@@ -8954,7 +8864,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_EXPR_SIZEOF_TYPE: {
+  case rio_ExprKind_SizeofType: {
     {
       rio_Type (*type) = rio_resolve_typespec(expr->sizeof_type);
       rio_complete_type(type);
@@ -8962,9 +8872,9 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_EXPR_ALIGNOF_EXPR: {
+  case rio_ExprKind_AlignofExpr: {
     {
-      if ((expr->sizeof_expr->kind) == (rio_EXPR_NAME)) {
+      if ((expr->sizeof_expr->kind) == (rio_ExprKind_Name)) {
         rio_Sym (*sym) = rio_resolve_name(expr->alignof_expr->name);
         if ((sym) && ((sym->kind) == (rio_SYM_TYPE))) {
           rio_complete_type(sym->type);
@@ -8980,7 +8890,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_EXPR_ALIGNOF_TYPE: {
+  case rio_ExprKind_AlignofType: {
     {
       rio_Type (*type) = rio_resolve_typespec(expr->alignof_type);
       rio_complete_type(type);
@@ -8988,16 +8898,16 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_EXPR_TYPEOF_TYPE: {
+  case rio_ExprKind_TypeofType: {
     {
       rio_Type (*type) = rio_resolve_typespec(expr->typeof_type);
       result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = type->typeid});
     }
     break;
   }
-  case rio_EXPR_TYPEOF_EXPR: {
+  case rio_ExprKind_TypeofExpr: {
     {
-      if ((expr->typeof_expr->kind) == (rio_EXPR_NAME)) {
+      if ((expr->typeof_expr->kind) == (rio_ExprKind_Name)) {
         rio_Sym (*sym) = rio_resolve_name(expr->typeof_expr->name);
         if ((sym) && ((sym->kind) == (rio_SYM_TYPE))) {
           result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = sym->type->typeid});
@@ -9011,7 +8921,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_EXPR_OFFSETOF: {
+  case rio_ExprKind_Offsetof: {
     {
       rio_Type (*type) = rio_resolve_typespec(expr->offsetof_field.type);
       rio_complete_type(type);
@@ -9026,7 +8936,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_EXPR_MODIFY: {
+  case rio_ExprKind_Modify: {
     result = rio_resolve_expr_modify(expr);
     break;
   }
@@ -9080,7 +8990,7 @@ void rio_add_package_decls(rio_Package (*package)) {
           rio_fatal_error(decl->pos, "#declare_note takes 1 argument");
         }
         rio_Expr (*arg) = decl->note.args[0].expr;
-        if ((arg->kind) != (rio_EXPR_NAME)) {
+        if ((arg->kind) != (rio_ExprKind_Name)) {
           rio_fatal_error(decl->pos, "#declare_note argument must be name");
         }
         rio_map_put(&(rio_decl_note_names), arg->name, (void *)(1));

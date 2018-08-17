@@ -105,10 +105,11 @@ enum DeclKind {
   Import,
 }
 
+@scoped
 enum AggregateKind {
-  AGGREGATE_NONE,
-  AGGREGATE_STRUCT,
-  AGGREGATE_UNION,
+  None,
+  Struct,
+  Union,
 }
 
 struct Aggregate {
@@ -173,35 +174,37 @@ struct Decls {
   num_decls: usize;
 }
 
+@scoped
 enum ExprKind {
-  EXPR_NONE,
-  EXPR_PAREN,
-  EXPR_INT,
-  EXPR_FLOAT,
-  EXPR_STR,
-  EXPR_NAME,
-  EXPR_CAST,
-  EXPR_CALL,
-  EXPR_INDEX,
-  EXPR_FIELD,
-  EXPR_COMPOUND,
-  EXPR_UNARY,
-  EXPR_BINARY,
-  EXPR_TERNARY,
-  EXPR_MODIFY,
-  EXPR_SIZEOF_EXPR,
-  EXPR_SIZEOF_TYPE,
-  EXPR_TYPEOF_EXPR,
-  EXPR_TYPEOF_TYPE,
-  EXPR_ALIGNOF_EXPR,
-  EXPR_ALIGNOF_TYPE,
-  EXPR_OFFSETOF,
+  None,
+  Paren,
+  Int,
+  Float,
+  Str,
+  Name,
+  Cast,
+  Call,
+  Index,
+  Field,
+  Compound,
+  Unary,
+  Binary,
+  Ternary,
+  Modify,
+  SizeofExpr,
+  SizeofType,
+  TypeofExpr,
+  TypeofType,
+  AlignofExpr,
+  AlignofType,
+  Offsetof,
 }
 
+@scoped
 enum CompoundFieldKind {
-  FIELD_DEFAULT,
-  FIELD_NAME,
-  FIELD_INDEX,
+  Default,
+  Name,
+  Index,
 }
 
 struct CompoundField {
@@ -336,24 +339,25 @@ struct SwitchCase {
   block: StmtList;
 }
 
+@scoped
 enum StmtKind {
-  STMT_NONE,
-  STMT_DECL,
-  STMT_RETURN,
-  STMT_BREAK,
-  STMT_CONTINUE,
-  STMT_BLOCK,
-  STMT_IF,
-  STMT_WHILE,
-  STMT_DO_WHILE,
-  STMT_FOR,
-  STMT_SWITCH,
-  STMT_ASSIGN,
-  STMT_INIT,
-  STMT_EXPR,
-  STMT_NOTE,
-  STMT_LABEL,
-  STMT_GOTO,
+  None,
+  Decl,
+  Return,
+  Break,
+  Continue,
+  Block,
+  If,
+  While,
+  DoWhile,
+  For,
+  Switch,
+  Assign,
+  Init,
+  Expr,
+  Note,
+  Label,
+  Goto,
 }
 
 struct Stmt {

@@ -89,16 +89,16 @@ fn parse_expr_compound_field() -> CompoundField {
     let index = parse_expr();
     expect_token(TOKEN_RBRACKET);
     expect_token(TOKEN_ASSIGN);
-    return CompoundField {FIELD_INDEX, pos, parse_expr(), index = index};
+    return CompoundField {CompoundFieldKind.Index, pos, parse_expr(), index = index};
   } else {
     let expr = parse_expr();
     if (match_token(TOKEN_ASSIGN)) {
-      if (expr.kind != EXPR_NAME) {
+      if (expr.kind != ExprKind.Name) {
         fatal_error(token.pos, "Named initializer in compound literal must be preceded by field name");
       }
-      return CompoundField {FIELD_NAME, pos, parse_expr(), name = expr.name};
+      return CompoundField {CompoundFieldKind.Name, pos, parse_expr(), name = expr.name};
     } else {
-      return CompoundField {FIELD_DEFAULT, pos, expr};
+      return CompoundField {CompoundFieldKind.Default, pos, expr};
     }
   }
 }
@@ -444,7 +444,7 @@ fn parse_simple_stmt() -> &Stmt {
     stmt = parse_let_stmt(pos);
   } else {
     let expr = parse_expr();
-    if (expr.kind == EXPR_NAME && match_token(TOKEN_COLON)) {
+    if (expr.kind == ExprKind.Name && match_token(TOKEN_COLON)) {
       stmt = new_stmt_label(pos, expr.name);
     } else if (is_assign_op()) {
       let op = token.kind;
@@ -472,7 +472,7 @@ fn parse_stmt_for(pos: SrcPos) -> &Stmt {
   if (match_token(TOKEN_SEMICOLON)) {
     if (!is_token(TOKEN_RPAREN)) {
       next = parse_simple_stmt();
-      if (next.kind == STMT_INIT) {
+      if (next.kind == StmtKind.Init) {
         error(token.pos, "Init statements not allowed in for-statement's next clause");
       }
     }
@@ -575,7 +575,7 @@ fn parse_stmt() -> &Stmt {
     expect_token(TOKEN_SEMICOLON);
   } else {
     stmt = parse_simple_stmt();
-    if (stmt.kind != STMT_LABEL) {
+    if (stmt.kind != StmtKind.Label) {
       expect_token(TOKEN_SEMICOLON);
     }
   }
@@ -627,13 +627,13 @@ fn parse_decl_aggregate_item() -> AggregateItem {
     return AggregateItem {
       pos = pos,
       kind = AggregateItemKind.Subaggregate,
-      subaggregate = parse_aggregate(AGGREGATE_STRUCT),
+      subaggregate = parse_aggregate(AggregateKind.Struct),
     };
   } else if (match_keyword(union_keyword)) {
     return AggregateItem {
       pos = pos,
       kind = AggregateItemKind.Subaggregate,
-      subaggregate = parse_aggregate(AGGREGATE_UNION),
+      subaggregate = parse_aggregate(AggregateKind.Union),
     };
   } else {
     let names: **const char = NULL;
@@ -671,7 +671,7 @@ fn parse_aggregate(kind: AggregateKind) -> &Aggregate {
 fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind) -> &Decl {
   #assert(kind == DeclKind.Struct || kind == DeclKind.Union);
   let name = parse_name();
-  let aggregate_kind = kind == DeclKind.Struct ? AGGREGATE_STRUCT : AGGREGATE_UNION;
+  let aggregate_kind = kind == DeclKind.Struct ? AggregateKind.Struct : AggregateKind.Union;
   if (match_token(TOKEN_SEMICOLON)) {
     let decl = new_decl_aggregate(pos, kind, name, new_aggregate(pos, aggregate_kind, NULL, 0));
     decl.is_incomplete = true;
@@ -774,7 +774,7 @@ fn parse_note_arg() -> NoteArg {
   let expr = parse_expr();
   let name: *const char = NULL;
   if (match_token(TOKEN_ASSIGN)) {
-    if (expr.kind != EXPR_NAME) {
+    if (expr.kind != ExprKind.Name) {
       fatal_error(token.pos, "Left of: operand = in note argument must be a name");
     }
     name = expr.name;

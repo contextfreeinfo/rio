@@ -386,7 +386,7 @@ fn gen_aggregate_items(aggregate: &Aggregate) {
         genln(); buf_printf(&gen_buf, "%s;", typespec_to_cdecl(item.type, item.names[j]));
       }
     } else if (item.kind == AggregateItemKind.Subaggregate) {
-      genln(); buf_printf(&gen_buf, "%s {", item.subaggregate.kind == AGGREGATE_STRUCT ? "struct" : "union");
+      genln(); buf_printf(&gen_buf, "%s {", item.subaggregate.kind == AggregateKind.Struct ? "struct" : "union");
       gen_aggregate_items(item.subaggregate);
       genln(); buf_printf(&gen_buf, "};");
     } else {
@@ -426,9 +426,9 @@ fn gen_expr_compound(expr: &Expr) {
       buf_printf(&gen_buf, ", ");
     }
     let field = expr.compound.fields[i];
-    if (field.kind == FIELD_NAME) {
+    if (field.kind == CompoundFieldKind.Name) {
       buf_printf(&gen_buf, ".%s = ", field.name);
-    } else if (field.kind == FIELD_INDEX) {
+    } else if (field.kind == CompoundFieldKind.Index) {
       buf_printf(&gen_buf, "[");
       gen_expr(field.index);
       buf_printf(&gen_buf, "] = ");
@@ -498,11 +498,11 @@ fn gen_typeid(type: &Type) {
 
 fn gen_expr(expr: &Expr) {
   switch (expr.kind) {
-  case EXPR_PAREN:
+  case ExprKind.Paren:
     buf_printf(&gen_buf, "(");
     gen_expr(expr.paren.expr);
     buf_printf(&gen_buf, ")");
-  case EXPR_INT: {
+  case ExprKind.Int: {
     let suffix_name: *const char = token_suffix_names[expr.int_lit.suffix];
     switch (expr.int_lit.mod) {
     case MOD_BIN:
@@ -516,20 +516,20 @@ fn gen_expr(expr: &Expr) {
       buf_printf(&gen_buf, "%llu%s", expr.int_lit.val, suffix_name);
     }
   }
-  case EXPR_FLOAT: {
+  case ExprKind.Float: {
     let is_double = expr.float_lit.suffix == SUFFIX_D;
     let len: usize = expr.float_lit.end - expr.float_lit.start;
     buf_printf(&gen_buf, "%.*s%s", is_double ? len-1 : len, expr.float_lit.start, is_double ? "" : "f");
   }
-  case EXPR_STR:
+  case ExprKind.Str:
     gen_str(expr.str_lit.val, expr.str_lit.mod == MOD_MULTILINE);
-  case EXPR_NAME:
+  case ExprKind.Name:
     buf_printf(&gen_buf, "%s", get_gen_name_or_default(expr, expr.name));
-  case EXPR_CAST:
+  case ExprKind.Cast:
     buf_printf(&gen_buf, "(%s)(", typespec_to_cdecl(expr.cast.type, ""));
     gen_expr(expr.cast.expr);
     buf_printf(&gen_buf, ")");
-  case EXPR_CALL: {
+  case ExprKind.Call: {
     let sym = get_resolved_sym(expr.call.expr);
     if (sym && sym.kind == SYM_TYPE) {
       buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
@@ -545,12 +545,12 @@ fn gen_expr(expr: &Expr) {
     }
     buf_printf(&gen_buf, ")");
   }
-  case EXPR_INDEX:
+  case ExprKind.Index:
     gen_expr(expr.index.expr);
     buf_printf(&gen_buf, "[");
     gen_expr(expr.index.index);
     buf_printf(&gen_buf, "]");
-  case EXPR_FIELD: {
+  case ExprKind.Field: {
     let sym = get_resolved_sym(expr);
     if (sym) {
       buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
@@ -566,19 +566,19 @@ fn gen_expr(expr: &Expr) {
       );
     }
   }
-  case EXPR_COMPOUND:
+  case ExprKind.Compound:
     gen_expr_compound(expr);
-  case EXPR_UNARY:
+  case ExprKind.Unary:
     buf_printf(&gen_buf, "%s(", token_kind_name(expr.unary.op));
     gen_expr(expr.unary.expr);
     buf_printf(&gen_buf, ")");
-  case EXPR_BINARY:
+  case ExprKind.Binary:
     buf_printf(&gen_buf, "(");
     gen_expr(expr.binary.left);
     buf_printf(&gen_buf, ") %s (", token_kind_name(expr.binary.op));
     gen_expr(expr.binary.right);
     buf_printf(&gen_buf, ")");
-  case EXPR_TERNARY:
+  case ExprKind.Ternary:
     buf_printf(&gen_buf, "(");
     gen_expr(expr.ternary.cond);
     buf_printf(&gen_buf, " ? ");
@@ -586,29 +586,29 @@ fn gen_expr(expr: &Expr) {
     buf_printf(&gen_buf, " : ");
     gen_expr(expr.ternary.else_expr);
     buf_printf(&gen_buf, ")");
-  case EXPR_SIZEOF_EXPR:
+  case ExprKind.SizeofExpr:
     buf_printf(&gen_buf, "sizeof(");
     gen_expr(expr.sizeof_expr);
     buf_printf(&gen_buf, ")");
-  case EXPR_SIZEOF_TYPE:
+  case ExprKind.SizeofType:
     buf_printf(&gen_buf, "sizeof(%s)", typespec_to_cdecl(expr.sizeof_type, ""));
-  case EXPR_ALIGNOF_EXPR:
+  case ExprKind.AlignofExpr:
     buf_printf(&gen_buf, "alignof(%s)", type_to_cdecl(get_resolved_type(expr.alignof_expr), ""));
-  case EXPR_ALIGNOF_TYPE:
+  case ExprKind.AlignofType:
     buf_printf(&gen_buf, "alignof(%s)", typespec_to_cdecl(expr.alignof_type, ""));
-  case EXPR_TYPEOF_EXPR: {
+  case ExprKind.TypeofExpr: {
     let type = get_resolved_type(expr.typeof_expr);
     #assert(type.typeid);
     gen_typeid(type);
   }
-  case EXPR_TYPEOF_TYPE: {
+  case ExprKind.TypeofType: {
     let type = get_resolved_type(expr.typeof_type);
     #assert(type.typeid);
     gen_typeid(type);
   }
-  case EXPR_OFFSETOF:
+  case ExprKind.Offsetof:
     buf_printf(&gen_buf, "offsetof(%s, %s)", typespec_to_cdecl(expr.offsetof_field.type, ""), expr.offsetof_field.name);
-  case EXPR_MODIFY:
+  case ExprKind.Modify:
     if (!expr.modify.post) {
       buf_printf(&gen_buf, "%s", token_kind_name(expr.modify.op));
     }
@@ -633,9 +633,9 @@ fn gen_stmt_block(block: StmtList) {
 
 fn gen_simple_stmt(stmt: &Stmt) {
   switch (stmt.kind) {
-  case STMT_EXPR:
+  case StmtKind.Expr:
     gen_expr(stmt.expr);
-  case STMT_INIT:
+  case StmtKind.Init:
     if (stmt.init.type) {
       let init_typespec = stmt.init.type;
       if (is_incomplete_array_typespec(stmt.init.type)) {
@@ -652,7 +652,7 @@ fn gen_simple_stmt(stmt: &Stmt) {
       buf_printf(&gen_buf, "%s = ", type_to_cdecl(unqualify_type(get_resolved_type(stmt.init.expr)), stmt.init.name));
       gen_expr(stmt.init.expr);
     }
-  case STMT_ASSIGN:
+  case StmtKind.Assign:
     gen_expr(stmt.assign.left);
     buf_printf(&gen_buf, " %s ", token_kind_name(stmt.assign.op));
     gen_expr(stmt.assign.right);
@@ -662,34 +662,34 @@ fn gen_simple_stmt(stmt: &Stmt) {
 }
 
 fn is_char_lit(expr: &Expr) -> bool {
-  return expr.kind == EXPR_INT && expr.int_lit.mod == MOD_CHAR;
+  return expr.kind == ExprKind.Int && expr.int_lit.mod == MOD_CHAR;
 }
 
 fn gen_stmt(stmt: &Stmt) {
   gen_sync_pos(stmt.pos);
   switch (stmt.kind) {
-  case STMT_RETURN:
+  case StmtKind.Return:
     genln(); buf_printf(&gen_buf, "return");
     if (stmt.expr) {
       buf_printf(&gen_buf, " ");
       gen_expr(stmt.expr);
     }
     buf_printf(&gen_buf, ";");
-  case STMT_BREAK:
+  case StmtKind.Break:
     genln(); buf_printf(&gen_buf, "break;");
-  case STMT_CONTINUE:
+  case StmtKind.Continue:
     genln(); buf_printf(&gen_buf, "continue;");
-  case STMT_BLOCK:
+  case StmtKind.Block:
     genln();
     gen_stmt_block(stmt.block);
-  case STMT_NOTE:
+  case StmtKind.Note:
     if (stmt.note.name == assert_name) {
       genln(); buf_printf(&gen_buf, "assert(");
       #assert(stmt.note.num_args == 1);
       gen_expr(stmt.note.args[0].expr);
       buf_printf(&gen_buf, ");");
     }
-  case STMT_IF:
+  case StmtKind.If:
     if (stmt.if_stmt.init) {
       genln(); buf_printf(&gen_buf, "{");
       gen_indent++;
@@ -729,18 +729,18 @@ fn gen_stmt(stmt: &Stmt) {
       gen_indent--;
       genln(); buf_printf(&gen_buf, "}");
     }
-  case STMT_WHILE:
+  case StmtKind.While:
     genln(); buf_printf(&gen_buf, "while (");
     gen_expr(stmt.while_stmt.cond);
     buf_printf(&gen_buf, ") ");
     gen_stmt_block(stmt.while_stmt.block);
-  case STMT_DO_WHILE:
+  case StmtKind.DoWhile:
     genln(); buf_printf(&gen_buf, "do ");
     gen_stmt_block(stmt.while_stmt.block);
     buf_printf(&gen_buf, " while (");
     gen_expr(stmt.while_stmt.cond);
     buf_printf(&gen_buf, ");");
-  case STMT_FOR:
+  case StmtKind.For:
     genln(); buf_printf(&gen_buf, "for (");
     if (stmt.for_stmt.init) {
       gen_simple_stmt(stmt.for_stmt.init);
@@ -757,7 +757,7 @@ fn gen_stmt(stmt: &Stmt) {
     }
     buf_printf(&gen_buf, ") ");
     gen_stmt_block(stmt.for_stmt.block);
-  case STMT_SWITCH: {
+  case StmtKind.Switch: {
     genln(); buf_printf(&gen_buf, "switch (");
     gen_expr(stmt.switch_stmt.expr);
     buf_printf(&gen_buf, ") {");
@@ -819,9 +819,9 @@ fn gen_stmt(stmt: &Stmt) {
     }
     genln(); buf_printf(&gen_buf, "}");
   }
-  case STMT_LABEL:
+  case StmtKind.Label:
     genln(); buf_printf(&gen_buf, "%s: ;", stmt.label);
-  case STMT_GOTO:
+  case StmtKind.Goto:
     genln(); buf_printf(&gen_buf, "goto %s;", stmt.label);
   default:
     genln();
@@ -993,7 +993,7 @@ fn preprocess_package(package: &Package) {
       for (let k: usize = 0; k < note.num_args; k++) {
         let arg = note.args[k];
         let expr = note.args[k].expr;
-        if (expr.kind != EXPR_STR) {
+        if (expr.kind != ExprKind.Str) {
           fatal_error(decl.pos, "#foreign argument must be a string");
         }
         let str = expr.str_lit.val;

@@ -188,56 +188,56 @@ fn new_expr(kind: ExprKind, pos: SrcPos) -> &Expr {
 }
 
 fn new_expr_paren(pos: SrcPos, expr: &Expr) -> &Expr {
-  let e = new_expr(EXPR_PAREN, pos);
+  let e = new_expr(ExprKind.Paren, pos);
   e.paren.expr = expr;
   return e;
 }
 
 fn new_expr_sizeof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
-  let e = new_expr(EXPR_SIZEOF_EXPR, pos);
+  let e = new_expr(ExprKind.SizeofExpr, pos);
   e.sizeof_expr = expr;
   return e;
 }
 
 fn new_expr_sizeof_type(pos: SrcPos, type: &Typespec) -> &Expr {
-  let e = new_expr(EXPR_SIZEOF_TYPE, pos);
+  let e = new_expr(ExprKind.SizeofType, pos);
   e.sizeof_type = type;
   return e;
 }
 
 fn new_expr_typeof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
-  let e = new_expr(EXPR_TYPEOF_EXPR, pos);
+  let e = new_expr(ExprKind.TypeofExpr, pos);
   e.typeof_expr  = expr;
   return e;
 }
 
 fn new_expr_typeof_type(pos: SrcPos, type: &Typespec) -> &Expr {
-  let e = new_expr(EXPR_TYPEOF_TYPE, pos);
+  let e = new_expr(ExprKind.TypeofType, pos);
   e.typeof_type = type;
   return e;
 }
 
 fn new_expr_alignof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
-  let e = new_expr(EXPR_ALIGNOF_EXPR, pos);
+  let e = new_expr(ExprKind.AlignofExpr, pos);
   e.alignof_expr = expr;
   return e;
 }
 
 fn new_expr_alignof_type(pos: SrcPos, type: &Typespec) -> &Expr {
-  let e = new_expr(EXPR_ALIGNOF_TYPE, pos);
+  let e = new_expr(ExprKind.AlignofType, pos);
   e.alignof_type = type;
   return e;
 }
 
 fn new_expr_offsetof(pos: SrcPos, type: &Typespec, name: *const char) -> &Expr {
-  let e = new_expr(EXPR_OFFSETOF, pos);
+  let e = new_expr(ExprKind.Offsetof, pos);
   e.offsetof_field.type = type;
   e.offsetof_field.name = name;
   return e;
 }
 
 fn new_expr_modify(pos: SrcPos, op: TokenKind, post: bool, expr: &Expr) -> &Expr {
-  let e = new_expr(EXPR_MODIFY, pos);
+  let e = new_expr(ExprKind.Modify, pos);
   e.modify.op = op;
   e.modify.post = post;
   e.modify.expr = expr;
@@ -245,7 +245,7 @@ fn new_expr_modify(pos: SrcPos, op: TokenKind, post: bool, expr: &Expr) -> &Expr
 }
 
 fn new_expr_int(pos: SrcPos, val: ullong, mod: TokenMod, suffix: TokenSuffix) -> &Expr {
-  let e = new_expr(EXPR_INT, pos);
+  let e = new_expr(ExprKind.Int, pos);
   e.int_lit.val = val;
   e.int_lit.mod = mod;
   e.int_lit.suffix = suffix;
@@ -253,7 +253,7 @@ fn new_expr_int(pos: SrcPos, val: ullong, mod: TokenMod, suffix: TokenSuffix) ->
 }
 
 fn new_expr_float(pos: SrcPos, start: *const char, end: *const char, val: double, suffix: TokenSuffix) -> &Expr {
-  let e = new_expr(EXPR_FLOAT, pos);
+  let e = new_expr(ExprKind.Float, pos);
   e.float_lit.start = start;
   e.float_lit.end = end;
   e.float_lit.val = val;
@@ -262,20 +262,20 @@ fn new_expr_float(pos: SrcPos, start: *const char, end: *const char, val: double
 }
 
 fn new_expr_str(pos: SrcPos, val: *const char, mod: TokenMod) -> &Expr {
-  let e = new_expr(EXPR_STR, pos);
+  let e = new_expr(ExprKind.Str, pos);
   e.str_lit.val = val;
   e.str_lit.mod = mod;
   return e;
 }
 
 fn new_expr_name(pos: SrcPos, name: *const char) -> &Expr {
-  let e = new_expr(EXPR_NAME, pos);
+  let e = new_expr(ExprKind.Name, pos);
   e.name = name;
   return e;
 }
 
 fn new_expr_compound(pos: SrcPos, type: &Typespec, fields: *CompoundField, num_fields: usize) -> &Expr {
-  let e = new_expr(EXPR_COMPOUND, pos);
+  let e = new_expr(ExprKind.Compound, pos);
   e.compound.type = type;
   e.compound.fields = ast_dup(fields, num_fields * sizeof(*fields));
   e.compound.num_fields = num_fields;
@@ -283,14 +283,14 @@ fn new_expr_compound(pos: SrcPos, type: &Typespec, fields: *CompoundField, num_f
 }
 
 fn new_expr_cast(pos: SrcPos, type: &Typespec, expr: &Expr) -> &Expr {
-  let e = new_expr(EXPR_CAST, pos);
+  let e = new_expr(ExprKind.Cast, pos);
   e.cast.type = type;
   e.cast.expr = expr;
   return e;
 }
 
 fn new_expr_call(pos: SrcPos, expr: &Expr, args: *&Expr, num_args: usize) -> &Expr {
-  let e = new_expr(EXPR_CALL, pos);
+  let e = new_expr(ExprKind.Call, pos);
   e.call.expr = expr;
   e.call.args = ast_dup(args, num_args * sizeof(*args));
   e.call.num_args = num_args;
@@ -298,28 +298,28 @@ fn new_expr_call(pos: SrcPos, expr: &Expr, args: *&Expr, num_args: usize) -> &Ex
 }
 
 fn new_expr_index(pos: SrcPos, expr: &Expr, index: &Expr) -> &Expr {
-  let e = new_expr(EXPR_INDEX, pos);
+  let e = new_expr(ExprKind.Index, pos);
   e.index.expr = expr;
   e.index.index = index;
   return e;
 }
 
 fn new_expr_field(pos: SrcPos, expr: &Expr, name: *const char) -> &Expr {
-  let e = new_expr(EXPR_FIELD, pos);
+  let e = new_expr(ExprKind.Field, pos);
   e.field.expr = expr;
   e.field.name = name;
   return e;
 }
 
 fn new_expr_unary(pos: SrcPos, op: TokenKind, expr: &Expr) -> &Expr {
-  let e = new_expr(EXPR_UNARY, pos);
+  let e = new_expr(ExprKind.Unary, pos);
   e.unary.op = op;
   e.unary.expr = expr;
   return e;
 }
 
 fn new_expr_binary(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &Expr {
-  let e = new_expr(EXPR_BINARY, pos);
+  let e = new_expr(ExprKind.Binary, pos);
   e.binary.op = op;
   e.binary.left = left;
   e.binary.right = right;
@@ -327,7 +327,7 @@ fn new_expr_binary(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &Ex
 }
 
 fn new_expr_ternary(pos: SrcPos, cond: &Expr, then_expr: &Expr, else_expr: &Expr) -> &Expr {
-  let e = new_expr(EXPR_TERNARY, pos);
+  let e = new_expr(ExprKind.Ternary, pos);
   e.ternary.cond = cond;
   e.ternary.then_expr = then_expr;
   e.ternary.else_expr = else_expr;
@@ -352,51 +352,51 @@ fn new_stmt(kind: StmtKind, pos: SrcPos) -> &Stmt {
 }
 
 fn new_stmt_label(pos: SrcPos, label: *const char) -> &Stmt {
-  let s = new_stmt(STMT_LABEL, pos);
+  let s = new_stmt(StmtKind.Label, pos);
   s.label = label;
   return s;
 }
 
 fn new_stmt_goto(pos: SrcPos, label: *const char) -> &Stmt {
-  let s = new_stmt(STMT_GOTO, pos);
+  let s = new_stmt(StmtKind.Goto, pos);
   s.label = label;
   return s;
 }
 
 fn new_stmt_note(pos: SrcPos, note: Note) -> &Stmt {
-  let s = new_stmt(STMT_NOTE, pos);
+  let s = new_stmt(StmtKind.Note, pos);
   s.note = note;
   return s;
 }
 
 fn new_stmt_decl(pos: SrcPos, decl: &Decl) -> &Stmt {
-  let s = new_stmt(STMT_DECL, pos);
+  let s = new_stmt(StmtKind.Decl, pos);
   s.decl = decl;
   return s;
 }
 
 fn new_stmt_return(pos: SrcPos, expr: &Expr) -> &Stmt {
-  let s = new_stmt(STMT_RETURN, pos);
+  let s = new_stmt(StmtKind.Return, pos);
   s.expr = expr;
   return s;
 }
 
 fn new_stmt_break(pos: SrcPos) -> &Stmt {
-  return new_stmt(STMT_BREAK, pos);
+  return new_stmt(StmtKind.Break, pos);
 }
 
 fn new_stmt_continue(pos: SrcPos) -> &Stmt {
-  return new_stmt(STMT_CONTINUE, pos);
+  return new_stmt(StmtKind.Continue, pos);
 }
 
 fn new_stmt_block(pos: SrcPos, block: StmtList) -> &Stmt {
-  let s = new_stmt(STMT_BLOCK, pos);
+  let s = new_stmt(StmtKind.Block, pos);
   s.block = block;
   return s;
 }
 
 fn new_stmt_if(pos: SrcPos, init: &Stmt, cond: &Expr, then_block: StmtList, elseifs: *ElseIf, num_elseifs: usize, else_block: StmtList) -> &Stmt {
-  let s = new_stmt(STMT_IF, pos);
+  let s = new_stmt(StmtKind.If, pos);
   s.if_stmt.init = init;
   s.if_stmt.cond = cond;
   s.if_stmt.then_block = then_block;
@@ -407,21 +407,21 @@ fn new_stmt_if(pos: SrcPos, init: &Stmt, cond: &Expr, then_block: StmtList, else
 }
 
 fn new_stmt_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
-  let s = new_stmt(STMT_WHILE, pos);
+  let s = new_stmt(StmtKind.While, pos);
   s.while_stmt.cond = cond;
   s.while_stmt.block = block;
   return s;
 }
 
 fn new_stmt_do_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
-  let s = new_stmt(STMT_DO_WHILE, pos);
+  let s = new_stmt(StmtKind.DoWhile, pos);
   s.while_stmt.cond = cond;
   s.while_stmt.block = block;
   return s;
 }
 
 fn new_stmt_for(pos: SrcPos, init: &Stmt, cond: &Expr, next: &Stmt, block: StmtList) -> &Stmt {
-  let s = new_stmt(STMT_FOR, pos);
+  let s = new_stmt(StmtKind.For, pos);
   s.for_stmt.init = init;
   s.for_stmt.cond = cond;
   s.for_stmt.next = next;
@@ -430,7 +430,7 @@ fn new_stmt_for(pos: SrcPos, init: &Stmt, cond: &Expr, next: &Stmt, block: StmtL
 }
 
 fn new_stmt_switch(pos: SrcPos, expr: &Expr, cases: *SwitchCase, num_cases: usize) -> &Stmt {
-  let s = new_stmt(STMT_SWITCH, pos);
+  let s = new_stmt(StmtKind.Switch, pos);
   s.switch_stmt.expr = expr;
   s.switch_stmt.cases = ast_dup(cases, num_cases * sizeof(*cases));
   s.switch_stmt.num_cases = num_cases;
@@ -438,7 +438,7 @@ fn new_stmt_switch(pos: SrcPos, expr: &Expr, cases: *SwitchCase, num_cases: usiz
 }
 
 fn new_stmt_assign(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &Stmt {
-  let s = new_stmt(STMT_ASSIGN, pos);
+  let s = new_stmt(StmtKind.Assign, pos);
   s.assign.op = op;
   s.assign.left = left;
   s.assign.right = right;
@@ -446,7 +446,7 @@ fn new_stmt_assign(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &St
 }
 
 fn new_stmt_init(pos: SrcPos, name: *const char, is_mut: bool, type: &Typespec, expr: &Expr) -> &Stmt {
-  let s = new_stmt(STMT_INIT, pos);
+  let s = new_stmt(StmtKind.Init, pos);
   s.init.name = name;
   s.init.is_mut = is_mut;
   s.init.type = type;
@@ -455,7 +455,7 @@ fn new_stmt_init(pos: SrcPos, name: *const char, is_mut: bool, type: &Typespec, 
 }
 
 fn new_stmt_expr(pos: SrcPos, expr: &Expr) -> &Stmt {
-  let s = new_stmt(STMT_EXPR, pos);
+  let s = new_stmt(StmtKind.Expr, pos);
   s.expr = expr;
   return s;
 }
