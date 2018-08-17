@@ -955,317 +955,165 @@ void rio_init_keywords(void);
 
 bool rio_is_keyword_name(char const ((*name)));
 
-#define rio_TOKEN_EOF ((rio_TokenKind)(0))
+#define rio_TokenKind_Eof ((rio_TokenKind)(0))
 
-#define rio_TokenKind_TOKEN_EOF ((rio_TokenKind)(0))
+#define rio_TokenKind_Colon ((rio_TokenKind)((rio_TokenKind_Eof) + (1)))
 
-#define rio_TOKEN_COLON ((rio_TokenKind)((rio_TOKEN_EOF) + (1)))
+#define rio_TokenKind_Arrow ((rio_TokenKind)((rio_TokenKind_Colon) + (1)))
 
-#define rio_TokenKind_TOKEN_COLON ((rio_TokenKind)((rio_TokenKind_TOKEN_EOF) + (1)))
+#define rio_TokenKind_Lparen ((rio_TokenKind)((rio_TokenKind_Arrow) + (1)))
 
-#define rio_TOKEN_ARROW ((rio_TokenKind)((rio_TOKEN_COLON) + (1)))
+#define rio_TokenKind_Rparen ((rio_TokenKind)((rio_TokenKind_Lparen) + (1)))
 
-#define rio_TokenKind_TOKEN_ARROW ((rio_TokenKind)((rio_TokenKind_TOKEN_COLON) + (1)))
+#define rio_TokenKind_Lbrace ((rio_TokenKind)((rio_TokenKind_Rparen) + (1)))
 
-#define rio_TOKEN_LPAREN ((rio_TokenKind)((rio_TOKEN_ARROW) + (1)))
+#define rio_TokenKind_Rbrace ((rio_TokenKind)((rio_TokenKind_Lbrace) + (1)))
 
-#define rio_TokenKind_TOKEN_LPAREN ((rio_TokenKind)((rio_TokenKind_TOKEN_ARROW) + (1)))
+#define rio_TokenKind_Lbracket ((rio_TokenKind)((rio_TokenKind_Rbrace) + (1)))
 
-#define rio_TOKEN_RPAREN ((rio_TokenKind)((rio_TOKEN_LPAREN) + (1)))
+#define rio_TokenKind_Rbracket ((rio_TokenKind)((rio_TokenKind_Lbracket) + (1)))
 
-#define rio_TokenKind_TOKEN_RPAREN ((rio_TokenKind)((rio_TokenKind_TOKEN_LPAREN) + (1)))
+#define rio_TokenKind_Comma ((rio_TokenKind)((rio_TokenKind_Rbracket) + (1)))
 
-#define rio_TOKEN_LBRACE ((rio_TokenKind)((rio_TOKEN_RPAREN) + (1)))
+#define rio_TokenKind_Dot ((rio_TokenKind)((rio_TokenKind_Comma) + (1)))
 
-#define rio_TokenKind_TOKEN_LBRACE ((rio_TokenKind)((rio_TokenKind_TOKEN_RPAREN) + (1)))
+#define rio_TokenKind_At ((rio_TokenKind)((rio_TokenKind_Dot) + (1)))
 
-#define rio_TOKEN_RBRACE ((rio_TokenKind)((rio_TOKEN_LBRACE) + (1)))
+#define rio_TokenKind_Pound ((rio_TokenKind)((rio_TokenKind_At) + (1)))
 
-#define rio_TokenKind_TOKEN_RBRACE ((rio_TokenKind)((rio_TokenKind_TOKEN_LBRACE) + (1)))
+#define rio_TokenKind_Ellipsis ((rio_TokenKind)((rio_TokenKind_Pound) + (1)))
 
-#define rio_TOKEN_LBRACKET ((rio_TokenKind)((rio_TOKEN_RBRACE) + (1)))
+#define rio_TokenKind_Question ((rio_TokenKind)((rio_TokenKind_Ellipsis) + (1)))
 
-#define rio_TokenKind_TOKEN_LBRACKET ((rio_TokenKind)((rio_TokenKind_TOKEN_RBRACE) + (1)))
+#define rio_TokenKind_Semicolon ((rio_TokenKind)((rio_TokenKind_Question) + (1)))
 
-#define rio_TOKEN_RBRACKET ((rio_TokenKind)((rio_TOKEN_LBRACKET) + (1)))
+#define rio_TokenKind_Keyword ((rio_TokenKind)((rio_TokenKind_Semicolon) + (1)))
 
-#define rio_TokenKind_TOKEN_RBRACKET ((rio_TokenKind)((rio_TokenKind_TOKEN_LBRACKET) + (1)))
+#define rio_TokenKind_Int ((rio_TokenKind)((rio_TokenKind_Keyword) + (1)))
 
-#define rio_TOKEN_COMMA ((rio_TokenKind)((rio_TOKEN_RBRACKET) + (1)))
+#define rio_TokenKind_Float ((rio_TokenKind)((rio_TokenKind_Int) + (1)))
 
-#define rio_TokenKind_TOKEN_COMMA ((rio_TokenKind)((rio_TokenKind_TOKEN_RBRACKET) + (1)))
+#define rio_TokenKind_Str ((rio_TokenKind)((rio_TokenKind_Float) + (1)))
 
-#define rio_TOKEN_DOT ((rio_TokenKind)((rio_TOKEN_COMMA) + (1)))
+#define rio_TokenKind_Name ((rio_TokenKind)((rio_TokenKind_Str) + (1)))
 
-#define rio_TokenKind_TOKEN_DOT ((rio_TokenKind)((rio_TokenKind_TOKEN_COMMA) + (1)))
+#define rio_TokenKind_Neg ((rio_TokenKind)((rio_TokenKind_Name) + (1)))
 
-#define rio_TOKEN_AT ((rio_TokenKind)((rio_TOKEN_DOT) + (1)))
+#define rio_TokenKind_Not ((rio_TokenKind)((rio_TokenKind_Neg) + (1)))
 
-#define rio_TokenKind_TOKEN_AT ((rio_TokenKind)((rio_TokenKind_TOKEN_DOT) + (1)))
+#define rio_TokenKind_FirstMul ((rio_TokenKind)((rio_TokenKind_Not) + (1)))
 
-#define rio_TOKEN_POUND ((rio_TokenKind)((rio_TOKEN_AT) + (1)))
+#define rio_TokenKind_Mul ((rio_TokenKind)((rio_TokenKind_FirstMul) + (1)))
 
-#define rio_TokenKind_TOKEN_POUND ((rio_TokenKind)((rio_TokenKind_TOKEN_AT) + (1)))
+#define rio_TokenKind_Div ((rio_TokenKind)((rio_TokenKind_Mul) + (1)))
 
-#define rio_TOKEN_ELLIPSIS ((rio_TokenKind)((rio_TOKEN_POUND) + (1)))
+#define rio_TokenKind_Mod ((rio_TokenKind)((rio_TokenKind_Div) + (1)))
 
-#define rio_TokenKind_TOKEN_ELLIPSIS ((rio_TokenKind)((rio_TokenKind_TOKEN_POUND) + (1)))
+#define rio_TokenKind_And ((rio_TokenKind)((rio_TokenKind_Mod) + (1)))
 
-#define rio_TOKEN_QUESTION ((rio_TokenKind)((rio_TOKEN_ELLIPSIS) + (1)))
+#define rio_TokenKind_Lshift ((rio_TokenKind)((rio_TokenKind_And) + (1)))
 
-#define rio_TokenKind_TOKEN_QUESTION ((rio_TokenKind)((rio_TokenKind_TOKEN_ELLIPSIS) + (1)))
+#define rio_TokenKind_Rshift ((rio_TokenKind)((rio_TokenKind_Lshift) + (1)))
 
-#define rio_TOKEN_SEMICOLON ((rio_TokenKind)((rio_TOKEN_QUESTION) + (1)))
+#define rio_TokenKind_LastMul ((rio_TokenKind)((rio_TokenKind_Rshift) + (1)))
 
-#define rio_TokenKind_TOKEN_SEMICOLON ((rio_TokenKind)((rio_TokenKind_TOKEN_QUESTION) + (1)))
+#define rio_TokenKind_FirstAdd ((rio_TokenKind)((rio_TokenKind_LastMul) + (1)))
 
-#define rio_TOKEN_KEYWORD ((rio_TokenKind)((rio_TOKEN_SEMICOLON) + (1)))
+#define rio_TokenKind_Add ((rio_TokenKind)((rio_TokenKind_FirstAdd) + (1)))
 
-#define rio_TokenKind_TOKEN_KEYWORD ((rio_TokenKind)((rio_TokenKind_TOKEN_SEMICOLON) + (1)))
+#define rio_TokenKind_Sub ((rio_TokenKind)((rio_TokenKind_Add) + (1)))
 
-#define rio_TOKEN_INT ((rio_TokenKind)((rio_TOKEN_KEYWORD) + (1)))
+#define rio_TokenKind_Xor ((rio_TokenKind)((rio_TokenKind_Sub) + (1)))
 
-#define rio_TokenKind_TOKEN_INT ((rio_TokenKind)((rio_TokenKind_TOKEN_KEYWORD) + (1)))
+#define rio_TokenKind_Or ((rio_TokenKind)((rio_TokenKind_Xor) + (1)))
 
-#define rio_TOKEN_FLOAT ((rio_TokenKind)((rio_TOKEN_INT) + (1)))
+#define rio_TokenKind_LastAdd ((rio_TokenKind)((rio_TokenKind_Or) + (1)))
 
-#define rio_TokenKind_TOKEN_FLOAT ((rio_TokenKind)((rio_TokenKind_TOKEN_INT) + (1)))
+#define rio_TokenKind_FirstCmp ((rio_TokenKind)((rio_TokenKind_LastAdd) + (1)))
 
-#define rio_TOKEN_STR ((rio_TokenKind)((rio_TOKEN_FLOAT) + (1)))
+#define rio_TokenKind_Eq ((rio_TokenKind)((rio_TokenKind_FirstCmp) + (1)))
 
-#define rio_TokenKind_TOKEN_STR ((rio_TokenKind)((rio_TokenKind_TOKEN_FLOAT) + (1)))
+#define rio_TokenKind_NotEq ((rio_TokenKind)((rio_TokenKind_Eq) + (1)))
 
-#define rio_TOKEN_NAME ((rio_TokenKind)((rio_TOKEN_STR) + (1)))
+#define rio_TokenKind_Lt ((rio_TokenKind)((rio_TokenKind_NotEq) + (1)))
 
-#define rio_TokenKind_TOKEN_NAME ((rio_TokenKind)((rio_TokenKind_TOKEN_STR) + (1)))
+#define rio_TokenKind_Gt ((rio_TokenKind)((rio_TokenKind_Lt) + (1)))
 
-#define rio_TOKEN_NEG ((rio_TokenKind)((rio_TOKEN_NAME) + (1)))
+#define rio_TokenKind_LtEq ((rio_TokenKind)((rio_TokenKind_Gt) + (1)))
 
-#define rio_TokenKind_TOKEN_NEG ((rio_TokenKind)((rio_TokenKind_TOKEN_NAME) + (1)))
+#define rio_TokenKind_GtEq ((rio_TokenKind)((rio_TokenKind_LtEq) + (1)))
 
-#define rio_TOKEN_NOT ((rio_TokenKind)((rio_TOKEN_NEG) + (1)))
+#define rio_TokenKind_LastCmp ((rio_TokenKind)((rio_TokenKind_GtEq) + (1)))
 
-#define rio_TokenKind_TOKEN_NOT ((rio_TokenKind)((rio_TokenKind_TOKEN_NEG) + (1)))
+#define rio_TokenKind_AndAnd ((rio_TokenKind)((rio_TokenKind_LastCmp) + (1)))
 
-#define rio_TOKEN_FIRST_MUL ((rio_TokenKind)((rio_TOKEN_NOT) + (1)))
+#define rio_TokenKind_OrOr ((rio_TokenKind)((rio_TokenKind_AndAnd) + (1)))
 
-#define rio_TokenKind_TOKEN_FIRST_MUL ((rio_TokenKind)((rio_TokenKind_TOKEN_NOT) + (1)))
+#define rio_TokenKind_FirstAssign ((rio_TokenKind)((rio_TokenKind_OrOr) + (1)))
 
-#define rio_TOKEN_MUL ((rio_TokenKind)(rio_TOKEN_FIRST_MUL))
+#define rio_TokenKind_Assign ((rio_TokenKind)((rio_TokenKind_FirstAssign) + (1)))
 
-#define rio_TokenKind_TOKEN_MUL ((rio_TokenKind)((rio_TokenKind_TOKEN_FIRST_MUL) + (1)))
+#define rio_TokenKind_AddAssign ((rio_TokenKind)((rio_TokenKind_Assign) + (1)))
 
-#define rio_TOKEN_DIV ((rio_TokenKind)((rio_TOKEN_MUL) + (1)))
+#define rio_TokenKind_SubAssign ((rio_TokenKind)((rio_TokenKind_AddAssign) + (1)))
 
-#define rio_TokenKind_TOKEN_DIV ((rio_TokenKind)((rio_TokenKind_TOKEN_MUL) + (1)))
+#define rio_TokenKind_OrAssign ((rio_TokenKind)((rio_TokenKind_SubAssign) + (1)))
 
-#define rio_TOKEN_MOD ((rio_TokenKind)((rio_TOKEN_DIV) + (1)))
+#define rio_TokenKind_AndAssign ((rio_TokenKind)((rio_TokenKind_OrAssign) + (1)))
 
-#define rio_TokenKind_TOKEN_MOD ((rio_TokenKind)((rio_TokenKind_TOKEN_DIV) + (1)))
+#define rio_TokenKind_XorAssign ((rio_TokenKind)((rio_TokenKind_AndAssign) + (1)))
 
-#define rio_TOKEN_AND ((rio_TokenKind)((rio_TOKEN_MOD) + (1)))
+#define rio_TokenKind_LshiftAssign ((rio_TokenKind)((rio_TokenKind_XorAssign) + (1)))
 
-#define rio_TokenKind_TOKEN_AND ((rio_TokenKind)((rio_TokenKind_TOKEN_MOD) + (1)))
+#define rio_TokenKind_RshiftAssign ((rio_TokenKind)((rio_TokenKind_LshiftAssign) + (1)))
 
-#define rio_TOKEN_LSHIFT ((rio_TokenKind)((rio_TOKEN_AND) + (1)))
+#define rio_TokenKind_MulAssign ((rio_TokenKind)((rio_TokenKind_RshiftAssign) + (1)))
 
-#define rio_TokenKind_TOKEN_LSHIFT ((rio_TokenKind)((rio_TokenKind_TOKEN_AND) + (1)))
+#define rio_TokenKind_DivAssign ((rio_TokenKind)((rio_TokenKind_MulAssign) + (1)))
 
-#define rio_TOKEN_RSHIFT ((rio_TokenKind)((rio_TOKEN_LSHIFT) + (1)))
+#define rio_TokenKind_ModAssign ((rio_TokenKind)((rio_TokenKind_DivAssign) + (1)))
 
-#define rio_TokenKind_TOKEN_RSHIFT ((rio_TokenKind)((rio_TokenKind_TOKEN_LSHIFT) + (1)))
+#define rio_TokenKind_LastAssign ((rio_TokenKind)((rio_TokenKind_ModAssign) + (1)))
 
-#define rio_TOKEN_LAST_MUL ((rio_TokenKind)(rio_TOKEN_RSHIFT))
+#define rio_TokenKind_Inc ((rio_TokenKind)((rio_TokenKind_LastAssign) + (1)))
 
-#define rio_TokenKind_TOKEN_LAST_MUL ((rio_TokenKind)((rio_TokenKind_TOKEN_RSHIFT) + (1)))
+#define rio_TokenKind_Dec ((rio_TokenKind)((rio_TokenKind_Inc) + (1)))
 
-#define rio_TOKEN_FIRST_ADD ((rio_TokenKind)((rio_TOKEN_LAST_MUL) + (1)))
+#define rio_TokenKind_NumKinds ((rio_TokenKind)((rio_TokenKind_Dec) + (1)))
 
-#define rio_TokenKind_TOKEN_FIRST_ADD ((rio_TokenKind)((rio_TokenKind_TOKEN_LAST_MUL) + (1)))
+#define rio_TokenMod_None ((rio_TokenMod)(0))
 
-#define rio_TOKEN_ADD ((rio_TokenKind)(rio_TOKEN_FIRST_ADD))
+#define rio_TokenMod_Hex ((rio_TokenMod)((rio_TokenMod_None) + (1)))
 
-#define rio_TokenKind_TOKEN_ADD ((rio_TokenKind)((rio_TokenKind_TOKEN_FIRST_ADD) + (1)))
+#define rio_TokenMod_Bin ((rio_TokenMod)((rio_TokenMod_Hex) + (1)))
 
-#define rio_TOKEN_SUB ((rio_TokenKind)((rio_TOKEN_ADD) + (1)))
+#define rio_TokenMod_Oct ((rio_TokenMod)((rio_TokenMod_Bin) + (1)))
 
-#define rio_TokenKind_TOKEN_SUB ((rio_TokenKind)((rio_TokenKind_TOKEN_ADD) + (1)))
+#define rio_TokenMod_Char ((rio_TokenMod)((rio_TokenMod_Oct) + (1)))
 
-#define rio_TOKEN_XOR ((rio_TokenKind)((rio_TOKEN_SUB) + (1)))
+#define rio_TokenMod_Multiline ((rio_TokenMod)((rio_TokenMod_Char) + (1)))
 
-#define rio_TokenKind_TOKEN_XOR ((rio_TokenKind)((rio_TokenKind_TOKEN_SUB) + (1)))
+#define rio_TokenSuffix_None ((rio_TokenSuffix)(0))
 
-#define rio_TOKEN_OR ((rio_TokenKind)((rio_TOKEN_XOR) + (1)))
+#define rio_TokenSuffix_D ((rio_TokenSuffix)((rio_TokenSuffix_None) + (1)))
 
-#define rio_TokenKind_TOKEN_OR ((rio_TokenKind)((rio_TokenKind_TOKEN_XOR) + (1)))
+#define rio_TokenSuffix_U ((rio_TokenSuffix)((rio_TokenSuffix_D) + (1)))
 
-#define rio_TOKEN_LAST_ADD ((rio_TokenKind)(rio_TOKEN_OR))
+#define rio_TokenSuffix_L ((rio_TokenSuffix)((rio_TokenSuffix_U) + (1)))
 
-#define rio_TokenKind_TOKEN_LAST_ADD ((rio_TokenKind)((rio_TokenKind_TOKEN_OR) + (1)))
+#define rio_TokenSuffix_UL ((rio_TokenSuffix)((rio_TokenSuffix_L) + (1)))
 
-#define rio_TOKEN_FIRST_CMP ((rio_TokenKind)((rio_TOKEN_LAST_ADD) + (1)))
+#define rio_TokenSuffix_LL ((rio_TokenSuffix)((rio_TokenSuffix_UL) + (1)))
 
-#define rio_TokenKind_TOKEN_FIRST_CMP ((rio_TokenKind)((rio_TokenKind_TOKEN_LAST_ADD) + (1)))
-
-#define rio_TOKEN_EQ ((rio_TokenKind)(rio_TOKEN_FIRST_CMP))
-
-#define rio_TokenKind_TOKEN_EQ ((rio_TokenKind)((rio_TokenKind_TOKEN_FIRST_CMP) + (1)))
-
-#define rio_TOKEN_NOTEQ ((rio_TokenKind)((rio_TOKEN_EQ) + (1)))
-
-#define rio_TokenKind_TOKEN_NOTEQ ((rio_TokenKind)((rio_TokenKind_TOKEN_EQ) + (1)))
-
-#define rio_TOKEN_LT ((rio_TokenKind)((rio_TOKEN_NOTEQ) + (1)))
-
-#define rio_TokenKind_TOKEN_LT ((rio_TokenKind)((rio_TokenKind_TOKEN_NOTEQ) + (1)))
-
-#define rio_TOKEN_GT ((rio_TokenKind)((rio_TOKEN_LT) + (1)))
-
-#define rio_TokenKind_TOKEN_GT ((rio_TokenKind)((rio_TokenKind_TOKEN_LT) + (1)))
-
-#define rio_TOKEN_LTEQ ((rio_TokenKind)((rio_TOKEN_GT) + (1)))
-
-#define rio_TokenKind_TOKEN_LTEQ ((rio_TokenKind)((rio_TokenKind_TOKEN_GT) + (1)))
-
-#define rio_TOKEN_GTEQ ((rio_TokenKind)((rio_TOKEN_LTEQ) + (1)))
-
-#define rio_TokenKind_TOKEN_GTEQ ((rio_TokenKind)((rio_TokenKind_TOKEN_LTEQ) + (1)))
-
-#define rio_TOKEN_LAST_CMP ((rio_TokenKind)(rio_TOKEN_GTEQ))
-
-#define rio_TokenKind_TOKEN_LAST_CMP ((rio_TokenKind)((rio_TokenKind_TOKEN_GTEQ) + (1)))
-
-#define rio_TOKEN_AND_AND ((rio_TokenKind)((rio_TOKEN_LAST_CMP) + (1)))
-
-#define rio_TokenKind_TOKEN_AND_AND ((rio_TokenKind)((rio_TokenKind_TOKEN_LAST_CMP) + (1)))
-
-#define rio_TOKEN_OR_OR ((rio_TokenKind)((rio_TOKEN_AND_AND) + (1)))
-
-#define rio_TokenKind_TOKEN_OR_OR ((rio_TokenKind)((rio_TokenKind_TOKEN_AND_AND) + (1)))
-
-#define rio_TOKEN_FIRST_ASSIGN ((rio_TokenKind)((rio_TOKEN_OR_OR) + (1)))
-
-#define rio_TokenKind_TOKEN_FIRST_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_OR_OR) + (1)))
-
-#define rio_TOKEN_ASSIGN ((rio_TokenKind)(rio_TOKEN_FIRST_ASSIGN))
-
-#define rio_TokenKind_TOKEN_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_FIRST_ASSIGN) + (1)))
-
-#define rio_TOKEN_ADD_ASSIGN ((rio_TokenKind)((rio_TOKEN_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_ADD_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_ASSIGN) + (1)))
-
-#define rio_TOKEN_SUB_ASSIGN ((rio_TokenKind)((rio_TOKEN_ADD_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_SUB_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_ADD_ASSIGN) + (1)))
-
-#define rio_TOKEN_OR_ASSIGN ((rio_TokenKind)((rio_TOKEN_SUB_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_OR_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_SUB_ASSIGN) + (1)))
-
-#define rio_TOKEN_AND_ASSIGN ((rio_TokenKind)((rio_TOKEN_OR_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_AND_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_OR_ASSIGN) + (1)))
-
-#define rio_TOKEN_XOR_ASSIGN ((rio_TokenKind)((rio_TOKEN_AND_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_XOR_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_AND_ASSIGN) + (1)))
-
-#define rio_TOKEN_LSHIFT_ASSIGN ((rio_TokenKind)((rio_TOKEN_XOR_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_LSHIFT_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_XOR_ASSIGN) + (1)))
-
-#define rio_TOKEN_RSHIFT_ASSIGN ((rio_TokenKind)((rio_TOKEN_LSHIFT_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_RSHIFT_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_LSHIFT_ASSIGN) + (1)))
-
-#define rio_TOKEN_MUL_ASSIGN ((rio_TokenKind)((rio_TOKEN_RSHIFT_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_MUL_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_RSHIFT_ASSIGN) + (1)))
-
-#define rio_TOKEN_DIV_ASSIGN ((rio_TokenKind)((rio_TOKEN_MUL_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_DIV_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_MUL_ASSIGN) + (1)))
-
-#define rio_TOKEN_MOD_ASSIGN ((rio_TokenKind)((rio_TOKEN_DIV_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_MOD_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_DIV_ASSIGN) + (1)))
-
-#define rio_TOKEN_LAST_ASSIGN ((rio_TokenKind)(rio_TOKEN_MOD_ASSIGN))
-
-#define rio_TokenKind_TOKEN_LAST_ASSIGN ((rio_TokenKind)((rio_TokenKind_TOKEN_MOD_ASSIGN) + (1)))
-
-#define rio_TOKEN_INC ((rio_TokenKind)((rio_TOKEN_LAST_ASSIGN) + (1)))
-
-#define rio_TokenKind_TOKEN_INC ((rio_TokenKind)((rio_TokenKind_TOKEN_LAST_ASSIGN) + (1)))
-
-#define rio_TOKEN_DEC ((rio_TokenKind)((rio_TOKEN_INC) + (1)))
-
-#define rio_TokenKind_TOKEN_DEC ((rio_TokenKind)((rio_TokenKind_TOKEN_INC) + (1)))
-
-#define rio_NUM_TOKEN_KINDS ((rio_TokenKind)((rio_TOKEN_DEC) + (1)))
-
-#define rio_TokenKind_NUM_TOKEN_KINDS ((rio_TokenKind)((rio_TokenKind_TOKEN_DEC) + (1)))
-
-#define rio_MOD_NONE ((rio_TokenMod)(0))
-
-#define rio_TokenMod_MOD_NONE ((rio_TokenMod)(0))
-
-#define rio_MOD_HEX ((rio_TokenMod)((rio_MOD_NONE) + (1)))
-
-#define rio_TokenMod_MOD_HEX ((rio_TokenMod)((rio_TokenMod_MOD_NONE) + (1)))
-
-#define rio_MOD_BIN ((rio_TokenMod)((rio_MOD_HEX) + (1)))
-
-#define rio_TokenMod_MOD_BIN ((rio_TokenMod)((rio_TokenMod_MOD_HEX) + (1)))
-
-#define rio_MOD_OCT ((rio_TokenMod)((rio_MOD_BIN) + (1)))
-
-#define rio_TokenMod_MOD_OCT ((rio_TokenMod)((rio_TokenMod_MOD_BIN) + (1)))
-
-#define rio_MOD_CHAR ((rio_TokenMod)((rio_MOD_OCT) + (1)))
-
-#define rio_TokenMod_MOD_CHAR ((rio_TokenMod)((rio_TokenMod_MOD_OCT) + (1)))
-
-#define rio_MOD_MULTILINE ((rio_TokenMod)((rio_MOD_CHAR) + (1)))
-
-#define rio_TokenMod_MOD_MULTILINE ((rio_TokenMod)((rio_TokenMod_MOD_CHAR) + (1)))
-
-#define rio_SUFFIX_NONE ((rio_TokenSuffix)(0))
-
-#define rio_TokenSuffix_SUFFIX_NONE ((rio_TokenSuffix)(0))
-
-#define rio_SUFFIX_D ((rio_TokenSuffix)((rio_SUFFIX_NONE) + (1)))
-
-#define rio_TokenSuffix_SUFFIX_D ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_NONE) + (1)))
-
-#define rio_SUFFIX_U ((rio_TokenSuffix)((rio_SUFFIX_D) + (1)))
-
-#define rio_TokenSuffix_SUFFIX_U ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_D) + (1)))
-
-#define rio_SUFFIX_L ((rio_TokenSuffix)((rio_SUFFIX_U) + (1)))
-
-#define rio_TokenSuffix_SUFFIX_L ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_U) + (1)))
-
-#define rio_SUFFIX_UL ((rio_TokenSuffix)((rio_SUFFIX_L) + (1)))
-
-#define rio_TokenSuffix_SUFFIX_UL ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_L) + (1)))
-
-#define rio_SUFFIX_LL ((rio_TokenSuffix)((rio_SUFFIX_UL) + (1)))
-
-#define rio_TokenSuffix_SUFFIX_LL ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_UL) + (1)))
-
-#define rio_SUFFIX_ULL ((rio_TokenSuffix)((rio_SUFFIX_LL) + (1)))
-
-#define rio_TokenSuffix_SUFFIX_ULL ((rio_TokenSuffix)((rio_TokenSuffix_SUFFIX_LL) + (1)))
+#define rio_TokenSuffix_ULL ((rio_TokenSuffix)((rio_TokenSuffix_LL) + (1)))
 
 extern char const ((*(rio_token_suffix_names[7])));
 
-extern char const ((*(rio_token_kind_names[54])));
+extern char const ((*(rio_token_kind_names[62])));
 
 char const ((*rio_token_kind_name(rio_TokenKind kind)));
 
-extern rio_TokenKind (rio_assign_token_to_binary_token[rio_NUM_TOKEN_KINDS]);
+extern rio_TokenKind (rio_assign_token_to_binary_token[rio_TokenKind_NumKinds]);
 
 extern rio_SrcPos rio_pos_builtin;
 
@@ -3897,16 +3745,16 @@ void rio_gen_expr(rio_Expr (*expr)) {
     {
       char const ((*suffix_name)) = rio_token_suffix_names[expr->int_lit.suffix];
       switch (expr->int_lit.mod) {
-      case rio_MOD_BIN:
-      case rio_MOD_HEX: {
+      case rio_TokenMod_Bin:
+      case rio_TokenMod_Hex: {
         rio_buf_printf(&(rio_gen_buf), "0x%llx%s", expr->int_lit.val, suffix_name);
         break;
       }
-      case rio_MOD_OCT: {
+      case rio_TokenMod_Oct: {
         rio_buf_printf(&(rio_gen_buf), "0%llo%s", expr->int_lit.val, suffix_name);
         break;
       }
-      case rio_MOD_CHAR: {
+      case rio_TokenMod_Char: {
         rio_gen_char((char)(expr->int_lit.val));
         break;
       }
@@ -3920,14 +3768,14 @@ void rio_gen_expr(rio_Expr (*expr)) {
   }
   case rio_ExprKind_Float: {
     {
-      int is_double = (expr->float_lit.suffix) == (rio_SUFFIX_D);
+      int is_double = (expr->float_lit.suffix) == (rio_TokenSuffix_D);
       size_t len = (expr->float_lit.end) - (expr->float_lit.start);
       rio_buf_printf(&(rio_gen_buf), "%.*s%s", (is_double ? (len) - (1) : len), expr->float_lit.start, (is_double ? "" : "f"));
     }
     break;
   }
   case rio_ExprKind_Str: {
-    rio_gen_str(expr->str_lit.val, (expr->str_lit.mod) == (rio_MOD_MULTILINE));
+    rio_gen_str(expr->str_lit.val, (expr->str_lit.mod) == (rio_TokenMod_Multiline));
     break;
   }
   case rio_ExprKind_Name: {
@@ -4112,7 +3960,7 @@ void rio_gen_simple_stmt(rio_Stmt (*stmt)) {
 }
 
 bool rio_is_char_lit(rio_Expr (*expr)) {
-  return ((expr->kind) == (rio_ExprKind_Int)) && ((expr->int_lit.mod) == (rio_MOD_CHAR));
+  return ((expr->kind) == (rio_ExprKind_Int)) && ((expr->int_lit.mod) == (rio_TokenMod_Char));
 }
 
 void rio_gen_stmt(rio_Stmt (*stmt)) {
@@ -4899,8 +4747,8 @@ bool rio_is_keyword_name(char const ((*name))) {
   return ((rio_first_keyword) <= (name)) && ((name) <= (rio_last_keyword));
 }
 
-char const ((*(rio_token_suffix_names[7]))) = {[rio_SUFFIX_NONE] = "", [rio_SUFFIX_D] = "d", [rio_SUFFIX_U] = "u", [rio_SUFFIX_L] = "l", [rio_SUFFIX_UL] = "ul", [rio_SUFFIX_LL] = "ll", [rio_SUFFIX_ULL] = "ull"};
-char const ((*(rio_token_kind_names[54]))) = {[rio_TOKEN_EOF] = "EOF", [rio_TOKEN_COLON] = ":", [rio_TOKEN_ARROW] = "->", [rio_TOKEN_LPAREN] = "(", [rio_TOKEN_RPAREN] = ")", [rio_TOKEN_LBRACE] = "{", [rio_TOKEN_RBRACE] = "}", [rio_TOKEN_LBRACKET] = "[", [rio_TOKEN_RBRACKET] = "]", [rio_TOKEN_COMMA] = ",", [rio_TOKEN_DOT] = ".", [rio_TOKEN_AT] = "@", [rio_TOKEN_POUND] = "#", [rio_TOKEN_ELLIPSIS] = "...", [rio_TOKEN_QUESTION] = "?", [rio_TOKEN_SEMICOLON] = ";", [rio_TOKEN_KEYWORD] = "keyword", [rio_TOKEN_INT] = "int", [rio_TOKEN_FLOAT] = "float", [rio_TOKEN_STR] = "string", [rio_TOKEN_NAME] = "name", [rio_TOKEN_NEG] = "~", [rio_TOKEN_NOT] = "!", [rio_TOKEN_MUL] = "*", [rio_TOKEN_DIV] = "/", [rio_TOKEN_MOD] = "%", [rio_TOKEN_AND] = "&", [rio_TOKEN_LSHIFT] = "<<", [rio_TOKEN_RSHIFT] = ">>", [rio_TOKEN_ADD] = "+", [rio_TOKEN_SUB] = "-", [rio_TOKEN_OR] = "|", [rio_TOKEN_XOR] = "^", [rio_TOKEN_EQ] = "==", [rio_TOKEN_NOTEQ] = "!=", [rio_TOKEN_LT] = "<", [rio_TOKEN_GT] = ">", [rio_TOKEN_LTEQ] = "<=", [rio_TOKEN_GTEQ] = ">=", [rio_TOKEN_AND_AND] = "&&", [rio_TOKEN_OR_OR] = "||", [rio_TOKEN_ASSIGN] = "=", [rio_TOKEN_ADD_ASSIGN] = "+=", [rio_TOKEN_SUB_ASSIGN] = "-=", [rio_TOKEN_OR_ASSIGN] = "|=", [rio_TOKEN_AND_ASSIGN] = "&=", [rio_TOKEN_XOR_ASSIGN] = "^=", [rio_TOKEN_MUL_ASSIGN] = "*=", [rio_TOKEN_DIV_ASSIGN] = "/=", [rio_TOKEN_MOD_ASSIGN] = "%=", [rio_TOKEN_LSHIFT_ASSIGN] = "<<=", [rio_TOKEN_RSHIFT_ASSIGN] = ">>=", [rio_TOKEN_INC] = "++", [rio_TOKEN_DEC] = "--"};
+char const ((*(rio_token_suffix_names[7]))) = {[rio_TokenSuffix_None] = "", [rio_TokenSuffix_D] = "d", [rio_TokenSuffix_U] = "u", [rio_TokenSuffix_L] = "l", [rio_TokenSuffix_UL] = "ul", [rio_TokenSuffix_LL] = "ll", [rio_TokenSuffix_ULL] = "ull"};
+char const ((*(rio_token_kind_names[62]))) = {[rio_TokenKind_Eof] = "EOF", [rio_TokenKind_Colon] = ":", [rio_TokenKind_Arrow] = "->", [rio_TokenKind_Lparen] = "(", [rio_TokenKind_Rparen] = ")", [rio_TokenKind_Lbrace] = "{", [rio_TokenKind_Rbrace] = "}", [rio_TokenKind_Lbracket] = "[", [rio_TokenKind_Rbracket] = "]", [rio_TokenKind_Comma] = ",", [rio_TokenKind_Dot] = ".", [rio_TokenKind_At] = "@", [rio_TokenKind_Pound] = "#", [rio_TokenKind_Ellipsis] = "...", [rio_TokenKind_Question] = "?", [rio_TokenKind_Semicolon] = ";", [rio_TokenKind_Keyword] = "keyword", [rio_TokenKind_Int] = "int", [rio_TokenKind_Float] = "float", [rio_TokenKind_Str] = "string", [rio_TokenKind_Name] = "name", [rio_TokenKind_Neg] = "~", [rio_TokenKind_Not] = "!", [rio_TokenKind_Mul] = "*", [rio_TokenKind_Div] = "/", [rio_TokenKind_Mod] = "%", [rio_TokenKind_And] = "&", [rio_TokenKind_Lshift] = "<<", [rio_TokenKind_Rshift] = ">>", [rio_TokenKind_Add] = "+", [rio_TokenKind_Sub] = "-", [rio_TokenKind_Or] = "|", [rio_TokenKind_Xor] = "^", [rio_TokenKind_Eq] = "==", [rio_TokenKind_NotEq] = "!=", [rio_TokenKind_Lt] = "<", [rio_TokenKind_Gt] = ">", [rio_TokenKind_LtEq] = "<=", [rio_TokenKind_GtEq] = ">=", [rio_TokenKind_AndAnd] = "&&", [rio_TokenKind_OrOr] = "||", [rio_TokenKind_Assign] = "=", [rio_TokenKind_AddAssign] = "+=", [rio_TokenKind_SubAssign] = "-=", [rio_TokenKind_OrAssign] = "|=", [rio_TokenKind_AndAssign] = "&=", [rio_TokenKind_XorAssign] = "^=", [rio_TokenKind_MulAssign] = "*=", [rio_TokenKind_DivAssign] = "/=", [rio_TokenKind_ModAssign] = "%=", [rio_TokenKind_LshiftAssign] = "<<=", [rio_TokenKind_RshiftAssign] = ">>=", [rio_TokenKind_Inc] = "++", [rio_TokenKind_Dec] = "--"};
 char const ((*rio_token_kind_name(rio_TokenKind kind))) {
   if ((kind) < ((sizeof(rio_token_kind_names)) / (sizeof(*(rio_token_kind_names))))) {
     return rio_token_kind_names[kind];
@@ -4909,7 +4757,7 @@ char const ((*rio_token_kind_name(rio_TokenKind kind))) {
   }
 }
 
-rio_TokenKind (rio_assign_token_to_binary_token[rio_NUM_TOKEN_KINDS]) = {[rio_TOKEN_ADD_ASSIGN] = rio_TOKEN_ADD, [rio_TOKEN_SUB_ASSIGN] = rio_TOKEN_SUB, [rio_TOKEN_OR_ASSIGN] = rio_TOKEN_OR, [rio_TOKEN_AND_ASSIGN] = rio_TOKEN_AND, [rio_TOKEN_XOR_ASSIGN] = rio_TOKEN_XOR, [rio_TOKEN_LSHIFT_ASSIGN] = rio_TOKEN_LSHIFT, [rio_TOKEN_RSHIFT_ASSIGN] = rio_TOKEN_RSHIFT, [rio_TOKEN_MUL_ASSIGN] = rio_TOKEN_MUL, [rio_TOKEN_DIV_ASSIGN] = rio_TOKEN_DIV, [rio_TOKEN_MOD_ASSIGN] = rio_TOKEN_MOD};
+rio_TokenKind (rio_assign_token_to_binary_token[rio_TokenKind_NumKinds]) = {[rio_TokenKind_AddAssign] = rio_TokenKind_Add, [rio_TokenKind_SubAssign] = rio_TokenKind_Sub, [rio_TokenKind_OrAssign] = rio_TokenKind_Or, [rio_TokenKind_AndAssign] = rio_TokenKind_And, [rio_TokenKind_XorAssign] = rio_TokenKind_Xor, [rio_TokenKind_LshiftAssign] = rio_TokenKind_Lshift, [rio_TokenKind_RshiftAssign] = rio_TokenKind_Rshift, [rio_TokenKind_MulAssign] = rio_TokenKind_Mul, [rio_TokenKind_DivAssign] = rio_TokenKind_Div, [rio_TokenKind_ModAssign] = rio_TokenKind_Mod};
 rio_SrcPos rio_pos_builtin = {.name = "<builtin>"};
 rio_Token rio_token;
 char const ((*rio_stream));
@@ -4950,7 +4798,7 @@ void rio_fatal_error(rio_SrcPos pos, char const ((*fmt)), ...) {
 }
 
 char const ((*rio_token_info(void))) {
-  if (((rio_token.kind) == (rio_TOKEN_NAME)) || ((rio_token.kind) == (rio_TOKEN_KEYWORD))) {
+  if (((rio_token.kind) == (rio_TokenKind_Name)) || ((rio_token.kind) == (rio_TokenKind_Keyword))) {
     return rio_token.name;
   } else {
     return rio_token_kind_name(rio_token.kind);
@@ -4965,16 +4813,16 @@ void rio_scan_int(void) {
     (rio_stream)++;
     if ((tolower(*(rio_stream))) == ('x')) {
       (rio_stream)++;
-      rio_token.mod = rio_MOD_HEX;
+      rio_token.mod = rio_TokenMod_Hex;
       base = 16;
       start_digits = rio_stream;
     } else if ((tolower(*(rio_stream))) == ('b')) {
       (rio_stream)++;
-      rio_token.mod = rio_MOD_BIN;
+      rio_token.mod = rio_TokenMod_Bin;
       base = 2;
       start_digits = rio_stream;
     } else if (isdigit(*(rio_stream))) {
-      rio_token.mod = rio_MOD_OCT;
+      rio_token.mod = rio_TokenMod_Oct;
       base = 8;
       start_digits = rio_stream;
     }
@@ -5007,24 +4855,24 @@ void rio_scan_int(void) {
   if ((rio_stream) == (start_digits)) {
     rio_error(rio_token.pos, "Expected base %d digit, got \'%c\'", base, *(rio_stream));
   }
-  rio_token.kind = rio_TOKEN_INT;
+  rio_token.kind = rio_TokenKind_Int;
   rio_token.int_val = val;
   if ((tolower(*(rio_stream))) == ('u')) {
-    rio_token.suffix = rio_SUFFIX_U;
+    rio_token.suffix = rio_TokenSuffix_U;
     (rio_stream)++;
     if ((tolower(*(rio_stream))) == ('l')) {
-      rio_token.suffix = rio_SUFFIX_UL;
+      rio_token.suffix = rio_TokenSuffix_UL;
       (rio_stream)++;
       if ((tolower(*(rio_stream))) == ('l')) {
-        rio_token.suffix = rio_SUFFIX_ULL;
+        rio_token.suffix = rio_TokenSuffix_ULL;
         (rio_stream)++;
       }
     }
   } else if ((tolower(*(rio_stream))) == ('l')) {
-    rio_token.suffix = rio_SUFFIX_L;
+    rio_token.suffix = rio_TokenSuffix_L;
     (rio_stream)++;
     if ((tolower(*(rio_stream))) == ('l')) {
-      rio_token.suffix = rio_SUFFIX_LL;
+      rio_token.suffix = rio_TokenSuffix_LL;
       (rio_stream)++;
     }
   }
@@ -5057,10 +4905,10 @@ void rio_scan_float(void) {
   if ((val) == (HUGE_VAL)) {
     rio_error(rio_token.pos, "Float literal overflow");
   }
-  rio_token.kind = rio_TOKEN_FLOAT;
+  rio_token.kind = rio_TokenKind_Float;
   rio_token.float_val = val;
   if ((tolower(*(rio_stream))) == ('d')) {
-    rio_token.suffix = rio_SUFFIX_D;
+    rio_token.suffix = rio_TokenSuffix_D;
     (rio_stream)++;
   }
 }
@@ -5116,9 +4964,9 @@ void rio_scan_char(void) {
   } else {
     (rio_stream)++;
   }
-  rio_token.kind = rio_TOKEN_INT;
+  rio_token.kind = rio_TokenKind_Int;
   rio_token.int_val = val;
-  rio_token.mod = rio_MOD_CHAR;
+  rio_token.mod = rio_TokenMod_Char;
 }
 
 void rio_scan_str(void) {
@@ -5143,7 +4991,7 @@ void rio_scan_str(void) {
     if (!(*(rio_stream))) {
       rio_error(rio_token.pos, "Unexpected end of file within multi-line string literal");
     }
-    rio_token.mod = rio_MOD_MULTILINE;
+    rio_token.mod = rio_TokenMod_Multiline;
   } else {
     while ((*(rio_stream)) && ((*(rio_stream)) != ('\"'))) {
       char val = *(rio_stream);
@@ -5174,7 +5022,7 @@ void rio_scan_str(void) {
   }
   int nul = '\0';
   rio_buf_push((void (**))(&(str)), &(nul), 1);
-  rio_token.kind = rio_TOKEN_STR;
+  rio_token.kind = rio_TokenKind_Str;
   rio_token.str_val = str;
 }
 
@@ -5210,10 +5058,10 @@ void rio_next_token(void) {
     if (isdigit(rio_stream[1])) {
       rio_scan_float();
     } else if (((rio_stream[1]) == ('.')) && ((rio_stream[2]) == ('.'))) {
-      rio_token.kind = rio_TOKEN_ELLIPSIS;
+      rio_token.kind = rio_TokenKind_Ellipsis;
       rio_stream += 3;
     } else {
-      rio_token.kind = rio_TOKEN_DOT;
+      rio_token.kind = rio_TokenKind_Dot;
       (rio_stream)++;
     }
     break;
@@ -5299,46 +5147,46 @@ void rio_next_token(void) {
       (rio_stream)++;
     }
     rio_token.name = rio_str_intern_range(rio_token.start, rio_stream);
-    rio_token.kind = (rio_is_keyword_name(rio_token.name) ? rio_TOKEN_KEYWORD : rio_TOKEN_NAME);
+    rio_token.kind = (rio_is_keyword_name(rio_token.name) ? rio_TokenKind_Keyword : rio_TokenKind_Name);
     break;
   }
   case '<': {
-    rio_token.kind = rio_TOKEN_LT;
+    rio_token.kind = rio_TokenKind_Lt;
     (rio_stream)++;
     if ((*(rio_stream)) == ('<')) {
-      rio_token.kind = rio_TOKEN_LSHIFT;
+      rio_token.kind = rio_TokenKind_Lshift;
       (rio_stream)++;
       if ((*(rio_stream)) == ('=')) {
-        rio_token.kind = rio_TOKEN_LSHIFT_ASSIGN;
+        rio_token.kind = rio_TokenKind_LshiftAssign;
         (rio_stream)++;
       }
     } else if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_LTEQ;
+      rio_token.kind = rio_TokenKind_LtEq;
       (rio_stream)++;
     }
     break;
   }
   case '>': {
-    rio_token.kind = rio_TOKEN_GT;
+    rio_token.kind = rio_TokenKind_Gt;
     (rio_stream)++;
     if ((*(rio_stream)) == ('>')) {
-      rio_token.kind = rio_TOKEN_RSHIFT;
+      rio_token.kind = rio_TokenKind_Rshift;
       (rio_stream)++;
       if ((*(rio_stream)) == ('=')) {
-        rio_token.kind = rio_TOKEN_RSHIFT_ASSIGN;
+        rio_token.kind = rio_TokenKind_RshiftAssign;
         (rio_stream)++;
       }
     } else if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_GTEQ;
+      rio_token.kind = rio_TokenKind_GtEq;
       (rio_stream)++;
     }
     break;
   }
   case '/': {
-    rio_token.kind = rio_TOKEN_DIV;
+    rio_token.kind = rio_TokenKind_Div;
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_DIV_ASSIGN;
+      rio_token.kind = rio_TokenKind_DivAssign;
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('/')) {
       (rio_stream)++;
@@ -5368,167 +5216,167 @@ void rio_next_token(void) {
     break;
   }
   case '\0': {
-    rio_token.kind = rio_TOKEN_EOF;
+    rio_token.kind = rio_TokenKind_Eof;
     (rio_stream)++;
     break;
   }
   case '(': {
-    rio_token.kind = rio_TOKEN_LPAREN;
+    rio_token.kind = rio_TokenKind_Lparen;
     (rio_stream)++;
     break;
   }
   case ')': {
-    rio_token.kind = rio_TOKEN_RPAREN;
+    rio_token.kind = rio_TokenKind_Rparen;
     (rio_stream)++;
     break;
   }
   case '{': {
-    rio_token.kind = rio_TOKEN_LBRACE;
+    rio_token.kind = rio_TokenKind_Lbrace;
     (rio_stream)++;
     break;
   }
   case '}': {
-    rio_token.kind = rio_TOKEN_RBRACE;
+    rio_token.kind = rio_TokenKind_Rbrace;
     (rio_stream)++;
     break;
   }
   case '[': {
-    rio_token.kind = rio_TOKEN_LBRACKET;
+    rio_token.kind = rio_TokenKind_Lbracket;
     (rio_stream)++;
     break;
   }
   case ']': {
-    rio_token.kind = rio_TOKEN_RBRACKET;
+    rio_token.kind = rio_TokenKind_Rbracket;
     (rio_stream)++;
     break;
   }
   case ',': {
-    rio_token.kind = rio_TOKEN_COMMA;
+    rio_token.kind = rio_TokenKind_Comma;
     (rio_stream)++;
     break;
   }
   case '@': {
-    rio_token.kind = rio_TOKEN_AT;
+    rio_token.kind = rio_TokenKind_At;
     (rio_stream)++;
     break;
   }
   case '#': {
-    rio_token.kind = rio_TOKEN_POUND;
+    rio_token.kind = rio_TokenKind_Pound;
     (rio_stream)++;
     break;
   }
   case '?': {
-    rio_token.kind = rio_TOKEN_QUESTION;
+    rio_token.kind = rio_TokenKind_Question;
     (rio_stream)++;
     break;
   }
   case ';': {
-    rio_token.kind = rio_TOKEN_SEMICOLON;
+    rio_token.kind = rio_TokenKind_Semicolon;
     (rio_stream)++;
     break;
   }
   case '~': {
-    rio_token.kind = rio_TOKEN_NEG;
+    rio_token.kind = rio_TokenKind_Neg;
     (rio_stream)++;
     break;
   }
   case '!': {
-    rio_token.kind = rio_TOKEN_NOT;
+    rio_token.kind = rio_TokenKind_Not;
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_NOTEQ;
+      rio_token.kind = rio_TokenKind_NotEq;
       (rio_stream)++;
     }
     break;
   }
   case ':': {
-    rio_token.kind = rio_TOKEN_COLON;
+    rio_token.kind = rio_TokenKind_Colon;
     (rio_stream)++;
     break;
   }
   case '=': {
-    rio_token.kind = rio_TOKEN_ASSIGN;
+    rio_token.kind = rio_TokenKind_Assign;
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_EQ;
+      rio_token.kind = rio_TokenKind_Eq;
       (rio_stream)++;
     }
     break;
   }
   case '^': {
-    rio_token.kind = rio_TOKEN_XOR;
+    rio_token.kind = rio_TokenKind_Xor;
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_XOR_ASSIGN;
+      rio_token.kind = rio_TokenKind_XorAssign;
       (rio_stream)++;
     }
     break;
   }
   case '*': {
-    rio_token.kind = rio_TOKEN_MUL;
+    rio_token.kind = rio_TokenKind_Mul;
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_MUL_ASSIGN;
+      rio_token.kind = rio_TokenKind_MulAssign;
       (rio_stream)++;
     }
     break;
   }
   case '%': {
-    rio_token.kind = rio_TOKEN_MOD;
+    rio_token.kind = rio_TokenKind_Mod;
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_MOD_ASSIGN;
+      rio_token.kind = rio_TokenKind_ModAssign;
       (rio_stream)++;
     }
     break;
   }
   case '+': {
-    rio_token.kind = rio_TOKEN_ADD;
+    rio_token.kind = rio_TokenKind_Add;
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_ADD_ASSIGN;
+      rio_token.kind = rio_TokenKind_AddAssign;
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('+')) {
-      rio_token.kind = rio_TOKEN_INC;
+      rio_token.kind = rio_TokenKind_Inc;
       (rio_stream)++;
     }
     break;
   }
   case '-': {
-    rio_token.kind = rio_TOKEN_SUB;
+    rio_token.kind = rio_TokenKind_Sub;
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_SUB_ASSIGN;
+      rio_token.kind = rio_TokenKind_SubAssign;
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('-')) {
-      rio_token.kind = rio_TOKEN_DEC;
+      rio_token.kind = rio_TokenKind_Dec;
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('>')) {
-      rio_token.kind = rio_TOKEN_ARROW;
+      rio_token.kind = rio_TokenKind_Arrow;
       (rio_stream)++;
     }
     break;
   }
   case '&': {
-    rio_token.kind = rio_TOKEN_AND;
+    rio_token.kind = rio_TokenKind_And;
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_AND_ASSIGN;
+      rio_token.kind = rio_TokenKind_AndAssign;
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('&')) {
-      rio_token.kind = rio_TOKEN_AND_AND;
+      rio_token.kind = rio_TokenKind_AndAnd;
       (rio_stream)++;
     }
     break;
   }
   case '|': {
-    rio_token.kind = rio_TOKEN_OR;
+    rio_token.kind = rio_TokenKind_Or;
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TOKEN_OR_ASSIGN;
+      rio_token.kind = rio_TokenKind_OrAssign;
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('|')) {
-      rio_token.kind = rio_TOKEN_OR_OR;
+      rio_token.kind = rio_TokenKind_OrOr;
       (rio_stream)++;
     }
     break;
@@ -5556,15 +5404,15 @@ bool rio_is_token(rio_TokenKind kind) {
 }
 
 bool rio_is_token_eof(void) {
-  return (rio_token.kind) == (rio_TOKEN_EOF);
+  return (rio_token.kind) == (rio_TokenKind_Eof);
 }
 
 bool rio_is_token_name(char const ((*name))) {
-  return ((rio_token.kind) == (rio_TOKEN_NAME)) && ((rio_token.name) == (name));
+  return ((rio_token.kind) == (rio_TokenKind_Name)) && ((rio_token.name) == (name));
 }
 
 bool rio_is_keyword(char const ((*name))) {
-  return (rio_is_token(rio_TOKEN_KEYWORD)) && ((rio_token.name) == (name));
+  return (rio_is_token(rio_TokenKind_Keyword)) && ((rio_token.name) == (name));
 }
 
 bool rio_match_keyword(char const ((*name))) {
@@ -5864,7 +5712,7 @@ void rio_dir_list(rio_DirListIter (*iter), char const ((*path))) {
 
 rio_Typespec (*rio_parse_type_func_param(void)) {
   rio_Typespec (*type) = rio_parse_type();
-  if (rio_match_token(rio_TOKEN_COLON)) {
+  if (rio_match_token(rio_TokenKind_Colon)) {
     if ((type->kind) != (rio_TypespecKind_Name)) {
       rio_error(rio_token.pos, "Colons in parameters of fn types must be preceded by names.");
     }
@@ -5877,9 +5725,9 @@ rio_Typespec (*rio_parse_type_func(void)) {
   rio_SrcPos pos = rio_token.pos;
   rio_Typespec (*(*args)) = NULL;
   bool has_varargs = false;
-  rio_expect_token(rio_TOKEN_LPAREN);
-  while (!(rio_is_token(rio_TOKEN_RPAREN))) {
-    if (rio_match_token(rio_TOKEN_ELLIPSIS)) {
+  rio_expect_token(rio_TokenKind_Lparen);
+  while (!(rio_is_token(rio_TokenKind_Rparen))) {
+    if (rio_match_token(rio_TokenKind_Ellipsis)) {
       if (has_varargs) {
         rio_error(rio_token.pos, "Multiple ellipsis instances in function type");
       }
@@ -5891,29 +5739,29 @@ rio_Typespec (*rio_parse_type_func(void)) {
       rio_Typespec (*param) = rio_parse_type_func_param();
       rio_buf_push((void (**))(&(args)), &(param), sizeof(param));
     }
-    if (!(rio_match_token(rio_TOKEN_COMMA))) {
+    if (!(rio_match_token(rio_TokenKind_Comma))) {
       break;
     }
   }
-  rio_expect_token(rio_TOKEN_RPAREN);
+  rio_expect_token(rio_TokenKind_Rparen);
   rio_Typespec (*ret) = NULL;
-  if (rio_match_token(rio_TOKEN_ARROW)) {
+  if (rio_match_token(rio_TokenKind_Arrow)) {
     ret = rio_parse_type();
   }
   return rio_new_typespec_func(pos, args, rio_buf_len(args), ret, has_varargs);
 }
 
 rio_Typespec (*rio_parse_type_base(void)) {
-  if (rio_is_token(rio_TOKEN_NAME)) {
+  if (rio_is_token(rio_TokenKind_Name)) {
     rio_SrcPos pos = rio_token.pos;
     char const ((*name)) = rio_token.name;
     rio_next_token();
     return rio_new_typespec_name(pos, name);
   } else if (rio_match_keyword(rio_fn_keyword)) {
     return rio_parse_type_func();
-  } else if (rio_match_token(rio_TOKEN_LPAREN)) {
+  } else if (rio_match_token(rio_TokenKind_Lparen)) {
     rio_Typespec (*type) = rio_parse_type();
-    rio_expect_token(rio_TOKEN_RPAREN);
+    rio_expect_token(rio_TokenKind_Rparen);
     return type;
   } else {
     rio_fatal_error(rio_token.pos, "Unexpected token %s in type", rio_token_info());
@@ -5924,16 +5772,16 @@ rio_Typespec (*rio_parse_type_base(void)) {
 rio_Typespec (*rio_parse_type(void)) {
   rio_SrcPos pos = rio_token.pos;
   rio_Typespec (*type) = {0};
-  if (rio_match_token(rio_TOKEN_LBRACKET)) {
+  if (rio_match_token(rio_TokenKind_Lbracket)) {
     rio_Expr (*size) = NULL;
-    if (!(rio_is_token(rio_TOKEN_RBRACKET))) {
+    if (!(rio_is_token(rio_TokenKind_Rbracket))) {
       size = rio_parse_expr();
     }
-    rio_expect_token(rio_TOKEN_RBRACKET);
+    rio_expect_token(rio_TokenKind_Rbracket);
     type = rio_new_typespec_array(pos, rio_parse_type(), size);
-  } else if (rio_match_token(rio_TOKEN_AND)) {
+  } else if (rio_match_token(rio_TokenKind_And)) {
     type = rio_new_typespec_ref(pos, rio_parse_type(), false);
-  } else if (rio_match_token(rio_TOKEN_MUL)) {
+  } else if (rio_match_token(rio_TokenKind_Mul)) {
     type = rio_new_typespec_ptr(pos, rio_parse_type(), false);
   } else if (rio_match_keyword(rio_const_keyword)) {
     type = rio_new_typespec_const(pos, rio_parse_type());
@@ -5947,14 +5795,14 @@ rio_Typespec (*rio_parse_type(void)) {
 
 rio_CompoundField rio_parse_expr_compound_field(void) {
   rio_SrcPos pos = rio_token.pos;
-  if (rio_match_token(rio_TOKEN_LBRACKET)) {
+  if (rio_match_token(rio_TokenKind_Lbracket)) {
     rio_Expr (*index) = rio_parse_expr();
-    rio_expect_token(rio_TOKEN_RBRACKET);
-    rio_expect_token(rio_TOKEN_ASSIGN);
+    rio_expect_token(rio_TokenKind_Rbracket);
+    rio_expect_token(rio_TokenKind_Assign);
     return (rio_CompoundField){rio_CompoundFieldKind_Index, pos, rio_parse_expr(), .index = index};
   } else {
     rio_Expr (*expr) = rio_parse_expr();
-    if (rio_match_token(rio_TOKEN_ASSIGN)) {
+    if (rio_match_token(rio_TokenKind_Assign)) {
       if ((expr->kind) != (rio_ExprKind_Name)) {
         rio_fatal_error(rio_token.pos, "Named initializer in compound literal must be preceded by field name");
       }
@@ -5967,101 +5815,101 @@ rio_CompoundField rio_parse_expr_compound_field(void) {
 
 rio_Expr (*rio_parse_expr_compound(rio_Typespec (*type))) {
   rio_SrcPos pos = rio_token.pos;
-  rio_expect_token(rio_TOKEN_LBRACE);
+  rio_expect_token(rio_TokenKind_Lbrace);
   rio_CompoundField (*fields) = NULL;
-  while (!(rio_is_token(rio_TOKEN_RBRACE))) {
+  while (!(rio_is_token(rio_TokenKind_Rbrace))) {
     rio_CompoundField field = rio_parse_expr_compound_field();
     rio_buf_push((void (**))(&(fields)), &(field), sizeof(field));
-    if (!(rio_match_token(rio_TOKEN_COMMA))) {
+    if (!(rio_match_token(rio_TokenKind_Comma))) {
       break;
     }
   }
-  rio_expect_token(rio_TOKEN_RBRACE);
+  rio_expect_token(rio_TokenKind_Rbrace);
   return rio_new_expr_compound(pos, type, fields, rio_buf_len(fields));
 }
 
 rio_Expr (*rio_parse_expr_operand(void)) {
   rio_SrcPos pos = rio_token.pos;
-  if (rio_is_token(rio_TOKEN_INT)) {
+  if (rio_is_token(rio_TokenKind_Int)) {
     ullong val = rio_token.int_val;
     rio_TokenMod mod = rio_token.mod;
     rio_TokenSuffix suffix = rio_token.suffix;
     rio_next_token();
     return rio_new_expr_int(pos, val, mod, suffix);
-  } else if (rio_is_token(rio_TOKEN_FLOAT)) {
+  } else if (rio_is_token(rio_TokenKind_Float)) {
     char const ((*start)) = rio_token.start;
     char const ((*end)) = rio_token.end;
     double val = rio_token.float_val;
     rio_TokenSuffix suffix = rio_token.suffix;
     rio_next_token();
     return rio_new_expr_float(pos, start, end, val, suffix);
-  } else if (rio_is_token(rio_TOKEN_STR)) {
+  } else if (rio_is_token(rio_TokenKind_Str)) {
     char const ((*val)) = rio_token.str_val;
     rio_TokenMod mod = rio_token.mod;
     rio_next_token();
     return rio_new_expr_str(pos, val, mod);
-  } else if (rio_is_token(rio_TOKEN_NAME)) {
+  } else if (rio_is_token(rio_TokenKind_Name)) {
     char const ((*name)) = rio_token.name;
     rio_next_token();
-    if (rio_is_token(rio_TOKEN_LBRACE)) {
+    if (rio_is_token(rio_TokenKind_Lbrace)) {
       return rio_parse_expr_compound(rio_new_typespec_name(pos, name));
     } else {
       return rio_new_expr_name(pos, name);
     }
   } else if (rio_match_keyword(rio_sizeof_keyword)) {
-    rio_expect_token(rio_TOKEN_LPAREN);
-    if (rio_match_token(rio_TOKEN_COLON)) {
+    rio_expect_token(rio_TokenKind_Lparen);
+    if (rio_match_token(rio_TokenKind_Colon)) {
       rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token(rio_TOKEN_RPAREN);
+      rio_expect_token(rio_TokenKind_Rparen);
       return rio_new_expr_sizeof_type(pos, type);
     } else {
       rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token(rio_TOKEN_RPAREN);
+      rio_expect_token(rio_TokenKind_Rparen);
       return rio_new_expr_sizeof_expr(pos, expr);
     }
   } else if (rio_match_keyword(rio_alignof_keyword)) {
-    rio_expect_token(rio_TOKEN_LPAREN);
-    if (rio_match_token(rio_TOKEN_COLON)) {
+    rio_expect_token(rio_TokenKind_Lparen);
+    if (rio_match_token(rio_TokenKind_Colon)) {
       rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token(rio_TOKEN_RPAREN);
+      rio_expect_token(rio_TokenKind_Rparen);
       return rio_new_expr_alignof_type(pos, type);
     } else {
       rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token(rio_TOKEN_RPAREN);
+      rio_expect_token(rio_TokenKind_Rparen);
       return rio_new_expr_alignof_expr(pos, expr);
     }
   } else if (rio_match_keyword(rio_typeof_keyword)) {
-    rio_expect_token(rio_TOKEN_LPAREN);
-    if (rio_match_token(rio_TOKEN_COLON)) {
+    rio_expect_token(rio_TokenKind_Lparen);
+    if (rio_match_token(rio_TokenKind_Colon)) {
       rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token(rio_TOKEN_RPAREN);
+      rio_expect_token(rio_TokenKind_Rparen);
       return rio_new_expr_typeof_type(pos, type);
     } else {
       rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token(rio_TOKEN_RPAREN);
+      rio_expect_token(rio_TokenKind_Rparen);
       return rio_new_expr_typeof_expr(pos, expr);
     }
   } else if (rio_match_keyword(rio_offsetof_keyword)) {
-    rio_expect_token(rio_TOKEN_LPAREN);
+    rio_expect_token(rio_TokenKind_Lparen);
     rio_Typespec (*type) = rio_parse_type();
-    rio_expect_token(rio_TOKEN_COMMA);
+    rio_expect_token(rio_TokenKind_Comma);
     char const ((*name)) = rio_parse_name();
-    rio_expect_token(rio_TOKEN_RPAREN);
+    rio_expect_token(rio_TokenKind_Rparen);
     return rio_new_expr_offsetof(pos, type, name);
-  } else if (rio_is_token(rio_TOKEN_LBRACE)) {
+  } else if (rio_is_token(rio_TokenKind_Lbrace)) {
     return rio_parse_expr_compound(NULL);
-  } else if (rio_match_token(rio_TOKEN_LPAREN)) {
-    if (rio_match_token(rio_TOKEN_COLON)) {
+  } else if (rio_match_token(rio_TokenKind_Lparen)) {
+    if (rio_match_token(rio_TokenKind_Colon)) {
       rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token(rio_TOKEN_RPAREN);
-      if (rio_is_token(rio_TOKEN_LBRACE)) {
+      rio_expect_token(rio_TokenKind_Rparen);
+      if (rio_is_token(rio_TokenKind_Lbrace)) {
         return rio_parse_expr_compound(type);
       } else {
         return rio_new_expr_cast(pos, type, rio_parse_expr_unary());
       }
     } else {
       rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token(rio_TOKEN_RPAREN);
+      rio_expect_token(rio_TokenKind_Rparen);
       return rio_new_expr_paren(pos, expr);
     }
   } else {
@@ -6072,30 +5920,30 @@ rio_Expr (*rio_parse_expr_operand(void)) {
 
 rio_Expr (*rio_parse_expr_base(void)) {
   rio_Expr (*expr) = rio_parse_expr_operand();
-  while (((((rio_is_token(rio_TOKEN_LPAREN)) || (rio_is_token(rio_TOKEN_LBRACKET))) || (rio_is_token(rio_TOKEN_DOT))) || (rio_is_token(rio_TOKEN_INC))) || (rio_is_token(rio_TOKEN_DEC))) {
+  while (((((rio_is_token(rio_TokenKind_Lparen)) || (rio_is_token(rio_TokenKind_Lbracket))) || (rio_is_token(rio_TokenKind_Dot))) || (rio_is_token(rio_TokenKind_Inc))) || (rio_is_token(rio_TokenKind_Dec))) {
     rio_SrcPos pos = rio_token.pos;
-    if (rio_match_token(rio_TOKEN_LPAREN)) {
+    if (rio_match_token(rio_TokenKind_Lparen)) {
       rio_Expr (*(*args)) = NULL;
-      while (!(rio_is_token(rio_TOKEN_RPAREN))) {
+      while (!(rio_is_token(rio_TokenKind_Rparen))) {
         rio_Expr (*arg) = rio_parse_expr();
         rio_buf_push((void (**))(&(args)), &(arg), sizeof(arg));
-        if (!(rio_match_token(rio_TOKEN_COMMA))) {
+        if (!(rio_match_token(rio_TokenKind_Comma))) {
           break;
         }
       }
-      rio_expect_token(rio_TOKEN_RPAREN);
+      rio_expect_token(rio_TokenKind_Rparen);
       expr = rio_new_expr_call(pos, expr, args, rio_buf_len(args));
-    } else if (rio_match_token(rio_TOKEN_LBRACKET)) {
+    } else if (rio_match_token(rio_TokenKind_Lbracket)) {
       rio_Expr (*index) = rio_parse_expr();
-      rio_expect_token(rio_TOKEN_RBRACKET);
+      rio_expect_token(rio_TokenKind_Rbracket);
       expr = rio_new_expr_index(pos, expr, index);
-    } else if (rio_is_token(rio_TOKEN_DOT)) {
+    } else if (rio_is_token(rio_TokenKind_Dot)) {
       rio_next_token();
       char const ((*field)) = rio_token.name;
-      rio_expect_token(rio_TOKEN_NAME);
+      rio_expect_token(rio_TokenKind_Name);
       expr = rio_new_expr_field(pos, expr, field);
     } else {
-      assert((rio_is_token(rio_TOKEN_INC)) || (rio_is_token(rio_TOKEN_DEC)));
+      assert((rio_is_token(rio_TokenKind_Inc)) || (rio_is_token(rio_TokenKind_Dec)));
       rio_TokenKind op = rio_token.kind;
       rio_next_token();
       expr = rio_new_expr_modify(pos, op, true, expr);
@@ -6105,7 +5953,7 @@ rio_Expr (*rio_parse_expr_base(void)) {
 }
 
 bool rio_is_unary_op(void) {
-  return (((((((rio_is_token(rio_TOKEN_ADD)) || (rio_is_token(rio_TOKEN_SUB))) || (rio_is_token(rio_TOKEN_MUL))) || (rio_is_token(rio_TOKEN_AND))) || (rio_is_token(rio_TOKEN_NEG))) || (rio_is_token(rio_TOKEN_NOT))) || (rio_is_token(rio_TOKEN_INC))) || (rio_is_token(rio_TOKEN_DEC));
+  return (((((((rio_is_token(rio_TokenKind_Add)) || (rio_is_token(rio_TokenKind_Sub))) || (rio_is_token(rio_TokenKind_Mul))) || (rio_is_token(rio_TokenKind_And))) || (rio_is_token(rio_TokenKind_Neg))) || (rio_is_token(rio_TokenKind_Not))) || (rio_is_token(rio_TokenKind_Inc))) || (rio_is_token(rio_TokenKind_Dec));
 }
 
 rio_Expr (*rio_parse_expr_unary(void)) {
@@ -6113,7 +5961,7 @@ rio_Expr (*rio_parse_expr_unary(void)) {
     rio_SrcPos pos = rio_token.pos;
     rio_TokenKind op = rio_token.kind;
     rio_next_token();
-    if (((op) == (rio_TOKEN_INC)) || ((op) == (rio_TOKEN_DEC))) {
+    if (((op) == (rio_TokenKind_Inc)) || ((op) == (rio_TokenKind_Dec))) {
       return rio_new_expr_modify(pos, op, false, rio_parse_expr_unary());
     } else {
       return rio_new_expr_unary(pos, op, rio_parse_expr_unary());
@@ -6124,7 +5972,7 @@ rio_Expr (*rio_parse_expr_unary(void)) {
 }
 
 bool rio_is_mul_op(void) {
-  return ((rio_TOKEN_FIRST_MUL) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TOKEN_LAST_MUL));
+  return ((rio_TokenKind_FirstMul) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TokenKind_LastMul));
 }
 
 rio_Expr (*rio_parse_expr_mul(void)) {
@@ -6139,7 +5987,7 @@ rio_Expr (*rio_parse_expr_mul(void)) {
 }
 
 bool rio_is_add_op(void) {
-  return ((rio_TOKEN_FIRST_ADD) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TOKEN_LAST_ADD));
+  return ((rio_TokenKind_FirstAdd) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TokenKind_LastAdd));
 }
 
 rio_Expr (*rio_parse_expr_add(void)) {
@@ -6154,7 +6002,7 @@ rio_Expr (*rio_parse_expr_add(void)) {
 }
 
 bool rio_is_cmp_op(void) {
-  return ((rio_TOKEN_FIRST_CMP) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TOKEN_LAST_CMP));
+  return ((rio_TokenKind_FirstCmp) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TokenKind_LastCmp));
 }
 
 rio_Expr (*rio_parse_expr_cmp(void)) {
@@ -6170,18 +6018,18 @@ rio_Expr (*rio_parse_expr_cmp(void)) {
 
 rio_Expr (*rio_parse_expr_and(void)) {
   rio_Expr (*expr) = rio_parse_expr_cmp();
-  while (rio_match_token(rio_TOKEN_AND_AND)) {
+  while (rio_match_token(rio_TokenKind_AndAnd)) {
     rio_SrcPos pos = rio_token.pos;
-    expr = rio_new_expr_binary(pos, rio_TOKEN_AND_AND, expr, rio_parse_expr_cmp());
+    expr = rio_new_expr_binary(pos, rio_TokenKind_AndAnd, expr, rio_parse_expr_cmp());
   }
   return expr;
 }
 
 rio_Expr (*rio_parse_expr_or(void)) {
   rio_Expr (*expr) = rio_parse_expr_and();
-  while (rio_match_token(rio_TOKEN_OR_OR)) {
+  while (rio_match_token(rio_TokenKind_OrOr)) {
     rio_SrcPos pos = rio_token.pos;
-    expr = rio_new_expr_binary(pos, rio_TOKEN_OR_OR, expr, rio_parse_expr_and());
+    expr = rio_new_expr_binary(pos, rio_TokenKind_OrOr, expr, rio_parse_expr_and());
   }
   return expr;
 }
@@ -6189,9 +6037,9 @@ rio_Expr (*rio_parse_expr_or(void)) {
 rio_Expr (*rio_parse_expr_ternary(void)) {
   rio_SrcPos pos = rio_token.pos;
   rio_Expr (*expr) = rio_parse_expr_or();
-  if (rio_match_token(rio_TOKEN_QUESTION)) {
+  if (rio_match_token(rio_TokenKind_Question)) {
     rio_Expr (*then_expr) = rio_parse_expr_ternary();
-    rio_expect_token(rio_TOKEN_COLON);
+    rio_expect_token(rio_TokenKind_Colon);
     rio_Expr (*else_expr) = rio_parse_expr_ternary();
     expr = rio_new_expr_ternary(pos, expr, then_expr, else_expr);
   }
@@ -6203,37 +6051,37 @@ rio_Expr (*rio_parse_expr(void)) {
 }
 
 rio_Expr (*rio_parse_paren_expr(void)) {
-  rio_expect_token(rio_TOKEN_LPAREN);
+  rio_expect_token(rio_TokenKind_Lparen);
   rio_Expr (*expr) = rio_parse_expr();
-  rio_expect_token(rio_TOKEN_RPAREN);
+  rio_expect_token(rio_TokenKind_Rparen);
   return expr;
 }
 
 rio_StmtList rio_parse_stmt_block(void) {
   rio_SrcPos pos = rio_token.pos;
-  rio_expect_token(rio_TOKEN_LBRACE);
+  rio_expect_token(rio_TokenKind_Lbrace);
   rio_Stmt (*(*stmts)) = NULL;
-  while ((!(rio_is_token_eof())) && (!(rio_is_token(rio_TOKEN_RBRACE)))) {
+  while ((!(rio_is_token_eof())) && (!(rio_is_token(rio_TokenKind_Rbrace)))) {
     rio_Stmt (*stmt) = rio_parse_stmt();
     rio_buf_push((void (**))(&(stmts)), &(stmt), sizeof(stmt));
   }
-  rio_expect_token(rio_TOKEN_RBRACE);
+  rio_expect_token(rio_TokenKind_Rbrace);
   return rio_new_stmt_list(pos, stmts, rio_buf_len(stmts));
 }
 
 rio_Stmt (*rio_parse_stmt_if(rio_SrcPos pos)) {
-  rio_expect_token(rio_TOKEN_LPAREN);
+  rio_expect_token(rio_TokenKind_Lparen);
   rio_Expr (*cond) = {0};
   rio_Stmt (*init) = {0};
   if (rio_match_keyword(rio_let_keyword)) {
     init = rio_parse_let_stmt(pos);
-    if (rio_match_token(rio_TOKEN_SEMICOLON)) {
+    if (rio_match_token(rio_TokenKind_Semicolon)) {
       cond = rio_parse_expr();
     }
   } else {
     cond = rio_parse_expr();
   }
-  rio_expect_token(rio_TOKEN_RPAREN);
+  rio_expect_token(rio_TokenKind_Rparen);
   rio_StmtList then_block = rio_parse_stmt_block();
   rio_StmtList else_block = {{NULL, 0}, NULL, 0};
   rio_ElseIf (*elseifs) = {0};
@@ -6262,23 +6110,23 @@ rio_Stmt (*rio_parse_stmt_do_while(rio_SrcPos pos)) {
     return NULL;
   }
   rio_Stmt (*stmt) = rio_new_stmt_do_while(pos, rio_parse_paren_expr(), block);
-  rio_expect_token(rio_TOKEN_SEMICOLON);
+  rio_expect_token(rio_TokenKind_Semicolon);
   return stmt;
 }
 
 bool rio_is_assign_op(void) {
-  return ((rio_TOKEN_FIRST_ASSIGN) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TOKEN_LAST_ASSIGN));
+  return ((rio_TokenKind_FirstAssign) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TokenKind_LastAssign));
 }
 
 rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos)) {
   bool is_mut = rio_match_keyword(rio_mut_keyword);
   char const ((*name)) = rio_parse_name();
-  if (rio_match_token(rio_TOKEN_ASSIGN)) {
+  if (rio_match_token(rio_TokenKind_Assign)) {
     return rio_new_stmt_init(pos, name, is_mut, NULL, rio_parse_expr());
-  } else if (rio_match_token(rio_TOKEN_COLON)) {
+  } else if (rio_match_token(rio_TokenKind_Colon)) {
     rio_Typespec (*type) = rio_parse_type();
     rio_Expr (*expr) = {0};
-    if (rio_match_token(rio_TOKEN_ASSIGN)) {
+    if (rio_match_token(rio_TokenKind_Assign)) {
       expr = rio_parse_expr();
     } else {
       is_mut = true;
@@ -6297,7 +6145,7 @@ rio_Stmt (*rio_parse_simple_stmt(void)) {
     stmt = rio_parse_let_stmt(pos);
   } else {
     rio_Expr (*expr) = rio_parse_expr();
-    if (((expr->kind) == (rio_ExprKind_Name)) && (rio_match_token(rio_TOKEN_COLON))) {
+    if (((expr->kind) == (rio_ExprKind_Name)) && (rio_match_token(rio_TokenKind_Colon))) {
       stmt = rio_new_stmt_label(pos, expr->name);
     } else if (rio_is_assign_op()) {
       rio_TokenKind op = rio_token.kind;
@@ -6311,33 +6159,33 @@ rio_Stmt (*rio_parse_simple_stmt(void)) {
 }
 
 rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
-  rio_expect_token(rio_TOKEN_LPAREN);
+  rio_expect_token(rio_TokenKind_Lparen);
   rio_Stmt (*init) = NULL;
-  if (!(rio_is_token(rio_TOKEN_SEMICOLON))) {
+  if (!(rio_is_token(rio_TokenKind_Semicolon))) {
     init = rio_parse_simple_stmt();
   }
-  rio_expect_token(rio_TOKEN_SEMICOLON);
+  rio_expect_token(rio_TokenKind_Semicolon);
   rio_Expr (*cond) = NULL;
-  if (!(rio_is_token(rio_TOKEN_SEMICOLON))) {
+  if (!(rio_is_token(rio_TokenKind_Semicolon))) {
     cond = rio_parse_expr();
   }
   rio_Stmt (*next) = NULL;
-  if (rio_match_token(rio_TOKEN_SEMICOLON)) {
-    if (!(rio_is_token(rio_TOKEN_RPAREN))) {
+  if (rio_match_token(rio_TokenKind_Semicolon)) {
+    if (!(rio_is_token(rio_TokenKind_Rparen))) {
       next = rio_parse_simple_stmt();
       if ((next->kind) == (rio_StmtKind_Init)) {
         rio_error(rio_token.pos, "Init statements not allowed in for-statement\'s next clause");
       }
     }
   }
-  rio_expect_token(rio_TOKEN_RPAREN);
+  rio_expect_token(rio_TokenKind_Rparen);
   return rio_new_stmt_for(pos, init, cond, next, rio_parse_stmt_block());
 }
 
 rio_SwitchCasePattern rio_parse_switch_case_pattern(void) {
   rio_Expr (*start) = rio_parse_expr();
   rio_Expr (*end) = NULL;
-  if (rio_match_token(rio_TOKEN_ELLIPSIS)) {
+  if (rio_match_token(rio_TokenKind_Ellipsis)) {
     end = rio_parse_expr();
   }
   return (rio_SwitchCasePattern){start, end};
@@ -6355,7 +6203,7 @@ rio_SwitchCase rio_parse_stmt_switch_case(void) {
       }
       rio_SwitchCasePattern pattern = rio_parse_switch_case_pattern();
       rio_buf_push((void (**))(&(patterns)), &(pattern), sizeof(pattern));
-      while (rio_match_token(rio_TOKEN_COMMA)) {
+      while (rio_match_token(rio_TokenKind_Comma)) {
         pattern = rio_parse_switch_case_pattern();
         rio_buf_push((void (**))(&(patterns)), &(pattern), sizeof(pattern));
       }
@@ -6367,11 +6215,11 @@ rio_SwitchCase rio_parse_stmt_switch_case(void) {
       }
       is_default = true;
     }
-    rio_expect_token(rio_TOKEN_COLON);
+    rio_expect_token(rio_TokenKind_Colon);
   }
   rio_SrcPos pos = rio_token.pos;
   rio_Stmt (*(*stmts)) = {0};
-  while ((((!(rio_is_token_eof())) && (!(rio_is_token(rio_TOKEN_RBRACE)))) && (!(rio_is_keyword(rio_case_keyword)))) && (!(rio_is_keyword(rio_default_keyword)))) {
+  while ((((!(rio_is_token_eof())) && (!(rio_is_token(rio_TokenKind_Rbrace)))) && (!(rio_is_keyword(rio_case_keyword)))) && (!(rio_is_keyword(rio_default_keyword)))) {
     rio_Stmt (*stmt) = rio_parse_stmt();
     rio_buf_push((void (**))(&(stmts)), &(stmt), sizeof(stmt));
   }
@@ -6381,12 +6229,12 @@ rio_SwitchCase rio_parse_stmt_switch_case(void) {
 rio_Stmt (*rio_parse_stmt_switch(rio_SrcPos pos)) {
   rio_Expr (*expr) = rio_parse_paren_expr();
   rio_SwitchCase (*cases) = {0};
-  rio_expect_token(rio_TOKEN_LBRACE);
-  while ((!(rio_is_token_eof())) && (!(rio_is_token(rio_TOKEN_RBRACE)))) {
+  rio_expect_token(rio_TokenKind_Lbrace);
+  while ((!(rio_is_token_eof())) && (!(rio_is_token(rio_TokenKind_Rbrace)))) {
     rio_SwitchCase case_stmt = rio_parse_stmt_switch_case();
     rio_buf_push((void (**))(&(cases)), &(case_stmt), sizeof(case_stmt));
   }
-  rio_expect_token(rio_TOKEN_RBRACE);
+  rio_expect_token(rio_TokenKind_Rbrace);
   return rio_new_stmt_switch(pos, expr, cases, rio_buf_len(cases));
 }
 
@@ -6404,32 +6252,32 @@ rio_Stmt (*rio_parse_stmt(void)) {
     stmt = rio_parse_stmt_for(pos);
   } else if (rio_match_keyword(rio_switch_keyword)) {
     stmt = rio_parse_stmt_switch(pos);
-  } else if (rio_is_token(rio_TOKEN_LBRACE)) {
+  } else if (rio_is_token(rio_TokenKind_Lbrace)) {
     stmt = rio_new_stmt_block(pos, rio_parse_stmt_block());
   } else if (rio_match_keyword(rio_break_keyword)) {
-    rio_expect_token(rio_TOKEN_SEMICOLON);
+    rio_expect_token(rio_TokenKind_Semicolon);
     stmt = rio_new_stmt_break(pos);
   } else if (rio_match_keyword(rio_continue_keyword)) {
-    rio_expect_token(rio_TOKEN_SEMICOLON);
+    rio_expect_token(rio_TokenKind_Semicolon);
     stmt = rio_new_stmt_continue(pos);
   } else if (rio_match_keyword(rio_return_keyword)) {
     rio_Expr (*expr) = {0};
-    if (!(rio_is_token(rio_TOKEN_SEMICOLON))) {
+    if (!(rio_is_token(rio_TokenKind_Semicolon))) {
       expr = rio_parse_expr();
     }
-    rio_expect_token(rio_TOKEN_SEMICOLON);
+    rio_expect_token(rio_TokenKind_Semicolon);
     stmt = rio_new_stmt_return(pos, expr);
-  } else if (rio_match_token(rio_TOKEN_POUND)) {
+  } else if (rio_match_token(rio_TokenKind_Pound)) {
     rio_Note note = rio_parse_note();
-    rio_expect_token(rio_TOKEN_SEMICOLON);
+    rio_expect_token(rio_TokenKind_Semicolon);
     stmt = rio_new_stmt_note(pos, note);
   } else if (rio_match_keyword(rio_goto_keyword)) {
     stmt = rio_new_stmt_goto(pos, rio_parse_name());
-    rio_expect_token(rio_TOKEN_SEMICOLON);
+    rio_expect_token(rio_TokenKind_Semicolon);
   } else {
     stmt = rio_parse_simple_stmt();
     if ((stmt->kind) != (rio_StmtKind_Label)) {
-      rio_expect_token(rio_TOKEN_SEMICOLON);
+      rio_expect_token(rio_TokenKind_Semicolon);
     }
   }
   stmt->notes = notes;
@@ -6438,7 +6286,7 @@ rio_Stmt (*rio_parse_stmt(void)) {
 
 char const ((*rio_parse_name(void))) {
   char const ((*name)) = rio_token.name;
-  rio_expect_token(rio_TOKEN_NAME);
+  rio_expect_token(rio_TokenKind_Name);
   return name;
 }
 
@@ -6446,7 +6294,7 @@ rio_EnumItem rio_parse_decl_enum_item(void) {
   rio_SrcPos pos = rio_token.pos;
   char const ((*name)) = rio_parse_name();
   rio_Expr (*init) = NULL;
-  if (rio_match_token(rio_TOKEN_ASSIGN)) {
+  if (rio_match_token(rio_TokenKind_Assign)) {
     init = rio_parse_expr();
   }
   return (rio_EnumItem){pos, name, init};
@@ -6454,23 +6302,23 @@ rio_EnumItem rio_parse_decl_enum_item(void) {
 
 rio_Decl (*rio_parse_decl_enum(rio_SrcPos pos)) {
   char const ((*name)) = NULL;
-  if (rio_is_token(rio_TOKEN_NAME)) {
+  if (rio_is_token(rio_TokenKind_Name)) {
     name = rio_parse_name();
   }
   rio_Typespec (*type) = NULL;
-  if (rio_match_token(rio_TOKEN_ASSIGN)) {
+  if (rio_match_token(rio_TokenKind_Assign)) {
     type = rio_parse_type();
   }
-  rio_expect_token(rio_TOKEN_LBRACE);
+  rio_expect_token(rio_TokenKind_Lbrace);
   rio_EnumItem (*items) = NULL;
-  while (!(rio_is_token(rio_TOKEN_RBRACE))) {
+  while (!(rio_is_token(rio_TokenKind_Rbrace))) {
     rio_EnumItem item = rio_parse_decl_enum_item();
     rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
-    if (!(rio_match_token(rio_TOKEN_COMMA))) {
+    if (!(rio_match_token(rio_TokenKind_Comma))) {
       break;
     }
   }
-  rio_expect_token(rio_TOKEN_RBRACE);
+  rio_expect_token(rio_TokenKind_Rbrace);
   return rio_new_decl_enum(pos, name, type, items, rio_buf_len(items));
 }
 
@@ -6484,26 +6332,26 @@ rio_AggregateItem rio_parse_decl_aggregate_item(void) {
     char const ((*(*names))) = NULL;
     char const ((*name)) = rio_parse_name();
     rio_buf_push((void (**))(&(names)), &(name), sizeof(name));
-    while (rio_match_token(rio_TOKEN_COMMA)) {
+    while (rio_match_token(rio_TokenKind_Comma)) {
       name = rio_parse_name();
       rio_buf_push((void (**))(&(names)), &(name), sizeof(name));
     }
-    rio_expect_token(rio_TOKEN_COLON);
+    rio_expect_token(rio_TokenKind_Colon);
     rio_Typespec (*type) = rio_parse_type();
-    rio_expect_token(rio_TOKEN_SEMICOLON);
+    rio_expect_token(rio_TokenKind_Semicolon);
     return (rio_AggregateItem){.pos = pos, .kind = rio_AggregateItemKind_Field, .names = names, .num_names = rio_buf_len(names), .type = type};
   }
 }
 
 rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind)) {
   rio_SrcPos pos = rio_token.pos;
-  rio_expect_token(rio_TOKEN_LBRACE);
+  rio_expect_token(rio_TokenKind_Lbrace);
   rio_AggregateItem (*items) = NULL;
-  while ((!(rio_is_token_eof())) && (!(rio_is_token(rio_TOKEN_RBRACE)))) {
+  while ((!(rio_is_token_eof())) && (!(rio_is_token(rio_TokenKind_Rbrace)))) {
     rio_AggregateItem item = rio_parse_decl_aggregate_item();
     rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
   }
-  rio_expect_token(rio_TOKEN_RBRACE);
+  rio_expect_token(rio_TokenKind_Rbrace);
   return rio_new_aggregate(pos, kind, items, rio_buf_len(items));
 }
 
@@ -6511,7 +6359,7 @@ rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind)) {
   assert(((kind) == (rio_DeclKind_Struct)) || ((kind) == (rio_DeclKind_Union)));
   char const ((*name)) = rio_parse_name();
   rio_AggregateKind aggregate_kind = ((kind) == (rio_DeclKind_Struct) ? rio_AggregateKind_Struct : rio_AggregateKind_Union);
-  if (rio_match_token(rio_TOKEN_SEMICOLON)) {
+  if (rio_match_token(rio_TokenKind_Semicolon)) {
     rio_Decl (*decl) = rio_new_decl_aggregate(pos, kind, name, rio_new_aggregate(pos, aggregate_kind, NULL, 0));
     decl->is_incomplete = true;
     return decl;
@@ -6522,17 +6370,17 @@ rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind)) {
 
 rio_Decl (*rio_parse_decl_var(rio_SrcPos pos)) {
   char const ((*name)) = rio_parse_name();
-  if (rio_match_token(rio_TOKEN_ASSIGN)) {
+  if (rio_match_token(rio_TokenKind_Assign)) {
     rio_Expr (*expr) = rio_parse_expr();
-    rio_expect_token(rio_TOKEN_SEMICOLON);
+    rio_expect_token(rio_TokenKind_Semicolon);
     return rio_new_decl_var(pos, name, NULL, expr);
-  } else if (rio_match_token(rio_TOKEN_COLON)) {
+  } else if (rio_match_token(rio_TokenKind_Colon)) {
     rio_Typespec (*type) = rio_parse_type();
     rio_Expr (*expr) = NULL;
-    if (rio_match_token(rio_TOKEN_ASSIGN)) {
+    if (rio_match_token(rio_TokenKind_Assign)) {
       expr = rio_parse_expr();
     }
-    rio_expect_token(rio_TOKEN_SEMICOLON);
+    rio_expect_token(rio_TokenKind_Semicolon);
     return rio_new_decl_var(pos, name, type, expr);
   } else {
     rio_fatal_error(rio_token.pos, "Expected : or = after let, got %s", rio_token_info());
@@ -6543,38 +6391,38 @@ rio_Decl (*rio_parse_decl_var(rio_SrcPos pos)) {
 rio_Decl (*rio_parse_decl_const(rio_SrcPos pos)) {
   char const ((*name)) = rio_parse_name();
   rio_Typespec (*type) = NULL;
-  if (rio_match_token(rio_TOKEN_COLON)) {
+  if (rio_match_token(rio_TokenKind_Colon)) {
     type = rio_parse_type();
   }
-  rio_expect_token(rio_TOKEN_ASSIGN);
+  rio_expect_token(rio_TokenKind_Assign);
   rio_Expr (*expr) = rio_parse_expr();
-  rio_expect_token(rio_TOKEN_SEMICOLON);
+  rio_expect_token(rio_TokenKind_Semicolon);
   return rio_new_decl_const(pos, name, type, expr);
 }
 
 rio_Decl (*rio_parse_decl_typedef(rio_SrcPos pos)) {
   char const ((*name)) = rio_parse_name();
-  rio_expect_token(rio_TOKEN_ASSIGN);
+  rio_expect_token(rio_TokenKind_Assign);
   rio_Typespec (*type) = rio_parse_type();
-  rio_expect_token(rio_TOKEN_SEMICOLON);
+  rio_expect_token(rio_TokenKind_Semicolon);
   return rio_new_decl_typedef(pos, name, type);
 }
 
 rio_FuncParam rio_parse_decl_func_param(void) {
   rio_SrcPos pos = rio_token.pos;
   char const ((*name)) = rio_parse_name();
-  rio_expect_token(rio_TOKEN_COLON);
+  rio_expect_token(rio_TokenKind_Colon);
   rio_Typespec (*type) = rio_parse_type();
   return (rio_FuncParam){pos, name, type};
 }
 
 rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
   char const ((*name)) = rio_parse_name();
-  rio_expect_token(rio_TOKEN_LPAREN);
+  rio_expect_token(rio_TokenKind_Lparen);
   rio_FuncParam (*params) = NULL;
   bool has_varargs = false;
-  while (!(rio_is_token(rio_TOKEN_RPAREN))) {
-    if (rio_match_token(rio_TOKEN_ELLIPSIS)) {
+  while (!(rio_is_token(rio_TokenKind_Rparen))) {
+    if (rio_match_token(rio_TokenKind_Ellipsis)) {
       if (has_varargs) {
         rio_error(rio_token.pos, "Multiple ellipsis in function declaration");
       }
@@ -6586,18 +6434,18 @@ rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
       rio_FuncParam param = rio_parse_decl_func_param();
       rio_buf_push((void (**))(&(params)), &(param), sizeof(param));
     }
-    if (!(rio_match_token(rio_TOKEN_COMMA))) {
+    if (!(rio_match_token(rio_TokenKind_Comma))) {
       break;
     }
   }
-  rio_expect_token(rio_TOKEN_RPAREN);
+  rio_expect_token(rio_TokenKind_Rparen);
   rio_Typespec (*ret_type) = NULL;
-  if (rio_match_token(rio_TOKEN_ARROW)) {
+  if (rio_match_token(rio_TokenKind_Arrow)) {
     ret_type = rio_parse_type();
   }
   rio_StmtList block = {0};
   bool is_incomplete = {0};
-  if (rio_match_token(rio_TOKEN_SEMICOLON)) {
+  if (rio_match_token(rio_TokenKind_Semicolon)) {
     is_incomplete = true;
   } else {
     block = rio_parse_stmt_block();
@@ -6612,7 +6460,7 @@ rio_NoteArg rio_parse_note_arg(void) {
   rio_SrcPos pos = rio_token.pos;
   rio_Expr (*expr) = rio_parse_expr();
   char const ((*name)) = NULL;
-  if (rio_match_token(rio_TOKEN_ASSIGN)) {
+  if (rio_match_token(rio_TokenKind_Assign)) {
     if ((expr->kind) != (rio_ExprKind_Name)) {
       rio_fatal_error(rio_token.pos, "Left of: operand = in note argument must be a name");
     }
@@ -6626,21 +6474,21 @@ rio_Note rio_parse_note(void) {
   rio_SrcPos pos = rio_token.pos;
   char const ((*name)) = rio_parse_name();
   rio_NoteArg (*args) = NULL;
-  if (rio_match_token(rio_TOKEN_LPAREN)) {
+  if (rio_match_token(rio_TokenKind_Lparen)) {
     rio_NoteArg arg = rio_parse_note_arg();
     rio_buf_push((void (**))(&(args)), &(arg), sizeof(arg));
-    while (rio_match_token(rio_TOKEN_COMMA)) {
+    while (rio_match_token(rio_TokenKind_Comma)) {
       arg = rio_parse_note_arg();
       rio_buf_push((void (**))(&(args)), &(arg), sizeof(arg));
     }
-    rio_expect_token(rio_TOKEN_RPAREN);
+    rio_expect_token(rio_TokenKind_Rparen);
   }
   return rio_new_note(pos, name, args, rio_buf_len(args));
 }
 
 rio_Notes rio_parse_notes(void) {
   rio_Note (*notes) = NULL;
-  while (rio_match_token(rio_TOKEN_AT)) {
+  while (rio_match_token(rio_TokenKind_At)) {
     rio_Note note = rio_parse_note();
     rio_buf_push((void (**))(&(notes)), &(note), sizeof(note));
   }
@@ -6656,12 +6504,12 @@ rio_Decl (*rio_parse_decl_import(rio_SrcPos pos)) {
   bool is_relative = {0};
   repeat: ;
   is_relative = false;
-  if (rio_match_token(rio_TOKEN_DOT)) {
+  if (rio_match_token(rio_TokenKind_Dot)) {
     is_relative = true;
   }
   char const ((*name)) = rio_token.name;
-  rio_expect_token(rio_TOKEN_NAME);
-  if ((!(is_relative)) && (rio_match_token(rio_TOKEN_ASSIGN))) {
+  rio_expect_token(rio_TokenKind_Name);
+  if ((!(is_relative)) && (rio_match_token(rio_TokenKind_Assign))) {
     if (rename_name) {
       rio_fatal_error(pos, "Only one import assignment is allowed");
     }
@@ -6670,31 +6518,31 @@ rio_Decl (*rio_parse_decl_import(rio_SrcPos pos)) {
   }
   char const ((*(*names))) = NULL;
   rio_buf_push((void (**))(&(names)), &(name), sizeof(name));
-  while (rio_match_token(rio_TOKEN_DOT)) {
+  while (rio_match_token(rio_TokenKind_Dot)) {
     rio_buf_push((void (**))(&(names)), &(rio_token.name), sizeof(rio_token.name));
-    rio_expect_token(rio_TOKEN_NAME);
+    rio_expect_token(rio_TokenKind_Name);
   }
   bool import_all = false;
   rio_ImportItem (*items) = {0};
-  if (rio_match_token(rio_TOKEN_LBRACE)) {
-    while (!(rio_is_token(rio_TOKEN_RBRACE))) {
-      if (rio_match_token(rio_TOKEN_ELLIPSIS)) {
+  if (rio_match_token(rio_TokenKind_Lbrace)) {
+    while (!(rio_is_token(rio_TokenKind_Rbrace))) {
+      if (rio_match_token(rio_TokenKind_Ellipsis)) {
         import_all = true;
       } else {
         char const ((*item_name)) = rio_parse_name();
-        if (rio_match_token(rio_TOKEN_ASSIGN)) {
+        if (rio_match_token(rio_TokenKind_Assign)) {
           rio_ImportItem item = {.name = rio_parse_name(), .rename = item_name};
           rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
         } else {
           rio_ImportItem item = {.name = item_name};
           rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
         }
-        if (!(rio_match_token(rio_TOKEN_COMMA))) {
+        if (!(rio_match_token(rio_TokenKind_Comma))) {
           break;
         }
       }
     }
-    rio_expect_token(rio_TOKEN_RBRACE);
+    rio_expect_token(rio_TokenKind_Rbrace);
   }
   return rio_new_decl_import(pos, rename_name, is_relative, names, rio_buf_len(names), import_all, items, rio_buf_len(items));
 }
@@ -6717,7 +6565,7 @@ rio_Decl (*rio_parse_decl_opt(void)) {
     return rio_parse_decl_var(pos);
   } else if (rio_match_keyword(rio_import_keyword)) {
     return rio_parse_decl_import(pos);
-  } else if (rio_match_token(rio_TOKEN_POUND)) {
+  } else if (rio_match_token(rio_TokenKind_Pound)) {
     return rio_parse_decl_note(pos);
   } else {
     return NULL;
@@ -6736,7 +6584,7 @@ rio_Decl (*rio_parse_decl(void)) {
 
 rio_Decls (*rio_parse_decls(void)) {
   rio_Decl (*(*decls)) = NULL;
-  while (!(rio_is_token(rio_TOKEN_EOF))) {
+  while (!(rio_is_token(rio_TokenKind_Eof))) {
     rio_Decl (*decl) = rio_parse_decl();
     rio_buf_push((void (**))(&(decls)), &(decl), sizeof(decl));
   }
@@ -6930,7 +6778,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
       if (item.init) {
         init = item.init;
       } else if (prev_item_name) {
-        init = rio_new_expr_binary(item.pos, rio_TOKEN_ADD, rio_new_expr_name(item.pos, prev_item_name), rio_new_expr_int(item.pos, 1, 0, 0));
+        init = rio_new_expr_binary(item.pos, rio_TokenKind_Add, rio_new_expr_name(item.pos, prev_item_name), rio_new_expr_int(item.pos, 1, 0, 0));
       } else {
         init = rio_new_expr_int(item.pos, 0, 0, 0);
       }
@@ -6943,7 +6791,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
       if (decl->name) {
         char const ((*qual_name)) = rio_build_qual_name(decl->name, item.name);
         if (prev_qual_name) {
-          init = rio_new_expr_binary(item.pos, rio_TOKEN_ADD, rio_new_expr_name(item.pos, prev_qual_name), rio_new_expr_int(item.pos, 1, 0, 0));
+          init = rio_new_expr_binary(item.pos, rio_TokenKind_Add, rio_new_expr_name(item.pos, prev_qual_name), rio_new_expr_int(item.pos, 1, 0, 0));
         }
         rio_Decl (*qual_decl) = rio_new_decl_const(item.pos, qual_name, enum_typespec, init);
         qual_decl->notes = decl->notes;
@@ -7540,9 +7388,9 @@ void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
   rio_TokenKind binary_op = rio_assign_token_to_binary_token[stmt->assign.op];
   rio_Operand right = rio_resolve_expected_expr_rvalue(stmt->assign.right, left.type);
   rio_Operand result = {0};
-  if ((stmt->assign.op) == (rio_TOKEN_ASSIGN)) {
+  if ((stmt->assign.op) == (rio_TokenKind_Assign)) {
     result = right;
-  } else if (((stmt->assign.op) == (rio_TOKEN_ADD_ASSIGN)) || ((stmt->assign.op) == (rio_TOKEN_SUB_ASSIGN))) {
+  } else if (((stmt->assign.op) == (rio_TokenKind_AddAssign)) || ((stmt->assign.op) == (rio_TokenKind_SubAssign))) {
     if ((rio_is_ptr_type(left.type)) && (rio_is_integer_type(right.type))) {
       result = rio_operand_rvalue(left.type);
     } else if ((rio_is_arithmetic_type(left.type)) && (rio_is_arithmetic_type(right.type))) {
@@ -7950,19 +7798,19 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
 
 llong rio_eval_unary_op_ll(rio_TokenKind op, llong val) {
   switch (op) {
-  case rio_TOKEN_ADD: {
+  case rio_TokenKind_Add: {
     return +(val);
     break;
   }
-  case rio_TOKEN_SUB: {
+  case rio_TokenKind_Sub: {
     return -(val);
     break;
   }
-  case rio_TOKEN_NEG: {
+  case rio_TokenKind_Neg: {
     return ~(val);
     break;
   }
-  case rio_TOKEN_NOT: {
+  case rio_TokenKind_Not: {
     return !(val);
     break;
   }
@@ -7976,19 +7824,19 @@ llong rio_eval_unary_op_ll(rio_TokenKind op, llong val) {
 
 ullong rio_eval_unary_op_ull(rio_TokenKind op, ullong val) {
   switch (op) {
-  case rio_TOKEN_ADD: {
+  case rio_TokenKind_Add: {
     return +(val);
     break;
   }
-  case rio_TOKEN_SUB: {
+  case rio_TokenKind_Sub: {
     return (0ull) - (val);
     break;
   }
-  case rio_TOKEN_NEG: {
+  case rio_TokenKind_Neg: {
     return ~(val);
     break;
   }
-  case rio_TOKEN_NOT: {
+  case rio_TokenKind_Not: {
     return !(val);
     break;
   }
@@ -8002,67 +7850,67 @@ ullong rio_eval_unary_op_ull(rio_TokenKind op, ullong val) {
 
 llong rio_eval_binary_op_ll(rio_TokenKind op, llong left, llong right) {
   switch (op) {
-  case rio_TOKEN_MUL: {
+  case rio_TokenKind_Mul: {
     return (left) * (right);
     break;
   }
-  case rio_TOKEN_DIV: {
+  case rio_TokenKind_Div: {
     return ((right) != (0) ? (left) / (right) : 0);
     break;
   }
-  case rio_TOKEN_MOD: {
+  case rio_TokenKind_Mod: {
     return ((right) != (0) ? (left) % (right) : 0);
     break;
   }
-  case rio_TOKEN_AND: {
+  case rio_TokenKind_And: {
     return (left) & (right);
     break;
   }
-  case rio_TOKEN_LSHIFT: {
+  case rio_TokenKind_Lshift: {
     return (left) << (right);
     break;
   }
-  case rio_TOKEN_RSHIFT: {
+  case rio_TokenKind_Rshift: {
     return (left) >> (right);
     break;
   }
-  case rio_TOKEN_ADD: {
+  case rio_TokenKind_Add: {
     return (left) + (right);
     break;
   }
-  case rio_TOKEN_SUB: {
+  case rio_TokenKind_Sub: {
     return (left) - (right);
     break;
   }
-  case rio_TOKEN_OR: {
+  case rio_TokenKind_Or: {
     return (left) | (right);
     break;
   }
-  case rio_TOKEN_XOR: {
+  case rio_TokenKind_Xor: {
     return (left) ^ (right);
     break;
   }
-  case rio_TOKEN_EQ: {
+  case rio_TokenKind_Eq: {
     return (left) == (right);
     break;
   }
-  case rio_TOKEN_NOTEQ: {
+  case rio_TokenKind_NotEq: {
     return (left) != (right);
     break;
   }
-  case rio_TOKEN_LT: {
+  case rio_TokenKind_Lt: {
     return (left) < (right);
     break;
   }
-  case rio_TOKEN_LTEQ: {
+  case rio_TokenKind_LtEq: {
     return (left) <= (right);
     break;
   }
-  case rio_TOKEN_GT: {
+  case rio_TokenKind_Gt: {
     return (left) > (right);
     break;
   }
-  case rio_TOKEN_GTEQ: {
+  case rio_TokenKind_GtEq: {
     return (left) >= (right);
     break;
   }
@@ -8076,67 +7924,67 @@ llong rio_eval_binary_op_ll(rio_TokenKind op, llong left, llong right) {
 
 ullong rio_eval_binary_op_ull(rio_TokenKind op, ullong left, ullong right) {
   switch (op) {
-  case rio_TOKEN_MUL: {
+  case rio_TokenKind_Mul: {
     return (left) * (right);
     break;
   }
-  case rio_TOKEN_DIV: {
+  case rio_TokenKind_Div: {
     return ((right) != (0) ? (left) / (right) : 0);
     break;
   }
-  case rio_TOKEN_MOD: {
+  case rio_TokenKind_Mod: {
     return ((right) != (0) ? (left) % (right) : 0);
     break;
   }
-  case rio_TOKEN_AND: {
+  case rio_TokenKind_And: {
     return (left) & (right);
     break;
   }
-  case rio_TOKEN_LSHIFT: {
+  case rio_TokenKind_Lshift: {
     return (left) << (right);
     break;
   }
-  case rio_TOKEN_RSHIFT: {
+  case rio_TokenKind_Rshift: {
     return (left) >> (right);
     break;
   }
-  case rio_TOKEN_ADD: {
+  case rio_TokenKind_Add: {
     return (left) + (right);
     break;
   }
-  case rio_TOKEN_SUB: {
+  case rio_TokenKind_Sub: {
     return (left) - (right);
     break;
   }
-  case rio_TOKEN_OR: {
+  case rio_TokenKind_Or: {
     return (left) | (right);
     break;
   }
-  case rio_TOKEN_XOR: {
+  case rio_TokenKind_Xor: {
     return (left) ^ (right);
     break;
   }
-  case rio_TOKEN_EQ: {
+  case rio_TokenKind_Eq: {
     return (left) == (right);
     break;
   }
-  case rio_TOKEN_NOTEQ: {
+  case rio_TokenKind_NotEq: {
     return (left) != (right);
     break;
   }
-  case rio_TOKEN_LT: {
+  case rio_TokenKind_Lt: {
     return (left) < (right);
     break;
   }
-  case rio_TOKEN_LTEQ: {
+  case rio_TokenKind_LtEq: {
     return (left) <= (right);
     break;
   }
-  case rio_TOKEN_GT: {
+  case rio_TokenKind_Gt: {
     return (left) > (right);
     break;
   }
-  case rio_TOKEN_GTEQ: {
+  case rio_TokenKind_GtEq: {
     return (left) >= (right);
     break;
   }
@@ -8228,29 +8076,29 @@ rio_Operand rio_resolve_expr_unary(rio_Expr (*expr)) {
   rio_Operand operand = rio_resolve_expr_rvalue(expr->unary.expr);
   rio_Type (*type) = operand.type;
   switch (expr->unary.op) {
-  case rio_TOKEN_MUL: {
+  case rio_TokenKind_Mul: {
     if (!(rio_is_ptr_type(type))) {
       rio_fatal_error(expr->pos, "Cannot deref non-ptr type");
     }
     return rio_operand_lvalue(type->base);
     break;
   }
-  case rio_TOKEN_ADD:
-  case rio_TOKEN_SUB: {
+  case rio_TokenKind_Add:
+  case rio_TokenKind_Sub: {
     if (!(rio_is_arithmetic_type(type))) {
       rio_fatal_error(expr->pos, "Can only use unary %s with arithmetic types", rio_token_kind_name(expr->unary.op));
     }
     return rio_resolve_unary_op(expr->unary.op, operand);
     break;
   }
-  case rio_TOKEN_NEG: {
+  case rio_TokenKind_Neg: {
     if (!(rio_is_integer_type(type))) {
       rio_fatal_error(expr->pos, "Can only use ~ with integer types");
     }
     return rio_resolve_unary_op(expr->unary.op, operand);
     break;
   }
-  case rio_TOKEN_NOT: {
+  case rio_TokenKind_Not: {
     if (!(rio_is_scalar_type(type))) {
       rio_fatal_error(expr->pos, " Can only use ! with scalar types");
     }
@@ -8280,8 +8128,8 @@ rio_Operand rio_resolve_binary_arithmetic_op(rio_TokenKind op, rio_Operand left,
 
 rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name)), rio_SrcPos pos, rio_Operand left, rio_Operand right) {
   switch (op) {
-  case rio_TOKEN_MUL:
-  case rio_TOKEN_DIV: {
+  case rio_TokenKind_Mul:
+  case rio_TokenKind_Div: {
     if (!(rio_is_arithmetic_type(left.type))) {
       rio_fatal_error(pos, "Left operand of %s must have arithmetic type", op_name);
     }
@@ -8291,7 +8139,7 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     return rio_resolve_binary_arithmetic_op(op, left, right);
     break;
   }
-  case rio_TOKEN_MOD: {
+  case rio_TokenKind_Mod: {
     if (!(rio_is_integer_type(left.type))) {
       rio_fatal_error(pos, "Left operand of %% must have integer type");
     }
@@ -8301,7 +8149,7 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     return rio_resolve_binary_arithmetic_op(op, left, right);
     break;
   }
-  case rio_TOKEN_ADD: {
+  case rio_TokenKind_Add: {
     if ((rio_is_arithmetic_type(left.type)) && (rio_is_arithmetic_type(right.type))) {
       return rio_resolve_binary_arithmetic_op(op, left, right);
     } else if ((rio_is_ptr_star_type(left.type)) && (rio_is_integer_type(right.type))) {
@@ -8321,7 +8169,7 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TOKEN_SUB: {
+  case rio_TokenKind_Sub: {
     if ((rio_is_arithmetic_type(left.type)) && (rio_is_arithmetic_type(right.type))) {
       return rio_resolve_binary_arithmetic_op(op, left, right);
     } else if ((rio_is_ptr_star_type(left.type)) && (rio_is_integer_type(right.type))) {
@@ -8336,8 +8184,8 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TOKEN_LSHIFT:
-  case rio_TOKEN_RSHIFT: {
+  case rio_TokenKind_Lshift:
+  case rio_TokenKind_Rshift: {
     if ((rio_is_integer_type(left.type)) && (rio_is_integer_type(right.type))) {
       rio_promote_operand(&(left));
       rio_promote_operand(&(right));
@@ -8358,8 +8206,8 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TOKEN_EQ:
-  case rio_TOKEN_NOTEQ: {
+  case rio_TokenKind_Eq:
+  case rio_TokenKind_NotEq: {
     if ((rio_is_arithmetic_type(left.type)) && (rio_is_arithmetic_type(right.type))) {
       rio_Operand result = rio_resolve_binary_arithmetic_op(op, left, right);
       cast_operand(&(result), rio_type_int);
@@ -8378,10 +8226,10 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TOKEN_LT:
-  case rio_TOKEN_LTEQ:
-  case rio_TOKEN_GT:
-  case rio_TOKEN_GTEQ: {
+  case rio_TokenKind_Lt:
+  case rio_TokenKind_LtEq:
+  case rio_TokenKind_Gt:
+  case rio_TokenKind_GtEq: {
     if ((rio_is_arithmetic_type(left.type)) && (rio_is_arithmetic_type(right.type))) {
       rio_Operand result = rio_resolve_binary_arithmetic_op(op, left, right);
       cast_operand(&(result), rio_type_int);
@@ -8398,9 +8246,9 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TOKEN_AND:
-  case rio_TOKEN_XOR:
-  case rio_TOKEN_OR: {
+  case rio_TokenKind_And:
+  case rio_TokenKind_Xor:
+  case rio_TokenKind_Or: {
     if ((rio_is_integer_type(left.type)) && (rio_is_integer_type(right.type))) {
       return rio_resolve_binary_arithmetic_op(op, left, right);
     } else {
@@ -8408,17 +8256,17 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TOKEN_AND_AND:
-  case rio_TOKEN_OR_OR: {
+  case rio_TokenKind_AndAnd:
+  case rio_TokenKind_OrOr: {
     if ((rio_is_scalar_type(left.type)) && (rio_is_scalar_type(right.type))) {
       if ((left.is_const) && (right.is_const)) {
         cast_operand(&(left), rio_type_bool);
         cast_operand(&(right), rio_type_bool);
         int i = {0};
-        if ((op) == (rio_TOKEN_AND_AND)) {
+        if ((op) == (rio_TokenKind_AndAnd)) {
           i = (left.val.b) && (right.val.b);
         } else {
-          assert((op) == (rio_TOKEN_OR_OR));
+          assert((op) == (rio_TokenKind_OrOr));
           i = (left.val.b) || (right.val.b);
         }
         return rio_operand_const(rio_type_int, (rio_Val){.i = i});
@@ -8633,10 +8481,10 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
   ullong val = expr->int_lit.val;
   rio_Operand operand = rio_operand_const(rio_type_ullong, (rio_Val){.ull = val});
   rio_Type (*type) = rio_type_ullong;
-  if ((expr->int_lit.mod) == (rio_MOD_NONE)) {
+  if ((expr->int_lit.mod) == (rio_TokenMod_None)) {
     bool overflow = false;
     switch (expr->int_lit.suffix) {
-    case rio_SUFFIX_NONE: {
+    case rio_TokenSuffix_None: {
       type = rio_type_int;
       if ((val) > (int_max)) {
         type = rio_type_long;
@@ -8647,7 +8495,7 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_SUFFIX_U: {
+    case rio_TokenSuffix_U: {
       type = rio_type_uint;
       if ((val) > (uint_max)) {
         type = rio_type_ulong;
@@ -8657,7 +8505,7 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_SUFFIX_L: {
+    case rio_TokenSuffix_L: {
       type = rio_type_long;
       if ((val) > (long_max)) {
         type = rio_type_llong;
@@ -8665,19 +8513,19 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_SUFFIX_UL: {
+    case rio_TokenSuffix_UL: {
       type = rio_type_ulong;
       if ((val) > (ulong_max)) {
         type = rio_type_ullong;
       }
       break;
     }
-    case rio_SUFFIX_LL: {
+    case rio_TokenSuffix_LL: {
       type = rio_type_llong;
       overflow = (val) > (llong_max);
       break;
     }
-    case rio_SUFFIX_ULL: {
+    case rio_TokenSuffix_ULL: {
       type = rio_type_ullong;
       break;
     }
@@ -8691,7 +8539,7 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
     }
   } else {
     switch (expr->int_lit.suffix) {
-    case rio_SUFFIX_NONE: {
+    case rio_TokenSuffix_None: {
       type = rio_type_int;
       if ((val) > (int_max)) {
         type = rio_type_uint;
@@ -8710,7 +8558,7 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_SUFFIX_U: {
+    case rio_TokenSuffix_U: {
       type = rio_type_uint;
       if ((val) > (uint_max)) {
         type = rio_type_ulong;
@@ -8720,7 +8568,7 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_SUFFIX_L: {
+    case rio_TokenSuffix_L: {
       type = rio_type_long;
       if ((val) > (long_max)) {
         type = rio_type_ulong;
@@ -8733,21 +8581,21 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_SUFFIX_UL: {
+    case rio_TokenSuffix_UL: {
       type = rio_type_ulong;
       if ((val) > (ulong_max)) {
         type = rio_type_ullong;
       }
       break;
     }
-    case rio_SUFFIX_LL: {
+    case rio_TokenSuffix_LL: {
       type = rio_type_llong;
       if ((val) > (llong_max)) {
         type = rio_type_ullong;
       }
       break;
     }
-    case rio_SUFFIX_ULL: {
+    case rio_TokenSuffix_ULL: {
       type = rio_type_ullong;
       break;
     }
@@ -8789,7 +8637,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     break;
   }
   case rio_ExprKind_Float: {
-    result = rio_operand_const(((expr->float_lit.suffix) == (rio_SUFFIX_D) ? rio_type_double : rio_type_float), (rio_Val){0});
+    result = rio_operand_const(((expr->float_lit.suffix) == (rio_TokenSuffix_D) ? rio_type_double : rio_type_float), (rio_Val){0});
     break;
   }
   case rio_ExprKind_Str: {
@@ -8822,7 +8670,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     break;
   }
   case rio_ExprKind_Unary: {
-    if ((expr->unary.op) == (rio_TOKEN_AND)) {
+    if ((expr->unary.op) == (rio_TokenKind_And)) {
       rio_Operand operand = {0};
       if ((expected_type) && (rio_is_ptr_type(expected_type))) {
         operand = rio_resolve_expected_expr(expr->unary.expr, expected_type->base);

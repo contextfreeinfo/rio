@@ -99,160 +99,163 @@ fn is_keyword_name(name: *const char) -> bool {
   return first_keyword <= name && name <= last_keyword;
 }
 
+@scoped
 enum TokenKind {
-  TOKEN_EOF,
-  TOKEN_COLON,
-  TOKEN_ARROW,
-  TOKEN_LPAREN,
-  TOKEN_RPAREN,
-  TOKEN_LBRACE,
-  TOKEN_RBRACE,
-  TOKEN_LBRACKET,
-  TOKEN_RBRACKET,
-  TOKEN_COMMA,
-  TOKEN_DOT,
-  TOKEN_AT,
-  TOKEN_POUND,
-  TOKEN_ELLIPSIS,
-  TOKEN_QUESTION,
-  TOKEN_SEMICOLON,
-  TOKEN_KEYWORD,
-  TOKEN_INT,
-  TOKEN_FLOAT,
-  TOKEN_STR,
-  TOKEN_NAME,
-  TOKEN_NEG,
-  TOKEN_NOT,
+  Eof,
+  Colon,
+  Arrow,
+  Lparen,
+  Rparen,
+  Lbrace,
+  Rbrace,
+  Lbracket,
+  Rbracket,
+  Comma,
+  Dot,
+  At,
+  Pound,
+  Ellipsis,
+  Question,
+  Semicolon,
+  Keyword,
+  Int,
+  Float,
+  Str,
+  Name,
+  Neg,
+  Not,
   // Multiplicative precedence
-  TOKEN_FIRST_MUL,
-  TOKEN_MUL = TOKEN_FIRST_MUL,
-  TOKEN_DIV,
-  TOKEN_MOD,
-  TOKEN_AND,
-  TOKEN_LSHIFT,
-  TOKEN_RSHIFT,
-  TOKEN_LAST_MUL = TOKEN_RSHIFT,
+  FirstMul,
+  Mul = TokenKind.FirstMul,
+  Div,
+  Mod,
+  And,
+  Lshift,
+  Rshift,
+  LastMul = TokenKind.Rshift,
   // Additive precedence
-  TOKEN_FIRST_ADD,
-  TOKEN_ADD = TOKEN_FIRST_ADD,
-  TOKEN_SUB,
-  TOKEN_XOR,
-  TOKEN_OR,
-  TOKEN_LAST_ADD = TOKEN_OR,
+  FirstAdd,
+  Add = TokenKind.FirstAdd,
+  Sub,
+  Xor,
+  Or,
+  LastAdd = TokenKind.Or,
   // Comparative precedence
-  TOKEN_FIRST_CMP,
-  TOKEN_EQ = TOKEN_FIRST_CMP,
-  TOKEN_NOTEQ,
-  TOKEN_LT,
-  TOKEN_GT,
-  TOKEN_LTEQ,
-  TOKEN_GTEQ,
-  TOKEN_LAST_CMP = TOKEN_GTEQ,
-  TOKEN_AND_AND,
-  TOKEN_OR_OR,
+  FirstCmp,
+  Eq = TokenKind.FirstCmp,
+  NotEq,
+  Lt,
+  Gt,
+  LtEq,
+  GtEq,
+  LastCmp = TokenKind.GtEq,
+  AndAnd,
+  OrOr,
   // Assignment operators
-  TOKEN_FIRST_ASSIGN,
-  TOKEN_ASSIGN = TOKEN_FIRST_ASSIGN,
-  TOKEN_ADD_ASSIGN,
-  TOKEN_SUB_ASSIGN,
-  TOKEN_OR_ASSIGN,
-  TOKEN_AND_ASSIGN,
-  TOKEN_XOR_ASSIGN,
-  TOKEN_LSHIFT_ASSIGN,
-  TOKEN_RSHIFT_ASSIGN,
-  TOKEN_MUL_ASSIGN,
-  TOKEN_DIV_ASSIGN,
-  TOKEN_MOD_ASSIGN,
-  TOKEN_LAST_ASSIGN = TOKEN_MOD_ASSIGN,
-  TOKEN_INC,
-  TOKEN_DEC,
-  NUM_TOKEN_KINDS,
+  FirstAssign,
+  Assign = TokenKind.FirstAssign,
+  AddAssign,
+  SubAssign,
+  OrAssign,
+  AndAssign,
+  XorAssign,
+  LshiftAssign,
+  RshiftAssign,
+  MulAssign,
+  DivAssign,
+  ModAssign,
+  LastAssign = TokenKind.ModAssign,
+  Inc,
+  Dec,
+  NumKinds,
 }
 
+@scoped
 enum TokenMod {
-  MOD_NONE,
-  MOD_HEX,
-  MOD_BIN,
-  MOD_OCT,
-  MOD_CHAR,
-  MOD_MULTILINE,
+  None,
+  Hex,
+  Bin,
+  Oct,
+  Char,
+  Multiline,
 }
 
+@scoped
 enum TokenSuffix {
-  SUFFIX_NONE,
-  SUFFIX_D,
-  SUFFIX_U,
-  SUFFIX_L,
-  SUFFIX_UL,
-  SUFFIX_LL,
-  SUFFIX_ULL,
+  None,
+  D,
+  U,
+  L,
+  UL,
+  LL,
+  ULL,
 }
 
 let token_suffix_names: []*const char = {
-  [SUFFIX_NONE] = "",
-  [SUFFIX_D] = "d",
-  [SUFFIX_U] = "u",
-  [SUFFIX_L] = "l",
-  [SUFFIX_UL] = "ul",
-  [SUFFIX_LL] = "ll",
-  [SUFFIX_ULL] = "ull",
+  [TokenSuffix.None] = "",
+  [TokenSuffix.D] = "d",
+  [TokenSuffix.U] = "u",
+  [TokenSuffix.L] = "l",
+  [TokenSuffix.UL] = "ul",
+  [TokenSuffix.LL] = "ll",
+  [TokenSuffix.ULL] = "ull",
 };
 
 let token_kind_names: []*const char = {
-  [TOKEN_EOF] = "EOF",
-  [TOKEN_COLON] = ":",
-  [TOKEN_ARROW] = "->",
-  [TOKEN_LPAREN] = "(",
-  [TOKEN_RPAREN] = ")",
-  [TOKEN_LBRACE] = "{",
-  [TOKEN_RBRACE] = "}",
-  [TOKEN_LBRACKET] = "[",
-  [TOKEN_RBRACKET] = "]",
-  [TOKEN_COMMA] = ",",
-  [TOKEN_DOT] = ".",
-  [TOKEN_AT] = "@",
-  [TOKEN_POUND] = "#",
-  [TOKEN_ELLIPSIS] = "...",
-  [TOKEN_QUESTION] = "?",
-  [TOKEN_SEMICOLON] = ";",
-  [TOKEN_KEYWORD] = "keyword",
-  [TOKEN_INT] = "int",
-  [TOKEN_FLOAT] = "float",
-  [TOKEN_STR] = "string",
-  [TOKEN_NAME] = "name",
-  [TOKEN_NEG] = "~",
-  [TOKEN_NOT] = "!",
-  [TOKEN_MUL] = "*",
-  [TOKEN_DIV] = "/",
-  [TOKEN_MOD] = "%",
-  [TOKEN_AND] = "&",
-  [TOKEN_LSHIFT] = "<<",
-  [TOKEN_RSHIFT] = ">>",
-  [TOKEN_ADD] = "+",
-  [TOKEN_SUB] = "-",
-  [TOKEN_OR] = "|",
-  [TOKEN_XOR] = "^",
-  [TOKEN_EQ] = "==",
-  [TOKEN_NOTEQ] = "!=",
-  [TOKEN_LT] = "<",
-  [TOKEN_GT] = ">",
-  [TOKEN_LTEQ] = "<=",
-  [TOKEN_GTEQ] = ">=",
-  [TOKEN_AND_AND] = "&&",
-  [TOKEN_OR_OR] = "||",
-  [TOKEN_ASSIGN] = "=",
-  [TOKEN_ADD_ASSIGN] = "+=",
-  [TOKEN_SUB_ASSIGN] = "-=",
-  [TOKEN_OR_ASSIGN] = "|=",
-  [TOKEN_AND_ASSIGN] = "&=",
-  [TOKEN_XOR_ASSIGN] = "^=",
-  [TOKEN_MUL_ASSIGN] = "*=",
-  [TOKEN_DIV_ASSIGN] = "/=",
-  [TOKEN_MOD_ASSIGN] = "%=",
-  [TOKEN_LSHIFT_ASSIGN] = "<<=",
-  [TOKEN_RSHIFT_ASSIGN] = ">>=",
-  [TOKEN_INC] = "++",
-  [TOKEN_DEC] = "--",
+  [TokenKind.Eof] = "EOF",
+  [TokenKind.Colon] = ":",
+  [TokenKind.Arrow] = "->",
+  [TokenKind.Lparen] = "(",
+  [TokenKind.Rparen] = ")",
+  [TokenKind.Lbrace] = "{",
+  [TokenKind.Rbrace] = "}",
+  [TokenKind.Lbracket] = "[",
+  [TokenKind.Rbracket] = "]",
+  [TokenKind.Comma] = ",",
+  [TokenKind.Dot] = ".",
+  [TokenKind.At] = "@",
+  [TokenKind.Pound] = "#",
+  [TokenKind.Ellipsis] = "...",
+  [TokenKind.Question] = "?",
+  [TokenKind.Semicolon] = ";",
+  [TokenKind.Keyword] = "keyword",
+  [TokenKind.Int] = "int",
+  [TokenKind.Float] = "float",
+  [TokenKind.Str] = "string",
+  [TokenKind.Name] = "name",
+  [TokenKind.Neg] = "~",
+  [TokenKind.Not] = "!",
+  [TokenKind.Mul] = "*",
+  [TokenKind.Div] = "/",
+  [TokenKind.Mod] = "%",
+  [TokenKind.And] = "&",
+  [TokenKind.Lshift] = "<<",
+  [TokenKind.Rshift] = ">>",
+  [TokenKind.Add] = "+",
+  [TokenKind.Sub] = "-",
+  [TokenKind.Or] = "|",
+  [TokenKind.Xor] = "^",
+  [TokenKind.Eq] = "==",
+  [TokenKind.NotEq] = "!=",
+  [TokenKind.Lt] = "<",
+  [TokenKind.Gt] = ">",
+  [TokenKind.LtEq] = "<=",
+  [TokenKind.GtEq] = ">=",
+  [TokenKind.AndAnd] = "&&",
+  [TokenKind.OrOr] = "||",
+  [TokenKind.Assign] = "=",
+  [TokenKind.AddAssign] = "+=",
+  [TokenKind.SubAssign] = "-=",
+  [TokenKind.OrAssign] = "|=",
+  [TokenKind.AndAssign] = "&=",
+  [TokenKind.XorAssign] = "^=",
+  [TokenKind.MulAssign] = "*=",
+  [TokenKind.DivAssign] = "/=",
+  [TokenKind.ModAssign] = "%=",
+  [TokenKind.LshiftAssign] = "<<=",
+  [TokenKind.RshiftAssign] = ">>=",
+  [TokenKind.Inc] = "++",
+  [TokenKind.Dec] = "--",
 };
 
 fn token_kind_name(kind: TokenKind) -> *const char {
@@ -263,17 +266,17 @@ fn token_kind_name(kind: TokenKind) -> *const char {
   }
 }
 
-let assign_token_to_binary_token: [NUM_TOKEN_KINDS]TokenKind = {
-  [TOKEN_ADD_ASSIGN] = TOKEN_ADD,
-  [TOKEN_SUB_ASSIGN] = TOKEN_SUB,
-  [TOKEN_OR_ASSIGN] = TOKEN_OR,
-  [TOKEN_AND_ASSIGN] = TOKEN_AND,
-  [TOKEN_XOR_ASSIGN] = TOKEN_XOR,
-  [TOKEN_LSHIFT_ASSIGN] = TOKEN_LSHIFT,
-  [TOKEN_RSHIFT_ASSIGN] = TOKEN_RSHIFT,
-  [TOKEN_MUL_ASSIGN] = TOKEN_MUL,
-  [TOKEN_DIV_ASSIGN] = TOKEN_DIV,
-  [TOKEN_MOD_ASSIGN] = TOKEN_MOD,
+let assign_token_to_binary_token: [TokenKind.NumKinds]TokenKind = {
+  [TokenKind.AddAssign] = TokenKind.Add,
+  [TokenKind.SubAssign] = TokenKind.Sub,
+  [TokenKind.OrAssign] = TokenKind.Or,
+  [TokenKind.AndAssign] = TokenKind.And,
+  [TokenKind.XorAssign] = TokenKind.Xor,
+  [TokenKind.LshiftAssign] = TokenKind.Lshift,
+  [TokenKind.RshiftAssign] = TokenKind.Rshift,
+  [TokenKind.MulAssign] = TokenKind.Mul,
+  [TokenKind.DivAssign] = TokenKind.Div,
+  [TokenKind.ModAssign] = TokenKind.Mod,
 };
 
 struct SrcPos {
@@ -343,7 +346,7 @@ fn fatal_error(pos: SrcPos, fmt: *const char, ...) {
 // #define fatal_error(token.pos, ...) (error(token.pos, __VA_ARGS__), exit(1))
 
 fn token_info() -> *const char {
-  if (token.kind == TOKEN_NAME || token.kind == TOKEN_KEYWORD) {
+  if (token.kind == TokenKind.Name || token.kind == TokenKind.Keyword) {
     return token.name;
   } else {
     return token_kind_name(token.kind);
@@ -376,16 +379,16 @@ fn scan_int() {
     stream++;
     if (tolower(*stream) == 'x') {
       stream++;
-      token.mod = MOD_HEX;
+      token.mod = TokenMod.Hex;
       base = 16;
       start_digits = stream;
     } else if (tolower(*stream) == 'b') {
       stream++;
-      token.mod = MOD_BIN;
+      token.mod = TokenMod.Bin;
       base = 2;
       start_digits = stream;
     } else if (isdigit(*stream)) {
-      token.mod = MOD_OCT;
+      token.mod = TokenMod.Oct;
       base = 8;
       start_digits = stream;
     }
@@ -418,24 +421,24 @@ fn scan_int() {
   if (stream == start_digits) {
     error(token.pos, "Expected base %d digit, got '%c'", base, *stream);
   }
-  token.kind = TOKEN_INT;
+  token.kind = TokenKind.Int;
   token.int_val = val;
   if (tolower(*stream) == 'u') {
-    token.suffix = SUFFIX_U;
+    token.suffix = TokenSuffix.U;
     stream++;
     if (tolower(*stream) == 'l') {
-      token.suffix = SUFFIX_UL;
+      token.suffix = TokenSuffix.UL;
       stream++;
       if (tolower(*stream) == 'l') {
-        token.suffix = SUFFIX_ULL;
+        token.suffix = TokenSuffix.ULL;
         stream++;
       }
     }
   } else if (tolower(*stream) == 'l') {
-    token.suffix = SUFFIX_L;
+    token.suffix = TokenSuffix.L;
     stream++;
     if (tolower(*stream) == 'l') {
-      token.suffix = SUFFIX_LL;
+      token.suffix = TokenSuffix.LL;
       stream++;
     }
   }
@@ -471,10 +474,10 @@ fn scan_float() {
   if (val == HUGE_VAL) {
     error(token.pos, "Float literal overflow");
   }
-  token.kind = TOKEN_FLOAT;
+  token.kind = TokenKind.Float;
   token.float_val = val;
   if (tolower(*stream) == 'd') {
-    token.suffix = SUFFIX_D;
+    token.suffix = TokenSuffix.D;
     stream++;
   }
 }
@@ -542,9 +545,9 @@ fn scan_char() {
   } else {
     stream++;
   }
-  token.kind = TOKEN_INT;
+  token.kind = TokenKind.Int;
   token.int_val = val;
-  token.mod = MOD_CHAR;
+  token.mod = TokenMod.Char;
 }
 
 fn scan_str() {
@@ -570,7 +573,7 @@ fn scan_str() {
     if (!*stream) {
       error(token.pos, "Unexpected end of file within multi-line string literal");
     }
-    token.mod = MOD_MULTILINE;
+    token.mod = TokenMod.Multiline;
   } else {
     while (*stream && *stream != '"') {
       let val = *stream;
@@ -602,7 +605,7 @@ fn scan_str() {
   // TODO: If I say just "", I get a random byte in the c output from c rio.
   let nul = '\0';
   buf_push((:*&void)&str, &nul, 1);
-  token.kind = TOKEN_STR;
+  token.kind = TokenKind.Str;
   token.str_val = str;
 }
 
@@ -657,10 +660,10 @@ fn next_token() {
     if (isdigit(stream[1])) {
       scan_float();
     } else if (stream[1] == '.' && stream[2] == '.') {
-      token.kind = TOKEN_ELLIPSIS;
+      token.kind = TokenKind.Ellipsis;
       stream += 3;
     } else {
-      token.kind = TOKEN_DOT;
+      token.kind = TokenKind.Dot;
       stream++;
     }
   case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9': {
@@ -686,40 +689,40 @@ fn next_token() {
       stream++;
     }
     token.name = str_intern_range(token.start, stream);
-    token.kind = is_keyword_name(token.name) ? TOKEN_KEYWORD : TOKEN_NAME;
+    token.kind = is_keyword_name(token.name) ? TokenKind.Keyword : TokenKind.Name;
   case '<':
-    token.kind = TOKEN_LT;
+    token.kind = TokenKind.Lt;
     stream++;
     if (*stream == '<') {
-      token.kind = TOKEN_LSHIFT;
+      token.kind = TokenKind.Lshift;
       stream++;
       if (*stream == '=') {
-        token.kind = TOKEN_LSHIFT_ASSIGN;
+        token.kind = TokenKind.LshiftAssign;
         stream++;
       }
     } else if (*stream == '=') {
-      token.kind = TOKEN_LTEQ;
+      token.kind = TokenKind.LtEq;
       stream++;
     }
   case '>':
-    token.kind = TOKEN_GT;
+    token.kind = TokenKind.Gt;
     stream++;
     if (*stream == '>') {
-      token.kind = TOKEN_RSHIFT;
+      token.kind = TokenKind.Rshift;
       stream++;
       if (*stream == '=') {
-        token.kind = TOKEN_RSHIFT_ASSIGN;
+        token.kind = TokenKind.RshiftAssign;
         stream++;
       }
     } else if (*stream == '=') {
-      token.kind = TOKEN_GTEQ;
+      token.kind = TokenKind.GtEq;
       stream++;
     }
   case '/':
-    token.kind = TOKEN_DIV;
+    token.kind = TokenKind.Div;
     stream++;
     if (*stream == '=') {
-      token.kind = TOKEN_DIV_ASSIGN;
+      token.kind = TokenKind.DivAssign;
       stream++;
     } else if (*stream == '/') {
       stream++;
@@ -750,125 +753,125 @@ fn next_token() {
   // TODO Could build a reverse mapping on these from token_kind_names, then
   // TODO use that as a lookup.
   case '\0':
-    token.kind = TOKEN_EOF;
+    token.kind = TokenKind.Eof;
     stream++;
   case '(':
-    token.kind = TOKEN_LPAREN;
+    token.kind = TokenKind.Lparen;
     stream++;
   case ')':
-    token.kind = TOKEN_RPAREN;
+    token.kind = TokenKind.Rparen;
     stream++;
   case '{':
-    token.kind = TOKEN_LBRACE;
+    token.kind = TokenKind.Lbrace;
     stream++;
   case '}':
-    token.kind = TOKEN_RBRACE;
+    token.kind = TokenKind.Rbrace;
     stream++;
   case '[':
-    token.kind = TOKEN_LBRACKET;
+    token.kind = TokenKind.Lbracket;
     stream++;
   case ']':
-    token.kind = TOKEN_RBRACKET;
+    token.kind = TokenKind.Rbracket;
     stream++;
   case ',':
-    token.kind = TOKEN_COMMA;
+    token.kind = TokenKind.Comma;
     stream++;
   case '@':
-    token.kind = TOKEN_AT;
+    token.kind = TokenKind.At;
     stream++;
   case '#':
-    token.kind = TOKEN_POUND;
+    token.kind = TokenKind.Pound;
     stream++;
   case '?':
-    token.kind = TOKEN_QUESTION;
+    token.kind = TokenKind.Question;
     stream++;
   case ';':
-    token.kind = TOKEN_SEMICOLON;
+    token.kind = TokenKind.Semicolon;
     stream++;
   case '~':
-    token.kind = TOKEN_NEG;
+    token.kind = TokenKind.Neg;
     stream++;
   // CASE2 --
   case '!':
-    token.kind = TOKEN_NOT;
+    token.kind = TokenKind.Not;
     stream++;
     if (*stream == '=') {
-      token.kind = TOKEN_NOTEQ;
+      token.kind = TokenKind.NotEq;
       stream++;
     }
   case ':':
-    token.kind = TOKEN_COLON;
+    token.kind = TokenKind.Colon;
     stream++;
   case '=':
-    token.kind = TOKEN_ASSIGN;
+    token.kind = TokenKind.Assign;
     stream++;
     if (*stream == '=') {
-      token.kind = TOKEN_EQ;
+      token.kind = TokenKind.Eq;
       stream++;
     }
   case '^':
-    token.kind = TOKEN_XOR;
+    token.kind = TokenKind.Xor;
     stream++;
     if (*stream == '=') {
-      token.kind = TOKEN_XOR_ASSIGN;
+      token.kind = TokenKind.XorAssign;
       stream++;
     }
   case '*':
-    token.kind = TOKEN_MUL;
+    token.kind = TokenKind.Mul;
     stream++;
     if (*stream == '=') {
-      token.kind = TOKEN_MUL_ASSIGN;
+      token.kind = TokenKind.MulAssign;
       stream++;
     }
   case '%':
-    token.kind = TOKEN_MOD;
+    token.kind = TokenKind.Mod;
     stream++;
     if (*stream == '=') {
-      token.kind = TOKEN_MOD_ASSIGN;
+      token.kind = TokenKind.ModAssign;
       stream++;
     }
   // CASE3 --
   case '+':
-    token.kind = TOKEN_ADD;
+    token.kind = TokenKind.Add;
     stream++;
     if (*stream == '=') {
-      token.kind = TOKEN_ADD_ASSIGN;
+      token.kind = TokenKind.AddAssign;
       stream++;
     } else if (*stream == '+') {
-      token.kind = TOKEN_INC;
+      token.kind = TokenKind.Inc;
       stream++;
     }
   case '-':
-    token.kind = TOKEN_SUB;
+    token.kind = TokenKind.Sub;
     stream++;
     if (*stream == '=') {
-      token.kind = TOKEN_SUB_ASSIGN;
+      token.kind = TokenKind.SubAssign;
       stream++;
     } else if (*stream == '-') {
-      token.kind = TOKEN_DEC;
+      token.kind = TokenKind.Dec;
       stream++;
     } else if (*stream == '>') {
-      token.kind = TOKEN_ARROW;
+      token.kind = TokenKind.Arrow;
       stream++;
     }
   case '&':
-    token.kind = TOKEN_AND;
+    token.kind = TokenKind.And;
     stream++;
     if (*stream == '=') {
-      token.kind = TOKEN_AND_ASSIGN;
+      token.kind = TokenKind.AndAssign;
       stream++;
     } else if (*stream == '&') {
-      token.kind = TOKEN_AND_AND;
+      token.kind = TokenKind.AndAnd;
       stream++;
     }
   case '|':
-    token.kind = TOKEN_OR;
+    token.kind = TokenKind.Or;
     stream++;
     if (*stream == '=') {
-      token.kind = TOKEN_OR_ASSIGN;
+      token.kind = TokenKind.OrAssign;
       stream++;
     } else if (*stream == '|') {
-      token.kind = TOKEN_OR_OR;
+      token.kind = TokenKind.OrOr;
       stream++;
     }
   default:
@@ -896,15 +899,15 @@ fn is_token(kind: TokenKind) -> bool {
 }
 
 fn is_token_eof() -> bool {
-  return token.kind == TOKEN_EOF;
+  return token.kind == TokenKind.Eof;
 }
 
 fn is_token_name(name: *const char) -> bool {
-  return token.kind == TOKEN_NAME && token.name == name;
+  return token.kind == TokenKind.Name && token.name == name;
 }
 
 fn is_keyword(name: *const char) -> bool {
-  return is_token(TOKEN_KEYWORD) && token.name == name;
+  return is_token(TokenKind.Keyword) && token.name == name;
 }
 
 fn match_keyword(name: *const char) -> bool {

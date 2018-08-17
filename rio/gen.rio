@@ -505,24 +505,24 @@ fn gen_expr(expr: &Expr) {
   case ExprKind.Int: {
     let suffix_name: *const char = token_suffix_names[expr.int_lit.suffix];
     switch (expr.int_lit.mod) {
-    case MOD_BIN:
-    case MOD_HEX:
+    case TokenMod.Bin:
+    case TokenMod.Hex:
       buf_printf(&gen_buf, "0x%llx%s", expr.int_lit.val, suffix_name);
-    case MOD_OCT:
+    case TokenMod.Oct:
       buf_printf(&gen_buf, "0%llo%s", expr.int_lit.val, suffix_name);
-    case MOD_CHAR:
+    case TokenMod.Char:
       gen_char((:char)expr.int_lit.val);
     default:
       buf_printf(&gen_buf, "%llu%s", expr.int_lit.val, suffix_name);
     }
   }
   case ExprKind.Float: {
-    let is_double = expr.float_lit.suffix == SUFFIX_D;
+    let is_double = expr.float_lit.suffix == TokenSuffix.D;
     let len: usize = expr.float_lit.end - expr.float_lit.start;
     buf_printf(&gen_buf, "%.*s%s", is_double ? len-1 : len, expr.float_lit.start, is_double ? "" : "f");
   }
   case ExprKind.Str:
-    gen_str(expr.str_lit.val, expr.str_lit.mod == MOD_MULTILINE);
+    gen_str(expr.str_lit.val, expr.str_lit.mod == TokenMod.Multiline);
   case ExprKind.Name:
     buf_printf(&gen_buf, "%s", get_gen_name_or_default(expr, expr.name));
   case ExprKind.Cast:
@@ -662,7 +662,7 @@ fn gen_simple_stmt(stmt: &Stmt) {
 }
 
 fn is_char_lit(expr: &Expr) -> bool {
-  return expr.kind == ExprKind.Int && expr.int_lit.mod == MOD_CHAR;
+  return expr.kind == ExprKind.Int && expr.int_lit.mod == TokenMod.Char;
 }
 
 fn gen_stmt(stmt: &Stmt) {
