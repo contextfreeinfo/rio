@@ -1,18 +1,26 @@
 rio_dir="$(dirname "$(readlink -f "$0")")"
-. "$rio_dir/build"
+. "$rio_dir/build" $@
 export PATH="$rio_dir/bin:$PATH"
 cd "$rio_dir/tests"
 
-brio -nosourcemap -o c/out_test1_linux.c test1
-gcc -o run/test1 c/out_test1_linux.c
+if [[ "$1" == "-g" ]]; then
+  sourcemap=""
+  run=valgrind
+else
+  sourcemap="-nosourcemap"
+  run=""
+fi
 
-brio -nosourcemap -o c/out_test2_linux.c test2
-gcc -o run/test2 c/out_test2_linux.c -lm
+brio $@ $sourcemap -o c/out_test1_linux.c test1
+gcc $@ -o run/test1 c/out_test1_linux.c
 
-brio -nosourcemap -notypeinfo -o c/out_test3_linux.c test3
-gcc -o run/test3 c/out_test3_linux.c
+brio $@ $sourcemap -o c/out_test2_linux.c test2
+gcc $@ -o run/test2 c/out_test2_linux.c -lm
+
+brio $@ $sourcemap -notypeinfo -o c/out_test3_linux.c test3
+gcc $@ -o run/test3 c/out_test3_linux.c
 
 cd run
-./test1 > out_test1_linux.txt
-./test2 > out_test2_linux.txt
-./test3 > out_test3_linux.txt
+$run ./test1 > out_test1_linux.txt
+$run ./test2 > out_test2_linux.txt
+$run ./test3 > out_test3_linux.txt

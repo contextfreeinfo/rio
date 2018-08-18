@@ -1,8 +1,17 @@
 export RIOHOME="$(dirname "$(dirname "$(readlink -f "$0")")")"
 export RIOOS=linux
 
-if [ ! -e "$RIOHOME/bin/rio" ]; then
-  "$RIOHOME/build"
+if [[ "$1" == "-g" ]]; then
+  build_args="-g"
+  run=valgrind
+  shift
+else
+  build_args=""
+  run=""
 fi
 
-"$RIOHOME/bin/rio" "$@"
+if [ ! -e "$RIOHOME/bin/rio" ]; then
+  "$RIOHOME/build" $build_args
+fi
+
+$run "$RIOHOME/bin/rio" "$@"
