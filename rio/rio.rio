@@ -116,7 +116,7 @@ fn rio_main(argc: int, argv: **const char, gen_all: fn(), extension: *const char
     return 1;
   }
   main_sym.external_name = main_name;
-  reachable_phase = REACHABLE_NATURAL;
+  reachable_phase = ReachablePhase.Natural;
   resolve_sym(main_sym);
   for (let i: usize = 0; i < buf_len(package_list); i++) {
     if (package_list[i].always_reachable) {
@@ -128,7 +128,7 @@ fn rio_main(argc: int, argv: **const char, gen_all: fn(), extension: *const char
     printf("Reached %d symbols in %d packages from %s/main\n", (:int)buf_len(reachable_syms), (:int)buf_len(package_list), package_name);
   }
   if (!flag_lazy) {
-    reachable_phase = REACHABLE_FORCED;
+    reachable_phase = ReachablePhase.Forced;
     for (let i: usize = 0; i < buf_len(package_list); i++) {
       resolve_package_syms(package_list[i]);
     }

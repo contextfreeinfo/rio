@@ -1397,45 +1397,27 @@ rio_Decls (*rio_parse_decls(void));
 
 typedef int rio_SymKind;
 
-#define rio_SYM_NONE ((rio_SymKind)(0))
+#define rio_SymKind_None ((rio_SymKind)(0))
 
-#define rio_SymKind_SYM_NONE ((rio_SymKind)(0))
+#define rio_SymKind_Var ((rio_SymKind)((rio_SymKind_None) + (1)))
 
-#define rio_SYM_VAR ((rio_SymKind)((rio_SYM_NONE) + (1)))
+#define rio_SymKind_Const ((rio_SymKind)((rio_SymKind_Var) + (1)))
 
-#define rio_SymKind_SYM_VAR ((rio_SymKind)((rio_SymKind_SYM_NONE) + (1)))
+#define rio_SymKind_Func ((rio_SymKind)((rio_SymKind_Const) + (1)))
 
-#define rio_SYM_CONST ((rio_SymKind)((rio_SYM_VAR) + (1)))
+#define rio_SymKind_Type ((rio_SymKind)((rio_SymKind_Func) + (1)))
 
-#define rio_SymKind_SYM_CONST ((rio_SymKind)((rio_SymKind_SYM_VAR) + (1)))
-
-#define rio_SYM_FUNC ((rio_SymKind)((rio_SYM_CONST) + (1)))
-
-#define rio_SymKind_SYM_FUNC ((rio_SymKind)((rio_SymKind_SYM_CONST) + (1)))
-
-#define rio_SYM_TYPE ((rio_SymKind)((rio_SYM_FUNC) + (1)))
-
-#define rio_SymKind_SYM_TYPE ((rio_SymKind)((rio_SymKind_SYM_FUNC) + (1)))
-
-#define rio_SYM_PACKAGE ((rio_SymKind)((rio_SYM_TYPE) + (1)))
-
-#define rio_SymKind_SYM_PACKAGE ((rio_SymKind)((rio_SymKind_SYM_TYPE) + (1)))
+#define rio_SymKind_Package ((rio_SymKind)((rio_SymKind_Type) + (1)))
 
 typedef int rio_SymState;
 
-#define rio_SYM_UNRESOLVED ((rio_SymState)(0))
+#define rio_SymState_Unresolved ((rio_SymState)(0))
 
-#define rio_SymState_SYM_UNRESOLVED ((rio_SymState)(0))
+#define rio_SymState_Resolving ((rio_SymState)((rio_SymState_Unresolved) + (1)))
 
-#define rio_SYM_RESOLVING ((rio_SymState)((rio_SYM_UNRESOLVED) + (1)))
+#define rio_SymState_Resolved ((rio_SymState)((rio_SymState_Resolving) + (1)))
 
-#define rio_SymState_SYM_RESOLVING ((rio_SymState)((rio_SymState_SYM_UNRESOLVED) + (1)))
-
-#define rio_SYM_RESOLVED ((rio_SymState)((rio_SYM_RESOLVING) + (1)))
-
-#define rio_SymState_SYM_RESOLVED ((rio_SymState)((rio_SymState_SYM_RESOLVING) + (1)))
-
-#define rio_MAX_LOCAL_SYMS ((int)(1024))
+#define rio_MAX_LOCAL_SYMS (1024)
 
 extern rio_Package (*rio_current_package);
 
@@ -1447,17 +1429,11 @@ extern rio_Package (*(*rio_package_list));
 
 typedef uint8_t rio_ReachablePhase;
 
-#define rio_REACHABLE_NONE ((rio_ReachablePhase)(0))
+#define rio_ReachablePhase_None ((rio_ReachablePhase)(0))
 
-#define rio_ReachablePhase_REACHABLE_NONE ((rio_ReachablePhase)(0))
+#define rio_ReachablePhase_Natural ((rio_ReachablePhase)((rio_ReachablePhase_None) + (1)))
 
-#define rio_REACHABLE_NATURAL ((rio_ReachablePhase)((rio_REACHABLE_NONE) + (1)))
-
-#define rio_ReachablePhase_REACHABLE_NATURAL ((rio_ReachablePhase)((rio_ReachablePhase_REACHABLE_NONE) + (1)))
-
-#define rio_REACHABLE_FORCED ((rio_ReachablePhase)((rio_REACHABLE_NATURAL) + (1)))
-
-#define rio_ReachablePhase_REACHABLE_FORCED ((rio_ReachablePhase)((rio_ReachablePhase_REACHABLE_NATURAL) + (1)))
+#define rio_ReachablePhase_Forced ((rio_ReachablePhase)((rio_ReachablePhase_Natural) + (1)))
 
 extern rio_ReachablePhase rio_reachable_phase;
 
@@ -3593,7 +3569,7 @@ void rio_gen_func_decl(rio_Decl (*decl)) {
 }
 
 bool rio_gen_reachable(rio_Sym (*sym)) {
-  return (rio_flag_fullgen) || ((sym->reachable) == (rio_REACHABLE_NATURAL));
+  return (rio_flag_fullgen) || ((sym->reachable) == (rio_ReachablePhase_Natural));
 }
 
 void rio_gen_forward_decls(void) {
@@ -3783,7 +3759,7 @@ void rio_gen_expr(rio_Expr (*expr)) {
   case rio_ExprKind_Call: {
     {
       rio_Sym (*sym) = rio_get_resolved_sym(expr->call.expr);
-      if ((sym) && ((sym->kind) == (rio_SYM_TYPE))) {
+      if ((sym) && ((sym->kind) == (rio_SymKind_Type))) {
         rio_buf_printf(&(rio_gen_buf), "(%s)", rio_get_gen_name(sym));
       } else {
         rio_gen_expr(expr->call.expr);
@@ -4241,7 +4217,7 @@ void rio_gen_decl(rio_Sym (*sym)) {
 
 void rio_gen_sorted_decls(void) {
   for (size_t i = 0; (i) < (rio_buf_len(rio_sorted_syms)); (i)++) {
-    if ((rio_sorted_syms[i]->reachable) == (rio_REACHABLE_NATURAL)) {
+    if ((rio_sorted_syms[i]->reachable) == (rio_ReachablePhase_Natural)) {
       rio_gen_decl(rio_sorted_syms[i]);
     }
   }
@@ -4251,7 +4227,7 @@ void rio_gen_defs(void) {
   for (rio_Sym (*(*it)) = rio_sorted_syms; (it) != (rio_buf_end(rio_sorted_syms, sizeof(*(rio_sorted_syms)))); (it)++) {
     rio_Sym (*sym) = *(it);
     rio_Decl (*decl) = sym->decl;
-    if ((((((sym->state) != (rio_SYM_RESOLVED)) || (!(decl))) || (rio_is_decl_foreign(decl))) || (decl->is_incomplete)) || ((sym->reachable) != (rio_REACHABLE_NATURAL))) {
+    if ((((((sym->state) != (rio_SymState_Resolved)) || (!(decl))) || (rio_is_decl_foreign(decl))) || (decl->is_incomplete)) || ((sym->reachable) != (rio_ReachablePhase_Natural))) {
       continue;
     }
     if ((decl->kind) == (rio_DeclKind_Func)) {
@@ -6575,7 +6551,7 @@ rio_Package (*rio_current_package);
 rio_Package (*rio_builtin_package);
 rio_Map rio_package_map;
 rio_Package (*(*rio_package_list));
-rio_ReachablePhase rio_reachable_phase = rio_REACHABLE_NATURAL;
+rio_ReachablePhase rio_reachable_phase = rio_ReachablePhase_Natural;
 rio_Sym (*rio_get_package_sym(rio_Package (*package), char const ((*name)))) {
   return rio_map_get(&(package->syms_map), name);
 }
@@ -6638,25 +6614,25 @@ void rio_process_decl_notes(rio_Decl (*decl), rio_Sym (*sym)) {
 }
 
 rio_Sym (*rio_sym_decl(rio_Decl (*decl))) {
-  rio_SymKind kind = rio_SYM_NONE;
+  rio_SymKind kind = rio_SymKind_None;
   switch (decl->kind) {
   case rio_DeclKind_Struct:
   case rio_DeclKind_Union:
   case rio_DeclKind_Typedef:
   case rio_DeclKind_Enum: {
-    kind = rio_SYM_TYPE;
+    kind = rio_SymKind_Type;
     break;
   }
   case rio_DeclKind_Var: {
-    kind = rio_SYM_VAR;
+    kind = rio_SymKind_Var;
     break;
   }
   case rio_DeclKind_Const: {
-    kind = rio_SYM_CONST;
+    kind = rio_SymKind_Const;
     break;
   }
   case rio_DeclKind_Func: {
-    kind = rio_SYM_FUNC;
+    kind = rio_SymKind_Func;
     break;
   }
   default: {
@@ -6692,7 +6668,7 @@ bool rio_sym_push_var(char const ((*name)), rio_Type (*type)) {
   if ((rio_local_syms_end) == ((rio_local_syms) + (rio_MAX_LOCAL_SYMS))) {
     rio_fatal("Too many local symbols");
   }
-  *((rio_local_syms_end)++) = (rio_Sym){.name = name, .kind = rio_SYM_VAR, .state = rio_SYM_RESOLVED, .type = type};
+  *((rio_local_syms_end)++) = (rio_Sym){.name = name, .kind = rio_SymKind_Var, .state = rio_SymState_Resolved, .type = type};
   return true;
 }
 
@@ -6710,7 +6686,7 @@ void rio_sym_global_put(char const ((*name)), rio_Sym (*sym)) {
     if ((sym) == (old_sym)) {
       return;
     }
-    if ((((sym->kind) == (rio_SYM_PACKAGE)) && ((old_sym->kind) == (rio_SYM_PACKAGE))) && ((sym->package) == (old_sym->package))) {
+    if ((((sym->kind) == (rio_SymKind_Package)) && ((old_sym->kind) == (rio_SymKind_Package))) && ((sym->package) == (old_sym->package))) {
       return;
     }
     rio_SrcPos pos = (sym->decl ? sym->decl->pos : rio_pos_builtin);
@@ -6725,8 +6701,8 @@ void rio_sym_global_put(char const ((*name)), rio_Sym (*sym)) {
 
 rio_Sym (*rio_sym_global_type(char const ((*name)), rio_Type (*type))) {
   name = rio_str_intern(name);
-  rio_Sym (*sym) = rio_sym_new(rio_SYM_TYPE, name, NULL);
-  sym->state = rio_SYM_RESOLVED;
+  rio_Sym (*sym) = rio_sym_new(rio_SymKind_Type, name, NULL);
+  sym->state = rio_SymState_Resolved;
   sym->type = type;
   sym->external_name = name;
   rio_sym_global_put(name, sym);
@@ -7069,7 +7045,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
       if (!(sym)) {
         rio_fatal_error(typespec->pos, "Unresolved type name \'%s\'", typespec->name);
       }
-      if ((sym->kind) != (rio_SYM_TYPE)) {
+      if ((sym->kind) != (rio_SymKind_Type)) {
         rio_fatal_error(typespec->pos, "%s must denote a type", typespec->name);
         return NULL;
       }
@@ -7598,7 +7574,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
 void rio_resolve_func_body(rio_Sym (*sym)) {
   rio_Decl (*decl) = sym->decl;
   assert((decl->kind) == (rio_DeclKind_Func));
-  assert((sym->state) == (rio_SYM_RESOLVED));
+  assert((sym->state) == (rio_SymState_Resolved));
   if (decl->is_incomplete) {
     return;
   }
@@ -7624,23 +7600,23 @@ void rio_resolve_func_body(rio_Sym (*sym)) {
 }
 
 void rio_resolve_sym(rio_Sym (*sym)) {
-  if ((sym->state) == (rio_SYM_RESOLVED)) {
+  if ((sym->state) == (rio_SymState_Resolved)) {
     return;
-  } else if ((sym->state) == (rio_SYM_RESOLVING)) {
+  } else if ((sym->state) == (rio_SymState_Resolving)) {
     rio_fatal_error(sym->decl->pos, "Cyclic dependency");
     return;
   }
-  assert((sym->state) == (rio_SYM_UNRESOLVED));
+  assert((sym->state) == (rio_SymState_Unresolved));
   assert(!(sym->reachable));
   if (!(rio_is_local_sym(sym))) {
     rio_buf_push((void (**))(&(rio_reachable_syms)), &(sym), sizeof(sym));
     sym->reachable = rio_reachable_phase;
   }
-  sym->state = rio_SYM_RESOLVING;
+  sym->state = rio_SymState_Resolving;
   rio_Decl (*decl) = sym->decl;
   rio_Package (*old_package) = rio_enter_package(sym->home_package);
   switch (sym->kind) {
-  case rio_SYM_TYPE: {
+  case rio_SymKind_Type: {
     if ((decl) && ((decl->kind) == (rio_DeclKind_Typedef))) {
       sym->type = rio_resolve_typespec(decl->typedef_decl.type);
     } else if ((decl->kind) == (rio_DeclKind_Enum)) {
@@ -7654,19 +7630,19 @@ void rio_resolve_sym(rio_Sym (*sym)) {
     }
     break;
   }
-  case rio_SYM_VAR: {
+  case rio_SymKind_Var: {
     sym->type = rio_resolve_decl_var(decl);
     break;
   }
-  case rio_SYM_CONST: {
+  case rio_SymKind_Const: {
     sym->type = rio_resolve_decl_const(decl, &(sym->val));
     break;
   }
-  case rio_SYM_FUNC: {
+  case rio_SymKind_Func: {
     sym->type = rio_resolve_decl_func(decl);
     break;
   }
-  case rio_SYM_PACKAGE: {
+  case rio_SymKind_Package: {
     break;
     break;
   }
@@ -7676,18 +7652,18 @@ void rio_resolve_sym(rio_Sym (*sym)) {
   }
   }
   rio_leave_package(old_package);
-  sym->state = rio_SYM_RESOLVED;
+  sym->state = rio_SymState_Resolved;
   if ((decl->is_incomplete) || ((((decl->kind) != (rio_DeclKind_Struct)) && ((decl->kind) != (rio_DeclKind_Union))))) {
     rio_buf_push((void (**))(&(rio_sorted_syms)), &(sym), sizeof(sym));
   }
 }
 
 void rio_finalize_sym(rio_Sym (*sym)) {
-  assert((sym->state) == (rio_SYM_RESOLVED));
+  assert((sym->state) == (rio_SymState_Resolved));
   if (((sym->decl) && (!(rio_is_decl_foreign(sym->decl)))) && (!(sym->decl->is_incomplete))) {
-    if ((sym->kind) == (rio_SYM_TYPE)) {
+    if ((sym->kind) == (rio_SymKind_Type)) {
       rio_complete_type(sym->type);
-    } else if ((sym->kind) == (rio_SYM_FUNC)) {
+    } else if ((sym->kind) == (rio_SymKind_Func)) {
       rio_resolve_func_body(sym);
     }
   }
@@ -7705,14 +7681,14 @@ rio_Sym (*rio_resolve_name(char const ((*name)))) {
 rio_Package (*rio_try_resolve_package(rio_Expr (*expr))) {
   if ((expr->kind) == (rio_ExprKind_Name)) {
     rio_Sym (*sym) = rio_resolve_name(expr->name);
-    if ((sym) && ((sym->kind) == (rio_SYM_PACKAGE))) {
+    if ((sym) && ((sym->kind) == (rio_SymKind_Package))) {
       return sym->package;
     }
   } else if ((expr->kind) == (rio_ExprKind_Field)) {
     rio_Package (*package) = rio_try_resolve_package(expr->field.expr);
     if (package) {
       rio_Sym (*sym) = rio_get_package_sym(package, expr->field.name);
-      if ((sym) && ((sym->kind) == (rio_SYM_PACKAGE))) {
+      if ((sym) && ((sym->kind) == (rio_SymKind_Package))) {
         return sym->package;
       }
     }
@@ -7740,7 +7716,7 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
         rio_EnumItem item = enum_decl.items[i];
         if ((item.name) == (expr->field.name)) {
           rio_Sym (*sym) = rio_resolve_name(rio_build_qual_name(decl->name, item.name));
-          assert((sym->kind) == (rio_SYM_CONST));
+          assert((sym->kind) == (rio_SymKind_Const));
           rio_Operand item_operand = rio_operand_const(sym->type, sym->val);
           return item_operand;
         }
@@ -8019,17 +7995,17 @@ rio_Operand rio_resolve_name_operand(rio_SrcPos pos, char const ((*name))) {
   if (!(sym)) {
     rio_fatal_error(pos, "Unresolved name \'%s\'", name);
   }
-  if ((sym->kind) == (rio_SYM_VAR)) {
+  if ((sym->kind) == (rio_SymKind_Var)) {
     rio_Operand operand = rio_operand_lvalue(sym->type);
     if (rio_is_array_type(operand.type)) {
       operand = rio_operand_decay(operand);
     }
     return operand;
-  } else if ((sym->kind) == (rio_SYM_CONST)) {
+  } else if ((sym->kind) == (rio_SymKind_Const)) {
     return rio_operand_const(sym->type, sym->val);
-  } else if ((sym->kind) == (rio_SYM_FUNC)) {
+  } else if ((sym->kind) == (rio_SymKind_Func)) {
     return rio_operand_rvalue(sym->type);
-  } else if ((sym->kind) == (rio_SYM_TYPE)) {
+  } else if ((sym->kind) == (rio_SymKind_Type)) {
     return rio_operand_type(sym->type);
   } else {
     assert(false);
@@ -8362,7 +8338,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   assert((expr->kind) == (rio_ExprKind_Call));
   if ((expr->call.expr->kind) == (rio_ExprKind_Name)) {
     rio_Sym (*sym) = rio_resolve_name(expr->call.expr->name);
-    if ((sym) && ((sym->kind) == (rio_SYM_TYPE))) {
+    if ((sym) && ((sym->kind) == (rio_SymKind_Type))) {
       if ((expr->call.num_args) != (1)) {
         rio_fatal_error(expr->pos, "Type conversion operator takes 1 argument");
       }
@@ -8678,7 +8654,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     {
       if ((expr->sizeof_expr->kind) == (rio_ExprKind_Name)) {
         rio_Sym (*sym) = rio_resolve_name(expr->sizeof_expr->name);
-        if ((sym) && ((sym->kind) == (rio_SYM_TYPE))) {
+        if ((sym) && ((sym->kind) == (rio_SymKind_Type))) {
           rio_complete_type(sym->type);
           result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_sizeof(sym->type)});
           rio_set_resolved_type(expr->sizeof_expr, sym->type);
@@ -8704,7 +8680,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     {
       if ((expr->sizeof_expr->kind) == (rio_ExprKind_Name)) {
         rio_Sym (*sym) = rio_resolve_name(expr->alignof_expr->name);
-        if ((sym) && ((sym->kind) == (rio_SYM_TYPE))) {
+        if ((sym) && ((sym->kind) == (rio_SymKind_Type))) {
           rio_complete_type(sym->type);
           result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_alignof(sym->type)});
           rio_set_resolved_type(expr->alignof_expr, sym->type);
@@ -8737,7 +8713,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     {
       if ((expr->typeof_expr->kind) == (rio_ExprKind_Name)) {
         rio_Sym (*sym) = rio_resolve_name(expr->typeof_expr->name);
-        if ((sym) && ((sym->kind) == (rio_SYM_TYPE))) {
+        if ((sym) && ((sym->kind) == (rio_SymKind_Type))) {
           result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = sym->type->typeid});
           rio_set_resolved_type(expr->typeof_expr, sym->type);
           rio_set_resolved_sym(expr->typeof_expr, sym);
@@ -8928,7 +8904,7 @@ void rio_process_package_imports(rio_Package (*package)) {
         rio_import_all_package_symbols(imported_package);
       }
       char const ((*sym_name)) = (decl->name ? decl->name : decl->import_decl.names[(decl->import_decl.num_names) - (1)]);
-      rio_Sym (*sym) = rio_sym_new(rio_SYM_PACKAGE, sym_name, decl);
+      rio_Sym (*sym) = rio_sym_new(rio_SymKind_Package, sym_name, decl);
       sym->package = imported_package;
       rio_sym_global_put(sym_name, sym);
     }
@@ -9136,7 +9112,7 @@ int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char 
     return 1;
   }
   main_sym->external_name = main_name;
-  rio_reachable_phase = rio_REACHABLE_NATURAL;
+  rio_reachable_phase = rio_ReachablePhase_Natural;
   rio_resolve_sym(main_sym);
   for (size_t i = 0; (i) < (rio_buf_len(rio_package_list)); (i)++) {
     if (rio_package_list[i]->always_reachable) {
@@ -9148,7 +9124,7 @@ int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char 
     printf("Reached %d symbols in %d packages from %s/main\n", (int)(rio_buf_len(rio_reachable_syms)), (int)(rio_buf_len(rio_package_list)), package_name);
   }
   if (!(rio_flag_lazy)) {
-    rio_reachable_phase = rio_REACHABLE_FORCED;
+    rio_reachable_phase = rio_ReachablePhase_Forced;
     for (size_t i = 0; (i) < (rio_buf_len(rio_package_list)); (i)++) {
       rio_resolve_package_syms(rio_package_list[i]);
     }

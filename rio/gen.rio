@@ -349,7 +349,7 @@ fn gen_func_decl(decl: &Decl) {
 }
 
 fn gen_reachable(sym: &Sym) -> bool {
-  return flag_fullgen || sym.reachable == REACHABLE_NATURAL;
+  return flag_fullgen || sym.reachable == ReachablePhase.Natural;
 }
 
 fn gen_forward_decls() {
@@ -531,7 +531,7 @@ fn gen_expr(expr: &Expr) {
     buf_printf(&gen_buf, ")");
   case ExprKind.Call: {
     let sym = get_resolved_sym(expr.call.expr);
-    if (sym && sym.kind == SYM_TYPE) {
+    if (sym && sym.kind == SymKind.Type) {
       buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
     } else {
       gen_expr(expr.call.expr);
@@ -880,7 +880,7 @@ fn gen_decl(sym: &Sym) {
 
 fn gen_sorted_decls() {
   for (let i: usize = 0; i < buf_len(sorted_syms); i++) {
-    if (sorted_syms[i].reachable == REACHABLE_NATURAL) {
+    if (sorted_syms[i].reachable == ReachablePhase.Natural) {
       gen_decl(sorted_syms[i]);
     }
   }
@@ -890,7 +890,7 @@ fn gen_defs() {
   for (let it: *&Sym = sorted_syms; it != buf_end(sorted_syms, sizeof(*sorted_syms)); it++) {
     let sym = *it;
     let decl = sym.decl;
-    if (sym.state != SYM_RESOLVED || !decl || is_decl_foreign(decl) || decl.is_incomplete || sym.reachable != REACHABLE_NATURAL) {
+    if (sym.state != SymState.Resolved || !decl || is_decl_foreign(decl) || decl.is_incomplete || sym.reachable != ReachablePhase.Natural) {
       continue;
     }
     if (decl.kind == DeclKind.Func) {
