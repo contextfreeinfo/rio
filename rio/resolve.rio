@@ -227,7 +227,10 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
     sym_global_put(sym.name, sym);
   }
   if (decl.kind == DeclKind.Enum) {
-    let scoped = get_decl_note(decl, scoped_name);
+    let unscoped =
+      !decl.name ||
+      get_decl_note(decl, foreign_name) ||
+      get_decl_note(decl, unscoped_name);
     let enum_typespec = new_typespec_name(decl.pos, sym ? sym.name : str_intern("int"));
     let prev_item_name: *const char = NULL;
     let prev_qual_name: *const char = NULL;
@@ -241,17 +244,16 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
       } else {
         init = new_expr_int(item.pos, 0, 0, 0);
       }
-      if (!scoped) {
+      if (unscoped) {
         let item_decl = new_decl_const(item.pos, item.name, enum_typespec, init);
         item_decl.notes = decl.notes;
         sym_global_decl(item_decl);
         prev_item_name = item.name;
-      }
-      // Type-name-qualified version.
-      // Even if generating outside C, we need namespace conflicts at this
-      // level, because this is the canonical top-level namespace
-      // interpretation.
-      if (decl.name) {
+      } else {
+        // Type-name-qualified version.
+        // Even if generating outside C, we need namespace conflicts at this
+        // level, because this is the canonical top-level namespace
+        // interpretation.
         let qual_name = build_qual_name(decl.name, item.name);
         if (prev_qual_name) {
           init = new_expr_binary(
@@ -1206,9 +1208,11 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
         let item = enum_decl.items[i];
         if (item.name == expr.field.name) {
           let sym = resolve_name(build_qual_name(decl.name, item.name));
-          #assert(sym.kind == SymKind.Const);
-          let item_operand = operand_const(sym.type, sym.val);
-          return item_operand;
+          if (sym) {
+            #assert(sym.kind == SymKind.Const);
+            let item_operand = operand_const(sym.type, sym.val);
+            return item_operand;
+          }
         }
       }
     }

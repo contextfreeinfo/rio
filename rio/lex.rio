@@ -31,7 +31,7 @@ let keywords: **const char;
 
 let always_name: *const char;
 let foreign_name: *const char;
-let scoped_name: *const char;
+let unscoped_name: *const char;
 let complete_name: *const char;
 let assert_name: *const char;
 let declare_note_name: *const char;
@@ -84,7 +84,7 @@ fn init_keywords() {
 
   always_name = str_intern("always");
   foreign_name = str_intern("foreign");
-  scoped_name = str_intern("scoped");
+  unscoped_name = str_intern("unscoped");
   complete_name = str_intern("complete");
   assert_name = str_intern("assert");
   declare_note_name = str_intern("declare_note");

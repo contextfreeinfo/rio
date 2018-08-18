@@ -297,10 +297,10 @@ enum {
   BAR,
 }
 
-@scoped
+@unscoped
 enum TypedEnum = int8 {
-  Baz,
-  Quux,
+  BAZ,
+  QUUX,
 }
 
 let color_names: [Color.Num]*const char = {
@@ -323,10 +323,10 @@ fn test_enum() {
   );
   printf("No color: %s\n", color_names[Color.None]);
   let d = BAR;
-  let e = TypedEnum.Quux;
+  let e = QUUX;
   #static_assert(typeof(e) == typeof(TypedEnum));
   let f: TypedEnum;
-  f = TypedEnum.Baz;
+  f = BAZ;
 }
 
 fn test_assign() {

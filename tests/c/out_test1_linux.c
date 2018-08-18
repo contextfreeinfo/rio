@@ -290,9 +290,9 @@ extern char const ((*(test1_color_names[test1_Color_Num])));
 
 typedef int8_t test1_TypedEnum;
 
-#define test1_TypedEnum_Baz ((test1_TypedEnum)(0))
+#define test1_BAZ ((test1_TypedEnum)(0))
 
-#define test1_TypedEnum_Quux ((test1_TypedEnum)((test1_TypedEnum_Baz) + (1)))
+#define test1_QUUX ((test1_TypedEnum)((test1_BAZ) + (1)))
 
 void test1_f10(wchar_t (a[3]));
 
@@ -979,9 +979,9 @@ void test1_test_enum(void) {
   printf("%d %d %d %d\n", test1_Color_None, test1_Color_Red, test1_Color_Green, test1_Color_Blue);
   printf("No color: %s\n", test1_color_names[test1_Color_None]);
   int d = test1_BAR;
-  test1_TypedEnum e = test1_TypedEnum_Quux;
+  test1_TypedEnum e = test1_QUUX;
   test1_TypedEnum f = {0};
-  f = test1_TypedEnum_Baz;
+  f = test1_BAZ;
 }
 
 void test1_test_arrays(void) {
