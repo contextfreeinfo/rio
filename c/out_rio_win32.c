@@ -144,97 +144,51 @@ typedef ullong typeid;
 
 typedef int TypeKind;
 
-#define TYPE_NONE ((TypeKind)(0))
+#define TypeKind_None ((TypeKind)(0))
 
-#define TypeKind_TYPE_NONE ((TypeKind)(0))
+#define TypeKind_Void ((TypeKind)((TypeKind_None) + (1)))
 
-#define TYPE_VOID ((TypeKind)((TYPE_NONE) + (1)))
+#define TypeKind_Bool ((TypeKind)((TypeKind_Void) + (1)))
 
-#define TypeKind_TYPE_VOID ((TypeKind)((TypeKind_TYPE_NONE) + (1)))
+#define TypeKind_Char ((TypeKind)((TypeKind_Bool) + (1)))
 
-#define TYPE_BOOL ((TypeKind)((TYPE_VOID) + (1)))
+#define TypeKind_UChar ((TypeKind)((TypeKind_Char) + (1)))
 
-#define TypeKind_TYPE_BOOL ((TypeKind)((TypeKind_TYPE_VOID) + (1)))
+#define TypeKind_SChar ((TypeKind)((TypeKind_UChar) + (1)))
 
-#define TYPE_CHAR ((TypeKind)((TYPE_BOOL) + (1)))
+#define TypeKind_Short ((TypeKind)((TypeKind_SChar) + (1)))
 
-#define TypeKind_TYPE_CHAR ((TypeKind)((TypeKind_TYPE_BOOL) + (1)))
+#define TypeKind_UShort ((TypeKind)((TypeKind_Short) + (1)))
 
-#define TYPE_UCHAR ((TypeKind)((TYPE_CHAR) + (1)))
+#define TypeKind_Int ((TypeKind)((TypeKind_UShort) + (1)))
 
-#define TypeKind_TYPE_UCHAR ((TypeKind)((TypeKind_TYPE_CHAR) + (1)))
+#define TypeKind_UInt ((TypeKind)((TypeKind_Int) + (1)))
 
-#define TYPE_SCHAR ((TypeKind)((TYPE_UCHAR) + (1)))
+#define TypeKind_Long ((TypeKind)((TypeKind_UInt) + (1)))
 
-#define TypeKind_TYPE_SCHAR ((TypeKind)((TypeKind_TYPE_UCHAR) + (1)))
+#define TypeKind_ULong ((TypeKind)((TypeKind_Long) + (1)))
 
-#define TYPE_SHORT ((TypeKind)((TYPE_SCHAR) + (1)))
+#define TypeKind_LLong ((TypeKind)((TypeKind_ULong) + (1)))
 
-#define TypeKind_TYPE_SHORT ((TypeKind)((TypeKind_TYPE_SCHAR) + (1)))
+#define TypeKind_ULLong ((TypeKind)((TypeKind_LLong) + (1)))
 
-#define TYPE_USHORT ((TypeKind)((TYPE_SHORT) + (1)))
+#define TypeKind_Float ((TypeKind)((TypeKind_ULLong) + (1)))
 
-#define TypeKind_TYPE_USHORT ((TypeKind)((TypeKind_TYPE_SHORT) + (1)))
+#define TypeKind_Double ((TypeKind)((TypeKind_Float) + (1)))
 
-#define TYPE_INT ((TypeKind)((TYPE_USHORT) + (1)))
+#define TypeKind_Const ((TypeKind)((TypeKind_Double) + (1)))
 
-#define TypeKind_TYPE_INT ((TypeKind)((TypeKind_TYPE_USHORT) + (1)))
+#define TypeKind_Ptr ((TypeKind)((TypeKind_Const) + (1)))
 
-#define TYPE_UINT ((TypeKind)((TYPE_INT) + (1)))
+#define TypeKind_Ref ((TypeKind)((TypeKind_Ptr) + (1)))
 
-#define TypeKind_TYPE_UINT ((TypeKind)((TypeKind_TYPE_INT) + (1)))
+#define TypeKind_Array ((TypeKind)((TypeKind_Ref) + (1)))
 
-#define TYPE_LONG ((TypeKind)((TYPE_UINT) + (1)))
+#define TypeKind_Struct ((TypeKind)((TypeKind_Array) + (1)))
 
-#define TypeKind_TYPE_LONG ((TypeKind)((TypeKind_TYPE_UINT) + (1)))
+#define TypeKind_Union ((TypeKind)((TypeKind_Struct) + (1)))
 
-#define TYPE_ULONG ((TypeKind)((TYPE_LONG) + (1)))
-
-#define TypeKind_TYPE_ULONG ((TypeKind)((TypeKind_TYPE_LONG) + (1)))
-
-#define TYPE_LLONG ((TypeKind)((TYPE_ULONG) + (1)))
-
-#define TypeKind_TYPE_LLONG ((TypeKind)((TypeKind_TYPE_ULONG) + (1)))
-
-#define TYPE_ULLONG ((TypeKind)((TYPE_LLONG) + (1)))
-
-#define TypeKind_TYPE_ULLONG ((TypeKind)((TypeKind_TYPE_LLONG) + (1)))
-
-#define TYPE_FLOAT ((TypeKind)((TYPE_ULLONG) + (1)))
-
-#define TypeKind_TYPE_FLOAT ((TypeKind)((TypeKind_TYPE_ULLONG) + (1)))
-
-#define TYPE_DOUBLE ((TypeKind)((TYPE_FLOAT) + (1)))
-
-#define TypeKind_TYPE_DOUBLE ((TypeKind)((TypeKind_TYPE_FLOAT) + (1)))
-
-#define TYPE_CONST ((TypeKind)((TYPE_DOUBLE) + (1)))
-
-#define TypeKind_TYPE_CONST ((TypeKind)((TypeKind_TYPE_DOUBLE) + (1)))
-
-#define TYPE_PTR ((TypeKind)((TYPE_CONST) + (1)))
-
-#define TypeKind_TYPE_PTR ((TypeKind)((TypeKind_TYPE_CONST) + (1)))
-
-#define TYPE_REF ((TypeKind)((TYPE_PTR) + (1)))
-
-#define TypeKind_TYPE_REF ((TypeKind)((TypeKind_TYPE_PTR) + (1)))
-
-#define TYPE_ARRAY ((TypeKind)((TYPE_REF) + (1)))
-
-#define TypeKind_TYPE_ARRAY ((TypeKind)((TypeKind_TYPE_REF) + (1)))
-
-#define TYPE_STRUCT ((TypeKind)((TYPE_ARRAY) + (1)))
-
-#define TypeKind_TYPE_STRUCT ((TypeKind)((TypeKind_TYPE_ARRAY) + (1)))
-
-#define TYPE_UNION ((TypeKind)((TYPE_STRUCT) + (1)))
-
-#define TypeKind_TYPE_UNION ((TypeKind)((TypeKind_TYPE_STRUCT) + (1)))
-
-#define TYPE_FUNC ((TypeKind)((TYPE_UNION) + (1)))
-
-#define TypeKind_TYPE_FUNC ((TypeKind)((TypeKind_TYPE_UNION) + (1)))
+#define TypeKind_Func ((TypeKind)((TypeKind_Union) + (1)))
 
 struct TypeInfo {
   TypeKind kind;
@@ -3199,50 +3153,51 @@ char (*rio_gen_postamble_str) =
   "\n"
   "static void va_arg_ptr(va_list *args, Any any) {\n"
   "  switch (typeid_kind(any.type)) {\n"
-  "  case TYPE_BOOL:\n"
+  "  case TypeKind_Bool:\n"
   "    *(bool *)any.ptr = (bool)va_arg(*args, int);\n"
   "    break;\n"
-  "  case TYPE_CHAR:\n"
+  "  case TypeKind_Char:\n"
   "    *(char *)any.ptr = (char)va_arg(*args, int);\n"
   "    break;\n"
-  "  case TYPE_UCHAR:\n"
+  "  case TypeKind_UChar:\n"
   "    *(uchar *)any.ptr = (uchar)va_arg(*args, int);\n"
   "    break;\n"
-  "  case TYPE_SCHAR:\n"
+  "  case TypeKind_SChar:\n"
   "    *(schar *)any.ptr = (schar)va_arg(*args, int);\n"
   "    break;\n"
-  "  case TYPE_SHORT:\n"
+  "  case TypeKind_Short:\n"
   "    *(short *)any.ptr = (short)va_arg(*args, int);\n"
   "    break;\n"
-  "  case TYPE_USHORT:\n"
+  "  case TypeKind_UShort:\n"
   "    *(ushort *)any.ptr = (ushort)va_arg(*args, int);\n"
   "    break;\n"
-  "  case TYPE_INT:\n"
+  "  case TypeKind_Int:\n"
   "    *(int *)any.ptr = va_arg(*args, int);\n"
   "    break;\n"
-  "  case TYPE_UINT:\n"
+  "  case TypeKind_UInt:\n"
   "    *(uint *)any.ptr = va_arg(*args, uint);\n"
   "    break;\n"
-  "  case TYPE_LONG:\n"
+  "  case TypeKind_Long:\n"
   "    *(long *)any.ptr = va_arg(*args, long);\n"
   "    break;\n"
-  "  case TYPE_ULONG:\n"
+  "  case TypeKind_ULong:\n"
   "    *(ulong *)any.ptr = va_arg(*args, ulong);\n"
   "    break;\n"
-  "  case TYPE_LLONG:\n"
+  "  case TypeKind_LLong:\n"
   "    *(llong *)any.ptr = va_arg(*args, llong);\n"
   "    break;\n"
-  "  case TYPE_ULLONG:\n"
+  "  case TypeKind_ULLong:\n"
   "    *(ullong *)any.ptr = va_arg(*args, ullong);\n"
   "    break;\n"
-  "  case TYPE_FLOAT:\n"
+  "  case TypeKind_Float:\n"
   "    *(float *)any.ptr = (float)va_arg(*args, double);\n"
   "    break;\n"
-  "  case TYPE_DOUBLE:\n"
+  "  case TypeKind_Double:\n"
   "    *(double *)any.ptr = va_arg(*args, double);\n"
   "    break;\n"
-  "  case TYPE_FUNC:\n"
-  "  case TYPE_PTR:\n"
+  "  case TypeKind_Func:\n"
+  "  case TypeKind_Ptr:\n"
+  "  case TypeKind_Ref:\n"
   "    *(void **)any.ptr = va_arg(*args, void *);\n"
   "    break;\n"
   "  default:\n"
@@ -3605,7 +3560,7 @@ void rio_gen_expr_compound(rio_Expr (*expr)) {
   rio_buf_printf(&(rio_gen_buf), "}");
 }
 
-char const ((*(rio_typeid_kind_names[rio_CompilerTypeKind_Num]))) = {[rio_CompilerTypeKind_None] = "TYPE_NONE", [rio_CompilerTypeKind_Void] = "TYPE_VOID", [rio_CompilerTypeKind_Bool] = "TYPE_BOOL", [rio_CompilerTypeKind_Char] = "TYPE_CHAR", [rio_CompilerTypeKind_UChar] = "TYPE_UCHAR", [rio_CompilerTypeKind_SChar] = "TYPE_SCHAR", [rio_CompilerTypeKind_Short] = "TYPE_SHORT", [rio_CompilerTypeKind_UShort] = "TYPE_USHORT", [rio_CompilerTypeKind_Int] = "TYPE_INT", [rio_CompilerTypeKind_UInt] = "TYPE_UINT", [rio_CompilerTypeKind_Long] = "TYPE_LONG", [rio_CompilerTypeKind_ULong] = "TYPE_ULONG", [rio_CompilerTypeKind_LLong] = "TYPE_LLONG", [rio_CompilerTypeKind_ULLong] = "TYPE_ULLONG", [rio_CompilerTypeKind_Float] = "TYPE_FLOAT", [rio_CompilerTypeKind_Double] = "TYPE_DOUBLE", [rio_CompilerTypeKind_Const] = "TYPE_CONST", [rio_CompilerTypeKind_Ptr] = "TYPE_PTR", [rio_CompilerTypeKind_Ref] = "TYPE_REF", [rio_CompilerTypeKind_Array] = "TYPE_ARRAY", [rio_CompilerTypeKind_Struct] = "TYPE_STRUCT", [rio_CompilerTypeKind_Union] = "TYPE_UNION", [rio_CompilerTypeKind_Func] = "TYPE_FUNC"};
+char const ((*(rio_typeid_kind_names[rio_CompilerTypeKind_Num]))) = {[rio_CompilerTypeKind_None] = "TypeKind_None", [rio_CompilerTypeKind_Void] = "TypeKind_Void", [rio_CompilerTypeKind_Bool] = "TypeKind_Bool", [rio_CompilerTypeKind_Char] = "TypeKind_Char", [rio_CompilerTypeKind_UChar] = "TypeKind_UChar", [rio_CompilerTypeKind_SChar] = "TypeKind_SChar", [rio_CompilerTypeKind_Short] = "TypeKind_Short", [rio_CompilerTypeKind_UShort] = "TypeKind_UShort", [rio_CompilerTypeKind_Int] = "TypeKind_Int", [rio_CompilerTypeKind_UInt] = "TypeKind_UInt", [rio_CompilerTypeKind_Long] = "TypeKind_Long", [rio_CompilerTypeKind_ULong] = "TypeKind_ULong", [rio_CompilerTypeKind_LLong] = "TypeKind_LLong", [rio_CompilerTypeKind_ULLong] = "TypeKind_ULLong", [rio_CompilerTypeKind_Float] = "TypeKind_Float", [rio_CompilerTypeKind_Double] = "TypeKind_Double", [rio_CompilerTypeKind_Const] = "TypeKind_Const", [rio_CompilerTypeKind_Ptr] = "TypeKind_Ptr", [rio_CompilerTypeKind_Ref] = "TypeKind_Ref", [rio_CompilerTypeKind_Array] = "TypeKind_Array", [rio_CompilerTypeKind_Struct] = "TypeKind_Struct", [rio_CompilerTypeKind_Union] = "TypeKind_Union", [rio_CompilerTypeKind_Func] = "TypeKind_Func"};
 char const ((*rio_typeid_kind_name(rio_Type (*type)))) {
   if ((type->kind) < (rio_CompilerTypeKind_Num)) {
     char const ((*name)) = rio_typeid_kind_names[type->kind];
@@ -3613,7 +3568,7 @@ char const ((*rio_typeid_kind_name(rio_Type (*type)))) {
       return name;
     }
   }
-  return "TYPE_NONE";
+  return "TypeKind_None";
 }
 
 bool rio_is_excluded_typeinfo(rio_Type (*type)) {
@@ -4320,107 +4275,107 @@ void rio_gen_typeinfo_fields(rio_Type (*type)) {
 void rio_gen_typeinfo(rio_Type (*type)) {
   switch (type->kind) {
   case rio_CompilerTypeKind_Bool: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_BOOL, .size = sizeof(bool), .align = sizeof(bool), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Bool, .size = sizeof(bool), .align = sizeof(bool), .name = ");
     rio_gen_str("bool", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_Char: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_CHAR, .size = sizeof(char), .align = sizeof(char), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Char, .size = sizeof(char), .align = sizeof(char), .name = ");
     rio_gen_str("char", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_UChar: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_UCHAR, .size = sizeof(uchar), .align = sizeof(uchar), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_UChar, .size = sizeof(uchar), .align = sizeof(uchar), .name = ");
     rio_gen_str("uchar", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_SChar: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_SCHAR, .size = sizeof(schar), .align = sizeof(schar), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_SChar, .size = sizeof(schar), .align = sizeof(schar), .name = ");
     rio_gen_str("schar", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_Short: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_SHORT, .size = sizeof(short), .align = sizeof(short), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Short, .size = sizeof(short), .align = sizeof(short), .name = ");
     rio_gen_str("short", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_UShort: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_USHORT, .size = sizeof(ushort), .align = sizeof(ushort), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_UShort, .size = sizeof(ushort), .align = sizeof(ushort), .name = ");
     rio_gen_str("ushort", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_Int: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_INT, .size = sizeof(int), .align = sizeof(int), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Int, .size = sizeof(int), .align = sizeof(int), .name = ");
     rio_gen_str("int", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_UInt: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_UINT, .size = sizeof(uint), .align = sizeof(uint), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_UInt, .size = sizeof(uint), .align = sizeof(uint), .name = ");
     rio_gen_str("uint", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_Long: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_LONG, .size = sizeof(long), .align = sizeof(long), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Long, .size = sizeof(long), .align = sizeof(long), .name = ");
     rio_gen_str("long", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_ULong: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_ULONG, .size = sizeof(ulong), .align = sizeof(ulong), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_ULong, .size = sizeof(ulong), .align = sizeof(ulong), .name = ");
     rio_gen_str("ulong", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_LLong: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_LLONG, .size = sizeof(llong), .align = sizeof(llong), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_LLong, .size = sizeof(llong), .align = sizeof(llong), .name = ");
     rio_gen_str("llong", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_ULLong: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_ULLONG, .size = sizeof(ullong), .align = sizeof(ullong), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_ULLong, .size = sizeof(ullong), .align = sizeof(ullong), .name = ");
     rio_gen_str("ullong", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_Float: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_FLOAT, .size = sizeof(float), .align = sizeof(float), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Float, .size = sizeof(float), .align = sizeof(float), .name = ");
     rio_gen_str("float", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_Double: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_DOUBLE, .size = sizeof(double), .align = sizeof(double), .name = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Double, .size = sizeof(double), .align = sizeof(double), .name = ");
     rio_gen_str("double", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_Void: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_VOID, .name = \"void\", .size = 0, .align = 0},");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Void, .name = \"void\", .size = 0, .align = 0},");
     break;
   }
   case rio_CompilerTypeKind_Ptr: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = ");
     rio_gen_typeid(type->base);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_Ref: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = ");
+    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Ref, .size = sizeof(void *), .align = alignof(void *), .base = ");
     rio_gen_typeid(type->base);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
   case rio_CompilerTypeKind_Const: {
-    rio_gen_typeinfo_header("TYPE_CONST", type);
+    rio_gen_typeinfo_header("TypeKind_Const", type);
     rio_buf_printf(&(rio_gen_buf), ", .base = ");
     rio_gen_typeid(type->base);
     rio_buf_printf(&(rio_gen_buf), "},");
@@ -4430,7 +4385,7 @@ void rio_gen_typeinfo(rio_Type (*type)) {
     if (rio_is_incomplete_array_type(type)) {
       rio_buf_printf(&(rio_gen_buf), "NULL, // Incomplete array type");
     } else {
-      rio_gen_typeinfo_header("TYPE_ARRAY", type);
+      rio_gen_typeinfo_header("TypeKind_Array", type);
       rio_buf_printf(&(rio_gen_buf), ", .base = ");
       rio_gen_typeid(type->base);
       rio_buf_printf(&(rio_gen_buf), ", .count = %d},", type->num_elems);
@@ -4439,7 +4394,7 @@ void rio_gen_typeinfo(rio_Type (*type)) {
   }
   case rio_CompilerTypeKind_Struct:
   case rio_CompilerTypeKind_Union: {
-    rio_gen_typeinfo_header(((type->kind) == (rio_CompilerTypeKind_Struct) ? "TYPE_STRUCT" : "TYPE_UNION"), type);
+    rio_gen_typeinfo_header(((type->kind) == (rio_CompilerTypeKind_Struct) ? "TypeKind_Struct" : "TypeKind_Union"), type);
     rio_buf_printf(&(rio_gen_buf), ", .name = ");
     rio_gen_str(rio_get_gen_name(type->sym), false);
     rio_buf_printf(&(rio_gen_buf), ", .num_fields = %d, .fields = (TypeFieldInfo[]) {", type->aggregate.num_fields);
@@ -9669,50 +9624,51 @@ rio_Type (*rio_aggregate_item_field_type_from_name(rio_Type (*type), char const 
 
 static void va_arg_ptr(va_list *args, Any any) {
   switch (typeid_kind(any.type)) {
-  case TYPE_BOOL:
+  case TypeKind_Bool:
     *(bool *)any.ptr = (bool)va_arg(*args, int);
     break;
-  case TYPE_CHAR:
+  case TypeKind_Char:
     *(char *)any.ptr = (char)va_arg(*args, int);
     break;
-  case TYPE_UCHAR:
+  case TypeKind_UChar:
     *(uchar *)any.ptr = (uchar)va_arg(*args, int);
     break;
-  case TYPE_SCHAR:
+  case TypeKind_SChar:
     *(schar *)any.ptr = (schar)va_arg(*args, int);
     break;
-  case TYPE_SHORT:
+  case TypeKind_Short:
     *(short *)any.ptr = (short)va_arg(*args, int);
     break;
-  case TYPE_USHORT:
+  case TypeKind_UShort:
     *(ushort *)any.ptr = (ushort)va_arg(*args, int);
     break;
-  case TYPE_INT:
+  case TypeKind_Int:
     *(int *)any.ptr = va_arg(*args, int);
     break;
-  case TYPE_UINT:
+  case TypeKind_UInt:
     *(uint *)any.ptr = va_arg(*args, uint);
     break;
-  case TYPE_LONG:
+  case TypeKind_Long:
     *(long *)any.ptr = va_arg(*args, long);
     break;
-  case TYPE_ULONG:
+  case TypeKind_ULong:
     *(ulong *)any.ptr = va_arg(*args, ulong);
     break;
-  case TYPE_LLONG:
+  case TypeKind_LLong:
     *(llong *)any.ptr = va_arg(*args, llong);
     break;
-  case TYPE_ULLONG:
+  case TypeKind_ULLong:
     *(ullong *)any.ptr = va_arg(*args, ullong);
     break;
-  case TYPE_FLOAT:
+  case TypeKind_Float:
     *(float *)any.ptr = (float)va_arg(*args, double);
     break;
-  case TYPE_DOUBLE:
+  case TypeKind_Double:
     *(double *)any.ptr = va_arg(*args, double);
     break;
-  case TYPE_FUNC:
-  case TYPE_PTR:
+  case TypeKind_Func:
+  case TypeKind_Ptr:
+  case TypeKind_Ref:
     *(void **)any.ptr = va_arg(*args, void *);
     break;
   default:

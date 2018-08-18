@@ -540,16 +540,16 @@ fn print_type(type: typeid) {
     return;
   }
   switch (typeinfo.kind) {
-  case TYPE_PTR:
+  case TypeKind.Ptr:
     print_type(typeinfo.base);
     printf("*");
-  case TYPE_REF:
+  case TypeKind.Ref:
     print_type(typeinfo.base);
     printf("&");
-  case TYPE_CONST:
+  case TypeKind.Const:
     print_type(typeinfo.base);
     printf(" const");
-  case TYPE_ARRAY:
+  case TypeKind.Array:
     print_type(typeinfo.base);
     printf("[%d]", typeinfo.count);
   default:
@@ -576,8 +576,8 @@ fn print_typeinfo(type: typeid) {
   print_type(type);
   printf(" size=%d align=%d", typeinfo.size, typeinfo.align);
   switch (typeinfo.kind) {
-  case TYPE_STRUCT, TYPE_UNION:
-    printf(" %s={ ", typeinfo.kind == TYPE_STRUCT ? "struct" : "union");
+  case TypeKind.Struct, TypeKind.Union:
+    printf(" %s={ ", typeinfo.kind == TypeKind.Struct ? "struct" : "union");
     for (let i = 0; i < typeinfo.num_fields; i++) {
       let field = typeinfo.fields[i];
       printf("@offset(%d) %s: ", field.offset, field.name);
