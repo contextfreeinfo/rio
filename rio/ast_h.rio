@@ -34,6 +34,31 @@ enum TypespecKind {
   Const,
 }
 
+// enum union TypespecDetail {
+//   None,
+//   Ptr,
+//   Ref,
+//   Const;
+//   Name: *const char;
+//   Func: TypespecFunc;
+//   Array: struct {
+//     num_elems: *Expr;
+//   }
+// }
+// TypespecDetail{Name=blah}
+// TypespecDetail.None
+
+// enum TypespecDetail {
+//   None,
+//   Name(*const char),
+//   Func(TypespecFunc),
+//   Array {num_elems: *Expr},
+//   Ptr,
+//   Ref,
+//   Const,
+// }
+// TypespecDetail.Name(blah)
+
 struct Typespec {
   kind: TypespecKind;
   pos: SrcPos;
@@ -358,6 +383,27 @@ enum StmtKind {
   Note,
   Label,
   Goto,
+}
+
+// @enum
+union StmtDetail {
+  // None,
+  // Break,
+  // Continue: void;
+  DoWhile,
+  While: StmtWhile;
+  Expr,
+  Return: &Expr;
+  Goto,
+  Label: *const char;
+  Assign: StmtAssign;
+  Block: StmtList;
+  Decl: &Decl;
+  For: StmtFor;
+  If: StmtIf;
+  Init: StmtInit;
+  Note: Note;
+  Switch: StmtSwitch;
 }
 
 struct Stmt {

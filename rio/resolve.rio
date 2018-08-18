@@ -633,9 +633,9 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
     if (item.kind == AggregateItemKind.Field) {
       let item_type = resolve_typespec(item.type);
       complete_type(item_type);
-      if (type_sizeof(item_type) == 0) {
-        fatal_error(item.pos, "Field type of size 0 is not allowed");
-      }
+      // if (type_sizeof(item_type) == 0) {
+      //   fatal_error(item.pos, "Field type of size 0 is not allowed");
+      // }
       for (let j: usize = 0; j < item.num_names; j++) {
         let type_field = TypeField {item.names[j], item_type};
         buf_push((:*&void)&fields, &type_field, sizeof(type_field));

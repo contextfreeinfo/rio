@@ -384,7 +384,9 @@ fn gen_aggregate_items(aggregate: &Aggregate) {
     if (item.kind == AggregateItemKind.Field) {
       for (let j: usize = 0; j < item.num_names; j++) {
         gen_sync_pos(item.pos);
-        genln(); buf_printf(&gen_buf, "%s;", typespec_to_cdecl(item.type, item.names[j]));
+        // if (item.type.kind != CompilerTypeKind.Void) {
+          genln(); buf_printf(&gen_buf, "%s;", typespec_to_cdecl(item.type, item.names[j]));
+        // }
       }
     } else if (item.kind == AggregateItemKind.Subaggregate) {
       genln(); buf_printf(&gen_buf, "%s {", item.subaggregate.kind == AggregateKind.Struct ? "struct" : "union");

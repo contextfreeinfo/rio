@@ -123,6 +123,7 @@ typedef struct rio_Decl rio_Decl;
 typedef struct rio_Aggregate rio_Aggregate;
 typedef struct rio_ImportItem rio_ImportItem;
 typedef struct rio_ElseIf rio_ElseIf;
+typedef union rio_StmtDetail rio_StmtDetail;
 typedef struct rio_BufHdr rio_BufHdr;
 typedef struct rio_Intern rio_Intern;
 typedef struct rio_Package rio_Package;
@@ -2169,6 +2170,23 @@ struct rio_ImportItem {
 struct rio_ElseIf {
   rio_Expr (*cond);
   rio_StmtList block;
+};
+
+union rio_StmtDetail {
+  rio_StmtWhile DoWhile;
+  rio_StmtWhile While;
+  rio_Expr (*Expr);
+  rio_Expr (*Return);
+  char const ((*Goto));
+  char const ((*Label));
+  rio_StmtAssign Assign;
+  rio_StmtList Block;
+  rio_Decl (*Decl);
+  rio_StmtFor For;
+  rio_StmtIf If;
+  rio_StmtInit Init;
+  rio_Note Note;
+  rio_StmtSwitch Switch;
 };
 
 struct rio_BufHdr {
@@ -6310,7 +6328,7 @@ rio_NoteArg rio_parse_note_arg(void) {
 
 rio_Note rio_parse_note(void) {
   rio_SrcPos pos = rio_token.pos;
-  char const ((*name)) = rio_parse_name();
+  char const ((*name)) = (rio_match_token(rio_TokenKind_Keyword) ? rio_token.name : rio_parse_name());
   rio_NoteArg (*args) = NULL;
   if (rio_match_token(rio_TokenKind_Lparen)) {
     rio_NoteArg arg = rio_parse_note_arg();
@@ -7001,9 +7019,6 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
     if ((item.kind) == (rio_AggregateItemKind_Field)) {
       rio_Type (*item_type) = rio_resolve_typespec(item.type);
       rio_complete_type(item_type);
-      if ((rio_type_sizeof(item_type)) == (0)) {
-        rio_fatal_error(item.pos, "Field type of size 0 is not allowed");
-      }
       for (size_t j = 0; (j) < (item.num_names); (j)++) {
         rio_TypeField type_field = {item.names[j], item_type};
         rio_buf_push((void (**))(&(fields)), &(type_field), sizeof(type_field));
