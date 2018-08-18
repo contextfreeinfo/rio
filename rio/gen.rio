@@ -212,18 +212,18 @@ fn cdecl_name(type: &Type) -> *const char {
 
 fn type_to_cdecl(type: &Type, str: *const char) -> *char {
   switch (type.kind) {
-  case CMPL_TYPE_PTR:
-  case CMPL_TYPE_REF:
+  case CompilerTypeKind.Ptr:
+  case CompilerTypeKind.Ref:
     return type_to_cdecl(type.base, cdecl_paren(strf("*%s", str), *str));
-  case CMPL_TYPE_CONST:
+  case CompilerTypeKind.Const:
     return type_to_cdecl(type.base, strf("const %s", cdecl_paren(str, *str)));
-  case CMPL_TYPE_ARRAY:
+  case CompilerTypeKind.Array:
     if (type.num_elems == 0) {
       return type_to_cdecl(type.base, cdecl_paren(strf("%s[]", str), *str));
     } else {
       return type_to_cdecl(type.base, cdecl_paren(strf("%s[%zu]", str, type.num_elems), *str));
     }
-  case CMPL_TYPE_FUNC: {
+  case CompilerTypeKind.Func: {
     let result: *char = NULL;
     buf_printf(&result, "(*%s)(", str);
     if (type.function.num_params == 0) {
@@ -441,34 +441,34 @@ fn gen_expr_compound(expr: &Expr) {
   buf_printf(&gen_buf, "}");
 }
 
-let typeid_kind_names: [NUM_CMPL_TYPE_KINDS]*const char = {
-  [CMPL_TYPE_NONE] = "TYPE_NONE",
-  [CMPL_TYPE_VOID] = "TYPE_VOID",
-  [CMPL_TYPE_BOOL] = "TYPE_BOOL",
-  [CMPL_TYPE_CHAR] = "TYPE_CHAR",
-  [CMPL_TYPE_UCHAR] = "TYPE_UCHAR",
-  [CMPL_TYPE_SCHAR] = "TYPE_SCHAR",
-  [CMPL_TYPE_SHORT] = "TYPE_SHORT",
-  [CMPL_TYPE_USHORT] = "TYPE_USHORT",
-  [CMPL_TYPE_INT] =  "TYPE_INT",
-  [CMPL_TYPE_UINT] = "TYPE_UINT",
-  [CMPL_TYPE_LONG] = "TYPE_LONG",
-  [CMPL_TYPE_ULONG] = "TYPE_ULONG",
-  [CMPL_TYPE_LLONG] = "TYPE_LLONG",
-  [CMPL_TYPE_ULLONG] = "TYPE_ULLONG",
-  [CMPL_TYPE_FLOAT] = "TYPE_FLOAT",
-  [CMPL_TYPE_DOUBLE] = "TYPE_DOUBLE",
-  [CMPL_TYPE_CONST] = "TYPE_CONST",
-  [CMPL_TYPE_PTR] = "TYPE_PTR",
-  [CMPL_TYPE_REF] = "TYPE_REF",
-  [CMPL_TYPE_ARRAY] = "TYPE_ARRAY",
-  [CMPL_TYPE_STRUCT] = "TYPE_STRUCT",
-  [CMPL_TYPE_UNION] = "TYPE_UNION",
-  [CMPL_TYPE_FUNC] = "TYPE_FUNC",
+let typeid_kind_names: [CompilerTypeKind.Num]*const char = {
+  [CompilerTypeKind.None] = "TYPE_NONE",
+  [CompilerTypeKind.Void] = "TYPE_VOID",
+  [CompilerTypeKind.Bool] = "TYPE_BOOL",
+  [CompilerTypeKind.Char] = "TYPE_CHAR",
+  [CompilerTypeKind.UChar] = "TYPE_UCHAR",
+  [CompilerTypeKind.SChar] = "TYPE_SCHAR",
+  [CompilerTypeKind.Short] = "TYPE_SHORT",
+  [CompilerTypeKind.UShort] = "TYPE_USHORT",
+  [CompilerTypeKind.Int] =  "TYPE_INT",
+  [CompilerTypeKind.UInt] = "TYPE_UINT",
+  [CompilerTypeKind.Long] = "TYPE_LONG",
+  [CompilerTypeKind.ULong] = "TYPE_ULONG",
+  [CompilerTypeKind.LLong] = "TYPE_LLONG",
+  [CompilerTypeKind.ULLong] = "TYPE_ULLONG",
+  [CompilerTypeKind.Float] = "TYPE_FLOAT",
+  [CompilerTypeKind.Double] = "TYPE_DOUBLE",
+  [CompilerTypeKind.Const] = "TYPE_CONST",
+  [CompilerTypeKind.Ptr] = "TYPE_PTR",
+  [CompilerTypeKind.Ref] = "TYPE_REF",
+  [CompilerTypeKind.Array] = "TYPE_ARRAY",
+  [CompilerTypeKind.Struct] = "TYPE_STRUCT",
+  [CompilerTypeKind.Union] = "TYPE_UNION",
+  [CompilerTypeKind.Func] = "TYPE_FUNC",
 };
 
 fn typeid_kind_name(type: &Type) -> *const char {
-  if (type.kind < NUM_CMPL_TYPE_KINDS) {
+  if (type.kind < CompilerTypeKind.Num) {
     let name = typeid_kind_names[type.kind];
     if (name) {
       return name;
@@ -478,13 +478,13 @@ fn typeid_kind_name(type: &Type) -> *const char {
 }
 
 fn is_excluded_typeinfo(type: &Type) -> bool {
-  while (type.kind == CMPL_TYPE_ARRAY || type.kind == CMPL_TYPE_CONST || is_ptr_type(type)) {
+  while (type.kind == CompilerTypeKind.Array || type.kind == CompilerTypeKind.Const || is_ptr_type(type)) {
     type = type.base;
   }
   if (type.sym) {
     return !gen_reachable(type.sym);
   } else {
-    return !type.sym && (type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION);
+    return !type.sym && (type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union);
   }
 }
 
@@ -559,7 +559,7 @@ fn gen_expr(expr: &Expr) {
       let type = unqualify_type(get_resolved_type(expr.field.expr));
       buf_printf(
         &gen_buf, "%s%s",
-        type.kind == CMPL_TYPE_ENUM ? "_" :
+        type.kind == CompilerTypeKind.Enum ? "_" :
           is_ptr_type(type) ? "->" :
           ".",
         expr.field.name,
@@ -1053,78 +1053,78 @@ fn gen_typeinfo_fields(type: &Type) {
 
 fn gen_typeinfo(type: &Type) {
   switch (type.kind) {
-  case CMPL_TYPE_BOOL:
+  case CompilerTypeKind.Bool:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_BOOL, .size = sizeof(bool), .align = sizeof(bool), .name = ");
      gen_str("bool", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_CHAR:
+  case CompilerTypeKind.Char:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_CHAR, .size = sizeof(char), .align = sizeof(char), .name = ");
      gen_str("char", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_UCHAR:
+  case CompilerTypeKind.UChar:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_UCHAR, .size = sizeof(uchar), .align = sizeof(uchar), .name = ");
      gen_str("uchar", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_SCHAR:
+  case CompilerTypeKind.SChar:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_SCHAR, .size = sizeof(schar), .align = sizeof(schar), .name = ");
      gen_str("schar", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_SHORT:
+  case CompilerTypeKind.Short:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_SHORT, .size = sizeof(short), .align = sizeof(short), .name = ");
      gen_str("short", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_USHORT:
+  case CompilerTypeKind.UShort:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_USHORT, .size = sizeof(ushort), .align = sizeof(ushort), .name = ");
      gen_str("ushort", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_INT:
+  case CompilerTypeKind.Int:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_INT, .size = sizeof(int), .align = sizeof(int), .name = ");
      gen_str("int", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_UINT:
+  case CompilerTypeKind.UInt:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_UINT, .size = sizeof(uint), .align = sizeof(uint), .name = ");
      gen_str("uint", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_LONG:
+  case CompilerTypeKind.Long:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_LONG, .size = sizeof(long), .align = sizeof(long), .name = ");
      gen_str("long", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_ULONG:
+  case CompilerTypeKind.ULong:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_ULONG, .size = sizeof(ulong), .align = sizeof(ulong), .name = ");
      gen_str("ulong", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_LLONG:
+  case CompilerTypeKind.LLong:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_LLONG, .size = sizeof(llong), .align = sizeof(llong), .name = ");
      gen_str("llong", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_ULLONG:
+  case CompilerTypeKind.ULLong:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_ULLONG, .size = sizeof(ullong), .align = sizeof(ullong), .name = ");
      gen_str("ullong", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_FLOAT:
+  case CompilerTypeKind.Float:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_FLOAT, .size = sizeof(float), .align = sizeof(float), .name = ");
      gen_str("float", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_DOUBLE:
+  case CompilerTypeKind.Double:
      buf_printf(&gen_buf, "&(TypeInfo){TYPE_DOUBLE, .size = sizeof(double), .align = sizeof(double), .name = ");
      gen_str("double", false);
      buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_VOID:
+  case CompilerTypeKind.Void:
     buf_printf(&gen_buf, "&(TypeInfo){TYPE_VOID, .name = \"void\", .size = 0, .align = 0},");
-  case CMPL_TYPE_PTR:
+  case CompilerTypeKind.Ptr:
     buf_printf(&gen_buf, "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ");
     gen_typeid(type.base);
     buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_REF:
+  case CompilerTypeKind.Ref:
     buf_printf(&gen_buf, "&(TypeInfo){TYPE_REF, .size = sizeof(void *), .align = alignof(void *), .base = ");
     gen_typeid(type.base);
     buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_CONST:
+  case CompilerTypeKind.Const:
     gen_typeinfo_header("TYPE_CONST", type);
     buf_printf(&gen_buf, ", .base = ");
     gen_typeid(type.base);
     buf_printf(&gen_buf, "},");
-  case CMPL_TYPE_ARRAY:
+  case CompilerTypeKind.Array:
     if (is_incomplete_array_type(type)) {
       buf_printf(&gen_buf, "NULL, // Incomplete array type");
     } else {
@@ -1133,19 +1133,19 @@ fn gen_typeinfo(type: &Type) {
       gen_typeid(type.base);
       buf_printf(&gen_buf, ", .count = %d},", type.num_elems);
     }
-  case CMPL_TYPE_STRUCT:
-  case CMPL_TYPE_UNION:
-    gen_typeinfo_header(type.kind == CMPL_TYPE_STRUCT ? "TYPE_STRUCT" : "TYPE_UNION", type);
+  case CompilerTypeKind.Struct:
+  case CompilerTypeKind.Union:
+    gen_typeinfo_header(type.kind == CompilerTypeKind.Struct ? "TYPE_STRUCT" : "TYPE_UNION", type);
     buf_printf(&gen_buf, ", .name = ");
     gen_str(get_gen_name(type.sym), false);
     buf_printf(&gen_buf, ", .num_fields = %d, .fields = (TypeFieldInfo[]) {", type.aggregate.num_fields);
     gen_typeinfo_fields(type);
     genln(); buf_printf(&gen_buf, "}},");
-  case CMPL_TYPE_FUNC:
+  case CompilerTypeKind.Func:
     buf_printf(&gen_buf, "NULL, // Function");
-  case CMPL_TYPE_ENUM:
+  case CompilerTypeKind.Enum:
     buf_printf(&gen_buf, "NULL, // Enum");
-  case CMPL_TYPE_INCOMPLETE:
+  case CompilerTypeKind.Incomplete:
     buf_printf(&gen_buf, "NULL, // Incomplete: %s", get_gen_name(type.sym));
   default:
     buf_printf(&gen_buf, "NULL, // Unhandled");

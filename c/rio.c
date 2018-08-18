@@ -38,48 +38,49 @@ bool cast_operand(struct rio_Operand *operand, struct rio_Type *type);
 #define CASE(k, t) \
     case k: \
         switch (type->kind) { \
-        case rio_CMPL_TYPE_BOOL: \
+        case rio_CompilerTypeKind_Bool: \
             operand->val.b = (bool)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_CHAR: \
+        case rio_CompilerTypeKind_Char: \
             operand->val.c = (char)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_UCHAR: \
+        case rio_CompilerTypeKind_UChar: \
             operand->val.uc = (unsigned char)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_SCHAR: \
+        case rio_CompilerTypeKind_SChar: \
             operand->val.sc = (signed char)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_SHORT: \
+        case rio_CompilerTypeKind_Short: \
             operand->val.s = (short)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_USHORT: \
+        case rio_CompilerTypeKind_UShort: \
             operand->val.us = (unsigned short)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_INT: \
-        case rio_CMPL_TYPE_ENUM: \
+        case rio_CompilerTypeKind_Int: \
+        case rio_CompilerTypeKind_Enum: \
             operand->val.i = (int)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_UINT: \
+        case rio_CompilerTypeKind_UInt: \
             operand->val.u = (unsigned)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_LONG: \
+        case rio_CompilerTypeKind_Long: \
             operand->val.l = (long)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_ULONG: \
+        case rio_CompilerTypeKind_ULong: \
             operand->val.ul = (unsigned long)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_LLONG: \
+        case rio_CompilerTypeKind_LLong: \
             operand->val.ll = (long long)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_ULLONG: \
+        case rio_CompilerTypeKind_ULLong: \
             operand->val.ull = (unsigned long long)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_PTR: \
+        case rio_CompilerTypeKind_Ptr: \
+        case rio_CompilerTypeKind_Ref: \
             operand->val.p = (uintptr_t)operand->val.t; \
             break; \
-        case rio_CMPL_TYPE_FLOAT: \
-        case rio_CMPL_TYPE_DOUBLE: \
+        case rio_CompilerTypeKind_Float: \
+        case rio_CompilerTypeKind_Double: \
             break; \
         default: \
             operand->is_const = false; \
@@ -99,27 +100,28 @@ bool cast_operand(rio_Operand *operand, rio_Type *type) {
             if (rio_is_floating_type(operand->type)) {
                 operand->is_const = !rio_is_integer_type(type);
             } else {
-                if (type->kind == rio_CMPL_TYPE_ENUM) {
+                if (type->kind == rio_CompilerTypeKind_Enum) {
                     type = type->base;
                 }
                 rio_Type *operand_type = operand->type;
-                if (operand_type->kind == rio_CMPL_TYPE_ENUM) {
+                if (operand_type->kind == rio_CompilerTypeKind_Enum) {
                     operand_type = operand_type->base;
                 }
                 switch (operand_type->kind) {
-                CASE(rio_CMPL_TYPE_BOOL, b)
-                CASE(rio_CMPL_TYPE_CHAR, c)
-                CASE(rio_CMPL_TYPE_UCHAR, uc)
-                CASE(rio_CMPL_TYPE_SCHAR, sc)
-                CASE(rio_CMPL_TYPE_SHORT, s)
-                CASE(rio_CMPL_TYPE_USHORT, us)
-                CASE(rio_CMPL_TYPE_INT, i)
-                CASE(rio_CMPL_TYPE_UINT, u)
-                CASE(rio_CMPL_TYPE_LONG, l)
-                CASE(rio_CMPL_TYPE_ULONG, ul)
-                CASE(rio_CMPL_TYPE_LLONG, ll)
-                CASE(rio_CMPL_TYPE_ULLONG, ull)
-                CASE(rio_CMPL_TYPE_PTR, p)
+                CASE(rio_CompilerTypeKind_Bool, b)
+                CASE(rio_CompilerTypeKind_Char, c)
+                CASE(rio_CompilerTypeKind_UChar, uc)
+                CASE(rio_CompilerTypeKind_SChar, sc)
+                CASE(rio_CompilerTypeKind_Short, s)
+                CASE(rio_CompilerTypeKind_UShort, us)
+                CASE(rio_CompilerTypeKind_Int, i)
+                CASE(rio_CompilerTypeKind_UInt, u)
+                CASE(rio_CompilerTypeKind_Long, l)
+                CASE(rio_CompilerTypeKind_ULong, ul)
+                CASE(rio_CompilerTypeKind_LLong, ll)
+                CASE(rio_CompilerTypeKind_ULLong, ull)
+                CASE(rio_CompilerTypeKind_Ptr, p)
+                CASE(rio_CompilerTypeKind_Ref, p)
                 default:
                     operand->is_const = false;
                     break;

@@ -114,7 +114,7 @@ fn test_loops() {
   while (0) {
   }
   for (let i = 0; i < 10; i++) {
-  }   
+  }
   for (;;) {
     break;
   }
@@ -283,12 +283,13 @@ struct T {
   a: [M]int;
 }
 
+@scoped
 enum Color {
-  COLOR_NONE,
-  COLOR_RED,
-  COLOR_GREEN,
-  COLOR_BLUE,
-  NUM_COLORS,
+  None,
+  Red,
+  Green,
+  Blue,
+  Num,
 }
 
 enum {
@@ -296,35 +297,36 @@ enum {
   BAR,
 }
 
+@scoped
 enum TypedEnum = int8 {
-  BAZ,
-  QUUX
+  Baz,
+  Quux,
 }
 
-let color_names: [Color.NUM_COLORS]*const char = {
-// let color_names: [*const char; NUM_COLORS] = {
-  [Color.COLOR_NONE] = "none",
-  [Color.COLOR_RED] = "red",
-  [Color.COLOR_GREEN] = "green",
-  [Color.COLOR_BLUE] = "blue",
+let color_names: [Color.Num]*const char = {
+// let color_names: [*const char; Num] = {
+  [Color.None] = "none",
+  [Color.Red] = "red",
+  [Color.Green] = "green",
+  [Color.Blue] = "blue",
 };
 
 fn test_enum() {
-  let a: Color = Color.COLOR_RED;
-  let b = Color.COLOR_RED;
+  let a: Color = Color.Red;
+  let b = Color.Red;
   let c = a + b;
   let i: int = a;
   a = i;
   printf(
     "%d %d %d %d\n",
-    Color.COLOR_NONE, Color.COLOR_RED, Color.COLOR_GREEN, Color.COLOR_BLUE,
+    Color.None, Color.Red, Color.Green, Color.Blue,
   );
-  printf("No color: %s\n", color_names[Color.COLOR_NONE]);
+  printf("No color: %s\n", color_names[Color.None]);
   let d = BAR;
-  let e = QUUX;
+  let e = TypedEnum.Quux;
   #static_assert(typeof(e) == typeof(TypedEnum));
   let f: TypedEnum;
-  f = BAZ;
+  f = TypedEnum.Baz;
 }
 
 fn test_assign() {

@@ -1,31 +1,32 @@
+@scoped
 enum CompilerTypeKind {
-  CMPL_TYPE_NONE,
-  CMPL_TYPE_INCOMPLETE,
-  CMPL_TYPE_COMPLETING,
-  CMPL_TYPE_VOID,
-  CMPL_TYPE_BOOL,
-  CMPL_TYPE_CHAR,
-  CMPL_TYPE_SCHAR,
-  CMPL_TYPE_UCHAR,
-  CMPL_TYPE_SHORT,
-  CMPL_TYPE_USHORT,
-  CMPL_TYPE_INT,
-  CMPL_TYPE_UINT,
-  CMPL_TYPE_LONG,
-  CMPL_TYPE_ULONG,
-  CMPL_TYPE_LLONG,
-  CMPL_TYPE_ULLONG,
-  CMPL_TYPE_ENUM,
-  CMPL_TYPE_FLOAT,
-  CMPL_TYPE_DOUBLE,
-  CMPL_TYPE_PTR,
-  CMPL_TYPE_REF,
-  CMPL_TYPE_FUNC,
-  CMPL_TYPE_ARRAY,
-  CMPL_TYPE_STRUCT,
-  CMPL_TYPE_UNION,
-  CMPL_TYPE_CONST,
-  NUM_CMPL_TYPE_KINDS,
+  None,
+  Incomplete,
+  Completing,
+  Void,
+  Bool,
+  Char,
+  SChar,
+  UChar,
+  Short,
+  UShort,
+  Int,
+  UInt,
+  Long,
+  ULong,
+  LLong,
+  ULLong,
+  Enum,
+  Float,
+  Double,
+  Ptr,
+  Ref,
+  Func,
+  Array,
+  Struct,
+  Union,
+  Const,
+  Num,
 }
 
 struct TypeField {
@@ -70,21 +71,21 @@ struct TypeMetrics {
 
 let type_metrics: *TypeMetrics;
 
-let type_void = &Type {CMPL_TYPE_VOID};
-let type_bool = &Type {CMPL_TYPE_BOOL};
-let type_char = &Type {CMPL_TYPE_CHAR};
-let type_uchar = &Type {CMPL_TYPE_UCHAR};
-let type_schar = &Type {CMPL_TYPE_SCHAR};
-let type_short = &Type {CMPL_TYPE_SHORT};
-let type_ushort = &Type {CMPL_TYPE_USHORT};
-let type_int = &Type {CMPL_TYPE_INT};
-let type_uint = &Type {CMPL_TYPE_UINT};
-let type_long = &Type {CMPL_TYPE_LONG};
-let type_ulong = &Type {CMPL_TYPE_ULONG};
-let type_llong = &Type {CMPL_TYPE_LLONG};
-let type_ullong = &Type {CMPL_TYPE_ULLONG};
-let type_float = &Type {CMPL_TYPE_FLOAT};
-let type_double = &Type {CMPL_TYPE_DOUBLE};
+let type_void = &Type {CompilerTypeKind.Void};
+let type_bool = &Type {CompilerTypeKind.Bool};
+let type_char = &Type {CompilerTypeKind.Char};
+let type_uchar = &Type {CompilerTypeKind.UChar};
+let type_schar = &Type {CompilerTypeKind.SChar};
+let type_short = &Type {CompilerTypeKind.Short};
+let type_ushort = &Type {CompilerTypeKind.UShort};
+let type_int = &Type {CompilerTypeKind.Int};
+let type_uint = &Type {CompilerTypeKind.UInt};
+let type_long = &Type {CompilerTypeKind.Long};
+let type_ulong = &Type {CompilerTypeKind.ULong};
+let type_llong = &Type {CompilerTypeKind.LLong};
+let type_ullong = &Type {CompilerTypeKind.ULLong};
+let type_float = &Type {CompilerTypeKind.Float};
+let type_double = &Type {CompilerTypeKind.Double};
 
 let next_typeid: int = 1;
 
@@ -114,27 +115,27 @@ fn type_alloc(kind: TypeKind) -> &Type {
 }
 
 fn is_ptr_type(type: &Type) -> bool {
-  return type.kind == CMPL_TYPE_PTR || type.kind == CMPL_TYPE_REF;
+  return type.kind == CompilerTypeKind.Ptr || type.kind == CompilerTypeKind.Ref;
 }
 
 fn is_ptr_star_type(type: &Type) -> bool {
-  return type.kind == CMPL_TYPE_PTR;
+  return type.kind == CompilerTypeKind.Ptr;
 }
 
 fn is_func_type(type: &Type) -> bool {
-  return type.kind == CMPL_TYPE_FUNC;
+  return type.kind == CompilerTypeKind.Func;
 }
 
 fn is_ptr_like_type(type: &Type) -> bool {
-  return is_ptr_type(type) || type.kind == CMPL_TYPE_FUNC;
+  return is_ptr_type(type) || type.kind == CompilerTypeKind.Func;
 }
 
 fn is_const_type(type: &Type) -> bool {
-  return type.kind == CMPL_TYPE_CONST;
+  return type.kind == CompilerTypeKind.Const;
 }
 
 fn is_array_type(type: &Type) -> bool {
-  return type.kind == CMPL_TYPE_ARRAY;
+  return type.kind == CompilerTypeKind.Array;
 }
 
 fn is_incomplete_array_type(type: &Type) -> bool {
@@ -142,71 +143,71 @@ fn is_incomplete_array_type(type: &Type) -> bool {
 }
 
 fn is_integer_type(type: &Type) -> bool {
-  return CMPL_TYPE_BOOL <= type.kind && type.kind <= CMPL_TYPE_ENUM;
+  return CompilerTypeKind.Bool <= type.kind && type.kind <= CompilerTypeKind.Enum;
 }
 
 fn is_floating_type(type: &Type) -> bool {
-  return CMPL_TYPE_FLOAT <= type.kind && type.kind <= CMPL_TYPE_DOUBLE;
+  return CompilerTypeKind.Float <= type.kind && type.kind <= CompilerTypeKind.Double;
 }
 
 fn is_arithmetic_type(type: &Type) -> bool {
-  return CMPL_TYPE_BOOL <= type.kind && type.kind <= CMPL_TYPE_DOUBLE;
+  return CompilerTypeKind.Bool <= type.kind && type.kind <= CompilerTypeKind.Double;
 }
 
 fn is_scalar_type(type: &Type) -> bool {
-  return CMPL_TYPE_BOOL <= type.kind && type.kind <= CMPL_TYPE_FUNC;
+  return CompilerTypeKind.Bool <= type.kind && type.kind <= CompilerTypeKind.Func;
 }
 
 fn is_aggregate_type(type: &Type) -> bool {
-  return type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION;
+  return type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union;
 }
 
 fn is_signed_type(type: &Type) -> bool {
   switch (type.kind) {
-  case CMPL_TYPE_CHAR:
-    return type_metrics[CMPL_TYPE_CHAR].sign;
-  case CMPL_TYPE_SCHAR:
-  case CMPL_TYPE_SHORT:
-  case CMPL_TYPE_INT:
-  case CMPL_TYPE_LONG:
-  case CMPL_TYPE_LLONG:
+  case CompilerTypeKind.Char:
+    return type_metrics[CompilerTypeKind.Char].sign;
+  case CompilerTypeKind.SChar:
+  case CompilerTypeKind.Short:
+  case CompilerTypeKind.Int:
+  case CompilerTypeKind.Long:
+  case CompilerTypeKind.LLong:
     return true;
   default:
     return false;
   }
 }
 
-let type_names: [NUM_CMPL_TYPE_KINDS]*const char = {
-  [CMPL_TYPE_VOID] = "void",
-  [CMPL_TYPE_BOOL] = "bool",
-  [CMPL_TYPE_CHAR] = "char",
-  [CMPL_TYPE_SCHAR] = "schar",
-  [CMPL_TYPE_UCHAR] = "uchar",
-  [CMPL_TYPE_SHORT] = "short",
-  [CMPL_TYPE_USHORT] = "ushort",
-  [CMPL_TYPE_INT] = "int",
-  [CMPL_TYPE_UINT] = "uint",
-  [CMPL_TYPE_LONG] = "long",
-  [CMPL_TYPE_ULONG] = "ulong",
-  [CMPL_TYPE_LLONG] = "llong",
-  [CMPL_TYPE_ULLONG] = "ullong",
-  [CMPL_TYPE_FLOAT] = "float",
-  [CMPL_TYPE_DOUBLE] = "double",
+let type_names: [CompilerTypeKind.Num]*const char = {
+  [CompilerTypeKind.Void] = "void",
+  [CompilerTypeKind.Bool] = "bool",
+  [CompilerTypeKind.Char] = "char",
+  [CompilerTypeKind.SChar] = "schar",
+  [CompilerTypeKind.UChar] = "uchar",
+  [CompilerTypeKind.Short] = "short",
+  [CompilerTypeKind.UShort] = "ushort",
+  [CompilerTypeKind.Int] = "int",
+  [CompilerTypeKind.UInt] = "uint",
+  [CompilerTypeKind.Long] = "long",
+  [CompilerTypeKind.ULong] = "ulong",
+  [CompilerTypeKind.LLong] = "llong",
+  [CompilerTypeKind.ULLong] = "ullong",
+  [CompilerTypeKind.Float] = "float",
+  [CompilerTypeKind.Double] = "double",
 };
 
-let type_ranks: [NUM_CMPL_TYPE_KINDS]int = {
-  [CMPL_TYPE_BOOL] = 1,
-  [CMPL_TYPE_CHAR] = 2,
-  [CMPL_TYPE_SCHAR] = 2,
-  [CMPL_TYPE_UCHAR] = 2,
-  [CMPL_TYPE_SHORT] = 3,
-  [CMPL_TYPE_USHORT] = 3,
-  [CMPL_TYPE_INT] = 4,
-  [CMPL_TYPE_UINT] = 4,
-  [CMPL_TYPE_LONG] = 5,
-  [CMPL_TYPE_ULONG] = 5,
-  [CMPL_TYPE_LLONG] = 6,
-  [CMPL_TYPE_ULLONG] = 6,
+let type_ranks: [CompilerTypeKind.Num]int = {
+  [CompilerTypeKind.Bool] = 1,
+  [CompilerTypeKind.Char] = 2,
+  [CompilerTypeKind.SChar] = 2,
+  [CompilerTypeKind.UChar] = 2,
+  [CompilerTypeKind.Short] = 3,
+  [CompilerTypeKind.UShort] = 3,
+  [CompilerTypeKind.Int] = 4,
+  [CompilerTypeKind.UInt] = 4,
+  [CompilerTypeKind.Long] = 5,
+  [CompilerTypeKind.ULong] = 5,
+  [CompilerTypeKind.LLong] = 6,
+  [CompilerTypeKind.ULLong] = 6,
 };
 
 fn type_rank(type: &Type) -> int {
@@ -217,23 +218,23 @@ fn type_rank(type: &Type) -> int {
 
 fn unsigned_type(type: &Type) -> &Type {
   switch (type.kind) {
-  case CMPL_TYPE_BOOL:
+  case CompilerTypeKind.Bool:
     return type_bool;
-  case CMPL_TYPE_CHAR:
-  case CMPL_TYPE_SCHAR:
-  case CMPL_TYPE_UCHAR:
+  case CompilerTypeKind.Char:
+  case CompilerTypeKind.SChar:
+  case CompilerTypeKind.UChar:
     return type_uchar;
-  case CMPL_TYPE_SHORT:
-  case CMPL_TYPE_USHORT:
+  case CompilerTypeKind.Short:
+  case CompilerTypeKind.UShort:
     return type_ushort;
-  case CMPL_TYPE_INT:
-  case CMPL_TYPE_UINT:
+  case CompilerTypeKind.Int:
+  case CompilerTypeKind.UInt:
     return type_uint;
-  case CMPL_TYPE_LONG:
-  case CMPL_TYPE_ULONG:
+  case CompilerTypeKind.Long:
+  case CompilerTypeKind.ULong:
     return type_ulong;
-  case CMPL_TYPE_LLONG:
-  case CMPL_TYPE_ULLONG:
+  case CompilerTypeKind.LLong:
+  case CompilerTypeKind.ULLong:
     return type_ullong;
   default:
     #assert(0);
@@ -242,12 +243,12 @@ fn unsigned_type(type: &Type) -> &Type {
 }
 
 fn type_sizeof(type: &Type) -> usize {
-  #assert(type.kind > CMPL_TYPE_COMPLETING);
+  #assert(type.kind > CompilerTypeKind.Completing);
   return type.size;
 }
 
 fn type_alignof(type: &Type) -> usize {
-  #assert(type.kind > CMPL_TYPE_COMPLETING);
+  #assert(type.kind > CompilerTypeKind.Completing);
   return type.align;
 }
 
@@ -258,17 +259,17 @@ fn type_ptr_any(kind: CompilerTypeKind, base: &Type) -> &Type {
   let cache: &Map;
   @complete
   switch (kind) {
-  case CMPL_TYPE_PTR:
+  case CompilerTypeKind.Ptr:
     cache = &cached_ptr_types;
-  case CMPL_TYPE_REF:
+  case CompilerTypeKind.Ref:
     cache = &cached_ref_types;
   }
   let type: *Type = map_get(cache, base);
   if (!type) {
     type = type_alloc(kind);
     // Same base type and sizes beneath.
-    type.size = type_metrics[CMPL_TYPE_PTR].size;
-    type.align = type_metrics[CMPL_TYPE_PTR].align;
+    type.size = type_metrics[CompilerTypeKind.Ptr].size;
+    type.align = type_metrics[CompilerTypeKind.Ptr].align;
     type.base = base;
     map_put(cache, base, type);
   }
@@ -276,23 +277,23 @@ fn type_ptr_any(kind: CompilerTypeKind, base: &Type) -> &Type {
 }
 
 fn type_ptr(base: &Type) -> &Type {
-  return type_ptr_any(CMPL_TYPE_PTR, base);
+  return type_ptr_any(CompilerTypeKind.Ptr, base);
 }
 
 fn type_ref(base: &Type) -> &Type {
-  return type_ptr_any(CMPL_TYPE_REF, base);
+  return type_ptr_any(CompilerTypeKind.Ref, base);
 }
 
 let cached_const_types: Map;
 
 fn type_const(base: &Type) -> &Type {
-  if (base.kind == CMPL_TYPE_CONST) {
+  if (base.kind == CompilerTypeKind.Const) {
     return base;
   }
   let type: &Type = map_get(&cached_const_types, base);
   if (!type) {
     complete_type(base);
-    type = type_alloc(CMPL_TYPE_CONST);
+    type = type_alloc(CompilerTypeKind.Const);
     type.nonmodifiable = true;
     type.size = base.size;
     type.align = base.align;
@@ -303,7 +304,7 @@ fn type_const(base: &Type) -> &Type {
 }
 
 fn unqualify_type(type: &Type) -> &Type {
-  if (type.kind == CMPL_TYPE_CONST) {
+  if (type.kind == CompilerTypeKind.Const) {
     return type.base;
   } else {
     return type;
@@ -328,7 +329,7 @@ fn type_array(base: &Type, num_elems: usize) -> &Type {
     }
   }
   complete_type(base);
-  let type = type_alloc(CMPL_TYPE_ARRAY);
+  let type = type_alloc(CompilerTypeKind.Array);
   type.nonmodifiable = base.nonmodifiable;
   type.size = num_elems * type_sizeof(base);
   type.align = type_alignof(base);
@@ -361,9 +362,9 @@ fn type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) -
       }
     }
   }
-  let type = type_alloc(CMPL_TYPE_FUNC);
-  type.size = type_metrics[CMPL_TYPE_PTR].size;
-  type.align = type_metrics[CMPL_TYPE_PTR].align;
+  let type = type_alloc(CompilerTypeKind.Func);
+  type.size = type_metrics[CompilerTypeKind.Ptr].size;
+  type.align = type_metrics[CompilerTypeKind.Ptr].align;
   type.function.params = memdup(params, params_size);
   type.function.num_params = num_params;
   type.function.has_varargs = has_varargs;
@@ -387,7 +388,7 @@ fn has_duplicate_fields(type: &Type) -> bool {
 }
 
 fn add_type_fields(fields: &*TypeField, type: &Type, offset: usize) {
-  #assert(type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION);
+  #assert(type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union);
   for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
     let field = &type.aggregate.fields[i];
     let new_field = TypeField {field.name, field.type, field.offset + offset};
@@ -396,8 +397,8 @@ fn add_type_fields(fields: &*TypeField, type: &Type, offset: usize) {
 }
 
 fn type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
-  #assert(type.kind == CMPL_TYPE_COMPLETING);
-  type.kind = CMPL_TYPE_STRUCT;
+  #assert(type.kind == CompilerTypeKind.Completing);
+  type.kind = CompilerTypeKind.Struct;
   type.size = 0;
   type.align = 0;
   let nonmodifiable: bool = false;
@@ -421,14 +422,14 @@ fn type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
 }
 
 fn type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
-  #assert(type.kind == CMPL_TYPE_COMPLETING);
-  type.kind = CMPL_TYPE_UNION;
+  #assert(type.kind == CompilerTypeKind.Completing);
+  type.kind = CompilerTypeKind.Union;
   type.size = 0;
   type.align = 0;
   let nonmodifiable: bool = false;
   let new_fields: *TypeField;
   for (let it = fields; it != fields + num_fields; it++) {
-    #assert(it.type.kind > CMPL_TYPE_COMPLETING);
+    #assert(it.type.kind > CompilerTypeKind.Completing);
     if (it.name) {
       it.offset = type.size;
       buf_push((:*&void)&new_fields, it, sizeof(*it));
@@ -446,13 +447,13 @@ fn type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
 }
 
 fn type_incomplete(sym: &Sym) -> &Type {
-  let type = type_alloc(CMPL_TYPE_INCOMPLETE);
+  let type = type_alloc(CompilerTypeKind.Incomplete);
   type.sym = sym;
   return type;
 }
 
 fn type_enum(sym: &Sym, base: &Type) -> &Type {
-  let type = type_alloc(CMPL_TYPE_ENUM);
+  let type = type_alloc(CompilerTypeKind.Enum);
   type.sym = sym;
   type.base = base;
   type.size = type_int.size;

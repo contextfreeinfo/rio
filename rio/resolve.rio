@@ -279,25 +279,25 @@ fn put_type_name(buf: **char, type: &Type) {
     buf_printf(buf, "%s", type_name);
   } else {
     switch (type.kind) {
-    case CMPL_TYPE_STRUCT:
-    case CMPL_TYPE_UNION:
-    case CMPL_TYPE_ENUM:
-    case CMPL_TYPE_INCOMPLETE:
+    case CompilerTypeKind.Struct:
+    case CompilerTypeKind.Union:
+    case CompilerTypeKind.Enum:
+    case CompilerTypeKind.Incomplete:
       #assert(type.sym);
       buf_printf(buf, "%s", type.sym.name);
-    case CMPL_TYPE_CONST:
+    case CompilerTypeKind.Const:
       put_type_name(buf, type.base);
       buf_printf(buf, " const");
-    case CMPL_TYPE_PTR:
+    case CompilerTypeKind.Ptr:
       put_type_name(buf, type.base);
       buf_printf(buf, "*");
-    case CMPL_TYPE_REF:
+    case CompilerTypeKind.Ref:
       put_type_name(buf, type.base);
       buf_printf(buf, "&");
-    case CMPL_TYPE_ARRAY:
+    case CompilerTypeKind.Array:
       put_type_name(buf, type.base);
       buf_printf(buf, "[%zu]", type.num_elems);
-    case CMPL_TYPE_FUNC:
+    case CompilerTypeKind.Func:
       buf_printf(buf, "fn(");
       for (let i: usize = 0; i < type.function.num_params; i++) {
         if (i != 0) {
@@ -358,7 +358,7 @@ fn operand_const(type: &Type, val: Val) -> Operand {
 
 fn type_decay(type: &Type) -> &Type {
   type = unqualify_type(type);
-  if (type.kind == CMPL_TYPE_ARRAY) {
+  if (type.kind == CompilerTypeKind.Array) {
     type = type_ptr(type.base);
   }
   return type;
@@ -448,13 +448,13 @@ fn is_null_ptr(operand: Operand) -> bool {
 
 fn promote_operand(operand: &Operand) {
   switch (operand.type.kind) {
-  case CMPL_TYPE_BOOL:
-  case CMPL_TYPE_CHAR:
-  case CMPL_TYPE_SCHAR:
-  case CMPL_TYPE_UCHAR:
-  case CMPL_TYPE_SHORT:
-  case CMPL_TYPE_USHORT:
-  case CMPL_TYPE_ENUM:
+  case CompilerTypeKind.Bool:
+  case CompilerTypeKind.Char:
+  case CompilerTypeKind.SChar:
+  case CompilerTypeKind.UChar:
+  case CompilerTypeKind.Short:
+  case CompilerTypeKind.UShort:
+  case CompilerTypeKind.Enum:
     cast_operand(operand, type_int);
   default:
     // Do nothing
@@ -651,7 +651,7 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   }
   if (!type) {
     type = type_incomplete(NULL);
-    type.kind = CMPL_TYPE_COMPLETING;
+    type.kind = CompilerTypeKind.Completing;
   }
   if (aggregate.kind == AggregateKind.Struct) {
     type_complete_struct(type, fields, buf_len(fields));
@@ -669,10 +669,10 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
 }
 
 fn complete_type(type: &Type) {
-  if (type.kind == CMPL_TYPE_COMPLETING) {
+  if (type.kind == CompilerTypeKind.Completing) {
     fatal_error(type.sym.decl.pos, "Type completion cycle");
     return;
-  } else if (type.kind != CMPL_TYPE_INCOMPLETE) {
+  } else if (type.kind != CompilerTypeKind.Incomplete) {
     return;
   }
   let sym = type.sym;
@@ -681,7 +681,7 @@ fn complete_type(type: &Type) {
   if (decl.is_incomplete) {
     fatal_error(decl.pos, "Trying to use incomplete type as complete type");
   }
-  type.kind = CMPL_TYPE_COMPLETING;
+  type.kind = CompilerTypeKind.Completing;
   #assert(decl.kind == DeclKind.Struct || decl.kind == DeclKind.Union);
   complete_aggregate(type, decl.aggregate);
   buf_push((:*&void)&sorted_syms, &type.sym, sizeof(type.sym));
@@ -718,7 +718,7 @@ fn resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
       // Hack to support inferred array sizes, but we might also be losing
       // things from the declared type.
       // TODO Make a new declared type with the size added in.
-      if (expr_type.kind == CMPL_TYPE_ARRAY) {
+      if (expr_type.kind == CompilerTypeKind.Array) {
         type = expr_type;
       }
     }
@@ -1199,7 +1199,7 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
   }
   let operand = resolve_expr(expr.field.expr);
   if (operand.is_type){
-    if (operand.type.kind == CMPL_TYPE_ENUM) {
+    if (operand.type.kind == CompilerTypeKind.Enum) {
       let decl = operand.type.sym.decl;
       let enum_decl = decl.enum_decl;
       for (let i: usize = 0; i < enum_decl.num_items; ++i) {
@@ -1227,7 +1227,7 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
     type = unqualify_type(operand.type);
     complete_type(type);
   }
-  if (type.kind != CMPL_TYPE_STRUCT && type.kind != CMPL_TYPE_UNION) {
+  if (type.kind != CompilerTypeKind.Struct && type.kind != CompilerTypeKind.Union) {
     fatal_error(expr.pos, "Can only access fields on aggregates or pointers to aggregates");
     return operand_null;
   }
@@ -1640,7 +1640,7 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
   complete_type(type);
   let is_const = is_const_type(type);
   type = unqualify_type(type);
-  if (type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION) {
+  if (type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union) {
     let index = 0;
     for (let i: usize = 0; i < expr.compound.num_fields; i++) {
       let field: CompoundField = expr.compound.fields[i];
@@ -1661,7 +1661,7 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
       }
       index++;
     }
-  } else if (type.kind == CMPL_TYPE_ARRAY) {
+  } else if (type.kind == CompilerTypeKind.Array) {
     // These were int, but can't be negative below.
     let index: usize = 0;
     let max_index: usize = 0;
@@ -1727,7 +1727,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
     }
   }
   let function = resolve_expr_rvalue(expr.call.expr);
-  if (function.type.kind != CMPL_TYPE_FUNC) {
+  if (function.type.kind != CompilerTypeKind.Func) {
     fatal_error(expr.pos, "Cannot call non-function value");
   }
   let num_params: usize = function.type.function.num_params;
@@ -1807,11 +1807,11 @@ fn resolve_expr_cast(expr: &Expr) -> Operand {
 
 fn resolve_expr_int(expr: &Expr) -> Operand {
   #assert(expr.kind == ExprKind.Int);
-  let int_max: ullong = type_metrics[CMPL_TYPE_INT].max;
-  let uint_max: ullong = type_metrics[CMPL_TYPE_UINT].max;
-  let long_max: ullong = type_metrics[CMPL_TYPE_LONG].max;
-  let ulong_max: ullong = type_metrics[CMPL_TYPE_ULONG].max;
-  let llong_max: ullong = type_metrics[CMPL_TYPE_LLONG].max;
+  let int_max: ullong = type_metrics[CompilerTypeKind.Int].max;
+  let uint_max: ullong = type_metrics[CompilerTypeKind.UInt].max;
+  let long_max: ullong = type_metrics[CompilerTypeKind.Long].max;
+  let ulong_max: ullong = type_metrics[CompilerTypeKind.ULong].max;
+  let llong_max: ullong = type_metrics[CompilerTypeKind.LLong].max;
   let val: ullong = expr.int_lit.val;
   let operand = operand_const(type_ullong, Val {ull = val});
   let type = type_ullong;
@@ -1925,7 +1925,7 @@ fn resolve_expr_modify(expr: &Expr) -> Operand {
   if (type.nonmodifiable) {
     fatal_error(expr.pos, "Cannot modify non-modifiable type");
   }
-  if (!(is_integer_type(type) || type.kind == CMPL_TYPE_PTR)) {
+  if (!(is_integer_type(type) || type.kind == CompilerTypeKind.Ptr)) {
     fatal_error(expr.pos, "%s only valid for integer and pointer types", token_kind_name(expr.modify.op));
   }
   return operand_rvalue(type);
@@ -2034,7 +2034,7 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
   case ExprKind.Offsetof: {
     let type = resolve_typespec(expr.offsetof_field.type);
     complete_type(type);
-    if (type.kind != CMPL_TYPE_STRUCT && type.kind != CMPL_TYPE_UNION) {
+    if (type.kind != CompilerTypeKind.Struct && type.kind != CompilerTypeKind.Union) {
       fatal_error(expr.pos, "offsetof can only be used with struct/union types");
     }
     let field = aggregate_item_field_index(type, expr.offsetof_field.name);

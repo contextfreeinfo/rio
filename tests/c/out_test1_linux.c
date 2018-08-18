@@ -318,17 +318,17 @@ struct test1_Ints {
 
 typedef int test1_Color;
 
-#define test1_Color_COLOR_NONE ((test1_Color)(0))
+#define test1_Color_None ((test1_Color)(0))
 
-#define test1_Color_COLOR_RED ((test1_Color)((test1_Color_COLOR_NONE) + (1)))
+#define test1_Color_Red ((test1_Color)((test1_Color_None) + (1)))
 
-#define test1_Color_COLOR_GREEN ((test1_Color)((test1_Color_COLOR_RED) + (1)))
+#define test1_Color_Green ((test1_Color)((test1_Color_Red) + (1)))
 
-#define test1_Color_COLOR_BLUE ((test1_Color)((test1_Color_COLOR_GREEN) + (1)))
+#define test1_Color_Blue ((test1_Color)((test1_Color_Green) + (1)))
 
-#define test1_Color_NUM_COLORS ((test1_Color)((test1_Color_COLOR_BLUE) + (1)))
+#define test1_Color_Num ((test1_Color)((test1_Color_Blue) + (1)))
 
-extern char const ((*(test1_color_names[test1_Color_NUM_COLORS])));
+extern char const ((*(test1_color_names[test1_Color_Num])));
 
 #define test1_FOO ((int)(0))
 
@@ -336,9 +336,9 @@ extern char const ((*(test1_color_names[test1_Color_NUM_COLORS])));
 
 typedef int8_t test1_TypedEnum;
 
-#define test1_BAZ ((test1_TypedEnum)(0))
+#define test1_TypedEnum_Baz ((test1_TypedEnum)(0))
 
-#define test1_QUUX ((test1_TypedEnum)((test1_BAZ) + (1)))
+#define test1_TypedEnum_Quux ((test1_TypedEnum)((test1_TypedEnum_Baz) + (1)))
 
 void test1_f10(wchar_t (a[3]));
 
@@ -1017,17 +1017,17 @@ void test1_test_assign(void) {
 }
 
 void test1_test_enum(void) {
-  test1_Color a = test1_Color_COLOR_RED;
-  test1_Color b = test1_Color_COLOR_RED;
+  test1_Color a = test1_Color_Red;
+  test1_Color b = test1_Color_Red;
   int c = (a) + (b);
   int i = a;
   a = i;
-  printf("%d %d %d %d\n", test1_Color_COLOR_NONE, test1_Color_COLOR_RED, test1_Color_COLOR_GREEN, test1_Color_COLOR_BLUE);
-  printf("No color: %s\n", test1_color_names[test1_Color_COLOR_NONE]);
+  printf("%d %d %d %d\n", test1_Color_None, test1_Color_Red, test1_Color_Green, test1_Color_Blue);
+  printf("No color: %s\n", test1_color_names[test1_Color_None]);
   int d = test1_BAR;
-  test1_TypedEnum e = test1_QUUX;
+  test1_TypedEnum e = test1_TypedEnum_Quux;
   test1_TypedEnum f = {0};
-  f = test1_BAZ;
+  f = test1_TypedEnum_Baz;
 }
 
 void test1_test_arrays(void) {
@@ -1161,7 +1161,7 @@ test1_Thing const ((*test1_returns_ptr_to_const(void))) {
   return &(test1_thing);
 }
 
-char const ((*(test1_color_names[test1_Color_NUM_COLORS]))) = {[test1_Color_COLOR_NONE] = "none", [test1_Color_COLOR_RED] = "red", [test1_Color_COLOR_GREEN] = "green", [test1_Color_COLOR_BLUE] = "blue"};
+char const ((*(test1_color_names[test1_Color_Num]))) = {[test1_Color_None] = "none", [test1_Color_Red] = "red", [test1_Color_Green] = "green", [test1_Color_Blue] = "blue"};
 void test1_f10(wchar_t (a[3])) {
   a[1] = 42;
 }
