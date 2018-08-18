@@ -120,6 +120,7 @@ fn process_decl_notes(decl: &Decl, sym: &Sym) {
 
 fn sym_decl(decl: &Decl) -> &Sym {
   let kind: SymKind = SymKind.None;
+  @complete
   switch (decl.kind) {
   case DeclKind.Struct:
   case DeclKind.Union:
@@ -132,8 +133,6 @@ fn sym_decl(decl: &Decl) -> &Sym {
     kind = SymKind.Const;
   case DeclKind.Func:
     kind = SymKind.Func;
-  default:
-    #assert(0);
   }
   let sym = sym_new(kind, decl.name, decl);
   set_resolved_sym(decl, sym);

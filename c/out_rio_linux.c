@@ -6522,10 +6522,9 @@ rio_Sym (*rio_sym_decl(rio_Decl (*decl))) {
     kind = rio_SymKind_Func;
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
   rio_Sym (*sym) = rio_sym_new(kind, decl->name, decl);
   rio_set_resolved_sym(decl, sym);
