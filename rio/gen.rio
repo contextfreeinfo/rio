@@ -300,7 +300,7 @@ fn typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
     } else {
       return typespec_to_cdecl(typespec.base, cdecl_paren(strf("%s[%s]", str, gen_expr_str(typespec.num_elems)), *str));
     }
-  case TypespecKind.Func: {
+  case TypespecKind.Func:
     let result: *char = NULL;
     buf_printf(&result, "(*%s)(", str);
     if (typespec.function.num_args == 0) {
@@ -315,7 +315,6 @@ fn typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
     }
     buf_printf(&result, ")");
     return typespec_to_cdecl(typespec.function.ret, result);
-  }
   default:
     #assert(0);
     return NULL;
@@ -381,6 +380,7 @@ fn gen_aggregate_items(aggregate: &Aggregate) {
   gen_indent++;
   for (let i: usize = 0; i < aggregate.num_items; i++) {
     let item = aggregate.items[i];
+    @complete
     if (item.kind == AggregateItemKind.Field) {
       for (let j: usize = 0; j < item.num_names; j++) {
         gen_sync_pos(item.pos);
@@ -390,8 +390,6 @@ fn gen_aggregate_items(aggregate: &Aggregate) {
       genln(); buf_printf(&gen_buf, "%s {", item.subaggregate.kind == AggregateKind.Struct ? "struct" : "union");
       gen_aggregate_items(item.subaggregate);
       genln(); buf_printf(&gen_buf, "};");
-    } else {
-      #assert(0);
     }
   }
   gen_indent--;
@@ -498,6 +496,7 @@ fn gen_typeid(type: &Type) {
 }
 
 fn gen_expr(expr: &Expr) {
+  @complete
   switch (expr.kind) {
   case ExprKind.Paren:
     buf_printf(&gen_buf, "(");
@@ -617,8 +616,6 @@ fn gen_expr(expr: &Expr) {
     if (expr.modify.post) {
       buf_printf(&gen_buf, "%s", token_kind_name(expr.modify.op));
     }
-  default:
-    #assert(0);
   }
 }
 
@@ -633,6 +630,7 @@ fn gen_stmt_block(block: StmtList) {
 }
 
 fn gen_simple_stmt(stmt: &Stmt) {
+  @complete
   switch (stmt.kind) {
   case StmtKind.Expr:
     gen_expr(stmt.expr);
@@ -657,8 +655,6 @@ fn gen_simple_stmt(stmt: &Stmt) {
     gen_expr(stmt.assign.left);
     buf_printf(&gen_buf, " %s ", token_kind_name(stmt.assign.op));
     gen_expr(stmt.assign.right);
-  default:
-    #assert(0);
   }
 }
 
@@ -837,6 +833,7 @@ fn gen_decl(sym: &Sym) {
     return;
   }
   gen_sync_pos(decl.pos);
+  @complete
   switch (decl.kind) {
   case DeclKind.Const:
     genln(); buf_printf(&gen_buf, "#define %s (", get_gen_name(sym));
@@ -873,8 +870,6 @@ fn gen_decl(sym: &Sym) {
   case DeclKind.Import:
     // Do nothing
     break;
-  default:
-    #assert(0);
   }
   genln();
 }

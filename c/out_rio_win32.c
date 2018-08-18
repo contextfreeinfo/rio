@@ -3402,22 +3402,20 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
     break;
   }
   case rio_TypespecKind_Func: {
-    {
-      char (*result) = NULL;
-      rio_buf_printf(&(result), "(*%s)(", str);
-      if ((typespec->function.num_args) == (0)) {
-        rio_buf_printf(&(result), "void");
-      } else {
-        for (size_t i = 0; (i) < (typespec->function.num_args); (i)++) {
-          rio_buf_printf(&(result), "%s%s", ((i) == (0) ? "" : ", "), rio_typespec_to_cdecl(typespec->function.args[i], ""));
-        }
+    char (*result) = NULL;
+    rio_buf_printf(&(result), "(*%s)(", str);
+    if ((typespec->function.num_args) == (0)) {
+      rio_buf_printf(&(result), "void");
+    } else {
+      for (size_t i = 0; (i) < (typespec->function.num_args); (i)++) {
+        rio_buf_printf(&(result), "%s%s", ((i) == (0) ? "" : ", "), rio_typespec_to_cdecl(typespec->function.args[i], ""));
       }
-      if (typespec->function.has_varargs) {
-        rio_buf_printf(&(result), ", ...");
-      }
-      rio_buf_printf(&(result), ")");
-      return rio_typespec_to_cdecl(typespec->function.ret, result);
     }
+    if (typespec->function.has_varargs) {
+      rio_buf_printf(&(result), ", ...");
+    }
+    rio_buf_printf(&(result), ")");
+    return rio_typespec_to_cdecl(typespec->function.ret, result);
     break;
   }
   default: {
@@ -3507,7 +3505,7 @@ void rio_gen_aggregate_items(rio_Aggregate (*aggregate)) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "};");
     } else {
-      assert(0);
+      assert("@complete if/elseif chain failed to handle case" && 0);
     }
   }
   (rio_gen_indent)--;
@@ -3760,10 +3758,9 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
 }
 
@@ -3809,10 +3806,9 @@ void rio_gen_simple_stmt(rio_Stmt (*stmt)) {
     rio_gen_expr(stmt->assign.right);
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
 }
 
@@ -4096,10 +4092,9 @@ void rio_gen_decl(rio_Sym (*sym)) {
     break;
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
   rio_genln();
 }
@@ -6710,10 +6705,9 @@ void rio_put_type_name(char (*(*buf)), rio_Type (*type)) {
       }
       break;
     }
-    default: {
-      assert(0);
+    default:
+      assert("@complete switch failed to handle case" && 0);
       break;
-    }
     }
   }
 }
@@ -7545,10 +7539,9 @@ void rio_resolve_sym(rio_Sym (*sym)) {
     break;
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
   rio_leave_package(old_package);
   sym->state = rio_SymState_Resolved;
@@ -7671,10 +7664,9 @@ llong rio_eval_unary_op_ll(rio_TokenKind op, llong val) {
     return !(val);
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
   return 0;
 }
@@ -7697,10 +7689,9 @@ ullong rio_eval_unary_op_ull(rio_TokenKind op, ullong val) {
     return !(val);
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
   return 0;
 }
@@ -7771,10 +7762,9 @@ llong rio_eval_binary_op_ll(rio_TokenKind op, llong left, llong right) {
     return (left) >= (right);
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
   return 0;
 }
@@ -7845,10 +7835,9 @@ ullong rio_eval_binary_op_ull(rio_TokenKind op, ullong left, ullong right) {
     return (left) >= (right);
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
   return 0;
 }
@@ -7962,10 +7951,9 @@ rio_Operand rio_resolve_expr_unary(rio_Expr (*expr)) {
     return rio_resolve_unary_op(expr->unary.op, operand);
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
   return (rio_Operand){0};
 }
@@ -8135,10 +8123,9 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  default: {
-    assert(0);
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
-  }
   }
   return (rio_Operand){0};
 }
@@ -8386,10 +8373,9 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       type = rio_type_ullong;
       break;
     }
-    default: {
-      assert(0);
+    default:
+      assert("@complete switch failed to handle case" && 0);
       break;
-    }
     }
     if (overflow) {
       rio_fatal_error(expr->pos, "Integer literal overflow");
@@ -8456,10 +8442,9 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       type = rio_type_ullong;
       break;
     }
-    default: {
-      assert(0);
+    default:
+      assert("@complete switch failed to handle case" && 0);
       break;
-    }
     }
   }
   cast_operand(&(operand), type);

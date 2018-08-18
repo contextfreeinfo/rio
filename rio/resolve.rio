@@ -277,6 +277,7 @@ fn put_type_name(buf: **char, type: &Type) {
   if (type_name) {
     buf_printf(buf, "%s", type_name);
   } else {
+    @complete
     switch (type.kind) {
     case CompilerTypeKind.Struct:
     case CompilerTypeKind.Union:
@@ -312,8 +313,6 @@ fn put_type_name(buf: **char, type: &Type) {
         buf_printf(buf, ": ");
         put_type_name(buf, type.function.ret);
       }
-    default:
-      #assert(0);
     }
   }
 }
@@ -1114,6 +1113,7 @@ fn resolve_sym(sym: &Sym) {
   sym.state = SymState.Resolving;
   let decl = sym.decl;
   let old_package = enter_package(sym.home_package);
+  @complete
   switch (sym.kind) {
   case SymKind.Type:
     if (decl && decl.kind == DeclKind.Typedef) {
@@ -1137,8 +1137,6 @@ fn resolve_sym(sym: &Sym) {
   case SymKind.Package:
     // Do nothing
     break;
-  default:
-    #assert(0);
   }
   leave_package(old_package);
   sym.state = SymState.Resolved;
@@ -1247,6 +1245,7 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
 }
 
 fn eval_unary_op_ll(op: TokenKind, val: llong) -> llong {
+  @complete
   switch (op) {
   case TokenKind.Add:
     return +val;
@@ -1256,13 +1255,12 @@ fn eval_unary_op_ll(op: TokenKind, val: llong) -> llong {
     return ~val;
   case TokenKind.Not:
     return !val;
-  default:
-    #assert(0);
   }
   return 0;
 }
 
 fn eval_unary_op_ull(op: TokenKind, val: ullong) -> ullong {
+  @complete
   switch (op) {
   case TokenKind.Add:
     return +val;
@@ -1272,13 +1270,12 @@ fn eval_unary_op_ull(op: TokenKind, val: ullong) -> ullong {
     return ~val;
   case TokenKind.Not:
     return !val;
-  default:
-    #assert(0);
   }
   return 0;
 }
 
 fn eval_binary_op_ll(op: TokenKind, left: llong, right: llong) -> llong {
+  @complete
   switch (op) {
   case TokenKind.Mul:
     return left * right;
@@ -1312,13 +1309,12 @@ fn eval_binary_op_ll(op: TokenKind, left: llong, right: llong) -> llong {
     return left > right;
   case TokenKind.GtEq:
     return left >= right;
-  default:
-    #assert(0);
   }
   return 0;
 }
 
 fn eval_binary_op_ull(op: TokenKind, left: ullong, right: ullong) -> ullong {
+  @complete
   switch (op) {
   case TokenKind.Mul:
     return left * right;
@@ -1352,8 +1348,6 @@ fn eval_binary_op_ull(op: TokenKind, left: ullong, right: ullong) -> ullong {
     return left > right;
   case TokenKind.GtEq:
     return left >= right;
-  default:
-    #assert(0);
   }
   return 0;
 }
@@ -1437,6 +1431,7 @@ fn resolve_unary_op(op: TokenKind, operand: Operand) -> Operand {
 fn resolve_expr_unary(expr: &Expr) -> Operand {
   let operand = resolve_expr_rvalue(expr.unary.expr);
   let type = operand.type;
+  @complete
   switch (expr.unary.op) {
   case TokenKind.Mul:
     if (!is_ptr_type(type)) {
@@ -1459,8 +1454,6 @@ fn resolve_expr_unary(expr: &Expr) -> Operand {
       fatal_error(expr.pos," Can only use ! with scalar types");
     }
     return resolve_unary_op(expr.unary.op, operand);
-  default:
-    #assert(0);
   }
   return Operand {0};
 }
@@ -1479,6 +1472,7 @@ fn resolve_binary_arithmetic_op(op: TokenKind, left: Operand, right: Operand) ->
 }
 
 fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left: Operand, right: Operand) -> Operand {
+  @complete
   switch (op) {
   case TokenKind.Mul:
   case TokenKind.Div:
@@ -1612,8 +1606,6 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
     } else {
       fatal_error(pos, "Operands of %s must have scalar types", op_name);
     }
-  default:
-    #assert(0);
   }
   return Operand {0};
 }
@@ -1818,6 +1810,7 @@ fn resolve_expr_int(expr: &Expr) -> Operand {
   let type = type_ullong;
   if (expr.int_lit.mod == TokenMod.None) {
     let overflow = false;
+    @complete
     switch (expr.int_lit.suffix) {
     case TokenSuffix.None:
       type = type_int;
@@ -1852,13 +1845,12 @@ fn resolve_expr_int(expr: &Expr) -> Operand {
       overflow = val > llong_max;
     case TokenSuffix.ULL:
       type = type_ullong;
-    default:
-      #assert(0);
     }
     if (overflow) {
       fatal_error(expr.pos, "Integer literal overflow");
     }
   } else {
+    @complete
     switch (expr.int_lit.suffix) {
     case TokenSuffix.None:
       type = type_int;
@@ -1908,8 +1900,6 @@ fn resolve_expr_int(expr: &Expr) -> Operand {
       }
     case TokenSuffix.ULL:
       type = type_ullong;
-    default:
-      #assert(0);
     }
   }
   cast_operand(&operand, type);
