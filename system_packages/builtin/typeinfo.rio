@@ -1,6 +1,5 @@
 typedef typeid = ullong;
 
-@scoped
 enum TypeKind {
   None,
   Void,

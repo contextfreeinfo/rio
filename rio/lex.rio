@@ -99,7 +99,6 @@ fn is_keyword_name(name: *const char) -> bool {
   return first_keyword <= name && name <= last_keyword;
 }
 
-@scoped
 enum TokenKind {
   Eof,
   Colon,
@@ -170,7 +169,6 @@ enum TokenKind {
   NumKinds,
 }
 
-@scoped
 enum TokenMod {
   None,
   Hex,
@@ -180,7 +178,6 @@ enum TokenMod {
   Multiline,
 }
 
-@scoped
 enum TokenSuffix {
   None,
   D,

@@ -1,4 +1,3 @@
-@scoped
 enum Os {
   Win32,
   Linux,
@@ -12,7 +11,6 @@ let os_names: [Os.Num]*const char = {
   [Os.OsX] = "osx",
 };
 
-@scoped
 enum Arch {
   X64,
   X86,

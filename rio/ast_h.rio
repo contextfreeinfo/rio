@@ -24,7 +24,6 @@ struct StmtList {
   num_stmts: usize;
 }
 
-@scoped
 enum TypespecKind {
   None,
   Name,
@@ -60,7 +59,6 @@ struct FuncParam {
   type: &Typespec;
 }
 
-@scoped
 enum AggregateItemKind {
   None,
   Field,
@@ -91,7 +89,6 @@ struct ImportItem {
   rename: *const char;
 }
 
-@scoped
 enum DeclKind {
   None,
   Enum,
@@ -105,7 +102,6 @@ enum DeclKind {
   Import,
 }
 
-@scoped
 enum AggregateKind {
   None,
   Struct,
@@ -174,7 +170,6 @@ struct Decls {
   num_decls: usize;
 }
 
-@scoped
 enum ExprKind {
   None,
   Paren,
@@ -200,7 +195,6 @@ enum ExprKind {
   Offsetof,
 }
 
-@scoped
 enum CompoundFieldKind {
   Default,
   Name,
@@ -339,7 +333,6 @@ struct SwitchCase {
   block: StmtList;
 }
 
-@scoped
 enum StmtKind {
   None,
   Decl,

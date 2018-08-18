@@ -283,7 +283,6 @@ struct T {
   a: [M]int;
 }
 
-@scoped
 enum Color {
   None,
   Red,

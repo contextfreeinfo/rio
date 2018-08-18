@@ -89,7 +89,6 @@ fn dir_list_buf(filespec: *const char) -> **const char {
 
 // Command line flag parsing
 
-@scoped
 enum FlagKind {
   Bool,
   Str,

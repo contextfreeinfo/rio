@@ -1,4 +1,3 @@
-@scoped
 enum SymKind {
   None,
   Var,
@@ -8,7 +7,6 @@ enum SymKind {
   Package,
 }
 
-@scoped
 enum SymState {
   Unresolved,
   Resolving,
@@ -50,7 +48,6 @@ let builtin_package: &Package;
 let package_map: Map;
 let package_list: *&Package;
 
-@scoped
 enum ReachablePhase = uint8 {
   None,
   Natural,
