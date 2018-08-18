@@ -39,10 +39,12 @@ struct Typespec {
   pos: SrcPos;
   base: &Typespec;
   is_owned: bool;
+  // Almost @tagged
   union {
     name: *const char;
     function: TypespecFunc;
     num_elems: *Expr;
+    // Voids?: Ptr, Ref, Const
   }
 }
 
@@ -68,6 +70,7 @@ enum AggregateItemKind {
 struct AggregateItem {
   pos: SrcPos;
   kind: AggregateItemKind;
+  // @tagged
   union {
     struct {
       names: **const char;
@@ -121,9 +124,11 @@ struct Decl {
   name: *const char;
   notes: Notes;
   is_incomplete: bool;
+  // Almost @tagged
   union {
     note: Note;
     enum_decl: DeclEnum;
+    // Incudes: Struct, Union
     aggregate: &Aggregate;
     function: DeclFunc;
     typedef_decl: DeclTypedef;
@@ -205,6 +210,7 @@ struct CompoundField {
   kind: CompoundFieldKind;
   pos: SrcPos;
   init: &Expr;
+  // @tagged
   union {
     name: *const char;
     index: &Expr;
@@ -214,6 +220,7 @@ struct CompoundField {
 struct Expr {
   kind: ExprKind;
   pos: SrcPos;
+  // @tagged
   union {
     paren: ExprParen;
     int_lit: ExprIntLit;
@@ -357,11 +364,14 @@ struct Stmt {
   kind: StmtKind;
   notes: Notes;
   pos: SrcPos;
+  // Almost @tagged
   union {
     note: Note;
+    // Includes: Expr, Return
     expr: &Expr;
     decl: &Decl;
     if_stmt: StmtIf;
+    // Includes: While, DoWhile
     while_stmt: StmtWhile;
     for_stmt: StmtFor;
     switch_stmt: StmtSwitch;
@@ -369,6 +379,7 @@ struct Stmt {
     assign: StmtAssign;
     init: StmtInit;
     label: *const char;
+    // Voids: Break, Continue
   }
 }
 

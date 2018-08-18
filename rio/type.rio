@@ -42,6 +42,7 @@ struct Type {
   base: &Type;
   typeid: int;
   nonmodifiable: bool;
+  // Not @tagged?, or just many voids?
   union {
     num_elems: usize;
     aggregate: TypeAggregate;

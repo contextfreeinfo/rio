@@ -199,6 +199,7 @@ fn example_test() -> int {
   return fact_rec(10) == fact_iter(10);
 }
 
+// Should be @tagged
 union IntOrPtr {
   i: int;
   p: *int;

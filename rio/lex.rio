@@ -290,6 +290,7 @@ struct Token {
   pos: SrcPos;
   start: *const char;
   end: *const char;
+  // Not @tagged?, very many to one
   union {
     int_val: ullong;
     float_val: double;

@@ -21,6 +21,7 @@ struct Sym {
   reachable: ReachablePhase;
   decl: &Decl;
   external_name: *const char;
+  // Not @tagged?, rather many to one
   union {
     struct {
       type: &Type;

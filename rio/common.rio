@@ -112,7 +112,7 @@ fn read_file(path: *const char) -> *char {
     free(buf);
     return NULL;
   }
-  fclose(file);   
+  fclose(file);
   buf[len] = 0;
   return buf;
 }
@@ -463,6 +463,7 @@ fn str_islower(str: *const char) -> bool {
 
 // Value union
 
+// Not @tagged here?, type implied by operand type or whatnot
 union Val {
   b: bool;
   c: char;
