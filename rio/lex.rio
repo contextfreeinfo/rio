@@ -37,6 +37,8 @@ let assert_name: *const char;
 let declare_note_name: *const char;
 let static_assert_name: *const char;
 
+let void_name: *const char;
+
 // #define KEYWORD(name) name##_keyword = str_intern(#name); buf_push(keywords, name##_keyword)
 fn init_keyword(keyword: *const char) -> *const char {
   keyword = str_intern(keyword);
@@ -89,6 +91,8 @@ fn init_keywords() {
   assert_name = str_intern("assert");
   declare_note_name = str_intern("declare_note");
   static_assert_name = str_intern("static_assert");
+
+  void_name = str_intern("void");
 
   keywords_inited = true;
 }

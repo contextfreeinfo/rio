@@ -902,6 +902,8 @@ extern char const ((*rio_declare_note_name));
 
 extern char const ((*rio_static_assert_name));
 
+extern char const ((*rio_void_name));
+
 char const ((*rio_init_keyword(char const ((*keyword)))));
 
 extern bool rio_keywords_inited;
@@ -2175,6 +2177,9 @@ struct rio_ElseIf {
 };
 
 union rio_StmtDetail {
+  // void None;
+  // void Break;
+  // void Continue;
   rio_StmtWhile DoWhile;
   rio_StmtWhile While;
   rio_Expr (*Expr);
@@ -3513,8 +3518,15 @@ void rio_gen_aggregate_items(rio_Aggregate (*aggregate)) {
     if ((item.kind) == (rio_AggregateItemKind_Field)) {
       for (size_t j = 0; (j) < (item.num_names); (j)++) {
         rio_gen_sync_pos(item.pos);
+        char (*prefix) = "";
+        if ((item.type->kind) == (rio_TypespecKind_Name)) {
+          char const ((*name)) = rio_get_gen_name_or_default(item.type, item.type->name);
+          if ((name) == (rio_void_name)) {
+            prefix = "// ";
+          }
+        }
         rio_genln();
-        rio_buf_printf(&(rio_gen_buf), "%s;", rio_typespec_to_cdecl(item.type, item.names[j]));
+        rio_buf_printf(&(rio_gen_buf), "%s%s;", prefix, rio_typespec_to_cdecl(item.type, item.names[j]));
       }
     } else if ((item.kind) == (rio_AggregateItemKind_Subaggregate)) {
       rio_genln();
@@ -4562,6 +4574,7 @@ char const ((*rio_complete_name));
 char const ((*rio_assert_name));
 char const ((*rio_declare_note_name));
 char const ((*rio_static_assert_name));
+char const ((*rio_void_name));
 char const ((*rio_init_keyword(char const ((*keyword))))) {
   keyword = rio_str_intern(keyword);
   rio_buf_push((void (**))(&(rio_keywords)), (void *)(&(keyword)), sizeof(keyword));
@@ -4610,6 +4623,7 @@ void rio_init_keywords(void) {
   rio_assert_name = rio_str_intern("assert");
   rio_declare_note_name = rio_str_intern("declare_note");
   rio_static_assert_name = rio_str_intern("static_assert");
+  rio_void_name = rio_str_intern("void");
   rio_keywords_inited = true;
 }
 

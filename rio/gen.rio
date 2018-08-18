@@ -384,9 +384,22 @@ fn gen_aggregate_items(aggregate: &Aggregate) {
     if (item.kind == AggregateItemKind.Field) {
       for (let j: usize = 0; j < item.num_names; j++) {
         gen_sync_pos(item.pos);
-        // if (item.type.kind != CompilerTypeKind.Void) {
-          genln(); buf_printf(&gen_buf, "%s;", typespec_to_cdecl(item.type, item.names[j]));
-        // }
+        let prefix = "";
+        // Skip actually generating void fields.
+        // TODO Error on uses of void fields.
+        // TODO Error on void fields outside of enum unions.
+        // TODO Find a better way to check for void.
+        if (item.type.kind == TypespecKind.Name) {
+          let name = get_gen_name_or_default(item.type, item.type.name);
+          if (name == void_name) {
+            prefix = "// ";
+          }
+        }
+        // Generate standard field.
+        genln();
+        buf_printf(
+          &gen_buf, "%s%s;", prefix, typespec_to_cdecl(item.type, item.names[j]),
+        );
       }
     } else if (item.kind == AggregateItemKind.Subaggregate) {
       genln(); buf_printf(&gen_buf, "%s {", item.subaggregate.kind == AggregateKind.Struct ? "struct" : "union");

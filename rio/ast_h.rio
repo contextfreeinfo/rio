@@ -385,11 +385,10 @@ enum StmtKind {
   Goto,
 }
 
-// @enum
-union StmtDetail {
-  // None,
-  // Break,
-  // Continue: void;
+@enum union StmtDetail {
+  None,
+  Break,
+  Continue: void;
   DoWhile,
   While: StmtWhile;
   Expr,
