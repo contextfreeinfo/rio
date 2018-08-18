@@ -1,32 +1,32 @@
 enum Os {
-  OS_WIN32,
-  OS_LINUX,
-  OS_OSX,
-  NUM_OSES,
+  Win32,
+  Linux,
+  OsX,
+  Num,
 }
 
-let os_names: [NUM_OSES]*const char = {
-  [OS_WIN32] = "win32",
-  [OS_LINUX] = "linux",
-  [OS_OSX] = "osx",
+let os_names: [Os.Num]*const char = {
+  [Os.Win32] = "win32",
+  [Os.Linux] = "linux",
+  [Os.OsX] = "osx",
 };
 
 enum Arch {
-  ARCH_X64,
-  ARCH_X86,
-  NUM_ARCHES,
+  X64,
+  X86,
+  Num,
 }
 
-let arch_names: [NUM_ARCHES]*const char = {
-  [ARCH_X64] = "x64",
-  [ARCH_X86] = "x86",
+let arch_names: [Arch.Num]*const char = {
+  [Arch.X64] = "x64",
+  [Arch.X86] = "x86",
 };
 
 let target_os: int;
 let target_arch: int;
 
 fn get_os(name: *const char) -> int {
-  for (let i = 0; i < NUM_OSES; i++) {
+  for (let i = 0; i < Os.Num; i++) {
     if (strcmp(os_names[i], name) == 0) {
       return i;
     }
@@ -35,7 +35,7 @@ fn get_os(name: *const char) -> int {
 }
 
 fn get_arch(name: *const char) -> int {
-  for (let i = 0; i < NUM_ARCHES; i++) {
+  for (let i = 0; i < Arch.Num; i++) {
     if (strcmp(arch_names[i], name) == 0) {
       return i;
     }
@@ -43,72 +43,72 @@ fn get_arch(name: *const char) -> int {
   return -1;
 }
 
-fn init_default_type_metrics(metrics: [NUM_CMPL_TYPE_KINDS]TypeMetrics) {
-  metrics[CMPL_TYPE_REF] = metrics[CMPL_TYPE_PTR];
-  metrics[CMPL_TYPE_BOOL] = {size = 1, align = 1};
-  metrics[CMPL_TYPE_CHAR] = {size = 1, align = 1, max = 0x7f, sign = true};
-  metrics[CMPL_TYPE_SCHAR] = {size = 1, align = 1, max = 0x7f, sign = true};
-  metrics[CMPL_TYPE_UCHAR] = {size = 1, align = 1, max = 0xff};
-  metrics[CMPL_TYPE_SHORT] = {size = 2, align = 2, max = 0x7fff, sign = true};
-  metrics[CMPL_TYPE_USHORT] = {size = 2, align = 2, max = 0xffff};
-  metrics[CMPL_TYPE_INT] = {size = 4, align = 4, max = 0x7fffffff, sign = true};
-  metrics[CMPL_TYPE_UINT] = {size = 4, align = 4, max = 0xffffffff};
-  metrics[CMPL_TYPE_LLONG] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true};
-  metrics[CMPL_TYPE_ULLONG] = {size = 8, align = 8, max = 0xffffffffffffffff};
-  metrics[CMPL_TYPE_FLOAT] = {size = 4, align = 4};
-  metrics[CMPL_TYPE_DOUBLE] = {size = 8, align = 8};
+fn init_default_type_metrics(metrics: [CompilerTypeKind.Num]TypeMetrics) {
+  metrics[CompilerTypeKind.Ref] = metrics[CompilerTypeKind.Ptr];
+  metrics[CompilerTypeKind.Bool] = {size = 1, align = 1};
+  metrics[CompilerTypeKind.Char] = {size = 1, align = 1, max = 0x7f, sign = true};
+  metrics[CompilerTypeKind.SChar] = {size = 1, align = 1, max = 0x7f, sign = true};
+  metrics[CompilerTypeKind.UChar] = {size = 1, align = 1, max = 0xff};
+  metrics[CompilerTypeKind.Short] = {size = 2, align = 2, max = 0x7fff, sign = true};
+  metrics[CompilerTypeKind.UShort] = {size = 2, align = 2, max = 0xffff};
+  metrics[CompilerTypeKind.Int] = {size = 4, align = 4, max = 0x7fffffff, sign = true};
+  metrics[CompilerTypeKind.UInt] = {size = 4, align = 4, max = 0xffffffff};
+  metrics[CompilerTypeKind.LLong] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true};
+  metrics[CompilerTypeKind.ULLong] = {size = 8, align = 8, max = 0xffffffffffffffff};
+  metrics[CompilerTypeKind.Float] = {size = 4, align = 4};
+  metrics[CompilerTypeKind.Double] = {size = 8, align = 8};
 }
 
-let win32_x86_metrics: [NUM_CMPL_TYPE_KINDS]TypeMetrics = {
+let win32_x86_metrics: [CompilerTypeKind.Num]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
-  [CMPL_TYPE_PTR] = {size = 4, align = 4},
-  [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
-  [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CompilerTypeKind.Ptr] = {size = 4, align = 4},
+  [CompilerTypeKind.Long] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CompilerTypeKind.ULong] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
-let win32_x64_metrics: [NUM_CMPL_TYPE_KINDS]TypeMetrics = {
+let win32_x64_metrics: [CompilerTypeKind.Num]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
-  [CMPL_TYPE_PTR] = {size = 8, align = 8},
-  [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
-  [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CompilerTypeKind.Ptr] = {size = 8, align = 8},
+  [CompilerTypeKind.Long] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CompilerTypeKind.ULong] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
-let ilp32_metrics: [NUM_CMPL_TYPE_KINDS]TypeMetrics = {
+let ilp32_metrics: [CompilerTypeKind.Num]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
-  [CMPL_TYPE_PTR] = {size = 4, align = 4},
-  [CMPL_TYPE_LONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
-  [CMPL_TYPE_ULONG] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CompilerTypeKind.Ptr] = {size = 4, align = 4},
+  [CompilerTypeKind.Long] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CompilerTypeKind.ULong] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
 };
 
-let lp64_metrics: [NUM_CMPL_TYPE_KINDS]TypeMetrics = {
+let lp64_metrics: [CompilerTypeKind.Num]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
-  [CMPL_TYPE_PTR] = {size = 8, align = 8},
-  [CMPL_TYPE_LONG] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true},
-  [CMPL_TYPE_ULONG] = {size = 8, align = 8, max = 0xffffffffffffffff, sign = true},
+  [CompilerTypeKind.Ptr] = {size = 8, align = 8},
+  [CompilerTypeKind.Long] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true},
+  [CompilerTypeKind.ULong] = {size = 8, align = 8, max = 0xffffffffffffffff, sign = true},
 };
 
 fn init_target() {
   type_metrics = NULL;
   switch (target_os) {
-  case OS_WIN32:
+  case Os.Win32:
     switch (target_arch) {
-    case ARCH_X86:
+    case Arch.X86:
       type_metrics = win32_x86_metrics;
-    case ARCH_X64:
+    case Arch.X64:
       type_metrics = win32_x64_metrics;
     default:
     }
-  case OS_LINUX:
+  case Os.Linux:
     switch (target_arch) {
-    case ARCH_X86:
+    case Arch.X86:
       type_metrics = ilp32_metrics;
-    case ARCH_X64:
+    case Arch.X64:
       type_metrics = lp64_metrics;
     default:
     }
-  case OS_OSX:
+  case Os.OsX:
     switch (target_arch) {
-    case ARCH_X64:
+    case Arch.X64:
       type_metrics = lp64_metrics;
     default:
     }
@@ -119,12 +119,12 @@ fn init_target() {
     exit(1);
   }
   init_default_type_metrics(type_metrics);
-  if (type_metrics[CMPL_TYPE_PTR].size == 4) {
+  if (type_metrics[CompilerTypeKind.Ptr].size == 4) {
     type_uintptr = type_uint;
     type_usize = type_uint;
     type_ssize = type_int;
   } else {
-    #assert(type_metrics[CMPL_TYPE_PTR].size == 8);
+    #assert(type_metrics[CompilerTypeKind.Ptr].size == 8);
     type_uintptr = type_ullong;
     type_usize = type_ullong;
     type_ssize = type_llong;

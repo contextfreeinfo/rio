@@ -76,51 +76,51 @@ typedef ullong typeid;
 
 typedef int TypeKind;
 
-#define TYPE_NONE ((TypeKind)(0))
+#define TypeKind_None ((TypeKind)(0))
 
-#define TYPE_VOID ((TypeKind)((TYPE_NONE) + (1)))
+#define TypeKind_Void ((TypeKind)((TypeKind_None) + (1)))
 
-#define TYPE_BOOL ((TypeKind)((TYPE_VOID) + (1)))
+#define TypeKind_Bool ((TypeKind)((TypeKind_Void) + (1)))
 
-#define TYPE_CHAR ((TypeKind)((TYPE_BOOL) + (1)))
+#define TypeKind_Char ((TypeKind)((TypeKind_Bool) + (1)))
 
-#define TYPE_UCHAR ((TypeKind)((TYPE_CHAR) + (1)))
+#define TypeKind_UChar ((TypeKind)((TypeKind_Char) + (1)))
 
-#define TYPE_SCHAR ((TypeKind)((TYPE_UCHAR) + (1)))
+#define TypeKind_SChar ((TypeKind)((TypeKind_UChar) + (1)))
 
-#define TYPE_SHORT ((TypeKind)((TYPE_SCHAR) + (1)))
+#define TypeKind_Short ((TypeKind)((TypeKind_SChar) + (1)))
 
-#define TYPE_USHORT ((TypeKind)((TYPE_SHORT) + (1)))
+#define TypeKind_UShort ((TypeKind)((TypeKind_Short) + (1)))
 
-#define TYPE_INT ((TypeKind)((TYPE_USHORT) + (1)))
+#define TypeKind_Int ((TypeKind)((TypeKind_UShort) + (1)))
 
-#define TYPE_UINT ((TypeKind)((TYPE_INT) + (1)))
+#define TypeKind_UInt ((TypeKind)((TypeKind_Int) + (1)))
 
-#define TYPE_LONG ((TypeKind)((TYPE_UINT) + (1)))
+#define TypeKind_Long ((TypeKind)((TypeKind_UInt) + (1)))
 
-#define TYPE_ULONG ((TypeKind)((TYPE_LONG) + (1)))
+#define TypeKind_ULong ((TypeKind)((TypeKind_Long) + (1)))
 
-#define TYPE_LLONG ((TypeKind)((TYPE_ULONG) + (1)))
+#define TypeKind_LLong ((TypeKind)((TypeKind_ULong) + (1)))
 
-#define TYPE_ULLONG ((TypeKind)((TYPE_LLONG) + (1)))
+#define TypeKind_ULLong ((TypeKind)((TypeKind_LLong) + (1)))
 
-#define TYPE_FLOAT ((TypeKind)((TYPE_ULLONG) + (1)))
+#define TypeKind_Float ((TypeKind)((TypeKind_ULLong) + (1)))
 
-#define TYPE_DOUBLE ((TypeKind)((TYPE_FLOAT) + (1)))
+#define TypeKind_Double ((TypeKind)((TypeKind_Float) + (1)))
 
-#define TYPE_CONST ((TypeKind)((TYPE_DOUBLE) + (1)))
+#define TypeKind_Const ((TypeKind)((TypeKind_Double) + (1)))
 
-#define TYPE_PTR ((TypeKind)((TYPE_CONST) + (1)))
+#define TypeKind_Ptr ((TypeKind)((TypeKind_Const) + (1)))
 
-#define TYPE_REF ((TypeKind)((TYPE_PTR) + (1)))
+#define TypeKind_Ref ((TypeKind)((TypeKind_Ptr) + (1)))
 
-#define TYPE_ARRAY ((TypeKind)((TYPE_REF) + (1)))
+#define TypeKind_Array ((TypeKind)((TypeKind_Ref) + (1)))
 
-#define TYPE_STRUCT ((TypeKind)((TYPE_ARRAY) + (1)))
+#define TypeKind_Struct ((TypeKind)((TypeKind_Array) + (1)))
 
-#define TYPE_UNION ((TypeKind)((TYPE_STRUCT) + (1)))
+#define TypeKind_Union ((TypeKind)((TypeKind_Struct) + (1)))
 
-#define TYPE_FUNC ((TypeKind)((TYPE_UNION) + (1)))
+#define TypeKind_Func ((TypeKind)((TypeKind_Union) + (1)))
 
 struct TypeInfo {
   TypeKind kind;
@@ -217,50 +217,51 @@ TypeInfo const ((*get_typeinfo(typeid type))) {
 
 static void va_arg_ptr(va_list *args, Any any) {
   switch (typeid_kind(any.type)) {
-  case TYPE_BOOL:
+  case TypeKind_Bool:
     *(bool *)any.ptr = (bool)va_arg(*args, int);
     break;
-  case TYPE_CHAR:
+  case TypeKind_Char:
     *(char *)any.ptr = (char)va_arg(*args, int);
     break;
-  case TYPE_UCHAR:
+  case TypeKind_UChar:
     *(uchar *)any.ptr = (uchar)va_arg(*args, int);
     break;
-  case TYPE_SCHAR:
+  case TypeKind_SChar:
     *(schar *)any.ptr = (schar)va_arg(*args, int);
     break;
-  case TYPE_SHORT:
+  case TypeKind_Short:
     *(short *)any.ptr = (short)va_arg(*args, int);
     break;
-  case TYPE_USHORT:
+  case TypeKind_UShort:
     *(ushort *)any.ptr = (ushort)va_arg(*args, int);
     break;
-  case TYPE_INT:
+  case TypeKind_Int:
     *(int *)any.ptr = va_arg(*args, int);
     break;
-  case TYPE_UINT:
+  case TypeKind_UInt:
     *(uint *)any.ptr = va_arg(*args, uint);
     break;
-  case TYPE_LONG:
+  case TypeKind_Long:
     *(long *)any.ptr = va_arg(*args, long);
     break;
-  case TYPE_ULONG:
+  case TypeKind_ULong:
     *(ulong *)any.ptr = va_arg(*args, ulong);
     break;
-  case TYPE_LLONG:
+  case TypeKind_LLong:
     *(llong *)any.ptr = va_arg(*args, llong);
     break;
-  case TYPE_ULLONG:
+  case TypeKind_ULLong:
     *(ullong *)any.ptr = va_arg(*args, ullong);
     break;
-  case TYPE_FLOAT:
+  case TypeKind_Float:
     *(float *)any.ptr = (float)va_arg(*args, double);
     break;
-  case TYPE_DOUBLE:
+  case TypeKind_Double:
     *(double *)any.ptr = va_arg(*args, double);
     break;
-  case TYPE_FUNC:
-  case TYPE_PTR:
+  case TypeKind_Func:
+  case TypeKind_Ptr:
+  case TypeKind_Ref:
     *(void **)any.ptr = va_arg(*args, void *);
     break;
   default:

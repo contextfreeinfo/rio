@@ -114,7 +114,7 @@ fn test_loops() {
   while (0) {
   }
   for (let i = 0; i < 10; i++) {
-  }   
+  }
   for (;;) {
     break;
   }
@@ -284,11 +284,11 @@ struct T {
 }
 
 enum Color {
-  COLOR_NONE,
-  COLOR_RED,
-  COLOR_GREEN,
-  COLOR_BLUE,
-  NUM_COLORS,
+  None,
+  Red,
+  Green,
+  Blue,
+  Num,
 }
 
 enum {
@@ -296,29 +296,31 @@ enum {
   BAR,
 }
 
+@unscoped
 enum TypedEnum = int8 {
   BAZ,
-  QUUX
+  QUUX,
 }
 
-let color_names: [NUM_COLORS]*const char = {
-// let color_names: [*const char; NUM_COLORS] = {
-  [COLOR_NONE] = "none",
-  [COLOR_RED] = "red",
-  [COLOR_GREEN] = "green",
-  [COLOR_BLUE] = "blue",
+let color_names: [Color.Num]*const char = {
+// let color_names: [*const char; Num] = {
+  [Color.None] = "none",
+  [Color.Red] = "red",
+  [Color.Green] = "green",
+  [Color.Blue] = "blue",
 };
 
 fn test_enum() {
-  let a: Color = COLOR_RED;
-  let b = COLOR_RED;
+  let a: Color = Color.Red;
+  let b = Color.Red;
   let c = a + b;
   let i: int = a;
   a = i;
   printf(
     "%d %d %d %d\n",
-    COLOR_NONE, COLOR_RED, COLOR_GREEN, COLOR_BLUE,
+    Color.None, Color.Red, Color.Green, Color.Blue,
   );
+  printf("No color: %s\n", color_names[Color.None]);
   let d = BAR;
   let e = QUUX;
   #static_assert(typeof(e) == typeof(TypedEnum));
@@ -537,16 +539,16 @@ fn print_type(type: typeid) {
     return;
   }
   switch (typeinfo.kind) {
-  case TYPE_PTR:
+  case TypeKind.Ptr:
     print_type(typeinfo.base);
     printf("*");
-  case TYPE_REF:
+  case TypeKind.Ref:
     print_type(typeinfo.base);
     printf("&");
-  case TYPE_CONST:
+  case TypeKind.Const:
     print_type(typeinfo.base);
     printf(" const");
-  case TYPE_ARRAY:
+  case TypeKind.Array:
     print_type(typeinfo.base);
     printf("[%d]", typeinfo.count);
   default:
@@ -573,8 +575,8 @@ fn print_typeinfo(type: typeid) {
   print_type(type);
   printf(" size=%d align=%d", typeinfo.size, typeinfo.align);
   switch (typeinfo.kind) {
-  case TYPE_STRUCT, TYPE_UNION:
-    printf(" %s={ ", typeinfo.kind == TYPE_STRUCT ? "struct" : "union");
+  case TypeKind.Struct, TypeKind.Union:
+    printf(" %s={ ", typeinfo.kind == TypeKind.Struct ? "struct" : "union");
     for (let i = 0; i < typeinfo.num_fields; i++) {
       let field = typeinfo.fields[i];
       printf("@offset(%d) %s: ", field.offset, field.name);

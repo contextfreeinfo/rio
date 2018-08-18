@@ -1,16 +1,16 @@
 enum SymKind {
-  SYM_NONE,
-  SYM_VAR,
-  SYM_CONST,
-  SYM_FUNC,
-  SYM_TYPE,
-  SYM_PACKAGE,
+  None,
+  Var,
+  Const,
+  Func,
+  Type,
+  Package,
 }
 
 enum SymState {
-  SYM_UNRESOLVED,
-  SYM_RESOLVING,
-  SYM_RESOLVED,
+  Unresolved,
+  Resolving,
+  Resolved,
 }
 
 struct Sym {
@@ -18,7 +18,7 @@ struct Sym {
   home_package: &Package;
   kind: SymKind;
   state: SymState;
-  reachable: uint8;
+  reachable: ReachablePhase;
   decl: &Decl;
   external_name: *const char;
   union {
@@ -41,22 +41,20 @@ struct Package {
   always_reachable: bool;
 }
 
-enum {
-  MAX_LOCAL_SYMS = 1024
-}
+const MAX_LOCAL_SYMS = 1024;
 
 let current_package: &Package;
 let builtin_package: &Package;
 let package_map: Map;
 let package_list: *&Package;
 
-enum {
-  REACHABLE_NONE,
-  REACHABLE_NATURAL,
-  REACHABLE_FORCED,
+enum ReachablePhase = uint8 {
+  None,
+  Natural,
+  Forced,
 }
 
-let reachable_phase: uint8 = REACHABLE_NATURAL;
+let reachable_phase = ReachablePhase.Natural;
 
 fn get_package_sym(package: &Package, name: *const char) -> &Sym {
   return map_get(&package.syms_map, name);
@@ -111,7 +109,7 @@ fn process_decl_notes(decl: &Decl, sym: &Sym) {
       external_name = sym.name;
     } else {
       let arg = foreign_note.args[0].expr;
-      if (arg.kind != EXPR_STR) {
+      if (arg.kind != ExprKind.Str) {
         fatal_error(decl.pos, "@foreign argument 1 must be a string literal");
       }
       external_name = arg.str_lit.val;
@@ -121,19 +119,19 @@ fn process_decl_notes(decl: &Decl, sym: &Sym) {
 }
 
 fn sym_decl(decl: &Decl) -> &Sym {
-  let kind: SymKind = SYM_NONE;
+  let kind: SymKind = SymKind.None;
   switch (decl.kind) {
-  case DECL_STRUCT:
-  case DECL_UNION:
-  case DECL_TYPEDEF:
-  case DECL_ENUM:
-    kind = SYM_TYPE;
-  case DECL_VAR:
-    kind = SYM_VAR;
-  case DECL_CONST:
-    kind = SYM_CONST;
-  case DECL_FUNC:
-    kind = SYM_FUNC;
+  case DeclKind.Struct:
+  case DeclKind.Union:
+  case DeclKind.Typedef:
+  case DeclKind.Enum:
+    kind = SymKind.Type;
+  case DeclKind.Var:
+    kind = SymKind.Var;
+  case DeclKind.Const:
+    kind = SymKind.Const;
+  case DeclKind.Func:
+    kind = SymKind.Func;
   default:
     #assert(0);
   }
@@ -167,8 +165,8 @@ fn sym_push_var(name: *const char, type: &Type) -> bool {
   }
   *local_syms_end++ = Sym {
     name = name,
-    kind = SYM_VAR,
-    state = SYM_RESOLVED,
+    kind = SymKind.Var,
+    state = SymState.Resolved,
     type = type,
   };
   return true;
@@ -188,7 +186,7 @@ fn sym_global_put(name: *const char, sym: &Sym) {
     if (sym == old_sym) {
       return;
     }
-    if (sym.kind == SYM_PACKAGE && old_sym.kind == SYM_PACKAGE && sym.package == old_sym.package) {
+    if (sym.kind == SymKind.Package && old_sym.kind == SymKind.Package && sym.package == old_sym.package) {
       return;
     }
     let pos = sym.decl ? sym.decl.pos : pos_builtin;
@@ -203,12 +201,20 @@ fn sym_global_put(name: *const char, sym: &Sym) {
 
 fn sym_global_type(name: *const char, type: &Type) -> &Sym {
   name = str_intern(name);
-  let sym = sym_new(SYM_TYPE, name, NULL);
-  sym.state = SYM_RESOLVED;
+  let sym = sym_new(SymKind.Type, name, NULL);
+  sym.state = SymState.Resolved;
   sym.type = type;
   sym.external_name = name;
   sym_global_put(name, sym);
   return sym;
+}
+
+fn build_qual_name(space: *const char, name: *const char) -> *const char {
+  let qual_name_buf: *char;
+  buf_printf(&qual_name_buf, "%s_%s", space, name);
+  let qual_name = str_intern(qual_name_buf);
+  buf_free((:*&void)&qual_name_buf);
+  return qual_name;
 }
 
 fn sym_global_decl(decl: &Decl) -> &Sym {
@@ -217,23 +223,50 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
     sym = sym_decl(decl);
     sym_global_put(sym.name, sym);
   }
-  if (decl.kind == DECL_ENUM) {
+  if (decl.kind == DeclKind.Enum) {
+    let unscoped =
+      !decl.name ||
+      get_decl_note(decl, foreign_name) ||
+      get_decl_note(decl, unscoped_name);
     let enum_typespec = new_typespec_name(decl.pos, sym ? sym.name : str_intern("int"));
     let prev_item_name: *const char = NULL;
+    let prev_qual_name: *const char = NULL;
     for (let i: usize = 0; i < decl.enum_decl.num_items; i++) {
       let item = decl.enum_decl.items[i];
       let init: &Expr;
       if (item.init) {
         init = item.init;
       } else if (prev_item_name) {
-        init = new_expr_binary(item.pos, TOKEN_ADD, new_expr_name(item.pos, prev_item_name), new_expr_int(item.pos, 1, 0, 0));
+        init = new_expr_binary(item.pos, TokenKind.Add, new_expr_name(item.pos, prev_item_name), new_expr_int(item.pos, 1, 0, 0));
       } else {
         init = new_expr_int(item.pos, 0, 0, 0);
       }
-      let item_decl = new_decl_const(item.pos, item.name, enum_typespec, init);
-      item_decl.notes = decl.notes;
-      sym_global_decl(item_decl);
-      prev_item_name = item.name;
+      if (unscoped) {
+        let item_decl = new_decl_const(item.pos, item.name, enum_typespec, init);
+        item_decl.notes = decl.notes;
+        sym_global_decl(item_decl);
+        prev_item_name = item.name;
+      } else {
+        // Type-name-qualified version.
+        // Even if generating outside C, we need namespace conflicts at this
+        // level, because this is the canonical top-level namespace
+        // interpretation.
+        let qual_name = build_qual_name(decl.name, item.name);
+        if (prev_qual_name) {
+          init = new_expr_binary(
+            item.pos,
+            TokenKind.Add,
+            new_expr_name(item.pos, prev_qual_name),
+            new_expr_int(item.pos, 1, 0, 0),
+          );
+        }
+        // TODO Start switching everything over to qualified.
+        // TODO Make @exposed note or something to force non-qual for named enum types.
+        let qual_decl = new_decl_const(item.pos, qual_name, enum_typespec, init);
+        qual_decl.notes = decl.notes;
+        sym_global_decl(qual_decl);
+        prev_qual_name = qual_name;
+      }
     }
   }
   return sym;
@@ -245,25 +278,25 @@ fn put_type_name(buf: **char, type: &Type) {
     buf_printf(buf, "%s", type_name);
   } else {
     switch (type.kind) {
-    case CMPL_TYPE_STRUCT:
-    case CMPL_TYPE_UNION:
-    case CMPL_TYPE_ENUM:
-    case CMPL_TYPE_INCOMPLETE:
+    case CompilerTypeKind.Struct:
+    case CompilerTypeKind.Union:
+    case CompilerTypeKind.Enum:
+    case CompilerTypeKind.Incomplete:
       #assert(type.sym);
       buf_printf(buf, "%s", type.sym.name);
-    case CMPL_TYPE_CONST:
+    case CompilerTypeKind.Const:
       put_type_name(buf, type.base);
       buf_printf(buf, " const");
-    case CMPL_TYPE_PTR:
+    case CompilerTypeKind.Ptr:
       put_type_name(buf, type.base);
       buf_printf(buf, "*");
-    case CMPL_TYPE_REF:
+    case CompilerTypeKind.Ref:
       put_type_name(buf, type.base);
       buf_printf(buf, "&");
-    case CMPL_TYPE_ARRAY:
+    case CompilerTypeKind.Array:
       put_type_name(buf, type.base);
       buf_printf(buf, "[%zu]", type.num_elems);
-    case CMPL_TYPE_FUNC:
+    case CompilerTypeKind.Func:
       buf_printf(buf, "fn(");
       for (let i: usize = 0; i < type.function.num_params; i++) {
         if (i != 0) {
@@ -295,6 +328,7 @@ struct Operand {
   type: &Type;
   is_lvalue: bool;
   is_const: bool;
+  is_type: bool;
   val: Val;
 }
 
@@ -323,7 +357,7 @@ fn operand_const(type: &Type, val: Val) -> Operand {
 
 fn type_decay(type: &Type) -> &Type {
   type = unqualify_type(type);
-  if (type.kind == CMPL_TYPE_ARRAY) {
+  if (type.kind == CompilerTypeKind.Array) {
     type = type_ptr(type.base);
   }
   return type;
@@ -333,6 +367,14 @@ fn operand_decay(operand: Operand) -> Operand {
   operand.type = type_decay(operand.type);
   operand.is_lvalue = false;
   return operand;
+}
+
+fn operand_type(type: &Type) -> Operand {
+  // TODO Make sure other uses fail (like i = type, or type = blah, or ...).
+  return Operand {
+    type = type,
+    is_type = true,
+  };
 }
 
 // #define CASE(k, t)
@@ -405,13 +447,13 @@ fn is_null_ptr(operand: Operand) -> bool {
 
 fn promote_operand(operand: &Operand) {
   switch (operand.type.kind) {
-  case CMPL_TYPE_BOOL:
-  case CMPL_TYPE_CHAR:
-  case CMPL_TYPE_SCHAR:
-  case CMPL_TYPE_UCHAR:
-  case CMPL_TYPE_SHORT:
-  case CMPL_TYPE_USHORT:
-  case CMPL_TYPE_ENUM:
+  case CompilerTypeKind.Bool:
+  case CompilerTypeKind.Char:
+  case CompilerTypeKind.SChar:
+  case CompilerTypeKind.UChar:
+  case CompilerTypeKind.Short:
+  case CompilerTypeKind.UShort:
+  case CompilerTypeKind.Enum:
     cast_operand(operand, type_int);
   default:
     // Do nothing
@@ -526,25 +568,25 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
   }
   let result: &Type = NULL;
   switch (typespec.kind) {
-  case TYPESPEC_NAME: {
+  case TypespecKind.Name: {
     let sym = resolve_name(typespec.name);
     if (!sym) {
       fatal_error(typespec.pos, "Unresolved type name '%s'", typespec.name);
     }
-    if (sym.kind != SYM_TYPE) {
+    if (sym.kind != SymKind.Type) {
       fatal_error(typespec.pos, "%s must denote a type", typespec.name);
       return NULL;
     }
     set_resolved_sym(typespec, sym);
     result = sym.type;
   }
-  case TYPESPEC_CONST:
+  case TypespecKind.Const:
     result = type_const(resolve_typespec(typespec.base));
-  case TYPESPEC_PTR:
+  case TypespecKind.Ptr:
     result = type_ptr(resolve_typespec(typespec.base));
-  case TYPESPEC_REF:
+  case TypespecKind.Ref:
     result = type_ref(resolve_typespec(typespec.base));
-  case TYPESPEC_ARRAY: {
+  case TypespecKind.Array: {
     let size = 0;
     if (typespec.num_elems) {
       let operand = resolve_const_expr(typespec.num_elems);
@@ -559,7 +601,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
     }
     result = type_array(resolve_typespec(typespec.base), size);
   }
-  case TYPESPEC_FUNC: {
+  case TypespecKind.Func: {
     let args: *&Type = NULL;
     for (let i: usize = 0; i < typespec.function.num_args; i++) {
       let arg = resolve_typespec(typespec.function.args[i]);
@@ -589,7 +631,7 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   let fields: *TypeField;
   for (let i: usize = 0; i < aggregate.num_items; i++) {
     let item = aggregate.items[i];
-    if (item.kind == AGGREGATE_ITEM_FIELD) {
+    if (item.kind == AggregateItemKind.Field) {
       let item_type = resolve_typespec(item.type);
       complete_type(item_type);
       if (type_sizeof(item_type) == 0) {
@@ -600,7 +642,7 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
         buf_push((:*&void)&fields, &type_field, sizeof(type_field));
       }
     } else {
-      #assert(item.kind == AGGREGATE_ITEM_SUBAGGREGATE);
+      #assert(item.kind == AggregateItemKind.Subaggregate);
       let item_type = complete_aggregate(NULL, item.subaggregate);
       let type_field = TypeField {NULL, item_type};
       buf_push((:*&void)&fields, &type_field, sizeof(type_field));
@@ -608,12 +650,12 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   }
   if (!type) {
     type = type_incomplete(NULL);
-    type.kind = CMPL_TYPE_COMPLETING;
+    type.kind = CompilerTypeKind.Completing;
   }
-  if (aggregate.kind == AGGREGATE_STRUCT) {
+  if (aggregate.kind == AggregateKind.Struct) {
     type_complete_struct(type, fields, buf_len(fields));
   } else {
-    #assert(aggregate.kind == AGGREGATE_UNION);
+    #assert(aggregate.kind == AggregateKind.Union);
     type_complete_union(type, fields, buf_len(fields));
   }
   if (type.aggregate.num_fields == 0) {
@@ -626,10 +668,10 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
 }
 
 fn complete_type(type: &Type) {
-  if (type.kind == CMPL_TYPE_COMPLETING) {
+  if (type.kind == CompilerTypeKind.Completing) {
     fatal_error(type.sym.decl.pos, "Type completion cycle");
     return;
-  } else if (type.kind != CMPL_TYPE_INCOMPLETE) {
+  } else if (type.kind != CompilerTypeKind.Incomplete) {
     return;
   }
   let sym = type.sym;
@@ -638,8 +680,8 @@ fn complete_type(type: &Type) {
   if (decl.is_incomplete) {
     fatal_error(decl.pos, "Trying to use incomplete type as complete type");
   }
-  type.kind = CMPL_TYPE_COMPLETING;
-  #assert(decl.kind == DECL_STRUCT || decl.kind == DECL_UNION);
+  type.kind = CompilerTypeKind.Completing;
+  #assert(decl.kind == DeclKind.Struct || decl.kind == DeclKind.Union);
   complete_aggregate(type, decl.aggregate);
   buf_push((:*&void)&sorted_syms, &type.sym, sizeof(type.sym));
   leave_package(old_package);
@@ -675,14 +717,14 @@ fn resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
       // Hack to support inferred array sizes, but we might also be losing
       // things from the declared type.
       // TODO Make a new declared type with the size added in.
-      if (expr_type.kind == CMPL_TYPE_ARRAY) {
+      if (expr_type.kind == CompilerTypeKind.Array) {
         type = expr_type;
       }
     }
   } else {
     #assert(expr);
     type = unqualify_type(resolve_expr(expr).type);
-    if (is_array_type(type) && expr.kind != EXPR_COMPOUND) {
+    if (is_array_type(type) && expr.kind != ExprKind.Compound) {
       type = type_decay(type);
       set_resolved_type(expr, type);
     }
@@ -696,12 +738,12 @@ fn resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
 }
 
 fn resolve_decl_var(decl: &Decl) -> &Type {
-  #assert(decl.kind == DECL_VAR);
+  #assert(decl.kind == DeclKind.Var);
   return resolve_init(decl.pos, decl.var_decl.type, decl.var_decl.expr);
 }
 
 fn resolve_decl_const(decl: &Decl, val: &Val) -> &Type {
-  #assert(decl.kind == DECL_CONST);
+  #assert(decl.kind == DeclKind.Const);
   let result = resolve_const_expr(decl.const_decl.expr);
   if (!is_scalar_type(result.type)) {
     fatal_error(decl.pos, "Const declarations must have scalar type");
@@ -717,7 +759,7 @@ fn resolve_decl_const(decl: &Decl, val: &Val) -> &Type {
 }
 
 fn resolve_decl_func(decl: &Decl) -> &Type {
-  #assert(decl.kind == DECL_FUNC);
+  #assert(decl.kind == DeclKind.Func);
   let params: *&Type = NULL;
   for (let i: usize = 0; i < decl.function.num_params; i++) {
     let param = resolve_typespec(decl.function.params[i].type);
@@ -818,7 +860,7 @@ fn resolve_stmt_block(block: StmtList, ret_type: &Type, ctx: StmtCtx) -> bool {
 }
 
 fn resolve_stmt_assign(stmt: &Stmt) {
-  #assert(stmt.kind == STMT_ASSIGN);
+  #assert(stmt.kind == StmtKind.Assign);
   let left = resolve_expr(stmt.assign.left);
   if (!left.is_lvalue) {
     fatal_error(stmt.pos, "Cannot assign to non-lvalue");
@@ -833,9 +875,9 @@ fn resolve_stmt_assign(stmt: &Stmt) {
   let binary_op = assign_token_to_binary_token[stmt.assign.op];
   let right = resolve_expected_expr_rvalue(stmt.assign.right, left.type);
   let result: Operand;
-  if (stmt.assign.op == TOKEN_ASSIGN) {
+  if (stmt.assign.op == TokenKind.Assign) {
     result = right;
-  } else if (stmt.assign.op == TOKEN_ADD_ASSIGN || stmt.assign.op == TOKEN_SUB_ASSIGN) {
+  } else if (stmt.assign.op == TokenKind.AddAssign || stmt.assign.op == TokenKind.SubAssign) {
     if (is_ptr_type(left.type) && is_integer_type(right.type)) {
       result = operand_rvalue(left.type);
     } else if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
@@ -852,7 +894,7 @@ fn resolve_stmt_assign(stmt: &Stmt) {
 }
 
 fn resolve_stmt_init(stmt: &Stmt) {
-  #assert(stmt.kind == STMT_INIT);
+  #assert(stmt.kind == StmtKind.Init);
   let type = resolve_init(stmt.pos, stmt.init.type, stmt.init.expr);
   if (!stmt.init.is_mut) {
     // type.nonmodifiable = true;
@@ -874,7 +916,7 @@ fn resolve_static_assert(note: Note) {
 
 fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
   switch (stmt.kind) {
-  case STMT_RETURN:
+  case StmtKind.Return:
     if (stmt.expr) {
       let operand = resolve_expected_expr_rvalue(stmt.expr, ret_type);
       if (!convert_operand(&operand, ret_type)) {
@@ -884,19 +926,19 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
       fatal_error(stmt.pos, "Empty return expression for function with non-void return type");
     }
     return true;
-  case STMT_BREAK:
+  case StmtKind.Break:
     if (!ctx.is_break_legal) {
       fatal_error(stmt.pos, "Illegal break");
     }
     return false;
-  case STMT_CONTINUE:
+  case StmtKind.Continue:
     if (!ctx.is_continue_legal) {
       fatal_error(stmt.pos, "Illegal continue");
     }
     return false;
-  case STMT_BLOCK:
+  case StmtKind.Block:
     return resolve_stmt_block(stmt.block, ret_type, ctx);
-  case STMT_NOTE:
+  case StmtKind.Note:
     if (stmt.note.name == assert_name) {
       if (stmt.note.num_args != 1) {
         fatal_error(stmt.pos, "#assert takes 1 argument");
@@ -908,7 +950,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
       warning(stmt.pos, "Unknown statement #directive '%s'", stmt.note.name);
     }
     return false;
-  case STMT_IF: {
+  case StmtKind.If: {
     let scope = sym_enter();
     if (stmt.if_stmt.init) {
       resolve_stmt_init(stmt.if_stmt.init);
@@ -932,14 +974,14 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
     sym_leave(scope);
     return returns;
   }
-  case STMT_WHILE:
-  case STMT_DO_WHILE:
+  case StmtKind.While:
+  case StmtKind.DoWhile:
     resolve_cond_expr(stmt.while_stmt.cond);
     ctx.is_break_legal = true;
     ctx.is_continue_legal = true;
     resolve_stmt_block(stmt.while_stmt.block, ret_type, ctx);
     return false;
-  case STMT_FOR: {
+  case StmtKind.For: {
     let scope = sym_enter();
     if (stmt.for_stmt.init) {
       resolve_stmt(stmt.for_stmt.init, ret_type, ctx);
@@ -956,7 +998,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
     sym_leave(scope);
     return false;
   }
-  case STMT_SWITCH: {
+  case StmtKind.Switch: {
     let operand = resolve_expr_rvalue(stmt.switch_stmt.expr);
     if (!is_integer_type(operand.type)) {
       fatal_error(stmt.pos, "Switch expression must have integer type");
@@ -999,7 +1041,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
       }
       if (switch_case.block.num_stmts > 1) {
         let last_stmt = switch_case.block.stmts[switch_case.block.num_stmts - 1];
-        if (last_stmt.kind == STMT_BREAK) {
+        if (last_stmt.kind == StmtKind.Break) {
           warning(last_stmt.pos, "Case blocks already end with an implicit break");
         }
       }
@@ -1007,19 +1049,19 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
     }
     return returns && has_default;
   }
-  case STMT_ASSIGN:
+  case StmtKind.Assign:
     resolve_stmt_assign(stmt);
     return false;
-  case STMT_INIT:
+  case StmtKind.Init:
     resolve_stmt_init(stmt);
     return false;
-  case STMT_EXPR:
+  case StmtKind.Expr:
     resolve_expr(stmt.expr);
     return false;
-  case STMT_LABEL:
+  case StmtKind.Label:
     define_label(stmt.pos, stmt.label);
     return false;
-  case STMT_GOTO:
+  case StmtKind.Goto:
     reference_label(stmt.pos, stmt.label);
     return false;
   default:
@@ -1030,8 +1072,8 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
 
 fn resolve_func_body(sym: &Sym) {
   let decl = sym.decl;
-  #assert(decl.kind == DECL_FUNC);
-  #assert(sym.state == SYM_RESOLVED);
+  #assert(decl.kind == DeclKind.Func);
+  #assert(sym.state == SymState.Resolved);
   if (decl.is_incomplete) {
     return;
   }
@@ -1057,26 +1099,27 @@ fn resolve_func_body(sym: &Sym) {
 }
 
 fn resolve_sym(sym: &Sym) {
-  if (sym.state == SYM_RESOLVED) {
+  if (sym.state == SymState.Resolved) {
     return;
-  } else if (sym.state == SYM_RESOLVING) {
+  } else if (sym.state == SymState.Resolving) {
     fatal_error(sym.decl.pos, "Cyclic dependency");
     return;
   }
-  #assert(sym.state == SYM_UNRESOLVED);
+  #assert(sym.state == SymState.Unresolved);
   #assert(!sym.reachable);
   if (!is_local_sym(sym)) {
     buf_push((:*&void)&reachable_syms, &sym, sizeof(sym));
     sym.reachable = reachable_phase;
   }
-  sym.state = SYM_RESOLVING;
+  sym.state = SymState.Resolving;
   let decl = sym.decl;
   let old_package = enter_package(sym.home_package);
   switch (sym.kind) {
-  case SYM_TYPE:
-    if (decl && decl.kind == DECL_TYPEDEF) {
+  case SymKind.Type:
+    if (decl && decl.kind == DeclKind.Typedef) {
       sym.type = resolve_typespec(decl.typedef_decl.type);
-    } else if (decl.kind == DECL_ENUM) {
+    } else if (decl.kind == DeclKind.Enum) {
+      // Here's where the base type is set for enums.
       let base = decl.enum_decl.type ? resolve_typespec(decl.enum_decl.type) : type_int;
       if (!is_integer_type(base)) {
         fatal_error(decl.pos, "Base type of enum must be integer type");
@@ -1085,31 +1128,31 @@ fn resolve_sym(sym: &Sym) {
     } else {
       sym.type = type_incomplete(sym);
     }
-  case SYM_VAR:
+  case SymKind.Var:
     sym.type = resolve_decl_var(decl);
-  case SYM_CONST:
+  case SymKind.Const:
     sym.type = resolve_decl_const(decl, &sym.val);
-  case SYM_FUNC:
+  case SymKind.Func:
     sym.type = resolve_decl_func(decl);
-  case SYM_PACKAGE:
+  case SymKind.Package:
     // Do nothing
     break;
   default:
     #assert(0);
   }
   leave_package(old_package);
-  sym.state = SYM_RESOLVED;
-  if (decl.is_incomplete || (decl.kind != DECL_STRUCT && decl.kind != DECL_UNION)) {
+  sym.state = SymState.Resolved;
+  if (decl.is_incomplete || (decl.kind != DeclKind.Struct && decl.kind != DeclKind.Union)) {
     buf_push((:*&void)&sorted_syms, &sym, sizeof(sym));
   }
 }
 
 fn finalize_sym(sym: &Sym) {
-  #assert(sym.state == SYM_RESOLVED);
+  #assert(sym.state == SymState.Resolved);
   if (sym.decl && !is_decl_foreign(sym.decl) && !sym.decl.is_incomplete) {
-    if (sym.kind == SYM_TYPE) {
+    if (sym.kind == SymKind.Type) {
       complete_type(sym.type);
-    } else if (sym.kind == SYM_FUNC) {
+    } else if (sym.kind == SymKind.Func) {
       resolve_func_body(sym);
     }
   }
@@ -1125,16 +1168,16 @@ fn resolve_name(name: *const char) -> &Sym {
 }
 
 fn try_resolve_package(expr: &Expr) -> &Package {
-  if (expr.kind == EXPR_NAME) {
+  if (expr.kind == ExprKind.Name) {
     let sym = resolve_name(expr.name);
-    if (sym && sym.kind == SYM_PACKAGE) {
+    if (sym && sym.kind == SymKind.Package) {
       return sym.package;
     }
-  } else if (expr.kind == EXPR_FIELD) {
+  } else if (expr.kind == ExprKind.Field) {
     let package = try_resolve_package(expr.field.expr);
     if (package) {
       let sym = get_package_sym(package, expr.field.name);
-      if (sym && sym.kind == SYM_PACKAGE) {
+      if (sym && sym.kind == SymKind.Package) {
         return sym.package;
       }
     }
@@ -1143,7 +1186,7 @@ fn try_resolve_package(expr: &Expr) -> &Package {
 }
 
 fn resolve_expr_field(expr: &Expr) -> Operand {
-  #assert(expr.kind == EXPR_FIELD);
+  #assert(expr.kind == ExprKind.Field);
   let package = try_resolve_package(expr.field.expr);
   if (package) {
     let old_package = enter_package(package);
@@ -1154,6 +1197,28 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
     return operand;
   }
   let operand = resolve_expr(expr.field.expr);
+  if (operand.is_type){
+    if (operand.type.kind == CompilerTypeKind.Enum) {
+      let decl = operand.type.sym.decl;
+      let enum_decl = decl.enum_decl;
+      for (let i: usize = 0; i < enum_decl.num_items; ++i) {
+        let item = enum_decl.items[i];
+        if (item.name == expr.field.name) {
+          let sym = resolve_name(build_qual_name(decl.name, item.name));
+          if (sym) {
+            #assert(sym.kind == SymKind.Const);
+            let item_operand = operand_const(sym.type, sym.val);
+            return item_operand;
+          }
+        }
+      }
+    }
+    fatal_error(
+      expr.pos, "No item %s found in type %s",
+      expr.field.name, operand.type.sym.decl.name,
+    );
+    return operand_null;
+  }
   let was_const_type = is_const_type(operand.type);
   let type = unqualify_type(operand.type);
   complete_type(type);
@@ -1163,7 +1228,7 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
     type = unqualify_type(operand.type);
     complete_type(type);
   }
-  if (type.kind != CMPL_TYPE_STRUCT && type.kind != CMPL_TYPE_UNION) {
+  if (type.kind != CompilerTypeKind.Struct && type.kind != CompilerTypeKind.Union) {
     fatal_error(expr.pos, "Can only access fields on aggregates or pointers to aggregates");
     return operand_null;
   }
@@ -1183,13 +1248,13 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
 
 fn eval_unary_op_ll(op: TokenKind, val: llong) -> llong {
   switch (op) {
-  case TOKEN_ADD:
+  case TokenKind.Add:
     return +val;
-  case TOKEN_SUB:
+  case TokenKind.Sub:
     return -val;
-  case TOKEN_NEG:
+  case TokenKind.Neg:
     return ~val;
-  case TOKEN_NOT:
+  case TokenKind.Not:
     return !val;
   default:
     #assert(0);
@@ -1199,13 +1264,13 @@ fn eval_unary_op_ll(op: TokenKind, val: llong) -> llong {
 
 fn eval_unary_op_ull(op: TokenKind, val: ullong) -> ullong {
   switch (op) {
-  case TOKEN_ADD:
+  case TokenKind.Add:
     return +val;
-  case TOKEN_SUB:
+  case TokenKind.Sub:
     return 0ull - val;
-  case TOKEN_NEG:
+  case TokenKind.Neg:
     return ~val;
-  case TOKEN_NOT:
+  case TokenKind.Not:
     return !val;
   default:
     #assert(0);
@@ -1215,37 +1280,37 @@ fn eval_unary_op_ull(op: TokenKind, val: ullong) -> ullong {
 
 fn eval_binary_op_ll(op: TokenKind, left: llong, right: llong) -> llong {
   switch (op) {
-  case TOKEN_MUL:
+  case TokenKind.Mul:
     return left * right;
-  case TOKEN_DIV:
+  case TokenKind.Div:
     return right != 0 ? left / right : 0;
-  case TOKEN_MOD:
+  case TokenKind.Mod:
     return right != 0 ? left % right : 0;
-  case TOKEN_AND:
+  case TokenKind.And:
     return left & right;
-  case TOKEN_LSHIFT:
+  case TokenKind.Lshift:
     return left << right;
-  case TOKEN_RSHIFT:
+  case TokenKind.Rshift:
     return left >> right;
-  case TOKEN_ADD:
+  case TokenKind.Add:
     return left + right;
-  case TOKEN_SUB:
+  case TokenKind.Sub:
     return left - right;
-  case TOKEN_OR:
+  case TokenKind.Or:
     return left | right;
-  case TOKEN_XOR:
+  case TokenKind.Xor:
     return left ^ right;
-  case TOKEN_EQ:
+  case TokenKind.Eq:
     return left == right;
-  case TOKEN_NOTEQ:
+  case TokenKind.NotEq:
     return left != right;
-  case TOKEN_LT:
+  case TokenKind.Lt:
     return left < right;
-  case TOKEN_LTEQ:
+  case TokenKind.LtEq:
     return left <= right;
-  case TOKEN_GT:
+  case TokenKind.Gt:
     return left > right;
-  case TOKEN_GTEQ:
+  case TokenKind.GtEq:
     return left >= right;
   default:
     #assert(0);
@@ -1255,37 +1320,37 @@ fn eval_binary_op_ll(op: TokenKind, left: llong, right: llong) -> llong {
 
 fn eval_binary_op_ull(op: TokenKind, left: ullong, right: ullong) -> ullong {
   switch (op) {
-  case TOKEN_MUL:
+  case TokenKind.Mul:
     return left * right;
-  case TOKEN_DIV:
+  case TokenKind.Div:
     return right != 0 ? left / right : 0;
-  case TOKEN_MOD:
+  case TokenKind.Mod:
     return right != 0 ? left % right : 0;
-  case TOKEN_AND:
+  case TokenKind.And:
     return left & right;
-  case TOKEN_LSHIFT:
+  case TokenKind.Lshift:
     return left << right;
-  case TOKEN_RSHIFT:
+  case TokenKind.Rshift:
     return left >> right;
-  case TOKEN_ADD:
+  case TokenKind.Add:
     return left + right;
-  case TOKEN_SUB:
+  case TokenKind.Sub:
     return left - right;
-  case TOKEN_OR:
+  case TokenKind.Or:
     return left | right;
-  case TOKEN_XOR:
+  case TokenKind.Xor:
     return left ^ right;
-  case TOKEN_EQ:
+  case TokenKind.Eq:
     return left == right;
-  case TOKEN_NOTEQ:
+  case TokenKind.NotEq:
     return left != right;
-  case TOKEN_LT:
+  case TokenKind.Lt:
     return left < right;
-  case TOKEN_LTEQ:
+  case TokenKind.LtEq:
     return left <= right;
-  case TOKEN_GT:
+  case TokenKind.Gt:
     return left > right;
-  case TOKEN_GTEQ:
+  case TokenKind.GtEq:
     return left >= right;
   default:
     #assert(0);
@@ -1336,24 +1401,27 @@ fn resolve_name_operand(pos: SrcPos, name: *const char) -> Operand {
   if (!sym) {
     fatal_error(pos, "Unresolved name '%s'", name);
   }
-  if (sym.kind == SYM_VAR) {
+  if (sym.kind == SymKind.Var) {
     let operand = operand_lvalue(sym.type);
     if (is_array_type(operand.type)) {
       operand = operand_decay(operand);
     }
     return operand;
-  } else if (sym.kind == SYM_CONST) {
+  } else if (sym.kind == SymKind.Const) {
     return operand_const(sym.type, sym.val);
-  } else if (sym.kind == SYM_FUNC) {
+  } else if (sym.kind == SymKind.Func) {
     return operand_rvalue(sym.type);
+  } else if (sym.kind == SymKind.Type) {
+    return operand_type(sym.type);
   } else {
+    #assert(false);
     fatal_error(pos, "%s must be a let or const", name);
     return operand_null;
   }
 }
 
 fn resolve_expr_name(expr: &Expr) -> Operand {
-  #assert(expr.kind == EXPR_NAME);
+  #assert(expr.kind == ExprKind.Name);
   return resolve_name_operand(expr.pos, expr.name);
 }
 
@@ -1370,23 +1438,23 @@ fn resolve_expr_unary(expr: &Expr) -> Operand {
   let operand = resolve_expr_rvalue(expr.unary.expr);
   let type = operand.type;
   switch (expr.unary.op) {
-  case TOKEN_MUL:
+  case TokenKind.Mul:
     if (!is_ptr_type(type)) {
       fatal_error(expr.pos, "Cannot deref non-ptr type");
     }
     return operand_lvalue(type.base);
-  case TOKEN_ADD:
-  case TOKEN_SUB:
+  case TokenKind.Add:
+  case TokenKind.Sub:
     if (!is_arithmetic_type(type)) {
       fatal_error(expr.pos, "Can only use unary %s with arithmetic types", token_kind_name(expr.unary.op));
     }
     return resolve_unary_op(expr.unary.op, operand);
-  case TOKEN_NEG:
+  case TokenKind.Neg:
     if (!is_integer_type(type)) {
       fatal_error(expr.pos, "Can only use ~ with integer types");
     }
     return resolve_unary_op(expr.unary.op, operand);
-  case TOKEN_NOT:
+  case TokenKind.Not:
     if (!is_scalar_type(type)) {
       fatal_error(expr.pos," Can only use ! with scalar types");
     }
@@ -1412,8 +1480,8 @@ fn resolve_binary_arithmetic_op(op: TokenKind, left: Operand, right: Operand) ->
 
 fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left: Operand, right: Operand) -> Operand {
   switch (op) {
-  case TOKEN_MUL:
-  case TOKEN_DIV:
+  case TokenKind.Mul:
+  case TokenKind.Div:
     if (!is_arithmetic_type(left.type)) {
       fatal_error(pos, "Left operand of %s must have arithmetic type", op_name);
     }
@@ -1421,7 +1489,7 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
       fatal_error(pos, "Right operand of %s must have arithmetic type", op_name);
     }
     return resolve_binary_arithmetic_op(op, left, right);
-  case TOKEN_MOD:
+  case TokenKind.Mod:
     if (!is_integer_type(left.type)) {
       fatal_error(pos, "Left operand of %% must have integer type");
     }
@@ -1429,7 +1497,7 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
       fatal_error(pos, "Right operand of %% must have integer type");
     }
     return resolve_binary_arithmetic_op(op, left, right);
-  case TOKEN_ADD:
+  case TokenKind.Add:
     if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
       return resolve_binary_arithmetic_op(op, left, right);
     } else if (is_ptr_star_type(left.type) && is_integer_type(right.type)) {
@@ -1447,7 +1515,7 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
     } else {
       fatal_error(pos, "Operands of + must both have arithmetic type, or star pointer and integer type");
     }
-  case TOKEN_SUB:
+  case TokenKind.Sub:
     if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
       return resolve_binary_arithmetic_op(op, left, right);
     } else if (is_ptr_star_type(left.type) && is_integer_type(right.type)) {
@@ -1460,8 +1528,8 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
     } else {
       fatal_error(pos, "Operands of - must both have arithmetic type, pointer and integer type, or compatible pointer types");
     }
-  case TOKEN_LSHIFT:
-  case TOKEN_RSHIFT:
+  case TokenKind.Lshift:
+  case TokenKind.Rshift:
     if (is_integer_type(left.type) && is_integer_type(right.type)) {
       promote_operand(&left);
       promote_operand(&right);
@@ -1480,8 +1548,8 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
     } else {
       fatal_error(pos, "Operands of %s must both have integer type", op_name);
     }
-  case TOKEN_EQ:
-  case TOKEN_NOTEQ:
+  case TokenKind.Eq:
+  case TokenKind.NotEq:
     if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
       let result = resolve_binary_arithmetic_op(op, left, right);
       cast_operand(&result, type_int);
@@ -1498,10 +1566,10 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
     } else {
       fatal_error(pos, "Operands of %s must be arithmetic types or compatible pointer types", op_name);
     }
-  case TOKEN_LT:
-  case TOKEN_LTEQ:
-  case TOKEN_GT:
-  case TOKEN_GTEQ:
+  case TokenKind.Lt:
+  case TokenKind.LtEq:
+  case TokenKind.Gt:
+  case TokenKind.GtEq:
     if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
       let result = resolve_binary_arithmetic_op(op, left, right);
       cast_operand(&result, type_int);
@@ -1516,25 +1584,25 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
     } else {
       fatal_error(pos, "Operands of %s must be arithmetic types or compatible pointer types", op_name);
     }
-  case TOKEN_AND:
-  case TOKEN_XOR:
-  case TOKEN_OR:
+  case TokenKind.And:
+  case TokenKind.Xor:
+  case TokenKind.Or:
     if (is_integer_type(left.type) && is_integer_type(right.type)) {
       return resolve_binary_arithmetic_op(op, left, right);
     } else {
       fatal_error(pos, "Operands of %s must have arithmetic types", op_name);
     }
-  case TOKEN_AND_AND:
-  case TOKEN_OR_OR:
+  case TokenKind.AndAnd:
+  case TokenKind.OrOr:
     if (is_scalar_type(left.type) && is_scalar_type(right.type)) {
       if (left.is_const && right.is_const) {
         cast_operand(&left, type_bool);
         cast_operand(&right, type_bool);
         let i: int;
-        if (op == TOKEN_AND_AND) {
+        if (op == TokenKind.AndAnd) {
           i = left.val.b && right.val.b;
         } else {
-          #assert(op == TOKEN_OR_OR);
+          #assert(op == TokenKind.OrOr);
           i = left.val.b || right.val.b;
         }
         return operand_const(type_int, Val {i = i});
@@ -1551,7 +1619,7 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
 }
 
 fn resolve_expr_binary(expr: &Expr) -> Operand {
-  #assert(expr.kind == EXPR_BINARY);
+  #assert(expr.kind == ExprKind.Binary);
   let left = resolve_expr_rvalue(expr.binary.left);
   let right = resolve_expr_rvalue(expr.binary.right);
   let op: TokenKind = expr.binary.op;
@@ -1560,7 +1628,7 @@ fn resolve_expr_binary(expr: &Expr) -> Operand {
 }
 
 fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
-  #assert(expr.kind == EXPR_COMPOUND);
+  #assert(expr.kind == ExprKind.Compound);
   if (!expected_type && !expr.compound.type) {
     fatal_error(expr.pos, "Implicitly typed compound literals used in context without expected type");
   }
@@ -1573,13 +1641,13 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
   complete_type(type);
   let is_const = is_const_type(type);
   type = unqualify_type(type);
-  if (type.kind == CMPL_TYPE_STRUCT || type.kind == CMPL_TYPE_UNION) {
+  if (type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union) {
     let index = 0;
     for (let i: usize = 0; i < expr.compound.num_fields; i++) {
       let field: CompoundField = expr.compound.fields[i];
-      if (field.kind == FIELD_INDEX) {
+      if (field.kind == CompoundFieldKind.Index) {
         fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
-      } else if (field.kind == FIELD_NAME) {
+      } else if (field.kind == CompoundFieldKind.Name) {
         index = aggregate_item_field_index(type, field.name);
         if (index == -1) {
           fatal_error(field.pos, "Named field in compound literal does not exist");
@@ -1594,15 +1662,15 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
       }
       index++;
     }
-  } else if (type.kind == CMPL_TYPE_ARRAY) {
+  } else if (type.kind == CompilerTypeKind.Array) {
     // These were int, but can't be negative below.
     let index: usize = 0;
     let max_index: usize = 0;
     for (let i: usize = 0; i < expr.compound.num_fields; i++) {
       let field = expr.compound.fields[i];
-      if (field.kind == FIELD_NAME) {
+      if (field.kind == CompoundFieldKind.Name) {
         fatal_error(field.pos, "Named field initializer not allowed for array compound literals");
-      } else if (field.kind == FIELD_INDEX) {
+      } else if (field.kind == CompoundFieldKind.Index) {
         let operand = resolve_const_expr(field.index);
         if (!is_integer_type(operand.type)) {
           fatal_error(field.pos, "Field initializer index expression must have type int");
@@ -1644,10 +1712,10 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
 }
 
 fn resolve_expr_call(expr: &Expr) -> Operand {
-  #assert(expr.kind == EXPR_CALL);
-  if (expr.call.expr.kind == EXPR_NAME) {
+  #assert(expr.kind == ExprKind.Call);
+  if (expr.call.expr.kind == ExprKind.Name) {
     let sym = resolve_name(expr.call.expr.name);
-    if (sym && sym.kind == SYM_TYPE) {
+    if (sym && sym.kind == SymKind.Type) {
       if (expr.call.num_args != 1) {
         fatal_error(expr.pos, "Type conversion operator takes 1 argument");
       }
@@ -1660,7 +1728,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
     }
   }
   let function = resolve_expr_rvalue(expr.call.expr);
-  if (function.type.kind != CMPL_TYPE_FUNC) {
+  if (function.type.kind != CompilerTypeKind.Func) {
     fatal_error(expr.pos, "Cannot call non-function value");
   }
   let num_params: usize = function.type.function.num_params;
@@ -1687,7 +1755,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
 }
 
 fn resolve_expr_ternary(expr: &Expr, expected_type: &Type) -> Operand {
-  #assert(expr.kind == EXPR_TERNARY);
+  #assert(expr.kind == ExprKind.Ternary);
   let cond = resolve_expr_rvalue(expr.ternary.cond);
   if (!is_scalar_type(cond.type)) {
     fatal_error(expr.pos, "Ternary conditional must have scalar type");
@@ -1716,7 +1784,7 @@ fn resolve_expr_ternary(expr: &Expr, expected_type: &Type) -> Operand {
 }
 
 fn resolve_expr_index(expr: &Expr) -> Operand {
-  #assert(expr.kind == EXPR_INDEX);
+  #assert(expr.kind == ExprKind.Index);
   let operand = resolve_expr_rvalue(expr.index.expr);
   if (!is_ptr_star_type(operand.type)) {
     fatal_error(expr.pos, "Can only index arrays and star pointers");
@@ -1729,7 +1797,7 @@ fn resolve_expr_index(expr: &Expr) -> Operand {
 }
 
 fn resolve_expr_cast(expr: &Expr) -> Operand {
-  #assert(expr.kind == EXPR_CAST);
+  #assert(expr.kind == ExprKind.Cast);
   let type = resolve_typespec(expr.cast.type);
   let operand = resolve_expr_rvalue(expr.cast.expr);
   if (!cast_operand(&operand, type)) {
@@ -1739,19 +1807,19 @@ fn resolve_expr_cast(expr: &Expr) -> Operand {
 }
 
 fn resolve_expr_int(expr: &Expr) -> Operand {
-  #assert(expr.kind == EXPR_INT);
-  let int_max: ullong = type_metrics[CMPL_TYPE_INT].max;
-  let uint_max: ullong = type_metrics[CMPL_TYPE_UINT].max;
-  let long_max: ullong = type_metrics[CMPL_TYPE_LONG].max;
-  let ulong_max: ullong = type_metrics[CMPL_TYPE_ULONG].max;
-  let llong_max: ullong = type_metrics[CMPL_TYPE_LLONG].max;
+  #assert(expr.kind == ExprKind.Int);
+  let int_max: ullong = type_metrics[CompilerTypeKind.Int].max;
+  let uint_max: ullong = type_metrics[CompilerTypeKind.UInt].max;
+  let long_max: ullong = type_metrics[CompilerTypeKind.Long].max;
+  let ulong_max: ullong = type_metrics[CompilerTypeKind.ULong].max;
+  let llong_max: ullong = type_metrics[CompilerTypeKind.LLong].max;
   let val: ullong = expr.int_lit.val;
   let operand = operand_const(type_ullong, Val {ull = val});
   let type = type_ullong;
-  if (expr.int_lit.mod == MOD_NONE) {
+  if (expr.int_lit.mod == TokenMod.None) {
     let overflow = false;
     switch (expr.int_lit.suffix) {
-    case SUFFIX_NONE:
+    case TokenSuffix.None:
       type = type_int;
       if (val > int_max) {
         type = type_long;
@@ -1760,7 +1828,7 @@ fn resolve_expr_int(expr: &Expr) -> Operand {
           overflow = val > llong_max;
         }
       }
-    case SUFFIX_U:
+    case TokenSuffix.U:
       type = type_uint;
       if (val > uint_max) {
         type = type_ulong;
@@ -1768,21 +1836,21 @@ fn resolve_expr_int(expr: &Expr) -> Operand {
           type = type_ullong;
         }
       }
-    case SUFFIX_L:
+    case TokenSuffix.L:
       type = type_long;
       if (val > long_max) {
         type = type_llong;
         overflow = val > llong_max;
       }
-    case SUFFIX_UL:
+    case TokenSuffix.UL:
       type = type_ulong;
       if (val > ulong_max) {
         type = type_ullong;
       }
-    case SUFFIX_LL:
+    case TokenSuffix.LL:
       type = type_llong;
       overflow = val > llong_max;
-    case SUFFIX_ULL:
+    case TokenSuffix.ULL:
       type = type_ullong;
     default:
       #assert(0);
@@ -1792,7 +1860,7 @@ fn resolve_expr_int(expr: &Expr) -> Operand {
     }
   } else {
     switch (expr.int_lit.suffix) {
-    case SUFFIX_NONE:
+    case TokenSuffix.None:
       type = type_int;
       if (val > int_max) {
         type = type_uint;
@@ -1809,7 +1877,7 @@ fn resolve_expr_int(expr: &Expr) -> Operand {
           }
         }
       }
-    case SUFFIX_U:
+    case TokenSuffix.U:
       type = type_uint;
       if (val > uint_max) {
         type = type_ulong;
@@ -1817,7 +1885,7 @@ fn resolve_expr_int(expr: &Expr) -> Operand {
           type = type_ullong;
         }
       }
-    case SUFFIX_L:
+    case TokenSuffix.L:
       type = type_long;
       if (val > long_max) {
         type = type_ulong;
@@ -1828,17 +1896,17 @@ fn resolve_expr_int(expr: &Expr) -> Operand {
           }
         }
       }
-    case SUFFIX_UL:
+    case TokenSuffix.UL:
       type = type_ulong;
       if (val > ulong_max) {
         type = type_ullong;
       }
-    case SUFFIX_LL:
+    case TokenSuffix.LL:
       type = type_llong;
       if (val > llong_max) {
         type = type_ullong;
       }
-    case SUFFIX_ULL:
+    case TokenSuffix.ULL:
       type = type_ullong;
     default:
       #assert(0);
@@ -1858,7 +1926,7 @@ fn resolve_expr_modify(expr: &Expr) -> Operand {
   if (type.nonmodifiable) {
     fatal_error(expr.pos, "Cannot modify non-modifiable type");
   }
-  if (!(is_integer_type(type) || type.kind == CMPL_TYPE_PTR)) {
+  if (!(is_integer_type(type) || type.kind == CompilerTypeKind.Ptr)) {
     fatal_error(expr.pos, "%s only valid for integer and pointer types", token_kind_name(expr.modify.op));
   }
   return operand_rvalue(type);
@@ -1867,29 +1935,29 @@ fn resolve_expr_modify(expr: &Expr) -> Operand {
 fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
   let result: Operand;
   switch (expr.kind) {
-  case EXPR_PAREN:
+  case ExprKind.Paren:
     result = resolve_expected_expr(expr.paren.expr, expected_type);
-  case EXPR_INT:
+  case ExprKind.Int:
     result = resolve_expr_int(expr);
-  case EXPR_FLOAT:
-    result = operand_const(expr.float_lit.suffix == SUFFIX_D ? type_double : type_float, Val {0});
-  case EXPR_STR:
+  case ExprKind.Float:
+    result = operand_const(expr.float_lit.suffix == TokenSuffix.D ? type_double : type_float, Val {0});
+  case ExprKind.Str:
     result = operand_rvalue(type_array(type_char, strlen(expr.str_lit.val) + 1));
-  case EXPR_NAME:
+  case ExprKind.Name:
     result = resolve_expr_name(expr);
     set_resolved_sym(expr, resolve_name(expr.name));
-  case EXPR_CAST:
+  case ExprKind.Cast:
     result = resolve_expr_cast(expr);
-  case EXPR_CALL:
+  case ExprKind.Call:
     result = resolve_expr_call(expr);
-  case EXPR_INDEX:
+  case ExprKind.Index:
     result = resolve_expr_index(expr);
-  case EXPR_FIELD:
+  case ExprKind.Field:
     result = resolve_expr_field(expr);
-  case EXPR_COMPOUND:
+  case ExprKind.Compound:
     result = resolve_expr_compound(expr, expected_type);
-  case EXPR_UNARY:
-    if (expr.unary.op == TOKEN_AND) {
+  case ExprKind.Unary:
+    if (expr.unary.op == TokenKind.And) {
       let operand: Operand;
       if (expected_type && is_ptr_type(expected_type)) {
         operand = resolve_expected_expr(expr.unary.expr, expected_type.base);
@@ -1903,14 +1971,14 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     } else {
       result = resolve_expr_unary(expr);
     }
-  case EXPR_BINARY:
+  case ExprKind.Binary:
     result = resolve_expr_binary(expr);
-  case EXPR_TERNARY:
+  case ExprKind.Ternary:
     result = resolve_expr_ternary(expr, expected_type);
-  case EXPR_SIZEOF_EXPR: {
-    if (expr.sizeof_expr.kind == EXPR_NAME) {
+  case ExprKind.SizeofExpr: {
+    if (expr.sizeof_expr.kind == ExprKind.Name) {
       let sym = resolve_name(expr.sizeof_expr.name);
-      if (sym && sym.kind == SYM_TYPE) {
+      if (sym && sym.kind == SymKind.Type) {
         complete_type(sym.type);
         result = operand_const(type_usize, Val {ull = type_sizeof(sym.type)});
         set_resolved_type(expr.sizeof_expr, sym.type);
@@ -1922,15 +1990,15 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     complete_type(type);
     result = operand_const(type_usize, Val {ull = type_sizeof(type)});
   }
-  case EXPR_SIZEOF_TYPE: {
+  case ExprKind.SizeofType: {
     let type = resolve_typespec(expr.sizeof_type);
     complete_type(type);
     result = operand_const(type_usize, Val {ull = type_sizeof(type)});
   }
-  case EXPR_ALIGNOF_EXPR: {
-    if (expr.sizeof_expr.kind == EXPR_NAME) {
+  case ExprKind.AlignofExpr: {
+    if (expr.sizeof_expr.kind == ExprKind.Name) {
       let sym = resolve_name(expr.alignof_expr.name);
-      if (sym && sym.kind == SYM_TYPE) {
+      if (sym && sym.kind == SymKind.Type) {
         complete_type(sym.type);
         result = operand_const(type_usize, Val {ull = type_alignof(sym.type)});
         set_resolved_type(expr.alignof_expr, sym.type);
@@ -1942,19 +2010,19 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     complete_type(type);
     result = operand_const(type_usize, Val {ull = type_alignof(type)});
   }
-  case EXPR_ALIGNOF_TYPE: {
+  case ExprKind.AlignofType: {
     let type = resolve_typespec(expr.alignof_type);
     complete_type(type);
     result = operand_const(type_usize, Val {ull = type_alignof(type)});
   }
-  case EXPR_TYPEOF_TYPE: {
+  case ExprKind.TypeofType: {
     let type = resolve_typespec(expr.typeof_type);
     result = operand_const(type_ullong, Val {ull = type.typeid});
   }
-  case EXPR_TYPEOF_EXPR: {
-    if (expr.typeof_expr.kind == EXPR_NAME) {
+  case ExprKind.TypeofExpr: {
+    if (expr.typeof_expr.kind == ExprKind.Name) {
       let sym = resolve_name(expr.typeof_expr.name);
-      if (sym && sym.kind == SYM_TYPE) {
+      if (sym && sym.kind == SymKind.Type) {
         result = operand_const(type_ullong, Val {ull = sym.type.typeid});
         set_resolved_type(expr.typeof_expr, sym.type);
         set_resolved_sym(expr.typeof_expr, sym);
@@ -1964,10 +2032,10 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     let type = resolve_expr(expr.typeof_expr).type;
     result = operand_const(type_ullong, Val {ull = type.typeid});
   }
-  case EXPR_OFFSETOF: {
+  case ExprKind.Offsetof: {
     let type = resolve_typespec(expr.offsetof_field.type);
     complete_type(type);
-    if (type.kind != CMPL_TYPE_STRUCT && type.kind != CMPL_TYPE_UNION) {
+    if (type.kind != CompilerTypeKind.Struct && type.kind != CompilerTypeKind.Union) {
       fatal_error(expr.pos, "offsetof can only be used with struct/union types");
     }
     let field = aggregate_item_field_index(type, expr.offsetof_field.name);
@@ -1976,7 +2044,7 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     }
     result = operand_const(type_usize, Val {ull = type.aggregate.fields[field].offset});
   }
-  case EXPR_MODIFY:
+  case ExprKind.Modify:
     result = resolve_expr_modify(expr);
   default:
     #assert(0);
@@ -2018,7 +2086,7 @@ fn init_builtin_syms() {
 fn add_package_decls(package: &Package) {
     for (let i: usize = 0; i < package.num_decls; i++) {
         let decl = package.decls[i];
-        if (decl.kind == DECL_NOTE) {
+        if (decl.kind == DeclKind.Note) {
             if (!map_get(&decl_note_names, decl.note.name)) {
                 warning(decl.pos, "Unknown declaration #directive '%s'", decl.note.name);
             }
@@ -2027,7 +2095,7 @@ fn add_package_decls(package: &Package) {
                     fatal_error(decl.pos, "#declare_note takes 1 argument");
                 }
                 let arg = decl.note.args[0].expr;
-                if (arg.kind != EXPR_NAME) {
+                if (arg.kind != ExprKind.Name) {
                     fatal_error(decl.pos, "#declare_note argument must be name");
                 }
                 map_put(&decl_note_names, arg.name, (:&void)1);
@@ -2037,7 +2105,7 @@ fn add_package_decls(package: &Package) {
                     resolve_static_assert(decl.note);
                 }
             }
-        } else if (decl.kind == DECL_IMPORT) {
+        } else if (decl.kind == DeclKind.Import) {
             // Add to list of imports
         } else {
             sym_global_decl(decl);
@@ -2115,11 +2183,11 @@ fn import_package_symbols(decl: &Decl, package: &Package) {
 fn process_package_imports(package: &Package) {
     for (let i: usize = 0; i < package.num_decls; i++) {
         let decl = package.decls[i];
-        if (decl.kind == DECL_NOTE) {
+        if (decl.kind == DeclKind.Note) {
             if (decl.note.name == always_name) {
                 package.always_reachable = true;
             }
-        } else if (decl.kind == DECL_IMPORT) {
+        } else if (decl.kind == DeclKind.Import) {
             let path_buf: *char = NULL;
             if (decl.import_decl.is_relative) {
                 buf_printf(&path_buf, "%s/", package.path);
@@ -2140,7 +2208,7 @@ fn process_package_imports(package: &Package) {
                 import_all_package_symbols(imported_package);
             }
             let sym_name = decl.name ? decl.name : decl.import_decl.names[decl.import_decl.num_names - 1];
-            let sym = sym_new(SYM_PACKAGE, sym_name, decl);
+            let sym = sym_new(SymKind.Package, sym_name, decl);
             sym.package = imported_package;
             sym_global_put(sym_name, sym);
         }

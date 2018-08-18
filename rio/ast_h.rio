@@ -25,13 +25,13 @@ struct StmtList {
 }
 
 enum TypespecKind {
-  TYPESPEC_NONE,
-  TYPESPEC_NAME,
-  TYPESPEC_FUNC,
-  TYPESPEC_ARRAY,
-  TYPESPEC_PTR,
-  TYPESPEC_REF,
-  TYPESPEC_CONST,
+  None,
+  Name,
+  Func,
+  Array,
+  Ptr,
+  Ref,
+  Const,
 }
 
 struct Typespec {
@@ -60,9 +60,9 @@ struct FuncParam {
 }
 
 enum AggregateItemKind {
-  AGGREGATE_ITEM_NONE,
-  AGGREGATE_ITEM_FIELD,
-  AGGREGATE_ITEM_SUBAGGREGATE,
+  None,
+  Field,
+  Subaggregate,
 }
 
 struct AggregateItem {
@@ -90,22 +90,22 @@ struct ImportItem {
 }
 
 enum DeclKind {
-  DECL_NONE,
-  DECL_ENUM,
-  DECL_STRUCT,
-  DECL_UNION,
-  DECL_VAR,
-  DECL_CONST,
-  DECL_TYPEDEF,
-  DECL_FUNC,
-  DECL_NOTE,
-  DECL_IMPORT,
+  None,
+  Enum,
+  Struct,
+  Union,
+  Var,
+  Const,
+  Typedef,
+  Func,
+  Note,
+  Import,
 }
 
 enum AggregateKind {
-  AGGREGATE_NONE,
-  AGGREGATE_STRUCT,
-  AGGREGATE_UNION,
+  None,
+  Struct,
+  Union,
 }
 
 struct Aggregate {
@@ -171,34 +171,34 @@ struct Decls {
 }
 
 enum ExprKind {
-  EXPR_NONE,
-  EXPR_PAREN,
-  EXPR_INT,
-  EXPR_FLOAT,
-  EXPR_STR,
-  EXPR_NAME,
-  EXPR_CAST,
-  EXPR_CALL,
-  EXPR_INDEX,
-  EXPR_FIELD,
-  EXPR_COMPOUND,
-  EXPR_UNARY,
-  EXPR_BINARY,
-  EXPR_TERNARY,
-  EXPR_MODIFY,
-  EXPR_SIZEOF_EXPR,
-  EXPR_SIZEOF_TYPE,
-  EXPR_TYPEOF_EXPR,
-  EXPR_TYPEOF_TYPE,
-  EXPR_ALIGNOF_EXPR,
-  EXPR_ALIGNOF_TYPE,
-  EXPR_OFFSETOF,
+  None,
+  Paren,
+  Int,
+  Float,
+  Str,
+  Name,
+  Cast,
+  Call,
+  Index,
+  Field,
+  Compound,
+  Unary,
+  Binary,
+  Ternary,
+  Modify,
+  SizeofExpr,
+  SizeofType,
+  TypeofExpr,
+  TypeofType,
+  AlignofExpr,
+  AlignofType,
+  Offsetof,
 }
 
 enum CompoundFieldKind {
-  FIELD_DEFAULT,
-  FIELD_NAME,
-  FIELD_INDEX,
+  Default,
+  Name,
+  Index,
 }
 
 struct CompoundField {
@@ -334,23 +334,23 @@ struct SwitchCase {
 }
 
 enum StmtKind {
-  STMT_NONE,
-  STMT_DECL,
-  STMT_RETURN,
-  STMT_BREAK,
-  STMT_CONTINUE,
-  STMT_BLOCK,
-  STMT_IF,
-  STMT_WHILE,
-  STMT_DO_WHILE,
-  STMT_FOR,
-  STMT_SWITCH,
-  STMT_ASSIGN,
-  STMT_INIT,
-  STMT_EXPR,
-  STMT_NOTE,
-  STMT_LABEL,
-  STMT_GOTO,
+  None,
+  Decl,
+  Return,
+  Break,
+  Continue,
+  Block,
+  If,
+  While,
+  DoWhile,
+  For,
+  Switch,
+  Assign,
+  Init,
+  Expr,
+  Note,
+  Label,
+  Goto,
 }
 
 struct Stmt {

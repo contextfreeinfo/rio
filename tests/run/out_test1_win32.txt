@@ -3,6 +3,7 @@ Target operating system: win32
 Target machine architecture: x64
 func3
 0 1 2 3
+No color: none
 0
 1
 2
