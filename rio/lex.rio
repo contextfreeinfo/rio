@@ -166,7 +166,7 @@ enum TokenKind {
   LastAssign = TokenKind.ModAssign,
   Inc,
   Dec,
-  NumKinds,
+  Num,
 }
 
 enum TokenMod {
@@ -263,7 +263,7 @@ fn token_kind_name(kind: TokenKind) -> *const char {
   }
 }
 
-let assign_token_to_binary_token: [TokenKind.NumKinds]TokenKind = {
+let assign_token_to_binary_token: [TokenKind.Num]TokenKind = {
   [TokenKind.AddAssign] = TokenKind.Add,
   [TokenKind.SubAssign] = TokenKind.Sub,
   [TokenKind.OrAssign] = TokenKind.Or,

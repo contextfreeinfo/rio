@@ -1033,7 +1033,7 @@ bool rio_is_keyword_name(char const ((*name)));
 
 #define rio_TokenKind_Dec ((rio_TokenKind)((rio_TokenKind_Inc) + (1)))
 
-#define rio_TokenKind_NumKinds ((rio_TokenKind)((rio_TokenKind_Dec) + (1)))
+#define rio_TokenKind_Num ((rio_TokenKind)((rio_TokenKind_Dec) + (1)))
 
 #define rio_TokenMod_None ((rio_TokenMod)(0))
 
@@ -1067,7 +1067,7 @@ extern char const ((*(rio_token_kind_names[62])));
 
 char const ((*rio_token_kind_name(rio_TokenKind kind)));
 
-extern rio_TokenKind (rio_assign_token_to_binary_token[rio_TokenKind_NumKinds]);
+extern rio_TokenKind (rio_assign_token_to_binary_token[rio_TokenKind_Num]);
 
 extern rio_SrcPos rio_pos_builtin;
 
@@ -4614,7 +4614,7 @@ char const ((*rio_token_kind_name(rio_TokenKind kind))) {
   }
 }
 
-rio_TokenKind (rio_assign_token_to_binary_token[rio_TokenKind_NumKinds]) = {[rio_TokenKind_AddAssign] = rio_TokenKind_Add, [rio_TokenKind_SubAssign] = rio_TokenKind_Sub, [rio_TokenKind_OrAssign] = rio_TokenKind_Or, [rio_TokenKind_AndAssign] = rio_TokenKind_And, [rio_TokenKind_XorAssign] = rio_TokenKind_Xor, [rio_TokenKind_LshiftAssign] = rio_TokenKind_Lshift, [rio_TokenKind_RshiftAssign] = rio_TokenKind_Rshift, [rio_TokenKind_MulAssign] = rio_TokenKind_Mul, [rio_TokenKind_DivAssign] = rio_TokenKind_Div, [rio_TokenKind_ModAssign] = rio_TokenKind_Mod};
+rio_TokenKind (rio_assign_token_to_binary_token[rio_TokenKind_Num]) = {[rio_TokenKind_AddAssign] = rio_TokenKind_Add, [rio_TokenKind_SubAssign] = rio_TokenKind_Sub, [rio_TokenKind_OrAssign] = rio_TokenKind_Or, [rio_TokenKind_AndAssign] = rio_TokenKind_And, [rio_TokenKind_XorAssign] = rio_TokenKind_Xor, [rio_TokenKind_LshiftAssign] = rio_TokenKind_Lshift, [rio_TokenKind_RshiftAssign] = rio_TokenKind_Rshift, [rio_TokenKind_MulAssign] = rio_TokenKind_Mul, [rio_TokenKind_DivAssign] = rio_TokenKind_Div, [rio_TokenKind_ModAssign] = rio_TokenKind_Mod};
 rio_SrcPos rio_pos_builtin = {.name = "<builtin>"};
 rio_Token rio_token;
 char const ((*rio_stream));
