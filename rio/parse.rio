@@ -785,7 +785,13 @@ fn parse_note_arg() -> NoteArg {
 
 fn parse_note() -> Note {
   let pos = token.pos;
-  let name = match_token(TokenKind.Keyword) ? token.name : parse_name();
+  let name: *const char;
+  if (is_token(TokenKind.Keyword)) {
+    name = token.name;
+    next_token();
+  } else {
+    name = parse_name();
+  }
   let args: *NoteArg = NULL;
   if (match_token(TokenKind.Lparen)) {
     let arg = parse_note_arg();

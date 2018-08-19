@@ -217,11 +217,49 @@ fn build_scoped_name(space: *const char, name: *const char) -> *const char {
   return scoped_name;
 }
 
-fn sym_global_decl(decl: &Decl) -> &Sym {
+fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
   let sym: &Sym = NULL;
   if (decl.name) {
     sym = sym_decl(decl);
     sym_global_put(sym.name, sym);
+    if (!scope) {
+      scope = decl.name;
+    }
+  }
+  if (decl.kind == DeclKind.Union && get_decl_note(decl, enum_keyword)) {
+    // Lowercase enum because we can't have a union member named enum, at least
+    // not without escaping, so this uses a less likely collision, even if it's
+    // a lowercase typename.
+    let enum_name = build_scoped_name(decl.name, "enum");
+    let num_items = decl.aggregate.num_items;
+    // let {num_items} = decl.aggregate;
+    // Figure out how many items we really have.
+    let num_all_items = 0;
+    for (let i: usize = 0; i < num_items; ++i) {
+      let union_item = &decl.aggregate.items[i];
+      if (union_item.kind != AggregateItemKind.Field) {
+        fatal_error(
+          union_item.pos, "Enum union item of %s not a field", decl.name,
+        );
+        return NULL;
+      }
+      num_all_items += union_item.num_names;
+    }
+    // Now build the enum items.
+    let enum_items = (:*EnumItem)xmalloc(num_all_items * sizeof(EnumItem));
+    let enum_item_index: usize = 0;
+    for (let i: usize = 0; i < num_items; ++i) {
+      let union_item = &decl.aggregate.items[i];
+      for (let n: usize = 0; n < union_item.num_names; ++n) {
+        enum_items[enum_item_index++] = EnumItem {
+          pos = union_item.pos, name = union_item.names[n], init = NULL,
+        };
+      }
+    }
+    // And add the new enum.
+    let new_decl =
+      new_decl_enum(decl.pos, enum_name, NULL, enum_items, num_items);
+    sym_global_decl(new_decl, decl.name);
   }
   if (decl.kind == DeclKind.Enum) {
     let unscoped =
@@ -245,14 +283,14 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
         let item_decl =
           new_decl_const(item.pos, item.name, enum_typespec, init);
         item_decl.notes = decl.notes;
-        sym_global_decl(item_decl);
+        sym_global_decl(item_decl, NULL);
         prev_item_name = item.name;
       } else {
         // Type-name-qualified version.
         // Even if generating outside C, we need namespace conflicts at this
         // level, because this is the canonical top-level namespace
         // interpretation.
-        let scoped_name = build_scoped_name(decl.name, item.name);
+        let scoped_name = build_scoped_name(scope, item.name);
         if (prev_scoped_name) {
           init = new_expr_binary(
             item.pos,
@@ -264,7 +302,7 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
         let scoped_decl =
           new_decl_const(item.pos, scoped_name, enum_typespec, init);
         scoped_decl.notes = decl.notes;
-        sym_global_decl(scoped_decl);
+        sym_global_decl(scoped_decl, NULL);
         prev_scoped_name = scoped_name;
       }
     }
@@ -2098,7 +2136,7 @@ fn add_package_decls(package: &Package) {
     } else if (decl.kind == DeclKind.Import) {
       // Add to list of imports
     } else {
-      sym_global_decl(decl);
+      sym_global_decl(decl, NULL);
     }
   }
 }
