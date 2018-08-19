@@ -6693,8 +6693,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
     }
     rio_Decl (*new_decl) = rio_new_decl_enum(decl->pos, enum_name, NULL, enum_items, num_items);
     rio_sym_global_decl(new_decl, decl->name);
-  }
-  if ((decl->kind) == (rio_DeclKind_Enum)) {
+  } else if ((decl->kind) == (rio_DeclKind_Enum)) {
     int unscoped = ((!(decl->name)) || (rio_get_decl_note(decl, rio_foreign_name))) || (rio_get_decl_note(decl, rio_unscoped_name));
     rio_Typespec (*enum_typespec) = rio_new_typespec_name(decl->pos, (sym ? sym->name : rio_str_intern("int")));
     char const ((*prev_item_name)) = NULL;

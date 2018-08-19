@@ -227,6 +227,7 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
     }
   }
   if (decl.kind == DeclKind.Union && get_decl_note(decl, enum_keyword)) {
+    // TODO Extract function.
     // Lowercase enum because we can't have a union member named enum, at least
     // not without escaping, so this uses a less likely collision, even if it's
     // a lowercase typename.
@@ -260,8 +261,9 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
     let new_decl =
       new_decl_enum(decl.pos, enum_name, NULL, enum_items, num_items);
     sym_global_decl(new_decl, decl.name);
-  }
-  if (decl.kind == DeclKind.Enum) {
+    // TODO Add the new enum__ member to the union right here?
+  } else if (decl.kind == DeclKind.Enum) {
+    // TODO Extract function.
     let unscoped =
       !decl.name ||
       get_decl_note(decl, foreign_name) ||
