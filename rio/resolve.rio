@@ -209,12 +209,12 @@ fn sym_global_type(name: *const char, type: &Type) -> &Sym {
   return sym;
 }
 
-fn build_qual_name(space: *const char, name: *const char) -> *const char {
-  let qual_name_buf: *char;
-  buf_printf(&qual_name_buf, "%s_%s", space, name);
-  let qual_name = str_intern(qual_name_buf);
-  buf_free((:*&void)&qual_name_buf);
-  return qual_name;
+fn build_scoped_name(space: *const char, name: *const char) -> *const char {
+  let scoped_name_buf: *char;
+  buf_printf(&scoped_name_buf, "%s_%s", space, name);
+  let scoped_name = str_intern(scoped_name_buf);
+  buf_free((:*&void)&scoped_name_buf);
+  return scoped_name;
 }
 
 fn sym_global_decl(decl: &Decl) -> &Sym {
@@ -230,7 +230,7 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
       get_decl_note(decl, unscoped_name);
     let enum_typespec = new_typespec_name(decl.pos, sym ? sym.name : str_intern("int"));
     let prev_item_name: *const char = NULL;
-    let prev_qual_name: *const char = NULL;
+    let prev_scoped_name: *const char = NULL;
     for (let i: usize = 0; i < decl.enum_decl.num_items; i++) {
       let item = decl.enum_decl.items[i];
       let init: &Expr;
@@ -251,21 +251,21 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
         // Even if generating outside C, we need namespace conflicts at this
         // level, because this is the canonical top-level namespace
         // interpretation.
-        let qual_name = build_qual_name(decl.name, item.name);
-        if (prev_qual_name) {
+        let scoped_name = build_scoped_name(decl.name, item.name);
+        if (prev_scoped_name) {
           init = new_expr_binary(
             item.pos,
             TokenKind.Add,
-            new_expr_name(item.pos, prev_qual_name),
+            new_expr_name(item.pos, prev_scoped_name),
             new_expr_int(item.pos, 1, 0, 0),
           );
         }
         // TODO Start switching everything over to qualified.
         // TODO Make @exposed note or something to force non-qual for named enum types.
-        let qual_decl = new_decl_const(item.pos, qual_name, enum_typespec, init);
+        let qual_decl = new_decl_const(item.pos, scoped_name, enum_typespec, init);
         qual_decl.notes = decl.notes;
         sym_global_decl(qual_decl);
-        prev_qual_name = qual_name;
+        prev_scoped_name = scoped_name;
       }
     }
   }
@@ -1202,7 +1202,7 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
       for (let i: usize = 0; i < enum_decl.num_items; ++i) {
         let item = enum_decl.items[i];
         if (item.name == expr.field.name) {
-          let sym = resolve_name(build_qual_name(decl.name, item.name));
+          let sym = resolve_name(build_scoped_name(decl.name, item.name));
           if (sym) {
             #assert(sym.kind == SymKind.Const);
             let item_operand = operand_const(sym.type, sym.val);

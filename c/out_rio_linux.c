@@ -1465,7 +1465,7 @@ void rio_sym_global_put(char const ((*name)), rio_Sym (*sym));
 
 rio_Sym (*rio_sym_global_type(char const ((*name)), rio_Type (*type)));
 
-char const ((*rio_build_qual_name(char const ((*space)), char const ((*name)))));
+char const ((*rio_build_scoped_name(char const ((*space)), char const ((*name)))));
 
 rio_Sym (*rio_sym_global_decl(rio_Decl (*decl)));
 
@@ -6622,12 +6622,12 @@ rio_Sym (*rio_sym_global_type(char const ((*name)), rio_Type (*type))) {
   return sym;
 }
 
-char const ((*rio_build_qual_name(char const ((*space)), char const ((*name))))) {
-  char (*qual_name_buf) = {0};
-  rio_buf_printf(&(qual_name_buf), "%s_%s", space, name);
-  char const ((*qual_name)) = rio_str_intern(qual_name_buf);
-  rio_buf_free((void (**))(&(qual_name_buf)));
-  return qual_name;
+char const ((*rio_build_scoped_name(char const ((*space)), char const ((*name))))) {
+  char (*scoped_name_buf) = {0};
+  rio_buf_printf(&(scoped_name_buf), "%s_%s", space, name);
+  char const ((*scoped_name)) = rio_str_intern(scoped_name_buf);
+  rio_buf_free((void (**))(&(scoped_name_buf)));
+  return scoped_name;
 }
 
 rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
@@ -6640,7 +6640,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
     int unscoped = ((!(decl->name)) || (rio_get_decl_note(decl, rio_foreign_name))) || (rio_get_decl_note(decl, rio_unscoped_name));
     rio_Typespec (*enum_typespec) = rio_new_typespec_name(decl->pos, (sym ? sym->name : rio_str_intern("int")));
     char const ((*prev_item_name)) = NULL;
-    char const ((*prev_qual_name)) = NULL;
+    char const ((*prev_scoped_name)) = NULL;
     for (size_t i = 0; (i) < (decl->enum_decl.num_items); (i)++) {
       rio_EnumItem item = decl->enum_decl.items[i];
       rio_Expr (*init) = {0};
@@ -6657,14 +6657,14 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
         rio_sym_global_decl(item_decl);
         prev_item_name = item.name;
       } else {
-        char const ((*qual_name)) = rio_build_qual_name(decl->name, item.name);
-        if (prev_qual_name) {
-          init = rio_new_expr_binary(item.pos, rio_TokenKind_Add, rio_new_expr_name(item.pos, prev_qual_name), rio_new_expr_int(item.pos, 1, 0, 0));
+        char const ((*scoped_name)) = rio_build_scoped_name(decl->name, item.name);
+        if (prev_scoped_name) {
+          init = rio_new_expr_binary(item.pos, rio_TokenKind_Add, rio_new_expr_name(item.pos, prev_scoped_name), rio_new_expr_int(item.pos, 1, 0, 0));
         }
-        rio_Decl (*qual_decl) = rio_new_decl_const(item.pos, qual_name, enum_typespec, init);
+        rio_Decl (*qual_decl) = rio_new_decl_const(item.pos, scoped_name, enum_typespec, init);
         qual_decl->notes = decl->notes;
         rio_sym_global_decl(qual_decl);
-        prev_qual_name = qual_name;
+        prev_scoped_name = scoped_name;
       }
     }
   }
@@ -7622,7 +7622,7 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
       for (size_t i = 0; (i) < (enum_decl.num_items); ++(i)) {
         rio_EnumItem item = enum_decl.items[i];
         if ((item.name) == (expr->field.name)) {
-          rio_Sym (*sym) = rio_resolve_name(rio_build_qual_name(decl->name, item.name));
+          rio_Sym (*sym) = rio_resolve_name(rio_build_scoped_name(decl->name, item.name));
           if (sym) {
             assert((sym->kind) == (rio_SymKind_Const));
             rio_Operand item_operand = rio_operand_const(sym->type, sym->val);
