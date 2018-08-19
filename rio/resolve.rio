@@ -242,7 +242,8 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
         init = new_expr_int(item.pos, 0, 0, 0);
       }
       if (unscoped) {
-        let item_decl = new_decl_const(item.pos, item.name, enum_typespec, init);
+        let item_decl =
+          new_decl_const(item.pos, item.name, enum_typespec, init);
         item_decl.notes = decl.notes;
         sym_global_decl(item_decl);
         prev_item_name = item.name;
@@ -260,11 +261,10 @@ fn sym_global_decl(decl: &Decl) -> &Sym {
             new_expr_int(item.pos, 1, 0, 0),
           );
         }
-        // TODO Start switching everything over to qualified.
-        // TODO Make @exposed note or something to force non-qual for named enum types.
-        let qual_decl = new_decl_const(item.pos, scoped_name, enum_typespec, init);
-        qual_decl.notes = decl.notes;
-        sym_global_decl(qual_decl);
+        let scoped_decl =
+          new_decl_const(item.pos, scoped_name, enum_typespec, init);
+        scoped_decl.notes = decl.notes;
+        sym_global_decl(scoped_decl);
         prev_scoped_name = scoped_name;
       }
     }
@@ -2056,236 +2056,236 @@ let decl_note_names: Map;
 
 fn init_builtin_syms() {
   #assert(current_package);
-    sym_global_type("void", type_void);
-    sym_global_type("bool", type_bool);
-    sym_global_type("char", type_char);
-    sym_global_type("schar", type_schar);
-    sym_global_type("uchar", type_uchar);
-    sym_global_type("short", type_short);
-    sym_global_type("ushort", type_ushort);
-    sym_global_type("int", type_int);
-    sym_global_type("uint", type_uint);
-    sym_global_type("long", type_long);
-    sym_global_type("ulong", type_ulong);
-    sym_global_type("llong", type_llong);
-    sym_global_type("ullong", type_ullong);
-    sym_global_type("float", type_float);
-    sym_global_type("double", type_double);
+  sym_global_type("void", type_void);
+  sym_global_type("bool", type_bool);
+  sym_global_type("char", type_char);
+  sym_global_type("schar", type_schar);
+  sym_global_type("uchar", type_uchar);
+  sym_global_type("short", type_short);
+  sym_global_type("ushort", type_ushort);
+  sym_global_type("int", type_int);
+  sym_global_type("uint", type_uint);
+  sym_global_type("long", type_long);
+  sym_global_type("ulong", type_ulong);
+  sym_global_type("llong", type_llong);
+  sym_global_type("ullong", type_ullong);
+  sym_global_type("float", type_float);
+  sym_global_type("double", type_double);
 }
 
 fn add_package_decls(package: &Package) {
-    for (let i: usize = 0; i < package.num_decls; i++) {
-        let decl = package.decls[i];
-        if (decl.kind == DeclKind.Note) {
-            if (!map_get(&decl_note_names, decl.note.name)) {
-                warning(decl.pos, "Unknown declaration #directive '%s'", decl.note.name);
-            }
-            if (decl.note.name == declare_note_name) {
-                if (decl.note.num_args != 1) {
-                    fatal_error(decl.pos, "#declare_note takes 1 argument");
-                }
-                let arg = decl.note.args[0].expr;
-                if (arg.kind != ExprKind.Name) {
-                    fatal_error(decl.pos, "#declare_note argument must be name");
-                }
-                map_put(&decl_note_names, arg.name, (:&void)1);
-            } else if (decl.note.name == static_assert_name) {
-                // TODO: decide how to handle top-level static #asserts wrt laziness/tree shaking
-                if (!flag_lazy) {
-                    resolve_static_assert(decl.note);
-                }
-            }
-        } else if (decl.kind == DeclKind.Import) {
-            // Add to list of imports
-        } else {
-            sym_global_decl(decl);
+  for (let i: usize = 0; i < package.num_decls; i++) {
+    let decl = package.decls[i];
+    if (decl.kind == DeclKind.Note) {
+      if (!map_get(&decl_note_names, decl.note.name)) {
+        warning(decl.pos, "Unknown declaration #directive '%s'", decl.note.name);
+      }
+      if (decl.note.name == declare_note_name) {
+        if (decl.note.num_args != 1) {
+          fatal_error(decl.pos, "#declare_note takes 1 argument");
         }
+        let arg = decl.note.args[0].expr;
+        if (arg.kind != ExprKind.Name) {
+          fatal_error(decl.pos, "#declare_note argument must be name");
+        }
+        map_put(&decl_note_names, arg.name, (:&void)1);
+      } else if (decl.note.name == static_assert_name) {
+        // TODO: decide how to handle top-level static #asserts wrt laziness/tree shaking
+        if (!flag_lazy) {
+          resolve_static_assert(decl.note);
+        }
+      }
+    } else if (decl.kind == DeclKind.Import) {
+      // Add to list of imports
+    } else {
+      sym_global_decl(decl);
     }
+  }
 }
 
 fn is_package_dir(search_path: *const char, package_path: *const char) -> bool {
-    let path: [MAX_PATH]char;
-    path_copy(path, search_path);
-    path_join(path, package_path);
-    let iter: DirListIter;
-    for (dir_list(&iter, path); iter.valid; dir_list_next(&iter)) {
-        let ext: *const char = path_ext(iter.name);
-        if (ext != iter.name && !strcmp(ext, "rio")) {
-            dir_list_free(&iter);
-            return true;
-        }
+  let path: [MAX_PATH]char;
+  path_copy(path, search_path);
+  path_join(path, package_path);
+  let iter: DirListIter;
+  for (dir_list(&iter, path); iter.valid; dir_list_next(&iter)) {
+    let ext: *const char = path_ext(iter.name);
+    if (ext != iter.name && !strcmp(ext, "rio")) {
+      dir_list_free(&iter);
+      return true;
     }
-    return false;
+  }
+  return false;
 }
 
 fn copy_package_full_path(dest: [MAX_PATH]char, package_path: *const char) -> bool {
-    for (let i = 0; i < num_package_search_paths; i++) {
-        if (is_package_dir(package_search_paths[i], package_path)) {
-            path_copy(dest, package_search_paths[i]);
-            path_join(dest, package_path);
-            return true;
-        }
+  for (let i = 0; i < num_package_search_paths; i++) {
+    if (is_package_dir(package_search_paths[i], package_path)) {
+      path_copy(dest, package_search_paths[i]);
+      path_join(dest, package_path);
+      return true;
     }
-    return false;
+  }
+  return false;
 }
 
 fn import_package(package_path: *const char) -> &Package {
-    package_path = str_intern(package_path);
-    let package: &Package = map_get(&package_map, package_path);
-    if (!package) {
-        package = xcalloc(1, sizeof(Package));
-        package.path = package_path;
-        if (flag_verbose) {
-            printf("Importing %s\n", package_path);
-        }
-        let full_path: [MAX_PATH]char;
-        if (!copy_package_full_path(full_path, package_path)) {
-            return NULL;
-        }
-        strcpy(package.full_path, full_path);
-        add_package(package);
-        compile_package(package);
+  package_path = str_intern(package_path);
+  let package: &Package = map_get(&package_map, package_path);
+  if (!package) {
+    package = xcalloc(1, sizeof(Package));
+    package.path = package_path;
+    if (flag_verbose) {
+      printf("Importing %s\n", package_path);
     }
-    return package;
+    let full_path: [MAX_PATH]char;
+    if (!copy_package_full_path(full_path, package_path)) {
+      return NULL;
+    }
+    strcpy(package.full_path, full_path);
+    add_package(package);
+    compile_package(package);
+  }
+  return package;
 }
 
 fn import_all_package_symbols(package: &Package) {
-    // TODO: should have a more general mechanism
-    let main_name: *const char = str_intern("main");
-    for (let i: usize = 0; i < buf_len(package.syms); i++) {
-        if (package.syms[i].home_package == package && package.syms[i].name != main_name) {
-            sym_global_put(package.syms[i].name, package.syms[i]);
-        }
+  // TODO: should have a more general mechanism
+  let main_name: *const char = str_intern("main");
+  for (let i: usize = 0; i < buf_len(package.syms); i++) {
+    if (package.syms[i].home_package == package && package.syms[i].name != main_name) {
+      sym_global_put(package.syms[i].name, package.syms[i]);
     }
+  }
 }
 
 fn import_package_symbols(decl: &Decl, package: &Package) {
-    for (let i: usize = 0; i < decl.import_decl.num_items; i++) {
-        let item = decl.import_decl.items[i];
-        let sym = get_package_sym(package, item.name);
-        if (!sym) {
-            fatal_error(decl.pos, "Symbol '%s' does not exist in package '%s'", item.name, package.path);
-        }
-        sym_global_put(item.rename ? item.rename : item.name, sym);
+  for (let i: usize = 0; i < decl.import_decl.num_items; i++) {
+    let item = decl.import_decl.items[i];
+    let sym = get_package_sym(package, item.name);
+    if (!sym) {
+      fatal_error(decl.pos, "Symbol '%s' does not exist in package '%s'", item.name, package.path);
     }
+    sym_global_put(item.rename ? item.rename : item.name, sym);
+  }
 }
 
 fn process_package_imports(package: &Package) {
-    for (let i: usize = 0; i < package.num_decls; i++) {
-        let decl = package.decls[i];
-        if (decl.kind == DeclKind.Note) {
-            if (decl.note.name == always_name) {
-                package.always_reachable = true;
-            }
-        } else if (decl.kind == DeclKind.Import) {
-            let path_buf: *char = NULL;
-            if (decl.import_decl.is_relative) {
-                buf_printf(&path_buf, "%s/", package.path);
-            }
-            for (let k: usize = 0; k < decl.import_decl.num_names; k++) {
-                if (!str_islower(decl.import_decl.names[k])) {
-                    fatal_error(decl.pos, "Import name must be lower case: '%s'", decl.import_decl.names[k]);
-                }
-                buf_printf(&path_buf, "%s%s", k == 0 ? "" : "/", decl.import_decl.names[k]);
-            }
-            let imported_package = import_package(path_buf);
-            if (!imported_package) {
-                fatal_error(decl.pos, "Failed to import package '%s'", path_buf);
-            }
-            buf_free((:*&void)&path_buf);
-            import_package_symbols(decl, imported_package);
-            if (decl.import_decl.import_all) {
-                import_all_package_symbols(imported_package);
-            }
-            let sym_name = decl.name ? decl.name : decl.import_decl.names[decl.import_decl.num_names - 1];
-            let sym = sym_new(SymKind.Package, sym_name, decl);
-            sym.package = imported_package;
-            sym_global_put(sym_name, sym);
+  for (let i: usize = 0; i < package.num_decls; i++) {
+    let decl = package.decls[i];
+    if (decl.kind == DeclKind.Note) {
+      if (decl.note.name == always_name) {
+        package.always_reachable = true;
+      }
+    } else if (decl.kind == DeclKind.Import) {
+      let path_buf: *char = NULL;
+      if (decl.import_decl.is_relative) {
+        buf_printf(&path_buf, "%s/", package.path);
+      }
+      for (let k: usize = 0; k < decl.import_decl.num_names; k++) {
+        if (!str_islower(decl.import_decl.names[k])) {
+          fatal_error(decl.pos, "Import name must be lower case: '%s'", decl.import_decl.names[k]);
         }
+        buf_printf(&path_buf, "%s%s", k == 0 ? "" : "/", decl.import_decl.names[k]);
+      }
+      let imported_package = import_package(path_buf);
+      if (!imported_package) {
+        fatal_error(decl.pos, "Failed to import package '%s'", path_buf);
+      }
+      buf_free((:*&void)&path_buf);
+      import_package_symbols(decl, imported_package);
+      if (decl.import_decl.import_all) {
+        import_all_package_symbols(imported_package);
+      }
+      let sym_name = decl.name ? decl.name : decl.import_decl.names[decl.import_decl.num_names - 1];
+      let sym = sym_new(SymKind.Package, sym_name, decl);
+      sym.package = imported_package;
+      sym_global_put(sym_name, sym);
     }
+  }
 }
 
 fn parse_package(package: &Package) -> bool {
-    let decls: *&Decl = NULL;
-    let iter: DirListIter;
-    for (dir_list(&iter, package.full_path); iter.valid; dir_list_next(&iter)) {
-        if (iter.is_dir || iter.name[0] == '_' || iter.name[0] == '.') {
-            continue;
-        }
-        let name: [MAX_PATH]char;
-        path_copy(name, iter.name);
-        let ext: *char = path_ext(name);
-        if (ext == name || strcmp(ext, "rio")) {
-            continue;
-        }
-        ext[-1] = 0;
-        if (is_excluded_target_filename(name)) {
-            continue;
-        }
-        let path: [MAX_PATH]char;
-        path_copy(path, iter.base);
-        path_join(path, iter.name);
-        path_absolute(path);
-        let code: *const char = read_file(path);
-        if (!code) {
-            fatal_error(SrcPos {name = path}, "Failed to read source file");
-        }
-        init_stream(str_intern(path), code);
-        let file_decls: *Decls = parse_decls();
-        for (let i: usize = 0; i < file_decls.num_decls; i++) {
-            buf_push((:*&void)&decls, &file_decls.decls[i], sizeof(file_decls.decls[i]));
-        }
+  let decls: *&Decl = NULL;
+  let iter: DirListIter;
+  for (dir_list(&iter, package.full_path); iter.valid; dir_list_next(&iter)) {
+    if (iter.is_dir || iter.name[0] == '_' || iter.name[0] == '.') {
+      continue;
     }
-    package.decls = decls;
-    package.num_decls = (:int)buf_len(decls);
-    return package != NULL;
+    let name: [MAX_PATH]char;
+    path_copy(name, iter.name);
+    let ext: *char = path_ext(name);
+    if (ext == name || strcmp(ext, "rio")) {
+      continue;
+    }
+    ext[-1] = 0;
+    if (is_excluded_target_filename(name)) {
+      continue;
+    }
+    let path: [MAX_PATH]char;
+    path_copy(path, iter.base);
+    path_join(path, iter.name);
+    path_absolute(path);
+    let code: *const char = read_file(path);
+    if (!code) {
+      fatal_error(SrcPos {name = path}, "Failed to read source file");
+    }
+    init_stream(str_intern(path), code);
+    let file_decls: *Decls = parse_decls();
+    for (let i: usize = 0; i < file_decls.num_decls; i++) {
+      buf_push((:*&void)&decls, &file_decls.decls[i], sizeof(file_decls.decls[i]));
+    }
+  }
+  package.decls = decls;
+  package.num_decls = (:int)buf_len(decls);
+  return package != NULL;
 }
 
 fn compile_package(package: &Package) -> bool {
-    if (!parse_package(package)) {
-        return false;
-    }
-    let old_package = enter_package(package);
-    if (buf_len(package_list) == 1) {
-        init_builtin_syms();
-    }
-    if (builtin_package) {
-        import_all_package_symbols(builtin_package);
-    }
-    add_package_decls(package);
-    process_package_imports(package);
-    leave_package(old_package);
-    return true;
+  if (!parse_package(package)) {
+    return false;
+  }
+  let old_package = enter_package(package);
+  if (buf_len(package_list) == 1) {
+    init_builtin_syms();
+  }
+  if (builtin_package) {
+    import_all_package_symbols(builtin_package);
+  }
+  add_package_decls(package);
+  process_package_imports(package);
+  leave_package(old_package);
+  return true;
 }
 
 fn resolve_package_syms(package: &Package) {
-    let old_package = enter_package(package);
-    for (let i: usize = 0; i < buf_len(package.syms); i++) {
-        if (package.syms[i].home_package == package) {
-            resolve_sym(package.syms[i]);
-        }
+  let old_package = enter_package(package);
+  for (let i: usize = 0; i < buf_len(package.syms); i++) {
+    if (package.syms[i].home_package == package) {
+      resolve_sym(package.syms[i]);
     }
-    leave_package(old_package);
+  }
+  leave_package(old_package);
 }
 
 fn finalize_reachable_syms() {
-    if (flag_verbose) {
-        printf("Finalizing reachable symbols\n");
-    }
-    let prev_num_reachable: usize = 0;
-    let num_reachable = buf_len(reachable_syms);
-    for (let i: usize = 0; i < num_reachable; i++) {
-        finalize_sym(reachable_syms[i]);
-        if (i == num_reachable - 1) {
-            if (flag_verbose) {
-                printf("New reachable symbols:");
-                for (let k: usize = prev_num_reachable; k < num_reachable; k++) {
-                    printf(" %s/%s", reachable_syms[k].home_package.path, reachable_syms[k].name);
-                }
-                printf("\n");
-            }
-            prev_num_reachable = num_reachable;
-            num_reachable = buf_len(reachable_syms);
+  if (flag_verbose) {
+    printf("Finalizing reachable symbols\n");
+  }
+  let prev_num_reachable: usize = 0;
+  let num_reachable = buf_len(reachable_syms);
+  for (let i: usize = 0; i < num_reachable; i++) {
+    finalize_sym(reachable_syms[i]);
+    if (i == num_reachable - 1) {
+      if (flag_verbose) {
+        printf("New reachable symbols:");
+        for (let k: usize = prev_num_reachable; k < num_reachable; k++) {
+          printf(" %s/%s", reachable_syms[k].home_package.path, reachable_syms[k].name);
         }
+        printf("\n");
+      }
+      prev_num_reachable = num_reachable;
+      num_reachable = buf_len(reachable_syms);
     }
+  }
 }

@@ -6675,9 +6675,9 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl))) {
         if (prev_scoped_name) {
           init = rio_new_expr_binary(item.pos, rio_TokenKind_Add, rio_new_expr_name(item.pos, prev_scoped_name), rio_new_expr_int(item.pos, 1, 0, 0));
         }
-        rio_Decl (*qual_decl) = rio_new_decl_const(item.pos, scoped_name, enum_typespec, init);
-        qual_decl->notes = decl->notes;
-        rio_sym_global_decl(qual_decl);
+        rio_Decl (*scoped_decl) = rio_new_decl_const(item.pos, scoped_name, enum_typespec, init);
+        scoped_decl->notes = decl->notes;
+        rio_sym_global_decl(scoped_decl);
         prev_scoped_name = scoped_name;
       }
     }
