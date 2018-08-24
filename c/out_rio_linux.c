@@ -3611,10 +3611,6 @@ void rio_gen_aggregate(rio_Decl (*decl)) {
   if (decl->is_incomplete) {
     return;
   }
-  char const ((*decl_type)) = {0};
-  rio_Aggregate (*add_enum) = rio_get_enum_union(decl);
-  if ((add_enum) && ((decl->kind) == ((rio_DeclKind_Union)))) {
-  }
   rio_genln();
   rio_buf_printf(&(rio_gen_buf), "%s %s {", ((decl->kind) == ((rio_DeclKind_Struct)) ? "struct" : "union"), rio_get_gen_name(decl));
   rio_gen_aggregate_items(decl->aggregate);

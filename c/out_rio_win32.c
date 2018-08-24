@@ -297,6 +297,8 @@ rio_Decl (*rio_new_decl(rio_DeclKind kind, rio_SrcPos pos, char const ((*name)))
 
 rio_Note (*rio_get_decl_note(rio_Decl (*decl), char const ((*name))));
 
+rio_Aggregate (*rio_get_enum_union(rio_Decl (*decl)));
+
 bool rio_is_decl_foreign(rio_Decl (*decl));
 
 rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_EnumItem (*items), size_t num_items));
@@ -619,6 +621,8 @@ void rio_buf_fit(void (*(*b)), size_t new_len, size_t elem_size);
 
 void rio_buf_push(void (*(*b)), void (*elem), size_t elem_size);
 
+void rio_buf_unshift(void (*(*b)), void (*elem), size_t elem_size);
+
 void (*rio_buf__grow(void const ((*buf)), size_t new_len, size_t elem_size));
 
 void rio_buf_printf(char (*(*buf)), char const ((*fmt)), ...);
@@ -724,6 +728,8 @@ bool rio_gen_reachable(rio_Sym (*sym));
 
 void rio_gen_forward_decls(void);
 
+void rio_gen_aggregate_item(rio_AggregateItem (*item));
+
 void rio_gen_aggregate_items(rio_Aggregate (*aggregate));
 
 void rio_gen_aggregate(rio_Decl (*decl));
@@ -788,7 +794,7 @@ typedef int rio_CompilerTypeKind;
 
 #define rio_CompilerTypeKind_Num ((rio_CompilerTypeKind)((rio_CompilerTypeKind_Const) + (1)))
 
-extern char const ((*(rio_typeid_kind_names[rio_CompilerTypeKind_Num])));
+extern char const ((*(rio_typeid_kind_names[(rio_CompilerTypeKind_Num)])));
 
 char const ((*rio_typeid_kind_name(rio_Type (*type))));
 
@@ -1096,7 +1102,7 @@ extern char const ((*(rio_token_kind_names[62])));
 
 char const ((*rio_token_kind_name(rio_TokenKind kind)));
 
-extern rio_TokenKind (rio_assign_token_to_binary_token[rio_TokenKind_Num]);
+extern rio_TokenKind (rio_assign_token_to_binary_token[(rio_TokenKind_Num)]);
 
 extern rio_SrcPos rio_pos_builtin;
 
@@ -1735,7 +1741,7 @@ typedef int rio_Os;
 
 #define rio_Os_Num ((rio_Os)((rio_Os_OsX) + (1)))
 
-extern char const ((*(rio_os_names[rio_Os_Num])));
+extern char const ((*(rio_os_names[(rio_Os_Num)])));
 
 typedef int rio_Arch;
 
@@ -1745,7 +1751,7 @@ typedef int rio_Arch;
 
 #define rio_Arch_Num ((rio_Arch)((rio_Arch_X86) + (1)))
 
-extern char const ((*(rio_arch_names[rio_Arch_Num])));
+extern char const ((*(rio_arch_names[(rio_Arch_Num)])));
 
 extern int rio_target_os;
 
@@ -1762,15 +1768,15 @@ struct rio_TypeMetrics {
   ullong max;
 };
 
-void rio_init_default_type_metrics(rio_TypeMetrics (metrics[rio_CompilerTypeKind_Num]));
+void rio_init_default_type_metrics(rio_TypeMetrics (metrics[(rio_CompilerTypeKind_Num)]));
 
-extern rio_TypeMetrics (rio_win32_x86_metrics[rio_CompilerTypeKind_Num]);
+extern rio_TypeMetrics (rio_win32_x86_metrics[(rio_CompilerTypeKind_Num)]);
 
-extern rio_TypeMetrics (rio_win32_x64_metrics[rio_CompilerTypeKind_Num]);
+extern rio_TypeMetrics (rio_win32_x64_metrics[(rio_CompilerTypeKind_Num)]);
 
-extern rio_TypeMetrics (rio_ilp32_metrics[rio_CompilerTypeKind_Num]);
+extern rio_TypeMetrics (rio_ilp32_metrics[(rio_CompilerTypeKind_Num)]);
 
-extern rio_TypeMetrics (rio_lp64_metrics[rio_CompilerTypeKind_Num]);
+extern rio_TypeMetrics (rio_lp64_metrics[(rio_CompilerTypeKind_Num)]);
 
 void rio_init_target(void);
 
@@ -1877,9 +1883,9 @@ bool rio_is_aggregate_type(rio_Type (*type));
 
 bool rio_is_signed_type(rio_Type (*type));
 
-extern char const ((*(rio_type_names[rio_CompilerTypeKind_Num])));
+extern char const ((*(rio_type_names[(rio_CompilerTypeKind_Num)])));
 
-extern int (rio_type_ranks[rio_CompilerTypeKind_Num]);
+extern int (rio_type_ranks[(rio_CompilerTypeKind_Num)]);
 
 int rio_type_rank(rio_Type (*type));
 
@@ -2139,6 +2145,7 @@ struct rio_DeclEnum {
   rio_Typespec (*type);
   rio_EnumItem (*items);
   size_t num_items;
+  char const ((*scope));
 };
 
 struct rio_DeclFunc {
@@ -2190,6 +2197,7 @@ struct rio_Aggregate {
   rio_AggregateKind kind;
   rio_AggregateItem (*items);
   size_t num_items;
+  rio_Decl (*union_enum_decl);
 };
 
 struct rio_ImportItem {
@@ -2359,40 +2367,40 @@ rio_Typespec (*rio_new_typespec(rio_TypespecKind kind, rio_SrcPos pos)) {
 }
 
 rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, char const ((*name)))) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Name, pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Name), pos);
   t->name = name;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_ptr(rio_SrcPos pos, rio_Typespec (*base), bool is_owned)) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Ptr, pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Ptr), pos);
   t->base = base;
   t->is_owned = is_owned;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_ref(rio_SrcPos pos, rio_Typespec (*base), bool is_owned)) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Ref, pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Ref), pos);
   t->base = base;
   t->is_owned = is_owned;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_const(rio_SrcPos pos, rio_Typespec (*base))) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Const, pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Const), pos);
   t->base = base;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_array(rio_SrcPos pos, rio_Typespec (*elem), rio_Expr (*size))) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Array, pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Array), pos);
   t->base = elem;
   t->num_elems = size;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Typespec (*(*args)), size_t num_args, rio_Typespec (*ret), bool has_varargs)) {
-  rio_Typespec (*t) = rio_new_typespec(rio_TypespecKind_Func, pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Func), pos);
   t->function.args = rio_ast_dup(args, (num_args) * (sizeof(*(args))));
   t->function.num_args = num_args;
   t->function.ret = ret;
@@ -2425,12 +2433,35 @@ rio_Note (*rio_get_decl_note(rio_Decl (*decl), char const ((*name)))) {
   return NULL;
 }
 
+rio_Aggregate (*rio_get_enum_union(rio_Decl (*decl))) {
+  if (rio_get_decl_note(decl, rio_enum_keyword)) {
+    if ((decl->kind) == ((rio_DeclKind_Union))) {
+      return decl->aggregate;
+    }
+    assert((decl->kind) == ((rio_DeclKind_Struct)));
+    rio_Aggregate (*result) = {0};
+    for (size_t i = 0; (i) < (decl->aggregate->num_items); (i)++) {
+      rio_AggregateItem item = decl->aggregate->items[i];
+      if ((item.kind) == ((rio_AggregateItemKind_Subaggregate))) {
+        if ((item.subaggregate->kind) == ((rio_AggregateKind_Union))) {
+          if (result) {
+            rio_fatal_error(item.subaggregate->pos, "Multiple enum unions in struct");
+          }
+          result = item.subaggregate;
+        }
+      }
+    }
+    return result;
+  }
+  return NULL;
+}
+
 bool rio_is_decl_foreign(rio_Decl (*decl)) {
   return (rio_get_decl_note(decl, rio_foreign_name)) != (NULL);
 }
 
 rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_EnumItem (*items), size_t num_items)) {
-  rio_Decl (*d) = rio_new_decl(rio_DeclKind_Enum, pos, name);
+  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Enum), pos, name);
   d->enum_decl.type = type;
   d->enum_decl.items = rio_ast_dup(items, (num_items) * (sizeof(*(items))));
   d->enum_decl.num_items = num_items;
@@ -2447,21 +2478,21 @@ rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_Ag
 }
 
 rio_Decl (*rio_new_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind, char const ((*name)), rio_Aggregate (*aggregate))) {
-  assert(((kind) == (rio_DeclKind_Struct)) || ((kind) == (rio_DeclKind_Union)));
+  assert(((kind) == ((rio_DeclKind_Struct))) || ((kind) == ((rio_DeclKind_Union))));
   rio_Decl (*d) = rio_new_decl(kind, pos, name);
   d->aggregate = aggregate;
   return d;
 }
 
 rio_Decl (*rio_new_decl_var(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr))) {
-  rio_Decl (*d) = rio_new_decl(rio_DeclKind_Var, pos, name);
+  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Var), pos, name);
   d->var_decl.type = type;
   d->var_decl.expr = expr;
   return d;
 }
 
 rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_FuncParam (*params), size_t num_params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block)) {
-  rio_Decl (*d) = rio_new_decl(rio_DeclKind_Func, pos, name);
+  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Func), pos, name);
   d->function.params = rio_ast_dup(params, (num_params) * (sizeof(*(params))));
   d->function.num_params = num_params;
   d->function.ret_type = ret_type;
@@ -2471,26 +2502,26 @@ rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_FuncParam
 }
 
 rio_Decl (*rio_new_decl_const(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr))) {
-  rio_Decl (*d) = rio_new_decl(rio_DeclKind_Const, pos, name);
+  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Const), pos, name);
   d->const_decl.type = type;
   d->const_decl.expr = expr;
   return d;
 }
 
 rio_Decl (*rio_new_decl_typedef(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type))) {
-  rio_Decl (*d) = rio_new_decl(rio_DeclKind_Typedef, pos, name);
+  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Typedef), pos, name);
   d->typedef_decl.type = type;
   return d;
 }
 
 rio_Decl (*rio_new_decl_note(rio_SrcPos pos, rio_Note note)) {
-  rio_Decl (*d) = rio_new_decl(rio_DeclKind_Note, pos, NULL);
+  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Note), pos, NULL);
   d->note = note;
   return d;
 }
 
 rio_Decl (*rio_new_decl_import(rio_SrcPos pos, char const ((*rename_name)), bool is_relative, char const ((*(*names))), size_t num_names, bool import_all, rio_ImportItem (*items), size_t num_items)) {
-  rio_Decl (*d) = rio_new_decl(rio_DeclKind_Import, pos, NULL);
+  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Import), pos, NULL);
   d->name = rename_name;
   d->import_decl.is_relative = is_relative;
   d->import_decl.names = rio_ast_dup(names, (num_names) * (sizeof(*(names))));
@@ -2509,56 +2540,56 @@ rio_Expr (*rio_new_expr(rio_ExprKind kind, rio_SrcPos pos)) {
 }
 
 rio_Expr (*rio_new_expr_paren(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Paren, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Paren), pos);
   e->paren.expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_sizeof_expr(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_SizeofExpr, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_SizeofExpr), pos);
   e->sizeof_expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_sizeof_type(rio_SrcPos pos, rio_Typespec (*type))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_SizeofType, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_SizeofType), pos);
   e->sizeof_type = type;
   return e;
 }
 
 rio_Expr (*rio_new_expr_typeof_expr(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_TypeofExpr, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_TypeofExpr), pos);
   e->typeof_expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_typeof_type(rio_SrcPos pos, rio_Typespec (*type))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_TypeofType, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_TypeofType), pos);
   e->typeof_type = type;
   return e;
 }
 
 rio_Expr (*rio_new_expr_alignof_expr(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_AlignofExpr, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_AlignofExpr), pos);
   e->alignof_expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_alignof_type(rio_SrcPos pos, rio_Typespec (*type))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_AlignofType, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_AlignofType), pos);
   e->alignof_type = type;
   return e;
 }
 
 rio_Expr (*rio_new_expr_offsetof(rio_SrcPos pos, rio_Typespec (*type), char const ((*name)))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Offsetof, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Offsetof), pos);
   e->offsetof_field.type = type;
   e->offsetof_field.name = name;
   return e;
 }
 
 rio_Expr (*rio_new_expr_modify(rio_SrcPos pos, rio_TokenKind op, bool post, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Modify, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Modify), pos);
   e->modify.op = op;
   e->modify.post = post;
   e->modify.expr = expr;
@@ -2566,7 +2597,7 @@ rio_Expr (*rio_new_expr_modify(rio_SrcPos pos, rio_TokenKind op, bool post, rio_
 }
 
 rio_Expr (*rio_new_expr_int(rio_SrcPos pos, ullong val, rio_TokenMod mod, rio_TokenSuffix suffix)) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Int, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Int), pos);
   e->int_lit.val = val;
   e->int_lit.mod = mod;
   e->int_lit.suffix = suffix;
@@ -2574,7 +2605,7 @@ rio_Expr (*rio_new_expr_int(rio_SrcPos pos, ullong val, rio_TokenMod mod, rio_To
 }
 
 rio_Expr (*rio_new_expr_float(rio_SrcPos pos, char const ((*start)), char const ((*end)), double val, rio_TokenSuffix suffix)) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Float, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Float), pos);
   e->float_lit.start = start;
   e->float_lit.end = end;
   e->float_lit.val = val;
@@ -2583,20 +2614,20 @@ rio_Expr (*rio_new_expr_float(rio_SrcPos pos, char const ((*start)), char const 
 }
 
 rio_Expr (*rio_new_expr_str(rio_SrcPos pos, char const ((*val)), rio_TokenMod mod)) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Str, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Str), pos);
   e->str_lit.val = val;
   e->str_lit.mod = mod;
   return e;
 }
 
 rio_Expr (*rio_new_expr_name(rio_SrcPos pos, char const ((*name)))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Name, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Name), pos);
   e->name = name;
   return e;
 }
 
 rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_CompoundField (*fields), size_t num_fields)) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Compound, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Compound), pos);
   e->compound.type = type;
   e->compound.fields = rio_ast_dup(fields, (num_fields) * (sizeof(*(fields))));
   e->compound.num_fields = num_fields;
@@ -2604,14 +2635,14 @@ rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_Compo
 }
 
 rio_Expr (*rio_new_expr_cast(rio_SrcPos pos, rio_Typespec (*type), rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Cast, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Cast), pos);
   e->cast.type = type;
   e->cast.expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_call(rio_SrcPos pos, rio_Expr (*expr), rio_Expr (*(*args)), size_t num_args)) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Call, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Call), pos);
   e->call.expr = expr;
   e->call.args = rio_ast_dup(args, (num_args) * (sizeof(*(args))));
   e->call.num_args = num_args;
@@ -2619,28 +2650,28 @@ rio_Expr (*rio_new_expr_call(rio_SrcPos pos, rio_Expr (*expr), rio_Expr (*(*args
 }
 
 rio_Expr (*rio_new_expr_index(rio_SrcPos pos, rio_Expr (*expr), rio_Expr (*index))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Index, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Index), pos);
   e->index.expr = expr;
   e->index.index = index;
   return e;
 }
 
 rio_Expr (*rio_new_expr_field(rio_SrcPos pos, rio_Expr (*expr), char const ((*name)))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Field, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Field), pos);
   e->field.expr = expr;
   e->field.name = name;
   return e;
 }
 
 rio_Expr (*rio_new_expr_unary(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Unary, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Unary), pos);
   e->unary.op = op;
   e->unary.expr = expr;
   return e;
 }
 
 rio_Expr (*rio_new_expr_binary(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left), rio_Expr (*right))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Binary, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Binary), pos);
   e->binary.op = op;
   e->binary.left = left;
   e->binary.right = right;
@@ -2648,7 +2679,7 @@ rio_Expr (*rio_new_expr_binary(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left
 }
 
 rio_Expr (*rio_new_expr_ternary(rio_SrcPos pos, rio_Expr (*cond), rio_Expr (*then_expr), rio_Expr (*else_expr))) {
-  rio_Expr (*e) = rio_new_expr(rio_ExprKind_Ternary, pos);
+  rio_Expr (*e) = rio_new_expr((rio_ExprKind_Ternary), pos);
   e->ternary.cond = cond;
   e->ternary.then_expr = then_expr;
   e->ternary.else_expr = else_expr;
@@ -2673,51 +2704,51 @@ rio_Stmt (*rio_new_stmt(rio_StmtKind kind, rio_SrcPos pos)) {
 }
 
 rio_Stmt (*rio_new_stmt_label(rio_SrcPos pos, char const ((*label)))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Label, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Label), pos);
   s->label = label;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_goto(rio_SrcPos pos, char const ((*label)))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Goto, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Goto), pos);
   s->label = label;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_note(rio_SrcPos pos, rio_Note note)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Note, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Note), pos);
   s->note = note;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_decl(rio_SrcPos pos, rio_Decl (*decl))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Decl, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Decl), pos);
   s->decl = decl;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_return(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Return, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Return), pos);
   s->expr = expr;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_break(rio_SrcPos pos)) {
-  return rio_new_stmt(rio_StmtKind_Break, pos);
+  return rio_new_stmt((rio_StmtKind_Break), pos);
 }
 
 rio_Stmt (*rio_new_stmt_continue(rio_SrcPos pos)) {
-  return rio_new_stmt(rio_StmtKind_Continue, pos);
+  return rio_new_stmt((rio_StmtKind_Continue), pos);
 }
 
 rio_Stmt (*rio_new_stmt_block(rio_SrcPos pos, rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Block, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Block), pos);
   s->block = block;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_StmtList then_block, rio_ElseIf (*elseifs), size_t num_elseifs, rio_StmtList else_block)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_If, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_If), pos);
   s->if_stmt.init = init;
   s->if_stmt.cond = cond;
   s->if_stmt.then_block = then_block;
@@ -2728,21 +2759,21 @@ rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), r
 }
 
 rio_Stmt (*rio_new_stmt_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_While, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_While), pos);
   s->while_stmt.cond = cond;
   s->while_stmt.block = block;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_do_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_DoWhile, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_DoWhile), pos);
   s->while_stmt.cond = cond;
   s->while_stmt.block = block;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_Stmt (*next), rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_For, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_For), pos);
   s->for_stmt.init = init;
   s->for_stmt.cond = cond;
   s->for_stmt.next = next;
@@ -2751,7 +2782,7 @@ rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), 
 }
 
 rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_SwitchCase (*cases), size_t num_cases)) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Switch, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Switch), pos);
   s->switch_stmt.expr = expr;
   s->switch_stmt.cases = rio_ast_dup(cases, (num_cases) * (sizeof(*(cases))));
   s->switch_stmt.num_cases = num_cases;
@@ -2759,7 +2790,7 @@ rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_SwitchCase 
 }
 
 rio_Stmt (*rio_new_stmt_assign(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left), rio_Expr (*right))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Assign, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Assign), pos);
   s->assign.op = op;
   s->assign.left = left;
   s->assign.right = right;
@@ -2767,7 +2798,7 @@ rio_Stmt (*rio_new_stmt_assign(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left
 }
 
 rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, rio_Typespec (*type), rio_Expr (*expr))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Init, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Init), pos);
   s->init.name = name;
   s->init.is_mut = is_mut;
   s->init.type = type;
@@ -2776,7 +2807,7 @@ rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, 
 }
 
 rio_Stmt (*rio_new_stmt_expr(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Stmt (*s) = rio_new_stmt(rio_StmtKind_Expr, pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Expr), pos);
   s->expr = expr;
   return s;
 }
@@ -2937,6 +2968,12 @@ void rio_buf_fit(void (*(*b)), size_t new_len, size_t elem_size) {
 void rio_buf_push(void (*(*b)), void (*elem), size_t elem_size) {
   rio_buf_fit(b, (1) + (rio_buf_len(*(b))), elem_size);
   memcpy(((char *)(*(b))) + ((elem_size) * ((rio_buf__hdr(*(b))->len)++)), elem, elem_size);
+}
+
+void rio_buf_unshift(void (*(*b)), void (*elem), size_t elem_size) {
+  rio_buf_fit(b, (1) + (rio_buf_len(*(b))), elem_size);
+  memmove(((char *)(*(b))) + (elem_size), *(b), (elem_size) * ((rio_buf__hdr(*(b))->len)++));
+  memcpy(*(b), elem, elem_size);
 }
 
 void (*rio_buf__grow(void const ((*buf)), size_t new_len, size_t elem_size)) {
@@ -3265,7 +3302,7 @@ void rio_genln(void) {
 }
 
 bool rio_is_incomplete_array_typespec(rio_Typespec (*typespec)) {
-  return ((typespec->kind) == (rio_TypespecKind_Array)) && (!(typespec->num_elems));
+  return ((typespec->kind) == ((rio_TypespecKind_Array))) && (!(typespec->num_elems));
 }
 
 char (rio_char_to_escape[256]) = {['\0'] = '0', ['\n'] = 'n', ['\r'] = 'r', ['\t'] = 't', ['\v'] = 'v', ['\b'] = 'b', ['\a'] = 'a', ['\\'] = '\\', ['\"'] = '\"', ['\''] = '\''};
@@ -3345,16 +3382,16 @@ char const ((*rio_cdecl_name(rio_Type (*type)))) {
 
 char (*rio_type_to_cdecl(rio_Type (*type), char const ((*str)))) {
   switch (type->kind) {
-  case rio_CompilerTypeKind_Ptr:
-  case rio_CompilerTypeKind_Ref: {
+  case (rio_CompilerTypeKind_Ptr):
+  case (rio_CompilerTypeKind_Ref): {
     return rio_type_to_cdecl(type->base, rio_cdecl_paren(rio_strf("*%s", str), *(str)));
     break;
   }
-  case rio_CompilerTypeKind_Const: {
+  case (rio_CompilerTypeKind_Const): {
     return rio_type_to_cdecl(type->base, rio_strf("const %s", rio_cdecl_paren(str, *(str))));
     break;
   }
-  case rio_CompilerTypeKind_Array: {
+  case (rio_CompilerTypeKind_Array): {
     if ((type->num_elems) == (0)) {
       return rio_type_to_cdecl(type->base, rio_cdecl_paren(rio_strf("%s[]", str), *(str)));
     } else {
@@ -3362,7 +3399,7 @@ char (*rio_type_to_cdecl(rio_Type (*type), char const ((*str)))) {
     }
     break;
   }
-  case rio_CompilerTypeKind_Func: {
+  case (rio_CompilerTypeKind_Func): {
     {
       char (*result) = NULL;
       rio_buf_printf(&(result), "(*%s)(", str);
@@ -3429,20 +3466,20 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
     return rio_strf("void%s%s", (*(str) ? " " : ""), str);
   }
   switch (typespec->kind) {
-  case rio_TypespecKind_Name: {
+  case (rio_TypespecKind_Name): {
     return rio_strf("%s%s%s", rio_get_gen_name_or_default(typespec, typespec->name), (*(str) ? " " : ""), str);
     break;
   }
-  case rio_TypespecKind_Ptr:
-  case rio_TypespecKind_Ref: {
+  case (rio_TypespecKind_Ptr):
+  case (rio_TypespecKind_Ref): {
     return rio_typespec_to_cdecl(typespec->base, rio_cdecl_paren(rio_strf("*%s", str), *(str)));
     break;
   }
-  case rio_TypespecKind_Const: {
+  case (rio_TypespecKind_Const): {
     return rio_typespec_to_cdecl(typespec->base, rio_strf("const %s", rio_cdecl_paren(str, *(str))));
     break;
   }
-  case rio_TypespecKind_Array: {
+  case (rio_TypespecKind_Array): {
     if ((typespec->num_elems) == (0)) {
       return rio_typespec_to_cdecl(typespec->base, rio_cdecl_paren(rio_strf("%s[]", str), *(str)));
     } else {
@@ -3450,7 +3487,7 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
     }
     break;
   }
-  case rio_TypespecKind_Func: {
+  case (rio_TypespecKind_Func): {
     char (*result) = NULL;
     rio_buf_printf(&(result), "(*%s)(", str);
     if ((typespec->function.num_args) == (0)) {
@@ -3476,7 +3513,7 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
 }
 
 void rio_gen_func_decl(rio_Decl (*decl)) {
-  assert((decl->kind) == (rio_DeclKind_Func));
+  assert((decl->kind) == ((rio_DeclKind_Func)));
   char (*result) = NULL;
   rio_buf_printf(&(result), "%s(", rio_get_gen_name(decl));
   if ((decl->function.num_params) == (0)) {
@@ -3505,7 +3542,7 @@ void rio_gen_func_decl(rio_Decl (*decl)) {
 }
 
 bool rio_gen_reachable(rio_Sym (*sym)) {
-  return (rio_flag_fullgen) || ((sym->reachable) == (rio_ReachablePhase_Natural));
+  return (rio_flag_fullgen) || ((sym->reachable) == ((rio_ReachablePhase_Natural)));
 }
 
 void rio_gen_forward_decls(void) {
@@ -3519,12 +3556,12 @@ void rio_gen_forward_decls(void) {
       continue;
     }
     switch (decl->kind) {
-    case rio_DeclKind_Struct:
-    case rio_DeclKind_Union: {
+    case (rio_DeclKind_Struct):
+    case (rio_DeclKind_Union): {
       {
         char const ((*name)) = rio_get_gen_name(sym);
         rio_genln();
-        rio_buf_printf(&(rio_gen_buf), "typedef %s %s %s;", ((decl->kind) == (rio_DeclKind_Struct) ? "struct" : "union"), name, name);
+        rio_buf_printf(&(rio_gen_buf), "typedef %s %s %s;", ((decl->kind) == ((rio_DeclKind_Struct)) ? "struct" : "union"), name, name);
         break;
       }
       break;
@@ -3537,43 +3574,47 @@ void rio_gen_forward_decls(void) {
   }
 }
 
+void rio_gen_aggregate_item(rio_AggregateItem (*item)) {
+  if ((item->kind) == ((rio_AggregateItemKind_Field))) {
+    for (size_t j = 0; (j) < (item->num_names); (j)++) {
+      rio_gen_sync_pos(item->pos);
+      char (*prefix) = "";
+      if ((item->type->kind) == ((rio_TypespecKind_Name))) {
+        char const ((*name)) = rio_get_gen_name_or_default(item->type, item->type->name);
+        if ((name) == (rio_void_name)) {
+          prefix = "// ";
+        }
+      }
+      rio_genln();
+      rio_buf_printf(&(rio_gen_buf), "%s%s;", prefix, rio_typespec_to_cdecl(item->type, item->names[j]));
+    }
+  } else if ((item->kind) == ((rio_AggregateItemKind_Subaggregate))) {
+    rio_genln();
+    rio_buf_printf(&(rio_gen_buf), "%s {", ((item->subaggregate->kind) == ((rio_AggregateKind_Struct)) ? "struct" : "union"));
+    rio_gen_aggregate_items(item->subaggregate);
+    rio_genln();
+    rio_buf_printf(&(rio_gen_buf), "};");
+  } else {
+    assert("@complete if/elseif chain failed to handle case" && 0);
+  }
+}
+
 void rio_gen_aggregate_items(rio_Aggregate (*aggregate)) {
   (rio_gen_indent)++;
   for (size_t i = 0; (i) < (aggregate->num_items); (i)++) {
     rio_AggregateItem item = aggregate->items[i];
-    if ((item.kind) == (rio_AggregateItemKind_Field)) {
-      for (size_t j = 0; (j) < (item.num_names); (j)++) {
-        rio_gen_sync_pos(item.pos);
-        char (*prefix) = "";
-        if ((item.type->kind) == (rio_TypespecKind_Name)) {
-          char const ((*name)) = rio_get_gen_name_or_default(item.type, item.type->name);
-          if ((name) == (rio_void_name)) {
-            prefix = "// ";
-          }
-        }
-        rio_genln();
-        rio_buf_printf(&(rio_gen_buf), "%s%s;", prefix, rio_typespec_to_cdecl(item.type, item.names[j]));
-      }
-    } else if ((item.kind) == (rio_AggregateItemKind_Subaggregate)) {
-      rio_genln();
-      rio_buf_printf(&(rio_gen_buf), "%s {", ((item.subaggregate->kind) == (rio_AggregateKind_Struct) ? "struct" : "union"));
-      rio_gen_aggregate_items(item.subaggregate);
-      rio_genln();
-      rio_buf_printf(&(rio_gen_buf), "};");
-    } else {
-      assert("@complete if/elseif chain failed to handle case" && 0);
-    }
+    rio_gen_aggregate_item(&(aggregate->items[i]));
   }
   (rio_gen_indent)--;
 }
 
 void rio_gen_aggregate(rio_Decl (*decl)) {
-  assert(((decl->kind) == (rio_DeclKind_Struct)) || ((decl->kind) == (rio_DeclKind_Union)));
+  assert(((decl->kind) == ((rio_DeclKind_Struct))) || ((decl->kind) == ((rio_DeclKind_Union))));
   if (decl->is_incomplete) {
     return;
   }
   rio_genln();
-  rio_buf_printf(&(rio_gen_buf), "%s %s {", ((decl->kind) == (rio_DeclKind_Struct) ? "struct" : "union"), rio_get_gen_name(decl));
+  rio_buf_printf(&(rio_gen_buf), "%s %s {", ((decl->kind) == ((rio_DeclKind_Struct)) ? "struct" : "union"), rio_get_gen_name(decl));
   rio_gen_aggregate_items(decl->aggregate);
   rio_genln();
   rio_buf_printf(&(rio_gen_buf), "};");
@@ -3599,9 +3640,9 @@ void rio_gen_expr_compound(rio_Expr (*expr)) {
       rio_buf_printf(&(rio_gen_buf), ", ");
     }
     rio_CompoundField field = expr->compound.fields[i];
-    if ((field.kind) == (rio_CompoundFieldKind_Name)) {
+    if ((field.kind) == ((rio_CompoundFieldKind_Name))) {
       rio_buf_printf(&(rio_gen_buf), ".%s = ", field.name);
-    } else if ((field.kind) == (rio_CompoundFieldKind_Index)) {
+    } else if ((field.kind) == ((rio_CompoundFieldKind_Index))) {
       rio_buf_printf(&(rio_gen_buf), "[");
       rio_gen_expr(field.index);
       rio_buf_printf(&(rio_gen_buf), "] = ");
@@ -3614,9 +3655,9 @@ void rio_gen_expr_compound(rio_Expr (*expr)) {
   rio_buf_printf(&(rio_gen_buf), "}");
 }
 
-char const ((*(rio_typeid_kind_names[rio_CompilerTypeKind_Num]))) = {[rio_CompilerTypeKind_None] = "TypeKind_None", [rio_CompilerTypeKind_Void] = "TypeKind_Void", [rio_CompilerTypeKind_Bool] = "TypeKind_Bool", [rio_CompilerTypeKind_Char] = "TypeKind_Char", [rio_CompilerTypeKind_UChar] = "TypeKind_UChar", [rio_CompilerTypeKind_SChar] = "TypeKind_SChar", [rio_CompilerTypeKind_Short] = "TypeKind_Short", [rio_CompilerTypeKind_UShort] = "TypeKind_UShort", [rio_CompilerTypeKind_Int] = "TypeKind_Int", [rio_CompilerTypeKind_UInt] = "TypeKind_UInt", [rio_CompilerTypeKind_Long] = "TypeKind_Long", [rio_CompilerTypeKind_ULong] = "TypeKind_ULong", [rio_CompilerTypeKind_LLong] = "TypeKind_LLong", [rio_CompilerTypeKind_ULLong] = "TypeKind_ULLong", [rio_CompilerTypeKind_Float] = "TypeKind_Float", [rio_CompilerTypeKind_Double] = "TypeKind_Double", [rio_CompilerTypeKind_Const] = "TypeKind_Const", [rio_CompilerTypeKind_Ptr] = "TypeKind_Ptr", [rio_CompilerTypeKind_Ref] = "TypeKind_Ref", [rio_CompilerTypeKind_Array] = "TypeKind_Array", [rio_CompilerTypeKind_Struct] = "TypeKind_Struct", [rio_CompilerTypeKind_Union] = "TypeKind_Union", [rio_CompilerTypeKind_Func] = "TypeKind_Func"};
+char const ((*(rio_typeid_kind_names[(rio_CompilerTypeKind_Num)]))) = {[(rio_CompilerTypeKind_None)] = "TypeKind_None", [(rio_CompilerTypeKind_Void)] = "TypeKind_Void", [(rio_CompilerTypeKind_Bool)] = "TypeKind_Bool", [(rio_CompilerTypeKind_Char)] = "TypeKind_Char", [(rio_CompilerTypeKind_UChar)] = "TypeKind_UChar", [(rio_CompilerTypeKind_SChar)] = "TypeKind_SChar", [(rio_CompilerTypeKind_Short)] = "TypeKind_Short", [(rio_CompilerTypeKind_UShort)] = "TypeKind_UShort", [(rio_CompilerTypeKind_Int)] = "TypeKind_Int", [(rio_CompilerTypeKind_UInt)] = "TypeKind_UInt", [(rio_CompilerTypeKind_Long)] = "TypeKind_Long", [(rio_CompilerTypeKind_ULong)] = "TypeKind_ULong", [(rio_CompilerTypeKind_LLong)] = "TypeKind_LLong", [(rio_CompilerTypeKind_ULLong)] = "TypeKind_ULLong", [(rio_CompilerTypeKind_Float)] = "TypeKind_Float", [(rio_CompilerTypeKind_Double)] = "TypeKind_Double", [(rio_CompilerTypeKind_Const)] = "TypeKind_Const", [(rio_CompilerTypeKind_Ptr)] = "TypeKind_Ptr", [(rio_CompilerTypeKind_Ref)] = "TypeKind_Ref", [(rio_CompilerTypeKind_Array)] = "TypeKind_Array", [(rio_CompilerTypeKind_Struct)] = "TypeKind_Struct", [(rio_CompilerTypeKind_Union)] = "TypeKind_Union", [(rio_CompilerTypeKind_Func)] = "TypeKind_Func"};
 char const ((*rio_typeid_kind_name(rio_Type (*type)))) {
-  if ((type->kind) < (rio_CompilerTypeKind_Num)) {
+  if ((type->kind) < ((rio_CompilerTypeKind_Num))) {
     char const ((*name)) = rio_typeid_kind_names[type->kind];
     if (name) {
       return name;
@@ -3626,13 +3667,13 @@ char const ((*rio_typeid_kind_name(rio_Type (*type)))) {
 }
 
 bool rio_is_excluded_typeinfo(rio_Type (*type)) {
-  while ((((type->kind) == (rio_CompilerTypeKind_Array)) || ((type->kind) == (rio_CompilerTypeKind_Const))) || (rio_is_ptr_type(type))) {
+  while ((((type->kind) == ((rio_CompilerTypeKind_Array))) || ((type->kind) == ((rio_CompilerTypeKind_Const)))) || (rio_is_ptr_type(type))) {
     type = type->base;
   }
   if (type->sym) {
     return !(rio_gen_reachable(type->sym));
   } else {
-    return (!(type->sym)) && ((((type->kind) == (rio_CompilerTypeKind_Struct)) || ((type->kind) == (rio_CompilerTypeKind_Union))));
+    return (!(type->sym)) && ((((type->kind) == ((rio_CompilerTypeKind_Struct))) || ((type->kind) == ((rio_CompilerTypeKind_Union)))));
   }
 }
 
@@ -3646,26 +3687,26 @@ void rio_gen_typeid(rio_Type (*type)) {
 
 void rio_gen_expr(rio_Expr (*expr)) {
   switch (expr->kind) {
-  case rio_ExprKind_Paren: {
+  case (rio_ExprKind_Paren): {
     rio_buf_printf(&(rio_gen_buf), "(");
     rio_gen_expr(expr->paren.expr);
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_ExprKind_Int: {
+  case (rio_ExprKind_Int): {
     {
       char const ((*suffix_name)) = rio_token_suffix_names[expr->int_lit.suffix];
       switch (expr->int_lit.mod) {
-      case rio_TokenMod_Bin:
-      case rio_TokenMod_Hex: {
+      case (rio_TokenMod_Bin):
+      case (rio_TokenMod_Hex): {
         rio_buf_printf(&(rio_gen_buf), "0x%llx%s", expr->int_lit.val, suffix_name);
         break;
       }
-      case rio_TokenMod_Oct: {
+      case (rio_TokenMod_Oct): {
         rio_buf_printf(&(rio_gen_buf), "0%llo%s", expr->int_lit.val, suffix_name);
         break;
       }
-      case rio_TokenMod_Char: {
+      case (rio_TokenMod_Char): {
         rio_gen_char((char)(expr->int_lit.val));
         break;
       }
@@ -3677,32 +3718,32 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  case rio_ExprKind_Float: {
+  case (rio_ExprKind_Float): {
     {
-      int is_double = (expr->float_lit.suffix) == (rio_TokenSuffix_D);
+      int is_double = (expr->float_lit.suffix) == ((rio_TokenSuffix_D));
       size_t len = (expr->float_lit.end) - (expr->float_lit.start);
       rio_buf_printf(&(rio_gen_buf), "%.*s%s", (is_double ? (len) - (1) : len), expr->float_lit.start, (is_double ? "" : "f"));
     }
     break;
   }
-  case rio_ExprKind_Str: {
-    rio_gen_str(expr->str_lit.val, (expr->str_lit.mod) == (rio_TokenMod_Multiline));
+  case (rio_ExprKind_Str): {
+    rio_gen_str(expr->str_lit.val, (expr->str_lit.mod) == ((rio_TokenMod_Multiline)));
     break;
   }
-  case rio_ExprKind_Name: {
+  case (rio_ExprKind_Name): {
     rio_buf_printf(&(rio_gen_buf), "%s", rio_get_gen_name_or_default(expr, expr->name));
     break;
   }
-  case rio_ExprKind_Cast: {
+  case (rio_ExprKind_Cast): {
     rio_buf_printf(&(rio_gen_buf), "(%s)(", rio_typespec_to_cdecl(expr->cast.type, ""));
     rio_gen_expr(expr->cast.expr);
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_ExprKind_Call: {
+  case (rio_ExprKind_Call): {
     {
       rio_Sym (*sym) = rio_get_resolved_sym(expr->call.expr);
-      if ((sym) && ((sym->kind) == (rio_SymKind_Type))) {
+      if ((sym) && ((sym->kind) == ((rio_SymKind_Type)))) {
         rio_buf_printf(&(rio_gen_buf), "(%s)", rio_get_gen_name(sym));
       } else {
         rio_gen_expr(expr->call.expr);
@@ -3718,14 +3759,14 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  case rio_ExprKind_Index: {
+  case (rio_ExprKind_Index): {
     rio_gen_expr(expr->index.expr);
     rio_buf_printf(&(rio_gen_buf), "[");
     rio_gen_expr(expr->index.index);
     rio_buf_printf(&(rio_gen_buf), "]");
     break;
   }
-  case rio_ExprKind_Field: {
+  case (rio_ExprKind_Field): {
     {
       rio_Sym (*sym) = rio_get_resolved_sym(expr);
       if (sym) {
@@ -3733,22 +3774,22 @@ void rio_gen_expr(rio_Expr (*expr)) {
       } else {
         rio_gen_expr(expr->field.expr);
         rio_Type (*type) = rio_unqualify_type(rio_get_resolved_type(expr->field.expr));
-        rio_buf_printf(&(rio_gen_buf), "%s%s", ((type->kind) == (rio_CompilerTypeKind_Enum) ? "_" : (rio_is_ptr_type(type) ? "->" : ".")), expr->field.name);
+        rio_buf_printf(&(rio_gen_buf), "%s%s", (rio_is_ptr_type(type) ? "->" : "."), expr->field.name);
       }
     }
     break;
   }
-  case rio_ExprKind_Compound: {
+  case (rio_ExprKind_Compound): {
     rio_gen_expr_compound(expr);
     break;
   }
-  case rio_ExprKind_Unary: {
+  case (rio_ExprKind_Unary): {
     rio_buf_printf(&(rio_gen_buf), "%s(", rio_token_kind_name(expr->unary.op));
     rio_gen_expr(expr->unary.expr);
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_ExprKind_Binary: {
+  case (rio_ExprKind_Binary): {
     rio_buf_printf(&(rio_gen_buf), "(");
     rio_gen_expr(expr->binary.left);
     rio_buf_printf(&(rio_gen_buf), ") %s (", rio_token_kind_name(expr->binary.op));
@@ -3756,7 +3797,7 @@ void rio_gen_expr(rio_Expr (*expr)) {
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_ExprKind_Ternary: {
+  case (rio_ExprKind_Ternary): {
     rio_buf_printf(&(rio_gen_buf), "(");
     rio_gen_expr(expr->ternary.cond);
     rio_buf_printf(&(rio_gen_buf), " ? ");
@@ -3766,25 +3807,25 @@ void rio_gen_expr(rio_Expr (*expr)) {
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_ExprKind_SizeofExpr: {
+  case (rio_ExprKind_SizeofExpr): {
     rio_buf_printf(&(rio_gen_buf), "sizeof(");
     rio_gen_expr(expr->sizeof_expr);
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_ExprKind_SizeofType: {
+  case (rio_ExprKind_SizeofType): {
     rio_buf_printf(&(rio_gen_buf), "sizeof(%s)", rio_typespec_to_cdecl(expr->sizeof_type, ""));
     break;
   }
-  case rio_ExprKind_AlignofExpr: {
+  case (rio_ExprKind_AlignofExpr): {
     rio_buf_printf(&(rio_gen_buf), "alignof(%s)", rio_type_to_cdecl(rio_get_resolved_type(expr->alignof_expr), ""));
     break;
   }
-  case rio_ExprKind_AlignofType: {
+  case (rio_ExprKind_AlignofType): {
     rio_buf_printf(&(rio_gen_buf), "alignof(%s)", rio_typespec_to_cdecl(expr->alignof_type, ""));
     break;
   }
-  case rio_ExprKind_TypeofExpr: {
+  case (rio_ExprKind_TypeofExpr): {
     {
       rio_Type (*type) = rio_get_resolved_type(expr->typeof_expr);
       assert(type->typeid);
@@ -3792,7 +3833,7 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  case rio_ExprKind_TypeofType: {
+  case (rio_ExprKind_TypeofType): {
     {
       rio_Type (*type) = rio_get_resolved_type(expr->typeof_type);
       assert(type->typeid);
@@ -3800,11 +3841,11 @@ void rio_gen_expr(rio_Expr (*expr)) {
     }
     break;
   }
-  case rio_ExprKind_Offsetof: {
+  case (rio_ExprKind_Offsetof): {
     rio_buf_printf(&(rio_gen_buf), "offsetof(%s, %s)", rio_typespec_to_cdecl(expr->offsetof_field.type, ""), expr->offsetof_field.name);
     break;
   }
-  case rio_ExprKind_Modify: {
+  case (rio_ExprKind_Modify): {
     if (!(expr->modify.post)) {
       rio_buf_printf(&(rio_gen_buf), "%s", rio_token_kind_name(expr->modify.op));
     }
@@ -3833,11 +3874,11 @@ void rio_gen_stmt_block(rio_StmtList block) {
 
 void rio_gen_simple_stmt(rio_Stmt (*stmt)) {
   switch (stmt->kind) {
-  case rio_StmtKind_Expr: {
+  case (rio_StmtKind_Expr): {
     rio_gen_expr(stmt->expr);
     break;
   }
-  case rio_StmtKind_Init: {
+  case (rio_StmtKind_Init): {
     if (stmt->init.type) {
       rio_Typespec (*init_typespec) = stmt->init.type;
       if (rio_is_incomplete_array_typespec(stmt->init.type)) {
@@ -3856,7 +3897,7 @@ void rio_gen_simple_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case rio_StmtKind_Assign: {
+  case (rio_StmtKind_Assign): {
     rio_gen_expr(stmt->assign.left);
     rio_buf_printf(&(rio_gen_buf), " %s ", rio_token_kind_name(stmt->assign.op));
     rio_gen_expr(stmt->assign.right);
@@ -3869,13 +3910,13 @@ void rio_gen_simple_stmt(rio_Stmt (*stmt)) {
 }
 
 bool rio_is_char_lit(rio_Expr (*expr)) {
-  return ((expr->kind) == (rio_ExprKind_Int)) && ((expr->int_lit.mod) == (rio_TokenMod_Char));
+  return ((expr->kind) == ((rio_ExprKind_Int))) && ((expr->int_lit.mod) == ((rio_TokenMod_Char)));
 }
 
 void rio_gen_stmt(rio_Stmt (*stmt)) {
   rio_gen_sync_pos(stmt->pos);
   switch (stmt->kind) {
-  case rio_StmtKind_Return: {
+  case (rio_StmtKind_Return): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "return");
     if (stmt->expr) {
@@ -3885,22 +3926,22 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_buf_printf(&(rio_gen_buf), ";");
     break;
   }
-  case rio_StmtKind_Break: {
+  case (rio_StmtKind_Break): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "break;");
     break;
   }
-  case rio_StmtKind_Continue: {
+  case (rio_StmtKind_Continue): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "continue;");
     break;
   }
-  case rio_StmtKind_Block: {
+  case (rio_StmtKind_Block): {
     rio_genln();
     rio_gen_stmt_block(stmt->block);
     break;
   }
-  case rio_StmtKind_Note: {
+  case (rio_StmtKind_Note): {
     if ((stmt->note.name) == (rio_assert_name)) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "assert(");
@@ -3910,7 +3951,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case rio_StmtKind_If: {
+  case (rio_StmtKind_If): {
     if (stmt->if_stmt.init) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "{");
@@ -3957,7 +3998,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case rio_StmtKind_While: {
+  case (rio_StmtKind_While): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "while (");
     rio_gen_expr(stmt->while_stmt.cond);
@@ -3965,7 +4006,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_gen_stmt_block(stmt->while_stmt.block);
     break;
   }
-  case rio_StmtKind_DoWhile: {
+  case (rio_StmtKind_DoWhile): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "do ");
     rio_gen_stmt_block(stmt->while_stmt.block);
@@ -3974,7 +4015,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_buf_printf(&(rio_gen_buf), ");");
     break;
   }
-  case rio_StmtKind_For: {
+  case (rio_StmtKind_For): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "for (");
     if (stmt->for_stmt.init) {
@@ -3994,7 +4035,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_gen_stmt_block(stmt->for_stmt.block);
     break;
   }
-  case rio_StmtKind_Switch: {
+  case (rio_StmtKind_Switch): {
     {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "switch (");
@@ -4069,12 +4110,12 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case rio_StmtKind_Label: {
+  case (rio_StmtKind_Label): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "%s: ;", stmt->label);
     break;
   }
-  case rio_StmtKind_Goto: {
+  case (rio_StmtKind_Goto): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "goto %s;", stmt->label);
     break;
@@ -4095,7 +4136,7 @@ void rio_gen_decl(rio_Sym (*sym)) {
   }
   rio_gen_sync_pos(decl->pos);
   switch (decl->kind) {
-  case rio_DeclKind_Const: {
+  case (rio_DeclKind_Const): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "#define %s (", rio_get_gen_name(sym));
     if (decl->const_decl.type) {
@@ -4108,7 +4149,7 @@ void rio_gen_decl(rio_Sym (*sym)) {
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case rio_DeclKind_Var: {
+  case (rio_DeclKind_Var): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "extern ");
     if ((decl->var_decl.type) && (!(rio_is_incomplete_array_typespec(decl->var_decl.type)))) {
@@ -4119,22 +4160,22 @@ void rio_gen_decl(rio_Sym (*sym)) {
     rio_buf_printf(&(rio_gen_buf), ";");
     break;
   }
-  case rio_DeclKind_Func: {
+  case (rio_DeclKind_Func): {
     rio_gen_func_decl(decl);
     rio_buf_printf(&(rio_gen_buf), ";");
     break;
   }
-  case rio_DeclKind_Struct:
-  case rio_DeclKind_Union: {
+  case (rio_DeclKind_Struct):
+  case (rio_DeclKind_Union): {
     rio_gen_aggregate(decl);
     break;
   }
-  case rio_DeclKind_Typedef: {
+  case (rio_DeclKind_Typedef): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "typedef %s;", rio_typespec_to_cdecl(decl->typedef_decl.type, rio_get_gen_name(sym)));
     break;
   }
-  case rio_DeclKind_Enum: {
+  case (rio_DeclKind_Enum): {
     if (decl->enum_decl.type) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "typedef %s;", rio_typespec_to_cdecl(decl->enum_decl.type, rio_get_gen_name(decl)));
@@ -4144,7 +4185,7 @@ void rio_gen_decl(rio_Sym (*sym)) {
     }
     break;
   }
-  case rio_DeclKind_Import: {
+  case (rio_DeclKind_Import): {
     break;
     break;
   }
@@ -4157,7 +4198,7 @@ void rio_gen_decl(rio_Sym (*sym)) {
 
 void rio_gen_sorted_decls(void) {
   for (size_t i = 0; (i) < (rio_buf_len(rio_sorted_syms)); (i)++) {
-    if ((rio_sorted_syms[i]->reachable) == (rio_ReachablePhase_Natural)) {
+    if ((rio_sorted_syms[i]->reachable) == ((rio_ReachablePhase_Natural))) {
       rio_gen_decl(rio_sorted_syms[i]);
     }
   }
@@ -4167,15 +4208,15 @@ void rio_gen_defs(void) {
   for (rio_Sym (*(*it)) = rio_sorted_syms; (it) != (rio_buf_end(rio_sorted_syms, sizeof(*(rio_sorted_syms)))); (it)++) {
     rio_Sym (*sym) = *(it);
     rio_Decl (*decl) = sym->decl;
-    if ((((((sym->state) != (rio_SymState_Resolved)) || (!(decl))) || (rio_is_decl_foreign(decl))) || (decl->is_incomplete)) || ((sym->reachable) != (rio_ReachablePhase_Natural))) {
+    if ((((((sym->state) != ((rio_SymState_Resolved))) || (!(decl))) || (rio_is_decl_foreign(decl))) || (decl->is_incomplete)) || ((sym->reachable) != ((rio_ReachablePhase_Natural)))) {
       continue;
     }
-    if ((decl->kind) == (rio_DeclKind_Func)) {
+    if ((decl->kind) == ((rio_DeclKind_Func))) {
       rio_gen_func_decl(decl);
       rio_buf_printf(&(rio_gen_buf), " ");
       rio_gen_stmt_block(decl->function.block);
       rio_genln();
-    } else if ((decl->kind) == (rio_DeclKind_Var)) {
+    } else if ((decl->kind) == ((rio_DeclKind_Var))) {
       if ((decl->var_decl.type) && (!(rio_is_incomplete_array_typespec(decl->var_decl.type)))) {
         rio_genln();
         rio_buf_printf(&(rio_gen_buf), "%s", rio_typespec_to_cdecl(decl->var_decl.type, rio_get_gen_name(sym)));
@@ -4262,7 +4303,7 @@ void rio_preprocess_package(rio_Package (*package)) {
   char const ((*postamble_name)) = rio_str_intern("postamble");
   for (size_t i = 0; (i) < (package->num_decls); (i)++) {
     rio_Decl (*decl) = package->decls[i];
-    if ((decl->kind) != (rio_DeclKind_Note)) {
+    if ((decl->kind) != ((rio_DeclKind_Note))) {
       continue;
     }
     rio_Note note = decl->note;
@@ -4270,7 +4311,7 @@ void rio_preprocess_package(rio_Package (*package)) {
       for (size_t k = 0; (k) < (note.num_args); (k)++) {
         rio_NoteArg arg = note.args[k];
         rio_Expr (*expr) = note.args[k].expr;
-        if ((expr->kind) != (rio_ExprKind_Str)) {
+        if ((expr->kind) != ((rio_ExprKind_Str))) {
           rio_fatal_error(decl->pos, "#foreign argument must be a string");
         }
         char const ((*str)) = expr->str_lit.val;
@@ -4325,114 +4366,114 @@ void rio_gen_typeinfo_fields(rio_Type (*type)) {
 
 void rio_gen_typeinfo(rio_Type (*type)) {
   switch (type->kind) {
-  case rio_CompilerTypeKind_Bool: {
+  case (rio_CompilerTypeKind_Bool): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Bool, .size = sizeof(bool), .align = sizeof(bool), .name = ");
     rio_gen_str("bool", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_Char: {
+  case (rio_CompilerTypeKind_Char): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Char, .size = sizeof(char), .align = sizeof(char), .name = ");
     rio_gen_str("char", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_UChar: {
+  case (rio_CompilerTypeKind_UChar): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_UChar, .size = sizeof(uchar), .align = sizeof(uchar), .name = ");
     rio_gen_str("uchar", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_SChar: {
+  case (rio_CompilerTypeKind_SChar): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_SChar, .size = sizeof(schar), .align = sizeof(schar), .name = ");
     rio_gen_str("schar", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_Short: {
+  case (rio_CompilerTypeKind_Short): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Short, .size = sizeof(short), .align = sizeof(short), .name = ");
     rio_gen_str("short", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_UShort: {
+  case (rio_CompilerTypeKind_UShort): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_UShort, .size = sizeof(ushort), .align = sizeof(ushort), .name = ");
     rio_gen_str("ushort", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_Int: {
+  case (rio_CompilerTypeKind_Int): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Int, .size = sizeof(int), .align = sizeof(int), .name = ");
     rio_gen_str("int", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_UInt: {
+  case (rio_CompilerTypeKind_UInt): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_UInt, .size = sizeof(uint), .align = sizeof(uint), .name = ");
     rio_gen_str("uint", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_Long: {
+  case (rio_CompilerTypeKind_Long): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Long, .size = sizeof(long), .align = sizeof(long), .name = ");
     rio_gen_str("long", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_ULong: {
+  case (rio_CompilerTypeKind_ULong): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_ULong, .size = sizeof(ulong), .align = sizeof(ulong), .name = ");
     rio_gen_str("ulong", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_LLong: {
+  case (rio_CompilerTypeKind_LLong): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_LLong, .size = sizeof(llong), .align = sizeof(llong), .name = ");
     rio_gen_str("llong", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_ULLong: {
+  case (rio_CompilerTypeKind_ULLong): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_ULLong, .size = sizeof(ullong), .align = sizeof(ullong), .name = ");
     rio_gen_str("ullong", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_Float: {
+  case (rio_CompilerTypeKind_Float): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Float, .size = sizeof(float), .align = sizeof(float), .name = ");
     rio_gen_str("float", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_Double: {
+  case (rio_CompilerTypeKind_Double): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Double, .size = sizeof(double), .align = sizeof(double), .name = ");
     rio_gen_str("double", false);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_Void: {
+  case (rio_CompilerTypeKind_Void): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Void, .name = \"void\", .size = 0, .align = 0},");
     break;
   }
-  case rio_CompilerTypeKind_Ptr: {
+  case (rio_CompilerTypeKind_Ptr): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = ");
     rio_gen_typeid(type->base);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_Ref: {
+  case (rio_CompilerTypeKind_Ref): {
     rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Ref, .size = sizeof(void *), .align = alignof(void *), .base = ");
     rio_gen_typeid(type->base);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_Const: {
+  case (rio_CompilerTypeKind_Const): {
     rio_gen_typeinfo_header("TypeKind_Const", type);
     rio_buf_printf(&(rio_gen_buf), ", .base = ");
     rio_gen_typeid(type->base);
     rio_buf_printf(&(rio_gen_buf), "},");
     break;
   }
-  case rio_CompilerTypeKind_Array: {
+  case (rio_CompilerTypeKind_Array): {
     if (rio_is_incomplete_array_type(type)) {
       rio_buf_printf(&(rio_gen_buf), "NULL, // Incomplete array type");
     } else {
@@ -4443,9 +4484,9 @@ void rio_gen_typeinfo(rio_Type (*type)) {
     }
     break;
   }
-  case rio_CompilerTypeKind_Struct:
-  case rio_CompilerTypeKind_Union: {
-    rio_gen_typeinfo_header(((type->kind) == (rio_CompilerTypeKind_Struct) ? "TypeKind_Struct" : "TypeKind_Union"), type);
+  case (rio_CompilerTypeKind_Struct):
+  case (rio_CompilerTypeKind_Union): {
+    rio_gen_typeinfo_header(((type->kind) == ((rio_CompilerTypeKind_Struct)) ? "TypeKind_Struct" : "TypeKind_Union"), type);
     rio_buf_printf(&(rio_gen_buf), ", .name = ");
     rio_gen_str(rio_get_gen_name(type->sym), false);
     rio_buf_printf(&(rio_gen_buf), ", .num_fields = %d, .fields = (TypeFieldInfo[]) {", type->aggregate.num_fields);
@@ -4454,15 +4495,15 @@ void rio_gen_typeinfo(rio_Type (*type)) {
     rio_buf_printf(&(rio_gen_buf), "}},");
     break;
   }
-  case rio_CompilerTypeKind_Func: {
+  case (rio_CompilerTypeKind_Func): {
     rio_buf_printf(&(rio_gen_buf), "NULL, // Function");
     break;
   }
-  case rio_CompilerTypeKind_Enum: {
+  case (rio_CompilerTypeKind_Enum): {
     rio_buf_printf(&(rio_gen_buf), "NULL, // Enum");
     break;
   }
-  case rio_CompilerTypeKind_Incomplete: {
+  case (rio_CompilerTypeKind_Incomplete): {
     rio_buf_printf(&(rio_gen_buf), "NULL, // Incomplete: %s", rio_get_gen_name(type->sym));
     break;
   }
@@ -4657,8 +4698,8 @@ bool rio_is_keyword_name(char const ((*name))) {
   return ((rio_first_keyword) <= (name)) && ((name) <= (rio_last_keyword));
 }
 
-char const ((*(rio_token_suffix_names[7]))) = {[rio_TokenSuffix_None] = "", [rio_TokenSuffix_D] = "d", [rio_TokenSuffix_U] = "u", [rio_TokenSuffix_L] = "l", [rio_TokenSuffix_UL] = "ul", [rio_TokenSuffix_LL] = "ll", [rio_TokenSuffix_ULL] = "ull"};
-char const ((*(rio_token_kind_names[62]))) = {[rio_TokenKind_Eof] = "EOF", [rio_TokenKind_Colon] = ":", [rio_TokenKind_Arrow] = "->", [rio_TokenKind_Lparen] = "(", [rio_TokenKind_Rparen] = ")", [rio_TokenKind_Lbrace] = "{", [rio_TokenKind_Rbrace] = "}", [rio_TokenKind_Lbracket] = "[", [rio_TokenKind_Rbracket] = "]", [rio_TokenKind_Comma] = ",", [rio_TokenKind_Dot] = ".", [rio_TokenKind_At] = "@", [rio_TokenKind_Pound] = "#", [rio_TokenKind_Ellipsis] = "...", [rio_TokenKind_Question] = "?", [rio_TokenKind_Semicolon] = ";", [rio_TokenKind_Keyword] = "keyword", [rio_TokenKind_Int] = "int", [rio_TokenKind_Float] = "float", [rio_TokenKind_Str] = "string", [rio_TokenKind_Name] = "name", [rio_TokenKind_Neg] = "~", [rio_TokenKind_Not] = "!", [rio_TokenKind_Mul] = "*", [rio_TokenKind_Div] = "/", [rio_TokenKind_Mod] = "%", [rio_TokenKind_And] = "&", [rio_TokenKind_Lshift] = "<<", [rio_TokenKind_Rshift] = ">>", [rio_TokenKind_Add] = "+", [rio_TokenKind_Sub] = "-", [rio_TokenKind_Or] = "|", [rio_TokenKind_Xor] = "^", [rio_TokenKind_Eq] = "==", [rio_TokenKind_NotEq] = "!=", [rio_TokenKind_Lt] = "<", [rio_TokenKind_Gt] = ">", [rio_TokenKind_LtEq] = "<=", [rio_TokenKind_GtEq] = ">=", [rio_TokenKind_AndAnd] = "&&", [rio_TokenKind_OrOr] = "||", [rio_TokenKind_Assign] = "=", [rio_TokenKind_AddAssign] = "+=", [rio_TokenKind_SubAssign] = "-=", [rio_TokenKind_OrAssign] = "|=", [rio_TokenKind_AndAssign] = "&=", [rio_TokenKind_XorAssign] = "^=", [rio_TokenKind_MulAssign] = "*=", [rio_TokenKind_DivAssign] = "/=", [rio_TokenKind_ModAssign] = "%=", [rio_TokenKind_LshiftAssign] = "<<=", [rio_TokenKind_RshiftAssign] = ">>=", [rio_TokenKind_Inc] = "++", [rio_TokenKind_Dec] = "--"};
+char const ((*(rio_token_suffix_names[7]))) = {[(rio_TokenSuffix_None)] = "", [(rio_TokenSuffix_D)] = "d", [(rio_TokenSuffix_U)] = "u", [(rio_TokenSuffix_L)] = "l", [(rio_TokenSuffix_UL)] = "ul", [(rio_TokenSuffix_LL)] = "ll", [(rio_TokenSuffix_ULL)] = "ull"};
+char const ((*(rio_token_kind_names[62]))) = {[(rio_TokenKind_Eof)] = "EOF", [(rio_TokenKind_Colon)] = ":", [(rio_TokenKind_Arrow)] = "->", [(rio_TokenKind_Lparen)] = "(", [(rio_TokenKind_Rparen)] = ")", [(rio_TokenKind_Lbrace)] = "{", [(rio_TokenKind_Rbrace)] = "}", [(rio_TokenKind_Lbracket)] = "[", [(rio_TokenKind_Rbracket)] = "]", [(rio_TokenKind_Comma)] = ",", [(rio_TokenKind_Dot)] = ".", [(rio_TokenKind_At)] = "@", [(rio_TokenKind_Pound)] = "#", [(rio_TokenKind_Ellipsis)] = "...", [(rio_TokenKind_Question)] = "?", [(rio_TokenKind_Semicolon)] = ";", [(rio_TokenKind_Keyword)] = "keyword", [(rio_TokenKind_Int)] = "int", [(rio_TokenKind_Float)] = "float", [(rio_TokenKind_Str)] = "string", [(rio_TokenKind_Name)] = "name", [(rio_TokenKind_Neg)] = "~", [(rio_TokenKind_Not)] = "!", [(rio_TokenKind_Mul)] = "*", [(rio_TokenKind_Div)] = "/", [(rio_TokenKind_Mod)] = "%", [(rio_TokenKind_And)] = "&", [(rio_TokenKind_Lshift)] = "<<", [(rio_TokenKind_Rshift)] = ">>", [(rio_TokenKind_Add)] = "+", [(rio_TokenKind_Sub)] = "-", [(rio_TokenKind_Or)] = "|", [(rio_TokenKind_Xor)] = "^", [(rio_TokenKind_Eq)] = "==", [(rio_TokenKind_NotEq)] = "!=", [(rio_TokenKind_Lt)] = "<", [(rio_TokenKind_Gt)] = ">", [(rio_TokenKind_LtEq)] = "<=", [(rio_TokenKind_GtEq)] = ">=", [(rio_TokenKind_AndAnd)] = "&&", [(rio_TokenKind_OrOr)] = "||", [(rio_TokenKind_Assign)] = "=", [(rio_TokenKind_AddAssign)] = "+=", [(rio_TokenKind_SubAssign)] = "-=", [(rio_TokenKind_OrAssign)] = "|=", [(rio_TokenKind_AndAssign)] = "&=", [(rio_TokenKind_XorAssign)] = "^=", [(rio_TokenKind_MulAssign)] = "*=", [(rio_TokenKind_DivAssign)] = "/=", [(rio_TokenKind_ModAssign)] = "%=", [(rio_TokenKind_LshiftAssign)] = "<<=", [(rio_TokenKind_RshiftAssign)] = ">>=", [(rio_TokenKind_Inc)] = "++", [(rio_TokenKind_Dec)] = "--"};
 char const ((*rio_token_kind_name(rio_TokenKind kind))) {
   if ((kind) < ((sizeof(rio_token_kind_names)) / (sizeof(*(rio_token_kind_names))))) {
     return rio_token_kind_names[kind];
@@ -4667,7 +4708,7 @@ char const ((*rio_token_kind_name(rio_TokenKind kind))) {
   }
 }
 
-rio_TokenKind (rio_assign_token_to_binary_token[rio_TokenKind_Num]) = {[rio_TokenKind_AddAssign] = rio_TokenKind_Add, [rio_TokenKind_SubAssign] = rio_TokenKind_Sub, [rio_TokenKind_OrAssign] = rio_TokenKind_Or, [rio_TokenKind_AndAssign] = rio_TokenKind_And, [rio_TokenKind_XorAssign] = rio_TokenKind_Xor, [rio_TokenKind_LshiftAssign] = rio_TokenKind_Lshift, [rio_TokenKind_RshiftAssign] = rio_TokenKind_Rshift, [rio_TokenKind_MulAssign] = rio_TokenKind_Mul, [rio_TokenKind_DivAssign] = rio_TokenKind_Div, [rio_TokenKind_ModAssign] = rio_TokenKind_Mod};
+rio_TokenKind (rio_assign_token_to_binary_token[(rio_TokenKind_Num)]) = {[(rio_TokenKind_AddAssign)] = (rio_TokenKind_Add), [(rio_TokenKind_SubAssign)] = (rio_TokenKind_Sub), [(rio_TokenKind_OrAssign)] = (rio_TokenKind_Or), [(rio_TokenKind_AndAssign)] = (rio_TokenKind_And), [(rio_TokenKind_XorAssign)] = (rio_TokenKind_Xor), [(rio_TokenKind_LshiftAssign)] = (rio_TokenKind_Lshift), [(rio_TokenKind_RshiftAssign)] = (rio_TokenKind_Rshift), [(rio_TokenKind_MulAssign)] = (rio_TokenKind_Mul), [(rio_TokenKind_DivAssign)] = (rio_TokenKind_Div), [(rio_TokenKind_ModAssign)] = (rio_TokenKind_Mod)};
 rio_SrcPos rio_pos_builtin = {.name = "<builtin>"};
 rio_Token rio_token;
 char const ((*rio_stream));
@@ -4708,7 +4749,7 @@ void rio_fatal_error(rio_SrcPos pos, char const ((*fmt)), ...) {
 }
 
 char const ((*rio_token_info(void))) {
-  if (((rio_token.kind) == (rio_TokenKind_Name)) || ((rio_token.kind) == (rio_TokenKind_Keyword))) {
+  if (((rio_token.kind) == ((rio_TokenKind_Name))) || ((rio_token.kind) == ((rio_TokenKind_Keyword)))) {
     return rio_token.name;
   } else {
     return rio_token_kind_name(rio_token.kind);
@@ -4723,16 +4764,16 @@ void rio_scan_int(void) {
     (rio_stream)++;
     if ((tolower(*(rio_stream))) == ('x')) {
       (rio_stream)++;
-      rio_token.mod = rio_TokenMod_Hex;
+      rio_token.mod = (rio_TokenMod_Hex);
       base = 16;
       start_digits = rio_stream;
     } else if ((tolower(*(rio_stream))) == ('b')) {
       (rio_stream)++;
-      rio_token.mod = rio_TokenMod_Bin;
+      rio_token.mod = (rio_TokenMod_Bin);
       base = 2;
       start_digits = rio_stream;
     } else if (isdigit(*(rio_stream))) {
-      rio_token.mod = rio_TokenMod_Oct;
+      rio_token.mod = (rio_TokenMod_Oct);
       base = 8;
       start_digits = rio_stream;
     }
@@ -4765,24 +4806,24 @@ void rio_scan_int(void) {
   if ((rio_stream) == (start_digits)) {
     rio_error(rio_token.pos, "Expected base %d digit, got \'%c\'", base, *(rio_stream));
   }
-  rio_token.kind = rio_TokenKind_Int;
+  rio_token.kind = (rio_TokenKind_Int);
   rio_token.int_val = val;
   if ((tolower(*(rio_stream))) == ('u')) {
-    rio_token.suffix = rio_TokenSuffix_U;
+    rio_token.suffix = (rio_TokenSuffix_U);
     (rio_stream)++;
     if ((tolower(*(rio_stream))) == ('l')) {
-      rio_token.suffix = rio_TokenSuffix_UL;
+      rio_token.suffix = (rio_TokenSuffix_UL);
       (rio_stream)++;
       if ((tolower(*(rio_stream))) == ('l')) {
-        rio_token.suffix = rio_TokenSuffix_ULL;
+        rio_token.suffix = (rio_TokenSuffix_ULL);
         (rio_stream)++;
       }
     }
   } else if ((tolower(*(rio_stream))) == ('l')) {
-    rio_token.suffix = rio_TokenSuffix_L;
+    rio_token.suffix = (rio_TokenSuffix_L);
     (rio_stream)++;
     if ((tolower(*(rio_stream))) == ('l')) {
-      rio_token.suffix = rio_TokenSuffix_LL;
+      rio_token.suffix = (rio_TokenSuffix_LL);
       (rio_stream)++;
     }
   }
@@ -4815,10 +4856,10 @@ void rio_scan_float(void) {
   if ((val) == (HUGE_VAL)) {
     rio_error(rio_token.pos, "Float literal overflow");
   }
-  rio_token.kind = rio_TokenKind_Float;
+  rio_token.kind = (rio_TokenKind_Float);
   rio_token.float_val = val;
   if ((tolower(*(rio_stream))) == ('d')) {
-    rio_token.suffix = rio_TokenSuffix_D;
+    rio_token.suffix = (rio_TokenSuffix_D);
     (rio_stream)++;
   }
 }
@@ -4874,9 +4915,9 @@ void rio_scan_char(void) {
   } else {
     (rio_stream)++;
   }
-  rio_token.kind = rio_TokenKind_Int;
+  rio_token.kind = (rio_TokenKind_Int);
   rio_token.int_val = val;
-  rio_token.mod = rio_TokenMod_Char;
+  rio_token.mod = (rio_TokenMod_Char);
 }
 
 void rio_scan_str(void) {
@@ -4901,7 +4942,7 @@ void rio_scan_str(void) {
     if (!(*(rio_stream))) {
       rio_error(rio_token.pos, "Unexpected end of file within multi-line string literal");
     }
-    rio_token.mod = rio_TokenMod_Multiline;
+    rio_token.mod = (rio_TokenMod_Multiline);
   } else {
     while ((*(rio_stream)) && ((*(rio_stream)) != ('\"'))) {
       char val = *(rio_stream);
@@ -4932,7 +4973,7 @@ void rio_scan_str(void) {
   }
   int nul = '\0';
   rio_buf_push((void (**))(&(str)), &(nul), 1);
-  rio_token.kind = rio_TokenKind_Str;
+  rio_token.kind = (rio_TokenKind_Str);
   rio_token.str_val = str;
 }
 
@@ -4968,10 +5009,10 @@ void rio_next_token(void) {
     if (isdigit(rio_stream[1])) {
       rio_scan_float();
     } else if (((rio_stream[1]) == ('.')) && ((rio_stream[2]) == ('.'))) {
-      rio_token.kind = rio_TokenKind_Ellipsis;
+      rio_token.kind = (rio_TokenKind_Ellipsis);
       rio_stream += 3;
     } else {
-      rio_token.kind = rio_TokenKind_Dot;
+      rio_token.kind = (rio_TokenKind_Dot);
       (rio_stream)++;
     }
     break;
@@ -5057,46 +5098,46 @@ void rio_next_token(void) {
       (rio_stream)++;
     }
     rio_token.name = rio_str_intern_range(rio_token.start, rio_stream);
-    rio_token.kind = (rio_is_keyword_name(rio_token.name) ? rio_TokenKind_Keyword : rio_TokenKind_Name);
+    rio_token.kind = (rio_is_keyword_name(rio_token.name) ? (rio_TokenKind_Keyword) : (rio_TokenKind_Name));
     break;
   }
   case '<': {
-    rio_token.kind = rio_TokenKind_Lt;
+    rio_token.kind = (rio_TokenKind_Lt);
     (rio_stream)++;
     if ((*(rio_stream)) == ('<')) {
-      rio_token.kind = rio_TokenKind_Lshift;
+      rio_token.kind = (rio_TokenKind_Lshift);
       (rio_stream)++;
       if ((*(rio_stream)) == ('=')) {
-        rio_token.kind = rio_TokenKind_LshiftAssign;
+        rio_token.kind = (rio_TokenKind_LshiftAssign);
         (rio_stream)++;
       }
     } else if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_LtEq;
+      rio_token.kind = (rio_TokenKind_LtEq);
       (rio_stream)++;
     }
     break;
   }
   case '>': {
-    rio_token.kind = rio_TokenKind_Gt;
+    rio_token.kind = (rio_TokenKind_Gt);
     (rio_stream)++;
     if ((*(rio_stream)) == ('>')) {
-      rio_token.kind = rio_TokenKind_Rshift;
+      rio_token.kind = (rio_TokenKind_Rshift);
       (rio_stream)++;
       if ((*(rio_stream)) == ('=')) {
-        rio_token.kind = rio_TokenKind_RshiftAssign;
+        rio_token.kind = (rio_TokenKind_RshiftAssign);
         (rio_stream)++;
       }
     } else if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_GtEq;
+      rio_token.kind = (rio_TokenKind_GtEq);
       (rio_stream)++;
     }
     break;
   }
   case '/': {
-    rio_token.kind = rio_TokenKind_Div;
+    rio_token.kind = (rio_TokenKind_Div);
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_DivAssign;
+      rio_token.kind = (rio_TokenKind_DivAssign);
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('/')) {
       (rio_stream)++;
@@ -5126,167 +5167,167 @@ void rio_next_token(void) {
     break;
   }
   case '\0': {
-    rio_token.kind = rio_TokenKind_Eof;
+    rio_token.kind = (rio_TokenKind_Eof);
     (rio_stream)++;
     break;
   }
   case '(': {
-    rio_token.kind = rio_TokenKind_Lparen;
+    rio_token.kind = (rio_TokenKind_Lparen);
     (rio_stream)++;
     break;
   }
   case ')': {
-    rio_token.kind = rio_TokenKind_Rparen;
+    rio_token.kind = (rio_TokenKind_Rparen);
     (rio_stream)++;
     break;
   }
   case '{': {
-    rio_token.kind = rio_TokenKind_Lbrace;
+    rio_token.kind = (rio_TokenKind_Lbrace);
     (rio_stream)++;
     break;
   }
   case '}': {
-    rio_token.kind = rio_TokenKind_Rbrace;
+    rio_token.kind = (rio_TokenKind_Rbrace);
     (rio_stream)++;
     break;
   }
   case '[': {
-    rio_token.kind = rio_TokenKind_Lbracket;
+    rio_token.kind = (rio_TokenKind_Lbracket);
     (rio_stream)++;
     break;
   }
   case ']': {
-    rio_token.kind = rio_TokenKind_Rbracket;
+    rio_token.kind = (rio_TokenKind_Rbracket);
     (rio_stream)++;
     break;
   }
   case ',': {
-    rio_token.kind = rio_TokenKind_Comma;
+    rio_token.kind = (rio_TokenKind_Comma);
     (rio_stream)++;
     break;
   }
   case '@': {
-    rio_token.kind = rio_TokenKind_At;
+    rio_token.kind = (rio_TokenKind_At);
     (rio_stream)++;
     break;
   }
   case '#': {
-    rio_token.kind = rio_TokenKind_Pound;
+    rio_token.kind = (rio_TokenKind_Pound);
     (rio_stream)++;
     break;
   }
   case '?': {
-    rio_token.kind = rio_TokenKind_Question;
+    rio_token.kind = (rio_TokenKind_Question);
     (rio_stream)++;
     break;
   }
   case ';': {
-    rio_token.kind = rio_TokenKind_Semicolon;
+    rio_token.kind = (rio_TokenKind_Semicolon);
     (rio_stream)++;
     break;
   }
   case '~': {
-    rio_token.kind = rio_TokenKind_Neg;
+    rio_token.kind = (rio_TokenKind_Neg);
     (rio_stream)++;
     break;
   }
   case '!': {
-    rio_token.kind = rio_TokenKind_Not;
+    rio_token.kind = (rio_TokenKind_Not);
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_NotEq;
+      rio_token.kind = (rio_TokenKind_NotEq);
       (rio_stream)++;
     }
     break;
   }
   case ':': {
-    rio_token.kind = rio_TokenKind_Colon;
+    rio_token.kind = (rio_TokenKind_Colon);
     (rio_stream)++;
     break;
   }
   case '=': {
-    rio_token.kind = rio_TokenKind_Assign;
+    rio_token.kind = (rio_TokenKind_Assign);
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_Eq;
+      rio_token.kind = (rio_TokenKind_Eq);
       (rio_stream)++;
     }
     break;
   }
   case '^': {
-    rio_token.kind = rio_TokenKind_Xor;
+    rio_token.kind = (rio_TokenKind_Xor);
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_XorAssign;
+      rio_token.kind = (rio_TokenKind_XorAssign);
       (rio_stream)++;
     }
     break;
   }
   case '*': {
-    rio_token.kind = rio_TokenKind_Mul;
+    rio_token.kind = (rio_TokenKind_Mul);
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_MulAssign;
+      rio_token.kind = (rio_TokenKind_MulAssign);
       (rio_stream)++;
     }
     break;
   }
   case '%': {
-    rio_token.kind = rio_TokenKind_Mod;
+    rio_token.kind = (rio_TokenKind_Mod);
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_ModAssign;
+      rio_token.kind = (rio_TokenKind_ModAssign);
       (rio_stream)++;
     }
     break;
   }
   case '+': {
-    rio_token.kind = rio_TokenKind_Add;
+    rio_token.kind = (rio_TokenKind_Add);
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_AddAssign;
+      rio_token.kind = (rio_TokenKind_AddAssign);
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('+')) {
-      rio_token.kind = rio_TokenKind_Inc;
+      rio_token.kind = (rio_TokenKind_Inc);
       (rio_stream)++;
     }
     break;
   }
   case '-': {
-    rio_token.kind = rio_TokenKind_Sub;
+    rio_token.kind = (rio_TokenKind_Sub);
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_SubAssign;
+      rio_token.kind = (rio_TokenKind_SubAssign);
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('-')) {
-      rio_token.kind = rio_TokenKind_Dec;
+      rio_token.kind = (rio_TokenKind_Dec);
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('>')) {
-      rio_token.kind = rio_TokenKind_Arrow;
+      rio_token.kind = (rio_TokenKind_Arrow);
       (rio_stream)++;
     }
     break;
   }
   case '&': {
-    rio_token.kind = rio_TokenKind_And;
+    rio_token.kind = (rio_TokenKind_And);
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_AndAssign;
+      rio_token.kind = (rio_TokenKind_AndAssign);
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('&')) {
-      rio_token.kind = rio_TokenKind_AndAnd;
+      rio_token.kind = (rio_TokenKind_AndAnd);
       (rio_stream)++;
     }
     break;
   }
   case '|': {
-    rio_token.kind = rio_TokenKind_Or;
+    rio_token.kind = (rio_TokenKind_Or);
     (rio_stream)++;
     if ((*(rio_stream)) == ('=')) {
-      rio_token.kind = rio_TokenKind_OrAssign;
+      rio_token.kind = (rio_TokenKind_OrAssign);
       (rio_stream)++;
     } else if ((*(rio_stream)) == ('|')) {
-      rio_token.kind = rio_TokenKind_OrOr;
+      rio_token.kind = (rio_TokenKind_OrOr);
       (rio_stream)++;
     }
     break;
@@ -5314,15 +5355,15 @@ bool rio_is_token(rio_TokenKind kind) {
 }
 
 bool rio_is_token_eof(void) {
-  return (rio_token.kind) == (rio_TokenKind_Eof);
+  return (rio_token.kind) == ((rio_TokenKind_Eof));
 }
 
 bool rio_is_token_name(char const ((*name))) {
-  return ((rio_token.kind) == (rio_TokenKind_Name)) && ((rio_token.name) == (name));
+  return ((rio_token.kind) == ((rio_TokenKind_Name))) && ((rio_token.name) == (name));
 }
 
 bool rio_is_keyword(char const ((*name))) {
-  return (rio_is_token(rio_TokenKind_Keyword)) && ((rio_token.name) == (name));
+  return (rio_is_token((rio_TokenKind_Keyword))) && ((rio_token.name) == (name));
 }
 
 bool rio_match_keyword(char const ((*name))) {
@@ -5434,17 +5475,17 @@ char const ((*(*rio_dir_list_buf(char const ((*filespec)))))) {
 
 rio_FlagDef (*rio_flag_defs);
 void rio_add_flag_bool(char const ((*name)), bool (*ptr), char const ((*help))) {
-  rio_FlagDef def = {.kind = rio_FlagKind_Bool, .name = name, .help = help, .ptr = {.b = ptr}};
+  rio_FlagDef def = {.kind = (rio_FlagKind_Bool), .name = name, .help = help, .ptr = {.b = ptr}};
   rio_buf_push((void (**))(&(rio_flag_defs)), &(def), sizeof(def));
 }
 
 void rio_add_flag_str(char const ((*name)), char const ((*(*ptr))), char const ((*arg_name)), char const ((*help))) {
-  rio_FlagDef def = {.kind = rio_FlagKind_Str, .name = name, .help = help, .arg_name = arg_name, .ptr = {.s = ptr}};
+  rio_FlagDef def = {.kind = (rio_FlagKind_Str), .name = name, .help = help, .arg_name = arg_name, .ptr = {.s = ptr}};
   rio_buf_push((void (**))(&(rio_flag_defs)), &(def), sizeof(def));
 }
 
 void rio_add_flag_enum(char const ((*name)), int (*ptr), char const ((*help)), char const ((*(*options))), int num_options) {
-  rio_FlagDef def = {.kind = rio_FlagKind_Enum, .name = name, .help = help, .ptr = {.i = ptr}, .options = options, .num_options = num_options};
+  rio_FlagDef def = {.kind = (rio_FlagKind_Enum), .name = name, .help = help, .ptr = {.i = ptr}, .options = options, .num_options = num_options};
   rio_buf_push((void (**))(&(rio_flag_defs)), &(def), sizeof(def));
 }
 
@@ -5464,14 +5505,14 @@ void rio_print_flags_usage(void) {
     char (note[256]) = {0};
     char (format[256]) = {0};
     switch (flag.kind) {
-    case rio_FlagKind_Str: {
+    case (rio_FlagKind_Str): {
       snprintf(format, sizeof(format), "%s <%s>", flag.name, (flag.arg_name ? flag.arg_name : (char const (*))("value")));
       if (*(flag.ptr.s)) {
         snprintf(note, sizeof(note), "(default: %s)", *(flag.ptr.s));
       }
       break;
     }
-    case rio_FlagKind_Enum: {
+    case (rio_FlagKind_Enum): {
       {
         char (*end) = (format) + (sizeof(format));
         char (*ptr) = format;
@@ -5486,7 +5527,7 @@ void rio_print_flags_usage(void) {
       }
       break;
     }
-    case rio_FlagKind_Bool:
+    case (rio_FlagKind_Bool):
     default: {
       snprintf(format, sizeof(format), "%s", flag.name);
       break;
@@ -5514,11 +5555,11 @@ char const ((*rio_parse_flags(int (*argc_ptr), char const ((*(*(*argv_ptr)))))))
         continue;
       }
       switch (flag->kind) {
-      case rio_FlagKind_Bool: {
+      case (rio_FlagKind_Bool): {
         *(flag->ptr.b) = true;
         break;
       }
-      case rio_FlagKind_Str: {
+      case (rio_FlagKind_Str): {
         if (((i) + (1)) < (argc)) {
           (i)++;
           *(flag->ptr.s) = argv[i];
@@ -5527,7 +5568,7 @@ char const ((*rio_parse_flags(int (*argc_ptr), char const ((*(*(*argv_ptr)))))))
         }
         break;
       }
-      case rio_FlagKind_Enum: {
+      case (rio_FlagKind_Enum): {
         {
           char const ((*option)) = {0};
           if (((i) + (1)) < (argc)) {
@@ -5622,8 +5663,8 @@ void rio_dir_list(rio_DirListIter (*iter), char const ((*path))) {
 
 rio_Typespec (*rio_parse_type_func_param(void)) {
   rio_Typespec (*type) = rio_parse_type();
-  if (rio_match_token(rio_TokenKind_Colon)) {
-    if ((type->kind) != (rio_TypespecKind_Name)) {
+  if (rio_match_token((rio_TokenKind_Colon))) {
+    if ((type->kind) != ((rio_TypespecKind_Name))) {
       rio_error(rio_token.pos, "Colons in parameters of fn types must be preceded by names.");
     }
     type = rio_parse_type();
@@ -5635,9 +5676,9 @@ rio_Typespec (*rio_parse_type_func(void)) {
   rio_SrcPos pos = rio_token.pos;
   rio_Typespec (*(*args)) = NULL;
   bool has_varargs = false;
-  rio_expect_token(rio_TokenKind_Lparen);
-  while (!(rio_is_token(rio_TokenKind_Rparen))) {
-    if (rio_match_token(rio_TokenKind_Ellipsis)) {
+  rio_expect_token((rio_TokenKind_Lparen));
+  while (!(rio_is_token((rio_TokenKind_Rparen)))) {
+    if (rio_match_token((rio_TokenKind_Ellipsis))) {
       if (has_varargs) {
         rio_error(rio_token.pos, "Multiple ellipsis instances in function type");
       }
@@ -5649,29 +5690,29 @@ rio_Typespec (*rio_parse_type_func(void)) {
       rio_Typespec (*param) = rio_parse_type_func_param();
       rio_buf_push((void (**))(&(args)), &(param), sizeof(param));
     }
-    if (!(rio_match_token(rio_TokenKind_Comma))) {
+    if (!(rio_match_token((rio_TokenKind_Comma)))) {
       break;
     }
   }
-  rio_expect_token(rio_TokenKind_Rparen);
+  rio_expect_token((rio_TokenKind_Rparen));
   rio_Typespec (*ret) = NULL;
-  if (rio_match_token(rio_TokenKind_Arrow)) {
+  if (rio_match_token((rio_TokenKind_Arrow))) {
     ret = rio_parse_type();
   }
   return rio_new_typespec_func(pos, args, rio_buf_len(args), ret, has_varargs);
 }
 
 rio_Typespec (*rio_parse_type_base(void)) {
-  if (rio_is_token(rio_TokenKind_Name)) {
+  if (rio_is_token((rio_TokenKind_Name))) {
     rio_SrcPos pos = rio_token.pos;
     char const ((*name)) = rio_token.name;
     rio_next_token();
     return rio_new_typespec_name(pos, name);
   } else if (rio_match_keyword(rio_fn_keyword)) {
     return rio_parse_type_func();
-  } else if (rio_match_token(rio_TokenKind_Lparen)) {
+  } else if (rio_match_token((rio_TokenKind_Lparen))) {
     rio_Typespec (*type) = rio_parse_type();
-    rio_expect_token(rio_TokenKind_Rparen);
+    rio_expect_token((rio_TokenKind_Rparen));
     return type;
   } else {
     rio_fatal_error(rio_token.pos, "Unexpected token %s in type", rio_token_info());
@@ -5682,16 +5723,16 @@ rio_Typespec (*rio_parse_type_base(void)) {
 rio_Typespec (*rio_parse_type(void)) {
   rio_SrcPos pos = rio_token.pos;
   rio_Typespec (*type) = {0};
-  if (rio_match_token(rio_TokenKind_Lbracket)) {
+  if (rio_match_token((rio_TokenKind_Lbracket))) {
     rio_Expr (*size) = NULL;
-    if (!(rio_is_token(rio_TokenKind_Rbracket))) {
+    if (!(rio_is_token((rio_TokenKind_Rbracket)))) {
       size = rio_parse_expr();
     }
-    rio_expect_token(rio_TokenKind_Rbracket);
+    rio_expect_token((rio_TokenKind_Rbracket));
     type = rio_new_typespec_array(pos, rio_parse_type(), size);
-  } else if (rio_match_token(rio_TokenKind_And)) {
+  } else if (rio_match_token((rio_TokenKind_And))) {
     type = rio_new_typespec_ref(pos, rio_parse_type(), false);
-  } else if (rio_match_token(rio_TokenKind_Mul)) {
+  } else if (rio_match_token((rio_TokenKind_Mul))) {
     type = rio_new_typespec_ptr(pos, rio_parse_type(), false);
   } else if (rio_match_keyword(rio_const_keyword)) {
     type = rio_new_typespec_const(pos, rio_parse_type());
@@ -5705,121 +5746,121 @@ rio_Typespec (*rio_parse_type(void)) {
 
 rio_CompoundField rio_parse_expr_compound_field(void) {
   rio_SrcPos pos = rio_token.pos;
-  if (rio_match_token(rio_TokenKind_Lbracket)) {
+  if (rio_match_token((rio_TokenKind_Lbracket))) {
     rio_Expr (*index) = rio_parse_expr();
-    rio_expect_token(rio_TokenKind_Rbracket);
-    rio_expect_token(rio_TokenKind_Assign);
-    return (rio_CompoundField){rio_CompoundFieldKind_Index, pos, rio_parse_expr(), .index = index};
+    rio_expect_token((rio_TokenKind_Rbracket));
+    rio_expect_token((rio_TokenKind_Assign));
+    return (rio_CompoundField){(rio_CompoundFieldKind_Index), pos, rio_parse_expr(), .index = index};
   } else {
     rio_Expr (*expr) = rio_parse_expr();
-    if (rio_match_token(rio_TokenKind_Assign)) {
-      if ((expr->kind) != (rio_ExprKind_Name)) {
+    if (rio_match_token((rio_TokenKind_Assign))) {
+      if ((expr->kind) != ((rio_ExprKind_Name))) {
         rio_fatal_error(rio_token.pos, "Named initializer in compound literal must be preceded by field name");
       }
-      return (rio_CompoundField){rio_CompoundFieldKind_Name, pos, rio_parse_expr(), .name = expr->name};
+      return (rio_CompoundField){(rio_CompoundFieldKind_Name), pos, rio_parse_expr(), .name = expr->name};
     } else {
-      return (rio_CompoundField){rio_CompoundFieldKind_Default, pos, expr};
+      return (rio_CompoundField){(rio_CompoundFieldKind_Default), pos, expr};
     }
   }
 }
 
 rio_Expr (*rio_parse_expr_compound(rio_Typespec (*type))) {
   rio_SrcPos pos = rio_token.pos;
-  rio_expect_token(rio_TokenKind_Lbrace);
+  rio_expect_token((rio_TokenKind_Lbrace));
   rio_CompoundField (*fields) = NULL;
-  while (!(rio_is_token(rio_TokenKind_Rbrace))) {
+  while (!(rio_is_token((rio_TokenKind_Rbrace)))) {
     rio_CompoundField field = rio_parse_expr_compound_field();
     rio_buf_push((void (**))(&(fields)), &(field), sizeof(field));
-    if (!(rio_match_token(rio_TokenKind_Comma))) {
+    if (!(rio_match_token((rio_TokenKind_Comma)))) {
       break;
     }
   }
-  rio_expect_token(rio_TokenKind_Rbrace);
+  rio_expect_token((rio_TokenKind_Rbrace));
   return rio_new_expr_compound(pos, type, fields, rio_buf_len(fields));
 }
 
 rio_Expr (*rio_parse_expr_operand(void)) {
   rio_SrcPos pos = rio_token.pos;
-  if (rio_is_token(rio_TokenKind_Int)) {
+  if (rio_is_token((rio_TokenKind_Int))) {
     ullong val = rio_token.int_val;
     rio_TokenMod mod = rio_token.mod;
     rio_TokenSuffix suffix = rio_token.suffix;
     rio_next_token();
     return rio_new_expr_int(pos, val, mod, suffix);
-  } else if (rio_is_token(rio_TokenKind_Float)) {
+  } else if (rio_is_token((rio_TokenKind_Float))) {
     char const ((*start)) = rio_token.start;
     char const ((*end)) = rio_token.end;
     double val = rio_token.float_val;
     rio_TokenSuffix suffix = rio_token.suffix;
     rio_next_token();
     return rio_new_expr_float(pos, start, end, val, suffix);
-  } else if (rio_is_token(rio_TokenKind_Str)) {
+  } else if (rio_is_token((rio_TokenKind_Str))) {
     char const ((*val)) = rio_token.str_val;
     rio_TokenMod mod = rio_token.mod;
     rio_next_token();
     return rio_new_expr_str(pos, val, mod);
-  } else if (rio_is_token(rio_TokenKind_Name)) {
+  } else if (rio_is_token((rio_TokenKind_Name))) {
     char const ((*name)) = rio_token.name;
     rio_next_token();
-    if (rio_is_token(rio_TokenKind_Lbrace)) {
+    if (rio_is_token((rio_TokenKind_Lbrace))) {
       return rio_parse_expr_compound(rio_new_typespec_name(pos, name));
     } else {
       return rio_new_expr_name(pos, name);
     }
   } else if (rio_match_keyword(rio_sizeof_keyword)) {
-    rio_expect_token(rio_TokenKind_Lparen);
-    if (rio_match_token(rio_TokenKind_Colon)) {
+    rio_expect_token((rio_TokenKind_Lparen));
+    if (rio_match_token((rio_TokenKind_Colon))) {
       rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token(rio_TokenKind_Rparen);
+      rio_expect_token((rio_TokenKind_Rparen));
       return rio_new_expr_sizeof_type(pos, type);
     } else {
       rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token(rio_TokenKind_Rparen);
+      rio_expect_token((rio_TokenKind_Rparen));
       return rio_new_expr_sizeof_expr(pos, expr);
     }
   } else if (rio_match_keyword(rio_alignof_keyword)) {
-    rio_expect_token(rio_TokenKind_Lparen);
-    if (rio_match_token(rio_TokenKind_Colon)) {
+    rio_expect_token((rio_TokenKind_Lparen));
+    if (rio_match_token((rio_TokenKind_Colon))) {
       rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token(rio_TokenKind_Rparen);
+      rio_expect_token((rio_TokenKind_Rparen));
       return rio_new_expr_alignof_type(pos, type);
     } else {
       rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token(rio_TokenKind_Rparen);
+      rio_expect_token((rio_TokenKind_Rparen));
       return rio_new_expr_alignof_expr(pos, expr);
     }
   } else if (rio_match_keyword(rio_typeof_keyword)) {
-    rio_expect_token(rio_TokenKind_Lparen);
-    if (rio_match_token(rio_TokenKind_Colon)) {
+    rio_expect_token((rio_TokenKind_Lparen));
+    if (rio_match_token((rio_TokenKind_Colon))) {
       rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token(rio_TokenKind_Rparen);
+      rio_expect_token((rio_TokenKind_Rparen));
       return rio_new_expr_typeof_type(pos, type);
     } else {
       rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token(rio_TokenKind_Rparen);
+      rio_expect_token((rio_TokenKind_Rparen));
       return rio_new_expr_typeof_expr(pos, expr);
     }
   } else if (rio_match_keyword(rio_offsetof_keyword)) {
-    rio_expect_token(rio_TokenKind_Lparen);
+    rio_expect_token((rio_TokenKind_Lparen));
     rio_Typespec (*type) = rio_parse_type();
-    rio_expect_token(rio_TokenKind_Comma);
+    rio_expect_token((rio_TokenKind_Comma));
     char const ((*name)) = rio_parse_name();
-    rio_expect_token(rio_TokenKind_Rparen);
+    rio_expect_token((rio_TokenKind_Rparen));
     return rio_new_expr_offsetof(pos, type, name);
-  } else if (rio_is_token(rio_TokenKind_Lbrace)) {
+  } else if (rio_is_token((rio_TokenKind_Lbrace))) {
     return rio_parse_expr_compound(NULL);
-  } else if (rio_match_token(rio_TokenKind_Lparen)) {
-    if (rio_match_token(rio_TokenKind_Colon)) {
+  } else if (rio_match_token((rio_TokenKind_Lparen))) {
+    if (rio_match_token((rio_TokenKind_Colon))) {
       rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token(rio_TokenKind_Rparen);
-      if (rio_is_token(rio_TokenKind_Lbrace)) {
+      rio_expect_token((rio_TokenKind_Rparen));
+      if (rio_is_token((rio_TokenKind_Lbrace))) {
         return rio_parse_expr_compound(type);
       } else {
         return rio_new_expr_cast(pos, type, rio_parse_expr_unary());
       }
     } else {
       rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token(rio_TokenKind_Rparen);
+      rio_expect_token((rio_TokenKind_Rparen));
       return rio_new_expr_paren(pos, expr);
     }
   } else {
@@ -5830,30 +5871,30 @@ rio_Expr (*rio_parse_expr_operand(void)) {
 
 rio_Expr (*rio_parse_expr_base(void)) {
   rio_Expr (*expr) = rio_parse_expr_operand();
-  while (((((rio_is_token(rio_TokenKind_Lparen)) || (rio_is_token(rio_TokenKind_Lbracket))) || (rio_is_token(rio_TokenKind_Dot))) || (rio_is_token(rio_TokenKind_Inc))) || (rio_is_token(rio_TokenKind_Dec))) {
+  while (((((rio_is_token((rio_TokenKind_Lparen))) || (rio_is_token((rio_TokenKind_Lbracket)))) || (rio_is_token((rio_TokenKind_Dot)))) || (rio_is_token((rio_TokenKind_Inc)))) || (rio_is_token((rio_TokenKind_Dec)))) {
     rio_SrcPos pos = rio_token.pos;
-    if (rio_match_token(rio_TokenKind_Lparen)) {
+    if (rio_match_token((rio_TokenKind_Lparen))) {
       rio_Expr (*(*args)) = NULL;
-      while (!(rio_is_token(rio_TokenKind_Rparen))) {
+      while (!(rio_is_token((rio_TokenKind_Rparen)))) {
         rio_Expr (*arg) = rio_parse_expr();
         rio_buf_push((void (**))(&(args)), &(arg), sizeof(arg));
-        if (!(rio_match_token(rio_TokenKind_Comma))) {
+        if (!(rio_match_token((rio_TokenKind_Comma)))) {
           break;
         }
       }
-      rio_expect_token(rio_TokenKind_Rparen);
+      rio_expect_token((rio_TokenKind_Rparen));
       expr = rio_new_expr_call(pos, expr, args, rio_buf_len(args));
-    } else if (rio_match_token(rio_TokenKind_Lbracket)) {
+    } else if (rio_match_token((rio_TokenKind_Lbracket))) {
       rio_Expr (*index) = rio_parse_expr();
-      rio_expect_token(rio_TokenKind_Rbracket);
+      rio_expect_token((rio_TokenKind_Rbracket));
       expr = rio_new_expr_index(pos, expr, index);
-    } else if (rio_is_token(rio_TokenKind_Dot)) {
+    } else if (rio_is_token((rio_TokenKind_Dot))) {
       rio_next_token();
       char const ((*field)) = rio_token.name;
-      rio_expect_token(rio_TokenKind_Name);
+      rio_expect_token((rio_TokenKind_Name));
       expr = rio_new_expr_field(pos, expr, field);
     } else {
-      assert((rio_is_token(rio_TokenKind_Inc)) || (rio_is_token(rio_TokenKind_Dec)));
+      assert((rio_is_token((rio_TokenKind_Inc))) || (rio_is_token((rio_TokenKind_Dec))));
       rio_TokenKind op = rio_token.kind;
       rio_next_token();
       expr = rio_new_expr_modify(pos, op, true, expr);
@@ -5863,7 +5904,7 @@ rio_Expr (*rio_parse_expr_base(void)) {
 }
 
 bool rio_is_unary_op(void) {
-  return (((((((rio_is_token(rio_TokenKind_Add)) || (rio_is_token(rio_TokenKind_Sub))) || (rio_is_token(rio_TokenKind_Mul))) || (rio_is_token(rio_TokenKind_And))) || (rio_is_token(rio_TokenKind_Neg))) || (rio_is_token(rio_TokenKind_Not))) || (rio_is_token(rio_TokenKind_Inc))) || (rio_is_token(rio_TokenKind_Dec));
+  return (((((((rio_is_token((rio_TokenKind_Add))) || (rio_is_token((rio_TokenKind_Sub)))) || (rio_is_token((rio_TokenKind_Mul)))) || (rio_is_token((rio_TokenKind_And)))) || (rio_is_token((rio_TokenKind_Neg)))) || (rio_is_token((rio_TokenKind_Not)))) || (rio_is_token((rio_TokenKind_Inc)))) || (rio_is_token((rio_TokenKind_Dec)));
 }
 
 rio_Expr (*rio_parse_expr_unary(void)) {
@@ -5871,7 +5912,7 @@ rio_Expr (*rio_parse_expr_unary(void)) {
     rio_SrcPos pos = rio_token.pos;
     rio_TokenKind op = rio_token.kind;
     rio_next_token();
-    if (((op) == (rio_TokenKind_Inc)) || ((op) == (rio_TokenKind_Dec))) {
+    if (((op) == ((rio_TokenKind_Inc))) || ((op) == ((rio_TokenKind_Dec)))) {
       return rio_new_expr_modify(pos, op, false, rio_parse_expr_unary());
     } else {
       return rio_new_expr_unary(pos, op, rio_parse_expr_unary());
@@ -5882,7 +5923,7 @@ rio_Expr (*rio_parse_expr_unary(void)) {
 }
 
 bool rio_is_mul_op(void) {
-  return ((rio_TokenKind_FirstMul) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TokenKind_LastMul));
+  return (((rio_TokenKind_FirstMul)) <= (rio_token.kind)) && ((rio_token.kind) <= ((rio_TokenKind_LastMul)));
 }
 
 rio_Expr (*rio_parse_expr_mul(void)) {
@@ -5897,7 +5938,7 @@ rio_Expr (*rio_parse_expr_mul(void)) {
 }
 
 bool rio_is_add_op(void) {
-  return ((rio_TokenKind_FirstAdd) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TokenKind_LastAdd));
+  return (((rio_TokenKind_FirstAdd)) <= (rio_token.kind)) && ((rio_token.kind) <= ((rio_TokenKind_LastAdd)));
 }
 
 rio_Expr (*rio_parse_expr_add(void)) {
@@ -5912,7 +5953,7 @@ rio_Expr (*rio_parse_expr_add(void)) {
 }
 
 bool rio_is_cmp_op(void) {
-  return ((rio_TokenKind_FirstCmp) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TokenKind_LastCmp));
+  return (((rio_TokenKind_FirstCmp)) <= (rio_token.kind)) && ((rio_token.kind) <= ((rio_TokenKind_LastCmp)));
 }
 
 rio_Expr (*rio_parse_expr_cmp(void)) {
@@ -5928,18 +5969,18 @@ rio_Expr (*rio_parse_expr_cmp(void)) {
 
 rio_Expr (*rio_parse_expr_and(void)) {
   rio_Expr (*expr) = rio_parse_expr_cmp();
-  while (rio_match_token(rio_TokenKind_AndAnd)) {
+  while (rio_match_token((rio_TokenKind_AndAnd))) {
     rio_SrcPos pos = rio_token.pos;
-    expr = rio_new_expr_binary(pos, rio_TokenKind_AndAnd, expr, rio_parse_expr_cmp());
+    expr = rio_new_expr_binary(pos, (rio_TokenKind_AndAnd), expr, rio_parse_expr_cmp());
   }
   return expr;
 }
 
 rio_Expr (*rio_parse_expr_or(void)) {
   rio_Expr (*expr) = rio_parse_expr_and();
-  while (rio_match_token(rio_TokenKind_OrOr)) {
+  while (rio_match_token((rio_TokenKind_OrOr))) {
     rio_SrcPos pos = rio_token.pos;
-    expr = rio_new_expr_binary(pos, rio_TokenKind_OrOr, expr, rio_parse_expr_and());
+    expr = rio_new_expr_binary(pos, (rio_TokenKind_OrOr), expr, rio_parse_expr_and());
   }
   return expr;
 }
@@ -5947,9 +5988,9 @@ rio_Expr (*rio_parse_expr_or(void)) {
 rio_Expr (*rio_parse_expr_ternary(void)) {
   rio_SrcPos pos = rio_token.pos;
   rio_Expr (*expr) = rio_parse_expr_or();
-  if (rio_match_token(rio_TokenKind_Question)) {
+  if (rio_match_token((rio_TokenKind_Question))) {
     rio_Expr (*then_expr) = rio_parse_expr_ternary();
-    rio_expect_token(rio_TokenKind_Colon);
+    rio_expect_token((rio_TokenKind_Colon));
     rio_Expr (*else_expr) = rio_parse_expr_ternary();
     expr = rio_new_expr_ternary(pos, expr, then_expr, else_expr);
   }
@@ -5961,37 +6002,37 @@ rio_Expr (*rio_parse_expr(void)) {
 }
 
 rio_Expr (*rio_parse_paren_expr(void)) {
-  rio_expect_token(rio_TokenKind_Lparen);
+  rio_expect_token((rio_TokenKind_Lparen));
   rio_Expr (*expr) = rio_parse_expr();
-  rio_expect_token(rio_TokenKind_Rparen);
+  rio_expect_token((rio_TokenKind_Rparen));
   return expr;
 }
 
 rio_StmtList rio_parse_stmt_block(void) {
   rio_SrcPos pos = rio_token.pos;
-  rio_expect_token(rio_TokenKind_Lbrace);
+  rio_expect_token((rio_TokenKind_Lbrace));
   rio_Stmt (*(*stmts)) = NULL;
-  while ((!(rio_is_token_eof())) && (!(rio_is_token(rio_TokenKind_Rbrace)))) {
+  while ((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) {
     rio_Stmt (*stmt) = rio_parse_stmt();
     rio_buf_push((void (**))(&(stmts)), &(stmt), sizeof(stmt));
   }
-  rio_expect_token(rio_TokenKind_Rbrace);
+  rio_expect_token((rio_TokenKind_Rbrace));
   return rio_new_stmt_list(pos, stmts, rio_buf_len(stmts));
 }
 
 rio_Stmt (*rio_parse_stmt_if(rio_SrcPos pos)) {
-  rio_expect_token(rio_TokenKind_Lparen);
+  rio_expect_token((rio_TokenKind_Lparen));
   rio_Expr (*cond) = {0};
   rio_Stmt (*init) = {0};
   if (rio_match_keyword(rio_let_keyword)) {
     init = rio_parse_let_stmt(pos);
-    if (rio_match_token(rio_TokenKind_Semicolon)) {
+    if (rio_match_token((rio_TokenKind_Semicolon))) {
       cond = rio_parse_expr();
     }
   } else {
     cond = rio_parse_expr();
   }
-  rio_expect_token(rio_TokenKind_Rparen);
+  rio_expect_token((rio_TokenKind_Rparen));
   rio_StmtList then_block = rio_parse_stmt_block();
   rio_StmtList else_block = {{NULL, 0}, NULL, 0};
   rio_ElseIf (*elseifs) = {0};
@@ -6020,23 +6061,23 @@ rio_Stmt (*rio_parse_stmt_do_while(rio_SrcPos pos)) {
     return NULL;
   }
   rio_Stmt (*stmt) = rio_new_stmt_do_while(pos, rio_parse_paren_expr(), block);
-  rio_expect_token(rio_TokenKind_Semicolon);
+  rio_expect_token((rio_TokenKind_Semicolon));
   return stmt;
 }
 
 bool rio_is_assign_op(void) {
-  return ((rio_TokenKind_FirstAssign) <= (rio_token.kind)) && ((rio_token.kind) <= (rio_TokenKind_LastAssign));
+  return (((rio_TokenKind_FirstAssign)) <= (rio_token.kind)) && ((rio_token.kind) <= ((rio_TokenKind_LastAssign)));
 }
 
 rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos)) {
   bool is_mut = rio_match_keyword(rio_mut_keyword);
   char const ((*name)) = rio_parse_name();
-  if (rio_match_token(rio_TokenKind_Assign)) {
+  if (rio_match_token((rio_TokenKind_Assign))) {
     return rio_new_stmt_init(pos, name, is_mut, NULL, rio_parse_expr());
-  } else if (rio_match_token(rio_TokenKind_Colon)) {
+  } else if (rio_match_token((rio_TokenKind_Colon))) {
     rio_Typespec (*type) = rio_parse_type();
     rio_Expr (*expr) = {0};
-    if (rio_match_token(rio_TokenKind_Assign)) {
+    if (rio_match_token((rio_TokenKind_Assign))) {
       expr = rio_parse_expr();
     } else {
       is_mut = true;
@@ -6055,7 +6096,7 @@ rio_Stmt (*rio_parse_simple_stmt(void)) {
     stmt = rio_parse_let_stmt(pos);
   } else {
     rio_Expr (*expr) = rio_parse_expr();
-    if (((expr->kind) == (rio_ExprKind_Name)) && (rio_match_token(rio_TokenKind_Colon))) {
+    if (((expr->kind) == ((rio_ExprKind_Name))) && (rio_match_token((rio_TokenKind_Colon)))) {
       stmt = rio_new_stmt_label(pos, expr->name);
     } else if (rio_is_assign_op()) {
       rio_TokenKind op = rio_token.kind;
@@ -6069,33 +6110,33 @@ rio_Stmt (*rio_parse_simple_stmt(void)) {
 }
 
 rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
-  rio_expect_token(rio_TokenKind_Lparen);
+  rio_expect_token((rio_TokenKind_Lparen));
   rio_Stmt (*init) = NULL;
-  if (!(rio_is_token(rio_TokenKind_Semicolon))) {
+  if (!(rio_is_token((rio_TokenKind_Semicolon)))) {
     init = rio_parse_simple_stmt();
   }
-  rio_expect_token(rio_TokenKind_Semicolon);
+  rio_expect_token((rio_TokenKind_Semicolon));
   rio_Expr (*cond) = NULL;
-  if (!(rio_is_token(rio_TokenKind_Semicolon))) {
+  if (!(rio_is_token((rio_TokenKind_Semicolon)))) {
     cond = rio_parse_expr();
   }
   rio_Stmt (*next) = NULL;
-  if (rio_match_token(rio_TokenKind_Semicolon)) {
-    if (!(rio_is_token(rio_TokenKind_Rparen))) {
+  if (rio_match_token((rio_TokenKind_Semicolon))) {
+    if (!(rio_is_token((rio_TokenKind_Rparen)))) {
       next = rio_parse_simple_stmt();
-      if ((next->kind) == (rio_StmtKind_Init)) {
+      if ((next->kind) == ((rio_StmtKind_Init))) {
         rio_error(rio_token.pos, "Init statements not allowed in for-statement\'s next clause");
       }
     }
   }
-  rio_expect_token(rio_TokenKind_Rparen);
+  rio_expect_token((rio_TokenKind_Rparen));
   return rio_new_stmt_for(pos, init, cond, next, rio_parse_stmt_block());
 }
 
 rio_SwitchCasePattern rio_parse_switch_case_pattern(void) {
   rio_Expr (*start) = rio_parse_expr();
   rio_Expr (*end) = NULL;
-  if (rio_match_token(rio_TokenKind_Ellipsis)) {
+  if (rio_match_token((rio_TokenKind_Ellipsis))) {
     end = rio_parse_expr();
   }
   return (rio_SwitchCasePattern){start, end};
@@ -6113,7 +6154,7 @@ rio_SwitchCase rio_parse_stmt_switch_case(void) {
       }
       rio_SwitchCasePattern pattern = rio_parse_switch_case_pattern();
       rio_buf_push((void (**))(&(patterns)), &(pattern), sizeof(pattern));
-      while (rio_match_token(rio_TokenKind_Comma)) {
+      while (rio_match_token((rio_TokenKind_Comma))) {
         pattern = rio_parse_switch_case_pattern();
         rio_buf_push((void (**))(&(patterns)), &(pattern), sizeof(pattern));
       }
@@ -6125,11 +6166,11 @@ rio_SwitchCase rio_parse_stmt_switch_case(void) {
       }
       is_default = true;
     }
-    rio_expect_token(rio_TokenKind_Colon);
+    rio_expect_token((rio_TokenKind_Colon));
   }
   rio_SrcPos pos = rio_token.pos;
   rio_Stmt (*(*stmts)) = {0};
-  while ((((!(rio_is_token_eof())) && (!(rio_is_token(rio_TokenKind_Rbrace)))) && (!(rio_is_keyword(rio_case_keyword)))) && (!(rio_is_keyword(rio_default_keyword)))) {
+  while ((((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) && (!(rio_is_keyword(rio_case_keyword)))) && (!(rio_is_keyword(rio_default_keyword)))) {
     rio_Stmt (*stmt) = rio_parse_stmt();
     rio_buf_push((void (**))(&(stmts)), &(stmt), sizeof(stmt));
   }
@@ -6139,12 +6180,12 @@ rio_SwitchCase rio_parse_stmt_switch_case(void) {
 rio_Stmt (*rio_parse_stmt_switch(rio_SrcPos pos)) {
   rio_Expr (*expr) = rio_parse_paren_expr();
   rio_SwitchCase (*cases) = {0};
-  rio_expect_token(rio_TokenKind_Lbrace);
-  while ((!(rio_is_token_eof())) && (!(rio_is_token(rio_TokenKind_Rbrace)))) {
+  rio_expect_token((rio_TokenKind_Lbrace));
+  while ((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) {
     rio_SwitchCase case_stmt = rio_parse_stmt_switch_case();
     rio_buf_push((void (**))(&(cases)), &(case_stmt), sizeof(case_stmt));
   }
-  rio_expect_token(rio_TokenKind_Rbrace);
+  rio_expect_token((rio_TokenKind_Rbrace));
   return rio_new_stmt_switch(pos, expr, cases, rio_buf_len(cases));
 }
 
@@ -6162,32 +6203,32 @@ rio_Stmt (*rio_parse_stmt(void)) {
     stmt = rio_parse_stmt_for(pos);
   } else if (rio_match_keyword(rio_switch_keyword)) {
     stmt = rio_parse_stmt_switch(pos);
-  } else if (rio_is_token(rio_TokenKind_Lbrace)) {
+  } else if (rio_is_token((rio_TokenKind_Lbrace))) {
     stmt = rio_new_stmt_block(pos, rio_parse_stmt_block());
   } else if (rio_match_keyword(rio_break_keyword)) {
-    rio_expect_token(rio_TokenKind_Semicolon);
+    rio_expect_token((rio_TokenKind_Semicolon));
     stmt = rio_new_stmt_break(pos);
   } else if (rio_match_keyword(rio_continue_keyword)) {
-    rio_expect_token(rio_TokenKind_Semicolon);
+    rio_expect_token((rio_TokenKind_Semicolon));
     stmt = rio_new_stmt_continue(pos);
   } else if (rio_match_keyword(rio_return_keyword)) {
     rio_Expr (*expr) = {0};
-    if (!(rio_is_token(rio_TokenKind_Semicolon))) {
+    if (!(rio_is_token((rio_TokenKind_Semicolon)))) {
       expr = rio_parse_expr();
     }
-    rio_expect_token(rio_TokenKind_Semicolon);
+    rio_expect_token((rio_TokenKind_Semicolon));
     stmt = rio_new_stmt_return(pos, expr);
-  } else if (rio_match_token(rio_TokenKind_Pound)) {
+  } else if (rio_match_token((rio_TokenKind_Pound))) {
     rio_Note note = rio_parse_note();
-    rio_expect_token(rio_TokenKind_Semicolon);
+    rio_expect_token((rio_TokenKind_Semicolon));
     stmt = rio_new_stmt_note(pos, note);
   } else if (rio_match_keyword(rio_goto_keyword)) {
     stmt = rio_new_stmt_goto(pos, rio_parse_name());
-    rio_expect_token(rio_TokenKind_Semicolon);
+    rio_expect_token((rio_TokenKind_Semicolon));
   } else {
     stmt = rio_parse_simple_stmt();
-    if ((stmt->kind) != (rio_StmtKind_Label)) {
-      rio_expect_token(rio_TokenKind_Semicolon);
+    if ((stmt->kind) != ((rio_StmtKind_Label))) {
+      rio_expect_token((rio_TokenKind_Semicolon));
     }
   }
   stmt->notes = notes;
@@ -6196,7 +6237,7 @@ rio_Stmt (*rio_parse_stmt(void)) {
 
 char const ((*rio_parse_name(void))) {
   char const ((*name)) = rio_token.name;
-  rio_expect_token(rio_TokenKind_Name);
+  rio_expect_token((rio_TokenKind_Name));
   return name;
 }
 
@@ -6204,7 +6245,7 @@ rio_EnumItem rio_parse_decl_enum_item(void) {
   rio_SrcPos pos = rio_token.pos;
   char const ((*name)) = rio_parse_name();
   rio_Expr (*init) = NULL;
-  if (rio_match_token(rio_TokenKind_Assign)) {
+  if (rio_match_token((rio_TokenKind_Assign))) {
     init = rio_parse_expr();
   }
   return (rio_EnumItem){pos, name, init};
@@ -6212,64 +6253,64 @@ rio_EnumItem rio_parse_decl_enum_item(void) {
 
 rio_Decl (*rio_parse_decl_enum(rio_SrcPos pos)) {
   char const ((*name)) = NULL;
-  if (rio_is_token(rio_TokenKind_Name)) {
+  if (rio_is_token((rio_TokenKind_Name))) {
     name = rio_parse_name();
   }
   rio_Typespec (*type) = NULL;
-  if (rio_match_token(rio_TokenKind_Assign)) {
+  if (rio_match_token((rio_TokenKind_Assign))) {
     type = rio_parse_type();
   }
-  rio_expect_token(rio_TokenKind_Lbrace);
+  rio_expect_token((rio_TokenKind_Lbrace));
   rio_EnumItem (*items) = NULL;
-  while (!(rio_is_token(rio_TokenKind_Rbrace))) {
+  while (!(rio_is_token((rio_TokenKind_Rbrace)))) {
     rio_EnumItem item = rio_parse_decl_enum_item();
     rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
-    if (!(rio_match_token(rio_TokenKind_Comma))) {
+    if (!(rio_match_token((rio_TokenKind_Comma)))) {
       break;
     }
   }
-  rio_expect_token(rio_TokenKind_Rbrace);
+  rio_expect_token((rio_TokenKind_Rbrace));
   return rio_new_decl_enum(pos, name, type, items, rio_buf_len(items));
 }
 
 rio_AggregateItem rio_parse_decl_aggregate_item(void) {
   rio_SrcPos pos = rio_token.pos;
   if (rio_match_keyword(rio_struct_keyword)) {
-    return (rio_AggregateItem){.pos = pos, .kind = rio_AggregateItemKind_Subaggregate, .subaggregate = rio_parse_aggregate(rio_AggregateKind_Struct)};
+    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = rio_parse_aggregate((rio_AggregateKind_Struct))};
   } else if (rio_match_keyword(rio_union_keyword)) {
-    return (rio_AggregateItem){.pos = pos, .kind = rio_AggregateItemKind_Subaggregate, .subaggregate = rio_parse_aggregate(rio_AggregateKind_Union)};
+    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = rio_parse_aggregate((rio_AggregateKind_Union))};
   } else {
     char const ((*(*names))) = NULL;
     char const ((*name)) = rio_parse_name();
     rio_buf_push((void (**))(&(names)), &(name), sizeof(name));
-    while (rio_match_token(rio_TokenKind_Comma)) {
+    while (rio_match_token((rio_TokenKind_Comma))) {
       name = rio_parse_name();
       rio_buf_push((void (**))(&(names)), &(name), sizeof(name));
     }
-    rio_expect_token(rio_TokenKind_Colon);
+    rio_expect_token((rio_TokenKind_Colon));
     rio_Typespec (*type) = rio_parse_type();
-    rio_expect_token(rio_TokenKind_Semicolon);
-    return (rio_AggregateItem){.pos = pos, .kind = rio_AggregateItemKind_Field, .names = names, .num_names = rio_buf_len(names), .type = type};
+    rio_expect_token((rio_TokenKind_Semicolon));
+    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Field), .names = names, .num_names = rio_buf_len(names), .type = type};
   }
 }
 
 rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind)) {
   rio_SrcPos pos = rio_token.pos;
-  rio_expect_token(rio_TokenKind_Lbrace);
+  rio_expect_token((rio_TokenKind_Lbrace));
   rio_AggregateItem (*items) = NULL;
-  while ((!(rio_is_token_eof())) && (!(rio_is_token(rio_TokenKind_Rbrace)))) {
+  while ((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) {
     rio_AggregateItem item = rio_parse_decl_aggregate_item();
     rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
   }
-  rio_expect_token(rio_TokenKind_Rbrace);
+  rio_expect_token((rio_TokenKind_Rbrace));
   return rio_new_aggregate(pos, kind, items, rio_buf_len(items));
 }
 
 rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind)) {
-  assert(((kind) == (rio_DeclKind_Struct)) || ((kind) == (rio_DeclKind_Union)));
+  assert(((kind) == ((rio_DeclKind_Struct))) || ((kind) == ((rio_DeclKind_Union))));
   char const ((*name)) = rio_parse_name();
-  rio_AggregateKind aggregate_kind = ((kind) == (rio_DeclKind_Struct) ? rio_AggregateKind_Struct : rio_AggregateKind_Union);
-  if (rio_match_token(rio_TokenKind_Semicolon)) {
+  rio_AggregateKind aggregate_kind = ((kind) == ((rio_DeclKind_Struct)) ? (rio_AggregateKind_Struct) : (rio_AggregateKind_Union));
+  if (rio_match_token((rio_TokenKind_Semicolon))) {
     rio_Decl (*decl) = rio_new_decl_aggregate(pos, kind, name, rio_new_aggregate(pos, aggregate_kind, NULL, 0));
     decl->is_incomplete = true;
     return decl;
@@ -6280,17 +6321,17 @@ rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind)) {
 
 rio_Decl (*rio_parse_decl_var(rio_SrcPos pos)) {
   char const ((*name)) = rio_parse_name();
-  if (rio_match_token(rio_TokenKind_Assign)) {
+  if (rio_match_token((rio_TokenKind_Assign))) {
     rio_Expr (*expr) = rio_parse_expr();
-    rio_expect_token(rio_TokenKind_Semicolon);
+    rio_expect_token((rio_TokenKind_Semicolon));
     return rio_new_decl_var(pos, name, NULL, expr);
-  } else if (rio_match_token(rio_TokenKind_Colon)) {
+  } else if (rio_match_token((rio_TokenKind_Colon))) {
     rio_Typespec (*type) = rio_parse_type();
     rio_Expr (*expr) = NULL;
-    if (rio_match_token(rio_TokenKind_Assign)) {
+    if (rio_match_token((rio_TokenKind_Assign))) {
       expr = rio_parse_expr();
     }
-    rio_expect_token(rio_TokenKind_Semicolon);
+    rio_expect_token((rio_TokenKind_Semicolon));
     return rio_new_decl_var(pos, name, type, expr);
   } else {
     rio_fatal_error(rio_token.pos, "Expected : or = after let, got %s", rio_token_info());
@@ -6301,38 +6342,38 @@ rio_Decl (*rio_parse_decl_var(rio_SrcPos pos)) {
 rio_Decl (*rio_parse_decl_const(rio_SrcPos pos)) {
   char const ((*name)) = rio_parse_name();
   rio_Typespec (*type) = NULL;
-  if (rio_match_token(rio_TokenKind_Colon)) {
+  if (rio_match_token((rio_TokenKind_Colon))) {
     type = rio_parse_type();
   }
-  rio_expect_token(rio_TokenKind_Assign);
+  rio_expect_token((rio_TokenKind_Assign));
   rio_Expr (*expr) = rio_parse_expr();
-  rio_expect_token(rio_TokenKind_Semicolon);
+  rio_expect_token((rio_TokenKind_Semicolon));
   return rio_new_decl_const(pos, name, type, expr);
 }
 
 rio_Decl (*rio_parse_decl_typedef(rio_SrcPos pos)) {
   char const ((*name)) = rio_parse_name();
-  rio_expect_token(rio_TokenKind_Assign);
+  rio_expect_token((rio_TokenKind_Assign));
   rio_Typespec (*type) = rio_parse_type();
-  rio_expect_token(rio_TokenKind_Semicolon);
+  rio_expect_token((rio_TokenKind_Semicolon));
   return rio_new_decl_typedef(pos, name, type);
 }
 
 rio_FuncParam rio_parse_decl_func_param(void) {
   rio_SrcPos pos = rio_token.pos;
   char const ((*name)) = rio_parse_name();
-  rio_expect_token(rio_TokenKind_Colon);
+  rio_expect_token((rio_TokenKind_Colon));
   rio_Typespec (*type) = rio_parse_type();
   return (rio_FuncParam){pos, name, type};
 }
 
 rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
   char const ((*name)) = rio_parse_name();
-  rio_expect_token(rio_TokenKind_Lparen);
+  rio_expect_token((rio_TokenKind_Lparen));
   rio_FuncParam (*params) = NULL;
   bool has_varargs = false;
-  while (!(rio_is_token(rio_TokenKind_Rparen))) {
-    if (rio_match_token(rio_TokenKind_Ellipsis)) {
+  while (!(rio_is_token((rio_TokenKind_Rparen)))) {
+    if (rio_match_token((rio_TokenKind_Ellipsis))) {
       if (has_varargs) {
         rio_error(rio_token.pos, "Multiple ellipsis in function declaration");
       }
@@ -6344,18 +6385,18 @@ rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
       rio_FuncParam param = rio_parse_decl_func_param();
       rio_buf_push((void (**))(&(params)), &(param), sizeof(param));
     }
-    if (!(rio_match_token(rio_TokenKind_Comma))) {
+    if (!(rio_match_token((rio_TokenKind_Comma)))) {
       break;
     }
   }
-  rio_expect_token(rio_TokenKind_Rparen);
+  rio_expect_token((rio_TokenKind_Rparen));
   rio_Typespec (*ret_type) = NULL;
-  if (rio_match_token(rio_TokenKind_Arrow)) {
+  if (rio_match_token((rio_TokenKind_Arrow))) {
     ret_type = rio_parse_type();
   }
   rio_StmtList block = {0};
   bool is_incomplete = {0};
-  if (rio_match_token(rio_TokenKind_Semicolon)) {
+  if (rio_match_token((rio_TokenKind_Semicolon))) {
     is_incomplete = true;
   } else {
     block = rio_parse_stmt_block();
@@ -6370,8 +6411,8 @@ rio_NoteArg rio_parse_note_arg(void) {
   rio_SrcPos pos = rio_token.pos;
   rio_Expr (*expr) = rio_parse_expr();
   char const ((*name)) = NULL;
-  if (rio_match_token(rio_TokenKind_Assign)) {
-    if ((expr->kind) != (rio_ExprKind_Name)) {
+  if (rio_match_token((rio_TokenKind_Assign))) {
+    if ((expr->kind) != ((rio_ExprKind_Name))) {
       rio_fatal_error(rio_token.pos, "Left of: operand = in note argument must be a name");
     }
     name = expr->name;
@@ -6383,28 +6424,28 @@ rio_NoteArg rio_parse_note_arg(void) {
 rio_Note rio_parse_note(void) {
   rio_SrcPos pos = rio_token.pos;
   char const ((*name)) = {0};
-  if (rio_is_token(rio_TokenKind_Keyword)) {
+  if (rio_is_token((rio_TokenKind_Keyword))) {
     name = rio_token.name;
     rio_next_token();
   } else {
     name = rio_parse_name();
   }
   rio_NoteArg (*args) = NULL;
-  if (rio_match_token(rio_TokenKind_Lparen)) {
+  if (rio_match_token((rio_TokenKind_Lparen))) {
     rio_NoteArg arg = rio_parse_note_arg();
     rio_buf_push((void (**))(&(args)), &(arg), sizeof(arg));
-    while (rio_match_token(rio_TokenKind_Comma)) {
+    while (rio_match_token((rio_TokenKind_Comma))) {
       arg = rio_parse_note_arg();
       rio_buf_push((void (**))(&(args)), &(arg), sizeof(arg));
     }
-    rio_expect_token(rio_TokenKind_Rparen);
+    rio_expect_token((rio_TokenKind_Rparen));
   }
   return rio_new_note(pos, name, args, rio_buf_len(args));
 }
 
 rio_Notes rio_parse_notes(void) {
   rio_Note (*notes) = NULL;
-  while (rio_match_token(rio_TokenKind_At)) {
+  while (rio_match_token((rio_TokenKind_At))) {
     rio_Note note = rio_parse_note();
     rio_buf_push((void (**))(&(notes)), &(note), sizeof(note));
   }
@@ -6420,12 +6461,12 @@ rio_Decl (*rio_parse_decl_import(rio_SrcPos pos)) {
   bool is_relative = {0};
   repeat: ;
   is_relative = false;
-  if (rio_match_token(rio_TokenKind_Dot)) {
+  if (rio_match_token((rio_TokenKind_Dot))) {
     is_relative = true;
   }
   char const ((*name)) = rio_token.name;
-  rio_expect_token(rio_TokenKind_Name);
-  if ((!(is_relative)) && (rio_match_token(rio_TokenKind_Assign))) {
+  rio_expect_token((rio_TokenKind_Name));
+  if ((!(is_relative)) && (rio_match_token((rio_TokenKind_Assign)))) {
     if (rename_name) {
       rio_fatal_error(pos, "Only one import assignment is allowed");
     }
@@ -6434,31 +6475,31 @@ rio_Decl (*rio_parse_decl_import(rio_SrcPos pos)) {
   }
   char const ((*(*names))) = NULL;
   rio_buf_push((void (**))(&(names)), &(name), sizeof(name));
-  while (rio_match_token(rio_TokenKind_Dot)) {
+  while (rio_match_token((rio_TokenKind_Dot))) {
     rio_buf_push((void (**))(&(names)), &(rio_token.name), sizeof(rio_token.name));
-    rio_expect_token(rio_TokenKind_Name);
+    rio_expect_token((rio_TokenKind_Name));
   }
   bool import_all = false;
   rio_ImportItem (*items) = {0};
-  if (rio_match_token(rio_TokenKind_Lbrace)) {
-    while (!(rio_is_token(rio_TokenKind_Rbrace))) {
-      if (rio_match_token(rio_TokenKind_Ellipsis)) {
+  if (rio_match_token((rio_TokenKind_Lbrace))) {
+    while (!(rio_is_token((rio_TokenKind_Rbrace)))) {
+      if (rio_match_token((rio_TokenKind_Ellipsis))) {
         import_all = true;
       } else {
         char const ((*item_name)) = rio_parse_name();
-        if (rio_match_token(rio_TokenKind_Assign)) {
+        if (rio_match_token((rio_TokenKind_Assign))) {
           rio_ImportItem item = {.name = rio_parse_name(), .rename = item_name};
           rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
         } else {
           rio_ImportItem item = {.name = item_name};
           rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
         }
-        if (!(rio_match_token(rio_TokenKind_Comma))) {
+        if (!(rio_match_token((rio_TokenKind_Comma)))) {
           break;
         }
       }
     }
-    rio_expect_token(rio_TokenKind_Rbrace);
+    rio_expect_token((rio_TokenKind_Rbrace));
   }
   return rio_new_decl_import(pos, rename_name, is_relative, names, rio_buf_len(names), import_all, items, rio_buf_len(items));
 }
@@ -6468,9 +6509,9 @@ rio_Decl (*rio_parse_decl_opt(void)) {
   if (rio_match_keyword(rio_enum_keyword)) {
     return rio_parse_decl_enum(pos);
   } else if (rio_match_keyword(rio_struct_keyword)) {
-    return rio_parse_decl_aggregate(pos, rio_DeclKind_Struct);
+    return rio_parse_decl_aggregate(pos, (rio_DeclKind_Struct));
   } else if (rio_match_keyword(rio_union_keyword)) {
-    return rio_parse_decl_aggregate(pos, rio_DeclKind_Union);
+    return rio_parse_decl_aggregate(pos, (rio_DeclKind_Union));
   } else if (rio_match_keyword(rio_const_keyword)) {
     return rio_parse_decl_const(pos);
   } else if (rio_match_keyword(rio_typedef_keyword)) {
@@ -6481,7 +6522,7 @@ rio_Decl (*rio_parse_decl_opt(void)) {
     return rio_parse_decl_var(pos);
   } else if (rio_match_keyword(rio_import_keyword)) {
     return rio_parse_decl_import(pos);
-  } else if (rio_match_token(rio_TokenKind_Pound)) {
+  } else if (rio_match_token((rio_TokenKind_Pound))) {
     return rio_parse_decl_note(pos);
   } else {
     return NULL;
@@ -6500,7 +6541,7 @@ rio_Decl (*rio_parse_decl(void)) {
 
 rio_Decls (*rio_parse_decls(void)) {
   rio_Decl (*(*decls)) = NULL;
-  while (!(rio_is_token(rio_TokenKind_Eof))) {
+  while (!(rio_is_token((rio_TokenKind_Eof)))) {
     rio_Decl (*decl) = rio_parse_decl();
     rio_buf_push((void (**))(&(decls)), &(decl), sizeof(decl));
   }
@@ -6511,7 +6552,7 @@ rio_Package (*rio_current_package);
 rio_Package (*rio_builtin_package);
 rio_Map rio_package_map;
 rio_Package (*(*rio_package_list));
-rio_ReachablePhase rio_reachable_phase = rio_ReachablePhase_Natural;
+rio_ReachablePhase rio_reachable_phase = (rio_ReachablePhase_Natural);
 rio_Sym (*rio_get_package_sym(rio_Package (*package), char const ((*name)))) {
   return rio_map_get(&(package->syms_map), name);
 }
@@ -6564,7 +6605,7 @@ void rio_process_decl_notes(rio_Decl (*decl), rio_Sym (*sym)) {
       external_name = sym->name;
     } else {
       rio_Expr (*arg) = foreign_note->args[0].expr;
-      if ((arg->kind) != (rio_ExprKind_Str)) {
+      if ((arg->kind) != ((rio_ExprKind_Str))) {
         rio_fatal_error(decl->pos, "@foreign argument 1 must be a string literal");
       }
       external_name = arg->str_lit.val;
@@ -6574,25 +6615,25 @@ void rio_process_decl_notes(rio_Decl (*decl), rio_Sym (*sym)) {
 }
 
 rio_Sym (*rio_sym_decl(rio_Decl (*decl))) {
-  rio_SymKind kind = rio_SymKind_None;
+  rio_SymKind kind = (rio_SymKind_None);
   switch (decl->kind) {
-  case rio_DeclKind_Struct:
-  case rio_DeclKind_Union:
-  case rio_DeclKind_Typedef:
-  case rio_DeclKind_Enum: {
-    kind = rio_SymKind_Type;
+  case (rio_DeclKind_Struct):
+  case (rio_DeclKind_Union):
+  case (rio_DeclKind_Typedef):
+  case (rio_DeclKind_Enum): {
+    kind = (rio_SymKind_Type);
     break;
   }
-  case rio_DeclKind_Var: {
-    kind = rio_SymKind_Var;
+  case (rio_DeclKind_Var): {
+    kind = (rio_SymKind_Var);
     break;
   }
-  case rio_DeclKind_Const: {
-    kind = rio_SymKind_Const;
+  case (rio_DeclKind_Const): {
+    kind = (rio_SymKind_Const);
     break;
   }
-  case rio_DeclKind_Func: {
-    kind = rio_SymKind_Func;
+  case (rio_DeclKind_Func): {
+    kind = (rio_SymKind_Func);
     break;
   }
   default:
@@ -6627,7 +6668,7 @@ bool rio_sym_push_var(char const ((*name)), rio_Type (*type)) {
   if ((rio_local_syms_end) == ((rio_local_syms) + (rio_MAX_LOCAL_SYMS))) {
     rio_fatal("Too many local symbols");
   }
-  *((rio_local_syms_end)++) = (rio_Sym){.name = name, .kind = rio_SymKind_Var, .state = rio_SymState_Resolved, .type = type};
+  *((rio_local_syms_end)++) = (rio_Sym){.name = name, .kind = (rio_SymKind_Var), .state = (rio_SymState_Resolved), .type = type};
   return true;
 }
 
@@ -6645,7 +6686,7 @@ void rio_sym_global_put(char const ((*name)), rio_Sym (*sym)) {
     if ((sym) == (old_sym)) {
       return;
     }
-    if ((((sym->kind) == (rio_SymKind_Package)) && ((old_sym->kind) == (rio_SymKind_Package))) && ((sym->package) == (old_sym->package))) {
+    if ((((sym->kind) == ((rio_SymKind_Package))) && ((old_sym->kind) == ((rio_SymKind_Package)))) && ((sym->package) == (old_sym->package))) {
       return;
     }
     rio_SrcPos pos = (sym->decl ? sym->decl->pos : rio_pos_builtin);
@@ -6660,8 +6701,8 @@ void rio_sym_global_put(char const ((*name)), rio_Sym (*sym)) {
 
 rio_Sym (*rio_sym_global_type(char const ((*name)), rio_Type (*type))) {
   name = rio_str_intern(name);
-  rio_Sym (*sym) = rio_sym_new(rio_SymKind_Type, name, NULL);
-  sym->state = rio_SymState_Resolved;
+  rio_Sym (*sym) = rio_sym_new((rio_SymKind_Type), name, NULL);
+  sym->state = (rio_SymState_Resolved);
   sym->type = type;
   sym->external_name = name;
   rio_sym_global_put(name, sym);
@@ -6685,13 +6726,14 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
       scope = decl->name;
     }
   }
-  if (((decl->kind) == (rio_DeclKind_Union)) && (rio_get_decl_note(decl, rio_enum_keyword))) {
-    char const ((*enum_name)) = rio_build_scoped_name(decl->name, "enum");
-    ullong num_items = decl->aggregate->num_items;
+  rio_Aggregate (*enum_union) = rio_get_enum_union(decl);
+  if (enum_union) {
+    char const ((*enum_type_name)) = rio_build_scoped_name(decl->name, "enum");
+    ullong num_items = enum_union->num_items;
     int num_all_items = 0;
     for (size_t i = 0; (i) < (num_items); ++(i)) {
-      rio_AggregateItem (*union_item) = &(decl->aggregate->items[i]);
-      if ((union_item->kind) != (rio_AggregateItemKind_Field)) {
+      rio_AggregateItem (*union_item) = &(enum_union->items[i]);
+      if ((union_item->kind) != ((rio_AggregateItemKind_Field))) {
         rio_fatal_error(union_item->pos, "Enum union item of %s not a field", decl->name);
         return NULL;
       }
@@ -6700,14 +6742,15 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
     rio_EnumItem (*enum_items) = (rio_EnumItem *)(rio_xmalloc((num_all_items) * (sizeof(rio_EnumItem))));
     size_t enum_item_index = 0;
     for (size_t i = 0; (i) < (num_items); ++(i)) {
-      rio_AggregateItem (*union_item) = &(decl->aggregate->items[i]);
+      rio_AggregateItem (*union_item) = &(enum_union->items[i]);
       for (size_t n = 0; (n) < (union_item->num_names); ++(n)) {
         enum_items[(enum_item_index)++] = (rio_EnumItem){.pos = union_item->pos, .name = union_item->names[n], .init = NULL};
       }
     }
-    rio_Decl (*new_decl) = rio_new_decl_enum(decl->pos, enum_name, NULL, enum_items, num_items);
-    rio_sym_global_decl(new_decl, decl->name);
-  } else if ((decl->kind) == (rio_DeclKind_Enum)) {
+    rio_Decl (*union_enum_decl) = rio_new_decl_enum(decl->pos, enum_type_name, NULL, enum_items, num_items);
+    rio_sym_global_decl(union_enum_decl, decl->name);
+    enum_union->union_enum_decl = union_enum_decl;
+  } else if ((decl->kind) == ((rio_DeclKind_Enum))) {
     int unscoped = ((!(decl->name)) || (rio_get_decl_note(decl, rio_foreign_name))) || (rio_get_decl_note(decl, rio_unscoped_name));
     rio_Typespec (*enum_typespec) = rio_new_typespec_name(decl->pos, (sym ? sym->name : rio_str_intern("int")));
     char const ((*prev_item_name)) = NULL;
@@ -6718,7 +6761,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
       if (item.init) {
         init = item.init;
       } else if (prev_item_name) {
-        init = rio_new_expr_binary(item.pos, rio_TokenKind_Add, rio_new_expr_name(item.pos, prev_item_name), rio_new_expr_int(item.pos, 1, 0, 0));
+        init = rio_new_expr_binary(item.pos, (rio_TokenKind_Add), rio_new_expr_name(item.pos, prev_item_name), rio_new_expr_int(item.pos, 1, 0, 0));
       } else {
         init = rio_new_expr_int(item.pos, 0, 0, 0);
       }
@@ -6728,9 +6771,10 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
         rio_sym_global_decl(item_decl, NULL);
         prev_item_name = item.name;
       } else {
+        decl->enum_decl.scope = scope;
         char const ((*scoped_name)) = rio_build_scoped_name(scope, item.name);
         if (prev_scoped_name) {
-          init = rio_new_expr_binary(item.pos, rio_TokenKind_Add, rio_new_expr_name(item.pos, prev_scoped_name), rio_new_expr_int(item.pos, 1, 0, 0));
+          init = rio_new_expr_binary(item.pos, (rio_TokenKind_Add), rio_new_expr_name(item.pos, prev_scoped_name), rio_new_expr_int(item.pos, 1, 0, 0));
         }
         rio_Decl (*scoped_decl) = rio_new_decl_const(item.pos, scoped_name, enum_typespec, init);
         scoped_decl->notes = decl->notes;
@@ -6748,35 +6792,35 @@ void rio_put_type_name(char (*(*buf)), rio_Type (*type)) {
     rio_buf_printf(buf, "%s", type_name);
   } else {
     switch (type->kind) {
-    case rio_CompilerTypeKind_Struct:
-    case rio_CompilerTypeKind_Union:
-    case rio_CompilerTypeKind_Enum:
-    case rio_CompilerTypeKind_Incomplete: {
+    case (rio_CompilerTypeKind_Struct):
+    case (rio_CompilerTypeKind_Union):
+    case (rio_CompilerTypeKind_Enum):
+    case (rio_CompilerTypeKind_Incomplete): {
       assert(type->sym);
       rio_buf_printf(buf, "%s", type->sym->name);
       break;
     }
-    case rio_CompilerTypeKind_Const: {
+    case (rio_CompilerTypeKind_Const): {
       rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, " const");
       break;
     }
-    case rio_CompilerTypeKind_Ptr: {
+    case (rio_CompilerTypeKind_Ptr): {
       rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, "*");
       break;
     }
-    case rio_CompilerTypeKind_Ref: {
+    case (rio_CompilerTypeKind_Ref): {
       rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, "&");
       break;
     }
-    case rio_CompilerTypeKind_Array: {
+    case (rio_CompilerTypeKind_Array): {
       rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, "[%zu]", type->num_elems);
       break;
     }
-    case rio_CompilerTypeKind_Func: {
+    case (rio_CompilerTypeKind_Func): {
       rio_buf_printf(buf, "fn(");
       for (size_t i = 0; (i) < (type->function.num_params); (i)++) {
         if ((i) != (0)) {
@@ -6822,7 +6866,7 @@ rio_Operand rio_operand_const(rio_Type (*type), rio_Val val) {
 
 rio_Type (*rio_type_decay(rio_Type (*type))) {
   type = rio_unqualify_type(type);
-  if ((type->kind) == (rio_CompilerTypeKind_Array)) {
+  if ((type->kind) == ((rio_CompilerTypeKind_Array))) {
     type = rio_type_ptr(type->base);
   }
   return type;
@@ -6901,13 +6945,13 @@ bool rio_is_null_ptr(rio_Operand operand) {
 
 void rio_promote_operand(rio_Operand (*operand)) {
   switch (operand->type->kind) {
-  case rio_CompilerTypeKind_Bool:
-  case rio_CompilerTypeKind_Char:
-  case rio_CompilerTypeKind_SChar:
-  case rio_CompilerTypeKind_UChar:
-  case rio_CompilerTypeKind_Short:
-  case rio_CompilerTypeKind_UShort:
-  case rio_CompilerTypeKind_Enum: {
+  case (rio_CompilerTypeKind_Bool):
+  case (rio_CompilerTypeKind_Char):
+  case (rio_CompilerTypeKind_SChar):
+  case (rio_CompilerTypeKind_UChar):
+  case (rio_CompilerTypeKind_Short):
+  case (rio_CompilerTypeKind_UShort):
+  case (rio_CompilerTypeKind_Enum): {
     cast_operand(operand, rio_type_int);
     break;
   }
@@ -7021,13 +7065,13 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
   }
   rio_Type (*result) = NULL;
   switch (typespec->kind) {
-  case rio_TypespecKind_Name: {
+  case (rio_TypespecKind_Name): {
     {
       rio_Sym (*sym) = rio_resolve_name(typespec->name);
       if (!(sym)) {
         rio_fatal_error(typespec->pos, "Unresolved type name \'%s\'", typespec->name);
       }
-      if ((sym->kind) != (rio_SymKind_Type)) {
+      if ((sym->kind) != ((rio_SymKind_Type))) {
         rio_fatal_error(typespec->pos, "%s must denote a type", typespec->name);
         return NULL;
       }
@@ -7036,19 +7080,19 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     }
     break;
   }
-  case rio_TypespecKind_Const: {
+  case (rio_TypespecKind_Const): {
     result = rio_type_const(rio_resolve_typespec(typespec->base));
     break;
   }
-  case rio_TypespecKind_Ptr: {
+  case (rio_TypespecKind_Ptr): {
     result = rio_type_ptr(rio_resolve_typespec(typespec->base));
     break;
   }
-  case rio_TypespecKind_Ref: {
+  case (rio_TypespecKind_Ref): {
     result = rio_type_ref(rio_resolve_typespec(typespec->base));
     break;
   }
-  case rio_TypespecKind_Array: {
+  case (rio_TypespecKind_Array): {
     {
       int size = 0;
       if (typespec->num_elems) {
@@ -7066,7 +7110,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     }
     break;
   }
-  case rio_TypespecKind_Func: {
+  case (rio_TypespecKind_Func): {
     {
       rio_Type (*(*args)) = NULL;
       for (size_t i = 0; (i) < (typespec->function.num_args); (i)++) {
@@ -7101,7 +7145,7 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
   rio_TypeField (*fields) = {0};
   for (size_t i = 0; (i) < (aggregate->num_items); (i)++) {
     rio_AggregateItem item = aggregate->items[i];
-    if ((item.kind) == (rio_AggregateItemKind_Field)) {
+    if ((item.kind) == ((rio_AggregateItemKind_Field))) {
       rio_Type (*item_type) = rio_resolve_typespec(item.type);
       rio_complete_type(item_type);
       for (size_t j = 0; (j) < (item.num_names); (j)++) {
@@ -7109,7 +7153,7 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
         rio_buf_push((void (**))(&(fields)), &(type_field), sizeof(type_field));
       }
     } else {
-      assert((item.kind) == (rio_AggregateItemKind_Subaggregate));
+      assert((item.kind) == ((rio_AggregateItemKind_Subaggregate)));
       rio_Type (*item_type) = rio_complete_aggregate(NULL, item.subaggregate);
       rio_TypeField type_field = {NULL, item_type};
       rio_buf_push((void (**))(&(fields)), &(type_field), sizeof(type_field));
@@ -7117,12 +7161,12 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
   }
   if (!(type)) {
     type = rio_type_incomplete(NULL);
-    type->kind = rio_CompilerTypeKind_Completing;
+    type->kind = (rio_CompilerTypeKind_Completing);
   }
-  if ((aggregate->kind) == (rio_AggregateKind_Struct)) {
+  if ((aggregate->kind) == ((rio_AggregateKind_Struct))) {
     rio_type_complete_struct(type, fields, rio_buf_len(fields));
   } else {
-    assert((aggregate->kind) == (rio_AggregateKind_Union));
+    assert((aggregate->kind) == ((rio_AggregateKind_Union)));
     rio_type_complete_union(type, fields, rio_buf_len(fields));
   }
   if ((type->aggregate.num_fields) == (0)) {
@@ -7135,10 +7179,10 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
 }
 
 void rio_complete_type(rio_Type (*type)) {
-  if ((type->kind) == (rio_CompilerTypeKind_Completing)) {
+  if ((type->kind) == ((rio_CompilerTypeKind_Completing))) {
     rio_fatal_error(type->sym->decl->pos, "Type completion cycle");
     return;
-  } else if ((type->kind) != (rio_CompilerTypeKind_Incomplete)) {
+  } else if ((type->kind) != ((rio_CompilerTypeKind_Incomplete))) {
     return;
   }
   rio_Sym (*sym) = type->sym;
@@ -7147,8 +7191,8 @@ void rio_complete_type(rio_Type (*type)) {
   if (decl->is_incomplete) {
     rio_fatal_error(decl->pos, "Trying to use incomplete type as complete type");
   }
-  type->kind = rio_CompilerTypeKind_Completing;
-  assert(((decl->kind) == (rio_DeclKind_Struct)) || ((decl->kind) == (rio_DeclKind_Union)));
+  type->kind = (rio_CompilerTypeKind_Completing);
+  assert(((decl->kind) == ((rio_DeclKind_Struct))) || ((decl->kind) == ((rio_DeclKind_Union))));
   rio_complete_aggregate(type, decl->aggregate);
   rio_buf_push((void (**))(&(rio_sorted_syms)), &(type->sym), sizeof(type->sym));
   rio_leave_package(old_package);
@@ -7180,14 +7224,14 @@ rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (
       if (!(expr_type)) {
         rio_fatal_error(pos, "Invalid type in initialization. Expected %s", rio_get_type_name(declared_type));
       }
-      if ((expr_type->kind) == (rio_CompilerTypeKind_Array)) {
+      if ((expr_type->kind) == ((rio_CompilerTypeKind_Array))) {
         type = expr_type;
       }
     }
   } else {
     assert(expr);
     type = rio_unqualify_type(rio_resolve_expr(expr).type);
-    if ((rio_is_array_type(type)) && ((expr->kind) != (rio_ExprKind_Compound))) {
+    if ((rio_is_array_type(type)) && ((expr->kind) != ((rio_ExprKind_Compound)))) {
       type = rio_type_decay(type);
       rio_set_resolved_type(expr, type);
     }
@@ -7201,12 +7245,12 @@ rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (
 }
 
 rio_Type (*rio_resolve_decl_var(rio_Decl (*decl))) {
-  assert((decl->kind) == (rio_DeclKind_Var));
+  assert((decl->kind) == ((rio_DeclKind_Var)));
   return rio_resolve_init(decl->pos, decl->var_decl.type, decl->var_decl.expr);
 }
 
 rio_Type (*rio_resolve_decl_const(rio_Decl (*decl), rio_Val (*val))) {
-  assert((decl->kind) == (rio_DeclKind_Const));
+  assert((decl->kind) == ((rio_DeclKind_Const)));
   rio_Operand result = rio_resolve_const_expr(decl->const_decl.expr);
   if (!(rio_is_scalar_type(result.type))) {
     rio_fatal_error(decl->pos, "Const declarations must have scalar type");
@@ -7222,7 +7266,7 @@ rio_Type (*rio_resolve_decl_const(rio_Decl (*decl), rio_Val (*val))) {
 }
 
 rio_Type (*rio_resolve_decl_func(rio_Decl (*decl))) {
-  assert((decl->kind) == (rio_DeclKind_Func));
+  assert((decl->kind) == ((rio_DeclKind_Func)));
   rio_Type (*(*params)) = NULL;
   for (size_t i = 0; (i) < (decl->function.num_params); (i)++) {
     rio_Type (*param) = rio_resolve_typespec(decl->function.params[i].type);
@@ -7308,7 +7352,7 @@ bool rio_resolve_stmt_block(rio_StmtList block, rio_Type (*ret_type), rio_StmtCt
 }
 
 void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
-  assert((stmt->kind) == (rio_StmtKind_Assign));
+  assert((stmt->kind) == ((rio_StmtKind_Assign)));
   rio_Operand left = rio_resolve_expr(stmt->assign.left);
   if (!(left.is_lvalue)) {
     rio_fatal_error(stmt->pos, "Cannot assign to non-lvalue");
@@ -7323,9 +7367,9 @@ void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
   rio_TokenKind binary_op = rio_assign_token_to_binary_token[stmt->assign.op];
   rio_Operand right = rio_resolve_expected_expr_rvalue(stmt->assign.right, left.type);
   rio_Operand result = {0};
-  if ((stmt->assign.op) == (rio_TokenKind_Assign)) {
+  if ((stmt->assign.op) == ((rio_TokenKind_Assign))) {
     result = right;
-  } else if (((stmt->assign.op) == (rio_TokenKind_AddAssign)) || ((stmt->assign.op) == (rio_TokenKind_SubAssign))) {
+  } else if (((stmt->assign.op) == ((rio_TokenKind_AddAssign))) || ((stmt->assign.op) == ((rio_TokenKind_SubAssign)))) {
     if ((rio_is_ptr_type(left.type)) && (rio_is_integer_type(right.type))) {
       result = rio_operand_rvalue(left.type);
     } else if ((rio_is_arithmetic_type(left.type)) && (rio_is_arithmetic_type(right.type))) {
@@ -7342,7 +7386,7 @@ void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
 }
 
 void rio_resolve_stmt_init(rio_Stmt (*stmt)) {
-  assert((stmt->kind) == (rio_StmtKind_Init));
+  assert((stmt->kind) == ((rio_StmtKind_Init)));
   rio_Type (*type) = rio_resolve_init(stmt->pos, stmt->init.type, stmt->init.expr);
   if (!(stmt->init.is_mut)) {
   }
@@ -7363,7 +7407,7 @@ void rio_resolve_static_assert(rio_Note note) {
 
 bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
   switch (stmt->kind) {
-  case rio_StmtKind_Return: {
+  case (rio_StmtKind_Return): {
     if (stmt->expr) {
       rio_Operand operand = rio_resolve_expected_expr_rvalue(stmt->expr, ret_type);
       if (!(rio_convert_operand(&(operand), ret_type))) {
@@ -7375,25 +7419,25 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return true;
     break;
   }
-  case rio_StmtKind_Break: {
+  case (rio_StmtKind_Break): {
     if (!(ctx.is_break_legal)) {
       rio_fatal_error(stmt->pos, "Illegal break");
     }
     return false;
     break;
   }
-  case rio_StmtKind_Continue: {
+  case (rio_StmtKind_Continue): {
     if (!(ctx.is_continue_legal)) {
       rio_fatal_error(stmt->pos, "Illegal continue");
     }
     return false;
     break;
   }
-  case rio_StmtKind_Block: {
+  case (rio_StmtKind_Block): {
     return rio_resolve_stmt_block(stmt->block, ret_type, ctx);
     break;
   }
-  case rio_StmtKind_Note: {
+  case (rio_StmtKind_Note): {
     if ((stmt->note.name) == (rio_assert_name)) {
       if ((stmt->note.num_args) != (1)) {
         rio_fatal_error(stmt->pos, "#assert takes 1 argument");
@@ -7407,7 +7451,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return false;
     break;
   }
-  case rio_StmtKind_If: {
+  case (rio_StmtKind_If): {
     {
       rio_Sym (*scope) = rio_sym_enter();
       if (stmt->if_stmt.init) {
@@ -7434,8 +7478,8 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     }
     break;
   }
-  case rio_StmtKind_While:
-  case rio_StmtKind_DoWhile: {
+  case (rio_StmtKind_While):
+  case (rio_StmtKind_DoWhile): {
     rio_resolve_cond_expr(stmt->while_stmt.cond);
     ctx.is_break_legal = true;
     ctx.is_continue_legal = true;
@@ -7443,7 +7487,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return false;
     break;
   }
-  case rio_StmtKind_For: {
+  case (rio_StmtKind_For): {
     {
       rio_Sym (*scope) = rio_sym_enter();
       if (stmt->for_stmt.init) {
@@ -7463,7 +7507,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     }
     break;
   }
-  case rio_StmtKind_Switch: {
+  case (rio_StmtKind_Switch): {
     {
       rio_Operand operand = rio_resolve_expr_rvalue(stmt->switch_stmt.expr);
       if (!(rio_is_integer_type(operand.type))) {
@@ -7507,7 +7551,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
         }
         if ((switch_case.block.num_stmts) > (1)) {
           rio_Stmt (*last_stmt) = switch_case.block.stmts[(switch_case.block.num_stmts) - (1)];
-          if ((last_stmt->kind) == (rio_StmtKind_Break)) {
+          if ((last_stmt->kind) == ((rio_StmtKind_Break))) {
             rio_warning(last_stmt->pos, "Case blocks already end with an implicit break");
           }
         }
@@ -7517,27 +7561,27 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     }
     break;
   }
-  case rio_StmtKind_Assign: {
+  case (rio_StmtKind_Assign): {
     rio_resolve_stmt_assign(stmt);
     return false;
     break;
   }
-  case rio_StmtKind_Init: {
+  case (rio_StmtKind_Init): {
     rio_resolve_stmt_init(stmt);
     return false;
     break;
   }
-  case rio_StmtKind_Expr: {
+  case (rio_StmtKind_Expr): {
     rio_resolve_expr(stmt->expr);
     return false;
     break;
   }
-  case rio_StmtKind_Label: {
+  case (rio_StmtKind_Label): {
     rio_define_label(stmt->pos, stmt->label);
     return false;
     break;
   }
-  case rio_StmtKind_Goto: {
+  case (rio_StmtKind_Goto): {
     rio_reference_label(stmt->pos, stmt->label);
     return false;
     break;
@@ -7552,8 +7596,8 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
 
 void rio_resolve_func_body(rio_Sym (*sym)) {
   rio_Decl (*decl) = sym->decl;
-  assert((decl->kind) == (rio_DeclKind_Func));
-  assert((sym->state) == (rio_SymState_Resolved));
+  assert((decl->kind) == ((rio_DeclKind_Func)));
+  assert((sym->state) == ((rio_SymState_Resolved)));
   if (decl->is_incomplete) {
     return;
   }
@@ -7579,26 +7623,26 @@ void rio_resolve_func_body(rio_Sym (*sym)) {
 }
 
 void rio_resolve_sym(rio_Sym (*sym)) {
-  if ((sym->state) == (rio_SymState_Resolved)) {
+  if ((sym->state) == ((rio_SymState_Resolved))) {
     return;
-  } else if ((sym->state) == (rio_SymState_Resolving)) {
+  } else if ((sym->state) == ((rio_SymState_Resolving))) {
     rio_fatal_error(sym->decl->pos, "Cyclic dependency");
     return;
   }
-  assert((sym->state) == (rio_SymState_Unresolved));
+  assert((sym->state) == ((rio_SymState_Unresolved)));
   assert(!(sym->reachable));
   if (!(rio_is_local_sym(sym))) {
     rio_buf_push((void (**))(&(rio_reachable_syms)), &(sym), sizeof(sym));
     sym->reachable = rio_reachable_phase;
   }
-  sym->state = rio_SymState_Resolving;
+  sym->state = (rio_SymState_Resolving);
   rio_Decl (*decl) = sym->decl;
   rio_Package (*old_package) = rio_enter_package(sym->home_package);
   switch (sym->kind) {
-  case rio_SymKind_Type: {
-    if ((decl) && ((decl->kind) == (rio_DeclKind_Typedef))) {
+  case (rio_SymKind_Type): {
+    if ((decl) && ((decl->kind) == ((rio_DeclKind_Typedef)))) {
       sym->type = rio_resolve_typespec(decl->typedef_decl.type);
-    } else if ((decl->kind) == (rio_DeclKind_Enum)) {
+    } else if ((decl->kind) == ((rio_DeclKind_Enum))) {
       rio_Type (*base) = (decl->enum_decl.type ? rio_resolve_typespec(decl->enum_decl.type) : rio_type_int);
       if (!(rio_is_integer_type(base))) {
         rio_fatal_error(decl->pos, "Base type of enum must be integer type");
@@ -7609,19 +7653,19 @@ void rio_resolve_sym(rio_Sym (*sym)) {
     }
     break;
   }
-  case rio_SymKind_Var: {
+  case (rio_SymKind_Var): {
     sym->type = rio_resolve_decl_var(decl);
     break;
   }
-  case rio_SymKind_Const: {
+  case (rio_SymKind_Const): {
     sym->type = rio_resolve_decl_const(decl, &(sym->val));
     break;
   }
-  case rio_SymKind_Func: {
+  case (rio_SymKind_Func): {
     sym->type = rio_resolve_decl_func(decl);
     break;
   }
-  case rio_SymKind_Package: {
+  case (rio_SymKind_Package): {
     break;
     break;
   }
@@ -7630,18 +7674,18 @@ void rio_resolve_sym(rio_Sym (*sym)) {
     break;
   }
   rio_leave_package(old_package);
-  sym->state = rio_SymState_Resolved;
-  if ((decl->is_incomplete) || ((((decl->kind) != (rio_DeclKind_Struct)) && ((decl->kind) != (rio_DeclKind_Union))))) {
+  sym->state = (rio_SymState_Resolved);
+  if ((decl->is_incomplete) || ((((decl->kind) != ((rio_DeclKind_Struct))) && ((decl->kind) != ((rio_DeclKind_Union)))))) {
     rio_buf_push((void (**))(&(rio_sorted_syms)), &(sym), sizeof(sym));
   }
 }
 
 void rio_finalize_sym(rio_Sym (*sym)) {
-  assert((sym->state) == (rio_SymState_Resolved));
+  assert((sym->state) == ((rio_SymState_Resolved)));
   if (((sym->decl) && (!(rio_is_decl_foreign(sym->decl)))) && (!(sym->decl->is_incomplete))) {
-    if ((sym->kind) == (rio_SymKind_Type)) {
+    if ((sym->kind) == ((rio_SymKind_Type))) {
       rio_complete_type(sym->type);
-    } else if ((sym->kind) == (rio_SymKind_Func)) {
+    } else if ((sym->kind) == ((rio_SymKind_Func))) {
       rio_resolve_func_body(sym);
     }
   }
@@ -7657,16 +7701,16 @@ rio_Sym (*rio_resolve_name(char const ((*name)))) {
 }
 
 rio_Package (*rio_try_resolve_package(rio_Expr (*expr))) {
-  if ((expr->kind) == (rio_ExprKind_Name)) {
+  if ((expr->kind) == ((rio_ExprKind_Name))) {
     rio_Sym (*sym) = rio_resolve_name(expr->name);
-    if ((sym) && ((sym->kind) == (rio_SymKind_Package))) {
+    if ((sym) && ((sym->kind) == ((rio_SymKind_Package)))) {
       return sym->package;
     }
-  } else if ((expr->kind) == (rio_ExprKind_Field)) {
+  } else if ((expr->kind) == ((rio_ExprKind_Field))) {
     rio_Package (*package) = rio_try_resolve_package(expr->field.expr);
     if (package) {
       rio_Sym (*sym) = rio_get_package_sym(package, expr->field.name);
-      if ((sym) && ((sym->kind) == (rio_SymKind_Package))) {
+      if ((sym) && ((sym->kind) == ((rio_SymKind_Package)))) {
         return sym->package;
       }
     }
@@ -7675,7 +7719,7 @@ rio_Package (*rio_try_resolve_package(rio_Expr (*expr))) {
 }
 
 rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_ExprKind_Field));
+  assert((expr->kind) == ((rio_ExprKind_Field)));
   rio_Package (*package) = rio_try_resolve_package(expr->field.expr);
   if (package) {
     rio_Package (*old_package) = rio_enter_package(package);
@@ -7686,16 +7730,37 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
     return operand;
   }
   rio_Operand operand = rio_resolve_expr(expr->field.expr);
-  if (operand.is_type) {
-    if ((operand.type->kind) == (rio_CompilerTypeKind_Enum)) {
-      rio_Decl (*decl) = operand.type->sym->decl;
+  if (((operand.is_type) && (operand.type->sym)) && (operand.type->sym->decl)) {
+    rio_Decl (*decl) = operand.type->sym->decl;
+    switch (operand.type->kind) {
+    case (rio_CompilerTypeKind_Enum): {
+      break;
+      break;
+    }
+    case (rio_CompilerTypeKind_Struct):
+    case (rio_CompilerTypeKind_Union): {
+      rio_Aggregate (*enum_union) = rio_get_enum_union(decl);
+      if (enum_union) {
+        decl = enum_union->union_enum_decl;
+      } else {
+        decl = NULL;
+      }
+      break;
+    }
+    default: {
+      decl = NULL;
+      break;
+    }
+    }
+    if (decl) {
       rio_DeclEnum enum_decl = decl->enum_decl;
       for (size_t i = 0; (i) < (enum_decl.num_items); ++(i)) {
         rio_EnumItem item = enum_decl.items[i];
         if ((item.name) == (expr->field.name)) {
-          rio_Sym (*sym) = rio_resolve_name(rio_build_scoped_name(decl->name, item.name));
+          rio_Sym (*sym) = rio_resolve_name(rio_build_scoped_name(enum_decl.scope, item.name));
           if (sym) {
-            assert((sym->kind) == (rio_SymKind_Const));
+            assert((sym->kind) == ((rio_SymKind_Const)));
+            rio_set_resolved_sym(expr, sym);
             rio_Operand item_operand = rio_operand_const(sym->type, sym->val);
             return item_operand;
           }
@@ -7714,7 +7779,7 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
     type = rio_unqualify_type(operand.type);
     rio_complete_type(type);
   }
-  if (((type->kind) != (rio_CompilerTypeKind_Struct)) && ((type->kind) != (rio_CompilerTypeKind_Union))) {
+  if (((type->kind) != ((rio_CompilerTypeKind_Struct))) && ((type->kind) != ((rio_CompilerTypeKind_Union)))) {
     rio_fatal_error(expr->pos, "Can only access fields on aggregates or pointers to aggregates");
     return rio_operand_null;
   }
@@ -7734,19 +7799,19 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
 
 llong rio_eval_unary_op_ll(rio_TokenKind op, llong val) {
   switch (op) {
-  case rio_TokenKind_Add: {
+  case (rio_TokenKind_Add): {
     return +(val);
     break;
   }
-  case rio_TokenKind_Sub: {
+  case (rio_TokenKind_Sub): {
     return -(val);
     break;
   }
-  case rio_TokenKind_Neg: {
+  case (rio_TokenKind_Neg): {
     return ~(val);
     break;
   }
-  case rio_TokenKind_Not: {
+  case (rio_TokenKind_Not): {
     return !(val);
     break;
   }
@@ -7759,19 +7824,19 @@ llong rio_eval_unary_op_ll(rio_TokenKind op, llong val) {
 
 ullong rio_eval_unary_op_ull(rio_TokenKind op, ullong val) {
   switch (op) {
-  case rio_TokenKind_Add: {
+  case (rio_TokenKind_Add): {
     return +(val);
     break;
   }
-  case rio_TokenKind_Sub: {
+  case (rio_TokenKind_Sub): {
     return (0ull) - (val);
     break;
   }
-  case rio_TokenKind_Neg: {
+  case (rio_TokenKind_Neg): {
     return ~(val);
     break;
   }
-  case rio_TokenKind_Not: {
+  case (rio_TokenKind_Not): {
     return !(val);
     break;
   }
@@ -7784,67 +7849,67 @@ ullong rio_eval_unary_op_ull(rio_TokenKind op, ullong val) {
 
 llong rio_eval_binary_op_ll(rio_TokenKind op, llong left, llong right) {
   switch (op) {
-  case rio_TokenKind_Mul: {
+  case (rio_TokenKind_Mul): {
     return (left) * (right);
     break;
   }
-  case rio_TokenKind_Div: {
+  case (rio_TokenKind_Div): {
     return ((right) != (0) ? (left) / (right) : 0);
     break;
   }
-  case rio_TokenKind_Mod: {
+  case (rio_TokenKind_Mod): {
     return ((right) != (0) ? (left) % (right) : 0);
     break;
   }
-  case rio_TokenKind_And: {
+  case (rio_TokenKind_And): {
     return (left) & (right);
     break;
   }
-  case rio_TokenKind_Lshift: {
+  case (rio_TokenKind_Lshift): {
     return (left) << (right);
     break;
   }
-  case rio_TokenKind_Rshift: {
+  case (rio_TokenKind_Rshift): {
     return (left) >> (right);
     break;
   }
-  case rio_TokenKind_Add: {
+  case (rio_TokenKind_Add): {
     return (left) + (right);
     break;
   }
-  case rio_TokenKind_Sub: {
+  case (rio_TokenKind_Sub): {
     return (left) - (right);
     break;
   }
-  case rio_TokenKind_Or: {
+  case (rio_TokenKind_Or): {
     return (left) | (right);
     break;
   }
-  case rio_TokenKind_Xor: {
+  case (rio_TokenKind_Xor): {
     return (left) ^ (right);
     break;
   }
-  case rio_TokenKind_Eq: {
+  case (rio_TokenKind_Eq): {
     return (left) == (right);
     break;
   }
-  case rio_TokenKind_NotEq: {
+  case (rio_TokenKind_NotEq): {
     return (left) != (right);
     break;
   }
-  case rio_TokenKind_Lt: {
+  case (rio_TokenKind_Lt): {
     return (left) < (right);
     break;
   }
-  case rio_TokenKind_LtEq: {
+  case (rio_TokenKind_LtEq): {
     return (left) <= (right);
     break;
   }
-  case rio_TokenKind_Gt: {
+  case (rio_TokenKind_Gt): {
     return (left) > (right);
     break;
   }
-  case rio_TokenKind_GtEq: {
+  case (rio_TokenKind_GtEq): {
     return (left) >= (right);
     break;
   }
@@ -7857,67 +7922,67 @@ llong rio_eval_binary_op_ll(rio_TokenKind op, llong left, llong right) {
 
 ullong rio_eval_binary_op_ull(rio_TokenKind op, ullong left, ullong right) {
   switch (op) {
-  case rio_TokenKind_Mul: {
+  case (rio_TokenKind_Mul): {
     return (left) * (right);
     break;
   }
-  case rio_TokenKind_Div: {
+  case (rio_TokenKind_Div): {
     return ((right) != (0) ? (left) / (right) : 0);
     break;
   }
-  case rio_TokenKind_Mod: {
+  case (rio_TokenKind_Mod): {
     return ((right) != (0) ? (left) % (right) : 0);
     break;
   }
-  case rio_TokenKind_And: {
+  case (rio_TokenKind_And): {
     return (left) & (right);
     break;
   }
-  case rio_TokenKind_Lshift: {
+  case (rio_TokenKind_Lshift): {
     return (left) << (right);
     break;
   }
-  case rio_TokenKind_Rshift: {
+  case (rio_TokenKind_Rshift): {
     return (left) >> (right);
     break;
   }
-  case rio_TokenKind_Add: {
+  case (rio_TokenKind_Add): {
     return (left) + (right);
     break;
   }
-  case rio_TokenKind_Sub: {
+  case (rio_TokenKind_Sub): {
     return (left) - (right);
     break;
   }
-  case rio_TokenKind_Or: {
+  case (rio_TokenKind_Or): {
     return (left) | (right);
     break;
   }
-  case rio_TokenKind_Xor: {
+  case (rio_TokenKind_Xor): {
     return (left) ^ (right);
     break;
   }
-  case rio_TokenKind_Eq: {
+  case (rio_TokenKind_Eq): {
     return (left) == (right);
     break;
   }
-  case rio_TokenKind_NotEq: {
+  case (rio_TokenKind_NotEq): {
     return (left) != (right);
     break;
   }
-  case rio_TokenKind_Lt: {
+  case (rio_TokenKind_Lt): {
     return (left) < (right);
     break;
   }
-  case rio_TokenKind_LtEq: {
+  case (rio_TokenKind_LtEq): {
     return (left) <= (right);
     break;
   }
-  case rio_TokenKind_Gt: {
+  case (rio_TokenKind_Gt): {
     return (left) > (right);
     break;
   }
-  case rio_TokenKind_GtEq: {
+  case (rio_TokenKind_GtEq): {
     return (left) >= (right);
     break;
   }
@@ -7971,17 +8036,17 @@ rio_Operand rio_resolve_name_operand(rio_SrcPos pos, char const ((*name))) {
   if (!(sym)) {
     rio_fatal_error(pos, "Unresolved name \'%s\'", name);
   }
-  if ((sym->kind) == (rio_SymKind_Var)) {
+  if ((sym->kind) == ((rio_SymKind_Var))) {
     rio_Operand operand = rio_operand_lvalue(sym->type);
     if (rio_is_array_type(operand.type)) {
       operand = rio_operand_decay(operand);
     }
     return operand;
-  } else if ((sym->kind) == (rio_SymKind_Const)) {
+  } else if ((sym->kind) == ((rio_SymKind_Const))) {
     return rio_operand_const(sym->type, sym->val);
-  } else if ((sym->kind) == (rio_SymKind_Func)) {
+  } else if ((sym->kind) == ((rio_SymKind_Func))) {
     return rio_operand_rvalue(sym->type);
-  } else if ((sym->kind) == (rio_SymKind_Type)) {
+  } else if ((sym->kind) == ((rio_SymKind_Type))) {
     return rio_operand_type(sym->type);
   } else {
     assert(false);
@@ -7991,7 +8056,7 @@ rio_Operand rio_resolve_name_operand(rio_SrcPos pos, char const ((*name))) {
 }
 
 rio_Operand rio_resolve_expr_name(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_ExprKind_Name));
+  assert((expr->kind) == ((rio_ExprKind_Name)));
   return rio_resolve_name_operand(expr->pos, expr->name);
 }
 
@@ -8008,29 +8073,29 @@ rio_Operand rio_resolve_expr_unary(rio_Expr (*expr)) {
   rio_Operand operand = rio_resolve_expr_rvalue(expr->unary.expr);
   rio_Type (*type) = operand.type;
   switch (expr->unary.op) {
-  case rio_TokenKind_Mul: {
+  case (rio_TokenKind_Mul): {
     if (!(rio_is_ptr_type(type))) {
       rio_fatal_error(expr->pos, "Cannot deref non-ptr type");
     }
     return rio_operand_lvalue(type->base);
     break;
   }
-  case rio_TokenKind_Add:
-  case rio_TokenKind_Sub: {
+  case (rio_TokenKind_Add):
+  case (rio_TokenKind_Sub): {
     if (!(rio_is_arithmetic_type(type))) {
       rio_fatal_error(expr->pos, "Can only use unary %s with arithmetic types", rio_token_kind_name(expr->unary.op));
     }
     return rio_resolve_unary_op(expr->unary.op, operand);
     break;
   }
-  case rio_TokenKind_Neg: {
+  case (rio_TokenKind_Neg): {
     if (!(rio_is_integer_type(type))) {
       rio_fatal_error(expr->pos, "Can only use ~ with integer types");
     }
     return rio_resolve_unary_op(expr->unary.op, operand);
     break;
   }
-  case rio_TokenKind_Not: {
+  case (rio_TokenKind_Not): {
     if (!(rio_is_scalar_type(type))) {
       rio_fatal_error(expr->pos, " Can only use ! with scalar types");
     }
@@ -8059,8 +8124,8 @@ rio_Operand rio_resolve_binary_arithmetic_op(rio_TokenKind op, rio_Operand left,
 
 rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name)), rio_SrcPos pos, rio_Operand left, rio_Operand right) {
   switch (op) {
-  case rio_TokenKind_Mul:
-  case rio_TokenKind_Div: {
+  case (rio_TokenKind_Mul):
+  case (rio_TokenKind_Div): {
     if (!(rio_is_arithmetic_type(left.type))) {
       rio_fatal_error(pos, "Left operand of %s must have arithmetic type", op_name);
     }
@@ -8070,7 +8135,7 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     return rio_resolve_binary_arithmetic_op(op, left, right);
     break;
   }
-  case rio_TokenKind_Mod: {
+  case (rio_TokenKind_Mod): {
     if (!(rio_is_integer_type(left.type))) {
       rio_fatal_error(pos, "Left operand of %% must have integer type");
     }
@@ -8080,7 +8145,7 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     return rio_resolve_binary_arithmetic_op(op, left, right);
     break;
   }
-  case rio_TokenKind_Add: {
+  case (rio_TokenKind_Add): {
     if ((rio_is_arithmetic_type(left.type)) && (rio_is_arithmetic_type(right.type))) {
       return rio_resolve_binary_arithmetic_op(op, left, right);
     } else if ((rio_is_ptr_star_type(left.type)) && (rio_is_integer_type(right.type))) {
@@ -8100,7 +8165,7 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TokenKind_Sub: {
+  case (rio_TokenKind_Sub): {
     if ((rio_is_arithmetic_type(left.type)) && (rio_is_arithmetic_type(right.type))) {
       return rio_resolve_binary_arithmetic_op(op, left, right);
     } else if ((rio_is_ptr_star_type(left.type)) && (rio_is_integer_type(right.type))) {
@@ -8115,8 +8180,8 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TokenKind_Lshift:
-  case rio_TokenKind_Rshift: {
+  case (rio_TokenKind_Lshift):
+  case (rio_TokenKind_Rshift): {
     if ((rio_is_integer_type(left.type)) && (rio_is_integer_type(right.type))) {
       rio_promote_operand(&(left));
       rio_promote_operand(&(right));
@@ -8137,8 +8202,8 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TokenKind_Eq:
-  case rio_TokenKind_NotEq: {
+  case (rio_TokenKind_Eq):
+  case (rio_TokenKind_NotEq): {
     if ((rio_is_arithmetic_type(left.type)) && (rio_is_arithmetic_type(right.type))) {
       rio_Operand result = rio_resolve_binary_arithmetic_op(op, left, right);
       cast_operand(&(result), rio_type_int);
@@ -8157,10 +8222,10 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TokenKind_Lt:
-  case rio_TokenKind_LtEq:
-  case rio_TokenKind_Gt:
-  case rio_TokenKind_GtEq: {
+  case (rio_TokenKind_Lt):
+  case (rio_TokenKind_LtEq):
+  case (rio_TokenKind_Gt):
+  case (rio_TokenKind_GtEq): {
     if ((rio_is_arithmetic_type(left.type)) && (rio_is_arithmetic_type(right.type))) {
       rio_Operand result = rio_resolve_binary_arithmetic_op(op, left, right);
       cast_operand(&(result), rio_type_int);
@@ -8177,9 +8242,9 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TokenKind_And:
-  case rio_TokenKind_Xor:
-  case rio_TokenKind_Or: {
+  case (rio_TokenKind_And):
+  case (rio_TokenKind_Xor):
+  case (rio_TokenKind_Or): {
     if ((rio_is_integer_type(left.type)) && (rio_is_integer_type(right.type))) {
       return rio_resolve_binary_arithmetic_op(op, left, right);
     } else {
@@ -8187,17 +8252,17 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
     }
     break;
   }
-  case rio_TokenKind_AndAnd:
-  case rio_TokenKind_OrOr: {
+  case (rio_TokenKind_AndAnd):
+  case (rio_TokenKind_OrOr): {
     if ((rio_is_scalar_type(left.type)) && (rio_is_scalar_type(right.type))) {
       if ((left.is_const) && (right.is_const)) {
         cast_operand(&(left), rio_type_bool);
         cast_operand(&(right), rio_type_bool);
         int i = {0};
-        if ((op) == (rio_TokenKind_AndAnd)) {
+        if ((op) == ((rio_TokenKind_AndAnd))) {
           i = (left.val.b) && (right.val.b);
         } else {
-          assert((op) == (rio_TokenKind_OrOr));
+          assert((op) == ((rio_TokenKind_OrOr)));
           i = (left.val.b) || (right.val.b);
         }
         return rio_operand_const(rio_type_int, (rio_Val){.i = i});
@@ -8217,7 +8282,7 @@ rio_Operand rio_resolve_expr_binary_op(rio_TokenKind op, char const ((*op_name))
 }
 
 rio_Operand rio_resolve_expr_binary(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_ExprKind_Binary));
+  assert((expr->kind) == ((rio_ExprKind_Binary)));
   rio_Operand left = rio_resolve_expr_rvalue(expr->binary.left);
   rio_Operand right = rio_resolve_expr_rvalue(expr->binary.right);
   rio_TokenKind op = expr->binary.op;
@@ -8226,7 +8291,7 @@ rio_Operand rio_resolve_expr_binary(rio_Expr (*expr)) {
 }
 
 rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type)) {
-  assert((expr->kind) == (rio_ExprKind_Compound));
+  assert((expr->kind) == ((rio_ExprKind_Compound)));
   if ((!(expected_type)) && (!(expr->compound.type))) {
     rio_fatal_error(expr->pos, "Implicitly typed compound literals used in context without expected type");
   }
@@ -8239,13 +8304,13 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
   rio_complete_type(type);
   bool is_const = rio_is_const_type(type);
   type = rio_unqualify_type(type);
-  if (((type->kind) == (rio_CompilerTypeKind_Struct)) || ((type->kind) == (rio_CompilerTypeKind_Union))) {
+  if (((type->kind) == ((rio_CompilerTypeKind_Struct))) || ((type->kind) == ((rio_CompilerTypeKind_Union)))) {
     int index = 0;
     for (size_t i = 0; (i) < (expr->compound.num_fields); (i)++) {
       rio_CompoundField field = expr->compound.fields[i];
-      if ((field.kind) == (rio_CompoundFieldKind_Index)) {
+      if ((field.kind) == ((rio_CompoundFieldKind_Index))) {
         rio_fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
-      } else if ((field.kind) == (rio_CompoundFieldKind_Name)) {
+      } else if ((field.kind) == ((rio_CompoundFieldKind_Name))) {
         index = rio_aggregate_item_field_index(type, field.name);
         if ((index) == (-(1))) {
           rio_fatal_error(field.pos, "Named field in compound literal does not exist");
@@ -8260,14 +8325,14 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
       }
       (index)++;
     }
-  } else if ((type->kind) == (rio_CompilerTypeKind_Array)) {
+  } else if ((type->kind) == ((rio_CompilerTypeKind_Array))) {
     size_t index = 0;
     size_t max_index = 0;
     for (size_t i = 0; (i) < (expr->compound.num_fields); (i)++) {
       rio_CompoundField field = expr->compound.fields[i];
-      if ((field.kind) == (rio_CompoundFieldKind_Name)) {
+      if ((field.kind) == ((rio_CompoundFieldKind_Name))) {
         rio_fatal_error(field.pos, "Named field initializer not allowed for array compound literals");
-      } else if ((field.kind) == (rio_CompoundFieldKind_Index)) {
+      } else if ((field.kind) == ((rio_CompoundFieldKind_Index))) {
         rio_Operand operand = rio_resolve_const_expr(field.index);
         if (!(rio_is_integer_type(operand.type))) {
           rio_fatal_error(field.pos, "Field initializer index expression must have type int");
@@ -8309,10 +8374,10 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
 }
 
 rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_ExprKind_Call));
-  if ((expr->call.expr->kind) == (rio_ExprKind_Name)) {
+  assert((expr->kind) == ((rio_ExprKind_Call)));
+  if ((expr->call.expr->kind) == ((rio_ExprKind_Name))) {
     rio_Sym (*sym) = rio_resolve_name(expr->call.expr->name);
-    if ((sym) && ((sym->kind) == (rio_SymKind_Type))) {
+    if ((sym) && ((sym->kind) == ((rio_SymKind_Type)))) {
       if ((expr->call.num_args) != (1)) {
         rio_fatal_error(expr->pos, "Type conversion operator takes 1 argument");
       }
@@ -8325,7 +8390,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
     }
   }
   rio_Operand function = rio_resolve_expr_rvalue(expr->call.expr);
-  if ((function.type->kind) != (rio_CompilerTypeKind_Func)) {
+  if ((function.type->kind) != ((rio_CompilerTypeKind_Func))) {
     rio_fatal_error(expr->pos, "Cannot call non-function value");
   }
   size_t num_params = function.type->function.num_params;
@@ -8352,7 +8417,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
 }
 
 rio_Operand rio_resolve_expr_ternary(rio_Expr (*expr), rio_Type (*expected_type)) {
-  assert((expr->kind) == (rio_ExprKind_Ternary));
+  assert((expr->kind) == ((rio_ExprKind_Ternary)));
   rio_Operand cond = rio_resolve_expr_rvalue(expr->ternary.cond);
   if (!(rio_is_scalar_type(cond.type))) {
     rio_fatal_error(expr->pos, "Ternary conditional must have scalar type");
@@ -8379,7 +8444,7 @@ rio_Operand rio_resolve_expr_ternary(rio_Expr (*expr), rio_Type (*expected_type)
 }
 
 rio_Operand rio_resolve_expr_index(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_ExprKind_Index));
+  assert((expr->kind) == ((rio_ExprKind_Index)));
   rio_Operand operand = rio_resolve_expr_rvalue(expr->index.expr);
   if (!(rio_is_ptr_star_type(operand.type))) {
     rio_fatal_error(expr->pos, "Can only index arrays and star pointers");
@@ -8392,7 +8457,7 @@ rio_Operand rio_resolve_expr_index(rio_Expr (*expr)) {
 }
 
 rio_Operand rio_resolve_expr_cast(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_ExprKind_Cast));
+  assert((expr->kind) == ((rio_ExprKind_Cast)));
   rio_Type (*type) = rio_resolve_typespec(expr->cast.type);
   rio_Operand operand = rio_resolve_expr_rvalue(expr->cast.expr);
   if (!(cast_operand(&(operand), type))) {
@@ -8402,19 +8467,19 @@ rio_Operand rio_resolve_expr_cast(rio_Expr (*expr)) {
 }
 
 rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
-  assert((expr->kind) == (rio_ExprKind_Int));
-  ullong int_max = rio_type_metrics[rio_CompilerTypeKind_Int].max;
-  ullong uint_max = rio_type_metrics[rio_CompilerTypeKind_UInt].max;
-  ullong long_max = rio_type_metrics[rio_CompilerTypeKind_Long].max;
-  ullong ulong_max = rio_type_metrics[rio_CompilerTypeKind_ULong].max;
-  ullong llong_max = rio_type_metrics[rio_CompilerTypeKind_LLong].max;
+  assert((expr->kind) == ((rio_ExprKind_Int)));
+  ullong int_max = rio_type_metrics[(rio_CompilerTypeKind_Int)].max;
+  ullong uint_max = rio_type_metrics[(rio_CompilerTypeKind_UInt)].max;
+  ullong long_max = rio_type_metrics[(rio_CompilerTypeKind_Long)].max;
+  ullong ulong_max = rio_type_metrics[(rio_CompilerTypeKind_ULong)].max;
+  ullong llong_max = rio_type_metrics[(rio_CompilerTypeKind_LLong)].max;
   ullong val = expr->int_lit.val;
   rio_Operand operand = rio_operand_const(rio_type_ullong, (rio_Val){.ull = val});
   rio_Type (*type) = rio_type_ullong;
-  if ((expr->int_lit.mod) == (rio_TokenMod_None)) {
+  if ((expr->int_lit.mod) == ((rio_TokenMod_None))) {
     bool overflow = false;
     switch (expr->int_lit.suffix) {
-    case rio_TokenSuffix_None: {
+    case (rio_TokenSuffix_None): {
       type = rio_type_int;
       if ((val) > (int_max)) {
         type = rio_type_long;
@@ -8425,7 +8490,7 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_TokenSuffix_U: {
+    case (rio_TokenSuffix_U): {
       type = rio_type_uint;
       if ((val) > (uint_max)) {
         type = rio_type_ulong;
@@ -8435,7 +8500,7 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_TokenSuffix_L: {
+    case (rio_TokenSuffix_L): {
       type = rio_type_long;
       if ((val) > (long_max)) {
         type = rio_type_llong;
@@ -8443,19 +8508,19 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_TokenSuffix_UL: {
+    case (rio_TokenSuffix_UL): {
       type = rio_type_ulong;
       if ((val) > (ulong_max)) {
         type = rio_type_ullong;
       }
       break;
     }
-    case rio_TokenSuffix_LL: {
+    case (rio_TokenSuffix_LL): {
       type = rio_type_llong;
       overflow = (val) > (llong_max);
       break;
     }
-    case rio_TokenSuffix_ULL: {
+    case (rio_TokenSuffix_ULL): {
       type = rio_type_ullong;
       break;
     }
@@ -8468,7 +8533,7 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
     }
   } else {
     switch (expr->int_lit.suffix) {
-    case rio_TokenSuffix_None: {
+    case (rio_TokenSuffix_None): {
       type = rio_type_int;
       if ((val) > (int_max)) {
         type = rio_type_uint;
@@ -8487,7 +8552,7 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_TokenSuffix_U: {
+    case (rio_TokenSuffix_U): {
       type = rio_type_uint;
       if ((val) > (uint_max)) {
         type = rio_type_ulong;
@@ -8497,7 +8562,7 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_TokenSuffix_L: {
+    case (rio_TokenSuffix_L): {
       type = rio_type_long;
       if ((val) > (long_max)) {
         type = rio_type_ulong;
@@ -8510,21 +8575,21 @@ rio_Operand rio_resolve_expr_int(rio_Expr (*expr)) {
       }
       break;
     }
-    case rio_TokenSuffix_UL: {
+    case (rio_TokenSuffix_UL): {
       type = rio_type_ulong;
       if ((val) > (ulong_max)) {
         type = rio_type_ullong;
       }
       break;
     }
-    case rio_TokenSuffix_LL: {
+    case (rio_TokenSuffix_LL): {
       type = rio_type_llong;
       if ((val) > (llong_max)) {
         type = rio_type_ullong;
       }
       break;
     }
-    case rio_TokenSuffix_ULL: {
+    case (rio_TokenSuffix_ULL): {
       type = rio_type_ullong;
       break;
     }
@@ -8547,7 +8612,7 @@ rio_Operand rio_resolve_expr_modify(rio_Expr (*expr)) {
   if (type->nonmodifiable) {
     rio_fatal_error(expr->pos, "Cannot modify non-modifiable type");
   }
-  if (!(((rio_is_integer_type(type)) || ((type->kind) == (rio_CompilerTypeKind_Ptr))))) {
+  if (!(((rio_is_integer_type(type)) || ((type->kind) == ((rio_CompilerTypeKind_Ptr)))))) {
     rio_fatal_error(expr->pos, "%s only valid for integer and pointer types", rio_token_kind_name(expr->modify.op));
   }
   return rio_operand_rvalue(type);
@@ -8556,49 +8621,49 @@ rio_Operand rio_resolve_expr_modify(rio_Expr (*expr)) {
 rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type)) {
   rio_Operand result = {0};
   switch (expr->kind) {
-  case rio_ExprKind_Paren: {
+  case (rio_ExprKind_Paren): {
     result = rio_resolve_expected_expr(expr->paren.expr, expected_type);
     break;
   }
-  case rio_ExprKind_Int: {
+  case (rio_ExprKind_Int): {
     result = rio_resolve_expr_int(expr);
     break;
   }
-  case rio_ExprKind_Float: {
-    result = rio_operand_const(((expr->float_lit.suffix) == (rio_TokenSuffix_D) ? rio_type_double : rio_type_float), (rio_Val){0});
+  case (rio_ExprKind_Float): {
+    result = rio_operand_const(((expr->float_lit.suffix) == ((rio_TokenSuffix_D)) ? rio_type_double : rio_type_float), (rio_Val){0});
     break;
   }
-  case rio_ExprKind_Str: {
+  case (rio_ExprKind_Str): {
     result = rio_operand_rvalue(rio_type_array(rio_type_char, (strlen(expr->str_lit.val)) + (1)));
     break;
   }
-  case rio_ExprKind_Name: {
+  case (rio_ExprKind_Name): {
     result = rio_resolve_expr_name(expr);
     rio_set_resolved_sym(expr, rio_resolve_name(expr->name));
     break;
   }
-  case rio_ExprKind_Cast: {
+  case (rio_ExprKind_Cast): {
     result = rio_resolve_expr_cast(expr);
     break;
   }
-  case rio_ExprKind_Call: {
+  case (rio_ExprKind_Call): {
     result = rio_resolve_expr_call(expr);
     break;
   }
-  case rio_ExprKind_Index: {
+  case (rio_ExprKind_Index): {
     result = rio_resolve_expr_index(expr);
     break;
   }
-  case rio_ExprKind_Field: {
+  case (rio_ExprKind_Field): {
     result = rio_resolve_expr_field(expr);
     break;
   }
-  case rio_ExprKind_Compound: {
+  case (rio_ExprKind_Compound): {
     result = rio_resolve_expr_compound(expr, expected_type);
     break;
   }
-  case rio_ExprKind_Unary: {
-    if ((expr->unary.op) == (rio_TokenKind_And)) {
+  case (rio_ExprKind_Unary): {
+    if ((expr->unary.op) == ((rio_TokenKind_And))) {
       rio_Operand operand = {0};
       if ((expected_type) && (rio_is_ptr_type(expected_type))) {
         operand = rio_resolve_expected_expr(expr->unary.expr, expected_type->base);
@@ -8614,19 +8679,19 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_ExprKind_Binary: {
+  case (rio_ExprKind_Binary): {
     result = rio_resolve_expr_binary(expr);
     break;
   }
-  case rio_ExprKind_Ternary: {
+  case (rio_ExprKind_Ternary): {
     result = rio_resolve_expr_ternary(expr, expected_type);
     break;
   }
-  case rio_ExprKind_SizeofExpr: {
+  case (rio_ExprKind_SizeofExpr): {
     {
-      if ((expr->sizeof_expr->kind) == (rio_ExprKind_Name)) {
+      if ((expr->sizeof_expr->kind) == ((rio_ExprKind_Name))) {
         rio_Sym (*sym) = rio_resolve_name(expr->sizeof_expr->name);
-        if ((sym) && ((sym->kind) == (rio_SymKind_Type))) {
+        if ((sym) && ((sym->kind) == ((rio_SymKind_Type)))) {
           rio_complete_type(sym->type);
           result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_sizeof(sym->type)});
           rio_set_resolved_type(expr->sizeof_expr, sym->type);
@@ -8640,7 +8705,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_ExprKind_SizeofType: {
+  case (rio_ExprKind_SizeofType): {
     {
       rio_Type (*type) = rio_resolve_typespec(expr->sizeof_type);
       rio_complete_type(type);
@@ -8648,11 +8713,11 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_ExprKind_AlignofExpr: {
+  case (rio_ExprKind_AlignofExpr): {
     {
-      if ((expr->sizeof_expr->kind) == (rio_ExprKind_Name)) {
+      if ((expr->sizeof_expr->kind) == ((rio_ExprKind_Name))) {
         rio_Sym (*sym) = rio_resolve_name(expr->alignof_expr->name);
-        if ((sym) && ((sym->kind) == (rio_SymKind_Type))) {
+        if ((sym) && ((sym->kind) == ((rio_SymKind_Type)))) {
           rio_complete_type(sym->type);
           result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_alignof(sym->type)});
           rio_set_resolved_type(expr->alignof_expr, sym->type);
@@ -8666,7 +8731,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_ExprKind_AlignofType: {
+  case (rio_ExprKind_AlignofType): {
     {
       rio_Type (*type) = rio_resolve_typespec(expr->alignof_type);
       rio_complete_type(type);
@@ -8674,18 +8739,18 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_ExprKind_TypeofType: {
+  case (rio_ExprKind_TypeofType): {
     {
       rio_Type (*type) = rio_resolve_typespec(expr->typeof_type);
       result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = type->typeid});
     }
     break;
   }
-  case rio_ExprKind_TypeofExpr: {
+  case (rio_ExprKind_TypeofExpr): {
     {
-      if ((expr->typeof_expr->kind) == (rio_ExprKind_Name)) {
+      if ((expr->typeof_expr->kind) == ((rio_ExprKind_Name))) {
         rio_Sym (*sym) = rio_resolve_name(expr->typeof_expr->name);
-        if ((sym) && ((sym->kind) == (rio_SymKind_Type))) {
+        if ((sym) && ((sym->kind) == ((rio_SymKind_Type)))) {
           result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = sym->type->typeid});
           rio_set_resolved_type(expr->typeof_expr, sym->type);
           rio_set_resolved_sym(expr->typeof_expr, sym);
@@ -8697,11 +8762,11 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_ExprKind_Offsetof: {
+  case (rio_ExprKind_Offsetof): {
     {
       rio_Type (*type) = rio_resolve_typespec(expr->offsetof_field.type);
       rio_complete_type(type);
-      if (((type->kind) != (rio_CompilerTypeKind_Struct)) && ((type->kind) != (rio_CompilerTypeKind_Union))) {
+      if (((type->kind) != ((rio_CompilerTypeKind_Struct))) && ((type->kind) != ((rio_CompilerTypeKind_Union)))) {
         rio_fatal_error(expr->pos, "offsetof can only be used with struct/union types");
       }
       int field = rio_aggregate_item_field_index(type, expr->offsetof_field.name);
@@ -8712,7 +8777,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     }
     break;
   }
-  case rio_ExprKind_Modify: {
+  case (rio_ExprKind_Modify): {
     result = rio_resolve_expr_modify(expr);
     break;
   }
@@ -8757,7 +8822,7 @@ void rio_init_builtin_syms(void) {
 void rio_add_package_decls(rio_Package (*package)) {
   for (size_t i = 0; (i) < (package->num_decls); (i)++) {
     rio_Decl (*decl) = package->decls[i];
-    if ((decl->kind) == (rio_DeclKind_Note)) {
+    if ((decl->kind) == ((rio_DeclKind_Note))) {
       if (!(rio_map_get(&(rio_decl_note_names), decl->note.name))) {
         rio_warning(decl->pos, "Unknown declaration #directive \'%s\'", decl->note.name);
       }
@@ -8766,7 +8831,7 @@ void rio_add_package_decls(rio_Package (*package)) {
           rio_fatal_error(decl->pos, "#declare_note takes 1 argument");
         }
         rio_Expr (*arg) = decl->note.args[0].expr;
-        if ((arg->kind) != (rio_ExprKind_Name)) {
+        if ((arg->kind) != ((rio_ExprKind_Name))) {
           rio_fatal_error(decl->pos, "#declare_note argument must be name");
         }
         rio_map_put(&(rio_decl_note_names), arg->name, (void *)(1));
@@ -8775,7 +8840,7 @@ void rio_add_package_decls(rio_Package (*package)) {
           rio_resolve_static_assert(decl->note);
         }
       }
-    } else if ((decl->kind) == (rio_DeclKind_Import)) {
+    } else if ((decl->kind) == ((rio_DeclKind_Import))) {
     } else {
       rio_sym_global_decl(decl, NULL);
     }
@@ -8851,11 +8916,11 @@ void rio_import_package_symbols(rio_Decl (*decl), rio_Package (*package)) {
 void rio_process_package_imports(rio_Package (*package)) {
   for (size_t i = 0; (i) < (package->num_decls); (i)++) {
     rio_Decl (*decl) = package->decls[i];
-    if ((decl->kind) == (rio_DeclKind_Note)) {
+    if ((decl->kind) == ((rio_DeclKind_Note))) {
       if ((decl->note.name) == (rio_always_name)) {
         package->always_reachable = true;
       }
-    } else if ((decl->kind) == (rio_DeclKind_Import)) {
+    } else if ((decl->kind) == ((rio_DeclKind_Import))) {
       char (*path_buf) = NULL;
       if (decl->import_decl.is_relative) {
         rio_buf_printf(&(path_buf), "%s/", package->path);
@@ -8876,7 +8941,7 @@ void rio_process_package_imports(rio_Package (*package)) {
         rio_import_all_package_symbols(imported_package);
       }
       char const ((*sym_name)) = (decl->name ? decl->name : decl->import_decl.names[(decl->import_decl.num_names) - (1)]);
-      rio_Sym (*sym) = rio_sym_new(rio_SymKind_Package, sym_name, decl);
+      rio_Sym (*sym) = rio_sym_new((rio_SymKind_Package), sym_name, decl);
       sym->package = imported_package;
       rio_sym_global_put(sym_name, sym);
     }
@@ -9046,8 +9111,8 @@ int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char 
   char const ((*output_name)) = {0};
   bool flag_check = false;
   rio_add_flag_str("o", &(output_name), "file", "Output file (default: out_<main-package>.c)");
-  rio_add_flag_enum("os", &(rio_target_os), "Target operating system", rio_os_names, rio_Os_Num);
-  rio_add_flag_enum("arch", &(rio_target_arch), "Target machine architecture", rio_arch_names, rio_Arch_Num);
+  rio_add_flag_enum("os", &(rio_target_os), "Target operating system", rio_os_names, (rio_Os_Num));
+  rio_add_flag_enum("arch", &(rio_target_arch), "Target machine architecture", rio_arch_names, (rio_Arch_Num));
   rio_add_flag_bool("check", &(flag_check), "Semantic checking with no code generation");
   rio_add_flag_bool("lazy", &(rio_flag_lazy), "Only compile what\'s reachable from the main package");
   rio_add_flag_bool("nosourcemap", &(rio_flag_nosourcemap), "Don\'t generate any source map information");
@@ -9084,7 +9149,7 @@ int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char 
     return 1;
   }
   main_sym->external_name = main_name;
-  rio_reachable_phase = rio_ReachablePhase_Natural;
+  rio_reachable_phase = (rio_ReachablePhase_Natural);
   rio_resolve_sym(main_sym);
   for (size_t i = 0; (i) < (rio_buf_len(rio_package_list)); (i)++) {
     if (rio_package_list[i]->always_reachable) {
@@ -9096,7 +9161,7 @@ int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char 
     printf("Reached %d symbols in %d packages from %s/main\n", (int)(rio_buf_len(rio_reachable_syms)), (int)(rio_buf_len(rio_package_list)), package_name);
   }
   if (!(rio_flag_lazy)) {
-    rio_reachable_phase = rio_ReachablePhase_Forced;
+    rio_reachable_phase = (rio_ReachablePhase_Forced);
     for (size_t i = 0; (i) < (rio_buf_len(rio_package_list)); (i)++) {
       rio_resolve_package_syms(rio_package_list[i]);
     }
@@ -9122,12 +9187,12 @@ int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char 
   return 0;
 }
 
-char const ((*(rio_os_names[rio_Os_Num]))) = {[rio_Os_Win32] = "win32", [rio_Os_Linux] = "linux", [rio_Os_OsX] = "osx"};
-char const ((*(rio_arch_names[rio_Arch_Num]))) = {[rio_Arch_X64] = "x64", [rio_Arch_X86] = "x86"};
+char const ((*(rio_os_names[(rio_Os_Num)]))) = {[(rio_Os_Win32)] = "win32", [(rio_Os_Linux)] = "linux", [(rio_Os_OsX)] = "osx"};
+char const ((*(rio_arch_names[(rio_Arch_Num)]))) = {[(rio_Arch_X64)] = "x64", [(rio_Arch_X86)] = "x86"};
 int rio_target_os;
 int rio_target_arch;
 int rio_get_os(char const ((*name))) {
-  for (int i = 0; (i) < (rio_Os_Num); (i)++) {
+  for (int i = 0; (i) < ((rio_Os_Num)); (i)++) {
     if ((strcmp(rio_os_names[i], name)) == (0)) {
       return i;
     }
@@ -9136,7 +9201,7 @@ int rio_get_os(char const ((*name))) {
 }
 
 int rio_get_arch(char const ((*name))) {
-  for (int i = 0; (i) < (rio_Arch_Num); (i)++) {
+  for (int i = 0; (i) < ((rio_Arch_Num)); (i)++) {
     if ((strcmp(rio_arch_names[i], name)) == (0)) {
       return i;
     }
@@ -9144,36 +9209,36 @@ int rio_get_arch(char const ((*name))) {
   return -(1);
 }
 
-void rio_init_default_type_metrics(rio_TypeMetrics (metrics[rio_CompilerTypeKind_Num])) {
-  metrics[rio_CompilerTypeKind_Ref] = metrics[rio_CompilerTypeKind_Ptr];
-  metrics[rio_CompilerTypeKind_Bool] = (rio_TypeMetrics){.size = 1, .align = 1};
-  metrics[rio_CompilerTypeKind_Char] = (rio_TypeMetrics){.size = 1, .align = 1, .max = 0x7f, .sign = true};
-  metrics[rio_CompilerTypeKind_SChar] = (rio_TypeMetrics){.size = 1, .align = 1, .max = 0x7f, .sign = true};
-  metrics[rio_CompilerTypeKind_UChar] = (rio_TypeMetrics){.size = 1, .align = 1, .max = 0xff};
-  metrics[rio_CompilerTypeKind_Short] = (rio_TypeMetrics){.size = 2, .align = 2, .max = 0x7fff, .sign = true};
-  metrics[rio_CompilerTypeKind_UShort] = (rio_TypeMetrics){.size = 2, .align = 2, .max = 0xffff};
-  metrics[rio_CompilerTypeKind_Int] = (rio_TypeMetrics){.size = 4, .align = 4, .max = 0x7fffffff, .sign = true};
-  metrics[rio_CompilerTypeKind_UInt] = (rio_TypeMetrics){.size = 4, .align = 4, .max = 0xffffffff};
-  metrics[rio_CompilerTypeKind_LLong] = (rio_TypeMetrics){.size = 8, .align = 8, .max = 0x7fffffffffffffff, .sign = true};
-  metrics[rio_CompilerTypeKind_ULLong] = (rio_TypeMetrics){.size = 8, .align = 8, .max = 0xffffffffffffffff};
-  metrics[rio_CompilerTypeKind_Float] = (rio_TypeMetrics){.size = 4, .align = 4};
-  metrics[rio_CompilerTypeKind_Double] = (rio_TypeMetrics){.size = 8, .align = 8};
+void rio_init_default_type_metrics(rio_TypeMetrics (metrics[(rio_CompilerTypeKind_Num)])) {
+  metrics[(rio_CompilerTypeKind_Ref)] = metrics[(rio_CompilerTypeKind_Ptr)];
+  metrics[(rio_CompilerTypeKind_Bool)] = (rio_TypeMetrics){.size = 1, .align = 1};
+  metrics[(rio_CompilerTypeKind_Char)] = (rio_TypeMetrics){.size = 1, .align = 1, .max = 0x7f, .sign = true};
+  metrics[(rio_CompilerTypeKind_SChar)] = (rio_TypeMetrics){.size = 1, .align = 1, .max = 0x7f, .sign = true};
+  metrics[(rio_CompilerTypeKind_UChar)] = (rio_TypeMetrics){.size = 1, .align = 1, .max = 0xff};
+  metrics[(rio_CompilerTypeKind_Short)] = (rio_TypeMetrics){.size = 2, .align = 2, .max = 0x7fff, .sign = true};
+  metrics[(rio_CompilerTypeKind_UShort)] = (rio_TypeMetrics){.size = 2, .align = 2, .max = 0xffff};
+  metrics[(rio_CompilerTypeKind_Int)] = (rio_TypeMetrics){.size = 4, .align = 4, .max = 0x7fffffff, .sign = true};
+  metrics[(rio_CompilerTypeKind_UInt)] = (rio_TypeMetrics){.size = 4, .align = 4, .max = 0xffffffff};
+  metrics[(rio_CompilerTypeKind_LLong)] = (rio_TypeMetrics){.size = 8, .align = 8, .max = 0x7fffffffffffffff, .sign = true};
+  metrics[(rio_CompilerTypeKind_ULLong)] = (rio_TypeMetrics){.size = 8, .align = 8, .max = 0xffffffffffffffff};
+  metrics[(rio_CompilerTypeKind_Float)] = (rio_TypeMetrics){.size = 4, .align = 4};
+  metrics[(rio_CompilerTypeKind_Double)] = (rio_TypeMetrics){.size = 8, .align = 8};
 }
 
-rio_TypeMetrics (rio_win32_x86_metrics[rio_CompilerTypeKind_Num]) = {[rio_CompilerTypeKind_Ptr] = {.size = 4, .align = 4}, [rio_CompilerTypeKind_Long] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}, [rio_CompilerTypeKind_ULong] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}};
-rio_TypeMetrics (rio_win32_x64_metrics[rio_CompilerTypeKind_Num]) = {[rio_CompilerTypeKind_Ptr] = {.size = 8, .align = 8}, [rio_CompilerTypeKind_Long] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}, [rio_CompilerTypeKind_ULong] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}};
-rio_TypeMetrics (rio_ilp32_metrics[rio_CompilerTypeKind_Num]) = {[rio_CompilerTypeKind_Ptr] = {.size = 4, .align = 4}, [rio_CompilerTypeKind_Long] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}, [rio_CompilerTypeKind_ULong] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}};
-rio_TypeMetrics (rio_lp64_metrics[rio_CompilerTypeKind_Num]) = {[rio_CompilerTypeKind_Ptr] = {.size = 8, .align = 8}, [rio_CompilerTypeKind_Long] = {.size = 8, .align = 8, .max = 0x7fffffffffffffff, .sign = true}, [rio_CompilerTypeKind_ULong] = {.size = 8, .align = 8, .max = 0xffffffffffffffff, .sign = true}};
+rio_TypeMetrics (rio_win32_x86_metrics[(rio_CompilerTypeKind_Num)]) = {[(rio_CompilerTypeKind_Ptr)] = {.size = 4, .align = 4}, [(rio_CompilerTypeKind_Long)] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}, [(rio_CompilerTypeKind_ULong)] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}};
+rio_TypeMetrics (rio_win32_x64_metrics[(rio_CompilerTypeKind_Num)]) = {[(rio_CompilerTypeKind_Ptr)] = {.size = 8, .align = 8}, [(rio_CompilerTypeKind_Long)] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}, [(rio_CompilerTypeKind_ULong)] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}};
+rio_TypeMetrics (rio_ilp32_metrics[(rio_CompilerTypeKind_Num)]) = {[(rio_CompilerTypeKind_Ptr)] = {.size = 4, .align = 4}, [(rio_CompilerTypeKind_Long)] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}, [(rio_CompilerTypeKind_ULong)] = {.size = 4, .align = 4, .max = 0x7fffffff, .sign = true}};
+rio_TypeMetrics (rio_lp64_metrics[(rio_CompilerTypeKind_Num)]) = {[(rio_CompilerTypeKind_Ptr)] = {.size = 8, .align = 8}, [(rio_CompilerTypeKind_Long)] = {.size = 8, .align = 8, .max = 0x7fffffffffffffff, .sign = true}, [(rio_CompilerTypeKind_ULong)] = {.size = 8, .align = 8, .max = 0xffffffffffffffff, .sign = true}};
 void rio_init_target(void) {
   rio_type_metrics = NULL;
   switch (rio_target_os) {
-  case rio_Os_Win32: {
+  case (rio_Os_Win32): {
     switch (rio_target_arch) {
-    case rio_Arch_X86: {
+    case (rio_Arch_X86): {
       rio_type_metrics = rio_win32_x86_metrics;
       break;
     }
-    case rio_Arch_X64: {
+    case (rio_Arch_X64): {
       rio_type_metrics = rio_win32_x64_metrics;
       break;
     }
@@ -9183,13 +9248,13 @@ void rio_init_target(void) {
     }
     break;
   }
-  case rio_Os_Linux: {
+  case (rio_Os_Linux): {
     switch (rio_target_arch) {
-    case rio_Arch_X86: {
+    case (rio_Arch_X86): {
       rio_type_metrics = rio_ilp32_metrics;
       break;
     }
-    case rio_Arch_X64: {
+    case (rio_Arch_X64): {
       rio_type_metrics = rio_lp64_metrics;
       break;
     }
@@ -9199,9 +9264,9 @@ void rio_init_target(void) {
     }
     break;
   }
-  case rio_Os_OsX: {
+  case (rio_Os_OsX): {
     switch (rio_target_arch) {
-    case rio_Arch_X64: {
+    case (rio_Arch_X64): {
       rio_type_metrics = rio_lp64_metrics;
       break;
     }
@@ -9220,12 +9285,12 @@ void rio_init_target(void) {
     exit(1);
   }
   rio_init_default_type_metrics(rio_type_metrics);
-  if ((rio_type_metrics[rio_CompilerTypeKind_Ptr].size) == (4)) {
+  if ((rio_type_metrics[(rio_CompilerTypeKind_Ptr)].size) == (4)) {
     rio_type_uintptr = rio_type_uint;
     rio_type_usize = rio_type_uint;
     rio_type_ssize = rio_type_int;
   } else {
-    assert((rio_type_metrics[rio_CompilerTypeKind_Ptr].size) == (8));
+    assert((rio_type_metrics[(rio_CompilerTypeKind_Ptr)].size) == (8));
     rio_type_uintptr = rio_type_ullong;
     rio_type_usize = rio_type_ullong;
     rio_type_ssize = rio_type_llong;
@@ -9275,21 +9340,21 @@ bool rio_is_excluded_target_filename(char const ((*name))) {
 }
 
 rio_TypeMetrics (*rio_type_metrics);
-rio_Type (*rio_type_void) = &((rio_Type){rio_CompilerTypeKind_Void});
-rio_Type (*rio_type_bool) = &((rio_Type){rio_CompilerTypeKind_Bool});
-rio_Type (*rio_type_char) = &((rio_Type){rio_CompilerTypeKind_Char});
-rio_Type (*rio_type_uchar) = &((rio_Type){rio_CompilerTypeKind_UChar});
-rio_Type (*rio_type_schar) = &((rio_Type){rio_CompilerTypeKind_SChar});
-rio_Type (*rio_type_short) = &((rio_Type){rio_CompilerTypeKind_Short});
-rio_Type (*rio_type_ushort) = &((rio_Type){rio_CompilerTypeKind_UShort});
-rio_Type (*rio_type_int) = &((rio_Type){rio_CompilerTypeKind_Int});
-rio_Type (*rio_type_uint) = &((rio_Type){rio_CompilerTypeKind_UInt});
-rio_Type (*rio_type_long) = &((rio_Type){rio_CompilerTypeKind_Long});
-rio_Type (*rio_type_ulong) = &((rio_Type){rio_CompilerTypeKind_ULong});
-rio_Type (*rio_type_llong) = &((rio_Type){rio_CompilerTypeKind_LLong});
-rio_Type (*rio_type_ullong) = &((rio_Type){rio_CompilerTypeKind_ULLong});
-rio_Type (*rio_type_float) = &((rio_Type){rio_CompilerTypeKind_Float});
-rio_Type (*rio_type_double) = &((rio_Type){rio_CompilerTypeKind_Double});
+rio_Type (*rio_type_void) = &((rio_Type){(rio_CompilerTypeKind_Void)});
+rio_Type (*rio_type_bool) = &((rio_Type){(rio_CompilerTypeKind_Bool)});
+rio_Type (*rio_type_char) = &((rio_Type){(rio_CompilerTypeKind_Char)});
+rio_Type (*rio_type_uchar) = &((rio_Type){(rio_CompilerTypeKind_UChar)});
+rio_Type (*rio_type_schar) = &((rio_Type){(rio_CompilerTypeKind_SChar)});
+rio_Type (*rio_type_short) = &((rio_Type){(rio_CompilerTypeKind_Short)});
+rio_Type (*rio_type_ushort) = &((rio_Type){(rio_CompilerTypeKind_UShort)});
+rio_Type (*rio_type_int) = &((rio_Type){(rio_CompilerTypeKind_Int)});
+rio_Type (*rio_type_uint) = &((rio_Type){(rio_CompilerTypeKind_UInt)});
+rio_Type (*rio_type_long) = &((rio_Type){(rio_CompilerTypeKind_Long)});
+rio_Type (*rio_type_ulong) = &((rio_Type){(rio_CompilerTypeKind_ULong)});
+rio_Type (*rio_type_llong) = &((rio_Type){(rio_CompilerTypeKind_LLong)});
+rio_Type (*rio_type_ullong) = &((rio_Type){(rio_CompilerTypeKind_ULLong)});
+rio_Type (*rio_type_float) = &((rio_Type){(rio_CompilerTypeKind_Float)});
+rio_Type (*rio_type_double) = &((rio_Type){(rio_CompilerTypeKind_Double)});
 int rio_next_typeid = 1;
 rio_Type (*rio_type_uintptr);
 rio_Type (*rio_type_usize);
@@ -9315,27 +9380,27 @@ rio_Type (*rio_type_alloc(TypeKind kind)) {
 }
 
 bool rio_is_ptr_type(rio_Type (*type)) {
-  return ((type->kind) == (rio_CompilerTypeKind_Ptr)) || ((type->kind) == (rio_CompilerTypeKind_Ref));
+  return ((type->kind) == ((rio_CompilerTypeKind_Ptr))) || ((type->kind) == ((rio_CompilerTypeKind_Ref)));
 }
 
 bool rio_is_ptr_star_type(rio_Type (*type)) {
-  return (type->kind) == (rio_CompilerTypeKind_Ptr);
+  return (type->kind) == ((rio_CompilerTypeKind_Ptr));
 }
 
 bool rio_is_func_type(rio_Type (*type)) {
-  return (type->kind) == (rio_CompilerTypeKind_Func);
+  return (type->kind) == ((rio_CompilerTypeKind_Func));
 }
 
 bool rio_is_ptr_like_type(rio_Type (*type)) {
-  return (rio_is_ptr_type(type)) || ((type->kind) == (rio_CompilerTypeKind_Func));
+  return (rio_is_ptr_type(type)) || ((type->kind) == ((rio_CompilerTypeKind_Func)));
 }
 
 bool rio_is_const_type(rio_Type (*type)) {
-  return (type->kind) == (rio_CompilerTypeKind_Const);
+  return (type->kind) == ((rio_CompilerTypeKind_Const));
 }
 
 bool rio_is_array_type(rio_Type (*type)) {
-  return (type->kind) == (rio_CompilerTypeKind_Array);
+  return (type->kind) == ((rio_CompilerTypeKind_Array));
 }
 
 bool rio_is_incomplete_array_type(rio_Type (*type)) {
@@ -9343,36 +9408,36 @@ bool rio_is_incomplete_array_type(rio_Type (*type)) {
 }
 
 bool rio_is_integer_type(rio_Type (*type)) {
-  return ((rio_CompilerTypeKind_Bool) <= (type->kind)) && ((type->kind) <= (rio_CompilerTypeKind_Enum));
+  return (((rio_CompilerTypeKind_Bool)) <= (type->kind)) && ((type->kind) <= ((rio_CompilerTypeKind_Enum)));
 }
 
 bool rio_is_floating_type(rio_Type (*type)) {
-  return ((rio_CompilerTypeKind_Float) <= (type->kind)) && ((type->kind) <= (rio_CompilerTypeKind_Double));
+  return (((rio_CompilerTypeKind_Float)) <= (type->kind)) && ((type->kind) <= ((rio_CompilerTypeKind_Double)));
 }
 
 bool rio_is_arithmetic_type(rio_Type (*type)) {
-  return ((rio_CompilerTypeKind_Bool) <= (type->kind)) && ((type->kind) <= (rio_CompilerTypeKind_Double));
+  return (((rio_CompilerTypeKind_Bool)) <= (type->kind)) && ((type->kind) <= ((rio_CompilerTypeKind_Double)));
 }
 
 bool rio_is_scalar_type(rio_Type (*type)) {
-  return ((rio_CompilerTypeKind_Bool) <= (type->kind)) && ((type->kind) <= (rio_CompilerTypeKind_Func));
+  return (((rio_CompilerTypeKind_Bool)) <= (type->kind)) && ((type->kind) <= ((rio_CompilerTypeKind_Func)));
 }
 
 bool rio_is_aggregate_type(rio_Type (*type)) {
-  return ((type->kind) == (rio_CompilerTypeKind_Struct)) || ((type->kind) == (rio_CompilerTypeKind_Union));
+  return ((type->kind) == ((rio_CompilerTypeKind_Struct))) || ((type->kind) == ((rio_CompilerTypeKind_Union)));
 }
 
 bool rio_is_signed_type(rio_Type (*type)) {
   switch (type->kind) {
-  case rio_CompilerTypeKind_Char: {
-    return rio_type_metrics[rio_CompilerTypeKind_Char].sign;
+  case (rio_CompilerTypeKind_Char): {
+    return rio_type_metrics[(rio_CompilerTypeKind_Char)].sign;
     break;
   }
-  case rio_CompilerTypeKind_SChar:
-  case rio_CompilerTypeKind_Short:
-  case rio_CompilerTypeKind_Int:
-  case rio_CompilerTypeKind_Long:
-  case rio_CompilerTypeKind_LLong: {
+  case (rio_CompilerTypeKind_SChar):
+  case (rio_CompilerTypeKind_Short):
+  case (rio_CompilerTypeKind_Int):
+  case (rio_CompilerTypeKind_Long):
+  case (rio_CompilerTypeKind_LLong): {
     return true;
     break;
   }
@@ -9383,8 +9448,8 @@ bool rio_is_signed_type(rio_Type (*type)) {
   }
 }
 
-char const ((*(rio_type_names[rio_CompilerTypeKind_Num]))) = {[rio_CompilerTypeKind_Void] = "void", [rio_CompilerTypeKind_Bool] = "bool", [rio_CompilerTypeKind_Char] = "char", [rio_CompilerTypeKind_SChar] = "schar", [rio_CompilerTypeKind_UChar] = "uchar", [rio_CompilerTypeKind_Short] = "short", [rio_CompilerTypeKind_UShort] = "ushort", [rio_CompilerTypeKind_Int] = "int", [rio_CompilerTypeKind_UInt] = "uint", [rio_CompilerTypeKind_Long] = "long", [rio_CompilerTypeKind_ULong] = "ulong", [rio_CompilerTypeKind_LLong] = "llong", [rio_CompilerTypeKind_ULLong] = "ullong", [rio_CompilerTypeKind_Float] = "float", [rio_CompilerTypeKind_Double] = "double"};
-int (rio_type_ranks[rio_CompilerTypeKind_Num]) = {[rio_CompilerTypeKind_Bool] = 1, [rio_CompilerTypeKind_Char] = 2, [rio_CompilerTypeKind_SChar] = 2, [rio_CompilerTypeKind_UChar] = 2, [rio_CompilerTypeKind_Short] = 3, [rio_CompilerTypeKind_UShort] = 3, [rio_CompilerTypeKind_Int] = 4, [rio_CompilerTypeKind_UInt] = 4, [rio_CompilerTypeKind_Long] = 5, [rio_CompilerTypeKind_ULong] = 5, [rio_CompilerTypeKind_LLong] = 6, [rio_CompilerTypeKind_ULLong] = 6};
+char const ((*(rio_type_names[(rio_CompilerTypeKind_Num)]))) = {[(rio_CompilerTypeKind_Void)] = "void", [(rio_CompilerTypeKind_Bool)] = "bool", [(rio_CompilerTypeKind_Char)] = "char", [(rio_CompilerTypeKind_SChar)] = "schar", [(rio_CompilerTypeKind_UChar)] = "uchar", [(rio_CompilerTypeKind_Short)] = "short", [(rio_CompilerTypeKind_UShort)] = "ushort", [(rio_CompilerTypeKind_Int)] = "int", [(rio_CompilerTypeKind_UInt)] = "uint", [(rio_CompilerTypeKind_Long)] = "long", [(rio_CompilerTypeKind_ULong)] = "ulong", [(rio_CompilerTypeKind_LLong)] = "llong", [(rio_CompilerTypeKind_ULLong)] = "ullong", [(rio_CompilerTypeKind_Float)] = "float", [(rio_CompilerTypeKind_Double)] = "double"};
+int (rio_type_ranks[(rio_CompilerTypeKind_Num)]) = {[(rio_CompilerTypeKind_Bool)] = 1, [(rio_CompilerTypeKind_Char)] = 2, [(rio_CompilerTypeKind_SChar)] = 2, [(rio_CompilerTypeKind_UChar)] = 2, [(rio_CompilerTypeKind_Short)] = 3, [(rio_CompilerTypeKind_UShort)] = 3, [(rio_CompilerTypeKind_Int)] = 4, [(rio_CompilerTypeKind_UInt)] = 4, [(rio_CompilerTypeKind_Long)] = 5, [(rio_CompilerTypeKind_ULong)] = 5, [(rio_CompilerTypeKind_LLong)] = 6, [(rio_CompilerTypeKind_ULLong)] = 6};
 int rio_type_rank(rio_Type (*type)) {
   int rank = rio_type_ranks[type->kind];
   assert((rank) != (0));
@@ -9393,33 +9458,33 @@ int rio_type_rank(rio_Type (*type)) {
 
 rio_Type (*rio_unsigned_type(rio_Type (*type))) {
   switch (type->kind) {
-  case rio_CompilerTypeKind_Bool: {
+  case (rio_CompilerTypeKind_Bool): {
     return rio_type_bool;
     break;
   }
-  case rio_CompilerTypeKind_Char:
-  case rio_CompilerTypeKind_SChar:
-  case rio_CompilerTypeKind_UChar: {
+  case (rio_CompilerTypeKind_Char):
+  case (rio_CompilerTypeKind_SChar):
+  case (rio_CompilerTypeKind_UChar): {
     return rio_type_uchar;
     break;
   }
-  case rio_CompilerTypeKind_Short:
-  case rio_CompilerTypeKind_UShort: {
+  case (rio_CompilerTypeKind_Short):
+  case (rio_CompilerTypeKind_UShort): {
     return rio_type_ushort;
     break;
   }
-  case rio_CompilerTypeKind_Int:
-  case rio_CompilerTypeKind_UInt: {
+  case (rio_CompilerTypeKind_Int):
+  case (rio_CompilerTypeKind_UInt): {
     return rio_type_uint;
     break;
   }
-  case rio_CompilerTypeKind_Long:
-  case rio_CompilerTypeKind_ULong: {
+  case (rio_CompilerTypeKind_Long):
+  case (rio_CompilerTypeKind_ULong): {
     return rio_type_ulong;
     break;
   }
-  case rio_CompilerTypeKind_LLong:
-  case rio_CompilerTypeKind_ULLong: {
+  case (rio_CompilerTypeKind_LLong):
+  case (rio_CompilerTypeKind_ULLong): {
     return rio_type_ullong;
     break;
   }
@@ -9432,12 +9497,12 @@ rio_Type (*rio_unsigned_type(rio_Type (*type))) {
 }
 
 size_t rio_type_sizeof(rio_Type (*type)) {
-  assert((type->kind) > (rio_CompilerTypeKind_Completing));
+  assert((type->kind) > ((rio_CompilerTypeKind_Completing)));
   return type->size;
 }
 
 size_t rio_type_alignof(rio_Type (*type)) {
-  assert((type->kind) > (rio_CompilerTypeKind_Completing));
+  assert((type->kind) > ((rio_CompilerTypeKind_Completing)));
   return type->align;
 }
 
@@ -9446,11 +9511,11 @@ rio_Map rio_cached_ref_types;
 rio_Type (*rio_type_ptr_any(rio_CompilerTypeKind kind, rio_Type (*base))) {
   rio_Map (*cache) = {0};
   switch (kind) {
-  case rio_CompilerTypeKind_Ptr: {
+  case (rio_CompilerTypeKind_Ptr): {
     cache = &(rio_cached_ptr_types);
     break;
   }
-  case rio_CompilerTypeKind_Ref: {
+  case (rio_CompilerTypeKind_Ref): {
     cache = &(rio_cached_ref_types);
     break;
   }
@@ -9461,8 +9526,8 @@ rio_Type (*rio_type_ptr_any(rio_CompilerTypeKind kind, rio_Type (*base))) {
   rio_Type (*type) = rio_map_get(cache, base);
   if (!(type)) {
     type = rio_type_alloc(kind);
-    type->size = rio_type_metrics[rio_CompilerTypeKind_Ptr].size;
-    type->align = rio_type_metrics[rio_CompilerTypeKind_Ptr].align;
+    type->size = rio_type_metrics[(rio_CompilerTypeKind_Ptr)].size;
+    type->align = rio_type_metrics[(rio_CompilerTypeKind_Ptr)].align;
     type->base = base;
     rio_map_put(cache, base, type);
   }
@@ -9470,22 +9535,22 @@ rio_Type (*rio_type_ptr_any(rio_CompilerTypeKind kind, rio_Type (*base))) {
 }
 
 rio_Type (*rio_type_ptr(rio_Type (*base))) {
-  return rio_type_ptr_any(rio_CompilerTypeKind_Ptr, base);
+  return rio_type_ptr_any((rio_CompilerTypeKind_Ptr), base);
 }
 
 rio_Type (*rio_type_ref(rio_Type (*base))) {
-  return rio_type_ptr_any(rio_CompilerTypeKind_Ref, base);
+  return rio_type_ptr_any((rio_CompilerTypeKind_Ref), base);
 }
 
 rio_Map rio_cached_const_types;
 rio_Type (*rio_type_const(rio_Type (*base))) {
-  if ((base->kind) == (rio_CompilerTypeKind_Const)) {
+  if ((base->kind) == ((rio_CompilerTypeKind_Const))) {
     return base;
   }
   rio_Type (*type) = rio_map_get(&(rio_cached_const_types), base);
   if (!(type)) {
     rio_complete_type(base);
-    type = rio_type_alloc(rio_CompilerTypeKind_Const);
+    type = rio_type_alloc((rio_CompilerTypeKind_Const));
     type->nonmodifiable = true;
     type->size = base->size;
     type->align = base->align;
@@ -9496,7 +9561,7 @@ rio_Type (*rio_type_const(rio_Type (*base))) {
 }
 
 rio_Type (*rio_unqualify_type(rio_Type (*type))) {
-  if ((type->kind) == (rio_CompilerTypeKind_Const)) {
+  if ((type->kind) == ((rio_CompilerTypeKind_Const))) {
     return type->base;
   } else {
     return type;
@@ -9515,7 +9580,7 @@ rio_Type (*rio_type_array(rio_Type (*base), size_t num_elems)) {
     }
   }
   rio_complete_type(base);
-  rio_Type (*type) = rio_type_alloc(rio_CompilerTypeKind_Array);
+  rio_Type (*type) = rio_type_alloc((rio_CompilerTypeKind_Array));
   type->nonmodifiable = base->nonmodifiable;
   type->size = (num_elems) * (rio_type_sizeof(base));
   type->align = rio_type_alignof(base);
@@ -9542,9 +9607,9 @@ rio_Type (*rio_type_func(rio_Type (*(*params)), size_t num_params, rio_Type (*re
       }
     }
   }
-  rio_Type (*type) = rio_type_alloc(rio_CompilerTypeKind_Func);
-  type->size = rio_type_metrics[rio_CompilerTypeKind_Ptr].size;
-  type->align = rio_type_metrics[rio_CompilerTypeKind_Ptr].align;
+  rio_Type (*type) = rio_type_alloc((rio_CompilerTypeKind_Func));
+  type->size = rio_type_metrics[(rio_CompilerTypeKind_Ptr)].size;
+  type->align = rio_type_metrics[(rio_CompilerTypeKind_Ptr)].align;
   type->function.params = rio_memdup(params, params_size);
   type->function.num_params = num_params;
   type->function.has_varargs = has_varargs;
@@ -9568,7 +9633,7 @@ bool rio_has_duplicate_fields(rio_Type (*type)) {
 }
 
 void rio_add_type_fields(rio_TypeField (*(*fields)), rio_Type (*type), size_t offset) {
-  assert(((type->kind) == (rio_CompilerTypeKind_Struct)) || ((type->kind) == (rio_CompilerTypeKind_Union)));
+  assert(((type->kind) == ((rio_CompilerTypeKind_Struct))) || ((type->kind) == ((rio_CompilerTypeKind_Union))));
   for (size_t i = 0; (i) < (type->aggregate.num_fields); (i)++) {
     rio_TypeField (*field) = &(type->aggregate.fields[i]);
     rio_TypeField new_field = {field->name, field->type, (field->offset) + (offset)};
@@ -9577,8 +9642,8 @@ void rio_add_type_fields(rio_TypeField (*(*fields)), rio_Type (*type), size_t of
 }
 
 void rio_type_complete_struct(rio_Type (*type), rio_TypeField (*fields), size_t num_fields) {
-  assert((type->kind) == (rio_CompilerTypeKind_Completing));
-  type->kind = rio_CompilerTypeKind_Struct;
+  assert((type->kind) == ((rio_CompilerTypeKind_Completing)));
+  type->kind = (rio_CompilerTypeKind_Struct);
   type->size = 0;
   type->align = 0;
   bool nonmodifiable = false;
@@ -9602,14 +9667,14 @@ void rio_type_complete_struct(rio_Type (*type), rio_TypeField (*fields), size_t 
 }
 
 void rio_type_complete_union(rio_Type (*type), rio_TypeField (*fields), size_t num_fields) {
-  assert((type->kind) == (rio_CompilerTypeKind_Completing));
-  type->kind = rio_CompilerTypeKind_Union;
+  assert((type->kind) == ((rio_CompilerTypeKind_Completing)));
+  type->kind = (rio_CompilerTypeKind_Union);
   type->size = 0;
   type->align = 0;
   bool nonmodifiable = false;
   rio_TypeField (*new_fields) = {0};
   for (rio_TypeField (*it) = fields; (it) != ((fields) + (num_fields)); (it)++) {
-    assert((it->type->kind) > (rio_CompilerTypeKind_Completing));
+    assert((it->type->kind) > ((rio_CompilerTypeKind_Completing)));
     if (it->name) {
       it->offset = type->size;
       rio_buf_push((void (**))(&(new_fields)), it, sizeof(*(it)));
@@ -9627,13 +9692,13 @@ void rio_type_complete_union(rio_Type (*type), rio_TypeField (*fields), size_t n
 }
 
 rio_Type (*rio_type_incomplete(rio_Sym (*sym))) {
-  rio_Type (*type) = rio_type_alloc(rio_CompilerTypeKind_Incomplete);
+  rio_Type (*type) = rio_type_alloc((rio_CompilerTypeKind_Incomplete));
   type->sym = sym;
   return type;
 }
 
 rio_Type (*rio_type_enum(rio_Sym (*sym), rio_Type (*base))) {
-  rio_Type (*type) = rio_type_alloc(rio_CompilerTypeKind_Enum);
+  rio_Type (*type) = rio_type_alloc((rio_CompilerTypeKind_Enum));
   type->sym = sym;
   type->base = base;
   type->size = rio_type_int->size;
