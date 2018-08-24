@@ -141,6 +141,7 @@ struct Aggregate {
   kind: AggregateKind;
   items: *AggregateItem;
   num_items: usize;
+  union_enum_decl: &Decl;
 }
 
 struct Decl {
@@ -167,6 +168,7 @@ struct DeclEnum {
   type: &Typespec;
   items: *EnumItem;
   num_items: usize;
+  scope: *const char;
 }
 
 struct DeclFunc {
@@ -426,6 +428,20 @@ struct Stmt {
     label: *const char;
     // Voids: Break, Continue
   }
+  // union switch {
+  //   None | Break | Continue => void;
+  //   DoWhile | While => while_stmt: StmtWhile;
+  //   Expr | Return => expr: &Expr;
+  //   Goto | Label => label: *const char;
+  //   Assign => assign: StmtAssign;
+  //   Block => block: StmtList;
+  //   Decl => decl: &Decl;
+  //   For => for_stmt: StmtFor;
+  //   If => if_stmt: StmtIf;
+  //   Init => init: StmtInit;
+  //   Note => note: Note;
+  //   Switch => switch_stmt: StmtSwitch;
+  // }
 }
 
 struct StmtIf {

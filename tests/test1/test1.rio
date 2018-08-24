@@ -303,6 +303,15 @@ enum TypedEnum = int8 {
   QUUX,
 }
 
+@enum struct More {
+  prob: float;
+  union {
+    Happy, Sad: int;
+    Solemn: float;
+    Other: *const char;
+  }
+}
+
 let color_names: [Color.Num]*const char = {
 // let color_names: [*const char; Num] = {
   [Color.None] = "none",
@@ -327,6 +336,8 @@ fn test_enum() {
   #static_assert(typeof(e) == typeof(TypedEnum));
   let f: TypedEnum;
   f = BAZ;
+  let more = More{prob = 0.5, Other = "sure"};
+  let more_kind = More.Happy;
 }
 
 fn test_assign() {
@@ -829,6 +840,7 @@ fn main(argc: int, argv: **char) -> int {
   if (argv == 0) {
     printf("argv is null\n");
   }
+  // #report(2 || 5);
   test_ref();
   test_const_ptr_deref();
   test_limits();

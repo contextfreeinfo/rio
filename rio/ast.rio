@@ -104,6 +104,35 @@ fn get_decl_note(decl: &Decl, name: *const char) -> &Note {
   return NULL;
 }
 
+fn get_enum_union(decl: &Decl) -> &Aggregate {
+  if (get_decl_note(decl, enum_keyword)) {
+    // Check first if we are a union.
+    // TODO Assert that it's named?
+    if (decl.kind == DeclKind.Union) {
+      return decl.aggregate;
+    }
+    // Now see if we are a struct with a subunion.
+    #assert(decl.kind == DeclKind.Struct);
+    let result: &Aggregate;
+    for (let i: usize = 0; i < decl.aggregate.num_items; i++) {
+      let item = decl.aggregate.items[i];
+      if (item.kind == AggregateItemKind.Subaggregate) {
+        if (item.subaggregate.kind == AggregateKind.Union) {
+          // But only one enum subunion per struct.
+          if (result) {
+            fatal_error(
+              item.subaggregate.pos, "Multiple enum unions in struct",
+            );
+          }
+          result = item.subaggregate;
+        }
+      }
+    }
+    return result;
+  }
+  return NULL;
+}
+
 fn is_decl_foreign(decl: &Decl) -> bool {
   return get_decl_note(decl, foreign_name) != NULL;
 }

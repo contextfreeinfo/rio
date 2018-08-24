@@ -376,36 +376,45 @@ fn gen_forward_decls() {
   }
 }
 
+fn gen_aggregate_item(item: &AggregateItem) {
+  @complete
+  if (item.kind == AggregateItemKind.Field) {
+    for (let j: usize = 0; j < item.num_names; j++) {
+      gen_sync_pos(item.pos);
+      let prefix = "";
+      // Skip actually generating void fields.
+      // TODO Error on uses of void fields.
+      // TODO Error on void fields outside of enum unions.
+      // TODO Find a better way to check for void.
+      if (item.type.kind == TypespecKind.Name) {
+        let name = get_gen_name_or_default(item.type, item.type.name);
+        if (name == void_name) {
+          prefix = "// ";
+        }
+      }
+      // Generate standard field.
+      genln();
+      buf_printf(
+        &gen_buf, "%s%s;", prefix, typespec_to_cdecl(item.type, item.names[j]),
+      );
+    }
+  } else if (item.kind == AggregateItemKind.Subaggregate) {
+    genln();
+    buf_printf(
+      &gen_buf, "%s {",
+      item.subaggregate.kind == AggregateKind.Struct ? "struct" : "union",
+    );
+    gen_aggregate_items(item.subaggregate);
+    genln();
+    buf_printf(&gen_buf, "};");
+  }
+}
+
 fn gen_aggregate_items(aggregate: &Aggregate) {
   gen_indent++;
   for (let i: usize = 0; i < aggregate.num_items; i++) {
     let item = aggregate.items[i];
-    @complete
-    if (item.kind == AggregateItemKind.Field) {
-      for (let j: usize = 0; j < item.num_names; j++) {
-        gen_sync_pos(item.pos);
-        let prefix = "";
-        // Skip actually generating void fields.
-        // TODO Error on uses of void fields.
-        // TODO Error on void fields outside of enum unions.
-        // TODO Find a better way to check for void.
-        if (item.type.kind == TypespecKind.Name) {
-          let name = get_gen_name_or_default(item.type, item.type.name);
-          if (name == void_name) {
-            prefix = "// ";
-          }
-        }
-        // Generate standard field.
-        genln();
-        buf_printf(
-          &gen_buf, "%s%s;", prefix, typespec_to_cdecl(item.type, item.names[j]),
-        );
-      }
-    } else if (item.kind == AggregateItemKind.Subaggregate) {
-      genln(); buf_printf(&gen_buf, "%s {", item.subaggregate.kind == AggregateKind.Struct ? "struct" : "union");
-      gen_aggregate_items(item.subaggregate);
-      genln(); buf_printf(&gen_buf, "};");
-    }
+    gen_aggregate_item(&aggregate.items[i]);
   }
   gen_indent--;
 }
@@ -415,9 +424,15 @@ fn gen_aggregate(decl: &Decl) {
   if (decl.is_incomplete) {
     return;
   }
-  genln(); buf_printf(&gen_buf, "%s %s {", decl.kind == DeclKind.Struct ? "struct" : "union", get_gen_name(decl));
+  genln();
+  buf_printf(
+    &gen_buf, "%s %s {",
+    decl.kind == DeclKind.Struct ? "struct" : "union",
+    get_gen_name(decl),
+  );
   gen_aggregate_items(decl.aggregate);
-  genln(); buf_printf(&gen_buf, "};");
+  genln();
+  buf_printf(&gen_buf, "};");
 }
 
 fn gen_paren_expr(expr: &Expr) {
@@ -573,11 +588,7 @@ fn gen_expr(expr: &Expr) {
       gen_expr(expr.field.expr);
       let type = unqualify_type(get_resolved_type(expr.field.expr));
       buf_printf(
-        &gen_buf, "%s%s",
-        type.kind == CompilerTypeKind.Enum ? "_" :
-          is_ptr_type(type) ? "->" :
-          ".",
-        expr.field.name,
+        &gen_buf, "%s%s", is_ptr_type(type) ? "->" : ".", expr.field.name,
       );
     }
   }
