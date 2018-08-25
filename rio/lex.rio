@@ -107,6 +107,7 @@ enum TokenKind {
   Eof,
   Colon,
   Arrow,
+  Spear,
   Lparen,
   Rparen,
   Lbrace,
@@ -206,6 +207,7 @@ let token_kind_names: []*const char = {
   [TokenKind.Eof] = "EOF",
   [TokenKind.Colon] = ":",
   [TokenKind.Arrow] = "->",
+  [TokenKind.Spear] = "=>",
   [TokenKind.Lparen] = "(",
   [TokenKind.Rparen] = ")",
   [TokenKind.Lbrace] = "{",
@@ -810,6 +812,9 @@ fn next_token() {
     if (*stream == '=') {
       token.kind = TokenKind.Eq;
       stream++;
+    } else if (*stream == '>') {
+      token.kind = TokenKind.Spear;
+      ++stream;
     }
   case '^':
     token.kind = TokenKind.Xor;

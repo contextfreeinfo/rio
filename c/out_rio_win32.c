@@ -954,7 +954,9 @@ bool rio_is_keyword_name(char const ((*name)));
 
 #define rio_TokenKind_Arrow ((rio_TokenKind)((rio_TokenKind_Colon) + (1)))
 
-#define rio_TokenKind_Lparen ((rio_TokenKind)((rio_TokenKind_Arrow) + (1)))
+#define rio_TokenKind_Spear ((rio_TokenKind)((rio_TokenKind_Arrow) + (1)))
+
+#define rio_TokenKind_Lparen ((rio_TokenKind)((rio_TokenKind_Spear) + (1)))
 
 #define rio_TokenKind_Rparen ((rio_TokenKind)((rio_TokenKind_Lparen) + (1)))
 
@@ -1102,7 +1104,7 @@ bool rio_is_keyword_name(char const ((*name)));
 
 extern char const ((*(rio_token_suffix_names[7])));
 
-extern char const ((*(rio_token_kind_names[62])));
+extern char const ((*(rio_token_kind_names[63])));
 
 char const ((*rio_token_kind_name(rio_TokenKind kind)));
 
@@ -1336,6 +1338,10 @@ rio_Decl (*rio_parse_decl_enum(rio_SrcPos pos));
 struct rio_AggregateItem {
   rio_SrcPos pos;
   rio_AggregateItemKind kind;
+  struct {
+    char const ((*(*kind_names)));
+    size_t num_kind_names;
+  };
   union {
     struct {
       char const ((*(*names)));
@@ -1353,6 +1359,10 @@ extern char const ((*(rio_enum_tag_names[1])));
 extern bool rio_enum_tag_name_interned;
 
 rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name)), rio_Notes (*notes)));
+
+extern char const ((*(rio_empty_names[1])));
+
+rio_AggregateItem (*rio_parse_switch_union(void));
 
 rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind, rio_Notes (*notes)));
 
@@ -4723,7 +4733,7 @@ bool rio_is_keyword_name(char const ((*name))) {
 }
 
 char const ((*(rio_token_suffix_names[7]))) = {[(rio_TokenSuffix_None)] = "", [(rio_TokenSuffix_D)] = "d", [(rio_TokenSuffix_U)] = "u", [(rio_TokenSuffix_L)] = "l", [(rio_TokenSuffix_UL)] = "ul", [(rio_TokenSuffix_LL)] = "ll", [(rio_TokenSuffix_ULL)] = "ull"};
-char const ((*(rio_token_kind_names[62]))) = {[(rio_TokenKind_Eof)] = "EOF", [(rio_TokenKind_Colon)] = ":", [(rio_TokenKind_Arrow)] = "->", [(rio_TokenKind_Lparen)] = "(", [(rio_TokenKind_Rparen)] = ")", [(rio_TokenKind_Lbrace)] = "{", [(rio_TokenKind_Rbrace)] = "}", [(rio_TokenKind_Lbracket)] = "[", [(rio_TokenKind_Rbracket)] = "]", [(rio_TokenKind_Comma)] = ",", [(rio_TokenKind_Dot)] = ".", [(rio_TokenKind_At)] = "@", [(rio_TokenKind_Pound)] = "#", [(rio_TokenKind_Ellipsis)] = "...", [(rio_TokenKind_Question)] = "?", [(rio_TokenKind_Semicolon)] = ";", [(rio_TokenKind_Keyword)] = "keyword", [(rio_TokenKind_Int)] = "int", [(rio_TokenKind_Float)] = "float", [(rio_TokenKind_Str)] = "string", [(rio_TokenKind_Name)] = "name", [(rio_TokenKind_Neg)] = "~", [(rio_TokenKind_Not)] = "!", [(rio_TokenKind_Mul)] = "*", [(rio_TokenKind_Div)] = "/", [(rio_TokenKind_Mod)] = "%", [(rio_TokenKind_And)] = "&", [(rio_TokenKind_Lshift)] = "<<", [(rio_TokenKind_Rshift)] = ">>", [(rio_TokenKind_Add)] = "+", [(rio_TokenKind_Sub)] = "-", [(rio_TokenKind_Or)] = "|", [(rio_TokenKind_Xor)] = "^", [(rio_TokenKind_Eq)] = "==", [(rio_TokenKind_NotEq)] = "!=", [(rio_TokenKind_Lt)] = "<", [(rio_TokenKind_Gt)] = ">", [(rio_TokenKind_LtEq)] = "<=", [(rio_TokenKind_GtEq)] = ">=", [(rio_TokenKind_AndAnd)] = "&&", [(rio_TokenKind_OrOr)] = "||", [(rio_TokenKind_Assign)] = "=", [(rio_TokenKind_AddAssign)] = "+=", [(rio_TokenKind_SubAssign)] = "-=", [(rio_TokenKind_OrAssign)] = "|=", [(rio_TokenKind_AndAssign)] = "&=", [(rio_TokenKind_XorAssign)] = "^=", [(rio_TokenKind_MulAssign)] = "*=", [(rio_TokenKind_DivAssign)] = "/=", [(rio_TokenKind_ModAssign)] = "%=", [(rio_TokenKind_LshiftAssign)] = "<<=", [(rio_TokenKind_RshiftAssign)] = ">>=", [(rio_TokenKind_Inc)] = "++", [(rio_TokenKind_Dec)] = "--"};
+char const ((*(rio_token_kind_names[63]))) = {[(rio_TokenKind_Eof)] = "EOF", [(rio_TokenKind_Colon)] = ":", [(rio_TokenKind_Arrow)] = "->", [(rio_TokenKind_Spear)] = "=>", [(rio_TokenKind_Lparen)] = "(", [(rio_TokenKind_Rparen)] = ")", [(rio_TokenKind_Lbrace)] = "{", [(rio_TokenKind_Rbrace)] = "}", [(rio_TokenKind_Lbracket)] = "[", [(rio_TokenKind_Rbracket)] = "]", [(rio_TokenKind_Comma)] = ",", [(rio_TokenKind_Dot)] = ".", [(rio_TokenKind_At)] = "@", [(rio_TokenKind_Pound)] = "#", [(rio_TokenKind_Ellipsis)] = "...", [(rio_TokenKind_Question)] = "?", [(rio_TokenKind_Semicolon)] = ";", [(rio_TokenKind_Keyword)] = "keyword", [(rio_TokenKind_Int)] = "int", [(rio_TokenKind_Float)] = "float", [(rio_TokenKind_Str)] = "string", [(rio_TokenKind_Name)] = "name", [(rio_TokenKind_Neg)] = "~", [(rio_TokenKind_Not)] = "!", [(rio_TokenKind_Mul)] = "*", [(rio_TokenKind_Div)] = "/", [(rio_TokenKind_Mod)] = "%", [(rio_TokenKind_And)] = "&", [(rio_TokenKind_Lshift)] = "<<", [(rio_TokenKind_Rshift)] = ">>", [(rio_TokenKind_Add)] = "+", [(rio_TokenKind_Sub)] = "-", [(rio_TokenKind_Or)] = "|", [(rio_TokenKind_Xor)] = "^", [(rio_TokenKind_Eq)] = "==", [(rio_TokenKind_NotEq)] = "!=", [(rio_TokenKind_Lt)] = "<", [(rio_TokenKind_Gt)] = ">", [(rio_TokenKind_LtEq)] = "<=", [(rio_TokenKind_GtEq)] = ">=", [(rio_TokenKind_AndAnd)] = "&&", [(rio_TokenKind_OrOr)] = "||", [(rio_TokenKind_Assign)] = "=", [(rio_TokenKind_AddAssign)] = "+=", [(rio_TokenKind_SubAssign)] = "-=", [(rio_TokenKind_OrAssign)] = "|=", [(rio_TokenKind_AndAssign)] = "&=", [(rio_TokenKind_XorAssign)] = "^=", [(rio_TokenKind_MulAssign)] = "*=", [(rio_TokenKind_DivAssign)] = "/=", [(rio_TokenKind_ModAssign)] = "%=", [(rio_TokenKind_LshiftAssign)] = "<<=", [(rio_TokenKind_RshiftAssign)] = ">>=", [(rio_TokenKind_Inc)] = "++", [(rio_TokenKind_Dec)] = "--"};
 char const ((*rio_token_kind_name(rio_TokenKind kind))) {
   if ((kind) < ((sizeof(rio_token_kind_names)) / (sizeof(*(rio_token_kind_names))))) {
     return rio_token_kind_names[kind];
@@ -5275,6 +5285,9 @@ void rio_next_token(void) {
     if ((*(rio_stream)) == ('=')) {
       rio_token.kind = (rio_TokenKind_Eq);
       (rio_stream)++;
+    } else if ((*(rio_stream)) == ('>')) {
+      rio_token.kind = (rio_TokenKind_Spear);
+      ++(rio_stream);
     }
     break;
   }
@@ -6322,13 +6335,20 @@ char const ((*(rio_enum_tag_names[1]))) = {"kind"};
 bool rio_enum_tag_name_interned = false;
 rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name)), rio_Notes (*notes))) {
   rio_SrcPos pos = rio_token.pos;
-  rio_expect_token((rio_TokenKind_Lbrace));
   rio_AggregateItem (*items) = {0};
-  while ((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) {
-    rio_AggregateItem item = rio_parse_decl_aggregate_item();
-    rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
+  if (rio_match_keyword(rio_switch_keyword)) {
+    if ((kind) != ((rio_AggregateKind_Union))) {
+      rio_fatal_error(pos, "Switch aggregate applies only to union");
+    }
+    items = rio_parse_switch_union();
+  } else {
+    rio_expect_token((rio_TokenKind_Lbrace));
+    while ((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) {
+      rio_AggregateItem item = rio_parse_decl_aggregate_item();
+      rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
+    }
+    rio_expect_token((rio_TokenKind_Rbrace));
   }
-  rio_expect_token((rio_TokenKind_Rbrace));
   if ((notes) && (rio_get_note(notes, rio_enum_keyword))) {
     if ((kind) == ((rio_AggregateKind_Union))) {
       rio_AggregateItem subitem = {.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = rio_new_aggregate(pos, kind, items, rio_buf_len(items))};
@@ -6347,6 +6367,39 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
     rio_buf_unshift((void (**))(&(items)), &(tag_item), sizeof(tag_item));
   }
   return rio_new_aggregate(pos, kind, items, rio_buf_len(items));
+}
+
+char const ((*(rio_empty_names[1]))) = {""};
+rio_AggregateItem (*rio_parse_switch_union(void)) {
+  rio_expect_token((rio_TokenKind_Lbrace));
+  rio_AggregateItem (*items) = {0};
+  while ((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) {
+    char const ((*(*kind_names))) = {0};
+    char const ((*kind_name)) = rio_parse_name();
+    rio_buf_push((void (**))(&(kind_names)), &(kind_name), sizeof(kind_name));
+    while (rio_match_token((rio_TokenKind_Or))) {
+      kind_name = rio_parse_name();
+      rio_buf_push((void (**))(&(kind_names)), &(kind_name), sizeof(kind_name));
+    }
+    rio_expect_token((rio_TokenKind_Spear));
+    rio_SrcPos pos = rio_token.pos;
+    rio_AggregateItem item = {0};
+    if (rio_match_token((rio_TokenKind_Colon))) {
+      rio_Typespec (*type) = rio_parse_type();
+      if (!((((type->kind) == ((rio_TypespecKind_Name))) && ((type->name) == (rio_void_name))))) {
+        rio_fatal_error(rio_token.pos, "Anonymous switch fields can only be void");
+      }
+      rio_expect_token((rio_TokenKind_Semicolon));
+      item = (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Field), .names = rio_empty_names, .num_names = 1, .type = type};
+    } else {
+      item = rio_parse_decl_aggregate_item();
+      item.kind_names = kind_names;
+      item.num_kind_names = rio_buf_len(kind_names);
+      rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
+    }
+  }
+  rio_expect_token((rio_TokenKind_Rbrace));
+  return items;
 }
 
 rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind, rio_Notes (*notes))) {

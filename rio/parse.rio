@@ -663,13 +663,20 @@ fn parse_aggregate(
   kind: AggregateKind, name: *const char, notes: &Notes,
 ) -> &Aggregate {
   let pos = token.pos;
-  expect_token(TokenKind.Lbrace);
   let items: *AggregateItem;
-  while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
-    let item = parse_decl_aggregate_item();
-    buf_push((:*&void)&items, &item, sizeof(item));
+  if (match_keyword(switch_keyword)) {
+    if (kind != AggregateKind.Union) {
+      fatal_error(pos, "Switch aggregate applies only to union");
+    }
+    items = parse_switch_union();
+  } else {
+    expect_token(TokenKind.Lbrace);
+    while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
+      let item = parse_decl_aggregate_item();
+      buf_push((:*&void)&items, &item, sizeof(item));
+    }
+    expect_token(TokenKind.Rbrace);
   }
-  expect_token(TokenKind.Rbrace);
   // Check for enum union conditions.
   if (notes && get_note(notes, enum_keyword)) {
     if (kind == AggregateKind.Union) {
@@ -703,6 +710,48 @@ fn parse_aggregate(
     buf_unshift((:*&void)&items, &tag_item, sizeof(tag_item));
   }
   return new_aggregate(pos, kind, items, buf_len(items));
+}
+
+let empty_names = (:[]*const char) {""};
+
+fn parse_switch_union() -> *AggregateItem {
+  expect_token(TokenKind.Lbrace);
+  let items: *AggregateItem;
+  while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
+    let kind_names: **const char;
+    let kind_name = parse_name();
+    buf_push((:*&void)&kind_names, &kind_name, sizeof(kind_name));
+    // TODO Ellipse ranges.
+    while (match_token(TokenKind.Or)) {
+      kind_name = parse_name();
+      buf_push((:*&void)&kind_names, &kind_name, sizeof(kind_name));
+    }
+    expect_token(TokenKind.Spear);
+    let pos = token.pos;
+    let item: AggregateItem;
+    if (match_token(TokenKind.Colon)) {
+      let type = parse_type();
+      if (!(type.kind == TypespecKind.Name && type.name == void_name)) {
+        fatal_error(token.pos, "Anonymous switch fields can only be void");
+      }
+      expect_token(TokenKind.Semicolon);
+      item = AggregateItem {
+        pos = pos,
+        kind = AggregateItemKind.Field,
+        names = empty_names,
+        num_names = 1,
+        type = type,
+      };
+    } else {
+      item = parse_decl_aggregate_item();
+      // Move these to after, once we can dodge generating empties from above.
+      item.kind_names = kind_names;
+      item.num_kind_names = buf_len(kind_names);
+      buf_push((:*&void)&items, &item, sizeof(item));
+    }
+  }
+  expect_token(TokenKind.Rbrace);
+  return items;
 }
 
 fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind, notes: &Notes) -> &Decl {

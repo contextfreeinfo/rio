@@ -303,24 +303,28 @@ enum TypedEnum = int8 {
   QUUX,
 }
 
-@enum struct More {
-  prob: float;
-  union {
-    Happy, Sad: int;
-    Solemn: float;
-    Other: *const char;
-  }
-}
-
 // @enum struct More {
 //   prob: float;
-//   union switch {
-//     None | MoreNone => :void;
-//     Happy | Sad => amount: float;
-//     Solemn => years: int;
-//     Other => description: *const char;
+//   union {
+//     Happy, Sad: int;
+//     Solemn: float;
+//     Other: *const char;
 //   }
 // }
+
+struct More {
+  prob: float;
+  union switch {
+    None | MoreNone => :void;
+    Happy | Sad => amount: float;
+    Solemn => years: int;
+    // TODO Support subaggregates on switch unions.
+    Other => struct {
+      description: *const char;
+      value: float;
+    }
+  }
+}
 
 let color_names: [Color.Num]*const char = {
 // let color_names: [*const char; Num] = {
@@ -346,8 +350,8 @@ fn test_enum() {
   #static_assert(typeof(e) == typeof(TypedEnum));
   let f: TypedEnum;
   f = BAZ;
-  let more = More{prob = 0.5, Other = "sure"};
-  let more_kind = More.Happy;
+  let more = More {prob = 0.5, amount = 0.9};
+  // let more_kind = More.Happy;
 }
 
 fn test_assign() {

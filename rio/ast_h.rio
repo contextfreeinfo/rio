@@ -95,6 +95,11 @@ enum AggregateItemKind {
 struct AggregateItem {
   pos: SrcPos;
   kind: AggregateItemKind;
+  // Kind names apply only to unions ...
+  struct {
+    kind_names: **const char;
+    num_kind_names: usize;
+  }
   // @tagged
   union {
     struct {
