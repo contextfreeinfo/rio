@@ -366,7 +366,12 @@ fn gen_forward_decls() {
     case DeclKind.Struct:
     case DeclKind.Union: {
       let name = get_gen_name(sym);
-      genln(); buf_printf(&gen_buf, "typedef %s %s %s;", decl.kind == DeclKind.Struct ? "struct" : "union", name, name);
+      genln();
+      buf_printf(
+        &gen_buf, "typedef %s %s %s;",
+        decl.aggregate.kind == AggregateKind.Struct ? "struct" : "union",
+        name, name,
+      );
       break;
     }
     default:
@@ -427,7 +432,7 @@ fn gen_aggregate(decl: &Decl) {
   genln();
   buf_printf(
     &gen_buf, "%s %s {",
-    decl.kind == DeclKind.Struct ? "struct" : "union",
+    decl.aggregate.kind == AggregateKind.Struct ? "struct" : "union",
     get_gen_name(decl),
   );
   gen_aggregate_items(decl.aggregate);

@@ -664,7 +664,7 @@ fn parse_aggregate(
 ) -> &Aggregate {
   let pos = token.pos;
   expect_token(TokenKind.Lbrace);
-  let items: *AggregateItem = NULL;
+  let items: *AggregateItem;
   while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
     let item = parse_decl_aggregate_item();
     buf_push((:*&void)&items, &item, sizeof(item));
@@ -673,13 +673,22 @@ fn parse_aggregate(
   // Check for enum union conditions.
   if (notes && get_note(notes, enum_keyword)) {
     if (kind == AggregateKind.Union) {
-      // This is the union.
-      // TODO Wrap raw enum union in a struct.
+      // This is the union. Contain it.
+      let subitem = AggregateItem {
+        pos = pos,
+        kind = AggregateItemKind.Subaggregate,
+        subaggregate = new_aggregate(pos, kind, items, buf_len(items)),
+      };
+      // Wrap it in a struct.
+      kind = AggregateKind.Struct;
+      items = NULL;
+      buf_push((:*&void)&items, &subitem, sizeof(subitem));
     } else if (!get_subunion(buf_len(items), items)) {
       fatal_error(pos, "No union for enum tag");
       return NULL;
     }
-    // Add the new enum__ member to the struct.
+    // Insert the new enum__ member to the struct at the top.
+    // TODO Do we know up front to avoid this after the fact insertion?
     if (!enum_tag_name_interned) {
       enum_tag_names[0] = str_intern(enum_tag_names[0]);
       enum_tag_name_interned = true;

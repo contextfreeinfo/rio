@@ -123,7 +123,7 @@ typedef struct rio_Decl rio_Decl;
 typedef struct rio_Aggregate rio_Aggregate;
 typedef struct rio_ImportItem rio_ImportItem;
 typedef struct rio_ElseIf rio_ElseIf;
-typedef union rio_StmtDetail rio_StmtDetail;
+typedef struct rio_StmtDetail rio_StmtDetail;
 typedef struct rio_BufHdr rio_BufHdr;
 typedef struct rio_Intern rio_Intern;
 typedef struct rio_Package rio_Package;
@@ -551,9 +551,7 @@ typedef int rio_CompoundFieldKind;
 
 typedef int rio_StmtDetail_enum;
 
-#define rio_StmtDetail_enum__ ((rio_StmtDetail_enum)(0))
-
-#define rio_StmtDetail_None ((rio_StmtDetail_enum)((rio_StmtDetail_enum__) + (1)))
+#define rio_StmtDetail_None ((rio_StmtDetail_enum)(0))
 
 #define rio_StmtDetail_Break ((rio_StmtDetail_enum)((rio_StmtDetail_None) + (1)))
 
@@ -2218,25 +2216,27 @@ struct rio_ElseIf {
   rio_StmtList block;
 };
 
-union rio_StmtDetail {
+struct rio_StmtDetail {
   rio_StmtDetail_enum enum__;
-  // void None;
-  // void Break;
-  // void Continue;
-  rio_StmtWhile DoWhile;
-  rio_StmtWhile While;
-  rio_Expr (*Expr);
-  rio_Expr (*Return);
-  char const ((*Goto));
-  char const ((*Label));
-  rio_StmtAssign Assign;
-  rio_StmtList Block;
-  rio_Decl (*Decl);
-  rio_StmtFor For;
-  rio_StmtIf If;
-  rio_StmtInit Init;
-  rio_Note Note;
-  rio_StmtSwitch Switch;
+  union {
+    // void None;
+    // void Break;
+    // void Continue;
+    rio_StmtWhile DoWhile;
+    rio_StmtWhile While;
+    rio_Expr (*Expr);
+    rio_Expr (*Return);
+    char const ((*Goto));
+    char const ((*Label));
+    rio_StmtAssign Assign;
+    rio_StmtList Block;
+    rio_Decl (*Decl);
+    rio_StmtFor For;
+    rio_StmtIf If;
+    rio_StmtInit Init;
+    rio_Note Note;
+    rio_StmtSwitch Switch;
+  };
 };
 
 struct rio_BufHdr {
@@ -2448,11 +2448,12 @@ rio_Note (*rio_get_note(rio_Notes (*notes), char const ((*name)))) {
 
 rio_Aggregate (*rio_get_enum_union(rio_Decl (*decl))) {
   if (rio_get_decl_note(decl, rio_enum_keyword)) {
-    if ((decl->kind) == ((rio_DeclKind_Union))) {
-      return decl->aggregate;
+    assert(((decl->kind) == ((rio_DeclKind_Struct))) || ((decl->kind) == ((rio_DeclKind_Union))));
+    rio_Aggregate (*aggregate) = decl->aggregate;
+    if ((aggregate->kind) == ((rio_AggregateKind_Union))) {
+      return aggregate;
     }
-    assert((decl->kind) == ((rio_DeclKind_Struct)));
-    return rio_get_subunion(decl->aggregate->num_items, decl->aggregate->items);
+    return rio_get_subunion(aggregate->num_items, aggregate->items);
   }
   return NULL;
 }
@@ -2491,6 +2492,9 @@ rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_Ag
   aggregate->pos = pos;
   aggregate->kind = kind;
   aggregate->items = rio_ast_dup(items, (num_items) * (sizeof(*(items))));
+  if (items) {
+    rio_buf_free((void (**))(&(items)));
+  }
   aggregate->num_items = num_items;
   return aggregate;
 }
@@ -3579,7 +3583,7 @@ void rio_gen_forward_decls(void) {
       {
         char const ((*name)) = rio_get_gen_name(sym);
         rio_genln();
-        rio_buf_printf(&(rio_gen_buf), "typedef %s %s %s;", ((decl->kind) == ((rio_DeclKind_Struct)) ? "struct" : "union"), name, name);
+        rio_buf_printf(&(rio_gen_buf), "typedef %s %s %s;", ((decl->aggregate->kind) == ((rio_AggregateKind_Struct)) ? "struct" : "union"), name, name);
         break;
       }
       break;
@@ -3632,7 +3636,7 @@ void rio_gen_aggregate(rio_Decl (*decl)) {
     return;
   }
   rio_genln();
-  rio_buf_printf(&(rio_gen_buf), "%s %s {", ((decl->kind) == ((rio_DeclKind_Struct)) ? "struct" : "union"), rio_get_gen_name(decl));
+  rio_buf_printf(&(rio_gen_buf), "%s %s {", ((decl->aggregate->kind) == ((rio_AggregateKind_Struct)) ? "struct" : "union"), rio_get_gen_name(decl));
   rio_gen_aggregate_items(decl->aggregate);
   rio_genln();
   rio_buf_printf(&(rio_gen_buf), "};");
@@ -6305,7 +6309,7 @@ bool rio_enum_tag_name_interned = false;
 rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name)), rio_Notes (*notes))) {
   rio_SrcPos pos = rio_token.pos;
   rio_expect_token((rio_TokenKind_Lbrace));
-  rio_AggregateItem (*items) = NULL;
+  rio_AggregateItem (*items) = {0};
   while ((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) {
     rio_AggregateItem item = rio_parse_decl_aggregate_item();
     rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
@@ -6313,6 +6317,10 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
   rio_expect_token((rio_TokenKind_Rbrace));
   if ((notes) && (rio_get_note(notes, rio_enum_keyword))) {
     if ((kind) == ((rio_AggregateKind_Union))) {
+      rio_AggregateItem subitem = {.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = rio_new_aggregate(pos, kind, items, rio_buf_len(items))};
+      kind = (rio_AggregateKind_Struct);
+      items = NULL;
+      rio_buf_push((void (**))(&(items)), &(subitem), sizeof(subitem));
     } else if (!(rio_get_subunion(rio_buf_len(items), items))) {
       rio_fatal_error(pos, "No union for enum tag");
       return NULL;

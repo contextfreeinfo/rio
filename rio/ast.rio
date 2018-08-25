@@ -110,14 +110,16 @@ fn get_note(notes: &Notes, name: *const char) -> &Note {
 
 fn get_enum_union(decl: &Decl) -> &Aggregate {
   if (get_decl_note(decl, enum_keyword)) {
+    #assert(decl.kind == DeclKind.Struct || decl.kind == DeclKind.Union);
     // Check first if we are a union.
+    // Use aggregate kind instead of decl kind, in case it's been wrapped.
     // TODO Assert that it's named?
-    if (decl.kind == DeclKind.Union) {
-      return decl.aggregate;
+    let aggregate = decl.aggregate;
+    if (aggregate.kind == AggregateKind.Union) {
+      return aggregate;
     }
     // Now see if we are a struct with a subunion.
-    #assert(decl.kind == DeclKind.Struct);
-    return get_subunion(decl.aggregate.num_items, decl.aggregate.items);
+    return get_subunion(aggregate.num_items, aggregate.items);
   }
   return NULL;
 }
@@ -160,6 +162,10 @@ fn new_aggregate(
   aggregate.pos = pos;
   aggregate.kind = kind;
   aggregate.items = ast_dup(items, num_items * sizeof(*items));
+  if (items) {
+    // This is safe for our usage, but how to define generally?
+    buf_free((:*&void)&items);
+  }
   aggregate.num_items = num_items;
   return aggregate;
 }
