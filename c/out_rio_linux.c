@@ -549,31 +549,31 @@ typedef int rio_CompoundFieldKind;
 
 #define rio_StmtKind_Goto ((rio_StmtKind)((rio_StmtKind_Label) + (1)))
 
-typedef int rio_StmtDetail_enum;
+typedef int rio_StmtDetail_Kind;
 
-#define rio_StmtDetail_None ((rio_StmtDetail_enum)(0))
+#define rio_StmtDetail_None ((rio_StmtDetail_Kind)(0))
 
-#define rio_StmtDetail_Break ((rio_StmtDetail_enum)((rio_StmtDetail_None) + (1)))
+#define rio_StmtDetail_Break ((rio_StmtDetail_Kind)((rio_StmtDetail_None) + (1)))
 
-#define rio_StmtDetail_Continue ((rio_StmtDetail_enum)((rio_StmtDetail_Break) + (1)))
+#define rio_StmtDetail_Continue ((rio_StmtDetail_Kind)((rio_StmtDetail_Break) + (1)))
 
-#define rio_StmtDetail_DoWhile ((rio_StmtDetail_enum)((rio_StmtDetail_Continue) + (1)))
+#define rio_StmtDetail_DoWhile ((rio_StmtDetail_Kind)((rio_StmtDetail_Continue) + (1)))
 
-#define rio_StmtDetail_While ((rio_StmtDetail_enum)((rio_StmtDetail_DoWhile) + (1)))
+#define rio_StmtDetail_While ((rio_StmtDetail_Kind)((rio_StmtDetail_DoWhile) + (1)))
 
-#define rio_StmtDetail_Expr ((rio_StmtDetail_enum)((rio_StmtDetail_While) + (1)))
+#define rio_StmtDetail_Expr ((rio_StmtDetail_Kind)((rio_StmtDetail_While) + (1)))
 
-#define rio_StmtDetail_Return ((rio_StmtDetail_enum)((rio_StmtDetail_Expr) + (1)))
+#define rio_StmtDetail_Return ((rio_StmtDetail_Kind)((rio_StmtDetail_Expr) + (1)))
 
-#define rio_StmtDetail_Goto ((rio_StmtDetail_enum)((rio_StmtDetail_Return) + (1)))
+#define rio_StmtDetail_Goto ((rio_StmtDetail_Kind)((rio_StmtDetail_Return) + (1)))
 
-#define rio_StmtDetail_Label ((rio_StmtDetail_enum)((rio_StmtDetail_Goto) + (1)))
+#define rio_StmtDetail_Label ((rio_StmtDetail_Kind)((rio_StmtDetail_Goto) + (1)))
 
-#define rio_StmtDetail_Assign ((rio_StmtDetail_enum)((rio_StmtDetail_Label) + (1)))
+#define rio_StmtDetail_Assign ((rio_StmtDetail_Kind)((rio_StmtDetail_Label) + (1)))
 
-#define rio_StmtDetail_Block ((rio_StmtDetail_enum)((rio_StmtDetail_Assign) + (1)))
+#define rio_StmtDetail_Block ((rio_StmtDetail_Kind)((rio_StmtDetail_Assign) + (1)))
 
-#define rio_StmtDetail_Decl ((rio_StmtDetail_enum)((rio_StmtDetail_Block) + (1)))
+#define rio_StmtDetail_Decl ((rio_StmtDetail_Kind)((rio_StmtDetail_Block) + (1)))
 
 size_t rio_min(size_t x, size_t y);
 
@@ -2217,7 +2217,7 @@ struct rio_ElseIf {
 };
 
 struct rio_StmtDetail {
-  rio_StmtDetail_enum enum__;
+  rio_StmtDetail_Kind kind;
   union {
     // void None;
     // void Break;
@@ -6304,7 +6304,7 @@ rio_AggregateItem rio_parse_decl_aggregate_item(void) {
   }
 }
 
-char const ((*(rio_enum_tag_names[1]))) = {"enum__"};
+char const ((*(rio_enum_tag_names[1]))) = {"kind"};
 bool rio_enum_tag_name_interned = false;
 rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name)), rio_Notes (*notes))) {
   rio_SrcPos pos = rio_token.pos;
@@ -6329,7 +6329,7 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
       rio_enum_tag_names[0] = rio_str_intern(rio_enum_tag_names[0]);
       rio_enum_tag_name_interned = true;
     }
-    rio_AggregateItem tag_item = {.pos = pos, .kind = (rio_AggregateItemKind_Field), .names = rio_enum_tag_names, .num_names = 1, .type = rio_new_typespec_name(pos, rio_build_scoped_name(name, "enum"))};
+    rio_AggregateItem tag_item = {.pos = pos, .kind = (rio_AggregateItemKind_Field), .names = rio_enum_tag_names, .num_names = 1, .type = rio_new_typespec_name(pos, rio_build_scoped_name(name, "Kind"))};
     rio_buf_unshift((void (**))(&(items)), &(tag_item), sizeof(tag_item));
   }
   return rio_new_aggregate(pos, kind, items, rio_buf_len(items));
@@ -6757,7 +6757,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
   }
   rio_Aggregate (*enum_union) = rio_get_enum_union(decl);
   if (enum_union) {
-    char const ((*enum_type_name)) = rio_build_scoped_name(decl->name, "enum");
+    char const ((*enum_type_name)) = rio_build_scoped_name(decl->name, "Kind");
     ullong num_items = enum_union->num_items;
     int num_all_items = 0;
     for (size_t i = 0; (i) < (num_items); ++(i)) {

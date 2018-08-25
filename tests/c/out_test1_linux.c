@@ -295,10 +295,10 @@ typedef int8_t test1_TypedEnum;
 
 #define test1_QUUX ((test1_TypedEnum)((test1_BAZ) + (1)))
 
-typedef int test1_More_enum;
+typedef int test1_More_Kind;
 
 struct test1_More {
-  test1_More_enum enum__;
+  test1_More_Kind kind;
   float prob;
   union {
     int Happy;
@@ -308,7 +308,7 @@ struct test1_More {
   };
 };
 
-#define test1_More_Happy ((test1_More_enum)(0))
+#define test1_More_Happy ((test1_More_Kind)(0))
 
 void test1_f10(wchar_t (a[3]));
 
@@ -490,7 +490,7 @@ const TypeInfo *typeinfo_table[270] = {
   [88] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(21, TypeKind_Ptr, char const (*))},
   [89] = NULL, // Enum
   [90] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_More), .align = alignof(test1_More), .name = "test1_More", .num_fields = 6, .fields = (TypeFieldInfo[]) {
-    {"enum__", .type = TYPEID(91, TypeKind_None, test1_More_enum), .offset = offsetof(test1_More, enum__)},
+    {"kind", .type = TYPEID(91, TypeKind_None, test1_More_Kind), .offset = offsetof(test1_More, kind)},
     {"prob", .type = TYPEID(14, TypeKind_Float, float), .offset = offsetof(test1_More, prob)},
     {"Happy", .type = TYPEID(8, TypeKind_Int, int), .offset = offsetof(test1_More, Happy)},
     {"Sad", .type = TYPEID(8, TypeKind_Int, int), .offset = offsetof(test1_More, Sad)},
@@ -1009,7 +1009,7 @@ void test1_test_enum(void) {
   test1_TypedEnum f = {0};
   f = test1_BAZ;
   test1_More more = {.prob = 0.5f, .Other = "sure"};
-  test1_More_enum more_kind = (test1_More_Happy);
+  test1_More_Kind more_kind = (test1_More_Happy);
 }
 
 void test1_test_arrays(void) {

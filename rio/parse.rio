@@ -656,7 +656,7 @@ fn parse_decl_aggregate_item() -> AggregateItem {
   }
 }
 
-let enum_tag_names = (:[]*const char) {"enum__"};
+let enum_tag_names = (:[]*const char) {"kind"};
 let enum_tag_name_interned = false;
 
 fn parse_aggregate(
@@ -687,7 +687,7 @@ fn parse_aggregate(
       fatal_error(pos, "No union for enum tag");
       return NULL;
     }
-    // Insert the new enum__ member to the struct at the top.
+    // Insert the new kind member to the struct at the top.
     // TODO Do we know up front to avoid this after the fact insertion?
     if (!enum_tag_name_interned) {
       enum_tag_names[0] = str_intern(enum_tag_names[0]);
@@ -698,7 +698,7 @@ fn parse_aggregate(
       kind = AggregateItemKind.Field,
       names = enum_tag_names,
       num_names = 1,
-      type = new_typespec_name(pos, build_scoped_name(name, "enum")),
+      type = new_typespec_name(pos, build_scoped_name(name, "Kind")),
     };
     buf_unshift((:*&void)&items, &tag_item, sizeof(tag_item));
   }

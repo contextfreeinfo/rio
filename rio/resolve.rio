@@ -232,7 +232,7 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
     // Lowercase enum because we can't have a union member named enum, at least
     // not without escaping, so this uses a less likely collision, even if it's
     // a lowercase typename.
-    let enum_type_name = build_scoped_name(decl.name, "enum");
+    let enum_type_name = build_scoped_name(decl.name, "Kind");
     let num_items = enum_union.num_items;
     // let {num_items} = enum_union;
     // Figure out how many items we really have.

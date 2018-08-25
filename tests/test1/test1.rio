@@ -312,6 +312,16 @@ enum TypedEnum = int8 {
   }
 }
 
+// @enum struct More {
+//   prob: float;
+//   union switch {
+//     None | MoreNone => :void;
+//     Happy | Sad => amount: float;
+//     Solemn => years: int;
+//     Other => description: *const char;
+//   }
+// }
+
 let color_names: [Color.Num]*const char = {
 // let color_names: [*const char; Num] = {
   [Color.None] = "none",
