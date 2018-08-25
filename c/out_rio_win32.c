@@ -297,7 +297,11 @@ rio_Decl (*rio_new_decl(rio_DeclKind kind, rio_SrcPos pos, char const ((*name)))
 
 rio_Note (*rio_get_decl_note(rio_Decl (*decl), char const ((*name))));
 
+rio_Note (*rio_get_note(rio_Notes (*notes), char const ((*name))));
+
 rio_Aggregate (*rio_get_enum_union(rio_Decl (*decl)));
+
+rio_Aggregate (*rio_get_subunion(size_t num_items, rio_AggregateItem (*items)));
 
 bool rio_is_decl_foreign(rio_Decl (*decl));
 
@@ -547,7 +551,9 @@ typedef int rio_CompoundFieldKind;
 
 typedef int rio_StmtDetail_enum;
 
-#define rio_StmtDetail_None ((rio_StmtDetail_enum)(0))
+#define rio_StmtDetail_enum__ ((rio_StmtDetail_enum)(0))
+
+#define rio_StmtDetail_None ((rio_StmtDetail_enum)((rio_StmtDetail_enum__) + (1)))
 
 #define rio_StmtDetail_Break ((rio_StmtDetail_enum)((rio_StmtDetail_None) + (1)))
 
@@ -1344,9 +1350,13 @@ struct rio_AggregateItem {
 
 rio_AggregateItem rio_parse_decl_aggregate_item(void);
 
-rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind));
+extern char const ((*(rio_enum_tag_names[1])));
 
-rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind));
+extern bool rio_enum_tag_name_interned;
+
+rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name)), rio_Notes (*notes)));
+
+rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind, rio_Notes (*notes)));
 
 rio_Decl (*rio_parse_decl_var(rio_SrcPos pos));
 
@@ -1380,7 +1390,7 @@ rio_Decl (*rio_parse_decl_note(rio_SrcPos pos));
 
 rio_Decl (*rio_parse_decl_import(rio_SrcPos pos));
 
-rio_Decl (*rio_parse_decl_opt(void));
+rio_Decl (*rio_parse_decl_opt(rio_Notes (*notes)));
 
 rio_Decl (*rio_parse_decl(void));
 
@@ -2211,6 +2221,7 @@ struct rio_ElseIf {
 };
 
 union rio_StmtDetail {
+  rio_StmtDetail_enum enum__;
   // void None;
   // void Break;
   // void Continue;
@@ -2424,8 +2435,12 @@ rio_Decl (*rio_new_decl(rio_DeclKind kind, rio_SrcPos pos, char const ((*name)))
 }
 
 rio_Note (*rio_get_decl_note(rio_Decl (*decl), char const ((*name)))) {
-  for (size_t i = 0; (i) < (decl->notes.num_notes); (i)++) {
-    rio_Note (*note) = (decl->notes.notes) + (i);
+  return rio_get_note(&(decl->notes), name);
+}
+
+rio_Note (*rio_get_note(rio_Notes (*notes), char const ((*name)))) {
+  for (size_t i = 0; (i) < (notes->num_notes); (i)++) {
+    rio_Note (*note) = (notes->notes) + (i);
     if ((note->name) == (name)) {
       return note;
     }
@@ -2439,21 +2454,26 @@ rio_Aggregate (*rio_get_enum_union(rio_Decl (*decl))) {
       return decl->aggregate;
     }
     assert((decl->kind) == ((rio_DeclKind_Struct)));
-    rio_Aggregate (*result) = {0};
-    for (size_t i = 0; (i) < (decl->aggregate->num_items); (i)++) {
-      rio_AggregateItem item = decl->aggregate->items[i];
-      if ((item.kind) == ((rio_AggregateItemKind_Subaggregate))) {
-        if ((item.subaggregate->kind) == ((rio_AggregateKind_Union))) {
-          if (result) {
-            rio_fatal_error(item.subaggregate->pos, "Multiple enum unions in struct");
-          }
-          result = item.subaggregate;
-        }
-      }
-    }
-    return result;
+    return rio_get_subunion(decl->aggregate->num_items, decl->aggregate->items);
   }
   return NULL;
+}
+
+rio_Aggregate (*rio_get_subunion(size_t num_items, rio_AggregateItem (*items))) {
+  rio_Aggregate (*result) = {0};
+  for (size_t i = 0; (i) < (num_items); (i)++) {
+    rio_AggregateItem item = items[i];
+    if ((item.kind) == ((rio_AggregateItemKind_Subaggregate))) {
+      if ((item.subaggregate->kind) == ((rio_AggregateKind_Union))) {
+        if (result) {
+          rio_fatal_error(item.subaggregate->pos, "Multiple unions in struct");
+          return NULL;
+        }
+        result = item.subaggregate;
+      }
+    }
+  }
+  return result;
 }
 
 bool rio_is_decl_foreign(rio_Decl (*decl)) {
@@ -6276,9 +6296,9 @@ rio_Decl (*rio_parse_decl_enum(rio_SrcPos pos)) {
 rio_AggregateItem rio_parse_decl_aggregate_item(void) {
   rio_SrcPos pos = rio_token.pos;
   if (rio_match_keyword(rio_struct_keyword)) {
-    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = rio_parse_aggregate((rio_AggregateKind_Struct))};
+    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = rio_parse_aggregate((rio_AggregateKind_Struct), NULL, NULL)};
   } else if (rio_match_keyword(rio_union_keyword)) {
-    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = rio_parse_aggregate((rio_AggregateKind_Union))};
+    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = rio_parse_aggregate((rio_AggregateKind_Union), NULL, NULL)};
   } else {
     char const ((*(*names))) = NULL;
     char const ((*name)) = rio_parse_name();
@@ -6294,7 +6314,9 @@ rio_AggregateItem rio_parse_decl_aggregate_item(void) {
   }
 }
 
-rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind)) {
+char const ((*(rio_enum_tag_names[1]))) = {"enum__"};
+bool rio_enum_tag_name_interned = false;
+rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name)), rio_Notes (*notes))) {
   rio_SrcPos pos = rio_token.pos;
   rio_expect_token((rio_TokenKind_Lbrace));
   rio_AggregateItem (*items) = NULL;
@@ -6303,10 +6325,23 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind)) {
     rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
   }
   rio_expect_token((rio_TokenKind_Rbrace));
+  if ((notes) && (rio_get_note(notes, rio_enum_keyword))) {
+    if ((kind) == ((rio_AggregateKind_Union))) {
+    } else if (!(rio_get_subunion(rio_buf_len(items), items))) {
+      rio_fatal_error(pos, "No union for enum tag");
+      return NULL;
+    }
+    if (!(rio_enum_tag_name_interned)) {
+      rio_enum_tag_names[0] = rio_str_intern(rio_enum_tag_names[0]);
+      rio_enum_tag_name_interned = true;
+    }
+    rio_AggregateItem tag_item = {.pos = pos, .kind = (rio_AggregateItemKind_Field), .names = rio_enum_tag_names, .num_names = 1, .type = rio_new_typespec_name(pos, rio_build_scoped_name(name, "enum"))};
+    rio_buf_unshift((void (**))(&(items)), &(tag_item), sizeof(tag_item));
+  }
   return rio_new_aggregate(pos, kind, items, rio_buf_len(items));
 }
 
-rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind)) {
+rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind, rio_Notes (*notes))) {
   assert(((kind) == ((rio_DeclKind_Struct))) || ((kind) == ((rio_DeclKind_Union))));
   char const ((*name)) = rio_parse_name();
   rio_AggregateKind aggregate_kind = ((kind) == ((rio_DeclKind_Struct)) ? (rio_AggregateKind_Struct) : (rio_AggregateKind_Union));
@@ -6315,7 +6350,7 @@ rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind)) {
     decl->is_incomplete = true;
     return decl;
   } else {
-    return rio_new_decl_aggregate(pos, kind, name, rio_parse_aggregate(aggregate_kind));
+    return rio_new_decl_aggregate(pos, kind, name, rio_parse_aggregate(aggregate_kind, name, notes));
   }
 }
 
@@ -6504,14 +6539,14 @@ rio_Decl (*rio_parse_decl_import(rio_SrcPos pos)) {
   return rio_new_decl_import(pos, rename_name, is_relative, names, rio_buf_len(names), import_all, items, rio_buf_len(items));
 }
 
-rio_Decl (*rio_parse_decl_opt(void)) {
+rio_Decl (*rio_parse_decl_opt(rio_Notes (*notes))) {
   rio_SrcPos pos = rio_token.pos;
   if (rio_match_keyword(rio_enum_keyword)) {
     return rio_parse_decl_enum(pos);
   } else if (rio_match_keyword(rio_struct_keyword)) {
-    return rio_parse_decl_aggregate(pos, (rio_DeclKind_Struct));
+    return rio_parse_decl_aggregate(pos, (rio_DeclKind_Struct), notes);
   } else if (rio_match_keyword(rio_union_keyword)) {
-    return rio_parse_decl_aggregate(pos, (rio_DeclKind_Union));
+    return rio_parse_decl_aggregate(pos, (rio_DeclKind_Union), notes);
   } else if (rio_match_keyword(rio_const_keyword)) {
     return rio_parse_decl_const(pos);
   } else if (rio_match_keyword(rio_typedef_keyword)) {
@@ -6531,7 +6566,7 @@ rio_Decl (*rio_parse_decl_opt(void)) {
 
 rio_Decl (*rio_parse_decl(void)) {
   rio_Notes notes = rio_parse_notes();
-  rio_Decl (*decl) = rio_parse_decl_opt();
+  rio_Decl (*decl) = rio_parse_decl_opt(&(notes));
   if (!(decl)) {
     rio_fatal_error(rio_token.pos, "Expected declaration keyword, got %s", rio_token_info());
   }

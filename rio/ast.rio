@@ -95,8 +95,12 @@ fn new_decl(kind: DeclKind, pos: SrcPos, name: *const char) -> &Decl {
 }
 
 fn get_decl_note(decl: &Decl, name: *const char) -> &Note {
-  for (let i: usize = 0; i < decl.notes.num_notes; i++) {
-    let note: &Note = decl.notes.notes + i;
+  return get_note(&decl.notes, name);
+}
+
+fn get_note(notes: &Notes, name: *const char) -> &Note {
+  for (let i: usize = 0; i < notes.num_notes; i++) {
+    let note: &Note = notes.notes + i;
     if (note.name == name) {
       return note;
     }
@@ -113,24 +117,28 @@ fn get_enum_union(decl: &Decl) -> &Aggregate {
     }
     // Now see if we are a struct with a subunion.
     #assert(decl.kind == DeclKind.Struct);
-    let result: &Aggregate;
-    for (let i: usize = 0; i < decl.aggregate.num_items; i++) {
-      let item = decl.aggregate.items[i];
-      if (item.kind == AggregateItemKind.Subaggregate) {
-        if (item.subaggregate.kind == AggregateKind.Union) {
-          // But only one enum subunion per struct.
-          if (result) {
-            fatal_error(
-              item.subaggregate.pos, "Multiple enum unions in struct",
-            );
-          }
-          result = item.subaggregate;
-        }
-      }
-    }
-    return result;
+    return get_subunion(decl.aggregate.num_items, decl.aggregate.items);
   }
   return NULL;
+}
+
+fn get_subunion(num_items: usize, items: *AggregateItem) -> &Aggregate {
+  // See if we are a struct with a subunion.
+  let result: &Aggregate;
+  for (let i: usize = 0; i < num_items; i++) {
+    let item = items[i];
+    if (item.kind == AggregateItemKind.Subaggregate) {
+      if (item.subaggregate.kind == AggregateKind.Union) {
+        // But only one subunion here is allowed.
+        if (result) {
+          fatal_error(item.subaggregate.pos, "Multiple unions in struct");
+          return NULL;
+        }
+        result = item.subaggregate;
+      }
+    }
+  }
+  return result;
 }
 
 fn is_decl_foreign(decl: &Decl) -> bool {
@@ -145,7 +153,9 @@ fn new_decl_enum(pos: SrcPos, name: *const char, type: &Typespec, items: *EnumIt
   return d;
 }
 
-fn new_aggregate(pos: SrcPos, kind: AggregateKind, items: *AggregateItem, num_items: usize) -> &Aggregate {
+fn new_aggregate(
+  pos: SrcPos, kind: AggregateKind, items: *AggregateItem, num_items: usize,
+) -> &Aggregate {
   let aggregate: &Aggregate = ast_alloc(sizeof(Aggregate));
   aggregate.pos = pos;
   aggregate.kind = kind;

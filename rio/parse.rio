@@ -627,13 +627,13 @@ fn parse_decl_aggregate_item() -> AggregateItem {
     return AggregateItem {
       pos = pos,
       kind = AggregateItemKind.Subaggregate,
-      subaggregate = parse_aggregate(AggregateKind.Struct),
+      subaggregate = parse_aggregate(AggregateKind.Struct, NULL, NULL),
     };
   } else if (match_keyword(union_keyword)) {
     return AggregateItem {
       pos = pos,
       kind = AggregateItemKind.Subaggregate,
-      subaggregate = parse_aggregate(AggregateKind.Union),
+      subaggregate = parse_aggregate(AggregateKind.Union, NULL, NULL),
     };
   } else {
     let names: **const char = NULL;
@@ -656,7 +656,12 @@ fn parse_decl_aggregate_item() -> AggregateItem {
   }
 }
 
-fn parse_aggregate(kind: AggregateKind) -> &Aggregate {
+let enum_tag_names = (:[]*const char) {"enum__"};
+let enum_tag_name_interned = false;
+
+fn parse_aggregate(
+  kind: AggregateKind, name: *const char, notes: &Notes,
+) -> &Aggregate {
   let pos = token.pos;
   expect_token(TokenKind.Lbrace);
   let items: *AggregateItem = NULL;
@@ -665,19 +670,46 @@ fn parse_aggregate(kind: AggregateKind) -> &Aggregate {
     buf_push((:*&void)&items, &item, sizeof(item));
   }
   expect_token(TokenKind.Rbrace);
+  // Check for enum union conditions.
+  if (notes && get_note(notes, enum_keyword)) {
+    if (kind == AggregateKind.Union) {
+      // This is the union.
+      // TODO Wrap raw enum union in a struct.
+    } else if (!get_subunion(buf_len(items), items)) {
+      fatal_error(pos, "No union for enum tag");
+      return NULL;
+    }
+    // Add the new enum__ member to the struct.
+    if (!enum_tag_name_interned) {
+      enum_tag_names[0] = str_intern(enum_tag_names[0]);
+      enum_tag_name_interned = true;
+    }
+    let tag_item = AggregateItem {
+      pos = pos,
+      kind = AggregateItemKind.Field,
+      names = enum_tag_names,
+      num_names = 1,
+      type = new_typespec_name(pos, build_scoped_name(name, "enum")),
+    };
+    buf_unshift((:*&void)&items, &tag_item, sizeof(tag_item));
+  }
   return new_aggregate(pos, kind, items, buf_len(items));
 }
 
-fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind) -> &Decl {
+fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind, notes: &Notes) -> &Decl {
   #assert(kind == DeclKind.Struct || kind == DeclKind.Union);
   let name = parse_name();
   let aggregate_kind = kind == DeclKind.Struct ? AggregateKind.Struct : AggregateKind.Union;
   if (match_token(TokenKind.Semicolon)) {
-    let decl = new_decl_aggregate(pos, kind, name, new_aggregate(pos, aggregate_kind, NULL, 0));
+    let decl = new_decl_aggregate(
+      pos, kind, name, new_aggregate(pos, aggregate_kind, NULL, 0),
+    );
     decl.is_incomplete = true;
     return decl;
   } else {
-    return new_decl_aggregate(pos, kind, name, parse_aggregate(aggregate_kind));
+    return new_decl_aggregate(
+      pos, kind, name, parse_aggregate(aggregate_kind, name, notes),
+    );
   }
 }
 
@@ -866,14 +898,14 @@ fn parse_decl_import(pos: SrcPos) -> &Decl {
   return new_decl_import(pos, rename_name, is_relative, names, buf_len(names), import_all, items, buf_len(items));
 }
 
-fn parse_decl_opt() -> &Decl {
+fn parse_decl_opt(notes: &Notes) -> &Decl {
   let pos = token.pos;
   if (match_keyword(enum_keyword)) {
     return parse_decl_enum(pos);
   } else if (match_keyword(struct_keyword)) {
-    return parse_decl_aggregate(pos, DeclKind.Struct);
+    return parse_decl_aggregate(pos, DeclKind.Struct, notes);
   } else if (match_keyword(union_keyword)) {
-    return parse_decl_aggregate(pos, DeclKind.Union);
+    return parse_decl_aggregate(pos, DeclKind.Union, notes);
   } else if (match_keyword(const_keyword)) {
     return parse_decl_const(pos);
   } else if (match_keyword(typedef_keyword)) {
@@ -893,7 +925,7 @@ fn parse_decl_opt() -> &Decl {
 
 fn parse_decl() -> &Decl {
   let notes = parse_notes();
-  let decl: &Decl = parse_decl_opt();
+  let decl: &Decl = parse_decl_opt(&notes);
   if (!decl) {
     fatal_error(token.pos, "Expected declaration keyword, got %s", token_info());
   }

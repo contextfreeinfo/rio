@@ -183,6 +183,12 @@ fn buf_push(b: *&void, elem: &void, elem_size: usize) {
   memcpy((:*char)*b + elem_size * buf__hdr(*b).len++, elem, elem_size);
 }
 
+fn buf_unshift(b: *&void, elem: &void, elem_size: usize) {
+  buf_fit(b, 1 + buf_len(*b), elem_size);
+  memmove((:*char)*b + elem_size, *b, elem_size * buf__hdr(*b).len++);
+  memcpy(*b, elem, elem_size);
+}
+
 // #define buf_printf(b, ...) ((b) = buf__printf((b), __VA_ARGS__))
 // #define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)
 
