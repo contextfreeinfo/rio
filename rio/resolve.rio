@@ -236,25 +236,37 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
     let num_items = enum_union.num_items;
     // let {num_items} = enum_union;
     // Figure out how many items we really have.
-    let num_all_items = 0;
+    let num_all_items: usize = 0;
     for (let i: usize = 0; i < num_items; ++i) {
       let union_item = &enum_union.items[i];
-      if (union_item.kind != AggregateItemKind.Field) {
-        fatal_error(
-          union_item.pos, "Enum union item of %s not a field", decl.name,
-        );
-        return NULL;
+      let num_names = union_item.num_kind_names;
+      if (!num_names) {
+        // Non-switch enum union.
+        if (union_item.kind != AggregateItemKind.Field) {
+          fatal_error(
+            union_item.pos, "Enum union item of %s not a field", decl.name,
+          );
+          return NULL;
+        }
+        num_names = union_item.num_names;
       }
-      num_all_items += union_item.num_names;
+      num_all_items += num_names;
     }
     // Now build the enum items.
     let enum_items = (:*EnumItem)xmalloc(num_all_items * sizeof(EnumItem));
     let enum_item_index: usize = 0;
     for (let i: usize = 0; i < num_items; ++i) {
       let union_item = &enum_union.items[i];
-      for (let n: usize = 0; n < union_item.num_names; ++n) {
+      let num_names = union_item.num_kind_names;
+      let names = union_item.kind_names;
+      if (!num_names) {
+        // Non switch.
+        num_names = union_item.num_names;
+        names = union_item.names;
+      }
+      for (let n: usize = 0; n < num_names; ++n) {
         enum_items[enum_item_index++] = EnumItem {
-          pos = union_item.pos, name = union_item.names[n], init = NULL,
+          pos = union_item.pos, name = names[n], init = NULL,
         };
       }
     }

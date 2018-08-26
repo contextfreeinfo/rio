@@ -312,7 +312,7 @@ enum TypedEnum = int8 {
 //   }
 // }
 
-struct More {
+@enum struct More {
   prob: float;
   union switch {
     None | MoreNone => :void;
@@ -351,7 +351,7 @@ fn test_enum() {
   let f: TypedEnum;
   f = BAZ;
   let more = More {prob = 0.5, amount = 0.9};
-  // let more_kind = More.Happy;
+  let more_kind = More.Happy;
 }
 
 fn test_assign() {

@@ -733,6 +733,7 @@ fn parse_switch_union() -> *AggregateItem {
       let type = parse_type();
       if (!(type.kind == TypespecKind.Name && type.name == void_name)) {
         fatal_error(token.pos, "Anonymous switch fields can only be void");
+        return NULL;
       }
       expect_token(TokenKind.Semicolon);
       item = AggregateItem {
@@ -744,11 +745,14 @@ fn parse_switch_union() -> *AggregateItem {
       };
     } else {
       item = parse_decl_aggregate_item();
-      // Move these to after, once we can dodge generating empties from above.
-      item.kind_names = kind_names;
-      item.num_kind_names = buf_len(kind_names);
-      buf_push((:*&void)&items, &item, sizeof(item));
+      if (item.kind == AggregateItemKind.Field && item.num_names != 1) {
+        fatal_error(item.pos, "Switch union field requires exactly one name");
+        return NULL;
+      }
     }
+    item.kind_names = kind_names;
+    item.num_kind_names = buf_len(kind_names);
+    buf_push((:*&void)&items, &item, sizeof(item));
   }
   expect_token(TokenKind.Rbrace);
   return items;

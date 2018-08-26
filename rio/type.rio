@@ -431,8 +431,11 @@ fn type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
   for (let it = fields; it != fields + num_fields; it++) {
     #assert(it.type.kind > CompilerTypeKind.Completing);
     if (it.name) {
-      it.offset = type.size;
-      buf_push((:*&void)&new_fields, it, sizeof(*it));
+      if (*it.name) {
+        // A non-void-switch field.
+        it.offset = type.size;
+        buf_push((:*&void)&new_fields, it, sizeof(*it));
+      }
     } else {
       add_type_fields(&new_fields, it.type, 0);
     }
