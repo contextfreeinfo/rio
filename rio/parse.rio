@@ -472,7 +472,7 @@ fn parse_stmt_for(pos: SrcPos) -> &Stmt {
   if (match_token(TokenKind.Semicolon)) {
     if (!is_token(TokenKind.Rparen)) {
       next = parse_simple_stmt();
-      if (next.kind == StmtKind.Init) {
+      if (next.kind == Stmt.Init) {
         error(token.pos, "Init statements not allowed in for-statement's next clause");
       }
     }
@@ -575,7 +575,7 @@ fn parse_stmt() -> &Stmt {
     expect_token(TokenKind.Semicolon);
   } else {
     stmt = parse_simple_stmt();
-    if (stmt.kind != StmtKind.Label) {
+    if (stmt.kind != Stmt.Label) {
       expect_token(TokenKind.Semicolon);
     }
   }

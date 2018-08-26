@@ -272,7 +272,7 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
     }
     // And add the new enum.
     let union_enum_decl =
-      new_decl_enum(decl.pos, enum_type_name, NULL, enum_items, num_items);
+      new_decl_enum(decl.pos, enum_type_name, NULL, enum_items, num_all_items);
     sym_global_decl(union_enum_decl, decl.name);
     enum_union.union_enum_decl = union_enum_decl;
   } else if (decl.kind == DeclKind.Enum) {
@@ -913,7 +913,7 @@ fn resolve_stmt_block(block: StmtList, ret_type: &Type, ctx: StmtCtx) -> bool {
 }
 
 fn resolve_stmt_assign(stmt: &Stmt) {
-  #assert(stmt.kind == StmtKind.Assign);
+  #assert(stmt.kind == Stmt.Assign);
   let left = resolve_expr(stmt.assign.left);
   if (!left.is_lvalue) {
     fatal_error(stmt.pos, "Cannot assign to non-lvalue");
@@ -947,7 +947,7 @@ fn resolve_stmt_assign(stmt: &Stmt) {
 }
 
 fn resolve_stmt_init(stmt: &Stmt) {
-  #assert(stmt.kind == StmtKind.Init);
+  #assert(stmt.kind == Stmt.Init);
   let type = resolve_init(stmt.pos, stmt.init.type, stmt.init.expr);
   if (!stmt.init.is_mut) {
     // type.nonmodifiable = true;
@@ -969,7 +969,7 @@ fn resolve_static_assert(note: Note) {
 
 fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
   switch (stmt.kind) {
-  case StmtKind.Return:
+  case Stmt.Return:
     if (stmt.expr) {
       let operand = resolve_expected_expr_rvalue(stmt.expr, ret_type);
       if (!convert_operand(&operand, ret_type)) {
@@ -979,19 +979,19 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
       fatal_error(stmt.pos, "Empty return expression for function with non-void return type");
     }
     return true;
-  case StmtKind.Break:
+  case Stmt.Break:
     if (!ctx.is_break_legal) {
       fatal_error(stmt.pos, "Illegal break");
     }
     return false;
-  case StmtKind.Continue:
+  case Stmt.Continue:
     if (!ctx.is_continue_legal) {
       fatal_error(stmt.pos, "Illegal continue");
     }
     return false;
-  case StmtKind.Block:
+  case Stmt.Block:
     return resolve_stmt_block(stmt.block, ret_type, ctx);
-  case StmtKind.Note:
+  case Stmt.Note:
     if (stmt.note.name == assert_name) {
       if (stmt.note.num_args != 1) {
         fatal_error(stmt.pos, "#assert takes 1 argument");
@@ -1003,7 +1003,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
       warning(stmt.pos, "Unknown statement #directive '%s'", stmt.note.name);
     }
     return false;
-  case StmtKind.If: {
+  case Stmt.If: {
     let scope = sym_enter();
     if (stmt.if_stmt.init) {
       resolve_stmt_init(stmt.if_stmt.init);
@@ -1027,14 +1027,14 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
     sym_leave(scope);
     return returns;
   }
-  case StmtKind.While:
-  case StmtKind.DoWhile:
+  case Stmt.While:
+  case Stmt.DoWhile:
     resolve_cond_expr(stmt.while_stmt.cond);
     ctx.is_break_legal = true;
     ctx.is_continue_legal = true;
     resolve_stmt_block(stmt.while_stmt.block, ret_type, ctx);
     return false;
-  case StmtKind.For: {
+  case Stmt.For: {
     let scope = sym_enter();
     if (stmt.for_stmt.init) {
       resolve_stmt(stmt.for_stmt.init, ret_type, ctx);
@@ -1051,7 +1051,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
     sym_leave(scope);
     return false;
   }
-  case StmtKind.Switch: {
+  case Stmt.Switch: {
     let operand = resolve_expr_rvalue(stmt.switch_stmt.expr);
     if (!is_integer_type(operand.type)) {
       fatal_error(stmt.pos, "Switch expression must have integer type");
@@ -1094,7 +1094,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
       }
       if (switch_case.block.num_stmts > 1) {
         let last_stmt = switch_case.block.stmts[switch_case.block.num_stmts - 1];
-        if (last_stmt.kind == StmtKind.Break) {
+        if (last_stmt.kind == Stmt.Break) {
           warning(last_stmt.pos, "Case blocks already end with an implicit break");
         }
       }
@@ -1102,19 +1102,19 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
     }
     return returns && has_default;
   }
-  case StmtKind.Assign:
+  case Stmt.Assign:
     resolve_stmt_assign(stmt);
     return false;
-  case StmtKind.Init:
+  case Stmt.Init:
     resolve_stmt_init(stmt);
     return false;
-  case StmtKind.Expr:
+  case Stmt.Expr:
     resolve_expr(stmt.expr);
     return false;
-  case StmtKind.Label:
+  case Stmt.Label:
     define_label(stmt.pos, stmt.label);
     return false;
-  case StmtKind.Goto:
+  case Stmt.Goto:
     reference_label(stmt.pos, stmt.label);
     return false;
   default:

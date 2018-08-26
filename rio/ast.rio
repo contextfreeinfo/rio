@@ -389,7 +389,7 @@ fn get_stmt_note(stmt: &Stmt, name: *const char) -> &Note {
   return NULL;
 }
 
-fn new_stmt(kind: StmtKind, pos: SrcPos) -> &Stmt {
+fn new_stmt(kind: Stmt_Kind, pos: SrcPos) -> &Stmt {
   let s: &Stmt = ast_alloc(sizeof(Stmt));
   s.kind = kind;
   s.pos = pos;
@@ -397,51 +397,51 @@ fn new_stmt(kind: StmtKind, pos: SrcPos) -> &Stmt {
 }
 
 fn new_stmt_label(pos: SrcPos, label: *const char) -> &Stmt {
-  let s = new_stmt(StmtKind.Label, pos);
+  let s = new_stmt(Stmt.Label, pos);
   s.label = label;
   return s;
 }
 
 fn new_stmt_goto(pos: SrcPos, label: *const char) -> &Stmt {
-  let s = new_stmt(StmtKind.Goto, pos);
+  let s = new_stmt(Stmt.Goto, pos);
   s.label = label;
   return s;
 }
 
 fn new_stmt_note(pos: SrcPos, note: Note) -> &Stmt {
-  let s = new_stmt(StmtKind.Note, pos);
+  let s = new_stmt(Stmt.Note, pos);
   s.note = note;
   return s;
 }
 
 fn new_stmt_decl(pos: SrcPos, decl: &Decl) -> &Stmt {
-  let s = new_stmt(StmtKind.Decl, pos);
+  let s = new_stmt(Stmt.Decl, pos);
   s.decl = decl;
   return s;
 }
 
 fn new_stmt_return(pos: SrcPos, expr: &Expr) -> &Stmt {
-  let s = new_stmt(StmtKind.Return, pos);
+  let s = new_stmt(Stmt.Return, pos);
   s.expr = expr;
   return s;
 }
 
 fn new_stmt_break(pos: SrcPos) -> &Stmt {
-  return new_stmt(StmtKind.Break, pos);
+  return new_stmt(Stmt.Break, pos);
 }
 
 fn new_stmt_continue(pos: SrcPos) -> &Stmt {
-  return new_stmt(StmtKind.Continue, pos);
+  return new_stmt(Stmt.Continue, pos);
 }
 
 fn new_stmt_block(pos: SrcPos, block: StmtList) -> &Stmt {
-  let s = new_stmt(StmtKind.Block, pos);
+  let s = new_stmt(Stmt.Block, pos);
   s.block = block;
   return s;
 }
 
 fn new_stmt_if(pos: SrcPos, init: &Stmt, cond: &Expr, then_block: StmtList, elseifs: *ElseIf, num_elseifs: usize, else_block: StmtList) -> &Stmt {
-  let s = new_stmt(StmtKind.If, pos);
+  let s = new_stmt(Stmt.If, pos);
   s.if_stmt.init = init;
   s.if_stmt.cond = cond;
   s.if_stmt.then_block = then_block;
@@ -452,21 +452,21 @@ fn new_stmt_if(pos: SrcPos, init: &Stmt, cond: &Expr, then_block: StmtList, else
 }
 
 fn new_stmt_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
-  let s = new_stmt(StmtKind.While, pos);
+  let s = new_stmt(Stmt.While, pos);
   s.while_stmt.cond = cond;
   s.while_stmt.block = block;
   return s;
 }
 
 fn new_stmt_do_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
-  let s = new_stmt(StmtKind.DoWhile, pos);
+  let s = new_stmt(Stmt.DoWhile, pos);
   s.while_stmt.cond = cond;
   s.while_stmt.block = block;
   return s;
 }
 
 fn new_stmt_for(pos: SrcPos, init: &Stmt, cond: &Expr, next: &Stmt, block: StmtList) -> &Stmt {
-  let s = new_stmt(StmtKind.For, pos);
+  let s = new_stmt(Stmt.For, pos);
   s.for_stmt.init = init;
   s.for_stmt.cond = cond;
   s.for_stmt.next = next;
@@ -475,7 +475,7 @@ fn new_stmt_for(pos: SrcPos, init: &Stmt, cond: &Expr, next: &Stmt, block: StmtL
 }
 
 fn new_stmt_switch(pos: SrcPos, expr: &Expr, cases: *SwitchCase, num_cases: usize) -> &Stmt {
-  let s = new_stmt(StmtKind.Switch, pos);
+  let s = new_stmt(Stmt.Switch, pos);
   s.switch_stmt.expr = expr;
   s.switch_stmt.cases = ast_dup(cases, num_cases * sizeof(*cases));
   s.switch_stmt.num_cases = num_cases;
@@ -483,7 +483,7 @@ fn new_stmt_switch(pos: SrcPos, expr: &Expr, cases: *SwitchCase, num_cases: usiz
 }
 
 fn new_stmt_assign(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &Stmt {
-  let s = new_stmt(StmtKind.Assign, pos);
+  let s = new_stmt(Stmt.Assign, pos);
   s.assign.op = op;
   s.assign.left = left;
   s.assign.right = right;
@@ -491,7 +491,7 @@ fn new_stmt_assign(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &St
 }
 
 fn new_stmt_init(pos: SrcPos, name: *const char, is_mut: bool, type: &Typespec, expr: &Expr) -> &Stmt {
-  let s = new_stmt(StmtKind.Init, pos);
+  let s = new_stmt(Stmt.Init, pos);
   s.init.name = name;
   s.init.is_mut = is_mut;
   s.init.type = type;
@@ -500,7 +500,7 @@ fn new_stmt_init(pos: SrcPos, name: *const char, is_mut: bool, type: &Typespec, 
 }
 
 fn new_stmt_expr(pos: SrcPos, expr: &Expr) -> &Stmt {
-  let s = new_stmt(StmtKind.Expr, pos);
+  let s = new_stmt(Stmt.Expr, pos);
   s.expr = expr;
   return s;
 }

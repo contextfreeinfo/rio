@@ -372,81 +372,23 @@ struct SwitchCase {
   block: StmtList;
 }
 
-enum StmtKind {
-  None,
-  Decl,
-  Return,
-  Break,
-  Continue,
-  Block,
-  If,
-  While,
-  DoWhile,
-  For,
-  Switch,
-  Assign,
-  Init,
-  Expr,
-  Note,
-  Label,
-  Goto,
-}
-
-@enum union StmtDetail {
-  None,
-  Break,
-  Continue: void;
-  DoWhile,
-  While: StmtWhile;
-  Expr,
-  Return: &Expr;
-  Goto,
-  Label: *const char;
-  Assign: StmtAssign;
-  Block: StmtList;
-  Decl: &Decl;
-  For: StmtFor;
-  If: StmtIf;
-  Init: StmtInit;
-  Note: Note;
-  Switch: StmtSwitch;
-}
-
-struct Stmt {
-  kind: StmtKind;
+@enum struct Stmt {
   notes: Notes;
   pos: SrcPos;
-  // Almost @tagged
-  union {
-    note: Note;
-    // Includes: Expr, Return
-    expr: &Expr;
-    decl: &Decl;
-    if_stmt: StmtIf;
-    // Includes: While, DoWhile
-    while_stmt: StmtWhile;
-    for_stmt: StmtFor;
-    switch_stmt: StmtSwitch;
-    block: StmtList;
-    assign: StmtAssign;
-    init: StmtInit;
-    label: *const char;
-    // Voids: Break, Continue
+  union switch {
+    None | Break | Continue => :void;
+    DoWhile | While => while_stmt: StmtWhile;
+    Expr | Return => expr: &Expr;
+    Goto | Label => label: *const char;
+    Assign => assign: StmtAssign;
+    Block => block: StmtList;
+    Decl => decl: &Decl;
+    For => for_stmt: StmtFor;
+    If => if_stmt: StmtIf;
+    Init => init: StmtInit;
+    Note => note: Note;
+    Switch => switch_stmt: StmtSwitch;
   }
-  // union switch {
-  //   None | Break | Continue => void;
-  //   DoWhile | While => while_stmt: StmtWhile;
-  //   Expr | Return => expr: &Expr;
-  //   Goto | Label => label: *const char;
-  //   Assign => assign: StmtAssign;
-  //   Block => block: StmtList;
-  //   Decl => decl: &Decl;
-  //   For => for_stmt: StmtFor;
-  //   If => if_stmt: StmtIf;
-  //   Init => init: StmtInit;
-  //   Note => note: Note;
-  //   Switch => switch_stmt: StmtSwitch;
-  // }
 }
 
 struct StmtIf {

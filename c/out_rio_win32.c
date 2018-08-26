@@ -89,12 +89,12 @@ typedef struct rio_TypeFunc rio_TypeFunc;
 typedef struct rio_Type rio_Type;
 typedef struct TypeFieldInfo TypeFieldInfo;
 typedef struct Any Any;
-typedef struct rio_StmtIf rio_StmtIf;
 typedef struct rio_StmtWhile rio_StmtWhile;
-typedef struct rio_StmtFor rio_StmtFor;
-typedef struct rio_StmtSwitch rio_StmtSwitch;
 typedef struct rio_StmtAssign rio_StmtAssign;
+typedef struct rio_StmtFor rio_StmtFor;
+typedef struct rio_StmtIf rio_StmtIf;
 typedef struct rio_StmtInit rio_StmtInit;
+typedef struct rio_StmtSwitch rio_StmtSwitch;
 typedef struct rio_Stmt rio_Stmt;
 typedef struct rio_TypespecFunc rio_TypespecFunc;
 typedef struct rio_Typespec rio_Typespec;
@@ -123,7 +123,6 @@ typedef struct rio_Decl rio_Decl;
 typedef struct rio_Aggregate rio_Aggregate;
 typedef struct rio_ImportItem rio_ImportItem;
 typedef struct rio_ElseIf rio_ElseIf;
-typedef struct rio_StmtDetail rio_StmtDetail;
 typedef struct rio_BufHdr rio_BufHdr;
 typedef struct rio_Intern rio_Intern;
 typedef struct rio_Package rio_Package;
@@ -379,9 +378,9 @@ rio_Expr (*rio_new_expr_ternary(rio_SrcPos pos, rio_Expr (*cond), rio_Expr (*the
 
 rio_Note (*rio_get_stmt_note(rio_Stmt (*stmt), char const ((*name))));
 
-typedef int rio_StmtKind;
+typedef int rio_Stmt_Kind;
 
-rio_Stmt (*rio_new_stmt(rio_StmtKind kind, rio_SrcPos pos));
+rio_Stmt (*rio_new_stmt(rio_Stmt_Kind kind, rio_SrcPos pos));
 
 rio_Stmt (*rio_new_stmt_label(rio_SrcPos pos, char const ((*label))));
 
@@ -515,65 +514,39 @@ typedef int rio_CompoundFieldKind;
 
 #define rio_CompoundFieldKind_Index ((rio_CompoundFieldKind)((rio_CompoundFieldKind_Name) + (1)))
 
-#define rio_StmtKind_None ((rio_StmtKind)(0))
+#define rio_Stmt_None ((rio_Stmt_Kind)(0))
 
-#define rio_StmtKind_Decl ((rio_StmtKind)((rio_StmtKind_None) + (1)))
+#define rio_Stmt_Break ((rio_Stmt_Kind)((rio_Stmt_None) + (1)))
 
-#define rio_StmtKind_Return ((rio_StmtKind)((rio_StmtKind_Decl) + (1)))
+#define rio_Stmt_Continue ((rio_Stmt_Kind)((rio_Stmt_Break) + (1)))
 
-#define rio_StmtKind_Break ((rio_StmtKind)((rio_StmtKind_Return) + (1)))
+#define rio_Stmt_DoWhile ((rio_Stmt_Kind)((rio_Stmt_Continue) + (1)))
 
-#define rio_StmtKind_Continue ((rio_StmtKind)((rio_StmtKind_Break) + (1)))
+#define rio_Stmt_While ((rio_Stmt_Kind)((rio_Stmt_DoWhile) + (1)))
 
-#define rio_StmtKind_Block ((rio_StmtKind)((rio_StmtKind_Continue) + (1)))
+#define rio_Stmt_Expr ((rio_Stmt_Kind)((rio_Stmt_While) + (1)))
 
-#define rio_StmtKind_If ((rio_StmtKind)((rio_StmtKind_Block) + (1)))
+#define rio_Stmt_Return ((rio_Stmt_Kind)((rio_Stmt_Expr) + (1)))
 
-#define rio_StmtKind_While ((rio_StmtKind)((rio_StmtKind_If) + (1)))
+#define rio_Stmt_Goto ((rio_Stmt_Kind)((rio_Stmt_Return) + (1)))
 
-#define rio_StmtKind_DoWhile ((rio_StmtKind)((rio_StmtKind_While) + (1)))
+#define rio_Stmt_Label ((rio_Stmt_Kind)((rio_Stmt_Goto) + (1)))
 
-#define rio_StmtKind_For ((rio_StmtKind)((rio_StmtKind_DoWhile) + (1)))
+#define rio_Stmt_Assign ((rio_Stmt_Kind)((rio_Stmt_Label) + (1)))
 
-#define rio_StmtKind_Switch ((rio_StmtKind)((rio_StmtKind_For) + (1)))
+#define rio_Stmt_Block ((rio_Stmt_Kind)((rio_Stmt_Assign) + (1)))
 
-#define rio_StmtKind_Assign ((rio_StmtKind)((rio_StmtKind_Switch) + (1)))
+#define rio_Stmt_Decl ((rio_Stmt_Kind)((rio_Stmt_Block) + (1)))
 
-#define rio_StmtKind_Init ((rio_StmtKind)((rio_StmtKind_Assign) + (1)))
+#define rio_Stmt_For ((rio_Stmt_Kind)((rio_Stmt_Decl) + (1)))
 
-#define rio_StmtKind_Expr ((rio_StmtKind)((rio_StmtKind_Init) + (1)))
+#define rio_Stmt_If ((rio_Stmt_Kind)((rio_Stmt_For) + (1)))
 
-#define rio_StmtKind_Note ((rio_StmtKind)((rio_StmtKind_Expr) + (1)))
+#define rio_Stmt_Init ((rio_Stmt_Kind)((rio_Stmt_If) + (1)))
 
-#define rio_StmtKind_Label ((rio_StmtKind)((rio_StmtKind_Note) + (1)))
+#define rio_Stmt_Note ((rio_Stmt_Kind)((rio_Stmt_Init) + (1)))
 
-#define rio_StmtKind_Goto ((rio_StmtKind)((rio_StmtKind_Label) + (1)))
-
-typedef int rio_StmtDetail_Kind;
-
-#define rio_StmtDetail_None ((rio_StmtDetail_Kind)(0))
-
-#define rio_StmtDetail_Break ((rio_StmtDetail_Kind)((rio_StmtDetail_None) + (1)))
-
-#define rio_StmtDetail_Continue ((rio_StmtDetail_Kind)((rio_StmtDetail_Break) + (1)))
-
-#define rio_StmtDetail_DoWhile ((rio_StmtDetail_Kind)((rio_StmtDetail_Continue) + (1)))
-
-#define rio_StmtDetail_While ((rio_StmtDetail_Kind)((rio_StmtDetail_DoWhile) + (1)))
-
-#define rio_StmtDetail_Expr ((rio_StmtDetail_Kind)((rio_StmtDetail_While) + (1)))
-
-#define rio_StmtDetail_Return ((rio_StmtDetail_Kind)((rio_StmtDetail_Expr) + (1)))
-
-#define rio_StmtDetail_Goto ((rio_StmtDetail_Kind)((rio_StmtDetail_Return) + (1)))
-
-#define rio_StmtDetail_Label ((rio_StmtDetail_Kind)((rio_StmtDetail_Goto) + (1)))
-
-#define rio_StmtDetail_Assign ((rio_StmtDetail_Kind)((rio_StmtDetail_Label) + (1)))
-
-#define rio_StmtDetail_Block ((rio_StmtDetail_Kind)((rio_StmtDetail_Assign) + (1)))
-
-#define rio_StmtDetail_Decl ((rio_StmtDetail_Kind)((rio_StmtDetail_Block) + (1)))
+#define rio_Stmt_Switch ((rio_Stmt_Kind)((rio_Stmt_Note) + (1)))
 
 size_t rio_min(size_t x, size_t y);
 
@@ -1971,18 +1944,15 @@ struct Any {
   typeid type;
 };
 
-struct rio_StmtIf {
-  rio_Stmt (*init);
-  rio_Expr (*cond);
-  rio_StmtList then_block;
-  rio_ElseIf (*elseifs);
-  size_t num_elseifs;
-  rio_StmtList else_block;
-};
-
 struct rio_StmtWhile {
   rio_Expr (*cond);
   rio_StmtList block;
+};
+
+struct rio_StmtAssign {
+  rio_TokenKind op;
+  rio_Expr (*left);
+  rio_Expr (*right);
 };
 
 struct rio_StmtFor {
@@ -1992,16 +1962,13 @@ struct rio_StmtFor {
   rio_StmtList block;
 };
 
-struct rio_StmtSwitch {
-  rio_Expr (*expr);
-  rio_SwitchCase (*cases);
-  size_t num_cases;
-};
-
-struct rio_StmtAssign {
-  rio_TokenKind op;
-  rio_Expr (*left);
-  rio_Expr (*right);
+struct rio_StmtIf {
+  rio_Stmt (*init);
+  rio_Expr (*cond);
+  rio_StmtList then_block;
+  rio_ElseIf (*elseifs);
+  size_t num_elseifs;
+  rio_StmtList else_block;
 };
 
 struct rio_StmtInit {
@@ -2011,22 +1978,29 @@ struct rio_StmtInit {
   rio_Expr (*expr);
 };
 
+struct rio_StmtSwitch {
+  rio_Expr (*expr);
+  rio_SwitchCase (*cases);
+  size_t num_cases;
+};
+
 struct rio_Stmt {
-  rio_StmtKind kind;
+  rio_Stmt_Kind kind;
   rio_Notes notes;
   rio_SrcPos pos;
   union {
-    rio_Note note;
-    rio_Expr (*expr);
-    rio_Decl (*decl);
-    rio_StmtIf if_stmt;
+    // void;
     rio_StmtWhile while_stmt;
-    rio_StmtFor for_stmt;
-    rio_StmtSwitch switch_stmt;
-    rio_StmtList block;
-    rio_StmtAssign assign;
-    rio_StmtInit init;
+    rio_Expr (*expr);
     char const ((*label));
+    rio_StmtAssign assign;
+    rio_StmtList block;
+    rio_Decl (*decl);
+    rio_StmtFor for_stmt;
+    rio_StmtIf if_stmt;
+    rio_StmtInit init;
+    rio_Note note;
+    rio_StmtSwitch switch_stmt;
   };
 };
 
@@ -2226,29 +2200,6 @@ struct rio_ImportItem {
 struct rio_ElseIf {
   rio_Expr (*cond);
   rio_StmtList block;
-};
-
-struct rio_StmtDetail {
-  rio_StmtDetail_Kind kind;
-  union {
-    // void None;
-    // void Break;
-    // void Continue;
-    rio_StmtWhile DoWhile;
-    rio_StmtWhile While;
-    rio_Expr (*Expr);
-    rio_Expr (*Return);
-    char const ((*Goto));
-    char const ((*Label));
-    rio_StmtAssign Assign;
-    rio_StmtList Block;
-    rio_Decl (*Decl);
-    rio_StmtFor For;
-    rio_StmtIf If;
-    rio_StmtInit Init;
-    rio_Note Note;
-    rio_StmtSwitch Switch;
-  };
 };
 
 struct rio_BufHdr {
@@ -2730,7 +2681,7 @@ rio_Note (*rio_get_stmt_note(rio_Stmt (*stmt), char const ((*name)))) {
   return NULL;
 }
 
-rio_Stmt (*rio_new_stmt(rio_StmtKind kind, rio_SrcPos pos)) {
+rio_Stmt (*rio_new_stmt(rio_Stmt_Kind kind, rio_SrcPos pos)) {
   rio_Stmt (*s) = rio_ast_alloc(sizeof(rio_Stmt));
   s->kind = kind;
   s->pos = pos;
@@ -2738,51 +2689,51 @@ rio_Stmt (*rio_new_stmt(rio_StmtKind kind, rio_SrcPos pos)) {
 }
 
 rio_Stmt (*rio_new_stmt_label(rio_SrcPos pos, char const ((*label)))) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Label), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Label), pos);
   s->label = label;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_goto(rio_SrcPos pos, char const ((*label)))) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Goto), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Goto), pos);
   s->label = label;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_note(rio_SrcPos pos, rio_Note note)) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Note), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Note), pos);
   s->note = note;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_decl(rio_SrcPos pos, rio_Decl (*decl))) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Decl), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Decl), pos);
   s->decl = decl;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_return(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Return), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Return), pos);
   s->expr = expr;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_break(rio_SrcPos pos)) {
-  return rio_new_stmt((rio_StmtKind_Break), pos);
+  return rio_new_stmt((rio_Stmt_Break), pos);
 }
 
 rio_Stmt (*rio_new_stmt_continue(rio_SrcPos pos)) {
-  return rio_new_stmt((rio_StmtKind_Continue), pos);
+  return rio_new_stmt((rio_Stmt_Continue), pos);
 }
 
 rio_Stmt (*rio_new_stmt_block(rio_SrcPos pos, rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Block), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Block), pos);
   s->block = block;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_StmtList then_block, rio_ElseIf (*elseifs), size_t num_elseifs, rio_StmtList else_block)) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_If), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_If), pos);
   s->if_stmt.init = init;
   s->if_stmt.cond = cond;
   s->if_stmt.then_block = then_block;
@@ -2793,21 +2744,21 @@ rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), r
 }
 
 rio_Stmt (*rio_new_stmt_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_While), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_While), pos);
   s->while_stmt.cond = cond;
   s->while_stmt.block = block;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_do_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_DoWhile), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_DoWhile), pos);
   s->while_stmt.cond = cond;
   s->while_stmt.block = block;
   return s;
 }
 
 rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_Stmt (*next), rio_StmtList block)) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_For), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_For), pos);
   s->for_stmt.init = init;
   s->for_stmt.cond = cond;
   s->for_stmt.next = next;
@@ -2816,7 +2767,7 @@ rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), 
 }
 
 rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_SwitchCase (*cases), size_t num_cases)) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Switch), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Switch), pos);
   s->switch_stmt.expr = expr;
   s->switch_stmt.cases = rio_ast_dup(cases, (num_cases) * (sizeof(*(cases))));
   s->switch_stmt.num_cases = num_cases;
@@ -2824,7 +2775,7 @@ rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_SwitchCase 
 }
 
 rio_Stmt (*rio_new_stmt_assign(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left), rio_Expr (*right))) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Assign), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Assign), pos);
   s->assign.op = op;
   s->assign.left = left;
   s->assign.right = right;
@@ -2832,7 +2783,7 @@ rio_Stmt (*rio_new_stmt_assign(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left
 }
 
 rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, rio_Typespec (*type), rio_Expr (*expr))) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Init), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Init), pos);
   s->init.name = name;
   s->init.is_mut = is_mut;
   s->init.type = type;
@@ -2841,7 +2792,7 @@ rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, 
 }
 
 rio_Stmt (*rio_new_stmt_expr(rio_SrcPos pos, rio_Expr (*expr))) {
-  rio_Stmt (*s) = rio_new_stmt((rio_StmtKind_Expr), pos);
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Expr), pos);
   s->expr = expr;
   return s;
 }
@@ -3908,11 +3859,11 @@ void rio_gen_stmt_block(rio_StmtList block) {
 
 void rio_gen_simple_stmt(rio_Stmt (*stmt)) {
   switch (stmt->kind) {
-  case (rio_StmtKind_Expr): {
+  case (rio_Stmt_Expr): {
     rio_gen_expr(stmt->expr);
     break;
   }
-  case (rio_StmtKind_Init): {
+  case (rio_Stmt_Init): {
     if (stmt->init.type) {
       rio_Typespec (*init_typespec) = stmt->init.type;
       if (rio_is_incomplete_array_typespec(stmt->init.type)) {
@@ -3931,7 +3882,7 @@ void rio_gen_simple_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case (rio_StmtKind_Assign): {
+  case (rio_Stmt_Assign): {
     rio_gen_expr(stmt->assign.left);
     rio_buf_printf(&(rio_gen_buf), " %s ", rio_token_kind_name(stmt->assign.op));
     rio_gen_expr(stmt->assign.right);
@@ -3950,7 +3901,7 @@ bool rio_is_char_lit(rio_Expr (*expr)) {
 void rio_gen_stmt(rio_Stmt (*stmt)) {
   rio_gen_sync_pos(stmt->pos);
   switch (stmt->kind) {
-  case (rio_StmtKind_Return): {
+  case (rio_Stmt_Return): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "return");
     if (stmt->expr) {
@@ -3960,22 +3911,22 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_buf_printf(&(rio_gen_buf), ";");
     break;
   }
-  case (rio_StmtKind_Break): {
+  case (rio_Stmt_Break): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "break;");
     break;
   }
-  case (rio_StmtKind_Continue): {
+  case (rio_Stmt_Continue): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "continue;");
     break;
   }
-  case (rio_StmtKind_Block): {
+  case (rio_Stmt_Block): {
     rio_genln();
     rio_gen_stmt_block(stmt->block);
     break;
   }
-  case (rio_StmtKind_Note): {
+  case (rio_Stmt_Note): {
     if ((stmt->note.name) == (rio_assert_name)) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "assert(");
@@ -3985,7 +3936,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case (rio_StmtKind_If): {
+  case (rio_Stmt_If): {
     if (stmt->if_stmt.init) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "{");
@@ -4032,7 +3983,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case (rio_StmtKind_While): {
+  case (rio_Stmt_While): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "while (");
     rio_gen_expr(stmt->while_stmt.cond);
@@ -4040,7 +3991,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_gen_stmt_block(stmt->while_stmt.block);
     break;
   }
-  case (rio_StmtKind_DoWhile): {
+  case (rio_Stmt_DoWhile): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "do ");
     rio_gen_stmt_block(stmt->while_stmt.block);
@@ -4049,7 +4000,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_buf_printf(&(rio_gen_buf), ");");
     break;
   }
-  case (rio_StmtKind_For): {
+  case (rio_Stmt_For): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "for (");
     if (stmt->for_stmt.init) {
@@ -4069,7 +4020,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_gen_stmt_block(stmt->for_stmt.block);
     break;
   }
-  case (rio_StmtKind_Switch): {
+  case (rio_Stmt_Switch): {
     {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "switch (");
@@ -4144,12 +4095,12 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
-  case (rio_StmtKind_Label): {
+  case (rio_Stmt_Label): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "%s: ;", stmt->label);
     break;
   }
-  case (rio_StmtKind_Goto): {
+  case (rio_Stmt_Goto): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "goto %s;", stmt->label);
     break;
@@ -6161,7 +6112,7 @@ rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
   if (rio_match_token((rio_TokenKind_Semicolon))) {
     if (!(rio_is_token((rio_TokenKind_Rparen)))) {
       next = rio_parse_simple_stmt();
-      if ((next->kind) == ((rio_StmtKind_Init))) {
+      if ((next->kind) == ((rio_Stmt_Init))) {
         rio_error(rio_token.pos, "Init statements not allowed in for-statement\'s next clause");
       }
     }
@@ -6264,7 +6215,7 @@ rio_Stmt (*rio_parse_stmt(void)) {
     rio_expect_token((rio_TokenKind_Semicolon));
   } else {
     stmt = rio_parse_simple_stmt();
-    if ((stmt->kind) != ((rio_StmtKind_Label))) {
+    if ((stmt->kind) != ((rio_Stmt_Label))) {
       rio_expect_token((rio_TokenKind_Semicolon));
     }
   }
@@ -6858,7 +6809,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
         enum_items[(enum_item_index)++] = (rio_EnumItem){.pos = union_item->pos, .name = names[n], .init = NULL};
       }
     }
-    rio_Decl (*union_enum_decl) = rio_new_decl_enum(decl->pos, enum_type_name, NULL, enum_items, num_items);
+    rio_Decl (*union_enum_decl) = rio_new_decl_enum(decl->pos, enum_type_name, NULL, enum_items, num_all_items);
     rio_sym_global_decl(union_enum_decl, decl->name);
     enum_union->union_enum_decl = union_enum_decl;
   } else if ((decl->kind) == ((rio_DeclKind_Enum))) {
@@ -7463,7 +7414,7 @@ bool rio_resolve_stmt_block(rio_StmtList block, rio_Type (*ret_type), rio_StmtCt
 }
 
 void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
-  assert((stmt->kind) == ((rio_StmtKind_Assign)));
+  assert((stmt->kind) == ((rio_Stmt_Assign)));
   rio_Operand left = rio_resolve_expr(stmt->assign.left);
   if (!(left.is_lvalue)) {
     rio_fatal_error(stmt->pos, "Cannot assign to non-lvalue");
@@ -7497,7 +7448,7 @@ void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
 }
 
 void rio_resolve_stmt_init(rio_Stmt (*stmt)) {
-  assert((stmt->kind) == ((rio_StmtKind_Init)));
+  assert((stmt->kind) == ((rio_Stmt_Init)));
   rio_Type (*type) = rio_resolve_init(stmt->pos, stmt->init.type, stmt->init.expr);
   if (!(stmt->init.is_mut)) {
   }
@@ -7518,7 +7469,7 @@ void rio_resolve_static_assert(rio_Note note) {
 
 bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
   switch (stmt->kind) {
-  case (rio_StmtKind_Return): {
+  case (rio_Stmt_Return): {
     if (stmt->expr) {
       rio_Operand operand = rio_resolve_expected_expr_rvalue(stmt->expr, ret_type);
       if (!(rio_convert_operand(&(operand), ret_type))) {
@@ -7530,25 +7481,25 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return true;
     break;
   }
-  case (rio_StmtKind_Break): {
+  case (rio_Stmt_Break): {
     if (!(ctx.is_break_legal)) {
       rio_fatal_error(stmt->pos, "Illegal break");
     }
     return false;
     break;
   }
-  case (rio_StmtKind_Continue): {
+  case (rio_Stmt_Continue): {
     if (!(ctx.is_continue_legal)) {
       rio_fatal_error(stmt->pos, "Illegal continue");
     }
     return false;
     break;
   }
-  case (rio_StmtKind_Block): {
+  case (rio_Stmt_Block): {
     return rio_resolve_stmt_block(stmt->block, ret_type, ctx);
     break;
   }
-  case (rio_StmtKind_Note): {
+  case (rio_Stmt_Note): {
     if ((stmt->note.name) == (rio_assert_name)) {
       if ((stmt->note.num_args) != (1)) {
         rio_fatal_error(stmt->pos, "#assert takes 1 argument");
@@ -7562,7 +7513,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return false;
     break;
   }
-  case (rio_StmtKind_If): {
+  case (rio_Stmt_If): {
     {
       rio_Sym (*scope) = rio_sym_enter();
       if (stmt->if_stmt.init) {
@@ -7589,8 +7540,8 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     }
     break;
   }
-  case (rio_StmtKind_While):
-  case (rio_StmtKind_DoWhile): {
+  case (rio_Stmt_While):
+  case (rio_Stmt_DoWhile): {
     rio_resolve_cond_expr(stmt->while_stmt.cond);
     ctx.is_break_legal = true;
     ctx.is_continue_legal = true;
@@ -7598,7 +7549,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return false;
     break;
   }
-  case (rio_StmtKind_For): {
+  case (rio_Stmt_For): {
     {
       rio_Sym (*scope) = rio_sym_enter();
       if (stmt->for_stmt.init) {
@@ -7618,7 +7569,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     }
     break;
   }
-  case (rio_StmtKind_Switch): {
+  case (rio_Stmt_Switch): {
     {
       rio_Operand operand = rio_resolve_expr_rvalue(stmt->switch_stmt.expr);
       if (!(rio_is_integer_type(operand.type))) {
@@ -7662,7 +7613,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
         }
         if ((switch_case.block.num_stmts) > (1)) {
           rio_Stmt (*last_stmt) = switch_case.block.stmts[(switch_case.block.num_stmts) - (1)];
-          if ((last_stmt->kind) == ((rio_StmtKind_Break))) {
+          if ((last_stmt->kind) == ((rio_Stmt_Break))) {
             rio_warning(last_stmt->pos, "Case blocks already end with an implicit break");
           }
         }
@@ -7672,27 +7623,27 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     }
     break;
   }
-  case (rio_StmtKind_Assign): {
+  case (rio_Stmt_Assign): {
     rio_resolve_stmt_assign(stmt);
     return false;
     break;
   }
-  case (rio_StmtKind_Init): {
+  case (rio_Stmt_Init): {
     rio_resolve_stmt_init(stmt);
     return false;
     break;
   }
-  case (rio_StmtKind_Expr): {
+  case (rio_Stmt_Expr): {
     rio_resolve_expr(stmt->expr);
     return false;
     break;
   }
-  case (rio_StmtKind_Label): {
+  case (rio_Stmt_Label): {
     rio_define_label(stmt->pos, stmt->label);
     return false;
     break;
   }
-  case (rio_StmtKind_Goto): {
+  case (rio_Stmt_Goto): {
     rio_reference_label(stmt->pos, stmt->label);
     return false;
     break;

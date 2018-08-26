@@ -663,9 +663,9 @@ fn gen_stmt_block(block: StmtList) {
 fn gen_simple_stmt(stmt: &Stmt) {
   @complete
   switch (stmt.kind) {
-  case StmtKind.Expr:
+  case Stmt.Expr:
     gen_expr(stmt.expr);
-  case StmtKind.Init:
+  case Stmt.Init:
     if (stmt.init.type) {
       let init_typespec = stmt.init.type;
       if (is_incomplete_array_typespec(stmt.init.type)) {
@@ -682,7 +682,7 @@ fn gen_simple_stmt(stmt: &Stmt) {
       buf_printf(&gen_buf, "%s = ", type_to_cdecl(unqualify_type(get_resolved_type(stmt.init.expr)), stmt.init.name));
       gen_expr(stmt.init.expr);
     }
-  case StmtKind.Assign:
+  case Stmt.Assign:
     gen_expr(stmt.assign.left);
     buf_printf(&gen_buf, " %s ", token_kind_name(stmt.assign.op));
     gen_expr(stmt.assign.right);
@@ -696,28 +696,28 @@ fn is_char_lit(expr: &Expr) -> bool {
 fn gen_stmt(stmt: &Stmt) {
   gen_sync_pos(stmt.pos);
   switch (stmt.kind) {
-  case StmtKind.Return:
+  case Stmt.Return:
     genln(); buf_printf(&gen_buf, "return");
     if (stmt.expr) {
       buf_printf(&gen_buf, " ");
       gen_expr(stmt.expr);
     }
     buf_printf(&gen_buf, ";");
-  case StmtKind.Break:
+  case Stmt.Break:
     genln(); buf_printf(&gen_buf, "break;");
-  case StmtKind.Continue:
+  case Stmt.Continue:
     genln(); buf_printf(&gen_buf, "continue;");
-  case StmtKind.Block:
+  case Stmt.Block:
     genln();
     gen_stmt_block(stmt.block);
-  case StmtKind.Note:
+  case Stmt.Note:
     if (stmt.note.name == assert_name) {
       genln(); buf_printf(&gen_buf, "assert(");
       #assert(stmt.note.num_args == 1);
       gen_expr(stmt.note.args[0].expr);
       buf_printf(&gen_buf, ");");
     }
-  case StmtKind.If:
+  case Stmt.If:
     if (stmt.if_stmt.init) {
       genln(); buf_printf(&gen_buf, "{");
       gen_indent++;
@@ -757,18 +757,18 @@ fn gen_stmt(stmt: &Stmt) {
       gen_indent--;
       genln(); buf_printf(&gen_buf, "}");
     }
-  case StmtKind.While:
+  case Stmt.While:
     genln(); buf_printf(&gen_buf, "while (");
     gen_expr(stmt.while_stmt.cond);
     buf_printf(&gen_buf, ") ");
     gen_stmt_block(stmt.while_stmt.block);
-  case StmtKind.DoWhile:
+  case Stmt.DoWhile:
     genln(); buf_printf(&gen_buf, "do ");
     gen_stmt_block(stmt.while_stmt.block);
     buf_printf(&gen_buf, " while (");
     gen_expr(stmt.while_stmt.cond);
     buf_printf(&gen_buf, ");");
-  case StmtKind.For:
+  case Stmt.For:
     genln(); buf_printf(&gen_buf, "for (");
     if (stmt.for_stmt.init) {
       gen_simple_stmt(stmt.for_stmt.init);
@@ -785,7 +785,7 @@ fn gen_stmt(stmt: &Stmt) {
     }
     buf_printf(&gen_buf, ") ");
     gen_stmt_block(stmt.for_stmt.block);
-  case StmtKind.Switch: {
+  case Stmt.Switch: {
     genln(); buf_printf(&gen_buf, "switch (");
     gen_expr(stmt.switch_stmt.expr);
     buf_printf(&gen_buf, ") {");
@@ -847,9 +847,9 @@ fn gen_stmt(stmt: &Stmt) {
     }
     genln(); buf_printf(&gen_buf, "}");
   }
-  case StmtKind.Label:
+  case Stmt.Label:
     genln(); buf_printf(&gen_buf, "%s: ;", stmt.label);
-  case StmtKind.Goto:
+  case Stmt.Goto:
     genln(); buf_printf(&gen_buf, "goto %s;", stmt.label);
   default:
     genln();
