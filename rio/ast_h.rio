@@ -24,52 +24,15 @@ struct StmtList {
   num_stmts: usize;
 }
 
-enum TypespecKind {
-  None,
-  Name,
-  Func,
-  Array,
-  Ptr,
-  Ref,
-  Const,
-}
-
-// enum union TypespecDetail {
-//   None,
-//   Ptr,
-//   Ref,
-//   Const;
-//   Name: *const char;
-//   Func: TypespecFunc;
-//   Array: struct {
-//     num_elems: *Expr;
-//   }
-// }
-// TypespecDetail{Name=blah}
-// TypespecDetail.None
-
-// enum TypespecDetail {
-//   None,
-//   Name(*const char),
-//   Func(TypespecFunc),
-//   Array {num_elems: *Expr},
-//   Ptr,
-//   Ref,
-//   Const,
-// }
-// TypespecDetail.Name(blah)
-
 struct Typespec {
-  kind: TypespecKind;
   pos: SrcPos;
   base: &Typespec;
   is_owned: bool;
-  // Almost @tagged
-  union {
-    name: *const char;
-    function: TypespecFunc;
-    num_elems: *Expr;
-    // Voids?: Ptr, Ref, Const
+  union switch {
+    None | Const | Ptr | Ref => :void;
+    Name => name: *const char;
+    Func => function: TypespecFunc;
+    Array => num_elems: *Expr;
   }
 }
 

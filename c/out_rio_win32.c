@@ -272,9 +272,9 @@ struct rio_StmtList {
 
 rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Stmt (*(*stmts)), size_t num_stmts);
 
-typedef int rio_TypespecKind;
+typedef int rio_Typespec_Kind;
 
-rio_Typespec (*rio_new_typespec(rio_TypespecKind kind, rio_SrcPos pos));
+rio_Typespec (*rio_new_typespec(rio_Typespec_Kind kind, rio_SrcPos pos));
 
 rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, char const ((*name))));
 
@@ -412,19 +412,19 @@ rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, 
 
 rio_Stmt (*rio_new_stmt_expr(rio_SrcPos pos, rio_Expr (*expr)));
 
-#define rio_TypespecKind_None ((rio_TypespecKind)(0))
+#define rio_Typespec_None ((rio_Typespec_Kind)(0))
 
-#define rio_TypespecKind_Name ((rio_TypespecKind)((rio_TypespecKind_None) + (1)))
+#define rio_Typespec_Const ((rio_Typespec_Kind)((rio_Typespec_None) + (1)))
 
-#define rio_TypespecKind_Func ((rio_TypespecKind)((rio_TypespecKind_Name) + (1)))
+#define rio_Typespec_Ptr ((rio_Typespec_Kind)((rio_Typespec_Const) + (1)))
 
-#define rio_TypespecKind_Array ((rio_TypespecKind)((rio_TypespecKind_Func) + (1)))
+#define rio_Typespec_Ref ((rio_Typespec_Kind)((rio_Typespec_Ptr) + (1)))
 
-#define rio_TypespecKind_Ptr ((rio_TypespecKind)((rio_TypespecKind_Array) + (1)))
+#define rio_Typespec_Name ((rio_Typespec_Kind)((rio_Typespec_Ref) + (1)))
 
-#define rio_TypespecKind_Ref ((rio_TypespecKind)((rio_TypespecKind_Ptr) + (1)))
+#define rio_Typespec_Func ((rio_Typespec_Kind)((rio_Typespec_Name) + (1)))
 
-#define rio_TypespecKind_Const ((rio_TypespecKind)((rio_TypespecKind_Ref) + (1)))
+#define rio_Typespec_Array ((rio_Typespec_Kind)((rio_Typespec_Func) + (1)))
 
 typedef int rio_AggregateItemKind;
 
@@ -2012,11 +2012,12 @@ struct rio_TypespecFunc {
 };
 
 struct rio_Typespec {
-  rio_TypespecKind kind;
+  rio_Typespec_Kind kind;
   rio_SrcPos pos;
   rio_Typespec (*base);
   bool is_owned;
   union {
+    // void;
     char const ((*name));
     rio_TypespecFunc function;
     rio_Expr (*num_elems);
@@ -2331,7 +2332,7 @@ rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Stmt (*(*stmts)), size_t num_
   return (rio_StmtList){pos, rio_ast_dup(stmts, (num_stmts) * (sizeof(*(stmts)))), num_stmts};
 }
 
-rio_Typespec (*rio_new_typespec(rio_TypespecKind kind, rio_SrcPos pos)) {
+rio_Typespec (*rio_new_typespec(rio_Typespec_Kind kind, rio_SrcPos pos)) {
   rio_Typespec (*t) = rio_ast_alloc(sizeof(rio_Typespec));
   t->kind = kind;
   t->pos = pos;
@@ -2339,40 +2340,40 @@ rio_Typespec (*rio_new_typespec(rio_TypespecKind kind, rio_SrcPos pos)) {
 }
 
 rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, char const ((*name)))) {
-  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Name), pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Name), pos);
   t->name = name;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_ptr(rio_SrcPos pos, rio_Typespec (*base), bool is_owned)) {
-  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Ptr), pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Ptr), pos);
   t->base = base;
   t->is_owned = is_owned;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_ref(rio_SrcPos pos, rio_Typespec (*base), bool is_owned)) {
-  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Ref), pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Ref), pos);
   t->base = base;
   t->is_owned = is_owned;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_const(rio_SrcPos pos, rio_Typespec (*base))) {
-  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Const), pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Const), pos);
   t->base = base;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_array(rio_SrcPos pos, rio_Typespec (*elem), rio_Expr (*size))) {
-  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Array), pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Array), pos);
   t->base = elem;
   t->num_elems = size;
   return t;
 }
 
 rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Typespec (*(*args)), size_t num_args, rio_Typespec (*ret), bool has_varargs)) {
-  rio_Typespec (*t) = rio_new_typespec((rio_TypespecKind_Func), pos);
+  rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Func), pos);
   t->function.args = rio_ast_dup(args, (num_args) * (sizeof(*(args))));
   t->function.num_args = num_args;
   t->function.ret = ret;
@@ -3275,7 +3276,7 @@ void rio_genln(void) {
 }
 
 bool rio_is_incomplete_array_typespec(rio_Typespec (*typespec)) {
-  return ((typespec->kind) == ((rio_TypespecKind_Array))) && (!(typespec->num_elems));
+  return ((typespec->kind) == ((rio_Typespec_Array))) && (!(typespec->num_elems));
 }
 
 char (rio_char_to_escape[256]) = {['\0'] = '0', ['\n'] = 'n', ['\r'] = 'r', ['\t'] = 't', ['\v'] = 'v', ['\b'] = 'b', ['\a'] = 'a', ['\\'] = '\\', ['\"'] = '\"', ['\''] = '\''};
@@ -3439,20 +3440,20 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
     return rio_strf("void%s%s", (*(str) ? " " : ""), str);
   }
   switch (typespec->kind) {
-  case (rio_TypespecKind_Name): {
+  case (rio_Typespec_Name): {
     return rio_strf("%s%s%s", rio_get_gen_name_or_default(typespec, typespec->name), (*(str) ? " " : ""), str);
     break;
   }
-  case (rio_TypespecKind_Ptr):
-  case (rio_TypespecKind_Ref): {
+  case (rio_Typespec_Ptr):
+  case (rio_Typespec_Ref): {
     return rio_typespec_to_cdecl(typespec->base, rio_cdecl_paren(rio_strf("*%s", str), *(str)));
     break;
   }
-  case (rio_TypespecKind_Const): {
+  case (rio_Typespec_Const): {
     return rio_typespec_to_cdecl(typespec->base, rio_strf("const %s", rio_cdecl_paren(str, *(str))));
     break;
   }
-  case (rio_TypespecKind_Array): {
+  case (rio_Typespec_Array): {
     if ((typespec->num_elems) == (0)) {
       return rio_typespec_to_cdecl(typespec->base, rio_cdecl_paren(rio_strf("%s[]", str), *(str)));
     } else {
@@ -3460,7 +3461,7 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
     }
     break;
   }
-  case (rio_TypespecKind_Func): {
+  case (rio_Typespec_Func): {
     char (*result) = NULL;
     rio_buf_printf(&(result), "(*%s)(", str);
     if ((typespec->function.num_args) == (0)) {
@@ -3552,7 +3553,7 @@ void rio_gen_aggregate_item(rio_AggregateItem (*item)) {
     for (size_t j = 0; (j) < (item->num_names); (j)++) {
       rio_gen_sync_pos(item->pos);
       char (*prefix) = "";
-      if ((item->type->kind) == ((rio_TypespecKind_Name))) {
+      if ((item->type->kind) == ((rio_Typespec_Name))) {
         char const ((*name)) = rio_get_gen_name_or_default(item->type, item->type->name);
         if ((name) == (rio_void_name)) {
           prefix = "// ";
@@ -5640,7 +5641,7 @@ void rio_dir_list(rio_DirListIter (*iter), char const ((*path))) {
 rio_Typespec (*rio_parse_type_func_param(void)) {
   rio_Typespec (*type) = rio_parse_type();
   if (rio_match_token((rio_TokenKind_Colon))) {
-    if ((type->kind) != ((rio_TypespecKind_Name))) {
+    if ((type->kind) != ((rio_Typespec_Name))) {
       rio_error(rio_token.pos, "Colons in parameters of fn types must be preceded by names.");
     }
     type = rio_parse_type();
@@ -6352,7 +6353,7 @@ rio_AggregateItem (*rio_parse_switch_union(void)) {
     rio_AggregateItem item = {0};
     if (rio_match_token((rio_TokenKind_Colon))) {
       rio_Typespec (*type) = rio_parse_type();
-      if (!((((type->kind) == ((rio_TypespecKind_Name))) && ((type->name) == (rio_void_name))))) {
+      if (!((((type->kind) == ((rio_Typespec_Name))) && ((type->name) == (rio_void_name))))) {
         rio_fatal_error(rio_token.pos, "Anonymous switch fields can only be void");
         return NULL;
       }
@@ -7144,7 +7145,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
   }
   rio_Type (*result) = NULL;
   switch (typespec->kind) {
-  case (rio_TypespecKind_Name): {
+  case (rio_Typespec_Name): {
     {
       rio_Sym (*sym) = rio_resolve_name(typespec->name);
       if (!(sym)) {
@@ -7159,19 +7160,19 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     }
     break;
   }
-  case (rio_TypespecKind_Const): {
+  case (rio_Typespec_Const): {
     result = rio_type_const(rio_resolve_typespec(typespec->base));
     break;
   }
-  case (rio_TypespecKind_Ptr): {
+  case (rio_Typespec_Ptr): {
     result = rio_type_ptr(rio_resolve_typespec(typespec->base));
     break;
   }
-  case (rio_TypespecKind_Ref): {
+  case (rio_Typespec_Ref): {
     result = rio_type_ref(rio_resolve_typespec(typespec->base));
     break;
   }
-  case (rio_TypespecKind_Array): {
+  case (rio_Typespec_Array): {
     {
       int size = 0;
       if (typespec->num_elems) {
@@ -7189,7 +7190,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     }
     break;
   }
-  case (rio_TypespecKind_Func): {
+  case (rio_Typespec_Func): {
     {
       rio_Type (*(*args)) = NULL;
       for (size_t i = 0; (i) < (typespec->function.num_args); (i)++) {

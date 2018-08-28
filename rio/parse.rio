@@ -1,7 +1,7 @@
 fn parse_type_func_param() -> &Typespec {
   let type = parse_type();
   if (match_token(TokenKind.Colon)) {
-    if (type.kind != TypespecKind.Name) {
+    if (type.kind != Typespec.Name) {
       error(token.pos, "Colons in parameters of fn types must be preceded by names.");
     }
     type = parse_type();
@@ -765,7 +765,7 @@ fn parse_switch_union() -> *AggregateItem {
     let item: AggregateItem;
     if (match_token(TokenKind.Colon)) {
       let type = parse_type();
-      if (!(type.kind == TypespecKind.Name && type.name == void_name)) {
+      if (!(type.kind == Typespec.Name && type.name == void_name)) {
         fatal_error(token.pos, "Anonymous switch fields can only be void");
         return NULL;
       }

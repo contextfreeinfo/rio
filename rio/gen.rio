@@ -123,7 +123,7 @@ fn genln() {
 }
 
 fn is_incomplete_array_typespec(typespec: &Typespec) -> bool {
-  return typespec.kind == TypespecKind.Array && !typespec.num_elems;
+  return typespec.kind == Typespec.Array && !typespec.num_elems;
 }
 
 let char_to_escape: [256]char = {
@@ -287,20 +287,20 @@ fn typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
     return strf("void%s%s", *str ? " " : "", str);
   }
   switch (typespec.kind) {
-  case TypespecKind.Name:
+  case Typespec.Name:
     return strf("%s%s%s", get_gen_name_or_default(typespec, typespec.name), *str ? " " : "", str);
-  case TypespecKind.Ptr:
-  case TypespecKind.Ref:
+  case Typespec.Ptr:
+  case Typespec.Ref:
     return typespec_to_cdecl(typespec.base, cdecl_paren(strf("*%s", str), *str));
-  case TypespecKind.Const:
+  case Typespec.Const:
     return typespec_to_cdecl(typespec.base, strf("const %s", cdecl_paren(str, *str)));
-  case TypespecKind.Array:
+  case Typespec.Array:
     if (typespec.num_elems == 0) {
       return typespec_to_cdecl(typespec.base, cdecl_paren(strf("%s[]", str), *str));
     } else {
       return typespec_to_cdecl(typespec.base, cdecl_paren(strf("%s[%s]", str, gen_expr_str(typespec.num_elems)), *str));
     }
-  case TypespecKind.Func:
+  case Typespec.Func:
     let result: *char = NULL;
     buf_printf(&result, "(*%s)(", str);
     if (typespec.function.num_args == 0) {
@@ -391,7 +391,7 @@ fn gen_aggregate_item(item: &AggregateItem) {
       // TODO Error on uses of void fields.
       // TODO Error on void fields outside of enum unions.
       // TODO Find a better way to check for void.
-      if (item.type.kind == TypespecKind.Name) {
+      if (item.type.kind == Typespec.Name) {
         let name = get_gen_name_or_default(item.type, item.type.name);
         if (name == void_name) {
           prefix = "// ";

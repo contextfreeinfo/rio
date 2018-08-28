@@ -575,7 +575,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
   }
   let result: &Type = NULL;
   switch (typespec.kind) {
-  case TypespecKind.Name: {
+  case Typespec.Name: {
     let sym = resolve_name(typespec.name);
     if (!sym) {
       fatal_error(typespec.pos, "Unresolved type name '%s'", typespec.name);
@@ -587,13 +587,13 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
     set_resolved_sym(typespec, sym);
     result = sym.type;
   }
-  case TypespecKind.Const:
+  case Typespec.Const:
     result = type_const(resolve_typespec(typespec.base));
-  case TypespecKind.Ptr:
+  case Typespec.Ptr:
     result = type_ptr(resolve_typespec(typespec.base));
-  case TypespecKind.Ref:
+  case Typespec.Ref:
     result = type_ref(resolve_typespec(typespec.base));
-  case TypespecKind.Array: {
+  case Typespec.Array: {
     let size = 0;
     if (typespec.num_elems) {
       let operand = resolve_const_expr(typespec.num_elems);
@@ -608,7 +608,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
     }
     result = type_array(resolve_typespec(typespec.base), size);
   }
-  case TypespecKind.Func: {
+  case Typespec.Func: {
     let args: *&Type = NULL;
     for (let i: usize = 0; i < typespec.function.num_args; i++) {
       let arg = resolve_typespec(typespec.function.args[i]);
