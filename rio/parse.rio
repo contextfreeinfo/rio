@@ -664,35 +664,61 @@ fn parse_aggregate(
 ) -> &Aggregate {
   let pos = token.pos;
   let items: *AggregateItem;
+  let has_enum = false;
+  let enum_union: &Aggregate;
   if (match_keyword(switch_keyword)) {
     if (kind != AggregateKind.Union) {
       fatal_error(pos, "Switch aggregate applies only to union");
     }
     items = parse_switch_union();
+    has_enum = true;
   } else {
     expect_token(TokenKind.Lbrace);
     while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
       let item = parse_decl_aggregate_item();
       buf_push((:*&void)&items, &item, sizeof(item));
+      // See if it's a switch union.
+      if (item.kind == AggregateItemKind.Subaggregate) {
+        let sub = item.subaggregate;
+        if (sub.kind == AggregateKind.Union && sub.num_items) {
+          if (sub.items.num_kind_names) {
+            // But only one subunion here is allowed.
+            if (enum_union) {
+              fatal_error(sub.pos, "Multiple switch unions in struct");
+              return NULL;
+            }
+            enum_union = sub;
+          }
+        }
+      }
     }
     expect_token(TokenKind.Rbrace);
+    if (notes && get_note(notes, enum_keyword)) {
+      has_enum = true;
+    }
   }
   // Check for enum union conditions.
-  if (notes && get_note(notes, enum_keyword)) {
+  // TODO Change conditions for enum union. Like has a switch union.
+  // TODO Then default to enum union.
+  if (name && (has_enum || enum_union)) {
     if (kind == AggregateKind.Union) {
       // This is the union. Contain it.
+      enum_union = new_aggregate(pos, kind, items, buf_len(items));
       let subitem = AggregateItem {
         pos = pos,
         kind = AggregateItemKind.Subaggregate,
-        subaggregate = new_aggregate(pos, kind, items, buf_len(items)),
+        subaggregate = enum_union,
       };
       // Wrap it in a struct.
       kind = AggregateKind.Struct;
       items = NULL;
       buf_push((:*&void)&items, &subitem, sizeof(subitem));
-    } else if (!get_subunion(buf_len(items), items)) {
-      fatal_error(pos, "No union for enum tag");
-      return NULL;
+    } else if (!enum_union) {
+      enum_union = get_subunion(buf_len(items), items);
+      if (!enum_union) {
+        fatal_error(pos, "No union for enum tag");
+        return NULL;
+      }
     }
     // Insert the new kind member to the struct at the top.
     // TODO Do we know up front to avoid this after the fact insertion?
@@ -708,8 +734,16 @@ fn parse_aggregate(
       type = new_typespec_name(pos, build_scoped_name(name, "Kind")),
     };
     buf_unshift((:*&void)&items, &tag_item, sizeof(tag_item));
+    // Create and attach union enum.
+    // TODO Then use that elsewhere instead of having to recheck notes.
+    build_enum_union_decl(enum_union, name);
   }
-  return new_aggregate(pos, kind, items, buf_len(items));
+  let result = new_aggregate(pos, kind, items, buf_len(items));
+  if (enum_union) {
+    // Remember this at top for easy access later.
+    result.union_enum_decl = enum_union.union_enum_decl;
+  }
+  return result;
 }
 
 let empty_names = (:[]*const char) {""};
@@ -756,6 +790,56 @@ fn parse_switch_union() -> *AggregateItem {
   }
   expect_token(TokenKind.Rbrace);
   return items;
+}
+
+fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
+  // TODO Extract function.
+  // Lowercase enum because we can't have a union member named enum, at least
+  // not without escaping, so this uses a less likely collision, even if it's
+  // a lowercase typename.
+  let enum_type_name = build_scoped_name(decl_name, "Kind");
+  let num_items = enum_union.num_items;
+  // let {num_items} = enum_union;
+  // Figure out how many items we really have.
+  let num_all_items: usize = 0;
+  for (let i: usize = 0; i < num_items; ++i) {
+    let union_item = &enum_union.items[i];
+    let num_names = union_item.num_kind_names;
+    if (!num_names) {
+      // Non-switch enum union.
+      if (union_item.kind != AggregateItemKind.Field) {
+        fatal_error(
+          union_item.pos, "Enum union item of %s not a field", decl_name,
+        );
+        return;
+      }
+      num_names = union_item.num_names;
+    }
+    num_all_items += num_names;
+  }
+  // Now build the enum items.
+  let enum_items = (:*EnumItem)xmalloc(num_all_items * sizeof(EnumItem));
+  let enum_item_index: usize = 0;
+  for (let i: usize = 0; i < num_items; ++i) {
+    let union_item = &enum_union.items[i];
+    let num_names = union_item.num_kind_names;
+    let names = union_item.kind_names;
+    if (!num_names) {
+      // Non switch.
+      num_names = union_item.num_names;
+      names = union_item.names;
+    }
+    for (let n: usize = 0; n < num_names; ++n) {
+      enum_items[enum_item_index++] = EnumItem {
+        pos = union_item.pos, name = names[n], init = NULL,
+      };
+    }
+  }
+  // And add the new enum.
+  let union_enum_decl = new_decl_enum(
+    enum_union.pos, enum_type_name, NULL, enum_items, num_all_items,
+  );
+  enum_union.union_enum_decl = union_enum_decl;
 }
 
 fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind, notes: &Notes) -> &Decl {

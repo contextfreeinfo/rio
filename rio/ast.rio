@@ -108,22 +108,6 @@ fn get_note(notes: &Notes, name: *const char) -> &Note {
   return NULL;
 }
 
-fn get_enum_union(decl: &Decl) -> &Aggregate {
-  if (get_decl_note(decl, enum_keyword)) {
-    #assert(decl.kind == DeclKind.Struct || decl.kind == DeclKind.Union);
-    // Check first if we are a union.
-    // Use aggregate kind instead of decl kind, in case it's been wrapped.
-    // TODO Assert that it's named?
-    let aggregate = decl.aggregate;
-    if (aggregate.kind == AggregateKind.Union) {
-      return aggregate;
-    }
-    // Now see if we are a struct with a subunion.
-    return get_subunion(aggregate.num_items, aggregate.items);
-  }
-  return NULL;
-}
-
 fn get_subunion(num_items: usize, items: *AggregateItem) -> &Aggregate {
   // See if we are a struct with a subunion.
   let result: &Aggregate;
