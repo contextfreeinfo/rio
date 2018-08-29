@@ -89,16 +89,16 @@ fn parse_expr_compound_field() -> CompoundField {
     let index = parse_expr();
     expect_token(TokenKind.Rbracket);
     expect_token(TokenKind.Assign);
-    return CompoundField {CompoundFieldKind.Index, pos, parse_expr(), index = index};
+    return CompoundField {CompoundField.Index, pos, parse_expr(), index = index};
   } else {
     let expr = parse_expr();
     if (match_token(TokenKind.Assign)) {
       if (expr.kind != ExprKind.Name) {
         fatal_error(token.pos, "Named initializer in compound literal must be preceded by field name");
       }
-      return CompoundField {CompoundFieldKind.Name, pos, parse_expr(), name = expr.name};
+      return CompoundField {CompoundField.Name, pos, parse_expr(), name = expr.name};
     } else {
-      return CompoundField {CompoundFieldKind.Default, pos, expr};
+      return CompoundField {CompoundField.Default, pos, expr};
     }
   }
 }
@@ -626,13 +626,13 @@ fn parse_decl_aggregate_item() -> AggregateItem {
   if (match_keyword(struct_keyword)) {
     return AggregateItem {
       pos = pos,
-      kind = AggregateItemKind.Subaggregate,
+      kind = AggregateItem.Subaggregate,
       subaggregate = parse_aggregate(AggregateKind.Struct, NULL, NULL),
     };
   } else if (match_keyword(union_keyword)) {
     return AggregateItem {
       pos = pos,
-      kind = AggregateItemKind.Subaggregate,
+      kind = AggregateItem.Subaggregate,
       subaggregate = parse_aggregate(AggregateKind.Union, NULL, NULL),
     };
   } else {
@@ -648,7 +648,7 @@ fn parse_decl_aggregate_item() -> AggregateItem {
     expect_token(TokenKind.Semicolon);
     return AggregateItem {
       pos = pos,
-      kind = AggregateItemKind.Field,
+      kind = AggregateItem.Field,
       names = names,
       num_names = buf_len(names),
       type = type,
@@ -678,7 +678,7 @@ fn parse_aggregate(
       let item = parse_decl_aggregate_item();
       buf_push((:*&void)&items, &item, sizeof(item));
       // See if it's a switch union.
-      if (item.kind == AggregateItemKind.Subaggregate) {
+      if (item.kind == AggregateItem.Subaggregate) {
         let sub = item.subaggregate;
         if (sub.kind == AggregateKind.Union && sub.num_items) {
           if (sub.items.num_kind_names) {
@@ -706,7 +706,7 @@ fn parse_aggregate(
       enum_union = new_aggregate(pos, kind, items, buf_len(items));
       let subitem = AggregateItem {
         pos = pos,
-        kind = AggregateItemKind.Subaggregate,
+        kind = AggregateItem.Subaggregate,
         subaggregate = enum_union,
       };
       // Wrap it in a struct.
@@ -728,7 +728,7 @@ fn parse_aggregate(
     }
     let tag_item = AggregateItem {
       pos = pos,
-      kind = AggregateItemKind.Field,
+      kind = AggregateItem.Field,
       names = enum_tag_names,
       num_names = 1,
       type = new_typespec_name(pos, build_scoped_name(name, "Kind")),
@@ -772,14 +772,14 @@ fn parse_switch_union() -> *AggregateItem {
       expect_token(TokenKind.Semicolon);
       item = AggregateItem {
         pos = pos,
-        kind = AggregateItemKind.Field,
+        kind = AggregateItem.Field,
         names = empty_names,
         num_names = 1,
         type = type,
       };
     } else {
       item = parse_decl_aggregate_item();
-      if (item.kind == AggregateItemKind.Field && item.num_names != 1) {
+      if (item.kind == AggregateItem.Field && item.num_names != 1) {
         fatal_error(item.pos, "Switch union field requires exactly one name");
         return NULL;
       }
@@ -807,7 +807,7 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
     let num_names = union_item.num_kind_names;
     if (!num_names) {
       // Non-switch enum union.
-      if (union_item.kind != AggregateItemKind.Field) {
+      if (union_item.kind != AggregateItem.Field) {
         fatal_error(
           union_item.pos, "Enum union item of %s not a field", decl_name,
         );
@@ -842,10 +842,10 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
   enum_union.union_enum_decl = union_enum_decl;
 }
 
-fn parse_decl_aggregate(pos: SrcPos, kind: DeclKind, notes: &Notes) -> &Decl {
-  #assert(kind == DeclKind.Struct || kind == DeclKind.Union);
+fn parse_decl_aggregate(pos: SrcPos, kind: Decl_Kind, notes: &Notes) -> &Decl {
+  #assert(kind == Decl.Struct || kind == Decl.Union);
   let name = parse_name();
-  let aggregate_kind = kind == DeclKind.Struct ? AggregateKind.Struct : AggregateKind.Union;
+  let aggregate_kind = kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
   if (match_token(TokenKind.Semicolon)) {
     let decl = new_decl_aggregate(
       pos, kind, name, new_aggregate(pos, aggregate_kind, NULL, 0),
@@ -1049,9 +1049,9 @@ fn parse_decl_opt(notes: &Notes) -> &Decl {
   if (match_keyword(enum_keyword)) {
     return parse_decl_enum(pos);
   } else if (match_keyword(struct_keyword)) {
-    return parse_decl_aggregate(pos, DeclKind.Struct, notes);
+    return parse_decl_aggregate(pos, Decl.Struct, notes);
   } else if (match_keyword(union_keyword)) {
-    return parse_decl_aggregate(pos, DeclKind.Union, notes);
+    return parse_decl_aggregate(pos, Decl.Union, notes);
   } else if (match_keyword(const_keyword)) {
     return parse_decl_const(pos);
   } else if (match_keyword(typedef_keyword)) {

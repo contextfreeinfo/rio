@@ -290,9 +290,9 @@ rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Typespec (*(*args)), si
 
 rio_Decls (*rio_new_decls(rio_Decl (*(*decls)), size_t num_decls));
 
-typedef int rio_DeclKind;
+typedef int rio_Decl_Kind;
 
-rio_Decl (*rio_new_decl(rio_DeclKind kind, rio_SrcPos pos, char const ((*name))));
+rio_Decl (*rio_new_decl(rio_Decl_Kind kind, rio_SrcPos pos, char const ((*name))));
 
 rio_Note (*rio_get_decl_note(rio_Decl (*decl), char const ((*name))));
 
@@ -308,7 +308,7 @@ typedef int rio_AggregateKind;
 
 rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_AggregateItem (*items), size_t num_items));
 
-rio_Decl (*rio_new_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind, char const ((*name)), rio_Aggregate (*aggregate)));
+rio_Decl (*rio_new_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, char const ((*name)), rio_Aggregate (*aggregate)));
 
 rio_Decl (*rio_new_decl_var(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr)));
 
@@ -426,39 +426,39 @@ rio_Stmt (*rio_new_stmt_expr(rio_SrcPos pos, rio_Expr (*expr)));
 
 #define rio_Typespec_Array ((rio_Typespec_Kind)((rio_Typespec_Func) + (1)))
 
-typedef int rio_AggregateItemKind;
+typedef int rio_AggregateItem_Kind;
 
-#define rio_AggregateItemKind_None ((rio_AggregateItemKind)(0))
+#define rio_AggregateItem_None ((rio_AggregateItem_Kind)(0))
 
-#define rio_AggregateItemKind_Field ((rio_AggregateItemKind)((rio_AggregateItemKind_None) + (1)))
+#define rio_AggregateItem_Field ((rio_AggregateItem_Kind)((rio_AggregateItem_None) + (1)))
 
-#define rio_AggregateItemKind_Subaggregate ((rio_AggregateItemKind)((rio_AggregateItemKind_Field) + (1)))
-
-#define rio_DeclKind_None ((rio_DeclKind)(0))
-
-#define rio_DeclKind_Enum ((rio_DeclKind)((rio_DeclKind_None) + (1)))
-
-#define rio_DeclKind_Struct ((rio_DeclKind)((rio_DeclKind_Enum) + (1)))
-
-#define rio_DeclKind_Union ((rio_DeclKind)((rio_DeclKind_Struct) + (1)))
-
-#define rio_DeclKind_Var ((rio_DeclKind)((rio_DeclKind_Union) + (1)))
-
-#define rio_DeclKind_Const ((rio_DeclKind)((rio_DeclKind_Var) + (1)))
-
-#define rio_DeclKind_Typedef ((rio_DeclKind)((rio_DeclKind_Const) + (1)))
-
-#define rio_DeclKind_Func ((rio_DeclKind)((rio_DeclKind_Typedef) + (1)))
-
-#define rio_DeclKind_Note ((rio_DeclKind)((rio_DeclKind_Func) + (1)))
-
-#define rio_DeclKind_Import ((rio_DeclKind)((rio_DeclKind_Note) + (1)))
+#define rio_AggregateItem_Subaggregate ((rio_AggregateItem_Kind)((rio_AggregateItem_Field) + (1)))
 
 #define rio_AggregateKind_None ((rio_AggregateKind)(0))
 
 #define rio_AggregateKind_Struct ((rio_AggregateKind)((rio_AggregateKind_None) + (1)))
 
 #define rio_AggregateKind_Union ((rio_AggregateKind)((rio_AggregateKind_Struct) + (1)))
+
+#define rio_Decl_None ((rio_Decl_Kind)(0))
+
+#define rio_Decl_Note ((rio_Decl_Kind)((rio_Decl_None) + (1)))
+
+#define rio_Decl_Enum ((rio_Decl_Kind)((rio_Decl_Note) + (1)))
+
+#define rio_Decl_Struct ((rio_Decl_Kind)((rio_Decl_Enum) + (1)))
+
+#define rio_Decl_Union ((rio_Decl_Kind)((rio_Decl_Struct) + (1)))
+
+#define rio_Decl_Func ((rio_Decl_Kind)((rio_Decl_Union) + (1)))
+
+#define rio_Decl_Typedef ((rio_Decl_Kind)((rio_Decl_Func) + (1)))
+
+#define rio_Decl_Var ((rio_Decl_Kind)((rio_Decl_Typedef) + (1)))
+
+#define rio_Decl_Const ((rio_Decl_Kind)((rio_Decl_Var) + (1)))
+
+#define rio_Decl_Import ((rio_Decl_Kind)((rio_Decl_Const) + (1)))
 
 #define rio_ExprKind_None ((rio_ExprKind)(0))
 
@@ -504,13 +504,13 @@ typedef int rio_AggregateItemKind;
 
 #define rio_ExprKind_Offsetof ((rio_ExprKind)((rio_ExprKind_AlignofType) + (1)))
 
-typedef int rio_CompoundFieldKind;
+typedef int rio_CompoundField_Kind;
 
-#define rio_CompoundFieldKind_Default ((rio_CompoundFieldKind)(0))
+#define rio_CompoundField_Default ((rio_CompoundField_Kind)(0))
 
-#define rio_CompoundFieldKind_Name ((rio_CompoundFieldKind)((rio_CompoundFieldKind_Default) + (1)))
+#define rio_CompoundField_Name ((rio_CompoundField_Kind)((rio_CompoundField_Default) + (1)))
 
-#define rio_CompoundFieldKind_Index ((rio_CompoundFieldKind)((rio_CompoundFieldKind_Name) + (1)))
+#define rio_CompoundField_Index ((rio_CompoundField_Kind)((rio_CompoundField_Name) + (1)))
 
 #define rio_Stmt_None ((rio_Stmt_Kind)(0))
 
@@ -1213,10 +1213,11 @@ rio_Typespec (*rio_parse_type_base(void));
 rio_Typespec (*rio_parse_type(void));
 
 struct rio_CompoundField {
-  rio_CompoundFieldKind kind;
+  rio_CompoundField_Kind kind;
   rio_SrcPos pos;
   rio_Expr (*init);
   union {
+    // void;
     char const ((*name));
     rio_Expr (*index);
   };
@@ -1305,13 +1306,14 @@ rio_EnumItem rio_parse_decl_enum_item(void);
 rio_Decl (*rio_parse_decl_enum(rio_SrcPos pos));
 
 struct rio_AggregateItem {
+  rio_AggregateItem_Kind kind;
   rio_SrcPos pos;
-  rio_AggregateItemKind kind;
   struct {
     char const ((*(*kind_names)));
     size_t num_kind_names;
   };
   union {
+    // void;
     struct {
       char const ((*(*names)));
       size_t num_names;
@@ -1335,7 +1337,7 @@ rio_AggregateItem (*rio_parse_switch_union(void));
 
 void rio_build_enum_union_decl(rio_Aggregate (*enum_union), char const ((*decl_name)));
 
-rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind, rio_Notes (*notes)));
+rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Notes (*notes)));
 
 rio_Decl (*rio_parse_decl_var(rio_SrcPos pos));
 
@@ -2166,12 +2168,13 @@ struct rio_DeclImport {
 };
 
 struct rio_Decl {
-  rio_DeclKind kind;
+  rio_Decl_Kind kind;
   rio_SrcPos pos;
   char const ((*name));
   rio_Notes notes;
   bool is_incomplete;
   union {
+    // void;
     rio_Note note;
     rio_DeclEnum enum_decl;
     rio_Aggregate (*aggregate);
@@ -2386,7 +2389,7 @@ rio_Decls (*rio_new_decls(rio_Decl (*(*decls)), size_t num_decls)) {
   return d;
 }
 
-rio_Decl (*rio_new_decl(rio_DeclKind kind, rio_SrcPos pos, char const ((*name)))) {
+rio_Decl (*rio_new_decl(rio_Decl_Kind kind, rio_SrcPos pos, char const ((*name)))) {
   rio_Decl (*d) = rio_ast_alloc(sizeof(rio_Decl));
   d->kind = kind;
   d->pos = pos;
@@ -2412,7 +2415,7 @@ rio_Aggregate (*rio_get_subunion(size_t num_items, rio_AggregateItem (*items))) 
   rio_Aggregate (*result) = {0};
   for (size_t i = 0; (i) < (num_items); (i)++) {
     rio_AggregateItem item = items[i];
-    if ((item.kind) == ((rio_AggregateItemKind_Subaggregate))) {
+    if ((item.kind) == ((rio_AggregateItem_Subaggregate))) {
       if ((item.subaggregate->kind) == ((rio_AggregateKind_Union))) {
         if (result) {
           rio_fatal_error(item.subaggregate->pos, "Multiple unions in struct");
@@ -2430,7 +2433,7 @@ bool rio_is_decl_foreign(rio_Decl (*decl)) {
 }
 
 rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_EnumItem (*items), size_t num_items)) {
-  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Enum), pos, name);
+  rio_Decl (*d) = rio_new_decl((rio_Decl_Enum), pos, name);
   d->enum_decl.type = type;
   d->enum_decl.items = rio_ast_dup(items, (num_items) * (sizeof(*(items))));
   d->enum_decl.num_items = num_items;
@@ -2449,22 +2452,22 @@ rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_Ag
   return aggregate;
 }
 
-rio_Decl (*rio_new_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind, char const ((*name)), rio_Aggregate (*aggregate))) {
-  assert(((kind) == ((rio_DeclKind_Struct))) || ((kind) == ((rio_DeclKind_Union))));
+rio_Decl (*rio_new_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, char const ((*name)), rio_Aggregate (*aggregate))) {
+  assert(((kind) == ((rio_Decl_Struct))) || ((kind) == ((rio_Decl_Union))));
   rio_Decl (*d) = rio_new_decl(kind, pos, name);
   d->aggregate = aggregate;
   return d;
 }
 
 rio_Decl (*rio_new_decl_var(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr))) {
-  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Var), pos, name);
+  rio_Decl (*d) = rio_new_decl((rio_Decl_Var), pos, name);
   d->var_decl.type = type;
   d->var_decl.expr = expr;
   return d;
 }
 
 rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_FuncParam (*params), size_t num_params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block)) {
-  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Func), pos, name);
+  rio_Decl (*d) = rio_new_decl((rio_Decl_Func), pos, name);
   d->function.params = rio_ast_dup(params, (num_params) * (sizeof(*(params))));
   d->function.num_params = num_params;
   d->function.ret_type = ret_type;
@@ -2474,26 +2477,26 @@ rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_FuncParam
 }
 
 rio_Decl (*rio_new_decl_const(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr))) {
-  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Const), pos, name);
+  rio_Decl (*d) = rio_new_decl((rio_Decl_Const), pos, name);
   d->const_decl.type = type;
   d->const_decl.expr = expr;
   return d;
 }
 
 rio_Decl (*rio_new_decl_typedef(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type))) {
-  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Typedef), pos, name);
+  rio_Decl (*d) = rio_new_decl((rio_Decl_Typedef), pos, name);
   d->typedef_decl.type = type;
   return d;
 }
 
 rio_Decl (*rio_new_decl_note(rio_SrcPos pos, rio_Note note)) {
-  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Note), pos, NULL);
+  rio_Decl (*d) = rio_new_decl((rio_Decl_Note), pos, NULL);
   d->note = note;
   return d;
 }
 
 rio_Decl (*rio_new_decl_import(rio_SrcPos pos, char const ((*rename_name)), bool is_relative, char const ((*(*names))), size_t num_names, bool import_all, rio_ImportItem (*items), size_t num_items)) {
-  rio_Decl (*d) = rio_new_decl((rio_DeclKind_Import), pos, NULL);
+  rio_Decl (*d) = rio_new_decl((rio_Decl_Import), pos, NULL);
   d->name = rename_name;
   d->import_decl.is_relative = is_relative;
   d->import_decl.names = rio_ast_dup(names, (num_names) * (sizeof(*(names))));
@@ -3485,7 +3488,7 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
 }
 
 void rio_gen_func_decl(rio_Decl (*decl)) {
-  assert((decl->kind) == ((rio_DeclKind_Func)));
+  assert((decl->kind) == ((rio_Decl_Func)));
   char (*result) = NULL;
   rio_buf_printf(&(result), "%s(", rio_get_gen_name(decl));
   if ((decl->function.num_params) == (0)) {
@@ -3528,8 +3531,8 @@ void rio_gen_forward_decls(void) {
       continue;
     }
     switch (decl->kind) {
-    case (rio_DeclKind_Struct):
-    case (rio_DeclKind_Union): {
+    case (rio_Decl_Struct):
+    case (rio_Decl_Union): {
       {
         char const ((*name)) = rio_get_gen_name(sym);
         rio_genln();
@@ -3547,7 +3550,7 @@ void rio_gen_forward_decls(void) {
 }
 
 void rio_gen_aggregate_item(rio_AggregateItem (*item)) {
-  if ((item->kind) == ((rio_AggregateItemKind_Field))) {
+  if ((item->kind) == ((rio_AggregateItem_Field))) {
     for (size_t j = 0; (j) < (item->num_names); (j)++) {
       rio_gen_sync_pos(item->pos);
       char (*prefix) = "";
@@ -3560,7 +3563,7 @@ void rio_gen_aggregate_item(rio_AggregateItem (*item)) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "%s%s;", prefix, rio_typespec_to_cdecl(item->type, item->names[j]));
     }
-  } else if ((item->kind) == ((rio_AggregateItemKind_Subaggregate))) {
+  } else if ((item->kind) == ((rio_AggregateItem_Subaggregate))) {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "%s {", ((item->subaggregate->kind) == ((rio_AggregateKind_Struct)) ? "struct" : "union"));
     rio_gen_aggregate_items(item->subaggregate);
@@ -3581,7 +3584,7 @@ void rio_gen_aggregate_items(rio_Aggregate (*aggregate)) {
 }
 
 void rio_gen_aggregate(rio_Decl (*decl)) {
-  assert(((decl->kind) == ((rio_DeclKind_Struct))) || ((decl->kind) == ((rio_DeclKind_Union))));
+  assert(((decl->kind) == ((rio_Decl_Struct))) || ((decl->kind) == ((rio_Decl_Union))));
   if (decl->is_incomplete) {
     return;
   }
@@ -3612,9 +3615,9 @@ void rio_gen_expr_compound(rio_Expr (*expr)) {
       rio_buf_printf(&(rio_gen_buf), ", ");
     }
     rio_CompoundField field = expr->compound.fields[i];
-    if ((field.kind) == ((rio_CompoundFieldKind_Name))) {
+    if ((field.kind) == ((rio_CompoundField_Name))) {
       rio_buf_printf(&(rio_gen_buf), ".%s = ", field.name);
-    } else if ((field.kind) == ((rio_CompoundFieldKind_Index))) {
+    } else if ((field.kind) == ((rio_CompoundField_Index))) {
       rio_buf_printf(&(rio_gen_buf), "[");
       rio_gen_expr(field.index);
       rio_buf_printf(&(rio_gen_buf), "] = ");
@@ -4108,7 +4111,7 @@ void rio_gen_decl(rio_Sym (*sym)) {
   }
   rio_gen_sync_pos(decl->pos);
   switch (decl->kind) {
-  case (rio_DeclKind_Const): {
+  case (rio_Decl_Const): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "#define %s (", rio_get_gen_name(sym));
     if (decl->const_decl.type) {
@@ -4121,7 +4124,7 @@ void rio_gen_decl(rio_Sym (*sym)) {
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
-  case (rio_DeclKind_Var): {
+  case (rio_Decl_Var): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "extern ");
     if ((decl->var_decl.type) && (!(rio_is_incomplete_array_typespec(decl->var_decl.type)))) {
@@ -4132,22 +4135,22 @@ void rio_gen_decl(rio_Sym (*sym)) {
     rio_buf_printf(&(rio_gen_buf), ";");
     break;
   }
-  case (rio_DeclKind_Func): {
+  case (rio_Decl_Func): {
     rio_gen_func_decl(decl);
     rio_buf_printf(&(rio_gen_buf), ";");
     break;
   }
-  case (rio_DeclKind_Struct):
-  case (rio_DeclKind_Union): {
+  case (rio_Decl_Struct):
+  case (rio_Decl_Union): {
     rio_gen_aggregate(decl);
     break;
   }
-  case (rio_DeclKind_Typedef): {
+  case (rio_Decl_Typedef): {
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "typedef %s;", rio_typespec_to_cdecl(decl->typedef_decl.type, rio_get_gen_name(sym)));
     break;
   }
-  case (rio_DeclKind_Enum): {
+  case (rio_Decl_Enum): {
     if (decl->enum_decl.type) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "typedef %s;", rio_typespec_to_cdecl(decl->enum_decl.type, rio_get_gen_name(decl)));
@@ -4157,7 +4160,7 @@ void rio_gen_decl(rio_Sym (*sym)) {
     }
     break;
   }
-  case (rio_DeclKind_Import): {
+  case (rio_Decl_Import): {
     break;
     break;
   }
@@ -4183,12 +4186,12 @@ void rio_gen_defs(void) {
     if ((((((sym->state) != ((rio_SymState_Resolved))) || (!(decl))) || (rio_is_decl_foreign(decl))) || (decl->is_incomplete)) || ((sym->reachable) != ((rio_ReachablePhase_Natural)))) {
       continue;
     }
-    if ((decl->kind) == ((rio_DeclKind_Func))) {
+    if ((decl->kind) == ((rio_Decl_Func))) {
       rio_gen_func_decl(decl);
       rio_buf_printf(&(rio_gen_buf), " ");
       rio_gen_stmt_block(decl->function.block);
       rio_genln();
-    } else if ((decl->kind) == ((rio_DeclKind_Var))) {
+    } else if ((decl->kind) == ((rio_Decl_Var))) {
       if ((decl->var_decl.type) && (!(rio_is_incomplete_array_typespec(decl->var_decl.type)))) {
         rio_genln();
         rio_buf_printf(&(rio_gen_buf), "%s", rio_typespec_to_cdecl(decl->var_decl.type, rio_get_gen_name(sym)));
@@ -4275,7 +4278,7 @@ void rio_preprocess_package(rio_Package (*package)) {
   char const ((*postamble_name)) = rio_str_intern("postamble");
   for (size_t i = 0; (i) < (package->num_decls); (i)++) {
     rio_Decl (*decl) = package->decls[i];
-    if ((decl->kind) != ((rio_DeclKind_Note))) {
+    if ((decl->kind) != ((rio_Decl_Note))) {
       continue;
     }
     rio_Note note = decl->note;
@@ -5713,16 +5716,16 @@ rio_CompoundField rio_parse_expr_compound_field(void) {
     rio_Expr (*index) = rio_parse_expr();
     rio_expect_token((rio_TokenKind_Rbracket));
     rio_expect_token((rio_TokenKind_Assign));
-    return (rio_CompoundField){(rio_CompoundFieldKind_Index), pos, rio_parse_expr(), .index = index};
+    return (rio_CompoundField){(rio_CompoundField_Index), pos, rio_parse_expr(), .index = index};
   } else {
     rio_Expr (*expr) = rio_parse_expr();
     if (rio_match_token((rio_TokenKind_Assign))) {
       if ((expr->kind) != ((rio_ExprKind_Name))) {
         rio_fatal_error(rio_token.pos, "Named initializer in compound literal must be preceded by field name");
       }
-      return (rio_CompoundField){(rio_CompoundFieldKind_Name), pos, rio_parse_expr(), .name = expr->name};
+      return (rio_CompoundField){(rio_CompoundField_Name), pos, rio_parse_expr(), .name = expr->name};
     } else {
-      return (rio_CompoundField){(rio_CompoundFieldKind_Default), pos, expr};
+      return (rio_CompoundField){(rio_CompoundField_Default), pos, expr};
     }
   }
 }
@@ -6239,9 +6242,9 @@ rio_Decl (*rio_parse_decl_enum(rio_SrcPos pos)) {
 rio_AggregateItem rio_parse_decl_aggregate_item(void) {
   rio_SrcPos pos = rio_token.pos;
   if (rio_match_keyword(rio_struct_keyword)) {
-    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = rio_parse_aggregate((rio_AggregateKind_Struct), NULL, NULL)};
+    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItem_Subaggregate), .subaggregate = rio_parse_aggregate((rio_AggregateKind_Struct), NULL, NULL)};
   } else if (rio_match_keyword(rio_union_keyword)) {
-    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = rio_parse_aggregate((rio_AggregateKind_Union), NULL, NULL)};
+    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItem_Subaggregate), .subaggregate = rio_parse_aggregate((rio_AggregateKind_Union), NULL, NULL)};
   } else {
     char const ((*(*names))) = NULL;
     char const ((*name)) = rio_parse_name();
@@ -6253,7 +6256,7 @@ rio_AggregateItem rio_parse_decl_aggregate_item(void) {
     rio_expect_token((rio_TokenKind_Colon));
     rio_Typespec (*type) = rio_parse_type();
     rio_expect_token((rio_TokenKind_Semicolon));
-    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Field), .names = names, .num_names = rio_buf_len(names), .type = type};
+    return (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItem_Field), .names = names, .num_names = rio_buf_len(names), .type = type};
   }
 }
 
@@ -6275,7 +6278,7 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
     while ((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) {
       rio_AggregateItem item = rio_parse_decl_aggregate_item();
       rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
-      if ((item.kind) == ((rio_AggregateItemKind_Subaggregate))) {
+      if ((item.kind) == ((rio_AggregateItem_Subaggregate))) {
         rio_Aggregate (*sub) = item.subaggregate;
         if (((sub->kind) == ((rio_AggregateKind_Union))) && (sub->num_items)) {
           if (sub->items->num_kind_names) {
@@ -6296,7 +6299,7 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
   if ((name) && (((has_enum) || (enum_union)))) {
     if ((kind) == ((rio_AggregateKind_Union))) {
       enum_union = rio_new_aggregate(pos, kind, items, rio_buf_len(items));
-      rio_AggregateItem subitem = {.pos = pos, .kind = (rio_AggregateItemKind_Subaggregate), .subaggregate = enum_union};
+      rio_AggregateItem subitem = {.pos = pos, .kind = (rio_AggregateItem_Subaggregate), .subaggregate = enum_union};
       kind = (rio_AggregateKind_Struct);
       items = NULL;
       rio_buf_push((void (**))(&(items)), &(subitem), sizeof(subitem));
@@ -6311,7 +6314,7 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
       rio_enum_tag_names[0] = rio_str_intern(rio_enum_tag_names[0]);
       rio_enum_tag_name_interned = true;
     }
-    rio_AggregateItem tag_item = {.pos = pos, .kind = (rio_AggregateItemKind_Field), .names = rio_enum_tag_names, .num_names = 1, .type = rio_new_typespec_name(pos, rio_build_scoped_name(name, "Kind"))};
+    rio_AggregateItem tag_item = {.pos = pos, .kind = (rio_AggregateItem_Field), .names = rio_enum_tag_names, .num_names = 1, .type = rio_new_typespec_name(pos, rio_build_scoped_name(name, "Kind"))};
     rio_buf_unshift((void (**))(&(items)), &(tag_item), sizeof(tag_item));
     rio_build_enum_union_decl(enum_union, name);
   }
@@ -6344,10 +6347,10 @@ rio_AggregateItem (*rio_parse_switch_union(void)) {
         return NULL;
       }
       rio_expect_token((rio_TokenKind_Semicolon));
-      item = (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItemKind_Field), .names = rio_empty_names, .num_names = 1, .type = type};
+      item = (rio_AggregateItem){.pos = pos, .kind = (rio_AggregateItem_Field), .names = rio_empty_names, .num_names = 1, .type = type};
     } else {
       item = rio_parse_decl_aggregate_item();
-      if (((item.kind) == ((rio_AggregateItemKind_Field))) && ((item.num_names) != (1))) {
+      if (((item.kind) == ((rio_AggregateItem_Field))) && ((item.num_names) != (1))) {
         rio_fatal_error(item.pos, "Switch union field requires exactly one name");
         return NULL;
       }
@@ -6368,7 +6371,7 @@ void rio_build_enum_union_decl(rio_Aggregate (*enum_union), char const ((*decl_n
     rio_AggregateItem (*union_item) = &(enum_union->items[i]);
     ullong num_names = union_item->num_kind_names;
     if (!(num_names)) {
-      if ((union_item->kind) != ((rio_AggregateItemKind_Field))) {
+      if ((union_item->kind) != ((rio_AggregateItem_Field))) {
         rio_fatal_error(union_item->pos, "Enum union item of %s not a field", decl_name);
         return;
       }
@@ -6394,10 +6397,10 @@ void rio_build_enum_union_decl(rio_Aggregate (*enum_union), char const ((*decl_n
   enum_union->union_enum_decl = union_enum_decl;
 }
 
-rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_DeclKind kind, rio_Notes (*notes))) {
-  assert(((kind) == ((rio_DeclKind_Struct))) || ((kind) == ((rio_DeclKind_Union))));
+rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Notes (*notes))) {
+  assert(((kind) == ((rio_Decl_Struct))) || ((kind) == ((rio_Decl_Union))));
   char const ((*name)) = rio_parse_name();
-  rio_AggregateKind aggregate_kind = ((kind) == ((rio_DeclKind_Struct)) ? (rio_AggregateKind_Struct) : (rio_AggregateKind_Union));
+  rio_AggregateKind aggregate_kind = ((kind) == ((rio_Decl_Struct)) ? (rio_AggregateKind_Struct) : (rio_AggregateKind_Union));
   if (rio_match_token((rio_TokenKind_Semicolon))) {
     rio_Decl (*decl) = rio_new_decl_aggregate(pos, kind, name, rio_new_aggregate(pos, aggregate_kind, NULL, 0));
     decl->is_incomplete = true;
@@ -6597,9 +6600,9 @@ rio_Decl (*rio_parse_decl_opt(rio_Notes (*notes))) {
   if (rio_match_keyword(rio_enum_keyword)) {
     return rio_parse_decl_enum(pos);
   } else if (rio_match_keyword(rio_struct_keyword)) {
-    return rio_parse_decl_aggregate(pos, (rio_DeclKind_Struct), notes);
+    return rio_parse_decl_aggregate(pos, (rio_Decl_Struct), notes);
   } else if (rio_match_keyword(rio_union_keyword)) {
-    return rio_parse_decl_aggregate(pos, (rio_DeclKind_Union), notes);
+    return rio_parse_decl_aggregate(pos, (rio_Decl_Union), notes);
   } else if (rio_match_keyword(rio_const_keyword)) {
     return rio_parse_decl_const(pos);
   } else if (rio_match_keyword(rio_typedef_keyword)) {
@@ -6705,22 +6708,22 @@ void rio_process_decl_notes(rio_Decl (*decl), rio_Sym (*sym)) {
 rio_Sym (*rio_sym_decl(rio_Decl (*decl))) {
   rio_SymKind kind = (rio_SymKind_None);
   switch (decl->kind) {
-  case (rio_DeclKind_Struct):
-  case (rio_DeclKind_Union):
-  case (rio_DeclKind_Typedef):
-  case (rio_DeclKind_Enum): {
+  case (rio_Decl_Struct):
+  case (rio_Decl_Union):
+  case (rio_Decl_Typedef):
+  case (rio_Decl_Enum): {
     kind = (rio_SymKind_Type);
     break;
   }
-  case (rio_DeclKind_Var): {
+  case (rio_Decl_Var): {
     kind = (rio_SymKind_Var);
     break;
   }
-  case (rio_DeclKind_Const): {
+  case (rio_Decl_Const): {
     kind = (rio_SymKind_Const);
     break;
   }
-  case (rio_DeclKind_Func): {
+  case (rio_Decl_Func): {
     kind = (rio_SymKind_Func);
     break;
   }
@@ -6814,9 +6817,9 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
       scope = decl->name;
     }
   }
-  if (((decl->kind) == ((rio_DeclKind_Struct))) && (decl->aggregate->union_enum_decl)) {
+  if (((decl->kind) == ((rio_Decl_Struct))) && (decl->aggregate->union_enum_decl)) {
     rio_sym_global_decl(decl->aggregate->union_enum_decl, decl->name);
-  } else if ((decl->kind) == ((rio_DeclKind_Enum))) {
+  } else if ((decl->kind) == ((rio_Decl_Enum))) {
     int unscoped = ((!(decl->name)) || (rio_get_decl_note(decl, rio_foreign_name))) || (rio_get_decl_note(decl, rio_unscoped_name));
     rio_Typespec (*enum_typespec) = rio_new_typespec_name(decl->pos, (sym ? sym->name : rio_str_intern("int")));
     char const ((*prev_item_name)) = NULL;
@@ -7211,7 +7214,7 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
   rio_TypeField (*fields) = {0};
   for (size_t i = 0; (i) < (aggregate->num_items); (i)++) {
     rio_AggregateItem item = aggregate->items[i];
-    if ((item.kind) == ((rio_AggregateItemKind_Field))) {
+    if ((item.kind) == ((rio_AggregateItem_Field))) {
       rio_Type (*item_type) = rio_resolve_typespec(item.type);
       rio_complete_type(item_type);
       for (size_t j = 0; (j) < (item.num_names); (j)++) {
@@ -7219,7 +7222,7 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
         rio_buf_push((void (**))(&(fields)), &(type_field), sizeof(type_field));
       }
     } else {
-      assert((item.kind) == ((rio_AggregateItemKind_Subaggregate)));
+      assert((item.kind) == ((rio_AggregateItem_Subaggregate)));
       rio_Type (*item_type) = rio_complete_aggregate(NULL, item.subaggregate);
       rio_TypeField type_field = {NULL, item_type};
       rio_buf_push((void (**))(&(fields)), &(type_field), sizeof(type_field));
@@ -7258,7 +7261,7 @@ void rio_complete_type(rio_Type (*type)) {
     rio_fatal_error(decl->pos, "Trying to use incomplete type as complete type");
   }
   type->kind = (rio_CompilerTypeKind_Completing);
-  assert(((decl->kind) == ((rio_DeclKind_Struct))) || ((decl->kind) == ((rio_DeclKind_Union))));
+  assert(((decl->kind) == ((rio_Decl_Struct))) || ((decl->kind) == ((rio_Decl_Union))));
   rio_complete_aggregate(type, decl->aggregate);
   rio_buf_push((void (**))(&(rio_sorted_syms)), &(type->sym), sizeof(type->sym));
   rio_leave_package(old_package);
@@ -7311,12 +7314,12 @@ rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (
 }
 
 rio_Type (*rio_resolve_decl_var(rio_Decl (*decl))) {
-  assert((decl->kind) == ((rio_DeclKind_Var)));
+  assert((decl->kind) == ((rio_Decl_Var)));
   return rio_resolve_init(decl->pos, decl->var_decl.type, decl->var_decl.expr);
 }
 
 rio_Type (*rio_resolve_decl_const(rio_Decl (*decl), rio_Val (*val))) {
-  assert((decl->kind) == ((rio_DeclKind_Const)));
+  assert((decl->kind) == ((rio_Decl_Const)));
   rio_Operand result = rio_resolve_const_expr(decl->const_decl.expr);
   if (!(rio_is_scalar_type(result.type))) {
     rio_fatal_error(decl->pos, "Const declarations must have scalar type");
@@ -7332,7 +7335,7 @@ rio_Type (*rio_resolve_decl_const(rio_Decl (*decl), rio_Val (*val))) {
 }
 
 rio_Type (*rio_resolve_decl_func(rio_Decl (*decl))) {
-  assert((decl->kind) == ((rio_DeclKind_Func)));
+  assert((decl->kind) == ((rio_Decl_Func)));
   rio_Type (*(*params)) = NULL;
   for (size_t i = 0; (i) < (decl->function.num_params); (i)++) {
     rio_Type (*param) = rio_resolve_typespec(decl->function.params[i].type);
@@ -7662,7 +7665,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
 
 void rio_resolve_func_body(rio_Sym (*sym)) {
   rio_Decl (*decl) = sym->decl;
-  assert((decl->kind) == ((rio_DeclKind_Func)));
+  assert((decl->kind) == ((rio_Decl_Func)));
   assert((sym->state) == ((rio_SymState_Resolved)));
   if (decl->is_incomplete) {
     return;
@@ -7706,9 +7709,9 @@ void rio_resolve_sym(rio_Sym (*sym)) {
   rio_Package (*old_package) = rio_enter_package(sym->home_package);
   switch (sym->kind) {
   case (rio_SymKind_Type): {
-    if ((decl) && ((decl->kind) == ((rio_DeclKind_Typedef)))) {
+    if ((decl) && ((decl->kind) == ((rio_Decl_Typedef)))) {
       sym->type = rio_resolve_typespec(decl->typedef_decl.type);
-    } else if ((decl->kind) == ((rio_DeclKind_Enum))) {
+    } else if ((decl->kind) == ((rio_Decl_Enum))) {
       rio_Type (*base) = (decl->enum_decl.type ? rio_resolve_typespec(decl->enum_decl.type) : rio_type_int);
       if (!(rio_is_integer_type(base))) {
         rio_fatal_error(decl->pos, "Base type of enum must be integer type");
@@ -7741,7 +7744,7 @@ void rio_resolve_sym(rio_Sym (*sym)) {
   }
   rio_leave_package(old_package);
   sym->state = (rio_SymState_Resolved);
-  if ((decl->is_incomplete) || ((((decl->kind) != ((rio_DeclKind_Struct))) && ((decl->kind) != ((rio_DeclKind_Union)))))) {
+  if ((decl->is_incomplete) || ((((decl->kind) != ((rio_Decl_Struct))) && ((decl->kind) != ((rio_Decl_Union)))))) {
     rio_buf_push((void (**))(&(rio_sorted_syms)), &(sym), sizeof(sym));
   }
 }
@@ -8373,9 +8376,9 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
     int index = 0;
     for (size_t i = 0; (i) < (expr->compound.num_fields); (i)++) {
       rio_CompoundField field = expr->compound.fields[i];
-      if ((field.kind) == ((rio_CompoundFieldKind_Index))) {
+      if ((field.kind) == ((rio_CompoundField_Index))) {
         rio_fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
-      } else if ((field.kind) == ((rio_CompoundFieldKind_Name))) {
+      } else if ((field.kind) == ((rio_CompoundField_Name))) {
         index = rio_aggregate_item_field_index(type, field.name);
         if ((index) == (-(1))) {
           rio_fatal_error(field.pos, "Named field in compound literal does not exist");
@@ -8395,9 +8398,9 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
     size_t max_index = 0;
     for (size_t i = 0; (i) < (expr->compound.num_fields); (i)++) {
       rio_CompoundField field = expr->compound.fields[i];
-      if ((field.kind) == ((rio_CompoundFieldKind_Name))) {
+      if ((field.kind) == ((rio_CompoundField_Name))) {
         rio_fatal_error(field.pos, "Named field initializer not allowed for array compound literals");
-      } else if ((field.kind) == ((rio_CompoundFieldKind_Index))) {
+      } else if ((field.kind) == ((rio_CompoundField_Index))) {
         rio_Operand operand = rio_resolve_const_expr(field.index);
         if (!(rio_is_integer_type(operand.type))) {
           rio_fatal_error(field.pos, "Field initializer index expression must have type int");
@@ -8887,7 +8890,7 @@ void rio_init_builtin_syms(void) {
 void rio_add_package_decls(rio_Package (*package)) {
   for (size_t i = 0; (i) < (package->num_decls); (i)++) {
     rio_Decl (*decl) = package->decls[i];
-    if ((decl->kind) == ((rio_DeclKind_Note))) {
+    if ((decl->kind) == ((rio_Decl_Note))) {
       if (!(rio_map_get(&(rio_decl_note_names), decl->note.name))) {
         rio_warning(decl->pos, "Unknown declaration #directive \'%s\'", decl->note.name);
       }
@@ -8905,7 +8908,7 @@ void rio_add_package_decls(rio_Package (*package)) {
           rio_resolve_static_assert(decl->note);
         }
       }
-    } else if ((decl->kind) == ((rio_DeclKind_Import))) {
+    } else if ((decl->kind) == ((rio_Decl_Import))) {
     } else {
       rio_sym_global_decl(decl, NULL);
     }
@@ -8981,11 +8984,11 @@ void rio_import_package_symbols(rio_Decl (*decl), rio_Package (*package)) {
 void rio_process_package_imports(rio_Package (*package)) {
   for (size_t i = 0; (i) < (package->num_decls); (i)++) {
     rio_Decl (*decl) = package->decls[i];
-    if ((decl->kind) == ((rio_DeclKind_Note))) {
+    if ((decl->kind) == ((rio_Decl_Note))) {
       if ((decl->note.name) == (rio_always_name)) {
         package->always_reachable = true;
       }
-    } else if ((decl->kind) == ((rio_DeclKind_Import))) {
+    } else if ((decl->kind) == ((rio_Decl_Import))) {
       char (*path_buf) = NULL;
       if (decl->import_decl.is_relative) {
         rio_buf_printf(&(path_buf), "%s/", package->path);

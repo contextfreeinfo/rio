@@ -322,7 +322,7 @@ fn typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
 }
 
 fn gen_func_decl(decl: &Decl) {
-  #assert(decl.kind == DeclKind.Func);
+  #assert(decl.kind == Decl.Func);
   let result: *char = NULL;
   buf_printf(&result, "%s(", get_gen_name(decl));
   if (decl.function.num_params == 0) {
@@ -363,8 +363,8 @@ fn gen_forward_decls() {
       continue;
     }
     switch (decl.kind) {
-    case DeclKind.Struct:
-    case DeclKind.Union: {
+    case Decl.Struct:
+    case Decl.Union: {
       let name = get_gen_name(sym);
       genln();
       buf_printf(
@@ -383,7 +383,7 @@ fn gen_forward_decls() {
 
 fn gen_aggregate_item(item: &AggregateItem) {
   @complete
-  if (item.kind == AggregateItemKind.Field) {
+  if (item.kind == AggregateItem.Field) {
     for (let j: usize = 0; j < item.num_names; j++) {
       gen_sync_pos(item.pos);
       let prefix = "";
@@ -403,7 +403,7 @@ fn gen_aggregate_item(item: &AggregateItem) {
         &gen_buf, "%s%s;", prefix, typespec_to_cdecl(item.type, item.names[j]),
       );
     }
-  } else if (item.kind == AggregateItemKind.Subaggregate) {
+  } else if (item.kind == AggregateItem.Subaggregate) {
     genln();
     buf_printf(
       &gen_buf, "%s {",
@@ -425,7 +425,7 @@ fn gen_aggregate_items(aggregate: &Aggregate) {
 }
 
 fn gen_aggregate(decl: &Decl) {
-  #assert(decl.kind == DeclKind.Struct || decl.kind == DeclKind.Union);
+  #assert(decl.kind == Decl.Struct || decl.kind == Decl.Union);
   if (decl.is_incomplete) {
     return;
   }
@@ -460,9 +460,9 @@ fn gen_expr_compound(expr: &Expr) {
       buf_printf(&gen_buf, ", ");
     }
     let field = expr.compound.fields[i];
-    if (field.kind == CompoundFieldKind.Name) {
+    if (field.kind == CompoundField.Name) {
       buf_printf(&gen_buf, ".%s = ", field.name);
-    } else if (field.kind == CompoundFieldKind.Index) {
+    } else if (field.kind == CompoundField.Index) {
       buf_printf(&gen_buf, "[");
       gen_expr(field.index);
       buf_printf(&gen_buf, "] = ");
@@ -866,7 +866,7 @@ fn gen_decl(sym: &Sym) {
   gen_sync_pos(decl.pos);
   @complete
   switch (decl.kind) {
-  case DeclKind.Const:
+  case Decl.Const:
     genln(); buf_printf(&gen_buf, "#define %s (", get_gen_name(sym));
     if (decl.const_decl.type) {
       buf_printf(&gen_buf, "(%s)(", typespec_to_cdecl(decl.const_decl.type, ""));
@@ -876,7 +876,7 @@ fn gen_decl(sym: &Sym) {
       buf_printf(&gen_buf, ")");
     }
     buf_printf(&gen_buf, ")");
-  case DeclKind.Var:
+  case Decl.Var:
     genln(); buf_printf(&gen_buf, "extern ");
     if (decl.var_decl.type && !is_incomplete_array_typespec(decl.var_decl.type)) {
       buf_printf(&gen_buf, "%s", typespec_to_cdecl(decl.var_decl.type, get_gen_name(sym)));
@@ -884,21 +884,21 @@ fn gen_decl(sym: &Sym) {
       buf_printf(&gen_buf, "%s", type_to_cdecl(sym.type, get_gen_name(sym)));
     }
     buf_printf(&gen_buf, ";");
-  case DeclKind.Func:
+  case Decl.Func:
     gen_func_decl(decl);
     buf_printf(&gen_buf, ";");
-  case DeclKind.Struct:
-  case DeclKind.Union:
+  case Decl.Struct:
+  case Decl.Union:
     gen_aggregate(decl);
-  case DeclKind.Typedef:
+  case Decl.Typedef:
     genln(); buf_printf(&gen_buf, "typedef %s;", typespec_to_cdecl(decl.typedef_decl.type, get_gen_name(sym)));
-  case DeclKind.Enum:
+  case Decl.Enum:
     if (decl.enum_decl.type) {
       genln(); buf_printf(&gen_buf, "typedef %s;", typespec_to_cdecl(decl.enum_decl.type, get_gen_name(decl)));
     } else {
       genln(); buf_printf(&gen_buf, "typedef int %s;", get_gen_name(decl));
     }
-  case DeclKind.Import:
+  case Decl.Import:
     // Do nothing
     break;
   }
@@ -920,12 +920,12 @@ fn gen_defs() {
     if (sym.state != SymState.Resolved || !decl || is_decl_foreign(decl) || decl.is_incomplete || sym.reachable != ReachablePhase.Natural) {
       continue;
     }
-    if (decl.kind == DeclKind.Func) {
+    if (decl.kind == Decl.Func) {
       gen_func_decl(decl);
       buf_printf(&gen_buf, " ");
       gen_stmt_block(decl.function.block);
       genln();
-    } else if (decl.kind == DeclKind.Var) {
+    } else if (decl.kind == Decl.Var) {
       if (decl.var_decl.type && !is_incomplete_array_typespec(decl.var_decl.type)) {
         genln(); buf_printf(&gen_buf, "%s", typespec_to_cdecl(decl.var_decl.type, get_gen_name(sym)));
       } else {
@@ -1012,7 +1012,7 @@ fn preprocess_package(package: &Package) {
   let postamble_name = str_intern("postamble");
   for (let i: usize = 0; i < package.num_decls; i++) {
     let decl = package.decls[i];
-    if (decl.kind != DeclKind.Note) {
+    if (decl.kind != Decl.Note) {
       continue;
     }
     let note = decl.note;

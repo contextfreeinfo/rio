@@ -123,16 +123,16 @@ fn sym_decl(decl: &Decl) -> &Sym {
   let kind: SymKind = SymKind.None;
   @complete
   switch (decl.kind) {
-  case DeclKind.Struct:
-  case DeclKind.Union:
-  case DeclKind.Typedef:
-  case DeclKind.Enum:
+  case Decl.Struct:
+  case Decl.Union:
+  case Decl.Typedef:
+  case Decl.Enum:
     kind = SymKind.Type;
-  case DeclKind.Var:
+  case Decl.Var:
     kind = SymKind.Var;
-  case DeclKind.Const:
+  case Decl.Const:
     kind = SymKind.Const;
-  case DeclKind.Func:
+  case Decl.Func:
     kind = SymKind.Func;
   }
   let sym = sym_new(kind, decl.name, decl);
@@ -226,10 +226,10 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
       scope = decl.name;
     }
   }
-  if (decl.kind == DeclKind.Struct && decl.aggregate.union_enum_decl) {
+  if (decl.kind == Decl.Struct && decl.aggregate.union_enum_decl) {
     // Declare global symbols from the implicit enum.
     sym_global_decl(decl.aggregate.union_enum_decl, decl.name);
-  } else if (decl.kind == DeclKind.Enum) {
+  } else if (decl.kind == Decl.Enum) {
     // TODO Extract function.
     let unscoped =
       !decl.name ||
@@ -638,7 +638,7 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   let fields: *TypeField;
   for (let i: usize = 0; i < aggregate.num_items; i++) {
     let item = aggregate.items[i];
-    if (item.kind == AggregateItemKind.Field) {
+    if (item.kind == AggregateItem.Field) {
       let item_type = resolve_typespec(item.type);
       complete_type(item_type);
       // if (type_sizeof(item_type) == 0) {
@@ -649,7 +649,7 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
         buf_push((:*&void)&fields, &type_field, sizeof(type_field));
       }
     } else {
-      #assert(item.kind == AggregateItemKind.Subaggregate);
+      #assert(item.kind == AggregateItem.Subaggregate);
       let item_type = complete_aggregate(NULL, item.subaggregate);
       let type_field = TypeField {NULL, item_type};
       buf_push((:*&void)&fields, &type_field, sizeof(type_field));
@@ -688,7 +688,7 @@ fn complete_type(type: &Type) {
     fatal_error(decl.pos, "Trying to use incomplete type as complete type");
   }
   type.kind = CompilerTypeKind.Completing;
-  #assert(decl.kind == DeclKind.Struct || decl.kind == DeclKind.Union);
+  #assert(decl.kind == Decl.Struct || decl.kind == Decl.Union);
   complete_aggregate(type, decl.aggregate);
   buf_push((:*&void)&sorted_syms, &type.sym, sizeof(type.sym));
   leave_package(old_package);
@@ -745,12 +745,12 @@ fn resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
 }
 
 fn resolve_decl_var(decl: &Decl) -> &Type {
-  #assert(decl.kind == DeclKind.Var);
+  #assert(decl.kind == Decl.Var);
   return resolve_init(decl.pos, decl.var_decl.type, decl.var_decl.expr);
 }
 
 fn resolve_decl_const(decl: &Decl, val: &Val) -> &Type {
-  #assert(decl.kind == DeclKind.Const);
+  #assert(decl.kind == Decl.Const);
   let result = resolve_const_expr(decl.const_decl.expr);
   if (!is_scalar_type(result.type)) {
     fatal_error(decl.pos, "Const declarations must have scalar type");
@@ -766,7 +766,7 @@ fn resolve_decl_const(decl: &Decl, val: &Val) -> &Type {
 }
 
 fn resolve_decl_func(decl: &Decl) -> &Type {
-  #assert(decl.kind == DeclKind.Func);
+  #assert(decl.kind == Decl.Func);
   let params: *&Type = NULL;
   for (let i: usize = 0; i < decl.function.num_params; i++) {
     let param = resolve_typespec(decl.function.params[i].type);
@@ -1079,7 +1079,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
 
 fn resolve_func_body(sym: &Sym) {
   let decl = sym.decl;
-  #assert(decl.kind == DeclKind.Func);
+  #assert(decl.kind == Decl.Func);
   #assert(sym.state == SymState.Resolved);
   if (decl.is_incomplete) {
     return;
@@ -1124,9 +1124,9 @@ fn resolve_sym(sym: &Sym) {
   @complete
   switch (sym.kind) {
   case SymKind.Type:
-    if (decl && decl.kind == DeclKind.Typedef) {
+    if (decl && decl.kind == Decl.Typedef) {
       sym.type = resolve_typespec(decl.typedef_decl.type);
-    } else if (decl.kind == DeclKind.Enum) {
+    } else if (decl.kind == Decl.Enum) {
       // Here's where the base type is set for enums.
       let base = decl.enum_decl.type ? resolve_typespec(decl.enum_decl.type) : type_int;
       if (!is_integer_type(base)) {
@@ -1148,7 +1148,7 @@ fn resolve_sym(sym: &Sym) {
   }
   leave_package(old_package);
   sym.state = SymState.Resolved;
-  if (decl.is_incomplete || (decl.kind != DeclKind.Struct && decl.kind != DeclKind.Union)) {
+  if (decl.is_incomplete || (decl.kind != Decl.Struct && decl.kind != Decl.Union)) {
     buf_push((:*&void)&sorted_syms, &sym, sizeof(sym));
   }
 }
@@ -1660,9 +1660,9 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
     let index = 0;
     for (let i: usize = 0; i < expr.compound.num_fields; i++) {
       let field: CompoundField = expr.compound.fields[i];
-      if (field.kind == CompoundFieldKind.Index) {
+      if (field.kind == CompoundField.Index) {
         fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
-      } else if (field.kind == CompoundFieldKind.Name) {
+      } else if (field.kind == CompoundField.Name) {
         index = aggregate_item_field_index(type, field.name);
         if (index == -1) {
           fatal_error(field.pos, "Named field in compound literal does not exist");
@@ -1683,9 +1683,9 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
     let max_index: usize = 0;
     for (let i: usize = 0; i < expr.compound.num_fields; i++) {
       let field = expr.compound.fields[i];
-      if (field.kind == CompoundFieldKind.Name) {
+      if (field.kind == CompoundField.Name) {
         fatal_error(field.pos, "Named field initializer not allowed for array compound literals");
-      } else if (field.kind == CompoundFieldKind.Index) {
+      } else if (field.kind == CompoundField.Index) {
         let operand = resolve_const_expr(field.index);
         if (!is_integer_type(operand.type)) {
           fatal_error(field.pos, "Field initializer index expression must have type int");
@@ -2099,7 +2099,7 @@ fn init_builtin_syms() {
 fn add_package_decls(package: &Package) {
   for (let i: usize = 0; i < package.num_decls; i++) {
     let decl = package.decls[i];
-    if (decl.kind == DeclKind.Note) {
+    if (decl.kind == Decl.Note) {
       if (!map_get(&decl_note_names, decl.note.name)) {
         warning(decl.pos, "Unknown declaration #directive '%s'", decl.note.name);
       }
@@ -2118,7 +2118,7 @@ fn add_package_decls(package: &Package) {
           resolve_static_assert(decl.note);
         }
       }
-    } else if (decl.kind == DeclKind.Import) {
+    } else if (decl.kind == Decl.Import) {
       // Add to list of imports
     } else {
       sym_global_decl(decl, NULL);
@@ -2196,11 +2196,11 @@ fn import_package_symbols(decl: &Decl, package: &Package) {
 fn process_package_imports(package: &Package) {
   for (let i: usize = 0; i < package.num_decls; i++) {
     let decl = package.decls[i];
-    if (decl.kind == DeclKind.Note) {
+    if (decl.kind == Decl.Note) {
       if (decl.note.name == always_name) {
         package.always_reachable = true;
       }
-    } else if (decl.kind == DeclKind.Import) {
+    } else if (decl.kind == Decl.Import) {
       let path_buf: *char = NULL;
       if (decl.import_decl.is_relative) {
         buf_printf(&path_buf, "%s/", package.path);

@@ -49,28 +49,21 @@ struct FuncParam {
   type: &Typespec;
 }
 
-enum AggregateItemKind {
-  None,
-  Field,
-  Subaggregate,
-}
-
 struct AggregateItem {
   pos: SrcPos;
-  kind: AggregateItemKind;
   // Kind names apply only to unions ...
   struct {
     kind_names: **const char;
     num_kind_names: usize;
   }
-  // @tagged
-  union {
-    struct {
+  union switch {
+    None => :void;
+    Field => struct {
       names: **const char;
       num_names: usize;
       type: &Typespec;
     }
-    subaggregate: &Aggregate;
+    Subaggregate => subaggregate: &Aggregate;
   }
 }
 
@@ -83,19 +76,6 @@ struct EnumItem {
 struct ImportItem {
   name: *const char;
   rename: *const char;
-}
-
-enum DeclKind {
-  None,
-  Enum,
-  Struct,
-  Union,
-  Var,
-  Const,
-  Typedef,
-  Func,
-  Note,
-  Import,
 }
 
 enum AggregateKind {
@@ -113,22 +93,21 @@ struct Aggregate {
 }
 
 struct Decl {
-  kind: DeclKind;
   pos: SrcPos;
   name: *const char;
   notes: Notes;
   is_incomplete: bool;
-  // Almost @tagged
-  union {
-    note: Note;
-    enum_decl: DeclEnum;
-    // Incudes: Struct, Union
-    aggregate: &Aggregate;
-    function: DeclFunc;
-    typedef_decl: DeclTypedef;
-    var_decl: DeclVar;
-    const_decl: DeclVar;
-    import_decl: DeclImport;
+  union switch {
+    None => :void;
+    Note => note: Note;
+    Enum => enum_decl: DeclEnum;
+    Struct | Union => aggregate: &Aggregate;
+    Func => function: DeclFunc;
+    Typedef => typedef_decl: DeclTypedef;
+    // This is an example of wanting different names for the same thing ...
+    Var => var_decl: DeclVar;
+    Const => const_decl: DeclVar;
+    Import => import_decl: DeclImport;
   }
 }
 
@@ -195,20 +174,13 @@ enum ExprKind {
   Offsetof,
 }
 
-enum CompoundFieldKind {
-  Default,
-  Name,
-  Index,
-}
-
 struct CompoundField {
-  kind: CompoundFieldKind;
   pos: SrcPos;
   init: &Expr;
-  // @tagged
-  union {
-    name: *const char;
-    index: &Expr;
+  union switch {
+    Default => :void;
+    Name => name: *const char;
+    Index => index: &Expr;
   }
 }
 
