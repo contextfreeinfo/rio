@@ -149,31 +149,6 @@ struct Decls {
   num_decls: usize;
 }
 
-enum ExprKind {
-  None,
-  Paren,
-  Int,
-  Float,
-  Str,
-  Name,
-  Cast,
-  Call,
-  Index,
-  Field,
-  Compound,
-  Unary,
-  Binary,
-  Ternary,
-  Modify,
-  SizeofExpr,
-  SizeofType,
-  TypeofExpr,
-  TypeofType,
-  AlignofExpr,
-  AlignofType,
-  Offsetof,
-}
-
 struct CompoundField {
   pos: SrcPos;
   init: &Expr;
@@ -185,31 +160,30 @@ struct CompoundField {
 }
 
 struct Expr {
-  kind: ExprKind;
   pos: SrcPos;
-  // @tagged
-  union {
-    paren: ExprParen;
-    int_lit: ExprIntLit;
-    float_lit: ExprFloatLit;
-    str_lit: ExprStrLit;
-    name: *const char;
-    sizeof_expr: &Expr;
-    sizeof_type: &Typespec;
-    typeof_expr: &Expr;
-    typeof_type: &Typespec;
-    alignof_expr: &Expr;
-    alignof_type: &Typespec;
-    offsetof_field: ExprOffsetofField;
-    compound: ExprCompound;
-    cast: ExprCast;
-    modify: ExprModify;
-    unary: ExprUnary;
-    binary: ExprBinary;
-    ternary: ExprTernary;
-    call: ExprCall;
-    index: ExprIndex;
-    field: ExprField;
+  union switch {
+    None => :void;
+    Paren => paren: ExprParen;
+    Int => int_lit: ExprIntLit;
+    Float => float_lit: ExprFloatLit;
+    Str => str_lit: ExprStrLit;
+    Name => name: *const char;
+    SizeofExpr => sizeof_expr: &Expr;
+    SizeofType => sizeof_type: &Typespec;
+    TypeofExpr => typeof_expr: &Expr;
+    TypeofType => typeof_type: &Typespec;
+    AlignofExpr => alignof_expr: &Expr;
+    AlignofType => alignof_type: &Typespec;
+    Offsetof => offsetof_field: ExprOffsetofField;
+    Compound => compound: ExprCompound;
+    Cast => cast: ExprCast;
+    Modify => modify: ExprModify;
+    Unary => unary: ExprUnary;
+    Binary => binary: ExprBinary;
+    Ternary => ternary: ExprTernary;
+    Call => call: ExprCall;
+    Index => index: ExprIndex;
+    Field => field: ExprField;
   }
 }
 

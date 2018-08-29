@@ -110,7 +110,7 @@ fn process_decl_notes(decl: &Decl, sym: &Sym) {
       external_name = sym.name;
     } else {
       let arg = foreign_note.args[0].expr;
-      if (arg.kind != ExprKind.Str) {
+      if (arg.kind != Expr.Str) {
         fatal_error(decl.pos, "@foreign argument 1 must be a string literal");
       }
       external_name = arg.str_lit.val;
@@ -731,7 +731,7 @@ fn resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
   } else {
     #assert(expr);
     type = unqualify_type(resolve_expr(expr).type);
-    if (is_array_type(type) && expr.kind != ExprKind.Compound) {
+    if (is_array_type(type) && expr.kind != Expr.Compound) {
       type = type_decay(type);
       set_resolved_type(expr, type);
     }
@@ -1174,12 +1174,12 @@ fn resolve_name(name: *const char) -> &Sym {
 }
 
 fn try_resolve_package(expr: &Expr) -> &Package {
-  if (expr.kind == ExprKind.Name) {
+  if (expr.kind == Expr.Name) {
     let sym = resolve_name(expr.name);
     if (sym && sym.kind == SymKind.Package) {
       return sym.package;
     }
-  } else if (expr.kind == ExprKind.Field) {
+  } else if (expr.kind == Expr.Field) {
     let package = try_resolve_package(expr.field.expr);
     if (package) {
       let sym = get_package_sym(package, expr.field.name);
@@ -1192,7 +1192,7 @@ fn try_resolve_package(expr: &Expr) -> &Package {
 }
 
 fn resolve_expr_field(expr: &Expr) -> Operand {
-  #assert(expr.kind == ExprKind.Field);
+  #assert(expr.kind == Expr.Field);
   let package = try_resolve_package(expr.field.expr);
   if (package) {
     let old_package = enter_package(package);
@@ -1438,7 +1438,7 @@ fn resolve_name_operand(pos: SrcPos, name: *const char) -> Operand {
 }
 
 fn resolve_expr_name(expr: &Expr) -> Operand {
-  #assert(expr.kind == ExprKind.Name);
+  #assert(expr.kind == Expr.Name);
   return resolve_name_operand(expr.pos, expr.name);
 }
 
@@ -1634,7 +1634,7 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
 }
 
 fn resolve_expr_binary(expr: &Expr) -> Operand {
-  #assert(expr.kind == ExprKind.Binary);
+  #assert(expr.kind == Expr.Binary);
   let left = resolve_expr_rvalue(expr.binary.left);
   let right = resolve_expr_rvalue(expr.binary.right);
   let op: TokenKind = expr.binary.op;
@@ -1643,7 +1643,7 @@ fn resolve_expr_binary(expr: &Expr) -> Operand {
 }
 
 fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
-  #assert(expr.kind == ExprKind.Compound);
+  #assert(expr.kind == Expr.Compound);
   if (!expected_type && !expr.compound.type) {
     fatal_error(expr.pos, "Implicitly typed compound literals used in context without expected type");
   }
@@ -1727,8 +1727,8 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
 }
 
 fn resolve_expr_call(expr: &Expr) -> Operand {
-  #assert(expr.kind == ExprKind.Call);
-  if (expr.call.expr.kind == ExprKind.Name) {
+  #assert(expr.kind == Expr.Call);
+  if (expr.call.expr.kind == Expr.Name) {
     let sym = resolve_name(expr.call.expr.name);
     if (sym && sym.kind == SymKind.Type) {
       if (expr.call.num_args != 1) {
@@ -1770,7 +1770,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
 }
 
 fn resolve_expr_ternary(expr: &Expr, expected_type: &Type) -> Operand {
-  #assert(expr.kind == ExprKind.Ternary);
+  #assert(expr.kind == Expr.Ternary);
   let cond = resolve_expr_rvalue(expr.ternary.cond);
   if (!is_scalar_type(cond.type)) {
     fatal_error(expr.pos, "Ternary conditional must have scalar type");
@@ -1799,7 +1799,7 @@ fn resolve_expr_ternary(expr: &Expr, expected_type: &Type) -> Operand {
 }
 
 fn resolve_expr_index(expr: &Expr) -> Operand {
-  #assert(expr.kind == ExprKind.Index);
+  #assert(expr.kind == Expr.Index);
   let operand = resolve_expr_rvalue(expr.index.expr);
   if (!is_ptr_star_type(operand.type)) {
     fatal_error(expr.pos, "Can only index arrays and star pointers");
@@ -1812,7 +1812,7 @@ fn resolve_expr_index(expr: &Expr) -> Operand {
 }
 
 fn resolve_expr_cast(expr: &Expr) -> Operand {
-  #assert(expr.kind == ExprKind.Cast);
+  #assert(expr.kind == Expr.Cast);
   let type = resolve_typespec(expr.cast.type);
   let operand = resolve_expr_rvalue(expr.cast.expr);
   if (!cast_operand(&operand, type)) {
@@ -1822,7 +1822,7 @@ fn resolve_expr_cast(expr: &Expr) -> Operand {
 }
 
 fn resolve_expr_int(expr: &Expr) -> Operand {
-  #assert(expr.kind == ExprKind.Int);
+  #assert(expr.kind == Expr.Int);
   let int_max: ullong = type_metrics[CompilerTypeKind.Int].max;
   let uint_max: ullong = type_metrics[CompilerTypeKind.UInt].max;
   let long_max: ullong = type_metrics[CompilerTypeKind.Long].max;
@@ -1948,28 +1948,28 @@ fn resolve_expr_modify(expr: &Expr) -> Operand {
 fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
   let result: Operand;
   switch (expr.kind) {
-  case ExprKind.Paren:
+  case Expr.Paren:
     result = resolve_expected_expr(expr.paren.expr, expected_type);
-  case ExprKind.Int:
+  case Expr.Int:
     result = resolve_expr_int(expr);
-  case ExprKind.Float:
+  case Expr.Float:
     result = operand_const(expr.float_lit.suffix == TokenSuffix.D ? type_double : type_float, Val {0});
-  case ExprKind.Str:
+  case Expr.Str:
     result = operand_rvalue(type_array(type_char, strlen(expr.str_lit.val) + 1));
-  case ExprKind.Name:
+  case Expr.Name:
     result = resolve_expr_name(expr);
     set_resolved_sym(expr, resolve_name(expr.name));
-  case ExprKind.Cast:
+  case Expr.Cast:
     result = resolve_expr_cast(expr);
-  case ExprKind.Call:
+  case Expr.Call:
     result = resolve_expr_call(expr);
-  case ExprKind.Index:
+  case Expr.Index:
     result = resolve_expr_index(expr);
-  case ExprKind.Field:
+  case Expr.Field:
     result = resolve_expr_field(expr);
-  case ExprKind.Compound:
+  case Expr.Compound:
     result = resolve_expr_compound(expr, expected_type);
-  case ExprKind.Unary:
+  case Expr.Unary:
     if (expr.unary.op == TokenKind.And) {
       let operand: Operand;
       if (expected_type && is_ptr_type(expected_type)) {
@@ -1984,12 +1984,12 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     } else {
       result = resolve_expr_unary(expr);
     }
-  case ExprKind.Binary:
+  case Expr.Binary:
     result = resolve_expr_binary(expr);
-  case ExprKind.Ternary:
+  case Expr.Ternary:
     result = resolve_expr_ternary(expr, expected_type);
-  case ExprKind.SizeofExpr: {
-    if (expr.sizeof_expr.kind == ExprKind.Name) {
+  case Expr.SizeofExpr: {
+    if (expr.sizeof_expr.kind == Expr.Name) {
       let sym = resolve_name(expr.sizeof_expr.name);
       if (sym && sym.kind == SymKind.Type) {
         complete_type(sym.type);
@@ -2003,13 +2003,13 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     complete_type(type);
     result = operand_const(type_usize, Val {ull = type_sizeof(type)});
   }
-  case ExprKind.SizeofType: {
+  case Expr.SizeofType: {
     let type = resolve_typespec(expr.sizeof_type);
     complete_type(type);
     result = operand_const(type_usize, Val {ull = type_sizeof(type)});
   }
-  case ExprKind.AlignofExpr: {
-    if (expr.sizeof_expr.kind == ExprKind.Name) {
+  case Expr.AlignofExpr: {
+    if (expr.sizeof_expr.kind == Expr.Name) {
       let sym = resolve_name(expr.alignof_expr.name);
       if (sym && sym.kind == SymKind.Type) {
         complete_type(sym.type);
@@ -2023,17 +2023,17 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     complete_type(type);
     result = operand_const(type_usize, Val {ull = type_alignof(type)});
   }
-  case ExprKind.AlignofType: {
+  case Expr.AlignofType: {
     let type = resolve_typespec(expr.alignof_type);
     complete_type(type);
     result = operand_const(type_usize, Val {ull = type_alignof(type)});
   }
-  case ExprKind.TypeofType: {
+  case Expr.TypeofType: {
     let type = resolve_typespec(expr.typeof_type);
     result = operand_const(type_ullong, Val {ull = type.typeid});
   }
-  case ExprKind.TypeofExpr: {
-    if (expr.typeof_expr.kind == ExprKind.Name) {
+  case Expr.TypeofExpr: {
+    if (expr.typeof_expr.kind == Expr.Name) {
       let sym = resolve_name(expr.typeof_expr.name);
       if (sym && sym.kind == SymKind.Type) {
         result = operand_const(type_ullong, Val {ull = sym.type.typeid});
@@ -2045,7 +2045,7 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     let type = resolve_expr(expr.typeof_expr).type;
     result = operand_const(type_ullong, Val {ull = type.typeid});
   }
-  case ExprKind.Offsetof: {
+  case Expr.Offsetof: {
     let type = resolve_typespec(expr.offsetof_field.type);
     complete_type(type);
     if (type.kind != CompilerTypeKind.Struct && type.kind != CompilerTypeKind.Union) {
@@ -2057,7 +2057,7 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     }
     result = operand_const(type_usize, Val {ull = type.aggregate.fields[field].offset});
   }
-  case ExprKind.Modify:
+  case Expr.Modify:
     result = resolve_expr_modify(expr);
   default:
     #assert(0);
@@ -2108,7 +2108,7 @@ fn add_package_decls(package: &Package) {
           fatal_error(decl.pos, "#declare_note takes 1 argument");
         }
         let arg = decl.note.args[0].expr;
-        if (arg.kind != ExprKind.Name) {
+        if (arg.kind != Expr.Name) {
           fatal_error(decl.pos, "#declare_note argument must be name");
         }
         map_put(&decl_note_names, arg.name, (:&void)1);

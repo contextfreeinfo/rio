@@ -93,7 +93,7 @@ fn parse_expr_compound_field() -> CompoundField {
   } else {
     let expr = parse_expr();
     if (match_token(TokenKind.Assign)) {
-      if (expr.kind != ExprKind.Name) {
+      if (expr.kind != Expr.Name) {
         fatal_error(token.pos, "Named initializer in compound literal must be preceded by field name");
       }
       return CompoundField {CompoundField.Name, pos, parse_expr(), name = expr.name};
@@ -444,7 +444,7 @@ fn parse_simple_stmt() -> &Stmt {
     stmt = parse_let_stmt(pos);
   } else {
     let expr = parse_expr();
-    if (expr.kind == ExprKind.Name && match_token(TokenKind.Colon)) {
+    if (expr.kind == Expr.Name && match_token(TokenKind.Colon)) {
       stmt = new_stmt_label(pos, expr.name);
     } else if (is_assign_op()) {
       let op = token.kind;
@@ -952,7 +952,7 @@ fn parse_note_arg() -> NoteArg {
   let expr = parse_expr();
   let name: *const char = NULL;
   if (match_token(TokenKind.Assign)) {
-    if (expr.kind != ExprKind.Name) {
+    if (expr.kind != Expr.Name) {
       fatal_error(token.pos, "Left of: operand = in note argument must be a name");
     }
     name = expr.name;

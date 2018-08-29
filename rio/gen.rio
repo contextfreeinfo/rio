@@ -533,11 +533,11 @@ fn gen_typeid(type: &Type) {
 fn gen_expr(expr: &Expr) {
   @complete
   switch (expr.kind) {
-  case ExprKind.Paren:
+  case Expr.Paren:
     buf_printf(&gen_buf, "(");
     gen_expr(expr.paren.expr);
     buf_printf(&gen_buf, ")");
-  case ExprKind.Int: {
+  case Expr.Int: {
     let suffix_name: *const char = token_suffix_names[expr.int_lit.suffix];
     switch (expr.int_lit.mod) {
     case TokenMod.Bin:
@@ -551,20 +551,20 @@ fn gen_expr(expr: &Expr) {
       buf_printf(&gen_buf, "%llu%s", expr.int_lit.val, suffix_name);
     }
   }
-  case ExprKind.Float: {
+  case Expr.Float: {
     let is_double = expr.float_lit.suffix == TokenSuffix.D;
     let len: usize = expr.float_lit.end - expr.float_lit.start;
     buf_printf(&gen_buf, "%.*s%s", is_double ? len-1 : len, expr.float_lit.start, is_double ? "" : "f");
   }
-  case ExprKind.Str:
+  case Expr.Str:
     gen_str(expr.str_lit.val, expr.str_lit.mod == TokenMod.Multiline);
-  case ExprKind.Name:
+  case Expr.Name:
     buf_printf(&gen_buf, "%s", get_gen_name_or_default(expr, expr.name));
-  case ExprKind.Cast:
+  case Expr.Cast:
     buf_printf(&gen_buf, "(%s)(", typespec_to_cdecl(expr.cast.type, ""));
     gen_expr(expr.cast.expr);
     buf_printf(&gen_buf, ")");
-  case ExprKind.Call: {
+  case Expr.Call: {
     let sym = get_resolved_sym(expr.call.expr);
     if (sym && sym.kind == SymKind.Type) {
       buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
@@ -580,12 +580,12 @@ fn gen_expr(expr: &Expr) {
     }
     buf_printf(&gen_buf, ")");
   }
-  case ExprKind.Index:
+  case Expr.Index:
     gen_expr(expr.index.expr);
     buf_printf(&gen_buf, "[");
     gen_expr(expr.index.index);
     buf_printf(&gen_buf, "]");
-  case ExprKind.Field: {
+  case Expr.Field: {
     let sym = get_resolved_sym(expr);
     if (sym) {
       buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
@@ -597,19 +597,19 @@ fn gen_expr(expr: &Expr) {
       );
     }
   }
-  case ExprKind.Compound:
+  case Expr.Compound:
     gen_expr_compound(expr);
-  case ExprKind.Unary:
+  case Expr.Unary:
     buf_printf(&gen_buf, "%s(", token_kind_name(expr.unary.op));
     gen_expr(expr.unary.expr);
     buf_printf(&gen_buf, ")");
-  case ExprKind.Binary:
+  case Expr.Binary:
     buf_printf(&gen_buf, "(");
     gen_expr(expr.binary.left);
     buf_printf(&gen_buf, ") %s (", token_kind_name(expr.binary.op));
     gen_expr(expr.binary.right);
     buf_printf(&gen_buf, ")");
-  case ExprKind.Ternary:
+  case Expr.Ternary:
     buf_printf(&gen_buf, "(");
     gen_expr(expr.ternary.cond);
     buf_printf(&gen_buf, " ? ");
@@ -617,29 +617,29 @@ fn gen_expr(expr: &Expr) {
     buf_printf(&gen_buf, " : ");
     gen_expr(expr.ternary.else_expr);
     buf_printf(&gen_buf, ")");
-  case ExprKind.SizeofExpr:
+  case Expr.SizeofExpr:
     buf_printf(&gen_buf, "sizeof(");
     gen_expr(expr.sizeof_expr);
     buf_printf(&gen_buf, ")");
-  case ExprKind.SizeofType:
+  case Expr.SizeofType:
     buf_printf(&gen_buf, "sizeof(%s)", typespec_to_cdecl(expr.sizeof_type, ""));
-  case ExprKind.AlignofExpr:
+  case Expr.AlignofExpr:
     buf_printf(&gen_buf, "alignof(%s)", type_to_cdecl(get_resolved_type(expr.alignof_expr), ""));
-  case ExprKind.AlignofType:
+  case Expr.AlignofType:
     buf_printf(&gen_buf, "alignof(%s)", typespec_to_cdecl(expr.alignof_type, ""));
-  case ExprKind.TypeofExpr: {
+  case Expr.TypeofExpr: {
     let type = get_resolved_type(expr.typeof_expr);
     #assert(type.typeid);
     gen_typeid(type);
   }
-  case ExprKind.TypeofType: {
+  case Expr.TypeofType: {
     let type = get_resolved_type(expr.typeof_type);
     #assert(type.typeid);
     gen_typeid(type);
   }
-  case ExprKind.Offsetof:
+  case Expr.Offsetof:
     buf_printf(&gen_buf, "offsetof(%s, %s)", typespec_to_cdecl(expr.offsetof_field.type, ""), expr.offsetof_field.name);
-  case ExprKind.Modify:
+  case Expr.Modify:
     if (!expr.modify.post) {
       buf_printf(&gen_buf, "%s", token_kind_name(expr.modify.op));
     }
@@ -690,7 +690,7 @@ fn gen_simple_stmt(stmt: &Stmt) {
 }
 
 fn is_char_lit(expr: &Expr) -> bool {
-  return expr.kind == ExprKind.Int && expr.int_lit.mod == TokenMod.Char;
+  return expr.kind == Expr.Int && expr.int_lit.mod == TokenMod.Char;
 }
 
 fn gen_stmt(stmt: &Stmt) {
@@ -1020,7 +1020,7 @@ fn preprocess_package(package: &Package) {
       for (let k: usize = 0; k < note.num_args; k++) {
         let arg = note.args[k];
         let expr = note.args[k].expr;
-        if (expr.kind != ExprKind.Str) {
+        if (expr.kind != Expr.Str) {
           fatal_error(decl.pos, "#foreign argument must be a string");
         }
         let str = expr.str_lit.val;
