@@ -89,15 +89,17 @@ typedef struct rio_TypeFunc rio_TypeFunc;
 typedef struct rio_Type rio_Type;
 typedef struct TypeFieldInfo TypeFieldInfo;
 typedef struct Any Any;
-typedef struct rio_StmtWhile rio_StmtWhile;
-typedef struct rio_StmtAssign rio_StmtAssign;
-typedef struct rio_StmtFor rio_StmtFor;
-typedef struct rio_StmtIf rio_StmtIf;
-typedef struct rio_StmtInit rio_StmtInit;
-typedef struct rio_StmtSwitch rio_StmtSwitch;
-typedef struct rio_Stmt rio_Stmt;
 typedef struct rio_TypespecFunc rio_TypespecFunc;
 typedef struct rio_Typespec rio_Typespec;
+typedef struct rio_ImportItem rio_ImportItem;
+typedef struct rio_Aggregate rio_Aggregate;
+typedef struct rio_DeclEnum rio_DeclEnum;
+typedef struct rio_DeclFunc rio_DeclFunc;
+typedef struct rio_DeclTypedef rio_DeclTypedef;
+typedef struct rio_DeclVar rio_DeclVar;
+typedef struct rio_DeclImport rio_DeclImport;
+typedef struct rio_Decl rio_Decl;
+typedef struct rio_Decls rio_Decls;
 typedef struct rio_ExprParen rio_ExprParen;
 typedef struct rio_ExprIntLit rio_ExprIntLit;
 typedef struct rio_ExprFloatLit rio_ExprFloatLit;
@@ -113,16 +115,14 @@ typedef struct rio_ExprCall rio_ExprCall;
 typedef struct rio_ExprIndex rio_ExprIndex;
 typedef struct rio_ExprField rio_ExprField;
 typedef struct rio_Expr rio_Expr;
-typedef struct rio_Decls rio_Decls;
-typedef struct rio_DeclEnum rio_DeclEnum;
-typedef struct rio_DeclFunc rio_DeclFunc;
-typedef struct rio_DeclTypedef rio_DeclTypedef;
-typedef struct rio_DeclVar rio_DeclVar;
-typedef struct rio_DeclImport rio_DeclImport;
-typedef struct rio_Decl rio_Decl;
-typedef struct rio_Aggregate rio_Aggregate;
-typedef struct rio_ImportItem rio_ImportItem;
 typedef struct rio_ElseIf rio_ElseIf;
+typedef struct rio_StmtWhile rio_StmtWhile;
+typedef struct rio_StmtAssign rio_StmtAssign;
+typedef struct rio_StmtFor rio_StmtFor;
+typedef struct rio_StmtIf rio_StmtIf;
+typedef struct rio_StmtInit rio_StmtInit;
+typedef struct rio_StmtSwitch rio_StmtSwitch;
+typedef struct rio_Stmt rio_Stmt;
 typedef struct rio_BufHdr rio_BufHdr;
 typedef struct rio_Intern rio_Intern;
 typedef struct rio_Package rio_Package;
@@ -231,6 +231,150 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 
 #define UINTPTR_MIN (UINT64_MIN)
 
+typedef int rio_Typespec_Kind;
+
+#define rio_Typespec_None ((rio_Typespec_Kind)(0))
+
+#define rio_Typespec_Const ((rio_Typespec_Kind)((rio_Typespec_None) + (1)))
+
+#define rio_Typespec_Ptr ((rio_Typespec_Kind)((rio_Typespec_Const) + (1)))
+
+#define rio_Typespec_Ref ((rio_Typespec_Kind)((rio_Typespec_Ptr) + (1)))
+
+#define rio_Typespec_Name ((rio_Typespec_Kind)((rio_Typespec_Ref) + (1)))
+
+#define rio_Typespec_Func ((rio_Typespec_Kind)((rio_Typespec_Name) + (1)))
+
+#define rio_Typespec_Array ((rio_Typespec_Kind)((rio_Typespec_Func) + (1)))
+
+typedef int rio_AggregateItem_Kind;
+
+#define rio_AggregateItem_None ((rio_AggregateItem_Kind)(0))
+
+#define rio_AggregateItem_Field ((rio_AggregateItem_Kind)((rio_AggregateItem_None) + (1)))
+
+#define rio_AggregateItem_Subaggregate ((rio_AggregateItem_Kind)((rio_AggregateItem_Field) + (1)))
+
+typedef int rio_AggregateKind;
+
+#define rio_AggregateKind_None ((rio_AggregateKind)(0))
+
+#define rio_AggregateKind_Struct ((rio_AggregateKind)((rio_AggregateKind_None) + (1)))
+
+#define rio_AggregateKind_Union ((rio_AggregateKind)((rio_AggregateKind_Struct) + (1)))
+
+typedef int rio_Decl_Kind;
+
+#define rio_Decl_None ((rio_Decl_Kind)(0))
+
+#define rio_Decl_Note ((rio_Decl_Kind)((rio_Decl_None) + (1)))
+
+#define rio_Decl_Enum ((rio_Decl_Kind)((rio_Decl_Note) + (1)))
+
+#define rio_Decl_Struct ((rio_Decl_Kind)((rio_Decl_Enum) + (1)))
+
+#define rio_Decl_Union ((rio_Decl_Kind)((rio_Decl_Struct) + (1)))
+
+#define rio_Decl_Func ((rio_Decl_Kind)((rio_Decl_Union) + (1)))
+
+#define rio_Decl_Typedef ((rio_Decl_Kind)((rio_Decl_Func) + (1)))
+
+#define rio_Decl_Var ((rio_Decl_Kind)((rio_Decl_Typedef) + (1)))
+
+#define rio_Decl_Const ((rio_Decl_Kind)((rio_Decl_Var) + (1)))
+
+#define rio_Decl_Import ((rio_Decl_Kind)((rio_Decl_Const) + (1)))
+
+typedef int rio_CompoundField_Kind;
+
+#define rio_CompoundField_Default ((rio_CompoundField_Kind)(0))
+
+#define rio_CompoundField_Name ((rio_CompoundField_Kind)((rio_CompoundField_Default) + (1)))
+
+#define rio_CompoundField_Index ((rio_CompoundField_Kind)((rio_CompoundField_Name) + (1)))
+
+typedef int rio_Expr_Kind;
+
+#define rio_Expr_None ((rio_Expr_Kind)(0))
+
+#define rio_Expr_Paren ((rio_Expr_Kind)((rio_Expr_None) + (1)))
+
+#define rio_Expr_Int ((rio_Expr_Kind)((rio_Expr_Paren) + (1)))
+
+#define rio_Expr_Float ((rio_Expr_Kind)((rio_Expr_Int) + (1)))
+
+#define rio_Expr_Str ((rio_Expr_Kind)((rio_Expr_Float) + (1)))
+
+#define rio_Expr_Name ((rio_Expr_Kind)((rio_Expr_Str) + (1)))
+
+#define rio_Expr_SizeofExpr ((rio_Expr_Kind)((rio_Expr_Name) + (1)))
+
+#define rio_Expr_SizeofType ((rio_Expr_Kind)((rio_Expr_SizeofExpr) + (1)))
+
+#define rio_Expr_TypeofExpr ((rio_Expr_Kind)((rio_Expr_SizeofType) + (1)))
+
+#define rio_Expr_TypeofType ((rio_Expr_Kind)((rio_Expr_TypeofExpr) + (1)))
+
+#define rio_Expr_AlignofExpr ((rio_Expr_Kind)((rio_Expr_TypeofType) + (1)))
+
+#define rio_Expr_AlignofType ((rio_Expr_Kind)((rio_Expr_AlignofExpr) + (1)))
+
+#define rio_Expr_Offsetof ((rio_Expr_Kind)((rio_Expr_AlignofType) + (1)))
+
+#define rio_Expr_Compound ((rio_Expr_Kind)((rio_Expr_Offsetof) + (1)))
+
+#define rio_Expr_Cast ((rio_Expr_Kind)((rio_Expr_Compound) + (1)))
+
+#define rio_Expr_Modify ((rio_Expr_Kind)((rio_Expr_Cast) + (1)))
+
+#define rio_Expr_Unary ((rio_Expr_Kind)((rio_Expr_Modify) + (1)))
+
+#define rio_Expr_Binary ((rio_Expr_Kind)((rio_Expr_Unary) + (1)))
+
+#define rio_Expr_Ternary ((rio_Expr_Kind)((rio_Expr_Binary) + (1)))
+
+#define rio_Expr_Call ((rio_Expr_Kind)((rio_Expr_Ternary) + (1)))
+
+#define rio_Expr_Index ((rio_Expr_Kind)((rio_Expr_Call) + (1)))
+
+#define rio_Expr_Field ((rio_Expr_Kind)((rio_Expr_Index) + (1)))
+
+typedef int rio_Stmt_Kind;
+
+#define rio_Stmt_None ((rio_Stmt_Kind)(0))
+
+#define rio_Stmt_Break ((rio_Stmt_Kind)((rio_Stmt_None) + (1)))
+
+#define rio_Stmt_Continue ((rio_Stmt_Kind)((rio_Stmt_Break) + (1)))
+
+#define rio_Stmt_DoWhile ((rio_Stmt_Kind)((rio_Stmt_Continue) + (1)))
+
+#define rio_Stmt_While ((rio_Stmt_Kind)((rio_Stmt_DoWhile) + (1)))
+
+#define rio_Stmt_Expr ((rio_Stmt_Kind)((rio_Stmt_While) + (1)))
+
+#define rio_Stmt_Return ((rio_Stmt_Kind)((rio_Stmt_Expr) + (1)))
+
+#define rio_Stmt_Goto ((rio_Stmt_Kind)((rio_Stmt_Return) + (1)))
+
+#define rio_Stmt_Label ((rio_Stmt_Kind)((rio_Stmt_Goto) + (1)))
+
+#define rio_Stmt_Assign ((rio_Stmt_Kind)((rio_Stmt_Label) + (1)))
+
+#define rio_Stmt_Block ((rio_Stmt_Kind)((rio_Stmt_Assign) + (1)))
+
+#define rio_Stmt_Decl ((rio_Stmt_Kind)((rio_Stmt_Block) + (1)))
+
+#define rio_Stmt_For ((rio_Stmt_Kind)((rio_Stmt_Decl) + (1)))
+
+#define rio_Stmt_If ((rio_Stmt_Kind)((rio_Stmt_For) + (1)))
+
+#define rio_Stmt_Init ((rio_Stmt_Kind)((rio_Stmt_If) + (1)))
+
+#define rio_Stmt_Note ((rio_Stmt_Kind)((rio_Stmt_Init) + (1)))
+
+#define rio_Stmt_Switch ((rio_Stmt_Kind)((rio_Stmt_Note) + (1)))
+
 struct rio_Arena {
   char (*ptr);
   char (*end);
@@ -272,8 +416,6 @@ struct rio_StmtList {
 
 rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Stmt (*(*stmts)), size_t num_stmts);
 
-typedef int rio_Typespec_Kind;
-
 rio_Typespec (*rio_new_typespec(rio_Typespec_Kind kind, rio_SrcPos pos));
 
 rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, char const ((*name))));
@@ -290,8 +432,6 @@ rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Typespec (*(*args)), si
 
 rio_Decls (*rio_new_decls(rio_Decl (*(*decls)), size_t num_decls));
 
-typedef int rio_Decl_Kind;
-
 rio_Decl (*rio_new_decl(rio_Decl_Kind kind, rio_SrcPos pos, char const ((*name))));
 
 rio_Note (*rio_get_decl_note(rio_Decl (*decl), char const ((*name))));
@@ -303,8 +443,6 @@ rio_Aggregate (*rio_get_subunion(size_t num_items, rio_AggregateItem (*items)));
 bool rio_is_decl_foreign(rio_Decl (*decl));
 
 rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_EnumItem (*items), size_t num_items));
-
-typedef int rio_AggregateKind;
 
 rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_AggregateItem (*items), size_t num_items));
 
@@ -321,8 +459,6 @@ rio_Decl (*rio_new_decl_typedef(rio_SrcPos pos, char const ((*name)), rio_Typesp
 rio_Decl (*rio_new_decl_note(rio_SrcPos pos, rio_Note note));
 
 rio_Decl (*rio_new_decl_import(rio_SrcPos pos, char const ((*rename_name)), bool is_relative, char const ((*(*names))), size_t num_names, bool import_all, rio_ImportItem (*items), size_t num_items));
-
-typedef int rio_Expr_Kind;
 
 rio_Expr (*rio_new_expr(rio_Expr_Kind kind, rio_SrcPos pos));
 
@@ -376,8 +512,6 @@ rio_Expr (*rio_new_expr_ternary(rio_SrcPos pos, rio_Expr (*cond), rio_Expr (*the
 
 rio_Note (*rio_get_stmt_note(rio_Stmt (*stmt), char const ((*name))));
 
-typedef int rio_Stmt_Kind;
-
 rio_Stmt (*rio_new_stmt(rio_Stmt_Kind kind, rio_SrcPos pos));
 
 rio_Stmt (*rio_new_stmt_label(rio_SrcPos pos, char const ((*label))));
@@ -411,140 +545,6 @@ rio_Stmt (*rio_new_stmt_assign(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left
 rio_Stmt (*rio_new_stmt_init(rio_SrcPos pos, char const ((*name)), bool is_mut, rio_Typespec (*type), rio_Expr (*expr)));
 
 rio_Stmt (*rio_new_stmt_expr(rio_SrcPos pos, rio_Expr (*expr)));
-
-#define rio_Typespec_None ((rio_Typespec_Kind)(0))
-
-#define rio_Typespec_Const ((rio_Typespec_Kind)((rio_Typespec_None) + (1)))
-
-#define rio_Typespec_Ptr ((rio_Typespec_Kind)((rio_Typespec_Const) + (1)))
-
-#define rio_Typespec_Ref ((rio_Typespec_Kind)((rio_Typespec_Ptr) + (1)))
-
-#define rio_Typespec_Name ((rio_Typespec_Kind)((rio_Typespec_Ref) + (1)))
-
-#define rio_Typespec_Func ((rio_Typespec_Kind)((rio_Typespec_Name) + (1)))
-
-#define rio_Typespec_Array ((rio_Typespec_Kind)((rio_Typespec_Func) + (1)))
-
-typedef int rio_AggregateItem_Kind;
-
-#define rio_AggregateItem_None ((rio_AggregateItem_Kind)(0))
-
-#define rio_AggregateItem_Field ((rio_AggregateItem_Kind)((rio_AggregateItem_None) + (1)))
-
-#define rio_AggregateItem_Subaggregate ((rio_AggregateItem_Kind)((rio_AggregateItem_Field) + (1)))
-
-#define rio_AggregateKind_None ((rio_AggregateKind)(0))
-
-#define rio_AggregateKind_Struct ((rio_AggregateKind)((rio_AggregateKind_None) + (1)))
-
-#define rio_AggregateKind_Union ((rio_AggregateKind)((rio_AggregateKind_Struct) + (1)))
-
-#define rio_Decl_None ((rio_Decl_Kind)(0))
-
-#define rio_Decl_Note ((rio_Decl_Kind)((rio_Decl_None) + (1)))
-
-#define rio_Decl_Enum ((rio_Decl_Kind)((rio_Decl_Note) + (1)))
-
-#define rio_Decl_Struct ((rio_Decl_Kind)((rio_Decl_Enum) + (1)))
-
-#define rio_Decl_Union ((rio_Decl_Kind)((rio_Decl_Struct) + (1)))
-
-#define rio_Decl_Func ((rio_Decl_Kind)((rio_Decl_Union) + (1)))
-
-#define rio_Decl_Typedef ((rio_Decl_Kind)((rio_Decl_Func) + (1)))
-
-#define rio_Decl_Var ((rio_Decl_Kind)((rio_Decl_Typedef) + (1)))
-
-#define rio_Decl_Const ((rio_Decl_Kind)((rio_Decl_Var) + (1)))
-
-#define rio_Decl_Import ((rio_Decl_Kind)((rio_Decl_Const) + (1)))
-
-typedef int rio_CompoundField_Kind;
-
-#define rio_CompoundField_Default ((rio_CompoundField_Kind)(0))
-
-#define rio_CompoundField_Name ((rio_CompoundField_Kind)((rio_CompoundField_Default) + (1)))
-
-#define rio_CompoundField_Index ((rio_CompoundField_Kind)((rio_CompoundField_Name) + (1)))
-
-#define rio_Expr_None ((rio_Expr_Kind)(0))
-
-#define rio_Expr_Paren ((rio_Expr_Kind)((rio_Expr_None) + (1)))
-
-#define rio_Expr_Int ((rio_Expr_Kind)((rio_Expr_Paren) + (1)))
-
-#define rio_Expr_Float ((rio_Expr_Kind)((rio_Expr_Int) + (1)))
-
-#define rio_Expr_Str ((rio_Expr_Kind)((rio_Expr_Float) + (1)))
-
-#define rio_Expr_Name ((rio_Expr_Kind)((rio_Expr_Str) + (1)))
-
-#define rio_Expr_SizeofExpr ((rio_Expr_Kind)((rio_Expr_Name) + (1)))
-
-#define rio_Expr_SizeofType ((rio_Expr_Kind)((rio_Expr_SizeofExpr) + (1)))
-
-#define rio_Expr_TypeofExpr ((rio_Expr_Kind)((rio_Expr_SizeofType) + (1)))
-
-#define rio_Expr_TypeofType ((rio_Expr_Kind)((rio_Expr_TypeofExpr) + (1)))
-
-#define rio_Expr_AlignofExpr ((rio_Expr_Kind)((rio_Expr_TypeofType) + (1)))
-
-#define rio_Expr_AlignofType ((rio_Expr_Kind)((rio_Expr_AlignofExpr) + (1)))
-
-#define rio_Expr_Offsetof ((rio_Expr_Kind)((rio_Expr_AlignofType) + (1)))
-
-#define rio_Expr_Compound ((rio_Expr_Kind)((rio_Expr_Offsetof) + (1)))
-
-#define rio_Expr_Cast ((rio_Expr_Kind)((rio_Expr_Compound) + (1)))
-
-#define rio_Expr_Modify ((rio_Expr_Kind)((rio_Expr_Cast) + (1)))
-
-#define rio_Expr_Unary ((rio_Expr_Kind)((rio_Expr_Modify) + (1)))
-
-#define rio_Expr_Binary ((rio_Expr_Kind)((rio_Expr_Unary) + (1)))
-
-#define rio_Expr_Ternary ((rio_Expr_Kind)((rio_Expr_Binary) + (1)))
-
-#define rio_Expr_Call ((rio_Expr_Kind)((rio_Expr_Ternary) + (1)))
-
-#define rio_Expr_Index ((rio_Expr_Kind)((rio_Expr_Call) + (1)))
-
-#define rio_Expr_Field ((rio_Expr_Kind)((rio_Expr_Index) + (1)))
-
-#define rio_Stmt_None ((rio_Stmt_Kind)(0))
-
-#define rio_Stmt_Break ((rio_Stmt_Kind)((rio_Stmt_None) + (1)))
-
-#define rio_Stmt_Continue ((rio_Stmt_Kind)((rio_Stmt_Break) + (1)))
-
-#define rio_Stmt_DoWhile ((rio_Stmt_Kind)((rio_Stmt_Continue) + (1)))
-
-#define rio_Stmt_While ((rio_Stmt_Kind)((rio_Stmt_DoWhile) + (1)))
-
-#define rio_Stmt_Expr ((rio_Stmt_Kind)((rio_Stmt_While) + (1)))
-
-#define rio_Stmt_Return ((rio_Stmt_Kind)((rio_Stmt_Expr) + (1)))
-
-#define rio_Stmt_Goto ((rio_Stmt_Kind)((rio_Stmt_Return) + (1)))
-
-#define rio_Stmt_Label ((rio_Stmt_Kind)((rio_Stmt_Goto) + (1)))
-
-#define rio_Stmt_Assign ((rio_Stmt_Kind)((rio_Stmt_Label) + (1)))
-
-#define rio_Stmt_Block ((rio_Stmt_Kind)((rio_Stmt_Assign) + (1)))
-
-#define rio_Stmt_Decl ((rio_Stmt_Kind)((rio_Stmt_Block) + (1)))
-
-#define rio_Stmt_For ((rio_Stmt_Kind)((rio_Stmt_Decl) + (1)))
-
-#define rio_Stmt_If ((rio_Stmt_Kind)((rio_Stmt_For) + (1)))
-
-#define rio_Stmt_Init ((rio_Stmt_Kind)((rio_Stmt_If) + (1)))
-
-#define rio_Stmt_Note ((rio_Stmt_Kind)((rio_Stmt_Init) + (1)))
-
-#define rio_Stmt_Switch ((rio_Stmt_Kind)((rio_Stmt_Note) + (1)))
 
 size_t rio_min(size_t x, size_t y);
 
@@ -1946,66 +1946,6 @@ struct Any {
   typeid type;
 };
 
-struct rio_StmtWhile {
-  rio_Expr (*cond);
-  rio_StmtList block;
-};
-
-struct rio_StmtAssign {
-  rio_TokenKind op;
-  rio_Expr (*left);
-  rio_Expr (*right);
-};
-
-struct rio_StmtFor {
-  rio_Stmt (*init);
-  rio_Expr (*cond);
-  rio_Stmt (*next);
-  rio_StmtList block;
-};
-
-struct rio_StmtIf {
-  rio_Stmt (*init);
-  rio_Expr (*cond);
-  rio_StmtList then_block;
-  rio_ElseIf (*elseifs);
-  size_t num_elseifs;
-  rio_StmtList else_block;
-};
-
-struct rio_StmtInit {
-  char const ((*name));
-  bool is_mut;
-  rio_Typespec (*type);
-  rio_Expr (*expr);
-};
-
-struct rio_StmtSwitch {
-  rio_Expr (*expr);
-  rio_SwitchCase (*cases);
-  size_t num_cases;
-};
-
-struct rio_Stmt {
-  rio_Stmt_Kind kind;
-  rio_Notes notes;
-  rio_SrcPos pos;
-  union {
-    // void;
-    rio_StmtWhile while_stmt;
-    rio_Expr (*expr);
-    char const ((*label));
-    rio_StmtAssign assign;
-    rio_StmtList block;
-    rio_Decl (*decl);
-    rio_StmtFor for_stmt;
-    rio_StmtIf if_stmt;
-    rio_StmtInit init;
-    rio_Note note;
-    rio_StmtSwitch switch_stmt;
-  };
-};
-
 struct rio_TypespecFunc {
   rio_Typespec (*(*args));
   size_t num_args;
@@ -2024,6 +1964,76 @@ struct rio_Typespec {
     rio_TypespecFunc function;
     rio_Expr (*num_elems);
   };
+};
+
+struct rio_ImportItem {
+  char const ((*name));
+  char const ((*rename));
+};
+
+struct rio_Aggregate {
+  rio_SrcPos pos;
+  rio_AggregateKind kind;
+  rio_AggregateItem (*items);
+  size_t num_items;
+  rio_Decl (*union_enum_decl);
+};
+
+struct rio_DeclEnum {
+  rio_Typespec (*type);
+  rio_EnumItem (*items);
+  size_t num_items;
+  char const ((*scope));
+};
+
+struct rio_DeclFunc {
+  rio_FuncParam (*params);
+  size_t num_params;
+  rio_Typespec (*ret_type);
+  bool has_varargs;
+  rio_StmtList block;
+};
+
+struct rio_DeclTypedef {
+  rio_Typespec (*type);
+};
+
+struct rio_DeclVar {
+  rio_Typespec (*type);
+  rio_Expr (*expr);
+};
+
+struct rio_DeclImport {
+  bool is_relative;
+  char const ((*(*names)));
+  size_t num_names;
+  bool import_all;
+  rio_ImportItem (*items);
+  size_t num_items;
+};
+
+struct rio_Decl {
+  rio_Decl_Kind kind;
+  rio_SrcPos pos;
+  char const ((*name));
+  rio_Notes notes;
+  bool is_incomplete;
+  union {
+    // void;
+    rio_Note note;
+    rio_DeclEnum enum_decl;
+    rio_Aggregate (*aggregate);
+    rio_DeclFunc function;
+    rio_DeclTypedef typedef_decl;
+    rio_DeclVar var_decl;
+    rio_DeclVar const_decl;
+    rio_DeclImport import_decl;
+  };
+};
+
+struct rio_Decls {
+  rio_Decl (*(*decls));
+  size_t num_decls;
 };
 
 struct rio_ExprParen {
@@ -2132,79 +2142,69 @@ struct rio_Expr {
   };
 };
 
-struct rio_Decls {
-  rio_Decl (*(*decls));
-  size_t num_decls;
-};
-
-struct rio_DeclEnum {
-  rio_Typespec (*type);
-  rio_EnumItem (*items);
-  size_t num_items;
-  char const ((*scope));
-};
-
-struct rio_DeclFunc {
-  rio_FuncParam (*params);
-  size_t num_params;
-  rio_Typespec (*ret_type);
-  bool has_varargs;
+struct rio_ElseIf {
+  rio_Expr (*cond);
   rio_StmtList block;
 };
 
-struct rio_DeclTypedef {
-  rio_Typespec (*type);
+struct rio_StmtWhile {
+  rio_Expr (*cond);
+  rio_StmtList block;
 };
 
-struct rio_DeclVar {
+struct rio_StmtAssign {
+  rio_TokenKind op;
+  rio_Expr (*left);
+  rio_Expr (*right);
+};
+
+struct rio_StmtFor {
+  rio_Stmt (*init);
+  rio_Expr (*cond);
+  rio_Stmt (*next);
+  rio_StmtList block;
+};
+
+struct rio_StmtIf {
+  rio_Stmt (*init);
+  rio_Expr (*cond);
+  rio_StmtList then_block;
+  rio_ElseIf (*elseifs);
+  size_t num_elseifs;
+  rio_StmtList else_block;
+};
+
+struct rio_StmtInit {
+  char const ((*name));
+  bool is_mut;
   rio_Typespec (*type);
   rio_Expr (*expr);
 };
 
-struct rio_DeclImport {
-  bool is_relative;
-  char const ((*(*names)));
-  size_t num_names;
-  bool import_all;
-  rio_ImportItem (*items);
-  size_t num_items;
+struct rio_StmtSwitch {
+  rio_Expr (*expr);
+  rio_SwitchCase (*cases);
+  size_t num_cases;
 };
 
-struct rio_Decl {
-  rio_Decl_Kind kind;
-  rio_SrcPos pos;
-  char const ((*name));
+struct rio_Stmt {
+  rio_Stmt_Kind kind;
   rio_Notes notes;
-  bool is_incomplete;
+  rio_SrcPos pos;
   union {
     // void;
+    rio_StmtWhile while_stmt;
+    rio_Expr (*expr);
+    char const ((*label));
+    rio_StmtAssign assign;
+    rio_StmtList block;
+    rio_Decl (*decl);
+    rio_StmtFor for_stmt;
+    rio_StmtIf if_stmt;
+    rio_StmtInit init;
     rio_Note note;
-    rio_DeclEnum enum_decl;
-    rio_Aggregate (*aggregate);
-    rio_DeclFunc function;
-    rio_DeclTypedef typedef_decl;
-    rio_DeclVar var_decl;
-    rio_DeclVar const_decl;
-    rio_DeclImport import_decl;
+    rio_StmtSwitch switch_stmt;
   };
-};
-
-struct rio_Aggregate {
-  rio_SrcPos pos;
-  rio_AggregateKind kind;
-  rio_AggregateItem (*items);
-  size_t num_items;
-  rio_Decl (*union_enum_decl);
-};
-
-struct rio_ImportItem {
-  char const ((*name));
-  char const ((*rename));
-};
-
-struct rio_ElseIf {
-  rio_Expr (*cond);
-  rio_StmtList block;
 };
 
 struct rio_BufHdr {
