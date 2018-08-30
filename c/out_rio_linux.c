@@ -1377,20 +1377,6 @@ rio_Decl (*rio_parse_decl(void));
 
 rio_Decls (*rio_parse_decls(void));
 
-typedef int rio_SymKind;
-
-#define rio_SymKind_None ((rio_SymKind)(0))
-
-#define rio_SymKind_Var ((rio_SymKind)((rio_SymKind_None) + (1)))
-
-#define rio_SymKind_Const ((rio_SymKind)((rio_SymKind_Var) + (1)))
-
-#define rio_SymKind_Func ((rio_SymKind)((rio_SymKind_Const) + (1)))
-
-#define rio_SymKind_Type ((rio_SymKind)((rio_SymKind_Func) + (1)))
-
-#define rio_SymKind_Package ((rio_SymKind)((rio_SymKind_Type) + (1)))
-
 typedef int rio_SymState;
 
 #define rio_SymState_Unresolved ((rio_SymState)(0))
@@ -1398,6 +1384,20 @@ typedef int rio_SymState;
 #define rio_SymState_Resolving ((rio_SymState)((rio_SymState_Unresolved) + (1)))
 
 #define rio_SymState_Resolved ((rio_SymState)((rio_SymState_Resolving) + (1)))
+
+typedef int rio_Sym_Kind;
+
+#define rio_Sym_None ((rio_Sym_Kind)(0))
+
+#define rio_Sym_Const ((rio_Sym_Kind)((rio_Sym_None) + (1)))
+
+#define rio_Sym_Func ((rio_Sym_Kind)((rio_Sym_Const) + (1)))
+
+#define rio_Sym_Type ((rio_Sym_Kind)((rio_Sym_Func) + (1)))
+
+#define rio_Sym_Var ((rio_Sym_Kind)((rio_Sym_Type) + (1)))
+
+#define rio_Sym_Package ((rio_Sym_Kind)((rio_Sym_Var) + (1)))
 
 #define rio_MAX_LOCAL_SYMS (1024)
 
@@ -1448,14 +1448,15 @@ union rio_Val {
 };
 
 struct rio_Sym {
+  rio_Sym_Kind kind;
   char const ((*name));
   rio_Package (*home_package);
-  rio_SymKind kind;
   rio_SymState state;
   rio_ReachablePhase reachable;
   rio_Decl (*decl);
   char const ((*external_name));
   union {
+    // void;
     struct {
       rio_Type (*type);
       rio_Val val;
@@ -1470,7 +1471,7 @@ extern rio_Sym (*rio_local_syms_end);
 
 bool rio_is_local_sym(rio_Sym (*sym));
 
-rio_Sym (*rio_sym_new(rio_SymKind kind, char const ((*name)), rio_Decl (*decl)));
+rio_Sym (*rio_sym_new(rio_Sym_Kind kind, char const ((*name)), rio_Decl (*decl)));
 
 void rio_process_decl_notes(rio_Decl (*decl), rio_Sym (*sym));
 
@@ -3719,7 +3720,7 @@ void rio_gen_expr(rio_Expr (*expr)) {
   case (rio_Expr_Call): {
     {
       rio_Sym (*sym) = rio_get_resolved_sym(expr->call.expr);
-      if ((sym) && ((sym->kind) == ((rio_SymKind_Type)))) {
+      if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
         rio_buf_printf(&(rio_gen_buf), "(%s)", rio_get_gen_name(sym));
       } else {
         rio_gen_expr(expr->call.expr);
@@ -6676,7 +6677,7 @@ bool rio_is_local_sym(rio_Sym (*sym)) {
   return ((rio_local_syms) <= (sym)) && ((sym) < (rio_local_syms_end));
 }
 
-rio_Sym (*rio_sym_new(rio_SymKind kind, char const ((*name)), rio_Decl (*decl))) {
+rio_Sym (*rio_sym_new(rio_Sym_Kind kind, char const ((*name)), rio_Decl (*decl))) {
   rio_Sym (*sym) = rio_xcalloc(1, sizeof(rio_Sym));
   sym->kind = kind;
   sym->name = name;
@@ -6707,25 +6708,25 @@ void rio_process_decl_notes(rio_Decl (*decl), rio_Sym (*sym)) {
 }
 
 rio_Sym (*rio_sym_decl(rio_Decl (*decl))) {
-  rio_SymKind kind = (rio_SymKind_None);
+  rio_Sym_Kind kind = (rio_Sym_None);
   switch (decl->kind) {
   case (rio_Decl_Struct):
   case (rio_Decl_Union):
   case (rio_Decl_Typedef):
   case (rio_Decl_Enum): {
-    kind = (rio_SymKind_Type);
+    kind = (rio_Sym_Type);
     break;
   }
   case (rio_Decl_Var): {
-    kind = (rio_SymKind_Var);
+    kind = (rio_Sym_Var);
     break;
   }
   case (rio_Decl_Const): {
-    kind = (rio_SymKind_Const);
+    kind = (rio_Sym_Const);
     break;
   }
   case (rio_Decl_Func): {
-    kind = (rio_SymKind_Func);
+    kind = (rio_Sym_Func);
     break;
   }
   default:
@@ -6760,7 +6761,7 @@ bool rio_sym_push_var(char const ((*name)), rio_Type (*type)) {
   if ((rio_local_syms_end) == ((rio_local_syms) + (rio_MAX_LOCAL_SYMS))) {
     rio_fatal("Too many local symbols");
   }
-  *((rio_local_syms_end)++) = (rio_Sym){.name = name, .kind = (rio_SymKind_Var), .state = (rio_SymState_Resolved), .type = type};
+  *((rio_local_syms_end)++) = (rio_Sym){.kind = (rio_Sym_Var), .name = name, .state = (rio_SymState_Resolved), .type = type};
   return true;
 }
 
@@ -6778,7 +6779,7 @@ void rio_sym_global_put(char const ((*name)), rio_Sym (*sym)) {
     if ((sym) == (old_sym)) {
       return;
     }
-    if ((((sym->kind) == ((rio_SymKind_Package))) && ((old_sym->kind) == ((rio_SymKind_Package)))) && ((sym->package) == (old_sym->package))) {
+    if ((((sym->kind) == ((rio_Sym_Package))) && ((old_sym->kind) == ((rio_Sym_Package)))) && ((sym->package) == (old_sym->package))) {
       return;
     }
     rio_SrcPos pos = (sym->decl ? sym->decl->pos : rio_pos_builtin);
@@ -6793,7 +6794,7 @@ void rio_sym_global_put(char const ((*name)), rio_Sym (*sym)) {
 
 rio_Sym (*rio_sym_global_type(char const ((*name)), rio_Type (*type))) {
   name = rio_str_intern(name);
-  rio_Sym (*sym) = rio_sym_new((rio_SymKind_Type), name, NULL);
+  rio_Sym (*sym) = rio_sym_new((rio_Sym_Type), name, NULL);
   sym->state = (rio_SymState_Resolved);
   sym->type = type;
   sym->external_name = name;
@@ -7141,7 +7142,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
       if (!(sym)) {
         rio_fatal_error(typespec->pos, "Unresolved type name \'%s\'", typespec->name);
       }
-      if ((sym->kind) != ((rio_SymKind_Type))) {
+      if ((sym->kind) != ((rio_Sym_Type))) {
         rio_fatal_error(typespec->pos, "%s must denote a type", typespec->name);
         return NULL;
       }
@@ -7709,7 +7710,7 @@ void rio_resolve_sym(rio_Sym (*sym)) {
   rio_Decl (*decl) = sym->decl;
   rio_Package (*old_package) = rio_enter_package(sym->home_package);
   switch (sym->kind) {
-  case (rio_SymKind_Type): {
+  case (rio_Sym_Type): {
     if ((decl) && ((decl->kind) == ((rio_Decl_Typedef)))) {
       sym->type = rio_resolve_typespec(decl->typedef_decl.type);
     } else if ((decl->kind) == ((rio_Decl_Enum))) {
@@ -7723,19 +7724,19 @@ void rio_resolve_sym(rio_Sym (*sym)) {
     }
     break;
   }
-  case (rio_SymKind_Var): {
+  case (rio_Sym_Var): {
     sym->type = rio_resolve_decl_var(decl);
     break;
   }
-  case (rio_SymKind_Const): {
+  case (rio_Sym_Const): {
     sym->type = rio_resolve_decl_const(decl, &(sym->val));
     break;
   }
-  case (rio_SymKind_Func): {
+  case (rio_Sym_Func): {
     sym->type = rio_resolve_decl_func(decl);
     break;
   }
-  case (rio_SymKind_Package): {
+  case (rio_Sym_Package): {
     break;
     break;
   }
@@ -7753,9 +7754,9 @@ void rio_resolve_sym(rio_Sym (*sym)) {
 void rio_finalize_sym(rio_Sym (*sym)) {
   assert((sym->state) == ((rio_SymState_Resolved)));
   if (((sym->decl) && (!(rio_is_decl_foreign(sym->decl)))) && (!(sym->decl->is_incomplete))) {
-    if ((sym->kind) == ((rio_SymKind_Type))) {
+    if ((sym->kind) == ((rio_Sym_Type))) {
       rio_complete_type(sym->type);
-    } else if ((sym->kind) == ((rio_SymKind_Func))) {
+    } else if ((sym->kind) == ((rio_Sym_Func))) {
       rio_resolve_func_body(sym);
     }
   }
@@ -7773,14 +7774,14 @@ rio_Sym (*rio_resolve_name(char const ((*name)))) {
 rio_Package (*rio_try_resolve_package(rio_Expr (*expr))) {
   if ((expr->kind) == ((rio_Expr_Name))) {
     rio_Sym (*sym) = rio_resolve_name(expr->name);
-    if ((sym) && ((sym->kind) == ((rio_SymKind_Package)))) {
+    if ((sym) && ((sym->kind) == ((rio_Sym_Package)))) {
       return sym->package;
     }
   } else if ((expr->kind) == ((rio_Expr_Field))) {
     rio_Package (*package) = rio_try_resolve_package(expr->field.expr);
     if (package) {
       rio_Sym (*sym) = rio_get_package_sym(package, expr->field.name);
-      if ((sym) && ((sym->kind) == ((rio_SymKind_Package)))) {
+      if ((sym) && ((sym->kind) == ((rio_Sym_Package)))) {
         return sym->package;
       }
     }
@@ -7828,7 +7829,7 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
         if ((item.name) == (expr->field.name)) {
           rio_Sym (*sym) = rio_resolve_name(rio_build_scoped_name(enum_decl.scope, item.name));
           if (sym) {
-            assert((sym->kind) == ((rio_SymKind_Const)));
+            assert((sym->kind) == ((rio_Sym_Const)));
             rio_set_resolved_sym(expr, sym);
             rio_Operand item_operand = rio_operand_const(sym->type, sym->val);
             return item_operand;
@@ -8105,17 +8106,17 @@ rio_Operand rio_resolve_name_operand(rio_SrcPos pos, char const ((*name))) {
   if (!(sym)) {
     rio_fatal_error(pos, "Unresolved name \'%s\'", name);
   }
-  if ((sym->kind) == ((rio_SymKind_Var))) {
+  if ((sym->kind) == ((rio_Sym_Var))) {
     rio_Operand operand = rio_operand_lvalue(sym->type);
     if (rio_is_array_type(operand.type)) {
       operand = rio_operand_decay(operand);
     }
     return operand;
-  } else if ((sym->kind) == ((rio_SymKind_Const))) {
+  } else if ((sym->kind) == ((rio_Sym_Const))) {
     return rio_operand_const(sym->type, sym->val);
-  } else if ((sym->kind) == ((rio_SymKind_Func))) {
+  } else if ((sym->kind) == ((rio_Sym_Func))) {
     return rio_operand_rvalue(sym->type);
-  } else if ((sym->kind) == ((rio_SymKind_Type))) {
+  } else if ((sym->kind) == ((rio_Sym_Type))) {
     return rio_operand_type(sym->type);
   } else {
     assert(false);
@@ -8446,7 +8447,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   assert((expr->kind) == ((rio_Expr_Call)));
   if ((expr->call.expr->kind) == ((rio_Expr_Name))) {
     rio_Sym (*sym) = rio_resolve_name(expr->call.expr->name);
-    if ((sym) && ((sym->kind) == ((rio_SymKind_Type)))) {
+    if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
       if ((expr->call.num_args) != (1)) {
         rio_fatal_error(expr->pos, "Type conversion operator takes 1 argument");
       }
@@ -8760,7 +8761,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     {
       if ((expr->sizeof_expr->kind) == ((rio_Expr_Name))) {
         rio_Sym (*sym) = rio_resolve_name(expr->sizeof_expr->name);
-        if ((sym) && ((sym->kind) == ((rio_SymKind_Type)))) {
+        if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
           rio_complete_type(sym->type);
           result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_sizeof(sym->type)});
           rio_set_resolved_type(expr->sizeof_expr, sym->type);
@@ -8786,7 +8787,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     {
       if ((expr->sizeof_expr->kind) == ((rio_Expr_Name))) {
         rio_Sym (*sym) = rio_resolve_name(expr->alignof_expr->name);
-        if ((sym) && ((sym->kind) == ((rio_SymKind_Type)))) {
+        if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
           rio_complete_type(sym->type);
           result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_alignof(sym->type)});
           rio_set_resolved_type(expr->alignof_expr, sym->type);
@@ -8819,7 +8820,7 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     {
       if ((expr->typeof_expr->kind) == ((rio_Expr_Name))) {
         rio_Sym (*sym) = rio_resolve_name(expr->typeof_expr->name);
-        if ((sym) && ((sym->kind) == ((rio_SymKind_Type)))) {
+        if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
           result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = sym->type->typeid});
           rio_set_resolved_type(expr->typeof_expr, sym->type);
           rio_set_resolved_sym(expr->typeof_expr, sym);
@@ -9010,7 +9011,7 @@ void rio_process_package_imports(rio_Package (*package)) {
         rio_import_all_package_symbols(imported_package);
       }
       char const ((*sym_name)) = (decl->name ? decl->name : decl->import_decl.names[(decl->import_decl.num_names) - (1)]);
-      rio_Sym (*sym) = rio_sym_new((rio_SymKind_Package), sym_name, decl);
+      rio_Sym (*sym) = rio_sym_new((rio_Sym_Package), sym_name, decl);
       sym->package = imported_package;
       rio_sym_global_put(sym_name, sym);
     }

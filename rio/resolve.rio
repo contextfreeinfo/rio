@@ -1,12 +1,3 @@
-enum SymKind {
-  None,
-  Var,
-  Const,
-  Func,
-  Type,
-  Package,
-}
-
 enum SymState {
   Unresolved,
   Resolving,
@@ -16,18 +7,17 @@ enum SymState {
 struct Sym {
   name: *const char;
   home_package: &Package;
-  kind: SymKind;
   state: SymState;
   reachable: ReachablePhase;
   decl: &Decl;
   external_name: *const char;
-  // Not @tagged?, rather many to one
-  union {
-    struct {
+  union switch {
+    None => :void;
+    Const | Func | Type | Var => struct {
       type: &Type;
       val: Val;
     }
-    package: &Package;
+    Package => package: &Package;
   }
 }
 
@@ -89,7 +79,7 @@ fn is_local_sym(sym: &Sym) -> bool {
   return local_syms <= sym && sym < local_syms_end;
 }
 
-fn sym_new(kind: SymKind, name: *const char, decl: &Decl) -> &Sym {
+fn sym_new(kind: Sym_Kind, name: *const char, decl: &Decl) -> &Sym {
   let sym: &Sym = xcalloc(1, sizeof(Sym));
   sym.kind = kind;
   sym.name = name;
@@ -120,20 +110,20 @@ fn process_decl_notes(decl: &Decl, sym: &Sym) {
 }
 
 fn sym_decl(decl: &Decl) -> &Sym {
-  let kind: SymKind = SymKind.None;
+  let kind = Sym.None;
   @complete
   switch (decl.kind) {
   case Decl.Struct:
   case Decl.Union:
   case Decl.Typedef:
   case Decl.Enum:
-    kind = SymKind.Type;
+    kind = Sym.Type;
   case Decl.Var:
-    kind = SymKind.Var;
+    kind = Sym.Var;
   case Decl.Const:
-    kind = SymKind.Const;
+    kind = Sym.Const;
   case Decl.Func:
-    kind = SymKind.Func;
+    kind = Sym.Func;
   }
   let sym = sym_new(kind, decl.name, decl);
   set_resolved_sym(decl, sym);
@@ -164,8 +154,8 @@ fn sym_push_var(name: *const char, type: &Type) -> bool {
     fatal("Too many local symbols");
   }
   *local_syms_end++ = Sym {
+    kind = Sym.Var,
     name = name,
-    kind = SymKind.Var,
     state = SymState.Resolved,
     type = type,
   };
@@ -186,7 +176,7 @@ fn sym_global_put(name: *const char, sym: &Sym) {
     if (sym == old_sym) {
       return;
     }
-    if (sym.kind == SymKind.Package && old_sym.kind == SymKind.Package && sym.package == old_sym.package) {
+    if (sym.kind == Sym.Package && old_sym.kind == Sym.Package && sym.package == old_sym.package) {
       return;
     }
     let pos = sym.decl ? sym.decl.pos : pos_builtin;
@@ -201,7 +191,7 @@ fn sym_global_put(name: *const char, sym: &Sym) {
 
 fn sym_global_type(name: *const char, type: &Type) -> &Sym {
   name = str_intern(name);
-  let sym = sym_new(SymKind.Type, name, NULL);
+  let sym = sym_new(Sym.Type, name, NULL);
   sym.state = SymState.Resolved;
   sym.type = type;
   sym.external_name = name;
@@ -580,7 +570,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
     if (!sym) {
       fatal_error(typespec.pos, "Unresolved type name '%s'", typespec.name);
     }
-    if (sym.kind != SymKind.Type) {
+    if (sym.kind != Sym.Type) {
       fatal_error(typespec.pos, "%s must denote a type", typespec.name);
       return NULL;
     }
@@ -1123,7 +1113,7 @@ fn resolve_sym(sym: &Sym) {
   let old_package = enter_package(sym.home_package);
   @complete
   switch (sym.kind) {
-  case SymKind.Type:
+  case Sym.Type:
     if (decl && decl.kind == Decl.Typedef) {
       sym.type = resolve_typespec(decl.typedef_decl.type);
     } else if (decl.kind == Decl.Enum) {
@@ -1136,13 +1126,13 @@ fn resolve_sym(sym: &Sym) {
     } else {
       sym.type = type_incomplete(sym);
     }
-  case SymKind.Var:
+  case Sym.Var:
     sym.type = resolve_decl_var(decl);
-  case SymKind.Const:
+  case Sym.Const:
     sym.type = resolve_decl_const(decl, &sym.val);
-  case SymKind.Func:
+  case Sym.Func:
     sym.type = resolve_decl_func(decl);
-  case SymKind.Package:
+  case Sym.Package:
     // Do nothing
     break;
   }
@@ -1156,9 +1146,9 @@ fn resolve_sym(sym: &Sym) {
 fn finalize_sym(sym: &Sym) {
   #assert(sym.state == SymState.Resolved);
   if (sym.decl && !is_decl_foreign(sym.decl) && !sym.decl.is_incomplete) {
-    if (sym.kind == SymKind.Type) {
+    if (sym.kind == Sym.Type) {
       complete_type(sym.type);
-    } else if (sym.kind == SymKind.Func) {
+    } else if (sym.kind == Sym.Func) {
       resolve_func_body(sym);
     }
   }
@@ -1176,14 +1166,14 @@ fn resolve_name(name: *const char) -> &Sym {
 fn try_resolve_package(expr: &Expr) -> &Package {
   if (expr.kind == Expr.Name) {
     let sym = resolve_name(expr.name);
-    if (sym && sym.kind == SymKind.Package) {
+    if (sym && sym.kind == Sym.Package) {
       return sym.package;
     }
   } else if (expr.kind == Expr.Field) {
     let package = try_resolve_package(expr.field.expr);
     if (package) {
       let sym = get_package_sym(package, expr.field.name);
-      if (sym && sym.kind == SymKind.Package) {
+      if (sym && sym.kind == Sym.Package) {
         return sym.package;
       }
     }
@@ -1226,7 +1216,7 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
         if (item.name == expr.field.name) {
           let sym = resolve_name(build_scoped_name(enum_decl.scope, item.name));
           if (sym) {
-            #assert(sym.kind == SymKind.Const);
+            #assert(sym.kind == Sym.Const);
             set_resolved_sym(expr, sym);
             let item_operand = operand_const(sym.type, sym.val);
             return item_operand;
@@ -1418,17 +1408,17 @@ fn resolve_name_operand(pos: SrcPos, name: *const char) -> Operand {
   if (!sym) {
     fatal_error(pos, "Unresolved name '%s'", name);
   }
-  if (sym.kind == SymKind.Var) {
+  if (sym.kind == Sym.Var) {
     let operand = operand_lvalue(sym.type);
     if (is_array_type(operand.type)) {
       operand = operand_decay(operand);
     }
     return operand;
-  } else if (sym.kind == SymKind.Const) {
+  } else if (sym.kind == Sym.Const) {
     return operand_const(sym.type, sym.val);
-  } else if (sym.kind == SymKind.Func) {
+  } else if (sym.kind == Sym.Func) {
     return operand_rvalue(sym.type);
-  } else if (sym.kind == SymKind.Type) {
+  } else if (sym.kind == Sym.Type) {
     return operand_type(sym.type);
   } else {
     #assert(false);
@@ -1730,7 +1720,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
   #assert(expr.kind == Expr.Call);
   if (expr.call.expr.kind == Expr.Name) {
     let sym = resolve_name(expr.call.expr.name);
-    if (sym && sym.kind == SymKind.Type) {
+    if (sym && sym.kind == Sym.Type) {
       if (expr.call.num_args != 1) {
         fatal_error(expr.pos, "Type conversion operator takes 1 argument");
       }
@@ -1991,7 +1981,7 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
   case Expr.SizeofExpr: {
     if (expr.sizeof_expr.kind == Expr.Name) {
       let sym = resolve_name(expr.sizeof_expr.name);
-      if (sym && sym.kind == SymKind.Type) {
+      if (sym && sym.kind == Sym.Type) {
         complete_type(sym.type);
         result = operand_const(type_usize, Val {ull = type_sizeof(sym.type)});
         set_resolved_type(expr.sizeof_expr, sym.type);
@@ -2011,7 +2001,7 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
   case Expr.AlignofExpr: {
     if (expr.sizeof_expr.kind == Expr.Name) {
       let sym = resolve_name(expr.alignof_expr.name);
-      if (sym && sym.kind == SymKind.Type) {
+      if (sym && sym.kind == Sym.Type) {
         complete_type(sym.type);
         result = operand_const(type_usize, Val {ull = type_alignof(sym.type)});
         set_resolved_type(expr.alignof_expr, sym.type);
@@ -2035,7 +2025,7 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
   case Expr.TypeofExpr: {
     if (expr.typeof_expr.kind == Expr.Name) {
       let sym = resolve_name(expr.typeof_expr.name);
-      if (sym && sym.kind == SymKind.Type) {
+      if (sym && sym.kind == Sym.Type) {
         result = operand_const(type_ullong, Val {ull = sym.type.typeid});
         set_resolved_type(expr.typeof_expr, sym.type);
         set_resolved_sym(expr.typeof_expr, sym);
@@ -2221,7 +2211,7 @@ fn process_package_imports(package: &Package) {
         import_all_package_symbols(imported_package);
       }
       let sym_name = decl.name ? decl.name : decl.import_decl.names[decl.import_decl.num_names - 1];
-      let sym = sym_new(SymKind.Package, sym_name, decl);
+      let sym = sym_new(Sym.Package, sym_name, decl);
       sym.package = imported_package;
       sym_global_put(sym_name, sym);
     }

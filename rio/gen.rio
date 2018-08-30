@@ -566,7 +566,7 @@ fn gen_expr(expr: &Expr) {
     buf_printf(&gen_buf, ")");
   case Expr.Call: {
     let sym = get_resolved_sym(expr.call.expr);
-    if (sym && sym.kind == SymKind.Type) {
+    if (sym && sym.kind == Sym.Type) {
       buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
     } else {
       gen_expr(expr.call.expr);
