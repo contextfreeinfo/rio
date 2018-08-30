@@ -30,7 +30,10 @@ struct Typespec {
   is_owned: bool;
   union switch {
     None | Const | Ptr | Ref => :void;
-    Name => name: *const char;
+    Name => struct {
+      names: **const char;
+      num_names: usize;
+    }
     Func => function: TypespecFunc;
     Array => num_elems: *Expr;
   }
@@ -381,9 +384,12 @@ fn new_typespec(kind: Typespec_Kind, pos: SrcPos) -> &Typespec {
   return t;
 }
 
-fn new_typespec_name(pos: SrcPos, name: *const char) -> &Typespec {
+fn new_typespec_name(
+  pos: SrcPos, names: **const char, num_names: usize,
+) -> &Typespec {
   let t = new_typespec(Typespec.Name, pos);
-  t.name = name;
+  t.names = ast_dup(names, num_names * sizeof(*names));
+  t.num_names = num_names;
   return t;
 }
 

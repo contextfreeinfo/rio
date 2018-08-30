@@ -225,7 +225,8 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
       !decl.name ||
       get_decl_note(decl, foreign_name) ||
       get_decl_note(decl, unscoped_name);
-    let enum_typespec = new_typespec_name(decl.pos, sym ? sym.name : str_intern("int"));
+    let name = sym ? sym.name : str_intern("int");
+    let enum_typespec = new_typespec_name(decl.pos, &name, 1);
     let prev_item_name: *const char = NULL;
     let prev_scoped_name: *const char = NULL;
     for (let i: usize = 0; i < decl.enum_decl.num_items; i++) {
@@ -566,14 +567,32 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
   let result: &Type = NULL;
   switch (typespec.kind) {
   case Typespec.Name: {
-    let sym = resolve_name(typespec.name);
-    if (!sym) {
-      fatal_error(typespec.pos, "Unresolved type name '%s'", typespec.name);
+    let package = current_package;
+    for (let i: usize = 0; i < typespec.num_names - 1; ++i) {
+      let scope = typespec.names[i];
+      let scope_sym = get_package_sym(package, scope);
+      if (!scope_sym) {
+        fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
+        return NULL;
+      }
+      // TODO Also check types in this package for nested types!
+      if (scope_sym.kind != Sym.Package) {
+        fatal_error(typespec.pos, "%s must denote a package", scope);
+        return NULL;
+      }
+      package = scope_sym.package;
     }
-    if (sym.kind != Sym.Type) {
-      fatal_error(typespec.pos, "%s must denote a type", typespec.name);
+    let name = typespec.names[typespec.num_names - 1];
+    let sym = get_package_sym(package, name);
+    if (!sym) {
+      fatal_error(typespec.pos, "Unresolved type name '%s'", name);
       return NULL;
     }
+    if (sym.kind != Sym.Type) {
+      fatal_error(typespec.pos, "%s must denote a type", name);
+      return NULL;
+    }
+    resolve_sym(sym);
     set_resolved_sym(typespec, sym);
     result = sym.type;
   }

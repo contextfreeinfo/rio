@@ -288,7 +288,7 @@ fn typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
   }
   switch (typespec.kind) {
   case Typespec.Name:
-    return strf("%s%s%s", get_gen_name_or_default(typespec, typespec.name), *str ? " " : "", str);
+    return strf("%s%s%s", get_gen_name(typespec), *str ? " " : "", str);
   case Typespec.Ptr:
   case Typespec.Ref:
     return typespec_to_cdecl(typespec.base, cdecl_paren(strf("*%s", str), *str));
@@ -392,7 +392,7 @@ fn gen_aggregate_item(item: &AggregateItem) {
       // TODO Error on void fields outside of enum unions.
       // TODO Find a better way to check for void.
       if (item.type.kind == Typespec.Name) {
-        let name = get_gen_name_or_default(item.type, item.type.name);
+        let name = get_gen_name(item.type);
         if (name == void_name) {
           prefix = "// ";
         }

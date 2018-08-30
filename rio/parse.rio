@@ -42,9 +42,16 @@ fn parse_type_func() -> &Typespec {
 fn parse_type_base() -> &Typespec {
   if (is_token(TokenKind.Name)) {
     let pos = token.pos;
-    let name = token.name;
+    let names: **const char;
+    buf_push((:*&void)&names, &token.name, sizeof(token.name));
     next_token();
-    return new_typespec_name(pos, name);
+    while (match_token(TokenKind.Dot)) {
+      let name = parse_name();
+      buf_push((:*&void)&names, &name, sizeof(name));
+    }
+    let result = new_typespec_name(pos, names, buf_len(names));
+    buf_free((:*&void)&names);
+    return result;
   } else if (match_keyword(fn_keyword)) {
     return parse_type_func();
   } else if (match_token(TokenKind.Lparen)) {
@@ -142,7 +149,7 @@ fn parse_expr_operand() -> &Expr {
     let name = token.name;
     next_token();
     if (is_token(TokenKind.Lbrace)) {
-      return parse_expr_compound(new_typespec_name(pos, name));
+      return parse_expr_compound(new_typespec_name(pos, &name, 1));
     } else {
       return new_expr_name(pos, name);
     }
@@ -726,12 +733,13 @@ fn parse_aggregate(
       enum_tag_names[0] = str_intern(enum_tag_names[0]);
       enum_tag_name_interned = true;
     }
+    let tag_type_name = build_scoped_name(name, "Kind");
     let tag_item = AggregateItem {
       pos = pos,
       kind = AggregateItem.Field,
       names = enum_tag_names,
       num_names = 1,
-      type = new_typespec_name(pos, build_scoped_name(name, "Kind")),
+      type = new_typespec_name(pos, &tag_type_name, 1),
     };
     buf_unshift((:*&void)&items, &tag_item, sizeof(tag_item));
     // Create and attach union enum.
@@ -765,7 +773,11 @@ fn parse_switch_union() -> *AggregateItem {
     let item: AggregateItem;
     if (match_token(TokenKind.Colon)) {
       let type = parse_type();
-      if (!(type.kind == Typespec.Name && type.name == void_name)) {
+      if (!(
+        type.kind == Typespec.Name &&
+        type.num_names == 1 &&
+        type.names[0] == void_name
+      )) {
         fatal_error(token.pos, "Anonymous switch fields can only be void");
         return NULL;
       }
