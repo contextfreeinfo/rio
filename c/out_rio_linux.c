@@ -1563,6 +1563,8 @@ rio_Operand rio_resolve_expr_rvalue(rio_Expr (*expr));
 
 rio_Operand rio_resolve_expected_expr_rvalue(rio_Expr (*expr), rio_Type (*expected_type));
 
+rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, char const ((*(*names)))));
+
 rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec)));
 
 rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)));
@@ -7143,14 +7145,37 @@ rio_Operand rio_resolve_expected_expr_rvalue(rio_Expr (*expr), rio_Type (*expect
   return rio_operand_decay(rio_resolve_expected_expr(expr, expected_type));
 }
 
+rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, char const ((*(*names))))) {
+  if (scope_sym->decl) {
+    switch (scope_sym->decl->kind) {
+    case (rio_Decl_Struct):
+    case (rio_Decl_Union): {
+      if (scope_sym->decl->aggregate->union_enum_decl) {
+        if (((num_names) == (1)) && (!(strcmp(names[0], "Kind")))) {
+          rio_DeclEnum enum_decl = scope_sym->decl->aggregate->union_enum_decl->enum_decl;
+          rio_Sym (*sym) = rio_resolve_name(rio_build_scoped_name(enum_decl.scope, "Kind"));
+          return sym;
+        }
+      }
+      break;
+    }
+    default: {
+      break;
+    }
+    }
+  }
+  return NULL;
+}
+
 rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
   if (!(typespec)) {
     return rio_type_void;
   }
-  rio_Type (*result) = NULL;
+  rio_Type (*result) = {0};
   switch (typespec->kind) {
   case (rio_Typespec_Name): {
     {
+      rio_Sym (*sym) = {0};
       rio_Package (*package) = rio_current_package;
       for (size_t i = 0; (i) < ((typespec->num_names) - (1)); ++(i)) {
         char const ((*scope)) = typespec->names[i];
@@ -7159,14 +7184,20 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
           rio_fatal_error(typespec->pos, "Unresolved scope \'%s\'", scope);
           return NULL;
         }
-        if ((scope_sym->kind) != ((rio_Sym_Package))) {
-          rio_fatal_error(typespec->pos, "%s must denote a package", scope);
+        if ((scope_sym->kind) == ((rio_Sym_Type))) {
+          package = NULL;
+          sym = rio_get_nested_type_sym(scope_sym, ((typespec->num_names) - (i)) - (1), ((typespec->names) + (i)) + (1));
+          break;
+        } else if ((scope_sym->kind) != ((rio_Sym_Package))) {
+          rio_fatal_error(typespec->pos, "%s must denote a type or a package", scope);
           return NULL;
         }
         package = scope_sym->package;
       }
       char const ((*name)) = typespec->names[(typespec->num_names) - (1)];
-      rio_Sym (*sym) = rio_get_package_sym(package, name);
+      if (package) {
+        sym = rio_get_package_sym(package, name);
+      }
       if (!(sym)) {
         rio_fatal_error(typespec->pos, "Unresolved type name \'%s\'", name);
         return NULL;

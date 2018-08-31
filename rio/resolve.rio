@@ -79,7 +79,7 @@ fn is_local_sym(sym: &Sym) -> bool {
   return local_syms <= sym && sym < local_syms_end;
 }
 
-fn sym_new(kind: Sym_Kind, name: *const char, decl: &Decl) -> &Sym {
+fn sym_new(kind: Sym.Kind, name: *const char, decl: &Decl) -> &Sym {
   let sym: &Sym = xcalloc(1, sizeof(Sym));
   sym.kind = kind;
   sym.name = name;
@@ -560,13 +560,36 @@ fn resolve_expected_expr_rvalue(expr: &Expr, expected_type: &Type) -> Operand {
   return operand_decay(resolve_expected_expr(expr, expected_type));
 }
 
+fn get_nested_type_sym(
+  scope_sym: &Sym, num_names: usize, names: **const char,
+) -> &Sym {
+  // Just check for simple union enum Kind for now, but go more general later.
+  // TODO Build generic subtype collection for each (aggregate?) type.
+  if (scope_sym.decl) {
+    switch (scope_sym.decl.kind) {
+      case Decl.Struct:
+      case Decl.Union:
+        if (scope_sym.decl.aggregate.union_enum_decl) {
+          if (num_names == 1 && !strcmp(names[0], "Kind")) {
+            let enum_decl = scope_sym.decl.aggregate.union_enum_decl.enum_decl;
+            let sym = resolve_name(build_scoped_name(enum_decl.scope, "Kind"));
+            return sym;
+          }
+        }
+      default:
+    }
+  }
+  return NULL;
+}
+
 fn resolve_typespec(typespec: &Typespec) -> &Type {
   if (!typespec) {
     return type_void;
   }
-  let result: &Type = NULL;
+  let result: &Type;
   switch (typespec.kind) {
   case Typespec.Name: {
+    let sym: &Sym;
     let package = current_package;
     for (let i: usize = 0; i < typespec.num_names - 1; ++i) {
       let scope = typespec.names[i];
@@ -575,20 +598,29 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
         return NULL;
       }
-      // TODO Also check types in this package for nested types!
-      if (scope_sym.kind != Sym.Package) {
-        fatal_error(typespec.pos, "%s must denote a package", scope);
+      if (scope_sym.kind == Sym.Type) {
+        package = NULL;
+        sym = get_nested_type_sym(
+          scope_sym, typespec.num_names - i - 1, typespec.names + i + 1,
+        );
+        break;
+      } else if (scope_sym.kind != Sym.Package) {
+        fatal_error(typespec.pos, "%s must denote a type or a package", scope);
         return NULL;
       }
       package = scope_sym.package;
     }
     let name = typespec.names[typespec.num_names - 1];
-    let sym = get_package_sym(package, name);
+    if (package) {
+      sym = get_package_sym(package, name);
+    }
     if (!sym) {
+      // TODO Report full type string here, not just final.
       fatal_error(typespec.pos, "Unresolved type name '%s'", name);
       return NULL;
     }
     if (sym.kind != Sym.Type) {
+      // TODO Report full type string here, not just final.
       fatal_error(typespec.pos, "%s must denote a type", name);
       return NULL;
     }
@@ -1212,7 +1244,7 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
     return operand;
   }
   let operand = resolve_expr(expr.field.expr);
-  // TODO Does type import type.sym? Does sym imply sym.decl?
+  // TODO Does type imply type.sym? Does sym imply sym.decl?
   if (operand.is_type && operand.type.sym && operand.type.sym.decl) {
     let decl = operand.type.sym.decl;
     switch (operand.type.kind) {

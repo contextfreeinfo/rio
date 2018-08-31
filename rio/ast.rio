@@ -377,7 +377,7 @@ fn new_stmt_list(pos: SrcPos, stmts: *&Stmt, num_stmts: usize) -> StmtList {
   return {pos, ast_dup(stmts, num_stmts * sizeof(*stmts)), num_stmts};
 }
 
-fn new_typespec(kind: Typespec_Kind, pos: SrcPos) -> &Typespec {
+fn new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {
   let t: &Typespec = ast_alloc(sizeof(Typespec));
   t.kind = kind;
   t.pos = pos;
@@ -436,7 +436,7 @@ fn new_decls(decls: *&Decl, num_decls: usize) -> &Decls {
   return d;
 }
 
-fn new_decl(kind: Decl_Kind, pos: SrcPos, name: *const char) -> &Decl {
+fn new_decl(kind: Decl.Kind, pos: SrcPos, name: *const char) -> &Decl {
   let d: &Decl = ast_alloc(sizeof(Decl));
   d.kind = kind;
   d.pos = pos;
@@ -504,7 +504,7 @@ fn new_aggregate(
   return aggregate;
 }
 
-fn new_decl_aggregate(pos: SrcPos, kind: Decl_Kind, name: *const char, aggregate: &Aggregate) -> &Decl {
+fn new_decl_aggregate(pos: SrcPos, kind: Decl.Kind, name: *const char, aggregate: &Aggregate) -> &Decl {
   #assert(kind == Decl.Struct || kind == Decl.Union);
   let d = new_decl(kind, pos, name);
   d.aggregate = aggregate;
@@ -559,7 +559,7 @@ fn new_decl_import(pos: SrcPos, rename_name: *const char, is_relative: bool, nam
   return d;
 }
 
-fn new_expr(kind: Expr_Kind, pos: SrcPos) -> &Expr {
+fn new_expr(kind: Expr.Kind, pos: SrcPos) -> &Expr {
   let e: &Expr = ast_alloc(sizeof(Expr));
   e.kind = kind;
   e.pos = pos;
@@ -723,7 +723,7 @@ fn get_stmt_note(stmt: &Stmt, name: *const char) -> &Note {
   return NULL;
 }
 
-fn new_stmt(kind: Stmt_Kind, pos: SrcPos) -> &Stmt {
+fn new_stmt(kind: Stmt.Kind, pos: SrcPos) -> &Stmt {
   let s: &Stmt = ast_alloc(sizeof(Stmt));
   s.kind = kind;
   s.pos = pos;
