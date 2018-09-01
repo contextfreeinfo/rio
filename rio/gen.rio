@@ -1164,88 +1164,39 @@ fn gen_typeinfo_fields(type: &Type) {
   gen_indent--;
 }
 
-// Reminder of old CASE in case similar macros happen.
-
-// #define CASE(kind, name) \
-//   case kind:
-//     buf_printf(&gen_buf, "&(TypeInfo){$1, .size = sizeof($2), .align = sizeof($2), .name = ");
-//     gen_str($2, false);
-//     buf_printf(&gen_buf, "},");
+// TODO This could be a macro if we had such macros.
+fn gen_typeinfo_case(
+  buf: &*char, item_name: *const char, type_name: *const char,
+) {
+  buf_printf(
+    buf, "&(TypeInfo){%s, .size = sizeof(%s), .align = sizeof(%s), .name = ",
+    item_name, type_name, type_name,
+  );
+  gen_str(type_name, false);
+  buf_printf(buf, "},");
+}
 
 fn gen_typeinfo(type: &Type) {
   switch (type.kind) {
-    Bool => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_Bool, .size = sizeof(bool), .align = sizeof(bool), .name = ");
-      gen_str("bool", false);
-      buf_printf(&gen_buf, "},");
-    }
-    Char => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_Char, .size = sizeof(char), .align = sizeof(char), .name = ");
-      gen_str("char", false);
-      buf_printf(&gen_buf, "},");
-    }
-    UChar => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_UChar, .size = sizeof(uchar), .align = sizeof(uchar), .name = ");
-      gen_str("uchar", false);
-      buf_printf(&gen_buf, "},");
-    }
-    SChar => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_SChar, .size = sizeof(schar), .align = sizeof(schar), .name = ");
-      gen_str("schar", false);
-      buf_printf(&gen_buf, "},");
-    }
-    Short => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_Short, .size = sizeof(short), .align = sizeof(short), .name = ");
-      gen_str("short", false);
-      buf_printf(&gen_buf, "},");
-    }
-    UShort => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_UShort, .size = sizeof(ushort), .align = sizeof(ushort), .name = ");
-      gen_str("ushort", false);
-      buf_printf(&gen_buf, "},");
-    }
-    Int => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_Int, .size = sizeof(int), .align = sizeof(int), .name = ");
-      gen_str("int", false);
-      buf_printf(&gen_buf, "},");
-    }
-    UInt => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_UInt, .size = sizeof(uint), .align = sizeof(uint), .name = ");
-      gen_str("uint", false);
-      buf_printf(&gen_buf, "},");
-    }
-    Long => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_Long, .size = sizeof(long), .align = sizeof(long), .name = ");
-      gen_str("long", false);
-      buf_printf(&gen_buf, "},");
-    }
-    ULong => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_ULong, .size = sizeof(ulong), .align = sizeof(ulong), .name = ");
-      gen_str("ulong", false);
-      buf_printf(&gen_buf, "},");
-    }
-    LLong => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_LLong, .size = sizeof(llong), .align = sizeof(llong), .name = ");
-      gen_str("llong", false);
-      buf_printf(&gen_buf, "},");
-    }
-    ULLong => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_ULLong, .size = sizeof(ullong), .align = sizeof(ullong), .name = ");
-      gen_str("ullong", false);
-      buf_printf(&gen_buf, "},");
-    }
-    Float => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_Float, .size = sizeof(float), .align = sizeof(float), .name = ");
-      gen_str("float", false);
-      buf_printf(&gen_buf, "},");
-    }
-    Double => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_Double, .size = sizeof(double), .align = sizeof(double), .name = ");
-      gen_str("double", false);
-      buf_printf(&gen_buf, "},");
-    }
+    Bool => gen_typeinfo_case(&gen_buf, "TypeKind_Bool", "bool");
+    Char => gen_typeinfo_case(&gen_buf, "TypeKind_Char", "char");
+    UChar => gen_typeinfo_case(&gen_buf, "TypeKind_UChar", "uchar");
+    SChar => gen_typeinfo_case(&gen_buf, "TypeKind_SChar", "schar");
+    Short => gen_typeinfo_case(&gen_buf, "TypeKind_Short", "short");
+    UShort => gen_typeinfo_case(&gen_buf, "TypeKind_UShort", "ushort");
+    Int => gen_typeinfo_case(&gen_buf, "TypeKind_Int", "int");
+    UInt => gen_typeinfo_case(&gen_buf, "TypeKind_UInt", "uint");
+    Long => gen_typeinfo_case(&gen_buf, "TypeKind_Long", "long");
+    ULong => gen_typeinfo_case(&gen_buf, "TypeKind_ULong", "ulong");
+    LLong => gen_typeinfo_case(&gen_buf, "TypeKind_LLong", "llong");
+    ULLong => gen_typeinfo_case(&gen_buf, "TypeKind_ULLong", "ullong");
+    Float => gen_typeinfo_case(&gen_buf, "TypeKind_Float", "float");
+    Double => gen_typeinfo_case(&gen_buf, "TypeKind_Double", "double");
     Void => {
-      buf_printf(&gen_buf, "&(TypeInfo){TypeKind_Void, .name = \"void\", .size = 0, .align = 0},");
+      buf_printf(
+        &gen_buf,
+        "&(TypeInfo){TypeKind_Void, .name = \"void\", .size = 0, .align = 0},",
+      );
     }
     Ptr => {
       buf_printf(&gen_buf, "&(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = ");

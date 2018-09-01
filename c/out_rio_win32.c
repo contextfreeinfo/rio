@@ -825,6 +825,8 @@ void rio_gen_typeinfo_header(char const ((*kind)), rio_Type (*type));
 
 void rio_gen_typeinfo_fields(rio_Type (*type));
 
+void rio_gen_typeinfo_case(char (*(*buf)), char const ((*item_name)), char const ((*type_name)));
+
 void rio_gen_typeinfo(rio_Type (*type));
 
 void rio_gen_typeinfos(void);
@@ -4346,90 +4348,68 @@ void rio_gen_typeinfo_fields(rio_Type (*type)) {
   (rio_gen_indent)--;
 }
 
+void rio_gen_typeinfo_case(char (*(*buf)), char const ((*item_name)), char const ((*type_name))) {
+  rio_buf_printf(buf, "&(TypeInfo){%s, .size = sizeof(%s), .align = sizeof(%s), .name = ", item_name, type_name, type_name);
+  rio_gen_str(type_name, false);
+  rio_buf_printf(buf, "},");
+}
+
 void rio_gen_typeinfo(rio_Type (*type)) {
   switch (type->kind) {
   case rio_CompilerTypeKind_Bool: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Bool, .size = sizeof(bool), .align = sizeof(bool), .name = ");
-    rio_gen_str("bool", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_Bool", "bool");
     break;
   }
   case rio_CompilerTypeKind_Char: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Char, .size = sizeof(char), .align = sizeof(char), .name = ");
-    rio_gen_str("char", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_Char", "char");
     break;
   }
   case rio_CompilerTypeKind_UChar: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_UChar, .size = sizeof(uchar), .align = sizeof(uchar), .name = ");
-    rio_gen_str("uchar", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_UChar", "uchar");
     break;
   }
   case rio_CompilerTypeKind_SChar: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_SChar, .size = sizeof(schar), .align = sizeof(schar), .name = ");
-    rio_gen_str("schar", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_SChar", "schar");
     break;
   }
   case rio_CompilerTypeKind_Short: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Short, .size = sizeof(short), .align = sizeof(short), .name = ");
-    rio_gen_str("short", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_Short", "short");
     break;
   }
   case rio_CompilerTypeKind_UShort: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_UShort, .size = sizeof(ushort), .align = sizeof(ushort), .name = ");
-    rio_gen_str("ushort", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_UShort", "ushort");
     break;
   }
   case rio_CompilerTypeKind_Int: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Int, .size = sizeof(int), .align = sizeof(int), .name = ");
-    rio_gen_str("int", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_Int", "int");
     break;
   }
   case rio_CompilerTypeKind_UInt: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_UInt, .size = sizeof(uint), .align = sizeof(uint), .name = ");
-    rio_gen_str("uint", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_UInt", "uint");
     break;
   }
   case rio_CompilerTypeKind_Long: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Long, .size = sizeof(long), .align = sizeof(long), .name = ");
-    rio_gen_str("long", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_Long", "long");
     break;
   }
   case rio_CompilerTypeKind_ULong: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_ULong, .size = sizeof(ulong), .align = sizeof(ulong), .name = ");
-    rio_gen_str("ulong", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_ULong", "ulong");
     break;
   }
   case rio_CompilerTypeKind_LLong: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_LLong, .size = sizeof(llong), .align = sizeof(llong), .name = ");
-    rio_gen_str("llong", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_LLong", "llong");
     break;
   }
   case rio_CompilerTypeKind_ULLong: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_ULLong, .size = sizeof(ullong), .align = sizeof(ullong), .name = ");
-    rio_gen_str("ullong", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_ULLong", "ullong");
     break;
   }
   case rio_CompilerTypeKind_Float: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Float, .size = sizeof(float), .align = sizeof(float), .name = ");
-    rio_gen_str("float", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_Float", "float");
     break;
   }
   case rio_CompilerTypeKind_Double: {
-    rio_buf_printf(&(rio_gen_buf), "&(TypeInfo){TypeKind_Double, .size = sizeof(double), .align = sizeof(double), .name = ");
-    rio_gen_str("double", false);
-    rio_buf_printf(&(rio_gen_buf), "},");
+    rio_gen_typeinfo_case(&(rio_gen_buf), "TypeKind_Double", "double");
     break;
   }
   case rio_CompilerTypeKind_Void: {
