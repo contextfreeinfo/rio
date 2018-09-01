@@ -99,7 +99,7 @@ fn test_loops() {
   // break;
   // continue;
   switch (0) {
-    1 => NULL;
+    1 => {}
     else => {
       if (1) {
         // TODO Make no longer apply to switch!

@@ -90,29 +90,27 @@ let lp64_metrics: [CompilerTypeKind.Num]TypeMetrics = {
 fn init_target() {
   type_metrics = NULL;
   switch (target_os) {
-  case Os.Win32:
-    switch (target_arch) {
-    case Arch.X86:
-      type_metrics = win32_x86_metrics;
-    case Arch.X64:
-      type_metrics = win32_x64_metrics;
-    default:
+    Os.Win32 => {
+      switch (target_arch) {
+        Arch.X86 => type_metrics = win32_x86_metrics;
+        Arch.X64 => type_metrics = win32_x64_metrics;
+        else => {}
+      }
     }
-  case Os.Linux:
-    switch (target_arch) {
-    case Arch.X86:
-      type_metrics = ilp32_metrics;
-    case Arch.X64:
-      type_metrics = lp64_metrics;
-    default:
+    Os.Linux => {
+      switch (target_arch) {
+        Arch.X86 => type_metrics = ilp32_metrics;
+        Arch.X64 => type_metrics = lp64_metrics;
+        else => {}
+      }
     }
-  case Os.OsX:
-    switch (target_arch) {
-    case Arch.X64:
-      type_metrics = lp64_metrics;
-    default:
+    Os.OsX => {
+      switch (target_arch) {
+        Arch.X64 => type_metrics = lp64_metrics;
+        else => {}
+      }
     }
-  default:
+    else => {}
   }
   if (!type_metrics) {
     printf("Unsupported os/arch combination: %s/%s\n", os_names[target_os], arch_names[target_arch]);

@@ -952,7 +952,6 @@ void test1_test_compound_literals(void) {
 void test1_test_loops(void) {
   switch (0) {
   case 1: {
-    NULL;
     break;
   }
   default: {

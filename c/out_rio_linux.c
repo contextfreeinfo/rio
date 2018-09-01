@@ -3927,8 +3927,10 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     break;
   }
   case (rio_Stmt_Block): {
-    rio_genln();
-    rio_gen_stmt_block(stmt->block);
+    if (stmt->block.num_stmts) {
+      rio_genln();
+      rio_gen_stmt_block(stmt->block);
+    }
     break;
   }
   case (rio_Stmt_Note): {
@@ -5554,20 +5556,22 @@ char const ((*rio_parse_flags(int (*argc_ptr), char const ((*(*(*argv_ptr)))))))
         continue;
       }
       switch (flag->kind) {
-      case (rio_FlagKind_Bool): {
+      case rio_FlagKind_Bool: {
         *(flag->ptr.b) = true;
         break;
       }
-      case (rio_FlagKind_Str): {
-        if (((i) + (1)) < (argc)) {
-          (i)++;
-          *(flag->ptr.s) = argv[i];
-        } else {
-          printf("No value argument after -%s\n", arg);
+      case rio_FlagKind_Str: {
+        {
+          if (((i) + (1)) < (argc)) {
+            (i)++;
+            *(flag->ptr.s) = argv[i];
+          } else {
+            printf("No value argument after -%s\n", arg);
+          }
         }
         break;
       }
-      case (rio_FlagKind_Enum): {
+      case rio_FlagKind_Enum: {
         {
           char const ((*option)) = {0};
           if (((i) + (1)) < (argc)) {
@@ -9439,46 +9443,52 @@ void rio_init_target(void) {
   rio_type_metrics = NULL;
   switch (rio_target_os) {
   case (rio_Os_Win32): {
-    switch (rio_target_arch) {
-    case (rio_Arch_X86): {
-      rio_type_metrics = rio_win32_x86_metrics;
-      break;
-    }
-    case (rio_Arch_X64): {
-      rio_type_metrics = rio_win32_x64_metrics;
-      break;
-    }
-    default: {
-      break;
-    }
+    {
+      switch (rio_target_arch) {
+      case (rio_Arch_X86): {
+        rio_type_metrics = rio_win32_x86_metrics;
+        break;
+      }
+      case (rio_Arch_X64): {
+        rio_type_metrics = rio_win32_x64_metrics;
+        break;
+      }
+      default: {
+        break;
+      }
+      }
     }
     break;
   }
   case (rio_Os_Linux): {
-    switch (rio_target_arch) {
-    case (rio_Arch_X86): {
-      rio_type_metrics = rio_ilp32_metrics;
-      break;
-    }
-    case (rio_Arch_X64): {
-      rio_type_metrics = rio_lp64_metrics;
-      break;
-    }
-    default: {
-      break;
-    }
+    {
+      switch (rio_target_arch) {
+      case (rio_Arch_X86): {
+        rio_type_metrics = rio_ilp32_metrics;
+        break;
+      }
+      case (rio_Arch_X64): {
+        rio_type_metrics = rio_lp64_metrics;
+        break;
+      }
+      default: {
+        break;
+      }
+      }
     }
     break;
   }
   case (rio_Os_OsX): {
-    switch (rio_target_arch) {
-    case (rio_Arch_X64): {
-      rio_type_metrics = rio_lp64_metrics;
-      break;
-    }
-    default: {
-      break;
-    }
+    {
+      switch (rio_target_arch) {
+      case (rio_Arch_X64): {
+        rio_type_metrics = rio_lp64_metrics;
+        break;
+      }
+      default: {
+        break;
+      }
+      }
     }
     break;
   }
@@ -9635,15 +9645,15 @@ bool rio_is_aggregate_type(rio_Type (*type)) {
 
 bool rio_is_signed_type(rio_Type (*type)) {
   switch (type->kind) {
-  case (rio_CompilerTypeKind_Char): {
+  case rio_CompilerTypeKind_Char: {
     return rio_type_metrics[(rio_CompilerTypeKind_Char)].sign;
     break;
   }
-  case (rio_CompilerTypeKind_SChar):
-  case (rio_CompilerTypeKind_Short):
-  case (rio_CompilerTypeKind_Int):
-  case (rio_CompilerTypeKind_Long):
-  case (rio_CompilerTypeKind_LLong): {
+  case rio_CompilerTypeKind_SChar:
+  case rio_CompilerTypeKind_Short:
+  case rio_CompilerTypeKind_Int:
+  case rio_CompilerTypeKind_Long:
+  case rio_CompilerTypeKind_LLong: {
     return true;
     break;
   }
@@ -9664,39 +9674,41 @@ int rio_type_rank(rio_Type (*type)) {
 
 rio_Type (*rio_unsigned_type(rio_Type (*type))) {
   switch (type->kind) {
-  case (rio_CompilerTypeKind_Bool): {
+  case rio_CompilerTypeKind_Bool: {
     return rio_type_bool;
     break;
   }
-  case (rio_CompilerTypeKind_Char):
-  case (rio_CompilerTypeKind_SChar):
-  case (rio_CompilerTypeKind_UChar): {
+  case rio_CompilerTypeKind_Char:
+  case rio_CompilerTypeKind_SChar:
+  case rio_CompilerTypeKind_UChar: {
     return rio_type_uchar;
     break;
   }
-  case (rio_CompilerTypeKind_Short):
-  case (rio_CompilerTypeKind_UShort): {
+  case rio_CompilerTypeKind_Short:
+  case rio_CompilerTypeKind_UShort: {
     return rio_type_ushort;
     break;
   }
-  case (rio_CompilerTypeKind_Int):
-  case (rio_CompilerTypeKind_UInt): {
+  case rio_CompilerTypeKind_Int:
+  case rio_CompilerTypeKind_UInt: {
     return rio_type_uint;
     break;
   }
-  case (rio_CompilerTypeKind_Long):
-  case (rio_CompilerTypeKind_ULong): {
+  case rio_CompilerTypeKind_Long:
+  case rio_CompilerTypeKind_ULong: {
     return rio_type_ulong;
     break;
   }
-  case (rio_CompilerTypeKind_LLong):
-  case (rio_CompilerTypeKind_ULLong): {
+  case rio_CompilerTypeKind_LLong:
+  case rio_CompilerTypeKind_ULLong: {
     return rio_type_ullong;
     break;
   }
   default: {
-    assert(0);
-    return NULL;
+    {
+      assert(0);
+      return NULL;
+    }
     break;
   }
   }
@@ -9717,11 +9729,11 @@ rio_Map rio_cached_ref_types;
 rio_Type (*rio_type_ptr_any(rio_CompilerTypeKind kind, rio_Type (*base))) {
   rio_Map (*cache) = {0};
   switch (kind) {
-  case (rio_CompilerTypeKind_Ptr): {
+  case rio_CompilerTypeKind_Ptr: {
     cache = &(rio_cached_ptr_types);
     break;
   }
-  case (rio_CompilerTypeKind_Ref): {
+  case rio_CompilerTypeKind_Ref: {
     cache = &(rio_cached_ref_types);
     break;
   }

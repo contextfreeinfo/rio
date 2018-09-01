@@ -708,8 +708,10 @@ fn gen_stmt(stmt: &Stmt) {
   case Stmt.Continue:
     genln(); buf_printf(&gen_buf, "continue;");
   case Stmt.Block:
-    genln();
-    gen_stmt_block(stmt.block);
+    if (stmt.block.num_stmts) {
+      genln();
+      gen_stmt_block(stmt.block);
+    }
   case Stmt.Note:
     if (stmt.note.name == assert_name) {
       genln(); buf_printf(&gen_buf, "assert(");
