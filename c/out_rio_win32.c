@@ -3392,22 +3392,20 @@ char (*rio_type_to_cdecl(rio_Type (*type), char const ((*str)))) {
     break;
   }
   case (rio_CompilerTypeKind_Func): {
-    {
-      char (*result) = NULL;
-      rio_buf_printf(&(result), "(*%s)(", str);
-      if ((type->function.num_params) == (0)) {
-        rio_buf_printf(&(result), "void");
-      } else {
-        for (size_t i = 0; (i) < (type->function.num_params); (i)++) {
-          rio_buf_printf(&(result), "%s%s", ((i) == (0) ? "" : ", "), rio_type_to_cdecl(type->function.params[i], ""));
-        }
+    char (*result) = NULL;
+    rio_buf_printf(&(result), "(*%s)(", str);
+    if ((type->function.num_params) == (0)) {
+      rio_buf_printf(&(result), "void");
+    } else {
+      for (size_t i = 0; (i) < (type->function.num_params); (i)++) {
+        rio_buf_printf(&(result), "%s%s", ((i) == (0) ? "" : ", "), rio_type_to_cdecl(type->function.params[i], ""));
       }
-      if (type->function.has_varargs) {
-        rio_buf_printf(&(result), ", ...");
-      }
-      rio_buf_printf(&(result), ")");
-      return rio_type_to_cdecl(type->function.ret, result);
     }
+    if (type->function.has_varargs) {
+      rio_buf_printf(&(result), ", ...");
+    }
+    rio_buf_printf(&(result), ")");
+    return rio_type_to_cdecl(type->function.ret, result);
     break;
   }
   default: {
@@ -3548,18 +3546,14 @@ void rio_gen_forward_decls(void) {
       continue;
     }
     switch (decl->kind) {
-    case (rio_Decl_Struct):
-    case (rio_Decl_Union): {
-      {
-        char const ((*name)) = rio_get_gen_name(sym);
-        rio_genln();
-        rio_buf_printf(&(rio_gen_buf), "typedef %s %s %s;", ((decl->aggregate->kind) == ((rio_AggregateKind_Struct)) ? "struct" : "union"), name, name);
-        break;
-      }
+    case rio_Decl_Struct:
+    case rio_Decl_Union: {
+      char const ((*name)) = rio_get_gen_name(sym);
+      rio_genln();
+      rio_buf_printf(&(rio_gen_buf), "typedef %s %s %s;", ((decl->aggregate->kind) == ((rio_AggregateKind_Struct)) ? "struct" : "union"), name, name);
       break;
     }
     default: {
-      break;
       break;
     }
     }
@@ -3686,36 +3680,32 @@ void rio_gen_expr(rio_Expr (*expr)) {
     break;
   }
   case (rio_Expr_Int): {
-    {
-      char const ((*suffix_name)) = rio_token_suffix_names[expr->int_lit.suffix];
-      switch (expr->int_lit.mod) {
-      case (rio_TokenMod_Bin):
-      case (rio_TokenMod_Hex): {
-        rio_buf_printf(&(rio_gen_buf), "0x%llx%s", expr->int_lit.val, suffix_name);
-        break;
-      }
-      case (rio_TokenMod_Oct): {
-        rio_buf_printf(&(rio_gen_buf), "0%llo%s", expr->int_lit.val, suffix_name);
-        break;
-      }
-      case (rio_TokenMod_Char): {
-        rio_gen_char((char)(expr->int_lit.val));
-        break;
-      }
-      default: {
-        rio_buf_printf(&(rio_gen_buf), "%llu%s", expr->int_lit.val, suffix_name);
-        break;
-      }
-      }
+    char const ((*suffix_name)) = rio_token_suffix_names[expr->int_lit.suffix];
+    switch (expr->int_lit.mod) {
+    case (rio_TokenMod_Bin):
+    case (rio_TokenMod_Hex): {
+      rio_buf_printf(&(rio_gen_buf), "0x%llx%s", expr->int_lit.val, suffix_name);
+      break;
+    }
+    case (rio_TokenMod_Oct): {
+      rio_buf_printf(&(rio_gen_buf), "0%llo%s", expr->int_lit.val, suffix_name);
+      break;
+    }
+    case (rio_TokenMod_Char): {
+      rio_gen_char((char)(expr->int_lit.val));
+      break;
+    }
+    default: {
+      rio_buf_printf(&(rio_gen_buf), "%llu%s", expr->int_lit.val, suffix_name);
+      break;
+    }
     }
     break;
   }
   case (rio_Expr_Float): {
-    {
-      int is_double = (expr->float_lit.suffix) == ((rio_TokenSuffix_D));
-      size_t len = (expr->float_lit.end) - (expr->float_lit.start);
-      rio_buf_printf(&(rio_gen_buf), "%.*s%s", (is_double ? (len) - (1) : len), expr->float_lit.start, (is_double ? "" : "f"));
-    }
+    int is_double = (expr->float_lit.suffix) == ((rio_TokenSuffix_D));
+    size_t len = (expr->float_lit.end) - (expr->float_lit.start);
+    rio_buf_printf(&(rio_gen_buf), "%.*s%s", (is_double ? (len) - (1) : len), expr->float_lit.start, (is_double ? "" : "f"));
     break;
   }
   case (rio_Expr_Str): {
@@ -3733,22 +3723,20 @@ void rio_gen_expr(rio_Expr (*expr)) {
     break;
   }
   case (rio_Expr_Call): {
-    {
-      rio_Sym (*sym) = rio_get_resolved_sym(expr->call.expr);
-      if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
-        rio_buf_printf(&(rio_gen_buf), "(%s)", rio_get_gen_name(sym));
-      } else {
-        rio_gen_expr(expr->call.expr);
-      }
-      rio_buf_printf(&(rio_gen_buf), "(");
-      for (size_t i = 0; (i) < (expr->call.num_args); (i)++) {
-        if ((i) != (0)) {
-          rio_buf_printf(&(rio_gen_buf), ", ");
-        }
-        rio_gen_expr(expr->call.args[i]);
-      }
-      rio_buf_printf(&(rio_gen_buf), ")");
+    rio_Sym (*sym) = rio_get_resolved_sym(expr->call.expr);
+    if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
+      rio_buf_printf(&(rio_gen_buf), "(%s)", rio_get_gen_name(sym));
+    } else {
+      rio_gen_expr(expr->call.expr);
     }
+    rio_buf_printf(&(rio_gen_buf), "(");
+    for (size_t i = 0; (i) < (expr->call.num_args); (i)++) {
+      if ((i) != (0)) {
+        rio_buf_printf(&(rio_gen_buf), ", ");
+      }
+      rio_gen_expr(expr->call.args[i]);
+    }
+    rio_buf_printf(&(rio_gen_buf), ")");
     break;
   }
   case (rio_Expr_Index): {
@@ -3759,15 +3747,13 @@ void rio_gen_expr(rio_Expr (*expr)) {
     break;
   }
   case (rio_Expr_Field): {
-    {
-      rio_Sym (*sym) = rio_get_resolved_sym(expr);
-      if (sym) {
-        rio_buf_printf(&(rio_gen_buf), "(%s)", rio_get_gen_name(sym));
-      } else {
-        rio_gen_expr(expr->field.expr);
-        rio_Type (*type) = rio_unqualify_type(rio_get_resolved_type(expr->field.expr));
-        rio_buf_printf(&(rio_gen_buf), "%s%s", (rio_is_ptr_type(type) ? "->" : "."), expr->field.name);
-      }
+    rio_Sym (*sym) = rio_get_resolved_sym(expr);
+    if (sym) {
+      rio_buf_printf(&(rio_gen_buf), "(%s)", rio_get_gen_name(sym));
+    } else {
+      rio_gen_expr(expr->field.expr);
+      rio_Type (*type) = rio_unqualify_type(rio_get_resolved_type(expr->field.expr));
+      rio_buf_printf(&(rio_gen_buf), "%s%s", (rio_is_ptr_type(type) ? "->" : "."), expr->field.name);
     }
     break;
   }
@@ -3818,19 +3804,15 @@ void rio_gen_expr(rio_Expr (*expr)) {
     break;
   }
   case (rio_Expr_TypeofExpr): {
-    {
-      rio_Type (*type) = rio_get_resolved_type(expr->typeof_expr);
-      assert(type->typeid);
-      rio_gen_typeid(type);
-    }
+    rio_Type (*type) = rio_get_resolved_type(expr->typeof_expr);
+    assert(type->typeid);
+    rio_gen_typeid(type);
     break;
   }
   case (rio_Expr_TypeofType): {
-    {
-      rio_Type (*type) = rio_get_resolved_type(expr->typeof_type);
-      assert(type->typeid);
-      rio_gen_typeid(type);
-    }
+    rio_Type (*type) = rio_get_resolved_type(expr->typeof_type);
+    assert(type->typeid);
+    rio_gen_typeid(type);
     break;
   }
   case (rio_Expr_Offsetof): {
@@ -4030,82 +4012,86 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     break;
   }
   case (rio_Stmt_Switch): {
-    {
-      rio_genln();
-      rio_buf_printf(&(rio_gen_buf), "switch (");
-      rio_gen_expr(stmt->switch_stmt.expr);
-      rio_buf_printf(&(rio_gen_buf), ") {");
-      bool has_default = false;
-      for (size_t i = 0; (i) < (stmt->switch_stmt.num_cases); (i)++) {
-        rio_SwitchCase switch_case = stmt->switch_stmt.cases[i];
-        for (size_t j = 0; (j) < (switch_case.num_patterns); (j)++) {
-          rio_SwitchCasePattern pattern = switch_case.patterns[j];
-          if (pattern.is_default) {
-            has_default = true;
-            rio_genln();
-            rio_buf_printf(&(rio_gen_buf), "default:");
-          } else if (pattern.end) {
-            rio_Val start_val = rio_get_resolved_val(pattern.start);
-            rio_Val end_val = rio_get_resolved_val(pattern.end);
-            if ((rio_is_char_lit(pattern.start)) && (rio_is_char_lit(pattern.end))) {
-              rio_genln();
-              for (int c = (int)(start_val.ll); (c) <= ((int)(end_val.ll)); (c)++) {
-                rio_buf_printf(&(rio_gen_buf), "case ");
-                rio_gen_char(c);
-                rio_buf_printf(&(rio_gen_buf), ": ");
-              }
-            } else {
-              rio_genln();
-              rio_buf_printf(&(rio_gen_buf), "// ");
-              rio_gen_expr(pattern.start);
-              rio_buf_printf(&(rio_gen_buf), "...");
-              rio_gen_expr(pattern.end);
-              rio_genln();
-              for (llong ll = start_val.ll; (ll) <= (end_val.ll); (ll)++) {
-                rio_buf_printf(&(rio_gen_buf), "case %lld: ", ll);
-              }
-            }
-          } else {
-            rio_genln();
-            rio_buf_printf(&(rio_gen_buf), "case ");
-            rio_gen_expr(pattern.start);
-            rio_buf_printf(&(rio_gen_buf), ":");
-          }
-        }
-        if (switch_case.is_default) {
+    rio_genln();
+    rio_buf_printf(&(rio_gen_buf), "switch (");
+    rio_gen_expr(stmt->switch_stmt.expr);
+    rio_buf_printf(&(rio_gen_buf), ") {");
+    bool has_default = false;
+    for (size_t i = 0; (i) < (stmt->switch_stmt.num_cases); (i)++) {
+      rio_SwitchCase switch_case = stmt->switch_stmt.cases[i];
+      for (size_t j = 0; (j) < (switch_case.num_patterns); (j)++) {
+        rio_SwitchCasePattern pattern = switch_case.patterns[j];
+        if (pattern.is_default) {
           has_default = true;
           rio_genln();
           rio_buf_printf(&(rio_gen_buf), "default:");
+        } else if (pattern.end) {
+          rio_Val start_val = rio_get_resolved_val(pattern.start);
+          rio_Val end_val = rio_get_resolved_val(pattern.end);
+          if ((rio_is_char_lit(pattern.start)) && (rio_is_char_lit(pattern.end))) {
+            rio_genln();
+            for (int c = (int)(start_val.ll); (c) <= ((int)(end_val.ll)); (c)++) {
+              rio_buf_printf(&(rio_gen_buf), "case ");
+              rio_gen_char(c);
+              rio_buf_printf(&(rio_gen_buf), ": ");
+            }
+          } else {
+            rio_genln();
+            rio_buf_printf(&(rio_gen_buf), "// ");
+            rio_gen_expr(pattern.start);
+            rio_buf_printf(&(rio_gen_buf), "...");
+            rio_gen_expr(pattern.end);
+            rio_genln();
+            for (llong ll = start_val.ll; (ll) <= (end_val.ll); (ll)++) {
+              rio_buf_printf(&(rio_gen_buf), "case %lld: ", ll);
+            }
+          }
+        } else {
+          rio_genln();
+          rio_buf_printf(&(rio_gen_buf), "case ");
+          rio_gen_expr(pattern.start);
+          rio_buf_printf(&(rio_gen_buf), ":");
         }
-        rio_buf_printf(&(rio_gen_buf), " ");
-        rio_buf_printf(&(rio_gen_buf), "{");
-        (rio_gen_indent)++;
-        rio_StmtList block = switch_case.block;
-        for (size_t j = 0; (j) < (block.num_stmts); (j)++) {
-          rio_gen_stmt(block.stmts[j]);
-        }
-        rio_genln();
-        rio_buf_printf(&(rio_gen_buf), "break;");
-        (rio_gen_indent)--;
-        rio_genln();
-        rio_buf_printf(&(rio_gen_buf), "}");
       }
-      if (!(has_default)) {
-        rio_Note (*note) = rio_get_stmt_note(stmt, rio_complete_name);
-        if (note) {
-          rio_genln();
-          rio_buf_printf(&(rio_gen_buf), "default:");
-          (rio_gen_indent)++;
-          rio_genln();
-          rio_buf_printf(&(rio_gen_buf), "assert(\"@complete switch failed to handle case\" && 0);");
-          rio_genln();
-          rio_buf_printf(&(rio_gen_buf), "break;");
-          (rio_gen_indent)--;
+      if (switch_case.is_default) {
+        has_default = true;
+        rio_genln();
+        rio_buf_printf(&(rio_gen_buf), "default:");
+      }
+      rio_buf_printf(&(rio_gen_buf), " ");
+      rio_buf_printf(&(rio_gen_buf), "{");
+      (rio_gen_indent)++;
+      rio_StmtList (*block) = &(switch_case.block);
+      if ((block->num_stmts) == (1)) {
+        rio_Stmt (*first) = block->stmts[0];
+        if ((first->kind) == ((rio_Stmt_Block))) {
+          block = &(first->block);
         }
       }
+      for (size_t j = 0; (j) < (block->num_stmts); (j)++) {
+        rio_gen_stmt(block->stmts[j]);
+      }
+      rio_genln();
+      rio_buf_printf(&(rio_gen_buf), "break;");
+      (rio_gen_indent)--;
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "}");
     }
+    if (!(has_default)) {
+      rio_Note (*note) = rio_get_stmt_note(stmt, rio_complete_name);
+      if (note) {
+        rio_genln();
+        rio_buf_printf(&(rio_gen_buf), "default:");
+        (rio_gen_indent)++;
+        rio_genln();
+        rio_buf_printf(&(rio_gen_buf), "assert(\"@complete switch failed to handle case\" && 0);");
+        rio_genln();
+        rio_buf_printf(&(rio_gen_buf), "break;");
+        (rio_gen_indent)--;
+      }
+    }
+    rio_genln();
+    rio_buf_printf(&(rio_gen_buf), "}");
     break;
   }
   case (rio_Stmt_Label): {
@@ -5025,17 +5011,15 @@ void rio_next_token(void) {
   case '7':
   case '8':
   case '9': {
-    {
-      while (isdigit(*(rio_stream))) {
-        (rio_stream)++;
-      }
-      char c = *(rio_stream);
-      rio_stream = rio_token.start;
-      if (((c) == ('.')) || ((tolower(c)) == ('e'))) {
-        rio_scan_float();
-      } else {
-        rio_scan_int();
-      }
+    while (isdigit(*(rio_stream))) {
+      (rio_stream)++;
+    }
+    char c = *(rio_stream);
+    rio_stream = rio_token.start;
+    if (((c) == ('.')) || ((tolower(c)) == ('e'))) {
+      rio_scan_float();
+    } else {
+      rio_scan_int();
     }
     break;
   }
@@ -5507,27 +5491,23 @@ void rio_print_flags_usage(void) {
     char (format[256]) = {0};
     switch (flag.kind) {
     case rio_FlagKind_Str: {
-      {
-        snprintf(format, sizeof(format), "%s <%s>", flag.name, (flag.arg_name ? flag.arg_name : (char const (*))("value")));
-        if (*(flag.ptr.s)) {
-          snprintf(note, sizeof(note), "(default: %s)", *(flag.ptr.s));
-        }
+      snprintf(format, sizeof(format), "%s <%s>", flag.name, (flag.arg_name ? flag.arg_name : (char const (*))("value")));
+      if (*(flag.ptr.s)) {
+        snprintf(note, sizeof(note), "(default: %s)", *(flag.ptr.s));
       }
       break;
     }
     case rio_FlagKind_Enum: {
-      {
-        char (*end) = (format) + (sizeof(format));
-        char (*ptr) = format;
-        ptr += snprintf(ptr, (end) - (ptr), "%s <", flag.name);
-        for (int k = 0; (k) < (flag.num_options); (k)++) {
-          ptr += snprintf(ptr, (end) - (ptr), "%s%s", ((k) == (0) ? "" : "|"), flag.options[k]);
-          if ((k) == (*(flag.ptr.i))) {
-            snprintf(note, sizeof(note), " (default: %s)", flag.options[k]);
-          }
+      char (*end) = (format) + (sizeof(format));
+      char (*ptr) = format;
+      ptr += snprintf(ptr, (end) - (ptr), "%s <", flag.name);
+      for (int k = 0; (k) < (flag.num_options); (k)++) {
+        ptr += snprintf(ptr, (end) - (ptr), "%s%s", ((k) == (0) ? "" : "|"), flag.options[k]);
+        if ((k) == (*(flag.ptr.i))) {
+          snprintf(note, sizeof(note), " (default: %s)", flag.options[k]);
         }
-        snprintf(ptr, (end) - (ptr), ">");
       }
+      snprintf(ptr, (end) - (ptr), ">");
       break;
     }
     case rio_FlagKind_Bool:
@@ -5563,37 +5543,33 @@ char const ((*rio_parse_flags(int (*argc_ptr), char const ((*(*(*argv_ptr)))))))
         break;
       }
       case rio_FlagKind_Str: {
-        {
-          if (((i) + (1)) < (argc)) {
-            (i)++;
-            *(flag->ptr.s) = argv[i];
-          } else {
-            printf("No value argument after -%s\n", arg);
-          }
+        if (((i) + (1)) < (argc)) {
+          (i)++;
+          *(flag->ptr.s) = argv[i];
+        } else {
+          printf("No value argument after -%s\n", arg);
         }
         break;
       }
       case rio_FlagKind_Enum: {
-        {
-          char const ((*option)) = {0};
-          if (((i) + (1)) < (argc)) {
-            (i)++;
-            option = argv[i];
-          } else {
-            printf("No value after %s\n", arg);
+        char const ((*option)) = {0};
+        if (((i) + (1)) < (argc)) {
+          (i)++;
+          option = argv[i];
+        } else {
+          printf("No value after %s\n", arg);
+          break;
+        }
+        bool found = false;
+        for (int k = 0; (k) < (flag->num_options); (k)++) {
+          if ((strcmp(flag->options[k], option)) == (0)) {
+            *(flag->ptr.i) = k;
+            found = true;
             break;
           }
-          bool found = false;
-          for (int k = 0; (k) < (flag->num_options); (k)++) {
-            if ((strcmp(flag->options[k], option)) == (0)) {
-              *(flag->ptr.i) = k;
-              found = true;
-              break;
-            }
-          }
-          if (!(found)) {
-            printf("Invalid value \'%s\' for %s\n", option, arg);
-          }
+        }
+        if (!(found)) {
+          printf("Invalid value \'%s\' for %s\n", option, arg);
         }
         break;
       }
@@ -6773,22 +6749,22 @@ void rio_process_decl_notes(rio_Decl (*decl), rio_Sym (*sym)) {
 rio_Sym (*rio_sym_decl(rio_Decl (*decl))) {
   rio_Sym_Kind kind = (rio_Sym_None);
   switch (decl->kind) {
-  case (rio_Decl_Struct):
-  case (rio_Decl_Union):
-  case (rio_Decl_Typedef):
-  case (rio_Decl_Enum): {
+  case rio_Decl_Struct:
+  case rio_Decl_Union:
+  case rio_Decl_Typedef:
+  case rio_Decl_Enum: {
     kind = (rio_Sym_Type);
     break;
   }
-  case (rio_Decl_Var): {
+  case rio_Decl_Var: {
     kind = (rio_Sym_Var);
     break;
   }
-  case (rio_Decl_Const): {
+  case rio_Decl_Const: {
     kind = (rio_Sym_Const);
     break;
   }
-  case (rio_Decl_Func): {
+  case rio_Decl_Func: {
     kind = (rio_Sym_Func);
     break;
   }
@@ -6927,35 +6903,35 @@ void rio_put_type_name(char (*(*buf)), rio_Type (*type)) {
     rio_buf_printf(buf, "%s", type_name);
   } else {
     switch (type->kind) {
-    case (rio_CompilerTypeKind_Struct):
-    case (rio_CompilerTypeKind_Union):
-    case (rio_CompilerTypeKind_Enum):
-    case (rio_CompilerTypeKind_Incomplete): {
+    case rio_CompilerTypeKind_Struct:
+    case rio_CompilerTypeKind_Union:
+    case rio_CompilerTypeKind_Enum:
+    case rio_CompilerTypeKind_Incomplete: {
       assert(type->sym);
       rio_buf_printf(buf, "%s", type->sym->name);
       break;
     }
-    case (rio_CompilerTypeKind_Const): {
+    case rio_CompilerTypeKind_Const: {
       rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, " const");
       break;
     }
-    case (rio_CompilerTypeKind_Ptr): {
+    case rio_CompilerTypeKind_Ptr: {
       rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, "*");
       break;
     }
-    case (rio_CompilerTypeKind_Ref): {
+    case rio_CompilerTypeKind_Ref: {
       rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, "&");
       break;
     }
-    case (rio_CompilerTypeKind_Array): {
+    case rio_CompilerTypeKind_Array: {
       rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, "[%zu]", type->num_elems);
       break;
     }
-    case (rio_CompilerTypeKind_Func): {
+    case rio_CompilerTypeKind_Func: {
       rio_buf_printf(buf, "fn(");
       for (size_t i = 0; (i) < (type->function.num_params); (i)++) {
         if ((i) != (0)) {
@@ -7080,13 +7056,13 @@ bool rio_is_null_ptr(rio_Operand operand) {
 
 void rio_promote_operand(rio_Operand (*operand)) {
   switch (operand->type->kind) {
-  case (rio_CompilerTypeKind_Bool):
-  case (rio_CompilerTypeKind_Char):
-  case (rio_CompilerTypeKind_SChar):
-  case (rio_CompilerTypeKind_UChar):
-  case (rio_CompilerTypeKind_Short):
-  case (rio_CompilerTypeKind_UShort):
-  case (rio_CompilerTypeKind_Enum): {
+  case rio_CompilerTypeKind_Bool:
+  case rio_CompilerTypeKind_Char:
+  case rio_CompilerTypeKind_SChar:
+  case rio_CompilerTypeKind_UChar:
+  case rio_CompilerTypeKind_Short:
+  case rio_CompilerTypeKind_UShort:
+  case rio_CompilerTypeKind_Enum: {
     cast_operand(operand, rio_type_int);
     break;
   }
@@ -7197,8 +7173,8 @@ rio_Operand rio_resolve_expected_expr_rvalue(rio_Expr (*expr), rio_Type (*expect
 rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, char const ((*(*names))))) {
   if (scope_sym->decl) {
     switch (scope_sym->decl->kind) {
-    case (rio_Decl_Struct):
-    case (rio_Decl_Union): {
+    case rio_Decl_Struct:
+    case rio_Decl_Union: {
       if (scope_sym->decl->aggregate->union_enum_decl) {
         if (((num_names) == (1)) && (!(strcmp(names[0], "Kind")))) {
           rio_DeclEnum enum_decl = scope_sym->decl->aggregate->union_enum_decl->enum_decl;
@@ -7222,94 +7198,88 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
   }
   rio_Type (*result) = {0};
   switch (typespec->kind) {
-  case (rio_Typespec_Name): {
-    {
-      rio_Sym (*sym) = {0};
-      rio_Package (*package) = rio_current_package;
-      for (size_t i = 0; (i) < ((typespec->num_names) - (1)); ++(i)) {
-        char const ((*scope)) = typespec->names[i];
-        rio_Sym (*scope_sym) = rio_get_package_sym(package, scope);
-        if (!(scope_sym)) {
-          rio_fatal_error(typespec->pos, "Unresolved scope \'%s\'", scope);
-          return NULL;
-        }
-        if ((scope_sym->kind) == ((rio_Sym_Type))) {
-          package = NULL;
-          sym = rio_get_nested_type_sym(scope_sym, ((typespec->num_names) - (i)) - (1), ((typespec->names) + (i)) + (1));
-          break;
-        } else if ((scope_sym->kind) != ((rio_Sym_Package))) {
-          rio_fatal_error(typespec->pos, "%s must denote a type or a package", scope);
-          return NULL;
-        }
-        package = scope_sym->package;
-      }
-      char const ((*name)) = typespec->names[(typespec->num_names) - (1)];
-      if (package) {
-        sym = rio_get_package_sym(package, name);
-      }
-      if (!(sym)) {
-        rio_fatal_error(typespec->pos, "Unresolved type name \'%s\'", name);
+  case rio_Typespec_Name: {
+    rio_Sym (*sym) = {0};
+    rio_Package (*package) = rio_current_package;
+    for (size_t i = 0; (i) < ((typespec->num_names) - (1)); ++(i)) {
+      char const ((*scope)) = typespec->names[i];
+      rio_Sym (*scope_sym) = rio_get_package_sym(package, scope);
+      if (!(scope_sym)) {
+        rio_fatal_error(typespec->pos, "Unresolved scope \'%s\'", scope);
         return NULL;
       }
-      if ((sym->kind) != ((rio_Sym_Type))) {
-        rio_fatal_error(typespec->pos, "%s must denote a type", name);
+      if ((scope_sym->kind) == ((rio_Sym_Type))) {
+        package = NULL;
+        sym = rio_get_nested_type_sym(scope_sym, ((typespec->num_names) - (i)) - (1), ((typespec->names) + (i)) + (1));
+        break;
+      } else if ((scope_sym->kind) != ((rio_Sym_Package))) {
+        rio_fatal_error(typespec->pos, "%s must denote a type or a package", scope);
         return NULL;
       }
-      rio_resolve_sym(sym);
-      rio_set_resolved_sym(typespec, sym);
-      result = sym->type;
+      package = scope_sym->package;
     }
+    char const ((*name)) = typespec->names[(typespec->num_names) - (1)];
+    if (package) {
+      sym = rio_get_package_sym(package, name);
+    }
+    if (!(sym)) {
+      rio_fatal_error(typespec->pos, "Unresolved type name \'%s\'", name);
+      return NULL;
+    }
+    if ((sym->kind) != ((rio_Sym_Type))) {
+      rio_fatal_error(typespec->pos, "%s must denote a type", name);
+      return NULL;
+    }
+    rio_resolve_sym(sym);
+    rio_set_resolved_sym(typespec, sym);
+    result = sym->type;
     break;
   }
-  case (rio_Typespec_Const): {
+  case rio_Typespec_Const: {
     result = rio_type_const(rio_resolve_typespec(typespec->base));
     break;
   }
-  case (rio_Typespec_Ptr): {
+  case rio_Typespec_Ptr: {
     result = rio_type_ptr(rio_resolve_typespec(typespec->base));
     break;
   }
-  case (rio_Typespec_Ref): {
+  case rio_Typespec_Ref: {
     result = rio_type_ref(rio_resolve_typespec(typespec->base));
     break;
   }
-  case (rio_Typespec_Array): {
-    {
-      int size = 0;
-      if (typespec->num_elems) {
-        rio_Operand operand = rio_resolve_const_expr(typespec->num_elems);
-        if (!(rio_is_integer_type(operand.type))) {
-          rio_fatal_error(typespec->pos, "Array size constant expression must have integer type");
-        }
-        cast_operand(&(operand), rio_type_int);
-        size = operand.val.i;
-        if ((size) <= (0)) {
-          rio_fatal_error(typespec->num_elems->pos, "Non-positive array size");
-        }
+  case rio_Typespec_Array: {
+    int size = 0;
+    if (typespec->num_elems) {
+      rio_Operand operand = rio_resolve_const_expr(typespec->num_elems);
+      if (!(rio_is_integer_type(operand.type))) {
+        rio_fatal_error(typespec->pos, "Array size constant expression must have integer type");
       }
-      result = rio_type_array(rio_resolve_typespec(typespec->base), size);
+      cast_operand(&(operand), rio_type_int);
+      size = operand.val.i;
+      if ((size) <= (0)) {
+        rio_fatal_error(typespec->num_elems->pos, "Non-positive array size");
+      }
     }
+    result = rio_type_array(rio_resolve_typespec(typespec->base), size);
     break;
   }
-  case (rio_Typespec_Func): {
-    {
-      rio_Type (*(*args)) = NULL;
-      for (size_t i = 0; (i) < (typespec->function.num_args); (i)++) {
-        rio_Type (*arg) = rio_resolve_typespec(typespec->function.args[i]);
-        if ((arg) == (rio_type_void)) {
-          rio_fatal_error(typespec->pos, "Function parameter type cannot be void");
-        }
-        rio_buf_push((void (**))(&(args)), &(arg), sizeof(arg));
+  case rio_Typespec_Func: {
+    rio_Type (*(*args)) = NULL;
+    for (size_t i = 0; (i) < (typespec->function.num_args); (i)++) {
+      rio_Type (*arg) = rio_resolve_typespec(typespec->function.args[i]);
+      if ((arg) == (rio_type_void)) {
+        rio_fatal_error(typespec->pos, "Function parameter type cannot be void");
       }
-      rio_Type (*ret) = rio_type_void;
-      if (typespec->function.ret) {
-        ret = rio_resolve_typespec(typespec->function.ret);
-      }
-      if (rio_is_array_type(ret)) {
-        rio_fatal_error(typespec->pos, "Function return type cannot be array");
-      }
-      result = rio_type_func(args, rio_buf_len(args), ret, false);
+      rio_buf_push((void (**))(&(args)), &(arg), sizeof(arg));
     }
+    rio_Type (*ret) = rio_type_void;
+    if (typespec->function.ret) {
+      ret = rio_resolve_typespec(typespec->function.ret);
+    }
+    if (rio_is_array_type(ret)) {
+      rio_fatal_error(typespec->pos, "Function return type cannot be array");
+    }
+    result = rio_type_func(args, rio_buf_len(args), ret, false);
     break;
   }
   default: {
@@ -7588,7 +7558,7 @@ void rio_resolve_static_assert(rio_Note note) {
 
 bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
   switch (stmt->kind) {
-  case (rio_Stmt_Return): {
+  case rio_Stmt_Return: {
     if (stmt->expr) {
       rio_Operand operand = rio_resolve_expected_expr_rvalue(stmt->expr, ret_type);
       if (!(rio_convert_operand(&(operand), ret_type))) {
@@ -7600,25 +7570,25 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return true;
     break;
   }
-  case (rio_Stmt_Break): {
+  case rio_Stmt_Break: {
     if (!(ctx.is_break_legal)) {
       rio_fatal_error(stmt->pos, "Illegal break");
     }
     return false;
     break;
   }
-  case (rio_Stmt_Continue): {
+  case rio_Stmt_Continue: {
     if (!(ctx.is_continue_legal)) {
       rio_fatal_error(stmt->pos, "Illegal continue");
     }
     return false;
     break;
   }
-  case (rio_Stmt_Block): {
+  case rio_Stmt_Block: {
     return rio_resolve_stmt_block(stmt->block, ret_type, ctx);
     break;
   }
-  case (rio_Stmt_Note): {
+  case rio_Stmt_Note: {
     if ((stmt->note.name) == (rio_assert_name)) {
       if ((stmt->note.num_args) != (1)) {
         rio_fatal_error(stmt->pos, "#assert takes 1 argument");
@@ -7632,35 +7602,33 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return false;
     break;
   }
-  case (rio_Stmt_If): {
-    {
-      rio_Sym (*scope) = rio_sym_enter();
-      if (stmt->if_stmt.init) {
-        rio_resolve_stmt_init(stmt->if_stmt.init);
-      }
-      if (stmt->if_stmt.cond) {
-        rio_resolve_cond_expr(stmt->if_stmt.cond);
-      } else if (!(rio_is_cond_operand(rio_resolve_name_operand(stmt->pos, stmt->if_stmt.init->init.name)))) {
-        rio_fatal_error(stmt->pos, "Conditional expression must have scalar type");
-      }
-      bool returns = rio_resolve_stmt_block(stmt->if_stmt.then_block, ret_type, ctx);
-      for (size_t i = 0; (i) < (stmt->if_stmt.num_elseifs); (i)++) {
-        rio_ElseIf elseif = stmt->if_stmt.elseifs[i];
-        rio_resolve_cond_expr(elseif.cond);
-        returns = (rio_resolve_stmt_block(elseif.block, ret_type, ctx)) && (returns);
-      }
-      if (stmt->if_stmt.else_block.stmts) {
-        returns = (rio_resolve_stmt_block(stmt->if_stmt.else_block, ret_type, ctx)) && (returns);
-      } else {
-        returns = false;
-      }
-      rio_sym_leave(scope);
-      return returns;
+  case rio_Stmt_If: {
+    rio_Sym (*scope) = rio_sym_enter();
+    if (stmt->if_stmt.init) {
+      rio_resolve_stmt_init(stmt->if_stmt.init);
     }
+    if (stmt->if_stmt.cond) {
+      rio_resolve_cond_expr(stmt->if_stmt.cond);
+    } else if (!(rio_is_cond_operand(rio_resolve_name_operand(stmt->pos, stmt->if_stmt.init->init.name)))) {
+      rio_fatal_error(stmt->pos, "Conditional expression must have scalar type");
+    }
+    bool returns = rio_resolve_stmt_block(stmt->if_stmt.then_block, ret_type, ctx);
+    for (size_t i = 0; (i) < (stmt->if_stmt.num_elseifs); (i)++) {
+      rio_ElseIf elseif = stmt->if_stmt.elseifs[i];
+      rio_resolve_cond_expr(elseif.cond);
+      returns = (rio_resolve_stmt_block(elseif.block, ret_type, ctx)) && (returns);
+    }
+    if (stmt->if_stmt.else_block.stmts) {
+      returns = (rio_resolve_stmt_block(stmt->if_stmt.else_block, ret_type, ctx)) && (returns);
+    } else {
+      returns = false;
+    }
+    rio_sym_leave(scope);
+    return returns;
     break;
   }
-  case (rio_Stmt_While):
-  case (rio_Stmt_DoWhile): {
+  case rio_Stmt_While:
+  case rio_Stmt_DoWhile: {
     rio_resolve_cond_expr(stmt->while_stmt.cond);
     ctx.is_break_legal = true;
     ctx.is_continue_legal = true;
@@ -7668,119 +7636,114 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return false;
     break;
   }
-  case (rio_Stmt_For): {
-    {
-      rio_Sym (*scope) = rio_sym_enter();
-      if (stmt->for_stmt.init) {
-        rio_resolve_stmt(stmt->for_stmt.init, ret_type, ctx);
-      }
-      if (stmt->for_stmt.cond) {
-        rio_resolve_cond_expr(stmt->for_stmt.cond);
-      }
-      if (stmt->for_stmt.next) {
-        rio_resolve_stmt(stmt->for_stmt.next, ret_type, ctx);
-      }
-      ctx.is_break_legal = true;
-      ctx.is_continue_legal = true;
-      rio_resolve_stmt_block(stmt->for_stmt.block, ret_type, ctx);
-      rio_sym_leave(scope);
-      return false;
+  case rio_Stmt_For: {
+    rio_Sym (*scope) = rio_sym_enter();
+    if (stmt->for_stmt.init) {
+      rio_resolve_stmt(stmt->for_stmt.init, ret_type, ctx);
     }
+    if (stmt->for_stmt.cond) {
+      rio_resolve_cond_expr(stmt->for_stmt.cond);
+    }
+    if (stmt->for_stmt.next) {
+      rio_resolve_stmt(stmt->for_stmt.next, ret_type, ctx);
+    }
+    ctx.is_break_legal = true;
+    ctx.is_continue_legal = true;
+    rio_resolve_stmt_block(stmt->for_stmt.block, ret_type, ctx);
+    rio_sym_leave(scope);
+    return false;
     break;
   }
-  case (rio_Stmt_Switch): {
-    {
-      rio_Operand operand = rio_resolve_expr_rvalue(stmt->switch_stmt.expr);
-      rio_DeclEnum (*enum_decl) = rio_get_type_enum_decl(operand.type);
-      if (!(rio_is_integer_type(operand.type))) {
-        rio_fatal_error(stmt->pos, "Switch expression must have integer type");
-      }
-      ctx.is_break_legal = true;
-      bool returns = true;
-      bool has_default = false;
-      for (size_t i = 0; (i) < (stmt->switch_stmt.num_cases); (i)++) {
-        rio_SwitchCase switch_case = stmt->switch_stmt.cases[i];
-        for (size_t j = 0; (j) < (switch_case.num_patterns); (j)++) {
-          rio_SwitchCasePattern pattern = switch_case.patterns[j];
-          if (pattern.is_default) {
-            if (has_default) {
-              rio_fatal_error(stmt->pos, "Switch statement has multiple default clauses");
-            }
-            has_default = true;
-            continue;
-          }
-          rio_Expr (*start_expr) = pattern.start;
-          rio_Operand start_operand = rio_resolve_enum_item_or_const_expr(enum_decl, start_expr);
-          if (!(rio_convert_operand(&(start_operand), operand.type))) {
-            rio_fatal_error(start_expr->pos, "Invalid type in switch case expression. Expected %s, got %s", rio_get_type_name(operand.type), rio_get_type_name(start_operand.type));
-          }
-          rio_Expr (*end_expr) = pattern.end;
-          if (end_expr) {
-            rio_Operand end_operand = rio_resolve_enum_item_or_const_expr(enum_decl, end_expr);
-            if (!(rio_convert_operand(&(end_operand), operand.type))) {
-              rio_fatal_error(end_expr->pos, "Invalid type in switch case expression. Expected %s, got %s", rio_get_type_name(operand.type), rio_get_type_name(end_operand.type));
-            }
-            rio_convert_operand(&(start_operand), rio_type_llong);
-            rio_set_resolved_val(start_expr, start_operand.val);
-            rio_convert_operand(&(end_operand), rio_type_llong);
-            rio_set_resolved_val(end_expr, end_operand.val);
-            if ((end_operand.val.ll) < (start_operand.val.ll)) {
-              rio_fatal_error(start_expr->pos, "Case range end value cannot be less thn start value");
-            }
-            if (((end_operand.val.ll) - (start_operand.val.ll)) >= (256)) {
-              rio_fatal_error(start_expr->pos, "Case range cannot span more than 256 values");
-            }
-          }
-        }
-        if (switch_case.is_default) {
+  case rio_Stmt_Switch: {
+    rio_Operand operand = rio_resolve_expr_rvalue(stmt->switch_stmt.expr);
+    rio_DeclEnum (*enum_decl) = rio_get_type_enum_decl(operand.type);
+    if (!(rio_is_integer_type(operand.type))) {
+      rio_fatal_error(stmt->pos, "Switch expression must have integer type");
+    }
+    ctx.is_break_legal = true;
+    bool returns = true;
+    bool has_default = false;
+    for (size_t i = 0; (i) < (stmt->switch_stmt.num_cases); (i)++) {
+      rio_SwitchCase switch_case = stmt->switch_stmt.cases[i];
+      for (size_t j = 0; (j) < (switch_case.num_patterns); (j)++) {
+        rio_SwitchCasePattern pattern = switch_case.patterns[j];
+        if (pattern.is_default) {
           if (has_default) {
             rio_fatal_error(stmt->pos, "Switch statement has multiple default clauses");
           }
           has_default = true;
+          continue;
         }
-        if ((switch_case.block.num_stmts) > (1)) {
-          rio_Stmt (*last_stmt) = switch_case.block.stmts[(switch_case.block.num_stmts) - (1)];
-          if ((last_stmt->kind) == ((rio_Stmt_Break))) {
-            rio_warning(last_stmt->pos, "Case blocks already end with an implicit break");
+        rio_Expr (*start_expr) = pattern.start;
+        rio_Operand start_operand = rio_resolve_enum_item_or_const_expr(enum_decl, start_expr);
+        if (!(rio_convert_operand(&(start_operand), operand.type))) {
+          rio_fatal_error(start_expr->pos, "Invalid type in switch case expression. Expected %s, got %s", rio_get_type_name(operand.type), rio_get_type_name(start_operand.type));
+        }
+        rio_Expr (*end_expr) = pattern.end;
+        if (end_expr) {
+          rio_Operand end_operand = rio_resolve_enum_item_or_const_expr(enum_decl, end_expr);
+          if (!(rio_convert_operand(&(end_operand), operand.type))) {
+            rio_fatal_error(end_expr->pos, "Invalid type in switch case expression. Expected %s, got %s", rio_get_type_name(operand.type), rio_get_type_name(end_operand.type));
+          }
+          rio_convert_operand(&(start_operand), rio_type_llong);
+          rio_set_resolved_val(start_expr, start_operand.val);
+          rio_convert_operand(&(end_operand), rio_type_llong);
+          rio_set_resolved_val(end_expr, end_operand.val);
+          if ((end_operand.val.ll) < (start_operand.val.ll)) {
+            rio_fatal_error(start_expr->pos, "Case range end value cannot be less thn start value");
+          }
+          if (((end_operand.val.ll) - (start_operand.val.ll)) >= (256)) {
+            rio_fatal_error(start_expr->pos, "Case range cannot span more than 256 values");
           }
         }
-        returns = (rio_resolve_stmt_block(switch_case.block, ret_type, ctx)) && (returns);
       }
-      return (returns) && (has_default);
+      if (switch_case.is_default) {
+        if (has_default) {
+          rio_fatal_error(stmt->pos, "Switch statement has multiple default clauses");
+        }
+        has_default = true;
+      }
+      if ((switch_case.block.num_stmts) > (1)) {
+        rio_Stmt (*last_stmt) = switch_case.block.stmts[(switch_case.block.num_stmts) - (1)];
+        if ((last_stmt->kind) == ((rio_Stmt_Break))) {
+          rio_warning(last_stmt->pos, "Case blocks already end with an implicit break");
+        }
+      }
+      returns = (rio_resolve_stmt_block(switch_case.block, ret_type, ctx)) && (returns);
     }
+    return (returns) && (has_default);
     break;
   }
-  case (rio_Stmt_Assign): {
+  case rio_Stmt_Assign: {
     rio_resolve_stmt_assign(stmt);
     return false;
     break;
   }
-  case (rio_Stmt_Init): {
+  case rio_Stmt_Init: {
     rio_resolve_stmt_init(stmt);
     return false;
     break;
   }
-  case (rio_Stmt_Expr): {
+  case rio_Stmt_Expr: {
     rio_resolve_expr(stmt->expr);
     return false;
     break;
   }
-  case (rio_Stmt_Label): {
+  case rio_Stmt_Label: {
     rio_define_label(stmt->pos, stmt->label);
     return false;
     break;
   }
-  case (rio_Stmt_Goto): {
+  case rio_Stmt_Goto: {
     rio_reference_label(stmt->pos, stmt->label);
     return false;
     break;
   }
-  default: {
-    assert(0);
-    return false;
+  default:
+    assert("@complete switch failed to handle case" && 0);
     break;
   }
-  }
+  return false;
 }
 
 void rio_resolve_func_body(rio_Sym (*sym)) {
@@ -7917,12 +7880,10 @@ rio_DeclEnum (*rio_get_type_enum_decl(rio_Type (*type))) {
     }
     case (rio_CompilerTypeKind_Struct):
     case (rio_CompilerTypeKind_Union): {
-      {
-        if (decl->aggregate->union_enum_decl) {
-          decl = decl->aggregate->union_enum_decl;
-        } else {
-          decl = NULL;
-        }
+      if (decl->aggregate->union_enum_decl) {
+        decl = decl->aggregate->union_enum_decl;
+      } else {
+        decl = NULL;
       }
       break;
     }
@@ -8912,93 +8873,79 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     break;
   }
   case (rio_Expr_SizeofExpr): {
-    {
-      if ((expr->sizeof_expr->kind) == ((rio_Expr_Name))) {
-        rio_Sym (*sym) = rio_resolve_name(expr->sizeof_expr->name);
-        if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
-          rio_complete_type(sym->type);
-          result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_sizeof(sym->type)});
-          rio_set_resolved_type(expr->sizeof_expr, sym->type);
-          rio_set_resolved_sym(expr->sizeof_expr, sym);
-          break;
-        }
+    if ((expr->sizeof_expr->kind) == ((rio_Expr_Name))) {
+      rio_Sym (*sym) = rio_resolve_name(expr->sizeof_expr->name);
+      if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
+        rio_complete_type(sym->type);
+        result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_sizeof(sym->type)});
+        rio_set_resolved_type(expr->sizeof_expr, sym->type);
+        rio_set_resolved_sym(expr->sizeof_expr, sym);
+        break;
       }
-      rio_Type (*type) = rio_resolve_expr(expr->sizeof_expr).type;
-      rio_complete_type(type);
-      result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_sizeof(type)});
     }
+    rio_Type (*type) = rio_resolve_expr(expr->sizeof_expr).type;
+    rio_complete_type(type);
+    result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_sizeof(type)});
     break;
   }
   case (rio_Expr_SizeofType): {
-    {
-      rio_Type (*type) = rio_resolve_typespec(expr->sizeof_type);
-      rio_complete_type(type);
-      result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_sizeof(type)});
-    }
+    rio_Type (*type) = rio_resolve_typespec(expr->sizeof_type);
+    rio_complete_type(type);
+    result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_sizeof(type)});
     break;
   }
   case (rio_Expr_AlignofExpr): {
-    {
-      if ((expr->sizeof_expr->kind) == ((rio_Expr_Name))) {
-        rio_Sym (*sym) = rio_resolve_name(expr->alignof_expr->name);
-        if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
-          rio_complete_type(sym->type);
-          result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_alignof(sym->type)});
-          rio_set_resolved_type(expr->alignof_expr, sym->type);
-          rio_set_resolved_sym(expr->alignof_expr, sym);
-          break;
-        }
+    if ((expr->sizeof_expr->kind) == ((rio_Expr_Name))) {
+      rio_Sym (*sym) = rio_resolve_name(expr->alignof_expr->name);
+      if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
+        rio_complete_type(sym->type);
+        result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_alignof(sym->type)});
+        rio_set_resolved_type(expr->alignof_expr, sym->type);
+        rio_set_resolved_sym(expr->alignof_expr, sym);
+        break;
       }
-      rio_Type (*type) = rio_resolve_expr(expr->alignof_expr).type;
-      rio_complete_type(type);
-      result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_alignof(type)});
     }
+    rio_Type (*type) = rio_resolve_expr(expr->alignof_expr).type;
+    rio_complete_type(type);
+    result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_alignof(type)});
     break;
   }
   case (rio_Expr_AlignofType): {
-    {
-      rio_Type (*type) = rio_resolve_typespec(expr->alignof_type);
-      rio_complete_type(type);
-      result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_alignof(type)});
-    }
+    rio_Type (*type) = rio_resolve_typespec(expr->alignof_type);
+    rio_complete_type(type);
+    result = rio_operand_const(rio_type_usize, (rio_Val){.ull = rio_type_alignof(type)});
     break;
   }
   case (rio_Expr_TypeofType): {
-    {
-      rio_Type (*type) = rio_resolve_typespec(expr->typeof_type);
-      result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = type->typeid});
-    }
+    rio_Type (*type) = rio_resolve_typespec(expr->typeof_type);
+    result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = type->typeid});
     break;
   }
   case (rio_Expr_TypeofExpr): {
-    {
-      if ((expr->typeof_expr->kind) == ((rio_Expr_Name))) {
-        rio_Sym (*sym) = rio_resolve_name(expr->typeof_expr->name);
-        if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
-          result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = sym->type->typeid});
-          rio_set_resolved_type(expr->typeof_expr, sym->type);
-          rio_set_resolved_sym(expr->typeof_expr, sym);
-          break;
-        }
+    if ((expr->typeof_expr->kind) == ((rio_Expr_Name))) {
+      rio_Sym (*sym) = rio_resolve_name(expr->typeof_expr->name);
+      if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
+        result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = sym->type->typeid});
+        rio_set_resolved_type(expr->typeof_expr, sym->type);
+        rio_set_resolved_sym(expr->typeof_expr, sym);
+        break;
       }
-      rio_Type (*type) = rio_resolve_expr(expr->typeof_expr).type;
-      result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = type->typeid});
     }
+    rio_Type (*type) = rio_resolve_expr(expr->typeof_expr).type;
+    result = rio_operand_const(rio_type_ullong, (rio_Val){.ull = type->typeid});
     break;
   }
   case (rio_Expr_Offsetof): {
-    {
-      rio_Type (*type) = rio_resolve_typespec(expr->offsetof_field.type);
-      rio_complete_type(type);
-      if (((type->kind) != ((rio_CompilerTypeKind_Struct))) && ((type->kind) != ((rio_CompilerTypeKind_Union)))) {
-        rio_fatal_error(expr->pos, "offsetof can only be used with struct/union types");
-      }
-      int field = rio_aggregate_item_field_index(type, expr->offsetof_field.name);
-      if ((field) < (0)) {
-        rio_fatal_error(expr->pos, "No field \'%s\' in type", expr->offsetof_field.name);
-      }
-      result = rio_operand_const(rio_type_usize, (rio_Val){.ull = type->aggregate.fields[field].offset});
+    rio_Type (*type) = rio_resolve_typespec(expr->offsetof_field.type);
+    rio_complete_type(type);
+    if (((type->kind) != ((rio_CompilerTypeKind_Struct))) && ((type->kind) != ((rio_CompilerTypeKind_Union)))) {
+      rio_fatal_error(expr->pos, "offsetof can only be used with struct/union types");
     }
+    int field = rio_aggregate_item_field_index(type, expr->offsetof_field.name);
+    if ((field) < (0)) {
+      rio_fatal_error(expr->pos, "No field \'%s\' in type", expr->offsetof_field.name);
+    }
+    result = rio_operand_const(rio_type_usize, (rio_Val){.ull = type->aggregate.fields[field].offset});
     break;
   }
   case (rio_Expr_Modify): {
@@ -9457,52 +9404,46 @@ void rio_init_target(void) {
   rio_type_metrics = NULL;
   switch (rio_target_os) {
   case (rio_Os_Win32): {
-    {
-      switch (rio_target_arch) {
-      case (rio_Arch_X86): {
-        rio_type_metrics = rio_win32_x86_metrics;
-        break;
-      }
-      case (rio_Arch_X64): {
-        rio_type_metrics = rio_win32_x64_metrics;
-        break;
-      }
-      default: {
-        break;
-      }
-      }
+    switch (rio_target_arch) {
+    case (rio_Arch_X86): {
+      rio_type_metrics = rio_win32_x86_metrics;
+      break;
+    }
+    case (rio_Arch_X64): {
+      rio_type_metrics = rio_win32_x64_metrics;
+      break;
+    }
+    default: {
+      break;
+    }
     }
     break;
   }
   case (rio_Os_Linux): {
-    {
-      switch (rio_target_arch) {
-      case (rio_Arch_X86): {
-        rio_type_metrics = rio_ilp32_metrics;
-        break;
-      }
-      case (rio_Arch_X64): {
-        rio_type_metrics = rio_lp64_metrics;
-        break;
-      }
-      default: {
-        break;
-      }
-      }
+    switch (rio_target_arch) {
+    case (rio_Arch_X86): {
+      rio_type_metrics = rio_ilp32_metrics;
+      break;
+    }
+    case (rio_Arch_X64): {
+      rio_type_metrics = rio_lp64_metrics;
+      break;
+    }
+    default: {
+      break;
+    }
     }
     break;
   }
   case (rio_Os_OsX): {
-    {
-      switch (rio_target_arch) {
-      case (rio_Arch_X64): {
-        rio_type_metrics = rio_lp64_metrics;
-        break;
-      }
-      default: {
-        break;
-      }
-      }
+    switch (rio_target_arch) {
+    case (rio_Arch_X64): {
+      rio_type_metrics = rio_lp64_metrics;
+      break;
+    }
+    default: {
+      break;
+    }
     }
     break;
   }
@@ -9719,10 +9660,8 @@ rio_Type (*rio_unsigned_type(rio_Type (*type))) {
     break;
   }
   default: {
-    {
-      assert(0);
-      return NULL;
-    }
+    assert(0);
+    return NULL;
     break;
   }
   }

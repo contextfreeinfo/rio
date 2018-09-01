@@ -955,13 +955,11 @@ void test1_test_loops(void) {
     break;
   }
   default: {
-    {
-      if (1) {
-        break;
-      }
-      for (;;) {
-        continue;
-      }
+    if (1) {
+      break;
+    }
+    for (;;) {
+      continue;
     }
     break;
   }
@@ -1233,40 +1231,30 @@ void test1_print_type(typeid type) {
     break;
   }
   case TypeKind_Ptr: {
-    {
-      test1_print_type(typeinfo->base);
-      printf("*");
-    }
+    test1_print_type(typeinfo->base);
+    printf("*");
     break;
   }
   case TypeKind_Ref: {
-    {
-      test1_print_type(typeinfo->base);
-      printf("&");
-    }
+    test1_print_type(typeinfo->base);
+    printf("&");
     break;
   }
   case TypeKind_Const: {
-    {
-      test1_print_type(typeinfo->base);
-      printf(" const");
-    }
+    test1_print_type(typeinfo->base);
+    printf(" const");
     break;
   }
   case TypeKind_Array: {
-    {
-      test1_print_type(typeinfo->base);
-      printf("[%d]", typeinfo->count);
-    }
+    test1_print_type(typeinfo->base);
+    printf("[%d]", typeinfo->count);
     break;
   }
   default: {
-    {
-      if (typeinfo->name) {
-        printf("%s", typeinfo->name);
-      } else {
-        test1_print_typeid(type);
-      }
+    if (typeinfo->name) {
+      printf("%s", typeinfo->name);
+    } else {
+      test1_print_typeid(type);
     }
     break;
   }
@@ -1285,16 +1273,14 @@ void test1_print_typeinfo(typeid type) {
   switch (typeinfo->kind) {
   case (TypeKind_Struct):
   case (TypeKind_Union): {
-    {
-      printf(" %s={ ", ((typeinfo->kind) == ((TypeKind_Struct)) ? "struct" : "union"));
-      for (int i = 0; (i) < (typeinfo->num_fields); (i)++) {
-        TypeFieldInfo field = typeinfo->fields[i];
-        printf("@offset(%d) %s: ", field.offset, field.name);
-        test1_print_type(field.type);
-        printf("; ");
-      }
-      printf("}");
+    printf(" %s={ ", ((typeinfo->kind) == ((TypeKind_Struct)) ? "struct" : "union"));
+    for (int i = 0; (i) < (typeinfo->num_fields); (i)++) {
+      TypeFieldInfo field = typeinfo->fields[i];
+      printf("@offset(%d) %s: ", field.offset, field.name);
+      test1_print_type(field.type);
+      printf("; ");
     }
+    printf("}");
     break;
   }
   }

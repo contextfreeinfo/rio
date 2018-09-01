@@ -113,17 +113,10 @@ fn sym_decl(decl: &Decl) -> &Sym {
   let kind = Sym.None;
   @complete
   switch (decl.kind) {
-  case Decl.Struct:
-  case Decl.Union:
-  case Decl.Typedef:
-  case Decl.Enum:
-    kind = Sym.Type;
-  case Decl.Var:
-    kind = Sym.Var;
-  case Decl.Const:
-    kind = Sym.Const;
-  case Decl.Func:
-    kind = Sym.Func;
+    Struct, Union, Typedef, Enum => kind = Sym.Type;
+    Var => kind = Sym.Var;
+    Const => kind = Sym.Const;
+    Func => kind = Sym.Func;
   }
   let sym = sym_new(kind, decl.name, decl);
   set_resolved_sym(decl, sym);
@@ -278,39 +271,42 @@ fn put_type_name(buf: **char, type: &Type) {
   } else {
     @complete
     switch (type.kind) {
-    case CompilerTypeKind.Struct:
-    case CompilerTypeKind.Union:
-    case CompilerTypeKind.Enum:
-    case CompilerTypeKind.Incomplete:
-      #assert(type.sym);
-      buf_printf(buf, "%s", type.sym.name);
-    case CompilerTypeKind.Const:
-      put_type_name(buf, type.base);
-      buf_printf(buf, " const");
-    case CompilerTypeKind.Ptr:
-      put_type_name(buf, type.base);
-      buf_printf(buf, "*");
-    case CompilerTypeKind.Ref:
-      put_type_name(buf, type.base);
-      buf_printf(buf, "&");
-    case CompilerTypeKind.Array:
-      put_type_name(buf, type.base);
-      buf_printf(buf, "[%zu]", type.num_elems);
-    case CompilerTypeKind.Func:
-      buf_printf(buf, "fn(");
-      for (let i: usize = 0; i < type.function.num_params; i++) {
-        if (i != 0) {
-          buf_printf(buf, ", ");
+      Struct, Union, Enum, Incomplete => {
+        #assert(type.sym);
+        buf_printf(buf, "%s", type.sym.name);
+      }
+      Const => {
+        put_type_name(buf, type.base);
+        buf_printf(buf, " const");
+      }
+      Ptr => {
+        put_type_name(buf, type.base);
+        buf_printf(buf, "*");
+      }
+      Ref => {
+        put_type_name(buf, type.base);
+        buf_printf(buf, "&");
+      }
+      Array => {
+        put_type_name(buf, type.base);
+        buf_printf(buf, "[%zu]", type.num_elems);
+      }
+      Func => {
+        buf_printf(buf, "fn(");
+        for (let i: usize = 0; i < type.function.num_params; i++) {
+          if (i != 0) {
+            buf_printf(buf, ", ");
+          }
+          put_type_name(buf, type.function.params[i]);
         }
-        put_type_name(buf, type.function.params[i]);
-      }
-      if (type.function.has_varargs) {
-        buf_printf(buf, "...");
-      }
-      buf_printf(buf, ")");
-      if (type.function.ret != type_void) {
-        buf_printf(buf, ": ");
-        put_type_name(buf, type.function.ret);
+        if (type.function.has_varargs) {
+          buf_printf(buf, "...");
+        }
+        buf_printf(buf, ")");
+        if (type.function.ret != type_void) {
+          buf_printf(buf, ": ");
+          put_type_name(buf, type.function.ret);
+        }
       }
     }
   }
@@ -445,16 +441,10 @@ fn is_null_ptr(operand: Operand) -> bool {
 
 fn promote_operand(operand: &Operand) {
   switch (operand.type.kind) {
-  case CompilerTypeKind.Bool:
-  case CompilerTypeKind.Char:
-  case CompilerTypeKind.SChar:
-  case CompilerTypeKind.UChar:
-  case CompilerTypeKind.Short:
-  case CompilerTypeKind.UShort:
-  case CompilerTypeKind.Enum:
-    cast_operand(operand, type_int);
-  default:
-    // Do nothing
+    Bool, Char, SChar, UChar, Short, UShort, Enum => {
+      cast_operand(operand, type_int);
+    }
+    else => {}
   }
 }
 
@@ -567,8 +557,7 @@ fn get_nested_type_sym(
   // TODO Build generic subtype collection for each (aggregate?) type.
   if (scope_sym.decl) {
     switch (scope_sym.decl.kind) {
-      case Decl.Struct:
-      case Decl.Union:
+      Struct, Union => {
         if (scope_sym.decl.aggregate.union_enum_decl) {
           if (num_names == 1 && !strcmp(names[0], "Kind")) {
             let enum_decl = scope_sym.decl.aggregate.union_enum_decl.enum_decl;
@@ -576,7 +565,8 @@ fn get_nested_type_sym(
             return sym;
           }
         }
-      default:
+      }
+      else => {}
     }
   }
   return NULL;
@@ -588,88 +578,86 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
   }
   let result: &Type;
   switch (typespec.kind) {
-  case Typespec.Name: {
-    let sym: &Sym;
-    let package = current_package;
-    for (let i: usize = 0; i < typespec.num_names - 1; ++i) {
-      let scope = typespec.names[i];
-      let scope_sym = get_package_sym(package, scope);
-      if (!scope_sym) {
-        fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
+    Name => {
+      let sym: &Sym;
+      let package = current_package;
+      for (let i: usize = 0; i < typespec.num_names - 1; ++i) {
+        let scope = typespec.names[i];
+        let scope_sym = get_package_sym(package, scope);
+        if (!scope_sym) {
+          fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
+          return NULL;
+        }
+        if (scope_sym.kind == Sym.Type) {
+          package = NULL;
+          sym = get_nested_type_sym(
+            scope_sym, typespec.num_names - i - 1, typespec.names + i + 1,
+          );
+          break;
+        } else if (scope_sym.kind != Sym.Package) {
+          fatal_error(typespec.pos, "%s must denote a type or a package", scope);
+          return NULL;
+        }
+        package = scope_sym.package;
+      }
+      let name = typespec.names[typespec.num_names - 1];
+      if (package) {
+        sym = get_package_sym(package, name);
+      }
+      if (!sym) {
+        // TODO Report full type string here, not just final.
+        fatal_error(typespec.pos, "Unresolved type name '%s'", name);
         return NULL;
       }
-      if (scope_sym.kind == Sym.Type) {
-        package = NULL;
-        sym = get_nested_type_sym(
-          scope_sym, typespec.num_names - i - 1, typespec.names + i + 1,
-        );
-        break;
-      } else if (scope_sym.kind != Sym.Package) {
-        fatal_error(typespec.pos, "%s must denote a type or a package", scope);
+      if (sym.kind != Sym.Type) {
+        // TODO Report full type string here, not just final.
+        fatal_error(typespec.pos, "%s must denote a type", name);
         return NULL;
       }
-      package = scope_sym.package;
+      resolve_sym(sym);
+      set_resolved_sym(typespec, sym);
+      result = sym.type;
     }
-    let name = typespec.names[typespec.num_names - 1];
-    if (package) {
-      sym = get_package_sym(package, name);
+    Const => result = type_const(resolve_typespec(typespec.base));
+    Ptr => result = type_ptr(resolve_typespec(typespec.base));
+    Ref => result = type_ref(resolve_typespec(typespec.base));
+    Array => {
+      let size = 0;
+      if (typespec.num_elems) {
+        let operand = resolve_const_expr(typespec.num_elems);
+        if (!is_integer_type(operand.type)) {
+          fatal_error(typespec.pos, "Array size constant expression must have integer type");
+        }
+        cast_operand(&operand, type_int);
+        size = operand.val.i;
+        if (size <= 0) {
+          fatal_error(typespec.num_elems.pos, "Non-positive array size");
+        }
+      }
+      result = type_array(resolve_typespec(typespec.base), size);
     }
-    if (!sym) {
-      // TODO Report full type string here, not just final.
-      fatal_error(typespec.pos, "Unresolved type name '%s'", name);
+    Func => {
+      let args: *&Type = NULL;
+      for (let i: usize = 0; i < typespec.function.num_args; i++) {
+        let arg = resolve_typespec(typespec.function.args[i]);
+        if (arg == type_void) {
+          fatal_error(typespec.pos, "Function parameter type cannot be void");
+        }
+        buf_push((:*&void)&args, &arg, sizeof(arg));
+      }
+      let ret = type_void;
+      if (typespec.function.ret) {
+        ret = resolve_typespec(typespec.function.ret);
+      }
+      if (is_array_type(ret)) {
+        fatal_error(typespec.pos, "Function return type cannot be array");
+      }
+      result = type_func(args, buf_len(args), ret, false);
+    }
+    else => {
+      #assert(0);
       return NULL;
     }
-    if (sym.kind != Sym.Type) {
-      // TODO Report full type string here, not just final.
-      fatal_error(typespec.pos, "%s must denote a type", name);
-      return NULL;
-    }
-    resolve_sym(sym);
-    set_resolved_sym(typespec, sym);
-    result = sym.type;
-  }
-  case Typespec.Const:
-    result = type_const(resolve_typespec(typespec.base));
-  case Typespec.Ptr:
-    result = type_ptr(resolve_typespec(typespec.base));
-  case Typespec.Ref:
-    result = type_ref(resolve_typespec(typespec.base));
-  case Typespec.Array: {
-    let size = 0;
-    if (typespec.num_elems) {
-      let operand = resolve_const_expr(typespec.num_elems);
-      if (!is_integer_type(operand.type)) {
-        fatal_error(typespec.pos, "Array size constant expression must have integer type");
-      }
-      cast_operand(&operand, type_int);
-      size = operand.val.i;
-      if (size <= 0) {
-        fatal_error(typespec.num_elems.pos, "Non-positive array size");
-      }
-    }
-    result = type_array(resolve_typespec(typespec.base), size);
-  }
-  case Typespec.Func: {
-    let args: *&Type = NULL;
-    for (let i: usize = 0; i < typespec.function.num_args; i++) {
-      let arg = resolve_typespec(typespec.function.args[i]);
-      if (arg == type_void) {
-        fatal_error(typespec.pos, "Function parameter type cannot be void");
-      }
-      buf_push((:*&void)&args, &arg, sizeof(arg));
-    }
-    let ret = type_void;
-    if (typespec.function.ret) {
-      ret = resolve_typespec(typespec.function.ret);
-    }
-    if (is_array_type(ret)) {
-      fatal_error(typespec.pos, "Function return type cannot be array");
-    }
-    result = type_func(args, buf_len(args), ret, false);
-  }
-  default:
-    #assert(0);
-    return NULL;
   }
   set_resolved_type(typespec, result);
   return result;
@@ -963,171 +951,180 @@ fn resolve_static_assert(note: Note) {
 }
 
 fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
+  @complete
   switch (stmt.kind) {
-  case Stmt.Return:
-    if (stmt.expr) {
-      let operand = resolve_expected_expr_rvalue(stmt.expr, ret_type);
-      if (!convert_operand(&operand, ret_type)) {
-        fatal_error(stmt.pos, "Invalid type in return expression. Expected %s, got %s", get_type_name(ret_type), get_type_name(operand.type));
+    Return => {
+      if (stmt.expr) {
+        let operand = resolve_expected_expr_rvalue(stmt.expr, ret_type);
+        if (!convert_operand(&operand, ret_type)) {
+          fatal_error(stmt.pos, "Invalid type in return expression. Expected %s, got %s", get_type_name(ret_type), get_type_name(operand.type));
+        }
+      } else if (ret_type != type_void) {
+        fatal_error(stmt.pos, "Empty return expression for function with non-void return type");
       }
-    } else if (ret_type != type_void) {
-      fatal_error(stmt.pos, "Empty return expression for function with non-void return type");
+      return true;
     }
-    return true;
-  case Stmt.Break:
-    if (!ctx.is_break_legal) {
-      fatal_error(stmt.pos, "Illegal break");
-    }
-    return false;
-  case Stmt.Continue:
-    if (!ctx.is_continue_legal) {
-      fatal_error(stmt.pos, "Illegal continue");
-    }
-    return false;
-  case Stmt.Block:
-    return resolve_stmt_block(stmt.block, ret_type, ctx);
-  case Stmt.Note:
-    if (stmt.note.name == assert_name) {
-      if (stmt.note.num_args != 1) {
-        fatal_error(stmt.pos, "#assert takes 1 argument");
+    Break => {
+      if (!ctx.is_break_legal) {
+        fatal_error(stmt.pos, "Illegal break");
       }
-      resolve_cond_expr(stmt.note.args[0].expr);
-    } else if (stmt.note.name == static_assert_name) {
-      resolve_static_assert(stmt.note);
-    } else {
-      warning(stmt.pos, "Unknown statement #directive '%s'", stmt.note.name);
+      return false;
     }
-    return false;
-  case Stmt.If: {
-    let scope = sym_enter();
-    if (stmt.if_stmt.init) {
-      resolve_stmt_init(stmt.if_stmt.init);
+    Continue => {
+      if (!ctx.is_continue_legal) {
+        fatal_error(stmt.pos, "Illegal continue");
+      }
+      return false;
     }
-    if (stmt.if_stmt.cond) {
-      resolve_cond_expr(stmt.if_stmt.cond);
-    } else if (!is_cond_operand(resolve_name_operand(stmt.pos, stmt.if_stmt.init.init.name))) {
-      fatal_error(stmt.pos, "Conditional expression must have scalar type");
+    Block => {
+      return resolve_stmt_block(stmt.block, ret_type, ctx);
     }
-    let returns: bool = resolve_stmt_block(stmt.if_stmt.then_block, ret_type, ctx);
-    for (let i: usize = 0; i < stmt.if_stmt.num_elseifs; i++) {
-      let elseif: ElseIf = stmt.if_stmt.elseifs[i];
-      resolve_cond_expr(elseif.cond);
-      returns = resolve_stmt_block(elseif.block, ret_type, ctx) && returns;
+    Note => {
+      if (stmt.note.name == assert_name) {
+        if (stmt.note.num_args != 1) {
+          fatal_error(stmt.pos, "#assert takes 1 argument");
+        }
+        resolve_cond_expr(stmt.note.args[0].expr);
+      } else if (stmt.note.name == static_assert_name) {
+        resolve_static_assert(stmt.note);
+      } else {
+        warning(stmt.pos, "Unknown statement #directive '%s'", stmt.note.name);
+      }
+      return false;
     }
-    if (stmt.if_stmt.else_block.stmts) {
-      returns = resolve_stmt_block(stmt.if_stmt.else_block, ret_type, ctx) && returns;
-    } else {
-      returns = false;
+    If => {
+      let scope = sym_enter();
+      if (stmt.if_stmt.init) {
+        resolve_stmt_init(stmt.if_stmt.init);
+      }
+      if (stmt.if_stmt.cond) {
+        resolve_cond_expr(stmt.if_stmt.cond);
+      } else if (!is_cond_operand(resolve_name_operand(stmt.pos, stmt.if_stmt.init.init.name))) {
+        fatal_error(stmt.pos, "Conditional expression must have scalar type");
+      }
+      let returns: bool = resolve_stmt_block(stmt.if_stmt.then_block, ret_type, ctx);
+      for (let i: usize = 0; i < stmt.if_stmt.num_elseifs; i++) {
+        let elseif: ElseIf = stmt.if_stmt.elseifs[i];
+        resolve_cond_expr(elseif.cond);
+        returns = resolve_stmt_block(elseif.block, ret_type, ctx) && returns;
+      }
+      if (stmt.if_stmt.else_block.stmts) {
+        returns = resolve_stmt_block(stmt.if_stmt.else_block, ret_type, ctx) && returns;
+      } else {
+        returns = false;
+      }
+      sym_leave(scope);
+      return returns;
     }
-    sym_leave(scope);
-    return returns;
-  }
-  case Stmt.While:
-  case Stmt.DoWhile:
-    resolve_cond_expr(stmt.while_stmt.cond);
-    ctx.is_break_legal = true;
-    ctx.is_continue_legal = true;
-    resolve_stmt_block(stmt.while_stmt.block, ret_type, ctx);
-    return false;
-  case Stmt.For: {
-    let scope = sym_enter();
-    if (stmt.for_stmt.init) {
-      resolve_stmt(stmt.for_stmt.init, ret_type, ctx);
+    While, DoWhile => {
+      resolve_cond_expr(stmt.while_stmt.cond);
+      ctx.is_break_legal = true;
+      ctx.is_continue_legal = true;
+      resolve_stmt_block(stmt.while_stmt.block, ret_type, ctx);
+      return false;
     }
-    if (stmt.for_stmt.cond) {
-      resolve_cond_expr(stmt.for_stmt.cond);
+    For => {
+      let scope = sym_enter();
+      if (stmt.for_stmt.init) {
+        resolve_stmt(stmt.for_stmt.init, ret_type, ctx);
+      }
+      if (stmt.for_stmt.cond) {
+        resolve_cond_expr(stmt.for_stmt.cond);
+      }
+      if (stmt.for_stmt.next) {
+        resolve_stmt(stmt.for_stmt.next, ret_type, ctx);
+      }
+      ctx.is_break_legal = true;
+      ctx.is_continue_legal = true;
+      resolve_stmt_block(stmt.for_stmt.block, ret_type, ctx);
+      sym_leave(scope);
+      return false;
     }
-    if (stmt.for_stmt.next) {
-      resolve_stmt(stmt.for_stmt.next, ret_type, ctx);
-    }
-    ctx.is_break_legal = true;
-    ctx.is_continue_legal = true;
-    resolve_stmt_block(stmt.for_stmt.block, ret_type, ctx);
-    sym_leave(scope);
-    return false;
-  }
-  case Stmt.Switch: {
-    let operand = resolve_expr_rvalue(stmt.switch_stmt.expr);
-    let enum_decl = get_type_enum_decl(operand.type);
-    // TODO Support switching directly on switch aggregates, which implies
-    // TODO switching on their kind.
-    if (!is_integer_type(operand.type)) {
-      fatal_error(stmt.pos, "Switch expression must have integer type");
-    }
-    ctx.is_break_legal = true;
-    let returns = true;
-    let has_default = false;
-    for (let i: usize = 0; i < stmt.switch_stmt.num_cases; i++) {
-      let switch_case: SwitchCase = stmt.switch_stmt.cases[i];
-      for (let j: usize = 0; j < switch_case.num_patterns; j++) {
-        let pattern: SwitchCasePattern = switch_case.patterns[j];
-        if (pattern.is_default) {
+    Switch => {
+      let operand = resolve_expr_rvalue(stmt.switch_stmt.expr);
+      let enum_decl = get_type_enum_decl(operand.type);
+      // TODO Support switching directly on switch aggregates, which implies
+      // TODO switching on their kind.
+      if (!is_integer_type(operand.type)) {
+        fatal_error(stmt.pos, "Switch expression must have integer type");
+      }
+      ctx.is_break_legal = true;
+      let returns = true;
+      let has_default = false;
+      for (let i: usize = 0; i < stmt.switch_stmt.num_cases; i++) {
+        let switch_case: SwitchCase = stmt.switch_stmt.cases[i];
+        for (let j: usize = 0; j < switch_case.num_patterns; j++) {
+          let pattern: SwitchCasePattern = switch_case.patterns[j];
+          if (pattern.is_default) {
+            if (has_default) {
+              fatal_error(stmt.pos, "Switch statement has multiple default clauses");
+            }
+            has_default = true;
+            continue;
+          }
+          let start_expr = pattern.start;
+          let start_operand =
+            resolve_enum_item_or_const_expr(enum_decl, start_expr);
+          if (!convert_operand(&start_operand, operand.type)) {
+            fatal_error(start_expr.pos, "Invalid type in switch case expression. Expected %s, got %s", get_type_name(operand.type), get_type_name(start_operand.type));
+          }
+          let end_expr = pattern.end;
+          if (end_expr) {
+            let end_operand =
+              resolve_enum_item_or_const_expr(enum_decl, end_expr);
+            if (!convert_operand(&end_operand, operand.type)) {
+              fatal_error(end_expr.pos, "Invalid type in switch case expression. Expected %s, got %s", get_type_name(operand.type), get_type_name(end_operand.type));
+            }
+            convert_operand(&start_operand, type_llong);
+            set_resolved_val(start_expr, start_operand.val);
+            convert_operand(&end_operand, type_llong);
+            set_resolved_val(end_expr, end_operand.val);
+            if (end_operand.val.ll < start_operand.val.ll) {
+              fatal_error(start_expr.pos, "Case range end value cannot be less thn start value");
+            }
+            if (end_operand.val.ll - start_operand.val.ll >= 256) {
+              fatal_error(start_expr.pos, "Case range cannot span more than 256 values");
+            }
+          }
+        }
+        if (switch_case.is_default) {
           if (has_default) {
             fatal_error(stmt.pos, "Switch statement has multiple default clauses");
           }
           has_default = true;
-          continue;
         }
-        let start_expr = pattern.start;
-        let start_operand =
-          resolve_enum_item_or_const_expr(enum_decl, start_expr);
-        if (!convert_operand(&start_operand, operand.type)) {
-          fatal_error(start_expr.pos, "Invalid type in switch case expression. Expected %s, got %s", get_type_name(operand.type), get_type_name(start_operand.type));
-        }
-        let end_expr = pattern.end;
-        if (end_expr) {
-          let end_operand =
-            resolve_enum_item_or_const_expr(enum_decl, end_expr);
-          if (!convert_operand(&end_operand, operand.type)) {
-            fatal_error(end_expr.pos, "Invalid type in switch case expression. Expected %s, got %s", get_type_name(operand.type), get_type_name(end_operand.type));
-          }
-          convert_operand(&start_operand, type_llong);
-          set_resolved_val(start_expr, start_operand.val);
-          convert_operand(&end_operand, type_llong);
-          set_resolved_val(end_expr, end_operand.val);
-          if (end_operand.val.ll < start_operand.val.ll) {
-            fatal_error(start_expr.pos, "Case range end value cannot be less thn start value");
-          }
-          if (end_operand.val.ll - start_operand.val.ll >= 256) {
-            fatal_error(start_expr.pos, "Case range cannot span more than 256 values");
+        if (switch_case.block.num_stmts > 1) {
+          let last_stmt = switch_case.block.stmts[switch_case.block.num_stmts - 1];
+          if (last_stmt.kind == Stmt.Break) {
+            warning(last_stmt.pos, "Case blocks already end with an implicit break");
           }
         }
+        returns = resolve_stmt_block(switch_case.block, ret_type, ctx) && returns;
       }
-      if (switch_case.is_default) {
-        if (has_default) {
-          fatal_error(stmt.pos, "Switch statement has multiple default clauses");
-        }
-        has_default = true;
-      }
-      if (switch_case.block.num_stmts > 1) {
-        let last_stmt = switch_case.block.stmts[switch_case.block.num_stmts - 1];
-        if (last_stmt.kind == Stmt.Break) {
-          warning(last_stmt.pos, "Case blocks already end with an implicit break");
-        }
-      }
-      returns = resolve_stmt_block(switch_case.block, ret_type, ctx) && returns;
+      return returns && has_default;
     }
-    return returns && has_default;
+    Assign => {
+      resolve_stmt_assign(stmt);
+      return false;
+    }
+    Init => {
+      resolve_stmt_init(stmt);
+      return false;
+    }
+    Expr => {
+      resolve_expr(stmt.expr);
+      return false;
+    }
+    Label => {
+      define_label(stmt.pos, stmt.label);
+      return false;
+    }
+    Goto => {
+      reference_label(stmt.pos, stmt.label);
+      return false;
+    }
   }
-  case Stmt.Assign:
-    resolve_stmt_assign(stmt);
-    return false;
-  case Stmt.Init:
-    resolve_stmt_init(stmt);
-    return false;
-  case Stmt.Expr:
-    resolve_expr(stmt.expr);
-    return false;
-  case Stmt.Label:
-    define_label(stmt.pos, stmt.label);
-    return false;
-  case Stmt.Goto:
-    reference_label(stmt.pos, stmt.label);
-    return false;
-  default:
-    #assert(0);
-    return false;
-  }
+  return false;
 }
 
 fn resolve_func_body(sym: &Sym) {

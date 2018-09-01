@@ -363,20 +363,16 @@ fn gen_forward_decls() {
       continue;
     }
     switch (decl.kind) {
-    case Decl.Struct:
-    case Decl.Union: {
-      let name = get_gen_name(sym);
-      genln();
-      buf_printf(
-        &gen_buf, "typedef %s %s %s;",
-        decl.aggregate.kind == AggregateKind.Struct ? "struct" : "union",
-        name, name,
-      );
-      break;
-    }
-    default:
-      // Do nothing.
-      break;
+      Struct, Union => {
+        let name = get_gen_name(sym);
+        genln();
+        buf_printf(
+          &gen_buf, "typedef %s %s %s;",
+          decl.aggregate.kind == AggregateKind.Struct ? "struct" : "union",
+          name, name,
+        );
+      }
+      else => {}
     }
   }
 }
@@ -832,7 +828,15 @@ fn gen_stmt(stmt: &Stmt) {
       buf_printf(&gen_buf, " ");
       buf_printf(&gen_buf, "{");
       gen_indent++;
-      let block = switch_case.block;
+      let block = &switch_case.block;
+      if (block.num_stmts == 1) {
+        // Clean block nesting for the case of a single block.
+        // We're already inside on of those.
+        let first = block.stmts[0];
+        if (first.kind == Stmt.Block) {
+          block = &first.block;
+        }
+      }
       for (let j: usize = 0; j < block.num_stmts; j++) {
         gen_stmt(block.stmts[j]);
       }
