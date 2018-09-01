@@ -489,7 +489,7 @@ fn parse_stmt_for(pos: SrcPos) -> &Stmt {
 }
 
 fn parse_switch_case_pattern() -> SwitchCasePattern {
-  if (match_keyword(else_keyword)) {
+  if (match_keyword(default_keyword)) {
     return SwitchCasePattern {is_default = true};
   }
   let start = parse_expr();

@@ -94,23 +94,23 @@ fn init_target() {
       switch (target_arch) {
         Arch.X86 => type_metrics = win32_x86_metrics;
         Arch.X64 => type_metrics = win32_x64_metrics;
-        else => {}
+        default => {}
       }
     }
     Os.Linux => {
       switch (target_arch) {
         Arch.X86 => type_metrics = ilp32_metrics;
         Arch.X64 => type_metrics = lp64_metrics;
-        else => {}
+        default => {}
       }
     }
     Os.OsX => {
       switch (target_arch) {
         Arch.X64 => type_metrics = lp64_metrics;
-        else => {}
+        default => {}
       }
     }
-    else => {}
+    default => {}
   }
   if (!type_metrics) {
     printf("Unsupported os/arch combination: %s/%s\n", os_names[target_os], arch_names[target_arch]);

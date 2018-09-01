@@ -247,7 +247,7 @@ fn type_to_cdecl(type: &Type, str: *const char) -> *char {
       buf_printf(&result, ")");
       return type_to_cdecl(type.function.ret, result);
     }
-    else => return strf("%s%s%s", cdecl_name(type), *str ? " " : "", str);
+    default => return strf("%s%s%s", cdecl_name(type), *str ? " " : "", str);
   }
 }
 
@@ -387,7 +387,7 @@ fn gen_forward_decls() {
           name, name,
         );
       }
-      else => {}
+      default => {}
     }
   }
 }
@@ -557,7 +557,9 @@ fn gen_expr(expr: &Expr) {
         }
         Oct => buf_printf(&gen_buf, "0%llo%s", expr.int_lit.val, suffix_name);
         Char => gen_char((:char)expr.int_lit.val);
-        else => buf_printf(&gen_buf, "%llu%s", expr.int_lit.val, suffix_name);
+        default => {
+          buf_printf(&gen_buf, "%llu%s", expr.int_lit.val, suffix_name);
+        }
       }
     }
     Float => {
@@ -927,7 +929,7 @@ fn gen_stmt(stmt: &Stmt) {
       genln();
       buf_printf(&gen_buf, "goto %s;", stmt.label);
     }
-    else => {
+    default => {
       genln();
       gen_simple_stmt(stmt);
       buf_printf(&gen_buf, ";");
@@ -1245,7 +1247,7 @@ fn gen_typeinfo(type: &Type) {
     Incomplete => {
       buf_printf(&gen_buf, "NULL, // Incomplete: %s", get_gen_name(type.sym));
     }
-    else => buf_printf(&gen_buf, "NULL, // Unhandled");
+    default => buf_printf(&gen_buf, "NULL, // Unhandled");
   }
 }
 

@@ -906,7 +906,7 @@ fn next_token() {
         stream++;
       }
     }
-    else => {
+    default => {
       error(token.pos, "Invalid '%c' token, skipping", *stream);
       stream++;
       goto repeat;

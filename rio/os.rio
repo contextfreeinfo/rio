@@ -162,7 +162,7 @@ fn print_flags_usage() {
         }
         snprintf(ptr, end - ptr, ">");
       }
-      Bool, else => snprintf(format, sizeof(format), "%s", flag.name);
+      Bool, default => snprintf(format, sizeof(format), "%s", flag.name);
     }
     printf(" -%-32s %s%s\n", format, flag.help ? flag.help : (:*const char)"", note);
   }
@@ -216,7 +216,7 @@ fn parse_flags(argc_ptr: &int, argv_ptr: &**const char) -> *const char {
             printf("Invalid value '%s' for %s\n", option, arg);
           }
         }
-        else => printf("Unhandled flag kind\n");
+        default => printf("Unhandled flag kind\n");
       }
     } else {
       break;

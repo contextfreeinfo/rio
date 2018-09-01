@@ -444,7 +444,7 @@ fn promote_operand(operand: &Operand) {
     Bool, Char, SChar, UChar, Short, UShort, Enum => {
       cast_operand(operand, type_int);
     }
-    else => {}
+    default => {}
   }
 }
 
@@ -566,7 +566,7 @@ fn get_nested_type_sym(
           }
         }
       }
-      else => {}
+      default => {}
     }
   }
   return NULL;
@@ -654,7 +654,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       }
       result = type_func(args, buf_len(args), ret, false);
     }
-    else => {
+    default => {
       #assert(0);
       return NULL;
     }
@@ -1250,7 +1250,7 @@ fn get_type_enum_decl(type: &Type) -> &DeclEnum {
           decl = NULL;
         }
       }
-      else => decl = NULL;
+      default => decl = NULL;
     }
     if (decl) {
       return &decl.enum_decl;

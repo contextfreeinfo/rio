@@ -6041,7 +6041,7 @@ rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
 }
 
 rio_SwitchCasePattern rio_parse_switch_case_pattern(void) {
-  if (rio_match_keyword(rio_else_keyword)) {
+  if (rio_match_keyword(rio_default_keyword)) {
     return (rio_SwitchCasePattern){.is_default = true};
   }
   rio_Expr (*start) = rio_parse_expr();

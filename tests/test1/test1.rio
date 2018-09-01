@@ -100,7 +100,7 @@ fn test_loops() {
   // continue;
   switch (0) {
     1 => {}
-    else => {
+    default => {
       if (1) {
         // TODO Make no longer apply to switch!
         break;
@@ -447,7 +447,7 @@ fn test_bool() {
 fn test_ctrl() -> int {
   switch (1) {
     0 => return 0;
-    else => return 1;
+    default => return 1;
   }
   // return 0;
 }
@@ -537,7 +537,7 @@ fn print_any(any: Any) {
   switch (any.type) {
     typeof(int) => printf("%d", *(:*const int)any.ptr);
     typeof(float) => printf("%f", *(:*const float)any.ptr);
-    else => printf("<unknown>");
+    default => printf("<unknown>");
   }
   printf(": ");
   print_type(any.type);
@@ -581,7 +581,7 @@ fn print_type(type: typeid) {
       print_type(typeinfo.base);
       printf("[%d]", typeinfo.count);
     }
-    else => {
+    default => {
       if (typeinfo.name) {
         printf("%s", typeinfo.name);
       } else {

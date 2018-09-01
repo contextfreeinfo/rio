@@ -166,7 +166,7 @@ fn is_signed_type(type: &Type) -> bool {
   switch (type.kind) {
     Char => return type_metrics[CompilerTypeKind.Char].sign;
     SChar, Short, Int, Long, LLong => return true;
-    else => return false;
+    default => return false;
   }
 }
 
@@ -217,7 +217,7 @@ fn unsigned_type(type: &Type) -> &Type {
     Int, UInt => return type_uint;
     Long, ULong => return type_ulong;
     LLong, ULLong => return type_ullong;
-    else => {
+    default => {
       #assert(0);
       return NULL;
     }
