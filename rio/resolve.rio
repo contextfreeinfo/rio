@@ -1087,12 +1087,6 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
             }
           }
         }
-        if (switch_case.is_default) {
-          if (has_default) {
-            fatal_error(stmt.pos, "Switch statement has multiple default clauses");
-          }
-          has_default = true;
-        }
         if (switch_case.block.num_stmts > 1) {
           let last_stmt = switch_case.block.stmts[switch_case.block.num_stmts - 1];
           if (last_stmt.kind == Stmt.Break) {

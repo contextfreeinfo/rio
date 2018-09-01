@@ -281,7 +281,6 @@ struct SwitchCasePattern {
 struct SwitchCase {
   patterns: *SwitchCasePattern;
   num_patterns: usize;
-  is_default: bool;
   block: StmtList;
 }
 

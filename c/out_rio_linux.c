@@ -1286,7 +1286,6 @@ rio_SwitchCasePattern rio_parse_switch_case_pattern(void);
 struct rio_SwitchCase {
   rio_SwitchCasePattern (*patterns);
   size_t num_patterns;
-  bool is_default;
   rio_StmtList block;
 };
 
@@ -4052,11 +4051,6 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
           rio_buf_printf(&(rio_gen_buf), ":");
         }
       }
-      if (switch_case.is_default) {
-        has_default = true;
-        rio_genln();
-        rio_buf_printf(&(rio_gen_buf), "default:");
-      }
       rio_buf_printf(&(rio_gen_buf), " ");
       rio_buf_printf(&(rio_gen_buf), "{");
       (rio_gen_indent)++;
@@ -6040,7 +6034,6 @@ rio_SwitchCasePattern rio_parse_switch_case_pattern(void) {
 
 rio_SwitchCase rio_parse_stmt_switch_case(void) {
   rio_SwitchCasePattern (*patterns) = {0};
-  bool is_default = {0};
   rio_SwitchCasePattern pattern = rio_parse_switch_case_pattern();
   rio_buf_push((void (**))(&(patterns)), &(pattern), sizeof(pattern));
   while (rio_match_token((rio_TokenKind_Comma))) {
@@ -6050,7 +6043,7 @@ rio_SwitchCase rio_parse_stmt_switch_case(void) {
   rio_expect_token((rio_TokenKind_Spear));
   rio_SrcPos pos = rio_token.pos;
   rio_Stmt (*stmt) = rio_parse_stmt();
-  return (rio_SwitchCase){patterns, rio_buf_len(patterns), is_default, rio_new_stmt_list(pos, &(stmt), 1)};
+  return (rio_SwitchCase){patterns, rio_buf_len(patterns), rio_new_stmt_list(pos, &(stmt), 1)};
 }
 
 rio_Stmt (*rio_parse_stmt_switch(rio_SrcPos pos)) {
@@ -7566,12 +7559,6 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
             rio_fatal_error(start_expr->pos, "Case range cannot span more than 256 values");
           }
         }
-      }
-      if (switch_case.is_default) {
-        if (has_default) {
-          rio_fatal_error(stmt->pos, "Switch statement has multiple default clauses");
-        }
-        has_default = true;
       }
       if ((switch_case.block.num_stmts) > (1)) {
         rio_Stmt (*last_stmt) = switch_case.block.stmts[(switch_case.block.num_stmts) - (1)];

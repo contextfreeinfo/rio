@@ -880,10 +880,6 @@ fn gen_stmt(stmt: &Stmt) {
             buf_printf(&gen_buf, ":");
           }
         }
-        if (switch_case.is_default) {
-          has_default = true;
-          genln(); buf_printf(&gen_buf, "default:");
-        }
         buf_printf(&gen_buf, " ");
         buf_printf(&gen_buf, "{");
         gen_indent++;
