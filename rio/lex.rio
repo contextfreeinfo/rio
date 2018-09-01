@@ -613,6 +613,9 @@ fn scan_str() {
   token.str_val = str;
 }
 
+// These CASE macros are reminders of what the C code used to look like, in case
+// an acceptable macro implementation in rio comes along.
+
 // #define CASE1(c1, k1) \
 //   case c1: \
 //     token.kind = k1; \
