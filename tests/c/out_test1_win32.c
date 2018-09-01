@@ -924,7 +924,8 @@ void test1_test_complete(void) {
     y = 3;
     break;
   }
-  case 1: {
+  // 1...3
+  case 1: case 2: case 3:  {
     y = 4;
     break;
   }
@@ -1226,30 +1227,40 @@ void test1_print_type(typeid type) {
   }
   switch (typeinfo->kind) {
   case (TypeKind_Ptr): {
-    test1_print_type(typeinfo->base);
-    printf("*");
+    {
+      test1_print_type(typeinfo->base);
+      printf("*");
+    }
     break;
   }
   case (TypeKind_Ref): {
-    test1_print_type(typeinfo->base);
-    printf("&");
+    {
+      test1_print_type(typeinfo->base);
+      printf("&");
+    }
     break;
   }
   case (TypeKind_Const): {
-    test1_print_type(typeinfo->base);
-    printf(" const");
+    {
+      test1_print_type(typeinfo->base);
+      printf(" const");
+    }
     break;
   }
   case (TypeKind_Array): {
-    test1_print_type(typeinfo->base);
-    printf("[%d]", typeinfo->count);
+    {
+      test1_print_type(typeinfo->base);
+      printf("[%d]", typeinfo->count);
+    }
     break;
   }
   default: {
-    if (typeinfo->name) {
-      printf("%s", typeinfo->name);
-    } else {
-      test1_print_typeid(type);
+    {
+      if (typeinfo->name) {
+        printf("%s", typeinfo->name);
+      } else {
+        test1_print_typeid(type);
+      }
     }
     break;
   }
