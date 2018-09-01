@@ -553,6 +553,8 @@ fn print_typeid(type: typeid) {
   printf("typeid(%d)", index);
 }
 
+const Ptr = 959595;
+
 fn print_type(type: typeid) {
   let typeinfo = get_typeinfo(type);
   if (!typeinfo) {
@@ -560,19 +562,22 @@ fn print_type(type: typeid) {
     return;
   }
   switch (typeinfo.kind) {
-    TypeKind.Ptr => {
+    // U8 => printf("This shouldn't compile.");
+    // (U8) => printf("I hope this is unlikely???");
+    (Ptr) => printf("This is very unlikely.");
+    Ptr => {
       print_type(typeinfo.base);
       printf("*");
     }
-    TypeKind.Ref => {
+    Ref => {
       print_type(typeinfo.base);
       printf("&");
     }
-    TypeKind.Const => {
+    Const => {
       print_type(typeinfo.base);
       printf(" const");
     }
-    TypeKind.Array => {
+    Array => {
       print_type(typeinfo.base);
       printf("[%d]", typeinfo.count);
     }

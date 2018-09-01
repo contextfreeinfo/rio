@@ -1634,6 +1634,12 @@ rio_Sym (*rio_resolve_name(char const ((*name))));
 
 rio_Package (*rio_try_resolve_package(rio_Expr (*expr)));
 
+rio_DeclEnum (*rio_get_type_enum_decl(rio_Type (*type)));
+
+rio_Operand rio_resolve_enum_item_or_const_expr(rio_DeclEnum (*enum_decl), rio_Expr (*expr));
+
+rio_Operand rio_resolve_enum_item(rio_DeclEnum (*enum_decl), rio_Expr (*expr), char const ((*name)));
+
 rio_Operand rio_resolve_expr_field(rio_Expr (*expr));
 
 llong rio_eval_unary_op_ll(rio_TokenKind op, llong val);
@@ -5498,7 +5504,7 @@ void rio_print_flags_usage(void) {
     char (note[256]) = {0};
     char (format[256]) = {0};
     switch (flag.kind) {
-    case (rio_FlagKind_Str): {
+    case rio_FlagKind_Str: {
       {
         snprintf(format, sizeof(format), "%s <%s>", flag.name, (flag.arg_name ? flag.arg_name : (char const (*))("value")));
         if (*(flag.ptr.s)) {
@@ -5507,7 +5513,7 @@ void rio_print_flags_usage(void) {
       }
       break;
     }
-    case (rio_FlagKind_Enum): {
+    case rio_FlagKind_Enum: {
       {
         char (*end) = (format) + (sizeof(format));
         char (*ptr) = format;
@@ -5522,7 +5528,7 @@ void rio_print_flags_usage(void) {
       }
       break;
     }
-    case (rio_FlagKind_Bool):
+    case rio_FlagKind_Bool:
     default: {
       snprintf(format, sizeof(format), "%s", flag.name);
       break;
@@ -7681,6 +7687,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
   case (rio_Stmt_Switch): {
     {
       rio_Operand operand = rio_resolve_expr_rvalue(stmt->switch_stmt.expr);
+      rio_DeclEnum (*enum_decl) = rio_get_type_enum_decl(operand.type);
       if (!(rio_is_integer_type(operand.type))) {
         rio_fatal_error(stmt->pos, "Switch expression must have integer type");
       }
@@ -7699,13 +7706,13 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
             continue;
           }
           rio_Expr (*start_expr) = pattern.start;
-          rio_Operand start_operand = rio_resolve_const_expr(start_expr);
+          rio_Operand start_operand = rio_resolve_enum_item_or_const_expr(enum_decl, start_expr);
           if (!(rio_convert_operand(&(start_operand), operand.type))) {
             rio_fatal_error(start_expr->pos, "Invalid type in switch case expression. Expected %s, got %s", rio_get_type_name(operand.type), rio_get_type_name(start_operand.type));
           }
           rio_Expr (*end_expr) = pattern.end;
           if (end_expr) {
-            rio_Operand end_operand = rio_resolve_const_expr(end_expr);
+            rio_Operand end_operand = rio_resolve_enum_item_or_const_expr(enum_decl, end_expr);
             if (!(rio_convert_operand(&(end_operand), operand.type))) {
               rio_fatal_error(end_expr->pos, "Invalid type in switch case expression. Expected %s, got %s", rio_get_type_name(operand.type), rio_get_type_name(end_operand.type));
             }
@@ -7896,6 +7903,68 @@ rio_Package (*rio_try_resolve_package(rio_Expr (*expr))) {
   return NULL;
 }
 
+rio_DeclEnum (*rio_get_type_enum_decl(rio_Type (*type))) {
+  if ((type->sym) && (type->sym->decl)) {
+    rio_Decl (*decl) = type->sym->decl;
+    switch (type->kind) {
+    case (rio_CompilerTypeKind_Enum): {
+      break;
+      break;
+    }
+    case (rio_CompilerTypeKind_Struct):
+    case (rio_CompilerTypeKind_Union): {
+      {
+        if (decl->aggregate->union_enum_decl) {
+          decl = decl->aggregate->union_enum_decl;
+        } else {
+          decl = NULL;
+        }
+      }
+      break;
+    }
+    default: {
+      decl = NULL;
+      break;
+    }
+    }
+    if (decl) {
+      return &(decl->enum_decl);
+    }
+  }
+  return NULL;
+}
+
+rio_Operand rio_resolve_enum_item_or_const_expr(rio_DeclEnum (*enum_decl), rio_Expr (*expr)) {
+  if ((enum_decl) && ((expr->kind) == ((rio_Expr_Name)))) {
+    {
+      rio_Operand item = rio_resolve_enum_item(enum_decl, expr, expr->name);
+      if (item.type) {
+        return item;
+      } else {
+        rio_fatal_error(expr->pos, "No enum item named \'%s\'", expr->name);
+        return rio_operand_null;
+      }
+    }
+  }
+  return rio_resolve_const_expr(expr);
+}
+
+rio_Operand rio_resolve_enum_item(rio_DeclEnum (*enum_decl), rio_Expr (*expr), char const ((*name))) {
+  for (size_t i = 0; (i) < (enum_decl->num_items); ++(i)) {
+    rio_EnumItem item = enum_decl->items[i];
+    if ((item.name) == (name)) {
+      rio_Sym (*sym) = rio_resolve_name(rio_build_scoped_name(enum_decl->scope, item.name));
+      if (sym) {
+        assert((sym->kind) == ((rio_Sym_Const)));
+        rio_set_resolved_sym(expr, sym);
+        rio_Operand item_operand = rio_operand_const(sym->type, sym->val);
+        return item_operand;
+      }
+    }
+  }
+  return rio_operand_null;
+}
+
 rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
   assert((expr->kind) == ((rio_Expr_Field)));
   rio_Package (*package) = rio_try_resolve_package(expr->field.expr);
@@ -7908,43 +7977,17 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
     return operand;
   }
   rio_Operand operand = rio_resolve_expr(expr->field.expr);
-  if (((operand.is_type) && (operand.type->sym)) && (operand.type->sym->decl)) {
-    rio_Decl (*decl) = operand.type->sym->decl;
-    switch (operand.type->kind) {
-    case (rio_CompilerTypeKind_Enum): {
-      break;
-      break;
-    }
-    case (rio_CompilerTypeKind_Struct):
-    case (rio_CompilerTypeKind_Union): {
-      if (decl->aggregate->union_enum_decl) {
-        decl = decl->aggregate->union_enum_decl;
-      } else {
-        decl = NULL;
-      }
-      break;
-    }
-    default: {
-      decl = NULL;
-      break;
-    }
-    }
-    if (decl) {
-      rio_DeclEnum enum_decl = decl->enum_decl;
-      for (size_t i = 0; (i) < (enum_decl.num_items); ++(i)) {
-        rio_EnumItem item = enum_decl.items[i];
-        if ((item.name) == (expr->field.name)) {
-          rio_Sym (*sym) = rio_resolve_name(rio_build_scoped_name(enum_decl.scope, item.name));
-          if (sym) {
-            assert((sym->kind) == ((rio_Sym_Const)));
-            rio_set_resolved_sym(expr, sym);
-            rio_Operand item_operand = rio_operand_const(sym->type, sym->val);
-            return item_operand;
-          }
+  if (operand.is_type) {
+    {
+      rio_DeclEnum (*enum_decl) = rio_get_type_enum_decl(operand.type);
+      if (enum_decl) {
+        rio_Operand item = rio_resolve_enum_item(enum_decl, expr, expr->field.name);
+        if (item.type) {
+          return item;
         }
       }
     }
-    rio_fatal_error(expr->pos, "No item %s found in type %s", expr->field.name, operand.type->sym->decl->name);
+    rio_fatal_error(expr->pos, "No item named \'%s\'", expr->field.name);
     return rio_operand_null;
   }
   bool was_const_type = rio_is_const_type(operand.type);

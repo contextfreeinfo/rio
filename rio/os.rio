@@ -144,13 +144,13 @@ fn print_flags_usage() {
     let note: [256]char;
     let format: [256]char;
     switch (flag.kind) {
-      FlagKind.Str => {
+      Str => {
         snprintf(format, sizeof(format), "%s <%s>", flag.name, flag.arg_name ? flag.arg_name : (:*const char)"value");
         if (*flag.ptr.s) {
           snprintf(note, sizeof(note), "(default: %s)", *flag.ptr.s);
         }
       }
-      FlagKind.Enum => {
+      Enum => {
         let end = format + sizeof(format);
         let ptr = format;
         ptr += snprintf(ptr, end - ptr, "%s <", flag.name);
@@ -162,7 +162,7 @@ fn print_flags_usage() {
         }
         snprintf(ptr, end - ptr, ">");
       }
-      FlagKind.Bool, else => snprintf(format, sizeof(format), "%s", flag.name);
+      Bool, else => snprintf(format, sizeof(format), "%s", flag.name);
     }
     printf(" -%-32s %s%s\n", format, flag.help ? flag.help : (:*const char)"", note);
   }
