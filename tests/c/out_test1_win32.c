@@ -948,15 +948,17 @@ void test1_test_compound_literals(void) {
 void test1_test_loops(void) {
   switch (0) {
   case 1: {
-    break;
+    NULL;
     break;
   }
   default: {
-    if (1) {
-      break;
-    }
-    for (;;) {
-      continue;
+    {
+      if (1) {
+        break;
+      }
+      for (;;) {
+        continue;
+      }
     }
     break;
   }
@@ -1266,14 +1268,16 @@ void test1_print_typeinfo(typeid type) {
   switch (typeinfo->kind) {
   case (TypeKind_Struct):
   case (TypeKind_Union): {
-    printf(" %s={ ", ((typeinfo->kind) == ((TypeKind_Struct)) ? "struct" : "union"));
-    for (int i = 0; (i) < (typeinfo->num_fields); (i)++) {
-      TypeFieldInfo field = typeinfo->fields[i];
-      printf("@offset(%d) %s: ", field.offset, field.name);
-      test1_print_type(field.type);
-      printf("; ");
+    {
+      printf(" %s={ ", ((typeinfo->kind) == ((TypeKind_Struct)) ? "struct" : "union"));
+      for (int i = 0; (i) < (typeinfo->num_fields); (i)++) {
+        TypeFieldInfo field = typeinfo->fields[i];
+        printf("@offset(%d) %s: ", field.offset, field.name);
+        test1_print_type(field.type);
+        printf("; ");
+      }
+      printf("}");
     }
-    printf("}");
     break;
   }
   }

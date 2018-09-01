@@ -13,7 +13,7 @@ struct Sym {
   external_name: *const char;
   union switch {
     None => :void;
-    Const | Func | Type | Var => struct {
+    Const, Func, Type, Var => struct {
       type: &Type;
       val: Val;
     }
@@ -1058,6 +1058,13 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
       let switch_case: SwitchCase = stmt.switch_stmt.cases[i];
       for (let j: usize = 0; j < switch_case.num_patterns; j++) {
         let pattern: SwitchCasePattern = switch_case.patterns[j];
+        if (pattern.is_default) {
+          if (has_default) {
+            fatal_error(stmt.pos, "Switch statement has multiple default clauses");
+          }
+          has_default = true;
+          continue;
+        }
         let start_expr = pattern.start;
         let start_operand = resolve_const_expr(start_expr);
         if (!convert_operand(&start_operand, operand.type)) {

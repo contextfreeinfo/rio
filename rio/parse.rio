@@ -489,47 +489,68 @@ fn parse_stmt_for(pos: SrcPos) -> &Stmt {
 }
 
 fn parse_switch_case_pattern() -> SwitchCasePattern {
+  if (match_keyword(else_keyword)) {
+    return SwitchCasePattern {is_default = true};
+  }
   let start = parse_expr();
   let end: &Expr = NULL;
   if (match_token(TokenKind.Ellipsis)) {
     end = parse_expr();
   }
-  return SwitchCasePattern {start, end};
+  return SwitchCasePattern {false, start, end};
 }
 
 fn parse_stmt_switch_case() -> SwitchCase {
-  let patterns: *SwitchCasePattern = NULL;
-  let is_default: bool = false;
-  let is_first_case: bool = true;
-  while (is_keyword(case_keyword) || is_keyword(default_keyword)) {
-    if (match_keyword(case_keyword)) {
-      if (!is_first_case) {
-        error(token.pos, "Use comma-separated expressions to match multiple values with one case label");
-        is_first_case = false;
-      }
-      let pattern = parse_switch_case_pattern();
-      buf_push((:*&void)&patterns, &pattern, sizeof(pattern));
-      while (match_token(TokenKind.Comma)) {
-        pattern = parse_switch_case_pattern();
+  // TODO New switch syntax, then work slices.
+  if (is_keyword(case_keyword) || is_keyword(default_keyword)) {
+    // Old syntax.
+    let patterns: *SwitchCasePattern = NULL;
+    let is_default: bool = false;
+    let is_first_case: bool = true;
+    while (is_keyword(case_keyword) || is_keyword(default_keyword)) {
+      if (match_keyword(case_keyword)) {
+        if (!is_first_case) {
+          error(token.pos, "Use comma-separated expressions to match multiple values with one case label");
+          is_first_case = false;
+        }
+        let pattern = parse_switch_case_pattern();
         buf_push((:*&void)&patterns, &pattern, sizeof(pattern));
+        while (match_token(TokenKind.Comma)) {
+          pattern = parse_switch_case_pattern();
+          buf_push((:*&void)&patterns, &pattern, sizeof(pattern));
+        }
+      } else {
+        #assert(is_keyword(default_keyword));
+        next_token();
+        if (is_default) {
+          error(token.pos, "Duplicate default labels in same switch clause");
+        }
+        is_default = true;
       }
-    } else {
-      #assert(is_keyword(default_keyword));
-      next_token();
-      if (is_default) {
-        error(token.pos, "Duplicate default labels in same switch clause");
-      }
-      is_default = true;
+      expect_token(TokenKind.Colon);
     }
-    expect_token(TokenKind.Colon);
-  }
-  let pos = token.pos;
-  let stmts: *&Stmt;
-  while (!is_token_eof() && !is_token(TokenKind.Rbrace) && !is_keyword(case_keyword) && !is_keyword(default_keyword)) {
+    let pos = token.pos;
+    let stmts: *&Stmt;
+    while (!is_token_eof() && !is_token(TokenKind.Rbrace) && !is_keyword(case_keyword) && !is_keyword(default_keyword)) {
+      let stmt = parse_stmt();
+      buf_push((:*&void)&stmts, &stmt, sizeof(stmt));
+    }
+    return SwitchCase {patterns, buf_len(patterns), is_default, new_stmt_list(pos, stmts, buf_len(stmts))};
+  } else {
+    // New syntax.
+    let patterns: *SwitchCasePattern = NULL;
+    let is_default: bool;
+    let pattern = parse_switch_case_pattern();
+    buf_push((:*&void)&patterns, &pattern, sizeof(pattern));
+    while (match_token(TokenKind.Comma)) {
+      pattern = parse_switch_case_pattern();
+      buf_push((:*&void)&patterns, &pattern, sizeof(pattern));
+    }
+    expect_token(TokenKind.Spear);
+    let pos = token.pos;
     let stmt = parse_stmt();
-    buf_push((:*&void)&stmts, &stmt, sizeof(stmt));
+    return SwitchCase {patterns, buf_len(patterns), is_default, new_stmt_list(pos, &stmt, 1)};
   }
-  return SwitchCase {patterns, buf_len(patterns), is_default, new_stmt_list(pos, stmts, buf_len(stmts))};
 }
 
 fn parse_stmt_switch(pos: SrcPos) -> &Stmt {
@@ -764,7 +785,7 @@ fn parse_switch_union() -> *AggregateItem {
     let kind_name = parse_name();
     buf_push((:*&void)&kind_names, &kind_name, sizeof(kind_name));
     // TODO Ellipse ranges.
-    while (match_token(TokenKind.Or)) {
+    while (match_token(TokenKind.Comma)) {
       kind_name = parse_name();
       buf_push((:*&void)&kind_names, &kind_name, sizeof(kind_name));
     }

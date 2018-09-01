@@ -29,7 +29,7 @@ struct Typespec {
   base: &Typespec;
   is_owned: bool;
   union switch {
-    None | Const | Ptr | Ref => :void;
+    None, Const, Ptr, Ref => :void;
     Name => struct {
       names: **const char;
       num_names: usize;
@@ -104,7 +104,7 @@ struct Decl {
     None => :void;
     Note => note: Note;
     Enum => enum_decl: DeclEnum;
-    Struct | Union => aggregate: &Aggregate;
+    Struct, Union => aggregate: &Aggregate;
     Func => function: DeclFunc;
     Typedef => typedef_decl: DeclTypedef;
     // This is an example of wanting different names for the same thing ...
@@ -273,6 +273,7 @@ struct ElseIf {
 }
 
 struct SwitchCasePattern {
+  is_default: bool;
   start: &Expr;
   end: &Expr;
 }
@@ -288,10 +289,10 @@ struct Stmt {
   notes: Notes;
   pos: SrcPos;
   union switch {
-    None | Break | Continue => :void;
-    DoWhile | While => while_stmt: StmtWhile;
-    Expr | Return => expr: &Expr;
-    Goto | Label => label: *const char;
+    None, Break, Continue => :void;
+    DoWhile, While => while_stmt: StmtWhile;
+    Expr, Return => expr: &Expr;
+    Goto, Label => label: *const char;
     Assign => assign: StmtAssign;
     Block => block: StmtList;
     Decl => decl: &Decl;

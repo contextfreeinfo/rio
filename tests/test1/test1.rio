@@ -99,17 +99,18 @@ fn test_loops() {
   // break;
   // continue;
   switch (0) {
-  case 1:
-    break;
-  default:
-    if (1) {
-      break;
+    1 => NULL;
+    else => {
+      if (1) {
+        // TODO Make no longer apply to switch!
+        break;
+      }
+      for (;;) {
+        continue;
+      }
+      // continue;
+      // break;
     }
-    for (;;) {
-      continue;
-    }
-    // continue;
-    // break;
   }
   while (0) {
   }
@@ -237,8 +238,7 @@ let a2: []int = {1, 2, 3, [10]=4};
 fn is_even(digit: int) -> int {
   let b = 0;
   switch (digit) {
-  case 0, 2, 4, 6, 8:
-    b = 1;
+    0, 2, 4, 6, 8 => b = 1;
   }
   return b;
 }
@@ -315,8 +315,8 @@ enum TypedEnum = int8 {
 @enum struct More {
   prob: float;
   union switch {
-    None | MoreNone => :void;
-    Happy | Sad => amount: float;
+    None, MoreNone => :void;
+    Happy, Sad => amount: float;
     Solemn => years: int;
     // TODO Support subaggregates on switch unions.
     Other => struct {
@@ -601,15 +601,16 @@ fn print_typeinfo(type: typeid) {
   print_type(type);
   printf(" size=%d align=%d", typeinfo.size, typeinfo.align);
   switch (typeinfo.kind) {
-  case TypeKind.Struct, TypeKind.Union:
-    printf(" %s={ ", typeinfo.kind == TypeKind.Struct ? "struct" : "union");
-    for (let i = 0; i < typeinfo.num_fields; i++) {
-      let field = typeinfo.fields[i];
-      printf("@offset(%d) %s: ", field.offset, field.name);
-      print_type(field.type);
-      printf("; ");
+    TypeKind.Struct, TypeKind.Union => {
+      printf(" %s={ ", typeinfo.kind == TypeKind.Struct ? "struct" : "union");
+      for (let i = 0; i < typeinfo.num_fields; i++) {
+        let field = typeinfo.fields[i];
+        printf("@offset(%d) %s: ", field.offset, field.name);
+        print_type(field.type);
+        printf("; ");
+      }
+      printf("}");
     }
-    printf("}");
   }
   printf(">");
 }

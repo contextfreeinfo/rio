@@ -1276,6 +1276,7 @@ rio_Stmt (*rio_parse_simple_stmt(void));
 rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos));
 
 struct rio_SwitchCasePattern {
+  bool is_default;
   rio_Expr (*start);
   rio_Expr (*end);
 };
@@ -4031,7 +4032,11 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
         rio_SwitchCase switch_case = stmt->switch_stmt.cases[i];
         for (size_t j = 0; (j) < (switch_case.num_patterns); (j)++) {
           rio_SwitchCasePattern pattern = switch_case.patterns[j];
-          if (pattern.end) {
+          if (pattern.is_default) {
+            has_default = true;
+            rio_genln();
+            rio_buf_printf(&(rio_gen_buf), "default:");
+          } else if (pattern.end) {
             rio_Val start_val = rio_get_resolved_val(pattern.start);
             rio_Val end_val = rio_get_resolved_val(pattern.end);
             if ((rio_is_char_lit(pattern.start)) && (rio_is_char_lit(pattern.end))) {
@@ -5494,9 +5499,11 @@ void rio_print_flags_usage(void) {
     char (format[256]) = {0};
     switch (flag.kind) {
     case (rio_FlagKind_Str): {
-      snprintf(format, sizeof(format), "%s <%s>", flag.name, (flag.arg_name ? flag.arg_name : (char const (*))("value")));
-      if (*(flag.ptr.s)) {
-        snprintf(note, sizeof(note), "(default: %s)", *(flag.ptr.s));
+      {
+        snprintf(format, sizeof(format), "%s <%s>", flag.name, (flag.arg_name ? flag.arg_name : (char const (*))("value")));
+        if (*(flag.ptr.s)) {
+          snprintf(note, sizeof(note), "(default: %s)", *(flag.ptr.s));
+        }
       }
       break;
     }
@@ -6129,47 +6136,65 @@ rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
 }
 
 rio_SwitchCasePattern rio_parse_switch_case_pattern(void) {
+  if (rio_match_keyword(rio_else_keyword)) {
+    return (rio_SwitchCasePattern){.is_default = true};
+  }
   rio_Expr (*start) = rio_parse_expr();
   rio_Expr (*end) = NULL;
   if (rio_match_token((rio_TokenKind_Ellipsis))) {
     end = rio_parse_expr();
   }
-  return (rio_SwitchCasePattern){start, end};
+  return (rio_SwitchCasePattern){false, start, end};
 }
 
 rio_SwitchCase rio_parse_stmt_switch_case(void) {
-  rio_SwitchCasePattern (*patterns) = NULL;
-  bool is_default = false;
-  bool is_first_case = true;
-  while ((rio_is_keyword(rio_case_keyword)) || (rio_is_keyword(rio_default_keyword))) {
-    if (rio_match_keyword(rio_case_keyword)) {
-      if (!(is_first_case)) {
-        rio_error(rio_token.pos, "Use comma-separated expressions to match multiple values with one case label");
-        is_first_case = false;
-      }
-      rio_SwitchCasePattern pattern = rio_parse_switch_case_pattern();
-      rio_buf_push((void (**))(&(patterns)), &(pattern), sizeof(pattern));
-      while (rio_match_token((rio_TokenKind_Comma))) {
-        pattern = rio_parse_switch_case_pattern();
+  if ((rio_is_keyword(rio_case_keyword)) || (rio_is_keyword(rio_default_keyword))) {
+    rio_SwitchCasePattern (*patterns) = NULL;
+    bool is_default = false;
+    bool is_first_case = true;
+    while ((rio_is_keyword(rio_case_keyword)) || (rio_is_keyword(rio_default_keyword))) {
+      if (rio_match_keyword(rio_case_keyword)) {
+        if (!(is_first_case)) {
+          rio_error(rio_token.pos, "Use comma-separated expressions to match multiple values with one case label");
+          is_first_case = false;
+        }
+        rio_SwitchCasePattern pattern = rio_parse_switch_case_pattern();
         rio_buf_push((void (**))(&(patterns)), &(pattern), sizeof(pattern));
+        while (rio_match_token((rio_TokenKind_Comma))) {
+          pattern = rio_parse_switch_case_pattern();
+          rio_buf_push((void (**))(&(patterns)), &(pattern), sizeof(pattern));
+        }
+      } else {
+        assert(rio_is_keyword(rio_default_keyword));
+        rio_next_token();
+        if (is_default) {
+          rio_error(rio_token.pos, "Duplicate default labels in same switch clause");
+        }
+        is_default = true;
       }
-    } else {
-      assert(rio_is_keyword(rio_default_keyword));
-      rio_next_token();
-      if (is_default) {
-        rio_error(rio_token.pos, "Duplicate default labels in same switch clause");
-      }
-      is_default = true;
+      rio_expect_token((rio_TokenKind_Colon));
     }
-    rio_expect_token((rio_TokenKind_Colon));
-  }
-  rio_SrcPos pos = rio_token.pos;
-  rio_Stmt (*(*stmts)) = {0};
-  while ((((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) && (!(rio_is_keyword(rio_case_keyword)))) && (!(rio_is_keyword(rio_default_keyword)))) {
+    rio_SrcPos pos = rio_token.pos;
+    rio_Stmt (*(*stmts)) = {0};
+    while ((((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) && (!(rio_is_keyword(rio_case_keyword)))) && (!(rio_is_keyword(rio_default_keyword)))) {
+      rio_Stmt (*stmt) = rio_parse_stmt();
+      rio_buf_push((void (**))(&(stmts)), &(stmt), sizeof(stmt));
+    }
+    return (rio_SwitchCase){patterns, rio_buf_len(patterns), is_default, rio_new_stmt_list(pos, stmts, rio_buf_len(stmts))};
+  } else {
+    rio_SwitchCasePattern (*patterns) = NULL;
+    bool is_default = {0};
+    rio_SwitchCasePattern pattern = rio_parse_switch_case_pattern();
+    rio_buf_push((void (**))(&(patterns)), &(pattern), sizeof(pattern));
+    while (rio_match_token((rio_TokenKind_Comma))) {
+      pattern = rio_parse_switch_case_pattern();
+      rio_buf_push((void (**))(&(patterns)), &(pattern), sizeof(pattern));
+    }
+    rio_expect_token((rio_TokenKind_Spear));
+    rio_SrcPos pos = rio_token.pos;
     rio_Stmt (*stmt) = rio_parse_stmt();
-    rio_buf_push((void (**))(&(stmts)), &(stmt), sizeof(stmt));
+    return (rio_SwitchCase){patterns, rio_buf_len(patterns), is_default, rio_new_stmt_list(pos, &(stmt), 1)};
   }
-  return (rio_SwitchCase){patterns, rio_buf_len(patterns), is_default, rio_new_stmt_list(pos, stmts, rio_buf_len(stmts))};
 }
 
 rio_Stmt (*rio_parse_stmt_switch(rio_SrcPos pos)) {
@@ -6363,7 +6388,7 @@ rio_AggregateItem (*rio_parse_switch_union(void)) {
     char const ((*(*kind_names))) = {0};
     char const ((*kind_name)) = rio_parse_name();
     rio_buf_push((void (**))(&(kind_names)), &(kind_name), sizeof(kind_name));
-    while (rio_match_token((rio_TokenKind_Or))) {
+    while (rio_match_token((rio_TokenKind_Comma))) {
       kind_name = rio_parse_name();
       rio_buf_push((void (**))(&(kind_names)), &(kind_name), sizeof(kind_name));
     }
@@ -7666,6 +7691,13 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
         rio_SwitchCase switch_case = stmt->switch_stmt.cases[i];
         for (size_t j = 0; (j) < (switch_case.num_patterns); (j)++) {
           rio_SwitchCasePattern pattern = switch_case.patterns[j];
+          if (pattern.is_default) {
+            if (has_default) {
+              rio_fatal_error(stmt->pos, "Switch statement has multiple default clauses");
+            }
+            has_default = true;
+            continue;
+          }
           rio_Expr (*start_expr) = pattern.start;
           rio_Operand start_operand = rio_resolve_const_expr(start_expr);
           if (!(rio_convert_operand(&(start_operand), operand.type))) {

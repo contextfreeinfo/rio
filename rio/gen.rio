@@ -794,7 +794,10 @@ fn gen_stmt(stmt: &Stmt) {
       let switch_case = stmt.switch_stmt.cases[i];
       for (let j: usize = 0; j < switch_case.num_patterns; j++) {
         let pattern = switch_case.patterns[j];
-        if (pattern.end) {
+        if (pattern.is_default) {
+          has_default = true;
+          genln(); buf_printf(&gen_buf, "default:");
+        } else if (pattern.end) {
           let start_val = get_resolved_val(pattern.start);
           let end_val = get_resolved_val(pattern.end);
           if (is_char_lit(pattern.start) && is_char_lit(pattern.end)) {
