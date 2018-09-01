@@ -144,26 +144,25 @@ fn print_flags_usage() {
     let note: [256]char;
     let format: [256]char;
     switch (flag.kind) {
-    case FlagKind.Str:
-      snprintf(format, sizeof(format), "%s <%s>", flag.name, flag.arg_name ? flag.arg_name : (:*const char)"value");
-      if (*flag.ptr.s) {
-        snprintf(note, sizeof(note), "(default: %s)", *flag.ptr.s);
-      }
-    case FlagKind.Enum: {
-      let end = format + sizeof(format);
-      let ptr = format;
-      ptr += snprintf(ptr, end - ptr, "%s <", flag.name);
-      for (let k = 0; k < flag.num_options; k++) {
-        ptr += snprintf(ptr, end - ptr, "%s%s", k == 0 ? "" : "|", flag.options[k]);
-        if (k == *flag.ptr.i) {
-          snprintf(note, sizeof(note), " (default: %s)", flag.options[k]);
+      Str => {
+        snprintf(format, sizeof(format), "%s <%s>", flag.name, flag.arg_name ? flag.arg_name : (:*const char)"value");
+        if (*flag.ptr.s) {
+          snprintf(note, sizeof(note), "(default: %s)", *flag.ptr.s);
         }
       }
-      snprintf(ptr, end - ptr, ">");
-    }
-    case FlagKind.Bool:
-    default:
-      snprintf(format, sizeof(format), "%s", flag.name);
+      Enum => {
+        let end = format + sizeof(format);
+        let ptr = format;
+        ptr += snprintf(ptr, end - ptr, "%s <", flag.name);
+        for (let k = 0; k < flag.num_options; k++) {
+          ptr += snprintf(ptr, end - ptr, "%s%s", k == 0 ? "" : "|", flag.options[k]);
+          if (k == *flag.ptr.i) {
+            snprintf(note, sizeof(note), " (default: %s)", flag.options[k]);
+          }
+        }
+        snprintf(ptr, end - ptr, ">");
+      }
+      Bool, default => snprintf(format, sizeof(format), "%s", flag.name);
     }
     printf(" -%-32s %s%s\n", format, flag.help ? flag.help : (:*const char)"", note);
   }
@@ -187,38 +186,37 @@ fn parse_flags(argc_ptr: &int, argv_ptr: &**const char) -> *const char {
         continue;
       }
       switch (flag.kind) {
-      case FlagKind.Bool:
-        *flag.ptr.b = true;
-      case FlagKind.Str:
-        if (i + 1 < argc) {
-          i++;
-          *flag.ptr.s = argv[i];
-        } else {
-          printf("No value argument after -%s\n", arg);
-        }
-      case FlagKind.Enum: {
-        let option: *const char;
-        if (i + 1 < argc) {
-          i++;
-          option = argv[i];
-        } else {
-          printf("No value after %s\n", arg);
-          break;
-        }
-        let found = false;
-        for (let k = 0; k < flag.num_options; k++) {
-          if (strcmp(flag.options[k], option) == 0) {
-            *flag.ptr.i = k;
-            found = true;
-            break;
+        Bool => *flag.ptr.b = true;
+        Str => {
+          if (i + 1 < argc) {
+            i++;
+            *flag.ptr.s = argv[i];
+          } else {
+            printf("No value argument after -%s\n", arg);
           }
         }
-        if (!found) {
-          printf("Invalid value '%s' for %s\n", option, arg);
+        Enum => {
+          let option: *const char;
+          if (i + 1 < argc) {
+            i++;
+            option = argv[i];
+          } else {
+            printf("No value after %s\n", arg);
+            break;
+          }
+          let found = false;
+          for (let k = 0; k < flag.num_options; k++) {
+            if (strcmp(flag.options[k], option) == 0) {
+              *flag.ptr.i = k;
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            printf("Invalid value '%s' for %s\n", option, arg);
+          }
         }
-      }
-      default:
-        printf("Unhandled flag kind\n");
+        default => printf("Unhandled flag kind\n");
       }
     } else {
       break;

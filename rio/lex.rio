@@ -613,6 +613,9 @@ fn scan_str() {
   token.str_val = str;
 }
 
+// These CASE macros are reminders of what the C code used to look like, in case
+// an acceptable macro implementation in rio comes along.
+
 // #define CASE1(c1, k1) \
 //   case c1: \
 //     token.kind = k1; \
@@ -648,243 +651,266 @@ fn next_token() {
   token.mod = 0;
   token.suffix = 0;
   switch (*stream) {
-  case ' ', '\n', '\r', '\t', '\v':
-    while (isspace(*stream)) {
-      if (*stream++ == '\n') {
-        line_start = stream;
-        token.pos.line++;
-      }
-    }
-    goto repeat;
-  case '\'':
-    scan_char();
-  case '"':
-    scan_str();
-  case '.':
-    if (isdigit(stream[1])) {
-      scan_float();
-    } else if (stream[1] == '.' && stream[2] == '.') {
-      token.kind = TokenKind.Ellipsis;
-      stream += 3;
-    } else {
-      token.kind = TokenKind.Dot;
-      stream++;
-    }
-  case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9': {
-    while (isdigit(*stream)) {
-      stream++;
-    }
-    let c = *stream;
-    stream = token.start;
-    if (c == '.' || tolower(c) == 'e') {
-      scan_float();
-    } else {
-      scan_int();
-    }
-  }
-  case 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j':
-  case 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't':
-  case 'u', 'v', 'w', 'x', 'y', 'z':
-  case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J':
-  case 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T':
-  case 'U', 'V', 'W', 'X', 'Y', 'Z':
-  case '_':
-    while (isalnum(*stream) || *stream == '_') {
-      stream++;
-    }
-    token.name = str_intern_range(token.start, stream);
-    token.kind = is_keyword_name(token.name) ? TokenKind.Keyword : TokenKind.Name;
-  case '<':
-    token.kind = TokenKind.Lt;
-    stream++;
-    if (*stream == '<') {
-      token.kind = TokenKind.Lshift;
-      stream++;
-      if (*stream == '=') {
-        token.kind = TokenKind.LshiftAssign;
-        stream++;
-      }
-    } else if (*stream == '=') {
-      token.kind = TokenKind.LtEq;
-      stream++;
-    }
-  case '>':
-    token.kind = TokenKind.Gt;
-    stream++;
-    if (*stream == '>') {
-      token.kind = TokenKind.Rshift;
-      stream++;
-      if (*stream == '=') {
-        token.kind = TokenKind.RshiftAssign;
-        stream++;
-      }
-    } else if (*stream == '=') {
-      token.kind = TokenKind.GtEq;
-      stream++;
-    }
-  case '/':
-    token.kind = TokenKind.Div;
-    stream++;
-    if (*stream == '=') {
-      token.kind = TokenKind.DivAssign;
-      stream++;
-    } else if (*stream == '/') {
-      stream++;
-      while (*stream && *stream != '\n') {
-        stream++;
-      }
-      goto repeat;
-    } else if (*stream == '*') {
-      stream++;
-      let level = 1;
-      while (*stream && level > 0) {
-        if (stream[0] == '/' && stream[1] == '*') {
-          level++;
-          stream += 2;
-        } else if (stream[0] == '*' && stream[1] == '/') {
-          level--;
-          stream += 2;
-        } else {
-          if (*stream == '\n') {
-            token.pos.line++;
-          }
-          stream++;
+    ' ', '\n', '\r', '\t', '\v' => {
+      while (isspace(*stream)) {
+        if (*stream++ == '\n') {
+          line_start = stream;
+          token.pos.line++;
         }
       }
       goto repeat;
     }
-  // CASE1 --
-  // TODO Could build a reverse mapping on these from token_kind_names, then
-  // TODO use that as a lookup.
-  case '\0':
-    token.kind = TokenKind.Eof;
-    stream++;
-  case '(':
-    token.kind = TokenKind.Lparen;
-    stream++;
-  case ')':
-    token.kind = TokenKind.Rparen;
-    stream++;
-  case '{':
-    token.kind = TokenKind.Lbrace;
-    stream++;
-  case '}':
-    token.kind = TokenKind.Rbrace;
-    stream++;
-  case '[':
-    token.kind = TokenKind.Lbracket;
-    stream++;
-  case ']':
-    token.kind = TokenKind.Rbracket;
-    stream++;
-  case ',':
-    token.kind = TokenKind.Comma;
-    stream++;
-  case '@':
-    token.kind = TokenKind.At;
-    stream++;
-  case '#':
-    token.kind = TokenKind.Pound;
-    stream++;
-  case '?':
-    token.kind = TokenKind.Question;
-    stream++;
-  case ';':
-    token.kind = TokenKind.Semicolon;
-    stream++;
-  case '~':
-    token.kind = TokenKind.Neg;
-    stream++;
-  // CASE2 --
-  case '!':
-    token.kind = TokenKind.Not;
-    stream++;
-    if (*stream == '=') {
-      token.kind = TokenKind.NotEq;
+    '\'' => scan_char();
+    '"' => scan_str();
+    '.' => {
+      if (isdigit(stream[1])) {
+        scan_float();
+      } else if (stream[1] == '.' && stream[2] == '.') {
+        token.kind = TokenKind.Ellipsis;
+        stream += 3;
+      } else {
+        token.kind = TokenKind.Dot;
+        stream++;
+      }
+    }
+    '0' ... '9' => {
+      while (isdigit(*stream)) {
+        stream++;
+      }
+      let c = *stream;
+      stream = token.start;
+      if (c == '.' || tolower(c) == 'e') {
+        scan_float();
+      } else {
+        scan_int();
+      }
+    }
+    'a' ... 'z', 'A' ... 'Z', '_' => {
+      while (isalnum(*stream) || *stream == '_') {
+        stream++;
+      }
+      token.name = str_intern_range(token.start, stream);
+      token.kind =
+        is_keyword_name(token.name) ? TokenKind.Keyword : TokenKind.Name;
+    }
+    '<' => {
+      token.kind = TokenKind.Lt;
+      stream++;
+      if (*stream == '<') {
+        token.kind = TokenKind.Lshift;
+        stream++;
+        if (*stream == '=') {
+          token.kind = TokenKind.LshiftAssign;
+          stream++;
+        }
+      } else if (*stream == '=') {
+        token.kind = TokenKind.LtEq;
+        stream++;
+      }
+    }
+    '>' => {
+      token.kind = TokenKind.Gt;
+      stream++;
+      if (*stream == '>') {
+        token.kind = TokenKind.Rshift;
+        stream++;
+        if (*stream == '=') {
+          token.kind = TokenKind.RshiftAssign;
+          stream++;
+        }
+      } else if (*stream == '=') {
+        token.kind = TokenKind.GtEq;
+        stream++;
+      }
+    }
+    '/' => {
+      token.kind = TokenKind.Div;
+      stream++;
+      if (*stream == '=') {
+        token.kind = TokenKind.DivAssign;
+        stream++;
+      } else if (*stream == '/') {
+        stream++;
+        while (*stream && *stream != '\n') {
+          stream++;
+        }
+        goto repeat;
+      } else if (*stream == '*') {
+        stream++;
+        let level = 1;
+        while (*stream && level > 0) {
+          if (stream[0] == '/' && stream[1] == '*') {
+            level++;
+            stream += 2;
+          } else if (stream[0] == '*' && stream[1] == '/') {
+            level--;
+            stream += 2;
+          } else {
+            if (*stream == '\n') {
+              token.pos.line++;
+            }
+            stream++;
+          }
+        }
+        goto repeat;
+      }
+    }
+    // CASE1 --
+    // TODO Could build a reverse mapping on these from token_kind_names, then
+    // TODO use that as a lookup.
+    '\0' => {
+      token.kind = TokenKind.Eof;
       stream++;
     }
-  case ':':
-    token.kind = TokenKind.Colon;
-    stream++;
-  case '=':
-    token.kind = TokenKind.Assign;
-    stream++;
-    if (*stream == '=') {
-      token.kind = TokenKind.Eq;
-      stream++;
-    } else if (*stream == '>') {
-      token.kind = TokenKind.Spear;
-      ++stream;
-    }
-  case '^':
-    token.kind = TokenKind.Xor;
-    stream++;
-    if (*stream == '=') {
-      token.kind = TokenKind.XorAssign;
+    '(' => {
+      token.kind = TokenKind.Lparen;
       stream++;
     }
-  case '*':
-    token.kind = TokenKind.Mul;
-    stream++;
-    if (*stream == '=') {
-      token.kind = TokenKind.MulAssign;
+    ')' => {
+      token.kind = TokenKind.Rparen;
       stream++;
     }
-  case '%':
-    token.kind = TokenKind.Mod;
-    stream++;
-    if (*stream == '=') {
-      token.kind = TokenKind.ModAssign;
+    '{' => {
+      token.kind = TokenKind.Lbrace;
       stream++;
     }
-  // CASE3 --
-  case '+':
-    token.kind = TokenKind.Add;
-    stream++;
-    if (*stream == '=') {
-      token.kind = TokenKind.AddAssign;
-      stream++;
-    } else if (*stream == '+') {
-      token.kind = TokenKind.Inc;
+    '}' => {
+      token.kind = TokenKind.Rbrace;
       stream++;
     }
-  case '-':
-    token.kind = TokenKind.Sub;
-    stream++;
-    if (*stream == '=') {
-      token.kind = TokenKind.SubAssign;
-      stream++;
-    } else if (*stream == '-') {
-      token.kind = TokenKind.Dec;
-      stream++;
-    } else if (*stream == '>') {
-      token.kind = TokenKind.Arrow;
+    '[' => {
+      token.kind = TokenKind.Lbracket;
       stream++;
     }
-  case '&':
-    token.kind = TokenKind.And;
-    stream++;
-    if (*stream == '=') {
-      token.kind = TokenKind.AndAssign;
-      stream++;
-    } else if (*stream == '&') {
-      token.kind = TokenKind.AndAnd;
+    ']' => {
+      token.kind = TokenKind.Rbracket;
       stream++;
     }
-  case '|':
-    token.kind = TokenKind.Or;
-    stream++;
-    if (*stream == '=') {
-      token.kind = TokenKind.OrAssign;
-      stream++;
-    } else if (*stream == '|') {
-      token.kind = TokenKind.OrOr;
+    ',' => {
+      token.kind = TokenKind.Comma;
       stream++;
     }
-  default:
-    error(token.pos, "Invalid '%c' token, skipping", *stream);
-    stream++;
-    goto repeat;
+    '@' => {
+      token.kind = TokenKind.At;
+      stream++;
+    }
+    '#' => {
+      token.kind = TokenKind.Pound;
+      stream++;
+    }
+    '?' => {
+      token.kind = TokenKind.Question;
+      stream++;
+    }
+    ';' => {
+      token.kind = TokenKind.Semicolon;
+      stream++;
+    }
+    '~' => {
+      token.kind = TokenKind.Neg;
+      stream++;
+    }
+    // CASE2 --
+    '!' => {
+      token.kind = TokenKind.Not;
+      stream++;
+      if (*stream == '=') {
+        token.kind = TokenKind.NotEq;
+        stream++;
+      }
+    }
+    ':' => {
+      token.kind = TokenKind.Colon;
+      stream++;
+    }
+    '=' => {
+      token.kind = TokenKind.Assign;
+      stream++;
+      if (*stream == '=') {
+        token.kind = TokenKind.Eq;
+        stream++;
+      } else if (*stream == '>') {
+        token.kind = TokenKind.Spear;
+        ++stream;
+      }
+    }
+    '^' => {
+      token.kind = TokenKind.Xor;
+      stream++;
+      if (*stream == '=') {
+        token.kind = TokenKind.XorAssign;
+        stream++;
+      }
+    }
+    '*' => {
+      token.kind = TokenKind.Mul;
+      stream++;
+      if (*stream == '=') {
+        token.kind = TokenKind.MulAssign;
+        stream++;
+      }
+    }
+    '%' => {
+      token.kind = TokenKind.Mod;
+      stream++;
+      if (*stream == '=') {
+        token.kind = TokenKind.ModAssign;
+        stream++;
+      }
+    }
+    // CASE3 --
+    '+' => {
+      token.kind = TokenKind.Add;
+      stream++;
+      if (*stream == '=') {
+        token.kind = TokenKind.AddAssign;
+        stream++;
+      } else if (*stream == '+') {
+        token.kind = TokenKind.Inc;
+        stream++;
+      }
+    }
+    '-' => {
+      token.kind = TokenKind.Sub;
+      stream++;
+      if (*stream == '=') {
+        token.kind = TokenKind.SubAssign;
+        stream++;
+      } else if (*stream == '-') {
+        token.kind = TokenKind.Dec;
+        stream++;
+      } else if (*stream == '>') {
+        token.kind = TokenKind.Arrow;
+        stream++;
+      }
+    }
+    '&' => {
+      token.kind = TokenKind.And;
+      stream++;
+      if (*stream == '=') {
+        token.kind = TokenKind.AndAssign;
+        stream++;
+      } else if (*stream == '&') {
+        token.kind = TokenKind.AndAnd;
+        stream++;
+      }
+    }
+    '|' => {
+      token.kind = TokenKind.Or;
+      stream++;
+      if (*stream == '=') {
+        token.kind = TokenKind.OrAssign;
+        stream++;
+      } else if (*stream == '|') {
+        token.kind = TokenKind.OrOr;
+        stream++;
+      }
+    }
+    default => {
+      error(token.pos, "Invalid '%c' token, skipping", *stream);
+      stream++;
+      goto repeat;
+    }
   }
   token.end = stream;
 }

@@ -99,17 +99,18 @@ fn test_loops() {
   // break;
   // continue;
   switch (0) {
-  case 1:
-    break;
-  default:
-    if (1) {
-      break;
+    1 => {}
+    default => {
+      if (1) {
+        // TODO Make no longer apply to switch!
+        break;
+      }
+      for (;;) {
+        continue;
+      }
+      // continue;
+      // break;
     }
-    for (;;) {
-      continue;
-    }
-    // continue;
-    // break;
   }
   while (0) {
   }
@@ -237,8 +238,7 @@ let a2: []int = {1, 2, 3, [10]=4};
 fn is_even(digit: int) -> int {
   let b = 0;
   switch (digit) {
-  case 0, 2, 4, 6, 8:
-    b = 1;
+    0, 2, 4, 6, 8 => b = 1;
   }
   return b;
 }
@@ -315,8 +315,8 @@ enum TypedEnum = int8 {
 @enum struct More {
   prob: float;
   union switch {
-    None | MoreNone => :void;
-    Happy | Sad => amount: float;
+    None, MoreNone => :void;
+    Happy, Sad => amount: float;
     Solemn => years: int;
     // TODO Support subaggregates on switch unions.
     Other => struct {
@@ -446,12 +446,10 @@ fn test_bool() {
 
 fn test_ctrl() -> int {
   switch (1) {
-  case 0:
-    return 0;
-  default:
-    return 1;
+    0 => return 0;
+    default => return 1;
   }
-//  return 0;
+  // return 0;
 }
 
 let j: const int;
@@ -537,12 +535,9 @@ fn test_cast() {
 
 fn print_any(any: Any) {
   switch (any.type) {
-  case typeof(int):
-    printf("%d", *(:*const int)any.ptr);
-  case typeof(float):
-    printf("%f", *(:*const float)any.ptr);
-  default:
-    printf("<unknown>");
+    typeof(int) => printf("%d", *(:*const int)any.ptr);
+    typeof(float) => printf("%f", *(:*const float)any.ptr);
+    default => printf("<unknown>");
   }
   printf(": ");
   print_type(any.type);
@@ -558,6 +553,8 @@ fn print_typeid(type: typeid) {
   printf("typeid(%d)", index);
 }
 
+const Ptr = 959595;
+
 fn print_type(type: typeid) {
   let typeinfo = get_typeinfo(type);
   if (!typeinfo) {
@@ -565,23 +562,31 @@ fn print_type(type: typeid) {
     return;
   }
   switch (typeinfo.kind) {
-  case TypeKind.Ptr:
-    print_type(typeinfo.base);
-    printf("*");
-  case TypeKind.Ref:
-    print_type(typeinfo.base);
-    printf("&");
-  case TypeKind.Const:
-    print_type(typeinfo.base);
-    printf(" const");
-  case TypeKind.Array:
-    print_type(typeinfo.base);
-    printf("[%d]", typeinfo.count);
-  default:
-    if (typeinfo.name) {
-      printf("%s", typeinfo.name);
-    } else {
-      print_typeid(type);
+    // U8 => printf("This shouldn't compile.");
+    // (U8) => printf("I hope this is unlikely???");
+    (Ptr) => printf("This is very unlikely.");
+    Ptr => {
+      print_type(typeinfo.base);
+      printf("*");
+    }
+    Ref => {
+      print_type(typeinfo.base);
+      printf("&");
+    }
+    Const => {
+      print_type(typeinfo.base);
+      printf(" const");
+    }
+    Array => {
+      print_type(typeinfo.base);
+      printf("[%d]", typeinfo.count);
+    }
+    default => {
+      if (typeinfo.name) {
+        printf("%s", typeinfo.name);
+      } else {
+        print_typeid(type);
+      }
     }
   }
 }
@@ -601,15 +606,16 @@ fn print_typeinfo(type: typeid) {
   print_type(type);
   printf(" size=%d align=%d", typeinfo.size, typeinfo.align);
   switch (typeinfo.kind) {
-  case TypeKind.Struct, TypeKind.Union:
-    printf(" %s={ ", typeinfo.kind == TypeKind.Struct ? "struct" : "union");
-    for (let i = 0; i < typeinfo.num_fields; i++) {
-      let field = typeinfo.fields[i];
-      printf("@offset(%d) %s: ", field.offset, field.name);
-      print_type(field.type);
-      printf("; ");
+    TypeKind.Struct, TypeKind.Union => {
+      printf(" %s={ ", typeinfo.kind == TypeKind.Struct ? "struct" : "union");
+      for (let i = 0; i < typeinfo.num_fields; i++) {
+        let field = typeinfo.fields[i];
+        printf("@offset(%d) %s: ", field.offset, field.name);
+        print_type(field.type);
+        printf("; ");
+      }
+      printf("}");
     }
-    printf("}");
   }
   printf(">");
 }
@@ -701,10 +707,8 @@ fn test_complete() {
   // x = 2;
   @complete
   switch (x) {
-  case 0:
-    y = 3;
-  case 1:
-    y = 4;
+    0 => y = 3;
+    1 ... 3 => y = 4;
   }
 }
 
