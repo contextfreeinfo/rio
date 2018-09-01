@@ -379,7 +379,7 @@ fn benchmark(n: int) {
   let r = 1;
   for (let i = 1; i <= n; i++) {
     r *= i;
-  }
+  } for;
 }
 
 fn va_test(x: int, ...) -> int {

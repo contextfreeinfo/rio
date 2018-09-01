@@ -300,6 +300,7 @@ struct Stmt {
     Init => init: StmtInit;
     Note => note: Note;
     Switch => switch_stmt: StmtSwitch;
+    Close => tag: Stmt.Kind;
   }
 }
 
@@ -771,6 +772,12 @@ fn new_stmt_continue(pos: SrcPos) -> &Stmt {
 fn new_stmt_block(pos: SrcPos, block: StmtList) -> &Stmt {
   let s = new_stmt(Stmt.Block, pos);
   s.block = block;
+  return s;
+}
+
+fn new_stmt_close(pos: SrcPos, tag: Stmt.Kind) -> &Stmt {
+  let s = new_stmt(Stmt.Close, pos);
+  s.tag = tag;
   return s;
 }
 

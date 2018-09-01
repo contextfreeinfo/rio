@@ -979,6 +979,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
     Block => {
       return resolve_stmt_block(stmt.block, ret_type, ctx);
     }
+    Close => return true;
     Note => {
       if (stmt.note.name == assert_name) {
         if (stmt.note.num_args != 1) {

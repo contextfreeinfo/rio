@@ -375,6 +375,8 @@ typedef int rio_Stmt_Kind;
 
 #define rio_Stmt_Switch ((rio_Stmt_Kind)((rio_Stmt_Note) + (1)))
 
+#define rio_Stmt_Close ((rio_Stmt_Kind)((rio_Stmt_Switch) + (1)))
+
 struct rio_Arena {
   char (*ptr);
   char (*end);
@@ -529,6 +531,8 @@ rio_Stmt (*rio_new_stmt_break(rio_SrcPos pos));
 rio_Stmt (*rio_new_stmt_continue(rio_SrcPos pos));
 
 rio_Stmt (*rio_new_stmt_block(rio_SrcPos pos, rio_StmtList block));
+
+rio_Stmt (*rio_new_stmt_close(rio_SrcPos pos, rio_Stmt_Kind tag));
 
 rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_StmtList then_block, rio_ElseIf (*elseifs), size_t num_elseifs, rio_StmtList else_block));
 
@@ -2218,6 +2222,7 @@ struct rio_Stmt {
     rio_StmtInit init;
     rio_Note note;
     rio_StmtSwitch switch_stmt;
+    rio_Stmt_Kind tag;
   };
 };
 
@@ -2737,6 +2742,12 @@ rio_Stmt (*rio_new_stmt_continue(rio_SrcPos pos)) {
 rio_Stmt (*rio_new_stmt_block(rio_SrcPos pos, rio_StmtList block)) {
   rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Block), pos);
   s->block = block;
+  return s;
+}
+
+rio_Stmt (*rio_new_stmt_close(rio_SrcPos pos, rio_Stmt_Kind tag)) {
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Close), pos);
+  s->tag = tag;
   return s;
 }
 
@@ -6077,14 +6088,26 @@ rio_Stmt (*rio_parse_stmt(void)) {
   rio_SrcPos pos = rio_token.pos;
   rio_Stmt (*stmt) = {0};
   if (rio_match_keyword(rio_if_keyword)) {
+    if (rio_match_token((rio_TokenKind_Semicolon))) {
+      return rio_new_stmt_close(pos, (rio_Stmt_If));
+    }
     stmt = rio_parse_stmt_if(pos);
   } else if (rio_match_keyword(rio_while_keyword)) {
+    if (rio_match_token((rio_TokenKind_Semicolon))) {
+      return rio_new_stmt_close(pos, (rio_Stmt_While));
+    }
     stmt = rio_parse_stmt_while(pos);
   } else if (rio_match_keyword(rio_do_keyword)) {
     stmt = rio_parse_stmt_do_while(pos);
   } else if (rio_match_keyword(rio_for_keyword)) {
+    if (rio_match_token((rio_TokenKind_Semicolon))) {
+      return rio_new_stmt_close(pos, (rio_Stmt_For));
+    }
     stmt = rio_parse_stmt_for(pos);
   } else if (rio_match_keyword(rio_switch_keyword)) {
+    if (rio_match_token((rio_TokenKind_Semicolon))) {
+      return rio_new_stmt_close(pos, (rio_Stmt_Switch));
+    }
     stmt = rio_parse_stmt_switch(pos);
   } else if (rio_is_token((rio_TokenKind_Lbrace))) {
     stmt = rio_new_stmt_block(pos, rio_parse_stmt_block());
@@ -7463,6 +7486,10 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
   }
   case rio_Stmt_Block: {
     return rio_resolve_stmt_block(stmt->block, ret_type, ctx);
+    break;
+  }
+  case rio_Stmt_Close: {
+    return true;
     break;
   }
   case rio_Stmt_Note: {

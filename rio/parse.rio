@@ -533,14 +533,26 @@ fn parse_stmt() -> &Stmt {
   let pos = token.pos;
   let stmt: &Stmt;
   if (match_keyword(if_keyword)) {
+    if (match_token(TokenKind.Semicolon)) {
+      return new_stmt_close(pos, Stmt.If);
+    }
     stmt = parse_stmt_if(pos);
   } else if (match_keyword(while_keyword)) {
+    if (match_token(TokenKind.Semicolon)) {
+      return new_stmt_close(pos, Stmt.While);
+    }
     stmt = parse_stmt_while(pos);
   } else if (match_keyword(do_keyword)) {
     stmt = parse_stmt_do_while(pos);
   } else if (match_keyword(for_keyword)) {
+    if (match_token(TokenKind.Semicolon)) {
+      return new_stmt_close(pos, Stmt.For);
+    }
     stmt = parse_stmt_for(pos);
   } else if (match_keyword(switch_keyword)) {
+    if (match_token(TokenKind.Semicolon)) {
+      return new_stmt_close(pos, Stmt.Switch);
+    }
     stmt = parse_stmt_switch(pos);
   } else if (is_token(TokenKind.Lbrace)) {
     stmt = new_stmt_block(pos, parse_stmt_block());
