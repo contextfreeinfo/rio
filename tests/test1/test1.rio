@@ -113,9 +113,9 @@ fn test_loops() {
     }
   }
   while (0) {
-  }
+  } while;
   for (let i = 0; i < 10; i++) {
-  }
+  } for;
   for (;;) {
     break;
   }
@@ -379,7 +379,7 @@ fn benchmark(n: int) {
   let r = 1;
   for (let i = 1; i <= n; i++) {
     r *= i;
-  }
+  } for;
 }
 
 fn va_test(x: int, ...) -> int {
@@ -538,7 +538,7 @@ fn print_any(any: Any) {
     typeof(int) => printf("%d", *(:*const int)any.ptr);
     typeof(float) => printf("%f", *(:*const float)any.ptr);
     default => printf("<unknown>");
-  }
+  } switch;
   printf(": ");
   print_type(any.type);
 }
@@ -586,9 +586,9 @@ fn print_type(type: typeid) {
         printf("%s", typeinfo.name);
       } else {
         print_typeid(type);
-      }
+      } if;
     }
-  }
+  } switch;
 }
 
 fn println_type(type: typeid) {

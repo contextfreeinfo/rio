@@ -888,8 +888,19 @@ fn resolve_cond_expr(expr: &Expr) {
 fn resolve_stmt_block(block: StmtList, ret_type: &Type, ctx: StmtCtx) -> bool {
   let scope = sym_enter();
   let returns = false;
+  let prev_stmt: &Stmt;
   for (let i: usize = 0; i < block.num_stmts; i++) {
-    returns = resolve_stmt(block.stmts[i], ret_type, ctx) || returns;
+    let stmt = block.stmts[i];
+    if (stmt.kind == Stmt.Close) {
+      if (stmt.tag != prev_stmt.kind) {
+        fatal_error(stmt.pos, "Non-matching close tag");
+        return false;
+      }
+      // Also doesn't return.
+    } else {
+      returns = resolve_stmt(stmt, ret_type, ctx) || returns;
+    }
+    prev_stmt = stmt;
   }
   sym_leave(scope);
   return returns;
@@ -978,6 +989,10 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
     }
     Block => {
       return resolve_stmt_block(stmt.block, ret_type, ctx);
+    }
+    Close => {
+      fatal_error(stmt.pos, "Illegal close tag");
+      return false;
     }
     Note => {
       if (stmt.note.name == assert_name) {
@@ -1249,7 +1264,7 @@ fn get_type_enum_decl(type: &Type) -> &DeclEnum {
     if (decl) {
       return &decl.enum_decl;
     }
-  }
+  } if;
   return NULL;
 }
 
@@ -1281,7 +1296,7 @@ fn resolve_enum_item(
         return item_operand;
       }
     }
-  }
+  } for;
   return operand_null;
 }
 
@@ -1328,8 +1343,8 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
         field_operand.type = type_const(field_operand.type);
       }
       return field_operand;
-    }
-  }
+    } if;
+  } for;
   fatal_error(expr.pos, "No field named '%s'", expr.field.name);
   return operand_null;
 }
@@ -1659,7 +1674,7 @@ fn resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, left
         fatal_error(pos, "Operands of %s must have scalar types", op_name);
       }
     }
-  }
+  } switch;
   return Operand {0};
 }
 
@@ -1706,7 +1721,7 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
         fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected %s", get_type_name(field_type));
       }
       index++;
-    }
+    } for;
   } else if (type.kind == CompilerTypeKind.Array) {
     // These were int, but can't be negative below.
     let index: usize = 0;
@@ -1727,7 +1742,7 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
           fatal_error(field.pos, "Field initializer index cannot be negative");
         }
         index = operand.val.i;
-      }
+      } if;
       if (type.num_elems && index >= (:int)type.num_elems) {
         fatal_error(field.pos, "Field initializer in array compound literal out of range");
       }
@@ -1736,7 +1751,7 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
       }
       max_index = max(max_index, index);
       index++;
-    }
+    } for;
     if (type.num_elems == 0) {
       type = type_array(type.base, max_index + 1);
     }
@@ -1752,7 +1767,7 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
         fatal_error(field.pos, "Invalid type in compound literal initializer. Expected %s, got %s", get_type_name(type), get_type_name(init.type));
       }
     }
-  }
+  } if;
   return operand_lvalue(is_const ? type_const(type) : type);
 }
 
@@ -1771,7 +1786,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
       set_resolved_sym(expr.call.expr, sym);
       return operand;
     }
-  }
+  } if;
   let function = resolve_expr_rvalue(expr.call.expr);
   if (function.type.kind != CompilerTypeKind.Func) {
     fatal_error(expr.pos, "Cannot call non-function value");
@@ -1792,7 +1807,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
     if (!convert_operand(&arg, param_type)) {
       fatal_error(expr.call.args[i].pos, "Invalid type in function call argument. Expected %s, got %s", get_type_name(param_type), get_type_name(arg.type));
     }
-  }
+  } for;
   for (let i: usize = num_params; i < expr.call.num_args; i++) {
     resolve_expr_rvalue(expr.call.args[i]);
   }
@@ -1962,7 +1977,7 @@ fn resolve_expr_int(expr: &Expr) -> Operand {
       }
       ULL => type = type_ullong;
     }
-  }
+  } if;
   cast_operand(&operand, type);
   return operand;
 }
@@ -2163,7 +2178,7 @@ fn add_package_decls(package: &Package) {
     } else {
       sym_global_decl(decl, NULL);
     }
-  }
+  } for;
 }
 
 fn is_package_dir(search_path: *const char, package_path: *const char) -> bool {
@@ -2208,7 +2223,7 @@ fn import_package(package_path: *const char) -> &Package {
     strcpy(package.full_path, full_path);
     add_package(package);
     compile_package(package);
-  }
+  } if;
   return package;
 }
 
@@ -2264,8 +2279,8 @@ fn process_package_imports(package: &Package) {
       let sym = sym_new(Sym.Package, sym_name, decl);
       sym.package = imported_package;
       sym_global_put(sym_name, sym);
-    }
-  }
+    } if;
+  } for;
 }
 
 fn parse_package(package: &Package) -> bool {
@@ -2298,7 +2313,7 @@ fn parse_package(package: &Package) -> bool {
     for (let i: usize = 0; i < file_decls.num_decls; i++) {
       buf_push((:*&void)&decls, &file_decls.decls[i], sizeof(file_decls.decls[i]));
     }
-  }
+  } for;
   package.decls = decls;
   package.num_decls = (:int)buf_len(decls);
   return package != NULL;
@@ -2349,6 +2364,6 @@ fn finalize_reachable_syms() {
       }
       prev_num_reachable = num_reachable;
       num_reachable = buf_len(reachable_syms);
-    }
-  }
+    } if;
+  } for;
 }

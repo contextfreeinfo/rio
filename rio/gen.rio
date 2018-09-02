@@ -175,8 +175,8 @@ fn gen_str(str: *const char, multiline: bool) {
         buf_printf(&gen_buf, "\\x%X", (:uchar)*str);
       }
       str++;
-    }
-  }
+    } if;
+  } while;
   buf_printf(&gen_buf, "\"");
   if (multiline) {
     gen_indent--;
@@ -194,7 +194,7 @@ fn gen_sync_pos(pos: SrcPos) {
       gen_str(pos.name, false);
     }
     gen_pos = pos;
-  }
+  } if;
 }
 
 fn cdecl_paren(str: *const char, c: char) -> *const char {
@@ -239,8 +239,8 @@ fn type_to_cdecl(type: &Type, str: *const char) -> *char {
             &result, "%s%s",
             i == 0 ? "" : ", ", type_to_cdecl(type.function.params[i], ""),
           );
-        }
-      }
+        } for;
+      } if;
       if (type.function.has_varargs) {
         buf_printf(&result, ", ...");
       }
@@ -280,7 +280,7 @@ fn get_gen_name_or_default(ptr: &const void, default_name: *const char) -> *cons
       name = default_name;
     }
     map_put(&gen_name_map, ptr, (:&void)name);
-  }
+  } if;
   return name;
 }
 
@@ -324,15 +324,15 @@ fn typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
           buf_printf(&result, "%s%s", i == 0 ? "" : ", ", typespec_to_cdecl(
             typespec.function.args[i], "",
           ));
-        }
-      }
+        } for;
+      } if;
       if (typespec.function.has_varargs) {
         buf_printf(&result, ", ...");
       }
       buf_printf(&result, ")");
       return typespec_to_cdecl(typespec.function.ret, result);
     }
-  }
+  } switch;
   return NULL;
 }
 
@@ -349,8 +349,8 @@ fn gen_func_decl(decl: &Decl) {
         buf_printf(&result, ", ");
       }
       buf_printf(&result, "%s", typespec_to_cdecl(param.type, param.name));
-    }
-  }
+    } for;
+  } if;
   if (decl.function.has_varargs) {
     buf_printf(&result, ", ...");
   }
@@ -389,7 +389,7 @@ fn gen_forward_decls() {
       }
       default => {}
     }
-  }
+  } for;
 }
 
 fn gen_aggregate_item(item: &AggregateItem) {
@@ -413,7 +413,7 @@ fn gen_aggregate_item(item: &AggregateItem) {
       buf_printf(
         &gen_buf, "%s%s;", prefix, typespec_to_cdecl(item.type, item.names[j]),
       );
-    }
+    } for;
   } else if (item.kind == AggregateItem.Subaggregate) {
     genln();
     buf_printf(
@@ -479,7 +479,7 @@ fn gen_expr_compound(expr: &Expr) {
       buf_printf(&gen_buf, "] = ");
     }
     gen_expr(field.init);
-  }
+  } for;
   if (expr.compound.num_fields == 0) {
     buf_printf(&gen_buf, "0");
   }
@@ -757,6 +757,7 @@ fn gen_stmt(stmt: &Stmt) {
         gen_stmt_block(stmt.block);
       }
     }
+    Close => {}
     Note => {
       if (stmt.note.name == assert_name) {
         genln(); buf_printf(&gen_buf, "assert(");
@@ -804,8 +805,8 @@ fn gen_stmt(stmt: &Stmt) {
           gen_indent--;
           genln();
           buf_printf(&gen_buf, "}");
-        }
-      }
+        } if;
+      } if;
       if (stmt.if_stmt.init) {
         gen_indent--;
         genln(); buf_printf(&gen_buf, "}");
@@ -879,7 +880,7 @@ fn gen_stmt(stmt: &Stmt) {
             gen_expr(pattern.start);
             buf_printf(&gen_buf, ":");
           }
-        }
+        } for;
         buf_printf(&gen_buf, " ");
         buf_printf(&gen_buf, "{");
         gen_indent++;
@@ -898,7 +899,7 @@ fn gen_stmt(stmt: &Stmt) {
         genln(); buf_printf(&gen_buf, "break;");
         gen_indent--;
         genln(); buf_printf(&gen_buf, "}");
-      }
+      } for;
       if (!has_default) {
         let note = get_stmt_note(stmt, complete_name);
         if (note) {
@@ -913,8 +914,8 @@ fn gen_stmt(stmt: &Stmt) {
           genln();
           buf_printf(&gen_buf, "break;");
           gen_indent--;
-        }
-      }
+        } if;
+      } if;
       genln(); buf_printf(&gen_buf, "}");
     }
     Label => {
@@ -1026,8 +1027,8 @@ fn gen_defs() {
         gen_expr(decl.var_decl.expr);
       }
       buf_printf(&gen_buf, ";");
-    }
-  }
+    } if;
+  } for;
 }
 
 let gen_foreign_headers_map: Map;
@@ -1129,9 +1130,9 @@ fn preprocess_package(package: &Package) {
         } else {
           fatal_error(decl.pos, "Unknown #foreign named argument '%s'", arg.name);
         }
-      }
-    }
-  }
+      } for;
+    } if;
+  } for;
 }
 
 fn preprocess_packages() {
@@ -1268,13 +1269,13 @@ fn gen_typeinfos() {
       } else {
         buf_printf(&gen_buf, "NULL, // No associated type");
       }
-    }
+    } for;
     gen_indent--;
     genln(); buf_printf(&gen_buf, "};");
     genln();
     genln(); buf_printf(&gen_buf, "int num_typeinfos = %d;", num_typeinfos);
     genln(); buf_printf(&gen_buf, "const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;");
-  }
+  } if;
 }
 
 fn gen_package_external_names() {
