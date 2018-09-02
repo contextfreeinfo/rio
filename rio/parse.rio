@@ -30,7 +30,7 @@ fn parse_type_func() -> &Typespec {
     if (!match_token(TokenKind.Comma)) {
       break;
     }
-  }
+  } while;
   expect_token(TokenKind.Rparen);
   let ret: &Typespec = NULL;
   if (match_token(TokenKind.Arrow)) {
@@ -107,7 +107,7 @@ fn parse_expr_compound_field() -> CompoundField {
     } else {
       return CompoundField {CompoundField.Default, pos, expr};
     }
-  }
+  } if;
 }
 
 fn parse_expr_compound(type: &Typespec) -> &Expr {
@@ -245,7 +245,7 @@ fn parse_expr_base() -> &Expr {
       next_token();
       expr = new_expr_modify(pos, op, true, expr);
     }
-  }
+  } while;
   return expr;
 }
 
@@ -399,7 +399,7 @@ fn parse_stmt_if(pos: SrcPos) -> &Stmt {
     let elseif_block: StmtList = parse_stmt_block();
     let elseif = ElseIf {elseif_cond, elseif_block};
     buf_push((:*&void)&elseifs, &elseif, sizeof(elseif));
-  }
+  } while;
   return new_stmt_if(pos, init, cond, then_block, elseifs, buf_len(elseifs), else_block);
 }
 
@@ -483,7 +483,7 @@ fn parse_stmt_for(pos: SrcPos) -> &Stmt {
         error(token.pos, "Init statements not allowed in for-statement's next clause");
       }
     }
-  }
+  } if;
   expect_token(TokenKind.Rparen);
   return new_stmt_for(pos, init, cond, next, parse_stmt_block());
 }
@@ -656,7 +656,7 @@ fn parse_decl_aggregate_item() -> AggregateItem {
       num_names = buf_len(names),
       type = type,
     };
-  }
+  } if;
 }
 
 let enum_tag_names = (:[]*const char) {"kind"};
@@ -691,15 +691,15 @@ fn parse_aggregate(
               return NULL;
             }
             enum_union = sub;
-          }
-        }
-      }
-    }
+          } if;
+        } if;
+      } if;
+    } while;
     expect_token(TokenKind.Rbrace);
     if (notes && get_note(notes, enum_keyword)) {
       has_enum = true;
     }
-  }
+  } if;
   // Check for enum union conditions.
   // TODO Change conditions for enum union. Like has a switch union.
   // TODO Then default to enum union.
@@ -741,7 +741,7 @@ fn parse_aggregate(
     // Create and attach union enum.
     // TODO Then use that elsewhere instead of having to recheck notes.
     build_enum_union_decl(enum_union, name);
-  }
+  } if;
   let result = new_aggregate(pos, kind, items, buf_len(items));
   if (enum_union) {
     // Remember this at top for easy access later.
@@ -795,7 +795,7 @@ fn parse_switch_union() -> *AggregateItem {
     item.kind_names = kind_names;
     item.num_kind_names = buf_len(kind_names);
     buf_push((:*&void)&items, &item, sizeof(item));
-  }
+  } while;
   expect_token(TokenKind.Rbrace);
   return items;
 }
@@ -822,9 +822,9 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
         return;
       }
       num_names = union_item.num_names;
-    }
+    } if;
     num_all_items += num_names;
-  }
+  } for;
   // Now build the enum items.
   let enum_items = (:*EnumItem)xmalloc(num_all_items * sizeof(EnumItem));
   let enum_item_index: usize = 0;
@@ -841,8 +841,8 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
       enum_items[enum_item_index++] = EnumItem {
         pos = union_item.pos, name = names[n], init = NULL,
       };
-    }
-  }
+    } for;
+  } for;
   // And add the new enum.
   let union_enum_decl = new_decl_enum(
     enum_union.pos, enum_type_name, NULL, enum_items, num_all_items,
@@ -936,7 +936,7 @@ fn parse_decl_func(pos: SrcPos) -> &Decl {
     if (!match_token(TokenKind.Comma)) {
       break;
     }
-  }
+  } while;
   expect_token(TokenKind.Rparen);
   let ret_type: &Typespec = NULL;
   if (match_token(TokenKind.Arrow)) {
@@ -987,7 +987,7 @@ fn parse_note() -> Note {
       buf_push((:*&void)&args, &arg, sizeof(arg));
     }
     expect_token(TokenKind.Rparen);
-  }
+  } if;
   return new_note(pos, name, args, buf_len(args));
 }
 
@@ -1045,10 +1045,10 @@ fn parse_decl_import(pos: SrcPos) -> &Decl {
         if (!match_token(TokenKind.Comma)) {
           break;
         }
-      }
-    }
+      } if;
+    } while;
     expect_token(TokenKind.Rbrace);
-  }
+  } if;
   return new_decl_import(pos, rename_name, is_relative, names, buf_len(names), import_all, items, buf_len(items));
 }
 

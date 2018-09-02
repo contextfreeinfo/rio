@@ -3926,6 +3926,9 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     break;
   }
+  case rio_Stmt_Close: {
+    break;
+  }
   case rio_Stmt_Note: {
     if ((stmt->note.name) == (rio_assert_name)) {
       rio_genln();
@@ -7381,8 +7384,18 @@ void rio_resolve_cond_expr(rio_Expr (*expr)) {
 bool rio_resolve_stmt_block(rio_StmtList block, rio_Type (*ret_type), rio_StmtCtx ctx) {
   rio_Sym (*scope) = rio_sym_enter();
   bool returns = false;
+  rio_Stmt (*prev_stmt) = {0};
   for (size_t i = 0; (i) < (block.num_stmts); (i)++) {
-    returns = (rio_resolve_stmt(block.stmts[i], ret_type, ctx)) || (returns);
+    rio_Stmt (*stmt) = block.stmts[i];
+    if ((stmt->kind) == ((rio_Stmt_Close))) {
+      if ((stmt->tag) != (prev_stmt->kind)) {
+        rio_fatal_error(stmt->pos, "Non-matching close tag");
+        return false;
+      }
+    } else {
+      returns = (rio_resolve_stmt(stmt, ret_type, ctx)) || (returns);
+    }
+    prev_stmt = stmt;
   }
   rio_sym_leave(scope);
   return returns;
@@ -7475,7 +7488,8 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     break;
   }
   case rio_Stmt_Close: {
-    return true;
+    rio_fatal_error(stmt->pos, "Illegal close tag");
+    return false;
     break;
   }
   case rio_Stmt_Note: {
