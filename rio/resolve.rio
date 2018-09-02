@@ -308,8 +308,8 @@ fn put_type_name(buf: **char, type: &Type) {
           put_type_name(buf, type.function.ret);
         }
       }
-    }
-  }
+    } switch;
+  } if;
 }
 
 fn get_type_name(type: &Type) -> *char {
@@ -394,7 +394,7 @@ fn is_convertible(operand: &Operand, dest: &Type) -> bool {
       } else {
         return src.base == type_void;
       }
-    }
+    } if;
   } else {
     return false;
   }
@@ -482,8 +482,8 @@ fn unify_arithmetic_operands(left: &Operand, right: &Operand) {
         cast_operand(left, type);
         cast_operand(right, type);
       }
-    }
-  }
+    } if;
+  } if;
   #assert(left.type == right.type);
 }
 
@@ -568,7 +568,7 @@ fn get_nested_type_sym(
       }
       default => {}
     }
-  }
+  } if;
   return NULL;
 }
 
@@ -633,7 +633,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         if (size <= 0) {
           fatal_error(typespec.num_elems.pos, "Non-positive array size");
         }
-      }
+      } if;
       result = type_array(resolve_typespec(typespec.base), size);
     }
     Func => {
@@ -644,7 +644,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
           fatal_error(typespec.pos, "Function parameter type cannot be void");
         }
         buf_push((:*&void)&args, &arg, sizeof(arg));
-      }
+      } for;
       let ret = type_void;
       if (typespec.function.ret) {
         ret = resolve_typespec(typespec.function.ret);
@@ -683,7 +683,7 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
       let type_field = TypeField {NULL, item_type};
       buf_push((:*&void)&fields, &type_field, sizeof(type_field));
     }
-  }
+  } for;
   if (!type) {
     type = type_incomplete(NULL);
     type.kind = CompilerTypeKind.Completing;
@@ -756,7 +756,7 @@ fn resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
       if (expr_type.kind == CompilerTypeKind.Array) {
         type = expr_type;
       }
-    }
+    } if;
   } else {
     #assert(expr);
     type = unqualify_type(resolve_expr(expr).type);
@@ -804,7 +804,7 @@ fn resolve_decl_func(decl: &Decl) -> &Type {
       fatal_error(decl.pos, "Function parameter type cannot be void");
     }
     buf_push((:*&void)&params, &param, sizeof(param));
-  }
+  } for;
   let ret_type = type_void;
   if (decl.function.ret_type) {
     ret_type = resolve_typespec(decl.function.ret_type);
@@ -869,7 +869,7 @@ fn resolve_labels() {
     if (label.defined && !label.referenced) {
       warning(label.pos, "Label '%s' defined but not referenced", label.name);
     }
-  }
+  } for;
   labels_end = labels;
 }
 
@@ -901,7 +901,7 @@ fn resolve_stmt_block(block: StmtList, ret_type: &Type, ctx: StmtCtx) -> bool {
       returns = resolve_stmt(stmt, ret_type, ctx) || returns;
     }
     prev_stmt = stmt;
-  }
+  } for;
   sym_leave(scope);
   return returns;
 }
@@ -1100,8 +1100,8 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
             if (end_operand.val.ll - start_operand.val.ll >= 256) {
               fatal_error(start_expr.pos, "Case range cannot span more than 256 values");
             }
-          }
-        }
+          } if;
+        } for;
         if (switch_case.block.num_stmts > 1) {
           let last_stmt = switch_case.block.stmts[switch_case.block.num_stmts - 1];
           if (last_stmt.kind == Stmt.Break) {
@@ -1152,7 +1152,7 @@ fn resolve_func_body(sym: &Sym) {
       param_type = type_ptr(param_type.base);
     }
     sym_push_var(param.name, param_type);
-  }
+  } for;
   let ret_type = resolve_typespec(decl.function.ret_type);
   #assert(!is_array_type(ret_type));
   let returns = resolve_stmt_block(decl.function.block, ret_type, StmtCtx {0});
@@ -1242,7 +1242,7 @@ fn try_resolve_package(expr: &Expr) -> &Package {
         return sym.package;
       }
     }
-  }
+  } if;
   return NULL;
 }
 
@@ -1278,7 +1278,7 @@ fn resolve_enum_item_or_const_expr(
       fatal_error(expr.pos, "No enum item named '%s'", expr.name);
       return operand_null;
     }
-  }
+  } if;
   return resolve_const_expr(expr);
 }
 
@@ -1295,7 +1295,7 @@ fn resolve_enum_item(
         let item_operand = operand_const(sym.type, sym.val);
         return item_operand;
       }
-    }
+    } if;
   } for;
   return operand_null;
 }
@@ -1321,7 +1321,7 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
     }
     fatal_error(expr.pos, "No item named '%s'", expr.field.name);
     return operand_null;
-  }
+  } if;
   let was_const_type = is_const_type(operand.type);
   let type = unqualify_type(operand.type);
   complete_type(type);
