@@ -606,7 +606,7 @@ fn print_typeinfo(type: typeid) {
   print_type(type);
   printf(" size=%d align=%d", typeinfo.size, typeinfo.align);
   switch (typeinfo.kind) {
-    TypeKind.Struct, TypeKind.Union => {
+    Struct, Union => {
       printf(" %s={ ", typeinfo.kind == TypeKind.Struct ? "struct" : "union");
       for (let i = 0; i < typeinfo.num_fields; i++) {
         let field = typeinfo.fields[i];
@@ -616,7 +616,7 @@ fn print_typeinfo(type: typeid) {
       }
       printf("}");
     }
-  }
+  } switch;
   printf(">");
 }
 

@@ -1271,8 +1271,8 @@ void test1_print_typeinfo(typeid type) {
   test1_print_type(type);
   printf(" size=%d align=%d", typeinfo->size, typeinfo->align);
   switch (typeinfo->kind) {
-  case (TypeKind_Struct):
-  case (TypeKind_Union): {
+  case TypeKind_Struct:
+  case TypeKind_Union: {
     printf(" %s={ ", ((typeinfo->kind) == ((TypeKind_Struct)) ? "struct" : "union"));
     for (int i = 0; (i) < (typeinfo->num_fields); (i)++) {
       TypeFieldInfo field = typeinfo->fields[i];
