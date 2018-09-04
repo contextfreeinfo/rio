@@ -57,6 +57,11 @@ struct S2 {
   s1: S1;
 }
 
+struct Slorce<Item> {
+  length: usize;
+  item: *Item;
+}
+
 fn test_packages() {
   subtest1_func1();
 }

@@ -580,29 +580,44 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
   switch (typespec.kind) {
     Name => {
       let sym: &Sym;
-      let package = current_package;
-      for (let i: usize = 0; i < typespec.num_names - 1; ++i) {
-        let scope = typespec.names[i];
-        let scope_sym = get_package_sym(package, scope);
-        if (!scope_sym) {
-          fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
-          return NULL;
-        }
-        if (scope_sym.kind == Sym.Type) {
-          package = NULL;
-          sym = get_nested_type_sym(
-            scope_sym, typespec.num_names - i - 1, typespec.names + i + 1,
-          );
-          break;
-        } else if (scope_sym.kind != Sym.Package) {
-          fatal_error(typespec.pos, "%s must denote a type or a package", scope);
-          return NULL;
-        }
-        package = scope_sym.package;
+      let name: *const char;
+      if (typespec.num_names == 1) {
+        // See if it's a type parameter.
+        // TODO Also allow locally defined types, so support num_names > 1.
+        name = typespec.names[0];
+        sym = sym_get_local(name);
+        // if (sym) {
+        //   fatal_error(typespec.pos, "Totally found it for reals: %s\n", typespec.names[0]);
+        //   return NULL;
+        // }
       }
-      let name = typespec.names[typespec.num_names - 1];
-      if (package) {
-        sym = get_package_sym(package, name);
+      if (!sym) {
+        let package = current_package;
+        for (let i: usize = 0; i < typespec.num_names - 1; ++i) {
+          let scope = typespec.names[i];
+          let scope_sym = get_package_sym(package, scope);
+          if (!scope_sym) {
+            fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
+            return NULL;
+          }
+          if (scope_sym.kind == Sym.Type) {
+            package = NULL;
+            sym = get_nested_type_sym(
+              scope_sym, typespec.num_names - i - 1, typespec.names + i + 1,
+            );
+            break;
+          } else if (scope_sym.kind != Sym.Package) {
+            fatal_error(
+              typespec.pos, "%s must denote a type or a package", scope,
+            );
+            return NULL;
+          }
+          package = scope_sym.package;
+        }
+        name = typespec.names[typespec.num_names - 1];
+        if (package) {
+          sym = get_package_sym(package, name);
+        }
       }
       if (!sym) {
         // TODO Report full type string here, not just final.
@@ -665,6 +680,17 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
 
 fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   let fields: *TypeField;
+  let scope = sym_enter();
+  if (type && type.sym && type.sym.decl && type.sym.decl.type_params.length) {
+    let params = type.sym.decl.type_params;
+    printf("Has %lu type params!\n", params.length);
+    for (let i: usize = 0; i < params.length; ++i) {
+      let param = &params.items[i];
+      // TODO What type for unspecified???
+      printf("Pushing %s\n", param.name);
+      sym_push_var(param.name, NULL);
+    }
+  }
   for (let i: usize = 0; i < aggregate.num_items; i++) {
     let item = aggregate.items[i];
     if (item.kind == AggregateItem.Field) {
@@ -700,6 +726,7 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   if (has_duplicate_fields(type)) {
     fatal_error(aggregate.pos, "Duplicate fields");
   }
+  sym_leave(scope);
   return type;
 }
 
@@ -1792,6 +1819,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
     fatal_error(expr.pos, "Cannot call non-function value");
   }
   let num_params: usize = function.type.function.num_params;
+  // TODO Default args go here.
   if (expr.call.num_args < num_params) {
     fatal_error(expr.pos, "Function call with too few arguments");
   }

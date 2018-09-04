@@ -50,6 +50,14 @@ struct FuncParam {
   pos: SrcPos;
   name: *const char;
   type: &Typespec;
+  default_value: &Expr;
+}
+
+struct TypeParam {
+  pos: SrcPos;
+  name: *const char;
+  type: &Typespec;
+  default_val: &Typespec;
 }
 
 struct AggregateItem {
@@ -95,11 +103,17 @@ struct Aggregate {
   union_enum_decl: &Decl;
 }
 
+struct TypeParamSlice {
+  length: usize;
+  items: *TypeParam;
+}
+
 struct Decl {
   pos: SrcPos;
   name: *const char;
   notes: Notes;
   is_incomplete: bool;
+  type_params: TypeParamSlice;
   union switch {
     None => :void;
     Note => note: Note;
@@ -505,9 +519,18 @@ fn new_aggregate(
   return aggregate;
 }
 
-fn new_decl_aggregate(pos: SrcPos, kind: Decl.Kind, name: *const char, aggregate: &Aggregate) -> &Decl {
+fn new_decl_aggregate(
+  pos: SrcPos, kind: Decl.Kind, name: *const char, params: TypeParamSlice,
+  aggregate: &Aggregate,
+) -> &Decl {
   #assert(kind == Decl.Struct || kind == Decl.Union);
   let d = new_decl(kind, pos, name);
+  if (params.length) {
+    d.type_params.length = params.length;
+    d.type_params.items =
+      ast_dup(params.items, params.length * sizeof(*params.items));
+    buf_free((:*&void)&params.items);
+  }
   d.aggregate = aggregate;
   return d;
 }

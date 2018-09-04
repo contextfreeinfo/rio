@@ -853,16 +853,27 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
 fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
   #assert(kind == Decl.Struct || kind == Decl.Union);
   let name = parse_name();
-  let aggregate_kind = kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
+  let aggregate_kind =
+    kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
+  let params: TypeParamSlice;
+  if (match_token(TokenKind.Lt)) {
+    while (!match_token(TokenKind.Gt)) {
+      let param_name = parse_name();
+      // TODO Type constraints and defaults.
+      let param = TypeParam{pos = token.pos, name = param_name};
+      buf_push((:*&void)&params.items, &param, sizeof(param));
+    }
+    params.length = buf_len(params.items);
+  }
   if (match_token(TokenKind.Semicolon)) {
     let decl = new_decl_aggregate(
-      pos, kind, name, new_aggregate(pos, aggregate_kind, NULL, 0),
+      pos, kind, name, params, new_aggregate(pos, aggregate_kind, NULL, 0),
     );
     decl.is_incomplete = true;
     return decl;
   } else {
     return new_decl_aggregate(
-      pos, kind, name, parse_aggregate(aggregate_kind, name, notes),
+      pos, kind, name, params, parse_aggregate(aggregate_kind, name, notes),
     );
   }
 }
@@ -910,6 +921,7 @@ fn parse_decl_typedef(pos: SrcPos) -> &Decl {
 fn parse_decl_func_param() -> FuncParam {
   let pos = token.pos;
   let name = parse_name();
+  // TODO Default args.
   expect_token(TokenKind.Colon);
   let type = parse_type();
   return FuncParam {pos, name, type};
@@ -950,7 +962,9 @@ fn parse_decl_func(pos: SrcPos) -> &Decl {
     block = parse_stmt_block();
     is_incomplete = false;
   }
-  let decl = new_decl_func(pos, name, params, buf_len(params), ret_type, has_varargs, block);
+  let decl = new_decl_func(
+    pos, name, params, buf_len(params), ret_type, has_varargs, block,
+  );
   decl.is_incomplete = is_incomplete;
   return decl;
 }
