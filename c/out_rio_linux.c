@@ -1497,6 +1497,8 @@ rio_Sym (*rio_sym_get(char const ((*name))));
 
 bool rio_sym_push_var(char const ((*name)), rio_Type (*type));
 
+bool rio_sym_push_local(rio_Sym_Kind kind, char const ((*name)), rio_Type (*type));
+
 rio_Sym (*rio_sym_enter(void));
 
 void rio_sym_leave(rio_Sym (*sym));
@@ -6713,13 +6715,17 @@ rio_Sym (*rio_sym_get(char const ((*name)))) {
 }
 
 bool rio_sym_push_var(char const ((*name)), rio_Type (*type)) {
+  return rio_sym_push_local((rio_Sym_Var), name, type);
+}
+
+bool rio_sym_push_local(rio_Sym_Kind kind, char const ((*name)), rio_Type (*type)) {
   if (rio_sym_get_local(name)) {
     return false;
   }
   if ((rio_local_syms_end) == ((rio_local_syms) + (rio_MAX_LOCAL_SYMS))) {
     rio_fatal("Too many local symbols");
   }
-  *((rio_local_syms_end)++) = (rio_Sym){.kind = (rio_Sym_Var), .name = name, .state = (rio_SymState_Resolved), .type = type};
+  *((rio_local_syms_end)++) = (rio_Sym){.kind = kind, .name = name, .state = (rio_SymState_Resolved), .type = type};
   return true;
 }
 
@@ -7223,11 +7229,10 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
   rio_Sym (*scope) = rio_sym_enter();
   if ((((type) && (type->sym)) && (type->sym->decl)) && (type->sym->decl->type_params.length)) {
     rio_TypeParamSlice params = type->sym->decl->type_params;
-    printf("Has %lu type params!\n", params.length);
     for (size_t i = 0; (i) < (params.length); ++(i)) {
       rio_TypeParam (*param) = &(params.items[i]);
-      printf("Pushing %s\n", param->name);
-      rio_sym_push_var(param->name, NULL);
+      rio_Type (*constraint) = rio_type_void;
+      rio_sym_push_local((rio_Sym_Type), param->name, constraint);
     }
   }
   for (size_t i = 0; (i) < (aggregate->num_items); (i)++) {

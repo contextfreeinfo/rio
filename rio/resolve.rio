@@ -140,6 +140,10 @@ fn sym_get(name: *const char) -> &Sym {
 }
 
 fn sym_push_var(name: *const char, type: &Type) -> bool {
+  return sym_push_local(Sym.Var, name, type);
+}
+
+fn sym_push_local(kind: Sym.Kind, name: *const char, type: &Type) -> bool {
   if (sym_get_local(name)) {
     return false;
   }
@@ -147,7 +151,7 @@ fn sym_push_var(name: *const char, type: &Type) -> bool {
     fatal("Too many local symbols");
   }
   *local_syms_end++ = Sym {
-    kind = Sym.Var,
+    kind = kind,
     name = name,
     state = SymState.Resolved,
     type = type,
@@ -683,12 +687,10 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   let scope = sym_enter();
   if (type && type.sym && type.sym.decl && type.sym.decl.type_params.length) {
     let params = type.sym.decl.type_params;
-    printf("Has %lu type params!\n", params.length);
     for (let i: usize = 0; i < params.length; ++i) {
       let param = &params.items[i];
-      // TODO What type for unspecified???
-      printf("Pushing %s\n", param.name);
-      sym_push_var(param.name, NULL);
+      let constraint = type_void;
+      sym_push_local(Sym.Type, param.name, constraint);
     }
   }
   for (let i: usize = 0; i < aggregate.num_items; i++) {

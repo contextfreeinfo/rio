@@ -62,6 +62,9 @@ struct Slorce<Item> {
   item: *Item;
 }
 
+// Should be unresolved here.
+// let item: Item;
+
 fn test_packages() {
   subtest1_func1();
 }
