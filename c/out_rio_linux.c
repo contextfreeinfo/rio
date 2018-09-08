@@ -1873,6 +1873,8 @@ void rio_register_typeid(rio_Type (*type));
 
 rio_Type (*rio_type_alloc(TypeKind kind));
 
+bool rio_is_generic_type(rio_Type (*type));
+
 bool rio_is_ptr_type(rio_Type (*type));
 
 bool rio_is_ptr_star_type(rio_Type (*type));
@@ -3577,6 +3579,9 @@ void rio_gen_forward_decls(void) {
     if (rio_is_decl_foreign(decl)) {
       continue;
     }
+    if (decl->type_params.length) {
+      continue;
+    }
     switch (decl->kind) {
     case rio_Decl_Struct:
     case rio_Decl_Union: {
@@ -3628,7 +3633,7 @@ void rio_gen_aggregate_items(rio_Aggregate (*aggregate)) {
 
 void rio_gen_aggregate(rio_Decl (*decl)) {
   assert(((decl->kind) == ((rio_Decl_Struct))) || ((decl->kind) == ((rio_Decl_Union))));
-  if (decl->is_incomplete) {
+  if ((decl->is_incomplete) || (decl->type_params.length)) {
     return;
   }
   rio_genln();
@@ -4372,7 +4377,10 @@ void rio_gen_typeinfo_fields(rio_Type (*type)) {
     rio_gen_str(field.name, false);
     rio_buf_printf(&(rio_gen_buf), ", .type = ");
     rio_gen_typeid(field.type);
-    rio_buf_printf(&(rio_gen_buf), ", .offset = offsetof(%s, %s)},", rio_get_gen_name(type->sym), field.name);
+    if (!(rio_is_generic_type(type))) {
+      rio_buf_printf(&(rio_gen_buf), ", .offset = offsetof(%s, %s)", rio_get_gen_name(type->sym), field.name);
+    }
+    rio_buf_printf(&(rio_gen_buf), "},");
   }
   (rio_gen_indent)--;
 }
@@ -7331,8 +7339,12 @@ rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (
     rio_set_resolved_expected_type(expr, type);
   }
   rio_complete_type(type);
-  if ((type->size) == (0)) {
-    rio_fatal_error(pos, "Cannot declare variable of size 0");
+  if (!(type->size)) {
+    if (rio_is_generic_type(type)) {
+      rio_fatal_error(pos, "Cannot declare variable of generic type");
+    } else {
+      rio_fatal_error(pos, "Cannot declare variable of size 0");
+    }
   }
   return type;
 }
@@ -9498,6 +9510,10 @@ rio_Type (*rio_type_alloc(TypeKind kind)) {
   return type;
 }
 
+bool rio_is_generic_type(rio_Type (*type)) {
+  return ((type->sym) && (type->sym->decl)) && (type->sym->decl->type_params.length);
+}
+
 bool rio_is_ptr_type(rio_Type (*type)) {
   return ((type->kind) == ((rio_CompilerTypeKind_Ptr))) || ((type->kind) == ((rio_CompilerTypeKind_Ref)));
 }
@@ -9780,6 +9796,9 @@ void rio_type_complete_struct(rio_Type (*type), rio_TypeField (*fields), size_t 
     nonmodifiable = (it->type->nonmodifiable) || (nonmodifiable);
   }
   type->size = rio_align_up(type->size, type->align);
+  if (rio_is_generic_type(type)) {
+    type->size = 0;
+  }
   type->aggregate.fields = new_fields;
   type->aggregate.num_fields = rio_buf_len(new_fields);
   type->nonmodifiable = nonmodifiable;

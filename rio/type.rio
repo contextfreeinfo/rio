@@ -114,6 +114,10 @@ fn type_alloc(kind: TypeKind) -> &Type {
   return type;
 }
 
+fn is_generic_type(type: &Type) -> bool {
+  return type.sym && type.sym.decl && type.sym.decl.type_params.length;
+}
+
 fn is_ptr_type(type: &Type) -> bool {
   return type.kind == CompilerTypeKind.Ptr || type.kind == CompilerTypeKind.Ref;
 }
@@ -396,6 +400,9 @@ fn type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
     nonmodifiable = it.type.nonmodifiable || nonmodifiable;
   }
   type.size = align_up(type.size, type.align);
+  if (is_generic_type(type)) {
+    type.size = 0;
+  }
   type.aggregate.fields = new_fields;
   type.aggregate.num_fields = buf_len(new_fields);
   type.nonmodifiable = nonmodifiable;

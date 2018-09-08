@@ -57,11 +57,6 @@ struct S2 {
   s1: S1;
 }
 
-struct Slorce<Item> {
-  length: usize;
-  item: *Item;
-}
-
 // Should be unresolved here.
 // let item: Item;
 
@@ -870,6 +865,18 @@ fn test_type_path() {
   let t3: my_time_t = time(NULL);
 }
 
+struct Slorce<Item> {
+  length: usize;
+  item: *Item;
+}
+
+// Should be unresolved here.
+// let item: Item;
+
+fn test_generics() {
+  // let slorce: Slorce;
+}
+
 fn main(argc: int, argv: **char) -> int {
   if (argv == 0) {
     printf("argv is null\n");
@@ -902,6 +909,7 @@ fn main(argc: int, argv: **char) -> int {
   test_typeinfo();
   test_reachable();
   test_type_path();
+  test_generics();
   // gc();
   return 0;
 }

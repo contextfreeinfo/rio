@@ -796,8 +796,12 @@ fn resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
     set_resolved_expected_type(expr, type);
   }
   complete_type(type);
-  if (type.size == 0) {
-    fatal_error(pos, "Cannot declare variable of size 0");
+  if (!type.size) {
+    if (is_generic_type(type)) {
+      fatal_error(pos, "Cannot declare variable of generic type");
+    } else {
+      fatal_error(pos, "Cannot declare variable of size 0");
+    }
   }
   return type;
 }

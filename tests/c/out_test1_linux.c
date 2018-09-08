@@ -227,6 +227,8 @@ void test1_test_reachable(void);
 
 void test1_test_type_path(void);
 
+void test1_test_generics(void);
+
 struct TypeFieldInfo {
   char const ((*name));
   typeid type;
@@ -568,20 +570,20 @@ const TypeInfo *typeinfo_table[273] = {
   [137] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [99]), .align = alignof(char [99]), .base = TYPEID(3, TypeKind_Char, char), .count = 99},
   [138] = NULL, // No associated type
   [139] = NULL, // No associated type
-  [140] = NULL, // No associated type
+  [140] = NULL, // Function
   [141] = NULL, // Function
   [142] = NULL, // Function
   [143] = NULL, // Function
   [144] = NULL, // Function
-  [145] = NULL, // Function
-  [146] = &(TypeInfo){TypeKind_Array, .size = sizeof(int [11]), .align = alignof(int [11]), .base = TYPEID(8, TypeKind_Int, int), .count = 11},
+  [145] = &(TypeInfo){TypeKind_Array, .size = sizeof(int [11]), .align = alignof(int [11]), .base = TYPEID(8, TypeKind_Int, int), .count = 11},
+  [146] = NULL, // Function
   [147] = NULL, // Function
-  [148] = NULL, // Function
+  [148] = NULL, // No associated type
   [149] = NULL, // No associated type
-  [150] = NULL, // No associated type
+  [150] = NULL, // Function
   [151] = NULL, // Function
   [152] = NULL, // Function
-  [153] = NULL, // Function
+  [153] = NULL, // No associated type
   [154] = NULL, // Function
   [155] = NULL, // Function
   [156] = NULL, // Function
@@ -738,6 +740,7 @@ int main(int argc, char (*(*argv))) {
   test1_test_typeinfo();
   test1_test_reachable();
   test1_test_type_path();
+  test1_test_generics();
   return 0;
 }
 
@@ -1151,6 +1154,9 @@ void test1_test_type_path(void) {
   long t1 = time(NULL);
   time_t t2 = time(NULL);
   test1_my_time_t t3 = time(NULL);
+}
+
+void test1_test_generics(void) {
 }
 
 int test1_subtest1_func1(void) {
