@@ -223,7 +223,8 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
       get_decl_note(decl, foreign_name) ||
       get_decl_note(decl, unscoped_name);
     let name = sym ? sym.name : str_intern("int");
-    let enum_typespec = new_typespec_name(decl.pos, &name, 1);
+    let enum_typespec =
+      new_typespec_name(decl.pos, &TypespecName{name = name}, 1);
     let prev_item_name: *const char = NULL;
     let prev_scoped_name: *const char = NULL;
     for (let i: usize = 0; i < decl.enum_decl.num_items; i++) {
@@ -555,7 +556,7 @@ fn resolve_expected_expr_rvalue(expr: &Expr, expected_type: &Type) -> Operand {
 }
 
 fn get_nested_type_sym(
-  scope_sym: &Sym, num_names: usize, names: **const char,
+  scope_sym: &Sym, num_names: usize, names: *TypespecName,
 ) -> &Sym {
   // Just check for simple union enum Kind for now, but go more general later.
   // TODO Build generic subtype collection for each (aggregate?) type.
@@ -563,7 +564,7 @@ fn get_nested_type_sym(
     switch (scope_sym.decl.kind) {
       Struct, Union => {
         if (scope_sym.decl.aggregate.union_enum_decl) {
-          if (num_names == 1 && !strcmp(names[0], "Kind")) {
+          if (num_names == 1 && !strcmp(names[0].name, "Kind")) {
             let enum_decl = scope_sym.decl.aggregate.union_enum_decl.enum_decl;
             let sym = resolve_name(build_scoped_name(enum_decl.scope, "Kind"));
             return sym;
@@ -588,7 +589,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       if (typespec.num_names == 1) {
         // See if it's a type parameter.
         // TODO Also allow locally defined types, so support num_names > 1.
-        name = typespec.names[0];
+        name = typespec.names[0].name;
         sym = sym_get_local(name);
         // if (sym) {
         //   fatal_error(typespec.pos, "Totally found it for reals: %s\n", typespec.names[0]);
@@ -598,7 +599,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       if (!sym) {
         let package = current_package;
         for (let i: usize = 0; i < typespec.num_names - 1; ++i) {
-          let scope = typespec.names[i];
+          let scope = typespec.names[i].name;
           let scope_sym = get_package_sym(package, scope);
           if (!scope_sym) {
             fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
@@ -618,7 +619,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
           }
           package = scope_sym.package;
         }
-        name = typespec.names[typespec.num_names - 1];
+        name = typespec.names[typespec.num_names - 1].name;
         if (package) {
           sym = get_package_sym(package, name);
         }
@@ -798,7 +799,7 @@ fn resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
   complete_type(type);
   if (!type.size) {
     if (is_generic_type(type)) {
-      fatal_error(pos, "Cannot declare variable of generic type");
+      fatal_error(pos, "Cannot declare variable of raw generic type");
     } else {
       fatal_error(pos, "Cannot declare variable of size 0");
     }

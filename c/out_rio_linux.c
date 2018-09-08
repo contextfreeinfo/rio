@@ -92,6 +92,9 @@ typedef struct TypeFieldInfo TypeFieldInfo;
 typedef struct Any Any;
 typedef struct rio_TypespecFunc rio_TypespecFunc;
 typedef struct rio_Typespec rio_Typespec;
+typedef struct rio_TypeArgSlice rio_TypeArgSlice;
+typedef struct rio_TypespecName rio_TypespecName;
+typedef struct rio_TypeArg rio_TypeArg;
 typedef struct rio_TypeParam rio_TypeParam;
 typedef struct rio_ImportItem rio_ImportItem;
 typedef struct rio_Aggregate rio_Aggregate;
@@ -422,7 +425,7 @@ rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Stmt (*(*stmts)), size_t num_
 
 rio_Typespec (*rio_new_typespec(rio_Typespec_Kind kind, rio_SrcPos pos));
 
-rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, char const ((*(*names))), size_t num_names));
+rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, rio_TypespecName (*names), size_t num_names));
 
 rio_Typespec (*rio_new_typespec_ptr(rio_SrcPos pos, rio_Typespec (*base), bool is_owned));
 
@@ -1221,6 +1224,8 @@ rio_Typespec (*rio_parse_type_func_param(void));
 
 rio_Typespec (*rio_parse_type_func(void));
 
+void rio_parse_type_args(void);
+
 rio_Typespec (*rio_parse_type_base(void));
 
 rio_Typespec (*rio_parse_type(void));
@@ -1579,7 +1584,7 @@ rio_Operand rio_resolve_expr_rvalue(rio_Expr (*expr));
 
 rio_Operand rio_resolve_expected_expr_rvalue(rio_Expr (*expr), rio_Type (*expected_type));
 
-rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, char const ((*(*names)))));
+rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, rio_TypespecName (*names)));
 
 rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec)));
 
@@ -1986,12 +1991,27 @@ struct rio_Typespec {
   union {
     // void;
     struct {
-      char const ((*(*names)));
+      rio_TypespecName (*names);
       size_t num_names;
     };
     rio_TypespecFunc function;
     rio_Expr (*num_elems);
   };
+};
+
+struct rio_TypeArgSlice {
+  size_t length;
+  rio_TypeArg (*items);
+};
+
+struct rio_TypespecName {
+  char const ((*name));
+  rio_TypeArgSlice type_args;
+};
+
+struct rio_TypeArg {
+  rio_SrcPos pos;
+  rio_Typespec (*val);
 };
 
 struct rio_TypeParam {
@@ -2380,7 +2400,7 @@ rio_Typespec (*rio_new_typespec(rio_Typespec_Kind kind, rio_SrcPos pos)) {
   return t;
 }
 
-rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, char const ((*(*names))), size_t num_names)) {
+rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, rio_TypespecName (*names), size_t num_names)) {
   rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Name), pos);
   t->names = rio_ast_dup(names, (num_names) * (sizeof(*(names))));
   t->num_names = num_names;
@@ -5627,14 +5647,27 @@ rio_Typespec (*rio_parse_type_func(void)) {
   return rio_new_typespec_func(pos, args, rio_buf_len(args), ret, has_varargs);
 }
 
+void rio_parse_type_args(void) {
+  if (rio_match_token((rio_TokenKind_Lt))) {
+    rio_parse_type();
+    while (rio_match_token((rio_TokenKind_Comma))) {
+      rio_parse_type();
+    }
+    rio_expect_token((rio_TokenKind_Gt));
+  }
+}
+
 rio_Typespec (*rio_parse_type_base(void)) {
   if (rio_is_token((rio_TokenKind_Name))) {
     rio_SrcPos pos = rio_token.pos;
-    char const ((*(*names))) = {0};
-    rio_buf_push((void (**))(&(names)), &(rio_token.name), sizeof(rio_token.name));
+    rio_TypespecName (*names) = {0};
+    rio_TypespecName first_name = {.name = rio_token.name};
+    rio_buf_push((void (**))(&(names)), &(first_name), sizeof(first_name));
     rio_next_token();
+    rio_parse_type_args();
     while (rio_match_token((rio_TokenKind_Dot))) {
-      char const ((*name)) = rio_parse_name();
+      rio_TypespecName name = {.name = rio_parse_name()};
+      rio_parse_type_args();
       rio_buf_push((void (**))(&(names)), &(name), sizeof(name));
     }
     rio_Typespec (*result) = rio_new_typespec_name(pos, names, rio_buf_len(names));
@@ -5735,7 +5768,8 @@ rio_Expr (*rio_parse_expr_operand(void)) {
     char const ((*name)) = rio_token.name;
     rio_next_token();
     if (rio_is_token((rio_TokenKind_Lbrace))) {
-      return rio_parse_expr_compound(rio_new_typespec_name(pos, &(name), 1));
+      rio_TypespecName typespec_name = {.name = name};
+      return rio_parse_expr_compound(rio_new_typespec_name(pos, &(typespec_name), 1));
     } else {
       return rio_new_expr_name(pos, name);
     }
@@ -6275,7 +6309,7 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
       rio_enum_tag_name_interned = true;
     }
     char const ((*tag_type_name)) = rio_build_scoped_name(name, "Kind");
-    rio_AggregateItem tag_item = {.pos = pos, .kind = (rio_AggregateItem_Field), .names = rio_enum_tag_names, .num_names = 1, .type = rio_new_typespec_name(pos, &(tag_type_name), 1)};
+    rio_AggregateItem tag_item = {.pos = pos, .kind = (rio_AggregateItem_Field), .names = rio_enum_tag_names, .num_names = 1, .type = rio_new_typespec_name(pos, &((rio_TypespecName){.name = tag_type_name}), 1)};
     rio_buf_unshift((void (**))(&(items)), &(tag_item), sizeof(tag_item));
     rio_build_enum_union_decl(enum_union, name);
   }
@@ -6303,7 +6337,7 @@ rio_AggregateItem (*rio_parse_switch_union(void)) {
     rio_AggregateItem item = {0};
     if (rio_match_token((rio_TokenKind_Colon))) {
       rio_Typespec (*type) = rio_parse_type();
-      if (!(((((type->kind) == ((rio_Typespec_Name))) && ((type->num_names) == (1))) && ((type->names[0]) == (rio_void_name))))) {
+      if (!(((((type->kind) == ((rio_Typespec_Name))) && ((type->num_names) == (1))) && ((type->names[0].name) == (rio_void_name))))) {
         rio_fatal_error(rio_token.pos, "Anonymous switch fields can only be void");
         return NULL;
       }
@@ -6796,7 +6830,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
   } else if ((decl->kind) == ((rio_Decl_Enum))) {
     int unscoped = ((!(decl->name)) || (rio_get_decl_note(decl, rio_foreign_name))) || (rio_get_decl_note(decl, rio_unscoped_name));
     char const ((*name)) = (sym ? sym->name : rio_str_intern("int"));
-    rio_Typespec (*enum_typespec) = rio_new_typespec_name(decl->pos, &(name), 1);
+    rio_Typespec (*enum_typespec) = rio_new_typespec_name(decl->pos, &((rio_TypespecName){.name = name}), 1);
     char const ((*prev_item_name)) = NULL;
     char const ((*prev_scoped_name)) = NULL;
     for (size_t i = 0; (i) < (decl->enum_decl.num_items); (i)++) {
@@ -7103,13 +7137,13 @@ rio_Operand rio_resolve_expected_expr_rvalue(rio_Expr (*expr), rio_Type (*expect
   return rio_operand_decay(rio_resolve_expected_expr(expr, expected_type));
 }
 
-rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, char const ((*(*names))))) {
+rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, rio_TypespecName (*names))) {
   if (scope_sym->decl) {
     switch (scope_sym->decl->kind) {
     case rio_Decl_Struct:
     case rio_Decl_Union: {
       if (scope_sym->decl->aggregate->union_enum_decl) {
-        if (((num_names) == (1)) && (!(strcmp(names[0], "Kind")))) {
+        if (((num_names) == (1)) && (!(strcmp(names[0].name, "Kind")))) {
           rio_DeclEnum enum_decl = scope_sym->decl->aggregate->union_enum_decl->enum_decl;
           rio_Sym (*sym) = rio_resolve_name(rio_build_scoped_name(enum_decl.scope, "Kind"));
           return sym;
@@ -7135,13 +7169,13 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     rio_Sym (*sym) = {0};
     char const ((*name)) = {0};
     if ((typespec->num_names) == (1)) {
-      name = typespec->names[0];
+      name = typespec->names[0].name;
       sym = rio_sym_get_local(name);
     }
     if (!(sym)) {
       rio_Package (*package) = rio_current_package;
       for (size_t i = 0; (i) < ((typespec->num_names) - (1)); ++(i)) {
-        char const ((*scope)) = typespec->names[i];
+        char const ((*scope)) = typespec->names[i].name;
         rio_Sym (*scope_sym) = rio_get_package_sym(package, scope);
         if (!(scope_sym)) {
           rio_fatal_error(typespec->pos, "Unresolved scope \'%s\'", scope);
@@ -7157,7 +7191,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
         }
         package = scope_sym->package;
       }
-      name = typespec->names[(typespec->num_names) - (1)];
+      name = typespec->names[(typespec->num_names) - (1)].name;
       if (package) {
         sym = rio_get_package_sym(package, name);
       }
@@ -7341,7 +7375,7 @@ rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (
   rio_complete_type(type);
   if (!(type->size)) {
     if (rio_is_generic_type(type)) {
-      rio_fatal_error(pos, "Cannot declare variable of generic type");
+      rio_fatal_error(pos, "Cannot declare variable of raw generic type");
     } else {
       rio_fatal_error(pos, "Cannot declare variable of size 0");
     }

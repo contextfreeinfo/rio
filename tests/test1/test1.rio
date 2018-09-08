@@ -874,7 +874,7 @@ struct Slorce<Item> {
 // let item: Item;
 
 fn test_generics() {
-  // let slorce: Slorce;
+  let slorce: Slorce<int>;
 }
 
 fn main(argc: int, argv: **char) -> int {
