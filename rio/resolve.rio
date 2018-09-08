@@ -577,6 +577,13 @@ fn get_nested_type_sym(
   return NULL;
 }
 
+fn resolve_generic_typespec_instance(
+  sym: &Sym, type_args: TypeArgSlice,
+) -> &Sym {
+  printf("----> Handle type args!\n");
+  return sym;
+}
+
 fn resolve_typespec(typespec: &Typespec) -> &Type {
   if (!typespec) {
     return type_void;
@@ -586,10 +593,12 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
     Name => {
       let sym: &Sym;
       let name: *const char;
+      let typespec_name: &TypespecName;
       if (typespec.num_names == 1) {
         // See if it's a type parameter.
         // TODO Also allow locally defined types, so support num_names > 1.
-        name = typespec.names[0].name;
+        typespec_name = &typespec.names[0];
+        name = typespec_name.name;
         sym = sym_get_local(name);
         // if (sym) {
         //   fatal_error(typespec.pos, "Totally found it for reals: %s\n", typespec.names[0]);
@@ -606,6 +615,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
             return NULL;
           }
           if (scope_sym.kind == Sym.Type) {
+            // TODO Check type args before continuing!
             package = NULL;
             sym = get_nested_type_sym(
               scope_sym, typespec.num_names - i - 1, typespec.names + i + 1,
@@ -618,12 +628,13 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
             return NULL;
           }
           package = scope_sym.package;
-        }
-        name = typespec.names[typespec.num_names - 1].name;
+        } for;
+        typespec_name = &typespec.names[typespec.num_names - 1];
+        name = typespec_name.name;
         if (package) {
           sym = get_package_sym(package, name);
         }
-      }
+      } if;
       if (!sym) {
         // TODO Report full type string here, not just final.
         fatal_error(typespec.pos, "Unresolved type name '%s'", name);
@@ -634,8 +645,13 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         fatal_error(typespec.pos, "%s must denote a type", name);
         return NULL;
       }
+      // Resolve the outer sym.
       resolve_sym(sym);
       set_resolved_sym(typespec, sym);
+      // And maybe go deeper before done.
+      if (typespec_name.type_args.length) {
+        sym = resolve_generic_typespec_instance(sym, typespec_name.type_args);
+      }
       result = sym.type;
     }
     Const => result = type_const(resolve_typespec(typespec.base));

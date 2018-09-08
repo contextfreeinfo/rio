@@ -39,29 +39,28 @@ fn parse_type_func() -> &Typespec {
   return new_typespec_func(pos, args, buf_len(args), ret, has_varargs);
 }
 
-fn parse_type_args() {
+fn parse_type_args() -> TypeArgSlice {
+  let args: *TypeArg;
   if (match_token(TokenKind.Lt)) {
-    // TODO Something with these.
-    parse_type();
-    while (match_token(TokenKind.Comma)) {
-      parse_type();
-    }
+    do {
+      buf_push((:*&void)&args, parse_type(), sizeof(*args));
+    } while (match_token(TokenKind.Comma));
     expect_token(TokenKind.Gt);
   }
+  return TypeArgSlice{items = args, length = buf_len(args)};
 }
 
 fn parse_type_base() -> &Typespec {
   if (is_token(TokenKind.Name)) {
     let pos = token.pos;
     let names: *TypespecName;
-    // let names: **const char;
-    let first_name = TypespecName{name = token.name};
-    buf_push((:*&void)&names, &first_name, sizeof(first_name));
     next_token();
-    parse_type_args();
+    let first_name =
+      TypespecName{name = token.name, type_args = parse_type_args()};
+    buf_push((:*&void)&names, &first_name, sizeof(first_name));
     while (match_token(TokenKind.Dot)) {
-      let name = TypespecName{name = parse_name()};
-      parse_type_args();
+      let name =
+        TypespecName{name = parse_name(), type_args = parse_type_args()};
       buf_push((:*&void)&names, &name, sizeof(name));
     }
     let result = new_typespec_name(pos, names, buf_len(names));
