@@ -56,7 +56,7 @@ fn add_package(package: &Package) {
   if (old_package != package) {
     #assert(!old_package);
     map_put(&package_map, package.path, package);
-    buf_push((:*&void)&package_list, &package, sizeof(package));
+    buf_push((:&&void)&package_list, &package, sizeof(package));
   }
 }
 
@@ -179,7 +179,7 @@ fn sym_global_put(name: *const char, sym: &Sym) {
     fatal_error(pos, "Duplicate definition of global symbol '%s'.", name);
   }
   map_put(&current_package.syms_map, name, sym);
-  buf_push((:*&void)&current_package.syms, &sym, sizeof(sym));
+  buf_push((:&&void)&current_package.syms, &sym, sizeof(sym));
 }
 
 fn sym_global_type(name: *const char, type: &Type) -> &Sym {
@@ -196,7 +196,7 @@ fn build_scoped_name(space: *const char, name: *const char) -> *const char {
   let scoped_name_buf: *char;
   buf_printf(&scoped_name_buf, "%s_%s", space, name);
   let scoped_name = str_intern(scoped_name_buf);
-  buf_free((:*&void)&scoped_name_buf);
+  buf_free((:&&void)&scoped_name_buf);
   return scoped_name;
 }
 
@@ -643,7 +643,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         if (arg == type_void) {
           fatal_error(typespec.pos, "Function parameter type cannot be void");
         }
-        buf_push((:*&void)&args, &arg, sizeof(arg));
+        buf_push((:&&void)&args, &arg, sizeof(arg));
       } for;
       let ret = type_void;
       if (typespec.function.ret) {
@@ -675,13 +675,13 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
       // }
       for (let j: usize = 0; j < item.num_names; j++) {
         let type_field = TypeField {item.names[j], item_type};
-        buf_push((:*&void)&fields, &type_field, sizeof(type_field));
+        buf_push((:&&void)&fields, &type_field, sizeof(type_field));
       }
     } else {
       #assert(item.kind == AggregateItem.Subaggregate);
       let item_type = complete_aggregate(NULL, item.subaggregate);
       let type_field = TypeField {NULL, item_type};
-      buf_push((:*&void)&fields, &type_field, sizeof(type_field));
+      buf_push((:&&void)&fields, &type_field, sizeof(type_field));
     }
   } for;
   if (!type) {
@@ -719,7 +719,7 @@ fn complete_type(type: &Type) {
   type.kind = CompilerTypeKind.Completing;
   #assert(decl.kind == Decl.Struct || decl.kind == Decl.Union);
   complete_aggregate(type, decl.aggregate);
-  buf_push((:*&void)&sorted_syms, &type.sym, sizeof(type.sym));
+  buf_push((:&&void)&sorted_syms, &type.sym, sizeof(type.sym));
   leave_package(old_package);
 }
 
@@ -803,7 +803,7 @@ fn resolve_decl_func(decl: &Decl) -> &Type {
     if (param == type_void) {
       fatal_error(decl.pos, "Function parameter type cannot be void");
     }
-    buf_push((:*&void)&params, &param, sizeof(param));
+    buf_push((:&&void)&params, &param, sizeof(param));
   } for;
   let ret_type = type_void;
   if (decl.function.ret_type) {
@@ -1174,7 +1174,7 @@ fn resolve_sym(sym: &Sym) {
   #assert(sym.state == SymState.Unresolved);
   #assert(!sym.reachable);
   if (!is_local_sym(sym)) {
-    buf_push((:*&void)&reachable_syms, &sym, sizeof(sym));
+    buf_push((:&&void)&reachable_syms, &sym, sizeof(sym));
     sym.reachable = reachable_phase;
   }
   sym.state = SymState.Resolving;
@@ -1204,7 +1204,7 @@ fn resolve_sym(sym: &Sym) {
   leave_package(old_package);
   sym.state = SymState.Resolved;
   if (decl.is_incomplete || (decl.kind != Decl.Struct && decl.kind != Decl.Union)) {
-    buf_push((:*&void)&sorted_syms, &sym, sizeof(sym));
+    buf_push((:&&void)&sorted_syms, &sym, sizeof(sym));
   }
 }
 
@@ -2270,7 +2270,7 @@ fn process_package_imports(package: &Package) {
       if (!imported_package) {
         fatal_error(decl.pos, "Failed to import package '%s'", path_buf);
       }
-      buf_free((:*&void)&path_buf);
+      buf_free((:&&void)&path_buf);
       import_package_symbols(decl, imported_package);
       if (decl.import_decl.import_all) {
         import_all_package_symbols(imported_package);
@@ -2311,7 +2311,7 @@ fn parse_package(package: &Package) -> bool {
     init_stream(str_intern(path), code);
     let file_decls: *Decls = parse_decls();
     for (let i: usize = 0; i < file_decls.num_decls; i++) {
-      buf_push((:*&void)&decls, &file_decls.decls[i], sizeof(file_decls.decls[i]));
+      buf_push((:&&void)&decls, &file_decls.decls[i], sizeof(file_decls.decls[i]));
     }
   } for;
   package.decls = decls;

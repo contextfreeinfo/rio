@@ -372,7 +372,7 @@ fn add_type_fields(fields: &*TypeField, type: &Type, offset: usize) {
   for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
     let field = &type.aggregate.fields[i];
     let new_field = TypeField {field.name, field.type, field.offset + offset};
-    buf_push((:*&void)fields, &new_field, sizeof(new_field));
+    buf_push((:&&void)fields, &new_field, sizeof(new_field));
   }
 }
 
@@ -387,7 +387,7 @@ fn type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
     #assert(is_pow2(type_alignof(it.type)));
     if (it.name) {
       it.offset = type.size;
-      buf_push((:*&void)&new_fields, it, sizeof(*it));
+      buf_push((:&&void)&new_fields, it, sizeof(*it));
     } else {
       add_type_fields(&new_fields, it.type, type.size);
     }
@@ -414,7 +414,7 @@ fn type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
       if (*it.name) {
         // A non-void-switch field.
         it.offset = type.size;
-        buf_push((:*&void)&new_fields, it, sizeof(*it));
+        buf_push((:&&void)&new_fields, it, sizeof(*it));
       }
     } else {
       add_type_fields(&new_fields, it.type, 0);

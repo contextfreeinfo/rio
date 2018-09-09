@@ -499,7 +499,7 @@ fn new_aggregate(
   aggregate.items = ast_dup(items, num_items * sizeof(*items));
   if (items) {
     // This is safe for our usage, but how to define generally?
-    buf_free((:*&void)&items);
+    buf_free((:&&void)&items);
   }
   aggregate.num_items = num_items;
   return aggregate;

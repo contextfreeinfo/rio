@@ -5647,6 +5647,9 @@ rio_Typespec (*rio_parse_type(void)) {
     type = rio_new_typespec_array(pos, rio_parse_type(), size);
   } else if (rio_match_token((rio_TokenKind_And))) {
     type = rio_new_typespec_ref(pos, rio_parse_type(), false);
+  } else if (rio_match_token((rio_TokenKind_AndAnd))) {
+    type = rio_new_typespec_ref(pos, rio_parse_type(), false);
+    type = rio_new_typespec_ref(pos, type, false);
   } else if (rio_match_token((rio_TokenKind_Mul))) {
     type = rio_new_typespec_ptr(pos, rio_parse_type(), false);
   } else if (rio_match_keyword(rio_const_keyword)) {
