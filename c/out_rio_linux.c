@@ -1591,7 +1591,7 @@ rio_Operand rio_resolve_expected_expr_rvalue(rio_Expr (*expr), rio_Type (*expect
 
 rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, rio_TypespecName (*names)));
 
-rio_Sym (*rio_resolve_generic_typespec_instance(rio_Sym (*sym), rio_TypeArgSlice type_args));
+rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), rio_TypeArgSlice type_args));
 
 rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec)));
 
@@ -5653,7 +5653,8 @@ rio_TypeArgSlice rio_parse_type_args(void) {
   rio_TypeArg (*args) = {0};
   if (rio_match_token((rio_TokenKind_Lt))) {
     do {
-      rio_buf_push((void (**))(&(args)), rio_parse_type(), sizeof(*(args)));
+      rio_TypeArg type_arg = {.pos = rio_token.pos, .val = rio_parse_type()};
+      rio_buf_push((void (**))(&(args)), &(type_arg), sizeof(*(args)));
     } while (rio_match_token((rio_TokenKind_Comma)));
     rio_expect_token((rio_TokenKind_Gt));
   }
@@ -7160,8 +7161,19 @@ rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, rio_Ty
   return NULL;
 }
 
-rio_Sym (*rio_resolve_generic_typespec_instance(rio_Sym (*sym), rio_TypeArgSlice type_args)) {
-  printf("----> Handle type args!\n");
+rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), rio_TypeArgSlice type_args)) {
+  if ((sym->decl) && (sym->decl->name)) {
+    printf("----> Handle type args for %s\n", sym->decl->name);
+    for (size_t i = 0; (i) < (type_args.length); ++(i)) {
+      rio_Typespec (*arg_typespec) = type_args.items[i].val;
+      rio_Type (*arg_type) = rio_resolve_typespec(arg_typespec);
+      char (*arg_name) = rio_get_type_name(arg_type);
+      printf("  Type arg: %s\n", arg_name);
+    }
+  } else {
+    rio_fatal_error(pos, "Undeclared generic type");
+    return NULL;
+  }
   return sym;
 }
 
@@ -7216,7 +7228,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     rio_resolve_sym(sym);
     rio_set_resolved_sym(typespec, sym);
     if (typespec_name->type_args.length) {
-      sym = rio_resolve_generic_typespec_instance(sym, typespec_name->type_args);
+      sym = rio_resolve_generic_typespec_instance(typespec->pos, sym, typespec_name->type_args);
     }
     result = sym->type;
     break;

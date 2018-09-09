@@ -43,7 +43,8 @@ fn parse_type_args() -> TypeArgSlice {
   let args: *TypeArg;
   if (match_token(TokenKind.Lt)) {
     do {
-      buf_push((:*&void)&args, parse_type(), sizeof(*args));
+      let type_arg = TypeArg{pos = token.pos, val = parse_type()};
+      buf_push((:*&void)&args, &type_arg, sizeof(*args));
     } while (match_token(TokenKind.Comma));
     expect_token(TokenKind.Gt);
   }

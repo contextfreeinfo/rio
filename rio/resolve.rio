@@ -578,9 +578,21 @@ fn get_nested_type_sym(
 }
 
 fn resolve_generic_typespec_instance(
-  sym: &Sym, type_args: TypeArgSlice,
+  pos: SrcPos, sym: &Sym, type_args: TypeArgSlice,
 ) -> &Sym {
-  printf("----> Handle type args!\n");
+  if (sym.decl && sym.decl.name) {
+    // build_scoped_name(sym.decl.name)
+    printf("----> Handle type args for %s\n", sym.decl.name);
+    for (let i: usize = 0; i < type_args.length; ++i) {
+      let arg_typespec = type_args.items[i].val;
+      let arg_type = resolve_typespec(arg_typespec);
+      let arg_name = get_type_name(arg_type);
+      printf("  Type arg: %s\n", arg_name);
+    }
+  } else {
+    fatal_error(pos, "Undeclared generic type");
+    return NULL;
+  }
   return sym;
 }
 
@@ -650,7 +662,9 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       set_resolved_sym(typespec, sym);
       // And maybe go deeper before done.
       if (typespec_name.type_args.length) {
-        sym = resolve_generic_typespec_instance(sym, typespec_name.type_args);
+        sym = resolve_generic_typespec_instance(
+          typespec.pos, sym, typespec_name.type_args,
+        );
       }
       result = sym.type;
     }
