@@ -6818,23 +6818,23 @@ void rio_put_type_name(char (*(*buf)), rio_Type (*type)) {
       break;
     }
     case rio_CompilerTypeKind_Const: {
+      rio_buf_printf(buf, "const ");
       rio_put_type_name(buf, type->base);
-      rio_buf_printf(buf, " const");
       break;
     }
     case rio_CompilerTypeKind_Ptr: {
-      rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, "*");
+      rio_put_type_name(buf, type->base);
       break;
     }
     case rio_CompilerTypeKind_Ref: {
-      rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, "&");
+      rio_put_type_name(buf, type->base);
       break;
     }
     case rio_CompilerTypeKind_Array: {
-      rio_put_type_name(buf, type->base);
       rio_buf_printf(buf, "[%zu]", type->num_elems);
+      rio_put_type_name(buf, type->base);
       break;
     }
     case rio_CompilerTypeKind_Func: {
@@ -6850,7 +6850,7 @@ void rio_put_type_name(char (*(*buf)), rio_Type (*type)) {
       }
       rio_buf_printf(buf, ")");
       if ((type->function.ret) != (rio_type_void)) {
-        rio_buf_printf(buf, ": ");
+        rio_buf_printf(buf, " -> ");
         rio_put_type_name(buf, type->function.ret);
       }
       break;

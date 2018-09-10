@@ -276,20 +276,20 @@ fn put_type_name(buf: **char, type: &Type) {
         buf_printf(buf, "%s", type.sym.name);
       }
       Const => {
+        buf_printf(buf, "const ");
         put_type_name(buf, type.base);
-        buf_printf(buf, " const");
       }
       Ptr => {
-        put_type_name(buf, type.base);
         buf_printf(buf, "*");
+        put_type_name(buf, type.base);
       }
       Ref => {
-        put_type_name(buf, type.base);
         buf_printf(buf, "&");
+        put_type_name(buf, type.base);
       }
       Array => {
-        put_type_name(buf, type.base);
         buf_printf(buf, "[%zu]", type.num_elems);
+        put_type_name(buf, type.base);
       }
       Func => {
         buf_printf(buf, "fn(");
@@ -304,7 +304,7 @@ fn put_type_name(buf: **char, type: &Type) {
         }
         buf_printf(buf, ")");
         if (type.function.ret != type_void) {
-          buf_printf(buf, ": ");
+          buf_printf(buf, " -> ");
           put_type_name(buf, type.function.ret);
         }
       }
