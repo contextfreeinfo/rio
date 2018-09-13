@@ -55,7 +55,8 @@ struct FuncParam {
   pos: SrcPos;
   name: *const char;
   type: &Typespec;
-  default_value: &Expr;
+  // TODO Support default values!
+  default_val: &Expr;
 }
 
 struct TypeArg {
@@ -68,16 +69,9 @@ struct TypeArgSlice {
   items: *TypeArg;
 }
 
-struct TypeParam {
-  pos: SrcPos;
-  name: *const char;
-  type: &Typespec;
-  default_val: &Typespec;
-}
-
-struct TypeParamSlice {
+struct DeclSlice {
   length: usize;
-  items: *TypeParam;
+  items: *Decl;
 }
 
 struct AggregateItem {
@@ -128,7 +122,7 @@ struct Decl {
   name: *const char;
   notes: Notes;
   is_incomplete: bool;
-  type_params: TypeParamSlice;
+  type_params: DeclSlice;
   union switch {
     None => :void;
     Note => note: Note;
@@ -159,7 +153,8 @@ struct DeclFunc {
 }
 
 struct DeclTypedef {
-  type: &Typespec;
+  constraint: &Typespec;
+  val: &Typespec;
 }
 
 struct DeclVar {
@@ -414,6 +409,10 @@ fn new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {
   return t;
 }
 
+fn new_typespec_name1(pos: SrcPos, name: *const char) -> &Typespec {
+  return new_typespec_name(pos, &TypespecName{name = name}, 1);
+}
+
 fn new_typespec_name(
   pos: SrcPos, names: *TypespecName, num_names: usize,
 ) -> &Typespec {
@@ -535,7 +534,7 @@ fn new_aggregate(
 }
 
 fn new_decl_aggregate(
-  pos: SrcPos, kind: Decl.Kind, name: *const char, params: TypeParamSlice,
+  pos: SrcPos, kind: Decl.Kind, name: *const char, params: DeclSlice,
   aggregate: &Aggregate,
 ) -> &Decl {
   #assert(kind == Decl.Struct || kind == Decl.Union);
@@ -574,9 +573,9 @@ fn new_decl_const(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) 
   return d;
 }
 
-fn new_decl_typedef(pos: SrcPos, name: *const char, type: &Typespec) -> &Decl {
+fn new_decl_typedef(pos: SrcPos, name: *const char, val: &Typespec) -> &Decl {
   let d = new_decl(Decl.Typedef, pos, name);
-  d.typedef_decl.type = type;
+  d.typedef_decl.val = val;
   return d;
 }
 

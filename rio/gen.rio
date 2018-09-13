@@ -980,7 +980,7 @@ fn gen_decl(sym: &Sym) {
     Typedef => {
       genln();
       buf_printf(&gen_buf, "typedef %s;", typespec_to_cdecl(
-        decl.typedef_decl.type, get_gen_name(sym),
+        decl.typedef_decl.val, get_gen_name(sym),
       ));
     }
     Enum => {

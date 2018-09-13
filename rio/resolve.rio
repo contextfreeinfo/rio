@@ -140,10 +140,12 @@ fn sym_get(name: *const char) -> &Sym {
 }
 
 fn sym_push_var(name: *const char, type: &Type) -> bool {
-  return sym_push_local(Sym.Var, name, type);
+  return sym_push_local(Sym.Var, name, type, NULL);
 }
 
-fn sym_push_local(kind: Sym.Kind, name: *const char, type: &Type) -> bool {
+fn sym_push_local(
+  kind: Sym.Kind, name: *const char, type: &Type, decl: &Decl,
+) -> bool {
   if (sym_get_local(name)) {
     return false;
   }
@@ -154,6 +156,7 @@ fn sym_push_local(kind: Sym.Kind, name: *const char, type: &Type) -> bool {
     kind = kind,
     name = name,
     state = SymState.Resolved,
+    decl = decl,
     type = type,
   };
   return true;
@@ -580,19 +583,74 @@ fn get_nested_type_sym(
 fn resolve_generic_typespec_instance(
   pos: SrcPos, sym: &Sym, type_args: TypeArgSlice,
 ) -> &Sym {
-  if (sym.decl && sym.decl.name) {
-    // build_scoped_name(sym.decl.name)
-    printf("----> Handle type args for %s\n", sym.decl.name);
-    for (let i: usize = 0; i < type_args.length; ++i) {
-      let arg_typespec = type_args.items[i].val;
-      let arg_type = resolve_typespec(arg_typespec);
-      let arg_name = get_type_name(arg_type);
-      printf("  Type arg: %s\n", arg_name);
-    }
-  } else {
+  if (!(sym.decl && sym.decl.name)) {
     fatal_error(pos, "Undeclared generic type");
     return NULL;
   }
+  let decl = sym.decl;
+  if (!(decl.kind == Decl.Struct || decl.kind == Decl.Union)) {
+    fatal_error(pos, "Generics only supported for aggregates for now");
+    return NULL;
+  }
+  let type_params = decl.type_params;
+  if (type_args.length != type_params.length) {
+    fatal_error(pos, "Typespec with wrong number of arguments");
+    return NULL;
+  }
+  let aggregate = decl.aggregate;
+  // Choose name.
+  // Base name on type names, even if typedef'd, so's to allow some name choice.
+  // Clever could be to make them typedefs to a common struct definition or
+  // such.
+  let name = decl.name;
+  // if (type_args.length > MAX_TYPE_PARAMS) {
+  //   // TODO Instead check this at type declaration!
+  //   fatal_error(pos, "Too many type parameters");
+  //   return NULL;
+  // }
+  // let arg_types: [MAX_TYPE_PARAMS]&Typespec;
+  for (let i: usize = 0; i < type_args.length; ++i) {
+    let arg_typespec = type_args.items[i].val;
+    // TODO Cache these?
+    let arg_type = resolve_typespec(arg_typespec);
+    let arg_name = get_type_name(arg_type);
+    // TODO Worth the effort of varargs to avoid repeated substrings?
+    name = build_scoped_name(name, arg_name);
+  }
+  printf("----> Concrete type name: %s\n", name);
+  // TODO Check for previous resolution for this name before rebuilding.
+  let new_items = ast_alloc(aggregate.num_items * sizeof(AggregateItem));
+  for (let i: usize = 0; i < aggregate.num_items; ++i) {
+    let item = &aggregate.items[i];
+    // TODO Totally statically check and/or make @complete the default.
+    @complete
+    switch (item.kind) {
+      Field => {
+        let field_spec = item.type;
+        let field_type = get_resolved_type(field_spec);
+        for (let p = 0; p < type_params.length; ++p) {
+          // if (field_spec == &type_params.items[p]) {
+          //   printf("Found it!\n");
+          // }
+        }
+      }
+      None => {}
+      Subaggregate => {
+        fatal_error(item.pos, "Can't do generics on subaggregates yet");
+        return NULL;
+      }
+    }
+    // AggregateItem {
+    //   pos = pos,
+    //   kind = AggregateItem.Subaggregate,
+    //   subaggregate = parse_aggregate(AggregateKind.Union, NULL, NULL),
+    // };
+  }
+  // TODO let decl = new_decl_aggregate();
+  // let result = new_aggregate(pos, kind, items, buf_len(items));
+  // return new_decl_aggregate(
+  //   pos, kind, name, params, parse_aggregate(aggregate_kind, name, notes),
+  // );
   return sym;
 }
 
@@ -720,8 +778,11 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
     let params = type.sym.decl.type_params;
     for (let i: usize = 0; i < params.length; ++i) {
       let param = &params.items[i];
-      let constraint = type_void;
-      sym_push_local(Sym.Type, param.name, constraint);
+      #assert(param.kind == Decl.Typedef);
+      // TODO If constraint is null, use val as constraint.
+      let constraint = resolve_typespec(param.typedef_decl.constraint);
+      // TODO Make a new type for this param itself, so we can remember it later.
+      sym_push_local(Sym.Type, param.name, constraint, param);
     }
   }
   for (let i: usize = 0; i < aggregate.num_items; i++) {
@@ -1248,7 +1309,7 @@ fn resolve_sym(sym: &Sym) {
   switch (sym.kind) {
     Type => {
       if (decl && decl.kind == Decl.Typedef) {
-        sym.type = resolve_typespec(decl.typedef_decl.type);
+        sym.type = resolve_typespec(decl.typedef_decl.val);
       } else if (decl.kind == Decl.Enum) {
         // Here's where the base type is set for enums.
         let base = decl.enum_decl.type ? resolve_typespec(decl.enum_decl.type) : type_int;

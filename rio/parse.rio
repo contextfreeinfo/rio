@@ -164,8 +164,7 @@ fn parse_expr_operand() -> &Expr {
     let name = token.name;
     next_token();
     if (is_token(TokenKind.Lbrace)) {
-      let typespec_name = TypespecName {name = name};
-      return parse_expr_compound(new_typespec_name(pos, &typespec_name, 1));
+      return parse_expr_compound(new_typespec_name1(pos, name));
     } else {
       return new_expr_name(pos, name);
     }
@@ -871,12 +870,18 @@ fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
   let name = parse_name();
   let aggregate_kind =
     kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
-  let params: TypeParamSlice;
+  let params: DeclSlice;
   if (match_token(TokenKind.Lt)) {
     while (!match_token(TokenKind.Gt)) {
       let param_name = parse_name();
-      // TODO Type constraints and defaults.
-      let param = TypeParam{pos = token.pos, name = param_name};
+      // TODO Parse type constraints and defaults.
+      let param = Decl {
+        kind = Decl.Typedef,
+        pos = token.pos,
+        name = param_name,
+        typedef_decl = {constraint = new_typespec_name1(token.pos, void_name)},
+        // Let val default to null.
+      };
       buf_push((:*&void)&params.items, &param, sizeof(param));
     }
     params.length = buf_len(params.items);
