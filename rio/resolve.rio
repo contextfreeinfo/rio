@@ -199,6 +199,19 @@ fn sym_global_type(name: *const char, type: &Type) -> &Sym {
   return sym;
 }
 
+fn sym_track_ref_type(sym: &Sym, type: &Typespec) {
+  let decl = sym.decl;
+  if (!decl) {
+    return;
+  }
+  if (type.kind == Typespec.Name) {
+    printf("Ref from type %s\n", type.names[type.num_names - 1].name);
+    printf("Ref to type %s\n", decl.name);
+  }
+  buf_push((:*&void)&decl.refs.items, &type, sizeof(type));
+  ++decl.refs.length;
+}
+
 fn build_scoped_name(space: *const char, name: *const char) -> *const char {
   let scoped_name_buf: *char;
   buf_printf(&scoped_name_buf, "%s_%s", space, name);
@@ -619,6 +632,13 @@ fn resolve_generic_typespec_instance(
   }
   printf("----> Concrete type name: %s\n", name);
   // TODO Check for previous resolution for this name before rebuilding.
+  for (let i: usize = 0; i < type_params.length; ++i) {
+    let param = &type_params.items[i];
+    printf("Checking %s\n", param.name);
+    if (param.refs.length) {
+      printf("Param %s has refs\n", param.name);
+    }
+  }
   let new_items = ast_alloc(aggregate.num_items * sizeof(AggregateItem));
   for (let i: usize = 0; i < aggregate.num_items; ++i) {
     let item = &aggregate.items[i];
@@ -628,10 +648,14 @@ fn resolve_generic_typespec_instance(
       Field => {
         let field_spec = item.type;
         let field_type = get_resolved_type(field_spec);
+        if (!(field_type && field_type.sym && field_type.sym.decl)) {
+          continue;
+        }
+        let field_type_decl = field_type.sym.decl;
         for (let p = 0; p < type_params.length; ++p) {
-          // if (field_spec == &type_params.items[p]) {
-          //   printf("Found it!\n");
-          // }
+          if (field_type_decl == &type_params.items[p]) {
+            printf("Found it!\n");
+          }
         }
       }
       None => {}
@@ -667,13 +691,13 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       if (typespec.num_names == 1) {
         // See if it's a type parameter.
         // TODO Also allow locally defined types, so support num_names > 1.
+        // TODO Requires better node tree of types rather than slice of names.
         typespec_name = &typespec.names[0];
         name = typespec_name.name;
         sym = sym_get_local(name);
-        // if (sym) {
-        //   fatal_error(typespec.pos, "Totally found it for reals: %s\n", typespec.names[0]);
-        //   return NULL;
-        // }
+        if (sym) {
+          sym_track_ref_type(sym, typespec);
+        }
       }
       if (!sym) {
         let package = current_package;
@@ -720,6 +744,9 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       set_resolved_sym(typespec, sym);
       // And maybe go deeper before done.
       if (typespec_name.type_args.length) {
+        // Complete the type, so we can create the custom version.
+        // TODO Can we defer type completion past here?
+        complete_type(sym.type);
         sym = resolve_generic_typespec_instance(
           typespec.pos, sym, typespec_name.type_args,
         );
@@ -820,6 +847,7 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   if (has_duplicate_fields(type)) {
     fatal_error(aggregate.pos, "Duplicate fields");
   }
+  // TODO Move arg resolution here-ish?
   sym_leave(scope);
   return type;
 }
@@ -888,6 +916,7 @@ fn resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
     set_resolved_expected_type(expr, type);
   }
   complete_type(type);
+  // TODO Move arg resolution here-ish?
   if (!type.size) {
     if (is_generic_type(type)) {
       fatal_error(pos, "Cannot declare variable of raw generic type");

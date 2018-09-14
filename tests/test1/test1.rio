@@ -865,6 +865,17 @@ fn test_type_path() {
   let t3: my_time_t = time(NULL);
 }
 
+fn test_generics() {
+  let slarce: Slarce;
+  let slirce: Slirce;
+}
+
+struct Slirce {
+  slarce: Slarce;
+}
+
+typedef Slarce = Slorce<int>;
+
 struct Slorce<Item> {
   length: usize;
   item: *Item;
@@ -872,10 +883,6 @@ struct Slorce<Item> {
 
 // Should be unresolved here.
 // let item: Item;
-
-fn test_generics() {
-  let slorce: Slorce<int>;
-}
 
 fn main(argc: int, argv: **char) -> int {
   if (argv == 0) {

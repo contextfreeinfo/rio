@@ -97,6 +97,8 @@ typedef struct rio_TypespecName rio_TypespecName;
 typedef struct rio_TypeArg rio_TypeArg;
 typedef struct rio_ImportItem rio_ImportItem;
 typedef struct rio_Aggregate rio_Aggregate;
+typedef struct rio_SymRef rio_SymRef;
+typedef struct rio_SymRefSlice rio_SymRefSlice;
 typedef struct rio_DeclEnum rio_DeclEnum;
 typedef struct rio_DeclFunc rio_DeclFunc;
 typedef struct rio_DeclTypedef rio_DeclTypedef;
@@ -266,6 +268,12 @@ typedef int rio_AggregateKind;
 #define rio_AggregateKind_Struct ((rio_AggregateKind)((rio_AggregateKind_None) + (1)))
 
 #define rio_AggregateKind_Union ((rio_AggregateKind)((rio_AggregateKind_Struct) + (1)))
+
+typedef int rio_SymRef_Kind;
+
+#define rio_SymRef_Expr ((rio_SymRef_Kind)(0))
+
+#define rio_SymRef_Type ((rio_SymRef_Kind)((rio_SymRef_Expr) + (1)))
 
 typedef int rio_Decl_Kind;
 
@@ -1520,6 +1528,8 @@ void rio_sym_global_put(char const ((*name)), rio_Sym (*sym));
 
 rio_Sym (*rio_sym_global_type(char const ((*name)), rio_Type (*type)));
 
+void rio_sym_track_ref_type(rio_Sym (*sym), rio_Typespec (*type));
+
 char const ((*rio_build_scoped_name(char const ((*space)), char const ((*name)))));
 
 rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope))));
@@ -2032,6 +2042,19 @@ struct rio_Aggregate {
   rio_Decl (*union_enum_decl);
 };
 
+struct rio_SymRef {
+  rio_SymRef_Kind kind;
+  union {
+    rio_Expr (*expr);
+    rio_Typespec (*type);
+  };
+};
+
+struct rio_SymRefSlice {
+  size_t length;
+  rio_SymRef (*items);
+};
+
 struct rio_DeclEnum {
   rio_Typespec (*type);
   rio_EnumItem (*items);
@@ -2073,6 +2096,7 @@ struct rio_Decl {
   rio_Notes notes;
   bool is_incomplete;
   rio_DeclSlice type_params;
+  rio_SymRefSlice refs;
   union {
     // void;
     rio_Note note;
@@ -6822,6 +6846,19 @@ rio_Sym (*rio_sym_global_type(char const ((*name)), rio_Type (*type))) {
   return sym;
 }
 
+void rio_sym_track_ref_type(rio_Sym (*sym), rio_Typespec (*type)) {
+  rio_Decl (*decl) = sym->decl;
+  if (!(decl)) {
+    return;
+  }
+  if ((type->kind) == ((rio_Typespec_Name))) {
+    printf("Ref from type %s\n", type->names[(type->num_names) - (1)].name);
+    printf("Ref to type %s\n", decl->name);
+  }
+  rio_buf_push((void (**))(&(decl->refs.items)), &(type), sizeof(type));
+  ++(decl->refs.length);
+}
+
 char const ((*rio_build_scoped_name(char const ((*space)), char const ((*name))))) {
   char (*scoped_name_buf) = {0};
   rio_buf_printf(&(scoped_name_buf), "%s_%s", space, name);
@@ -7197,6 +7234,13 @@ rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), 
     name = rio_build_scoped_name(name, arg_name);
   }
   printf("----> Concrete type name: %s\n", name);
+  for (size_t i = 0; (i) < (type_params.length); ++(i)) {
+    rio_Decl (*param) = &(type_params.items[i]);
+    printf("Checking %s\n", param->name);
+    if (param->refs.length) {
+      printf("Param %s has refs\n", param->name);
+    }
+  }
   void (*new_items) = rio_ast_alloc((aggregate->num_items) * (sizeof(rio_AggregateItem)));
   for (size_t i = 0; (i) < (aggregate->num_items); ++(i)) {
     rio_AggregateItem (*item) = &(aggregate->items[i]);
@@ -7204,7 +7248,14 @@ rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), 
     case rio_AggregateItem_Field: {
       rio_Typespec (*field_spec) = item->type;
       rio_Type (*field_type) = rio_get_resolved_type(field_spec);
+      if (!((((field_type) && (field_type->sym)) && (field_type->sym->decl)))) {
+        continue;
+      }
+      rio_Decl (*field_type_decl) = field_type->sym->decl;
       for (int p = 0; (p) < (type_params.length); ++(p)) {
+        if ((field_type_decl) == (&(type_params.items[p]))) {
+          printf("Found it!\n");
+        }
       }
       break;
     }
@@ -7238,6 +7289,9 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
       typespec_name = &(typespec->names[0]);
       name = typespec_name->name;
       sym = rio_sym_get_local(name);
+      if (sym) {
+        rio_sym_track_ref_type(sym, typespec);
+      }
     }
     if (!(sym)) {
       rio_Package (*package) = rio_current_package;
@@ -7275,6 +7329,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     rio_resolve_sym(sym);
     rio_set_resolved_sym(typespec, sym);
     if (typespec_name->type_args.length) {
+      rio_complete_type(sym->type);
       sym = rio_resolve_generic_typespec_instance(typespec->pos, sym, typespec_name->type_args);
     }
     result = sym->type;

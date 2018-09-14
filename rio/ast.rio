@@ -31,6 +31,7 @@ struct Typespec {
   union switch {
     None, Const, Ptr, Ref => :void;
     Name => struct {
+      // TODO Break these out into individual AST items!
       names: *TypespecName;
       num_names: usize;
     }
@@ -117,12 +118,27 @@ struct Aggregate {
   union_enum_decl: &Decl;
 }
 
+struct SymRef {
+  union switch {
+    // More precisely, a name ref, but this includes pos.
+    Expr => expr: &Expr;
+    // Again a name typespect.
+    Type => type: &Typespec;
+  }
+}
+
+struct SymRefSlice {
+  length: usize;
+  items: *SymRef;
+}
+
 struct Decl {
   pos: SrcPos;
   name: *const char;
   notes: Notes;
   is_incomplete: bool;
   type_params: DeclSlice;
+  refs: SymRefSlice;
   union switch {
     None => :void;
     Note => note: Note;
