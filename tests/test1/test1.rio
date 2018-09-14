@@ -875,6 +875,7 @@ struct Slirce {
 }
 
 typedef Slarce = Slorce<int>;
+// typedef Slarce = Slorce<Bar>;
 
 struct Slorce<Item> {
   length: usize;

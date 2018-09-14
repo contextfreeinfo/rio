@@ -2011,6 +2011,7 @@ struct rio_Typespec {
     struct {
       rio_TypespecName (*names);
       size_t num_names;
+      rio_Decl (*decl);
     };
     rio_TypespecFunc function;
     rio_Expr (*num_elems);
@@ -6838,6 +6839,7 @@ void rio_sym_track_ref_type(rio_Sym (*sym), rio_Typespec (*type)) {
     return;
   }
   if ((type->kind) == ((rio_Typespec_Name))) {
+    type->decl = decl;
     printf("Ref from type %s\n", type->names[(type->num_names) - (1)].name);
     printf("Ref to type %s\n", decl->name);
   }
@@ -7232,14 +7234,18 @@ rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), 
     rio_AggregateItem (*item) = &(aggregate->items[i]);
     switch (item->kind) {
     case rio_AggregateItem_Field: {
+      printf("Checking field: %s\n", item->names[0]);
       rio_Typespec (*field_spec) = item->type;
-      rio_Type (*field_type) = rio_get_resolved_type(field_spec);
-      if (!((((field_type) && (field_type->sym)) && (field_type->sym->decl)))) {
+      if ((field_spec->kind) != ((rio_Typespec_Name))) {
+        printf("Outta here: %d\n", field_spec->kind);
         continue;
       }
-      rio_Decl (*field_type_decl) = field_type->sym->decl;
+      printf("Checking type: %s\n", field_spec->names[(field_spec->num_names) - (1)].name);
+      if (field_spec->decl) {
+        printf("Has a decl: %s\n", field_spec->names[(field_spec->num_names) - (1)].name);
+      }
       for (int p = 0; (p) < (type_params.length); ++(p)) {
-        if ((field_type_decl) == (&(type_params.items[p]))) {
+        if ((field_spec->decl) == (&(type_params.items[p]))) {
           printf("Found it!\n");
         }
       }

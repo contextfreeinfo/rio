@@ -205,6 +205,7 @@ fn sym_track_ref_type(sym: &Sym, type: &Typespec) {
     return;
   }
   if (type.kind == Typespec.Name) {
+    type.decl = decl;
     printf("Ref from type %s\n", type.names[type.num_names - 1].name);
     printf("Ref to type %s\n", decl.name);
   }
@@ -626,6 +627,7 @@ fn resolve_generic_typespec_instance(
     let arg_typespec = type_args.items[i].val;
     // TODO Cache these?
     let arg_type = resolve_typespec(arg_typespec);
+    // TODO If from other non-builtin package, prefix package name?
     let arg_name = get_type_name(arg_type);
     // TODO Worth the effort of varargs to avoid repeated substrings?
     name = build_scoped_name(name, arg_name);
@@ -637,6 +639,7 @@ fn resolve_generic_typespec_instance(
     printf("Checking %s\n", param.name);
     if (param.refs.length) {
       printf("Param %s has refs\n", param.name);
+      // TODO Map these back to type args or such.
     }
   }
   let new_items = ast_alloc(aggregate.num_items * sizeof(AggregateItem));
@@ -646,14 +649,25 @@ fn resolve_generic_typespec_instance(
     @complete
     switch (item.kind) {
       Field => {
+        printf("Checking field: %s\n", item.names[0]);
         let field_spec = item.type;
-        let field_type = get_resolved_type(field_spec);
-        if (!(field_type && field_type.sym && field_type.sym.decl)) {
+        if (field_spec.kind != Typespec.Name) {
+          // TODO Need to go deep on types.
+          printf("Outta here: %d\n", field_spec.kind);
           continue;
         }
-        let field_type_decl = field_type.sym.decl;
+        printf("Checking type: %s\n", field_spec.names[field_spec.num_names - 1].name);
+        if (field_spec.decl) {
+          printf("Has a decl: %s\n", field_spec.names[field_spec.num_names - 1].name);
+        }
+        // let field_type = get_resolved_type(field_spec);
+        // if (!(field_type && field_type.sym && field_type.sym.decl)) {
+        //   continue;
+        // }
+        // let field_type_decl = field_type.sym.decl;
         for (let p = 0; p < type_params.length; ++p) {
-          if (field_type_decl == &type_params.items[p]) {
+          // if (field_type_decl == &type_params.items[p]) {
+          if (field_spec.decl == &type_params.items[p]) {
             printf("Found it!\n");
           }
         }

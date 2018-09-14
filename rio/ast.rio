@@ -34,6 +34,7 @@ struct Typespec {
       // TODO Break these out into individual AST items!
       names: *TypespecName;
       num_names: usize;
+      decl: &Decl;
     }
     Func => function: TypespecFunc;
     Array => num_elems: *Expr;
