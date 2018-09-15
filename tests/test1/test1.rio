@@ -892,6 +892,19 @@ struct Slorce<Item> {
 // Should be unresolved here.
 // let item: Item;
 
+enum TestErr {
+  Crazy,
+  Worse,
+}
+
+fn maybe_math(x: float) -> Result<float, TestErr> {
+  return {kind = Result.Ok, val = x + 1};
+}
+
+fn test_err() {
+  maybe_math(4.5);
+}
+
 fn main(argc: int, argv: **char) -> int {
   if (argv == 0) {
     printf("argv is null\n");
@@ -925,6 +938,7 @@ fn main(argc: int, argv: **char) -> int {
   test_reachable();
   test_type_path();
   test_generics();
+  test_err();
   // gc();
   return 0;
 }

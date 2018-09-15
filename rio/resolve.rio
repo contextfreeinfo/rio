@@ -229,8 +229,20 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
     }
   }
   if (decl.kind == Decl.Struct && decl.aggregate.union_enum_decl) {
-    // Declare global symbols from the implicit enum.
-    sym_global_decl(decl.aggregate.union_enum_decl, decl.name);
+    // Declare global symbols from the implicit enum, if not done already.
+    // Generics can cause a pass through here again.
+    // TODO Some way to avoid later passes before we get here?
+    let done = false;
+    let enum_name = decl.aggregate.union_enum_decl.name;
+    if (enum_name) {
+      let enum_sym = resolve_name(enum_name);
+      done =
+        enum_sym && enum_sym.decl &&
+        enum_sym.decl == decl.aggregate.union_enum_decl;
+    }
+    if (!done) {
+      sym_global_decl(decl.aggregate.union_enum_decl, decl.name);
+    }
   } else if (decl.kind == Decl.Enum) {
     // TODO Extract function.
     let unscoped =

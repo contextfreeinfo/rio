@@ -7067,7 +7067,15 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
     }
   }
   if (((decl->kind) == ((rio_Decl_Struct))) && (decl->aggregate->union_enum_decl)) {
-    rio_sym_global_decl(decl->aggregate->union_enum_decl, decl->name);
+    bool done = false;
+    char const ((*enum_name)) = decl->aggregate->union_enum_decl->name;
+    if (enum_name) {
+      rio_Sym (*enum_sym) = rio_resolve_name(enum_name);
+      done = ((enum_sym) && (enum_sym->decl)) && ((enum_sym->decl) == (decl->aggregate->union_enum_decl));
+    }
+    if (!(done)) {
+      rio_sym_global_decl(decl->aggregate->union_enum_decl, decl->name);
+    }
   } else if ((decl->kind) == ((rio_Decl_Enum))) {
     int unscoped = ((!(decl->name)) || (rio_get_decl_note(decl, rio_foreign_name))) || (rio_get_decl_note(decl, rio_unscoped_name));
     char const ((*name)) = (sym ? sym->name : rio_str_intern("int"));
