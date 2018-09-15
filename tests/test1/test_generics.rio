@@ -1,0 +1,36 @@
+fn test_generics() {
+  let slirce: Slirce;
+  let slorce: Slorce<int> = {items = (:[]int){1, 2, 3}, length = 3};
+  let slorce_ref: Slorce<&int> = {items = (:[]&int){slorce.items}, length = 1};
+  printf("Generically, %d\n", *slorce_ref.items[0]);
+  let slarb: Slorce<Bar>;
+  test_generic_functions();
+}
+
+struct Slirce {
+  slarce: Slarce;
+}
+
+typedef Slarce = Slorce<int>;
+
+struct Slorce<Item> {
+  length: usize;
+  items: *Item;
+}
+
+// Should be unresolved here.
+// let item: Item;
+
+fn test_generic_functions() {
+  // printf("int sum: %d", sum(1, 2));
+  // printf("float sum: %d", sum(1.1, 2.2));
+}
+
+// fn sum<Num>(x: Num, y: Num) -> Num {
+//   return x + y;
+// }
+
+// TODO Deeper generics:
+// fn first<Item>(slice: Slice<Item>) -> Result<&Item, TestErr> {
+//   //
+// }

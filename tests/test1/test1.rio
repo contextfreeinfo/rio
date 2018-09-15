@@ -870,28 +870,6 @@ fn test_type_path() {
   let t3: my_time_t = time(NULL);
 }
 
-fn test_generics() {
-  let slirce: Slirce;
-  let slorce: Slorce<int> = {items = (:[]int){1, 2, 3}, length = 3};
-  let slorce_ref: Slorce<&int> = {items = (:[]&int){slorce.items}, length = 1};
-  printf("Generically, %d\n", *slorce_ref.items[0]);
-  let slarb: Slorce<Bar>;
-}
-
-struct Slirce {
-  slarce: Slarce;
-}
-
-typedef Slarce = Slorce<int>;
-
-struct Slorce<Item> {
-  length: usize;
-  items: *Item;
-}
-
-// Should be unresolved here.
-// let item: Item;
-
 // TODO Zig-style errors?
 // error Crazy;
 // error Worse;

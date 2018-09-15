@@ -385,6 +385,8 @@ struct test1_Slorce_Bar {
   test1_Bar (*items);
 };
 
+void test1_test_generic_functions(void);
+
 typedef int test1_TestErr;
 
 struct test1_Result_float_TestErr {
@@ -1255,6 +1257,7 @@ void test1_test_generics(void) {
   test1_Slorce_ref_int slorce_ref = {.items = (int *[]){slorce.items}, .length = 1};
   printf("Generically, %d\n", *(slorce_ref.items[0]));
   test1_Slorce_Bar slarb = {0};
+  test1_test_generic_functions();
 }
 
 void test1_test_err(void) {
@@ -1301,6 +1304,9 @@ void test1_println_type(typeid type) {
 void test1_println_typeinfo(typeid type) {
   test1_print_typeinfo(type);
   printf("\n");
+}
+
+void test1_test_generic_functions(void) {
 }
 
 test1_Result_float_TestErr test1_maybe_math(float x) {
