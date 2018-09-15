@@ -2,3 +2,8 @@ union Result<Val, Err> switch {
   Ok => val: Val;
   Err => err: Err;
 }
+
+struct Slice<Item> {
+  items: *Item;
+  length: usize;
+}

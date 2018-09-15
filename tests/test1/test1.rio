@@ -892,12 +892,25 @@ struct Slorce<Item> {
 // Should be unresolved here.
 // let item: Item;
 
+// TODO Zig-style errors?
+// error Crazy;
+// error Worse;
 enum TestErr {
   Crazy,
   Worse,
 }
 
+// fn maybe_math(x: float) -> float throws {
+// fn maybe_math(x: float) -> !float {
+// fn maybe_math(x: float) -> Try<float> {
+// fn maybe_math(x: float) -> float | error {
+// fn maybe_math(x: float) -> float | TestErr {
 fn maybe_math(x: float) -> Result<float, TestErr> {
+  // return x + 1;
+  // return Ok(x + 1);
+  // return Ok{x + 1};
+  // return {val = x + 1};
+  // return {val: x + 1};
   return {kind = Result.Ok, val = x + 1};
 }
 

@@ -170,6 +170,7 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 #define UINTPTR_MIN (UINT64_MIN)
 
 
+
 struct TypeFieldInfo {
   char const ((*name));
   typeid type;

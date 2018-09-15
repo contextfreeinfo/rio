@@ -3292,7 +3292,7 @@ bool rio_str_islower(char const ((*str))) {
 }
 
 rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*map))) {
-  rio_Aggregate (*dupe) = map->call(map->self, (Any){aggregate, TYPEID(54, TypeKind_Struct, rio_Aggregate)});
+  rio_Aggregate (*dupe) = map->call(map->self, (Any){aggregate, TYPEID(55, TypeKind_Struct, rio_Aggregate)});
   if (dupe) {
     return dupe;
   }
@@ -3300,7 +3300,7 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
   dupe->items = rio_ast_dup(dupe->items, (sizeof(*(dupe->items))) * (dupe->num_items));
   for (size_t i = 0; (i) < (dupe->num_items); ++(i)) {
     rio_AggregateItem (*item) = &(dupe->items[i]);
-    map->call(map->self, (Any){item, TYPEID(49, TypeKind_Struct, rio_AggregateItem)});
+    map->call(map->self, (Any){item, TYPEID(50, TypeKind_Struct, rio_AggregateItem)});
     switch (item->kind) {
     case rio_AggregateItem_Field: {
       item->type = rio_dupe_typespec(item->type, map);
@@ -3319,7 +3319,7 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
 }
 
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
-  rio_Typespec (*dupe) = map->call(map->self, (Any){type, TYPEID(43, TypeKind_Struct, rio_Typespec)});
+  rio_Typespec (*dupe) = map->call(map->self, (Any){type, TYPEID(44, TypeKind_Struct, rio_Typespec)});
   if (dupe) {
     return dupe;
   }
@@ -3351,11 +3351,11 @@ char (*rio_get_type_sym_name(rio_Type (*type))) {
 
 void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
   switch (item.type) {
-  case TYPEID(54, TypeKind_Struct, rio_Aggregate): {
+  case TYPEID(55, TypeKind_Struct, rio_Aggregate): {
     return NULL;
     break;
   }
-  case TYPEID(43, TypeKind_Struct, rio_Typespec): {
+  case TYPEID(44, TypeKind_Struct, rio_Typespec): {
     rio_Typespec (*type) = item.ptr;
     switch (type->kind) {
     case (rio_Typespec_Name): {
