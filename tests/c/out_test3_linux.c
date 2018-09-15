@@ -68,6 +68,12 @@ typedef struct Any Any;
 // Sorted declarations
 int main(void);
 
+typedef int Result_Kind;
+
+#define Result_Ok ((Result_Kind)(0))
+
+#define Result_Err ((Result_Kind)((Result_Ok) + (1)))
+
 extern char const ((*RIOOS));
 
 extern char const ((*RIOARCH));
@@ -162,6 +168,7 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 #define USIZE_MIN (UINT64_MIN)
 
 #define UINTPTR_MIN (UINT64_MIN)
+
 
 struct TypeFieldInfo {
   char const ((*name));

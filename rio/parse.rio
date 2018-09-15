@@ -876,7 +876,7 @@ fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
     kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
   let params: Slice<Decl>;
   if (match_token(TokenKind.Lt)) {
-    while (!match_token(TokenKind.Gt)) {
+    do {
       let param_name = parse_name();
       // TODO Parse type constraints and defaults.
       let param = Decl {
@@ -887,7 +887,8 @@ fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
         // Let val default to null.
       };
       buf_push((:&&void)&params.items, &param, sizeof(param));
-    }
+    } while (match_token(TokenKind.Comma));
+    expect_token(TokenKind.Gt);
     params.length = buf_len(params.items);
   }
   if (match_token(TokenKind.Semicolon)) {

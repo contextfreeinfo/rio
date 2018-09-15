@@ -388,7 +388,8 @@ fn type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
   let nonmodifiable: bool = false;
   let new_fields: *TypeField;
   for (let it = fields; it != fields + num_fields; it++) {
-    #assert(is_pow2(type_alignof(it.type)));
+    let align = type_alignof(it.type);
+    #assert(!align || is_pow2(align));
     if (it.name) {
       it.offset = type.size;
       buf_push((:&&void)&new_fields, it, sizeof(*it));
