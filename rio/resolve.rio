@@ -207,7 +207,7 @@ fn sym_track_ref_type(sym: &Sym, type: &Typespec) {
   if (type.kind == Typespec.Name) {
     type.decl = decl;
   }
-  buf_push((:*&void)&decl.refs.items, &type, sizeof(type));
+  buf_push((:&&void)&decl.refs.items, &type, sizeof(type));
   ++decl.refs.length;
 }
 
@@ -623,7 +623,7 @@ fn resolve_specialized_typespec(
     let arg_name = get_type_sym_name(arg_type);
     // TODO Worth the effort of varargs to avoid repeated substrings?
     name = build_scoped_name(name, arg_name);
-    buf_free((:*&void)&arg_name);
+    buf_free((:&&void)&arg_name);
   }
   // TODO Check for previous resolution for this name before rebuilding.
   let dupe_sym = resolve_name(name);

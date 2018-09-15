@@ -560,7 +560,7 @@ fn new_decl_aggregate(
     d.type_params.length = params.length;
     d.type_params.items =
       ast_dup(params.items, params.length * sizeof(*params.items));
-    buf_free((:*&void)&params.items);
+    buf_free((:&&void)&params.items);
   }
   d.aggregate = aggregate;
   return d;

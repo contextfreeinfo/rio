@@ -886,7 +886,7 @@ fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
         typedef_decl = {constraint = new_typespec_name1(token.pos, void_name)},
         // Let val default to null.
       };
-      buf_push((:*&void)&params.items, &param, sizeof(param));
+      buf_push((:&&void)&params.items, &param, sizeof(param));
     }
     params.length = buf_len(params.items);
   }
