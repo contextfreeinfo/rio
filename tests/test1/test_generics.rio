@@ -4,8 +4,15 @@ fn test_generics() {
   let slorce_ref: Slorce<&int> = {items = (:[]&int){slorce.items}, length = 1};
   printf("Generically, %d\n", *slorce_ref.items[0]);
   let slarb: Slorce<Bar>;
+  // This should render as test1_Slorce_Hey, and no test1_Slorce_float should
+  // even exist.
+  // TODO This fails right now, so fix it.
+  let slorce_hey: Slorce<Hey>;
+  // Test some functions, too.
   test_generic_functions();
 }
+
+typedef Hey = float;
 
 struct Slirce {
   slarce: Slarce;
