@@ -71,6 +71,7 @@ typedef struct rio_Notes rio_Notes;
 typedef struct rio_StmtList rio_StmtList;
 typedef struct rio_DeclSlice rio_DeclSlice;
 typedef struct rio_Map rio_Map;
+typedef struct Any Any;
 typedef struct rio_Token rio_Token;
 typedef struct rio_TypeArgSlice rio_TypeArgSlice;
 typedef struct rio_CompoundField rio_CompoundField;
@@ -90,7 +91,6 @@ typedef struct rio_TypeAggregate rio_TypeAggregate;
 typedef struct rio_TypeFunc rio_TypeFunc;
 typedef struct rio_Type rio_Type;
 typedef struct TypeFieldInfo TypeFieldInfo;
-typedef struct Any Any;
 typedef struct rio_TypespecFunc rio_TypespecFunc;
 typedef struct rio_Typespec rio_Typespec;
 typedef struct rio_TypespecName rio_TypespecName;
@@ -131,6 +131,8 @@ typedef struct rio_StmtSwitch rio_StmtSwitch;
 typedef struct rio_Stmt rio_Stmt;
 typedef struct rio_BufHdr rio_BufHdr;
 typedef struct rio_Intern rio_Intern;
+typedef struct rio_MapClosure rio_MapClosure;
+typedef struct rio_TypeMap rio_TypeMap;
 typedef struct rio_Package rio_Package;
 typedef struct rio_TypeField rio_TypeField;
 typedef struct rio_DirListIter rio_DirListIter;
@@ -679,6 +681,19 @@ char const ((*rio_str_intern_range(char const ((*start)), char const ((*end)))))
 char const ((*rio_str_intern(char const ((*str)))));
 
 bool rio_str_islower(char const ((*str)));
+
+typedef void (*(*rio_MapClosureCall)(void *, Any));
+
+rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*map)));
+
+rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map)));
+
+struct Any {
+  void (*ptr);
+  typeid type;
+};
+
+void (*rio_map_type_args(rio_TypeMap (*self), Any item));
 
 extern char (*rio_gen_buf);
 
@@ -1991,11 +2006,6 @@ struct TypeFieldInfo {
   int offset;
 };
 
-struct Any {
-  void (*ptr);
-  typeid type;
-};
-
 struct rio_TypespecFunc {
   rio_Typespec (*(*args));
   size_t num_args;
@@ -2298,6 +2308,16 @@ struct rio_Intern {
   size_t len;
   rio_Intern (*next);
   char (str[1]);
+};
+
+struct rio_MapClosure {
+  void (*self);
+  rio_MapClosureCall call;
+};
+
+struct rio_TypeMap {
+  rio_TypeArgSlice type_args;
+  rio_DeclSlice type_params;
 };
 
 struct rio_Package {
@@ -3257,6 +3277,61 @@ bool rio_str_islower(char const ((*str))) {
     (str)++;
   }
   return true;
+}
+
+rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*map))) {
+  rio_Aggregate (*dupe) = map->call(map->self, (Any){aggregate, TYPEID(54, TypeKind_Struct, rio_Aggregate)});
+  if (dupe) {
+    return dupe;
+  }
+  dupe = rio_ast_dup(aggregate, sizeof(*(aggregate)));
+  dupe->items = rio_ast_dup(dupe->items, (sizeof(*(dupe->items))) * (dupe->num_items));
+  for (size_t i = 0; (i) < (dupe->num_items); ++(i)) {
+    rio_AggregateItem (*item) = &(dupe->items[i]);
+    map->call(map->self, (Any){item, TYPEID(49, TypeKind_Struct, rio_AggregateItem)});
+    switch (item->kind) {
+    case rio_AggregateItem_Field: {
+      item->type = rio_dupe_typespec(item->type, map);
+      break;
+    }
+    case rio_AggregateItem_Subaggregate: {
+      item->subaggregate = rio_dupe_aggregate(item->subaggregate, map);
+      break;
+    }
+    default:
+      assert("@complete switch failed to handle case" && 0);
+      break;
+    }
+  }
+  return dupe;
+}
+
+rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
+  rio_Typespec (*dupe) = map->call(map->self, (Any){type, TYPEID(41, TypeKind_Struct, rio_Typespec)});
+  if (dupe) {
+    return dupe;
+  }
+  return type;
+}
+
+void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
+  switch (item.type) {
+  case TYPEID(54, TypeKind_Struct, rio_Aggregate): {
+    printf("Copy that agg!\n");
+    return NULL;
+    break;
+  }
+  case TYPEID(41, TypeKind_Struct, rio_Typespec): {
+    printf("Could be mapping!\n");
+    return item.ptr;
+    break;
+  }
+  default: {
+    printf("Whatever!\n");
+    return item.ptr;
+    break;
+  }
+  }
 }
 
 char (*rio_gen_buf) = NULL;
@@ -7243,6 +7318,9 @@ rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), 
       printf("Param %s has refs\n", param->name);
     }
   }
+  rio_TypeMap type_map = {.type_args = type_args, .type_params = type_params};
+  rio_MapClosure map = {.self = &(type_map), .call = (rio_MapClosureCall)(rio_map_type_args)};
+  rio_Aggregate (*dupe) = rio_dupe_aggregate(aggregate, &(map));
   void (*new_items) = rio_ast_alloc((aggregate->num_items) * (sizeof(rio_AggregateItem)));
   for (size_t i = 0; (i) < (aggregate->num_items); ++(i)) {
     rio_AggregateItem (*item) = &(aggregate->items[i]);

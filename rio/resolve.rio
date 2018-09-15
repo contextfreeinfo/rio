@@ -642,6 +642,9 @@ fn resolve_generic_typespec_instance(
       // TODO Map these back to type args or such.
     }
   }
+  let type_map = TypeMap{type_args = type_args, type_params = type_params};
+  let map = MapClosure{self = &type_map, call = (:MapClosureCall)map_type_args};
+  let dupe = dupe_aggregate(aggregate, &map);
   let new_items = ast_alloc(aggregate.num_items * sizeof(AggregateItem));
   for (let i: usize = 0; i < aggregate.num_items; ++i) {
     let item = &aggregate.items[i];
