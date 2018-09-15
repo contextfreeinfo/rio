@@ -7370,8 +7370,9 @@ rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), 
   rio_MapClosure map = {.self = &(type_map), .call = (rio_MapClosureCall)(rio_map_type_args)};
   rio_Aggregate (*dupe_agg) = rio_dupe_aggregate(aggregate, &(map));
   rio_Decl (*dupe) = rio_new_decl_aggregate(pos, decl->kind, name, (rio_DeclSlice){0}, dupe_agg);
-  rio_sym_global_decl(dupe, NULL);
-  dupe_sym = rio_resolve_name(name);
+  dupe_sym = rio_sym_global_decl(dupe, NULL);
+  rio_resolve_sym(dupe_sym);
+  printf("-> Made sym type: %s, %s\n", rio_get_type_name(dupe_sym->type), dupe_sym->name);
   return dupe_sym;
 }
 
@@ -7427,11 +7428,11 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
       return NULL;
     }
     rio_resolve_sym(sym);
-    rio_set_resolved_sym(typespec, sym);
     if (typespec_name->type_args.length) {
       rio_complete_type(sym->type);
       sym = rio_resolve_generic_typespec_instance(typespec->pos, sym, typespec_name->type_args);
     }
+    rio_set_resolved_sym(typespec, sym);
     result = sym->type;
     break;
   }

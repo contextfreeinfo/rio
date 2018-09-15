@@ -31,7 +31,7 @@ struct Typespec {
   union switch {
     None, Const, Ptr, Ref => :void;
     Name => struct {
-      // TODO Break these out into individual AST items!
+      // TODO Break names out into individual AST items!
       names: *TypespecName;
       num_names: usize;
       decl: &Decl;

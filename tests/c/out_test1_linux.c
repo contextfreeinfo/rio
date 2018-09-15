@@ -351,7 +351,7 @@ void test1_println_typeinfo(typeid type);
 typedef time_t test1_my_time_t;
 
 
-typedef test1_Slorce test1_Slarce;
+typedef test1_Slorce_int test1_Slarce;
 
 struct test1_Slorce_int {
   size_t length;

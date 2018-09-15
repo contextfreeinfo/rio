@@ -637,6 +637,7 @@ fn resolve_generic_typespec_instance(
   // TODO Check for previous resolution for this name before rebuilding.
   let dupe_sym = get_resolved_sym(name);
   if (dupe_sym) {
+    // TODO Not finding this so far ...
     printf("Found previous!\n");
     return dupe_sym;
   }
@@ -652,8 +653,9 @@ fn resolve_generic_typespec_instance(
   let map = MapClosure{self = &type_map, call = (:MapClosureCall)map_type_args};
   let dupe_agg = dupe_aggregate(aggregate, &map);
   let dupe = new_decl_aggregate(pos, decl.kind, name, DeclSlice{}, dupe_agg);
-  sym_global_decl(dupe, NULL);
-  dupe_sym = resolve_name(name);
+  dupe_sym = sym_global_decl(dupe, NULL);
+  resolve_sym(dupe_sym);
+  printf("-> Made sym type: %s, %s\n", get_type_name(dupe_sym.type), dupe_sym.name);
   return dupe_sym;
 }
 
@@ -720,7 +722,6 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       }
       // Resolve the outer sym.
       resolve_sym(sym);
-      set_resolved_sym(typespec, sym);
       // And maybe go deeper before done.
       if (typespec_name.type_args.length) {
         // Complete the type, so we can create the custom version.
@@ -730,6 +731,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
           typespec.pos, sym, typespec_name.type_args,
         );
       }
+      set_resolved_sym(typespec, sym);
       result = sym.type;
     }
     Const => result = type_const(resolve_typespec(typespec.base));
