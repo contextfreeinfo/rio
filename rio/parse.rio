@@ -39,7 +39,7 @@ fn parse_type_func() -> &Typespec {
   return new_typespec_func(pos, args, buf_len(args), ret, has_varargs);
 }
 
-fn parse_type_args() -> TypeArgSlice {
+fn parse_type_args() -> Slice<TypeArg> {
   let args: *TypeArg;
   if (match_token(TokenKind.Lt)) {
     do {
@@ -48,7 +48,7 @@ fn parse_type_args() -> TypeArgSlice {
     } while (match_token(TokenKind.Comma));
     expect_token(TokenKind.Gt);
   }
-  return TypeArgSlice{items = args, length = buf_len(args)};
+  return (:Slice<TypeArg>){items = args, length = buf_len(args)};
 }
 
 fn parse_type_base() -> &Typespec {
@@ -874,7 +874,7 @@ fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
   let name = parse_name();
   let aggregate_kind =
     kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
-  let params: DeclSlice;
+  let params: Slice<Decl>;
   if (match_token(TokenKind.Lt)) {
     while (!match_token(TokenKind.Gt)) {
       let param_name = parse_name();

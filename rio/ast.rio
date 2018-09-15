@@ -43,7 +43,7 @@ struct Typespec {
 
 struct TypespecName {
   name: *const char;
-  type_args: TypeArgSlice;
+  type_args: Slice<TypeArg>;
 }
 
 struct TypespecFunc {
@@ -64,16 +64,6 @@ struct FuncParam {
 struct TypeArg {
   pos: SrcPos;
   val: &Typespec;
-}
-
-struct TypeArgSlice {
-  length: usize;
-  items: *TypeArg;
-}
-
-struct DeclSlice {
-  length: usize;
-  items: *Decl;
 }
 
 struct AggregateItem {
@@ -128,18 +118,13 @@ struct SymRef {
   }
 }
 
-struct SymRefSlice {
-  length: usize;
-  items: *SymRef;
-}
-
 struct Decl {
   pos: SrcPos;
   name: *const char;
   notes: Notes;
   is_incomplete: bool;
-  type_params: DeclSlice;
-  refs: SymRefSlice;
+  type_params: Slice<Decl>;
+  refs: Slice<SymRef>;
   union switch {
     None => :void;
     Note => note: Note;
@@ -551,7 +536,7 @@ fn new_aggregate(
 }
 
 fn new_decl_aggregate(
-  pos: SrcPos, kind: Decl.Kind, name: *const char, params: DeclSlice,
+  pos: SrcPos, kind: Decl.Kind, name: *const char, params: Slice<Decl>,
   aggregate: &Aggregate,
 ) -> &Decl {
   #assert(kind == Decl.Struct || kind == Decl.Union);

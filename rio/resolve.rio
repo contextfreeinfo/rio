@@ -593,7 +593,7 @@ fn get_nested_type_sym(
 }
 
 fn resolve_specialized_typespec(
-  pos: SrcPos, sym: &Sym, type_args: TypeArgSlice,
+  pos: SrcPos, sym: &Sym, type_args: Slice<TypeArg>,
 ) -> &Sym {
   if (!(sym.decl && sym.decl.name)) {
     fatal_error(pos, "Undeclared generic type");
@@ -634,7 +634,7 @@ fn resolve_specialized_typespec(
   let map = MapClosure{self = &type_map, call = (:MapClosureCall)map_type_args};
   let dupe_agg = dupe_aggregate(aggregate, &map);
   let dupe =
-    new_decl_aggregate(decl.pos, decl.kind, name, DeclSlice{}, dupe_agg);
+    new_decl_aggregate(decl.pos, decl.kind, name, (:Slice<Decl>){}, dupe_agg);
   dupe_sym = sym_global_decl(dupe, NULL);
   resolve_sym(dupe_sym);
   return dupe_sym;

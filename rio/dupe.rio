@@ -6,8 +6,8 @@ struct MapClosure {
 }
 
 struct TypeMap {
-  type_args: TypeArgSlice;
-  type_params: DeclSlice;
+  type_args: Slice<TypeArg>;
+  type_params: Slice<Decl>;
 }
 
 fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
@@ -102,7 +102,7 @@ fn put_type_sym_name(buf: **char, type: &Type) {
   } else {
     @complete
     switch (type.kind) {
-      Struct, Union, Enum, Incomplete => {
+      Struct, Union, Enum, Incomplete, Completing => {
         #assert(type.sym);
         buf_printf(buf, "%s", type.sym.name);
       }
