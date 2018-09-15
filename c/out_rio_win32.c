@@ -1397,6 +1397,8 @@ rio_AggregateItem (*rio_parse_switch_union(void));
 
 void rio_build_enum_union_decl(rio_Aggregate (*enum_union), char const ((*decl_name)));
 
+rio_Slice_Decl rio_parse_type_params(void);
+
 rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Notes (*notes)));
 
 rio_Decl (*rio_parse_decl_var(rio_SrcPos pos));
@@ -6614,10 +6616,7 @@ void rio_build_enum_union_decl(rio_Aggregate (*enum_union), char const ((*decl_n
   enum_union->union_enum_decl = union_enum_decl;
 }
 
-rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Notes (*notes))) {
-  assert(((kind) == ((rio_Decl_Struct))) || ((kind) == ((rio_Decl_Union))));
-  char const ((*name)) = rio_parse_name();
-  rio_AggregateKind aggregate_kind = ((kind) == ((rio_Decl_Struct)) ? (rio_AggregateKind_Struct) : (rio_AggregateKind_Union));
+rio_Slice_Decl rio_parse_type_params(void) {
   rio_Slice_Decl params = {0};
   if (rio_match_token((rio_TokenKind_Lt))) {
     do {
@@ -6628,6 +6627,14 @@ rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Note
     rio_expect_token((rio_TokenKind_Gt));
     params.length = rio_buf_len(params.items);
   }
+  return params;
+}
+
+rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Notes (*notes))) {
+  assert(((kind) == ((rio_Decl_Struct))) || ((kind) == ((rio_Decl_Union))));
+  char const ((*name)) = rio_parse_name();
+  rio_AggregateKind aggregate_kind = ((kind) == ((rio_Decl_Struct)) ? (rio_AggregateKind_Struct) : (rio_AggregateKind_Union));
+  rio_Slice_Decl params = rio_parse_type_params();
   if (rio_match_token((rio_TokenKind_Semicolon))) {
     rio_Decl (*decl) = rio_new_decl_aggregate(pos, kind, name, params, rio_new_aggregate(pos, aggregate_kind, NULL, 0));
     decl->is_incomplete = true;
@@ -6689,6 +6696,7 @@ rio_FuncParam rio_parse_decl_func_param(void) {
 
 rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
   char const ((*name)) = rio_parse_name();
+  rio_Slice_Decl type_params = rio_parse_type_params();
   rio_expect_token((rio_TokenKind_Lparen));
   rio_FuncParam (*params) = NULL;
   bool has_varargs = false;

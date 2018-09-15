@@ -4,6 +4,10 @@ fn test_generics() {
   let slorce_ref: Slorce<&int> = {items = (:[]&int){slorce.items}, length = 1};
   printf("Generically, %d\n", *slorce_ref.items[0]);
   let slarb: Slorce<Bar>;
+  // Assignment properly succeeds.
+  let slarce: Slarce = slorce;
+  // Assignment properly fails.
+  // slarce = slarb;
   // This should render as test1_Slorce_Hey, and no test1_Slorce_float should
   // even exist.
   // TODO This fails right now (wrongly saying test1_Slorce_float), so fix it.
@@ -29,13 +33,13 @@ struct Slorce<Item> {
 // let item: Item;
 
 fn test_generic_functions() {
-  // printf("int sum: %d", sum(1, 2));
-  // printf("float sum: %d", sum(1.1, 2.2));
+  printf("int sum: %d", sum(1, 2));
+  printf("float sum: %d", sum(1.1, 2.2));
 }
 
-// fn sum<Num>(x: Num, y: Num) -> Num {
-//   return x + y;
-// }
+fn sum<Num>(x: Num, y: Num) -> Num {
+  return x + y;
+}
 
 // TODO Deeper generics:
 // fn first<Item>(slice: Slice<Item>) -> Result<&Item, TestErr> {

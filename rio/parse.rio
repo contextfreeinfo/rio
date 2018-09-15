@@ -869,11 +869,7 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
   enum_union.union_enum_decl = union_enum_decl;
 }
 
-fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
-  #assert(kind == Decl.Struct || kind == Decl.Union);
-  let name = parse_name();
-  let aggregate_kind =
-    kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
+fn parse_type_params() -> Slice<Decl> {
   let params: Slice<Decl>;
   if (match_token(TokenKind.Lt)) {
     do {
@@ -891,6 +887,15 @@ fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
     expect_token(TokenKind.Gt);
     params.length = buf_len(params.items);
   }
+  return params;
+}
+
+fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
+  #assert(kind == Decl.Struct || kind == Decl.Union);
+  let name = parse_name();
+  let aggregate_kind =
+    kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
+  let params = parse_type_params();
   if (match_token(TokenKind.Semicolon)) {
     // TODO Need to allow switch here, too, for union switches.
     let decl = new_decl_aggregate(
@@ -957,6 +962,7 @@ fn parse_decl_func_param() -> FuncParam {
 
 fn parse_decl_func(pos: SrcPos) -> &Decl {
   let name = parse_name();
+  let type_params = parse_type_params();
   expect_token(TokenKind.Lparen);
   let params: *FuncParam = NULL;
   let has_varargs: bool = false;

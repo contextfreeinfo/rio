@@ -99,6 +99,8 @@ fn put_typespec_sym_name(buf: **char, type: &Typespec) {
   @complete
   switch (type.kind) {
     Name => {
+      // This is the perceived type, which is what we want for mangling, so the
+      // programmer has some manual control.
       for (let i: usize = 0; i < type.num_names; ++i) {
         if (i) {
           buf_printf(buf, "_");
