@@ -866,7 +866,7 @@ fn test_type_path() {
 }
 
 fn test_generics() {
-  // let slorce: Slorce<int>;
+  let slorce: Slorce<int>;
   // let slarce: Slarce;
   let slirce: Slirce;
 }

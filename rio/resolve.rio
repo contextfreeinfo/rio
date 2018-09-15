@@ -594,7 +594,7 @@ fn get_nested_type_sym(
   return NULL;
 }
 
-fn resolve_generic_typespec_instance(
+fn resolve_specialized_typespec(
   pos: SrcPos, sym: &Sym, type_args: TypeArgSlice,
 ) -> &Sym {
   if (!(sym.decl && sym.decl.name)) {
@@ -635,24 +635,16 @@ fn resolve_generic_typespec_instance(
   }
   printf("----> Concrete type name: %s\n", name);
   // TODO Check for previous resolution for this name before rebuilding.
-  let dupe_sym = get_resolved_sym(name);
+  let dupe_sym = resolve_name(name);
   if (dupe_sym) {
-    // TODO Not finding this so far ...
     printf("Found previous!\n");
     return dupe_sym;
-  }
-  for (let i: usize = 0; i < type_params.length; ++i) {
-    let param = &type_params.items[i];
-    printf("Checking %s\n", param.name);
-    if (param.refs.length) {
-      printf("Param %s has refs\n", param.name);
-      // TODO Map these back to type args or such.
-    }
   }
   let type_map = TypeMap{type_args = type_args, type_params = type_params};
   let map = MapClosure{self = &type_map, call = (:MapClosureCall)map_type_args};
   let dupe_agg = dupe_aggregate(aggregate, &map);
-  let dupe = new_decl_aggregate(pos, decl.kind, name, DeclSlice{}, dupe_agg);
+  let dupe =
+    new_decl_aggregate(decl.pos, decl.kind, name, DeclSlice{}, dupe_agg);
   dupe_sym = sym_global_decl(dupe, NULL);
   resolve_sym(dupe_sym);
   printf("-> Made sym type: %s, %s\n", get_type_name(dupe_sym.type), dupe_sym.name);
@@ -727,7 +719,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         // Complete the type, so we can create the custom version.
         // TODO Can we defer type completion past here?
         complete_type(sym.type);
-        sym = resolve_generic_typespec_instance(
+        sym = resolve_specialized_typespec(
           typespec.pos, sym, typespec_name.type_args,
         );
       }

@@ -351,12 +351,12 @@ void test1_println_typeinfo(typeid type);
 typedef time_t test1_my_time_t;
 
 
-typedef test1_Slorce_int test1_Slarce;
-
 struct test1_Slorce_int {
   size_t length;
   int (*item);
 };
+
+typedef test1_Slorce_int test1_Slarce;
 
 struct test1_Slirce {
   test1_Slarce slarce;
@@ -560,16 +560,16 @@ const TypeInfo *typeinfo_table[275] = {
   [113] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(112, TypeKind_Union, test1_IntOrPtr)},
   [114] = &(TypeInfo){TypeKind_Ref, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(112, TypeKind_Union, test1_IntOrPtr)},
   [115] = NULL, // Function
-  [116] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Slirce), .align = alignof(test1_Slirce), .name = "test1_Slirce", .num_fields = 1, .fields = (TypeFieldInfo[]) {
-    {"slarce", .type = TYPEID(118, TypeKind_Struct, test1_Slorce_int), .offset = offsetof(test1_Slirce, slarce)},
-  }},
-  [117] = &(TypeInfo){TypeKind_Struct, .size = 0, .align = 0, .name = "test1_Slorce", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+  [116] = &(TypeInfo){TypeKind_Struct, .size = 0, .align = 0, .name = "test1_Slorce", .num_fields = 2, .fields = (TypeFieldInfo[]) {
     {"length", .type = TYPEID(13, TypeKind_ULLong, ullong)},
     {"item", .type = TYPEID(36, TypeKind_Ptr, void *)},
   }},
-  [118] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Slorce_int), .align = alignof(test1_Slorce_int), .name = "test1_Slorce_int", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+  [117] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Slorce_int), .align = alignof(test1_Slorce_int), .name = "test1_Slorce_int", .num_fields = 2, .fields = (TypeFieldInfo[]) {
     {"length", .type = TYPEID(13, TypeKind_ULLong, ullong), .offset = offsetof(test1_Slorce_int, length)},
     {"item", .type = TYPEID(43, TypeKind_Ptr, int *), .offset = offsetof(test1_Slorce_int, item)},
+  }},
+  [118] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Slirce), .align = alignof(test1_Slirce), .name = "test1_Slirce", .num_fields = 1, .fields = (TypeFieldInfo[]) {
+    {"slarce", .type = TYPEID(117, TypeKind_Struct, test1_Slorce_int), .offset = offsetof(test1_Slirce, slarce)},
   }},
   [119] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [2]), .align = alignof(char [2]), .base = TYPEID(3, TypeKind_Char, char), .count = 2},
   [120] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [3]), .align = alignof(char [3]), .base = TYPEID(3, TypeKind_Char, char), .count = 3},
@@ -1181,6 +1181,7 @@ void test1_test_type_path(void) {
 }
 
 void test1_test_generics(void) {
+  test1_Slorce_int slorce = {0};
   test1_Slirce slirce = {0};
 }
 

@@ -1617,7 +1617,7 @@ rio_Operand rio_resolve_expected_expr_rvalue(rio_Expr (*expr), rio_Type (*expect
 
 rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, rio_TypespecName (*names)));
 
-rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), rio_TypeArgSlice type_args));
+rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_TypeArgSlice type_args));
 
 rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec)));
 
@@ -7315,7 +7315,7 @@ rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, rio_Ty
   return NULL;
 }
 
-rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), rio_TypeArgSlice type_args)) {
+rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_TypeArgSlice type_args)) {
   if (!(((sym->decl) && (sym->decl->name)))) {
     rio_fatal_error(pos, "Undeclared generic type");
     return NULL;
@@ -7340,22 +7340,15 @@ rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), 
     rio_buf_free((void (**))(&(arg_name)));
   }
   printf("----> Concrete type name: %s\n", name);
-  rio_Sym (*dupe_sym) = rio_get_resolved_sym(name);
+  rio_Sym (*dupe_sym) = rio_resolve_name(name);
   if (dupe_sym) {
     printf("Found previous!\n");
     return dupe_sym;
   }
-  for (size_t i = 0; (i) < (type_params.length); ++(i)) {
-    rio_Decl (*param) = &(type_params.items[i]);
-    printf("Checking %s\n", param->name);
-    if (param->refs.length) {
-      printf("Param %s has refs\n", param->name);
-    }
-  }
   rio_TypeMap type_map = {.type_args = type_args, .type_params = type_params};
   rio_MapClosure map = {.self = &(type_map), .call = (rio_MapClosureCall)(rio_map_type_args)};
   rio_Aggregate (*dupe_agg) = rio_dupe_aggregate(aggregate, &(map));
-  rio_Decl (*dupe) = rio_new_decl_aggregate(pos, decl->kind, name, (rio_DeclSlice){0}, dupe_agg);
+  rio_Decl (*dupe) = rio_new_decl_aggregate(decl->pos, decl->kind, name, (rio_DeclSlice){0}, dupe_agg);
   dupe_sym = rio_sym_global_decl(dupe, NULL);
   rio_resolve_sym(dupe_sym);
   printf("-> Made sym type: %s, %s\n", rio_get_type_name(dupe_sym->type), dupe_sym->name);
@@ -7416,7 +7409,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     rio_resolve_sym(sym);
     if (typespec_name->type_args.length) {
       rio_complete_type(sym->type);
-      sym = rio_resolve_generic_typespec_instance(typespec->pos, sym, typespec_name->type_args);
+      sym = rio_resolve_specialized_typespec(typespec->pos, sym, typespec_name->type_args);
     }
     rio_set_resolved_sym(typespec, sym);
     result = sym->type;
