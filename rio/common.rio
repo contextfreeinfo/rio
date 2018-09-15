@@ -162,7 +162,7 @@ fn buf_sizeof(b: &void, elem_size: usize) -> usize {
 }
 
 // #define buf_free(b) ((b) ? (free(buf__hdr(b)), (b) = NULL) : 0)
-fn buf_free(b: *&void) {
+fn buf_free(b: &&void) {
   if (b) {
     free(buf__hdr(*b));
     *b = NULL;
@@ -170,7 +170,7 @@ fn buf_free(b: *&void) {
 }
 
 // #define buf_fit(b, n) ((n) <= buf_cap(b) ? 0 : ((b) = buf__grow((b), (n), sizeof(*(b)))))
-fn buf_fit(b: *&void, new_len: usize, elem_size: usize) {
+fn buf_fit(b: &&void, new_len: usize, elem_size: usize) {
   if (new_len > buf_cap(*b)) {
     *b = buf__grow(*b, new_len, elem_size);
   }
@@ -178,12 +178,12 @@ fn buf_fit(b: *&void, new_len: usize, elem_size: usize) {
 
 // TODO: We need templates or macros to make this better generic.
 // #define buf_push(b, ...) (buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->len++] = (__VA_ARGS__))
-fn buf_push(b: *&void, elem: &void, elem_size: usize) {
+fn buf_push(b: &&void, elem: &void, elem_size: usize) {
   buf_fit(b, 1 + buf_len(*b), elem_size);
   memcpy((:*char)*b + elem_size * buf__hdr(*b).len++, elem, elem_size);
 }
 
-fn buf_unshift(b: *&void, elem: &void, elem_size: usize) {
+fn buf_unshift(b: &&void, elem: &void, elem_size: usize) {
   buf_fit(b, 1 + buf_len(*b), elem_size);
   memmove((:*char)*b + elem_size, *b, elem_size * buf__hdr(*b).len++);
   memcpy(*b, elem, elem_size);
@@ -216,7 +216,7 @@ fn buf_printf(buf: &*char, fmt: *const char, ...) {
   let n = 1 + vsnprintf(buf_end(*buf, 1), cap, fmt, args);
   va_end(&args);
   if (n > cap) {
-    buf_fit((:*&void)buf, n + buf_len(*buf), 1);
+    buf_fit((:&&void)buf, n + buf_len(*buf), 1);
     va_start(&args, &fmt);
     let new_cap = buf_cap(*buf) - buf_len(*buf);
     n = 1 + vsnprintf(buf_end(*buf, 1), new_cap, fmt, args);
@@ -264,7 +264,7 @@ fn arena_grow(arena: &Arena, min_size: usize) {
   arena.ptr = xmalloc(size);
   #assert(arena.ptr == align_down_ptr(arena.ptr, ARENA_ALIGNMENT));
   arena.end = arena.ptr + size;
-  buf_push((:*&void)&arena.blocks, &arena.ptr, sizeof(arena.ptr));
+  buf_push((:&&void)&arena.blocks, &arena.ptr, sizeof(arena.ptr));
 }
 
 fn arena_alloc(arena: &Arena, size: usize) -> &void {
@@ -284,7 +284,7 @@ fn arena_free(arena: &Arena) {
   for (let it: **char = arena.blocks; it != end; it++) {
     free(*it);
   }
-  buf_free((:*&void)&arena.blocks);
+  buf_free((:&&void)&arena.blocks);
 }
 
 // Hash map

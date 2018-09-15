@@ -43,7 +43,7 @@ let void_name: *const char;
 fn init_keyword(keyword: *const char) -> *const char {
   keyword = str_intern(keyword);
   // TODO If rio doesn't give warnings, the underlying compiler also shouldn't.
-  buf_push((:*&void)&keywords, (:&void)&keyword, sizeof(keyword));
+  buf_push((:&&void)&keywords, (:&void)&keyword, sizeof(keyword));
   return keyword;
 }
 
@@ -567,7 +567,7 @@ fn scan_str() {
       }
       if (*stream != '\r') {
         // TODO: Should probably just read files in text mode instead.
-        buf_push((:*&void)&str, (:&void)stream, 1);
+        buf_push((:&&void)&str, (:&void)stream, 1);
       }
       if (*stream == '\n') {
         token.pos.line++;
@@ -598,7 +598,7 @@ fn scan_str() {
       } else {
         stream++;
       }
-      buf_push((:*&void)&str, &val, 1);
+      buf_push((:&&void)&str, &val, 1);
     }
     if (*stream) {
       stream++;
@@ -608,7 +608,7 @@ fn scan_str() {
   }
   // TODO: If I say just "", I get a random byte in the c output from c rio.
   let nul = '\0';
-  buf_push((:*&void)&str, &nul, 1);
+  buf_push((:&&void)&str, &nul, 1);
   token.kind = TokenKind.Str;
   token.str_val = str;
 }

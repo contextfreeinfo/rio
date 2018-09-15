@@ -1041,7 +1041,7 @@ fn add_foreign_header(name: *const char) {
   name = str_intern(name);
   if (!map_get(&gen_foreign_headers_map, name)) {
     map_put(&gen_foreign_headers_map, name, (:&void)1);
-    buf_push((:*&void)&gen_foreign_headers_buf, &name, sizeof(name));
+    buf_push((:&&void)&gen_foreign_headers_buf, &name, sizeof(name));
   }
 }
 
@@ -1049,7 +1049,7 @@ let gen_foreign_sources_buf: **const char;
 
 fn add_foreign_source(name: *const char) {
   let interned = str_intern(name);
-  buf_push((:*&void)&gen_foreign_sources_buf, &interned, sizeof(interned));
+  buf_push((:&&void)&gen_foreign_sources_buf, &interned, sizeof(interned));
 }
 
 fn gen_include(path: *const char) {
