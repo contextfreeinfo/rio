@@ -695,7 +695,7 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
 
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map)));
 
-char (*rio_get_type_sym_name(rio_Type (*type)));
+char (*rio_get_typespec_sym_name(rio_Typespec (*type)));
 
 struct Any {
   void (*ptr);
@@ -704,7 +704,7 @@ struct Any {
 
 void (*rio_map_type_args(rio_TypeMap (*self), Any item));
 
-void rio_put_type_sym_name(char (*(*buf)), rio_Type (*type));
+void rio_put_typespec_sym_name(char (*(*buf)), rio_Typespec (*type));
 
 extern char (*rio_gen_buf);
 
@@ -3343,9 +3343,9 @@ rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
   return dupe;
 }
 
-char (*rio_get_type_sym_name(rio_Type (*type))) {
-  char (*buf) = NULL;
-  rio_put_type_sym_name(&(buf), type);
+char (*rio_get_typespec_sym_name(rio_Typespec (*type))) {
+  char (*buf) = {0};
+  rio_put_typespec_sym_name(&(buf), type);
   return buf;
 }
 
@@ -3384,62 +3384,58 @@ void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
   }
 }
 
-void rio_put_type_sym_name(char (*(*buf)), rio_Type (*type)) {
-  char const ((*type_name)) = rio_type_names[type->kind];
-  if (type_name) {
-    rio_buf_printf(buf, "%s", type_name);
-  } else {
-    switch (type->kind) {
-    case rio_CompilerTypeKind_Struct:
-    case rio_CompilerTypeKind_Union:
-    case rio_CompilerTypeKind_Enum:
-    case rio_CompilerTypeKind_Incomplete:
-    case rio_CompilerTypeKind_Completing: {
-      assert(type->sym);
-      rio_buf_printf(buf, "%s", type->sym->name);
-      break;
-    }
-    case rio_CompilerTypeKind_Const: {
-      rio_buf_printf(buf, "const_");
-      rio_put_type_name(buf, type->base);
-      break;
-    }
-    case rio_CompilerTypeKind_Ptr: {
-      rio_buf_printf(buf, "ptr_");
-      rio_put_type_name(buf, type->base);
-      break;
-    }
-    case rio_CompilerTypeKind_Ref: {
-      rio_buf_printf(buf, "ref_");
-      rio_put_type_name(buf, type->base);
-      break;
-    }
-    case rio_CompilerTypeKind_Array: {
-      rio_buf_printf(buf, "array%zu_", type->num_elems);
-      rio_put_type_name(buf, type->base);
-      break;
-    }
-    case rio_CompilerTypeKind_Func: {
-      rio_buf_printf(buf, "fn_");
-      for (size_t i = 0; (i) < (type->function.num_params); (i)++) {
-        if ((i) != (0)) {
-          rio_buf_printf(buf, "_");
-        }
-        rio_put_type_name(buf, type->function.params[i]);
+void rio_put_typespec_sym_name(char (*(*buf)), rio_Typespec (*type)) {
+  switch (type->kind) {
+  case rio_Typespec_Name: {
+    for (size_t i = 0; (i) < (type->num_names); ++(i)) {
+      if (i) {
+        rio_buf_printf(buf, "_");
       }
-      if (type->function.has_varargs) {
-        rio_buf_printf(buf, "___");
-      }
-      if ((type->function.ret) != (rio_type_void)) {
-        rio_buf_printf(buf, "_to_");
-        rio_put_type_name(buf, type->function.ret);
-      }
-      break;
+      rio_buf_printf(buf, "%s", type->names[i].name);
     }
-    default:
-      assert("@complete switch failed to handle case" && 0);
-      break;
+    break;
+  }
+  case rio_Typespec_Const: {
+    rio_buf_printf(buf, "const_");
+    rio_put_typespec_sym_name(buf, type->base);
+    break;
+  }
+  case rio_Typespec_Ptr: {
+    rio_buf_printf(buf, "ptr_");
+    rio_put_typespec_sym_name(buf, type->base);
+    break;
+  }
+  case rio_Typespec_Ref: {
+    rio_buf_printf(buf, "ref_");
+    rio_put_typespec_sym_name(buf, type->base);
+    break;
+  }
+  case rio_Typespec_Array: {
+    rio_buf_printf(buf, "array_");
+    rio_put_typespec_sym_name(buf, type->base);
+    break;
+  }
+  case rio_Typespec_Func: {
+    rio_TypespecFunc (*function) = &(type->function);
+    rio_buf_printf(buf, "fn_");
+    for (size_t i = 0; (i) < (type->function.num_args); (i)++) {
+      if (i) {
+        rio_buf_printf(buf, "_");
+      }
+      rio_put_typespec_sym_name(buf, type->function.args[i]);
     }
+    if (type->function.has_varargs) {
+      rio_buf_printf(buf, "_etc");
+    }
+    if (type->function.ret) {
+      rio_buf_printf(buf, "_to_");
+      rio_put_typespec_sym_name(buf, type->function.ret);
+    }
+    break;
+  }
+  default:
+    assert("@complete switch failed to handle case" && 0);
+    break;
   }
 }
 
@@ -7427,8 +7423,7 @@ rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_S
   char const ((*name)) = decl->name;
   for (size_t i = 0; (i) < (type_args.length); ++(i)) {
     rio_Typespec (*arg_typespec) = type_args.items[i].val;
-    rio_Type (*arg_type) = rio_resolve_typespec(arg_typespec);
-    char (*arg_name) = rio_get_type_sym_name(arg_type);
+    char (*arg_name) = rio_get_typespec_sym_name(arg_typespec);
     name = rio_build_scoped_name(name, arg_name);
     rio_buf_free((void (**))(&(arg_name)));
   }

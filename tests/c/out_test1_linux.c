@@ -76,7 +76,7 @@ typedef struct test1_Slorce_int test1_Slorce_int;
 typedef struct test1_Slirce test1_Slirce;
 typedef struct test1_Slorce_ref_int test1_Slorce_ref_int;
 typedef struct test1_Slorce_Bar test1_Slorce_Bar;
-typedef struct test1_Slorce_float test1_Slorce_float;
+typedef struct test1_Slorce_Hey test1_Slorce_Hey;
 typedef struct test1_Result_float_TestErr test1_Result_float_TestErr;
 typedef struct test1_UartCtrl test1_UartCtrl;
 typedef union test1_IntOrPtr test1_IntOrPtr;
@@ -388,7 +388,7 @@ struct test1_Slorce_Bar {
 
 typedef float test1_Hey;
 
-struct test1_Slorce_float {
+struct test1_Slorce_Hey {
   size_t length;
   test1_Hey (*items);
 };
@@ -640,17 +640,17 @@ const TypeInfo *typeinfo_table[292] = {
     {"length", .type = TYPEID(13, TypeKind_ULLong, ullong), .offset = offsetof(test1_Slorce_Bar, length)},
     {"items", .type = TYPEID(50, TypeKind_Ptr, test1_Bar *), .offset = offsetof(test1_Slorce_Bar, items)},
   }},
-  [130] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Slorce_float), .align = alignof(test1_Slorce_float), .name = "test1_Slorce_float", .num_fields = 2, .fields = (TypeFieldInfo[]) {
-    {"length", .type = TYPEID(13, TypeKind_ULLong, ullong), .offset = offsetof(test1_Slorce_float, length)},
-    {"items", .type = TYPEID(131, TypeKind_Ptr, float *), .offset = offsetof(test1_Slorce_float, items)},
+  [130] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Slorce_Hey), .align = alignof(test1_Slorce_Hey), .name = "test1_Slorce_Hey", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+    {"length", .type = TYPEID(13, TypeKind_ULLong, ullong), .offset = offsetof(test1_Slorce_Hey, length)},
+    {"items", .type = TYPEID(131, TypeKind_Ptr, float *), .offset = offsetof(test1_Slorce_Hey, items)},
   }},
   [131] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(14, TypeKind_Float, float)},
-  [132] = NULL, // Enum
-  [133] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Result_float_TestErr), .align = alignof(test1_Result_float_TestErr), .name = "test1_Result_float_TestErr", .num_fields = 3, .fields = (TypeFieldInfo[]) {
+  [132] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Result_float_TestErr), .align = alignof(test1_Result_float_TestErr), .name = "test1_Result_float_TestErr", .num_fields = 3, .fields = (TypeFieldInfo[]) {
     {"kind", .type = TYPEID(21, TypeKind_None, Result_Kind), .offset = offsetof(test1_Result_float_TestErr, kind)},
     {"val", .type = TYPEID(14, TypeKind_Float, float), .offset = offsetof(test1_Result_float_TestErr, val)},
-    {"err", .type = TYPEID(132, TypeKind_None, test1_TestErr), .offset = offsetof(test1_Result_float_TestErr, err)},
+    {"err", .type = TYPEID(133, TypeKind_None, test1_TestErr), .offset = offsetof(test1_Result_float_TestErr, err)},
   }},
+  [133] = NULL, // Enum
   [134] = NULL, // No associated type
   [135] = NULL, // Function
   [136] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [2]), .align = alignof(char [2]), .base = TYPEID(3, TypeKind_Char, char), .count = 2},
@@ -1269,7 +1269,7 @@ void test1_test_generics(void) {
   test1_Slorce_ref_int slorce_ref = {.items = (int *[]){slorce.items}, .length = 1};
   printf("Generically, %d\n", *(slorce_ref.items[0]));
   test1_Slorce_Bar slarb = {0};
-  test1_Slorce_float slorce_hey = {0};
+  test1_Slorce_Hey slorce_hey = {0};
   test1_test_generic_functions();
 }
 

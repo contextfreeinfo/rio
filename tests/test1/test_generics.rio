@@ -6,7 +6,7 @@ fn test_generics() {
   let slarb: Slorce<Bar>;
   // This should render as test1_Slorce_Hey, and no test1_Slorce_float should
   // even exist.
-  // TODO This fails right now, so fix it.
+  // TODO This fails right now (wrongly saying test1_Slorce_float), so fix it.
   let slorce_hey: Slorce<Hey>;
   // Test some functions, too.
   test_generic_functions();
