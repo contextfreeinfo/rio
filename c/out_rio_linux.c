@@ -3309,7 +3309,25 @@ rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
   if (dupe) {
     return dupe;
   }
-  return type;
+  dupe = rio_ast_dup(type, sizeof(*(type)));
+  switch (type->kind) {
+  case rio_Typespec_Array:
+  case rio_Typespec_Const:
+  case rio_Typespec_Ptr:
+  case rio_Typespec_Ref: {
+    printf("Recurse on base type!\n");
+    dupe->base = rio_dupe_typespec(type->base, map);
+    break;
+  }
+  case rio_Typespec_Func: {
+    printf("Go into function definition!\n");
+    break;
+  }
+  default: {
+    break;
+  }
+  }
+  return dupe;
 }
 
 void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
@@ -3320,8 +3338,32 @@ void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
     break;
   }
   case TYPEID(41, TypeKind_Struct, rio_Typespec): {
-    printf("Could be mapping!\n");
-    return item.ptr;
+    rio_Typespec (*type) = item.ptr;
+    switch (type->kind) {
+    case (rio_Typespec_Name): {
+      printf("Could be mapping!\n");
+      rio_Decl (*decl) = type->decl;
+      rio_DeclSlice params = self->type_params;
+      for (int i = 0; (i) < (params.length); ++(i)) {
+        if ((decl) == (&(params.items[i]))) {
+          rio_TypeArg (*arg) = &(self->type_args.items[i]);
+          if (true) {
+            char (*arg_name) = rio_get_type_name(rio_resolve_typespec(arg->val));
+            printf("Found it! %s -> %s\n", decl->name, arg_name);
+            rio_buf_free((void (**))(&(arg_name)));
+          }
+          return arg->val;
+        }
+      }
+      return item.ptr;
+      break;
+    }
+    default: {
+      printf("Copy that type!\n");
+      return NULL;
+      break;
+    }
+    }
     break;
   }
   default: {
@@ -7295,8 +7337,15 @@ rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), 
     rio_Type (*arg_type) = rio_resolve_typespec(arg_typespec);
     char (*arg_name) = rio_get_type_name(arg_type);
     name = rio_build_scoped_name(name, arg_name);
+    rio_buf_free((void (**))(&(arg_name)));
   }
   printf("----> Concrete type name: %s\n", name);
+  rio_Sym (*dupe_sym) = rio_get_resolved_sym(name);
+  if (dupe_sym) {
+    // TODO Not finding this so far ...
+    printf("Found previous!\n");
+    return dupe_sym;
+  }
   for (size_t i = 0; (i) < (type_params.length); ++(i)) {
     rio_Decl (*param) = &(type_params.items[i]);
     printf("Checking %s\n", param->name);
@@ -7306,43 +7355,11 @@ rio_Sym (*rio_resolve_generic_typespec_instance(rio_SrcPos pos, rio_Sym (*sym), 
   }
   rio_TypeMap type_map = {.type_args = type_args, .type_params = type_params};
   rio_MapClosure map = {.self = &(type_map), .call = (rio_MapClosureCall)(rio_map_type_args)};
-  rio_Aggregate (*dupe) = rio_dupe_aggregate(aggregate, &(map));
-  void (*new_items) = rio_ast_alloc((aggregate->num_items) * (sizeof(rio_AggregateItem)));
-  for (size_t i = 0; (i) < (aggregate->num_items); ++(i)) {
-    rio_AggregateItem (*item) = &(aggregate->items[i]);
-    switch (item->kind) {
-    case rio_AggregateItem_Field: {
-      printf("Checking field: %s\n", item->names[0]);
-      rio_Typespec (*field_spec) = item->type;
-      if ((field_spec->kind) != ((rio_Typespec_Name))) {
-        printf("Outta here: %d\n", field_spec->kind);
-        continue;
-      }
-      printf("Checking type: %s\n", field_spec->names[(field_spec->num_names) - (1)].name);
-      if (field_spec->decl) {
-        printf("Has a decl: %s\n", field_spec->names[(field_spec->num_names) - (1)].name);
-      }
-      for (int p = 0; (p) < (type_params.length); ++(p)) {
-        if ((field_spec->decl) == (&(type_params.items[p]))) {
-          printf("Found it!\n");
-        }
-      }
-      break;
-    }
-    case rio_AggregateItem_None: {
-      break;
-    }
-    case rio_AggregateItem_Subaggregate: {
-      rio_fatal_error(item->pos, "Can\'t do generics on subaggregates yet");
-      return NULL;
-      break;
-    }
-    default:
-      assert("@complete switch failed to handle case" && 0);
-      break;
-    }
-  }
-  return sym;
+  rio_Aggregate (*dupe_agg) = rio_dupe_aggregate(aggregate, &(map));
+  rio_Decl (*dupe) = rio_new_decl_aggregate(pos, decl->kind, name, (rio_DeclSlice){0}, dupe_agg);
+  rio_sym_global_decl(dupe, NULL);
+  dupe_sym = rio_resolve_name(name);
+  return dupe_sym;
 }
 
 rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {

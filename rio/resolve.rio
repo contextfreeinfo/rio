@@ -631,9 +631,15 @@ fn resolve_generic_typespec_instance(
     let arg_name = get_type_name(arg_type);
     // TODO Worth the effort of varargs to avoid repeated substrings?
     name = build_scoped_name(name, arg_name);
+    buf_free((:*&void)&arg_name);
   }
   printf("----> Concrete type name: %s\n", name);
   // TODO Check for previous resolution for this name before rebuilding.
+  let dupe_sym = get_resolved_sym(name);
+  if (dupe_sym) {
+    printf("Found previous!\n");
+    return dupe_sym;
+  }
   for (let i: usize = 0; i < type_params.length; ++i) {
     let param = &type_params.items[i];
     printf("Checking %s\n", param.name);
@@ -644,55 +650,11 @@ fn resolve_generic_typespec_instance(
   }
   let type_map = TypeMap{type_args = type_args, type_params = type_params};
   let map = MapClosure{self = &type_map, call = (:MapClosureCall)map_type_args};
-  let dupe = dupe_aggregate(aggregate, &map);
-  let new_items = ast_alloc(aggregate.num_items * sizeof(AggregateItem));
-  for (let i: usize = 0; i < aggregate.num_items; ++i) {
-    let item = &aggregate.items[i];
-    // TODO Totally statically check and/or make @complete the default.
-    @complete
-    switch (item.kind) {
-      Field => {
-        printf("Checking field: %s\n", item.names[0]);
-        let field_spec = item.type;
-        if (field_spec.kind != Typespec.Name) {
-          // TODO Need to go deep on types.
-          printf("Outta here: %d\n", field_spec.kind);
-          continue;
-        }
-        printf("Checking type: %s\n", field_spec.names[field_spec.num_names - 1].name);
-        if (field_spec.decl) {
-          printf("Has a decl: %s\n", field_spec.names[field_spec.num_names - 1].name);
-        }
-        // let field_type = get_resolved_type(field_spec);
-        // if (!(field_type && field_type.sym && field_type.sym.decl)) {
-        //   continue;
-        // }
-        // let field_type_decl = field_type.sym.decl;
-        for (let p = 0; p < type_params.length; ++p) {
-          // if (field_type_decl == &type_params.items[p]) {
-          if (field_spec.decl == &type_params.items[p]) {
-            printf("Found it!\n");
-          }
-        }
-      }
-      None => {}
-      Subaggregate => {
-        fatal_error(item.pos, "Can't do generics on subaggregates yet");
-        return NULL;
-      }
-    }
-    // AggregateItem {
-    //   pos = pos,
-    //   kind = AggregateItem.Subaggregate,
-    //   subaggregate = parse_aggregate(AggregateKind.Union, NULL, NULL),
-    // };
-  }
-  // TODO let decl = new_decl_aggregate();
-  // let result = new_aggregate(pos, kind, items, buf_len(items));
-  // return new_decl_aggregate(
-  //   pos, kind, name, params, parse_aggregate(aggregate_kind, name, notes),
-  // );
-  return sym;
+  let dupe_agg = dupe_aggregate(aggregate, &map);
+  let dupe = new_decl_aggregate(pos, decl.kind, name, DeclSlice{}, dupe_agg);
+  sym_global_decl(dupe, NULL);
+  dupe_sym = resolve_name(name);
+  return dupe_sym;
 }
 
 fn resolve_typespec(typespec: &Typespec) -> &Type {

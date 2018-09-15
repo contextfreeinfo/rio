@@ -40,7 +40,18 @@ fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   if (dupe) {
     return dupe;
   }
-  return type;
+  dupe = ast_dup(type, sizeof(*type));
+  switch (type.kind) {
+    Array, Const, Ptr, Ref => {
+      printf("Recurse on base type!\n");
+      dupe.base = dupe_typespec(type.base, map);
+    }
+    Func => {
+      printf("Go into function definition!\n");
+    }
+    default => {}
+  }
+  return dupe;
 }
 
 fn map_type_args(self: &TypeMap, item: Any) -> &void {
@@ -51,8 +62,31 @@ fn map_type_args(self: &TypeMap, item: Any) -> &void {
       return NULL;
     }
     typeof(Typespec) => {
-      printf("Could be mapping!\n");
-      return item.ptr;
+      let type: &Typespec = item.ptr;
+      switch (type.kind) {
+        Typespec.Name => {
+          printf("Could be mapping!\n");
+          let decl = type.decl;
+          let params = self.type_params;
+          for (let i = 0; i < params.length; ++i) {
+            if (decl == &params.items[i]) {
+              let arg = &self.type_args.items[i];
+              if (true) {
+                // Remove this once good to go.
+                let arg_name = get_type_name(resolve_typespec(arg.val));
+                printf("Found it! %s -> %s\n", decl.name, arg_name);
+                buf_free((:*&void)&arg_name);
+              }
+              return arg.val;
+            }
+          }
+          return item.ptr;
+        }
+        default => {
+          printf("Copy that type!\n");
+          return NULL;
+        }
+      }
     }
     default => {
       printf("Whatever!\n");
