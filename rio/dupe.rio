@@ -54,6 +54,12 @@ fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   return dupe;
 }
 
+fn get_type_sym_name(type: &Type) -> *char {
+  let buf: *char = NULL;
+  put_type_sym_name(&buf, type);
+  return buf;
+}
+
 fn map_type_args(self: &TypeMap, item: Any) -> &void {
   switch (item.type) {
     typeof(Aggregate) => {
@@ -93,4 +99,51 @@ fn map_type_args(self: &TypeMap, item: Any) -> &void {
       return item.ptr;
     }
   }
+}
+
+fn put_type_sym_name(buf: **char, type: &Type) {
+  let type_name = type_names[type.kind];
+  if (type_name) {
+    buf_printf(buf, "%s", type_name);
+  } else {
+    @complete
+    switch (type.kind) {
+      Struct, Union, Enum, Incomplete => {
+        #assert(type.sym);
+        buf_printf(buf, "%s", type.sym.name);
+      }
+      Const => {
+        buf_printf(buf, "const_");
+        put_type_name(buf, type.base);
+      }
+      Ptr => {
+        buf_printf(buf, "ptr_");
+        put_type_name(buf, type.base);
+      }
+      Ref => {
+        buf_printf(buf, "ref_");
+        put_type_name(buf, type.base);
+      }
+      Array => {
+        buf_printf(buf, "array%zu_", type.num_elems);
+        put_type_name(buf, type.base);
+      }
+      Func => {
+        buf_printf(buf, "fn_");
+        for (let i: usize = 0; i < type.function.num_params; i++) {
+          if (i != 0) {
+            buf_printf(buf, "_");
+          }
+          put_type_name(buf, type.function.params[i]);
+        }
+        if (type.function.has_varargs) {
+          buf_printf(buf, "___");
+        }
+        if (type.function.ret != type_void) {
+          buf_printf(buf, "_to_");
+          put_type_name(buf, type.function.ret);
+        }
+      }
+    } switch;
+  } if;
 }

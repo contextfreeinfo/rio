@@ -866,9 +866,11 @@ fn test_type_path() {
 }
 
 fn test_generics() {
-  let slorce: Slorce<int>;
-  // let slarce: Slarce;
   let slirce: Slirce;
+  let slorce: Slorce<int> = {items = (:[]int){1, 2, 3}, length = 3};
+  let slorce_ref: Slorce<&int> = {items = (:[]&int){slorce.items}, length = 1};
+  printf("Generically, %d\n", *slorce_ref.items[0]);
+  let slarb: Slorce<Bar>;
 }
 
 struct Slirce {
@@ -876,11 +878,10 @@ struct Slirce {
 }
 
 typedef Slarce = Slorce<int>;
-// typedef Slarce = Slorce<Bar>;
 
 struct Slorce<Item> {
   length: usize;
-  item: *Item;
+  items: *Item;
 }
 
 // Should be unresolved here.

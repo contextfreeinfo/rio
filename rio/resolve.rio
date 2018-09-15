@@ -628,7 +628,7 @@ fn resolve_specialized_typespec(
     // TODO Cache these?
     let arg_type = resolve_typespec(arg_typespec);
     // TODO If from other non-builtin package, prefix package name?
-    let arg_name = get_type_name(arg_type);
+    let arg_name = get_type_sym_name(arg_type);
     // TODO Worth the effort of varargs to avoid repeated substrings?
     name = build_scoped_name(name, arg_name);
     buf_free((:*&void)&arg_name);
