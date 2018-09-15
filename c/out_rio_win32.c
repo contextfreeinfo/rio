@@ -3321,12 +3321,11 @@ rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
   case rio_Typespec_Const:
   case rio_Typespec_Ptr:
   case rio_Typespec_Ref: {
-    printf("Recurse on base type!\n");
     dupe->base = rio_dupe_typespec(type->base, map);
     break;
   }
   case rio_Typespec_Func: {
-    printf("Go into function definition!\n");
+    rio_fatal_error(type->pos, "Function types not yet supported in generics\n");
     break;
   }
   default: {
@@ -3345,7 +3344,6 @@ char (*rio_get_type_sym_name(rio_Type (*type))) {
 void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
   switch (item.type) {
   case TYPEID(54, TypeKind_Struct, rio_Aggregate): {
-    printf("Copy that agg!\n");
     return NULL;
     break;
   }
@@ -3353,17 +3351,11 @@ void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
     rio_Typespec (*type) = item.ptr;
     switch (type->kind) {
     case (rio_Typespec_Name): {
-      printf("Could be mapping!\n");
       rio_Decl (*decl) = type->decl;
       rio_DeclSlice params = self->type_params;
       for (int i = 0; (i) < (params.length); ++(i)) {
         if ((decl) == (&(params.items[i]))) {
           rio_TypeArg (*arg) = &(self->type_args.items[i]);
-          if (true) {
-            char (*arg_name) = rio_get_type_name(rio_resolve_typespec(arg->val));
-            printf("Found it! %s -> %s\n", decl->name, arg_name);
-            rio_buf_free((void (**))(&(arg_name)));
-          }
           return arg->val;
         }
       }
@@ -3371,7 +3363,6 @@ void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
       break;
     }
     default: {
-      printf("Copy that type!\n");
       return NULL;
       break;
     }
@@ -3379,7 +3370,6 @@ void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
     break;
   }
   default: {
-    printf("Whatever!\n");
     return item.ptr;
     break;
   }
@@ -7039,8 +7029,6 @@ void rio_sym_track_ref_type(rio_Sym (*sym), rio_Typespec (*type)) {
   }
   if ((type->kind) == ((rio_Typespec_Name))) {
     type->decl = decl;
-    printf("Ref from type %s\n", type->names[(type->num_names) - (1)].name);
-    printf("Ref to type %s\n", decl->name);
   }
   rio_buf_push((void (**))(&(decl->refs.items)), &(type), sizeof(type));
   ++(decl->refs.length);
@@ -7421,10 +7409,8 @@ rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_T
     name = rio_build_scoped_name(name, arg_name);
     rio_buf_free((void (**))(&(arg_name)));
   }
-  printf("----> Concrete type name: %s\n", name);
   rio_Sym (*dupe_sym) = rio_resolve_name(name);
   if (dupe_sym) {
-    printf("Found previous!\n");
     return dupe_sym;
   }
   rio_TypeMap type_map = {.type_args = type_args, .type_params = type_params};
@@ -7433,7 +7419,6 @@ rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_T
   rio_Decl (*dupe) = rio_new_decl_aggregate(decl->pos, decl->kind, name, (rio_DeclSlice){0}, dupe_agg);
   dupe_sym = rio_sym_global_decl(dupe, NULL);
   rio_resolve_sym(dupe_sym);
-  printf("-> Made sym type: %s, %s\n", rio_get_type_name(dupe_sym->type), dupe_sym->name);
   return dupe_sym;
 }
 

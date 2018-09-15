@@ -43,11 +43,10 @@ fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   dupe = ast_dup(type, sizeof(*type));
   switch (type.kind) {
     Array, Const, Ptr, Ref => {
-      printf("Recurse on base type!\n");
       dupe.base = dupe_typespec(type.base, map);
     }
     Func => {
-      printf("Go into function definition!\n");
+      fatal_error(type.pos, "Function types not yet supported in generics\n");
     }
     default => {}
   }
@@ -63,39 +62,34 @@ fn get_type_sym_name(type: &Type) -> *char {
 fn map_type_args(self: &TypeMap, item: Any) -> &void {
   switch (item.type) {
     typeof(Aggregate) => {
-      // Let these be copied.
-      printf("Copy that agg!\n");
+      // Let these be copied do we can make changes inside.
       return NULL;
     }
     typeof(Typespec) => {
       let type: &Typespec = item.ptr;
       switch (type.kind) {
         Typespec.Name => {
-          printf("Could be mapping!\n");
+          // See if this is a reference to a type parameter.
           let decl = type.decl;
           let params = self.type_params;
           for (let i = 0; i < params.length; ++i) {
             if (decl == &params.items[i]) {
+              // Yep. Found it.
               let arg = &self.type_args.items[i];
-              if (true) {
-                // Remove this once good to go.
-                let arg_name = get_type_name(resolve_typespec(arg.val));
-                printf("Found it! %s -> %s\n", decl.name, arg_name);
-                buf_free((:*&void)&arg_name);
-              }
               return arg.val;
             }
           }
+          // Nope. Just let it be.
           return item.ptr;
         }
         default => {
-          printf("Copy that type!\n");
+          // Let others be copied so we can make changes inside.
           return NULL;
         }
       }
     }
     default => {
-      printf("Whatever!\n");
+      // Let these move on.
       return item.ptr;
     }
   }

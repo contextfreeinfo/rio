@@ -206,8 +206,6 @@ fn sym_track_ref_type(sym: &Sym, type: &Typespec) {
   }
   if (type.kind == Typespec.Name) {
     type.decl = decl;
-    printf("Ref from type %s\n", type.names[type.num_names - 1].name);
-    printf("Ref to type %s\n", decl.name);
   }
   buf_push((:*&void)&decl.refs.items, &type, sizeof(type));
   ++decl.refs.length;
@@ -617,12 +615,6 @@ fn resolve_specialized_typespec(
   // Clever could be to make them typedefs to a common struct definition or
   // such.
   let name = decl.name;
-  // if (type_args.length > MAX_TYPE_PARAMS) {
-  //   // TODO Instead check this at type declaration!
-  //   fatal_error(pos, "Too many type parameters");
-  //   return NULL;
-  // }
-  // let arg_types: [MAX_TYPE_PARAMS]&Typespec;
   for (let i: usize = 0; i < type_args.length; ++i) {
     let arg_typespec = type_args.items[i].val;
     // TODO Cache these?
@@ -633,11 +625,9 @@ fn resolve_specialized_typespec(
     name = build_scoped_name(name, arg_name);
     buf_free((:*&void)&arg_name);
   }
-  printf("----> Concrete type name: %s\n", name);
   // TODO Check for previous resolution for this name before rebuilding.
   let dupe_sym = resolve_name(name);
   if (dupe_sym) {
-    printf("Found previous!\n");
     return dupe_sym;
   }
   let type_map = TypeMap{type_args = type_args, type_params = type_params};
@@ -647,7 +637,6 @@ fn resolve_specialized_typespec(
     new_decl_aggregate(decl.pos, decl.kind, name, DeclSlice{}, dupe_agg);
   dupe_sym = sym_global_decl(dupe, NULL);
   resolve_sym(dupe_sym);
-  printf("-> Made sym type: %s, %s\n", get_type_name(dupe_sym.type), dupe_sym.name);
   return dupe_sym;
 }
 
