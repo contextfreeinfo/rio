@@ -329,6 +329,11 @@ enum TypedEnum = int8 {
   }
 }
 
+union Direct switch {
+  First => a: int;
+  Second => b: float;
+}
+
 let color_names: [Color.Num]*const char = {
 // let color_names: [*const char; Num] = {
   [Color.None] = "none",

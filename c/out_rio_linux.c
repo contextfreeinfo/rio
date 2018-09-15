@@ -6615,7 +6615,9 @@ rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Note
     decl->is_incomplete = true;
     return decl;
   } else {
-    return rio_new_decl_aggregate(pos, kind, name, params, rio_parse_aggregate(aggregate_kind, name, notes));
+    rio_Aggregate (*aggregate) = rio_parse_aggregate(aggregate_kind, name, notes);
+    kind = ((aggregate->kind) == ((rio_AggregateKind_Struct)) ? (rio_Decl_Struct) : (rio_Decl_Union));
+    return rio_new_decl_aggregate(pos, kind, name, params, aggregate);
   }
 }
 

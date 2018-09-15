@@ -891,15 +891,17 @@ fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
     params.length = buf_len(params.items);
   }
   if (match_token(TokenKind.Semicolon)) {
+    // TODO Need to allow switch here, too, for union switches.
     let decl = new_decl_aggregate(
       pos, kind, name, params, new_aggregate(pos, aggregate_kind, NULL, 0),
     );
     decl.is_incomplete = true;
     return decl;
   } else {
-    return new_decl_aggregate(
-      pos, kind, name, params, parse_aggregate(aggregate_kind, name, notes),
-    );
+    let aggregate = parse_aggregate(aggregate_kind, name, notes);
+    // Map back again since this might have changed due to union switch.
+    kind = aggregate.kind == AggregateKind.Struct ? Decl.Struct : Decl.Union;
+    return new_decl_aggregate(pos, kind, name, params, aggregate);
   }
 }
 

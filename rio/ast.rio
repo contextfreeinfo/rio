@@ -109,13 +109,11 @@ struct Aggregate {
   union_enum_decl: &Decl;
 }
 
-struct SymRef {
-  union switch {
-    // More precisely, a name ref, but this includes pos.
-    Expr => expr: &Expr;
-    // Again a name typespect.
-    Type => type: &Typespec;
-  }
+union SymRef switch {
+  // More precisely, a name ref, but this includes pos.
+  Expr => expr: &Expr;
+  // Again a name typespec.
+  Type => type: &Typespec;
 }
 
 struct Decl {
