@@ -39,14 +39,29 @@ fn parse_type_func() -> &Typespec {
   return new_typespec_func(pos, args, buf_len(args), ret, has_varargs);
 }
 
+fn parse_type_args() -> TypeArgSlice {
+  let args: *TypeArg;
+  if (match_token(TokenKind.Lt)) {
+    do {
+      let type_arg = TypeArg{pos = token.pos, val = parse_type()};
+      buf_push((:*&void)&args, &type_arg, sizeof(*args));
+    } while (match_token(TokenKind.Comma));
+    expect_token(TokenKind.Gt);
+  }
+  return TypeArgSlice{items = args, length = buf_len(args)};
+}
+
 fn parse_type_base() -> &Typespec {
   if (is_token(TokenKind.Name)) {
     let pos = token.pos;
-    let names: **const char;
-    buf_push((:&&void)&names, &token.name, sizeof(token.name));
+    let names: *TypespecName;
     next_token();
+    let first_name =
+      TypespecName{name = token.name, type_args = parse_type_args()};
+    buf_push((:&&void)&names, &first_name, sizeof(first_name));
     while (match_token(TokenKind.Dot)) {
-      let name = parse_name();
+      let name =
+        TypespecName{name = parse_name(), type_args = parse_type_args()};
       buf_push((:&&void)&names, &name, sizeof(name));
     }
     let result = new_typespec_name(pos, names, buf_len(names));
@@ -153,7 +168,7 @@ fn parse_expr_operand() -> &Expr {
     let name = token.name;
     next_token();
     if (is_token(TokenKind.Lbrace)) {
-      return parse_expr_compound(new_typespec_name(pos, &name, 1));
+      return parse_expr_compound(new_typespec_name1(pos, name));
     } else {
       return new_expr_name(pos, name);
     }
@@ -739,7 +754,7 @@ fn parse_aggregate(
       kind = AggregateItem.Field,
       names = enum_tag_names,
       num_names = 1,
-      type = new_typespec_name(pos, &tag_type_name, 1),
+      type = new_typespec_name(pos, &TypespecName{name = tag_type_name}, 1),
     };
     buf_unshift((:&&void)&items, &tag_item, sizeof(tag_item));
     // Create and attach union enum.
@@ -776,7 +791,7 @@ fn parse_switch_union() -> *AggregateItem {
       if (!(
         type.kind == Typespec.Name &&
         type.num_names == 1 &&
-        type.names[0] == void_name
+        type.names[0].name == void_name
       )) {
         fatal_error(token.pos, "Anonymous switch fields can only be void");
         return NULL;
@@ -857,16 +872,33 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
 fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
   #assert(kind == Decl.Struct || kind == Decl.Union);
   let name = parse_name();
-  let aggregate_kind = kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
+  let aggregate_kind =
+    kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
+  let params: DeclSlice;
+  if (match_token(TokenKind.Lt)) {
+    while (!match_token(TokenKind.Gt)) {
+      let param_name = parse_name();
+      // TODO Parse type constraints and defaults.
+      let param = Decl {
+        kind = Decl.Typedef,
+        pos = token.pos,
+        name = param_name,
+        typedef_decl = {constraint = new_typespec_name1(token.pos, void_name)},
+        // Let val default to null.
+      };
+      buf_push((:&&void)&params.items, &param, sizeof(param));
+    }
+    params.length = buf_len(params.items);
+  }
   if (match_token(TokenKind.Semicolon)) {
     let decl = new_decl_aggregate(
-      pos, kind, name, new_aggregate(pos, aggregate_kind, NULL, 0),
+      pos, kind, name, params, new_aggregate(pos, aggregate_kind, NULL, 0),
     );
     decl.is_incomplete = true;
     return decl;
   } else {
     return new_decl_aggregate(
-      pos, kind, name, parse_aggregate(aggregate_kind, name, notes),
+      pos, kind, name, params, parse_aggregate(aggregate_kind, name, notes),
     );
   }
 }
@@ -914,6 +946,7 @@ fn parse_decl_typedef(pos: SrcPos) -> &Decl {
 fn parse_decl_func_param() -> FuncParam {
   let pos = token.pos;
   let name = parse_name();
+  // TODO Default args.
   expect_token(TokenKind.Colon);
   let type = parse_type();
   return FuncParam {pos, name, type};
@@ -954,7 +987,9 @@ fn parse_decl_func(pos: SrcPos) -> &Decl {
     block = parse_stmt_block();
     is_incomplete = false;
   }
-  let decl = new_decl_func(pos, name, params, buf_len(params), ret_type, has_varargs, block);
+  let decl = new_decl_func(
+    pos, name, params, buf_len(params), ret_type, has_varargs, block,
+  );
   decl.is_incomplete = is_incomplete;
   return decl;
 }

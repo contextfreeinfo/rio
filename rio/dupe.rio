@@ -1,0 +1,143 @@
+typedef MapClosureCall = fn(self: &void, item: Any) -> &void;
+
+struct MapClosure {
+  self: &void;
+  call: MapClosureCall;
+}
+
+struct TypeMap {
+  type_args: TypeArgSlice;
+  type_params: DeclSlice;
+}
+
+fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
+  let dupe: &Aggregate = map.call(map.self, Any{aggregate, typeof(*aggregate)});
+  if (dupe) {
+    return dupe;
+  }
+  dupe = ast_dup(aggregate, sizeof(*aggregate));
+  dupe.items = ast_dup(dupe.items, sizeof(*dupe.items) * dupe.num_items);
+  for (let i: usize = 0; i < dupe.num_items; ++i) {
+    let item = &dupe.items[i];
+    // These are value, not pointer, so presume any modifications are in place.
+    map.call(map.self, Any{item, typeof(*item)});
+    // Now go deeper.
+    @complete
+    switch (item.kind) {
+      Field => {
+        item.type = dupe_typespec(item.type, map);
+      }
+      Subaggregate => {
+        item.subaggregate = dupe_aggregate(item.subaggregate, map);
+      }
+    }
+  }
+  return dupe;
+}
+
+fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
+  let dupe: &Typespec = map.call(map.self, Any{type, typeof(*type)});
+  if (dupe) {
+    return dupe;
+  }
+  dupe = ast_dup(type, sizeof(*type));
+  switch (type.kind) {
+    Array, Const, Ptr, Ref => {
+      dupe.base = dupe_typespec(type.base, map);
+    }
+    Func => {
+      fatal_error(type.pos, "Function types not yet supported in generics\n");
+    }
+    default => {}
+  }
+  return dupe;
+}
+
+fn get_type_sym_name(type: &Type) -> *char {
+  let buf: *char = NULL;
+  put_type_sym_name(&buf, type);
+  return buf;
+}
+
+fn map_type_args(self: &TypeMap, item: Any) -> &void {
+  switch (item.type) {
+    typeof(Aggregate) => {
+      // Let these be copied do we can make changes inside.
+      return NULL;
+    }
+    typeof(Typespec) => {
+      let type: &Typespec = item.ptr;
+      switch (type.kind) {
+        Typespec.Name => {
+          // See if this is a reference to a type parameter.
+          let decl = type.decl;
+          let params = self.type_params;
+          for (let i = 0; i < params.length; ++i) {
+            if (decl == &params.items[i]) {
+              // Yep. Found it.
+              let arg = &self.type_args.items[i];
+              return arg.val;
+            }
+          }
+          // Nope. Just let it be.
+          return item.ptr;
+        }
+        default => {
+          // Let others be copied so we can make changes inside.
+          return NULL;
+        }
+      }
+    }
+    default => {
+      // Let these move on.
+      return item.ptr;
+    }
+  }
+}
+
+fn put_type_sym_name(buf: **char, type: &Type) {
+  let type_name = type_names[type.kind];
+  if (type_name) {
+    buf_printf(buf, "%s", type_name);
+  } else {
+    @complete
+    switch (type.kind) {
+      Struct, Union, Enum, Incomplete => {
+        #assert(type.sym);
+        buf_printf(buf, "%s", type.sym.name);
+      }
+      Const => {
+        buf_printf(buf, "const_");
+        put_type_name(buf, type.base);
+      }
+      Ptr => {
+        buf_printf(buf, "ptr_");
+        put_type_name(buf, type.base);
+      }
+      Ref => {
+        buf_printf(buf, "ref_");
+        put_type_name(buf, type.base);
+      }
+      Array => {
+        buf_printf(buf, "array%zu_", type.num_elems);
+        put_type_name(buf, type.base);
+      }
+      Func => {
+        buf_printf(buf, "fn_");
+        for (let i: usize = 0; i < type.function.num_params; i++) {
+          if (i != 0) {
+            buf_printf(buf, "_");
+          }
+          put_type_name(buf, type.function.params[i]);
+        }
+        if (type.function.has_varargs) {
+          buf_printf(buf, "___");
+        }
+        if (type.function.ret != type_void) {
+          buf_printf(buf, "_to_");
+          put_type_name(buf, type.function.ret);
+        }
+      }
+    } switch;
+  } if;
+}

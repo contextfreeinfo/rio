@@ -377,6 +377,9 @@ fn gen_forward_decls() {
     if (is_decl_foreign(decl)) {
       continue;
     }
+    if (decl.type_params.length) {
+      continue;
+    }
     switch (decl.kind) {
       Struct, Union => {
         let name = get_gen_name(sym);
@@ -437,7 +440,7 @@ fn gen_aggregate_items(aggregate: &Aggregate) {
 
 fn gen_aggregate(decl: &Decl) {
   #assert(decl.kind == Decl.Struct || decl.kind == Decl.Union);
-  if (decl.is_incomplete) {
+  if (decl.is_incomplete || decl.type_params.length) {
     return;
   }
   genln();
@@ -977,7 +980,7 @@ fn gen_decl(sym: &Sym) {
     Typedef => {
       genln();
       buf_printf(&gen_buf, "typedef %s;", typespec_to_cdecl(
-        decl.typedef_decl.type, get_gen_name(sym),
+        decl.typedef_decl.val, get_gen_name(sym),
       ));
     }
     Enum => {
@@ -1158,7 +1161,13 @@ fn gen_typeinfo_fields(type: &Type) {
     gen_str(field.name, false);
     buf_printf(&gen_buf, ", .type = ");
     gen_typeid(field.type);
-    buf_printf(&gen_buf, ", .offset = offsetof(%s, %s)},", get_gen_name(type.sym), field.name);
+    if (!is_generic_type(type)) {
+      buf_printf(
+        &gen_buf, ", .offset = offsetof(%s, %s)",
+        get_gen_name(type.sym), field.name,
+      );
+    }
+    buf_printf(&gen_buf, "},");
   }
   gen_indent--;
 }

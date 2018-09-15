@@ -140,6 +140,12 @@ fn sym_get(name: *const char) -> &Sym {
 }
 
 fn sym_push_var(name: *const char, type: &Type) -> bool {
+  return sym_push_local(Sym.Var, name, type, NULL);
+}
+
+fn sym_push_local(
+  kind: Sym.Kind, name: *const char, type: &Type, decl: &Decl,
+) -> bool {
   if (sym_get_local(name)) {
     return false;
   }
@@ -147,9 +153,10 @@ fn sym_push_var(name: *const char, type: &Type) -> bool {
     fatal("Too many local symbols");
   }
   *local_syms_end++ = Sym {
-    kind = Sym.Var,
+    kind = kind,
     name = name,
     state = SymState.Resolved,
+    decl = decl,
     type = type,
   };
   return true;
@@ -192,6 +199,18 @@ fn sym_global_type(name: *const char, type: &Type) -> &Sym {
   return sym;
 }
 
+fn sym_track_ref_type(sym: &Sym, type: &Typespec) {
+  let decl = sym.decl;
+  if (!decl) {
+    return;
+  }
+  if (type.kind == Typespec.Name) {
+    type.decl = decl;
+  }
+  buf_push((:&&void)&decl.refs.items, &type, sizeof(type));
+  ++decl.refs.length;
+}
+
 fn build_scoped_name(space: *const char, name: *const char) -> *const char {
   let scoped_name_buf: *char;
   buf_printf(&scoped_name_buf, "%s_%s", space, name);
@@ -219,7 +238,8 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
       get_decl_note(decl, foreign_name) ||
       get_decl_note(decl, unscoped_name);
     let name = sym ? sym.name : str_intern("int");
-    let enum_typespec = new_typespec_name(decl.pos, &name, 1);
+    let enum_typespec =
+      new_typespec_name(decl.pos, &TypespecName{name = name}, 1);
     let prev_item_name: *const char = NULL;
     let prev_scoped_name: *const char = NULL;
     for (let i: usize = 0; i < decl.enum_decl.num_items; i++) {
@@ -551,7 +571,7 @@ fn resolve_expected_expr_rvalue(expr: &Expr, expected_type: &Type) -> Operand {
 }
 
 fn get_nested_type_sym(
-  scope_sym: &Sym, num_names: usize, names: **const char,
+  scope_sym: &Sym, num_names: usize, names: *TypespecName,
 ) -> &Sym {
   // Just check for simple union enum Kind for now, but go more general later.
   // TODO Build generic subtype collection for each (aggregate?) type.
@@ -559,7 +579,7 @@ fn get_nested_type_sym(
     switch (scope_sym.decl.kind) {
       Struct, Union => {
         if (scope_sym.decl.aggregate.union_enum_decl) {
-          if (num_names == 1 && !strcmp(names[0], "Kind")) {
+          if (num_names == 1 && !strcmp(names[0].name, "Kind")) {
             let enum_decl = scope_sym.decl.aggregate.union_enum_decl.enum_decl;
             let sym = resolve_name(build_scoped_name(enum_decl.scope, "Kind"));
             return sym;
@@ -572,6 +592,54 @@ fn get_nested_type_sym(
   return NULL;
 }
 
+fn resolve_specialized_typespec(
+  pos: SrcPos, sym: &Sym, type_args: TypeArgSlice,
+) -> &Sym {
+  if (!(sym.decl && sym.decl.name)) {
+    fatal_error(pos, "Undeclared generic type");
+    return NULL;
+  }
+  let decl = sym.decl;
+  if (!(decl.kind == Decl.Struct || decl.kind == Decl.Union)) {
+    fatal_error(pos, "Generics only supported for aggregates for now");
+    return NULL;
+  }
+  let type_params = decl.type_params;
+  if (type_args.length != type_params.length) {
+    fatal_error(pos, "Typespec with wrong number of arguments");
+    return NULL;
+  }
+  let aggregate = decl.aggregate;
+  // Choose name.
+  // Base name on type names, even if typedef'd, so's to allow some name choice.
+  // Clever could be to make them typedefs to a common struct definition or
+  // such.
+  let name = decl.name;
+  for (let i: usize = 0; i < type_args.length; ++i) {
+    let arg_typespec = type_args.items[i].val;
+    // TODO Cache these?
+    let arg_type = resolve_typespec(arg_typespec);
+    // TODO If from other non-builtin package, prefix package name?
+    let arg_name = get_type_sym_name(arg_type);
+    // TODO Worth the effort of varargs to avoid repeated substrings?
+    name = build_scoped_name(name, arg_name);
+    buf_free((:&&void)&arg_name);
+  }
+  // TODO Check for previous resolution for this name before rebuilding.
+  let dupe_sym = resolve_name(name);
+  if (dupe_sym) {
+    return dupe_sym;
+  }
+  let type_map = TypeMap{type_args = type_args, type_params = type_params};
+  let map = MapClosure{self = &type_map, call = (:MapClosureCall)map_type_args};
+  let dupe_agg = dupe_aggregate(aggregate, &map);
+  let dupe =
+    new_decl_aggregate(decl.pos, decl.kind, name, DeclSlice{}, dupe_agg);
+  dupe_sym = sym_global_decl(dupe, NULL);
+  resolve_sym(dupe_sym);
+  return dupe_sym;
+}
+
 fn resolve_typespec(typespec: &Typespec) -> &Type {
   if (!typespec) {
     return type_void;
@@ -580,30 +648,49 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
   switch (typespec.kind) {
     Name => {
       let sym: &Sym;
-      let package = current_package;
-      for (let i: usize = 0; i < typespec.num_names - 1; ++i) {
-        let scope = typespec.names[i];
-        let scope_sym = get_package_sym(package, scope);
-        if (!scope_sym) {
-          fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
-          return NULL;
+      let name: *const char;
+      let typespec_name: &TypespecName;
+      if (typespec.num_names == 1) {
+        // See if it's a type parameter.
+        // TODO Also allow locally defined types, so support num_names > 1.
+        // TODO Requires better node tree of types rather than slice of names.
+        typespec_name = &typespec.names[0];
+        name = typespec_name.name;
+        sym = sym_get_local(name);
+        if (sym) {
+          sym_track_ref_type(sym, typespec);
         }
-        if (scope_sym.kind == Sym.Type) {
-          package = NULL;
-          sym = get_nested_type_sym(
-            scope_sym, typespec.num_names - i - 1, typespec.names + i + 1,
-          );
-          break;
-        } else if (scope_sym.kind != Sym.Package) {
-          fatal_error(typespec.pos, "%s must denote a type or a package", scope);
-          return NULL;
+      }
+      if (!sym) {
+        let package = current_package;
+        for (let i: usize = 0; i < typespec.num_names - 1; ++i) {
+          let scope = typespec.names[i].name;
+          let scope_sym = get_package_sym(package, scope);
+          if (!scope_sym) {
+            fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
+            return NULL;
+          }
+          if (scope_sym.kind == Sym.Type) {
+            // TODO Check type args before continuing!
+            package = NULL;
+            sym = get_nested_type_sym(
+              scope_sym, typespec.num_names - i - 1, typespec.names + i + 1,
+            );
+            break;
+          } else if (scope_sym.kind != Sym.Package) {
+            fatal_error(
+              typespec.pos, "%s must denote a type or a package", scope,
+            );
+            return NULL;
+          }
+          package = scope_sym.package;
+        } for;
+        typespec_name = &typespec.names[typespec.num_names - 1];
+        name = typespec_name.name;
+        if (package) {
+          sym = get_package_sym(package, name);
         }
-        package = scope_sym.package;
-      }
-      let name = typespec.names[typespec.num_names - 1];
-      if (package) {
-        sym = get_package_sym(package, name);
-      }
+      } if;
       if (!sym) {
         // TODO Report full type string here, not just final.
         fatal_error(typespec.pos, "Unresolved type name '%s'", name);
@@ -614,7 +701,17 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         fatal_error(typespec.pos, "%s must denote a type", name);
         return NULL;
       }
+      // Resolve the outer sym.
       resolve_sym(sym);
+      // And maybe go deeper before done.
+      if (typespec_name.type_args.length) {
+        // Complete the type, so we can create the custom version.
+        // TODO Can we defer type completion past here?
+        complete_type(sym.type);
+        sym = resolve_specialized_typespec(
+          typespec.pos, sym, typespec_name.type_args,
+        );
+      }
       set_resolved_sym(typespec, sym);
       result = sym.type;
     }
@@ -665,6 +762,18 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
 
 fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   let fields: *TypeField;
+  let scope = sym_enter();
+  if (type && type.sym && type.sym.decl && type.sym.decl.type_params.length) {
+    let params = type.sym.decl.type_params;
+    for (let i: usize = 0; i < params.length; ++i) {
+      let param = &params.items[i];
+      #assert(param.kind == Decl.Typedef);
+      // TODO If constraint is null, use val as constraint.
+      let constraint = resolve_typespec(param.typedef_decl.constraint);
+      // TODO Make a new type for this param itself, so we can remember it later.
+      sym_push_local(Sym.Type, param.name, constraint, param);
+    }
+  }
   for (let i: usize = 0; i < aggregate.num_items; i++) {
     let item = aggregate.items[i];
     if (item.kind == AggregateItem.Field) {
@@ -700,6 +809,8 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   if (has_duplicate_fields(type)) {
     fatal_error(aggregate.pos, "Duplicate fields");
   }
+  // TODO Move arg resolution here-ish?
+  sym_leave(scope);
   return type;
 }
 
@@ -767,8 +878,13 @@ fn resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
     set_resolved_expected_type(expr, type);
   }
   complete_type(type);
-  if (type.size == 0) {
-    fatal_error(pos, "Cannot declare variable of size 0");
+  // TODO Move arg resolution here-ish?
+  if (!type.size) {
+    if (is_generic_type(type)) {
+      fatal_error(pos, "Cannot declare variable of raw generic type");
+    } else {
+      fatal_error(pos, "Cannot declare variable of size 0");
+    }
   }
   return type;
 }
@@ -1184,7 +1300,7 @@ fn resolve_sym(sym: &Sym) {
   switch (sym.kind) {
     Type => {
       if (decl && decl.kind == Decl.Typedef) {
-        sym.type = resolve_typespec(decl.typedef_decl.type);
+        sym.type = resolve_typespec(decl.typedef_decl.val);
       } else if (decl.kind == Decl.Enum) {
         // Here's where the base type is set for enums.
         let base = decl.enum_decl.type ? resolve_typespec(decl.enum_decl.type) : type_int;
@@ -1792,6 +1908,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
     fatal_error(expr.pos, "Cannot call non-function value");
   }
   let num_params: usize = function.type.function.num_params;
+  // TODO Default args go here.
   if (expr.call.num_args < num_params) {
     fatal_error(expr.pos, "Function call with too few arguments");
   }
