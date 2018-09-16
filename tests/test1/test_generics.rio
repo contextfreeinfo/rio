@@ -33,6 +33,8 @@ struct Slorce<Item> {
 // let item: Item;
 
 fn test_generic_functions() {
+  // let slarce: Slarce;
+  // printf("slarce sum: %d", sum(slarce, slarce));
   printf("int sum: %d", sum(1, 2));
   printf("float sum: %d", sum(1.1, 2.2));
 }
@@ -43,5 +45,5 @@ fn sum<Num>(x: Num, y: Num) -> Num {
 
 // TODO Deeper generics:
 // fn first<Item>(slice: Slice<Item>) -> Result<&Item, TestErr> {
-//   //
+//   return {kind = Result.Ok};
 // }

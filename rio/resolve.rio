@@ -1937,8 +1937,14 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
 
 fn resolve_expr_call(expr: &Expr) -> Operand {
   #assert(expr.kind == Expr.Call);
+  let verbose = false;
+  let sym: &Sym;
   if (expr.call.expr.kind == Expr.Name) {
-    let sym = resolve_name(expr.call.expr.name);
+    if (!strcmp(expr.call.expr.name, "sum")) {
+      verbose = true;
+      printf("Calling sum!\n");
+    }
+    sym = resolve_name(expr.call.expr.name);
     if (sym && sym.kind == Sym.Type) {
       if (expr.call.num_args != 1) {
         fatal_error(expr.pos, "Type conversion operator takes 1 argument");
@@ -1955,6 +1961,15 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
   if (function.type.kind != CompilerTypeKind.Func) {
     fatal_error(expr.pos, "Cannot call non-function value");
   }
+  let is_generic = false;
+  let decl: &Decl;
+  if (sym && sym.decl && sym.decl.kind == Decl.Func) {
+    decl = sym.decl;
+    if (decl.type_params.length) {
+      is_generic = true;
+      printf("Calling generic!\n");
+    }
+  }
   let num_params: usize = function.type.function.num_params;
   // TODO Default args go here.
   if (expr.call.num_args < num_params) {
@@ -1966,6 +1981,19 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
   for (let i: usize = 0; i < num_params; i++) {
     let param_type = function.type.function.params[i];
     let arg = resolve_expected_expr_rvalue(expr.call.args[i], param_type);
+    // TODO Check out arg.
+    if (is_generic) {
+      // TODO Arg types resolve deep. Sometimes that's all we have.
+      // TODO But other times, we should have a way for shallow resolution.
+      // TODO Find the symbol that defines the deepest name, then get that var
+      // TODO type or else return type for calls, and use that.
+      // TODO Or an aggregate literal or some such.
+      // TODO If just a primitive literal, go with what we got.
+      printf("Checking arg: %d -> %d: %s\n", arg.type.kind, arg.type.kind == CompilerTypeKind.Int, get_type_name(arg.type));
+      if (arg.type && arg.type.sym) {
+        printf("Maybe get somewhere???\n");
+      }
+    }
     if (is_array_type(param_type)) {
       param_type = type_ptr(param_type.base);
     }

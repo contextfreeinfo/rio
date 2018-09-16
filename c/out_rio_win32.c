@@ -8896,8 +8896,14 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
 
 rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   assert((expr->kind) == ((rio_Expr_Call)));
+  bool verbose = false;
+  rio_Sym (*sym) = {0};
   if ((expr->call.expr->kind) == ((rio_Expr_Name))) {
-    rio_Sym (*sym) = rio_resolve_name(expr->call.expr->name);
+    if (!(strcmp(expr->call.expr->name, "sum"))) {
+      verbose = true;
+      printf("Calling sum!\n");
+    }
+    sym = rio_resolve_name(expr->call.expr->name);
     if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
       if ((expr->call.num_args) != (1)) {
         rio_fatal_error(expr->pos, "Type conversion operator takes 1 argument");
@@ -8914,6 +8920,15 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   if ((function.type->kind) != ((rio_CompilerTypeKind_Func))) {
     rio_fatal_error(expr->pos, "Cannot call non-function value");
   }
+  bool is_generic = false;
+  rio_Decl (*decl) = {0};
+  if (((sym) && (sym->decl)) && ((sym->decl->kind) == ((rio_Decl_Func)))) {
+    decl = sym->decl;
+    if (decl->type_params.length) {
+      is_generic = true;
+      printf("Calling generic!\n");
+    }
+  }
   size_t num_params = function.type->function.num_params;
   if ((expr->call.num_args) < (num_params)) {
     rio_fatal_error(expr->pos, "Function call with too few arguments");
@@ -8924,6 +8939,12 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   for (size_t i = 0; (i) < (num_params); (i)++) {
     rio_Type (*param_type) = function.type->function.params[i];
     rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args[i], param_type);
+    if (is_generic) {
+      printf("Checking arg: %d -> %d: %s\n", arg.type->kind, (arg.type->kind) == ((rio_CompilerTypeKind_Int)), rio_get_type_name(arg.type));
+      if ((arg.type) && (arg.type->sym)) {
+        printf("Maybe get somewhere???\n");
+      }
+    }
     if (rio_is_array_type(param_type)) {
       param_type = rio_type_ptr(param_type->base);
     }
