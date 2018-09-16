@@ -988,7 +988,7 @@ fn parse_decl_func(pos: SrcPos) -> &Decl {
   if (match_token(TokenKind.Arrow)) {
     ret_type = parse_type();
   }
-  let block: StmtList;  // TODO Auto initialized? = {0};
+  let block: StmtList;
   let is_incomplete: bool;
   if (match_token(TokenKind.Semicolon)) {
     is_incomplete = true;
@@ -997,7 +997,9 @@ fn parse_decl_func(pos: SrcPos) -> &Decl {
     is_incomplete = false;
   }
   let decl = new_decl_func(
-    pos, name, params, buf_len(params), ret_type, has_varargs, block,
+    pos, name, type_params,
+    params, buf_len(params), ret_type, has_varargs,
+    block,
   );
   decl.is_incomplete = is_incomplete;
   return decl;

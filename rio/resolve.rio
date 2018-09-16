@@ -661,12 +661,18 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       let typespec_name: &TypespecName;
       if (typespec.num_names == 1) {
         // See if it's a type parameter.
-        // TODO Also allow locally defined types, so support num_names > 1.
+        // TODO Also allow locally defined types(?), so support num_names > 1.
         // TODO Requires better node tree of types rather than slice of names.
         typespec_name = &typespec.names[0];
         name = typespec_name.name;
+        if (!strcmp(name, "Num")) {
+          printf("Try'n'a find it.\n");
+        }
         sym = sym_get_local(name);
         if (sym) {
+          if (!strcmp(name, "Num")) {
+            printf("Did find it.\n");
+          }
           sym_track_ref_type(sym, typespec);
         }
       }
@@ -769,19 +775,27 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
   return result;
 }
 
+fn push_type_params(decl: &Decl) {
+  let params = decl.type_params;
+  for (let i: usize = 0; i < params.length; ++i) {
+    let param = &params.items[i];
+    #assert(param.kind == Decl.Typedef);
+    // TODO If constraint is null, use val as constraint.
+    let constraint = resolve_typespec(param.typedef_decl.constraint);
+    // TODO Make a new type for this param itself, so we can remember it later.
+    if (!strcmp(param.name, "Num")) {
+      printf("Pushed it.\n");
+    }
+    sym_push_local(Sym.Type, param.name, constraint, param);
+  }
+}
+
 fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   let fields: *TypeField;
   let scope = sym_enter();
-  if (type && type.sym && type.sym.decl && type.sym.decl.type_params.length) {
-    let params = type.sym.decl.type_params;
-    for (let i: usize = 0; i < params.length; ++i) {
-      let param = &params.items[i];
-      #assert(param.kind == Decl.Typedef);
-      // TODO If constraint is null, use val as constraint.
-      let constraint = resolve_typespec(param.typedef_decl.constraint);
-      // TODO Make a new type for this param itself, so we can remember it later.
-      sym_push_local(Sym.Type, param.name, constraint, param);
-    }
+  // TODO Extract a function of this.
+  if (type && type.sym && type.sym.decl) {
+    push_type_params(type.sym.decl);
   }
   for (let i: usize = 0; i < aggregate.num_items; i++) {
     let item = aggregate.items[i];
@@ -921,11 +935,20 @@ fn resolve_decl_const(decl: &Decl, val: &Val) -> &Type {
 
 fn resolve_decl_func(decl: &Decl) -> &Type {
   #assert(decl.kind == Decl.Func);
+  let scope = sym_enter();
+  let has_type_params = !!decl.type_params.length;
+  if (!strcmp(decl.name, "sum")) {
+    printf("I'm at sum ...\n");
+  }
+  if (has_type_params) {
+    printf("Should be pushin'.\n");
+  }
+  push_type_params(decl);
   let params: *&Type = NULL;
   for (let i: usize = 0; i < decl.function.num_params; i++) {
     let param = resolve_typespec(decl.function.params[i].type);
     complete_type(param);
-    if (param == type_void) {
+    if (!has_type_params && param == type_void) {
       fatal_error(decl.pos, "Function parameter type cannot be void");
     }
     buf_push((:&&void)&params, &param, sizeof(param));
@@ -937,6 +960,10 @@ fn resolve_decl_func(decl: &Decl) -> &Type {
   }
   if (is_array_type(ret_type)) {
     fatal_error(decl.pos, "Function return type cannot be array");
+  }
+  sym_leave(scope);
+  if (has_type_params) {
+    printf("Should'a popped.\n");
   }
   return type_func(params, buf_len(params), ret_type, decl.function.has_varargs);
 }
@@ -1270,6 +1297,15 @@ fn resolve_func_body(sym: &Sym) {
   }
   let old_package = enter_package(sym.home_package);
   let scope = sym_enter();
+  // Even resolution of generic form makes sense for checking constraints.
+  let has_type_params = !!decl.type_params.length;
+  if (!strcmp(decl.name, "sum")) {
+    printf("I'm at sum ...\n");
+  }
+  if (has_type_params) {
+    printf("Should be pushin'.\n");
+  }
+  push_type_params(decl);
   for (let i: usize = 0; i < decl.function.num_params; i++) {
     let param = decl.function.params[i];
     let param_type = resolve_typespec(param.type);
@@ -1283,6 +1319,9 @@ fn resolve_func_body(sym: &Sym) {
   let returns = resolve_stmt_block(decl.function.block, ret_type, StmtCtx {0});
   resolve_labels();
   sym_leave(scope);
+  if (has_type_params) {
+    printf("Should'a popped.\n");
+  }
   if (ret_type != type_void && !returns) {
     fatal_error(decl.pos, "Not all control paths return values");
   }

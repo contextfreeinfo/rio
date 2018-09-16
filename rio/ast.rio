@@ -556,8 +556,13 @@ fn new_decl_var(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) ->
   return d;
 }
 
-fn new_decl_func(pos: SrcPos, name: *const char, params: *FuncParam, num_params: usize, ret_type: &Typespec, has_varargs: bool, block: StmtList) -> &Decl {
+fn new_decl_func(
+  pos: SrcPos, name: *const char, type_params: Slice<Decl>,
+  params: *FuncParam, num_params: usize, ret_type: &Typespec, has_varargs: bool,
+  block: StmtList,
+) -> &Decl {
   let d = new_decl(Decl.Func, pos, name);
+  d.type_params = type_params;
   d.function.params = ast_dup(params, num_params * sizeof(*params));
   d.function.num_params = num_params;
   d.function.ret_type = ret_type;

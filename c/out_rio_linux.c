@@ -480,7 +480,7 @@ rio_Decl (*rio_new_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, char const
 
 rio_Decl (*rio_new_decl_var(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr)));
 
-rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_FuncParam (*params), size_t num_params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block));
+rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_Slice_Decl type_params, rio_FuncParam (*params), size_t num_params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block));
 
 rio_Decl (*rio_new_decl_const(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr)));
 
@@ -1634,6 +1634,8 @@ rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_S
 
 rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec)));
 
+void rio_push_type_params(rio_Decl (*decl));
+
 rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)));
 
 void rio_complete_type(rio_Type (*type));
@@ -2592,8 +2594,9 @@ rio_Decl (*rio_new_decl_var(rio_SrcPos pos, char const ((*name)), rio_Typespec (
   return d;
 }
 
-rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_FuncParam (*params), size_t num_params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block)) {
+rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_Slice_Decl type_params, rio_FuncParam (*params), size_t num_params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block)) {
   rio_Decl (*d) = rio_new_decl((rio_Decl_Func), pos, name);
+  d->type_params = type_params;
   d->function.params = rio_ast_dup(params, (num_params) * (sizeof(*(params))));
   d->function.num_params = num_params;
   d->function.ret_type = ret_type;
@@ -6716,7 +6719,7 @@ rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
     block = rio_parse_stmt_block();
     is_incomplete = false;
   }
-  rio_Decl (*decl) = rio_new_decl_func(pos, name, params, rio_buf_len(params), ret_type, has_varargs, block);
+  rio_Decl (*decl) = rio_new_decl_func(pos, name, type_params, params, rio_buf_len(params), ret_type, has_varargs, block);
   decl->is_incomplete = is_incomplete;
   return decl;
 }
@@ -7447,8 +7450,14 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     if ((typespec->num_names) == (1)) {
       typespec_name = &(typespec->names[0]);
       name = typespec_name->name;
+      if (!(strcmp(name, "Num"))) {
+        printf("Try\'n\'a find it.\n");
+      }
       sym = rio_sym_get_local(name);
       if (sym) {
+        if (!(strcmp(name, "Num"))) {
+          printf("Did find it.\n");
+        }
         rio_sym_track_ref_type(sym, typespec);
       }
     }
@@ -7551,17 +7560,24 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
   return result;
 }
 
+void rio_push_type_params(rio_Decl (*decl)) {
+  rio_Slice_Decl params = decl->type_params;
+  for (size_t i = 0; (i) < (params.length); ++(i)) {
+    rio_Decl (*param) = &(params.items[i]);
+    assert((param->kind) == ((rio_Decl_Typedef)));
+    rio_Type (*constraint) = rio_resolve_typespec(param->typedef_decl.constraint);
+    if (!(strcmp(param->name, "Num"))) {
+      printf("Pushed it.\n");
+    }
+    rio_sym_push_local((rio_Sym_Type), param->name, constraint, param);
+  }
+}
+
 rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate))) {
   rio_TypeField (*fields) = {0};
   rio_Sym (*scope) = rio_sym_enter();
-  if ((((type) && (type->sym)) && (type->sym->decl)) && (type->sym->decl->type_params.length)) {
-    rio_Slice_Decl params = type->sym->decl->type_params;
-    for (size_t i = 0; (i) < (params.length); ++(i)) {
-      rio_Decl (*param) = &(params.items[i]);
-      assert((param->kind) == ((rio_Decl_Typedef)));
-      rio_Type (*constraint) = rio_resolve_typespec(param->typedef_decl.constraint);
-      rio_sym_push_local((rio_Sym_Type), param->name, constraint, param);
-    }
+  if (((type) && (type->sym)) && (type->sym->decl)) {
+    rio_push_type_params(type->sym->decl);
   }
   for (size_t i = 0; (i) < (aggregate->num_items); (i)++) {
     rio_AggregateItem item = aggregate->items[i];
@@ -7692,11 +7708,20 @@ rio_Type (*rio_resolve_decl_const(rio_Decl (*decl), rio_Val (*val))) {
 
 rio_Type (*rio_resolve_decl_func(rio_Decl (*decl))) {
   assert((decl->kind) == ((rio_Decl_Func)));
+  rio_Sym (*scope) = rio_sym_enter();
+  ullong has_type_params = !(!(decl->type_params.length));
+  if (!(strcmp(decl->name, "sum"))) {
+    printf("I\'m at sum ...\n");
+  }
+  if (has_type_params) {
+    printf("Should be pushin\'.\n");
+  }
+  rio_push_type_params(decl);
   rio_Type (*(*params)) = NULL;
   for (size_t i = 0; (i) < (decl->function.num_params); (i)++) {
     rio_Type (*param) = rio_resolve_typespec(decl->function.params[i].type);
     rio_complete_type(param);
-    if ((param) == (rio_type_void)) {
+    if ((!(has_type_params)) && ((param) == (rio_type_void))) {
       rio_fatal_error(decl->pos, "Function parameter type cannot be void");
     }
     rio_buf_push((void (**))(&(params)), &(param), sizeof(param));
@@ -7708,6 +7733,10 @@ rio_Type (*rio_resolve_decl_func(rio_Decl (*decl))) {
   }
   if (rio_is_array_type(ret_type)) {
     rio_fatal_error(decl->pos, "Function return type cannot be array");
+  }
+  rio_sym_leave(scope);
+  if (has_type_params) {
+    printf("Should\'a popped.\n");
   }
   return rio_type_func(params, rio_buf_len(params), ret_type, decl->function.has_varargs);
 }
@@ -8038,6 +8067,14 @@ void rio_resolve_func_body(rio_Sym (*sym)) {
   }
   rio_Package (*old_package) = rio_enter_package(sym->home_package);
   rio_Sym (*scope) = rio_sym_enter();
+  ullong has_type_params = !(!(decl->type_params.length));
+  if (!(strcmp(decl->name, "sum"))) {
+    printf("I\'m at sum ...\n");
+  }
+  if (has_type_params) {
+    printf("Should be pushin\'.\n");
+  }
+  rio_push_type_params(decl);
   for (size_t i = 0; (i) < (decl->function.num_params); (i)++) {
     rio_FuncParam param = decl->function.params[i];
     rio_Type (*param_type) = rio_resolve_typespec(param.type);
@@ -8051,6 +8088,9 @@ void rio_resolve_func_body(rio_Sym (*sym)) {
   bool returns = rio_resolve_stmt_block(decl->function.block, ret_type, (rio_StmtCtx){0});
   rio_resolve_labels();
   rio_sym_leave(scope);
+  if (has_type_params) {
+    printf("Should\'a popped.\n");
+  }
   if (((ret_type) != (rio_type_void)) && (!(returns))) {
     rio_fatal_error(decl->pos, "Not all control paths return values");
   }
