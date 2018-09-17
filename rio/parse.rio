@@ -46,7 +46,12 @@ fn parse_type_args() -> Slice<TypeArg> {
       let type_arg = TypeArg{pos = token.pos, val = parse_type()};
       buf_push((:*&void)&args, &type_arg, sizeof(*args));
     } while (match_token(TokenKind.Comma));
-    expect_token(TokenKind.Gt);
+    if (is_token(TokenKind.Rshift)) {
+      // Abusive change of current token.
+      token.kind = TokenKind.Gt;
+    } else {
+      expect_token(TokenKind.Gt);
+    }
   }
   return (:Slice<TypeArg>){items = args, length = buf_len(args)};
 }

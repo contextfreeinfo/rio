@@ -5865,7 +5865,11 @@ rio_Slice_TypeArg rio_parse_type_args(void) {
       rio_TypeArg type_arg = {.pos = rio_token.pos, .val = rio_parse_type()};
       rio_buf_push((void (**))(&(args)), &(type_arg), sizeof(*(args)));
     } while (rio_match_token((rio_TokenKind_Comma)));
-    rio_expect_token((rio_TokenKind_Gt));
+    if (rio_is_token((rio_TokenKind_Rshift))) {
+      rio_token.kind = (rio_TokenKind_Gt);
+    } else {
+      rio_expect_token((rio_TokenKind_Gt));
+    }
   }
   return (rio_Slice_TypeArg){.items = args, .length = rio_buf_len(args)};
 }

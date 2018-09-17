@@ -77,6 +77,7 @@ typedef struct test1_Slirce test1_Slirce;
 typedef struct test1_Slorce_ref_int test1_Slorce_ref_int;
 typedef struct test1_Slorce_Bar test1_Slorce_Bar;
 typedef struct test1_Slorce_Hey test1_Slorce_Hey;
+typedef struct test1_Slorce_Slorce test1_Slorce_Slorce;
 typedef struct test1_Result_float_TestErr test1_Result_float_TestErr;
 typedef struct test1_UartCtrl test1_UartCtrl;
 typedef union test1_IntOrPtr test1_IntOrPtr;
@@ -393,6 +394,11 @@ struct test1_Slorce_Hey {
   test1_Hey (*items);
 };
 
+struct test1_Slorce_Slorce {
+  size_t length;
+  test1_Slorce_Hey (*items);
+};
+
 void test1_test_generic_functions(void);
 
 typedef int test1_TestErr;
@@ -439,7 +445,7 @@ void test1_print_typeid(typeid type);
 #define TYPEID0(index, kind) ((ullong)(index) | ((ullong)(kind) << 24))
 #define TYPEID(index, kind, ...) ((ullong)(index) | ((ullong)sizeof(__VA_ARGS__) << 32) | ((ullong)(kind) << 24))
 
-const TypeInfo *typeinfo_table[296] = {
+const TypeInfo *typeinfo_table[294] = {
   [0] = NULL, // No associated type
   [1] = &(TypeInfo){TypeKind_Void, .name = "void", .size = 0, .align = 0},
   [2] = &(TypeInfo){TypeKind_Bool, .size = sizeof(bool), .align = sizeof(bool), .name = "bool"},
@@ -644,55 +650,58 @@ const TypeInfo *typeinfo_table[296] = {
     {"items", .type = TYPEID(130, TypeKind_Ptr, float *), .offset = offsetof(test1_Slorce_Hey, items)},
   }},
   [130] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(14, TypeKind_Float, float)},
-  [131] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Result_float_TestErr), .align = alignof(test1_Result_float_TestErr), .name = "test1_Result_float_TestErr", .num_fields = 3, .fields = (TypeFieldInfo[]) {
+  [131] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Slorce_Slorce), .align = alignof(test1_Slorce_Slorce), .name = "test1_Slorce_Slorce", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+    {"length", .type = TYPEID(13, TypeKind_ULLong, ullong), .offset = offsetof(test1_Slorce_Slorce, length)},
+    {"items", .type = TYPEID(132, TypeKind_Ptr, test1_Slorce_Hey *), .offset = offsetof(test1_Slorce_Slorce, items)},
+  }},
+  [132] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(129, TypeKind_Struct, test1_Slorce_Hey)},
+  [133] = &(TypeInfo){TypeKind_Struct, .size = sizeof(test1_Result_float_TestErr), .align = alignof(test1_Result_float_TestErr), .name = "test1_Result_float_TestErr", .num_fields = 3, .fields = (TypeFieldInfo[]) {
     {"kind", .type = TYPEID(21, TypeKind_None, Result_Kind), .offset = offsetof(test1_Result_float_TestErr, kind)},
     {"val", .type = TYPEID(14, TypeKind_Float, float), .offset = offsetof(test1_Result_float_TestErr, val)},
-    {"err", .type = TYPEID(132, TypeKind_None, test1_TestErr), .offset = offsetof(test1_Result_float_TestErr, err)},
+    {"err", .type = TYPEID(134, TypeKind_None, test1_TestErr), .offset = offsetof(test1_Result_float_TestErr, err)},
   }},
-  [132] = NULL, // Enum
-  [133] = NULL, // No associated type
-  [134] = NULL, // Function
-  [135] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [2]), .align = alignof(char [2]), .base = TYPEID(3, TypeKind_Char, char), .count = 2},
-  [136] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [3]), .align = alignof(char [3]), .base = TYPEID(3, TypeKind_Char, char), .count = 3},
-  [137] = &(TypeInfo){TypeKind_Const, .size = sizeof(float const ), .align = alignof(float const ), .base = TYPEID(14, TypeKind_Float, float)},
-  [138] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(137, TypeKind_Const, float const )},
-  [139] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [10]), .align = alignof(char [10]), .base = TYPEID(3, TypeKind_Char, char), .count = 10},
-  [140] = &(TypeInfo){TypeKind_Const, .size = sizeof(TypeKind const ), .align = alignof(TypeKind const ), .base = TYPEID(27, TypeKind_None, TypeKind)},
-  [141] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [23]), .align = alignof(char [23]), .base = TYPEID(3, TypeKind_Char, char), .count = 23},
-  [142] = &(TypeInfo){TypeKind_Const, .size = sizeof(ullong const ), .align = alignof(ullong const ), .base = TYPEID(13, TypeKind_ULLong, ullong)},
-  [143] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [7]), .align = alignof(char [7]), .base = TYPEID(3, TypeKind_Char, char), .count = 7},
-  [144] = &(TypeInfo){TypeKind_Const, .size = sizeof(char const ((*const ))), .align = alignof(char const ((*const ))), .base = TYPEID(24, TypeKind_Ptr, char const (*))},
-  [145] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [18]), .align = alignof(char [18]), .base = TYPEID(3, TypeKind_Char, char), .count = 18},
-  [146] = &(TypeInfo){TypeKind_Const, .size = sizeof(TypeFieldInfo (*const )), .align = alignof(TypeFieldInfo (*const )), .base = TYPEID(30, TypeKind_Ptr, TypeFieldInfo *)},
-  [147] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [11]), .align = alignof(char [11]), .base = TYPEID(3, TypeKind_Char, char), .count = 11},
-  [148] = NULL, // No associated type
-  [149] = NULL, // No associated type
-  [150] = NULL, // Function
-  [151] = NULL, // Function
+  [134] = NULL, // Enum
+  [135] = NULL, // No associated type
+  [136] = NULL, // Function
+  [137] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [2]), .align = alignof(char [2]), .base = TYPEID(3, TypeKind_Char, char), .count = 2},
+  [138] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [3]), .align = alignof(char [3]), .base = TYPEID(3, TypeKind_Char, char), .count = 3},
+  [139] = &(TypeInfo){TypeKind_Const, .size = sizeof(float const ), .align = alignof(float const ), .base = TYPEID(14, TypeKind_Float, float)},
+  [140] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(139, TypeKind_Const, float const )},
+  [141] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [10]), .align = alignof(char [10]), .base = TYPEID(3, TypeKind_Char, char), .count = 10},
+  [142] = &(TypeInfo){TypeKind_Const, .size = sizeof(TypeKind const ), .align = alignof(TypeKind const ), .base = TYPEID(27, TypeKind_None, TypeKind)},
+  [143] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [23]), .align = alignof(char [23]), .base = TYPEID(3, TypeKind_Char, char), .count = 23},
+  [144] = &(TypeInfo){TypeKind_Const, .size = sizeof(ullong const ), .align = alignof(ullong const ), .base = TYPEID(13, TypeKind_ULLong, ullong)},
+  [145] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [7]), .align = alignof(char [7]), .base = TYPEID(3, TypeKind_Char, char), .count = 7},
+  [146] = &(TypeInfo){TypeKind_Const, .size = sizeof(char const ((*const ))), .align = alignof(char const ((*const ))), .base = TYPEID(24, TypeKind_Ptr, char const (*))},
+  [147] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [18]), .align = alignof(char [18]), .base = TYPEID(3, TypeKind_Char, char), .count = 18},
+  [148] = &(TypeInfo){TypeKind_Const, .size = sizeof(TypeFieldInfo (*const )), .align = alignof(TypeFieldInfo (*const )), .base = TYPEID(30, TypeKind_Ptr, TypeFieldInfo *)},
+  [149] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [11]), .align = alignof(char [11]), .base = TYPEID(3, TypeKind_Char, char), .count = 11},
+  [150] = NULL, // No associated type
+  [151] = NULL, // No associated type
   [152] = NULL, // Function
   [153] = NULL, // Function
-  [154] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [99]), .align = alignof(char [99]), .base = TYPEID(3, TypeKind_Char, char), .count = 99},
-  [155] = NULL, // No associated type
-  [156] = NULL, // No associated type
-  [157] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(9, TypeKind_UInt, uint)},
-  [158] = NULL, // Function
-  [159] = NULL, // Function
+  [154] = NULL, // Function
+  [155] = NULL, // Function
+  [156] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [99]), .align = alignof(char [99]), .base = TYPEID(3, TypeKind_Char, char), .count = 99},
+  [157] = NULL, // No associated type
+  [158] = NULL, // No associated type
+  [159] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(9, TypeKind_UInt, uint)},
   [160] = NULL, // Function
   [161] = NULL, // Function
   [162] = NULL, // Function
-  [163] = &(TypeInfo){TypeKind_Array, .size = sizeof(int [11]), .align = alignof(int [11]), .base = TYPEID(8, TypeKind_Int, int), .count = 11},
+  [163] = NULL, // Function
   [164] = NULL, // Function
-  [165] = NULL, // Function
-  [166] = NULL, // No associated type
-  [167] = NULL, // No associated type
+  [165] = &(TypeInfo){TypeKind_Array, .size = sizeof(int [11]), .align = alignof(int [11]), .base = TYPEID(8, TypeKind_Int, int), .count = 11},
+  [166] = NULL, // Function
+  [167] = NULL, // Function
   [168] = NULL, // No associated type
   [169] = NULL, // No associated type
-  [170] = NULL, // Function
-  [171] = NULL, // Function
+  [170] = NULL, // No associated type
+  [171] = NULL, // No associated type
   [172] = NULL, // Function
-  [173] = NULL, // No associated type
-  [174] = NULL, // No associated type
-  [175] = NULL, // No associated type
+  [173] = NULL, // Function
+  [174] = NULL, // Function
+  [175] = NULL, // Function
   [176] = NULL, // Function
   [177] = NULL, // Function
   [178] = NULL, // Function
@@ -703,9 +712,9 @@ const TypeInfo *typeinfo_table[296] = {
   [183] = NULL, // Function
   [184] = NULL, // Function
   [185] = NULL, // Function
-  [186] = NULL, // Function
+  [186] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(15, TypeKind_Double, double)},
   [187] = NULL, // Function
-  [188] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(15, TypeKind_Double, double)},
+  [188] = NULL, // Function
   [189] = NULL, // Function
   [190] = NULL, // Function
   [191] = NULL, // Function
@@ -717,11 +726,11 @@ const TypeInfo *typeinfo_table[296] = {
   [197] = NULL, // Function
   [198] = NULL, // Function
   [199] = NULL, // Function
-  [200] = NULL, // Function
-  [201] = NULL, // Function
+  [200] = NULL, // No associated type
+  [201] = NULL, // No associated type
   [202] = NULL, // No associated type
-  [203] = NULL, // No associated type
-  [204] = NULL, // No associated type
+  [203] = NULL, // Function
+  [204] = NULL, // Function
   [205] = NULL, // Function
   [206] = NULL, // Function
   [207] = NULL, // Function
@@ -743,16 +752,16 @@ const TypeInfo *typeinfo_table[296] = {
   [223] = NULL, // Function
   [224] = NULL, // Function
   [225] = NULL, // Function
-  [226] = NULL, // Function
+  [226] = NULL, // No associated type
   [227] = NULL, // Function
-  [228] = NULL, // No associated type
+  [228] = NULL, // Function
   [229] = NULL, // Function
   [230] = NULL, // Function
-  [231] = NULL, // Function
-  [232] = NULL, // Function
+  [231] = NULL, // No associated type
+  [232] = NULL, // No associated type
   [233] = NULL, // No associated type
-  [234] = NULL, // No associated type
-  [235] = NULL, // No associated type
+  [234] = NULL, // Function
+  [235] = NULL, // Function
   [236] = NULL, // Function
   [237] = NULL, // Function
   [238] = NULL, // Function
@@ -775,14 +784,14 @@ const TypeInfo *typeinfo_table[296] = {
   [255] = NULL, // Function
   [256] = NULL, // Function
   [257] = NULL, // Function
-  [258] = NULL, // Function
+  [258] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(6, TypeKind_Short, short)},
   [259] = NULL, // Function
-  [260] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(6, TypeKind_Short, short)},
+  [260] = NULL, // Function
   [261] = NULL, // Function
-  [262] = NULL, // Function
-  [263] = NULL, // Function
-  [264] = &(TypeInfo){TypeKind_Const, .size = sizeof(short const ), .align = alignof(short const ), .base = TYPEID(6, TypeKind_Short, short)},
-  [265] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(264, TypeKind_Const, short const )},
+  [262] = &(TypeInfo){TypeKind_Const, .size = sizeof(short const ), .align = alignof(short const ), .base = TYPEID(6, TypeKind_Short, short)},
+  [263] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(262, TypeKind_Const, short const )},
+  [264] = NULL, // Function
+  [265] = NULL, // Function
   [266] = NULL, // Function
   [267] = NULL, // Function
   [268] = NULL, // Function
@@ -795,27 +804,25 @@ const TypeInfo *typeinfo_table[296] = {
   [275] = NULL, // Function
   [276] = NULL, // Function
   [277] = NULL, // Function
-  [278] = NULL, // Function
+  [278] = NULL, // No associated type
   [279] = NULL, // Function
-  [280] = NULL, // No associated type
-  [281] = NULL, // Function
+  [280] = NULL, // Function
+  [281] = NULL, // No associated type
   [282] = NULL, // Function
   [283] = NULL, // No associated type
-  [284] = NULL, // Function
-  [285] = NULL, // No associated type
-  [286] = NULL, // No associated type
-  [287] = NULL, // Function
-  [288] = &(TypeInfo){TypeKind_Const, .size = sizeof(llong const ), .align = alignof(llong const ), .base = TYPEID(12, TypeKind_LLong, llong)},
-  [289] = &(TypeInfo){TypeKind_Ref, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(288, TypeKind_Const, llong const )},
+  [284] = NULL, // No associated type
+  [285] = NULL, // Function
+  [286] = &(TypeInfo){TypeKind_Const, .size = sizeof(llong const ), .align = alignof(llong const ), .base = TYPEID(12, TypeKind_LLong, llong)},
+  [287] = &(TypeInfo){TypeKind_Ref, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(286, TypeKind_Const, llong const )},
+  [288] = NULL, // Function
+  [289] = NULL, // Function
   [290] = NULL, // Function
-  [291] = NULL, // Function
-  [292] = NULL, // Function
-  [293] = &(TypeInfo){TypeKind_Array, .size = sizeof(int [9]), .align = alignof(int [9]), .base = TYPEID(8, TypeKind_Int, int), .count = 9},
-  [294] = NULL, // No associated type
-  [295] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [15]), .align = alignof(char [15]), .base = TYPEID(3, TypeKind_Char, char), .count = 15},
+  [291] = &(TypeInfo){TypeKind_Array, .size = sizeof(int [9]), .align = alignof(int [9]), .base = TYPEID(8, TypeKind_Int, int), .count = 9},
+  [292] = NULL, // No associated type
+  [293] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [15]), .align = alignof(char [15]), .base = TYPEID(3, TypeKind_Char, char), .count = 15},
 };
 
-int num_typeinfos = 296;
+int num_typeinfos = 294;
 const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;
 
 // Definitions
@@ -1275,6 +1282,7 @@ void test1_test_generics(void) {
   test1_Slorce_Bar slarb = {0};
   test1_Slarce slarce = slorce;
   test1_Slorce_Hey slorce_hey = {0};
+  test1_Slorce_Slorce slorce_slorce_hey = {0};
   test1_test_generic_functions();
 }
 
