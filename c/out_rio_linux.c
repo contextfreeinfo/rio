@@ -3395,6 +3395,11 @@ void rio_put_typespec_sym_name(char (*(*buf)), rio_Typespec (*type)) {
         rio_buf_printf(buf, "_");
       }
       rio_buf_printf(buf, "%s", type->names[i].name);
+      rio_Slice_TypeArg type_args = type->names[i].type_args;
+      for (size_t a = 0; (a) < (type_args.length); ++(a)) {
+        rio_buf_printf(buf, "_");
+        rio_put_typespec_sym_name(buf, type_args.items[a].val);
+      }
     }
     break;
   }
