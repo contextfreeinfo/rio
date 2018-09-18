@@ -6633,7 +6633,11 @@ rio_Slice_Decl rio_parse_type_params(void) {
   if (rio_match_token((rio_TokenKind_Lt))) {
     do {
       char const ((*param_name)) = rio_parse_name();
-      rio_Decl param = {.kind = (rio_Decl_Typedef), .pos = rio_token.pos, .name = param_name, .typedef_decl = {.constraint = rio_new_typespec_name1(rio_token.pos, rio_void_name)}};
+      rio_Typespec (*constraint) = {0};
+      if (rio_match_token((rio_TokenKind_Colon))) {
+        constraint = rio_parse_type();
+      }
+      rio_Decl param = {.kind = (rio_Decl_Typedef), .pos = rio_token.pos, .name = param_name, .typedef_decl = {.constraint = constraint}};
       rio_buf_push((void (**))(&(params.items)), &(param), sizeof(param));
     } while (rio_match_token((rio_TokenKind_Comma)));
     rio_expect_token((rio_TokenKind_Gt));

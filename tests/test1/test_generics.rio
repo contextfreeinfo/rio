@@ -36,15 +36,21 @@ struct Slorce<Item> {
 fn test_generic_functions() {
   // let slarce: Slarce;
   // printf("slarce sum: %d", sum(slarce, slarce));
+  // printf("int sum: %d", sum.<int>(1, 2));
+  // printf("float sum: %d", sum.<float>(1.1, 2.2));
   // printf("int sum: %d", sum(1, 2));
   // printf("float sum: %d", sum(1.1, 2.2));
+  // first((:Slice<int>){});
+  // first(Slice.<int>{});
+  // first.<int>(Slice.<int>{});
 }
 
-// fn sum<Num>(x: Num, y: Num) -> Num {
-//   return x + y;
-// }
+fn sum<Num: int>(x: Num, y: Num) -> Num {
+  return x + y;
+}
 
 // TODO Deeper generics:
-// fn first<Item>(slice: Slice<Item>) -> Result<&Item, TestErr> {
-//   return {kind = Result.Ok};
-// }
+fn first<Item>(slice: Slice<Item>) -> Result<&Item, TestErr> {
+  return {kind = Result.Ok};
+  // return {kind = Result.Ok, val = Item{}};
+}

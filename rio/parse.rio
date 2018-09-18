@@ -879,12 +879,15 @@ fn parse_type_params() -> Slice<Decl> {
   if (match_token(TokenKind.Lt)) {
     do {
       let param_name = parse_name();
-      // TODO Parse type constraints and defaults.
+      let constraint: &Typespec;
+      if (match_token(TokenKind.Colon)) {
+        constraint = parse_type();
+      }
       let param = Decl {
         kind = Decl.Typedef,
         pos = token.pos,
         name = param_name,
-        typedef_decl = {constraint = new_typespec_name1(token.pos, void_name)},
+        typedef_decl = {constraint = constraint},
         // Let val default to null.
       };
       buf_push((:&&void)&params.items, &param, sizeof(param));
