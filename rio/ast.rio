@@ -194,7 +194,10 @@ struct Expr {
     Int => int_lit: ExprIntLit;
     Float => float_lit: ExprFloatLit;
     Str => str_lit: ExprStrLit;
-    Name => name: *const char;
+    Name => struct {
+      name: *const char;
+      type_args: Slice<TypeArg>;
+    }
     SizeofExpr => sizeof_expr: &Expr;
     SizeofType => sizeof_type: &Typespec;
     TypeofExpr => typeof_expr: &Expr;
@@ -289,6 +292,7 @@ struct ExprIndex {
 struct ExprField {
   expr: &Expr;
   name: *const char;
+  type_args: Slice<TypeArg>;
 }
 
 struct ElseIf {

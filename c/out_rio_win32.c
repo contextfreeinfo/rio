@@ -2217,6 +2217,7 @@ struct rio_ExprIndex {
 struct rio_ExprField {
   rio_Expr (*expr);
   char const ((*name));
+  rio_Slice_TypeArg type_args;
 };
 
 struct rio_Expr {
@@ -2228,7 +2229,10 @@ struct rio_Expr {
     rio_ExprIntLit int_lit;
     rio_ExprFloatLit float_lit;
     rio_ExprStrLit str_lit;
-    char const ((*name));
+    struct {
+      char const ((*name));
+      rio_Slice_TypeArg type_args;
+    };
     rio_Expr (*sizeof_expr);
     rio_Typespec (*sizeof_type);
     rio_Expr (*typeof_expr);
@@ -4418,8 +4422,10 @@ void rio_gen_decl(rio_Sym (*sym)) {
     break;
   }
   case rio_Decl_Func: {
-    rio_gen_func_decl(decl);
-    rio_buf_printf(&(rio_gen_buf), ";");
+    if (!(decl->type_params.length)) {
+      rio_gen_func_decl(decl);
+      rio_buf_printf(&(rio_gen_buf), ";");
+    }
     break;
   }
   case rio_Decl_Struct:
@@ -4468,10 +4474,12 @@ void rio_gen_defs(void) {
       continue;
     }
     if ((decl->kind) == ((rio_Decl_Func))) {
-      rio_gen_func_decl(decl);
-      rio_buf_printf(&(rio_gen_buf), " ");
-      rio_gen_stmt_block(decl->function.block);
-      rio_genln();
+      if (!(decl->type_params.length)) {
+        rio_gen_func_decl(decl);
+        rio_buf_printf(&(rio_gen_buf), " ");
+        rio_gen_stmt_block(decl->function.block);
+        rio_genln();
+      }
     } else if ((decl->kind) == ((rio_Decl_Var))) {
       if ((decl->var_decl.type) && (!(rio_is_incomplete_array_typespec(decl->var_decl.type)))) {
         rio_genln();
@@ -6092,9 +6100,27 @@ rio_Expr (*rio_parse_expr_base(void)) {
       expr = rio_new_expr_index(pos, expr, index);
     } else if (rio_is_token((rio_TokenKind_Dot))) {
       rio_next_token();
-      char const ((*field)) = rio_token.name;
-      rio_expect_token((rio_TokenKind_Name));
-      expr = rio_new_expr_field(pos, expr, field);
+      if (rio_is_token((rio_TokenKind_Lt))) {
+        rio_Slice_TypeArg type_args = rio_parse_type_args();
+        switch (expr->kind) {
+        case rio_Expr_Field: {
+          expr->field.type_args = type_args;
+          break;
+        }
+        case rio_Expr_Name: {
+          expr->type_args = type_args;
+          break;
+        }
+        default: {
+          rio_fatal_error(pos, "Unexpected type args");
+          break;
+        }
+        }
+      } else {
+        char const ((*field)) = rio_token.name;
+        rio_expect_token((rio_TokenKind_Name));
+        expr = rio_new_expr_field(pos, expr, field);
+      }
     } else {
       assert((rio_is_token((rio_TokenKind_Inc))) || (rio_is_token((rio_TokenKind_Dec))));
       rio_TokenKind op = rio_token.kind;

@@ -260,9 +260,22 @@ fn parse_expr_base() -> &Expr {
       expr = new_expr_index(pos, expr, index);
     } else if (is_token(TokenKind.Dot)) {
       next_token();
-      let field = token.name;
-      expect_token(TokenKind.Name);
-      expr = new_expr_field(pos, expr, field);
+      if (is_token(TokenKind.Lt)) {
+        // Generic type args.
+        let type_args = parse_type_args();
+        switch (expr.kind) {
+          Field => expr.field.type_args = type_args;
+          Name => expr.type_args = type_args;
+          default => {
+            fatal_error(pos, "Unexpected type args");
+          }
+        }
+      } else {
+        // Field access.
+        let field = token.name;
+        expect_token(TokenKind.Name);
+        expr = new_expr_field(pos, expr, field);
+      }
     } else {
       #assert(is_token(TokenKind.Inc) || is_token(TokenKind.Dec));
       let op = token.kind;

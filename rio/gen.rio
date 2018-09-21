@@ -973,8 +973,10 @@ fn gen_decl(sym: &Sym) {
       buf_printf(&gen_buf, ";");
     }
     Func => {
-      gen_func_decl(decl);
-      buf_printf(&gen_buf, ";");
+      if (!decl.type_params.length) {
+        gen_func_decl(decl);
+        buf_printf(&gen_buf, ";");
+      }
     }
     Struct, Union => gen_aggregate(decl);
     Typedef => {
@@ -1015,10 +1017,12 @@ fn gen_defs() {
       continue;
     }
     if (decl.kind == Decl.Func) {
-      gen_func_decl(decl);
-      buf_printf(&gen_buf, " ");
-      gen_stmt_block(decl.function.block);
-      genln();
+      if (!decl.type_params.length) {
+        gen_func_decl(decl);
+        buf_printf(&gen_buf, " ");
+        gen_stmt_block(decl.function.block);
+        genln();
+      }
     } else if (decl.kind == Decl.Var) {
       if (decl.var_decl.type && !is_incomplete_array_typespec(decl.var_decl.type)) {
         genln(); buf_printf(&gen_buf, "%s", typespec_to_cdecl(decl.var_decl.type, get_gen_name(sym)));
