@@ -35,6 +35,42 @@ fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
   return dupe;
 }
 
+fn dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
+  let dupe = &block;
+  for (let i: usize = 0; i < dupe.num_stmts; ++i) {
+    dupe.stmts[i] = dupe_stmt(dupe.stmts[i], map);
+  }
+  return *dupe;
+}
+
+fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
+  return expr;
+}
+
+fn dupe_function(func: &DeclFunc, map: &MapClosure) -> &DeclFunc {
+  let dupe: &DeclFunc = ast_dup(func, sizeof(*func));
+  dupe.params = ast_dup(dupe.params, sizeof(*dupe.params) * dupe.num_params);
+  for (let i: usize = 0; i < dupe.num_params; ++i) {
+    dupe.params[i] = dupe_func_param(dupe.params[i], map);
+  }
+  dupe.ret_type = dupe_typespec(dupe.ret_type, map);
+  dupe.block = dupe_block(dupe.block, map);
+  return dupe;
+}
+
+fn dupe_func_param(param: FuncParam, map: &MapClosure) -> FuncParam {
+  let dupe = &param;
+  dupe.type = dupe_typespec(dupe.type, map);
+  if (dupe.default_val) {
+    dupe.default_val = dupe_expr(dupe.default_val, map);
+  }
+  return *dupe;
+}
+
+fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
+  return stmt;
+}
+
 fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   let dupe: &Typespec = map.call(map.self, Any{type, typeof(*type)});
   if (dupe) {

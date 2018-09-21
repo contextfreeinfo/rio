@@ -1983,13 +1983,14 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
     let arg = resolve_expected_expr_rvalue(expr.call.args[i], param_type);
     // TODO Check out arg.
     if (is_generic) {
+      // TODO Infer type args!
       // TODO Arg types resolve deep. Sometimes that's all we have.
       // TODO But other times, we should have a way for shallow resolution.
       // TODO Find the symbol that defines the deepest name, then get that var
       // TODO type or else return type for calls, and use that.
       // TODO Or an aggregate literal or some such.
       // TODO If just a primitive literal, go with what we got.
-      printf("Checking arg: %d -> %d: %s\n", arg.type.kind, arg.type.kind == CompilerTypeKind.Int, get_type_name(arg.type));
+      printf("Checking arg: %d -> %d: %s, %d, %zu \n", arg.type.kind, arg.type.kind == CompilerTypeKind.Int, get_type_name(arg.type), expr.call.expr.kind == Expr.Name, expr.call.expr.type_args.length);
       if (arg.type && arg.type.sym) {
         printf("Maybe get somewhere???\n");
       }

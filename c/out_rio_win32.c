@@ -71,6 +71,7 @@ typedef struct rio_Notes rio_Notes;
 typedef struct rio_StmtList rio_StmtList;
 typedef struct rio_Slice_Decl rio_Slice_Decl;
 typedef struct rio_Map rio_Map;
+typedef struct rio_FuncParam rio_FuncParam;
 typedef struct Any Any;
 typedef struct rio_Token rio_Token;
 typedef struct rio_Slice_TypeArg rio_Slice_TypeArg;
@@ -79,7 +80,6 @@ typedef struct rio_SwitchCasePattern rio_SwitchCasePattern;
 typedef struct rio_SwitchCase rio_SwitchCase;
 typedef struct rio_EnumItem rio_EnumItem;
 typedef struct rio_AggregateItem rio_AggregateItem;
-typedef struct rio_FuncParam rio_FuncParam;
 typedef struct rio_NoteArg rio_NoteArg;
 typedef union rio_Val rio_Val;
 typedef struct rio_Sym rio_Sym;
@@ -692,6 +692,23 @@ bool rio_str_islower(char const ((*str)));
 typedef void (*(*rio_MapClosureCall)(void *, Any));
 
 rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*map)));
+
+rio_StmtList rio_dupe_block(rio_StmtList block, rio_MapClosure (*map));
+
+rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map)));
+
+rio_DeclFunc (*rio_dupe_function(rio_DeclFunc (*func), rio_MapClosure (*map)));
+
+struct rio_FuncParam {
+  rio_SrcPos pos;
+  char const ((*name));
+  rio_Typespec (*type);
+  rio_Expr (*default_val);
+};
+
+rio_FuncParam rio_dupe_func_param(rio_FuncParam param, rio_MapClosure (*map));
+
+rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map)));
 
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map)));
 
@@ -1406,13 +1423,6 @@ rio_Decl (*rio_parse_decl_var(rio_SrcPos pos));
 rio_Decl (*rio_parse_decl_const(rio_SrcPos pos));
 
 rio_Decl (*rio_parse_decl_typedef(rio_SrcPos pos));
-
-struct rio_FuncParam {
-  rio_SrcPos pos;
-  char const ((*name));
-  rio_Typespec (*type);
-  rio_Expr (*default_val);
-};
 
 rio_FuncParam rio_parse_decl_func_param(void);
 
@@ -3325,6 +3335,42 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
     }
   }
   return dupe;
+}
+
+rio_StmtList rio_dupe_block(rio_StmtList block, rio_MapClosure (*map)) {
+  rio_StmtList (*dupe) = &(block);
+  for (size_t i = 0; (i) < (dupe->num_stmts); ++(i)) {
+    dupe->stmts[i] = rio_dupe_stmt(dupe->stmts[i], map);
+  }
+  return *(dupe);
+}
+
+rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
+  return expr;
+}
+
+rio_DeclFunc (*rio_dupe_function(rio_DeclFunc (*func), rio_MapClosure (*map))) {
+  rio_DeclFunc (*dupe) = rio_ast_dup(func, sizeof(*(func)));
+  dupe->params = rio_ast_dup(dupe->params, (sizeof(*(dupe->params))) * (dupe->num_params));
+  for (size_t i = 0; (i) < (dupe->num_params); ++(i)) {
+    dupe->params[i] = rio_dupe_func_param(dupe->params[i], map);
+  }
+  dupe->ret_type = rio_dupe_typespec(dupe->ret_type, map);
+  dupe->block = rio_dupe_block(dupe->block, map);
+  return dupe;
+}
+
+rio_FuncParam rio_dupe_func_param(rio_FuncParam param, rio_MapClosure (*map)) {
+  rio_FuncParam (*dupe) = &(param);
+  dupe->type = rio_dupe_typespec(dupe->type, map);
+  if (dupe->default_val) {
+    dupe->default_val = rio_dupe_expr(dupe->default_val, map);
+  }
+  return *(dupe);
+}
+
+rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
+  return stmt;
 }
 
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
@@ -8979,7 +9025,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
     rio_Type (*param_type) = function.type->function.params[i];
     rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args[i], param_type);
     if (is_generic) {
-      printf("Checking arg: %d -> %d: %s\n", arg.type->kind, (arg.type->kind) == ((rio_CompilerTypeKind_Int)), rio_get_type_name(arg.type));
+      printf("Checking arg: %d -> %d: %s, %d, %zu \n", arg.type->kind, (arg.type->kind) == ((rio_CompilerTypeKind_Int)), rio_get_type_name(arg.type), (expr->call.expr->kind) == ((rio_Expr_Name)), expr->call.expr->type_args.length);
       if ((arg.type) && (arg.type->sym)) {
         printf("Maybe get somewhere???\n");
       }
