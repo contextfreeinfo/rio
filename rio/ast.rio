@@ -20,8 +20,7 @@ struct Notes {
 
 struct StmtList {
   pos: SrcPos;
-  stmts: *&Stmt;
-  num_stmts: usize;
+  stmts: Slice<&Stmt>;
 }
 
 struct Typespec {
@@ -403,7 +402,7 @@ fn new_notes(notes: *Note, num_notes: usize) -> Notes {
 }
 
 fn new_stmt_list(pos: SrcPos, stmts: *&Stmt, num_stmts: usize) -> StmtList {
-  return {pos, ast_dup(stmts, num_stmts * sizeof(*stmts)), num_stmts};
+  return {pos, {ast_dup(stmts, num_stmts * sizeof(*stmts)), num_stmts}};
 }
 
 fn new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {

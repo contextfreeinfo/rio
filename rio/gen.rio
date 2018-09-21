@@ -684,8 +684,8 @@ fn gen_expr(expr: &Expr) {
 fn gen_stmt_block(block: StmtList) {
   buf_printf(&gen_buf, "{");
   gen_indent++;
-  for (let i: usize = 0; i < block.num_stmts; i++) {
-    gen_stmt(block.stmts[i]);
+  for (let i: usize = 0; i < block.stmts.length; i++) {
+    gen_stmt(block.stmts.items[i]);
   }
   gen_indent--;
   genln(); buf_printf(&gen_buf, "}");
@@ -755,7 +755,7 @@ fn gen_stmt(stmt: &Stmt) {
       buf_printf(&gen_buf, "continue;");
     }
     Block => {
-      if (stmt.block.num_stmts) {
+      if (stmt.block.stmts.length) {
         genln();
         gen_stmt_block(stmt.block);
       }
@@ -791,7 +791,7 @@ fn gen_stmt(stmt: &Stmt) {
         buf_printf(&gen_buf, ") ");
         gen_stmt_block(elseif.block);
       }
-      if (stmt.if_stmt.else_block.stmts) {
+      if (stmt.if_stmt.else_block.stmts.length) {
         buf_printf(&gen_buf, " else ");
         gen_stmt_block(stmt.if_stmt.else_block);
       } else {
@@ -888,16 +888,16 @@ fn gen_stmt(stmt: &Stmt) {
         buf_printf(&gen_buf, "{");
         gen_indent++;
         let block = &switch_case.block;
-        if (block.num_stmts == 1) {
+        if (block.stmts.length == 1) {
           // Clean block nesting for the case of a single block.
           // We're already inside on of those.
-          let first = block.stmts[0];
+          let first = block.stmts.items[0];
           if (first.kind == Stmt.Block) {
             block = &first.block;
           }
         }
-        for (let j: usize = 0; j < block.num_stmts; j++) {
-          gen_stmt(block.stmts[j]);
+        for (let j: usize = 0; j < block.stmts.length; j++) {
+          gen_stmt(block.stmts.items[j]);
         }
         genln(); buf_printf(&gen_buf, "break;");
         gen_indent--;

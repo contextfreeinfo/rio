@@ -1041,8 +1041,8 @@ fn resolve_stmt_block(block: StmtList, ret_type: &Type, ctx: StmtCtx) -> bool {
   let scope = sym_enter();
   let returns = false;
   let prev_stmt: &Stmt;
-  for (let i: usize = 0; i < block.num_stmts; i++) {
-    let stmt = block.stmts[i];
+  for (let i: usize = 0; i < block.stmts.length; i++) {
+    let stmt = block.stmts.items[i];
     if (stmt.kind == Stmt.Close) {
       if (stmt.tag != prev_stmt.kind) {
         fatal_error(stmt.pos, "Non-matching close tag");
@@ -1175,7 +1175,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
         resolve_cond_expr(elseif.cond);
         returns = resolve_stmt_block(elseif.block, ret_type, ctx) && returns;
       }
-      if (stmt.if_stmt.else_block.stmts) {
+      if (stmt.if_stmt.else_block.stmts.length) {
         returns = resolve_stmt_block(stmt.if_stmt.else_block, ret_type, ctx) && returns;
       } else {
         returns = false;
@@ -1254,8 +1254,8 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
             }
           } if;
         } for;
-        if (switch_case.block.num_stmts > 1) {
-          let last_stmt = switch_case.block.stmts[switch_case.block.num_stmts - 1];
+        if (switch_case.block.stmts.length > 1) {
+          let last_stmt = switch_case.block.stmts.items[switch_case.block.stmts.length - 1];
           if (last_stmt.kind == Stmt.Break) {
             warning(last_stmt.pos, "Case blocks already end with an implicit break");
           }

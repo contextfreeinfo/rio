@@ -68,6 +68,7 @@ typedef struct rio_Arena rio_Arena;
 typedef struct rio_SrcPos rio_SrcPos;
 typedef struct rio_Note rio_Note;
 typedef struct rio_Notes rio_Notes;
+typedef struct rio_Slice_ref_Stmt rio_Slice_ref_Stmt;
 typedef struct rio_StmtList rio_StmtList;
 typedef struct rio_Slice_Decl rio_Slice_Decl;
 typedef struct rio_Map rio_Map;
@@ -430,10 +431,15 @@ struct rio_Notes {
 
 rio_Notes rio_new_notes(rio_Note (*notes), size_t num_notes);
 
+
+struct rio_Slice_ref_Stmt {
+  rio_Stmt (*(*items));
+  size_t length;
+};
+
 struct rio_StmtList {
   rio_SrcPos pos;
-  rio_Stmt (*(*stmts));
-  size_t num_stmts;
+  rio_Slice_ref_Stmt stmts;
 };
 
 rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Stmt (*(*stmts)), size_t num_stmts);
@@ -469,7 +475,6 @@ bool rio_is_decl_foreign(rio_Decl (*decl));
 rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_EnumItem (*items), size_t num_items));
 
 rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_AggregateItem (*items), size_t num_items));
-
 
 struct rio_Slice_Decl {
   rio_Decl (*items);
@@ -2462,7 +2467,7 @@ rio_Notes rio_new_notes(rio_Note (*notes), size_t num_notes) {
 }
 
 rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Stmt (*(*stmts)), size_t num_stmts) {
-  return (rio_StmtList){pos, rio_ast_dup(stmts, (num_stmts) * (sizeof(*(stmts)))), num_stmts};
+  return (rio_StmtList){pos, {rio_ast_dup(stmts, (num_stmts) * (sizeof(*(stmts)))), num_stmts}};
 }
 
 rio_Typespec (*rio_new_typespec(rio_Typespec_Kind kind, rio_SrcPos pos)) {
@@ -3337,8 +3342,8 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
 
 rio_StmtList rio_dupe_block(rio_StmtList block, rio_MapClosure (*map)) {
   rio_StmtList (*dupe) = &(block);
-  for (size_t i = 0; (i) < (dupe->num_stmts); ++(i)) {
-    dupe->stmts[i] = rio_dupe_stmt(dupe->stmts[i], map);
+  for (size_t i = 0; (i) < (dupe->stmts.length); ++(i)) {
+    dupe->stmts.items[i] = rio_dupe_stmt(dupe->stmts.items[i], map);
   }
   return *(dupe);
 }
@@ -4161,8 +4166,8 @@ void rio_gen_expr(rio_Expr (*expr)) {
 void rio_gen_stmt_block(rio_StmtList block) {
   rio_buf_printf(&(rio_gen_buf), "{");
   (rio_gen_indent)++;
-  for (size_t i = 0; (i) < (block.num_stmts); (i)++) {
-    rio_gen_stmt(block.stmts[i]);
+  for (size_t i = 0; (i) < (block.stmts.length); (i)++) {
+    rio_gen_stmt(block.stmts.items[i]);
   }
   (rio_gen_indent)--;
   rio_genln();
@@ -4234,7 +4239,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     break;
   }
   case rio_Stmt_Block: {
-    if (stmt->block.num_stmts) {
+    if (stmt->block.stmts.length) {
       rio_genln();
       rio_gen_stmt_block(stmt->block);
     }
@@ -4277,7 +4282,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
       rio_buf_printf(&(rio_gen_buf), ") ");
       rio_gen_stmt_block(elseif.block);
     }
-    if (stmt->if_stmt.else_block.stmts) {
+    if (stmt->if_stmt.else_block.stmts.length) {
       rio_buf_printf(&(rio_gen_buf), " else ");
       rio_gen_stmt_block(stmt->if_stmt.else_block);
     } else {
@@ -4383,14 +4388,14 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
       rio_buf_printf(&(rio_gen_buf), "{");
       (rio_gen_indent)++;
       rio_StmtList (*block) = &(switch_case.block);
-      if ((block->num_stmts) == (1)) {
-        rio_Stmt (*first) = block->stmts[0];
+      if ((block->stmts.length) == (1)) {
+        rio_Stmt (*first) = block->stmts.items[0];
         if ((first->kind) == ((rio_Stmt_Block))) {
           block = &(first->block);
         }
       }
-      for (size_t j = 0; (j) < (block->num_stmts); (j)++) {
-        rio_gen_stmt(block->stmts[j]);
+      for (size_t j = 0; (j) < (block->stmts.length); (j)++) {
+        rio_gen_stmt(block->stmts.items[j]);
       }
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "break;");
@@ -6294,7 +6299,7 @@ rio_Stmt (*rio_parse_stmt_if(rio_SrcPos pos)) {
   }
   rio_expect_token((rio_TokenKind_Rparen));
   rio_StmtList then_block = rio_parse_stmt_block();
-  rio_StmtList else_block = {{NULL, 0}, NULL, 0};
+  rio_StmtList else_block = {0};
   rio_ElseIf (*elseifs) = {0};
   while (rio_match_keyword(rio_else_keyword)) {
     if (!(rio_match_keyword(rio_if_keyword))) {
@@ -7884,8 +7889,8 @@ bool rio_resolve_stmt_block(rio_StmtList block, rio_Type (*ret_type), rio_StmtCt
   rio_Sym (*scope) = rio_sym_enter();
   bool returns = false;
   rio_Stmt (*prev_stmt) = {0};
-  for (size_t i = 0; (i) < (block.num_stmts); (i)++) {
-    rio_Stmt (*stmt) = block.stmts[i];
+  for (size_t i = 0; (i) < (block.stmts.length); (i)++) {
+    rio_Stmt (*stmt) = block.stmts.items[i];
     if ((stmt->kind) == ((rio_Stmt_Close))) {
       if ((stmt->tag) != (prev_stmt->kind)) {
         rio_fatal_error(stmt->pos, "Non-matching close tag");
@@ -8021,7 +8026,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
       rio_resolve_cond_expr(elseif.cond);
       returns = (rio_resolve_stmt_block(elseif.block, ret_type, ctx)) && (returns);
     }
-    if (stmt->if_stmt.else_block.stmts) {
+    if (stmt->if_stmt.else_block.stmts.length) {
       returns = (rio_resolve_stmt_block(stmt->if_stmt.else_block, ret_type, ctx)) && (returns);
     } else {
       returns = false;
@@ -8100,8 +8105,8 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
           }
         }
       }
-      if ((switch_case.block.num_stmts) > (1)) {
-        rio_Stmt (*last_stmt) = switch_case.block.stmts[(switch_case.block.num_stmts) - (1)];
+      if ((switch_case.block.stmts.length) > (1)) {
+        rio_Stmt (*last_stmt) = switch_case.block.stmts.items[(switch_case.block.stmts.length) - (1)];
         if ((last_stmt->kind) == ((rio_Stmt_Break))) {
           rio_warning(last_stmt->pos, "Case blocks already end with an implicit break");
         }

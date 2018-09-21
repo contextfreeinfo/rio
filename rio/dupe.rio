@@ -37,8 +37,8 @@ fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
 
 fn dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
   let dupe = &block;
-  for (let i: usize = 0; i < dupe.num_stmts; ++i) {
-    dupe.stmts[i] = dupe_stmt(dupe.stmts[i], map);
+  for (let i: usize = 0; i < dupe.stmts.length; ++i) {
+    dupe.stmts.items[i] = dupe_stmt(dupe.stmts.items[i], map);
   }
   return *dupe;
 }

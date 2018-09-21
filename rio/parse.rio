@@ -425,7 +425,7 @@ fn parse_stmt_if(pos: SrcPos) -> &Stmt {
   }
   expect_token(TokenKind.Rparen);
   let then_block: StmtList = parse_stmt_block();
-  let else_block: StmtList = {{NULL, 0}, NULL, 0};  // TODO Automatic null???
+  let else_block: StmtList;
   let elseifs: *ElseIf;
   while (match_keyword(else_keyword)) {
     if (!match_keyword(if_keyword)) {
