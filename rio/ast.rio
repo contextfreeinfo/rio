@@ -144,8 +144,7 @@ struct DeclEnum {
 }
 
 struct DeclFunc {
-  params: *FuncParam;
-  num_params: usize;
+  params: Slice<FuncParam>;
   ret_type: &Typespec;
   has_varargs: bool;
   block: StmtList;
@@ -323,6 +322,7 @@ struct Stmt {
     Block => block: StmtList;
     Decl => decl: &Decl;
     For => for_stmt: StmtFor;
+    ForEach => for_each: StmtForEach;
     If => if_stmt: StmtIf;
     Init => init: StmtInit;
     Note => note: Note;
@@ -350,6 +350,11 @@ struct StmtFor {
   cond: &Expr;
   next: &Stmt;
   block: StmtList;
+}
+
+struct StmtForEach {
+  expr: &Expr;
+  func: DeclFunc;
 }
 
 struct StmtSwitch {
@@ -561,17 +566,25 @@ fn new_decl_var(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) ->
 
 fn new_decl_func(
   pos: SrcPos, name: *const char, type_params: Slice<Decl>,
-  params: *FuncParam, num_params: usize, ret_type: &Typespec, has_varargs: bool,
+  params: Slice<FuncParam>, ret_type: &Typespec, has_varargs: bool,
   block: StmtList,
 ) -> &Decl {
   let d = new_decl(Decl.Func, pos, name);
   d.type_params = type_params;
-  d.function.params = ast_dup(params, num_params * sizeof(*params));
-  d.function.num_params = num_params;
-  d.function.ret_type = ret_type;
-  d.function.has_varargs = has_varargs;
-  d.function.block = block;
+  init_func(&d.function, params, ret_type, has_varargs, block);
   return d;
+}
+
+fn init_func(
+  func: &DeclFunc,
+  params: Slice<FuncParam>, ret_type: &Typespec, has_varargs: bool,
+  block: StmtList,
+) {
+  func.params.items = ast_dup(params.items, params.length * sizeof(FuncParam));
+  func.params.length = params.length;
+  func.ret_type = ret_type;
+  func.has_varargs = has_varargs;
+  func.block = block;
 }
 
 fn new_decl_const(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) -> &Decl {
@@ -848,6 +861,15 @@ fn new_stmt_do_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
   let s = new_stmt(Stmt.DoWhile, pos);
   s.while_stmt.cond = cond;
   s.while_stmt.block = block;
+  return s;
+}
+
+fn new_stmt_for_each(
+  pos: SrcPos, expr: &Expr, params: Slice<FuncParam>, block: StmtList,
+) -> &Stmt {
+  let s = new_stmt(Stmt.ForEach, pos);
+  s.for_each.expr = expr;
+  init_func(&s.for_each.func, params, NULL, false, block);
   return s;
 }
 

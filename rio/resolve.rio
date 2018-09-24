@@ -665,14 +665,14 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         // TODO Requires better node tree of types rather than slice of names.
         typespec_name = &typespec.names[0];
         name = typespec_name.name;
-        if (!strcmp(name, "Num")) {
-          printf("Try'n'a find it.\n");
-        }
+        // if (!strcmp(name, "Num")) {
+        //   printf("Try'n'a find it.\n");
+        // }
         sym = sym_get_local(name);
         if (sym) {
-          if (!strcmp(name, "Num")) {
-            printf("Did find it.\n");
-          }
+          // if (!strcmp(name, "Num")) {
+          //   printf("Did find it.\n");
+          // }
           sym_track_ref_type(sym, typespec);
         }
       }
@@ -783,9 +783,9 @@ fn push_type_params(decl: &Decl) {
     // TODO If constraint is null, use val as constraint.
     let constraint = resolve_typespec(param.typedef_decl.constraint);
     // TODO Make a new type for this param itself, so we can remember it later.
-    if (!strcmp(param.name, "Num")) {
-      printf("Pushed it.\n");
-    }
+    // if (!strcmp(param.name, "Num")) {
+    //   printf("Pushed it.\n");
+    // }
     sym_push_local(Sym.Type, param.name, constraint, param);
   }
 }
@@ -937,16 +937,16 @@ fn resolve_decl_func(decl: &Decl) -> &Type {
   #assert(decl.kind == Decl.Func);
   let scope = sym_enter();
   let has_type_params = !!decl.type_params.length;
-  if (!strcmp(decl.name, "sum")) {
-    printf("I'm at sum ...\n");
-  }
-  if (has_type_params) {
-    printf("Should be pushin'.\n");
-  }
+  // if (!strcmp(decl.name, "sum")) {
+  //   printf("I'm at sum ...\n");
+  // }
+  // if (has_type_params) {
+  //   printf("Should be pushin'.\n");
+  // }
   push_type_params(decl);
   let params: *&Type = NULL;
-  for (let i: usize = 0; i < decl.function.num_params; i++) {
-    let param = resolve_typespec(decl.function.params[i].type);
+  for (let i: usize = 0; i < decl.function.params.length; i++) {
+    let param = resolve_typespec(decl.function.params.items[i].type);
     complete_type(param);
     if (!has_type_params && param == type_void) {
       fatal_error(decl.pos, "Function parameter type cannot be void");
@@ -962,9 +962,9 @@ fn resolve_decl_func(decl: &Decl) -> &Type {
     fatal_error(decl.pos, "Function return type cannot be array");
   }
   sym_leave(scope);
-  if (has_type_params) {
-    printf("Should'a popped.\n");
-  }
+  // if (has_type_params) {
+  //   printf("Should'a popped.\n");
+  // }
   return type_func(params, buf_len(params), ret_type, decl.function.has_varargs);
 }
 
@@ -1190,6 +1190,10 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
       resolve_stmt_block(stmt.while_stmt.block, ret_type, ctx);
       return false;
     }
+    ForEach => {
+      resolve_for_each(stmt, ret_type, ctx);
+      return false;
+    }
     For => {
       let scope = sym_enter();
       if (stmt.for_stmt.init) {
@@ -1288,6 +1292,25 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
   return false;
 }
 
+fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
+  #assert(stmt.kind == Stmt.ForEach);
+  let scope = sym_enter();
+  // Resolve expr.
+  resolve_expr(stmt.for_each.expr);
+  let func = &stmt.for_each.func;
+  // Assert and validate.
+  #assert(!func.has_varargs);
+  #assert(!func.ret_type);
+  if (func.params.length > 2) {
+    fatal_error(stmt.pos, "Max of 2 params allowed in for-each block");
+  }
+  // Resolve parameters as local vars.
+  // TODO
+  // Resolve block.
+  resolve_stmt_block(func.block, ret_type, ctx);
+  sym_leave(scope);
+}
+
 fn resolve_func_body(sym: &Sym) {
   let decl = sym.decl;
   #assert(decl.kind == Decl.Func);
@@ -1299,15 +1322,15 @@ fn resolve_func_body(sym: &Sym) {
   let scope = sym_enter();
   // Even resolution of generic form makes sense for checking constraints.
   let has_type_params = !!decl.type_params.length;
-  if (!strcmp(decl.name, "sum")) {
-    printf("I'm at sum ...\n");
-  }
-  if (has_type_params) {
-    printf("Should be pushin'.\n");
-  }
+  // if (!strcmp(decl.name, "sum")) {
+  //   printf("I'm at sum ...\n");
+  // }
+  // if (has_type_params) {
+  //   printf("Should be pushin'.\n");
+  // }
   push_type_params(decl);
-  for (let i: usize = 0; i < decl.function.num_params; i++) {
-    let param = decl.function.params[i];
+  for (let i: usize = 0; i < decl.function.params.length; i++) {
+    let param = decl.function.params.items[i];
     let param_type = resolve_typespec(param.type);
     if (is_array_type(param_type)) {
       param_type = type_ptr(param_type.base);
@@ -1319,9 +1342,9 @@ fn resolve_func_body(sym: &Sym) {
   let returns = resolve_stmt_block(decl.function.block, ret_type, StmtCtx {0});
   resolve_labels();
   sym_leave(scope);
-  if (has_type_params) {
-    printf("Should'a popped.\n");
-  }
+  // if (has_type_params) {
+  //   printf("Should'a popped.\n");
+  // }
   if (ret_type != type_void && !returns) {
     fatal_error(decl.pos, "Not all control paths return values");
   }

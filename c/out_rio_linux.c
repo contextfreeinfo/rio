@@ -71,6 +71,7 @@ typedef struct rio_Notes rio_Notes;
 typedef struct rio_Slice_ref_Stmt rio_Slice_ref_Stmt;
 typedef struct rio_StmtList rio_StmtList;
 typedef struct rio_Slice_Decl rio_Slice_Decl;
+typedef struct rio_Slice_FuncParam rio_Slice_FuncParam;
 typedef struct rio_Map rio_Map;
 typedef struct rio_FuncParam rio_FuncParam;
 typedef struct Any Any;
@@ -126,6 +127,7 @@ typedef struct rio_ElseIf rio_ElseIf;
 typedef struct rio_StmtWhile rio_StmtWhile;
 typedef struct rio_StmtAssign rio_StmtAssign;
 typedef struct rio_StmtFor rio_StmtFor;
+typedef struct rio_StmtForEach rio_StmtForEach;
 typedef struct rio_StmtIf rio_StmtIf;
 typedef struct rio_StmtInit rio_StmtInit;
 typedef struct rio_StmtSwitch rio_StmtSwitch;
@@ -388,7 +390,9 @@ typedef int rio_Stmt_Kind;
 
 #define rio_Stmt_For ((rio_Stmt_Kind)((rio_Stmt_Decl) + (1)))
 
-#define rio_Stmt_If ((rio_Stmt_Kind)((rio_Stmt_For) + (1)))
+#define rio_Stmt_ForEach ((rio_Stmt_Kind)((rio_Stmt_For) + (1)))
+
+#define rio_Stmt_If ((rio_Stmt_Kind)((rio_Stmt_ForEach) + (1)))
 
 #define rio_Stmt_Init ((rio_Stmt_Kind)((rio_Stmt_If) + (1)))
 
@@ -485,7 +489,14 @@ rio_Decl (*rio_new_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, char const
 
 rio_Decl (*rio_new_decl_var(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr)));
 
-rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_Slice_Decl type_params, rio_FuncParam (*params), size_t num_params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block));
+struct rio_Slice_FuncParam {
+  rio_FuncParam (*items);
+  size_t length;
+};
+
+rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_Slice_Decl type_params, rio_Slice_FuncParam params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block));
+
+void rio_init_func(rio_DeclFunc (*func), rio_Slice_FuncParam params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block);
 
 rio_Decl (*rio_new_decl_const(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr)));
 
@@ -572,6 +583,8 @@ rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), r
 rio_Stmt (*rio_new_stmt_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList block));
 
 rio_Stmt (*rio_new_stmt_do_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList block));
+
+rio_Stmt (*rio_new_stmt_for_each(rio_SrcPos pos, rio_Expr (*expr), rio_Slice_FuncParam params, rio_StmtList block));
 
 rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_Stmt (*next), rio_StmtList block));
 
@@ -1351,6 +1364,8 @@ rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos));
 
 rio_Stmt (*rio_parse_simple_stmt(void));
 
+rio_Stmt (*rio_parse_stmt_for_each(rio_SrcPos pos, rio_Expr (*expr)));
+
 rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos));
 
 struct rio_SwitchCasePattern {
@@ -1427,7 +1442,9 @@ rio_Decl (*rio_parse_decl_const(rio_SrcPos pos));
 
 rio_Decl (*rio_parse_decl_typedef(rio_SrcPos pos));
 
-rio_FuncParam rio_parse_decl_func_param(void);
+rio_FuncParam rio_parse_decl_func_param(bool optional_types);
+
+rio_Slice_FuncParam rio_parse_decl_func_params(bool (*has_varargs), bool optional_types);
 
 rio_Decl (*rio_parse_decl_func(rio_SrcPos pos));
 
@@ -1704,6 +1721,8 @@ void rio_resolve_stmt_init(rio_Stmt (*stmt));
 void rio_resolve_static_assert(rio_Note note);
 
 bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx);
+
+void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx);
 
 void rio_resolve_func_body(rio_Sym (*sym));
 
@@ -2103,8 +2122,7 @@ struct rio_DeclEnum {
 };
 
 struct rio_DeclFunc {
-  rio_FuncParam (*params);
-  size_t num_params;
+  rio_Slice_FuncParam params;
   rio_Typespec (*ret_type);
   bool has_varargs;
   rio_StmtList block;
@@ -2288,6 +2306,11 @@ struct rio_StmtFor {
   rio_StmtList block;
 };
 
+struct rio_StmtForEach {
+  rio_Expr (*expr);
+  rio_DeclFunc func;
+};
+
 struct rio_StmtIf {
   rio_Stmt (*init);
   rio_Expr (*cond);
@@ -2323,6 +2346,7 @@ struct rio_Stmt {
     rio_StmtList block;
     rio_Decl (*decl);
     rio_StmtFor for_stmt;
+    rio_StmtForEach for_each;
     rio_StmtIf if_stmt;
     rio_StmtInit init;
     rio_Note note;
@@ -2613,15 +2637,19 @@ rio_Decl (*rio_new_decl_var(rio_SrcPos pos, char const ((*name)), rio_Typespec (
   return d;
 }
 
-rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_Slice_Decl type_params, rio_FuncParam (*params), size_t num_params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block)) {
+rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_Slice_Decl type_params, rio_Slice_FuncParam params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block)) {
   rio_Decl (*d) = rio_new_decl((rio_Decl_Func), pos, name);
   d->type_params = type_params;
-  d->function.params = rio_ast_dup(params, (num_params) * (sizeof(*(params))));
-  d->function.num_params = num_params;
-  d->function.ret_type = ret_type;
-  d->function.has_varargs = has_varargs;
-  d->function.block = block;
+  rio_init_func(&(d->function), params, ret_type, has_varargs, block);
   return d;
+}
+
+void rio_init_func(rio_DeclFunc (*func), rio_Slice_FuncParam params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block) {
+  func->params.items = rio_ast_dup(params.items, (params.length) * (sizeof(rio_FuncParam)));
+  func->params.length = params.length;
+  func->ret_type = ret_type;
+  func->has_varargs = has_varargs;
+  func->block = block;
 }
 
 rio_Decl (*rio_new_decl_const(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Expr (*expr))) {
@@ -2898,6 +2926,13 @@ rio_Stmt (*rio_new_stmt_do_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList 
   rio_Stmt (*s) = rio_new_stmt((rio_Stmt_DoWhile), pos);
   s->while_stmt.cond = cond;
   s->while_stmt.block = block;
+  return s;
+}
+
+rio_Stmt (*rio_new_stmt_for_each(rio_SrcPos pos, rio_Expr (*expr), rio_Slice_FuncParam params, rio_StmtList block)) {
+  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_ForEach), pos);
+  s->for_each.expr = expr;
+  rio_init_func(&(s->for_each.func), params, NULL, false, block);
   return s;
 }
 
@@ -3354,9 +3389,9 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
 
 rio_DeclFunc (*rio_dupe_function(rio_DeclFunc (*func), rio_MapClosure (*map))) {
   rio_DeclFunc (*dupe) = rio_ast_dup(func, sizeof(*(func)));
-  dupe->params = rio_ast_dup(dupe->params, (sizeof(*(dupe->params))) * (dupe->num_params));
-  for (size_t i = 0; (i) < (dupe->num_params); ++(i)) {
-    dupe->params[i] = rio_dupe_func_param(dupe->params[i], map);
+  dupe->params.items = rio_ast_dup(dupe->params.items, (sizeof(rio_FuncParam)) * (dupe->params.length));
+  for (size_t i = 0; (i) < (dupe->params.length); ++(i)) {
+    dupe->params.items[i] = rio_dupe_func_param(dupe->params.items[i], map);
   }
   dupe->ret_type = rio_dupe_typespec(dupe->ret_type, map);
   dupe->block = rio_dupe_block(dupe->block, map);
@@ -3831,11 +3866,11 @@ void rio_gen_func_decl(rio_Decl (*decl)) {
   assert((decl->kind) == ((rio_Decl_Func)));
   char (*result) = NULL;
   rio_buf_printf(&(result), "%s(", rio_get_gen_name(decl));
-  if ((decl->function.num_params) == (0)) {
+  if ((decl->function.params.length) == (0)) {
     rio_buf_printf(&(result), "void");
   } else {
-    for (size_t i = 0; (i) < (decl->function.num_params); (i)++) {
-      rio_FuncParam param = decl->function.params[i];
+    for (size_t i = 0; (i) < (decl->function.params.length); (i)++) {
+      rio_FuncParam param = decl->function.params.items[i];
       if ((i) != (0)) {
         rio_buf_printf(&(result), ", ");
       }
@@ -6374,11 +6409,27 @@ rio_Stmt (*rio_parse_simple_stmt(void)) {
   return stmt;
 }
 
+rio_Stmt (*rio_parse_stmt_for_each(rio_SrcPos pos, rio_Expr (*expr))) {
+  bool has_varargs = {0};
+  rio_Slice_FuncParam params = {0};
+  if (rio_match_keyword(rio_do_keyword)) {
+    params = rio_parse_decl_func_params(&(has_varargs), true);
+  }
+  if (has_varargs) {
+    rio_fatal_error(pos, "Varargs not allowed in for-each loop");
+  }
+  return rio_new_stmt_for_each(pos, expr, params, rio_parse_stmt_block());
+}
+
 rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
   rio_expect_token((rio_TokenKind_Lparen));
   rio_Stmt (*init) = NULL;
   if (!(rio_is_token((rio_TokenKind_Semicolon)))) {
     init = rio_parse_simple_stmt();
+  }
+  if (((init) && ((init->kind) == ((rio_Stmt_Expr)))) && (rio_is_token((rio_TokenKind_Rparen)))) {
+    rio_next_token();
+    return rio_parse_stmt_for_each(pos, init->expr);
   }
   rio_expect_token((rio_TokenKind_Semicolon));
   rio_Expr (*cond) = NULL;
@@ -6765,31 +6816,36 @@ rio_Decl (*rio_parse_decl_typedef(rio_SrcPos pos)) {
   return rio_new_decl_typedef(pos, name, type);
 }
 
-rio_FuncParam rio_parse_decl_func_param(void) {
+rio_FuncParam rio_parse_decl_func_param(bool optional_types) {
   rio_SrcPos pos = rio_token.pos;
   char const ((*name)) = rio_parse_name();
-  rio_expect_token((rio_TokenKind_Colon));
-  rio_Typespec (*type) = rio_parse_type();
+  rio_Typespec (*type) = {0};
+  if (optional_types) {
+    if (rio_match_token((rio_TokenKind_Colon))) {
+      type = rio_parse_type();
+    }
+  } else {
+    rio_expect_token((rio_TokenKind_Colon));
+    type = rio_parse_type();
+  }
   return (rio_FuncParam){pos, name, type};
 }
 
-rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
-  char const ((*name)) = rio_parse_name();
-  rio_Slice_Decl type_params = rio_parse_type_params();
+rio_Slice_FuncParam rio_parse_decl_func_params(bool (*has_varargs), bool optional_types) {
   rio_expect_token((rio_TokenKind_Lparen));
   rio_FuncParam (*params) = NULL;
-  bool has_varargs = false;
+  *(has_varargs) = false;
   while (!(rio_is_token((rio_TokenKind_Rparen)))) {
     if (rio_match_token((rio_TokenKind_Ellipsis))) {
-      if (has_varargs) {
+      if (*(has_varargs)) {
         rio_error(rio_token.pos, "Multiple ellipsis in function declaration");
       }
-      has_varargs = true;
+      *(has_varargs) = true;
     } else {
-      if (has_varargs) {
+      if (*(has_varargs)) {
         rio_error(rio_token.pos, "Ellipsis must be last parameter in function declaration");
       }
-      rio_FuncParam param = rio_parse_decl_func_param();
+      rio_FuncParam param = rio_parse_decl_func_param(optional_types);
       rio_buf_push((void (**))(&(params)), &(param), sizeof(param));
     }
     if (!(rio_match_token((rio_TokenKind_Comma)))) {
@@ -6797,6 +6853,14 @@ rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
     }
   }
   rio_expect_token((rio_TokenKind_Rparen));
+  return (rio_Slice_FuncParam){params, rio_buf_len(params)};
+}
+
+rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
+  char const ((*name)) = rio_parse_name();
+  rio_Slice_Decl type_params = rio_parse_type_params();
+  bool has_varargs = false;
+  rio_Slice_FuncParam params = rio_parse_decl_func_params(&(has_varargs), false);
   rio_Typespec (*ret_type) = NULL;
   if (rio_match_token((rio_TokenKind_Arrow))) {
     ret_type = rio_parse_type();
@@ -6809,7 +6873,7 @@ rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
     block = rio_parse_stmt_block();
     is_incomplete = false;
   }
-  rio_Decl (*decl) = rio_new_decl_func(pos, name, type_params, params, rio_buf_len(params), ret_type, has_varargs, block);
+  rio_Decl (*decl) = rio_new_decl_func(pos, name, type_params, params, ret_type, has_varargs, block);
   decl->is_incomplete = is_incomplete;
   return decl;
 }
@@ -7540,14 +7604,8 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     if ((typespec->num_names) == (1)) {
       typespec_name = &(typespec->names[0]);
       name = typespec_name->name;
-      if (!(strcmp(name, "Num"))) {
-        printf("Try\'n\'a find it.\n");
-      }
       sym = rio_sym_get_local(name);
       if (sym) {
-        if (!(strcmp(name, "Num"))) {
-          printf("Did find it.\n");
-        }
         rio_sym_track_ref_type(sym, typespec);
       }
     }
@@ -7656,9 +7714,6 @@ void rio_push_type_params(rio_Decl (*decl)) {
     rio_Decl (*param) = &(params.items[i]);
     assert((param->kind) == ((rio_Decl_Typedef)));
     rio_Type (*constraint) = rio_resolve_typespec(param->typedef_decl.constraint);
-    if (!(strcmp(param->name, "Num"))) {
-      printf("Pushed it.\n");
-    }
     rio_sym_push_local((rio_Sym_Type), param->name, constraint, param);
   }
 }
@@ -7800,16 +7855,10 @@ rio_Type (*rio_resolve_decl_func(rio_Decl (*decl))) {
   assert((decl->kind) == ((rio_Decl_Func)));
   rio_Sym (*scope) = rio_sym_enter();
   ullong has_type_params = !(!(decl->type_params.length));
-  if (!(strcmp(decl->name, "sum"))) {
-    printf("I\'m at sum ...\n");
-  }
-  if (has_type_params) {
-    printf("Should be pushin\'.\n");
-  }
   rio_push_type_params(decl);
   rio_Type (*(*params)) = NULL;
-  for (size_t i = 0; (i) < (decl->function.num_params); (i)++) {
-    rio_Type (*param) = rio_resolve_typespec(decl->function.params[i].type);
+  for (size_t i = 0; (i) < (decl->function.params.length); (i)++) {
+    rio_Type (*param) = rio_resolve_typespec(decl->function.params.items[i].type);
     rio_complete_type(param);
     if ((!(has_type_params)) && ((param) == (rio_type_void))) {
       rio_fatal_error(decl->pos, "Function parameter type cannot be void");
@@ -7825,9 +7874,6 @@ rio_Type (*rio_resolve_decl_func(rio_Decl (*decl))) {
     rio_fatal_error(decl->pos, "Function return type cannot be array");
   }
   rio_sym_leave(scope);
-  if (has_type_params) {
-    printf("Should\'a popped.\n");
-  }
   return rio_type_func(params, rio_buf_len(params), ret_type, decl->function.has_varargs);
 }
 
@@ -8044,6 +8090,11 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     return false;
     break;
   }
+  case rio_Stmt_ForEach: {
+    rio_resolve_for_each(stmt, ret_type, ctx);
+    return false;
+    break;
+  }
   case rio_Stmt_For: {
     rio_Sym (*scope) = rio_sym_enter();
     if (stmt->for_stmt.init) {
@@ -8148,6 +8199,20 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
   return false;
 }
 
+void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
+  assert((stmt->kind) == ((rio_Stmt_ForEach)));
+  rio_Sym (*scope) = rio_sym_enter();
+  rio_resolve_expr(stmt->for_each.expr);
+  rio_DeclFunc (*func) = &(stmt->for_each.func);
+  assert(!(func->has_varargs));
+  assert(!(func->ret_type));
+  if ((func->params.length) > (2)) {
+    rio_fatal_error(stmt->pos, "Max of 2 params allowed in for-each block");
+  }
+  rio_resolve_stmt_block(func->block, ret_type, ctx);
+  rio_sym_leave(scope);
+}
+
 void rio_resolve_func_body(rio_Sym (*sym)) {
   rio_Decl (*decl) = sym->decl;
   assert((decl->kind) == ((rio_Decl_Func)));
@@ -8158,15 +8223,9 @@ void rio_resolve_func_body(rio_Sym (*sym)) {
   rio_Package (*old_package) = rio_enter_package(sym->home_package);
   rio_Sym (*scope) = rio_sym_enter();
   ullong has_type_params = !(!(decl->type_params.length));
-  if (!(strcmp(decl->name, "sum"))) {
-    printf("I\'m at sum ...\n");
-  }
-  if (has_type_params) {
-    printf("Should be pushin\'.\n");
-  }
   rio_push_type_params(decl);
-  for (size_t i = 0; (i) < (decl->function.num_params); (i)++) {
-    rio_FuncParam param = decl->function.params[i];
+  for (size_t i = 0; (i) < (decl->function.params.length); (i)++) {
+    rio_FuncParam param = decl->function.params.items[i];
     rio_Type (*param_type) = rio_resolve_typespec(param.type);
     if (rio_is_array_type(param_type)) {
       param_type = rio_type_ptr(param_type->base);
@@ -8178,9 +8237,6 @@ void rio_resolve_func_body(rio_Sym (*sym)) {
   bool returns = rio_resolve_stmt_block(decl->function.block, ret_type, (rio_StmtCtx){0});
   rio_resolve_labels();
   rio_sym_leave(scope);
-  if (has_type_params) {
-    printf("Should\'a popped.\n");
-  }
   if (((ret_type) != (rio_type_void)) && (!(returns))) {
     rio_fatal_error(decl->pos, "Not all control paths return values");
   }

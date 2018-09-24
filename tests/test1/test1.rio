@@ -896,6 +896,13 @@ fn test_err() {
   maybe_math(4.5);
 }
 
+fn test_for_each() {
+  let nums: []int = {1, 2, 3};
+  for (nums) do(num) {
+    printf("Hi: %d\n", num);
+  }
+}
+
 fn main(argc: int, argv: **char) -> int {
   if (argv == 0) {
     printf("argv is null\n");
@@ -930,6 +937,7 @@ fn main(argc: int, argv: **char) -> int {
   test_type_path();
   test_generics();
   test_err();
+  test_for_each();
   // gc();
   return 0;
 }

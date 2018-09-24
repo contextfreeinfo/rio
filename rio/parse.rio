@@ -501,11 +501,29 @@ fn parse_simple_stmt() -> &Stmt {
   return stmt;
 }
 
+fn parse_stmt_for_each(pos: SrcPos, expr: &Expr) -> &Stmt {
+  let has_varargs: bool;
+  let params: Slice<FuncParam>;
+  if (match_keyword(do_keyword)) {
+    params = parse_decl_func_params(&has_varargs, true);
+  }
+  // Check varargs up front, since we don't even want to bother to record it.
+  if (has_varargs) {
+    fatal_error(pos, "Varargs not allowed in for-each loop");
+  }
+  return new_stmt_for_each(pos, expr, params, parse_stmt_block());
+}
+
 fn parse_stmt_for(pos: SrcPos) -> &Stmt {
   expect_token(TokenKind.Lparen);
   let init: &Stmt = NULL;
   if (!is_token(TokenKind.Semicolon)) {
+    // TODO "For in" loops before we get back to generics.
     init = parse_simple_stmt();
+  }
+  if (init && init.kind == Stmt.Expr && is_token(TokenKind.Rparen)) {
+    next_token();
+    return parse_stmt_for_each(pos, init.expr);
   }
   expect_token(TokenKind.Semicolon);
   let cond: &Expr = NULL;
@@ -972,32 +990,42 @@ fn parse_decl_typedef(pos: SrcPos) -> &Decl {
   return new_decl_typedef(pos, name, type);
 }
 
-fn parse_decl_func_param() -> FuncParam {
+fn parse_decl_func_param(optional_types: bool) -> FuncParam {
   let pos = token.pos;
   let name = parse_name();
   // TODO Default args.
-  expect_token(TokenKind.Colon);
-  let type = parse_type();
+  let type: &Typespec;
+  if (optional_types) {
+    if (match_token(TokenKind.Colon)) {
+      type = parse_type();
+    }
+  } else {
+    expect_token(TokenKind.Colon);
+    type = parse_type();
+  }
   return FuncParam {pos, name, type};
 }
 
-fn parse_decl_func(pos: SrcPos) -> &Decl {
-  let name = parse_name();
-  let type_params = parse_type_params();
+fn parse_decl_func_params(
+  has_varargs: &bool, optional_types: bool,
+) -> Slice<FuncParam> {
   expect_token(TokenKind.Lparen);
   let params: *FuncParam = NULL;
-  let has_varargs: bool = false;
+  *has_varargs = false;
   while (!is_token(TokenKind.Rparen)) {
     if (match_token(TokenKind.Ellipsis)) {
-      if (has_varargs) {
+      if (*has_varargs) {
         error(token.pos, "Multiple ellipsis in function declaration");
       }
-      has_varargs = true;
+      *has_varargs = true;
     } else {
-      if (has_varargs) {
-        error(token.pos, "Ellipsis must be last parameter in function declaration");
+      if (*has_varargs) {
+        error(
+          token.pos,
+          "Ellipsis must be last parameter in function declaration",
+        );
       }
-      let param = parse_decl_func_param();
+      let param = parse_decl_func_param(optional_types);
       buf_push((:&&void)&params, &param, sizeof(param));
     }
     if (!match_token(TokenKind.Comma)) {
@@ -1005,6 +1033,15 @@ fn parse_decl_func(pos: SrcPos) -> &Decl {
     }
   } while;
   expect_token(TokenKind.Rparen);
+  // Done.
+  return {params, buf_len(params)};
+}
+
+fn parse_decl_func(pos: SrcPos) -> &Decl {
+  let name = parse_name();
+  let type_params = parse_type_params();
+  let has_varargs: bool = false;
+  let params = parse_decl_func_params(&has_varargs, false);
   let ret_type: &Typespec = NULL;
   if (match_token(TokenKind.Arrow)) {
     ret_type = parse_type();
@@ -1017,11 +1054,8 @@ fn parse_decl_func(pos: SrcPos) -> &Decl {
     block = parse_stmt_block();
     is_incomplete = false;
   }
-  let decl = new_decl_func(
-    pos, name, type_params,
-    params, buf_len(params), ret_type, has_varargs,
-    block,
-  );
+  let decl =
+    new_decl_func(pos, name, type_params, params, ret_type, has_varargs, block);
   decl.is_incomplete = is_incomplete;
   return decl;
 }

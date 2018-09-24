@@ -36,8 +36,8 @@ struct Slorce<Item> {
 fn test_generic_functions() {
   // let slarce: Slarce;
   // printf("slarce sum: %d", sum(slarce, slarce));
-  printf("int sum: %d", sum.<int>(1, 2));
-  printf("float sum: %d", sum.<float>(1.1, 2.2));
+  // printf("int sum: %d", sum.<int>(1, 2));
+  // printf("float sum: %d", sum.<float>(1.1, 2.2));
   // printf("int sum: %d", sum(1, 2));
   // printf("float sum: %d", sum(1.1, 2.2));
   // first((:Slice<int>){});

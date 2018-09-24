@@ -37,6 +37,10 @@ fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
 
 fn dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
   let dupe = &block;
+  // for item in dupe.stmts {
+  // for dupe.stmts do(item) {
+  // for (dupe.stmts) do(item) {
+  // for (let item in dupe.stmts) {
   for (let i: usize = 0; i < dupe.stmts.length; ++i) {
     dupe.stmts.items[i] = dupe_stmt(dupe.stmts.items[i], map);
   }
@@ -49,9 +53,10 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
 
 fn dupe_function(func: &DeclFunc, map: &MapClosure) -> &DeclFunc {
   let dupe: &DeclFunc = ast_dup(func, sizeof(*func));
-  dupe.params = ast_dup(dupe.params, sizeof(*dupe.params) * dupe.num_params);
-  for (let i: usize = 0; i < dupe.num_params; ++i) {
-    dupe.params[i] = dupe_func_param(dupe.params[i], map);
+  dupe.params.items =
+    ast_dup(dupe.params.items, sizeof(FuncParam) * dupe.params.length);
+  for (let i: usize = 0; i < dupe.params.length; ++i) {
+    dupe.params.items[i] = dupe_func_param(dupe.params.items[i], map);
   }
   dupe.ret_type = dupe_typespec(dupe.ret_type, map);
   dupe.block = dupe_block(dupe.block, map);

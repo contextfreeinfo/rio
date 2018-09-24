@@ -340,11 +340,11 @@ fn gen_func_decl(decl: &Decl) {
   #assert(decl.kind == Decl.Func);
   let result: *char = NULL;
   buf_printf(&result, "%s(", get_gen_name(decl));
-  if (decl.function.num_params == 0) {
+  if (decl.function.params.length == 0) {
     buf_printf(&result, "void");
   } else {
-    for (let i: usize = 0; i < decl.function.num_params; i++) {
-      let param = decl.function.params[i];
+    for (let i: usize = 0; i < decl.function.params.length; i++) {
+      let param = decl.function.params.items[i];
       if (i != 0) {
         buf_printf(&result, ", ");
       }
