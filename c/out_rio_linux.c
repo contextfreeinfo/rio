@@ -1598,6 +1598,7 @@ char (*rio_get_type_name(rio_Type (*type)));
 
 struct rio_Operand {
   rio_Type (*type);
+  rio_Type (*type_orig);
   bool is_lvalue;
   bool is_const;
   bool is_type;
@@ -7327,15 +7328,15 @@ char (*rio_get_type_name(rio_Type (*type))) {
 
 rio_Operand rio_operand_null;
 rio_Operand rio_operand_rvalue(rio_Type (*type)) {
-  return (rio_Operand){.type = rio_unqualify_type(type)};
+  return (rio_Operand){.type = rio_unqualify_type(type), .type_orig = type};
 }
 
 rio_Operand rio_operand_lvalue(rio_Type (*type)) {
-  return (rio_Operand){.type = type, .is_lvalue = true};
+  return (rio_Operand){.type = type, .type_orig = type, .is_lvalue = true};
 }
 
 rio_Operand rio_operand_const(rio_Type (*type), rio_Val val) {
-  return (rio_Operand){.type = rio_unqualify_type(type), .is_const = true, .val = val};
+  return (rio_Operand){.type = rio_unqualify_type(type), .type_orig = type, .is_const = true, .val = val};
 }
 
 rio_Type (*rio_type_decay(rio_Type (*type))) {
@@ -7353,7 +7354,7 @@ rio_Operand rio_operand_decay(rio_Operand operand) {
 }
 
 rio_Operand rio_operand_type(rio_Type (*type)) {
-  return (rio_Operand){.type = type, .is_type = true};
+  return (rio_Operand){.type = type, .type_orig = type, .is_type = true};
 }
 
 bool rio_is_convertible(rio_Operand (*operand), rio_Type (*dest)) {
@@ -8202,13 +8203,15 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
 void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
   assert((stmt->kind) == ((rio_Stmt_ForEach)));
   rio_Sym (*scope) = rio_sym_enter();
-  rio_resolve_expr(stmt->for_each.expr);
+  rio_Operand operand = rio_resolve_expr(stmt->for_each.expr);
+  rio_Sym (*sym) = rio_get_resolved_sym(stmt->for_each.expr);
   rio_DeclFunc (*func) = &(stmt->for_each.func);
   assert(!(func->has_varargs));
   assert(!(func->ret_type));
   if ((func->params.length) > (2)) {
     rio_fatal_error(stmt->pos, "Max of 2 params allowed in for-each block");
   }
+  printf("%s: %d, %zu, %p\n", rio_typeid_kind_name(operand.type_orig), operand.type_orig->kind, operand.type_orig->num_elems, sym);
   rio_resolve_stmt_block(func->block, ret_type, ctx);
   rio_sym_leave(scope);
 }
@@ -8688,6 +8691,10 @@ rio_Operand rio_resolve_name_operand(rio_SrcPos pos, char const ((*name))) {
   rio_Sym (*sym) = rio_resolve_name(name);
   if (!(sym)) {
     rio_fatal_error(pos, "Unresolved name \'%s\'", name);
+  }
+  int friends = !(strcmp(name, "friends"));
+  if (friends) {
+    printf("%s: %d, %zu, %p\n", rio_typeid_kind_name(sym->type), sym->type->kind, sym->type->num_elems, sym);
   }
   if ((sym->kind) == ((rio_Sym_Var))) {
     rio_Operand operand = rio_operand_lvalue(sym->type);

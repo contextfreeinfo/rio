@@ -352,6 +352,7 @@ fn get_type_name(type: &Type) -> *char {
 
 struct Operand {
   type: &Type;
+  type_orig: &Type;
   is_lvalue: bool;
   is_const: bool;
   is_type: bool;
@@ -363,12 +364,14 @@ let operand_null: Operand;
 fn operand_rvalue(type: &Type) -> Operand {
   return Operand {
     type = unqualify_type(type),
+    type_orig = type,
   };
 }
 
 fn operand_lvalue(type: &Type) -> Operand {
   return Operand {
     type = type,
+    type_orig = type,
     is_lvalue = true,
   };
 }
@@ -376,6 +379,7 @@ fn operand_lvalue(type: &Type) -> Operand {
 fn operand_const(type: &Type, val: Val) -> Operand {
   return Operand {
     type = unqualify_type(type),
+    type_orig = type,
     is_const = true,
     val = val,
   };
@@ -399,6 +403,7 @@ fn operand_type(type: &Type) -> Operand {
   // TODO Make sure other uses fail (like i = type, or type = blah, or ...).
   return Operand {
     type = type,
+    type_orig = type,
     is_type = true,
   };
 }
@@ -1296,7 +1301,8 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   #assert(stmt.kind == Stmt.ForEach);
   let scope = sym_enter();
   // Resolve expr.
-  resolve_expr(stmt.for_each.expr);
+  let operand = resolve_expr(stmt.for_each.expr);
+  let sym = get_resolved_sym(stmt.for_each.expr);
   let func = &stmt.for_each.func;
   // Assert and validate.
   #assert(!func.has_varargs);
@@ -1304,8 +1310,9 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   if (func.params.length > 2) {
     fatal_error(stmt.pos, "Max of 2 params allowed in for-each block");
   }
-  // Resolve parameters as local vars.
-  // TODO
+  // Resolve parameters as local vars. Infer types.
+  printf("%s: %d, %zu, %p\n", typeid_kind_name(operand.type_orig), operand.type_orig.kind, operand.type_orig.num_elems, sym);
+  // TODO!!!
   // Resolve block.
   resolve_stmt_block(func.block, ret_type, ctx);
   sym_leave(scope);
@@ -1646,6 +1653,10 @@ fn resolve_name_operand(pos: SrcPos, name: *const char) -> Operand {
   let sym = resolve_name(name);
   if (!sym) {
     fatal_error(pos, "Unresolved name '%s'", name);
+  }
+  let friends = !strcmp(name, "friends");
+  if (friends) {
+    printf("%s: %d, %zu, %p\n", typeid_kind_name(sym.type), sym.type.kind, sym.type.num_elems, sym);
   }
   if (sym.kind == Sym.Var) {
     let operand = operand_lvalue(sym.type);

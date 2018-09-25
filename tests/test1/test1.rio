@@ -897,10 +897,20 @@ fn test_err() {
 }
 
 fn test_for_each() {
-  let nums: []int = {1, 2, 3};
-  for (nums) do(num) {
-    printf("Hi: %d\n", num);
+  let friends: []*const char = {"Larry", "Moe", "Curly"};
+  // let friends = ["Larry", "Moe", "Curly"];
+  for (friends) do(friend) {
+    printf("friends: %d\n", friend);
   }
+  // for (friends) do(friend, index) {
+  //   if (!index) {
+  //     continue;
+  //   }
+  //   printf("friends[%d]: %d\n", index, friend);
+  //   if (index > 1) {
+  //     break;
+  //   }
+  // }
 }
 
 fn main(argc: int, argv: **char) -> int {
