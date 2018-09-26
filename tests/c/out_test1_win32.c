@@ -1337,6 +1337,13 @@ void test1_test_for_each(void) {
       }
     }
   }
+  {
+    char const ((*(*items__))) = friends;
+    for (size_t i__ = 0; i__ < 3; ++i__) {
+      printf(".");
+    }
+  }
+  printf("\n");
 }
 
 int test1_subtest1_func1(void) {

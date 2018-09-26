@@ -919,6 +919,10 @@ fn test_for_each() {
       }
     }
   }
+  for (friends) {
+    printf(".");
+  }
+  printf("\n");
 }
 
 fn main(argc: int, argv: **char) -> int {
