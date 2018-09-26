@@ -901,7 +901,7 @@ fn test_for_each() {
   // let friends = others;
   // let friends = ["Larry", "Moe", "Curly"];
   for (friends) do(friend) {
-    printf("friends: %d\n", friend);
+    printf("friend: %s\n", friend);
   }
   // for (friends) do(friend, index) {
   //   if (!index) {

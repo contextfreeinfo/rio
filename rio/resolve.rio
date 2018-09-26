@@ -551,6 +551,16 @@ fn set_resolved_type(ptr: &void, type: &Type) {
   map_put(&resolved_type_map, ptr, type);
 }
 
+let resolved_type_orig_map: Map;
+
+fn get_resolved_type_orig(ptr: &void) -> &Type {
+  return map_get(&resolved_type_orig_map, ptr);
+}
+
+fn set_resolved_type_orig(ptr: &void, type: &Type) {
+  map_put(&resolved_type_orig_map, ptr, type);
+}
+
 let resolved_sym_map: Map;
 
 fn get_resolved_sym(ptr: &const void) -> &Sym {
@@ -1302,7 +1312,7 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   let scope = sym_enter();
   // Resolve expr.
   let operand = resolve_expr(stmt.for_each.expr);
-  let sym = get_resolved_sym(stmt.for_each.expr);
+  set_resolved_type_orig(stmt.for_each.expr, operand.type_orig);
   let func = &stmt.for_each.func;
   // Assert and validate.
   #assert(!func.has_varargs);
@@ -1310,12 +1320,14 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   if (func.params.length > 2) {
     fatal_error(stmt.pos, "Max of 2 params allowed in for-each block");
   }
-  // Resolve parameters as local vars. Infer types.
+  // Infer item type, even if we don't have a var for it, since that also lets
+  // us validate the iterable type.
   // TODO Allow explicit typespec influence, too.
   let type = resolve_for_each_type(stmt.pos, operand.type_orig, false);
   if (func.params.length) {
     let item = &func.params.items[0];
     sym_push_var(item.name, type);
+    set_resolved_type(item, type);
   }
   if (func.params.length > 1) {
     // TODO Validate usize if explicit typespec?

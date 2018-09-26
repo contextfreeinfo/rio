@@ -1645,6 +1645,12 @@ rio_Type (*rio_get_resolved_type(void (*ptr)));
 
 void rio_set_resolved_type(void (*ptr), rio_Type (*type));
 
+extern rio_Map rio_resolved_type_orig_map;
+
+rio_Type (*rio_get_resolved_type_orig(void (*ptr)));
+
+void rio_set_resolved_type_orig(void (*ptr), rio_Type (*type));
+
 extern rio_Map rio_resolved_sym_map;
 
 rio_Sym (*rio_get_resolved_sym(void const ((*ptr))));
@@ -4363,6 +4369,46 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     break;
   }
   case rio_Stmt_ForEach: {
+    rio_DeclFunc (*func) = &(stmt->for_each.func);
+    rio_FuncParam (*item) = {0};
+    if (func->params.length) {
+      item = &(func->params.items[0]);
+    }
+    char const ((*index)) = {0};
+    if ((func->params.length) > (1)) {
+      index = func->params.items[1].name;
+    } else {
+      index = "i__";
+    }
+    rio_StmtList (*block) = &(func->block);
+    rio_Type (*items_type) = rio_get_resolved_type_orig(stmt->expr);
+    size_t array_length = {0};
+    if ((items_type->kind) == ((rio_CompilerTypeKind_Array))) {
+      array_length = items_type->num_elems;
+    } else {
+      rio_fatal_error(stmt->expr->pos, "For each only allows arrays for now");
+    }
+    rio_genln();
+    rio_buf_printf(&(rio_gen_buf), "{");
+    ++(rio_gen_indent);
+    char (*items) = "items__";
+    rio_gen_stmt(&((rio_Stmt){.kind = (rio_Stmt_Init), .init = {.expr = stmt->expr, .name = items}}));
+    rio_genln();
+    rio_buf_printf(&(rio_gen_buf), "for (size_t %s = 0; %s < %zu; ++%s) {", index, index, array_length, index);
+    ++(rio_gen_indent);
+    if (item) {
+      rio_genln();
+      rio_buf_printf(&(rio_gen_buf), "%s = %s[%s];", rio_type_to_cdecl(rio_get_resolved_type(item), item->name), items, index);
+    }
+    for (size_t i = 0; (i) < (block->stmts.length); (i)++) {
+      rio_gen_stmt(block->stmts.items[i]);
+    }
+    --(rio_gen_indent);
+    rio_genln();
+    rio_buf_printf(&(rio_gen_buf), "}");
+    --(rio_gen_indent);
+    rio_genln();
+    rio_buf_printf(&(rio_gen_buf), "}");
     break;
   }
   case rio_Stmt_For: {
@@ -7519,6 +7565,15 @@ void rio_set_resolved_type(void (*ptr), rio_Type (*type)) {
   rio_map_put(&(rio_resolved_type_map), ptr, type);
 }
 
+rio_Map rio_resolved_type_orig_map;
+rio_Type (*rio_get_resolved_type_orig(void (*ptr))) {
+  return rio_map_get(&(rio_resolved_type_orig_map), ptr);
+}
+
+void rio_set_resolved_type_orig(void (*ptr), rio_Type (*type)) {
+  rio_map_put(&(rio_resolved_type_orig_map), ptr, type);
+}
+
 rio_Map rio_resolved_sym_map;
 rio_Sym (*rio_get_resolved_sym(void const ((*ptr)))) {
   return rio_map_get(&(rio_resolved_sym_map), ptr);
@@ -8223,7 +8278,7 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
   assert((stmt->kind) == ((rio_Stmt_ForEach)));
   rio_Sym (*scope) = rio_sym_enter();
   rio_Operand operand = rio_resolve_expr(stmt->for_each.expr);
-  rio_Sym (*sym) = rio_get_resolved_sym(stmt->for_each.expr);
+  rio_set_resolved_type_orig(stmt->for_each.expr, operand.type_orig);
   rio_DeclFunc (*func) = &(stmt->for_each.func);
   assert(!(func->has_varargs));
   assert(!(func->ret_type));
@@ -8234,6 +8289,7 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
   if (func->params.length) {
     rio_FuncParam (*item) = &(func->params.items[0]);
     rio_sym_push_var(item->name, type);
+    rio_set_resolved_type(item, type);
   }
   if ((func->params.length) > (1)) {
     rio_FuncParam (*index) = &(func->params.items[1]);

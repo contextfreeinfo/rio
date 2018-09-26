@@ -829,7 +829,59 @@ fn gen_stmt(stmt: &Stmt) {
       buf_printf(&gen_buf, ");");
     }
     ForEach => {
-      // TODO Figure out if array (and size) or slice (or other later).
+      let func = &stmt.for_each.func;
+      let item: &FuncParam;
+      if (func.params.length) {
+        item = &func.params.items[0];
+      }
+      let index: *const char;
+      if (func.params.length > 1) {
+        index = func.params.items[1].name;
+      } else {
+        // TODO Generate something unique? Or is this convention sufficient?
+        index = "i__";
+      }
+      let block = &func.block;
+      // TODO Support slices here!
+      let items_type = get_resolved_type_orig(stmt.expr);
+      let array_length: usize;
+      if (items_type.kind == CompilerTypeKind.Array) {
+        array_length = items_type.num_elems;
+      } else {
+        fatal_error(stmt.expr.pos, "For each only allows arrays for now");
+      }
+      genln();
+      buf_printf(&gen_buf, "{");
+      ++gen_indent;
+      // Generate an assignment in case this is a non-simple name.
+      // TODO If it's a name, just use it and avoid the extra block.
+      let items = "items__";
+      gen_stmt(&Stmt {kind = Stmt.Init, init = {
+        expr = stmt.expr, name = items,
+      }});
+      genln();
+      buf_printf(
+        &gen_buf, "for (size_t %s = 0; %s < %zu; ++%s) {",
+        index, index, array_length, index,
+      );
+      ++gen_indent;
+      if (item) {
+        genln();
+        buf_printf(
+          &gen_buf, "%s = %s[%s];",
+          type_to_cdecl(get_resolved_type(item), item.name), items, index,
+        );
+      }
+      // Manually loop on statements here to avoid more block nesting.
+      for (let i: usize = 0; i < block.stmts.length; i++) {
+        gen_stmt(block.stmts.items[i]);
+      }
+      --gen_indent;
+      genln();
+      buf_printf(&gen_buf, "}");
+      --gen_indent;
+      genln();
+      buf_printf(&gen_buf, "}");
     }
     For => {
       genln(); buf_printf(&gen_buf, "for (");
