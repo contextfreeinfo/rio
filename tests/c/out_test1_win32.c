@@ -669,11 +669,11 @@ const TypeInfo *typeinfo_table[301] = {
   [138] = &(TypeInfo){TypeKind_Array, .size = sizeof(char const (*[3])), .align = alignof(char const (*[3])), .base = TYPEID(24, TypeKind_Ptr, char const (*)), .count = 3},
   [139] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [12]), .align = alignof(char [12]), .base = TYPEID(3, TypeKind_Char, char), .count = 12},
   [140] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [18]), .align = alignof(char [18]), .base = TYPEID(3, TypeKind_Char, char), .count = 18},
-  [141] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [2]), .align = alignof(char [2]), .base = TYPEID(3, TypeKind_Char, char), .count = 2},
-  [142] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [3]), .align = alignof(char [3]), .base = TYPEID(3, TypeKind_Char, char), .count = 3},
-  [143] = &(TypeInfo){TypeKind_Const, .size = sizeof(float const ), .align = alignof(float const ), .base = TYPEID(14, TypeKind_Float, float)},
-  [144] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(143, TypeKind_Const, float const )},
-  [145] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [10]), .align = alignof(char [10]), .base = TYPEID(3, TypeKind_Char, char), .count = 10},
+  [141] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [10]), .align = alignof(char [10]), .base = TYPEID(3, TypeKind_Char, char), .count = 10},
+  [142] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [2]), .align = alignof(char [2]), .base = TYPEID(3, TypeKind_Char, char), .count = 2},
+  [143] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [3]), .align = alignof(char [3]), .base = TYPEID(3, TypeKind_Char, char), .count = 3},
+  [144] = &(TypeInfo){TypeKind_Const, .size = sizeof(float const ), .align = alignof(float const ), .base = TYPEID(14, TypeKind_Float, float)},
+  [145] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(144, TypeKind_Const, float const )},
   [146] = &(TypeInfo){TypeKind_Const, .size = sizeof(TypeKind const ), .align = alignof(TypeKind const ), .base = TYPEID(27, TypeKind_None, TypeKind)},
   [147] = &(TypeInfo){TypeKind_Array, .size = sizeof(char [23]), .align = alignof(char [23]), .base = TYPEID(3, TypeKind_Char, char), .count = 23},
   [148] = &(TypeInfo){TypeKind_Const, .size = sizeof(ullong const ), .align = alignof(ullong const ), .base = TYPEID(13, TypeKind_ULLong, ullong)},
@@ -1319,6 +1319,21 @@ void test1_test_for_each(void) {
       printf("friends[%zu]: %s\n", index, friend);
       if ((index) >= (1)) {
         break;
+      }
+    }
+  }
+  {
+    char const ((*(*items__))) = friends;
+    for (size_t i = 0; i < 3; ++i) {
+      char const ((*a)) = items__[i];
+      {
+        char const ((*(*items__))) = friends;
+        for (size_t j = 0; j < 3; ++j) {
+          char const ((*b)) = items__[j];
+          if ((i) != (j)) {
+            printf("%s vs %s\n", a, b);
+          }
+        }
       }
     }
   }

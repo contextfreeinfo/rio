@@ -912,6 +912,13 @@ fn test_for_each() {
       break;
     }
   }
+  for (friends) do(a, i) {
+    for (friends) do(b, j) {
+      if (i != j) {
+        printf("%s vs %s\n", a, b);
+      }
+    }
+  }
 }
 
 fn main(argc: int, argv: **char) -> int {

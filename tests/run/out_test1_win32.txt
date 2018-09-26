@@ -31,3 +31,9 @@ friend: Larry
 friend: Moe
 friend: Curly
 friends[1]: Moe
+Larry vs Moe
+Larry vs Curly
+Moe vs Larry
+Moe vs Curly
+Curly vs Larry
+Curly vs Moe
