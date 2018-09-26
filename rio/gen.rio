@@ -828,6 +828,9 @@ fn gen_stmt(stmt: &Stmt) {
       gen_expr(stmt.while_stmt.cond);
       buf_printf(&gen_buf, ");");
     }
+    ForEach => {
+      // TODO Figure out if array (and size) or slice (or other later).
+    }
     For => {
       genln(); buf_printf(&gen_buf, "for (");
       if (stmt.for_stmt.init) {

@@ -1311,11 +1311,49 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
     fatal_error(stmt.pos, "Max of 2 params allowed in for-each block");
   }
   // Resolve parameters as local vars. Infer types.
-  printf("%s: %d, %zu, %p\n", typeid_kind_name(operand.type_orig), operand.type_orig.kind, operand.type_orig.num_elems, sym);
-  // TODO!!!
+  // TODO Allow explicit typespec influence, too.
+  let type = resolve_for_each_type(stmt.pos, operand.type_orig, false);
+  if (func.params.length) {
+    let item = &func.params.items[0];
+    sym_push_var(item.name, type);
+  }
+  if (func.params.length > 1) {
+    // TODO Validate usize if explicit typespec?
+    let index = &func.params.items[1];
+    sym_push_var(index.name, type_usize);
+  }
+  // printf("%s: %d\n", typeid_kind_name(type), type.kind);
   // Resolve block.
   resolve_stmt_block(func.block, ret_type, ctx);
   sym_leave(scope);
+}
+
+fn resolve_for_each_type(pos: SrcPos, type: &Type, ref: bool) -> &Type {
+  switch (type.kind) {
+    Array => {
+      // We have a fixed size, so we can make this work.
+      #assert(type.num_elems);
+      return type.base;
+    }
+    Const => {
+      return resolve_for_each_type(pos, type.base, false);
+    }
+    Ref => {
+      if (ref) {
+        // Only one level deep of ref allowed.
+        fatal_error(pos, "Unsupported type in for each loop");
+      }
+      // Ref to iterable gives ref to item.
+      return type_ref(resolve_for_each_type(pos, type.base, true));
+    }
+    Struct => {
+      fatal_error(pos, "I still need to support slices");
+    }
+    default => {
+      fatal_error(pos, "Unsupported type in for each loop");
+    }
+  }
+  return NULL;
 }
 
 fn resolve_func_body(sym: &Sym) {
@@ -1654,10 +1692,10 @@ fn resolve_name_operand(pos: SrcPos, name: *const char) -> Operand {
   if (!sym) {
     fatal_error(pos, "Unresolved name '%s'", name);
   }
-  let friends = !strcmp(name, "friends");
-  if (friends) {
-    printf("%s: %d, %zu, %p\n", typeid_kind_name(sym.type), sym.type.kind, sym.type.num_elems, sym);
-  }
+  // let friends = !strcmp(name, "friends");
+  // if (friends) {
+  //   printf("%s: %d, %zu, %p\n", typeid_kind_name(sym.type), sym.type.kind, sym.type.num_elems, sym);
+  // }
   if (sym.kind == Sym.Var) {
     let operand = operand_lvalue(sym.type);
     if (is_array_type(operand.type)) {

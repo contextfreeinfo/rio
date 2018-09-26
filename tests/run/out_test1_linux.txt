@@ -27,4 +27,3 @@ test1_UartCtrl
 <test1_IntOrPtr& size=8 align=8>
 <test1_IntOrPtr size=8 align=8 union={ @offset(0) i: int; @offset(0) p: int*; }>
 Generically, 1
-Hi!

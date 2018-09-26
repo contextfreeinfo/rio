@@ -898,6 +898,7 @@ fn test_err() {
 
 fn test_for_each() {
   let friends: []*const char = {"Larry", "Moe", "Curly"};
+  // let friends = others;
   // let friends = ["Larry", "Moe", "Curly"];
   for (friends) do(friend) {
     printf("friends: %d\n", friend);

@@ -1727,6 +1727,8 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx);
 
 void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx);
 
+rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type), bool ref));
+
 void rio_resolve_func_body(rio_Sym (*sym));
 
 void rio_resolve_sym(rio_Sym (*sym));
@@ -4358,6 +4360,9 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_buf_printf(&(rio_gen_buf), " while (");
     rio_gen_expr(stmt->while_stmt.cond);
     rio_buf_printf(&(rio_gen_buf), ");");
+    break;
+  }
+  case rio_Stmt_ForEach: {
     break;
   }
   case rio_Stmt_For: {
@@ -8225,9 +8230,47 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
   if ((func->params.length) > (2)) {
     rio_fatal_error(stmt->pos, "Max of 2 params allowed in for-each block");
   }
-  printf("%s: %d, %zu, %p\n", rio_typeid_kind_name(operand.type_orig), operand.type_orig->kind, operand.type_orig->num_elems, sym);
+  rio_Type (*type) = rio_resolve_for_each_type(stmt->pos, operand.type_orig, false);
+  if (func->params.length) {
+    rio_FuncParam (*item) = &(func->params.items[0]);
+    rio_sym_push_var(item->name, type);
+  }
+  if ((func->params.length) > (1)) {
+    rio_FuncParam (*index) = &(func->params.items[1]);
+    rio_sym_push_var(index->name, rio_type_usize);
+  }
   rio_resolve_stmt_block(func->block, ret_type, ctx);
   rio_sym_leave(scope);
+}
+
+rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type), bool ref)) {
+  switch (type->kind) {
+  case rio_CompilerTypeKind_Array: {
+    assert(type->num_elems);
+    return type->base;
+    break;
+  }
+  case rio_CompilerTypeKind_Const: {
+    return rio_resolve_for_each_type(pos, type->base, false);
+    break;
+  }
+  case rio_CompilerTypeKind_Ref: {
+    if (ref) {
+      rio_fatal_error(pos, "Unsupported type in for each loop");
+    }
+    return rio_type_ref(rio_resolve_for_each_type(pos, type->base, true));
+    break;
+  }
+  case rio_CompilerTypeKind_Struct: {
+    rio_fatal_error(pos, "I still need to support slices");
+    break;
+  }
+  default: {
+    rio_fatal_error(pos, "Unsupported type in for each loop");
+    break;
+  }
+  }
+  return NULL;
 }
 
 void rio_resolve_func_body(rio_Sym (*sym)) {
@@ -8705,10 +8748,6 @@ rio_Operand rio_resolve_name_operand(rio_SrcPos pos, char const ((*name))) {
   rio_Sym (*sym) = rio_resolve_name(name);
   if (!(sym)) {
     rio_fatal_error(pos, "Unresolved name \'%s\'", name);
-  }
-  int friends = !(strcmp(name, "friends"));
-  if (friends) {
-    printf("%s: %d, %zu, %p\n", rio_typeid_kind_name(sym->type), sym->type->kind, sym->type->num_elems, sym);
   }
   if ((sym->kind) == ((rio_Sym_Var))) {
     rio_Operand operand = rio_operand_lvalue(sym->type);
