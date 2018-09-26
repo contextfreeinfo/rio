@@ -1334,8 +1334,9 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
     let index = &func.params.items[1];
     sym_push_var(index.name, type_usize);
   }
-  // printf("%s: %d\n", typeid_kind_name(type), type.kind);
   // Resolve block.
+  ctx.is_break_legal = true;
+  ctx.is_continue_legal = true;
   resolve_stmt_block(func.block, ret_type, ctx);
   sym_leave(scope);
 }

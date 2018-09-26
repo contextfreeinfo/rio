@@ -30,3 +30,4 @@ Generically, 1
 friend: Larry
 friend: Moe
 friend: Curly
+friends[1]: Moe

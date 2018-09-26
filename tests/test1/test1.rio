@@ -903,15 +903,15 @@ fn test_for_each() {
   for (friends) do(friend) {
     printf("friend: %s\n", friend);
   }
-  // for (friends) do(friend, index) {
-  //   if (!index) {
-  //     continue;
-  //   }
-  //   printf("friends[%d]: %d\n", index, friend);
-  //   if (index > 1) {
-  //     break;
-  //   }
-  // }
+  for (friends) do(friend, index) {
+    if (!index) {
+      continue;
+    }
+    printf("friends[%zu]: %s\n", index, friend);
+    if (index >= 1) {
+      break;
+    }
+  }
 }
 
 fn main(argc: int, argv: **char) -> int {

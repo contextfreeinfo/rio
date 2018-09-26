@@ -8295,6 +8295,8 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
     rio_FuncParam (*index) = &(func->params.items[1]);
     rio_sym_push_var(index->name, rio_type_usize);
   }
+  ctx.is_break_legal = true;
+  ctx.is_continue_legal = true;
   rio_resolve_stmt_block(func->block, ret_type, ctx);
   rio_sym_leave(scope);
 }
