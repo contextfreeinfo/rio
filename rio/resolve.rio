@@ -1323,7 +1323,7 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   // Infer item type, even if we don't have a var for it, since that also lets
   // us validate the iterable type.
   // TODO Allow explicit typespec influence, too.
-  let type = resolve_for_each_type(stmt.pos, operand.type_orig, false);
+  let type = resolve_for_each_type(stmt.pos, operand.type_orig);
   if (func.params.length) {
     let item = &func.params.items[0];
     sym_push_var(item.name, type);
@@ -1341,23 +1341,17 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   sym_leave(scope);
 }
 
-fn resolve_for_each_type(pos: SrcPos, type: &Type, ref: bool) -> &Type {
+fn resolve_for_each_type(pos: SrcPos, type: &Type) -> &Type {
   switch (type.kind) {
     Array => {
       // We have a fixed size, so we can make this work.
-      #assert(type.num_elems);
       return type.base;
     }
     Const => {
-      return resolve_for_each_type(pos, type.base, false);
+      return resolve_for_each_type(pos, type.base);
     }
     Ref => {
-      if (ref) {
-        // Only one level deep of ref allowed.
-        fatal_error(pos, "Unsupported type in for each loop");
-      }
-      // Ref to iterable gives ref to item.
-      return type_ref(resolve_for_each_type(pos, type.base, true));
+      return resolve_for_each_type(pos, type.base);
     }
     Struct => {
       fatal_error(pos, "I still need to support slices");
@@ -1567,22 +1561,28 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
     fatal_error(expr.pos, "No item named '%s'", expr.field.name);
     return operand_null;
   } if;
+  return resolve_expr_aggregate_field(expr.pos, operand, expr.field.name);
+}
+
+fn resolve_expr_aggregate_field(
+  pos: SrcPos, operand: Operand, name: *const char,
+) -> Operand {
   let was_const_type = is_const_type(operand.type);
-  let type = unqualify_type(operand.type);
-  complete_type(type);
-  if (is_ptr_type(type)) {
-    operand = operand_lvalue(type.base);
+  let base_type = unqualify_type(operand.type);
+  complete_type(base_type);
+  if (is_ptr_type(base_type)) {
+    operand = operand_lvalue(base_type.base);
     was_const_type = is_const_type(operand.type);
-    type = unqualify_type(operand.type);
-    complete_type(type);
+    base_type = unqualify_type(operand.type);
+    complete_type(base_type);
   }
-  if (type.kind != CompilerTypeKind.Struct && type.kind != CompilerTypeKind.Union) {
-    fatal_error(expr.pos, "Can only access fields on aggregates or pointers to aggregates");
+  if (base_type.kind != CompilerTypeKind.Struct && base_type.kind != CompilerTypeKind.Union) {
+    fatal_error(pos, "Can only access fields on aggregates or pointers to aggregates");
     return operand_null;
   }
-  for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
-    let field = type.aggregate.fields[i];
-    if (field.name == expr.field.name) {
+  for (let i: usize = 0; i < base_type.aggregate.num_fields; i++) {
+    let field = base_type.aggregate.fields[i];
+    if (field.name == name) {
       let field_operand = operand.is_lvalue ? operand_lvalue(field.type) : operand_rvalue(field.type);
       if (was_const_type) {
         field_operand.type = type_const(field_operand.type);
@@ -1590,7 +1590,7 @@ fn resolve_expr_field(expr: &Expr) -> Operand {
       return field_operand;
     } if;
   } for;
-  fatal_error(expr.pos, "No field named '%s'", expr.field.name);
+  fatal_error(pos, "No field named '%s'", name);
   return operand_null;
 }
 

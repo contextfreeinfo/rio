@@ -1324,13 +1324,13 @@ void test1_test_for_each(void) {
   }
   {
     char const ((*(*items__))) = friends;
-    for (size_t i = 0; i < 3; ++i) {
-      char const ((*a)) = items__[i];
+    for (size_t i__ = 0; i__ < 3; ++i__) {
+      char const ((*a)) = items__[i__];
       {
         char const ((*(*items__))) = friends;
-        for (size_t j = 0; j < 3; ++j) {
-          char const ((*b)) = items__[j];
-          if ((i) != (j)) {
+        for (size_t i__ = 0; i__ < 3; ++i__) {
+          char const ((*b)) = items__[i__];
+          if ((a) != (b)) {
             printf("%s vs %s\n", a, b);
           }
         }

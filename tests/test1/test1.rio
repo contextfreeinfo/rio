@@ -898,7 +898,6 @@ fn test_err() {
 
 fn test_for_each() {
   let friends: []*const char = {"Larry", "Moe", "Curly"};
-  // let friends = others;
   // let friends = ["Larry", "Moe", "Curly"];
   for (friends) do(friend) {
     printf("friend: %s\n", friend);
@@ -912,9 +911,9 @@ fn test_for_each() {
       break;
     }
   }
-  for (friends) do(a, i) {
-    for (friends) do(b, j) {
-      if (i != j) {
+  for (friends) do(a) {
+    for (friends) do(b) {
+      if (a != b) {
         printf("%s vs %s\n", a, b);
       }
     }
@@ -923,6 +922,7 @@ fn test_for_each() {
     printf(".");
   }
   printf("\n");
+  // let others = friends; for (others) {}
 }
 
 fn main(argc: int, argv: **char) -> int {

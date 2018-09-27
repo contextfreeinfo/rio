@@ -1733,7 +1733,7 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx);
 
 void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx);
 
-rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type), bool ref));
+rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type)));
 
 void rio_resolve_func_body(rio_Sym (*sym));
 
@@ -1752,6 +1752,8 @@ rio_Operand rio_resolve_enum_item_or_const_expr(rio_DeclEnum (*enum_decl), rio_E
 rio_Operand rio_resolve_enum_item(rio_DeclEnum (*enum_decl), rio_Expr (*expr), char const ((*name)));
 
 rio_Operand rio_resolve_expr_field(rio_Expr (*expr));
+
+rio_Operand rio_resolve_expr_aggregate_field(rio_SrcPos pos, rio_Operand operand, char const ((*name)));
 
 llong rio_eval_unary_op_ll(rio_TokenKind op, llong val);
 
@@ -8285,7 +8287,7 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
   if ((func->params.length) > (2)) {
     rio_fatal_error(stmt->pos, "Max of 2 params allowed in for-each block");
   }
-  rio_Type (*type) = rio_resolve_for_each_type(stmt->pos, operand.type_orig, false);
+  rio_Type (*type) = rio_resolve_for_each_type(stmt->pos, operand.type_orig);
   if (func->params.length) {
     rio_FuncParam (*item) = &(func->params.items[0]);
     rio_sym_push_var(item->name, type);
@@ -8301,22 +8303,18 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
   rio_sym_leave(scope);
 }
 
-rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type), bool ref)) {
+rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type))) {
   switch (type->kind) {
   case rio_CompilerTypeKind_Array: {
-    assert(type->num_elems);
     return type->base;
     break;
   }
   case rio_CompilerTypeKind_Const: {
-    return rio_resolve_for_each_type(pos, type->base, false);
+    return rio_resolve_for_each_type(pos, type->base);
     break;
   }
   case rio_CompilerTypeKind_Ref: {
-    if (ref) {
-      rio_fatal_error(pos, "Unsupported type in for each loop");
-    }
-    return rio_type_ref(rio_resolve_for_each_type(pos, type->base, true));
+    return rio_resolve_for_each_type(pos, type->base);
     break;
   }
   case rio_CompilerTypeKind_Struct: {
@@ -8541,22 +8539,26 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
     rio_fatal_error(expr->pos, "No item named \'%s\'", expr->field.name);
     return rio_operand_null;
   }
+  return rio_resolve_expr_aggregate_field(expr->pos, operand, expr->field.name);
+}
+
+rio_Operand rio_resolve_expr_aggregate_field(rio_SrcPos pos, rio_Operand operand, char const ((*name))) {
   bool was_const_type = rio_is_const_type(operand.type);
-  rio_Type (*type) = rio_unqualify_type(operand.type);
-  rio_complete_type(type);
-  if (rio_is_ptr_type(type)) {
-    operand = rio_operand_lvalue(type->base);
+  rio_Type (*base_type) = rio_unqualify_type(operand.type);
+  rio_complete_type(base_type);
+  if (rio_is_ptr_type(base_type)) {
+    operand = rio_operand_lvalue(base_type->base);
     was_const_type = rio_is_const_type(operand.type);
-    type = rio_unqualify_type(operand.type);
-    rio_complete_type(type);
+    base_type = rio_unqualify_type(operand.type);
+    rio_complete_type(base_type);
   }
-  if (((type->kind) != ((rio_CompilerTypeKind_Struct))) && ((type->kind) != ((rio_CompilerTypeKind_Union)))) {
-    rio_fatal_error(expr->pos, "Can only access fields on aggregates or pointers to aggregates");
+  if (((base_type->kind) != ((rio_CompilerTypeKind_Struct))) && ((base_type->kind) != ((rio_CompilerTypeKind_Union)))) {
+    rio_fatal_error(pos, "Can only access fields on aggregates or pointers to aggregates");
     return rio_operand_null;
   }
-  for (size_t i = 0; (i) < (type->aggregate.num_fields); (i)++) {
-    rio_TypeField field = type->aggregate.fields[i];
-    if ((field.name) == (expr->field.name)) {
+  for (size_t i = 0; (i) < (base_type->aggregate.num_fields); (i)++) {
+    rio_TypeField field = base_type->aggregate.fields[i];
+    if ((field.name) == (name)) {
       rio_Operand field_operand = (operand.is_lvalue ? rio_operand_lvalue(field.type) : rio_operand_rvalue(field.type));
       if (was_const_type) {
         field_operand.type = rio_type_const(field_operand.type);
@@ -8564,7 +8566,7 @@ rio_Operand rio_resolve_expr_field(rio_Expr (*expr)) {
       return field_operand;
     }
   }
-  rio_fatal_error(expr->pos, "No field named \'%s\'", expr->field.name);
+  rio_fatal_error(pos, "No field named \'%s\'", name);
   return rio_operand_null;
 }
 
