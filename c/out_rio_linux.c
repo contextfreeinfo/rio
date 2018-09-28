@@ -8274,6 +8274,11 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
     rio_fatal_error(stmt->pos, "Max of 2 params allowed in for-each block");
   }
   rio_Type (*type) = rio_resolve_for_each_type(stmt->pos, operand.type_orig);
+  if ((type->kind) == ((rio_CompilerTypeKind_Struct))) {
+    rio_SrcPos pos = stmt->for_each.expr->pos;
+    rio_Operand items = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("items"));
+    rio_Operand length = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("length"));
+  }
   if (func->params.length) {
     rio_FuncParam (*item) = &(func->params.items[0]);
     rio_sym_push_var(item->name, type);
@@ -8304,7 +8309,7 @@ rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type))) {
     break;
   }
   case rio_CompilerTypeKind_Struct: {
-    rio_fatal_error(pos, "I still need to support slices");
+    return type;
     break;
   }
   default: {

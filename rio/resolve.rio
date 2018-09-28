@@ -1324,6 +1324,15 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   // us validate the iterable type.
   // TODO Allow explicit typespec influence, too.
   let type = resolve_for_each_type(stmt.pos, operand.type_orig);
+  if (type.kind == CompilerTypeKind.Struct) {
+    let pos = stmt.for_each.expr.pos;
+    // TODO Pre-intern these strings!!!
+    let items = resolve_expr_aggregate_field(pos, operand, str_intern("items"));
+    let length =
+      resolve_expr_aggregate_field(pos, operand, str_intern("length"));
+  } else {
+    // TODO Define items and length in terms of array!
+  }
   if (func.params.length) {
     let item = &func.params.items[0];
     sym_push_var(item.name, type);
@@ -1354,7 +1363,8 @@ fn resolve_for_each_type(pos: SrcPos, type: &Type) -> &Type {
       return resolve_for_each_type(pos, type.base);
     }
     Struct => {
-      fatal_error(pos, "I still need to support slices");
+      // fatal_error(pos, "I still need to support slices");
+      return type;
     }
     default => {
       fatal_error(pos, "Unsupported type in for each loop");

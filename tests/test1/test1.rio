@@ -899,6 +899,7 @@ fn test_err() {
 fn test_for_each() {
   let friends: []*const char = {"Larry", "Moe", "Curly"};
   // let friends = ["Larry", "Moe", "Curly"];
+  // Loops on array.
   for (friends) do(friend) {
     printf("friend: %s\n", friend);
   }
@@ -923,6 +924,11 @@ fn test_for_each() {
   }
   printf("\n");
   // let others = friends; for (others) {}
+  // Loop on slice.
+  let slice: Slice<*const char> = {friends, 2};
+  for (slice) do(name) {
+    printf("from slice: %s\n", name);
+  }
 }
 
 fn main(argc: int, argv: **char) -> int {

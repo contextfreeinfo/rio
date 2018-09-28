@@ -842,7 +842,7 @@ fn gen_stmt(stmt: &Stmt) {
         index = "i__";
       }
       let block = &func.block;
-      // TODO Support slices here!
+      // TODO Support slices here!!
       let items_type = get_resolved_type_orig(stmt.expr);
       let array_length: usize;
       if (items_type.kind == CompilerTypeKind.Array) {
