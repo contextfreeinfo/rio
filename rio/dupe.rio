@@ -148,10 +148,9 @@ fn put_typespec_sym_name(buf: **char, type: &Typespec) {
         }
         buf_printf(buf, "%s", type.names[i].name);
         // And args, too.
-        let type_args = type.names[i].type_args;
-        for (let a: usize = 0; a < type_args.length; ++a) {
+        for (type.names[i].type_args) do(type_arg) {
           buf_printf(buf, "_");
-          put_typespec_sym_name(buf, type_args.items[a].val);
+          put_typespec_sym_name(buf, type_arg.val);
         }
       }
     }

@@ -923,6 +923,7 @@ fn test_for_each() {
     printf(".");
   }
   printf("\n");
+  // Fails because `others` doesn't have a constant size on it.
   // let others = friends; for (others) {}
   // Loop on slice.
   let slice: Slice<*const char> = {friends, 2};
