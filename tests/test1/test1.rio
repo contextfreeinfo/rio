@@ -926,8 +926,8 @@ fn test_for_each() {
   // let others = friends; for (others) {}
   // Loop on slice.
   let slice: Slice<*const char> = {friends, 2};
-  for (slice) do(name) {
-    printf("from slice: %s\n", name);
+  for (slice) do(name, index) {
+    printf("slice[%zu]: %s\n", index, name);
   }
 }
 

@@ -829,6 +829,7 @@ fn gen_stmt(stmt: &Stmt) {
       buf_printf(&gen_buf, ");");
     }
     ForEach => {
+      let expr = stmt.for_each.expr;
       let func = &stmt.for_each.func;
       let item: &FuncParam;
       if (func.params.length) {
@@ -843,13 +844,9 @@ fn gen_stmt(stmt: &Stmt) {
       }
       let block = &func.block;
       // TODO Support slices here!!
-      let items_type = get_resolved_type_orig(stmt.expr);
-      let array_length: usize;
-      if (items_type.kind == CompilerTypeKind.Array) {
-        array_length = items_type.num_elems;
-      } else {
-        fatal_error(stmt.expr.pos, "For each only allows arrays for now");
-      }
+      let items_type = get_resolved_type_orig(expr);
+      let is_array = items_type.kind == CompilerTypeKind.Array;
+      let array_length: usize = is_array ? items_type.num_elems : 0;
       genln();
       buf_printf(&gen_buf, "{");
       ++gen_indent;
@@ -857,19 +854,35 @@ fn gen_stmt(stmt: &Stmt) {
       // TODO If it's a name, just use it and avoid the extra block.
       let items = "items__";
       gen_stmt(&Stmt {kind = Stmt.Init, init = {
-        expr = stmt.expr, name = items,
+        // TODO If expr is a struct, we need to have gotten and resolved a ref
+        // TODO expression to it before here and use that instead.
+        // TODO For Slice, a copy is no big deal, but if we're duck typing, some
+        // TODO slice-like structs could be big.
+        expr = expr, name = items,
       }});
       genln();
-      buf_printf(
-        &gen_buf, "for (size_t %s = 0; %s < %zu; ++%s) {",
-        index, index, array_length, index,
-      );
+      // TODO Even if length is const, index, shouldn't be.
+      let length_decl = stmt.for_each.length_type == type_usize ?
+        // Presume that we mean size_t for now, though this isn't easy to track
+        // until we keep usize and friends abstract.
+        "size_t" :
+        type_to_cdecl(stmt.for_each.length_type, "");
+      buf_printf(&gen_buf, "for (%s %s = 0; %s < ", length_decl, index, index);
+      if (is_array) {
+        buf_printf(&gen_buf, "%zu", array_length);
+      } else {
+        buf_printf(&gen_buf, "%s.length", items);
+      }
+      buf_printf(&gen_buf, "; ++%s) {", index);
       ++gen_indent;
       if (item) {
         genln();
         buf_printf(
-          &gen_buf, "%s = %s[%s];",
-          type_to_cdecl(get_resolved_type(item), item.name), items, index,
+          &gen_buf, "%s = %s%s[%s];",
+          type_to_cdecl(get_resolved_type(item), item.name),
+          items,
+          is_array ? "" : ".items",
+          index,
         );
       }
       // Manually loop on statements here to avoid more block nesting.

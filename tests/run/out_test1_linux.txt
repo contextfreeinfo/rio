@@ -38,3 +38,5 @@ Moe vs Curly
 Curly vs Larry
 Curly vs Moe
 ...
+slice[0]: Larry
+slice[1]: Moe

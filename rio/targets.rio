@@ -117,6 +117,9 @@ fn init_target() {
     exit(1);
   }
   init_default_type_metrics(type_metrics);
+  // TODO These aren't okay, really.
+  // TODO People should be writing code for the abstract machine instead of
+  // TODO working on the current machine!
   if (type_metrics[CompilerTypeKind.Ptr].size == 4) {
     type_uintptr = type_uint;
     type_usize = type_uint;

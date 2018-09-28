@@ -1323,26 +1323,36 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   // Infer item type, even if we don't have a var for it, since that also lets
   // us validate the iterable type.
   // TODO Allow explicit typespec influence, too.
-  let type = resolve_for_each_type(stmt.pos, operand.type_orig);
-  if (type.kind == CompilerTypeKind.Struct) {
+  let item_type = resolve_for_each_type(stmt.pos, operand.type_orig);
+  let length_type: &Type;
+  if (item_type.kind == CompilerTypeKind.Struct) {
     let pos = stmt.for_each.expr.pos;
     // TODO Pre-intern these strings!!!
     let items = resolve_expr_aggregate_field(pos, operand, str_intern("items"));
-    let length =
-      resolve_expr_aggregate_field(pos, operand, str_intern("length"));
+    if (items.type.kind != CompilerTypeKind.Ptr) {
+      fatal_error(pos, "Items collection must be a pointer");
+    }
+    item_type = items.type.base;
+    length_type =
+      resolve_expr_aggregate_field(pos, operand, str_intern("length")).type;
+    // TODO Be narrower than just integer.
+    if (!is_integer_type(length_type)) {
+      fatal_error(pos, "Length must have integer type");
+    }
   } else {
-    // TODO Define items and length in terms of array!
+    length_type = type_usize;
   }
   if (func.params.length) {
     let item = &func.params.items[0];
-    sym_push_var(item.name, type);
-    set_resolved_type(item, type);
+    sym_push_var(item.name, item_type);
+    set_resolved_type(item, item_type);
   }
   if (func.params.length > 1) {
     // TODO Validate usize if explicit typespec?
     let index = &func.params.items[1];
-    sym_push_var(index.name, type_usize);
+    sym_push_var(index.name, length_type);
   }
+  stmt.for_each.length_type = length_type;
   // Resolve block.
   ctx.is_break_legal = true;
   ctx.is_continue_legal = true;

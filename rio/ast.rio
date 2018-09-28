@@ -355,6 +355,9 @@ struct StmtFor {
 struct StmtForEach {
   expr: &Expr;
   func: DeclFunc;
+  // Filled in during resolution.
+  // We want to remember even if there are no matching expressions.
+  length_type: &Type;
 }
 
 struct StmtSwitch {

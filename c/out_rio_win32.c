@@ -2322,6 +2322,7 @@ struct rio_StmtFor {
 struct rio_StmtForEach {
   rio_Expr (*expr);
   rio_DeclFunc func;
+  rio_Type (*length_type);
 };
 
 struct rio_StmtIf {
@@ -4371,6 +4372,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     break;
   }
   case rio_Stmt_ForEach: {
+    rio_Expr (*expr) = stmt->for_each.expr;
     rio_DeclFunc (*func) = &(stmt->for_each.func);
     rio_FuncParam (*item) = {0};
     if (func->params.length) {
@@ -4383,24 +4385,27 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
       index = "i__";
     }
     rio_StmtList (*block) = &(func->block);
-    rio_Type (*items_type) = rio_get_resolved_type_orig(stmt->expr);
-    size_t array_length = {0};
-    if ((items_type->kind) == ((rio_CompilerTypeKind_Array))) {
-      array_length = items_type->num_elems;
-    } else {
-      rio_fatal_error(stmt->expr->pos, "For each only allows arrays for now");
-    }
+    rio_Type (*items_type) = rio_get_resolved_type_orig(expr);
+    int is_array = (items_type->kind) == ((rio_CompilerTypeKind_Array));
+    size_t array_length = (is_array ? items_type->num_elems : 0);
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "{");
     ++(rio_gen_indent);
     char (*items) = "items__";
-    rio_gen_stmt(&((rio_Stmt){.kind = (rio_Stmt_Init), .init = {.expr = stmt->expr, .name = items}}));
+    rio_gen_stmt(&((rio_Stmt){.kind = (rio_Stmt_Init), .init = {.expr = expr, .name = items}}));
     rio_genln();
-    rio_buf_printf(&(rio_gen_buf), "for (size_t %s = 0; %s < %zu; ++%s) {", index, index, array_length, index);
+    char (*length_decl) = ((stmt->for_each.length_type) == (rio_type_usize) ? "size_t" : rio_type_to_cdecl(stmt->for_each.length_type, ""));
+    rio_buf_printf(&(rio_gen_buf), "for (%s %s = 0; %s < ", length_decl, index, index);
+    if (is_array) {
+      rio_buf_printf(&(rio_gen_buf), "%zu", array_length);
+    } else {
+      rio_buf_printf(&(rio_gen_buf), "%s.length", items);
+    }
+    rio_buf_printf(&(rio_gen_buf), "; ++%s) {", index);
     ++(rio_gen_indent);
     if (item) {
       rio_genln();
-      rio_buf_printf(&(rio_gen_buf), "%s = %s[%s];", rio_type_to_cdecl(rio_get_resolved_type(item), item->name), items, index);
+      rio_buf_printf(&(rio_gen_buf), "%s = %s%s[%s];", rio_type_to_cdecl(rio_get_resolved_type(item), item->name), items, (is_array ? "" : ".items"), index);
     }
     for (size_t i = 0; (i) < (block->stmts.length); (i)++) {
       rio_gen_stmt(block->stmts.items[i]);
@@ -8287,21 +8292,32 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
   if ((func->params.length) > (2)) {
     rio_fatal_error(stmt->pos, "Max of 2 params allowed in for-each block");
   }
-  rio_Type (*type) = rio_resolve_for_each_type(stmt->pos, operand.type_orig);
-  if ((type->kind) == ((rio_CompilerTypeKind_Struct))) {
+  rio_Type (*item_type) = rio_resolve_for_each_type(stmt->pos, operand.type_orig);
+  rio_Type (*length_type) = {0};
+  if ((item_type->kind) == ((rio_CompilerTypeKind_Struct))) {
     rio_SrcPos pos = stmt->for_each.expr->pos;
     rio_Operand items = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("items"));
-    rio_Operand length = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("length"));
+    if ((items.type->kind) != ((rio_CompilerTypeKind_Ptr))) {
+      rio_fatal_error(pos, "Items collection must be a pointer");
+    }
+    item_type = items.type->base;
+    length_type = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("length")).type;
+    if (!(rio_is_integer_type(length_type))) {
+      rio_fatal_error(pos, "Length must have integer type");
+    }
+  } else {
+    length_type = rio_type_usize;
   }
   if (func->params.length) {
     rio_FuncParam (*item) = &(func->params.items[0]);
-    rio_sym_push_var(item->name, type);
-    rio_set_resolved_type(item, type);
+    rio_sym_push_var(item->name, item_type);
+    rio_set_resolved_type(item, item_type);
   }
   if ((func->params.length) > (1)) {
     rio_FuncParam (*index) = &(func->params.items[1]);
-    rio_sym_push_var(index->name, rio_type_usize);
+    rio_sym_push_var(index->name, length_type);
   }
+  stmt->for_each.length_type = length_type;
   ctx.is_break_legal = true;
   ctx.is_continue_legal = true;
   rio_resolve_stmt_block(func->block, ret_type, ctx);
