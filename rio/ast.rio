@@ -98,8 +98,7 @@ enum AggregateKind {
 struct Aggregate {
   pos: SrcPos;
   kind: AggregateKind;
-  items: *AggregateItem;
-  num_items: usize;
+  items: Slice<AggregateItem>;
   union_enum_decl: &Decl;
 }
 
@@ -531,12 +530,12 @@ fn new_aggregate(
   let aggregate: &Aggregate = ast_alloc(sizeof(Aggregate));
   aggregate.pos = pos;
   aggregate.kind = kind;
-  aggregate.items = ast_dup(items, num_items * sizeof(*items));
+  aggregate.items.items = ast_dup(items, num_items * sizeof(*items));
   if (items) {
     // This is safe for our usage, but how to define generally?
     buf_free((:&&void)&items);
   }
-  aggregate.num_items = num_items;
+  aggregate.items.length = num_items;
   return aggregate;
 }
 

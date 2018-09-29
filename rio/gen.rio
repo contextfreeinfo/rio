@@ -430,9 +430,8 @@ fn gen_aggregate_item(item: &AggregateItem) {
 
 fn gen_aggregate_items(aggregate: &Aggregate) {
   gen_indent++;
-  for (let i: usize = 0; i < aggregate.num_items; i++) {
-    let item = aggregate.items[i];
-    gen_aggregate_item(&aggregate.items[i]);
+  for &(aggregate.items) do(item) {
+    gen_aggregate_item(item);
   }
   gen_indent--;
 }

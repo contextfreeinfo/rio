@@ -98,6 +98,7 @@ typedef struct rio_Typespec rio_Typespec;
 typedef struct rio_TypespecName rio_TypespecName;
 typedef struct rio_TypeArg rio_TypeArg;
 typedef struct rio_ImportItem rio_ImportItem;
+typedef struct rio_Slice_AggregateItem rio_Slice_AggregateItem;
 typedef struct rio_Aggregate rio_Aggregate;
 typedef struct rio_SymRef rio_SymRef;
 typedef struct rio_Slice_SymRef rio_Slice_SymRef;
@@ -2104,11 +2105,15 @@ struct rio_ImportItem {
   char const ((*rename));
 };
 
+struct rio_Slice_AggregateItem {
+  rio_AggregateItem (*items);
+  size_t length;
+};
+
 struct rio_Aggregate {
   rio_SrcPos pos;
   rio_AggregateKind kind;
-  rio_AggregateItem (*items);
-  size_t num_items;
+  rio_Slice_AggregateItem items;
   rio_Decl (*union_enum_decl);
 };
 
@@ -2626,11 +2631,11 @@ rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_Ag
   rio_Aggregate (*aggregate) = rio_ast_alloc(sizeof(rio_Aggregate));
   aggregate->pos = pos;
   aggregate->kind = kind;
-  aggregate->items = rio_ast_dup(items, (num_items) * (sizeof(*(items))));
+  aggregate->items.items = rio_ast_dup(items, (num_items) * (sizeof(*(items))));
   if (items) {
     rio_buf_free((void (**))(&(items)));
   }
-  aggregate->num_items = num_items;
+  aggregate->items.length = num_items;
   return aggregate;
 }
 
@@ -3374,22 +3379,25 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
     return dupe;
   }
   dupe = rio_ast_dup(aggregate, sizeof(*(aggregate)));
-  dupe->items = rio_ast_dup(dupe->items, (sizeof(*(dupe->items))) * (dupe->num_items));
-  for (size_t i = 0; (i) < (dupe->num_items); ++(i)) {
-    rio_AggregateItem (*item) = &(dupe->items[i]);
-    map->call(map->self, (Any){item, TYPEID(49, TypeKind_Struct, rio_AggregateItem)});
-    switch (item->kind) {
-    case rio_AggregateItem_Field: {
-      item->type = rio_dupe_typespec(item->type, map);
-      break;
-    }
-    case rio_AggregateItem_Subaggregate: {
-      item->subaggregate = rio_dupe_aggregate(item->subaggregate, map);
-      break;
-    }
-    default:
-      assert("@complete switch failed to handle case" && 0);
-      break;
+  dupe->items.items = rio_ast_dup(dupe->items.items, (sizeof(*(dupe->items.items))) * (dupe->items.length));
+  {
+    rio_Slice_AggregateItem items__ = dupe->items;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_AggregateItem (*item) = &items__.items[i__];
+      map->call(map->self, (Any){item, TYPEID(49, TypeKind_Struct, rio_AggregateItem)});
+      switch (item->kind) {
+      case rio_AggregateItem_Field: {
+        item->type = rio_dupe_typespec(item->type, map);
+        break;
+      }
+      case rio_AggregateItem_Subaggregate: {
+        item->subaggregate = rio_dupe_aggregate(item->subaggregate, map);
+        break;
+      }
+      default:
+        assert("@complete switch failed to handle case" && 0);
+        break;
+      }
     }
   }
   return dupe;
@@ -3988,9 +3996,12 @@ void rio_gen_aggregate_item(rio_AggregateItem (*item)) {
 
 void rio_gen_aggregate_items(rio_Aggregate (*aggregate)) {
   (rio_gen_indent)++;
-  for (size_t i = 0; (i) < (aggregate->num_items); (i)++) {
-    rio_AggregateItem item = aggregate->items[i];
-    rio_gen_aggregate_item(&(aggregate->items[i]));
+  {
+    rio_Slice_AggregateItem items__ = aggregate->items;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_AggregateItem (*item) = &items__.items[i__];
+      rio_gen_aggregate_item(item);
+    }
   }
   (rio_gen_indent)--;
 }
@@ -6726,8 +6737,8 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
       rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
       if ((item.kind) == ((rio_AggregateItem_Subaggregate))) {
         rio_Aggregate (*sub) = item.subaggregate;
-        if (((sub->kind) == ((rio_AggregateKind_Union))) && (sub->num_items)) {
-          if (sub->items->num_kind_names) {
+        if (((sub->kind) == ((rio_AggregateKind_Union))) && (sub->items.length)) {
+          if (sub->items.items->num_kind_names) {
             if (enum_union) {
               rio_fatal_error(sub->pos, "Multiple switch unions in struct");
               return NULL;
@@ -6812,32 +6823,37 @@ rio_AggregateItem (*rio_parse_switch_union(void)) {
 
 void rio_build_enum_union_decl(rio_Aggregate (*enum_union), char const ((*decl_name))) {
   char const ((*enum_type_name)) = rio_build_scoped_name(decl_name, "Kind");
-  ullong num_items = enum_union->num_items;
   size_t num_all_items = 0;
-  for (size_t i = 0; (i) < (num_items); ++(i)) {
-    rio_AggregateItem (*union_item) = &(enum_union->items[i]);
-    ullong num_names = union_item->num_kind_names;
-    if (!(num_names)) {
-      if ((union_item->kind) != ((rio_AggregateItem_Field))) {
-        rio_fatal_error(union_item->pos, "Enum union item of %s not a field", decl_name);
-        return;
+  {
+    rio_Slice_AggregateItem items__ = enum_union->items;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_AggregateItem (*union_item) = &items__.items[i__];
+      ullong num_names = union_item->num_kind_names;
+      if (!(num_names)) {
+        if ((union_item->kind) != ((rio_AggregateItem_Field))) {
+          rio_fatal_error(union_item->pos, "Enum union item of %s not a field", decl_name);
+          return;
+        }
+        num_names = union_item->num_names;
       }
-      num_names = union_item->num_names;
+      num_all_items += num_names;
     }
-    num_all_items += num_names;
   }
   rio_EnumItem (*enum_items) = (rio_EnumItem *)(rio_xmalloc((num_all_items) * (sizeof(rio_EnumItem))));
   size_t enum_item_index = 0;
-  for (size_t i = 0; (i) < (num_items); ++(i)) {
-    rio_AggregateItem (*union_item) = &(enum_union->items[i]);
-    ullong num_names = union_item->num_kind_names;
-    char const ((*(*names))) = union_item->kind_names;
-    if (!(num_names)) {
-      num_names = union_item->num_names;
-      names = union_item->names;
-    }
-    for (size_t n = 0; (n) < (num_names); ++(n)) {
-      enum_items[(enum_item_index)++] = (rio_EnumItem){.pos = union_item->pos, .name = names[n], .init = NULL};
+  {
+    rio_Slice_AggregateItem items__ = enum_union->items;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_AggregateItem (*union_item) = &items__.items[i__];
+      ullong num_names = union_item->num_kind_names;
+      char const ((*(*names))) = union_item->kind_names;
+      if (!(num_names)) {
+        num_names = union_item->num_names;
+        names = union_item->names;
+      }
+      for (size_t n = 0; (n) < (num_names); ++(n)) {
+        enum_items[(enum_item_index)++] = (rio_EnumItem){.pos = union_item->pos, .name = names[n], .init = NULL};
+      }
     }
   }
   rio_Decl (*union_enum_decl) = rio_new_decl_enum(enum_union->pos, enum_type_name, NULL, enum_items, num_all_items);
@@ -7842,20 +7858,23 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
   if (((type) && (type->sym)) && (type->sym->decl)) {
     rio_push_type_params(type->sym->decl);
   }
-  for (size_t i = 0; (i) < (aggregate->num_items); (i)++) {
-    rio_AggregateItem item = aggregate->items[i];
-    if ((item.kind) == ((rio_AggregateItem_Field))) {
-      rio_Type (*item_type) = rio_resolve_typespec(item.type);
-      rio_complete_type(item_type);
-      for (size_t j = 0; (j) < (item.num_names); (j)++) {
-        rio_TypeField type_field = {item.names[j], item_type};
+  {
+    rio_Slice_AggregateItem items__ = aggregate->items;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_AggregateItem item = items__.items[i__];
+      if ((item.kind) == ((rio_AggregateItem_Field))) {
+        rio_Type (*item_type) = rio_resolve_typespec(item.type);
+        rio_complete_type(item_type);
+        for (size_t j = 0; (j) < (item.num_names); (j)++) {
+          rio_TypeField type_field = {item.names[j], item_type};
+          rio_buf_push((void (**))(&(fields)), &(type_field), sizeof(type_field));
+        }
+      } else {
+        assert((item.kind) == ((rio_AggregateItem_Subaggregate)));
+        rio_Type (*item_type) = rio_complete_aggregate(NULL, item.subaggregate);
+        rio_TypeField type_field = {NULL, item_type};
         rio_buf_push((void (**))(&(fields)), &(type_field), sizeof(type_field));
       }
-    } else {
-      assert((item.kind) == ((rio_AggregateItem_Subaggregate)));
-      rio_Type (*item_type) = rio_complete_aggregate(NULL, item.subaggregate);
-      rio_TypeField type_field = {NULL, item_type};
-      rio_buf_push((void (**))(&(fields)), &(type_field), sizeof(type_field));
     }
   }
   if (!(type)) {

@@ -811,8 +811,7 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   if (type && type.sym && type.sym.decl) {
     push_type_params(type.sym.decl);
   }
-  for (let i: usize = 0; i < aggregate.num_items; i++) {
-    let item = aggregate.items[i];
+  for (aggregate.items) do(item) {
     if (item.kind == AggregateItem.Field) {
       let item_type = resolve_typespec(item.type);
       complete_type(item_type);

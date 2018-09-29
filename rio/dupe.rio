@@ -16,9 +16,9 @@ fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
     return dupe;
   }
   dupe = ast_dup(aggregate, sizeof(*aggregate));
-  dupe.items = ast_dup(dupe.items, sizeof(*dupe.items) * dupe.num_items);
-  for (let i: usize = 0; i < dupe.num_items; ++i) {
-    let item = &dupe.items[i];
+  dupe.items.items =
+    ast_dup(dupe.items.items, sizeof(*dupe.items.items) * dupe.items.length);
+  for &(dupe.items) do(item) {
     // These are value, not pointer, so presume any modifications are in place.
     map.call(map.self, Any{item, typeof(*item)});
     // Now go deeper.

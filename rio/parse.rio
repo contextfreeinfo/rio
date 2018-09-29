@@ -741,8 +741,8 @@ fn parse_aggregate(
       // See if it's a switch union.
       if (item.kind == AggregateItem.Subaggregate) {
         let sub = item.subaggregate;
-        if (sub.kind == AggregateKind.Union && sub.num_items) {
-          if (sub.items.num_kind_names) {
+        if (sub.kind == AggregateKind.Union && sub.items.length) {
+          if (sub.items.items.num_kind_names) {
             // But only one subunion here is allowed.
             if (enum_union) {
               fatal_error(sub.pos, "Multiple switch unions in struct");
@@ -864,12 +864,9 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
   // not without escaping, so this uses a less likely collision, even if it's
   // a lowercase typename.
   let enum_type_name = build_scoped_name(decl_name, "Kind");
-  let num_items = enum_union.num_items;
-  // let {num_items} = enum_union;
   // Figure out how many items we really have.
   let num_all_items: usize = 0;
-  for (let i: usize = 0; i < num_items; ++i) {
-    let union_item = &enum_union.items[i];
+  for &(enum_union.items) do(union_item) {
     let num_names = union_item.num_kind_names;
     if (!num_names) {
       // Non-switch enum union.
@@ -886,8 +883,7 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
   // Now build the enum items.
   let enum_items = (:*EnumItem)xmalloc(num_all_items * sizeof(EnumItem));
   let enum_item_index: usize = 0;
-  for (let i: usize = 0; i < num_items; ++i) {
-    let union_item = &enum_union.items[i];
+  for &(enum_union.items) do(union_item) {
     let num_names = union_item.num_kind_names;
     let names = union_item.kind_names;
     if (!num_names) {
