@@ -820,8 +820,8 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
       // if (type_sizeof(item_type) == 0) {
       //   fatal_error(item.pos, "Field type of size 0 is not allowed");
       // }
-      for (let j: usize = 0; j < item.num_names; j++) {
-        let type_field = TypeField {item.names[j], item_type};
+      for (item.names) do(name) {
+        let type_field = TypeField {name, item_type};
         buf_push((:&&void)&fields, &type_field, sizeof(type_field));
       }
     } else {
@@ -2583,11 +2583,11 @@ fn process_package_imports(package: &Package) {
       if (decl.import_decl.is_relative) {
         buf_printf(&path_buf, "%s/", package.path);
       }
-      for (let k: usize = 0; k < decl.import_decl.num_names; k++) {
-        if (!str_islower(decl.import_decl.names[k])) {
-          fatal_error(decl.pos, "Import name must be lower case: '%s'", decl.import_decl.names[k]);
+      for (decl.import_decl.names) do(name, k) {
+        if (!str_islower(name)) {
+          fatal_error(decl.pos, "Import name must be lower case: '%s'", name);
         }
-        buf_printf(&path_buf, "%s%s", k == 0 ? "" : "/", decl.import_decl.names[k]);
+        buf_printf(&path_buf, "%s%s", k == 0 ? "" : "/", name);
       }
       let imported_package = import_package(path_buf);
       if (!imported_package) {
@@ -2598,7 +2598,9 @@ fn process_package_imports(package: &Package) {
       if (decl.import_decl.import_all) {
         import_all_package_symbols(imported_package);
       }
-      let sym_name = decl.name ? decl.name : decl.import_decl.names[decl.import_decl.num_names - 1];
+      let sym_name = decl.name ?
+        decl.name :
+        decl.import_decl.names[decl.import_decl.names.length - 1];
       let sym = sym_new(Sym.Package, sym_name, decl);
       sym.package = imported_package;
       sym_global_put(sym_name, sym);

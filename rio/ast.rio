@@ -59,15 +59,11 @@ struct TypeArg {
 struct AggregateItem {
   pos: SrcPos;
   // Kind names apply only to unions ...
-  struct {
-    kind_names: **const char;
-    num_kind_names: usize;
-  }
+  kind_names: Slice<*const char>;
   union switch {
     None => :void;
     Field => struct {
-      names: **const char;
-      num_names: usize;
+      names: Slice<*const char>;
       type: &Typespec;
     }
     Subaggregate => subaggregate: &Aggregate;
@@ -152,8 +148,7 @@ struct DeclVar {
 
 struct DeclImport {
   is_relative: bool;
-  names: **const char;
-  num_names: usize;
+  names: Slice<*const char>;
   import_all: bool;
   items: *ImportItem;
   num_items: usize;
@@ -423,8 +418,7 @@ fn new_typespec_name(
   pos: SrcPos, names: *TypespecName, num_names: usize,
 ) -> &Typespec {
   let t = new_typespec(Typespec.Name, pos);
-  t.names.items = ast_dup(names, num_names * sizeof(*names));
-  t.names.length = num_names;
+  t.names = {ast_dup(names, num_names * sizeof(*names)), num_names};
   return t;
 }
 
@@ -609,8 +603,7 @@ fn new_decl_import(pos: SrcPos, rename_name: *const char, is_relative: bool, nam
   let d = new_decl(Decl.Import, pos, NULL);
   d.name = rename_name;
   d.import_decl.is_relative = is_relative;
-  d.import_decl.names = ast_dup(names, num_names * sizeof(*names));
-  d.import_decl.num_names = num_names;
+  d.import_decl.names = {ast_dup(names, num_names * sizeof(*names)), num_names};
   d.import_decl.import_all = import_all;
   d.import_decl.items = ast_dup(items, num_items * sizeof(*items));
   d.import_decl.num_items = num_items;
