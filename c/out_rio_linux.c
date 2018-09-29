@@ -4422,8 +4422,12 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "%s = %s%s%s[%s];", rio_type_to_cdecl(rio_get_resolved_type(item), item->name), (stmt->for_each.get_ref ? "&" : ""), items, (is_array ? "" : ".items"), index);
     }
-    for (size_t i = 0; (i) < (block->stmts.length); (i)++) {
-      rio_gen_stmt(block->stmts.items[i]);
+    {
+      rio_Slice_ref_Stmt items__ = block->stmts;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_Stmt (*stmt) = items__.items[i__];
+        rio_gen_stmt(stmt);
+      }
     }
     --(rio_gen_indent);
     rio_genln();

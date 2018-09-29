@@ -889,8 +889,8 @@ fn gen_stmt(stmt: &Stmt) {
         );
       }
       // Manually loop on statements here to avoid more block nesting.
-      for (let i: usize = 0; i < block.stmts.length; i++) {
-        gen_stmt(block.stmts.items[i]);
+      for (block.stmts) do(stmt) {
+        gen_stmt(stmt);
       }
       --gen_indent;
       genln();
