@@ -71,6 +71,7 @@ typedef struct rio_Note rio_Note;
 typedef struct rio_Slice_Note rio_Slice_Note;
 typedef struct rio_Slice_ref_Stmt rio_Slice_ref_Stmt;
 typedef struct rio_StmtList rio_StmtList;
+typedef struct rio_Slice_AggregateItem rio_Slice_AggregateItem;
 typedef struct rio_Slice_Decl rio_Slice_Decl;
 typedef struct rio_Slice_FuncParam rio_Slice_FuncParam;
 typedef struct rio_Map rio_Map;
@@ -102,14 +103,15 @@ typedef struct rio_Typespec rio_Typespec;
 typedef struct rio_TypespecName rio_TypespecName;
 typedef struct rio_TypeArg rio_TypeArg;
 typedef struct rio_ImportItem rio_ImportItem;
-typedef struct rio_Slice_AggregateItem rio_Slice_AggregateItem;
 typedef struct rio_Aggregate rio_Aggregate;
 typedef struct rio_SymRef rio_SymRef;
 typedef struct rio_Slice_SymRef rio_Slice_SymRef;
+typedef struct rio_Slice_EnumItem rio_Slice_EnumItem;
 typedef struct rio_DeclEnum rio_DeclEnum;
 typedef struct rio_DeclFunc rio_DeclFunc;
 typedef struct rio_DeclTypedef rio_DeclTypedef;
 typedef struct rio_DeclVar rio_DeclVar;
+typedef struct rio_Slice_ImportItem rio_Slice_ImportItem;
 typedef struct rio_DeclImport rio_DeclImport;
 typedef struct rio_Decl rio_Decl;
 typedef struct rio_Decls rio_Decls;
@@ -482,7 +484,12 @@ rio_Note (*rio_get_decl_note(rio_Decl (*decl), char const ((*name))));
 
 rio_Note (*rio_get_note(rio_Slice_Note (*notes), char const ((*name))));
 
-rio_Aggregate (*rio_get_subunion(size_t num_items, rio_AggregateItem (*items)));
+struct rio_Slice_AggregateItem {
+  rio_AggregateItem (*items);
+  size_t length;
+};
+
+rio_Aggregate (*rio_get_subunion(rio_Slice_AggregateItem items));
 
 bool rio_is_decl_foreign(rio_Decl (*decl));
 
@@ -2131,11 +2138,6 @@ struct rio_ImportItem {
   char const ((*rename));
 };
 
-struct rio_Slice_AggregateItem {
-  rio_AggregateItem (*items);
-  size_t length;
-};
-
 struct rio_Aggregate {
   rio_SrcPos pos;
   rio_AggregateKind kind;
@@ -2156,10 +2158,14 @@ struct rio_Slice_SymRef {
   size_t length;
 };
 
+struct rio_Slice_EnumItem {
+  rio_EnumItem (*items);
+  size_t length;
+};
+
 struct rio_DeclEnum {
   rio_Typespec (*type);
-  rio_EnumItem (*items);
-  size_t num_items;
+  rio_Slice_EnumItem items;
   char const ((*scope));
 };
 
@@ -2180,12 +2186,16 @@ struct rio_DeclVar {
   rio_Expr (*expr);
 };
 
+struct rio_Slice_ImportItem {
+  rio_ImportItem (*items);
+  size_t length;
+};
+
 struct rio_DeclImport {
   bool is_relative;
   rio_Slice_ptr_const_char names;
   bool import_all;
-  rio_ImportItem (*items);
-  size_t num_items;
+  rio_Slice_ImportItem items;
 };
 
 struct rio_Decl {
@@ -2625,17 +2635,20 @@ rio_Note (*rio_get_note(rio_Slice_Note (*notes), char const ((*name)))) {
   return NULL;
 }
 
-rio_Aggregate (*rio_get_subunion(size_t num_items, rio_AggregateItem (*items))) {
+rio_Aggregate (*rio_get_subunion(rio_Slice_AggregateItem items)) {
   rio_Aggregate (*result) = {0};
-  for (size_t i = 0; (i) < (num_items); (i)++) {
-    rio_AggregateItem item = items[i];
-    if ((item.kind) == ((rio_AggregateItem_Subaggregate))) {
-      if ((item.subaggregate->kind) == ((rio_AggregateKind_Union))) {
-        if (result) {
-          rio_fatal_error(item.subaggregate->pos, "Multiple unions in struct");
-          return NULL;
+  {
+    rio_Slice_AggregateItem items__ = items;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_AggregateItem (*item) = &items__.items[i__];
+      if ((item->kind) == ((rio_AggregateItem_Subaggregate))) {
+        if ((item->subaggregate->kind) == ((rio_AggregateKind_Union))) {
+          if (result) {
+            rio_fatal_error(item->subaggregate->pos, "Multiple unions in struct");
+            return NULL;
+          }
+          result = item->subaggregate;
         }
-        result = item.subaggregate;
       }
     }
   }
@@ -2649,8 +2662,7 @@ bool rio_is_decl_foreign(rio_Decl (*decl)) {
 rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_EnumItem (*items), size_t num_items)) {
   rio_Decl (*d) = rio_new_decl((rio_Decl_Enum), pos, name);
   d->enum_decl.type = type;
-  d->enum_decl.items = rio_ast_dup(items, (num_items) * (sizeof(*(items))));
-  d->enum_decl.num_items = num_items;
+  d->enum_decl.items = (rio_Slice_EnumItem){rio_ast_dup(items, (num_items) * (sizeof(*(items)))), num_items};
   return d;
 }
 
@@ -2658,11 +2670,10 @@ rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_Ag
   rio_Aggregate (*aggregate) = rio_ast_alloc(sizeof(rio_Aggregate));
   aggregate->pos = pos;
   aggregate->kind = kind;
-  aggregate->items.items = rio_ast_dup(items, (num_items) * (sizeof(*(items))));
+  aggregate->items = (rio_Slice_AggregateItem){rio_ast_dup(items, (num_items) * (sizeof(*(items)))), num_items};
   if (items) {
     rio_buf_free((void (**))(&(items)));
   }
-  aggregate->items.length = num_items;
   return aggregate;
 }
 
@@ -2725,8 +2736,7 @@ rio_Decl (*rio_new_decl_import(rio_SrcPos pos, char const ((*rename_name)), bool
   d->import_decl.is_relative = is_relative;
   d->import_decl.names = (rio_Slice_ptr_const_char){rio_ast_dup(names, (num_names) * (sizeof(*(names)))), num_names};
   d->import_decl.import_all = import_all;
-  d->import_decl.items = rio_ast_dup(items, (num_items) * (sizeof(*(items))));
-  d->import_decl.num_items = num_items;
+  d->import_decl.items = (rio_Slice_ImportItem){rio_ast_dup(items, (num_items) * (sizeof(*(items)))), num_items};
   return d;
 }
 
@@ -6814,7 +6824,7 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
       items = NULL;
       rio_buf_push((void (**))(&(items)), &(subitem), sizeof(subitem));
     } else if (!(enum_union)) {
-      enum_union = rio_get_subunion(rio_buf_len(items), items);
+      enum_union = rio_get_subunion((rio_Slice_AggregateItem){items, rio_buf_len(items)});
       if (!(enum_union)) {
         rio_fatal_error(pos, "No union for enum tag");
         return NULL;
@@ -7401,31 +7411,34 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
     rio_Typespec (*enum_typespec) = rio_new_typespec_name(decl->pos, &((rio_TypespecName){.name = name}), 1);
     char const ((*prev_item_name)) = NULL;
     char const ((*prev_scoped_name)) = NULL;
-    for (size_t i = 0; (i) < (decl->enum_decl.num_items); (i)++) {
-      rio_EnumItem item = decl->enum_decl.items[i];
-      rio_Expr (*init) = {0};
-      if (item.init) {
-        init = item.init;
-      } else if (prev_item_name) {
-        init = rio_new_expr_binary(item.pos, (rio_TokenKind_Add), rio_new_expr_name(item.pos, prev_item_name), rio_new_expr_int(item.pos, 1, 0, 0));
-      } else {
-        init = rio_new_expr_int(item.pos, 0, 0, 0);
-      }
-      if (unscoped) {
-        rio_Decl (*item_decl) = rio_new_decl_const(item.pos, item.name, enum_typespec, init);
-        item_decl->notes = decl->notes;
-        rio_sym_global_decl(item_decl, NULL);
-        prev_item_name = item.name;
-      } else {
-        decl->enum_decl.scope = scope;
-        char const ((*scoped_name)) = rio_build_scoped_name(scope, item.name);
-        if (prev_scoped_name) {
-          init = rio_new_expr_binary(item.pos, (rio_TokenKind_Add), rio_new_expr_name(item.pos, prev_scoped_name), rio_new_expr_int(item.pos, 1, 0, 0));
+    {
+      rio_Slice_EnumItem items__ = decl->enum_decl.items;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_EnumItem item = items__.items[i__];
+        rio_Expr (*init) = {0};
+        if (item.init) {
+          init = item.init;
+        } else if (prev_item_name) {
+          init = rio_new_expr_binary(item.pos, (rio_TokenKind_Add), rio_new_expr_name(item.pos, prev_item_name), rio_new_expr_int(item.pos, 1, 0, 0));
+        } else {
+          init = rio_new_expr_int(item.pos, 0, 0, 0);
         }
-        rio_Decl (*scoped_decl) = rio_new_decl_const(item.pos, scoped_name, enum_typespec, init);
-        scoped_decl->notes = decl->notes;
-        rio_sym_global_decl(scoped_decl, NULL);
-        prev_scoped_name = scoped_name;
+        if (unscoped) {
+          rio_Decl (*item_decl) = rio_new_decl_const(item.pos, item.name, enum_typespec, init);
+          item_decl->notes = decl->notes;
+          rio_sym_global_decl(item_decl, NULL);
+          prev_item_name = item.name;
+        } else {
+          decl->enum_decl.scope = scope;
+          char const ((*scoped_name)) = rio_build_scoped_name(scope, item.name);
+          if (prev_scoped_name) {
+            init = rio_new_expr_binary(item.pos, (rio_TokenKind_Add), rio_new_expr_name(item.pos, prev_scoped_name), rio_new_expr_int(item.pos, 1, 0, 0));
+          }
+          rio_Decl (*scoped_decl) = rio_new_decl_const(item.pos, scoped_name, enum_typespec, init);
+          scoped_decl->notes = decl->notes;
+          rio_sym_global_decl(scoped_decl, NULL);
+          prev_scoped_name = scoped_name;
+        }
       }
     }
   }
@@ -8659,15 +8672,18 @@ rio_Operand rio_resolve_enum_item_or_const_expr(rio_DeclEnum (*enum_decl), rio_E
 }
 
 rio_Operand rio_resolve_enum_item(rio_DeclEnum (*enum_decl), rio_Expr (*expr), char const ((*name))) {
-  for (size_t i = 0; (i) < (enum_decl->num_items); ++(i)) {
-    rio_EnumItem item = enum_decl->items[i];
-    if ((item.name) == (name)) {
-      rio_Sym (*sym) = rio_resolve_name(rio_build_scoped_name(enum_decl->scope, item.name));
-      if (sym) {
-        assert((sym->kind) == ((rio_Sym_Const)));
-        rio_set_resolved_sym(expr, sym);
-        rio_Operand item_operand = rio_operand_const(sym->type, sym->val);
-        return item_operand;
+  {
+    rio_Slice_EnumItem items__ = enum_decl->items;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_EnumItem item = items__.items[i__];
+      if ((item.name) == (name)) {
+        rio_Sym (*sym) = rio_resolve_name(rio_build_scoped_name(enum_decl->scope, item.name));
+        if (sym) {
+          assert((sym->kind) == ((rio_Sym_Const)));
+          rio_set_resolved_sym(expr, sym);
+          rio_Operand item_operand = rio_operand_const(sym->type, sym->val);
+          return item_operand;
+        }
       }
     }
   }
@@ -9848,13 +9864,16 @@ void rio_import_all_package_symbols(rio_Package (*package)) {
 }
 
 void rio_import_package_symbols(rio_Decl (*decl), rio_Package (*package)) {
-  for (size_t i = 0; (i) < (decl->import_decl.num_items); (i)++) {
-    rio_ImportItem item = decl->import_decl.items[i];
-    rio_Sym (*sym) = rio_get_package_sym(package, item.name);
-    if (!(sym)) {
-      rio_fatal_error(decl->pos, "Symbol \'%s\' does not exist in package \'%s\'", item.name, package->path);
+  {
+    rio_Slice_ImportItem items__ = decl->import_decl.items;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_ImportItem item = items__.items[i__];
+      rio_Sym (*sym) = rio_get_package_sym(package, item.name);
+      if (!(sym)) {
+        rio_fatal_error(decl->pos, "Symbol \'%s\' does not exist in package \'%s\'", item.name, package->path);
+      }
+      rio_sym_global_put((item.rename ? item.rename : item.name), sym);
     }
-    rio_sym_global_put((item.rename ? item.rename : item.name), sym);
   }
 }
 

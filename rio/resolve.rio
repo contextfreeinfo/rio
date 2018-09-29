@@ -254,13 +254,15 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
       new_typespec_name(decl.pos, &TypespecName{name = name}, 1);
     let prev_item_name: *const char = NULL;
     let prev_scoped_name: *const char = NULL;
-    for (let i: usize = 0; i < decl.enum_decl.num_items; i++) {
-      let item = decl.enum_decl.items[i];
+    for (decl.enum_decl.items) do(item) {
       let init: &Expr;
       if (item.init) {
         init = item.init;
       } else if (prev_item_name) {
-        init = new_expr_binary(item.pos, TokenKind.Add, new_expr_name(item.pos, prev_item_name), new_expr_int(item.pos, 1, 0, 0));
+        init = new_expr_binary(
+          item.pos, TokenKind.Add, new_expr_name(item.pos, prev_item_name),
+          new_expr_int(item.pos, 1, 0, 0),
+        );
       } else {
         init = new_expr_int(item.pos, 0, 0, 0);
       }
@@ -1557,8 +1559,7 @@ fn resolve_enum_item_or_const_expr(
 fn resolve_enum_item(
   enum_decl: &DeclEnum, expr: &Expr, name: *const char,
 ) -> Operand {
-  for (let i: usize = 0; i < enum_decl.num_items; ++i) {
-    let item = enum_decl.items[i];
+  for (enum_decl.items) do(item) {
     if (item.name == name) {
       let sym = resolve_name(build_scoped_name(enum_decl.scope, item.name));
       if (sym) {
@@ -2561,11 +2562,13 @@ fn import_all_package_symbols(package: &Package) {
 }
 
 fn import_package_symbols(decl: &Decl, package: &Package) {
-  for (let i: usize = 0; i < decl.import_decl.num_items; i++) {
-    let item = decl.import_decl.items[i];
+  for (decl.import_decl.items) do(item) {
     let sym = get_package_sym(package, item.name);
     if (!sym) {
-      fatal_error(decl.pos, "Symbol '%s' does not exist in package '%s'", item.name, package.path);
+      fatal_error(
+        decl.pos, "Symbol '%s' does not exist in package '%s'",
+        item.name, package.path,
+      );
     }
     sym_global_put(item.rename ? item.rename : item.name, sym);
   }

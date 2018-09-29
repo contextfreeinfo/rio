@@ -774,7 +774,7 @@ fn parse_aggregate(
       items = NULL;
       buf_push((:&&void)&items, &subitem, sizeof(subitem));
     } else if (!enum_union) {
-      enum_union = get_subunion(buf_len(items), items);
+      enum_union = get_subunion({items, buf_len(items)});
       if (!enum_union) {
         fatal_error(pos, "No union for enum tag");
         return NULL;

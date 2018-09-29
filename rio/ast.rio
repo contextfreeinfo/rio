@@ -124,8 +124,7 @@ struct Decl {
 
 struct DeclEnum {
   type: &Typespec;
-  items: *EnumItem;
-  num_items: usize;
+  items: Slice<EnumItem>;
   scope: *const char;
 }
 
@@ -150,8 +149,7 @@ struct DeclImport {
   is_relative: bool;
   names: Slice<*const char>;
   import_all: bool;
-  items: *ImportItem;
-  num_items: usize;
+  items: Slice<ImportItem>;
 }
 
 struct Decls {
@@ -488,11 +486,10 @@ fn get_note(notes: &Slice<Note>, name: *const char) -> &Note {
   return NULL;
 }
 
-fn get_subunion(num_items: usize, items: *AggregateItem) -> &Aggregate {
+fn get_subunion(items: Slice<AggregateItem>) -> &Aggregate {
   // See if we are a struct with a subunion.
   let result: &Aggregate;
-  for (let i: usize = 0; i < num_items; i++) {
-    let item = items[i];
+  for &(items) do(item) {
     if (item.kind == AggregateItem.Subaggregate) {
       if (item.subaggregate.kind == AggregateKind.Union) {
         // But only one subunion here is allowed.
@@ -511,11 +508,13 @@ fn is_decl_foreign(decl: &Decl) -> bool {
   return get_decl_note(decl, foreign_name) != NULL;
 }
 
-fn new_decl_enum(pos: SrcPos, name: *const char, type: &Typespec, items: *EnumItem, num_items: usize) -> &Decl {
+fn new_decl_enum(
+  pos: SrcPos, name: *const char, type: &Typespec,
+  items: *EnumItem, num_items: usize,
+) -> &Decl {
   let d = new_decl(Decl.Enum, pos, name);
   d.enum_decl.type = type;
-  d.enum_decl.items = ast_dup(items, num_items * sizeof(*items));
-  d.enum_decl.num_items = num_items;
+  d.enum_decl.items = {ast_dup(items, num_items * sizeof(*items)), num_items};
   return d;
 }
 
@@ -525,12 +524,11 @@ fn new_aggregate(
   let aggregate: &Aggregate = ast_alloc(sizeof(Aggregate));
   aggregate.pos = pos;
   aggregate.kind = kind;
-  aggregate.items.items = ast_dup(items, num_items * sizeof(*items));
+  aggregate.items = {ast_dup(items, num_items * sizeof(*items)), num_items};
   if (items) {
     // This is safe for our usage, but how to define generally?
     buf_free((:&&void)&items);
   }
-  aggregate.items.length = num_items;
   return aggregate;
 }
 
@@ -599,14 +597,17 @@ fn new_decl_note(pos: SrcPos, note: Note) -> &Decl {
   return d;
 }
 
-fn new_decl_import(pos: SrcPos, rename_name: *const char, is_relative: bool, names: **const char, num_names: usize, import_all: bool, items: *ImportItem, num_items: usize) -> &Decl {
+fn new_decl_import(
+  pos: SrcPos, rename_name: *const char, is_relative: bool,
+  names: **const char, num_names: usize, import_all: bool,
+  items: *ImportItem, num_items: usize,
+) -> &Decl {
   let d = new_decl(Decl.Import, pos, NULL);
   d.name = rename_name;
   d.import_decl.is_relative = is_relative;
   d.import_decl.names = {ast_dup(names, num_names * sizeof(*names)), num_names};
   d.import_decl.import_all = import_all;
-  d.import_decl.items = ast_dup(items, num_items * sizeof(*items));
-  d.import_decl.num_items = num_items;
+  d.import_decl.items = {ast_dup(items, num_items * sizeof(*items)), num_items};
   return d;
 }
 
