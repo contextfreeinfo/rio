@@ -1187,7 +1187,7 @@ fn parse_decl() -> &Decl {
   return decl;
 }
 
-fn parse_decls() -> &Decls {
+fn parse_decls() -> &Slice<&Decl> {
   let decls: *&Decl = NULL;
   while (!is_token(TokenKind.Eof)) {
     let decl = parse_decl();

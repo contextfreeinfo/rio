@@ -1188,8 +1188,7 @@ fn preprocess_package(package: &Package) {
   let source_name = str_intern("source");
   let preamble_name = str_intern("preamble");
   let postamble_name = str_intern("postamble");
-  for (let i: usize = 0; i < package.num_decls; i++) {
-    let decl = package.decls[i];
+  for (package.decls) do(decl) {
     if (decl.kind != Decl.Note) {
       continue;
     }

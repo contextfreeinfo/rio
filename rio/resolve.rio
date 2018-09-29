@@ -24,8 +24,7 @@ struct Sym {
 struct Package {
   path: *const char;
   full_path: [MAX_PATH]char;
-  decls: *&Decl;
-  num_decls: usize;
+  decls: Slice<&Decl>;
   syms_map: Map;
   syms: *&Sym;
   external_name: *const char;
@@ -2476,11 +2475,12 @@ fn init_builtin_syms() {
 }
 
 fn add_package_decls(package: &Package) {
-  for (let i: usize = 0; i < package.num_decls; i++) {
-    let decl = package.decls[i];
+  for (package.decls) do(decl) {
     if (decl.kind == Decl.Note) {
       if (!map_get(&decl_note_names, decl.note.name)) {
-        warning(decl.pos, "Unknown declaration #directive '%s'", decl.note.name);
+        warning(
+          decl.pos, "Unknown declaration #directive '%s'", decl.note.name,
+        );
       }
       if (decl.note.name == declare_note_name) {
         if (decl.note.args.length != 1) {
@@ -2492,7 +2492,8 @@ fn add_package_decls(package: &Package) {
         }
         map_put(&decl_note_names, arg.name, (:&void)1);
       } else if (decl.note.name == static_assert_name) {
-        // TODO: decide how to handle top-level static #asserts wrt laziness/tree shaking
+        // TODO How to handle top-level static #asserts wrt laziness/tree
+        // TODO shaking?
         if (!flag_lazy) {
           resolve_static_assert(decl.note);
         }
@@ -2575,8 +2576,7 @@ fn import_package_symbols(decl: &Decl, package: &Package) {
 }
 
 fn process_package_imports(package: &Package) {
-  for (let i: usize = 0; i < package.num_decls; i++) {
-    let decl = package.decls[i];
+  for (package.decls) do(decl) {
     if (decl.kind == Decl.Note) {
       if (decl.note.name == always_name) {
         package.always_reachable = true;
@@ -2637,13 +2637,12 @@ fn parse_package(package: &Package) -> bool {
       fatal_error(SrcPos {name = path}, "Failed to read source file");
     }
     init_stream(str_intern(path), code);
-    let file_decls: *Decls = parse_decls();
-    for (let i: usize = 0; i < file_decls.num_decls; i++) {
-      buf_push((:&&void)&decls, &file_decls.decls[i], sizeof(file_decls.decls[i]));
+    let file_decls = parse_decls();
+    for &(file_decls) do(decl) {
+      buf_push((:&&void)&decls, decl, sizeof(*decl));
     }
   } for;
-  package.decls = decls;
-  package.num_decls = (:int)buf_len(decls);
+  package.decls = {decls, buf_len(decls)};
   return package != NULL;
 }
 

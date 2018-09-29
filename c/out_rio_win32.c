@@ -114,7 +114,6 @@ typedef struct rio_DeclVar rio_DeclVar;
 typedef struct rio_Slice_ImportItem rio_Slice_ImportItem;
 typedef struct rio_DeclImport rio_DeclImport;
 typedef struct rio_Decl rio_Decl;
-typedef struct rio_Decls rio_Decls;
 typedef struct rio_ExprParen rio_ExprParen;
 typedef struct rio_ExprIntLit rio_ExprIntLit;
 typedef struct rio_ExprFloatLit rio_ExprFloatLit;
@@ -140,6 +139,7 @@ typedef struct rio_StmtIf rio_StmtIf;
 typedef struct rio_StmtInit rio_StmtInit;
 typedef struct rio_StmtSwitch rio_StmtSwitch;
 typedef struct rio_Stmt rio_Stmt;
+typedef struct rio_Slice_ref_Decl rio_Slice_ref_Decl;
 typedef struct rio_BufHdr rio_BufHdr;
 typedef struct rio_Intern rio_Intern;
 typedef struct rio_MapClosure rio_MapClosure;
@@ -476,7 +476,7 @@ rio_Typespec (*rio_new_typespec_array(rio_SrcPos pos, rio_Typespec (*elem), rio_
 
 rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Typespec (*(*args)), size_t num_args, rio_Typespec (*ret), bool has_varargs));
 
-rio_Decls (*rio_new_decls(rio_Decl (*(*decls)), size_t num_decls));
+rio_Slice_ref_Decl (*rio_new_decls(rio_Decl (*(*decls)), size_t num_decls));
 
 rio_Decl (*rio_new_decl(rio_Decl_Kind kind, rio_SrcPos pos, char const ((*name))));
 
@@ -1488,7 +1488,7 @@ rio_Decl (*rio_parse_decl_opt(rio_Slice_Note (*notes)));
 
 rio_Decl (*rio_parse_decl(void));
 
-rio_Decls (*rio_parse_decls(void));
+rio_Slice_ref_Decl (*rio_parse_decls(void));
 
 typedef int rio_SymState;
 
@@ -2221,11 +2221,6 @@ struct rio_Decl {
   };
 };
 
-struct rio_Decls {
-  rio_Decl (*(*decls));
-  size_t num_decls;
-};
-
 struct rio_ExprParen {
   rio_Expr (*expr);
 };
@@ -2414,6 +2409,11 @@ struct rio_Stmt {
   };
 };
 
+struct rio_Slice_ref_Decl {
+  rio_Decl (*(*items));
+  size_t length;
+};
+
 struct rio_BufHdr {
   size_t len;
   size_t cap;
@@ -2439,8 +2439,7 @@ struct rio_TypeMap {
 struct rio_Package {
   char const ((*path));
   char (full_path[MAX_PATH]);
-  rio_Decl (*(*decls));
-  size_t num_decls;
+  rio_Slice_ref_Decl decls;
   rio_Map syms_map;
   rio_Sym (*(*syms));
   char const ((*external_name));
@@ -2605,10 +2604,9 @@ rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Typespec (*(*args)), si
   return t;
 }
 
-rio_Decls (*rio_new_decls(rio_Decl (*(*decls)), size_t num_decls)) {
-  rio_Decls (*d) = rio_ast_alloc(sizeof(rio_Decls));
-  d->decls = rio_ast_dup(decls, (num_decls) * (sizeof(*(decls))));
-  d->num_decls = num_decls;
+rio_Slice_ref_Decl (*rio_new_decls(rio_Decl (*(*decls)), size_t num_decls)) {
+  rio_Slice_ref_Decl (*d) = rio_ast_alloc(sizeof(rio_Slice_ref_Decl));
+  *(d) = (rio_Slice_ref_Decl){rio_ast_dup(decls, (num_decls) * (sizeof(*(decls)))), num_decls};
   return d;
 }
 
@@ -4821,36 +4819,39 @@ void rio_preprocess_package(rio_Package (*package)) {
   char const ((*source_name)) = rio_str_intern("source");
   char const ((*preamble_name)) = rio_str_intern("preamble");
   char const ((*postamble_name)) = rio_str_intern("postamble");
-  for (size_t i = 0; (i) < (package->num_decls); (i)++) {
-    rio_Decl (*decl) = package->decls[i];
-    if ((decl->kind) != ((rio_Decl_Note))) {
-      continue;
-    }
-    rio_Note note = decl->note;
-    if ((note.name) == (rio_foreign_name)) {
-      {
-        rio_Slice_NoteArg items__ = note.args;
-        for (size_t i__ = 0; i__ < items__.length; ++i__) {
-          rio_NoteArg arg = items__.items[i__];
-          rio_Expr (*expr) = arg.expr;
-          if ((expr->kind) != ((rio_Expr_Str))) {
-            rio_fatal_error(decl->pos, "#foreign argument must be a string");
-          }
-          char const ((*str)) = expr->str_lit.val;
-          if ((arg.name) == (header_name)) {
-            char (path[MAX_PATH]) = {0};
-            rio_put_include_path(path, package, str);
-            rio_add_foreign_header(path);
-          } else if ((arg.name) == (source_name)) {
-            char (path[MAX_PATH]) = {0};
-            rio_put_include_path(path, package, str);
-            rio_add_foreign_source(path);
-          } else if ((arg.name) == (preamble_name)) {
-            rio_buf_printf(&(rio_gen_preamble_buf), "%s\n", str);
-          } else if ((arg.name) == (postamble_name)) {
-            rio_buf_printf(&(rio_gen_postamble_buf), "%s\n", str);
-          } else {
-            rio_fatal_error(decl->pos, "Unknown #foreign named argument \'%s\'", arg.name);
+  {
+    rio_Slice_ref_Decl items__ = package->decls;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_Decl (*decl) = items__.items[i__];
+      if ((decl->kind) != ((rio_Decl_Note))) {
+        continue;
+      }
+      rio_Note note = decl->note;
+      if ((note.name) == (rio_foreign_name)) {
+        {
+          rio_Slice_NoteArg items__ = note.args;
+          for (size_t i__ = 0; i__ < items__.length; ++i__) {
+            rio_NoteArg arg = items__.items[i__];
+            rio_Expr (*expr) = arg.expr;
+            if ((expr->kind) != ((rio_Expr_Str))) {
+              rio_fatal_error(decl->pos, "#foreign argument must be a string");
+            }
+            char const ((*str)) = expr->str_lit.val;
+            if ((arg.name) == (header_name)) {
+              char (path[MAX_PATH]) = {0};
+              rio_put_include_path(path, package, str);
+              rio_add_foreign_header(path);
+            } else if ((arg.name) == (source_name)) {
+              char (path[MAX_PATH]) = {0};
+              rio_put_include_path(path, package, str);
+              rio_add_foreign_source(path);
+            } else if ((arg.name) == (preamble_name)) {
+              rio_buf_printf(&(rio_gen_preamble_buf), "%s\n", str);
+            } else if ((arg.name) == (postamble_name)) {
+              rio_buf_printf(&(rio_gen_postamble_buf), "%s\n", str);
+            } else {
+              rio_fatal_error(decl->pos, "Unknown #foreign named argument \'%s\'", arg.name);
+            }
           }
         }
       }
@@ -7206,7 +7207,7 @@ rio_Decl (*rio_parse_decl(void)) {
   return decl;
 }
 
-rio_Decls (*rio_parse_decls(void)) {
+rio_Slice_ref_Decl (*rio_parse_decls(void)) {
   rio_Decl (*(*decls)) = NULL;
   while (!(rio_is_token((rio_TokenKind_Eof)))) {
     rio_Decl (*decl) = rio_parse_decl();
@@ -9795,29 +9796,32 @@ void rio_init_builtin_syms(void) {
 }
 
 void rio_add_package_decls(rio_Package (*package)) {
-  for (size_t i = 0; (i) < (package->num_decls); (i)++) {
-    rio_Decl (*decl) = package->decls[i];
-    if ((decl->kind) == ((rio_Decl_Note))) {
-      if (!(rio_map_get(&(rio_decl_note_names), decl->note.name))) {
-        rio_warning(decl->pos, "Unknown declaration #directive \'%s\'", decl->note.name);
+  {
+    rio_Slice_ref_Decl items__ = package->decls;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_Decl (*decl) = items__.items[i__];
+      if ((decl->kind) == ((rio_Decl_Note))) {
+        if (!(rio_map_get(&(rio_decl_note_names), decl->note.name))) {
+          rio_warning(decl->pos, "Unknown declaration #directive \'%s\'", decl->note.name);
+        }
+        if ((decl->note.name) == (rio_declare_note_name)) {
+          if ((decl->note.args.length) != (1)) {
+            rio_fatal_error(decl->pos, "#declare_note takes 1 argument");
+          }
+          rio_Expr (*arg) = decl->note.args.items[0].expr;
+          if ((arg->kind) != ((rio_Expr_Name))) {
+            rio_fatal_error(decl->pos, "#declare_note argument must be name");
+          }
+          rio_map_put(&(rio_decl_note_names), arg->name, (void *)(1));
+        } else if ((decl->note.name) == (rio_static_assert_name)) {
+          if (!(rio_flag_lazy)) {
+            rio_resolve_static_assert(decl->note);
+          }
+        }
+      } else if ((decl->kind) == ((rio_Decl_Import))) {
+      } else {
+        rio_sym_global_decl(decl, NULL);
       }
-      if ((decl->note.name) == (rio_declare_note_name)) {
-        if ((decl->note.args.length) != (1)) {
-          rio_fatal_error(decl->pos, "#declare_note takes 1 argument");
-        }
-        rio_Expr (*arg) = decl->note.args.items[0].expr;
-        if ((arg->kind) != ((rio_Expr_Name))) {
-          rio_fatal_error(decl->pos, "#declare_note argument must be name");
-        }
-        rio_map_put(&(rio_decl_note_names), arg->name, (void *)(1));
-      } else if ((decl->note.name) == (rio_static_assert_name)) {
-        if (!(rio_flag_lazy)) {
-          rio_resolve_static_assert(decl->note);
-        }
-      }
-    } else if ((decl->kind) == ((rio_Decl_Import))) {
-    } else {
-      rio_sym_global_decl(decl, NULL);
     }
   }
 }
@@ -9892,40 +9896,43 @@ void rio_import_package_symbols(rio_Decl (*decl), rio_Package (*package)) {
 }
 
 void rio_process_package_imports(rio_Package (*package)) {
-  for (size_t i = 0; (i) < (package->num_decls); (i)++) {
-    rio_Decl (*decl) = package->decls[i];
-    if ((decl->kind) == ((rio_Decl_Note))) {
-      if ((decl->note.name) == (rio_always_name)) {
-        package->always_reachable = true;
-      }
-    } else if ((decl->kind) == ((rio_Decl_Import))) {
-      char (*path_buf) = NULL;
-      if (decl->import_decl.is_relative) {
-        rio_buf_printf(&(path_buf), "%s/", package->path);
-      }
-      {
-        rio_Slice_ptr_const_char items__ = decl->import_decl.names;
-        for (size_t k = 0; k < items__.length; ++k) {
-          char const ((*name)) = items__.items[k];
-          if (!(rio_str_islower(name))) {
-            rio_fatal_error(decl->pos, "Import name must be lower case: \'%s\'", name);
-          }
-          rio_buf_printf(&(path_buf), "%s%s", ((k) == (0) ? "" : "/"), name);
+  {
+    rio_Slice_ref_Decl items__ = package->decls;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_Decl (*decl) = items__.items[i__];
+      if ((decl->kind) == ((rio_Decl_Note))) {
+        if ((decl->note.name) == (rio_always_name)) {
+          package->always_reachable = true;
         }
+      } else if ((decl->kind) == ((rio_Decl_Import))) {
+        char (*path_buf) = NULL;
+        if (decl->import_decl.is_relative) {
+          rio_buf_printf(&(path_buf), "%s/", package->path);
+        }
+        {
+          rio_Slice_ptr_const_char items__ = decl->import_decl.names;
+          for (size_t k = 0; k < items__.length; ++k) {
+            char const ((*name)) = items__.items[k];
+            if (!(rio_str_islower(name))) {
+              rio_fatal_error(decl->pos, "Import name must be lower case: \'%s\'", name);
+            }
+            rio_buf_printf(&(path_buf), "%s%s", ((k) == (0) ? "" : "/"), name);
+          }
+        }
+        rio_Package (*imported_package) = rio_import_package(path_buf);
+        if (!(imported_package)) {
+          rio_fatal_error(decl->pos, "Failed to import package \'%s\'", path_buf);
+        }
+        rio_buf_free((void (**))(&(path_buf)));
+        rio_import_package_symbols(decl, imported_package);
+        if (decl->import_decl.import_all) {
+          rio_import_all_package_symbols(imported_package);
+        }
+        char const ((*sym_name)) = (decl->name ? decl->name : decl->import_decl.names.items[(decl->import_decl.names.length) - (1)]);
+        rio_Sym (*sym) = rio_sym_new((rio_Sym_Package), sym_name, decl);
+        sym->package = imported_package;
+        rio_sym_global_put(sym_name, sym);
       }
-      rio_Package (*imported_package) = rio_import_package(path_buf);
-      if (!(imported_package)) {
-        rio_fatal_error(decl->pos, "Failed to import package \'%s\'", path_buf);
-      }
-      rio_buf_free((void (**))(&(path_buf)));
-      rio_import_package_symbols(decl, imported_package);
-      if (decl->import_decl.import_all) {
-        rio_import_all_package_symbols(imported_package);
-      }
-      char const ((*sym_name)) = (decl->name ? decl->name : decl->import_decl.names.items[(decl->import_decl.names.length) - (1)]);
-      rio_Sym (*sym) = rio_sym_new((rio_Sym_Package), sym_name, decl);
-      sym->package = imported_package;
-      rio_sym_global_put(sym_name, sym);
     }
   }
 }
@@ -9956,13 +9963,16 @@ bool rio_parse_package(rio_Package (*package)) {
       rio_fatal_error((rio_SrcPos){.name = path}, "Failed to read source file");
     }
     rio_init_stream(rio_str_intern(path), code);
-    rio_Decls (*file_decls) = rio_parse_decls();
-    for (size_t i = 0; (i) < (file_decls->num_decls); (i)++) {
-      rio_buf_push((void (**))(&(decls)), &(file_decls->decls[i]), sizeof(file_decls->decls[i]));
+    rio_Slice_ref_Decl (*file_decls) = rio_parse_decls();
+    {
+      rio_Slice_ref_Decl (*items__) = file_decls;
+      for (size_t i__ = 0; i__ < items__->length; ++i__) {
+        rio_Decl (*(*decl)) = &items__->items[i__];
+        rio_buf_push((void (**))(&(decls)), decl, sizeof(*(decl)));
+      }
     }
   }
-  package->decls = decls;
-  package->num_decls = (int)(rio_buf_len(decls));
+  package->decls = (rio_Slice_ref_Decl){decls, rio_buf_len(decls)};
   return (package) != (NULL);
 }
 

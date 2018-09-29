@@ -152,11 +152,6 @@ struct DeclImport {
   items: Slice<ImportItem>;
 }
 
-struct Decls {
-  decls: *&Decl;
-  num_decls: usize;
-}
-
 struct CompoundField {
   pos: SrcPos;
   init: &Expr;
@@ -458,10 +453,9 @@ fn new_typespec_func(
   return t;
 }
 
-fn new_decls(decls: *&Decl, num_decls: usize) -> &Decls {
-  let d: &Decls = ast_alloc(sizeof(Decls));
-  d.decls = ast_dup(decls, num_decls * sizeof(*decls));
-  d.num_decls = num_decls;
+fn new_decls(decls: *&Decl, num_decls: usize) -> &Slice<&Decl> {
+  let d: &Slice<&Decl> = ast_alloc(sizeof(:Slice<&Decl>));
+  *d = {ast_dup(decls, num_decls * sizeof(*decls)), num_decls};
   return d;
 }
 
