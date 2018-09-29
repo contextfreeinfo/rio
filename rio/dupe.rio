@@ -112,7 +112,7 @@ fn map_type_args(self: &TypeMap, item: Any) -> &void {
           for &(params) do(param, i) {
             if (decl == param) {
               // Yep. Found it.
-              let arg = &self.type_args.items[i];
+              let arg = &self.type_args[i];
               return arg.val;
             }
           }

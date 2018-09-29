@@ -841,11 +841,11 @@ fn gen_stmt(stmt: &Stmt) {
       let func = &stmt.for_each.func;
       let item: &FuncParam;
       if (func.params.length) {
-        item = &func.params.items[0];
+        item = &func.params[0];
       }
       let index: *const char;
       if (func.params.length > 1) {
-        index = func.params.items[1].name;
+        index = func.params[1].name;
       } else {
         // TODO Generate something unique? Or is this convention sufficient?
         index = "i__";
@@ -973,7 +973,7 @@ fn gen_stmt(stmt: &Stmt) {
         if (block.stmts.length == 1) {
           // Clean block nesting for the case of a single block.
           // We're already inside on of those.
-          let first = block.stmts.items[0];
+          let first = block.stmts[0];
           if (first.kind == Stmt.Block) {
             block = &first.block;
           }

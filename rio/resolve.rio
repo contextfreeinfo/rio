@@ -678,7 +678,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         // See if it's a type parameter.
         // TODO Also allow locally defined types(?), so support num_names > 1.
         // TODO Requires better node tree of types rather than slice of names.
-        typespec_name = &typespec.names.items[0];
+        typespec_name = &typespec.names[0];
         name = typespec_name.name;
         // if (!strcmp(name, "Num")) {
         //   printf("Try'n'a find it.\n");
@@ -694,7 +694,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       if (!sym) {
         let package = current_package;
         for (let i: usize = 0; i < typespec.names.length - 1; ++i) {
-          let scope = typespec.names.items[i].name;
+          let scope = typespec.names[i].name;
           let scope_sym = get_package_sym(package, scope);
           if (!scope_sym) {
             fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
@@ -717,7 +717,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
           }
           package = scope_sym.package;
         } for;
-        typespec_name = &typespec.names.items[typespec.names.length - 1];
+        typespec_name = &typespec.names[typespec.names.length - 1];
         name = typespec_name.name;
         if (package) {
           sym = get_package_sym(package, name);
@@ -1275,7 +1275,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
           } if;
         } for;
         if (switch_case.block.stmts.length > 1) {
-          let last_stmt = switch_case.block.stmts.items[switch_case.block.stmts.length - 1];
+          let last_stmt = switch_case.block.stmts[switch_case.block.stmts.length - 1];
           if (last_stmt.kind == Stmt.Break) {
             warning(last_stmt.pos, "Case blocks already end with an implicit break");
           }
@@ -1337,13 +1337,13 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
     item_type = type_ref(item_type);
   }
   if (func.params.length) {
-    let item = &func.params.items[0];
+    let item = &func.params[0];
     sym_push_var(item.name, item_type);
     set_resolved_type(item, item_type);
   }
   if (func.params.length > 1) {
     // TODO Validate usize if explicit typespec?
-    let index = &func.params.items[1];
+    let index = &func.params[1];
     sym_push_var(index.name, length_type);
   }
   stmt.for_each.length_type = length_type;

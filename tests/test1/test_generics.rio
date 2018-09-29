@@ -2,7 +2,7 @@ fn test_generics() {
   let slirce: Slirce;
   let slorce: Slorce<int> = {items = (:[]int){1, 2, 3}, length = 3};
   let slorce_ref: Slorce<&int> = {items = (:[]&int){slorce.items}, length = 1};
-  printf("Generically, %d\n", *slorce_ref.items[0]);
+  printf("Generically, %d\n", *slorce_ref[0]);
   let slarb: Slorce<Bar>;
   // Assignment properly succeeds.
   let slarce: Slarce = slorce;
