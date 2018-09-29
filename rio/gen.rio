@@ -317,14 +317,14 @@ fn typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
     Func => {
       let result: *char = NULL;
       buf_printf(&result, "(*%s)(", str);
-      if (typespec.function.num_args == 0) {
+      if (typespec.function.args.length == 0) {
         buf_printf(&result, "void");
       } else {
-        for (let i: usize = 0; i < typespec.function.num_args; i++) {
-          buf_printf(&result, "%s%s", i == 0 ? "" : ", ", typespec_to_cdecl(
-            typespec.function.args[i], "",
-          ));
-        } for;
+        for (typespec.function.args) do(arg, i) {
+          buf_printf(
+            &result, "%s%s", i == 0 ? "" : ", ", typespec_to_cdecl(arg, ""),
+          );
+        }
       } if;
       if (typespec.function.has_varargs) {
         buf_printf(&result, ", ...");
@@ -590,11 +590,11 @@ fn gen_expr(expr: &Expr) {
         gen_expr(expr.call.expr);
       }
       buf_printf(&gen_buf, "(");
-      for (let i: usize = 0; i < expr.call.num_args; i++) {
-        if (i != 0) {
+      for (expr.call.args) do(arg, i) {
+        if (i) {
           buf_printf(&gen_buf, ", ");
         }
-        gen_expr(expr.call.args[i]);
+        gen_expr(arg);
       }
       buf_printf(&gen_buf, ")");
     }
@@ -772,7 +772,7 @@ fn gen_stmt(stmt: &Stmt) {
     Note => {
       if (stmt.note.name == assert_name) {
         genln(); buf_printf(&gen_buf, "assert(");
-        #assert(stmt.note.num_args == 1);
+        #assert(stmt.note.args.length == 1);
         gen_expr(stmt.note.args[0].expr);
         buf_printf(&gen_buf, ");");
       }
@@ -1197,9 +1197,8 @@ fn preprocess_package(package: &Package) {
     }
     let note = decl.note;
     if (note.name == foreign_name) {
-      for (let k: usize = 0; k < note.num_args; k++) {
-        let arg = note.args[k];
-        let expr = note.args[k].expr;
+      for (note.args) do(arg) {
+        let expr = arg.expr;
         if (expr.kind != Expr.Str) {
           fatal_error(decl.pos, "#foreign argument must be a string");
         }
@@ -1217,7 +1216,9 @@ fn preprocess_package(package: &Package) {
         } else if (arg.name == postamble_name) {
           buf_printf(&gen_postamble_buf, "%s\n", str);
         } else {
-          fatal_error(decl.pos, "Unknown #foreign named argument '%s'", arg.name);
+          fatal_error(
+            decl.pos, "Unknown #foreign named argument '%s'", arg.name,
+          );
         }
       } for;
     } if;

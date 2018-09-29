@@ -172,11 +172,11 @@ fn put_typespec_sym_name(buf: **char, type: &Typespec) {
     Func => {
       let function = &type.function;
       buf_printf(buf, "fn_");
-      for (let i: usize = 0; i < type.function.num_args; i++) {
+      for (type.function.args) do(arg, i) {
         if (i) {
           buf_printf(buf, "_");
         }
-        put_typespec_sym_name(buf, type.function.args[i]);
+        put_typespec_sym_name(buf, arg);
       }
       if (type.function.has_varargs) {
         buf_printf(buf, "_etc");

@@ -66,6 +66,7 @@ typedef struct tm tm_t;
 typedef struct TypeInfo TypeInfo;
 typedef struct rio_Arena rio_Arena;
 typedef struct rio_SrcPos rio_SrcPos;
+typedef struct rio_Slice_NoteArg rio_Slice_NoteArg;
 typedef struct rio_Note rio_Note;
 typedef struct rio_Slice_Note rio_Slice_Note;
 typedef struct rio_Slice_ref_Stmt rio_Slice_ref_Stmt;
@@ -94,6 +95,7 @@ typedef struct rio_TypeFunc rio_TypeFunc;
 typedef struct rio_Type rio_Type;
 typedef struct TypeFieldInfo TypeFieldInfo;
 typedef struct rio_Slice_TypespecName rio_Slice_TypespecName;
+typedef struct rio_Slice_ref_Typespec rio_Slice_ref_Typespec;
 typedef struct rio_TypespecFunc rio_TypespecFunc;
 typedef struct rio_Typespec rio_Typespec;
 typedef struct rio_TypespecName rio_TypespecName;
@@ -121,6 +123,7 @@ typedef struct rio_ExprModify rio_ExprModify;
 typedef struct rio_ExprUnary rio_ExprUnary;
 typedef struct rio_ExprBinary rio_ExprBinary;
 typedef struct rio_ExprTernary rio_ExprTernary;
+typedef struct rio_Slice_ref_Expr rio_Slice_ref_Expr;
 typedef struct rio_ExprCall rio_ExprCall;
 typedef struct rio_ExprIndex rio_ExprIndex;
 typedef struct rio_ExprField rio_ExprField;
@@ -421,15 +424,19 @@ struct rio_SrcPos {
   int line;
 };
 
+
+struct rio_Slice_NoteArg {
+  rio_NoteArg (*items);
+  size_t length;
+};
+
 struct rio_Note {
   rio_SrcPos pos;
   char const ((*name));
-  rio_NoteArg (*args);
-  size_t num_args;
+  rio_Slice_NoteArg args;
 };
 
 rio_Note rio_new_note(rio_SrcPos pos, char const ((*name)), rio_NoteArg (*args), size_t num_args);
-
 
 struct rio_Slice_Note {
   rio_Note (*items);
@@ -2082,9 +2089,13 @@ struct rio_Slice_TypespecName {
   size_t length;
 };
 
+struct rio_Slice_ref_Typespec {
+  rio_Typespec (*(*items));
+  size_t length;
+};
+
 struct rio_TypespecFunc {
-  rio_Typespec (*(*args));
-  size_t num_args;
+  rio_Slice_ref_Typespec args;
   bool has_varargs;
   rio_Typespec (*ret);
 };
@@ -2265,10 +2276,14 @@ struct rio_ExprTernary {
   rio_Expr (*else_expr);
 };
 
+struct rio_Slice_ref_Expr {
+  rio_Expr (*(*items));
+  size_t length;
+};
+
 struct rio_ExprCall {
   rio_Expr (*expr);
-  rio_Expr (*(*args));
-  size_t num_args;
+  rio_Slice_ref_Expr args;
 };
 
 struct rio_ExprIndex {
@@ -2516,7 +2531,7 @@ void (*rio_ast_dup(void const ((*src)), size_t size)) {
 }
 
 rio_Note rio_new_note(rio_SrcPos pos, char const ((*name)), rio_NoteArg (*args), size_t num_args) {
-  return (rio_Note){.pos = pos, .name = name, .args = rio_ast_dup(args, (num_args) * (sizeof(*(args)))), .num_args = num_args};
+  return (rio_Note){.pos = pos, .name = name, .args = {rio_ast_dup(args, (num_args) * (sizeof(*(args)))), num_args}};
 }
 
 rio_Slice_Note rio_new_notes(rio_Note (*notes), size_t num_notes) {
@@ -2574,8 +2589,7 @@ rio_Typespec (*rio_new_typespec_array(rio_SrcPos pos, rio_Typespec (*elem), rio_
 
 rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Typespec (*(*args)), size_t num_args, rio_Typespec (*ret), bool has_varargs)) {
   rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Func), pos);
-  t->function.args = rio_ast_dup(args, (num_args) * (sizeof(*(args))));
-  t->function.num_args = num_args;
+  t->function.args = (rio_Slice_ref_Typespec){rio_ast_dup(args, (num_args) * (sizeof(*(args)))), num_args};
   t->function.ret = ret;
   t->function.has_varargs = has_varargs;
   return t;
@@ -2831,8 +2845,7 @@ rio_Expr (*rio_new_expr_cast(rio_SrcPos pos, rio_Typespec (*type), rio_Expr (*ex
 rio_Expr (*rio_new_expr_call(rio_SrcPos pos, rio_Expr (*expr), rio_Expr (*(*args)), size_t num_args)) {
   rio_Expr (*e) = rio_new_expr((rio_Expr_Call), pos);
   e->call.expr = expr;
-  e->call.args = rio_ast_dup(args, (num_args) * (sizeof(*(args))));
-  e->call.num_args = num_args;
+  e->call.args = (rio_Slice_ref_Expr){rio_ast_dup(args, (num_args) * (sizeof(*(args)))), num_args};
   return e;
 }
 
@@ -3578,11 +3591,15 @@ void rio_put_typespec_sym_name(char (*(*buf)), rio_Typespec (*type)) {
   case rio_Typespec_Func: {
     rio_TypespecFunc (*function) = &(type->function);
     rio_buf_printf(buf, "fn_");
-    for (size_t i = 0; (i) < (type->function.num_args); (i)++) {
-      if (i) {
-        rio_buf_printf(buf, "_");
+    {
+      rio_Slice_ref_Typespec items__ = type->function.args;
+      for (size_t i = 0; i < items__.length; ++i) {
+        rio_Typespec (*arg) = items__.items[i];
+        if (i) {
+          rio_buf_printf(buf, "_");
+        }
+        rio_put_typespec_sym_name(buf, arg);
       }
-      rio_put_typespec_sym_name(buf, type->function.args[i]);
     }
     if (type->function.has_varargs) {
       rio_buf_printf(buf, "_etc");
@@ -3903,11 +3920,15 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
   case rio_Typespec_Func: {
     char (*result) = NULL;
     rio_buf_printf(&(result), "(*%s)(", str);
-    if ((typespec->function.num_args) == (0)) {
+    if ((typespec->function.args.length) == (0)) {
       rio_buf_printf(&(result), "void");
     } else {
-      for (size_t i = 0; (i) < (typespec->function.num_args); (i)++) {
-        rio_buf_printf(&(result), "%s%s", ((i) == (0) ? "" : ", "), rio_typespec_to_cdecl(typespec->function.args[i], ""));
+      {
+        rio_Slice_ref_Typespec items__ = typespec->function.args;
+        for (size_t i = 0; i < items__.length; ++i) {
+          rio_Typespec (*arg) = items__.items[i];
+          rio_buf_printf(&(result), "%s%s", ((i) == (0) ? "" : ", "), rio_typespec_to_cdecl(arg, ""));
+        }
       }
     }
     if (typespec->function.has_varargs) {
@@ -4161,11 +4182,15 @@ void rio_gen_expr(rio_Expr (*expr)) {
       rio_gen_expr(expr->call.expr);
     }
     rio_buf_printf(&(rio_gen_buf), "(");
-    for (size_t i = 0; (i) < (expr->call.num_args); (i)++) {
-      if ((i) != (0)) {
-        rio_buf_printf(&(rio_gen_buf), ", ");
+    {
+      rio_Slice_ref_Expr items__ = expr->call.args;
+      for (size_t i = 0; i < items__.length; ++i) {
+        rio_Expr (*arg) = items__.items[i];
+        if (i) {
+          rio_buf_printf(&(rio_gen_buf), ", ");
+        }
+        rio_gen_expr(arg);
       }
-      rio_gen_expr(expr->call.args[i]);
     }
     rio_buf_printf(&(rio_gen_buf), ")");
     break;
@@ -4364,8 +4389,8 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     if ((stmt->note.name) == (rio_assert_name)) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "assert(");
-      assert((stmt->note.num_args) == (1));
-      rio_gen_expr(stmt->note.args[0].expr);
+      assert((stmt->note.args.length) == (1));
+      rio_gen_expr(stmt->note.args.items[0].expr);
       rio_buf_printf(&(rio_gen_buf), ");");
     }
     break;
@@ -4790,27 +4815,30 @@ void rio_preprocess_package(rio_Package (*package)) {
     }
     rio_Note note = decl->note;
     if ((note.name) == (rio_foreign_name)) {
-      for (size_t k = 0; (k) < (note.num_args); (k)++) {
-        rio_NoteArg arg = note.args[k];
-        rio_Expr (*expr) = note.args[k].expr;
-        if ((expr->kind) != ((rio_Expr_Str))) {
-          rio_fatal_error(decl->pos, "#foreign argument must be a string");
-        }
-        char const ((*str)) = expr->str_lit.val;
-        if ((arg.name) == (header_name)) {
-          char (path[MAX_PATH]) = {0};
-          rio_put_include_path(path, package, str);
-          rio_add_foreign_header(path);
-        } else if ((arg.name) == (source_name)) {
-          char (path[MAX_PATH]) = {0};
-          rio_put_include_path(path, package, str);
-          rio_add_foreign_source(path);
-        } else if ((arg.name) == (preamble_name)) {
-          rio_buf_printf(&(rio_gen_preamble_buf), "%s\n", str);
-        } else if ((arg.name) == (postamble_name)) {
-          rio_buf_printf(&(rio_gen_postamble_buf), "%s\n", str);
-        } else {
-          rio_fatal_error(decl->pos, "Unknown #foreign named argument \'%s\'", arg.name);
+      {
+        rio_Slice_NoteArg items__ = note.args;
+        for (size_t i__ = 0; i__ < items__.length; ++i__) {
+          rio_NoteArg arg = items__.items[i__];
+          rio_Expr (*expr) = arg.expr;
+          if ((expr->kind) != ((rio_Expr_Str))) {
+            rio_fatal_error(decl->pos, "#foreign argument must be a string");
+          }
+          char const ((*str)) = expr->str_lit.val;
+          if ((arg.name) == (header_name)) {
+            char (path[MAX_PATH]) = {0};
+            rio_put_include_path(path, package, str);
+            rio_add_foreign_header(path);
+          } else if ((arg.name) == (source_name)) {
+            char (path[MAX_PATH]) = {0};
+            rio_put_include_path(path, package, str);
+            rio_add_foreign_source(path);
+          } else if ((arg.name) == (preamble_name)) {
+            rio_buf_printf(&(rio_gen_preamble_buf), "%s\n", str);
+          } else if ((arg.name) == (postamble_name)) {
+            rio_buf_printf(&(rio_gen_postamble_buf), "%s\n", str);
+          } else {
+            rio_fatal_error(decl->pos, "Unknown #foreign named argument \'%s\'", arg.name);
+          }
         }
       }
     }
@@ -7222,14 +7250,14 @@ rio_Sym (*rio_sym_new(rio_Sym_Kind kind, char const ((*name)), rio_Decl (*decl))
 void rio_process_decl_notes(rio_Decl (*decl), rio_Sym (*sym)) {
   rio_Note (*foreign_note) = rio_get_decl_note(decl, rio_foreign_name);
   if (foreign_note) {
-    if ((foreign_note->num_args) > (1)) {
+    if ((foreign_note->args.length) > (1)) {
       rio_fatal_error(decl->pos, "@foreign takes 0 or 1 argument");
     }
     char const ((*external_name)) = {0};
-    if ((foreign_note->num_args) == (0)) {
+    if ((foreign_note->args.length) == (0)) {
       external_name = sym->name;
     } else {
-      rio_Expr (*arg) = foreign_note->args[0].expr;
+      rio_Expr (*arg) = foreign_note->args.items[0].expr;
       if ((arg->kind) != ((rio_Expr_Str))) {
         rio_fatal_error(decl->pos, "@foreign argument 1 must be a string literal");
       }
@@ -7848,12 +7876,16 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
   }
   case rio_Typespec_Func: {
     rio_Type (*(*args)) = NULL;
-    for (size_t i = 0; (i) < (typespec->function.num_args); (i)++) {
-      rio_Type (*arg) = rio_resolve_typespec(typespec->function.args[i]);
-      if ((arg) == (rio_type_void)) {
-        rio_fatal_error(typespec->pos, "Function parameter type cannot be void");
+    {
+      rio_Slice_ref_Typespec items__ = typespec->function.args;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_Typespec (*arg) = items__.items[i__];
+        rio_Type (*arg_type) = rio_resolve_typespec(arg);
+        if ((arg_type) == (rio_type_void)) {
+          rio_fatal_error(typespec->pos, "Function parameter type cannot be void");
+        }
+        rio_buf_push((void (**))(&(args)), &(arg_type), sizeof(arg_type));
       }
-      rio_buf_push((void (**))(&(args)), &(arg), sizeof(arg));
     }
     rio_Type (*ret) = rio_type_void;
     if (typespec->function.ret) {
@@ -8176,10 +8208,10 @@ void rio_resolve_stmt_init(rio_Stmt (*stmt)) {
 }
 
 void rio_resolve_static_assert(rio_Note note) {
-  if ((note.num_args) != (1)) {
+  if ((note.args.length) != (1)) {
     rio_fatal_error(note.pos, "#static_assert takes 1 argument");
   }
-  rio_Operand operand = rio_resolve_const_expr(note.args[0].expr);
+  rio_Operand operand = rio_resolve_const_expr(note.args.items[0].expr);
   if (!(operand.val.ull)) {
     rio_fatal_error(note.pos, "#static_assert failed");
   }
@@ -8224,10 +8256,10 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
   }
   case rio_Stmt_Note: {
     if ((stmt->note.name) == (rio_assert_name)) {
-      if ((stmt->note.num_args) != (1)) {
+      if ((stmt->note.args.length) != (1)) {
         rio_fatal_error(stmt->pos, "#assert takes 1 argument");
       }
-      rio_resolve_cond_expr(stmt->note.args[0].expr);
+      rio_resolve_cond_expr(stmt->note.args.items[0].expr);
     } else if ((stmt->note.name) == (rio_static_assert_name)) {
       rio_resolve_static_assert(stmt->note);
     } else {
@@ -9291,10 +9323,10 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
     }
     sym = rio_resolve_name(expr->call.expr->name);
     if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
-      if ((expr->call.num_args) != (1)) {
+      if ((expr->call.args.length) != (1)) {
         rio_fatal_error(expr->pos, "Type conversion operator takes 1 argument");
       }
-      rio_Operand operand = rio_resolve_expr_rvalue(expr->call.args[0]);
+      rio_Operand operand = rio_resolve_expr_rvalue(expr->call.args.items[0]);
       if (!(cast_operand(&(operand), sym->type))) {
         rio_fatal_error(expr->pos, "Invalid type cast from %s to %s", rio_get_type_name(operand.type), rio_get_type_name(sym->type));
       }
@@ -9316,15 +9348,15 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
     }
   }
   size_t num_params = function.type->function.num_params;
-  if ((expr->call.num_args) < (num_params)) {
+  if ((expr->call.args.length) < (num_params)) {
     rio_fatal_error(expr->pos, "Function call with too few arguments");
   }
-  if (((expr->call.num_args) > (num_params)) && (!(function.type->function.has_varargs))) {
+  if (((expr->call.args.length) > (num_params)) && (!(function.type->function.has_varargs))) {
     rio_fatal_error(expr->pos, "Function call with too many arguments");
   }
   for (size_t i = 0; (i) < (num_params); (i)++) {
     rio_Type (*param_type) = function.type->function.params[i];
-    rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args[i], param_type);
+    rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args.items[i], param_type);
     if (is_generic) {
       printf("Checking arg: %d -> %d: %s, %d, %zu \n", arg.type->kind, (arg.type->kind) == ((rio_CompilerTypeKind_Int)), rio_get_type_name(arg.type), (expr->call.expr->kind) == ((rio_Expr_Name)), expr->call.expr->type_args.length);
       if ((arg.type) && (arg.type->sym)) {
@@ -9335,11 +9367,11 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
       param_type = rio_type_ptr(param_type->base);
     }
     if (!(rio_convert_operand(&(arg), param_type))) {
-      rio_fatal_error(expr->call.args[i]->pos, "Invalid type in function call argument. Expected %s, got %s", rio_get_type_name(param_type), rio_get_type_name(arg.type));
+      rio_fatal_error(expr->call.args.items[i]->pos, "Invalid type in function call argument. Expected %s, got %s", rio_get_type_name(param_type), rio_get_type_name(arg.type));
     }
   }
-  for (size_t i = num_params; (i) < (expr->call.num_args); (i)++) {
-    rio_resolve_expr_rvalue(expr->call.args[i]);
+  for (size_t i = num_params; (i) < (expr->call.args.length); (i)++) {
+    rio_resolve_expr_rvalue(expr->call.args.items[i]);
   }
   return rio_operand_rvalue(function.type->function.ret);
 }
@@ -9746,10 +9778,10 @@ void rio_add_package_decls(rio_Package (*package)) {
         rio_warning(decl->pos, "Unknown declaration #directive \'%s\'", decl->note.name);
       }
       if ((decl->note.name) == (rio_declare_note_name)) {
-        if ((decl->note.num_args) != (1)) {
+        if ((decl->note.args.length) != (1)) {
           rio_fatal_error(decl->pos, "#declare_note takes 1 argument");
         }
-        rio_Expr (*arg) = decl->note.args[0].expr;
+        rio_Expr (*arg) = decl->note.args.items[0].expr;
         if ((arg->kind) != ((rio_Expr_Name))) {
           rio_fatal_error(decl->pos, "#declare_note argument must be name");
         }

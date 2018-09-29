@@ -92,11 +92,11 @@ fn sym_new(kind: Sym.Kind, name: *const char, decl: &Decl) -> &Sym {
 fn process_decl_notes(decl: &Decl, sym: &Sym) {
   let foreign_note = get_decl_note(decl, foreign_name);
   if (foreign_note) {
-    if (foreign_note.num_args > 1) {
+    if (foreign_note.args.length > 1) {
       fatal_error(decl.pos, "@foreign takes 0 or 1 argument");
     }
     let external_name: *const char;
-    if (foreign_note.num_args == 0) {
+    if (foreign_note.args.length == 0) {
       external_name = sym.name;
     } else {
       let arg = foreign_note.args[0].expr;
@@ -767,12 +767,12 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
     }
     Func => {
       let args: *&Type = NULL;
-      for (let i: usize = 0; i < typespec.function.num_args; i++) {
-        let arg = resolve_typespec(typespec.function.args[i]);
-        if (arg == type_void) {
+      for (typespec.function.args) do(arg) {
+        let arg_type = resolve_typespec(arg);
+        if (arg_type == type_void) {
           fatal_error(typespec.pos, "Function parameter type cannot be void");
         }
-        buf_push((:&&void)&args, &arg, sizeof(arg));
+        buf_push((:&&void)&args, &arg_type, sizeof(arg_type));
       } for;
       let ret = type_void;
       if (typespec.function.ret) {
@@ -1120,7 +1120,7 @@ fn resolve_stmt_init(stmt: &Stmt) {
 }
 
 fn resolve_static_assert(note: Note) {
-  if (note.num_args != 1) {
+  if (note.args.length != 1) {
     fatal_error(note.pos, "#static_assert takes 1 argument");
   }
   let operand = resolve_const_expr(note.args[0].expr);
@@ -1164,7 +1164,7 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
     }
     Note => {
       if (stmt.note.name == assert_name) {
-        if (stmt.note.num_args != 1) {
+        if (stmt.note.args.length != 1) {
           fatal_error(stmt.pos, "#assert takes 1 argument");
         }
         resolve_cond_expr(stmt.note.args[0].expr);
@@ -2064,7 +2064,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
     }
     sym = resolve_name(expr.call.expr.name);
     if (sym && sym.kind == Sym.Type) {
-      if (expr.call.num_args != 1) {
+      if (expr.call.args.length != 1) {
         fatal_error(expr.pos, "Type conversion operator takes 1 argument");
       }
       let operand = resolve_expr_rvalue(expr.call.args[0]);
@@ -2090,10 +2090,12 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
   }
   let num_params: usize = function.type.function.num_params;
   // TODO Default args go here.
-  if (expr.call.num_args < num_params) {
+  if (expr.call.args.length < num_params) {
     fatal_error(expr.pos, "Function call with too few arguments");
   }
-  if (expr.call.num_args > num_params && !function.type.function.has_varargs) {
+  if (
+    expr.call.args.length > num_params && !function.type.function.has_varargs
+  ) {
     fatal_error(expr.pos, "Function call with too many arguments");
   }
   for (let i: usize = 0; i < num_params; i++) {
@@ -2120,7 +2122,9 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
       fatal_error(expr.call.args[i].pos, "Invalid type in function call argument. Expected %s, got %s", get_type_name(param_type), get_type_name(arg.type));
     }
   } for;
-  for (let i: usize = num_params; i < expr.call.num_args; i++) {
+  // TODO Actual slice operators.
+  // for (expr.call.args[num_params:]) do(arg) {
+  for (let i: usize = num_params; i < expr.call.args.length; i++) {
     resolve_expr_rvalue(expr.call.args[i]);
   }
   return operand_rvalue(function.type.function.ret);
@@ -2478,7 +2482,7 @@ fn add_package_decls(package: &Package) {
         warning(decl.pos, "Unknown declaration #directive '%s'", decl.note.name);
       }
       if (decl.note.name == declare_note_name) {
-        if (decl.note.num_args != 1) {
+        if (decl.note.args.length != 1) {
           fatal_error(decl.pos, "#declare_note takes 1 argument");
         }
         let arg = decl.note.args[0].expr;

@@ -9,8 +9,7 @@ struct NoteArg {
 struct Note {
   pos: SrcPos;
   name: *const char;
-  args: *NoteArg;
-  num_args: usize;
+  args: Slice<NoteArg>;
 }
 
 struct StmtList {
@@ -39,8 +38,7 @@ struct TypespecName {
 }
 
 struct TypespecFunc {
-  args: *&Typespec;
-  num_args: usize;
+  args: Slice<&Typespec>;
   has_varargs: bool;
   ret: &Typespec;
 }
@@ -270,8 +268,7 @@ struct ExprTernary {
 
 struct ExprCall {
   expr: &Expr;
-  args: *&Expr;
-  num_args: usize;
+  args: Slice<&Expr>;
 }
 
 struct ExprIndex {
@@ -395,8 +392,12 @@ fn ast_dup(src: &const void, size: usize) -> &void {
 
 // #define AST_DUP(x) ast_dup(x, num_##x * sizeof(*x))
 
-fn new_note(pos: SrcPos, name: *const char, args: *NoteArg, num_args: usize) -> Note {
-  return {pos = pos, name = name, args = ast_dup(args, num_args * sizeof(*args)), num_args = num_args};
+fn new_note(
+  pos: SrcPos, name: *const char, args: *NoteArg, num_args: usize,
+) -> Note {
+  return {pos = pos, name = name, args = {
+    ast_dup(args, num_args * sizeof(*args)), num_args,
+  }};
 }
 
 fn new_notes(notes: *Note, num_notes: usize) -> Slice<Note> {
@@ -454,10 +455,12 @@ fn new_typespec_array(pos: SrcPos, elem: &Typespec, size: &Expr) -> &Typespec {
   return t;
 }
 
-fn new_typespec_func(pos: SrcPos, args: *&Typespec, num_args: usize, ret: &Typespec, has_varargs: bool) -> &Typespec {
+fn new_typespec_func(
+  pos: SrcPos, args: *&Typespec, num_args: usize, ret: &Typespec,
+  has_varargs: bool,
+) -> &Typespec {
   let t = new_typespec(Typespec.Func, pos);
-  t.function.args = ast_dup(args, num_args * sizeof(*args));
-  t.function.num_args = num_args;
+  t.function.args = {ast_dup(args, num_args * sizeof(*args)), num_args};
   t.function.ret = ret;
   t.function.has_varargs = has_varargs;
   return t;
@@ -723,11 +726,12 @@ fn new_expr_cast(pos: SrcPos, type: &Typespec, expr: &Expr) -> &Expr {
   return e;
 }
 
-fn new_expr_call(pos: SrcPos, expr: &Expr, args: *&Expr, num_args: usize) -> &Expr {
+fn new_expr_call(
+  pos: SrcPos, expr: &Expr, args: *&Expr, num_args: usize,
+) -> &Expr {
   let e = new_expr(Expr.Call, pos);
   e.call.expr = expr;
-  e.call.args = ast_dup(args, num_args * sizeof(*args));
-  e.call.num_args = num_args;
+  e.call.args = {ast_dup(args, num_args * sizeof(*args)), num_args};
   return e;
 }
 
