@@ -599,7 +599,17 @@ fn gen_expr(expr: &Expr) {
       buf_printf(&gen_buf, ")");
     }
     Index => {
+      let type = unqualify_type(get_resolved_type(expr.index.expr));
+      let is_agg = is_aggregate_type(deref_type(type));
+      // TODO Assert index >= 0 and <= length, but we don't want to evaluate
+      // TODO index twice, and we can't easily inline a var declaration.
+      // TODO We'd need a separate function call or major reworking.
+      // TODO We need major reworking to turn statements into expressions or for
+      // TODO generators, so think about those things then.
       gen_expr(expr.index.expr);
+      if (is_agg) {
+        buf_printf(&gen_buf, "%sitems", is_ptr_type(type) ? "->" : ".");
+      }
       buf_printf(&gen_buf, "[");
       gen_expr(expr.index.index);
       buf_printf(&gen_buf, "]");

@@ -1371,7 +1371,7 @@ void test1_test_for_each(void) {
       *(name) = "Someone";
     }
   }
-  printf("%s, %s, and %s\n", friends[0], friends[1], friends[2]);
+  printf("%s, %s, and %s\n", slice.items[0], friends[1], friends[2]);
 }
 
 int test1_subtest1_func1(void) {

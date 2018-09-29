@@ -1735,6 +1735,10 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx);
 
 void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx);
 
+rio_Type (*rio_resolve_item_type(rio_SrcPos pos, rio_Operand operand));
+
+rio_Type (*rio_resolve_length_type(rio_SrcPos pos, rio_Operand operand));
+
 rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type)));
 
 void rio_resolve_func_body(rio_Sym (*sym));
@@ -1981,6 +1985,8 @@ bool rio_is_ptr_type(rio_Type (*type));
 
 bool rio_is_ptr_star_type(rio_Type (*type));
 
+bool rio_is_ref_type(rio_Type (*type));
+
 bool rio_is_func_type(rio_Type (*type));
 
 bool rio_is_ptr_like_type(rio_Type (*type));
@@ -2028,6 +2034,8 @@ rio_Type (*rio_type_ref(rio_Type (*base)));
 extern rio_Map rio_cached_const_types;
 
 rio_Type (*rio_type_const(rio_Type (*base)));
+
+rio_Type (*rio_deref_type(rio_Type (*type)));
 
 rio_Type (*rio_unqualify_type(rio_Type (*type)));
 
@@ -4163,7 +4171,12 @@ void rio_gen_expr(rio_Expr (*expr)) {
     break;
   }
   case rio_Expr_Index: {
+    rio_Type (*type) = rio_unqualify_type(rio_get_resolved_type(expr->index.expr));
+    bool is_agg = rio_is_aggregate_type(rio_deref_type(type));
     rio_gen_expr(expr->index.expr);
+    if (is_agg) {
+      rio_buf_printf(&(rio_gen_buf), "%sitems", (rio_is_ptr_type(type) ? "->" : "."));
+    }
     rio_buf_printf(&(rio_gen_buf), "[");
     rio_gen_expr(expr->index.index);
     rio_buf_printf(&(rio_gen_buf), "]");
@@ -8381,15 +8394,8 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
   rio_Type (*length_type) = {0};
   if ((item_type->kind) == ((rio_CompilerTypeKind_Struct))) {
     rio_SrcPos pos = stmt->for_each.expr->pos;
-    rio_Operand items = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("items"));
-    if ((items.type->kind) != ((rio_CompilerTypeKind_Ptr))) {
-      rio_fatal_error(pos, "Items collection must be a pointer");
-    }
-    item_type = items.type->base;
-    length_type = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("length")).type;
-    if (!(rio_is_integer_type(length_type))) {
-      rio_fatal_error(pos, "Length must have integer type");
-    }
+    item_type = rio_resolve_item_type(pos, operand);
+    length_type = rio_resolve_length_type(pos, operand);
   } else {
     length_type = rio_type_usize;
   }
@@ -8410,6 +8416,22 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
   ctx.is_continue_legal = true;
   rio_resolve_stmt_block(func->block, ret_type, ctx);
   rio_sym_leave(scope);
+}
+
+rio_Type (*rio_resolve_item_type(rio_SrcPos pos, rio_Operand operand)) {
+  rio_Operand items = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("items"));
+  if ((items.type->kind) != ((rio_CompilerTypeKind_Ptr))) {
+    rio_fatal_error(pos, "Items collection must be a pointer");
+  }
+  return items.type->base;
+}
+
+rio_Type (*rio_resolve_length_type(rio_SrcPos pos, rio_Operand operand)) {
+  rio_Type (*length_type) = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("length")).type;
+  if (!(rio_is_integer_type(length_type))) {
+    rio_fatal_error(pos, "Length must have integer type");
+  }
+  return length_type;
 }
 
 rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type))) {
@@ -9352,14 +9374,21 @@ rio_Operand rio_resolve_expr_ternary(rio_Expr (*expr), rio_Type (*expected_type)
 rio_Operand rio_resolve_expr_index(rio_Expr (*expr)) {
   assert((expr->kind) == ((rio_Expr_Index)));
   rio_Operand operand = rio_resolve_expr_rvalue(expr->index.expr);
-  if (!(rio_is_ptr_star_type(operand.type))) {
-    rio_fatal_error(expr->pos, "Can only index arrays and star pointers");
+  rio_Type (*item_type) = {0};
+  if (rio_is_ptr_star_type(operand.type)) {
+    item_type = operand.type->base;
+  } else {
+    if (rio_is_aggregate_type(rio_deref_type(operand.type))) {
+      item_type = rio_resolve_item_type(expr->pos, operand);
+    } else {
+      rio_fatal_error(expr->pos, "Can only index arrays, star pointers, and slices");
+    }
   }
   rio_Operand index = rio_resolve_expr_rvalue(expr->index.index);
   if (!(rio_is_integer_type(index.type))) {
     rio_fatal_error(expr->pos, "Index must have integer type");
   }
-  return rio_operand_lvalue(operand.type->base);
+  return rio_operand_lvalue(item_type);
 }
 
 rio_Operand rio_resolve_expr_cast(rio_Expr (*expr)) {
@@ -10281,6 +10310,10 @@ bool rio_is_ptr_star_type(rio_Type (*type)) {
   return (type->kind) == ((rio_CompilerTypeKind_Ptr));
 }
 
+bool rio_is_ref_type(rio_Type (*type)) {
+  return (type->kind) == ((rio_CompilerTypeKind_Ref));
+}
+
 bool rio_is_func_type(rio_Type (*type)) {
   return (type->kind) == ((rio_CompilerTypeKind_Func));
 }
@@ -10452,6 +10485,11 @@ rio_Type (*rio_type_const(rio_Type (*base))) {
     rio_map_put(&(rio_cached_const_types), base, type);
   }
   return type;
+}
+
+rio_Type (*rio_deref_type(rio_Type (*type))) {
+  type = rio_unqualify_type(type);
+  return rio_unqualify_type((rio_is_ref_type(type) ? type->base : type));
 }
 
 rio_Type (*rio_unqualify_type(rio_Type (*type))) {

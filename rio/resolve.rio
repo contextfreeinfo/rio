@@ -1328,18 +1328,8 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   let length_type: &Type;
   if (item_type.kind == CompilerTypeKind.Struct) {
     let pos = stmt.for_each.expr.pos;
-    // TODO Pre-intern these strings!!!
-    let items = resolve_expr_aggregate_field(pos, operand, str_intern("items"));
-    if (items.type.kind != CompilerTypeKind.Ptr) {
-      fatal_error(pos, "Items collection must be a pointer");
-    }
-    item_type = items.type.base;
-    length_type =
-      resolve_expr_aggregate_field(pos, operand, str_intern("length")).type;
-    // TODO Be narrower than just integer.
-    if (!is_integer_type(length_type)) {
-      fatal_error(pos, "Length must have integer type");
-    }
+    item_type = resolve_item_type(pos, operand);
+    length_type = resolve_length_type(pos, operand);
   } else {
     length_type = type_usize;
   }
@@ -1362,6 +1352,26 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   ctx.is_continue_legal = true;
   resolve_stmt_block(func.block, ret_type, ctx);
   sym_leave(scope);
+}
+
+fn resolve_item_type(pos: SrcPos, operand: Operand) -> &Type {
+  // TODO Pre-intern these strings!!!
+  let items = resolve_expr_aggregate_field(pos, operand, str_intern("items"));
+  if (items.type.kind != CompilerTypeKind.Ptr) {
+    fatal_error(pos, "Items collection must be a pointer");
+  }
+  return items.type.base;
+}
+
+fn resolve_length_type(pos: SrcPos, operand: Operand) -> &Type {
+  // TODO Pre-intern these strings!!!
+  let length_type =
+    resolve_expr_aggregate_field(pos, operand, str_intern("length")).type;
+  // TODO Be narrower than just integer?
+  if (!is_integer_type(length_type)) {
+    fatal_error(pos, "Length must have integer type");
+  }
+  return length_type;
 }
 
 fn resolve_for_each_type(pos: SrcPos, type: &Type) -> &Type {
@@ -2148,14 +2158,21 @@ fn resolve_expr_ternary(expr: &Expr, expected_type: &Type) -> Operand {
 fn resolve_expr_index(expr: &Expr) -> Operand {
   #assert(expr.kind == Expr.Index);
   let operand = resolve_expr_rvalue(expr.index.expr);
-  if (!is_ptr_star_type(operand.type)) {
-    fatal_error(expr.pos, "Can only index arrays and star pointers");
+  let item_type: &Type;
+  if (is_ptr_star_type(operand.type)) {
+    item_type = operand.type.base;
+  } else {
+    if (is_aggregate_type(deref_type(operand.type))) {
+      item_type = resolve_item_type(expr.pos, operand);
+    } else {
+      fatal_error(expr.pos, "Can only index arrays, star pointers, and slices");
+    }
   }
   let index = resolve_expr_rvalue(expr.index.index);
   if (!is_integer_type(index.type)) {
     fatal_error(expr.pos, "Index must have integer type");
   }
-  return operand_lvalue(operand.type.base);
+  return operand_lvalue(item_type);
 }
 
 fn resolve_expr_cast(expr: &Expr) -> Operand {

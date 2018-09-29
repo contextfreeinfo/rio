@@ -126,6 +126,10 @@ fn is_ptr_star_type(type: &Type) -> bool {
   return type.kind == CompilerTypeKind.Ptr;
 }
 
+fn is_ref_type(type: &Type) -> bool {
+  return type.kind == CompilerTypeKind.Ref;
+}
+
 fn is_func_type(type: &Type) -> bool {
   return type.kind == CompilerTypeKind.Func;
 }
@@ -285,6 +289,12 @@ fn type_const(base: &Type) -> &Type {
     map_put(&cached_const_types, base, type);
   }
   return type;
+}
+
+fn deref_type(type: &Type) -> &Type {
+  type = unqualify_type(type);
+  // Ref only here. Don't go into star pointers.
+  return unqualify_type(is_ref_type(type) ? type.base : type);
 }
 
 fn unqualify_type(type: &Type) -> &Type {
