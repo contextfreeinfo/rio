@@ -1366,8 +1366,8 @@ void test1_test_for_each(void) {
   }
   {
     test1_Slice_ptr_const_char items__ = slice;
-    for (size_t index = 0; index < items__.length; ++index) {
-      char const ((*(*name))) = &items__.items[index];
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      char const ((*(*name))) = &items__.items[i__];
       *(name) = "Someone";
     }
   }

@@ -37,12 +37,8 @@ fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
 
 fn dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
   let dupe = &block;
-  // for item in dupe.stmts {
-  // for dupe.stmts do(item) {
-  // for (dupe.stmts) do(item) {
-  // for (let item in dupe.stmts) {
-  for (let i: usize = 0; i < dupe.stmts.length; ++i) {
-    dupe.stmts.items[i] = dupe_stmt(dupe.stmts.items[i], map);
+  for &(dupe.stmts) do(stmt) {
+    *stmt = dupe_stmt(*stmt, map);
   }
   return *dupe;
 }
@@ -55,8 +51,8 @@ fn dupe_function(func: &DeclFunc, map: &MapClosure) -> &DeclFunc {
   let dupe: &DeclFunc = ast_dup(func, sizeof(*func));
   dupe.params.items =
     ast_dup(dupe.params.items, sizeof(FuncParam) * dupe.params.length);
-  for (let i: usize = 0; i < dupe.params.length; ++i) {
-    dupe.params.items[i] = dupe_func_param(dupe.params.items[i], map);
+  for &(dupe.params) do(param) {
+    *param = dupe_func_param(*param, map);
   }
   dupe.ret_type = dupe_typespec(dupe.ret_type, map);
   dupe.block = dupe_block(dupe.block, map);
@@ -113,8 +109,8 @@ fn map_type_args(self: &TypeMap, item: Any) -> &void {
           // See if this is a reference to a type parameter.
           let decl = type.decl;
           let params = self.type_params;
-          for (let i = 0; i < params.length; ++i) {
-            if (decl == &params.items[i]) {
+          for &(params) do(param, i) {
+            if (decl == param) {
               // Yep. Found it.
               let arg = &self.type_args.items[i];
               return arg.val;
@@ -148,7 +144,7 @@ fn put_typespec_sym_name(buf: **char, type: &Typespec) {
         }
         buf_printf(buf, "%s", type.names[i].name);
         // And args, too.
-        for (type.names[i].type_args) do(type_arg) {
+        for &(type.names[i].type_args) do(type_arg) {
           buf_printf(buf, "_");
           put_typespec_sym_name(buf, type_arg.val);
         }

@@ -3391,8 +3391,12 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
 
 rio_StmtList rio_dupe_block(rio_StmtList block, rio_MapClosure (*map)) {
   rio_StmtList (*dupe) = &(block);
-  for (size_t i = 0; (i) < (dupe->stmts.length); ++(i)) {
-    dupe->stmts.items[i] = rio_dupe_stmt(dupe->stmts.items[i], map);
+  {
+    rio_Slice_ref_Stmt items__ = dupe->stmts;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_Stmt (*(*stmt)) = &items__.items[i__];
+      *(stmt) = rio_dupe_stmt(*(stmt), map);
+    }
   }
   return *(dupe);
 }
@@ -3404,8 +3408,12 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
 rio_DeclFunc (*rio_dupe_function(rio_DeclFunc (*func), rio_MapClosure (*map))) {
   rio_DeclFunc (*dupe) = rio_ast_dup(func, sizeof(*(func)));
   dupe->params.items = rio_ast_dup(dupe->params.items, (sizeof(rio_FuncParam)) * (dupe->params.length));
-  for (size_t i = 0; (i) < (dupe->params.length); ++(i)) {
-    dupe->params.items[i] = rio_dupe_func_param(dupe->params.items[i], map);
+  {
+    rio_Slice_FuncParam items__ = dupe->params;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_FuncParam (*param) = &items__.items[i__];
+      *(param) = rio_dupe_func_param(*(param), map);
+    }
   }
   dupe->ret_type = rio_dupe_typespec(dupe->ret_type, map);
   dupe->block = rio_dupe_block(dupe->block, map);
@@ -3468,10 +3476,14 @@ void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
     case (rio_Typespec_Name): {
       rio_Decl (*decl) = type->decl;
       rio_Slice_Decl params = self->type_params;
-      for (int i = 0; (i) < (params.length); ++(i)) {
-        if ((decl) == (&(params.items[i]))) {
-          rio_TypeArg (*arg) = &(self->type_args.items[i]);
-          return arg->val;
+      {
+        rio_Slice_Decl items__ = params;
+        for (size_t i = 0; i < items__.length; ++i) {
+          rio_Decl (*param) = &items__.items[i];
+          if ((decl) == (param)) {
+            rio_TypeArg (*arg) = &(self->type_args.items[i]);
+            return arg->val;
+          }
         }
       }
       return item.ptr;
@@ -3502,9 +3514,9 @@ void rio_put_typespec_sym_name(char (*(*buf)), rio_Typespec (*type)) {
       {
         rio_Slice_TypeArg items__ = type->names[i].type_args;
         for (size_t i__ = 0; i__ < items__.length; ++i__) {
-          rio_TypeArg type_arg = items__.items[i__];
+          rio_TypeArg (*type_arg) = &items__.items[i__];
           rio_buf_printf(buf, "_");
-          rio_put_typespec_sym_name(buf, type_arg.val);
+          rio_put_typespec_sym_name(buf, type_arg->val);
         }
       }
     }

@@ -854,10 +854,12 @@ fn gen_stmt(stmt: &Stmt) {
       // TODO If it's a name, just use it and avoid the extra block.
       let items = "items__";
       gen_stmt(&Stmt {kind = Stmt.Init, init = {
-        // TODO If expr is a struct, we need to have gotten and resolved a ref
-        // TODO expression to it before here and use that instead.
-        // TODO For Slice, a copy is no big deal, but if we're duck typing, some
-        // TODO slice-like structs could be big.
+        // Ideally, we can optimize to getting a pointer to the iterable, in
+        // case it's a big struct, but that can be tricky, say in cases like
+        // return values from functions or whatever.
+        // Can a smart compiler avoid the big copy anyway?
+        // Are there semantics issues ever?
+        // TODO Figure out when and if to optimize this?
         expr = expr, name = items,
       }});
       genln();
