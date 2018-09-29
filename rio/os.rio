@@ -99,10 +99,8 @@ struct FlagDef {
   kind: FlagKind;
   name: *const char;
   help: *const char;
-  // Here, too!
-  options: **const char;
+  options: Slice<*const char>;
   arg_name: *const char;
-  num_options: int;
   ptr: FlagDefPtr;
 }
 
@@ -124,8 +122,14 @@ fn add_flag_str(name: *const char, ptr: **const char, arg_name: *const char, hel
   buf_push((:&&void)&flag_defs, &def, sizeof(def));
 }
 
-fn add_flag_enum(name: *const char, ptr: &int, help: *const char, options: **const char, num_options: int) {
-  let def: FlagDef = {kind = FlagKind.Enum, name = name, help = help, ptr = {i = ptr}, options = options, num_options = num_options};
+fn add_flag_enum(
+  name: *const char, ptr: &int, help: *const char,
+  options: **const char, num_options: int,
+) {
+  let def: FlagDef = {
+    kind = FlagKind.Enum, name = name, help = help, ptr = {i = ptr},
+    options = {options, num_options},
+  };
   buf_push((:&&void)&flag_defs, &def, sizeof(def));
 }
 
@@ -155,10 +159,10 @@ fn print_flags_usage() {
         let end = format + sizeof(format);
         let ptr = format;
         ptr += snprintf(ptr, end - ptr, "%s <", flag.name);
-        for (let k = 0; k < flag.num_options; k++) {
-          ptr += snprintf(ptr, end - ptr, "%s%s", k == 0 ? "" : "|", flag.options[k]);
+        for (flag.options) do(option, k) {
+          ptr += snprintf(ptr, end - ptr, "%s%s", k == 0 ? "" : "|", option);
           if (k == *flag.ptr.i) {
-            snprintf(note, sizeof(note), " (default: %s)", flag.options[k]);
+            snprintf(note, sizeof(note), " (default: %s)", option);
           }
         }
         snprintf(ptr, end - ptr, ">");
@@ -206,8 +210,8 @@ fn parse_flags(argc_ptr: &int, argv_ptr: &**const char) -> *const char {
             break;
           }
           let found = false;
-          for (let k = 0; k < flag.num_options; k++) {
-            if (strcmp(flag.options[k], option) == 0) {
+          for (flag.options) do(flag_option, k) {
+            if (strcmp(flag_option, option) == 0) {
               *flag.ptr.i = k;
               found = true;
               break;

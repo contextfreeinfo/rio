@@ -2507,9 +2507,8 @@ struct rio_FlagDef {
   rio_FlagKind kind;
   char const ((*name));
   char const ((*help));
-  char const ((*(*options)));
+  rio_Slice_ptr_const_char options;
   char const ((*arg_name));
-  int num_options;
   rio_FlagDefPtr ptr;
 };
 
@@ -5979,7 +5978,7 @@ void rio_add_flag_str(char const ((*name)), char const ((*(*ptr))), char const (
 }
 
 void rio_add_flag_enum(char const ((*name)), int (*ptr), char const ((*help)), char const ((*(*options))), int num_options) {
-  rio_FlagDef def = {.kind = (rio_FlagKind_Enum), .name = name, .help = help, .ptr = {.i = ptr}, .options = options, .num_options = num_options};
+  rio_FlagDef def = {.kind = (rio_FlagKind_Enum), .name = name, .help = help, .ptr = {.i = ptr}, .options = {options, num_options}};
   rio_buf_push((void (**))(&(rio_flag_defs)), &(def), sizeof(def));
 }
 
@@ -6010,10 +6009,14 @@ void rio_print_flags_usage(void) {
       char (*end) = (format) + (sizeof(format));
       char (*ptr) = format;
       ptr += snprintf(ptr, (end) - (ptr), "%s <", flag.name);
-      for (int k = 0; (k) < (flag.num_options); (k)++) {
-        ptr += snprintf(ptr, (end) - (ptr), "%s%s", ((k) == (0) ? "" : "|"), flag.options[k]);
-        if ((k) == (*(flag.ptr.i))) {
-          snprintf(note, sizeof(note), " (default: %s)", flag.options[k]);
+      {
+        rio_Slice_ptr_const_char items__ = flag.options;
+        for (size_t k = 0; k < items__.length; ++k) {
+          char const ((*option)) = items__.items[k];
+          ptr += snprintf(ptr, (end) - (ptr), "%s%s", ((k) == (0) ? "" : "|"), option);
+          if ((k) == (*(flag.ptr.i))) {
+            snprintf(note, sizeof(note), " (default: %s)", option);
+          }
         }
       }
       snprintf(ptr, (end) - (ptr), ">");
@@ -6070,11 +6073,15 @@ char const ((*rio_parse_flags(int (*argc_ptr), char const ((*(*(*argv_ptr)))))))
           break;
         }
         bool found = false;
-        for (int k = 0; (k) < (flag->num_options); (k)++) {
-          if ((strcmp(flag->options[k], option)) == (0)) {
-            *(flag->ptr.i) = k;
-            found = true;
-            break;
+        {
+          rio_Slice_ptr_const_char items__ = flag->options;
+          for (size_t k = 0; k < items__.length; ++k) {
+            char const ((*flag_option)) = items__.items[k];
+            if ((strcmp(flag_option, option)) == (0)) {
+              *(flag->ptr.i) = k;
+              found = true;
+              break;
+            }
           }
         }
         if (!(found)) {
