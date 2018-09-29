@@ -92,6 +92,7 @@ typedef struct rio_Operand rio_Operand;
 typedef struct rio_Label rio_Label;
 typedef struct rio_StmtCtx rio_StmtCtx;
 typedef struct rio_TypeMetrics rio_TypeMetrics;
+typedef struct rio_Slice_TypeField rio_Slice_TypeField;
 typedef struct rio_TypeAggregate rio_TypeAggregate;
 typedef struct rio_TypeFunc rio_TypeFunc;
 typedef struct rio_Type rio_Type;
@@ -119,6 +120,7 @@ typedef struct rio_ExprIntLit rio_ExprIntLit;
 typedef struct rio_ExprFloatLit rio_ExprFloatLit;
 typedef struct rio_ExprStrLit rio_ExprStrLit;
 typedef struct rio_ExprOffsetofField rio_ExprOffsetofField;
+typedef struct rio_Slice_CompoundField rio_Slice_CompoundField;
 typedef struct rio_ExprCompound rio_ExprCompound;
 typedef struct rio_ExprCast rio_ExprCast;
 typedef struct rio_ExprModify rio_ExprModify;
@@ -1922,9 +1924,13 @@ bool rio_is_excluded_target_filename(char const ((*name)));
 
 extern rio_TypeMetrics (*rio_type_metrics);
 
+struct rio_Slice_TypeField {
+  rio_TypeField (*items);
+  size_t length;
+};
+
 struct rio_TypeAggregate {
-  rio_TypeField (*fields);
-  size_t num_fields;
+  rio_Slice_TypeField fields;
 };
 
 struct rio_TypeFunc {
@@ -2248,10 +2254,14 @@ struct rio_ExprOffsetofField {
   char const ((*name));
 };
 
+struct rio_Slice_CompoundField {
+  rio_CompoundField (*items);
+  size_t length;
+};
+
 struct rio_ExprCompound {
   rio_Typespec (*type);
-  rio_CompoundField (*fields);
-  size_t num_fields;
+  rio_Slice_CompoundField fields;
 };
 
 struct rio_ExprCast {
@@ -2837,8 +2847,7 @@ rio_Expr (*rio_new_expr_name(rio_SrcPos pos, char const ((*name)))) {
 rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_CompoundField (*fields), size_t num_fields)) {
   rio_Expr (*e) = rio_new_expr((rio_Expr_Compound), pos);
   e->compound.type = type;
-  e->compound.fields = rio_ast_dup(fields, (num_fields) * (sizeof(*(fields))));
-  e->compound.num_fields = num_fields;
+  e->compound.fields = (rio_Slice_CompoundField){rio_ast_dup(fields, (num_fields) * (sizeof(*(fields)))), num_fields};
   return e;
 }
 
@@ -4084,21 +4093,24 @@ void rio_gen_expr_compound(rio_Expr (*expr)) {
   } else {
     rio_buf_printf(&(rio_gen_buf), "(%s){", rio_type_to_cdecl(rio_get_resolved_type(expr), ""));
   }
-  for (size_t i = 0; (i) < (expr->compound.num_fields); (i)++) {
-    if ((i) != (0)) {
-      rio_buf_printf(&(rio_gen_buf), ", ");
+  {
+    rio_Slice_CompoundField items__ = expr->compound.fields;
+    for (size_t i = 0; i < items__.length; ++i) {
+      rio_CompoundField field = items__.items[i];
+      if (i) {
+        rio_buf_printf(&(rio_gen_buf), ", ");
+      }
+      if ((field.kind) == ((rio_CompoundField_Name))) {
+        rio_buf_printf(&(rio_gen_buf), ".%s = ", field.name);
+      } else if ((field.kind) == ((rio_CompoundField_Index))) {
+        rio_buf_printf(&(rio_gen_buf), "[");
+        rio_gen_expr(field.index);
+        rio_buf_printf(&(rio_gen_buf), "] = ");
+      }
+      rio_gen_expr(field.init);
     }
-    rio_CompoundField field = expr->compound.fields[i];
-    if ((field.kind) == ((rio_CompoundField_Name))) {
-      rio_buf_printf(&(rio_gen_buf), ".%s = ", field.name);
-    } else if ((field.kind) == ((rio_CompoundField_Index))) {
-      rio_buf_printf(&(rio_gen_buf), "[");
-      rio_gen_expr(field.index);
-      rio_buf_printf(&(rio_gen_buf), "] = ");
-    }
-    rio_gen_expr(field.init);
   }
-  if ((expr->compound.num_fields) == (0)) {
+  if ((expr->compound.fields.length) == (0)) {
     rio_buf_printf(&(rio_gen_buf), "0");
   }
   rio_buf_printf(&(rio_gen_buf), "}");
@@ -4876,17 +4888,20 @@ void rio_gen_typeinfo_header(char const ((*kind)), rio_Type (*type)) {
 
 void rio_gen_typeinfo_fields(rio_Type (*type)) {
   (rio_gen_indent)++;
-  for (size_t i = 0; (i) < (type->aggregate.num_fields); (i)++) {
-    rio_TypeField field = type->aggregate.fields[i];
-    rio_genln();
-    rio_buf_printf(&(rio_gen_buf), "{");
-    rio_gen_str(field.name, false);
-    rio_buf_printf(&(rio_gen_buf), ", .type = ");
-    rio_gen_typeid(field.type);
-    if (!(rio_is_generic_type(type))) {
-      rio_buf_printf(&(rio_gen_buf), ", .offset = offsetof(%s, %s)", rio_get_gen_name(type->sym), field.name);
+  {
+    rio_Slice_TypeField items__ = type->aggregate.fields;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_TypeField field = items__.items[i__];
+      rio_genln();
+      rio_buf_printf(&(rio_gen_buf), "{");
+      rio_gen_str(field.name, false);
+      rio_buf_printf(&(rio_gen_buf), ", .type = ");
+      rio_gen_typeid(field.type);
+      if (!(rio_is_generic_type(type))) {
+        rio_buf_printf(&(rio_gen_buf), ", .offset = offsetof(%s, %s)", rio_get_gen_name(type->sym), field.name);
+      }
+      rio_buf_printf(&(rio_gen_buf), "},");
     }
-    rio_buf_printf(&(rio_gen_buf), "},");
   }
   (rio_gen_indent)--;
 }
@@ -4994,7 +5009,7 @@ void rio_gen_typeinfo(rio_Type (*type)) {
     rio_gen_typeinfo_header(((type->kind) == ((rio_CompilerTypeKind_Struct)) ? "TypeKind_Struct" : "TypeKind_Union"), type);
     rio_buf_printf(&(rio_gen_buf), ", .name = ");
     rio_gen_str(rio_get_gen_name(type->sym), false);
-    rio_buf_printf(&(rio_gen_buf), ", .num_fields = %d, .fields = (TypeFieldInfo[]) {", type->aggregate.num_fields);
+    rio_buf_printf(&(rio_gen_buf), ", .num_fields = %d, .fields = (TypeFieldInfo[]) {", type->aggregate.fields.length);
     rio_gen_typeinfo_fields(type);
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "}},");
@@ -7977,7 +7992,7 @@ rio_Type (*rio_complete_aggregate(rio_Type (*type), rio_Aggregate (*aggregate)))
     assert((aggregate->kind) == ((rio_AggregateKind_Union)));
     rio_type_complete_union(type, fields, rio_buf_len(fields));
   }
-  if ((type->aggregate.num_fields) == (0)) {
+  if ((type->aggregate.fields.length) == (0)) {
     rio_fatal_error(aggregate->pos, "No fields");
   }
   if (rio_has_duplicate_fields(type)) {
@@ -8747,14 +8762,17 @@ rio_Operand rio_resolve_expr_aggregate_field(rio_SrcPos pos, rio_Operand operand
     rio_fatal_error(pos, "Can only access fields on aggregates or pointers to aggregates");
     return rio_operand_null;
   }
-  for (size_t i = 0; (i) < (base_type->aggregate.num_fields); (i)++) {
-    rio_TypeField field = base_type->aggregate.fields[i];
-    if ((field.name) == (name)) {
-      rio_Operand field_operand = (operand.is_lvalue ? rio_operand_lvalue(field.type) : rio_operand_rvalue(field.type));
-      if (was_const_type) {
-        field_operand.type = rio_type_const(field_operand.type);
+  {
+    rio_Slice_TypeField items__ = base_type->aggregate.fields;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_TypeField field = items__.items[i__];
+      if ((field.name) == (name)) {
+        rio_Operand field_operand = (operand.is_lvalue ? rio_operand_lvalue(field.type) : rio_operand_rvalue(field.type));
+        if (was_const_type) {
+          field_operand.type = rio_type_const(field_operand.type);
+        }
+        return field_operand;
       }
-      return field_operand;
     }
   }
   rio_fatal_error(pos, "No field named \'%s\'", name);
@@ -9270,64 +9288,70 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
   type = rio_unqualify_type(type);
   if (((type->kind) == ((rio_CompilerTypeKind_Struct))) || ((type->kind) == ((rio_CompilerTypeKind_Union)))) {
     int index = 0;
-    for (size_t i = 0; (i) < (expr->compound.num_fields); (i)++) {
-      rio_CompoundField field = expr->compound.fields[i];
-      if ((field.kind) == ((rio_CompoundField_Index))) {
-        rio_fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
-      } else if ((field.kind) == ((rio_CompoundField_Name))) {
-        index = rio_aggregate_item_field_index(type, field.name);
-        if ((index) == (-(1))) {
-          rio_fatal_error(field.pos, "Named field in compound literal does not exist");
+    {
+      rio_Slice_CompoundField items__ = expr->compound.fields;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_CompoundField field = items__.items[i__];
+        if ((field.kind) == ((rio_CompoundField_Index))) {
+          rio_fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
+        } else if ((field.kind) == ((rio_CompoundField_Name))) {
+          index = rio_aggregate_item_field_index(type, field.name);
+          if ((index) == (-(1))) {
+            rio_fatal_error(field.pos, "Named field in compound literal does not exist");
+          }
         }
+        if ((index) >= ((int)(type->aggregate.fields.length))) {
+          rio_fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
+        }
+        rio_Type (*field_type) = type->aggregate.fields.items[index].type;
+        if (!(rio_resolve_typed_init(field.pos, field_type, field.init))) {
+          rio_fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected %s", rio_get_type_name(field_type));
+        }
+        (index)++;
       }
-      if ((index) >= ((int)(type->aggregate.num_fields))) {
-        rio_fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
-      }
-      rio_Type (*field_type) = type->aggregate.fields[index].type;
-      if (!(rio_resolve_typed_init(field.pos, field_type, field.init))) {
-        rio_fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected %s", rio_get_type_name(field_type));
-      }
-      (index)++;
     }
   } else if ((type->kind) == ((rio_CompilerTypeKind_Array))) {
     size_t index = 0;
     size_t max_index = 0;
-    for (size_t i = 0; (i) < (expr->compound.num_fields); (i)++) {
-      rio_CompoundField field = expr->compound.fields[i];
-      if ((field.kind) == ((rio_CompoundField_Name))) {
-        rio_fatal_error(field.pos, "Named field initializer not allowed for array compound literals");
-      } else if ((field.kind) == ((rio_CompoundField_Index))) {
-        rio_Operand operand = rio_resolve_const_expr(field.index);
-        if (!(rio_is_integer_type(operand.type))) {
-          rio_fatal_error(field.pos, "Field initializer index expression must have type int");
+    {
+      rio_Slice_CompoundField items__ = expr->compound.fields;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_CompoundField field = items__.items[i__];
+        if ((field.kind) == ((rio_CompoundField_Name))) {
+          rio_fatal_error(field.pos, "Named field initializer not allowed for array compound literals");
+        } else if ((field.kind) == ((rio_CompoundField_Index))) {
+          rio_Operand operand = rio_resolve_const_expr(field.index);
+          if (!(rio_is_integer_type(operand.type))) {
+            rio_fatal_error(field.pos, "Field initializer index expression must have type int");
+          }
+          if (!(cast_operand(&(operand), rio_type_int))) {
+            rio_fatal_error(field.pos, "Invalid type in field initializer index. Expected integer type");
+          }
+          if ((operand.val.i) < (0)) {
+            rio_fatal_error(field.pos, "Field initializer index cannot be negative");
+          }
+          index = operand.val.i;
         }
-        if (!(cast_operand(&(operand), rio_type_int))) {
-          rio_fatal_error(field.pos, "Invalid type in field initializer index. Expected integer type");
+        if ((type->num_elems) && ((index) >= ((int)(type->num_elems)))) {
+          rio_fatal_error(field.pos, "Field initializer in array compound literal out of range");
         }
-        if ((operand.val.i) < (0)) {
-          rio_fatal_error(field.pos, "Field initializer index cannot be negative");
+        if (!(rio_resolve_typed_init(field.pos, type->base, field.init))) {
+          rio_fatal_error(field.pos, "Invalid type in compound literal initializer for array type. Expected %s", rio_get_type_name(type->base));
         }
-        index = operand.val.i;
+        max_index = rio_max(max_index, index);
+        (index)++;
       }
-      if ((type->num_elems) && ((index) >= ((int)(type->num_elems)))) {
-        rio_fatal_error(field.pos, "Field initializer in array compound literal out of range");
-      }
-      if (!(rio_resolve_typed_init(field.pos, type->base, field.init))) {
-        rio_fatal_error(field.pos, "Invalid type in compound literal initializer for array type. Expected %s", rio_get_type_name(type->base));
-      }
-      max_index = rio_max(max_index, index);
-      (index)++;
     }
     if ((type->num_elems) == (0)) {
       type = rio_type_array(type->base, (max_index) + (1));
     }
   } else {
     assert(rio_is_scalar_type(type));
-    if ((expr->compound.num_fields) > (1)) {
+    if ((expr->compound.fields.length) > (1)) {
       rio_fatal_error(expr->pos, "Compound literal for scalar type cannot have more than one operand");
     }
-    if ((expr->compound.num_fields) == (1)) {
-      rio_CompoundField field = expr->compound.fields[0];
+    if ((expr->compound.fields.length) == (1)) {
+      rio_CompoundField field = expr->compound.fields.items[0];
       rio_Operand init = rio_resolve_expected_expr_rvalue(field.init, type);
       if (!(rio_convert_operand(&(init), type))) {
         rio_fatal_error(field.pos, "Invalid type in compound literal initializer. Expected %s, got %s", rio_get_type_name(type), rio_get_type_name(init.type));
@@ -9748,11 +9772,11 @@ rio_Operand rio_resolve_expected_expr(rio_Expr (*expr), rio_Type (*expected_type
     if (((type->kind) != ((rio_CompilerTypeKind_Struct))) && ((type->kind) != ((rio_CompilerTypeKind_Union)))) {
       rio_fatal_error(expr->pos, "offsetof can only be used with struct/union types");
     }
-    int field = rio_aggregate_item_field_index(type, expr->offsetof_field.name);
-    if ((field) < (0)) {
+    int index = rio_aggregate_item_field_index(type, expr->offsetof_field.name);
+    if ((index) < (0)) {
       rio_fatal_error(expr->pos, "No field \'%s\' in type", expr->offsetof_field.name);
     }
-    result = rio_operand_const(rio_type_usize, (rio_Val){.ull = type->aggregate.fields[field].offset});
+    result = rio_operand_const(rio_type_usize, (rio_Val){.ull = type->aggregate.fields.items[index].offset});
     break;
   }
   case rio_Expr_Modify: {
@@ -10627,10 +10651,14 @@ rio_Type (*rio_type_func(rio_Type (*(*params)), size_t num_params, rio_Type (*re
 }
 
 bool rio_has_duplicate_fields(rio_Type (*type)) {
-  for (size_t i = 0; (i) < (type->aggregate.num_fields); (i)++) {
-    for (size_t j = (i) + (1); (j) < (type->aggregate.num_fields); (j)++) {
-      if ((type->aggregate.fields[i].name) == (type->aggregate.fields[j].name)) {
-        return true;
+  {
+    rio_Slice_TypeField items__ = type->aggregate.fields;
+    for (size_t i = 0; i < items__.length; ++i) {
+      rio_TypeField (*field_i) = &items__.items[i];
+      for (ullong j = (i) + (1); (j) < (type->aggregate.fields.length); (j)++) {
+        if ((field_i->name) == (type->aggregate.fields.items[j].name)) {
+          return true;
+        }
       }
     }
   }
@@ -10639,10 +10667,13 @@ bool rio_has_duplicate_fields(rio_Type (*type)) {
 
 void rio_add_type_fields(rio_TypeField (*(*fields)), rio_Type (*type), size_t offset) {
   assert(((type->kind) == ((rio_CompilerTypeKind_Struct))) || ((type->kind) == ((rio_CompilerTypeKind_Union))));
-  for (size_t i = 0; (i) < (type->aggregate.num_fields); (i)++) {
-    rio_TypeField (*field) = &(type->aggregate.fields[i]);
-    rio_TypeField new_field = {field->name, field->type, (field->offset) + (offset)};
-    rio_buf_push((void (**))(fields), &(new_field), sizeof(new_field));
+  {
+    rio_Slice_TypeField items__ = type->aggregate.fields;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_TypeField (*field) = &items__.items[i__];
+      rio_TypeField new_field = {field->name, field->type, (field->offset) + (offset)};
+      rio_buf_push((void (**))(fields), &(new_field), sizeof(new_field));
+    }
   }
 }
 
@@ -10670,8 +10701,7 @@ void rio_type_complete_struct(rio_Type (*type), rio_TypeField (*fields), size_t 
   if (rio_is_generic_type(type)) {
     type->size = 0;
   }
-  type->aggregate.fields = new_fields;
-  type->aggregate.num_fields = rio_buf_len(new_fields);
+  type->aggregate.fields = (rio_Slice_TypeField){new_fields, rio_buf_len(new_fields)};
   type->nonmodifiable = nonmodifiable;
 }
 
@@ -10697,8 +10727,7 @@ void rio_type_complete_union(rio_Type (*type), rio_TypeField (*fields), size_t n
     nonmodifiable = (it->type->nonmodifiable) || (nonmodifiable);
   }
   type->size = rio_align_up(type->size, type->align);
-  type->aggregate.fields = new_fields;
-  type->aggregate.num_fields = rio_buf_len(new_fields);
+  type->aggregate.fields = (rio_Slice_TypeField){new_fields, rio_buf_len(new_fields)};
   type->nonmodifiable = nonmodifiable;
 }
 
@@ -10744,9 +10773,13 @@ void rio_init_builtin_types(void) {
 
 int rio_aggregate_item_field_index(rio_Type (*type), char const ((*name))) {
   assert(rio_is_aggregate_type(type));
-  for (size_t i = 0; (i) < (type->aggregate.num_fields); (i)++) {
-    if ((type->aggregate.fields[i].name) == (name)) {
-      return (int)(i);
+  {
+    rio_Slice_TypeField items__ = type->aggregate.fields;
+    for (size_t i = 0; i < items__.length; ++i) {
+      rio_TypeField (*field) = &items__.items[i];
+      if ((field->name) == (name)) {
+        return (int)(i);
+      }
     }
   }
   return -(1);
@@ -10754,8 +10787,8 @@ int rio_aggregate_item_field_index(rio_Type (*type), char const ((*name))) {
 
 rio_Type (*rio_aggregate_item_field_type_from_index(rio_Type (*type), int index)) {
   assert(rio_is_aggregate_type(type));
-  assert(((0) <= (index)) && ((index) < ((int)(type->aggregate.num_fields))));
-  return type->aggregate.fields[index].type;
+  assert(((0) <= (index)) && ((index) < ((int)(type->aggregate.fields.length))));
+  return type->aggregate.fields.items[index].type;
 }
 
 rio_Type (*rio_aggregate_item_field_type_from_name(rio_Type (*type), char const ((*name)))) {

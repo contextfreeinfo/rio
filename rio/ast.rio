@@ -222,8 +222,7 @@ struct ExprOffsetofField {
 
 struct ExprCompound {
   type: &Typespec;
-  fields: *CompoundField;
-  num_fields: usize;
+  fields: Slice<CompoundField>;
 }
 
 struct ExprCast {
@@ -699,11 +698,13 @@ fn new_expr_name(pos: SrcPos, name: *const char) -> &Expr {
   return e;
 }
 
-fn new_expr_compound(pos: SrcPos, type: &Typespec, fields: *CompoundField, num_fields: usize) -> &Expr {
+fn new_expr_compound(
+  pos: SrcPos, type: &Typespec, fields: *CompoundField, num_fields: usize,
+) -> &Expr {
   let e = new_expr(Expr.Compound, pos);
   e.compound.type = type;
-  e.compound.fields = ast_dup(fields, num_fields * sizeof(*fields));
-  e.compound.num_fields = num_fields;
+  e.compound.fields =
+    {ast_dup(fields, num_fields * sizeof(*fields)), num_fields};
   return e;
 }
 

@@ -842,7 +842,7 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
     #assert(aggregate.kind == AggregateKind.Union);
     type_complete_union(type, fields, buf_len(fields));
   }
-  if (type.aggregate.num_fields == 0) {
+  if (type.aggregate.fields.length == 0) {
     fatal_error(aggregate.pos, "No fields");
   }
   if (has_duplicate_fields(type)) {
@@ -1613,10 +1613,11 @@ fn resolve_expr_aggregate_field(
     fatal_error(pos, "Can only access fields on aggregates or pointers to aggregates");
     return operand_null;
   }
-  for (let i: usize = 0; i < base_type.aggregate.num_fields; i++) {
-    let field = base_type.aggregate.fields[i];
+  for (base_type.aggregate.fields) do(field) {
     if (field.name == name) {
-      let field_operand = operand.is_lvalue ? operand_lvalue(field.type) : operand_rvalue(field.type);
+      let field_operand = operand.is_lvalue ?
+        operand_lvalue(field.type) :
+        operand_rvalue(field.type);
       if (was_const_type) {
         field_operand.type = type_const(field_operand.type);
       }
@@ -1984,9 +1985,9 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
   let is_const = is_const_type(type);
   type = unqualify_type(type);
   if (type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union) {
+    // This index can turn negative, so int.
     let index = 0;
-    for (let i: usize = 0; i < expr.compound.num_fields; i++) {
-      let field: CompoundField = expr.compound.fields[i];
+    for (expr.compound.fields) do(field) {
       if (field.kind == CompoundField.Index) {
         fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
       } else if (field.kind == CompoundField.Name) {
@@ -1995,7 +1996,7 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
           fatal_error(field.pos, "Named field in compound literal does not exist");
         }
       }
-      if (index >= (:int)type.aggregate.num_fields) {
+      if (index >= (:int)type.aggregate.fields.length) {
         fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
       }
       let field_type = type.aggregate.fields[index].type;
@@ -2005,11 +2006,9 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
       index++;
     } for;
   } else if (type.kind == CompilerTypeKind.Array) {
-    // These were int, but can't be negative below.
     let index: usize = 0;
     let max_index: usize = 0;
-    for (let i: usize = 0; i < expr.compound.num_fields; i++) {
-      let field = expr.compound.fields[i];
+    for (expr.compound.fields) do(field) {
       if (field.kind == CompoundField.Name) {
         fatal_error(field.pos, "Named field initializer not allowed for array compound literals");
       } else if (field.kind == CompoundField.Index) {
@@ -2039,10 +2038,10 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
     }
   } else {
     #assert(is_scalar_type(type));
-    if (expr.compound.num_fields > 1) {
+    if (expr.compound.fields.length > 1) {
       fatal_error(expr.pos, "Compound literal for scalar type cannot have more than one operand");
     }
-    if (expr.compound.num_fields == 1) {
+    if (expr.compound.fields.length == 1) {
       let field = expr.compound.fields[0];
       let init = resolve_expected_expr_rvalue(field.init, type);
       if (!convert_operand(&init, type)) {
@@ -2429,14 +2428,14 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
           expr.pos, "offsetof can only be used with struct/union types",
         );
       }
-      let field = aggregate_item_field_index(type, expr.offsetof_field.name);
-      if (field < 0) {
+      let index = aggregate_item_field_index(type, expr.offsetof_field.name);
+      if (index < 0) {
         fatal_error(
           expr.pos, "No field '%s' in type", expr.offsetof_field.name,
         );
       }
       result = operand_const(
-        type_usize, Val {ull = type.aggregate.fields[field].offset},
+        type_usize, Val {ull = type.aggregate.fields[index].offset},
       );
     }
     Modify => result = resolve_expr_modify(expr);

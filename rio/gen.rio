@@ -465,11 +465,10 @@ fn gen_expr_compound(expr: &Expr) {
   } else {
     buf_printf(&gen_buf, "(%s){", type_to_cdecl(get_resolved_type(expr), ""));
   }
-  for (let i: usize = 0; i < expr.compound.num_fields; i++) {
-    if (i != 0) {
+  for (expr.compound.fields) do(field, i) {
+    if (i) {
       buf_printf(&gen_buf, ", ");
     }
-    let field = expr.compound.fields[i];
     if (field.kind == CompoundField.Name) {
       buf_printf(&gen_buf, ".%s = ", field.name);
     } else if (field.kind == CompoundField.Index) {
@@ -479,7 +478,7 @@ fn gen_expr_compound(expr: &Expr) {
     }
     gen_expr(field.init);
   } for;
-  if (expr.compound.num_fields == 0) {
+  if (expr.compound.fields.length == 0) {
     buf_printf(&gen_buf, "0");
   }
   buf_printf(&gen_buf, "}");
@@ -1239,8 +1238,7 @@ fn gen_typeinfo_header(kind: *const char, type: &Type) {
 
 fn gen_typeinfo_fields(type: &Type) {
   gen_indent++;
-  for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
-    let field = type.aggregate.fields[i];
+  for (type.aggregate.fields) do (field) {
     genln(); buf_printf(&gen_buf, "{");
     gen_str(field.name, false);
     buf_printf(&gen_buf, ", .type = ");
@@ -1324,9 +1322,10 @@ fn gen_typeinfo(type: &Type) {
       );
       buf_printf(&gen_buf, ", .name = ");
       gen_str(get_gen_name(type.sym), false);
+      // TODO Slice in type info?
       buf_printf(
         &gen_buf, ", .num_fields = %d, .fields = (TypeFieldInfo[]) {",
-        type.aggregate.num_fields,
+        type.aggregate.fields.length,
       );
       gen_typeinfo_fields(type);
       genln();

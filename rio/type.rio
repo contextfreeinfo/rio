@@ -51,8 +51,7 @@ struct Type {
 }
 
 struct TypeAggregate {
-  fields: *TypeField;
-  num_fields: usize;
+  fields: Slice<TypeField>;
 }
 
 struct TypeFunc {
@@ -371,9 +370,9 @@ fn type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) -
 }
 
 fn has_duplicate_fields(type: &Type) -> bool {
-  for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
-    for (let j: usize = i+1; j < type.aggregate.num_fields; j++) {
-      if (type.aggregate.fields[i].name == type.aggregate.fields[j].name) {
+  for &(type.aggregate.fields) do(field_i, i) {
+    for (let j = i + 1; j < type.aggregate.fields.length; j++) {
+      if (field_i.name == type.aggregate.fields[j].name) {
         return true;
       }
     }
@@ -383,8 +382,7 @@ fn has_duplicate_fields(type: &Type) -> bool {
 
 fn add_type_fields(fields: &*TypeField, type: &Type, offset: usize) {
   #assert(type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union);
-  for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
-    let field = &type.aggregate.fields[i];
+  for &(type.aggregate.fields) do(field) {
     let new_field = TypeField {field.name, field.type, field.offset + offset};
     buf_push((:&&void)fields, &new_field, sizeof(new_field));
   }
@@ -414,8 +412,7 @@ fn type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
   if (is_generic_type(type)) {
     type.size = 0;
   }
-  type.aggregate.fields = new_fields;
-  type.aggregate.num_fields = buf_len(new_fields);
+  type.aggregate.fields = {new_fields, buf_len(new_fields)};
   type.nonmodifiable = nonmodifiable;
 }
 
@@ -442,8 +439,7 @@ fn type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
     nonmodifiable = it.type.nonmodifiable || nonmodifiable;
   }
   type.size = align_up(type.size, type.align);
-  type.aggregate.fields = new_fields;
-  type.aggregate.num_fields = buf_len(new_fields);
+  type.aggregate.fields = {new_fields, buf_len(new_fields)};
   type.nonmodifiable = nonmodifiable;
 }
 
@@ -489,8 +485,8 @@ fn init_builtin_types() {
 
 fn aggregate_item_field_index(type: &Type, name: *const char) -> int {
   #assert(is_aggregate_type(type));
-  for (let i: usize = 0; i < type.aggregate.num_fields; i++) {
-    if (type.aggregate.fields[i].name == name) {
+  for &(type.aggregate.fields) do(field, i) {
+    if (field.name == name) {
       return (:int)i;
     }
   }
@@ -499,7 +495,7 @@ fn aggregate_item_field_index(type: &Type, name: *const char) -> int {
 
 fn aggregate_item_field_type_from_index(type: &Type, index: int) -> &Type {
   #assert(is_aggregate_type(type));
-  #assert(0 <= index && index < (:int)type.aggregate.num_fields);
+  #assert(0 <= index && index < (:int)type.aggregate.fields.length);
   return type.aggregate.fields[index].type;
 }
 
