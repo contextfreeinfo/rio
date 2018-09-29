@@ -25,9 +25,7 @@ struct Typespec {
   union switch {
     None, Const, Ptr, Ref => :void;
     Name => struct {
-      // TODO Break names out into individual AST items!
-      names: *TypespecName;
-      num_names: usize;
+      names: Slice<TypespecName>;
       decl: &Decl;
     }
     Func => function: TypespecFunc;
@@ -424,8 +422,8 @@ fn new_typespec_name(
   pos: SrcPos, names: *TypespecName, num_names: usize,
 ) -> &Typespec {
   let t = new_typespec(Typespec.Name, pos);
-  t.names = ast_dup(names, num_names * sizeof(*names));
-  t.num_names = num_names;
+  t.names.items = ast_dup(names, num_names * sizeof(*names));
+  t.names.length = num_names;
   return t;
 }
 

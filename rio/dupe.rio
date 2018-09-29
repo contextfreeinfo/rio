@@ -138,13 +138,13 @@ fn put_typespec_sym_name(buf: **char, type: &Typespec) {
     Name => {
       // This is the perceived type, which is what we want for mangling, so the
       // programmer has some manual control.
-      for (let i: usize = 0; i < type.num_names; ++i) {
+      for &(type.names) do(name, i) {
         if (i) {
           buf_printf(buf, "_");
         }
-        buf_printf(buf, "%s", type.names[i].name);
+        buf_printf(buf, "%s", name.name);
         // And args, too.
-        for &(type.names[i].type_args) do(type_arg) {
+        for &(name.type_args) do(type_arg) {
           buf_printf(buf, "_");
           put_typespec_sym_name(buf, type_arg.val);
         }

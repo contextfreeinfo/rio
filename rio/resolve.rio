@@ -674,11 +674,11 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       let sym: &Sym;
       let name: *const char;
       let typespec_name: &TypespecName;
-      if (typespec.num_names == 1) {
+      if (typespec.names.length == 1) {
         // See if it's a type parameter.
         // TODO Also allow locally defined types(?), so support num_names > 1.
         // TODO Requires better node tree of types rather than slice of names.
-        typespec_name = &typespec.names[0];
+        typespec_name = &typespec.names.items[0];
         name = typespec_name.name;
         // if (!strcmp(name, "Num")) {
         //   printf("Try'n'a find it.\n");
@@ -693,8 +693,8 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       }
       if (!sym) {
         let package = current_package;
-        for (let i: usize = 0; i < typespec.num_names - 1; ++i) {
-          let scope = typespec.names[i].name;
+        for (let i: usize = 0; i < typespec.names.length - 1; ++i) {
+          let scope = typespec.names.items[i].name;
           let scope_sym = get_package_sym(package, scope);
           if (!scope_sym) {
             fatal_error(typespec.pos, "Unresolved scope '%s'", scope);
@@ -704,7 +704,9 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
             // TODO Check type args before continuing!
             package = NULL;
             sym = get_nested_type_sym(
-              scope_sym, typespec.num_names - i - 1, typespec.names + i + 1,
+              scope_sym,
+              typespec.names.length - i - 1,
+              typespec.names.items + i + 1,
             );
             break;
           } else if (scope_sym.kind != Sym.Package) {
@@ -715,7 +717,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
           }
           package = scope_sym.package;
         } for;
-        typespec_name = &typespec.names[typespec.num_names - 1];
+        typespec_name = &typespec.names.items[typespec.names.length - 1];
         name = typespec_name.name;
         if (package) {
           sym = get_package_sym(package, name);

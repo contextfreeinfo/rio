@@ -829,8 +829,8 @@ fn parse_switch_union() -> *AggregateItem {
       let type = parse_type();
       if (!(
         type.kind == Typespec.Name &&
-        type.num_names == 1 &&
-        type.names[0].name == void_name
+        type.names.length == 1 &&
+        type.names.items[0].name == void_name
       )) {
         fatal_error(token.pos, "Anonymous switch fields can only be void");
         return NULL;

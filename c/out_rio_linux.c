@@ -93,6 +93,7 @@ typedef struct rio_TypeAggregate rio_TypeAggregate;
 typedef struct rio_TypeFunc rio_TypeFunc;
 typedef struct rio_Type rio_Type;
 typedef struct TypeFieldInfo TypeFieldInfo;
+typedef struct rio_Slice_TypespecName rio_Slice_TypespecName;
 typedef struct rio_TypespecFunc rio_TypespecFunc;
 typedef struct rio_Typespec rio_Typespec;
 typedef struct rio_TypespecName rio_TypespecName;
@@ -2066,6 +2067,11 @@ struct TypeFieldInfo {
   int offset;
 };
 
+struct rio_Slice_TypespecName {
+  rio_TypespecName (*items);
+  size_t length;
+};
+
 struct rio_TypespecFunc {
   rio_Typespec (*(*args));
   size_t num_args;
@@ -2081,8 +2087,7 @@ struct rio_Typespec {
   union {
     // void;
     struct {
-      rio_TypespecName (*names);
-      size_t num_names;
+      rio_Slice_TypespecName names;
       rio_Decl (*decl);
     };
     rio_TypespecFunc function;
@@ -2525,8 +2530,8 @@ rio_Typespec (*rio_new_typespec_name1(rio_SrcPos pos, char const ((*name)))) {
 
 rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, rio_TypespecName (*names), size_t num_names)) {
   rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Name), pos);
-  t->names = rio_ast_dup(names, (num_names) * (sizeof(*(names))));
-  t->num_names = num_names;
+  t->names.items = rio_ast_dup(names, (num_names) * (sizeof(*(names))));
+  t->names.length = num_names;
   return t;
 }
 
@@ -3520,17 +3525,21 @@ void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
 void rio_put_typespec_sym_name(char (*(*buf)), rio_Typespec (*type)) {
   switch (type->kind) {
   case rio_Typespec_Name: {
-    for (size_t i = 0; (i) < (type->num_names); ++(i)) {
-      if (i) {
-        rio_buf_printf(buf, "_");
-      }
-      rio_buf_printf(buf, "%s", type->names[i].name);
-      {
-        rio_Slice_TypeArg items__ = type->names[i].type_args;
-        for (size_t i__ = 0; i__ < items__.length; ++i__) {
-          rio_TypeArg (*type_arg) = &items__.items[i__];
+    {
+      rio_Slice_TypespecName items__ = type->names;
+      for (size_t i = 0; i < items__.length; ++i) {
+        rio_TypespecName (*name) = &items__.items[i];
+        if (i) {
           rio_buf_printf(buf, "_");
-          rio_put_typespec_sym_name(buf, type_arg->val);
+        }
+        rio_buf_printf(buf, "%s", name->name);
+        {
+          rio_Slice_TypeArg items__ = name->type_args;
+          for (size_t i__ = 0; i__ < items__.length; ++i__) {
+            rio_TypeArg (*type_arg) = &items__.items[i__];
+            rio_buf_printf(buf, "_");
+            rio_put_typespec_sym_name(buf, type_arg->val);
+          }
         }
       }
     }
@@ -6800,7 +6809,7 @@ rio_AggregateItem (*rio_parse_switch_union(void)) {
     rio_AggregateItem item = {0};
     if (rio_match_token((rio_TokenKind_Colon))) {
       rio_Typespec (*type) = rio_parse_type();
-      if (!(((((type->kind) == ((rio_Typespec_Name))) && ((type->num_names) == (1))) && ((type->names[0].name) == (rio_void_name))))) {
+      if (!(((((type->kind) == ((rio_Typespec_Name))) && ((type->names.length) == (1))) && ((type->names.items[0].name) == (rio_void_name))))) {
         rio_fatal_error(rio_token.pos, "Anonymous switch fields can only be void");
         return NULL;
       }
@@ -7732,8 +7741,8 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     rio_Sym (*sym) = {0};
     char const ((*name)) = {0};
     rio_TypespecName (*typespec_name) = {0};
-    if ((typespec->num_names) == (1)) {
-      typespec_name = &(typespec->names[0]);
+    if ((typespec->names.length) == (1)) {
+      typespec_name = &(typespec->names.items[0]);
       name = typespec_name->name;
       sym = rio_sym_get_local(name);
       if (sym) {
@@ -7742,8 +7751,8 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     }
     if (!(sym)) {
       rio_Package (*package) = rio_current_package;
-      for (size_t i = 0; (i) < ((typespec->num_names) - (1)); ++(i)) {
-        char const ((*scope)) = typespec->names[i].name;
+      for (size_t i = 0; (i) < ((typespec->names.length) - (1)); ++(i)) {
+        char const ((*scope)) = typespec->names.items[i].name;
         rio_Sym (*scope_sym) = rio_get_package_sym(package, scope);
         if (!(scope_sym)) {
           rio_fatal_error(typespec->pos, "Unresolved scope \'%s\'", scope);
@@ -7751,7 +7760,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
         }
         if ((scope_sym->kind) == ((rio_Sym_Type))) {
           package = NULL;
-          sym = rio_get_nested_type_sym(scope_sym, ((typespec->num_names) - (i)) - (1), ((typespec->names) + (i)) + (1));
+          sym = rio_get_nested_type_sym(scope_sym, ((typespec->names.length) - (i)) - (1), ((typespec->names.items) + (i)) + (1));
           break;
         } else if ((scope_sym->kind) != ((rio_Sym_Package))) {
           rio_fatal_error(typespec->pos, "%s must denote a type or a package", scope);
@@ -7759,7 +7768,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
         }
         package = scope_sym->package;
       }
-      typespec_name = &(typespec->names[(typespec->num_names) - (1)]);
+      typespec_name = &(typespec->names.items[(typespec->names.length) - (1)]);
       name = typespec_name->name;
       if (package) {
         sym = rio_get_package_sym(package, name);
