@@ -96,6 +96,7 @@ typedef struct rio_StmtCtx rio_StmtCtx;
 typedef struct rio_TypeMetrics rio_TypeMetrics;
 typedef struct rio_Slice_TypeField rio_Slice_TypeField;
 typedef struct rio_TypeAggregate rio_TypeAggregate;
+typedef struct rio_Slice_ref_Type rio_Slice_ref_Type;
 typedef struct rio_TypeFunc rio_TypeFunc;
 typedef struct rio_Type rio_Type;
 typedef struct TypeFieldInfo TypeFieldInfo;
@@ -1945,9 +1946,13 @@ struct rio_TypeAggregate {
   rio_Slice_TypeField fields;
 };
 
+struct rio_Slice_ref_Type {
+  rio_Type (*(*items));
+  size_t length;
+};
+
 struct rio_TypeFunc {
-  rio_Type (*(*params));
-  size_t num_params;
+  rio_Slice_ref_Type params;
   bool has_varargs;
   rio_Type (*ret);
 };
@@ -3868,11 +3873,11 @@ char (*rio_type_to_cdecl(rio_Type (*type), char const ((*str)))) {
   case rio_CompilerTypeKind_Func: {
     char (*result) = {0};
     rio_buf_printf(&(result), "(*%s)(", str);
-    if ((type->function.num_params) == (0)) {
+    if ((type->function.params.length) == (0)) {
       rio_buf_printf(&(result), "void");
     } else {
-      for (size_t i = 0; (i) < (type->function.num_params); (i)++) {
-        rio_buf_printf(&(result), "%s%s", ((i) == (0) ? "" : ", "), rio_type_to_cdecl(type->function.params[i], ""));
+      for (size_t i = 0; (i) < (type->function.params.length); (i)++) {
+        rio_buf_printf(&(result), "%s%s", ((i) == (0) ? "" : ", "), rio_type_to_cdecl(type->function.params.items[i], ""));
       }
     }
     if (type->function.has_varargs) {
@@ -7538,11 +7543,15 @@ void rio_put_type_name(char (*(*buf)), rio_Type (*type)) {
     }
     case rio_CompilerTypeKind_Func: {
       rio_buf_printf(buf, "fn(");
-      for (size_t i = 0; (i) < (type->function.num_params); (i)++) {
-        if ((i) != (0)) {
-          rio_buf_printf(buf, ", ");
+      {
+        rio_Slice_ref_Type items__ = type->function.params;
+        for (size_t i = 0; i < items__.length; ++i) {
+          rio_Type (*param) = items__.items[i];
+          if (i) {
+            rio_buf_printf(buf, ", ");
+          }
+          rio_put_type_name(buf, param);
         }
-        rio_put_type_name(buf, type->function.params[i]);
       }
       if (type->function.has_varargs) {
         rio_buf_printf(buf, "...");
@@ -9432,27 +9441,30 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
       printf("Calling generic!\n");
     }
   }
-  size_t num_params = function.type->function.num_params;
+  ullong num_params = function.type->function.params.length;
   if ((expr->call.args.length) < (num_params)) {
     rio_fatal_error(expr->pos, "Function call with too few arguments");
   }
   if (((expr->call.args.length) > (num_params)) && (!(function.type->function.has_varargs))) {
     rio_fatal_error(expr->pos, "Function call with too many arguments");
   }
-  for (size_t i = 0; (i) < (num_params); (i)++) {
-    rio_Type (*param_type) = function.type->function.params[i];
-    rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args.items[i], param_type);
-    if (is_generic) {
-      printf("Checking arg: %d -> %d: %s, %d, %zu \n", arg.type->kind, (arg.type->kind) == ((rio_CompilerTypeKind_Int)), rio_get_type_name(arg.type), (expr->call.expr->kind) == ((rio_Expr_Name)), expr->call.expr->type_args.length);
-      if ((arg.type) && (arg.type->sym)) {
-        printf("Maybe get somewhere???\n");
+  {
+    rio_Slice_ref_Type items__ = function.type->function.params;
+    for (size_t i = 0; i < items__.length; ++i) {
+      rio_Type (*param_type) = items__.items[i];
+      rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args.items[i], param_type);
+      if (is_generic) {
+        printf("Checking arg: %d -> %d: %s, %d, %zu \n", arg.type->kind, (arg.type->kind) == ((rio_CompilerTypeKind_Int)), rio_get_type_name(arg.type), (expr->call.expr->kind) == ((rio_Expr_Name)), expr->call.expr->type_args.length);
+        if ((arg.type) && (arg.type->sym)) {
+          printf("Maybe get somewhere???\n");
+        }
       }
-    }
-    if (rio_is_array_type(param_type)) {
-      param_type = rio_type_ptr(param_type->base);
-    }
-    if (!(rio_convert_operand(&(arg), param_type))) {
-      rio_fatal_error(expr->call.args.items[i]->pos, "Invalid type in function call argument. Expected %s, got %s", rio_get_type_name(param_type), rio_get_type_name(arg.type));
+      if (rio_is_array_type(param_type)) {
+        param_type = rio_type_ptr(param_type->base);
+      }
+      if (!(rio_convert_operand(&(arg), param_type))) {
+        rio_fatal_error(expr->call.args.items[i]->pos, "Invalid type in function call argument. Expected %s, got %s", rio_get_type_name(param_type), rio_get_type_name(arg.type));
+      }
     }
   }
   for (size_t i = num_params; (i) < (expr->call.args.length); (i)++) {
@@ -10666,8 +10678,8 @@ rio_Type (*rio_type_func(rio_Type (*(*params)), size_t num_params, rio_Type (*re
   rio_CachedFuncType (*cached) = rio_map_get_from_uint64(&(rio_cached_func_types), key);
   for (rio_CachedFuncType (*it) = cached; it; it = it->next) {
     rio_Type (*type) = it->type;
-    if ((((type->function.num_params) == (num_params)) && ((type->function.ret) == (ret))) && ((type->function.has_varargs) == (has_varargs))) {
-      if ((memcmp(type->function.params, params, params_size)) == (0)) {
+    if ((((type->function.params.length) == (num_params)) && ((type->function.ret) == (ret))) && ((type->function.has_varargs) == (has_varargs))) {
+      if ((memcmp(type->function.params.items, params, params_size)) == (0)) {
         return type;
       }
     }
@@ -10675,8 +10687,7 @@ rio_Type (*rio_type_func(rio_Type (*(*params)), size_t num_params, rio_Type (*re
   rio_Type (*type) = rio_type_alloc((rio_CompilerTypeKind_Func));
   type->size = rio_type_metrics[(rio_CompilerTypeKind_Ptr)].size;
   type->align = rio_type_metrics[(rio_CompilerTypeKind_Ptr)].align;
-  type->function.params = rio_memdup(params, params_size);
-  type->function.num_params = num_params;
+  type->function.params = (rio_Slice_ref_Type){rio_memdup(params, params_size), num_params};
   type->function.has_varargs = has_varargs;
   type->function.ret = ret;
   rio_CachedFuncType (*new_cached) = rio_xmalloc(sizeof(rio_CachedFuncType));

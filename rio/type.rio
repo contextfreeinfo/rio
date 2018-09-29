@@ -55,8 +55,7 @@ struct TypeAggregate {
 }
 
 struct TypeFunc {
-  params: *&Type;
-  num_params: usize;
+  params: Slice<&Type>;
   has_varargs: bool;
   ret: &Type;
 }
@@ -349,8 +348,12 @@ fn type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) -
   let cached: &CachedFuncType = map_get_from_uint64(&cached_func_types, key);
   for (let it = cached; it; it = it.next) {
     let type = it.type;
-    if (type.function.num_params == num_params && type.function.ret == ret && type.function.has_varargs == has_varargs) {
-      if (memcmp(type.function.params, params, params_size) == 0) {
+    if (
+      type.function.params.length == num_params &&
+      type.function.ret == ret &&
+      type.function.has_varargs == has_varargs
+    ) {
+      if (memcmp(type.function.params.items, params, params_size) == 0) {
         return type;
       }
     }
@@ -358,8 +361,7 @@ fn type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) -
   let type = type_alloc(CompilerTypeKind.Func);
   type.size = type_metrics[CompilerTypeKind.Ptr].size;
   type.align = type_metrics[CompilerTypeKind.Ptr].align;
-  type.function.params = memdup(params, params_size);
-  type.function.num_params = num_params;
+  type.function.params = {memdup(params, params_size), num_params};
   type.function.has_varargs = has_varargs;
   type.function.ret = ret;
   let new_cached: *CachedFuncType = xmalloc(sizeof(CachedFuncType));

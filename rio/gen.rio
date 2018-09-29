@@ -231,10 +231,10 @@ fn type_to_cdecl(type: &Type, str: *const char) -> *char {
     Func => {
       let result: *char;
       buf_printf(&result, "(*%s)(", str);
-      if (type.function.num_params == 0) {
+      if (type.function.params.length == 0) {
         buf_printf(&result, "void");
       } else {
-        for (let i: usize = 0; i < type.function.num_params; i++) {
+        for (let i: usize = 0; i < type.function.params.length; i++) {
           buf_printf(
             &result, "%s%s",
             i == 0 ? "" : ", ", type_to_cdecl(type.function.params[i], ""),

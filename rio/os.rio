@@ -99,6 +99,7 @@ struct FlagDef {
   kind: FlagKind;
   name: *const char;
   help: *const char;
+  // Here, too!
   options: **const char;
   arg_name: *const char;
   num_options: int;

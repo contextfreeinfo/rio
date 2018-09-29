@@ -326,11 +326,11 @@ fn put_type_name(buf: **char, type: &Type) {
       }
       Func => {
         buf_printf(buf, "fn(");
-        for (let i: usize = 0; i < type.function.num_params; i++) {
-          if (i != 0) {
+        for (type.function.params) do(param, i) {
+          if (i) {
             buf_printf(buf, ", ");
           }
-          put_type_name(buf, type.function.params[i]);
+          put_type_name(buf, param);
         }
         if (type.function.has_varargs) {
           buf_printf(buf, "...");
@@ -2085,7 +2085,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
       printf("Calling generic!\n");
     }
   }
-  let num_params: usize = function.type.function.num_params;
+  let num_params = function.type.function.params.length;
   // TODO Default args go here.
   if (expr.call.args.length < num_params) {
     fatal_error(expr.pos, "Function call with too few arguments");
@@ -2095,8 +2095,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
   ) {
     fatal_error(expr.pos, "Function call with too many arguments");
   }
-  for (let i: usize = 0; i < num_params; i++) {
-    let param_type = function.type.function.params[i];
+  for (function.type.function.params) do(param_type, i) {
     let arg = resolve_expected_expr_rvalue(expr.call.args[i], param_type);
     // TODO Check out arg.
     if (is_generic) {
