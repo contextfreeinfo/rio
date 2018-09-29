@@ -845,6 +845,7 @@ fn gen_stmt(stmt: &Stmt) {
       // TODO Support slices here!!
       let items_type = get_resolved_type_orig(expr);
       let is_array = items_type.kind == CompilerTypeKind.Array;
+      let is_ptr = !is_array && is_ptr_type(get_resolved_type(expr));
       let array_length: usize = is_array ? items_type.num_elems : 0;
       genln();
       buf_printf(&gen_buf, "{");
@@ -863,6 +864,7 @@ fn gen_stmt(stmt: &Stmt) {
       }});
       genln();
       // TODO Even if length is const, index, shouldn't be.
+      let access = is_ptr ? "->" : ".";
       let length_decl = stmt.for_each.length_type == type_usize ?
         // Presume that we mean size_t for now, though this isn't easy to track
         // until we keep usize and friends abstract.
@@ -872,21 +874,22 @@ fn gen_stmt(stmt: &Stmt) {
       if (is_array) {
         buf_printf(&gen_buf, "%zu", array_length);
       } else {
-        buf_printf(&gen_buf, "%s.length", items);
+        buf_printf(&gen_buf, "%s%slength", items, access);
       }
       buf_printf(&gen_buf, "; ++%s) {", index);
       ++gen_indent;
       if (item) {
         genln();
         buf_printf(
-          &gen_buf, "%s = %s%s%s[%s];",
+          &gen_buf, "%s = %s%s%s%s[%s];",
           type_to_cdecl(get_resolved_type(item), item.name),
           stmt.for_each.get_ref ? "&" : "",
           items,
-          is_array ? "" : ".items",
+          is_array ? "" : access,
+          is_array ? "" : "items",
           index,
         );
-      }
+      } if;
       // Manually loop on statements here to avoid more block nesting.
       for (block.stmts) do(stmt) {
         gen_stmt(stmt);

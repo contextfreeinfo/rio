@@ -721,7 +721,7 @@ let enum_tag_names = (:[]*const char) {"kind"};
 let enum_tag_name_interned = false;
 
 fn parse_aggregate(
-  kind: AggregateKind, name: *const char, notes: &Notes,
+  kind: AggregateKind, name: *const char, notes: &Slice<Note>,
 ) -> &Aggregate {
   let pos = token.pos;
   let items: *AggregateItem;
@@ -932,7 +932,9 @@ fn parse_type_params() -> Slice<Decl> {
   return params;
 }
 
-fn parse_decl_aggregate(pos: SrcPos, kind: Decl.Kind, notes: &Notes) -> &Decl {
+fn parse_decl_aggregate(
+  pos: SrcPos, kind: Decl.Kind, notes: &Slice<Note>,
+) -> &Decl {
   #assert(kind == Decl.Struct || kind == Decl.Union);
   let name = parse_name();
   let aggregate_kind =
@@ -1099,7 +1101,7 @@ fn parse_note() -> Note {
   return new_note(pos, name, args, buf_len(args));
 }
 
-fn parse_notes() -> Notes {
+fn parse_notes() -> Slice<Note> {
   let notes: *Note = NULL;
   while (match_token(TokenKind.At)) {
     let note = parse_note();
@@ -1160,7 +1162,7 @@ fn parse_decl_import(pos: SrcPos) -> &Decl {
   return new_decl_import(pos, rename_name, is_relative, names, buf_len(names), import_all, items, buf_len(items));
 }
 
-fn parse_decl_opt(notes: &Notes) -> &Decl {
+fn parse_decl_opt(notes: &Slice<Note>) -> &Decl {
   let pos = token.pos;
   if (match_keyword(enum_keyword)) {
     return parse_decl_enum(pos);

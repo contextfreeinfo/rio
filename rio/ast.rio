@@ -13,11 +13,6 @@ struct Note {
   num_args: usize;
 }
 
-struct Notes {
-  notes: *Note;
-  num_notes: usize;
-}
-
 struct StmtList {
   pos: SrcPos;
   stmts: Slice<&Stmt>;
@@ -118,7 +113,7 @@ union SymRef switch {
 struct Decl {
   pos: SrcPos;
   name: *const char;
-  notes: Notes;
+  notes: Slice<Note>;
   is_incomplete: bool;
   type_params: Slice<Decl>;
   refs: Slice<SymRef>;
@@ -311,7 +306,7 @@ struct SwitchCase {
 }
 
 struct Stmt {
-  notes: Notes;
+  notes: Slice<Note>;
   pos: SrcPos;
   union switch {
     None, Break, Continue => :void;
@@ -407,7 +402,7 @@ fn new_note(pos: SrcPos, name: *const char, args: *NoteArg, num_args: usize) -> 
   return {pos = pos, name = name, args = ast_dup(args, num_args * sizeof(*args)), num_args = num_args};
 }
 
-fn new_notes(notes: *Note, num_notes: usize) -> Notes {
+fn new_notes(notes: *Note, num_notes: usize) -> Slice<Note> {
   return {ast_dup(notes, num_notes * sizeof(*notes)), num_notes};
 }
 
@@ -490,9 +485,8 @@ fn get_decl_note(decl: &Decl, name: *const char) -> &Note {
   return get_note(&decl.notes, name);
 }
 
-fn get_note(notes: &Notes, name: *const char) -> &Note {
-  for (let i: usize = 0; i < notes.num_notes; i++) {
-    let note: &Note = notes.notes + i;
+fn get_note(notes: &Slice<Note>, name: *const char) -> &Note {
+  for &(notes) do(note) {
     if (note.name == name) {
       return note;
     }
@@ -778,8 +772,7 @@ fn new_expr_ternary(pos: SrcPos, cond: &Expr, then_expr: &Expr, else_expr: &Expr
 }
 
 fn get_stmt_note(stmt: &Stmt, name: *const char) -> &Note {
-  for (let i: usize = 0; i < stmt.notes.num_notes; i++) {
-    let note = stmt.notes.notes + i;
+  for &(stmt.notes) do(note) {
     if (note.name == name) {
       return note;
     }

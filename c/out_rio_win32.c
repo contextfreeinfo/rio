@@ -67,7 +67,7 @@ typedef struct TypeInfo TypeInfo;
 typedef struct rio_Arena rio_Arena;
 typedef struct rio_SrcPos rio_SrcPos;
 typedef struct rio_Note rio_Note;
-typedef struct rio_Notes rio_Notes;
+typedef struct rio_Slice_Note rio_Slice_Note;
 typedef struct rio_Slice_ref_Stmt rio_Slice_ref_Stmt;
 typedef struct rio_StmtList rio_StmtList;
 typedef struct rio_Slice_Decl rio_Slice_Decl;
@@ -428,13 +428,13 @@ struct rio_Note {
 
 rio_Note rio_new_note(rio_SrcPos pos, char const ((*name)), rio_NoteArg (*args), size_t num_args);
 
-struct rio_Notes {
-  rio_Note (*notes);
-  size_t num_notes;
+
+struct rio_Slice_Note {
+  rio_Note (*items);
+  size_t length;
 };
 
-rio_Notes rio_new_notes(rio_Note (*notes), size_t num_notes);
-
+rio_Slice_Note rio_new_notes(rio_Note (*notes), size_t num_notes);
 
 struct rio_Slice_ref_Stmt {
   rio_Stmt (*(*items));
@@ -470,7 +470,7 @@ rio_Decl (*rio_new_decl(rio_Decl_Kind kind, rio_SrcPos pos, char const ((*name))
 
 rio_Note (*rio_get_decl_note(rio_Decl (*decl), char const ((*name))));
 
-rio_Note (*rio_get_note(rio_Notes (*notes), char const ((*name))));
+rio_Note (*rio_get_note(rio_Slice_Note (*notes), char const ((*name))));
 
 rio_Aggregate (*rio_get_subunion(size_t num_items, rio_AggregateItem (*items)));
 
@@ -1426,7 +1426,7 @@ extern char const ((*(rio_enum_tag_names[1])));
 
 extern bool rio_enum_tag_name_interned;
 
-rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name)), rio_Notes (*notes)));
+rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name)), rio_Slice_Note (*notes)));
 
 extern char const ((*(rio_empty_names[1])));
 
@@ -1436,7 +1436,7 @@ void rio_build_enum_union_decl(rio_Aggregate (*enum_union), char const ((*decl_n
 
 rio_Slice_Decl rio_parse_type_params(void);
 
-rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Notes (*notes)));
+rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Slice_Note (*notes)));
 
 rio_Decl (*rio_parse_decl_var(rio_SrcPos pos));
 
@@ -1460,13 +1460,13 @@ rio_NoteArg rio_parse_note_arg(void);
 
 rio_Note rio_parse_note(void);
 
-rio_Notes rio_parse_notes(void);
+rio_Slice_Note rio_parse_notes(void);
 
 rio_Decl (*rio_parse_decl_note(rio_SrcPos pos));
 
 rio_Decl (*rio_parse_decl_import(rio_SrcPos pos));
 
-rio_Decl (*rio_parse_decl_opt(rio_Notes (*notes)));
+rio_Decl (*rio_parse_decl_opt(rio_Slice_Note (*notes)));
 
 rio_Decl (*rio_parse_decl(void));
 
@@ -2164,7 +2164,7 @@ struct rio_Decl {
   rio_Decl_Kind kind;
   rio_SrcPos pos;
   char const ((*name));
-  rio_Notes notes;
+  rio_Slice_Note notes;
   bool is_incomplete;
   rio_Slice_Decl type_params;
   rio_Slice_SymRef refs;
@@ -2350,7 +2350,7 @@ struct rio_StmtSwitch {
 
 struct rio_Stmt {
   rio_Stmt_Kind kind;
-  rio_Notes notes;
+  rio_Slice_Note notes;
   rio_SrcPos pos;
   union {
     // void;
@@ -2501,8 +2501,8 @@ rio_Note rio_new_note(rio_SrcPos pos, char const ((*name)), rio_NoteArg (*args),
   return (rio_Note){.pos = pos, .name = name, .args = rio_ast_dup(args, (num_args) * (sizeof(*(args)))), .num_args = num_args};
 }
 
-rio_Notes rio_new_notes(rio_Note (*notes), size_t num_notes) {
-  return (rio_Notes){rio_ast_dup(notes, (num_notes) * (sizeof(*(notes)))), num_notes};
+rio_Slice_Note rio_new_notes(rio_Note (*notes), size_t num_notes) {
+  return (rio_Slice_Note){rio_ast_dup(notes, (num_notes) * (sizeof(*(notes)))), num_notes};
 }
 
 rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Stmt (*(*stmts)), size_t num_stmts) {
@@ -2582,11 +2582,14 @@ rio_Note (*rio_get_decl_note(rio_Decl (*decl), char const ((*name)))) {
   return rio_get_note(&(decl->notes), name);
 }
 
-rio_Note (*rio_get_note(rio_Notes (*notes), char const ((*name)))) {
-  for (size_t i = 0; (i) < (notes->num_notes); (i)++) {
-    rio_Note (*note) = (notes->notes) + (i);
-    if ((note->name) == (name)) {
-      return note;
+rio_Note (*rio_get_note(rio_Slice_Note (*notes), char const ((*name)))) {
+  {
+    rio_Slice_Note (*items__) = notes;
+    for (size_t i__ = 0; i__ < items__->length; ++i__) {
+      rio_Note (*note) = &items__->items[i__];
+      if ((note->name) == (name)) {
+        return note;
+      }
     }
   }
   return NULL;
@@ -2853,10 +2856,13 @@ rio_Expr (*rio_new_expr_ternary(rio_SrcPos pos, rio_Expr (*cond), rio_Expr (*the
 }
 
 rio_Note (*rio_get_stmt_note(rio_Stmt (*stmt), char const ((*name)))) {
-  for (size_t i = 0; (i) < (stmt->notes.num_notes); (i)++) {
-    rio_Note (*note) = (stmt->notes.notes) + (i);
-    if ((note->name) == (name)) {
-      return note;
+  {
+    rio_Slice_Note items__ = stmt->notes;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_Note (*note) = &items__.items[i__];
+      if ((note->name) == (name)) {
+        return note;
+      }
     }
   }
   return NULL;
@@ -3365,7 +3371,7 @@ bool rio_str_islower(char const ((*str))) {
 }
 
 rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*map))) {
-  rio_Aggregate (*dupe) = map->call(map->self, (Any){aggregate, TYPEID(55, TypeKind_Struct, rio_Aggregate)});
+  rio_Aggregate (*dupe) = map->call(map->self, (Any){aggregate, TYPEID(54, TypeKind_Struct, rio_Aggregate)});
   if (dupe) {
     return dupe;
   }
@@ -3373,7 +3379,7 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
   dupe->items = rio_ast_dup(dupe->items, (sizeof(*(dupe->items))) * (dupe->num_items));
   for (size_t i = 0; (i) < (dupe->num_items); ++(i)) {
     rio_AggregateItem (*item) = &(dupe->items[i]);
-    map->call(map->self, (Any){item, TYPEID(50, TypeKind_Struct, rio_AggregateItem)});
+    map->call(map->self, (Any){item, TYPEID(49, TypeKind_Struct, rio_AggregateItem)});
     switch (item->kind) {
     case rio_AggregateItem_Field: {
       item->type = rio_dupe_typespec(item->type, map);
@@ -3436,7 +3442,7 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
 }
 
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
-  rio_Typespec (*dupe) = map->call(map->self, (Any){type, TYPEID(44, TypeKind_Struct, rio_Typespec)});
+  rio_Typespec (*dupe) = map->call(map->self, (Any){type, TYPEID(43, TypeKind_Struct, rio_Typespec)});
   if (dupe) {
     return dupe;
   }
@@ -3468,11 +3474,11 @@ char (*rio_get_typespec_sym_name(rio_Typespec (*type))) {
 
 void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
   switch (item.type) {
-  case TYPEID(55, TypeKind_Struct, rio_Aggregate): {
+  case TYPEID(54, TypeKind_Struct, rio_Aggregate): {
     return NULL;
     break;
   }
-  case TYPEID(44, TypeKind_Struct, rio_Typespec): {
+  case TYPEID(43, TypeKind_Struct, rio_Typespec): {
     rio_Typespec (*type) = item.ptr;
     switch (type->kind) {
     case (rio_Typespec_Name): {
@@ -4411,6 +4417,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_StmtList (*block) = &(func->block);
     rio_Type (*items_type) = rio_get_resolved_type_orig(expr);
     int is_array = (items_type->kind) == ((rio_CompilerTypeKind_Array));
+    int is_ptr = (!(is_array)) && (rio_is_ptr_type(rio_get_resolved_type(expr)));
     size_t array_length = (is_array ? items_type->num_elems : 0);
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "{");
@@ -4418,18 +4425,19 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     char (*items) = "items__";
     rio_gen_stmt(&((rio_Stmt){.kind = (rio_Stmt_Init), .init = {.expr = expr, .name = items}}));
     rio_genln();
+    char (*access) = (is_ptr ? "->" : ".");
     char (*length_decl) = ((stmt->for_each.length_type) == (rio_type_usize) ? "size_t" : rio_type_to_cdecl(stmt->for_each.length_type, ""));
     rio_buf_printf(&(rio_gen_buf), "for (%s %s = 0; %s < ", length_decl, index, index);
     if (is_array) {
       rio_buf_printf(&(rio_gen_buf), "%zu", array_length);
     } else {
-      rio_buf_printf(&(rio_gen_buf), "%s.length", items);
+      rio_buf_printf(&(rio_gen_buf), "%s%slength", items, access);
     }
     rio_buf_printf(&(rio_gen_buf), "; ++%s) {", index);
     ++(rio_gen_indent);
     if (item) {
       rio_genln();
-      rio_buf_printf(&(rio_gen_buf), "%s = %s%s%s[%s];", rio_type_to_cdecl(rio_get_resolved_type(item), item->name), (stmt->for_each.get_ref ? "&" : ""), items, (is_array ? "" : ".items"), index);
+      rio_buf_printf(&(rio_gen_buf), "%s = %s%s%s%s[%s];", rio_type_to_cdecl(rio_get_resolved_type(item), item->name), (stmt->for_each.get_ref ? "&" : ""), items, (is_array ? "" : access), (is_array ? "" : "items"), index);
     }
     {
       rio_Slice_ref_Stmt items__ = block->stmts;
@@ -6596,7 +6604,7 @@ rio_Stmt (*rio_parse_stmt_switch(rio_SrcPos pos)) {
 }
 
 rio_Stmt (*rio_parse_stmt(void)) {
-  rio_Notes notes = rio_parse_notes();
+  rio_Slice_Note notes = rio_parse_notes();
   rio_SrcPos pos = rio_token.pos;
   rio_Stmt (*stmt) = {0};
   if (rio_match_keyword(rio_if_keyword)) {
@@ -6714,7 +6722,7 @@ rio_AggregateItem rio_parse_decl_aggregate_item(void) {
 
 char const ((*(rio_enum_tag_names[1]))) = {"kind"};
 bool rio_enum_tag_name_interned = false;
-rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name)), rio_Notes (*notes))) {
+rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name)), rio_Slice_Note (*notes))) {
   rio_SrcPos pos = rio_token.pos;
   rio_AggregateItem (*items) = {0};
   bool has_enum = false;
@@ -6868,7 +6876,7 @@ rio_Slice_Decl rio_parse_type_params(void) {
   return params;
 }
 
-rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Notes (*notes))) {
+rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Slice_Note (*notes))) {
   assert(((kind) == ((rio_Decl_Struct))) || ((kind) == ((rio_Decl_Union))));
   char const ((*name)) = rio_parse_name();
   rio_AggregateKind aggregate_kind = ((kind) == ((rio_Decl_Struct)) ? (rio_AggregateKind_Struct) : (rio_AggregateKind_Union));
@@ -7022,7 +7030,7 @@ rio_Note rio_parse_note(void) {
   return rio_new_note(pos, name, args, rio_buf_len(args));
 }
 
-rio_Notes rio_parse_notes(void) {
+rio_Slice_Note rio_parse_notes(void) {
   rio_Note (*notes) = NULL;
   while (rio_match_token((rio_TokenKind_At))) {
     rio_Note note = rio_parse_note();
@@ -7083,7 +7091,7 @@ rio_Decl (*rio_parse_decl_import(rio_SrcPos pos)) {
   return rio_new_decl_import(pos, rename_name, is_relative, names, rio_buf_len(names), import_all, items, rio_buf_len(items));
 }
 
-rio_Decl (*rio_parse_decl_opt(rio_Notes (*notes))) {
+rio_Decl (*rio_parse_decl_opt(rio_Slice_Note (*notes))) {
   rio_SrcPos pos = rio_token.pos;
   if (rio_match_keyword(rio_enum_keyword)) {
     return rio_parse_decl_enum(pos);
@@ -7109,7 +7117,7 @@ rio_Decl (*rio_parse_decl_opt(rio_Notes (*notes))) {
 }
 
 rio_Decl (*rio_parse_decl(void)) {
-  rio_Notes notes = rio_parse_notes();
+  rio_Slice_Note notes = rio_parse_notes();
   rio_Decl (*decl) = rio_parse_decl_opt(&(notes));
   if (!(decl)) {
     rio_fatal_error(rio_token.pos, "Expected declaration keyword, got %s", rio_token_info());
