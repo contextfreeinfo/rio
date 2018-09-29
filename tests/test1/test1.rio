@@ -616,7 +616,9 @@ fn print_typeinfo(type: typeid) {
   switch (typeinfo.kind) {
     Struct, Union => {
       printf(" %s={ ", typeinfo.kind == TypeKind.Struct ? "struct" : "union");
-      for (let i = 0; i < typeinfo.num_fields; i++) {
+      // TODO Why can't it find fields items correctly here?
+      // for (typeinfo.fields) do(field) {
+      for (let i = 0; i < typeinfo.fields.length; i++) {
         let field = typeinfo.fields[i];
         printf("@offset(%d) %s: ", field.offset, field.name);
         print_type(field.type);

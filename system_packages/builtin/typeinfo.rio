@@ -39,8 +39,7 @@ struct TypeInfo {
   name: *const char;
   count: int;
   base: typeid;
-  fields: *TypeFieldInfo;
-  num_fields: int;
+  fields: Slice<TypeFieldInfo>;
 }
 
 @foreign

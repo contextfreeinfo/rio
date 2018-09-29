@@ -61,6 +61,7 @@ typedef struct tm tm_t;
 #include <time.h>
 
 // Forward declarations
+typedef struct Slice_TypeFieldInfo Slice_TypeFieldInfo;
 typedef struct TypeInfo TypeInfo;
 typedef struct TypeFieldInfo TypeFieldInfo;
 typedef struct Any Any;
@@ -128,6 +129,12 @@ typedef int TypeKind;
 
 #define TypeKind_Func ((TypeKind)((TypeKind_Union) + (1)))
 
+
+struct Slice_TypeFieldInfo {
+  TypeFieldInfo (*items);
+  size_t length;
+};
+
 struct TypeInfo {
   TypeKind kind;
   int size;
@@ -135,8 +142,7 @@ struct TypeInfo {
   char const ((*name));
   int count;
   typeid base;
-  TypeFieldInfo (*fields);
-  int num_fields;
+  Slice_TypeFieldInfo fields;
 };
 
 TypeKind typeid_kind(typeid type);
@@ -168,7 +174,6 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 #define USIZE_MIN (UINT64_MIN)
 
 #define UINTPTR_MIN (UINT64_MIN)
-
 
 
 struct TypeFieldInfo {

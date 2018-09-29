@@ -63,6 +63,7 @@ typedef struct tm tm_t;
 #include <time.h>
 
 // Forward declarations
+typedef struct Slice_TypeFieldInfo Slice_TypeFieldInfo;
 typedef struct TypeInfo TypeInfo;
 typedef struct rio_Arena rio_Arena;
 typedef struct rio_SrcPos rio_SrcPos;
@@ -217,6 +218,12 @@ typedef int TypeKind;
 
 #define TypeKind_Func ((TypeKind)((TypeKind_Union) + (1)))
 
+
+struct Slice_TypeFieldInfo {
+  TypeFieldInfo (*items);
+  size_t length;
+};
+
 struct TypeInfo {
   TypeKind kind;
   int size;
@@ -224,8 +231,7 @@ struct TypeInfo {
   char const ((*name));
   int count;
   typeid base;
-  TypeFieldInfo (*fields);
-  int num_fields;
+  Slice_TypeFieldInfo fields;
 };
 
 TypeKind typeid_kind(typeid type);
@@ -428,7 +434,6 @@ struct rio_SrcPos {
   char const ((*name));
   int line;
 };
-
 
 struct rio_Slice_NoteArg {
   rio_NoteArg (*items);
@@ -3416,7 +3421,7 @@ bool rio_str_islower(char const ((*str))) {
 }
 
 rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*map))) {
-  rio_Aggregate (*dupe) = map->call(map->self, (Any){aggregate, TYPEID(54, TypeKind_Struct, rio_Aggregate)});
+  rio_Aggregate (*dupe) = map->call(map->self, (Any){aggregate, TYPEID(55, TypeKind_Struct, rio_Aggregate)});
   if (dupe) {
     return dupe;
   }
@@ -3426,7 +3431,7 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
     rio_Slice_AggregateItem items__ = dupe->items;
     for (size_t i__ = 0; i__ < items__.length; ++i__) {
       rio_AggregateItem (*item) = &items__.items[i__];
-      map->call(map->self, (Any){item, TYPEID(49, TypeKind_Struct, rio_AggregateItem)});
+      map->call(map->self, (Any){item, TYPEID(50, TypeKind_Struct, rio_AggregateItem)});
       switch (item->kind) {
       case rio_AggregateItem_Field: {
         item->type = rio_dupe_typespec(item->type, map);
@@ -3490,7 +3495,7 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
 }
 
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
-  rio_Typespec (*dupe) = map->call(map->self, (Any){type, TYPEID(43, TypeKind_Struct, rio_Typespec)});
+  rio_Typespec (*dupe) = map->call(map->self, (Any){type, TYPEID(44, TypeKind_Struct, rio_Typespec)});
   if (dupe) {
     return dupe;
   }
@@ -3522,11 +3527,11 @@ char (*rio_get_typespec_sym_name(rio_Typespec (*type))) {
 
 void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
   switch (item.type) {
-  case TYPEID(54, TypeKind_Struct, rio_Aggregate): {
+  case TYPEID(55, TypeKind_Struct, rio_Aggregate): {
     return NULL;
     break;
   }
-  case TYPEID(43, TypeKind_Struct, rio_Typespec): {
+  case TYPEID(44, TypeKind_Struct, rio_Typespec): {
     rio_Typespec (*type) = item.ptr;
     switch (type->kind) {
     case (rio_Typespec_Name): {
@@ -5007,10 +5012,10 @@ void rio_gen_typeinfo(rio_Type (*type)) {
     rio_gen_typeinfo_header(((type->kind) == ((rio_CompilerTypeKind_Struct)) ? "TypeKind_Struct" : "TypeKind_Union"), type);
     rio_buf_printf(&(rio_gen_buf), ", .name = ");
     rio_gen_str(rio_get_gen_name(type->sym), false);
-    rio_buf_printf(&(rio_gen_buf), ", .num_fields = %d, .fields = (TypeFieldInfo[]) {", type->aggregate.fields.length);
+    rio_buf_printf(&(rio_gen_buf), ", .fields = {(TypeFieldInfo[]) {");
     rio_gen_typeinfo_fields(type);
     rio_genln();
-    rio_buf_printf(&(rio_gen_buf), "}},");
+    rio_buf_printf(&(rio_gen_buf), "}, %d}},", type->aggregate.fields.length);
     break;
   }
   case rio_CompilerTypeKind_Func: {

@@ -1323,13 +1323,10 @@ fn gen_typeinfo(type: &Type) {
       buf_printf(&gen_buf, ", .name = ");
       gen_str(get_gen_name(type.sym), false);
       // TODO Slice in type info?
-      buf_printf(
-        &gen_buf, ", .num_fields = %d, .fields = (TypeFieldInfo[]) {",
-        type.aggregate.fields.length,
-      );
+      buf_printf(&gen_buf, ", .fields = {(TypeFieldInfo[]) {");
       gen_typeinfo_fields(type);
       genln();
-      buf_printf(&gen_buf, "}},");
+      buf_printf(&gen_buf, "}, %d}},", type.aggregate.fields.length);
     }
     Func => buf_printf(&gen_buf, "NULL, // Function");
     Enum => buf_printf(&gen_buf, "NULL, // Enum");
