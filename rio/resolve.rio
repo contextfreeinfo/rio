@@ -1187,13 +1187,13 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
         fatal_error(stmt.pos, "Conditional expression must have scalar type");
       }
       let returns: bool = resolve_stmt_block(stmt.if_stmt.then_block, ret_type, ctx);
-      for (let i: usize = 0; i < stmt.if_stmt.num_elseifs; i++) {
-        let elseif: ElseIf = stmt.if_stmt.elseifs[i];
+      for (stmt.if_stmt.elseifs) do(elseif) {
         resolve_cond_expr(elseif.cond);
         returns = resolve_stmt_block(elseif.block, ret_type, ctx) && returns;
       }
       if (stmt.if_stmt.else_block.stmts.length) {
-        returns = resolve_stmt_block(stmt.if_stmt.else_block, ret_type, ctx) && returns;
+        returns =
+          resolve_stmt_block(stmt.if_stmt.else_block, ret_type, ctx) && returns;
       } else {
         returns = false;
       }
@@ -1239,10 +1239,8 @@ fn resolve_stmt(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) -> bool {
       ctx.is_break_legal = true;
       let returns = true;
       let has_default = false;
-      for (let i: usize = 0; i < stmt.switch_stmt.num_cases; i++) {
-        let switch_case: SwitchCase = stmt.switch_stmt.cases[i];
-        for (let j: usize = 0; j < switch_case.num_patterns; j++) {
-          let pattern: SwitchCasePattern = switch_case.patterns[j];
+      for (stmt.switch_stmt.cases) do(switch_case) {
+        for (switch_case.patterns) do(pattern) {
           if (pattern.is_default) {
             if (has_default) {
               fatal_error(stmt.pos, "Switch statement has multiple default clauses");

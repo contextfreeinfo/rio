@@ -437,7 +437,9 @@ fn parse_stmt_if(pos: SrcPos) -> &Stmt {
     let elseif = ElseIf {elseif_cond, elseif_block};
     buf_push((:&&void)&elseifs, &elseif, sizeof(elseif));
   } while;
-  return new_stmt_if(pos, init, cond, then_block, elseifs, buf_len(elseifs), else_block);
+  return new_stmt_if(
+    pos, init, cond, then_block, elseifs, buf_len(elseifs), else_block,
+  );
 }
 
 fn parse_stmt_while(pos: SrcPos) -> &Stmt {
@@ -570,7 +572,7 @@ fn parse_stmt_switch_case() -> SwitchCase {
   let pos = token.pos;
   let stmt = parse_stmt();
   return SwitchCase {
-    patterns, buf_len(patterns), new_stmt_list(pos, &stmt, 1),
+    {patterns, buf_len(patterns)}, new_stmt_list(pos, &stmt, 1),
   };
 }
 

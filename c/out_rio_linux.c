@@ -82,6 +82,7 @@ typedef struct rio_Token rio_Token;
 typedef struct rio_Slice_TypeArg rio_Slice_TypeArg;
 typedef struct rio_CompoundField rio_CompoundField;
 typedef struct rio_SwitchCasePattern rio_SwitchCasePattern;
+typedef struct rio_Slice_SwitchCasePattern rio_Slice_SwitchCasePattern;
 typedef struct rio_SwitchCase rio_SwitchCase;
 typedef struct rio_EnumItem rio_EnumItem;
 typedef struct rio_Slice_ptr_const_char rio_Slice_ptr_const_char;
@@ -138,8 +139,10 @@ typedef struct rio_StmtWhile rio_StmtWhile;
 typedef struct rio_StmtAssign rio_StmtAssign;
 typedef struct rio_StmtFor rio_StmtFor;
 typedef struct rio_StmtForEach rio_StmtForEach;
+typedef struct rio_Slice_ElseIf rio_Slice_ElseIf;
 typedef struct rio_StmtIf rio_StmtIf;
 typedef struct rio_StmtInit rio_StmtInit;
+typedef struct rio_Slice_SwitchCase rio_Slice_SwitchCase;
 typedef struct rio_StmtSwitch rio_StmtSwitch;
 typedef struct rio_Stmt rio_Stmt;
 typedef struct rio_Slice_ref_Decl rio_Slice_ref_Decl;
@@ -1400,9 +1403,13 @@ struct rio_SwitchCasePattern {
 
 rio_SwitchCasePattern rio_parse_switch_case_pattern(void);
 
+struct rio_Slice_SwitchCasePattern {
+  rio_SwitchCasePattern (*items);
+  size_t length;
+};
+
 struct rio_SwitchCase {
-  rio_SwitchCasePattern (*patterns);
-  size_t num_patterns;
+  rio_Slice_SwitchCasePattern patterns;
   rio_StmtList block;
 };
 
@@ -2378,12 +2385,16 @@ struct rio_StmtForEach {
   rio_Type (*length_type);
 };
 
+struct rio_Slice_ElseIf {
+  rio_ElseIf (*items);
+  size_t length;
+};
+
 struct rio_StmtIf {
   rio_Stmt (*init);
   rio_Expr (*cond);
   rio_StmtList then_block;
-  rio_ElseIf (*elseifs);
-  size_t num_elseifs;
+  rio_Slice_ElseIf elseifs;
   rio_StmtList else_block;
 };
 
@@ -2394,10 +2405,14 @@ struct rio_StmtInit {
   rio_Expr (*expr);
 };
 
+struct rio_Slice_SwitchCase {
+  rio_SwitchCase (*items);
+  size_t length;
+};
+
 struct rio_StmtSwitch {
   rio_Expr (*expr);
-  rio_SwitchCase (*cases);
-  size_t num_cases;
+  rio_Slice_SwitchCase cases;
 };
 
 struct rio_Stmt {
@@ -2980,8 +2995,7 @@ rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), r
   s->if_stmt.init = init;
   s->if_stmt.cond = cond;
   s->if_stmt.then_block = then_block;
-  s->if_stmt.elseifs = rio_ast_dup(elseifs, (num_elseifs) * (sizeof(*(elseifs))));
-  s->if_stmt.num_elseifs = num_elseifs;
+  s->if_stmt.elseifs = (rio_Slice_ElseIf){rio_ast_dup(elseifs, (num_elseifs) * (sizeof(*(elseifs)))), num_elseifs};
   s->if_stmt.else_block = else_block;
   return s;
 }
@@ -3020,8 +3034,7 @@ rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), 
 rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_SwitchCase (*cases), size_t num_cases)) {
   rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Switch), pos);
   s->switch_stmt.expr = expr;
-  s->switch_stmt.cases = rio_ast_dup(cases, (num_cases) * (sizeof(*(cases))));
-  s->switch_stmt.num_cases = num_cases;
+  s->switch_stmt.cases = (rio_Slice_SwitchCase){rio_ast_dup(cases, (num_cases) * (sizeof(*(cases)))), num_cases};
   return s;
 }
 
@@ -4438,12 +4451,15 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     }
     rio_buf_printf(&(rio_gen_buf), ") ");
     rio_gen_stmt_block(stmt->if_stmt.then_block);
-    for (size_t i = 0; (i) < (stmt->if_stmt.num_elseifs); (i)++) {
-      rio_ElseIf elseif = stmt->if_stmt.elseifs[i];
-      rio_buf_printf(&(rio_gen_buf), " else if (");
-      rio_gen_expr(elseif.cond);
-      rio_buf_printf(&(rio_gen_buf), ") ");
-      rio_gen_stmt_block(elseif.block);
+    {
+      rio_Slice_ElseIf items__ = stmt->if_stmt.elseifs;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_ElseIf elseif = items__.items[i__];
+        rio_buf_printf(&(rio_gen_buf), " else if (");
+        rio_gen_expr(elseif.cond);
+        rio_buf_printf(&(rio_gen_buf), ") ");
+        rio_gen_stmt_block(elseif.block);
+      }
     }
     if (stmt->if_stmt.else_block.stmts.length) {
       rio_buf_printf(&(rio_gen_buf), " else ");
@@ -4564,64 +4580,70 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_gen_expr(stmt->switch_stmt.expr);
     rio_buf_printf(&(rio_gen_buf), ") {");
     bool has_default = false;
-    for (size_t i = 0; (i) < (stmt->switch_stmt.num_cases); (i)++) {
-      rio_SwitchCase switch_case = stmt->switch_stmt.cases[i];
-      for (size_t j = 0; (j) < (switch_case.num_patterns); (j)++) {
-        rio_SwitchCasePattern pattern = switch_case.patterns[j];
-        if (pattern.is_default) {
-          has_default = true;
-          rio_genln();
-          rio_buf_printf(&(rio_gen_buf), "default:");
-        } else if (pattern.end) {
-          rio_Val start_val = rio_get_resolved_val(pattern.start);
-          rio_Val end_val = rio_get_resolved_val(pattern.end);
-          if ((rio_is_char_lit(pattern.start)) && (rio_is_char_lit(pattern.end))) {
-            rio_genln();
-            for (int c = (int)(start_val.ll); (c) <= ((int)(end_val.ll)); (c)++) {
+    {
+      rio_Slice_SwitchCase items__ = stmt->switch_stmt.cases;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_SwitchCase switch_case = items__.items[i__];
+        {
+          rio_Slice_SwitchCasePattern items__ = switch_case.patterns;
+          for (size_t i__ = 0; i__ < items__.length; ++i__) {
+            rio_SwitchCasePattern pattern = items__.items[i__];
+            if (pattern.is_default) {
+              has_default = true;
+              rio_genln();
+              rio_buf_printf(&(rio_gen_buf), "default:");
+            } else if (pattern.end) {
+              rio_Val start_val = rio_get_resolved_val(pattern.start);
+              rio_Val end_val = rio_get_resolved_val(pattern.end);
+              if ((rio_is_char_lit(pattern.start)) && (rio_is_char_lit(pattern.end))) {
+                rio_genln();
+                for (int c = (int)(start_val.ll); (c) <= ((int)(end_val.ll)); (c)++) {
+                  rio_buf_printf(&(rio_gen_buf), "case ");
+                  rio_gen_char(c);
+                  rio_buf_printf(&(rio_gen_buf), ": ");
+                }
+              } else {
+                rio_genln();
+                rio_buf_printf(&(rio_gen_buf), "// ");
+                rio_gen_expr(pattern.start);
+                rio_buf_printf(&(rio_gen_buf), "...");
+                rio_gen_expr(pattern.end);
+                rio_genln();
+                for (llong ll = start_val.ll; (ll) <= (end_val.ll); (ll)++) {
+                  rio_buf_printf(&(rio_gen_buf), "case %lld: ", ll);
+                }
+              }
+            } else {
+              rio_genln();
               rio_buf_printf(&(rio_gen_buf), "case ");
-              rio_gen_char(c);
-              rio_buf_printf(&(rio_gen_buf), ": ");
-            }
-          } else {
-            rio_genln();
-            rio_buf_printf(&(rio_gen_buf), "// ");
-            rio_gen_expr(pattern.start);
-            rio_buf_printf(&(rio_gen_buf), "...");
-            rio_gen_expr(pattern.end);
-            rio_genln();
-            for (llong ll = start_val.ll; (ll) <= (end_val.ll); (ll)++) {
-              rio_buf_printf(&(rio_gen_buf), "case %lld: ", ll);
+              rio_gen_expr(pattern.start);
+              rio_buf_printf(&(rio_gen_buf), ":");
             }
           }
-        } else {
-          rio_genln();
-          rio_buf_printf(&(rio_gen_buf), "case ");
-          rio_gen_expr(pattern.start);
-          rio_buf_printf(&(rio_gen_buf), ":");
         }
-      }
-      rio_buf_printf(&(rio_gen_buf), " ");
-      rio_buf_printf(&(rio_gen_buf), "{");
-      (rio_gen_indent)++;
-      rio_StmtList (*block) = &(switch_case.block);
-      if ((block->stmts.length) == (1)) {
-        rio_Stmt (*first) = block->stmts.items[0];
-        if ((first->kind) == ((rio_Stmt_Block))) {
-          block = &(first->block);
+        rio_buf_printf(&(rio_gen_buf), " ");
+        rio_buf_printf(&(rio_gen_buf), "{");
+        (rio_gen_indent)++;
+        rio_StmtList (*block) = &(switch_case.block);
+        if ((block->stmts.length) == (1)) {
+          rio_Stmt (*first) = block->stmts.items[0];
+          if ((first->kind) == ((rio_Stmt_Block))) {
+            block = &(first->block);
+          }
         }
-      }
-      {
-        rio_Slice_ref_Stmt items__ = block->stmts;
-        for (size_t i__ = 0; i__ < items__.length; ++i__) {
-          rio_Stmt (*stmt) = items__.items[i__];
-          rio_gen_stmt(stmt);
+        {
+          rio_Slice_ref_Stmt items__ = block->stmts;
+          for (size_t i__ = 0; i__ < items__.length; ++i__) {
+            rio_Stmt (*stmt) = items__.items[i__];
+            rio_gen_stmt(stmt);
+          }
         }
+        rio_genln();
+        rio_buf_printf(&(rio_gen_buf), "break;");
+        (rio_gen_indent)--;
+        rio_genln();
+        rio_buf_printf(&(rio_gen_buf), "}");
       }
-      rio_genln();
-      rio_buf_printf(&(rio_gen_buf), "break;");
-      (rio_gen_indent)--;
-      rio_genln();
-      rio_buf_printf(&(rio_gen_buf), "}");
     }
     if (!(has_default)) {
       rio_Note (*note) = rio_get_stmt_note(stmt, rio_complete_name);
@@ -6669,7 +6691,7 @@ rio_SwitchCase rio_parse_stmt_switch_case(void) {
   rio_expect_token((rio_TokenKind_Spear));
   rio_SrcPos pos = rio_token.pos;
   rio_Stmt (*stmt) = rio_parse_stmt();
-  return (rio_SwitchCase){patterns, rio_buf_len(patterns), rio_new_stmt_list(pos, &(stmt), 1)};
+  return (rio_SwitchCase){{patterns, rio_buf_len(patterns)}, rio_new_stmt_list(pos, &(stmt), 1)};
 }
 
 rio_Stmt (*rio_parse_stmt_switch(rio_SrcPos pos)) {
@@ -8307,10 +8329,13 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
       rio_fatal_error(stmt->pos, "Conditional expression must have scalar type");
     }
     bool returns = rio_resolve_stmt_block(stmt->if_stmt.then_block, ret_type, ctx);
-    for (size_t i = 0; (i) < (stmt->if_stmt.num_elseifs); (i)++) {
-      rio_ElseIf elseif = stmt->if_stmt.elseifs[i];
-      rio_resolve_cond_expr(elseif.cond);
-      returns = (rio_resolve_stmt_block(elseif.block, ret_type, ctx)) && (returns);
+    {
+      rio_Slice_ElseIf items__ = stmt->if_stmt.elseifs;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_ElseIf elseif = items__.items[i__];
+        rio_resolve_cond_expr(elseif.cond);
+        returns = (rio_resolve_stmt_block(elseif.block, ret_type, ctx)) && (returns);
+      }
     }
     if (stmt->if_stmt.else_block.stmts.length) {
       returns = (rio_resolve_stmt_block(stmt->if_stmt.else_block, ret_type, ctx)) && (returns);
@@ -8362,47 +8387,53 @@ bool rio_resolve_stmt(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ctx) {
     ctx.is_break_legal = true;
     bool returns = true;
     bool has_default = false;
-    for (size_t i = 0; (i) < (stmt->switch_stmt.num_cases); (i)++) {
-      rio_SwitchCase switch_case = stmt->switch_stmt.cases[i];
-      for (size_t j = 0; (j) < (switch_case.num_patterns); (j)++) {
-        rio_SwitchCasePattern pattern = switch_case.patterns[j];
-        if (pattern.is_default) {
-          if (has_default) {
-            rio_fatal_error(stmt->pos, "Switch statement has multiple default clauses");
+    {
+      rio_Slice_SwitchCase items__ = stmt->switch_stmt.cases;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_SwitchCase switch_case = items__.items[i__];
+        {
+          rio_Slice_SwitchCasePattern items__ = switch_case.patterns;
+          for (size_t i__ = 0; i__ < items__.length; ++i__) {
+            rio_SwitchCasePattern pattern = items__.items[i__];
+            if (pattern.is_default) {
+              if (has_default) {
+                rio_fatal_error(stmt->pos, "Switch statement has multiple default clauses");
+              }
+              has_default = true;
+              continue;
+            }
+            rio_Expr (*start_expr) = pattern.start;
+            rio_Operand start_operand = rio_resolve_enum_item_or_const_expr(enum_decl, start_expr);
+            if (!(rio_convert_operand(&(start_operand), operand.type))) {
+              rio_fatal_error(start_expr->pos, "Invalid type in switch case expression. Expected %s, got %s", rio_get_type_name(operand.type), rio_get_type_name(start_operand.type));
+            }
+            rio_Expr (*end_expr) = pattern.end;
+            if (end_expr) {
+              rio_Operand end_operand = rio_resolve_enum_item_or_const_expr(enum_decl, end_expr);
+              if (!(rio_convert_operand(&(end_operand), operand.type))) {
+                rio_fatal_error(end_expr->pos, "Invalid type in switch case expression. Expected %s, got %s", rio_get_type_name(operand.type), rio_get_type_name(end_operand.type));
+              }
+              rio_convert_operand(&(start_operand), rio_type_llong);
+              rio_set_resolved_val(start_expr, start_operand.val);
+              rio_convert_operand(&(end_operand), rio_type_llong);
+              rio_set_resolved_val(end_expr, end_operand.val);
+              if ((end_operand.val.ll) < (start_operand.val.ll)) {
+                rio_fatal_error(start_expr->pos, "Case range end value cannot be less thn start value");
+              }
+              if (((end_operand.val.ll) - (start_operand.val.ll)) >= (256)) {
+                rio_fatal_error(start_expr->pos, "Case range cannot span more than 256 values");
+              }
+            }
           }
-          has_default = true;
-          continue;
         }
-        rio_Expr (*start_expr) = pattern.start;
-        rio_Operand start_operand = rio_resolve_enum_item_or_const_expr(enum_decl, start_expr);
-        if (!(rio_convert_operand(&(start_operand), operand.type))) {
-          rio_fatal_error(start_expr->pos, "Invalid type in switch case expression. Expected %s, got %s", rio_get_type_name(operand.type), rio_get_type_name(start_operand.type));
-        }
-        rio_Expr (*end_expr) = pattern.end;
-        if (end_expr) {
-          rio_Operand end_operand = rio_resolve_enum_item_or_const_expr(enum_decl, end_expr);
-          if (!(rio_convert_operand(&(end_operand), operand.type))) {
-            rio_fatal_error(end_expr->pos, "Invalid type in switch case expression. Expected %s, got %s", rio_get_type_name(operand.type), rio_get_type_name(end_operand.type));
-          }
-          rio_convert_operand(&(start_operand), rio_type_llong);
-          rio_set_resolved_val(start_expr, start_operand.val);
-          rio_convert_operand(&(end_operand), rio_type_llong);
-          rio_set_resolved_val(end_expr, end_operand.val);
-          if ((end_operand.val.ll) < (start_operand.val.ll)) {
-            rio_fatal_error(start_expr->pos, "Case range end value cannot be less thn start value");
-          }
-          if (((end_operand.val.ll) - (start_operand.val.ll)) >= (256)) {
-            rio_fatal_error(start_expr->pos, "Case range cannot span more than 256 values");
+        if ((switch_case.block.stmts.length) > (1)) {
+          rio_Stmt (*last_stmt) = switch_case.block.stmts.items[(switch_case.block.stmts.length) - (1)];
+          if ((last_stmt->kind) == ((rio_Stmt_Break))) {
+            rio_warning(last_stmt->pos, "Case blocks already end with an implicit break");
           }
         }
+        returns = (rio_resolve_stmt_block(switch_case.block, ret_type, ctx)) && (returns);
       }
-      if ((switch_case.block.stmts.length) > (1)) {
-        rio_Stmt (*last_stmt) = switch_case.block.stmts.items[(switch_case.block.stmts.length) - (1)];
-        if ((last_stmt->kind) == ((rio_Stmt_Break))) {
-          rio_warning(last_stmt->pos, "Case blocks already end with an implicit break");
-        }
-      }
-      returns = (rio_resolve_stmt_block(switch_case.block, ret_type, ctx)) && (returns);
     }
     return (returns) && (has_default);
     break;

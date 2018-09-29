@@ -789,8 +789,7 @@ fn gen_stmt(stmt: &Stmt) {
       }
       buf_printf(&gen_buf, ") ");
       gen_stmt_block(stmt.if_stmt.then_block);
-      for (let i: usize = 0; i < stmt.if_stmt.num_elseifs; i++) {
-        let elseif = stmt.if_stmt.elseifs[i];
+      for (stmt.if_stmt.elseifs) do(elseif) {
         buf_printf(&gen_buf, " else if (");
         gen_expr(elseif.cond);
         buf_printf(&gen_buf, ") ");
@@ -930,10 +929,8 @@ fn gen_stmt(stmt: &Stmt) {
       gen_expr(stmt.switch_stmt.expr);
       buf_printf(&gen_buf, ") {");
       let has_default = false;
-      for (let i: usize = 0; i < stmt.switch_stmt.num_cases; i++) {
-        let switch_case = stmt.switch_stmt.cases[i];
-        for (let j: usize = 0; j < switch_case.num_patterns; j++) {
-          let pattern = switch_case.patterns[j];
+      for (stmt.switch_stmt.cases) do(switch_case) {
+        for (switch_case.patterns) do(pattern) {
           if (pattern.is_default) {
             has_default = true;
             genln(); buf_printf(&gen_buf, "default:");

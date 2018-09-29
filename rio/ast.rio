@@ -281,8 +281,7 @@ struct SwitchCasePattern {
 }
 
 struct SwitchCase {
-  patterns: *SwitchCasePattern;
-  num_patterns: usize;
+  patterns: Slice<SwitchCasePattern>;
   block: StmtList;
 }
 
@@ -311,8 +310,7 @@ struct StmtIf {
   init: &Stmt;
   cond: &Expr;
   then_block: StmtList;
-  elseifs: *ElseIf;
-  num_elseifs: usize;
+  elseifs: Slice<ElseIf>;
   else_block: StmtList;
 }
 
@@ -340,8 +338,7 @@ struct StmtForEach {
 
 struct StmtSwitch {
   expr: &Expr;
-  cases: *SwitchCase;
-  num_cases: usize;
+  cases: Slice<SwitchCase>;
 }
 
 struct StmtAssign {
@@ -827,13 +824,16 @@ fn new_stmt_close(pos: SrcPos, tag: Stmt.Kind) -> &Stmt {
   return s;
 }
 
-fn new_stmt_if(pos: SrcPos, init: &Stmt, cond: &Expr, then_block: StmtList, elseifs: *ElseIf, num_elseifs: usize, else_block: StmtList) -> &Stmt {
+fn new_stmt_if(
+  pos: SrcPos, init: &Stmt, cond: &Expr, then_block: StmtList,
+  elseifs: *ElseIf, num_elseifs: usize, else_block: StmtList,
+) -> &Stmt {
   let s = new_stmt(Stmt.If, pos);
   s.if_stmt.init = init;
   s.if_stmt.cond = cond;
   s.if_stmt.then_block = then_block;
-  s.if_stmt.elseifs = ast_dup(elseifs, num_elseifs * sizeof(*elseifs));
-  s.if_stmt.num_elseifs = num_elseifs;
+  s.if_stmt.elseifs =
+    {ast_dup(elseifs, num_elseifs * sizeof(*elseifs)), num_elseifs};
   s.if_stmt.else_block = else_block;
   return s;
 }
@@ -872,11 +872,12 @@ fn new_stmt_for(pos: SrcPos, init: &Stmt, cond: &Expr, next: &Stmt, block: StmtL
   return s;
 }
 
-fn new_stmt_switch(pos: SrcPos, expr: &Expr, cases: *SwitchCase, num_cases: usize) -> &Stmt {
+fn new_stmt_switch(
+  pos: SrcPos, expr: &Expr, cases: *SwitchCase, num_cases: usize,
+) -> &Stmt {
   let s = new_stmt(Stmt.Switch, pos);
   s.switch_stmt.expr = expr;
-  s.switch_stmt.cases = ast_dup(cases, num_cases * sizeof(*cases));
-  s.switch_stmt.num_cases = num_cases;
+  s.switch_stmt.cases = {ast_dup(cases, num_cases * sizeof(*cases)), num_cases};
   return s;
 }
 
