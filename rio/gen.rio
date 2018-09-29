@@ -343,8 +343,7 @@ fn gen_func_decl(decl: &Decl) {
   if (decl.function.params.length == 0) {
     buf_printf(&result, "void");
   } else {
-    for (let i: usize = 0; i < decl.function.params.length; i++) {
-      let param = decl.function.params.items[i];
+    for (decl.function.params) do(param, i) {
       if (i != 0) {
         buf_printf(&result, ", ");
       }
@@ -684,8 +683,8 @@ fn gen_expr(expr: &Expr) {
 fn gen_stmt_block(block: StmtList) {
   buf_printf(&gen_buf, "{");
   gen_indent++;
-  for (let i: usize = 0; i < block.stmts.length; i++) {
-    gen_stmt(block.stmts.items[i]);
+  for (block.stmts) do(stmt) {
+    gen_stmt(stmt);
   }
   gen_indent--;
   genln(); buf_printf(&gen_buf, "}");
@@ -967,8 +966,8 @@ fn gen_stmt(stmt: &Stmt) {
             block = &first.block;
           }
         }
-        for (let j: usize = 0; j < block.stmts.length; j++) {
-          gen_stmt(block.stmts.items[j]);
+        for (block.stmts) do(stmt) {
+          gen_stmt(stmt);
         }
         genln(); buf_printf(&gen_buf, "break;");
         gen_indent--;

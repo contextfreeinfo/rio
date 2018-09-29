@@ -3900,12 +3900,15 @@ void rio_gen_func_decl(rio_Decl (*decl)) {
   if ((decl->function.params.length) == (0)) {
     rio_buf_printf(&(result), "void");
   } else {
-    for (size_t i = 0; (i) < (decl->function.params.length); (i)++) {
-      rio_FuncParam param = decl->function.params.items[i];
-      if ((i) != (0)) {
-        rio_buf_printf(&(result), ", ");
+    {
+      rio_Slice_FuncParam items__ = decl->function.params;
+      for (size_t i = 0; i < items__.length; ++i) {
+        rio_FuncParam param = items__.items[i];
+        if ((i) != (0)) {
+          rio_buf_printf(&(result), ", ");
+        }
+        rio_buf_printf(&(result), "%s", rio_typespec_to_cdecl(param.type, param.name));
       }
-      rio_buf_printf(&(result), "%s", rio_typespec_to_cdecl(param.type, param.name));
     }
   }
   if (decl->function.has_varargs) {
@@ -4232,8 +4235,12 @@ void rio_gen_expr(rio_Expr (*expr)) {
 void rio_gen_stmt_block(rio_StmtList block) {
   rio_buf_printf(&(rio_gen_buf), "{");
   (rio_gen_indent)++;
-  for (size_t i = 0; (i) < (block.stmts.length); (i)++) {
-    rio_gen_stmt(block.stmts.items[i]);
+  {
+    rio_Slice_ref_Stmt items__ = block.stmts;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_Stmt (*stmt) = items__.items[i__];
+      rio_gen_stmt(stmt);
+    }
   }
   (rio_gen_indent)--;
   rio_genln();
@@ -4511,8 +4518,12 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
           block = &(first->block);
         }
       }
-      for (size_t j = 0; (j) < (block->stmts.length); (j)++) {
-        rio_gen_stmt(block->stmts.items[j]);
+      {
+        rio_Slice_ref_Stmt items__ = block->stmts;
+        for (size_t i__ = 0; i__ < items__.length; ++i__) {
+          rio_Stmt (*stmt) = items__.items[i__];
+          rio_gen_stmt(stmt);
+        }
       }
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "break;");
@@ -7678,11 +7689,15 @@ rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_S
   }
   rio_Aggregate (*aggregate) = decl->aggregate;
   char const ((*name)) = decl->name;
-  for (size_t i = 0; (i) < (type_args.length); ++(i)) {
-    rio_Typespec (*arg_typespec) = type_args.items[i].val;
-    char (*arg_name) = rio_get_typespec_sym_name(arg_typespec);
-    name = rio_build_scoped_name(name, arg_name);
-    rio_buf_free((void (**))(&(arg_name)));
+  {
+    rio_Slice_TypeArg items__ = type_args;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_TypeArg (*type_arg) = &items__.items[i__];
+      rio_Typespec (*arg_typespec) = type_arg->val;
+      char (*arg_name) = rio_get_typespec_sym_name(arg_typespec);
+      name = rio_build_scoped_name(name, arg_name);
+      rio_buf_free((void (**))(&(arg_name)));
+    }
   }
   rio_Sym (*dupe_sym) = rio_resolve_name(name);
   if (dupe_sym) {
@@ -7816,11 +7831,14 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
 
 void rio_push_type_params(rio_Decl (*decl)) {
   rio_Slice_Decl params = decl->type_params;
-  for (size_t i = 0; (i) < (params.length); ++(i)) {
-    rio_Decl (*param) = &(params.items[i]);
-    assert((param->kind) == ((rio_Decl_Typedef)));
-    rio_Type (*constraint) = rio_resolve_typespec(param->typedef_decl.constraint);
-    rio_sym_push_local((rio_Sym_Type), param->name, constraint, param);
+  {
+    rio_Slice_Decl items__ = params;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_Decl (*param) = &items__.items[i__];
+      assert((param->kind) == ((rio_Decl_Typedef)));
+      rio_Type (*constraint) = rio_resolve_typespec(param->typedef_decl.constraint);
+      rio_sym_push_local((rio_Sym_Type), param->name, constraint, param);
+    }
   }
 }
 
@@ -7963,13 +7981,17 @@ rio_Type (*rio_resolve_decl_func(rio_Decl (*decl))) {
   ullong has_type_params = !(!(decl->type_params.length));
   rio_push_type_params(decl);
   rio_Type (*(*params)) = NULL;
-  for (size_t i = 0; (i) < (decl->function.params.length); (i)++) {
-    rio_Type (*param) = rio_resolve_typespec(decl->function.params.items[i].type);
-    rio_complete_type(param);
-    if ((!(has_type_params)) && ((param) == (rio_type_void))) {
-      rio_fatal_error(decl->pos, "Function parameter type cannot be void");
+  {
+    rio_Slice_FuncParam items__ = decl->function.params;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_FuncParam (*param) = &items__.items[i__];
+      rio_Type (*param_type) = rio_resolve_typespec(param->type);
+      rio_complete_type(param_type);
+      if ((!(has_type_params)) && ((param_type) == (rio_type_void))) {
+        rio_fatal_error(decl->pos, "Function parameter type cannot be void");
+      }
+      rio_buf_push((void (**))(&(params)), &(param_type), sizeof(param_type));
     }
-    rio_buf_push((void (**))(&(params)), &(param), sizeof(param));
   }
   rio_Type (*ret_type) = rio_type_void;
   if (decl->function.ret_type) {
@@ -8041,17 +8063,20 @@ bool rio_resolve_stmt_block(rio_StmtList block, rio_Type (*ret_type), rio_StmtCt
   rio_Sym (*scope) = rio_sym_enter();
   bool returns = false;
   rio_Stmt (*prev_stmt) = {0};
-  for (size_t i = 0; (i) < (block.stmts.length); (i)++) {
-    rio_Stmt (*stmt) = block.stmts.items[i];
-    if ((stmt->kind) == ((rio_Stmt_Close))) {
-      if ((stmt->tag) != (prev_stmt->kind)) {
-        rio_fatal_error(stmt->pos, "Non-matching close tag");
-        return false;
+  {
+    rio_Slice_ref_Stmt items__ = block.stmts;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_Stmt (*stmt) = items__.items[i__];
+      if ((stmt->kind) == ((rio_Stmt_Close))) {
+        if (((stmt->tag) != (prev_stmt->kind)) && (!((((stmt->tag) == ((rio_Stmt_For))) && ((prev_stmt->kind) == ((rio_Stmt_ForEach))))))) {
+          rio_fatal_error(stmt->pos, "Non-matching close tag");
+          return false;
+        }
+      } else {
+        returns = (rio_resolve_stmt(stmt, ret_type, ctx)) || (returns);
       }
-    } else {
-      returns = (rio_resolve_stmt(stmt, ret_type, ctx)) || (returns);
+      prev_stmt = stmt;
     }
-    prev_stmt = stmt;
   }
   rio_sym_leave(scope);
   return returns;
@@ -8388,13 +8413,16 @@ void rio_resolve_func_body(rio_Sym (*sym)) {
   rio_Sym (*scope) = rio_sym_enter();
   ullong has_type_params = !(!(decl->type_params.length));
   rio_push_type_params(decl);
-  for (size_t i = 0; (i) < (decl->function.params.length); (i)++) {
-    rio_FuncParam param = decl->function.params.items[i];
-    rio_Type (*param_type) = rio_resolve_typespec(param.type);
-    if (rio_is_array_type(param_type)) {
-      param_type = rio_type_ptr(param_type->base);
+  {
+    rio_Slice_FuncParam items__ = decl->function.params;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_FuncParam param = items__.items[i__];
+      rio_Type (*param_type) = rio_resolve_typespec(param.type);
+      if (rio_is_array_type(param_type)) {
+        param_type = rio_type_ptr(param_type->base);
+      }
+      rio_sym_push_var(param.name, param_type);
     }
-    rio_sym_push_var(param.name, param_type);
   }
   rio_Type (*ret_type) = rio_resolve_typespec(decl->function.ret_type);
   assert(!(rio_is_array_type(ret_type)));

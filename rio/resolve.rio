@@ -642,8 +642,8 @@ fn resolve_specialized_typespec(
   // Clever could be to make them typedefs to a common struct definition or
   // such.
   let name = decl.name;
-  for (let i: usize = 0; i < type_args.length; ++i) {
-    let arg_typespec = type_args.items[i].val;
+  for &(type_args) do(type_arg) {
+    let arg_typespec = type_arg.val;
     let arg_name = get_typespec_sym_name(arg_typespec);
     // TODO Worth the effort of varargs to avoid repeated substrings?
     name = build_scoped_name(name, arg_name);
@@ -792,8 +792,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
 
 fn push_type_params(decl: &Decl) {
   let params = decl.type_params;
-  for (let i: usize = 0; i < params.length; ++i) {
-    let param = &params.items[i];
+  for &(params) do(param) {
     #assert(param.kind == Decl.Typedef);
     // TODO If constraint is null, use val as constraint.
     let constraint = resolve_typespec(param.typedef_decl.constraint);
@@ -960,13 +959,13 @@ fn resolve_decl_func(decl: &Decl) -> &Type {
   // }
   push_type_params(decl);
   let params: *&Type = NULL;
-  for (let i: usize = 0; i < decl.function.params.length; i++) {
-    let param = resolve_typespec(decl.function.params.items[i].type);
-    complete_type(param);
-    if (!has_type_params && param == type_void) {
+  for &(decl.function.params) do(param) {
+    let param_type = resolve_typespec(param.type);
+    complete_type(param_type);
+    if (!has_type_params && param_type == type_void) {
       fatal_error(decl.pos, "Function parameter type cannot be void");
     }
-    buf_push((:&&void)&params, &param, sizeof(param));
+    buf_push((:&&void)&params, &param_type, sizeof(param_type));
   } for;
   let ret_type = type_void;
   if (decl.function.ret_type) {
@@ -1056,10 +1055,11 @@ fn resolve_stmt_block(block: StmtList, ret_type: &Type, ctx: StmtCtx) -> bool {
   let scope = sym_enter();
   let returns = false;
   let prev_stmt: &Stmt;
-  for (let i: usize = 0; i < block.stmts.length; i++) {
-    let stmt = block.stmts.items[i];
+  for (block.stmts) do(stmt) {
     if (stmt.kind == Stmt.Close) {
-      if (stmt.tag != prev_stmt.kind) {
+      if (stmt.tag != prev_stmt.kind && !(
+        stmt.tag == Stmt.For && prev_stmt.kind == Stmt.ForEach
+      )) {
         fatal_error(stmt.pos, "Non-matching close tag");
         return false;
       }
@@ -1404,8 +1404,7 @@ fn resolve_func_body(sym: &Sym) {
   //   printf("Should be pushin'.\n");
   // }
   push_type_params(decl);
-  for (let i: usize = 0; i < decl.function.params.length; i++) {
-    let param = decl.function.params.items[i];
+  for (decl.function.params) do(param) {
     let param_type = resolve_typespec(param.type);
     if (is_array_type(param_type)) {
       param_type = type_ptr(param_type.base);
