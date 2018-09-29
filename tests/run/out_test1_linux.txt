@@ -40,3 +40,4 @@ Curly vs Moe
 ...
 slice[0]: Larry
 slice[1]: Moe
+Someone, Someone, and Curly

@@ -1342,6 +1342,9 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   } else {
     length_type = type_usize;
   }
+  if (stmt.for_each.get_ref) {
+    item_type = type_ref(item_type);
+  }
   if (func.params.length) {
     let item = &func.params.items[0];
     sym_push_var(item.name, item_type);

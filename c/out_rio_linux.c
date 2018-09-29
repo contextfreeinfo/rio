@@ -584,7 +584,7 @@ rio_Stmt (*rio_new_stmt_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList blo
 
 rio_Stmt (*rio_new_stmt_do_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList block));
 
-rio_Stmt (*rio_new_stmt_for_each(rio_SrcPos pos, rio_Expr (*expr), rio_Slice_FuncParam params, rio_StmtList block));
+rio_Stmt (*rio_new_stmt_for_each(rio_SrcPos pos, bool get_ref, rio_Expr (*expr), rio_Slice_FuncParam params, rio_StmtList block));
 
 rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_Stmt (*next), rio_StmtList block));
 
@@ -1364,7 +1364,7 @@ rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos));
 
 rio_Stmt (*rio_parse_simple_stmt(void));
 
-rio_Stmt (*rio_parse_stmt_for_each(rio_SrcPos pos, rio_Expr (*expr)));
+rio_Stmt (*rio_parse_stmt_for_each(rio_SrcPos pos, bool get_ref, rio_Expr (*expr)));
 
 rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos));
 
@@ -2319,6 +2319,7 @@ struct rio_StmtFor {
 
 struct rio_StmtForEach {
   rio_Expr (*expr);
+  bool get_ref;
   rio_DeclFunc func;
   rio_Type (*length_type);
 };
@@ -2941,9 +2942,10 @@ rio_Stmt (*rio_new_stmt_do_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList 
   return s;
 }
 
-rio_Stmt (*rio_new_stmt_for_each(rio_SrcPos pos, rio_Expr (*expr), rio_Slice_FuncParam params, rio_StmtList block)) {
+rio_Stmt (*rio_new_stmt_for_each(rio_SrcPos pos, bool get_ref, rio_Expr (*expr), rio_Slice_FuncParam params, rio_StmtList block)) {
   rio_Stmt (*s) = rio_new_stmt((rio_Stmt_ForEach), pos);
   s->for_each.expr = expr;
+  s->for_each.get_ref = get_ref;
   rio_init_func(&(s->for_each.func), params, NULL, false, block);
   return s;
 }
@@ -4406,7 +4408,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     ++(rio_gen_indent);
     if (item) {
       rio_genln();
-      rio_buf_printf(&(rio_gen_buf), "%s = %s%s[%s];", rio_type_to_cdecl(rio_get_resolved_type(item), item->name), items, (is_array ? "" : ".items"), index);
+      rio_buf_printf(&(rio_gen_buf), "%s = %s%s%s[%s];", rio_type_to_cdecl(rio_get_resolved_type(item), item->name), (stmt->for_each.get_ref ? "&" : ""), items, (is_array ? "" : ".items"), index);
     }
     for (size_t i = 0; (i) < (block->stmts.length); (i)++) {
       rio_gen_stmt(block->stmts.items[i]);
@@ -6471,7 +6473,7 @@ rio_Stmt (*rio_parse_simple_stmt(void)) {
   return stmt;
 }
 
-rio_Stmt (*rio_parse_stmt_for_each(rio_SrcPos pos, rio_Expr (*expr))) {
+rio_Stmt (*rio_parse_stmt_for_each(rio_SrcPos pos, bool get_ref, rio_Expr (*expr))) {
   bool has_varargs = {0};
   rio_Slice_FuncParam params = {0};
   if (rio_match_keyword(rio_do_keyword)) {
@@ -6480,10 +6482,11 @@ rio_Stmt (*rio_parse_stmt_for_each(rio_SrcPos pos, rio_Expr (*expr))) {
   if (has_varargs) {
     rio_fatal_error(pos, "Varargs not allowed in for-each loop");
   }
-  return rio_new_stmt_for_each(pos, expr, params, rio_parse_stmt_block());
+  return rio_new_stmt_for_each(pos, get_ref, expr, params, rio_parse_stmt_block());
 }
 
 rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
+  bool get_ref = rio_match_token((rio_TokenKind_And));
   rio_expect_token((rio_TokenKind_Lparen));
   rio_Stmt (*init) = NULL;
   if (!(rio_is_token((rio_TokenKind_Semicolon)))) {
@@ -6491,7 +6494,9 @@ rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
   }
   if (((init) && ((init->kind) == ((rio_Stmt_Expr)))) && (rio_is_token((rio_TokenKind_Rparen)))) {
     rio_next_token();
-    return rio_parse_stmt_for_each(pos, init->expr);
+    return rio_parse_stmt_for_each(pos, get_ref, init->expr);
+  } else if (get_ref) {
+    rio_fatal_error(pos, "Ref requested for segmented for loop");
   }
   rio_expect_token((rio_TokenKind_Semicolon));
   rio_Expr (*cond) = NULL;
@@ -8296,6 +8301,9 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
     }
   } else {
     length_type = rio_type_usize;
+  }
+  if (stmt->for_each.get_ref) {
+    item_type = rio_type_ref(item_type);
   }
   if (func->params.length) {
     rio_FuncParam (*item) = &(func->params.items[0]);

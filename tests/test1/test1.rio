@@ -930,6 +930,11 @@ fn test_for_each() {
   for (slice) do(name, index) {
     printf("slice[%zu]: %s\n", index, name);
   }
+  // And refs.
+  for &(slice) do(name) {
+    *name = "Someone";
+  }
+  printf("%s, %s, and %s\n", friends[0], friends[1], friends[2]);
 }
 
 fn main(argc: int, argv: **char) -> int {

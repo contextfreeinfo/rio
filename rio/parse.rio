@@ -501,7 +501,7 @@ fn parse_simple_stmt() -> &Stmt {
   return stmt;
 }
 
-fn parse_stmt_for_each(pos: SrcPos, expr: &Expr) -> &Stmt {
+fn parse_stmt_for_each(pos: SrcPos, get_ref: bool, expr: &Expr) -> &Stmt {
   let has_varargs: bool;
   let params: Slice<FuncParam>;
   if (match_keyword(do_keyword)) {
@@ -511,10 +511,11 @@ fn parse_stmt_for_each(pos: SrcPos, expr: &Expr) -> &Stmt {
   if (has_varargs) {
     fatal_error(pos, "Varargs not allowed in for-each loop");
   }
-  return new_stmt_for_each(pos, expr, params, parse_stmt_block());
+  return new_stmt_for_each(pos, get_ref, expr, params, parse_stmt_block());
 }
 
 fn parse_stmt_for(pos: SrcPos) -> &Stmt {
+  let get_ref = match_token(TokenKind.And);
   expect_token(TokenKind.Lparen);
   let init: &Stmt = NULL;
   if (!is_token(TokenKind.Semicolon)) {
@@ -523,7 +524,9 @@ fn parse_stmt_for(pos: SrcPos) -> &Stmt {
   }
   if (init && init.kind == Stmt.Expr && is_token(TokenKind.Rparen)) {
     next_token();
-    return parse_stmt_for_each(pos, init.expr);
+    return parse_stmt_for_each(pos, get_ref, init.expr);
+  } else if (get_ref) {
+    fatal_error(pos, "Ref requested for segmented for loop");
   }
   expect_token(TokenKind.Semicolon);
   let cond: &Expr = NULL;

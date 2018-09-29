@@ -354,9 +354,11 @@ struct StmtFor {
 
 struct StmtForEach {
   expr: &Expr;
+  get_ref: bool;
   func: DeclFunc;
   // Filled in during resolution.
   // We want to remember even if there are no matching expressions.
+  // TODO Is this the new biggest statement type, making all else bigger?
   length_type: &Type;
 }
 
@@ -868,10 +870,12 @@ fn new_stmt_do_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
 }
 
 fn new_stmt_for_each(
-  pos: SrcPos, expr: &Expr, params: Slice<FuncParam>, block: StmtList,
+  pos: SrcPos, get_ref: bool, expr: &Expr, params: Slice<FuncParam>,
+  block: StmtList,
 ) -> &Stmt {
   let s = new_stmt(Stmt.ForEach, pos);
   s.for_each.expr = expr;
+  s.for_each.get_ref = get_ref;
   init_func(&s.for_each.func, params, NULL, false, block);
   return s;
 }

@@ -878,8 +878,9 @@ fn gen_stmt(stmt: &Stmt) {
       if (item) {
         genln();
         buf_printf(
-          &gen_buf, "%s = %s%s[%s];",
+          &gen_buf, "%s = %s%s%s[%s];",
           type_to_cdecl(get_resolved_type(item), item.name),
+          stmt.for_each.get_ref ? "&" : "",
           items,
           is_array ? "" : ".items",
           index,
