@@ -3469,6 +3469,7 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
 
 rio_StmtList rio_dupe_block(rio_StmtList block, rio_MapClosure (*map)) {
   rio_StmtList (*dupe) = &(block);
+  dupe->stmts.items = rio_ast_dup(dupe->stmts.items, (sizeof(*(dupe->stmts.items))) * (dupe->stmts.length));
   {
     rio_Slice_ref_Stmt items__ = dupe->stmts;
     for (size_t i__ = 0; i__ < items__.length; ++i__) {
@@ -3508,6 +3509,68 @@ rio_FuncParam rio_dupe_func_param(rio_FuncParam param, rio_MapClosure (*map)) {
 }
 
 rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
+  rio_Stmt (*dupe) = rio_ast_dup(stmt, sizeof(*(stmt)));
+  switch (dupe->kind) {
+  case rio_Stmt_Assign: {
+    break;
+  }
+  case rio_Stmt_Block: {
+    dupe->block = rio_dupe_block(stmt->block, map);
+    break;
+  }
+  case rio_Stmt_Break:
+  case rio_Stmt_Close:
+  case rio_Stmt_Continue:
+  case rio_Stmt_Goto:
+  case rio_Stmt_Label:
+  case rio_Stmt_Note: {
+    break;
+  }
+  case rio_Stmt_Decl: {
+    break;
+  }
+  case rio_Stmt_DoWhile:
+  case rio_Stmt_While: {
+    break;
+  }
+  case rio_Stmt_Expr:
+  case rio_Stmt_Return: {
+    dupe->expr = rio_dupe_expr(dupe->expr, map);
+    break;
+  }
+  case rio_Stmt_For: {
+    break;
+  }
+  case rio_Stmt_ForEach: {
+    break;
+  }
+  case rio_Stmt_If: {
+    rio_StmtIf (*if_stmt) = &(dupe->if_stmt);
+    if_stmt->init = rio_dupe_stmt(if_stmt->init, map);
+    if_stmt->cond = rio_dupe_expr(if_stmt->cond, map);
+    if_stmt->then_block = rio_dupe_block(if_stmt->then_block, map);
+    if_stmt->elseifs.items = rio_ast_dup(if_stmt->elseifs.items, (sizeof(*(if_stmt->elseifs.items))) * (if_stmt->elseifs.length));
+    {
+      rio_Slice_ElseIf items__ = if_stmt->elseifs;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_ElseIf (*elseif) = &items__.items[i__];
+        elseif->cond = rio_dupe_expr(elseif->cond, map);
+        elseif->block = rio_dupe_block(elseif->block, map);
+      }
+    }
+    if_stmt->else_block = rio_dupe_block(if_stmt->else_block, map);
+    break;
+  }
+  case rio_Stmt_Init: {
+    break;
+  }
+  case rio_Stmt_Switch: {
+    break;
+  }
+  default:
+    assert("@complete switch failed to handle case" && 0);
+    break;
+  }
   return stmt;
 }
 

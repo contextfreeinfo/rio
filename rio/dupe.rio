@@ -37,6 +37,8 @@ fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
 
 fn dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
   let dupe = &block;
+  dupe.stmts.items =
+    ast_dup(dupe.stmts.items, sizeof(*dupe.stmts.items) * dupe.stmts.length);
   for &(dupe.stmts) do(stmt) {
     *stmt = dupe_stmt(*stmt, map);
   }
@@ -69,6 +71,59 @@ fn dupe_func_param(param: FuncParam, map: &MapClosure) -> FuncParam {
 }
 
 fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
+  let dupe: &Stmt = ast_dup(stmt, sizeof(*stmt));
+  // Let notes (?) and pos alone, but look into statement content.
+  @complete
+  switch (dupe.kind) {
+    Assign => {
+      // TODO
+    }
+    Block => {
+      dupe.block = dupe_block(stmt.block, map);
+    }
+    Break, Close, Continue, Goto, Label, Note => {
+      // Keep untouched.
+      // Might be good to avoid having duped in the first place, but we likely
+      // have more costs elsewhere, like needlessly duping whole blocks.
+    }
+    Decl => {
+      // TODO
+    }
+    DoWhile, While => {
+      // TODO
+    }
+    Expr, Return => {
+      dupe.expr = dupe_expr(dupe.expr, map);
+    }
+    For => {
+      // TODO
+    }
+    ForEach => {
+      // TODO
+    }
+    If => {
+      let if_stmt = &dupe.if_stmt;
+      if_stmt.init = dupe_stmt(if_stmt.init, map);
+      if_stmt.cond = dupe_expr(if_stmt.cond, map);
+      if_stmt.then_block = dupe_block(if_stmt.then_block, map);
+      // TODO Generify for slices once we have that.
+      if_stmt.elseifs.items = ast_dup(
+        if_stmt.elseifs.items,
+        sizeof(*if_stmt.elseifs.items) * if_stmt.elseifs.length,
+      );
+      for &(if_stmt.elseifs) do(elseif) {
+        elseif.cond = dupe_expr(elseif.cond, map);
+        elseif.block = dupe_block(elseif.block, map);
+      }
+      if_stmt.else_block = dupe_block(if_stmt.else_block, map);
+    }
+    Init => {
+      // TODO
+    }
+    Switch => {
+      // TODO
+    }
+  }
   return stmt;
 }
 
