@@ -295,7 +295,6 @@ struct Stmt {
     Goto, Label => label: *const char;
     Assign => assign: StmtAssign;
     Block => block: StmtList;
-    Decl => decl: &Decl;
     For => for_stmt: StmtFor;
     ForEach => for_each: StmtForEach;
     If => if_stmt: StmtIf;
@@ -789,12 +788,6 @@ fn new_stmt_goto(pos: SrcPos, label: *const char) -> &Stmt {
 fn new_stmt_note(pos: SrcPos, note: Note) -> &Stmt {
   let s = new_stmt(Stmt.Note, pos);
   s.note = note;
-  return s;
-}
-
-fn new_stmt_decl(pos: SrcPos, decl: &Decl) -> &Stmt {
-  let s = new_stmt(Stmt.Decl, pos);
-  s.decl = decl;
   return s;
 }
 

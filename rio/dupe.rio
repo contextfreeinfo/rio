@@ -46,11 +46,19 @@ fn dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
 }
 
 fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
+  if (!expr) {
+    return NULL;
+  }
   return expr;
 }
 
 fn dupe_function(func: &DeclFunc, map: &MapClosure) -> &DeclFunc {
   let dupe: &DeclFunc = ast_dup(func, sizeof(*func));
+  dupe_function_fields(dupe, map);
+  return dupe;
+}
+
+fn dupe_function_fields(dupe: &DeclFunc, map: &MapClosure) {
   dupe.params.items =
     ast_dup(dupe.params.items, sizeof(FuncParam) * dupe.params.length);
   for &(dupe.params) do(param) {
@@ -58,7 +66,6 @@ fn dupe_function(func: &DeclFunc, map: &MapClosure) -> &DeclFunc {
   }
   dupe.ret_type = dupe_typespec(dupe.ret_type, map);
   dupe.block = dupe_block(dupe.block, map);
-  return dupe;
 }
 
 fn dupe_func_param(param: FuncParam, map: &MapClosure) -> FuncParam {
@@ -76,37 +83,45 @@ fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
   @complete
   switch (dupe.kind) {
     Assign => {
-      // TODO
+      let assign = &stmt.assign;
+      assign.left = dupe_expr(assign.left, map);
+      assign.right = dupe_expr(assign.right, map);
     }
     Block => {
-      dupe.block = dupe_block(stmt.block, map);
+      dupe.block = dupe_block(dupe.block, map);
     }
     Break, Close, Continue, Goto, Label, Note => {
       // Keep untouched.
       // Might be good to avoid having duped in the first place, but we likely
       // have more costs elsewhere, like needlessly duping whole blocks.
     }
-    Decl => {
-      // TODO
-    }
     DoWhile, While => {
-      // TODO
+      let while_stmt = &dupe.while_stmt;
+      while_stmt.cond = dupe_expr(while_stmt.cond, map);
+      while_stmt.block = dupe_block(while_stmt.block, map);
     }
     Expr, Return => {
       dupe.expr = dupe_expr(dupe.expr, map);
     }
     For => {
-      // TODO
+      let for_stmt = &dupe.for_stmt;
+      for_stmt.init = dupe_stmt(for_stmt.init, map);
+      for_stmt.cond = dupe_expr(for_stmt.cond, map);
+      for_stmt.next = dupe_stmt(for_stmt.next, map);
+      for_stmt.block = dupe_block(for_stmt.block, map);
     }
     ForEach => {
-      // TODO
+      let for_each = &dupe.for_each;
+      for_each.expr = dupe_expr(for_each.expr, map);
+      dupe_function_fields(&for_each.func, map);
+      // The length_type is to be filled in during resolution.
     }
     If => {
       let if_stmt = &dupe.if_stmt;
       if_stmt.init = dupe_stmt(if_stmt.init, map);
       if_stmt.cond = dupe_expr(if_stmt.cond, map);
       if_stmt.then_block = dupe_block(if_stmt.then_block, map);
-      // TODO Generify for slices once we have that.
+      // TODO Generify ast_dup for slices once we have generic functions.
       if_stmt.elseifs.items = ast_dup(
         if_stmt.elseifs.items,
         sizeof(*if_stmt.elseifs.items) * if_stmt.elseifs.length,
@@ -118,16 +133,37 @@ fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
       if_stmt.else_block = dupe_block(if_stmt.else_block, map);
     }
     Init => {
-      // TODO
+      let init = &dupe.init;
+      init.type = dupe_typespec(init.type, map);
+      init.expr = dupe_expr(init.expr, map);
     }
     Switch => {
-      // TODO
+      let switch_stmt = &dupe.switch_stmt;
+      switch_stmt.expr = dupe_expr(switch_stmt.expr, map);
+      switch_stmt.cases.items = ast_dup(
+        switch_stmt.cases.items,
+        sizeof(*switch_stmt.cases.items) * switch_stmt.cases.length,
+      );
+      for &(switch_stmt.cases) do(case_) {
+        case_.patterns.items = ast_dup(
+          case_.patterns.items,
+          sizeof(*case_.patterns.items) * case_.patterns.length,
+        );
+        for &(case_.patterns) do(pattern) {
+          pattern.start = dupe_expr(pattern.start, map);
+          pattern.end = dupe_expr(pattern.end, map);
+        }
+        case_.block = dupe_block(case_.block, map);
+      }
     }
   }
   return stmt;
 }
 
 fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
+  if (!type) {
+    return NULL;
+  }
   let dupe: &Typespec = map.call(map.self, Any{type, typeof(*type)});
   if (dupe) {
     return dupe;

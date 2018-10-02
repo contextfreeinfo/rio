@@ -745,6 +745,8 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map)));
 
 rio_DeclFunc (*rio_dupe_function(rio_DeclFunc (*func), rio_MapClosure (*map)));
 
+void rio_dupe_function_fields(rio_DeclFunc (*dupe), rio_MapClosure (*map));
+
 struct rio_FuncParam {
   rio_SrcPos pos;
   char const ((*name));
@@ -3483,11 +3485,19 @@ rio_StmtList rio_dupe_block(rio_StmtList block, rio_MapClosure (*map)) {
 }
 
 rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
+  if (!(expr)) {
+    return NULL;
+  }
   return expr;
 }
 
 rio_DeclFunc (*rio_dupe_function(rio_DeclFunc (*func), rio_MapClosure (*map))) {
   rio_DeclFunc (*dupe) = rio_ast_dup(func, sizeof(*(func)));
+  rio_dupe_function_fields(dupe, map);
+  return dupe;
+}
+
+void rio_dupe_function_fields(rio_DeclFunc (*dupe), rio_MapClosure (*map)) {
   dupe->params.items = rio_ast_dup(dupe->params.items, (sizeof(rio_FuncParam)) * (dupe->params.length));
   {
     rio_Slice_FuncParam items__ = dupe->params;
@@ -3498,7 +3508,6 @@ rio_DeclFunc (*rio_dupe_function(rio_DeclFunc (*func), rio_MapClosure (*map))) {
   }
   dupe->ret_type = rio_dupe_typespec(dupe->ret_type, map);
   dupe->block = rio_dupe_block(dupe->block, map);
-  return dupe;
 }
 
 rio_FuncParam rio_dupe_func_param(rio_FuncParam param, rio_MapClosure (*map)) {
@@ -3514,10 +3523,13 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
   rio_Stmt (*dupe) = rio_ast_dup(stmt, sizeof(*(stmt)));
   switch (dupe->kind) {
   case rio_Stmt_Assign: {
+    rio_StmtAssign (*assign) = &(stmt->assign);
+    assign->left = rio_dupe_expr(assign->left, map);
+    assign->right = rio_dupe_expr(assign->right, map);
     break;
   }
   case rio_Stmt_Block: {
-    dupe->block = rio_dupe_block(stmt->block, map);
+    dupe->block = rio_dupe_block(dupe->block, map);
     break;
   }
   case rio_Stmt_Break:
@@ -3533,6 +3545,9 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
   }
   case rio_Stmt_DoWhile:
   case rio_Stmt_While: {
+    rio_StmtWhile (*while_stmt) = &(dupe->while_stmt);
+    while_stmt->cond = rio_dupe_expr(while_stmt->cond, map);
+    while_stmt->block = rio_dupe_block(while_stmt->block, map);
     break;
   }
   case rio_Stmt_Expr:
@@ -3541,9 +3556,17 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
     break;
   }
   case rio_Stmt_For: {
+    rio_StmtFor (*for_stmt) = &(dupe->for_stmt);
+    for_stmt->init = rio_dupe_stmt(for_stmt->init, map);
+    for_stmt->cond = rio_dupe_expr(for_stmt->cond, map);
+    for_stmt->next = rio_dupe_stmt(for_stmt->next, map);
+    for_stmt->block = rio_dupe_block(for_stmt->block, map);
     break;
   }
   case rio_Stmt_ForEach: {
+    rio_StmtForEach (*for_each) = &(dupe->for_each);
+    for_each->expr = rio_dupe_expr(for_each->expr, map);
+    rio_dupe_function_fields(&(for_each->func), map);
     break;
   }
   case rio_Stmt_If: {
@@ -3564,9 +3587,31 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
     break;
   }
   case rio_Stmt_Init: {
+    rio_StmtInit (*init) = &(dupe->init);
+    init->type = rio_dupe_typespec(init->type, map);
+    init->expr = rio_dupe_expr(init->expr, map);
     break;
   }
   case rio_Stmt_Switch: {
+    rio_StmtSwitch (*switch_stmt) = &(dupe->switch_stmt);
+    switch_stmt->expr = rio_dupe_expr(switch_stmt->expr, map);
+    switch_stmt->cases.items = rio_ast_dup(switch_stmt->cases.items, (sizeof(*(switch_stmt->cases.items))) * (switch_stmt->cases.length));
+    {
+      rio_Slice_SwitchCase items__ = switch_stmt->cases;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_SwitchCase (*case_) = &items__.items[i__];
+        case_->patterns.items = rio_ast_dup(case_->patterns.items, (sizeof(*(case_->patterns.items))) * (case_->patterns.length));
+        {
+          rio_Slice_SwitchCasePattern items__ = case_->patterns;
+          for (size_t i__ = 0; i__ < items__.length; ++i__) {
+            rio_SwitchCasePattern (*pattern) = &items__.items[i__];
+            pattern->start = rio_dupe_expr(pattern->start, map);
+            pattern->end = rio_dupe_expr(pattern->end, map);
+          }
+        }
+        case_->block = rio_dupe_block(case_->block, map);
+      }
+    }
     break;
   }
   default:
@@ -3577,6 +3622,9 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
 }
 
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
+  if (!(type)) {
+    return NULL;
+  }
   rio_Typespec (*dupe) = map->call(map->self, (Any){type, TYPEID(44, TypeKind_Struct, rio_Typespec)});
   if (dupe) {
     return dupe;
