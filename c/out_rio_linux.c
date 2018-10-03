@@ -3482,6 +3482,29 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
     break;
   }
   case rio_Expr_Compound: {
+    rio_ExprCompound (*compound) = &(dupe->compound);
+    compound->type = rio_dupe_typespec(compound->type, map);
+    compound->fields.items = rio_ast_dup(compound->fields.items, (sizeof(*(compound->fields.items))) * (compound->fields.length));
+    {
+      rio_Slice_CompoundField items__ = compound->fields;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_CompoundField (*field) = &items__.items[i__];
+        field->init = rio_dupe_expr(field->init, map);
+        switch (field->kind) {
+        case rio_CompoundField_Index: {
+          field->index = rio_dupe_expr(field->index, map);
+          break;
+        }
+        case rio_CompoundField_Default:
+        case rio_CompoundField_Name: {
+          break;
+        }
+        default:
+          assert("@complete switch failed to handle case" && 0);
+          break;
+        }
+      }
+    }
     break;
   }
   case rio_Expr_Float:

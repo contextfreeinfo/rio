@@ -4,6 +4,7 @@ fn test_generics() {
   let slorce_ref: Slorce<&int> = {items = (:[]&int){slorce.items}, length = 1};
   printf("Generically, %d\n", *slorce_ref[0]);
   let slarb: Slorce<Bar>;
+  // let slerce: Slerce<int>;
   // Assignment properly succeeds.
   let slarce: Slarce = slorce;
   // Assignment properly fails.
@@ -28,6 +29,11 @@ typedef Slarce = Slorce<int>;
 struct Slorce<Item> {
   length: usize;
   items: *Item;
+}
+
+struct Slerce<Item> {
+  // We need to resolve type args in dupe, too.
+  slorce: Slorce<Item>;
 }
 
 // Should be unresolved here.
