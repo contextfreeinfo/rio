@@ -55,12 +55,22 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
     AlignofExpr, SizeofExpr, TypeofExpr, Paren => {
       dupe.arg = dupe_expr(dupe.arg, map);
     }
+    AlignofType, SizeofType, TypeofType => {
+      dupe.type_arg = dupe_typespec(dupe.type_arg, map);
+    }
+    Compound => {
+      // TODO Pick up here.
+    }
     Float, Int, Str => {
       // Already good.
     }
     Name => {
-      // TODO This is the important case!
-      // TODO First we need to store decl when resolving!
+      // TODO A name could reference type params.
+      // TODO The type_args definitely could, too.
+    }
+    Offsetof => {
+      let offsetof_field = &dupe.offsetof_field;
+      offsetof_field.type = dupe_typespec(offsetof_field.type, map);
     }
   }
   return expr;

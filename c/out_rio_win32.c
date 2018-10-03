@@ -3477,12 +3477,26 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
     dupe->arg = rio_dupe_expr(dupe->arg, map);
     break;
   }
+  case rio_Expr_AlignofType:
+  case rio_Expr_SizeofType:
+  case rio_Expr_TypeofType: {
+    dupe->type_arg = rio_dupe_typespec(dupe->type_arg, map);
+    break;
+  }
+  case rio_Expr_Compound: {
+    break;
+  }
   case rio_Expr_Float:
   case rio_Expr_Int:
   case rio_Expr_Str: {
     break;
   }
   case rio_Expr_Name: {
+    break;
+  }
+  case rio_Expr_Offsetof: {
+    rio_ExprOffsetofField (*offsetof_field) = &(dupe->offsetof_field);
+    offsetof_field->type = rio_dupe_typespec(offsetof_field->type, map);
     break;
   }
   default:
