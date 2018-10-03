@@ -544,7 +544,7 @@ fn gen_expr(expr: &Expr) {
   switch (expr.kind) {
     Paren => {
       buf_printf(&gen_buf, "(");
-      gen_expr(expr.paren.expr);
+      gen_expr(expr.arg);
       buf_printf(&gen_buf, ")");
     }
     Int => {
@@ -647,25 +647,25 @@ fn gen_expr(expr: &Expr) {
     }
     SizeofExpr => {
       buf_printf(&gen_buf, "sizeof(");
-      gen_expr(expr.sizeof_expr);
+      gen_expr(expr.arg);
       buf_printf(&gen_buf, ")");
     }
     SizeofType => buf_printf(
-      &gen_buf, "sizeof(%s)", typespec_to_cdecl(expr.sizeof_type, ""),
+      &gen_buf, "sizeof(%s)", typespec_to_cdecl(expr.type_arg, ""),
     );
     AlignofExpr => buf_printf(&gen_buf, "alignof(%s)", type_to_cdecl(
-      get_resolved_type(expr.alignof_expr), "",
+      get_resolved_type(expr.arg), "",
     ));
     AlignofType => buf_printf(
-      &gen_buf, "alignof(%s)", typespec_to_cdecl(expr.alignof_type, ""),
+      &gen_buf, "alignof(%s)", typespec_to_cdecl(expr.type_arg, ""),
     );
     TypeofExpr => {
-      let type = get_resolved_type(expr.typeof_expr);
+      let type = get_resolved_type(expr.arg);
       #assert(type.typeid);
       gen_typeid(type);
     }
     TypeofType => {
-      let type = get_resolved_type(expr.typeof_type);
+      let type = get_resolved_type(expr.type_arg);
       #assert(type.typeid);
       gen_typeid(type);
     }

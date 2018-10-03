@@ -52,16 +52,15 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
   let dupe: &Expr = ast_dup(expr, sizeof(*expr));
   @complete
   switch (dupe.kind) {
+    AlignofExpr, SizeofExpr, TypeofExpr, Paren => {
+      dupe.arg = dupe_expr(dupe.arg, map);
+    }
     Float, Int, Str => {
       // Already good.
     }
     Name => {
       // TODO This is the important case!
       // TODO First we need to store decl when resolving!
-    }
-    Paren => {
-      let paren = &dupe.paren;
-      paren.expr = dupe_expr(paren.expr, map);
     }
   }
   return expr;

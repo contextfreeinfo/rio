@@ -166,8 +166,6 @@ struct Expr {
   pos: SrcPos;
   union switch {
     None => :void;
-    // TODO Keep paren or just pull expr up?
-    Paren => paren: ExprParen;
     Int => int_lit: ExprIntLit;
     Float => float_lit: ExprFloatLit;
     Str => str_lit: ExprStrLit;
@@ -177,14 +175,9 @@ struct Expr {
       // Assigned during resolution.
       decl: &Decl;
     }
-    // TODO Combine some of the expr cases?
-    // TODO Combine some of the type cases?
-    SizeofExpr => sizeof_expr: &Expr;
-    SizeofType => sizeof_type: &Typespec;
-    TypeofExpr => typeof_expr: &Expr;
-    TypeofType => typeof_type: &Typespec;
-    AlignofExpr => alignof_expr: &Expr;
-    AlignofType => alignof_type: &Typespec;
+    // TODO Keep Paren or just pull expr up?
+    AlignofExpr, SizeofExpr, TypeofExpr, Paren => arg: &Expr;
+    AlignofType, SizeofType, TypeofType => type_arg: &Typespec;
     Offsetof => offsetof_field: ExprOffsetofField;
     Compound => compound: ExprCompound;
     Cast => cast: ExprCast;
@@ -196,10 +189,6 @@ struct Expr {
     Index => index: ExprIndex;
     Field => field: ExprField;
   }
-}
-
-struct ExprParen {
-  expr: &Expr;
 }
 
 struct ExprIntLit {
@@ -614,43 +603,43 @@ fn new_expr(kind: Expr.Kind, pos: SrcPos) -> &Expr {
 
 fn new_expr_paren(pos: SrcPos, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.Paren, pos);
-  e.paren.expr = expr;
+  e.arg = expr;
   return e;
 }
 
 fn new_expr_sizeof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.SizeofExpr, pos);
-  e.sizeof_expr = expr;
+  e.arg = expr;
   return e;
 }
 
 fn new_expr_sizeof_type(pos: SrcPos, type: &Typespec) -> &Expr {
   let e = new_expr(Expr.SizeofType, pos);
-  e.sizeof_type = type;
+  e.type_arg = type;
   return e;
 }
 
 fn new_expr_typeof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.TypeofExpr, pos);
-  e.typeof_expr  = expr;
+  e.arg  = expr;
   return e;
 }
 
 fn new_expr_typeof_type(pos: SrcPos, type: &Typespec) -> &Expr {
   let e = new_expr(Expr.TypeofType, pos);
-  e.typeof_type = type;
+  e.type_arg = type;
   return e;
 }
 
 fn new_expr_alignof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.AlignofExpr, pos);
-  e.alignof_expr = expr;
+  e.arg = expr;
   return e;
 }
 
 fn new_expr_alignof_type(pos: SrcPos, type: &Typespec) -> &Expr {
   let e = new_expr(Expr.AlignofType, pos);
-  e.alignof_type = type;
+  e.type_arg = type;
   return e;
 }
 

@@ -2321,7 +2321,7 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
   let result: Operand;
   @complete
   switch (expr.kind) {
-    Paren => result = resolve_expected_expr(expr.paren.expr, expected_type);
+    Paren => result = resolve_expected_expr(expr.arg, expected_type);
     Int => result = resolve_expr_int(expr);
     Float => result = operand_const(
       expr.float_lit.suffix == TokenSuffix.D ? type_double : type_float,
@@ -2357,61 +2357,61 @@ fn resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     Binary => result = resolve_expr_binary(expr);
     Ternary => result = resolve_expr_ternary(expr, expected_type);
     SizeofExpr => {
-      if (expr.sizeof_expr.kind == Expr.Name) {
-        let sym = resolve_name(expr.sizeof_expr.name);
+      if (expr.arg.kind == Expr.Name) {
+        let sym = resolve_name(expr.arg.name);
         if (sym && sym.kind == Sym.Type) {
           complete_type(sym.type);
           result = operand_const(type_usize, Val {ull = type_sizeof(sym.type)});
-          set_resolved_type(expr.sizeof_expr, sym.type);
-          set_resolved_sym(expr.sizeof_expr, sym);
+          set_resolved_type(expr.arg, sym.type);
+          set_resolved_sym(expr.arg, sym);
           break;
         }
       }
-      let type = resolve_expr(expr.sizeof_expr).type;
+      let type = resolve_expr(expr.arg).type;
       complete_type(type);
       result = operand_const(type_usize, Val {ull = type_sizeof(type)});
     }
     SizeofType => {
-      let type = resolve_typespec(expr.sizeof_type);
+      let type = resolve_typespec(expr.type_arg);
       complete_type(type);
       result = operand_const(type_usize, Val {ull = type_sizeof(type)});
     }
     AlignofExpr => {
-      if (expr.sizeof_expr.kind == Expr.Name) {
-        let sym = resolve_name(expr.alignof_expr.name);
+      if (expr.arg.kind == Expr.Name) {
+        let sym = resolve_name(expr.arg.name);
         if (sym && sym.kind == Sym.Type) {
           complete_type(sym.type);
           result =
             operand_const(type_usize, Val {ull = type_alignof(sym.type)});
-          set_resolved_type(expr.alignof_expr, sym.type);
-          set_resolved_sym(expr.alignof_expr, sym);
+          set_resolved_type(expr.arg, sym.type);
+          set_resolved_sym(expr.arg, sym);
           break;
         }
       }
-      let type = resolve_expr(expr.alignof_expr).type;
+      let type = resolve_expr(expr.arg).type;
       complete_type(type);
       result = operand_const(type_usize, Val {ull = type_alignof(type)});
     }
     AlignofType => {
-      let type = resolve_typespec(expr.alignof_type);
+      let type = resolve_typespec(expr.type_arg);
       complete_type(type);
       result = operand_const(type_usize, Val {ull = type_alignof(type)});
     }
     TypeofType => {
-      let type = resolve_typespec(expr.typeof_type);
+      let type = resolve_typespec(expr.type_arg);
       result = operand_const(type_ullong, Val {ull = type.typeid});
     }
     TypeofExpr => {
-      if (expr.typeof_expr.kind == Expr.Name) {
-        let sym = resolve_name(expr.typeof_expr.name);
+      if (expr.arg.kind == Expr.Name) {
+        let sym = resolve_name(expr.arg.name);
         if (sym && sym.kind == Sym.Type) {
           result = operand_const(type_ullong, Val {ull = sym.type.typeid});
-          set_resolved_type(expr.typeof_expr, sym.type);
-          set_resolved_sym(expr.typeof_expr, sym);
+          set_resolved_type(expr.arg, sym.type);
+          set_resolved_sym(expr.arg, sym);
           break;
         }
       }
-      let type = resolve_expr(expr.typeof_expr).type;
+      let type = resolve_expr(expr.arg).type;
       result = operand_const(type_ullong, Val {ull = type.typeid});
     }
     Offsetof => {
