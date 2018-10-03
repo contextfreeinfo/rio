@@ -406,9 +406,7 @@ typedef int rio_Stmt_Kind;
 
 #define rio_Stmt_Block ((rio_Stmt_Kind)((rio_Stmt_Assign) + (1)))
 
-#define rio_Stmt_Decl ((rio_Stmt_Kind)((rio_Stmt_Block) + (1)))
-
-#define rio_Stmt_For ((rio_Stmt_Kind)((rio_Stmt_Decl) + (1)))
+#define rio_Stmt_For ((rio_Stmt_Kind)((rio_Stmt_Block) + (1)))
 
 #define rio_Stmt_ForEach ((rio_Stmt_Kind)((rio_Stmt_For) + (1)))
 
@@ -593,8 +591,6 @@ rio_Stmt (*rio_new_stmt_label(rio_SrcPos pos, char const ((*label))));
 rio_Stmt (*rio_new_stmt_goto(rio_SrcPos pos, char const ((*label))));
 
 rio_Stmt (*rio_new_stmt_note(rio_SrcPos pos, rio_Note note));
-
-rio_Stmt (*rio_new_stmt_decl(rio_SrcPos pos, rio_Decl (*decl)));
 
 rio_Stmt (*rio_new_stmt_return(rio_SrcPos pos, rio_Expr (*expr)));
 
@@ -2435,7 +2431,6 @@ struct rio_Stmt {
     char const ((*label));
     rio_StmtAssign assign;
     rio_StmtList block;
-    rio_Decl (*decl);
     rio_StmtFor for_stmt;
     rio_StmtForEach for_each;
     rio_StmtIf if_stmt;
@@ -2963,12 +2958,6 @@ rio_Stmt (*rio_new_stmt_goto(rio_SrcPos pos, char const ((*label)))) {
 rio_Stmt (*rio_new_stmt_note(rio_SrcPos pos, rio_Note note)) {
   rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Note), pos);
   s->note = note;
-  return s;
-}
-
-rio_Stmt (*rio_new_stmt_decl(rio_SrcPos pos, rio_Decl (*decl))) {
-  rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Decl), pos);
-  s->decl = decl;
   return s;
 }
 
@@ -3538,9 +3527,6 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
   case rio_Stmt_Goto:
   case rio_Stmt_Label:
   case rio_Stmt_Note: {
-    break;
-  }
-  case rio_Stmt_Decl: {
     break;
   }
   case rio_Stmt_DoWhile:

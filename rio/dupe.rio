@@ -49,6 +49,21 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
   if (!expr) {
     return NULL;
   }
+  let dupe: &Expr = ast_dup(expr, sizeof(*expr));
+  @complete
+  switch (dupe.kind) {
+    Float, Int, Str => {
+      // Already good.
+    }
+    Name => {
+      // TODO This is the important case!
+      // TODO First we need to store decl when resolving!
+    }
+    Paren => {
+      let paren = &dupe.paren;
+      paren.expr = dupe_expr(paren.expr, map);
+    }
+  }
   return expr;
 }
 
@@ -181,7 +196,7 @@ fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   return dupe;
 }
 
-fn get_typespec_sym_name(type: &Typespec) -> *char {
+fn get_typespec_sym_name(type: &Typespec) -> own *char {
   let buf: *char;
   put_typespec_sym_name(&buf, type);
   return buf;
@@ -190,7 +205,7 @@ fn get_typespec_sym_name(type: &Typespec) -> *char {
 fn map_type_args(self: &TypeMap, item: Any) -> &void {
   switch (item.type) {
     typeof(Aggregate) => {
-      // Let these be copied do we can make changes inside.
+      // Let these be copied so we can make changes inside.
       return NULL;
     }
     typeof(Typespec) => {

@@ -2338,6 +2338,7 @@ struct rio_Expr {
     struct {
       char const ((*name));
       rio_Slice_TypeArg type_args;
+      rio_Decl (*decl);
     };
     rio_Expr (*sizeof_expr);
     rio_Typespec (*sizeof_type);
@@ -3474,6 +3475,25 @@ rio_StmtList rio_dupe_block(rio_StmtList block, rio_MapClosure (*map)) {
 rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
   if (!(expr)) {
     return NULL;
+  }
+  rio_Expr (*dupe) = rio_ast_dup(expr, sizeof(*(expr)));
+  switch (dupe->kind) {
+  case rio_Expr_Float:
+  case rio_Expr_Int:
+  case rio_Expr_Str: {
+    break;
+  }
+  case rio_Expr_Name: {
+    break;
+  }
+  case rio_Expr_Paren: {
+    rio_ExprParen (*paren) = &(dupe->paren);
+    paren->expr = rio_dupe_expr(paren->expr, map);
+    break;
+  }
+  default:
+    assert("@complete switch failed to handle case" && 0);
+    break;
   }
   return expr;
 }

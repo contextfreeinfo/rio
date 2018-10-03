@@ -166,6 +166,7 @@ struct Expr {
   pos: SrcPos;
   union switch {
     None => :void;
+    // TODO Keep paren or just pull expr up?
     Paren => paren: ExprParen;
     Int => int_lit: ExprIntLit;
     Float => float_lit: ExprFloatLit;
@@ -173,7 +174,11 @@ struct Expr {
     Name => struct {
       name: *const char;
       type_args: Slice<TypeArg>;
+      // Assigned during resolution.
+      decl: &Decl;
     }
+    // TODO Combine some of the expr cases?
+    // TODO Combine some of the type cases?
     SizeofExpr => sizeof_expr: &Expr;
     SizeofType => sizeof_type: &Typespec;
     TypeofExpr => typeof_expr: &Expr;
