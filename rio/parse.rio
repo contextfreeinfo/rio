@@ -912,6 +912,7 @@ fn parse_type_params() -> Slice<Decl> {
       let param = Decl {
         kind = Decl.Typedef,
         pos = token.pos,
+        is_generic = true,
         name = param_name,
         typedef_decl = {constraint = constraint},
         // Let val default to null.
@@ -932,9 +933,10 @@ fn parse_decl_aggregate(
   let aggregate_kind =
     kind == Decl.Struct ? AggregateKind.Struct : AggregateKind.Union;
   let params = parse_type_params();
+  let decl: &Decl;
   if (match_token(TokenKind.Semicolon)) {
     // TODO Need to allow switch here, too, for union switches.
-    let decl = new_decl_aggregate(
+    decl = new_decl_aggregate(
       pos, kind, name, params, new_aggregate(pos, aggregate_kind, NULL, 0),
     );
     decl.is_incomplete = true;
@@ -943,8 +945,12 @@ fn parse_decl_aggregate(
     let aggregate = parse_aggregate(aggregate_kind, name, notes);
     // Map back again since this might have changed due to union switch.
     kind = aggregate.kind == AggregateKind.Struct ? Decl.Struct : Decl.Union;
-    return new_decl_aggregate(pos, kind, name, params, aggregate);
+    decl = new_decl_aggregate(pos, kind, name, params, aggregate);
   }
+  if (params.length) {
+    decl.is_generic = true;
+  }
+  return decl;
 }
 
 fn parse_decl_var(pos: SrcPos) -> &Decl {
@@ -1054,6 +1060,9 @@ fn parse_decl_func(pos: SrcPos) -> &Decl {
   let decl =
     new_decl_func(pos, name, type_params, params, ret_type, has_varargs, block);
   decl.is_incomplete = is_incomplete;
+  if (type_params.length) {
+    decl.is_generic = true;
+  }
   return decl;
 }
 

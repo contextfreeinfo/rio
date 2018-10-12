@@ -376,7 +376,7 @@ fn gen_forward_decls() {
     if (is_decl_foreign(decl)) {
       continue;
     }
-    if (decl.type_params.length) {
+    if (decl.is_generic) {
       continue;
     }
     switch (decl.kind) {
@@ -436,7 +436,7 @@ fn gen_aggregate_items(aggregate: &Aggregate) {
 
 fn gen_aggregate(decl: &Decl) {
   #assert(decl.kind == Decl.Struct || decl.kind == Decl.Union);
-  if (decl.is_incomplete || decl.type_params.length) {
+  if (decl.is_incomplete || decl.is_generic) {
     return;
   }
   genln();
@@ -1049,7 +1049,7 @@ fn gen_decl(sym: &Sym) {
       buf_printf(&gen_buf, ";");
     }
     Func => {
-      if (!decl.type_params.length) {
+      if (!decl.is_generic) {
         gen_func_decl(decl);
         buf_printf(&gen_buf, ";");
       }
@@ -1093,7 +1093,7 @@ fn gen_defs() {
       continue;
     }
     if (decl.kind == Decl.Func) {
-      if (!decl.type_params.length) {
+      if (!decl.is_generic) {
         gen_func_decl(decl);
         buf_printf(&gen_buf, " ");
         gen_stmt_block(decl.function.block);

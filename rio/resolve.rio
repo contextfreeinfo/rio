@@ -644,11 +644,21 @@ fn resolve_specialized_typespec(
   // such.
   let name = decl.name;
   for &(type_args) do(type_arg) {
+    // If this is a specialized type, its type args will have been resolved
+    // before we get here.
     let arg_typespec = type_arg.val;
     let arg_name = get_typespec_sym_name(arg_typespec);
     // TODO Worth the effort of varargs to avoid repeated substrings?
     name = build_scoped_name(name, arg_name);
     buf_free((:&&void)&arg_name);
+  }
+  let is_generic = false;
+  for &(type_args) do(type_arg) {
+    if (find_generic(type_arg.val)) {
+      // printf("Found generic type arg under: %s\n", name);
+      is_generic = true;
+      break;
+    }
   }
   // TODO Check for previous resolution for this name before rebuilding.
   let dupe_sym = resolve_name(name);
@@ -660,6 +670,7 @@ fn resolve_specialized_typespec(
   let dupe_agg = dupe_aggregate(aggregate, &map);
   let dupe =
     new_decl_aggregate(decl.pos, decl.kind, name, (:Slice<Decl>){}, dupe_agg);
+  dupe.is_generic = is_generic;
   dupe_sym = sym_global_decl(dupe, NULL);
   resolve_sym(dupe_sym);
   return dupe_sym;
@@ -675,23 +686,25 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       let sym: &Sym;
       let name: *const char;
       let typespec_name: &TypespecName;
+      // Track references to type params.
       if (typespec.names.length == 1) {
         // See if it's a type parameter.
-        // TODO Also allow locally defined types(?), so support num_names > 1.
+        // TODO Also allow locally defined types (?), so support num_names > 1.
         // TODO Requires better node tree of types rather than slice of names.
         typespec_name = &typespec.names[0];
         name = typespec_name.name;
-        // if (!strcmp(name, "Num")) {
+        // if (!strcmp(name, "Goo")) {
         //   printf("Try'n'a find it.\n");
         // }
         sym = sym_get_local(name);
         if (sym) {
-          // if (!strcmp(name, "Num")) {
+          // if (!strcmp(name, "Goo")) {
           //   printf("Did find it.\n");
           // }
           sym_track_ref_type(sym, typespec);
         }
       }
+      // Now move on.
       if (!sym) {
         let package = current_package;
         for (let i: usize = 0; i < typespec.names.length - 1; ++i) {
@@ -738,6 +751,10 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
       resolve_sym(sym);
       // And maybe go deeper before done.
       if (typespec_name.type_args.length) {
+        // Recursively resolve type args.
+        for (typespec_name.type_args) do(type_arg) {
+          resolve_typespec(type_arg.val);
+        }
         // Complete the type, so we can create the custom version.
         // TODO Can we defer type completion past here?
         complete_type(sym.type);
@@ -2080,7 +2097,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
   let decl: &Decl;
   if (sym && sym.decl && sym.decl.kind == Decl.Func) {
     decl = sym.decl;
-    if (decl.type_params.length) {
+    if (decl.is_generic) {
       is_generic = true;
       printf("Calling generic!\n");
     }

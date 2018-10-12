@@ -210,6 +210,7 @@ fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
     return dupe;
   }
   dupe = ast_dup(type, sizeof(*type));
+  @complete
   switch (type.kind) {
     Array, Const, Ptr, Ref => {
       dupe.base = dupe_typespec(type.base, map);
@@ -217,9 +218,58 @@ fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
     Func => {
       fatal_error(type.pos, "Function types not yet supported in generics\n");
     }
-    default => {}
+    Name => {
+      dupe.names.items = ast_dup(
+        dupe.names.items, sizeof(*dupe.names.items) * dupe.names.length,
+      );
+      for &(dupe.names) do(type_name) {
+        if (type_name.type_args.length) {
+          // printf("Duping type args: %s\n", type_name.name);
+          type_name.type_args.items = ast_dup(
+            type_name.type_args.items,
+            sizeof(*type_name.type_args.items) * type_name.type_args.length,
+          );
+          for &(type_name.type_args) do(type_arg) {
+            type_arg.val = dupe_typespec(type_arg.val, map);
+          }
+        }
+      }
+    }
   }
   return dupe;
+}
+
+fn find_generic(type: &Typespec) -> bool {
+  if (!type) {
+    return false;
+  }
+  @complete
+  switch (type.kind) {
+    Array, Const, Ptr, Ref => {
+      return find_generic(type.base);
+    }
+    Func => {
+      for (type.function.args) do(arg) {
+        if (find_generic(arg)) {
+          return true;
+        }
+      }
+      return find_generic(type.function.ret);
+    }
+    Name => {
+      if (type.decl && type.decl.is_generic) {
+        return true;
+      }
+      for &(type.names) do(type_name) {
+        for &(type_name.type_args) do(type_arg) {
+          if (find_generic(type_arg.val)) {
+            return true;
+          }
+        }
+      }
+    }
+  } switch;
+  return false;
 }
 
 fn get_typespec_sym_name(type: &Typespec) -> own *char {
@@ -244,12 +294,13 @@ fn map_type_args(self: &TypeMap, item: Any) -> &void {
           for &(params) do(param, i) {
             if (decl == param) {
               // Yep. Found it.
+              // TODO Need to deal with type args of parameterized types ...
               let arg = &self.type_args[i];
               return arg.val;
             }
           }
-          // Nope. Just let it be.
-          return item.ptr;
+          // Nope. Just let it be copied in case of type args.
+          return NULL;
         }
         default => {
           // Let others be copied so we can make changes inside.

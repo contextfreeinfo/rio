@@ -4,7 +4,11 @@ fn test_generics() {
   let slorce_ref: Slorce<&int> = {items = (:[]&int){slorce.items}, length = 1};
   printf("Generically, %d\n", *slorce_ref[0]);
   let slarb: Slorce<Bar>;
-  // let slerce: Slerce<int>;
+  let slerce: Slerce<int>;
+  slerce.boring.thing = 5;
+  slerce.goo = {items = &slerce.boring.thing, length = 1};
+  slerce.goos = {items = &slerce.goo.items, length = 1};
+  printf("Should be %d: %d\n", slerce.boring.thing, slerce.goos[0][0]);
   // Assignment properly succeeds.
   let slarce: Slarce = slorce;
   // Assignment properly fails.
@@ -31,9 +35,15 @@ struct Slorce<Item> {
   items: *Item;
 }
 
-struct Slerce<Item> {
+struct Boring<Thing> {
+  thing: Thing;
+}
+
+struct Slerce<Goo> {
   // We need to resolve type args in dupe, too.
-  slorce: Slorce<Item>;
+  goo: Slorce<Goo>;
+  goos: Slorce<*Goo>;
+  boring: Boring<Goo>;
 }
 
 // Should be unresolved here.

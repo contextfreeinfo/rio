@@ -755,6 +755,8 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map)));
 
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map)));
 
+bool rio_find_generic(rio_Typespec (*type));
+
 char (*rio_get_typespec_sym_name(rio_Typespec (*type)));
 
 struct Any {
@@ -2225,6 +2227,7 @@ struct rio_Decl {
   rio_SrcPos pos;
   char const ((*name));
   rio_Slice_Note notes;
+  bool is_generic;
   bool is_incomplete;
   rio_Slice_Decl type_params;
   rio_Slice_SymRef refs;
@@ -3677,11 +3680,84 @@ rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
     rio_fatal_error(type->pos, "Function types not yet supported in generics\n");
     break;
   }
-  default: {
+  case rio_Typespec_Name: {
+    dupe->names.items = rio_ast_dup(dupe->names.items, (sizeof(*(dupe->names.items))) * (dupe->names.length));
+    {
+      rio_Slice_TypespecName items__ = dupe->names;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_TypespecName (*type_name) = &items__.items[i__];
+        if (type_name->type_args.length) {
+          type_name->type_args.items = rio_ast_dup(type_name->type_args.items, (sizeof(*(type_name->type_args.items))) * (type_name->type_args.length));
+          {
+            rio_Slice_TypeArg items__ = type_name->type_args;
+            for (size_t i__ = 0; i__ < items__.length; ++i__) {
+              rio_TypeArg (*type_arg) = &items__.items[i__];
+              type_arg->val = rio_dupe_typespec(type_arg->val, map);
+            }
+          }
+        }
+      }
+    }
     break;
   }
+  default:
+    assert("@complete switch failed to handle case" && 0);
+    break;
   }
   return dupe;
+}
+
+bool rio_find_generic(rio_Typespec (*type)) {
+  if (!(type)) {
+    return false;
+  }
+  switch (type->kind) {
+  case rio_Typespec_Array:
+  case rio_Typespec_Const:
+  case rio_Typespec_Ptr:
+  case rio_Typespec_Ref: {
+    return rio_find_generic(type->base);
+    break;
+  }
+  case rio_Typespec_Func: {
+    {
+      rio_Slice_ref_Typespec items__ = type->function.args;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_Typespec (*arg) = items__.items[i__];
+        if (rio_find_generic(arg)) {
+          return true;
+        }
+      }
+    }
+    return rio_find_generic(type->function.ret);
+    break;
+  }
+  case rio_Typespec_Name: {
+    if ((type->decl) && (type->decl->is_generic)) {
+      return true;
+    }
+    {
+      rio_Slice_TypespecName items__ = type->names;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_TypespecName (*type_name) = &items__.items[i__];
+        {
+          rio_Slice_TypeArg items__ = type_name->type_args;
+          for (size_t i__ = 0; i__ < items__.length; ++i__) {
+            rio_TypeArg (*type_arg) = &items__.items[i__];
+            if (rio_find_generic(type_arg->val)) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    break;
+  }
+  default:
+    assert("@complete switch failed to handle case" && 0);
+    break;
+  }
+  return false;
 }
 
 char (*rio_get_typespec_sym_name(rio_Typespec (*type))) {
@@ -3712,7 +3788,7 @@ void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
           }
         }
       }
-      return item.ptr;
+      return NULL;
       break;
     }
     default: {
@@ -4175,7 +4251,7 @@ void rio_gen_forward_decls(void) {
     if (rio_is_decl_foreign(decl)) {
       continue;
     }
-    if (decl->type_params.length) {
+    if (decl->is_generic) {
       continue;
     }
     switch (decl->kind) {
@@ -4236,7 +4312,7 @@ void rio_gen_aggregate_items(rio_Aggregate (*aggregate)) {
 
 void rio_gen_aggregate(rio_Decl (*decl)) {
   assert(((decl->kind) == ((rio_Decl_Struct))) || ((decl->kind) == ((rio_Decl_Union))));
-  if ((decl->is_incomplete) || (decl->type_params.length)) {
+  if ((decl->is_incomplete) || (decl->is_generic)) {
     return;
   }
   rio_genln();
@@ -4865,7 +4941,7 @@ void rio_gen_decl(rio_Sym (*sym)) {
     break;
   }
   case rio_Decl_Func: {
-    if (!(decl->type_params.length)) {
+    if (!(decl->is_generic)) {
       rio_gen_func_decl(decl);
       rio_buf_printf(&(rio_gen_buf), ";");
     }
@@ -4917,7 +4993,7 @@ void rio_gen_defs(void) {
       continue;
     }
     if ((decl->kind) == ((rio_Decl_Func))) {
-      if (!(decl->type_params.length)) {
+      if (!(decl->is_generic)) {
         rio_gen_func_decl(decl);
         rio_buf_printf(&(rio_gen_buf), " ");
         rio_gen_stmt_block(decl->function.block);
@@ -7148,7 +7224,7 @@ rio_Slice_Decl rio_parse_type_params(void) {
       if (rio_match_token((rio_TokenKind_Colon))) {
         constraint = rio_parse_type();
       }
-      rio_Decl param = {.kind = (rio_Decl_Typedef), .pos = rio_token.pos, .name = param_name, .typedef_decl = {.constraint = constraint}};
+      rio_Decl param = {.kind = (rio_Decl_Typedef), .pos = rio_token.pos, .is_generic = true, .name = param_name, .typedef_decl = {.constraint = constraint}};
       rio_buf_push((void (**))(&(params.items)), &(param), sizeof(param));
     } while (rio_match_token((rio_TokenKind_Comma)));
     rio_expect_token((rio_TokenKind_Gt));
@@ -7162,15 +7238,20 @@ rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Slic
   char const ((*name)) = rio_parse_name();
   rio_AggregateKind aggregate_kind = ((kind) == ((rio_Decl_Struct)) ? (rio_AggregateKind_Struct) : (rio_AggregateKind_Union));
   rio_Slice_Decl params = rio_parse_type_params();
+  rio_Decl (*decl) = {0};
   if (rio_match_token((rio_TokenKind_Semicolon))) {
-    rio_Decl (*decl) = rio_new_decl_aggregate(pos, kind, name, params, rio_new_aggregate(pos, aggregate_kind, NULL, 0));
+    decl = rio_new_decl_aggregate(pos, kind, name, params, rio_new_aggregate(pos, aggregate_kind, NULL, 0));
     decl->is_incomplete = true;
     return decl;
   } else {
     rio_Aggregate (*aggregate) = rio_parse_aggregate(aggregate_kind, name, notes);
     kind = ((aggregate->kind) == ((rio_AggregateKind_Struct)) ? (rio_Decl_Struct) : (rio_Decl_Union));
-    return rio_new_decl_aggregate(pos, kind, name, params, aggregate);
+    decl = rio_new_decl_aggregate(pos, kind, name, params, aggregate);
   }
+  if (params.length) {
+    decl->is_generic = true;
+  }
+  return decl;
 }
 
 rio_Decl (*rio_parse_decl_var(rio_SrcPos pos)) {
@@ -7272,6 +7353,9 @@ rio_Decl (*rio_parse_decl_func(rio_SrcPos pos)) {
   }
   rio_Decl (*decl) = rio_new_decl_func(pos, name, type_params, params, ret_type, has_varargs, block);
   decl->is_incomplete = is_incomplete;
+  if (type_params.length) {
+    decl->is_generic = true;
+  }
   return decl;
 }
 
@@ -7995,6 +8079,17 @@ rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_S
       rio_buf_free((void (**))(&(arg_name)));
     }
   }
+  bool is_generic = false;
+  {
+    rio_Slice_TypeArg items__ = type_args;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_TypeArg (*type_arg) = &items__.items[i__];
+      if (rio_find_generic(type_arg->val)) {
+        is_generic = true;
+        break;
+      }
+    }
+  }
   rio_Sym (*dupe_sym) = rio_resolve_name(name);
   if (dupe_sym) {
     return dupe_sym;
@@ -8003,6 +8098,7 @@ rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_S
   rio_MapClosure map = {.self = &(type_map), .call = (rio_MapClosureCall)(rio_map_type_args)};
   rio_Aggregate (*dupe_agg) = rio_dupe_aggregate(aggregate, &(map));
   rio_Decl (*dupe) = rio_new_decl_aggregate(decl->pos, decl->kind, name, (rio_Slice_Decl){0}, dupe_agg);
+  dupe->is_generic = is_generic;
   dupe_sym = rio_sym_global_decl(dupe, NULL);
   rio_resolve_sym(dupe_sym);
   return dupe_sym;
@@ -8061,6 +8157,13 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
     }
     rio_resolve_sym(sym);
     if (typespec_name->type_args.length) {
+      {
+        rio_Slice_TypeArg items__ = typespec_name->type_args;
+        for (size_t i__ = 0; i__ < items__.length; ++i__) {
+          rio_TypeArg type_arg = items__.items[i__];
+          rio_resolve_typespec(type_arg.val);
+        }
+      }
       rio_complete_type(sym->type);
       sym = rio_resolve_specialized_typespec(typespec->pos, sym, typespec_name->type_args);
     }
@@ -9589,7 +9692,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   rio_Decl (*decl) = {0};
   if (((sym) && (sym->decl)) && ((sym->decl->kind) == ((rio_Decl_Func)))) {
     decl = sym->decl;
-    if (decl->type_params.length) {
+    if (decl->is_generic) {
       is_generic = true;
       printf("Calling generic!\n");
     }
@@ -10597,7 +10700,7 @@ rio_Type (*rio_type_alloc(TypeKind kind)) {
 }
 
 bool rio_is_generic_type(rio_Type (*type)) {
-  return ((type->sym) && (type->sym->decl)) && (type->sym->decl->type_params.length);
+  return ((type->sym) && (type->sym->decl)) && (type->sym->decl->is_generic);
 }
 
 bool rio_is_ptr_type(rio_Type (*type)) {

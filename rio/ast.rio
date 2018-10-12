@@ -20,10 +20,13 @@ struct StmtList {
 struct Typespec {
   pos: SrcPos;
   base: &Typespec;
+  // Maybe undeepified here is okay and we can nix other types sometime.
   is_owned: bool;
   union switch {
+    // TODO Maybe should undeepify const.
     None, Const, Ptr, Ref => :void;
     Name => struct {
+      // TODO Array here isn't okay. Needs to be deep.
       names: Slice<TypespecName>;
       decl: &Decl;
     }
@@ -105,6 +108,7 @@ struct Decl {
   pos: SrcPos;
   name: *const char;
   notes: Slice<Note>;
+  is_generic: bool;
   is_incomplete: bool;
   type_params: Slice<Decl>;
   refs: Slice<SymRef>;
