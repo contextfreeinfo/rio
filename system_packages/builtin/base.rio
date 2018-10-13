@@ -1,3 +1,4 @@
+// TODO Instead use `union Try<Val> switch {...}` with common error enum type?
 union Result<Val, Err> switch {
   Ok => val: Val;
   Err => err: Err;

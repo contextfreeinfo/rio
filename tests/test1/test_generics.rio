@@ -74,8 +74,16 @@ fn sum<Num: int>(x: Num, y: Num) -> Num {
 //   return x + y;
 // }
 
-// TODO Deeper generics:
+// Deeper generics.
+// TODO In generation, optimize all equivalent functions down to single cases?
+// TODO That is, from a type checking perspective, these types matter, but they
+// TODO could all be replace with `void` from an implementation perspective.
+// TODO Maybe could still generate simple wrapper functions for type safety from
+// TODO C if wanted ...
 fn first<Item>(slice: Slice<Item>) -> Result<&Item, TestErr> {
-  return {kind = Result.Ok};
-  // return {kind = Result.Ok, val = Item{}};
+  if (slice.length) {
+    return {kind = Result.Ok, val = &slice[0]};
+  } else {
+    return {kind = Result.Err, err = TestErr.Crazy};
+  }
 }
