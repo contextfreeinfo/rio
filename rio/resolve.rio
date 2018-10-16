@@ -620,7 +620,7 @@ fn get_nested_type_sym(
   return NULL;
 }
 
-fn resolve_specialized_typespec(
+fn resolve_specialized_decl(
   pos: SrcPos, sym: &Sym, type_args: Slice<TypeArg>,
 ) -> &Sym {
   if (!(sym.decl && sym.decl.name)) {
@@ -628,16 +628,11 @@ fn resolve_specialized_typespec(
     return NULL;
   }
   let decl = sym.decl;
-  if (!(decl.kind == Decl.Struct || decl.kind == Decl.Union)) {
-    fatal_error(pos, "Generics only supported for aggregates for now");
-    return NULL;
-  }
   let type_params = decl.type_params;
   if (type_args.length != type_params.length) {
     fatal_error(pos, "Typespec with wrong number of arguments");
     return NULL;
   }
-  let aggregate = decl.aggregate;
   // Choose name.
   // Base name on type names, even if typedef'd, so's to allow some name choice.
   // Clever could be to make them typedefs to a common struct definition or
@@ -667,9 +662,23 @@ fn resolve_specialized_typespec(
   }
   let type_map = TypeMap{type_args = type_args, type_params = type_params};
   let map = MapClosure{self = &type_map, call = (:MapClosureCall)map_type_args};
-  let dupe_agg = dupe_aggregate(aggregate, &map);
-  let dupe =
-    new_decl_aggregate(decl.pos, decl.kind, name, (:Slice<Decl>){}, dupe_agg);
+  let dupe: &Decl;
+  switch (decl.kind) {
+    Func => {
+      dupe = new_decl(Decl.Func, decl.pos, name);
+      dupe.function = dupe_function(decl.function, &map);
+    }
+    Struct, Union => {
+      let dupe_agg = dupe_aggregate(decl.aggregate, &map);
+      dupe = new_decl_aggregate(
+        decl.pos, decl.kind, name, (:Slice<Decl>){}, dupe_agg,
+      );
+    }
+    default => {
+      fatal_error(pos, "Unsupported generic construct");
+      return NULL;
+    }
+  }
   dupe.is_generic = is_generic;
   dupe_sym = sym_global_decl(dupe, NULL);
   resolve_sym(dupe_sym);
@@ -758,7 +767,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         // Complete the type, so we can create the custom version.
         // TODO Can we defer type completion past here?
         complete_type(sym.type);
-        sym = resolve_specialized_typespec(
+        sym = resolve_specialized_decl(
           typespec.pos, sym, typespec_name.type_args,
         );
       }
@@ -2071,12 +2080,13 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
   #assert(expr.kind == Expr.Call);
   let verbose = false;
   let sym: &Sym;
-  if (expr.call.expr.kind == Expr.Name) {
-    if (!strcmp(expr.call.expr.name, "sum")) {
+  let called_expr = expr.call.expr;
+  if (called_expr.kind == Expr.Name) {
+    if (!strcmp(called_expr.name, "sum")) {
       verbose = true;
-      printf("Calling sum!\n");
+      // printf("Calling sum!\n");
     }
-    sym = resolve_name(expr.call.expr.name);
+    sym = resolve_name(called_expr.name);
     if (sym && sym.kind == Sym.Type) {
       if (expr.call.args.length != 1) {
         fatal_error(expr.pos, "Type conversion operator takes 1 argument");
@@ -2085,21 +2095,37 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
       if (!cast_operand(&operand, sym.type)) {
         fatal_error(expr.pos, "Invalid type cast from %s to %s", get_type_name(operand.type), get_type_name(sym.type));
       }
-      set_resolved_sym(expr.call.expr, sym);
+      set_resolved_sym(called_expr, sym);
       return operand;
     }
   } if;
-  let function = resolve_expr_rvalue(expr.call.expr);
+  let function = resolve_expr_rvalue(called_expr);
   if (function.type.kind != CompilerTypeKind.Func) {
     fatal_error(expr.pos, "Cannot call non-function value");
   }
   let is_generic = false;
+  let type_args: Slice<TypeArg>;
   let decl: &Decl;
   if (sym && sym.decl && sym.decl.kind == Decl.Func) {
     decl = sym.decl;
     if (decl.is_generic) {
       is_generic = true;
-      printf("Calling generic!\n");
+      // printf("Calling generic!\n");
+      @complete
+      switch (called_expr.kind) {
+        Field => {
+          type_args = called_expr.field.type_args;
+        }
+        Name => {
+          type_args = called_expr.type_args;
+        }
+      }
+      if (type_args.length) {
+        // TODO Still need to update `function` for the purposes of
+        // TODO expected_expr handling down below.
+        sym = resolve_specialized_decl(decl.pos, sym, type_args);
+        set_resolved_sym(called_expr, sym);
+      }
     }
   }
   let num_params = function.type.function.params.length;
@@ -2114,8 +2140,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
   }
   for (function.type.function.params) do(param_type, i) {
     let arg = resolve_expected_expr_rvalue(expr.call.args[i], param_type);
-    // TODO Check out arg.
-    if (is_generic) {
+    if (is_generic && !type_args.length) {
       // TODO Infer type args!
       // TODO Arg types resolve deep. Sometimes that's all we have.
       // TODO But other times, we should have a way for shallow resolution.
@@ -2123,7 +2148,7 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
       // TODO type or else return type for calls, and use that.
       // TODO Or an aggregate literal or some such.
       // TODO If just a primitive literal, go with what we got.
-      printf("Checking arg: %d -> %d: %s, %d, %zu \n", arg.type.kind, arg.type.kind == CompilerTypeKind.Int, get_type_name(arg.type), expr.call.expr.kind == Expr.Name, expr.call.expr.type_args.length);
+      // printf("Checking arg: %d -> %d: %s, %d, %zu \n", arg.type.kind, arg.type.kind == CompilerTypeKind.Int, get_type_name(arg.type), expr.call.expr.kind == Expr.Name, expr.call.expr.type_args.length);
       if (arg.type && arg.type.sym) {
         printf("Maybe get somewhere???\n");
       }

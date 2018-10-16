@@ -66,6 +66,7 @@ typedef struct tm tm_t;
 typedef struct Slice_TypeFieldInfo Slice_TypeFieldInfo;
 typedef struct TypeInfo TypeInfo;
 typedef struct rio_Arena rio_Arena;
+typedef struct rio_Slice_Decl rio_Slice_Decl;
 typedef struct rio_SrcPos rio_SrcPos;
 typedef struct rio_Slice_NoteArg rio_Slice_NoteArg;
 typedef struct rio_Note rio_Note;
@@ -73,9 +74,9 @@ typedef struct rio_Slice_Note rio_Slice_Note;
 typedef struct rio_Slice_ref_Stmt rio_Slice_ref_Stmt;
 typedef struct rio_StmtList rio_StmtList;
 typedef struct rio_Slice_AggregateItem rio_Slice_AggregateItem;
-typedef struct rio_Slice_Decl rio_Slice_Decl;
 typedef struct rio_Slice_FuncParam rio_Slice_FuncParam;
 typedef struct rio_Map rio_Map;
+typedef struct rio_DeclFunc rio_DeclFunc;
 typedef struct rio_FuncParam rio_FuncParam;
 typedef struct Any Any;
 typedef struct rio_Token rio_Token;
@@ -112,7 +113,6 @@ typedef struct rio_SymRef rio_SymRef;
 typedef struct rio_Slice_SymRef rio_Slice_SymRef;
 typedef struct rio_Slice_EnumItem rio_Slice_EnumItem;
 typedef struct rio_DeclEnum rio_DeclEnum;
-typedef struct rio_DeclFunc rio_DeclFunc;
 typedef struct rio_DeclTypedef rio_DeclTypedef;
 typedef struct rio_DeclVar rio_DeclVar;
 typedef struct rio_Slice_ImportItem rio_Slice_ImportItem;
@@ -431,6 +431,13 @@ void (*rio_ast_alloc(size_t size));
 
 void (*rio_ast_dup(void const ((*src)), size_t size));
 
+struct rio_Slice_Decl {
+  rio_Decl (*items);
+  size_t length;
+};
+
+void rio_ast_dup_type_params(rio_Decl (*d), rio_Slice_Decl params);
+
 struct rio_SrcPos {
   char const ((*name));
   int line;
@@ -504,11 +511,6 @@ bool rio_is_decl_foreign(rio_Decl (*decl));
 rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_EnumItem (*items), size_t num_items));
 
 rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_AggregateItem (*items), size_t num_items));
-
-struct rio_Slice_Decl {
-  rio_Decl (*items);
-  size_t length;
-};
 
 rio_Decl (*rio_new_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, char const ((*name)), rio_Slice_Decl params, rio_Aggregate (*aggregate)));
 
@@ -738,7 +740,14 @@ rio_StmtList rio_dupe_block(rio_StmtList block, rio_MapClosure (*map));
 
 rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map)));
 
-rio_DeclFunc (*rio_dupe_function(rio_DeclFunc (*func), rio_MapClosure (*map)));
+struct rio_DeclFunc {
+  rio_Slice_FuncParam params;
+  rio_Typespec (*ret_type);
+  bool has_varargs;
+  rio_StmtList block;
+};
+
+rio_DeclFunc rio_dupe_function(rio_DeclFunc func, rio_MapClosure (*map));
 
 void rio_dupe_function_fields(rio_DeclFunc (*dupe), rio_MapClosure (*map));
 
@@ -1703,7 +1712,7 @@ rio_Operand rio_resolve_expected_expr_rvalue(rio_Expr (*expr), rio_Type (*expect
 
 rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, rio_TypespecName (*names)));
 
-rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_Slice_TypeArg type_args));
+rio_Sym (*rio_resolve_specialized_decl(rio_SrcPos pos, rio_Sym (*sym), rio_Slice_TypeArg type_args));
 
 rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec)));
 
@@ -2193,13 +2202,6 @@ struct rio_DeclEnum {
   char const ((*scope));
 };
 
-struct rio_DeclFunc {
-  rio_Slice_FuncParam params;
-  rio_Typespec (*ret_type);
-  bool has_varargs;
-  rio_StmtList block;
-};
-
 struct rio_DeclTypedef {
   rio_Typespec (*constraint);
   rio_Typespec (*val);
@@ -2565,6 +2567,14 @@ void (*rio_ast_dup(void const ((*src)), size_t size)) {
   return ptr;
 }
 
+void rio_ast_dup_type_params(rio_Decl (*d), rio_Slice_Decl params) {
+  if (params.length) {
+    d->type_params.length = params.length;
+    d->type_params.items = rio_ast_dup(params.items, (params.length) * (sizeof(*(params.items))));
+    rio_buf_free((void (**))(&(params.items)));
+  }
+}
+
 rio_Note rio_new_note(rio_SrcPos pos, char const ((*name)), rio_NoteArg (*args), size_t num_args) {
   return (rio_Note){.pos = pos, .name = name, .args = {rio_ast_dup(args, (num_args) * (sizeof(*(args)))), num_args}};
 }
@@ -2705,11 +2715,7 @@ rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_Ag
 rio_Decl (*rio_new_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, char const ((*name)), rio_Slice_Decl params, rio_Aggregate (*aggregate))) {
   assert(((kind) == ((rio_Decl_Struct))) || ((kind) == ((rio_Decl_Union))));
   rio_Decl (*d) = rio_new_decl(kind, pos, name);
-  if (params.length) {
-    d->type_params.length = params.length;
-    d->type_params.items = rio_ast_dup(params.items, (params.length) * (sizeof(*(params.items))));
-    rio_buf_free((void (**))(&(params.items)));
-  }
+  rio_ast_dup_type_params(d, params);
   d->aggregate = aggregate;
   return d;
 }
@@ -2723,7 +2729,7 @@ rio_Decl (*rio_new_decl_var(rio_SrcPos pos, char const ((*name)), rio_Typespec (
 
 rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_Slice_Decl type_params, rio_Slice_FuncParam params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block)) {
   rio_Decl (*d) = rio_new_decl((rio_Decl_Func), pos, name);
-  d->type_params = type_params;
+  rio_ast_dup_type_params(d, type_params);
   rio_init_func(&(d->function), params, ret_type, has_varargs, block);
   return d;
 }
@@ -3486,6 +3492,11 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
     dupe->type_arg = rio_dupe_typespec(dupe->type_arg, map);
     break;
   }
+  case rio_Expr_Binary: {
+    dupe->binary.left = rio_dupe_expr(dupe->binary.left, map);
+    dupe->binary.right = rio_dupe_expr(dupe->binary.right, map);
+    break;
+  }
   case rio_Expr_Compound: {
     rio_ExprCompound (*compound) = &(dupe->compound);
     compound->type = rio_dupe_typespec(compound->type, map);
@@ -3532,10 +3543,9 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
   return expr;
 }
 
-rio_DeclFunc (*rio_dupe_function(rio_DeclFunc (*func), rio_MapClosure (*map))) {
-  rio_DeclFunc (*dupe) = rio_ast_dup(func, sizeof(*(func)));
-  rio_dupe_function_fields(dupe, map);
-  return dupe;
+rio_DeclFunc rio_dupe_function(rio_DeclFunc func, rio_MapClosure (*map)) {
+  rio_dupe_function_fields(&(func), map);
+  return func;
 }
 
 void rio_dupe_function_fields(rio_DeclFunc (*dupe), rio_MapClosure (*map)) {
@@ -8052,22 +8062,17 @@ rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, rio_Ty
   return NULL;
 }
 
-rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_Slice_TypeArg type_args)) {
+rio_Sym (*rio_resolve_specialized_decl(rio_SrcPos pos, rio_Sym (*sym), rio_Slice_TypeArg type_args)) {
   if (!(((sym->decl) && (sym->decl->name)))) {
     rio_fatal_error(pos, "Undeclared generic type");
     return NULL;
   }
   rio_Decl (*decl) = sym->decl;
-  if (!((((decl->kind) == ((rio_Decl_Struct))) || ((decl->kind) == ((rio_Decl_Union)))))) {
-    rio_fatal_error(pos, "Generics only supported for aggregates for now");
-    return NULL;
-  }
   rio_Slice_Decl type_params = decl->type_params;
   if ((type_args.length) != (type_params.length)) {
     rio_fatal_error(pos, "Typespec with wrong number of arguments");
     return NULL;
   }
-  rio_Aggregate (*aggregate) = decl->aggregate;
   char const ((*name)) = decl->name;
   {
     rio_Slice_TypeArg items__ = type_args;
@@ -8096,8 +8101,25 @@ rio_Sym (*rio_resolve_specialized_typespec(rio_SrcPos pos, rio_Sym (*sym), rio_S
   }
   rio_TypeMap type_map = {.type_args = type_args, .type_params = type_params};
   rio_MapClosure map = {.self = &(type_map), .call = (rio_MapClosureCall)(rio_map_type_args)};
-  rio_Aggregate (*dupe_agg) = rio_dupe_aggregate(aggregate, &(map));
-  rio_Decl (*dupe) = rio_new_decl_aggregate(decl->pos, decl->kind, name, (rio_Slice_Decl){0}, dupe_agg);
+  rio_Decl (*dupe) = {0};
+  switch (decl->kind) {
+  case rio_Decl_Func: {
+    dupe = rio_new_decl((rio_Decl_Func), decl->pos, name);
+    dupe->function = rio_dupe_function(decl->function, &(map));
+    break;
+  }
+  case rio_Decl_Struct:
+  case rio_Decl_Union: {
+    rio_Aggregate (*dupe_agg) = rio_dupe_aggregate(decl->aggregate, &(map));
+    dupe = rio_new_decl_aggregate(decl->pos, decl->kind, name, (rio_Slice_Decl){0}, dupe_agg);
+    break;
+  }
+  default: {
+    rio_fatal_error(pos, "Unsupported generic construct");
+    return NULL;
+    break;
+  }
+  }
   dupe->is_generic = is_generic;
   dupe_sym = rio_sym_global_decl(dupe, NULL);
   rio_resolve_sym(dupe_sym);
@@ -8165,7 +8187,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
         }
       }
       rio_complete_type(sym->type);
-      sym = rio_resolve_specialized_typespec(typespec->pos, sym, typespec_name->type_args);
+      sym = rio_resolve_specialized_decl(typespec->pos, sym, typespec_name->type_args);
     }
     rio_set_resolved_sym(typespec, sym);
     result = sym->type;
@@ -9666,12 +9688,12 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   assert((expr->kind) == ((rio_Expr_Call)));
   bool verbose = false;
   rio_Sym (*sym) = {0};
-  if ((expr->call.expr->kind) == ((rio_Expr_Name))) {
-    if (!(strcmp(expr->call.expr->name, "sum"))) {
+  rio_Expr (*called_expr) = expr->call.expr;
+  if ((called_expr->kind) == ((rio_Expr_Name))) {
+    if (!(strcmp(called_expr->name, "sum"))) {
       verbose = true;
-      printf("Calling sum!\n");
     }
-    sym = rio_resolve_name(expr->call.expr->name);
+    sym = rio_resolve_name(called_expr->name);
     if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
       if ((expr->call.args.length) != (1)) {
         rio_fatal_error(expr->pos, "Type conversion operator takes 1 argument");
@@ -9680,21 +9702,38 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
       if (!(cast_operand(&(operand), sym->type))) {
         rio_fatal_error(expr->pos, "Invalid type cast from %s to %s", rio_get_type_name(operand.type), rio_get_type_name(sym->type));
       }
-      rio_set_resolved_sym(expr->call.expr, sym);
+      rio_set_resolved_sym(called_expr, sym);
       return operand;
     }
   }
-  rio_Operand function = rio_resolve_expr_rvalue(expr->call.expr);
+  rio_Operand function = rio_resolve_expr_rvalue(called_expr);
   if ((function.type->kind) != ((rio_CompilerTypeKind_Func))) {
     rio_fatal_error(expr->pos, "Cannot call non-function value");
   }
   bool is_generic = false;
+  rio_Slice_TypeArg type_args = {0};
   rio_Decl (*decl) = {0};
   if (((sym) && (sym->decl)) && ((sym->decl->kind) == ((rio_Decl_Func)))) {
     decl = sym->decl;
     if (decl->is_generic) {
       is_generic = true;
-      printf("Calling generic!\n");
+      switch (called_expr->kind) {
+      case rio_Expr_Field: {
+        type_args = called_expr->field.type_args;
+        break;
+      }
+      case rio_Expr_Name: {
+        type_args = called_expr->type_args;
+        break;
+      }
+      default:
+        assert("@complete switch failed to handle case" && 0);
+        break;
+      }
+      if (type_args.length) {
+        sym = rio_resolve_specialized_decl(decl->pos, sym, type_args);
+        rio_set_resolved_sym(called_expr, sym);
+      }
     }
   }
   ullong num_params = function.type->function.params.length;
@@ -9709,8 +9748,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
     for (size_t i = 0; i < items__.length; ++i) {
       rio_Type (*param_type) = items__.items[i];
       rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args.items[i], param_type);
-      if (is_generic) {
-        printf("Checking arg: %d -> %d: %s, %d, %zu \n", arg.type->kind, (arg.type->kind) == ((rio_CompilerTypeKind_Int)), rio_get_type_name(arg.type), (expr->call.expr->kind) == ((rio_Expr_Name)), expr->call.expr->type_args.length);
+      if ((is_generic) && (!(type_args.length))) {
         if ((arg.type) && (arg.type->sym)) {
           printf("Maybe get somewhere???\n");
         }

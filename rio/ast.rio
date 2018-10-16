@@ -371,6 +371,15 @@ fn ast_dup(src: &const void, size: usize) -> &void {
   return ptr;
 }
 
+fn ast_dup_type_params(d: &Decl, params: Slice<Decl>) {
+  if (params.length) {
+    d.type_params.length = params.length;
+    d.type_params.items =
+      ast_dup(params.items, params.length * sizeof(*params.items));
+    buf_free((:&&void)&params.items);
+  }
+}
+
 // #define AST_DUP(x) ast_dup(x, num_##x * sizeof(*x))
 
 fn new_note(
@@ -525,12 +534,7 @@ fn new_decl_aggregate(
 ) -> &Decl {
   #assert(kind == Decl.Struct || kind == Decl.Union);
   let d = new_decl(kind, pos, name);
-  if (params.length) {
-    d.type_params.length = params.length;
-    d.type_params.items =
-      ast_dup(params.items, params.length * sizeof(*params.items));
-    buf_free((:&&void)&params.items);
-  }
+  ast_dup_type_params(d, params);
   d.aggregate = aggregate;
   return d;
 }
@@ -548,7 +552,7 @@ fn new_decl_func(
   block: StmtList,
 ) -> &Decl {
   let d = new_decl(Decl.Func, pos, name);
-  d.type_params = type_params;
+  ast_dup_type_params(d, type_params);
   init_func(&d.function, params, ret_type, has_varargs, block);
   return d;
 }

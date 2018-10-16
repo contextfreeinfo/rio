@@ -58,6 +58,10 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
     AlignofType, SizeofType, TypeofType => {
       dupe.type_arg = dupe_typespec(dupe.type_arg, map);
     }
+    Binary => {
+      dupe.binary.left = dupe_expr(dupe.binary.left, map);
+      dupe.binary.right = dupe_expr(dupe.binary.right, map);
+    }
     Compound => {
       let compound = &dupe.compound;
       compound.type = dupe_typespec(compound.type, map);
@@ -93,10 +97,9 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
   return expr;
 }
 
-fn dupe_function(func: &DeclFunc, map: &MapClosure) -> &DeclFunc {
-  let dupe: &DeclFunc = ast_dup(func, sizeof(*func));
-  dupe_function_fields(dupe, map);
-  return dupe;
+fn dupe_function(func: DeclFunc, map: &MapClosure) -> DeclFunc {
+  dupe_function_fields(&func, map);
+  return func;
 }
 
 fn dupe_function_fields(dupe: &DeclFunc, map: &MapClosure) {
