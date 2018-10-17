@@ -1776,7 +1776,7 @@ rio_Type (*rio_resolve_item_type(rio_SrcPos pos, rio_Operand operand));
 
 rio_Type (*rio_resolve_length_type(rio_SrcPos pos, rio_Operand operand));
 
-rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type)));
+rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type), bool had_ref));
 
 void rio_resolve_func_body(rio_Sym (*sym));
 
@@ -8784,14 +8784,24 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
   if ((func->params.length) > (2)) {
     rio_fatal_error(stmt->pos, "Max of 2 params allowed in for-each block");
   }
-  rio_Type (*item_type) = rio_resolve_for_each_type(stmt->pos, operand.type_orig);
+  rio_Type (*iterable_type) = rio_resolve_for_each_type(stmt->pos, operand.type_orig, false);
+  rio_Type (*item_type) = {0};
   rio_Type (*length_type) = {0};
-  if ((item_type->kind) == ((rio_CompilerTypeKind_Struct))) {
+  switch (iterable_type->kind) {
+  case rio_CompilerTypeKind_Array: {
+    item_type = iterable_type->base;
+    length_type = rio_type_usize;
+    break;
+  }
+  case rio_CompilerTypeKind_Struct: {
     rio_SrcPos pos = stmt->for_each.expr->pos;
     item_type = rio_resolve_item_type(pos, operand);
     length_type = rio_resolve_length_type(pos, operand);
-  } else {
-    length_type = rio_type_usize;
+    break;
+  }
+  default:
+    assert("@complete switch failed to handle case" && 0);
+    break;
   }
   if (stmt->for_each.get_ref) {
     item_type = rio_type_ref(item_type);
@@ -8828,18 +8838,26 @@ rio_Type (*rio_resolve_length_type(rio_SrcPos pos, rio_Operand operand)) {
   return length_type;
 }
 
-rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type))) {
+rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type), bool had_ref)) {
   switch (type->kind) {
   case rio_CompilerTypeKind_Array: {
-    return type->base;
+    if (had_ref) {
+      rio_fatal_error(pos, "Unsupported array ref in for each loop");
+    } else {
+      return type;
+    }
     break;
   }
   case rio_CompilerTypeKind_Const: {
-    return rio_resolve_for_each_type(pos, type->base);
+    return rio_resolve_for_each_type(pos, type->base, had_ref);
     break;
   }
   case rio_CompilerTypeKind_Ref: {
-    return rio_resolve_for_each_type(pos, type->base);
+    if (had_ref) {
+      rio_fatal_error(pos, "Unsupported nested refs in for each loop");
+    } else {
+      return rio_resolve_for_each_type(pos, type->base, true);
+    }
     break;
   }
   case rio_CompilerTypeKind_Struct: {

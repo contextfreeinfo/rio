@@ -1349,14 +1349,20 @@ fn resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
   // Infer item type, even if we don't have a var for it, since that also lets
   // us validate the iterable type.
   // TODO Allow explicit typespec influence, too.
-  let item_type = resolve_for_each_type(stmt.pos, operand.type_orig);
+  let iterable_type = resolve_for_each_type(stmt.pos, operand.type_orig, false);
+  let item_type: &Type;
   let length_type: &Type;
-  if (item_type.kind == CompilerTypeKind.Struct) {
-    let pos = stmt.for_each.expr.pos;
-    item_type = resolve_item_type(pos, operand);
-    length_type = resolve_length_type(pos, operand);
-  } else {
-    length_type = type_usize;
+  @complete
+  switch (iterable_type.kind) {
+    Array => {
+      item_type = iterable_type.base;
+      length_type = type_usize;
+    }
+    Struct => {
+      let pos = stmt.for_each.expr.pos;
+      item_type = resolve_item_type(pos, operand);
+      length_type = resolve_length_type(pos, operand);
+    }
   }
   if (stmt.for_each.get_ref) {
     item_type = type_ref(item_type);
@@ -1399,20 +1405,30 @@ fn resolve_length_type(pos: SrcPos, operand: Operand) -> &Type {
   return length_type;
 }
 
-fn resolve_for_each_type(pos: SrcPos, type: &Type) -> &Type {
+fn resolve_for_each_type(pos: SrcPos, type: &Type, had_ref: bool) -> &Type {
   switch (type.kind) {
     Array => {
       // We have a fixed size, so we can make this work.
-      return type.base;
+      if (had_ref) {
+        // TODO Does this ever make sense?
+        fatal_error(pos, "Unsupported array ref in for each loop");
+      } else {
+        return type;
+      }
     }
     Const => {
-      return resolve_for_each_type(pos, type.base);
+      return resolve_for_each_type(pos, type.base, had_ref);
     }
     Ref => {
-      return resolve_for_each_type(pos, type.base);
+      if (had_ref) {
+        // TODO Support deep dereffing?
+        fatal_error(pos, "Unsupported nested refs in for each loop");
+      } else {
+        return resolve_for_each_type(pos, type.base, true);
+      }
     }
     Struct => {
-      // fatal_error(pos, "I still need to support slices");
+      // Presume it's slice-compatible for now.
       return type;
     }
     default => {
