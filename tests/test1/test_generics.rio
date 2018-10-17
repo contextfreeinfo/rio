@@ -56,8 +56,18 @@ fn test_generic_functions() {
   printf("float sum: %g\n", sum.<float>(1.1, 2.2));
   // printf("int sum: %d", sum(1, 2));
   // printf("float sum: %d", sum(1.1, 2.2));
-  // let thing = 2;
-  // first((:Slice<int>){});
+  let thing = 12;
+  let slices: []Slice<int> = {{}, {items = &thing, length = 1}};
+  // TODO Why doesn't the for each loop work here?
+  // for (slices) do(slice) {
+  for (let s = 0; s < 2; ++s) {
+    let slice = slices[s];
+    let first_thing = first.<int>(slice);
+    switch (first_thing.kind) {
+      Ok => printf("Ok: %d\n", *first_thing.val);
+      Err => printf("Err: %d\n", first_thing.err);
+    }
+  }
   // first((:Slice<int>){items = &thing, length = 1});
   // first(Slice.<int>{});
   // first(Slice.<int>{items = &thing, length = 1});
@@ -85,7 +95,7 @@ fn sum<Num: int>(x: Num, y: Num) -> Num {
 // TODO could all be replace with `void` from an implementation perspective.
 // TODO Maybe could still generate simple wrapper functions for type safety from
 // TODO C if wanted ...
-fn first<Item>(slice: Slice<Item>) -> Result<&Item, TestErr> {
+fn first<Groo>(slice: Slice<Groo>) -> Result<&Groo, TestErr> {
   if (slice.length) {
     return {kind = Result.Ok, val = &slice[0]};
   } else {

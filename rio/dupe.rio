@@ -82,8 +82,16 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
         }
       }
     }
+    Field => {
+      dupe.field.expr = dupe_expr(dupe.field.expr, map);
+      // TODO type_args
+    }
     Float, Int, Str => {
       // Already good.
+    }
+    Index => {
+      dupe.index.expr = dupe_expr(dupe.index.expr, map);
+      dupe.index.index = dupe_expr(dupe.index.index, map);
     }
     Name => {
       // TODO A name could reference type params.
@@ -92,6 +100,9 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
     Offsetof => {
       let offsetof_field = &dupe.offsetof_field;
       offsetof_field.type = dupe_typespec(offsetof_field.type, map);
+    }
+    Unary => {
+      dupe.unary.expr = dupe_expr(dupe.unary.expr, map);
     }
   }
   return expr;
@@ -122,6 +133,9 @@ fn dupe_func_param(param: FuncParam, map: &MapClosure) -> FuncParam {
 }
 
 fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
+  if (!stmt) {
+    return NULL;
+  }
   let dupe: &Stmt = ast_dup(stmt, sizeof(*stmt));
   // Let notes (?) and pos alone, but look into statement content.
   @complete

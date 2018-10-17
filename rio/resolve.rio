@@ -2082,9 +2082,9 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
   let sym: &Sym;
   let called_expr = expr.call.expr;
   if (called_expr.kind == Expr.Name) {
-    if (!strcmp(called_expr.name, "sum")) {
-      verbose = true;
-      // printf("Calling sum!\n");
+    if (!strcmp(called_expr.name, "first")) {
+      // verbose = true;
+      // printf("Calling first!\n");
     }
     sym = resolve_name(called_expr.name);
     if (sym && sym.kind == Sym.Type) {
@@ -2123,8 +2123,13 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
       if (type_args.length) {
         // TODO Still need to update `function` for the purposes of
         // TODO expected_expr handling down below.
+        // TODO Does this need to go down inside of resolve expr somewhere?
         sym = resolve_specialized_decl(decl.pos, sym, type_args);
+        if (verbose) {
+          printf("Hey: %s\n", sym.decl.name);
+        }
         set_resolved_sym(called_expr, sym);
+        function = operand_rvalue(sym.type);
       }
     }
   }
@@ -2137,6 +2142,9 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
     expr.call.args.length > num_params && !function.type.function.has_varargs
   ) {
     fatal_error(expr.pos, "Function call with too many arguments");
+  }
+  if (verbose) {
+    printf("Check args.\n");
   }
   for (function.type.function.params) do(param_type, i) {
     let arg = resolve_expected_expr_rvalue(expr.call.args[i], param_type);
@@ -2160,10 +2168,16 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
       fatal_error(expr.call.args[i].pos, "Invalid type in function call argument. Expected %s, got %s", get_type_name(param_type), get_type_name(arg.type));
     }
   } for;
+  if (verbose) {
+    printf("Checked.\n");
+  }
   // TODO Actual slice operators.
   // for (expr.call.args[num_params:]) do(arg) {
   for (let i: usize = num_params; i < expr.call.args.length; i++) {
     resolve_expr_rvalue(expr.call.args[i]);
+  }
+  if (verbose) {
+    printf("Got here.\n");
   }
   return operand_rvalue(function.type.function.ret);
 }

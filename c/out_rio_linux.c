@@ -3521,9 +3521,18 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
     }
     break;
   }
+  case rio_Expr_Field: {
+    dupe->field.expr = rio_dupe_expr(dupe->field.expr, map);
+    break;
+  }
   case rio_Expr_Float:
   case rio_Expr_Int:
   case rio_Expr_Str: {
+    break;
+  }
+  case rio_Expr_Index: {
+    dupe->index.expr = rio_dupe_expr(dupe->index.expr, map);
+    dupe->index.index = rio_dupe_expr(dupe->index.index, map);
     break;
   }
   case rio_Expr_Name: {
@@ -3532,6 +3541,10 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
   case rio_Expr_Offsetof: {
     rio_ExprOffsetofField (*offsetof_field) = &(dupe->offsetof_field);
     offsetof_field->type = rio_dupe_typespec(offsetof_field->type, map);
+    break;
+  }
+  case rio_Expr_Unary: {
+    dupe->unary.expr = rio_dupe_expr(dupe->unary.expr, map);
     break;
   }
   default:
@@ -3569,6 +3582,9 @@ rio_FuncParam rio_dupe_func_param(rio_FuncParam param, rio_MapClosure (*map)) {
 }
 
 rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
+  if (!(stmt)) {
+    return NULL;
+  }
   rio_Stmt (*dupe) = rio_ast_dup(stmt, sizeof(*(stmt)));
   switch (dupe->kind) {
   case rio_Stmt_Assign: {
@@ -9676,8 +9692,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   rio_Sym (*sym) = {0};
   rio_Expr (*called_expr) = expr->call.expr;
   if ((called_expr->kind) == ((rio_Expr_Name))) {
-    if (!(strcmp(called_expr->name, "sum"))) {
-      verbose = true;
+    if (!(strcmp(called_expr->name, "first"))) {
     }
     sym = rio_resolve_name(called_expr->name);
     if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
@@ -9718,7 +9733,11 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
       }
       if (type_args.length) {
         sym = rio_resolve_specialized_decl(decl->pos, sym, type_args);
+        if (verbose) {
+          printf("Hey: %s\n", sym->decl->name);
+        }
         rio_set_resolved_sym(called_expr, sym);
+        function = rio_operand_rvalue(sym->type);
       }
     }
   }
@@ -9728,6 +9747,9 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   }
   if (((expr->call.args.length) > (num_params)) && (!(function.type->function.has_varargs))) {
     rio_fatal_error(expr->pos, "Function call with too many arguments");
+  }
+  if (verbose) {
+    printf("Check args.\n");
   }
   {
     rio_Slice_ref_Type items__ = function.type->function.params;
@@ -9747,8 +9769,14 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
       }
     }
   }
+  if (verbose) {
+    printf("Checked.\n");
+  }
   for (size_t i = num_params; (i) < (expr->call.args.length); (i)++) {
     rio_resolve_expr_rvalue(expr->call.args.items[i]);
+  }
+  if (verbose) {
+    printf("Got here.\n");
   }
   return rio_operand_rvalue(function.type->function.ret);
 }
