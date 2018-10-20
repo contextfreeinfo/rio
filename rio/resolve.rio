@@ -249,8 +249,7 @@ fn sym_global_decl(decl: &Decl, scope: *const char) -> &Sym {
       get_decl_note(decl, foreign_name) ||
       get_decl_note(decl, unscoped_name);
     let name = sym ? sym.name : str_intern("int");
-    let enum_typespec =
-      new_typespec_name(decl.pos, &TypespecName{name = name}, 1);
+    let enum_typespec = new_typespec_name1(decl.pos, name);
     let prev_item_name: *const char = NULL;
     let prev_scoped_name: *const char = NULL;
     for (decl.enum_decl.items) do(item) {

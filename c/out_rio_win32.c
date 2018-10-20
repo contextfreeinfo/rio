@@ -73,8 +73,18 @@ typedef struct rio_Note rio_Note;
 typedef struct rio_Slice_Note rio_Slice_Note;
 typedef struct rio_Slice_ref_Stmt rio_Slice_ref_Stmt;
 typedef struct rio_StmtList rio_StmtList;
+typedef struct rio_Slice_TypespecName rio_Slice_TypespecName;
+typedef struct rio_Slice_ref_Typespec rio_Slice_ref_Typespec;
+typedef struct rio_Slice_ref_Decl rio_Slice_ref_Decl;
 typedef struct rio_Slice_AggregateItem rio_Slice_AggregateItem;
+typedef struct rio_Slice_EnumItem rio_Slice_EnumItem;
 typedef struct rio_Slice_FuncParam rio_Slice_FuncParam;
+typedef struct rio_Slice_ptr_const_char rio_Slice_ptr_const_char;
+typedef struct rio_Slice_ImportItem rio_Slice_ImportItem;
+typedef struct rio_Slice_CompoundField rio_Slice_CompoundField;
+typedef struct rio_Slice_ref_Expr rio_Slice_ref_Expr;
+typedef struct rio_Slice_ElseIf rio_Slice_ElseIf;
+typedef struct rio_Slice_SwitchCase rio_Slice_SwitchCase;
 typedef struct rio_Map rio_Map;
 typedef struct rio_DeclFunc rio_DeclFunc;
 typedef struct rio_FuncParam rio_FuncParam;
@@ -86,7 +96,6 @@ typedef struct rio_SwitchCasePattern rio_SwitchCasePattern;
 typedef struct rio_Slice_SwitchCasePattern rio_Slice_SwitchCasePattern;
 typedef struct rio_SwitchCase rio_SwitchCase;
 typedef struct rio_EnumItem rio_EnumItem;
-typedef struct rio_Slice_ptr_const_char rio_Slice_ptr_const_char;
 typedef struct rio_AggregateItem rio_AggregateItem;
 typedef struct rio_NoteArg rio_NoteArg;
 typedef union rio_Val rio_Val;
@@ -101,8 +110,6 @@ typedef struct rio_Slice_ref_Type rio_Slice_ref_Type;
 typedef struct rio_TypeFunc rio_TypeFunc;
 typedef struct rio_Type rio_Type;
 typedef struct TypeFieldInfo TypeFieldInfo;
-typedef struct rio_Slice_TypespecName rio_Slice_TypespecName;
-typedef struct rio_Slice_ref_Typespec rio_Slice_ref_Typespec;
 typedef struct rio_TypespecFunc rio_TypespecFunc;
 typedef struct rio_Typespec rio_Typespec;
 typedef struct rio_TypespecName rio_TypespecName;
@@ -111,25 +118,21 @@ typedef struct rio_ImportItem rio_ImportItem;
 typedef struct rio_Aggregate rio_Aggregate;
 typedef struct rio_SymRef rio_SymRef;
 typedef struct rio_Slice_SymRef rio_Slice_SymRef;
-typedef struct rio_Slice_EnumItem rio_Slice_EnumItem;
 typedef struct rio_DeclEnum rio_DeclEnum;
 typedef struct rio_DeclTypedef rio_DeclTypedef;
 typedef struct rio_DeclVar rio_DeclVar;
-typedef struct rio_Slice_ImportItem rio_Slice_ImportItem;
 typedef struct rio_DeclImport rio_DeclImport;
 typedef struct rio_Decl rio_Decl;
 typedef struct rio_ExprIntLit rio_ExprIntLit;
 typedef struct rio_ExprFloatLit rio_ExprFloatLit;
 typedef struct rio_ExprStrLit rio_ExprStrLit;
 typedef struct rio_ExprOffsetofField rio_ExprOffsetofField;
-typedef struct rio_Slice_CompoundField rio_Slice_CompoundField;
 typedef struct rio_ExprCompound rio_ExprCompound;
 typedef struct rio_ExprCast rio_ExprCast;
 typedef struct rio_ExprModify rio_ExprModify;
 typedef struct rio_ExprUnary rio_ExprUnary;
 typedef struct rio_ExprBinary rio_ExprBinary;
 typedef struct rio_ExprTernary rio_ExprTernary;
-typedef struct rio_Slice_ref_Expr rio_Slice_ref_Expr;
 typedef struct rio_ExprCall rio_ExprCall;
 typedef struct rio_ExprIndex rio_ExprIndex;
 typedef struct rio_ExprField rio_ExprField;
@@ -139,13 +142,10 @@ typedef struct rio_StmtWhile rio_StmtWhile;
 typedef struct rio_StmtAssign rio_StmtAssign;
 typedef struct rio_StmtFor rio_StmtFor;
 typedef struct rio_StmtForEach rio_StmtForEach;
-typedef struct rio_Slice_ElseIf rio_Slice_ElseIf;
 typedef struct rio_StmtIf rio_StmtIf;
 typedef struct rio_StmtInit rio_StmtInit;
-typedef struct rio_Slice_SwitchCase rio_Slice_SwitchCase;
 typedef struct rio_StmtSwitch rio_StmtSwitch;
 typedef struct rio_Stmt rio_Stmt;
-typedef struct rio_Slice_ref_Decl rio_Slice_ref_Decl;
 typedef struct rio_BufHdr rio_BufHdr;
 typedef struct rio_Intern rio_Intern;
 typedef struct rio_MapClosure rio_MapClosure;
@@ -433,6 +433,7 @@ void (*rio_ast_dup(void const ((*src)), size_t size));
 
 
 
+
 struct rio_Slice_Decl {
   rio_Decl (*items);
   size_t length;
@@ -456,14 +457,14 @@ struct rio_Note {
   rio_Slice_NoteArg args;
 };
 
-rio_Note rio_new_note(rio_SrcPos pos, char const ((*name)), rio_NoteArg (*args), size_t num_args);
+rio_Note rio_new_note(rio_SrcPos pos, char const ((*name)), rio_Slice_NoteArg args);
 
 struct rio_Slice_Note {
   rio_Note (*items);
   size_t length;
 };
 
-rio_Slice_Note rio_new_notes(rio_Note (*notes), size_t num_notes);
+rio_Slice_Note rio_new_notes(rio_Slice_Note notes);
 
 struct rio_Slice_ref_Stmt {
   rio_Stmt (*(*items));
@@ -475,13 +476,18 @@ struct rio_StmtList {
   rio_Slice_ref_Stmt stmts;
 };
 
-rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Stmt (*(*stmts)), size_t num_stmts);
+rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Slice_ref_Stmt stmts);
 
 rio_Typespec (*rio_new_typespec(rio_Typespec_Kind kind, rio_SrcPos pos));
 
 rio_Typespec (*rio_new_typespec_name1(rio_SrcPos pos, char const ((*name))));
 
-rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, rio_TypespecName (*names), size_t num_names));
+struct rio_Slice_TypespecName {
+  rio_TypespecName (*items);
+  size_t length;
+};
+
+rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, rio_Slice_TypespecName names));
 
 rio_Typespec (*rio_new_typespec_ptr(rio_SrcPos pos, rio_Typespec (*base), bool is_owned));
 
@@ -491,9 +497,19 @@ rio_Typespec (*rio_new_typespec_const(rio_SrcPos pos, rio_Typespec (*base)));
 
 rio_Typespec (*rio_new_typespec_array(rio_SrcPos pos, rio_Typespec (*elem), rio_Expr (*size)));
 
-rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Typespec (*(*args)), size_t num_args, rio_Typespec (*ret), bool has_varargs));
+struct rio_Slice_ref_Typespec {
+  rio_Typespec (*(*items));
+  size_t length;
+};
 
-rio_Slice_ref_Decl (*rio_new_decls(rio_Decl (*(*decls)), size_t num_decls));
+rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Slice_ref_Typespec args, rio_Typespec (*ret), bool has_varargs));
+
+struct rio_Slice_ref_Decl {
+  rio_Decl (*(*items));
+  size_t length;
+};
+
+rio_Slice_ref_Decl (*rio_new_decls(rio_Slice_ref_Decl decls));
 
 rio_Decl (*rio_new_decl(rio_Decl_Kind kind, rio_SrcPos pos, char const ((*name))));
 
@@ -510,9 +526,14 @@ rio_Aggregate (*rio_get_subunion(rio_Slice_AggregateItem items));
 
 bool rio_is_decl_foreign(rio_Decl (*decl));
 
-rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_EnumItem (*items), size_t num_items));
+struct rio_Slice_EnumItem {
+  rio_EnumItem (*items);
+  size_t length;
+};
 
-rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_AggregateItem (*items), size_t num_items));
+rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Slice_EnumItem items));
+
+rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_Slice_AggregateItem items));
 
 rio_Decl (*rio_new_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, char const ((*name)), rio_Slice_Decl params, rio_Aggregate (*aggregate)));
 
@@ -533,7 +554,17 @@ rio_Decl (*rio_new_decl_typedef(rio_SrcPos pos, char const ((*name)), rio_Typesp
 
 rio_Decl (*rio_new_decl_note(rio_SrcPos pos, rio_Note note));
 
-rio_Decl (*rio_new_decl_import(rio_SrcPos pos, char const ((*rename_name)), bool is_relative, char const ((*(*names))), size_t num_names, bool import_all, rio_ImportItem (*items), size_t num_items));
+struct rio_Slice_ptr_const_char {
+  char const ((*(*items)));
+  size_t length;
+};
+
+struct rio_Slice_ImportItem {
+  rio_ImportItem (*items);
+  size_t length;
+};
+
+rio_Decl (*rio_new_decl_import(rio_SrcPos pos, char const ((*rename_name)), bool is_relative, rio_Slice_ptr_const_char names, bool import_all, rio_Slice_ImportItem items));
 
 rio_Expr (*rio_new_expr(rio_Expr_Kind kind, rio_SrcPos pos));
 
@@ -569,11 +600,21 @@ rio_Expr (*rio_new_expr_str(rio_SrcPos pos, char const ((*val)), rio_TokenMod mo
 
 rio_Expr (*rio_new_expr_name(rio_SrcPos pos, char const ((*name))));
 
-rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_CompoundField (*fields), size_t num_fields));
+struct rio_Slice_CompoundField {
+  rio_CompoundField (*items);
+  size_t length;
+};
+
+rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_Slice_CompoundField fields));
 
 rio_Expr (*rio_new_expr_cast(rio_SrcPos pos, rio_Typespec (*type), rio_Expr (*expr)));
 
-rio_Expr (*rio_new_expr_call(rio_SrcPos pos, rio_Expr (*expr), rio_Expr (*(*args)), size_t num_args));
+struct rio_Slice_ref_Expr {
+  rio_Expr (*(*items));
+  size_t length;
+};
+
+rio_Expr (*rio_new_expr_call(rio_SrcPos pos, rio_Expr (*expr), rio_Slice_ref_Expr args));
 
 rio_Expr (*rio_new_expr_index(rio_SrcPos pos, rio_Expr (*expr), rio_Expr (*index)));
 
@@ -605,7 +646,12 @@ rio_Stmt (*rio_new_stmt_block(rio_SrcPos pos, rio_StmtList block));
 
 rio_Stmt (*rio_new_stmt_close(rio_SrcPos pos, rio_Stmt_Kind tag));
 
-rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_StmtList then_block, rio_ElseIf (*elseifs), size_t num_elseifs, rio_StmtList else_block));
+struct rio_Slice_ElseIf {
+  rio_ElseIf (*items);
+  size_t length;
+};
+
+rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_StmtList then_block, rio_Slice_ElseIf elseifs, rio_StmtList else_block));
 
 rio_Stmt (*rio_new_stmt_while(rio_SrcPos pos, rio_Expr (*cond), rio_StmtList block));
 
@@ -615,7 +661,12 @@ rio_Stmt (*rio_new_stmt_for_each(rio_SrcPos pos, bool get_ref, rio_Expr (*expr),
 
 rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_Stmt (*next), rio_StmtList block));
 
-rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_SwitchCase (*cases), size_t num_cases));
+struct rio_Slice_SwitchCase {
+  rio_SwitchCase (*items);
+  size_t length;
+};
+
+rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_Slice_SwitchCase cases));
 
 rio_Stmt (*rio_new_stmt_assign(rio_SrcPos pos, rio_TokenKind op, rio_Expr (*left), rio_Expr (*right)));
 
@@ -1447,11 +1498,6 @@ rio_EnumItem rio_parse_decl_enum_item(void);
 
 rio_Decl (*rio_parse_decl_enum(rio_SrcPos pos));
 
-struct rio_Slice_ptr_const_char {
-  char const ((*(*items)));
-  size_t length;
-};
-
 struct rio_AggregateItem {
   rio_AggregateItem_Kind kind;
   rio_SrcPos pos;
@@ -2129,16 +2175,6 @@ struct TypeFieldInfo {
   int offset;
 };
 
-struct rio_Slice_TypespecName {
-  rio_TypespecName (*items);
-  size_t length;
-};
-
-struct rio_Slice_ref_Typespec {
-  rio_Typespec (*(*items));
-  size_t length;
-};
-
 struct rio_TypespecFunc {
   rio_Slice_ref_Typespec args;
   bool has_varargs;
@@ -2196,11 +2232,6 @@ struct rio_Slice_SymRef {
   size_t length;
 };
 
-struct rio_Slice_EnumItem {
-  rio_EnumItem (*items);
-  size_t length;
-};
-
 struct rio_DeclEnum {
   rio_Typespec (*type);
   rio_Slice_EnumItem items;
@@ -2215,11 +2246,6 @@ struct rio_DeclTypedef {
 struct rio_DeclVar {
   rio_Typespec (*type);
   rio_Expr (*expr);
-};
-
-struct rio_Slice_ImportItem {
-  rio_ImportItem (*items);
-  size_t length;
 };
 
 struct rio_DeclImport {
@@ -2277,11 +2303,6 @@ struct rio_ExprOffsetofField {
   char const ((*name));
 };
 
-struct rio_Slice_CompoundField {
-  rio_CompoundField (*items);
-  size_t length;
-};
-
 struct rio_ExprCompound {
   rio_Typespec (*type);
   rio_Slice_CompoundField fields;
@@ -2313,11 +2334,6 @@ struct rio_ExprTernary {
   rio_Expr (*cond);
   rio_Expr (*then_expr);
   rio_Expr (*else_expr);
-};
-
-struct rio_Slice_ref_Expr {
-  rio_Expr (*(*items));
-  size_t length;
 };
 
 struct rio_ExprCall {
@@ -2394,11 +2410,6 @@ struct rio_StmtForEach {
   rio_Type (*length_type);
 };
 
-struct rio_Slice_ElseIf {
-  rio_ElseIf (*items);
-  size_t length;
-};
-
 struct rio_StmtIf {
   rio_Stmt (*init);
   rio_Expr (*cond);
@@ -2412,11 +2423,6 @@ struct rio_StmtInit {
   bool is_mut;
   rio_Typespec (*type);
   rio_Expr (*expr);
-};
-
-struct rio_Slice_SwitchCase {
-  rio_SwitchCase (*items);
-  size_t length;
 };
 
 struct rio_StmtSwitch {
@@ -2447,12 +2453,35 @@ struct rio_Stmt {
 
 rio_Slice_Decl rio_ast_dup_slice_Decl(rio_Slice_Decl const (src));
 
-struct rio_Slice_ref_Decl {
-  rio_Decl (*(*items));
-  size_t length;
-};
+rio_Slice_NoteArg rio_ast_dup_slice_NoteArg(rio_Slice_NoteArg const (src));
+
+rio_Slice_Note rio_ast_dup_slice_Note(rio_Slice_Note const (src));
+
+rio_Slice_ref_Stmt rio_ast_dup_slice_ref_Stmt(rio_Slice_ref_Stmt const (src));
+
+rio_Slice_TypespecName rio_ast_dup_slice_TypespecName(rio_Slice_TypespecName const (src));
+
+rio_Slice_ref_Typespec rio_ast_dup_slice_ref_Typespec(rio_Slice_ref_Typespec const (src));
+
+rio_Slice_ref_Decl rio_ast_dup_slice_ref_Decl(rio_Slice_ref_Decl const (src));
+
+rio_Slice_EnumItem rio_ast_dup_slice_EnumItem(rio_Slice_EnumItem const (src));
+
+rio_Slice_AggregateItem rio_ast_dup_slice_AggregateItem(rio_Slice_AggregateItem const (src));
 
 rio_Slice_FuncParam rio_ast_dup_slice_FuncParam(rio_Slice_FuncParam const (src));
+
+rio_Slice_ptr_const_char rio_ast_dup_slice_ptr_const_char(rio_Slice_ptr_const_char const (src));
+
+rio_Slice_ImportItem rio_ast_dup_slice_ImportItem(rio_Slice_ImportItem const (src));
+
+rio_Slice_CompoundField rio_ast_dup_slice_CompoundField(rio_Slice_CompoundField const (src));
+
+rio_Slice_ref_Expr rio_ast_dup_slice_ref_Expr(rio_Slice_ref_Expr const (src));
+
+rio_Slice_ElseIf rio_ast_dup_slice_ElseIf(rio_Slice_ElseIf const (src));
+
+rio_Slice_SwitchCase rio_ast_dup_slice_SwitchCase(rio_Slice_SwitchCase const (src));
 
 struct rio_BufHdr {
   size_t len;
@@ -2475,6 +2504,18 @@ struct rio_TypeMap {
   rio_Slice_TypeArg type_args;
   rio_Slice_Decl type_params;
 };
+
+rio_Aggregate (*rio_ast_dup2_Aggregate(rio_Aggregate const ((*src))));
+
+rio_Expr (*rio_ast_dup2_Expr(rio_Expr const ((*src))));
+
+rio_Stmt (*rio_ast_dup2_Stmt(rio_Stmt const ((*src))));
+
+rio_Slice_SwitchCasePattern rio_ast_dup_slice_SwitchCasePattern(rio_Slice_SwitchCasePattern const (src));
+
+rio_Typespec (*rio_ast_dup2_Typespec(rio_Typespec const ((*src))));
+
+rio_Slice_TypeArg rio_ast_dup_slice_TypeArg(rio_Slice_TypeArg const (src));
 
 struct rio_Package {
   char const ((*path));
@@ -2588,16 +2629,16 @@ void rio_ast_dup_type_params(rio_Decl (*d), rio_Slice_Decl params) {
   }
 }
 
-rio_Note rio_new_note(rio_SrcPos pos, char const ((*name)), rio_NoteArg (*args), size_t num_args) {
-  return (rio_Note){.pos = pos, .name = name, .args = {rio_ast_dup(args, (num_args) * (sizeof(*(args)))), num_args}};
+rio_Note rio_new_note(rio_SrcPos pos, char const ((*name)), rio_Slice_NoteArg args) {
+  return (rio_Note){.pos = pos, .name = name, .args = rio_ast_dup_slice_NoteArg(args)};
 }
 
-rio_Slice_Note rio_new_notes(rio_Note (*notes), size_t num_notes) {
-  return (rio_Slice_Note){rio_ast_dup(notes, (num_notes) * (sizeof(*(notes)))), num_notes};
+rio_Slice_Note rio_new_notes(rio_Slice_Note notes) {
+  return rio_ast_dup_slice_Note(notes);
 }
 
-rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Stmt (*(*stmts)), size_t num_stmts) {
-  return (rio_StmtList){pos, {rio_ast_dup(stmts, (num_stmts) * (sizeof(*(stmts)))), num_stmts}};
+rio_StmtList rio_new_stmt_list(rio_SrcPos pos, rio_Slice_ref_Stmt stmts) {
+  return (rio_StmtList){pos, rio_ast_dup_slice_ref_Stmt(stmts)};
 }
 
 rio_Typespec (*rio_new_typespec(rio_Typespec_Kind kind, rio_SrcPos pos)) {
@@ -2608,12 +2649,12 @@ rio_Typespec (*rio_new_typespec(rio_Typespec_Kind kind, rio_SrcPos pos)) {
 }
 
 rio_Typespec (*rio_new_typespec_name1(rio_SrcPos pos, char const ((*name)))) {
-  return rio_new_typespec_name(pos, &((rio_TypespecName){.name = name}), 1);
+  return rio_new_typespec_name(pos, (rio_Slice_TypespecName){&((rio_TypespecName){.name = name}), 1});
 }
 
-rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, rio_TypespecName (*names), size_t num_names)) {
+rio_Typespec (*rio_new_typespec_name(rio_SrcPos pos, rio_Slice_TypespecName names)) {
   rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Name), pos);
-  t->names = (rio_Slice_TypespecName){rio_ast_dup(names, (num_names) * (sizeof(*(names)))), num_names};
+  t->names = rio_ast_dup_slice_TypespecName(names);
   return t;
 }
 
@@ -2644,17 +2685,17 @@ rio_Typespec (*rio_new_typespec_array(rio_SrcPos pos, rio_Typespec (*elem), rio_
   return t;
 }
 
-rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Typespec (*(*args)), size_t num_args, rio_Typespec (*ret), bool has_varargs)) {
+rio_Typespec (*rio_new_typespec_func(rio_SrcPos pos, rio_Slice_ref_Typespec args, rio_Typespec (*ret), bool has_varargs)) {
   rio_Typespec (*t) = rio_new_typespec((rio_Typespec_Func), pos);
-  t->function.args = (rio_Slice_ref_Typespec){rio_ast_dup(args, (num_args) * (sizeof(*(args)))), num_args};
+  t->function.args = rio_ast_dup_slice_ref_Typespec(args);
   t->function.ret = ret;
   t->function.has_varargs = has_varargs;
   return t;
 }
 
-rio_Slice_ref_Decl (*rio_new_decls(rio_Decl (*(*decls)), size_t num_decls)) {
+rio_Slice_ref_Decl (*rio_new_decls(rio_Slice_ref_Decl decls)) {
   rio_Slice_ref_Decl (*d) = rio_ast_alloc(sizeof(rio_Slice_ref_Decl));
-  *(d) = (rio_Slice_ref_Decl){rio_ast_dup(decls, (num_decls) * (sizeof(*(decls)))), num_decls};
+  *(d) = rio_ast_dup_slice_ref_Decl(decls);
   return d;
 }
 
@@ -2707,20 +2748,20 @@ bool rio_is_decl_foreign(rio_Decl (*decl)) {
   return (rio_get_decl_note(decl, rio_foreign_name)) != (NULL);
 }
 
-rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_EnumItem (*items), size_t num_items)) {
+rio_Decl (*rio_new_decl_enum(rio_SrcPos pos, char const ((*name)), rio_Typespec (*type), rio_Slice_EnumItem items)) {
   rio_Decl (*d) = rio_new_decl((rio_Decl_Enum), pos, name);
   d->enum_decl.type = type;
-  d->enum_decl.items = (rio_Slice_EnumItem){rio_ast_dup(items, (num_items) * (sizeof(*(items)))), num_items};
+  d->enum_decl.items = rio_ast_dup_slice_EnumItem(items);
   return d;
 }
 
-rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_AggregateItem (*items), size_t num_items)) {
+rio_Aggregate (*rio_new_aggregate(rio_SrcPos pos, rio_AggregateKind kind, rio_Slice_AggregateItem items)) {
   rio_Aggregate (*aggregate) = rio_ast_alloc(sizeof(rio_Aggregate));
   aggregate->pos = pos;
   aggregate->kind = kind;
-  aggregate->items = (rio_Slice_AggregateItem){rio_ast_dup(items, (num_items) * (sizeof(*(items)))), num_items};
-  if (items) {
-    rio_buf_free((void (**))(&(items)));
+  aggregate->items = rio_ast_dup_slice_AggregateItem(items);
+  if (items.length) {
+    rio_buf_free((void (**))(&(items.items)));
   }
   return aggregate;
 }
@@ -2773,13 +2814,13 @@ rio_Decl (*rio_new_decl_note(rio_SrcPos pos, rio_Note note)) {
   return d;
 }
 
-rio_Decl (*rio_new_decl_import(rio_SrcPos pos, char const ((*rename_name)), bool is_relative, char const ((*(*names))), size_t num_names, bool import_all, rio_ImportItem (*items), size_t num_items)) {
+rio_Decl (*rio_new_decl_import(rio_SrcPos pos, char const ((*rename_name)), bool is_relative, rio_Slice_ptr_const_char names, bool import_all, rio_Slice_ImportItem items)) {
   rio_Decl (*d) = rio_new_decl((rio_Decl_Import), pos, NULL);
   d->name = rename_name;
   d->import_decl.is_relative = is_relative;
-  d->import_decl.names = (rio_Slice_ptr_const_char){rio_ast_dup(names, (num_names) * (sizeof(*(names)))), num_names};
+  d->import_decl.names = rio_ast_dup_slice_ptr_const_char(names);
   d->import_decl.import_all = import_all;
-  d->import_decl.items = (rio_Slice_ImportItem){rio_ast_dup(items, (num_items) * (sizeof(*(items)))), num_items};
+  d->import_decl.items = rio_ast_dup_slice_ImportItem(items);
   return d;
 }
 
@@ -2877,10 +2918,10 @@ rio_Expr (*rio_new_expr_name(rio_SrcPos pos, char const ((*name)))) {
   return e;
 }
 
-rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_CompoundField (*fields), size_t num_fields)) {
+rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_Slice_CompoundField fields)) {
   rio_Expr (*e) = rio_new_expr((rio_Expr_Compound), pos);
   e->compound.type = type;
-  e->compound.fields = (rio_Slice_CompoundField){rio_ast_dup(fields, (num_fields) * (sizeof(*(fields)))), num_fields};
+  e->compound.fields = rio_ast_dup_slice_CompoundField(fields);
   return e;
 }
 
@@ -2891,10 +2932,10 @@ rio_Expr (*rio_new_expr_cast(rio_SrcPos pos, rio_Typespec (*type), rio_Expr (*ex
   return e;
 }
 
-rio_Expr (*rio_new_expr_call(rio_SrcPos pos, rio_Expr (*expr), rio_Expr (*(*args)), size_t num_args)) {
+rio_Expr (*rio_new_expr_call(rio_SrcPos pos, rio_Expr (*expr), rio_Slice_ref_Expr args)) {
   rio_Expr (*e) = rio_new_expr((rio_Expr_Call), pos);
   e->call.expr = expr;
-  e->call.args = (rio_Slice_ref_Expr){rio_ast_dup(args, (num_args) * (sizeof(*(args)))), num_args};
+  e->call.args = rio_ast_dup_slice_ref_Expr(args);
   return e;
 }
 
@@ -2999,12 +3040,12 @@ rio_Stmt (*rio_new_stmt_close(rio_SrcPos pos, rio_Stmt_Kind tag)) {
   return s;
 }
 
-rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_StmtList then_block, rio_ElseIf (*elseifs), size_t num_elseifs, rio_StmtList else_block)) {
+rio_Stmt (*rio_new_stmt_if(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), rio_StmtList then_block, rio_Slice_ElseIf elseifs, rio_StmtList else_block)) {
   rio_Stmt (*s) = rio_new_stmt((rio_Stmt_If), pos);
   s->if_stmt.init = init;
   s->if_stmt.cond = cond;
   s->if_stmt.then_block = then_block;
-  s->if_stmt.elseifs = (rio_Slice_ElseIf){rio_ast_dup(elseifs, (num_elseifs) * (sizeof(*(elseifs)))), num_elseifs};
+  s->if_stmt.elseifs = rio_ast_dup_slice_ElseIf(elseifs);
   s->if_stmt.else_block = else_block;
   return s;
 }
@@ -3040,10 +3081,10 @@ rio_Stmt (*rio_new_stmt_for(rio_SrcPos pos, rio_Stmt (*init), rio_Expr (*cond), 
   return s;
 }
 
-rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_SwitchCase (*cases), size_t num_cases)) {
+rio_Stmt (*rio_new_stmt_switch(rio_SrcPos pos, rio_Expr (*expr), rio_Slice_SwitchCase cases)) {
   rio_Stmt (*s) = rio_new_stmt((rio_Stmt_Switch), pos);
   s->switch_stmt.expr = expr;
-  s->switch_stmt.cases = (rio_Slice_SwitchCase){rio_ast_dup(cases, (num_cases) * (sizeof(*(cases)))), num_cases};
+  s->switch_stmt.cases = rio_ast_dup_slice_SwitchCase(cases);
   return s;
 }
 
@@ -3451,8 +3492,8 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
   if (dupe) {
     return dupe;
   }
-  dupe = rio_ast_dup(aggregate, sizeof(*(aggregate)));
-  dupe->items.items = rio_ast_dup(dupe->items.items, (sizeof(*(dupe->items.items))) * (dupe->items.length));
+  dupe = rio_ast_dup2_Aggregate(aggregate);
+  dupe->items = rio_ast_dup_slice_AggregateItem(dupe->items);
   {
     rio_Slice_AggregateItem items__ = dupe->items;
     for (size_t i__ = 0; i__ < items__.length; ++i__) {
@@ -3478,7 +3519,7 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
 
 rio_StmtList rio_dupe_block(rio_StmtList block, rio_MapClosure (*map)) {
   rio_StmtList (*dupe) = &(block);
-  dupe->stmts.items = rio_ast_dup(dupe->stmts.items, (sizeof(*(dupe->stmts.items))) * (dupe->stmts.length));
+  dupe->stmts = rio_ast_dup_slice_ref_Stmt(dupe->stmts);
   {
     rio_Slice_ref_Stmt items__ = dupe->stmts;
     for (size_t i__ = 0; i__ < items__.length; ++i__) {
@@ -3493,7 +3534,7 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
   if (!(expr)) {
     return NULL;
   }
-  rio_Expr (*dupe) = rio_ast_dup(expr, sizeof(*(expr)));
+  rio_Expr (*dupe) = rio_ast_dup2_Expr(expr);
   switch (dupe->kind) {
   case rio_Expr_AlignofExpr:
   case rio_Expr_SizeofExpr:
@@ -3516,7 +3557,7 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
   case rio_Expr_Call: {
     rio_ExprCall (*call) = &(dupe->call);
     call->expr = rio_dupe_expr(call->expr, map);
-    call->args.items = rio_ast_dup(call->args.items, (sizeof(*(call->args.items))) * (call->args.length));
+    call->args = rio_ast_dup_slice_ref_Expr(call->args);
     {
       rio_Slice_ref_Expr items__ = call->args;
       for (size_t a = 0; a < items__.length; ++a) {
@@ -3534,7 +3575,7 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
   case rio_Expr_Compound: {
     rio_ExprCompound (*compound) = &(dupe->compound);
     compound->type = rio_dupe_typespec(compound->type, map);
-    compound->fields.items = rio_ast_dup(compound->fields.items, (sizeof(*(compound->fields.items))) * (compound->fields.length));
+    compound->fields = rio_ast_dup_slice_CompoundField(compound->fields);
     {
       rio_Slice_CompoundField items__ = compound->fields;
       for (size_t i__ = 0; i__ < items__.length; ++i__) {
@@ -3603,7 +3644,7 @@ rio_DeclFunc rio_dupe_function(rio_DeclFunc func, bool shallow, rio_MapClosure (
 }
 
 void rio_dupe_function_fields(rio_DeclFunc (*dupe), bool shallow, rio_MapClosure (*map)) {
-  dupe->params.items = rio_ast_dup(dupe->params.items, (sizeof(rio_FuncParam)) * (dupe->params.length));
+  dupe->params = rio_ast_dup_slice_FuncParam(dupe->params);
   {
     rio_Slice_FuncParam items__ = dupe->params;
     for (size_t i__ = 0; i__ < items__.length; ++i__) {
@@ -3630,7 +3671,7 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
   if (!(stmt)) {
     return NULL;
   }
-  rio_Stmt (*dupe) = rio_ast_dup(stmt, sizeof(*(stmt)));
+  rio_Stmt (*dupe) = rio_ast_dup2_Stmt(stmt);
   switch (dupe->kind) {
   case rio_Stmt_Assign: {
     rio_StmtAssign (*assign) = &(stmt->assign);
@@ -3681,7 +3722,7 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
     if_stmt->init = rio_dupe_stmt(if_stmt->init, map);
     if_stmt->cond = rio_dupe_expr(if_stmt->cond, map);
     if_stmt->then_block = rio_dupe_block(if_stmt->then_block, map);
-    if_stmt->elseifs.items = rio_ast_dup(if_stmt->elseifs.items, (sizeof(*(if_stmt->elseifs.items))) * (if_stmt->elseifs.length));
+    if_stmt->elseifs = rio_ast_dup_slice_ElseIf(if_stmt->elseifs);
     {
       rio_Slice_ElseIf items__ = if_stmt->elseifs;
       for (size_t i__ = 0; i__ < items__.length; ++i__) {
@@ -3702,12 +3743,12 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
   case rio_Stmt_Switch: {
     rio_StmtSwitch (*switch_stmt) = &(dupe->switch_stmt);
     switch_stmt->expr = rio_dupe_expr(switch_stmt->expr, map);
-    switch_stmt->cases.items = rio_ast_dup(switch_stmt->cases.items, (sizeof(*(switch_stmt->cases.items))) * (switch_stmt->cases.length));
+    switch_stmt->cases = rio_ast_dup_slice_SwitchCase(switch_stmt->cases);
     {
       rio_Slice_SwitchCase items__ = switch_stmt->cases;
       for (size_t i__ = 0; i__ < items__.length; ++i__) {
         rio_SwitchCase (*case_) = &items__.items[i__];
-        case_->patterns.items = rio_ast_dup(case_->patterns.items, (sizeof(*(case_->patterns.items))) * (case_->patterns.length));
+        case_->patterns = rio_ast_dup_slice_SwitchCasePattern(case_->patterns);
         {
           rio_Slice_SwitchCasePattern items__ = case_->patterns;
           for (size_t i__ = 0; i__ < items__.length; ++i__) {
@@ -3736,7 +3777,7 @@ rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
   if (dupe) {
     return dupe;
   }
-  dupe = rio_ast_dup(type, sizeof(*(type)));
+  dupe = rio_ast_dup2_Typespec(type);
   switch (type->kind) {
   case rio_Typespec_Array:
   case rio_Typespec_Const:
@@ -3750,13 +3791,13 @@ rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
     break;
   }
   case rio_Typespec_Name: {
-    dupe->names.items = rio_ast_dup(dupe->names.items, (sizeof(*(dupe->names.items))) * (dupe->names.length));
+    dupe->names = rio_ast_dup_slice_TypespecName(dupe->names);
     {
       rio_Slice_TypespecName items__ = dupe->names;
       for (size_t i__ = 0; i__ < items__.length; ++i__) {
         rio_TypespecName (*type_name) = &items__.items[i__];
         if (type_name->type_args.length) {
-          type_name->type_args.items = rio_ast_dup(type_name->type_args.items, (sizeof(*(type_name->type_args.items))) * (type_name->type_args.length));
+          type_name->type_args = rio_ast_dup_slice_TypeArg(type_name->type_args);
           {
             rio_Slice_TypeArg items__ = type_name->type_args;
             for (size_t i__ = 0; i__ < items__.length; ++i__) {
@@ -6487,7 +6528,7 @@ rio_Typespec (*rio_parse_type_func(void)) {
   if (rio_match_token((rio_TokenKind_Arrow))) {
     ret = rio_parse_type();
   }
-  return rio_new_typespec_func(pos, args, rio_buf_len(args), ret, has_varargs);
+  return rio_new_typespec_func(pos, (rio_Slice_ref_Typespec){args, rio_buf_len(args)}, ret, has_varargs);
 }
 
 rio_Slice_TypeArg rio_parse_type_args(void) {
@@ -6517,7 +6558,7 @@ rio_Typespec (*rio_parse_type_base(void)) {
       rio_TypespecName name = {.name = rio_parse_name(), .type_args = rio_parse_type_args()};
       rio_buf_push((void (**))(&(names)), &(name), sizeof(name));
     }
-    rio_Typespec (*result) = rio_new_typespec_name(pos, names, rio_buf_len(names));
+    rio_Typespec (*result) = rio_new_typespec_name(pos, (rio_Slice_TypespecName){names, rio_buf_len(names)});
     rio_buf_free((void (**))(&(names)));
     return result;
   } else if (rio_match_keyword(rio_fn_keyword)) {
@@ -6591,7 +6632,7 @@ rio_Expr (*rio_parse_expr_compound(rio_Typespec (*type))) {
     }
   }
   rio_expect_token((rio_TokenKind_Rbrace));
-  return rio_new_expr_compound(pos, type, fields, rio_buf_len(fields));
+  return rio_new_expr_compound(pos, type, (rio_Slice_CompoundField){fields, rio_buf_len(fields)});
 }
 
 rio_Expr (*rio_parse_expr_operand(void)) {
@@ -6698,7 +6739,7 @@ rio_Expr (*rio_parse_expr_base(void)) {
         }
       }
       rio_expect_token((rio_TokenKind_Rparen));
-      expr = rio_new_expr_call(pos, expr, args, rio_buf_len(args));
+      expr = rio_new_expr_call(pos, expr, (rio_Slice_ref_Expr){args, rio_buf_len(args)});
     } else if (rio_match_token((rio_TokenKind_Lbracket))) {
       rio_Expr (*index) = rio_parse_expr();
       rio_expect_token((rio_TokenKind_Rbracket));
@@ -6850,7 +6891,7 @@ rio_StmtList rio_parse_stmt_block(void) {
     rio_buf_push((void (**))(&(stmts)), &(stmt), sizeof(stmt));
   }
   rio_expect_token((rio_TokenKind_Rbrace));
-  return rio_new_stmt_list(pos, stmts, rio_buf_len(stmts));
+  return rio_new_stmt_list(pos, (rio_Slice_ref_Stmt){stmts, rio_buf_len(stmts)});
 }
 
 rio_Stmt (*rio_parse_stmt_if(rio_SrcPos pos)) {
@@ -6879,7 +6920,7 @@ rio_Stmt (*rio_parse_stmt_if(rio_SrcPos pos)) {
     rio_ElseIf elseif = {elseif_cond, elseif_block};
     rio_buf_push((void (**))(&(elseifs)), &(elseif), sizeof(elseif));
   }
-  return rio_new_stmt_if(pos, init, cond, then_block, elseifs, rio_buf_len(elseifs), else_block);
+  return rio_new_stmt_if(pos, init, cond, then_block, (rio_Slice_ElseIf){elseifs, rio_buf_len(elseifs)}, else_block);
 }
 
 rio_Stmt (*rio_parse_stmt_while(rio_SrcPos pos)) {
@@ -7008,7 +7049,7 @@ rio_SwitchCase rio_parse_stmt_switch_case(void) {
   rio_expect_token((rio_TokenKind_Spear));
   rio_SrcPos pos = rio_token.pos;
   rio_Stmt (*stmt) = rio_parse_stmt();
-  return (rio_SwitchCase){{patterns, rio_buf_len(patterns)}, rio_new_stmt_list(pos, &(stmt), 1)};
+  return (rio_SwitchCase){{patterns, rio_buf_len(patterns)}, rio_new_stmt_list(pos, (rio_Slice_ref_Stmt){&(stmt), 1})};
 }
 
 rio_Stmt (*rio_parse_stmt_switch(rio_SrcPos pos)) {
@@ -7020,7 +7061,7 @@ rio_Stmt (*rio_parse_stmt_switch(rio_SrcPos pos)) {
     rio_buf_push((void (**))(&(cases)), &(case_stmt), sizeof(case_stmt));
   }
   rio_expect_token((rio_TokenKind_Rbrace));
-  return rio_new_stmt_switch(pos, expr, cases, rio_buf_len(cases));
+  return rio_new_stmt_switch(pos, expr, (rio_Slice_SwitchCase){cases, rio_buf_len(cases)});
 }
 
 rio_Stmt (*rio_parse_stmt(void)) {
@@ -7116,7 +7157,7 @@ rio_Decl (*rio_parse_decl_enum(rio_SrcPos pos)) {
     }
   }
   rio_expect_token((rio_TokenKind_Rbrace));
-  return rio_new_decl_enum(pos, name, type, items, rio_buf_len(items));
+  return rio_new_decl_enum(pos, name, type, (rio_Slice_EnumItem){items, rio_buf_len(items)});
 }
 
 rio_AggregateItem rio_parse_decl_aggregate_item(void) {
@@ -7178,7 +7219,7 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
   }
   if ((name) && (((has_enum) || (enum_union)))) {
     if ((kind) == ((rio_AggregateKind_Union))) {
-      enum_union = rio_new_aggregate(pos, kind, items, rio_buf_len(items));
+      enum_union = rio_new_aggregate(pos, kind, (rio_Slice_AggregateItem){items, rio_buf_len(items)});
       rio_AggregateItem subitem = {.pos = pos, .kind = (rio_AggregateItem_Subaggregate), .subaggregate = enum_union};
       kind = (rio_AggregateKind_Struct);
       items = NULL;
@@ -7195,11 +7236,11 @@ rio_Aggregate (*rio_parse_aggregate(rio_AggregateKind kind, char const ((*name))
       rio_enum_tag_name_interned = true;
     }
     char const ((*tag_type_name)) = rio_build_scoped_name(name, "Kind");
-    rio_AggregateItem tag_item = {.pos = pos, .kind = (rio_AggregateItem_Field), .names = {rio_enum_tag_names, 1}, .type = rio_new_typespec_name(pos, &((rio_TypespecName){.name = tag_type_name}), 1)};
+    rio_AggregateItem tag_item = {.pos = pos, .kind = (rio_AggregateItem_Field), .names = {rio_enum_tag_names, 1}, .type = rio_new_typespec_name1(pos, tag_type_name)};
     rio_buf_unshift((void (**))(&(items)), &(tag_item), sizeof(tag_item));
     rio_build_enum_union_decl(enum_union, name);
   }
-  rio_Aggregate (*result) = rio_new_aggregate(pos, kind, items, rio_buf_len(items));
+  rio_Aggregate (*result) = rio_new_aggregate(pos, kind, (rio_Slice_AggregateItem){items, rio_buf_len(items)});
   if (enum_union) {
     result->union_enum_decl = enum_union->union_enum_decl;
   }
@@ -7280,7 +7321,7 @@ void rio_build_enum_union_decl(rio_Aggregate (*enum_union), char const ((*decl_n
       }
     }
   }
-  rio_Decl (*union_enum_decl) = rio_new_decl_enum(enum_union->pos, enum_type_name, NULL, enum_items, num_all_items);
+  rio_Decl (*union_enum_decl) = rio_new_decl_enum(enum_union->pos, enum_type_name, NULL, (rio_Slice_EnumItem){enum_items, num_all_items});
   enum_union->union_enum_decl = union_enum_decl;
 }
 
@@ -7309,7 +7350,7 @@ rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Slic
   rio_Slice_Decl params = rio_parse_type_params();
   rio_Decl (*decl) = {0};
   if (rio_match_token((rio_TokenKind_Semicolon))) {
-    decl = rio_new_decl_aggregate(pos, kind, name, params, rio_new_aggregate(pos, aggregate_kind, NULL, 0));
+    decl = rio_new_decl_aggregate(pos, kind, name, params, rio_new_aggregate(pos, aggregate_kind, (rio_Slice_AggregateItem){0}));
     decl->is_incomplete = true;
     return decl;
   } else {
@@ -7461,7 +7502,7 @@ rio_Note rio_parse_note(void) {
     }
     rio_expect_token((rio_TokenKind_Rparen));
   }
-  return rio_new_note(pos, name, args, rio_buf_len(args));
+  return rio_new_note(pos, name, (rio_Slice_NoteArg){args, rio_buf_len(args)});
 }
 
 rio_Slice_Note rio_parse_notes(void) {
@@ -7470,7 +7511,7 @@ rio_Slice_Note rio_parse_notes(void) {
     rio_Note note = rio_parse_note();
     rio_buf_push((void (**))(&(notes)), &(note), sizeof(note));
   }
-  return rio_new_notes(notes, rio_buf_len(notes));
+  return rio_new_notes((rio_Slice_Note){notes, rio_buf_len(notes)});
 }
 
 rio_Decl (*rio_parse_decl_note(rio_SrcPos pos)) {
@@ -7522,7 +7563,7 @@ rio_Decl (*rio_parse_decl_import(rio_SrcPos pos)) {
     }
     rio_expect_token((rio_TokenKind_Rbrace));
   }
-  return rio_new_decl_import(pos, rename_name, is_relative, names, rio_buf_len(names), import_all, items, rio_buf_len(items));
+  return rio_new_decl_import(pos, rename_name, is_relative, (rio_Slice_ptr_const_char){names, rio_buf_len(names)}, import_all, (rio_Slice_ImportItem){items, rio_buf_len(items)});
 }
 
 rio_Decl (*rio_parse_decl_opt(rio_Slice_Note (*notes))) {
@@ -7566,7 +7607,7 @@ rio_Slice_ref_Decl (*rio_parse_decls(void)) {
     rio_Decl (*decl) = rio_parse_decl();
     rio_buf_push((void (**))(&(decls)), &(decl), sizeof(decl));
   }
-  return rio_new_decls(decls, rio_buf_len(decls));
+  return rio_new_decls((rio_Slice_ref_Decl){decls, rio_buf_len(decls)});
 }
 
 rio_Package (*rio_current_package);
@@ -7776,7 +7817,7 @@ rio_Sym (*rio_sym_global_decl(rio_Decl (*decl), char const ((*scope)))) {
   } else if ((decl->kind) == ((rio_Decl_Enum))) {
     int unscoped = ((!(decl->name)) || (rio_get_decl_note(decl, rio_foreign_name))) || (rio_get_decl_note(decl, rio_unscoped_name));
     char const ((*name)) = (sym ? sym->name : rio_str_intern("int"));
-    rio_Typespec (*enum_typespec) = rio_new_typespec_name(decl->pos, &((rio_TypespecName){.name = name}), 1);
+    rio_Typespec (*enum_typespec) = rio_new_typespec_name1(decl->pos, name);
     char const ((*prev_item_name)) = NULL;
     char const ((*prev_scoped_name)) = NULL;
     {
@@ -11235,23 +11276,109 @@ rio_Type (*rio_aggregate_item_field_type_from_name(rio_Type (*type), char const 
 }
 
 rio_Slice_Decl rio_ast_dup_slice_Decl(rio_Slice_Decl const (src)) {
-  rio_Decl (*items) = {0};
-  if (src.length) {
-    ullong size = (src.length) * (sizeof(*(src.items)));
-    items = rio_arena_alloc(&(rio_ast_arena), size);
-    memcpy(items, src.items, size);
-  }
-  return (rio_Slice_Decl){.length = src.length, .items = items};
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_Decl){items, src.length};
+}
+
+rio_Slice_NoteArg rio_ast_dup_slice_NoteArg(rio_Slice_NoteArg const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_NoteArg){items, src.length};
+}
+
+rio_Slice_Note rio_ast_dup_slice_Note(rio_Slice_Note const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_Note){items, src.length};
+}
+
+rio_Slice_ref_Stmt rio_ast_dup_slice_ref_Stmt(rio_Slice_ref_Stmt const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_ref_Stmt){items, src.length};
+}
+
+rio_Slice_TypespecName rio_ast_dup_slice_TypespecName(rio_Slice_TypespecName const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_TypespecName){items, src.length};
+}
+
+rio_Slice_ref_Typespec rio_ast_dup_slice_ref_Typespec(rio_Slice_ref_Typespec const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_ref_Typespec){items, src.length};
+}
+
+rio_Slice_ref_Decl rio_ast_dup_slice_ref_Decl(rio_Slice_ref_Decl const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_ref_Decl){items, src.length};
+}
+
+rio_Slice_EnumItem rio_ast_dup_slice_EnumItem(rio_Slice_EnumItem const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_EnumItem){items, src.length};
+}
+
+rio_Slice_AggregateItem rio_ast_dup_slice_AggregateItem(rio_Slice_AggregateItem const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_AggregateItem){items, src.length};
 }
 
 rio_Slice_FuncParam rio_ast_dup_slice_FuncParam(rio_Slice_FuncParam const (src)) {
-  rio_FuncParam (*items) = {0};
-  if (src.length) {
-    ullong size = (src.length) * (sizeof(*(src.items)));
-    items = rio_arena_alloc(&(rio_ast_arena), size);
-    memcpy(items, src.items, size);
-  }
-  return (rio_Slice_FuncParam){.length = src.length, .items = items};
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_FuncParam){items, src.length};
+}
+
+rio_Slice_ptr_const_char rio_ast_dup_slice_ptr_const_char(rio_Slice_ptr_const_char const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_ptr_const_char){items, src.length};
+}
+
+rio_Slice_ImportItem rio_ast_dup_slice_ImportItem(rio_Slice_ImportItem const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_ImportItem){items, src.length};
+}
+
+rio_Slice_CompoundField rio_ast_dup_slice_CompoundField(rio_Slice_CompoundField const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_CompoundField){items, src.length};
+}
+
+rio_Slice_ref_Expr rio_ast_dup_slice_ref_Expr(rio_Slice_ref_Expr const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_ref_Expr){items, src.length};
+}
+
+rio_Slice_ElseIf rio_ast_dup_slice_ElseIf(rio_Slice_ElseIf const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_ElseIf){items, src.length};
+}
+
+rio_Slice_SwitchCase rio_ast_dup_slice_SwitchCase(rio_Slice_SwitchCase const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_SwitchCase){items, src.length};
+}
+
+rio_Aggregate (*rio_ast_dup2_Aggregate(rio_Aggregate const ((*src)))) {
+  return rio_ast_dup(src, sizeof(*(src)));
+}
+
+rio_Expr (*rio_ast_dup2_Expr(rio_Expr const ((*src)))) {
+  return rio_ast_dup(src, sizeof(*(src)));
+}
+
+rio_Stmt (*rio_ast_dup2_Stmt(rio_Stmt const ((*src)))) {
+  return rio_ast_dup(src, sizeof(*(src)));
+}
+
+rio_Slice_SwitchCasePattern rio_ast_dup_slice_SwitchCasePattern(rio_Slice_SwitchCasePattern const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_SwitchCasePattern){items, src.length};
+}
+
+rio_Typespec (*rio_ast_dup2_Typespec(rio_Typespec const ((*src)))) {
+  return rio_ast_dup(src, sizeof(*(src)));
+}
+
+rio_Slice_TypeArg rio_ast_dup_slice_TypeArg(rio_Slice_TypeArg const (src)) {
+  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  return (rio_Slice_TypeArg){items, src.length};
 }
 
 void rio_buf_push2_ptr_const_char(char const ((*(*(*buf)))), char const ((*(*item)))) {

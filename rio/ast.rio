@@ -376,14 +376,13 @@ fn ast_dup(src: &const void, size: usize) -> &void {
   return ptr;
 }
 
+fn ast_dup2<Node>(src: &const Node) -> &Node {
+  return ast_dup(src, sizeof(*src));
+}
+
 fn ast_dup_slice<Node>(src: const Slice<Node>) -> Slice<Node> {
-  let items: *Node;
-  if (src.length) {
-    let size = src.length * sizeof(*src.items);
-    items = arena_alloc(&ast_arena, size);
-    memcpy(items, src.items, size);
-  }
-  return {length = src.length, items = items};
+  let items = ast_dup(src.items, src.length * sizeof(*src.items));
+  return {items, src.length};
 }
 
 fn ast_dup_type_params(d: &Decl, params: Slice<Decl>) {
@@ -393,22 +392,16 @@ fn ast_dup_type_params(d: &Decl, params: Slice<Decl>) {
   }
 }
 
-// #define AST_DUP(x) ast_dup(x, num_##x * sizeof(*x))
-
-fn new_note(
-  pos: SrcPos, name: *const char, args: *NoteArg, num_args: usize,
-) -> Note {
-  return {pos = pos, name = name, args = {
-    ast_dup(args, num_args * sizeof(*args)), num_args,
-  }};
+fn new_note(pos: SrcPos, name: *const char, args: Slice<NoteArg>) -> Note {
+  return {pos = pos, name = name, args = ast_dup_slice.<NoteArg>(args)};
 }
 
-fn new_notes(notes: *Note, num_notes: usize) -> Slice<Note> {
-  return {ast_dup(notes, num_notes * sizeof(*notes)), num_notes};
+fn new_notes(notes: Slice<Note>) -> Slice<Note> {
+  return ast_dup_slice.<Note>(notes);
 }
 
-fn new_stmt_list(pos: SrcPos, stmts: *&Stmt, num_stmts: usize) -> StmtList {
-  return {pos, {ast_dup(stmts, num_stmts * sizeof(*stmts)), num_stmts}};
+fn new_stmt_list(pos: SrcPos, stmts: Slice<&Stmt>) -> StmtList {
+  return {pos, ast_dup_slice.<&Stmt>(stmts)};
 }
 
 fn new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {
@@ -419,14 +412,12 @@ fn new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {
 }
 
 fn new_typespec_name1(pos: SrcPos, name: *const char) -> &Typespec {
-  return new_typespec_name(pos, &TypespecName{name = name}, 1);
+  return new_typespec_name(pos, {&{name = name}, 1});
 }
 
-fn new_typespec_name(
-  pos: SrcPos, names: *TypespecName, num_names: usize,
-) -> &Typespec {
+fn new_typespec_name(pos: SrcPos, names: Slice<TypespecName>) -> &Typespec {
   let t = new_typespec(Typespec.Name, pos);
-  t.names = {ast_dup(names, num_names * sizeof(*names)), num_names};
+  t.names = ast_dup_slice.<TypespecName>(names);
   return t;
 }
 
@@ -458,19 +449,18 @@ fn new_typespec_array(pos: SrcPos, elem: &Typespec, size: &Expr) -> &Typespec {
 }
 
 fn new_typespec_func(
-  pos: SrcPos, args: *&Typespec, num_args: usize, ret: &Typespec,
-  has_varargs: bool,
+  pos: SrcPos, args: Slice<&Typespec>, ret: &Typespec, has_varargs: bool,
 ) -> &Typespec {
   let t = new_typespec(Typespec.Func, pos);
-  t.function.args = {ast_dup(args, num_args * sizeof(*args)), num_args};
+  t.function.args = ast_dup_slice.<&Typespec>(args);
   t.function.ret = ret;
   t.function.has_varargs = has_varargs;
   return t;
 }
 
-fn new_decls(decls: *&Decl, num_decls: usize) -> &Slice<&Decl> {
+fn new_decls(decls: Slice<&Decl>) -> &Slice<&Decl> {
   let d: &Slice<&Decl> = ast_alloc(sizeof(:Slice<&Decl>));
-  *d = {ast_dup(decls, num_decls * sizeof(*decls)), num_decls};
+  *d = ast_dup_slice.<&Decl>(decls);
   return d;
 }
 
@@ -518,25 +508,24 @@ fn is_decl_foreign(decl: &Decl) -> bool {
 }
 
 fn new_decl_enum(
-  pos: SrcPos, name: *const char, type: &Typespec,
-  items: *EnumItem, num_items: usize,
+  pos: SrcPos, name: *const char, type: &Typespec, items: Slice<EnumItem>,
 ) -> &Decl {
   let d = new_decl(Decl.Enum, pos, name);
   d.enum_decl.type = type;
-  d.enum_decl.items = {ast_dup(items, num_items * sizeof(*items)), num_items};
+  d.enum_decl.items = ast_dup_slice.<EnumItem>(items);
   return d;
 }
 
 fn new_aggregate(
-  pos: SrcPos, kind: AggregateKind, items: *AggregateItem, num_items: usize,
+  pos: SrcPos, kind: AggregateKind, items: Slice<AggregateItem>,
 ) -> &Aggregate {
   let aggregate: &Aggregate = ast_alloc(sizeof(Aggregate));
   aggregate.pos = pos;
   aggregate.kind = kind;
-  aggregate.items = {ast_dup(items, num_items * sizeof(*items)), num_items};
-  if (items) {
-    // This is safe for our usage, but how to define generally?
-    buf_free((:&&void)&items);
+  aggregate.items = ast_dup_slice.<AggregateItem>(items);
+  if (items.length) {
+    // This is safe for our usage, but how to define generally? Use `own`.
+    buf_free((:&&void)&items.items);
   }
   return aggregate;
 }
@@ -602,15 +591,14 @@ fn new_decl_note(pos: SrcPos, note: Note) -> &Decl {
 
 fn new_decl_import(
   pos: SrcPos, rename_name: *const char, is_relative: bool,
-  names: **const char, num_names: usize, import_all: bool,
-  items: *ImportItem, num_items: usize,
+  names: Slice<*const char>, import_all: bool, items: Slice<ImportItem>,
 ) -> &Decl {
   let d = new_decl(Decl.Import, pos, NULL);
   d.name = rename_name;
   d.import_decl.is_relative = is_relative;
-  d.import_decl.names = {ast_dup(names, num_names * sizeof(*names)), num_names};
+  d.import_decl.names = ast_dup_slice.<*const char>(names);
   d.import_decl.import_all = import_all;
-  d.import_decl.items = {ast_dup(items, num_items * sizeof(*items)), num_items};
+  d.import_decl.items = ast_dup_slice.<ImportItem>(items);
   return d;
 }
 
@@ -709,12 +697,11 @@ fn new_expr_name(pos: SrcPos, name: *const char) -> &Expr {
 }
 
 fn new_expr_compound(
-  pos: SrcPos, type: &Typespec, fields: *CompoundField, num_fields: usize,
+  pos: SrcPos, type: &Typespec, fields: Slice<CompoundField>,
 ) -> &Expr {
   let e = new_expr(Expr.Compound, pos);
   e.compound.type = type;
-  e.compound.fields =
-    {ast_dup(fields, num_fields * sizeof(*fields)), num_fields};
+  e.compound.fields = ast_dup_slice.<CompoundField>(fields);
   return e;
 }
 
@@ -725,12 +712,10 @@ fn new_expr_cast(pos: SrcPos, type: &Typespec, expr: &Expr) -> &Expr {
   return e;
 }
 
-fn new_expr_call(
-  pos: SrcPos, expr: &Expr, args: *&Expr, num_args: usize,
-) -> &Expr {
+fn new_expr_call(pos: SrcPos, expr: &Expr, args: Slice<&Expr>) -> &Expr {
   let e = new_expr(Expr.Call, pos);
   e.call.expr = expr;
-  e.call.args = {ast_dup(args, num_args * sizeof(*args)), num_args};
+  e.call.args = ast_dup_slice.<&Expr>(args);
   return e;
 }
 
@@ -833,14 +818,13 @@ fn new_stmt_close(pos: SrcPos, tag: Stmt.Kind) -> &Stmt {
 
 fn new_stmt_if(
   pos: SrcPos, init: &Stmt, cond: &Expr, then_block: StmtList,
-  elseifs: *ElseIf, num_elseifs: usize, else_block: StmtList,
+  elseifs: Slice<ElseIf>, else_block: StmtList,
 ) -> &Stmt {
   let s = new_stmt(Stmt.If, pos);
   s.if_stmt.init = init;
   s.if_stmt.cond = cond;
   s.if_stmt.then_block = then_block;
-  s.if_stmt.elseifs =
-    {ast_dup(elseifs, num_elseifs * sizeof(*elseifs)), num_elseifs};
+  s.if_stmt.elseifs = ast_dup_slice.<ElseIf>(elseifs);
   s.if_stmt.else_block = else_block;
   return s;
 }
@@ -880,11 +864,11 @@ fn new_stmt_for(pos: SrcPos, init: &Stmt, cond: &Expr, next: &Stmt, block: StmtL
 }
 
 fn new_stmt_switch(
-  pos: SrcPos, expr: &Expr, cases: *SwitchCase, num_cases: usize,
+  pos: SrcPos, expr: &Expr, cases: Slice<SwitchCase>,
 ) -> &Stmt {
   let s = new_stmt(Stmt.Switch, pos);
   s.switch_stmt.expr = expr;
-  s.switch_stmt.cases = {ast_dup(cases, num_cases * sizeof(*cases)), num_cases};
+  s.switch_stmt.cases = ast_dup_slice.<SwitchCase>(cases);
   return s;
 }
 
@@ -910,5 +894,3 @@ fn new_stmt_expr(pos: SrcPos, expr: &Expr) -> &Stmt {
   s.expr = expr;
   return s;
 }
-
-// #undef AST_DUP

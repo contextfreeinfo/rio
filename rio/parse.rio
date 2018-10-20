@@ -36,7 +36,7 @@ fn parse_type_func() -> &Typespec {
   if (match_token(TokenKind.Arrow)) {
     ret = parse_type();
   }
-  return new_typespec_func(pos, args, buf_len(args), ret, has_varargs);
+  return new_typespec_func(pos, {args, buf_len(args)}, ret, has_varargs);
 }
 
 fn parse_type_args() -> Slice<TypeArg> {
@@ -69,7 +69,7 @@ fn parse_type_base() -> &Typespec {
         TypespecName{name = parse_name(), type_args = parse_type_args()};
       buf_push((:&&void)&names, &name, sizeof(name));
     }
-    let result = new_typespec_name(pos, names, buf_len(names));
+    let result = new_typespec_name(pos, {names, buf_len(names)});
     buf_free((:&&void)&names);
     return result;
   } else if (match_keyword(fn_keyword)) {
@@ -146,7 +146,7 @@ fn parse_expr_compound(type: &Typespec) -> &Expr {
     }
   }
   expect_token(TokenKind.Rbrace);
-  return new_expr_compound(pos, type, fields, buf_len(fields));
+  return new_expr_compound(pos, type, {fields, buf_len(fields)});
 }
 
 fn parse_expr_operand() -> &Expr {
@@ -253,7 +253,7 @@ fn parse_expr_base() -> &Expr {
         }
       }
       expect_token(TokenKind.Rparen);
-      expr = new_expr_call(pos, expr, args, buf_len(args));
+      expr = new_expr_call(pos, expr, {args, buf_len(args)});
     } else if (match_token(TokenKind.Lbracket)) {
       let index = parse_expr();
       expect_token(TokenKind.Rbracket);
@@ -408,7 +408,7 @@ fn parse_stmt_block() -> StmtList {
     buf_push((:&&void)&stmts, &stmt, sizeof(stmt));
   }
   expect_token(TokenKind.Rbrace);
-  return new_stmt_list(pos, stmts, buf_len(stmts));
+  return new_stmt_list(pos, {stmts, buf_len(stmts)});
 }
 
 fn parse_stmt_if(pos: SrcPos) -> &Stmt {
@@ -438,7 +438,7 @@ fn parse_stmt_if(pos: SrcPos) -> &Stmt {
     buf_push((:&&void)&elseifs, &elseif, sizeof(elseif));
   } while;
   return new_stmt_if(
-    pos, init, cond, then_block, elseifs, buf_len(elseifs), else_block,
+    pos, init, cond, then_block, {elseifs, buf_len(elseifs)}, else_block,
   );
 }
 
@@ -459,7 +459,8 @@ fn parse_stmt_do_while(pos: SrcPos) -> &Stmt {
 }
 
 fn is_assign_op() -> bool {
-  return TokenKind.FirstAssign <= token.kind && token.kind <= TokenKind.LastAssign;
+  return
+    TokenKind.FirstAssign <= token.kind && token.kind <= TokenKind.LastAssign;
 }
 
 fn parse_let_stmt(pos: SrcPos) -> &Stmt {
@@ -572,7 +573,8 @@ fn parse_stmt_switch_case() -> SwitchCase {
   let pos = token.pos;
   let stmt = parse_stmt();
   return SwitchCase {
-    {patterns, buf_len(patterns)}, new_stmt_list(pos, &stmt, 1),
+    // TODO Should the patterns be ast_dup_slice'd?
+    {patterns, buf_len(patterns)}, new_stmt_list(pos, {&stmt, 1}),
   };
 }
 
@@ -585,7 +587,7 @@ fn parse_stmt_switch(pos: SrcPos) -> &Stmt {
     buf_push((:&&void)&cases, &case_stmt, sizeof(case_stmt));
   }
   expect_token(TokenKind.Rbrace);
-  return new_stmt_switch(pos, expr, cases, buf_len(cases));
+  return new_stmt_switch(pos, expr, {cases, buf_len(cases)});
 }
 
 fn parse_stmt() -> &Stmt {
@@ -681,7 +683,7 @@ fn parse_decl_enum(pos: SrcPos) -> &Decl {
     }
   }
   expect_token(TokenKind.Rbrace);
-  return new_decl_enum(pos, name, type, items, buf_len(items));
+  return new_decl_enum(pos, name, type, {items, buf_len(items)});
 }
 
 fn parse_decl_aggregate_item() -> AggregateItem {
@@ -765,7 +767,7 @@ fn parse_aggregate(
   if (name && (has_enum || enum_union)) {
     if (kind == AggregateKind.Union) {
       // This is the union. Contain it.
-      enum_union = new_aggregate(pos, kind, items, buf_len(items));
+      enum_union = new_aggregate(pos, kind, {items, buf_len(items)});
       let subitem = AggregateItem {
         pos = pos,
         kind = AggregateItem.Subaggregate,
@@ -793,14 +795,14 @@ fn parse_aggregate(
       pos = pos,
       kind = AggregateItem.Field,
       names = {enum_tag_names, 1},
-      type = new_typespec_name(pos, &TypespecName{name = tag_type_name}, 1),
+      type = new_typespec_name1(pos, tag_type_name),
     };
     buf_unshift((:&&void)&items, &tag_item, sizeof(tag_item));
     // Create and attach union enum.
     // TODO Then use that elsewhere instead of having to recheck notes.
     build_enum_union_decl(enum_union, name);
   } if;
-  let result = new_aggregate(pos, kind, items, buf_len(items));
+  let result = new_aggregate(pos, kind, {items, buf_len(items)});
   if (enum_union) {
     // Remember this at top for easy access later.
     result.union_enum_decl = enum_union.union_enum_decl;
@@ -895,7 +897,7 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
   } for;
   // And add the new enum.
   let union_enum_decl = new_decl_enum(
-    enum_union.pos, enum_type_name, NULL, enum_items, num_all_items,
+    enum_union.pos, enum_type_name, NULL, {enum_items, num_all_items},
   );
   enum_union.union_enum_decl = union_enum_decl;
 }
@@ -937,7 +939,7 @@ fn parse_decl_aggregate(
   if (match_token(TokenKind.Semicolon)) {
     // TODO Need to allow switch here, too, for union switches.
     decl = new_decl_aggregate(
-      pos, kind, name, params, new_aggregate(pos, aggregate_kind, NULL, 0),
+      pos, kind, name, params, new_aggregate(pos, aggregate_kind, {}),
     );
     decl.is_incomplete = true;
     return decl;
@@ -1099,7 +1101,7 @@ fn parse_note() -> Note {
     }
     expect_token(TokenKind.Rparen);
   } if;
-  return new_note(pos, name, args, buf_len(args));
+  return new_note(pos, name, {args, buf_len(args)});
 }
 
 fn parse_notes() -> Slice<Note> {
@@ -1108,7 +1110,7 @@ fn parse_notes() -> Slice<Note> {
     let note = parse_note();
     buf_push((:&&void)&notes, &note, sizeof(note));
   }
-  return new_notes(notes, buf_len(notes));
+  return new_notes({notes, buf_len(notes)});
 }
 
 fn parse_decl_note(pos: SrcPos) -> &Decl {
@@ -1160,7 +1162,10 @@ fn parse_decl_import(pos: SrcPos) -> &Decl {
     } while;
     expect_token(TokenKind.Rbrace);
   } if;
-  return new_decl_import(pos, rename_name, is_relative, names, buf_len(names), import_all, items, buf_len(items));
+  return new_decl_import(
+    pos, rename_name, is_relative,
+    {names, buf_len(names)}, import_all, {items, buf_len(items)},
+  );
 }
 
 fn parse_decl_opt(notes: &Slice<Note>) -> &Decl {
@@ -1204,5 +1209,5 @@ fn parse_decls() -> &Slice<&Decl> {
     let decl = parse_decl();
     buf_push((:&&void)&decls, &decl, sizeof(decl));
   }
-  return new_decls(decls, buf_len(decls));
+  return new_decls({decls, buf_len(decls)});
 }

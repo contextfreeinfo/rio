@@ -15,9 +15,8 @@ fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
   if (dupe) {
     return dupe;
   }
-  dupe = ast_dup(aggregate, sizeof(*aggregate));
-  dupe.items.items =
-    ast_dup(dupe.items.items, sizeof(*dupe.items.items) * dupe.items.length);
+  dupe = ast_dup2.<Aggregate>(aggregate);
+  dupe.items = ast_dup_slice.<AggregateItem>(dupe.items);
   for &(dupe.items) do(item) {
     // These are value, not pointer, so presume any modifications are in place.
     map.call(map.self, Any{item, typeof(*item)});
@@ -37,8 +36,7 @@ fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
 
 fn dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
   let dupe = &block;
-  dupe.stmts.items =
-    ast_dup(dupe.stmts.items, sizeof(*dupe.stmts.items) * dupe.stmts.length);
+  dupe.stmts = ast_dup_slice.<&Stmt>(dupe.stmts);
   for &(dupe.stmts) do(stmt) {
     *stmt = dupe_stmt(*stmt, map);
   }
@@ -49,7 +47,7 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
   if (!expr) {
     return NULL;
   }
-  let dupe: &Expr = ast_dup(expr, sizeof(*expr));
+  let dupe: &Expr = ast_dup2.<Expr>(expr);
   @complete
   switch (dupe.kind) {
     AlignofExpr, SizeofExpr, TypeofExpr, Paren => {
@@ -65,9 +63,7 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
     Call => {
       let call = &dupe.call;
       call.expr = dupe_expr(call.expr, map);
-      call.args.items = ast_dup(
-        call.args.items, sizeof(*call.args.items) * call.args.length,
-      );
+      call.args = ast_dup_slice.<&Expr>(call.args);
       for (call.args) do(arg, a) {
         call.args[a] = dupe_expr(arg, map);
       }
@@ -79,10 +75,7 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
     Compound => {
       let compound = &dupe.compound;
       compound.type = dupe_typespec(compound.type, map);
-      compound.fields.items = ast_dup(
-        compound.fields.items,
-        sizeof(*compound.fields.items) * compound.fields.length,
-      );
+      compound.fields = ast_dup_slice.<CompoundField>(compound.fields);
       for &(compound.fields) do(field) {
         field.init = dupe_expr(field.init, map);
         @complete
@@ -136,8 +129,7 @@ fn dupe_function(func: DeclFunc, shallow: bool, map: &MapClosure) -> DeclFunc {
 }
 
 fn dupe_function_fields(dupe: &DeclFunc, shallow: bool, map: &MapClosure) {
-  dupe.params.items =
-    ast_dup(dupe.params.items, sizeof(FuncParam) * dupe.params.length);
+  dupe.params = ast_dup_slice.<FuncParam>(dupe.params);
   for &(dupe.params) do(param) {
     *param = dupe_func_param(*param, map);
   }
@@ -160,7 +152,7 @@ fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
   if (!stmt) {
     return NULL;
   }
-  let dupe: &Stmt = ast_dup(stmt, sizeof(*stmt));
+  let dupe: &Stmt = ast_dup2.<Stmt>(stmt);
   // Let notes (?) and pos alone, but look into statement content.
   @complete
   switch (dupe.kind) {
@@ -203,11 +195,7 @@ fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
       if_stmt.init = dupe_stmt(if_stmt.init, map);
       if_stmt.cond = dupe_expr(if_stmt.cond, map);
       if_stmt.then_block = dupe_block(if_stmt.then_block, map);
-      // TODO Generify ast_dup for slices once we have generic functions.
-      if_stmt.elseifs.items = ast_dup(
-        if_stmt.elseifs.items,
-        sizeof(*if_stmt.elseifs.items) * if_stmt.elseifs.length,
-      );
+      if_stmt.elseifs = ast_dup_slice.<ElseIf>(if_stmt.elseifs);
       for &(if_stmt.elseifs) do(elseif) {
         elseif.cond = dupe_expr(elseif.cond, map);
         elseif.block = dupe_block(elseif.block, map);
@@ -223,15 +211,9 @@ fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
     Switch => {
       let switch_stmt = &dupe.switch_stmt;
       switch_stmt.expr = dupe_expr(switch_stmt.expr, map);
-      switch_stmt.cases.items = ast_dup(
-        switch_stmt.cases.items,
-        sizeof(*switch_stmt.cases.items) * switch_stmt.cases.length,
-      );
+      switch_stmt.cases = ast_dup_slice.<SwitchCase>(switch_stmt.cases);
       for &(switch_stmt.cases) do(case_) {
-        case_.patterns.items = ast_dup(
-          case_.patterns.items,
-          sizeof(*case_.patterns.items) * case_.patterns.length,
-        );
+        case_.patterns = ast_dup_slice.<SwitchCasePattern>(case_.patterns);
         for &(case_.patterns) do(pattern) {
           pattern.start = dupe_expr(pattern.start, map);
           pattern.end = dupe_expr(pattern.end, map);
@@ -251,7 +233,7 @@ fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   if (dupe) {
     return dupe;
   }
-  dupe = ast_dup(type, sizeof(*type));
+  dupe = ast_dup2.<Typespec>(type);
   @complete
   switch (type.kind) {
     Array, Const, Ptr, Ref => {
@@ -261,16 +243,11 @@ fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
       fatal_error(type.pos, "Function types not yet supported in generics\n");
     }
     Name => {
-      dupe.names.items = ast_dup(
-        dupe.names.items, sizeof(*dupe.names.items) * dupe.names.length,
-      );
+      dupe.names = ast_dup_slice.<TypespecName>(dupe.names);
       for &(dupe.names) do(type_name) {
         if (type_name.type_args.length) {
           // printf("Duping type args: %s\n", type_name.name);
-          type_name.type_args.items = ast_dup(
-            type_name.type_args.items,
-            sizeof(*type_name.type_args.items) * type_name.type_args.length,
-          );
+          type_name.type_args = ast_dup_slice.<TypeArg>(type_name.type_args);
           for &(type_name.type_args) do(type_arg) {
             type_arg.val = dupe_typespec(type_arg.val, map);
           }
