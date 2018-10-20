@@ -127,7 +127,7 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
       return NULL;
     }
   }
-  return expr;
+  return dupe;
 }
 
 fn dupe_function(func: DeclFunc, shallow: bool, map: &MapClosure) -> DeclFunc {

@@ -431,6 +431,8 @@ void (*rio_ast_alloc(size_t size));
 
 void (*rio_ast_dup(void const ((*src)), size_t size));
 
+
+
 struct rio_Slice_Decl {
   rio_Decl (*items);
   size_t length;
@@ -2443,10 +2445,14 @@ struct rio_Stmt {
   };
 };
 
+rio_Slice_Decl rio_ast_dup_slice_Decl(rio_Slice_Decl const (src));
+
 struct rio_Slice_ref_Decl {
   rio_Decl (*(*items));
   size_t length;
 };
+
+rio_Slice_FuncParam rio_ast_dup_slice_FuncParam(rio_Slice_FuncParam const (src));
 
 struct rio_BufHdr {
   size_t len;
@@ -2577,8 +2583,7 @@ void (*rio_ast_dup(void const ((*src)), size_t size)) {
 
 void rio_ast_dup_type_params(rio_Decl (*d), rio_Slice_Decl params) {
   if (params.length) {
-    d->type_params.length = params.length;
-    d->type_params.items = rio_ast_dup(params.items, (params.length) * (sizeof(*(params.items))));
+    d->type_params = rio_ast_dup_slice_Decl(params);
     rio_buf_free((void (**))(&(params.items)));
   }
 }
@@ -2743,8 +2748,7 @@ rio_Decl (*rio_new_decl_func(rio_SrcPos pos, char const ((*name)), rio_Slice_Dec
 }
 
 void rio_init_func(rio_DeclFunc (*func), rio_Slice_FuncParam params, rio_Typespec (*ret_type), bool has_varargs, rio_StmtList block) {
-  func->params.items = rio_ast_dup(params.items, (params.length) * (sizeof(rio_FuncParam)));
-  func->params.length = params.length;
+  func->params = rio_ast_dup_slice_FuncParam(params);
   func->ret_type = ret_type;
   func->has_varargs = has_varargs;
   func->block = block;
@@ -3590,7 +3594,7 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
     break;
   }
   }
-  return expr;
+  return dupe;
 }
 
 rio_DeclFunc rio_dupe_function(rio_DeclFunc func, bool shallow, rio_MapClosure (*map)) {
@@ -5094,7 +5098,7 @@ void rio_add_foreign_header(char const ((*name))) {
 char const ((*(*rio_gen_foreign_sources_buf)));
 void rio_add_foreign_source(char const ((*name))) {
   char const ((*interned)) = rio_str_intern(name);
-  rio_buf_push((void (**))(&(rio_gen_foreign_sources_buf)), &(interned), sizeof(interned));
+  rio_buf_push2_ptr_const_char(&(rio_gen_foreign_headers_buf), &(interned));
 }
 
 void rio_gen_include(char const ((*path))) {
@@ -11228,6 +11232,26 @@ rio_Type (*rio_aggregate_item_field_type_from_name(rio_Type (*type), char const 
     return NULL;
   }
   return rio_aggregate_item_field_type_from_index(type, index);
+}
+
+rio_Slice_Decl rio_ast_dup_slice_Decl(rio_Slice_Decl const (src)) {
+  rio_Decl (*items) = {0};
+  if (src.length) {
+    ullong size = (src.length) * (sizeof(*(src.items)));
+    items = rio_arena_alloc(&(rio_ast_arena), size);
+    memcpy(items, src.items, size);
+  }
+  return (rio_Slice_Decl){.length = src.length, .items = items};
+}
+
+rio_Slice_FuncParam rio_ast_dup_slice_FuncParam(rio_Slice_FuncParam const (src)) {
+  rio_FuncParam (*items) = {0};
+  if (src.length) {
+    ullong size = (src.length) * (sizeof(*(src.items)));
+    items = rio_arena_alloc(&(rio_ast_arena), size);
+    memcpy(items, src.items, size);
+  }
+  return (rio_Slice_FuncParam){.length = src.length, .items = items};
 }
 
 void rio_buf_push2_ptr_const_char(char const ((*(*(*buf)))), char const ((*(*item)))) {

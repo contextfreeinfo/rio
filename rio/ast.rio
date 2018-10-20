@@ -376,11 +376,19 @@ fn ast_dup(src: &const void, size: usize) -> &void {
   return ptr;
 }
 
+fn ast_dup_slice<Node>(src: const Slice<Node>) -> Slice<Node> {
+  let items: *Node;
+  if (src.length) {
+    let size = src.length * sizeof(*src.items);
+    items = arena_alloc(&ast_arena, size);
+    memcpy(items, src.items, size);
+  }
+  return {length = src.length, items = items};
+}
+
 fn ast_dup_type_params(d: &Decl, params: Slice<Decl>) {
   if (params.length) {
-    d.type_params.length = params.length;
-    d.type_params.items =
-      ast_dup(params.items, params.length * sizeof(*params.items));
+    d.type_params = ast_dup_slice.<Decl>(params);
     buf_free((:&&void)&params.items);
   }
 }
@@ -567,8 +575,7 @@ fn init_func(
   params: Slice<FuncParam>, ret_type: &Typespec, has_varargs: bool,
   block: StmtList,
 ) {
-  func.params.items = ast_dup(params.items, params.length * sizeof(FuncParam));
-  func.params.length = params.length;
+  func.params = ast_dup_slice.<FuncParam>(params);
   func.ret_type = ret_type;
   func.has_varargs = has_varargs;
   func.block = block;

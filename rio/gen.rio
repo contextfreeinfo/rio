@@ -1129,7 +1129,7 @@ let gen_foreign_sources_buf: **const char;
 
 fn add_foreign_source(name: *const char) {
   let interned = str_intern(name);
-  buf_push((:&&void)&gen_foreign_sources_buf, &interned, sizeof(interned));
+  buf_push2.<*const char>(&gen_foreign_headers_buf, &interned);
 }
 
 fn gen_include(path: *const char) {
