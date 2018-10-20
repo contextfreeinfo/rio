@@ -1445,10 +1445,6 @@ fn resolve_for_each_type(pos: SrcPos, type: &Type, had_ref: bool) -> &Type {
   return NULL;
 }
 
-fn starts_with(string: *const char, start: *const char) -> bool {
-  return !strncmp(string, start, strlen(start));
-}
-
 fn resolve_func_body(sym: &Sym) {
   let decl = sym.decl;
   #assert(decl.kind == Decl.Func);

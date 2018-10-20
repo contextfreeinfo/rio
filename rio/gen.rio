@@ -1121,7 +1121,7 @@ fn add_foreign_header(name: *const char) {
   name = str_intern(name);
   if (!map_get(&gen_foreign_headers_map, name)) {
     map_put(&gen_foreign_headers_map, name, (:&void)1);
-    buf_push((:&&void)&gen_foreign_headers_buf, &name, sizeof(name));
+    buf_push2.<*const char>(&gen_foreign_headers_buf, &name);
   }
 }
 

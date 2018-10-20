@@ -43,6 +43,10 @@ fn align_up_ptr(p: &void, a: usize) -> &void {
   return (:&void)align_up((:uintptr)p, a);
 }
 
+fn starts_with(string: *const char, start: *const char) -> bool {
+  return !strncmp(string, start, strlen(start));
+}
+
 fn fatal(fmt: *const char, ...) {
   let args: va_list;
   va_start(&args, &fmt);
@@ -181,6 +185,13 @@ fn buf_fit(b: &&void, new_len: usize, elem_size: usize) {
 fn buf_push(b: &&void, elem: &void, elem_size: usize) {
   buf_fit(b, 1 + buf_len(*b), elem_size);
   memcpy((:*char)*b + elem_size * buf__hdr(*b).len++, elem, elem_size);
+}
+
+fn buf_push2<Item>(buf: &*Item, item: &Item) {
+  let item_size = sizeof(*item);
+  // TODO Doesn't resolve Item for some reason: let item_size = sizeof(Item);
+  buf_fit((:&&void)buf, 1 + buf_len(*buf), item_size);
+  memcpy((:*char)*buf + item_size * buf__hdr(*buf).len++, item, item_size);
 }
 
 fn buf_unshift(b: &&void, elem: &void, elem_size: usize) {

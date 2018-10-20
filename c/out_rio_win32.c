@@ -639,6 +639,8 @@ void (*rio_align_down_ptr(void (*p), size_t a));
 
 void (*rio_align_up_ptr(void (*p), size_t a));
 
+bool rio_starts_with(char const ((*string)), char const ((*start)));
+
 void rio_fatal(char const ((*fmt)), ...);
 
 void (*rio_xcalloc(size_t num_elems, size_t elem_size));
@@ -670,6 +672,7 @@ void rio_buf_free(void (*(*b)));
 void rio_buf_fit(void (*(*b)), size_t new_len, size_t elem_size);
 
 void rio_buf_push(void (*(*b)), void (*elem), size_t elem_size);
+
 
 void rio_buf_unshift(void (*(*b)), void (*elem), size_t elem_size);
 
@@ -1780,8 +1783,6 @@ rio_Type (*rio_resolve_length_type(rio_SrcPos pos, rio_Operand operand));
 
 rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type), bool had_ref));
 
-bool rio_starts_with(char const ((*string)), char const ((*start)));
-
 void rio_resolve_func_body(rio_Sym (*sym));
 
 void rio_resolve_sym(rio_Sym (*sym));
@@ -2479,6 +2480,8 @@ struct rio_Package {
   bool always_reachable;
 };
 
+void rio_buf_push2_ptr_const_char(char const ((*(*(*buf)))), char const ((*(*item))));
+
 struct rio_TypeField {
   char const ((*name));
   rio_Type (*type);
@@ -3099,6 +3102,10 @@ void (*rio_align_up_ptr(void (*p), size_t a)) {
   return (void *)(rio_align_up((uintptr_t)(p), a));
 }
 
+bool rio_starts_with(char const ((*string)), char const ((*start))) {
+  return !(strncmp(string, start, strlen(start)));
+}
+
 void rio_fatal(char const ((*fmt)), ...) {
   va_list args = {0};
   va_start_ptr(&(args), &(fmt));
@@ -3502,6 +3509,24 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
     dupe->binary.right = rio_dupe_expr(dupe->binary.right, map);
     break;
   }
+  case rio_Expr_Call: {
+    rio_ExprCall (*call) = &(dupe->call);
+    call->expr = rio_dupe_expr(call->expr, map);
+    call->args.items = rio_ast_dup(call->args.items, (sizeof(*(call->args.items))) * (call->args.length));
+    {
+      rio_Slice_ref_Expr items__ = call->args;
+      for (size_t a = 0; a < items__.length; ++a) {
+        rio_Expr (*arg) = items__.items[a];
+        call->args.items[a] = rio_dupe_expr(arg, map);
+      }
+    }
+    break;
+  }
+  case rio_Expr_Cast: {
+    dupe->cast.type = rio_dupe_typespec(dupe->cast.type, map);
+    dupe->cast.expr = rio_dupe_expr(dupe->cast.expr, map);
+    break;
+  }
   case rio_Expr_Compound: {
     rio_ExprCompound (*compound) = &(dupe->compound);
     compound->type = rio_dupe_typespec(compound->type, map);
@@ -3542,6 +3567,10 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
     dupe->index.index = rio_dupe_expr(dupe->index.index, map);
     break;
   }
+  case rio_Expr_Modify: {
+    dupe->modify.expr = rio_dupe_expr(dupe->modify.expr, map);
+    break;
+  }
   case rio_Expr_Name: {
     break;
   }
@@ -3554,9 +3583,12 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
     dupe->unary.expr = rio_dupe_expr(dupe->unary.expr, map);
     break;
   }
-  default:
-    assert("@complete switch failed to handle case" && 0);
+  default: {
+    printf("Unhandled: %d\n", dupe->kind);
+    assert(false);
+    return NULL;
     break;
+  }
   }
   return expr;
 }
@@ -5055,7 +5087,7 @@ void rio_add_foreign_header(char const ((*name))) {
   name = rio_str_intern(name);
   if (!(rio_map_get(&(rio_gen_foreign_headers_map), name))) {
     rio_map_put(&(rio_gen_foreign_headers_map), name, (void *)(1));
-    rio_buf_push((void (**))(&(rio_gen_foreign_headers_buf)), &(name), sizeof(name));
+    rio_buf_push2_ptr_const_char(&(rio_gen_foreign_headers_buf), &(name));
   }
 }
 
@@ -8899,10 +8931,6 @@ rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type), bool had_
   return NULL;
 }
 
-bool rio_starts_with(char const ((*string)), char const ((*start))) {
-  return !(strncmp(string, start, strlen(start)));
-}
-
 void rio_resolve_func_body(rio_Sym (*sym)) {
   rio_Decl (*decl) = sym->decl;
   assert((decl->kind) == ((rio_Decl_Func)));
@@ -11200,6 +11228,12 @@ rio_Type (*rio_aggregate_item_field_type_from_name(rio_Type (*type), char const 
     return NULL;
   }
   return rio_aggregate_item_field_type_from_index(type, index);
+}
+
+void rio_buf_push2_ptr_const_char(char const ((*(*(*buf)))), char const ((*(*item)))) {
+  ullong item_size = sizeof(*(item));
+  rio_buf_fit((void (**))(buf), (1) + (rio_buf_len(*(buf))), item_size);
+  memcpy(((char *)(*(buf))) + ((item_size) * ((rio_buf__hdr(*(buf))->len)++)), item, item_size);
 }
 
 // Foreign source files

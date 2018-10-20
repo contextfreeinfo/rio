@@ -62,6 +62,20 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
       dupe.binary.left = dupe_expr(dupe.binary.left, map);
       dupe.binary.right = dupe_expr(dupe.binary.right, map);
     }
+    Call => {
+      let call = &dupe.call;
+      call.expr = dupe_expr(call.expr, map);
+      call.args.items = ast_dup(
+        call.args.items, sizeof(*call.args.items) * call.args.length,
+      );
+      for (call.args) do(arg, a) {
+        call.args[a] = dupe_expr(arg, map);
+      }
+    }
+    Cast => {
+      dupe.cast.type = dupe_typespec(dupe.cast.type, map);
+      dupe.cast.expr = dupe_expr(dupe.cast.expr, map);
+    }
     Compound => {
       let compound = &dupe.compound;
       compound.type = dupe_typespec(compound.type, map);
@@ -93,6 +107,9 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
       dupe.index.expr = dupe_expr(dupe.index.expr, map);
       dupe.index.index = dupe_expr(dupe.index.index, map);
     }
+    Modify => {
+      dupe.modify.expr = dupe_expr(dupe.modify.expr, map);
+    }
     Name => {
       // TODO A name could reference type params.
       // TODO The type_args definitely could, too.
@@ -103,6 +120,11 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
     }
     Unary => {
       dupe.unary.expr = dupe_expr(dupe.unary.expr, map);
+    }
+    default => {
+      printf("Unhandled: %d\n", dupe.kind);
+      #assert(false);
+      return NULL;
     }
   }
   return expr;
