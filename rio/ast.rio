@@ -112,6 +112,11 @@ struct Decl {
   is_incomplete: bool;
   type_params: Slice<Decl>;
   refs: Slice<SymRef>;
+  // For generic specializations.
+  generic_base: &Decl;
+  type_args: Slice<TypeArg>;
+  shallow: bool;
+  // Custom decl kinds.
   union switch {
     None => :void;
     Note => note: Note;

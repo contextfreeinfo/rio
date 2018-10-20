@@ -30,6 +30,7 @@ Generically, 1
 Should be 5: 5
 int sum: 3
 float sum: 3.3
+float sum_slice: 6.6
 Err: 0
 Ok: 12
 friend: Larry

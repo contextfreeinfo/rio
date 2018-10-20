@@ -747,9 +747,9 @@ struct rio_DeclFunc {
   rio_StmtList block;
 };
 
-rio_DeclFunc rio_dupe_function(rio_DeclFunc func, rio_MapClosure (*map));
+rio_DeclFunc rio_dupe_function(rio_DeclFunc func, bool shallow, rio_MapClosure (*map));
 
-void rio_dupe_function_fields(rio_DeclFunc (*dupe), rio_MapClosure (*map));
+void rio_dupe_function_fields(rio_DeclFunc (*dupe), bool shallow, rio_MapClosure (*map));
 
 struct rio_FuncParam {
   rio_SrcPos pos;
@@ -1712,7 +1712,7 @@ rio_Operand rio_resolve_expected_expr_rvalue(rio_Expr (*expr), rio_Type (*expect
 
 rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, rio_TypespecName (*names)));
 
-rio_Sym (*rio_resolve_specialized_decl(rio_SrcPos pos, rio_Sym (*sym), rio_Slice_TypeArg type_args));
+rio_Sym (*rio_resolve_specialized_decl(rio_SrcPos pos, rio_Sym (*sym), rio_Slice_TypeArg type_args, bool shallow));
 
 rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec)));
 
@@ -1779,6 +1779,8 @@ rio_Type (*rio_resolve_item_type(rio_SrcPos pos, rio_Operand operand));
 rio_Type (*rio_resolve_length_type(rio_SrcPos pos, rio_Operand operand));
 
 rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type), bool had_ref));
+
+bool rio_starts_with(char const ((*string)), char const ((*start)));
 
 void rio_resolve_func_body(rio_Sym (*sym));
 
@@ -2233,6 +2235,9 @@ struct rio_Decl {
   bool is_incomplete;
   rio_Slice_Decl type_params;
   rio_Slice_SymRef refs;
+  rio_Decl (*generic_base);
+  rio_Slice_TypeArg type_args;
+  bool shallow;
   union {
     // void;
     rio_Note note;
@@ -3556,12 +3561,12 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
   return expr;
 }
 
-rio_DeclFunc rio_dupe_function(rio_DeclFunc func, rio_MapClosure (*map)) {
-  rio_dupe_function_fields(&(func), map);
+rio_DeclFunc rio_dupe_function(rio_DeclFunc func, bool shallow, rio_MapClosure (*map)) {
+  rio_dupe_function_fields(&(func), shallow, map);
   return func;
 }
 
-void rio_dupe_function_fields(rio_DeclFunc (*dupe), rio_MapClosure (*map)) {
+void rio_dupe_function_fields(rio_DeclFunc (*dupe), bool shallow, rio_MapClosure (*map)) {
   dupe->params.items = rio_ast_dup(dupe->params.items, (sizeof(rio_FuncParam)) * (dupe->params.length));
   {
     rio_Slice_FuncParam items__ = dupe->params;
@@ -3571,7 +3576,9 @@ void rio_dupe_function_fields(rio_DeclFunc (*dupe), rio_MapClosure (*map)) {
     }
   }
   dupe->ret_type = rio_dupe_typespec(dupe->ret_type, map);
-  dupe->block = rio_dupe_block(dupe->block, map);
+  if (!(shallow)) {
+    dupe->block = rio_dupe_block(dupe->block, map);
+  }
 }
 
 rio_FuncParam rio_dupe_func_param(rio_FuncParam param, rio_MapClosure (*map)) {
@@ -3630,7 +3637,7 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
   case rio_Stmt_ForEach: {
     rio_StmtForEach (*for_each) = &(dupe->for_each);
     for_each->expr = rio_dupe_expr(for_each->expr, map);
-    rio_dupe_function_fields(&(for_each->func), map);
+    rio_dupe_function_fields(&(for_each->func), false, map);
     break;
   }
   case rio_Stmt_If: {
@@ -3682,7 +3689,7 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
     assert("@complete switch failed to handle case" && 0);
     break;
   }
-  return stmt;
+  return dupe;
 }
 
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
@@ -8078,7 +8085,7 @@ rio_Sym (*rio_get_nested_type_sym(rio_Sym (*scope_sym), size_t num_names, rio_Ty
   return NULL;
 }
 
-rio_Sym (*rio_resolve_specialized_decl(rio_SrcPos pos, rio_Sym (*sym), rio_Slice_TypeArg type_args)) {
+rio_Sym (*rio_resolve_specialized_decl(rio_SrcPos pos, rio_Sym (*sym), rio_Slice_TypeArg type_args, bool shallow)) {
   if (!(((sym->decl) && (sym->decl->name)))) {
     rio_fatal_error(pos, "Undeclared generic type");
     return NULL;
@@ -8113,15 +8120,18 @@ rio_Sym (*rio_resolve_specialized_decl(rio_SrcPos pos, rio_Sym (*sym), rio_Slice
   }
   rio_Sym (*dupe_sym) = rio_resolve_name(name);
   if (dupe_sym) {
-    return dupe_sym;
+    if ((shallow) || (!(dupe_sym->decl->shallow))) {
+      return dupe_sym;
+    }
   }
   rio_TypeMap type_map = {.type_args = type_args, .type_params = type_params};
   rio_MapClosure map = {.self = &(type_map), .call = (rio_MapClosureCall)(rio_map_type_args)};
   rio_Decl (*dupe) = {0};
   switch (decl->kind) {
   case rio_Decl_Func: {
+    assert(shallow);
     dupe = rio_new_decl((rio_Decl_Func), decl->pos, name);
-    dupe->function = rio_dupe_function(decl->function, &(map));
+    dupe->function = rio_dupe_function(decl->function, shallow, &(map));
     break;
   }
   case rio_Decl_Struct:
@@ -8137,6 +8147,9 @@ rio_Sym (*rio_resolve_specialized_decl(rio_SrcPos pos, rio_Sym (*sym), rio_Slice
   }
   }
   dupe->is_generic = is_generic;
+  dupe->generic_base = decl;
+  dupe->type_args = type_args;
+  dupe->shallow = shallow;
   dupe_sym = rio_sym_global_decl(dupe, NULL);
   rio_resolve_sym(dupe_sym);
   return dupe_sym;
@@ -8203,7 +8216,7 @@ rio_Type (*rio_resolve_typespec(rio_Typespec (*typespec))) {
         }
       }
       rio_complete_type(sym->type);
-      sym = rio_resolve_specialized_decl(typespec->pos, sym, typespec_name->type_args);
+      sym = rio_resolve_specialized_decl(typespec->pos, sym, typespec_name->type_args, false);
     }
     rio_set_resolved_sym(typespec, sym);
     result = sym->type;
@@ -8886,12 +8899,22 @@ rio_Type (*rio_resolve_for_each_type(rio_SrcPos pos, rio_Type (*type), bool had_
   return NULL;
 }
 
+bool rio_starts_with(char const ((*string)), char const ((*start))) {
+  return !(strncmp(string, start, strlen(start)));
+}
+
 void rio_resolve_func_body(rio_Sym (*sym)) {
   rio_Decl (*decl) = sym->decl;
   assert((decl->kind) == ((rio_Decl_Func)));
   assert((sym->state) == ((rio_SymState_Resolved)));
   if (decl->is_incomplete) {
     return;
+  }
+  if ((decl->generic_base) && (decl->shallow)) {
+    rio_TypeMap type_map = {.type_args = decl->type_args, .type_params = decl->generic_base->type_params};
+    rio_MapClosure map = {.self = &(type_map), .call = (rio_MapClosureCall)(rio_map_type_args)};
+    decl->function.block = rio_dupe_block(decl->function.block, &(map));
+    decl->shallow = false;
   }
   rio_Package (*old_package) = rio_enter_package(sym->home_package);
   rio_Sym (*scope) = rio_sym_enter();
@@ -9724,8 +9747,6 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   rio_Sym (*sym) = {0};
   rio_Expr (*called_expr) = expr->call.expr;
   if ((called_expr->kind) == ((rio_Expr_Name))) {
-    if (!(strcmp(called_expr->name, "first"))) {
-    }
     sym = rio_resolve_name(called_expr->name);
     if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
       if ((expr->call.args.length) != (1)) {
@@ -9764,10 +9785,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
         break;
       }
       if (type_args.length) {
-        sym = rio_resolve_specialized_decl(decl->pos, sym, type_args);
-        if (verbose) {
-          printf("Hey: %s\n", sym->decl->name);
-        }
+        sym = rio_resolve_specialized_decl(decl->pos, sym, type_args, true);
         rio_set_resolved_sym(called_expr, sym);
         function = rio_operand_rvalue(sym->type);
       }
@@ -9789,9 +9807,6 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
       rio_Type (*param_type) = items__.items[i];
       rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args.items[i], param_type);
       if ((is_generic) && (!(type_args.length))) {
-        if ((arg.type) && (arg.type->sym)) {
-          printf("Maybe get somewhere???\n");
-        }
       }
       if (rio_is_array_type(param_type)) {
         param_type = rio_type_ptr(param_type->base);

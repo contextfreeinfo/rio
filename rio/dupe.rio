@@ -108,19 +108,21 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
   return expr;
 }
 
-fn dupe_function(func: DeclFunc, map: &MapClosure) -> DeclFunc {
-  dupe_function_fields(&func, map);
+fn dupe_function(func: DeclFunc, shallow: bool, map: &MapClosure) -> DeclFunc {
+  dupe_function_fields(&func, shallow, map);
   return func;
 }
 
-fn dupe_function_fields(dupe: &DeclFunc, map: &MapClosure) {
+fn dupe_function_fields(dupe: &DeclFunc, shallow: bool, map: &MapClosure) {
   dupe.params.items =
     ast_dup(dupe.params.items, sizeof(FuncParam) * dupe.params.length);
   for &(dupe.params) do(param) {
     *param = dupe_func_param(*param, map);
   }
   dupe.ret_type = dupe_typespec(dupe.ret_type, map);
-  dupe.block = dupe_block(dupe.block, map);
+  if (!shallow) {
+    dupe.block = dupe_block(dupe.block, map);
+  }
 }
 
 fn dupe_func_param(param: FuncParam, map: &MapClosure) -> FuncParam {
@@ -171,7 +173,7 @@ fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
     ForEach => {
       let for_each = &dupe.for_each;
       for_each.expr = dupe_expr(for_each.expr, map);
-      dupe_function_fields(&for_each.func, map);
+      dupe_function_fields(&for_each.func, false, map);
       // The length_type is to be filled in during resolution.
     }
     If => {
@@ -194,6 +196,7 @@ fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
       let init = &dupe.init;
       init.type = dupe_typespec(init.type, map);
       init.expr = dupe_expr(init.expr, map);
+      // printf("Totally on %d: %p\n", stmt.pos.line, dupe.init.type);
     }
     Switch => {
       let switch_stmt = &dupe.switch_stmt;
@@ -215,7 +218,7 @@ fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
       }
     }
   }
-  return stmt;
+  return dupe;
 }
 
 fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
@@ -308,15 +311,22 @@ fn map_type_args(self: &TypeMap, item: Any) -> &void {
           // See if this is a reference to a type parameter.
           let decl = type.decl;
           let params = self.type_params;
+          // let verbose = false;
+          // if (!strcmp(type.names[0].name, "Numb")) {
+          //   verbose = true;
+          //   printf("Found Numb in map\n");
+          // }
           for &(params) do(param, i) {
             if (decl == param) {
               // Yep. Found it.
               // TODO Need to deal with type args of parameterized types ...
               let arg = &self.type_args[i];
+              // if (verbose) {printf("Still found it: %p\n", arg.val);}
               return arg.val;
             }
           }
           // Nope. Just let it be copied in case of type args.
+          // if (verbose) {printf("Not there\n");}
           return NULL;
         }
         default => {

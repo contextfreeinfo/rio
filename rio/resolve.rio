@@ -621,7 +621,7 @@ fn get_nested_type_sym(
 }
 
 fn resolve_specialized_decl(
-  pos: SrcPos, sym: &Sym, type_args: Slice<TypeArg>,
+  pos: SrcPos, sym: &Sym, type_args: Slice<TypeArg>, shallow: bool,
 ) -> &Sym {
   if (!(sym.decl && sym.decl.name)) {
     fatal_error(pos, "Undeclared generic type");
@@ -658,15 +658,19 @@ fn resolve_specialized_decl(
   // TODO Check for previous resolution for this name before rebuilding.
   let dupe_sym = resolve_name(name);
   if (dupe_sym) {
-    return dupe_sym;
+    if (shallow || !dupe_sym.decl.shallow) {
+      return dupe_sym;
+    }
   }
   let type_map = TypeMap{type_args = type_args, type_params = type_params};
   let map = MapClosure{self = &type_map, call = (:MapClosureCall)map_type_args};
   let dupe: &Decl;
   switch (decl.kind) {
     Func => {
+      // TODO Simplify some of the code based on what we decided and assert.
+      #assert(shallow);
       dupe = new_decl(Decl.Func, decl.pos, name);
-      dupe.function = dupe_function(decl.function, &map);
+      dupe.function = dupe_function(decl.function, shallow, &map);
     }
     Struct, Union => {
       let dupe_agg = dupe_aggregate(decl.aggregate, &map);
@@ -680,6 +684,9 @@ fn resolve_specialized_decl(
     }
   }
   dupe.is_generic = is_generic;
+  dupe.generic_base = decl;
+  dupe.type_args = type_args;
+  dupe.shallow = shallow;
   dupe_sym = sym_global_decl(dupe, NULL);
   resolve_sym(dupe_sym);
   return dupe_sym;
@@ -702,12 +709,12 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         // TODO Requires better node tree of types rather than slice of names.
         typespec_name = &typespec.names[0];
         name = typespec_name.name;
-        // if (!strcmp(name, "Goo")) {
-        //   printf("Try'n'a find it.\n");
+        // if (!strcmp(name, "Numb")) {
+        //   printf("Try'n'a find it at line %d\n", typespec.pos.line);
         // }
         sym = sym_get_local(name);
         if (sym) {
-          // if (!strcmp(name, "Goo")) {
+          // if (!strcmp(name, "Numb")) {
           //   printf("Did find it.\n");
           // }
           sym_track_ref_type(sym, typespec);
@@ -768,7 +775,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         // TODO Can we defer type completion past here?
         complete_type(sym.type);
         sym = resolve_specialized_decl(
-          typespec.pos, sym, typespec_name.type_args,
+          typespec.pos, sym, typespec_name.type_args, false,
         );
       }
       set_resolved_sym(typespec, sym);
@@ -1438,6 +1445,10 @@ fn resolve_for_each_type(pos: SrcPos, type: &Type, had_ref: bool) -> &Type {
   return NULL;
 }
 
+fn starts_with(string: *const char, start: *const char) -> bool {
+  return !strncmp(string, start, strlen(start));
+}
+
 fn resolve_func_body(sym: &Sym) {
   let decl = sym.decl;
   #assert(decl.kind == Decl.Func);
@@ -1445,12 +1456,26 @@ fn resolve_func_body(sym: &Sym) {
   if (decl.is_incomplete) {
     return;
   }
+  if (decl.generic_base && decl.shallow) {
+    // resolve_specialized_decl
+    // printf("Need to specialize: %s\n", decl.name);
+    let type_map = TypeMap{
+      type_args = decl.type_args,
+      type_params = decl.generic_base.type_params,
+    };
+    let map = MapClosure{
+      self = &type_map,
+      call = (:MapClosureCall)map_type_args,
+    };
+    decl.function.block = dupe_block(decl.function.block, &map);
+    decl.shallow = false;
+  }
   let old_package = enter_package(sym.home_package);
   let scope = sym_enter();
   // Even resolution of generic form makes sense for checking constraints.
   let has_type_params = !!decl.type_params.length;
-  // if (!strcmp(decl.name, "sum")) {
-  //   printf("I'm at sum ...\n");
+  // if (starts_with(decl.name, "sum_slice")) {
+  //   printf("I'm at %s ...\n", decl.name);
   // }
   // if (has_type_params) {
   //   printf("Should be pushin'.\n");
@@ -2098,10 +2123,9 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
   let sym: &Sym;
   let called_expr = expr.call.expr;
   if (called_expr.kind == Expr.Name) {
-    if (!strcmp(called_expr.name, "first")) {
-      // verbose = true;
-      // printf("Calling first!\n");
-    }
+    // if (!strcmp(called_expr.name, "sum")) {
+    //   verbose = true;
+    // }
     sym = resolve_name(called_expr.name);
     if (sym && sym.kind == Sym.Type) {
       if (expr.call.args.length != 1) {
@@ -2137,13 +2161,13 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
         }
       }
       if (type_args.length) {
-        // TODO Still need to update `function` for the purposes of
-        // TODO expected_expr handling down below.
-        // TODO Does this need to go down inside of resolve expr somewhere?
-        sym = resolve_specialized_decl(decl.pos, sym, type_args);
-        if (verbose) {
-          printf("Hey: %s\n", sym.decl.name);
-        }
+        // This creates only a shallow specialization.
+        // TODO Is it possible the full function was resolved before we get to
+        // TODO this point?
+        sym = resolve_specialized_decl(decl.pos, sym, type_args, true);
+        // if (verbose) {
+        //   printf("Hey: %s\n", sym.decl.name);
+        // }
         set_resolved_sym(called_expr, sym);
         function = operand_rvalue(sym.type);
       }
@@ -2173,9 +2197,9 @@ fn resolve_expr_call(expr: &Expr) -> Operand {
       // TODO Or an aggregate literal or some such.
       // TODO If just a primitive literal, go with what we got.
       // printf("Checking arg: %d -> %d: %s, %d, %zu \n", arg.type.kind, arg.type.kind == CompilerTypeKind.Int, get_type_name(arg.type), expr.call.expr.kind == Expr.Name, expr.call.expr.type_args.length);
-      if (arg.type && arg.type.sym) {
-        printf("Maybe get somewhere???\n");
-      }
+      // if (arg.type) {
+      //   printf("Maybe get somewhere???\n");
+      // }
     }
     if (is_array_type(param_type)) {
       param_type = type_ptr(param_type.base);
