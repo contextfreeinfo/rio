@@ -15,7 +15,7 @@ fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
   if (dupe) {
     return dupe;
   }
-  dupe = ast_dup2.<Aggregate>(aggregate);
+  dupe = ast_dup.<Aggregate>(aggregate);
   dupe.items = ast_dup_slice.<AggregateItem>(dupe.items);
   for &(dupe.items) do(item) {
     // These are value, not pointer, so presume any modifications are in place.
@@ -47,7 +47,7 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
   if (!expr) {
     return NULL;
   }
-  let dupe: &Expr = ast_dup2.<Expr>(expr);
+  let dupe: &Expr = ast_dup.<Expr>(expr);
   @complete
   switch (dupe.kind) {
     AlignofExpr, SizeofExpr, TypeofExpr, Paren => {
@@ -152,7 +152,7 @@ fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
   if (!stmt) {
     return NULL;
   }
-  let dupe: &Stmt = ast_dup2.<Stmt>(stmt);
+  let dupe: &Stmt = ast_dup.<Stmt>(stmt);
   // Let notes (?) and pos alone, but look into statement content.
   @complete
   switch (dupe.kind) {
@@ -233,7 +233,7 @@ fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   if (dupe) {
     return dupe;
   }
-  dupe = ast_dup2.<Typespec>(type);
+  dupe = ast_dup.<Typespec>(type);
   @complete
   switch (type.kind) {
     Array, Const, Ptr, Ref => {

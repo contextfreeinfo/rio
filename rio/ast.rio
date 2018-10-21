@@ -367,7 +367,7 @@ fn ast_alloc(size: usize) -> &void {
   return ptr;
 }
 
-fn ast_dup(src: &const void, size: usize) -> &void {
+fn ast_dup_sized(src: &const void, size: usize) -> &void {
   if (size == 0) {
     return NULL;
   }
@@ -376,12 +376,12 @@ fn ast_dup(src: &const void, size: usize) -> &void {
   return ptr;
 }
 
-fn ast_dup2<Node>(src: &const Node) -> &Node {
-  return ast_dup(src, sizeof(*src));
+fn ast_dup<Node>(src: &const Node) -> &Node {
+  return ast_dup_sized(src, sizeof(*src));
 }
 
 fn ast_dup_slice<Node>(src: const Slice<Node>) -> Slice<Node> {
-  let items = ast_dup(src.items, src.length * sizeof(*src.items));
+  let items = ast_dup_sized(src.items, src.length * sizeof(*src.items));
   return {items, src.length};
 }
 

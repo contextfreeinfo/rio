@@ -429,7 +429,7 @@ extern rio_Arena rio_ast_arena;
 
 void (*rio_ast_alloc(size_t size));
 
-void (*rio_ast_dup(void const ((*src)), size_t size));
+void (*rio_ast_dup_sized(void const ((*src)), size_t size));
 
 
 
@@ -2503,15 +2503,15 @@ struct rio_TypeMap {
   rio_Slice_Decl type_params;
 };
 
-rio_Aggregate (*rio_ast_dup2_Aggregate(rio_Aggregate const ((*src))));
+rio_Aggregate (*rio_ast_dup_Aggregate(rio_Aggregate const ((*src))));
 
-rio_Expr (*rio_ast_dup2_Expr(rio_Expr const ((*src))));
+rio_Expr (*rio_ast_dup_Expr(rio_Expr const ((*src))));
 
-rio_Stmt (*rio_ast_dup2_Stmt(rio_Stmt const ((*src))));
+rio_Stmt (*rio_ast_dup_Stmt(rio_Stmt const ((*src))));
 
 rio_Slice_SwitchCasePattern rio_ast_dup_slice_SwitchCasePattern(rio_Slice_SwitchCasePattern const (src));
 
-rio_Typespec (*rio_ast_dup2_Typespec(rio_Typespec const ((*src))));
+rio_Typespec (*rio_ast_dup_Typespec(rio_Typespec const ((*src))));
 
 rio_Slice_TypeArg rio_ast_dup_slice_TypeArg(rio_Slice_TypeArg const (src));
 
@@ -2611,7 +2611,7 @@ void (*rio_ast_alloc(size_t size)) {
   return ptr;
 }
 
-void (*rio_ast_dup(void const ((*src)), size_t size)) {
+void (*rio_ast_dup_sized(void const ((*src)), size_t size)) {
   if ((size) == (0)) {
     return NULL;
   }
@@ -3490,7 +3490,7 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
   if (dupe) {
     return dupe;
   }
-  dupe = rio_ast_dup2_Aggregate(aggregate);
+  dupe = rio_ast_dup_Aggregate(aggregate);
   dupe->items = rio_ast_dup_slice_AggregateItem(dupe->items);
   {
     rio_Slice_AggregateItem items__ = dupe->items;
@@ -3532,7 +3532,7 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
   if (!(expr)) {
     return NULL;
   }
-  rio_Expr (*dupe) = rio_ast_dup2_Expr(expr);
+  rio_Expr (*dupe) = rio_ast_dup_Expr(expr);
   switch (dupe->kind) {
   case rio_Expr_AlignofExpr:
   case rio_Expr_SizeofExpr:
@@ -3669,7 +3669,7 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
   if (!(stmt)) {
     return NULL;
   }
-  rio_Stmt (*dupe) = rio_ast_dup2_Stmt(stmt);
+  rio_Stmt (*dupe) = rio_ast_dup_Stmt(stmt);
   switch (dupe->kind) {
   case rio_Stmt_Assign: {
     rio_StmtAssign (*assign) = &(stmt->assign);
@@ -3775,7 +3775,7 @@ rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
   if (dupe) {
     return dupe;
   }
-  dupe = rio_ast_dup2_Typespec(type);
+  dupe = rio_ast_dup_Typespec(type);
   switch (type->kind) {
   case rio_Typespec_Array:
   case rio_Typespec_Const:
@@ -11262,108 +11262,108 @@ rio_Type (*rio_aggregate_item_field_type_from_name(rio_Type (*type), char const 
 }
 
 rio_Slice_Decl rio_ast_dup_slice_Decl(rio_Slice_Decl const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_Decl){items, src.length};
 }
 
 rio_Slice_NoteArg rio_ast_dup_slice_NoteArg(rio_Slice_NoteArg const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_NoteArg){items, src.length};
 }
 
 rio_Slice_Note rio_ast_dup_slice_Note(rio_Slice_Note const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_Note){items, src.length};
 }
 
 rio_Slice_ref_Stmt rio_ast_dup_slice_ref_Stmt(rio_Slice_ref_Stmt const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_ref_Stmt){items, src.length};
 }
 
 rio_Slice_TypespecName rio_ast_dup_slice_TypespecName(rio_Slice_TypespecName const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_TypespecName){items, src.length};
 }
 
 rio_Slice_ref_Typespec rio_ast_dup_slice_ref_Typespec(rio_Slice_ref_Typespec const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_ref_Typespec){items, src.length};
 }
 
 rio_Slice_ref_Decl rio_ast_dup_slice_ref_Decl(rio_Slice_ref_Decl const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_ref_Decl){items, src.length};
 }
 
 rio_Slice_EnumItem rio_ast_dup_slice_EnumItem(rio_Slice_EnumItem const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_EnumItem){items, src.length};
 }
 
 rio_Slice_AggregateItem rio_ast_dup_slice_AggregateItem(rio_Slice_AggregateItem const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_AggregateItem){items, src.length};
 }
 
 rio_Slice_FuncParam rio_ast_dup_slice_FuncParam(rio_Slice_FuncParam const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_FuncParam){items, src.length};
 }
 
 rio_Slice_ptr_const_char rio_ast_dup_slice_ptr_const_char(rio_Slice_ptr_const_char const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_ptr_const_char){items, src.length};
 }
 
 rio_Slice_ImportItem rio_ast_dup_slice_ImportItem(rio_Slice_ImportItem const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_ImportItem){items, src.length};
 }
 
 rio_Slice_CompoundField rio_ast_dup_slice_CompoundField(rio_Slice_CompoundField const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_CompoundField){items, src.length};
 }
 
 rio_Slice_ref_Expr rio_ast_dup_slice_ref_Expr(rio_Slice_ref_Expr const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_ref_Expr){items, src.length};
 }
 
 rio_Slice_ElseIf rio_ast_dup_slice_ElseIf(rio_Slice_ElseIf const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_ElseIf){items, src.length};
 }
 
 rio_Slice_SwitchCase rio_ast_dup_slice_SwitchCase(rio_Slice_SwitchCase const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_SwitchCase){items, src.length};
 }
 
-rio_Aggregate (*rio_ast_dup2_Aggregate(rio_Aggregate const ((*src)))) {
-  return rio_ast_dup(src, sizeof(*(src)));
+rio_Aggregate (*rio_ast_dup_Aggregate(rio_Aggregate const ((*src)))) {
+  return rio_ast_dup_sized(src, sizeof(*(src)));
 }
 
-rio_Expr (*rio_ast_dup2_Expr(rio_Expr const ((*src)))) {
-  return rio_ast_dup(src, sizeof(*(src)));
+rio_Expr (*rio_ast_dup_Expr(rio_Expr const ((*src)))) {
+  return rio_ast_dup_sized(src, sizeof(*(src)));
 }
 
-rio_Stmt (*rio_ast_dup2_Stmt(rio_Stmt const ((*src)))) {
-  return rio_ast_dup(src, sizeof(*(src)));
+rio_Stmt (*rio_ast_dup_Stmt(rio_Stmt const ((*src)))) {
+  return rio_ast_dup_sized(src, sizeof(*(src)));
 }
 
 rio_Slice_SwitchCasePattern rio_ast_dup_slice_SwitchCasePattern(rio_Slice_SwitchCasePattern const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_SwitchCasePattern){items, src.length};
 }
 
-rio_Typespec (*rio_ast_dup2_Typespec(rio_Typespec const ((*src)))) {
-  return rio_ast_dup(src, sizeof(*(src)));
+rio_Typespec (*rio_ast_dup_Typespec(rio_Typespec const ((*src)))) {
+  return rio_ast_dup_sized(src, sizeof(*(src)));
 }
 
 rio_Slice_TypeArg rio_ast_dup_slice_TypeArg(rio_Slice_TypeArg const (src)) {
-  void (*items) = rio_ast_dup(src.items, (src.length) * (sizeof(*(src.items))));
+  void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_TypeArg){items, src.length};
 }
 
