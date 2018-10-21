@@ -113,24 +113,24 @@ struct FlagDefPtr {
 let flag_defs: *FlagDef;
 
 fn add_flag_bool(name: *const char, ptr: &bool, help: *const char) {
-  let def: FlagDef = {kind = FlagKind.Bool, name = name, help = help, ptr = {b = ptr}};
-  buf_push((:&&void)&flag_defs, &def, sizeof(def));
+  let flag: FlagDef = {kind = FlagKind.Bool, name = name, help = help, ptr = {b = ptr}};
+  buf_push((:&&void)&flag_defs, &flag, sizeof(flag));
 }
 
 fn add_flag_str(name: *const char, ptr: **const char, arg_name: *const char, help: *const char) {
-  let def: FlagDef = {kind = FlagKind.Str, name = name, help = help, arg_name = arg_name, ptr = {s = ptr}};
-  buf_push((:&&void)&flag_defs, &def, sizeof(def));
+  let flag: FlagDef = {kind = FlagKind.Str, name = name, help = help, arg_name = arg_name, ptr = {s = ptr}};
+  buf_push((:&&void)&flag_defs, &flag, sizeof(flag));
 }
 
 fn add_flag_enum(
   name: *const char, ptr: &int, help: *const char,
   options: **const char, num_options: int,
 ) {
-  let def: FlagDef = {
+  let flag: FlagDef = {
     kind = FlagKind.Enum, name = name, help = help, ptr = {i = ptr},
     options = {options, num_options},
   };
-  buf_push((:&&void)&flag_defs, &def, sizeof(def));
+  buf_push((:&&void)&flag_defs, &flag, sizeof(flag));
 }
 
 fn get_flag_def(name: *const char) -> &FlagDef {

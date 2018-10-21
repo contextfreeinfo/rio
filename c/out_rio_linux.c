@@ -1031,6 +1031,8 @@ extern char const ((*rio_own_keyword));
 
 extern char const ((*rio_const_keyword));
 
+extern char const ((*rio_def_keyword));
+
 extern char const ((*rio_fn_keyword));
 
 extern char const ((*rio_sizeof_keyword));
@@ -5494,6 +5496,7 @@ char const ((*rio_let_keyword));
 char const ((*rio_mut_keyword));
 char const ((*rio_own_keyword));
 char const ((*rio_const_keyword));
+char const ((*rio_def_keyword));
 char const ((*rio_fn_keyword));
 char const ((*rio_sizeof_keyword));
 char const ((*rio_alignof_keyword));
@@ -5543,6 +5546,7 @@ void rio_init_keywords(void) {
   rio_let_keyword = rio_init_keyword("let");
   rio_mut_keyword = rio_init_keyword("mut");
   rio_own_keyword = rio_init_keyword("own");
+  rio_def_keyword = rio_init_keyword("def");
   rio_fn_keyword = rio_init_keyword("fn");
   rio_import_keyword = rio_init_keyword("import");
   rio_goto_keyword = rio_init_keyword("goto");
@@ -6298,18 +6302,18 @@ char const ((*(*rio_dir_list_buf(char const ((*filespec)))))) {
 
 rio_FlagDef (*rio_flag_defs);
 void rio_add_flag_bool(char const ((*name)), bool (*ptr), char const ((*help))) {
-  rio_FlagDef def = {.kind = (rio_FlagKind_Bool), .name = name, .help = help, .ptr = {.b = ptr}};
-  rio_buf_push((void (**))(&(rio_flag_defs)), &(def), sizeof(def));
+  rio_FlagDef flag = {.kind = (rio_FlagKind_Bool), .name = name, .help = help, .ptr = {.b = ptr}};
+  rio_buf_push((void (**))(&(rio_flag_defs)), &(flag), sizeof(flag));
 }
 
 void rio_add_flag_str(char const ((*name)), char const ((*(*ptr))), char const ((*arg_name)), char const ((*help))) {
-  rio_FlagDef def = {.kind = (rio_FlagKind_Str), .name = name, .help = help, .arg_name = arg_name, .ptr = {.s = ptr}};
-  rio_buf_push((void (**))(&(rio_flag_defs)), &(def), sizeof(def));
+  rio_FlagDef flag = {.kind = (rio_FlagKind_Str), .name = name, .help = help, .arg_name = arg_name, .ptr = {.s = ptr}};
+  rio_buf_push((void (**))(&(rio_flag_defs)), &(flag), sizeof(flag));
 }
 
 void rio_add_flag_enum(char const ((*name)), int (*ptr), char const ((*help)), char const ((*(*options))), int num_options) {
-  rio_FlagDef def = {.kind = (rio_FlagKind_Enum), .name = name, .help = help, .ptr = {.i = ptr}, .options = {options, num_options}};
-  rio_buf_push((void (**))(&(rio_flag_defs)), &(def), sizeof(def));
+  rio_FlagDef flag = {.kind = (rio_FlagKind_Enum), .name = name, .help = help, .ptr = {.i = ptr}, .options = {options, num_options}};
+  rio_buf_push((void (**))(&(rio_flag_defs)), &(flag), sizeof(flag));
 }
 
 rio_FlagDef (*rio_get_flag_def(char const ((*name)))) {
@@ -6547,7 +6551,7 @@ rio_Typespec (*rio_parse_type_base(void)) {
     rio_Typespec (*result) = rio_new_typespec_name(pos, (rio_Slice_TypespecName){names, rio_buf_len(names)});
     rio_buf_free((void (**))(&(names)));
     return result;
-  } else if (rio_match_keyword(rio_fn_keyword)) {
+  } else if (((rio_match_keyword(rio_fn_keyword)) || (rio_match_keyword(rio_def_keyword))) || (rio_match_keyword(rio_do_keyword))) {
     return rio_parse_type_func();
   } else if (rio_match_token((rio_TokenKind_Lparen))) {
     rio_Typespec (*type) = rio_parse_type();
@@ -7564,7 +7568,7 @@ rio_Decl (*rio_parse_decl_opt(rio_Slice_Note (*notes))) {
     return rio_parse_decl_const(pos);
   } else if (rio_match_keyword(rio_typedef_keyword)) {
     return rio_parse_decl_typedef(pos);
-  } else if (rio_match_keyword(rio_fn_keyword)) {
+  } else if (((rio_match_keyword(rio_fn_keyword)) || (rio_match_keyword(rio_def_keyword))) || (rio_match_keyword(rio_do_keyword))) {
     return rio_parse_decl_func(pos);
   } else if (rio_match_keyword(rio_let_keyword)) {
     return rio_parse_decl_var(pos);

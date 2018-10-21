@@ -6,6 +6,7 @@ let let_keyword: *const char;
 let mut_keyword: *const char;
 let own_keyword: *const char;
 let const_keyword: *const char;
+let def_keyword: *const char;
 let fn_keyword: *const char;
 let sizeof_keyword: *const char;
 let alignof_keyword: *const char;
@@ -62,6 +63,7 @@ fn init_keywords() {
   let_keyword = init_keyword("let");
   mut_keyword = init_keyword("mut");
   own_keyword = init_keyword("own");
+  def_keyword = init_keyword("def");
   fn_keyword = init_keyword("fn");
   import_keyword = init_keyword("import");
   goto_keyword = init_keyword("goto");

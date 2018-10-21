@@ -72,7 +72,7 @@ fn parse_type_base() -> &Typespec {
     let result = new_typespec_name(pos, {names, buf_len(names)});
     buf_free((:&&void)&names);
     return result;
-  } else if (match_keyword(fn_keyword)) {
+  } else if (match_keyword(fn_keyword) || match_keyword(def_keyword) || match_keyword(do_keyword)) {
     return parse_type_func();
   } else if (match_token(TokenKind.Lparen)) {
     let type = parse_type();
@@ -1180,7 +1180,7 @@ fn parse_decl_opt(notes: &Slice<Note>) -> &Decl {
     return parse_decl_const(pos);
   } else if (match_keyword(typedef_keyword)) {
     return parse_decl_typedef(pos);
-  } else if (match_keyword(fn_keyword)) {
+  } else if (match_keyword(fn_keyword) || match_keyword(def_keyword) || match_keyword(do_keyword)) {
     return parse_decl_func(pos);
   } else if (match_keyword(let_keyword)) {
     return parse_decl_var(pos);

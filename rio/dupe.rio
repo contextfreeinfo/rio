@@ -1,4 +1,4 @@
-typedef MapClosureCall = fn(self: &void, item: Any) -> &void;
+typedef MapClosureCall = do(self: &void, item: Any) -> &void;
 
 struct MapClosure {
   self: &void;
@@ -10,7 +10,7 @@ struct TypeMap {
   type_params: Slice<Decl>;
 }
 
-fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
+do dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
   let dupe: &Aggregate = map.call(map.self, Any{aggregate, typeof(*aggregate)});
   if (dupe) {
     return dupe;
@@ -34,7 +34,7 @@ fn dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
   return dupe;
 }
 
-fn dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
+def dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
   let dupe = &block;
   dupe.stmts = ast_dup_slice.<&Stmt>(dupe.stmts);
   for &(dupe.stmts) do(stmt) {

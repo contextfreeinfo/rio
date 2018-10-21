@@ -31,9 +31,9 @@ let c: char = 1;
 let uc: uchar = 1;
 let sc: schar = 1;
 
-typedef F1 = fn();
-typedef F2 = fn(f: fn(int, int,) -> int) -> int;
-typedef F3 = fn(f: fn());
+typedef F1 = do();
+typedef F2 = do(f: do(int, int,) -> int) -> int;
+typedef F3 = do(f: do());
 
 const N = (:char)42 + 8 != 0;
 
@@ -894,11 +894,11 @@ fn maybe_math(x: float) -> Result<float, TestErr> {
   return {kind = Result.Ok, val = x + 1};
 }
 
-fn test_err() {
+do test_err() {
   maybe_math(4.5);
 }
 
-fn test_for_each() {
+def test_for_each() {
   let friends: []*const char = {"Larry", "Moe", "Curly"};
   // let friends = ["Larry", "Moe", "Curly"];
   // Loops on array.
