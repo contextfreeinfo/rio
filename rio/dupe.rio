@@ -10,7 +10,7 @@ struct TypeMap {
   type_params: Slice<Decl>;
 }
 
-do dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
+def dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
   let dupe: &Aggregate = map.call(map.self, Any{aggregate, typeof(*aggregate)});
   if (dupe) {
     return dupe;

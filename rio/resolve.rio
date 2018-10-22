@@ -1444,7 +1444,7 @@ fn resolve_for_each_type(pos: SrcPos, type: &Type, had_ref: bool) -> &Type {
   return NULL;
 }
 
-fn resolve_func_body(sym: &Sym) {
+def resolve_func_body(sym: &Sym) {
   let decl = sym.decl;
   #assert(decl.kind == Decl.Func);
   #assert(sym.state == SymState.Resolved);
@@ -1455,12 +1455,12 @@ fn resolve_func_body(sym: &Sym) {
     // resolve_specialized_decl
     // printf("Need to specialize: %s\n", decl.name);
     let type_map = TypeMap{
-      type_args = decl.type_args,
-      type_params = decl.generic_base.type_params,
+      type_args: decl.type_args,
+      type_params: decl.generic_base.type_params,
     };
     let map = MapClosure{
-      self = &type_map,
-      call = (:MapClosureCall)map_type_args,
+      self: &type_map,
+      call: (:MapClosureCall)map_type_args,
     };
     decl.function.block = dupe_block(decl.function.block, &map);
     decl.shallow = false;

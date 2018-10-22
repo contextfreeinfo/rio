@@ -39,7 +39,7 @@ fn parse_type_func() -> &Typespec {
   return new_typespec_func(pos, {args, buf_len(args)}, ret, has_varargs);
 }
 
-fn parse_type_args() -> Slice<TypeArg> {
+def parse_type_args() -> Slice<TypeArg> {
   let args: *TypeArg;
   if (match_token(TokenKind.Lt)) {
     do {
@@ -72,7 +72,7 @@ fn parse_type_base() -> &Typespec {
     let result = new_typespec_name(pos, {names, buf_len(names)});
     buf_free((:&&void)&names);
     return result;
-  } else if (match_keyword(fn_keyword) || match_keyword(def_keyword) || match_keyword(do_keyword)) {
+  } else if (match_keyword(fn_keyword) || match_keyword(do_keyword)) {
     return parse_type_func();
   } else if (match_token(TokenKind.Lparen)) {
     let type = parse_type();
@@ -119,11 +119,13 @@ fn parse_expr_compound_field() -> CompoundField {
   if (match_token(TokenKind.Lbracket)) {
     let index = parse_expr();
     expect_token(TokenKind.Rbracket);
-    expect_token(TokenKind.Assign);
+    if (!match_token(TokenKind.Assign)) {
+      expect_token(TokenKind.Colon);
+    }
     return CompoundField {CompoundField.Index, pos, parse_expr(), index = index};
   } else {
     let expr = parse_expr();
-    if (match_token(TokenKind.Assign)) {
+    if (match_token(TokenKind.Assign) || match_token(TokenKind.Colon)) {
       if (expr.kind != Expr.Name) {
         fatal_error(token.pos, "Named initializer in compound literal must be preceded by field name");
       }
@@ -769,9 +771,9 @@ fn parse_aggregate(
       // This is the union. Contain it.
       enum_union = new_aggregate(pos, kind, {items, buf_len(items)});
       let subitem = AggregateItem {
-        pos = pos,
-        kind = AggregateItem.Subaggregate,
-        subaggregate = enum_union,
+        pos: pos,
+        kind: AggregateItem.Subaggregate,
+        subaggregate: enum_union,
       };
       // Wrap it in a struct.
       kind = AggregateKind.Struct;
@@ -792,10 +794,10 @@ fn parse_aggregate(
     }
     let tag_type_name = build_scoped_name(name, "Kind");
     let tag_item = AggregateItem {
-      pos = pos,
-      kind = AggregateItem.Field,
-      names = {enum_tag_names, 1},
-      type = new_typespec_name1(pos, tag_type_name),
+      pos: pos,
+      kind: AggregateItem.Field,
+      names: {enum_tag_names, 1},
+      type: new_typespec_name1(pos, tag_type_name),
     };
     buf_unshift((:&&void)&items, &tag_item, sizeof(tag_item));
     // Create and attach union enum.
@@ -839,10 +841,10 @@ fn parse_switch_union() -> *AggregateItem {
       }
       expect_token(TokenKind.Semicolon);
       item = AggregateItem {
-        pos = pos,
-        kind = AggregateItem.Field,
-        names = {empty_names, 1},
-        type = type,
+        pos: pos,
+        kind: AggregateItem.Field,
+        names: {empty_names, 1},
+        type: type,
       };
     } else {
       item = parse_decl_aggregate_item();
@@ -891,7 +893,7 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
     }
     for (names) do(name) {
       enum_items[enum_item_index++] = EnumItem {
-        pos = union_item.pos, name = name, init = NULL,
+        pos: union_item.pos, name: name, init: NULL,
       };
     } for;
   } for;
@@ -912,11 +914,11 @@ fn parse_type_params() -> Slice<Decl> {
         constraint = parse_type();
       }
       let param = Decl {
-        kind = Decl.Typedef,
-        pos = token.pos,
-        is_generic = true,
-        name = param_name,
-        typedef_decl = {constraint = constraint},
+        kind: Decl.Typedef,
+        pos: token.pos,
+        is_generic: true,
+        name: param_name,
+        typedef_decl: {constraint: constraint},
         // Let val default to null.
       };
       buf_push((:&&void)&params.items, &param, sizeof(param));
@@ -1180,7 +1182,7 @@ fn parse_decl_opt(notes: &Slice<Note>) -> &Decl {
     return parse_decl_const(pos);
   } else if (match_keyword(typedef_keyword)) {
     return parse_decl_typedef(pos);
-  } else if (match_keyword(fn_keyword) || match_keyword(def_keyword) || match_keyword(do_keyword)) {
+  } else if (match_keyword(fn_keyword) || match_keyword(def_keyword)) {
     return parse_decl_func(pos);
   } else if (match_keyword(let_keyword)) {
     return parse_decl_var(pos);

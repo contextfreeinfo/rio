@@ -159,7 +159,7 @@ fn pack(ctrl: UartCtrl) -> uint32 {
 }
 
 fn unpack(word: uint32) -> UartCtrl {
-  return {tx_enable = word & 0b01, rx_enable = (word & 0b10) >> 1};
+  return {tx_enable: word & 0b01, rx_enable: (word & 0b10) >> 1};
 }
 
 fn test_uart() {
@@ -891,10 +891,10 @@ fn maybe_math(x: float) -> Result<float, TestErr> {
   // return Ok{x + 1};
   // return {val = x + 1};
   // return {val: x + 1};
-  return {kind = Result.Ok, val = x + 1};
+  return {kind: Result.Ok, val: x + 1};
 }
 
-do test_err() {
+def test_err() {
   maybe_math(4.5);
 }
 
