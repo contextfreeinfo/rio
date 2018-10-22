@@ -6,9 +6,9 @@ enum Os {
 }
 
 let os_names: [Os.Num]*const char = {
-  [Os.Win32] = "win32",
-  [Os.Linux] = "linux",
-  [Os.OsX] = "osx",
+  [Os.Win32]: "win32",
+  [Os.Linux]: "linux",
+  [Os.OsX]: "osx",
 };
 
 enum Arch {
@@ -18,8 +18,8 @@ enum Arch {
 }
 
 let arch_names: [Arch.Num]*const char = {
-  [Arch.X64] = "x64",
-  [Arch.X86] = "x86",
+  [Arch.X64]: "x64",
+  [Arch.X86]: "x86",
 };
 
 let target_os: int;
@@ -45,46 +45,46 @@ fn get_arch(name: *const char) -> int {
 
 fn init_default_type_metrics(metrics: [CompilerTypeKind.Num]TypeMetrics) {
   metrics[CompilerTypeKind.Ref] = metrics[CompilerTypeKind.Ptr];
-  metrics[CompilerTypeKind.Bool] = {size = 1, align = 1};
-  metrics[CompilerTypeKind.Char] = {size = 1, align = 1, max = 0x7f, sign = true};
-  metrics[CompilerTypeKind.SChar] = {size = 1, align = 1, max = 0x7f, sign = true};
-  metrics[CompilerTypeKind.UChar] = {size = 1, align = 1, max = 0xff};
-  metrics[CompilerTypeKind.Short] = {size = 2, align = 2, max = 0x7fff, sign = true};
-  metrics[CompilerTypeKind.UShort] = {size = 2, align = 2, max = 0xffff};
-  metrics[CompilerTypeKind.Int] = {size = 4, align = 4, max = 0x7fffffff, sign = true};
-  metrics[CompilerTypeKind.UInt] = {size = 4, align = 4, max = 0xffffffff};
-  metrics[CompilerTypeKind.LLong] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true};
-  metrics[CompilerTypeKind.ULLong] = {size = 8, align = 8, max = 0xffffffffffffffff};
-  metrics[CompilerTypeKind.Float] = {size = 4, align = 4};
-  metrics[CompilerTypeKind.Double] = {size = 8, align = 8};
+  metrics[CompilerTypeKind.Bool] = {size: 1, align: 1};
+  metrics[CompilerTypeKind.Char] = {size: 1, align: 1, max: 0x7f, sign: true};
+  metrics[CompilerTypeKind.SChar] = {size: 1, align: 1, max: 0x7f, sign: true};
+  metrics[CompilerTypeKind.UChar] = {size: 1, align: 1, max: 0xff};
+  metrics[CompilerTypeKind.Short] = {size: 2, align: 2, max: 0x7fff, sign: true};
+  metrics[CompilerTypeKind.UShort] = {size: 2, align: 2, max: 0xffff};
+  metrics[CompilerTypeKind.Int] = {size: 4, align: 4, max: 0x7fffffff, sign: true};
+  metrics[CompilerTypeKind.UInt] = {size: 4, align: 4, max: 0xffffffff};
+  metrics[CompilerTypeKind.LLong] = {size: 8, align: 8, max: 0x7fffffffffffffff, sign: true};
+  metrics[CompilerTypeKind.ULLong] = {size: 8, align: 8, max: 0xffffffffffffffff};
+  metrics[CompilerTypeKind.Float] = {size: 4, align: 4};
+  metrics[CompilerTypeKind.Double] = {size: 8, align: 8};
 }
 
 let win32_x86_metrics: [CompilerTypeKind.Num]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
-  [CompilerTypeKind.Ptr] = {size = 4, align = 4},
-  [CompilerTypeKind.Long] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
-  [CompilerTypeKind.ULong] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CompilerTypeKind.Ptr]: {size: 4, align: 4},
+  [CompilerTypeKind.Long]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
+  [CompilerTypeKind.ULong]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
 };
 
 let win32_x64_metrics: [CompilerTypeKind.Num]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
-  [CompilerTypeKind.Ptr] = {size = 8, align = 8},
-  [CompilerTypeKind.Long] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
-  [CompilerTypeKind.ULong] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CompilerTypeKind.Ptr]: {size: 8, align: 8},
+  [CompilerTypeKind.Long]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
+  [CompilerTypeKind.ULong]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
 };
 
 let ilp32_metrics: [CompilerTypeKind.Num]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
-  [CompilerTypeKind.Ptr] = {size = 4, align = 4},
-  [CompilerTypeKind.Long] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
-  [CompilerTypeKind.ULong] = {size = 4, align = 4, max = 0x7fffffff, sign = true},
+  [CompilerTypeKind.Ptr]: {size: 4, align: 4},
+  [CompilerTypeKind.Long]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
+  [CompilerTypeKind.ULong]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
 };
 
 let lp64_metrics: [CompilerTypeKind.Num]TypeMetrics = {
   // DEFAULT_TYPE_METRICS,
-  [CompilerTypeKind.Ptr] = {size = 8, align = 8},
-  [CompilerTypeKind.Long] = {size = 8, align = 8, max = 0x7fffffffffffffff, sign = true},
-  [CompilerTypeKind.ULong] = {size = 8, align = 8, max = 0xffffffffffffffff, sign = true},
+  [CompilerTypeKind.Ptr]: {size: 8, align: 8},
+  [CompilerTypeKind.Long]: {size: 8, align: 8, max: 0x7fffffffffffffff, sign: true},
+  [CompilerTypeKind.ULong]: {size: 8, align: 8, max: 0xffffffffffffffff, sign: true},
 };
 
 fn init_target() {

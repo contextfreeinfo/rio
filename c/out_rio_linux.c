@@ -6595,13 +6595,11 @@ rio_CompoundField rio_parse_expr_compound_field(void) {
   if (rio_match_token((rio_TokenKind_Lbracket))) {
     rio_Expr (*index) = rio_parse_expr();
     rio_expect_token((rio_TokenKind_Rbracket));
-    if (!(rio_match_token((rio_TokenKind_Assign)))) {
-      rio_expect_token((rio_TokenKind_Colon));
-    }
+    rio_expect_token((rio_TokenKind_Colon));
     return (rio_CompoundField){(rio_CompoundField_Index), pos, rio_parse_expr(), .index = index};
   } else {
     rio_Expr (*expr) = rio_parse_expr();
-    if ((rio_match_token((rio_TokenKind_Assign))) || (rio_match_token((rio_TokenKind_Colon)))) {
+    if (rio_match_token((rio_TokenKind_Colon))) {
       if ((expr->kind) != ((rio_Expr_Name))) {
         rio_fatal_error(rio_token.pos, "Named initializer in compound literal must be preceded by field name");
       }

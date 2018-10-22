@@ -1,13 +1,13 @@
 fn test_generics() {
   let slirce: Slirce;
-  let slorce: Slorce<int> = {items = (:[]int){1, 2, 3}, length = 3};
-  let slorce_ref: Slorce<&int> = {items = (:[]&int){slorce.items}, length = 1};
+  let slorce: Slorce<int> = {items: (:[]int){1, 2, 3}, length: 3};
+  let slorce_ref: Slorce<&int> = {items: (:[]&int){slorce.items}, length: 1};
   printf("Generically, %d\n", *slorce_ref[0]);
   let slarb: Slorce<Bar>;
   let slerce: Slerce<int>;
   slerce.boring.thing = 5;
-  slerce.goo = {items = &slerce.boring.thing, length = 1};
-  slerce.goos = {items = &slerce.goo.items, length = 1};
+  slerce.goo = {items: &slerce.boring.thing, length: 1};
+  slerce.goos = {items: &slerce.goo.items, length: 1};
   printf("Should be %d: %d\n", slerce.boring.thing, slerce.goos[0][0]);
   // Assignment properly succeeds.
   let slarce: Slarce = slorce;
@@ -56,11 +56,11 @@ fn test_generic_functions() {
   printf("float sum: %g\n", sum.<float>(1.1, 2.2));
   printf(
     "float sum_slice: %g\n",
-    sum_slice.<float>({items = (:[]float){1.1, 2.2, 3.3}, length = 3}),
+    sum_slice.<float>({items: (:[]float){1.1, 2.2, 3.3}, length: 3}),
   );
   // printf("int sum: %d", sum(1, 2));
   // printf("float sum: %d", sum(1.1, 2.2));
-  let slices: []Slice<int> = {{}, {items = (:[]int){12}, length = 1}};
+  let slices: []Slice<int> = {{}, {items: (:[]int){12}, length: 1}};
   for (slices) do(slice) {
     let first_thing = first.<int>(slice);
     switch (first_thing.kind) {
@@ -68,11 +68,11 @@ fn test_generic_functions() {
       Err => printf("Err: %d\n", first_thing.err);
     }
   }
-  // first((:Slice<int>){items = &thing, length = 1});
+  // first((:Slice<int>){items: &thing, length: 1});
   // first(Slice.<int>{});
-  // first(Slice.<int>{items = &thing, length = 1});
+  // first(Slice.<int>{items: &thing, length: 1});
   // first(Slice[int]{});
-  // first(Slice[int]{items = &thing, length = 1});
+  // first(Slice[int]{items: &thing, length: 1});
   // first.<int>(Slice.<int>{});
   // first.<int>({});
 }
@@ -107,8 +107,8 @@ fn sum_slice<Num: int>(nums: Slice<Num>) -> Num {
 // TODO But that case is still interesting.
 fn first<Item>(slice: Slice<Item>) -> Result<Item, TestErr> {
   if (slice.length) {
-    return {kind = Result.Ok, val = slice[0]};
+    return {kind: Result.Ok, val: slice[0]};
   } else {
-    return {kind = Result.Err, err = TestErr.Crazy};
+    return {kind: Result.Err, err: TestErr.Crazy};
   }
 }

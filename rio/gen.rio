@@ -127,16 +127,16 @@ fn is_incomplete_array_typespec(typespec: &Typespec) -> bool {
 }
 
 let char_to_escape: [256]char = {
-  ['\0'] = '0',
-  ['\n'] = 'n',
-  ['\r'] = 'r',
-  ['\t'] = 't',
-  ['\v'] = 'v',
-  ['\b'] = 'b',
-  ['\a'] = 'a',
-  ['\\'] = '\\',
-  ['"'] = '"',
-  ['\''] = '\'',
+  ['\0']: '0',
+  ['\n']: 'n',
+  ['\r']: 'r',
+  ['\t']: 't',
+  ['\v']: 'v',
+  ['\b']: 'b',
+  ['\a']: 'a',
+  ['\\']: '\\',
+  ['"']: '"',
+  ['\'']: '\'',
 };
 
 fn gen_char(c: char) {
@@ -485,29 +485,29 @@ fn gen_expr_compound(expr: &Expr) {
 }
 
 let typeid_kind_names: [CompilerTypeKind.Num]*const char = {
-  [CompilerTypeKind.None] = "TypeKind_None",
-  [CompilerTypeKind.Void] = "TypeKind_Void",
-  [CompilerTypeKind.Bool] = "TypeKind_Bool",
-  [CompilerTypeKind.Char] = "TypeKind_Char",
-  [CompilerTypeKind.UChar] = "TypeKind_UChar",
-  [CompilerTypeKind.SChar] = "TypeKind_SChar",
-  [CompilerTypeKind.Short] = "TypeKind_Short",
-  [CompilerTypeKind.UShort] = "TypeKind_UShort",
-  [CompilerTypeKind.Int] =  "TypeKind_Int",
-  [CompilerTypeKind.UInt] = "TypeKind_UInt",
-  [CompilerTypeKind.Long] = "TypeKind_Long",
-  [CompilerTypeKind.ULong] = "TypeKind_ULong",
-  [CompilerTypeKind.LLong] = "TypeKind_LLong",
-  [CompilerTypeKind.ULLong] = "TypeKind_ULLong",
-  [CompilerTypeKind.Float] = "TypeKind_Float",
-  [CompilerTypeKind.Double] = "TypeKind_Double",
-  [CompilerTypeKind.Const] = "TypeKind_Const",
-  [CompilerTypeKind.Ptr] = "TypeKind_Ptr",
-  [CompilerTypeKind.Ref] = "TypeKind_Ref",
-  [CompilerTypeKind.Array] = "TypeKind_Array",
-  [CompilerTypeKind.Struct] = "TypeKind_Struct",
-  [CompilerTypeKind.Union] = "TypeKind_Union",
-  [CompilerTypeKind.Func] = "TypeKind_Func",
+  [CompilerTypeKind.None]: "TypeKind_None",
+  [CompilerTypeKind.Void]: "TypeKind_Void",
+  [CompilerTypeKind.Bool]: "TypeKind_Bool",
+  [CompilerTypeKind.Char]: "TypeKind_Char",
+  [CompilerTypeKind.UChar]: "TypeKind_UChar",
+  [CompilerTypeKind.SChar]: "TypeKind_SChar",
+  [CompilerTypeKind.Short]: "TypeKind_Short",
+  [CompilerTypeKind.UShort]: "TypeKind_UShort",
+  [CompilerTypeKind.Int]:  "TypeKind_Int",
+  [CompilerTypeKind.UInt]: "TypeKind_UInt",
+  [CompilerTypeKind.Long]: "TypeKind_Long",
+  [CompilerTypeKind.ULong]: "TypeKind_ULong",
+  [CompilerTypeKind.LLong]: "TypeKind_LLong",
+  [CompilerTypeKind.ULLong]: "TypeKind_ULLong",
+  [CompilerTypeKind.Float]: "TypeKind_Float",
+  [CompilerTypeKind.Double]: "TypeKind_Double",
+  [CompilerTypeKind.Const]: "TypeKind_Const",
+  [CompilerTypeKind.Ptr]: "TypeKind_Ptr",
+  [CompilerTypeKind.Ref]: "TypeKind_Ref",
+  [CompilerTypeKind.Array]: "TypeKind_Array",
+  [CompilerTypeKind.Struct]: "TypeKind_Struct",
+  [CompilerTypeKind.Union]: "TypeKind_Union",
+  [CompilerTypeKind.Func]: "TypeKind_Func",
 };
 
 fn typeid_kind_name(type: &Type) -> *const char {
@@ -858,14 +858,14 @@ fn gen_stmt(stmt: &Stmt) {
       // Generate an assignment in case this is a non-simple name.
       // TODO If it's a name, just use it and avoid the extra block.
       let items = "items__";
-      gen_stmt(&Stmt {kind = Stmt.Init, init = {
+      gen_stmt(&Stmt {kind: Stmt.Init, init: {
         // Ideally, we can optimize to getting a pointer to the iterable, in
         // case it's a big struct, but that can be tricky, say in cases like
         // return values from functions or whatever.
         // Can a smart compiler avoid the big copy anyway?
         // Are there semantics issues ever?
         // TODO Figure out when and if to optimize this?
-        expr = expr, name = items,
+        expr: expr, name: items,
       }});
       genln();
       // TODO Even if length is const, index, shouldn't be.

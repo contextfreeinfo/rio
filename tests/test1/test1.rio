@@ -164,14 +164,14 @@ fn unpack(word: uint32) -> UartCtrl {
 
 fn test_uart() {
   let tx_enable = unpack(*UART_CTRL_REG).tx_enable;
-  *UART_CTRL_REG = pack({tx_enable = !tx_enable, rx_enable = false});
+  *UART_CTRL_REG = pack({tx_enable: !tx_enable, rx_enable: false});
   let ctrl = unpack(*UART_CTRL_REG);
   ctrl.rx_enable = true;
   *UART_CTRL_REG = pack(ctrl);
 }
 
 fn h() -> uchar {
-  Vector{x = 1, y = 2}.x = 42;
+  Vector{x: 1, y: 2}.x = 42;
   let v = &Vector{1, 2};
   v.x = 42;
   let p = &int{0};
@@ -210,32 +210,32 @@ union IntOrPtr {
 }
 
 let char_to_escape: [256]const char = {
-  ['\0'] = '0',
-  ['\n'] = 'n',
-  ['\r'] = 'r',
-  ['\t'] = 't',
-  ['\v'] = 'v',
-  ['\b'] = 'b',
-  ['\a'] = 'a',
-  ['\\'] = '\\',
-  ['"'] = '"',
-  ['\''] = '\'',
+  ['\0']: '0',
+  ['\n']: 'n',
+  ['\r']: 'r',
+  ['\t']: 't',
+  ['\v']: 'v',
+  ['\b']: 'b',
+  ['\a']: 'a',
+  ['\\']: '\\',
+  ['"']: '"',
+  ['\'']: '\'',
 };
 
 let escape_to_char: [256]const char = {
-  ['0'] = '\0',
-  ['\''] = '\'',
-  ['"'] = '"',
-  ['\\'] = '\\',
-  ['n'] = '\n',
-  ['r'] = '\r',
-  ['t'] = '\t',
-  ['v'] = '\v',
-  ['b'] = '\b',
-  ['a'] = '\a',
+  ['0']: '\0',
+  ['\'']: '\'',
+  ['"']: '"',
+  ['\\']: '\\',
+  ['n']: '\n',
+  ['r']: '\r',
+  ['t']: '\t',
+  ['v']: '\v',
+  ['b']: '\b',
+  ['a']: '\a',
 };
 
-let a2: []int = {1, 2, 3, [10]=4};
+let a2: []int = {1, 2, 3, [10]: 4};
 // let a3: []int;
 
 fn is_even(digit: int) -> int {
@@ -247,8 +247,8 @@ fn is_even(digit: int) -> int {
 }
 
 // fn f() {
-//   let u1 = IntOrPtr{i = 42};
-//   let u2 = IntOrPtr{p = (:*int)42};
+//   let u1 = IntOrPtr{i: 42};
+//   let u2 = IntOrPtr{p: (:*int)42};
 //   u1.i = 0;
 //   u2.p = (:*int)0;
 // }
@@ -336,10 +336,10 @@ union Direct switch {
 
 let color_names: [Color.Num]*const char = {
 // let color_names: [*const char; Num] = {
-  [Color.None] = "none",
-  [Color.Red] = "red",
-  [Color.Green] = "green",
-  [Color.Blue] = "blue",
+  [Color.None]: "none",
+  [Color.Red]: "red",
+  [Color.Green]: "green",
+  [Color.Blue]: "blue",
 };
 
 fn test_enum() {
@@ -358,7 +358,7 @@ fn test_enum() {
   #static_assert(typeof(e) == typeof(TypedEnum));
   let f: TypedEnum;
   f = BAZ;
-  let more = More {prob = 0.5, amount = 0.9};
+  let more = More {prob: 0.5, amount: 0.9};
   let more_kind = More.Happy;
 }
 
@@ -686,13 +686,13 @@ fn test_compound_literals() {
   let x: const Any = {&i, typeof(i)};
   let y = (:const Any){&i, typeof(i)};
   let v: Ints = {
-    num_ints = 3,
-    int_ptr = (:[]int){1, 2, 3},
-    int_arr = {1, 2, 3},
+    num_ints: 3,
+    int_ptr: (:[]int){1, 2, 3},
+    int_arr: {1, 2, 3},
   };
   let ints_of_ints: []Ints = {
-    {num_ints = 3, int_arr = {1, 2, 3}},
-    {num_ints = 2, int_ptr = (:[2]int){-1, -2}},
+    {num_ints: 3, int_arr: {1, 2, 3}},
+    {num_ints: 2, int_ptr: (:[2]int){-1, -2}},
   };
 }
 
@@ -848,8 +848,8 @@ struct Foo {
 }
 
 fn test_const_ptr_deref() {
-  let bar = Bar{rc = 42};
-  let foo = Foo{bar = &bar};
+  let bar = Bar{rc: 42};
+  let foo = Foo{bar: &bar};
   let i = foo.bar.rc;
 }
 
@@ -889,7 +889,7 @@ fn maybe_math(x: float) -> Result<float, TestErr> {
   // return x + 1;
   // return Ok(x + 1);
   // return Ok{x + 1};
-  // return {val = x + 1};
+  // return {val: x + 1};
   // return {val: x + 1};
   return {kind: Result.Ok, val: x + 1};
 }

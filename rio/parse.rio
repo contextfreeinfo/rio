@@ -43,7 +43,7 @@ def parse_type_args() -> Slice<TypeArg> {
   let args: *TypeArg;
   if (match_token(TokenKind.Lt)) {
     do {
-      let type_arg = TypeArg{pos = token.pos, val = parse_type()};
+      let type_arg = TypeArg{pos: token.pos, val: parse_type()};
       buf_push((:*&void)&args, &type_arg, sizeof(*args));
     } while (match_token(TokenKind.Comma));
     if (is_token(TokenKind.Rshift)) {
@@ -53,7 +53,7 @@ def parse_type_args() -> Slice<TypeArg> {
       expect_token(TokenKind.Gt);
     }
   }
-  return (:Slice<TypeArg>){items = args, length = buf_len(args)};
+  return {items: args, length: buf_len(args)};
 }
 
 fn parse_type_base() -> &Typespec {
@@ -62,11 +62,11 @@ fn parse_type_base() -> &Typespec {
     let names: *TypespecName;
     next_token();
     let first_name =
-      TypespecName{name = token.name, type_args = parse_type_args()};
+      TypespecName{name: token.name, type_args: parse_type_args()};
     buf_push((:&&void)&names, &first_name, sizeof(first_name));
     while (match_token(TokenKind.Dot)) {
       let name =
-        TypespecName{name = parse_name(), type_args = parse_type_args()};
+        TypespecName{name: parse_name(), type_args: parse_type_args()};
       buf_push((:&&void)&names, &name, sizeof(name));
     }
     let result = new_typespec_name(pos, {names, buf_len(names)});
@@ -119,17 +119,15 @@ fn parse_expr_compound_field() -> CompoundField {
   if (match_token(TokenKind.Lbracket)) {
     let index = parse_expr();
     expect_token(TokenKind.Rbracket);
-    if (!match_token(TokenKind.Assign)) {
-      expect_token(TokenKind.Colon);
-    }
-    return CompoundField {CompoundField.Index, pos, parse_expr(), index = index};
+    expect_token(TokenKind.Colon);
+    return CompoundField {CompoundField.Index, pos, parse_expr(), index: index};
   } else {
     let expr = parse_expr();
-    if (match_token(TokenKind.Assign) || match_token(TokenKind.Colon)) {
+    if (match_token(TokenKind.Colon)) {
       if (expr.kind != Expr.Name) {
         fatal_error(token.pos, "Named initializer in compound literal must be preceded by field name");
       }
-      return CompoundField {CompoundField.Name, pos, parse_expr(), name = expr.name};
+      return CompoundField {CompoundField.Name, pos, parse_expr(), name: expr.name};
     } else {
       return CompoundField {CompoundField.Default, pos, expr};
     }
@@ -553,7 +551,7 @@ fn parse_stmt_for(pos: SrcPos) -> &Stmt {
 
 fn parse_switch_case_pattern() -> SwitchCasePattern {
   if (match_keyword(default_keyword)) {
-    return SwitchCasePattern {is_default = true};
+    return SwitchCasePattern {is_default: true};
   }
   let start = parse_expr();
   let end: &Expr;
@@ -692,15 +690,15 @@ fn parse_decl_aggregate_item() -> AggregateItem {
   let pos = token.pos;
   if (match_keyword(struct_keyword)) {
     return AggregateItem {
-      pos = pos,
-      kind = AggregateItem.Subaggregate,
-      subaggregate = parse_aggregate(AggregateKind.Struct, NULL, NULL),
+      pos: pos,
+      kind: AggregateItem.Subaggregate,
+      subaggregate: parse_aggregate(AggregateKind.Struct, NULL, NULL),
     };
   } else if (match_keyword(union_keyword)) {
     return AggregateItem {
-      pos = pos,
-      kind = AggregateItem.Subaggregate,
-      subaggregate = parse_aggregate(AggregateKind.Union, NULL, NULL),
+      pos: pos,
+      kind: AggregateItem.Subaggregate,
+      subaggregate: parse_aggregate(AggregateKind.Union, NULL, NULL),
     };
   } else {
     let names: **const char = NULL;
@@ -714,10 +712,10 @@ fn parse_decl_aggregate_item() -> AggregateItem {
     let type = parse_type();
     expect_token(TokenKind.Semicolon);
     return AggregateItem {
-      pos = pos,
-      kind = AggregateItem.Field,
-      names = {names, buf_len(names)},
-      type = type,
+      pos: pos,
+      kind: AggregateItem.Field,
+      names: {names, buf_len(names)},
+      type: type,
     };
   } if;
 }
@@ -1081,7 +1079,7 @@ fn parse_note_arg() -> NoteArg {
     name = expr.name;
     expr = parse_expr();
   }
-  return NoteArg {pos = pos, name = name, expr = expr};
+  return NoteArg {pos: pos, name: name, expr: expr};
 }
 
 fn parse_note() -> Note {
@@ -1151,10 +1149,10 @@ fn parse_decl_import(pos: SrcPos) -> &Decl {
       } else {
         let item_name = parse_name();
         if (match_token(TokenKind.Assign)) {
-          let item = ImportItem {name = parse_name(), rename = item_name};
+          let item = ImportItem {name: parse_name(), rename: item_name};
           buf_push((:&&void)&items, &item, sizeof(item));
         } else {
-          let item = ImportItem {name = item_name};
+          let item = ImportItem {name: item_name};
           buf_push((:&&void)&items, &item, sizeof(item));
         }
         if (!match_token(TokenKind.Comma)) {

@@ -393,7 +393,7 @@ fn ast_dup_type_params(d: &Decl, params: Slice<Decl>) {
 }
 
 fn new_note(pos: SrcPos, name: *const char, args: Slice<NoteArg>) -> Note {
-  return {pos = pos, name = name, args = ast_dup_slice.<NoteArg>(args)};
+  return {pos: pos, name: name, args: ast_dup_slice.<NoteArg>(args)};
 }
 
 fn new_notes(notes: Slice<Note>) -> Slice<Note> {
@@ -412,7 +412,7 @@ fn new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {
 }
 
 fn new_typespec_name1(pos: SrcPos, name: *const char) -> &Typespec {
-  return new_typespec_name(pos, {&{name = name}, 1});
+  return new_typespec_name(pos, {&{name: name}, 1});
 }
 
 fn new_typespec_name(pos: SrcPos, names: Slice<TypespecName>) -> &Typespec {

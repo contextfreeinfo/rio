@@ -113,12 +113,12 @@ struct FlagDefPtr {
 let flag_defs: *FlagDef;
 
 fn add_flag_bool(name: *const char, ptr: &bool, help: *const char) {
-  let flag: FlagDef = {kind = FlagKind.Bool, name = name, help = help, ptr = {b = ptr}};
+  let flag: FlagDef = {kind: FlagKind.Bool, name: name, help: help, ptr: {b: ptr}};
   buf_push((:&&void)&flag_defs, &flag, sizeof(flag));
 }
 
 fn add_flag_str(name: *const char, ptr: **const char, arg_name: *const char, help: *const char) {
-  let flag: FlagDef = {kind = FlagKind.Str, name = name, help = help, arg_name = arg_name, ptr = {s = ptr}};
+  let flag: FlagDef = {kind: FlagKind.Str, name: name, help: help, arg_name: arg_name, ptr: {s: ptr}};
   buf_push((:&&void)&flag_defs, &flag, sizeof(flag));
 }
 
@@ -127,8 +127,8 @@ fn add_flag_enum(
   options: **const char, num_options: int,
 ) {
   let flag: FlagDef = {
-    kind = FlagKind.Enum, name = name, help = help, ptr = {i = ptr},
-    options = {options, num_options},
+    kind: FlagKind.Enum, name: name, help: help, ptr: {i: ptr},
+    options: {options, num_options},
   };
   buf_push((:&&void)&flag_defs, &flag, sizeof(flag));
 }
