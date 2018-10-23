@@ -1083,6 +1083,8 @@ extern char const ((*rio_last_keyword));
 
 extern char const ((*(*rio_keywords)));
 
+extern char const ((*rio_as_name));
+
 extern char const ((*rio_always_name));
 
 extern char const ((*rio_foreign_name));
@@ -1433,6 +1435,8 @@ bool rio_is_unary_op(void);
 rio_Expr (*rio_parse_expr_unary(void));
 
 bool rio_is_mul_op(void);
+
+rio_Expr (*rio_parse_expr_as(void));
 
 rio_Expr (*rio_parse_expr_mul(void));
 
@@ -5534,6 +5538,7 @@ char const ((*rio_goto_keyword));
 char const ((*rio_first_keyword));
 char const ((*rio_last_keyword));
 char const ((*(*rio_keywords)));
+char const ((*rio_as_name));
 char const ((*rio_always_name));
 char const ((*rio_foreign_name));
 char const ((*rio_unscoped_name));
@@ -5584,6 +5589,7 @@ void rio_init_keywords(void) {
   assert((rio_intern_arena.end) == (arena_end));
   rio_first_keyword = rio_typedef_keyword;
   rio_last_keyword = rio_default_keyword;
+  rio_as_name = rio_str_intern("as");
   rio_always_name = rio_str_intern("always");
   rio_foreign_name = rio_str_intern("foreign");
   rio_unscoped_name = rio_str_intern("unscoped");
@@ -6730,6 +6736,19 @@ rio_Expr (*rio_parse_expr_operand(void)) {
     return rio_parse_expr_list(NULL);
   } else if (rio_is_token((rio_TokenKind_Lbrace))) {
     return rio_parse_expr_compound(NULL);
+  } else if (rio_match_token((rio_TokenKind_Lt))) {
+    rio_Typespec (*type) = rio_parse_type();
+    if (rio_is_token((rio_TokenKind_Rshift))) {
+      ++(rio_token.start);
+      rio_token.kind = (rio_TokenKind_Gt);
+    } else {
+      rio_expect_token((rio_TokenKind_Gt));
+    }
+    if (rio_is_token((rio_TokenKind_Lbrace))) {
+      return rio_parse_expr_compound(type);
+    } else {
+      return rio_new_expr_cast(pos, type, rio_parse_expr_unary());
+    }
   } else if (rio_match_token((rio_TokenKind_Lparen))) {
     if (rio_match_token((rio_TokenKind_Colon))) {
       rio_Typespec (*type) = rio_parse_type();
@@ -6825,13 +6844,24 @@ bool rio_is_mul_op(void) {
   return (((rio_TokenKind_FirstMul)) <= (rio_token.kind)) && ((rio_token.kind) <= ((rio_TokenKind_LastMul)));
 }
 
-rio_Expr (*rio_parse_expr_mul(void)) {
+rio_Expr (*rio_parse_expr_as(void)) {
   rio_Expr (*expr) = rio_parse_expr_unary();
+  while (rio_is_token_name(rio_as_name)) {
+    rio_SrcPos pos = rio_token.pos;
+    rio_next_token();
+    rio_Typespec (*type) = rio_parse_type();
+    expr = rio_new_expr_cast(pos, type, expr);
+  }
+  return expr;
+}
+
+rio_Expr (*rio_parse_expr_mul(void)) {
+  rio_Expr (*expr) = rio_parse_expr_as();
   while (rio_is_mul_op()) {
     rio_SrcPos pos = rio_token.pos;
     rio_TokenKind op = rio_token.kind;
     rio_next_token();
-    expr = rio_new_expr_binary(pos, op, expr, rio_parse_expr_unary());
+    expr = rio_new_expr_binary(pos, op, expr, rio_parse_expr_as());
   }
   return expr;
 }

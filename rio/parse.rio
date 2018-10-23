@@ -244,6 +244,20 @@ fn parse_expr_operand() -> &Expr {
     return parse_expr_list(NULL);
   } else if (is_token(TokenKind.Lbrace)) {
     return parse_expr_compound(NULL);
+  } else if (match_token(TokenKind.Lt)) {
+    let type = parse_type();
+    if (is_token(TokenKind.Rshift)) {
+      // Hack to support >> as two close angle brackets.
+      ++token.start;
+      token.kind = TokenKind.Gt;
+    } else {
+      expect_token(TokenKind.Gt);
+    }
+    if (is_token(TokenKind.Lbrace)) {
+      return parse_expr_compound(type);
+    } else {
+      return new_expr_cast(pos, type, parse_expr_unary());
+    }
   } else if (match_token(TokenKind.Lparen)) {
     if (match_token(TokenKind.Colon)) {
       let type = parse_type();
@@ -342,13 +356,24 @@ fn is_mul_op() -> bool {
   return TokenKind.FirstMul <= token.kind && token.kind <= TokenKind.LastMul;
 }
 
-fn parse_expr_mul() -> &Expr {
+fn parse_expr_as() -> &Expr {
   let expr = parse_expr_unary();
+  while (is_token_name(as_name)) {
+    let pos = token.pos;
+    next_token();
+    let type = parse_type();
+    expr = new_expr_cast(pos, type, expr);
+  }
+  return expr;
+}
+
+fn parse_expr_mul() -> &Expr {
+  let expr = parse_expr_as();
   while (is_mul_op()) {
     let pos = token.pos;
     let op = token.kind;
     next_token();
-    expr = new_expr_binary(pos, op, expr, parse_expr_unary());
+    expr = new_expr_binary(pos, op, expr, parse_expr_as());
   }
   return expr;
 }

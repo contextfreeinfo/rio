@@ -5,7 +5,7 @@ import C = libc {gc = getchar, ...}
 
 let esc_test_str = "Hello\nworld\nHex: \x01\x10\xFHello\xFF";
 
-let some_array: *int = (:[]int){1, 2, 3};
+let some_array: *int = <[]int>{1, 2, 3};
 
 struct SomeIncompleteType;
 
@@ -495,9 +495,10 @@ fn test_const() {
   c = char_to_escape[c];
   c = esc_test_str[0];
   f4(escape_to_char);
-  let p = (:*const char)0; // (:*int)0
+  let as = 1;
+  let p = 0 as *const char; // as *int
   p = escape_to_char + 1;
-  let q = (:*char)escape_to_char;
+  let q = <*char>escape_to_char;
   c = q['n'];
   // q = escape_to_char;
   p = (:*const char)1;

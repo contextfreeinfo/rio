@@ -674,7 +674,7 @@ fn resolve_specialized_decl(
     Struct, Union => {
       let dupe_agg = dupe_aggregate(decl.aggregate, &map);
       dupe = new_decl_aggregate(
-        decl.pos, decl.kind, name, (:Slice<Decl>){}, dupe_agg,
+        decl.pos, decl.kind, name, <Slice<Decl>>{}, dupe_agg,
       );
     }
     default => {

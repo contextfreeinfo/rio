@@ -1361,6 +1361,7 @@ void test1_test_const(void) {
   c = test1_char_to_escape[c];
   c = test1_esc_test_str[0];
   test1_f4(test1_escape_to_char);
+  int as = 1;
   char const ((*p)) = (char const (*))(0);
   p = (test1_escape_to_char) + (1);
   char (*q) = (char *)(test1_escape_to_char);

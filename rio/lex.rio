@@ -30,6 +30,7 @@ let first_keyword: *const char;
 let last_keyword: *const char;
 let keywords: **const char;
 
+let as_name: *const char;
 let always_name: *const char;
 let foreign_name: *const char;
 let unscoped_name: *const char;
@@ -86,6 +87,7 @@ fn init_keywords() {
   first_keyword = typedef_keyword;
   last_keyword = default_keyword;
 
+  as_name = str_intern("as");
   always_name = str_intern("always");
   foreign_name = str_intern("foreign");
   unscoped_name = str_intern("unscoped");
