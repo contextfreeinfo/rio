@@ -381,6 +381,14 @@ typedef int rio_Expr_Kind;
 
 #define rio_Expr_Field ((rio_Expr_Kind)((rio_Expr_Index) + (1)))
 
+typedef int rio_ExprCompound_Kind;
+
+#define rio_ExprCompound_List ((rio_ExprCompound_Kind)(0))
+
+#define rio_ExprCompound_Struct ((rio_ExprCompound_Kind)((rio_ExprCompound_List) + (1)))
+
+#define rio_ExprCompound_Tuple ((rio_ExprCompound_Kind)((rio_ExprCompound_Struct) + (1)))
+
 typedef int rio_Stmt_Kind;
 
 #define rio_Stmt_None ((rio_Stmt_Kind)(0))
@@ -605,7 +613,7 @@ struct rio_Slice_CompoundField {
   size_t length;
 };
 
-rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_Slice_CompoundField fields));
+rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_ExprCompound_Kind kind, rio_Typespec (*type), rio_Slice_CompoundField fields));
 
 rio_Expr (*rio_new_expr_cast(rio_SrcPos pos, rio_Typespec (*type), rio_Expr (*expr)));
 
@@ -1415,6 +1423,8 @@ struct rio_CompoundField {
 rio_CompoundField rio_parse_expr_compound_field(void);
 
 rio_Expr (*rio_parse_expr_compound(rio_Typespec (*type)));
+
+rio_Expr (*rio_parse_expr_list(rio_Typespec (*type)));
 
 rio_Expr (*rio_parse_expr_operand(void));
 
@@ -2306,8 +2316,13 @@ struct rio_ExprOffsetofField {
 };
 
 struct rio_ExprCompound {
+  rio_ExprCompound_Kind kind;
   rio_Typespec (*type);
   rio_Slice_CompoundField fields;
+  union {
+    rio_Expr (*length);
+    // void;
+  };
 };
 
 struct rio_ExprCast {
@@ -2920,8 +2935,9 @@ rio_Expr (*rio_new_expr_name(rio_SrcPos pos, char const ((*name)))) {
   return e;
 }
 
-rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_Typespec (*type), rio_Slice_CompoundField fields)) {
+rio_Expr (*rio_new_expr_compound(rio_SrcPos pos, rio_ExprCompound_Kind kind, rio_Typespec (*type), rio_Slice_CompoundField fields)) {
   rio_Expr (*e) = rio_new_expr((rio_Expr_Compound), pos);
+  e->compound.kind = kind;
   e->compound.type = type;
   e->compound.fields = rio_ast_dup_slice_CompoundField(fields);
   return e;
@@ -6636,7 +6652,24 @@ rio_Expr (*rio_parse_expr_compound(rio_Typespec (*type))) {
     }
   }
   rio_expect_token((rio_TokenKind_Rbrace));
-  return rio_new_expr_compound(pos, type, (rio_Slice_CompoundField){fields, rio_buf_len(fields)});
+  return rio_new_expr_compound(pos, (rio_ExprCompound_Struct), type, (rio_Slice_CompoundField){fields, rio_buf_len(fields)});
+}
+
+rio_Expr (*rio_parse_expr_list(rio_Typespec (*type))) {
+  rio_SrcPos pos = rio_token.pos;
+  rio_expect_token((rio_TokenKind_Lbrace));
+  rio_CompoundField (*fields) = NULL;
+  while (!(rio_is_token((rio_TokenKind_Rbracket)))) {
+    rio_CompoundField field = rio_parse_expr_compound_field();
+    rio_buf_push((void (**))(&(fields)), &(field), sizeof(field));
+    if (!(rio_match_token((rio_TokenKind_Comma)))) {
+      break;
+    }
+  }
+  if (rio_match_token((rio_TokenKind_Semicolon))) {
+  }
+  rio_expect_token((rio_TokenKind_Rbracket));
+  return rio_new_expr_compound(pos, (rio_ExprCompound_List), type, (rio_Slice_CompoundField){fields, rio_buf_len(fields)});
 }
 
 rio_Expr (*rio_parse_expr_operand(void)) {
@@ -6707,6 +6740,8 @@ rio_Expr (*rio_parse_expr_operand(void)) {
     char const ((*name)) = rio_parse_name();
     rio_expect_token((rio_TokenKind_Rparen));
     return rio_new_expr_offsetof(pos, type, name);
+  } else if (rio_is_token((rio_TokenKind_Lbracket))) {
+    return rio_parse_expr_list(NULL);
   } else if (rio_is_token((rio_TokenKind_Lbrace))) {
     return rio_parse_expr_compound(NULL);
   } else if (rio_match_token((rio_TokenKind_Lparen))) {

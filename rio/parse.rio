@@ -146,7 +146,30 @@ fn parse_expr_compound(type: &Typespec) -> &Expr {
     }
   }
   expect_token(TokenKind.Rbrace);
-  return new_expr_compound(pos, type, {fields, buf_len(fields)});
+  return new_expr_compound(
+    pos, ExprCompound.Struct, type, {fields, buf_len(fields)},
+  );
+}
+
+fn parse_expr_list(type: &Typespec) -> &Expr {
+  let pos = token.pos;
+  expect_token(TokenKind.Lbrace);
+  let fields: *CompoundField = NULL;
+  while (!is_token(TokenKind.Rbracket)) {
+    let field = parse_expr_compound_field();
+    buf_push((:&&void)&fields, &field, sizeof(field));
+    if (!match_token(TokenKind.Comma)) {
+      break;
+    }
+  }
+  if (match_token(TokenKind.Semicolon)) {
+    // let length = parse_expr();
+    // TODO Parse length, or question mark or blank for inferred?
+  }
+  expect_token(TokenKind.Rbracket);
+  return new_expr_compound(
+    pos, ExprCompound.List, type, {fields, buf_len(fields)},
+  );
 }
 
 fn parse_expr_operand() -> &Expr {
@@ -217,6 +240,8 @@ fn parse_expr_operand() -> &Expr {
     let name = parse_name();
     expect_token(TokenKind.Rparen);
     return new_expr_offsetof(pos, type, name);
+  } else if (is_token(TokenKind.Lbracket)) {
+    return parse_expr_list(NULL);
   } else if (is_token(TokenKind.Lbrace)) {
     return parse_expr_compound(NULL);
   } else if (match_token(TokenKind.Lparen)) {

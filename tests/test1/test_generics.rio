@@ -56,6 +56,8 @@ fn test_generic_functions() {
   printf("float sum: %g\n", sum.<float>(1.1, 2.2));
   printf(
     "float sum_slice: %g\n",
+    // sum_slice!([1.1, 2.2, 3.3]),
+    // sum_slice.<float>([1.1, 2.2, 3.3]),
     sum_slice.<float>({items: (:[]float){1.1, 2.2, 3.3}, length: 3}),
   );
   // printf("int sum: %d", sum(1, 2));
@@ -81,6 +83,9 @@ fn sum<Num: int>(x: Num, y: Num) -> Num {
   return x + y;
 }
 
+// typedef Num = int;
+
+// fn sum_slice(nums: Slice<Num>) -> Num {
 fn sum_slice<Num: int>(nums: Slice<Num>) -> Num {
   let result: Num = 0;
   for (nums) do(num) {
