@@ -464,7 +464,7 @@ fn new_typespec_func(
 }
 
 fn new_decls(decls: Slice<&Decl>) -> &Slice<&Decl> {
-  let d: &Slice<&Decl> = ast_alloc(sizeof(:Slice<&Decl>));
+  let d: &Slice<&Decl> = ast_alloc(sizeof<Slice<&Decl>>);
   *d = ast_dup_slice.<&Decl>(decls);
   return d;
 }

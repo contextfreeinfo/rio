@@ -1334,6 +1334,8 @@ bool rio_is_keyword(char const ((*name)));
 
 bool rio_match_keyword(char const ((*name)));
 
+bool rio_expect_close_angle(void);
+
 bool rio_match_token(rio_TokenKind kind);
 
 bool rio_expect_token(rio_TokenKind kind);
@@ -6224,6 +6226,16 @@ bool rio_match_keyword(char const ((*name))) {
   }
 }
 
+bool rio_expect_close_angle(void) {
+  if (rio_is_token((rio_TokenKind_Rshift))) {
+    ++(rio_token.start);
+    rio_token.kind = (rio_TokenKind_Gt);
+    return true;
+  } else {
+    return rio_expect_token((rio_TokenKind_Gt));
+  }
+}
+
 bool rio_match_token(rio_TokenKind kind) {
   if (rio_is_token(kind)) {
     rio_next_token();
@@ -6693,37 +6705,55 @@ rio_Expr (*rio_parse_expr_operand(void)) {
       return rio_new_expr_name(pos, name);
     }
   } else if (rio_match_keyword(rio_sizeof_keyword)) {
-    rio_expect_token((rio_TokenKind_Lparen));
-    if (rio_match_token((rio_TokenKind_Colon))) {
-      rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token((rio_TokenKind_Rparen));
-      return rio_new_expr_sizeof_type(pos, type);
+    if (rio_match_token((rio_TokenKind_Lparen))) {
+      if (rio_match_token((rio_TokenKind_Colon))) {
+        rio_Typespec (*type) = rio_parse_type();
+        rio_expect_token((rio_TokenKind_Rparen));
+        return rio_new_expr_sizeof_type(pos, type);
+      } else {
+        rio_Expr (*expr) = rio_parse_expr();
+        rio_expect_token((rio_TokenKind_Rparen));
+        return rio_new_expr_sizeof_expr(pos, expr);
+      }
     } else {
-      rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token((rio_TokenKind_Rparen));
-      return rio_new_expr_sizeof_expr(pos, expr);
+      rio_expect_token((rio_TokenKind_Lt));
+      rio_Typespec (*type) = rio_parse_type();
+      rio_expect_close_angle();
+      return rio_new_expr_sizeof_type(pos, type);
     }
   } else if (rio_match_keyword(rio_alignof_keyword)) {
-    rio_expect_token((rio_TokenKind_Lparen));
-    if (rio_match_token((rio_TokenKind_Colon))) {
-      rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token((rio_TokenKind_Rparen));
-      return rio_new_expr_alignof_type(pos, type);
+    if (rio_match_token((rio_TokenKind_Lparen))) {
+      if (rio_match_token((rio_TokenKind_Colon))) {
+        rio_Typespec (*type) = rio_parse_type();
+        rio_expect_token((rio_TokenKind_Rparen));
+        return rio_new_expr_alignof_type(pos, type);
+      } else {
+        rio_Expr (*expr) = rio_parse_expr();
+        rio_expect_token((rio_TokenKind_Rparen));
+        return rio_new_expr_alignof_expr(pos, expr);
+      }
     } else {
-      rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token((rio_TokenKind_Rparen));
-      return rio_new_expr_alignof_expr(pos, expr);
+      rio_expect_token((rio_TokenKind_Lt));
+      rio_Typespec (*type) = rio_parse_type();
+      rio_expect_close_angle();
+      return rio_new_expr_alignof_type(pos, type);
     }
   } else if (rio_match_keyword(rio_typeof_keyword)) {
-    rio_expect_token((rio_TokenKind_Lparen));
-    if (rio_match_token((rio_TokenKind_Colon))) {
-      rio_Typespec (*type) = rio_parse_type();
-      rio_expect_token((rio_TokenKind_Rparen));
-      return rio_new_expr_typeof_type(pos, type);
+    if (rio_match_token((rio_TokenKind_Lparen))) {
+      if (rio_match_token((rio_TokenKind_Colon))) {
+        rio_Typespec (*type) = rio_parse_type();
+        rio_expect_token((rio_TokenKind_Rparen));
+        return rio_new_expr_typeof_type(pos, type);
+      } else {
+        rio_Expr (*expr) = rio_parse_expr();
+        rio_expect_token((rio_TokenKind_Rparen));
+        return rio_new_expr_typeof_expr(pos, expr);
+      }
     } else {
-      rio_Expr (*expr) = rio_parse_expr();
-      rio_expect_token((rio_TokenKind_Rparen));
-      return rio_new_expr_typeof_expr(pos, expr);
+      rio_expect_token((rio_TokenKind_Lt));
+      rio_Typespec (*type) = rio_parse_type();
+      rio_expect_close_angle();
+      return rio_new_expr_typeof_type(pos, type);
     }
   } else if (rio_match_keyword(rio_offsetof_keyword)) {
     rio_expect_token((rio_TokenKind_Lparen));
@@ -6738,12 +6768,7 @@ rio_Expr (*rio_parse_expr_operand(void)) {
     return rio_parse_expr_compound(NULL);
   } else if (rio_match_token((rio_TokenKind_Lt))) {
     rio_Typespec (*type) = rio_parse_type();
-    if (rio_is_token((rio_TokenKind_Rshift))) {
-      ++(rio_token.start);
-      rio_token.kind = (rio_TokenKind_Gt);
-    } else {
-      rio_expect_token((rio_TokenKind_Gt));
-    }
+    rio_expect_close_angle();
     if (rio_is_token((rio_TokenKind_Lbrace))) {
       return rio_parse_expr_compound(type);
     } else {

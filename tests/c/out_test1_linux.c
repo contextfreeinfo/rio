@@ -1596,11 +1596,11 @@ test1_Thing test1_thing;
 void test1_print_any(Any any) {
   switch (any.type) {
   case TYPEID(8, TypeKind_Int, int): {
-    printf("%d", *((int const (*))(any.ptr)));
+    printf("%d", *(((int const (*))(any.ptr))));
     break;
   }
   case TYPEID(14, TypeKind_Float, float): {
-    printf("%f", *((float const (*))(any.ptr)));
+    printf("%f", *(((float const (*))(any.ptr))));
     break;
   }
   default: {

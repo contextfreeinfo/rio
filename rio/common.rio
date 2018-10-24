@@ -357,8 +357,8 @@ fn map_get_uint64_from_uint64(map: &Map, key: uint64) -> uint64 {
 fn map_grow(map: &Map, new_cap: usize) {
   new_cap = clamp_min(new_cap, 16);
   let new_map = Map {
-    keys: xcalloc(new_cap, sizeof(:uint64)),
-    vals: xmalloc(new_cap * sizeof(:uint64)),
+    keys: xcalloc(new_cap, sizeof<uint64>),
+    vals: xmalloc(new_cap * sizeof<uint64>),
     cap: new_cap,
   };
   for (let i: usize = 0; i < map.cap; i++) {

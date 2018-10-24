@@ -956,6 +956,17 @@ fn match_keyword(name: *const char) -> bool {
   }
 }
 
+fn expect_close_angle() -> bool {
+  if (is_token(TokenKind.Rshift)) {
+    // Hack to support >> as two close angle brackets.
+    ++token.start;
+    token.kind = TokenKind.Gt;
+    return true;
+  } else {
+    return expect_token(TokenKind.Gt);
+  }
+}
+
 fn match_token(kind: TokenKind) -> bool {
   if (is_token(kind)) {
     next_token();

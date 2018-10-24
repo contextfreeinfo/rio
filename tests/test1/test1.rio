@@ -68,7 +68,7 @@ fn test_modify() {
   let i = 42;
   #static_assert(typeof(i) == typeof(int));
   let p: *int = &i;
-  #static_assert(typeof(p) == typeof(:*int));
+  #static_assert(typeof(p) == typeof<*int>);
   p--;
   let x = *p++;
   #assert(x == *--p);
@@ -529,8 +529,9 @@ fn test_sizeof() {
   let i = 0;
   let n = sizeof(i);
   n = sizeof(int);
-  n = sizeof(:int);
-  n = sizeof(:*int);
+  n = sizeof<int>;
+  n = sizeof<*int>;
+  // n = sizeof<*int>;
 }
 
 fn test_cast() {
@@ -544,8 +545,8 @@ fn test_cast() {
 
 fn print_any(any: Any) {
   switch (any.type) {
-    typeof(int) => printf("%d", *(:*const int)any.ptr);
-    typeof(float) => printf("%f", *(:*const float)any.ptr);
+    typeof(int) => printf("%d", *(any.ptr as *const int));
+    typeof(float) => printf("%f", *(any.ptr as *const float));
     default => printf("<unknown>");
   } switch;
   printf(": ");
@@ -646,14 +647,14 @@ fn test_typeinfo() {
   println_any({&p, typeof(p)});
 
   println_type(typeof(int));
-  println_type(typeof(:*const int));
-  println_type(typeof(:[42]*const int));
+  println_type(typeof<*const int>);
+  println_type(typeof<[42]*const int>);
   println_type(typeof(UartCtrl));
 
   println_typeinfo(typeof(int));
   println_typeinfo(typeof(UartCtrl));
-  println_typeinfo(typeof(:*IntOrPtr));
-  println_typeinfo(typeof(:&IntOrPtr));
+  println_typeinfo(typeof<*IntOrPtr>);
+  println_typeinfo(typeof<&IntOrPtr>);
   println_typeinfo(typeof(IntOrPtr));
 }
 
@@ -782,7 +783,7 @@ fn test_alignof() {
   let n1 = alignof(i);
   let n2 = alignof(i+1);
   let n3 = alignof(ullong);
-  let n4 = alignof(:*int);
+  let n4 = alignof<*int>;
 }
 
 struct BufHdr {
