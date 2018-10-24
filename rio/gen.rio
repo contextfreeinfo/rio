@@ -140,12 +140,12 @@ let char_to_escape: [256]char = {
 };
 
 fn gen_char(c: char) {
-  if (char_to_escape[(:uchar)c]) {
-    buf_printf(&gen_buf, "'\\%c'", char_to_escape[(:uchar)c]);
+  if (char_to_escape[c as uchar]) {
+    buf_printf(&gen_buf, "'\\%c'", char_to_escape[c as uchar]);
   } else if (isprint(c)) {
     buf_printf(&gen_buf, "'%c'", c);
   } else {
-    buf_printf(&gen_buf, "'\\x%X'", (:uchar)c);
+    buf_printf(&gen_buf, "'\\x%X'", c as uchar);
   }
 }
 
@@ -157,22 +157,22 @@ fn gen_str(str: *const char, multiline: bool) {
   buf_printf(&gen_buf, "\"");
   while (*str) {
     let start: *const char = str;
-    while (*str && isprint(*str) && !char_to_escape[(:uchar)*str]) {
+    while (*str && isprint(*str) && !char_to_escape[*str as uchar]) {
       str++;
     }
     if (start != str) {
       buf_printf(&gen_buf, "%.*s", str - start, start);
     }
     if (*str) {
-      if (char_to_escape[(:uchar)*str]) {
-        buf_printf(&gen_buf, "\\%c", char_to_escape[(:uchar)*str]);
+      if (char_to_escape[*str as uchar]) {
+        buf_printf(&gen_buf, "\\%c", char_to_escape[*str as uchar]);
         if (str[0] == '\n' && str[1]) {
           buf_printf(&gen_buf, "\"");
           genln(); buf_printf(&gen_buf, "\"");
         }
       } else {
         #assert(!isprint(*str));
-        buf_printf(&gen_buf, "\\x%X", (:uchar)*str);
+        buf_printf(&gen_buf, "\\x%X", *str as uchar);
       }
       str++;
     } if;
@@ -198,7 +198,7 @@ fn gen_sync_pos(pos: SrcPos) {
 }
 
 fn cdecl_paren(str: *const char, c: char) -> *const char {
-  return c && c != '[' ? (:*const char)strf("(%s)", str) : str;
+  return c && c != '[' ? strf("(%s)", str) as *const char : str;
 }
 
 fn cdecl_name(type: &Type) -> *const char {
@@ -279,7 +279,7 @@ fn get_gen_name_or_default(ptr: &const void, default_name: *const char) -> *cons
       #assert(default_name);
       name = default_name;
     }
-    map_put(&gen_name_map, ptr, (:&void)name);
+    map_put(&gen_name_map, ptr, name as &void);
   } if;
   return name;
 }
@@ -554,7 +554,7 @@ fn gen_expr(expr: &Expr) {
           buf_printf(&gen_buf, "0x%llx%s", expr.int_lit.val, suffix_name);
         }
         Oct => buf_printf(&gen_buf, "0%llo%s", expr.int_lit.val, suffix_name);
-        Char => gen_char((:char)expr.int_lit.val);
+        Char => gen_char(expr.int_lit.val as char);
         default => {
           buf_printf(&gen_buf, "%llu%s", expr.int_lit.val, suffix_name);
         }
@@ -939,7 +939,7 @@ fn gen_stmt(stmt: &Stmt) {
             let end_val = get_resolved_val(pattern.end);
             if (is_char_lit(pattern.start) && is_char_lit(pattern.end)) {
               genln();
-              for (let c = (:int)start_val.ll; c <= (:int)end_val.ll; c++) {
+              for (let c = start_val.ll as int; c <= end_val.ll as int; c++) {
                 buf_printf(&gen_buf, "case ");
                 gen_char(c);
                 buf_printf(&gen_buf, ": ");
@@ -1120,7 +1120,7 @@ let gen_foreign_headers_buf: **const char;
 fn add_foreign_header(name: *const char) {
   name = str_intern(name);
   if (!map_get(&gen_foreign_headers_map, name)) {
-    map_put(&gen_foreign_headers_map, name, (:&void)1);
+    map_put(&gen_foreign_headers_map, name, 1 as &void);
     buf_push2.<*const char>(&gen_foreign_headers_buf, &name);
   }
 }

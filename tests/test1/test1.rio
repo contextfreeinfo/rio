@@ -35,7 +35,7 @@ typedef F1 = do();
 typedef F2 = do(f: do(int, int,) -> int) -> int;
 typedef F3 = do(f: do());
 
-const N = (:char)42 + 8 != 0;
+const N = 42 as char + 8 != 0;
 
 typedef A = [1 + 2 * sizeof(h())]int;
 
@@ -152,7 +152,7 @@ struct UartCtrl {
   tx_enable, rx_enable: bool;
 }
 
-const UART_CTRL_REG = (:*uint32)0x12345678;
+const UART_CTRL_REG = 0x12345678 as *uint32;
 
 fn pack(ctrl: UartCtrl) -> uint32 {
   return (ctrl.tx_enable & 1) | ((ctrl.rx_enable & 1) << 1);
@@ -248,9 +248,9 @@ fn is_even(digit: int) -> int {
 
 // fn f() {
 //   let u1 = IntOrPtr{i: 42};
-//   let u2 = IntOrPtr{p: (:*int)42};
+//   let u2 = IntOrPtr{p: 42 as *int};
 //   u1.i = 0;
-//   u2.p = (:*int)0;
+//   u2.p = 0 as *int;
 // }
 
 let i: int;
@@ -423,7 +423,7 @@ fn test_ops() {
   f = f * pi + n;
   f = pi / pi;
   n = 3 % 2;
-  n = n + (:uchar)1;
+  n = n + 1 as uchar;
   let p: *int = &n;
   p = p + 1;
   n = int((p + 1) - p);
@@ -501,7 +501,7 @@ fn test_const() {
   let q = <*char>escape_to_char;
   c = q['n'];
   // q = escape_to_char;
-  p = (:*const char)1;
+  p = 1 as *const char;
   // p = 1;
   // i = p;
   i = int(ullong(p));
@@ -510,7 +510,7 @@ fn test_const() {
 #static_assert(sizeof(int) == 4)
 
 fn test_init() {
-  let x = (:const int)0;
+  let x = 0 as const int;
   #static_assert(sizeof(x) == 4);
   let y: int;
   y = 0;
@@ -540,7 +540,7 @@ fn test_cast() {
   // a = p;
   a = uint64(p);
   // p = a;
-  p = (:*int)a;
+  p = a as *int;
 }
 
 fn print_any(any: Any) {
@@ -683,18 +683,18 @@ fn test_va_list(fmt: *const char, ...) {
 fn test_compound_literals() {
   let w: *Vector;
   w = &{1, 2};
-  let a = (:[]int){1, 2, 3};
+  let a = <[]int>{1, 2, 3};
   let i = 42;
   let x: const Any = {&i, typeof(i)};
-  let y = (:const Any){&i, typeof(i)};
+  let y = <const Any>{&i, typeof(i)};
   let v: Ints = {
     num_ints: 3,
-    int_ptr: (:[]int){1, 2, 3},
+    int_ptr: <[]int>{1, 2, 3},
     int_arr: {1, 2, 3},
   };
   let ints_of_ints: []Ints = {
     {num_ints: 3, int_arr: {1, 2, 3}},
-    {num_ints: 2, int_ptr: (:[2]int){-1, -2}},
+    {num_ints: 2, int_ptr: <[2]int>{-1, -2}},
   };
 }
 

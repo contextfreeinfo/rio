@@ -393,7 +393,7 @@ fn ast_dup_slice<Node>(src: const Slice<Node>) -> Slice<Node> {
 fn ast_dup_type_params(d: &Decl, params: Slice<Decl>) {
   if (params.length) {
     d.type_params = ast_dup_slice.<Decl>(params);
-    buf_free((:&&void)&params.items);
+    buf_free(&params.items as &&void);
   }
 }
 
@@ -530,7 +530,7 @@ fn new_aggregate(
   aggregate.items = ast_dup_slice.<AggregateItem>(items);
   if (items.length) {
     // This is safe for our usage, but how to define generally? Use `own`.
-    buf_free((:&&void)&items.items);
+    buf_free(&items.items as &&void);
   }
   return aggregate;
 }

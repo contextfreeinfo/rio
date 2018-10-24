@@ -45,7 +45,7 @@ let void_name: *const char;
 fn init_keyword(keyword: *const char) -> *const char {
   keyword = str_intern(keyword);
   // TODO If rio doesn't give warnings, the underlying compiler also shouldn't.
-  buf_push((:&&void)&keywords, (:&void)&keyword, sizeof(keyword));
+  buf_push(&keywords as &&void, &keyword as &void, sizeof(keyword));
   return keyword;
 }
 
@@ -407,7 +407,7 @@ fn scan_int() {
       stream++;
       continue;
     }
-    let digit = char_to_digit[(:uchar)*stream];
+    let digit = char_to_digit[*stream as uchar];
     if (digit == 0 && *stream != '0') {
       break;
     }
@@ -506,12 +506,12 @@ let escape_to_char: [256]char = {
 fn scan_hex_escape() -> int {
   #assert(*stream == 'x');
   stream++;
-  let val = char_to_digit[(:uchar)*stream];
+  let val = char_to_digit[*stream as uchar];
   if (!val && *stream != '0') {
     error(token.pos, "\\x needs at least 1 hex digit");
   }
   stream++;
-  let digit = char_to_digit[(:uchar)*stream];
+  let digit = char_to_digit[*stream as uchar];
   if (digit || *stream == '0') {
     val *= 16;
     val += digit;
@@ -538,7 +538,7 @@ fn scan_char() {
     if (*stream == 'x') {
       val = scan_hex_escape();
     } else {
-      val = escape_to_char[(:uchar)*stream];
+      val = escape_to_char[*stream as uchar];
       if (val == 0 && *stream != '0') {
         error(token.pos, "Invalid char literal escape '\\%c'", *stream);
       }
@@ -571,7 +571,7 @@ fn scan_str() {
       }
       if (*stream != '\r') {
         // TODO: Should probably just read files in text mode instead.
-        buf_push((:&&void)&str, (:&void)stream, 1);
+        buf_push(&str as &&void, stream as &void, 1);
       }
       if (*stream == '\n') {
         token.pos.line++;
@@ -593,7 +593,7 @@ fn scan_str() {
         if (*stream == 'x') {
           val = scan_hex_escape();
         } else {
-          val = escape_to_char[(:uchar)*stream];
+          val = escape_to_char[*stream as uchar];
           if (val == 0 && *stream != '0') {
             error(token.pos, "Invalid string literal escape '\\%c'", *stream);
           }
@@ -602,7 +602,7 @@ fn scan_str() {
       } else {
         stream++;
       }
-      buf_push((:&&void)&str, &val, 1);
+      buf_push(&str as &&void, &val, 1);
     }
     if (*stream) {
       stream++;
@@ -612,7 +612,7 @@ fn scan_str() {
   }
   // TODO: If I say just "", I get a random byte in the c output from c rio.
   let nul = '\0';
-  buf_push((:&&void)&str, &nul, 1);
+  buf_push(&str as &&void, &nul, 1);
   token.kind = TokenKind.Str;
   token.str_val = str;
 }
@@ -926,7 +926,7 @@ fn next_token() {
 fn init_stream(name: *const char, buf: *const char) {
   stream = buf;
   line_start = stream;
-  token.pos.name = name ? name : (:*const char)"<string>";
+  token.pos.name = name ? name : "<string>" as *const char;
   token.pos.line = 1;
   next_token();
 }

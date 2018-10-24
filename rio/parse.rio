@@ -25,7 +25,7 @@ fn parse_type_func() -> &Typespec {
         error(token.pos, "Ellipsis must be last parameter in function type");
       }
       let param = parse_type_func_param();
-      buf_push((:&&void)&args, &param, sizeof(param));
+      buf_push(&args as &&void, &param, sizeof(param));
     }
     if (!match_token(TokenKind.Comma)) {
       break;
@@ -44,7 +44,7 @@ def parse_type_args() -> Slice<TypeArg> {
   if (match_token(TokenKind.Lt)) {
     do {
       let type_arg = TypeArg{pos: token.pos, val: parse_type()};
-      buf_push((:*&void)&args, &type_arg, sizeof(*args));
+      buf_push(&args as *&void, &type_arg, sizeof(*args));
     } while (match_token(TokenKind.Comma));
     if (is_token(TokenKind.Rshift)) {
       // Abusive change of current token.
@@ -60,17 +60,18 @@ fn parse_type_base() -> &Typespec {
   if (is_token(TokenKind.Name)) {
     let pos = token.pos;
     let names: *TypespecName;
+    let token_name = token.name;
     next_token();
     let first_name =
-      TypespecName{name: token.name, type_args: parse_type_args()};
-    buf_push((:&&void)&names, &first_name, sizeof(first_name));
+      TypespecName{name: token_name, type_args: parse_type_args()};
+    buf_push(&names as &&void, &first_name, sizeof(first_name));
     while (match_token(TokenKind.Dot)) {
       let name =
         TypespecName{name: parse_name(), type_args: parse_type_args()};
-      buf_push((:&&void)&names, &name, sizeof(name));
+      buf_push(&names as &&void, &name, sizeof(name));
     }
     let result = new_typespec_name(pos, {names, buf_len(names)});
-    buf_free((:&&void)&names);
+    buf_free(&names as &&void);
     return result;
   } else if (match_keyword(fn_keyword) || match_keyword(do_keyword)) {
     return parse_type_func();
@@ -140,7 +141,7 @@ fn parse_expr_compound(type: &Typespec) -> &Expr {
   let fields: *CompoundField = NULL;
   while (!is_token(TokenKind.Rbrace)) {
     let field = parse_expr_compound_field();
-    buf_push((:&&void)&fields, &field, sizeof(field));
+    buf_push(&fields as &&void, &field, sizeof(field));
     if (!match_token(TokenKind.Comma)) {
       break;
     }
@@ -157,7 +158,7 @@ fn parse_expr_list(type: &Typespec) -> &Expr {
   let fields: *CompoundField = NULL;
   while (!is_token(TokenKind.Rbracket)) {
     let field = parse_expr_compound_field();
-    buf_push((:&&void)&fields, &field, sizeof(field));
+    buf_push(&fields as &&void, &field, sizeof(field));
     if (!match_token(TokenKind.Comma)) {
       break;
     }
@@ -202,15 +203,9 @@ fn parse_expr_operand() -> &Expr {
     }
   } else if (match_keyword(sizeof_keyword)) {
     if (match_token(TokenKind.Lparen)) {
-      if (match_token(TokenKind.Colon)) {
-        let type = parse_type();
-        expect_token(TokenKind.Rparen);
-        return new_expr_sizeof_type(pos, type);
-      } else {
-        let expr = parse_expr();
-        expect_token(TokenKind.Rparen);
-        return new_expr_sizeof_expr(pos, expr);
-      }
+      let expr = parse_expr();
+      expect_token(TokenKind.Rparen);
+      return new_expr_sizeof_expr(pos, expr);
     } else {
       expect_token(TokenKind.Lt);
       let type = parse_type();
@@ -219,15 +214,9 @@ fn parse_expr_operand() -> &Expr {
     }
   } else if (match_keyword(alignof_keyword)) {
     if (match_token(TokenKind.Lparen)) {
-      if (match_token(TokenKind.Colon)) {
-        let type = parse_type();
-        expect_token(TokenKind.Rparen);
-        return new_expr_alignof_type(pos, type);
-      } else {
-        let expr = parse_expr();
-        expect_token(TokenKind.Rparen);
-        return new_expr_alignof_expr(pos, expr);
-      }
+      let expr = parse_expr();
+      expect_token(TokenKind.Rparen);
+      return new_expr_alignof_expr(pos, expr);
     } else {
       expect_token(TokenKind.Lt);
       let type = parse_type();
@@ -236,15 +225,9 @@ fn parse_expr_operand() -> &Expr {
     }
   } else if (match_keyword(typeof_keyword)) {
     if (match_token(TokenKind.Lparen)) {
-      if (match_token(TokenKind.Colon)) {
-        let type = parse_type();
-        expect_token(TokenKind.Rparen);
-        return new_expr_typeof_type(pos, type);
-      } else {
-        let expr = parse_expr();
-        expect_token(TokenKind.Rparen);
-        return new_expr_typeof_expr(pos, expr);
-      }
+      let expr = parse_expr();
+      expect_token(TokenKind.Rparen);
+      return new_expr_typeof_expr(pos, expr);
     } else {
       expect_token(TokenKind.Lt);
       let type = parse_type();
@@ -271,19 +254,9 @@ fn parse_expr_operand() -> &Expr {
       return new_expr_cast(pos, type, parse_expr_unary());
     }
   } else if (match_token(TokenKind.Lparen)) {
-    if (match_token(TokenKind.Colon)) {
-      let type = parse_type();
-      expect_token(TokenKind.Rparen);
-      if (is_token(TokenKind.Lbrace)) {
-        return parse_expr_compound(type);
-      } else {
-        return new_expr_cast(pos, type, parse_expr_unary());
-      }
-    } else {
-      let expr = parse_expr();
-      expect_token(TokenKind.Rparen);
-      return new_expr_paren(pos, expr);
-    }
+    let expr = parse_expr();
+    expect_token(TokenKind.Rparen);
+    return new_expr_paren(pos, expr);
   } else {
     fatal_error(token.pos, "Unexpected token %s in expression", token_info());
     return NULL;
@@ -298,7 +271,7 @@ fn parse_expr_base() -> &Expr {
       let args: *&Expr = NULL;
       while (!is_token(TokenKind.Rparen)) {
         let arg = parse_expr();
-        buf_push((:&&void)&args, &arg, sizeof(arg));
+        buf_push(&args as &&void, &arg, sizeof(arg));
         if (!match_token(TokenKind.Comma)) {
           break;
         }
@@ -467,7 +440,7 @@ fn parse_stmt_block() -> StmtList {
   let stmts: *&Stmt = NULL;
   while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
     let stmt = parse_stmt();
-    buf_push((:&&void)&stmts, &stmt, sizeof(stmt));
+    buf_push(&stmts as &&void, &stmt, sizeof(stmt));
   }
   expect_token(TokenKind.Rbrace);
   return new_stmt_list(pos, {stmts, buf_len(stmts)});
@@ -497,7 +470,7 @@ fn parse_stmt_if(pos: SrcPos) -> &Stmt {
     let elseif_cond: &Expr = parse_paren_expr();
     let elseif_block: StmtList = parse_stmt_block();
     let elseif = ElseIf {elseif_cond, elseif_block};
-    buf_push((:&&void)&elseifs, &elseif, sizeof(elseif));
+    buf_push(&elseifs as &&void, &elseif, sizeof(elseif));
   } while;
   return new_stmt_if(
     pos, init, cond, then_block, {elseifs, buf_len(elseifs)}, else_block,
@@ -626,10 +599,10 @@ fn parse_switch_case_pattern() -> SwitchCasePattern {
 fn parse_stmt_switch_case() -> SwitchCase {
   let patterns: *SwitchCasePattern;
   let pattern = parse_switch_case_pattern();
-  buf_push((:&&void)&patterns, &pattern, sizeof(pattern));
+  buf_push(&patterns as &&void, &pattern, sizeof(pattern));
   while (match_token(TokenKind.Comma)) {
     pattern = parse_switch_case_pattern();
-    buf_push((:&&void)&patterns, &pattern, sizeof(pattern));
+    buf_push(&patterns as &&void, &pattern, sizeof(pattern));
   }
   expect_token(TokenKind.Spear);
   let pos = token.pos;
@@ -646,7 +619,7 @@ fn parse_stmt_switch(pos: SrcPos) -> &Stmt {
   expect_token(TokenKind.Lbrace);
   while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
     let case_stmt = parse_stmt_switch_case();
-    buf_push((:&&void)&cases, &case_stmt, sizeof(case_stmt));
+    buf_push(&cases as &&void, &case_stmt, sizeof(case_stmt));
   }
   expect_token(TokenKind.Rbrace);
   return new_stmt_switch(pos, expr, {cases, buf_len(cases)});
@@ -739,7 +712,7 @@ fn parse_decl_enum(pos: SrcPos) -> &Decl {
   let items: *EnumItem = NULL;
   while (!is_token(TokenKind.Rbrace)) {
     let item = parse_decl_enum_item();
-    buf_push((:&&void)&items, &item, sizeof(item));
+    buf_push(&items as &&void, &item, sizeof(item));
     if (!match_token(TokenKind.Comma)) {
       break;
     }
@@ -765,10 +738,10 @@ fn parse_decl_aggregate_item() -> AggregateItem {
   } else {
     let names: **const char = NULL;
     let name = parse_name();
-    buf_push((:&&void)&names, &name, sizeof(name));
+    buf_push(&names as &&void, &name, sizeof(name));
     while (match_token(TokenKind.Comma)) {
       name = parse_name();
-      buf_push((:&&void)&names, &name, sizeof(name));
+      buf_push(&names as &&void, &name, sizeof(name));
     }
     expect_token(TokenKind.Colon);
     let type = parse_type();
@@ -782,7 +755,7 @@ fn parse_decl_aggregate_item() -> AggregateItem {
   } if;
 }
 
-let enum_tag_names = (:[]*const char) {"kind"};
+let enum_tag_names = <[]*const char>{"kind"};
 let enum_tag_name_interned = false;
 
 fn parse_aggregate(
@@ -802,7 +775,7 @@ fn parse_aggregate(
     expect_token(TokenKind.Lbrace);
     while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
       let item = parse_decl_aggregate_item();
-      buf_push((:&&void)&items, &item, sizeof(item));
+      buf_push(&items as &&void, &item, sizeof(item));
       // See if it's a switch union.
       if (item.kind == AggregateItem.Subaggregate) {
         let sub = item.subaggregate;
@@ -838,7 +811,7 @@ fn parse_aggregate(
       // Wrap it in a struct.
       kind = AggregateKind.Struct;
       items = NULL;
-      buf_push((:&&void)&items, &subitem, sizeof(subitem));
+      buf_push(&items as &&void, &subitem, sizeof(subitem));
     } else if (!enum_union) {
       enum_union = get_subunion({items, buf_len(items)});
       if (!enum_union) {
@@ -859,7 +832,7 @@ fn parse_aggregate(
       names: {enum_tag_names, 1},
       type: new_typespec_name1(pos, tag_type_name),
     };
-    buf_unshift((:&&void)&items, &tag_item, sizeof(tag_item));
+    buf_unshift(&items as &&void, &tag_item, sizeof(tag_item));
     // Create and attach union enum.
     // TODO Then use that elsewhere instead of having to recheck notes.
     build_enum_union_decl(enum_union, name);
@@ -872,7 +845,7 @@ fn parse_aggregate(
   return result;
 }
 
-let empty_names = (:[]*const char) {""};
+let empty_names = <[]*const char>{""};
 
 fn parse_switch_union() -> *AggregateItem {
   expect_token(TokenKind.Lbrace);
@@ -880,11 +853,11 @@ fn parse_switch_union() -> *AggregateItem {
   while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
     let kind_names: **const char;
     let kind_name = parse_name();
-    buf_push((:&&void)&kind_names, &kind_name, sizeof(kind_name));
+    buf_push(&kind_names as &&void, &kind_name, sizeof(kind_name));
     // TODO Ellipse ranges.
     while (match_token(TokenKind.Comma)) {
       kind_name = parse_name();
-      buf_push((:&&void)&kind_names, &kind_name, sizeof(kind_name));
+      buf_push(&kind_names as &&void, &kind_name, sizeof(kind_name));
     }
     expect_token(TokenKind.Spear);
     let pos = token.pos;
@@ -914,7 +887,7 @@ fn parse_switch_union() -> *AggregateItem {
       }
     }
     item.kind_names = {kind_names, buf_len(kind_names)};
-    buf_push((:&&void)&items, &item, sizeof(item));
+    buf_push(&items as &&void, &item, sizeof(item));
   } while;
   expect_token(TokenKind.Rbrace);
   return items;
@@ -943,7 +916,7 @@ fn build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
     num_all_items += num_names;
   } for;
   // Now build the enum items.
-  let enum_items = (:*EnumItem)xmalloc(num_all_items * sizeof(EnumItem));
+  let enum_items = xmalloc(num_all_items * sizeof(EnumItem)) as *EnumItem;
   let enum_item_index: usize = 0;
   for &(enum_union.items) do(union_item) {
     let names = union_item.kind_names;
@@ -981,7 +954,7 @@ fn parse_type_params() -> Slice<Decl> {
         typedef_decl: {constraint: constraint},
         // Let val default to null.
       };
-      buf_push((:&&void)&params.items, &param, sizeof(param));
+      buf_push(&params.items as &&void, &param, sizeof(param));
     } while (match_token(TokenKind.Comma));
     expect_token(TokenKind.Gt);
     params.length = buf_len(params.items);
@@ -1093,7 +1066,7 @@ fn parse_decl_func_params(
         );
       }
       let param = parse_decl_func_param(optional_types);
-      buf_push((:&&void)&params, &param, sizeof(param));
+      buf_push(&params as &&void, &param, sizeof(param));
     }
     if (!match_token(TokenKind.Comma)) {
       break;
@@ -1156,10 +1129,10 @@ fn parse_note() -> Note {
   let args: *NoteArg = NULL;
   if (match_token(TokenKind.Lparen)) {
     let arg = parse_note_arg();
-    buf_push((:&&void)&args, &arg, sizeof(arg));
+    buf_push(&args as &&void, &arg, sizeof(arg));
     while (match_token(TokenKind.Comma)) {
       arg = parse_note_arg();
-      buf_push((:&&void)&args, &arg, sizeof(arg));
+      buf_push(&args as &&void, &arg, sizeof(arg));
     }
     expect_token(TokenKind.Rparen);
   } if;
@@ -1170,7 +1143,7 @@ fn parse_notes() -> Slice<Note> {
   let notes: *Note = NULL;
   while (match_token(TokenKind.At)) {
     let note = parse_note();
-    buf_push((:&&void)&notes, &note, sizeof(note));
+    buf_push(&notes as &&void, &note, sizeof(note));
   }
   return new_notes({notes, buf_len(notes)});
 }
@@ -1197,9 +1170,9 @@ fn parse_decl_import(pos: SrcPos) -> &Decl {
     goto repeat;
   }
   let names: **const char = NULL;
-  buf_push((:&&void)&names, &name, sizeof(name));
+  buf_push(&names as &&void, &name, sizeof(name));
   while (match_token(TokenKind.Dot)) {
-    buf_push((:&&void)&names, &token.name, sizeof(token.name));
+    buf_push(&names as &&void, &token.name, sizeof(token.name));
     expect_token(TokenKind.Name);
   }
   let import_all = false;
@@ -1212,10 +1185,10 @@ fn parse_decl_import(pos: SrcPos) -> &Decl {
         let item_name = parse_name();
         if (match_token(TokenKind.Assign)) {
           let item = ImportItem {name: parse_name(), rename: item_name};
-          buf_push((:&&void)&items, &item, sizeof(item));
+          buf_push(&items as &&void, &item, sizeof(item));
         } else {
           let item = ImportItem {name: item_name};
-          buf_push((:&&void)&items, &item, sizeof(item));
+          buf_push(&items as &&void, &item, sizeof(item));
         }
         if (!match_token(TokenKind.Comma)) {
           break;
@@ -1269,7 +1242,7 @@ fn parse_decls() -> &Slice<&Decl> {
   let decls: *&Decl = NULL;
   while (!is_token(TokenKind.Eof)) {
     let decl = parse_decl();
-    buf_push((:&&void)&decls, &decl, sizeof(decl));
+    buf_push(&decls as &&void, &decl, sizeof(decl));
   }
   return new_decls({decls, buf_len(decls)});
 }

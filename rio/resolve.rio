@@ -55,7 +55,7 @@ fn add_package(package: &Package) {
   if (old_package != package) {
     #assert(!old_package);
     map_put(&package_map, package.path, package);
-    buf_push((:&&void)&package_list, &package, sizeof(package));
+    buf_push(&package_list as &&void, &package, sizeof(package));
   }
 }
 
@@ -185,7 +185,7 @@ fn sym_global_put(name: *const char, sym: &Sym) {
     fatal_error(pos, "Duplicate definition of global symbol '%s'.", name);
   }
   map_put(&current_package.syms_map, name, sym);
-  buf_push((:&&void)&current_package.syms, &sym, sizeof(sym));
+  buf_push(&current_package.syms as &&void, &sym, sizeof(sym));
 }
 
 fn sym_global_type(name: *const char, type: &Type) -> &Sym {
@@ -206,7 +206,7 @@ fn sym_track_ref_type(sym: &Sym, type: &Typespec) {
   if (type.kind == Typespec.Name) {
     type.decl = decl;
   }
-  buf_push((:&&void)&decl.refs.items, &type, sizeof(type));
+  buf_push(&decl.refs.items as &&void, &type, sizeof(type));
   ++decl.refs.length;
 }
 
@@ -214,7 +214,7 @@ fn build_scoped_name(space: *const char, name: *const char) -> *const char {
   let scoped_name_buf: *char;
   buf_printf(&scoped_name_buf, "%s_%s", space, name);
   let scoped_name = str_intern(scoped_name_buf);
-  buf_free((:&&void)&scoped_name_buf);
+  buf_free(&scoped_name_buf as &&void);
   return scoped_name;
 }
 
@@ -644,7 +644,7 @@ fn resolve_specialized_decl(
     let arg_name = get_typespec_sym_name(arg_typespec);
     // TODO Worth the effort of varargs to avoid repeated substrings?
     name = build_scoped_name(name, arg_name);
-    buf_free((:&&void)&arg_name);
+    buf_free(&arg_name as &&void);
   }
   let is_generic = false;
   for &(type_args) do(type_arg) {
@@ -662,7 +662,7 @@ fn resolve_specialized_decl(
     }
   }
   let type_map = TypeMap{type_args: type_args, type_params: type_params};
-  let map = MapClosure{self: &type_map, call: (:MapClosureCall)map_type_args};
+  let map = MapClosure{self: &type_map, call: map_type_args as MapClosureCall};
   let dupe: &Decl;
   switch (decl.kind) {
     Func => {
@@ -805,7 +805,7 @@ fn resolve_typespec(typespec: &Typespec) -> &Type {
         if (arg_type == type_void) {
           fatal_error(typespec.pos, "Function parameter type cannot be void");
         }
-        buf_push((:&&void)&args, &arg_type, sizeof(arg_type));
+        buf_push(&args as &&void, &arg_type, sizeof(arg_type));
       } for;
       let ret = type_void;
       if (typespec.function.ret) {
@@ -855,13 +855,13 @@ fn complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
       // }
       for (item.names) do(name) {
         let type_field = TypeField {name, item_type};
-        buf_push((:&&void)&fields, &type_field, sizeof(type_field));
+        buf_push(&fields as &&void, &type_field, sizeof(type_field));
       }
     } else {
       #assert(item.kind == AggregateItem.Subaggregate);
       let item_type = complete_aggregate(NULL, item.subaggregate);
       let type_field = TypeField {NULL, item_type};
-      buf_push((:&&void)&fields, &type_field, sizeof(type_field));
+      buf_push(&fields as &&void, &type_field, sizeof(type_field));
     }
   } for;
   if (!type) {
@@ -901,7 +901,7 @@ fn complete_type(type: &Type) {
   type.kind = CompilerTypeKind.Completing;
   #assert(decl.kind == Decl.Struct || decl.kind == Decl.Union);
   complete_aggregate(type, decl.aggregate);
-  buf_push((:&&void)&sorted_syms, &type.sym, sizeof(type.sym));
+  buf_push(&sorted_syms as &&void, &type.sym, sizeof(type.sym));
   leave_package(old_package);
 }
 
@@ -999,7 +999,7 @@ fn resolve_decl_func(decl: &Decl) -> &Type {
     if (!has_type_params && param_type == type_void) {
       fatal_error(decl.pos, "Function parameter type cannot be void");
     }
-    buf_push((:&&void)&params, &param_type, sizeof(param_type));
+    buf_push(&params as &&void, &param_type, sizeof(param_type));
   } for;
   let ret_type = type_void;
   if (decl.function.ret_type) {
@@ -1460,7 +1460,7 @@ def resolve_func_body(sym: &Sym) {
     };
     let map = MapClosure{
       self: &type_map,
-      call: (:MapClosureCall)map_type_args,
+      call: map_type_args as MapClosureCall,
     };
     decl.function.block = dupe_block(decl.function.block, &map);
     decl.shallow = false;
@@ -1507,7 +1507,7 @@ fn resolve_sym(sym: &Sym) {
   #assert(sym.state == SymState.Unresolved);
   #assert(!sym.reachable);
   if (!is_local_sym(sym)) {
-    buf_push((:&&void)&reachable_syms, &sym, sizeof(sym));
+    buf_push(&reachable_syms as &&void, &sym, sizeof(sym));
     sym.reachable = reachable_phase;
   }
   sym.state = SymState.Resolving;
@@ -1537,7 +1537,7 @@ fn resolve_sym(sym: &Sym) {
   leave_package(old_package);
   sym.state = SymState.Resolved;
   if (decl.is_incomplete || (decl.kind != Decl.Struct && decl.kind != Decl.Union)) {
-    buf_push((:&&void)&sorted_syms, &sym, sizeof(sym));
+    buf_push(&sorted_syms as &&void, &sym, sizeof(sym));
   }
 }
 
@@ -2056,7 +2056,7 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
           fatal_error(field.pos, "Named field in compound literal does not exist");
         }
       }
-      if (index >= (:int)type.aggregate.fields.length) {
+      if (index >= type.aggregate.fields.length as int) {
         fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
       }
       let field_type = type.aggregate.fields[index].type;
@@ -2084,7 +2084,7 @@ fn resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
         }
         index = operand.val.i;
       } if;
-      if (type.num_elems && index >= (:int)type.num_elems) {
+      if (type.num_elems && index >= type.num_elems as int) {
         fatal_error(field.pos, "Field initializer in array compound literal out of range");
       }
       if (!resolve_typed_init(field.pos, type.base, field.init)) {
@@ -2577,7 +2577,7 @@ fn add_package_decls(package: &Package) {
         if (arg.kind != Expr.Name) {
           fatal_error(decl.pos, "#declare_note argument must be name");
         }
-        map_put(&decl_note_names, arg.name, (:&void)1);
+        map_put(&decl_note_names, arg.name, 1 as &void);
       } else if (decl.note.name == static_assert_name) {
         // TODO How to handle top-level static #asserts wrt laziness/tree
         // TODO shaking?
@@ -2683,7 +2683,7 @@ fn process_package_imports(package: &Package) {
       if (!imported_package) {
         fatal_error(decl.pos, "Failed to import package '%s'", path_buf);
       }
-      buf_free((:&&void)&path_buf);
+      buf_free(&path_buf as &&void);
       import_package_symbols(decl, imported_package);
       if (decl.import_decl.import_all) {
         import_all_package_symbols(imported_package);
@@ -2726,7 +2726,7 @@ fn parse_package(package: &Package) -> bool {
     init_stream(str_intern(path), code);
     let file_decls = parse_decls();
     for &(file_decls) do(decl) {
-      buf_push((:&&void)&decls, decl, sizeof(*decl));
+      buf_push(&decls as &&void, decl, sizeof(*decl));
     }
   } for;
   package.decls = {decls, buf_len(decls)};

@@ -40,7 +40,7 @@ fn path_absolute(path: [MAX_PATH]char) {
 
 fn dir_list_free(iter: &DirListIter) {
   if (iter.valid) {
-    _findclose((:intptr)iter.handle);
+    _findclose(iter.handle as intptr);
     iter.valid = false;
     iter.error = false;
   }
@@ -63,7 +63,7 @@ fn dir_list_next(iter: &DirListIter) {
   }
   do {
     let fileinfo: FindData;
-    let result = _findnext((:intptr)iter.handle, &fileinfo);
+    let result = _findnext(iter.handle as intptr, &fileinfo);
     dir__update(iter, result != 0, &fileinfo);
     if (result != 0) {
       dir_list_free(iter);
@@ -80,7 +80,7 @@ fn dir_list(iter: &DirListIter, path: *const char) {
   path_join(filespec, "*");
   let fileinfo: FindData;
   let handle = _findfirst(filespec, &fileinfo);
-  iter.handle = (:&void)handle;
+  iter.handle = handle as &void;
   dir__update(iter, handle == -1, &fileinfo);
   if (dir_excluded(iter)) {
     dir_list_next(iter);

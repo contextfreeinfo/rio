@@ -97,11 +97,11 @@ fn get_type_from_typeid(typeid: int) -> &Type {
   if (typeid == 0) {
     return NULL;
   }
-  return map_get(&typeid_map, (:&void)(:uintptr)typeid);
+  return map_get(&typeid_map, typeid as uintptr as &void);
 }
 
 fn register_typeid(type: &Type) {
-  map_put(&typeid_map, (:&void)(:uintptr)type.typeid, type);
+  map_put(&typeid_map, type.typeid as uintptr as &void, type);
 }
 
 fn type_alloc(kind: TypeKind) -> &Type {
@@ -386,7 +386,7 @@ fn add_type_fields(fields: &*TypeField, type: &Type, offset: usize) {
   #assert(type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union);
   for &(type.aggregate.fields) do(field) {
     let new_field = TypeField {field.name, field.type, field.offset + offset};
-    buf_push((:&&void)fields, &new_field, sizeof(new_field));
+    buf_push(fields as &&void, &new_field, sizeof(new_field));
   }
 }
 
@@ -402,7 +402,7 @@ fn type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
     #assert(!align || is_pow2(align));
     if (it.name) {
       it.offset = type.size;
-      buf_push((:&&void)&new_fields, it, sizeof(*it));
+      buf_push(&new_fields as &&void, it, sizeof(*it));
     } else {
       add_type_fields(&new_fields, it.type, type.size);
     }
@@ -431,7 +431,7 @@ fn type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
       if (*it.name) {
         // A non-void-switch field.
         it.offset = type.size;
-        buf_push((:&&void)&new_fields, it, sizeof(*it));
+        buf_push(&new_fields as &&void, it, sizeof(*it));
       }
     } else {
       add_type_fields(&new_fields, it.type, 0);
@@ -489,7 +489,7 @@ fn aggregate_item_field_index(type: &Type, name: *const char) -> int {
   #assert(is_aggregate_type(type));
   for &(type.aggregate.fields) do(field, i) {
     if (field.name == name) {
-      return (:int)i;
+      return i as int;
     }
   }
   return -1;
@@ -497,7 +497,7 @@ fn aggregate_item_field_index(type: &Type, name: *const char) -> int {
 
 fn aggregate_item_field_type_from_index(type: &Type, index: int) -> &Type {
   #assert(is_aggregate_type(type));
-  #assert(0 <= index && index < (:int)type.aggregate.fields.length);
+  #assert(0 <= index && index < type.aggregate.fields.length as int);
   return type.aggregate.fields[index].type;
 }
 

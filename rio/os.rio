@@ -82,7 +82,7 @@ fn dir_list_buf(filespec: *const char) -> **const char {
   let iter: DirListIter;
   for (dir_list(&iter, filespec); iter.valid; dir_list_next(&iter)) {
     let name: *const char = strdup(iter.name);
-    buf_push((:&&void)&buf, &name, sizeof(name));
+    buf_push(&buf as &&void, &name, sizeof(name));
   }
   return buf;
 }
@@ -114,12 +114,12 @@ let flag_defs: *FlagDef;
 
 fn add_flag_bool(name: *const char, ptr: &bool, help: *const char) {
   let flag: FlagDef = {kind: FlagKind.Bool, name: name, help: help, ptr: {b: ptr}};
-  buf_push((:&&void)&flag_defs, &flag, sizeof(flag));
+  buf_push(&flag_defs as &&void, &flag, sizeof(flag));
 }
 
 fn add_flag_str(name: *const char, ptr: **const char, arg_name: *const char, help: *const char) {
   let flag: FlagDef = {kind: FlagKind.Str, name: name, help: help, arg_name: arg_name, ptr: {s: ptr}};
-  buf_push((:&&void)&flag_defs, &flag, sizeof(flag));
+  buf_push(&flag_defs as &&void, &flag, sizeof(flag));
 }
 
 fn add_flag_enum(
@@ -130,7 +130,7 @@ fn add_flag_enum(
     kind: FlagKind.Enum, name: name, help: help, ptr: {i: ptr},
     options: {options, num_options},
   };
-  buf_push((:&&void)&flag_defs, &flag, sizeof(flag));
+  buf_push(&flag_defs as &&void, &flag, sizeof(flag));
 }
 
 fn get_flag_def(name: *const char) -> &FlagDef {
@@ -150,7 +150,7 @@ fn print_flags_usage() {
     let format: [256]char;
     switch (flag.kind) {
       Str => {
-        snprintf(format, sizeof(format), "%s <%s>", flag.name, flag.arg_name ? flag.arg_name : (:*const char)"value");
+        snprintf(format, sizeof(format), "%s <%s>", flag.name, flag.arg_name ? flag.arg_name : "value" as *const char);
         if (*flag.ptr.s) {
           snprintf(note, sizeof(note), "(default: %s)", *flag.ptr.s);
         }
@@ -169,7 +169,7 @@ fn print_flags_usage() {
       }
       Bool, default => snprintf(format, sizeof(format), "%s", flag.name);
     }
-    printf(" -%-32s %s%s\n", format, flag.help ? flag.help : (:*const char)"", note);
+    printf(" -%-32s %s%s\n", format, flag.help ? flag.help : "" as *const char, note);
   }
 }
 

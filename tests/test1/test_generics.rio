@@ -1,7 +1,7 @@
 fn test_generics() {
   let slirce: Slirce;
-  let slorce: Slorce<int> = {items: (:[]int){1, 2, 3}, length: 3};
-  let slorce_ref: Slorce<&int> = {items: (:[]&int){slorce.items}, length: 1};
+  let slorce: Slorce<int> = {items: <[]int>{1, 2, 3}, length: 3};
+  let slorce_ref: Slorce<&int> = {items: <[]&int>{slorce.items}, length: 1};
   printf("Generically, %d\n", *slorce_ref[0]);
   let slarb: Slorce<Bar>;
   let slerce: Slerce<int>;
@@ -58,11 +58,11 @@ fn test_generic_functions() {
     "float sum_slice: %g\n",
     // sum_slice!([1.1, 2.2, 3.3]),
     // sum_slice.<float>([1.1, 2.2, 3.3]),
-    sum_slice.<float>({items: (:[]float){1.1, 2.2, 3.3}, length: 3}),
+    sum_slice.<float>({items: <[]float>{1.1, 2.2, 3.3}, length: 3}),
   );
   // printf("int sum: %d", sum(1, 2));
   // printf("float sum: %d", sum(1.1, 2.2));
-  let slices: []Slice<int> = {{}, {items: (:[]int){12}, length: 1}};
+  let slices: []Slice<int> = {{}, {items: <[]int>{12}, length: 1}};
   for (slices) do(slice) {
     let first_thing = first.<int>(slice);
     switch (first_thing.kind) {
@@ -70,7 +70,7 @@ fn test_generic_functions() {
       Err => printf("Err: %d\n", first_thing.err);
     }
   }
-  // first((:Slice<int>){items: &thing, length: 1});
+  // first(<Slice<int>>{items: &thing, length: 1});
   // first(Slice.<int>{});
   // first(Slice.<int>{items: &thing, length: 1});
   // first(Slice[int]{});

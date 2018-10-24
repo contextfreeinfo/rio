@@ -49,7 +49,7 @@ fn init_compiler() {
   init_package_search_paths();
   init_keywords();
   init_builtin_types();
-  map_put(&decl_note_names, declare_note_name, (:&void)1);
+  map_put(&decl_note_names, declare_note_name, 1 as &void);
 }
 
 fn parse_env_vars() {
@@ -125,7 +125,7 @@ fn rio_main(argc: int, argv: **const char, gen_all: fn(), extension: *const char
   }
   finalize_reachable_syms();
   if (flag_verbose) {
-    printf("Reached %d symbols in %d packages from %s/main\n", (:int)buf_len(reachable_syms), (:int)buf_len(package_list), package_name);
+    printf("Reached %d symbols in %d packages from %s/main\n", buf_len(reachable_syms) as int, buf_len(package_list) as int, package_name);
   }
   if (!flag_lazy) {
     reachable_phase = ReachablePhase.Forced;
@@ -134,7 +134,7 @@ fn rio_main(argc: int, argv: **const char, gen_all: fn(), extension: *const char
     }
     finalize_reachable_syms();
   }
-  printf("Processed %d symbols in %d packages\n", (:int)buf_len(reachable_syms), (:int)buf_len(package_list));
+  printf("Processed %d symbols in %d packages\n", buf_len(reachable_syms) as int, buf_len(package_list) as int);
   if (!flag_check) {
     let c_path: [MAX_PATH]char;
     if (output_name) {
