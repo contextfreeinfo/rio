@@ -21,106 +21,106 @@ struct lldiv_t {
 @foreign let RAND_MAX: int;
 
 @foreign
-fn atof(nptr: *const char) -> double;
+def atof(nptr: *const char) -> double;
 
 @foreign
-fn atoi(nptr: *const char) -> int;
+def atoi(nptr: *const char) -> int;
 
 @foreign
-fn atol(nptr: *const char) -> long;
+def atol(nptr: *const char) -> long;
 
 @foreign
-fn atoll(nptr: *const char) -> llong;
+def atoll(nptr: *const char) -> llong;
 
 @foreign
-fn strtod(nptr: *const char, endptr: **char) -> double;
+def strtod(nptr: *const char, endptr: **char) -> double;
 
 @foreign
-fn strtof(nptr: *const char, endptr: **char) -> float;
+def strtof(nptr: *const char, endptr: **char) -> float;
 
 @foreign
-fn strtol(nptr: *const char, endptr: **char, base: int) -> long;
+def strtol(nptr: *const char, endptr: **char, base: int) -> long;
 
 @foreign
-fn strtoll(nptr: *const char, endptr: **char, base: int) -> llong;
+def strtoll(nptr: *const char, endptr: **char, base: int) -> llong;
 
 @foreign
-fn strtoul(nptr: *const char, endptr: **char, base: int) -> ulong;
+def strtoul(nptr: *const char, endptr: **char, base: int) -> ulong;
 
 @foreign
-fn strtoull(nptr: *const char, endptr: **char, base: int) -> ullong;
+def strtoull(nptr: *const char, endptr: **char, base: int) -> ullong;
 
 @foreign
-fn rand() -> int;
+def rand() -> int;
 
 @foreign
-fn srand(seed: uint);
+def srand(seed: uint);
 
 @foreign
-fn calloc(nmemb: usize, size: usize) -> &void;
+def calloc(nmemb: usize, size: usize) -> &void;
 
 @foreign
-fn free(ptr: &void);
+def free(ptr: &void);
 
 @foreign
-fn malloc(size: usize) -> &void;
+def malloc(size: usize) -> &void;
 
 @foreign
-fn realloc(ptr: &void, size: usize) -> &void;
+def realloc(ptr: &void, size: usize) -> &void;
 
 @foreign
-fn abort();
+def abort();
 
 @foreign
-fn atexit(function: fn()) -> int;
+def atexit(function: do()) -> int;
 
 @foreign
-fn exit(status: int);
+def exit(status: int);
 
 @foreign
-fn _Exit(status: int);
+def _Exit(status: int);
 
 @foreign
-fn getenv(name: *const char) -> *char;
+def getenv(name: *const char) -> *char;
 
 @foreign
-fn system(string: *const char) -> int;
+def system(string: *const char) -> int;
 
 @foreign
-fn bsearch(key: &const void, base: &const void, nmemb: usize, size: usize, compar: fn(&const void, &const void) -> int) -> &void;
+def bsearch(key: &const void, base: &const void, nmemb: usize, size: usize, compar: do(&const void, &const void) -> int) -> &void;
 
 @foreign
-fn qsort(base: &void, nmemb: usize, size: usize, compar: fn(&const void, &const void) -> int);
+def qsort(base: &void, nmemb: usize, size: usize, compar: do(&const void, &const void) -> int);
 
 @foreign
-fn abs(j: int) -> int;
+def abs(j: int) -> int;
 
 @foreign
-fn labs(j: long) -> long;
+def labs(j: long) -> long;
 
 @foreign
-fn llabs(j: llong) -> llong;
+def llabs(j: llong) -> llong;
 
 @foreign
-fn div(numer: int, denom: int) -> div_t;
+def div(numer: int, denom: int) -> div_t;
 
 @foreign
-fn ldiv(numer: long, denom: long) -> ldiv_t;
+def ldiv(numer: long, denom: long) -> ldiv_t;
 
 @foreign
-fn lldiv(numer: llong, denom: llong) -> lldiv_t;
+def lldiv(numer: llong, denom: llong) -> lldiv_t;
 
 @foreign
-fn mblen(s: *const char, n: usize) -> int;
+def mblen(s: *const char, n: usize) -> int;
 
 @foreign
-fn mbtowc(pwc: *short, s: *const char, n: usize) -> int;
+def mbtowc(pwc: *short, s: *const char, n: usize) -> int;
 
 @foreign
-fn wctomb(s: *char, wchar: short) -> int;
+def wctomb(s: *char, wchar: short) -> int;
 
 @foreign
-fn mbstowcs(pwcs: *short, s: *const char, n: usize) -> usize;
+def mbstowcs(pwcs: *short, s: *const char, n: usize) -> usize;
 
 @foreign
-fn wcstombs(s: *char, pwcs: *const short, n: usize) -> usize;
+def wcstombs(s: *char, pwcs: *const short, n: usize) -> usize;

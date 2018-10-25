@@ -1,53 +1,53 @@
 // #define MIN(x, y) ((x) <= (y) ? (x) : (y))
-fn min(x: usize, y: usize) -> usize {
+def min(x: usize, y: usize) -> usize {
   return x <= y ? x : y;
 }
 
 // #define MAX(x, y) ((x) >= (y) ? (x) : (y))
-fn max(x: usize, y: usize) -> usize {
+def max(x: usize, y: usize) -> usize {
   return x >= y ? x : y;
 }
 
 // #define CLAMP_MAX(x, max) MIN(x, max)
-fn clamp_max(x: usize, max: usize) -> usize {
+def clamp_max(x: usize, max: usize) -> usize {
   return min(x, max);
 }
 
 // #define CLAMP_MIN(x, min) MAX(x, min)
-fn clamp_min(x: usize, min: usize) -> usize {
+def clamp_min(x: usize, min: usize) -> usize {
   return max(x, min);
 }
 
 // #define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
-fn is_pow2(x: usize) -> usize {
+def is_pow2(x: usize) -> usize {
   return x != 0 && x & (x - 1) == 0;
 }
 
 // #define ALIGN_DOWN(n, a) ((n) & ~((a) - 1))
-fn align_down(n: uintptr, a: usize) -> uintptr {
+def align_down(n: uintptr, a: usize) -> uintptr {
   return n & ~(a - 1);
 }
 
 // #define ALIGN_UP(n, a) ALIGN_DOWN((n) + (a) - 1, (a))
-fn align_up(n: uintptr, a: usize) -> uintptr {
+def align_up(n: uintptr, a: usize) -> uintptr {
   return align_down(n + a - 1, a);
 }
 
 // #define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
-fn align_down_ptr(p: &void, a: usize) -> &void {
+def align_down_ptr(p: &void, a: usize) -> &void {
   return align_down(p as uintptr, a) as &void;
 }
 
 // #define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
-fn align_up_ptr(p: &void, a: usize) -> &void {
+def align_up_ptr(p: &void, a: usize) -> &void {
   return align_up(p as uintptr, a) as &void;
 }
 
-fn starts_with(string: *const char, start: *const char) -> bool {
+def starts_with(string: *const char, start: *const char) -> bool {
   return !strncmp(string, start, strlen(start));
 }
 
-fn fatal(fmt: *const char, ...) {
+def fatal(fmt: *const char, ...) {
   let args: va_list;
   va_start(&args, &fmt);
   printf("FATAL: ");
@@ -57,7 +57,7 @@ fn fatal(fmt: *const char, ...) {
   exit(1);
 }
 
-fn xcalloc(num_elems: usize, elem_size: usize) -> &void {
+def xcalloc(num_elems: usize, elem_size: usize) -> &void {
   let ptr = calloc(num_elems, elem_size);
   if (!ptr) {
     perror("xcalloc failed");
@@ -66,7 +66,7 @@ fn xcalloc(num_elems: usize, elem_size: usize) -> &void {
   return ptr;
 }
 
-fn xrealloc(ptr: &void, num_bytes: usize) -> &void {
+def xrealloc(ptr: &void, num_bytes: usize) -> &void {
   ptr = realloc(ptr, num_bytes);
   if (!ptr) {
     perror("xrealloc failed");
@@ -75,7 +75,7 @@ fn xrealloc(ptr: &void, num_bytes: usize) -> &void {
   return ptr;
 }
 
-fn xmalloc(num_bytes: usize) -> &void {
+def xmalloc(num_bytes: usize) -> &void {
   let ptr = malloc(num_bytes);
   if (!ptr) {
     perror("xmalloc failed");
@@ -84,13 +84,13 @@ fn xmalloc(num_bytes: usize) -> &void {
   return ptr;
 }
 
-fn memdup(src: &void, size: usize) -> &void {
+def memdup(src: &void, size: usize) -> &void {
   let dest = xmalloc(size);
   memcpy(dest, src, size);
   return dest;
 }
 
-fn strf(fmt: *const char, ...) -> *char {
+def strf(fmt: *const char, ...) -> *char {
   let args: va_list;
   va_start(&args, &fmt);
   let n = 1 + vsnprintf(NULL, 0, fmt, args);
@@ -102,7 +102,7 @@ fn strf(fmt: *const char, ...) -> *char {
   return str;
 }
 
-fn read_file(path: *const char) -> *char {
+def read_file(path: *const char) -> *char {
   let file = fopen(path, "rb");
   if (!file) {
     return NULL;
@@ -121,7 +121,7 @@ fn read_file(path: *const char) -> *char {
   return buf;
 }
 
-fn write_file(path: *const char, buf: *const char, len: usize) -> bool {
+def write_file(path: *const char, buf: *const char, len: usize) -> bool {
   let file = fopen(path, "w");
   if (!file) {
     return false;
@@ -141,32 +141,32 @@ struct BufHdr {
 }
 
 // #define buf__hdr(b) ((BufHdr *)((char *)(b) - offsetof(BufHdr, buf)))
-fn buf__hdr(b: &void) -> &BufHdr {
+def buf__hdr(b: &void) -> &BufHdr {
   return (b as *char - offsetof(BufHdr, buf)) as &BufHdr;
 }
 
 // #define buf_len(b) ((b) ? buf__hdr(b)->len : 0)
-fn buf_len(b: &void) -> usize {
+def buf_len(b: &void) -> usize {
   return b ? buf__hdr(b).len : 0;
 }
 
 // #define buf_cap(b) ((b) ? buf__hdr(b)->cap : 0)
-fn buf_cap(b: &const void) -> usize {
+def buf_cap(b: &const void) -> usize {
   return b ? buf__hdr(b as &void).cap : 0;
 }
 
 // #define buf_end(b) ((b) + buf_len(b))
-fn buf_end(b: &void, elem_size: usize) -> &void {
+def buf_end(b: &void, elem_size: usize) -> &void {
   return b as *char + elem_size * buf_len(b);
 }
 
 // #define buf_sizeof(b) ((b) ? buf_len(b)*sizeof(*b) : 0)
-fn buf_sizeof(b: &void, elem_size: usize) -> usize {
+def buf_sizeof(b: &void, elem_size: usize) -> usize {
   return b ? buf_len(b) * elem_size : 0;
 }
 
 // #define buf_free(b) ((b) ? (free(buf__hdr(b)), (b) = NULL) : 0)
-fn buf_free(b: &&void) {
+def buf_free(b: &&void) {
   if (b) {
     free(buf__hdr(*b));
     *b = NULL;
@@ -174,7 +174,7 @@ fn buf_free(b: &&void) {
 }
 
 // #define buf_fit(b, n) ((n) <= buf_cap(b) ? 0 : ((b) = buf__grow((b), (n), sizeof(*(b)))))
-fn buf_fit(b: &&void, new_len: usize, elem_size: usize) {
+def buf_fit(b: &&void, new_len: usize, elem_size: usize) {
   if (new_len > buf_cap(*b)) {
     *b = buf__grow(*b, new_len, elem_size);
   }
@@ -182,19 +182,19 @@ fn buf_fit(b: &&void, new_len: usize, elem_size: usize) {
 
 // TODO: We need templates or macros to make this better generic.
 // #define buf_push(b, ...) (buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->len++] = (__VA_ARGS__))
-fn buf_push(b: &&void, elem: &void, elem_size: usize) {
+def buf_push(b: &&void, elem: &void, elem_size: usize) {
   buf_fit(b, 1 + buf_len(*b), elem_size);
   memcpy(*b as *char + elem_size * buf__hdr(*b).len++, elem, elem_size);
 }
 
-fn buf_push2<Item>(buf: &*Item, item: &Item) {
+def buf_push2<Item>(buf: &*Item, item: &Item) {
   let item_size = sizeof(*item);
   // TODO Doesn't resolve Item for some reason: let item_size = sizeof(Item);
   buf_fit(buf as &&void, 1 + buf_len(*buf), item_size);
   memcpy(*buf as *char + item_size * buf__hdr(*buf).len++, item, item_size);
 }
 
-fn buf_unshift(b: &&void, elem: &void, elem_size: usize) {
+def buf_unshift(b: &&void, elem: &void, elem_size: usize) {
   buf_fit(b, 1 + buf_len(*b), elem_size);
   memmove(*b as *char + elem_size, *b, elem_size * buf__hdr(*b).len++);
   memcpy(*b, elem, elem_size);
@@ -203,7 +203,7 @@ fn buf_unshift(b: &&void, elem: &void, elem_size: usize) {
 // #define buf_printf(b, ...) ((b) = buf__printf((b), __VA_ARGS__))
 // #define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)
 
-fn buf__grow(buf: &const void, new_len: usize, elem_size: usize) -> &void {
+def buf__grow(buf: &const void, new_len: usize, elem_size: usize) -> &void {
   #assert(buf_cap(buf) <= (USIZE_MAX - 1)/2);
   let new_cap = clamp_min(2 * buf_cap(buf), max(new_len, 16));
   #assert(new_len <= new_cap);
@@ -220,7 +220,7 @@ fn buf__grow(buf: &const void, new_len: usize, elem_size: usize) -> &void {
   return new_hdr.buf;
 }
 
-fn buf_printf(buf: &*char, fmt: *const char, ...) {
+def buf_printf(buf: &*char, fmt: *const char, ...) {
   let args: va_list;
   va_start(&args, &fmt);
   let cap = buf_cap(*buf) - buf_len(*buf);
@@ -237,7 +237,7 @@ fn buf_printf(buf: &*char, fmt: *const char, ...) {
   buf__hdr(*buf).len += n - 1;
 }
 
-// fn buf_test() {
+// def buf_test() {
 //   let buf: *int = NULL;
 //   assert(buf_len(buf) == 0);
 //   int n = 1024;
@@ -270,7 +270,7 @@ const ARENA_ALIGNMENT = 8;
 const ARENA_BLOCK_SIZE = 1024 * 1024;
 // const ARENA_BLOCK_SIZE = 1024;
 
-fn arena_grow(arena: &Arena, min_size: usize) {
+def arena_grow(arena: &Arena, min_size: usize) {
   let size = align_up(clamp_min(min_size, ARENA_BLOCK_SIZE), ARENA_ALIGNMENT);
   arena.ptr = xmalloc(size);
   #assert(arena.ptr == align_down_ptr(arena.ptr, ARENA_ALIGNMENT));
@@ -278,7 +278,7 @@ fn arena_grow(arena: &Arena, min_size: usize) {
   buf_push(&arena.blocks as &&void, &arena.ptr, sizeof(arena.ptr));
 }
 
-fn arena_alloc(arena: &Arena, size: usize) -> &void {
+def arena_alloc(arena: &Arena, size: usize) -> &void {
   if (size > (arena.end - arena.ptr) as usize) {
     arena_grow(arena, size);
     #assert(size <= (arena.end - arena.ptr) as usize);
@@ -290,7 +290,7 @@ fn arena_alloc(arena: &Arena, size: usize) -> &void {
   return ptr;
 }
 
-fn arena_free(arena: &Arena) {
+def arena_free(arena: &Arena) {
   let end = buf_end(arena.blocks, sizeof(arena.ptr));
   for (let it: **char = arena.blocks; it != end; it++) {
     free(*it);
@@ -300,24 +300,24 @@ fn arena_free(arena: &Arena) {
 
 // Hash map
 
-fn hash_uint64(x: uint64) -> uint64 {
+def hash_uint64(x: uint64) -> uint64 {
   x *= 0xff51afd7ed558ccd;
   x ^= x >> 32;
   return x;
 }
 
-fn hash_ptr(ptr: &const void) -> uint64 {
+def hash_ptr(ptr: &const void) -> uint64 {
   return hash_uint64(ptr as uintptr);
 }
 
-fn hash_mix(x: uint64, y: uint64) -> uint64 {
+def hash_mix(x: uint64, y: uint64) -> uint64 {
   x ^= y;
   x *= 0xff51afd7ed558ccd;
   x ^= x >> 32;
   return x;
 }
 
-fn hash_bytes(ptr: &const void, len: usize) -> uint64 {
+def hash_bytes(ptr: &const void, len: usize) -> uint64 {
   let x: uint64 = 0xcbf29ce484222325;
   let buf = ptr as *const char;
   for (let i: usize = 0; i < len; i++) {
@@ -335,7 +335,7 @@ struct Map {
   cap: usize;
 }
 
-fn map_get_uint64_from_uint64(map: &Map, key: uint64) -> uint64 {
+def map_get_uint64_from_uint64(map: &Map, key: uint64) -> uint64 {
   if (map.len == 0) {
     return 0;
   }
@@ -354,7 +354,7 @@ fn map_get_uint64_from_uint64(map: &Map, key: uint64) -> uint64 {
   return 0;
 }
 
-fn map_grow(map: &Map, new_cap: usize) {
+def map_grow(map: &Map, new_cap: usize) {
   new_cap = clamp_min(new_cap, 16);
   let new_map = Map {
     keys: xcalloc(new_cap, sizeof<uint64>),
@@ -371,7 +371,7 @@ fn map_grow(map: &Map, new_cap: usize) {
   *map = new_map;
 }
 
-fn map_put_uint64_from_uint64(map: &Map, key: uint64, val: uint64) {
+def map_put_uint64_from_uint64(map: &Map, key: uint64, val: uint64) {
   #assert(key);
   if (!val) {
     return;
@@ -397,31 +397,31 @@ fn map_put_uint64_from_uint64(map: &Map, key: uint64, val: uint64) {
   }
 }
 
-fn map_get(map: &Map, key: &const void) -> &void {
+def map_get(map: &Map, key: &const void) -> &void {
   return map_get_uint64_from_uint64(map, key as uintptr as uint64) as uintptr as &void;
 }
 
-fn map_put(map: &Map, key: &const void, val: &void) {
+def map_put(map: &Map, key: &const void, val: &void) {
   map_put_uint64_from_uint64(map, key as uintptr as uint64, val as uintptr as uint64);
 }
 
-fn map_get_from_uint64(map: &Map, key: uint64) -> &void {
+def map_get_from_uint64(map: &Map, key: uint64) -> &void {
   return map_get_uint64_from_uint64(map, key) as uintptr as &void;
 }
 
-fn map_put_from_uint64(map: &Map, key: uint64, val: &void) {
+def map_put_from_uint64(map: &Map, key: uint64, val: &void) {
   map_put_uint64_from_uint64(map, key, val as uintptr as uint64);
 }
 
-fn map_get_uint64(map: &Map, key: &void) -> uint64 {
+def map_get_uint64(map: &Map, key: &void) -> uint64 {
   return map_get_uint64_from_uint64(map, key as uintptr as uint64);
 }
 
-fn map_put_uint64(map: &Map, key: &void, val: uint64) {
+def map_put_uint64(map: &Map, key: &void, val: uint64) {
   map_put_uint64_from_uint64(map, key as uintptr as uint64, val);
 }
 
-// fn map_test() {
+// def map_test() {
 //   Map map = {0};
 //   enum { N = 1024 };
 //   for (size_t i = 1; i < N; i++) {
@@ -445,7 +445,7 @@ struct Intern {
 let intern_arena: Arena;
 let interns: Map;
 
-fn str_intern_range(start: *const char, end: *const char) -> *const char {
+def str_intern_range(start: *const char, end: *const char) -> *const char {
   let len: usize = end - start;
   let hash = hash_bytes(start, len);
   let key: uint64 = hash ? hash : 1;
@@ -464,11 +464,11 @@ fn str_intern_range(start: *const char, end: *const char) -> *const char {
   return new_intern.str;
 }
 
-fn str_intern(str: *const char) -> *const char {
+def str_intern(str: *const char) -> *const char {
   return str_intern_range(str, str + strlen(str));
 }
 
-fn str_islower(str: *const char) -> bool {
+def str_islower(str: *const char) -> bool {
   while (*str) {
     if (isalpha(*str) && !islower(*str)) {
       return false;

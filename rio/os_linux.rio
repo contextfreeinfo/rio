@@ -14,27 +14,27 @@ struct dirent {
 }
 
 @foreign
-fn closedir(dirp: &DIR) -> int;
+def closedir(dirp: &DIR) -> int;
 
 @foreign
-fn opendir(name: *const char) -> &DIR;
+def opendir(name: *const char) -> &DIR;
 
 @foreign
-fn readdir(dir: &DIR) -> &dirent;
+def readdir(dir: &DIR) -> &dirent;
 
 @foreign
-fn realpath(path: *const char, resolved_path: *const char) -> *char;
+def realpath(path: *const char, resolved_path: *const char) -> *char;
 
 @foreign
-fn strdup(str: *const char) -> *char;
+def strdup(str: *const char) -> *char;
 
-fn path_absolute(path: [MAX_PATH]char) {
+def path_absolute(path: [MAX_PATH]char) {
   let rel_path: [MAX_PATH]char;
   path_copy(rel_path, path);
   realpath(rel_path, path);
 }
 
-fn dir_list_free(iter: &DirListIter) {
+def dir_list_free(iter: &DirListIter) {
   if (iter.valid) {
     iter.valid = false;
     iter.error = false;
@@ -42,7 +42,7 @@ fn dir_list_free(iter: &DirListIter) {
   }
 }
 
-fn dir_list_next(iter: &DirListIter) {
+def dir_list_next(iter: &DirListIter) {
   if (!iter.valid) {
     return;
   }
@@ -57,7 +57,7 @@ fn dir_list_next(iter: &DirListIter) {
   } while (dir_excluded(iter));
 }
 
-fn dir_list(iter: &DirListIter, path: *const char) {
+def dir_list(iter: &DirListIter, path: *const char) {
   memset(iter, 0, sizeof(*iter));
   let dir = opendir(path);
   if (!dir) {

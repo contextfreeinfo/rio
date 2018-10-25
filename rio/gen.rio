@@ -117,12 +117,12 @@ static void va_arg_ptr(va_list *args, Any any) {
 #endif
 """;
 
-fn genln() {
+def genln() {
   buf_printf(&gen_buf, "\n%.*s", gen_indent * 2, "                                  ");
   gen_pos.line++;
 }
 
-fn is_incomplete_array_typespec(typespec: &Typespec) -> bool {
+def is_incomplete_array_typespec(typespec: &Typespec) -> bool {
   return typespec.kind == Typespec.Array && !typespec.num_elems;
 }
 
@@ -139,7 +139,7 @@ let char_to_escape: [256]char = {
   ['\'']: '\'',
 };
 
-fn gen_char(c: char) {
+def gen_char(c: char) {
   if (char_to_escape[c as uchar]) {
     buf_printf(&gen_buf, "'\\%c'", char_to_escape[c as uchar]);
   } else if (isprint(c)) {
@@ -149,7 +149,7 @@ fn gen_char(c: char) {
   }
 }
 
-fn gen_str(str: *const char, multiline: bool) {
+def gen_str(str: *const char, multiline: bool) {
   if (multiline) {
     gen_indent++;
     genln();
@@ -183,7 +183,7 @@ fn gen_str(str: *const char, multiline: bool) {
   }
 }
 
-fn gen_sync_pos(pos: SrcPos) {
+def gen_sync_pos(pos: SrcPos) {
   if (flag_nosourcemap) {
     return;
   }
@@ -197,11 +197,11 @@ fn gen_sync_pos(pos: SrcPos) {
   } if;
 }
 
-fn cdecl_paren(str: *const char, c: char) -> *const char {
+def cdecl_paren(str: *const char, c: char) -> *const char {
   return c && c != '[' ? strf("(%s)", str) as *const char : str;
 }
 
-fn cdecl_name(type: &Type) -> *const char {
+def cdecl_name(type: &Type) -> *const char {
   let type_name: *const char = type_names[type.kind];
   if (type_name) {
     return type_name;
@@ -211,7 +211,7 @@ fn cdecl_name(type: &Type) -> *const char {
   }
 }
 
-fn type_to_cdecl(type: &Type, str: *const char) -> *char {
+def type_to_cdecl(type: &Type, str: *const char) -> *char {
   switch (type.kind) {
     Ptr, Ref => {
       return type_to_cdecl(type.base, cdecl_paren(strf("*%s", str), *str));
@@ -251,7 +251,7 @@ fn type_to_cdecl(type: &Type, str: *const char) -> *char {
   }
 }
 
-fn gen_expr_str(expr: &Expr) -> *const char {
+def gen_expr_str(expr: &Expr) -> *const char {
   let temp: *char = gen_buf;
   gen_buf = NULL;
   gen_expr(expr);
@@ -262,7 +262,7 @@ fn gen_expr_str(expr: &Expr) -> *const char {
 
 let gen_name_map: Map;
 
-fn get_gen_name_or_default(ptr: &const void, default_name: *const char) -> *const char {
+def get_gen_name_or_default(ptr: &const void, default_name: *const char) -> *const char {
   let name: *const char = map_get(&gen_name_map, ptr);
   if (!name) {
     let sym = get_resolved_sym(ptr);
@@ -284,11 +284,11 @@ fn get_gen_name_or_default(ptr: &const void, default_name: *const char) -> *cons
   return name;
 }
 
-fn get_gen_name(ptr: &const void) -> *const char {
+def get_gen_name(ptr: &const void) -> *const char {
   return get_gen_name_or_default(ptr, "ERROR");
 }
 
-fn typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
+def typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
   if (!typespec) {
     return strf("void%s%s", *str ? " " : "", str);
   }
@@ -336,7 +336,7 @@ fn typespec_to_cdecl(typespec: &Typespec, str: *const char) -> *char {
   return NULL;
 }
 
-fn gen_func_decl(decl: &Decl) {
+def gen_func_decl(decl: &Decl) {
   #assert(decl.kind == Decl.Func);
   let result: *char = NULL;
   buf_printf(&result, "%s(", get_gen_name(decl));
@@ -362,11 +362,11 @@ fn gen_func_decl(decl: &Decl) {
   }
 }
 
-fn gen_reachable(sym: &Sym) -> bool {
+def gen_reachable(sym: &Sym) -> bool {
   return flag_fullgen || sym.reachable == ReachablePhase.Natural;
 }
 
-fn gen_forward_decls() {
+def gen_forward_decls() {
   for (let it: *&Sym = sorted_syms; it != buf_end(sorted_syms, sizeof(*sorted_syms)); it++) {
     let sym = *it;
     let decl = sym.decl;
@@ -394,7 +394,7 @@ fn gen_forward_decls() {
   } for;
 }
 
-fn gen_aggregate_item(item: &AggregateItem) {
+def gen_aggregate_item(item: &AggregateItem) {
   @complete
   if (item.kind == AggregateItem.Field) {
     for (item.names) do(name) {
@@ -426,7 +426,7 @@ fn gen_aggregate_item(item: &AggregateItem) {
   }
 }
 
-fn gen_aggregate_items(aggregate: &Aggregate) {
+def gen_aggregate_items(aggregate: &Aggregate) {
   gen_indent++;
   for &(aggregate.items) do(item) {
     gen_aggregate_item(item);
@@ -434,7 +434,7 @@ fn gen_aggregate_items(aggregate: &Aggregate) {
   gen_indent--;
 }
 
-fn gen_aggregate(decl: &Decl) {
+def gen_aggregate(decl: &Decl) {
   #assert(decl.kind == Decl.Struct || decl.kind == Decl.Union);
   if (decl.is_incomplete || decl.is_generic) {
     return;
@@ -450,13 +450,13 @@ fn gen_aggregate(decl: &Decl) {
   buf_printf(&gen_buf, "};");
 }
 
-fn gen_paren_expr(expr: &Expr) {
+def gen_paren_expr(expr: &Expr) {
   buf_printf(&gen_buf, "(");
   gen_expr(expr);
   buf_printf(&gen_buf, ")");
 }
 
-fn gen_expr_compound(expr: &Expr) {
+def gen_expr_compound(expr: &Expr) {
   let expected_type = get_resolved_expected_type(expr);
   if (expected_type && !is_ptr_type(expected_type)) {
     buf_printf(&gen_buf, "{");
@@ -510,7 +510,7 @@ let typeid_kind_names: [CompilerTypeKind.Num]*const char = {
   [CompilerTypeKind.Func]: "TypeKind_Func",
 };
 
-fn typeid_kind_name(type: &Type) -> *const char {
+def typeid_kind_name(type: &Type) -> *const char {
   if (type.kind < CompilerTypeKind.Num) {
     let name = typeid_kind_names[type.kind];
     if (name) {
@@ -520,7 +520,7 @@ fn typeid_kind_name(type: &Type) -> *const char {
   return "TypeKind_None";
 }
 
-fn is_excluded_typeinfo(type: &Type) -> bool {
+def is_excluded_typeinfo(type: &Type) -> bool {
   while (type.kind == CompilerTypeKind.Array || type.kind == CompilerTypeKind.Const || is_ptr_type(type)) {
     type = type.base;
   }
@@ -531,7 +531,7 @@ fn is_excluded_typeinfo(type: &Type) -> bool {
   }
 }
 
-fn gen_typeid(type: &Type) {
+def gen_typeid(type: &Type) {
   if (type.size == 0 || is_excluded_typeinfo(type)) {
     buf_printf(&gen_buf, "TYPEID0(%d, %s)", type.typeid, typeid_kind_name(type));
   } else {
@@ -539,7 +539,7 @@ fn gen_typeid(type: &Type) {
   }
 }
 
-fn gen_expr(expr: &Expr) {
+def gen_expr(expr: &Expr) {
   @complete
   switch (expr.kind) {
     Paren => {
@@ -686,7 +686,7 @@ fn gen_expr(expr: &Expr) {
   }
 }
 
-fn gen_stmt_block(block: StmtList) {
+def gen_stmt_block(block: StmtList) {
   buf_printf(&gen_buf, "{");
   gen_indent++;
   for (block.stmts) do(stmt) {
@@ -696,7 +696,7 @@ fn gen_stmt_block(block: StmtList) {
   genln(); buf_printf(&gen_buf, "}");
 }
 
-fn gen_simple_stmt(stmt: &Stmt) {
+def gen_simple_stmt(stmt: &Stmt) {
   @complete
   switch (stmt.kind) {
     Expr => gen_expr(stmt.expr);
@@ -735,11 +735,11 @@ fn gen_simple_stmt(stmt: &Stmt) {
   }
 }
 
-fn is_char_lit(expr: &Expr) -> bool {
+def is_char_lit(expr: &Expr) -> bool {
   return expr.kind == Expr.Int && expr.int_lit.mod == TokenMod.Char;
 }
 
-fn gen_stmt(stmt: &Stmt) {
+def gen_stmt(stmt: &Stmt) {
   gen_sync_pos(stmt.pos);
   switch (stmt.kind) {
     Return => {
@@ -1013,7 +1013,7 @@ fn gen_stmt(stmt: &Stmt) {
   }
 }
 
-fn gen_decl(sym: &Sym) {
+def gen_decl(sym: &Sym) {
   let decl = sym.decl;
   if (!decl || is_decl_foreign(decl)) {
     return;
@@ -1077,7 +1077,7 @@ fn gen_decl(sym: &Sym) {
   genln();
 }
 
-fn gen_sorted_decls() {
+def gen_sorted_decls() {
   for (let i: usize = 0; i < buf_len(sorted_syms); i++) {
     if (sorted_syms[i].reachable == ReachablePhase.Natural) {
       gen_decl(sorted_syms[i]);
@@ -1085,7 +1085,7 @@ fn gen_sorted_decls() {
   }
 }
 
-fn gen_defs() {
+def gen_defs() {
   for (let it: *&Sym = sorted_syms; it != buf_end(sorted_syms, sizeof(*sorted_syms)); it++) {
     let sym = *it;
     let decl = sym.decl;
@@ -1117,7 +1117,7 @@ fn gen_defs() {
 let gen_foreign_headers_map: Map;
 let gen_foreign_headers_buf: **const char;
 
-fn add_foreign_header(name: *const char) {
+def add_foreign_header(name: *const char) {
   name = str_intern(name);
   if (!map_get(&gen_foreign_headers_map, name)) {
     map_put(&gen_foreign_headers_map, name, 1 as &void);
@@ -1127,12 +1127,12 @@ fn add_foreign_header(name: *const char) {
 
 let gen_foreign_sources_buf: **const char;
 
-fn add_foreign_source(name: *const char) {
+def add_foreign_source(name: *const char) {
   let interned = str_intern(name);
   buf_push2.<*const char>(&gen_foreign_headers_buf, &interned);
 }
 
-fn gen_include(path: *const char) {
+def gen_include(path: *const char) {
   genln(); buf_printf(&gen_buf, "#include ");
   if (*path == '<') {
     buf_printf(&gen_buf, "%s", path);
@@ -1141,7 +1141,7 @@ fn gen_include(path: *const char) {
   }
 }
 
-fn gen_foreign_headers() {
+def gen_foreign_headers() {
   if (gen_foreign_headers_buf) {
     genln(); buf_printf(&gen_buf, "// Foreign header files");
     for (let i: usize = 0; i < buf_len(gen_foreign_headers_buf); i++) {
@@ -1150,7 +1150,7 @@ fn gen_foreign_headers() {
   }
 }
 
-fn gen_foreign_sources() {
+def gen_foreign_sources() {
   for (let i: usize = 0; i < buf_len(gen_foreign_sources_buf); i++) {
     gen_include(gen_foreign_sources_buf[i]);
   }
@@ -1158,7 +1158,7 @@ fn gen_foreign_sources() {
 
 let gen_sources_buf: **const char;
 
-fn put_include_path(path: [MAX_PATH]char, package: &Package, filename: *const char) {
+def put_include_path(path: [MAX_PATH]char, package: &Package, filename: *const char) {
   if (*filename == '<') {
     path_copy(path, filename);
   } else {
@@ -1171,7 +1171,7 @@ fn put_include_path(path: [MAX_PATH]char, package: &Package, filename: *const ch
 let gen_preamble_buf: *char;
 let gen_postamble_buf: *char;
 
-fn preprocess_package(package: &Package) {
+def preprocess_package(package: &Package) {
   if (!package.external_name) {
     let external_name: *char = NULL;
     for (let ptr: *const char = package.path; *ptr; ptr++) {
@@ -1218,13 +1218,13 @@ fn preprocess_package(package: &Package) {
   } for;
 }
 
-fn preprocess_packages() {
+def preprocess_packages() {
   for (let i: usize = 0; i < buf_len(package_list); i++) {
     preprocess_package(package_list[i]);
   }
 }
 
-fn gen_typeinfo_header(kind: *const char, type: &Type) {
+def gen_typeinfo_header(kind: *const char, type: &Type) {
   if (type_sizeof(type) == 0) {
     buf_printf(&gen_buf, "&(TypeInfo){%s, .size = 0, .align = 0", kind);
   } else {
@@ -1233,7 +1233,7 @@ fn gen_typeinfo_header(kind: *const char, type: &Type) {
   }
 }
 
-fn gen_typeinfo_fields(type: &Type) {
+def gen_typeinfo_fields(type: &Type) {
   gen_indent++;
   for (type.aggregate.fields) do (field) {
     genln(); buf_printf(&gen_buf, "{");
@@ -1252,7 +1252,7 @@ fn gen_typeinfo_fields(type: &Type) {
 }
 
 // TODO This could be a macro if we had such macros.
-fn gen_typeinfo_case(
+def gen_typeinfo_case(
   buf: &*char, item_name: *const char, type_name: *const char,
 ) {
   buf_printf(
@@ -1263,7 +1263,7 @@ fn gen_typeinfo_case(
   buf_printf(buf, "},");
 }
 
-fn gen_typeinfo(type: &Type) {
+def gen_typeinfo(type: &Type) {
   switch (type.kind) {
     Bool => gen_typeinfo_case(&gen_buf, "TypeKind_Bool", "bool");
     Char => gen_typeinfo_case(&gen_buf, "TypeKind_Char", "char");
@@ -1336,7 +1336,7 @@ fn gen_typeinfo(type: &Type) {
 
 // #undef CASE
 
-fn gen_typeinfos() {
+def gen_typeinfos() {
   genln(); buf_printf(&gen_buf, "#define TYPEID0(index, kind) ((ullong)(index) | ((ullong)(kind) << 24))");
   genln(); buf_printf(&gen_buf, "#define TYPEID(index, kind, ...) ((ullong)(index) | ((ullong)sizeof(__VA_ARGS__) << 32) | ((ullong)(kind) << 24))");
   genln();
@@ -1364,12 +1364,12 @@ fn gen_typeinfos() {
   } if;
 }
 
-fn gen_package_external_names() {
+def gen_package_external_names() {
   for (let i: usize = 0; i < buf_len(package_list); i++) {
   }
 }
 
-fn gen_preamble() {
+def gen_preamble() {
   buf_printf(&gen_buf, "%s", gen_preamble_str);
   if (gen_preamble_buf) {
     genln();
@@ -1378,7 +1378,7 @@ fn gen_preamble() {
   }
 }
 
-fn gen_postamble() {
+def gen_postamble() {
   buf_printf(&gen_buf, "%s", gen_postamble_str);
   if (gen_postamble_buf) {
     genln();
@@ -1387,7 +1387,7 @@ fn gen_postamble() {
   }
 }
 
-fn gen_all() {
+def gen_all() {
   preprocess_packages();
   gen_buf = NULL;
   gen_preamble();

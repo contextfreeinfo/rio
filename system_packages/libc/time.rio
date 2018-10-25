@@ -16,28 +16,28 @@ struct tm_t {
 }
 
 @foreign
-fn clock() -> clock_t;
+def clock() -> clock_t;
 
 @foreign
-fn difftime(time1: time_t, time0: time_t) -> double;
+def difftime(time1: time_t, time0: time_t) -> double;
 
 @foreign
-fn mktime(timeptr: &tm_t) -> time_t;
+def mktime(timeptr: &tm_t) -> time_t;
 
 @foreign
-fn time(timer: &time_t) -> time_t;
+def time(timer: &time_t) -> time_t;
 
 @foreign
-fn asctime(timeptr: &const tm_t) -> *char;
+def asctime(timeptr: &const tm_t) -> *char;
 
 @foreign
-fn ctime(timer: &const time_t) -> *char;
+def ctime(timer: &const time_t) -> *char;
 
 @foreign
-fn gmtime(timer: &const time_t) -> &tm_t;
+def gmtime(timer: &const time_t) -> &tm_t;
 
 @foreign
-fn localtime(timer: &const time_t) -> &tm_t;
+def localtime(timer: &const time_t) -> &tm_t;
 
 @foreign
-fn strftime(s: *char, maxsize: usize, format: *const char, timeptr: &const tm_t) -> usize;
+def strftime(s: *char, maxsize: usize, format: *const char, timeptr: &const tm_t) -> usize;

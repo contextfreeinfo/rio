@@ -48,19 +48,19 @@ let typeinfos: **const TypeInfo;
 @foreign
 let num_typeinfos: int;
 
-fn typeid_kind(type: typeid) -> TypeKind {
+def typeid_kind(type: typeid) -> TypeKind {
   return TypeKind((type >> 24) & 0xFF);
 }
 
-fn typeid_index(type: typeid) -> int {
+def typeid_index(type: typeid) -> int {
   return int(type & 0xFFFFFF);
 }
 
-fn typeid_size(type: typeid) -> usize {
+def typeid_size(type: typeid) -> usize {
   return usize(type >> 32);
 }
 
-fn get_typeinfo(type: typeid) -> *const TypeInfo {
+def get_typeinfo(type: typeid) -> *const TypeInfo {
   let index = typeid_index(type);
   if (typeinfos && index < num_typeinfos) {
     return typeinfos[index];

@@ -1,44 +1,44 @@
 #foreign(header = "<ctype.h>")
 
 @foreign
-fn isalnum(c: int) -> int;
+def isalnum(c: int) -> int;
 
 @foreign
-fn isalpha(c: int) -> int;
+def isalpha(c: int) -> int;
 
 @foreign
-fn isblank(c: int) -> int;
+def isblank(c: int) -> int;
 
 @foreign
-fn iscntrl(c: int) -> int;
+def iscntrl(c: int) -> int;
 
 @foreign
-fn isdigit(c: int) -> int;
+def isdigit(c: int) -> int;
 
 @foreign
-fn isgraph(c: int) -> int;
+def isgraph(c: int) -> int;
 
 @foreign
-fn islower(c: int) -> int;
+def islower(c: int) -> int;
 
 @foreign
-fn isprint(c: int) -> int;
+def isprint(c: int) -> int;
 
 @foreign
-fn ispunct(c: int) -> int;
+def ispunct(c: int) -> int;
 
 @foreign
-fn isspace(c: int) -> int;
+def isspace(c: int) -> int;
 
 @foreign
-fn isupper(c: int) -> int;
+def isupper(c: int) -> int;
 
 @foreign
-fn isxdigit(c: int) -> int;
+def isxdigit(c: int) -> int;
 
 @foreign
-fn tolower(c: int) -> int;
+def tolower(c: int) -> int;
 
 @foreign
-fn toupper(c: int) -> int;
+def toupper(c: int) -> int;
 

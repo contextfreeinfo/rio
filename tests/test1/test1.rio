@@ -60,11 +60,11 @@ struct S2 {
 // Should be unresolved here.
 // let item: Item;
 
-fn test_packages() {
+def test_packages() {
   subtest1_func1();
 }
 
-fn test_modify() {
+def test_modify() {
   let i = 42;
   #static_assert(typeof(i) == typeof(int));
   let p: *int = &i;
@@ -85,11 +85,11 @@ fn test_modify() {
   #assert(sp == stk);
 }
 
-fn f10(a: [3]wchar) {
+def f10(a: [3]wchar) {
   a[1] = 42;
 }
 
-fn test_arrays() {
+def test_arrays() {
   let a: []wchar = {1, 2, 3};
   // a = a;
   f10(a);
@@ -98,7 +98,7 @@ fn test_arrays() {
   let w2 = w1;
 }
 
-fn test_loops() {
+def test_loops() {
   // break;
   // continue;
   switch (0) {
@@ -136,7 +136,7 @@ fn test_loops() {
   }
 }
 
-fn test_nonmodifiable() {
+def test_nonmodifiable() {
   let s1: S1;
   s1.a = 0;
   // s1.b = 0;
@@ -154,15 +154,15 @@ struct UartCtrl {
 
 const UART_CTRL_REG = 0x12345678 as *uint32;
 
-fn pack(ctrl: UartCtrl) -> uint32 {
+def pack(ctrl: UartCtrl) -> uint32 {
   return (ctrl.tx_enable & 1) | ((ctrl.rx_enable & 1) << 1);
 }
 
-fn unpack(word: uint32) -> UartCtrl {
+def unpack(word: uint32) -> UartCtrl {
   return {tx_enable: word & 0b01, rx_enable: (word & 0b10) >> 1};
 }
 
-fn test_uart() {
+def test_uart() {
   let tx_enable = unpack(*UART_CTRL_REG).tx_enable;
   *UART_CTRL_REG = pack({tx_enable: !tx_enable, rx_enable: false});
   let ctrl = unpack(*UART_CTRL_REG);
@@ -170,7 +170,7 @@ fn test_uart() {
   *UART_CTRL_REG = pack(ctrl);
 }
 
-fn h() -> uchar {
+def h() -> uchar {
   Vector{x: 1, y: 2}.x = 42;
   let v = &Vector{1, 2};
   v.x = 42;
@@ -180,26 +180,26 @@ fn h() -> uchar {
   return uchar(x);
 }
 
-fn g(u: U) -> int {
+def g(u: U) -> int {
   return u.i;
 }
 
-fn k(vp: &void, ip: &int) {
+def k(vp: &void, ip: &int) {
   vp = ip;
   ip = vp;
 }
 
-fn f1() {
+def f1() {
   let p = &int{0};
   *p = 42;
 }
 
-fn f3(a: []int) {
+def f3(a: []int) {
 }
 
 typedef U = IntOrPtr;
 
-fn example_test() -> int {
+def example_test() -> int {
   return fact_rec(10) == fact_iter(10);
 }
 
@@ -238,7 +238,7 @@ let escape_to_char: [256]const char = {
 let a2: []int = {1, 2, 3, [10]: 4};
 // let a3: []int;
 
-fn is_even(digit: int) -> int {
+def is_even(digit: int) -> int {
   let b = 0;
   switch (digit) {
     0, 2, 4, 6, 8 => b = 1;
@@ -246,7 +246,7 @@ fn is_even(digit: int) -> int {
   return b;
 }
 
-// fn f() {
+// def f() {
 //   let u1 = IntOrPtr{i: 42};
 //   let u2 = IntOrPtr{p: 42 as *int};
 //   u1.i = 0;
@@ -259,11 +259,11 @@ struct Vector {
   x, y: int;
 }
 
-fn f2(v: Vector) {
+def f2(v: Vector) {
   v = {};
 }
 
-fn fact_iter(n: int) -> int {
+def fact_iter(n: int) -> int {
   let r = 1;
   for (let i = 0; i <= n; i++) {
     r *= i;
@@ -271,7 +271,7 @@ fn fact_iter(n: int) -> int {
   return r;
 }
 
-fn fact_rec(n: int) -> int {
+def fact_rec(n: int) -> int {
   if (n == 0) {
     return 1;
   } else {
@@ -342,7 +342,7 @@ let color_names: [Color.Num]*const char = {
   [Color.Blue]: "blue",
 };
 
-fn test_enum() {
+def test_enum() {
   let a: Color = Color.Red;
   let b = Color.Red;
   let c = a + b;
@@ -362,7 +362,7 @@ fn test_enum() {
   let more_kind = More.Happy;
 }
 
-fn test_assign() {
+def test_assign() {
   let i: int = 0;
   let f: float = 3.14;
   let p: *int = &i;
@@ -383,20 +383,20 @@ fn test_assign() {
   // f--;
 }
 
-fn benchmark(n: int) {
+def benchmark(n: int) {
   let r = 1;
   for (let i = 1; i <= n; i++) {
     r *= i;
   } for;
 }
 
-fn va_test(x: int, ...) -> int {
+def va_test(x: int, ...) -> int {
   return 0;
 }
 
-typedef F = fn(x: int, ...) -> int;
+typedef F = do(x: int, ...) -> int;
 
-fn test_lits() {
+def test_lits() {
   let f = 3.14;
   let d = 3.14d;
   let i = 1;
@@ -413,7 +413,7 @@ fn test_lits() {
   // u = 0x0;
 }
 
-fn test_ops() {
+def test_ops() {
   let pi = 3.14;
   let f = 0.0;
   f = +pi;
@@ -445,14 +445,14 @@ fn test_ops() {
 
 const IS_DEBUG = true;
 
-fn test_bool() {
+def test_bool() {
   let b = false;
   b = true;
   let i = 0;
   i = IS_DEBUG;
 }
 
-fn test_ctrl() -> int {
+def test_ctrl() -> int {
   switch (1) {
     0 => return 0;
     default => return 1;
@@ -464,17 +464,17 @@ let j: const int;
 let q: *const int;
 let cv: const Vector;
 
-fn f4(x: *const char) {
+def f4(x: *const char) {
 }
 
 struct ConstVector {
   x, y: const int;
 }
 
-fn f5(p: *const int) {
+def f5(p: *const int) {
 }
 
-fn test_convert() {
+def test_convert() {
   let a: *const int = 0;
   let b: *int = 0;
   a = b;
@@ -482,7 +482,7 @@ fn test_convert() {
   f5(p);
 }
 
-fn test_const() {
+def test_const() {
   let cv2 = ConstVector{1, 2};
   // cv2 = {};
   let i = 0;
@@ -509,7 +509,7 @@ fn test_const() {
 
 #static_assert(sizeof(int) == 4)
 
-fn test_init() {
+def test_init() {
   let x = 0 as const int;
   #static_assert(sizeof(x) == 4);
   let y: int;
@@ -525,7 +525,7 @@ fn test_init() {
   b[0] = a[2];
 }
 
-fn test_sizeof() {
+def test_sizeof() {
   let i = 0;
   let n = sizeof(i);
   n = sizeof(int);
@@ -534,7 +534,7 @@ fn test_sizeof() {
   // n = sizeof<*int>;
 }
 
-fn test_cast() {
+def test_cast() {
   let p: *int = 0;
   let a: uint64 = 0;
   // a = p;
@@ -543,7 +543,7 @@ fn test_cast() {
   p = a as *int;
 }
 
-fn print_any(any: Any) {
+def print_any(any: Any) {
   switch (any.type) {
     typeof(int) => printf("%d", *(any.ptr as *const int));
     typeof(float) => printf("%f", *(any.ptr as *const float));
@@ -553,19 +553,19 @@ fn print_any(any: Any) {
   print_type(any.type);
 }
 
-fn println_any(any: Any) {
+def println_any(any: Any) {
   print_any(any);
   printf("\n");
 }
 
-fn print_typeid(type: typeid) {
+def print_typeid(type: typeid) {
   let index = typeid_index(type);
   printf("typeid(%d)", index);
 }
 
 const Ptr = 959595;
 
-fn print_type(type: typeid) {
+def print_type(type: typeid) {
   let typeinfo = get_typeinfo(type);
   if (!typeinfo) {
     print_typeid(type);
@@ -601,12 +601,12 @@ fn print_type(type: typeid) {
   } switch;
 }
 
-fn println_type(type: typeid) {
+def println_type(type: typeid) {
   print_type(type);
   printf("\n");
 }
 
-fn print_typeinfo(type: typeid) {
+def print_typeinfo(type: typeid) {
   let typeinfo = get_typeinfo(type);
   if (!typeinfo) {
     print_typeid(type);
@@ -632,12 +632,12 @@ fn print_typeinfo(type: typeid) {
   printf(">");
 }
 
-fn println_typeinfo(type: typeid) {
+def println_typeinfo(type: typeid) {
   print_typeinfo(type);
   printf("\n");
 }
 
-fn test_typeinfo() {
+def test_typeinfo() {
   let i = 42;
   let f = 3.14;
   let p = NULL;
@@ -664,7 +664,7 @@ struct Ints {
   int_arr: [3]int;
 }
 
-fn test_va_list(fmt: *const char, ...) {
+def test_va_list(fmt: *const char, ...) {
   let init_args: va_list;
   va_start(&init_args, &fmt);
   let args: va_list;
@@ -680,7 +680,7 @@ fn test_va_list(fmt: *const char, ...) {
   va_end(&args);
 }
 
-fn test_compound_literals() {
+def test_compound_literals() {
   let w: *Vector;
   w = &{1, 2};
   let a = <[]int>{1, 2, 3};
@@ -698,7 +698,7 @@ fn test_compound_literals() {
   };
 }
 
-fn test_complete() {
+def test_complete() {
   let x = 0;
   // let x = 1;
   // let x = 2;
@@ -724,7 +724,7 @@ fn test_complete() {
   }
 }
 
-fn test_limits() {
+def test_limits() {
   let char_min = CHAR_MIN;
   let char_max = CHAR_MAX;
   let schar_min = SCHAR_MIN;
@@ -778,7 +778,7 @@ fn test_limits() {
   let intptr_max = INTPTR_MAX;
 }
 
-fn test_alignof() {
+def test_alignof() {
   let i = 42;
   let n1 = alignof(i);
   let n2 = alignof(i+1);
@@ -793,7 +793,7 @@ struct BufHdr {
   //  buf: [0]char;
 }
 
-fn test_offsetof() {
+def test_offsetof() {
   let n = offsetof(BufHdr, buf);
 //  n = offsetof(BufHdr, foo);
 }
@@ -804,22 +804,22 @@ struct Thing {
 
 let thing: Thing;
 
-fn returns_ptr() -> &Thing {
+def returns_ptr() -> &Thing {
   return &thing;
 }
 
-fn returns_ptr_to_const() -> &const Thing {
+def returns_ptr_to_const() -> &const Thing {
   return &thing;
 }
 
-fn test_lvalue() {
+def test_lvalue() {
   returns_ptr().a = 5;
 //  returns_ptr_to_const().a = 5;
   let p = returns_ptr_to_const();
 //  p.a = 42;
 }
 
-fn test_if() {
+def test_if() {
   if (1) {
   }
 //  if (let x = Thing{}) {
@@ -832,11 +832,11 @@ fn test_if() {
   }
 }
 
-fn test_reachable() {
+def test_reachable() {
 //  bogus_func();
 }
 
-fn test_os_arch() {
+def test_os_arch() {
   printf("Target operating system: %s\n", RIOOS);
   printf("Target machine architecture: %s\n", RIOARCH);
 }
@@ -849,13 +849,13 @@ struct Foo {
   bar: const *Bar;
 }
 
-fn test_const_ptr_deref() {
+def test_const_ptr_deref() {
   let bar = Bar{rc: 42};
   let foo = Foo{bar: &bar};
   let i = foo.bar.rc;
 }
 
-fn test_ref() {
+def test_ref() {
   let i = 1;
   let p = &i;
   let q: *int = &i;
@@ -868,7 +868,7 @@ fn test_ref() {
 
 typedef my_time_t = C.time_t;
 
-fn test_type_path() {
+def test_type_path() {
   let t1 = time(NULL);
   let t2: C.time_t = time(NULL);
   let t3: my_time_t = time(NULL);
@@ -882,12 +882,12 @@ enum TestErr {
   Worse,
 }
 
-// fn maybe_math(x: float) -> float throws {
-// fn maybe_math(x: float) -> !float {
-// fn maybe_math(x: float) -> Try<float> {
-// fn maybe_math(x: float) -> float | error {
-// fn maybe_math(x: float) -> float | TestErr {
-fn maybe_math(x: float) -> Result<float, TestErr> {
+// def maybe_math(x: float) -> float throws {
+// def maybe_math(x: float) -> !float {
+// def maybe_math(x: float) -> Try<float> {
+// def maybe_math(x: float) -> float | error {
+// def maybe_math(x: float) -> float | TestErr {
+def maybe_math(x: float) -> Result<float, TestErr> {
   // return x + 1;
   // return Ok(x + 1);
   // return Ok{x + 1};
@@ -942,7 +942,7 @@ def test_for_each() {
   printf("%s, %s, and %s\n", slice[0], friends[1], friends[2]);
 }
 
-fn main(argc: int, argv: **char) -> int {
+def main(argc: int, argv: **char) -> int {
   if (argv == 0) {
     printf("argv is null\n");
   }

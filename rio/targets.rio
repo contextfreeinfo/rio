@@ -25,7 +25,7 @@ let arch_names: [Arch.Num]*const char = {
 let target_os: int;
 let target_arch: int;
 
-fn get_os(name: *const char) -> int {
+def get_os(name: *const char) -> int {
   for (let i = 0; i < Os.Num; i++) {
     if (strcmp(os_names[i], name) == 0) {
       return i;
@@ -34,7 +34,7 @@ fn get_os(name: *const char) -> int {
   return -1;
 }
 
-fn get_arch(name: *const char) -> int {
+def get_arch(name: *const char) -> int {
   for (let i = 0; i < Arch.Num; i++) {
     if (strcmp(arch_names[i], name) == 0) {
       return i;
@@ -43,7 +43,7 @@ fn get_arch(name: *const char) -> int {
   return -1;
 }
 
-fn init_default_type_metrics(metrics: [CompilerTypeKind.Num]TypeMetrics) {
+def init_default_type_metrics(metrics: [CompilerTypeKind.Num]TypeMetrics) {
   metrics[CompilerTypeKind.Ref] = metrics[CompilerTypeKind.Ptr];
   metrics[CompilerTypeKind.Bool] = {size: 1, align: 1};
   metrics[CompilerTypeKind.Char] = {size: 1, align: 1, max: 0x7f, sign: true};
@@ -87,7 +87,7 @@ let lp64_metrics: [CompilerTypeKind.Num]TypeMetrics = {
   [CompilerTypeKind.ULong]: {size: 8, align: 8, max: 0xffffffffffffffff, sign: true},
 };
 
-fn init_target() {
+def init_target() {
   type_metrics = NULL;
   switch (target_os) {
     Os.Win32 => {
@@ -132,7 +132,7 @@ fn init_target() {
   }
 }
 
-fn is_excluded_target_filename(name: *const char) -> bool {
+def is_excluded_target_filename(name: *const char) -> bool {
   let end = name + strlen(name);
 
   let ptr1 = end;

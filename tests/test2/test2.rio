@@ -2,23 +2,23 @@ struct vec2 {
     x, y: float;
 }
 
-fn add2(a: vec2, b: vec2) -> vec2 {
+def add2(a: vec2, b: vec2) -> vec2 {
     return {a.x + b.x, a.y + b.y};
 }
 
-fn sub2(a: vec2, b: vec2) -> vec2 {
+def sub2(a: vec2, b: vec2) -> vec2 {
     return {a.x - b.x, a.y - b.y};
 }
 
-fn neg2(a: vec2) -> vec2 {
+def neg2(a: vec2) -> vec2 {
     return {-a.x, -a.y};
 }
 
-fn mul2(a: float, b: vec2) -> vec2 {
+def mul2(a: float, b: vec2) -> vec2 {
     return {a * b.x, a * b.y};
 }
 
-fn addmul2(
+def addmul2(
     a: vec2,
     b: float,
     c: vec2,
@@ -26,27 +26,27 @@ fn addmul2(
     return add2(a, mul2(b, c));
 }
 
-fn dot2(a: vec2, b: vec2) -> float {
+def dot2(a: vec2, b: vec2) -> float {
     return a.x * b.x + a.y * b.y;
 }
 
-fn len2(a: vec2) -> float {
+def len2(a: vec2) -> float {
     return sqrt(dot2(a, a));
 }
 
-fn unit2(a: vec2) -> vec2 {
+def unit2(a: vec2) -> vec2 {
     return mul2(1/len2(a), a);
 }
 
-fn perp2(a: vec2) -> vec2 {
+def perp2(a: vec2) -> vec2 {
     return {-a.y, a.x};
 }
 
-fn dir2(a: vec2, b: vec2) -> vec2 {
+def dir2(a: vec2, b: vec2) -> vec2 {
     return unit2(sub2(b, a));
 }
 
-fn rot2(a: float, b: vec2) -> vec2 {
+def rot2(a: float, b: vec2) -> vec2 {
     let c = cos(a);
     let s = sin(a);
     return {c * b.x - s * b.y, s * b.x + c * b.y};

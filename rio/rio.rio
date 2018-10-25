@@ -3,14 +3,14 @@ let static_package_search_paths: [MAX_SEARCH_PATHS]*const char;
 let package_search_paths: **const char = static_package_search_paths;
 let num_package_search_paths: int;
 
-fn add_package_search_path(path: *const char) {
+def add_package_search_path(path: *const char) {
   if (flag_verbose) {
     printf("Adding package search path %s\n", path);
   }
   package_search_paths[num_package_search_paths++] = str_intern(path);
 }
 
-fn add_package_search_path_range(start: *const char, end: *const char) {
+def add_package_search_path_range(start: *const char, end: *const char) {
   let path: [MAX_PATH]char;
   let len: usize = clamp_max(end - start, MAX_PATH - 1);
   memcpy(path, start, len);
@@ -18,7 +18,7 @@ fn add_package_search_path_range(start: *const char, end: *const char) {
   add_package_search_path(path);
 }
 
-fn init_package_search_paths() {
+def init_package_search_paths() {
   let riohome_var = getenv("RIOHOME");
   if (!riohome_var) {
     printf("error: Set the environment variable RIOHOME to the Rio home directory (where system_packages is located)\n");
@@ -44,7 +44,7 @@ fn init_package_search_paths() {
   }
 }
 
-fn init_compiler() {
+def init_compiler() {
   init_target();
   init_package_search_paths();
   init_keywords();
@@ -52,7 +52,7 @@ fn init_compiler() {
   map_put(&decl_note_names, declare_note_name, 1 as &void);
 }
 
-fn parse_env_vars() {
+def parse_env_vars() {
   let rioos_var = getenv("RIOOS");
   if (rioos_var) {
     let os = get_os(rioos_var);
@@ -73,7 +73,7 @@ fn parse_env_vars() {
   }
 }
 
-fn rio_main(argc: int, argv: **const char, gen_all: fn(), extension: *const char) -> int {
+def rio_main(argc: int, argv: **const char, gen_all: do(), extension: *const char) -> int {
   parse_env_vars();
   let output_name: *const char;
   let flag_check = false;

@@ -7,7 +7,6 @@ let mut_keyword: *const char;
 let own_keyword: *const char;
 let const_keyword: *const char;
 let def_keyword: *const char;
-let fn_keyword: *const char;
 let sizeof_keyword: *const char;
 let alignof_keyword: *const char;
 let typeof_keyword: *const char;
@@ -42,7 +41,7 @@ let static_assert_name: *const char;
 let void_name: *const char;
 
 // #define KEYWORD(name) name##_keyword = str_intern(#name); buf_push(keywords, name##_keyword)
-fn init_keyword(keyword: *const char) -> *const char {
+def init_keyword(keyword: *const char) -> *const char {
   keyword = str_intern(keyword);
   // TODO If rio doesn't give warnings, the underlying compiler also shouldn't.
   buf_push(&keywords as &&void, &keyword as &void, sizeof(keyword));
@@ -51,7 +50,7 @@ fn init_keyword(keyword: *const char) -> *const char {
 
 let keywords_inited = false;
 
-fn init_keywords() {
+def init_keywords() {
   if (keywords_inited) {
     return;
   }
@@ -65,7 +64,6 @@ fn init_keywords() {
   mut_keyword = init_keyword("mut");
   own_keyword = init_keyword("own");
   def_keyword = init_keyword("def");
-  fn_keyword = init_keyword("fn");
   import_keyword = init_keyword("import");
   goto_keyword = init_keyword("goto");
   sizeof_keyword = init_keyword("sizeof");
@@ -103,7 +101,7 @@ fn init_keywords() {
 
 // #undef KEYWORD
 
-fn is_keyword_name(name: *const char) -> bool {
+def is_keyword_name(name: *const char) -> bool {
   return first_keyword <= name && name <= last_keyword;
 }
 
@@ -265,7 +263,7 @@ let token_kind_names: []*const char = {
   [TokenKind.Dec]: "--",
 };
 
-fn token_kind_name(kind: TokenKind) -> *const char {
+def token_kind_name(kind: TokenKind) -> *const char {
   if (kind < sizeof(token_kind_names)/sizeof(*token_kind_names)) {
     return token_kind_names[kind];
   } else {
@@ -313,7 +311,7 @@ let token: Token;
 let stream: *const char;
 let line_start: *const char;
 
-fn vnotice(level: *const char, pos: SrcPos, fmt: *const char, args: va_list) {
+def vnotice(level: *const char, pos: SrcPos, fmt: *const char, args: va_list) {
   if (pos.name == NULL) {
     pos = pos_builtin;
   }
@@ -322,25 +320,25 @@ fn vnotice(level: *const char, pos: SrcPos, fmt: *const char, args: va_list) {
   printf("\n");
 }
 
-fn warning(pos: SrcPos, fmt: *const char, ...) {
+def warning(pos: SrcPos, fmt: *const char, ...) {
   let args: va_list;
   va_start(&args, &fmt);
   vnotice("warning", pos, fmt, args);
   va_end(&args);
 }
 
-fn verror(pos: SrcPos, fmt: *const char, args: va_list) {
+def verror(pos: SrcPos, fmt: *const char, args: va_list) {
   vnotice("error", pos, fmt, args);
 }
 
-fn error(pos: SrcPos, fmt: *const char, ...) {
+def error(pos: SrcPos, fmt: *const char, ...) {
   let args: va_list;
   va_start(&args, &fmt);
   verror(pos, fmt, args);
   va_end(&args);
 }
 
-fn fatal_error(pos: SrcPos, fmt: *const char, ...) {
+def fatal_error(pos: SrcPos, fmt: *const char, ...) {
   let args: va_list;
   va_start(&args, &fmt);
   verror(pos, fmt, args);
@@ -353,7 +351,7 @@ fn fatal_error(pos: SrcPos, fmt: *const char, ...) {
 // #define warning_here(...) (error(token.pos, __VA_ARGS__))
 // #define fatal_error(token.pos, ...) (error(token.pos, __VA_ARGS__), exit(1))
 
-fn token_info() -> *const char {
+def token_info() -> *const char {
   if (token.kind == TokenKind.Name || token.kind == TokenKind.Keyword) {
     return token.name;
   } else {
@@ -380,7 +378,7 @@ let char_to_digit: [256]uint8 = {
   ['f']: 15, ['F']: 15,
 };
 
-fn scan_int() {
+def scan_int() {
   let base = 10;
   let start_digits = stream;
   if (*stream == '0') {
@@ -455,7 +453,7 @@ fn scan_int() {
 // TODO Why do I have to give a value, and is it used??? I hope not.
 @foreign const HUGE_VAL = 0.0;
 
-fn scan_float() {
+def scan_float() {
   let start = stream;
   while (isdigit(*stream)) {
     stream++;
@@ -503,7 +501,7 @@ let escape_to_char: [256]char = {
   ['a']: '\a',
 };
 
-fn scan_hex_escape() -> int {
+def scan_hex_escape() -> int {
   #assert(*stream == 'x');
   stream++;
   let val = char_to_digit[*stream as uchar];
@@ -524,7 +522,7 @@ fn scan_hex_escape() -> int {
   return val;
 }
 
-fn scan_char() {
+def scan_char() {
   #assert(*stream == '\'');
   stream++;
   let val = 0;
@@ -558,7 +556,7 @@ fn scan_char() {
   token.mod = TokenMod.Char;
 }
 
-fn scan_str() {
+def scan_str() {
   #assert(*stream == '"');
   stream++;
   let str: *char = NULL;
@@ -649,7 +647,7 @@ fn scan_str() {
 //     } \
 //     break;
 
-fn next_token() {
+def next_token() {
   repeat:
   token.start = stream;
   token.mod = 0;
@@ -923,7 +921,7 @@ fn next_token() {
 // #undef CASE2
 // #undef CASE3
 
-fn init_stream(name: *const char, buf: *const char) {
+def init_stream(name: *const char, buf: *const char) {
   stream = buf;
   line_start = stream;
   token.pos.name = name ? name : "<string>" as *const char;
@@ -931,23 +929,23 @@ fn init_stream(name: *const char, buf: *const char) {
   next_token();
 }
 
-fn is_token(kind: TokenKind) -> bool {
+def is_token(kind: TokenKind) -> bool {
   return token.kind == kind;
 }
 
-fn is_token_eof() -> bool {
+def is_token_eof() -> bool {
   return token.kind == TokenKind.Eof;
 }
 
-fn is_token_name(name: *const char) -> bool {
+def is_token_name(name: *const char) -> bool {
   return token.kind == TokenKind.Name && token.name == name;
 }
 
-fn is_keyword(name: *const char) -> bool {
+def is_keyword(name: *const char) -> bool {
   return is_token(TokenKind.Keyword) && token.name == name;
 }
 
-fn match_keyword(name: *const char) -> bool {
+def match_keyword(name: *const char) -> bool {
   if (is_keyword(name)) {
     next_token();
     return true;
@@ -956,7 +954,7 @@ fn match_keyword(name: *const char) -> bool {
   }
 }
 
-fn expect_close_angle() -> bool {
+def expect_close_angle() -> bool {
   if (is_token(TokenKind.Rshift)) {
     // Hack to support >> as two close angle brackets.
     ++token.start;
@@ -967,7 +965,7 @@ fn expect_close_angle() -> bool {
   }
 }
 
-fn match_token(kind: TokenKind) -> bool {
+def match_token(kind: TokenKind) -> bool {
   if (is_token(kind)) {
     next_token();
     return true;
@@ -976,7 +974,7 @@ fn match_token(kind: TokenKind) -> bool {
   }
 }
 
-fn expect_token(kind: TokenKind) -> bool {
+def expect_token(kind: TokenKind) -> bool {
   if (is_token(kind)) {
     next_token();
     return true;

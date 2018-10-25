@@ -1,4 +1,4 @@
-fn test_generics() {
+def test_generics() {
   let slirce: Slirce;
   let slorce: Slorce<int> = {items: <[]int>{1, 2, 3}, length: 3};
   let slorce_ref: Slorce<&int> = {items: <[]&int>{slorce.items}, length: 1};
@@ -49,7 +49,7 @@ struct Slerce<Goo> {
 // Should be unresolved here.
 // let item: Item;
 
-fn test_generic_functions() {
+def test_generic_functions() {
   // let slarce: Slarce;
   // printf("slarce sum: %d", sum(slarce, slarce));
   printf("int sum: %d\n", sum.<int>(1, 2));
@@ -79,14 +79,14 @@ fn test_generic_functions() {
   // first.<int>({});
 }
 
-fn sum<Num: int>(x: Num, y: Num) -> Num {
+def sum<Num: int>(x: Num, y: Num) -> Num {
   return x + y;
 }
 
 // typedef Num = int;
 
-// fn sum_slice(nums: Slice<Num>) -> Num {
-fn sum_slice<Num: int>(nums: Slice<Num>) -> Num {
+// def sum_slice(nums: Slice<Num>) -> Num {
+def sum_slice<Num: int>(nums: Slice<Num>) -> Num {
   let result: Num = 0;
   for (nums) do(num) {
     result += num;
@@ -94,11 +94,11 @@ fn sum_slice<Num: int>(nums: Slice<Num>) -> Num {
   return result;
 }
 
-// fn sum(x, y) {
+// def sum(x, y) {
 //   return x + y;
 // }
 
-// fn sum(x, y) where x: int, y: int {
+// def sum(x, y) where x: int, y: int {
 //   return x + y;
 // }
 
@@ -110,7 +110,7 @@ fn sum_slice<Num: int>(nums: Slice<Num>) -> Num {
 // TODO C if wanted ...
 // TODO The previous discussion was from when this returned &Item, not Item.
 // TODO But that case is still interesting.
-fn first<Item>(slice: Slice<Item>) -> Result<Item, TestErr> {
+def first<Item>(slice: Slice<Item>) -> Result<Item, TestErr> {
   if (slice.length) {
     return {kind: Result.Ok, val: slice[0]};
   } else {

@@ -93,18 +93,18 @@ let type_ssize: &Type;
 
 let typeid_map: Map;
 
-fn get_type_from_typeid(typeid: int) -> &Type {
+def get_type_from_typeid(typeid: int) -> &Type {
   if (typeid == 0) {
     return NULL;
   }
   return map_get(&typeid_map, typeid as uintptr as &void);
 }
 
-fn register_typeid(type: &Type) {
+def register_typeid(type: &Type) {
   map_put(&typeid_map, type.typeid as uintptr as &void, type);
 }
 
-fn type_alloc(kind: TypeKind) -> &Type {
+def type_alloc(kind: TypeKind) -> &Type {
   let type: &Type = xcalloc(1, sizeof(Type));
   type.kind = kind;
   type.typeid = next_typeid++;
@@ -112,63 +112,63 @@ fn type_alloc(kind: TypeKind) -> &Type {
   return type;
 }
 
-fn is_generic_type(type: &Type) -> bool {
+def is_generic_type(type: &Type) -> bool {
   return type.sym && type.sym.decl && type.sym.decl.is_generic;
 }
 
-fn is_ptr_type(type: &Type) -> bool {
+def is_ptr_type(type: &Type) -> bool {
   return type.kind == CompilerTypeKind.Ptr || type.kind == CompilerTypeKind.Ref;
 }
 
-fn is_ptr_star_type(type: &Type) -> bool {
+def is_ptr_star_type(type: &Type) -> bool {
   return type.kind == CompilerTypeKind.Ptr;
 }
 
-fn is_ref_type(type: &Type) -> bool {
+def is_ref_type(type: &Type) -> bool {
   return type.kind == CompilerTypeKind.Ref;
 }
 
-fn is_func_type(type: &Type) -> bool {
+def is_func_type(type: &Type) -> bool {
   return type.kind == CompilerTypeKind.Func;
 }
 
-fn is_ptr_like_type(type: &Type) -> bool {
+def is_ptr_like_type(type: &Type) -> bool {
   return is_ptr_type(type) || type.kind == CompilerTypeKind.Func;
 }
 
-fn is_const_type(type: &Type) -> bool {
+def is_const_type(type: &Type) -> bool {
   return type.kind == CompilerTypeKind.Const;
 }
 
-fn is_array_type(type: &Type) -> bool {
+def is_array_type(type: &Type) -> bool {
   return type.kind == CompilerTypeKind.Array;
 }
 
-fn is_incomplete_array_type(type: &Type) -> bool {
+def is_incomplete_array_type(type: &Type) -> bool {
   return is_array_type(type) && type.num_elems == 0;
 }
 
-fn is_integer_type(type: &Type) -> bool {
+def is_integer_type(type: &Type) -> bool {
   return CompilerTypeKind.Bool <= type.kind && type.kind <= CompilerTypeKind.Enum;
 }
 
-fn is_floating_type(type: &Type) -> bool {
+def is_floating_type(type: &Type) -> bool {
   return CompilerTypeKind.Float <= type.kind && type.kind <= CompilerTypeKind.Double;
 }
 
-fn is_arithmetic_type(type: &Type) -> bool {
+def is_arithmetic_type(type: &Type) -> bool {
   return CompilerTypeKind.Bool <= type.kind && type.kind <= CompilerTypeKind.Double;
 }
 
-fn is_scalar_type(type: &Type) -> bool {
+def is_scalar_type(type: &Type) -> bool {
   return CompilerTypeKind.Bool <= type.kind && type.kind <= CompilerTypeKind.Func;
 }
 
-fn is_aggregate_type(type: &Type) -> bool {
+def is_aggregate_type(type: &Type) -> bool {
   return type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union;
 }
 
-fn is_signed_type(type: &Type) -> bool {
+def is_signed_type(type: &Type) -> bool {
   switch (type.kind) {
     Char => return type_metrics[CompilerTypeKind.Char].sign;
     SChar, Short, Int, Long, LLong => return true;
@@ -209,13 +209,13 @@ let type_ranks: [CompilerTypeKind.Num]int = {
   [CompilerTypeKind.ULLong]: 6,
 };
 
-fn type_rank(type: &Type) -> int {
+def type_rank(type: &Type) -> int {
   let rank = type_ranks[type.kind];
   #assert(rank != 0);
   return rank;
 }
 
-fn unsigned_type(type: &Type) -> &Type {
+def unsigned_type(type: &Type) -> &Type {
   switch (type.kind) {
     Bool => return type_bool;
     Char, SChar, UChar => return type_uchar;
@@ -230,12 +230,12 @@ fn unsigned_type(type: &Type) -> &Type {
   }
 }
 
-fn type_sizeof(type: &Type) -> usize {
+def type_sizeof(type: &Type) -> usize {
   #assert(type.kind > CompilerTypeKind.Completing);
   return type.size;
 }
 
-fn type_alignof(type: &Type) -> usize {
+def type_alignof(type: &Type) -> usize {
   #assert(type.kind > CompilerTypeKind.Completing);
   return type.align;
 }
@@ -243,7 +243,7 @@ fn type_alignof(type: &Type) -> usize {
 let cached_ptr_types: Map;
 let cached_ref_types: Map;
 
-fn type_ptr_any(kind: CompilerTypeKind, base: &Type) -> &Type {
+def type_ptr_any(kind: CompilerTypeKind, base: &Type) -> &Type {
   let cache: &Map;
   @complete
   switch (kind) {
@@ -262,17 +262,17 @@ fn type_ptr_any(kind: CompilerTypeKind, base: &Type) -> &Type {
   return type;
 }
 
-fn type_ptr(base: &Type) -> &Type {
+def type_ptr(base: &Type) -> &Type {
   return type_ptr_any(CompilerTypeKind.Ptr, base);
 }
 
-fn type_ref(base: &Type) -> &Type {
+def type_ref(base: &Type) -> &Type {
   return type_ptr_any(CompilerTypeKind.Ref, base);
 }
 
 let cached_const_types: Map;
 
-fn type_const(base: &Type) -> &Type {
+def type_const(base: &Type) -> &Type {
   if (base.kind == CompilerTypeKind.Const) {
     return base;
   }
@@ -289,13 +289,13 @@ fn type_const(base: &Type) -> &Type {
   return type;
 }
 
-fn deref_type(type: &Type) -> &Type {
+def deref_type(type: &Type) -> &Type {
   type = unqualify_type(type);
   // Ref only here. Don't go into star pointers.
   return unqualify_type(is_ref_type(type) ? type.base : type);
 }
 
-fn unqualify_type(type: &Type) -> &Type {
+def unqualify_type(type: &Type) -> &Type {
   if (type.kind == CompilerTypeKind.Const) {
     return type.base;
   } else {
@@ -310,7 +310,7 @@ struct CachedArrayType {
 
 let cached_array_types: Map;
 
-fn type_array(base: &Type, num_elems: usize) -> &Type {
+def type_array(base: &Type, num_elems: usize) -> &Type {
   let hash = hash_mix(hash_ptr(base), hash_uint64(num_elems));
   let key: uint64 = hash ? hash : 1;
   let cached: &CachedArrayType = map_get_from_uint64(&cached_array_types, key);
@@ -341,7 +341,7 @@ struct CachedFuncType {
 
 let cached_func_types: Map;
 
-fn type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) -> &Type {
+def type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) -> &Type {
   let params_size = num_params * sizeof(*params);
   let hash = hash_mix(hash_bytes(params, params_size), hash_ptr(ret));
   let key: uint64 = hash ? hash : 1;
@@ -371,7 +371,7 @@ fn type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) -
   return type;
 }
 
-fn has_duplicate_fields(type: &Type) -> bool {
+def has_duplicate_fields(type: &Type) -> bool {
   for &(type.aggregate.fields) do(field_i, i) {
     for (let j = i + 1; j < type.aggregate.fields.length; j++) {
       if (field_i.name == type.aggregate.fields[j].name) {
@@ -382,7 +382,7 @@ fn has_duplicate_fields(type: &Type) -> bool {
   return false;
 }
 
-fn add_type_fields(fields: &*TypeField, type: &Type, offset: usize) {
+def add_type_fields(fields: &*TypeField, type: &Type, offset: usize) {
   #assert(type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union);
   for &(type.aggregate.fields) do(field) {
     let new_field = TypeField {field.name, field.type, field.offset + offset};
@@ -390,7 +390,7 @@ fn add_type_fields(fields: &*TypeField, type: &Type, offset: usize) {
   }
 }
 
-fn type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
+def type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
   #assert(type.kind == CompilerTypeKind.Completing);
   type.kind = CompilerTypeKind.Struct;
   type.size = 0;
@@ -418,7 +418,7 @@ fn type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
   type.nonmodifiable = nonmodifiable;
 }
 
-fn type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
+def type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
   #assert(type.kind == CompilerTypeKind.Completing);
   type.kind = CompilerTypeKind.Union;
   type.size = 0;
@@ -445,13 +445,13 @@ fn type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
   type.nonmodifiable = nonmodifiable;
 }
 
-fn type_incomplete(sym: &Sym) -> &Type {
+def type_incomplete(sym: &Sym) -> &Type {
   let type = type_alloc(CompilerTypeKind.Incomplete);
   type.sym = sym;
   return type;
 }
 
-fn type_enum(sym: &Sym, base: &Type) -> &Type {
+def type_enum(sym: &Sym, base: &Type) -> &Type {
   let type = type_alloc(CompilerTypeKind.Enum);
   type.sym = sym;
   type.base = base;
@@ -460,14 +460,14 @@ fn type_enum(sym: &Sym, base: &Type) -> &Type {
   return type;
 }
 
-fn init_builtin_type(type: &Type) {
+def init_builtin_type(type: &Type) {
   type.typeid = next_typeid++;
   register_typeid(type);
   type.size = type_metrics[type.kind].size;
   type.align = type_metrics[type.kind].align;
 }
 
-fn init_builtin_types() {
+def init_builtin_types() {
   init_builtin_type(type_void);
   init_builtin_type(type_bool);
   init_builtin_type(type_char);
@@ -485,7 +485,7 @@ fn init_builtin_types() {
   init_builtin_type(type_double);
 }
 
-fn aggregate_item_field_index(type: &Type, name: *const char) -> int {
+def aggregate_item_field_index(type: &Type, name: *const char) -> int {
   #assert(is_aggregate_type(type));
   for &(type.aggregate.fields) do(field, i) {
     if (field.name == name) {
@@ -495,13 +495,13 @@ fn aggregate_item_field_index(type: &Type, name: *const char) -> int {
   return -1;
 }
 
-fn aggregate_item_field_type_from_index(type: &Type, index: int) -> &Type {
+def aggregate_item_field_type_from_index(type: &Type, index: int) -> &Type {
   #assert(is_aggregate_type(type));
   #assert(0 <= index && index < type.aggregate.fields.length as int);
   return type.aggregate.fields[index].type;
 }
 
-fn aggregate_item_field_type_from_name(type: &Type, name: *const char) -> &Type {
+def aggregate_item_field_type_from_name(type: &Type, name: *const char) -> &Type {
   #assert(is_aggregate_type(type));
   let index = aggregate_item_field_index(type, name);
   if (index < 0) {

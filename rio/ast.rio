@@ -365,14 +365,14 @@ struct StmtInit {
 
 let ast_arena: Arena;
 
-fn ast_alloc(size: usize) -> &void {
+def ast_alloc(size: usize) -> &void {
   #assert(size != 0);
   let ptr = arena_alloc(&ast_arena, size);
   memset(ptr, 0, size);
   return ptr;
 }
 
-fn ast_dup_sized(src: &const void, size: usize) -> &void {
+def ast_dup_sized(src: &const void, size: usize) -> &void {
   if (size == 0) {
     return NULL;
   }
@@ -381,79 +381,79 @@ fn ast_dup_sized(src: &const void, size: usize) -> &void {
   return ptr;
 }
 
-fn ast_dup<Node>(src: &const Node) -> &Node {
+def ast_dup<Node>(src: &const Node) -> &Node {
   return ast_dup_sized(src, sizeof(*src));
 }
 
-fn ast_dup_slice<Node>(src: const Slice<Node>) -> Slice<Node> {
+def ast_dup_slice<Node>(src: const Slice<Node>) -> Slice<Node> {
   let items = ast_dup_sized(src.items, src.length * sizeof(*src.items));
   return {items, src.length};
 }
 
-fn ast_dup_type_params(d: &Decl, params: Slice<Decl>) {
+def ast_dup_type_params(d: &Decl, params: Slice<Decl>) {
   if (params.length) {
     d.type_params = ast_dup_slice.<Decl>(params);
     buf_free(&params.items as &&void);
   }
 }
 
-fn new_note(pos: SrcPos, name: *const char, args: Slice<NoteArg>) -> Note {
+def new_note(pos: SrcPos, name: *const char, args: Slice<NoteArg>) -> Note {
   return {pos: pos, name: name, args: ast_dup_slice.<NoteArg>(args)};
 }
 
-fn new_notes(notes: Slice<Note>) -> Slice<Note> {
+def new_notes(notes: Slice<Note>) -> Slice<Note> {
   return ast_dup_slice.<Note>(notes);
 }
 
-fn new_stmt_list(pos: SrcPos, stmts: Slice<&Stmt>) -> StmtList {
+def new_stmt_list(pos: SrcPos, stmts: Slice<&Stmt>) -> StmtList {
   return {pos, ast_dup_slice.<&Stmt>(stmts)};
 }
 
-fn new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {
+def new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {
   let t: &Typespec = ast_alloc(sizeof(Typespec));
   t.kind = kind;
   t.pos = pos;
   return t;
 }
 
-fn new_typespec_name1(pos: SrcPos, name: *const char) -> &Typespec {
+def new_typespec_name1(pos: SrcPos, name: *const char) -> &Typespec {
   return new_typespec_name(pos, {&{name: name}, 1});
 }
 
-fn new_typespec_name(pos: SrcPos, names: Slice<TypespecName>) -> &Typespec {
+def new_typespec_name(pos: SrcPos, names: Slice<TypespecName>) -> &Typespec {
   let t = new_typespec(Typespec.Name, pos);
   t.names = ast_dup_slice.<TypespecName>(names);
   return t;
 }
 
-fn new_typespec_ptr(pos: SrcPos, base: &Typespec, is_owned: bool) -> &Typespec {
+def new_typespec_ptr(pos: SrcPos, base: &Typespec, is_owned: bool) -> &Typespec {
   let t = new_typespec(Typespec.Ptr, pos);
   t.base = base;
   t.is_owned = is_owned;
   return t;
 }
 
-fn new_typespec_ref(pos: SrcPos, base: &Typespec, is_owned: bool) -> &Typespec {
+def new_typespec_ref(pos: SrcPos, base: &Typespec, is_owned: bool) -> &Typespec {
   let t = new_typespec(Typespec.Ref, pos);
   t.base = base;
   t.is_owned = is_owned;
   return t;
 }
 
-fn new_typespec_const(pos: SrcPos, base: &Typespec) -> &Typespec {
+def new_typespec_const(pos: SrcPos, base: &Typespec) -> &Typespec {
   let t = new_typespec(Typespec.Const, pos);
   t.base = base;
   return t;
 }
 
-fn new_typespec_array(pos: SrcPos, elem: &Typespec, size: &Expr) -> &Typespec {
+def new_typespec_array(pos: SrcPos, elem: &Typespec, size: &Expr) -> &Typespec {
   let t = new_typespec(Typespec.Array, pos);
   t.base = elem;
   t.num_elems = size;
   return t;
 }
 
-fn new_typespec_func(
+def new_typespec_func(
   pos: SrcPos, args: Slice<&Typespec>, ret: &Typespec, has_varargs: bool,
 ) -> &Typespec {
   let t = new_typespec(Typespec.Func, pos);
@@ -463,13 +463,13 @@ fn new_typespec_func(
   return t;
 }
 
-fn new_decls(decls: Slice<&Decl>) -> &Slice<&Decl> {
+def new_decls(decls: Slice<&Decl>) -> &Slice<&Decl> {
   let d: &Slice<&Decl> = ast_alloc(sizeof<Slice<&Decl>>);
   *d = ast_dup_slice.<&Decl>(decls);
   return d;
 }
 
-fn new_decl(kind: Decl.Kind, pos: SrcPos, name: *const char) -> &Decl {
+def new_decl(kind: Decl.Kind, pos: SrcPos, name: *const char) -> &Decl {
   let d: &Decl = ast_alloc(sizeof(Decl));
   d.kind = kind;
   d.pos = pos;
@@ -477,11 +477,11 @@ fn new_decl(kind: Decl.Kind, pos: SrcPos, name: *const char) -> &Decl {
   return d;
 }
 
-fn get_decl_note(decl: &Decl, name: *const char) -> &Note {
+def get_decl_note(decl: &Decl, name: *const char) -> &Note {
   return get_note(&decl.notes, name);
 }
 
-fn get_note(notes: &Slice<Note>, name: *const char) -> &Note {
+def get_note(notes: &Slice<Note>, name: *const char) -> &Note {
   for &(notes) do(note) {
     if (note.name == name) {
       return note;
@@ -490,7 +490,7 @@ fn get_note(notes: &Slice<Note>, name: *const char) -> &Note {
   return NULL;
 }
 
-fn get_subunion(items: Slice<AggregateItem>) -> &Aggregate {
+def get_subunion(items: Slice<AggregateItem>) -> &Aggregate {
   // See if we are a struct with a subunion.
   let result: &Aggregate;
   for &(items) do(item) {
@@ -508,11 +508,11 @@ fn get_subunion(items: Slice<AggregateItem>) -> &Aggregate {
   return result;
 }
 
-fn is_decl_foreign(decl: &Decl) -> bool {
+def is_decl_foreign(decl: &Decl) -> bool {
   return get_decl_note(decl, foreign_name) != NULL;
 }
 
-fn new_decl_enum(
+def new_decl_enum(
   pos: SrcPos, name: *const char, type: &Typespec, items: Slice<EnumItem>,
 ) -> &Decl {
   let d = new_decl(Decl.Enum, pos, name);
@@ -521,7 +521,7 @@ fn new_decl_enum(
   return d;
 }
 
-fn new_aggregate(
+def new_aggregate(
   pos: SrcPos, kind: AggregateKind, items: Slice<AggregateItem>,
 ) -> &Aggregate {
   let aggregate: &Aggregate = ast_alloc(sizeof(Aggregate));
@@ -535,7 +535,7 @@ fn new_aggregate(
   return aggregate;
 }
 
-fn new_decl_aggregate(
+def new_decl_aggregate(
   pos: SrcPos, kind: Decl.Kind, name: *const char, params: Slice<Decl>,
   aggregate: &Aggregate,
 ) -> &Decl {
@@ -546,14 +546,14 @@ fn new_decl_aggregate(
   return d;
 }
 
-fn new_decl_var(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) -> &Decl {
+def new_decl_var(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) -> &Decl {
   let d = new_decl(Decl.Var, pos, name);
   d.var_decl.type = type;
   d.var_decl.expr = expr;
   return d;
 }
 
-fn new_decl_func(
+def new_decl_func(
   pos: SrcPos, name: *const char, type_params: Slice<Decl>,
   params: Slice<FuncParam>, ret_type: &Typespec, has_varargs: bool,
   block: StmtList,
@@ -564,7 +564,7 @@ fn new_decl_func(
   return d;
 }
 
-fn init_func(
+def init_func(
   func: &DeclFunc,
   params: Slice<FuncParam>, ret_type: &Typespec, has_varargs: bool,
   block: StmtList,
@@ -575,26 +575,26 @@ fn init_func(
   func.block = block;
 }
 
-fn new_decl_const(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) -> &Decl {
+def new_decl_const(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) -> &Decl {
   let d = new_decl(Decl.Const, pos, name);
   d.const_decl.type = type;
   d.const_decl.expr = expr;
   return d;
 }
 
-fn new_decl_typedef(pos: SrcPos, name: *const char, val: &Typespec) -> &Decl {
+def new_decl_typedef(pos: SrcPos, name: *const char, val: &Typespec) -> &Decl {
   let d = new_decl(Decl.Typedef, pos, name);
   d.typedef_decl.val = val;
   return d;
 }
 
-fn new_decl_note(pos: SrcPos, note: Note) -> &Decl {
+def new_decl_note(pos: SrcPos, note: Note) -> &Decl {
   let d = new_decl(Decl.Note, pos, NULL);
   d.note = note;
   return d;
 }
 
-fn new_decl_import(
+def new_decl_import(
   pos: SrcPos, rename_name: *const char, is_relative: bool,
   names: Slice<*const char>, import_all: bool, items: Slice<ImportItem>,
 ) -> &Decl {
@@ -607,63 +607,63 @@ fn new_decl_import(
   return d;
 }
 
-fn new_expr(kind: Expr.Kind, pos: SrcPos) -> &Expr {
+def new_expr(kind: Expr.Kind, pos: SrcPos) -> &Expr {
   let e: &Expr = ast_alloc(sizeof(Expr));
   e.kind = kind;
   e.pos = pos;
   return e;
 }
 
-fn new_expr_paren(pos: SrcPos, expr: &Expr) -> &Expr {
+def new_expr_paren(pos: SrcPos, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.Paren, pos);
   e.arg = expr;
   return e;
 }
 
-fn new_expr_sizeof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
+def new_expr_sizeof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.SizeofExpr, pos);
   e.arg = expr;
   return e;
 }
 
-fn new_expr_sizeof_type(pos: SrcPos, type: &Typespec) -> &Expr {
+def new_expr_sizeof_type(pos: SrcPos, type: &Typespec) -> &Expr {
   let e = new_expr(Expr.SizeofType, pos);
   e.type_arg = type;
   return e;
 }
 
-fn new_expr_typeof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
+def new_expr_typeof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.TypeofExpr, pos);
   e.arg  = expr;
   return e;
 }
 
-fn new_expr_typeof_type(pos: SrcPos, type: &Typespec) -> &Expr {
+def new_expr_typeof_type(pos: SrcPos, type: &Typespec) -> &Expr {
   let e = new_expr(Expr.TypeofType, pos);
   e.type_arg = type;
   return e;
 }
 
-fn new_expr_alignof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
+def new_expr_alignof_expr(pos: SrcPos, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.AlignofExpr, pos);
   e.arg = expr;
   return e;
 }
 
-fn new_expr_alignof_type(pos: SrcPos, type: &Typespec) -> &Expr {
+def new_expr_alignof_type(pos: SrcPos, type: &Typespec) -> &Expr {
   let e = new_expr(Expr.AlignofType, pos);
   e.type_arg = type;
   return e;
 }
 
-fn new_expr_offsetof(pos: SrcPos, type: &Typespec, name: *const char) -> &Expr {
+def new_expr_offsetof(pos: SrcPos, type: &Typespec, name: *const char) -> &Expr {
   let e = new_expr(Expr.Offsetof, pos);
   e.offsetof_field.type = type;
   e.offsetof_field.name = name;
   return e;
 }
 
-fn new_expr_modify(pos: SrcPos, op: TokenKind, post: bool, expr: &Expr) -> &Expr {
+def new_expr_modify(pos: SrcPos, op: TokenKind, post: bool, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.Modify, pos);
   e.modify.op = op;
   e.modify.post = post;
@@ -671,7 +671,7 @@ fn new_expr_modify(pos: SrcPos, op: TokenKind, post: bool, expr: &Expr) -> &Expr
   return e;
 }
 
-fn new_expr_int(pos: SrcPos, val: ullong, mod: TokenMod, suffix: TokenSuffix) -> &Expr {
+def new_expr_int(pos: SrcPos, val: ullong, mod: TokenMod, suffix: TokenSuffix) -> &Expr {
   let e = new_expr(Expr.Int, pos);
   e.int_lit.val = val;
   e.int_lit.mod = mod;
@@ -679,7 +679,7 @@ fn new_expr_int(pos: SrcPos, val: ullong, mod: TokenMod, suffix: TokenSuffix) ->
   return e;
 }
 
-fn new_expr_float(pos: SrcPos, start: *const char, end: *const char, val: double, suffix: TokenSuffix) -> &Expr {
+def new_expr_float(pos: SrcPos, start: *const char, end: *const char, val: double, suffix: TokenSuffix) -> &Expr {
   let e = new_expr(Expr.Float, pos);
   e.float_lit.start = start;
   e.float_lit.end = end;
@@ -688,20 +688,20 @@ fn new_expr_float(pos: SrcPos, start: *const char, end: *const char, val: double
   return e;
 }
 
-fn new_expr_str(pos: SrcPos, val: *const char, mod: TokenMod) -> &Expr {
+def new_expr_str(pos: SrcPos, val: *const char, mod: TokenMod) -> &Expr {
   let e = new_expr(Expr.Str, pos);
   e.str_lit.val = val;
   e.str_lit.mod = mod;
   return e;
 }
 
-fn new_expr_name(pos: SrcPos, name: *const char) -> &Expr {
+def new_expr_name(pos: SrcPos, name: *const char) -> &Expr {
   let e = new_expr(Expr.Name, pos);
   e.name = name;
   return e;
 }
 
-fn new_expr_compound(
+def new_expr_compound(
   pos: SrcPos, kind: ExprCompound.Kind, type: &Typespec,
   fields: Slice<CompoundField>,
 ) -> &Expr {
@@ -712,42 +712,42 @@ fn new_expr_compound(
   return e;
 }
 
-fn new_expr_cast(pos: SrcPos, type: &Typespec, expr: &Expr) -> &Expr {
+def new_expr_cast(pos: SrcPos, type: &Typespec, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.Cast, pos);
   e.cast.type = type;
   e.cast.expr = expr;
   return e;
 }
 
-fn new_expr_call(pos: SrcPos, expr: &Expr, args: Slice<&Expr>) -> &Expr {
+def new_expr_call(pos: SrcPos, expr: &Expr, args: Slice<&Expr>) -> &Expr {
   let e = new_expr(Expr.Call, pos);
   e.call.expr = expr;
   e.call.args = ast_dup_slice.<&Expr>(args);
   return e;
 }
 
-fn new_expr_index(pos: SrcPos, expr: &Expr, index: &Expr) -> &Expr {
+def new_expr_index(pos: SrcPos, expr: &Expr, index: &Expr) -> &Expr {
   let e = new_expr(Expr.Index, pos);
   e.index.expr = expr;
   e.index.index = index;
   return e;
 }
 
-fn new_expr_field(pos: SrcPos, expr: &Expr, name: *const char) -> &Expr {
+def new_expr_field(pos: SrcPos, expr: &Expr, name: *const char) -> &Expr {
   let e = new_expr(Expr.Field, pos);
   e.field.expr = expr;
   e.field.name = name;
   return e;
 }
 
-fn new_expr_unary(pos: SrcPos, op: TokenKind, expr: &Expr) -> &Expr {
+def new_expr_unary(pos: SrcPos, op: TokenKind, expr: &Expr) -> &Expr {
   let e = new_expr(Expr.Unary, pos);
   e.unary.op = op;
   e.unary.expr = expr;
   return e;
 }
 
-fn new_expr_binary(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &Expr {
+def new_expr_binary(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &Expr {
   let e = new_expr(Expr.Binary, pos);
   e.binary.op = op;
   e.binary.left = left;
@@ -755,7 +755,7 @@ fn new_expr_binary(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &Ex
   return e;
 }
 
-fn new_expr_ternary(pos: SrcPos, cond: &Expr, then_expr: &Expr, else_expr: &Expr) -> &Expr {
+def new_expr_ternary(pos: SrcPos, cond: &Expr, then_expr: &Expr, else_expr: &Expr) -> &Expr {
   let e = new_expr(Expr.Ternary, pos);
   e.ternary.cond = cond;
   e.ternary.then_expr = then_expr;
@@ -763,7 +763,7 @@ fn new_expr_ternary(pos: SrcPos, cond: &Expr, then_expr: &Expr, else_expr: &Expr
   return e;
 }
 
-fn get_stmt_note(stmt: &Stmt, name: *const char) -> &Note {
+def get_stmt_note(stmt: &Stmt, name: *const char) -> &Note {
   for &(stmt.notes) do(note) {
     if (note.name == name) {
       return note;
@@ -772,58 +772,58 @@ fn get_stmt_note(stmt: &Stmt, name: *const char) -> &Note {
   return NULL;
 }
 
-fn new_stmt(kind: Stmt.Kind, pos: SrcPos) -> &Stmt {
+def new_stmt(kind: Stmt.Kind, pos: SrcPos) -> &Stmt {
   let s: &Stmt = ast_alloc(sizeof(Stmt));
   s.kind = kind;
   s.pos = pos;
   return s;
 }
 
-fn new_stmt_label(pos: SrcPos, label: *const char) -> &Stmt {
+def new_stmt_label(pos: SrcPos, label: *const char) -> &Stmt {
   let s = new_stmt(Stmt.Label, pos);
   s.label = label;
   return s;
 }
 
-fn new_stmt_goto(pos: SrcPos, label: *const char) -> &Stmt {
+def new_stmt_goto(pos: SrcPos, label: *const char) -> &Stmt {
   let s = new_stmt(Stmt.Goto, pos);
   s.label = label;
   return s;
 }
 
-fn new_stmt_note(pos: SrcPos, note: Note) -> &Stmt {
+def new_stmt_note(pos: SrcPos, note: Note) -> &Stmt {
   let s = new_stmt(Stmt.Note, pos);
   s.note = note;
   return s;
 }
 
-fn new_stmt_return(pos: SrcPos, expr: &Expr) -> &Stmt {
+def new_stmt_return(pos: SrcPos, expr: &Expr) -> &Stmt {
   let s = new_stmt(Stmt.Return, pos);
   s.expr = expr;
   return s;
 }
 
-fn new_stmt_break(pos: SrcPos) -> &Stmt {
+def new_stmt_break(pos: SrcPos) -> &Stmt {
   return new_stmt(Stmt.Break, pos);
 }
 
-fn new_stmt_continue(pos: SrcPos) -> &Stmt {
+def new_stmt_continue(pos: SrcPos) -> &Stmt {
   return new_stmt(Stmt.Continue, pos);
 }
 
-fn new_stmt_block(pos: SrcPos, block: StmtList) -> &Stmt {
+def new_stmt_block(pos: SrcPos, block: StmtList) -> &Stmt {
   let s = new_stmt(Stmt.Block, pos);
   s.block = block;
   return s;
 }
 
-fn new_stmt_close(pos: SrcPos, tag: Stmt.Kind) -> &Stmt {
+def new_stmt_close(pos: SrcPos, tag: Stmt.Kind) -> &Stmt {
   let s = new_stmt(Stmt.Close, pos);
   s.tag = tag;
   return s;
 }
 
-fn new_stmt_if(
+def new_stmt_if(
   pos: SrcPos, init: &Stmt, cond: &Expr, then_block: StmtList,
   elseifs: Slice<ElseIf>, else_block: StmtList,
 ) -> &Stmt {
@@ -836,21 +836,21 @@ fn new_stmt_if(
   return s;
 }
 
-fn new_stmt_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
+def new_stmt_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
   let s = new_stmt(Stmt.While, pos);
   s.while_stmt.cond = cond;
   s.while_stmt.block = block;
   return s;
 }
 
-fn new_stmt_do_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
+def new_stmt_do_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
   let s = new_stmt(Stmt.DoWhile, pos);
   s.while_stmt.cond = cond;
   s.while_stmt.block = block;
   return s;
 }
 
-fn new_stmt_for_each(
+def new_stmt_for_each(
   pos: SrcPos, get_ref: bool, expr: &Expr, params: Slice<FuncParam>,
   block: StmtList,
 ) -> &Stmt {
@@ -861,7 +861,7 @@ fn new_stmt_for_each(
   return s;
 }
 
-fn new_stmt_for(pos: SrcPos, init: &Stmt, cond: &Expr, next: &Stmt, block: StmtList) -> &Stmt {
+def new_stmt_for(pos: SrcPos, init: &Stmt, cond: &Expr, next: &Stmt, block: StmtList) -> &Stmt {
   let s = new_stmt(Stmt.For, pos);
   s.for_stmt.init = init;
   s.for_stmt.cond = cond;
@@ -870,7 +870,7 @@ fn new_stmt_for(pos: SrcPos, init: &Stmt, cond: &Expr, next: &Stmt, block: StmtL
   return s;
 }
 
-fn new_stmt_switch(
+def new_stmt_switch(
   pos: SrcPos, expr: &Expr, cases: Slice<SwitchCase>,
 ) -> &Stmt {
   let s = new_stmt(Stmt.Switch, pos);
@@ -879,7 +879,7 @@ fn new_stmt_switch(
   return s;
 }
 
-fn new_stmt_assign(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &Stmt {
+def new_stmt_assign(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &Stmt {
   let s = new_stmt(Stmt.Assign, pos);
   s.assign.op = op;
   s.assign.left = left;
@@ -887,7 +887,7 @@ fn new_stmt_assign(pos: SrcPos, op: TokenKind, left: &Expr, right: &Expr) -> &St
   return s;
 }
 
-fn new_stmt_init(pos: SrcPos, name: *const char, is_mut: bool, type: &Typespec, expr: &Expr) -> &Stmt {
+def new_stmt_init(pos: SrcPos, name: *const char, is_mut: bool, type: &Typespec, expr: &Expr) -> &Stmt {
   let s = new_stmt(Stmt.Init, pos);
   s.init.name = name;
   s.init.is_mut = is_mut;
@@ -896,7 +896,7 @@ fn new_stmt_init(pos: SrcPos, name: *const char, is_mut: bool, type: &Typespec, 
   return s;
 }
 
-fn new_stmt_expr(pos: SrcPos, expr: &Expr) -> &Stmt {
+def new_stmt_expr(pos: SrcPos, expr: &Expr) -> &Stmt {
   let s = new_stmt(Stmt.Expr, pos);
   s.expr = expr;
   return s;

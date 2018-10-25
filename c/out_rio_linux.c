@@ -1041,8 +1041,6 @@ extern char const ((*rio_const_keyword));
 
 extern char const ((*rio_def_keyword));
 
-extern char const ((*rio_fn_keyword));
-
 extern char const ((*rio_sizeof_keyword));
 
 extern char const ((*rio_alignof_keyword));
@@ -3982,7 +3980,7 @@ void rio_put_typespec_sym_name(char (*(*buf)), rio_Typespec (*type)) {
   }
   case rio_Typespec_Func: {
     rio_TypespecFunc (*function) = &(type->function);
-    rio_buf_printf(buf, "fn_");
+    rio_buf_printf(buf, "do_");
     {
       rio_Slice_ref_Typespec items__ = type->function.args;
       for (size_t i = 0; i < items__.length; ++i) {
@@ -5519,7 +5517,6 @@ char const ((*rio_mut_keyword));
 char const ((*rio_own_keyword));
 char const ((*rio_const_keyword));
 char const ((*rio_def_keyword));
-char const ((*rio_fn_keyword));
 char const ((*rio_sizeof_keyword));
 char const ((*rio_alignof_keyword));
 char const ((*rio_typeof_keyword));
@@ -5570,7 +5567,6 @@ void rio_init_keywords(void) {
   rio_mut_keyword = rio_init_keyword("mut");
   rio_own_keyword = rio_init_keyword("own");
   rio_def_keyword = rio_init_keyword("def");
-  rio_fn_keyword = rio_init_keyword("fn");
   rio_import_keyword = rio_init_keyword("import");
   rio_goto_keyword = rio_init_keyword("goto");
   rio_sizeof_keyword = rio_init_keyword("sizeof");
@@ -6518,7 +6514,7 @@ rio_Typespec (*rio_parse_type_func_param(void)) {
   rio_Typespec (*type) = rio_parse_type();
   if (rio_match_token((rio_TokenKind_Colon))) {
     if ((type->kind) != ((rio_Typespec_Name))) {
-      rio_error(rio_token.pos, "Colons in parameters of fn types must be preceded by names.");
+      rio_error(rio_token.pos, "Colons in parameters of function types must be preceded by names.");
     }
     type = rio_parse_type();
   }
@@ -6586,7 +6582,7 @@ rio_Typespec (*rio_parse_type_base(void)) {
     rio_Typespec (*result) = rio_new_typespec_name(pos, (rio_Slice_TypespecName){names, rio_buf_len(names)});
     rio_buf_free((void (**))(&(names)));
     return result;
-  } else if ((rio_match_keyword(rio_fn_keyword)) || (rio_match_keyword(rio_do_keyword))) {
+  } else if (rio_match_keyword(rio_do_keyword)) {
     return rio_parse_type_func();
   } else if (rio_match_token((rio_TokenKind_Lparen))) {
     rio_Typespec (*type) = rio_parse_type();
@@ -7631,7 +7627,7 @@ rio_Decl (*rio_parse_decl_opt(rio_Slice_Note (*notes))) {
     return rio_parse_decl_const(pos);
   } else if (rio_match_keyword(rio_typedef_keyword)) {
     return rio_parse_decl_typedef(pos);
-  } else if ((rio_match_keyword(rio_fn_keyword)) || (rio_match_keyword(rio_def_keyword))) {
+  } else if (rio_match_keyword(rio_def_keyword)) {
     return rio_parse_decl_func(pos);
   } else if (rio_match_keyword(rio_let_keyword)) {
     return rio_parse_decl_var(pos);
@@ -7942,7 +7938,7 @@ void rio_put_type_name(char (*(*buf)), rio_Type (*type)) {
       break;
     }
     case rio_CompilerTypeKind_Func: {
-      rio_buf_printf(buf, "fn(");
+      rio_buf_printf(buf, "do(");
       {
         rio_Slice_ref_Type items__ = type->function.params;
         for (size_t i = 0; i < items__.length; ++i) {

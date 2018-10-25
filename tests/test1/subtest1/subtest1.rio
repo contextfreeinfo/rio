@@ -1,24 +1,24 @@
 import libc {printf}
 
-fn bogus_func() {
+def bogus_func() {
   printf("Hello, world!\n");
   // asdf;
   // "asdf" << 42;
 }
 
-fn func3() {
+def func3() {
   printf("func3\n");
 }
 
-fn func4() {
+def func4() {
 }
 
-fn func2() {
+def func2() {
   func3();
   func4();
 }
 
-fn func1() -> int {
+def func1() -> int {
   func2();
   return 42;
 }

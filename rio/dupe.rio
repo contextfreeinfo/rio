@@ -43,7 +43,7 @@ def dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
   return *dupe;
 }
 
-fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
+def dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
   if (!expr) {
     return NULL;
   }
@@ -123,12 +123,12 @@ fn dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
   return dupe;
 }
 
-fn dupe_function(func: DeclFunc, shallow: bool, map: &MapClosure) -> DeclFunc {
+def dupe_function(func: DeclFunc, shallow: bool, map: &MapClosure) -> DeclFunc {
   dupe_function_fields(&func, shallow, map);
   return func;
 }
 
-fn dupe_function_fields(dupe: &DeclFunc, shallow: bool, map: &MapClosure) {
+def dupe_function_fields(dupe: &DeclFunc, shallow: bool, map: &MapClosure) {
   dupe.params = ast_dup_slice.<FuncParam>(dupe.params);
   for &(dupe.params) do(param) {
     *param = dupe_func_param(*param, map);
@@ -139,7 +139,7 @@ fn dupe_function_fields(dupe: &DeclFunc, shallow: bool, map: &MapClosure) {
   }
 }
 
-fn dupe_func_param(param: FuncParam, map: &MapClosure) -> FuncParam {
+def dupe_func_param(param: FuncParam, map: &MapClosure) -> FuncParam {
   let dupe = &param;
   dupe.type = dupe_typespec(dupe.type, map);
   if (dupe.default_val) {
@@ -148,7 +148,7 @@ fn dupe_func_param(param: FuncParam, map: &MapClosure) -> FuncParam {
   return *dupe;
 }
 
-fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
+def dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
   if (!stmt) {
     return NULL;
   }
@@ -225,7 +225,7 @@ fn dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
   return dupe;
 }
 
-fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
+def dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   if (!type) {
     return NULL;
   }
@@ -258,7 +258,7 @@ fn dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   return dupe;
 }
 
-fn find_generic(type: &Typespec) -> bool {
+def find_generic(type: &Typespec) -> bool {
   if (!type) {
     return false;
   }
@@ -291,13 +291,13 @@ fn find_generic(type: &Typespec) -> bool {
   return false;
 }
 
-fn get_typespec_sym_name(type: &Typespec) -> own *char {
+def get_typespec_sym_name(type: &Typespec) -> own *char {
   let buf: *char;
   put_typespec_sym_name(&buf, type);
   return buf;
 }
 
-fn map_type_args(self: &TypeMap, item: Any) -> &void {
+def map_type_args(self: &TypeMap, item: Any) -> &void {
   switch (item.type) {
     typeof(Aggregate) => {
       // Let these be copied so we can make changes inside.
@@ -341,7 +341,7 @@ fn map_type_args(self: &TypeMap, item: Any) -> &void {
   }
 }
 
-fn put_typespec_sym_name(buf: **char, type: &Typespec) {
+def put_typespec_sym_name(buf: **char, type: &Typespec) {
   @complete
   switch (type.kind) {
     Name => {
@@ -380,7 +380,7 @@ fn put_typespec_sym_name(buf: **char, type: &Typespec) {
     }
     Func => {
       let function = &type.function;
-      buf_printf(buf, "fn_");
+      buf_printf(buf, "do_");
       for (type.function.args) do(arg, i) {
         if (i) {
           buf_printf(buf, "_");
