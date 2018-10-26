@@ -79,28 +79,25 @@ def test_generic_functions() {
   // first.<int>({});
 }
 
+typedef Num = int;
+
+// def sum(x: Num, y: Num) -> Num {
+// def sum<Num>(x: Num, y: Num) -> Num {
 def sum<Num: int>(x: Num, y: Num) -> Num {
   return x + y;
 }
 
-// typedef Num = int;
-
 // def sum_slice(nums: Slice<Num>) -> Num {
+// def sum_slice<Num>(nums: Slice<Num>) -> Num {
 def sum_slice<Num: int>(nums: Slice<Num>) -> Num {
   let result: Num = 0;
   for (nums) do(num) {
+    // TODO Make nested generic calls work ...
+    // result = sum.<Num>(result, num);
     result += num;
   }
   return result;
 }
-
-// def sum(x, y) {
-//   return x + y;
-// }
-
-// def sum(x, y) where x: int, y: int {
-//   return x + y;
-// }
 
 // Deeper generics.
 // TODO In generation, optimize all equivalent functions down to single cases?

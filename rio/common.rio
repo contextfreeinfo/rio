@@ -132,11 +132,12 @@ def write_file(path: *const char, buf: *const char, len: usize) -> bool {
 }
 
 // Stretchy buffers, invented (?) by Sean Barrett
+// TODO Replace with something more explicit.
 
 struct BufHdr {
   len: usize;
   cap: usize;
-  // Should be char[], but rio doesn't allow size 0.
+  // TODO Should be [char * 0], but rio doesn't currently allow size 0.
   buf: [1]char;
 }
 

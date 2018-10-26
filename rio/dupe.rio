@@ -104,8 +104,12 @@ def dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
       dupe.modify.expr = dupe_expr(dupe.modify.expr, map);
     }
     Name => {
-      // TODO A name could reference type params.
-      // TODO The type_args definitely could, too.
+      // TODO A name could also reference type params.
+      // let old = dupe.type_args.items;
+      dupe.type_args = dupe_type_args(dupe.type_args, map);
+      // if (dupe.type_args.items != old) {
+      //   printf("Duping type arg: was %s, now %s\n", get_typespec_sym_name(old[0].val), get_typespec_sym_name(dupe.type_args[0].val));
+      // }
     }
     Offsetof => {
       let offsetof_field = &dupe.offsetof_field;
@@ -225,6 +229,18 @@ def dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
   return dupe;
 }
 
+def dupe_type_args(
+  type_args: Slice<TypeArg>, map: &MapClosure,
+) -> Slice<TypeArg> {
+  if (type_args.length) {
+    type_args = ast_dup_slice.<TypeArg>(type_args);
+    for &(type_args) do(type_arg) {
+      type_arg.val = dupe_typespec(type_arg.val, map);
+    }
+  }
+  return type_args;
+}
+
 def dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   if (!type) {
     return NULL;
@@ -245,13 +261,7 @@ def dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
     Name => {
       dupe.names = ast_dup_slice.<TypespecName>(dupe.names);
       for &(dupe.names) do(type_name) {
-        if (type_name.type_args.length) {
-          // printf("Duping type args: %s\n", type_name.name);
-          type_name.type_args = ast_dup_slice.<TypeArg>(type_name.type_args);
-          for &(type_name.type_args) do(type_arg) {
-            type_arg.val = dupe_typespec(type_arg.val, map);
-          }
-        }
+        type_name.type_args = dupe_type_args(type_name.type_args, map);
       }
     }
   }

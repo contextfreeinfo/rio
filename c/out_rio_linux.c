@@ -88,9 +88,9 @@ typedef struct rio_Slice_SwitchCase rio_Slice_SwitchCase;
 typedef struct rio_Map rio_Map;
 typedef struct rio_DeclFunc rio_DeclFunc;
 typedef struct rio_FuncParam rio_FuncParam;
+typedef struct rio_Slice_TypeArg rio_Slice_TypeArg;
 typedef struct Any Any;
 typedef struct rio_Token rio_Token;
-typedef struct rio_Slice_TypeArg rio_Slice_TypeArg;
 typedef struct rio_CompoundField rio_CompoundField;
 typedef struct rio_SwitchCasePattern rio_SwitchCasePattern;
 typedef struct rio_Slice_SwitchCasePattern rio_Slice_SwitchCasePattern;
@@ -826,6 +826,13 @@ rio_FuncParam rio_dupe_func_param(rio_FuncParam param, rio_MapClosure (*map));
 
 rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map)));
 
+struct rio_Slice_TypeArg {
+  rio_TypeArg (*items);
+  size_t length;
+};
+
+rio_Slice_TypeArg rio_dupe_type_args(rio_Slice_TypeArg type_args, rio_MapClosure (*map));
+
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map)));
 
 bool rio_find_generic(rio_Typespec (*type));
@@ -1397,11 +1404,6 @@ void rio_dir_list(rio_DirListIter (*iter), char const ((*path)));
 rio_Typespec (*rio_parse_type_func_param(void));
 
 rio_Typespec (*rio_parse_type_func(void));
-
-struct rio_Slice_TypeArg {
-  rio_TypeArg (*items);
-  size_t length;
-};
 
 rio_Slice_TypeArg rio_parse_type_args(void);
 
@@ -2532,9 +2534,9 @@ rio_Stmt (*rio_ast_dup_Stmt(rio_Stmt const ((*src))));
 
 rio_Slice_SwitchCasePattern rio_ast_dup_slice_SwitchCasePattern(rio_Slice_SwitchCasePattern const (src));
 
-rio_Typespec (*rio_ast_dup_Typespec(rio_Typespec const ((*src))));
-
 rio_Slice_TypeArg rio_ast_dup_slice_TypeArg(rio_Slice_TypeArg const (src));
+
+rio_Typespec (*rio_ast_dup_Typespec(rio_Typespec const ((*src))));
 
 struct rio_Package {
   char const ((*path));
@@ -3637,6 +3639,7 @@ rio_Expr (*rio_dupe_expr(rio_Expr (*expr), rio_MapClosure (*map))) {
     break;
   }
   case rio_Expr_Name: {
+    dupe->type_args = rio_dupe_type_args(dupe->type_args, map);
     break;
   }
   case rio_Expr_Offsetof: {
@@ -3789,6 +3792,20 @@ rio_Stmt (*rio_dupe_stmt(rio_Stmt (*stmt), rio_MapClosure (*map))) {
   return dupe;
 }
 
+rio_Slice_TypeArg rio_dupe_type_args(rio_Slice_TypeArg type_args, rio_MapClosure (*map)) {
+  if (type_args.length) {
+    type_args = rio_ast_dup_slice_TypeArg(type_args);
+    {
+      rio_Slice_TypeArg items__ = type_args;
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_TypeArg (*type_arg) = &items__.items[i__];
+        type_arg->val = rio_dupe_typespec(type_arg->val, map);
+      }
+    }
+  }
+  return type_args;
+}
+
 rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
   if (!(type)) {
     return NULL;
@@ -3816,16 +3833,7 @@ rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
       rio_Slice_TypespecName items__ = dupe->names;
       for (size_t i__ = 0; i__ < items__.length; ++i__) {
         rio_TypespecName (*type_name) = &items__.items[i__];
-        if (type_name->type_args.length) {
-          type_name->type_args = rio_ast_dup_slice_TypeArg(type_name->type_args);
-          {
-            rio_Slice_TypeArg items__ = type_name->type_args;
-            for (size_t i__ = 0; i__ < items__.length; ++i__) {
-              rio_TypeArg (*type_arg) = &items__.items[i__];
-              type_arg->val = rio_dupe_typespec(type_arg->val, map);
-            }
-          }
-        }
+        type_name->type_args = rio_dupe_type_args(type_name->type_args, map);
       }
     }
     break;
@@ -11421,13 +11429,13 @@ rio_Slice_SwitchCasePattern rio_ast_dup_slice_SwitchCasePattern(rio_Slice_Switch
   return (rio_Slice_SwitchCasePattern){items, src.length};
 }
 
-rio_Typespec (*rio_ast_dup_Typespec(rio_Typespec const ((*src)))) {
-  return rio_ast_dup_sized(src, sizeof(*(src)));
-}
-
 rio_Slice_TypeArg rio_ast_dup_slice_TypeArg(rio_Slice_TypeArg const (src)) {
   void (*items) = rio_ast_dup_sized(src.items, (src.length) * (sizeof(*(src.items))));
   return (rio_Slice_TypeArg){items, src.length};
+}
+
+rio_Typespec (*rio_ast_dup_Typespec(rio_Typespec const ((*src)))) {
+  return rio_ast_dup_sized(src, sizeof(*(src)));
 }
 
 void rio_buf_push2_ptr_const_char(char const ((*(*(*buf)))), char const ((*(*item)))) {
