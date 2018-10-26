@@ -75,6 +75,16 @@ typedef int Result_Kind;
 
 #define Result_Err ((Result_Kind)((Result_Ok) + (1)))
 
+typedef int Err;
+
+typedef void Item;
+
+typedef int Try_Kind;
+
+#define Try_Ok ((Try_Kind)(0))
+
+#define Try_Err ((Try_Kind)((Try_Ok) + (1)))
+
 extern char const ((*RIOOS));
 
 extern char const ((*RIOARCH));
@@ -174,6 +184,7 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 #define USIZE_MIN (UINT64_MIN)
 
 #define UINTPTR_MIN (UINT64_MIN)
+
 
 
 struct TypeFieldInfo {

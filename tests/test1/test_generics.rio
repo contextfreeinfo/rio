@@ -107,6 +107,9 @@ def sum_slice<Num: int>(nums: Slice<Num>) -> Num {
 // TODO C if wanted ...
 // TODO The previous discussion was from when this returned &Item, not Item.
 // TODO But that case is still interesting.
+// def first<Item>(slice: Slice) -> Try {
+// def first<Item>(slice: Slice<Item>) -> Try<Item> {
+// def first<Item>(slice: Slice) -> Result<Item, TestErr> {
 def first<Item>(slice: Slice<Item>) -> Result<Item, TestErr> {
   if (slice.length) {
     return {kind: Result.Ok, val: slice[0]};

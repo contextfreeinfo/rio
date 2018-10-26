@@ -167,6 +167,16 @@ typedef int Result_Kind;
 
 #define Result_Err ((Result_Kind)((Result_Ok) + (1)))
 
+typedef int Err;
+
+typedef void Item;
+
+typedef int Try_Kind;
+
+#define Try_Ok ((Try_Kind)(0))
+
+#define Try_Err ((Try_Kind)((Try_Ok) + (1)))
+
 extern char const ((*RIOOS));
 
 extern char const ((*RIOARCH));
@@ -2185,6 +2195,7 @@ rio_Type (*rio_aggregate_item_field_type_from_name(rio_Type (*type), char const 
 
 
 
+
 struct TypeFieldInfo {
   char const ((*name));
   typeid type;
@@ -3510,7 +3521,7 @@ bool rio_str_islower(char const ((*str))) {
 }
 
 rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*map))) {
-  rio_Aggregate (*dupe) = map->call(map->self, (Any){aggregate, TYPEID(55, TypeKind_Struct, rio_Aggregate)});
+  rio_Aggregate (*dupe) = map->call(map->self, (Any){aggregate, TYPEID(58, TypeKind_Struct, rio_Aggregate)});
   if (dupe) {
     return dupe;
   }
@@ -3520,7 +3531,7 @@ rio_Aggregate (*rio_dupe_aggregate(rio_Aggregate (*aggregate), rio_MapClosure (*
     rio_Slice_AggregateItem items__ = dupe->items;
     for (size_t i__ = 0; i__ < items__.length; ++i__) {
       rio_AggregateItem (*item) = &items__.items[i__];
-      map->call(map->self, (Any){item, TYPEID(50, TypeKind_Struct, rio_AggregateItem)});
+      map->call(map->self, (Any){item, TYPEID(53, TypeKind_Struct, rio_AggregateItem)});
       switch (item->kind) {
       case rio_AggregateItem_Field: {
         item->type = rio_dupe_typespec(item->type, map);
@@ -3810,7 +3821,7 @@ rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
   if (!(type)) {
     return NULL;
   }
-  rio_Typespec (*dupe) = map->call(map->self, (Any){type, TYPEID(44, TypeKind_Struct, rio_Typespec)});
+  rio_Typespec (*dupe) = map->call(map->self, (Any){type, TYPEID(47, TypeKind_Struct, rio_Typespec)});
   if (dupe) {
     return dupe;
   }
@@ -3906,11 +3917,11 @@ char (*rio_get_typespec_sym_name(rio_Typespec (*type))) {
 
 void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
   switch (item.type) {
-  case TYPEID(55, TypeKind_Struct, rio_Aggregate): {
+  case TYPEID(58, TypeKind_Struct, rio_Aggregate): {
     return NULL;
     break;
   }
-  case TYPEID(44, TypeKind_Struct, rio_Typespec): {
+  case TYPEID(47, TypeKind_Struct, rio_Typespec): {
     rio_Typespec (*type) = item.ptr;
     switch (type->kind) {
     case (rio_Typespec_Name): {

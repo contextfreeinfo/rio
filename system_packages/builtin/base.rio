@@ -4,7 +4,18 @@ union Result<Val, Err> switch {
   Err => err: Err;
 }
 
+// TODO Expando enums like enum... Err {Thing, More};
+enum Err {}
+
+typedef Item = void;
+
 struct Slice<Item> {
   items: *Item;
   length: usize;
+}
+
+// TODO Maybe should use separate Val type ...
+union Try<Item> switch {
+  Ok => val: Item;
+  Err => err: Err;
 }
