@@ -1993,13 +1993,13 @@ typedef int rio_Arch;
 
 extern char const ((*(rio_arch_names[(rio_Arch_Num)])));
 
-extern int rio_target_os;
+extern rio_Os rio_target_os;
 
-extern int rio_target_arch;
+extern rio_Arch rio_target_arch;
 
-int rio_get_os(char const ((*name)));
+rio_Os rio_get_os(char const ((*name)));
 
-int rio_get_arch(char const ((*name)));
+rio_Arch rio_get_arch(char const ((*name)));
 
 struct rio_TypeMetrics {
   size_t size;
@@ -10666,7 +10666,7 @@ void rio_init_compiler(void) {
 void rio_parse_env_vars(void) {
   char (*rioos_var) = getenv("RIOOS");
   if (rioos_var) {
-    int os = rio_get_os(rioos_var);
+    rio_Os os = rio_get_os(rioos_var);
     if ((os) == (-(1))) {
       printf("Unknown target operating system in RIOOS environment variable: %s\n", rioos_var);
     } else {
@@ -10675,7 +10675,7 @@ void rio_parse_env_vars(void) {
   }
   char (*rioarch_var) = getenv("RIOARCH");
   if (rioarch_var) {
-    int arch = rio_get_arch(rioarch_var);
+    rio_Arch arch = rio_get_arch(rioarch_var);
     if ((arch) == (-(1))) {
       printf("Unknown target architecture in RIOARCH environment variable: %s\n", rioarch_var);
     } else {
@@ -10689,8 +10689,8 @@ int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char 
   char const ((*output_name)) = {0};
   bool flag_check = false;
   rio_add_flag_str("o", &(output_name), "file", "Output file (default: out_<main-package>.c)");
-  rio_add_flag_enum("os", &(rio_target_os), "Target operating system", rio_os_names, (rio_Os_Num));
-  rio_add_flag_enum("arch", &(rio_target_arch), "Target machine architecture", rio_arch_names, (rio_Arch_Num));
+  rio_add_flag_enum("os", (int *)(&(rio_target_os)), "Target operating system", rio_os_names, (rio_Os_Num));
+  rio_add_flag_enum("arch", (int *)(&(rio_target_arch)), "Target machine architecture", rio_arch_names, (rio_Arch_Num));
   rio_add_flag_bool("check", &(flag_check), "Semantic checking with no code generation");
   rio_add_flag_bool("lazy", &(rio_flag_lazy), "Only compile what\'s reachable from the main package");
   rio_add_flag_bool("nosourcemap", &(rio_flag_nosourcemap), "Don\'t generate any source map information");
@@ -10767,9 +10767,9 @@ int rio_rio_main(int argc, char const ((*(*argv))), void (*gen_all)(void), char 
 
 char const ((*(rio_os_names[(rio_Os_Num)]))) = {[(rio_Os_Win32)] = "win32", [(rio_Os_Linux)] = "linux", [(rio_Os_OsX)] = "osx"};
 char const ((*(rio_arch_names[(rio_Arch_Num)]))) = {[(rio_Arch_X64)] = "x64", [(rio_Arch_X86)] = "x86"};
-int rio_target_os;
-int rio_target_arch;
-int rio_get_os(char const ((*name))) {
+rio_Os rio_target_os;
+rio_Arch rio_target_arch;
+rio_Os rio_get_os(char const ((*name))) {
   for (int i = 0; (i) < ((rio_Os_Num)); (i)++) {
     if ((strcmp(rio_os_names[i], name)) == (0)) {
       return i;
@@ -10778,7 +10778,7 @@ int rio_get_os(char const ((*name))) {
   return -(1);
 }
 
-int rio_get_arch(char const ((*name))) {
+rio_Arch rio_get_arch(char const ((*name))) {
   for (int i = 0; (i) < ((rio_Arch_Num)); (i)++) {
     if ((strcmp(rio_arch_names[i], name)) == (0)) {
       return i;
@@ -10810,13 +10810,13 @@ rio_TypeMetrics (rio_lp64_metrics[(rio_CompilerTypeKind_Num)]) = {[(rio_Compiler
 void rio_init_target(void) {
   rio_type_metrics = NULL;
   switch (rio_target_os) {
-  case (rio_Os_Win32): {
+  case rio_Os_Win32: {
     switch (rio_target_arch) {
-    case (rio_Arch_X86): {
+    case rio_Arch_X86: {
       rio_type_metrics = rio_win32_x86_metrics;
       break;
     }
-    case (rio_Arch_X64): {
+    case rio_Arch_X64: {
       rio_type_metrics = rio_win32_x64_metrics;
       break;
     }
@@ -10826,13 +10826,13 @@ void rio_init_target(void) {
     }
     break;
   }
-  case (rio_Os_Linux): {
+  case rio_Os_Linux: {
     switch (rio_target_arch) {
-    case (rio_Arch_X86): {
+    case rio_Arch_X86: {
       rio_type_metrics = rio_ilp32_metrics;
       break;
     }
-    case (rio_Arch_X64): {
+    case rio_Arch_X64: {
       rio_type_metrics = rio_lp64_metrics;
       break;
     }
@@ -10842,9 +10842,9 @@ void rio_init_target(void) {
     }
     break;
   }
-  case (rio_Os_OsX): {
+  case rio_Os_OsX: {
     switch (rio_target_arch) {
-    case (rio_Arch_X64): {
+    case rio_Arch_X64: {
       rio_type_metrics = rio_lp64_metrics;
       break;
     }
@@ -10900,10 +10900,10 @@ bool rio_is_excluded_target_filename(char const ((*name))) {
     memcpy(str2, ptr2, (ptr1) - (ptr2));
     str2[(ptr1) - (ptr2)] = 0;
   }
-  int os1 = rio_get_os(str1);
-  int arch1 = rio_get_arch(str1);
-  int os2 = rio_get_os(str2);
-  int arch2 = rio_get_arch(str2);
+  rio_Os os1 = rio_get_os(str1);
+  rio_Arch arch1 = rio_get_arch(str1);
+  rio_Os os2 = rio_get_os(str2);
+  rio_Arch arch2 = rio_get_arch(str2);
   if (((arch1) != (-(1))) && ((os2) != (-(1)))) {
     return ((arch1) != (rio_target_arch)) || ((os2) != (rio_target_os));
   } else if (((arch2) != (-(1))) && ((os1) != (-(1)))) {

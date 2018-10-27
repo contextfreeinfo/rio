@@ -78,8 +78,8 @@ def rio_main(argc: int, argv: **const char, gen_all: do(), extension: *const cha
   let output_name: *const char;
   let flag_check = false;
   add_flag_str("o", &output_name, "file", "Output file (default: out_<main-package>.c)");
-  add_flag_enum("os", &target_os, "Target operating system", os_names, Os.Num);
-  add_flag_enum("arch", &target_arch, "Target machine architecture", arch_names, Arch.Num);
+  add_flag_enum("os", &target_os as &int, "Target operating system", os_names, Os.Num);
+  add_flag_enum("arch", &target_arch as &int, "Target machine architecture", arch_names, Arch.Num);
   add_flag_bool("check", &flag_check, "Semantic checking with no code generation");
   add_flag_bool("lazy", &flag_lazy, "Only compile what's reachable from the main package");
   add_flag_bool("nosourcemap", &flag_nosourcemap, "Don't generate any source map information");

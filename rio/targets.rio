@@ -22,10 +22,10 @@ let arch_names: [Arch.Num]*const char = [
   Arch.X86: "x86",
 ];
 
-let target_os: int;
-let target_arch: int;
+let target_os: Os;
+let target_arch: Arch;
 
-def get_os(name: *const char) -> int {
+def get_os(name: *const char) -> Os {
   for (let i = 0; i < Os.Num; i++) {
     if (strcmp(os_names[i], name) == 0) {
       return i;
@@ -34,7 +34,7 @@ def get_os(name: *const char) -> int {
   return -1;
 }
 
-def get_arch(name: *const char) -> int {
+def get_arch(name: *const char) -> Arch {
   for (let i = 0; i < Arch.Num; i++) {
     if (strcmp(arch_names[i], name) == 0) {
       return i;
@@ -90,23 +90,23 @@ let lp64_metrics: [CompilerTypeKind.Num]TypeMetrics = [
 def init_target() {
   type_metrics = NULL;
   switch (target_os) {
-    Os.Win32 => {
+    Win32 => {
       switch (target_arch) {
-        Arch.X86 => type_metrics = win32_x86_metrics;
-        Arch.X64 => type_metrics = win32_x64_metrics;
+        X86 => type_metrics = win32_x86_metrics;
+        X64 => type_metrics = win32_x64_metrics;
         default => {}
       }
     }
-    Os.Linux => {
+    Linux => {
       switch (target_arch) {
-        Arch.X86 => type_metrics = ilp32_metrics;
-        Arch.X64 => type_metrics = lp64_metrics;
+        X86 => type_metrics = ilp32_metrics;
+        X64 => type_metrics = lp64_metrics;
         default => {}
       }
     }
-    Os.OsX => {
+    OsX => {
       switch (target_arch) {
-        Arch.X64 => type_metrics = lp64_metrics;
+        X64 => type_metrics = lp64_metrics;
         default => {}
       }
     }
