@@ -2066,6 +2066,9 @@ def resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
       index++;
     } for;
   } else if (type.kind == CompilerTypeKind.Array) {
+    if (expr.compound.kind != ExprCompound.List) {
+      fatal_error(expr.pos, "Must use list literal for arrays");
+    }
     let index: usize = 0;
     let max_index: usize = 0;
     for (expr.compound.fields) do(field) {

@@ -5,7 +5,7 @@ import C = libc {gc = getchar, ...}
 
 let esc_test_str = "Hello\nworld\nHex: \x01\x10\xFHello\xFF";
 
-let some_array: *int = <[]int>{1, 2, 3};
+let some_array: *int = <[]int>[1, 2, 3];
 
 struct SomeIncompleteType;
 
@@ -90,7 +90,7 @@ def f10(a: [3]wchar) {
 }
 
 def test_arrays() {
-  let a: []wchar = {1, 2, 3};
+  let a: []wchar = [1, 2, 3];
   // a = a;
   f10(a);
   let b = a;
@@ -209,33 +209,33 @@ union IntOrPtr {
   p: *int;
 }
 
-let char_to_escape: [256]const char = {
-  ['\0']: '0',
-  ['\n']: 'n',
-  ['\r']: 'r',
-  ['\t']: 't',
-  ['\v']: 'v',
-  ['\b']: 'b',
-  ['\a']: 'a',
-  ['\\']: '\\',
-  ['"']: '"',
-  ['\'']: '\'',
-};
+let char_to_escape: [256]const char = [
+  '\0': '0',
+  '\n': 'n',
+  '\r': 'r',
+  '\t': 't',
+  '\v': 'v',
+  '\b': 'b',
+  '\a': 'a',
+  '\\': '\\',
+  '"': '"',
+  '\'': '\'',
+];
 
-let escape_to_char: [256]const char = {
-  ['0']: '\0',
-  ['\'']: '\'',
-  ['"']: '"',
-  ['\\']: '\\',
-  ['n']: '\n',
-  ['r']: '\r',
-  ['t']: '\t',
-  ['v']: '\v',
-  ['b']: '\b',
-  ['a']: '\a',
-};
+let escape_to_char: [256]const char = [
+  '0': '\0',
+  '\'': '\'',
+  '"': '"',
+  '\\': '\\',
+  'n': '\n',
+  'r': '\r',
+  't': '\t',
+  'v': '\v',
+  'b': '\b',
+  'a': '\a',
+];
 
-let a2: []int = {1, 2, 3, [10]: 4};
+let a2: []int = [1, 2, 3, 10: 4];
 // let a3: []int;
 
 def is_even(digit: int) -> int {
@@ -334,13 +334,14 @@ union Direct switch {
   Second => b: float;
 }
 
-let color_names: [Color.Num]*const char = {
-// let color_names: [*const char; Num] = {
-  [Color.None]: "none",
-  [Color.Red]: "red",
-  [Color.Green]: "green",
-  [Color.Blue]: "blue",
-};
+let color_names: [Color.Num]*const char = [
+// let color_names: [*const char * Color.Num] = [
+// let color_names: [*char * Color.Num] = [
+  Color.None: "none",
+  Color.Red: "red",
+  Color.Green: "green",
+  Color.Blue: "blue",
+];
 
 def test_enum() {
   let a: Color = Color.Red;
@@ -515,13 +516,13 @@ def test_init() {
   let y: int;
   y = 0;
   let z: int = 42;
-  let a: []int = {1, 2, 3};
+  let a: []int = [1, 2, 3];
   // a2: []int;
   // v: void;
   for (let i: ullong = 0; i < 10; i++) {
     printf("%llu\n", i);
   }
-  let b: [4]int = {1, 2, 3, 4};
+  let b: [4]int = [1, 2, 3, 4];
   b[0] = a[2];
 }
 
@@ -683,19 +684,19 @@ def test_va_list(fmt: *const char, ...) {
 def test_compound_literals() {
   let w: *Vector;
   w = &{1, 2};
-  let a = <[]int>{1, 2, 3};
+  let a = <[]int>[1, 2, 3];
   let i = 42;
   let x: const Any = {&i, typeof(i)};
   let y = <const Any>{&i, typeof(i)};
   let v: Ints = {
     num_ints: 3,
-    int_ptr: <[]int>{1, 2, 3},
-    int_arr: {1, 2, 3},
+    int_ptr: <[]int>[1, 2, 3],
+    int_arr: [1, 2, 3],
   };
-  let ints_of_ints: []Ints = {
-    {num_ints: 3, int_arr: {1, 2, 3}},
-    {num_ints: 2, int_ptr: <[2]int>{-1, -2}},
-  };
+  let ints_of_ints: []Ints = [
+    {num_ints: 3, int_arr: [1, 2, 3]},
+    {num_ints: 2, int_ptr: <[2]int>[-1, -2]},
+  ];
 }
 
 def test_complete() {
@@ -901,7 +902,7 @@ def test_err() {
 }
 
 def test_for_each() {
-  let friends: []*const char = {"Larry", "Moe", "Curly"};
+  let friends: []*const char = ["Larry", "Moe", "Curly"];
   // let friends = ["Larry", "Moe", "Curly"];
   // Loops on array.
   for (friends) do(friend) {

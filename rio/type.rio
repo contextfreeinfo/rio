@@ -176,38 +176,38 @@ def is_signed_type(type: &Type) -> bool {
   }
 }
 
-let type_names: [CompilerTypeKind.Num]*const char = {
-  [CompilerTypeKind.Void]: "void",
-  [CompilerTypeKind.Bool]: "bool",
-  [CompilerTypeKind.Char]: "char",
-  [CompilerTypeKind.SChar]: "schar",
-  [CompilerTypeKind.UChar]: "uchar",
-  [CompilerTypeKind.Short]: "short",
-  [CompilerTypeKind.UShort]: "ushort",
-  [CompilerTypeKind.Int]: "int",
-  [CompilerTypeKind.UInt]: "uint",
-  [CompilerTypeKind.Long]: "long",
-  [CompilerTypeKind.ULong]: "ulong",
-  [CompilerTypeKind.LLong]: "llong",
-  [CompilerTypeKind.ULLong]: "ullong",
-  [CompilerTypeKind.Float]: "float",
-  [CompilerTypeKind.Double]: "double",
-};
+let type_names: [CompilerTypeKind.Num]*const char = [
+  CompilerTypeKind.Void: "void",
+  CompilerTypeKind.Bool: "bool",
+  CompilerTypeKind.Char: "char",
+  CompilerTypeKind.SChar: "schar",
+  CompilerTypeKind.UChar: "uchar",
+  CompilerTypeKind.Short: "short",
+  CompilerTypeKind.UShort: "ushort",
+  CompilerTypeKind.Int: "int",
+  CompilerTypeKind.UInt: "uint",
+  CompilerTypeKind.Long: "long",
+  CompilerTypeKind.ULong: "ulong",
+  CompilerTypeKind.LLong: "llong",
+  CompilerTypeKind.ULLong: "ullong",
+  CompilerTypeKind.Float: "float",
+  CompilerTypeKind.Double: "double",
+];
 
-let type_ranks: [CompilerTypeKind.Num]int = {
-  [CompilerTypeKind.Bool]: 1,
-  [CompilerTypeKind.Char]: 2,
-  [CompilerTypeKind.SChar]: 2,
-  [CompilerTypeKind.UChar]: 2,
-  [CompilerTypeKind.Short]: 3,
-  [CompilerTypeKind.UShort]: 3,
-  [CompilerTypeKind.Int]: 4,
-  [CompilerTypeKind.UInt]: 4,
-  [CompilerTypeKind.Long]: 5,
-  [CompilerTypeKind.ULong]: 5,
-  [CompilerTypeKind.LLong]: 6,
-  [CompilerTypeKind.ULLong]: 6,
-};
+let type_ranks: [CompilerTypeKind.Num]int = [
+  CompilerTypeKind.Bool: 1,
+  CompilerTypeKind.Char: 2,
+  CompilerTypeKind.SChar: 2,
+  CompilerTypeKind.UChar: 2,
+  CompilerTypeKind.Short: 3,
+  CompilerTypeKind.UShort: 3,
+  CompilerTypeKind.Int: 4,
+  CompilerTypeKind.UInt: 4,
+  CompilerTypeKind.Long: 5,
+  CompilerTypeKind.ULong: 5,
+  CompilerTypeKind.LLong: 6,
+  CompilerTypeKind.ULLong: 6,
+];
 
 def type_rank(type: &Type) -> int {
   let rank = type_ranks[type.kind];

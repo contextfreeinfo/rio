@@ -5,11 +5,11 @@ enum Os {
   Num,
 }
 
-let os_names: [Os.Num]*const char = {
-  [Os.Win32]: "win32",
-  [Os.Linux]: "linux",
-  [Os.OsX]: "osx",
-};
+let os_names: [Os.Num]*const char = [
+  Os.Win32: "win32",
+  Os.Linux: "linux",
+  Os.OsX: "osx",
+];
 
 enum Arch {
   X64,
@@ -17,10 +17,10 @@ enum Arch {
   Num,
 }
 
-let arch_names: [Arch.Num]*const char = {
-  [Arch.X64]: "x64",
-  [Arch.X86]: "x86",
-};
+let arch_names: [Arch.Num]*const char = [
+  Arch.X64: "x64",
+  Arch.X86: "x86",
+];
 
 let target_os: int;
 let target_arch: int;
@@ -59,33 +59,33 @@ def init_default_type_metrics(metrics: [CompilerTypeKind.Num]TypeMetrics) {
   metrics[CompilerTypeKind.Double] = {size: 8, align: 8};
 }
 
-let win32_x86_metrics: [CompilerTypeKind.Num]TypeMetrics = {
+let win32_x86_metrics: [CompilerTypeKind.Num]TypeMetrics = [
   // DEFAULT_TYPE_METRICS,
-  [CompilerTypeKind.Ptr]: {size: 4, align: 4},
-  [CompilerTypeKind.Long]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
-  [CompilerTypeKind.ULong]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
-};
+  CompilerTypeKind.Ptr: {size: 4, align: 4},
+  CompilerTypeKind.Long: {size: 4, align: 4, max: 0x7fffffff, sign: true},
+  CompilerTypeKind.ULong: {size: 4, align: 4, max: 0x7fffffff, sign: true},
+];
 
-let win32_x64_metrics: [CompilerTypeKind.Num]TypeMetrics = {
+let win32_x64_metrics: [CompilerTypeKind.Num]TypeMetrics = [
   // DEFAULT_TYPE_METRICS,
-  [CompilerTypeKind.Ptr]: {size: 8, align: 8},
-  [CompilerTypeKind.Long]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
-  [CompilerTypeKind.ULong]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
-};
+  CompilerTypeKind.Ptr: {size: 8, align: 8},
+  CompilerTypeKind.Long: {size: 4, align: 4, max: 0x7fffffff, sign: true},
+  CompilerTypeKind.ULong: {size: 4, align: 4, max: 0x7fffffff, sign: true},
+];
 
-let ilp32_metrics: [CompilerTypeKind.Num]TypeMetrics = {
+let ilp32_metrics: [CompilerTypeKind.Num]TypeMetrics = [
   // DEFAULT_TYPE_METRICS,
-  [CompilerTypeKind.Ptr]: {size: 4, align: 4},
-  [CompilerTypeKind.Long]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
-  [CompilerTypeKind.ULong]: {size: 4, align: 4, max: 0x7fffffff, sign: true},
-};
+  CompilerTypeKind.Ptr: {size: 4, align: 4},
+  CompilerTypeKind.Long: {size: 4, align: 4, max: 0x7fffffff, sign: true},
+  CompilerTypeKind.ULong: {size: 4, align: 4, max: 0x7fffffff, sign: true},
+];
 
-let lp64_metrics: [CompilerTypeKind.Num]TypeMetrics = {
+let lp64_metrics: [CompilerTypeKind.Num]TypeMetrics = [
   // DEFAULT_TYPE_METRICS,
-  [CompilerTypeKind.Ptr]: {size: 8, align: 8},
-  [CompilerTypeKind.Long]: {size: 8, align: 8, max: 0x7fffffffffffffff, sign: true},
-  [CompilerTypeKind.ULong]: {size: 8, align: 8, max: 0xffffffffffffffff, sign: true},
-};
+  CompilerTypeKind.Ptr: {size: 8, align: 8},
+  CompilerTypeKind.Long: {size: 8, align: 8, max: 0x7fffffffffffffff, sign: true},
+  CompilerTypeKind.ULong: {size: 8, align: 8, max: 0xffffffffffffffff, sign: true},
+];
 
 def init_target() {
   type_metrics = NULL;

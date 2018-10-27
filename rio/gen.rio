@@ -126,18 +126,18 @@ def is_incomplete_array_typespec(typespec: &Typespec) -> bool {
   return typespec.kind == Typespec.Array && !typespec.num_elems;
 }
 
-let char_to_escape: [256]char = {
-  ['\0']: '0',
-  ['\n']: 'n',
-  ['\r']: 'r',
-  ['\t']: 't',
-  ['\v']: 'v',
-  ['\b']: 'b',
-  ['\a']: 'a',
-  ['\\']: '\\',
-  ['"']: '"',
-  ['\'']: '\'',
-};
+let char_to_escape: [256]char = [
+  '\0': '0',
+  '\n': 'n',
+  '\r': 'r',
+  '\t': 't',
+  '\v': 'v',
+  '\b': 'b',
+  '\a': 'a',
+  '\\': '\\',
+  '"': '"',
+  '\'': '\'',
+];
 
 def gen_char(c: char) {
   if (char_to_escape[c as uchar]) {
@@ -484,31 +484,31 @@ def gen_expr_compound(expr: &Expr) {
   buf_printf(&gen_buf, "}");
 }
 
-let typeid_kind_names: [CompilerTypeKind.Num]*const char = {
-  [CompilerTypeKind.None]: "TypeKind_None",
-  [CompilerTypeKind.Void]: "TypeKind_Void",
-  [CompilerTypeKind.Bool]: "TypeKind_Bool",
-  [CompilerTypeKind.Char]: "TypeKind_Char",
-  [CompilerTypeKind.UChar]: "TypeKind_UChar",
-  [CompilerTypeKind.SChar]: "TypeKind_SChar",
-  [CompilerTypeKind.Short]: "TypeKind_Short",
-  [CompilerTypeKind.UShort]: "TypeKind_UShort",
-  [CompilerTypeKind.Int]:  "TypeKind_Int",
-  [CompilerTypeKind.UInt]: "TypeKind_UInt",
-  [CompilerTypeKind.Long]: "TypeKind_Long",
-  [CompilerTypeKind.ULong]: "TypeKind_ULong",
-  [CompilerTypeKind.LLong]: "TypeKind_LLong",
-  [CompilerTypeKind.ULLong]: "TypeKind_ULLong",
-  [CompilerTypeKind.Float]: "TypeKind_Float",
-  [CompilerTypeKind.Double]: "TypeKind_Double",
-  [CompilerTypeKind.Const]: "TypeKind_Const",
-  [CompilerTypeKind.Ptr]: "TypeKind_Ptr",
-  [CompilerTypeKind.Ref]: "TypeKind_Ref",
-  [CompilerTypeKind.Array]: "TypeKind_Array",
-  [CompilerTypeKind.Struct]: "TypeKind_Struct",
-  [CompilerTypeKind.Union]: "TypeKind_Union",
-  [CompilerTypeKind.Func]: "TypeKind_Func",
-};
+let typeid_kind_names: [CompilerTypeKind.Num]*const char = [
+  CompilerTypeKind.None: "TypeKind_None",
+  CompilerTypeKind.Void: "TypeKind_Void",
+  CompilerTypeKind.Bool: "TypeKind_Bool",
+  CompilerTypeKind.Char: "TypeKind_Char",
+  CompilerTypeKind.UChar: "TypeKind_UChar",
+  CompilerTypeKind.SChar: "TypeKind_SChar",
+  CompilerTypeKind.Short: "TypeKind_Short",
+  CompilerTypeKind.UShort: "TypeKind_UShort",
+  CompilerTypeKind.Int:  "TypeKind_Int",
+  CompilerTypeKind.UInt: "TypeKind_UInt",
+  CompilerTypeKind.Long: "TypeKind_Long",
+  CompilerTypeKind.ULong: "TypeKind_ULong",
+  CompilerTypeKind.LLong: "TypeKind_LLong",
+  CompilerTypeKind.ULLong: "TypeKind_ULLong",
+  CompilerTypeKind.Float: "TypeKind_Float",
+  CompilerTypeKind.Double: "TypeKind_Double",
+  CompilerTypeKind.Const: "TypeKind_Const",
+  CompilerTypeKind.Ptr: "TypeKind_Ptr",
+  CompilerTypeKind.Ref: "TypeKind_Ref",
+  CompilerTypeKind.Array: "TypeKind_Array",
+  CompilerTypeKind.Struct: "TypeKind_Struct",
+  CompilerTypeKind.Union: "TypeKind_Union",
+  CompilerTypeKind.Func: "TypeKind_Func",
+];
 
 def typeid_kind_name(type: &Type) -> *const char {
   if (type.kind < CompilerTypeKind.Num) {

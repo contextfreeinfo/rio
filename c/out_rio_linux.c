@@ -1432,9 +1432,11 @@ struct rio_CompoundField {
   };
 };
 
-rio_CompoundField rio_parse_expr_compound_field(void);
+rio_CompoundField rio_parse_expr_struct_field(void);
 
-rio_Expr (*rio_parse_expr_compound(rio_Typespec (*type)));
+rio_Expr (*rio_parse_expr_struct(rio_Typespec (*type)));
+
+rio_CompoundField rio_parse_expr_list_item(void);
 
 rio_Expr (*rio_parse_expr_list(rio_Typespec (*type)));
 
@@ -6640,32 +6642,25 @@ rio_Typespec (*rio_parse_type(void)) {
   return type;
 }
 
-rio_CompoundField rio_parse_expr_compound_field(void) {
+rio_CompoundField rio_parse_expr_struct_field(void) {
   rio_SrcPos pos = rio_token.pos;
-  if (rio_match_token((rio_TokenKind_Lbracket))) {
-    rio_Expr (*index) = rio_parse_expr();
-    rio_expect_token((rio_TokenKind_Rbracket));
-    rio_expect_token((rio_TokenKind_Colon));
-    return (rio_CompoundField){(rio_CompoundField_Index), pos, rio_parse_expr(), .index = index};
-  } else {
-    rio_Expr (*expr) = rio_parse_expr();
-    if (rio_match_token((rio_TokenKind_Colon))) {
-      if ((expr->kind) != ((rio_Expr_Name))) {
-        rio_fatal_error(rio_token.pos, "Named initializer in compound literal must be preceded by field name");
-      }
-      return (rio_CompoundField){(rio_CompoundField_Name), pos, rio_parse_expr(), .name = expr->name};
-    } else {
-      return (rio_CompoundField){(rio_CompoundField_Default), pos, expr};
+  rio_Expr (*expr) = rio_parse_expr();
+  if (rio_match_token((rio_TokenKind_Colon))) {
+    if ((expr->kind) != ((rio_Expr_Name))) {
+      rio_fatal_error(rio_token.pos, "Named initializer in compound literal must be preceded by field name");
     }
+    return (rio_CompoundField){(rio_CompoundField_Name), pos, rio_parse_expr(), .name = expr->name};
+  } else {
+    return (rio_CompoundField){(rio_CompoundField_Default), pos, expr};
   }
 }
 
-rio_Expr (*rio_parse_expr_compound(rio_Typespec (*type))) {
+rio_Expr (*rio_parse_expr_struct(rio_Typespec (*type))) {
   rio_SrcPos pos = rio_token.pos;
   rio_expect_token((rio_TokenKind_Lbrace));
   rio_CompoundField (*fields) = NULL;
   while (!(rio_is_token((rio_TokenKind_Rbrace)))) {
-    rio_CompoundField field = rio_parse_expr_compound_field();
+    rio_CompoundField field = rio_parse_expr_struct_field();
     rio_buf_push((void (**))(&(fields)), &(field), sizeof(field));
     if (!(rio_match_token((rio_TokenKind_Comma)))) {
       break;
@@ -6675,18 +6670,36 @@ rio_Expr (*rio_parse_expr_compound(rio_Typespec (*type))) {
   return rio_new_expr_compound(pos, (rio_ExprCompound_Struct), type, (rio_Slice_CompoundField){fields, rio_buf_len(fields)});
 }
 
+rio_CompoundField rio_parse_expr_list_item(void) {
+  rio_SrcPos pos = rio_token.pos;
+  rio_Expr (*expr) = rio_parse_expr();
+  if (rio_match_token((rio_TokenKind_Colon))) {
+    if ((expr->kind) == ((rio_Expr_Compound))) {
+      if ((expr->compound.kind) == ((rio_ExprCompound_List))) {
+        rio_Slice_CompoundField fields = expr->compound.fields;
+        if ((fields.length) != (1)) {
+          rio_fatal_error(rio_token.pos, "Computed field key must be single");
+        }
+        rio_warning(pos, "Needless brackets");
+        expr = fields.items[0].init;
+      }
+    }
+    return (rio_CompoundField){(rio_CompoundField_Index), pos, rio_parse_expr(), .index = expr};
+  } else {
+    return (rio_CompoundField){(rio_CompoundField_Default), pos, expr};
+  }
+}
+
 rio_Expr (*rio_parse_expr_list(rio_Typespec (*type))) {
   rio_SrcPos pos = rio_token.pos;
-  rio_expect_token((rio_TokenKind_Lbrace));
+  rio_expect_token((rio_TokenKind_Lbracket));
   rio_CompoundField (*fields) = NULL;
   while (!(rio_is_token((rio_TokenKind_Rbracket)))) {
-    rio_CompoundField field = rio_parse_expr_compound_field();
+    rio_CompoundField field = rio_parse_expr_list_item();
     rio_buf_push((void (**))(&(fields)), &(field), sizeof(field));
     if (!(rio_match_token((rio_TokenKind_Comma)))) {
       break;
     }
-  }
-  if (rio_match_token((rio_TokenKind_Semicolon))) {
   }
   rio_expect_token((rio_TokenKind_Rbracket));
   return rio_new_expr_compound(pos, (rio_ExprCompound_List), type, (rio_Slice_CompoundField){fields, rio_buf_len(fields)});
@@ -6716,7 +6729,7 @@ rio_Expr (*rio_parse_expr_operand(void)) {
     char const ((*name)) = rio_token.name;
     rio_next_token();
     if (rio_is_token((rio_TokenKind_Lbrace))) {
-      return rio_parse_expr_compound(rio_new_typespec_name1(pos, name));
+      return rio_parse_expr_struct(rio_new_typespec_name1(pos, name));
     } else {
       return rio_new_expr_name(pos, name);
     }
@@ -6763,12 +6776,14 @@ rio_Expr (*rio_parse_expr_operand(void)) {
   } else if (rio_is_token((rio_TokenKind_Lbracket))) {
     return rio_parse_expr_list(NULL);
   } else if (rio_is_token((rio_TokenKind_Lbrace))) {
-    return rio_parse_expr_compound(NULL);
+    return rio_parse_expr_struct(NULL);
   } else if (rio_match_token((rio_TokenKind_Lt))) {
     rio_Typespec (*type) = rio_parse_type();
     rio_expect_close_angle();
     if (rio_is_token((rio_TokenKind_Lbrace))) {
-      return rio_parse_expr_compound(type);
+      return rio_parse_expr_struct(type);
+    } else if (rio_is_token((rio_TokenKind_Lbracket))) {
+      return rio_parse_expr_list(type);
     } else {
       return rio_new_expr_cast(pos, type, rio_parse_expr_unary());
     }
@@ -9832,6 +9847,9 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
       }
     }
   } else if ((type->kind) == ((rio_CompilerTypeKind_Array))) {
+    if ((expr->compound.kind) != ((rio_ExprCompound_List))) {
+      rio_fatal_error(expr->pos, "Must use list literal for arrays");
+    }
     size_t index = 0;
     size_t max_index = 0;
     {
