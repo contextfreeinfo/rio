@@ -854,13 +854,13 @@ def complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
       //   fatal_error(item.pos, "Field type of size 0 is not allowed");
       // }
       for (item.names) do(name) {
-        let type_field = TypeField {name, item_type};
+        let type_field = TypeField(name, item_type);
         buf_push(&fields as &&void, &type_field, sizeof(type_field));
       }
     } else {
       #assert(item.kind == AggregateItem.Subaggregate);
       let item_type = complete_aggregate(NULL, item.subaggregate);
-      let type_field = TypeField {NULL, item_type};
+      let type_field = TypeField(NULL, item_type);
       buf_push(&fields as &&void, &type_field, sizeof(type_field));
     }
   } for;
@@ -1485,7 +1485,7 @@ def resolve_func_body(sym: &Sym) {
   } for;
   let ret_type = resolve_typespec(decl.function.ret_type);
   #assert(!is_array_type(ret_type));
-  let returns = resolve_stmt_block(decl.function.block, ret_type, StmtCtx {0});
+  let returns = resolve_stmt_block(decl.function.block, ret_type, ());
   resolve_labels();
   sym_leave(scope);
   // if (has_type_params) {
@@ -1769,7 +1769,7 @@ def eval_unary_op(op: TokenKind, type: &Type, val: Val) -> Val {
     cast_operand(&operand, type);
     return operand.val;
   } else {
-    return Val {0};
+    return {};
   }
 }
 
@@ -1790,7 +1790,7 @@ def eval_binary_op(op: TokenKind, type: &Type, left: Val, right: Val) -> Val {
     cast_operand(&result_operand, type);
     return result_operand.val;
   } else {
-    return Val {0};
+    return {};
   }
 }
 
@@ -1866,7 +1866,7 @@ def resolve_expr_unary(expr: &Expr) -> Operand {
       return resolve_unary_op(expr.unary.op, operand);
     }
   }
-  return Operand {0};
+  return {};
 }
 
 def resolve_binary_op(op: TokenKind, left: Operand, right: Operand) -> Operand {
@@ -2018,7 +2018,7 @@ def resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, lef
       }
     }
   } switch;
-  return Operand {0};
+  return {};
 }
 
 def resolve_expr_binary(expr: &Expr) -> Operand {
@@ -2030,12 +2030,35 @@ def resolve_expr_binary(expr: &Expr) -> Operand {
   return resolve_expr_binary_op(op, op_name, expr.pos, left, right);
 }
 
+def resolve_struct_fields(fields: Slice<CompoundField>, type: &Type) {
+  // This index can turn negative, so int.
+  let index = 0;
+  for (fields) do(field) {
+    if (field.kind == CompoundField.Index) {
+      fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
+    } else if (field.kind == CompoundField.Name) {
+      index = aggregate_item_field_index(type, field.name);
+      if (index == -1) {
+        fatal_error(field.pos, "Named field in compound literal does not exist");
+      }
+    }
+    if (index >= type.aggregate.fields.length as int) {
+      fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
+    }
+    let field_type = type.aggregate.fields[index].type;
+    if (!resolve_typed_init(field.pos, field_type, field.val)) {
+      fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected %s", get_type_name(field_type));
+    }
+    index++;
+  } for;
+}
+
 def resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
   #assert(expr.kind == Expr.Compound);
   if (!expected_type && !expr.compound.type) {
     fatal_error(expr.pos, "Implicitly typed compound literals used in context without expected type");
   }
-  let type: &Type = NULL;
+  let type: &Type;
   if (expr.compound.type) {
     type = resolve_typespec(expr.compound.type);
   } else {
@@ -2045,26 +2068,7 @@ def resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
   let is_const = is_const_type(type);
   type = unqualify_type(type);
   if (type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union) {
-    // This index can turn negative, so int.
-    let index = 0;
-    for (expr.compound.fields) do(field) {
-      if (field.kind == CompoundField.Index) {
-        fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
-      } else if (field.kind == CompoundField.Name) {
-        index = aggregate_item_field_index(type, field.name);
-        if (index == -1) {
-          fatal_error(field.pos, "Named field in compound literal does not exist");
-        }
-      }
-      if (index >= type.aggregate.fields.length as int) {
-        fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
-      }
-      let field_type = type.aggregate.fields[index].type;
-      if (!resolve_typed_init(field.pos, field_type, field.init)) {
-        fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected %s", get_type_name(field_type));
-      }
-      index++;
-    } for;
+    resolve_struct_fields(expr.compound.fields, type);
   } else if (type.kind == CompilerTypeKind.Array) {
     if (expr.compound.kind != ExprCompound.List) {
       fatal_error(expr.pos, "Must use list literal for arrays");
@@ -2090,7 +2094,7 @@ def resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
       if (type.num_elems && index >= type.num_elems as int) {
         fatal_error(field.pos, "Field initializer in array compound literal out of range");
       }
-      if (!resolve_typed_init(field.pos, type.base, field.init)) {
+      if (!resolve_typed_init(field.pos, type.base, field.val)) {
         fatal_error(field.pos, "Invalid type in compound literal initializer for array type. Expected %s", get_type_name(type.base));
       }
       max_index = max(max_index, index);
@@ -2106,7 +2110,7 @@ def resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
     }
     if (expr.compound.fields.length == 1) {
       let field = expr.compound.fields[0];
-      let init = resolve_expected_expr_rvalue(field.init, type);
+      let init = resolve_expected_expr_rvalue(field.val, type);
       if (!convert_operand(&init, type)) {
         fatal_error(field.pos, "Invalid type in compound literal initializer. Expected %s, got %s", get_type_name(type), get_type_name(init.type));
       }
@@ -2126,16 +2130,31 @@ def resolve_expr_call(expr: &Expr) -> Operand {
     // }
     sym = resolve_name(called_expr.name);
     if (sym && sym.kind == Sym.Type) {
-      if (expr.call.args.length != 1) {
-        fatal_error(expr.pos, "Type conversion operator takes 1 argument");
-      }
-      let operand = resolve_expr_rvalue(expr.call.args[0]);
-      if (!cast_operand(&operand, sym.type)) {
-        fatal_error(expr.pos, "Invalid type cast from %s to %s", get_type_name(operand.type), get_type_name(sym.type));
-      }
-      set_resolved_sym(called_expr, sym);
-      return operand;
-    }
+      let type = sym.type;
+      complete_type(type);
+      switch (type.kind) {
+        Struct, Union => {
+          // This borrows from resolve_expr_compound.
+          // TODO Can we unify more with there?
+          let is_const = is_const_type(type);
+          type = unqualify_type(type);
+          resolve_struct_fields(expr.call.args, type);
+          set_resolved_sym(called_expr, sym);
+          return operand_lvalue(is_const ? type_const(type) : type);
+        }
+        default => {
+          if (expr.call.args.length != 1) {
+            fatal_error(expr.pos, "Tuple type not a struct or union");
+          }
+          let operand = resolve_expr_rvalue(expr.call.args[0].val);
+          if (!cast_operand(&operand, sym.type)) {
+            fatal_error(expr.pos, "Invalid type cast from %s to %s", get_type_name(operand.type), get_type_name(sym.type));
+          }
+          set_resolved_sym(called_expr, sym);
+          return operand;
+        }
+      } switch;
+    } if;
   } if;
   let function = resolve_expr_rvalue(called_expr);
   if (function.type.kind != CompilerTypeKind.Func) {
@@ -2185,7 +2204,8 @@ def resolve_expr_call(expr: &Expr) -> Operand {
     printf("Check args.\n");
   }
   for (function.type.function.params) do(param_type, i) {
-    let arg = resolve_expected_expr_rvalue(expr.call.args[i], param_type);
+    // TODO Resolve named args differently!
+    let arg = resolve_expected_expr_rvalue(expr.call.args[i].val, param_type);
     if (is_generic && !type_args.length) {
       // TODO Infer type args!
       // TODO Arg types resolve deep. Sometimes that's all we have.
@@ -2212,7 +2232,7 @@ def resolve_expr_call(expr: &Expr) -> Operand {
   // TODO Actual slice operators.
   // for (expr.call.args[num_params:]) do(arg) {
   for (let i: usize = num_params; i < expr.call.args.length; i++) {
-    resolve_expr_rvalue(expr.call.args[i]);
+    resolve_expr_rvalue(expr.call.args[i].val);
   }
   if (verbose) {
     printf("Got here.\n");
@@ -2418,8 +2438,7 @@ def resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
     Paren => result = resolve_expected_expr(expr.arg, expected_type);
     Int => result = resolve_expr_int(expr);
     Float => result = operand_const(
-      expr.float_lit.suffix == TokenSuffix.D ? type_double : type_float,
-      Val {0},
+      expr.float_lit.suffix == TokenSuffix.D ? type_double : type_float, {},
     );
     Str => result =
       operand_rvalue(type_array(type_char, strlen(expr.str_lit.val) + 1));
@@ -2732,7 +2751,7 @@ def parse_package(package: &Package) -> bool {
       buf_push(&decls as &&void, decl, sizeof(*decl));
     }
   } for;
-  package.decls = {decls, buf_len(decls)};
+  package.decls = (decls, buf_len(decls));
   return package != NULL;
 }
 

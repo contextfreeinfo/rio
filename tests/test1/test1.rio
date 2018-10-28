@@ -172,10 +172,10 @@ def test_uart() {
 
 def h() -> uchar {
   Vector{x: 1, y: 2}.x = 42;
-  let v = &Vector{1, 2};
+  let v = &Vector(1, 2);
   v.x = 42;
-  let p = &int{0};
-  let x = uint{1} + long{2};
+  let p = &<int>[0];
+  let x = uint(1) + long(2);
   let y = +c;
   return uchar(x);
 }
@@ -190,7 +190,7 @@ def k(vp: &void, ip: &int) {
 }
 
 def f1() {
-  let p = &int{0};
+  let p = &<int>[0];
   *p = 42;
 }
 
@@ -484,7 +484,7 @@ def test_convert() {
 }
 
 def test_const() {
-  let cv2 = ConstVector{1, 2};
+  let cv2 = ConstVector(1, 2);
   // cv2 = {};
   let i = 0;
   i = 1;
@@ -643,9 +643,9 @@ def test_typeinfo() {
   let f = 3.14;
   let p = NULL;
 
-  println_any({&i, typeof(i)});
-  println_any({&f, typeof(f)});
-  println_any({&p, typeof(p)});
+  println_any((&i, typeof(i)));
+  println_any((&f, typeof(f)));
+  println_any((&p, typeof(p)));
 
   println_type(typeof(int));
   println_type(typeof<*const int>);
@@ -672,22 +672,22 @@ def test_va_list(fmt: *const char, ...) {
   va_copy(&args, &init_args);
   va_end(&init_args);
   let c: char;
-  va_arg(&args, {&c, typeof(c)});
+  va_arg(&args, (&c, typeof(c)));
   let i: int;
-  va_arg(&args, {&i, typeof(i)});
+  va_arg(&args, (&i, typeof(i)));
   let ll: llong;
-  va_arg(&args, {&ll, typeof(ll)});
+  va_arg(&args, (&ll, typeof(ll)));
   printf("c=%d i=%d ll=%lld\n", c, i, ll);
   va_end(&args);
 }
 
 def test_compound_literals() {
   let w: *Vector;
-  w = &{1, 2};
+  w = &(1, 2);
   let a = <[]int>[1, 2, 3];
   let i = 42;
-  let x: const Any = {&i, typeof(i)};
-  let y = <const Any>{&i, typeof(i)};
+  let x: const Any = (&i, typeof(i));
+  let y = <const Any>(&i, typeof(i));
   let v: Ints = {
     num_ints: 3,
     int_ptr: <[]int>[1, 2, 3],
@@ -931,7 +931,7 @@ def test_for_each() {
   // Fails because `others` doesn't have a constant size on it.
   // let others = friends; for (others) {}
   // Loop on slice.
-  let slice: Slice<*const char> = {friends, 2};
+  let slice: Slice<*const char> = (friends, 2);
   for (slice) do(name, index) {
     printf("slice[%zu]: %s\n", index, name);
   }

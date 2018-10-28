@@ -128,7 +128,7 @@ def add_flag_enum(
 ) {
   let flag: FlagDef = {
     kind: FlagKind.Enum, name: name, help: help, ptr: {i: ptr},
-    options: {options, num_options},
+    options: (options, num_options),
   };
   buf_push(&flag_defs as &&void, &flag, sizeof(flag));
 }

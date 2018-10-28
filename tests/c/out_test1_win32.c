@@ -1372,7 +1372,7 @@ void test1_test_lits(void) {
 }
 
 void test1_test_const(void) {
-  test1_ConstVector cv2 = {1, 2};
+  test1_ConstVector cv2 = (test1_ConstVector){1, 2};
   int i = 0;
   i = 1;
   int x = test1_cv.x;

@@ -3,19 +3,19 @@ struct vec2 {
 }
 
 def add2(a: vec2, b: vec2) -> vec2 {
-    return {a.x + b.x, a.y + b.y};
+    return (a.x + b.x, a.y + b.y);
 }
 
 def sub2(a: vec2, b: vec2) -> vec2 {
-    return {a.x - b.x, a.y - b.y};
+    return (a.x - b.x, a.y - b.y);
 }
 
 def neg2(a: vec2) -> vec2 {
-    return {-a.x, -a.y};
+    return (-a.x, -a.y);
 }
 
 def mul2(a: float, b: vec2) -> vec2 {
-    return {a * b.x, a * b.y};
+    return (a * b.x, a * b.y);
 }
 
 def addmul2(
@@ -39,7 +39,7 @@ def unit2(a: vec2) -> vec2 {
 }
 
 def perp2(a: vec2) -> vec2 {
-    return {-a.y, a.x};
+    return (-a.y, a.x);
 }
 
 def dir2(a: vec2, b: vec2) -> vec2 {
@@ -49,5 +49,5 @@ def dir2(a: vec2, b: vec2) -> vec2 {
 def rot2(a: float, b: vec2) -> vec2 {
     let c = cos(a);
     let s = sin(a);
-    return {c * b.x - s * b.y, s * b.x + c * b.y};
+    return (c * b.x - s * b.y, s * b.x + c * b.y);
 }

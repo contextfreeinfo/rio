@@ -456,16 +456,9 @@ def gen_paren_expr(expr: &Expr) {
   buf_printf(&gen_buf, ")");
 }
 
-def gen_expr_compound(expr: &Expr) {
-  let expected_type = get_resolved_expected_type(expr);
-  if (expected_type && !is_ptr_type(expected_type)) {
-    buf_printf(&gen_buf, "{");
-  } else if (expr.compound.type) {
-    buf_printf(&gen_buf, "(%s){", typespec_to_cdecl(expr.compound.type, ""));
-  } else {
-    buf_printf(&gen_buf, "(%s){", type_to_cdecl(get_resolved_type(expr), ""));
-  }
-  for (expr.compound.fields) do(field, i) {
+def gen_expr_fields(fields: Slice<CompoundField>) {
+  buf_printf(&gen_buf, "{");
+  for (fields) do(field, i) {
     if (i) {
       buf_printf(&gen_buf, ", ");
     }
@@ -476,12 +469,24 @@ def gen_expr_compound(expr: &Expr) {
       gen_expr(field.index);
       buf_printf(&gen_buf, "] = ");
     }
-    gen_expr(field.init);
+    gen_expr(field.val);
   } for;
-  if (expr.compound.fields.length == 0) {
+  if (fields.length == 0) {
     buf_printf(&gen_buf, "0");
   }
   buf_printf(&gen_buf, "}");
+}
+
+def gen_expr_compound(expr: &Expr) {
+  let expected_type = get_resolved_expected_type(expr);
+  if (expected_type && !is_ptr_type(expected_type)) {
+    // No cast needed.
+  } else if (expr.compound.type) {
+    buf_printf(&gen_buf, "(%s)", typespec_to_cdecl(expr.compound.type, ""));
+  } else {
+    buf_printf(&gen_buf, "(%s)", type_to_cdecl(get_resolved_type(expr), ""));
+  }
+  gen_expr_fields(expr.compound.fields);
 }
 
 let typeid_kind_names: [CompilerTypeKind.Num]*const char = [
@@ -583,15 +588,25 @@ def gen_expr(expr: &Expr) {
       let sym = get_resolved_sym(expr.call.expr);
       if (sym && sym.kind == Sym.Type) {
         buf_printf(&gen_buf, "(%s)", get_gen_name(sym));
+        switch (sym.type.kind) {
+          Struct, Union => {
+            // Generate as a struct literal.
+            gen_expr_fields(expr.call.args);
+            return;
+          }
+          default => {
+            // Keep going.
+          }
+        }
       } else {
         gen_expr(expr.call.expr);
       }
       buf_printf(&gen_buf, "(");
-      for (expr.call.args) do(arg, i) {
+      for &(expr.call.args) do(arg, i) {
         if (i) {
           buf_printf(&gen_buf, ", ");
         }
-        gen_expr(arg);
+        gen_expr(arg.val);
       }
       buf_printf(&gen_buf, ")");
     }

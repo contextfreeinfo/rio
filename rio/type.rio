@@ -69,21 +69,21 @@ struct TypeMetrics {
 
 let type_metrics: *TypeMetrics;
 
-let type_void = &Type {CompilerTypeKind.Void};
-let type_bool = &Type {CompilerTypeKind.Bool};
-let type_char = &Type {CompilerTypeKind.Char};
-let type_uchar = &Type {CompilerTypeKind.UChar};
-let type_schar = &Type {CompilerTypeKind.SChar};
-let type_short = &Type {CompilerTypeKind.Short};
-let type_ushort = &Type {CompilerTypeKind.UShort};
-let type_int = &Type {CompilerTypeKind.Int};
-let type_uint = &Type {CompilerTypeKind.UInt};
-let type_long = &Type {CompilerTypeKind.Long};
-let type_ulong = &Type {CompilerTypeKind.ULong};
-let type_llong = &Type {CompilerTypeKind.LLong};
-let type_ullong = &Type {CompilerTypeKind.ULLong};
-let type_float = &Type {CompilerTypeKind.Float};
-let type_double = &Type {CompilerTypeKind.Double};
+let type_void = &Type(CompilerTypeKind.Void);
+let type_bool = &Type(CompilerTypeKind.Bool);
+let type_char = &Type(CompilerTypeKind.Char);
+let type_uchar = &Type(CompilerTypeKind.UChar);
+let type_schar = &Type(CompilerTypeKind.SChar);
+let type_short = &Type(CompilerTypeKind.Short);
+let type_ushort = &Type(CompilerTypeKind.UShort);
+let type_int = &Type(CompilerTypeKind.Int);
+let type_uint = &Type(CompilerTypeKind.UInt);
+let type_long = &Type(CompilerTypeKind.Long);
+let type_ulong = &Type(CompilerTypeKind.ULong);
+let type_llong = &Type(CompilerTypeKind.LLong);
+let type_ullong = &Type(CompilerTypeKind.ULLong);
+let type_float = &Type(CompilerTypeKind.Float);
+let type_double = &Type(CompilerTypeKind.Double);
 
 let next_typeid: int = 1;
 
@@ -361,7 +361,7 @@ def type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) 
   let type = type_alloc(CompilerTypeKind.Func);
   type.size = type_metrics[CompilerTypeKind.Ptr].size;
   type.align = type_metrics[CompilerTypeKind.Ptr].align;
-  type.function.params = {memdup(params, params_size), num_params};
+  type.function.params = (memdup(params, params_size), num_params);
   type.function.has_varargs = has_varargs;
   type.function.ret = ret;
   let new_cached: *CachedFuncType = xmalloc(sizeof(CachedFuncType));
@@ -385,7 +385,7 @@ def has_duplicate_fields(type: &Type) -> bool {
 def add_type_fields(fields: &*TypeField, type: &Type, offset: usize) {
   #assert(type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union);
   for &(type.aggregate.fields) do(field) {
-    let new_field = TypeField {field.name, field.type, field.offset + offset};
+    let new_field = TypeField(field.name, field.type, field.offset + offset);
     buf_push(fields as &&void, &new_field, sizeof(new_field));
   }
 }
@@ -414,7 +414,7 @@ def type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
   if (is_generic_type(type)) {
     type.size = 0;
   }
-  type.aggregate.fields = {new_fields, buf_len(new_fields)};
+  type.aggregate.fields = (new_fields, buf_len(new_fields));
   type.nonmodifiable = nonmodifiable;
 }
 
@@ -441,7 +441,7 @@ def type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
     nonmodifiable = it.type.nonmodifiable || nonmodifiable;
   }
   type.size = align_up(type.size, type.align);
-  type.aggregate.fields = {new_fields, buf_len(new_fields)};
+  type.aggregate.fields = (new_fields, buf_len(new_fields));
   type.nonmodifiable = nonmodifiable;
 }
 

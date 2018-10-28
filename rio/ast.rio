@@ -163,7 +163,7 @@ struct DeclImport {
 
 struct CompoundField {
   pos: SrcPos;
-  init: &Expr;
+  val: &Expr;
   union switch {
     Default => :void;
     Name => name: *const char;
@@ -263,7 +263,7 @@ struct ExprTernary {
 
 struct ExprCall {
   expr: &Expr;
-  args: Slice<&Expr>;
+  args: Slice<CompoundField>;
 }
 
 struct ExprIndex {
@@ -387,7 +387,7 @@ def ast_dup<Node>(src: &const Node) -> &Node {
 
 def ast_dup_slice<Node>(src: const Slice<Node>) -> Slice<Node> {
   let items = ast_dup_sized(src.items, src.length * sizeof(*src.items));
-  return {items, src.length};
+  return (items, src.length);
 }
 
 def ast_dup_type_params(d: &Decl, params: Slice<Decl>) {
@@ -406,7 +406,7 @@ def new_notes(notes: Slice<Note>) -> Slice<Note> {
 }
 
 def new_stmt_list(pos: SrcPos, stmts: Slice<&Stmt>) -> StmtList {
-  return {pos, ast_dup_slice.<&Stmt>(stmts)};
+  return (pos, ast_dup_slice.<&Stmt>(stmts));
 }
 
 def new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {
@@ -417,7 +417,7 @@ def new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {
 }
 
 def new_typespec_name1(pos: SrcPos, name: *const char) -> &Typespec {
-  return new_typespec_name(pos, {&{name: name}, 1});
+  return new_typespec_name(pos, (&{name: name}, 1));
 }
 
 def new_typespec_name(pos: SrcPos, names: Slice<TypespecName>) -> &Typespec {
@@ -719,10 +719,12 @@ def new_expr_cast(pos: SrcPos, type: &Typespec, expr: &Expr) -> &Expr {
   return e;
 }
 
-def new_expr_call(pos: SrcPos, expr: &Expr, args: Slice<&Expr>) -> &Expr {
+def new_expr_call(
+  pos: SrcPos, expr: &Expr, args: Slice<CompoundField>,
+) -> &Expr {
   let e = new_expr(Expr.Call, pos);
   e.call.expr = expr;
-  e.call.args = ast_dup_slice.<&Expr>(args);
+  e.call.args = ast_dup_slice.<CompoundField>(args);
   return e;
 }
 

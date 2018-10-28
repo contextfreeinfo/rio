@@ -442,8 +442,8 @@ const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;
 int main(int argc, char (*(*argv))) {
   printf("Hello, world!\n");
   int a = 0;
-  test2_vec2 v = {1, 0};
-  test2_vec2 w = {0, 1};
+  test2_vec2 v = (test2_vec2){1, 0};
+  test2_vec2 w = (test2_vec2){0, 1};
   v = test2_rot2((3.14f) / (4), v);
   w = test2_add2(w, (test2_vec2){0.1f, 0.2f});
   return 0;

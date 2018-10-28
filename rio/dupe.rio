@@ -11,7 +11,7 @@ struct TypeMap {
 }
 
 def dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
-  let dupe: &Aggregate = map.call(map.self, Any{aggregate, typeof(*aggregate)});
+  let dupe: &Aggregate = map.call(map.self, (aggregate, typeof(*aggregate)));
   if (dupe) {
     return dupe;
   }
@@ -19,7 +19,7 @@ def dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
   dupe.items = ast_dup_slice.<AggregateItem>(dupe.items);
   for &(dupe.items) do(item) {
     // These are value, not pointer, so presume any modifications are in place.
-    map.call(map.self, Any{item, typeof(*item)});
+    map.call(map.self, (item, typeof(*item)));
     // Now go deeper.
     @complete
     switch (item.kind) {
@@ -63,10 +63,7 @@ def dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
     Call => {
       let call = &dupe.call;
       call.expr = dupe_expr(call.expr, map);
-      call.args = ast_dup_slice.<&Expr>(call.args);
-      for (call.args) do(arg, a) {
-        call.args[a] = dupe_expr(arg, map);
-      }
+      call.args = dupe_fields(call.args, map);
     }
     Cast => {
       dupe.cast.type = dupe_typespec(dupe.cast.type, map);
@@ -75,19 +72,7 @@ def dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
     Compound => {
       let compound = &dupe.compound;
       compound.type = dupe_typespec(compound.type, map);
-      compound.fields = ast_dup_slice.<CompoundField>(compound.fields);
-      for &(compound.fields) do(field) {
-        field.init = dupe_expr(field.init, map);
-        @complete
-        switch (field.kind) {
-          Index => {
-            field.index = dupe_expr(field.index, map);
-          }
-          Default, Name => {
-            // Nothing to do.
-          }
-        }
-      }
+      compound.fields = dupe_fields(compound.fields, map);
     }
     Field => {
       dupe.field.expr = dupe_expr(dupe.field.expr, map);
@@ -122,6 +107,25 @@ def dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
       printf("Unhandled: %d\n", dupe.kind);
       #assert(false);
       return NULL;
+    }
+  }
+  return dupe;
+}
+
+def dupe_fields(
+  fields: Slice<CompoundField>, map: &MapClosure,
+) -> Slice<CompoundField> {
+  let dupe = ast_dup_slice.<CompoundField>(fields);
+  for &(dupe) do(field) {
+    field.val = dupe_expr(field.val, map);
+    @complete
+    switch (field.kind) {
+      Index => {
+        field.index = dupe_expr(field.index, map);
+      }
+      Default, Name => {
+        // Nothing to do.
+      }
     }
   }
   return dupe;
@@ -245,7 +249,7 @@ def dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   if (!type) {
     return NULL;
   }
-  let dupe: &Typespec = map.call(map.self, Any{type, typeof(*type)});
+  let dupe = map.call(map.self, (type, typeof(*type))) as &Typespec;
   if (dupe) {
     return dupe;
   }
