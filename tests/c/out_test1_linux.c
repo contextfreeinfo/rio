@@ -189,7 +189,7 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 
 #define UCHAR_MIN ((uchar)(0))
 
-#define USHORT_MIN ((short)(0))
+#define USHORT_MIN ((ushort)(0))
 
 #define UINT_MIN ((uint)(0))
 
@@ -1043,15 +1043,15 @@ int main(int argc, char (*(*argv))) {
 char const ((*RIOOS)) = "linux";
 char const ((*RIOARCH)) = "x64";
 TypeKind typeid_kind(typeid type) {
-  return (TypeKind)((((type) >> (24))) & (0xff));
+  return (((type) >> (24))) & (0xff);
 }
 
 int typeid_index(typeid type) {
-  return (int)((type) & (0xffffff));
+  return (type) & (0xffffff);
 }
 
 size_t typeid_size(typeid type) {
-  return (size_t)((type) >> (32));
+  return (type) >> (32);
 }
 
 TypeInfo const ((*get_typeinfo(typeid type))) {
@@ -1086,7 +1086,7 @@ void test1_test_limits(void) {
   uchar uchar_max = UCHAR_MAX;
   short short_min = SHRT_MIN;
   short short_max = SHRT_MAX;
-  short ushort_min = USHORT_MIN;
+  ushort ushort_min = USHORT_MIN;
   ushort ushort_max = USHRT_MAX;
   int int_min = INT_MIN;
   int int_max = INT_MAX;
@@ -1108,7 +1108,7 @@ void test1_test_limits(void) {
   uchar uint8_max = UINT8_MAX;
   short int16_min = INT16_MIN;
   short int16_max = INT16_MAX;
-  short uint16_min = UINT16_MIN;
+  ushort uint16_min = UINT16_MIN;
   ushort uint16_max = UINT16_MAX;
   int int32_min = INT32_MIN;
   int int32_max = INT32_MAX;
@@ -1409,7 +1409,7 @@ void test1_test_ops(void) {
   n = (n) + ((uchar)(1));
   int (*p) = &(n);
   p = (p) + (1);
-  n = (int)((((p) + (1))) - (p));
+  n = (int)(((((p) + (1))) - (p)));
   n = (n) << (1);
   n = (n) >> (1);
   int b = ((p) + (1)) > (p);

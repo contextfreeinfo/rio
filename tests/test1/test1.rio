@@ -427,7 +427,7 @@ def test_ops() {
   n = n + 1 as uchar;
   let p: *int = &n;
   p = p + 1;
-  n = int((p + 1) - p);
+  n = ((p + 1) - p) as int;
   n = n << 1;
   n = n >> 1;
   let b = p + 1 > p;
@@ -505,7 +505,7 @@ def test_const() {
   p = 1 as *const char;
   // p = 1;
   // i = p;
-  i = int(ullong(p));
+  i = p as ullong as int;
 }
 
 #static_assert(sizeof(int) == 4)
@@ -539,7 +539,7 @@ def test_cast() {
   let p: *int = 0;
   let a: uint64 = 0;
   // a = p;
-  a = uint64(p);
+  a = p as uint64;
   // p = a;
   p = a as *int;
 }
@@ -951,7 +951,7 @@ def main(argc: int, argv: **char) -> int {
   test_ref();
   test_const_ptr_deref();
   test_limits();
-  test_va_list("whatever", char(123), int(123123), llong(123123123123));
+  test_va_list("whatever", 123 as char, 123123 as int, 123123123123 as llong);
   test_os_arch();
   test_packages();
   test_if();

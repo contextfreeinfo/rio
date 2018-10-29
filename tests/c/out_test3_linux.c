@@ -165,7 +165,7 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 
 #define UCHAR_MIN ((uchar)(0))
 
-#define USHORT_MIN ((short)(0))
+#define USHORT_MIN ((ushort)(0))
 
 #define UINT_MIN ((uint)(0))
 
@@ -217,15 +217,15 @@ int main(void) {
 char const ((*RIOOS)) = "linux";
 char const ((*RIOARCH)) = "x64";
 TypeKind typeid_kind(typeid type) {
-  return (TypeKind)((((type) >> (24))) & (0xff));
+  return (((type) >> (24))) & (0xff);
 }
 
 int typeid_index(typeid type) {
-  return (int)((type) & (0xffffff));
+  return (type) & (0xffffff);
 }
 
 size_t typeid_size(typeid type) {
-  return (size_t)((type) >> (32));
+  return (type) >> (32);
 }
 
 TypeInfo const ((*get_typeinfo(typeid type))) {

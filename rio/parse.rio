@@ -128,7 +128,7 @@ def parse_expr_struct_field(is_tuple: bool) -> CompoundField {
     return (CompoundField.Name, pos, parse_expr(), name: expr.name);
   } else {
     if (!is_tuple) {
-      warning(pos, "Keyless field in struct literal");
+      fatal_error(pos, "Keyless field in struct literal");
     }
     return (CompoundField.Default, pos, expr);
   }

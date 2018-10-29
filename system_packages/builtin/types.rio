@@ -58,60 +58,60 @@ typedef uint64 = ullong;
 const NULL = 0 as *void;
 
 @foreign
-const false = bool(0);
+const false = 0 as bool;
 
 @foreign
-const true = bool(1);
+const true = 1 as bool;
 
-const UCHAR_MIN = uchar(0);
-
-@foreign
-const UCHAR_MAX = uchar(0xff);
+const UCHAR_MIN = 0 as uchar;
 
 @foreign
-const SCHAR_MIN = schar(-128);
+const UCHAR_MAX = 0xff as uchar;
 
 @foreign
-const SCHAR_MAX = schar(127);
+const SCHAR_MIN = -128 as schar;
 
 @foreign
-const CHAR_MIN = char(SCHAR_MIN);
+const SCHAR_MAX = 127 as schar;
 
 @foreign
-const CHAR_MAX = char(SCHAR_MAX);
+const CHAR_MIN = SCHAR_MIN as char;
+
+@foreign
+const CHAR_MAX = SCHAR_MAX as char;
 
 @foreign("SHRT_MIN")
-const SHORT_MIN = short(-32768);
+const SHORT_MIN = -32768 as short;
 
 @foreign("SHRT_MAX")
-const SHORT_MAX = short(32767);
+const SHORT_MAX = 32767 as short;
 
-const USHORT_MIN = short(0);
+const USHORT_MIN = 0 as ushort;
 
 @foreign("USHRT_MAX")
-const USHORT_MAX = ushort(0xffff);
+const USHORT_MAX = 0xffff as ushort;
 
 @foreign
-const INT_MIN  = int(-2147483647 - 1);
+const INT_MIN  = (-2147483647 - 1) as int;
 
 @foreign
-const INT_MAX = int(2147483647);
+const INT_MAX = 2147483647 as int;
 
-const UINT_MIN = uint(0);
-
-@foreign
-const UINT_MAX = uint(0xffffffff);
+const UINT_MIN = 0 as uint;
 
 @foreign
-const LLONG_MIN = llong(-9223372036854775807ll - 1);
+const UINT_MAX = 0xffffffff as uint;
 
 @foreign
-const LLONG_MAX = llong(9223372036854775807ll);
-
-const ULLONG_MIN = ullong(0);
+const LLONG_MIN = (-9223372036854775807ll - 1) as llong;
 
 @foreign
-const ULLONG_MAX = ullong(0xffffffffffffffffull);
+const LLONG_MAX = 9223372036854775807ll as llong;
+
+const ULLONG_MIN = 0 as ullong;
+
+@foreign
+const ULLONG_MAX = 0xffffffffffffffffull as ullong;
 
 const UINT8_MIN = UCHAR_MIN;
 

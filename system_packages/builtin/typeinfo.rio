@@ -49,15 +49,15 @@ let typeinfos: **const TypeInfo;
 let num_typeinfos: int;
 
 def typeid_kind(type: typeid) -> TypeKind {
-  return TypeKind((type >> 24) & 0xFF);
+  return (type >> 24) & 0xFF;
 }
 
 def typeid_index(type: typeid) -> int {
-  return int(type & 0xFFFFFF);
+  return type & 0xFFFFFF;
 }
 
 def typeid_size(type: typeid) -> usize {
-  return usize(type >> 32);
+  return type >> 32;
 }
 
 def get_typeinfo(type: typeid) -> *const TypeInfo {

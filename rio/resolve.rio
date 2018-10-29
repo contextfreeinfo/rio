@@ -2068,6 +2068,12 @@ def resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
   let is_const = is_const_type(type);
   type = unqualify_type(type);
   if (type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union) {
+    if (expr.compound.kind == ExprCompound.List) {
+      // TODO Check tuple usage for non-tuple structs, too!
+      fatal_error(
+        expr.pos, "Must use struct or tuple literal for structs or unions",
+      );
+    }
     resolve_struct_fields(expr.compound.fields, type);
   } else if (type.kind == CompilerTypeKind.Array) {
     if (expr.compound.kind != ExprCompound.List) {
@@ -2143,6 +2149,8 @@ def resolve_expr_call(expr: &Expr) -> Operand {
           return operand_lvalue(is_const ? type_const(type) : type);
         }
         default => {
+          // TODO Nix all this. We have casting elsewhere, but no easy tuples
+          // TODO of scalar type, so always treat as boxed here!
           if (expr.call.args.length != 1) {
             fatal_error(expr.pos, "Tuple type not a struct or union");
           }

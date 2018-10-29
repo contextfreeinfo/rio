@@ -256,7 +256,7 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 
 #define UCHAR_MIN ((uchar)(0))
 
-#define USHORT_MIN ((short)(0))
+#define USHORT_MIN ((ushort)(0))
 
 #define UINT_MIN ((uint)(0))
 
@@ -270,7 +270,7 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 
 #define UINT64_MIN (ULLONG_MIN)
 
-#define ULONG_MIN ((ulong)(INT32_MIN))
+#define ULONG_MIN ((ulong){INT32_MIN})
 
 #define USIZE_MIN (UINT64_MIN)
 
@@ -2621,15 +2621,15 @@ int main(int argc, char const ((*(*argv)))) {
 char const ((*RIOOS)) = "win32";
 char const ((*RIOARCH)) = "x64";
 TypeKind typeid_kind(typeid type) {
-  return (TypeKind)((((type) >> (24))) & (0xff));
+  return (((type) >> (24))) & (0xff);
 }
 
 int typeid_index(typeid type) {
-  return (int)((type) & (0xffffff));
+  return (type) & (0xffffff);
 }
 
 size_t typeid_size(typeid type) {
-  return (size_t)((type) >> (32));
+  return (type) >> (32);
 }
 
 TypeInfo const ((*get_typeinfo(typeid type))) {
@@ -4600,17 +4600,8 @@ void rio_gen_expr(rio_Expr (*expr)) {
     rio_Sym (*sym) = rio_get_resolved_sym(expr->call.expr);
     if ((sym) && ((sym->kind) == ((rio_Sym_Type)))) {
       rio_buf_printf(&(rio_gen_buf), "(%s)", rio_get_gen_name(sym));
-      switch (sym->type->kind) {
-      case rio_CompilerTypeKind_Struct:
-      case rio_CompilerTypeKind_Union: {
-        rio_gen_expr_fields(expr->call.args);
-        return;
-        break;
-      }
-      default: {
-        break;
-      }
-      }
+      rio_gen_expr_fields(expr->call.args);
+      return;
     } else {
       rio_gen_expr(expr->call.expr);
     }
@@ -6679,7 +6670,7 @@ rio_CompoundField rio_parse_expr_struct_field(bool is_tuple) {
     return (rio_CompoundField){(rio_CompoundField_Name), pos, rio_parse_expr(), .name = expr->name};
   } else {
     if (!(is_tuple)) {
-      rio_warning(pos, "Keyless field in struct literal");
+      rio_fatal_error(pos, "Keyless field in struct literal");
     }
     return (rio_CompoundField){(rio_CompoundField_Default), pos, expr};
   }
@@ -9904,6 +9895,9 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
   bool is_const = rio_is_const_type(type);
   type = rio_unqualify_type(type);
   if (((type->kind) == ((rio_CompilerTypeKind_Struct))) || ((type->kind) == ((rio_CompilerTypeKind_Union)))) {
+    if ((expr->compound.kind) == ((rio_ExprCompound_List))) {
+      rio_fatal_error(expr->pos, "Must use struct or tuple literal for structs or unions");
+    }
     rio_resolve_struct_fields(expr->compound.fields, type);
   } else if ((type->kind) == ((rio_CompilerTypeKind_Array))) {
     if ((expr->compound.kind) != ((rio_ExprCompound_List))) {
