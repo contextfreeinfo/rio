@@ -203,7 +203,7 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 
 #define UINT64_MIN (ULLONG_MIN)
 
-#define ULONG_MIN ((ulong){INT32_MIN})
+#define ULONG_MIN ((ulong)(INT32_MIN))
 
 #define USIZE_MIN (UINT64_MIN)
 
@@ -362,6 +362,8 @@ struct test1_More {
 #define test1_More_MoreNone ((test1_More_Kind)((test1_More_None) + (1)))
 
 #define test1_More_Happy ((test1_More_Kind)((test1_More_MoreNone) + (1)))
+
+#define test1_More_Sad ((test1_More_Kind)((test1_More_Happy) + (1)))
 
 void test1_f10(wchar_t (a[3]));
 
@@ -1324,7 +1326,8 @@ void test1_test_enum(void) {
   test1_TypedEnum e = test1_QUUX;
   test1_TypedEnum f = {0};
   f = test1_BAZ;
-  test1_More more = {.prob = 0.5f, .amount = 0.9f};
+  test1_More more = {.kind = (test1_More_Sad), .prob = 0.5f, .amount = 0.9f};
+  test1_More more2 = (test1_More){(test1_More_Happy), .prob = 0.5f, .amount = 0.9f};
   test1_More_Kind more_kind = (test1_More_Happy);
 }
 

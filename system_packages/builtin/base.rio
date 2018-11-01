@@ -9,6 +9,7 @@ enum Err {}
 
 typedef Item = void;
 
+@ordered
 struct Slice<Item> {
   items: *Item;
   length: usize;

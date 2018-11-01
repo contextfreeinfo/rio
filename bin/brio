@@ -14,4 +14,6 @@ if [ ! -e "$RIOHOME/bin/rio" ]; then
   "$RIOHOME/build" $build_args
 fi
 
+# run="/usr/bin/time -v $run"
+
 $run "$RIOHOME/bin/rio" "$@"

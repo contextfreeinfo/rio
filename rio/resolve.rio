@@ -2130,41 +2130,70 @@ def resolve_expr_call(expr: &Expr) -> Operand {
   let verbose = false;
   let sym: &Sym;
   let called_expr = expr.call.expr;
-  if (called_expr.kind == Expr.Name) {
-    // if (!strcmp(called_expr.name, "sum")) {
-    //   verbose = true;
-    // }
-    sym = resolve_name(called_expr.name);
-    if (sym && sym.kind == Sym.Type) {
-      let type = sym.type;
-      complete_type(type);
-      switch (type.kind) {
-        Struct, Union => {
-          // This borrows from resolve_expr_compound.
-          // TODO Can we unify more with there?
-          let is_const = is_const_type(type);
-          type = unqualify_type(type);
-          resolve_struct_fields(expr.call.args, type);
-          set_resolved_sym(called_expr, sym);
-          return operand_lvalue(is_const ? type_const(type) : type);
-        }
-        default => {
-          // TODO Nix all this. We have casting elsewhere, but no easy tuples
-          // TODO of scalar type, so always treat as boxed here!
-          if (expr.call.args.length != 1) {
-            fatal_error(expr.pos, "Tuple type not a struct or union");
-          }
-          let operand = resolve_expr_rvalue(expr.call.args[0].val);
-          if (!cast_operand(&operand, sym.type)) {
-            fatal_error(expr.pos, "Invalid type cast from %s to %s", get_type_name(operand.type), get_type_name(sym.type));
-          }
-          set_resolved_sym(called_expr, sym);
-          return operand;
-        }
-      } switch;
-    } if;
-  } if;
+  // TODO Deal with dot names.
   let function = resolve_expr_rvalue(called_expr);
+  if (function.type.kind != CompilerTypeKind.Func) {
+    sym = function.type.sym;
+  }
+  // if (!strcmp(called_expr.name, "short")) {
+  //   printf("Short or something? %p\n", sym);
+  //   verbose = true;
+  // }
+  if (!sym && called_expr.kind == Expr.Name) {
+    sym = resolve_name(called_expr.name);
+  }
+  if (
+    sym && sym.decl && sym.decl.kind == Decl.Enum &&
+    sym.decl.enum_decl.kind_aggregate_decl
+  ) {
+    sym = get_resolved_sym(sym.decl.enum_decl.kind_aggregate_decl);
+    set_resolved_sym(called_expr, sym);
+    if (!expr.call.prefixed) {
+      // Insert a reference to the same enum item up front.
+      // A shallow copy should be enough since deeper resolution should match.
+      let dupe = ast_dup.<Expr>(called_expr);
+      ast_unshift.<CompoundField>(&expr.call.args, {
+        kind: CompoundField.Default, pos: dupe.pos, val: dupe
+      });
+      expr.call.prefixed = true;
+    }
+  }
+  if (sym && sym.kind == Sym.Type) {
+    // This borrows from resolve_expr_compound.
+    // TODO Can we unify more with there?
+    let type = sym.type;
+    complete_type(type);
+    let is_const = is_const_type(type);
+    type = unqualify_type(type);
+    let fields = expr.call.args;
+    switch (type.kind) {
+      Struct, Union => {
+        resolve_struct_fields(fields, type);
+      }
+      default => {
+        #assert(is_scalar_type(type));
+        if (fields.length > 1) {
+          fatal_error(
+            expr.pos,
+            "Compound literal for scalar type cannot have more than one operand"
+          );
+        }
+        if (fields.length == 1) {
+          let field = fields[0];
+          let init = resolve_expected_expr_rvalue(field.val, type);
+          if (!convert_operand(&init, type)) {
+            fatal_error(
+              field.pos,
+              "Invalid type in compound literal initializer. Expected %s, got %s",
+              get_type_name(type), get_type_name(init.type),
+            );
+          }
+        }
+      }
+    } switch;
+    // set_resolved_sym(called_expr, sym);
+    return operand_lvalue(is_const ? type_const(type) : type);
+  } if;
   if (function.type.kind != CompilerTypeKind.Func) {
     fatal_error(expr.pos, "Cannot call non-function value");
   }

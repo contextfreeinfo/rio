@@ -74,6 +74,7 @@ def parse_env_vars() {
 }
 
 def rio_main(argc: int, argv: **const char, gen_all: do(), extension: *const char) -> int {
+  // printf("Big: %zu\n", sizeof(Expr));
   parse_env_vars();
   let output_name: *const char;
   let flag_check = false;

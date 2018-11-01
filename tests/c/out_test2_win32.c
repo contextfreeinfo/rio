@@ -180,7 +180,7 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 
 #define UINT64_MIN (ULLONG_MIN)
 
-#define ULONG_MIN ((ulong){INT32_MIN})
+#define ULONG_MIN ((ulong)(INT32_MIN))
 
 #define USIZE_MIN (UINT64_MIN)
 

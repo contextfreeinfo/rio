@@ -135,6 +135,7 @@ struct DeclEnum {
   type: &Typespec;
   items: Slice<EnumItem>;
   scope: *const char;
+  kind_aggregate_decl: &Decl;
 }
 
 struct DeclFunc {
@@ -263,6 +264,7 @@ struct ExprTernary {
 
 struct ExprCall {
   expr: &Expr;
+  prefixed: bool;
   args: Slice<CompoundField>;
 }
 
@@ -395,6 +397,18 @@ def ast_dup_type_params(d: &Decl, params: Slice<Decl>) {
     d.type_params = ast_dup_slice.<Decl>(params);
     buf_free(&params.items as &&void);
   }
+}
+
+def ast_unshift<Node>(nodes: &Slice<Node>, node: Node) {
+  // Not designed for efficient continued growth, just for one-offs.
+  // This also wastes the previously allocated space, presuming it was already
+  // in the ast arena.
+  let node_size = sizeof(node);
+  let items = ast_alloc((nodes.length + 1) * node_size);
+  memmove(items as *char + node_size, nodes.items, node_size * nodes.length);
+  memcpy(items, &node, node_size);
+  nodes.items = items;
+  ++nodes.length;
 }
 
 def new_note(pos: SrcPos, name: *const char, args: Slice<NoteArg>) -> Note {

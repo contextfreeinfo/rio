@@ -111,7 +111,9 @@ def sum_slice<Num: int>(nums: Slice<Num>) -> Num {
 // def first<Item>(slice: Slice) -> Result<Item, TestErr> {
 def first<Item>(slice: Slice<Item>) -> Result<Item, TestErr> {
   if (slice.length) {
-    return {kind: Result.Ok, val: slice[0]};
+    return (kind: Result.Ok, val: slice[0]);
+    // Fails because doesn't infer type args.
+    // return Result.Ok(val: slice[0]);
   } else {
     return {kind: Result.Err, err: TestErr.Crazy};
   }

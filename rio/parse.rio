@@ -125,12 +125,12 @@ def parse_expr_struct_field(is_tuple: bool) -> CompoundField {
     if (expr.kind != Expr.Name) {
       fatal_error(token.pos, "Named initializer in compound literal must be preceded by field name");
     }
-    return (CompoundField.Name, pos, parse_expr(), name: expr.name);
+    return CompoundField.Name(pos, parse_expr(), name: expr.name);
   } else {
     if (!is_tuple) {
       fatal_error(pos, "Keyless field in struct literal");
     }
-    return (CompoundField.Default, pos, expr);
+    return CompoundField.Default(pos, expr);
   }
 }
 
@@ -194,17 +194,16 @@ def parse_expr_list_item() -> CompoundField {
         }
       }
       Name => {
-        // For now, list literals and tuple literals are the same.
-        // TODO Probably change tuples to () at some point.
-        return (
-          CompoundField.Name, pos, parse_expr(), name: expr.name,
-        );
+        return CompoundField.Name(pos, parse_expr(), name: expr.name);
       }
     }
     // Any other errors in expression type can be resolved later.
-    return (CompoundField.Index, pos, parse_expr(), index: expr);
+    return CompoundField.Index(pos, parse_expr(), index: expr);
+    // return Index(pos, parse_expr(), index: expr);
+    // return CompoundField.Index{pos: pos, val: parse_expr(), index: expr};
+    // return CompoundField.Index{pos, val: parse_expr(), index: expr};
   } else {
-    return (CompoundField.Default, pos, expr);
+    return CompoundField.Default(pos, expr);
   }
 }
 
@@ -1038,6 +1037,10 @@ def parse_decl_aggregate(
     // Map back again since this might have changed due to union switch.
     kind = aggregate.kind == AggregateKind.Struct ? Decl.Struct : Decl.Union;
     decl = new_decl_aggregate(pos, kind, name, params, aggregate);
+  }
+  if (decl.aggregate.union_enum_decl) {
+    // Back reference to aggregate.
+    decl.aggregate.union_enum_decl.enum_decl.kind_aggregate_decl = decl;
   }
   if (params.length) {
     decl.is_generic = true;

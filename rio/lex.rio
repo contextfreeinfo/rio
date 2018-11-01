@@ -93,6 +93,7 @@ def init_keywords() {
   assert_name = str_intern("assert");
   declare_note_name = str_intern("declare_note");
   static_assert_name = str_intern("static_assert");
+  // TODO static_print or static_log or something.
 
   void_name = str_intern("void");
 
