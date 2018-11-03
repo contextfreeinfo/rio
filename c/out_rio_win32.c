@@ -1447,10 +1447,6 @@ rio_Expr (*rio_parse_expr_operand(void));
 
 rio_Expr (*rio_parse_expr_base(void));
 
-size_t rio_recurse_fields_as_type_names(rio_Expr (*expr), rio_Slice_TypespecName (*names));
-
-rio_Typespec (*rio_reinterpret_fields_as_typespec(rio_Expr (*expr)));
-
 bool rio_is_unary_op(void);
 
 rio_Expr (*rio_parse_expr_unary(void));
@@ -6868,8 +6864,21 @@ rio_Expr (*rio_parse_expr_base(void)) {
       rio_expect_token((rio_TokenKind_Rparen));
       expr = rio_new_expr_call(pos, expr, (rio_Slice_CompoundField){args, rio_buf_len(args)});
     } else if (rio_is_token((rio_TokenKind_Lbrace))) {
-      rio_Typespec (*typespec) = rio_reinterpret_fields_as_typespec(expr);
-      expr = rio_parse_expr_struct(typespec);
+      switch (expr->kind) {
+      case rio_Expr_Call: {
+        rio_fatal_error(expr->pos, "No support yet for trailing blocks");
+        return NULL;
+        break;
+      }
+      default: {
+        rio_Expr (*compound) = rio_parse_expr_struct(NULL);
+        rio_Slice_CompoundField args = compound->compound.fields;
+        compound->kind = (rio_Expr_Call);
+        compound->call = (rio_ExprCall){.expr = expr, .args = args};
+        expr = compound;
+        break;
+      }
+      }
     } else if (rio_match_token((rio_TokenKind_Lbracket))) {
       rio_Expr (*index) = rio_parse_expr();
       rio_expect_token((rio_TokenKind_Rbracket));
@@ -6905,40 +6914,6 @@ rio_Expr (*rio_parse_expr_base(void)) {
     }
   }
   return expr;
-}
-
-size_t rio_recurse_fields_as_type_names(rio_Expr (*expr), rio_Slice_TypespecName (*names)) {
-  size_t index = {0};
-  switch (expr->kind) {
-  case rio_Expr_Field: {
-    ++(names->length);
-    index = rio_recurse_fields_as_type_names(expr->field.expr, names);
-    names->items[index].name = expr->field.name;
-    names->items[index].type_args = expr->field.type_args;
-    break;
-  }
-  case rio_Expr_Name: {
-    index = 0;
-    names->items = rio_ast_alloc((sizeof(rio_TypespecName)) * (names->length));
-    names->items[index].name = expr->name;
-    names->items[index].type_args = expr->type_args;
-    break;
-  }
-  default: {
-    rio_fatal_error(expr->pos, "invalid type expression for struct literal");
-    return 0;
-    break;
-  }
-  }
-  return (index) + (1);
-}
-
-rio_Typespec (*rio_reinterpret_fields_as_typespec(rio_Expr (*expr))) {
-  rio_Typespec (*typespec) = rio_new_typespec((rio_Typespec_Name), expr->pos);
-  typespec->names.length = 1;
-  ullong end = rio_recurse_fields_as_type_names(expr, &(typespec->names));
-  assert((end) == (typespec->names.length));
-  return typespec;
 }
 
 bool rio_is_unary_op(void) {

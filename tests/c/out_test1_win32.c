@@ -1328,6 +1328,7 @@ void test1_test_enum(void) {
   f = test1_BAZ;
   test1_More more = {.kind = (test1_More_Sad), .prob = 0.5f, .amount = 0.9f};
   test1_More more2 = (test1_More){(test1_More_Happy), .prob = 0.5f, .amount = 0.9f};
+  test1_More more3 = (test1_More){(test1_More_Happy), .prob = 0.5f, .amount = 0.9f};
   test1_More_Kind more_kind = (test1_More_Happy);
 }
 

@@ -340,8 +340,20 @@ def parse_expr_base() -> &Expr {
       expect_token(TokenKind.Rparen);
       expr = new_expr_call(pos, expr, (args, buf_len(args)));
     } else if (is_token(TokenKind.Lbrace)) {
-      let typespec = reinterpret_fields_as_typespec(expr);
-      expr = parse_expr_struct(typespec);
+      switch (expr.kind) {
+        Call => {
+          // TODO Instead require `do {...}` for parsing as block???
+          fatal_error(expr.pos, "No support yet for trailing blocks");
+          return NULL;
+        }
+        default => {
+          let compound = parse_expr_struct(NULL);
+          let args = compound.compound.fields;
+          compound.kind = Expr.Call;
+          compound.call = {expr: expr, args: args};
+          expr = compound;
+        }
+      }
     } else if (match_token(TokenKind.Lbracket)) {
       let index = parse_expr();
       expect_token(TokenKind.Rbracket);
@@ -372,47 +384,6 @@ def parse_expr_base() -> &Expr {
     }
   } while;
   return expr;
-}
-
-def recurse_fields_as_type_names(
-  expr: &Expr, names: &Slice<TypespecName>,
-) -> usize {
-  // TODO Start using properly nested typespec names instead of the slice?
-  let index: usize;
-  switch (expr.kind) {
-    Field => {
-      // Going deeper.
-      ++names.length;
-      index = recurse_fields_as_type_names(expr.field.expr, names);
-      names[index].name = expr.field.name;
-      names[index].type_args = expr.field.type_args;
-    }
-    Name => {
-      // Base case.
-      index = 0;
-      names.items = ast_alloc(sizeof<TypespecName> * names.length);
-      names[index].name = expr.name;
-      names[index].type_args = expr.type_args;
-    }
-    default => {
-      // Bad case.
-      fatal_error(expr.pos, "invalid type expression for struct literal");
-      return 0;
-    }
-  }
-  return index + 1;
-}
-
-def reinterpret_fields_as_typespec(expr: &Expr) -> &Typespec {
-  // This could be any kind of nested type expression, not just kinded types.
-  // Build this manually, as we'll already have an ast_alloc'd slice when done.
-  let typespec = new_typespec(Typespec.Name, expr.pos);
-  // We start at the first expr, so if it's real, it has at least length 1.
-  typespec.names.length = 1;
-  let end = recurse_fields_as_type_names(expr, &typespec.names);
-  #assert(end == typespec.names.length);
-  // If we get back from there, the typespec should be good to go.
-  return typespec;
 }
 
 def is_unary_op() -> bool {
