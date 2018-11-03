@@ -228,6 +228,8 @@ struct ExprCompound {
   type: &Typespec;
   fields: Slice<CompoundField>;
   union switch {
+    // TODO Wrap these up into Expr kinds?
+    // TODO Do we use length?
     // List can mean array or slice or maybe others later ...
     List => length: &Expr;
     Struct, Tuple => :void;

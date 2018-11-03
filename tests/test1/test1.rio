@@ -362,6 +362,8 @@ def test_enum() {
   // TODO Should be able to imply kind from fields.
   let more = More{kind: More.Sad, prob: 0.5, amount: 0.9};
   let more2 = More.Happy(prob: 0.5, amount: 0.9);
+  // TODO Support curlies here.
+  // let more3 = More.Happy{prob: 0.5, amount: 0.9};
   let more_kind = More.Happy;
 }
 
