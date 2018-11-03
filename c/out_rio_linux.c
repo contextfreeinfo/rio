@@ -152,8 +152,7 @@ typedef struct rio_TypeMap rio_TypeMap;
 typedef struct rio_Package rio_Package;
 typedef struct rio_TypeField rio_TypeField;
 typedef struct rio_DirListIter rio_DirListIter;
-typedef struct rio_FlagDefPtr rio_FlagDefPtr;
-typedef struct rio_FlagDef rio_FlagDef;
+typedef struct rio_Flag rio_Flag;
 typedef struct rio_CachedArrayType rio_CachedArrayType;
 typedef struct rio_CachedFuncType rio_CachedFuncType;
 
@@ -1380,15 +1379,15 @@ bool rio_dir_list_subdir(rio_DirListIter (*iter));
 
 char const ((*(*rio_dir_list_buf(char const ((*filespec))))));
 
-typedef int rio_FlagKind;
+typedef int rio_Flag_Kind;
 
-#define rio_FlagKind_Bool ((rio_FlagKind)(0))
+#define rio_Flag_Bool ((rio_Flag_Kind)(0))
 
-#define rio_FlagKind_Str ((rio_FlagKind)((rio_FlagKind_Bool) + (1)))
+#define rio_Flag_Enum ((rio_Flag_Kind)((rio_Flag_Bool) + (1)))
 
-#define rio_FlagKind_Enum ((rio_FlagKind)((rio_FlagKind_Str) + (1)))
+#define rio_Flag_Str ((rio_Flag_Kind)((rio_Flag_Enum) + (1)))
 
-extern rio_FlagDef (*rio_flag_defs);
+extern rio_Flag (*rio_flag_defs);
 
 void rio_add_flag_bool(char const ((*name)), bool (*ptr), char const ((*help)));
 
@@ -1396,7 +1395,7 @@ void rio_add_flag_str(char const ((*name)), char const ((*(*ptr))), char const (
 
 void rio_add_flag_enum(char const ((*name)), int (*ptr), char const ((*help)), char const ((*(*options))), int num_options);
 
-rio_FlagDef (*rio_get_flag_def(char const ((*name))));
+rio_Flag (*rio_get_flag_def(char const ((*name))));
 
 void rio_print_flags_usage(void);
 
@@ -1423,7 +1422,7 @@ rio_Typespec (*rio_parse_type(void));
 struct rio_CompoundField {
   rio_CompoundField_Kind kind;
   rio_SrcPos pos;
-  rio_Expr (*val);
+  rio_Expr (*expr);
   union {
     // void;
     char const ((*name));
@@ -1432,6 +1431,8 @@ struct rio_CompoundField {
 };
 
 rio_CompoundField rio_parse_expr_struct_field(bool is_tuple);
+
+char const ((*rio_find_expr_name(rio_SrcPos pos, rio_Expr (*expr))));
 
 rio_Expr (*rio_parse_expr_struct(rio_Typespec (*type)));
 
@@ -2582,19 +2583,17 @@ struct rio_DirListIter {
   void (*handle);
 };
 
-struct rio_FlagDefPtr {
-  int (*i);
-  bool (*b);
-  char const ((*(*s)));
-};
-
-struct rio_FlagDef {
-  rio_FlagKind kind;
+struct rio_Flag {
+  rio_Flag_Kind kind;
   char const ((*name));
   char const ((*help));
   rio_Slice_ptr_const_char options;
   char const ((*arg_name));
-  rio_FlagDefPtr ptr;
+  union {
+    bool (*b);
+    int (*i);
+    char const ((*(*s)));
+  };
 };
 
 void rio_ast_unshift_CompoundField(rio_Slice_CompoundField (*nodes), rio_CompoundField node);
@@ -2669,7 +2668,7 @@ void rio_ast_dup_type_params(rio_Decl (*d), rio_Slice_Decl params) {
 }
 
 rio_Note rio_new_note(rio_SrcPos pos, char const ((*name)), rio_Slice_NoteArg args) {
-  return (rio_Note){.pos = pos, .name = name, .args = rio_ast_dup_slice_NoteArg(args)};
+  return (rio_Note){.args = rio_ast_dup_slice_NoteArg(args), .name = name, .pos = pos};
 }
 
 rio_Slice_Note rio_new_notes(rio_Slice_Note notes) {
@@ -3658,7 +3657,7 @@ rio_Slice_CompoundField rio_dupe_fields(rio_Slice_CompoundField fields, rio_MapC
     rio_Slice_CompoundField items__ = dupe;
     for (size_t i__ = 0; i__ < items__.length; ++i__) {
       rio_CompoundField (*field) = &items__.items[i__];
-      field->val = rio_dupe_expr(field->val, map);
+      field->expr = rio_dupe_expr(field->expr, map);
       switch (field->kind) {
       case rio_CompoundField_Index: {
         field->index = rio_dupe_expr(field->index, map);
@@ -4498,7 +4497,7 @@ void rio_gen_expr_fields(rio_Slice_CompoundField fields) {
         rio_gen_expr(field.index);
         rio_buf_printf(&(rio_gen_buf), "] = ");
       }
-      rio_gen_expr(field.val);
+      rio_gen_expr(field.expr);
     }
   }
   if ((fields.length) == (0)) {
@@ -4616,7 +4615,7 @@ void rio_gen_expr(rio_Expr (*expr)) {
         if (i) {
           rio_buf_printf(&(rio_gen_buf), ", ");
         }
-        rio_gen_expr(arg->val);
+        rio_gen_expr(arg->expr);
       }
     }
     rio_buf_printf(&(rio_gen_buf), ")");
@@ -4911,7 +4910,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_buf_printf(&(rio_gen_buf), "{");
     ++(rio_gen_indent);
     char (*items) = "items__";
-    rio_gen_stmt(&((rio_Stmt){.kind = (rio_Stmt_Init), .init = {.expr = expr, .name = items}}));
+    rio_gen_stmt(&((rio_Stmt){(rio_Stmt_Init), .init = {.expr = expr, .name = items}}));
     rio_genln();
     char (*access) = (is_ptr ? "->" : ".");
     char (*length_decl) = ((stmt->for_each.length_type) == (rio_type_usize) ? "size_t" : rio_type_to_cdecl(stmt->for_each.length_type, ""));
@@ -6360,23 +6359,23 @@ char const ((*(*rio_dir_list_buf(char const ((*filespec)))))) {
   return buf;
 }
 
-rio_FlagDef (*rio_flag_defs);
+rio_Flag (*rio_flag_defs);
 void rio_add_flag_bool(char const ((*name)), bool (*ptr), char const ((*help))) {
-  rio_FlagDef flag = {.kind = (rio_FlagKind_Bool), .name = name, .help = help, .ptr = {.b = ptr}};
+  rio_Flag flag = (rio_Flag){(rio_Flag_Bool), .name = name, .help = help, .b = ptr};
   rio_buf_push((void (**))(&(rio_flag_defs)), &(flag), sizeof(flag));
 }
 
 void rio_add_flag_str(char const ((*name)), char const ((*(*ptr))), char const ((*arg_name)), char const ((*help))) {
-  rio_FlagDef flag = {.kind = (rio_FlagKind_Str), .name = name, .help = help, .arg_name = arg_name, .ptr = {.s = ptr}};
+  rio_Flag flag = (rio_Flag){(rio_Flag_Str), .name = name, .help = help, .arg_name = arg_name, .s = ptr};
   rio_buf_push((void (**))(&(rio_flag_defs)), &(flag), sizeof(flag));
 }
 
 void rio_add_flag_enum(char const ((*name)), int (*ptr), char const ((*help)), char const ((*(*options))), int num_options) {
-  rio_FlagDef flag = {.kind = (rio_FlagKind_Enum), .name = name, .help = help, .ptr = {.i = ptr}, .options = {options, num_options}};
+  rio_Flag flag = (rio_Flag){(rio_Flag_Enum), .name = name, .help = help, .i = ptr, .options = {options, num_options}};
   rio_buf_push((void (**))(&(rio_flag_defs)), &(flag), sizeof(flag));
 }
 
-rio_FlagDef (*rio_get_flag_def(char const ((*name)))) {
+rio_Flag (*rio_get_flag_def(char const ((*name)))) {
   for (size_t i = 0; (i) < (rio_buf_len(rio_flag_defs)); (i)++) {
     if ((strcmp(rio_flag_defs[i].name, name)) == (0)) {
       return &(rio_flag_defs[i]);
@@ -6388,18 +6387,18 @@ rio_FlagDef (*rio_get_flag_def(char const ((*name)))) {
 void rio_print_flags_usage(void) {
   printf("Flags:\n");
   for (size_t i = 0; (i) < (rio_buf_len(rio_flag_defs)); (i)++) {
-    rio_FlagDef flag = rio_flag_defs[i];
+    rio_Flag flag = rio_flag_defs[i];
     char (note[256]) = {0};
     char (format[256]) = {0};
     switch (flag.kind) {
-    case rio_FlagKind_Str: {
+    case rio_Flag_Str: {
       snprintf(format, sizeof(format), "%s <%s>", flag.name, (flag.arg_name ? flag.arg_name : (char const (*))("value")));
-      if (*(flag.ptr.s)) {
-        snprintf(note, sizeof(note), "(default: %s)", *(flag.ptr.s));
+      if (*(flag.s)) {
+        snprintf(note, sizeof(note), "(default: %s)", *(flag.s));
       }
       break;
     }
-    case rio_FlagKind_Enum: {
+    case rio_Flag_Enum: {
       char (*end) = (format) + (sizeof(format));
       char (*ptr) = format;
       ptr += snprintf(ptr, (end) - (ptr), "%s <", flag.name);
@@ -6408,7 +6407,7 @@ void rio_print_flags_usage(void) {
         for (size_t k = 0; k < items__.length; ++k) {
           char const ((*option)) = items__.items[k];
           ptr += snprintf(ptr, (end) - (ptr), "%s%s", ((k) == (0) ? "" : "|"), option);
-          if ((k) == (*(flag.ptr.i))) {
+          if ((k) == (*(flag.i))) {
             snprintf(note, sizeof(note), " (default: %s)", option);
           }
         }
@@ -6416,7 +6415,7 @@ void rio_print_flags_usage(void) {
       snprintf(ptr, (end) - (ptr), ">");
       break;
     }
-    case rio_FlagKind_Bool:
+    case rio_Flag_Bool:
     default: {
       snprintf(format, sizeof(format), "%s", flag.name);
       break;
@@ -6438,26 +6437,26 @@ char const ((*rio_parse_flags(int (*argc_ptr), char const ((*(*(*argv_ptr)))))))
       if ((*(name)) == ('-')) {
         (name)++;
       }
-      rio_FlagDef (*flag) = rio_get_flag_def(name);
+      rio_Flag (*flag) = rio_get_flag_def(name);
       if (!(flag)) {
         printf("Unknown flag %s\n", arg);
         continue;
       }
       switch (flag->kind) {
-      case rio_FlagKind_Bool: {
-        *(flag->ptr.b) = true;
+      case rio_Flag_Bool: {
+        *(flag->b) = true;
         break;
       }
-      case rio_FlagKind_Str: {
+      case rio_Flag_Str: {
         if (((i) + (1)) < (argc)) {
           (i)++;
-          *(flag->ptr.s) = argv[i];
+          *(flag->s) = argv[i];
         } else {
           printf("No value argument after -%s\n", arg);
         }
         break;
       }
-      case rio_FlagKind_Enum: {
+      case rio_Flag_Enum: {
         char const ((*option)) = {0};
         if (((i) + (1)) < (argc)) {
           (i)++;
@@ -6472,7 +6471,7 @@ char const ((*rio_parse_flags(int (*argc_ptr), char const ((*(*(*argv_ptr)))))))
           for (size_t k = 0; k < items__.length; ++k) {
             char const ((*flag_option)) = items__.items[k];
             if ((strcmp(flag_option, option)) == (0)) {
-              *(flag->ptr.i) = k;
+              *(flag->i) = k;
               found = true;
               break;
             }
@@ -6656,15 +6655,39 @@ rio_CompoundField rio_parse_expr_struct_field(bool is_tuple) {
   rio_Expr (*expr) = rio_parse_expr();
   if (rio_match_token((rio_TokenKind_Colon))) {
     if ((expr->kind) != ((rio_Expr_Name))) {
-      rio_fatal_error(rio_token.pos, "Named initializer in compound literal must be preceded by field name");
+      rio_fatal_error(rio_token.pos, "Field key not a name");
+      return (rio_CompoundField){0};
     }
-    return (rio_CompoundField){(rio_CompoundField_Name), pos, rio_parse_expr(), .name = expr->name};
+    return (rio_CompoundField){(rio_CompoundField_Name), .expr = rio_parse_expr(), .name = expr->name, .pos = pos};
   } else {
-    if (!(is_tuple)) {
-      rio_fatal_error(pos, "Keyless field in struct literal");
+    if (is_tuple) {
+      return (rio_CompoundField){(rio_CompoundField_Default), .expr = expr, .pos = pos};
+    } else {
+      char const ((*name)) = rio_find_expr_name(pos, expr);
+      return (rio_CompoundField){(rio_CompoundField_Name), .expr = expr, .name = name, .pos = pos};
     }
-    return (rio_CompoundField){(rio_CompoundField_Default), pos, expr};
   }
+}
+
+char const ((*rio_find_expr_name(rio_SrcPos pos, rio_Expr (*expr)))) {
+  switch (expr->kind) {
+  case rio_Expr_Field: {
+    return expr->field.name;
+    break;
+  }
+  case rio_Expr_Name: {
+    return expr->name;
+    break;
+  }
+  case rio_Expr_Unary: {
+    if ((expr->unary.op) == ((rio_TokenKind_And))) {
+      return rio_find_expr_name(pos, expr->unary.expr);
+    }
+    break;
+  }
+  }
+  rio_fatal_error(pos, "No implied name");
+  return NULL;
 }
 
 rio_Expr (*rio_parse_expr_struct(rio_Typespec (*type))) {
@@ -6689,7 +6712,7 @@ rio_Expr (*rio_parse_expr_tuple(rio_Typespec (*type))) {
   while (!(rio_is_token((rio_TokenKind_Rparen)))) {
     rio_CompoundField field = rio_parse_expr_struct_field(true);
     if (((!(fields)) && ((field.kind) == ((rio_CompoundField_Default)))) && (rio_match_token((rio_TokenKind_Rparen)))) {
-      return rio_new_expr_paren(pos, field.val);
+      return rio_new_expr_paren(pos, field.expr);
     }
     rio_buf_push((void (**))(&(fields)), &(field), sizeof(field));
     if (!(rio_match_token((rio_TokenKind_Comma)))) {
@@ -6712,18 +6735,18 @@ rio_CompoundField rio_parse_expr_list_item(void) {
           rio_fatal_error(rio_token.pos, "Computed field key must be single");
         }
         rio_warning(pos, "Needless brackets");
-        expr = fields.items[0].val;
+        expr = fields.items[0].expr;
       }
       break;
     }
     case rio_Expr_Name: {
-      return (rio_CompoundField){(rio_CompoundField_Name), pos, rio_parse_expr(), .name = expr->name};
+      return (rio_CompoundField){(rio_CompoundField_Name), .expr = rio_parse_expr(), .name = expr->name, .pos = pos};
       break;
     }
     }
-    return (rio_CompoundField){(rio_CompoundField_Index), pos, rio_parse_expr(), .index = expr};
+    return (rio_CompoundField){(rio_CompoundField_Index), .expr = rio_parse_expr(), .index = expr, .pos = pos};
   } else {
-    return (rio_CompoundField){(rio_CompoundField_Default), pos, expr};
+    return (rio_CompoundField){(rio_CompoundField_Default), .expr = expr, .pos = pos};
   }
 }
 
@@ -6860,7 +6883,7 @@ rio_Expr (*rio_parse_expr_base(void)) {
         rio_Expr (*compound) = rio_parse_expr_struct(NULL);
         rio_Slice_CompoundField args = compound->compound.fields;
         compound->kind = (rio_Expr_Call);
-        compound->call = (rio_ExprCall){.expr = expr, .args = args};
+        compound->call = (rio_ExprCall){.args = args, .expr = expr};
         expr = compound;
         break;
       }
@@ -7619,7 +7642,7 @@ rio_NoteArg rio_parse_note_arg(void) {
     name = expr->name;
     expr = rio_parse_expr();
   }
-  return (rio_NoteArg){.pos = pos, .name = name, .expr = expr};
+  return (rio_NoteArg){.expr = expr, .name = name, .pos = pos};
 }
 
 rio_Note rio_parse_note(void) {
@@ -9882,7 +9905,7 @@ void rio_resolve_struct_fields(rio_Slice_CompoundField fields, rio_Type (*type))
         rio_fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
       }
       rio_Type (*field_type) = type->aggregate.fields.items[index].type;
-      if (!(rio_resolve_typed_init(field.pos, field_type, field.val))) {
+      if (!(rio_resolve_typed_init(field.pos, field_type, field.expr))) {
         rio_fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected %s", rio_get_type_name(field_type));
       }
       (index)++;
@@ -9937,7 +9960,7 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
         if ((type->num_elems) && ((index) >= ((int)(type->num_elems)))) {
           rio_fatal_error(field.pos, "Field initializer in array compound literal out of range");
         }
-        if (!(rio_resolve_typed_init(field.pos, type->base, field.val))) {
+        if (!(rio_resolve_typed_init(field.pos, type->base, field.expr))) {
           rio_fatal_error(field.pos, "Invalid type in compound literal initializer for array type. Expected %s", rio_get_type_name(type->base));
         }
         max_index = rio_max(max_index, index);
@@ -9954,7 +9977,7 @@ rio_Operand rio_resolve_expr_compound(rio_Expr (*expr), rio_Type (*expected_type
     }
     if ((expr->compound.fields.length) == (1)) {
       rio_CompoundField field = expr->compound.fields.items[0];
-      rio_Operand init = rio_resolve_expected_expr_rvalue(field.val, type);
+      rio_Operand init = rio_resolve_expected_expr_rvalue(field.expr, type);
       if (!(rio_convert_operand(&(init), type))) {
         rio_fatal_error(field.pos, "Invalid type in compound literal initializer. Expected %s, got %s", rio_get_type_name(type), rio_get_type_name(init.type));
       }
@@ -9980,7 +10003,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
     rio_set_resolved_sym(called_expr, sym);
     if (!(expr->call.prefixed)) {
       rio_Expr (*dupe) = rio_ast_dup_Expr(called_expr);
-      rio_ast_unshift_CompoundField(&(expr->call.args), (rio_CompoundField){.kind = (rio_CompoundField_Default), .pos = dupe->pos, .val = dupe});
+      rio_ast_unshift_CompoundField(&(expr->call.args), (rio_CompoundField){.kind = (rio_CompoundField_Default), .pos = dupe->pos, .expr = dupe});
       expr->call.prefixed = true;
     }
   }
@@ -10003,7 +10026,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
       }
       if ((fields.length) == (1)) {
         rio_CompoundField field = fields.items[0];
-        rio_Operand init = rio_resolve_expected_expr_rvalue(field.val, type);
+        rio_Operand init = rio_resolve_expected_expr_rvalue(field.expr, type);
         if (!(rio_convert_operand(&(init), type))) {
           rio_fatal_error(field.pos, "Invalid type in compound literal initializer. Expected %s, got %s", rio_get_type_name(type), rio_get_type_name(init.type));
         }
@@ -10057,7 +10080,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
     rio_Slice_ref_Type items__ = function.type->function.params;
     for (size_t i = 0; i < items__.length; ++i) {
       rio_Type (*param_type) = items__.items[i];
-      rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args.items[i].val, param_type);
+      rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args.items[i].expr, param_type);
       if ((is_generic) && (!(type_args.length))) {
       }
       if (rio_is_array_type(param_type)) {
@@ -10072,7 +10095,7 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
     printf("Checked.\n");
   }
   for (size_t i = num_params; (i) < (expr->call.args.length); (i)++) {
-    rio_resolve_expr_rvalue(expr->call.args.items[i].val);
+    rio_resolve_expr_rvalue(expr->call.args.items[i].expr);
   }
   if (verbose) {
     printf("Got here.\n");

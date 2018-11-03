@@ -164,7 +164,7 @@ struct DeclImport {
 
 struct CompoundField {
   pos: SrcPos;
-  val: &Expr;
+  expr: &Expr;
   union switch {
     Default => :void;
     Name => name: *const char;
@@ -414,7 +414,7 @@ def ast_unshift<Node>(nodes: &Slice<Node>, node: Node) {
 }
 
 def new_note(pos: SrcPos, name: *const char, args: Slice<NoteArg>) -> Note {
-  return {pos: pos, name: name, args: ast_dup_slice.<NoteArg>(args)};
+  return {args: ast_dup_slice.<NoteArg>(args), name, pos};
 }
 
 def new_notes(notes: Slice<Note>) -> Slice<Note> {
@@ -433,7 +433,7 @@ def new_typespec(kind: Typespec.Kind, pos: SrcPos) -> &Typespec {
 }
 
 def new_typespec_name1(pos: SrcPos, name: *const char) -> &Typespec {
-  return new_typespec_name(pos, (&{name: name}, 1));
+  return new_typespec_name(pos, (&{name}, 1));
 }
 
 def new_typespec_name(pos: SrcPos, names: Slice<TypespecName>) -> &Typespec {

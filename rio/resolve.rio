@@ -661,7 +661,7 @@ def resolve_specialized_decl(
       return dupe_sym;
     }
   }
-  let type_map = TypeMap{type_args: type_args, type_params: type_params};
+  let type_map = TypeMap{type_args, type_params};
   let map = MapClosure{self: &type_map, call: map_type_args as MapClosureCall};
   let dupe: &Decl;
   switch (decl.kind) {
@@ -1043,7 +1043,7 @@ def get_label(pos: SrcPos, name: *const char) -> &Label {
   if (label == labels + MAX_LABELS) {
     fatal_error(pos, "Too many labels");
   }
-  *label = Label {name: name, pos: pos};
+  *label = {name, pos};
   labels_end++;
   return label;
 }
@@ -1781,11 +1781,11 @@ def eval_binary_op(op: TokenKind, type: &Type, left: Val, right: Val) -> Val {
     if (is_signed_type(type)) {
       cast_operand(&left_operand, type_llong);
       cast_operand(&right_operand, type_llong);
-      result_operand = operand_const(type_llong, Val {ll: eval_binary_op_ll(op, left_operand.val.ll, right_operand.val.ll)});
+      result_operand = operand_const(type_llong, {ll: eval_binary_op_ll(op, left_operand.val.ll, right_operand.val.ll)});
     } else {
       cast_operand(&left_operand, type_ullong);
       cast_operand(&right_operand, type_ullong);
-      result_operand = operand_const(type_ullong, Val {ull: eval_binary_op_ull(op, left_operand.val.ull, right_operand.val.ull)});
+      result_operand = operand_const(type_ullong, {ull: eval_binary_op_ull(op, left_operand.val.ull, right_operand.val.ull)});
     }
     cast_operand(&result_operand, type);
     return result_operand.val;
@@ -2009,7 +2009,7 @@ def resolve_expr_binary_op(op: TokenKind, op_name: *const char, pos: SrcPos, lef
             #assert(op == TokenKind.OrOr);
             i = left.val.b || right.val.b;
           }
-          return operand_const(type_int, Val {i: i});
+          return operand_const(type_int, {i});
         } else {
           return operand_rvalue(type_int);
         }
@@ -2046,7 +2046,7 @@ def resolve_struct_fields(fields: Slice<CompoundField>, type: &Type) {
       fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
     }
     let field_type = type.aggregate.fields[index].type;
-    if (!resolve_typed_init(field.pos, field_type, field.val)) {
+    if (!resolve_typed_init(field.pos, field_type, field.expr)) {
       fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected %s", get_type_name(field_type));
     }
     index++;
@@ -2100,7 +2100,7 @@ def resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
       if (type.num_elems && index >= type.num_elems as int) {
         fatal_error(field.pos, "Field initializer in array compound literal out of range");
       }
-      if (!resolve_typed_init(field.pos, type.base, field.val)) {
+      if (!resolve_typed_init(field.pos, type.base, field.expr)) {
         fatal_error(field.pos, "Invalid type in compound literal initializer for array type. Expected %s", get_type_name(type.base));
       }
       max_index = max(max_index, index);
@@ -2116,7 +2116,7 @@ def resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {
     }
     if (expr.compound.fields.length == 1) {
       let field = expr.compound.fields[0];
-      let init = resolve_expected_expr_rvalue(field.val, type);
+      let init = resolve_expected_expr_rvalue(field.expr, type);
       if (!convert_operand(&init, type)) {
         fatal_error(field.pos, "Invalid type in compound literal initializer. Expected %s, got %s", get_type_name(type), get_type_name(init.type));
       }
@@ -2153,7 +2153,7 @@ def resolve_expr_call(expr: &Expr) -> Operand {
       // A shallow copy should be enough since deeper resolution should match.
       let dupe = ast_dup.<Expr>(called_expr);
       ast_unshift.<CompoundField>(&expr.call.args, {
-        kind: CompoundField.Default, pos: dupe.pos, val: dupe
+        kind: CompoundField.Default, dupe.pos, expr: dupe
       });
       expr.call.prefixed = true;
     }
@@ -2180,7 +2180,7 @@ def resolve_expr_call(expr: &Expr) -> Operand {
         }
         if (fields.length == 1) {
           let field = fields[0];
-          let init = resolve_expected_expr_rvalue(field.val, type);
+          let init = resolve_expected_expr_rvalue(field.expr, type);
           if (!convert_operand(&init, type)) {
             fatal_error(
               field.pos,
@@ -2242,7 +2242,7 @@ def resolve_expr_call(expr: &Expr) -> Operand {
   }
   for (function.type.function.params) do(param_type, i) {
     // TODO Resolve named args differently!
-    let arg = resolve_expected_expr_rvalue(expr.call.args[i].val, param_type);
+    let arg = resolve_expected_expr_rvalue(expr.call.args[i].expr, param_type);
     if (is_generic && !type_args.length) {
       // TODO Infer type args!
       // TODO Arg types resolve deep. Sometimes that's all we have.
@@ -2269,7 +2269,7 @@ def resolve_expr_call(expr: &Expr) -> Operand {
   // TODO Actual slice operators.
   // for (expr.call.args[num_params:]) do(arg) {
   for (let i: usize = num_params; i < expr.call.args.length; i++) {
-    resolve_expr_rvalue(expr.call.args[i].val);
+    resolve_expr_rvalue(expr.call.args[i].expr);
   }
   if (verbose) {
     printf("Got here.\n");
@@ -2344,7 +2344,7 @@ def resolve_expr_int(expr: &Expr) -> Operand {
   let ulong_max: ullong = type_metrics[CompilerTypeKind.ULong].max;
   let llong_max: ullong = type_metrics[CompilerTypeKind.LLong].max;
   let val: ullong = expr.int_lit.val;
-  let operand = operand_const(type_ullong, Val {ull: val});
+  let operand = operand_const(type_ullong, {ull: val});
   let type = type_ullong;
   if (expr.int_lit.mod == TokenMod.None) {
     let overflow = false;
@@ -2511,7 +2511,7 @@ def resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
         let sym = resolve_name(expr.arg.name);
         if (sym && sym.kind == Sym.Type) {
           complete_type(sym.type);
-          result = operand_const(type_usize, Val {ull: type_sizeof(sym.type)});
+          result = operand_const(type_usize, {ull: type_sizeof(sym.type)});
           set_resolved_type(expr.arg, sym.type);
           set_resolved_sym(expr.arg, sym);
           break;
@@ -2519,12 +2519,12 @@ def resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
       }
       let type = resolve_expr(expr.arg).type;
       complete_type(type);
-      result = operand_const(type_usize, Val {ull: type_sizeof(type)});
+      result = operand_const(type_usize, {ull: type_sizeof(type)});
     }
     SizeofType => {
       let type = resolve_typespec(expr.type_arg);
       complete_type(type);
-      result = operand_const(type_usize, Val {ull: type_sizeof(type)});
+      result = operand_const(type_usize, {ull: type_sizeof(type)});
     }
     AlignofExpr => {
       if (expr.arg.kind == Expr.Name) {
@@ -2532,7 +2532,7 @@ def resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
         if (sym && sym.kind == Sym.Type) {
           complete_type(sym.type);
           result =
-            operand_const(type_usize, Val {ull: type_alignof(sym.type)});
+            operand_const(type_usize, {ull: type_alignof(sym.type)});
           set_resolved_type(expr.arg, sym.type);
           set_resolved_sym(expr.arg, sym);
           break;
@@ -2540,29 +2540,29 @@ def resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
       }
       let type = resolve_expr(expr.arg).type;
       complete_type(type);
-      result = operand_const(type_usize, Val {ull: type_alignof(type)});
+      result = operand_const(type_usize, {ull: type_alignof(type)});
     }
     AlignofType => {
       let type = resolve_typespec(expr.type_arg);
       complete_type(type);
-      result = operand_const(type_usize, Val {ull: type_alignof(type)});
+      result = operand_const(type_usize, {ull: type_alignof(type)});
     }
     TypeofType => {
       let type = resolve_typespec(expr.type_arg);
-      result = operand_const(type_ullong, Val {ull: type.typeid});
+      result = operand_const(type_ullong, {ull: type.typeid});
     }
     TypeofExpr => {
       if (expr.arg.kind == Expr.Name) {
         let sym = resolve_name(expr.arg.name);
         if (sym && sym.kind == Sym.Type) {
-          result = operand_const(type_ullong, Val {ull: sym.type.typeid});
+          result = operand_const(type_ullong, {ull: sym.type.typeid});
           set_resolved_type(expr.arg, sym.type);
           set_resolved_sym(expr.arg, sym);
           break;
         }
       }
       let type = resolve_expr(expr.arg).type;
-      result = operand_const(type_ullong, Val {ull: type.typeid});
+      result = operand_const(type_ullong, {ull: type.typeid});
     }
     Offsetof => {
       let type = resolve_typespec(expr.offsetof_field.type);
@@ -2582,7 +2582,7 @@ def resolve_expected_expr(expr: &Expr, expected_type: &Type) -> Operand {
         );
       }
       result = operand_const(
-        type_usize, Val {ull: type.aggregate.fields[index].offset},
+        type_usize, {ull: type.aggregate.fields[index].offset},
       );
     }
     Modify => result = resolve_expr_modify(expr);
@@ -2780,7 +2780,7 @@ def parse_package(package: &Package) -> bool {
     path_absolute(path);
     let code: *const char = read_file(path);
     if (!code) {
-      fatal_error(SrcPos {name: path}, "Failed to read source file");
+      fatal_error({name: path}, "Failed to read source file");
     }
     init_stream(str_intern(path), code);
     let file_decls = parse_decls();

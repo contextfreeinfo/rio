@@ -89,36 +89,27 @@ def dir_list_buf(filespec: *const char) -> **const char {
 
 // Command line flag parsing
 
-enum FlagKind {
-  Bool,
-  Str,
-  Enum,
-}
-
-struct FlagDef {
-  kind: FlagKind;
+struct Flag {
   name: *const char;
   help: *const char;
   options: Slice<*const char>;
   arg_name: *const char;
-  ptr: FlagDefPtr;
+  union switch {
+    Bool => b: &bool;
+    Enum => i: &int;
+    Str => s: **const char;
+  }
 }
 
-struct FlagDefPtr {
-  i: &int;
-  b: &bool;
-  s: **const char;
-}
-
-let flag_defs: *FlagDef;
+let flag_defs: *Flag;
 
 def add_flag_bool(name: *const char, ptr: &bool, help: *const char) {
-  let flag: FlagDef = {kind: FlagKind.Bool, name: name, help: help, ptr: {b: ptr}};
+  let flag = Flag.Bool{name, help, b: ptr};
   buf_push(&flag_defs as &&void, &flag, sizeof(flag));
 }
 
 def add_flag_str(name: *const char, ptr: **const char, arg_name: *const char, help: *const char) {
-  let flag: FlagDef = {kind: FlagKind.Str, name: name, help: help, arg_name: arg_name, ptr: {s: ptr}};
+  let flag = Flag.Str{name, help, arg_name, s: ptr};
   buf_push(&flag_defs as &&void, &flag, sizeof(flag));
 }
 
@@ -126,14 +117,11 @@ def add_flag_enum(
   name: *const char, ptr: &int, help: *const char,
   options: **const char, num_options: int,
 ) {
-  let flag: FlagDef = {
-    kind: FlagKind.Enum, name: name, help: help, ptr: {i: ptr},
-    options: (options, num_options),
-  };
+  let flag = Flag.Enum{name, help, i: ptr, options: (options, num_options)};
   buf_push(&flag_defs as &&void, &flag, sizeof(flag));
 }
 
-def get_flag_def(name: *const char) -> &FlagDef {
+def get_flag_def(name: *const char) -> &Flag {
   for (let i: usize = 0; i < buf_len(flag_defs); i++) {
     if (strcmp(flag_defs[i].name, name) == 0) {
       return &flag_defs[i];
@@ -151,8 +139,8 @@ def print_flags_usage() {
     switch (flag.kind) {
       Str => {
         snprintf(format, sizeof(format), "%s <%s>", flag.name, flag.arg_name ? flag.arg_name : "value" as *const char);
-        if (*flag.ptr.s) {
-          snprintf(note, sizeof(note), "(default: %s)", *flag.ptr.s);
+        if (*flag.s) {
+          snprintf(note, sizeof(note), "(default: %s)", *flag.s);
         }
       }
       Enum => {
@@ -161,7 +149,7 @@ def print_flags_usage() {
         ptr += snprintf(ptr, end - ptr, "%s <", flag.name);
         for (flag.options) do(option, k) {
           ptr += snprintf(ptr, end - ptr, "%s%s", k == 0 ? "" : "|", option);
-          if (k == *flag.ptr.i) {
+          if (k == *flag.i) {
             snprintf(note, sizeof(note), " (default: %s)", option);
           }
         }
@@ -191,11 +179,11 @@ def parse_flags(argc_ptr: &int, argv_ptr: &**const char) -> *const char {
         continue;
       }
       switch (flag.kind) {
-        Bool => *flag.ptr.b = true;
+        Bool => *flag.b = true;
         Str => {
           if (i + 1 < argc) {
             i++;
-            *flag.ptr.s = argv[i];
+            *flag.s = argv[i];
           } else {
             printf("No value argument after -%s\n", arg);
           }
@@ -212,7 +200,7 @@ def parse_flags(argc_ptr: &int, argv_ptr: &**const char) -> *const char {
           let found = false;
           for (flag.options) do(flag_option, k) {
             if (strcmp(flag_option, option) == 0) {
-              *flag.ptr.i = k;
+              *flag.i = k;
               found = true;
               break;
             }

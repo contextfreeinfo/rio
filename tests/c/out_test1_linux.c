@@ -1245,10 +1245,14 @@ void test1_test_compound_literals(void) {
   w = &((test1_Vector){1, 2});
   int (a[3]) = {1, 2, 3};
   int i = 42;
-  Any const (x) = {&(i), TYPEID(8, TypeKind_Int, int)};
-  Any y = {&(i), TYPEID(8, TypeKind_Int, int)};
+  Any const (implied) = {&(i), TYPEID(8, TypeKind_Int, int)};
+  Any explicit = {&(i), TYPEID(8, TypeKind_Int, int)};
   test1_Ints v = {.num_ints = 3, .int_ptr = (int []){1, 2, 3}, .int_arr = {1, 2, 3}};
   test1_Ints (ints_of_ints[]) = {{.num_ints = 3, .int_arr = {1, 2, 3}}, {.num_ints = 2, .int_ptr = (int [2]){-(1), -(2)}}};
+  int x = 1;
+  int y = 2;
+  test1_Vector vec = {.x = x, .y = y};
+  test1_Vector vec2 = {.x = vec.x, .y = (vec.y) + (1)};
 }
 
 void test1_test_loops(void) {
@@ -1328,7 +1332,7 @@ void test1_test_enum(void) {
   f = test1_BAZ;
   test1_More more = {.kind = (test1_More_Sad), .prob = 0.5f, .amount = 0.9f};
   test1_More more2 = (test1_More){(test1_More_Happy), .prob = 0.5f, .amount = 0.9f};
-  test1_More more3 = (test1_More){(test1_More_Happy), .prob = 0.5f, .amount = 0.9f};
+  test1_More more3 = (test1_More){(test1_More_Happy), .prob = more2.prob, .amount = 0.9f};
   test1_More_Kind more_kind = (test1_More_Happy);
 }
 

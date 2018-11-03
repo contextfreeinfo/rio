@@ -363,7 +363,7 @@ def test_enum() {
   let more = More{kind: More.Sad, prob: 0.5, amount: 0.9};
   let more2 = More.Happy(prob: 0.5, amount: 0.9);
   // TODO Support curlies here.
-  let more3 = More.Happy{prob: 0.5, amount: 0.9};
+  let more3 = More.Happy{more2.prob, amount: 0.9};
   let more_kind = More.Happy;
 }
 
@@ -690,8 +690,8 @@ def test_compound_literals() {
   w = &(1, 2);
   let a = <[]int>[1, 2, 3];
   let i = 42;
-  let x: const Any = (&i, typeof(i));
-  let y = <const Any>(&i, typeof(i));
+  let implied: const Any = (&i, typeof(i));
+  let explicit = <const Any>(&i, typeof(i));
   let v: Ints = {
     num_ints: 3,
     int_ptr: <[]int>[1, 2, 3],
@@ -701,6 +701,10 @@ def test_compound_literals() {
     {num_ints: 3, int_arr: [1, 2, 3]},
     {num_ints: 2, int_ptr: <[2]int>[-1, -2]},
   ];
+  let x = 1;
+  let y = 2;
+  let vec = Vector{x, y};
+  let vec2 = Vector{vec.x, y: vec.y + 1};
 }
 
 def test_complete() {
@@ -856,7 +860,7 @@ struct Foo {
 
 def test_const_ptr_deref() {
   let bar = Bar{rc: 42};
-  let foo = Foo{bar: &bar};
+  let foo = Foo{&bar};
   let i = foo.bar.rc;
 }
 

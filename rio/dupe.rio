@@ -117,7 +117,7 @@ def dupe_fields(
 ) -> Slice<CompoundField> {
   let dupe = ast_dup_slice.<CompoundField>(fields);
   for &(dupe) do(field) {
-    field.val = dupe_expr(field.val, map);
+    field.expr = dupe_expr(field.expr, map);
     @complete
     switch (field.kind) {
       Index => {

@@ -46,7 +46,7 @@ def parse_type_args() -> Slice<TypeArg> {
   let args: *TypeArg;
   if (match_token(TokenKind.Lt)) {
     do {
-      let type_arg = TypeArg{pos: token.pos, val: parse_type()};
+      let type_arg = TypeArg{token.pos, val: parse_type()};
       buf_push(&args as &&void, &type_arg, sizeof(*args));
     } while (match_token(TokenKind.Comma));
     if (is_token(TokenKind.Rshift)) {
@@ -123,15 +123,41 @@ def parse_expr_struct_field(is_tuple: bool) -> CompoundField {
   let expr = parse_expr();
   if (match_token(TokenKind.Colon)) {
     if (expr.kind != Expr.Name) {
-      fatal_error(token.pos, "Named initializer in compound literal must be preceded by field name");
+      // TODO Allow string literals???
+      // TODO Allow other expressions in case compile-time constant strings?
+      fatal_error(token.pos, "Field key not a name");
+      return {};
     }
-    return CompoundField.Name(pos, parse_expr(), name: expr.name);
+    return CompoundField.Name{expr: parse_expr(), expr.name, pos};
   } else {
-    if (!is_tuple) {
-      fatal_error(pos, "Keyless field in struct literal");
+    if (is_tuple) {
+      // Positional.
+      // Validate later the issue of positional after named.
+      return CompoundField.Default{expr, pos};
+    } else {
+      // Possibly implied name.
+      let name = find_expr_name(pos, expr);
+      return CompoundField.Name{expr, name, pos};
     }
-    return CompoundField.Default(pos, expr);
   }
+}
+
+def find_expr_name(pos: SrcPos, expr: &Expr) -> *const char {
+  switch (expr.kind) {
+    Field => {
+      return expr.field.name;
+    }
+    Name => {
+      return expr.name;
+    }
+    Unary => {
+      if (expr.unary.op == TokenKind.And) {
+        return find_expr_name(pos, expr.unary.expr);
+      }
+    }
+  }
+  fatal_error(pos, "No implied name");
+  return NULL;
 }
 
 def parse_expr_struct(type: &Typespec) -> &Expr {
@@ -163,7 +189,7 @@ def parse_expr_tuple(type: &Typespec) -> &Expr {
       match_token(TokenKind.Rparen)
     ) {
       // First field had nothing special, so just parens.
-      return new_expr_paren(pos, field.val);
+      return new_expr_paren(pos, field.expr);
     }
     buf_push(&fields as &&void, &field, sizeof(field));
     if (!match_token(TokenKind.Comma)) {
@@ -190,20 +216,18 @@ def parse_expr_list_item() -> CompoundField {
             fatal_error(token.pos, "Computed field key must be single");
           }
           warning(pos, "Needless brackets");
-          expr = fields[0].val;
+          expr = fields[0].expr;
         }
       }
       Name => {
-        return CompoundField.Name(pos, parse_expr(), name: expr.name);
+        return CompoundField.Name{expr: parse_expr(), expr.name, pos};
       }
     }
     // Any other errors in expression type can be resolved later.
-    return CompoundField.Index(pos, parse_expr(), index: expr);
-    // return Index(pos, parse_expr(), index: expr);
-    // return CompoundField.Index{pos: pos, val: parse_expr(), index: expr};
-    // return CompoundField.Index{pos, val: parse_expr(), index: expr};
+    return CompoundField.Index{expr: parse_expr(), index: expr, pos};
+    // return Index{expr: parse_expr(), index: expr, pos};
   } else {
-    return CompoundField.Default(pos, expr);
+    return CompoundField.Default{expr, pos};
   }
 }
 
@@ -350,7 +374,7 @@ def parse_expr_base() -> &Expr {
           let compound = parse_expr_struct(NULL);
           let args = compound.compound.fields;
           compound.kind = Expr.Call;
-          compound.call = {expr: expr, args: args};
+          compound.call = {args, expr};
           expr = compound;
         }
       }
@@ -1027,7 +1051,7 @@ def parse_type_params() -> Slice<Decl> {
         pos: token.pos,
         is_generic: true,
         name: param_name,
-        typedef_decl: {constraint: constraint},
+        typedef_decl: {constraint},
         // Let val default to null.
       };
       buf_push(&params.items as &&void, &param, sizeof(param));
@@ -1194,7 +1218,7 @@ def parse_note_arg() -> NoteArg {
     name = expr.name;
     expr = parse_expr();
   }
-  return NoteArg {pos: pos, name: name, expr: expr};
+  return {expr, name, pos};
 }
 
 def parse_note() -> Note {

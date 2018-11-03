@@ -469,7 +469,7 @@ def gen_expr_fields(fields: Slice<CompoundField>) {
       gen_expr(field.index);
       buf_printf(&gen_buf, "] = ");
     }
-    gen_expr(field.val);
+    gen_expr(field.expr);
   } for;
   if (fields.length == 0) {
     buf_printf(&gen_buf, "0");
@@ -607,7 +607,7 @@ def gen_expr(expr: &Expr) {
         if (i) {
           buf_printf(&gen_buf, ", ");
         }
-        gen_expr(arg.val);
+        gen_expr(arg.expr);
       }
       buf_printf(&gen_buf, ")");
     }
@@ -874,15 +874,13 @@ def gen_stmt(stmt: &Stmt) {
       // Generate an assignment in case this is a non-simple name.
       // TODO If it's a name, just use it and avoid the extra block.
       let items = "items__";
-      gen_stmt(&Stmt {kind: Stmt.Init, init: {
-        // Ideally, we can optimize to getting a pointer to the iterable, in
-        // case it's a big struct, but that can be tricky, say in cases like
-        // return values from functions or whatever.
-        // Can a smart compiler avoid the big copy anyway?
-        // Are there semantics issues ever?
-        // TODO Figure out when and if to optimize this?
-        expr: expr, name: items,
-      }});
+      // Ideally, we can optimize to getting a pointer to the iterable, in
+      // case it's a big struct, but that can be tricky, say in cases like
+      // return values from functions or whatever.
+      // Can a smart compiler avoid the big copy anyway?
+      // Are there semantics issues ever?
+      // TODO Figure out when and if to optimize this?
+      gen_stmt(&Stmt.Init{init: {expr, name: items}});
       genln();
       // TODO Even if length is const, index, shouldn't be.
       let access = is_ptr ? "->" : ".";
