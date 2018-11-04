@@ -853,14 +853,12 @@ def complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
       // if (type_sizeof(item_type) == 0) {
       //   fatal_error(item.pos, "Field type of size 0 is not allowed");
       // }
-      for (item.names) do(name) {
-        let type_field = TypeField(name, item_type);
-        buf_push(&fields as &&void, &type_field, sizeof(type_field));
-      }
+      let type_field = TypeField{item.name, type: item_type};
+      buf_push(&fields as &&void, &type_field, sizeof(type_field));
     } else {
       #assert(item.kind == AggregateItem.Subaggregate);
       let item_type = complete_aggregate(NULL, item.subaggregate);
-      let type_field = TypeField(NULL, item_type);
+      let type_field = TypeField{type: item_type};
       buf_push(&fields as &&void, &type_field, sizeof(type_field));
     }
   } for;
@@ -2241,7 +2239,7 @@ def resolve_expr_call(expr: &Expr) -> Operand {
     printf("Check args.\n");
   }
   for (function.type.function.params) do(param_type, i) {
-    // TODO Resolve named args differently!
+    // TODO Resolve named args differently!!
     let arg = resolve_expected_expr_rvalue(expr.call.args[i].expr, param_type);
     if (is_generic && !type_args.length) {
       // TODO Infer type args!

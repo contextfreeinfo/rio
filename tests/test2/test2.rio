@@ -1,5 +1,6 @@
 struct vec2 {
-    x, y: float;
+    x: float;
+    y: float;
 }
 
 def add2(a: vec2, b: vec2) -> vec2 {

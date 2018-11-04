@@ -149,7 +149,8 @@ def test_nonmodifiable() {
 }
 
 struct UartCtrl {
-  tx_enable, rx_enable: bool;
+  tx_enable: bool;
+  rx_enable: bool;
 }
 
 const UART_CTRL_REG = 0x12345678 as *uint32;
@@ -256,7 +257,8 @@ def is_even(digit: int) -> int {
 let i: int;
 
 struct Vector {
-  x, y: int;
+  x: int;
+  y: int;
 }
 
 def f2(v: Vector) {
@@ -473,7 +475,8 @@ def f4(x: *const char) {
 }
 
 struct ConstVector {
-  x, y: const int;
+  x: const int;
+  y: const int;
 }
 
 def f5(p: *const int) {
@@ -796,7 +799,8 @@ def test_alignof() {
 }
 
 struct BufHdr {
-  cap, len: usize;
+  cap: usize;
+  len: usize;
   buf: [1]char;
   //  buf: []char;
   //  buf: [0]char;

@@ -60,13 +60,14 @@ struct TypeArg {
 }
 
 struct AggregateItem {
+  // TODO Unify with FuncParam.
   pos: SrcPos;
   // Kind names apply only to unions ...
   kind_names: Slice<*const char>;
   union switch {
     None => :void;
     Field => struct {
-      names: Slice<*const char>;
+      name: *const char;
       type: &Typespec;
     }
     Subaggregate => subaggregate: &Aggregate;
@@ -139,6 +140,7 @@ struct DeclEnum {
 }
 
 struct DeclFunc {
+  // TODO Unify with aggregate declarations.
   params: Slice<FuncParam>;
   ret_type: &Typespec;
   has_varargs: bool;

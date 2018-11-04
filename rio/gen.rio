@@ -397,23 +397,23 @@ def gen_forward_decls() {
 def gen_aggregate_item(item: &AggregateItem) {
   @complete
   if (item.kind == AggregateItem.Field) {
-    for (item.names) do(name) {
-      gen_sync_pos(item.pos);
-      let prefix = "";
-      // Skip actually generating void fields.
-      // TODO Error on uses of void fields.
-      // TODO Error on void fields outside of enum unions.
-      // TODO Find a better way to check for void.
-      if (item.type.kind == Typespec.Name) {
-        let gen_name = get_gen_name(item.type);
-        if (gen_name == void_name) {
-          prefix = "// ";
-        }
+    gen_sync_pos(item.pos);
+    let prefix = "";
+    // Skip actually generating void fields.
+    // TODO Error on uses of void fields.
+    // TODO Error on void fields outside of enum unions.
+    // TODO Find a better way to check for void.
+    if (item.type.kind == Typespec.Name) {
+      let gen_name = get_gen_name(item.type);
+      if (gen_name == void_name) {
+        prefix = "// ";
       }
-      // Generate standard field.
-      genln();
-      buf_printf(&gen_buf, "%s%s;", prefix, typespec_to_cdecl(item.type, name));
-    } for;
+    }
+    // Generate standard field.
+    genln();
+    buf_printf(
+      &gen_buf, "%s%s;", prefix, typespec_to_cdecl(item.type, item.name),
+    );
   } else if (item.kind == AggregateItem.Subaggregate) {
     genln();
     buf_printf(
