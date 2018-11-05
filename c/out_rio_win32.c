@@ -825,7 +825,6 @@ struct rio_FuncParam {
   rio_SrcPos pos;
   char const ((*name));
   rio_Typespec (*type);
-  rio_Expr (*default_val);
 };
 
 rio_FuncParam rio_dupe_func_param(rio_FuncParam param, rio_MapClosure (*map));
@@ -3701,9 +3700,6 @@ void rio_dupe_function_fields(rio_DeclFunc (*dupe), bool shallow, rio_MapClosure
 rio_FuncParam rio_dupe_func_param(rio_FuncParam param, rio_MapClosure (*map)) {
   rio_FuncParam (*dupe) = &(param);
   dupe->type = rio_dupe_typespec(dupe->type, map);
-  if (dupe->default_val) {
-    dupe->default_val = rio_dupe_expr(dupe->default_val, map);
-  }
   return *(dupe);
 }
 

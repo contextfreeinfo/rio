@@ -1230,7 +1230,10 @@ void test1_test_complete(void) {
     break;
   }
   // 1...3
-  case 1: case 2: case 3:  {
+  case 1: case 2: case 3: 
+  // 5...6
+  case 5: case 6: 
+  case 8: {
     y = 4;
     break;
   }

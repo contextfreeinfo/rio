@@ -132,6 +132,8 @@ enum TokenKind {
   Neg,
   Not,
   // Multiplicative precedence
+  // TODO Put arithmetic before set operators.
+  // TODO Maybe okay to leave shift with mul?
   FirstMul,
   Mul = TokenKind.FirstMul,
   Div,

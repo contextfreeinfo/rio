@@ -150,9 +150,10 @@ def dupe_function_fields(dupe: &DeclFunc, shallow: bool, map: &MapClosure) {
 def dupe_func_param(param: FuncParam, map: &MapClosure) -> FuncParam {
   let dupe = &param;
   dupe.type = dupe_typespec(dupe.type, map);
-  if (dupe.default_val) {
-    dupe.default_val = dupe_expr(dupe.default_val, map);
-  }
+  // TODO Bring this back in when ready.
+  // if (dupe.default_val) {
+  //   dupe.default_val = dupe_expr(dupe.default_val, map);
+  // }
   return *dupe;
 }
 

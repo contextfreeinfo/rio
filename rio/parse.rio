@@ -453,6 +453,9 @@ def parse_expr_as() -> &Expr {
 }
 
 def parse_expr_mul() -> &Expr {
+  // TODO Insert parse_expr_range below this?
+  // TODO Since & and | are set operators and range makes sets, & and | should
+  // TODO operate on the results of ranges.
   let expr = parse_expr_as();
   while (is_mul_op()) {
     let pos = token.pos;
@@ -700,6 +703,7 @@ def parse_stmt_switch_case() -> SwitchCase {
   let patterns: *SwitchCasePattern;
   let pattern = parse_switch_case_pattern();
   buf_push(&patterns as &&void, &pattern, sizeof(pattern));
+  // TODO Just parse expression and split on top-level TokenKind.Or.
   while (match_token(TokenKind.Comma)) {
     pattern = parse_switch_case_pattern();
     buf_push(&patterns as &&void, &pattern, sizeof(pattern));
