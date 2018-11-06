@@ -9861,8 +9861,9 @@ rio_Operand rio_resolve_expr_binary(rio_Expr (*expr)) {
 }
 
 void rio_resolve_struct_fields(rio_Slice_CompoundField fields, rio_Type (*type)) {
-  int index = 0;
+  ullong index = (size_t)(0);
   bool had_name = false;
+  rio_Slice_TypeField declared_fields = type->aggregate.fields;
   {
     rio_Slice_CompoundField items__ = fields;
     for (size_t i__ = 0; i__ < items__.length; ++i__) {
@@ -9871,17 +9872,18 @@ void rio_resolve_struct_fields(rio_Slice_CompoundField fields, rio_Type (*type))
         rio_fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
       } else if ((field.kind) == ((rio_CompoundField_Name))) {
         had_name = true;
-        index = rio_aggregate_item_field_index(type, field.name);
-        if ((index) == (-(1))) {
+        int found = rio_aggregate_item_field_index(type, field.name);
+        if ((found) < (0)) {
           rio_fatal_error(field.pos, "Named field in compound literal does not exist");
         }
+        index = (size_t)(found);
       } else if (had_name) {
         rio_fatal_error(field.pos, "Positional field after named field");
       }
-      if ((index) >= ((int)(type->aggregate.fields.length))) {
+      if ((index) >= ((int)(declared_fields.length))) {
         rio_fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
       }
-      rio_Type (*field_type) = type->aggregate.fields.items[index].type;
+      rio_Type (*field_type) = declared_fields.items[index].type;
       if (!(rio_resolve_typed_init(field.pos, field_type, field.expr))) {
         rio_fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected %s", rio_get_type_name(field_type));
       }

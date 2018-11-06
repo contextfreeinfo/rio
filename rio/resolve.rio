@@ -2028,31 +2028,43 @@ def resolve_expr_binary(expr: &Expr) -> Operand {
   return resolve_expr_binary_op(op, op_name, expr.pos, left, right);
 }
 
+// struct FieldOrder {
+//   field: &CompoundField;
+//   index: usize;
+// }
+
 def resolve_struct_fields(fields: Slice<CompoundField>, type: &Type) {
-  // This index can turn negative, so int.
-  let index = 0;
+  let index = 0 as usize;
   let had_name = false;
+  // Thoughts to find the right order and reorder them.
+  // TODO How to preserve expression order in the face of reordered function
+  // TODO args?
+  // TODO What about default arg values with a different order?
+  // let orders = xmalloc(fields.length * sizeof<FieldOrder>);
+  let declared_fields = type.aggregate.fields;
   for (fields) do(field) {
     if (field.kind == CompoundField.Index) {
       fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
     } else if (field.kind == CompoundField.Name) {
       had_name = true;
-      index = aggregate_item_field_index(type, field.name);
-      if (index == -1) {
+      let found = aggregate_item_field_index(type, field.name);
+      if (found < 0) {
         fatal_error(field.pos, "Named field in compound literal does not exist");
       }
+      index = found as usize;
     } else if (had_name) {
       fatal_error(field.pos, "Positional field after named field");
     }
-    if (index >= type.aggregate.fields.length as int) {
+    if (index >= declared_fields.length as int) {
       fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
     }
-    let field_type = type.aggregate.fields[index].type;
+    let field_type = declared_fields[index].type;
     if (!resolve_typed_init(field.pos, field_type, field.expr)) {
       fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected %s", get_type_name(field_type));
     }
     index++;
   } for;
+  // free(orders);
 }
 
 def resolve_expr_compound(expr: &Expr, expected_type: &Type) -> Operand {

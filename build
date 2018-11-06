@@ -1,16 +1,10 @@
 export RIOHOME="$(dirname "$(readlink -f "$0")")"
 export RIOOS=linux
 
-if [[ "$1" == "-g" ]]; then
-  run=valgrind
-else
-  run=""
-fi
-
 cd "$RIOHOME"
 
 if [ -e bin/rio ]; then
-  $run bin/rio -nosourcemap -notypeinfo -o c/out_rio_linux.c rio
+  bin/brio -nosourcemap -notypeinfo -o c/out_rio_linux.c rio
 else
   echo
   echo "-- No rio binary found; using previously built c/out_rio_linux.c --"
