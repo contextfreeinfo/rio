@@ -644,7 +644,7 @@ def parse_simple_stmt() -> &Stmt {
 
 def parse_stmt_for_each(pos: SrcPos, get_ref: bool, expr: &Expr) -> &Stmt {
   let has_varargs: bool;
-  let params: Slice<FuncParam>;
+  let params: Slice<Member>;
   if (match_keyword(do_keyword)) {
     params = parse_decl_func_params(&has_varargs, true);
   }
@@ -825,18 +825,18 @@ def parse_decl_enum(pos: SrcPos) -> &Decl {
   return new_decl_enum(pos, name, type, (items, buf_len(items)));
 }
 
-def parse_decl_aggregate_item() -> AggregateItem {
+def parse_decl_aggregate_item() -> Member {
   let pos = token.pos;
   if (match_keyword(struct_keyword)) {
     return {
       pos: pos,
-      kind: AggregateItem.Subaggregate,
+      kind: Member.Subaggregate,
       subaggregate: parse_aggregate(AggregateKind.Struct, NULL, NULL),
     };
   } else if (match_keyword(union_keyword)) {
     return {
       pos: pos,
-      kind: AggregateItem.Subaggregate,
+      kind: Member.Subaggregate,
       subaggregate: parse_aggregate(AggregateKind.Union, NULL, NULL),
     };
   } else {
@@ -844,7 +844,7 @@ def parse_decl_aggregate_item() -> AggregateItem {
     expect_token(TokenKind.Colon);
     let type = parse_type();
     expect_token(TokenKind.Semicolon);
-    return AggregateItem.Field{name, pos, type};
+    return Member.Field{name, pos, type};
   } if;
 }
 
@@ -855,7 +855,7 @@ def parse_aggregate(
   kind: AggregateKind, name: *const char, notes: &Slice<Note>,
 ) -> &Aggregate {
   let pos = token.pos;
-  let items: *AggregateItem;
+  let items: *Member;
   let has_enum = false;
   let enum_union: &Aggregate;
   if (match_keyword(switch_keyword)) {
@@ -870,10 +870,10 @@ def parse_aggregate(
       let item = parse_decl_aggregate_item();
       buf_push(&items as &&void, &item, sizeof(item));
       // See if it's a switch union.
-      if (item.kind == AggregateItem.Subaggregate) {
+      if (item.kind == Member.Subaggregate) {
         let sub = item.subaggregate;
-        if (sub.kind == AggregateKind.Union && sub.items.length) {
-          if (sub.items.items.kind_names.length) {
+        if (sub.kind == AggregateKind.Union && sub.members.length) {
+          if (sub.members.items.kind_names.length) {
             // But only one subunion here is allowed.
             if (enum_union) {
               fatal_error(sub.pos, "Multiple switch unions in struct");
@@ -896,9 +896,9 @@ def parse_aggregate(
     if (kind == AggregateKind.Union) {
       // This is the union. Contain it.
       enum_union = new_aggregate(pos, kind, (items, buf_len(items)));
-      let subitem = AggregateItem {
+      let subitem = Member {
         pos: pos,
-        kind: AggregateItem.Subaggregate,
+        kind: Member.Subaggregate,
         subaggregate: enum_union,
       };
       // Wrap it in a struct.
@@ -919,9 +919,9 @@ def parse_aggregate(
       enum_tag_name_interned = true;
     }
     let tag_type_name = build_scoped_name(name, "Kind");
-    let tag_item = AggregateItem{
+    let tag_item = Member{
       pos,
-      kind: AggregateItem.Field,
+      kind: Member.Field,
       name: *enum_tag_names,
       type: new_typespec_name1(pos, tag_type_name),
     };
@@ -940,9 +940,9 @@ def parse_aggregate(
 
 let empty_names = <[]*const char>[""];
 
-def parse_switch_union() -> *AggregateItem {
+def parse_switch_union() -> *Member {
   expect_token(TokenKind.Lbrace);
-  let items: *AggregateItem;
+  let items: *Member;
   while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
     let kind_names: **const char;
     let kind_name = parse_name();
@@ -954,7 +954,7 @@ def parse_switch_union() -> *AggregateItem {
     }
     expect_token(TokenKind.Spear);
     let pos = token.pos;
-    let item: AggregateItem;
+    let item: Member;
     if (match_token(TokenKind.Colon)) {
       let type = parse_type();
       if (!(
@@ -966,7 +966,7 @@ def parse_switch_union() -> *AggregateItem {
         return NULL;
       }
       expect_token(TokenKind.Semicolon);
-      item = AggregateItem.Field{pos, name: *empty_names, type};
+      item = Member.Field{pos, name: *empty_names, type};
     } else {
       item = parse_decl_aggregate_item();
     }
@@ -985,13 +985,13 @@ def build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
   let enum_type_name = build_scoped_name(decl_name, "Kind");
   // Figure out how many items we really have.
   let num_all_items: usize = 0;
-  for &(enum_union.items) do(union_item) {
-    let num_names = union_item.kind_names.length;
+  for &(enum_union.members) do(union_member) {
+    let num_names = union_member.kind_names.length;
     if (!num_names) {
       // Non-switch enum union.
-      if (union_item.kind != AggregateItem.Field) {
+      if (union_member.kind != Member.Field) {
         fatal_error(
-          union_item.pos, "Enum union item of %s not a field", decl_name,
+          union_member.pos, "Enum union item of %s not a field", decl_name,
         );
         return;
       }
@@ -1002,14 +1002,14 @@ def build_enum_union_decl(enum_union: &Aggregate, decl_name: *const char) {
   // Now build the enum items.
   let enum_items = xmalloc(num_all_items * sizeof(EnumItem)) as *EnumItem;
   let enum_item_index: usize = 0;
-  for &(enum_union.items) do(union_item) {
-    let names = union_item.kind_names;
+  for &(enum_union.members) do(union_member) {
+    let names = union_member.kind_names;
     if (!names.length) {
       // Non switch.
-      names = (&union_item.name, 1);
+      names = (&union_member.name, 1);
     }
     for (names) do(name) {
-      enum_items[enum_item_index++] = EnumItem{name, union_item.pos};
+      enum_items[enum_item_index++] = EnumItem{name, union_member.pos};
     }
   } for;
   // And add the new enum.
@@ -1116,7 +1116,7 @@ def parse_decl_typedef(pos: SrcPos) -> &Decl {
   return new_decl_typedef(pos, name, type);
 }
 
-def parse_decl_func_param(optional_types: bool) -> FuncParam {
+def parse_decl_func_param(optional_types: bool) -> Member {
   let pos = token.pos;
   let name = parse_name();
   // TODO Default args.
@@ -1129,14 +1129,14 @@ def parse_decl_func_param(optional_types: bool) -> FuncParam {
     expect_token(TokenKind.Colon);
     type = parse_type();
   }
-  return (pos, name, type);
+  return {name, pos, type};
 }
 
 def parse_decl_func_params(
   has_varargs: &bool, optional_types: bool,
-) -> Slice<FuncParam> {
+) -> Slice<Member> {
   expect_token(TokenKind.Lparen);
-  let params: *FuncParam = NULL;
+  let params: *Member = NULL;
   *has_varargs = false;
   while (!is_token(TokenKind.Rparen)) {
     if (match_token(TokenKind.Ellipsis)) {

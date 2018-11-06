@@ -16,18 +16,18 @@ def dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
     return dupe;
   }
   dupe = ast_dup.<Aggregate>(aggregate);
-  dupe.items = ast_dup_slice.<AggregateItem>(dupe.items);
-  for &(dupe.items) do(item) {
+  dupe.members = ast_dup_slice.<Member>(dupe.members);
+  for &(dupe.members) do(member) {
     // These are value, not pointer, so presume any modifications are in place.
-    map.call(map.self, (item, typeof(*item)));
+    map.call(map.self, (member, typeof(*member)));
     // Now go deeper.
     @complete
-    switch (item.kind) {
+    switch (member.kind) {
       Field => {
-        item.type = dupe_typespec(item.type, map);
+        member.type = dupe_typespec(member.type, map);
       }
       Subaggregate => {
-        item.subaggregate = dupe_aggregate(item.subaggregate, map);
+        member.subaggregate = dupe_aggregate(member.subaggregate, map);
       }
     }
   }
@@ -137,7 +137,7 @@ def dupe_function(func: DeclFunc, shallow: bool, map: &MapClosure) -> DeclFunc {
 }
 
 def dupe_function_fields(dupe: &DeclFunc, shallow: bool, map: &MapClosure) {
-  dupe.params = ast_dup_slice.<FuncParam>(dupe.params);
+  dupe.params = ast_dup_slice.<Member>(dupe.params);
   for &(dupe.params) do(param) {
     *param = dupe_func_param(*param, map);
   }
@@ -147,7 +147,7 @@ def dupe_function_fields(dupe: &DeclFunc, shallow: bool, map: &MapClosure) {
   }
 }
 
-def dupe_func_param(param: FuncParam, map: &MapClosure) -> FuncParam {
+def dupe_func_param(param: Member, map: &MapClosure) -> Member {
   let dupe = &param;
   dupe.type = dupe_typespec(dupe.type, map);
   // TODO Bring this back in when ready.

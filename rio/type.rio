@@ -487,6 +487,7 @@ def init_builtin_types() {
 
 def aggregate_item_field_index(type: &Type, name: *const char) -> int {
   #assert(is_aggregate_type(type));
+  // TODO Expose function that works directly on fields?
   for &(type.aggregate.fields) do(field, i) {
     if (field.name == name) {
       return i as int;

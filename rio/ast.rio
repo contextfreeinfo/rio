@@ -46,23 +46,18 @@ struct TypespecFunc {
   ret: &Typespec;
 }
 
-struct FuncParam {
-  pos: SrcPos;
-  name: *const char;
-  type: &Typespec;
-  // TODO Support default values!
-}
-
 struct TypeArg {
   pos: SrcPos;
   val: &Typespec;
 }
 
-struct AggregateItem {
-  // TODO Unify with FuncParam!
+struct Member {
   pos: SrcPos;
   // Kind names apply only to unions ...
-  // TODO Move these out to slice under aggregate of pointer to item?
+  // Changing from dedicated FuncParam to using Member everywhere seems to have
+  // raised ram usage by close to 5% in some cases.
+  // The `switch` is probably generally useful, but the kind_names aren't.
+  // TODO Move kind_names out to slice under aggregate as member refs?
   kind_names: Slice<*const char>;
   union switch {
     None => :void;
@@ -94,7 +89,7 @@ enum AggregateKind {
 struct Aggregate {
   pos: SrcPos;
   kind: AggregateKind;
-  items: Slice<AggregateItem>;
+  members: Slice<Member>;
   union_enum_decl: &Decl;
 }
 
@@ -140,8 +135,8 @@ struct DeclEnum {
 }
 
 struct DeclFunc {
-  // TODO Unify with aggregate declarations.
-  params: Slice<FuncParam>;
+  // TODO Change params to Aggregate?
+  params: Slice<Member>;
   ret_type: &Typespec;
   has_varargs: bool;
   block: StmtList;
@@ -508,11 +503,11 @@ def get_note(notes: &Slice<Note>, name: *const char) -> &Note {
   return NULL;
 }
 
-def get_subunion(items: Slice<AggregateItem>) -> &Aggregate {
+def get_subunion(items: Slice<Member>) -> &Aggregate {
   // See if we are a struct with a subunion.
   let result: &Aggregate;
   for &(items) do(item) {
-    if (item.kind == AggregateItem.Subaggregate) {
+    if (item.kind == Member.Subaggregate) {
       if (item.subaggregate.kind == AggregateKind.Union) {
         // But only one subunion here is allowed.
         if (result) {
@@ -540,15 +535,15 @@ def new_decl_enum(
 }
 
 def new_aggregate(
-  pos: SrcPos, kind: AggregateKind, items: Slice<AggregateItem>,
+  pos: SrcPos, kind: AggregateKind, members: Slice<Member>,
 ) -> &Aggregate {
   let aggregate: &Aggregate = ast_alloc(sizeof(Aggregate));
   aggregate.pos = pos;
   aggregate.kind = kind;
-  aggregate.items = ast_dup_slice.<AggregateItem>(items);
-  if (items.length) {
+  aggregate.members = ast_dup_slice.<Member>(members);
+  if (members.length) {
     // This is safe for our usage, but how to define generally? Use `own`.
-    buf_free(&items.items as &&void);
+    buf_free(&members.items as &&void);
   }
   return aggregate;
 }
@@ -573,7 +568,7 @@ def new_decl_var(pos: SrcPos, name: *const char, type: &Typespec, expr: &Expr) -
 
 def new_decl_func(
   pos: SrcPos, name: *const char, type_params: Slice<Decl>,
-  params: Slice<FuncParam>, ret_type: &Typespec, has_varargs: bool,
+  params: Slice<Member>, ret_type: &Typespec, has_varargs: bool,
   block: StmtList,
 ) -> &Decl {
   let d = new_decl(Decl.Func, pos, name);
@@ -584,10 +579,10 @@ def new_decl_func(
 
 def init_func(
   func: &DeclFunc,
-  params: Slice<FuncParam>, ret_type: &Typespec, has_varargs: bool,
+  params: Slice<Member>, ret_type: &Typespec, has_varargs: bool,
   block: StmtList,
 ) {
-  func.params = ast_dup_slice.<FuncParam>(params);
+  func.params = ast_dup_slice.<Member>(params);
   func.ret_type = ret_type;
   func.has_varargs = has_varargs;
   func.block = block;
@@ -871,7 +866,7 @@ def new_stmt_do_while(pos: SrcPos, cond: &Expr, block: StmtList) -> &Stmt {
 }
 
 def new_stmt_for_each(
-  pos: SrcPos, get_ref: bool, expr: &Expr, params: Slice<FuncParam>,
+  pos: SrcPos, get_ref: bool, expr: &Expr, params: Slice<Member>,
   block: StmtList,
 ) -> &Stmt {
   let s = new_stmt(Stmt.ForEach, pos);

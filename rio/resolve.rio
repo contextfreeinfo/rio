@@ -846,19 +846,19 @@ def complete_aggregate(type: &Type, aggregate: &Aggregate) -> &Type {
   if (type && type.sym && type.sym.decl) {
     push_type_params(type.sym.decl);
   }
-  for (aggregate.items) do(item) {
-    if (item.kind == AggregateItem.Field) {
-      let item_type = resolve_typespec(item.type);
-      complete_type(item_type);
-      // if (type_sizeof(item_type) == 0) {
-      //   fatal_error(item.pos, "Field type of size 0 is not allowed");
+  for (aggregate.members) do(member) {
+    if (member.kind == Member.Field) {
+      let member_type = resolve_typespec(member.type);
+      complete_type(member_type);
+      // if (type_sizeof(member_type) == 0) {
+      //   fatal_error(member.pos, "Field type of size 0 is not allowed");
       // }
-      let type_field = TypeField{item.name, type: item_type};
+      let type_field = TypeField{member.name, type: member_type};
       buf_push(&fields as &&void, &type_field, sizeof(type_field));
     } else {
-      #assert(item.kind == AggregateItem.Subaggregate);
-      let item_type = complete_aggregate(NULL, item.subaggregate);
-      let type_field = TypeField{type: item_type};
+      #assert(member.kind == Member.Subaggregate);
+      let member_type = complete_aggregate(NULL, member.subaggregate);
+      let type_field = TypeField{type: member_type};
       buf_push(&fields as &&void, &type_field, sizeof(type_field));
     }
   } for;
@@ -2031,14 +2031,18 @@ def resolve_expr_binary(expr: &Expr) -> Operand {
 def resolve_struct_fields(fields: Slice<CompoundField>, type: &Type) {
   // This index can turn negative, so int.
   let index = 0;
+  let had_name = false;
   for (fields) do(field) {
     if (field.kind == CompoundField.Index) {
       fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
     } else if (field.kind == CompoundField.Name) {
+      had_name = true;
       index = aggregate_item_field_index(type, field.name);
       if (index == -1) {
         fatal_error(field.pos, "Named field in compound literal does not exist");
       }
+    } else if (had_name) {
+      fatal_error(field.pos, "Positional field after named field");
     }
     if (index >= type.aggregate.fields.length as int) {
       fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
