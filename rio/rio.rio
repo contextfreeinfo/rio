@@ -1,7 +1,7 @@
 enum { MAX_SEARCH_PATHS = 256 }
-let static_package_search_paths: [MAX_SEARCH_PATHS]*const char;
-let package_search_paths: **const char = static_package_search_paths;
-let num_package_search_paths: int;
+let mut static_package_search_paths: [MAX_SEARCH_PATHS]*const char;
+let mut package_search_paths: **const char = static_package_search_paths;
+let mut num_package_search_paths: int;
 
 def add_package_search_path(path: *const char) {
   if (flag_verbose) {
@@ -11,28 +11,28 @@ def add_package_search_path(path: *const char) {
 }
 
 def add_package_search_path_range(start: *const char, end: *const char) {
-  let path: [MAX_PATH]char;
-  let len: usize = clamp_max(end - start, MAX_PATH - 1);
+  let mut path: [MAX_PATH]char;
+  let mut len: usize = clamp_max(end - start, MAX_PATH - 1);
   memcpy(path, start, len);
   path[len] = 0;
   add_package_search_path(path);
 }
 
 def init_package_search_paths() {
-  let riohome_var = getenv("RIOHOME");
+  let mut riohome_var = getenv("RIOHOME");
   if (!riohome_var) {
     printf("error: Set the environment variable RIOHOME to the Rio home directory (where system_packages is located)\n");
     exit(1);
   }
-  let path: [MAX_PATH]char;
+  let mut path: [MAX_PATH]char;
   path_copy(path, riohome_var);
   path_join(path, "system_packages");
   add_package_search_path(path);
   add_package_search_path(".");
-  let riopath_var = getenv("RIOPATH");
+  let mut riopath_var = getenv("RIOPATH");
   if (riopath_var) {
-    let start = riopath_var;
-    for (let ptr = riopath_var; *ptr; ptr++) {
+    let mut start = riopath_var;
+    for (let mut ptr = riopath_var; *ptr; ptr++) {
       if (*ptr == ';') {
         add_package_search_path_range(start, ptr);
         start = ptr + 1;
@@ -53,18 +53,18 @@ def init_compiler() {
 }
 
 def parse_env_vars() {
-  let rioos_var = getenv("RIOOS");
+  let mut rioos_var = getenv("RIOOS");
   if (rioos_var) {
-    let os = get_os(rioos_var);
+    let mut os = get_os(rioos_var);
     if (os == -1) {
       printf("Unknown target operating system in RIOOS environment variable: %s\n", rioos_var);
     } else {
       target_os = os;
     }
   }
-  let rioarch_var = getenv("RIOARCH");
+  let mut rioarch_var = getenv("RIOARCH");
   if (rioarch_var) {
-    let arch = get_arch(rioarch_var);
+    let mut arch = get_arch(rioarch_var);
     if (arch == -1) {
       printf("Unknown target architecture in RIOARCH environment variable: %s\n", rioarch_var);
     } else {
@@ -76,8 +76,8 @@ def parse_env_vars() {
 def rio_main(argc: int, argv: **const char, gen_all: do(), extension: *const char) -> int {
   // printf("Big: %zu\n", sizeof(Expr));
   parse_env_vars();
-  let output_name: *const char;
-  let flag_check = false;
+  let mut output_name: *const char;
+  let mut flag_check = false;
   add_flag_str("o", &output_name, "file", "Output file (default: out_<main-package>.c)");
   add_flag_enum("os", &target_os as &int, "Target operating system", os_names, Os.Num);
   add_flag_enum("arch", &target_arch as &int, "Target machine architecture", arch_names, Arch.Num);
@@ -87,13 +87,13 @@ def rio_main(argc: int, argv: **const char, gen_all: do(), extension: *const cha
   add_flag_bool("notypeinfo", &flag_notypeinfo, "Don't generate any typeinfo tables");
   add_flag_bool("fullgen", &flag_fullgen, "Force full code generation even for non-reachable symbols");
   add_flag_bool("verbose", &flag_verbose, "Extra diagnostic information");
-  let program_name = parse_flags(&argc, &argv);
+  let mut program_name = parse_flags(&argc, &argv);
   if (argc != 1) {
     printf("Usage: %s [flags] <main-package>\n", program_name);
     print_flags_usage();
     return 1;
   }
-  let package_name = argv[0];
+  let mut package_name = argv[0];
   if (flag_verbose) {
     printf("Target operating system: %s\n", os_names[target_os]);
     printf("Target architecture: %s\n", arch_names[target_arch]);
@@ -105,13 +105,13 @@ def rio_main(argc: int, argv: **const char, gen_all: do(), extension: *const cha
     return 1;
   }
   builtin_package.external_name = str_intern("");
-  let main_package = import_package(package_name);
+  let mut main_package = import_package(package_name);
   if (!main_package) {
     printf("error: Failed to compile package '%s'\n", package_name);
     return 1;
   }
-  let main_name = str_intern("main");
-  let main_sym = get_package_sym(main_package, main_name);
+  let mut main_name = str_intern("main");
+  let mut main_sym = get_package_sym(main_package, main_name);
   if (!main_sym) {
     printf("error: No 'main' entry point defined in package '%s'\n", package_name);
     return 1;
@@ -119,7 +119,7 @@ def rio_main(argc: int, argv: **const char, gen_all: do(), extension: *const cha
   main_sym.external_name = main_name;
   reachable_phase = ReachablePhase.Natural;
   resolve_sym(main_sym);
-  for (let i: usize = 0; i < buf_len(package_list); i++) {
+  for (let mut i: usize = 0; i < buf_len(package_list); i++) {
     if (package_list[i].always_reachable) {
       resolve_package_syms(package_list[i]);
     }
@@ -130,21 +130,21 @@ def rio_main(argc: int, argv: **const char, gen_all: do(), extension: *const cha
   }
   if (!flag_lazy) {
     reachable_phase = ReachablePhase.Forced;
-    for (let i: usize = 0; i < buf_len(package_list); i++) {
+    for (let mut i: usize = 0; i < buf_len(package_list); i++) {
       resolve_package_syms(package_list[i]);
     }
     finalize_reachable_syms();
   }
   printf("Processed %d symbols in %d packages\n", buf_len(reachable_syms) as int, buf_len(package_list) as int);
   if (!flag_check) {
-    let c_path: [MAX_PATH]char;
+    let mut c_path: [MAX_PATH]char;
     if (output_name) {
       path_copy(c_path, output_name);
     } else {
       snprintf(c_path, sizeof(c_path), "out_%s.%s", package_name, extension);
     }
     gen_all();
-    let c_code = gen_buf;
+    let mut c_code = gen_buf;
     gen_buf = NULL;
     if (!write_file(c_path, c_code, buf_len(c_code))) {
       printf("error: Failed to write file: %s\n", c_path);

@@ -1,44 +1,44 @@
-let typedef_keyword: *const char;
-let enum_keyword: *const char;
-let struct_keyword: *const char;
-let union_keyword: *const char;
-let let_keyword: *const char;
-let mut_keyword: *const char;
-let own_keyword: *const char;
-let const_keyword: *const char;
-let def_keyword: *const char;
-let sizeof_keyword: *const char;
-let alignof_keyword: *const char;
-let typeof_keyword: *const char;
-let offsetof_keyword: *const char;
-let break_keyword: *const char;
-let continue_keyword: *const char;
-let return_keyword: *const char;
-let if_keyword: *const char;
-let else_keyword: *const char;
-let while_keyword: *const char;
-let do_keyword: *const char;
-let for_keyword: *const char;
-let switch_keyword: *const char;
-let case_keyword: *const char;
-let default_keyword: *const char;
-let import_keyword: *const char;
-let goto_keyword: *const char;
+let mut typedef_keyword: *const char;
+let mut enum_keyword: *const char;
+let mut struct_keyword: *const char;
+let mut union_keyword: *const char;
+let mut let_keyword: *const char;
+let mut mut_keyword: *const char;
+let mut own_keyword: *const char;
+let mut const_keyword: *const char;
+let mut def_keyword: *const char;
+let mut sizeof_keyword: *const char;
+let mut alignof_keyword: *const char;
+let mut typeof_keyword: *const char;
+let mut offsetof_keyword: *const char;
+let mut break_keyword: *const char;
+let mut continue_keyword: *const char;
+let mut return_keyword: *const char;
+let mut if_keyword: *const char;
+let mut else_keyword: *const char;
+let mut while_keyword: *const char;
+let mut do_keyword: *const char;
+let mut for_keyword: *const char;
+let mut switch_keyword: *const char;
+let mut case_keyword: *const char;
+let mut default_keyword: *const char;
+let mut import_keyword: *const char;
+let mut goto_keyword: *const char;
 
-let first_keyword: *const char;
-let last_keyword: *const char;
-let keywords: **const char;
+let mut first_keyword: *const char;
+let mut last_keyword: *const char;
+let mut keywords: **const char;
 
-let as_name: *const char;
-let always_name: *const char;
-let foreign_name: *const char;
-let unscoped_name: *const char;
-let complete_name: *const char;
-let assert_name: *const char;
-let declare_note_name: *const char;
-let static_assert_name: *const char;
+let mut as_name: *const char;
+let mut always_name: *const char;
+let mut foreign_name: *const char;
+let mut unscoped_name: *const char;
+let mut complete_name: *const char;
+let mut assert_name: *const char;
+let mut declare_note_name: *const char;
+let mut static_assert_name: *const char;
 
-let void_name: *const char;
+let mut void_name: *const char;
 
 // #define KEYWORD(name) name##_keyword = str_intern(#name); buf_push(keywords, name##_keyword)
 def init_keyword(keyword: *const char) -> *const char {
@@ -48,14 +48,14 @@ def init_keyword(keyword: *const char) -> *const char {
   return keyword;
 }
 
-let keywords_inited = false;
+let mut keywords_inited = false;
 
 def init_keywords() {
   if (keywords_inited) {
     return;
   }
   typedef_keyword = init_keyword("typedef");
-  let arena_end: *char = intern_arena.end;
+  let mut arena_end: *char = intern_arena.end;
   enum_keyword = init_keyword("enum");
   struct_keyword = init_keyword("struct");
   union_keyword = init_keyword("union");
@@ -198,7 +198,7 @@ enum TokenSuffix {
   ULL,
 }
 
-let token_suffix_names: []*const char = [
+let mut token_suffix_names: []*const char = [
   TokenSuffix.None: "",
   TokenSuffix.D: "d",
   TokenSuffix.U: "u",
@@ -208,7 +208,7 @@ let token_suffix_names: []*const char = [
   TokenSuffix.ULL: "ull",
 ];
 
-let token_kind_names: []*const char = [
+let mut token_kind_names: []*const char = [
   TokenKind.Eof: "EOF",
   TokenKind.Colon: ":",
   TokenKind.Arrow: "->",
@@ -274,7 +274,7 @@ def token_kind_name(kind: TokenKind) -> *const char {
   }
 }
 
-let assign_token_to_binary_token: [TokenKind.Num]TokenKind = [
+let mut assign_token_to_binary_token: [TokenKind.Num]TokenKind = [
   TokenKind.AddAssign: TokenKind.Add,
   TokenKind.SubAssign: TokenKind.Sub,
   TokenKind.OrAssign: TokenKind.Or,
@@ -292,7 +292,7 @@ struct SrcPos {
   line: int;
 }
 
-let pos_builtin: SrcPos = {name: "<builtin>"};
+let mut pos_builtin: SrcPos = {name: "<builtin>"};
 
 struct Token {
   kind: TokenKind;
@@ -310,9 +310,9 @@ struct Token {
   }
 }
 
-let token: Token;
-let stream: *const char;
-let line_start: *const char;
+let mut token: Token;
+let mut stream: *const char;
+let mut line_start: *const char;
 
 def vnotice(level: *const char, pos: SrcPos, fmt: *const char, args: va_list) {
   if (pos.name == NULL) {
@@ -324,7 +324,7 @@ def vnotice(level: *const char, pos: SrcPos, fmt: *const char, args: va_list) {
 }
 
 def warning(pos: SrcPos, fmt: *const char, ...) {
-  let args: va_list;
+  let mut args: va_list;
   va_start(&args, &fmt);
   vnotice("warning", pos, fmt, args);
   va_end(&args);
@@ -335,14 +335,14 @@ def verror(pos: SrcPos, fmt: *const char, args: va_list) {
 }
 
 def error(pos: SrcPos, fmt: *const char, ...) {
-  let args: va_list;
+  let mut args: va_list;
   va_start(&args, &fmt);
   verror(pos, fmt, args);
   va_end(&args);
 }
 
 def fatal_error(pos: SrcPos, fmt: *const char, ...) {
-  let args: va_list;
+  let mut args: va_list;
   va_start(&args, &fmt);
   verror(pos, fmt, args);
   va_end(&args);
@@ -362,7 +362,7 @@ def token_info() -> *const char {
   }
 }
 
-let char_to_digit: [256]uint8 = [
+let mut char_to_digit: [256]uint8 = [
   '0': 0,
   '1': 1,
   '2': 2,
@@ -382,8 +382,8 @@ let char_to_digit: [256]uint8 = [
 ];
 
 def scan_int() {
-  let base = 10;
-  let start_digits = stream;
+  let mut base = 10;
+  let mut start_digits = stream;
   if (*stream == '0') {
     stream++;
     if (tolower(*stream) == 'x') {
@@ -402,13 +402,13 @@ def scan_int() {
       start_digits = stream;
     }
   }
-  let val: ullong = 0;
+  let mut val: ullong = 0;
   for (;;) {
     if (*stream == '_') {
       stream++;
       continue;
     }
-    let digit = char_to_digit[*stream as uchar];
+    let mut digit = char_to_digit[*stream as uchar];
     if (digit == 0 && *stream != '0') {
       break;
     }
@@ -457,7 +457,7 @@ def scan_int() {
 @foreign const HUGE_VAL = 0.0;
 
 def scan_float() {
-  let start = stream;
+  let mut start = stream;
   while (isdigit(*stream)) {
     stream++;
   }
@@ -479,7 +479,7 @@ def scan_float() {
       stream++;
     }
   }
-  let val = strtod(start, NULL);
+  let mut val = strtod(start, NULL);
   if (val == HUGE_VAL) {
     error(token.pos, "Float literal overflow");
   }
@@ -491,7 +491,7 @@ def scan_float() {
   }
 }
 
-let escape_to_char: [256]char = [
+let mut escape_to_char: [256]char = [
   '0': '\0',
   '\'': '\'',
   '"': '"',
@@ -507,12 +507,12 @@ let escape_to_char: [256]char = [
 def scan_hex_escape() -> int {
   #assert(*stream == 'x');
   stream++;
-  let val = char_to_digit[*stream as uchar];
+  let mut val = char_to_digit[*stream as uchar];
   if (!val && *stream != '0') {
     error(token.pos, "\\x needs at least 1 hex digit");
   }
   stream++;
-  let digit = char_to_digit[*stream as uchar];
+  let mut digit = char_to_digit[*stream as uchar];
   if (digit || *stream == '0') {
     val *= 16;
     val += digit;
@@ -528,7 +528,7 @@ def scan_hex_escape() -> int {
 def scan_char() {
   #assert(*stream == '\'');
   stream++;
-  let val = 0;
+  let mut val = 0;
   if (*stream == '\'') {
     error(token.pos, "Char literal cannot be empty");
     stream++;
@@ -562,7 +562,7 @@ def scan_char() {
 def scan_str() {
   #assert(*stream == '"');
   stream++;
-  let str: *char = NULL;
+  let mut str: *char = NULL;
   if (stream[0] == '"' && stream[1] == '"') {
     stream += 2;
     while (*stream) {
@@ -585,7 +585,7 @@ def scan_str() {
     token.mod = TokenMod.Multiline;
   } else {
     while (*stream && *stream != '"') {
-      let val = *stream;
+      let mut val = *stream;
       if (val == '\n') {
         error(token.pos, "String literal cannot contain newline");
         break;
@@ -612,7 +612,7 @@ def scan_str() {
     }
   }
   // TODO: If I say just "", I get a random byte in the c output from c rio.
-  let nul = '\0';
+  let mut nul = '\0';
   buf_push(&str as &&void, &nul, 1);
   token.kind = TokenKind.Str;
   token.str_val = str;
@@ -682,7 +682,7 @@ def next_token() {
       while (isdigit(*stream)) {
         stream++;
       }
-      let c = *stream;
+      let mut c = *stream;
       stream = token.start;
       if (c == '.' || tolower(c) == 'e') {
         scan_float();
@@ -742,7 +742,7 @@ def next_token() {
         goto repeat;
       } else if (*stream == '*') {
         stream++;
-        let level = 1;
+        let mut level = 1;
         while (*stream && level > 0) {
           if (stream[0] == '/' && stream[1] == '*') {
             level++;

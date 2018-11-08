@@ -1,1 +1,1 @@
-let RIOARCH: *const char = "x64";
+let mut RIOARCH: *const char = "x64";

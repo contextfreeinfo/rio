@@ -1,4 +1,4 @@
-let x = 5
-# let y = x + 1
-# let z = y + 1.5 - 2
+let mut x = 5
+# let mut y = x + 1
+# let mut z = y + 1.5 - 2
 print x

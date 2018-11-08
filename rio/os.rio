@@ -2,7 +2,7 @@
 const MAX_PATH = 256;
 
 def path_normalize(path: *char) {
-  let ptr: *char;
+  let mut ptr: *char;
   for (ptr = path; *ptr; ptr++) {
     if (*ptr == '\\') {
       *ptr = '/';
@@ -20,7 +20,7 @@ def path_copy(path: [MAX_PATH]char, src: *const char) {
 }
 
 def path_join(path: [MAX_PATH]char, src: *const char) {
-  let ptr = path + strlen(path);
+  let mut ptr = path + strlen(path);
   if (ptr != path && ptr[-1] == '/') {
     ptr--;
   }
@@ -32,7 +32,7 @@ def path_join(path: [MAX_PATH]char, src: *const char) {
 
 def path_file(path: [MAX_PATH]char) -> *char {
   path_normalize(path);
-  for (let ptr = path + strlen(path); ptr != path; ptr--) {
+  for (let mut ptr = path + strlen(path); ptr != path; ptr--) {
     if (ptr[-1] == '/') {
       return ptr;
     }
@@ -41,7 +41,7 @@ def path_file(path: [MAX_PATH]char) -> *char {
 }
 
 def path_ext(path: [MAX_PATH]char) -> *char {
-  for (let ptr: *char = path + strlen(path); ptr != path; ptr--) {
+  for (let mut ptr: *char = path + strlen(path); ptr != path; ptr--) {
     if (ptr[-1] == '.') {
       return ptr;
     }
@@ -69,7 +69,7 @@ def dir_list_subdir(iter: &DirListIter) -> bool {
   if (!iter.valid || !iter.is_dir) {
     return false;
   }
-  let subdir_iter: DirListIter;
+  let mut subdir_iter: DirListIter;
   path_join(iter.base, iter.name);
   dir_list(&subdir_iter, iter.base);
   dir_list_free(iter);
@@ -78,10 +78,10 @@ def dir_list_subdir(iter: &DirListIter) -> bool {
 }
 
 def dir_list_buf(filespec: *const char) -> **const char {
-  let buf: **const char = NULL;
-  let iter: DirListIter;
+  let mut buf: **const char = NULL;
+  let mut iter: DirListIter;
   for (dir_list(&iter, filespec); iter.valid; dir_list_next(&iter)) {
-    let name: *const char = strdup(iter.name);
+    let mut name: *const char = strdup(iter.name);
     buf_push(&buf as &&void, &name, sizeof(name));
   }
   return buf;
@@ -101,15 +101,15 @@ struct Flag {
   }
 }
 
-let flag_defs: *Flag;
+let mut flag_defs: *Flag;
 
 def add_flag_bool(name: *const char, ptr: &bool, help: *const char) {
-  let flag = Flag.Bool{name, help, b: ptr};
+  let mut flag = Flag.Bool{name, help, b: ptr};
   buf_push(&flag_defs as &&void, &flag, sizeof(flag));
 }
 
 def add_flag_str(name: *const char, ptr: **const char, arg_name: *const char, help: *const char) {
-  let flag = Flag.Str{name, help, arg_name, s: ptr};
+  let mut flag = Flag.Str{name, help, arg_name, s: ptr};
   buf_push(&flag_defs as &&void, &flag, sizeof(flag));
 }
 
@@ -117,12 +117,12 @@ def add_flag_enum(
   name: *const char, ptr: &int, help: *const char,
   options: **const char, num_options: int,
 ) {
-  let flag = Flag.Enum{name, help, i: ptr, options: (options, num_options)};
+  let mut flag = Flag.Enum{name, help, i: ptr, options: (options, num_options)};
   buf_push(&flag_defs as &&void, &flag, sizeof(flag));
 }
 
 def get_flag_def(name: *const char) -> &Flag {
-  for (let i: usize = 0; i < buf_len(flag_defs); i++) {
+  for (let mut i: usize = 0; i < buf_len(flag_defs); i++) {
     if (strcmp(flag_defs[i].name, name) == 0) {
       return &flag_defs[i];
     }
@@ -132,10 +132,10 @@ def get_flag_def(name: *const char) -> &Flag {
 
 def print_flags_usage() {
   printf("Flags:\n");
-  for (let i: usize = 0; i < buf_len(flag_defs); i++) {
-    let flag = flag_defs[i];
-    let note: [256]char;
-    let format: [256]char;
+  for (let mut i: usize = 0; i < buf_len(flag_defs); i++) {
+    let mut flag = flag_defs[i];
+    let mut note: [256]char;
+    let mut format: [256]char;
     switch (flag.kind) {
       Str => {
         snprintf(format, sizeof(format), "%s <%s>", flag.name, flag.arg_name ? flag.arg_name : "value" as *const char);
@@ -144,8 +144,8 @@ def print_flags_usage() {
         }
       }
       Enum => {
-        let end = format + sizeof(format);
-        let ptr = format;
+        let mut end = format + sizeof(format);
+        let mut ptr = format;
         ptr += snprintf(ptr, end - ptr, "%s <", flag.name);
         for (flag.options) do(option, k) {
           ptr += snprintf(ptr, end - ptr, "%s%s", k == 0 ? "" : "|", option);
@@ -162,18 +162,18 @@ def print_flags_usage() {
 }
 
 def parse_flags(argc_ptr: &int, argv_ptr: &**const char) -> *const char {
-  let argc = *argc_ptr;
-  let argv = *argv_ptr;
-  let i: int;
+  let mut argc = *argc_ptr;
+  let mut argv = *argv_ptr;
+  let mut i: int;
   for (i = 1; i < argc; i++) {
-    let arg = argv[i];
-    let name = arg;
+    let mut arg = argv[i];
+    let mut name = arg;
     if (*name == '-') {
       name++;
       if (*name == '-') {
         name++;
       }
-      let flag = get_flag_def(name);
+      let mut flag = get_flag_def(name);
       if (!flag) {
         printf("Unknown flag %s\n", arg);
         continue;
@@ -189,7 +189,7 @@ def parse_flags(argc_ptr: &int, argv_ptr: &**const char) -> *const char {
           }
         }
         Enum => {
-          let option: *const char;
+          let mut option: *const char;
           if (i + 1 < argc) {
             i++;
             option = argv[i];
@@ -197,7 +197,7 @@ def parse_flags(argc_ptr: &int, argv_ptr: &**const char) -> *const char {
             printf("No value after %s\n", arg);
             break;
           }
-          let found = false;
+          let mut found = false;
           for (flag.options) do(flag_option, k) {
             if (strcmp(flag_option, option) == 0) {
               *flag.i = k;

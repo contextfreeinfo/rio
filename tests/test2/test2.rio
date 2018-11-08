@@ -48,7 +48,7 @@ def dir2(a: vec2, b: vec2) -> vec2 {
 }
 
 def rot2(a: float, b: vec2) -> vec2 {
-  let c = cos(a);
-  let s = sin(a);
+  let mut c = cos(a);
+  let mut s = sin(a);
   return (c * b.x - s * b.y, s * b.x + c * b.y);
 }

@@ -11,7 +11,7 @@ struct TypeMap {
 }
 
 def dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
-  let dupe: &Aggregate = map.call(map.self, (aggregate, typeof(*aggregate)));
+  let mut dupe: &Aggregate = map.call(map.self, (aggregate, typeof(*aggregate)));
   if (dupe) {
     return dupe;
   }
@@ -35,7 +35,7 @@ def dupe_aggregate(aggregate: &Aggregate, map: &MapClosure) -> &Aggregate {
 }
 
 def dupe_block(block: StmtList, map: &MapClosure) -> StmtList {
-  let dupe = &block;
+  let mut dupe = &block;
   dupe.stmts = ast_dup_slice.<&Stmt>(dupe.stmts);
   for &(dupe.stmts) do(stmt) {
     *stmt = dupe_stmt(*stmt, map);
@@ -47,7 +47,7 @@ def dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
   if (!expr) {
     return NULL;
   }
-  let dupe: &Expr = ast_dup.<Expr>(expr);
+  let mut dupe: &Expr = ast_dup.<Expr>(expr);
   @complete
   switch (dupe.kind) {
     AlignofExpr, SizeofExpr, TypeofExpr, Paren => {
@@ -61,7 +61,7 @@ def dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
       dupe.binary.right = dupe_expr(dupe.binary.right, map);
     }
     Call => {
-      let call = &dupe.call;
+      let mut call = &dupe.call;
       call.expr = dupe_expr(call.expr, map);
       call.args = dupe_fields(call.args, map);
     }
@@ -70,7 +70,7 @@ def dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
       dupe.cast.expr = dupe_expr(dupe.cast.expr, map);
     }
     Compound => {
-      let compound = &dupe.compound;
+      let mut compound = &dupe.compound;
       compound.type = dupe_typespec(compound.type, map);
       compound.fields = dupe_fields(compound.fields, map);
     }
@@ -90,14 +90,14 @@ def dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
     }
     Name => {
       // TODO A name could also reference type params.
-      // let old = dupe.type_args.items;
+      // let mut old = dupe.type_args.items;
       dupe.type_args = dupe_type_args(dupe.type_args, map);
       // if (dupe.type_args.items != old) {
       //   printf("Duping type arg: was %s, now %s\n", get_typespec_sym_name(old[0].val), get_typespec_sym_name(dupe.type_args[0].val));
       // }
     }
     Offsetof => {
-      let offsetof_field = &dupe.offsetof_field;
+      let mut offsetof_field = &dupe.offsetof_field;
       offsetof_field.type = dupe_typespec(offsetof_field.type, map);
     }
     Unary => {
@@ -115,7 +115,7 @@ def dupe_expr(expr: &Expr, map: &MapClosure) -> &Expr {
 def dupe_fields(
   fields: Slice<CompoundField>, map: &MapClosure,
 ) -> Slice<CompoundField> {
-  let dupe = ast_dup_slice.<CompoundField>(fields);
+  let mut dupe = ast_dup_slice.<CompoundField>(fields);
   for &(dupe) do(field) {
     field.expr = dupe_expr(field.expr, map);
     @complete
@@ -148,7 +148,7 @@ def dupe_function_fields(dupe: &DeclFunc, shallow: bool, map: &MapClosure) {
 }
 
 def dupe_func_param(param: Member, map: &MapClosure) -> Member {
-  let dupe = &param;
+  let mut dupe = &param;
   dupe.type = dupe_typespec(dupe.type, map);
   // TODO Bring this back in when ready.
   // if (dupe.default_val) {
@@ -161,12 +161,12 @@ def dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
   if (!stmt) {
     return NULL;
   }
-  let dupe: &Stmt = ast_dup.<Stmt>(stmt);
-  // Let notes (?) and pos alone, but look into statement content.
+  let mut dupe: &Stmt = ast_dup.<Stmt>(stmt);
+  // let mut notes (?) and pos alone, but look into statement content.
   @complete
   switch (dupe.kind) {
     Assign => {
-      let assign = &stmt.assign;
+      let mut assign = &stmt.assign;
       assign.left = dupe_expr(assign.left, map);
       assign.right = dupe_expr(assign.right, map);
     }
@@ -179,7 +179,7 @@ def dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
       // have more costs elsewhere, like needlessly duping whole blocks.
     }
     DoWhile, While => {
-      let while_stmt = &dupe.while_stmt;
+      let mut while_stmt = &dupe.while_stmt;
       while_stmt.cond = dupe_expr(while_stmt.cond, map);
       while_stmt.block = dupe_block(while_stmt.block, map);
     }
@@ -187,20 +187,20 @@ def dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
       dupe.expr = dupe_expr(dupe.expr, map);
     }
     For => {
-      let for_stmt = &dupe.for_stmt;
+      let mut for_stmt = &dupe.for_stmt;
       for_stmt.init = dupe_stmt(for_stmt.init, map);
       for_stmt.cond = dupe_expr(for_stmt.cond, map);
       for_stmt.next = dupe_stmt(for_stmt.next, map);
       for_stmt.block = dupe_block(for_stmt.block, map);
     }
     ForEach => {
-      let for_each = &dupe.for_each;
+      let mut for_each = &dupe.for_each;
       for_each.expr = dupe_expr(for_each.expr, map);
       dupe_function_fields(&for_each.func, false, map);
       // The length_type is to be filled in during resolution.
     }
     If => {
-      let if_stmt = &dupe.if_stmt;
+      let mut if_stmt = &dupe.if_stmt;
       if_stmt.init = dupe_stmt(if_stmt.init, map);
       if_stmt.cond = dupe_expr(if_stmt.cond, map);
       if_stmt.then_block = dupe_block(if_stmt.then_block, map);
@@ -212,13 +212,13 @@ def dupe_stmt(stmt: &Stmt, map: &MapClosure) -> &Stmt {
       if_stmt.else_block = dupe_block(if_stmt.else_block, map);
     }
     Init => {
-      let init = &dupe.init;
+      let mut init = &dupe.init;
       init.type = dupe_typespec(init.type, map);
       init.expr = dupe_expr(init.expr, map);
       // printf("Totally on %d: %p\n", stmt.pos.line, dupe.init.type);
     }
     Switch => {
-      let switch_stmt = &dupe.switch_stmt;
+      let mut switch_stmt = &dupe.switch_stmt;
       switch_stmt.expr = dupe_expr(switch_stmt.expr, map);
       switch_stmt.cases = ast_dup_slice.<SwitchCase>(switch_stmt.cases);
       for &(switch_stmt.cases) do(case_) {
@@ -250,7 +250,7 @@ def dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   if (!type) {
     return NULL;
   }
-  let dupe = map.call(map.self, (type, typeof(*type))) as &Typespec;
+  let mut dupe = map.call(map.self, (type, typeof(*type))) as &Typespec;
   if (dupe) {
     return dupe;
   }
@@ -307,7 +307,7 @@ def find_generic(type: &Typespec) -> bool {
 }
 
 def get_typespec_sym_name(type: &Typespec) -> own *char {
-  let buf: *char;
+  let mut buf: *char;
   put_typespec_sym_name(&buf, type);
   return buf;
 }
@@ -315,17 +315,17 @@ def get_typespec_sym_name(type: &Typespec) -> own *char {
 def map_type_args(self: &TypeMap, item: Any) -> &void {
   switch (item.type) {
     typeof(Aggregate) => {
-      // Let these be copied so we can make changes inside.
+      // let mut these be copied so we can make changes inside.
       return NULL;
     }
     typeof(Typespec) => {
-      let type: &Typespec = item.ptr;
+      let mut type: &Typespec = item.ptr;
       switch (type.kind) {
         Typespec.Name => {
           // See if this is a reference to a type parameter.
-          let decl = type.decl;
-          let params = self.type_params;
-          // let verbose = false;
+          let mut decl = type.decl;
+          let mut params = self.type_params;
+          // let mut verbose = false;
           // if (!strcmp(type.names[0].name, "Numb")) {
           //   verbose = true;
           //   printf("Found Numb in map\n");
@@ -334,23 +334,23 @@ def map_type_args(self: &TypeMap, item: Any) -> &void {
             if (decl == param) {
               // Yep. Found it.
               // TODO Need to deal with type args of parameterized types ...
-              let arg = &self.type_args[i];
+              let mut arg = &self.type_args[i];
               // if (verbose) {printf("Still found it: %p\n", arg.val);}
               return arg.val;
             }
           }
-          // Nope. Just let it be copied in case of type args.
+          // Nope. Just let mut it be copied in case of type args.
           // if (verbose) {printf("Not there\n");}
           return NULL;
         }
         default => {
-          // Let others be copied so we can make changes inside.
+          // let mut others be copied so we can make changes inside.
           return NULL;
         }
       }
     }
     default => {
-      // Let these move on.
+      // let mut these move on.
       return item.ptr;
     }
   }
@@ -394,7 +394,7 @@ def put_typespec_sym_name(buf: **char, type: &Typespec) {
       put_typespec_sym_name(buf, type.base);
     }
     Func => {
-      let function = &type.function;
+      let mut function = &type.function;
       buf_printf(buf, "do_");
       for (type.function.args) do(arg, i) {
         if (i) {

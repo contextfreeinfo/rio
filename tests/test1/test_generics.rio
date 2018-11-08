@@ -1,23 +1,23 @@
 def test_generics() {
-  let slirce: Slirce;
-  let slorce: Slorce<int> = {items: <[]int>[1, 2, 3], length: 3};
-  let slorce_ref: Slorce<&int> = {items: <[]&int>[slorce.items], length: 1};
+  let mut slirce: Slirce;
+  let mut slorce: Slorce<int> = {items: <[]int>[1, 2, 3], length: 3};
+  let mut slorce_ref: Slorce<&int> = {items: <[]&int>[slorce.items], length: 1};
   printf("Generically, %d\n", *slorce_ref[0]);
-  let slarb: Slorce<Bar>;
-  let slerce: Slerce<int>;
+  let mut slarb: Slorce<Bar>;
+  let mut slerce: Slerce<int>;
   slerce.boring.thing = 5;
   slerce.goo = {items: &slerce.boring.thing, length: 1};
   slerce.goos = {items: &slerce.goo.items, length: 1};
   printf("Should be %d: %d\n", slerce.boring.thing, slerce.goos[0][0]);
   // Assignment properly succeeds.
-  let slarce: Slarce = slorce;
+  let mut slarce: Slarce = slorce;
   // Assignment properly fails.
   // slarce = slarb;
   // This should render as test1_Slorce_Hey, and no test1_Slorce_float should
   // even exist.
-  let slorce_hey: Slorce<Hey>;
+  let mut slorce_hey: Slorce<Hey>;
   // And this should both parse and yield a proper type name.
-  let slorce_slorce_hey: Slorce<Slorce<Hey>>;
+  let mut slorce_slorce_hey: Slorce<Slorce<Hey>>;
   // Test some functions, too.
   test_generic_functions();
 }
@@ -47,10 +47,10 @@ struct Slerce<Goo> {
 }
 
 // Should be unresolved here.
-// let item: Item;
+// let mut item: Item;
 
 def test_generic_functions() {
-  // let slarce: Slarce;
+  // let mut slarce: Slarce;
   // printf("slarce sum: %d", sum(slarce, slarce));
   printf("int sum: %d\n", sum.<int>(1, 2));
   printf("float sum: %g\n", sum.<float>(1.1, 2.2));
@@ -61,9 +61,9 @@ def test_generic_functions() {
   );
   // printf("int sum: %d", sum(1, 2));
   // printf("float sum: %d", sum(1.1, 2.2));
-  let slices: []Slice<int> = [{}, {items: <[]int>[12], length: 1}];
+  let mut slices: []Slice<int> = [{}, {items: <[]int>[12], length: 1}];
   for (slices) do(slice) {
-    let first_thing = first.<int>(slice);
+    let mut first_thing = first.<int>(slice);
     switch (first_thing.kind) {
       Ok => printf("Ok: %d\n", first_thing.val);
       Err => printf("Err: %d\n", first_thing.err);
@@ -89,7 +89,7 @@ def sum<Num: int>(x: Num, y: Num) -> Num {
 // def sum_slice(nums: Slice<Num>) -> Num {
 // def sum_slice<Num>(nums: Slice<Num>) -> Num {
 def sum_slice<Num: int>(nums: Slice<Num>) -> Num {
-  let result: Num = 0;
+  let mut result: Num = 0;
   for (nums) do(num) {
     // TODO Make nested generic calls work ...
     // result = sum.<Num>(result, num);

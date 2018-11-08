@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 export RIOHOME="$(dirname "$(dirname "$(readlink -f "$0")")")"
 export RIOOS=linux
 

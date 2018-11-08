@@ -67,31 +67,31 @@ struct TypeMetrics {
   max: ullong;
 }
 
-let type_metrics: *TypeMetrics;
+let mut type_metrics: *TypeMetrics;
 
-let type_void = &Type(CompilerTypeKind.Void);
-let type_bool = &Type(CompilerTypeKind.Bool);
-let type_char = &Type(CompilerTypeKind.Char);
-let type_uchar = &Type(CompilerTypeKind.UChar);
-let type_schar = &Type(CompilerTypeKind.SChar);
-let type_short = &Type(CompilerTypeKind.Short);
-let type_ushort = &Type(CompilerTypeKind.UShort);
-let type_int = &Type(CompilerTypeKind.Int);
-let type_uint = &Type(CompilerTypeKind.UInt);
-let type_long = &Type(CompilerTypeKind.Long);
-let type_ulong = &Type(CompilerTypeKind.ULong);
-let type_llong = &Type(CompilerTypeKind.LLong);
-let type_ullong = &Type(CompilerTypeKind.ULLong);
-let type_float = &Type(CompilerTypeKind.Float);
-let type_double = &Type(CompilerTypeKind.Double);
+let mut type_void = &Type(CompilerTypeKind.Void);
+let mut type_bool = &Type(CompilerTypeKind.Bool);
+let mut type_char = &Type(CompilerTypeKind.Char);
+let mut type_uchar = &Type(CompilerTypeKind.UChar);
+let mut type_schar = &Type(CompilerTypeKind.SChar);
+let mut type_short = &Type(CompilerTypeKind.Short);
+let mut type_ushort = &Type(CompilerTypeKind.UShort);
+let mut type_int = &Type(CompilerTypeKind.Int);
+let mut type_uint = &Type(CompilerTypeKind.UInt);
+let mut type_long = &Type(CompilerTypeKind.Long);
+let mut type_ulong = &Type(CompilerTypeKind.ULong);
+let mut type_llong = &Type(CompilerTypeKind.LLong);
+let mut type_ullong = &Type(CompilerTypeKind.ULLong);
+let mut type_float = &Type(CompilerTypeKind.Float);
+let mut type_double = &Type(CompilerTypeKind.Double);
 
-let next_typeid: int = 1;
+let mut next_typeid: int = 1;
 
-let type_uintptr: &Type;
-let type_usize: &Type;
-let type_ssize: &Type;
+let mut type_uintptr: &Type;
+let mut type_usize: &Type;
+let mut type_ssize: &Type;
 
-let typeid_map: Map;
+let mut typeid_map: Map;
 
 def get_type_from_typeid(typeid: int) -> &Type {
   if (typeid == 0) {
@@ -105,7 +105,7 @@ def register_typeid(type: &Type) {
 }
 
 def type_alloc(kind: TypeKind) -> &Type {
-  let type: &Type = xcalloc(1, sizeof(Type));
+  let mut type: &Type = xcalloc(1, sizeof(Type));
   type.kind = kind;
   type.typeid = next_typeid++;
   register_typeid(type);
@@ -176,7 +176,7 @@ def is_signed_type(type: &Type) -> bool {
   }
 }
 
-let type_names: [CompilerTypeKind.Num]*const char = [
+let mut type_names: [CompilerTypeKind.Num]*const char = [
   CompilerTypeKind.Void: "void",
   CompilerTypeKind.Bool: "bool",
   CompilerTypeKind.Char: "char",
@@ -194,7 +194,7 @@ let type_names: [CompilerTypeKind.Num]*const char = [
   CompilerTypeKind.Double: "double",
 ];
 
-let type_ranks: [CompilerTypeKind.Num]int = [
+let mut type_ranks: [CompilerTypeKind.Num]int = [
   CompilerTypeKind.Bool: 1,
   CompilerTypeKind.Char: 2,
   CompilerTypeKind.SChar: 2,
@@ -210,7 +210,7 @@ let type_ranks: [CompilerTypeKind.Num]int = [
 ];
 
 def type_rank(type: &Type) -> int {
-  let rank = type_ranks[type.kind];
+  let mut rank = type_ranks[type.kind];
   #assert(rank != 0);
   return rank;
 }
@@ -240,17 +240,17 @@ def type_alignof(type: &Type) -> usize {
   return type.align;
 }
 
-let cached_ptr_types: Map;
-let cached_ref_types: Map;
+let mut cached_ptr_types: Map;
+let mut cached_ref_types: Map;
 
 def type_ptr_any(kind: CompilerTypeKind, base: &Type) -> &Type {
-  let cache: &Map;
+  let mut cache: &Map;
   @complete
   switch (kind) {
     Ptr => cache = &cached_ptr_types;
     Ref => cache = &cached_ref_types;
   }
-  let type: *Type = map_get(cache, base);
+  let mut type: *Type = map_get(cache, base);
   if (!type) {
     type = type_alloc(kind);
     // Same base type and sizes beneath.
@@ -270,13 +270,13 @@ def type_ref(base: &Type) -> &Type {
   return type_ptr_any(CompilerTypeKind.Ref, base);
 }
 
-let cached_const_types: Map;
+let mut cached_const_types: Map;
 
 def type_const(base: &Type) -> &Type {
   if (base.kind == CompilerTypeKind.Const) {
     return base;
   }
-  let type: &Type = map_get(&cached_const_types, base);
+  let mut type: &Type = map_get(&cached_const_types, base);
   if (!type) {
     complete_type(base);
     type = type_alloc(CompilerTypeKind.Const);
@@ -308,26 +308,26 @@ struct CachedArrayType {
   next: &CachedArrayType;
 }
 
-let cached_array_types: Map;
+let mut cached_array_types: Map;
 
 def type_array(base: &Type, num_elems: usize) -> &Type {
-  let hash = hash_mix(hash_ptr(base), hash_uint64(num_elems));
-  let key: uint64 = hash ? hash : 1;
-  let cached: &CachedArrayType = map_get_from_uint64(&cached_array_types, key);
-  for (let it: *CachedArrayType = cached; it; it = it.next) {
-    let type = it.type;
+  let mut hash = hash_mix(hash_ptr(base), hash_uint64(num_elems));
+  let mut key: uint64 = hash ? hash : 1;
+  let mut cached: &CachedArrayType = map_get_from_uint64(&cached_array_types, key);
+  for (let mut it: *CachedArrayType = cached; it; it = it.next) {
+    let mut type = it.type;
     if (type.base == base && type.num_elems == num_elems) {
       return type;
     }
   }
   complete_type(base);
-  let type = type_alloc(CompilerTypeKind.Array);
+  let mut type = type_alloc(CompilerTypeKind.Array);
   type.nonmodifiable = base.nonmodifiable;
   type.size = num_elems * type_sizeof(base);
   type.align = type_alignof(base);
   type.base = base;
   type.num_elems = num_elems;
-  let new_cached: &CachedArrayType = xmalloc(sizeof(CachedArrayType));
+  let mut new_cached: &CachedArrayType = xmalloc(sizeof(CachedArrayType));
   new_cached.type = type;
   new_cached.next = cached;
   map_put_from_uint64(&cached_array_types, key, new_cached);
@@ -339,15 +339,15 @@ struct CachedFuncType {
   next: &CachedFuncType;
 }
 
-let cached_func_types: Map;
+let mut cached_func_types: Map;
 
 def type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) -> &Type {
-  let params_size = num_params * sizeof(*params);
-  let hash = hash_mix(hash_bytes(params, params_size), hash_ptr(ret));
-  let key: uint64 = hash ? hash : 1;
-  let cached: &CachedFuncType = map_get_from_uint64(&cached_func_types, key);
-  for (let it = cached; it; it = it.next) {
-    let type = it.type;
+  let mut params_size = num_params * sizeof(*params);
+  let mut hash = hash_mix(hash_bytes(params, params_size), hash_ptr(ret));
+  let mut key: uint64 = hash ? hash : 1;
+  let mut cached: &CachedFuncType = map_get_from_uint64(&cached_func_types, key);
+  for (let mut it = cached; it; it = it.next) {
+    let mut type = it.type;
     if (
       type.function.params.length == num_params &&
       type.function.ret == ret &&
@@ -358,13 +358,13 @@ def type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) 
       }
     }
   }
-  let type = type_alloc(CompilerTypeKind.Func);
+  let mut type = type_alloc(CompilerTypeKind.Func);
   type.size = type_metrics[CompilerTypeKind.Ptr].size;
   type.align = type_metrics[CompilerTypeKind.Ptr].align;
   type.function.params = (memdup(params, params_size), num_params);
   type.function.has_varargs = has_varargs;
   type.function.ret = ret;
-  let new_cached: *CachedFuncType = xmalloc(sizeof(CachedFuncType));
+  let mut new_cached: *CachedFuncType = xmalloc(sizeof(CachedFuncType));
   new_cached.type = type;
   new_cached.next = cached;
   map_put_from_uint64(&cached_func_types, key, new_cached);
@@ -373,7 +373,7 @@ def type_func(params: *&Type, num_params: usize, ret: &Type, has_varargs: bool) 
 
 def has_duplicate_fields(type: &Type) -> bool {
   for &(type.aggregate.fields) do(field_i, i) {
-    for (let j = i + 1; j < type.aggregate.fields.length; j++) {
+    for (let mut j = i + 1; j < type.aggregate.fields.length; j++) {
       if (field_i.name == type.aggregate.fields[j].name) {
         return true;
       }
@@ -385,7 +385,7 @@ def has_duplicate_fields(type: &Type) -> bool {
 def add_type_fields(fields: &*TypeField, type: &Type, offset: usize) {
   #assert(type.kind == CompilerTypeKind.Struct || type.kind == CompilerTypeKind.Union);
   for &(type.aggregate.fields) do(field) {
-    let new_field = TypeField(field.name, field.type, field.offset + offset);
+    let mut new_field = TypeField(field.name, field.type, field.offset + offset);
     buf_push(fields as &&void, &new_field, sizeof(new_field));
   }
 }
@@ -395,10 +395,10 @@ def type_complete_struct(type: &Type, fields: *TypeField, num_fields: usize) {
   type.kind = CompilerTypeKind.Struct;
   type.size = 0;
   type.align = 0;
-  let nonmodifiable: bool = false;
-  let new_fields: *TypeField;
-  for (let it = fields; it != fields + num_fields; it++) {
-    let align = type_alignof(it.type);
+  let mut nonmodifiable: bool = false;
+  let mut new_fields: *TypeField;
+  for (let mut it = fields; it != fields + num_fields; it++) {
+    let mut align = type_alignof(it.type);
     #assert(!align || is_pow2(align));
     if (it.name) {
       it.offset = type.size;
@@ -423,9 +423,9 @@ def type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
   type.kind = CompilerTypeKind.Union;
   type.size = 0;
   type.align = 0;
-  let nonmodifiable: bool = false;
-  let new_fields: *TypeField;
-  for (let it = fields; it != fields + num_fields; it++) {
+  let mut nonmodifiable: bool = false;
+  let mut new_fields: *TypeField;
+  for (let mut it = fields; it != fields + num_fields; it++) {
     #assert(it.type.kind > CompilerTypeKind.Completing);
     if (it.name) {
       if (*it.name) {
@@ -446,13 +446,13 @@ def type_complete_union(type: &Type, fields: *TypeField, num_fields: usize) {
 }
 
 def type_incomplete(sym: &Sym) -> &Type {
-  let type = type_alloc(CompilerTypeKind.Incomplete);
+  let mut type = type_alloc(CompilerTypeKind.Incomplete);
   type.sym = sym;
   return type;
 }
 
 def type_enum(sym: &Sym, base: &Type) -> &Type {
-  let type = type_alloc(CompilerTypeKind.Enum);
+  let mut type = type_alloc(CompilerTypeKind.Enum);
   type.sym = sym;
   type.base = base;
   type.size = type_int.size;
@@ -504,7 +504,7 @@ def aggregate_item_field_type_from_index(type: &Type, index: int) -> &Type {
 
 def aggregate_item_field_type_from_name(type: &Type, name: *const char) -> &Type {
   #assert(is_aggregate_type(type));
-  let index = aggregate_item_field_index(type, name);
+  let mut index = aggregate_item_field_index(type, name);
   if (index < 0) {
     return NULL;
   }

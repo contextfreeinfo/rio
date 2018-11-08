@@ -4,13 +4,13 @@
 struct FILE;
 
 @foreign
-let stdin: &FILE;
+let mut stdin: &FILE;
 
 @foreign
-let stdout: &FILE;
+let mut stdout: &FILE;
 
 @foreign
-let stderr: &FILE;
+let mut stderr: &FILE;
 
 @foreign
 typedef va_list = *char;

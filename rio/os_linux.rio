@@ -29,7 +29,7 @@ def realpath(path: *const char, resolved_path: *const char) -> *char;
 def strdup(str: *const char) -> *char;
 
 def path_absolute(path: [MAX_PATH]char) {
-  let rel_path: [MAX_PATH]char;
+  let mut rel_path: [MAX_PATH]char;
   path_copy(rel_path, path);
   realpath(rel_path, path);
 }
@@ -47,7 +47,7 @@ def dir_list_next(iter: &DirListIter) {
     return;
   }
   do {
-    let entry = readdir(iter.handle);
+    let mut entry = readdir(iter.handle);
     if (!entry) {
       dir_list_free(iter);
       return;
@@ -59,7 +59,7 @@ def dir_list_next(iter: &DirListIter) {
 
 def dir_list(iter: &DirListIter, path: *const char) {
   memset(iter, 0, sizeof(*iter));
-  let dir = opendir(path);
+  let mut dir = opendir(path);
   if (!dir) {
     iter.valid = false;
     iter.error = true;

@@ -48,7 +48,7 @@ def starts_with(string: *const char, start: *const char) -> bool {
 }
 
 def fatal(fmt: *const char, ...) {
-  let args: va_list;
+  let mut args: va_list;
   va_start(&args, &fmt);
   printf("FATAL: ");
   vprintf(fmt, args);
@@ -58,7 +58,7 @@ def fatal(fmt: *const char, ...) {
 }
 
 def xcalloc(num_elems: usize, elem_size: usize) -> &void {
-  let ptr = calloc(num_elems, elem_size);
+  let mut ptr = calloc(num_elems, elem_size);
   if (!ptr) {
     perror("xcalloc failed");
     exit(1);
@@ -76,7 +76,7 @@ def xrealloc(ptr: &void, num_bytes: usize) -> &void {
 }
 
 def xmalloc(num_bytes: usize) -> &void {
-  let ptr = malloc(num_bytes);
+  let mut ptr = malloc(num_bytes);
   if (!ptr) {
     perror("xmalloc failed");
     exit(1);
@@ -85,17 +85,17 @@ def xmalloc(num_bytes: usize) -> &void {
 }
 
 def memdup(src: &void, size: usize) -> &void {
-  let dest = xmalloc(size);
+  let mut dest = xmalloc(size);
   memcpy(dest, src, size);
   return dest;
 }
 
 def strf(fmt: *const char, ...) -> *char {
-  let args: va_list;
+  let mut args: va_list;
   va_start(&args, &fmt);
-  let n = 1 + vsnprintf(NULL, 0, fmt, args);
+  let mut n = 1 + vsnprintf(NULL, 0, fmt, args);
   va_end(&args);
-  let str: *char = xmalloc(n);
+  let mut str: *char = xmalloc(n);
   va_start(&args, &fmt);
   vsnprintf(str, n, fmt, args);
   va_end(&args);
@@ -103,14 +103,14 @@ def strf(fmt: *const char, ...) -> *char {
 }
 
 def read_file(path: *const char) -> *char {
-  let file = fopen(path, "rb");
+  let mut file = fopen(path, "rb");
   if (!file) {
     return NULL;
   }
   fseek(file, 0, SEEK_END);
-  let len = ftell(file);
+  let mut len = ftell(file);
   fseek(file, 0, SEEK_SET);
-  let buf: *char = xmalloc(len + 1);
+  let mut buf: *char = xmalloc(len + 1);
   if (len && fread(buf, len, 1, file) != 1) {
     fclose(file);
     free(buf);
@@ -122,11 +122,11 @@ def read_file(path: *const char) -> *char {
 }
 
 def write_file(path: *const char, buf: *const char, len: usize) -> bool {
-  let file = fopen(path, "w");
+  let mut file = fopen(path, "w");
   if (!file) {
     return false;
   }
-  let n = fwrite(buf, len, 1, file);
+  let mut n = fwrite(buf, len, 1, file);
   fclose(file);
   return n == 1;
 }
@@ -189,8 +189,8 @@ def buf_push(b: &&void, elem: &void, elem_size: usize) {
 }
 
 def buf_push2<Item>(buf: &*Item, item: &Item) {
-  let item_size = sizeof(*item);
-  // TODO Doesn't resolve Item for some reason: let item_size = sizeof(Item);
+  let mut item_size = sizeof(*item);
+  // TODO Doesn't resolve Item for some reason: let mut item_size = sizeof(Item);
   buf_fit(buf as &&void, 1 + buf_len(*buf), item_size);
   memcpy(*buf as *char + item_size * buf__hdr(*buf).len++, item, item_size);
 }
@@ -206,11 +206,11 @@ def buf_unshift(b: &&void, elem: &void, elem_size: usize) {
 
 def buf__grow(buf: &const void, new_len: usize, elem_size: usize) -> &void {
   #assert(buf_cap(buf) <= (USIZE_MAX - 1)/2);
-  let new_cap = clamp_min(2 * buf_cap(buf), max(new_len, 16));
+  let mut new_cap = clamp_min(2 * buf_cap(buf), max(new_len, 16));
   #assert(new_len <= new_cap);
   #assert(new_cap <= (USIZE_MAX - offsetof(BufHdr, buf))/elem_size);
-  let new_size = offsetof(BufHdr, buf) + new_cap * elem_size;
-  let new_hdr: *BufHdr;
+  let mut new_size = offsetof(BufHdr, buf) + new_cap * elem_size;
+  let mut new_hdr: *BufHdr;
   if (buf) {
     new_hdr = xrealloc(buf__hdr(buf as &void), new_size);
   } else {
@@ -222,15 +222,15 @@ def buf__grow(buf: &const void, new_len: usize, elem_size: usize) -> &void {
 }
 
 def buf_printf(buf: &*char, fmt: *const char, ...) {
-  let args: va_list;
+  let mut args: va_list;
   va_start(&args, &fmt);
-  let cap = buf_cap(*buf) - buf_len(*buf);
-  let n = 1 + vsnprintf(buf_end(*buf, 1), cap, fmt, args);
+  let mut cap = buf_cap(*buf) - buf_len(*buf);
+  let mut n = 1 + vsnprintf(buf_end(*buf, 1), cap, fmt, args);
   va_end(&args);
   if (n > cap) {
     buf_fit(buf as &&void, n + buf_len(*buf), 1);
     va_start(&args, &fmt);
-    let new_cap = buf_cap(*buf) - buf_len(*buf);
+    let mut new_cap = buf_cap(*buf) - buf_len(*buf);
     n = 1 + vsnprintf(buf_end(*buf, 1), new_cap, fmt, args);
     #assert(n <= new_cap);
     va_end(&args);
@@ -239,7 +239,7 @@ def buf_printf(buf: &*char, fmt: *const char, ...) {
 }
 
 // def buf_test() {
-//   let buf: *int = NULL;
+//   let mut buf: *int = NULL;
 //   assert(buf_len(buf) == 0);
 //   int n = 1024;
 //   for (int i = 0; i < n; i++) {
@@ -252,14 +252,14 @@ def buf_printf(buf: &*char, fmt: *const char, ...) {
 //   buf_free(buf);
 //   assert(buf == NULL);
 //   assert(buf_len(buf) == 0);
-//   let str: *char = NULL;
+//   let mut str: *char = NULL;
 //   buf_printf(str, "One: %d\n", 1);
 //   assert(strcmp(str, "One: 1\n") == 0);
 //   buf_printf(str, "Hex: 0x%x\n", 0x12345678);
 //   assert(strcmp(str, "One: 1\nHex: 0x12345678\n") == 0);
 // }
 
-let allocator: Arena;
+let mut allocator: Arena;
 
 struct Arena {
   ptr: *char;
@@ -272,7 +272,7 @@ const ARENA_BLOCK_SIZE = 1024 * 1024;
 // const ARENA_BLOCK_SIZE = 1024;
 
 def arena_grow(arena: &Arena, min_size: usize) {
-  let size = align_up(clamp_min(min_size, ARENA_BLOCK_SIZE), ARENA_ALIGNMENT);
+  let mut size = align_up(clamp_min(min_size, ARENA_BLOCK_SIZE), ARENA_ALIGNMENT);
   arena.ptr = xmalloc(size);
   #assert(arena.ptr == align_down_ptr(arena.ptr, ARENA_ALIGNMENT));
   arena.end = arena.ptr + size;
@@ -284,7 +284,7 @@ def arena_alloc(arena: &Arena, size: usize) -> &void {
     arena_grow(arena, size);
     #assert(size <= (arena.end - arena.ptr) as usize);
   }
-  let ptr = arena.ptr;
+  let mut ptr = arena.ptr;
   arena.ptr = align_up_ptr(arena.ptr + size, ARENA_ALIGNMENT);
   #assert(arena.ptr <= arena.end);
   #assert(ptr == align_down_ptr(ptr, ARENA_ALIGNMENT));
@@ -292,8 +292,8 @@ def arena_alloc(arena: &Arena, size: usize) -> &void {
 }
 
 def arena_free(arena: &Arena) {
-  let end = buf_end(arena.blocks, sizeof(arena.ptr));
-  for (let it: **char = arena.blocks; it != end; it++) {
+  let mut end = buf_end(arena.blocks, sizeof(arena.ptr));
+  for (let mut it: **char = arena.blocks; it != end; it++) {
     free(*it);
   }
   buf_free(&arena.blocks as &&void);
@@ -319,9 +319,9 @@ def hash_mix(x: uint64, y: uint64) -> uint64 {
 }
 
 def hash_bytes(ptr: &const void, len: usize) -> uint64 {
-  let x: uint64 = 0xcbf29ce484222325;
-  let buf = ptr as *const char;
-  for (let i: usize = 0; i < len; i++) {
+  let mut x: uint64 = 0xcbf29ce484222325;
+  let mut buf = ptr as *const char;
+  for (let mut i: usize = 0; i < len; i++) {
     x ^= buf[i];
     x *= 0x100000001b3;
     x ^= x >> 32;
@@ -341,7 +341,7 @@ def map_get_uint64_from_uint64(map: &Map, key: uint64) -> uint64 {
     return 0;
   }
   #assert(is_pow2(map.cap));
-  let i = hash_uint64(key) as usize;
+  let mut i = hash_uint64(key) as usize;
   #assert(map.len < map.cap);
   for (;;) {
     i &= map.cap - 1;
@@ -357,12 +357,12 @@ def map_get_uint64_from_uint64(map: &Map, key: uint64) -> uint64 {
 
 def map_grow(map: &Map, new_cap: usize) {
   new_cap = clamp_min(new_cap, 16);
-  let new_map = Map {
+  let mut new_map = Map {
     keys: xcalloc(new_cap, sizeof<uint64>),
     vals: xmalloc(new_cap * sizeof<uint64>),
     cap: new_cap,
   };
-  for (let i: usize = 0; i < map.cap; i++) {
+  for (let mut i: usize = 0; i < map.cap; i++) {
     if (map.keys[i]) {
       map_put_uint64_from_uint64(&new_map, map.keys[i], map.vals[i]);
     }
@@ -382,7 +382,7 @@ def map_put_uint64_from_uint64(map: &Map, key: uint64, val: uint64) {
   }
   #assert(2 * map.len < map.cap);
   #assert(is_pow2(map.cap));
-  let i = hash_uint64(key) as usize;
+  let mut i = hash_uint64(key) as usize;
   for (;;) {
     i &= map.cap - 1;
     if (!map.keys[i]) {
@@ -443,20 +443,20 @@ struct Intern {
   str: [1]char;
 }
 
-let intern_arena: Arena;
-let interns: Map;
+let mut intern_arena: Arena;
+let mut interns: Map;
 
 def str_intern_range(start: *const char, end: *const char) -> *const char {
-  let len: usize = end - start;
-  let hash = hash_bytes(start, len);
-  let key: uint64 = hash ? hash : 1;
-  let intern: &Intern = map_get_from_uint64(&interns, key);
-  for (let it = intern; it; it = it.next) {
+  let mut len: usize = end - start;
+  let mut hash = hash_bytes(start, len);
+  let mut key: uint64 = hash ? hash : 1;
+  let mut intern: &Intern = map_get_from_uint64(&interns, key);
+  for (let mut it = intern; it; it = it.next) {
     if (it.len == len && strncmp(it.str, start, len) == 0) {
       return it.str;
     }
   }
-  let new_intern: &Intern = arena_alloc(&intern_arena, offsetof(Intern, str) + len + 1);
+  let mut new_intern: &Intern = arena_alloc(&intern_arena, offsetof(Intern, str) + len + 1);
   new_intern.len = len;
   new_intern.next = intern;
   memcpy(new_intern.str, start, len);

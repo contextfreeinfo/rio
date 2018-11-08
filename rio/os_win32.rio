@@ -33,7 +33,7 @@ def _fullpath(absPath: *char, relPath: *const char, maxLength: usize) -> *char;
 def strdup(strSource: *const char) -> *char;
 
 def path_absolute(path: [MAX_PATH]char) {
-  let rel_path: [MAX_PATH]char;
+  let mut rel_path: [MAX_PATH]char;
   path_copy(rel_path, path);
   _fullpath(path, rel_path, MAX_PATH);
 }
@@ -62,8 +62,8 @@ def dir_list_next(iter: &DirListIter) {
     return;
   }
   do {
-    let fileinfo: FindData;
-    let result = _findnext(iter.handle as intptr, &fileinfo);
+    let mut fileinfo: FindData;
+    let mut result = _findnext(iter.handle as intptr, &fileinfo);
     dir__update(iter, result != 0, &fileinfo);
     if (result != 0) {
       dir_list_free(iter);
@@ -75,11 +75,11 @@ def dir_list_next(iter: &DirListIter) {
 def dir_list(iter: &DirListIter, path: *const char) {
   memset(iter, 0, sizeof(*iter));
   path_copy(iter.base, path);
-  let filespec: [MAX_PATH]char;
+  let mut filespec: [MAX_PATH]char;
   path_copy(filespec, path);
   path_join(filespec, "*");
-  let fileinfo: FindData;
-  let handle = _findfirst(filespec, &fileinfo);
+  let mut fileinfo: FindData;
+  let mut handle = _findfirst(filespec, &fileinfo);
   iter.handle = handle as &void;
   dir__update(iter, handle == -1, &fileinfo);
   if (dir_excluded(iter)) {

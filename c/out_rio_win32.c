@@ -2207,6 +2207,7 @@ struct rio_Typespec {
   rio_SrcPos pos;
   rio_Typespec (*base);
   bool is_owned;
+  bool is_mut;
   union {
     // void;
     struct {
@@ -7106,7 +7107,7 @@ rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos)) {
     }
     return rio_new_stmt_init(pos, name, is_mut, type, expr);
   } else {
-    rio_fatal_error(rio_token.pos, "Expected : or = after let, got %s", rio_token_info());
+    rio_fatal_error(rio_token.pos, "Expected : or = after let mut, got %s", rio_token_info());
     return NULL;
   }
 }
@@ -7506,6 +7507,7 @@ rio_Decl (*rio_parse_decl_aggregate(rio_SrcPos pos, rio_Decl_Kind kind, rio_Slic
 }
 
 rio_Decl (*rio_parse_decl_var(rio_SrcPos pos)) {
+  bool is_mut = rio_match_keyword(rio_mut_keyword);
   char const ((*name)) = rio_parse_name();
   if (rio_match_token((rio_TokenKind_Assign))) {
     rio_Expr (*expr) = rio_parse_expr();
@@ -7520,7 +7522,7 @@ rio_Decl (*rio_parse_decl_var(rio_SrcPos pos)) {
     rio_expect_token((rio_TokenKind_Semicolon));
     return rio_new_decl_var(pos, name, type, expr);
   } else {
-    rio_fatal_error(rio_token.pos, "Expected : or = after let, got %s", rio_token_info());
+    rio_fatal_error(rio_token.pos, "Expected : or = after let mut, got %s", rio_token_info());
     return NULL;
   }
 }
@@ -7547,6 +7549,7 @@ rio_Decl (*rio_parse_decl_typedef(rio_SrcPos pos)) {
 
 rio_Member rio_parse_decl_func_param(bool optional_types) {
   rio_SrcPos pos = rio_token.pos;
+  bool is_mut = rio_match_keyword(rio_mut_keyword);
   char const ((*name)) = rio_parse_name();
   rio_Typespec (*type) = {0};
   if (optional_types) {
@@ -9620,7 +9623,7 @@ rio_Operand rio_resolve_name_operand(rio_SrcPos pos, char const ((*name))) {
     return rio_operand_type(sym->type);
   } else {
     assert(false);
-    rio_fatal_error(pos, "%s must be a let or const", name);
+    rio_fatal_error(pos, "%s must be a let mut or const", name);
     return rio_operand_null;
   }
 }

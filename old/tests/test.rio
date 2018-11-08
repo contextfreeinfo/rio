@@ -1,4 +1,4 @@
-let a: Float = pow(3.14, -0.5)
+let mut a: Float = pow(3.14, -0.5)
 
 a + b # <-- Start higher than vspace. Make sure addition is nested in the block.
 
@@ -32,7 +32,7 @@ a, b = c, d e
 type Yo
 
 def a(): Bytes do
-  let b = c
+  let mut b = c
   return 'hi'
 end
 

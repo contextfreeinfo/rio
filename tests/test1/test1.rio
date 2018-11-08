@@ -3,14 +3,14 @@ import C = libc {gc = getchar, ...}
 
 #static_assert('\xFF' == 255)
 
-let esc_test_str = "Hello\nworld\nHex: \x01\x10\xFHello\xFF";
+let mut esc_test_str = "Hello\nworld\nHex: \x01\x10\xFHello\xFF";
 
-let some_array: *int = <[]int>[1, 2, 3];
+let mut some_array: *int = <[]int>[1, 2, 3];
 
 struct SomeIncompleteType;
 
-let incomplete_ptr: *SomeIncompleteType;
-// let incomplete_val: Incomplete;
+let mut incomplete_ptr: *SomeIncompleteType;
+// let mut incomplete_val: Incomplete;
 
 /* This is a block comment */
 
@@ -27,9 +27,9 @@ const PI2 = PI + PI;
 
 const U8: uint8 = 42;
 
-let c: char = 1;
-let uc: uchar = 1;
-let sc: schar = 1;
+let mut c: char = 1;
+let mut uc: uchar = 1;
+let mut sc: schar = 1;
 
 typedef F1 = do();
 typedef F2 = do(f: do(int, int,) -> int) -> int;
@@ -39,7 +39,7 @@ const N = 42 as char + 8 != 0;
 
 typedef A = [1 + 2 * sizeof(h())]int;
 
-let code = """
+let mut code = """
 #include <stdio.h>
 
 int main(int argc, char **argv) {
@@ -58,24 +58,24 @@ struct S2 {
 }
 
 // Should be unresolved here.
-// let item: Item;
+// let mut item: Item;
 
 def test_packages() {
   subtest1_func1();
 }
 
 def test_modify() {
-  let i = 42;
+  let mut i = 42;
   #static_assert(typeof(i) == typeof(int));
-  let p: *int = &i;
+  let mut p: *int = &i;
   #static_assert(typeof(p) == typeof<*int>);
   p--;
-  let x = *p++;
+  let mut x = *p++;
   #assert(x == *--p);
   (*p)++;
   (*p)--;
-  let stk: [16]int;
-  let sp: *int = stk;
+  let mut stk: [16]int;
+  let mut sp: *int = stk;
   *sp++ = 1;
   *sp++ = 2;
   x = *--sp;
@@ -90,12 +90,12 @@ def f10(a: [3]wchar) {
 }
 
 def test_arrays() {
-  let a: []wchar = [1, 2, 3];
+  let mut a: []wchar = [1, 2, 3];
   // a = a;
   f10(a);
-  let b = a;
-  let w1: wchar;
-  let w2 = w1;
+  let mut b = a;
+  let mut w1: wchar;
+  let mut w2 = w1;
 }
 
 def test_loops() {
@@ -117,31 +117,31 @@ def test_loops() {
   }
   while (0) {
   } while;
-  for (let i = 0; i < 10; i++) {
+  for (let mut i = 0; i < 10; i++) {
   } for;
   for (;;) {
     break;
   }
-  for (let i = 0;;) {
+  for (let mut i = 0;;) {
     break;
   }
   for (; 0; ) {
   }
-  for (let i = 0;; i++) {
+  for (let mut i = 0;; i++) {
     break;
   }
-  let i = 0;
+  let mut i = 0;
   for (;; i++) {
     break;
   }
 }
 
 def test_nonmodifiable() {
-  let s1: S1;
+  let mut s1: S1;
   s1.a = 0;
   // s1.b = 0;
   // s1 = {};
-  let s2: S2;
+  let mut s2: S2;
   s2.s1.a = 0;
   // s2.s1.b = 0;
   // s2.s1 = {};
@@ -164,20 +164,20 @@ def unpack(word: uint32) -> UartCtrl {
 }
 
 def test_uart() {
-  let tx_enable = unpack(*UART_CTRL_REG).tx_enable;
+  let mut tx_enable = unpack(*UART_CTRL_REG).tx_enable;
   *UART_CTRL_REG = pack({tx_enable: !tx_enable, rx_enable: false});
-  let ctrl = unpack(*UART_CTRL_REG);
+  let mut ctrl = unpack(*UART_CTRL_REG);
   ctrl.rx_enable = true;
   *UART_CTRL_REG = pack(ctrl);
 }
 
 def h() -> uchar {
   Vector{x: 1, y: 2}.x = 42;
-  let v = &Vector(1, 2);
+  let mut v = &Vector(1, 2);
   v.x = 42;
-  let p = &<int>[0];
-  let x = uint(1) + long(2);
-  let y = +c;
+  let mut p = &<int>[0];
+  let mut x = uint(1) + long(2);
+  let mut y = +c;
   return uchar(x);
 }
 
@@ -191,7 +191,7 @@ def k(vp: &void, ip: &int) {
 }
 
 def f1() {
-  let p = &<int>[0];
+  let mut p = &<int>[0];
   *p = 42;
 }
 
@@ -210,7 +210,7 @@ union IntOrPtr {
   p: *int;
 }
 
-let char_to_escape: [256]const char = [
+let mut char_to_escape: [256]const char = [
   '\0': '0',
   '\n': 'n',
   '\r': 'r',
@@ -223,7 +223,7 @@ let char_to_escape: [256]const char = [
   '\'': '\'',
 ];
 
-let escape_to_char: [256]const char = [
+let mut escape_to_char: [256]const char = [
   '0': '\0',
   '\'': '\'',
   '"': '"',
@@ -236,11 +236,11 @@ let escape_to_char: [256]const char = [
   'a': '\a',
 ];
 
-let a2: []int = [1, 2, 3, 10: 4];
-// let a3: []int;
+let mut a2: []int = [1, 2, 3, 10: 4];
+// let mut a3: []int;
 
 def is_even(digit: int) -> int {
-  let b = 0;
+  let mut b = 0;
   switch (digit) {
     0, 2, 4, 6, 8 => b = 1;
   }
@@ -248,13 +248,13 @@ def is_even(digit: int) -> int {
 }
 
 // def f() {
-//   let u1 = IntOrPtr{i: 42};
-//   let u2 = IntOrPtr{p: 42 as *int};
+//   let mut u1 = IntOrPtr{i: 42};
+//   let mut u2 = IntOrPtr{p: 42 as *int};
 //   u1.i = 0;
 //   u2.p = 0 as *int;
 // }
 
-let i: int;
+let mut i: int;
 
 struct Vector {
   x: int;
@@ -266,8 +266,8 @@ def f2(v: Vector) {
 }
 
 def fact_iter(n: int) -> int {
-  let r = 1;
-  for (let i = 0; i <= n; i++) {
+  let mut r = 1;
+  for (let mut i = 0; i <= n; i++) {
     r *= i;
   }
   return r;
@@ -283,7 +283,7 @@ def fact_rec(n: int) -> int {
 
 const M = 1 + sizeof(p);
 
-let p: *T;
+let mut p: *T;
 
 struct T {
   a: [M]int;
@@ -336,9 +336,9 @@ union Direct switch {
   Second => b: float;
 }
 
-let color_names: [Color.Num]*const char = [
-// let color_names: [*const char * Color.Num] = [
-// let color_names: [*char * Color.Num] = [
+let mut color_names: [Color.Num]*const char = [
+// let mut color_names: [*const char * Color.Num] = [
+// let mut color_names: [*char * Color.Num] = [
   Color.None: "none",
   Color.Red: "red",
   Color.Green: "green",
@@ -346,33 +346,33 @@ let color_names: [Color.Num]*const char = [
 ];
 
 def test_enum() {
-  let a: Color = Color.Red;
-  let b = Color.Red;
-  let c = a + b;
-  let i: int = a;
+  let mut a: Color = Color.Red;
+  let mut b = Color.Red;
+  let mut c = a + b;
+  let mut i: int = a;
   a = i;
   printf(
     "%d %d %d %d\n",
     Color.None, Color.Red, Color.Green, Color.Blue,
   );
   printf("No color: %s\n", color_names[Color.None]);
-  let d = BAR;
-  let e = QUUX;
+  let mut d = BAR;
+  let mut e = QUUX;
   #static_assert(typeof(e) == typeof(TypedEnum));
-  let f: TypedEnum;
+  let mut f: TypedEnum;
   f = BAZ;
   // TODO Should be able to imply kind from fields.
-  let more = More{kind: More.Sad, prob: 0.5, amount: 0.9};
-  let more2 = More.Happy(prob: 0.5, amount: 0.9);
+  let mut more = More{kind: More.Sad, prob: 0.5, amount: 0.9};
+  let mut more2 = More.Happy(prob: 0.5, amount: 0.9);
   // TODO Support curlies here.
-  let more3 = More.Happy{more2.prob, amount: 0.9};
-  let more_kind = More.Happy;
+  let mut more3 = More.Happy{more2.prob, amount: 0.9};
+  let mut more_kind = More.Happy;
 }
 
 def test_assign() {
-  let i: int = 0;
-  let f: float = 3.14;
-  let p: *int = &i;
+  let mut i: int = 0;
+  let mut f: float = 3.14;
+  let mut p: *int = &i;
   i++;
   i--;
   p++;
@@ -391,8 +391,8 @@ def test_assign() {
 }
 
 def benchmark(n: int) {
-  let r = 1;
-  for (let i = 1; i <= n; i++) {
+  let mut r = 1;
+  for (let mut i = 1; i <= n; i++) {
     r *= i;
   } for;
 }
@@ -404,39 +404,39 @@ def va_test(x: int, ...) -> int {
 typedef F = do(x: int, ...) -> int;
 
 def test_lits() {
-  let f = 3.14;
-  let d = 3.14d;
-  let i = 1;
-  let u = 0xffffffffu;
-  let l = 1l;
-  let ul = 1ul;
-  let ll = 0x100000000ll;
-  let ull = 0xffffffffffffffffull;
-  let x1 = 0xffffffff;
-  let x2 = 4294967295;
-  let x3 = 0xffffffffffffffff;
-  let x4 = 0b10101010 + 0b01010101;
+  let mut f = 3.14;
+  let mut d = 3.14d;
+  let mut i = 1;
+  let mut u = 0xffffffffu;
+  let mut l = 1l;
+  let mut ul = 1ul;
+  let mut ll = 0x100000000ll;
+  let mut ull = 0xffffffffffffffffull;
+  let mut x1 = 0xffffffff;
+  let mut x2 = 4294967295;
+  let mut x3 = 0xffffffffffffffff;
+  let mut x4 = 0b10101010 + 0b01010101;
   // u = 0b0;
   // u = 0x0;
 }
 
 def test_ops() {
-  let pi = 3.14;
-  let f = 0.0;
+  let mut pi = 3.14;
+  let mut f = 0.0;
   f = +pi;
   f = -pi;
-  let n = -1;
+  let mut n = -1;
   n = ~n;
   f = f * pi + n;
   f = pi / pi;
   n = 3 % 2;
   n = n + 1 as uchar;
-  let p: *int = &n;
+  let mut p: *int = &n;
   p = p + 1;
   n = ((p + 1) - p) as int;
   n = n << 1;
   n = n >> 1;
-  let b = p + 1 > p;
+  let mut b = p + 1 > p;
   b = p + 1 >= p;
   b = p + 1 < p;
   b = p + 1 <= p;
@@ -453,9 +453,9 @@ def test_ops() {
 const IS_DEBUG = true;
 
 def test_bool() {
-  let b = false;
+  let mut b = false;
   b = true;
-  let i = 0;
+  let mut i = 0;
   i = IS_DEBUG;
 }
 
@@ -467,9 +467,9 @@ def test_ctrl() -> int {
   // return 0;
 }
 
-let j: const int;
-let q: *const int;
-let cv: const Vector;
+let mut j: const int;
+let mut q: *const int;
+let mut cv: const Vector;
 
 def f4(x: *const char) {
 }
@@ -483,30 +483,30 @@ def f5(p: *const int) {
 }
 
 def test_convert() {
-  let a: *const int = 0;
-  let b: *int = 0;
+  let mut a: *const int = 0;
+  let mut b: *int = 0;
   a = b;
-  let p: &void = 0;
+  let mut p: &void = 0;
   f5(p);
 }
 
 def test_const() {
-  let cv2 = ConstVector(1, 2);
+  let mut cv2 = ConstVector(1, 2);
   // cv2 = {};
-  let i = 0;
+  let mut i = 0;
   i = 1;
   // j = 0;
   // *q = 0;
-  let x = cv.x;
+  let mut x = cv.x;
   // cv.x = {};
-  let c = escape_to_char[0];
+  let mut c = escape_to_char[0];
   c = char_to_escape[c];
   c = esc_test_str[0];
   f4(escape_to_char);
-  let as = 1;
-  let p = 0 as *const char; // as *int
+  let mut as = 1;
+  let mut p = 0 as *const char; // as *int
   p = escape_to_char + 1;
-  let q = <*char>escape_to_char;
+  let mut q = <*char>escape_to_char;
   c = q['n'];
   // q = escape_to_char;
   p = 1 as *const char;
@@ -518,24 +518,24 @@ def test_const() {
 #static_assert(sizeof(int) == 4)
 
 def test_init() {
-  let x = 0 as const int;
+  let mut x = 0 as const int;
   #static_assert(sizeof(x) == 4);
-  let y: int;
+  let mut y: int;
   y = 0;
-  let z: int = 42;
-  let a: []int = [1, 2, 3];
+  let mut z: int = 42;
+  let mut a: []int = [1, 2, 3];
   // a2: []int;
   // v: void;
-  for (let i: ullong = 0; i < 10; i++) {
+  for (let mut i: ullong = 0; i < 10; i++) {
     printf("%llu\n", i);
   }
-  let b: [4]int = [1, 2, 3, 4];
+  let mut b: [4]int = [1, 2, 3, 4];
   b[0] = a[2];
 }
 
 def test_sizeof() {
-  let i = 0;
-  let n = sizeof(i);
+  let mut i = 0;
+  let mut n = sizeof(i);
   n = sizeof(int);
   n = sizeof<int>;
   n = sizeof<*int>;
@@ -543,8 +543,8 @@ def test_sizeof() {
 }
 
 def test_cast() {
-  let p: *int = 0;
-  let a: uint64 = 0;
+  let mut p: *int = 0;
+  let mut a: uint64 = 0;
   // a = p;
   a = p as uint64;
   // p = a;
@@ -567,14 +567,14 @@ def println_any(any: Any) {
 }
 
 def print_typeid(type: typeid) {
-  let index = typeid_index(type);
+  let mut index = typeid_index(type);
   printf("typeid(%d)", index);
 }
 
 const Ptr = 959595;
 
 def print_type(type: typeid) {
-  let typeinfo = get_typeinfo(type);
+  let mut typeinfo = get_typeinfo(type);
   if (!typeinfo) {
     print_typeid(type);
     return;
@@ -615,7 +615,7 @@ def println_type(type: typeid) {
 }
 
 def print_typeinfo(type: typeid) {
-  let typeinfo = get_typeinfo(type);
+  let mut typeinfo = get_typeinfo(type);
   if (!typeinfo) {
     print_typeid(type);
     return;
@@ -628,8 +628,8 @@ def print_typeinfo(type: typeid) {
       printf(" %s={ ", typeinfo.kind == TypeKind.Struct ? "struct" : "union");
       // TODO Why can't it find fields items correctly here?
       // for (typeinfo.fields) do(field) {
-      for (let i = 0; i < typeinfo.fields.length; i++) {
-        let field = typeinfo.fields[i];
+      for (let mut i = 0; i < typeinfo.fields.length; i++) {
+        let mut field = typeinfo.fields[i];
         printf("@offset(%d) %s: ", field.offset, field.name);
         print_type(field.type);
         printf("; ");
@@ -646,9 +646,9 @@ def println_typeinfo(type: typeid) {
 }
 
 def test_typeinfo() {
-  let i = 42;
-  let f = 3.14;
-  let p = NULL;
+  let mut i = 42;
+  let mut f = 3.14;
+  let mut p = NULL;
 
   println_any((&i, typeof(i)));
   println_any((&f, typeof(f)));
@@ -673,48 +673,48 @@ struct Ints {
 }
 
 def test_va_list(fmt: *const char, ...) {
-  let init_args: va_list;
+  let mut init_args: va_list;
   va_start(&init_args, &fmt);
-  let args: va_list;
+  let mut args: va_list;
   va_copy(&args, &init_args);
   va_end(&init_args);
-  let c: char;
+  let mut c: char;
   va_arg(&args, (&c, typeof(c)));
-  let i: int;
+  let mut i: int;
   va_arg(&args, (&i, typeof(i)));
-  let ll: llong;
+  let mut ll: llong;
   va_arg(&args, (&ll, typeof(ll)));
   printf("c=%d i=%d ll=%lld\n", c, i, ll);
   va_end(&args);
 }
 
 def test_compound_literals() {
-  let w: *Vector;
+  let mut w: *Vector;
   w = &(1, 2);
-  let a = <[]int>[1, 2, 3];
-  let i = 42;
-  let implied: const Any = (&i, typeof(i));
-  let explicit = <const Any>(&i, typeof(i));
-  let v: Ints = {
+  let mut a = <[]int>[1, 2, 3];
+  let mut i = 42;
+  let mut implied: const Any = (&i, typeof(i));
+  let mut explicit = <const Any>(&i, typeof(i));
+  let mut v: Ints = {
     num_ints: 3,
     int_ptr: <[]int>[1, 2, 3],
     int_arr: [1, 2, 3],
   };
-  let ints_of_ints: []Ints = [
+  let mut ints_of_ints: []Ints = [
     {num_ints: 3, int_arr: [1, 2, 3]},
     {num_ints: 2, int_ptr: <[2]int>[-1, -2]},
   ];
-  let x = 1;
-  let y = 2;
-  let vec = Vector{x, y};
-  let vec2 = Vector{vec.x, y: vec.y + 1};
+  let mut x = 1;
+  let mut y = 2;
+  let mut vec = Vector{x, y};
+  let mut vec2 = Vector{vec.x, y: vec.y + 1};
 }
 
 def test_complete() {
-  let x = 0;
-  // let x = 1;
-  // let x = 2;
-  let y = 0;
+  let mut x = 0;
+  // let mut x = 1;
+  // let mut x = 2;
+  let mut y = 0;
   @complete
   if (x == 0) {
     y = 1;
@@ -737,65 +737,65 @@ def test_complete() {
 }
 
 def test_limits() {
-  let char_min = CHAR_MIN;
-  let char_max = CHAR_MAX;
-  let schar_min = SCHAR_MIN;
-  let schar_max = SCHAR_MAX;
-  let uchar_min = UCHAR_MIN;
-  let uchar_max = UCHAR_MAX;
-  let short_min = SHORT_MIN;
-  let short_max = SHORT_MAX;
-  let ushort_min = USHORT_MIN;
-  let ushort_max = USHORT_MAX;
-  let int_min = INT_MIN;
-  let int_max = INT_MAX;
-  let uint_min = UINT_MIN;
-  let uint_max = UINT_MAX;
-  let long_min = LONG_MIN;
-  let long_max = LONG_MAX;
-  let ulong_min = ULONG_MIN;
-  let ulong_max = ULONG_MAX;
-  let llong_min = LLONG_MIN;
-  let llong_max = LLONG_MAX;
-  let ullong_min = ULLONG_MIN;
-  let ullong_max = ULLONG_MAX;
+  let mut char_min = CHAR_MIN;
+  let mut char_max = CHAR_MAX;
+  let mut schar_min = SCHAR_MIN;
+  let mut schar_max = SCHAR_MAX;
+  let mut uchar_min = UCHAR_MIN;
+  let mut uchar_max = UCHAR_MAX;
+  let mut short_min = SHORT_MIN;
+  let mut short_max = SHORT_MAX;
+  let mut ushort_min = USHORT_MIN;
+  let mut ushort_max = USHORT_MAX;
+  let mut int_min = INT_MIN;
+  let mut int_max = INT_MAX;
+  let mut uint_min = UINT_MIN;
+  let mut uint_max = UINT_MAX;
+  let mut long_min = LONG_MIN;
+  let mut long_max = LONG_MAX;
+  let mut ulong_min = ULONG_MIN;
+  let mut ulong_max = ULONG_MAX;
+  let mut llong_min = LLONG_MIN;
+  let mut llong_max = LLONG_MAX;
+  let mut ullong_min = ULLONG_MIN;
+  let mut ullong_max = ULLONG_MAX;
 
-  let wchar_min = WCHAR_MIN;
-  let wchar_max = WCHAR_MAX;
+  let mut wchar_min = WCHAR_MIN;
+  let mut wchar_max = WCHAR_MAX;
 
-  let int8_min = INT8_MIN;
-  let int8_max = INT8_MAX;
-  let uint8_min = UINT8_MIN;
-  let uint8_max = UINT8_MAX;
-  let int16_min = INT16_MIN;
-  let int16_max = INT16_MAX;
-  let uint16_min = UINT16_MIN;
-  let uint16_max = UINT16_MAX;
-  let int32_min = INT32_MIN;
-  let int32_max = INT32_MAX;
-  let uint32_min = UINT32_MIN;
-  let uint32_max = UINT32_MAX;
-  let int64_min = INT64_MIN;
-  let int64_max = INT64_MAX;
-  let uint64_min = UINT64_MIN;
-  let uint64_max = UINT64_MAX;
+  let mut int8_min = INT8_MIN;
+  let mut int8_max = INT8_MAX;
+  let mut uint8_min = UINT8_MIN;
+  let mut uint8_max = UINT8_MAX;
+  let mut int16_min = INT16_MIN;
+  let mut int16_max = INT16_MAX;
+  let mut uint16_min = UINT16_MIN;
+  let mut uint16_max = UINT16_MAX;
+  let mut int32_min = INT32_MIN;
+  let mut int32_max = INT32_MAX;
+  let mut uint32_min = UINT32_MIN;
+  let mut uint32_max = UINT32_MAX;
+  let mut int64_min = INT64_MIN;
+  let mut int64_max = INT64_MAX;
+  let mut uint64_min = UINT64_MIN;
+  let mut uint64_max = UINT64_MAX;
 
-  let usize_min = USIZE_MIN;
-  let usize_max = USIZE_MAX;
-  let ssize_min = SSIZE_MIN;
-  let ssize_max = SSIZE_MAX;
-  let uintptr_min = UINTPTR_MIN;
-  let uintptr_max = UINTPTR_MAX;
-  let intptr_min = INTPTR_MIN;
-  let intptr_max = INTPTR_MAX;
+  let mut usize_min = USIZE_MIN;
+  let mut usize_max = USIZE_MAX;
+  let mut ssize_min = SSIZE_MIN;
+  let mut ssize_max = SSIZE_MAX;
+  let mut uintptr_min = UINTPTR_MIN;
+  let mut uintptr_max = UINTPTR_MAX;
+  let mut intptr_min = INTPTR_MIN;
+  let mut intptr_max = INTPTR_MAX;
 }
 
 def test_alignof() {
-  let i = 42;
-  let n1 = alignof(i);
-  let n2 = alignof(i+1);
-  let n3 = alignof(ullong);
-  let n4 = alignof<*int>;
+  let mut i = 42;
+  let mut n1 = alignof(i);
+  let mut n2 = alignof(i+1);
+  let mut n3 = alignof(ullong);
+  let mut n4 = alignof<*int>;
 }
 
 struct BufHdr {
@@ -807,7 +807,7 @@ struct BufHdr {
 }
 
 def test_offsetof() {
-  let n = offsetof(BufHdr, buf);
+  let mut n = offsetof(BufHdr, buf);
 //  n = offsetof(BufHdr, foo);
 }
 
@@ -815,7 +815,7 @@ struct Thing {
   a: int;
 }
 
-let thing: Thing;
+let mut thing: Thing;
 
 def returns_ptr() -> &Thing {
   return &thing;
@@ -828,20 +828,20 @@ def returns_ptr_to_const() -> &const Thing {
 def test_lvalue() {
   returns_ptr().a = 5;
 //  returns_ptr_to_const().a = 5;
-  let p = returns_ptr_to_const();
+  let mut p = returns_ptr_to_const();
 //  p.a = 42;
 }
 
 def test_if() {
   if (1) {
   }
-//  if (let x = Thing{}) {
+//  if (let mut x = Thing{}) {
 //  }
-  if (let x = 42) {
+  if (let mut x = 42) {
   }
-  if (let x = 42; x >= 0) {
+  if (let mut x = 42; x >= 0) {
   }
-  if (let x: int = 42; x >= 0) {
+  if (let mut x: int = 42; x >= 0) {
   }
 }
 
@@ -863,28 +863,28 @@ struct Foo {
 }
 
 def test_const_ptr_deref() {
-  let bar = Bar{rc: 42};
-  let foo = Foo{&bar};
-  let i = foo.bar.rc;
+  let mut bar = Bar{rc: 42};
+  let mut foo = Foo{&bar};
+  let mut i = foo.bar.rc;
 }
 
 def test_ref() {
-  let i = 1;
-  let p = &i;
-  let q: *int = &i;
+  let mut i = 1;
+  let mut p = &i;
+  let mut q: *int = &i;
   // Should cause error.
-  // let r = p + 1;
+  // let mut r = p + 1;
   // p[0] = 3;
-  let s = q + 1;
+  let mut s = q + 1;
   *p = 2;
 }
 
 typedef my_time_t = C.time_t;
 
 def test_type_path() {
-  let t1 = time(NULL);
-  let t2: C.time_t = time(NULL);
-  let t3: my_time_t = time(NULL);
+  let mut t1 = time(NULL);
+  let mut t2: C.time_t = time(NULL);
+  let mut t3: my_time_t = time(NULL);
 }
 
 // TODO Zig-style errors?
@@ -914,8 +914,8 @@ def test_err() {
 }
 
 def test_for_each() {
-  let friends: []*const char = ["Larry", "Moe", "Curly"];
-  // let friends = ["Larry", "Moe", "Curly"];
+  let mut friends: []*const char = ["Larry", "Moe", "Curly"];
+  // let mut friends = ["Larry", "Moe", "Curly"];
   // Loops on array.
   for (friends) do(friend) {
     printf("friend: %s\n", friend);
@@ -941,9 +941,9 @@ def test_for_each() {
   }
   printf("\n");
   // Fails because `others` doesn't have a constant size on it.
-  // let others = friends; for (others) {}
+  // let mut others = friends; for (others) {}
   // Loop on slice.
-  let slice: Slice<*const char> = (friends, 2);
+  let mut slice: Slice<*const char> = (friends, 2);
   for (slice) do(name, index) {
     printf("slice[%zu]: %s\n", index, name);
   }

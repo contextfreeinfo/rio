@@ -2,9 +2,9 @@ import libc {...}
 
 def main(argc: int, argv: **char) -> int {
     printf("Hello, world!\n");
-    let a = 0;
-    let v = vec2(1, 0);
-    let w = vec2(0, 1);
+    let mut a = 0;
+    let mut v = vec2(1, 0);
+    let mut w = vec2(0, 1);
     v = rot2(3.14/4, v);
     w = add2(w, (0.1, 0.2));
     return 0;

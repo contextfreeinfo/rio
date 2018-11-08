@@ -43,10 +43,10 @@ struct TypeInfo {
 }
 
 @foreign
-let typeinfos: **const TypeInfo;
+let mut typeinfos: **const TypeInfo;
 
 @foreign
-let num_typeinfos: int;
+let mut num_typeinfos: int;
 
 def typeid_kind(type: typeid) -> TypeKind {
   return (type >> 24) & 0xFF;
@@ -61,7 +61,7 @@ def typeid_size(type: typeid) -> usize {
 }
 
 def get_typeinfo(type: typeid) -> *const TypeInfo {
-  let index = typeid_index(type);
+  let mut index = typeid_index(type);
   if (typeinfos && index < num_typeinfos) {
     return typeinfos[index];
   } else {
