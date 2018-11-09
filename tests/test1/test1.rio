@@ -347,8 +347,10 @@ let mut color_names: [Color.Num]*const char = [
 
 def test_enum() {
   let mut a: Color = Color.Red;
-  let mut b = Color.Red;
-  let mut c = a + b;
+  let b = Color.Red;
+  let c = a + b;
+  let mut x = &c;
+  // ++*x;
   let mut i: int = a;
   a = i;
   printf(
@@ -356,17 +358,17 @@ def test_enum() {
     Color.None, Color.Red, Color.Green, Color.Blue,
   );
   printf("No color: %s\n", color_names[Color.None]);
-  let mut d = BAR;
-  let mut e = QUUX;
-  #static_assert(typeof(e) == typeof(TypedEnum));
+  let d = BAR;
+  let e = QUUX;
+  #static_assert(typeof(e) == typeof<const TypedEnum>);
   let mut f: TypedEnum;
   f = BAZ;
   // TODO Should be able to imply kind from fields.
-  let mut more = More{kind: More.Sad, prob: 0.5, amount: 0.9};
-  let mut more2 = More.Happy(prob: 0.5, amount: 0.9);
+  let more = More{kind: More.Sad, prob: 0.5, amount: 0.9};
+  let more2 = More.Happy(prob: 0.5, amount: 0.9);
   // TODO Support curlies here.
-  let mut more3 = More.Happy{more2.prob, amount: 0.9};
-  let mut more_kind = More.Happy;
+  let more3 = More.Happy{more2.prob, amount: 0.9};
+  let more_kind = More.Happy;
 }
 
 def test_assign() {
@@ -404,24 +406,24 @@ def va_test(x: int, ...) -> int {
 typedef F = do(x: int, ...) -> int;
 
 def test_lits() {
-  let mut f = 3.14;
-  let mut d = 3.14d;
-  let mut i = 1;
-  let mut u = 0xffffffffu;
-  let mut l = 1l;
-  let mut ul = 1ul;
-  let mut ll = 0x100000000ll;
-  let mut ull = 0xffffffffffffffffull;
-  let mut x1 = 0xffffffff;
-  let mut x2 = 4294967295;
-  let mut x3 = 0xffffffffffffffff;
-  let mut x4 = 0b10101010 + 0b01010101;
+  let f = 3.14;
+  let d = 3.14d;
+  let i = 1;
+  let u = 0xffffffffu;
+  let l = 1l;
+  let ul = 1ul;
+  let ll = 0x100000000ll;
+  let ull = 0xffffffffffffffffull;
+  let x1 = 0xffffffff;
+  let x2 = 4294967295;
+  let x3 = 0xffffffffffffffff;
+  let x4 = 0b10101010 + 0b01010101;
   // u = 0b0;
   // u = 0x0;
 }
 
 def test_ops() {
-  let mut pi = 3.14;
+  let pi = 3.14;
   let mut f = 0.0;
   f = +pi;
   f = -pi;
@@ -497,16 +499,16 @@ def test_const() {
   i = 1;
   // j = 0;
   // *q = 0;
-  let mut x = cv.x;
+  let x = cv.x;
   // cv.x = {};
   let mut c = escape_to_char[0];
   c = char_to_escape[c];
   c = esc_test_str[0];
   f4(escape_to_char);
-  let mut as = 1;
+  let as = 1;
   let mut p = 0 as *const char; // as *int
   p = escape_to_char + 1;
-  let mut q = <*char>escape_to_char;
+  let q = <*char>escape_to_char;
   c = q['n'];
   // q = escape_to_char;
   p = 1 as *const char;
@@ -518,7 +520,7 @@ def test_const() {
 #static_assert(sizeof(int) == 4)
 
 def test_init() {
-  let mut x = 0 as const int;
+  let x = 0 as const int;
   #static_assert(sizeof(x) == 4);
   let mut y: int;
   y = 0;

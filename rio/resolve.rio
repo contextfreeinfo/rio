@@ -920,10 +920,15 @@ def resolve_typed_init(pos: SrcPos, type: &Type, expr: &Expr) -> &Type {
   return operand.type;
 }
 
-def resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
+def resolve_init(
+  pos: SrcPos, typespec: &Typespec, expr: &Expr, is_mut: bool,
+) -> &Type {
   let mut type: &Type;
   if (typespec) {
     let mut declared_type = resolve_typespec(typespec);
+    // if (!is_mut) {
+    //   printf("Found non-mut: %d, %d\n", typespec.kind, declared_type.kind);
+    // }
     type = declared_type;
     if (expr) {
       let mut expr_type = resolve_typed_init(pos, declared_type, expr);
@@ -939,7 +944,12 @@ def resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
     } if;
   } else {
     #assert(expr);
-    type = unqualify_type(resolve_expr(expr).type);
+    let operand = resolve_expr(expr);
+    if (!is_mut && !is_const_type(operand.type)) {
+      type = type_const(operand.type);
+    } else {
+      type = unqualify_type(operand.type);
+    }
     if (is_array_type(type) && expr.kind != Expr.Compound) {
       type = type_decay(type);
       set_resolved_type(expr, type);
@@ -960,7 +970,7 @@ def resolve_init(pos: SrcPos, typespec: &Typespec, expr: &Expr) -> &Type {
 
 def resolve_decl_var(decl: &Decl) -> &Type {
   #assert(decl.kind == Decl.Var);
-  return resolve_init(decl.pos, decl.var_decl.type, decl.var_decl.expr);
+  return resolve_init(decl.pos, decl.var_decl.type, decl.var_decl.expr, true);
 }
 
 def resolve_decl_const(decl: &Decl, val: &Val) -> &Type {
@@ -1141,10 +1151,13 @@ def resolve_stmt_assign(stmt: &Stmt) {
 
 def resolve_stmt_init(stmt: &Stmt) {
   #assert(stmt.kind == Stmt.Init);
-  let mut type = resolve_init(stmt.pos, stmt.init.type, stmt.init.expr);
-  if (!stmt.init.is_mut) {
-    // type.nonmodifiable = true;
+  if (!stmt.init.is_mut && stmt.init.type) {
+    // Wrap it for now so we output the right thing later.
+    // TODO Different kind of stmt so we can handle differently throughoutt?
+    stmt.init.type = new_typespec_const(stmt.init.type.pos, stmt.init.type);
   }
+  let mut type =
+    resolve_init(stmt.pos, stmt.init.type, stmt.init.expr, stmt.init.is_mut);
   if (!sym_push_var(stmt.init.name, type)) {
     fatal_error(stmt.pos, "Shadowed definition of local symbol");
   }

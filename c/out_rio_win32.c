@@ -1793,7 +1793,7 @@ void rio_complete_type(rio_Type (*type));
 
 rio_Type (*rio_resolve_typed_init(rio_SrcPos pos, rio_Type (*type), rio_Expr (*expr)));
 
-rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (*expr)));
+rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (*expr), bool is_mut));
 
 rio_Type (*rio_resolve_decl_var(rio_Decl (*decl)));
 
@@ -7102,8 +7102,6 @@ rio_Stmt (*rio_parse_let_stmt(rio_SrcPos pos)) {
     rio_Expr (*expr) = {0};
     if (rio_match_token((rio_TokenKind_Assign))) {
       expr = rio_parse_expr();
-    } else {
-      is_mut = true;
     }
     return rio_new_stmt_init(pos, name, is_mut, type, expr);
   } else {
@@ -8596,7 +8594,7 @@ rio_Type (*rio_resolve_typed_init(rio_SrcPos pos, rio_Type (*type), rio_Expr (*e
   return operand.type;
 }
 
-rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (*expr))) {
+rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (*expr), bool is_mut)) {
   rio_Type (*type) = {0};
   if (typespec) {
     rio_Type (*declared_type) = rio_resolve_typespec(typespec);
@@ -8612,7 +8610,12 @@ rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (
     }
   } else {
     assert(expr);
-    type = rio_unqualify_type(rio_resolve_expr(expr).type);
+    rio_Operand operand = rio_resolve_expr(expr);
+    if ((!(is_mut)) && (!(rio_is_const_type(operand.type)))) {
+      type = rio_type_const(operand.type);
+    } else {
+      type = rio_unqualify_type(operand.type);
+    }
     if ((rio_is_array_type(type)) && ((expr->kind) != ((rio_Expr_Compound)))) {
       type = rio_type_decay(type);
       rio_set_resolved_type(expr, type);
@@ -8632,7 +8635,7 @@ rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (
 
 rio_Type (*rio_resolve_decl_var(rio_Decl (*decl))) {
   assert((decl->kind) == ((rio_Decl_Var)));
-  return rio_resolve_init(decl->pos, decl->var_decl.type, decl->var_decl.expr);
+  return rio_resolve_init(decl->pos, decl->var_decl.type, decl->var_decl.expr, true);
 }
 
 rio_Type (*rio_resolve_decl_const(rio_Decl (*decl), rio_Val (*val))) {
@@ -8794,9 +8797,10 @@ void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
 
 void rio_resolve_stmt_init(rio_Stmt (*stmt)) {
   assert((stmt->kind) == ((rio_Stmt_Init)));
-  rio_Type (*type) = rio_resolve_init(stmt->pos, stmt->init.type, stmt->init.expr);
-  if (!(stmt->init.is_mut)) {
+  if ((!(stmt->init.is_mut)) && (stmt->init.type)) {
+    stmt->init.type = rio_new_typespec_const(stmt->init.type->pos, stmt->init.type);
   }
+  rio_Type (*type) = rio_resolve_init(stmt->pos, stmt->init.type, stmt->init.expr, stmt->init.is_mut);
   if (!(rio_sym_push_var(stmt->init.name, type))) {
     rio_fatal_error(stmt->pos, "Shadowed definition of local symbol");
   }

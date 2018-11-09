@@ -611,9 +611,6 @@ def parse_let_stmt(pos: SrcPos) -> &Stmt {
     let mut expr: &Expr;
     if (match_token(TokenKind.Assign)) {
       expr = parse_expr();
-    } else {
-      // For now, just let mut all later assignments slide.
-      is_mut = true;
     }
     return new_stmt_init(pos, name, is_mut, type, expr);
   } else {
