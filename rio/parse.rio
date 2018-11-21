@@ -1128,6 +1128,12 @@ def parse_decl_func_param(optional_types: bool) -> Member {
     expect_token(TokenKind.Colon);
     type = parse_type();
   }
+  if (is_mut) {
+    if (!type) {
+      type = new_typespec(Typespec.None, pos);
+    }
+    type.is_mut = true;
+  }
   return {name, pos, type};
 }
 

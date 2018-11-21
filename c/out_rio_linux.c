@@ -3815,6 +3815,7 @@ rio_Typespec (*rio_dupe_typespec(rio_Typespec (*type), rio_MapClosure (*map))) {
   switch (type->kind) {
   case rio_Typespec_Array:
   case rio_Typespec_Const:
+  case rio_Typespec_None:
   case rio_Typespec_Ptr:
   case rio_Typespec_Ref: {
     dupe->base = rio_dupe_typespec(type->base, map);
@@ -4183,6 +4184,9 @@ void rio_gen_sync_pos(rio_SrcPos pos) {
     return;
   }
   if (((rio_gen_pos.line) != (pos.line)) || ((rio_gen_pos.name) != (pos.name))) {
+    if (!(pos.name)) {
+      return;
+    }
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "#line %d", pos.line);
     if ((rio_gen_pos.name) != (pos.name)) {
@@ -7543,6 +7547,12 @@ rio_Member rio_parse_decl_func_param(bool optional_types) {
   } else {
     rio_expect_token((rio_TokenKind_Colon));
     type = rio_parse_type();
+  }
+  if (is_mut) {
+    if (!(type)) {
+      type = rio_new_typespec((rio_Typespec_None), pos);
+    }
+    type->is_mut = true;
   }
   return (rio_Member){.name = name, .pos = pos, .type = type};
 }

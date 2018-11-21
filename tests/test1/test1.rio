@@ -902,12 +902,13 @@ enum TestErr {
 // def maybe_math(x: float) -> Try<float> {
 // def maybe_math(x: float) -> float | error {
 // def maybe_math(x: float) -> float | TestErr {
-def maybe_math(x: float) -> Result<float, TestErr> {
+def maybe_math(mut x: float) -> Result<float, TestErr> {
   // return x + 1;
   // return Ok(x + 1);
   // return Ok{x + 1};
   // return {val: x + 1};
   // return {val: x + 1};
+  x += 1.5;
   return {kind: Result.Ok, val: x + 1};
 }
 

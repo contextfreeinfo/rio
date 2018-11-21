@@ -257,7 +257,7 @@ def dupe_typespec(type: &Typespec, map: &MapClosure) -> &Typespec {
   dupe = ast_dup.<Typespec>(type);
   @complete
   switch (type.kind) {
-    Array, Const, Ptr, Ref => {
+    Array, Const, None, Ptr, Ref => {
       dupe.base = dupe_typespec(type.base, map);
     }
     Func => {

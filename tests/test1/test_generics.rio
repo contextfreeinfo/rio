@@ -63,7 +63,7 @@ def test_generic_functions() {
   // printf("float sum: %d", sum(1.1, 2.2));
   let mut slices: []Slice<int> = [{}, {items: <[]int>[12], length: 1}];
   for (slices) do(slice) {
-    let mut first_thing = first.<int>(slice);
+    let first_thing = first.<int>(slice);
     switch (first_thing.kind) {
       Ok => printf("Ok: %d\n", first_thing.val);
       Err => printf("Err: %d\n", first_thing.err);
@@ -90,7 +90,9 @@ def sum<Num: int>(x: Num, y: Num) -> Num {
 // def sum_slice<Num>(nums: Slice<Num>) -> Num {
 def sum_slice<Num: int>(nums: Slice<Num>) -> Num {
   let mut result: Num = 0;
-  for (nums) do(num) {
+  // for (nums) do(num) {
+  for (nums) do(mut num) {
+    num += 0;
     // TODO Make nested generic calls work ...
     // result = sum.<Num>(result, num);
     result += num;

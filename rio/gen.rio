@@ -188,6 +188,12 @@ def gen_sync_pos(pos: SrcPos) {
     return;
   }
   if (gen_pos.line != pos.line || gen_pos.name != pos.name) {
+    if (!pos.name) {
+      // This happens on for-each loops. TODO Where is it missing?
+      // printf("Null pos name!\n");
+      return;
+    }
+    // printf("line: %d - %s\n", pos.line, pos.name);
     genln(); buf_printf(&gen_buf, "#line %d", pos.line);
     if (gen_pos.name != pos.name) {
       buf_printf(&gen_buf, " ");
