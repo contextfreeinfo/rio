@@ -1509,8 +1509,9 @@ void test1_test_for_each(void) {
   }
   {
     char const ((*(*items__))) = friends;
-    for (size_t index = 0; index < 3; ++index) {
-      char const ((*friend)) = items__[index];
+    for (size_t i__ = 0; i__ < 3; ++i__) {
+      char const ((*friend)) = items__[i__];
+      size_t index = i__;
       if (!(index)) {
         continue;
       }
@@ -1545,8 +1546,10 @@ void test1_test_for_each(void) {
   test1_Slice_ptr_const_char slice = {friends, 2};
   {
     test1_Slice_ptr_const_char items__ = slice;
-    for (size_t index = 0; index < items__.length; ++index) {
-      char const ((*name)) = items__.items[index];
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      char const ((*name)) = items__.items[i__];
+      size_t index = i__;
+      ++(index);
       printf("slice[%zu]: %s\n", index, name);
     }
   }

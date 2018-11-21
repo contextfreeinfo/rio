@@ -947,7 +947,8 @@ def test_for_each() {
   // let mut others = friends; for (others) {}
   // Loop on slice.
   let mut slice: Slice<*const char> = (friends, 2);
-  for (slice) do(name, index) {
+  for (slice) do(name, mut index) {
+    ++index;
     printf("slice[%zu]: %s\n", index, name);
   }
   // And refs.

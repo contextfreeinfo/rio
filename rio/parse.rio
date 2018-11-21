@@ -1130,6 +1130,7 @@ def parse_decl_func_param(optional_types: bool) -> Member {
   }
   if (is_mut) {
     if (!type) {
+      // TODO Check for places that infer type and make sure this is the same!
       type = new_typespec(Typespec.None, pos);
     }
     type.is_mut = true;

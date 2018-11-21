@@ -3916,8 +3916,9 @@ void (*rio_map_type_args(rio_TypeMap (*self), Any item)) {
       rio_Slice_Decl params = self->type_params;
       {
         rio_Slice_Decl items__ = params;
-        for (size_t i = 0; i < items__.length; ++i) {
-          rio_Decl (*param) = &items__.items[i];
+        for (size_t i__ = 0; i__ < items__.length; ++i__) {
+          rio_Decl (*param) = &items__.items[i__];
+          size_t i = i__;
           if ((decl) == (param)) {
             rio_TypeArg (*arg) = &(self->type_args.items[i]);
             return arg->val;
@@ -3946,8 +3947,9 @@ void rio_put_typespec_sym_name(char (*(*buf)), rio_Typespec (*type)) {
   case rio_Typespec_Name: {
     {
       rio_Slice_TypespecName items__ = type->names;
-      for (size_t i = 0; i < items__.length; ++i) {
-        rio_TypespecName (*name) = &items__.items[i];
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_TypespecName (*name) = &items__.items[i__];
+        size_t i = i__;
         if (i) {
           rio_buf_printf(buf, "_");
         }
@@ -3989,8 +3991,9 @@ void rio_put_typespec_sym_name(char (*(*buf)), rio_Typespec (*type)) {
     rio_buf_printf(buf, "do_");
     {
       rio_Slice_ref_Typespec items__ = type->function.args;
-      for (size_t i = 0; i < items__.length; ++i) {
-        rio_Typespec (*arg) = items__.items[i];
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_Typespec (*arg) = items__.items[i__];
+        size_t i = i__;
         if (i) {
           rio_buf_printf(buf, "_");
         }
@@ -4184,9 +4187,6 @@ void rio_gen_sync_pos(rio_SrcPos pos) {
     return;
   }
   if (((rio_gen_pos.line) != (pos.line)) || ((rio_gen_pos.name) != (pos.name))) {
-    if (!(pos.name)) {
-      return;
-    }
     rio_genln();
     rio_buf_printf(&(rio_gen_buf), "#line %d", pos.line);
     if ((rio_gen_pos.name) != (pos.name)) {
@@ -4324,8 +4324,9 @@ char (*rio_typespec_to_cdecl(rio_Typespec (*typespec), char const ((*str)))) {
     } else {
       {
         rio_Slice_ref_Typespec items__ = typespec->function.args;
-        for (size_t i = 0; i < items__.length; ++i) {
-          rio_Typespec (*arg) = items__.items[i];
+        for (size_t i__ = 0; i__ < items__.length; ++i__) {
+          rio_Typespec (*arg) = items__.items[i__];
+          size_t i = i__;
           rio_buf_printf(&(result), "%s%s", ((i) == (0) ? "" : ", "), rio_typespec_to_cdecl(arg, ""));
         }
       }
@@ -4353,8 +4354,9 @@ void rio_gen_func_decl(rio_Decl (*decl)) {
   } else {
     {
       rio_Slice_Member items__ = decl->function.params;
-      for (size_t i = 0; i < items__.length; ++i) {
-        rio_Member param = items__.items[i];
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_Member param = items__.items[i__];
+        size_t i = i__;
         if ((i) != (0)) {
           rio_buf_printf(&(result), ", ");
         }
@@ -4465,8 +4467,9 @@ void rio_gen_expr_fields(rio_Slice_CompoundField fields) {
   rio_buf_printf(&(rio_gen_buf), "{");
   {
     rio_Slice_CompoundField items__ = fields;
-    for (size_t i = 0; i < items__.length; ++i) {
-      rio_CompoundField field = items__.items[i];
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_CompoundField field = items__.items[i__];
+      size_t i = i__;
       if (i) {
         rio_buf_printf(&(rio_gen_buf), ", ");
       }
@@ -4590,8 +4593,9 @@ void rio_gen_expr(rio_Expr (*expr)) {
     rio_buf_printf(&(rio_gen_buf), "(");
     {
       rio_Slice_CompoundField items__ = expr->call.args;
-      for (size_t i = 0; i < items__.length; ++i) {
-        rio_CompoundField (*arg) = &items__.items[i];
+      for (size_t i__ = 0; i__ < items__.length; ++i__) {
+        rio_CompoundField (*arg) = &items__.items[i__];
+        size_t i = i__;
         if (i) {
           rio_buf_printf(&(rio_gen_buf), ", ");
         }
@@ -4875,12 +4879,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     if (func->params.length) {
       item = &(func->params.items[0]);
     }
-    char const ((*index)) = {0};
-    if ((func->params.length) > (1)) {
-      index = func->params.items[1].name;
-    } else {
-      index = "i__";
-    }
+    char (*index) = "i__";
     rio_StmtList (*block) = &(func->block);
     rio_Type (*items_type) = rio_get_resolved_type_orig(expr);
     int is_array = (items_type->kind) == ((rio_CompilerTypeKind_Array));
@@ -4890,7 +4889,7 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     rio_buf_printf(&(rio_gen_buf), "{");
     ++(rio_gen_indent);
     char (*items) = "items__";
-    rio_gen_stmt(&((rio_Stmt){(rio_Stmt_Init), .init = {.expr = expr, .name = items}}));
+    rio_gen_stmt(&((rio_Stmt){(rio_Stmt_Init), .init = {.expr = expr, .name = items}, .pos = expr->pos}));
     rio_genln();
     char (*access) = (is_ptr ? "->" : ".");
     char (*length_decl) = ((stmt->for_each.length_type) == (rio_type_usize) ? "size_t" : rio_type_to_cdecl(stmt->for_each.length_type, ""));
@@ -4905,6 +4904,10 @@ void rio_gen_stmt(rio_Stmt (*stmt)) {
     if (item) {
       rio_genln();
       rio_buf_printf(&(rio_gen_buf), "%s = %s%s%s%s[%s];", rio_type_to_cdecl(rio_get_resolved_type(item), item->name), (stmt->for_each.get_ref ? "&" : ""), items, (is_array ? "" : access), (is_array ? "" : "items"), index);
+    }
+    if ((func->params.length) > (1)) {
+      rio_genln();
+      rio_buf_printf(&(rio_gen_buf), "%s %s = %s;", length_decl, func->params.items[1].name, index);
     }
     {
       rio_Slice_ref_Stmt items__ = block->stmts;
@@ -6384,8 +6387,9 @@ void rio_print_flags_usage(void) {
       ptr += snprintf(ptr, (end) - (ptr), "%s <", flag.name);
       {
         rio_Slice_ptr_const_char items__ = flag.options;
-        for (size_t k = 0; k < items__.length; ++k) {
-          char const ((*option)) = items__.items[k];
+        for (size_t i__ = 0; i__ < items__.length; ++i__) {
+          char const ((*option)) = items__.items[i__];
+          size_t k = i__;
           ptr += snprintf(ptr, (end) - (ptr), "%s%s", ((k) == (0) ? "" : "|"), option);
           if ((k) == (*(flag.i))) {
             snprintf(note, sizeof(note), " (default: %s)", option);
@@ -6448,8 +6452,9 @@ char const ((*rio_parse_flags(int (*argc_ptr), char const ((*(*(*argv_ptr)))))))
         bool found = false;
         {
           rio_Slice_ptr_const_char items__ = flag->options;
-          for (size_t k = 0; k < items__.length; ++k) {
-            char const ((*flag_option)) = items__.items[k];
+          for (size_t i__ = 0; i__ < items__.length; ++i__) {
+            char const ((*flag_option)) = items__.items[i__];
+            size_t k = i__;
             if ((strcmp(flag_option, option)) == (0)) {
               *(flag->i) = k;
               found = true;
@@ -8030,8 +8035,9 @@ void rio_put_type_name(char (*(*buf)), rio_Type (*type)) {
       rio_buf_printf(buf, "do(");
       {
         rio_Slice_ref_Type items__ = type->function.params;
-        for (size_t i = 0; i < items__.length; ++i) {
-          rio_Type (*param) = items__.items[i];
+        for (size_t i__ = 0; i__ < items__.length; ++i__) {
+          rio_Type (*param) = items__.items[i__];
+          size_t i = i__;
           if (i) {
             rio_buf_printf(buf, ", ");
           }
@@ -10060,8 +10066,9 @@ rio_Operand rio_resolve_expr_call(rio_Expr (*expr)) {
   }
   {
     rio_Slice_ref_Type items__ = function.type->function.params;
-    for (size_t i = 0; i < items__.length; ++i) {
-      rio_Type (*param_type) = items__.items[i];
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_Type (*param_type) = items__.items[i__];
+      size_t i = i__;
       rio_Operand arg = rio_resolve_expected_expr_rvalue(expr->call.args.items[i].expr, param_type);
       if ((is_generic) && (!(type_args.length))) {
       }
@@ -10595,8 +10602,9 @@ void rio_process_package_imports(rio_Package (*package)) {
         }
         {
           rio_Slice_ptr_const_char items__ = decl->import_decl.names;
-          for (size_t k = 0; k < items__.length; ++k) {
-            char const ((*name)) = items__.items[k];
+          for (size_t i__ = 0; i__ < items__.length; ++i__) {
+            char const ((*name)) = items__.items[i__];
+            size_t k = i__;
             if (!(rio_str_islower(name))) {
               rio_fatal_error(decl->pos, "Import name must be lower case: \'%s\'", name);
             }
@@ -11312,8 +11320,9 @@ rio_Type (*rio_type_func(rio_Type (*(*params)), size_t num_params, rio_Type (*re
 bool rio_has_duplicate_fields(rio_Type (*type)) {
   {
     rio_Slice_TypeField items__ = type->aggregate.fields;
-    for (size_t i = 0; i < items__.length; ++i) {
-      rio_TypeField (*field_i) = &items__.items[i];
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_TypeField (*field_i) = &items__.items[i__];
+      size_t i = i__;
       for (ullong j = (i) + (1); (j) < (type->aggregate.fields.length); (j)++) {
         if ((field_i->name) == (type->aggregate.fields.items[j].name)) {
           return true;
@@ -11434,8 +11443,9 @@ int rio_aggregate_item_field_index(rio_Type (*type), char const ((*name))) {
   assert(rio_is_aggregate_type(type));
   {
     rio_Slice_TypeField items__ = type->aggregate.fields;
-    for (size_t i = 0; i < items__.length; ++i) {
-      rio_TypeField (*field) = &items__.items[i];
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      rio_TypeField (*field) = &items__.items[i__];
+      size_t i = i__;
       if ((field->name) == (name)) {
         return (int)(i);
       }

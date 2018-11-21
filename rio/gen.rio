@@ -188,12 +188,6 @@ def gen_sync_pos(pos: SrcPos) {
     return;
   }
   if (gen_pos.line != pos.line || gen_pos.name != pos.name) {
-    if (!pos.name) {
-      // This happens on for-each loops. TODO Where is it missing?
-      // printf("Null pos name!\n");
-      return;
-    }
-    // printf("line: %d - %s\n", pos.line, pos.name);
     genln(); buf_printf(&gen_buf, "#line %d", pos.line);
     if (gen_pos.name != pos.name) {
       buf_printf(&gen_buf, " ");
@@ -861,13 +855,8 @@ def gen_stmt(stmt: &Stmt) {
       if (func.params.length) {
         item = &func.params[0];
       }
-      let mut index: *const char;
-      if (func.params.length > 1) {
-        index = func.params[1].name;
-      } else {
-        // TODO Generate something unique? Or is this convention sufficient?
-        index = "i__";
-      }
+      // TODO Generate unique index name? Or is this convention sufficient?
+      let mut index = "i__";
       let mut block = &func.block;
       // TODO Support slices here!!
       let mut items_type = get_resolved_type_orig(expr);
@@ -886,7 +875,7 @@ def gen_stmt(stmt: &Stmt) {
       // Can a smart compiler avoid the big copy anyway?
       // Are there semantics issues ever?
       // TODO Figure out when and if to optimize this?
-      gen_stmt(&Stmt.Init{init: {expr, name: items}});
+      gen_stmt(&Stmt.Init{init: {expr, name: items}, expr.pos});
       genln();
       // TODO Even if length is const, index, shouldn't be.
       let mut access = is_ptr ? "->" : ".";
@@ -915,6 +904,14 @@ def gen_stmt(stmt: &Stmt) {
           index,
         );
       } if;
+      if (func.params.length > 1) {
+        // Assign the explicit index var, which doesn't affect iteration, since
+        // the actual index var is entirely hidden.
+        genln();
+        buf_printf(
+          &gen_buf, "%s %s = %s;", length_decl, func.params[1].name, index,
+        );
+      }
       // Manually loop on statements here to avoid more block nesting.
       for (block.stmts) do(stmt) {
         gen_stmt(stmt);
