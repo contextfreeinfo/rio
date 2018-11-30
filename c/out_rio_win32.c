@@ -7154,7 +7154,7 @@ rio_Stmt (*rio_parse_stmt_for_each(rio_SrcPos pos, bool get_ref, rio_Expr (*expr
 rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
   bool get_ref = rio_match_token((rio_TokenKind_And));
   rio_expect_token((rio_TokenKind_Lparen));
-  rio_Stmt (*init) = NULL;
+  rio_Stmt (*init) = {0};
   if (!(rio_is_token((rio_TokenKind_Semicolon)))) {
     init = rio_parse_simple_stmt();
   }
@@ -7165,11 +7165,11 @@ rio_Stmt (*rio_parse_stmt_for(rio_SrcPos pos)) {
     rio_fatal_error(pos, "Ref requested for segmented for loop");
   }
   rio_expect_token((rio_TokenKind_Semicolon));
-  rio_Expr (*cond) = NULL;
+  rio_Expr (*cond) = {0};
   if (!(rio_is_token((rio_TokenKind_Semicolon)))) {
     cond = rio_parse_expr();
   }
-  rio_Stmt (*next) = NULL;
+  rio_Stmt (*next) = {0};
   if (rio_match_token((rio_TokenKind_Semicolon))) {
     if (!(rio_is_token((rio_TokenKind_Rparen)))) {
       next = rio_parse_simple_stmt();
@@ -7209,7 +7209,7 @@ rio_SwitchCase rio_parse_stmt_switch_case(void) {
 }
 
 rio_Stmt (*rio_parse_stmt_switch(rio_SrcPos pos)) {
-  rio_Expr (*expr) = rio_parse_paren_expr();
+  rio_Expr (*const (expr)) = rio_parse_paren_expr();
   rio_SwitchCase (*cases) = {0};
   rio_expect_token((rio_TokenKind_Lbrace));
   while ((!(rio_is_token_eof())) && (!(rio_is_token((rio_TokenKind_Rbrace))))) {
@@ -7287,7 +7287,7 @@ char const ((*rio_parse_name(void))) {
 rio_EnumItem rio_parse_decl_enum_item(void) {
   rio_SrcPos pos = rio_token.pos;
   char const ((*name)) = rio_parse_name();
-  rio_Expr (*init) = NULL;
+  rio_Expr (*init) = {0};
   if (rio_match_token((rio_TokenKind_Assign))) {
     init = rio_parse_expr();
   }
@@ -7295,16 +7295,16 @@ rio_EnumItem rio_parse_decl_enum_item(void) {
 }
 
 rio_Decl (*rio_parse_decl_enum(rio_SrcPos pos)) {
-  char const ((*name)) = NULL;
+  char const ((*name)) = {0};
   if (rio_is_token((rio_TokenKind_Name))) {
     name = rio_parse_name();
   }
-  rio_Typespec (*type) = NULL;
+  rio_Typespec (*type) = {0};
   if (rio_match_token((rio_TokenKind_Assign))) {
     type = rio_parse_type();
   }
   rio_expect_token((rio_TokenKind_Lbrace));
-  rio_EnumItem (*items) = NULL;
+  rio_EnumItem (*items) = {0};
   while (!(rio_is_token((rio_TokenKind_Rbrace)))) {
     rio_EnumItem item = rio_parse_decl_enum_item();
     rio_buf_push((void (**))(&(items)), &(item), sizeof(item));
@@ -8627,8 +8627,11 @@ rio_Type (*rio_resolve_init(rio_SrcPos pos, rio_Typespec (*typespec), rio_Expr (
   } else {
     assert(expr);
     rio_Operand operand = rio_resolve_expr(expr);
-    if ((!(is_mut)) && (!(rio_is_const_type(operand.type)))) {
-      type = rio_type_const(operand.type);
+    if (!(is_mut)) {
+      type = operand.type;
+      if (!(rio_is_const_type(operand.type))) {
+        type = rio_type_const(type);
+      }
     } else {
       type = rio_unqualify_type(operand.type);
     }
@@ -8813,7 +8816,7 @@ void rio_resolve_stmt_assign(rio_Stmt (*stmt)) {
 
 void rio_resolve_stmt_init(rio_Stmt (*stmt)) {
   assert((stmt->kind) == ((rio_Stmt_Init)));
-  if ((!(stmt->init.is_mut)) && (stmt->init.type)) {
+  if (((!(stmt->init.is_mut)) && (stmt->init.type)) && ((stmt->init.type->kind) != ((rio_Typespec_Const)))) {
     stmt->init.type = rio_new_typespec_const(stmt->init.type->pos, stmt->init.type);
   }
   rio_Type (*type) = rio_resolve_init(stmt->pos, stmt->init.type, stmt->init.expr, stmt->init.is_mut);
@@ -9086,14 +9089,15 @@ void rio_resolve_for_each(rio_Stmt (*stmt), rio_Type (*ret_type), rio_StmtCtx ct
 
 rio_Type (*rio_resolve_item_type(rio_SrcPos pos, rio_Operand operand)) {
   rio_Operand items = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("items"));
-  if ((items.type->kind) != ((rio_CompilerTypeKind_Ptr))) {
+  rio_Type (*type) = rio_unqualify_type(items.type);
+  if ((type->kind) != ((rio_CompilerTypeKind_Ptr))) {
     rio_fatal_error(pos, "Items collection must be a pointer");
   }
-  return items.type->base;
+  return type->base;
 }
 
 rio_Type (*rio_resolve_length_type(rio_SrcPos pos, rio_Operand operand)) {
-  rio_Type (*length_type) = rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("length")).type;
+  rio_Type (*length_type) = rio_unqualify_type(rio_resolve_expr_aggregate_field(pos, operand, rio_str_intern("length")).type);
   if (!(rio_is_integer_type(length_type))) {
     rio_fatal_error(pos, "Length must have integer type");
   }

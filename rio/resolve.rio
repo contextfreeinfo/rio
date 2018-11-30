@@ -945,8 +945,11 @@ def resolve_init(
   } else {
     #assert(expr);
     let operand = resolve_expr(expr);
-    if (!is_mut && !is_const_type(operand.type)) {
-      type = type_const(operand.type);
+    if (!is_mut) {
+      type = operand.type;
+      if (!is_const_type(operand.type)) {
+        type = type_const(type);
+      }
     } else {
       type = unqualify_type(operand.type);
     }
@@ -1151,7 +1154,10 @@ def resolve_stmt_assign(stmt: &Stmt) {
 
 def resolve_stmt_init(stmt: &Stmt) {
   #assert(stmt.kind == Stmt.Init);
-  if (!stmt.init.is_mut && stmt.init.type) {
+  if (
+    !stmt.init.is_mut && stmt.init.type &&
+    stmt.init.type.kind != Typespec.Const
+  ) {
     // Wrap it for now so we output the right thing later.
     // TODO Different kind of stmt so we can handle differently throughoutt?
     stmt.init.type = new_typespec_const(stmt.init.type.pos, stmt.init.type);
@@ -1405,16 +1411,19 @@ def resolve_for_each(stmt: &Stmt, ret_type: &Type, ctx: StmtCtx) {
 def resolve_item_type(pos: SrcPos, operand: Operand) -> &Type {
   // TODO Pre-intern these strings!!!
   let mut items = resolve_expr_aggregate_field(pos, operand, str_intern("items"));
-  if (items.type.kind != CompilerTypeKind.Ptr) {
+  // TODO We really ought to make sure any const propagates here.
+  let type = unqualify_type(items.type);
+  if (type.kind != CompilerTypeKind.Ptr) {
     fatal_error(pos, "Items collection must be a pointer");
   }
-  return items.type.base;
+  return type.base;
 }
 
 def resolve_length_type(pos: SrcPos, operand: Operand) -> &Type {
   // TODO Pre-intern these strings!!!
-  let mut length_type =
-    resolve_expr_aggregate_field(pos, operand, str_intern("length")).type;
+  let mut length_type = unqualify_type(
+    resolve_expr_aggregate_field(pos, operand, str_intern("length")).type,
+  );
   // TODO Be narrower than just integer?
   if (!is_integer_type(length_type)) {
     fatal_error(pos, "Length must have integer type");

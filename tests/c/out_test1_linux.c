@@ -531,7 +531,7 @@ void test1_print_typeid(typeid type);
 #define TYPEID0(index, kind) ((ullong)(index) | ((ullong)(kind) << 24))
 #define TYPEID(index, kind, ...) ((ullong)(index) | ((ullong)sizeof(__VA_ARGS__) << 32) | ((ullong)(kind) << 24))
 
-const TypeInfo *typeinfo_table[347] = {
+const TypeInfo *typeinfo_table[349] = {
   [0] = NULL, // No associated type
   [1] = &(TypeInfo){TypeKind_Void, .name = "void", .size = 0, .align = 0},
   [2] = &(TypeInfo){TypeKind_Bool, .size = sizeof(bool), .align = sizeof(bool), .name = "bool"},
@@ -699,9 +699,9 @@ const TypeInfo *typeinfo_table[347] = {
   [111] = &(TypeInfo){TypeKind_Array, .size = sizeof(uint [3]), .align = alignof(uint [3]), .base = TYPEID(9, TypeKind_UInt, uint), .count = 3},
   [112] = NULL, // Function
   [113] = &(TypeInfo){TypeKind_Ptr, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(9, TypeKind_UInt, uint)},
-  [114] = &(TypeInfo){TypeKind_Array, .size = sizeof(int [4]), .align = alignof(int [4]), .base = TYPEID(8, TypeKind_Int, int), .count = 4},
-  [115] = &(TypeInfo){TypeKind_Const, .size = sizeof(double const ), .align = alignof(double const ), .base = TYPEID(15, TypeKind_Double, double)},
-  [116] = &(TypeInfo){TypeKind_Const, .size = sizeof(uint const ), .align = alignof(uint const ), .base = TYPEID(9, TypeKind_UInt, uint)},
+  [114] = &(TypeInfo){TypeKind_Const, .size = sizeof(uint const ), .align = alignof(uint const ), .base = TYPEID(9, TypeKind_UInt, uint)},
+  [115] = &(TypeInfo){TypeKind_Array, .size = sizeof(int [4]), .align = alignof(int [4]), .base = TYPEID(8, TypeKind_Int, int), .count = 4},
+  [116] = &(TypeInfo){TypeKind_Const, .size = sizeof(double const ), .align = alignof(double const ), .base = TYPEID(15, TypeKind_Double, double)},
   [117] = &(TypeInfo){TypeKind_Const, .size = sizeof(long const ), .align = alignof(long const ), .base = TYPEID(10, TypeKind_Long, long)},
   [118] = &(TypeInfo){TypeKind_Const, .size = sizeof(ulong const ), .align = alignof(ulong const ), .base = TYPEID(11, TypeKind_ULong, ulong)},
   [119] = &(TypeInfo){TypeKind_Const, .size = sizeof(llong const ), .align = alignof(llong const ), .base = TYPEID(12, TypeKind_LLong, llong)},
@@ -1011,9 +1011,11 @@ const TypeInfo *typeinfo_table[347] = {
   [344] = NULL, // Function
   [345] = &(TypeInfo){TypeKind_Array, .size = sizeof(int [9]), .align = alignof(int [9]), .base = TYPEID(8, TypeKind_Int, int), .count = 9},
   [346] = NULL, // No associated type
+  [347] = &(TypeInfo){TypeKind_Const, .size = sizeof(int (*const )), .align = alignof(int (*const )), .base = TYPEID(52, TypeKind_Ptr, int *)},
+  [348] = &(TypeInfo){TypeKind_Const, .size = sizeof(void (*const )), .align = alignof(void (*const )), .base = TYPEID(16, TypeKind_Ref, void *)},
 };
 
-int num_typeinfos = 347;
+int num_typeinfos = 349;
 const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;
 
 // Definitions
@@ -1338,7 +1340,7 @@ void test1_test_enum(void) {
   test1_Color b = (test1_Color_Red);
   int c = (a) + (b);
   int const ((*x)) = &(c);
-  int i = a;
+  int const (i) = a;
   a = i;
   printf("%d %d %d %d\n", (test1_Color_None), (test1_Color_Red), (test1_Color_Green), (test1_Color_Blue));
   printf("No color: %s\n", test1_color_names[(test1_Color_None)]);

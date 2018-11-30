@@ -95,7 +95,7 @@ def test_arrays() {
   f10(a);
   let mut b = a;
   let mut w1: wchar;
-  let mut w2 = w1;
+  let w2 = w1;
 }
 
 def test_loops() {
@@ -210,7 +210,7 @@ union IntOrPtr {
   p: *int;
 }
 
-let mut char_to_escape: [256]const char = [
+let char_to_escape: [256]const char = [
   '\0': '0',
   '\n': 'n',
   '\r': 'r',
@@ -223,7 +223,7 @@ let mut char_to_escape: [256]const char = [
   '\'': '\'',
 ];
 
-let mut escape_to_char: [256]const char = [
+let escape_to_char: [256]const char = [
   '0': '\0',
   '\'': '\'',
   '"': '"',
@@ -351,7 +351,7 @@ def test_enum() {
   let c = a + b;
   let mut x = &c;
   // ++*x;
-  let mut i: int = a;
+  let i: int = a;
   a = i;
   printf(
     "%d %d %d %d\n",
@@ -486,9 +486,9 @@ def f5(p: *const int) {
 
 def test_convert() {
   let mut a: *const int = 0;
-  let mut b: *int = 0;
+  let b: *int = 0;
   a = b;
-  let mut p: &void = 0;
+  let p: &void = 0;
   f5(p);
 }
 

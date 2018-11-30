@@ -653,9 +653,9 @@ def parse_stmt_for_each(pos: SrcPos, get_ref: bool, expr: &Expr) -> &Stmt {
 }
 
 def parse_stmt_for(pos: SrcPos) -> &Stmt {
-  let mut get_ref = match_token(TokenKind.And);
+  let get_ref = match_token(TokenKind.And);
   expect_token(TokenKind.Lparen);
-  let mut init: &Stmt = NULL;
+  let mut init: &Stmt;
   if (!is_token(TokenKind.Semicolon)) {
     // TODO "For in" loops before we get back to generics.
     init = parse_simple_stmt();
@@ -667,11 +667,11 @@ def parse_stmt_for(pos: SrcPos) -> &Stmt {
     fatal_error(pos, "Ref requested for segmented for loop");
   }
   expect_token(TokenKind.Semicolon);
-  let mut cond: &Expr = NULL;
+  let mut cond: &Expr;
   if (!is_token(TokenKind.Semicolon)) {
     cond = parse_expr();
   }
-  let mut next: &Stmt = NULL;
+  let mut next: &Stmt;
   if (match_token(TokenKind.Semicolon)) {
     if (!is_token(TokenKind.Rparen)) {
       next = parse_simple_stmt();
@@ -688,7 +688,7 @@ def parse_switch_case_pattern() -> SwitchCasePattern {
   if (match_keyword(default_keyword)) {
     return SwitchCasePattern {is_default: true};
   }
-  let mut start = parse_expr();
+  let start = parse_expr();
   let mut end: &Expr;
   if (match_token(TokenKind.Ellipsis)) {
     end = parse_expr();
@@ -715,7 +715,7 @@ def parse_stmt_switch_case() -> SwitchCase {
 }
 
 def parse_stmt_switch(pos: SrcPos) -> &Stmt {
-  let mut expr: &Expr = parse_paren_expr();
+  let expr: &Expr = parse_paren_expr();
   let mut cases: *SwitchCase;
   expect_token(TokenKind.Lbrace);
   while (!is_token_eof() && !is_token(TokenKind.Rbrace)) {
@@ -727,8 +727,8 @@ def parse_stmt_switch(pos: SrcPos) -> &Stmt {
 }
 
 def parse_stmt() -> &Stmt {
-  let mut notes = parse_notes();
-  let mut pos = token.pos;
+  let notes = parse_notes();
+  let pos = token.pos;
   let mut stmt: &Stmt;
   if (match_keyword(if_keyword)) {
     if (match_token(TokenKind.Semicolon)) {
@@ -768,7 +768,7 @@ def parse_stmt() -> &Stmt {
     expect_token(TokenKind.Semicolon);
     stmt = new_stmt_return(pos, expr);
   } else if (match_token(TokenKind.Pound)) {
-    let mut note: Note = parse_note();
+    let note = parse_note();
     expect_token(TokenKind.Semicolon);
     stmt = new_stmt_note(pos, note);
   } else if (match_keyword(goto_keyword)) {
@@ -785,15 +785,15 @@ def parse_stmt() -> &Stmt {
 }
 
 def parse_name() -> *const char {
-  let mut name = token.name;
+  let name = token.name;
   expect_token(TokenKind.Name);
   return name;
 }
 
 def parse_decl_enum_item() -> EnumItem {
-  let mut pos = token.pos;
-  let mut name = parse_name();
-  let mut init: &Expr = NULL;
+  let pos = token.pos;
+  let name = parse_name();
+  let mut init: &Expr;
   if (match_token(TokenKind.Assign)) {
     init = parse_expr();
   }
@@ -801,16 +801,16 @@ def parse_decl_enum_item() -> EnumItem {
 }
 
 def parse_decl_enum(pos: SrcPos) -> &Decl {
-  let mut name: *const char = NULL;
+  let mut name: *const char;
   if (is_token(TokenKind.Name)) {
     name = parse_name();
   }
-  let mut type: &Typespec = NULL;
+  let mut type: &Typespec;
   if (match_token(TokenKind.Assign)) {
     type = parse_type();
   }
   expect_token(TokenKind.Lbrace);
-  let mut items: *EnumItem = NULL;
+  let mut items: *EnumItem;
   while (!is_token(TokenKind.Rbrace)) {
     let mut item = parse_decl_enum_item();
     buf_push(&items as &&void, &item, sizeof(item));
@@ -823,23 +823,23 @@ def parse_decl_enum(pos: SrcPos) -> &Decl {
 }
 
 def parse_decl_aggregate_item() -> Member {
-  let mut pos = token.pos;
+  let pos = token.pos;
   if (match_keyword(struct_keyword)) {
     return {
-      pos: pos,
+      pos,
       kind: Member.Subaggregate,
       subaggregate: parse_aggregate(AggregateKind.Struct, NULL, NULL),
     };
   } else if (match_keyword(union_keyword)) {
     return {
-      pos: pos,
+      pos,
       kind: Member.Subaggregate,
       subaggregate: parse_aggregate(AggregateKind.Union, NULL, NULL),
     };
   } else {
-    let mut name = parse_name();
+    let name = parse_name();
     expect_token(TokenKind.Colon);
-    let mut type = parse_type();
+    let type = parse_type();
     expect_token(TokenKind.Semicolon);
     return Member.Field{name, pos, type};
   } if;
@@ -950,7 +950,7 @@ def parse_switch_union() -> *Member {
       buf_push(&kind_names as &&void, &kind_name, sizeof(kind_name));
     }
     expect_token(TokenKind.Spear);
-    let mut pos = token.pos;
+    let pos = token.pos;
     let mut item: Member;
     if (match_token(TokenKind.Colon)) {
       let mut type = parse_type();

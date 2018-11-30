@@ -738,6 +738,8 @@ def gen_simple_stmt(stmt: &Stmt) {
         }
       } else {
         buf_printf(&gen_buf, "%s = ", type_to_cdecl(
+          // TODO We really should retain constness, except there's some
+          // TODO confusion elsewhere that causes trouble with this.
           unqualify_type(get_resolved_type(stmt.init.expr)), stmt.init.name,
         ));
         gen_expr(stmt.init.expr);
