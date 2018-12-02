@@ -37,7 +37,7 @@ My goals for Rio are to have a fast-compiling and out-of-your-way yet safer C.
 And no garbage collection, eh?
 Compiling to js and glsl might also be cool.
 
-See also the [Ion motivation document](https://github.com/pervognsen/bitwise/blob/master/notes/rio_motivation.md)
+See also the [Ion motivation document](https://github.com/pervognsen/bitwise/blob/master/notes/ion_motivation.md)
 for some of the original goals of Ion.
 In my own opinion, the non-goals of Ion (such the "no 'best language ever'
 syndrome") have actually allowed it to be better than some alternatives.
