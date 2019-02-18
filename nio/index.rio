@@ -37,7 +37,8 @@ def main(argc: int, argv: **char) -> int {
 }
 
 def run(options: Options) {
-  let lex = init_lex(options.in);
   printf("in: %s\n", options.in);
   printf("out: %s\n", options.out);
+  let lex = init_lex(options.in);
+  gen(options.out);
 }

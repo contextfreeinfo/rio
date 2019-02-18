@@ -227,6 +227,8 @@ struct nio_Lex {
 
 nio_Lex nio_init_lex(nio_String path);
 
+void nio_gen(nio_String path);
+
 char (*nio_read_file(char (*path)));
 
 void (*nio_xmalloc(size_t num_bytes));
@@ -292,14 +294,27 @@ TypeInfo const ((*get_typeinfo(typeid type))) {
 }
 
 void nio_run(nio_Options options) {
-  nio_Lex lex = nio_init_lex(options.in);
   printf("in: %s\n", options.in);
   printf("out: %s\n", options.out);
+  nio_Lex lex = nio_init_lex(options.in);
+  nio_gen(options.out);
 }
 
 nio_Lex nio_init_lex(nio_String path) {
   char (*code) = nio_read_file(path);
   return (nio_Lex){0};
+}
+
+void nio_gen(nio_String path) {
+  FILE (*file) = fopen(path, "wb");
+  if (!(file)) {
+    printf("Failed to write: %s\n", path);
+    exit(1);
+  }
+  fprintf(file, "int main() {\n");
+  fprintf(file, "  return 0;\n");
+  fprintf(file, "}\n");
+  fclose(file);
 }
 
 char (*nio_read_file(char (*path))) {
