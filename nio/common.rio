@@ -1,0 +1,29 @@
+typedef String = *char;
+
+def read_file(path: *char) -> *char {
+  let mut file = fopen(path, "rb");
+  if (!file) {
+    return NULL;
+  }
+  fseek(file, 0, SEEK_END);
+  let mut len = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  let mut buf: *char = xmalloc(len + 1);
+  if (len && fread(buf, len, 1, file) != 1) {
+    fclose(file);
+    free(buf);
+    return NULL;
+  }
+  fclose(file);
+  buf[len] = 0;
+  return buf;
+}
+
+def xmalloc(num_bytes: usize) -> &void {
+  let mut ptr = malloc(num_bytes);
+  if (!ptr) {
+    perror("xmalloc failed");
+    exit(1);
+  }
+  return ptr;
+}

@@ -1,3 +1,5 @@
+/bin/nio
+/bin/nio.*
 /bin/rio
 /bin/rio.*
 /old/build*/

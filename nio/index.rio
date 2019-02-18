@@ -1,0 +1,43 @@
+import libc {...}
+
+enum OptionKey {
+  None,
+  Out
+}
+
+struct Options {
+  in: *char;
+  out: *char;
+}
+
+def main(argc: int, argv: **char) -> int {
+  let args: Slice<*char> = (argv + 1, argc - 1);
+  let mut key = OptionKey.None;
+  let mut options: Options;
+  for (args) do(arg) {
+    // Handle arg value.
+    if (key) {
+      switch (key) {
+        Out => {
+          options.out = arg;
+        }
+      }
+      key = OptionKey.None;
+    } else {
+      // Find arg key.
+      if (!strcmp(arg, "-o")) {
+        key = OptionKey.Out;
+      } else {
+        options.in = arg;
+      }
+    }
+  }
+  run(options);
+  return 0;
+}
+
+def run(options: Options) {
+  let lex = init_lex(options.in);
+  printf("in: %s\n", options.in);
+  printf("out: %s\n", options.out);
+}

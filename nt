@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+rio_dir="$(dirname "$(readlink -f "$0")")"
+export PATH="$rio_dir/bin:$PATH"
+
+cd "$rio_dir"
+brio -nosourcemap -notypeinfo -o c/out_nio_linux.c nio
+gcc -o bin/nio c/out_nio_linux.c
+
+cd tests/nio
+nio -o c/out_test1_linux.c test1
+gcc -o run/test1 c/out_test1_linux.c
+
+cd run
+./test1 > out_test1_linux.txt

@@ -1,0 +1,19 @@
+struct Lex {
+  code: String;
+}
+
+struct Token {
+  union switch {
+    CurlyBegin, CurlyEnd => :void;
+    Def => :void;
+    Id, Int, Str => text: String;
+    RoundBegin, RoundEnd => :void;
+    Return => :void;
+    Semi => :void;
+  }
+}
+
+def init_lex(path: String) -> Lex {
+  let code = read_file(path);
+  return {};
+}

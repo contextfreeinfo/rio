@@ -7790,7 +7790,7 @@ bool rio_is_local_sym(rio_Sym (*sym)) {
 }
 
 rio_Sym (*rio_sym_new(rio_Sym_Kind kind, char const ((*name)), rio_Decl (*decl))) {
-  rio_Sym (*sym) = rio_xcalloc(1, sizeof(rio_Sym));
+  rio_Sym (*const (sym)) = rio_xcalloc(1, sizeof(rio_Sym));
   sym->kind = kind;
   sym->name = name;
   sym->decl = decl;
