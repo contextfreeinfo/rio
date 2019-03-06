@@ -63,14 +63,16 @@ typedef struct tm tm_t;
 // Forward declarations
 typedef struct Slice_TypeFieldInfo Slice_TypeFieldInfo;
 typedef struct TypeInfo TypeInfo;
-typedef struct nio_Slice_ptr_char nio_Slice_ptr_char;
+typedef struct nio_Slice_String nio_Slice_String;
 typedef struct nio_Options nio_Options;
 typedef struct TypeFieldInfo TypeFieldInfo;
 typedef struct Any Any;
 typedef struct nio_Lex nio_Lex;
 
 // Sorted declarations
-int main(int argc, char (*(*argv)));
+typedef char (*nio_String);
+
+int main(int argc, nio_String (*argv));
 
 typedef int Result_Kind;
 
@@ -188,8 +190,8 @@ TypeInfo const ((*get_typeinfo(typeid type)));
 
 #define UINTPTR_MIN (UINT64_MIN)
 
-struct nio_Slice_ptr_char {
-  char (*(*items));
+struct nio_Slice_String {
+  nio_String (*items);
   size_t length;
 };
 
@@ -198,8 +200,8 @@ typedef int nio_OptionKey;
 #define nio_OptionKey_None ((nio_OptionKey)(0))
 
 struct nio_Options {
-  char (*in);
-  char (*out);
+  nio_String in;
+  nio_String out;
 };
 
 #define nio_OptionKey_Out ((nio_OptionKey)((nio_OptionKey_None) + (1)))
@@ -218,8 +220,6 @@ struct Any {
   void (*ptr);
   typeid type;
 };
-
-typedef char (*nio_String);
 
 struct nio_Lex {
   nio_String code;
@@ -241,12 +241,12 @@ int num_typeinfos;
 const TypeInfo **typeinfos;
 
 // Definitions
-int main(int argc, char (*(*argv))) {
-  nio_Slice_ptr_char const (args) = {(argv) + (1), (argc) - (1)};
+int main(int argc, nio_String (*argv)) {
+  nio_Slice_String const (args) = {(argv) + (1), (argc) - (1)};
   nio_OptionKey key = (nio_OptionKey_None);
   nio_Options options = {0};
   {
-    nio_Slice_ptr_char items__ = args;
+    nio_Slice_String items__ = args;
     for (size_t i__ = 0; i__ < items__.length; ++i__) {
       char (*arg) = items__.items[i__];
       if (key) {

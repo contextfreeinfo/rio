@@ -6,6 +6,7 @@
 /notes/
 /old/rust/target/
 /old/target/
+/tests/nio/run/test*
 /tests/run/test*
 /.vs/
 /.vscode/
