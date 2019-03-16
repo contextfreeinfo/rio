@@ -67,7 +67,9 @@ typedef struct nio_Slice_String nio_Slice_String;
 typedef struct nio_Options nio_Options;
 typedef struct TypeFieldInfo TypeFieldInfo;
 typedef struct Any Any;
+typedef struct nio_Slice_char nio_Slice_char;
 typedef struct nio_Lex nio_Lex;
+typedef struct nio_Token nio_Token;
 
 // Sorted declarations
 typedef char (*nio_String);
@@ -195,16 +197,12 @@ struct nio_Slice_String {
   size_t length;
 };
 
-typedef int nio_OptionKey;
-
-#define nio_OptionKey_None ((nio_OptionKey)(0))
-
 struct nio_Options {
   nio_String in;
   nio_String out;
 };
 
-#define nio_OptionKey_Out ((nio_OptionKey)((nio_OptionKey_None) + (1)))
+nio_Options nio_parse_args(nio_Slice_String args);
 
 void nio_run(nio_Options options);
 
@@ -221,15 +219,58 @@ struct Any {
   typeid type;
 };
 
-struct nio_Lex {
-  nio_String code;
-};
+typedef int nio_OptionKey;
 
-nio_Lex nio_init_lex(nio_String path);
+#define nio_OptionKey_None ((nio_OptionKey)(0))
+
+#define nio_OptionKey_Out ((nio_OptionKey)((nio_OptionKey_None) + (1)))
+
+void nio_parse(nio_String in);
 
 void nio_gen(nio_String path);
 
-char (*nio_read_file(char (*path)));
+struct nio_Slice_char {
+  char (*items);
+  size_t length;
+};
+
+struct nio_Lex {
+  nio_Slice_char code;
+  int index;
+};
+
+nio_Lex nio_lex_init(nio_String path);
+
+typedef int nio_Token_Kind;
+
+struct nio_Token {
+  nio_Token_Kind kind;
+  union {
+    // void;
+    // void;
+    // void;
+    // void;
+    nio_String text;
+    // void;
+    // void;
+    // void;
+    // void;
+  };
+};
+
+nio_Token nio_lex_next(nio_Lex (*lex));
+
+#define nio_Token_Comma ((nio_Token_Kind)(0))
+
+#define nio_Token_CurlyBegin ((nio_Token_Kind)((nio_Token_Comma) + (1)))
+
+#define nio_Token_CurlyEnd ((nio_Token_Kind)((nio_Token_CurlyBegin) + (1)))
+
+#define nio_Token_Def ((nio_Token_Kind)((nio_Token_CurlyEnd) + (1)))
+
+#define nio_Token_Eof ((nio_Token_Kind)((nio_Token_Def) + (1)))
+
+nio_Slice_char nio_read_file(char (*path));
 
 void (*nio_xmalloc(size_t num_bytes));
 
@@ -242,30 +283,7 @@ const TypeInfo **typeinfos;
 
 // Definitions
 int main(int argc, nio_String (*argv)) {
-  nio_Slice_String const (args) = {(argv) + (1), (argc) - (1)};
-  nio_OptionKey key = (nio_OptionKey_None);
-  nio_Options options = {0};
-  {
-    nio_Slice_String items__ = args;
-    for (size_t i__ = 0; i__ < items__.length; ++i__) {
-      char (*arg) = items__.items[i__];
-      if (key) {
-        switch (key) {
-        case nio_OptionKey_Out: {
-          options.out = arg;
-          break;
-        }
-        }
-        key = (nio_OptionKey_None);
-      } else {
-        if (!(strcmp(arg, "-o"))) {
-          key = (nio_OptionKey_Out);
-        } else {
-          options.in = arg;
-        }
-      }
-    }
-  }
+  nio_Options options = nio_parse_args((nio_Slice_String){(argv) + (1), (argc) - (1)});
   nio_run(options);
   return 0;
 }
@@ -293,16 +311,54 @@ TypeInfo const ((*get_typeinfo(typeid type))) {
   }
 }
 
+nio_Options nio_parse_args(nio_Slice_String args) {
+  nio_OptionKey key = (nio_OptionKey_None);
+  nio_Options options = {0};
+  {
+    nio_Slice_String items__ = args;
+    for (size_t i__ = 0; i__ < items__.length; ++i__) {
+      char (*arg) = items__.items[i__];
+      if (key) {
+        switch (key) {
+        case nio_OptionKey_Out: {
+          options.out = arg;
+          break;
+        }
+        }
+        key = (nio_OptionKey_None);
+      } else {
+        if (!(strcmp(arg, "-o"))) {
+          key = (nio_OptionKey_Out);
+        } else {
+          options.in = arg;
+        }
+      }
+    }
+  }
+  return options;
+}
+
 void nio_run(nio_Options options) {
   printf("in: %s\n", options.in);
   printf("out: %s\n", options.out);
-  nio_Lex lex = nio_init_lex(options.in);
-  nio_gen(options.out);
+  if ((options.in) && (options.out)) {
+    nio_parse(options.in);
+    nio_gen(options.out);
+  }
 }
 
-nio_Lex nio_init_lex(nio_String path) {
-  char (*code) = nio_read_file(path);
-  return (nio_Lex){0};
+void nio_parse(nio_String in) {
+  nio_Lex lex = nio_lex_init(in);
+  bool more = true;
+  while (more) {
+    nio_Token token = nio_lex_next(&(lex));
+    switch (token.kind) {
+    case nio_Token_Eof: {
+      more = false;
+      break;
+    }
+    }
+  }
 }
 
 void nio_gen(nio_String path) {
@@ -317,10 +373,24 @@ void nio_gen(nio_String path) {
   fclose(file);
 }
 
-char (*nio_read_file(char (*path))) {
+nio_Lex nio_lex_init(nio_String path) {
+  nio_Slice_char code = nio_read_file(path);
+  return (nio_Lex){.code = code};
+}
+
+nio_Token nio_lex_next(nio_Lex (*lex)) {
+  int next_index = lex->index;
+  while ((next_index) < (lex->code.length)) {
+    ++(next_index);
+  }
+  lex->index = next_index;
+  return (nio_Token){(nio_Token_Eof)};
+}
+
+nio_Slice_char nio_read_file(char (*path)) {
   FILE (*file) = fopen(path, "rb");
   if (!(file)) {
-    return NULL;
+    return (nio_Slice_char){NULL};
   }
   fseek(file, 0, SEEK_END);
   long len = ftell(file);
@@ -329,11 +399,11 @@ char (*nio_read_file(char (*path))) {
   if ((len) && ((fread(buf, len, 1, file)) != (1))) {
     fclose(file);
     free(buf);
-    return NULL;
+    return (nio_Slice_char){NULL};
   }
   fclose(file);
   buf[len] = 0;
-  return buf;
+  return (nio_Slice_char){buf, len};
 }
 
 void (*nio_xmalloc(size_t num_bytes)) {

@@ -1,9 +1,9 @@
 typedef String = *char;
 
-def read_file(path: *char) -> *char {
+def read_file(path: *char) -> Slice<char> {
   let mut file = fopen(path, "rb");
   if (!file) {
-    return NULL;
+    return (NULL,);
   }
   fseek(file, 0, SEEK_END);
   let mut len = ftell(file);
@@ -12,11 +12,11 @@ def read_file(path: *char) -> *char {
   if (len && fread(buf, len, 1, file) != 1) {
     fclose(file);
     free(buf);
-    return NULL;
+    return (NULL,);
   }
   fclose(file);
   buf[len] = 0;
-  return buf;
+  return (buf, len);
 }
 
 def xmalloc(num_bytes: usize) -> &void {
