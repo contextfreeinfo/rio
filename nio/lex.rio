@@ -1,9 +1,20 @@
 struct Lex {
   code: Slice<char>;
+  col: int;
   index: int;
+  path: String;
+  row: int;
+}
+
+struct Pos {
+  col: int;
+  row: int;
 }
 
 struct Token {
+  begin: Pos;
+  end: Pos;
+  file: String;
   union switch {
     Comma => :void;
     CurlyBegin, CurlyEnd => :void;
@@ -19,14 +30,26 @@ struct Token {
 
 def lex_init(path: String) -> Lex {
   let code = read_file(path);
-  return {code};
+  return {code, path};
 }
 
 def lex_next(lex: &Lex) -> Token {
   let mut next_index = lex.index;
+  let code = lex.code;
   while (next_index < lex.code.length) {
+    let next = code[next_index];
+    next_index += 1;
+    switch (next) {
+      'A' ... 'Z', 'a' ... 'z', '_' => {
+        return lex_next_id(lex);
+      }
+    }
     ++next_index;
   }
   lex.index = next_index;
+  return Token.Eof();
+}
+
+def lex_next_id(lex: &Lex) -> Token {
   return Token.Eof();
 }

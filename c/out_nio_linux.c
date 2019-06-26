@@ -69,6 +69,7 @@ typedef struct TypeFieldInfo TypeFieldInfo;
 typedef struct Any Any;
 typedef struct nio_Slice_char nio_Slice_char;
 typedef struct nio_Lex nio_Lex;
+typedef struct nio_Pos nio_Pos;
 typedef struct nio_Token nio_Token;
 
 // Sorted declarations
@@ -236,15 +237,26 @@ struct nio_Slice_char {
 
 struct nio_Lex {
   nio_Slice_char code;
+  int col;
   int index;
+  nio_String path;
+  int row;
 };
 
 nio_Lex nio_lex_init(nio_String path);
 
 typedef int nio_Token_Kind;
 
+struct nio_Pos {
+  int col;
+  int row;
+};
+
 struct nio_Token {
   nio_Token_Kind kind;
+  nio_Pos begin;
+  nio_Pos end;
+  nio_String file;
   union {
     // void;
     // void;
@@ -271,6 +283,8 @@ nio_Token nio_lex_next(nio_Lex (*lex));
 #define nio_Token_Eof ((nio_Token_Kind)((nio_Token_Def) + (1)))
 
 nio_Slice_char nio_read_file(char (*path));
+
+nio_Token nio_lex_next_id(nio_Lex (*lex));
 
 void (*nio_xmalloc(size_t num_bytes));
 
@@ -375,12 +389,23 @@ void nio_gen(nio_String path) {
 
 nio_Lex nio_lex_init(nio_String path) {
   nio_Slice_char code = nio_read_file(path);
-  return (nio_Lex){.code = code};
+  return (nio_Lex){.code = code, .path = path};
 }
 
 nio_Token nio_lex_next(nio_Lex (*lex)) {
   int next_index = lex->index;
+  nio_Slice_char code = lex->code;
   while ((next_index) < (lex->code.length)) {
+    char next = code.items[next_index];
+    next_index += 1;
+    switch (next) {
+    case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z': 
+    case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u': case 'v': case 'w': case 'x': case 'y': case 'z': 
+    case '_': {
+      return nio_lex_next_id(lex);
+      break;
+    }
+    }
     ++(next_index);
   }
   lex->index = next_index;
@@ -404,6 +429,10 @@ nio_Slice_char nio_read_file(char (*path)) {
   fclose(file);
   buf[len] = 0;
   return (nio_Slice_char){buf, len};
+}
+
+nio_Token nio_lex_next_id(nio_Lex (*lex)) {
+  return (nio_Token){(nio_Token_Eof)};
 }
 
 void (*nio_xmalloc(size_t num_bytes)) {
