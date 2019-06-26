@@ -1,0 +1,11 @@
+// // Untyped constants/macros?
+// def pi = 3.14
+// // def macro(x) = x + 1
+// // Optional "shape" types on macro args????
+// def macro(x) {
+//   x + 1
+// }
+
+fun main() {
+  print("Hello!")
+}

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+if [[ "$1" == "-g" ]]; then
+  run=valgrind
+else
+  run=""
+fi
+
+mkdir -p bin
+cc -o bin/rio src/main.c
+$run ./bin/rio -i tests/test1.rio

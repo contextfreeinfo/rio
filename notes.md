@@ -1,0 +1,1 @@
+- Top level works. Auto include of `src` dirs, too.
