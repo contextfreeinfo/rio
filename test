@@ -7,5 +7,6 @@ else
 fi
 
 mkdir -p bin
-cc -o bin/rio src/main.c
-$run ./bin/rio -i tests/test1.rio
+# Use c++11 because it's nice but also old enough it has better support.
+time c++ -Wall -Wpedantic -std=c++11 -o bin/rio src/main.cpp
+time $run ./bin/rio -i tests/test1.rio

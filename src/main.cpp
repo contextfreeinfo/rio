@@ -1,7 +1,7 @@
 #include "rio.h"
 
-#include "common.c"
-#include "lex.c"
+#include "common.cpp"
+#include "lex.cpp"
 
 const Options parse_options(int argc, const char** argv) {
   Options options = {0};

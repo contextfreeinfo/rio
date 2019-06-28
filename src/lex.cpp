@@ -8,7 +8,7 @@ char* read_file(const char* name) {
   fseek(file, 0, SEEK_END);
   long len = ftell(file);
   fseek(file, 0, SEEK_SET);
-  char* buf = xmalloc(len + 1);
+  char* buf = static_cast<char*>(xmalloc(len + 1));
   if (len && fread(buf, len, 1, file) != 1) {
     fclose(file);
     free(buf);

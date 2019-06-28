@@ -1,9 +1,14 @@
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
-typedef struct Options {
+struct Options {
   char* in;
-} Options;
+};
+
+// private
+
+void fail(const char* message);
+void* xmalloc(size_t nbytes);
