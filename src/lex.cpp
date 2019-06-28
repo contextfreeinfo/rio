@@ -1,5 +1,7 @@
 #include "rio.h"
 
+namespace rio {
+
 char* read_file(const char* name) {
   FILE* file = fopen(name, "rb");
   if (!file) {
@@ -24,4 +26,6 @@ void lex(const Options* options) {
   printf("lex: %s\n", options->in);
   // printf("%s", buf);
   free(buf);
+}
+
 }
