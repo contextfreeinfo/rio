@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 // #include <stdexcept>
@@ -9,13 +10,50 @@
 
 namespace rio {
 
+// Int types.
+
+using i8 = int8_t;
+using i16 = int16_t;
+using i32 = int32_t;
+using i64 = int64_t;
+using isize = intptr_t;
+using u8 = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
+using usize = uintptr_t;
+
+// private
+
+enum struct Key {
+  Fun,
+};
+
 struct Options {
   char* in;
 };
 
-// private
+struct Token {
+  enum struct Kind {
+    // TODO Use cache files to remember ids of enums, so source order doesn't
+    // TODO matter.
+    Comment,
+    Eof,
+    Id,
+    Key,
+  };
+  Kind kind;
+  union {
+    Key key;
+  };
+  usize begin;
+  usize end;
+  const char* file;
+};
 
 void fail(const char* message);
-void* xmalloc(size_t nbytes);
+auto read_file(const char* name) -> char*;
+auto token_name(const Token& token) -> const char*;
+auto xmalloc(size_t nbytes) -> void*;
 
 }

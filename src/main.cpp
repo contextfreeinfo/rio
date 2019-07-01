@@ -22,6 +22,7 @@ const Options parse_options(int argc, const char** argv) {
 }
 
 void run(const Options* options) {
+  printf("in: %s\n", options->in);
   lex(options);
 }
 

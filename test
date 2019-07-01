@@ -2,11 +2,13 @@
 
 if [[ "$1" == "-g" ]]; then
   run=valgrind
+  opts=-g
 else
   run=""
+  opts=-O3
 fi
 
-mkdir -p bin
+mkdir -p bin || exit
 # Use c++11 because it's nice but also old enough it has better support.
-time c++ -Wall -Wpedantic -std=c++11 -o bin/rio src/main.cpp
-time $run ./bin/rio -i tests/test1.rio
+time c++ -Wall -Werror -Wpedantic -std=c++11 -o bin/rio src/main.cpp || exit
+time $run ./bin/rio -i tests/test1.rio || exit
