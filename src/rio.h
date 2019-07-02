@@ -67,7 +67,7 @@ struct Token {
     Key key;
   };
   Pos begin;
-  Pos end;
+  usize len;
   const char* file;
 };
 

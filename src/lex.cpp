@@ -67,9 +67,8 @@ void lex(Engine* engine) {
     auto token = next_token(buf, was_line_end);
     // Fix offsets based on global buffer state.
     buf += token.begin.index;
-    auto len = token.end.index;
+    auto len = token.len;
     token.begin.index = buf - start;
-    token.end.index += token.begin.index;
     buf += len;
     // Also fix line and col.
     if (token.begin.line) {
@@ -100,19 +99,11 @@ void lex(Engine* engine) {
     // Store file name.
     token.file = file;
     // Debug print.
-    bool file_end = token.kind == Token::Kind::FileEnd;
-    char old = file_end ? '\0' : start[token.end.index];
-    if (!file_end) {
-      start[token.end.index] = '\0';
-    }
     printf(
       "hey: %s (%zu, %zu)%s%s\n",
       token_name(token), token.begin.line, token.begin.col,
       has_text(token) ? ": " : "", token_text(token)
     );
-    if (!file_end) {
-      start[token.end.index] = old;
-    }
     // End at end. TODO Stream out tokens or pregenerate all?
     if (token.kind == Token::Kind::FileEnd) {
       break;
@@ -134,7 +125,7 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
   };
   auto simple_len = [&](Token::Kind kind, usize len) {
     Token token = {kind};
-    token.end.index = len;
+    token.len = len;
     return finish(token);
   };
   auto simple = [&](Token::Kind kind) {
@@ -190,7 +181,7 @@ auto next_token_comment(const char* buf) -> Token {
   for (; *buf && !is_vspace(*buf); buf += 1) {}
   return [&]() {
     Token token = {Token::Kind::Comment};
-    token.end.index = buf - start;
+    token.len = buf - start;
     return token;
   }();
 }
@@ -211,7 +202,7 @@ auto next_token_id(const char* buf) -> Token {
     if (key != Key::None) {
       token.key = key;
     }
-    token.end.index = len;
+    token.len = len;
     return token;
   }();
 }
@@ -234,7 +225,7 @@ auto next_token_string(const char* buf) -> Token {
   }
   return [&]() {
     Token token = {Token::Kind::String};
-    token.end.index = buf - start;
+    token.len = buf - start;
     return token;
   }();
 }
