@@ -8,7 +8,24 @@ void fail(const char* message) {
   // throw std::runtime_error(message);
 }
 
-char* read_file(const char* name) {
+auto intern(Engine* engine, const char* text, usize nbytes) -> const char* {
+  // This implementation depends on pointer data staying constant over map
+  // resizing, which would be the efficient way to do things.
+  // But is it guaranteed?
+  // TODO Should probably use a set instead of a map, if this works.
+  // TODO Also, replace all this with non-libc++ implementation.
+  std::string key{text, nbytes};
+  const char* value;
+  auto current = engine->ids.find(key);
+  if (current == engine->ids.end()) {
+    value = (engine->ids[key] = key).c_str();
+  } else {
+    value = current->second.c_str();
+  }
+  return value;
+}
+
+auto read_file(const char* name) -> char* {
   FILE* file = fopen(name, "rb");
   if (!file) {
     fail("bad file");

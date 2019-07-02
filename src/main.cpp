@@ -21,16 +21,17 @@ const Options parse_options(int argc, const char** argv) {
   return options;
 }
 
-void run(const Options* options) {
-  printf("in: %s\n", options->in);
-  lex(options);
+void run(Engine* engine) {
+  printf("in: %s\n", engine->options.in);
+  lex(engine);
 }
 
 }
 
 int main(int argc, const char** argv) {
   using namespace rio;
-  const Options options = parse_options(argc, argv);
-  run(&options);
+  Engine engine;
+  engine.options = parse_options(argc, argv);
+  run(&engine);
   return 0;
 }

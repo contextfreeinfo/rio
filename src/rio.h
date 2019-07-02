@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 // #include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -24,6 +26,9 @@ using u64 = uint64_t;
 using usize = uintptr_t;
 
 // private
+
+template<typename Key, typename Value>
+using Map = std::unordered_map<Key, Value>;
 
 enum struct Key {
   None,
@@ -58,6 +63,7 @@ struct Token {
   };
   Kind kind;
   union {
+    const char* text;
     Key key;
   };
   Pos begin;
@@ -65,9 +71,17 @@ struct Token {
   const char* file;
 };
 
+struct Engine {
+  Map<std::string, std::string> ids;
+  Options options = {0};
+};
+
 void fail(const char* message);
+auto has_text(const Token& token) -> bool;
+auto intern(Engine* engine, const char* text, usize nbytes) -> const char*;
 auto read_file(const char* name) -> char*;
 auto token_name(const Token& token) -> const char*;
-auto xmalloc(size_t nbytes) -> void*;
+auto token_text(const Token& token) -> const char*;
+auto xmalloc(usize nbytes) -> void*;
 
 }

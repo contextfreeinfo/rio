@@ -21,6 +21,19 @@ const KeyId key_ids[] = {
   {Key::Fun, "fun"},
 };
 
+auto has_text(const Token& token) -> bool {
+  switch (token.kind) {
+    case Token::Kind::Comment:
+    case Token::Kind::Id:
+    case Token::Kind::String: {
+      return true;
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
 auto is_hspace(char c) -> bool {
   return c == ' ' || c == '\t';
 }
@@ -41,8 +54,9 @@ auto is_vspace(char c) -> bool {
   return c == '\n' || c == '\r';
 }
 
-void lex(const Options* options) {
-  auto file = options->in;
+void lex(Engine* engine) {
+  auto& options = engine->options;
+  auto file = options.in;
   auto buf = read_file(file);
   const auto start = buf;
   usize line = 1;
@@ -79,6 +93,10 @@ void lex(const Options* options) {
       }
       col += len;
     }
+    // Intern strings.
+    if (has_text(token)) {
+      token.text = intern(engine, &start[token.begin.index], len);
+    }
     // Store file name.
     token.file = file;
     // Debug print.
@@ -88,9 +106,9 @@ void lex(const Options* options) {
       start[token.end.index] = '\0';
     }
     printf(
-      "hey: %s (%zu, %zu): %s\n",
+      "hey: %s (%zu, %zu)%s%s\n",
       token_name(token), token.begin.line, token.begin.col,
-      token.kind == Token::Kind::LineEnd ? "" : &start[token.begin.index]
+      has_text(token) ? ": " : "", token_text(token)
     );
     if (!file_end) {
       start[token.end.index] = old;
@@ -188,13 +206,10 @@ auto next_token_id(const char* buf) -> Token {
       key = key_ids[k].key;
     }
   }
-  // if (!std::strncmp(start, "fun", len)) {
-  //   //
-  // }
   return [&]() {
     Token token = {key == Key::None ? Token::Kind::Id : Token::Kind::Key};
     if (key != Key::None) {
-      token.key = Key::Fun;
+      token.key = key;
     }
     token.end.index = len;
     return token;
@@ -242,6 +257,10 @@ auto token_name(const Token& token) -> const char* {
     case Token::Kind::String: return "String";
     default: return "<unknown>";
   }
+}
+
+auto token_text(const Token& token) -> const char* {
+  return has_text(token) ? token.text : "";
 }
 
 }
