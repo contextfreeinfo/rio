@@ -82,14 +82,19 @@ void lex(const Options* options) {
     // Store file name.
     token.file = file;
     // Debug print.
-    char old = start[token.end.index];
-    start[token.end.index] = '\0';
+    bool file_end = token.kind == Token::Kind::FileEnd;
+    char old = file_end ? '\0' : start[token.end.index];
+    if (!file_end) {
+      start[token.end.index] = '\0';
+    }
     printf(
       "hey: %s (%zu, %zu): %s\n",
       token_name(token), token.begin.line, token.begin.col,
       token.kind == Token::Kind::LineEnd ? "" : &start[token.begin.index]
     );
-    start[token.end.index] = old;
+    if (!file_end) {
+      start[token.end.index] = old;
+    }
     // End at end. TODO Stream out tokens or pregenerate all?
     if (token.kind == Token::Kind::FileEnd) {
       break;
