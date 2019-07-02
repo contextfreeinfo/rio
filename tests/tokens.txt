@@ -1,0 +1,24 @@
+in: tests/test1.rio
+hey: Comment (1, 1): // // Untyped constants/macros?
+hey: Comment (2, 1): // def pi = 3.14
+hey: Comment (3, 1): // // def macro(x) = x + 1
+hey: Comment (4, 1): // // Optional "shape" types on macro args????
+hey: Comment (5, 1): // def macro(x) {
+hey: Comment (6, 1): //   x + 1
+hey: Comment (7, 1): // }
+hey: Fun (9, 1): fun
+hey: Id (9, 5): main
+hey: RoundL (9, 9): (
+hey: RoundR (9, 10): )
+hey: CurlyL (9, 12): {
+hey: LineEnd (9, 13): 
+hey: Comment (10, 3): // "Hello!" .>
+hey: Comment (11, 3): //   print
+hey: Id (12, 3): print
+hey: RoundL (12, 8): (
+hey: String (12, 9): "Hello!"
+hey: RoundR (12, 17): )
+hey: LineEnd (12, 18): 
+hey: CurlyR (13, 1): }
+hey: LineEnd (13, 2): 
+hey: FileEnd (14, 1): 

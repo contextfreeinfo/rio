@@ -4,12 +4,13 @@ namespace rio {
 
 auto is_id_part(char c) -> bool;
 auto is_id_start(char c) -> bool;
-auto is_space(char c) -> bool;
+auto is_hspace(char c) -> bool;
+auto is_space(char c, bool was_line_end) -> bool;
 auto is_vspace(char c) -> bool;
 auto next_token_comment(const char* buf) -> Token;
 auto next_token_id(const char* buf) -> Token;
 auto next_token_string(const char* buf) -> Token;
-auto next_token(const char* buf) -> Token;
+auto next_token(const char* buf, bool was_line_end) -> Token;
 
 struct KeyId {
   Key key;
@@ -20,6 +21,10 @@ const KeyId key_ids[] = {
   {Key::Fun, "fun"},
 };
 
+auto is_hspace(char c) -> bool {
+  return c == ' ' || c == '\t';
+}
+
 auto is_id_part(char c) -> bool {
   return is_id_start(c) || ('0' <= c && c <= '9');
 }
@@ -28,8 +33,8 @@ auto is_id_start(char c) -> bool {
   return c == '_' || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z');
 }
 
-auto is_space(char c) -> bool {
-  return c == ' ' || c == '\t' || is_vspace(c);
+auto is_space(char c, bool was_line_end) -> bool {
+  return is_hspace(c) || (was_line_end && is_vspace(c));
 }
 
 auto is_vspace(char c) -> bool {
@@ -42,8 +47,10 @@ void lex(const Options* options) {
   const auto start = buf;
   usize line = 1;
   usize col = 1;
+  // Effectively starts at a new line.
+  auto was_line_end = true;
   while (true) {
-    auto token = next_token(buf);
+    auto token = next_token(buf, was_line_end);
     // Fix offsets based on global buffer state.
     buf += token.begin.index;
     auto len = token.end.index;
@@ -62,23 +69,36 @@ void lex(const Options* options) {
     }
     token.begin.line = line;
     token.begin.col = col;
-    col += len;
+    if (token.kind == Token::Kind::LineEnd) {
+      was_line_end = true;
+      line += 1;
+      col = 1;
+    } else {
+      if (token.kind != Token::Kind::Comment) {
+        was_line_end = false;
+      }
+      col += len;
+    }
     // Store file name.
     token.file = file;
     // Debug print.
     char old = start[token.end.index];
     start[token.end.index] = '\0';
-    printf("hey: %s (%zu, %zu): %s\n", token_name(token), token.begin.line, token.begin.col, &start[token.begin.index]);
+    printf(
+      "hey: %s (%zu, %zu): %s\n",
+      token_name(token), token.begin.line, token.begin.col,
+      token.kind == Token::Kind::LineEnd ? "" : &start[token.begin.index]
+    );
     start[token.end.index] = old;
     // End at end. TODO Stream out tokens or pregenerate all?
-    if (token.kind == Token::Kind::Eof) {
+    if (token.kind == Token::Kind::FileEnd) {
       break;
     }
   }
   free(start);
 }
 
-auto next_token(const char* buf) -> Token {
+auto next_token(const char* buf, bool was_line_end) -> Token {
   auto start = buf;
   auto skip = buf;
   usize line = 0;
@@ -89,14 +109,17 @@ auto next_token(const char* buf) -> Token {
     token.begin.col = col;
     return token;
   };
-  auto simple = [&](Token::Kind kind) {
+  auto simple_len = [&](Token::Kind kind, usize len) {
     Token token = {kind};
-    token.end.index = 1;
+    token.end.index = len;
     return finish(token);
+  };
+  auto simple = [&](Token::Kind kind) {
+    return simple_len(kind, 1);
   };
   // Skip whitespace between tokens.
   // printf("buf\n");
-  for (; *buf && is_space(*buf); buf += 1) {
+  for (; *buf && is_space(*buf, was_line_end); buf += 1) {
     // Don't bother with old-time Mac cr-only convention.
     if (*buf == '\n') {
       line += 1;
@@ -113,6 +136,15 @@ auto next_token(const char* buf) -> Token {
     return finish(next_token_id(buf));
   }
   switch (c) {
+    case '\0': return simple(Token::Kind::FileEnd);
+    case '\n': return simple(Token::Kind::LineEnd);
+    case '\r': {
+      usize len = 1;
+      if (*(buf + 1) == '\n') {
+        len += 1;
+      }
+      return simple_len(Token::Kind::LineEnd, len);
+    }
     case '{': return simple(Token::Kind::CurlyL);
     case '}': return simple(Token::Kind::CurlyR);
     case '(': return simple(Token::Kind::RoundL);
@@ -124,12 +156,10 @@ auto next_token(const char* buf) -> Token {
       }
       break;
     }
+    default: break;
   }
-  // Burn the rest for now.
-  for (; *buf; buf += 1) {
-    //
-  }
-  return {Token::Kind::Eof};
+  // TODO Coalesce multiple junk somewhere?
+  return simple(Token::Kind::Junk);
 }
 
 auto next_token_comment(const char* buf) -> Token {
@@ -194,12 +224,14 @@ auto token_name(const Token& token) -> const char* {
     case Token::Kind::Comment: return "Comment";
     case Token::Kind::CurlyL: return "CurlyL";
     case Token::Kind::CurlyR: return "CurlyR";
-    case Token::Kind::Eof: return "Eof";
+    case Token::Kind::FileEnd: return "FileEnd";
     case Token::Kind::Id: return "Id";
+    case Token::Kind::Junk: return "Junk";
     case Token::Kind::Key: switch (token.key) {
       case Key::Fun: return "Fun";
       default: return "<key>";
     }
+    case Token::Kind::LineEnd: return "LineEnd";
     case Token::Kind::RoundL: return "RoundL";
     case Token::Kind::RoundR: return "RoundR";
     case Token::Kind::String: return "String";
