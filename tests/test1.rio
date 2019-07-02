@@ -7,5 +7,7 @@
 // }
 
 fun main() {
+  // "Hello!" .>
+  //   print
   print("Hello!")
 }

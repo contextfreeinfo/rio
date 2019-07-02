@@ -26,6 +26,7 @@ using usize = uintptr_t;
 // private
 
 enum struct Key {
+  None,
   Fun,
 };
 
@@ -33,21 +34,32 @@ struct Options {
   char* in;
 };
 
+struct Pos {
+  usize index;
+  usize line;
+  usize col;
+};
+
 struct Token {
   enum struct Kind {
     // TODO Use cache files to remember ids of enums, so source order doesn't
     // TODO matter.
     Comment,
+    CurlyL,
+    CurlyR,
     Eof,
     Id,
     Key,
+    RoundL,
+    RoundR,
+    String,
   };
   Kind kind;
   union {
     Key key;
   };
-  usize begin;
-  usize end;
+  Pos begin;
+  Pos end;
   const char* file;
 };
 
