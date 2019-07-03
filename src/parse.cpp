@@ -8,7 +8,9 @@ struct ParseState {
 
 void advance_token(ParseState* state, bool skip_lines = false);
 auto more_tokens(ParseState* state, Token::Kind end) -> bool;
+void parse_atom(ParseState* state);
 void parse_block(ParseState* state);
+void parse_call(ParseState* state);
 void parse_expr(ParseState* state);
 void parse_fun(ParseState* state);
 void parse_tuple(ParseState* state);
@@ -34,21 +36,17 @@ void parse(Engine* engine, const Token* tokens) {
   parse_expr(&state);
 }
 
-void parse_block(ParseState* state) {
-  printf("begin block\n");
-  advance_token(state, true);
-  for (; more_tokens(state, Token::Kind::CurlyR); advance_token(state, true)) {
-    parse_expr(state);
-  }
-  advance_token(state);
-  printf("end block\n");
-}
-
-void parse_expr(ParseState* state) {
+void parse_atom(ParseState* state) {
+  // TODO Call parse_call, and have this in parse_atom
   auto tokens = state->tokens;
   switch (tokens->kind) {
     case Token::Kind::CurlyL: {
       parse_block(state);
+      break;
+    }
+    case Token::Kind::Id: {
+      printf("ref: %s\n", tokens->text);
+      advance_token(state);
       break;
     }
     case Token::Kind::Key: {
@@ -61,11 +59,40 @@ void parse_expr(ParseState* state) {
       } // switch
       break;
     }
+    case Token::Kind::String: {
+      printf("string: %s\n", token_text(*tokens));
+      advance_token(state);
+      break;
+    }
     default: {
       printf("junk: %s\n", token_name(*tokens));
+      advance_token(state);
       break;
     }
   }
+}
+
+void parse_block(ParseState* state) {
+  printf("begin block\n");
+  advance_token(state, true);
+  for (; more_tokens(state, Token::Kind::CurlyR); skip_comments(state, true)) {
+    parse_expr(state);
+  }
+  advance_token(state);
+  printf("end block\n");
+}
+
+void parse_call(ParseState* state) {
+  parse_atom(state);
+  if (state->tokens->kind == Token::Kind::RoundL) {
+    printf("begin call\n");
+    parse_tuple(state);
+    printf("end call\n");
+  }
+}
+
+void parse_expr(ParseState* state) {
+  parse_call(state);
 }
 
 void parse_fun(ParseState* state) {
@@ -88,8 +115,9 @@ void parse_fun(ParseState* state) {
 void parse_tuple(ParseState* state) {
   printf("begin tuple\n");
   advance_token(state);
-  for (; more_tokens(state, Token::Kind::RoundR); advance_token(state)) {
-    // TODO Parse things.
+  for (; more_tokens(state, Token::Kind::RoundR); skip_comments(state, true)) {
+    parse_expr(state);
+    // TODO Accept comma, expect except after last.
   }
   advance_token(state);
   printf("end tuple\n");
