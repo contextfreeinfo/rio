@@ -16,9 +16,9 @@ auto intern(Engine* engine, const char* text, usize nbytes) -> const char* {
   // TODO Also, replace all this with non-libc++ implementation.
   std::string key{text, nbytes};
   const char* value;
-  auto current = engine->ids.find(key);
-  if (current == engine->ids.end()) {
-    value = (engine->ids[key] = key).c_str();
+  auto current = engine->texts.find(key);
+  if (current == engine->texts.end()) {
+    value = (engine->texts[key] = key).c_str();
   } else {
     value = current->second.c_str();
   }

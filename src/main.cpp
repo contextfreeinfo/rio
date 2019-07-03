@@ -2,6 +2,7 @@
 
 #include "common.cpp"
 #include "lex.cpp"
+#include "parse.cpp"
 
 namespace rio {
 
@@ -22,8 +23,16 @@ const Options parse_options(int argc, const char** argv) {
 }
 
 void run(Engine* engine) {
-  printf("in: %s\n", engine->options.in);
-  lex(engine);
+  auto tokens = [&]() {
+    auto file = engine->options.in;
+    printf("in: %s\n", file);
+    auto buf = read_file(file);
+    auto tokens = lex(engine, file, buf);
+    free(buf);
+    return tokens;
+  }();
+  parse(engine, tokens.data());
+  printf("tokens: %zu\n", tokens.size());
 }
 
 }

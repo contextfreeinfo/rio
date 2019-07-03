@@ -27,6 +27,9 @@ using usize = uintptr_t;
 
 // private
 
+template<typename Value>
+using Array = std::vector<Value>;
+
 template<typename Key, typename Value>
 using Map = std::unordered_map<Key, Value>;
 
@@ -62,18 +65,18 @@ struct Token {
     String,
   };
   Kind kind;
-  union {
-    const char* text;
-    Key key;
-  };
+  const char* file;
   Pos begin;
   usize len;
-  const char* file;
+  union {
+    Key key;
+    const char* text;
+  };
 };
 
 struct Engine {
-  Map<std::string, std::string> ids;
   Options options = {0};
+  Map<std::string, std::string> texts;
 };
 
 void fail(const char* message);

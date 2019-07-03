@@ -54,10 +54,8 @@ auto is_vspace(char c) -> bool {
   return c == '\n' || c == '\r';
 }
 
-void lex(Engine* engine) {
-  auto& options = engine->options;
-  auto file = options.in;
-  auto buf = read_file(file);
+auto lex(Engine* engine, const char* file, const char* buf) -> Array<Token> {
+  Array<Token> tokens;
   const auto start = buf;
   usize line = 1;
   usize col = 1;
@@ -98,18 +96,14 @@ void lex(Engine* engine) {
     }
     // Store file name.
     token.file = file;
-    // Debug print.
-    printf(
-      "hey: %s (%zu, %zu)%s%s\n",
-      token_name(token), token.begin.line, token.begin.col,
-      has_text(token) ? ": " : "", token_text(token)
-    );
-    // End at end. TODO Stream out tokens or pregenerate all?
+    // Done with this one.
+    tokens.push_back(token);
+    // End at end.
     if (token.kind == Token::Kind::FileEnd) {
       break;
     }
   }
-  free(start);
+  return tokens;
 }
 
 auto next_token(const char* buf, bool was_line_end) -> Token {
