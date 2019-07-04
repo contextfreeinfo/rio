@@ -1,0 +1,16 @@
+in: tests/test1.rio
+begin fun
+name main
+begin tuple
+end tuple
+args
+begin block
+ref: print
+begin call
+begin tuple
+string: "Hello!"
+end tuple
+end call
+end block
+end fun
+tokens: 23
