@@ -14,7 +14,7 @@ struct Options {
 };
 
 struct Engine {
-  Array<Node> node_buf;
+  Arena arena;
   Options options = {0};
   Map<std::string, std::string> texts;
 };

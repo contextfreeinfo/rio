@@ -3,17 +3,27 @@
 namespace rio {
 
 struct ParseState {
+
+  Engine* engine;
+  Array<Node*> node_buf;
   const Token* tokens;
+
+  Node& alloc(Node::Kind kind) {
+    Node& node = engine->arena.alloc<Node>();
+    node.kind = kind;
+    return node;
+  }
+
 };
 
 void advance_token(ParseState* state, bool skip_lines = false);
 auto more_tokens(ParseState* state, Token::Kind end) -> bool;
-void parse_atom(ParseState* state);
-void parse_block(ParseState* state);
-void parse_call(ParseState* state);
-void parse_expr(ParseState* state);
-void parse_fun(ParseState* state);
-void parse_tuple(ParseState* state);
+auto parse_atom(ParseState* state) -> Node&;
+auto parse_block(ParseState* state) -> Node&;
+auto parse_call(ParseState* state) -> Node&;
+auto parse_expr(ParseState* state) -> Node&;
+auto parse_fun(ParseState* state) -> Node&;
+auto parse_tuple(ParseState* state) -> Node&;
 void skip_comments(ParseState* state, bool skip_lines = false);
 
 void advance_token(ParseState* state, bool skip_lines) {
@@ -31,78 +41,104 @@ auto more_tokens(ParseState* state, Token::Kind end) -> bool {
 }
 
 void parse(Engine* engine, const Token* tokens) {
-  ParseState state = {tokens};
+  ParseState state = [&]() {
+    ParseState state;
+    state.engine = engine;
+    state.tokens = tokens;
+    return state;
+  }();
   skip_comments(&state, true);
   parse_expr(&state);
 }
 
-void parse_atom(ParseState* state) {
+auto parse_atom(ParseState* state) -> Node& {
   // TODO Call parse_call, and have this in parse_atom
   auto tokens = state->tokens;
   switch (tokens->kind) {
     case Token::Kind::CurlyL: {
-      parse_block(state);
-      break;
+      return parse_block(state);
     }
     case Token::Kind::Id: {
       printf("ref: %s\n", tokens->text);
+      Node& node = state->alloc(Node::Kind::Ref);
+      node.Ref.name = tokens->text;
       advance_token(state);
-      break;
+      return node;
     }
     case Token::Kind::Key: {
       switch (tokens->key) {
         case Key::Fun: {
-          parse_fun(state);
-          break;
+          return parse_fun(state);
         }
-        default: break;
+        default: return state->alloc(Node::Kind::None);
       } // switch
-      break;
     }
     case Token::Kind::String: {
       printf("string: %s\n", token_text(*tokens));
+      Node& node = state->alloc(Node::Kind::String);
+      node.String.text = tokens->text;
       advance_token(state);
-      break;
+      return node;
     }
     default: {
       printf("junk: %s\n", token_name(*tokens));
       advance_token(state);
-      break;
+      return state->alloc(Node::Kind::None);
     }
   }
 }
 
-void parse_block(ParseState* state) {
+auto parse_block(ParseState* state) -> Node& {
+  Node& node = state->alloc(Node::Kind::Block);
   printf("begin block\n");
   advance_token(state, true);
+  auto& buf = state->node_buf;
+  auto old_size = buf.size();
   for (; more_tokens(state, Token::Kind::CurlyR); skip_comments(state, true)) {
-    parse_expr(state);
+    Node* kid = &parse_expr(state);
+    buf.push_back(kid);
   }
+  usize new_size = buf.size();
+  usize len = new_size - old_size;
+  usize nbytes = len * sizeof(Node*);
+  void* items = state->engine->arena.alloc(nbytes);
+  std::memcpy(items, buf.data() + old_size, nbytes);
+  node.Block.items = {static_cast<Node**>(items), len};
+  buf.resize(old_size);
   advance_token(state);
+  printf("item 0: %d, %d, %s\n", static_cast<int>(node.Block.items[0]->kind), static_cast<int>(node.Block.items[0]->Call.callee->kind), node.Block.items[0]->Call.callee->Ref.name);
   printf("end block\n");
+  return node;
 }
 
-void parse_call(ParseState* state) {
-  parse_atom(state);
+auto parse_call(ParseState* state) -> Node& {
+  Node& callee = parse_atom(state);
   if (state->tokens->kind == Token::Kind::RoundL) {
+    Node& node = state->alloc(Node::Kind::Call);
+    node.Call.callee = &callee;
     printf("begin call\n");
     parse_tuple(state);
     printf("end call\n");
+    return node;
+  } else {
+    return callee;
   }
 }
 
-void parse_expr(ParseState* state) {
-  parse_call(state);
+auto parse_expr(ParseState* state) -> Node& {
+  return parse_call(state);
 }
 
-void parse_fun(ParseState* state) {
+auto parse_fun(ParseState* state) -> Node& {
+  Node& node = state->alloc(Node::Kind::Fun);
   printf("begin fun\n");
   advance_token(state);
-  const char* name = "";
   if (state->tokens->kind == Token::Kind::Id) {
-    name = state->tokens->text;
-    printf("name %s\n", name);
+    node.Fun.name = state->tokens->text;
+    printf("name %s\n", node.Fun.name);
     advance_token(state);
+  } else {
+    node.Fun.name = "";
   }
   if (state->tokens->kind == Token::Kind::RoundL) {
     parse_tuple(state);
@@ -110,9 +146,11 @@ void parse_fun(ParseState* state) {
   }
   parse_expr(state);
   printf("end fun\n");
+  return node;
 }
 
-void parse_tuple(ParseState* state) {
+auto parse_tuple(ParseState* state) -> Node& {
+  // TODO Parameterize end token since usually square maybe?
   printf("begin tuple\n");
   advance_token(state);
   for (; more_tokens(state, Token::Kind::RoundR); skip_comments(state, true)) {
@@ -121,6 +159,7 @@ void parse_tuple(ParseState* state) {
   }
   advance_token(state);
   printf("end tuple\n");
+  return state->alloc(Node::Kind::None);
 }
 
 void skip_comments(ParseState* state, bool skip_lines) {

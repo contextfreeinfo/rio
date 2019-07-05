@@ -45,7 +45,11 @@ struct Token {
 struct Node;
 
 struct BlockNode {
-  Slice<Node> items;
+  Slice<Node*> items;
+};
+
+struct CallNode {
+  Node* callee;
 };
 
 struct FunNode {
@@ -53,17 +57,35 @@ struct FunNode {
   Node* expr;
 };
 
+struct RefNode {
+  const char* name;
+};
+
+struct StringNode {
+  const char* text;
+};
+
 struct Node {
+
   enum struct Kind {
+    None,
     Block,
     Call,
     Fun,
     Ref,
     String,
   };
+
+  Kind kind;
+
   union {
-    FunNode fun;
+    BlockNode Block;
+    CallNode Call;
+    FunNode Fun;
+    RefNode Ref;
+    StringNode String;
   };
+
 };
 
 }
