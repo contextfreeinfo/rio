@@ -14,13 +14,17 @@ auto intern(Engine* engine, const char* text, usize nbytes) -> const char* {
   // But is it guaranteed?
   // TODO Should probably use a set instead of a map, if this works.
   // TODO Also, replace all this with non-libc++ implementation.
-  std::string key{text, nbytes};
-  const char* value;
-  auto current = engine->texts.find(key);
-  if (current == engine->texts.end()) {
-    value = (engine->texts[key] = key).c_str();
-  } else {
-    value = current->second.c_str();
+  const Str key_str = {const_cast<char*>(text), nbytes};
+  auto value = engine->interns.get(key_str);
+  if (!value) {
+    // If missing, push on to arena for lifetime.
+    Str str =
+      {static_cast<char*>(engine->arena.alloc_bytes(nbytes + 1)), nbytes};
+    strncpy(str.items, text, nbytes);
+    str[nbytes] = '\0';
+    engine->interns.put(str, str.items);
+    value = str.items;
+    // printf("hey: %s, %zu, %x\n", value, nbytes, value[nbytes]);
   }
   return value;
 }

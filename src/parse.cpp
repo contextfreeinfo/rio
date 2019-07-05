@@ -101,7 +101,7 @@ auto parse_block(ParseState* state) -> Node& {
   usize new_size = buf.len;
   usize len = new_size - buf_len_old;
   usize nbytes = len * sizeof(Node*);
-  void* items = state->engine->arena.alloc(nbytes);
+  void* items = state->engine->arena.alloc_bytes(nbytes);
   memcpy(items, buf.items + buf_len_old, nbytes);
   node.Block.items = {static_cast<Node**>(items), len};
   buf.len = buf_len_old;

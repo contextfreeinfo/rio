@@ -1,7 +1,7 @@
 
-real	0m3.524s
-user	0m2.641s
-sys	0m0.781s
+real	0m0.909s
+user	0m0.422s
+sys	0m0.391s
 in: tests/test1.rio
 begin fun
 name main
@@ -20,6 +20,6 @@ end block
 end fun
 tokens: 23
 
-real	0m0.071s
+real	0m0.059s
 user	0m0.000s
-sys	0m0.047s
+sys	0m0.000s

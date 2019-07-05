@@ -17,10 +17,9 @@ struct Engine {
   // TODO Arena per file, so we can reload just changed files in server mode.
   Arena arena;
   Options options = {0};
-  Map<std::string, std::string> texts;
+  Map<const char*> interns;
 };
 
-void fail(const char* message);
 auto has_text(const Token& token) -> bool;
 auto intern(Engine* engine, const char* text, usize nbytes) -> const char*;
 auto read_file(const char* name) -> char*;
