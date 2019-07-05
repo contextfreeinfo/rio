@@ -14,6 +14,7 @@ struct Options {
 };
 
 struct Engine {
+  // TODO Arena per file, so we can reload just changed files in server mode.
   Arena arena;
   Options options = {0};
   Map<std::string, std::string> texts;
@@ -25,6 +26,5 @@ auto intern(Engine* engine, const char* text, usize nbytes) -> const char*;
 auto read_file(const char* name) -> char*;
 auto token_name(const Token& token) -> const char*;
 auto token_text(const Token& token) -> const char*;
-auto xmalloc(usize nbytes) -> void*;
 
 }

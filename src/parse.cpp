@@ -5,7 +5,7 @@ namespace rio {
 struct ParseState {
 
   Engine* engine;
-  Array<Node*> node_buf;
+  List<Node*> node_buf;
   const Token* tokens;
 
   Node& alloc(Node::Kind kind) {
@@ -93,18 +93,18 @@ auto parse_block(ParseState* state) -> Node& {
   printf("begin block\n");
   advance_token(state, true);
   auto& buf = state->node_buf;
-  auto old_size = buf.size();
+  auto buf_len_old = buf.len;
   for (; more_tokens(state, Token::Kind::CurlyR); skip_comments(state, true)) {
     Node* kid = &parse_expr(state);
-    buf.push_back(kid);
+    buf.push(kid);
   }
-  usize new_size = buf.size();
-  usize len = new_size - old_size;
+  usize new_size = buf.len;
+  usize len = new_size - buf_len_old;
   usize nbytes = len * sizeof(Node*);
   void* items = state->engine->arena.alloc(nbytes);
-  std::memcpy(items, buf.data() + old_size, nbytes);
+  memcpy(items, buf.items + buf_len_old, nbytes);
   node.Block.items = {static_cast<Node**>(items), len};
-  buf.resize(old_size);
+  buf.len = buf_len_old;
   advance_token(state);
   printf("item 0: %d, %d, %s\n", static_cast<int>(node.Block.items[0]->kind), static_cast<int>(node.Block.items[0]->Call.callee->kind), node.Block.items[0]->Call.callee->Ref.name);
   printf("end block\n");

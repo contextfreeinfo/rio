@@ -31,8 +31,8 @@ void run(Engine* engine) {
     free(buf);
     return tokens;
   }();
-  parse(engine, tokens.data());
-  printf("tokens: %zu\n", tokens.size());
+  parse(engine, tokens.items);
+  printf("tokens: %zu\n", tokens.len);
 }
 
 }

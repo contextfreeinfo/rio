@@ -54,8 +54,8 @@ auto is_vspace(char c) -> bool {
   return c == '\n' || c == '\r';
 }
 
-auto lex(Engine* engine, const char* file, const char* buf) -> Array<Token> {
-  Array<Token> tokens;
+auto lex(Engine* engine, const char* file, const char* buf) -> List<Token> {
+  List<Token> tokens;
   const auto start = buf;
   usize line = 1;
   usize col = 1;
@@ -97,7 +97,7 @@ auto lex(Engine* engine, const char* file, const char* buf) -> Array<Token> {
     // Store file name.
     token.file = file;
     // Done with this one.
-    tokens.push_back(token);
+    tokens.push(token);
     // End at end.
     if (token.kind == Token::Kind::FileEnd) {
       break;

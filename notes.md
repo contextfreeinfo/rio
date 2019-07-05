@@ -1,1 +1,6 @@
-- Top level works. Auto include of `src` dirs, too.
+- Top level source files works. Auto include of `src` dirs, too.
+
+`
+./test -g > tests/parse-mem.txt 2>&1
+./test > tests/parse.txt 2>&1
+`
