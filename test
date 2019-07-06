@@ -3,12 +3,14 @@
 if [[ "$1" == "-g" ]]; then
   run="valgrind --leak-check=full --show-leak-kinds=all"
   opts=-g
+  # Static linking shows memory leaks and/or errors in valgrind.
+  # TODO Do they mean something, or should they be ignored?
+  # opts="$opts -static"
 else
   run=""
-  # Static libstdc++ shows a memory leak in valgrind.
-  # TODO Add exclusion?
-  opts="-static-libstdc++"
-  # opts="-O3 -flto"
+  opts="-static-libgcc -static-libstdc++"
+  # opts="-static"
+  # opts="$opts -O3 -flto"
 fi
 
 mkdir -p bin || exit

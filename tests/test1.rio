@@ -7,7 +7,7 @@
 // }
 
 fun main() {
-  // "Hello!" .>
-  //   print
-  print("Hello!")
+  // "Hello!\n" .>
+  //   printf
+  printf("Hello!\n")
 }
