@@ -19,7 +19,9 @@ struct ParseState {
 void advance_token(ParseState* state, bool skip_lines = false);
 auto more_tokens(ParseState* state, Token::Kind end) -> bool;
 auto parse_atom(ParseState* state) -> Node&;
-auto parse_block(ParseState* state) -> Node&;
+auto parse_block(
+  ParseState* state, Token::Kind end = Token::Kind::CurlyR
+) -> Node&;
 auto parse_call(ParseState* state) -> Node&;
 auto parse_expr(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
@@ -40,7 +42,7 @@ auto more_tokens(ParseState* state, Token::Kind end) -> bool {
     state->tokens->kind != Token::Kind::FileEnd;
 }
 
-void parse(Engine* engine, const Token* tokens) {
+auto parse(Engine* engine, const Token* tokens) -> Node& {
   ParseState state = [&]() {
     ParseState state;
     state.engine = engine;
@@ -48,11 +50,10 @@ void parse(Engine* engine, const Token* tokens) {
     return state;
   }();
   skip_comments(&state, true);
-  parse_expr(&state);
+  return parse_block(&state, Token::Kind::FileEnd);
 }
 
 auto parse_atom(ParseState* state) -> Node& {
-  // TODO Call parse_call, and have this in parse_atom
   auto tokens = state->tokens;
   switch (tokens->kind) {
     case Token::Kind::CurlyL: {
@@ -88,25 +89,31 @@ auto parse_atom(ParseState* state) -> Node& {
   }
 }
 
-auto parse_block(ParseState* state) -> Node& {
+auto parse_block(ParseState* state, Token::Kind end) -> Node& {
   Node& node = state->alloc(Node::Kind::Block);
   printf("begin block\n");
-  advance_token(state, true);
+  if (end != Token::Kind::FileEnd) {
+    advance_token(state, true);
+  }
+  // Parse kids.
   auto& buf = state->node_buf;
   auto buf_len_old = buf.len;
-  for (; more_tokens(state, Token::Kind::CurlyR); skip_comments(state, true)) {
+  for (; more_tokens(state, end); skip_comments(state, true)) {
     Node* kid = &parse_expr(state);
     buf.push(kid);
   }
+  // Prep space.
   usize new_size = buf.len;
   usize len = new_size - buf_len_old;
   usize nbytes = len * sizeof(Node*);
   void* items = state->engine->arena.alloc_bytes(nbytes);
+  // Copy it in.
   memcpy(items, buf.items + buf_len_old, nbytes);
   node.Block.items = {static_cast<Node**>(items), len};
   buf.len = buf_len_old;
+  // Move on.
   advance_token(state);
-  printf("item 0: %d, %d, %s\n", static_cast<int>(node.Block.items[0]->kind), static_cast<int>(node.Block.items[0]->Call.callee->kind), node.Block.items[0]->Call.callee->Ref.name);
+  // printf("item 0: %d, %d, %s\n", static_cast<int>(node.Block.items[0]->kind), static_cast<int>(node.Block.items[0]->Call.callee->kind), node.Block.items[0]->Call.callee->Ref.name);
   printf("end block\n");
   return node;
 }
@@ -144,7 +151,7 @@ auto parse_fun(ParseState* state) -> Node& {
     parse_tuple(state);
     printf("args\n");
   }
-  parse_expr(state);
+  node.Fun.expr = &parse_expr(state);
   printf("end fun\n");
   return node;
 }

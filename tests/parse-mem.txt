@@ -1,14 +1,15 @@
 
-real	0m1.086s
-user	0m0.531s
-sys	0m0.531s
-==3286== Memcheck, a memory error detector
-==3286== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==3286== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
-==3286== Command: ./bin/rio -i tests/test1.rio
-==3286== 
-==3286== error calling PR_SET_PTRACER, vgdb might block
+real	0m2.165s
+user	0m0.594s
+sys	0m0.500s
+==3372== Memcheck, a memory error detector
+==3372== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==3372== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
+==3372== Command: ./bin/rio -i tests/test1.rio
+==3372== 
+==3372== error calling PR_SET_PTRACER, vgdb might block
 in: tests/test1.rio
+begin block
 begin fun
 name main
 begin tuple
@@ -21,20 +22,20 @@ begin tuple
 string: "Hello!\n"
 end tuple
 end call
-item 0: 2, 4, printf
 end block
 end fun
+end block
 tokens: 23
-==3286== 
-==3286== HEAP SUMMARY:
-==3286==     in use at exit: 0 bytes in 0 blocks
-==3286==   total heap usage: 18 allocs, 18 frees, 94,156 bytes allocated
-==3286== 
-==3286== All heap blocks were freed -- no leaks are possible
-==3286== 
-==3286== For counts of detected and suppressed errors, rerun with: -v
-==3286== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==3372== 
+==3372== HEAP SUMMARY:
+==3372==     in use at exit: 0 bytes in 0 blocks
+==3372==   total heap usage: 18 allocs, 18 frees, 94,156 bytes allocated
+==3372== 
+==3372== All heap blocks were freed -- no leaks are possible
+==3372== 
+==3372== For counts of detected and suppressed errors, rerun with: -v
+==3372== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 
-real	0m2.056s
-user	0m1.656s
-sys	0m0.422s
+real	0m10.590s
+user	0m1.641s
+sys	0m0.500s

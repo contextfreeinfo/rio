@@ -1,8 +1,9 @@
 
-real	0m0.873s
-user	0m0.406s
+real	0m0.998s
+user	0m0.391s
 sys	0m0.422s
 in: tests/test1.rio
+begin block
 begin fun
 name main
 begin tuple
@@ -15,11 +16,11 @@ begin tuple
 string: "Hello!\n"
 end tuple
 end call
-item 0: 2, 4, printf
 end block
 end fun
+end block
 tokens: 23
 
-real	0m0.061s
+real	0m0.198s
 user	0m0.000s
-sys	0m0.000s
+sys	0m0.016s

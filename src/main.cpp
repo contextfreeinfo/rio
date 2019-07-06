@@ -3,6 +3,7 @@
 #include "common.cpp"
 #include "lex.cpp"
 #include "parse.cpp"
+#include "genc.cpp"
 
 namespace rio {
 
@@ -31,8 +32,9 @@ void run(Engine* engine) {
     free(buf);
     return tokens;
   }();
-  parse(engine, tokens.items);
   printf("tokens: %zu\n", tokens.len);
+  auto& tree = parse(engine, tokens.items);
+  c::gen(engine, tree);
 }
 
 }
