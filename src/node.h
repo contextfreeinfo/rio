@@ -4,11 +4,6 @@
 
 namespace rio {
 
-enum struct Key {
-  None,
-  Fun,
-};
-
 struct Pos {
   usize index;
   usize line;
@@ -24,9 +19,9 @@ struct Token {
     CurlyL,
     CurlyR,
     FileEnd,
+    Fun,
     Id,
     Junk,
-    Key,
     LineEnd,
     RoundL,
     RoundR,
@@ -37,7 +32,6 @@ struct Token {
   Pos begin;
   usize len;
   union {
-    Key key;
     const char* text;
   };
 };

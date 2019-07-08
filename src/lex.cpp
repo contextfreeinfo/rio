@@ -13,12 +13,12 @@ auto next_token_string(const char* buf) -> Token;
 auto next_token(const char* buf, bool was_line_end) -> Token;
 
 struct KeyId {
-  Key key;
+  Token::Kind key;
   const char* id;
 };
 
 const KeyId key_ids[] = {
-  {Key::Fun, "fun"},
+  {Token::Kind::Fun, "fun"},
 };
 
 auto has_text(const Token& token) -> bool {
@@ -185,17 +185,14 @@ auto next_token_id(const char* buf) -> Token {
   for (; *buf && is_id_part(*buf); buf += 1) {}
   auto len = buf - start;
   auto key_count = sizeof(key_ids) / sizeof(*key_ids);
-  auto key = Key::None;
+  auto kind = Token::Kind::Id;
   for (usize k = 0; k < key_count; ++k) {
     if (!strncmp(key_ids[k].id, start, len)) {
-      key = key_ids[k].key;
+      kind = key_ids[k].key;
     }
   }
   return [&]() {
-    Token token = {key == Key::None ? Token::Kind::Id : Token::Kind::Key};
-    if (key != Key::None) {
-      token.key = key;
-    }
+    Token token = {kind};
     token.len = len;
     return token;
   }();
@@ -230,12 +227,9 @@ auto token_name(const Token& token) -> const char* {
     case Token::Kind::CurlyL: return "CurlyL";
     case Token::Kind::CurlyR: return "CurlyR";
     case Token::Kind::FileEnd: return "FileEnd";
+    case Token::Kind::Fun: return "Fun";
     case Token::Kind::Id: return "Id";
     case Token::Kind::Junk: return "Junk";
-    case Token::Kind::Key: switch (token.key) {
-      case Key::Fun: return "Fun";
-      default: return "<key>";
-    }
     case Token::Kind::LineEnd: return "LineEnd";
     case Token::Kind::RoundL: return "RoundL";
     case Token::Kind::RoundR: return "RoundR";

@@ -66,13 +66,8 @@ auto parse_atom(ParseState* state) -> Node& {
       advance_token(state);
       return node;
     }
-    case Token::Kind::Key: {
-      switch (tokens->key) {
-        case Key::Fun: {
-          return parse_fun(state);
-        }
-        default: return state->alloc(Node::Kind::None);
-      } // switch
+    case Token::Kind::Fun: {
+      return parse_fun(state);
     }
     case Token::Kind::String: {
       printf("string: %s\n", token_text(*tokens));

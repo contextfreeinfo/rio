@@ -1,8 +1,9 @@
 
-real	0m0.998s
-user	0m0.391s
-sys	0m0.422s
+real	0m0.239s
+user	0m0.094s
+sys	0m0.063s
 in: tests/test1.rio
+tokens: 23
 begin block
 begin fun
 name main
@@ -19,8 +20,13 @@ end call
 end block
 end fun
 end block
-tokens: 23
+#include <stdio.h>
 
-real	0m0.198s
+void main() {
+printf();
+}
+;
+
+real	0m0.145s
 user	0m0.000s
-sys	0m0.016s
+sys	0m0.000s
