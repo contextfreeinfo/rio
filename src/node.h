@@ -18,6 +18,8 @@ struct Token {
     Comment,
     CurlyL,
     CurlyR,
+    Do,
+    End,
     FileEnd,
     Fun,
     Id,

@@ -13,12 +13,15 @@ auto next_token_string(const char* buf) -> Token;
 auto next_token(const char* buf, bool was_line_end) -> Token;
 
 struct KeyId {
-  Token::Kind key;
   const char* id;
+  Token::Kind key;
 };
 
+// TODO Make into a map?
 const KeyId key_ids[] = {
-  {Token::Kind::Fun, "fun"},
+  {"do", Token::Kind::Do},
+  {"end", Token::Kind::End},
+  {"fun", Token::Kind::Fun},
 };
 
 auto has_text(const Token& token) -> bool {
@@ -158,6 +161,7 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
     case '(': return simple(Token::Kind::RoundL);
     case ')': return simple(Token::Kind::RoundR);
     case '"': return finish(next_token_string(buf));
+    case '#': return finish(next_token_comment(buf));
     case '/': {
       switch (*(buf + 1)) {
         case '/': return finish(next_token_comment(buf));

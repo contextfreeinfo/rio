@@ -59,6 +59,9 @@ auto parse_atom(ParseState* state) -> Node& {
     case Token::Kind::CurlyL: {
       return parse_block(state);
     }
+    case Token::Kind::Do: {
+      return parse_block(state, Token::Kind::End);
+    }
     case Token::Kind::Id: {
       printf("ref: %s\n", tokens->text);
       Node& node = state->alloc(Node::Kind::Ref);
