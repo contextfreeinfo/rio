@@ -40,17 +40,18 @@ struct Token {
 
 struct Node;
 
-struct BlockNode {
-  Slice<Node*> items;
-};
-
 struct CallNode {
+  Node* args;
   Node* callee;
 };
 
 struct FunNode {
   const char* name;
   Node* expr;
+};
+
+struct ParentNode {
+  Slice<Node*> items;
 };
 
 struct RefNode {
@@ -70,16 +71,18 @@ struct Node {
     Fun,
     Ref,
     String,
+    Tuple,
   };
 
   Kind kind;
 
   union {
-    BlockNode Block;
+    ParentNode Block;
     CallNode Call;
     FunNode Fun;
     RefNode Ref;
     StringNode String;
+    ParentNode Tuple;
   };
 
 };

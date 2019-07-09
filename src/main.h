@@ -16,8 +16,10 @@ struct Options {
 struct Engine {
   // TODO Arena per file, so we can reload just changed files in server mode.
   Arena arena;
+  // FILE* info;
   Options options = {0};
   Map<const char*> interns;
+  bool verbose{false};
 };
 
 auto has_text(const Token& token) -> bool;

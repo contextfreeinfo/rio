@@ -1,7 +1,7 @@
 
-real	0m0.239s
-user	0m0.094s
-sys	0m0.063s
+real	0m0.280s
+user	0m0.078s
+sys	0m0.078s
 in: tests/test1.rio
 tokens: 23
 begin block
@@ -27,6 +27,6 @@ printf();
 }
 ;
 
-real	0m0.145s
+real	0m0.065s
 user	0m0.000s
 sys	0m0.000s

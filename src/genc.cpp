@@ -2,33 +2,55 @@
 
 namespace rio { namespace c {
 
-void gen_expr(const Node& node);
-void gen_statements(const Node& node);
+struct GenState {
+  usize indent{0};
+};
+
+struct Indent {
+  Indent(GenState* state_): state{state_} {
+    state->indent += 1;
+  }
+  ~Indent() {
+    state->indent -= 1;
+  }
+  GenState* state;
+};
+
+void gen_expr(GenState* state, const Node& node);
+void gen_indent(GenState* state);
+void gen_tuple_items(GenState* state, const Node& node);
+void gen_statements(GenState* state, const Node& node);
+auto needs_semi(const Node& node) -> bool;
 
 void gen(Engine* engine, const Node& tree) {
+  GenState state;
   printf("#include <stdio.h>\n");
   printf("\n");
-  gen_statements(tree);
+  gen_statements(&state, tree);
 }
 
-void gen_expr(const Node& node) {
+void gen_expr(GenState* state, const Node& node) {
   switch (node.kind) {
     case Node::Kind::Block: {
       printf("{\n");
-      gen_statements(node);
+      {
+        Indent _{state};
+        gen_statements(state, node);
+      }
       printf("}\n");
       break;
     }
     case Node::Kind::Call: {
-      gen_expr(*node.Call.callee);
+      gen_expr(state, *node.Call.callee);
       printf("(");
+      gen_tuple_items(state, *node.Call.args);
       printf(")");
       break;
     }
     case Node::Kind::Fun: {
       printf("void %s() ", node.Fun.name);
       // TODO Special handling of non-block exprs.
-      gen_expr(*node.Fun.expr);
+      gen_expr(state, *node.Fun.expr);
       break;
     }
     case Node::Kind::Ref: {
@@ -40,17 +62,47 @@ void gen_expr(const Node& node) {
       break;
     }
     default: {
-      printf("(!!! BROKEN !!!)");
+      printf("(!!! BROKEN %d !!!)", static_cast<int>(node.kind));
       break;
     }
   }
 }
 
-void gen_statements(const Node& node) {
+void gen_indent(GenState* state) {
+  for (usize i = 0; i < state->indent; i += 1) {
+    printf("  ");
+  }
+}
+
+void gen_statements(GenState* state, const Node& node) {
   auto items = node.Block.items;
   for (usize i = 0; i < items.len; i += 1) {
-    gen_expr(*items[i]);
-    printf(";\n");
+    gen_indent(state);
+    gen_expr(state, *items[i]);
+    if (needs_semi(*items[i])) {
+      printf(";\n");
+    }
+  }
+}
+
+void gen_tuple_items(GenState* state, const Node& node) {
+  auto items = node.Tuple.items;
+  for (usize i = 0; i < items.len; i += 1) {
+    if (i) {
+      printf(", ");
+    }
+    gen_expr(state, *items[i]);
+  }
+}
+
+auto needs_semi(const Node& node) -> bool {
+  switch (node.kind) {
+    case Node::Kind::Fun: {
+      return false;
+    }
+    default: {
+      return true;
+    }
   }
 }
 
