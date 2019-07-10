@@ -31,6 +31,14 @@ void gen(Engine* engine, const Node& tree) {
 
 void gen_expr(GenState* state, const Node& node) {
   switch (node.kind) {
+    case Node::Kind::Assign: {
+      // TODO Actually infer type.
+      printf("const char* ");
+      gen_expr(state, *node.Assign.a);
+      printf(" = ");
+      gen_expr(state, *node.Assign.b);
+      break;
+    }
     case Node::Kind::Block: {
       printf("{\n");
       {

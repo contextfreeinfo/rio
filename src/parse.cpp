@@ -19,6 +19,7 @@ struct ParseState {
 void advance_token(ParseState* state, bool skip_lines = false);
 auto node_slice_copy(ParseState* state, usize buf_len_old) -> Slice<Node*>;
 auto more_tokens(ParseState* state, Token::Kind end) -> bool;
+auto parse_assign(ParseState* state) -> Node&;
 auto parse_atom(ParseState* state) -> Node&;
 auto parse_block(
   ParseState* state, Token::Kind end = Token::Kind::CurlyR
@@ -64,6 +65,22 @@ auto parse(Engine* engine, const Token* tokens) -> Node& {
   }();
   skip_comments(&state, true);
   return parse_block(&state, Token::Kind::FileEnd);
+}
+
+auto parse_assign(ParseState* state) -> Node& {
+  // Shouldn't actually assign to a call, but error that later.
+  Node& a = parse_call(state);
+  if (state->tokens->kind == Token::Kind::Assign) {
+    advance_token(state, true);
+    Node& node = state->alloc(Node::Kind::Assign);
+    node.Assign.a = &a;
+    if (verbose) printf("begin assign\n");
+    node.Assign.b = &parse_expr(state);
+    if (verbose) printf("end assign\n");
+    return node;
+  } else {
+    return a;
+  }
 }
 
 auto parse_atom(ParseState* state) -> Node& {
@@ -135,7 +152,7 @@ auto parse_call(ParseState* state) -> Node& {
 }
 
 auto parse_expr(ParseState* state) -> Node& {
-  return parse_call(state);
+  return parse_assign(state);
 }
 
 auto parse_fun(ParseState* state) -> Node& {
@@ -164,10 +181,20 @@ auto parse_tuple(ParseState* state) -> Node& {
   if (verbose) printf("begin tuple\n");
   advance_token(state);
   auto buf_len_old = state->node_buf.len;
+  bool past_first = false;
   for (; more_tokens(state, Token::Kind::RoundR); skip_comments(state, true)) {
+    if (past_first) {
+      // TODO Expect, not just accept!
+      if (state->tokens->kind == Token::Kind::Comma) {
+        advance_token(state, true);
+      }
+    }
     auto kid = &parse_expr(state);
     state->node_buf.push(kid);
-    // TODO Accept comma, expect except after last.
+    past_first = true;
+  }
+  if (state->tokens->kind == Token::Kind::Comma) {
+    advance_token(state, true);
   }
   node.Tuple.items = node_slice_copy(state, buf_len_old);
   advance_token(state);

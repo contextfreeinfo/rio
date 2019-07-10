@@ -156,12 +156,20 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
       }
       return simple_len(Token::Kind::LineEnd, len);
     }
+    case '=': return simple(Token::Kind::Assign);
+    case ',': return simple(Token::Kind::Comma);
     case '{': return simple(Token::Kind::CurlyL);
     case '}': return simple(Token::Kind::CurlyR);
     case '(': return simple(Token::Kind::RoundL);
     case ')': return simple(Token::Kind::RoundR);
     case '"': return finish(next_token_string(buf));
     case '#': return finish(next_token_comment(buf));
+    case ':': {
+      switch (*(buf + 1)) {
+        case '=': return simple_len(Token::Kind::Update, 2);
+      }
+      break;
+    }
     case '/': {
       switch (*(buf + 1)) {
         case '/': return finish(next_token_comment(buf));

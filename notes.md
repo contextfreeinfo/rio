@@ -2,6 +2,7 @@
 - Prohibit libstdc++ for faster compile.
 
 `
-./test -g > tests/parse-mem.txt 2>&1
-./test > tests/parse.txt 2>&1
+./test -g > tests/test1.c-mem.txt 2>&1
+./test > tests/test1.c.txt 2>&1
+./test > tests/test1.c
 `

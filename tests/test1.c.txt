@@ -1,13 +1,14 @@
 
-real	0m0.362s
+real	0m0.444s
 user	0m0.109s
-sys	0m0.125s
+sys	0m0.156s
 #include <stdio.h>
 
 void main() {
-  printf("Hello!\n");
+  const char* name = "world";
+  printf("Hello, %s!\n", name);
 }
 
-real	0m0.123s
-user	0m0.016s
-sys	0m0.000s
+real	0m0.090s
+user	0m0.000s
+sys	0m0.016s

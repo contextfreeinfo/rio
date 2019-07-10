@@ -15,6 +15,8 @@ struct Token {
     // TODO Use cache files to remember ids of enums, so source order doesn't
     // TODO matter.
     None,
+    Assign,
+    Comma,
     Comment,
     CurlyL,
     CurlyR,
@@ -28,6 +30,7 @@ struct Token {
     RoundL,
     RoundR,
     String,
+    Update,
   };
   Kind kind;
   const char* file;
@@ -39,6 +42,11 @@ struct Token {
 };
 
 struct Node;
+
+struct BinaryNode {
+  Node* a;
+  Node* b;
+};
 
 struct CallNode {
   Node* args;
@@ -66,6 +74,7 @@ struct Node {
 
   enum struct Kind {
     None,
+    Assign,
     Block,
     Call,
     Fun,
@@ -77,6 +86,7 @@ struct Node {
   Kind kind;
 
   union {
+    BinaryNode Assign;
     ParentNode Block;
     CallNode Call;
     FunNode Fun;

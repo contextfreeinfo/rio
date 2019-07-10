@@ -15,6 +15,7 @@ struct Options {
 
 struct Engine {
   // TODO Arena per file, so we can reload just changed files in server mode.
+  // TODO Allocate error list in arena.
   Arena arena;
   // FILE* info;
   Options options = {0};
