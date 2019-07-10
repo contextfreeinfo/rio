@@ -37,13 +37,13 @@ auto parse_options(int argc, const char** argv) -> const Options {
 void run(Engine* engine) {
   auto tokens = [&]() {
     auto file = engine->options.in;
-    if (engine->verbose) printf("in: %s\n", file);
+    if (verbose) printf("in: %s\n", file);
     auto buf = read_file(file);
     auto tokens = lex(engine, file, buf);
     free(buf);
     return tokens;
   }();
-  if (engine->verbose) printf("tokens: %zu\n", tokens.len);
+  if (verbose) printf("tokens: %zu\n", tokens.len);
   auto& tree = parse(engine, tokens.items);
   c::gen(engine, tree);
 }

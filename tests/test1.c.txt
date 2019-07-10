@@ -1,0 +1,13 @@
+
+real	0m0.362s
+user	0m0.109s
+sys	0m0.125s
+#include <stdio.h>
+
+void main() {
+  printf("Hello!\n");
+}
+
+real	0m0.123s
+user	0m0.016s
+sys	0m0.000s

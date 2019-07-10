@@ -19,8 +19,10 @@ struct Engine {
   // FILE* info;
   Options options = {0};
   Map<const char*> interns;
-  bool verbose{false};
+  // bool verbose{false};
 };
+
+constexpr bool verbose = false;
 
 auto has_text(const Token& token) -> bool;
 auto intern(Engine* engine, const char* text, usize nbytes) -> const char*;

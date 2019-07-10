@@ -8,7 +8,6 @@ if [[ "$1" == "-g" ]]; then
   # opts="$opts -static"
 else
   run=""
-  opts="-static-libgcc -static-libstdc++"
   # opts="-static"
   # opts="$opts -O3 -flto"
 fi
