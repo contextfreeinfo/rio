@@ -1,4 +1,4 @@
-fun main() do
+fun main()
   name = "world"
   printf("Hello, %s!\n", name)
 end

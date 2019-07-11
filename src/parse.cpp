@@ -87,9 +87,11 @@ auto parse_atom(ParseState* state) -> Node& {
   auto tokens = state->tokens;
   switch (tokens->kind) {
     case Token::Kind::CurlyL: {
+      advance_token(state, true);
       return parse_block(state);
     }
     case Token::Kind::Do: {
+      advance_token(state, true);
       return parse_block(state, Token::Kind::End);
     }
     case Token::Kind::Id: {
@@ -120,9 +122,6 @@ auto parse_atom(ParseState* state) -> Node& {
 auto parse_block(ParseState* state, Token::Kind end) -> Node& {
   Node& node = state->alloc(Node::Kind::Block);
   if (verbose) printf("begin block\n");
-  if (end != Token::Kind::FileEnd) {
-    advance_token(state, true);
-  }
   // Parse kids.
   auto buf_len_old = state->node_buf.len;
   for (; more_tokens(state, end); skip_comments(state, true)) {
@@ -170,7 +169,12 @@ auto parse_fun(ParseState* state) -> Node& {
     parse_tuple(state);
     if (verbose) printf("args\n");
   }
-  node.Fun.expr = &parse_expr(state);
+  if (state->tokens->kind == Token::Kind::LineEnd) {
+    skip_comments(state, true);
+    node.Fun.expr = &parse_block(state, Token::Kind::End);
+  } else {
+    node.Fun.expr = &parse_expr(state);
+  }
   if (verbose) printf("end fun\n");
   return node;
 }
