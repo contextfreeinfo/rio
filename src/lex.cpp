@@ -76,10 +76,10 @@ auto lex(Engine* engine, const char* file, const char* buf) -> List<Token> {
       // Also go from zero-index to one-index.
       line += token.begin.line;
       col = token.begin.col + 1;
-      // printf("new line at col %zu\n", col);
+      // if (verbose) printf("new line at col %zu\n", col);
     } else {
       col += token.begin.col;
-      // printf("same line at col %zu\n", col);
+      // if (verbose) printf("same line at col %zu\n", col);
     }
     token.begin.line = line;
     token.begin.col = col;
