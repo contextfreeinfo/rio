@@ -2,13 +2,16 @@
 
 namespace rio {
 
+auto is_digit(char c) -> bool;
 auto is_id_part(char c) -> bool;
 auto is_id_start(char c) -> bool;
 auto is_hspace(char c) -> bool;
+auto is_num_start(char c) -> bool;
 auto is_space(char c, bool was_line_end) -> bool;
 auto is_vspace(char c) -> bool;
 auto next_token_comment(const char* buf) -> Token;
 auto next_token_id(const char* buf) -> Token;
+auto next_token_num(const char* buf) -> Token;
 auto next_token_string(const char* buf) -> Token;
 auto next_token(const char* buf, bool was_line_end) -> Token;
 
@@ -27,7 +30,9 @@ const KeyId key_ids[] = {
 auto has_text(const Token& token) -> bool {
   switch (token.kind) {
     case Token::Kind::Comment:
+    case Token::Kind::Float:
     case Token::Kind::Id:
+    case Token::Kind::Int:
     case Token::Kind::String: {
       return true;
     }
@@ -35,6 +40,10 @@ auto has_text(const Token& token) -> bool {
       return false;
     }
   }
+}
+
+auto is_digit(char c) -> bool {
+  return '0' <= c && c <= '9';
 }
 
 auto is_hspace(char c) -> bool {
@@ -49,6 +58,10 @@ auto is_id_start(char c) -> bool {
   return c == '_' || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z');
 }
 
+auto is_num_start(char c) -> bool {
+  return c == '.' || c == '+' || c == '-' || is_digit(c);
+}
+
 auto is_space(char c, bool was_line_end) -> bool {
   return is_hspace(c) || (was_line_end && is_vspace(c));
 }
@@ -58,6 +71,7 @@ auto is_vspace(char c) -> bool {
 }
 
 auto lex(Engine* engine, const char* file, const char* buf) -> List<Token> {
+  // TODO Move these to arena or keep them separate?
   List<Token> tokens;
   const auto start = buf;
   usize line = 1;
@@ -146,6 +160,9 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
   if (is_id_start(c)) {
     return finish(next_token_id(buf));
   }
+  if (is_num_start(c)) {
+    return finish(next_token_num(buf));
+  }
   switch (c) {
     case '\0': return simple(Token::Kind::FileEnd);
     case '\n': return simple(Token::Kind::LineEnd);
@@ -206,6 +223,44 @@ auto next_token_id(const char* buf) -> Token {
   return [&]() {
     Token token = {kind};
     token.len = len;
+    return token;
+  }();
+}
+
+auto next_token_num(const char* buf) -> Token {
+  const char* start = buf;
+  char c = *buf;
+  if (c == '-' || c == '+') {
+    buf += 1;
+    char c2 = *buf;
+    // Checking ahead is safe because of null termination.
+    if (!(is_digit(c2) || (c2 == '.' && is_digit(buf[1])))) {
+      return [&]() {
+        Token token = {c == '-' ? Token::Kind::Minus : Token::Kind::Plus};
+        token.len = 1;
+        return token;
+      }();
+    }
+  }
+  if (*buf == '.' && !is_digit(buf[1])) {
+    // If we had a + or - before this, we'd have already cut out earlier.
+    return [&]() {
+      Token token = {Token::Kind::Dot};
+      token.len = 1;
+      return token;
+    }();
+  }
+  for (; is_digit(*buf); buf += 1) {}
+  auto kind = Token::Kind::Int;
+  if (*buf == '.') {
+    kind = Token::Kind::Float;
+    buf += 1;
+    for (; is_digit(*buf); buf += 1) {}
+  }
+  // TODO Exp, Hex, Bin, and Octal, too. Though later.
+  return [&]() {
+    Token token = {kind};
+    token.len = buf - start;
     return token;
   }();
 }

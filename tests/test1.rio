@@ -1,4 +1,6 @@
 fun main()
   name = "world"
+  age = 75
   printf("Hello, %s!\n", name)
+  printf("You are %d years old.\n", age)
 end

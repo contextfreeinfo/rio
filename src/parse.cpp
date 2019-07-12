@@ -68,14 +68,14 @@ auto parse(Engine* engine, const Token* tokens) -> Node& {
 }
 
 auto parse_assign(ParseState* state) -> Node& {
-  // Shouldn't actually assign to a call, but error that later.
+  // TODO Assign to a call declares a macro???
   Node& a = parse_call(state);
   if (state->tokens->kind == Token::Kind::Assign) {
     advance_token(state, true);
-    Node& node = state->alloc(Node::Kind::Assign);
-    node.Assign.a = &a;
+    Node& node = state->alloc(Node::Kind::Const);
+    node.Const.a = &a;
     if (verbose) printf("begin assign\n");
-    node.Assign.b = &parse_expr(state);
+    node.Const.b = &parse_expr(state);
     if (verbose) printf("end assign\n");
     return node;
   } else {
@@ -94,10 +94,22 @@ auto parse_atom(ParseState* state) -> Node& {
       advance_token(state, true);
       return parse_block(state, Token::Kind::End);
     }
+    case Token::Kind::Float: {
+      Node& node = state->alloc(Node::Kind::Float);
+      node.Float.text = tokens->text;
+      advance_token(state);
+      return node;
+    }
     case Token::Kind::Id: {
       if (verbose) printf("ref: %s\n", tokens->text);
       Node& node = state->alloc(Node::Kind::Ref);
       node.Ref.name = tokens->text;
+      advance_token(state);
+      return node;
+    }
+    case Token::Kind::Int: {
+      Node& node = state->alloc(Node::Kind::Int);
+      node.Int.text = tokens->text;
       advance_token(state);
       return node;
     }

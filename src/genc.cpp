@@ -24,21 +24,16 @@ auto needs_semi(const Node& node) -> bool;
 
 void gen(Engine* engine, const Node& tree) {
   GenState state;
-  printf("#include <stdio.h>\n");
+  printf(
+    "#include <stdint.h>\n"
+    "#include <stdio.h>\n"
+  );
   printf("\n");
   gen_statements(&state, tree);
 }
 
 void gen_expr(GenState* state, const Node& node) {
   switch (node.kind) {
-    case Node::Kind::Assign: {
-      // TODO Actually infer type.
-      printf("const char* ");
-      gen_expr(state, *node.Assign.a);
-      printf(" = ");
-      gen_expr(state, *node.Assign.b);
-      break;
-    }
     case Node::Kind::Block: {
       printf("{\n");
       {
@@ -55,10 +50,26 @@ void gen_expr(GenState* state, const Node& node) {
       printf(")");
       break;
     }
+    case Node::Kind::Const: {
+      // TODO Actually infer type.
+      printf("const char* ");
+      gen_expr(state, *node.Const.a);
+      printf(" = ");
+      gen_expr(state, *node.Const.b);
+      break;
+    }
+    case Node::Kind::Float: {
+      printf("%s", node.Float.text);
+      break;
+    }
     case Node::Kind::Fun: {
       printf("void %s() ", node.Fun.name);
       // TODO Special handling of non-block exprs.
       gen_expr(state, *node.Fun.expr);
+      break;
+    }
+    case Node::Kind::Int: {
+      printf("%s", node.Int.text);
       break;
     }
     case Node::Kind::Ref: {

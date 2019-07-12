@@ -158,6 +158,7 @@ struct Arena {
       // Make a new box.
       boxes.push_val({});
       box = &boxes.back();
+      // TODO Double box size each time???
       box->reserve(max(nbytes, default_box_size));
     }
     // Allocate the needed bytes, for which we already know we have space.

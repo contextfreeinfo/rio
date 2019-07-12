@@ -21,18 +21,24 @@ struct Token {
     CurlyL,
     CurlyR,
     Do,
+    Dot,
     End,
     FileEnd,
+    Float,
     Fun,
     Id,
+    Int,
     Junk,
     LineEnd,
+    Minus,
+    Plus,
     RoundL,
     RoundR,
     String,
     Update,
   };
   Kind kind;
+  // TODO We don't need file name on each individual token.
   const char* file;
   Pos begin;
   usize len;
@@ -74,10 +80,12 @@ struct Node {
 
   enum struct Kind {
     None,
-    Assign,
     Block,
+    Const,
     Call,
+    Float,
     Fun,
+    Int,
     Ref,
     String,
     Tuple,
@@ -86,10 +94,12 @@ struct Node {
   Kind kind;
 
   union {
-    BinaryNode Assign;
     ParentNode Block;
+    BinaryNode Const;
     CallNode Call;
+    StringNode Float;
     FunNode Fun;
+    StringNode Int;
     RefNode Ref;
     StringNode String;
     ParentNode Tuple;
