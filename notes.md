@@ -1,6 +1,7 @@
 - Top level source files works. Auto include of `src` dirs, too.
 - Prohibit libstdc++ for faster compile.
 - Cast like either `type expr` or `type(expr)`?
+- All private until explicit private section?
 
 `
 ./test -g > tests/test1.c-mem.txt 2>&1

@@ -16,4 +16,16 @@ using u32 = uint32_t;
 using u64 = uint64_t;
 using usize = uintptr_t;
 
+// Float types.
+using f32 = float;
+using f64 = double;
+
+// Aggregates.
+
+// In rio: string = [*u8, 0]
+using string = const char*;
+
+template<typename Item>
+using Opt = Item*;
+
 }

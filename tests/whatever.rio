@@ -1,0 +1,24 @@
+Something = class
+
+  Something(this, data: *That)
+    this.data = data
+  end
+
+  # Method
+  act(this)
+    this.data -> apply
+    loop = while true
+      break loop => 'great'
+    end
+  end
+
+  private
+
+  data: *That
+
+  # Pointer to function with default assignment
+  apply = fun(data: *That)
+    # Do something
+  end
+
+end Something

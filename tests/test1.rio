@@ -1,3 +1,6 @@
+# Once we have type inference, change syntax:
+# main = fun()
+# main()
 fun main()
   name = "world"
   age = 75

@@ -29,6 +29,7 @@ void gen(Engine* engine, const Node& tree) {
     "#include <stdio.h>\n"
   );
   printf("\n");
+  assert(tree.kind == Node::Kind::Block);
   gen_statements(&state, tree);
 }
 

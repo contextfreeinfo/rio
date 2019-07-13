@@ -1,9 +1,10 @@
 #include "main.h"
 
 #include "common.cpp"
+#include "extract.cpp"
+#include "genc.cpp"
 #include "lex.cpp"
 #include "parse.cpp"
-#include "genc.cpp"
 
 namespace rio {
 
@@ -45,6 +46,8 @@ void run(Engine* engine) {
   }();
   if (verbose) printf("tokens: %zu\n", tokens.len);
   auto& tree = parse(engine, tokens.items);
+  extract(engine, &tree);
+  // TODO Resolve refs/types.
   c::gen(engine, tree);
 }
 

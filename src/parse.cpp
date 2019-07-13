@@ -38,12 +38,13 @@ void advance_token(ParseState* state, bool skip_lines) {
   }
 }
 
+// TODO Unify with def_slice_copy?
 auto node_slice_copy(ParseState* state, usize buf_len_old) -> Slice<Node*> {
   // Prep space.
   auto& buf = state->node_buf;
   usize len = buf.len - buf_len_old;
   buf.len = buf_len_old;
-  usize nbytes = len * sizeof(Node*);
+  usize nbytes = len * sizeof(*buf.items);
   void* items = state->engine->arena.alloc_bytes(nbytes);
   // Copy it in.
   memcpy(items, buf.items + buf_len_old, nbytes);
@@ -64,6 +65,8 @@ auto parse(Engine* engine, const Token* tokens) -> Node& {
     return state;
   }();
   skip_comments(&state, true);
+  // TODO Change to parse_defs, which is a bit different than parse_block.
+  // TODO Still perhaps a block type, but the parsing is different.
   return parse_block(&state, Token::Kind::FileEnd);
 }
 

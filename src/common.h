@@ -39,6 +39,8 @@ template<typename Item>
 struct Slice {
 
   Item* items;
+  // TODO With Item* end, iteration becomes easier ...
+  // TODO Some iterator/range type for that? ...
   usize len;
   // TODO Alternative with stride also, called Slide?
 

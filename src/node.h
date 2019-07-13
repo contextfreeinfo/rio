@@ -10,6 +10,8 @@ struct Pos {
   usize col;
 };
 
+// Token.
+
 struct Token {
   enum struct Kind {
     // TODO Use cache files to remember ids of enums, so source order doesn't
@@ -39,15 +41,72 @@ struct Token {
   };
   Kind kind;
   // TODO We don't need file name on each individual token.
-  const char* file;
+  string file;
   Pos begin;
   usize len;
   union {
-    const char* text;
+    string text;
   };
 };
 
+// Type.
+
+struct Type {
+
+  enum struct Kind {
+    None,
+    // TODO C Types.
+    // Float.
+    FloatLike,
+    F32,
+    F64,
+    // Int.
+    IntLike,
+    I8,
+    I16,
+    I32,
+    I64,
+    ISize,
+    // Unsigned.
+    U8,
+    U16,
+    U32,
+    U64,
+    USize,
+    // Pointers.
+    Ref,
+    MultiRef,
+    // Aggregates.
+    // String has special treatment because it needs interop.
+    // Known semantics, auto conversion out, ...
+    String,
+    // Only applies at compile time.
+    Type,
+  };
+
+  Kind kind;
+
+};
+
+// Node.
+
 struct Node;
+
+struct Def {
+  string name;
+  Node* node;
+  Type type;
+  Opt<Node> value;
+};
+
+struct Scope {
+  Slice<Def*> defs;
+};
+
+struct BlockNode {
+  Scope scope;
+  Slice<Node*> items;
+};
 
 struct BinaryNode {
   Node* a;
@@ -60,7 +119,8 @@ struct CallNode {
 };
 
 struct FunNode {
-  const char* name;
+  string name;
+  Scope scope;
   Node* expr;
 };
 
@@ -69,11 +129,11 @@ struct ParentNode {
 };
 
 struct RefNode {
-  const char* name;
+  string name;
 };
 
 struct StringNode {
-  const char* text;
+  string text;
 };
 
 struct Node {
@@ -92,9 +152,10 @@ struct Node {
   };
 
   Kind kind;
+  Type type;
 
   union {
-    ParentNode Block;
+    BlockNode Block;
     BinaryNode Const;
     CallNode Call;
     StringNode Float;
