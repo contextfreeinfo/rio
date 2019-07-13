@@ -4,7 +4,13 @@ namespace rio {
 
 struct ParseState {
 
+  enum struct Mode {
+    Statements,
+    Declarations,
+  };
+
   Engine* engine;
+  Mode mode;
   List<Node*> node_buf;
   const Token* tokens;
 
@@ -22,11 +28,14 @@ auto more_tokens(ParseState* state, Token::Kind end) -> bool;
 auto parse_assign(ParseState* state) -> Node&;
 auto parse_atom(ParseState* state) -> Node&;
 auto parse_block(
-  ParseState* state, Token::Kind end = Token::Kind::CurlyR
+  ParseState* state,
+  Token::Kind end = Token::Kind::CurlyR,
+  ParseState::Mode mode = ParseState::Mode::Statements
 ) -> Node&;
 auto parse_call(ParseState* state) -> Node&;
 auto parse_expr(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
+void parse_fun_finish(ParseState* state, Node* node);
 auto parse_tuple(ParseState* state) -> Node&;
 void skip_comments(ParseState* state, bool skip_lines = false);
 
@@ -36,6 +45,12 @@ void advance_token(ParseState* state, bool skip_lines) {
     tokens += 1;
     skip_comments(state, skip_lines);
   }
+}
+
+auto more_tokens(ParseState* state, Token::Kind end) -> bool {
+  return
+    state->tokens->kind != end &&
+    state->tokens->kind != Token::Kind::FileEnd;
 }
 
 // TODO Unify with def_slice_copy?
@@ -51,23 +66,20 @@ auto node_slice_copy(ParseState* state, usize buf_len_old) -> Slice<Node*> {
   return {static_cast<Node**>(items), len};
 }
 
-auto more_tokens(ParseState* state, Token::Kind end) -> bool {
-  return
-    state->tokens->kind != end &&
-    state->tokens->kind != Token::Kind::FileEnd;
-}
-
 auto parse(Engine* engine, const Token* tokens) -> Node& {
   ParseState state = [&]() {
     ParseState state;
     state.engine = engine;
+    state.mode = ParseState::Mode::Declarations;
     state.tokens = tokens;
     return state;
   }();
   skip_comments(&state, true);
   // TODO Change to parse_defs, which is a bit different than parse_block.
   // TODO Still perhaps a block type, but the parsing is different.
-  return parse_block(&state, Token::Kind::FileEnd);
+  return parse_block(
+    &state, Token::Kind::FileEnd, ParseState::Mode::Declarations
+  );
 }
 
 auto parse_assign(ParseState* state) -> Node& {
@@ -134,15 +146,21 @@ auto parse_atom(ParseState* state) -> Node& {
   }
 }
 
-auto parse_block(ParseState* state, Token::Kind end) -> Node& {
+auto parse_block(
+  ParseState* state, Token::Kind end, ParseState::Mode mode
+) -> Node& {
   Node& node = state->alloc(Node::Kind::Block);
   if (verbose) printf("begin block\n");
   // Parse kids.
   auto buf_len_old = state->node_buf.len;
+  auto mode_old = state->mode;
+  state->mode = mode;
   for (; more_tokens(state, end); skip_comments(state, true)) {
     Node* kid = &parse_expr(state);
     state->node_buf.push(kid);
   }
+  // TODO Put these in some destructor if we can throw above.
+  state->mode = mode_old;
   node.Block.items = node_slice_copy(state, buf_len_old);
   // Move on.
   advance_token(state);
@@ -154,12 +172,30 @@ auto parse_block(ParseState* state, Token::Kind end) -> Node& {
 auto parse_call(ParseState* state) -> Node& {
   Node& callee = parse_atom(state);
   if (state->tokens->kind == Token::Kind::RoundL) {
-    Node& node = state->alloc(Node::Kind::Call);
-    node.Call.callee = &callee;
-    if (verbose) printf("begin call\n");
-    node.Call.args = &parse_tuple(state);
-    if (verbose) printf("end call\n");
-    return node;
+    switch (state->mode) {
+      case ParseState::Mode::Declarations: {
+        Node& node = state->alloc(Node::Kind::Fun);
+        if (callee.kind == Node::Kind::Ref) {
+          node.Fun.name = callee.Ref.name;
+          if (verbose) printf("fun name %s\n", callee.Ref.name);
+        } else {
+          node.Fun.name = "";
+        }
+        parse_fun_finish(state, &node);
+        return node;
+      }
+      case ParseState::Mode::Statements: {
+        Node& node = state->alloc(Node::Kind::Call);
+        node.Call.callee = &callee;
+        if (verbose) printf("begin call\n");
+        node.Call.args = &parse_tuple(state);
+        if (verbose) printf("end call\n");
+        return node;
+      }
+      default: {
+        return callee;
+      }
+    }
   } else {
     return callee;
   }
@@ -180,18 +216,22 @@ auto parse_fun(ParseState* state) -> Node& {
   } else {
     node.Fun.name = "";
   }
+  parse_fun_finish(state, &node);
+  if (verbose) printf("end fun\n");
+  return node;
+}
+
+void parse_fun_finish(ParseState* state, Node* node) {
   if (state->tokens->kind == Token::Kind::RoundL) {
     parse_tuple(state);
     if (verbose) printf("args\n");
   }
   if (state->tokens->kind == Token::Kind::LineEnd) {
     skip_comments(state, true);
-    node.Fun.expr = &parse_block(state, Token::Kind::End);
+    node->Fun.expr = &parse_block(state, Token::Kind::End);
   } else {
-    node.Fun.expr = &parse_expr(state);
+    node->Fun.expr = &parse_expr(state);
   }
-  if (verbose) printf("end fun\n");
-  return node;
 }
 
 auto parse_tuple(ParseState* state) -> Node& {

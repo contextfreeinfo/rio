@@ -1,7 +1,4 @@
-# Once we have type inference, change syntax:
-# main = fun()
-# main()
-fun main()
+main()
   name = "world"
   age = 75
   printf("Hello, %s!\n", name)
