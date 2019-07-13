@@ -97,6 +97,10 @@ void gen_indent(GenState* state) {
 void gen_statements(GenState* state, const Node& node) {
   auto items = node.Block.items;
   for (usize i = 0; i < items.len; i += 1) {
+    if (i && !state->indent) {
+      // Blank lines between at top level.
+      printf("\n");
+    }
     gen_indent(state);
     gen_expr(state, *items[i]);
     if (needs_semi(*items[i])) {
