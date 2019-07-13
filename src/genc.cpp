@@ -53,7 +53,7 @@ void gen_expr(GenState* state, const Node& node) {
     }
     case Node::Kind::Const: {
       // TODO Actually infer type.
-      printf("const char* ");
+      printf("const char* const ");
       gen_expr(state, *node.Const.a);
       printf(" = ");
       gen_expr(state, *node.Const.b);
