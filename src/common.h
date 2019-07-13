@@ -167,6 +167,7 @@ struct Arena {
     u8* end = box->items + index;
     box->len = index + nbytes;
     // printf("alloc %zu at %zu, now %zu\n", nbytes, index, box->len);
+    // memset(end, 0, nbytes);
     return end;
   }
 

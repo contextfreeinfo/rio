@@ -6,10 +6,11 @@ if [[ "$1" == "-g" ]]; then
   # Static linking shows memory leaks and/or errors in valgrind.
   # TODO Do they mean something, or should they be ignored?
   # opts="$opts -static"
+elif [[ "$1" == "-O" ]]; then
+  opts="-static -O3 -flto"
+  run=""
 else
   run=""
-  # opts="-static"
-  # opts="$opts -O3 -flto"
 fi
 
 mkdir -p bin || exit
