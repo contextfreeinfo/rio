@@ -95,7 +95,6 @@ struct Node;
 struct Def {
   string name;
   Node* node;
-  Type type;
   Opt<Node> value;
 };
 
@@ -130,6 +129,7 @@ struct ParentNode {
 
 struct RefNode {
   string name;
+  Opt<Def> def;
 };
 
 struct StringNode {

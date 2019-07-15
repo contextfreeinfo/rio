@@ -11,7 +11,6 @@ struct ExtractState {
     Def* def = &engine->arena.alloc<Def>();
     def->name = name;
     def->node = node;
-    def->type = {Type::Kind::None};
     def->value = nullptr;
     return def;
   }
@@ -25,7 +24,7 @@ struct ExtractState {
 };
 
 void extract_block(ExtractState* state, Node* node);
-void extract_ref_names(ExtractState* state, Node* node);
+void extract_ref_names(ExtractState* state, Node* node, Node* value);
 void extract_expr(ExtractState* state, Node* node);
 void extract_fun(ExtractState* state, Node* node);
 
@@ -70,7 +69,7 @@ void extract_expr(ExtractState* state, Node* node) {
       break;
     }
     case Node::Kind::Const: {
-      extract_ref_names(state, node->Const.a);
+      extract_ref_names(state, node->Const.a, node->Const.b);
       extract_expr(state, node->Const.b);
       break;
     }
@@ -102,15 +101,17 @@ void extract_fun(ExtractState* state, Node* node) {
   extract_expr(state, node->Fun.expr);
 }
 
-void extract_ref_names(ExtractState* state, Node* node) {
+void extract_ref_names(ExtractState* state, Node* node, Node* value) {
   switch (node->kind) {
     case Node::Kind::Ref: {
       if (verbose) printf("const/var: %s\n", node->Ref.name);
-      state->alloc_push(node->Ref.name, node);
+      node->Ref.def = state->alloc_push(node->Ref.name, node);
+      node->Ref.def->value = value;
       break;
     }
     default: {
       // TODO Destructuring.
+      // TODO Add new expressions to reach inside for values.
       break;
     }
   }
