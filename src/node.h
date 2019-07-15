@@ -57,11 +57,9 @@ struct Type {
     None,
     // TODO C Types.
     // Float.
-    FloatLike,
     F32,
     F64,
     // Int.
-    IntLike,
     I8,
     I16,
     I32,

@@ -19,6 +19,7 @@ struct Indent {
 void gen_expr(GenState* state, const Node& node);
 void gen_indent(GenState* state);
 void gen_tuple_items(GenState* state, const Node& node);
+void gen_type(GenState* state, const Type& type);
 void gen_statements(GenState* state, const Node& node);
 auto needs_semi(const Node& node) -> bool;
 
@@ -52,8 +53,8 @@ void gen_expr(GenState* state, const Node& node) {
       break;
     }
     case Node::Kind::Const: {
-      // TODO Actually infer type.
-      printf("const char* const ");
+      gen_type(state, node.Const.a->type);
+      printf(" const ");
       gen_expr(state, *node.Const.a);
       printf(" = ");
       gen_expr(state, *node.Const.b);
@@ -116,6 +117,59 @@ void gen_tuple_items(GenState* state, const Node& node) {
       printf(", ");
     }
     gen_expr(state, *items[i]);
+  }
+}
+
+void gen_type(GenState* state, const Type& type) {
+  switch (type.kind) {
+    case Type::Kind::F32: {
+      printf("float");
+      break;
+    }
+    case Type::Kind::F64: {
+      printf("double");
+      break;
+    }
+    case Type::Kind::I8: {
+      printf("int8_t");
+      break;
+    }
+    case Type::Kind::I16: {
+      printf("int16_t");
+      break;
+    }
+    case Type::Kind::I32: {
+      printf("int32_t");
+      break;
+    }
+    case Type::Kind::I64: {
+      printf("int64_t");
+      break;
+    }
+    case Type::Kind::String: {
+      printf("const char*");
+      break;
+    }
+    case Type::Kind::U8: {
+      printf("uint8_t");
+      break;
+    }
+    case Type::Kind::U16: {
+      printf("uint16_t");
+      break;
+    }
+    case Type::Kind::U32: {
+      printf("uint32_t");
+      break;
+    }
+    case Type::Kind::U64: {
+      printf("uint64_t");
+      break;
+    }
+    default: {
+      printf("(!!! TYPE !!!)");
+      break;
+    }
   }
 }
 

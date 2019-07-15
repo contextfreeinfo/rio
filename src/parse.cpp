@@ -102,6 +102,7 @@ auto parse_atom(ParseState* state) -> Node& {
   auto tokens = state->tokens;
   switch (tokens->kind) {
     case Token::Kind::CurlyL: {
+      // TODO These should be only for data now? Unless do {...}?
       advance_token(state, true);
       return parse_block(state);
     }

@@ -46,6 +46,7 @@ void extract(Engine* engine, Node* tree) {
   ExtractState state;
   state.engine = engine;
   extract_block(&state, tree);
+  // TODO Put top level (only across all package files?) into a Map.
 }
 
 void extract_block(ExtractState* state, Node* node) {
