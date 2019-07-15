@@ -1,34 +1,38 @@
 
-real	0m0.276s
-user	0m0.156s
-sys	0m0.109s
-==1226== Memcheck, a memory error detector
-==1226== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==1226== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
-==1226== Command: ./bin/rio -i tests/test1.rio
-==1226== 
-==1226== error calling PR_SET_PTRACER, vgdb might block
+real	0m0.268s
+user	0m0.125s
+sys	0m0.125s
+==1373== Memcheck, a memory error detector
+==1373== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==1373== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
+==1373== Command: ./bin/rio -i tests/test1.rio
+==1373== 
+==1373== error calling PR_SET_PTRACER, vgdb might block
 #include <stdint.h>
 #include <stdio.h>
 
 const char* const message = "Hello";
 
-void main() {
+void run() {
   const char* const name = "world";
   int32_t const age = 75;
   printf("%s, %s!\n", message, name);
   printf("You are %d years old.\n", age);
 }
-==1226== 
-==1226== HEAP SUMMARY:
-==1226==     in use at exit: 0 bytes in 0 blocks
-==1226==   total heap usage: 25 allocs, 25 frees, 97,817 bytes allocated
-==1226== 
-==1226== All heap blocks were freed -- no leaks are possible
-==1226== 
-==1226== For counts of detected and suppressed errors, rerun with: -v
-==1226== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 
-real	0m0.596s
-user	0m0.516s
-sys	0m0.078s
+int main() {
+  run();
+}
+==1373== 
+==1373== HEAP SUMMARY:
+==1373==     in use at exit: 0 bytes in 0 blocks
+==1373==   total heap usage: 25 allocs, 25 frees, 97,836 bytes allocated
+==1373== 
+==1373== All heap blocks were freed -- no leaks are possible
+==1373== 
+==1373== For counts of detected and suppressed errors, rerun with: -v
+==1373== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+real	0m0.598s
+user	0m0.484s
+sys	0m0.094s

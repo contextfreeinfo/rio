@@ -65,7 +65,8 @@ void gen_expr(GenState* state, const Node& node) {
       break;
     }
     case Node::Kind::Fun: {
-      printf("void %s() ", node.Fun.name);
+      gen_type(state, node.type);
+      printf(" %s() ", node.Fun.name);
       // TODO Special handling of non-block exprs.
       gen_expr(state, *node.Fun.expr);
       break;
@@ -146,6 +147,10 @@ void gen_type(GenState* state, const Type& type) {
       printf("int64_t");
       break;
     }
+    case Type::Kind::Int: {
+      printf("int");
+      break;
+    }
     case Type::Kind::String: {
       printf("const char*");
       break;
@@ -164,6 +169,10 @@ void gen_type(GenState* state, const Type& type) {
     }
     case Type::Kind::U64: {
       printf("uint64_t");
+      break;
+    }
+    case Type::Kind::Void: {
+      printf("void");
       break;
     }
     default: {

@@ -3,9 +3,13 @@
 
 const char* const message = "Hello";
 
-void main() {
+void run() {
   const char* const name = "world";
   int32_t const age = 75;
   printf("%s, %s!\n", message, name);
   printf("You are %d years old.\n", age);
+}
+
+int main() {
+  run();
 }

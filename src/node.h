@@ -55,6 +55,7 @@ struct Type {
 
   enum struct Kind {
     None,
+    Void,
     // TODO C Types.
     // Float.
     F32,
@@ -65,6 +66,7 @@ struct Type {
     I32,
     I64,
     ISize,
+    Int,
     // Unsigned.
     U8,
     U16,

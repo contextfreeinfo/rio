@@ -1,19 +1,23 @@
 
 real	0m0.255s
-user	0m0.125s
-sys	0m0.125s
+user	0m0.156s
+sys	0m0.078s
 #include <stdint.h>
 #include <stdio.h>
 
 const char* const message = "Hello";
 
-void main() {
+void run() {
   const char* const name = "world";
   int32_t const age = 75;
   printf("%s, %s!\n", message, name);
   printf("You are %d years old.\n", age);
 }
 
-real	0m0.066s
+int main() {
+  run();
+}
+
+real	0m0.036s
 user	0m0.000s
-sys	0m0.000s
+sys	0m0.016s

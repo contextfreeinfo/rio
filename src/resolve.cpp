@@ -19,6 +19,7 @@ void resolve(Engine* engine, Node* tree) {
 }
 
 Type choose_float_type(const Type& type) {
+  // TODO Explicit suffixes on literals.
   switch (type.kind) {
     case Type::Kind::F32:
     case Type::Kind::F64: {
@@ -33,15 +34,19 @@ Type choose_float_type(const Type& type) {
 }
 
 Type choose_int_type(const Type& type) {
+  // TODO Explicit suffixes on literals.
   switch (type.kind) {
     case Type::Kind::I8:
     case Type::Kind::I16:
     case Type::Kind::I32:
     case Type::Kind::I64:
+    case Type::Kind::ISize:
+    case Type::Kind::Int:
     case Type::Kind::U8:
     case Type::Kind::U16:
     case Type::Kind::U32:
-    case Type::Kind::U64: {
+    case Type::Kind::U64:
+    case Type::Kind::USize: {
       return type;
     }
     default: {
@@ -83,6 +88,14 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       break;
     }
     case Node::Kind::Fun: {
+      if (!strcmp(node->Fun.name, "main")) {
+        // TODO Instead have a global main call a package main.
+        // TODO Package main can return void or other ints.
+        node->type = {Type::Kind::Int};
+      } else {
+        // TODO Actual types on functions.
+        node->type = {Type::Kind::Void};
+      }
       // TODO Pass down explicit type if any.
       resolve_expr(state, node->Fun.expr, {Type::Kind::None});
       break;
@@ -100,6 +113,7 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
     case Node::Kind::String: {
       // TODO Be able to infer integer or slice types, too.
       // TODO Default to slice rather than *u8(*, 0)?
+      // TODO Explicit suffixes on literals.
       node->type = {Type::Kind::String};
       break;
     }
