@@ -16,6 +16,8 @@ struct Indent {
   GenState* state;
 };
 
+void gen_decl_expr(GenState* state, const Node& node);
+void gen_decls(GenState* state, const Node& node);
 void gen_expr(GenState* state, const Node& node);
 void gen_indent(GenState* state);
 void gen_tuple_items(GenState* state, const Node& node);
@@ -31,7 +33,31 @@ void gen(Engine* engine, const Node& tree) {
   );
   printf("\n");
   assert(tree.kind == Node::Kind::Block);
+  gen_decls(&state, tree);
+  printf("\n");
   gen_statements(&state, tree);
+}
+
+void gen_decl_expr(GenState* state, const Node& node) {
+  switch (node.kind) {
+    case Node::Kind::Fun: {
+      gen_type(state, node.type);
+      printf(" %s();\n", node.Fun.name);
+      break;
+    }
+    default: {
+      // Nothing to do.
+      break;
+    }
+  }
+}
+
+void gen_decls(GenState* state, const Node& node) {
+  auto items = node.Block.items;
+  for (usize i = 0; i < items.len; i += 1) {
+    gen_indent(state);
+    gen_decl_expr(state, *items[i]);
+  }
 }
 
 void gen_expr(GenState* state, const Node& node) {

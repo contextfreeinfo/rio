@@ -1,12 +1,12 @@
 message = "Hello"
 
+main()
+  run()
+end
+
 run()
   name = "world"
   age = 75
   printf("%s, %s!\n", message, name)
   printf("You are %d years old.\n", age)
-end
-
-main()
-  run()
 end

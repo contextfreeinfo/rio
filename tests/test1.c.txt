@@ -1,11 +1,18 @@
 
-real	0m0.255s
+real	0m0.302s
 user	0m0.156s
 sys	0m0.078s
 #include <stdint.h>
 #include <stdio.h>
 
+int main();
+void run();
+
 const char* const message = "Hello";
+
+int main() {
+  run();
+}
 
 void run() {
   const char* const name = "world";
@@ -14,10 +21,6 @@ void run() {
   printf("You are %d years old.\n", age);
 }
 
-int main() {
-  run();
-}
-
-real	0m0.036s
+real	0m0.063s
 user	0m0.000s
 sys	0m0.016s

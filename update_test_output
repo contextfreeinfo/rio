@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+./test -g > tests/test1.c-mem.txt 2>&1
+./test > tests/test1.c.txt 2>&1
+./test > tests/test1.c
