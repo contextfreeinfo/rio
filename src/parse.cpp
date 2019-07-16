@@ -4,13 +4,7 @@ namespace rio {
 
 struct ParseState {
 
-  enum struct Mode {
-    Statements,
-    Declarations,
-  };
-
   Engine* engine;
-  Mode mode;
   List<Node*> node_buf;
   const Token* tokens;
 
@@ -28,11 +22,10 @@ auto more_tokens(ParseState* state, Token::Kind end) -> bool;
 auto parse_assign(ParseState* state) -> Node&;
 auto parse_atom(ParseState* state) -> Node&;
 auto parse_block(
-  ParseState* state,
-  Token::Kind end = Token::Kind::CurlyR,
-  ParseState::Mode mode = ParseState::Mode::Statements
+  ParseState* state, Token::Kind end = Token::Kind::CurlyR
 ) -> Node&;
 auto parse_call(ParseState* state) -> Node&;
+auto parse_def(ParseState* state) -> Node&;
 auto parse_expr(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
 void parse_fun_finish(ParseState* state, Node* node);
@@ -70,21 +63,16 @@ auto parse(Engine* engine, const Token* tokens) -> Node& {
   ParseState state = [&]() {
     ParseState state;
     state.engine = engine;
-    state.mode = ParseState::Mode::Declarations;
     state.tokens = tokens;
     return state;
   }();
   skip_comments(&state, true);
-  // TODO Change to parse_defs, which is a bit different than parse_block.
-  // TODO Still perhaps a block type, but the parsing is different.
-  return parse_block(
-    &state, Token::Kind::FileEnd, ParseState::Mode::Declarations
-  );
+  return parse_block(&state, Token::Kind::FileEnd);
 }
 
 auto parse_assign(ParseState* state) -> Node& {
   // TODO Assign to a call declares a macro???
-  Node& a = parse_call(state);
+  Node& a = parse_def(state);
   if (state->tokens->kind == Token::Kind::Assign) {
     advance_token(state, true);
     Node& node = state->alloc(Node::Kind::Const);
@@ -147,21 +135,16 @@ auto parse_atom(ParseState* state) -> Node& {
   }
 }
 
-auto parse_block(
-  ParseState* state, Token::Kind end, ParseState::Mode mode
-) -> Node& {
+auto parse_block(ParseState* state, Token::Kind end) -> Node& {
   Node& node = state->alloc(Node::Kind::Block);
   if (verbose) printf("begin block\n");
   // Parse kids.
   auto buf_len_old = state->node_buf.len;
-  auto mode_old = state->mode;
-  state->mode = mode;
   for (; more_tokens(state, end); skip_comments(state, true)) {
     Node* kid = &parse_expr(state);
     state->node_buf.push(kid);
   }
   // TODO Put these in some destructor if we can throw above.
-  state->mode = mode_old;
   node.Block.items = node_slice_copy(state, buf_len_old);
   // Move on.
   advance_token(state);
@@ -173,32 +156,25 @@ auto parse_block(
 auto parse_call(ParseState* state) -> Node& {
   Node& callee = parse_atom(state);
   if (state->tokens->kind == Token::Kind::RoundL) {
-    switch (state->mode) {
-      case ParseState::Mode::Declarations: {
-        Node& node = state->alloc(Node::Kind::Fun);
-        if (callee.kind == Node::Kind::Ref) {
-          node.Fun.name = callee.Ref.name;
-          if (verbose) printf("fun name %s\n", callee.Ref.name);
-        } else {
-          node.Fun.name = "";
-        }
-        parse_fun_finish(state, &node);
-        return node;
-      }
-      case ParseState::Mode::Statements: {
-        Node& node = state->alloc(Node::Kind::Call);
-        node.Call.callee = &callee;
-        if (verbose) printf("begin call\n");
-        node.Call.args = &parse_tuple(state);
-        if (verbose) printf("end call\n");
-        return node;
-      }
-      default: {
-        return callee;
-      }
-    }
+    Node& node = state->alloc(Node::Kind::Call);
+    node.Call.callee = &callee;
+    if (verbose) printf("begin call\n");
+    node.Call.args = &parse_tuple(state);
+    if (verbose) printf("end call\n");
+    return node;
   } else {
     return callee;
+  }
+}
+
+auto parse_def(ParseState* state) -> Node& {
+  Node& a = parse_call(state);
+  if (a.kind == Node::Kind::Ref && state->tokens->kind == Token::Kind::Fun) {
+    Node& node = parse_fun(state);
+    node.Fun.name = a.Ref.name;
+    return node;
+  } else {
+    return a;
   }
 }
 

@@ -1,10 +1,10 @@
 message = "Hello"
 
-main()
+main fun()
   run()
 end
 
-run()
+run fun()
   name = "world"
   age = 75
   printf("%s, %s!\n", message, name)
