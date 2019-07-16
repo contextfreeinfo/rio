@@ -1,7 +1,7 @@
 
-real	0m0.260s
+real	0m0.254s
 user	0m0.141s
-sys	0m0.109s
+sys	0m0.094s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -21,6 +21,6 @@ void run() {
   printf("You are %d years old.\n", age);
 }
 
-real	0m0.053s
-user	0m0.016s
+real	0m0.046s
+user	0m0.000s
 sys	0m0.000s

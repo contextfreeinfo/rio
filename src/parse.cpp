@@ -187,29 +187,19 @@ auto parse_fun(ParseState* state) -> Node& {
   Node& node = state->alloc(Node::Kind::Fun);
   if (verbose) printf("begin fun\n");
   advance_token(state);
-  if (state->tokens->kind == Token::Kind::Id) {
-    node.Fun.name = state->tokens->text;
-    if (verbose) printf("name %s\n", node.Fun.name);
-    advance_token(state);
-  } else {
-    node.Fun.name = "";
-  }
-  parse_fun_finish(state, &node);
-  if (verbose) printf("end fun\n");
-  return node;
-}
-
-void parse_fun_finish(ParseState* state, Node* node) {
+  node.Fun.name = "";
   if (state->tokens->kind == Token::Kind::RoundL) {
     parse_tuple(state);
     if (verbose) printf("args\n");
   }
   if (state->tokens->kind == Token::Kind::LineEnd) {
     skip_comments(state, true);
-    node->Fun.expr = &parse_block(state, Token::Kind::End);
+    node.Fun.expr = &parse_block(state, Token::Kind::End);
   } else {
-    node->Fun.expr = &parse_expr(state);
+    node.Fun.expr = &parse_expr(state);
   }
+  if (verbose) printf("end fun\n");
+  return node;
 }
 
 auto parse_tuple(ParseState* state) -> Node& {
