@@ -5,6 +5,7 @@ namespace rio {
 struct ParseState {
 
   Engine* engine;
+  // TODO Share common space for all bufs at different stages to avoid allocs?
   List<Node*> node_buf;
   const Token* tokens;
 
