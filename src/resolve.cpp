@@ -10,6 +10,7 @@ Type choose_float_type(const Type& type);
 Type choose_int_type(const Type& type);
 void resolve_block(ResolveState* state, Node* node, const Type& type);
 void resolve_expr(ResolveState* state, Node* node, const Type& type);
+void resolve_tuple(ResolveState* state, Node* node, const Type& type);
 
 void resolve(Engine* engine, Node* tree) {
   assert(tree->kind == Node::Kind::Block);
@@ -74,6 +75,20 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       // gen_tuple_items(state, *node.Call.args);
       break;
     }
+    case Node::Kind::Cast: {
+      Node* type_node = node->Cast.b;
+      // TODO Actual resolution of type names.
+      // TODO Global outer map on interned pointers to types.
+      if (type_node->kind == Node::Kind::Ref) {
+        string name = type_node->Ref.name;
+        if (!strcmp(name, "i32")) {
+          node->type = {Type::Kind::I32};
+        } else if (!strcmp(name, "string")) {
+          node->type = {Type::Kind::String};
+        }
+      }
+      break;
+    }
     case Node::Kind::Const: {
       // TODO First see if side `a` declares an explicit type.
       if (node->Const.a->type.kind == Type::Kind::None) {
@@ -96,7 +111,8 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
         // TODO Actual types on functions.
         node->type = {Type::Kind::Void};
       }
-      // TODO Pass down explicit type if any.
+      // TODO If in a local expression, expected type might be given.
+      resolve_tuple(state, node->Fun.params, {Type::Kind::None});
       resolve_expr(state, node->Fun.expr, {Type::Kind::None});
       break;
     }
@@ -121,6 +137,13 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       // printf("(!!! BROKEN %d !!!)", static_cast<int>(node.kind));
       break;
     }
+  }
+}
+
+void resolve_tuple(ResolveState* state, Node* node, const Type& type) {
+  auto items = node->Tuple.items;
+  for (usize i = 0; i < items.len; i += 1) {
+    resolve_expr(state, items[i], {Type::Kind::None});
   }
 }
 

@@ -26,6 +26,7 @@ auto parse_block(
   ParseState* state, Token::Kind end = Token::Kind::CurlyR
 ) -> Node&;
 auto parse_call(ParseState* state) -> Node&;
+auto parse_cast(ParseState* state) -> Node&;
 auto parse_def(ParseState* state) -> Node&;
 auto parse_expr(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
@@ -155,6 +156,7 @@ auto parse_block(ParseState* state, Token::Kind end) -> Node& {
 }
 
 auto parse_call(ParseState* state) -> Node& {
+  // TODO Nested calls.
   Node& callee = parse_atom(state);
   if (state->tokens->kind == Token::Kind::RoundL) {
     Node& node = state->alloc(Node::Kind::Call);
@@ -168,8 +170,20 @@ auto parse_call(ParseState* state) -> Node& {
   }
 }
 
+auto parse_cast(ParseState* state) -> Node& {
+  Node* node = &parse_call(state);
+  while (state->tokens->kind == Token::Kind::Colon) {
+    Node* cast = &state->alloc(Node::Kind::Cast);
+    cast->Cast.a = node;
+    advance_token(state, true);
+    cast->Cast.b = &parse_call(state);
+    node = cast;
+  }
+  return *node;
+}
+
 auto parse_def(ParseState* state) -> Node& {
-  Node& a = parse_call(state);
+  Node& a = parse_cast(state);
   if (a.kind == Node::Kind::Ref && state->tokens->kind == Token::Kind::Fun) {
     Node& node = parse_fun(state);
     node.Fun.name = a.Ref.name;
@@ -189,7 +203,7 @@ auto parse_fun(ParseState* state) -> Node& {
   advance_token(state);
   node.Fun.name = "";
   if (state->tokens->kind == Token::Kind::RoundL) {
-    parse_tuple(state);
+    node.Fun.params = &parse_tuple(state);
     if (verbose) printf("args\n");
   }
   if (state->tokens->kind == Token::Kind::LineEnd) {

@@ -16,11 +16,13 @@ struct Indent {
   GenState* state;
 };
 
+void gen_bad(GenState* state, const Node& node);
 void gen_decl_expr(GenState* state, const Node& node);
 void gen_decls(GenState* state, const Node& node);
 void gen_expr(GenState* state, const Node& node);
+void gen_list_items(GenState* state, const Node& node);
 void gen_indent(GenState* state);
-void gen_tuple_items(GenState* state, const Node& node);
+void gen_param_items(GenState* state, const Node& node);
 void gen_type(GenState* state, const Type& type);
 void gen_statements(GenState* state, const Node& node);
 auto needs_semi(const Node& node) -> bool;
@@ -36,6 +38,10 @@ void gen(Engine* engine, const Node& tree) {
   gen_decls(&state, tree);
   printf("\n");
   gen_statements(&state, tree);
+}
+
+void gen_bad(GenState* state, const Node& node) {
+  printf("(!!! BROKEN %d !!!)", static_cast<int>(node.kind));
 }
 
 void gen_decl_expr(GenState* state, const Node& node) {
@@ -74,7 +80,7 @@ void gen_expr(GenState* state, const Node& node) {
     case Node::Kind::Call: {
       gen_expr(state, *node.Call.callee);
       printf("(");
-      gen_tuple_items(state, *node.Call.args);
+      gen_list_items(state, *node.Call.args);
       printf(")");
       break;
     }
@@ -92,7 +98,9 @@ void gen_expr(GenState* state, const Node& node) {
     }
     case Node::Kind::Fun: {
       gen_type(state, node.type);
-      printf(" %s() ", node.Fun.name);
+      printf(" %s(", node.Fun.name);
+      gen_param_items(state, *node.Fun.params);
+      printf(") ");
       // TODO Special handling of non-block exprs.
       gen_expr(state, *node.Fun.expr);
       break;
@@ -110,7 +118,7 @@ void gen_expr(GenState* state, const Node& node) {
       break;
     }
     default: {
-      printf("(!!! BROKEN %d !!!)", static_cast<int>(node.kind));
+      gen_bad(state, node);
       break;
     }
   }
@@ -119,6 +127,46 @@ void gen_expr(GenState* state, const Node& node) {
 void gen_indent(GenState* state) {
   for (usize i = 0; i < state->indent; i += 1) {
     printf("  ");
+  }
+}
+
+void gen_list_items(GenState* state, const Node& node) {
+  auto items = node.Tuple.items;
+  for (usize i = 0; i < items.len; i += 1) {
+    if (i) {
+      printf(", ");
+    }
+    gen_expr(state, *items[i]);
+  }
+}
+
+void gen_param_items(GenState* state, const Node& node) {
+  auto items = node.Tuple.items;
+  for (usize i = 0; i < items.len; i += 1) {
+    auto& item = *items[i];
+    if (i) {
+      printf(", ");
+    }
+    switch (item.kind) {
+      case Node::Kind::Cast: {
+        gen_type(state, item.type);
+        if (item.Cast.a->kind == Node::Kind::Ref) {
+          printf(" const %s", item.Cast.a->Ref.name);
+        } else {
+          printf(" ");
+          gen_bad(state, node);
+        }
+        break;
+      }
+      case Node::Kind::Ref: {
+        printf("(!!! TYPE !!!) %s", item.Ref.name);
+        break;
+      }
+      default: {
+        gen_bad(state, node);
+        break;
+      }
+    }
   }
 }
 
@@ -134,16 +182,6 @@ void gen_statements(GenState* state, const Node& node) {
     if (needs_semi(*items[i])) {
       printf(";\n");
     }
-  }
-}
-
-void gen_tuple_items(GenState* state, const Node& node) {
-  auto items = node.Tuple.items;
-  for (usize i = 0; i < items.len; i += 1) {
-    if (i) {
-      printf(", ");
-    }
-    gen_expr(state, *items[i]);
   }
 }
 

@@ -184,6 +184,7 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
     case ':': {
       switch (*(buf + 1)) {
         case '=': return simple_len(Token::Kind::Update, 2);
+        default: return simple(Token::Kind::Colon);
       }
       break;
     }
@@ -290,17 +291,28 @@ auto next_token_string(const char* buf) -> Token {
 
 auto token_name(const Token& token) -> const char* {
   switch (token.kind) {
+    case Token::Kind::None: return "<none>";
+    case Token::Kind::Colon: return "Colon";
+    case Token::Kind::Comma: return "Comma";
     case Token::Kind::Comment: return "Comment";
     case Token::Kind::CurlyL: return "CurlyL";
     case Token::Kind::CurlyR: return "CurlyR";
+    case Token::Kind::Do: return "Do";
+    case Token::Kind::Dot: return "Dot";
+    case Token::Kind::End: return "End";
     case Token::Kind::FileEnd: return "FileEnd";
+    case Token::Kind::Float: return "Float";
     case Token::Kind::Fun: return "Fun";
     case Token::Kind::Id: return "Id";
+    case Token::Kind::Int: return "Int";
     case Token::Kind::Junk: return "Junk";
     case Token::Kind::LineEnd: return "LineEnd";
+    case Token::Kind::Minus: return "Minus";
+    case Token::Kind::Plus: return "Plus";
     case Token::Kind::RoundL: return "RoundL";
     case Token::Kind::RoundR: return "RoundR";
     case Token::Kind::String: return "String";
+    case Token::Kind::Update: return "Update";
     default: return "<unknown>";
   }
 }

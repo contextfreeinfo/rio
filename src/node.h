@@ -18,6 +18,7 @@ struct Token {
     // TODO matter.
     None,
     Assign,
+    Colon,
     Comma,
     Comment,
     CurlyL,
@@ -120,6 +121,7 @@ struct CallNode {
 struct FunNode {
   string name;
   Scope scope;
+  Node* params;
   Node* expr;
 };
 
@@ -141,8 +143,9 @@ struct Node {
   enum struct Kind {
     None,
     Block,
-    Const,
     Call,
+    Cast,
+    Const,
     Float,
     Fun,
     Int,
@@ -156,6 +159,7 @@ struct Node {
 
   union {
     BlockNode Block;
+    BinaryNode Cast;
     BinaryNode Const;
     CallNode Call;
     StringNode Float;

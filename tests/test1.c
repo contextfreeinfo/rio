@@ -2,17 +2,17 @@
 #include <stdio.h>
 
 int main();
-void run();
+void greet();
 
 const char* const message = "Hello";
 
 int main() {
-  run();
-}
-
-void run() {
   const char* const name = "world";
   int32_t const age = 75;
+  greet(name, age);
+}
+
+void greet(const char* const name, int32_t const age) {
   printf("%s, %s!\n", message, name);
   printf("You are %d years old.\n", age);
 }

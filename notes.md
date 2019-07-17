@@ -2,6 +2,11 @@
 - Prohibit libstdc++ for faster compile.
 - Cast like either `type expr` or `type(expr)`?
 - All private until explicit private section?
+- Parse `fun name` syntax for reporting specific error?
+- Use `name fun` as shorthand for `name => fun`?
+- Use `*type` as null-terminated and uglier (like `[*]type`) for raw?
+- Or keep `string` and require uglies (like `*type..=0`) for null-terminated?
+- Separate `fun` from `proc`? Does it matter with default const? Side effects???
 
 `
 ./test -g > tests/test1.c-mem.txt 2>&1
