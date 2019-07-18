@@ -1,12 +1,12 @@
 message = "Hello"
 
-main fun()
+main proc()
   name = "world"
   age = 75
   greet(name, age)
 end
 
-greet fun(name: string, age: i32)
+greet proc(name: string, age: i32)
   printf("%s, %s!\n", message, name)
   printf("You are %d years old.\n", age)
 end

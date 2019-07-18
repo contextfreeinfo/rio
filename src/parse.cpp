@@ -42,6 +42,10 @@ void advance_token(ParseState* state, bool skip_lines) {
   }
 }
 
+auto is_token_proc(const Token& token) -> bool {
+  return token.kind == Token::Kind::Fun || token.kind == Token::Kind::Proc;
+}
+
 auto more_tokens(ParseState* state, Token::Kind end) -> bool {
   return
     state->tokens->kind != end &&
@@ -106,6 +110,10 @@ auto parse_atom(ParseState* state) -> Node& {
       advance_token(state);
       return node;
     }
+    case Token::Kind::Fun:
+    case Token::Kind::Proc: {
+      return parse_fun(state);
+    }
     case Token::Kind::Id: {
       if (verbose) printf("ref: %s\n", tokens->text);
       Node& node = state->alloc(Node::Kind::Ref);
@@ -118,9 +126,6 @@ auto parse_atom(ParseState* state) -> Node& {
       node.Int.text = tokens->text;
       advance_token(state);
       return node;
-    }
-    case Token::Kind::Fun: {
-      return parse_fun(state);
     }
     case Token::Kind::String: {
       if (verbose) printf("string: %s\n", token_text(*tokens));
@@ -184,7 +189,7 @@ auto parse_cast(ParseState* state) -> Node& {
 
 auto parse_def(ParseState* state) -> Node& {
   Node& a = parse_cast(state);
-  if (a.kind == Node::Kind::Ref && state->tokens->kind == Token::Kind::Fun) {
+  if (a.kind == Node::Kind::Ref && is_token_proc(*state->tokens)) {
     Node& node = parse_fun(state);
     node.Fun.name = a.Ref.name;
     return node;
@@ -200,6 +205,7 @@ auto parse_expr(ParseState* state) -> Node& {
 auto parse_fun(ParseState* state) -> Node& {
   Node& node = state->alloc(Node::Kind::Fun);
   if (verbose) printf("begin fun\n");
+  node.Fun.kind = state->tokens->kind;
   advance_token(state);
   node.Fun.name = "";
   if (state->tokens->kind == Token::Kind::RoundL) {

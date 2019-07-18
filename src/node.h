@@ -35,6 +35,7 @@ struct Token {
     LineEnd,
     Minus,
     Plus,
+    Proc,
     RoundL,
     RoundR,
     String,
@@ -120,6 +121,7 @@ struct CallNode {
 
 struct FunNode {
   string name;
+  Token::Kind kind;
   Scope scope;
   Node* params;
   Node* expr;

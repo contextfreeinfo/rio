@@ -25,6 +25,7 @@ const KeyId key_ids[] = {
   {"do", Token::Kind::Do},
   {"end", Token::Kind::End},
   {"fun", Token::Kind::Fun},
+  {"proc", Token::Kind::Proc},
 };
 
 auto has_text(const Token& token) -> bool {
