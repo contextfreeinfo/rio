@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
-./test -g > tests/test1.c-mem.txt 2>&1
-./test > tests/test1.c.txt 2>&1
+time (
+
 ./test > tests/test1.c
+
+./test - -t > tests/test1.c.txt 2>&1
+echo >> tests/test1.c.txt
+ls -l bin/rio >> tests/test1.c.txt
+
+./test -g -t > tests/test1.c-mem.txt 2>&1
+echo >> tests/test1.c-mem.txt
+ls -l bin/rio >> tests/test1.c-mem.txt
+
+./test -O -t > tests/test1.c-opt.txt 2>&1
+echo >> tests/test1.c-opt.txt
+ls -l bin/rio >> tests/test1.c-opt.txt
+
+)
