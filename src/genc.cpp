@@ -117,6 +117,10 @@ void gen_expr(GenState* state, const Node& node) {
       printf("%s", node.String.text);
       break;
     }
+    case Node::Kind::Use: {
+      // Nothing to do here.
+      break;
+    }
     default: {
       gen_bad(state, node);
       break;
@@ -172,8 +176,9 @@ void gen_param_items(GenState* state, const Node& node) {
 
 void gen_statements(GenState* state, const Node& node) {
   auto items = node.Block.items;
+  bool last_none = false;
   for (usize i = 0; i < items.len; i += 1) {
-    if (i && !state->indent) {
+    if (i && !state->indent && !last_none) {
       // Blank lines between at top level.
       printf("\n");
     }
@@ -181,6 +186,10 @@ void gen_statements(GenState* state, const Node& node) {
     gen_expr(state, *items[i]);
     if (needs_semi(*items[i])) {
       printf(";\n");
+      last_none = false;
+    } else {
+      // TODO Generalize last_none to a function or something.
+      last_none = items[i]->kind == Node::Kind::Use;
     }
   }
 }
@@ -248,7 +257,8 @@ void gen_type(GenState* state, const Type& type) {
 
 auto needs_semi(const Node& node) -> bool {
   switch (node.kind) {
-    case Node::Kind::Fun: {
+    case Node::Kind::Fun:
+    case Node::Kind::Use: {
       return false;
     }
     default: {

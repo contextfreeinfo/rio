@@ -40,6 +40,7 @@ struct Token {
     RoundR,
     String,
     Update,
+    Use,
   };
   Kind kind;
   // TODO We don't need file name on each individual token.
@@ -47,7 +48,7 @@ struct Token {
   Pos begin;
   usize len;
   union {
-    string text;
+    opt_string text;
   };
 };
 
@@ -140,6 +141,11 @@ struct StringNode {
   string text;
 };
 
+struct UseNode {
+  string name;
+  Node* arg;
+};
+
 struct Node {
 
   enum struct Kind {
@@ -154,6 +160,7 @@ struct Node {
     Ref,
     String,
     Tuple,
+    Use,
   };
 
   Kind kind;
@@ -170,6 +177,7 @@ struct Node {
     RefNode Ref;
     StringNode String;
     ParentNode Tuple;
+    UseNode Use;
   };
 
 };

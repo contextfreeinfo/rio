@@ -4,18 +4,25 @@
 - All private until explicit private section?
 - Parse `fun name` syntax for reporting specific error?
 - Use `name fun` as shorthand for `name => fun`?
-- Use `*type` as null-terminated and uglier (like `[*]type`) for raw?
-- Or keep `string` and require uglies (like `*type..=0`) for null-terminated?
+- Use `*type` as null-terminated and uglier `*type..` for raw.
+- Allow `+type..` as safe deref with hint of more or just stick to `&type`?
+- Default string literals to `[u8..0]` as slice and null-terminated.
+- Also allow string literals as `*u8`, `[u8]`, `u8` (if 1 u8), or other ints.
+- Still keep `string` keyword as equivalent to `[u8..0]`?
 - Separate `fun` from `proc`? Does it matter with default const? Side effects???
+- Change unqualified `use package` to external packages, not siblings
+- Treat all name conflicts as errors, or let local package override others?
+- Definitely conflicts between externals count as errors
+- Use/run a dir gets all in dir, use/run a file gets just that file
 
-`
+```
 ./test -g > tests/test1.c-mem.txt 2>&1
 ./test > tests/test1.c.txt 2>&1
 ./test > tests/test1.c
-`
+```
 
 Comments to be made into issues:
-`
+```
 # # Untyped constants/macros?
 # def pi = 3.14
 # # def macro(x) = x + 1
@@ -34,4 +41,31 @@ Comments to be made into issues:
 # x := 4
 # x += 1 # <- Lower priority
 # Cache serialization ids for structs, unions, etc.
-`
+```
+
+Imports:
+```
+# Just use all non-conflicting from c.
+use 'c'
+
+# Use c as a wrapper around the imported items.
+c => use 'c'
+
+# Use c as a wrapper and import non-conflicting.
+c => use 'c' as *
+
+# Use c as wrapper, import non-conflicting, and use explicit aliases.
+c => use 'c' as
+  *
+  c_strlen => strlen
+end c
+
+# Maybe `as` also for destructuring locals?
+get_some_value() as
+  # No `*` for locals.
+  # Same name.
+  something
+  # Local var `other` from `that` in the return struct.
+  other = that
+end
+```

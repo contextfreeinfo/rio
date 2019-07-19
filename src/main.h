@@ -9,8 +9,15 @@
 
 namespace rio {
 
+struct Engine;
+
 struct Options {
-  char* in;
+  const char* in;
+};
+
+struct ModManager {
+  Arena arena;
+  Engine* engine;
 };
 
 struct Engine {

@@ -22,8 +22,9 @@ using f64 = double;
 
 // Aggregates.
 
-// In rio: string = [*u8, 0]
+// In rio: string = *u8 = *u8..0
 using string = const char*;
+using opt_string = const char*;
 
 template<typename Item>
 using Opt = Item*;

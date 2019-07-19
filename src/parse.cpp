@@ -30,8 +30,8 @@ auto parse_cast(ParseState* state) -> Node&;
 auto parse_def(ParseState* state) -> Node&;
 auto parse_expr(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
-void parse_fun_finish(ParseState* state, Node* node);
 auto parse_tuple(ParseState* state) -> Node&;
+auto parse_use(ParseState* state) -> Node&;
 void skip_comments(ParseState* state, bool skip_lines = false);
 
 void advance_token(ParseState* state, bool skip_lines) {
@@ -161,22 +161,20 @@ auto parse_block(ParseState* state, Token::Kind end) -> Node& {
 }
 
 auto parse_call(ParseState* state) -> Node& {
-  // TODO Nested calls.
-  Node& callee = parse_atom(state);
-  if (state->tokens->kind == Token::Kind::RoundL) {
-    Node& node = state->alloc(Node::Kind::Call);
-    node.Call.callee = &callee;
+  Node* node = &parse_atom(state);
+  while (state->tokens->kind == Token::Kind::RoundL) {
+    Node* call = &state->alloc(Node::Kind::Call);
+    call->Call.callee = node;
     if (verbose) printf("begin call\n");
-    node.Call.args = &parse_tuple(state);
+    call->Call.args = &parse_tuple(state);
     if (verbose) printf("end call\n");
-    return node;
-  } else {
-    return callee;
+    node = call;
   }
+  return *node;
 }
 
 auto parse_cast(ParseState* state) -> Node& {
-  Node* node = &parse_call(state);
+  Node* node = &parse_use(state);
   while (state->tokens->kind == Token::Kind::Colon) {
     Node* cast = &state->alloc(Node::Kind::Cast);
     cast->Cast.a = node;
@@ -247,6 +245,21 @@ auto parse_tuple(ParseState* state) -> Node& {
   advance_token(state);
   if (verbose) printf("end tuple\n");
   return node;
+}
+
+auto parse_use(ParseState* state) -> Node& {
+  if (state->tokens->kind == Token::Kind::Use) {
+    Node& node = state->alloc(Node::Kind::Use);
+    advance_token(state, true);
+    Node& arg = parse_call(state);
+    if (arg.kind == Node::Kind::String) {
+      node.Use.name = arg.String.text;
+    }
+    node.Use.arg = &arg;
+    return node;
+  } else {
+    return parse_call(state);
+  }
 }
 
 void skip_comments(ParseState* state, bool skip_lines) {

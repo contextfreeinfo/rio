@@ -20,12 +20,13 @@ struct KeyId {
   Token::Kind key;
 };
 
-// TODO Make into a map?
+// TODO Make into a map.
 const KeyId key_ids[] = {
   {"do", Token::Kind::Do},
   {"end", Token::Kind::End},
   {"fun", Token::Kind::Fun},
   {"proc", Token::Kind::Proc},
+  {"use", Token::Kind::Use},
 };
 
 auto has_text(const Token& token) -> bool {

@@ -23,11 +23,11 @@ namespace rio {
 auto parse_options(int argc, const char** argv) -> const Options {
   Options options = {0};
   for (int i = 0; i < argc; i += 1) {
-    char* arg = (char*)argv[i];
+    const char* arg = argv[i];
     if (!strcmp(arg, "-i")) {
       i += 1;
       if (i < argc) {
-        options.in = (char*)argv[i];
+        options.in = argv[i];
       } else {
         fail("missing arg");
       }
