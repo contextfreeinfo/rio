@@ -254,6 +254,8 @@ auto parse_use(ParseState* state) -> Node& {
     Node& arg = parse_call(state);
     if (arg.kind == Node::Kind::String) {
       node.Use.name = arg.String.text;
+    } else {
+      node.Use.name = "";
     }
     node.Use.arg = &arg;
     return node;

@@ -20,6 +20,7 @@ struct ModManager {
   // Well, the downstream clients of changed modules count as changed, too.
   Arena arena;
   Engine* engine{nullptr};
+  string file{""};
   Node* tree{nullptr};
 };
 
@@ -28,7 +29,7 @@ struct Engine {
   ~Engine() {
     // TODO Create my own unique_ptr and place these in the engine's arena?
     for (usize i = 0; i < mods.len; i += 1) {
-      mods[i].~ModManager();
+      mods[i]->~ModManager();
     }
   }
 
@@ -37,7 +38,7 @@ struct Engine {
   // FILE* info;
   Options options{0};
   Map<const char*> interns;
-  List<ModManager> mods;
+  List<ModManager*> mods;
   // bool verbose{false};
 
 };

@@ -7,6 +7,10 @@
 
 #include "rio.h"
 
+auto operator new(size_t, void* item) -> void* {
+  return item;
+}
+
 namespace rio {
 
 void fail(const char* message);
@@ -85,6 +89,11 @@ struct List: Slice<Item> {
     return this->items[this->len - 1];
   }
 
+  auto clear() -> void {
+    // TODO Also memset all to 0?
+    this->len = 0;
+  }
+
   virtual void distribute(Slice<Item> new_items, Slice<Item> old_items) {
     // For now, presume this is good enough.
     // We're not trying to replicate all of libstdc++.
@@ -126,6 +135,39 @@ struct List: Slice<Item> {
     }
     items = this->items = new_items;
     this->capacity = capacity;
+  }
+
+};
+
+struct StrBuf: List<char> {
+
+  StrBuf() {
+    // Keep a null char.
+    push_val('\0');
+    // But don't include it in the length.
+    len = 0;
+  }
+
+  auto push_str(const Str& text) -> void {
+    reserve(len + text.len + 1);
+    strncpy(items + len, text.items, text.len);
+    len += text.len;
+    items[len] = '\0';
+  }
+
+  // Not really safe.
+  auto push_strn(string text, usize len) -> void {
+    push_str({const_cast<char*>(text), len});
+  }
+
+  auto push_string(string text) -> void {
+    push_strn(text, strlen(text));
+  }
+
+  auto shrink_string(usize len) -> void {
+    assert(len <= this->len);
+    this->len = len;
+    items[len] = '\0';
   }
 
 };
@@ -172,7 +214,9 @@ struct Arena {
 
   template<typename Item>
   auto alloc() -> Item& {
-    return *static_cast<Item*>(alloc_bytes(sizeof(Item)));
+    auto& item = *static_cast<Item*>(alloc_bytes(sizeof(Item)));
+    new(&item) Item;
+    return item;
   }
 
  private:

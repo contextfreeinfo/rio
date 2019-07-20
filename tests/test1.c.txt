@@ -1,6 +1,6 @@
 
-real	0m0.280s
-user	0m0.156s
+real	0m0.299s
+user	0m0.141s
 sys	0m0.125s
 #include <stdint.h>
 #include <stdio.h>
@@ -14,19 +14,19 @@ int main() {
   int32_t const age = 75;
   greet(name, age);
 }
-	Command being timed: "./bin/rio -i tests/test1.rio"
+	Command being timed: "./bin/rio tests/test1.rio"
 	User time (seconds): 0.00
 	System time (seconds): 0.01
-	Percent of CPU this job got: 31%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.04
+	Percent of CPU this job got: 25%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.06
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1392
+	Maximum resident set size (kbytes): 1404
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 399
+	Minor (reclaiming a frame) page faults: 402
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -38,4 +38,4 @@ int main() {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 59744 Jul 20 07:32 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 61336 Jul 20 09:25 bin/rio
