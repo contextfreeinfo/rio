@@ -16,9 +16,7 @@ auto load_imports(ModManager* mod) -> void {
   // TODO Extract path concat logic.
   push_parent(&buf, mod->file);
   auto parent_len = buf.len;
-  auto nodes = mod->tree->Block.items;
-  for (usize i = 0; i < nodes.len; i += 1) {
-    auto node = nodes[i];
+  for (auto node: mod->tree->Block.items) {
     if (node->kind != Node::Kind::Use) {
       // Require all imports up top.
       break;
@@ -114,8 +112,8 @@ void run(Engine* engine) {
   // Resolve.
   // TODO Smart inter-resolution.
   // TODO Resolve as we load, up the chain of dependencies.
-  for (usize i = 0; i < engine->mods.len; i += 1) {
-    resolve(engine, engine->mods[i]->tree);
+  for (auto mod: engine->mods) {
+    resolve(engine, mod->tree);
   }
   // Generate.
   c::gen(engine);

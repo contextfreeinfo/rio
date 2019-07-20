@@ -28,8 +28,8 @@ struct Engine {
 
   ~Engine() {
     // TODO Create my own unique_ptr and place these in the engine's arena?
-    for (usize i = 0; i < mods.len; i += 1) {
-      mods[i]->~ModManager();
+    for (auto mod: mods) {
+      mod->~ModManager();
     }
   }
 

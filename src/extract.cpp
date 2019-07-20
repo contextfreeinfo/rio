@@ -51,9 +51,8 @@ void extract(ModManager* mod) {
 
 void extract_block(ExtractState* state, Node* node) {
   auto buf_len_old = state->defs.len;
-  auto items = node->Block.items;
-  for (usize i = 0; i < items.len; i += 1) {
-    extract_expr(state, items[i]);
+  for (auto item: node->Block.items) {
+    extract_expr(state, item);
   }
   node->Block.scope.defs = def_slice_copy(state, buf_len_old);
 }
@@ -80,9 +79,8 @@ void extract_expr(ExtractState* state, Node* node) {
     }
     case Node::Kind::Tuple: {
       // Could be blocks under here with their own scopes.
-      auto items = node->Tuple.items;
-      for (usize i = 0; i < items.len; i += 1) {
-        extract_expr(state, items[i]);
+      for (auto item: node->Tuple.items) {
+        extract_expr(state, item);
       }
       break;
     }

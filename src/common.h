@@ -57,6 +57,22 @@ struct Slice {
     return const_cast<Slice&>(*this)[index];
   }
 
+  auto begin() -> Item* {
+    return this->items;
+  }
+
+  auto begin() const -> const Item* {
+    return this->items;
+  }
+
+  auto end() -> Item* {
+    return this->items + this->len;
+  }
+
+  auto end() const -> const Item* {
+    return const_cast<Slice*>(this)->end();
+  }
+
 };
 
 using Str = Slice<char>;
@@ -175,8 +191,8 @@ struct StrBuf: List<char> {
 struct Arena {
 
   ~Arena() {
-    for (usize i = 0; i < boxes.len; ++i) {
-      boxes[i].~List();
+    for (auto& box: boxes) {
+      box.~List();
     }
   }
 

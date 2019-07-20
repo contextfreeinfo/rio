@@ -57,9 +57,8 @@ Type choose_int_type(const Type& type) {
 }
 
 void resolve_block(ResolveState* state, Node* node, const Type& type) {
-  auto items = node->Block.items;
-  for (usize i = 0; i < items.len; i += 1) {
-    resolve_expr(state, items[i], {Type::Kind::None});
+  for (auto item: node->Block.items) {
+    resolve_expr(state, item, {Type::Kind::None});
   }
 }
 
@@ -141,9 +140,8 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
 }
 
 void resolve_tuple(ResolveState* state, Node* node, const Type& type) {
-  auto items = node->Tuple.items;
-  for (usize i = 0; i < items.len; i += 1) {
-    resolve_expr(state, items[i], {Type::Kind::None});
+  for (auto item: node->Tuple.items) {
+    resolve_expr(state, item, {Type::Kind::None});
   }
 }
 

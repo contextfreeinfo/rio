@@ -34,14 +34,14 @@ void gen(Engine* engine) {
     "#include <stdio.h>\n"
   );
   // Declarations.
-  for (usize i = 0; i < engine->mods.len; i += 1) {
+  for (auto mod: engine->mods) {
     printf("\n");
-    gen_decls(&state, *engine->mods[i]->tree);
+    gen_decls(&state, *mod->tree);
   }
   // Definitions.
-  for (usize i = 0; i < engine->mods.len; i += 1) {
+  for (auto mod: engine->mods) {
     printf("\n");
-    gen_statements(&state, *engine->mods[i]->tree);
+    gen_statements(&state, *mod->tree);
   }
 }
 
@@ -64,10 +64,9 @@ void gen_decl_expr(GenState* state, const Node& node) {
 }
 
 void gen_decls(GenState* state, const Node& node) {
-  auto items = node.Block.items;
-  for (usize i = 0; i < items.len; i += 1) {
+  for (auto item: node.Block.items) {
     gen_indent(state);
-    gen_decl_expr(state, *items[i]);
+    gen_decl_expr(state, *item);
   }
 }
 
