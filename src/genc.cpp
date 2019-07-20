@@ -27,17 +27,22 @@ void gen_type(GenState* state, const Type& type);
 void gen_statements(GenState* state, const Node& node);
 auto needs_semi(const Node& node) -> bool;
 
-void gen(Engine* engine, const Node& tree) {
+void gen(Engine* engine) {
   GenState state;
   printf(
     "#include <stdint.h>\n"
     "#include <stdio.h>\n"
   );
-  printf("\n");
-  assert(tree.kind == Node::Kind::Block);
-  gen_decls(&state, tree);
-  printf("\n");
-  gen_statements(&state, tree);
+  // Declarations.
+  for (usize i = 0; i < engine->mods.len; i += 1) {
+    printf("\n");
+    gen_decls(&state, *engine->mods[i]->tree);
+  }
+  // Definitions.
+  for (usize i = 0; i < engine->mods.len; i += 1) {
+    printf("\n");
+    gen_statements(&state, *engine->mods[i]->tree);
+  }
 }
 
 void gen_bad(GenState* state, const Node& node) {

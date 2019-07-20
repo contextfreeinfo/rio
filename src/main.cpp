@@ -72,6 +72,8 @@ auto load_mod(Engine* engine, const char* file) -> ModManager* {
   // TODO Then move forward here.
   mod.tree = &parse(&mod, tokens.items);
   extract(&mod);
+  // TODO Option for non-recursive.
+  load_imports(&mod);
   return &mod;
 }
 
@@ -107,11 +109,16 @@ auto parse_options(int argc, const char** argv) -> const Options {
 }
 
 void run(Engine* engine) {
-  auto mod = load_mod(engine, engine->options.in);
-  load_imports(mod);
-  // TODO Load imported mods.
-  resolve(engine, mod->tree);
-  c::gen(engine, *mod->tree);
+  // Load everything.
+  load_mod(engine, engine->options.in);
+  // Resolve.
+  // TODO Smart inter-resolution.
+  // TODO Resolve as we load, up the chain of dependencies.
+  for (usize i = 0; i < engine->mods.len; i += 1) {
+    resolve(engine, engine->mods[i]->tree);
+  }
+  // Generate.
+  c::gen(engine);
 }
 
 }  // namespace rio

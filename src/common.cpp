@@ -33,6 +33,7 @@ auto intern(Engine* engine, const char* text, usize nbytes) -> const char* {
 auto read_file(const char* name) -> char* {
   FILE* file = fopen(name, "rb");
   if (!file) {
+    fprintf(stderr, "file name: %s\n", name);
     fail("bad file");
   }
   fseek(file, 0, SEEK_END);
