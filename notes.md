@@ -69,3 +69,27 @@ get_some_value() as
   other = that
 end
 ```
+
+Strings:
+```
+escaping = "This is \"escaping\": \(value)\n"
+raw = 'This is raw, with \ and all'
+concat = 'I have raw \ content with a single quote: ' "'" '. <- See?'
+multi =
+  "I can \"mix and match\" across lines here: \(value)
+  'Here is a raw \ line
+  'I can terminate the lines to avoid a newline '
+  'just like that.
+  """I can also use "triple-quotes" to ensure always full lines: \(value)
+  '''And avoid \ escapes if I want, too.
+final_newline =
+  '''Probably best to use triples for every line of a group, though.
+  """With "triple double-quote" \(name) can still avoid \
+  """the newline if you want.
+  '''If you want a newline at the end, you need an empty string at the end.
+  ''
+simple_full = '''Just a single-line string sans newline with no terminator.
+tuple = "Of course, every string literal with embedded \(value) is a tuple."
+# Finally, if you really want a lot of data, use a file embedding macro.
+# How should that look?
+```
