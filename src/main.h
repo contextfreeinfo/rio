@@ -20,6 +20,7 @@ struct ModManager {
   // Well, the downstream clients of changed modules count as changed, too.
   Arena arena;
   Engine* engine{nullptr};
+  Node* tree{nullptr};
 };
 
 struct Engine {
@@ -45,7 +46,7 @@ constexpr bool verbose = false;
 
 auto has_text(const Token& token) -> bool;
 auto intern(Engine* engine, const char* text, usize nbytes) -> const char*;
-auto load_mod(Engine* engine, const char* file) -> void;
+auto load_mod(Engine* engine, const char* file) -> ModManager*;
 auto read_file(const char* name) -> char*;
 auto token_name(const Token& token) -> const char*;
 auto token_text(const Token& token) -> const char*;

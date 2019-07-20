@@ -1,13 +1,13 @@
 
-real	0m0.288s
-user	0m0.203s
-sys	0m0.094s
-==630== Memcheck, a memory error detector
-==630== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==630== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
-==630== Command: ./bin/rio -i tests/test1.rio
-==630== 
-==630== error calling PR_SET_PTRACER, vgdb might block
+real	0m0.291s
+user	0m0.172s
+sys	0m0.078s
+==732== Memcheck, a memory error detector
+==732== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==732== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
+==732== Command: ./bin/rio -i tests/test1.rio
+==732== 
+==732== error calling PR_SET_PTRACER, vgdb might block
 #include <stdint.h>
 #include <stdio.h>
 
@@ -20,28 +20,28 @@ int main() {
   int32_t const age = 75;
   greet(name, age);
 }
-==630== 
-==630== HEAP SUMMARY:
-==630==     in use at exit: 0 bytes in 0 blocks
-==630==   total heap usage: 27 allocs, 27 frees, 102,479 bytes allocated
-==630== 
-==630== All heap blocks were freed -- no leaks are possible
-==630== 
-==630== For counts of detected and suppressed errors, rerun with: -v
-==630== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==732== 
+==732== HEAP SUMMARY:
+==732==     in use at exit: 0 bytes in 0 blocks
+==732==   total heap usage: 27 allocs, 27 frees, 102,487 bytes allocated
+==732== 
+==732== All heap blocks were freed -- no leaks are possible
+==732== 
+==732== For counts of detected and suppressed errors, rerun with: -v
+==732== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 	Command being timed: "valgrind --leak-check=full --show-leak-kinds=all ./bin/rio -i tests/test1.rio"
-	User time (seconds): 0.57
-	System time (seconds): 0.03
+	User time (seconds): 0.51
+	System time (seconds): 0.07
 	Percent of CPU this job got: 99%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.61
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.59
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 50656
+	Maximum resident set size (kbytes): 50056
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 14143
+	Minor (reclaiming a frame) page faults: 14430
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -53,4 +53,4 @@ int main() {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 99536 Jul 20 07:19 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 103968 Jul 20 07:32 bin/rio

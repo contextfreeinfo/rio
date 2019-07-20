@@ -9,7 +9,7 @@
 
 namespace rio {
 
-auto load_mod(Engine* engine, const char* file) -> void {
+auto load_mod(Engine* engine, const char* file) -> ModManager* {
   auto& mod = engine->mods.push_val({});
   mod.engine = engine;
   auto tokens = [&]() {
@@ -20,12 +20,12 @@ auto load_mod(Engine* engine, const char* file) -> void {
     return tokens;
   }();
   if (verbose) printf("tokens: %zu\n", tokens.len);
-  // TODO First parse just imports at top. Then parse the rest.
-  auto& tree = parse(&mod, tokens.items);
-  // TODO Handle imports somewhere around here.
-  extract(&mod, &tree);
-  resolve(engine, &tree);
-  c::gen(engine, tree);
+  // TODO First parse just imports at top, then kick those off.
+  // TODO Need some kind of "make"-style dependency driven async work engine.
+  // TODO Then move forward here.
+  mod.tree = &parse(&mod, tokens.items);
+  extract(&mod);
+  return &mod;
 }
 
 // auto open_nul() -> FILE* {
@@ -56,7 +56,10 @@ auto parse_options(int argc, const char** argv) -> const Options {
 }
 
 void run(Engine* engine) {
-  load_mod(engine, engine->options.in);
+  auto mod = load_mod(engine, engine->options.in);
+  // TODO Load imported mods.
+  resolve(engine, mod->tree);
+  c::gen(engine, *mod->tree);
 }
 
 }

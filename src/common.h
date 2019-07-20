@@ -45,9 +45,7 @@ struct Slice {
   // TODO Alternative with stride also, called Slide?
 
   auto operator[](usize index) -> Item& {
-    if (index >= len) {
-      fail("index out of bounds");
-    }
+    assert(index < len);
     return items[index];
   }
 

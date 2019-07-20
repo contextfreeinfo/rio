@@ -41,12 +41,12 @@ auto def_slice_copy(ExtractState* state, usize buf_len_old) -> Slice<Def*> {
   return {static_cast<Def**>(items), len};
 }
 
-void extract(ModManager* mod, Node* tree) {
-  assert(tree->kind == Node::Kind::Block);
+void extract(ModManager* mod) {
+  assert(mod->tree->kind == Node::Kind::Block);
   ExtractState state;
   state.mod = mod;
-  extract_block(&state, tree);
-  // TODO Put top level (only across all package files?) into a Map.
+  extract_block(&state, mod->tree);
+  // TODO Put mod-level ids into a pointer-keyed Map.
 }
 
 void extract_block(ExtractState* state, Node* node) {
