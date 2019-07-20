@@ -72,7 +72,7 @@ auto is_vspace(char c) -> bool {
   return c == '\n' || c == '\r';
 }
 
-auto lex(Engine* engine, const char* file, const char* buf) -> List<Token> {
+auto lex(ModManager* mod, const char* file, const char* buf) -> List<Token> {
   // TODO Move these to arena or keep them separate?
   List<Token> tokens;
   const auto start = buf;
@@ -111,7 +111,9 @@ auto lex(Engine* engine, const char* file, const char* buf) -> List<Token> {
     }
     // Intern strings.
     if (has_text(token)) {
-      token.text = intern(engine, &start[token.begin.index], len);
+      // TODO Intern only symbols and short strings.
+      // TODO Put longer string data into the mod's own arena.
+      token.text = intern(mod->engine, &start[token.begin.index], len);
     }
     // Store file name.
     token.file = file;

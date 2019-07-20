@@ -97,6 +97,7 @@ void gen_expr(GenState* state, const Node& node) {
       break;
     }
     case Node::Kind::Fun: {
+      // TODO When to mark static?
       gen_type(state, node.type);
       printf(" %s(", node.Fun.name);
       gen_param_items(state, *node.Fun.params);

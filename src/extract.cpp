@@ -5,10 +5,10 @@ namespace rio {
 struct ExtractState {
 
   List<Def*> defs;
-  Engine* engine;
+  ModManager* mod;
 
   auto alloc(string name, Node* node) -> Def* {
-    Def* def = &engine->arena.alloc<Def>();
+    Def* def = &mod->arena.alloc<Def>();
     def->name = name;
     def->node = node;
     def->value = nullptr;
@@ -35,16 +35,16 @@ auto def_slice_copy(ExtractState* state, usize buf_len_old) -> Slice<Def*> {
   usize len = buf.len - buf_len_old;
   buf.len = buf_len_old;
   usize nbytes = len * sizeof(*buf.items);
-  void* items = state->engine->arena.alloc_bytes(nbytes);
+  void* items = state->mod->arena.alloc_bytes(nbytes);
   // Copy it in.
   memcpy(items, buf.items + buf_len_old, nbytes);
   return {static_cast<Def**>(items), len};
 }
 
-void extract(Engine* engine, Node* tree) {
+void extract(ModManager* mod, Node* tree) {
   assert(tree->kind == Node::Kind::Block);
   ExtractState state;
-  state.engine = engine;
+  state.mod = mod;
   extract_block(&state, tree);
   // TODO Put top level (only across all package files?) into a Map.
 }

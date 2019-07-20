@@ -9,6 +9,25 @@
 
 namespace rio {
 
+auto load_mod(Engine* engine, const char* file) -> void {
+  auto& mod = engine->mods.push_val({});
+  mod.engine = engine;
+  auto tokens = [&]() {
+    if (verbose) printf("in: %s\n", file);
+    auto buf = read_file(file);
+    auto tokens = lex(&mod, file, buf);
+    free(buf);
+    return tokens;
+  }();
+  if (verbose) printf("tokens: %zu\n", tokens.len);
+  // TODO First parse just imports at top. Then parse the rest.
+  auto& tree = parse(&mod, tokens.items);
+  // TODO Handle imports somewhere around here.
+  extract(&mod, &tree);
+  resolve(engine, &tree);
+  c::gen(engine, tree);
+}
+
 // auto open_nul() -> FILE* {
 //   // TODO Just choose correct option by preproc.
 //   FILE* nul = fopen("/dev/null", "w");
@@ -37,19 +56,7 @@ auto parse_options(int argc, const char** argv) -> const Options {
 }
 
 void run(Engine* engine) {
-  auto tokens = [&]() {
-    auto file = engine->options.in;
-    if (verbose) printf("in: %s\n", file);
-    auto buf = read_file(file);
-    auto tokens = lex(engine, file, buf);
-    free(buf);
-    return tokens;
-  }();
-  if (verbose) printf("tokens: %zu\n", tokens.len);
-  auto& tree = parse(engine, tokens.items);
-  extract(engine, &tree);
-  resolve(engine, &tree);
-  c::gen(engine, tree);
+  load_mod(engine, engine->options.in);
 }
 
 }

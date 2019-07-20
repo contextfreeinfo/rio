@@ -4,13 +4,13 @@ namespace rio {
 
 struct ParseState {
 
-  Engine* engine;
+  ModManager* mod;
   // TODO Share common space for all bufs at different stages to avoid allocs?
   List<Node*> node_buf;
   const Token* tokens;
 
   Node& alloc(Node::Kind kind) {
-    Node& node = engine->arena.alloc<Node>();
+    Node& node = mod->arena.alloc<Node>();
     node.kind = kind;
     return node;
   }
@@ -59,16 +59,16 @@ auto node_slice_copy(ParseState* state, usize buf_len_old) -> Slice<Node*> {
   usize len = buf.len - buf_len_old;
   buf.len = buf_len_old;
   usize nbytes = len * sizeof(*buf.items);
-  void* items = state->engine->arena.alloc_bytes(nbytes);
+  void* items = state->mod->arena.alloc_bytes(nbytes);
   // Copy it in.
   memcpy(items, buf.items + buf_len_old, nbytes);
   return {static_cast<Node**>(items), len};
 }
 
-auto parse(Engine* engine, const Token* tokens) -> Node& {
+auto parse(ModManager* mod, const Token* tokens) -> Node& {
   ParseState state = [&]() {
     ParseState state;
-    state.engine = engine;
+    state.mod = mod;
     state.tokens = tokens;
     return state;
   }();

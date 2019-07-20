@@ -77,10 +77,7 @@ struct List: Slice<Item> {
 
   usize capacity;
 
-  List(): capacity{0} {
-    this->items = nullptr;
-    this->len = 0;
-  }
+  List(): Slice<Item>{0}, capacity{0} {}
 
   ~List() {
     free(this->items);
@@ -96,7 +93,7 @@ struct List: Slice<Item> {
     memcpy(new_items.items, old_items.items, old_items.len * sizeof(Item));
   }
 
-  void push(Item& item) {
+  auto push(Item& item) -> Item& {
     auto capacity = this->capacity;
     auto len = this->len;
     if (capacity <= len) {
@@ -111,13 +108,14 @@ struct List: Slice<Item> {
     // items[len] = item;
     memcpy(this->items + len, &item, sizeof(Item));
     this->len += 1;
+    return back();
   }
 
-  void push_val(Item item) {
-    push(item);
+  auto push_val(Item item) -> Item& {
+    return push(item);
   }
 
-  void reserve(usize capacity) {
+  auto reserve(usize capacity) -> void {
     if (capacity <= this->capacity) {
       return;
     }

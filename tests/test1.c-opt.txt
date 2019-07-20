@@ -1,6 +1,6 @@
 
-real	0m0.830s
-user	0m0.547s
+real	0m0.865s
+user	0m0.563s
 sys	0m0.234s
 #include <stdint.h>
 #include <stdio.h>
@@ -23,10 +23,10 @@ int main() {
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 368
+	Maximum resident set size (kbytes): 384
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 106
+	Minor (reclaiming a frame) page faults: 110
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -38,4 +38,4 @@ int main() {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 904792 Jul 20 06:10 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 905256 Jul 20 07:19 bin/rio
