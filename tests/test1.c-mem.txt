@@ -1,18 +1,17 @@
 
-real	0m0.276s
-user	0m0.141s
-sys	0m0.125s
-==689== Memcheck, a memory error detector
-==689== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==689== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
-==689== Command: ./bin/rio -i tests/test1.rio
-==689== 
-==689== error calling PR_SET_PTRACER, vgdb might block
+real	0m0.280s
+user	0m0.188s
+sys	0m0.063s
+==248== Memcheck, a memory error detector
+==248== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==248== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
+==248== Command: ./bin/rio -i tests/test1.rio
+==248== 
+==248== error calling PR_SET_PTRACER, vgdb might block
 #include <stdint.h>
 #include <stdio.h>
 
 int main();
-void greet();
 
 const char* const message = "Hello";
 
@@ -21,33 +20,28 @@ int main() {
   int32_t const age = 75;
   greet(name, age);
 }
-
-void greet(const char* const name, int32_t const age) {
-  printf("%s, %s!\n", message, name);
-  printf("You are %d years old.\n", age);
-}
-==689== 
-==689== HEAP SUMMARY:
-==689==     in use at exit: 0 bytes in 0 blocks
-==689==   total heap usage: 26 allocs, 26 frees, 98,649 bytes allocated
-==689== 
-==689== All heap blocks were freed -- no leaks are possible
-==689== 
-==689== For counts of detected and suppressed errors, rerun with: -v
-==689== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==248== 
+==248== HEAP SUMMARY:
+==248==     in use at exit: 0 bytes in 0 blocks
+==248==   total heap usage: 24 allocs, 24 frees, 94,199 bytes allocated
+==248== 
+==248== All heap blocks were freed -- no leaks are possible
+==248== 
+==248== For counts of detected and suppressed errors, rerun with: -v
+==248== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 	Command being timed: "valgrind --leak-check=full --show-leak-kinds=all ./bin/rio -i tests/test1.rio"
-	User time (seconds): 0.50
-	System time (seconds): 0.10
-	Percent of CPU this job got: 99%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.61
+	User time (seconds): 0.45
+	System time (seconds): 0.12
+	Percent of CPU this job got: 97%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.59
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 50040
+	Maximum resident set size (kbytes): 50444
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 14523
+	Minor (reclaiming a frame) page faults: 14348
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -59,4 +53,4 @@ void greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 94912 Jul 17 21:07 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 94968 Jul 20 06:10 bin/rio

@@ -1,12 +1,11 @@
 
-real	0m0.917s
-user	0m0.625s
-sys	0m0.281s
+real	0m0.830s
+user	0m0.547s
+sys	0m0.234s
 #include <stdint.h>
 #include <stdio.h>
 
 int main();
-void greet();
 
 const char* const message = "Hello";
 
@@ -15,24 +14,19 @@ int main() {
   int32_t const age = 75;
   greet(name, age);
 }
-
-void greet(const char* const name, int32_t const age) {
-  printf("%s, %s!\n", message, name);
-  printf("You are %d years old.\n", age);
-}
 	Command being timed: "./bin/rio -i tests/test1.rio"
 	User time (seconds): 0.00
 	System time (seconds): 0.00
 	Percent of CPU this job got: 0%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.04
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.05
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 372
+	Maximum resident set size (kbytes): 368
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 107
+	Minor (reclaiming a frame) page faults: 106
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -44,4 +38,4 @@ void greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 908824 Jul 17 21:07 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 904792 Jul 20 06:10 bin/rio

@@ -1,4 +1,5 @@
 #include "main.h"
+// #include <stdexcept>
 
 namespace rio {
 
@@ -21,7 +22,7 @@ auto intern(Engine* engine, const char* text, usize nbytes) -> const char* {
     Str str =
       {static_cast<char*>(engine->arena.alloc_bytes(nbytes + 1)), nbytes};
     strncpy(str.items, text, nbytes);
-    str[nbytes] = '\0';
+    str.items[nbytes] = '\0';
     engine->interns.put(str, str.items);
     value = str.items;
     // printf("hey: %s, %zu, %x\n", value, nbytes, value[nbytes]);

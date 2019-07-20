@@ -45,11 +45,14 @@ struct Slice {
   // TODO Alternative with stride also, called Slide?
 
   auto operator[](usize index) -> Item& {
+    if (index >= len) {
+      fail("index out of bounds");
+    }
     return items[index];
   }
 
   auto operator[](usize index) const -> const Item& {
-    return items[index];
+    return const_cast<Slice&>(*this)[index];
   }
 
 };
@@ -203,7 +206,9 @@ struct Map {
       map.pairs.capacity = new_items.len;
       // Rehash and refill.
       for (usize i = 0; i < old_capacity; i += 1) {
-        auto& pair = map.pairs[i];
+        // Cheat into lower level to avoid bounds check.
+        // We abuse the meaning of len here.
+        auto& pair = map.pairs.items[i];
         if (pair.key.items) {
           map.fit(pair.key, pair.value);
         }
@@ -220,7 +225,7 @@ struct Map {
     if (index < 0) {
       fail("no space in map");
     }
-    auto& slot = pairs[index];
+    auto& slot = pairs.items[index];
     if (!slot.key.items) {
       slot.key = key;
       pairs.len += 1;
@@ -233,7 +238,7 @@ struct Map {
     if (index < 0) {
       return nullptr;
     } else {
-      auto& pair = pairs[index];
+      auto& pair = pairs.items[index];
       if (!pair.key.items) {
         return nullptr;
       }
@@ -248,7 +253,7 @@ struct Map {
     usize index = hash_bytes(key.items, key.len) % pairs.capacity;
     usize original = index;
     do {
-      auto& slot = pairs[index];
+      auto& slot = pairs.items[index];
       if (slot.key.items) {
         if (str_eq(slot.key, key)) {
           // printf("get_index %s: %zu, %zu\n", std::string(key.items, key.len).c_str(), original, index);
