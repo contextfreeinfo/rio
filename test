@@ -27,4 +27,4 @@ mkdir -p bin || exit
 # Use c++11 because it's nice but also old enough it has better support.
 time c++ $opts -Wall -Werror -Wpedantic -std=c++11 \
   -o bin/rio src/main.cpp || exit
-timerun $run ./bin/rio -i tests/test1.rio || exit
+timerun $run ./bin/rio tests/test1.rio || exit

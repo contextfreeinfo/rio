@@ -41,14 +41,16 @@ auto load_mod(Engine* engine, const char* file) -> ModManager* {
 
 auto parse_options(int argc, const char** argv) -> const Options {
   Options options = {0};
-  for (int i = 0; i < argc; i += 1) {
+  auto past_flags = false;
+  for (int i = 1; i < argc; i += 1) {
     const char* arg = argv[i];
-    if (!strcmp(arg, "-i")) {
-      i += 1;
-      if (i < argc) {
+    if (!past_flags && *arg == '-') {
+      if (!strcmp(arg, "--")) {
+        past_flags = true;
+      }  // TODO else if ...
+    } else {
+      if (!options.in) {
         options.in = argv[i];
-      } else {
-        fail("missing arg");
       }
     }
   }
@@ -68,6 +70,9 @@ int main(int argc, const char** argv) {
   using namespace rio;
   Engine engine;
   engine.options = parse_options(argc, argv);
+  if (!engine.options.in) {
+    fail("no input file");
+  }
   // TODO Use stderr or stdout if verbosity level high enough.
   // TODO Close by destructor.
   // engine.info = open_nul();

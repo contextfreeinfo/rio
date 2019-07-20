@@ -35,7 +35,7 @@ struct Engine {
   // TODO Allocate error list in arena.
   Arena arena;
   // FILE* info;
-  Options options = {0};
+  Options options{0};
   Map<const char*> interns;
   List<ModManager> mods;
   // bool verbose{false};
