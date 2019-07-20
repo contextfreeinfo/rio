@@ -45,8 +45,12 @@ auto load_imports(ModManager* mod) -> void {
     }
     buf.push_string(".rio");
     string path = intern(mod->engine, buf.items + offset, buf.len - offset);
-    // Now actually load things.
-    load_mod(mod->engine, path);
+    // Skip non-relative imports for now.
+    if (!offset) {
+      // Now actually load things.
+      // TODO Invent namespacing for modules.
+      load_mod(mod->engine, path);
+    }
   }
 }
 

@@ -43,7 +43,10 @@ void advance_token(ParseState* state, bool skip_lines) {
 }
 
 auto is_token_proc(const Token& token) -> bool {
-  return token.kind == Token::Kind::Fun || token.kind == Token::Kind::Proc;
+  return
+    token.kind == Token::Kind::Fun ||
+    token.kind == Token::Kind::Proc ||
+    token.kind == Token::Kind::Pub;
 }
 
 auto more_tokens(ParseState* state, Token::Kind end) -> bool {
@@ -188,8 +191,14 @@ auto parse_cast(ParseState* state) -> Node& {
 auto parse_def(ParseState* state) -> Node& {
   Node& a = parse_cast(state);
   if (a.kind == Node::Kind::Ref && is_token_proc(*state->tokens)) {
+    bool published = false;
+    if (state->tokens->kind == Token::Kind::Pub) {
+      published = true;
+      advance_token(state);
+    }
     Node& node = parse_fun(state);
     node.Fun.name = a.Ref.name;
+    node.Fun.published = published;
     return node;
   } else {
     return a;

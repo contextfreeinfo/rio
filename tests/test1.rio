@@ -1,7 +1,5 @@
 use "./test1-more"
 
-message = "Hello"
-
 main proc()
   name = "world"
   age = 75
