@@ -1,5 +1,8 @@
-use "./test1-more"
+use "c"
+include "./test1-more"
+# Also, for data files (always [u8])?: data = include "..."
 
+# or just `do`?
 main proc()
   name = "world"
   age = 75

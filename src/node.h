@@ -30,6 +30,7 @@ struct Token {
     Float,
     Fun,
     Id,
+    Include,
     Int,
     Junk,
     LineEnd,
@@ -145,6 +146,7 @@ struct StringNode {
 
 struct UseNode {
   string name;
+  Token::Kind kind;
   Node* arg;
 };
 

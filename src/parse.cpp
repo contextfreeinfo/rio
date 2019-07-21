@@ -257,19 +257,24 @@ auto parse_tuple(ParseState* state) -> Node& {
 }
 
 auto parse_use(ParseState* state) -> Node& {
-  if (state->tokens->kind == Token::Kind::Use) {
-    Node& node = state->alloc(Node::Kind::Use);
-    advance_token(state, true);
-    Node& arg = parse_call(state);
-    if (arg.kind == Node::Kind::String) {
-      node.Use.name = arg.String.text;
-    } else {
-      node.Use.name = "";
+  switch (state->tokens->kind) {
+    case Token::Kind::Include:
+    case Token::Kind::Use: {
+      Node& node = state->alloc(Node::Kind::Use);
+      advance_token(state, true);
+      Node& arg = parse_call(state);
+      if (arg.kind == Node::Kind::String) {
+        node.Use.name = arg.String.text;
+      } else {
+        node.Use.name = "";
+      }
+      node.Use.kind = state->tokens->kind;
+      node.Use.arg = &arg;
+      return node;
     }
-    node.Use.arg = &arg;
-    return node;
-  } else {
-    return parse_call(state);
+    default: {
+      return parse_call(state);
+    }
   }
 }
 

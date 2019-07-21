@@ -35,6 +35,7 @@ auto load_imports(ModManager* mod) -> void {
       buf.push_strn(name + 3, strlen(name) - 4);
     } else if (!strncmp(name + 1, "../", 3)) {
       // Punt on cleaning parent for now.
+      // TODO We'll need to clean up to avoid duplicates in cross import.
       // TODO Parse the string to handle escapes, etc.
       buf.push_strn(name + 1, strlen(name) - 2);
     } else {
@@ -48,8 +49,19 @@ auto load_imports(ModManager* mod) -> void {
     // Skip non-relative imports for now.
     if (!offset) {
       // Now actually load things.
-      // TODO Invent namespacing for modules.
-      load_mod(mod->engine, path);
+      // Skip if we already loaded it!
+      bool found = false;
+      for (auto mod: mod->engine->mods) {
+        if (!strcmp(mod->file, path)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        // It's new.
+        // TODO Invent namespacing for modules.
+        load_mod(mod->engine, path);
+      }
     }
   }
 }

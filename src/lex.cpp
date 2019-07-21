@@ -25,6 +25,7 @@ const KeyId key_ids[] = {
   {"do", Token::Kind::Do},
   {"end", Token::Kind::End},
   {"fun", Token::Kind::Fun},
+  {"include", Token::Kind::Include},
   {"proc", Token::Kind::Proc},
   {"pub", Token::Kind::Pub},
   {"use", Token::Kind::Use},

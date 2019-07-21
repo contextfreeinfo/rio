@@ -1,8 +1,8 @@
-use "c"
+include "./test1"
 
 message = "Hello"
 
-greet pub proc(name: string, age: i32)
+greet proc(name: string, age: i32)
   printf("%s, %s!\n", message, name)
   printf("You are %d years old.\n", age)
 end
