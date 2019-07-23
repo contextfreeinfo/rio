@@ -1,21 +1,21 @@
 
-real	0m0.308s
+real	0m0.319s
 user	0m0.172s
-sys	0m0.125s
-==2684== Memcheck, a memory error detector
-==2684== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==2684== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
-==2684== Command: ./bin/rio tests/test1.rio
-==2684== 
-==2684== error calling PR_SET_PTRACER, vgdb might block
+sys	0m0.156s
+==2754== Memcheck, a memory error detector
+==2754== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==2754== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
+==2754== Command: ./bin/rio tests/test1.rio
+==2754== 
+==2754== error calling PR_SET_PTRACER, vgdb might block
 #include <stdint.h>
 #include <stdio.h>
 
-int main();
+int tests_test1_main();
 
-void greet();
+void tests_test1_greet();
 
-int main() {
+int tests_test1_main() {
   const char* const name = "world";
   int32_t const age = 75;
   greet(name, age);
@@ -23,22 +23,22 @@ int main() {
 
 const char* const message = "Hello";
 
-void greet(const char* const name, int32_t const age) {
+void tests_test1_greet(const char* const name, int32_t const age) {
   printf("%s, %s!\n", message, name);
   printf("You are %d years old.\n", age);
 }
-==2684== 
-==2684== HEAP SUMMARY:
-==2684==     in use at exit: 0 bytes in 0 blocks
-==2684==   total heap usage: 57 allocs, 57 frees, 123,670 bytes allocated
-==2684== 
-==2684== All heap blocks were freed -- no leaks are possible
-==2684== 
-==2684== For counts of detected and suppressed errors, rerun with: -v
-==2684== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==2754== 
+==2754== HEAP SUMMARY:
+==2754==     in use at exit: 0 bytes in 0 blocks
+==2754==   total heap usage: 57 allocs, 57 frees, 123,670 bytes allocated
+==2754== 
+==2754== All heap blocks were freed -- no leaks are possible
+==2754== 
+==2754== For counts of detected and suppressed errors, rerun with: -v
+==2754== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 	Command being timed: "valgrind --leak-check=full --show-leak-kinds=all ./bin/rio tests/test1.rio"
-	User time (seconds): 0.53
-	System time (seconds): 0.09
+	User time (seconds): 0.56
+	System time (seconds): 0.06
 	Percent of CPU this job got: 99%
 	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.62
 	Average shared text size (kbytes): 0
@@ -48,7 +48,7 @@ void greet(const char* const name, int32_t const age) {
 	Maximum resident set size (kbytes): 50656
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 14418
+	Minor (reclaiming a frame) page faults: 14392
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -60,4 +60,4 @@ void greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 119136 Jul 23 07:24 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 119272 Jul 23 07:32 bin/rio
