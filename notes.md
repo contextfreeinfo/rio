@@ -4,11 +4,12 @@
 - All private until explicit private section?
 - Parse `fun name` syntax for reporting specific error?
 - Use `name fun` as shorthand for `name => fun`?
-- Use `*type` as null-terminated and uglier `*type..` for raw.
-- Allow `+type..` as safe deref with hint of more or just stick to `&type`?
-- Default string literals to `[u8..0]` as slice and null-terminated.
-- Also allow string literals as `*u8`, `[u8]`, `u8` (if 1 u8), or other ints.
-- Still keep `string` keyword as equivalent to `[u8..0]`?
+- Use `&type..0` as null-terminated and `&type..*` for raw.
+- Allow `&type..+` as safe deref with hint of more or just stick to `&type`?
+- Default string literals to `[u8..0]` (or `[u8, 0]`?) as null-terminated slice.
+- Also allow string literals as `&u8..0`, `[u8]`, `u8` (if 1 u8), or other ints.
+- Still keep `string` keyword as equivalent to `[u8..0]` (or `[u8, 0]`?)?
+- Range types as `u8..` with pointer as `&(u8..)` and slice `[u8..]`.
 - Separate `fun` from `proc`? Does it matter with default const? Side effects???
 - Change unqualified `use package` to external packages, not siblings
 - Treat all name conflicts as errors, or let local package override others?

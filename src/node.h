@@ -4,6 +4,9 @@
 
 namespace rio {
 
+auto is_id_part(char c) -> bool;
+auto is_id_start(char c) -> bool;
+
 struct Pos {
   usize index;
   usize line;

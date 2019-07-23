@@ -3,8 +3,6 @@
 namespace rio {
 
 auto is_digit(char c) -> bool;
-auto is_id_part(char c) -> bool;
-auto is_id_start(char c) -> bool;
 auto is_hspace(char c) -> bool;
 auto is_num_start(char c) -> bool;
 auto is_space(char c, bool was_line_end) -> bool;

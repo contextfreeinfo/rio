@@ -124,6 +124,8 @@ auto parse_options(int argc, const char** argv) -> const Options {
 
 void run(Engine* engine) {
   // Load everything.
+  auto name = path_to_name(&engine->arena, engine->options.in);
+  printf("// name: %s\n", name);
   load_mod(engine, engine->options.in);
   // Resolve.
   // TODO Smart inter-resolution.
