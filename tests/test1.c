@@ -1,4 +1,3 @@
-// name: tests_test1
 #include <stdint.h>
 #include <stdio.h>
 

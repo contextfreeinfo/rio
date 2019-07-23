@@ -59,17 +59,35 @@ auto load_imports(ModManager* mod) -> void {
       }
       if (!found) {
         // It's new.
-        // TODO Invent namespacing for modules.
-        load_mod(mod->engine, path);
+        // TODO Track imports for each file.
+        // TODO Includes have priority.
+        // TODO Conflicts between others require renaming or qualifying.
+        load_mod([&]() {
+          ModInfo dep;
+          dep.engine = mod->engine;
+          dep.file = path;
+          if (node->Use.kind == Token::Kind::Include) {
+            dep.name = mod->name;
+          }
+          return dep;
+        }());
       }
     }
   }
 }
 
-auto load_mod(Engine* engine, const char* file) -> ModManager* {
+auto load_mod(const ModInfo& info) -> ModManager* {
   // TODO Alloc mods individually so we don't gradually bleed on reloads.
   // TODO Or can we placement new over old discarded mods?
+  auto engine = info.engine;
+  auto file = info.file;
   auto& mod = engine->arena.alloc<ModManager>();
+  if (*info.name) {
+    mod.name = info.name;
+  } else {
+    // TODO Random (remembered) name for scripts.
+    mod.name = path_to_name(&engine->arena, engine->options.in);
+  }
   engine->mods.push_val(&mod);
   mod.engine = engine;
   mod.file = file;
@@ -124,12 +142,16 @@ auto parse_options(int argc, const char** argv) -> const Options {
 
 void run(Engine* engine) {
   // Load everything.
-  auto name = path_to_name(&engine->arena, engine->options.in);
-  printf("// name: %s\n", name);
-  load_mod(engine, engine->options.in);
+  load_mod([&]() {
+    ModInfo mod;
+    mod.engine = engine;
+    mod.file = engine->options.in;
+    return mod;
+  }());
   // Resolve.
   // TODO Smart inter-resolution.
   // TODO Resolve as we load, up the chain of dependencies.
+  // TODO Implement parallel dependency engine a la make.
   for (auto mod: engine->mods) {
     resolve(engine, mod->tree);
   }

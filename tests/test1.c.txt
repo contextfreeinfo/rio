@@ -1,8 +1,7 @@
 
-real	0m0.297s
-user	0m0.125s
-sys	0m0.094s
-// name: tests_test1
+real	0m0.317s
+user	0m0.188s
+sys	0m0.125s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -24,17 +23,17 @@ void greet(const char* const name, int32_t const age) {
 }
 	Command being timed: "./bin/rio tests/test1.rio"
 	User time (seconds): 0.00
-	System time (seconds): 0.01
-	Percent of CPU this job got: 31%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.04
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.02
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1416
+	Maximum resident set size (kbytes): 1420
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 405
+	Minor (reclaiming a frame) page faults: 406
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -46,4 +45,4 @@ void greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 65704 Jul 22 07:31 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 65936 Jul 23 07:24 bin/rio

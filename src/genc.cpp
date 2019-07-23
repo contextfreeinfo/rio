@@ -3,7 +3,8 @@
 namespace rio { namespace c {
 
 struct GenState {
-  usize indent{0};
+  usize indent = 0;
+  ModManager* mod = nullptr;
 };
 
 struct Indent {
@@ -35,11 +36,13 @@ void gen(Engine* engine) {
   );
   // Declarations.
   for (auto mod: engine->mods) {
+    state.mod = mod;
     printf("\n");
     gen_decls(&state, *mod->tree);
   }
   // Definitions.
   for (auto mod: engine->mods) {
+    state.mod = mod;
     printf("\n");
     gen_statements(&state, *mod->tree);
   }
@@ -53,7 +56,7 @@ void gen_decl_expr(GenState* state, const Node& node) {
   switch (node.kind) {
     case Node::Kind::Fun: {
       gen_type(state, node.type);
-      printf(" %s();\n", node.Fun.name);
+      printf(" %s_%s();\n", state->mod->name, node.Fun.name);
       break;
     }
     default: {
@@ -102,8 +105,14 @@ void gen_expr(GenState* state, const Node& node) {
     }
     case Node::Kind::Fun: {
       // TODO When to mark static?
+      bool prefix = !state->indent;
       gen_type(state, node.type);
-      printf(" %s(", node.Fun.name);
+      printf(
+        " %s%s%s(",
+        prefix ? state->mod->name : "",
+        prefix ? "_" : "",
+        node.Fun.name
+      );
       gen_param_items(state, *node.Fun.params);
       printf(") ");
       // TODO Special handling of non-block exprs.
