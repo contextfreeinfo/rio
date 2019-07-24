@@ -15,6 +15,7 @@
 - Treat all name conflicts as errors, or let local package override others?
 - Definitely conflicts between externals count as errors
 - Use/run a dir gets all in dir, use/run a file gets just that file
+- For data files (always [u8])?: data = include "..."
 
 ```
 ./test -g > tests/test1.c-mem.txt 2>&1

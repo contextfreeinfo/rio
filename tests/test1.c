@@ -1,11 +1,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-int tests_test1_main();
-
 void tests_test1_greet();
 
-int tests_test1_main() {
+int main() {
   const char* const name = "world";
   int32_t const age = 75;
   greet(name, age);
