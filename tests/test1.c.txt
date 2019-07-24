@@ -1,7 +1,7 @@
 
-real	0m0.293s
-user	0m0.203s
-sys	0m0.094s
+real	0m0.307s
+user	0m0.172s
+sys	0m0.109s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -22,8 +22,8 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Command being timed: "./bin/rio tests/test1.rio"
 	User time (seconds): 0.00
 	System time (seconds): 0.01
-	Percent of CPU this job got: 31%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.04
+	Percent of CPU this job got: 26%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.05
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
@@ -43,4 +43,4 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 66000 Jul 24 05:23 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 66304 Jul 24 06:32 bin/rio

@@ -2,6 +2,23 @@
 
 namespace rio {
 
+auto normalize_path(char* path) -> void {
+  while (true) {
+    path = strchr(path, '\\');
+    if (!path) {
+      break;
+    }
+    *path = '/';
+  }
+}
+
+auto normalized_path(Arena* arena, string path) -> char* {
+  auto result = static_cast<char*>(arena->alloc_bytes(strlen(path) + 1));
+  strcpy(result, path);
+  normalize_path(result);
+  return result;
+}
+
 auto path_to_name(Arena* arena, string path) -> string {
   // Allocate possibly a bit too much, just to make life easier.
   // This shouldn't be called 1000s of times.
@@ -67,15 +84,7 @@ auto push_parent(StrBuf* buf, string path) -> void {
     // Include the slash.
     auto len = static_cast<usize>(last - path + 1);
     buf->push_str({const_cast<char*>(path), len});
-    // Normalize all slashes to forward slash.
-    auto back = buf->items;
-    while (true) {
-      back = strchr(back, '\\');
-      if (!back) {
-        break;
-      }
-      *back = '/';
-    }
+    normalize_path(buf->items);
   } else {
     buf->push_string("./");
   }

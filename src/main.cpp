@@ -120,11 +120,11 @@ auto load_mod(const ModInfo& info) -> ModManager* {
 //   return nullptr;
 // }
 
-auto parse_options(int argc, const char** argv) -> const Options {
+auto parse_options(Engine* engine, Slice<string> args) -> Options {
   Options options = {0};
   auto past_flags = false;
-  for (int i = 1; i < argc; i += 1) {
-    const char* arg = argv[i];
+  for (usize i = 1; i < args.len; i += 1) {
+    auto arg = args[i];
     if (!past_flags && *arg == '-') {
       // TODO Default to actually running things.
       // TODO Use "-c" to mean just generate c output.
@@ -133,7 +133,7 @@ auto parse_options(int argc, const char** argv) -> const Options {
       }  // TODO else if ...
     } else {
       if (!options.in) {
-        options.in = argv[i];
+        options.in = normalized_path(&engine->arena, args[i]);
       }
     }
   }
@@ -164,7 +164,7 @@ void run(Engine* engine) {
 int main(int argc, const char** argv) {
   using namespace rio;
   Engine engine;
-  engine.options = parse_options(argc, argv);
+  engine.options = parse_options(&engine, {argv, static_cast<usize>(argc)});
   if (!engine.options.in) {
     fail("no input file");
   }

@@ -1,13 +1,13 @@
 
-real	0m0.305s
-user	0m0.188s
-sys	0m0.109s
-==2961== Memcheck, a memory error detector
-==2961== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==2961== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
-==2961== Command: ./bin/rio tests/test1.rio
-==2961== 
-==2961== error calling PR_SET_PTRACER, vgdb might block
+real	0m0.309s
+user	0m0.219s
+sys	0m0.078s
+==3053== Memcheck, a memory error detector
+==3053== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==3053== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
+==3053== Command: ./bin/rio tests/test1.rio
+==3053== 
+==3053== error calling PR_SET_PTRACER, vgdb might block
 #include <stdint.h>
 #include <stdio.h>
 
@@ -25,20 +25,20 @@ void tests_test1_greet(const char* const name, int32_t const age) {
   printf("%s, %s!\n", message, name);
   printf("You are %d years old.\n", age);
 }
-==2961== 
-==2961== HEAP SUMMARY:
-==2961==     in use at exit: 0 bytes in 0 blocks
-==2961==   total heap usage: 56 allocs, 56 frees, 123,613 bytes allocated
-==2961== 
-==2961== All heap blocks were freed -- no leaks are possible
-==2961== 
-==2961== For counts of detected and suppressed errors, rerun with: -v
-==2961== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==3053== 
+==3053== HEAP SUMMARY:
+==3053==     in use at exit: 0 bytes in 0 blocks
+==3053==   total heap usage: 56 allocs, 56 frees, 123,553 bytes allocated
+==3053== 
+==3053== All heap blocks were freed -- no leaks are possible
+==3053== 
+==3053== For counts of detected and suppressed errors, rerun with: -v
+==3053== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 	Command being timed: "valgrind --leak-check=full --show-leak-kinds=all ./bin/rio tests/test1.rio"
-	User time (seconds): 0.54
-	System time (seconds): 0.06
-	Percent of CPU this job got: 100%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.60
+	User time (seconds): 0.48
+	System time (seconds): 0.12
+	Percent of CPU this job got: 97%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.62
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
@@ -58,4 +58,4 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 119536 Jul 24 05:23 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 120672 Jul 24 06:32 bin/rio
