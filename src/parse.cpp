@@ -261,6 +261,7 @@ auto parse_use(ParseState* state) -> Node& {
     case Token::Kind::Include:
     case Token::Kind::Use: {
       Node& node = state->alloc(Node::Kind::Use);
+      node.Use.kind = state->tokens->kind;
       advance_token(state, true);
       Node& arg = parse_call(state);
       if (arg.kind == Node::Kind::String) {
@@ -268,7 +269,6 @@ auto parse_use(ParseState* state) -> Node& {
       } else {
         node.Use.name = "";
       }
-      node.Use.kind = state->tokens->kind;
       node.Use.arg = &arg;
       return node;
     }

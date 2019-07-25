@@ -1,7 +1,7 @@
 
-real	0m0.963s
-user	0m0.688s
-sys	0m0.219s
+real	0m1.051s
+user	0m0.781s
+sys	0m0.203s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -28,10 +28,10 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 416
+	Maximum resident set size (kbytes): 436
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 118
+	Minor (reclaiming a frame) page faults: 123
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -43,4 +43,4 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 913648 Jul 24 06:32 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 917624 Jul 25 07:04 bin/rio

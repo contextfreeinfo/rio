@@ -12,14 +12,16 @@ auto normalize_path(char* path) -> void {
   }
 }
 
-auto normalized_path(Arena* arena, string path) -> char* {
-  auto result = static_cast<char*>(arena->alloc_bytes(strlen(path) + 1));
-  strcpy(result, path);
-  normalize_path(result);
-  return result;
+auto normalized_path(StrBuf* buf, string path) -> Str {
+  buf->clear();
+  buf->push_string(path);
+  normalize_path(buf->items);
+  // Currently no length changes, but maybe later.
+  buf->len = strlen(buf->items);
+  return {buf->items, buf->len};
 }
 
-auto path_to_name(Arena* arena, string path) -> string {
+auto path_to_name(StrBuf* buf, string path) -> Str {
   // Allocate possibly a bit too much, just to make life easier.
   // This shouldn't be called 1000s of times.
   usize length_max = strlen(path);
@@ -37,8 +39,8 @@ auto path_to_name(Arena* arena, string path) -> string {
     length_max -= 2;
   }
   length_max = max(length_max, static_cast<usize>(1));
-  auto result = static_cast<char*>(arena->alloc_bytes(length_max + 1));
-  auto res = result;
+  buf->reserve(length_max + 1);
+  auto res = buf->items;
   // Convert things.
   bool started = false;
   bool last_other = false;
@@ -72,7 +74,8 @@ auto path_to_name(Arena* arena, string path) -> string {
   }
   // Null-terminate.
   *res = '\0';
-  return result;
+  buf->len = res - buf->items;
+  return *buf;
 }
 
 auto push_parent(StrBuf* buf, string path) -> void {

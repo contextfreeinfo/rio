@@ -30,6 +30,10 @@ auto intern(Engine* engine, const char* text, usize nbytes) -> const char* {
   return value;
 }
 
+auto intern_str(Engine* engine, const Str& str) -> const char* {
+  return intern(engine, str.items, str.len);
+}
+
 auto read_file(const char* name) -> char* {
   FILE* file = fopen(name, "rb");
   if (!file) {

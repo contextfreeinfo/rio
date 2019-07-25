@@ -50,33 +50,44 @@ auto load_imports(ModManager* mod) -> void {
     if (!offset) {
       // Now actually load things.
       // Skip if we already loaded it!
-      bool found = false;
+      Opt<ModManager> import = nullptr;
       for (auto mod: mod->engine->mods) {
         if (!strcmp(mod->file, path)) {
-          found = true;
+          import = mod;
           break;
         }
       }
-      if (!found) {
+      if (!import) {
         // It's new.
         // TODO Track imports for each file.
         // TODO Includes have priority.
         // TODO Conflicts between others require renaming or qualifying.
-        load_mod([&]() {
+        import = load_mod([&]() {
           ModInfo dep;
           dep.engine = mod->engine;
           dep.file = path;
           if (node->Use.kind == Token::Kind::Include) {
             dep.name = mod->name;
+            dep.root = mod->root;
           }
           return dep;
         }());
+        if (node->Use.kind == Token::Kind::Include && mod->root) {
+          mod->root->parts.push(import);
+        }
+      }
+      // Import should be set by now.
+      // Track only uses here, since includes are transitive, so we need other
+      // other handling for those.
+      if (node->Use.kind == Token::Kind::Use) {
+        mod->uses.push(import);
       }
     }
   }
 }
 
 auto load_mod(const ModInfo& info) -> ModManager* {
+  StrBuf buf;
   // TODO Alloc mods individually so we don't gradually bleed on reloads.
   // TODO Or can we placement new over old discarded mods?
   auto engine = info.engine;
@@ -86,11 +97,14 @@ auto load_mod(const ModInfo& info) -> ModManager* {
     mod.name = info.name;
   } else {
     // TODO Random (remembered) name for scripts.
-    mod.name = path_to_name(&engine->arena, engine->options.in);
+    mod.name = intern_str(engine, path_to_name(&buf, engine->options.in));
   }
   engine->mods.push_val(&mod);
   mod.engine = engine;
   mod.file = file;
+  // TODO What if you `use` different roots of a multimod?
+  // TODO Need to determine a best root? Or forbid such doings?
+  mod.root = info.root ? info.root : &mod;
   auto tokens = [&]() {
     if (verbose) printf("in: %s\n", file);
     auto buf = read_file(file);
@@ -121,6 +135,7 @@ auto load_mod(const ModInfo& info) -> ModManager* {
 // }
 
 auto parse_options(Engine* engine, Slice<string> args) -> Options {
+  StrBuf buf;
   Options options = {0};
   auto past_flags = false;
   for (usize i = 1; i < args.len; i += 1) {
@@ -133,7 +148,7 @@ auto parse_options(Engine* engine, Slice<string> args) -> Options {
       }  // TODO else if ...
     } else {
       if (!options.in) {
-        options.in = normalized_path(&engine->arena, args[i]);
+        options.in = intern_str(engine, normalized_path(&buf, args[i]));
       }
     }
   }
@@ -153,7 +168,7 @@ void run(Engine* engine) {
   // TODO Resolve as we load, up the chain of dependencies.
   // TODO Implement parallel dependency engine a la make.
   for (auto mod: engine->mods) {
-    resolve(engine, mod->tree);
+    resolve(engine, mod);
   }
   // Generate.
   c::gen(engine);

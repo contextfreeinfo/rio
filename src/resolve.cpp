@@ -4,6 +4,7 @@ namespace rio {
 
 struct ResolveState {
   Engine* engine;
+  ModManager* mod;
 };
 
 Type choose_float_type(const Type& type);
@@ -12,11 +13,18 @@ void resolve_block(ResolveState* state, Node* node, const Type& type);
 void resolve_expr(ResolveState* state, Node* node, const Type& type);
 void resolve_tuple(ResolveState* state, Node* node, const Type& type);
 
-void resolve(Engine* engine, Node* tree) {
-  assert(tree->kind == Node::Kind::Block);
+void resolve(Engine* engine, ModManager* mod) {
   ResolveState state;
   state.engine = engine;
-  resolve_block(&state, tree, {Type::Kind::None});
+  state.mod = mod;
+  // TODO Build symbol map (with uses) at each root for faster resolution?
+  if (mod->root) {
+    if (verbose) printf("root: %s\n", mod->root->file);
+    for (auto part: mod->root->parts) {
+      if (verbose) printf("part: %s\n", part->file);
+    }
+  }
+  resolve_block(&state, mod->tree, {Type::Kind::None});
 }
 
 Type choose_float_type(const Type& type) {

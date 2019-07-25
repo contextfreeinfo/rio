@@ -293,8 +293,8 @@ auto next_token_string(const char* buf) -> Token {
   }();
 }
 
-auto token_name(const Token& token) -> const char* {
-  switch (token.kind) {
+auto token_kind_name(Token::Kind kind) -> const char* {
+  switch (kind) {
     case Token::Kind::None: return "<none>";
     case Token::Kind::Colon: return "Colon";
     case Token::Kind::Comma: return "Comma";
@@ -308,6 +308,7 @@ auto token_name(const Token& token) -> const char* {
     case Token::Kind::Float: return "Float";
     case Token::Kind::Fun: return "Fun";
     case Token::Kind::Id: return "Id";
+    case Token::Kind::Include: return "Include";
     case Token::Kind::Int: return "Int";
     case Token::Kind::Junk: return "Junk";
     case Token::Kind::LineEnd: return "LineEnd";
@@ -317,8 +318,13 @@ auto token_name(const Token& token) -> const char* {
     case Token::Kind::RoundR: return "RoundR";
     case Token::Kind::String: return "String";
     case Token::Kind::Update: return "Update";
+    case Token::Kind::Use: return "Use";
     default: return "<unknown>";
   }
+}
+
+auto token_name(const Token& token) -> const char* {
+  return token_kind_name(token.kind);
 }
 
 auto token_text(const Token& token) -> const char* {
