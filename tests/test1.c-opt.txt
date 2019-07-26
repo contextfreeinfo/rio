@@ -1,7 +1,7 @@
 
-real	0m1.051s
-user	0m0.781s
-sys	0m0.203s
+real	0m1.087s
+user	0m0.813s
+sys	0m0.219s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -43,4 +43,4 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 917624 Jul 25 07:04 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 918720 Jul 26 05:51 bin/rio

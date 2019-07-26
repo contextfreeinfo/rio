@@ -13,6 +13,8 @@ auto operator new(size_t, void* item) -> void* {
 
 namespace rio {
 
+using Any = const void*;
+
 void fail(const char* message);
 
 u64 hash_bytes(const void *bytes, usize nbytes) {
@@ -25,6 +27,24 @@ u64 hash_bytes(const void *bytes, usize nbytes) {
     x ^= x >> 32;
   }
   return x;
+}
+
+auto hash_u64(u64 x) -> u64 {
+  x *= 0xff51afd7ed558ccd;
+  x ^= x >> 32;
+  return x;
+}
+
+auto hash_ptr(Any ptr) -> u64 {
+  return hash_u64(reinterpret_cast<uintptr_t>(ptr));
+}
+
+auto hash(Any ptr) -> u64 {
+  return hash_ptr(ptr);
+}
+
+auto exists(Any ptr) -> bool {
+  return !!ptr;
 }
 
 template<typename Value>
@@ -89,6 +109,23 @@ auto str_cmp(Str a, Str b) -> int {
 auto str_eq(Str a, Str b) -> bool {
   return !str_cmp(a, b);
 }
+
+auto operator==(Str a, Str b) -> bool {
+  return str_eq(a, b);
+}
+
+auto hash(Str str) -> u64 {
+  return hash_bytes(str.items, str.len);
+}
+
+auto exists(Str str) -> bool {
+  return !!str.items;
+}
+
+// TODO Implement for void*
+// auto hash(Str str) -> u64 {
+//   return hash_bytes(str.items, str.len);
+// }
 
 template<typename Item>
 struct List: Slice<Item> {
@@ -241,16 +278,16 @@ struct Arena {
   usize default_box_size = 8 << 10;
 };
 
-template<typename Value>
+template<typename Key, typename Value>
 struct Pair {
-  Str key;
+  Key key;
   Value value;
 };
 
-template<typename Value>
+template<typename Key, typename Value>
 struct Map {
 
-  using Pair = rio::Pair<Value>;
+  using Pair = rio::Pair<Key, Value>;
 
   struct PairList: List<Pair> {
     PairList(Map* map_): map{*map_} {}
@@ -265,7 +302,7 @@ struct Map {
         // Cheat into lower level to avoid bounds check.
         // We abuse the meaning of len here.
         auto& pair = map.pairs.items[i];
-        if (pair.key.items) {
+        if (exists(pair.key)) {
           map.fit(pair.key, pair.value);
         }
       }
@@ -275,43 +312,43 @@ struct Map {
 
   PairList pairs{this};
 
-  void fit(Str key, Value value) {
+  void fit(const Key& key, Value value) {
     // Put it in.
     isize index = get_index(key);
     if (index < 0) {
       fail("no space in map");
     }
     auto& slot = pairs.items[index];
-    if (!slot.key.items) {
+    if (!exists(slot.key)) {
       slot.key = key;
       pairs.len += 1;
     }
     slot.value = value;
   }
 
-  auto get(const Str& key) -> Value {
+  auto get(const Key& key) -> Value {
     isize index = get_index(key);
     if (index < 0) {
       return nullptr;
     } else {
       auto& pair = pairs.items[index];
-      if (!pair.key.items) {
+      if (!exists(pair.key)) {
         return nullptr;
       }
       return pair.value;
     }
   }
 
-  auto get_index(const Str& key) -> isize {
+  auto get_index(const Key& key) -> isize {
     if (!pairs.capacity) {
       return -1;
     }
-    usize index = hash_bytes(key.items, key.len) % pairs.capacity;
+    usize index = hash(key) % pairs.capacity;
     usize original = index;
     do {
       auto& slot = pairs.items[index];
-      if (slot.key.items) {
-        if (str_eq(slot.key, key)) {
+      if (exists(slot.key)) {
+        if (slot.key == key) {
           // printf("get_index %s: %zu, %zu\n", std::string(key.items, key.len).c_str(), original, index);
           return index;
         }
@@ -324,9 +361,9 @@ struct Map {
     return -1;
   }
 
-  void put(Str key, Value value) {
+  void put(const Key& key, Value value) {
     // Also, key must outlive the map.
-    assert(key.items);
+    assert(exists(key));
     auto capacity = pairs.capacity;
     auto len = pairs.len;
     if (capacity <= 2 * len) {

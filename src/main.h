@@ -30,6 +30,13 @@ struct ModInfo {
 
 };
 
+struct Global {
+  // The unqualified name as known within the mod.
+  string name;
+  ModManager* mod;
+  Node* node;
+};
+
 struct ModManager: ModInfo {
 
   // Arena per module, so we can reload just changed modules in server mode.
@@ -38,12 +45,29 @@ struct ModManager: ModInfo {
 
   Node* tree = nullptr;
 
+  // To be used only in the root of a multimod.
+  // The globals defined in this multimod.
+  // In the case of multiple definitions in the same mod, they'll both be here.
+  // Errors can be flagged elsewhere.
+  List<Global> global_defs;
+
+  // To be used only in the root of a multimod.
+  // Includes definitions from inside this multimod as well as all use imports.
+  // Multimap in case of conflicts.
+  // Any pointer here (rather than raw Global) needs to allocated somewhere
+  // anyway.
+  // Each mod should allocate their own globals, so in the simple case, this is
+  // just a single pointer to that.
+  // We only need to allocate new arrays for slices in case of conflicts.
+  Map<string, Slice<Global*>> global_refs;
+
+  // To be used only in the root of a multimod.
   // All the mod files in a multifile mod.
-  // Only tracked for the root mod file.
   // And the root doesn't track itself, because we can be more efficient without
   // allocating here on single file mods.
   List<ModManager*> parts;
 
+  // To be used only in the root of a multimod.
   // 'Use' imports.
   List<ModManager*> uses;
 
@@ -62,7 +86,7 @@ struct Engine {
   Arena arena;
   // FILE* info;
   Options options = {0};
-  Map<const char*> interns;
+  Map<Str, string> interns;
   List<ModManager*> mods;
   // bool verbose{false};
 

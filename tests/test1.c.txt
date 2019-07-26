@@ -1,7 +1,7 @@
 
-real	0m0.308s
-user	0m0.219s
-sys	0m0.063s
+real	0m0.311s
+user	0m0.188s
+sys	0m0.094s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -20,10 +20,10 @@ void tests_test1_greet(const char* const name, int32_t const age) {
   printf("You are %d years old.\n", age);
 }
 	Command being timed: "./bin/rio tests/test1.rio"
-	User time (seconds): 0.00
+	User time (seconds): 0.01
 	System time (seconds): 0.00
-	Percent of CPU this job got: 0%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.02
+	Percent of CPU this job got: 37%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.04
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
@@ -31,7 +31,7 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Maximum resident set size (kbytes): 1416
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 407
+	Minor (reclaiming a frame) page faults: 404
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -43,4 +43,4 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 66368 Jul 25 07:04 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 73576 Jul 26 05:51 bin/rio
