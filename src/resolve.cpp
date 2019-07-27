@@ -70,33 +70,33 @@ auto ensure_global_refs(ModManager* mod) -> void {
     return;
   }
   // First get all globals from this mod, since they have priority.
-  for (auto& global: mod->root->global_defs) {
-    auto insert = globals.get_or_insert(global.def->name);
+  for (auto global: mod->root->global_defs) {
+    auto insert = globals.get_or_insert(global->name);
     if (insert.inserted) {
       // No conflict. Good.
-      printf("internal global: %s at %p\n", global.def->name, (void*)(global.def->name));
-      insert.pair->value = &global;
+      if (verbose) printf("internal global: %s\n", global->name);
+      insert.pair->value = global;
     } else {
       // Conflict. Clear it out.
-      printf("internal conflict: %s\n", global.def->name);
+      if (verbose) printf("internal conflict: %s\n", global->name);
       insert.pair->value = nullptr;
     }
   }
   // Then get all globals from use imports.
   for (auto import: mod->root->uses) {
     for (auto& global: import->global_defs) {
-      auto insert = globals.get_or_insert(global.def->name);
+      auto insert = globals.get_or_insert(global->name);
       if (insert.inserted) {
         // No conflict. Good.
-        printf("external global: %s\n", global.def->name);
-        insert.pair->value = &global;
+        if (verbose) printf("external global: %s\n", global->name);
+        insert.pair->value = global;
       } else {
         // Conflict. See if it's from the current mod or not.
         if (insert.pair->value->mod == mod) {
-          printf("external ignored: %s\n", global.def->name);
+          if (verbose) printf("external ignored: %s\n", global->name);
         } else {
           // From somewhere else. Clear it.
-          printf("external conflict: %s\n", global.def->name);
+          if (verbose) printf("external conflict: %s\n", global->name);
           insert.pair->value = nullptr;
         }
       }
@@ -197,8 +197,7 @@ auto resolve_ref(ResolveState* state, Node* node) -> void {
   // TODO If we haven't resolved its subparts yet, jump to it???
   // TODO Leave a work queue of unresolved things???
   // TODO Look through local stack before globals.
-  auto global = state->mod->global_refs.get(node->Ref.name);
-  printf("resolve %zu: %s at %p -> %p\n", state->mod->global_refs.len(), node->Ref.name, (void*)(node->Ref.name), (void*)(global));
+  node->Ref.def = state->mod->global_refs.get(node->Ref.name);
 }
 
 void resolve_tuple(ResolveState* state, Node* node, const Type& type) {

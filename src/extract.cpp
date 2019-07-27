@@ -49,7 +49,8 @@ void extract(ModManager* mod) {
   // Put mod globals into the mod root globals list.
   auto root = mod->root;
   for (auto def: mod->tree->Block.scope.defs) {
-    root->global_defs.push_val({root, def});
+    def->mod = root;
+    root->global_defs.push(def);
   }
 }
 

@@ -6,15 +6,12 @@ void tests_test1_greet();
 int main() {
   const char* const name = "world";
   int32_t const age = 75;
-  // TODO This needs namespaced.
-  greet(name, age);
+  tests_test1_greet(name, age);
 }
 
-// TODO This needs namespaced.
-const char* const message = "Hello";
+const char* const tests_test1_message = "Hello";
 
 void tests_test1_greet(const char* const name, int32_t const age) {
-  // These need to stay top-level.
-  printf("%s, %s!\n", message, name);
+  printf("%s, %s!\n", tests_test1_message, name);
   printf("You are %d years old.\n", age);
 }

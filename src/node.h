@@ -4,6 +4,8 @@
 
 namespace rio {
 
+struct ModManager;
+
 auto is_id_part(char c) -> bool;
 auto is_id_start(char c) -> bool;
 
@@ -104,6 +106,8 @@ struct Def {
   string name;
   Node* node;
   Opt<Node> value;
+  // Only for globals. If present, references the mod root.
+  Opt<ModManager> mod;
 };
 
 struct Scope {

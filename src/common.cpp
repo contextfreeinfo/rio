@@ -9,7 +9,7 @@ void fail(const char* message) {
   // throw std::runtime_error(message);
 }
 
-auto intern(Engine* engine, const char* text, usize nbytes) -> const char* {
+auto intern(Engine* engine, const char* text, usize nbytes) -> string {
   // This implementation depends on pointer data staying constant over map
   // resizing, which would be the efficient way to do things.
   // But is it guaranteed?
@@ -30,7 +30,7 @@ auto intern(Engine* engine, const char* text, usize nbytes) -> const char* {
   return value;
 }
 
-auto intern_str(Engine* engine, const Str& str) -> const char* {
+auto intern_str(Engine* engine, const Str& str) -> string {
   return intern(engine, str.items, str.len);
 }
 

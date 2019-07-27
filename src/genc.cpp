@@ -25,6 +25,7 @@ void gen_expr(GenState* state, const Node& node);
 void gen_list_items(GenState* state, const Node& node);
 void gen_indent(GenState* state);
 void gen_param_items(GenState* state, const Node& node);
+void gen_ref(GenState* state, const Node& node);
 void gen_type(GenState* state, const Type& type);
 void gen_statements(GenState* state, const Node& node);
 auto needs_semi(const Node& node) -> bool;
@@ -138,7 +139,7 @@ void gen_expr(GenState* state, const Node& node) {
       break;
     }
     case Node::Kind::Ref: {
-      printf("%s", node.Ref.name);
+      gen_ref(state, node);
       break;
     }
     case Node::Kind::String: {
@@ -200,6 +201,13 @@ void gen_param_items(GenState* state, const Node& node) {
       }
     }
   }
+}
+
+void gen_ref(GenState* state, const Node& node) {
+  if (node.Ref.def && node.Ref.def->mod) {
+    printf("%s_", node.Ref.def->mod->name);
+  }
+  printf("%s", node.Ref.name);
 }
 
 void gen_statements(GenState* state, const Node& node) {

@@ -1,17 +1,7 @@
 
-real	0m0.326s
-user	0m0.188s
-sys	0m0.141s
-internal global: message at 0x7fffbfdab140
-internal global: greet at 0x7fffbfdab150
-resolve 1: greet at 0x7fffbfdab018 -> (nil)
-resolve 1: name at 0x7fffbfdab020 -> (nil)
-resolve 1: age at 0x7fffbfdab008 -> (nil)
-resolve 1: printf at 0x7fffbfdab178 -> (nil)
-resolve 1: message at 0x7fffbfdab140 -> (nil)
-resolve 1: name at 0x7fffbfdab158 -> (nil)
-resolve 1: printf at 0x7fffbfdab178 -> (nil)
-resolve 1: age at 0x7fffbfdab168 -> (nil)
+real	0m0.323s
+user	0m0.250s
+sys	0m0.078s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -20,28 +10,28 @@ void tests_test1_greet();
 int main() {
   const char* const name = "world";
   int32_t const age = 75;
-  greet(name, age);
+  tests_test1_greet(name, age);
 }
 
-const char* const message = "Hello";
+const char* const tests_test1_message = "Hello";
 
 void tests_test1_greet(const char* const name, int32_t const age) {
-  printf("%s, %s!\n", message, name);
+  printf("%s, %s!\n", tests_test1_message, name);
   printf("You are %d years old.\n", age);
 }
 	Command being timed: "./bin/rio tests/test1.rio"
 	User time (seconds): 0.00
-	System time (seconds): 0.01
-	Percent of CPU this job got: 30%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.04
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.03
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1416
+	Maximum resident set size (kbytes): 1420
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 407
+	Minor (reclaiming a frame) page faults: 405
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -53,4 +43,4 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 79176 Jul 27 07:28 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 78216 Jul 27 08:04 bin/rio

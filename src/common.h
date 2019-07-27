@@ -343,7 +343,7 @@ struct Map {
       for (usize i = 0; i < old_capacity; i += 1) {
         // Cheat into lower level to avoid bounds check.
         // We abuse the meaning of len here.
-        auto& pair = map.pairs.items[i];
+        auto& pair = old_items.items[i];
         if (exists(pair.key)) {
           map.fit(pair.key, pair.value);
         }

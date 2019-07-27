@@ -30,12 +30,6 @@ struct ModInfo {
 
 };
 
-struct Global {
-  // Always references the mod root.
-  ModManager* mod;
-  Def* def;
-};
-
 struct ModManager: ModInfo {
 
   // Arena per module, so we can reload just changed modules in server mode.
@@ -48,7 +42,7 @@ struct ModManager: ModInfo {
   // The globals defined in this multimod.
   // In the case of multiple definitions in the same mod, they'll both be here.
   // Errors can be flagged elsewhere.
-  List<Global> global_defs;
+  List<Def*> global_defs;
 
   // To be used only in the root of a multimod.
   // Includes definitions from inside this multimod as well as all use imports.
@@ -57,7 +51,7 @@ struct ModManager: ModInfo {
   // Each mod should allocate their own globals, so in the simple case, this is
   // just a single pointer to that.
   // We only need to allocate new arrays for slices in case of conflicts.
-  Map<string, Opt<Global>> global_refs;
+  Map<string, Opt<Def>> global_refs;
 
   // To be used only in the root of a multimod.
   // All the mod files in a multifile mod.
