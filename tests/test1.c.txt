@@ -1,7 +1,17 @@
 
-real	0m0.311s
+real	0m0.326s
 user	0m0.188s
-sys	0m0.094s
+sys	0m0.141s
+internal global: message at 0x7fffbfdab140
+internal global: greet at 0x7fffbfdab150
+resolve 1: greet at 0x7fffbfdab018 -> (nil)
+resolve 1: name at 0x7fffbfdab020 -> (nil)
+resolve 1: age at 0x7fffbfdab008 -> (nil)
+resolve 1: printf at 0x7fffbfdab178 -> (nil)
+resolve 1: message at 0x7fffbfdab140 -> (nil)
+resolve 1: name at 0x7fffbfdab158 -> (nil)
+resolve 1: printf at 0x7fffbfdab178 -> (nil)
+resolve 1: age at 0x7fffbfdab168 -> (nil)
 #include <stdint.h>
 #include <stdio.h>
 
@@ -20,9 +30,9 @@ void tests_test1_greet(const char* const name, int32_t const age) {
   printf("You are %d years old.\n", age);
 }
 	Command being timed: "./bin/rio tests/test1.rio"
-	User time (seconds): 0.01
-	System time (seconds): 0.00
-	Percent of CPU this job got: 37%
+	User time (seconds): 0.00
+	System time (seconds): 0.01
+	Percent of CPU this job got: 30%
 	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.04
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
@@ -31,7 +41,7 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Maximum resident set size (kbytes): 1416
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 404
+	Minor (reclaiming a frame) page faults: 407
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -43,4 +53,4 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 73576 Jul 26 05:51 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 79176 Jul 27 07:28 bin/rio

@@ -289,6 +289,48 @@ struct Map {
 
   using Pair = rio::Pair<Key, Value>;
 
+  struct MaybeInsert {
+    bool inserted;
+    Pair* pair;
+  };
+
+  auto empty() -> bool {
+    return !len();
+  }
+
+  auto get(const Key& key) -> Value {
+    assert(exists(key));
+    auto pair = get_pair(key);
+    // A zero has to exist for Value.
+    return pair ? pair->value : 0;
+  }
+
+  // Creates the pair with zero value if it doesn't exist, and returns the pair.
+  auto get_or_insert(const Key& key) -> MaybeInsert {
+    // Also, key must outlive the map.
+    assert(exists(key));
+    // This reserve is needed in case we need a spot.
+    // At least repeated calls to get_or_insert that don't actually insert won't
+    // keep increasing the size.
+    reserve();
+    auto old_len = pairs.len;
+    auto pair = get_or_insert_no_reserve(key);
+    return {pairs.len != old_len, pair};
+  }
+
+  auto len() -> usize {
+    return pairs.len;
+  }
+
+  auto put(const Key& key, Value value) -> void {
+    // Also, key must outlive the map.
+    assert(exists(key));
+    reserve();
+    fit(key, value);
+  }
+
+ private:
+ 
   struct PairList: List<Pair> {
     PairList(Map* map_): map{*map_} {}
     virtual void distribute(Slice<Pair> new_items, Slice<Pair> old_items) {
@@ -310,33 +352,9 @@ struct Map {
     Map& map;
   };
 
-  PairList pairs{this};
-
   void fit(const Key& key, Value value) {
-    // Put it in.
-    isize index = get_index(key);
-    if (index < 0) {
-      fail("no space in map");
-    }
-    auto& slot = pairs.items[index];
-    if (!exists(slot.key)) {
-      slot.key = key;
-      pairs.len += 1;
-    }
-    slot.value = value;
-  }
-
-  auto get(const Key& key) -> Value {
-    isize index = get_index(key);
-    if (index < 0) {
-      return nullptr;
-    } else {
-      auto& pair = pairs.items[index];
-      if (!exists(pair.key)) {
-        return nullptr;
-      }
-      return pair.value;
-    }
+    auto slot = get_or_insert_no_reserve(key);
+    slot->value = value;
   }
 
   auto get_index(const Key& key) -> isize {
@@ -361,11 +379,40 @@ struct Map {
     return -1;
   }
 
-  void put(const Key& key, Value value) {
-    // Also, key must outlive the map.
+  // Creates the pair with zero value if it doesn't exist, and returns the pair.
+  auto get_or_insert_no_reserve(const Key& key) -> Pair* {
+    // See where to put it.
+    isize index = get_index(key);
+    if (index < 0) {
+      fail("no space in map?");
+    }
+    auto& slot = pairs.items[index];
+    if (!exists(slot.key)) {
+      slot.key = key;
+      // Reserved space should have zero value by default, so leave as is.
+      pairs.len += 1;
+    }
+    return &slot;
+  }
+
+  // Return value only valid until next resize.
+  auto get_pair(const Key& key) -> Opt<Pair> {
     assert(exists(key));
+    isize index = get_index(key);
+    if (index < 0) {
+      return nullptr;
+    } else {
+      auto& pair = pairs.items[index];
+      if (!exists(pair.key)) {
+        return nullptr;
+      }
+      return &pair;
+    }
+  }
+
+  auto reserve() -> void {
     auto capacity = pairs.capacity;
-    auto len = pairs.len;
+    auto len = pairs.len + 1;
     if (capacity <= 2 * len) {
       if (capacity) {
         capacity *= 2;
@@ -374,8 +421,9 @@ struct Map {
       }
       pairs.reserve(capacity);
     }
-    fit(key, value);
   }
+
+  PairList pairs{this};
 
 };
 

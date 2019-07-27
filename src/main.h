@@ -31,10 +31,9 @@ struct ModInfo {
 };
 
 struct Global {
-  // The unqualified name as known within the mod.
-  string name;
+  // Always references the mod root.
   ModManager* mod;
-  Node* node;
+  Def* def;
 };
 
 struct ModManager: ModInfo {
@@ -53,13 +52,12 @@ struct ModManager: ModInfo {
 
   // To be used only in the root of a multimod.
   // Includes definitions from inside this multimod as well as all use imports.
-  // Multimap in case of conflicts.
-  // Any pointer here (rather than raw Global) needs to allocated somewhere
-  // anyway.
+  // If conflicts, set to null, and the multiple contenders are in errors
+  // elsewhere if someone tries to use them.
   // Each mod should allocate their own globals, so in the simple case, this is
   // just a single pointer to that.
   // We only need to allocate new arrays for slices in case of conflicts.
-  Map<string, Slice<Global*>> global_refs;
+  Map<string, Opt<Global>> global_refs;
 
   // To be used only in the root of a multimod.
   // All the mod files in a multifile mod.
@@ -68,7 +66,7 @@ struct ModManager: ModInfo {
   List<ModManager*> parts;
 
   // To be used only in the root of a multimod.
-  // 'Use' imports.
+  // 'Use' imports, pointing only to roots.
   List<ModManager*> uses;
 
 };

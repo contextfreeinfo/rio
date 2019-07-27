@@ -5,10 +5,13 @@ namespace rio {
 struct ResolveState {
   Engine* engine;
   ModManager* mod;
+  // TODO A stack of locals.
 };
 
 Type choose_float_type(const Type& type);
 Type choose_int_type(const Type& type);
+auto ensure_global_refs(ModManager* mod) -> void;
+auto resolve_ref(ResolveState* state, Node* node) -> void;
 void resolve_block(ResolveState* state, Node* node, const Type& type);
 void resolve_expr(ResolveState* state, Node* node, const Type& type);
 void resolve_tuple(ResolveState* state, Node* node, const Type& type);
@@ -16,14 +19,9 @@ void resolve_tuple(ResolveState* state, Node* node, const Type& type);
 void resolve(Engine* engine, ModManager* mod) {
   ResolveState state;
   state.engine = engine;
-  state.mod = mod;
-  // TODO Build symbol map (with uses) at each root for faster resolution?
-  if (mod->root) {
-    if (verbose) printf("root: %s\n", mod->root->file);
-    for (auto part: mod->root->parts) {
-      if (verbose) printf("part: %s\n", part->file);
-    }
-  }
+  state.mod = mod->root;
+  // Ensure globals and resolve.
+  ensure_global_refs(mod);
   resolve_block(&state, mod->tree, {Type::Kind::None});
 }
 
@@ -64,7 +62,50 @@ Type choose_int_type(const Type& type) {
   }
 }
 
+auto ensure_global_refs(ModManager* mod) -> void {
+  auto& globals = mod->root->global_refs;
+  // See if we haven't built the global refs for this multimod.
+  // TODO Just force the root first so we don't need to bother checking?
+  if (globals.len()) {
+    return;
+  }
+  // First get all globals from this mod, since they have priority.
+  for (auto& global: mod->root->global_defs) {
+    auto insert = globals.get_or_insert(global.def->name);
+    if (insert.inserted) {
+      // No conflict. Good.
+      printf("internal global: %s at %p\n", global.def->name, (void*)(global.def->name));
+      insert.pair->value = &global;
+    } else {
+      // Conflict. Clear it out.
+      printf("internal conflict: %s\n", global.def->name);
+      insert.pair->value = nullptr;
+    }
+  }
+  // Then get all globals from use imports.
+  for (auto import: mod->root->uses) {
+    for (auto& global: import->global_defs) {
+      auto insert = globals.get_or_insert(global.def->name);
+      if (insert.inserted) {
+        // No conflict. Good.
+        printf("external global: %s\n", global.def->name);
+        insert.pair->value = &global;
+      } else {
+        // Conflict. See if it's from the current mod or not.
+        if (insert.pair->value->mod == mod) {
+          printf("external ignored: %s\n", global.def->name);
+        } else {
+          // From somewhere else. Clear it.
+          printf("external conflict: %s\n", global.def->name);
+          insert.pair->value = nullptr;
+        }
+      }
+    }
+  }
+}
+
 void resolve_block(ResolveState* state, Node* node, const Type& type) {
+  // TODO The last item should expect the block type.
   for (auto item: node->Block.items) {
     resolve_expr(state, item, {Type::Kind::None});
   }
@@ -73,13 +114,16 @@ void resolve_block(ResolveState* state, Node* node, const Type& type) {
 void resolve_expr(ResolveState* state, Node* node, const Type& type) {
   switch (node->kind) {
     case Node::Kind::Block: {
-      resolve_block(state, node, {Type::Kind::None});
+      resolve_block(state, node, type);
       break;
     }
     case Node::Kind::Call: {
-      // Left over from gen.
-      // gen_expr(state, *node.Call.callee);
-      // gen_tuple_items(state, *node.Call.args);
+      // TODO The expected type should be some kind of function.
+      // TODO Does this matter?
+      // TODO And the return type should be the expected expr type.
+      resolve_expr(state, node->Call.callee, {Type::Kind::None});
+      // TODO Definitely should have expected types for the args at this point.
+      resolve_expr(state, node->Call.args, {Type::Kind::None});
       break;
     }
     case Node::Kind::Cast: {
@@ -128,9 +172,7 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       break;
     }
     case Node::Kind::Ref: {
-      // TODO Look it up.
-      // TODO If we haven't resolved it yet, jump to it???
-      // TODO Leave a work queue of unresolved things???
+      resolve_ref(state, node);
       break;
     }
     case Node::Kind::String: {
@@ -140,11 +182,23 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       node->type = {Type::Kind::String};
       break;
     }
+    case Node::Kind::Tuple: {
+      resolve_tuple(state, node, type);
+      break;
+    }
     default: {
       // printf("(!!! BROKEN %d !!!)", static_cast<int>(node.kind));
       break;
     }
   }
+}
+
+auto resolve_ref(ResolveState* state, Node* node) -> void {
+  // TODO If we haven't resolved its subparts yet, jump to it???
+  // TODO Leave a work queue of unresolved things???
+  // TODO Look through local stack before globals.
+  auto global = state->mod->global_refs.get(node->Ref.name);
+  printf("resolve %zu: %s at %p -> %p\n", state->mod->global_refs.len(), node->Ref.name, (void*)(node->Ref.name), (void*)(global));
 }
 
 void resolve_tuple(ResolveState* state, Node* node, const Type& type) {

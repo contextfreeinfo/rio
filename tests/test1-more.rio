@@ -1,4 +1,4 @@
-include "./test1"
+# partial of "./test1"
 
 message = "Hello"
 

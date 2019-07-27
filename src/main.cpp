@@ -80,7 +80,7 @@ auto load_imports(ModManager* mod) -> void {
       // Track only uses here, since includes are transitive, so we need other
       // other handling for those.
       if (node->Use.kind == Token::Kind::Use) {
-        mod->uses.push(import);
+        mod->root->uses.push(import->root);
       }
     }
   }
