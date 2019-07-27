@@ -12,6 +12,7 @@ Just a slightly fancy hello world for now here:
 use "c"
 
 do
+  # Simple assignment-looking statements *declare* constants.
   name = "world"
   age = 75
   greet(name, age)
