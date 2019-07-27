@@ -19,9 +19,15 @@ struct Indent {
 
 void gen_bad(GenState* state, const Node& node);
 void gen_block(GenState* state, const Node& node);
+auto gen_const(GenState* state, const Node& node) -> void;
 auto gen_decl_expr(GenState* state, const Node& node) -> bool;
 auto gen_decls(GenState* state, const Node& node) -> bool;
 void gen_expr(GenState* state, const Node& node);
+auto gen_function(GenState* state, const Node& node) -> void;
+auto gen_function_def(GenState* state, const Node& node) -> bool;
+auto gen_function_defs(GenState* state, const Node& node) -> bool;
+auto gen_global_expr(GenState* state, const Node& node) -> bool;
+auto gen_globals(GenState* state, const Node& node) -> bool;
 void gen_list_items(GenState* state, const Node& node);
 void gen_indent(GenState* state);
 void gen_param_items(GenState* state, const Node& node);
@@ -45,11 +51,18 @@ void gen(Engine* engine) {
     }
     any = gen_decls(&state, *mod->tree);
   }
+  // Globals.
+  for (auto mod: engine->mods) {
+    state.mod = mod;
+    if (any) {
+      printf("\n");
+    }
+    any = gen_globals(&state, *mod->tree);
+  }
   // Definitions.
   for (auto mod: engine->mods) {
     state.mod = mod;
-    printf("\n");
-    gen_statements(&state, *mod->tree);
+    gen_function_defs(&state, *mod->tree);
   }
 }
 
@@ -64,6 +77,14 @@ void gen_block(GenState* state, const Node& node) {
     gen_statements(state, node);
   }
   printf("}\n");
+}
+
+auto gen_const(GenState* state, const Node& node) -> void {
+  gen_type(state, node.Const.a->type);
+  printf(" const ");
+  gen_expr(state, *node.Const.a);
+  printf(" = ");
+  gen_expr(state, *node.Const.b);
 }
 
 auto gen_decl_expr(GenState* state, const Node& node) -> bool {
@@ -91,9 +112,6 @@ auto gen_decls(GenState* state, const Node& node) -> bool {
 void gen_expr(GenState* state, const Node& node) {
   switch (node.kind) {
     case Node::Kind::Block: {
-      if (!state->indent) {
-        printf("int main() ");
-      }
       gen_block(state, node);
       break;
     }
@@ -105,11 +123,7 @@ void gen_expr(GenState* state, const Node& node) {
       break;
     }
     case Node::Kind::Const: {
-      gen_type(state, node.Const.a->type);
-      printf(" const ");
-      gen_expr(state, *node.Const.a);
-      printf(" = ");
-      gen_expr(state, *node.Const.b);
+      gen_const(state, node);
       break;
     }
     case Node::Kind::Float: {
@@ -117,22 +131,7 @@ void gen_expr(GenState* state, const Node& node) {
       break;
     }
     case Node::Kind::Fun: {
-      // TODO When to mark static?
-      bool prefix = !state->indent;
-      gen_type(state, node.type);
-      printf(
-        " %s%s%s(",
-        prefix ? state->mod->name : "",
-        prefix ? "_" : "",
-        node.Fun.name
-      );
-      gen_param_items(state, *node.Fun.params);
-      printf(") ");
-      // TODO Special handling of non-block exprs.
-      if (node.Fun.expr->kind == Node::Kind::Block) {
-        gen_block(state, *node.Fun.expr);
-      }
-      break;
+      gen_function(state, node);
     }
     case Node::Kind::Int: {
       printf("%s", node.Int.text);
@@ -155,6 +154,75 @@ void gen_expr(GenState* state, const Node& node) {
       break;
     }
   }
+}
+
+auto gen_function(GenState* state, const Node& node) -> void {
+  // TODO When to mark static?
+  bool prefix = !state->indent;
+  gen_type(state, node.type);
+  printf(
+    " %s%s%s(",
+    prefix ? state->mod->name : "",
+    prefix ? "_" : "",
+    node.Fun.name
+  );
+  gen_param_items(state, *node.Fun.params);
+  printf(") ");
+  // TODO Special handling of non-block exprs.
+  if (node.Fun.expr->kind == Node::Kind::Block) {
+    gen_block(state, *node.Fun.expr);
+  }
+}
+
+auto gen_function_def(GenState* state, const Node& node) -> bool {
+  switch (node.kind) {
+    case Node::Kind::Block: {
+      printf("\n");
+      printf("int main() ");
+      gen_block(state, node);
+      return true;
+    }
+    case Node::Kind::Fun: {
+      printf("\n");
+      gen_function(state, node);
+      return true;
+    }
+    default: {
+      // Nothing to do.
+      return false;
+    }
+  }
+}
+
+auto gen_function_defs(GenState* state, const Node& node) -> bool {
+  auto any = false;
+  for (auto item: node.Block.items) {
+    any |= gen_function_def(state, *item);
+  }
+  return any;
+}
+
+auto gen_global_expr(GenState* state, const Node& node) -> bool {
+  switch (node.kind) {
+    case Node::Kind::Const: {
+      gen_const(state, node);
+      printf(";\n");
+      return true;
+    }
+    default: {
+      // Nothing to do.
+      return false;
+    }
+  }
+}
+
+auto gen_globals(GenState* state, const Node& node) -> bool {
+  // TODO Dependency order.
+  auto any = false;
+  for (auto item: node.Block.items) {
+    any |= gen_global_expr(state, *item);
+  }
+  return any;
 }
 
 void gen_indent(GenState* state) {
@@ -211,21 +279,14 @@ void gen_ref(GenState* state, const Node& node) {
 }
 
 void gen_statements(GenState* state, const Node& node) {
+  // TODO Make a different version for top level?
+  // TODO Just make a gen_function_defs thing for top?
   auto items = node.Block.items;
-  bool last_none = false;
   for (usize i = 0; i < items.len; i += 1) {
-    if (i && !state->indent && !last_none) {
-      // Blank lines between at top level.
-      printf("\n");
-    }
     gen_indent(state);
     gen_expr(state, *items[i]);
     if (needs_semi(*items[i])) {
       printf(";\n");
-      last_none = false;
-    } else {
-      // TODO Generalize last_none to a function or something.
-      last_none = items[i]->kind == Node::Kind::Use;
     }
   }
 }
