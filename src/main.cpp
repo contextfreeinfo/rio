@@ -96,8 +96,8 @@ auto load_mod(const ModInfo& info) -> ModManager* {
   if (*info.name) {
     mod.name = info.name;
   } else {
-    // TODO Random (remembered) name for scripts.
-    mod.name = intern_str(engine, path_to_name(&buf, engine->options.in));
+    // TODO Short random prefix for working dir in script mode.
+    mod.name = intern_str(engine, path_to_name(&buf, file));
   }
   engine->mods.push_val(&mod);
   mod.engine = engine;

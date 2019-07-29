@@ -1,4 +1,5 @@
 use "c"
+use "./test1-other"
 include "./test1-more"
 
 do

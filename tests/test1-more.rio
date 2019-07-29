@@ -1,7 +1,5 @@
 # partial of "./test1"
 
-message = "Hello"
-
 greet proc(name: string, age: i32)
   printf("%s, %s!\n", message, name)
   printf("You are %d years old.\n", age)
