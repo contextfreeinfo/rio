@@ -45,6 +45,8 @@ struct Token {
     Pub,
     RoundL,
     RoundR,
+    SquareL,
+    SquareR,
     String,
     Update,
     Use,
@@ -161,6 +163,7 @@ struct Node {
 
   enum struct Kind {
     None,
+    Array,
     Block,
     Call,
     Cast,
@@ -178,6 +181,7 @@ struct Node {
   Type type;
 
   union {
+    ParentNode Array;
     BlockNode Block;
     BinaryNode Cast;
     BinaryNode Const;

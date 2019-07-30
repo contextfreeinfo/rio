@@ -1,13 +1,13 @@
 
-real	0m0.343s
-user	0m0.203s
-sys	0m0.125s
-==579== Memcheck, a memory error detector
-==579== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==579== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
-==579== Command: ./bin/rio tests/test1.rio
-==579== 
-==579== error calling PR_SET_PTRACER, vgdb might block
+real	0m0.342s
+user	0m0.234s
+sys	0m0.094s
+==942== Memcheck, a memory error detector
+==942== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==942== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
+==942== Command: ./bin/rio tests/test1.rio
+==942== 
+==942== error calling PR_SET_PTRACER, vgdb might block
 #include <stdint.h>
 #include <stdio.h>
 
@@ -22,6 +22,7 @@ const char* const tests_test1_other_message = "Hello";
 int main() {
   const char* const name = "world";
   int32_t const age = 75;
+  (!!! TYPE !!!) const scores = {((!!! TYPE !!!)[]){45, 63, 22, -8}, 4};
   tests_test1_greet(name, age);
 }
 
@@ -31,28 +32,28 @@ void tests_test1_greet(const char* const name, int32_t const age) {
   printf("%s, %s!\n", tests_test1_other_message, name);
   printf("You are %d years old.\n", age);
 }
-==579== 
-==579== HEAP SUMMARY:
-==579==     in use at exit: 0 bytes in 0 blocks
-==579==   total heap usage: 80 allocs, 80 frees, 135,402 bytes allocated
-==579== 
-==579== All heap blocks were freed -- no leaks are possible
-==579== 
-==579== For counts of detected and suppressed errors, rerun with: -v
-==579== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==942== 
+==942== HEAP SUMMARY:
+==942==     in use at exit: 0 bytes in 0 blocks
+==942==   total heap usage: 83 allocs, 83 frees, 139,211 bytes allocated
+==942== 
+==942== All heap blocks were freed -- no leaks are possible
+==942== 
+==942== For counts of detected and suppressed errors, rerun with: -v
+==942== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 	Command being timed: "valgrind --leak-check=full --show-leak-kinds=all ./bin/rio tests/test1.rio"
-	User time (seconds): 0.48
-	System time (seconds): 0.14
-	Percent of CPU this job got: 100%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.62
+	User time (seconds): 0.56
+	System time (seconds): 0.06
+	Percent of CPU this job got: 98%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.63
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 50448
+	Maximum resident set size (kbytes): 50444
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 14434
+	Minor (reclaiming a frame) page faults: 14441
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -64,4 +65,4 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 144504 Jul 29 05:59 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 144640 Jul 30 05:47 bin/rio

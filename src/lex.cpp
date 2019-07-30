@@ -183,6 +183,8 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
     case '}': return simple(Token::Kind::CurlyR);
     case '(': return simple(Token::Kind::RoundL);
     case ')': return simple(Token::Kind::RoundR);
+    case '[': return simple(Token::Kind::SquareL);
+    case ']': return simple(Token::Kind::SquareR);
     case '"': return finish(next_token_string(buf));
     case '#': return finish(next_token_comment(buf));
     case ':': {
@@ -316,6 +318,8 @@ auto token_kind_name(Token::Kind kind) -> const char* {
     case Token::Kind::Plus: return "Plus";
     case Token::Kind::RoundL: return "RoundL";
     case Token::Kind::RoundR: return "RoundR";
+    case Token::Kind::SquareL: return "SquareL";
+    case Token::Kind::SquareR: return "SquareR";
     case Token::Kind::String: return "String";
     case Token::Kind::Update: return "Update";
     case Token::Kind::Use: return "Use";

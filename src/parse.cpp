@@ -130,6 +130,9 @@ auto parse_atom(ParseState* state) -> Node& {
       advance_token(state);
       return node;
     }
+    case Token::Kind::SquareL: {
+      return parse_tuple(state);
+    }
     case Token::Kind::String: {
       if (verbose) printf("string: %s\n", token_text(*tokens));
       Node& node = state->alloc(Node::Kind::String);
@@ -230,13 +233,17 @@ auto parse_fun(ParseState* state) -> Node& {
 }
 
 auto parse_tuple(ParseState* state) -> Node& {
-  Node& node = state->alloc(Node::Kind::Tuple);
+  auto end = state->tokens->kind == Token::Kind::RoundL ?
+    Token::Kind::RoundR :
+    Token::Kind::SquareR;
+  Node& node = state->alloc(
+    end == Token::Kind::RoundR ? Node::Kind::Tuple : Node::Kind::Array);
   // TODO Parameterize end token since usually square maybe?
   if (verbose) printf("begin tuple\n");
   advance_token(state);
   auto buf_len_old = state->node_buf.len;
   bool past_first = false;
-  for (; more_tokens(state, Token::Kind::RoundR); skip_comments(state, true)) {
+  for (; more_tokens(state, end); skip_comments(state, true)) {
     if (past_first) {
       // TODO Expect, not just accept!
       if (state->tokens->kind == Token::Kind::Comma) {

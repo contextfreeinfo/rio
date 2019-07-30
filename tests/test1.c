@@ -12,6 +12,7 @@ const char* const tests_test1_other_message = "Hello";
 int main() {
   const char* const name = "world";
   int32_t const age = 75;
+  (!!! TYPE !!!) const scores = {((!!! TYPE !!!)[]){45, 63, 22, -8}, 4};
   tests_test1_greet(name, age);
 }
 

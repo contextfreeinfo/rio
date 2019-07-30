@@ -110,6 +110,15 @@ auto gen_decls(GenState* state, const Node& node) -> void {
 
 void gen_expr(GenState* state, const Node& node) {
   switch (node.kind) {
+    case Node::Kind::Array: {
+      // TODO Can nest this in c99, but c++ makes it temporary.
+      // TODO And compiling under c++ is also very useful.
+      printf("{((!!! TYPE !!!)[]){");
+      gen_list_items(state, node);
+      printf("}, %zu", node.Array.items.len);
+      printf("}");
+      break;
+    }
     case Node::Kind::Block: {
       gen_block(state, node);
       break;
