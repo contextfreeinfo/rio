@@ -1,6 +1,7 @@
 - Top level source files works. Auto include of `src` dirs, too.
-- Prohibit libstdc++ for faster compile.
-- Cast like either `type expr` or `type(expr)`?
+- Prohibit libstdc++ in compiler for faster compile.
+- Compile to subset safe for c99 (so tcc works) and c++ (for c++ interop).
+- Cast like `expr: type`.
 - All private until explicit private section?
 - Parse `fun name` syntax for reporting specific error?
 - Use `name fun` as shorthand for `name => fun`?

@@ -5,7 +5,7 @@ include "./test1-more"
 do
   name = "world"
   age = 75
-  scores = [45, 63, 22, -8]
+  # TODO scores = [45, 63, 22, -8]
   # Then for loop.
   # Then structs.
   greet(name, age)

@@ -32,7 +32,7 @@ Compiles to this C file:
 #include <stdint.h>
 #include <stdio.h>
 
-void tests_test1_greet();
+void tests_test1_greet(const char* const name, int32_t const age);
 
 const char* const tests_test1_message = "Hello";
 

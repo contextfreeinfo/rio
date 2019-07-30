@@ -90,7 +90,9 @@ auto gen_decl_expr(GenState* state, const Node& node) -> void {
     case Node::Kind::Fun: {
       gen_mod_header(state);
       gen_type(state, node.type);
-      printf(" %s_%s();\n", state->mod->name, node.Fun.name);
+      printf(" %s_%s(", state->mod->name, node.Fun.name);
+      gen_param_items(state, *node.Fun.params);
+      printf(");\n");
       break;
     }
     default: {
