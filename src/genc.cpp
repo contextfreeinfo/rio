@@ -115,7 +115,15 @@ void gen_expr(GenState* state, const Node& node) {
     case Node::Kind::Array: {
       // TODO Can nest this in c99, but c++ makes it temporary.
       // TODO And compiling under c++ is also very useful.
-      printf("{((!!! TYPE !!!)[]){");
+      // TODO Either way, before we can finish this, we need structs and maybe
+      // TODO tuples.
+      printf("{(");
+      if (node.type.arg) {
+        gen_type(state, *node.type.arg);
+      } else {
+        gen_type(state, {Type::Kind::None});
+      }
+      printf(")[]){");
       gen_list_items(state, node);
       printf("}, %zu", node.Array.items.len);
       printf("}");

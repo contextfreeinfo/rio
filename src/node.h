@@ -88,7 +88,9 @@ struct Type {
     // Pointers.
     Ref,
     MultiRef,
+    NullTermRef,
     // Aggregates.
+    Array,
     // String has special treatment because it needs interop.
     // Known semantics, auto conversion out, ...
     String,
@@ -97,6 +99,8 @@ struct Type {
   };
 
   Kind kind;
+
+  Opt<Type> arg;
 
 };
 

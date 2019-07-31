@@ -11,9 +11,10 @@ struct ResolveState {
 Type choose_float_type(const Type& type);
 Type choose_int_type(const Type& type);
 auto ensure_global_refs(ModManager* mod) -> void;
-auto resolve_ref(ResolveState* state, Node* node) -> void;
+void resolve_array(ResolveState* state, Node* node, const Type& type);
 void resolve_block(ResolveState* state, Node* node, const Type& type);
 void resolve_expr(ResolveState* state, Node* node, const Type& type);
+auto resolve_ref(ResolveState* state, Node* node) -> void;
 void resolve_tuple(ResolveState* state, Node* node, const Type& type);
 
 void resolve(Engine* engine, ModManager* mod) {
@@ -33,8 +34,8 @@ Type choose_float_type(const Type& type) {
       return type;
     }
     default: {
-      // TODO Default to F32 or F64? C, Java, Python, JS are all F64.
-      // TODO What are Rust, Zig, and Odin?
+      // TODO Default to F32 or F64? C, Java, JS, Python, Rust are all F64.
+      // TODO What are Nim, Zig, and Odin?
       return {Type::Kind::F64};
     }
   }
@@ -104,6 +105,16 @@ auto ensure_global_refs(ModManager* mod) -> void {
   }
 }
 
+void resolve_array(ResolveState* state, Node* node, const Type& type) {
+  for (auto item: node->Array.items) {
+    resolve_expr(state, item, {Type::Kind::None});
+  }
+  if (node->Array.items.len) {
+    // TODO Fuse the types, etc.
+    node->type = {Type::Kind::Array, &node->Array.items[0]->type};
+  }
+}
+
 void resolve_block(ResolveState* state, Node* node, const Type& type) {
   // TODO The last item should expect the block type.
   for (auto item: node->Block.items) {
@@ -113,6 +124,10 @@ void resolve_block(ResolveState* state, Node* node, const Type& type) {
 
 void resolve_expr(ResolveState* state, Node* node, const Type& type) {
   switch (node->kind) {
+    case Node::Kind::Array: {
+      resolve_array(state, node, type);
+      break;
+    }
     case Node::Kind::Block: {
       resolve_block(state, node, type);
       break;

@@ -1,7 +1,7 @@
 
-real	0m1.088s
+real	0m1.053s
 user	0m0.750s
-sys	0m0.281s
+sys	0m0.297s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -16,6 +16,7 @@ const char* const tests_test1_other_message = "Hello";
 int main() {
   const char* const name = "world";
   int32_t const age = 75;
+  (!!! TYPE !!!) const scores = {(int32_t)[]){45, 63, 22, -8}, 4};
   greet(name, age);
 }
 
@@ -29,15 +30,15 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	User time (seconds): 0.00
 	System time (seconds): 0.00
 	Percent of CPU this job got: 0%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.09
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.03
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 424
+	Maximum resident set size (kbytes): 428
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 120
+	Minor (reclaiming a frame) page faults: 121
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -49,4 +50,4 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 918656 Jul 30 06:38 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 918648 Jul 31 05:59 bin/rio
