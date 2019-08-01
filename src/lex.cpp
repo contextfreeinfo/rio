@@ -22,10 +22,13 @@ struct KeyId {
 const KeyId key_ids[] = {
   {"do", Token::Kind::Do},
   {"end", Token::Kind::End},
+  // If functions are pure, calls can be reordered, so extracts for statements
+  // can be kept simpler ...
   {"fun", Token::Kind::Fun},
   {"include", Token::Kind::Include},
   {"proc", Token::Kind::Proc},
   {"pub", Token::Kind::Pub},
+  {"struct", Token::Kind::Struct},
   {"use", Token::Kind::Use},
 };
 
@@ -321,6 +324,7 @@ auto token_kind_name(Token::Kind kind) -> const char* {
     case Token::Kind::SquareL: return "SquareL";
     case Token::Kind::SquareR: return "SquareR";
     case Token::Kind::String: return "String";
+    case Token::Kind::Struct: return "Struct";
     case Token::Kind::Update: return "Update";
     case Token::Kind::Use: return "Use";
     default: return "<unknown>";

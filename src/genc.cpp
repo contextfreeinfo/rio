@@ -19,7 +19,7 @@ struct Indent {
 };
 
 void gen_bad(GenState* state, const Node& node);
-void gen_block(GenState* state, const Node& node);
+auto gen_block(GenState* state, const Node& node) -> void;
 auto gen_const(GenState* state, const Node& node) -> void;
 auto gen_decl_expr(GenState* state, const Node& node) -> void;
 auto gen_decls(GenState* state, const Node& node) -> void;
@@ -32,9 +32,11 @@ auto gen_globals(GenState* state, const Node& node) -> void;
 void gen_list_items(GenState* state, const Node& node);
 void gen_indent(GenState* state);
 auto gen_mod_header(GenState* state) -> void;
-void gen_param_items(GenState* state, const Node& node);
+void gen_param_items(GenState* state, const Node* node);
 void gen_ref(GenState* state, const Node& node);
 void gen_type(GenState* state, const Type& type);
+auto gen_typedef(GenState* state, const Node& node) -> void;
+auto gen_typedefs(GenState* state, const Node& node) -> void;
 void gen_statements(GenState* state, const Node& node);
 auto needs_semi(const Node& node) -> bool;
 
@@ -44,13 +46,22 @@ void gen(Engine* engine) {
     "#include <stdint.h>\n"
     "#include <stdio.h>\n"
   );
-  // Declarations.
+  // TODO Struct declarations.
+  // Types.
+  // TODO Dependency order.
+  for (auto mod: engine->mods) {
+    state.mod = mod;
+    state.start_mod = true;
+    gen_typedefs(&state, *mod->tree);
+  }
+  // Function declarations.
   for (auto mod: engine->mods) {
     state.mod = mod;
     state.start_mod = true;
     gen_decls(&state, *mod->tree);
   }
   // Globals.
+  // TODO Dependency order.
   for (auto mod: engine->mods) {
     state.mod = mod;
     state.start_mod = true;
@@ -87,11 +98,12 @@ auto gen_const(GenState* state, const Node& node) -> void {
 
 auto gen_decl_expr(GenState* state, const Node& node) -> void {
   switch (node.kind) {
-    case Node::Kind::Fun: {
+    case Node::Kind::Fun:
+    case Node::Kind::Proc: {
       gen_mod_header(state);
       gen_type(state, node.type);
       printf(" %s_%s(", state->mod->name, node.Fun.name);
-      gen_param_items(state, *node.Fun.params);
+      gen_param_items(state, node.Fun.params);
       printf(");\n");
       break;
     }
@@ -140,6 +152,13 @@ void gen_expr(GenState* state, const Node& node) {
       printf(")");
       break;
     }
+    case Node::Kind::Cast: {
+      gen_type(state, node.type);
+      if (node.Cast.a->kind == Node::Kind::Ref) {
+        printf(" %s", node.Cast.a->Ref.name);
+      }
+      break;
+    }
     case Node::Kind::Const: {
       gen_const(state, node);
       break;
@@ -184,7 +203,7 @@ auto gen_function(GenState* state, const Node& node) -> void {
     prefix ? "_" : "",
     node.Fun.name
   );
-  gen_param_items(state, *node.Fun.params);
+  gen_param_items(state, node.Fun.params);
   printf(") ");
   // TODO Special handling of non-block exprs.
   if (node.Fun.expr->kind == Node::Kind::Block) {
@@ -201,16 +220,14 @@ auto gen_function_def(GenState* state, const Node& node) -> void {
       gen_block(state, node);
       break;
     }
-    case Node::Kind::Fun: {
+    case Node::Kind::Fun:
+    case Node::Kind::Proc: {
       gen_mod_header(state);
       printf("\n");
       gen_function(state, node);
       break;
     }
-    default: {
-      // Nothing to do.
-      break;
-    }
+    default: break;
   }
 }
 
@@ -265,8 +282,11 @@ auto gen_mod_header(GenState* state) -> void {
   }
 }
 
-void gen_param_items(GenState* state, const Node& node) {
-  auto items = node.Tuple.items;
+void gen_param_items(GenState* state, const Node* node) {
+  if (!node) {
+    return;
+  }
+  auto items = node->Tuple.items;
   for (usize i = 0; i < items.len; i += 1) {
     auto& item = *items[i];
     if (i) {
@@ -279,7 +299,7 @@ void gen_param_items(GenState* state, const Node& node) {
           printf(" const %s", item.Cast.a->Ref.name);
         } else {
           printf(" ");
-          gen_bad(state, node);
+          gen_bad(state, *node);
         }
         break;
       }
@@ -288,7 +308,7 @@ void gen_param_items(GenState* state, const Node& node) {
         break;
       }
       default: {
-        gen_bad(state, node);
+        gen_bad(state, *node);
         break;
       }
     }
@@ -313,6 +333,34 @@ void gen_statements(GenState* state, const Node& node) {
       printf(";\n");
     }
   }
+}
+
+auto gen_struct(GenState* state, const Node& node) -> void {
+  bool prefix = !state->indent;
+  printf(
+    "typedef struct %s%s%s {\n",
+    prefix ? state->mod->name : "",
+    prefix ? "_" : "",
+    node.Fun.name
+  );
+  if (node.Fun.expr->kind == Node::Kind::Block) {
+    Indent _{state};
+    auto& block = node.Fun.expr->Block;
+    auto items = block.items;
+    for (usize i = 0; i < items.len; i += 1) {
+      gen_indent(state);
+      gen_expr(state, *items[i]);
+      if (needs_semi(*items[i])) {
+        printf(";\n");
+      }
+    }
+  }
+  printf(
+    "} %s%s%s;\n",
+    prefix ? state->mod->name : "",
+    prefix ? "_" : "",
+    node.Fun.name
+  );
 }
 
 void gen_type(GenState* state, const Type& type) {
@@ -373,6 +421,24 @@ void gen_type(GenState* state, const Type& type) {
       printf("(!!! TYPE !!!)");
       break;
     }
+  }
+}
+
+auto gen_typedef(GenState* state, const Node& node) -> void {
+  switch (node.kind) {
+    case Node::Kind::Struct: {
+      gen_mod_header(state);
+      printf("\n");
+      gen_struct(state, node);
+      break;
+    }
+    default: break;
+  }
+}
+
+auto gen_typedefs(GenState* state, const Node& node) -> void {
+  for (auto item: node.Block.items) {
+    gen_typedef(state, *item);
   }
 }
 

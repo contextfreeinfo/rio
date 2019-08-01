@@ -78,7 +78,9 @@ void extract_expr(ExtractState* state, Node* node) {
       extract_expr(state, node->Const.b);
       break;
     }
-    case Node::Kind::Fun: {
+    case Node::Kind::Fun:
+    case Node::Kind::Proc:
+    case Node::Kind::Struct: {
       extract_fun(state, node);
       break;
     }
@@ -89,10 +91,7 @@ void extract_expr(ExtractState* state, Node* node) {
       }
       break;
     }
-    default: {
-      // Nothing yet to do for others.
-      break;
-    }
+    default: break;
   }
 }
 
@@ -101,8 +100,26 @@ void extract_fun(ExtractState* state, Node* node) {
     if (verbose) printf("fun: %s\n", node->Fun.name);
     state->alloc_push(node->Fun.name, node);
   }
-  // TODO Params in own scope.
-  extract_expr(state, node->Fun.expr);
+  auto expr = node->Fun.expr;
+  switch (node->kind) {
+    case Node::Kind::Fun:
+    case Node::Kind::Proc: {
+      // TODO Params in own scope.
+      extract_expr(state, expr);
+      break;
+    }
+    case Node::Kind::Struct: {
+      // No params here, and host up the block to the upper level for
+      // convenience.
+      if (node->Fun.expr->kind == Node::Kind::Block) {
+        extract_block(state, expr);
+        node->Fun.scope = expr->Block.scope;
+        expr->Block.scope.forget();
+      }
+      break;
+    }
+    default: break;
+  }
 }
 
 void extract_ref_names(ExtractState* state, Node* node, Node* value) {

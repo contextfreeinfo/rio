@@ -18,14 +18,14 @@
 - Use/run a dir gets all in dir, use/run a file gets just that file
 - For data files (always [u8])?: data = include "..."
 
-```
+```bash
 ./test -g > tests/test1.c-mem.txt 2>&1
 ./test > tests/test1.c.txt 2>&1
 ./test > tests/test1.c
 ```
 
 Comments to be made into issues:
-```
+```ruby
 # # Untyped constants/macros?
 # def pi = 3.14
 # # def macro(x) = x + 1
@@ -47,7 +47,7 @@ Comments to be made into issues:
 ```
 
 Imports:
-```
+```ruby
 # Just use all non-conflicting from c.
 use 'c'
 
@@ -74,7 +74,7 @@ end
 ```
 
 Strings:
-```
+```ruby
 escaping = "This is \"escaping\": \(value)\n"
 raw = 'This is raw, with \ and all'
 concat = 'I have raw \ content with a single quote: ' "'" '. <- See?'
@@ -95,4 +95,21 @@ simple_full = '''Just a single-line string sans newline with no terminator.
 tuple = "Of course, every string literal with embedded \(value) is a tuple."
 # Finally, if you really want a lot of data, use a file embedding macro.
 # How should that look?
+```
+
+Map literals?
+```ruby
+# If array of tuples expected, interpret differently?
+{} with
+  name
+  message = 'that'
+  (other) = 'more'
+end
+
+# Above equivalent to:
+[
+  ('name', name),
+  ('message', 'that'),
+  (other, 'more'),
+]
 ```

@@ -93,6 +93,11 @@ struct Slice {
     return const_cast<Slice*>(this)->end();
   }
 
+  auto forget() -> void {
+    items = nullptr;
+    len = 0;
+  }
+
 };
 
 using Str = Slice<char>;

@@ -1,6 +1,13 @@
 #include <stdint.h>
 #include <stdio.h>
 
+// tests/test1.rio
+
+typedef struct tests_test1_Person {
+  const char* name;
+  int32_t age;
+} tests_test1_Person;
+
 // tests/test1-more.rio
 void tests_test1_greet(const char* const name, int32_t const age);
 
@@ -12,7 +19,6 @@ const char* const tests_test1_other_message = "Hello";
 int main() {
   const char* const name = "world";
   int32_t const age = 75;
-  (!!! TYPE !!!) const scores = {(int32_t)[]){45, 63, 22, -8}, 4};
   tests_test1_greet(name, age);
 }
 

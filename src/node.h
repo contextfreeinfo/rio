@@ -48,6 +48,7 @@ struct Token {
     SquareL,
     SquareR,
     String,
+    Struct,
     Update,
     Use,
   };
@@ -117,7 +118,13 @@ struct Def {
 };
 
 struct Scope {
+
   Slice<Def*> defs;
+
+  auto forget() -> void {
+    defs.forget();
+  }
+
 };
 
 struct BlockNode {
@@ -138,9 +145,9 @@ struct CallNode {
 struct FunNode {
   string name;
   bool published;
-  Token::Kind kind;
+  // Scope and params both useless for structs.
   Scope scope;
-  Node* params;
+  Opt<Node> params;
   Node* expr;
 };
 
@@ -175,8 +182,10 @@ struct Node {
     Float,
     Fun,
     Int,
+    Proc,
     Ref,
     String,
+    Struct,
     Tuple,
     Use,
   };

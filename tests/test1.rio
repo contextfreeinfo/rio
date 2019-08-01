@@ -5,8 +5,13 @@ include "./test1-more"
 do
   name = "world"
   age = 75
-  scores = [45, 63, 22, -8]
+  # Need structs next for spans to work.
+  # scores = [45, 63, 22, -8]
   # Then for loop.
-  # Then structs.
   greet(name, age)
+end
+
+Person struct
+  name: string
+  age: i32
 end

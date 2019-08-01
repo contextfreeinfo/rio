@@ -168,7 +168,8 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       node->type = choose_float_type(type);
       break;
     }
-    case Node::Kind::Fun: {
+    case Node::Kind::Fun:
+    case Node::Kind::Proc: {
       if (!strcmp(node->Fun.name, "main")) {
         // TODO Instead have a global main call a package main.
         // TODO Package main can return void or other ints.
@@ -178,7 +179,9 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
         node->type = {Type::Kind::Void};
       }
       // TODO If in a local expression, expected type might be given.
-      resolve_tuple(state, node->Fun.params, {Type::Kind::None});
+      if (node->Fun.params) {
+        resolve_tuple(state, node->Fun.params, {Type::Kind::None});
+      }
       resolve_expr(state, node->Fun.expr, {Type::Kind::None});
       break;
     }
@@ -195,6 +198,10 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       // TODO Default to slice rather than *u8(*, 0)?
       // TODO Explicit suffixes on literals.
       node->type = {Type::Kind::String};
+      break;
+    }
+    case Node::Kind::Struct: {
+      resolve_expr(state, node->Fun.expr, {Type::Kind::None});
       break;
     }
     case Node::Kind::Tuple: {
