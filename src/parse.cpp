@@ -269,17 +269,19 @@ auto parse_tuple(ParseState* state) -> Node& {
       kind = Node::Kind::Map;
       break;
     }
+    case Token::Kind::RoundL: {
+      end = Token::Kind::RoundR;
+      kind = Node::Kind::Tuple;
+      break;
+    }
     case Token::Kind::SquareL: {
       end = Token::Kind::SquareR;
       kind = Node::Kind::Array;
       break;
     }
-    // RoundL expected, but got to keep trucking.
-    // TODO Report errors as we go, too.
     default: {
-      end = Token::Kind::RoundR;
-      kind = Node::Kind::Tuple;
-      break;
+      // Getting here is a code bug.
+      assert(false);
     }
   }
   Node& node = state->alloc(kind);
