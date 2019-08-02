@@ -31,6 +31,7 @@ auto gen_global_expr(GenState* state, const Node& node) -> void;
 auto gen_globals(GenState* state, const Node& node) -> void;
 void gen_list_items(GenState* state, const Node& node);
 void gen_indent(GenState* state);
+auto gen_map(GenState* state, const Node& node) -> void;
 auto gen_mod_header(GenState* state) -> void;
 void gen_param_items(GenState* state, const Node* node);
 void gen_ref(GenState* state, const Node& node);
@@ -175,6 +176,10 @@ void gen_expr(GenState* state, const Node& node) {
       printf("%s", node.Int.text);
       break;
     }
+    case Node::Kind::Map: {
+      gen_map(state, node);
+      break;
+    }
     case Node::Kind::Member: {
       gen_expr(state, *node.Member.a);
       // TODO If pointer, use ->. If pointer to pointer, deref first, etc?
@@ -282,6 +287,37 @@ void gen_list_items(GenState* state, const Node& node) {
     }
     gen_expr(state, *items[i]);
   }
+}
+
+auto gen_map(GenState* state, const Node& node) -> void {
+  printf("(");
+  gen_type(state, node.type);
+  printf("){");
+  auto items = node.Map.items;
+  for (usize i = 0; i < items.len; i += 1) {
+    auto& item = *items[i];
+    if (i) {
+      printf(", ");
+    }
+    switch (item.kind) {
+      case Node::Kind::Const: {
+        printf(".");
+        gen_expr(state, *item.Const.a);
+        printf(" = ");
+        gen_expr(state, *item.Const.b);
+        break;
+      }
+      case Node::Kind::Ref: {
+        printf(".%s = %s", item.Ref.name, item.Ref.name);
+        break;
+      }
+      default: {
+        gen_bad(state, node);
+        break;
+      }
+    }
+  }
+  printf("}");
 }
 
 auto gen_mod_header(GenState* state) -> void {

@@ -159,6 +159,7 @@ struct FunNode {
 };
 
 struct ParentNode {
+  // TODO Scope for tuples, if we want to track named field defs?
   Slice<Node*> items;
 };
 
@@ -189,6 +190,7 @@ struct Node {
     Float,
     Fun,
     Int,
+    Map,
     Member,
     Proc,
     Ref,
@@ -210,6 +212,7 @@ struct Node {
     StringNode Float;
     FunNode Fun;
     StringNode Int;
+    ParentNode Map;
     BinaryNode Member;
     RefNode Ref;
     StringNode String;

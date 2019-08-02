@@ -18,8 +18,8 @@ struct ParseState {
 };
 
 void advance_token(ParseState* state, bool skip_lines = false);
-auto node_slice_copy(ParseState* state, usize buf_len_old) -> Slice<Node*>;
 auto more_tokens(ParseState* state, Token::Kind end) -> bool;
+auto node_slice_copy(ParseState* state, usize buf_len_old) -> Slice<Node*>;
 auto parse_assign(ParseState* state) -> Node&;
 auto parse_atom(ParseState* state) -> Node&;
 auto parse_block(
@@ -99,10 +99,9 @@ auto parse_assign(ParseState* state) -> Node& {
 auto parse_atom(ParseState* state) -> Node& {
   auto tokens = state->tokens;
   switch (tokens->kind) {
-    case Token::Kind::CurlyL: {
-      // TODO These should be only for data now? Unless do {...}?
-      advance_token(state, true);
-      return parse_block(state);
+    case Token::Kind::CurlyL:
+    case Token::Kind::SquareL: {
+      return parse_tuple(state);
     }
     case Token::Kind::Do: {
       advance_token(state, true);
@@ -131,9 +130,6 @@ auto parse_atom(ParseState* state) -> Node& {
       node.Int.text = tokens->text;
       advance_token(state);
       return node;
-    }
-    case Token::Kind::SquareL: {
-      return parse_tuple(state);
     }
     case Token::Kind::String: {
       if (verbose) printf("string: %s\n", token_text(*tokens));
@@ -265,14 +261,30 @@ auto parse_fun(ParseState* state) -> Node& {
 }
 
 auto parse_tuple(ParseState* state) -> Node& {
-  auto end = state->tokens->kind == Token::Kind::RoundL ?
-    Token::Kind::RoundR :
-    Token::Kind::SquareR;
-  Node& node = state->alloc(
-    end == Token::Kind::RoundR ? Node::Kind::Tuple : Node::Kind::Array);
-  // TODO Parameterize end token since usually square maybe?
+  Token::Kind end;
+  Node::Kind kind;
+  switch (state->tokens->kind) {
+    case Token::Kind::CurlyL: {
+      end = Token::Kind::CurlyR;
+      kind = Node::Kind::Map;
+      break;
+    }
+    case Token::Kind::SquareL: {
+      end = Token::Kind::SquareR;
+      kind = Node::Kind::Array;
+      break;
+    }
+    // RoundL expected, but got to keep trucking.
+    // TODO Report errors as we go, too.
+    default: {
+      end = Token::Kind::RoundR;
+      kind = Node::Kind::Tuple;
+      break;
+    }
+  }
+  Node& node = state->alloc(kind);
   if (verbose) printf("begin tuple\n");
-  advance_token(state);
+  advance_token(state, true);
   auto buf_len_old = state->node_buf.len;
   bool past_first = false;
   for (; more_tokens(state, end); skip_comments(state, true)) {
