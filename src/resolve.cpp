@@ -151,6 +151,10 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
           node->type = {Type::Kind::I32};
         } else if (!strcmp(name, "string")) {
           node->type = {Type::Kind::String};
+        } else {
+          // Custom type.
+          node->type = {Type::Kind::User};
+          node->type.def = state->mod->global_refs.get(name);
         }
       }
       break;

@@ -34,6 +34,7 @@ void gen_indent(GenState* state);
 auto gen_mod_header(GenState* state) -> void;
 void gen_param_items(GenState* state, const Node* node);
 void gen_ref(GenState* state, const Node& node);
+auto gen_ref_def(GenState* state, const Def& def) -> void;
 void gen_type(GenState* state, const Type& type);
 auto gen_typedef(GenState* state, const Node& node) -> void;
 auto gen_typedefs(GenState* state, const Node& node) -> void;
@@ -324,10 +325,18 @@ void gen_param_items(GenState* state, const Node* node) {
 }
 
 void gen_ref(GenState* state, const Node& node) {
-  if (node.Ref.def && node.Ref.def->mod) {
-    printf("%s_", node.Ref.def->mod->name);
+  if (node.Ref.def) {
+    gen_ref_def(state, *node.Ref.def);
+  } else {
+    printf("%s", node.Ref.name);
   }
-  printf("%s", node.Ref.name);
+}
+
+auto gen_ref_def(GenState* state, const Def& def) -> void{
+  if (def.mod) {
+    printf("%s_", def.mod->name);
+  }
+  printf("%s", def.name);
 }
 
 void gen_statements(GenState* state, const Node& node) {
@@ -419,6 +428,14 @@ void gen_type(GenState* state, const Type& type) {
     }
     case Type::Kind::U64: {
       printf("uint64_t");
+      break;
+    }
+    case Type::Kind::User: {
+      if (type.def) {
+        gen_ref_def(state, *type.def);
+      } else {
+        printf("(!!! TYPE !!!)");
+      }
       break;
     }
     case Type::Kind::Void: {

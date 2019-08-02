@@ -15,6 +15,18 @@ struct Pos {
   usize col;
 };
 
+// Def.
+
+struct Node;
+
+struct Def {
+  string name;
+  Node* node;
+  Opt<Node> value;
+  // Only for globals. If present, references the mod root.
+  Opt<ModManager> mod;
+};
+
 // Token.
 
 struct Token {
@@ -95,6 +107,8 @@ struct Type {
     // String has special treatment because it needs interop.
     // Known semantics, auto conversion out, ...
     String,
+    // Custom.
+    User,
     // Only applies at compile time.
     Type,
   };
@@ -103,19 +117,12 @@ struct Type {
 
   Opt<Type> arg;
 
+  // Push basic types through defs, too?
+  Opt<Def> def;
+
 };
 
 // Node.
-
-struct Node;
-
-struct Def {
-  string name;
-  Node* node;
-  Opt<Node> value;
-  // Only for globals. If present, references the mod root.
-  Opt<ModManager> mod;
-};
 
 struct Scope {
 
