@@ -170,13 +170,29 @@ auto parse_block(ParseState* state, Token::Kind end) -> Node& {
 
 auto parse_call(ParseState* state) -> Node& {
   Node* node = &parse_atom(state);
-  while (state->tokens->kind == Token::Kind::RoundL) {
-    Node* call = &state->alloc(Node::Kind::Call);
-    call->Call.callee = node;
-    if (verbose) printf("begin call\n");
-    call->Call.args = &parse_tuple(state);
-    if (verbose) printf("end call\n");
-    node = call;
+  bool done = false;
+  while (!done) {
+    switch (state->tokens->kind) {
+      case Token::Kind::Dot: {
+        Node* member = &state->alloc(Node::Kind::Member);
+        member->Member.a = node;
+        advance_token(state, true);
+        member->Member.b = &parse_atom(state);
+        node = member;
+        break;
+      }
+      case Token::Kind::RoundL: {
+        Node* call = &state->alloc(Node::Kind::Call);
+        call->Call.callee = node;
+        call->Call.args = &parse_tuple(state);
+        node = call;
+        break;
+      }
+      default: {
+        done = true;
+        break;
+      }
+    }
   }
   return *node;
 }

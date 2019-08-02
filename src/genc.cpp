@@ -174,6 +174,14 @@ void gen_expr(GenState* state, const Node& node) {
       printf("%s", node.Int.text);
       break;
     }
+    case Node::Kind::Member: {
+      gen_expr(state, *node.Member.a);
+      // TODO If pointer, use ->. If pointer to pointer, deref first, etc?
+      // TODO Just use deref for consistency?
+      printf(".");
+      gen_expr(state, *node.Member.b);
+      break;
+    }
     case Node::Kind::Ref: {
       gen_ref(state, node);
       break;

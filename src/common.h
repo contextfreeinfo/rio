@@ -115,6 +115,14 @@ auto str_eq(Str a, Str b) -> bool {
   return !str_cmp(a, b);
 }
 
+auto str_from(const char* str) -> const Str {
+  return {const_cast<char*>(str), strlen(str)};
+}
+
+auto str_sized(const char* str, usize len) -> const Str {
+  return {const_cast<char*>(str), len};
+}
+
 auto operator==(Str a, Str b) -> bool {
   return str_eq(a, b);
 }
@@ -335,7 +343,7 @@ struct Map {
   }
 
  private:
- 
+
   struct PairList: List<Pair> {
     PairList(Map* map_): map{*map_} {}
     virtual void distribute(Slice<Pair> new_items, Slice<Pair> old_items) {

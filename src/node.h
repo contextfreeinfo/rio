@@ -182,6 +182,7 @@ struct Node {
     Float,
     Fun,
     Int,
+    Member,
     Proc,
     Ref,
     String,
@@ -202,6 +203,7 @@ struct Node {
     StringNode Float;
     FunNode Fun;
     StringNode Int;
+    BinaryNode Member;
     RefNode Ref;
     StringNode String;
     ParentNode Tuple;

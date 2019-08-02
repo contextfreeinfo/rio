@@ -14,22 +14,22 @@ auto next_token_string(const char* buf) -> Token;
 auto next_token(const char* buf, bool was_line_end) -> Token;
 
 struct KeyId {
-  const char* id;
+  Str id;
   Token::Kind key;
 };
 
 // TODO Make into a map.
 const KeyId key_ids[] = {
-  {"do", Token::Kind::Do},
-  {"end", Token::Kind::End},
+  {str_from("do"), Token::Kind::Do},
+  {str_from("end"), Token::Kind::End},
   // If functions are pure, calls can be reordered, so extracts for statements
   // can be kept simpler ...
-  {"fun", Token::Kind::Fun},
-  {"include", Token::Kind::Include},
-  {"proc", Token::Kind::Proc},
-  {"pub", Token::Kind::Pub},
-  {"struct", Token::Kind::Struct},
-  {"use", Token::Kind::Use},
+  {str_from("fun"), Token::Kind::Fun},
+  {str_from("include"), Token::Kind::Include},
+  {str_from("proc"), Token::Kind::Proc},
+  {str_from("pub"), Token::Kind::Pub},
+  {str_from("struct"), Token::Kind::Struct},
+  {str_from("use"), Token::Kind::Use},
 };
 
 auto has_text(const Token& token) -> bool {
@@ -184,6 +184,7 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
     case ',': return simple(Token::Kind::Comma);
     case '{': return simple(Token::Kind::CurlyL);
     case '}': return simple(Token::Kind::CurlyR);
+    case '.': return simple(Token::Kind::Dot);
     case '(': return simple(Token::Kind::RoundL);
     case ')': return simple(Token::Kind::RoundR);
     case '[': return simple(Token::Kind::SquareL);
@@ -222,11 +223,11 @@ auto next_token_comment(const char* buf) -> Token {
 auto next_token_id(const char* buf) -> Token {
   auto start = buf;
   for (; *buf && is_id_part(*buf); buf += 1) {}
-  auto len = buf - start;
+  usize len = buf - start;
   auto key_count = sizeof(key_ids) / sizeof(*key_ids);
   auto kind = Token::Kind::Id;
   for (usize k = 0; k < key_count; ++k) {
-    if (!strncmp(key_ids[k].id, start, len)) {
+    if (str_eq(key_ids[k].id, str_sized(start, len))) {
       kind = key_ids[k].key;
     }
   }

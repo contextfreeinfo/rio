@@ -10,6 +10,7 @@ do
   # Then for loop.
   greet(name, age)
   greet_person({name, age})
+  # a.b().c.d
 end
 
 Person struct
