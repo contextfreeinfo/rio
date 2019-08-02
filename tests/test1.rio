@@ -9,6 +9,7 @@ do
   # scores = [45, 63, 22, -8]
   # Then for loop.
   greet(name, age)
+  greet_person({name, age})
 end
 
 Person struct
