@@ -7,7 +7,10 @@ if [[ "$1" == "-g" ]]; then
   # TODO Do they mean something, or should they be ignored?
   # opts="$opts -static"
 elif [[ "$1" == "-O" ]]; then
-  opts="-static -O3 -flto"
+  # opts="-static -O3 -flto"
+  opts="-static -O3"
+  # Fails:
+  # opts="-O3 -flto"
   run=""
 else
   run=""

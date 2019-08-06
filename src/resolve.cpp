@@ -71,15 +71,17 @@ auto ensure_global_refs(ModManager* mod) -> void {
     return;
   }
   // First get all globals from this mod, since they have priority.
+  // fprintf(stderr, "mod: %s with %p, at %zu/%zu\n", mod->name, (void*)&globals, globals.len(), globals.capacity());
+  // blab = true;
   for (auto global: mod->root->global_defs) {
     auto insert = globals.get_or_insert(global->name);
     if (insert.inserted) {
       // No conflict. Good.
-      if (verbose) printf("internal global: %s\n", global->name);
+      // fprintf(stderr, "internal global: %s -> %p at %p, now %zu/%zu\n", global->name, (void*)global, (void*)insert.pair, globals.len(), globals.capacity());
       insert.pair->value = global;
     } else {
       // Conflict. Clear it out.
-      if (verbose) printf("internal conflict: %s\n", global->name);
+      // fprintf(stderr, "internal conflict: %s\n", global->name);
       insert.pair->value = nullptr;
     }
   }
@@ -89,15 +91,15 @@ auto ensure_global_refs(ModManager* mod) -> void {
       auto insert = globals.get_or_insert(global->name);
       if (insert.inserted) {
         // No conflict. Good.
-        if (verbose) printf("external global: %s\n", global->name);
+        // fprintf(stderr, "external global: %s, now %zu/%zu\n", global->name, globals.len(), globals.capacity());
         insert.pair->value = global;
       } else {
         // Conflict. See if it's from the current mod or not.
         if (insert.pair->value->mod == mod) {
-          if (verbose) printf("external ignored: %s\n", global->name);
+          // fprintf(stderr, "external ignored: %s\n", global->name);
         } else {
           // From somewhere else. Clear it.
-          if (verbose) printf("external conflict: %s\n", global->name);
+          // fprintf(stderr, "external conflict: %s\n", global->name);
           insert.pair->value = nullptr;
         }
       }
@@ -155,6 +157,7 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
           // Custom type.
           node->type = {Type::Kind::User};
           node->type.def = state->mod->global_refs.get(name);
+          // fprintf(stderr, "Yo dawg in %s: %s -> %p from %p\n", state->mod->name, name, (void*)node->type.def, (void*)&state->mod->global_refs);
         }
       }
       break;

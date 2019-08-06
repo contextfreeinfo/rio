@@ -140,6 +140,8 @@ auto exists(Str str) -> bool {
 //   return hash_bytes(str.items, str.len);
 // }
 
+// bool blab = false;
+
 template<typename Item>
 struct List: Slice<Item> {
 
@@ -161,6 +163,7 @@ struct List: Slice<Item> {
   }
 
   virtual void distribute(Slice<Item> new_items, Slice<Item> old_items) {
+    // if (blab) fprintf(stderr, "dist0\n");
     // For now, presume this is good enough.
     // We're not trying to replicate all of libstdc++.
     memcpy(new_items.items, old_items.items, old_items.len * sizeof(Item));
@@ -196,6 +199,7 @@ struct List: Slice<Item> {
     Item* new_items = static_cast<Item*>(xmalloc(capacity * sizeof(Item)));
     memset(new_items, 0, capacity * sizeof(Item));
     if (items) {
+      // if (blab) fprintf(stderr, "dist for reserve\n");
       distribute({new_items, capacity}, {items, this->len});
       free(items);
     }
@@ -307,6 +311,10 @@ struct Map {
     Pair* pair;
   };
 
+  auto capacity() -> usize {
+    return pairs.capacity;
+  }
+
   auto empty() -> bool {
     return !len();
   }
@@ -346,7 +354,8 @@ struct Map {
 
   struct PairList: List<Pair> {
     PairList(Map* map_): map{*map_} {}
-    virtual void distribute(Slice<Pair> new_items, Slice<Pair> old_items) {
+    void distribute(Slice<Pair> new_items, Slice<Pair> old_items) override {
+      // if (blab) fprintf(stderr, "dist\n");
       // Remember old then reset for new capacity.
       usize old_capacity = map.pairs.capacity;
       map.pairs.items = new_items.items;
@@ -357,7 +366,9 @@ struct Map {
         // Cheat into lower level to avoid bounds check.
         // We abuse the meaning of len here.
         auto& pair = old_items.items[i];
+        // if (blab) fprintf(stderr, "dist %p\n", (void*)pair.value);
         if (exists(pair.key)) {
+          // if (blab) fprintf(stderr, "yep\n");
           map.fit(pair.key, pair.value);
         }
       }
@@ -426,12 +437,13 @@ struct Map {
   auto reserve() -> void {
     auto capacity = pairs.capacity;
     auto len = pairs.len + 1;
-    if (capacity <= 2 * len) {
+    if (capacity < 2 * len) {
       if (capacity) {
-        capacity *= 2;
+        capacity *= 4;
       } else {
-        capacity = 2;
+        capacity = 4;
       }
+      // fprintf(stderr, "reserving %p to %zu for %zu\n", (void*)this, capacity, len);
       pairs.reserve(capacity);
     }
   }

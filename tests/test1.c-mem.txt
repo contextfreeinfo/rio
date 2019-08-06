@@ -1,13 +1,13 @@
 
-real	0m0.359s
-user	0m0.203s
-sys	0m0.156s
-==618== Memcheck, a memory error detector
-==618== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==618== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
-==618== Command: ./bin/rio tests/test1.rio
-==618== 
-==618== error calling PR_SET_PTRACER, vgdb might block
+real	0m0.354s
+user	0m0.234s
+sys	0m0.094s
+==1107== Memcheck, a memory error detector
+==1107== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==1107== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
+==1107== Command: ./bin/rio tests/test1.rio
+==1107== 
+==1107== error calling PR_SET_PTRACER, vgdb might block
 #include <stdint.h>
 #include <stdio.h>
 
@@ -20,6 +20,7 @@ typedef struct tests_test1_Person {
 
 // tests/test1-more.rio
 void tests_test1_greet(const char* const name, int32_t const age);
+void tests_test1_greet_person(tests_test1_Person const person);
 
 // tests/test1-other.rio
 const char* const tests_test1_other_message = "Hello";
@@ -30,6 +31,7 @@ int main() {
   const char* const name = "world";
   int32_t const age = 75;
   tests_test1_greet(name, age);
+  tests_test1_greet_person(((!!! TYPE !!!)){.name = name, .age = 80});
 }
 
 // tests/test1-more.rio
@@ -38,28 +40,32 @@ void tests_test1_greet(const char* const name, int32_t const age) {
   printf("%s, %s!\n", tests_test1_other_message, name);
   printf("You are %d years old.\n", age);
 }
-==618== 
-==618== HEAP SUMMARY:
-==618==     in use at exit: 0 bytes in 0 blocks
-==618==   total heap usage: 83 allocs, 83 frees, 139,265 bytes allocated
-==618== 
-==618== All heap blocks were freed -- no leaks are possible
-==618== 
-==618== For counts of detected and suppressed errors, rerun with: -v
-==618== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+void tests_test1_greet_person(tests_test1_Person const person) {
+  printf("%s is %d years old.\n", person.name, person.age);
+}
+==1107== 
+==1107== HEAP SUMMARY:
+==1107==     in use at exit: 0 bytes in 0 blocks
+==1107==   total heap usage: 82 allocs, 82 frees, 142,162 bytes allocated
+==1107== 
+==1107== All heap blocks were freed -- no leaks are possible
+==1107== 
+==1107== For counts of detected and suppressed errors, rerun with: -v
+==1107== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 	Command being timed: "valgrind --leak-check=full --show-leak-kinds=all ./bin/rio tests/test1.rio"
-	User time (seconds): 0.50
-	System time (seconds): 0.12
+	User time (seconds): 0.54
+	System time (seconds): 0.07
 	Percent of CPU this job got: 97%
 	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.64
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 50444
+	Maximum resident set size (kbytes): 50656
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 14435
+	Minor (reclaiming a frame) page faults: 14448
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -71,4 +77,4 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 151456 Jul 31 21:08 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 153336 Aug  6 07:33 bin/rio
