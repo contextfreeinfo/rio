@@ -143,11 +143,18 @@ auto exists(Str str) -> bool {
 // bool blab = false;
 
 template<typename Item>
-struct List: Slice<Item> {
-
+struct CapSlice: Slice<Item> {
   usize capacity;
+};
 
-  List(): Slice<Item>{0}, capacity{0} {}
+template<typename Item>
+struct List: CapSlice<Item> {
+
+  List() {
+    this->capacity = 0;
+    this->items = nullptr;
+    this->len = 0;
+  }
 
   ~List() {
     free(this->items);
@@ -246,12 +253,12 @@ struct Arena {
 
   ~Arena() {
     for (auto& box: boxes) {
-      box.~List();
+      free(box.items);
     }
   }
 
   void* alloc_bytes(usize nbytes) {
-    List<u8>* box = nullptr;
+    CapSlice<u8>* box = nullptr;
     usize index = 0;
     if (boxes.len) {
       // TODO Better to loop through all current boxes for space?
@@ -272,7 +279,8 @@ struct Arena {
       boxes.push_val({});
       box = &boxes.back();
       // TODO Double box size each time???
-      box->reserve(max(nbytes, default_box_size));
+      box->capacity = max(nbytes, default_box_size);
+      box->items = static_cast<u8*>(malloc(box->capacity));
     }
     // Allocate the needed bytes, for which we already know we have space.
     u8* end = box->items + index;
@@ -291,7 +299,7 @@ struct Arena {
 
  private:
   usize align = 8;
-  List<List<u8>> boxes;
+  List<CapSlice<u8>> boxes;
   usize default_box_size = 8 << 10;
 };
 
