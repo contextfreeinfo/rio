@@ -227,7 +227,7 @@ struct StrBuf: List<char> {
 
   auto push_str(const Str& text) -> void {
     reserve(len + text.len + 1);
-    strncpy(items + len, text.items, text.len);
+    memcpy(items + len, text.items, text.len);
     len += text.len;
     items[len] = '\0';
   }
