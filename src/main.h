@@ -59,6 +59,8 @@ struct ModManager: ModInfo {
   // allocating here on single file mods.
   List<ModManager*> parts;
 
+  bool resolve_started = false;
+
   // To be used only in the root of a multimod.
   // 'Use' imports, pointing only to roots.
   List<ModManager*> uses;

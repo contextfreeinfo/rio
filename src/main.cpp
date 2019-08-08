@@ -157,19 +157,16 @@ auto parse_options(Engine* engine, Slice<string> args) -> Options {
 
 void run(Engine* engine) {
   // Load everything.
-  load_mod([&]() {
+  auto main = load_mod([&]() {
     ModInfo mod;
     mod.engine = engine;
     mod.file = engine->options.in;
     return mod;
   }());
   // Resolve.
-  // TODO Smart inter-resolution.
-  // TODO Resolve as we load, up the chain of dependencies.
+  // TODO Force resolve in smart order. No circular dependencies across actual modules.
   // TODO Implement parallel dependency engine a la make.
-  for (auto mod: engine->mods) {
-    resolve(engine, mod);
-  }
+  resolve(engine, main);
   // Generate.
   c::gen(engine);
 }

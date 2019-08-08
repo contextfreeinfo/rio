@@ -18,6 +18,19 @@ auto resolve_ref(ResolveState* state, Node* node) -> void;
 void resolve_tuple(ResolveState* state, Node* node, const Type& type);
 
 void resolve(Engine* engine, ModManager* mod) {
+  if (mod->resolve_started) {
+    return;
+  }
+  // Recursively go through use imports.
+  mod->resolve_started = true;
+  for (auto import: mod->uses) {
+    resolve(engine, import);
+  }
+  // Now through includes, though the order shouldn't matter.
+  for (auto part: mod->parts) {
+    resolve(engine, part);
+  }
+  // Now do this one.
   ResolveState state;
   state.engine = engine;
   state.mod = mod->root;
@@ -139,7 +152,8 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       // TODO Does this matter?
       // TODO And the return type should be the expected expr type.
       resolve_expr(state, node->Call.callee, {Type::Kind::None});
-      // TODO Definitely should have expected types for the args at this point.
+      // TODO Definitely should have expected types for the args at this point!
+      // TODO Force resolve of the called params.
       resolve_expr(state, node->Call.args, {Type::Kind::None});
       break;
     }
