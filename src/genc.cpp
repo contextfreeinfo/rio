@@ -103,7 +103,7 @@ auto gen_decl_expr(GenState* state, const Node& node) -> void {
     case Node::Kind::Fun:
     case Node::Kind::Proc: {
       gen_mod_header(state);
-      gen_type(state, node.type);
+      gen_type(state, *node.type.arg);
       printf(" %s_%s(", state->mod->name, node.Fun.name);
       gen_param_items(state, node.Fun.params);
       printf(");\n");
@@ -210,7 +210,7 @@ void gen_expr(GenState* state, const Node& node) {
 auto gen_function(GenState* state, const Node& node) -> void {
   // TODO When to mark static?
   bool prefix = !state->indent;
-  gen_type(state, node.type);
+  gen_type(state, *node.type.arg);
   printf(
     " %s%s%s(",
     prefix ? state->mod->name : "",

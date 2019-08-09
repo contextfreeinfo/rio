@@ -104,8 +104,9 @@ struct Type {
     NullTermRef,
     // Aggregates.
     Array,
+    Proc,
     // String has special treatment because it needs interop.
-    // Known semantics, auto conversion out, ...
+    // Known semantics, auto conversion out, custom by back end?, ...
     String,
     // Custom.
     User,
@@ -117,8 +118,10 @@ struct Type {
 
   Opt<Type> arg;
 
-  // Push basic types through defs, too?
+  // TODO Push basic types through defs, too?
   Opt<Def> def;
+
+  Opt<Node> node;
 
 };
 
@@ -201,6 +204,7 @@ struct Node {
   };
 
   Kind kind;
+  // TODO Maybe make type a pointer so we can reduce memory usage.
   Type type;
 
   union {

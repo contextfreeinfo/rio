@@ -3,9 +3,17 @@
 namespace rio {
 
 struct ResolveState {
+
   Engine* engine;
   ModManager* mod;
-  // TODO A stack of locals.
+  // TODO A stack of locals or of scopes.
+
+  Type& alloc_type(Type::Kind kind = Type::Kind::None) {
+    Type& type = mod->arena.alloc<Type>();
+    type.kind = kind;
+    return type;
+  }
+
 };
 
 Type choose_float_type(const Type& type);
@@ -14,6 +22,7 @@ auto ensure_global_refs(ModManager* mod) -> void;
 void resolve_array(ResolveState* state, Node* node, const Type& type);
 void resolve_block(ResolveState* state, Node* node, const Type& type);
 void resolve_expr(ResolveState* state, Node* node, const Type& type);
+auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_ref(ResolveState* state, Node* node) -> void;
 void resolve_tuple(ResolveState* state, Node* node, const Type& type);
 
@@ -27,6 +36,7 @@ void resolve(Engine* engine, ModManager* mod) {
     resolve(engine, import);
   }
   // Now through includes, though the order shouldn't matter.
+  // TODO Resolve declarations before values at each level or just as dependencies show up?
   for (auto part: mod->parts) {
     resolve(engine, part);
   }
@@ -152,7 +162,8 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       // TODO Does this matter?
       // TODO And the return type should be the expected expr type.
       resolve_expr(state, node->Call.callee, {Type::Kind::None});
-      // TODO Definitely should have expected types for the args at this point!
+      fprintf(stderr, "callee: %d\n", static_cast<int>(node->Call.callee->type.kind));
+      // TODO Definitely should have expected types for the args at this point.
       // TODO Force resolve of the called params.
       resolve_expr(state, node->Call.args, {Type::Kind::None});
       break;
@@ -191,19 +202,7 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
     }
     case Node::Kind::Fun:
     case Node::Kind::Proc: {
-      if (!strcmp(node->Fun.name, "main")) {
-        // TODO Instead have a global main call a package main.
-        // TODO Package main can return void or other ints.
-        node->type = {Type::Kind::Int};
-      } else {
-        // TODO Actual types on functions.
-        node->type = {Type::Kind::Void};
-      }
-      // TODO If in a local expression, expected type might be given.
-      if (node->Fun.params) {
-        resolve_tuple(state, node->Fun.params, {Type::Kind::None});
-      }
-      resolve_expr(state, node->Fun.expr, {Type::Kind::None});
+      resolve_proc(state, node, type);
       break;
     }
     case Node::Kind::Int: {
@@ -236,11 +235,33 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
   }
 }
 
+auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void {
+  auto ret_type = &state->alloc_type();
+  node->type = {Type::Kind::Proc, ret_type};
+  node->type.node = node;
+  if (!strcmp(node->Fun.name, "main")) {
+    // TODO Instead have a global main call a package main.
+    // TODO Package main can return void or other ints.
+    ret_type->kind = Type::Kind::Int;
+  } else {
+    // TODO Actual types on functions.
+    ret_type->kind = Type::Kind::Void;
+  }
+  // TODO If in a local expression, expected type might be given.
+  if (node->Fun.params) {
+    resolve_tuple(state, node->Fun.params, {Type::Kind::None});
+  }
+  resolve_expr(state, node->Fun.expr, {Type::Kind::None});
+}
+
 auto resolve_ref(ResolveState* state, Node* node) -> void {
   // TODO If we haven't resolved its subparts yet, jump to it???
   // TODO Leave a work queue of unresolved things???
   // TODO Look through local stack before globals.
   node->Ref.def = state->mod->global_refs.get(node->Ref.name);
+  if (node->Ref.def) {
+    node->type = node->Ref.def->node->type;
+  }
 }
 
 void resolve_tuple(ResolveState* state, Node* node, const Type& type) {
