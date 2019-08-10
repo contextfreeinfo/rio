@@ -11,7 +11,7 @@ struct ExtractState {
     Def* def = &mod->arena.alloc<Def>();
     def->name = name;
     def->node = node;
-    def->value = nullptr;
+    def->top = node;
     return def;
   }
 
@@ -24,7 +24,7 @@ struct ExtractState {
 };
 
 void extract_block(ExtractState* state, Node* node);
-void extract_ref_names(ExtractState* state, Node* node, Node* value);
+void extract_ref_names(ExtractState* state, Node* node, Node* top);
 void extract_expr(ExtractState* state, Node* node);
 void extract_fun(ExtractState* state, Node* node);
 
@@ -56,9 +56,14 @@ void extract(ModManager* mod) {
 }
 
 void extract_block(ExtractState* state, Node* node) {
+  auto top = node == state->mod->tree;
   auto buf_len_old = state->defs.len;
   for (auto item: node->Block.items) {
     extract_expr(state, item);
+    // Top-level block is main.
+    if (top && item->kind == Node::Kind::Block) {
+      state->alloc_push("__main__", node);
+    }
   }
   node->Block.scope.defs = def_slice_copy(state, buf_len_old);
 }
@@ -75,7 +80,7 @@ void extract_expr(ExtractState* state, Node* node) {
       break;
     }
     case Node::Kind::Const: {
-      extract_ref_names(state, node->Const.a, node->Const.b);
+      extract_ref_names(state, node->Const.a, node);
       extract_expr(state, node->Const.b);
       break;
     }
@@ -123,12 +128,12 @@ void extract_fun(ExtractState* state, Node* node) {
   }
 }
 
-void extract_ref_names(ExtractState* state, Node* node, Node* value) {
+void extract_ref_names(ExtractState* state, Node* node, Node* top) {
   switch (node->kind) {
     case Node::Kind::Ref: {
       if (verbose) printf("const/var: %s\n", node->Ref.name);
       node->Ref.def = state->alloc_push(node->Ref.name, node);
-      node->Ref.def->value = value;
+      node->Ref.def->top = top;
       break;
     }
     default: {

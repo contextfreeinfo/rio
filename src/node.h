@@ -22,7 +22,7 @@ struct Node;
 struct Def {
   string name;
   Node* node;
-  Opt<Node> value;
+  Opt<Node> top;
   // Only for globals. If present, references the mod root.
   Opt<ModManager> mod;
 };

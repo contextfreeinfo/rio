@@ -35,18 +35,17 @@ void resolve(Engine* engine, ModManager* mod) {
   for (auto import: mod->uses) {
     resolve(engine, import);
   }
-  // Now through includes, though the order shouldn't matter.
-  // TODO Resolve declarations before values at each level or just as dependencies show up?
-  for (auto part: mod->parts) {
-    resolve(engine, part);
-  }
   // Now do this one.
+  assert(mod == mod->root);
   ResolveState state;
   state.engine = engine;
-  state.mod = mod->root;
-  // Ensure globals and resolve.
+  state.mod = mod;
+  // Prepare globals and resolve.
+  // At mod level, only defs matter.
   ensure_global_refs(mod);
-  resolve_block(&state, mod->tree, {Type::Kind::None});
+  for (auto def: mod->global_defs) {
+    resolve_expr(&state, def->top, {Type::Kind::None});
+  }
 }
 
 Type choose_float_type(const Type& type) {
@@ -118,7 +117,7 @@ auto ensure_global_refs(ModManager* mod) -> void {
         insert.pair->value = global;
       } else {
         // Conflict. See if it's from the current mod or not.
-        if (insert.pair->value->mod == mod) {
+        if (insert.pair->value->mod == mod->root) {
           // fprintf(stderr, "external ignored: %s\n", global->name);
         } else {
           // From somewhere else. Clear it.
@@ -260,6 +259,9 @@ auto resolve_ref(ResolveState* state, Node* node) -> void {
   // TODO Look through local stack before globals.
   node->Ref.def = state->mod->global_refs.get(node->Ref.name);
   if (node->Ref.def) {
+    // TODO How do we make sure they are resolved in order?
+    // TODO Things can reference only other things in their current scope and higher.
+    // TODO Except reaching into aggregate members ...
     node->type = node->Ref.def->node->type;
   }
 }
