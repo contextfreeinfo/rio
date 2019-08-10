@@ -21,13 +21,20 @@ Type choose_int_type(const Type& type);
 auto ensure_global_refs(ModManager* mod) -> void;
 void resolve_array(ResolveState* state, Node* node, const Type& type);
 void resolve_block(ResolveState* state, Node* node, const Type& type);
+auto resolve_def(ResolveState* state, Def* def) -> void;
+auto resolve_def_body(ResolveState* state, Def* def) -> void;
 void resolve_expr(ResolveState* state, Node* node, const Type& type);
 auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void;
+auto resolve_proc_sig(
+  ResolveState* state, Node* node, const Type& type
+) -> void;
 auto resolve_ref(ResolveState* state, Node* node) -> void;
 void resolve_tuple(ResolveState* state, Node* node, const Type& type);
+auto resolve_type(ResolveState* state, Node* node) -> void;
 
 void resolve(Engine* engine, ModManager* mod) {
   if (mod->resolve_started) {
+    // TODO Track error if not finished resolved.
     return;
   }
   // Recursively go through use imports.
@@ -40,12 +47,17 @@ void resolve(Engine* engine, ModManager* mod) {
   ResolveState state;
   state.engine = engine;
   state.mod = mod;
-  // Prepare globals and resolve.
-  // At mod level, only defs matter.
+  // Prepare globals and resolve top-level defs.
+  // TODO Always go defs first, then dodge defs except bodies on resolve_expr?
   ensure_global_refs(mod);
   for (auto def: mod->global_defs) {
-    resolve_expr(&state, def->top, {Type::Kind::None});
+    resolve_def(&state, def);
   }
+  for (auto def: mod->global_defs) {
+    resolve_def_body(&state, def);
+  }
+  // Mark finished.
+  mod->resolved = true;
 }
 
 Type choose_float_type(const Type& type) {
@@ -146,6 +158,66 @@ void resolve_block(ResolveState* state, Node* node, const Type& type) {
   }
 }
 
+auto resolve_def(ResolveState* state, Def* def) -> void {
+  if (def->resolve_started) {
+    // TODO Error if not finished.
+    return;
+  }
+  def->resolve_started = true;
+  auto node = def->top;
+  switch (node->kind) {
+    case Node::Kind::Cast: {
+      resolve_type(state, node->Cast.b);
+      node->type = node->Cast.b->type;
+      resolve_expr(state, node->Cast.a, node->Cast.b->type);
+      break;
+    }
+    case Node::Kind::Const: {
+      resolve_expr(state, node->Const.a, {Type::Kind::None});
+      if (node->Const.a->type.kind == Type::Kind::None) {
+        // Infer from value to def.
+        resolve_expr(state, node->Const.b, {Type::Kind::None});
+        node->Const.a->type = node->Const.b->type;
+      }
+      break;
+    }
+    case Node::Kind::Fun:
+    case Node::Kind::Proc: {
+      resolve_proc_sig(state, node, {Type::Kind::None});
+      break;
+    }
+    case Node::Kind::Struct: {
+      resolve_expr(state, node->Fun.expr, {Type::Kind::None});
+      break;
+    }
+    default: {
+      // printf("(!!! BROKEN %d !!!)", static_cast<int>(node.kind));
+      break;
+    }
+  }
+  def->resolved = true;
+}
+
+auto resolve_def_body(ResolveState* state, Def* def) -> void {
+  auto node = def->top;
+  switch (node->kind) {
+    case Node::Kind::Block: {
+      // TODO Expect return type.
+      resolve_block(state, node, {Type::Kind::None});
+      break;
+    }
+    case Node::Kind::Fun:
+    case Node::Kind::Proc: {
+      // TODO Expect return type.
+      resolve_expr(state, node->Fun.expr, {Type::Kind::None});
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+}
+
 void resolve_expr(ResolveState* state, Node* node, const Type& type) {
   switch (node->kind) {
     case Node::Kind::Array: {
@@ -161,33 +233,26 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       // TODO Does this matter?
       // TODO And the return type should be the expected expr type.
       resolve_expr(state, node->Call.callee, {Type::Kind::None});
-      fprintf(stderr, "callee: %d\n", static_cast<int>(node->Call.callee->type.kind));
-      // TODO Definitely should have expected types for the args at this point.
-      // TODO Force resolve of the called params.
-      resolve_expr(state, node->Call.args, {Type::Kind::None});
+      Type proc_type = node->Call.callee->type;
+      fprintf(stderr, "callee: %d\n", static_cast<int>(proc_type.kind));
+      Type args_type = {Type::Kind::None};
+      if (proc_type.kind == Type::Kind::Proc && proc_type.node) {
+        args_type.node = proc_type.node->Fun.params;
+        if (args_type.node) {
+          args_type.kind = Type::Kind::Tuple;
+        }
+      }
+      resolve_expr(state, node->Call.args, args_type);
       break;
     }
     case Node::Kind::Cast: {
-      Node* type_node = node->Cast.b;
-      // TODO Actual resolution of type names.
-      // TODO Global outer map on interned pointers to types.
-      if (type_node->kind == Node::Kind::Ref) {
-        string name = type_node->Ref.name;
-        if (!strcmp(name, "i32")) {
-          node->type = {Type::Kind::I32};
-        } else if (!strcmp(name, "string")) {
-          node->type = {Type::Kind::String};
-        } else {
-          // Custom type.
-          node->type = {Type::Kind::User};
-          node->type.def = state->mod->global_refs.get(name);
-          // fprintf(stderr, "Yo dawg in %s: %s -> %p from %p\n", state->mod->name, name, (void*)node->type.def, (void*)&state->mod->global_refs);
-        }
-      }
+      resolve_type(state, node->Cast.b);
+      node->type = node->Cast.b->type;
+      resolve_expr(state, node->Cast.a, node->Cast.b->type);
       break;
     }
     case Node::Kind::Const: {
-      // TODO First see if side `a` declares an explicit type.
+      resolve_expr(state, node->Const.a, {Type::Kind::None});
       if (node->Const.a->type.kind == Type::Kind::None) {
         // Infer from value to def.
         resolve_expr(state, node->Const.b, {Type::Kind::None});
@@ -206,6 +271,10 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
     }
     case Node::Kind::Int: {
       node->type = choose_int_type(type);
+      break;
+    }
+    case Node::Kind::Map: {
+      node->type = type;
       break;
     }
     case Node::Kind::Ref: {
@@ -235,28 +304,27 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
 }
 
 auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void {
+  resolve_proc_sig(state, node, type);
+  // TODO Expect proc return type.
+  resolve_expr(state, node->Fun.expr, {Type::Kind::None});
+}
+
+auto resolve_proc_sig(
+  ResolveState* state, Node* node, const Type& type
+) -> void {
   auto ret_type = &state->alloc_type();
   node->type = {Type::Kind::Proc, ret_type};
   node->type.node = node;
-  if (!strcmp(node->Fun.name, "main")) {
-    // TODO Instead have a global main call a package main.
-    // TODO Package main can return void or other ints.
-    ret_type->kind = Type::Kind::Int;
-  } else {
-    // TODO Actual types on functions.
-    ret_type->kind = Type::Kind::Void;
-  }
+  // TODO Actual types on functions.
+  ret_type->kind = Type::Kind::Void;
   // TODO If in a local expression, expected type might be given.
   if (node->Fun.params) {
     resolve_tuple(state, node->Fun.params, {Type::Kind::None});
   }
-  resolve_expr(state, node->Fun.expr, {Type::Kind::None});
 }
 
 auto resolve_ref(ResolveState* state, Node* node) -> void {
-  // TODO If we haven't resolved its subparts yet, jump to it???
-  // TODO Leave a work queue of unresolved things???
-  // TODO Look through local stack before globals.
+  // TODO If not yet resolved, call resolve_def on it.
   node->Ref.def = state->mod->global_refs.get(node->Ref.name);
   if (node->Ref.def) {
     // TODO How do we make sure they are resolved in order?
@@ -267,8 +335,32 @@ auto resolve_ref(ResolveState* state, Node* node) -> void {
 }
 
 void resolve_tuple(ResolveState* state, Node* node, const Type& type) {
-  for (auto item: node->Tuple.items) {
-    resolve_expr(state, item, {Type::Kind::None});
+  auto params = type.kind == Type::Kind::Tuple ? &type.node->Tuple : nullptr;
+  auto items = node->Tuple.items;
+  for (usize i = 0; i < items.len; i += 1) {
+    Type item_type = {Type::Kind::None};
+    if (params) {
+      item_type = params->items[i]->type;
+    }
+    resolve_expr(state, items[i], item_type);
+  }
+}
+
+auto resolve_type(ResolveState* state, Node* node) -> void {
+  // TODO Types are actually of type type(id?), but is this ok for casts?
+  // TODO Global outer map on interned pointers to types.
+  if (node->kind == Node::Kind::Ref) {
+    string name = node->Ref.name;
+    if (!strcmp(name, "i32")) {
+      node->type = {Type::Kind::I32};
+    } else if (!strcmp(name, "string")) {
+      node->type = {Type::Kind::String};
+    } else {
+      // Custom type.
+      node->type = {Type::Kind::User};
+      node->type.def = state->mod->global_refs.get(name);
+      // fprintf(stderr, "Yo dawg in %s: %s -> %p from %p\n", state->mod->name, name, (void*)node->type.def, (void*)&state->mod->global_refs);
+    }
   }
 }
 

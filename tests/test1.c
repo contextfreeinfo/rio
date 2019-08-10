@@ -21,7 +21,7 @@ int main() {
   const char* const name = "world";
   int32_t const age = 75;
   tests_test1_greet(name, age);
-  tests_test1_greet_person(((!!! TYPE !!!)){.name = name, .age = 80});
+  tests_test1_greet_person((tests_test1_Person){.name = name, .age = 80});
 }
 
 // tests/test1-more.rio

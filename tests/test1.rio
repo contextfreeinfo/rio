@@ -2,6 +2,10 @@ use "c"
 use "./test1-other"
 include "./test1-more"
 
+# Prove these get reordered.
+#~ b = a
+#~ a = 5
+
 do
   name = "world"
   age = 75

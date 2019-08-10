@@ -23,6 +23,9 @@ struct Def {
   string name;
   Node* node;
   Opt<Node> top;
+  // Make resolution easier to order.
+  bool resolve_started;
+  bool resolved;
   // Only for globals. If present, references the mod root.
   Opt<ModManager> mod;
 };
@@ -108,6 +111,7 @@ struct Type {
     // String has special treatment because it needs interop.
     // Known semantics, auto conversion out, custom by back end?, ...
     String,
+    Tuple,
     // Custom.
     User,
     // Only applies at compile time.

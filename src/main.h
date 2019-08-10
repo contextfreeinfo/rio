@@ -60,6 +60,7 @@ struct ModManager: ModInfo {
   List<ModManager*> parts;
 
   bool resolve_started = false;
+  bool resolved = false;
 
   // To be used only in the root of a multimod.
   // 'Use' imports, pointing only to roots.
