@@ -12,6 +12,10 @@ typedef struct tests_test1_Person {
 void tests_test1_greet(const char* const name, int32_t const age);
 void tests_test1_greet_person(tests_test1_Person const person);
 
+// tests/test1.rio
+int32_t const tests_test1_b = tests_test1_a;
+int32_t const tests_test1_a = 5;
+
 // tests/test1-other.rio
 const char* const tests_test1_other_message = "Hello";
 
