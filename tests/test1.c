@@ -15,9 +15,6 @@ typedef struct tests_test1_Person {
 void tests_test1_greet(const char* const name, int32_t const age);
 void tests_test1_greet_person(tests_test1_Person const person);
 
-int32_t const tests_test1_b = tests_test1_a;
-int32_t const tests_test1_a = 5;
-
 int main() {
   const char* const name = "world";
   int32_t const age = 75;

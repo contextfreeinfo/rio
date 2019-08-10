@@ -224,6 +224,7 @@ auto gen_function_def(GenState* state, const Node& node) -> void {
 }
 
 auto gen_function_defs(GenState* state) -> void {
+  state->start_section = false;
   for (auto def: state->mod->global_defs) {
     gen_function_def(state, *def->top);
   }
@@ -499,6 +500,7 @@ auto gen_typedef(GenState* state, const Node& node) -> void {
 }
 
 auto gen_typedefs(GenState* state) -> void {
+  state->start_section = false;
   for (auto def: state->mod->global_defs) {
     gen_typedef(state, *def->top);
   }
