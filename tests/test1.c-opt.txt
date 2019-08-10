@@ -1,7 +1,7 @@
 
-real	0m1.217s
-user	0m0.969s
-sys	0m0.219s
+real	0m1.242s
+user	0m1.031s
+sys	0m0.203s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -16,6 +16,10 @@ typedef struct tests_test1_Person {
 void tests_test1_greet(const char* const name, int32_t const age);
 void tests_test1_greet_person(tests_test1_Person const person);
 
+// tests/test1.rio
+int32_t const tests_test1_b = tests_test1_a;
+int32_t const tests_test1_a = 5;
+
 // tests/test1-other.rio
 const char* const tests_test1_other_message = "Hello";
 
@@ -25,7 +29,7 @@ int main() {
   const char* const name = "world";
   int32_t const age = 75;
   tests_test1_greet(name, age);
-  tests_test1_greet_person(((!!! TYPE !!!)){.name = name, .age = 80});
+  tests_test1_greet_person((tests_test1_Person){.name = name, .age = 80});
 }
 
 // tests/test1-more.rio
@@ -42,15 +46,15 @@ void tests_test1_greet_person(tests_test1_Person const person) {
 	User time (seconds): 0.00
 	System time (seconds): 0.00
 	Percent of CPU this job got: 0%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.06
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.02
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 456
+	Maximum resident set size (kbytes): 468
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 128
+	Minor (reclaiming a frame) page faults: 131
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -62,4 +66,4 @@ void tests_test1_greet_person(tests_test1_Person const person) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 1023696 Aug  7 05:31 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 1024624 Aug 10 09:53 bin/rio
