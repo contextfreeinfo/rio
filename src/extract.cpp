@@ -62,7 +62,7 @@ void extract_block(ExtractState* state, Node* node) {
     extract_expr(state, item);
     // Top-level block is main.
     if (top && item->kind == Node::Kind::Block) {
-      state->alloc_push("__main__", node);
+      state->alloc_push("__main__", item);
     }
   }
   node->Block.scope.defs = def_slice_copy(state, buf_len_old);

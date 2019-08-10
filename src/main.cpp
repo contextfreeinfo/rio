@@ -168,7 +168,7 @@ void run(Engine* engine) {
   // TODO Implement parallel dependency engine a la make.
   resolve(engine, main);
   // Generate.
-  c::gen(engine);
+  c::gen(engine, main);
 }
 
 }  // namespace rio

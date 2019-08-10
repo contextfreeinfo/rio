@@ -6,6 +6,7 @@ struct GenState {
   usize indent = 0;
   ModManager* mod = nullptr;
   bool start_mod = false;
+  bool start_section = false;
 };
 
 struct Indent {
@@ -22,59 +23,37 @@ void gen_bad(GenState* state, const Node& node);
 auto gen_block(GenState* state, const Node& node) -> void;
 auto gen_const(GenState* state, const Node& node) -> void;
 auto gen_decl_expr(GenState* state, const Node& node) -> void;
-auto gen_decls(GenState* state, const Node& node) -> void;
+auto gen_decls(GenState* state) -> void;
 void gen_expr(GenState* state, const Node& node);
 auto gen_function(GenState* state, const Node& node) -> void;
 auto gen_function_def(GenState* state, const Node& node) -> void;
-auto gen_function_defs(GenState* state, const Node& node) -> void;
+auto gen_function_defs(GenState* state) -> void;
 auto gen_global_expr(GenState* state, const Node& node) -> void;
-auto gen_globals(GenState* state, const Node& node) -> void;
+auto gen_globals(GenState* state) -> void;
 void gen_list_items(GenState* state, const Node& node);
 void gen_indent(GenState* state);
 auto gen_map(GenState* state, const Node& node) -> void;
+auto gen_mod(GenState* state, ModManager* mod) -> void;
 auto gen_mod_header(GenState* state) -> void;
 void gen_param_items(GenState* state, const Node* node);
 void gen_ref(GenState* state, const Node& node);
 auto gen_ref_def(GenState* state, const Def& def) -> void;
 void gen_type(GenState* state, const Type& type);
 auto gen_typedef(GenState* state, const Node& node) -> void;
-auto gen_typedefs(GenState* state, const Node& node) -> void;
+auto gen_typedefs(GenState* state) -> void;
 void gen_statements(GenState* state, const Node& node);
 auto needs_semi(const Node& node) -> bool;
 
-void gen(Engine* engine) {
+void gen(Engine* engine, ModManager* mod) {
   GenState state;
+  // Common heading.
+  // TODO Need to keep a tally of all external headers? Libs, too.
   printf(
     "#include <stdint.h>\n"
     "#include <stdio.h>\n"
   );
-  // TODO Struct declarations.
-  // Types.
-  // TODO Dependency order.
-  for (auto mod: engine->mods) {
-    state.mod = mod;
-    state.start_mod = true;
-    gen_typedefs(&state, *mod->tree);
-  }
-  // Function declarations.
-  for (auto mod: engine->mods) {
-    state.mod = mod;
-    state.start_mod = true;
-    gen_decls(&state, *mod->tree);
-  }
-  // Globals.
-  // TODO Dependency order.
-  for (auto mod: engine->mods) {
-    state.mod = mod;
-    state.start_mod = true;
-    gen_globals(&state, *mod->tree);
-  }
-  // Definitions.
-  for (auto mod: engine->mods) {
-    state.mod = mod;
-    state.start_mod = true;
-    gen_function_defs(&state, *mod->tree);
-  }
+  // Now gen each mod.
+  gen_mod(&state, mod);
 }
 
 void gen_bad(GenState* state, const Node& node) {
@@ -116,12 +95,11 @@ auto gen_decl_expr(GenState* state, const Node& node) -> void {
   }
 }
 
-auto gen_decls(GenState* state, const Node& node) -> void {
-  state->start_mod = true;
-  for (auto item: node.Block.items) {
-    gen_decl_expr(state, *item);
+auto gen_decls(GenState* state) -> void {
+  state->start_section = true;
+  for (auto def: state->mod->global_defs) {
+    gen_decl_expr(state, *def->top);
   }
-  state->start_mod = false;
 }
 
 void gen_expr(GenState* state, const Node& node) {
@@ -245,9 +223,9 @@ auto gen_function_def(GenState* state, const Node& node) -> void {
   }
 }
 
-auto gen_function_defs(GenState* state, const Node& node) -> void {
-  for (auto item: node.Block.items) {
-    gen_function_def(state, *item);
+auto gen_function_defs(GenState* state) -> void {
+  for (auto def: state->mod->global_defs) {
+    gen_function_def(state, *def->top);
   }
 }
 
@@ -266,10 +244,11 @@ auto gen_global_expr(GenState* state, const Node& node) -> void {
   }
 }
 
-auto gen_globals(GenState* state, const Node& node) -> void {
+auto gen_globals(GenState* state) -> void {
+  state->start_section = true;
   // TODO Dependency order.
-  for (auto item: node.Block.items) {
-    gen_global_expr(state, *item);
+  for (auto def: state->mod->global_defs) {
+    gen_global_expr(state, *def->top);
   }
 }
 
@@ -320,10 +299,32 @@ auto gen_map(GenState* state, const Node& node) -> void {
   printf("}");
 }
 
+auto gen_mod(GenState* state, ModManager* mod) -> void {
+  if (mod->gen_started) {
+    return;
+  }
+  mod->gen_started = true;
+  // Gen upstream.
+  for (auto import: mod->uses) {
+    gen_mod(state, import);
+  }
+  // Now gen this one.
+  state->mod = mod;
+  state->start_mod = true;
+  gen_typedefs(state);
+  gen_decls(state);
+  gen_globals(state);
+  gen_function_defs(state);
+}
+
 auto gen_mod_header(GenState* state) -> void {
   if (state->start_mod) {
     printf("\n// %s\n", state->mod->file);
     state->start_mod = false;
+  }
+  if (state->start_section) {
+    printf("\n");
+    state->start_section = false;
   }
 }
 
@@ -497,9 +498,9 @@ auto gen_typedef(GenState* state, const Node& node) -> void {
   }
 }
 
-auto gen_typedefs(GenState* state, const Node& node) -> void {
-  for (auto item: node.Block.items) {
-    gen_typedef(state, *item);
+auto gen_typedefs(GenState* state) -> void {
+  for (auto def: state->mod->global_defs) {
+    gen_typedef(state, *def->top);
   }
 }
 

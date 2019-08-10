@@ -62,6 +62,11 @@ struct ModManager: ModInfo {
   bool resolve_started = false;
   bool resolved = false;
 
+  // TODO Replace this with info tracked elsewhere. Here is a hack.
+  // TODO Otherwise, we need to clear these out for every gen, etc.
+  bool gen_started = false;
+  // No done needed, since things don't get interrupted.
+
   // To be used only in the root of a multimod.
   // 'Use' imports, pointing only to roots.
   List<ModManager*> uses;

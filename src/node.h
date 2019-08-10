@@ -26,6 +26,9 @@ struct Def {
   // Make resolution easier to order.
   bool resolve_started;
   bool resolved;
+  // And cache for faster generation.
+  // Should refer only to cases in the current mod, since mods are acyclic.
+  Slice<Def*> uses;
   // Only for globals. If present, references the mod root.
   Opt<ModManager> mod;
 };
