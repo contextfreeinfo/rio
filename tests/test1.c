@@ -18,6 +18,7 @@ void tests_test1_greet_person(tests_test1_Person const person);
 int main() {
   const char* const name = "world";
   int32_t const age = 75;
+  struct {int32_t* items; size_t len;} const scores = {(int32_t[]){45, 63, 22, -8}, 4};
   tests_test1_greet(name, age);
   tests_test1_greet_person((tests_test1_Person){.name = name, .age = 80});
 }

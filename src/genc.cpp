@@ -115,7 +115,7 @@ void gen_expr(GenState* state, const Node& node) {
       } else {
         gen_type(state, {Type::Kind::None});
       }
-      printf(")[]){");
+      printf("[]){");
       gen_list_items(state, node);
       printf("}, %zu", node.Array.items.len);
       printf("}");
@@ -420,6 +420,17 @@ auto gen_struct(GenState* state, const Node& node) -> void {
 
 void gen_type(GenState* state, const Type& type) {
   switch (type.kind) {
+    case Type::Kind::Array: {
+      // TODO This isn't good enough. We need to typedef for compatible types.
+      printf("struct {");
+      if (type.arg) {
+        gen_type(state, *type.arg);
+      } else {
+        gen_type(state, {Type::Kind::None});
+      }
+      printf("* items; size_t len;}");
+      break;
+    }
     case Type::Kind::F32: {
       printf("float");
       break;
@@ -481,7 +492,7 @@ void gen_type(GenState* state, const Type& type) {
       break;
     }
     default: {
-      printf("(!!! TYPE !!!)");
+      printf("(!!! TYPE %d !!!)", (int)type.kind);
       break;
     }
   }
