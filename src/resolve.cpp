@@ -34,32 +34,22 @@ auto resolve_ref(ResolveState* state, Node* node) -> void;
 void resolve_tuple(ResolveState* state, Node* node, const Type& type);
 auto resolve_type(ResolveState* state, Node* node) -> void;
 
-void resolve(Engine* engine, ModManager* mod) {
-  if (mod->resolve_started) {
-    // TODO Track error if not finished resolved.
-    return;
+auto resolve(Engine* engine) -> void {
+  // The root mods should be sorted before this point.
+  for (auto mod: engine->roots) {
+    ResolveState state;
+    state.engine = engine;
+    state.mod = mod;
+    // Prepare globals and resolve top-level defs.
+    // TODO Always go defs first, then dodge defs except bodies on resolve_expr?
+    ensure_global_refs(mod);
+    for (auto def: mod->global_defs) {
+      resolve_def(&state, def);
+    }
+    for (auto def: mod->global_defs) {
+      resolve_def_body(&state, def);
+    }
   }
-  // Recursively go through use imports.
-  mod->resolve_started = true;
-  for (auto import: mod->uses) {
-    resolve(engine, import);
-  }
-  // Now do this one.
-  assert(mod == mod->root);
-  ResolveState state;
-  state.engine = engine;
-  state.mod = mod;
-  // Prepare globals and resolve top-level defs.
-  // TODO Always go defs first, then dodge defs except bodies on resolve_expr?
-  ensure_global_refs(mod);
-  for (auto def: mod->global_defs) {
-    resolve_def(&state, def);
-  }
-  for (auto def: mod->global_defs) {
-    resolve_def_body(&state, def);
-  }
-  // Mark finished.
-  mod->resolved = true;
 }
 
 Type choose_float_type(const Type& type) {

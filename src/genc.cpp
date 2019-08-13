@@ -44,7 +44,7 @@ auto gen_typedefs(GenState* state) -> void;
 void gen_statements(GenState* state, const Node& node);
 auto needs_semi(const Node& node) -> bool;
 
-void gen(Engine* engine, ModManager* mod) {
+void gen(Engine* engine) {
   GenState state;
   // Common heading.
   // TODO Need to keep a tally of all external headers? Libs, too.
@@ -53,7 +53,9 @@ void gen(Engine* engine, ModManager* mod) {
     "#include <stdio.h>\n"
   );
   // Now gen each mod.
-  gen_mod(&state, mod);
+  for (auto mod: engine->roots) {
+    gen_mod(&state, mod);
+  }
 }
 
 void gen_bad(GenState* state, const Node& node) {
@@ -301,14 +303,6 @@ auto gen_map(GenState* state, const Node& node) -> void {
 }
 
 auto gen_mod(GenState* state, ModManager* mod) -> void {
-  if (mod->gen_started) {
-    return;
-  }
-  mod->gen_started = true;
-  // Gen upstream.
-  for (auto import: mod->uses) {
-    gen_mod(state, import);
-  }
   // Now gen this one.
   state->mod = mod;
   state->start_mod = true;

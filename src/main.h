@@ -59,13 +59,8 @@ struct ModManager: ModInfo {
   // allocating here on single file mods.
   List<ModManager*> parts;
 
-  bool resolve_started = false;
-  bool resolved = false;
-
-  // TODO Replace this with info tracked elsewhere. Here is a hack.
-  // TODO Otherwise, we need to clear these out for every gen, etc.
-  bool gen_started = false;
-  // No done needed, since things don't get interrupted.
+  // Assigned to roots after extract and before resolve.
+  usize index = 0;
 
   // To be used only in the root of a multimod.
   // 'Use' imports, pointing only to roots.
@@ -88,6 +83,7 @@ struct Engine {
   Options options = {0};
   Map<Str, string> interns;
   List<ModManager*> mods;
+  List<ModManager*> roots;
   // bool verbose{false};
 
 };

@@ -1,6 +1,7 @@
 #include "main.h"
 
 #include "common.cpp"
+#include "engine.cpp"
 #include "extract.cpp"
 #include "genc.cpp"
 #include "lex.cpp"
@@ -157,18 +158,17 @@ auto parse_options(Engine* engine, Slice<string> args) -> Options {
 
 void run(Engine* engine) {
   // Load everything.
-  auto main = load_mod([&]() {
+  load_mod([&]() {
     ModInfo mod;
     mod.engine = engine;
     mod.file = engine->options.in;
     return mod;
   }());
-  // Resolve.
-  // TODO Force resolve in smart order. No circular dependencies across actual modules.
+  // Order, resolve, and generate.
   // TODO Implement parallel dependency engine a la make.
-  resolve(engine, main);
-  // Generate.
-  c::gen(engine, main);
+  order_mods(engine);
+  resolve(engine);
+  c::gen(engine);
 }
 
 }  // namespace rio
