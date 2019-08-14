@@ -4,10 +4,13 @@
 
 namespace rio {
 
+struct Engine;
 struct ModManager;
+struct Type;
 
 auto is_id_part(char c) -> bool;
 auto is_id_start(char c) -> bool;
+auto name_type(Engine* engine, StrBuf* buf, const Type& type) -> string;
 
 struct Pos {
   usize index;

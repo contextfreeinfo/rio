@@ -91,8 +91,8 @@ struct Engine {
 constexpr bool verbose = false;
 
 auto has_text(const Token& token) -> bool;
-auto intern(Engine* engine, const char* text, usize nbytes) -> const char*;
-auto intern_str(Engine* engine, const Str& str) -> const char*;
+auto intern(Engine* engine, const char* text, usize nbytes) -> string;
+auto intern_str(Engine* engine, const Str& str) -> string;
 auto load_mod(const ModInfo& info) -> ModManager*;
 auto read_file(const char* name) -> char*;
 auto token_kind_name(Token::Kind kind) -> const char*;

@@ -52,6 +52,8 @@ void gen(Engine* engine) {
     "#include <stdint.h>\n"
     "#include <stdio.h>\n"
   );
+  // TODO Gen internal mod 0 here?
+  // TODO This is where rio_Span_i32 is needed for current test case.
   // Now gen each mod.
   for (auto mod: engine->mods) {
     gen_mod(&state, mod);

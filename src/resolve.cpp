@@ -6,6 +6,7 @@ struct ResolveState {
 
   Engine* engine;
   ModManager* mod;
+  StrBuf str_buf;
   // TODO A stack of locals or of scopes.
 
   Type& alloc_type(Type::Kind kind = Type::Kind::None) {
@@ -140,6 +141,8 @@ void resolve_array(ResolveState* state, Node* node, const Type& type) {
   if (node->Array.items.len) {
     // TODO Fuse the types, etc.
     node->type = {Type::Kind::Array, &node->Array.items[0]->type};
+    auto name = name_type(state->engine, &state->str_buf, node->type);
+    fprintf(stderr, "hey: %s\n", name);
   }
 }
 

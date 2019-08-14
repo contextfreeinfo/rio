@@ -8,6 +8,7 @@
 #include "parse.cpp"
 #include "path.cpp"
 #include "resolve.cpp"
+#include "sym.cpp"
 
 namespace rio {
 
