@@ -9,18 +9,18 @@ auto set_mod_indices(ModManager* mod) -> void;
 
 auto order_mods(Engine* engine) -> void {
   // Extract mod roots, and set partial indices.
-  for (auto mod: engine->mods) {
+  for (auto mod: engine->mod_parts) {
     if (mod == mod->root) {
-      engine->roots.push(mod);
+      engine->mods.push(mod);
       set_mod_indices(mod);
     }
   }
   // Sort them, and set total indices.
   qsort(
-    engine->roots.items, engine->roots.len, sizeof(ModManager*), compare_mods
+    engine->mods.items, engine->mods.len, sizeof(ModManager*), compare_mods
   );
-  for (usize index = 0; index < engine->roots.len; index += 1) {
-    engine->roots[index]->index = index + 1;
+  for (usize index = 0; index < engine->mods.len; index += 1) {
+    engine->mods[index]->index = index + 1;
   }
 }
 

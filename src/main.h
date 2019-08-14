@@ -72,7 +72,7 @@ struct Engine {
 
   ~Engine() {
     // TODO Create my own unique_ptr and place these in the engine's arena?
-    for (auto mod: mods) {
+    for (auto mod: mod_parts) {
       mod->~ModManager();
     }
   }
@@ -82,8 +82,8 @@ struct Engine {
   // FILE* info;
   Options options = {0};
   Map<Str, string> interns;
+  List<ModManager*> mod_parts;
   List<ModManager*> mods;
-  List<ModManager*> roots;
   // bool verbose{false};
 
 };

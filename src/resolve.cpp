@@ -36,7 +36,7 @@ auto resolve_type(ResolveState* state, Node* node) -> void;
 
 auto resolve(Engine* engine) -> void {
   // The root mods should be sorted before this point.
-  for (auto mod: engine->roots) {
+  for (auto mod: engine->mods) {
     ResolveState state;
     state.engine = engine;
     state.mod = mod;

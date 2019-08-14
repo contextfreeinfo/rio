@@ -52,7 +52,7 @@ auto load_imports(ModManager* mod) -> void {
       // Now actually load things.
       // Skip if we already loaded it!
       Opt<ModManager> import = nullptr;
-      for (auto mod: mod->engine->mods) {
+      for (auto mod: mod->engine->mod_parts) {
         if (!strcmp(mod->file, path)) {
           import = mod;
           break;
@@ -100,7 +100,7 @@ auto load_mod(const ModInfo& info) -> ModManager* {
     // TODO Short random prefix for working dir in script mode.
     mod.name = intern_str(engine, path_to_name(&buf, file));
   }
-  engine->mods.push_val(&mod);
+  engine->mod_parts.push_val(&mod);
   mod.engine = engine;
   mod.file = file;
   // TODO What if you `use` different roots of a multimod?

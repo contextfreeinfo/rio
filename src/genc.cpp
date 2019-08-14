@@ -53,7 +53,7 @@ void gen(Engine* engine) {
     "#include <stdio.h>\n"
   );
   // Now gen each mod.
-  for (auto mod: engine->roots) {
+  for (auto mod: engine->mods) {
     gen_mod(&state, mod);
   }
 }
