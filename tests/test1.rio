@@ -7,6 +7,7 @@ do
   age = 75
   # Need structs next for spans to work.
   scores = [45, 63, 22, -8]
+  words = ["hi", "there"]
   # Then for loop.
   greet(name, age)
   greet_person({name, age = 80})

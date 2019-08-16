@@ -24,8 +24,10 @@ struct Node;
 
 struct Def {
   string name;
-  Node* node;
+  Opt<Node> node;
   Opt<Node> top;
+  // Custom instantiations without a node?
+  Opt<Type> type;
   // Make resolution easier to order.
   bool resolve_started;
   bool resolved;

@@ -20,13 +20,17 @@ auto name_type_sub(Engine* engine, StrBuf* buf, const Type* type) -> void {
     return;
   }
   switch (type->kind) {
+    case Type::Kind::Array: {
+      buf->push_string("rio_Span_");
+      name_type_sub(engine, buf, type->arg);
+      break;
+    }
     case Type::Kind::I32: {
       buf->push_string("i32");
       break;
     }
-    case Type::Kind::Array: {
-      buf->push_string("rio_Span_");
-      name_type_sub(engine, buf, type->arg);
+    case Type::Kind::String: {
+      buf->push_string("string");
       break;
     }
     default: break; 

@@ -7,6 +7,8 @@ struct ResolveState {
   Engine* engine;
   ModManager* mod;
   StrBuf str_buf;
+  // A hack to deal with new defs appearing during resolve.
+  List<Def*> new_defs;
   // TODO A stack of locals or of scopes.
 
   Type& alloc_type(Type::Kind kind = Type::Kind::None) {
@@ -38,17 +40,24 @@ auto resolve_type(ResolveState* state, Node* node) -> void;
 auto resolve(Engine* engine) -> void {
   // The root mods should be sorted before this point.
   for (auto mod: engine->mods) {
+    // TODO Presume future parallel and keep the state separate?
+    // TODO Or unify to prevent allocations?
     ResolveState state;
     state.engine = engine;
     state.mod = mod;
     // Prepare globals and resolve top-level defs.
-    // TODO Always go defs first, then dodge defs except bodies on resolve_expr?
+    // Note that new globals can be defined in each mod as we go, and that's ok.
     ensure_global_refs(mod);
     for (auto def: mod->global_defs) {
       resolve_def(&state, def);
     }
     for (auto def: mod->global_defs) {
       resolve_def_body(&state, def);
+    }
+    // Add the new defs on to the old.
+    // TODO Do they still need resolved?
+    for (auto def: state.new_defs) {
+      mod->global_defs.push(def);
     }
   }
 }
@@ -91,7 +100,7 @@ Type choose_int_type(const Type& type) {
 }
 
 auto ensure_global_refs(ModManager* mod) -> void {
-  auto& globals = mod->root->global_refs;
+  auto& globals = mod->global_refs;
   // See if we haven't built the global refs for this multimod.
   // TODO Just force the root first so we don't need to bother checking?
   if (globals.len()) {
@@ -100,7 +109,7 @@ auto ensure_global_refs(ModManager* mod) -> void {
   // First get all globals from this mod, since they have priority.
   // fprintf(stderr, "mod: %s with %p, at %zu/%zu\n", mod->name, (void*)&globals, globals.len(), globals.capacity());
   // blab = true;
-  for (auto global: mod->root->global_defs) {
+  for (auto global: mod->global_defs) {
     auto insert = globals.get_or_insert(global->name);
     if (insert.inserted) {
       // No conflict. Good.
@@ -113,7 +122,7 @@ auto ensure_global_refs(ModManager* mod) -> void {
     }
   }
   // Then get all globals from use imports.
-  for (auto import: mod->root->uses) {
+  for (auto import: mod->uses) {
     for (auto& global: import->global_defs) {
       auto insert = globals.get_or_insert(global->name);
       if (insert.inserted) {
@@ -122,7 +131,7 @@ auto ensure_global_refs(ModManager* mod) -> void {
         insert.pair->value = global;
       } else {
         // Conflict. See if it's from the current mod or not.
-        if (insert.pair->value->mod == mod->root) {
+        if (insert.pair->value->mod == mod) {
           // fprintf(stderr, "external ignored: %s\n", global->name);
         } else {
           // From somewhere else. Clear it.
@@ -142,7 +151,21 @@ void resolve_array(ResolveState* state, Node* node, const Type& type) {
     // TODO Fuse the types, etc.
     node->type = {Type::Kind::Array, &node->Array.items[0]->type};
     auto name = name_type(state->engine, &state->str_buf, node->type);
-    fprintf(stderr, "hey: %s\n", name);
+    auto insert = state->mod->global_refs.get_or_insert(name);
+    if (insert.inserted) {
+      Def* def = &state->mod->arena.alloc<Def>();
+      def->name = name;
+      // Make a fake node for now.
+      // TODO Make a canonical single node for Span.
+      Node* typedef_node = &state->mod->arena.alloc<Node>();
+      typedef_node->kind = Node::Kind::None;
+      def->top = typedef_node;
+      def->type = &node->type;
+      node->type.def = def;
+      // Store the global.
+      state->new_defs.push(def);
+      insert.pair->value = def;
+    }
   }
 }
 
