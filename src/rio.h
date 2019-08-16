@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+// TODO Make this central for core and c, with main separate?
+
 namespace rio {
 
 // Int types.

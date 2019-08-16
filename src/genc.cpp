@@ -70,6 +70,7 @@ void gen_block(GenState* state, const Node& node) {
     Indent _{state};
     gen_statements(state, node);
   }
+  gen_indent(state);
   printf("}\n");
 }
 

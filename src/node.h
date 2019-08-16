@@ -56,6 +56,7 @@ struct Token {
     End,
     FileEnd,
     Float,
+    For,
     Fun,
     Id,
     Include,
@@ -102,6 +103,7 @@ struct Type {
     I32,
     I64,
     ISize,
+    // TODO Int and uint more like golang? No usize? Signed even for lens?
     Int,
     // Unsigned.
     U8,
@@ -151,6 +153,7 @@ struct Scope {
 
 struct BlockNode {
   Scope scope;
+  Opt<Node> params;
   Slice<Node*> items;
 };
 
@@ -164,6 +167,12 @@ struct CallNode {
   Node* callee;
 };
 
+struct ForNode {
+  Node* arg;
+  Node* expr;
+};
+
+// TODO Rename to ProcNode since proc more general than fun?
 struct FunNode {
   string name;
   bool published;
@@ -203,6 +212,7 @@ struct Node {
     Cast,
     Const,
     Float,
+    For,
     Fun,
     Int,
     Map,
@@ -226,6 +236,7 @@ struct Node {
     BinaryNode Const;
     CallNode Call;
     StringNode Float;
+    ForNode For;
     FunNode Fun;
     StringNode Int;
     ParentNode Map;

@@ -29,6 +29,7 @@ auto parse_call(ParseState* state) -> Node&;
 auto parse_cast(ParseState* state) -> Node&;
 auto parse_def(ParseState* state) -> Node&;
 auto parse_expr(ParseState* state) -> Node&;
+auto parse_for(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
 auto parse_tuple(ParseState* state) -> Node&;
 auto parse_use(ParseState* state) -> Node&;
@@ -104,14 +105,24 @@ auto parse_atom(ParseState* state) -> Node& {
       return parse_tuple(state);
     }
     case Token::Kind::Do: {
-      advance_token(state, true);
-      return parse_block(state, Token::Kind::End);
+      advance_token(state);
+      Node* params = nullptr;
+      if (state->tokens->kind == Token::Kind::RoundL) {
+        params = &parse_tuple(state);
+      }
+      skip_comments(state, true);
+      auto& node = parse_block(state, Token::Kind::End);
+      node.Block.params = params;
+      return node;
     }
     case Token::Kind::Float: {
       Node& node = state->alloc(Node::Kind::Float);
       node.Float.text = tokens->text;
       advance_token(state);
       return node;
+    }
+    case Token::Kind::For: {
+      return parse_for(state);
     }
     case Token::Kind::Fun:
     case Token::Kind::Proc:
@@ -224,6 +235,19 @@ auto parse_def(ParseState* state) -> Node& {
 
 auto parse_expr(ParseState* state) -> Node& {
   return parse_assign(state);
+}
+
+auto parse_for(ParseState* state) -> Node& {
+  Node& node = state->alloc(Node::Kind::For);
+  advance_token(state);
+  node.For.arg = &parse_expr(state);
+  if (state->tokens->kind == Token::Kind::LineEnd) {
+    skip_comments(state, true);
+    node.For.expr = &parse_block(state, Token::Kind::End);
+  } else {
+    node.For.expr = &parse_expr(state);
+  }
+  return node;
 }
 
 auto parse_fun(ParseState* state) -> Node& {

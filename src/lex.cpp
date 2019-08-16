@@ -24,6 +24,7 @@ const KeyId key_ids[] = {
   {str_from("end"), Token::Kind::End},
   // If functions are pure, calls can be reordered, so extracts for statements
   // can be kept simpler ...
+  {str_from("for"), Token::Kind::For},
   {str_from("fun"), Token::Kind::Fun},
   {str_from("include"), Token::Kind::Include},
   {str_from("proc"), Token::Kind::Proc},
