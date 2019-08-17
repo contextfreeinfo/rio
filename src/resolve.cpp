@@ -10,6 +10,7 @@ struct ResolveState {
   // A hack to deal with new defs appearing during resolve.
   List<Def*> new_defs;
   // TODO A stack of locals or of scopes.
+  List<Scope*> scopes;
 
   Type& alloc_type(Type::Kind kind = Type::Kind::None) {
     Type& type = mod->arena.alloc<Type>();
@@ -17,6 +18,22 @@ struct ResolveState {
     return type;
   }
 
+};
+
+struct Enter {
+  Enter(ResolveState* state_, Scope& scope): state{state_} {
+    used = scope.defs.len;
+    if (used) {
+      state->scopes.push_val(&scope);
+    }
+  }
+  ~Enter() {
+    if (used) {
+      state->scopes.pop();
+    }
+  }
+  ResolveState* state;
+  bool used;
 };
 
 Type choose_float_type(const Type& type);
@@ -174,6 +191,7 @@ void resolve_array(ResolveState* state, Node* node, const Type& type) {
 
 void resolve_block(ResolveState* state, Node* node, const Type& type) {
   // TODO The last item should expect the block type.
+  Enter _{state, node->Block.scope};
   for (auto item: node->Block.items) {
     resolve_expr(state, item, {Type::Kind::None});
   }
@@ -356,8 +374,19 @@ auto resolve_proc_sig(
 }
 
 auto resolve_ref(ResolveState* state, Node* node) -> void {
-  // TODO If not yet resolved, call resolve_def on it.
-  node->Ref.def = state->mod->global_refs.get(node->Ref.name);
+  // Look in local scopes first, from last (deepest) to first (outermost).
+  // TODO Stop using unsigned for lengths and indices everywhere.
+  for (int i = state->scopes.len - 1; i >= 0; i -= 1) {
+    auto def = state->scopes[i]->find(node->Ref.name);
+    if (def) {
+      node->Ref.def = def;
+      break;
+    }
+  }
+  if (!node->Ref.def) {
+    // Nothing in local scopes. Look in global.
+    node->Ref.def = state->mod->global_refs.get(node->Ref.name);
+  }
   if (node->Ref.def) {
     resolve_def(state, node->Ref.def);
     node->type = node->Ref.def->node->type;

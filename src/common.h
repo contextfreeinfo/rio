@@ -176,6 +176,14 @@ struct List: CapSlice<Item> {
     memcpy(new_items.items, old_items.items, old_items.len * sizeof(Item));
   }
 
+  auto pop() -> void {
+    if (this->len) {
+      this->len -= 1;
+    } else {
+      fail("nothing to pop");
+    }
+  }
+
   auto push(Item& item) -> Item& {
     auto capacity = this->capacity;
     auto len = this->len;

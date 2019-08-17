@@ -145,6 +145,17 @@ struct Scope {
 
   Slice<Def*> defs;
 
+  auto find(string name) -> Opt<Def> {
+    for (auto def: defs) {
+      // All should be interned.
+      if (name == def->name) {
+        fprintf(stderr, "found local %s\n", name);
+        return def;
+      }
+    }
+    return nullptr;
+  }
+
   auto forget() -> void {
     defs.forget();
   }

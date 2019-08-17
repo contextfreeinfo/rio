@@ -32,9 +32,9 @@ int main() {
   rio_Span_i32 const mores = {(int32_t[]){1}, 1};
   rio_Span_string const words = {(const char*[]){"hi", "there"}, 2};
   {
-    auto rio_for_list = words;
-    for (size_t rio_for_index = 0; rio_for_index < rio_for_list.len; rio_for_index += 1) {
-      auto word = rio_for_list[rio_for_index];
+    rio_Span_string rio_span = words;
+    for (size_t rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+      const char* word = rio_span.items[rio_index];
       printf("word: %s\n", word);
     }
   }

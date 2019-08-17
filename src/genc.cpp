@@ -203,14 +203,15 @@ auto gen_for(GenState* state, const Node& node) -> void {
     // Declare a single expr in case the arg is more than a simple var.
     // TODO Optimize this part away if it is just a ref.
     gen_indent(state);
-    string list_name = "rio_for_list";
-    printf("auto");
+    string list_name = "rio_span";
+    // Generate list value as local.
+    gen_type(state, node.For.arg->type);
     printf(" %s = ", list_name);
     gen_expr(state, *node.For.arg);
     printf(";\n");
     // The loop itself.
     gen_indent(state);
-    string index_name = "rio_for_index";
+    string index_name = "rio_index";
     printf(
       "for (size_t %s = 0; %s < %s.len; %s += 1) {\n",
       index_name, index_name, list_name, index_name
@@ -228,8 +229,8 @@ auto gen_for(GenState* state, const Node& node) -> void {
             name = param->Ref.name;
           }
           gen_indent(state);
-          printf("auto");
-          printf(" %s = %s[%s];\n", name, list_name, index_name);
+          gen_type(state, *node.For.arg->type.arg);
+          printf(" %s = %s.items[%s];\n", name, list_name, index_name);
           // TODO Index.
         }
         // Block contents.

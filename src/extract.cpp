@@ -120,7 +120,7 @@ void extract_fun(ExtractState* state, Node* node) {
       break;
     }
     case Node::Kind::Struct: {
-      // No params here, and host up the block to the upper level for
+      // No params here, and hoist up the block to the upper level for
       // convenience.
       if (node->Fun.expr->kind == Node::Kind::Block) {
         extract_block(state, expr);
