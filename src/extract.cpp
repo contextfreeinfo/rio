@@ -84,6 +84,11 @@ void extract_expr(ExtractState* state, Node* node) {
       extract_expr(state, node->Const.b);
       break;
     }
+    case Node::Kind::For: {
+      extract_expr(state, node->For.arg);
+      extract_expr(state, node->For.expr);
+      break;
+    }
     case Node::Kind::Fun:
     case Node::Kind::Proc:
     case Node::Kind::Struct: {

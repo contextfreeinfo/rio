@@ -7,6 +7,7 @@ do
   age = 75
   # Need structs next for spans to work.
   scores = [45, 63, 22, -8]
+  mores = [1]
   words = ["hi", "there"]
   for words do(word)
     printf("word: %s\n", word)

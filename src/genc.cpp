@@ -24,7 +24,8 @@ auto gen_block(GenState* state, const Node& node) -> void;
 auto gen_const(GenState* state, const Node& node) -> void;
 auto gen_decl_expr(GenState* state, const Node& node) -> void;
 auto gen_decls(GenState* state) -> void;
-void gen_expr(GenState* state, const Node& node);
+auto gen_expr(GenState* state, const Node& node) -> void;
+auto gen_for(GenState* state, const Node& node) -> void;
 auto gen_function(GenState* state, const Node& node) -> void;
 auto gen_function_def(GenState* state, const Node& node) -> void;
 auto gen_function_defs(GenState* state) -> void;
@@ -152,8 +153,13 @@ void gen_expr(GenState* state, const Node& node) {
       printf("%s", node.Float.text);
       break;
     }
+    case Node::Kind::For: {
+      gen_for(state, node);
+      break;
+    }
     case Node::Kind::Fun: {
       gen_function(state, node);
+      break;
     }
     case Node::Kind::Int: {
       printf("%s", node.Int.text);
@@ -188,6 +194,56 @@ void gen_expr(GenState* state, const Node& node) {
       break;
     }
   }
+}
+
+auto gen_for(GenState* state, const Node& node) -> void {
+  printf("{\n");
+  {
+    Indent _{state};
+    // Declare a single expr in case the arg is more than a simple var.
+    // TODO Optimize this part away if it is just a ref.
+    gen_indent(state);
+    string list_name = "rio_for_list";
+    printf("auto");
+    printf(" %s = ", list_name);
+    gen_expr(state, *node.For.arg);
+    printf(";\n");
+    // The loop itself.
+    gen_indent(state);
+    string index_name = "rio_for_index";
+    printf(
+      "for (size_t %s = 0; %s < %s.len; %s += 1) {\n",
+      index_name, index_name, list_name, index_name
+    );
+    {
+      Indent _{state};
+      if (node.For.expr->kind == Node::Kind::Block) {
+        // Params.
+        Node* params = node.For.expr->Block.params;
+        if (params && params->Tuple.items.len) {
+          auto param = params->Tuple.items[0];
+          string name = "";
+          // TODO Cast option.
+          if (param->kind == Node::Kind::Ref) {
+            name = param->Ref.name;
+          }
+          gen_indent(state);
+          printf("auto");
+          printf(" %s = %s[%s];\n", name, list_name, index_name);
+          // TODO Index.
+        }
+        // Block contents.
+        gen_statements(state, *node.For.expr);
+      } else {
+        // No param here.
+        gen_expr(state, *node.For.expr);
+      }
+    }
+    gen_indent(state);
+    printf("}\n");
+  }
+  gen_indent(state);
+  printf("}\n");
 }
 
 auto gen_function(GenState* state, const Node& node) -> void {
@@ -534,6 +590,7 @@ auto gen_typedefs(GenState* state) -> void {
 auto needs_semi(const Node& node) -> bool {
   switch (node.kind) {
     case Node::Kind::Block:
+    case Node::Kind::For:
     case Node::Kind::Fun:
     case Node::Kind::Use: {
       return false;

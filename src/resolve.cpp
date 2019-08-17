@@ -148,7 +148,7 @@ void resolve_array(ResolveState* state, Node* node, const Type& type) {
     resolve_expr(state, item, {Type::Kind::None});
   }
   if (node->Array.items.len) {
-    // TODO Fuse the types, etc.
+    // TODO Generalize to all generics.
     node->type = {Type::Kind::Array, &node->Array.items[0]->type};
     auto name = name_type(state->engine, &state->str_buf, node->type);
     auto insert = state->mod->global_refs.get_or_insert(name);
@@ -165,6 +165,9 @@ void resolve_array(ResolveState* state, Node* node, const Type& type) {
       // Store the global.
       state->new_defs.push(def);
       insert.pair->value = def;
+    } else {
+      // Use what we already defined.
+      node->type.def = insert.pair->value;
     }
   }
 }
@@ -286,6 +289,11 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
     }
     case Node::Kind::Float: {
       node->type = choose_float_type(type);
+      break;
+    }
+    case Node::Kind::For: {
+      resolve_expr(state, node->For.arg, {Type::Kind::None});
+      resolve_expr(state, node->For.expr, {Type::Kind::None});
       break;
     }
     case Node::Kind::Fun:
