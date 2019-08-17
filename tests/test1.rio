@@ -12,6 +12,9 @@ do
   for words do(word)
     printf("word: %s\n", word)
   end
+  for words
+    printf("hi\n")
+  end
   greet(name, age)
   greet_person({name, age = 80})
   # a.b().c.d

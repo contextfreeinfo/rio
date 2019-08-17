@@ -38,6 +38,12 @@ int main() {
       printf("word: %s\n", word);
     }
   }
+  {
+    rio_Span_string rio_span = words;
+    for (size_t rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+      printf("hi\n");
+    }
+  }
   tests_test1_greet(name, age);
   tests_test1_greet_person((tests_test1_Person){.name = name, .age = 80});
 }
