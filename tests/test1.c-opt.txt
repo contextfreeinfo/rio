@@ -1,8 +1,7 @@
 
-real	0m1.247s
-user	0m1.078s
-sys	0m0.156s
-hey: rio_Span_i32
+real	0m1.481s
+user	0m1.047s
+sys	0m0.234s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -17,13 +16,38 @@ typedef struct tests_test1_Person {
   int32_t age;
 } tests_test1_Person;
 
+typedef struct rio_Span_i32 {
+  int32_t* items;
+  size_t len;
+} rio_Span_i32;
+
+typedef struct rio_Span_string {
+  const char** items;
+  size_t len;
+} rio_Span_string;
+
 void tests_test1_greet(const char* const name, int32_t const age);
 void tests_test1_greet_person(tests_test1_Person const person);
 
 int main() {
   const char* const name = "world";
   int32_t const age = 75;
-  struct {int32_t* items; size_t len;} const scores = {(int32_t[]){45, 63, 22, -8}, 4};
+  rio_Span_i32 const scores = {(int32_t[]){45, 63, 22, -8}, 4};
+  rio_Span_i32 const mores = {(int32_t[]){1}, 1};
+  rio_Span_string const words = {(const char*[]){"hi", "there"}, 2};
+  {
+    rio_Span_string rio_span = words;
+    for (size_t rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+      const char* word = rio_span.items[rio_index];
+      printf("word: %s\n", word);
+    }
+  }
+  {
+    rio_Span_string rio_span = words;
+    for (size_t rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+      printf("hi\n");
+    }
+  }
   tests_test1_greet(name, age);
   tests_test1_greet_person((tests_test1_Person){.name = name, .age = 80});
 }
@@ -45,10 +69,10 @@ void tests_test1_greet_person(tests_test1_Person const person) {
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 480
+	Maximum resident set size (kbytes): 472
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 134
+	Minor (reclaiming a frame) page faults: 132
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -60,4 +84,4 @@ void tests_test1_greet_person(tests_test1_Person const person) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 1025272 Aug 13 21:29 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 1025672 Aug 17 17:38 bin/rio

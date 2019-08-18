@@ -107,13 +107,13 @@ auto load_mod(const ModInfo& info) -> ModManager* {
   // TODO What if you `use` different roots of a multimod?
   // TODO Need to determine a best root? Or forbid such doings?
   mod.root = info.root ? info.root : &mod;
-  auto tokens = [&]() {
+  List<Token> tokens;
+  {
     if (verbose) printf("in: %s\n", file);
     auto buf = read_file(file);
-    auto tokens = lex(&mod, file, buf);
+    lex(&mod, file, buf, &tokens);
     free(buf);
-    return tokens;
-  }();
+  }
   if (verbose) printf("tokens: %zu\n", tokens.len);
   // TODO First parse just imports at top, then kick those off.
   // TODO Need some kind of "make"-style dependency driven async work engine.

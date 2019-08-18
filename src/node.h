@@ -149,7 +149,6 @@ struct Scope {
     for (auto def: defs) {
       // All should be interned.
       if (name == def->name) {
-        fprintf(stderr, "found local %s\n", name);
         return def;
       }
     }
