@@ -5,17 +5,21 @@ include "./test1-more"
 do
   name = "world"
   age = 75
-  # Need structs next for spans to work.
+  # Two kinds of spans, and two examples of one.
   scores = [45, 63, 22, -8]
   mores = [1]
   words = ["hi", "there"]
+  # Loop with receiver.
   for words do(word)
     printf("word: %s\n", word)
   end
+  # Loop alone.
   for words
     printf("hi\n")
   end
+  # Call functions.
   greet(name, age)
+  # Struct instance literal, with shorthand.
   greet_person({name, age = 80})
   # a.b().c.d
 end
