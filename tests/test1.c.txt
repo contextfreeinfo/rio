@@ -1,7 +1,7 @@
 
-real	0m0.379s
-user	0m0.219s
-sys	0m0.141s
+real	0m0.380s
+user	0m0.266s
+sys	0m0.063s
 #include <stdint.h>
 #include <stdio.h>
 
@@ -64,15 +64,15 @@ void tests_test1_greet_person(tests_test1_Person const person) {
 	User time (seconds): 0.00
 	System time (seconds): 0.00
 	Percent of CPU this job got: 0%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.03
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.04
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1452
+	Maximum resident set size (kbytes): 1448
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 415
+	Minor (reclaiming a frame) page faults: 412
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -84,4 +84,4 @@ void tests_test1_greet_person(tests_test1_Person const person) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 95504 Aug 17 07:17 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 95456 Aug 17 17:38 bin/rio

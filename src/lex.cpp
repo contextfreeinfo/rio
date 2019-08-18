@@ -76,9 +76,9 @@ auto is_vspace(char c) -> bool {
   return c == '\n' || c == '\r';
 }
 
-auto lex(ModManager* mod, const char* file, const char* buf) -> List<Token> {
-  // TODO Move these to arena or keep them separate?
-  List<Token> tokens;
+auto lex(
+  ModManager* mod, const char* file, const char* buf, List<Token>* tokens
+) -> void {
   const auto start = buf;
   usize line = 1;
   usize col = 1;
@@ -122,13 +122,12 @@ auto lex(ModManager* mod, const char* file, const char* buf) -> List<Token> {
     // Store file name.
     token.file = file;
     // Done with this one.
-    tokens.push(token);
+    tokens->push(token);
     // End at end.
     if (token.kind == Token::Kind::FileEnd) {
       break;
     }
   }
-  return tokens;
 }
 
 auto next_token(const char* buf, bool was_line_end) -> Token {
