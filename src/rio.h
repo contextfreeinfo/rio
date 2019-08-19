@@ -18,6 +18,18 @@ using u32 = uint32_t;
 using u64 = uint64_t;
 using usize = uintptr_t;
 
+using rint = int_fast32_t;
+
+auto int_to_usize(rint i) -> rint {
+  // TODO Fail on too small?
+  return i < 0 ? 0 : static_cast<usize>(i);
+}
+
+auto usize_to_int(usize u) -> rint {
+  // TODO Fail on too big?
+  return u > (SIZE_MAX >> 1) ? INT_FAST32_MAX : static_cast<rint>(u);
+}
+
 // Float types.
 using f32 = float;
 using f64 = double;

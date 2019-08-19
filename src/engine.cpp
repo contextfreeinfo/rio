@@ -19,7 +19,7 @@ auto order_mods(Engine* engine) -> void {
   qsort(
     engine->mods.items, engine->mods.len, sizeof(ModManager*), compare_mods
   );
-  for (usize index = 0; index < engine->mods.len; index += 1) {
+  for (rint index = 0; index < engine->mods.len; index += 1) {
     engine->mods[index]->index = index + 1;
   }
 }
@@ -34,7 +34,7 @@ auto set_mod_indices(ModManager* mod) -> void {
   if (mod->index) {
     return;
   }
-  usize index = 0;
+  rint index = 0;
   for (auto import: mod->uses) {
     set_mod_indices(import);
     index = max(index, import->index);

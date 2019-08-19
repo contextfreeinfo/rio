@@ -13,9 +13,9 @@ auto is_id_start(char c) -> bool;
 auto name_type(Engine* engine, StrBuf* buf, const Type& type) -> string;
 
 struct Pos {
-  usize index;
-  usize line;
-  usize col;
+  rint index;
+  rint line;
+  rint col;
 };
 
 // Def.
@@ -80,7 +80,7 @@ struct Token {
   // TODO We don't need file name on each individual token.
   string file;
   Pos begin;
-  usize len;
+  rint len;
   union {
     opt_string text;
   };
@@ -103,7 +103,6 @@ struct Type {
     I32,
     I64,
     ISize,
-    // TODO Int and uint more like golang? No usize? Signed even for lens?
     Int,
     // Unsigned.
     U8,

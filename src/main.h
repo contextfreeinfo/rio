@@ -60,7 +60,7 @@ struct ModManager: ModInfo {
   List<ModManager*> parts;
 
   // Assigned to roots after extract and before resolve.
-  usize index = 0;
+  rint index = 0;
 
   // To be used only in the root of a multimod.
   // 'Use' imports, pointing only to roots.
@@ -91,7 +91,7 @@ struct Engine {
 constexpr bool verbose = false;
 
 auto has_text(const Token& token) -> bool;
-auto intern(Engine* engine, const char* text, usize nbytes) -> string;
+auto intern(Engine* engine, const char* text, rint nbytes) -> string;
 auto intern_str(Engine* engine, const Str& str) -> string;
 auto load_mod(const ModInfo& info) -> ModManager*;
 auto read_file(const char* name) -> char*;

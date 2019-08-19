@@ -396,7 +396,7 @@ auto resolve_ref(ResolveState* state, Node* node) -> void {
 void resolve_tuple(ResolveState* state, Node* node, const Type& type) {
   auto params = type.kind == Type::Kind::Tuple ? &type.node->Tuple : nullptr;
   auto items = node->Tuple.items;
-  for (usize i = 0; i < items.len; i += 1) {
+  for (rint i = 0; i < items.len; i += 1) {
     Type item_type = {Type::Kind::None};
     if (params) {
       item_type = params->items[i]->type;

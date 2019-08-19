@@ -24,7 +24,7 @@ auto normalized_path(StrBuf* buf, string path) -> Str {
 auto path_to_name(StrBuf* buf, string path) -> Str {
   // Allocate possibly a bit too much, just to make life easier.
   // This shouldn't be called 1000s of times.
-  usize length_max = strlen(path);
+  rint length_max = strlen(path);
   // TODO Make sure nested names like "name/name.rio" see only "name".
   // Find end, excluding any suffix.
   // TODO Extract this.
@@ -38,7 +38,7 @@ auto path_to_name(StrBuf* buf, string path) -> Str {
   if (!strncmp(path, "./", 2)) {
     length_max -= 2;
   }
-  length_max = max(length_max, static_cast<usize>(1));
+  length_max = max(length_max, static_cast<rint>(1));
   buf->reserve(length_max + 1);
   auto res = buf->items;
   // Convert things.
@@ -85,7 +85,7 @@ auto push_parent(StrBuf* buf, string path) -> void {
   }
   if (last) {
     // Include the slash.
-    auto len = static_cast<usize>(last - path + 1);
+    auto len = static_cast<rint>(last - path + 1);
     buf->push_str({const_cast<char*>(path), len});
     normalize_path(buf->items);
   } else {

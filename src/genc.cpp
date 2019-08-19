@@ -3,7 +3,7 @@
 namespace rio { namespace c {
 
 struct GenState {
-  usize indent = 0;
+  rint indent = 0;
   ModManager* mod = nullptr;
   bool start_mod = false;
   bool start_section = false;
@@ -316,14 +316,14 @@ auto gen_globals(GenState* state) -> void {
 }
 
 void gen_indent(GenState* state) {
-  for (usize i = 0; i < state->indent; i += 1) {
+  for (rint i = 0; i < state->indent; i += 1) {
     printf("  ");
   }
 }
 
 void gen_list_items(GenState* state, const Node& node) {
   auto items = node.Tuple.items;
-  for (usize i = 0; i < items.len; i += 1) {
+  for (rint i = 0; i < items.len; i += 1) {
     if (i) {
       printf(", ");
     }
@@ -336,7 +336,7 @@ auto gen_map(GenState* state, const Node& node) -> void {
   gen_type(state, node.type);
   printf("){");
   auto items = node.Map.items;
-  for (usize i = 0; i < items.len; i += 1) {
+  for (rint i = 0; i < items.len; i += 1) {
     auto& item = *items[i];
     if (i) {
       printf(", ");
@@ -388,7 +388,7 @@ void gen_param_items(GenState* state, const Node* node) {
     return;
   }
   auto items = node->Tuple.items;
-  for (usize i = 0; i < items.len; i += 1) {
+  for (rint i = 0; i < items.len; i += 1) {
     auto& item = *items[i];
     if (i) {
       printf(", ");
@@ -435,7 +435,7 @@ void gen_statements(GenState* state, const Node& node) {
   // TODO Make a different version for top level?
   // TODO Just make a gen_function_defs thing for top?
   auto items = node.Block.items;
-  for (usize i = 0; i < items.len; i += 1) {
+  for (rint i = 0; i < items.len; i += 1) {
     gen_indent(state);
     gen_expr(state, *items[i]);
     if (needs_semi(*items[i])) {
@@ -456,7 +456,7 @@ auto gen_struct(GenState* state, const Node& node) -> void {
     Indent _{state};
     auto& block = node.Fun.expr->Block;
     auto items = block.items;
-    for (usize i = 0; i < items.len; i += 1) {
+    for (rint i = 0; i < items.len; i += 1) {
       gen_indent(state);
       gen_expr(state, *items[i]);
       if (needs_semi(*items[i])) {

@@ -80,8 +80,8 @@ auto lex(
   ModManager* mod, const char* file, const char* buf, List<Token>* tokens
 ) -> void {
   const auto start = buf;
-  usize line = 1;
-  usize col = 1;
+  rint line = 1;
+  rint col = 1;
   // Effectively starts at a new line.
   auto was_line_end = true;
   while (true) {
@@ -133,15 +133,15 @@ auto lex(
 auto next_token(const char* buf, bool was_line_end) -> Token {
   auto start = buf;
   auto skip = buf;
-  usize line = 0;
-  usize col = 0;
+  rint line = 0;
+  rint col = 0;
   auto finish = [&](Token token) {
     token.begin.index += skip - start;
     token.begin.line = line;
     token.begin.col = col;
     return token;
   };
-  auto simple_len = [&](Token::Kind kind, usize len) {
+  auto simple_len = [&](Token::Kind kind, rint len) {
     Token token = {kind};
     token.len = len;
     return finish(token);
@@ -174,7 +174,7 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
     case '\0': return simple(Token::Kind::FileEnd);
     case '\n': return simple(Token::Kind::LineEnd);
     case '\r': {
-      usize len = 1;
+      rint len = 1;
       if (*(buf + 1) == '\n') {
         len += 1;
       }
@@ -223,10 +223,10 @@ auto next_token_comment(const char* buf) -> Token {
 auto next_token_id(const char* buf) -> Token {
   auto start = buf;
   for (; *buf && is_id_part(*buf); buf += 1) {}
-  usize len = buf - start;
-  auto key_count = sizeof(key_ids) / sizeof(*key_ids);
+  rint len = buf - start;
+  auto key_count = usize_to_int(sizeof(key_ids) / sizeof(*key_ids));
   auto kind = Token::Kind::Id;
-  for (usize k = 0; k < key_count; ++k) {
+  for (rint k = 0; k < key_count; ++k) {
     if (str_eq(key_ids[k].id, str_sized(start, len))) {
       kind = key_ids[k].key;
     }

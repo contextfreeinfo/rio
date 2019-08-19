@@ -30,7 +30,7 @@ auto load_imports(ModManager* mod) -> void {
     }
     // Good to go. See what we have.
     buf.shrink_string(parent_len);
-    usize offset = 0;
+    rint offset = 0;
     if (!strncmp(name + 1, "./", 2)) {
       // Relative.
       // TODO Parse the string to handle escapes, etc.
@@ -140,7 +140,7 @@ auto parse_options(Engine* engine, Slice<string> args) -> Options {
   StrBuf buf;
   Options options = {0};
   auto past_flags = false;
-  for (usize i = 1; i < args.len; i += 1) {
+  for (rint i = 1; i < args.len; i += 1) {
     auto arg = args[i];
     if (!past_flags && *arg == '-') {
       // TODO Default to actually running things.
@@ -177,7 +177,7 @@ void run(Engine* engine) {
 int main(int argc, const char** argv) {
   using namespace rio;
   Engine engine;
-  engine.options = parse_options(&engine, {argv, static_cast<usize>(argc)});
+  engine.options = parse_options(&engine, {argv, static_cast<rint>(argc)});
   if (!engine.options.in) {
     fail("no input file");
   }

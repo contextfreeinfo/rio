@@ -29,12 +29,12 @@ void extract_expr(ExtractState* state, Node* node);
 void extract_fun(ExtractState* state, Node* node);
 
 // TODO Unify with node_slice_copy?
-auto def_slice_copy(ExtractState* state, usize buf_len_old) -> Slice<Def*> {
+auto def_slice_copy(ExtractState* state, rint buf_len_old) -> Slice<Def*> {
   // Prep space.
   auto& buf = state->defs;
-  usize len = buf.len - buf_len_old;
+  rint len = buf.len - buf_len_old;
   buf.len = buf_len_old;
-  usize nbytes = len * sizeof(*buf.items);
+  rint nbytes = len * sizeof(*buf.items);
   void* items = state->mod->arena.alloc_bytes(nbytes);
   // Copy it in.
   memcpy(items, buf.items + buf_len_old, nbytes);

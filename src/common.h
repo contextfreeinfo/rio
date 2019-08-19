@@ -17,11 +17,11 @@ using Any = const void*;
 
 void fail(const char* message);
 
-u64 hash_bytes(const void *bytes, usize nbytes) {
+u64 hash_bytes(const void *bytes, rint nbytes) {
   // From Vognsen's ion.
   u64 x = 0xcbf29ce484222325;
   const char* buf = static_cast<const char*>(bytes);
-  for (usize i = 0; i < nbytes; ++i) {
+  for (rint i = 0; i < nbytes; ++i) {
     x ^= buf[i];
     x *= 0x100000001b3;
     x ^= x >> 32;
@@ -57,7 +57,7 @@ auto min(Value a, Value b) -> Value {
   return a <= b ? a : b;
 }
 
-auto xmalloc(usize nbytes) -> void*;
+auto xmalloc(rint nbytes) -> void*;
 
 template<typename Item>
 struct Slice {
@@ -65,15 +65,15 @@ struct Slice {
   Item* items;
   // TODO With Item* end, iteration becomes easier ...
   // TODO Some iterator/range type for that? ...
-  usize len;
+  rint len;
   // TODO Alternative with stride also, called Slide?
 
-  auto operator[](usize index) -> Item& {
+  auto operator[](rint index) -> Item& {
     assert(index < len);
     return items[index];
   }
 
-  auto operator[](usize index) const -> const Item& {
+  auto operator[](rint index) const -> const Item& {
     return const_cast<Slice&>(*this)[index];
   }
 
@@ -116,10 +116,10 @@ auto str_eq(Str a, Str b) -> bool {
 }
 
 auto str_from(const char* str) -> const Str {
-  return {const_cast<char*>(str), strlen(str)};
+  return {const_cast<char*>(str), usize_to_int(strlen(str))};
 }
 
-auto str_sized(const char* str, usize len) -> const Str {
+auto str_sized(const char* str, rint len) -> const Str {
   return {const_cast<char*>(str), len};
 }
 
@@ -144,7 +144,7 @@ auto exists(Str str) -> bool {
 
 template<typename Item>
 struct CapSlice: Slice<Item> {
-  usize capacity;
+  rint capacity;
 };
 
 template<typename Item>
@@ -206,7 +206,7 @@ struct List: CapSlice<Item> {
     return push(item);
   }
 
-  auto reserve(usize capacity) -> void {
+  auto reserve(rint capacity) -> void {
     if (capacity <= this->capacity) {
       return;
     }
@@ -241,7 +241,7 @@ struct StrBuf: List<char> {
   }
 
   // Not really safe.
-  auto push_strn(string text, usize len) -> void {
+  auto push_strn(string text, rint len) -> void {
     push_str({const_cast<char*>(text), len});
   }
 
@@ -249,7 +249,7 @@ struct StrBuf: List<char> {
     push_strn(text, strlen(text));
   }
 
-  auto shrink_string(usize len) -> void {
+  auto shrink_string(rint len) -> void {
     assert(len <= this->len);
     this->len = len;
     items[len] = '\0';
@@ -265,9 +265,9 @@ struct Arena {
     }
   }
 
-  void* alloc_bytes(usize nbytes) {
+  void* alloc_bytes(rint nbytes) {
     CapSlice<u8>* box = nullptr;
-    usize index = 0;
+    rint index = 0;
     if (boxes.len) {
       // TODO Better to loop through all current boxes for space?
       box = &boxes.back();
@@ -306,9 +306,9 @@ struct Arena {
   }
 
  private:
-  usize align = 8;
+  rint align = 8;
   List<CapSlice<u8>> boxes;
-  usize default_box_size = 8 << 10;
+  rint default_box_size = 8 << 10;
 };
 
 template<typename Key, typename Value>
@@ -327,7 +327,7 @@ struct Map {
     Pair* pair;
   };
 
-  auto capacity() -> usize {
+  auto capacity() -> rint {
     return pairs.capacity;
   }
 
@@ -355,7 +355,7 @@ struct Map {
     return {pairs.len != old_len, pair};
   }
 
-  auto len() -> usize {
+  auto len() -> rint {
     return pairs.len;
   }
 
@@ -373,12 +373,12 @@ struct Map {
     void distribute(Slice<Pair> new_items, Slice<Pair> old_items) override {
       // if (blab) fprintf(stderr, "dist\n");
       // Remember old then reset for new capacity.
-      usize old_capacity = map.pairs.capacity;
+      rint old_capacity = map.pairs.capacity;
       map.pairs.items = new_items.items;
       map.pairs.len = 0;
       map.pairs.capacity = new_items.len;
       // Rehash and refill.
-      for (usize i = 0; i < old_capacity; i += 1) {
+      for (rint i = 0; i < old_capacity; i += 1) {
         // Cheat into lower level to avoid bounds check.
         // We abuse the meaning of len here.
         auto& pair = old_items.items[i];
@@ -401,8 +401,8 @@ struct Map {
     if (!pairs.capacity) {
       return -1;
     }
-    usize index = hash(key) % pairs.capacity;
-    usize original = index;
+    rint index = hash(key) % pairs.capacity;
+    rint original = index;
     do {
       auto& slot = pairs.items[index];
       if (exists(slot.key)) {

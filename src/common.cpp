@@ -9,7 +9,7 @@ void fail(const char* message) {
   // throw std::runtime_error(message);
 }
 
-auto intern(Engine* engine, const char* text, usize nbytes) -> string {
+auto intern(Engine* engine, const char* text, rint nbytes) -> string {
   // This implementation depends on pointer data staying constant over map
   // resizing, which would be the efficient way to do things.
   // But is it guaranteed?
@@ -54,8 +54,8 @@ auto read_file(const char* name) -> char* {
   return buf;
 }
 
-void* xmalloc(size_t nbytes) {
-  void* result = malloc(nbytes);
+void* xmalloc(rint nbytes) {
+  void* result = malloc(int_to_usize(nbytes));
   if (!result) {
     fail("bad malloc");
   }
