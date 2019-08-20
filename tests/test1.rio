@@ -26,5 +26,5 @@ end
 
 Person struct
   name: string
-  age: i32
+  age: int
 end

@@ -213,7 +213,7 @@ auto gen_for(GenState* state, const Node& node) -> void {
     gen_indent(state);
     string index_name = "rio_index";
     printf(
-      "for (size_t %s = 0; %s < %s.len; %s += 1) {\n",
+      "for (int_fast32_t %s = 0; %s < %s.len; %s += 1) {\n",
       index_name, index_name, list_name, index_name
     );
     {
@@ -504,7 +504,7 @@ void gen_type(GenState* state, const Type& type) {
       break;
     }
     case Type::Kind::Int: {
-      printf("int");
+      printf("int_fast32_t");
       break;
     }
     case Type::Kind::String: {
@@ -579,7 +579,7 @@ auto gen_typedefs(GenState* state) -> void {
         }
         printf("* items;\n");
         gen_indent(state);
-        printf("size_t len;\n");
+        printf("int_fast32_t len;\n");
       }
       printf("} %s;\n", def->name);
     } else {

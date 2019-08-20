@@ -111,7 +111,7 @@ Type choose_int_type(const Type& type) {
       return type;
     }
     default: {
-      return {Type::Kind::I32};
+      return {Type::Kind::Int};
     }
   }
 }
@@ -412,6 +412,8 @@ auto resolve_type(ResolveState* state, Node* node) -> void {
     string name = node->Ref.name;
     if (!strcmp(name, "i32")) {
       node->type = {Type::Kind::I32};
+    } else if (!strcmp(name, "int")) {
+      node->type = {Type::Kind::Int};
     } else if (!strcmp(name, "string")) {
       node->type = {Type::Kind::String};
     } else {

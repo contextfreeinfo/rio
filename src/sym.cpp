@@ -29,6 +29,11 @@ auto name_type_sub(Engine* engine, StrBuf* buf, const Type* type) -> void {
       buf->push_string("i32");
       break;
     }
+    case Type::Kind::Int: {
+      // This is rio_int as opposed to c_int.
+      buf->push_string("int");
+      break;
+    }
     case Type::Kind::String: {
       buf->push_string("string");
       break;
