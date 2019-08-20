@@ -52,6 +52,11 @@ void gen(Engine* engine) {
   printf(
     "#include <stdint.h>\n"
     "#include <stdio.h>\n"
+    "\n"
+    // Use typedef because we want the generated code to be the same on all
+    // platforms, but we might want to push 64-bit for array size sometimes.
+    // We can write some preprocessor up here that auto handles such.
+    "typedef int_fast32_t rio_int;\n"
   );
   // TODO Gen internal mod 0 here?
   // TODO This is where rio_Span_i32 is needed for current test case.
@@ -213,7 +218,7 @@ auto gen_for(GenState* state, const Node& node) -> void {
     gen_indent(state);
     string index_name = "rio_index";
     printf(
-      "for (int_fast32_t %s = 0; %s < %s.len; %s += 1) {\n",
+      "for (rio_int %s = 0; %s < %s.len; %s += 1) {\n",
       index_name, index_name, list_name, index_name
     );
     {
@@ -504,7 +509,7 @@ void gen_type(GenState* state, const Type& type) {
       break;
     }
     case Type::Kind::Int: {
-      printf("int_fast32_t");
+      printf("rio_int");
       break;
     }
     case Type::Kind::String: {
@@ -579,7 +584,7 @@ auto gen_typedefs(GenState* state) -> void {
         }
         printf("* items;\n");
         gen_indent(state);
-        printf("int_fast32_t len;\n");
+        printf("rio_int len;\n");
       }
       printf("} %s;\n", def->name);
     } else {
