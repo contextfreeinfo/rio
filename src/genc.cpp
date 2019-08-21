@@ -40,6 +40,7 @@ void gen_param_items(GenState* state, const Node* node);
 void gen_ref(GenState* state, const Node& node);
 auto gen_ref_def(GenState* state, const Def& def) -> void;
 void gen_type(GenState* state, const Type& type);
+void gen_type_opt(GenState* state, Opt<const Type> type);
 auto gen_typedef(GenState* state, const Node& node) -> void;
 auto gen_typedefs(GenState* state) -> void;
 void gen_statements(GenState* state, const Node& node);
@@ -234,7 +235,7 @@ auto gen_for(GenState* state, const Node& node) -> void {
             name = param->Ref.name;
           }
           gen_indent(state);
-          gen_type(state, *node.For.arg->type.arg);
+          gen_type_opt(state, node.For.arg->type.arg);
           printf(" %s = %s.items[%s];\n", name, list_name, index_name);
           // TODO Index.
         }
@@ -549,6 +550,10 @@ void gen_type(GenState* state, const Type& type) {
       break;
     }
   }
+}
+
+auto gen_type_opt(GenState* state, Opt<const Type> type) -> void {
+  gen_type(state, type ? *type : Type {Type::Kind::None});
 }
 
 auto gen_typedef(GenState* state, const Node& node) -> void {

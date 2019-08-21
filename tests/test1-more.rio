@@ -8,3 +8,9 @@ end
 greet_person proc(person: Person)
   printf("%s is %d years old.\n", person.name, person.age)
 end
+
+report_scores proc(scores: [int])
+  for scores do(score)
+    printf("score: %s\n", score)
+  end
+end

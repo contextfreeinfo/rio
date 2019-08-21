@@ -26,11 +26,13 @@ typedef struct rio_Span_string {
 
 void tests_test1_greet(const char* const name, rio_int const age);
 void tests_test1_greet_person(tests_test1_Person const person);
+void tests_test1_report_scores((!!! TYPE 0 !!!) const scores);
 
 int main() {
   const char* const name = "world";
   rio_int const age = 75;
   rio_Span_int const scores = {(rio_int[]){45, 63, 22, -8}, 4};
+  tests_test1_report_scores(scores);
   rio_Span_int const mores = {(rio_int[]){1}, 1};
   rio_Span_string const words = {(const char*[]){"hi", "there"}, 2};
   {
@@ -57,4 +59,14 @@ void tests_test1_greet(const char* const name, rio_int const age) {
 
 void tests_test1_greet_person(tests_test1_Person const person) {
   printf("%s is %d years old.\n", person.name, person.age);
+}
+
+void tests_test1_report_scores((!!! TYPE 0 !!!) const scores) {
+  {
+    (!!! TYPE 0 !!!) rio_span = scores;
+    for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+      (!!! TYPE 0 !!!) score = rio_span.items[rio_index];
+      printf("score: %s\n", score);
+    }
+  }
 }
