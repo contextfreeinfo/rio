@@ -39,6 +39,7 @@ struct Enter {
 Type choose_float_type(const Type& type);
 Type choose_int_type(const Type& type);
 auto ensure_global_refs(ModManager* mod) -> void;
+auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void;
 void resolve_array(ResolveState* state, Node* node, const Type& type);
 void resolve_block(ResolveState* state, Node* node, const Type& type);
 auto resolve_cast(ResolveState* state, Node* node, const Type& type) -> void;
@@ -160,32 +161,38 @@ auto ensure_global_refs(ModManager* mod) -> void {
   }
 }
 
+auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void {
+  // TODO Generalize to all generics.
+  node->type = {Type::Kind::Array, arg_type};
+  auto name = name_type(state->engine, &state->str_buf, node->type);
+  auto insert = state->mod->global_refs.get_or_insert(name);
+  if (insert.inserted) {
+    Def* def = &state->mod->arena.alloc<Def>();
+    def->name = name;
+    // Make a fake node for now.
+    // TODO Make a canonical single node for Span.
+    Node* typedef_node = &state->mod->arena.alloc<Node>();
+    typedef_node->kind = Node::Kind::None;
+    def->top = typedef_node;
+    def->type = &node->type;
+    node->type.def = def;
+    // Store the global.
+    state->new_defs.push(def);
+    insert.pair->value = def;
+  } else {
+    // Use what we already defined.
+    node->type.def = insert.pair->value;
+  }
+}
+
 void resolve_array(ResolveState* state, Node* node, const Type& type) {
   for (auto item: node->Array.items) {
     resolve_expr(state, item, {Type::Kind::None});
   }
   if (node->Array.items.len) {
-    // TODO Generalize to all generics.
-    node->type = {Type::Kind::Array, &node->Array.items[0]->type};
-    auto name = name_type(state->engine, &state->str_buf, node->type);
-    auto insert = state->mod->global_refs.get_or_insert(name);
-    if (insert.inserted) {
-      Def* def = &state->mod->arena.alloc<Def>();
-      def->name = name;
-      // Make a fake node for now.
-      // TODO Make a canonical single node for Span.
-      Node* typedef_node = &state->mod->arena.alloc<Node>();
-      typedef_node->kind = Node::Kind::None;
-      def->top = typedef_node;
-      def->type = &node->type;
-      node->type.def = def;
-      // Store the global.
-      state->new_defs.push(def);
-      insert.pair->value = def;
-    } else {
-      // Use what we already defined.
-      node->type.def = insert.pair->value;
-    }
+    ensure_span_type(state, node, &node->Array.items[0]->type);
+  } else {
+    // TODO Use expected type to infer span type.
   }
 }
 
@@ -408,20 +415,35 @@ void resolve_tuple(ResolveState* state, Node* node, const Type& type) {
 auto resolve_type(ResolveState* state, Node* node) -> void {
   // TODO Types are actually of type type(id?), but is this ok for casts?
   // TODO Global outer map on interned pointers to types.
-  if (node->kind == Node::Kind::Ref) {
-    string name = node->Ref.name;
-    if (!strcmp(name, "i32")) {
-      node->type = {Type::Kind::I32};
-    } else if (!strcmp(name, "int")) {
-      node->type = {Type::Kind::Int};
-    } else if (!strcmp(name, "string")) {
-      node->type = {Type::Kind::String};
-    } else {
-      // Custom type.
-      node->type = {Type::Kind::User};
-      node->type.def = state->mod->global_refs.get(name);
-      // fprintf(stderr, "Yo dawg in %s: %s -> %p from %p\n", state->mod->name, name, (void*)node->type.def, (void*)&state->mod->global_refs);
+  switch (node->kind) {
+    case Node::Kind::Array: {
+      for (auto item: node->Array.items) {
+        resolve_type(state, item);
+      }
+      if (node->Array.items.len) {
+        ensure_span_type(state, node, &node->Array.items[0]->type);
+      } else {
+        // TODO Error.
+      }
+      break;
     }
+    case Node::Kind::Ref: {
+      string name = node->Ref.name;
+      if (!strcmp(name, "i32")) {
+        node->type = {Type::Kind::I32};
+      } else if (!strcmp(name, "int")) {
+        node->type = {Type::Kind::Int};
+      } else if (!strcmp(name, "string")) {
+        node->type = {Type::Kind::String};
+      } else {
+        // Custom type.
+        node->type = {Type::Kind::User};
+        node->type.def = state->mod->global_refs.get(name);
+        // fprintf(stderr, "Yo dawg in %s: %s -> %p from %p\n", state->mod->name, name, (void*)node->type.def, (void*)&state->mod->global_refs);
+      }
+      break;
+    }
+    default: break;
   }
 }
 

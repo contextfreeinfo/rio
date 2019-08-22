@@ -26,7 +26,7 @@ typedef struct rio_Span_string {
 
 void tests_test1_greet(const char* const name, rio_int const age);
 void tests_test1_greet_person(tests_test1_Person const person);
-void tests_test1_report_scores((!!! TYPE 0 !!!) const scores);
+void tests_test1_report_scores(rio_Span_int const scores);
 
 int main() {
   const char* const name = "world";
@@ -61,7 +61,7 @@ void tests_test1_greet_person(tests_test1_Person const person) {
   printf("%s is %d years old.\n", person.name, person.age);
 }
 
-void tests_test1_report_scores((!!! TYPE 0 !!!) const scores) {
+void tests_test1_report_scores(rio_Span_int const scores) {
   {
     (!!! TYPE 0 !!!) rio_span = scores;
     for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
