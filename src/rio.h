@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 // TODO Make this central for core and c, with main separate?
@@ -11,14 +12,12 @@ using i8 = int8_t;
 using i16 = int16_t;
 using i32 = int32_t;
 using i64 = int64_t;
-using isize = intptr_t;
+using rint = ptrdiff_t;
 using u8 = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
-using usize = uintptr_t;
-
-using rint = int_fast32_t;
+using usize = size_t;
 
 auto int_to_usize(rint i) -> rint {
   // TODO Fail on too small?

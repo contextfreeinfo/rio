@@ -51,13 +51,13 @@ void gen(Engine* engine) {
   // Common heading.
   // TODO Need to keep a tally of all external headers? Libs, too.
   printf(
+    "#include <stddef.h>\n"
     "#include <stdint.h>\n"
     "#include <stdio.h>\n"
     "\n"
     // Use typedef because we want the generated code to be the same on all
-    // platforms, but we might want to push 64-bit for array size sometimes.
-    // We can write some preprocessor up here that auto handles such.
-    "typedef int_fast32_t rio_int;\n"
+    // platforms, but in case we need preprocessor junk, define in advance.
+    "typedef ptrdiff_t rio_int;\n"
   );
   // TODO Gen internal mod 0 here?
   // TODO This is where rio_Span_i32 is needed for current test case.

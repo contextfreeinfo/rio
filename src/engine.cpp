@@ -27,7 +27,7 @@ auto order_mods(Engine* engine) -> void {
 auto compare_mods(const void* a, const  void* b) -> int {
   const ModManager& mod_a = **static_cast<ModManager* const*>(a);
   const ModManager& mod_b = **static_cast<ModManager* const*>(b);
-  return static_cast<isize>(mod_a.index) - static_cast<isize>(mod_b.index);
+  return mod_a.index - mod_b.index;
 }
 
 auto set_mod_indices(ModManager* mod) -> void {

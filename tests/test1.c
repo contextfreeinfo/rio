@@ -1,7 +1,8 @@
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 
-typedef int_fast32_t rio_int;
+typedef ptrdiff_t rio_int;
 
 // tests/test1-other.rio
 

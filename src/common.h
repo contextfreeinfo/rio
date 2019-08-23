@@ -108,7 +108,7 @@ auto str_cmp(Str a, Str b) -> int {
   if (result) {
     return result;
   }
-  return static_cast<isize>(a.len) - static_cast<isize>(b.len);
+  return a.len - b.len;
 }
 
 auto str_eq(Str a, Str b) -> bool {
@@ -397,7 +397,7 @@ struct Map {
     slot->value = value;
   }
 
-  auto get_index(const Key& key) -> isize {
+  auto get_index(const Key& key) -> rint {
     if (!pairs.capacity) {
       return -1;
     }
@@ -422,7 +422,7 @@ struct Map {
   // Creates the pair with zero value if it doesn't exist, and returns the pair.
   auto get_or_insert_no_reserve(const Key& key) -> Pair* {
     // See where to put it.
-    isize index = get_index(key);
+    auto index = get_index(key);
     if (index < 0) {
       fail("no space in map?");
     }
@@ -438,7 +438,7 @@ struct Map {
   // Return value only valid until next resize.
   auto get_pair(const Key& key) -> Opt<Pair> {
     assert(exists(key));
-    isize index = get_index(key);
+    auto index = get_index(key);
     if (index < 0) {
       return nullptr;
     } else {
