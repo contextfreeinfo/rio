@@ -432,7 +432,9 @@ auto resolve_type(ResolveState* state, Node* node) -> void {
     }
     case Node::Kind::Ref: {
       string name = node->Ref.name;
-      if (!strcmp(name, "i32")) {
+      if (!strcmp(name, "float")) {
+        node->type = {Type::Kind::Float};
+      } else if (!strcmp(name, "i32")) {
         node->type = {Type::Kind::I32};
       } else if (!strcmp(name, "int")) {
         node->type = {Type::Kind::Int};

@@ -17,6 +17,8 @@
 - Definitely conflicts between externals count as errors
 - Use/run a dir gets all in dir, use/run a file gets just that file
 - For data files (always [u8])?: data = include "..."
+- Support `int => i32` and `float => f32` with a mod?
+- Call core compiler by name other than `rio` (maybe `rico`?)
 
 ```bash
 ./test -g > tests/test1.c-mem.txt 2>&1

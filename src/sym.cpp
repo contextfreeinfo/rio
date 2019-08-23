@@ -25,6 +25,11 @@ auto name_type_sub(Engine* engine, StrBuf* buf, const Type* type) -> void {
       name_type_sub(engine, buf, type->arg);
       break;
     }
+    case Type::Kind::Float: {
+      // This is rio_float as opposed to c_float.
+      buf->push_string("float");
+      break;
+    }
     case Type::Kind::I32: {
       buf->push_string("i32");
       break;

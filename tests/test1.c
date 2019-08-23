@@ -14,7 +14,13 @@ const char* const tests_test1_other_message = "Hello";
 typedef struct tests_test1_Person {
   const char* name;
   rio_int age;
+  rio_Span_float scores;
 } tests_test1_Person;
+
+typedef struct rio_Span_float {
+  rio_float* items;
+  rio_int len;
+} rio_Span_float;
 
 typedef struct rio_Span_int {
   rio_int* items;

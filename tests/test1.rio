@@ -29,4 +29,5 @@ end
 Person struct
   name: string
   age: int
+  scores: [float]
 end
