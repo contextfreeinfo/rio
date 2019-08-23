@@ -23,16 +23,34 @@ struct ExtractState {
 
 };
 
+auto def_slice_copy(ExtractState* state, rint buf_len_old) -> Slice<Def*>;
 void extract_block(ExtractState* state, Node* node);
 void extract_ref_names(ExtractState* state, Node* node, Node* top);
 void extract_expr(ExtractState* state, Node* node);
 void extract_fun(ExtractState* state, Node* node);
+
+struct Scoper {
+  Scoper(ExtractState* state, Scope* scope) {
+    buf_len_old = state->defs.len;
+    this->scope = scope;
+    this->state = state;
+  }
+  ~Scoper() {
+    scope->defs = def_slice_copy(state, buf_len_old);
+  }
+  rint buf_len_old;
+  Scope* scope;
+  ExtractState* state;
+};
 
 // TODO Unify with node_slice_copy?
 auto def_slice_copy(ExtractState* state, rint buf_len_old) -> Slice<Def*> {
   // Prep space.
   auto& buf = state->defs;
   rint len = buf.len - buf_len_old;
+  if (!len) {
+    return {nullptr, 0};
+  }
   buf.len = buf_len_old;
   rint nbytes = len * sizeof(*buf.items);
   void* items = state->mod->arena.alloc_bytes(nbytes);
@@ -56,8 +74,8 @@ void extract(ModManager* mod) {
 }
 
 void extract_block(ExtractState* state, Node* node) {
+  Scoper scoper{state, &node->Block.scope};
   auto top = node == state->mod->tree;
-  auto buf_len_old = state->defs.len;
   for (auto item: node->Block.items) {
     extract_expr(state, item);
     // Top-level block is main.
@@ -65,7 +83,6 @@ void extract_block(ExtractState* state, Node* node) {
       state->alloc_push("__main__", item);
     }
   }
-  node->Block.scope.defs = def_slice_copy(state, buf_len_old);
 }
 
 void extract_expr(ExtractState* state, Node* node) {
@@ -115,7 +132,23 @@ void extract_fun(ExtractState* state, Node* node) {
   switch (node->kind) {
     case Node::Kind::Fun:
     case Node::Kind::Proc: {
-      // TODO Params in own scope.
+      Scoper scoper{state, &node->Fun.scope};
+      // First params.
+      if (node->Fun.params && node->Fun.params->kind == Node::Kind::Tuple) {
+        // For now, special case this.
+        // TODO Will tuple instance literals only create symbols if const defs
+        // TODO inside?
+        for (auto item: node->Fun.params->Tuple.items) {
+          switch (item->kind) {
+            case Node::Kind::Cast: {
+              extract_ref_names(state, item->Cast.a, node);
+              break;
+            }
+            default: break;
+          }
+        }
+      }
+      // Now the body.
       extract_expr(state, expr);
       break;
     }

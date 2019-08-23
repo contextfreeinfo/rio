@@ -11,6 +11,6 @@ end
 
 report_scores proc(scores: [int])
   for scores do(score)
-    printf("score: %s\n", score)
+    printf("score: %d\n", score)
   end
 end

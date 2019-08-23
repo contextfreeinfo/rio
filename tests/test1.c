@@ -63,10 +63,10 @@ void tests_test1_greet_person(tests_test1_Person const person) {
 
 void tests_test1_report_scores(rio_Span_int const scores) {
   {
-    (!!! TYPE 0 !!!) rio_span = scores;
+    rio_Span_int rio_span = scores;
     for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
-      (!!! TYPE 0 !!!) score = rio_span.items[rio_index];
-      printf("score: %s\n", score);
+      rio_int score = rio_span.items[rio_index];
+      printf("score: %d\n", score);
     }
   }
 }

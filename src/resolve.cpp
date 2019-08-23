@@ -198,7 +198,7 @@ void resolve_array(ResolveState* state, Node* node, const Type& type) {
 
 void resolve_block(ResolveState* state, Node* node, const Type& type) {
   // TODO The last item should expect the block type.
-  Enter _{state, node->Block.scope};
+  Enter scope{state, node->Block.scope};
   for (auto item: node->Block.items) {
     resolve_expr(state, item, {Type::Kind::None});
   }
@@ -207,7 +207,11 @@ void resolve_block(ResolveState* state, Node* node, const Type& type) {
 auto resolve_cast(ResolveState* state, Node* node, const Type& type) -> void {
   resolve_type(state, node->Cast.b);
   node->type = node->Cast.b->type;
-  resolve_expr(state, node->Cast.a, node->Cast.b->type);
+  resolve_expr(state, node->Cast.a, node->type);
+  if (node->Cast.a->type.kind == Type::Kind::None) {
+    // Infer from type to def.
+    node->Cast.a->type = node->type;
+  }
 }
 
 auto resolve_const(ResolveState* state, Node* node, const Type& type) -> void {
@@ -268,8 +272,7 @@ auto resolve_def_body(ResolveState* state, Def* def) -> void {
     }
     case Node::Kind::Fun:
     case Node::Kind::Proc: {
-      // TODO Expect return type.
-      resolve_expr(state, node->Fun.expr, {Type::Kind::None});
+      resolve_expr(state, node, {Type::Kind::None});
       break;
     }
     default: {
@@ -361,6 +364,7 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
 }
 
 auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void {
+  Enter scope{state, node->Fun.scope};
   resolve_proc_sig(state, node, type);
   // TODO Expect proc return type.
   resolve_expr(state, node->Fun.expr, {Type::Kind::None});
