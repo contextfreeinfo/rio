@@ -90,7 +90,7 @@ Type choose_float_type(const Type& type) {
     default: {
       // TODO Default to F32 or F64? C, Java, JS, Python, Rust are all F64.
       // TODO What are Nim, Zig, and Odin?
-      return {Type::Kind::F64};
+      return {Type::Kind::Float};
     }
   }
 }
@@ -102,13 +102,12 @@ Type choose_int_type(const Type& type) {
     case Type::Kind::I16:
     case Type::Kind::I32:
     case Type::Kind::I64:
-    case Type::Kind::ISize:
     case Type::Kind::Int:
     case Type::Kind::U8:
     case Type::Kind::U16:
     case Type::Kind::U32:
     case Type::Kind::U64:
-    case Type::Kind::USize: {
+    case Type::Kind::UInt: {
       return type;
     }
     default: {

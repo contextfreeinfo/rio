@@ -55,8 +55,9 @@ void gen(Engine* engine) {
     "#include <stdint.h>\n"
     "#include <stdio.h>\n"
     "\n"
-    // Use typedef because we want the generated code to be the same on all
+    // Use typedefs because we want the generated code to be the same on all
     // platforms, but in case we need preprocessor junk, define in advance.
+    "typedef double rio_float;\n"
     "typedef ptrdiff_t rio_int;\n"
   );
   // TODO Gen internal mod 0 here?
@@ -491,6 +492,10 @@ void gen_type(GenState* state, const Type& type) {
     }
     case Type::Kind::F64: {
       printf("double");
+      break;
+    }
+    case Type::Kind::Float: {
+      printf("rio_float");
       break;
     }
     case Type::Kind::I8: {

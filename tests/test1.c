@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+typedef double rio_float;
 typedef ptrdiff_t rio_int;
 
 // tests/test1-other.rio
@@ -32,9 +33,10 @@ void tests_test1_report_scores(rio_Span_int const scores);
 int main() {
   const char* const name = "world";
   rio_int const age = 75;
+  rio_float const score = 4.5;
   rio_Span_int const scores = {(rio_int[]){45, 63, 22, -8}, 4};
   tests_test1_report_scores(scores);
-  rio_Span_int const mores = {(rio_int[]){1}, 1};
+  rio_Span_int const mores = {(rio_int[]){1, -5}, 2};
   rio_Span_string const words = {(const char*[]){"hi", "there"}, 2};
   {
     rio_Span_string rio_span = words;

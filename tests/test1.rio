@@ -5,10 +5,11 @@ include "./test1-more"
 do
   name = "world"
   age = 75
+  score = 4.5
   # Two kinds of spans, and two examples of one.
   scores = [45, 63, 22, -8]
   report_scores(scores)
-  mores = [1]
+  mores = [1, -5]
   words = ["hi", "there"]
   # Loop with receiver.
   for words do(word)
