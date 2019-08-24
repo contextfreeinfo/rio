@@ -1,9 +1,13 @@
 
-real	0m0.380s
+real	0m0.378s
 user	0m0.266s
-sys	0m0.063s
+sys	0m0.109s
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+
+typedef double rio_float;
+typedef ptrdiff_t rio_int;
 
 // tests/test1-other.rio
 
@@ -13,38 +17,47 @@ const char* const tests_test1_other_message = "Hello";
 
 typedef struct tests_test1_Person {
   const char* name;
-  int32_t age;
+  rio_int age;
+  rio_Span_float scores;
 } tests_test1_Person;
 
-typedef struct rio_Span_i32 {
-  int32_t* items;
-  size_t len;
-} rio_Span_i32;
+typedef struct rio_Span_float {
+  rio_float* items;
+  rio_int len;
+} rio_Span_float;
+
+typedef struct rio_Span_int {
+  rio_int* items;
+  rio_int len;
+} rio_Span_int;
 
 typedef struct rio_Span_string {
   const char** items;
-  size_t len;
+  rio_int len;
 } rio_Span_string;
 
-void tests_test1_greet(const char* const name, int32_t const age);
+void tests_test1_greet(const char* const name, rio_int const age);
 void tests_test1_greet_person(tests_test1_Person const person);
+void tests_test1_report_scores(rio_Span_int const scores);
 
 int main() {
   const char* const name = "world";
-  int32_t const age = 75;
-  rio_Span_i32 const scores = {(int32_t[]){45, 63, 22, -8}, 4};
-  rio_Span_i32 const mores = {(int32_t[]){1}, 1};
+  rio_int const age = 75;
+  rio_float const score = 4.5;
+  rio_Span_int const scores = {(rio_int[]){45, 63, 22, -8}, 4};
+  tests_test1_report_scores(scores);
+  rio_Span_int const mores = {(rio_int[]){1, -5}, 2};
   rio_Span_string const words = {(const char*[]){"hi", "there"}, 2};
   {
     rio_Span_string rio_span = words;
-    for (size_t rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+    for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
       const char* word = rio_span.items[rio_index];
       printf("word: %s\n", word);
     }
   }
   {
     rio_Span_string rio_span = words;
-    for (size_t rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+    for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
       printf("hi\n");
     }
   }
@@ -52,7 +65,7 @@ int main() {
   tests_test1_greet_person((tests_test1_Person){.name = name, .age = 80});
 }
 
-void tests_test1_greet(const char* const name, int32_t const age) {
+void tests_test1_greet(const char* const name, rio_int const age) {
   printf("%s, %s!\n", tests_test1_other_message, name);
   printf("You are %d years old.\n", age);
 }
@@ -60,19 +73,29 @@ void tests_test1_greet(const char* const name, int32_t const age) {
 void tests_test1_greet_person(tests_test1_Person const person) {
   printf("%s is %d years old.\n", person.name, person.age);
 }
+
+void tests_test1_report_scores(rio_Span_int const scores) {
+  {
+    rio_Span_int rio_span = scores;
+    for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+      rio_int score = rio_span.items[rio_index];
+      printf("score: %d\n", score);
+    }
+  }
+}
 	Command being timed: "./bin/rio tests/test1.rio"
 	User time (seconds): 0.00
 	System time (seconds): 0.00
 	Percent of CPU this job got: 0%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.04
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.05
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1448
+	Maximum resident set size (kbytes): 1472
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 412
+	Minor (reclaiming a frame) page faults: 417
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -84,4 +107,4 @@ void tests_test1_greet_person(tests_test1_Person const person) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 95456 Aug 17 17:38 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 95944 Aug 24 06:09 bin/rio
