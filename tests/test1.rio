@@ -7,7 +7,8 @@ do
   age = 75
   score = 4.5
   # Two kinds of spans, and two examples of one.
-  scores = [45, 63, 22, -8]
+  # Try span of Person after fixing struct order.
+  scores = [45.0, 63.1, 22.2, -8.3]
   report_scores(scores)
   mores = [1, -5]
   words = ["hi", "there"]
@@ -22,7 +23,7 @@ do
   # Call functions.
   greet(name, age)
   # Struct instance literal, with shorthand.
-  greet_person({name, age = 80})
+  show_person({name, age = 80, scores})
   # a.b().c.d
 end
 

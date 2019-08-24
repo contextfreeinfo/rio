@@ -5,12 +5,19 @@ greet proc(name: string, age: int)
   printf("You are %d years old.\n", age)
 end
 
-greet_person proc(person: Person)
-  printf("%s is %d years old.\n", person.name, person.age)
-end
-
-report_scores proc(scores: [int])
+report_scores proc(scores: [float])
   for scores do(score)
     printf("score: %d\n", score)
+  end
+end
+
+show_person proc(person: Person)
+  printf("%s is %d years old.\n", person.name, person.age)
+  report_scores(person.scores)
+end
+
+show_persons proc(persons: [Person])
+  for persons do(person)
+    show_person(person)
   end
 end

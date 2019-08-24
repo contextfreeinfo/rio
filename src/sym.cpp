@@ -43,6 +43,16 @@ auto name_type_sub(Engine* engine, StrBuf* buf, const Type* type) -> void {
       buf->push_string("string");
       break;
     }
+    case Type::Kind::User: {
+      if (type->def) {
+        if (type->def->mod) {
+          buf->push_string(type->def->mod->name);
+          buf->push_string("_");
+        }
+        buf->push_string(type->def->name);
+      }
+      break;
+    }
     default: break; 
   }
 }
