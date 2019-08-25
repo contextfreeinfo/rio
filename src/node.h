@@ -34,6 +34,8 @@ struct Def {
   // And cache for faster generation.
   // Should refer only to cases in the current mod, since mods are acyclic.
   Slice<Def*> uses;
+  // Only matters for global struct types?
+  rint depth;
   // Only for globals. If present, references the mod root.
   Opt<ModManager> mod;
 };

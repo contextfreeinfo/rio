@@ -168,6 +168,8 @@ auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void {
   if (insert.inserted) {
     Def* def = &state->mod->arena.alloc<Def>();
     def->name = name;
+    // The namespace is from the original, but it appears here in resolution.
+    def->mod = state->mod;
     // Make a fake node for now.
     // TODO Make a canonical single node for Span.
     Node* typedef_node = &state->mod->arena.alloc<Node>();

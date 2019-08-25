@@ -7,7 +7,7 @@ end
 
 report_scores proc(scores: [float])
   for scores do(score)
-    printf("score: %d\n", score)
+    printf("score: %f\n", score)
   end
 end
 

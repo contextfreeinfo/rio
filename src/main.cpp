@@ -169,6 +169,9 @@ void run(Engine* engine) {
   // TODO Implement parallel dependency engine a la make.
   order_mods(engine);
   resolve(engine);
+  for (auto mod: engine->mods) {
+    order_types(mod);
+  }
   c::gen(engine);
 }
 

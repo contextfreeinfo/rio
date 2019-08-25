@@ -19,6 +19,8 @@
 - For data files (always [u8])?: data = include "..."
 - Support `int => i32` and `float => f32` with a mod?
 - Call core compiler by name other than `rio` (maybe `rico`?)
+- Structs always public fields only? Need classes for private (priv default)?
+- Always pointers to structs and classes by default? `[val Thing]` vs `[Thing]`?
 
 ```bash
 ./test -g > tests/test1.c-mem.txt 2>&1

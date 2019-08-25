@@ -11,21 +11,10 @@ const char* const tests_test1_other_message = "Hello";
 
 // tests/test1.rio
 
-typedef struct tests_test1_Person {
-  const char* name;
-  rio_int age;
-  rio_Span_float scores;
-} tests_test1_Person;
-
 typedef struct rio_Span_float {
   rio_float* items;
   rio_int len;
 } rio_Span_float;
-
-typedef struct rio_Span_tests_test1_Person {
-  tests_test1_Person* items;
-  rio_int len;
-} rio_Span_tests_test1_Person;
 
 typedef struct rio_Span_int {
   rio_int* items;
@@ -36,6 +25,17 @@ typedef struct rio_Span_string {
   const char** items;
   rio_int len;
 } rio_Span_string;
+
+typedef struct tests_test1_Person {
+  const char* name;
+  rio_int age;
+  rio_Span_float scores;
+} tests_test1_Person;
+
+typedef struct rio_Span_tests_test1_Person {
+  tests_test1_Person* items;
+  rio_int len;
+} rio_Span_tests_test1_Person;
 
 void tests_test1_greet(const char* const name, rio_int const age);
 void tests_test1_report_scores(rio_Span_float const scores);
@@ -77,7 +77,7 @@ void tests_test1_report_scores(rio_Span_float const scores) {
     rio_Span_float rio_span = scores;
     for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
       rio_float score = rio_span.items[rio_index];
-      printf("score: %d\n", score);
+      printf("score: %f\n", score);
     }
   }
 }
