@@ -47,7 +47,6 @@ int main() {
   rio_int const age = 75;
   rio_float const score = 4.5;
   rio_Span_float const scores = {(rio_float[]){45.0, 63.1, 22.2, -8.3}, 4};
-  tests_test1_report_scores(scores);
   rio_Span_int const mores = {(rio_int[]){1, -5}, 2};
   rio_Span_string const words = {(const char*[]){"hi", "there"}, 2};
   {

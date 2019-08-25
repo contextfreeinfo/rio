@@ -9,7 +9,6 @@ do
   # Two kinds of spans, and two examples of one.
   # Try span of Person after fixing struct order.
   scores = [45.0, 63.1, 22.2, -8.3]
-  report_scores(scores)
   mores = [1, -5]
   words = ["hi", "there"]
   # Loop with receiver.
