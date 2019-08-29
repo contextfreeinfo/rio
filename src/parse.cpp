@@ -319,13 +319,14 @@ auto parse_tuple(ParseState* state) -> Node& {
       if (state->tokens->kind == Token::Kind::Comma) {
         advance_token(state, true);
       }
+      if (!more_tokens(state, end)) {
+        // That was a trailing comma.
+        break;
+      }
     }
     auto kid = &parse_expr(state);
     state->node_buf.push(kid);
     past_first = true;
-  }
-  if (state->tokens->kind == Token::Kind::Comma) {
-    advance_token(state, true);
   }
   node.Tuple.items = node_slice_copy(state, buf_len_old);
   advance_token(state);
