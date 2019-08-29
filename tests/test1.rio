@@ -22,7 +22,7 @@ do
   # Call functions.
   greet(name, age)
   # Struct instance literal, with shorthand.
-  show_person({name, age = 80, scores})
+  show_persons([{name, age = 80, scores}])
   # a.b().c.d
 end
 

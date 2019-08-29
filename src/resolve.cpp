@@ -187,8 +187,13 @@ auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void {
 }
 
 void resolve_array(ResolveState* state, Node* node, const Type& type) {
+  const Type none_type = {Type::Kind::None};
+  const Type* item_type = &none_type;
+  if (type.kind == Type::Kind::Array && type.arg) {
+    item_type = type.arg;
+  }
   for (auto item: node->Array.items) {
-    resolve_expr(state, item, {Type::Kind::None});
+    resolve_expr(state, item, *item_type);
   }
   if (node->Array.items.len) {
     ensure_span_type(state, node, &node->Array.items[0]->type);

@@ -122,7 +122,9 @@ void gen_expr(GenState* state, const Node& node) {
       // TODO And compiling under c++ is also very useful.
       // TODO Either way, before we can finish this, we need structs and maybe
       // TODO tuples.
-      printf("{(");
+      printf("(");
+      gen_type(state, node.type);
+      printf("){(");
       if (node.type.arg) {
         gen_type(state, *node.type.arg);
       } else {

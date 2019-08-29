@@ -46,9 +46,9 @@ int main() {
   const char* const name = "world";
   rio_int const age = 75;
   rio_float const score = 4.5;
-  rio_Span_float const scores = {(rio_float[]){45.0, 63.1, 22.2, -8.3}, 4};
-  rio_Span_int const mores = {(rio_int[]){1, -5}, 2};
-  rio_Span_string const words = {(const char*[]){"hi", "there"}, 2};
+  rio_Span_float const scores = (rio_Span_float){(rio_float[]){45.0, 63.1, 22.2, -8.3}, 4};
+  rio_Span_int const mores = (rio_Span_int){(rio_int[]){1, -5}, 2};
+  rio_Span_string const words = (rio_Span_string){(const char*[]){"hi", "there"}, 2};
   {
     rio_Span_string rio_span = words;
     for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
@@ -63,7 +63,7 @@ int main() {
     }
   }
   tests_test1_greet(name, age);
-  tests_test1_show_person((tests_test1_Person){.name = name, .age = 80, .scores = scores});
+  tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[]){(tests_test1_Person){.name = name, .age = 80, .scores = scores}}, 1});
 }
 
 void tests_test1_greet(const char* const name, rio_int const age) {
