@@ -40,19 +40,20 @@ Type choose_float_type(const Type& type);
 Type choose_int_type(const Type& type);
 auto ensure_global_refs(ModManager* mod) -> void;
 auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void;
-void resolve_array(ResolveState* state, Node* node, const Type& type);
-void resolve_block(ResolveState* state, Node* node, const Type& type);
+auto resolve_array(ResolveState* state, Node* node, const Type& type) -> void;
+auto resolve_block(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_cast(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_const(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_def(ResolveState* state, Def* def) -> void;
 auto resolve_def_body(ResolveState* state, Def* def) -> void;
-void resolve_expr(ResolveState* state, Node* node, const Type& type);
+auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void;
+auto resolve_map(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_proc_sig(
   ResolveState* state, Node* node, const Type& type
 ) -> void;
 auto resolve_ref(ResolveState* state, Node* node) -> void;
-void resolve_tuple(ResolveState* state, Node* node, const Type& type);
+auto resolve_tuple(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_type(ResolveState* state, Node* node) -> void;
 
 auto resolve(Engine* engine) -> void {
@@ -222,11 +223,12 @@ auto resolve_cast(ResolveState* state, Node* node, const Type& type) -> void {
 
 auto resolve_const(ResolveState* state, Node* node, const Type& type) -> void {
   resolve_expr(state, node->Const.a, {Type::Kind::None});
+  resolve_expr(state, node->Const.b, type);
   if (node->Const.a->type.kind == Type::Kind::None) {
     // Infer from value to def.
-    resolve_expr(state, node->Const.b, {Type::Kind::None});
     node->Const.a->type = node->Const.b->type;
   }
+  node->type = node->Const.a->type;
 }
 
 auto resolve_def(ResolveState* state, Def* def) -> void {
@@ -340,7 +342,7 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       break;
     }
     case Node::Kind::Map: {
-      node->type = type;
+      resolve_map(state, node, type);
       break;
     }
     case Node::Kind::Ref: {
@@ -366,6 +368,45 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       // printf("(!!! BROKEN %d !!!)", static_cast<int>(node.kind));
       break;
     }
+  }
+}
+
+auto resolve_map(ResolveState* state, Node* node, const Type& type) -> void {
+  node->type = type;
+  if (!(
+    type.kind == Type::Kind::User && type.def && type.def->top &&
+    type.def->top->kind == Node::Kind::Struct
+  )) return;
+  auto& scope = type.def->top->Fun.scope;
+  Type none_type = {Type::Kind::None};
+  for (auto item: node->Map.items) {
+    // Get the name, so we can know the type.
+    string name = nullptr;
+    switch (item->kind) {
+      case Node::Kind::Const: {
+        if (item->Const.a->kind == Node::Kind::Ref) {
+          name = item->Const.a->Ref.name;
+        }
+        break;
+      }
+      case Node::Kind::Ref: {
+        name = item->Ref.name;
+        break;
+      }
+      default: {
+        // TODO Error.
+        break;
+      }
+    }
+    if (!name) {
+      // TODO Error.
+      continue;
+    }
+    // We have a name.
+    auto item_def = scope.find(name);
+    auto item_type =
+      item_def && item_def->top ? &item_def->top->type : &none_type;
+    resolve_expr(state, item, *item_type);
   }
 }
 

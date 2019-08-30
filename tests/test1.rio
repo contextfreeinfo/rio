@@ -10,7 +10,7 @@ do
   score = 4.5
   # Two kinds of spans, and two examples of one.
   # Try span of Person after fixing struct order.
-  scores = [45.0, 63.1, 22.2, -8.3,]
+  scores = [45.0, 63.1, 22.2, -8.3]
   mores = [1, -5]
   words = ["hi", "there"]
   # Loop with receiver.
@@ -24,7 +24,10 @@ do
   # Call functions.
   greet(name, age)
   # Struct instance literal, with shorthand.
-  show_persons([{name, age = 80, scores}])
+  show_persons([
+    {name, age = 80, scores},
+    {age = 5, name = "Me", scores = [2.5]},
+  ])
   # a.b().c.d
 end
 

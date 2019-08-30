@@ -96,6 +96,11 @@ void extract_expr(ExtractState* state, Node* node) {
       extract_expr(state, node->Call.args);
       break;
     }
+    case Node::Kind::Cast: {
+      extract_ref_names(state, node->Const.a, node);
+      // TODO Extract from ad hoc structural types?
+      break;
+    }
     case Node::Kind::Const: {
       extract_ref_names(state, node->Const.a, node);
       extract_expr(state, node->Const.b);

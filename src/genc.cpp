@@ -130,7 +130,8 @@ void gen_expr(GenState* state, const Node& node) {
       } else {
         gen_type(state, {Type::Kind::None});
       }
-      printf("[]){");
+      // Include the size because tcc sometimes needs it.
+      printf("[%d]){", node.Array.items.len);
       gen_list_items(state, node);
       printf("}, %zu", node.Array.items.len);
       printf("}");
