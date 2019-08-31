@@ -12,6 +12,7 @@ For a sample, this Rio script:
 use "c"
 
 do
+  # Assignment here declares new *const* values
   name = "Alice"
   age = 40
   show_persons([
