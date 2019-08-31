@@ -16,7 +16,8 @@ do
   name = "Alice"
   age = 40
   show_persons([
-    {name, age},
+    # Shorthand property names work like JS or Rust
+    {age, name},
     {name = "Bernie", age = 39},
   ])
 end
@@ -62,7 +63,7 @@ int main() {
   rio_int const age = 40;
   sample2_show_persons(
     (rio_Span_sample2_Person){(sample2_Person[2]){
-      (sample2_Person){.name = name, .age = age},
+      (sample2_Person){.age = age, .name = name},
       (sample2_Person){.name = "Bernie", .age = 39}
     }, 2}
   );
@@ -82,9 +83,11 @@ void sample2_show_persons(rio_Span_sample2_Person const persons) {
 ## Status
 
 - A few things work (like the example above!).
-- Module includes (for combining multiple files) and uses (for separate modules).
-- No error checking.
+- Many other things don't yet.
+- No error checking at all yet.
+- Supports relative path module includes (for combining multiple files) and uses (for separate modules).
 - Coding ground up with language server in mind.
 - Uses arenas, interning, and so on with the hopes of being efficient.
 - Coded in C++ for now but *without* the C++ std lib for faster compiling and fewer dependencies later down the road.
+- Current strategy: Support enough features I can port the compiler to Rio, then port, then finish and polish.
 - Testing output in tcc, since high speed compilation is great. (And testing in gcc, too.)
