@@ -6,7 +6,7 @@ A script-feeling, safe, naturally compatible replacement for C, with no runtime 
 
 ## Description
 
-For a sample, this script:
+For a sample, this Rio script:
 
 ```ruby
 use "c"
