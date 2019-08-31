@@ -85,7 +85,17 @@ void gen_block(GenState* state, const Node& node) {
 auto gen_const(GenState* state, const Node& node) -> void {
   gen_type(state, node.Const.a->type);
   printf(" const ");
-  gen_expr(state, *node.Const.a);
+  switch (node.Const.a->kind) {
+    case Node::Kind::Cast: {
+      // We already generated the type above, so skip the repeat.
+      gen_expr(state, *node.Const.a->Cast.a);
+      break;
+    }
+    default: {
+      gen_expr(state, *node.Const.a);
+      break;
+    }
+  }
   printf(" = ");
   gen_expr(state, *node.Const.b);
 }

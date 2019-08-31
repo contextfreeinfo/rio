@@ -45,7 +45,7 @@ void tests_test1_show_persons(rio_Span_tests_test1_Person const persons);
 int main() {
   const char* const name = "world";
   rio_int const age = 75;
-  rio_float const score = 4.5;
+  rio_float const score = 4;
   rio_Span_float const scores = (rio_Span_float){(rio_float[4]){45.0, 63.1, 22.2, -8.3}, 4};
   rio_Span_int const mores = (rio_Span_int){(rio_int[2]){1, -5}, 2};
   rio_Span_string const words = (rio_Span_string){(const char*[2]){"hi", "there"}, 2};

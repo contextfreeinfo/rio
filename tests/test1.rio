@@ -4,10 +4,8 @@ include "./test1-more"
 
 do
   name = "world"
-  # TODO age: int = 75
-  # TODO age = 75: int
   age = 75
-  score = 4.5
+  score: float = 4
   # Two kinds of spans, and two examples of one.
   # Try span of Person after fixing struct order.
   scores = [45.0, 63.1, 22.2, -8.3]

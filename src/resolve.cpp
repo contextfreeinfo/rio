@@ -99,6 +99,11 @@ Type choose_float_type(const Type& type) {
 Type choose_int_type(const Type& type) {
   // TODO Explicit suffixes on literals.
   switch (type.kind) {
+    // Support type promotion to floats on literals.
+    case Type::Kind::F32:
+    case Type::Kind::F64:
+    case Type::Kind::Float:
+    // And support int types, too, of course.
     case Type::Kind::I8:
     case Type::Kind::I16:
     case Type::Kind::I32:
@@ -187,7 +192,7 @@ auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void {
   }
 }
 
-void resolve_array(ResolveState* state, Node* node, const Type& type) {
+auto resolve_array(ResolveState* state, Node* node, const Type& type) -> void {
   const Type none_type = {Type::Kind::None};
   const Type* item_type = &none_type;
   if (type.kind == Type::Kind::Array && type.arg) {
@@ -203,7 +208,7 @@ void resolve_array(ResolveState* state, Node* node, const Type& type) {
   }
 }
 
-void resolve_block(ResolveState* state, Node* node, const Type& type) {
+auto resolve_block(ResolveState* state, Node* node, const Type& type) -> void {
   // TODO The last item should expect the block type.
   Enter scope{state, node->Block.scope};
   for (auto item: node->Block.items) {
@@ -222,8 +227,10 @@ auto resolve_cast(ResolveState* state, Node* node, const Type& type) -> void {
 }
 
 auto resolve_const(ResolveState* state, Node* node, const Type& type) -> void {
-  resolve_expr(state, node->Const.a, {Type::Kind::None});
-  resolve_expr(state, node->Const.b, type);
+  resolve_expr(state, node->Const.a, type);
+  auto* a_type = &node->Const.a->type;
+  auto* expected_b_type = a_type->kind == Type::Kind::None ? &type : a_type;
+  resolve_expr(state, node->Const.b, *expected_b_type);
   if (node->Const.a->type.kind == Type::Kind::None) {
     // Infer from value to def.
     node->Const.a->type = node->Const.b->type;
