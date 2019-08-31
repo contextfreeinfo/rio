@@ -31,6 +31,7 @@ auto parse_def(ParseState* state) -> Node&;
 auto parse_expr(ParseState* state) -> Node&;
 auto parse_for(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
+auto parse_switch(ParseState* state) -> Node&;
 auto parse_tuple(ParseState* state) -> Node&;
 auto parse_use(ParseState* state) -> Node&;
 void skip_comments(ParseState* state, bool skip_lines = false);
@@ -148,6 +149,9 @@ auto parse_atom(ParseState* state) -> Node& {
       node.String.text = tokens->text;
       advance_token(state);
       return node;
+    }
+    case Token::Kind::Switch: {
+      return parse_switch(state);
     }
     default: {
       if (verbose) printf("junk: %s\n", token_name(*tokens));
@@ -281,6 +285,17 @@ auto parse_fun(ParseState* state) -> Node& {
     node.Fun.expr = &parse_expr(state);
   }
   if (verbose) printf("end fun\n");
+  return node;
+}
+
+auto parse_switch(ParseState* state) -> Node& {
+  Node& node = state->alloc(Node::Kind::Switch);
+  advance_token(state);
+  if (state->tokens->kind != Token::Kind::LineEnd) {
+    // Switch has an arg.
+    node.Switch.arg = &parse_expr(state);
+  }
+  skip_comments(state, true);
   return node;
 }
 

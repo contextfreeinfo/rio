@@ -55,6 +55,7 @@ struct Token {
     CurlyR,
     Do,
     Dot,
+    Else,
     End,
     FileEnd,
     Float,
@@ -75,6 +76,7 @@ struct Token {
     SquareR,
     String,
     Struct,
+    Switch,
     Update,
     Use,
   };
@@ -207,6 +209,15 @@ struct StringNode {
   string text;
 };
 
+struct SwitchNode {
+  Opt<Node> arg;
+  Slice<Node*> items;
+};
+
+struct UnaryNode {
+  Node* expr;
+};
+
 struct UseNode {
   string name;
   Token::Kind kind;
@@ -220,8 +231,10 @@ struct Node {
     Array,
     Block,
     Call,
+    Case,
     Cast,
     Const,
+    Else,
     Float,
     For,
     Fun,
@@ -234,6 +247,7 @@ struct Node {
     Struct,
     Tuple,
     Use,
+    Switch,
   };
 
   Kind kind;
@@ -246,6 +260,8 @@ struct Node {
     BinaryNode Cast;
     BinaryNode Const;
     CallNode Call;
+    ForNode Case;
+    UnaryNode Else;
     StringNode Float;
     ForNode For;
     FunNode Fun;
@@ -254,6 +270,7 @@ struct Node {
     BinaryNode Member;
     RefNode Ref;
     StringNode String;
+    SwitchNode Switch;
     ParentNode Tuple;
     UseNode Use;
   };

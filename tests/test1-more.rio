@@ -12,7 +12,19 @@ report_scores proc(scores: [float])
 end
 
 show_person proc(person: Person)
-  printf("%s is %td years old.\n", person.name, person.age)
+  printf("%s is %td years old (", person.name, person.age)
+  switch
+    person.age >= 65
+      printf("senior")
+    end
+    person.age < 18
+      printf("minor")
+    end
+    else
+      printf("adult")
+    end
+  end
+  printf(")\n")
   report_scores(person.scores)
 end
 

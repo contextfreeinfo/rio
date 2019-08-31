@@ -84,8 +84,11 @@ void tests_test1_report_scores(rio_Span_float const scores) {
 }
 
 void tests_test1_show_person(tests_test1_Person const person) {
-  printf("%s is %td years old.\n", person.name, person.age);
-  tests_test1_report_scores(person.scores);
+  printf("%s is %td years old (", person.name, person.age);
+  (!!! BROKEN 20 !!!);
+  person.age;
+  rio_int const (!!! BROKEN 0 !!!) = 65;
+  printf("senior");
 }
 
 void tests_test1_show_persons(rio_Span_tests_test1_Person const persons) {
