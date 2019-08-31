@@ -16,7 +16,7 @@ do
   name = "Alice"
   age = 40
   show_persons([
-    # Shorthand property names work like JS or Rust
+    # Shorthand field names work like JS or Rust
     {age, name},
     {name = "Bernie", age = 39},
   ])
