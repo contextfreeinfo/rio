@@ -70,7 +70,7 @@ int main() {
 
 void tests_test1_greet(const char* const name, rio_int const age) {
   printf("%s, %s!\n", tests_test1_other_message, name);
-  printf("You are %d years old.\n", age);
+  printf("You are %td years old.\n", age);
 }
 
 void tests_test1_report_scores(rio_Span_float const scores) {
@@ -84,7 +84,7 @@ void tests_test1_report_scores(rio_Span_float const scores) {
 }
 
 void tests_test1_show_person(tests_test1_Person const person) {
-  printf("%s is %d years old.\n", person.name, person.age);
+  printf("%s is %td years old.\n", person.name, person.age);
   tests_test1_report_scores(person.scores);
 }
 

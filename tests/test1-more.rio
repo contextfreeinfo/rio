@@ -2,7 +2,7 @@
 
 greet proc(name: string, age: int)
   printf("%s, %s!\n", message, name)
-  printf("You are %d years old.\n", age)
+  printf("You are %td years old.\n", age)
 end
 
 report_scores proc(scores: [float])
@@ -12,7 +12,7 @@ report_scores proc(scores: [float])
 end
 
 show_person proc(person: Person)
-  printf("%s is %d years old.\n", person.name, person.age)
+  printf("%s is %td years old.\n", person.name, person.age)
   report_scores(person.scores)
 end
 
