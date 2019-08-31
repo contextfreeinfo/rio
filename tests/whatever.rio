@@ -1,23 +1,29 @@
-Something = class
+# This file is just for exploring thoughts.
+# Nothing here compiles right now.
 
-  Something(this, data: *That)
-    this.data = data
+# Probably have classes with default private for encapsulating behavior?
+# As opposed to structs for data modeling only and everything public?
+Something pub class
+
+  # Up to one constructor for literal expressions (e.g., `(that)`)?
+  # Alternatively just require external functions to construct.
+  new pub fun(data: That)
+    # Return by expression, with shorthand field init.
+    {data}
   end
 
   # Method
-  act(this)
-    this.data -> apply
+  act pub proc(this)
+    this.data->apply
     loop = while true
       break loop => 'great'
     end
   end
 
-  private
-
-  data: *That
+  data: That
 
   # Pointer to function with default assignment
-  apply = fun(data: *That)
+  apply = fun(data: That)
     # Do something
   end
 
