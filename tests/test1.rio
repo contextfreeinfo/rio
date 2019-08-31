@@ -10,6 +10,7 @@ do
   # Try span of Person after fixing struct order.
   scores = [45.0, 63.1, 22.2, -8.3]
   mores = [1, -5]
+  cores: [int] = []
   words = ["hi", "there"]
   # Loop with receiver.
   for words do(word)
@@ -22,8 +23,10 @@ do
   # Call functions.
   greet(name, age)
   # Struct instance literal, with shorthand.
+  person: Person = {name, age = 80, scores}
   show_persons([
-    {name, age = 80, scores},
+    # TODO Go to structs by ref by default.
+    person,
     {age = 5, name = "Me", scores = [2.5]},
   ])
   # a.b().c.d

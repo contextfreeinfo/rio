@@ -134,16 +134,22 @@ void gen_expr(GenState* state, const Node& node) {
       // TODO tuples.
       printf("(");
       gen_type(state, node.type);
-      printf("){(");
-      if (node.type.arg) {
-        gen_type(state, *node.type.arg);
+      printf("){");
+      if (node.Array.items.len) {
+        printf("(");
+        if (node.type.arg) {
+          gen_type(state, *node.type.arg);
+        } else {
+          gen_type(state, {Type::Kind::None});
+        }
+        // Include the size because tcc sometimes needs it.
+        printf("[%td]){", node.Array.items.len);
+        gen_list_items(state, node);
+        printf("}, %td", node.Array.items.len);
       } else {
-        gen_type(state, {Type::Kind::None});
+        // Null pointer and 0 length.
+        printf("0");
       }
-      // Include the size because tcc sometimes needs it.
-      printf("[%td]){", node.Array.items.len);
-      gen_list_items(state, node);
-      printf("}, %td", node.Array.items.len);
       printf("}");
       break;
     }

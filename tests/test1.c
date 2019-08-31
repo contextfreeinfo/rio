@@ -48,6 +48,7 @@ int main() {
   rio_float const score = 4;
   rio_Span_float const scores = (rio_Span_float){(rio_float[4]){45.0, 63.1, 22.2, -8.3}, 4};
   rio_Span_int const mores = (rio_Span_int){(rio_int[2]){1, -5}, 2};
+  rio_Span_int const cores = (rio_Span_int){0};
   rio_Span_string const words = (rio_Span_string){(const char*[2]){"hi", "there"}, 2};
   {
     rio_Span_string rio_span = words;
@@ -63,7 +64,8 @@ int main() {
     }
   }
   tests_test1_greet(name, age);
-  tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[2]){(tests_test1_Person){.name = name, .age = 80, .scores = scores}, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}}, 2});
+  tests_test1_Person const person = (tests_test1_Person){.name = name, .age = 80, .scores = scores};
+  tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[2]){person, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}}, 2});
 }
 
 void tests_test1_greet(const char* const name, rio_int const age) {

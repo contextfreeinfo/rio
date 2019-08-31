@@ -173,6 +173,10 @@ void extract_fun(ExtractState* state, Node* node) {
 
 void extract_ref_names(ExtractState* state, Node* node, Node* top) {
   switch (node->kind) {
+    case Node::Kind::Cast: {
+      extract_ref_names(state, node->Cast.a, top);
+      break;
+    }
     case Node::Kind::Ref: {
       if (verbose) printf("const/var: %s\n", node->Ref.name);
       node->Ref.def = state->alloc_push(node->Ref.name, node);

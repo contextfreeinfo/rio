@@ -201,10 +201,17 @@ auto resolve_array(ResolveState* state, Node* node, const Type& type) -> void {
   for (auto item: node->Array.items) {
     resolve_expr(state, item, *item_type);
   }
+  Type* item_type_now = nullptr;
   if (node->Array.items.len) {
-    ensure_span_type(state, node, &node->Array.items[0]->type);
-  } else {
-    // TODO Use expected type to infer span type.
+    // In case we didn't have an explicit type before, use the content type.
+    item_type_now = &node->Array.items[0]->type;
+  } else if (item_type->kind != Type::Kind::None) {
+    // Abusively presume that non-none is actually a safe place in an arena.
+    // TODO Reorg to push this explicitly as Opt<Type> instead of const Type& for the type parameter everywhere???
+    item_type_now = const_cast<Type*>(item_type);
+  }
+  if (item_type_now) {
+    ensure_span_type(state, node, item_type_now);
   }
 }
 
@@ -440,7 +447,6 @@ auto resolve_proc_sig(
 
 auto resolve_ref(ResolveState* state, Node* node) -> void {
   // Look in local scopes first, from last (deepest) to first (outermost).
-  // TODO Stop using unsigned for lengths and indices everywhere.
   for (int i = state->scopes.len - 1; i >= 0; i -= 1) {
     auto def = state->scopes[i]->find(node->Ref.name);
     if (def) {
