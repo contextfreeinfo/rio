@@ -26,12 +26,15 @@ auto parse_block(
   ParseState* state, Token::Kind end = Token::Kind::CurlyR
 ) -> Node&;
 auto parse_call(ParseState* state) -> Node&;
+auto parse_case(ParseState* state, Node::Kind kind = Node::Kind::Case) -> Node&;
 auto parse_cast(ParseState* state) -> Node&;
+auto parse_compare(ParseState* state) -> Node&;
 auto parse_def(ParseState* state) -> Node&;
+auto parse_else(ParseState* state) -> Node&;
 auto parse_expr(ParseState* state) -> Node&;
 auto parse_for(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
-auto parse_switch(ParseState* state) -> Node&;
+auto parse_if(ParseState* state) -> Node&;
 auto parse_tuple(ParseState* state) -> Node&;
 auto parse_use(ParseState* state) -> Node&;
 void skip_comments(ParseState* state, bool skip_lines = false);
@@ -41,6 +44,18 @@ void advance_token(ParseState* state, bool skip_lines) {
   if (tokens->kind != Token::Kind::FileEnd) {
     tokens += 1;
     skip_comments(state, skip_lines);
+  }
+}
+
+auto is_token_compare(const Token& token) -> Node::Kind {
+  switch (token.kind) {
+    case Token::Kind::Equal: return Node::Kind::Equal;
+    case Token::Kind::Less: return Node::Kind::Less;
+    case Token::Kind::LessOrEqual: return Node::Kind::LessOrEqual;
+    case Token::Kind::More: return Node::Kind::More;
+    case Token::Kind::MoreOrEqual: return Node::Kind::MoreOrEqual;
+    case Token::Kind::NotEqual:  return Node::Kind::NotEqual;
+    default: return Node::Kind::None;
   }
 }
 
@@ -137,6 +152,9 @@ auto parse_atom(ParseState* state) -> Node& {
       advance_token(state);
       return node;
     }
+    case Token::Kind::If: {
+      return parse_if(state);
+    }
     case Token::Kind::Int: {
       Node& node = state->alloc(Node::Kind::Int);
       node.Int.text = tokens->text;
@@ -149,9 +167,6 @@ auto parse_atom(ParseState* state) -> Node& {
       node.String.text = tokens->text;
       advance_token(state);
       return node;
-    }
-    case Token::Kind::Switch: {
-      return parse_switch(state);
     }
     default: {
       if (verbose) printf("junk: %s\n", token_name(*tokens));
@@ -208,6 +223,19 @@ auto parse_call(ParseState* state) -> Node& {
   return *node;
 }
 
+auto parse_case(ParseState* state, Node::Kind kind) -> Node& {
+  // This presumes any keyword has already been advanced past.
+  Node& node = state->alloc(kind);
+  node.Case.arg = &parse_expr(state);
+  if (state->tokens->kind == Token::Kind::LineEnd) {
+    skip_comments(state, true);
+    node.Case.expr = &parse_block(state, Token::Kind::End);
+  } else {
+    node.Case.expr = &parse_expr(state);
+  }
+  return node;
+}
+
 auto parse_cast(ParseState* state) -> Node& {
   Node* node = &parse_use(state);
   while (state->tokens->kind == Token::Kind::Colon) {
@@ -216,6 +244,20 @@ auto parse_cast(ParseState* state) -> Node& {
     advance_token(state, true);
     cast->Cast.b = &parse_call(state);
     node = cast;
+  }
+  return *node;
+}
+
+auto parse_compare(ParseState* state) -> Node& {
+  Node* node = &parse_call(state);
+  while (true) {
+    auto node_kind = is_token_compare(*state->tokens);
+    if (node_kind == Node::Kind::None) break;
+    advance_token(state, true);
+    Node* pair = &state->alloc(node_kind);
+    pair->Binary.a = node;
+    pair->Binary.b = &parse_call(state);
+    node = pair;
   }
   return *node;
 }
@@ -237,21 +279,26 @@ auto parse_def(ParseState* state) -> Node& {
   }
 }
 
+auto parse_else(ParseState* state) -> Node& {
+  Node& node = state->alloc(Node::Kind::Else);
+  // This is similar to the end of case or for, but the node type is different.
+  // TODO Just use the same node struct type so we can partially combine?
+  if (state->tokens->kind == Token::Kind::LineEnd) {
+    skip_comments(state, true);
+    node.Else.expr = &parse_block(state, Token::Kind::End);
+  } else {
+    node.Else.expr = &parse_expr(state);
+  }
+  return node;
+}
+
 auto parse_expr(ParseState* state) -> Node& {
   return parse_assign(state);
 }
 
 auto parse_for(ParseState* state) -> Node& {
-  Node& node = state->alloc(Node::Kind::For);
   advance_token(state);
-  node.For.arg = &parse_expr(state);
-  if (state->tokens->kind == Token::Kind::LineEnd) {
-    skip_comments(state, true);
-    node.For.expr = &parse_block(state, Token::Kind::End);
-  } else {
-    node.For.expr = &parse_expr(state);
-  }
-  return node;
+  return parse_case(state, Node::Kind::For);
 }
 
 auto parse_fun(ParseState* state) -> Node& {
@@ -288,15 +335,28 @@ auto parse_fun(ParseState* state) -> Node& {
   return node;
 }
 
-auto parse_switch(ParseState* state) -> Node& {
-  Node& node = state->alloc(Node::Kind::Switch);
+auto parse_if(ParseState* state) -> Node& {
   advance_token(state);
-  if (state->tokens->kind != Token::Kind::LineEnd) {
-    // Switch has an arg.
-    node.Switch.arg = &parse_expr(state);
+  if (state->tokens->kind == Token::Kind::LineEnd) {
+    // If/else switch.
+    Node& node = state->alloc(Node::Kind::Switch);
+    skip_comments(state, true);
+    auto buf_len_old = state->node_buf.len;
+    for (; more_tokens(state, Token::Kind::End); skip_comments(state, true)) {
+      //~ fprintf(stderr, "parse case\n");
+      Node* kid = state->tokens->kind == Token::Kind::Else ?
+        &parse_else(state) : &parse_case(state);
+      state->node_buf.push(kid);
+    }
+    // TODO Put these in some destructor.
+    node.Switch.items = node_slice_copy(state, buf_len_old);
+    // Move on.
+    advance_token(state);
+    return node;
+  } else {
+    // Just a single if case.
+    return parse_case(state);
   }
-  skip_comments(state, true);
-  return node;
 }
 
 auto parse_tuple(ParseState* state) -> Node& {
@@ -356,7 +416,8 @@ auto parse_use(ParseState* state) -> Node& {
       Node& node = state->alloc(Node::Kind::Use);
       node.Use.kind = state->tokens->kind;
       advance_token(state, true);
-      Node& arg = parse_call(state);
+      // TODO Do binary operators go in here?
+      Node& arg = parse_compare(state);
       if (arg.kind == Node::Kind::String) {
         node.Use.name = arg.String.text;
       } else {

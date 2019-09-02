@@ -57,16 +57,23 @@ struct Token {
     Dot,
     Else,
     End,
+    Equal,
     FileEnd,
     Float,
     For,
     Fun,
     Id,
+    If,
     Include,
     Int,
     Junk,
+    Less,
+    LessOrEqual,
     LineEnd,
     Minus,
+    More,
+    MoreOrEqual,
+    NotEqual,
     Plus,
     Proc,
     Pub,
@@ -92,6 +99,7 @@ struct Token {
 
 // Type.
 
+// TODO Replace types with defs like anything else.
 struct Type {
 
   enum struct Kind {
@@ -235,12 +243,18 @@ struct Node {
     Cast,
     Const,
     Else,
+    Equal,
     Float,
     For,
     Fun,
     Int,
+    Less,
+    LessOrEqual,
     Map,
     Member,
+    More,
+    MoreOrEqual,
+    NotEqual,
     Proc,
     Ref,
     String,
@@ -256,6 +270,7 @@ struct Node {
 
   union {
     ParentNode Array;
+    BinaryNode Binary;
     BlockNode Block;
     BinaryNode Cast;
     BinaryNode Const;

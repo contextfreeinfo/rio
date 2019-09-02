@@ -23,6 +23,7 @@ const KeyId key_ids[] = {
   {str_from("do"), Token::Kind::Do},
   {str_from("else"), Token::Kind::Else},
   {str_from("end"), Token::Kind::End},
+  {str_from("if"), Token::Kind::If},
   // If functions are pure, calls can be reordered, so extracts for statements
   // can be kept simpler ...
   {str_from("for"), Token::Kind::For},
@@ -182,7 +183,35 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
       }
       return simple_len(Token::Kind::LineEnd, len);
     }
-    case '=': return simple(Token::Kind::Assign);
+    case '=': {
+      switch (*(buf + 1)) {
+        case '=': return simple_len(Token::Kind::Equal, 2);
+        default: return simple(Token::Kind::Assign);
+      }
+      break;
+    }
+    case '<': {
+      switch (*(buf + 1)) {
+        case '=': return simple_len(Token::Kind::LessOrEqual, 2);
+        default: return simple(Token::Kind::Less);
+      }
+      break;
+    }
+    case '>': {
+      switch (*(buf + 1)) {
+        case '=': return simple_len(Token::Kind::MoreOrEqual, 2);
+        default: return simple(Token::Kind::More);
+      }
+      break;
+    }
+    case '!': {
+      switch (*(buf + 1)) {
+        case '=': return simple_len(Token::Kind::NotEqual, 2);
+        // TODO What does bang mean???
+        default: break;
+      }
+      break;
+    }
     case ',': return simple(Token::Kind::Comma);
     case '{': return simple(Token::Kind::CurlyL);
     case '}': return simple(Token::Kind::CurlyR);

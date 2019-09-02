@@ -19,7 +19,7 @@ struct Indent {
   GenState* state;
 };
 
-void gen_bad(GenState* state, const Node& node);
+auto gen_bad(GenState* state, const Node& node) -> void;
 auto gen_block(GenState* state, const Node& node) -> void;
 auto gen_const(GenState* state, const Node& node) -> void;
 auto gen_decl_expr(GenState* state, const Node& node) -> void;
@@ -31,19 +31,22 @@ auto gen_function_def(GenState* state, const Node& node) -> void;
 auto gen_function_defs(GenState* state) -> void;
 auto gen_global_expr(GenState* state, const Node& node) -> void;
 auto gen_globals(GenState* state) -> void;
-void gen_list_items(GenState* state, const Node& node);
-void gen_indent(GenState* state);
+auto gen_if(GenState* state, const Node& node) -> void;
+auto gen_list_items(GenState* state, const Node& node) -> void;
+auto gen_indent(GenState* state) -> void;
 auto gen_map(GenState* state, const Node& node) -> void;
 auto gen_mod(GenState* state, ModManager* mod) -> void;
 auto gen_mod_header(GenState* state) -> void;
-void gen_param_items(GenState* state, const Node* node);
-void gen_ref(GenState* state, const Node& node);
+auto gen_param_items(GenState* state, const Node* node) -> void;
+auto gen_ref(GenState* state, const Node& node) -> void;
 auto gen_ref_def(GenState* state, const Def& def) -> void;
-void gen_type(GenState* state, const Type& type);
-void gen_type_opt(GenState* state, Opt<const Type> type);
+auto gen_switch(GenState* state, const Node& node) -> void;
+auto gen_switch_if(GenState* state, const Node& node) -> void;
+auto gen_type(GenState* state, const Type& type) -> void;
+auto gen_type_opt(GenState* state, Opt<const Type> type) -> void;
 auto gen_typedef(GenState* state, const Node& node) -> void;
 auto gen_typedefs(GenState* state) -> void;
-void gen_statements(GenState* state, const Node& node);
+auto gen_statements(GenState* state, const Node& node) -> void;
 auto needs_semi(const Node& node) -> bool;
 
 void gen(Engine* engine) {
@@ -211,6 +214,14 @@ void gen_expr(GenState* state, const Node& node) {
       printf("%s", node.String.text);
       break;
     }
+    case Node::Kind::Switch: {
+      if (node.Switch.arg) {
+        gen_switch(state, node);
+      } else {
+        gen_switch_if(state, node);
+      }
+      break;
+    }
     case Node::Kind::Use: {
       // Nothing to do here.
       break;
@@ -339,6 +350,10 @@ auto gen_globals(GenState* state) -> void {
   for (auto def: state->mod->global_defs) {
     gen_global_expr(state, *def->top);
   }
+}
+
+auto gen_if(GenState* state, const Node& node) -> void {
+  printf("(!!! if !!!)\n");
 }
 
 void gen_indent(GenState* state) {
@@ -498,7 +513,42 @@ auto gen_struct(GenState* state, const Node& node) -> void {
   );
 }
 
-void gen_type(GenState* state, const Type& type) {
+auto gen_switch(GenState* state, const Node& node) -> void {
+  printf("(!!! switch !!!)\n");
+}
+
+auto gen_switch_if(GenState* state, const Node& node) -> void {
+  auto first = true;
+  for (auto item: node.Switch.items) {
+    switch (item->kind) {
+      case Node::Kind::Case: {
+        if (first) {
+          printf("if (");
+          first = false;
+        } else {
+          gen_indent(state);
+          printf("else if (");
+        }
+        gen_expr(state, *item->Case.arg);
+        printf(") ");
+        gen_expr(state, *item->Case.expr);
+        break;
+      }
+      case Node::Kind::Else: {
+        gen_indent(state);
+        printf("else ");
+        gen_expr(state, *item->Else.expr);
+        break;
+      }
+      default: {
+        gen_bad(state, node);
+        break;
+      }
+    }
+  }
+}
+
+auto gen_type(GenState* state, const Type& type) -> void {
   switch (type.kind) {
     case Type::Kind::Array: {
       // Resolve guarantees a def assigned. 
@@ -625,8 +675,10 @@ auto gen_typedefs(GenState* state) -> void {
 auto needs_semi(const Node& node) -> bool {
   switch (node.kind) {
     case Node::Kind::Block:
+    case Node::Kind::Case:
     case Node::Kind::For:
     case Node::Kind::Fun:
+    case Node::Kind::Switch:
     case Node::Kind::Use: {
       return false;
     }

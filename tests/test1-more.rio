@@ -13,7 +13,7 @@ end
 
 show_person proc(person: Person)
   printf("%s is %td years old (", person.name, person.age)
-  switch
+  if
     person.age >= 65
       printf("senior")
     end

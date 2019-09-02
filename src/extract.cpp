@@ -96,6 +96,12 @@ void extract_expr(ExtractState* state, Node* node) {
       extract_expr(state, node->Call.args);
       break;
     }
+    case Node::Kind::Case:
+    case Node::Kind::For: {
+      extract_expr(state, node->For.arg);
+      extract_expr(state, node->For.expr);
+      break;
+    }
     case Node::Kind::Cast: {
       extract_ref_names(state, node->Const.a, node);
       // TODO Extract from ad hoc structural types?
@@ -106,15 +112,32 @@ void extract_expr(ExtractState* state, Node* node) {
       extract_expr(state, node->Const.b);
       break;
     }
-    case Node::Kind::For: {
-      extract_expr(state, node->For.arg);
-      extract_expr(state, node->For.expr);
+    case Node::Kind::Else: {
+      extract_expr(state, node->Else.expr);
+      break;
+    }
+    case Node::Kind::Equal:
+    case Node::Kind::Less:
+    case Node::Kind::LessOrEqual:
+    case Node::Kind::More:
+    case Node::Kind::MoreOrEqual:
+    case Node::Kind::NotEqual: {
+      extract_expr(state, node->Binary.a);
+      extract_expr(state, node->Binary.b);
       break;
     }
     case Node::Kind::Fun:
     case Node::Kind::Proc:
     case Node::Kind::Struct: {
       extract_fun(state, node);
+      break;
+    }
+    case Node::Kind::Switch: {
+      if (node->Switch.arg) extract_expr(state, node->Switch.arg);
+      // TODO Some kind of scope for switch? Make it into a block?
+      for (auto item: node->Switch.items) {
+        extract_expr(state, item);
+      }
       break;
     }
     case Node::Kind::Tuple: {
