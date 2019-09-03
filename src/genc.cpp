@@ -78,7 +78,7 @@ auto gen_bad(GenState* state, const Node& node) -> void {
 
 auto gen_binary(GenState* state, const Node& node, string op) -> void {
   gen_expr(state, *node.Binary.a);
-  printf(op);
+  printf("%s", op);
   gen_expr(state, *node.Binary.b);
 }
 

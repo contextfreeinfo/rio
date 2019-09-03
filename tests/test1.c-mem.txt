@@ -1,13 +1,13 @@
 
-real	0m0.396s
-user	0m0.250s
-sys	0m0.125s
-==207== Memcheck, a memory error detector
-==207== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==207== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
-==207== Command: ./bin/rio tests/test1.rio
-==207== 
-==207== error calling PR_SET_PTRACER, vgdb might block
+real	0m0.528s
+user	0m0.281s
+sys	0m0.141s
+==240== Memcheck, a memory error detector
+==240== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==240== Using Valgrind-3.13.0 and LibVEX; rerun with -h for copyright info
+==240== Command: ./bin/rio tests/test1.rio
+==240== 
+==240== error calling PR_SET_PTRACER, vgdb might block
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -55,9 +55,10 @@ void tests_test1_show_persons(rio_Span_tests_test1_Person const persons);
 int main() {
   const char* const name = "world";
   rio_int const age = 75;
-  rio_float const score = 4.5;
+  rio_float const score = 4;
   rio_Span_float const scores = (rio_Span_float){(rio_float[4]){45.0, 63.1, 22.2, -8.3}, 4};
   rio_Span_int const mores = (rio_Span_int){(rio_int[2]){1, -5}, 2};
+  rio_Span_int const cores = (rio_Span_int){0};
   rio_Span_string const words = (rio_Span_string){(const char*[2]){"hi", "there"}, 2};
   {
     rio_Span_string rio_span = words;
@@ -73,12 +74,13 @@ int main() {
     }
   }
   tests_test1_greet(name, age);
-  tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[2]){(tests_test1_Person){.name = name, .age = 80, .scores = scores}, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}}, 2});
+  tests_test1_Person const person = (tests_test1_Person){.name = name, .age = 80, .scores = scores};
+  tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[2]){person, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}}, 2});
 }
 
 void tests_test1_greet(const char* const name, rio_int const age) {
   printf("%s, %s!\n", tests_test1_other_message, name);
-  printf("You are %d years old.\n", age);
+  printf("You are %td years old.\n", age);
 }
 
 void tests_test1_report_scores(rio_Span_float const scores) {
@@ -92,7 +94,17 @@ void tests_test1_report_scores(rio_Span_float const scores) {
 }
 
 void tests_test1_show_person(tests_test1_Person const person) {
-  printf("%s is %d years old.\n", person.name, person.age);
+  printf("%s is %td years old (", person.name, person.age);
+  if (person.age >= 65) {
+    printf("senior");
+  }
+  else if (person.age < 18) {
+    printf("minor");
+  }
+  else {
+    printf("adult");
+  }
+  printf(")\n");
   tests_test1_report_scores(person.scores);
 }
 
@@ -105,28 +117,28 @@ void tests_test1_show_persons(rio_Span_tests_test1_Person const persons) {
     }
   }
 }
-==207== 
-==207== HEAP SUMMARY:
-==207==     in use at exit: 0 bytes in 0 blocks
-==207==   total heap usage: 110 allocs, 110 frees, 187,632 bytes allocated
-==207== 
-==207== All heap blocks were freed -- no leaks are possible
-==207== 
-==207== For counts of detected and suppressed errors, rerun with: -v
-==207== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==240== 
+==240== HEAP SUMMARY:
+==240==     in use at exit: 0 bytes in 0 blocks
+==240==   total heap usage: 114 allocs, 114 frees, 210,682 bytes allocated
+==240== 
+==240== All heap blocks were freed -- no leaks are possible
+==240== 
+==240== For counts of detected and suppressed errors, rerun with: -v
+==240== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 	Command being timed: "valgrind --leak-check=full --show-leak-kinds=all ./bin/rio tests/test1.rio"
-	User time (seconds): 0.57
-	System time (seconds): 0.07
-	Percent of CPU this job got: 99%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.66
+	User time (seconds): 0.53
+	System time (seconds): 0.12
+	Percent of CPU this job got: 86%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.75
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 50444
+	Maximum resident set size (kbytes): 50436
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 14535
+	Minor (reclaiming a frame) page faults: 14930
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -138,4 +150,4 @@ void tests_test1_show_persons(rio_Span_tests_test1_Person const persons) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 180896 Aug 30 07:37 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 188464 Sep  3 07:37 bin/rio
