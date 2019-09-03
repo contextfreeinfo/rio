@@ -153,7 +153,7 @@ void extract_expr(ExtractState* state, Node* node) {
 
 void extract_fun(ExtractState* state, Node* node) {
   if (*node->Fun.name) {
-    if (verbose) printf("fun: %s\n", node->Fun.name);
+    if (verbose) fprintf(stderr, "fun: %s\n", node->Fun.name);
     state->alloc_push(node->Fun.name, node);
   }
   auto expr = node->Fun.expr;
@@ -201,7 +201,7 @@ void extract_ref_names(ExtractState* state, Node* node, Node* top) {
       break;
     }
     case Node::Kind::Ref: {
-      if (verbose) printf("const/var: %s\n", node->Ref.name);
+      if (verbose) fprintf(stderr, "const/var: %s\n", node->Ref.name);
       node->Ref.def = state->alloc_push(node->Ref.name, node);
       node->Ref.def->top = top;
       break;

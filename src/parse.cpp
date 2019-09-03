@@ -104,9 +104,9 @@ auto parse_assign(ParseState* state) -> Node& {
     advance_token(state, true);
     Node& node = state->alloc(Node::Kind::Const);
     node.Const.a = &a;
-    if (verbose) printf("begin assign\n");
+    if (verbose) fprintf(stderr, "begin assign\n");
     node.Const.b = &parse_expr(state);
-    if (verbose) printf("end assign\n");
+    if (verbose) fprintf(stderr, "end assign\n");
     return node;
   } else {
     return a;
@@ -146,7 +146,7 @@ auto parse_atom(ParseState* state) -> Node& {
       return parse_fun(state);
     }
     case Token::Kind::Id: {
-      if (verbose) printf("ref: %s\n", tokens->text);
+      if (verbose) fprintf(stderr, "ref: %s\n", tokens->text);
       Node& node = state->alloc(Node::Kind::Ref);
       node.Ref.name = tokens->text;
       advance_token(state);
@@ -162,14 +162,14 @@ auto parse_atom(ParseState* state) -> Node& {
       return node;
     }
     case Token::Kind::String: {
-      if (verbose) printf("string: %s\n", token_text(*tokens));
+      if (verbose) fprintf(stderr, "string: %s\n", token_text(*tokens));
       Node& node = state->alloc(Node::Kind::String);
       node.String.text = tokens->text;
       advance_token(state);
       return node;
     }
     default: {
-      if (verbose) printf("junk: %s\n", token_name(*tokens));
+      if (verbose) fprintf(stderr, "junk: %s\n", token_name(*tokens));
       advance_token(state);
       return state->alloc(Node::Kind::None);
     }
@@ -178,7 +178,7 @@ auto parse_atom(ParseState* state) -> Node& {
 
 auto parse_block(ParseState* state, Token::Kind end) -> Node& {
   Node& node = state->alloc(Node::Kind::Block);
-  if (verbose) printf("begin block\n");
+  if (verbose) fprintf(stderr, "begin block\n");
   // Parse kids.
   auto buf_len_old = state->node_buf.len;
   for (; more_tokens(state, end); skip_comments(state, true)) {
@@ -189,8 +189,8 @@ auto parse_block(ParseState* state, Token::Kind end) -> Node& {
   node.Block.items = node_slice_copy(state, buf_len_old);
   // Move on.
   advance_token(state);
-  // if (verbose) printf("item 0: %d, %d, %s\n", static_cast<int>(node.Block.items[0]->kind), static_cast<int>(node.Block.items[0]->Call.callee->kind), node.Block.items[0]->Call.callee->Ref.name);
-  if (verbose) printf("end block\n");
+  // if (verbose) fprintf(stderr, "item 0: %d, %d, %s\n", static_cast<int>(node.Block.items[0]->kind), static_cast<int>(node.Block.items[0]->Call.callee->kind), node.Block.items[0]->Call.callee->Ref.name);
+  if (verbose) fprintf(stderr, "end block\n");
   return node;
 }
 
@@ -252,7 +252,9 @@ auto parse_compare(ParseState* state) -> Node& {
   Node* node = &parse_call(state);
   while (true) {
     auto node_kind = is_token_compare(*state->tokens);
-    if (node_kind == Node::Kind::None) break;
+    if (node_kind == Node::Kind::None) {
+      break;
+    }
     advance_token(state, true);
     Node* pair = &state->alloc(node_kind);
     pair->Binary.a = node;
@@ -280,6 +282,7 @@ auto parse_def(ParseState* state) -> Node& {
 }
 
 auto parse_else(ParseState* state) -> Node& {
+  advance_token(state);
   Node& node = state->alloc(Node::Kind::Else);
   // This is similar to the end of case or for, but the node type is different.
   // TODO Just use the same node struct type so we can partially combine?
@@ -302,7 +305,7 @@ auto parse_for(ParseState* state) -> Node& {
 }
 
 auto parse_fun(ParseState* state) -> Node& {
-  if (verbose) printf("begin fun\n");
+  if (verbose) fprintf(stderr, "begin fun\n");
   Node::Kind kind;
   switch (state->tokens->kind) {
     case Token::Kind::Fun: {
@@ -323,7 +326,7 @@ auto parse_fun(ParseState* state) -> Node& {
   node.Fun.name = "";
   if (state->tokens->kind == Token::Kind::RoundL) {
     node.Fun.params = &parse_tuple(state);
-    if (verbose) printf("args\n");
+    if (verbose) fprintf(stderr, "args\n");
   }
   if (state->tokens->kind == Token::Kind::LineEnd) {
     skip_comments(state, true);
@@ -331,7 +334,7 @@ auto parse_fun(ParseState* state) -> Node& {
   } else {
     node.Fun.expr = &parse_expr(state);
   }
-  if (verbose) printf("end fun\n");
+  if (verbose) fprintf(stderr, "end fun\n");
   return node;
 }
 
@@ -384,7 +387,7 @@ auto parse_tuple(ParseState* state) -> Node& {
     }
   }
   Node& node = state->alloc(kind);
-  if (verbose) printf("begin tuple\n");
+  if (verbose) fprintf(stderr, "begin tuple\n");
   advance_token(state, true);
   auto buf_len_old = state->node_buf.len;
   bool past_first = false;
@@ -405,7 +408,7 @@ auto parse_tuple(ParseState* state) -> Node& {
   }
   node.Tuple.items = node_slice_copy(state, buf_len_old);
   advance_token(state);
-  if (verbose) printf("end tuple\n");
+  if (verbose) fprintf(stderr, "end tuple\n");
   return node;
 }
 
@@ -427,7 +430,7 @@ auto parse_use(ParseState* state) -> Node& {
       return node;
     }
     default: {
-      return parse_call(state);
+      return parse_compare(state);
     }
   }
 }

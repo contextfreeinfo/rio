@@ -109,12 +109,12 @@ auto load_mod(const ModInfo& info) -> ModManager* {
   mod.root = info.root ? info.root : &mod;
   List<Token> tokens;
   {
-    if (verbose) printf("in: %s\n", file);
+    if (verbose) fprintf(stderr, "in: %s\n", file);
     auto buf = read_file(file);
     lex(&mod, file, buf, &tokens);
     free(buf);
   }
-  if (verbose) printf("tokens: %zu\n", tokens.len);
+  if (verbose) fprintf(stderr, "tokens: %zu\n", tokens.len);
   // TODO First parse just imports at top, then kick those off.
   // TODO Need some kind of "make"-style dependency driven async work engine.
   // TODO Then move forward here.

@@ -20,6 +20,7 @@ struct Indent {
 };
 
 auto gen_bad(GenState* state, const Node& node) -> void;
+auto gen_binary(GenState* state, const Node& node, string op) -> void;
 auto gen_block(GenState* state, const Node& node) -> void;
 auto gen_const(GenState* state, const Node& node) -> void;
 auto gen_decl_expr(GenState* state, const Node& node) -> void;
@@ -49,7 +50,7 @@ auto gen_typedefs(GenState* state) -> void;
 auto gen_statements(GenState* state, const Node& node) -> void;
 auto needs_semi(const Node& node) -> bool;
 
-void gen(Engine* engine) {
+auto gen(Engine* engine) -> void {
   GenState state;
   // Common heading.
   // TODO Need to keep a tally of all external headers? Libs, too.
@@ -71,11 +72,17 @@ void gen(Engine* engine) {
   }
 }
 
-void gen_bad(GenState* state, const Node& node) {
+auto gen_bad(GenState* state, const Node& node) -> void {
   printf("(!!! BROKEN %d !!!)", static_cast<int>(node.kind));
 }
 
-void gen_block(GenState* state, const Node& node) {
+auto gen_binary(GenState* state, const Node& node, string op) -> void {
+  gen_expr(state, *node.Binary.a);
+  printf(op);
+  gen_expr(state, *node.Binary.b);
+}
+
+auto gen_block(GenState* state, const Node& node) -> void {
   printf("{\n");
   {
     Indent _{state};
@@ -178,6 +185,10 @@ void gen_expr(GenState* state, const Node& node) {
       gen_const(state, node);
       break;
     }
+    case Node::Kind::Equal: {
+      gen_binary(state, node, " == ");
+      break;
+    }
     case Node::Kind::Float: {
       printf("%s", node.Float.text);
       break;
@@ -194,16 +205,34 @@ void gen_expr(GenState* state, const Node& node) {
       printf("%s", node.Int.text);
       break;
     }
+    case Node::Kind::Less: {
+      gen_binary(state, node, " < ");
+      break;
+    }
+    case Node::Kind::LessOrEqual: {
+      gen_binary(state, node, " <= ");
+      break;
+    }
     case Node::Kind::Map: {
       gen_map(state, node);
       break;
     }
     case Node::Kind::Member: {
-      gen_expr(state, *node.Member.a);
       // TODO If pointer, use ->. If pointer to pointer, deref first, etc?
       // TODO Just use deref for consistency?
-      printf(".");
-      gen_expr(state, *node.Member.b);
+      gen_binary(state, node, ".");
+      break;
+    }
+    case Node::Kind::More: {
+      gen_binary(state, node, " > ");
+      break;
+    }
+    case Node::Kind::MoreOrEqual: {
+      gen_binary(state, node, " >= ");
+      break;
+    }
+    case Node::Kind::NotEqual: {
+      gen_binary(state, node, " != ");
       break;
     }
     case Node::Kind::Ref: {

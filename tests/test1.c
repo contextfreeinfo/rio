@@ -85,13 +85,14 @@ void tests_test1_report_scores(rio_Span_float const scores) {
 
 void tests_test1_show_person(tests_test1_Person const person) {
   printf("%s is %td years old (", person.name, person.age);
-  if (person.age) (!!! BROKEN 0 !!!)  else if (65) {
+  if (person.age >= 65) {
     printf("senior");
   }
-  else if (person.age) (!!! BROKEN 0 !!!)  else if (18) {
+  else if (person.age < 18) {
     printf("minor");
   }
-  else (!!! BROKEN 0 !!!)  else if (printf("adult")) {
+  else {
+    printf("adult");
   }
   printf(")\n");
   tests_test1_report_scores(person.scores);
