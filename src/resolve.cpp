@@ -329,6 +329,13 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       resolve_expr(state, node->Call.args, args_type);
       break;
     }
+    case Node::Kind::Case:
+    case Node::Kind::For: {
+      // TODO Case might have particular expected arg types.
+      resolve_expr(state, node->For.arg, {Type::Kind::None});
+      resolve_expr(state, node->For.expr, {Type::Kind::None});
+      break;
+    }
     case Node::Kind::Cast: {
       resolve_cast(state, node, type);
       break;
@@ -337,13 +344,18 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       resolve_const(state, node, type);
       break;
     }
-    case Node::Kind::Float: {
-      node->type = choose_float_type(type);
+    case Node::Kind::Equal:
+    case Node::Kind::Less:
+    case Node::Kind::LessOrEqual:
+    case Node::Kind::More:
+    case Node::Kind::MoreOrEqual:
+    case Node::Kind::NotEqual: {
+      resolve_expr(state, node->Binary.a, {Type::Kind::None});
+      resolve_expr(state, node->Binary.b, {Type::Kind::None});
       break;
     }
-    case Node::Kind::For: {
-      resolve_expr(state, node->For.arg, {Type::Kind::None});
-      resolve_expr(state, node->For.expr, {Type::Kind::None});
+    case Node::Kind::Float: {
+      node->type = choose_float_type(type);
       break;
     }
     case Node::Kind::Fun:
@@ -372,6 +384,18 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
     }
     case Node::Kind::Struct: {
       resolve_expr(state, node->Fun.expr, {Type::Kind::None});
+      break;
+    }
+    case Node::Kind::Switch: {
+      if (node->Switch.arg) {
+        resolve_expr(state, node->Switch.arg, {Type::Kind::None});
+      }
+      for (auto item: node->Switch.items) {
+        // TODO Passing down some expectation of case arg type would be good.
+        // TODO Also expectation of value type for case expressions.
+        // TODO Does this mean expecting a procedure `proc(arg) expr`?
+        resolve_expr(state, item, {Type::Kind::None});
+      }
       break;
     }
     case Node::Kind::Tuple: {

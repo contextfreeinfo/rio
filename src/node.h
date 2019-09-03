@@ -55,17 +55,25 @@ struct Token {
     CurlyR,
     Do,
     Dot,
+    Else,
     End,
+    Equal,
     FileEnd,
     Float,
     For,
     Fun,
     Id,
+    If,
     Include,
     Int,
     Junk,
+    Less,
+    LessOrEqual,
     LineEnd,
     Minus,
+    More,
+    MoreOrEqual,
+    NotEqual,
     Plus,
     Proc,
     Pub,
@@ -75,6 +83,7 @@ struct Token {
     SquareR,
     String,
     Struct,
+    Switch,
     Update,
     Use,
   };
@@ -90,6 +99,7 @@ struct Token {
 
 // Type.
 
+// TODO Replace types with defs like anything else.
 struct Type {
 
   enum struct Kind {
@@ -207,6 +217,15 @@ struct StringNode {
   string text;
 };
 
+struct SwitchNode {
+  Opt<Node> arg;
+  Slice<Node*> items;
+};
+
+struct UnaryNode {
+  Node* expr;
+};
+
 struct UseNode {
   string name;
   Token::Kind kind;
@@ -220,20 +239,29 @@ struct Node {
     Array,
     Block,
     Call,
+    Case,
     Cast,
     Const,
+    Else,
+    Equal,
     Float,
     For,
     Fun,
     Int,
+    Less,
+    LessOrEqual,
     Map,
     Member,
+    More,
+    MoreOrEqual,
+    NotEqual,
     Proc,
     Ref,
     String,
     Struct,
     Tuple,
     Use,
+    Switch,
   };
 
   Kind kind;
@@ -242,10 +270,13 @@ struct Node {
 
   union {
     ParentNode Array;
+    BinaryNode Binary;
     BlockNode Block;
     BinaryNode Cast;
     BinaryNode Const;
     CallNode Call;
+    ForNode Case;
+    UnaryNode Else;
     StringNode Float;
     ForNode For;
     FunNode Fun;
@@ -254,6 +285,7 @@ struct Node {
     BinaryNode Member;
     RefNode Ref;
     StringNode String;
+    SwitchNode Switch;
     ParentNode Tuple;
     UseNode Use;
   };

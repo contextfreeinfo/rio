@@ -21,7 +21,9 @@ struct KeyId {
 // TODO Make into a map.
 const KeyId key_ids[] = {
   {str_from("do"), Token::Kind::Do},
+  {str_from("else"), Token::Kind::Else},
   {str_from("end"), Token::Kind::End},
+  {str_from("if"), Token::Kind::If},
   // If functions are pure, calls can be reordered, so extracts for statements
   // can be kept simpler ...
   {str_from("for"), Token::Kind::For},
@@ -30,6 +32,7 @@ const KeyId key_ids[] = {
   {str_from("proc"), Token::Kind::Proc},
   {str_from("pub"), Token::Kind::Pub},
   {str_from("struct"), Token::Kind::Struct},
+  {str_from("switch"), Token::Kind::Switch},
   {str_from("use"), Token::Kind::Use},
 };
 
@@ -96,10 +99,10 @@ auto lex(
       // Also go from zero-index to one-index.
       line += token.begin.line;
       col = token.begin.col + 1;
-      // if (verbose) printf("new line at col %zu\n", col);
+      // if (verbose) fprintf(stderr, "new line at col %zu\n", col);
     } else {
       col += token.begin.col;
-      // if (verbose) printf("same line at col %zu\n", col);
+      // if (verbose) fprintf(stderr, "same line at col %zu\n", col);
     }
     token.begin.line = line;
     token.begin.col = col;
@@ -180,7 +183,35 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
       }
       return simple_len(Token::Kind::LineEnd, len);
     }
-    case '=': return simple(Token::Kind::Assign);
+    case '=': {
+      switch (*(buf + 1)) {
+        case '=': return simple_len(Token::Kind::Equal, 2);
+        default: return simple(Token::Kind::Assign);
+      }
+      break;
+    }
+    case '<': {
+      switch (*(buf + 1)) {
+        case '=': return simple_len(Token::Kind::LessOrEqual, 2);
+        default: return simple(Token::Kind::Less);
+      }
+      break;
+    }
+    case '>': {
+      switch (*(buf + 1)) {
+        case '=': return simple_len(Token::Kind::MoreOrEqual, 2);
+        default: return simple(Token::Kind::More);
+      }
+      break;
+    }
+    case '!': {
+      switch (*(buf + 1)) {
+        case '=': return simple_len(Token::Kind::NotEqual, 2);
+        // TODO What does bang mean???
+        default: break;
+      }
+      break;
+    }
     case ',': return simple(Token::Kind::Comma);
     case '{': return simple(Token::Kind::CurlyL);
     case '}': return simple(Token::Kind::CurlyR);
