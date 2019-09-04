@@ -1,7 +1,7 @@
 
-real	0m1.303s
+real	0m1.426s
 user	0m1.094s
-sys	0m0.203s
+sys	0m0.219s
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -49,9 +49,10 @@ void tests_test1_show_persons(rio_Span_tests_test1_Person const persons);
 int main() {
   const char* const name = "world";
   rio_int const age = 75;
-  rio_float const score = 4.5;
+  rio_float const score = 4;
   rio_Span_float const scores = (rio_Span_float){(rio_float[4]){45.0, 63.1, 22.2, -8.3}, 4};
   rio_Span_int const mores = (rio_Span_int){(rio_int[2]){1, -5}, 2};
+  rio_Span_int const cores = (rio_Span_int){0};
   rio_Span_string const words = (rio_Span_string){(const char*[2]){"hi", "there"}, 2};
   {
     rio_Span_string rio_span = words;
@@ -67,12 +68,13 @@ int main() {
     }
   }
   tests_test1_greet(name, age);
-  tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[2]){(tests_test1_Person){.name = name, .age = 80, .scores = scores}, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}}, 2});
+  tests_test1_Person const person = (tests_test1_Person){.name = name, .age = 80, .scores = scores};
+  tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[2]){person, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}}, 2});
 }
 
 void tests_test1_greet(const char* const name, rio_int const age) {
   printf("%s, %s!\n", tests_test1_other_message, name);
-  printf("You are %d years old.\n", age);
+  printf("You are %td years old.\n", age);
 }
 
 void tests_test1_report_scores(rio_Span_float const scores) {
@@ -86,7 +88,17 @@ void tests_test1_report_scores(rio_Span_float const scores) {
 }
 
 void tests_test1_show_person(tests_test1_Person const person) {
-  printf("%s is %d years old.\n", person.name, person.age);
+  printf("%s is %td years old (", person.name, person.age);
+  if (person.age >= 65) {
+    printf("senior");
+  }
+  else if (person.age < 18) {
+    printf("minor");
+  }
+  else {
+    printf("adult");
+  }
+  printf(")\n");
   tests_test1_report_scores(person.scores);
 }
 
@@ -102,16 +114,16 @@ void tests_test1_show_persons(rio_Span_tests_test1_Person const persons) {
 	Command being timed: "./bin/rio tests/test1.rio"
 	User time (seconds): 0.00
 	System time (seconds): 0.01
-	Percent of CPU this job got: 19%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.07
+	Percent of CPU this job got: 39%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.03
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 500
+	Maximum resident set size (kbytes): 508
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 139
+	Minor (reclaiming a frame) page faults: 141
 	Voluntary context switches: 0
 	Involuntary context switches: 0
 	Swaps: 0
@@ -123,4 +135,4 @@ void tests_test1_show_persons(rio_Span_tests_test1_Person const persons) {
 	Page size (bytes): 4096
 	Exit status: 0
 
--rwxrwxrwx 1 tjpalmer tjpalmer 1026168 Aug 30 07:37 bin/rio
+-rwxrwxrwx 1 tjpalmer tjpalmer 1027120 Sep  3 07:37 bin/rio
