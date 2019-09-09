@@ -283,6 +283,7 @@ struct Node {
     StringNode Int;
     ParentNode Map;
     BinaryNode Member;
+    ParentNode Parent;
     RefNode Ref;
     StringNode String;
     SwitchNode Switch;

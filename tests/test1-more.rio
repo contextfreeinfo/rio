@@ -12,19 +12,25 @@ report_scores proc(scores: [float])
 end
 
 show_person proc(person: Person)
-  printf("%s is %td years old (", person.name, person.age)
-  if
-    person.age >= 65
-      printf("senior")
-    end
-    person.age < 18
-      printf("minor")
-    end
-    else
-      printf("adult")
-    end
-  end
-  printf(")\n")
+  printf(
+    "%s is %td years old (%s)\n",
+    person.name,
+    # TODO Some nested if expressions around here?
+    person.age,
+    if
+      person.age >= 65
+        "senior"
+      end
+      person.age < 18
+        "minor"
+      end
+      else
+        # TODO Some nested if expression inside this printf.
+        printf("This is a large category.\n")
+        "adult"
+      end
+    end,
+  )
   report_scores(person.scores)
 end
 

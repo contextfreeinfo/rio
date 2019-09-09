@@ -135,7 +135,7 @@ auto gen_decls(GenState* state) -> void {
   }
 }
 
-void gen_expr(GenState* state, const Node& node) {
+auto gen_expr(GenState* state, const Node& node) -> void {
   switch (node.kind) {
     case Node::Kind::Array: {
       // TODO Can nest this in c99, but c++ makes it temporary.

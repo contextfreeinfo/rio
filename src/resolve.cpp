@@ -303,7 +303,7 @@ auto resolve_def_body(ResolveState* state, Def* def) -> void {
   }
 }
 
-void resolve_expr(ResolveState* state, Node* node, const Type& type) {
+auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
   switch (node->kind) {
     case Node::Kind::Array: {
       resolve_array(state, node, type);

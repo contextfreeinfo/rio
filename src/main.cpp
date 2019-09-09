@@ -9,6 +9,7 @@
 #include "path.cpp"
 #include "resolve.cpp"
 #include "sym.cpp"
+#include "transform.cpp"
 
 namespace rio {
 
@@ -170,6 +171,7 @@ void run(Engine* engine) {
   order_mods(engine);
   resolve(engine);
   for (auto mod: engine->mods) {
+    transform(mod);
     order_types(mod);
   }
   c::gen(engine);
