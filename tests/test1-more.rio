@@ -8,6 +8,14 @@ end
 report_scores proc(scores: [float])
   for scores do(score)
     printf("score: %f\n", score)
+    if
+      score < 1
+        printf("(pretty low)\n")
+      end
+      score > 4
+        printf("(pretty high)\n")
+      end
+    end
   end
 end
 

@@ -53,6 +53,7 @@ auto resolve_proc_sig(
   ResolveState* state, Node* node, const Type& type
 ) -> void;
 auto resolve_ref(ResolveState* state, Node* node) -> void;
+auto resolve_switch(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_tuple(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_type(ResolveState* state, Node* node) -> void;
 
@@ -218,8 +219,12 @@ auto resolve_array(ResolveState* state, Node* node, const Type& type) -> void {
 auto resolve_block(ResolveState* state, Node* node, const Type& type) -> void {
   // TODO The last item should expect the block type.
   Enter scope{state, node->Block.scope};
-  for (auto item: node->Block.items) {
+  auto items = node->Block.items;
+  for (auto item: items) {
     resolve_expr(state, item, {Type::Kind::None});
+  }
+  if (items.len) {
+    node->type = items[items.len - 1]->type;
   }
 }
 
@@ -333,7 +338,8 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
     case Node::Kind::For: {
       // TODO Case might have particular expected arg types.
       resolve_expr(state, node->For.arg, {Type::Kind::None});
-      resolve_expr(state, node->For.expr, {Type::Kind::None});
+      resolve_expr(state, node->For.expr, type);
+      node->type = node->For.expr->type;
       break;
     }
     case Node::Kind::Cast: {
@@ -342,6 +348,11 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
     }
     case Node::Kind::Const: {
       resolve_const(state, node, type);
+      break;
+    }
+    case Node::Kind::Else: {
+      resolve_expr(state, node->Else.expr, type);
+      node->type = node->Else.expr->type;
       break;
     }
     case Node::Kind::Equal:
@@ -387,15 +398,7 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       break;
     }
     case Node::Kind::Switch: {
-      if (node->Switch.arg) {
-        resolve_expr(state, node->Switch.arg, {Type::Kind::None});
-      }
-      for (auto item: node->Switch.items) {
-        // TODO Passing down some expectation of case arg type would be good.
-        // TODO Also expectation of value type for case expressions.
-        // TODO Does this mean expecting a procedure `proc(arg) expr`?
-        resolve_expr(state, item, {Type::Kind::None});
-      }
+      resolve_switch(state, node, type);
       break;
     }
     case Node::Kind::Tuple: {
@@ -488,7 +491,22 @@ auto resolve_ref(ResolveState* state, Node* node) -> void {
   }
 }
 
-void resolve_tuple(ResolveState* state, Node* node, const Type& type) {
+auto resolve_switch(ResolveState* state, Node* node, const Type& type) -> void {
+  if (node->Switch.arg) {
+    resolve_expr(state, node->Switch.arg, {Type::Kind::None});
+  }
+  Type item_type = type;
+  for (auto item: node->Switch.items) {
+    // TODO Passing down some expectation of case arg type would be good.
+    // TODO Also expectation of value type for case expressions.
+    // TODO Does this mean expecting a procedure `proc(arg) expr`?
+    resolve_expr(state, item, item_type);
+    item_type = item->type;
+  }
+  node->type = item_type;
+}
+
+auto resolve_tuple(ResolveState* state, Node* node, const Type& type) -> void {
   auto params = type.kind == Type::Kind::Tuple ? &type.node->Tuple : nullptr;
   auto items = node->Tuple.items;
   for (rint i = 0; i < items.len; i += 1) {

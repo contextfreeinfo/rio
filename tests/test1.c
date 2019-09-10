@@ -79,6 +79,12 @@ void tests_test1_report_scores(rio_Span_float const scores) {
     for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
       rio_float score = rio_span.items[rio_index];
       printf("score: %f\n", score);
+      if (score < 1) {
+        printf("(pretty low)\n");
+      }
+      else if (score > 4) {
+        printf("(pretty high)\n");
+      }
     }
   }
 }

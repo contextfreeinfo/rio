@@ -82,7 +82,7 @@ auto transform_expr(TransformState* state, Node* node) -> void {
     }
     case Node::Kind::Switch: {
       // TODO Transform if non-void.
-      fprintf(stderr, "switch\n");
+      fprintf(stderr, "switch: %d\n", (int)node->type.kind);
       break;
     }
     default: break;
