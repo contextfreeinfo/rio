@@ -200,6 +200,7 @@ struct FunNode {
   // Scope and params both useless for structs.
   Scope scope;
   Opt<Node> params;
+  Opt<Node> type;
   Node* expr;
 };
 

@@ -7,7 +7,13 @@ typedef ptrdiff_t rio_int;
 
 // tests/test1-other.rio
 
+void tests_test1_other_has_child_ticket_price(rio_int const age);
+
 const char* const tests_test1_other_message = "Hello";
+
+void tests_test1_other_has_child_ticket_price(rio_int const age) {
+  (!!! BROKEN 4 !!!)  age < 13;
+}
 
 // tests/test1.rio
 

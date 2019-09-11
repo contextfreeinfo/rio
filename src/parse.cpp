@@ -328,6 +328,10 @@ auto parse_fun(ParseState* state) -> Node& {
     node.Fun.params = &parse_tuple(state);
     if (verbose) fprintf(stderr, "args\n");
   }
+  if (state->tokens->kind == Token::Kind::Colon) {
+    advance_token(state, true);
+    node.Fun.type = &parse_call(state);
+  }
   if (state->tokens->kind == Token::Kind::LineEnd) {
     skip_comments(state, true);
     node.Fun.expr = &parse_block(state, Token::Kind::End);

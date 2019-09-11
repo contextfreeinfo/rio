@@ -1,1 +1,8 @@
 message = "Hello"
+
+has_child_ticket_price proc(age: int): bool
+  if age < 18
+    printf("You'd like to think that, wouldn't you?\n")
+  end
+  age < 13
+end
