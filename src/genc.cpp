@@ -22,6 +22,7 @@ struct Indent {
 auto gen_bad(GenState* state, const Node& node) -> void;
 auto gen_binary(GenState* state, const Node& node, string op) -> void;
 auto gen_block(GenState* state, const Node& node) -> void;
+auto gen_case(GenState* state, const Node& node) -> void;
 auto gen_const(GenState* state, const Node& node) -> void;
 auto gen_decl_expr(GenState* state, const Node& node) -> void;
 auto gen_decls(GenState* state) -> void;
@@ -90,6 +91,16 @@ auto gen_block(GenState* state, const Node& node) -> void {
   }
   gen_indent(state);
   printf("}\n");
+}
+
+auto gen_case(GenState* state, const Node& node) -> void {
+  // Build a makeshift if switch.
+  Node switch_node = {Node::Kind::Switch};
+  switch_node.Switch = {0};
+  const Node* items[] = {&node};
+  switch_node.Switch.items.items = const_cast<Node**>(items);
+  switch_node.Switch.items.len = 1;
+  gen_switch_if(state, switch_node);
 }
 
 auto gen_const(GenState* state, const Node& node) -> void {
@@ -172,6 +183,10 @@ auto gen_expr(GenState* state, const Node& node) -> void {
       printf("(");
       gen_list_items(state, *node.Call.args);
       printf(")");
+      break;
+    }
+    case Node::Kind::Case: {
+      gen_case(state, node);
       break;
     }
     case Node::Kind::Cast: {
