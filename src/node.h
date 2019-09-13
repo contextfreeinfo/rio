@@ -105,6 +105,7 @@ struct Type {
   enum struct Kind {
     None,
     Void,
+    Bool,
     // TODO C Types.
     // Float.
     F32,
@@ -200,7 +201,7 @@ struct FunNode {
   // Scope and params both useless for structs.
   Scope scope;
   Opt<Node> params;
-  Opt<Node> type;
+  Opt<Node> ret_type;
   Node* expr;
 };
 

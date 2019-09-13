@@ -7,11 +7,11 @@ typedef ptrdiff_t rio_int;
 
 // tests/test1-other.rio
 
-void tests_test1_other_has_child_ticket_price(rio_int const age);
+bool tests_test1_other_has_child_ticket_price(rio_int const age);
 
 const char* const tests_test1_other_message = "Hello";
 
-void tests_test1_other_has_child_ticket_price(rio_int const age) {
+bool tests_test1_other_has_child_ticket_price(rio_int const age) {
   if (age < 18) {
     printf("You'd like to think that, wouldn't you?\n");
   }

@@ -461,11 +461,16 @@ auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void {
 auto resolve_proc_sig(
   ResolveState* state, Node* node, const Type& type
 ) -> void {
-  auto ret_type = &state->alloc_type();
+  Type* ret_type;
+  if (node->Fun.ret_type) {
+    resolve_type(state, node->Fun.ret_type);
+    ret_type = &node->Fun.ret_type->type;
+  } else {
+    ret_type = &state->alloc_type();
+    ret_type->kind = Type::Kind::Void;
+  }
   node->type = {Type::Kind::Proc, ret_type};
   node->type.node = node;
-  // TODO Actual types on functions.
-  ret_type->kind = Type::Kind::Void;
   // TODO If in a local expression, expected type might be given.
   if (node->Fun.params) {
     resolve_tuple(state, node->Fun.params, {Type::Kind::None});
@@ -534,8 +539,11 @@ auto resolve_type(ResolveState* state, Node* node) -> void {
       break;
     }
     case Node::Kind::Ref: {
+      // TODO Make these basic defs in core mod, not crazy stuff here.
       string name = node->Ref.name;
-      if (!strcmp(name, "float")) {
+      if (!strcmp(name, "bool")) {
+        node->type = {Type::Kind::Bool};
+      } else if (!strcmp(name, "float")) {
         node->type = {Type::Kind::Float};
       } else if (!strcmp(name, "i32")) {
         node->type = {Type::Kind::I32};

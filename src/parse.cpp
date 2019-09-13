@@ -300,6 +300,7 @@ auto parse_expr(ParseState* state) -> Node& {
 }
 
 auto parse_for(ParseState* state) -> Node& {
+  // TODO Support `for item at index in items ...` ?
   advance_token(state);
   return parse_case(state, Node::Kind::For);
 }
@@ -330,7 +331,7 @@ auto parse_fun(ParseState* state) -> Node& {
   }
   if (state->tokens->kind == Token::Kind::Colon) {
     advance_token(state, true);
-    node.Fun.type = &parse_call(state);
+    node.Fun.ret_type = &parse_call(state);
   }
   if (state->tokens->kind == Token::Kind::LineEnd) {
     skip_comments(state, true);

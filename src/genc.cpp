@@ -599,6 +599,10 @@ auto gen_type(GenState* state, const Type& type) -> void {
       printf("%s", type.def->name);
       break;
     }
+    case Type::Kind::Bool: {
+      printf("bool");
+      break;
+    }
     case Type::Kind::F32: {
       printf("float");
       break;
