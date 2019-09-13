@@ -223,7 +223,8 @@ auto resolve_block(ResolveState* state, Node* node, const Type& type) -> void {
   for (auto item: items) {
     resolve_expr(state, item, {Type::Kind::None});
   }
-  if (items.len) {
+  // Here, None means unspecified, and Void means expected void.
+  if (items.len && type.kind != Type::Kind::Void) {
     node->type = items[items.len - 1]->type;
   }
 }
@@ -299,7 +300,7 @@ auto resolve_def_body(ResolveState* state, Def* def) -> void {
     }
     case Node::Kind::Fun:
     case Node::Kind::Proc: {
-      resolve_expr(state, node, {Type::Kind::None});
+      resolve_expr(state, node, *node->type.arg);
       break;
     }
     default: {
@@ -363,6 +364,7 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
     case Node::Kind::NotEqual: {
       resolve_expr(state, node->Binary.a, {Type::Kind::None});
       resolve_expr(state, node->Binary.b, {Type::Kind::None});
+      node->type = {Type::Kind::Bool};
       break;
     }
     case Node::Kind::Float: {
@@ -454,22 +456,14 @@ auto resolve_map(ResolveState* state, Node* node, const Type& type) -> void {
 auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void {
   Enter scope{state, node->Fun.scope};
   resolve_proc_sig(state, node, type);
-  // TODO Expect proc return type.
-  resolve_expr(state, node->Fun.expr, {Type::Kind::None});
+  resolve_expr(state, node->Fun.expr, *node->type.arg);
 }
 
 auto resolve_proc_sig(
   ResolveState* state, Node* node, const Type& type
 ) -> void {
-  Type* ret_type;
-  if (node->Fun.ret_type) {
-    resolve_type(state, node->Fun.ret_type);
-    ret_type = &node->Fun.ret_type->type;
-  } else {
-    ret_type = &state->alloc_type();
-    ret_type->kind = Type::Kind::Void;
-  }
-  node->type = {Type::Kind::Proc, ret_type};
+  resolve_type(state, node->Fun.ret_type);
+  node->type = {Type::Kind::Proc, &node->Fun.ret_type->type};
   node->type.node = node;
   // TODO If in a local expression, expected type might be given.
   if (node->Fun.params) {
@@ -557,6 +551,10 @@ auto resolve_type(ResolveState* state, Node* node) -> void {
         node->type.def = state->mod->global_refs.get(name);
         // fprintf(stderr, "Yo dawg in %s: %s -> %p from %p\n", state->mod->name, name, (void*)node->type.def, (void*)&state->mod->global_refs);
       }
+      break;
+    }
+    case Node::Kind::Void: {
+      node->type = {Type::Kind::Void};
       break;
     }
     default: break;

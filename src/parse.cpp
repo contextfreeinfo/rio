@@ -332,6 +332,8 @@ auto parse_fun(ParseState* state) -> Node& {
   if (state->tokens->kind == Token::Kind::Colon) {
     advance_token(state, true);
     node.Fun.ret_type = &parse_call(state);
+  } else {
+    node.Fun.ret_type = &state->alloc(Node::Kind::Void);
   }
   if (state->tokens->kind == Token::Kind::LineEnd) {
     skip_comments(state, true);

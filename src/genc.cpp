@@ -56,8 +56,10 @@ auto gen(Engine* engine) -> void {
   // Common heading.
   // TODO Need to keep a tally of all external headers? Libs, too.
   printf(
+    "#include <stdbool.h>\n"
     "#include <stddef.h>\n"
     "#include <stdint.h>\n"
+    // TODO Include stdio.h only if `use "c"`.
     "#include <stdio.h>\n"
     "\n"
     // Use typedefs because we want the generated code to be the same on all

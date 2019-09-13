@@ -234,6 +234,8 @@ struct UseNode {
   Node* arg;
 };
 
+struct VoidNode {};
+
 struct Node {
 
   enum struct Kind {
@@ -261,9 +263,10 @@ struct Node {
     Ref,
     String,
     Struct,
+    Switch,
     Tuple,
     Use,
-    Switch,
+    Void,
   };
 
   Kind kind;
@@ -291,6 +294,7 @@ struct Node {
     SwitchNode Switch;
     ParentNode Tuple;
     UseNode Use;
+    VoidNode Void;
   };
 
 };
