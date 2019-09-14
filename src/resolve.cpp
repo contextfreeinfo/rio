@@ -220,12 +220,25 @@ auto resolve_block(ResolveState* state, Node* node, const Type& type) -> void {
   // TODO The last item should expect the block type.
   Enter scope{state, node->Block.scope};
   auto items = node->Block.items;
-  for (auto item: items) {
-    resolve_expr(state, item, {Type::Kind::None});
+  for (rint i = 0; i < items.len - 1; i += 1) {
+    auto item = items[i];
+    // We know none of these values are being used at this level.
+    // None means unspecified, and Void means expected void.
+    // TODO Will we end up with no distinction between unknown and void???
+    resolve_expr(state, item, {Type::Kind::Void});
   }
-  // Here, None means unspecified, and Void means expected void.
-  if (items.len && type.kind != Type::Kind::Void) {
-    node->type = items[items.len - 1]->type;
+  if (items.len) {
+    auto item = items[items.len - 1];
+    resolve_expr(state, item, type);
+    if (type.kind == Type::Kind::Void) {
+      // TODO Apply ignored to all ignored cases?
+      auto ignored_arg = &state->alloc_type();
+      *ignored_arg = item->type;
+      item->type.kind = Type::Kind::Ignored;
+      item->type.arg = ignored_arg;
+    } else {
+      node->type = items[items.len - 1]->type;
+    }
   }
 }
 
@@ -386,6 +399,11 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
     }
     case Node::Kind::Ref: {
       resolve_ref(state, node);
+      break;
+    }
+    case Node::Kind::Return: {
+      resolve_expr(state, node->Return.expr, type);
+      node->type.kind = Type::Kind::Never;
       break;
     }
     case Node::Kind::String: {

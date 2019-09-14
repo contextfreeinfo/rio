@@ -103,15 +103,18 @@ struct Token {
 struct Type {
 
   enum struct Kind {
+    // Voidish types.
     None,
+    Ignored,
+    Never,
     Void,
-    Bool,
     // TODO C Types.
     // Float.
     F32,
     F64,
     Float,
     // Int.
+    Bool,
     I8,
     I16,
     I32,
@@ -261,6 +264,7 @@ struct Node {
     NotEqual,
     Proc,
     Ref,
+    Return,
     String,
     Struct,
     Switch,
@@ -290,6 +294,7 @@ struct Node {
     BinaryNode Member;
     ParentNode Parent;
     RefNode Ref;
+    UnaryNode Return;
     StringNode String;
     SwitchNode Switch;
     ParentNode Tuple;

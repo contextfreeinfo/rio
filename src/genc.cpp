@@ -5,6 +5,7 @@ namespace rio { namespace c {
 struct GenState {
   rint indent = 0;
   ModManager* mod = nullptr;
+  Type* parent_type = nullptr;
   bool start_mod = false;
   bool start_section = false;
 };
@@ -254,6 +255,11 @@ auto gen_expr(GenState* state, const Node& node) -> void {
     }
     case Node::Kind::Ref: {
       gen_ref(state, node);
+      break;
+    }
+    case Node::Kind::Return: {
+      printf("return ");
+      gen_expr(state, *node.Return.expr);
       break;
     }
     case Node::Kind::String: {

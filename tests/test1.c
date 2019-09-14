@@ -16,7 +16,7 @@ bool tests_test1_other_has_child_ticket_price(rio_int const age) {
   if (age < 18) {
     printf("You'd like to think that, wouldn't you?\n");
   }
-  age < 13;
+  return age < 13;
 }
 
 // tests/test1.rio
