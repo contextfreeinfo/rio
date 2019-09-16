@@ -2,6 +2,7 @@
 
 namespace rio {
 
+// TODO Rename this pass from "transform" to "express"?
 struct TransformState {
   ModManager* mod;
 };
@@ -34,7 +35,7 @@ auto transform_block(
     auto item = items[i];
     transform_expr(state, item, can_return && last);
     if (last) {
-      if (can_return && item->type.kind > Type::Kind::Void) {
+      if (can_return && !is_voidish(item->type.kind)) {
         switch (item->kind) {
           case Node::Kind::Block:
           case Node::Kind::Switch: {
@@ -111,8 +112,8 @@ auto transform_expr(
       break;
     }
     case Node::Kind::Switch: {
-      // TODO Transform if non-voidish.
-      // TODO Forward can_return down each??
+      // TODO Transform if non-voidish!
+      // TODO Forward can_return down each? Or just capture consistently and return after?
       fprintf(stderr, "switch: %d\n", (int)node->type.kind);
       break;
     }

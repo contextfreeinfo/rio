@@ -154,6 +154,8 @@ struct Type {
 
 };
 
+auto is_voidish(Type::Kind kind) -> bool;
+
 // Node.
 
 struct Scope {

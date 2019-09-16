@@ -216,6 +216,10 @@ auto resolve_array(ResolveState* state, Node* node, const Type& type) -> void {
   }
 }
 
+auto is_voidish(Type::Kind kind) -> bool {
+  return kind <= Type::Kind::Void;
+}
+
 auto resolve_block(ResolveState* state, Node* node, const Type& type) -> void {
   // TODO The last item should expect the block type.
   Enter scope{state, node->Block.scope};
