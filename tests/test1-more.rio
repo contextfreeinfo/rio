@@ -21,10 +21,20 @@ end
 
 show_person proc(person: Person)
   printf(
-    "%s is %td years old (%s)\n",
+    "%s is %td years old (ticket price: %.2f, common category: %s)\n",
+    # These technically can stay put since they are pure.
     person.name,
-    # TODO Some nested if expressions around here?
     person.age,
+    # This expression calls a proc, so it's impure.
+    if
+      has_child_ticket_price(person.age)
+        4.50
+      end
+      else
+        5.50
+      end
+    end,
+    # Also impure.
     if
       person.age >= 65
         "senior"

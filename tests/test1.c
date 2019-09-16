@@ -101,20 +101,23 @@ void tests_test1_report_scores(rio_Span_float const scores) {
 }
 
 void tests_test1_show_person(tests_test1_Person const person) {
-  // This is manually edited to be closer to what we need as the transform target.
-  rio_string temp;
-  if (person.age >= 65) {
-    temp = "senior";
+  printf("%s is %td years old (ticket price: %.2f, common category: %s)\n", person.name, person.age, if (tests_test1_other_has_child_ticket_price(person.age)) {
+    4.50;
+  }
+  else {
+    5.50;
+  }
+, if (person.age >= 65) {
+    "senior";
   }
   else if (person.age < 18) {
-    temp = "minor";
+    "minor";
   }
   else {
     printf("This is a large category.\n");
-    temp = "adult";
+    "adult";
   }
-  // This is the statement that we extracted the temp from.
-  printf("%s is %td years old (%s)\n", person.name, person.age, temp);
+);
   tests_test1_report_scores(person.scores);
 }
 
