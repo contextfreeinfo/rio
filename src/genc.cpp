@@ -67,6 +67,9 @@ auto gen(Engine* engine) -> void {
     // platforms, but in case we need preprocessor junk, define in advance.
     "typedef double rio_float;\n"
     "typedef ptrdiff_t rio_int;\n"
+    // TODO Perhaps include span len on strings, too.
+    // TODO If so, we'll need something for raw strings, too, so we can make good c libraries in rio.
+    "typedef const char* rio_string;\n"
   );
   // TODO Gen internal mod 0 here?
   // TODO This is where rio_Span_i32 is needed for current test case.
@@ -644,7 +647,7 @@ auto gen_type(GenState* state, const Type& type) -> void {
       break;
     }
     case Type::Kind::String: {
-      printf("const char*");
+      printf("rio_string");
       break;
     }
     case Type::Kind::U8: {
