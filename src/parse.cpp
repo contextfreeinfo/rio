@@ -20,6 +20,7 @@ struct ParseState {
 void advance_token(ParseState* state, bool skip_lines = false);
 auto more_tokens(ParseState* state, Token::Kind end) -> bool;
 auto node_slice_copy(ParseState* state, rint buf_len_old) -> Slice<Node*>;
+auto parse_add(ParseState* state) -> Node&;
 auto parse_assign(ParseState* state) -> Node&;
 auto parse_atom(ParseState* state) -> Node&;
 auto parse_block(
@@ -44,6 +45,14 @@ void advance_token(ParseState* state, bool skip_lines) {
   if (tokens->kind != Token::Kind::FileEnd) {
     tokens += 1;
     skip_comments(state, skip_lines);
+  }
+}
+
+auto is_token_add(const Token& token) -> Node::Kind {
+  switch (token.kind) {
+    case Token::Kind::Minus: return Node::Kind::Minus;
+    case Token::Kind::Plus: return Node::Kind::Plus;
+    default: return Node::Kind::None;
   }
 }
 
@@ -95,6 +104,22 @@ auto parse(ModManager* mod, const Token* tokens) -> Node& {
   }();
   skip_comments(&state, true);
   return parse_block(&state, Token::Kind::FileEnd);
+}
+
+auto parse_add(ParseState* state) -> Node& {
+  Node* node = &parse_call(state);
+  while (true) {
+    auto node_kind = is_token_add(*state->tokens);
+    if (node_kind == Node::Kind::None) {
+      break;
+    }
+    advance_token(state, true);
+    Node* pair = &state->alloc(node_kind);
+    pair->Binary.a = node;
+    pair->Binary.b = &parse_call(state);
+    node = pair;
+  }
+  return *node;
 }
 
 auto parse_assign(ParseState* state) -> Node& {
@@ -249,7 +274,7 @@ auto parse_cast(ParseState* state) -> Node& {
 }
 
 auto parse_compare(ParseState* state) -> Node& {
-  Node* node = &parse_call(state);
+  Node* node = &parse_add(state);
   while (true) {
     auto node_kind = is_token_compare(*state->tokens);
     if (node_kind == Node::Kind::None) {
@@ -258,7 +283,7 @@ auto parse_compare(ParseState* state) -> Node& {
     advance_token(state, true);
     Node* pair = &state->alloc(node_kind);
     pair->Binary.a = node;
-    pair->Binary.b = &parse_call(state);
+    pair->Binary.b = &parse_add(state);
     node = pair;
   }
   return *node;

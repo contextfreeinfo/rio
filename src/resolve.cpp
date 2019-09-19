@@ -401,6 +401,14 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       resolve_map(state, node, type);
       break;
     }
+    case Node::Kind::Minus:
+    case Node::Kind::Plus: {
+      resolve_expr(state, node->Binary.a, {Type::Kind::None});
+      resolve_expr(state, node->Binary.b, {Type::Kind::None});
+      // TODO General rules about result type, including built-in promotion.
+      node->type = node->Binary.a->type;
+      break;
+    }
     case Node::Kind::Ref: {
       resolve_ref(state, node);
       break;

@@ -9,9 +9,22 @@ typedef const char* rio_string;
 
 // tests/test1-other.rio
 
+rio_float tests_test1_other_bother(rio_float const x);
+void tests_test1_other_bother_again(rio_float const x);
 bool tests_test1_other_has_child_ticket_price(rio_int const age);
 
 rio_string const tests_test1_other_message = "Hello";
+
+rio_float tests_test1_other_bother(rio_float const x) {
+  return x + 1;
+}
+
+void tests_test1_other_bother_again(rio_float const x) {
+  bool const condition = x + 1 > 2;
+  if (condition) {
+    printf("Something!\n");
+  }
+}
 
 bool tests_test1_other_has_child_ticket_price(rio_int const age) {
   if (age < 18) {

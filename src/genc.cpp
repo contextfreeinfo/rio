@@ -244,6 +244,10 @@ auto gen_expr(GenState* state, const Node& node) -> void {
       gen_binary(state, node, ".");
       break;
     }
+    case Node::Kind::Minus: {
+      gen_binary(state, node, " - ");
+      break;
+    }
     case Node::Kind::More: {
       gen_binary(state, node, " > ");
       break;
@@ -254,6 +258,10 @@ auto gen_expr(GenState* state, const Node& node) -> void {
     }
     case Node::Kind::NotEqual: {
       gen_binary(state, node, " != ");
+      break;
+    }
+    case Node::Kind::Plus: {
+      gen_binary(state, node, " + ");
       break;
     }
     case Node::Kind::Ref: {
