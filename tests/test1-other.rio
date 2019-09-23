@@ -18,3 +18,12 @@ has_child_ticket_price proc(age: int): bool
   end
   age < 13
 end
+
+sum fun(n: int): int
+  result var := 0
+  result := result + n
+  #~ for 1..=n do(i)
+    #~ result := result + i
+  #~ end
+  result
+end

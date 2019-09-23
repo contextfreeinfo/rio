@@ -12,6 +12,7 @@ typedef const char* rio_string;
 rio_float tests_test1_other_bother(rio_float const x);
 void tests_test1_other_bother_again(rio_float const x);
 bool tests_test1_other_has_child_ticket_price(rio_int const age);
+rio_int tests_test1_other_sum(rio_int const n);
 
 rio_string const tests_test1_other_message = "Hello";
 
@@ -31,6 +32,17 @@ bool tests_test1_other_has_child_ticket_price(rio_int const age) {
     printf("You'd like to think that, wouldn't you?\n");
   }
   return age < 13;
+}
+
+rio_int tests_test1_other_sum(rio_int const n) {
+  result;
+  (!!! BROKEN 0 !!!);
+  (!!! BROKEN 0 !!!);
+  0;
+  result;
+  (!!! BROKEN 0 !!!);
+  result + n;
+  result;
 }
 
 // tests/test1.rio

@@ -34,6 +34,7 @@ const KeyId key_ids[] = {
   {str_from("struct"), Token::Kind::Struct},
   {str_from("switch"), Token::Kind::Switch},
   {str_from("use"), Token::Kind::Use},
+  {str_from("var"), Token::Kind::Var},
 };
 
 auto has_text(const Token& token) -> bool {

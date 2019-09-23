@@ -86,6 +86,7 @@ struct Token {
     Switch,
     Update,
     Use,
+    Var,
   };
   Kind kind;
   // TODO We don't need file name on each individual token.
@@ -273,6 +274,7 @@ struct Node {
     Struct,
     Switch,
     Tuple,
+    Update,
     Use,
     Void,
   };
