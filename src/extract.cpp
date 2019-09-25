@@ -25,7 +25,9 @@ struct ExtractState {
 
 auto def_slice_copy(ExtractState* state, rint buf_len_old) -> Slice<Def*>;
 void extract_block(ExtractState* state, Node* node);
-void extract_ref_names(ExtractState* state, Node* node, Node* top);
+void extract_ref_names(
+  ExtractState* state, Node* node, Node* top, bool explicit_only = false
+);
 void extract_expr(ExtractState* state, Node* node);
 void extract_fun(ExtractState* state, Node* node);
 
@@ -107,8 +109,11 @@ void extract_expr(ExtractState* state, Node* node) {
       // TODO Extract from ad hoc structural types?
       break;
     }
-    case Node::Kind::Const: {
-      extract_ref_names(state, node->Const.a, node);
+    case Node::Kind::Const:
+    case Node::Kind::Update: {
+      extract_ref_names(
+        state, node->Const.a, node, node->kind == Node::Kind::Update
+      );
       extract_expr(state, node->Const.b);
       break;
     }
@@ -194,16 +199,25 @@ void extract_fun(ExtractState* state, Node* node) {
   }
 }
 
-void extract_ref_names(ExtractState* state, Node* node, Node* top) {
+void extract_ref_names(
+  ExtractState* state, Node* node, Node* top, bool explicit_only
+) {
   switch (node->kind) {
     case Node::Kind::Cast: {
-      extract_ref_names(state, node->Cast.a, top);
+      extract_ref_names(state, node->Cast.a, top, explicit_only);
       break;
     }
     case Node::Kind::Ref: {
-      if (verbose) fprintf(stderr, "const/var: %s\n", node->Ref.name);
-      node->Ref.def = state->alloc_push(node->Ref.name, node);
-      node->Ref.def->top = top;
+      if (!explicit_only) {
+        if (verbose) fprintf(stderr, "const/var: %s\n", node->Ref.name);
+        node->Ref.def = state->alloc_push(node->Ref.name, node);
+        node->Ref.def->top = top;
+      }
+      break;
+    }
+    case Node::Kind::Var: {
+      // Been made explicit, so explicit lower not needed.
+      extract_ref_names(state, node->Var.expr, top, false);
       break;
     }
     default: {

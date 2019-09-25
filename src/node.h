@@ -276,6 +276,7 @@ struct Node {
     Tuple,
     Update,
     Use,
+    Var,
     Void,
   };
 
@@ -304,6 +305,8 @@ struct Node {
     StringNode String;
     SwitchNode Switch;
     ParentNode Tuple;
+    BinaryNode Update;
+    UnaryNode Var;
     UseNode Use;
     VoidNode Void;
   };

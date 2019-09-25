@@ -37,6 +37,7 @@ auto parse_for(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
 auto parse_if(ParseState* state) -> Node&;
 auto parse_tuple(ParseState* state) -> Node&;
+auto parse_update(ParseState* state) -> Node&;
 auto parse_use(ParseState* state) -> Node&;
 void skip_comments(ParseState* state, bool skip_lines = false);
 
@@ -124,13 +125,13 @@ auto parse_add(ParseState* state) -> Node& {
 
 auto parse_assign(ParseState* state) -> Node& {
   // TODO Assign to a call declares a macro???
-  Node& a = parse_def(state);
+  Node& a = parse_update(state);
   if (state->tokens->kind == Token::Kind::Assign) {
     advance_token(state, true);
     Node& node = state->alloc(Node::Kind::Const);
     node.Const.a = &a;
     if (verbose) fprintf(stderr, "begin assign\n");
-    node.Const.b = &parse_expr(state);
+    node.Const.b = &parse_assign(state);
     if (verbose) fprintf(stderr, "end assign\n");
     return node;
   } else {
@@ -175,6 +176,13 @@ auto parse_atom(ParseState* state) -> Node& {
       Node& node = state->alloc(Node::Kind::Ref);
       node.Ref.name = tokens->text;
       advance_token(state);
+      if (state->tokens->kind == Token::Kind::Var) {
+        // TODO Handle published somewheres.
+        advance_token(state);
+        Node& var = state->alloc(Node::Kind::Var);
+        var.Var.expr = &node;
+        return var;
+      }
       return node;
     }
     case Token::Kind::If: {
@@ -292,6 +300,7 @@ auto parse_compare(ParseState* state) -> Node& {
 auto parse_def(ParseState* state) -> Node& {
   Node& a = parse_cast(state);
   if (a.kind == Node::Kind::Ref && is_token_proc(*state->tokens)) {
+    // TODO Should pub go before proc/fun/struct/...?
     bool published = false;
     if (state->tokens->kind == Token::Kind::Pub) {
       published = true;
@@ -302,6 +311,7 @@ auto parse_def(ParseState* state) -> Node& {
     node.Fun.published = published;
     return node;
   } else {
+    // Nothing got nested, so go with what we already had.
     return a;
   }
 }
@@ -442,6 +452,19 @@ auto parse_tuple(ParseState* state) -> Node& {
   advance_token(state);
   if (verbose) fprintf(stderr, "end tuple\n");
   return node;
+}
+
+auto parse_update(ParseState* state) -> Node& {
+  Node& a = parse_def(state);
+  if (state->tokens->kind == Token::Kind::Update) {
+    advance_token(state, true);
+    Node& node = state->alloc(Node::Kind::Update);
+    node.Const.a = &a;
+    node.Const.b = &parse_update(state);
+    return node;
+  } else {
+    return a;
+  }
 }
 
 auto parse_use(ParseState* state) -> Node& {

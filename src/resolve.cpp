@@ -264,6 +264,10 @@ auto resolve_const(ResolveState* state, Node* node, const Type& type) -> void {
   if (node->Const.a->type.kind == Type::Kind::None) {
     // Infer from value to def.
     node->Const.a->type = node->Const.b->type;
+    if (node->Const.a->kind == Node::Kind::Var) {
+      // TODO Make this more general. Seriously.
+      node->Const.a->Var.expr->type = node->Const.a->type;
+    }
   }
   node->type = node->Const.a->type;
 }
@@ -285,7 +289,8 @@ auto resolve_def(ResolveState* state, Def* def) -> void {
       resolve_cast(state, node, {Type::Kind::None});
       break;
     }
-    case Node::Kind::Const: {
+    case Node::Kind::Const:
+    case Node::Kind::Update: {
       resolve_const(state, node, {Type::Kind::None});
       break;
     }
@@ -364,7 +369,8 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       resolve_cast(state, node, type);
       break;
     }
-    case Node::Kind::Const: {
+    case Node::Kind::Const:
+    case Node::Kind::Update: {
       resolve_const(state, node, type);
       break;
     }
@@ -437,6 +443,11 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       resolve_tuple(state, node, type);
       break;
     }
+    case Node::Kind::Var: {
+      // TODO Does this do anything useful right now?
+      resolve_expr(state, node->Var.expr, type);
+      break;
+    }
     default: {
       // printf("(!!! BROKEN %d !!!)", static_cast<int>(node.kind));
       break;
@@ -502,21 +513,25 @@ auto resolve_proc_sig(
 }
 
 auto resolve_ref(ResolveState* state, Node* node) -> void {
-  // Look in local scopes first, from last (deepest) to first (outermost).
-  for (int i = state->scopes.len - 1; i >= 0; i -= 1) {
-    auto def = state->scopes[i]->find(node->Ref.name);
-    if (def) {
-      node->Ref.def = def;
-      break;
-    }
-  }
+  // Seems like checking against previous setting could help be efficient.
+  // When I added the check, it made no difference in output, at least.
   if (!node->Ref.def) {
-    // Nothing in local scopes. Look in global.
-    node->Ref.def = state->mod->global_refs.get(node->Ref.name);
-  }
-  if (node->Ref.def) {
-    resolve_def(state, node->Ref.def);
-    node->type = node->Ref.def->node->type;
+    // Look in local scopes first, from last (deepest) to first (outermost).
+    for (int i = state->scopes.len - 1; i >= 0; i -= 1) {
+      auto def = state->scopes[i]->find(node->Ref.name);
+      if (def) {
+        node->Ref.def = def;
+        break;
+      }
+    }
+    if (!node->Ref.def) {
+      // Nothing in local scopes. Look in global.
+      node->Ref.def = state->mod->global_refs.get(node->Ref.name);
+    }
+    if (node->Ref.def) {
+      resolve_def(state, node->Ref.def);
+      node->type = node->Ref.def->node->type;
+    }
   }
 }
 

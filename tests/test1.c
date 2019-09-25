@@ -35,14 +35,9 @@ bool tests_test1_other_has_child_ticket_price(rio_int const age) {
 }
 
 rio_int tests_test1_other_sum(rio_int const n) {
-  result;
-  (!!! BROKEN 0 !!!);
-  (!!! BROKEN 0 !!!);
-  0;
-  result;
-  (!!! BROKEN 0 !!!);
-  result + n;
-  result;
+  rio_int result = 0;
+  result = result + n;
+  return result;
 }
 
 // tests/test1.rio

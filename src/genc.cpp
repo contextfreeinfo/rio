@@ -50,6 +50,9 @@ auto gen_type_opt(GenState* state, Opt<const Type> type) -> void;
 auto gen_typedef(GenState* state, const Node& node) -> void;
 auto gen_typedefs(GenState* state) -> void;
 auto gen_statements(GenState* state, const Node& node) -> void;
+auto gen_val_decl(
+  GenState* state, const Node& node, bool is_const = false
+) -> void;
 auto needs_semi(const Node& node) -> bool;
 
 auto gen(Engine* engine) -> void {
@@ -110,19 +113,7 @@ auto gen_case(GenState* state, const Node& node) -> void {
 }
 
 auto gen_const(GenState* state, const Node& node) -> void {
-  gen_type(state, node.Const.a->type);
-  printf(" const ");
-  switch (node.Const.a->kind) {
-    case Node::Kind::Cast: {
-      // We already generated the type above, so skip the repeat.
-      gen_expr(state, *node.Const.a->Cast.a);
-      break;
-    }
-    default: {
-      gen_expr(state, *node.Const.a);
-      break;
-    }
-  }
+  gen_val_decl(state, *node.Const.a, true);
   printf(" = ");
   gen_expr(state, *node.Const.b);
 }
@@ -287,6 +278,14 @@ auto gen_expr(GenState* state, const Node& node) -> void {
     }
     case Node::Kind::Use: {
       // Nothing to do here.
+      break;
+    }
+    case Node::Kind::Update: {
+      gen_binary(state, node, " = ");
+      break;
+    }
+    case Node::Kind::Var: {
+      gen_val_decl(state, *node.Var.expr);
       break;
     }
     default: {
@@ -614,7 +613,7 @@ auto gen_switch_if(GenState* state, const Node& node) -> void {
 auto gen_type(GenState* state, const Type& type) -> void {
   switch (type.kind) {
     case Type::Kind::Array: {
-      // Resolve guarantees a def assigned. 
+      // Resolve guarantees a def assigned.
       printf("%s", type.def->name);
       break;
     }
@@ -735,6 +734,22 @@ auto gen_typedefs(GenState* state) -> void {
       printf("} %s;\n", def->name);
     } else {
       gen_typedef(state, *def->top);
+    }
+  }
+}
+
+auto gen_val_decl(GenState* state, const Node& node, bool is_const) -> void {
+  gen_type(state, node.type);
+  printf(is_const ? " const " : " ");
+  switch (node.kind) {
+    case Node::Kind::Cast: {
+      // We already generated the type above, so skip the repeat.
+      gen_expr(state, *node.Cast.a);
+      break;
+    }
+    default: {
+      gen_expr(state, node);
+      break;
     }
   }
 }
