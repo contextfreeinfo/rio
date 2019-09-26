@@ -113,6 +113,9 @@ auto transform_expr(
     }
     case Node::Kind::Switch: {
       // TODO Transform if non-voidish!!
+      // TODO We need to know the nearest voidish above, its parent, and its index in the parent.
+      // TODO We need to replace it with at least 2 statements: a new var and block/statements assigning to the var.
+      // TODO And we need to replace this switch with a ref to the new var.
       // TODO Forward can_return down each? Or just capture consistently and return after?
       fprintf(stderr, "switch: %d\n", (int)node->type.kind);
       break;

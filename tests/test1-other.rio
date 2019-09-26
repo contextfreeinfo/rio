@@ -5,7 +5,6 @@ bother fun(x: float): float
 end
 
 bother_again proc(x: float)
-  # This should infer to bool.
   condition = x + 1 > 2
   if condition
     printf("Something!\n")
@@ -22,7 +21,7 @@ end
 sum fun(n: int): int
   result var := 0
   result := result + n
-  #~ for 1..=n do(i)
+  #~ for 1 ..= n do(i)
     #~ result := result + i
   #~ end
   result
