@@ -13,6 +13,7 @@ rio_float tests_test1_other_bother(rio_float const x);
 void tests_test1_other_bother_again(rio_float const x);
 bool tests_test1_other_has_child_ticket_price(rio_int const age);
 rio_int tests_test1_other_sum(rio_int const n);
+rio_float tests_test1_other_ticket_price_calc(rio_int const age);
 
 rio_string const tests_test1_other_message = "Hello";
 
@@ -38,6 +39,15 @@ rio_int tests_test1_other_sum(rio_int const n) {
   rio_int result = 0;
   result = result + n;
   return result;
+}
+
+rio_float tests_test1_other_ticket_price_calc(rio_int const age) {
+  if (tests_test1_other_has_child_ticket_price(age)) {
+    return 4.50;
+  }
+  else {
+    return 5.50;
+  }
 }
 
 // tests/test1.rio

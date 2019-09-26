@@ -39,7 +39,7 @@ auto transform_block(
         switch (item->kind) {
           case Node::Kind::Block:
           case Node::Kind::Switch: {
-            // Skip these.
+            // Skip these since we will have pushed returns into them.
             break;
           }
           default: {
@@ -81,7 +81,7 @@ auto transform_expr(
     case Node::Kind::For: {
       // TODO Transform if non-void.
       transform_expr(state, node->For.arg);
-      transform_expr(state, node->For.expr);
+      transform_expr(state, node->For.expr, can_return);
       break;
     }
     case Node::Kind::Cast: {
@@ -90,6 +90,10 @@ auto transform_expr(
     }
     case Node::Kind::Const: {
       transform_expr(state, node->Cast.b);
+      break;
+    }
+    case Node::Kind::Else: {
+      transform_expr(state, node->Else.expr, can_return);
       break;
     }
     case Node::Kind::Equal:
@@ -112,12 +116,23 @@ auto transform_expr(
       break;
     }
     case Node::Kind::Switch: {
-      // TODO Transform if non-voidish!!
+      // TODO Transform if non-voidish!
       // TODO We need to know the nearest voidish above, its parent, and its index in the parent.
       // TODO We need to replace it with at least 2 statements: a new var and block/statements assigning to the var.
       // TODO And we need to replace this switch with a ref to the new var.
       // TODO Forward can_return down each? Or just capture consistently and return after?
-      fprintf(stderr, "switch: %d\n", (int)node->type.kind);
+      if (is_voidish(node->type.kind) || can_return) {
+        // Usage as return requires less transforming.
+        if (node->Switch.arg) {
+          transform_expr(state, node->Switch.arg);
+        }
+        for (auto item: node->Switch.items) {
+          transform_expr(state, item, can_return);
+        }
+      } else {
+        fprintf(stderr, "switch: %d\n", (int)node->type.kind);
+        // TODO Afterward, call back into transform_switch again?
+      }
       break;
     }
     default: break;
