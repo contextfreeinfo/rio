@@ -2,14 +2,14 @@ message = "Hello"
 
 bother fun(x: float): float
   x + 1
-end
+;
 
 bother_again proc(x: float)
   condition = x + 1 > 2
   if condition
     printf("Something!\n")
-  end
-end
+  ;
+;
 
 has_child_ticket_price proc(age: int): bool
   if age < 18
@@ -35,5 +35,5 @@ ticket_price_calc proc(age: int): float
     else
       5.50
     ;
-  end
-end
+  ;
+;

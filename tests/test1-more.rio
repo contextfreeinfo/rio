@@ -3,7 +3,7 @@
 greet proc(name: string, age: int)
   printf("%s, %s!\n", message, name)
   printf("You are %td years old.\n", age)
-end
+;
 
 report_scores proc(scores: [float])
   for scores do(score)
@@ -15,9 +15,9 @@ report_scores proc(scores: [float])
       score > 4
         printf("(pretty high)\n")
       ;
-    end
-  end
-end
+    ;
+  ;
+;
 
 show_person proc(person: Person)
   printf(
@@ -32,7 +32,7 @@ show_person proc(person: Person)
       ;
       else
         5.50
-      end
+      ;
     ;,
     # Also impure.
     if
@@ -46,14 +46,14 @@ show_person proc(person: Person)
         # TODO Some nested if expression inside this printf.
         printf("This is a large category.\n")
         "adult"
-      end
-    end,
+      ;
+    ;,
   )
   report_scores(person.scores)
-end
+;
 
 show_persons proc(persons: [Person])
   for persons do(person)
     show_person(person)
-  end
-end
+  ;
+;
