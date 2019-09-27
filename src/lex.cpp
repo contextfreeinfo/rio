@@ -217,6 +217,9 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
     case '{': return simple(Token::Kind::CurlyL);
     case '}': return simple(Token::Kind::CurlyR);
     case '.': return simple(Token::Kind::Dot);
+    case ';': {
+      return simple(was_line_end ? Token::Kind::End : Token::Kind::Junk);
+    }
     case '(': return simple(Token::Kind::RoundL);
     case ')': return simple(Token::Kind::RoundR);
     case '[': return simple(Token::Kind::SquareL);

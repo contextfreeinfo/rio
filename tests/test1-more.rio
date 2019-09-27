@@ -11,10 +11,10 @@ report_scores proc(scores: [float])
     if
       score < 1
         printf("(pretty low)\n")
-      end
+      ;
       score > 4
         printf("(pretty high)\n")
-      end
+      ;
     end
   end
 end
@@ -29,19 +29,19 @@ show_person proc(person: Person)
     if
       has_child_ticket_price(person.age)
         4.50
-      end
+      ;
       else
         5.50
       end
-    end,
+    ;,
     # Also impure.
     if
       person.age >= 65
         "senior"
-      end
+      ;
       person.age < 18
         "minor"
-      end
+      ;
       else
         # TODO Some nested if expression inside this printf.
         printf("This is a large category.\n")
