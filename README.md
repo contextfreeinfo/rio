@@ -15,10 +15,11 @@ do
   # Assignment here declares new *const* values
   name = "Alice"
   age = 40
-  show_persons([
+  show_prices([
     # Shorthand field names work like JS or Rust
     {age, name},
-    {name = "Bernie", age = 39},
+    {name = "Bernie", age = 9},
+    {name = "Clara", age = 68},
   ])
 end
 
@@ -27,9 +28,23 @@ Person struct
   age: int
 end
 
-show_persons proc(persons: [Person])
+show_prices proc(persons: [Person])
   for persons do(person)
-    printf("%s is %td years old\n", person.name, person.age)
+    printf("%s pays $%.2f\n", person.name, ticket_price(person.age))
+  end
+end
+
+ticket_price fun(age: int): float
+  if
+    age <= 11
+      6.75
+    ;
+    age >= 62
+      7.00
+    ;
+    else
+      11.00
+    ;
   end
 end
 ```
@@ -37,17 +52,19 @@ end
 Compiles to this C file (with manual whitespace added to the struct array in `main` for readability):
 
 ```c
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 
 typedef double rio_float;
 typedef ptrdiff_t rio_int;
+typedef const char* rio_string;
 
 // sample2.rio
 
 typedef struct sample2_Person {
-  const char* name;
+  rio_string name;
   rio_int age;
 } sample2_Person;
 
@@ -56,26 +73,38 @@ typedef struct rio_Span_sample2_Person {
   rio_int len;
 } rio_Span_sample2_Person;
 
-void sample2_show_persons(rio_Span_sample2_Person const persons);
+void sample2_show_prices(rio_Span_sample2_Person const persons);
+rio_float sample2_ticket_price(rio_int const age);
 
 int main() {
-  const char* const name = "Alice";
+  rio_string const name = "Alice";
   rio_int const age = 40;
-  sample2_show_persons(
-    (rio_Span_sample2_Person){(sample2_Person[2]){
-      (sample2_Person){.age = age, .name = name},
-      (sample2_Person){.name = "Bernie", .age = 39}
-    }, 2}
-  );
+  sample2_show_prices((rio_Span_sample2_Person){(sample2_Person[3]){
+    (sample2_Person){.age = age, .name = name},
+    (sample2_Person){.name = "Bernie", .age = 9},
+    (sample2_Person){.name = "Clara", .age = 68}
+  }, 3});
 }
 
-void sample2_show_persons(rio_Span_sample2_Person const persons) {
+void sample2_show_prices(rio_Span_sample2_Person const persons) {
   {
     rio_Span_sample2_Person rio_span = persons;
     for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
       sample2_Person person = rio_span.items[rio_index];
-      printf("%s is %td years old\n", person.name, person.age);
+      printf("%s pays $%.2f\n", person.name, sample2_ticket_price(person.age));
     }
+  }
+}
+
+rio_float sample2_ticket_price(rio_int const age) {
+  if (age <= 11) {
+    return 6.75;
+  }
+  else if (age >= 62) {
+    return 7.00;
+  }
+  else {
+    return 11.00;
   }
 }
 ```
