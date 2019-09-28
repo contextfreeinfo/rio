@@ -7,8 +7,9 @@ do
   show_prices([
     # Shorthand field names work like JS or Rust
     {age, name},
-    {name = "Bernie", age = 9},
-    {name = "Clara", age = 68},
+    {name = "Bernie", age = 14},
+    {name = "Clara", age = 9},
+    {name = "Darlene", age = 68},
   ])
 end
 
@@ -23,7 +24,7 @@ show_prices proc(persons: [Person])
   end
 end
 
-ticket_price fun(age: int): float
+ticket_price proc(age: int): float
   if
     age <= 11
       6.75
@@ -32,6 +33,9 @@ ticket_price fun(age: int): float
       7.00
     ;
     else
+      if age < 18
+        printf("You think %d is child age here?\n", age)
+      end
       11.00
     ;
   end

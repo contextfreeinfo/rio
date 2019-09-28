@@ -18,8 +18,9 @@ do
   show_prices([
     # Shorthand field names work like JS or Rust
     {age, name},
-    {name = "Bernie", age = 9},
-    {name = "Clara", age = 68},
+    {name = "Bernie", age = 14},
+    {name = "Clara", age = 9},
+    {name = "Darlene", age = 68},
   ])
 end
 
@@ -34,7 +35,7 @@ show_prices proc(persons: [Person])
   end
 end
 
-ticket_price fun(age: int): float
+ticket_price proc(age: int): float
   if
     age <= 11
       6.75
@@ -43,6 +44,9 @@ ticket_price fun(age: int): float
       7.00
     ;
     else
+      if age < 18
+        printf("You think %d is child age here?\n", age)
+      end
       11.00
     ;
   end
@@ -79,11 +83,12 @@ rio_float sample2_ticket_price(rio_int const age);
 int main() {
   rio_string const name = "Alice";
   rio_int const age = 40;
-  sample2_show_prices((rio_Span_sample2_Person){(sample2_Person[3]){
+  sample2_show_prices((rio_Span_sample2_Person){(sample2_Person[4]){
     (sample2_Person){.age = age, .name = name},
-    (sample2_Person){.name = "Bernie", .age = 9},
-    (sample2_Person){.name = "Clara", .age = 68}
-  }, 3});
+    (sample2_Person){.name = "Bernie", .age = 14},
+    (sample2_Person){.name = "Clara", .age = 9},
+    (sample2_Person){.name = "Darlene", .age = 68}
+  }, 4});
 }
 
 void sample2_show_prices(rio_Span_sample2_Person const persons) {
@@ -104,6 +109,9 @@ rio_float sample2_ticket_price(rio_int const age) {
     return 7.00;
   }
   else {
+    if (age < 18) {
+      printf("You think %d is child age here?\n", age);
+    }
     return 11.00;
   }
 }
