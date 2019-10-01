@@ -2,9 +2,44 @@
 
 namespace rio {
 
+struct ExpressTrackerState {
+  rint buffer_index{-1};
+  rint voidish_index{-1};
+  BlockNode* voidish_parent{nullptr};
+};
+
 // TODO Rename this pass from "transform" to "express"?
 struct TransformState {
   ModManager* mod;
+  List<Node*> buffer;
+  ExpressTrackerState tracker_state;
+};
+
+struct ExpressTracker {
+
+  ExpressTracker(TransformState* state_): state{state_} {}
+
+  ~ExpressTracker() {
+    if (used) {
+      // fprintf(stderr, "Restoring old state\n");
+      state->tracker_state = old_tracker_state;
+    }
+  }
+
+  auto track(BlockNode* voidish_parent, rint voidish_index) -> void {
+    if (!used) {
+      // fprintf(stderr, "Saving tracker state\n");
+      old_tracker_state = state->tracker_state;
+      used = true;
+    }
+    state->tracker_state.buffer_index = state->buffer.len;
+    state->tracker_state.voidish_index = voidish_index;
+    state->tracker_state.voidish_parent = voidish_parent;
+  }
+
+  TransformState* state;
+  ExpressTrackerState old_tracker_state;
+  bool used{false};
 };
 
 // TODO Walk trees to find expressions that need to be statements.
@@ -12,28 +47,37 @@ struct TransformState {
 // TODO would execute before it.
 
 auto transform_block(
-  TransformState* state, Node* node, bool can_return = false
+  TransformState* state, Node** node, bool can_return = false
 ) -> void;
 auto transform_expr(
-  TransformState* state, Node* node, bool can_return = false
+  TransformState* state, Node** node, bool can_return = false
 ) -> void;
 
 auto transform(ModManager* mod) -> void {
   TransformState state;
   state.mod = mod;
   for (auto def: mod->global_defs) {
-    transform_expr(&state, def->top);
+    // Nobody should be swapping out top-level defs, but we need the pointer
+    // here for consistency, anyway.
+    transform_expr(&state, &def->top);
   }
 }
 
 auto transform_block(
-  TransformState* state, Node* node, bool can_return
+  TransformState* state, Node** node_ref, bool can_return
 ) -> void {
+  ExpressTracker tracker{state};
+  Node* node = *node_ref;
   auto& items = node->Block.items;
   bool last = true;
   for (rint i = items.len - 1; i >= 0; i -= 1) {
-    auto item = items[i];
-    transform_expr(state, item, can_return && last);
+    auto item_ref = &items[i];
+    auto item = *item_ref;
+    if (is_voidish(item->type.kind)) {
+      // Update voidish index (and siblings for convenience?).
+      tracker.track(&node->Block, i);
+    }
+    transform_expr(state, item_ref, can_return && last);
     if (last) {
       if (can_return && !is_voidish(item->type.kind)) {
         switch (item->kind) {
@@ -56,44 +100,45 @@ auto transform_block(
 }
 
 auto transform_expr(
-  TransformState* state, Node* node, bool can_return
+  TransformState* state, Node** node_ref, bool can_return
 ) -> void {
+  Node* node = *node_ref;
   switch (node->kind) {
     case Node::Kind::Array:
     case Node::Kind::Map:
     case Node::Kind::Tuple: {
       auto& items = node->Parent.items;
       for (rint i = items.len - 1; i >= 0; i -= 1) {
-        transform_expr(state, items[i]);
+        transform_expr(state, &items[i]);
       }
       break;
     }
     case Node::Kind::Block: {
-      transform_block(state, node, can_return);
+      transform_block(state, node_ref, can_return);
       break;
     }
     case Node::Kind::Call: {
-      transform_expr(state, node->Call.callee);
-      transform_expr(state, node->Call.args);
+      transform_expr(state, &node->Call.callee);
+      transform_expr(state, &node->Call.args);
       break;
     }
     case Node::Kind::Case:
     case Node::Kind::For: {
       // TODO Transform if non-void.
-      transform_expr(state, node->For.arg);
-      transform_expr(state, node->For.expr, can_return);
+      transform_expr(state, &node->For.arg);
+      transform_expr(state, &node->For.expr, can_return);
       break;
     }
     case Node::Kind::Cast: {
-      transform_expr(state, node->Cast.a);
+      transform_expr(state, &node->Cast.a);
       break;
     }
     case Node::Kind::Const: {
-      transform_expr(state, node->Cast.b);
+      transform_expr(state, &node->Cast.b);
       break;
     }
     case Node::Kind::Else: {
-      transform_expr(state, node->Else.expr, can_return);
+      transform_expr(state, &node->Else.expr, can_return);
       break;
     }
     case Node::Kind::Equal:
@@ -102,17 +147,17 @@ auto transform_expr(
     case Node::Kind::More:
     case Node::Kind::MoreOrEqual:
     case Node::Kind::NotEqual: {
-      transform_expr(state, node->Binary.a);
-      transform_expr(state, node->Binary.b);
+      transform_expr(state, &node->Binary.a);
+      transform_expr(state, &node->Binary.b);
       break;
     }
     case Node::Kind::Fun:
     case Node::Kind::Proc: {
-      transform_expr(state, node->Fun.expr, true);
+      transform_expr(state, &node->Fun.expr, true);
       break;
     }
     case Node::Kind::Struct: {
-      transform_expr(state, node->Fun.expr);
+      transform_expr(state, &node->Fun.expr);
       break;
     }
     case Node::Kind::Switch: {
@@ -124,13 +169,22 @@ auto transform_expr(
       if (is_voidish(node->type.kind) || can_return) {
         // Usage as return requires less transforming.
         if (node->Switch.arg) {
-          transform_expr(state, node->Switch.arg);
+          transform_expr(state, &node->Switch.arg);
         }
         for (auto item: node->Switch.items) {
-          transform_expr(state, item, can_return);
+          // The address here isn't useful, but switch cases shouldn't be
+          // swapped out, anyway.
+          transform_expr(state, &item, can_return);
         }
       } else {
-        fprintf(stderr, "switch: %d\n", (int)node->type.kind);
+        auto voidish = state->tracker_state.voidish_parent ?
+          state->tracker_state.voidish_parent->items[state->tracker_state.voidish_index] :
+          nullptr;
+        fprintf(stderr, "switch value type %d\n", (int)node->type.kind);
+        if (voidish) {
+          // TODO Start replacing children of voidish until we get to our ancestor. How to know when that is? Track parents in nodes?
+          fprintf(stderr, "  under voidish %d\n", (int)voidish->kind);
+        }
         // TODO Afterward, call back into transform_switch again?
       }
       break;
