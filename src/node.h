@@ -64,6 +64,7 @@ struct Token {
     Fun,
     Id,
     If,
+    In,
     Include,
     Int,
     Junk,
@@ -195,7 +196,14 @@ struct CallNode {
   Node* callee;
 };
 
+struct CaseNode {
+  Node* arg;
+  Node* expr;
+};
+
 struct ForNode {
+  Scope scope;
+  Opt<Node> param;
   Node* arg;
   Node* expr;
 };
@@ -291,7 +299,7 @@ struct Node {
     BinaryNode Cast;
     BinaryNode Const;
     CallNode Call;
-    ForNode Case;
+    CaseNode Case;
     UnaryNode Else;
     StringNode Float;
     ForNode For;

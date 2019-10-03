@@ -357,12 +357,11 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       resolve_expr(state, node->Call.args, args_type);
       break;
     }
-    case Node::Kind::Case:
-    case Node::Kind::For: {
+    case Node::Kind::Case: {
       // TODO Case might have particular expected arg types.
-      resolve_expr(state, node->For.arg, {Type::Kind::None});
-      resolve_expr(state, node->For.expr, type);
-      node->type = node->For.expr->type;
+      resolve_expr(state, node->Case.arg, {Type::Kind::None});
+      resolve_expr(state, node->Case.expr, type);
+      node->type = node->Case.expr->type;
       break;
     }
     case Node::Kind::Cast: {
@@ -392,6 +391,13 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
     }
     case Node::Kind::Float: {
       node->type = choose_float_type(type);
+      break;
+    }
+    case Node::Kind::For: {
+      // TODO Case might have particular expected arg types.
+      resolve_expr(state, node->For.arg, {Type::Kind::None});
+      resolve_expr(state, node->For.expr, type);
+      node->type = node->For.expr->type;
       break;
     }
     case Node::Kind::Fun:

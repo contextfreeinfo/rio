@@ -87,6 +87,7 @@ auto transform_block(
             break;
           }
           default: {
+            // TODO For non-return cases, these are exactly the cases where we'll be assigning to the new var.
             Node* ret_node = &state->mod->arena.alloc<Node>();
             ret_node->kind = Node::Kind::Return;
             ret_node->Return.expr = item;
@@ -122,11 +123,10 @@ auto transform_expr(
       transform_expr(state, &node->Call.args);
       break;
     }
-    case Node::Kind::Case:
-    case Node::Kind::For: {
+    case Node::Kind::Case: {
       // TODO Transform if non-void.
-      transform_expr(state, &node->For.arg);
-      transform_expr(state, &node->For.expr, can_return);
+      transform_expr(state, &node->Case.arg);
+      transform_expr(state, &node->Case.expr, can_return);
       break;
     }
     case Node::Kind::Cast: {
@@ -149,6 +149,12 @@ auto transform_expr(
     case Node::Kind::NotEqual: {
       transform_expr(state, &node->Binary.a);
       transform_expr(state, &node->Binary.b);
+      break;
+    }
+    case Node::Kind::For: {
+      // TODO Transform if non-void.
+      transform_expr(state, &node->For.arg);
+      transform_expr(state, &node->For.expr, can_return);
       break;
     }
     case Node::Kind::Fun:

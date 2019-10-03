@@ -24,6 +24,7 @@ const KeyId key_ids[] = {
   {str_from("else"), Token::Kind::Else},
   {str_from("end"), Token::Kind::End},
   {str_from("if"), Token::Kind::If},
+  {str_from("in"), Token::Kind::In},
   // If functions are pure, calls can be reordered, so extracts for statements
   // can be kept simpler ...
   {str_from("for"), Token::Kind::For},

@@ -13,7 +13,7 @@ do
   cores: [int] = []
   words = ["hi", "there"]
   # Loop with receiver.
-  for words do(word)
+  for word in words
     printf("word: %s\n", word)
   ;
   # Loop alone.

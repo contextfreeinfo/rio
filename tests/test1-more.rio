@@ -6,7 +6,7 @@ greet proc(name: string, age: int)
 ;
 
 report_scores proc(scores: [float])
-  for scores do(score)
+  for score in scores
     printf("score: %f\n", score)
     if
       score < 1
@@ -53,7 +53,7 @@ show_person proc(person: Person)
 ;
 
 show_persons proc(persons: [Person])
-  for persons do(person)
+  for person in persons
     show_person(person)
   ;
 ;

@@ -335,9 +335,27 @@ auto parse_expr(ParseState* state) -> Node& {
 }
 
 auto parse_for(ParseState* state) -> Node& {
+  Node& node = state->alloc(Node::Kind::For);
   // TODO Support `for item at index in items ...` ?
   advance_token(state);
-  return parse_case(state, Node::Kind::For);
+  auto sub = &parse_expr(state);
+  if (state->tokens->kind == Token::Kind::In) {
+    // for item in items
+    node.For.param = sub;
+    advance_token(state, true);
+    // TODO for item at index in items
+    node.For.arg = &parse_expr(state);
+  } else {
+    // for items
+    node.For.arg = sub;
+  }
+  if (state->tokens->kind == Token::Kind::LineEnd) {
+    skip_comments(state, true);
+    node.For.expr = &parse_block(state, Token::Kind::End);
+  } else {
+    node.For.expr = &parse_expr(state);
+  }
+  return node;
 }
 
 auto parse_fun(ParseState* state) -> Node& {

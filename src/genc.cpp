@@ -319,9 +319,14 @@ auto gen_for(GenState* state, const Node& node) -> void {
       Indent _{state};
       if (node.For.expr->kind == Node::Kind::Block) {
         // Params.
-        Node* params = node.For.expr->Block.params;
-        if (params && params->Tuple.items.len) {
-          auto param = params->Tuple.items[0];
+        auto param = node.For.param;
+        if (!param) {
+          Node* params = node.For.expr->Block.params;
+          if (params && params->Tuple.items.len) {
+            param = params->Tuple.items[0];
+          }
+        }
+        if (param) {
           string name = "";
           // TODO Cast option.
           if (param->kind == Node::Kind::Ref) {

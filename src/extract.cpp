@@ -98,10 +98,9 @@ void extract_expr(ExtractState* state, Node* node) {
       extract_expr(state, node->Call.args);
       break;
     }
-    case Node::Kind::Case:
-    case Node::Kind::For: {
-      extract_expr(state, node->For.arg);
-      extract_expr(state, node->For.expr);
+    case Node::Kind::Case: {
+      extract_expr(state, node->Case.arg);
+      extract_expr(state, node->Case.expr);
       break;
     }
     case Node::Kind::Cast: {
@@ -129,6 +128,15 @@ void extract_expr(ExtractState* state, Node* node) {
     case Node::Kind::NotEqual: {
       extract_expr(state, node->Binary.a);
       extract_expr(state, node->Binary.b);
+      break;
+    }
+    case Node::Kind::For: {
+      Scoper scoper(state, &node->For.scope);
+      if (node->For.param) {
+        extract_ref_names(state, node->For.param, node);
+      }
+      extract_expr(state, node->For.arg);
+      extract_expr(state, node->For.expr);
       break;
     }
     case Node::Kind::Fun:
