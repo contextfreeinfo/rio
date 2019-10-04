@@ -15,11 +15,11 @@ do
   # Loop with receiver.
   for word in words
     printf("word: %s\n", word)
-  ;
+  end
   # Loop alone.
   for words
     printf("hi\n")
-  ;
+  end
   # Call functions.
   greet(name, age)
   # Struct instance literal, with shorthand.
@@ -30,10 +30,10 @@ do
     {age = 5, name = "Me", scores = [2.5]},
   ])
   # a.b().c.d
-;
+end
 
 Person struct
   name: string
   age: int
   scores: [float]
-;
+end
