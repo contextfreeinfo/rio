@@ -48,6 +48,7 @@ struct Token {
     // TODO matter.
     None,
     Assign,
+    Case,
     Colon,
     Comma,
     Comment,

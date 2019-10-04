@@ -259,6 +259,9 @@ auto parse_call(ParseState* state) -> Node& {
 auto parse_case(ParseState* state, Node::Kind kind) -> Node& {
   // This presumes any keyword has already been advanced past.
   Node& node = state->alloc(kind);
+  if (state->tokens->kind == Token::Kind::Case) {
+    advance_token(state);
+  }
   node.Case.arg = &parse_expr(state);
   if (state->tokens->kind == Token::Kind::LineEnd) {
     skip_comments(state, true);

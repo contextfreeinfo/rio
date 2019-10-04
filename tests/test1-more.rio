@@ -9,10 +9,10 @@ report_scores proc(scores: [float])
   for score in scores
     printf("score: %f\n", score)
     if
-      score < 1
+      case score < 1
         printf("(pretty low)\n")
       end
-      score > 4
+      case score > 4
         printf("(pretty high)\n")
       end
     end
@@ -27,7 +27,7 @@ show_person proc(person: Person)
     person.age,
     # This expression calls a proc, so it's impure.
     if
-      has_child_ticket_price(person.age)
+      case has_child_ticket_price(person.age)
         4.50
       end
       else
@@ -36,10 +36,10 @@ show_person proc(person: Person)
     end,
     # Also impure.
     if
-      person.age >= 65
+      case person.age >= 65
         "senior"
       end
-      person.age < 18
+      case person.age < 18
         "minor"
       end
       else

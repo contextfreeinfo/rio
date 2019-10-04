@@ -20,6 +20,7 @@ struct KeyId {
 
 // TODO Make into a map.
 const KeyId key_ids[] = {
+  {str_from("case"), Token::Kind::Case},
   {str_from("do"), Token::Kind::Do},
   {str_from("else"), Token::Kind::Else},
   {str_from("end"), Token::Kind::End},
