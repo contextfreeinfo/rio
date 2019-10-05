@@ -21,6 +21,7 @@
 - Call core compiler by name other than `rio` (maybe `rico`?)
 - Structs always public fields only? Need classes for private (priv default)?
 - Always pointers to structs and classes by default? `[val Thing]` vs `[Thing]`?
+- Maybe reserve `^` for exponent by using `&|` for xor? Or just common `**`?
 
 ```bash
 ./test -g > tests/test1.c-mem.txt 2>&1

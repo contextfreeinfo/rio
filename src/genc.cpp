@@ -5,6 +5,7 @@ namespace rio { namespace c {
 struct GenState {
   rint indent = 0;
   ModManager* mod = nullptr;
+  Type* parent_type = nullptr;
   bool start_mod = false;
   bool start_section = false;
 };
@@ -22,6 +23,7 @@ struct Indent {
 auto gen_bad(GenState* state, const Node& node) -> void;
 auto gen_binary(GenState* state, const Node& node, string op) -> void;
 auto gen_block(GenState* state, const Node& node) -> void;
+auto gen_case(GenState* state, const Node& node) -> void;
 auto gen_const(GenState* state, const Node& node) -> void;
 auto gen_decl_expr(GenState* state, const Node& node) -> void;
 auto gen_decls(GenState* state) -> void;
@@ -48,6 +50,9 @@ auto gen_type_opt(GenState* state, Opt<const Type> type) -> void;
 auto gen_typedef(GenState* state, const Node& node) -> void;
 auto gen_typedefs(GenState* state) -> void;
 auto gen_statements(GenState* state, const Node& node) -> void;
+auto gen_val_decl(
+  GenState* state, const Node& node, bool is_const = false
+) -> void;
 auto needs_semi(const Node& node) -> bool;
 
 auto gen(Engine* engine) -> void {
@@ -55,14 +60,19 @@ auto gen(Engine* engine) -> void {
   // Common heading.
   // TODO Need to keep a tally of all external headers? Libs, too.
   printf(
+    "#include <stdbool.h>\n"
     "#include <stddef.h>\n"
     "#include <stdint.h>\n"
+    // TODO Include stdio.h only if `use "c"`.
     "#include <stdio.h>\n"
     "\n"
     // Use typedefs because we want the generated code to be the same on all
     // platforms, but in case we need preprocessor junk, define in advance.
     "typedef double rio_float;\n"
     "typedef ptrdiff_t rio_int;\n"
+    // TODO Perhaps include span len on strings, too.
+    // TODO If so, we'll need something for raw strings, too, so we can make good c libraries in rio.
+    "typedef const char* rio_string;\n"
   );
   // TODO Gen internal mod 0 here?
   // TODO This is where rio_Span_i32 is needed for current test case.
@@ -92,20 +102,18 @@ auto gen_block(GenState* state, const Node& node) -> void {
   printf("}\n");
 }
 
+auto gen_case(GenState* state, const Node& node) -> void {
+  // Build a makeshift if switch.
+  Node switch_node = {Node::Kind::Switch};
+  switch_node.Switch = {0};
+  const Node* items[] = {&node};
+  switch_node.Switch.items.items = const_cast<Node**>(items);
+  switch_node.Switch.items.len = 1;
+  gen_switch_if(state, switch_node);
+}
+
 auto gen_const(GenState* state, const Node& node) -> void {
-  gen_type(state, node.Const.a->type);
-  printf(" const ");
-  switch (node.Const.a->kind) {
-    case Node::Kind::Cast: {
-      // We already generated the type above, so skip the repeat.
-      gen_expr(state, *node.Const.a->Cast.a);
-      break;
-    }
-    default: {
-      gen_expr(state, *node.Const.a);
-      break;
-    }
-  }
+  gen_val_decl(state, *node.Const.a, true);
   printf(" = ");
   gen_expr(state, *node.Const.b);
 }
@@ -135,7 +143,7 @@ auto gen_decls(GenState* state) -> void {
   }
 }
 
-void gen_expr(GenState* state, const Node& node) {
+auto gen_expr(GenState* state, const Node& node) -> void {
   switch (node.kind) {
     case Node::Kind::Array: {
       // TODO Can nest this in c99, but c++ makes it temporary.
@@ -172,6 +180,10 @@ void gen_expr(GenState* state, const Node& node) {
       printf("(");
       gen_list_items(state, *node.Call.args);
       printf(")");
+      break;
+    }
+    case Node::Kind::Case: {
+      gen_case(state, node);
       break;
     }
     case Node::Kind::Cast: {
@@ -223,6 +235,10 @@ void gen_expr(GenState* state, const Node& node) {
       gen_binary(state, node, ".");
       break;
     }
+    case Node::Kind::Minus: {
+      gen_binary(state, node, " - ");
+      break;
+    }
     case Node::Kind::More: {
       gen_binary(state, node, " > ");
       break;
@@ -235,8 +251,17 @@ void gen_expr(GenState* state, const Node& node) {
       gen_binary(state, node, " != ");
       break;
     }
+    case Node::Kind::Plus: {
+      gen_binary(state, node, " + ");
+      break;
+    }
     case Node::Kind::Ref: {
       gen_ref(state, node);
+      break;
+    }
+    case Node::Kind::Return: {
+      printf("return ");
+      gen_expr(state, *node.Return.expr);
       break;
     }
     case Node::Kind::String: {
@@ -253,6 +278,14 @@ void gen_expr(GenState* state, const Node& node) {
     }
     case Node::Kind::Use: {
       // Nothing to do here.
+      break;
+    }
+    case Node::Kind::Update: {
+      gen_binary(state, node, " = ");
+      break;
+    }
+    case Node::Kind::Var: {
+      gen_val_decl(state, *node.Var.expr);
       break;
     }
     default: {
@@ -286,9 +319,14 @@ auto gen_for(GenState* state, const Node& node) -> void {
       Indent _{state};
       if (node.For.expr->kind == Node::Kind::Block) {
         // Params.
-        Node* params = node.For.expr->Block.params;
-        if (params && params->Tuple.items.len) {
-          auto param = params->Tuple.items[0];
+        auto param = node.For.param;
+        if (!param) {
+          Node* params = node.For.expr->Block.params;
+          if (params && params->Tuple.items.len) {
+            param = params->Tuple.items[0];
+          }
+        }
+        if (param) {
           string name = "";
           // TODO Cast option.
           if (param->kind == Node::Kind::Ref) {
@@ -546,32 +584,74 @@ auto gen_switch(GenState* state, const Node& node) -> void {
   printf("(!!! switch !!!)\n");
 }
 
+auto gen_maybe_block_expr(GenState* state, const Node& node) -> void {
+  if (node.kind == Node::Kind::Block) {
+    // In expr mode, separate by commas. TODO Nice indentation?
+    auto items = node.Block.items;
+    for (rint i = 0; i < items.len; i += 1) {
+      if (i) {
+        printf(", ");
+      }
+      gen_expr(state, *items[i]);
+    }
+  } else {
+    gen_expr(state, node);
+  }
+}
+
 auto gen_switch_if(GenState* state, const Node& node) -> void {
   auto first = true;
-  for (auto item: node.Switch.items) {
-    switch (item->kind) {
-      case Node::Kind::Case: {
-        if (first) {
-          printf("if (");
-          first = false;
-        } else {
-          gen_indent(state);
-          printf("else if (");
+  if (is_voidish(node.type.kind)) {
+    // Statements.
+    for (auto item: node.Switch.items) {
+      switch (item->kind) {
+        case Node::Kind::Case: {
+          if (first) {
+            printf("if (");
+            first = false;
+          } else {
+            gen_indent(state);
+            printf("else if (");
+          }
+          gen_expr(state, *item->Case.arg);
+          printf(") ");
+          gen_expr(state, *item->Case.expr);
+          break;
         }
-        gen_expr(state, *item->Case.arg);
-        printf(") ");
-        gen_expr(state, *item->Case.expr);
-        break;
+        case Node::Kind::Else: {
+          gen_indent(state);
+          printf("else ");
+          gen_expr(state, *item->Else.expr);
+          break;
+        }
+        default: {
+          gen_bad(state, node);
+          break;
+        }
       }
-      case Node::Kind::Else: {
-        gen_indent(state);
-        printf("else ");
-        gen_expr(state, *item->Else.expr);
-        break;
-      }
-      default: {
-        gen_bad(state, node);
-        break;
+    }
+  } else {
+    // Expression. If it gets this far, presume ternary `?:` works.
+    for (auto item: node.Switch.items) {
+      switch (item->kind) {
+        case Node::Kind::Case: {
+          printf("(");
+          gen_expr(state, *item->Case.arg);
+          printf(") ? (");
+          gen_maybe_block_expr(state, *item->Case.expr);
+          printf(") : ");
+          break;
+        }
+        case Node::Kind::Else: {
+          printf("(");
+          gen_maybe_block_expr(state, *item->Else.expr);
+          printf(")");
+          break;
+        }
+        default: {
+          gen_bad(state, node);
+          break;
+        }
       }
     }
   }
@@ -580,8 +660,12 @@ auto gen_switch_if(GenState* state, const Node& node) -> void {
 auto gen_type(GenState* state, const Type& type) -> void {
   switch (type.kind) {
     case Type::Kind::Array: {
-      // Resolve guarantees a def assigned. 
+      // Resolve guarantees a def assigned.
       printf("%s", type.def->name);
+      break;
+    }
+    case Type::Kind::Bool: {
+      printf("bool");
       break;
     }
     case Type::Kind::F32: {
@@ -617,7 +701,7 @@ auto gen_type(GenState* state, const Type& type) -> void {
       break;
     }
     case Type::Kind::String: {
-      printf("const char*");
+      printf("rio_string");
       break;
     }
     case Type::Kind::U8: {
@@ -697,6 +781,22 @@ auto gen_typedefs(GenState* state) -> void {
       printf("} %s;\n", def->name);
     } else {
       gen_typedef(state, *def->top);
+    }
+  }
+}
+
+auto gen_val_decl(GenState* state, const Node& node, bool is_const) -> void {
+  gen_type(state, node.type);
+  printf(is_const ? " const " : " ");
+  switch (node.kind) {
+    case Node::Kind::Cast: {
+      // We already generated the type above, so skip the repeat.
+      gen_expr(state, *node.Cast.a);
+      break;
+    }
+    default: {
+      gen_expr(state, node);
+      break;
     }
   }
 }

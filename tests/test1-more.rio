@@ -6,30 +6,54 @@ greet proc(name: string, age: int)
 end
 
 report_scores proc(scores: [float])
-  for scores do(score)
+  for score in scores
     printf("score: %f\n", score)
+    if
+      case score < 1
+        printf("(pretty low)\n")
+      end
+      case score > 4
+        printf("(pretty high)\n")
+      end
+    end
   end
 end
 
 show_person proc(person: Person)
-  printf("%s is %td years old (", person.name, person.age)
-  if
-    person.age >= 65
-      printf("senior")
-    end
-    person.age < 18
-      printf("minor")
-    end
-    else
-      printf("adult")
-    end
-  end
-  printf(")\n")
+  printf(
+    "%s is %td years old (ticket price: %.2f, common category: %s)\n",
+    # These technically can stay put since they are pure.
+    person.name,
+    person.age,
+    # This expression calls a proc, so it's impure.
+    if
+      case has_child_ticket_price(person.age)
+        4.50
+      end
+      else
+        5.50
+      end
+    end,
+    # Also impure.
+    if
+      case person.age >= 65
+        "senior"
+      end
+      case person.age < 18
+        "minor"
+      end
+      else
+        # TODO Some nested if expression inside this printf.
+        printf("This is a large category.\n")
+        "adult"
+      end
+    end,
+  )
   report_scores(person.scores)
 end
 
 show_persons proc(persons: [Person])
-  for persons do(person)
+  for person in persons
     show_person(person)
   end
 end

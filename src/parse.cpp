@@ -20,6 +20,7 @@ struct ParseState {
 void advance_token(ParseState* state, bool skip_lines = false);
 auto more_tokens(ParseState* state, Token::Kind end) -> bool;
 auto node_slice_copy(ParseState* state, rint buf_len_old) -> Slice<Node*>;
+auto parse_add(ParseState* state) -> Node&;
 auto parse_assign(ParseState* state) -> Node&;
 auto parse_atom(ParseState* state) -> Node&;
 auto parse_block(
@@ -36,6 +37,7 @@ auto parse_for(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
 auto parse_if(ParseState* state) -> Node&;
 auto parse_tuple(ParseState* state) -> Node&;
+auto parse_update(ParseState* state) -> Node&;
 auto parse_use(ParseState* state) -> Node&;
 void skip_comments(ParseState* state, bool skip_lines = false);
 
@@ -44,6 +46,14 @@ void advance_token(ParseState* state, bool skip_lines) {
   if (tokens->kind != Token::Kind::FileEnd) {
     tokens += 1;
     skip_comments(state, skip_lines);
+  }
+}
+
+auto is_token_add(const Token& token) -> Node::Kind {
+  switch (token.kind) {
+    case Token::Kind::Minus: return Node::Kind::Minus;
+    case Token::Kind::Plus: return Node::Kind::Plus;
+    default: return Node::Kind::None;
   }
 }
 
@@ -97,15 +107,31 @@ auto parse(ModManager* mod, const Token* tokens) -> Node& {
   return parse_block(&state, Token::Kind::FileEnd);
 }
 
+auto parse_add(ParseState* state) -> Node& {
+  Node* node = &parse_call(state);
+  while (true) {
+    auto node_kind = is_token_add(*state->tokens);
+    if (node_kind == Node::Kind::None) {
+      break;
+    }
+    advance_token(state, true);
+    Node* pair = &state->alloc(node_kind);
+    pair->Binary.a = node;
+    pair->Binary.b = &parse_call(state);
+    node = pair;
+  }
+  return *node;
+}
+
 auto parse_assign(ParseState* state) -> Node& {
   // TODO Assign to a call declares a macro???
-  Node& a = parse_def(state);
+  Node& a = parse_update(state);
   if (state->tokens->kind == Token::Kind::Assign) {
     advance_token(state, true);
     Node& node = state->alloc(Node::Kind::Const);
     node.Const.a = &a;
     if (verbose) fprintf(stderr, "begin assign\n");
-    node.Const.b = &parse_expr(state);
+    node.Const.b = &parse_assign(state);
     if (verbose) fprintf(stderr, "end assign\n");
     return node;
   } else {
@@ -150,6 +176,13 @@ auto parse_atom(ParseState* state) -> Node& {
       Node& node = state->alloc(Node::Kind::Ref);
       node.Ref.name = tokens->text;
       advance_token(state);
+      if (state->tokens->kind == Token::Kind::Var) {
+        // TODO Handle published somewheres.
+        advance_token(state);
+        Node& var = state->alloc(Node::Kind::Var);
+        var.Var.expr = &node;
+        return var;
+      }
       return node;
     }
     case Token::Kind::If: {
@@ -226,6 +259,9 @@ auto parse_call(ParseState* state) -> Node& {
 auto parse_case(ParseState* state, Node::Kind kind) -> Node& {
   // This presumes any keyword has already been advanced past.
   Node& node = state->alloc(kind);
+  if (state->tokens->kind == Token::Kind::Case) {
+    advance_token(state);
+  }
   node.Case.arg = &parse_expr(state);
   if (state->tokens->kind == Token::Kind::LineEnd) {
     skip_comments(state, true);
@@ -249,7 +285,7 @@ auto parse_cast(ParseState* state) -> Node& {
 }
 
 auto parse_compare(ParseState* state) -> Node& {
-  Node* node = &parse_call(state);
+  Node* node = &parse_add(state);
   while (true) {
     auto node_kind = is_token_compare(*state->tokens);
     if (node_kind == Node::Kind::None) {
@@ -258,7 +294,7 @@ auto parse_compare(ParseState* state) -> Node& {
     advance_token(state, true);
     Node* pair = &state->alloc(node_kind);
     pair->Binary.a = node;
-    pair->Binary.b = &parse_call(state);
+    pair->Binary.b = &parse_add(state);
     node = pair;
   }
   return *node;
@@ -267,6 +303,7 @@ auto parse_compare(ParseState* state) -> Node& {
 auto parse_def(ParseState* state) -> Node& {
   Node& a = parse_cast(state);
   if (a.kind == Node::Kind::Ref && is_token_proc(*state->tokens)) {
+    // TODO Should pub go before proc/fun/struct/...?
     bool published = false;
     if (state->tokens->kind == Token::Kind::Pub) {
       published = true;
@@ -277,6 +314,7 @@ auto parse_def(ParseState* state) -> Node& {
     node.Fun.published = published;
     return node;
   } else {
+    // Nothing got nested, so go with what we already had.
     return a;
   }
 }
@@ -300,8 +338,27 @@ auto parse_expr(ParseState* state) -> Node& {
 }
 
 auto parse_for(ParseState* state) -> Node& {
+  Node& node = state->alloc(Node::Kind::For);
+  // TODO Support `for item at index in items ...` ?
   advance_token(state);
-  return parse_case(state, Node::Kind::For);
+  auto sub = &parse_expr(state);
+  if (state->tokens->kind == Token::Kind::In) {
+    // for item in items
+    node.For.param = sub;
+    advance_token(state, true);
+    // TODO for item at index in items
+    node.For.arg = &parse_expr(state);
+  } else {
+    // for items
+    node.For.arg = sub;
+  }
+  if (state->tokens->kind == Token::Kind::LineEnd) {
+    skip_comments(state, true);
+    node.For.expr = &parse_block(state, Token::Kind::End);
+  } else {
+    node.For.expr = &parse_expr(state);
+  }
+  return node;
 }
 
 auto parse_fun(ParseState* state) -> Node& {
@@ -327,6 +384,12 @@ auto parse_fun(ParseState* state) -> Node& {
   if (state->tokens->kind == Token::Kind::RoundL) {
     node.Fun.params = &parse_tuple(state);
     if (verbose) fprintf(stderr, "args\n");
+  }
+  if (state->tokens->kind == Token::Kind::Colon) {
+    advance_token(state, true);
+    node.Fun.ret_type = &parse_call(state);
+  } else {
+    node.Fun.ret_type = &state->alloc(Node::Kind::Void);
   }
   if (state->tokens->kind == Token::Kind::LineEnd) {
     skip_comments(state, true);
@@ -410,6 +473,19 @@ auto parse_tuple(ParseState* state) -> Node& {
   advance_token(state);
   if (verbose) fprintf(stderr, "end tuple\n");
   return node;
+}
+
+auto parse_update(ParseState* state) -> Node& {
+  Node& a = parse_def(state);
+  if (state->tokens->kind == Token::Kind::Update) {
+    advance_token(state, true);
+    Node& node = state->alloc(Node::Kind::Update);
+    node.Const.a = &a;
+    node.Const.b = &parse_update(state);
+    return node;
+  } else {
+    return a;
+  }
 }
 
 auto parse_use(ParseState* state) -> Node& {

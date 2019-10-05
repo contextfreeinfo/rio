@@ -48,6 +48,7 @@ struct Token {
     // TODO matter.
     None,
     Assign,
+    Case,
     Colon,
     Comma,
     Comment,
@@ -64,6 +65,7 @@ struct Token {
     Fun,
     Id,
     If,
+    In,
     Include,
     Int,
     Junk,
@@ -86,6 +88,7 @@ struct Token {
     Switch,
     Update,
     Use,
+    Var,
   };
   Kind kind;
   // TODO We don't need file name on each individual token.
@@ -103,7 +106,10 @@ struct Token {
 struct Type {
 
   enum struct Kind {
+    // Voidish types.
     None,
+    Ignored,
+    Never,
     Void,
     // TODO C Types.
     // Float.
@@ -111,6 +117,7 @@ struct Type {
     F64,
     Float,
     // Int.
+    Bool,
     I8,
     I16,
     I32,
@@ -150,6 +157,8 @@ struct Type {
 
 };
 
+auto is_voidish(Type::Kind kind) -> bool;
+
 // Node.
 
 struct Scope {
@@ -188,7 +197,14 @@ struct CallNode {
   Node* callee;
 };
 
+struct CaseNode {
+  Node* arg;
+  Node* expr;
+};
+
 struct ForNode {
+  Scope scope;
+  Opt<Node> param;
   Node* arg;
   Node* expr;
 };
@@ -200,6 +216,7 @@ struct FunNode {
   // Scope and params both useless for structs.
   Scope scope;
   Opt<Node> params;
+  Opt<Node> ret_type;
   Node* expr;
 };
 
@@ -232,6 +249,8 @@ struct UseNode {
   Node* arg;
 };
 
+struct VoidNode {};
+
 struct Node {
 
   enum struct Kind {
@@ -252,16 +271,22 @@ struct Node {
     LessOrEqual,
     Map,
     Member,
+    Minus,
     More,
     MoreOrEqual,
     NotEqual,
+    Plus,
     Proc,
     Ref,
+    Return,
     String,
     Struct,
-    Tuple,
-    Use,
     Switch,
+    Tuple,
+    Update,
+    Use,
+    Var,
+    Void,
   };
 
   Kind kind;
@@ -275,7 +300,7 @@ struct Node {
     BinaryNode Cast;
     BinaryNode Const;
     CallNode Call;
-    ForNode Case;
+    CaseNode Case;
     UnaryNode Else;
     StringNode Float;
     ForNode For;
@@ -283,11 +308,16 @@ struct Node {
     StringNode Int;
     ParentNode Map;
     BinaryNode Member;
+    ParentNode Parent;
     RefNode Ref;
+    UnaryNode Return;
     StringNode String;
     SwitchNode Switch;
     ParentNode Tuple;
+    BinaryNode Update;
+    UnaryNode Var;
     UseNode Use;
+    VoidNode Void;
   };
 
 };

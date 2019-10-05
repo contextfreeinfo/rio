@@ -53,6 +53,7 @@ auto resolve_proc_sig(
   ResolveState* state, Node* node, const Type& type
 ) -> void;
 auto resolve_ref(ResolveState* state, Node* node) -> void;
+auto resolve_switch(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_tuple(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_type(ResolveState* state, Node* node) -> void;
 
@@ -215,11 +216,33 @@ auto resolve_array(ResolveState* state, Node* node, const Type& type) -> void {
   }
 }
 
+auto is_voidish(Type::Kind kind) -> bool {
+  return kind <= Type::Kind::Void;
+}
+
 auto resolve_block(ResolveState* state, Node* node, const Type& type) -> void {
   // TODO The last item should expect the block type.
   Enter scope{state, node->Block.scope};
-  for (auto item: node->Block.items) {
-    resolve_expr(state, item, {Type::Kind::None});
+  auto items = node->Block.items;
+  for (rint i = 0; i < items.len - 1; i += 1) {
+    auto item = items[i];
+    // We know none of these values are being used at this level.
+    // None means unspecified, and Void means expected void.
+    // TODO Will we end up with no distinction between unknown and void???
+    resolve_expr(state, item, {Type::Kind::Void});
+  }
+  if (items.len) {
+    auto item = items[items.len - 1];
+    resolve_expr(state, item, type);
+    if (type.kind == Type::Kind::Void) {
+      // TODO Apply ignored to all ignored cases?
+      auto ignored_arg = &state->alloc_type();
+      *ignored_arg = item->type;
+      item->type.kind = Type::Kind::Ignored;
+      item->type.arg = ignored_arg;
+    } else {
+      node->type = items[items.len - 1]->type;
+    }
   }
 }
 
@@ -241,6 +264,10 @@ auto resolve_const(ResolveState* state, Node* node, const Type& type) -> void {
   if (node->Const.a->type.kind == Type::Kind::None) {
     // Infer from value to def.
     node->Const.a->type = node->Const.b->type;
+    if (node->Const.a->kind == Node::Kind::Var) {
+      // TODO Make this more general. Seriously.
+      node->Const.a->Var.expr->type = node->Const.a->type;
+    }
   }
   node->type = node->Const.a->type;
 }
@@ -262,7 +289,8 @@ auto resolve_def(ResolveState* state, Def* def) -> void {
       resolve_cast(state, node, {Type::Kind::None});
       break;
     }
-    case Node::Kind::Const: {
+    case Node::Kind::Const:
+    case Node::Kind::Update: {
       resolve_const(state, node, {Type::Kind::None});
       break;
     }
@@ -294,7 +322,7 @@ auto resolve_def_body(ResolveState* state, Def* def) -> void {
     }
     case Node::Kind::Fun:
     case Node::Kind::Proc: {
-      resolve_expr(state, node, {Type::Kind::None});
+      resolve_expr(state, node, *node->type.arg);
       break;
     }
     default: {
@@ -303,7 +331,7 @@ auto resolve_def_body(ResolveState* state, Def* def) -> void {
   }
 }
 
-void resolve_expr(ResolveState* state, Node* node, const Type& type) {
+auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
   switch (node->kind) {
     case Node::Kind::Array: {
       resolve_array(state, node, type);
@@ -329,19 +357,25 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       resolve_expr(state, node->Call.args, args_type);
       break;
     }
-    case Node::Kind::Case:
-    case Node::Kind::For: {
+    case Node::Kind::Case: {
       // TODO Case might have particular expected arg types.
-      resolve_expr(state, node->For.arg, {Type::Kind::None});
-      resolve_expr(state, node->For.expr, {Type::Kind::None});
+      resolve_expr(state, node->Case.arg, {Type::Kind::None});
+      resolve_expr(state, node->Case.expr, type);
+      node->type = node->Case.expr->type;
       break;
     }
     case Node::Kind::Cast: {
       resolve_cast(state, node, type);
       break;
     }
-    case Node::Kind::Const: {
+    case Node::Kind::Const:
+    case Node::Kind::Update: {
       resolve_const(state, node, type);
+      break;
+    }
+    case Node::Kind::Else: {
+      resolve_expr(state, node->Else.expr, type);
+      node->type = node->Else.expr->type;
       break;
     }
     case Node::Kind::Equal:
@@ -352,10 +386,18 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
     case Node::Kind::NotEqual: {
       resolve_expr(state, node->Binary.a, {Type::Kind::None});
       resolve_expr(state, node->Binary.b, {Type::Kind::None});
+      node->type = {Type::Kind::Bool};
       break;
     }
     case Node::Kind::Float: {
       node->type = choose_float_type(type);
+      break;
+    }
+    case Node::Kind::For: {
+      // TODO Case might have particular expected arg types.
+      resolve_expr(state, node->For.arg, {Type::Kind::None});
+      resolve_expr(state, node->For.expr, type);
+      node->type = node->For.expr->type;
       break;
     }
     case Node::Kind::Fun:
@@ -371,8 +413,21 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       resolve_map(state, node, type);
       break;
     }
+    case Node::Kind::Minus:
+    case Node::Kind::Plus: {
+      resolve_expr(state, node->Binary.a, {Type::Kind::None});
+      resolve_expr(state, node->Binary.b, {Type::Kind::None});
+      // TODO General rules about result type, including built-in promotion.
+      node->type = node->Binary.a->type;
+      break;
+    }
     case Node::Kind::Ref: {
       resolve_ref(state, node);
+      break;
+    }
+    case Node::Kind::Return: {
+      resolve_expr(state, node->Return.expr, type);
+      node->type.kind = Type::Kind::Never;
       break;
     }
     case Node::Kind::String: {
@@ -387,19 +442,16 @@ void resolve_expr(ResolveState* state, Node* node, const Type& type) {
       break;
     }
     case Node::Kind::Switch: {
-      if (node->Switch.arg) {
-        resolve_expr(state, node->Switch.arg, {Type::Kind::None});
-      }
-      for (auto item: node->Switch.items) {
-        // TODO Passing down some expectation of case arg type would be good.
-        // TODO Also expectation of value type for case expressions.
-        // TODO Does this mean expecting a procedure `proc(arg) expr`?
-        resolve_expr(state, item, {Type::Kind::None});
-      }
+      resolve_switch(state, node, type);
       break;
     }
     case Node::Kind::Tuple: {
       resolve_tuple(state, node, type);
+      break;
+    }
+    case Node::Kind::Var: {
+      // TODO Does this do anything useful right now?
+      resolve_expr(state, node->Var.expr, type);
       break;
     }
     default: {
@@ -451,18 +503,15 @@ auto resolve_map(ResolveState* state, Node* node, const Type& type) -> void {
 auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void {
   Enter scope{state, node->Fun.scope};
   resolve_proc_sig(state, node, type);
-  // TODO Expect proc return type.
-  resolve_expr(state, node->Fun.expr, {Type::Kind::None});
+  resolve_expr(state, node->Fun.expr, *node->type.arg);
 }
 
 auto resolve_proc_sig(
   ResolveState* state, Node* node, const Type& type
 ) -> void {
-  auto ret_type = &state->alloc_type();
-  node->type = {Type::Kind::Proc, ret_type};
+  resolve_type(state, node->Fun.ret_type);
+  node->type = {Type::Kind::Proc, &node->Fun.ret_type->type};
   node->type.node = node;
-  // TODO Actual types on functions.
-  ret_type->kind = Type::Kind::Void;
   // TODO If in a local expression, expected type might be given.
   if (node->Fun.params) {
     resolve_tuple(state, node->Fun.params, {Type::Kind::None});
@@ -470,25 +519,44 @@ auto resolve_proc_sig(
 }
 
 auto resolve_ref(ResolveState* state, Node* node) -> void {
-  // Look in local scopes first, from last (deepest) to first (outermost).
-  for (int i = state->scopes.len - 1; i >= 0; i -= 1) {
-    auto def = state->scopes[i]->find(node->Ref.name);
-    if (def) {
-      node->Ref.def = def;
-      break;
-    }
-  }
+  // Seems like checking against previous setting could help be efficient.
+  // When I added the check, it made no difference in output, at least.
   if (!node->Ref.def) {
-    // Nothing in local scopes. Look in global.
-    node->Ref.def = state->mod->global_refs.get(node->Ref.name);
-  }
-  if (node->Ref.def) {
-    resolve_def(state, node->Ref.def);
-    node->type = node->Ref.def->node->type;
+    // Look in local scopes first, from last (deepest) to first (outermost).
+    for (int i = state->scopes.len - 1; i >= 0; i -= 1) {
+      auto def = state->scopes[i]->find(node->Ref.name);
+      if (def) {
+        node->Ref.def = def;
+        break;
+      }
+    }
+    if (!node->Ref.def) {
+      // Nothing in local scopes. Look in global.
+      node->Ref.def = state->mod->global_refs.get(node->Ref.name);
+    }
+    if (node->Ref.def) {
+      resolve_def(state, node->Ref.def);
+      node->type = node->Ref.def->node->type;
+    }
   }
 }
 
-void resolve_tuple(ResolveState* state, Node* node, const Type& type) {
+auto resolve_switch(ResolveState* state, Node* node, const Type& type) -> void {
+  if (node->Switch.arg) {
+    resolve_expr(state, node->Switch.arg, {Type::Kind::None});
+  }
+  Type item_type = type;
+  for (auto item: node->Switch.items) {
+    // TODO Passing down some expectation of case arg type would be good.
+    // TODO Also expectation of value type for case expressions.
+    // TODO Does this mean expecting a procedure `proc(arg) expr`?
+    resolve_expr(state, item, item_type);
+    item_type = item->type;
+  }
+  node->type = item_type;
+}
+
+auto resolve_tuple(ResolveState* state, Node* node, const Type& type) -> void {
   auto params = type.kind == Type::Kind::Tuple ? &type.node->Tuple : nullptr;
   auto items = node->Tuple.items;
   for (rint i = 0; i < items.len; i += 1) {
@@ -516,8 +584,11 @@ auto resolve_type(ResolveState* state, Node* node) -> void {
       break;
     }
     case Node::Kind::Ref: {
+      // TODO Make these basic defs in core mod, not crazy stuff here.
       string name = node->Ref.name;
-      if (!strcmp(name, "float")) {
+      if (!strcmp(name, "bool")) {
+        node->type = {Type::Kind::Bool};
+      } else if (!strcmp(name, "float")) {
         node->type = {Type::Kind::Float};
       } else if (!strcmp(name, "i32")) {
         node->type = {Type::Kind::I32};
@@ -531,6 +602,10 @@ auto resolve_type(ResolveState* state, Node* node) -> void {
         node->type.def = state->mod->global_refs.get(name);
         // fprintf(stderr, "Yo dawg in %s: %s -> %p from %p\n", state->mod->name, name, (void*)node->type.def, (void*)&state->mod->global_refs);
       }
+      break;
+    }
+    case Node::Kind::Void: {
+      node->type = {Type::Kind::Void};
       break;
     }
     default: break;

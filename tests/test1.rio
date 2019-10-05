@@ -13,7 +13,7 @@ do
   cores: [int] = []
   words = ["hi", "there"]
   # Loop with receiver.
-  for words do(word)
+  for word in words
     printf("word: %s\n", word)
   end
   # Loop alone.
@@ -28,6 +28,7 @@ do
     # TODO Go to structs by ref by default.
     person,
     {age = 5, name = "Me", scores = [2.5]},
+    {age = 25, name = "Other", scores = [4.2, 4.5]},
   ])
   # a.b().c.d
 end

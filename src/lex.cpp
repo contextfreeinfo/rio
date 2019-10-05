@@ -20,10 +20,12 @@ struct KeyId {
 
 // TODO Make into a map.
 const KeyId key_ids[] = {
+  {str_from("case"), Token::Kind::Case},
   {str_from("do"), Token::Kind::Do},
   {str_from("else"), Token::Kind::Else},
   {str_from("end"), Token::Kind::End},
   {str_from("if"), Token::Kind::If},
+  {str_from("in"), Token::Kind::In},
   // If functions are pure, calls can be reordered, so extracts for statements
   // can be kept simpler ...
   {str_from("for"), Token::Kind::For},
@@ -34,6 +36,7 @@ const KeyId key_ids[] = {
   {str_from("struct"), Token::Kind::Struct},
   {str_from("switch"), Token::Kind::Switch},
   {str_from("use"), Token::Kind::Use},
+  {str_from("var"), Token::Kind::Var},
 };
 
 auto has_text(const Token& token) -> bool {
@@ -216,6 +219,9 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
     case '{': return simple(Token::Kind::CurlyL);
     case '}': return simple(Token::Kind::CurlyR);
     case '.': return simple(Token::Kind::Dot);
+    case ';': {
+      return simple(was_line_end ? Token::Kind::End : Token::Kind::Junk);
+    }
     case '(': return simple(Token::Kind::RoundL);
     case ')': return simple(Token::Kind::RoundR);
     case '[': return simple(Token::Kind::SquareL);
