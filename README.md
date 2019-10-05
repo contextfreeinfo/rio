@@ -30,7 +30,7 @@ Person struct
 end
 
 show_prices proc(persons: [Person])
-  for persons do(person)
+  for person in persons
     printf("%s pays $%.2f\n", person.name, ticket_price(person.age))
   end
 end
