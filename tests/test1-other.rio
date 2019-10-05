@@ -29,7 +29,7 @@ end
 
 ticket_price_calc proc(age: int): float
   if
-    has_child_ticket_price(age)
+    case has_child_ticket_price(age)
       4.50
     end
     else

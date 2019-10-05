@@ -26,17 +26,17 @@ end
 
 ticket_price proc(age: int): float
   if
-    age <= 11
+    case age <= 11
       6.75
-    ;
-    age >= 62
+    end
+    case age >= 62
       7.00
-    ;
+    end
     else
       if age < 18
         printf("You think %d is child age here?\n", age)
       end
       11.00
-    ;
+    end
   end
 end
