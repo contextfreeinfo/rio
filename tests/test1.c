@@ -106,7 +106,7 @@ int main() {
   }
   tests_test1_greet(name, age);
   tests_test1_Person const person = (tests_test1_Person){.name = name, .age = 80, .scores = scores};
-  tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[2]){person, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}}, 2});
+  tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[3]){person, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}, (tests_test1_Person){.age = 25, .name = "Other", .scores = (rio_Span_float){(rio_float[2]){4.2, 4.5}, 2}}}, 3});
 }
 
 void tests_test1_greet(rio_string const name, rio_int const age) {
@@ -131,23 +131,7 @@ void tests_test1_report_scores(rio_Span_float const scores) {
 }
 
 void tests_test1_show_person(tests_test1_Person const person) {
-  printf("%s is %td years old (ticket price: %.2f, common category: %s)\n", person.name, person.age, if (tests_test1_other_has_child_ticket_price(person.age)) {
-    4.50;
-  }
-  else {
-    5.50;
-  }
-, if (person.age >= 65) {
-    "senior";
-  }
-  else if (person.age < 18) {
-    "minor";
-  }
-  else {
-    printf("This is a large category.\n");
-    "adult";
-  }
-);
+  printf("%s is %td years old (ticket price: %.2f, common category: %s)\n", person.name, person.age, (tests_test1_other_has_child_ticket_price(person.age)) ? (4.50) : (5.50), (person.age >= 65) ? ("senior") : (person.age < 18) ? ("minor") : (printf("This is a large category.\n"), "adult"));
   tests_test1_report_scores(person.scores);
 }
 

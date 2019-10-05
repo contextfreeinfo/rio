@@ -204,14 +204,19 @@ auto transform_expr(
           // swapped out, anyway.
           transform_expr(state, &item, can_return);
         }
+        if (!is_voidish(node->type.kind)) {
+          // No longer an expression.
+          node->type.kind = Type::Kind::Ignored;
+        }
       } else {
+        // TODO We also only need to transform if escaping flow control happens deeper.
         auto voidish = state->tracker_state.voidish_parent ?
           state->tracker_state.voidish_parent->items[state->tracker_state.voidish_index] :
           nullptr;
-        fprintf(stderr, "switch value type %d\n", (int)node->type.kind);
+        //~ fprintf(stderr, "switch value type %d\n", (int)node->type.kind);
         if (voidish) {
           // TODO Start replacing children of voidish until we get to our ancestor. How to know when that is? Track parents in nodes?
-          fprintf(stderr, "  under voidish %d\n", (int)voidish->kind);
+          //~ fprintf(stderr, "  under voidish %d\n", (int)voidish->kind);
         }
         // TODO Afterward, call back into transform_switch again?
       }

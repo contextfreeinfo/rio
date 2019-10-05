@@ -584,32 +584,74 @@ auto gen_switch(GenState* state, const Node& node) -> void {
   printf("(!!! switch !!!)\n");
 }
 
+auto gen_maybe_block_expr(GenState* state, const Node& node) -> void {
+  if (node.kind == Node::Kind::Block) {
+    // In expr mode, separate by commas. TODO Nice indentation?
+    auto items = node.Block.items;
+    for (rint i = 0; i < items.len; i += 1) {
+      if (i) {
+        printf(", ");
+      }
+      gen_expr(state, *items[i]);
+    }
+  } else {
+    gen_expr(state, node);
+  }
+}
+
 auto gen_switch_if(GenState* state, const Node& node) -> void {
   auto first = true;
-  for (auto item: node.Switch.items) {
-    switch (item->kind) {
-      case Node::Kind::Case: {
-        if (first) {
-          printf("if (");
-          first = false;
-        } else {
-          gen_indent(state);
-          printf("else if (");
+  if (is_voidish(node.type.kind)) {
+    // Statements.
+    for (auto item: node.Switch.items) {
+      switch (item->kind) {
+        case Node::Kind::Case: {
+          if (first) {
+            printf("if (");
+            first = false;
+          } else {
+            gen_indent(state);
+            printf("else if (");
+          }
+          gen_expr(state, *item->Case.arg);
+          printf(") ");
+          gen_expr(state, *item->Case.expr);
+          break;
         }
-        gen_expr(state, *item->Case.arg);
-        printf(") ");
-        gen_expr(state, *item->Case.expr);
-        break;
+        case Node::Kind::Else: {
+          gen_indent(state);
+          printf("else ");
+          gen_expr(state, *item->Else.expr);
+          break;
+        }
+        default: {
+          gen_bad(state, node);
+          break;
+        }
       }
-      case Node::Kind::Else: {
-        gen_indent(state);
-        printf("else ");
-        gen_expr(state, *item->Else.expr);
-        break;
-      }
-      default: {
-        gen_bad(state, node);
-        break;
+    }
+  } else {
+    // Expression. If it gets this far, presume ternary `?:` works.
+    for (auto item: node.Switch.items) {
+      switch (item->kind) {
+        case Node::Kind::Case: {
+          printf("(");
+          gen_expr(state, *item->Case.arg);
+          printf(") ? (");
+          gen_maybe_block_expr(state, *item->Case.expr);
+          printf(") : ");
+          break;
+        }
+        case Node::Kind::Else: {
+          printf("(");
+          gen_maybe_block_expr(state, *item->Else.expr);
+          printf(")");
+          break;
+        }
+        default: {
+          gen_bad(state, node);
+          break;
+        }
       }
     }
   }
