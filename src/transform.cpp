@@ -3,8 +3,20 @@
 namespace rio {
 
 struct ExpressTrackerState {
+  // TODO Where in the buffer was this supposed to reference?
+  // TODO We need to build new lists.
+  // TODO We also need to track a list of siblings to the expression that needs
+  // TODO extracted, so we can pull them out to before in the new list, too.
   rint buffer_index{-1};
+
+  // We need this so we know which kids of voidish are before the current one.
+  rint item_ancestor_index{-1};
+
+  // And this, so we can know where to extract to, in building new lists.
   rint voidish_index{-1};
+
+  // And since any voidish is in a block (?), this provides the list of voidish
+  // siblings.
   BlockNode* voidish_parent{nullptr};
 };
 
@@ -75,6 +87,8 @@ auto transform_block(
     auto item = *item_ref;
     if (is_voidish(item->type.kind)) {
       // Update voidish index (and siblings for convenience?).
+      // TODO We need to track all kids, and in addition to blocks, we also need to be able to handle struct instance literals.
+      // TODO We also need to know which kid is the ancestor of the descendent expression being extracted.
       tracker.track(&node->Block, i);
     }
     transform_expr(state, item_ref, can_return && last);
@@ -101,6 +115,12 @@ auto transform_block(
 }
 
 auto transform_expr(
+  // We use Node** here with the idea that we can swap out the entry for the
+  // expression that needs extracted, which might be deeper than the voidish
+  // kids, but really, we need to extract anything earlier in tree traversal
+  // order, so this probably isn't good enough.
+  // TODO Just go back to singe pointers and track all tree predecessors
+  // TODO elsehow? 
   TransformState* state, Node** node_ref, bool can_return
 ) -> void {
   Node* node = *node_ref;
@@ -119,6 +139,8 @@ auto transform_expr(
       break;
     }
     case Node::Kind::Call: {
+      // TODO If this is the voidish, make a list of sub-expressions in buffer?
+      // TODO For all node types?
       transform_expr(state, &node->Call.callee);
       transform_expr(state, &node->Call.args);
       break;
