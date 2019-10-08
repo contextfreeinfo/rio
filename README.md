@@ -45,7 +45,7 @@ ticket_price proc(age: int): float
     end
     else
       if age < 18
-        printf("You think %d is child age here?\n", age)
+        printf("You think age %d gets child prices here?\n", age)
       end
       11.00
     end
@@ -110,7 +110,7 @@ rio_float sample2_ticket_price(rio_int const age) {
   }
   else {
     if (age < 18) {
-      printf("You think %d is child age here?\n", age);
+      printf("You think age %d gets child prices here?\n", age)
     }
     return 11.00;
   }
