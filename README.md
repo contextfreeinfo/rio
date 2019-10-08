@@ -6,7 +6,7 @@ A script-feeling, safe, naturally compatible replacement for C, with no runtime 
 
 ## Description
 
-For a sample, this Rio script:
+For an example, here's a Rio script:
 
 ```ruby
 use "c"
@@ -53,7 +53,7 @@ ticket_price proc(age: int): float
 end
 ```
 
-Compiles to this C file (with manual whitespace added to the struct array in `main` for readability):
+That compiles to this C file (with manual whitespace added to the struct array in `main` for readability):
 
 ```c
 #include <stdbool.h>
