@@ -17,7 +17,8 @@ struct ParseState {
 
 };
 
-void advance_token(ParseState* state, bool skip_lines = false);
+auto advance_end(ParseState* state) -> void;
+auto advance_token(ParseState* state, bool skip_lines = false) -> void;
 auto more_tokens(ParseState* state, Token::Kind end) -> bool;
 auto node_slice_copy(ParseState* state, rint buf_len_old) -> Slice<Node*>;
 auto parse_add(ParseState* state) -> Node&;
@@ -39,9 +40,18 @@ auto parse_if(ParseState* state) -> Node&;
 auto parse_tuple(ParseState* state) -> Node&;
 auto parse_update(ParseState* state) -> Node&;
 auto parse_use(ParseState* state) -> Node&;
-void skip_comments(ParseState* state, bool skip_lines = false);
+auto skip_comments(ParseState* state, bool skip_lines = false) -> void;
 
-void advance_token(ParseState* state, bool skip_lines) {
+auto advance_end(ParseState* state) -> void {
+  advance_token(state);
+  // See if we have any end tag.
+  if (is_word(state->tokens->kind)) {
+    // TODO Store this for later checking.
+    advance_token(state);
+  }
+}
+
+auto advance_token(ParseState* state, bool skip_lines) -> void {
   auto& tokens = state->tokens;
   if (tokens->kind != Token::Kind::FileEnd) {
     tokens += 1;
@@ -221,7 +231,7 @@ auto parse_block(ParseState* state, Token::Kind end) -> Node& {
   // TODO Put these in some destructor if we can throw above.
   node.Block.items = node_slice_copy(state, buf_len_old);
   // Move on.
-  advance_token(state);
+  advance_end(state);
   // if (verbose) fprintf(stderr, "item 0: %d, %d, %s\n", static_cast<int>(node.Block.items[0]->kind), static_cast<int>(node.Block.items[0]->Call.callee->kind), node.Block.items[0]->Call.callee->Ref.name);
   if (verbose) fprintf(stderr, "end block\n");
   return node;
@@ -417,7 +427,7 @@ auto parse_if(ParseState* state) -> Node& {
     // TODO Put these in some destructor.
     node.Switch.items = node_slice_copy(state, buf_len_old);
     // Move on.
-    advance_token(state);
+    advance_end(state);
     return node;
   } else {
     // Just a single if case.
@@ -511,7 +521,7 @@ auto parse_use(ParseState* state) -> Node& {
   }
 }
 
-void skip_comments(ParseState* state, bool skip_lines) {
+auto skip_comments(ParseState* state, bool skip_lines) -> void {
   // TODO Store them somewhere automatically?
   auto& tokens = state->tokens;
   if (skip_lines) {

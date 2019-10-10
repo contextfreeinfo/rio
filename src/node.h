@@ -102,6 +102,8 @@ struct Token {
   };
 };
 
+auto is_word(Token::Kind kind) -> bool;
+
 // Type.
 
 // TODO Replace types with defs like anything else.

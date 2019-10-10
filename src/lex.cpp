@@ -84,6 +84,35 @@ auto is_vspace(char c) -> bool {
   return c == '\n' || c == '\r';
 }
 
+auto is_word(Token::Kind kind) -> bool {
+  switch (kind) {
+    // Keyword or name.
+    case Token::Kind::Case:
+    case Token::Kind::Class:
+    case Token::Kind::Do:
+    case Token::Kind::Else:
+    case Token::Kind::End:
+    case Token::Kind::Id:
+    case Token::Kind::If:
+    case Token::Kind::In:
+    case Token::Kind::For:
+    case Token::Kind::Fun:
+    case Token::Kind::Include:
+    case Token::Kind::Proc:
+    case Token::Kind::Pub:
+    case Token::Kind::Role:
+    case Token::Kind::Struct:
+    case Token::Kind::Switch:
+    case Token::Kind::Use:
+    case Token::Kind::Var: {
+      return true;
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
 auto lex(
   ModManager* mod, const char* file, const char* buf, List<Token>* tokens
 ) -> void {

@@ -15,9 +15,9 @@ report_scores proc(scores: [float])
       case score > 4
         printf("(pretty high)\n")
       end
-    end
-  end
-end
+    end if
+  end for
+end report_scores
 
 show_person proc(person: Person)
   printf(
@@ -33,7 +33,7 @@ show_person proc(person: Person)
       else
         5.50
       end
-    end,
+    end if,
     # Also impure.
     if
       case person.age >= 65
@@ -47,10 +47,10 @@ show_person proc(person: Person)
         printf("This is a large category.\n")
         "adult"
       end
-    end,
+    end if,
   )
   report_scores(person.scores)
-end
+end show_person
 
 show_persons proc(persons: [Person])
   for person in persons
