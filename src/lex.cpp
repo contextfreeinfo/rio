@@ -21,6 +21,7 @@ struct KeyId {
 // TODO Make into a map.
 const KeyId key_ids[] = {
   {str_from("case"), Token::Kind::Case},
+  {str_from("class"), Token::Kind::Class},
   {str_from("do"), Token::Kind::Do},
   {str_from("else"), Token::Kind::Else},
   {str_from("end"), Token::Kind::End},
@@ -33,6 +34,7 @@ const KeyId key_ids[] = {
   {str_from("include"), Token::Kind::Include},
   {str_from("proc"), Token::Kind::Proc},
   {str_from("pub"), Token::Kind::Pub},
+  {str_from("role"), Token::Kind::Role},  // TODO Can we live on just class or something?
   {str_from("struct"), Token::Kind::Struct},
   {str_from("switch"), Token::Kind::Switch},
   {str_from("use"), Token::Kind::Use},

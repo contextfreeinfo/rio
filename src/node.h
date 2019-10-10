@@ -49,6 +49,7 @@ struct Token {
     None,
     Assign,
     Case,
+    Class,
     Colon,
     Comma,
     Comment,
@@ -79,6 +80,7 @@ struct Token {
     Plus,
     Proc,
     Pub,
+    Role,
     RoundL,
     RoundR,
     SquareL,
@@ -165,7 +167,7 @@ struct Scope {
 
   Slice<Def*> defs;
 
-  auto find(string name) -> Opt<Def> {
+  auto find(string name) const -> Opt<Def> {
     for (auto def: defs) {
       // All should be interned.
       if (name == def->name) {
