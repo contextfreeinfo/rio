@@ -106,6 +106,7 @@ int main() {
   }
   tests_test1_greet(name, age);
   tests_test1_Person const person = (tests_test1_Person){.name = name, .age = 80, .scores = scores};
+  rio_string const hey = person.name;
   tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[3]){person, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}, (tests_test1_Person){.age = 25, .name = "Other", .scores = (rio_Span_float){(rio_float[2]){4.2, 4.5}, 2}}}, 3});
 }
 

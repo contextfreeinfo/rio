@@ -48,6 +48,7 @@ auto resolve_def(ResolveState* state, Def* def) -> void;
 auto resolve_def_body(ResolveState* state, Def* def) -> void;
 auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_map(ResolveState* state, Node* node, const Type& type) -> void;
+auto resolve_member(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_proc_sig(
   ResolveState* state, Node* node, const Type& type
@@ -56,6 +57,7 @@ auto resolve_ref(ResolveState* state, Node* node) -> void;
 auto resolve_switch(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_tuple(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_type(ResolveState* state, Node* node) -> void;
+auto struct_type_scope(const Type& type) -> Opt<const Scope>;
 
 auto resolve(Engine* engine) -> void {
   // The root mods should be sorted before this point.
@@ -413,6 +415,10 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       resolve_map(state, node, type);
       break;
     }
+    case Node::Kind::Member: {
+      resolve_member(state, node, type);
+      break;
+    }
     case Node::Kind::Minus:
     case Node::Kind::Plus: {
       resolve_expr(state, node->Binary.a, {Type::Kind::None});
@@ -463,11 +469,8 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
 
 auto resolve_map(ResolveState* state, Node* node, const Type& type) -> void {
   node->type = type;
-  if (!(
-    type.kind == Type::Kind::User && type.def && type.def->top &&
-    type.def->top->kind == Node::Kind::Struct
-  )) return;
-  auto& scope = type.def->top->Fun.scope;
+  auto* scope = struct_type_scope(type);
+  if (!scope) return;
   Type none_type = {Type::Kind::None};
   for (auto item: node->Map.items) {
     // Get the name, so we can know the type.
@@ -493,10 +496,22 @@ auto resolve_map(ResolveState* state, Node* node, const Type& type) -> void {
       continue;
     }
     // We have a name.
-    auto item_def = scope.find(name);
+    auto item_def = scope->find(name);
     auto item_type =
       item_def && item_def->top ? &item_def->top->type : &none_type;
     resolve_expr(state, item, *item_type);
+  }
+}
+
+auto resolve_member(ResolveState* state, Node* node, const Type& type) -> void {
+  resolve_expr(state, node->Binary.a, {Type::Kind::None});
+  auto scope = struct_type_scope(node->Binary.a->type);
+  if (!scope) return;
+  if (node->Binary.b->kind == Node::Kind::Ref) {
+    auto item_def = scope->find(node->Binary.b->Ref.name);
+    if (item_def && item_def->top) {
+      node->type = item_def->top->type;
+    }
   }
 }
 
@@ -610,6 +625,14 @@ auto resolve_type(ResolveState* state, Node* node) -> void {
     }
     default: break;
   }
+}
+
+auto struct_type_scope(const Type& type) -> Opt<const Scope> {
+  if (!(
+    type.kind == Type::Kind::User && type.def && type.def->top &&
+    type.def->top->kind == Node::Kind::Struct
+  )) return nullptr;
+  return &type.def->top->Fun.scope;
 }
 
 }

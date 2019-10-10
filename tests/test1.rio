@@ -24,6 +24,7 @@ do
   greet(name, age)
   # Struct instance literal, with shorthand.
   person: Person = {name, age = 80, scores}
+  hey = person.name
   show_persons([
     # TODO Go to structs by ref by default.
     person,
