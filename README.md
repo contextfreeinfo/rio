@@ -22,7 +22,7 @@ do
     {name = "Clara", age = 9},
     {name = "Darlene", age = 68},
   ])
-end
+end do
 
 Person struct
   name: string
@@ -49,8 +49,8 @@ ticket_price proc(age: int): float
       end
       11.00
     end
-  end
-end
+  end if
+end ticket_price
 ```
 
 That compiles to this C file (with manual whitespace added to the struct array in `main` for readability):
