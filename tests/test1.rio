@@ -1,5 +1,6 @@
 use "c"
 use "./test1-other"
+use "./things"
 include "./test1-more"
 
 do
@@ -32,7 +33,7 @@ do
     {age = 25, name = "Other", scores = [4.2, 4.5]},
   ])
   # a.b().c.d
-end
+end do
 
 Person struct
   name: string

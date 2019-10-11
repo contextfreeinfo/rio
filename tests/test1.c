@@ -50,6 +50,13 @@ rio_float tests_test1_other_ticket_price_calc(rio_int const age) {
   }
 }
 
+// tests/things.rio
+
+typedef struct tests_things_Review {
+  rio_string message;
+  rio_int stars;
+} tests_things_Review;
+
 // tests/test1.rio
 
 typedef struct rio_Span_float {

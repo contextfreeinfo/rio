@@ -81,6 +81,7 @@ auto is_token_compare(const Token& token) -> Node::Kind {
 
 auto is_token_proc(const Token& token) -> bool {
   return
+    token.kind == Token::Kind::Class ||
     token.kind == Token::Kind::Fun ||
     token.kind == Token::Kind::Proc ||
     token.kind == Token::Kind::Pub ||
@@ -176,6 +177,7 @@ auto parse_atom(ParseState* state) -> Node& {
     case Token::Kind::For: {
       return parse_for(state);
     }
+    case Token::Kind::Class:
     case Token::Kind::Fun:
     case Token::Kind::Proc:
     case Token::Kind::Struct: {
@@ -379,6 +381,7 @@ auto parse_fun(ParseState* state) -> Node& {
       kind = Node::Kind::Fun;
       break;
     }
+    case Token::Kind::Class:
     case Token::Kind::Struct: {
       kind = Node::Kind::Struct;
       break;

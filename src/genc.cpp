@@ -563,12 +563,19 @@ auto gen_struct(GenState* state, const Node& node) -> void {
   if (node.Fun.expr->kind == Node::Kind::Block) {
     Indent _{state};
     auto& block = node.Fun.expr->Block;
-    auto items = block.items;
-    for (rint i = 0; i < items.len; i += 1) {
-      gen_indent(state);
-      gen_expr(state, *items[i]);
-      if (needs_semi(*items[i])) {
-        printf(";\n");
+    for (auto item: block.items) {
+      switch (item->kind) {
+        case Node::Kind::Fun:
+        case Node::Kind::Proc: {
+          // Generate these outside of struct.
+          break;
+        }
+        default: {
+          gen_indent(state);
+          gen_expr(state, *item);
+          printf(";\n");
+          break;
+        }
       }
     }
   }

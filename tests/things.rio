@@ -1,0 +1,12 @@
+# TODO Pointer infrastructure for trees and/or lists and/or ...
+
+Review class
+
+  message: string
+  stars: int
+
+  write proc()
+    printf("%d stars: %s\n", this.stars, this.message)
+  end
+
+end Review
