@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef double rio_float;
 typedef ptrdiff_t rio_int;
@@ -57,21 +58,28 @@ typedef struct tests_things_Review {
   rio_int stars;
 } tests_things_Review;
 
+typedef struct rio_Span_int {
+  rio_int* items;
+  rio_int length;
+} rio_Span_int;
+
+rio_Span_int tests_things_range(rio_int const length);
+
+rio_Span_int tests_things_range(rio_int const length) {
+  (!!! TYPE 0 !!!) items = malloc(length * (!!! BROKEN 27 !!!));
+  return (rio_Span_int){.items = items, .length = length};
+}
+
 // tests/test1.rio
 
 typedef struct rio_Span_float {
   rio_float* items;
-  rio_int len;
+  rio_int length;
 } rio_Span_float;
-
-typedef struct rio_Span_int {
-  rio_int* items;
-  rio_int len;
-} rio_Span_int;
 
 typedef struct rio_Span_string {
   rio_string* items;
-  rio_int len;
+  rio_int length;
 } rio_Span_string;
 
 typedef struct tests_test1_Person {
@@ -82,7 +90,7 @@ typedef struct tests_test1_Person {
 
 typedef struct rio_Span_tests_test1_Person {
   tests_test1_Person* items;
-  rio_int len;
+  rio_int length;
 } rio_Span_tests_test1_Person;
 
 void tests_test1_greet(rio_string const name, rio_int const age);
@@ -100,14 +108,14 @@ int main() {
   rio_Span_string const words = (rio_Span_string){(rio_string[2]){"hi", "there"}, 2};
   {
     rio_Span_string rio_span = words;
-    for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+    for (rio_int rio_index = 0; rio_index < rio_span.length; rio_index += 1) {
       rio_string word = rio_span.items[rio_index];
       printf("word: %s\n", word);
     }
   }
   {
     rio_Span_string rio_span = words;
-    for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+    for (rio_int rio_index = 0; rio_index < rio_span.length; rio_index += 1) {
       printf("hi\n");
     }
   }
@@ -125,7 +133,7 @@ void tests_test1_greet(rio_string const name, rio_int const age) {
 void tests_test1_report_scores(rio_Span_float const scores) {
   {
     rio_Span_float rio_span = scores;
-    for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+    for (rio_int rio_index = 0; rio_index < rio_span.length; rio_index += 1) {
       rio_float score = rio_span.items[rio_index];
       printf("score: %f\n", score);
       if (score < 1) {
@@ -146,7 +154,7 @@ void tests_test1_show_person(tests_test1_Person const person) {
 void tests_test1_show_persons(rio_Span_tests_test1_Person const persons) {
   {
     rio_Span_tests_test1_Person rio_span = persons;
-    for (rio_int rio_index = 0; rio_index < rio_span.len; rio_index += 1) {
+    for (rio_int rio_index = 0; rio_index < rio_span.length; rio_index += 1) {
       tests_test1_Person person = rio_span.items[rio_index];
       tests_test1_show_person(person);
     }

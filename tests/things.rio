@@ -10,3 +10,8 @@ Review class
   end
 
 end Review
+
+range fun(length: int): [int]  # own [int]
+  items var := malloc(length * sizeof int)  # : &*int
+  {items, length}
+end

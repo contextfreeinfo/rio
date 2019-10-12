@@ -375,6 +375,16 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       resolve_const(state, node, type);
       break;
     }
+    case Node::Kind::Div:
+    case Node::Kind::Mul:
+    case Node::Kind::Minus:
+    case Node::Kind::Plus: {
+      resolve_expr(state, node->Binary.a, {Type::Kind::None});
+      resolve_expr(state, node->Binary.b, {Type::Kind::None});
+      // TODO General rules about result type, including built-in promotion.
+      node->type = node->Binary.a->type;
+      break;
+    }
     case Node::Kind::Else: {
       resolve_expr(state, node->Else.expr, type);
       node->type = node->Else.expr->type;
@@ -417,14 +427,6 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
     }
     case Node::Kind::Member: {
       resolve_member(state, node, type);
-      break;
-    }
-    case Node::Kind::Minus:
-    case Node::Kind::Plus: {
-      resolve_expr(state, node->Binary.a, {Type::Kind::None});
-      resolve_expr(state, node->Binary.b, {Type::Kind::None});
-      // TODO General rules about result type, including built-in promotion.
-      node->type = node->Binary.a->type;
       break;
     }
     case Node::Kind::Ref: {

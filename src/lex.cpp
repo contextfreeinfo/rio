@@ -35,6 +35,7 @@ const KeyId key_ids[] = {
   {str_from("proc"), Token::Kind::Proc},
   {str_from("pub"), Token::Kind::Pub},
   {str_from("role"), Token::Kind::Role},  // TODO Can we live on just class or something?
+  {str_from("sizeof"), Token::Kind::SizeOf},
   {str_from("struct"), Token::Kind::Struct},
   {str_from("switch"), Token::Kind::Switch},
   {str_from("use"), Token::Kind::Use},
@@ -101,6 +102,7 @@ auto is_word(Token::Kind kind) -> bool {
     case Token::Kind::Proc:
     case Token::Kind::Pub:
     case Token::Kind::Role:
+    case Token::Kind::SizeOf:
     case Token::Kind::Struct:
     case Token::Kind::Switch:
     case Token::Kind::Use:
@@ -266,9 +268,11 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
       }
       break;
     }
+    case '*': return simple(Token::Kind::Mul);
     case '/': {
       switch (*(buf + 1)) {
         case '/': return finish(next_token_comment(buf));
+        default: return simple(Token::Kind::Div);
       }
       break;
     }

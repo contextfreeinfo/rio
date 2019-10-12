@@ -37,6 +37,7 @@ auto parse_expr(ParseState* state) -> Node&;
 auto parse_for(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
 auto parse_if(ParseState* state) -> Node&;
+auto parse_mul(ParseState* state) -> Node&;
 auto parse_tuple(ParseState* state) -> Node&;
 auto parse_update(ParseState* state) -> Node&;
 auto parse_use(ParseState* state) -> Node&;
@@ -63,6 +64,14 @@ auto is_token_add(const Token& token) -> Node::Kind {
   switch (token.kind) {
     case Token::Kind::Minus: return Node::Kind::Minus;
     case Token::Kind::Plus: return Node::Kind::Plus;
+    default: return Node::Kind::None;
+  }
+}
+
+auto is_token_mul(const Token& token) -> Node::Kind {
+  switch (token.kind) {
+    case Token::Kind::Div: return Node::Kind::Div;
+    case Token::Kind::Mul: return Node::Kind::Mul;
     default: return Node::Kind::None;
   }
 }
@@ -119,7 +128,7 @@ auto parse(ModManager* mod, const Token* tokens) -> Node& {
 }
 
 auto parse_add(ParseState* state) -> Node& {
-  Node* node = &parse_call(state);
+  Node* node = &parse_mul(state);
   while (true) {
     auto node_kind = is_token_add(*state->tokens);
     if (node_kind == Node::Kind::None) {
@@ -128,7 +137,7 @@ auto parse_add(ParseState* state) -> Node& {
     advance_token(state, true);
     Node* pair = &state->alloc(node_kind);
     pair->Binary.a = node;
-    pair->Binary.b = &parse_call(state);
+    pair->Binary.b = &parse_mul(state);
     node = pair;
   }
   return *node;
@@ -204,6 +213,12 @@ auto parse_atom(ParseState* state) -> Node& {
       Node& node = state->alloc(Node::Kind::Int);
       node.Int.text = tokens->text;
       advance_token(state);
+      return node;
+    }
+    case Token::Kind::SizeOf: {
+      Node& node = state->alloc(Node::Kind::SizeOf);
+      advance_token(state);
+      node.SizeOf.expr = &parse_call(state);
       return node;
     }
     case Token::Kind::String: {
@@ -436,6 +451,23 @@ auto parse_if(ParseState* state) -> Node& {
     // Just a single if case.
     return parse_case(state);
   }
+}
+
+auto parse_mul(ParseState* state) -> Node& {
+  Node* node = &parse_call(state);
+  while (true) {
+    // Try mul/div like this.
+    auto node_kind = is_token_mul(*state->tokens);
+    if (node_kind == Node::Kind::None) {
+      break;
+    }
+    advance_token(state, true);
+    Node* pair = &state->alloc(node_kind);
+    pair->Binary.a = node;
+    pair->Binary.b = &parse_call(state);
+    node = pair;
+  }
+  return *node;
 }
 
 auto parse_tuple(ParseState* state) -> Node& {

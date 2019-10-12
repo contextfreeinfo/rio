@@ -63,8 +63,9 @@ auto gen(Engine* engine) -> void {
     "#include <stdbool.h>\n"
     "#include <stddef.h>\n"
     "#include <stdint.h>\n"
-    // TODO Include stdio.h only if `use "c"`.
+    // TODO Include stdio, stdlib only if `use "c"`.
     "#include <stdio.h>\n"
+    "#include <stdlib.h>\n"
     "\n"
     // Use typedefs because we want the generated code to be the same on all
     // platforms, but in case we need preprocessor junk, define in advance.
@@ -197,6 +198,10 @@ auto gen_expr(GenState* state, const Node& node) -> void {
       gen_const(state, node);
       break;
     }
+    case Node::Kind::Div: {
+      gen_binary(state, node, " / ");
+      break;
+    }
     case Node::Kind::Equal: {
       gen_binary(state, node, " == ");
       break;
@@ -245,6 +250,10 @@ auto gen_expr(GenState* state, const Node& node) -> void {
     }
     case Node::Kind::MoreOrEqual: {
       gen_binary(state, node, " >= ");
+      break;
+    }
+    case Node::Kind::Mul: {
+      gen_binary(state, node, " * ");
       break;
     }
     case Node::Kind::NotEqual: {
@@ -312,7 +321,7 @@ auto gen_for(GenState* state, const Node& node) -> void {
     gen_indent(state);
     string index_name = "rio_index";
     printf(
-      "for (rio_int %s = 0; %s < %s.len; %s += 1) {\n",
+      "for (rio_int %s = 0; %s < %s.length; %s += 1) {\n",
       index_name, index_name, list_name, index_name
     );
     {
@@ -783,7 +792,7 @@ auto gen_typedefs(GenState* state) -> void {
         }
         printf("* items;\n");
         gen_indent(state);
-        printf("rio_int len;\n");
+        printf("rio_int length;\n");
       }
       printf("} %s;\n", def->name);
     } else {

@@ -55,6 +55,7 @@ struct Token {
     Comment,
     CurlyL,
     CurlyR,
+    Div,
     Do,
     Dot,
     Else,
@@ -76,6 +77,7 @@ struct Token {
     Minus,
     More,
     MoreOrEqual,
+    Mul,
     NotEqual,
     Plus,
     Proc,
@@ -83,6 +85,7 @@ struct Token {
     Role,
     RoundL,
     RoundR,
+    SizeOf,
     SquareL,
     SquareR,
     String,
@@ -265,6 +268,7 @@ struct Node {
     Case,
     Cast,
     Const,
+    Div,
     Else,
     Equal,
     Float,
@@ -278,11 +282,13 @@ struct Node {
     Minus,
     More,
     MoreOrEqual,
+    Mul,
     NotEqual,
     Plus,
     Proc,
     Ref,
     Return,
+    SizeOf,
     String,
     Struct,
     Switch,
@@ -315,6 +321,7 @@ struct Node {
     ParentNode Parent;
     RefNode Ref;
     UnaryNode Return;
+    UnaryNode SizeOf;
     StringNode String;
     SwitchNode Switch;
     ParentNode Tuple;
