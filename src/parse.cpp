@@ -162,6 +162,16 @@ auto parse_assign(ParseState* state) -> Node& {
 auto parse_atom(ParseState* state) -> Node& {
   auto tokens = state->tokens;
   switch (tokens->kind) {
+    case Token::Kind::And: {
+      advance_token(state);
+      auto multi = state->tokens->kind == Token::Kind::Mul;
+      Node& node = state->alloc(
+        multi ? Node::Kind::AddressMul : Node::Kind::Address
+      );
+      if (multi) advance_token(state);
+      node.Address.expr = &parse_call(state);
+      return node;
+    }
     case Token::Kind::CurlyL:
     case Token::Kind::SquareL: {
       return parse_tuple(state);

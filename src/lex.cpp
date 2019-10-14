@@ -268,6 +268,7 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
       }
       break;
     }
+    case '&': return simple(Token::Kind::And);
     case '*': return simple(Token::Kind::Mul);
     case '/': {
       switch (*(buf + 1)) {

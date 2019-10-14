@@ -335,6 +335,12 @@ auto resolve_def_body(ResolveState* state, Def* def) -> void {
 
 auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
   switch (node->kind) {
+    case Node::Kind::Address:
+    case Node::Kind::AddressMul: {
+      // TODO If type is address/mul and arg is non-null, pass down arg type.
+      resolve_expr(state, node->Address.expr, {Type::Kind::None});
+      break;
+    }
     case Node::Kind::Array: {
       resolve_array(state, node, type);
       break;
@@ -436,6 +442,13 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
     case Node::Kind::Return: {
       resolve_expr(state, node->Return.expr, type);
       node->type.kind = Type::Kind::Never;
+      break;
+    }
+    case Node::Kind::SizeOf: {
+      resolve_type(state, node->SizeOf.expr);
+      // TODO Types as any other expr.
+      //~ resolve_expr(state, node->SizeOf.expr, {Type::Kind::None});
+      node->type.kind = Type::Kind::Int;
       break;
     }
     case Node::Kind::String: {
@@ -589,6 +602,18 @@ auto resolve_type(ResolveState* state, Node* node) -> void {
   // TODO Types are actually of type type(id?), but is this ok for casts?
   // TODO Global outer map on interned pointers to types.
   switch (node->kind) {
+    case Node::Kind::Address: {
+      resolve_type(state, node->Address.expr);
+      node->type = {Type::Kind::Address};
+      node->type.arg = &node->Address.expr->type;
+      break;
+    }
+    case Node::Kind::AddressMul: {
+      resolve_type(state, node->AddressMul.expr);
+      node->type = {Type::Kind::AddressMul};
+      node->type.arg = &node->AddressMul.expr->type;
+      break;
+    }
     case Node::Kind::Array: {
       for (auto item: node->Array.items) {
         resolve_type(state, item);

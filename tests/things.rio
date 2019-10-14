@@ -12,6 +12,8 @@ Review class
 end Review
 
 range fun(length: int): [int]  # own [int]
-  items var := malloc(length * sizeof int)  # : &*int
+  # TODO Let `own` be inferred in the casting etc here rather than stated?
+  # TODO Autocast &void to other pointer types? Need to know &void first ...
+  items var := malloc(length * sizeof int): &*int
   {items, length}
 end

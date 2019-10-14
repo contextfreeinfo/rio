@@ -66,7 +66,7 @@ typedef struct rio_Span_int {
 rio_Span_int tests_things_range(rio_int const length);
 
 rio_Span_int tests_things_range(rio_int const length) {
-  (!!! TYPE 0 !!!) items = malloc(length * (!!! BROKEN 27 !!!));
+  rio_int* items = (rio_int*)(malloc(length * sizeof(rio_int)));
   return (rio_Span_int){.items = items, .length = length};
 }
 
