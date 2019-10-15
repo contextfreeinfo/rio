@@ -92,6 +92,7 @@ struct Token {
     String,
     Struct,
     Switch,
+    Unsafe,
     Update,
     Use,
     Var,
@@ -296,6 +297,7 @@ struct Node {
     Struct,
     Switch,
     Tuple,
+    Unsafe,
     Update,
     Use,
     Var,
@@ -331,6 +333,7 @@ struct Node {
     SwitchNode Switch;
     ParentNode Tuple;
     UnaryNode Unary;
+    UnaryNode Unsafe;
     BinaryNode Update;
     UnaryNode Var;
     UseNode Use;

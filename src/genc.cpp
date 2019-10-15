@@ -294,6 +294,10 @@ auto gen_expr(GenState* state, const Node& node) -> void {
       }
       break;
     }
+    case Node::Kind::Unsafe: {
+      gen_expr(state, *node.Unsafe.expr);
+      break;
+    }
     case Node::Kind::Use: {
       // Nothing to do here.
       break;
@@ -843,6 +847,7 @@ auto needs_semi(const Node& node) -> bool {
     case Node::Kind::For:
     case Node::Kind::Fun:
     case Node::Kind::Switch:
+    case Node::Kind::Unsafe:
     case Node::Kind::Use: {
       return false;
     }

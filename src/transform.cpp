@@ -82,6 +82,8 @@ auto transform_block(
   Node* node = *node_ref;
   auto& items = node->Block.items;
   bool last = true;
+  // TODO Last to first is useless here.
+  // TODO Just write a pseudo interpreter that pull out in execution order.
   for (rint i = items.len - 1; i >= 0; i -= 1) {
     auto item_ref = &items[i];
     auto item = *item_ref;
@@ -96,7 +98,8 @@ auto transform_block(
       if (can_return && !is_voidish(item->type.kind)) {
         switch (item->kind) {
           case Node::Kind::Block:
-          case Node::Kind::Switch: {
+          case Node::Kind::Switch:
+          case Node::Kind::Unsafe: {
             // Skip these since we will have pushed returns into them.
             break;
           }
@@ -159,8 +162,9 @@ auto transform_expr(
       transform_expr(state, &node->Cast.b);
       break;
     }
-    case Node::Kind::Else: {
-      transform_expr(state, &node->Else.expr, can_return);
+    case Node::Kind::Else:
+    case Node::Kind::Unsafe: {
+      transform_expr(state, &node->Unary.expr, can_return);
       break;
     }
     case Node::Kind::Equal:

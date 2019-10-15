@@ -170,7 +170,7 @@ auto ensure_global_refs(ModManager* mod) -> void {
 }
 
 auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void {
-  // TODO Generalize to all generics.
+  // TODO Generalize to all generics, and maybe ranges first?
   node->type = {Type::Kind::Array, arg_type};
   auto name = name_type(state->engine, &state->str_buf, node->type);
   auto insert = state->mod->global_refs.get_or_insert(name);
@@ -391,9 +391,10 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       node->type = node->Binary.a->type;
       break;
     }
-    case Node::Kind::Else: {
-      resolve_expr(state, node->Else.expr, type);
-      node->type = node->Else.expr->type;
+    case Node::Kind::Else:
+    case Node::Kind::Unsafe: {
+      resolve_expr(state, node->Unary.expr, type);
+      node->type = node->Unary.expr->type;
       break;
     }
     case Node::Kind::Equal:

@@ -91,7 +91,8 @@ void extract_expr(ExtractState* state, Node* node) {
   switch (node->kind) {
     case Node::Kind::Address:
     case Node::Kind::AddressMul:
-    case Node::Kind::SizeOf: {
+    case Node::Kind::SizeOf:
+    case Node::Kind::Unsafe: {
       extract_expr(state, node->Unary.expr);
       break;
     }

@@ -27,6 +27,7 @@ auto parse_atom(ParseState* state) -> Node&;
 auto parse_block(
   ParseState* state, Token::Kind end = Token::Kind::CurlyR
 ) -> Node&;
+auto parse_block_or_expr(ParseState* state) -> Node&;
 auto parse_call(ParseState* state) -> Node&;
 auto parse_case(ParseState* state, Node::Kind kind = Node::Kind::Case) -> Node&;
 auto parse_cast(ParseState* state) -> Node&;
@@ -238,6 +239,12 @@ auto parse_atom(ParseState* state) -> Node& {
       advance_token(state);
       return node;
     }
+    case Token::Kind::Unsafe: {
+      advance_token(state);
+      Node& node = state->alloc(Node::Kind::Unsafe);
+      node.Unsafe.expr = &parse_block_or_expr(state);
+      return node;
+    }
     default: {
       if (verbose) fprintf(stderr, "junk: %s\n", token_name(*tokens));
       advance_token(state);
@@ -262,6 +269,15 @@ auto parse_block(ParseState* state, Token::Kind end) -> Node& {
   // if (verbose) fprintf(stderr, "item 0: %d, %d, %s\n", static_cast<int>(node.Block.items[0]->kind), static_cast<int>(node.Block.items[0]->Call.callee->kind), node.Block.items[0]->Call.callee->Ref.name);
   if (verbose) fprintf(stderr, "end block\n");
   return node;
+}
+
+auto parse_block_or_expr(ParseState* state) -> Node& {
+  if (state->tokens->kind == Token::Kind::LineEnd) {
+    skip_comments(state, true);
+    return parse_block(state, Token::Kind::End);
+  } else {
+    return parse_expr(state);
+  }
 }
 
 auto parse_call(ParseState* state) -> Node& {
@@ -300,12 +316,7 @@ auto parse_case(ParseState* state, Node::Kind kind) -> Node& {
     advance_token(state);
   }
   node.Case.arg = &parse_expr(state);
-  if (state->tokens->kind == Token::Kind::LineEnd) {
-    skip_comments(state, true);
-    node.Case.expr = &parse_block(state, Token::Kind::End);
-  } else {
-    node.Case.expr = &parse_expr(state);
-  }
+  node.Case.expr = &parse_block_or_expr(state);
   return node;
 }
 
@@ -359,14 +370,7 @@ auto parse_def(ParseState* state) -> Node& {
 auto parse_else(ParseState* state) -> Node& {
   advance_token(state);
   Node& node = state->alloc(Node::Kind::Else);
-  // This is similar to the end of case or for, but the node type is different.
-  // TODO Just use the same node struct type so we can partially combine?
-  if (state->tokens->kind == Token::Kind::LineEnd) {
-    skip_comments(state, true);
-    node.Else.expr = &parse_block(state, Token::Kind::End);
-  } else {
-    node.Else.expr = &parse_expr(state);
-  }
+  node.Else.expr = &parse_block_or_expr(state);
   return node;
 }
 
@@ -389,12 +393,7 @@ auto parse_for(ParseState* state) -> Node& {
     // for items
     node.For.arg = sub;
   }
-  if (state->tokens->kind == Token::Kind::LineEnd) {
-    skip_comments(state, true);
-    node.For.expr = &parse_block(state, Token::Kind::End);
-  } else {
-    node.For.expr = &parse_expr(state);
-  }
+  node.For.expr = &parse_block_or_expr(state);
   return node;
 }
 
@@ -429,12 +428,7 @@ auto parse_fun(ParseState* state) -> Node& {
   } else {
     node.Fun.ret_type = &state->alloc(Node::Kind::Void);
   }
-  if (state->tokens->kind == Token::Kind::LineEnd) {
-    skip_comments(state, true);
-    node.Fun.expr = &parse_block(state, Token::Kind::End);
-  } else {
-    node.Fun.expr = &parse_expr(state);
-  }
+  node.Fun.expr = &parse_block_or_expr(state);
   if (verbose) fprintf(stderr, "end fun\n");
   return node;
 }
