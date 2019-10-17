@@ -1,4 +1,4 @@
-<img style="float: right; height: 3em" src="rio-logo.svg">
+<img style="float: right; height: 96px" align="right" height="96" src="rio-logo.svg">
 
 # Rio
 
