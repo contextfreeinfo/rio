@@ -1,3 +1,5 @@
+<img style="float: right; height: 3em" src="rio-logo.svg">
+
 # Rio
 
 ## Goal
