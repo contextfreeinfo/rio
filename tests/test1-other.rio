@@ -21,7 +21,8 @@ end
 sum fun(n: int): int
   result var := 0
   result := result + n
-  #~ for 1 ..= n do(i)
+  # TODO Ranges
+  #~ for i in 1 through n
     #~ result := result + i
   #~ end
   result

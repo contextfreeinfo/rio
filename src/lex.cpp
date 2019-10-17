@@ -38,6 +38,7 @@ const KeyId key_ids[] = {
   {str_from("sizeof"), Token::Kind::SizeOf},
   {str_from("struct"), Token::Kind::Struct},
   {str_from("switch"), Token::Kind::Switch},
+  {str_from("unsafe"), Token::Kind::Unsafe},
   {str_from("use"), Token::Kind::Use},
   {str_from("var"), Token::Kind::Var},
 };
@@ -106,6 +107,7 @@ auto is_word(Token::Kind kind) -> bool {
     case Token::Kind::Struct:
     case Token::Kind::Switch:
     case Token::Kind::Use:
+    case Token::Kind::Unsafe:
     case Token::Kind::Var: {
       return true;
     }
@@ -268,6 +270,7 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
       }
       break;
     }
+    case '&': return simple(Token::Kind::And);
     case '*': return simple(Token::Kind::Mul);
     case '/': {
       switch (*(buf + 1)) {

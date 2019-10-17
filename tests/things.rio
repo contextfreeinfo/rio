@@ -12,6 +12,17 @@ Review class
 end Review
 
 range fun(length: int): [int]  # own [int]
-  items var := malloc(length * sizeof int)  # : &*int
-  {items, length}
+  # TODO Handle own after we have methods and monomorphization.
+  # TODO Need to call [int].free() (aka rio_Span_int_free), effectively.
+  # TODO How to nicely handle `own &whatever` if malloc wasn't used to allocate?
+  # TODO Have to wrap in custom struct? Can autocast out such smart(?) pointers?
+  # TODO Let `own` be inferred in the casting etc here rather than stated?
+  # TODO Autocast &void to other pointer types? Need to know &void first ...
+  unsafe
+    items var := malloc(length * sizeof int): &*int
+    #~ for i in 0 to length
+      #~ items[i] := i
+    #~ end
+    {items, length}
+  end unsafe
 end

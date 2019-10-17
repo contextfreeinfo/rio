@@ -47,6 +47,7 @@ struct Token {
     // TODO Use cache files to remember ids of enums, so source order doesn't
     // TODO matter.
     None,
+    And,
     Assign,
     Case,
     Class,
@@ -91,6 +92,7 @@ struct Token {
     String,
     Struct,
     Switch,
+    Unsafe,
     Update,
     Use,
     Var,
@@ -137,9 +139,9 @@ struct Type {
     U64,
     UInt,
     // Pointers.
-    Ref,
-    MultiRef,
-    NullTermRef,
+    Address,
+    AddressMul,
+    //~ AddressNullTerm,
     // Aggregates.
     Array,
     Proc,
@@ -262,6 +264,8 @@ struct Node {
 
   enum struct Kind {
     None,
+    Address,
+    AddressMul,
     Array,
     Block,
     Call,
@@ -293,6 +297,7 @@ struct Node {
     Struct,
     Switch,
     Tuple,
+    Unsafe,
     Update,
     Use,
     Var,
@@ -304,6 +309,8 @@ struct Node {
   Type type;
 
   union {
+    UnaryNode Address;
+    UnaryNode AddressMul;
     ParentNode Array;
     BinaryNode Binary;
     BlockNode Block;
@@ -325,6 +332,8 @@ struct Node {
     StringNode String;
     SwitchNode Switch;
     ParentNode Tuple;
+    UnaryNode Unary;
+    UnaryNode Unsafe;
     BinaryNode Update;
     UnaryNode Var;
     UseNode Use;

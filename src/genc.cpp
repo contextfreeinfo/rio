@@ -188,10 +188,11 @@ auto gen_expr(GenState* state, const Node& node) -> void {
       break;
     }
     case Node::Kind::Cast: {
+      printf("(");
       gen_type(state, node.type);
-      if (node.Cast.a->kind == Node::Kind::Ref) {
-        printf(" %s", node.Cast.a->Ref.name);
-      }
+      printf(")(");
+      gen_expr(state, *node.Cast.a);
+      printf(")");
       break;
     }
     case Node::Kind::Const: {
@@ -273,6 +274,14 @@ auto gen_expr(GenState* state, const Node& node) -> void {
       gen_expr(state, *node.Return.expr);
       break;
     }
+    case Node::Kind::SizeOf: {
+      printf("sizeof(");
+      gen_type(state, node.SizeOf.expr->type);
+      // TODO Types as any other expr.
+      //~ gen_expr(state, *node.SizeOf.expr);
+      printf(")");
+      break;
+    }
     case Node::Kind::String: {
       printf("%s", node.String.text);
       break;
@@ -283,6 +292,10 @@ auto gen_expr(GenState* state, const Node& node) -> void {
       } else {
         gen_switch_if(state, node);
       }
+      break;
+    }
+    case Node::Kind::Unsafe: {
+      gen_expr(state, *node.Unsafe.expr);
       break;
     }
     case Node::Kind::Use: {
@@ -581,7 +594,11 @@ auto gen_struct(GenState* state, const Node& node) -> void {
         }
         default: {
           gen_indent(state);
-          gen_expr(state, *item);
+          if (item->kind == Node::Kind::Cast) {
+            gen_val_decl(state, *item);
+          } else {
+            gen_bad(state, *item);
+          }
           printf(";\n");
           break;
         }
@@ -675,6 +692,12 @@ auto gen_switch_if(GenState* state, const Node& node) -> void {
 
 auto gen_type(GenState* state, const Type& type) -> void {
   switch (type.kind) {
+    case Type::Kind::Address:
+    case Type::Kind::AddressMul: {
+      gen_type(state, *type.arg);
+      printf("*");
+      break;
+    }
     case Type::Kind::Array: {
       // Resolve guarantees a def assigned.
       printf("%s", type.def->name);
@@ -824,6 +847,7 @@ auto needs_semi(const Node& node) -> bool {
     case Node::Kind::For:
     case Node::Kind::Fun:
     case Node::Kind::Switch:
+    case Node::Kind::Unsafe:
     case Node::Kind::Use: {
       return false;
     }
