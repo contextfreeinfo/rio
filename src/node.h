@@ -92,6 +92,7 @@ struct Token {
     String,
     Struct,
     Switch,
+    To,
     Unsafe,
     Update,
     Use,
@@ -145,6 +146,7 @@ struct Type {
     // Aggregates.
     Array,
     Proc,
+    Range,
     // String has special treatment because it needs interop.
     // Known semantics, auto conversion out, custom by back end?, ...
     String,
@@ -234,6 +236,12 @@ struct ParentNode {
   Slice<Node*> items;
 };
 
+struct RangeNode {
+  Node* from;
+  Node* to;
+  Node* by;
+};
+
 struct RefNode {
   string name;
   Opt<Def> def;
@@ -290,6 +298,8 @@ struct Node {
     NotEqual,
     Plus,
     Proc,
+    Range,
+    // A var/name ref, not a memory address reference.
     Ref,
     Return,
     SizeOf,
@@ -326,6 +336,7 @@ struct Node {
     ParentNode Map;
     BinaryNode Member;
     ParentNode Parent;
+    RangeNode Range;
     RefNode Ref;
     UnaryNode Return;
     UnaryNode SizeOf;

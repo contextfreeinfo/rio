@@ -99,6 +99,7 @@ auto transform_block(
         switch (item->kind) {
           case Node::Kind::Block:
           case Node::Kind::Switch:
+          // TODO What matters for unsafe is if it's a block inside it.
           case Node::Kind::Unsafe: {
             // Skip these since we will have pushed returns into them.
             break;

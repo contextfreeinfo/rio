@@ -39,6 +39,7 @@ auto parse_for(ParseState* state) -> Node&;
 auto parse_fun(ParseState* state) -> Node&;
 auto parse_if(ParseState* state) -> Node&;
 auto parse_mul(ParseState* state) -> Node&;
+auto parse_range(ParseState* state) -> Node&;
 auto parse_tuple(ParseState* state) -> Node&;
 auto parse_update(ParseState* state) -> Node&;
 auto parse_use(ParseState* state) -> Node&;
@@ -333,7 +334,9 @@ auto parse_cast(ParseState* state) -> Node& {
 }
 
 auto parse_compare(ParseState* state) -> Node& {
-  Node* node = &parse_add(state);
+  // TODO Should compare be outside or inside range?
+  // TODO Compare ranges or range on bools??? Neither seems likely.
+  Node* node = &parse_range(state);
   while (true) {
     auto node_kind = is_token_compare(*state->tokens);
     if (node_kind == Node::Kind::None) {
@@ -342,7 +345,7 @@ auto parse_compare(ParseState* state) -> Node& {
     advance_token(state, true);
     Node* pair = &state->alloc(node_kind);
     pair->Binary.a = node;
-    pair->Binary.b = &parse_add(state);
+    pair->Binary.b = &parse_range(state);
     node = pair;
   }
   return *node;
@@ -460,7 +463,7 @@ auto parse_if(ParseState* state) -> Node& {
 auto parse_mul(ParseState* state) -> Node& {
   Node* node = &parse_call(state);
   while (true) {
-    // Try mul/div like this.
+    // Combine functions for add and other binaries?
     auto node_kind = is_token_mul(*state->tokens);
     if (node_kind == Node::Kind::None) {
       break;
@@ -470,6 +473,23 @@ auto parse_mul(ParseState* state) -> Node& {
     pair->Binary.a = node;
     pair->Binary.b = &parse_call(state);
     node = pair;
+  }
+  return *node;
+}
+
+auto parse_range(ParseState* state) -> Node& {
+  // TODO Also have a deeper handler for prefix `to ...`.
+  Node* node = &parse_add(state);
+  if (state->tokens->kind == Token::Kind::To) {
+    // No going cross lines here, since we can have dangling `to` sometimes.
+    advance_token(state);
+    // TODO Extract here down to a separate function also for prefix `to`.
+    Node* range = &state->alloc(Node::Kind::Range);
+    range->Range.from = node;
+    // TODO For dangling `... to`, skip this if any endish tokens are here.
+    range->Range.to = &parse_add(state);
+    // TODO Check for `by`!
+    node = range;
   }
   return *node;
 }

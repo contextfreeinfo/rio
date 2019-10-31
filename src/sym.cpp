@@ -43,6 +43,11 @@ auto name_type_sub(Engine* engine, StrBuf* buf, const Type* type) -> void {
       buf->push_string("int");
       break;
     }
+    case Type::Kind::Range: {
+      buf->push_string("rio_Range_");
+      name_type_sub(engine, buf, type->arg);
+      break;
+    }
     case Type::Kind::String: {
       buf->push_string("string");
       break;

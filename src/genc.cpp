@@ -29,6 +29,8 @@ auto gen_decl_expr(GenState* state, const Node& node) -> void;
 auto gen_decls(GenState* state) -> void;
 auto gen_expr(GenState* state, const Node& node) -> void;
 auto gen_for(GenState* state, const Node& node) -> void;
+auto gen_for_range(GenState* state, const Node& node) -> void;
+auto gen_for_span(GenState* state, const Node& node) -> void;
 auto gen_function(GenState* state, const Node& node) -> void;
 auto gen_function_def(GenState* state, const Node& node) -> void;
 auto gen_function_defs(GenState* state) -> void;
@@ -41,6 +43,7 @@ auto gen_map(GenState* state, const Node& node) -> void;
 auto gen_mod(GenState* state, ModManager* mod) -> void;
 auto gen_mod_header(GenState* state) -> void;
 auto gen_param_items(GenState* state, const Node* node) -> void;
+auto gen_range(GenState* state, const Node& node) -> void;
 auto gen_ref(GenState* state, const Node& node) -> void;
 auto gen_ref_def(GenState* state, const Def& def) -> void;
 auto gen_switch(GenState* state, const Node& node) -> void;
@@ -48,6 +51,8 @@ auto gen_switch_if(GenState* state, const Node& node) -> void;
 auto gen_type(GenState* state, const Type& type) -> void;
 auto gen_type_opt(GenState* state, Opt<const Type> type) -> void;
 auto gen_typedef(GenState* state, const Node& node) -> void;
+auto gen_typedef_array(GenState* state, const Def* def) -> void;
+auto gen_typedef_range(GenState* state, const Def* def) -> void;
 auto gen_typedefs(GenState* state) -> void;
 auto gen_statements(GenState* state, const Node& node) -> void;
 auto gen_val_decl(
@@ -265,6 +270,10 @@ auto gen_expr(GenState* state, const Node& node) -> void {
       gen_binary(state, node, " + ");
       break;
     }
+    case Node::Kind::Range: {
+      gen_range(state, node);
+      break;
+    }
     case Node::Kind::Ref: {
       gen_ref(state, node);
       break;
@@ -318,6 +327,73 @@ auto gen_expr(GenState* state, const Node& node) -> void {
 }
 
 auto gen_for(GenState* state, const Node& node) -> void {
+  switch (node.For.arg->type.kind) {
+    case Type::Kind::Array: {
+      gen_for_span(state, node);
+      break;
+    }
+    case Type::Kind::Range: {
+      gen_for_range(state, node);
+      break;
+    }
+    default: {
+      printf("(!!! for what !!!)");
+      break;
+    }
+  }
+}
+
+auto gen_for_range(GenState* state, const Node& node) -> void {
+  printf("{\n");
+  {
+    Indent _{state};
+    // Declare a single expr in case the arg is more than a simple var.
+    // TODO Optimize this part away if it is just a ref.
+    gen_indent(state);
+    string list_name = "rio_list";
+    // Generate list value as local.
+    gen_type(state, node.For.arg->type);
+    printf(" %s = ", list_name);
+    gen_expr(state, *node.For.arg);
+    printf(";\n");
+    // Params.
+    // TODO Index.
+    auto param = node.For.param;
+    auto is_block = node.For.expr->kind == Node::Kind::Block;
+    if (!param && is_block) {
+      Node* params = node.For.expr->Block.params;
+      if (params && params->Tuple.items.len) {
+        param = params->Tuple.items[0];
+      }
+    }
+    // The loop itself.
+    gen_indent(state);
+    auto name =
+      param && param->kind == Node::Kind::Ref ? param->Ref.name : "rio_value";
+    printf("for (");
+    gen_type_opt(state, node.For.arg->type.arg);
+    printf(
+      " %s = %s.from; %s < %s.to; %s += %s.by) {\n",
+      name, list_name, name, list_name, name, list_name
+    );
+    {
+      Indent _{state};
+      if (is_block) {
+        // Block contents.
+        gen_statements(state, *node.For.expr);
+      } else {
+        // No param here.
+        gen_expr(state, *node.For.expr);
+      }
+    }
+    gen_indent(state);
+    printf("}\n");
+  }
+  gen_indent(state);
+  printf("}\n");
+}
+
+auto gen_for_span(GenState* state, const Node& node) -> void {
   printf("{\n");
   {
     Indent _{state};
@@ -546,7 +622,32 @@ void gen_param_items(GenState* state, const Node* node) {
   }
 }
 
-void gen_ref(GenState* state, const Node& node) {
+auto gen_range(GenState* state, const Node& node) -> void {
+  // TODO Transform to a struct instance node and generate that way???
+  // TODO gen_type(state, node.type); ???
+  printf("(%s){", node.type.def->name);
+  if (node.Range.from) {
+    gen_expr(state, *node.Range.from);
+  } else {
+    printf("0");
+  }
+  if (node.Range.to) {
+    printf(", ");
+    gen_expr(state, *node.Range.to);
+  } else {
+    printf(", 0");
+  }
+  if (node.Range.by) {
+    printf(", ");
+    gen_expr(state, *node.Range.by);
+  } else {
+    // Explicit default to step by 1.
+    printf(", 1");
+  }
+  printf("}");
+}
+
+auto gen_ref(GenState* state, const Node& node) -> void {
   if (node.Ref.def) {
     gen_ref_def(state, *node.Ref.def);
   } else {
@@ -698,7 +799,8 @@ auto gen_type(GenState* state, const Type& type) -> void {
       printf("*");
       break;
     }
-    case Type::Kind::Array: {
+    case Type::Kind::Array:
+    case Type::Kind::Range: {
       // Resolve guarantees a def assigned.
       printf("%s", type.def->name);
       break;
@@ -794,32 +896,69 @@ auto gen_typedef(GenState* state, const Node& node) -> void {
   }
 }
 
+auto gen_typedef_array(GenState* state, const Def* def) -> void {
+  // TODO Wrap generic types in #ifndef #define things in case generated by
+  // TODO different mod branches.
+  auto& type = *def->type;
+  // TODO Make this into a standard struct node, so it gets auto generated.
+  gen_mod_header(state);
+  printf("\n");
+  printf("typedef struct %s {\n", def->name);
+  {
+    Indent _{state};
+    gen_indent(state);
+    if (type.arg) {
+      gen_type(state, *type.arg);
+    } else {
+      gen_type(state, {Type::Kind::None});
+    }
+    printf("* items;\n");
+    gen_indent(state);
+    printf("rio_int length;\n");
+  }
+  printf("} %s;\n", def->name);
+}
+
+auto gen_typedef_range(GenState* state, const Def* def) -> void {
+  // TODO Wrap generic types in #ifndef #define things in case generated by
+  // TODO different mod branches.
+  auto& type = *def->type;
+  // TODO Make this into a standard struct node, so it gets auto generated.
+  gen_mod_header(state);
+  printf("\n");
+  printf("typedef struct %s {\n", def->name);
+  {
+    Indent _{state};
+    gen_indent(state);
+    gen_type(state, *type.arg);
+    printf(" from;\n");
+    gen_indent(state);
+    gen_type(state, *type.arg);
+    printf(" to;\n");
+    gen_indent(state);
+    gen_type(state, *type.arg);
+    printf(" by;\n");
+  }
+  printf("} %s;\n", def->name);
+}
+
 auto gen_typedefs(GenState* state) -> void {
   state->start_section = false;
   for (auto def: state->mod->global_defs) {
-    if (def->type && def->type->kind == Type::Kind::Array) {
-      // TODO Wrap generic types in #ifndef #define things in case generated by
-      // TODO different mod branches.
-      auto& type = *def->type;
-      // TODO Make this into a standard struct node, so it gets auto generated.
-      gen_mod_header(state);
-      printf("\n");
-      printf("typedef struct %s {\n", def->name);
-      {
-        Indent _{state};
-        gen_indent(state);
-        if (type.arg) {
-          gen_type(state, *type.arg);
-        } else {
-          gen_type(state, {Type::Kind::None});
-        }
-        printf("* items;\n");
-        gen_indent(state);
-        printf("rio_int length;\n");
+    // TODO Generate struct definitions for arrays and ranges earlier?
+    switch (def->type ? def->type->kind : Type::Kind::None) {
+      case Type::Kind::Array: {
+        gen_typedef_array(state, def);
+        break;
       }
-      printf("} %s;\n", def->name);
-    } else {
-      gen_typedef(state, *def->top);
+      case Type::Kind::Range: {
+        gen_typedef_range(state, def);
+        break;
+      }
+      default: {
+        gen_typedef(state, *def->top);
+        break;
+      }
     }
   }
 }

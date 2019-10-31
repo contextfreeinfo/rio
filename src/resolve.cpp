@@ -39,7 +39,11 @@ struct Enter {
 Type choose_float_type(const Type& type);
 Type choose_int_type(const Type& type);
 auto ensure_global_refs(ModManager* mod) -> void;
+auto ensure_range_type(ResolveState* state, Node* node, Type* arg_type) -> void;
 auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void;
+auto ensure_type_generic(
+  ResolveState* state, Node* node, Type::Kind type_kind, Type* arg_type
+) -> void;
 auto resolve_array(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_block(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_cast(ResolveState* state, Node* node, const Type& type) -> void;
@@ -53,6 +57,7 @@ auto resolve_proc(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_proc_sig(
   ResolveState* state, Node* node, const Type& type
 ) -> void;
+auto resolve_range(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_ref(ResolveState* state, Node* node) -> void;
 auto resolve_switch(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_tuple(ResolveState* state, Node* node, const Type& type) -> void;
@@ -169,9 +174,21 @@ auto ensure_global_refs(ModManager* mod) -> void {
   }
 }
 
+auto ensure_range_type(
+  ResolveState* state, Node* node, Type* arg_type
+) -> void {
+  ensure_type_generic(state, node, Type::Kind::Range, arg_type);
+}
+
 auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void {
-  // TODO Generalize to all generics, and maybe ranges first?
-  node->type = {Type::Kind::Array, arg_type};
+  ensure_type_generic(state, node, Type::Kind::Array, arg_type);
+}
+
+auto ensure_type_generic(
+  ResolveState* state, Node* node, Type::Kind type_kind, Type* arg_type
+) -> void {
+  // TODO Generalize to all generics?
+  node->type = {type_kind, arg_type};
   auto name = name_type(state->engine, &state->str_buf, node->type);
   auto insert = state->mod->global_refs.get_or_insert(name);
   if (insert.inserted) {
@@ -180,7 +197,7 @@ auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void {
     // The namespace is from the original, but it appears here in resolution.
     def->mod = state->mod;
     // Make a fake node for now.
-    // TODO Make a canonical single node for Span.
+    // TODO Make a canonical single node for the type?
     Node* typedef_node = &state->mod->arena.alloc<Node>();
     typedef_node->kind = Node::Kind::None;
     def->top = typedef_node;
@@ -436,6 +453,10 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       resolve_member(state, node, type);
       break;
     }
+    case Node::Kind::Range: {
+      resolve_range(state, node, type);
+      break;
+    }
     case Node::Kind::Ref: {
       resolve_ref(state, node);
       break;
@@ -546,6 +567,35 @@ auto resolve_proc_sig(
   // TODO If in a local expression, expected type might be given.
   if (node->Fun.params) {
     resolve_tuple(state, node->Fun.params, {Type::Kind::None});
+  }
+}
+
+auto resolve_range(ResolveState* state, Node* node, const Type& type) -> void {
+  // This none type is used temporarily at most, so it's ok to be local.
+  const Type none_type = {Type::Kind::None};
+  const Type* item_type = &none_type;
+  if (type.kind == Type::Kind::Range && type.arg) {
+    item_type = type.arg;
+  }
+  // Awkwardly step through from, to, and by.
+  // TODO Generify kid list iteration to unify with arrays?
+  // TODO Will we guarantee any of these?
+  Type* item_type_now = nullptr;
+  if (node->Range.from) {
+    resolve_expr(state, node->Range.from, *item_type);
+    item_type_now = &node->Range.from->type;
+  }
+  if (node->Range.to) {
+    resolve_expr(state, node->Range.to, *item_type);
+    if (!item_type_now) item_type_now = &node->Range.to->type;
+  }
+  if (node->Range.by) {
+    resolve_expr(state, node->Range.by, *item_type);
+    if (!item_type_now) item_type_now = &node->Range.by->type;
+  }
+  // Ensure type once we're done.
+  if (item_type_now) {
+    ensure_range_type(state, node, item_type_now);
   }
 }
 

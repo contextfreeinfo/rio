@@ -10,6 +10,12 @@ typedef const char* rio_string;
 
 // tests/test1-other.rio
 
+typedef struct rio_Range_int {
+  rio_int from;
+  rio_int to;
+  rio_int by;
+} rio_Range_int;
+
 rio_float tests_test1_other_bother(rio_float const x);
 void tests_test1_other_bother_again(rio_float const x);
 bool tests_test1_other_has_child_ticket_price(rio_int const age);
@@ -39,6 +45,12 @@ bool tests_test1_other_has_child_ticket_price(rio_int const age) {
 rio_int tests_test1_other_sum(rio_int const n) {
   rio_int result = 0;
   result = result + n;
+  {
+    rio_Range_int rio_list = (rio_Range_int){1, n + 1, 1};
+    for (rio_int i = rio_list.from; i < rio_list.to; i += rio_list.by) {
+      result = result + i;
+    }
+  }
   return result;
 }
 
@@ -63,11 +75,22 @@ typedef struct rio_Span_int {
   rio_int length;
 } rio_Span_int;
 
+typedef struct rio_Range_int {
+  rio_int from;
+  rio_int to;
+  rio_int by;
+} rio_Range_int;
+
 rio_Span_int tests_things_range(rio_int const length);
 
 rio_Span_int tests_things_range(rio_int const length) {
   {
     rio_int* items = (rio_int*)(malloc(length * sizeof(rio_int)));
+    {
+      rio_Range_int rio_list = (rio_Range_int){0, length, 1};
+      for (rio_int i = rio_list.from; i < rio_list.to; i += rio_list.by) {
+      }
+    }
     return (rio_Span_int){.items = items, .length = length};
   }
 }

@@ -20,9 +20,10 @@ range fun(length: int): [int]  # own [int]
   # TODO Autocast &void to other pointer types? Need to know &void first ...
   unsafe
     items var := malloc(length * sizeof int): &*int
-    #~ for i in 0 to length
+    # TODO Do we also have `&of ...` or `^to ...` for borrow referencing?
+    for i in 0 to length
       #~ items[i] := i
-    #~ end
+    end
     {items, length}
   end unsafe
-end
+end range

@@ -22,9 +22,12 @@ sum fun(n: int): int
   result var := 0
   result := result + n
   # TODO Ranges
-  #~ for i in 1 through n
-    #~ result := result + i
-  #~ end
+  #~ for i in 1 through n by 2
+  # to 1 +
+  # through
+  for i in 1 to n + 1
+    result := result + i
+  end
   result
 end
 

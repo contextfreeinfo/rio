@@ -38,6 +38,7 @@ const KeyId key_ids[] = {
   {str_from("sizeof"), Token::Kind::SizeOf},
   {str_from("struct"), Token::Kind::Struct},
   {str_from("switch"), Token::Kind::Switch},
+  {str_from("to"), Token::Kind::To},
   {str_from("unsafe"), Token::Kind::Unsafe},
   {str_from("use"), Token::Kind::Use},
   {str_from("var"), Token::Kind::Var},
