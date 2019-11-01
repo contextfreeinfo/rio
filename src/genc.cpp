@@ -903,6 +903,11 @@ auto gen_typedef_array(GenState* state, const Def* def) -> void {
   // TODO Make this into a standard struct node, so it gets auto generated.
   gen_mod_header(state);
   printf("\n");
+  // These could be generated through different dependency paths, so guard the
+  // generation.
+  // TODO(@tjp): Be more careful about when this is really needed.
+  printf("#ifndef typedef_%s\n", def->name);
+  printf("#define typedef_%s\n", def->name);
   printf("typedef struct %s {\n", def->name);
   {
     Indent _{state};
@@ -917,6 +922,7 @@ auto gen_typedef_array(GenState* state, const Def* def) -> void {
     printf("rio_int length;\n");
   }
   printf("} %s;\n", def->name);
+  printf("#endif  // typedef_%s\n", def->name);
 }
 
 auto gen_typedef_range(GenState* state, const Def* def) -> void {
@@ -926,6 +932,9 @@ auto gen_typedef_range(GenState* state, const Def* def) -> void {
   // TODO Make this into a standard struct node, so it gets auto generated.
   gen_mod_header(state);
   printf("\n");
+  // TODO(@tjp): Unify guard handling with gen_typedef_array.
+  printf("#ifndef typedef_%s\n", def->name);
+  printf("#define typedef_%s\n", def->name);
   printf("typedef struct %s {\n", def->name);
   {
     Indent _{state};
@@ -940,6 +949,7 @@ auto gen_typedef_range(GenState* state, const Def* def) -> void {
     printf(" by;\n");
   }
   printf("} %s;\n", def->name);
+  printf("#endif  // typedef_%s\n", def->name);
 }
 
 auto gen_typedefs(GenState* state) -> void {

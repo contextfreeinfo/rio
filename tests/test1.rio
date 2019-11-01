@@ -33,6 +33,7 @@ do
     {age = 25, name = "Other", scores = [4.2, 4.5]},
   ])
   # a.b().c.d
+  printf("sum: %d\n", sum(5))
 end do
 
 Person struct

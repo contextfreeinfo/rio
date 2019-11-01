@@ -10,11 +10,14 @@ typedef const char* rio_string;
 
 // tests/test1-other.rio
 
+#ifndef typedef_rio_Range_int
+#define typedef_rio_Range_int
 typedef struct rio_Range_int {
   rio_int from;
   rio_int to;
   rio_int by;
 } rio_Range_int;
+#endif  // typedef_rio_Range_int
 
 rio_float tests_test1_other_bother(rio_float const x);
 void tests_test1_other_bother_again(rio_float const x);
@@ -44,7 +47,6 @@ bool tests_test1_other_has_child_ticket_price(rio_int const age) {
 
 rio_int tests_test1_other_sum(rio_int const n) {
   rio_int result = 0;
-  result = result + n;
   {
     rio_Range_int rio_list = (rio_Range_int){1, n + 1, 1};
     for (rio_int i = rio_list.from; i < rio_list.to; i += rio_list.by) {
@@ -70,16 +72,22 @@ typedef struct tests_things_Review {
   rio_int stars;
 } tests_things_Review;
 
+#ifndef typedef_rio_Span_int
+#define typedef_rio_Span_int
 typedef struct rio_Span_int {
   rio_int* items;
   rio_int length;
 } rio_Span_int;
+#endif  // typedef_rio_Span_int
 
+#ifndef typedef_rio_Range_int
+#define typedef_rio_Range_int
 typedef struct rio_Range_int {
   rio_int from;
   rio_int to;
   rio_int by;
 } rio_Range_int;
+#endif  // typedef_rio_Range_int
 
 rio_Span_int tests_things_range(rio_int const length);
 
@@ -97,15 +105,21 @@ rio_Span_int tests_things_range(rio_int const length) {
 
 // tests/test1.rio
 
+#ifndef typedef_rio_Span_float
+#define typedef_rio_Span_float
 typedef struct rio_Span_float {
   rio_float* items;
   rio_int length;
 } rio_Span_float;
+#endif  // typedef_rio_Span_float
 
+#ifndef typedef_rio_Span_string
+#define typedef_rio_Span_string
 typedef struct rio_Span_string {
   rio_string* items;
   rio_int length;
 } rio_Span_string;
+#endif  // typedef_rio_Span_string
 
 typedef struct tests_test1_Person {
   rio_string name;
@@ -113,10 +127,13 @@ typedef struct tests_test1_Person {
   rio_Span_float scores;
 } tests_test1_Person;
 
+#ifndef typedef_rio_Span_tests_test1_Person
+#define typedef_rio_Span_tests_test1_Person
 typedef struct rio_Span_tests_test1_Person {
   tests_test1_Person* items;
   rio_int length;
 } rio_Span_tests_test1_Person;
+#endif  // typedef_rio_Span_tests_test1_Person
 
 void tests_test1_greet(rio_string const name, rio_int const age);
 void tests_test1_report_scores(rio_Span_float const scores);
@@ -148,6 +165,7 @@ int main() {
   tests_test1_Person const person = (tests_test1_Person){.name = name, .age = 80, .scores = scores};
   rio_string const hey = person.name;
   tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[3]){person, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}, (tests_test1_Person){.age = 25, .name = "Other", .scores = (rio_Span_float){(rio_float[2]){4.2, 4.5}, 2}}}, 3});
+  printf("sum: %d\n", tests_test1_other_sum(5));
 }
 
 void tests_test1_greet(rio_string const name, rio_int const age) {
