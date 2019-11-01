@@ -2,9 +2,13 @@
 
 # Rio
 
+
 ## Goal
 
 A script-feeling, safe, naturally compatible replacement for C, with no runtime nor std lib of its own.
+
+See also my [YouTube channel called Context Free](https://www.youtube.com/channel/UCS4FAVeYW_IaZqAbqhlvxlA) where I discuss programming languages, including things I think about while working on Rio.
+
 
 ## Description
 
@@ -118,6 +122,7 @@ rio_float sample2_ticket_price(rio_int const age) {
   }
 }
 ```
+
 
 ## Status
 
