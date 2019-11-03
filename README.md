@@ -1,6 +1,6 @@
 <img style="float: right; height: 96px" align="right" height="96" src="rio-logo.svg">
 
-# Rio
+# Rio Programming Language
 
 
 ## Goal
