@@ -1,0 +1,25 @@
+word: hi
+word: there
+hi
+hi
+Hello, world!
+You are 75 years old.
+world is 80 years old (ticket price: 5.50, common category: senior)
+score: 45.000000
+(pretty high)
+score: 63.100000
+(pretty high)
+score: 22.200000
+(pretty high)
+score: -8.300000
+(pretty low)
+You'd like to think that, wouldn't you?
+Me is 5 years old (ticket price: 4.50, common category: minor)
+score: 2.500000
+This is a large category.
+Other is 25 years old (ticket price: 5.50, common category: adult)
+score: 4.200000
+(pretty high)
+score: 4.500000
+(pretty high)
+sum: 15

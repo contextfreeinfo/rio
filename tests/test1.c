@@ -16,6 +16,7 @@ typedef struct rio_Range_int {
   rio_int from;
   rio_int to;
   rio_int by;
+  bool inclusive;
 } rio_Range_int;
 #endif  // typedef_rio_Range_int
 
@@ -47,9 +48,10 @@ bool tests_test1_other_has_child_ticket_price(rio_int const age) {
 
 rio_int tests_test1_other_sum(rio_int const n) {
   rio_int result = 0;
+  rio_Range_int const range = (rio_Range_int){1, n, 1, true};
   {
-    rio_Range_int rio_list = (rio_Range_int){1, n + 1, 1};
-    for (rio_int i = rio_list.from; i < rio_list.to; i += rio_list.by) {
+    rio_Range_int rio_list = range;
+    for (rio_int i = rio_list.from; rio_list.inclusive ? i <= rio_list.to : i < rio_list.to; i += rio_list.by) {
       result = result + i;
     }
   }
@@ -86,6 +88,7 @@ typedef struct rio_Range_int {
   rio_int from;
   rio_int to;
   rio_int by;
+  bool inclusive;
 } rio_Range_int;
 #endif  // typedef_rio_Range_int
 
@@ -95,8 +98,8 @@ rio_Span_int tests_things_range(rio_int const length) {
   {
     rio_int* items = (rio_int*)(malloc(length * sizeof(rio_int)));
     {
-      rio_Range_int rio_list = (rio_Range_int){0, length, 1};
-      for (rio_int i = rio_list.from; i < rio_list.to; i += rio_list.by) {
+      rio_Range_int rio_list = (rio_Range_int){0, length, 1, false};
+      for (rio_int i = rio_list.from; rio_list.inclusive ? i <= rio_list.to : i < rio_list.to; i += rio_list.by) {
       }
     }
     return (rio_Span_int){.items = items, .length = length};

@@ -92,6 +92,7 @@ struct Token {
     String,
     Struct,
     Switch,
+    Through,
     To,
     Unsafe,
     Update,
@@ -240,6 +241,7 @@ struct RangeNode {
   Node* from;
   Node* to;
   Node* by;
+  bool inclusive;
 };
 
 struct RefNode {

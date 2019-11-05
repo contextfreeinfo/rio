@@ -254,7 +254,6 @@ auto next_token(const char* buf, bool was_line_end) -> Token {
     case ',': return simple(Token::Kind::Comma);
     case '{': return simple(Token::Kind::CurlyL);
     case '}': return simple(Token::Kind::CurlyR);
-    case '.': return simple(Token::Kind::Dot);
     case ';': {
       return simple(was_line_end ? Token::Kind::End : Token::Kind::Junk);
     }
@@ -330,12 +329,19 @@ auto next_token_num(const char* buf) -> Token {
     }
   }
   if (*buf == '.' && !is_digit(buf[1])) {
-    // If we had a + or - before this, we'd have already cut out earlier.
-    return [&]() {
-      Token token = {Token::Kind::Dot};
-      token.len = 1;
+    auto simple_len = [&](Token::Kind kind, rint len) {
+      Token token = {kind};
+      token.len = len;
       return token;
-    }();
+    };
+    // If we had a + or - before this, we'd have already cut out earlier.
+    switch (*(buf + 1)) {
+      case '.': switch (*(buf + 2)) {
+        case '=': return simple_len(Token::Kind::Through, 3);
+        default: return simple_len(Token::Kind::To, 2);
+      }
+      default: return simple_len(Token::Kind::Dot, 1);
+    }
   }
   for (; is_digit(*buf); buf += 1) {}
   auto kind = Token::Kind::Int;

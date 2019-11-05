@@ -370,11 +370,15 @@ auto gen_for_range(GenState* state, const Node& node) -> void {
     gen_indent(state);
     auto name =
       param && param->kind == Node::Kind::Ref ? param->Ref.name : "rio_value";
+    // TODO Support index var that always starts at 0.
     printf("for (");
     gen_type_opt(state, node.For.arg->type.arg);
     printf(
-      " %s = %s.from; %s < %s.to; %s += %s.by) {\n",
-      name, list_name, name, list_name, name, list_name
+      // Here, we depend on the C compiler to optimize as appropriate.
+      " %s = %s.from; %s.inclusive ? %s <= %s.to : %s < %s.to; %s += %s.by"
+      ") {\n",
+      name, list_name, list_name, name, list_name, name, list_name, name,
+      list_name
     );
     {
       Indent _{state};
@@ -635,7 +639,8 @@ auto gen_range(GenState* state, const Node& node) -> void {
     printf(", ");
     gen_expr(state, *node.Range.to);
   } else {
-    printf(", 0");
+    // Through the end if unspecified.
+    printf(", -1");
   }
   if (node.Range.by) {
     printf(", ");
@@ -644,6 +649,8 @@ auto gen_range(GenState* state, const Node& node) -> void {
     // Explicit default to step by 1.
     printf(", 1");
   }
+  // Implicit end is always inclusive.
+  printf(", %s", node.Range.inclusive || !node.Range.to ? "true" : "false");
   printf("}");
 }
 
@@ -947,6 +954,8 @@ auto gen_typedef_range(GenState* state, const Def* def) -> void {
     gen_indent(state);
     gen_type(state, *type.arg);
     printf(" by;\n");
+    gen_indent(state);
+    printf("bool inclusive;\n");
   }
   printf("} %s;\n", def->name);
   printf("#endif  // typedef_%s\n", def->name);

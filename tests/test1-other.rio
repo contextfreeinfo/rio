@@ -20,8 +20,10 @@ end
 
 sum fun(n: int): int
   result var := 0
-  #~ for i in 1 through n  # by 2
-  for i in 1 to n + 1
+  # Separate const assignment to prove we can.
+  # TODO Still need type syntax, though.
+  range = 1 ..= n  # by 2
+  for i in range
     result := result + i
   end
   result
