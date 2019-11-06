@@ -27,3 +27,14 @@ range fun(length: int): [int]  # own [int]
     {items, length}
   end unsafe
 end range
+
+use_range proc()
+  r = range(3)
+  for value in r
+    printf("- %d\n", value)
+  end
+  unsafe
+    # TODO See above comment on `[Item].free`
+    free(r.items)
+  end
+end

@@ -388,7 +388,7 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
           break;
         }
         case Type::Kind::Proc: {
-          // TODO Infer return type.
+          node->type = proc_type.node->Fun.ret_type->type;
           if (proc_type.node) {
             args_type.node = proc_type.node->Fun.params;
             if (args_type.node) {

@@ -23,3 +23,6 @@ score: 4.200000
 score: 4.500000
 (pretty high)
 sum: 15
+- 0
+- 1
+- 2

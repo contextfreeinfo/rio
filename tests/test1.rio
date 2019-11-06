@@ -34,6 +34,7 @@ do
   ])
   # a.b().c.d
   printf("sum: %d\n", sum(5))
+  use_range()
 end do
 
 Person struct

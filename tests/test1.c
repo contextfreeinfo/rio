@@ -93,6 +93,7 @@ typedef struct rio_Range_int {
 #endif  // typedef_rio_Range_int
 
 rio_Span_int tests_things_range(rio_int const length);
+void tests_things_use_range();
 
 rio_Span_int tests_things_range(rio_int const length) {
   {
@@ -104,6 +105,20 @@ rio_Span_int tests_things_range(rio_int const length) {
       }
     }
     return (rio_Span_int){.items = items, .length = length};
+  }
+}
+
+void tests_things_use_range() {
+  rio_Span_int const r = tests_things_range(3);
+  {
+    rio_Span_int rio_span = r;
+    for (rio_int rio_index = 0; rio_index < rio_span.length; rio_index += 1) {
+      rio_int value = rio_span.items[rio_index];
+      printf("- %d\n", value);
+    }
+  }
+  {
+    free(r.items);
   }
 }
 
@@ -170,6 +185,7 @@ int main() {
   rio_string const hey = person.name;
   tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[3]){person, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}, (tests_test1_Person){.age = 25, .name = "Other", .scores = (rio_Span_float){(rio_float[2]){4.2, 4.5}, 2}}}, 3});
   printf("sum: %d\n", tests_test1_other_sum(5));
+  tests_things_use_range();
 }
 
 void tests_test1_greet(rio_string const name, rio_int const age) {
