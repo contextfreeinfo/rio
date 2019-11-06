@@ -44,6 +44,7 @@ auto ensure_span_type(ResolveState* state, Node* node, Type* arg_type) -> void;
 auto ensure_type_generic(
   ResolveState* state, Node* node, Type::Kind type_kind, Type* arg_type
 ) -> void;
+auto infer_value_decl_type(Node* node, const Type& type) -> void;
 auto resolve_array(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_block(ResolveState* state, Node* node, const Type& type) -> void;
 auto resolve_cast(ResolveState* state, Node* node, const Type& type) -> void;
@@ -212,6 +213,17 @@ auto ensure_type_generic(
   }
 }
 
+auto infer_value_decl_type(Node* node, const Type& type) -> void {
+  if (node->type.kind == Type::Kind::None) {
+    // Infer from value to declaration.
+    node->type = type;
+    if (node->kind == Node::Kind::Var) {
+      // TODO Make this more general. Seriously.
+      node->Var.expr->type = node->type;
+    }
+  }
+}
+
 auto resolve_array(ResolveState* state, Node* node, const Type& type) -> void {
   const Type none_type = {Type::Kind::None};
   const Type* item_type = &none_type;
@@ -280,14 +292,7 @@ auto resolve_const(ResolveState* state, Node* node, const Type& type) -> void {
   auto* a_type = &node->Const.a->type;
   auto* expected_b_type = a_type->kind == Type::Kind::None ? &type : a_type;
   resolve_expr(state, node->Const.b, *expected_b_type);
-  if (node->Const.a->type.kind == Type::Kind::None) {
-    // Infer from value to def.
-    node->Const.a->type = node->Const.b->type;
-    if (node->Const.a->kind == Node::Kind::Var) {
-      // TODO Make this more general. Seriously.
-      node->Const.a->Var.expr->type = node->Const.a->type;
-    }
-  }
+  infer_value_decl_type(node->Const.a, node->Const.b->type);
   node->type = node->Const.a->type;
 }
 
@@ -373,11 +378,26 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       resolve_expr(state, node->Call.callee, {Type::Kind::None});
       Type proc_type = node->Call.callee->type;
       Type args_type = {Type::Kind::None};
-      if (proc_type.kind == Type::Kind::Proc && proc_type.node) {
-        args_type.node = proc_type.node->Fun.params;
-        if (args_type.node) {
-          args_type.kind = Type::Kind::Tuple;
+      switch (proc_type.kind) {
+        case Type::Kind::AddressMul:
+        case Type::Kind::Array: {
+          // TODO Expect int/slice array for args?
+          if (proc_type.arg) {
+            node->type = *proc_type.arg;
+          }
+          break;
         }
+        case Type::Kind::Proc: {
+          // TODO Infer return type.
+          if (proc_type.node) {
+            args_type.node = proc_type.node->Fun.params;
+            if (args_type.node) {
+              args_type.kind = Type::Kind::Tuple;
+            }
+          }
+          break;
+        }
+        default: break;
       }
       resolve_expr(state, node->Call.args, args_type);
       break;
@@ -430,8 +450,15 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       break;
     }
     case Node::Kind::For: {
+      Enter scope{state, node->For.scope};
       // TODO Case might have particular expected arg types.
       resolve_expr(state, node->For.arg, {Type::Kind::None});
+      if (node->For.param) {
+        resolve_expr(state, node->For.arg, {Type::Kind::None});
+        if (node->For.arg->type.arg) {
+          infer_value_decl_type(node->For.param, *node->For.arg->type.arg);
+        }
+      }
       resolve_expr(state, node->For.expr, type);
       node->type = node->For.expr->type;
       break;

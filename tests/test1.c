@@ -100,6 +100,7 @@ rio_Span_int tests_things_range(rio_int const length) {
     {
       rio_Range_int rio_list = (rio_Range_int){0, length, 1, false};
       for (rio_int i = rio_list.from; rio_list.inclusive ? i <= rio_list.to : i < rio_list.to; i += rio_list.by) {
+        items[i] = i;
       }
     }
     return (rio_Span_int){.items = items, .length = length};

@@ -22,7 +22,7 @@ range fun(length: int): [int]  # own [int]
     items var := malloc(length * sizeof int): &*int
     # TODO Do we also have `&of ...` or `^to ...` for borrow referencing?
     for i in 0 .. length
-      #~ items[i] := i
+      items[i] := i
     end
     {items, length}
   end unsafe

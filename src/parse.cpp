@@ -294,7 +294,8 @@ auto parse_call(ParseState* state) -> Node& {
         node = member;
         break;
       }
-      case Token::Kind::RoundL: {
+      case Token::Kind::RoundL:
+      case Token::Kind::SquareL: {
         Node* call = &state->alloc(Node::Kind::Call);
         call->Call.callee = node;
         call->Call.args = &parse_tuple(state);
