@@ -10,6 +10,8 @@ do
   # Two kinds of spans, and two examples of one.
   # Try span of Person after fixing struct order.
   scores = [45.0, 63.1, 22.2, -8.3]
+  score2 = scores[1]
+  printf("score from span: %g\n", score2)
   mores = [1, -5]
   cores: [int] = []
   words = ["hi", "there"]

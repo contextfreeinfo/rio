@@ -183,8 +183,22 @@ auto gen_expr(GenState* state, const Node& node) -> void {
     }
     case Node::Kind::Call: {
       gen_expr(state, *node.Call.callee);
-      string ends =
-        node.Call.callee->type.kind == Type::Kind::AddressMul ? "[]" : "()";
+      string ends;
+      switch (node.Call.callee->type.kind) {
+        case Type::Kind::AddressMul: {
+          ends = "[]";
+          break;
+        }
+        case Type::Kind::Array: {
+          printf(".items");
+          ends = "[]";
+          break;
+        }
+        default: {
+          ends = "()";
+          break;
+        }
+      }
       printf("%c", ends[0]);
       gen_list_items(state, *node.Call.args);
       printf("%c", ends[1]);

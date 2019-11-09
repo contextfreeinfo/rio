@@ -164,6 +164,8 @@ int main() {
   rio_int const age = 75;
   rio_float const score = 4;
   rio_Span_float const scores = (rio_Span_float){(rio_float[4]){45.0, 63.1, 22.2, -8.3}, 4};
+  rio_float const score2 = scores.items[1];
+  printf("score from span: %g\n", score2);
   rio_Span_int const mores = (rio_Span_int){(rio_int[2]){1, -5}, 2};
   rio_Span_int const cores = (rio_Span_int){0};
   rio_Span_string const words = (rio_Span_string){(rio_string[2]){"hi", "there"}, 2};
