@@ -55,7 +55,7 @@ test_indexing proc(scores: [float])
   score = scores[1]
   printf("score from span: %g\n", score)
   show_scores(scores)
-  r = 0 .. 1
+  r = 0..1
   #~ r2 = 0..1
   #~ show_scores(scores[r])
 end

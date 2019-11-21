@@ -345,7 +345,7 @@ auto next_token_num(const char* buf) -> Token {
   }
   for (; is_digit(*buf); buf += 1) {}
   auto kind = Token::Kind::Int;
-  if (*buf == '.') {
+  if (*buf == '.' && buf[1] != '.') {
     kind = Token::Kind::Float;
     buf += 1;
     for (; is_digit(*buf); buf += 1) {}
