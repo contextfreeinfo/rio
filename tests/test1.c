@@ -154,6 +154,8 @@ typedef struct rio_Span_tests_test1_Person {
 } rio_Span_tests_test1_Person;
 #endif  // typedef_rio_Span_tests_test1_Person
 
+void tests_test1_show_scores(rio_Span_float const scores);
+void tests_test1_test_indexing(rio_Span_float const scores);
 void tests_test1_greet(rio_string const name, rio_int const age);
 void tests_test1_report_scores(rio_Span_float const scores);
 void tests_test1_show_person(tests_test1_Person const person);
@@ -164,8 +166,7 @@ int main() {
   rio_int const age = 75;
   rio_float const score = 4;
   rio_Span_float const scores = (rio_Span_float){(rio_float[4]){45.0, 63.1, 22.2, -8.3}, 4};
-  rio_float const score2 = scores.items[1];
-  printf("score from span: %g\n", score2);
+  tests_test1_test_indexing(scores);
   rio_Span_int const mores = (rio_Span_int){(rio_int[2]){1, -5}, 2};
   rio_Span_int const cores = (rio_Span_int){0};
   rio_Span_string const words = (rio_Span_string){(rio_string[2]){"hi", "there"}, 2};
@@ -188,6 +189,25 @@ int main() {
   tests_test1_show_persons((rio_Span_tests_test1_Person){(tests_test1_Person[3]){person, (tests_test1_Person){.age = 5, .name = "Me", .scores = (rio_Span_float){(rio_float[1]){2.5}, 1}}, (tests_test1_Person){.age = 25, .name = "Other", .scores = (rio_Span_float){(rio_float[2]){4.2, 4.5}, 2}}}, 3});
   printf("sum: %d\n", tests_test1_other_sum(5));
   tests_things_use_range();
+}
+
+void tests_test1_show_scores(rio_Span_float const scores) {
+  printf("scores:");
+  {
+    rio_Span_float rio_span = scores;
+    for (rio_int rio_index = 0; rio_index < rio_span.length; rio_index += 1) {
+      rio_float score = rio_span.items[rio_index];
+      printf(" %g", score);
+    }
+  }
+  printf("\n");
+}
+
+void tests_test1_test_indexing(rio_Span_float const scores) {
+  rio_float const score = scores.items[1];
+  printf("score from span: %g\n", score);
+  tests_test1_show_scores(scores);
+  rio_Range_int const r = (rio_Range_int){0, 1, 1, false};
 }
 
 void tests_test1_greet(rio_string const name, rio_int const age) {

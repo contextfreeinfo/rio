@@ -319,6 +319,8 @@ struct Node {
   Kind kind;
   // TODO Maybe make type a pointer so we can reduce memory usage.
   Type type;
+  string file;
+  Pos pos;
 
   union {
     UnaryNode Address;

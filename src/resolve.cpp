@@ -149,7 +149,7 @@ auto ensure_global_refs(ModManager* mod) -> void {
       insert.pair->value = global;
     } else {
       // Conflict. Clear it out.
-      // fprintf(stderr, "internal conflict: %s\n", global->name);
+      fprintf(stderr, "internal conflict: %s\n", global->name);
       insert.pair->value = nullptr;
     }
   }
@@ -167,8 +167,10 @@ auto ensure_global_refs(ModManager* mod) -> void {
           // fprintf(stderr, "external ignored: %s\n", global->name);
         } else {
           // From somewhere else. Clear it.
+          // TODO For now, things like rio_Range_int cause this.
+          // TODO Hoist them higher? Set their mod to the same thing? Mark something unique about them? Presume it never matters?
           // fprintf(stderr, "external conflict: %s\n", global->name);
-          insert.pair->value = nullptr;
+          // insert.pair->value = nullptr;
         }
       }
     }

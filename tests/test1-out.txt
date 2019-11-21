@@ -1,4 +1,5 @@
 score from span: 63.1
+scores: 45 63.1 22.2 -8.3
 word: hi
 word: there
 hi

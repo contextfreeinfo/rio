@@ -190,6 +190,7 @@ auto gen_expr(GenState* state, const Node& node) -> void {
           break;
         }
         case Type::Kind::Array: {
+          // TODO Generate bounds assert, perhaps via rio_Span_..._get or such.
           printf(".items");
           ends = "[]";
           break;
@@ -645,7 +646,9 @@ void gen_param_items(GenState* state, const Node* node) {
 auto gen_range(GenState* state, const Node& node) -> void {
   // TODO Transform to a struct instance node and generate that way???
   // TODO gen_type(state, node.type); ???
-  printf("(%s){", node.type.def->name);
+  printf("(");
+  gen_type(state, node.type);
+  printf("){");
   if (node.Range.from) {
     gen_expr(state, *node.Range.from);
   } else {
@@ -824,8 +827,8 @@ auto gen_type(GenState* state, const Type& type) -> void {
     }
     case Type::Kind::Array:
     case Type::Kind::Range: {
-      // Resolve guarantees a def assigned.
-      printf("%s", type.def->name);
+      // Resolve (usually!) guarantees a def assigned.
+      printf("%s", type.def ? type.def->name : "(!!! GENERIC_TYPE !!!)");
       break;
     }
     case Type::Kind::Bool: {

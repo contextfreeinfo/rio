@@ -12,6 +12,8 @@ struct ParseState {
   Node& alloc(Node::Kind kind) {
     Node& node = mod->arena.alloc<Node>();
     node.kind = kind;
+    node.file = tokens->file;
+    node.pos = tokens->begin;
     return node;
   }
 

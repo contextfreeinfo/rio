@@ -7,11 +7,9 @@ do
   name = "world"
   age = 75
   score: float = 4
-  # Two kinds of spans, and two examples of one.
-  # Try span of Person after fixing struct order.
+  # Span examples.
   scores = [45.0, 63.1, 22.2, -8.3]
-  score2 = scores[1]
-  printf("score from span: %g\n", score2)
+  test_indexing(scores)
   mores = [1, -5]
   cores: [int] = []
   words = ["hi", "there"]
@@ -43,4 +41,21 @@ Person struct
   name: string
   age: int
   scores: [float]
+end
+
+show_scores proc(scores: [float])
+  printf("scores:")
+  for score in scores
+    printf(" %g", score)
+  end
+  printf("\n")
+end
+
+test_indexing proc(scores: [float])
+  score = scores[1]
+  printf("score from span: %g\n", score)
+  show_scores(scores)
+  r = 0 .. 1
+  #~ r2 = 0..1
+  #~ show_scores(scores[r])
 end
