@@ -301,6 +301,9 @@ auto parse_call(ParseState* state) -> Node& {
         Node* call = &state->alloc(Node::Kind::Call);
         call->Call.callee = node;
         call->Call.args = &parse_tuple(state);
+        // Treat round and square the same here for now.
+        // TODO What's the zen on indexing vs function calls? Always use ()?
+        call->Call.args->kind = Node::Kind::Tuple;
         node = call;
         break;
       }

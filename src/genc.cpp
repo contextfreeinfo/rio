@@ -182,17 +182,30 @@ auto gen_expr(GenState* state, const Node& node) -> void {
       break;
     }
     case Node::Kind::Call: {
-      gen_expr(state, *node.Call.callee);
       string ends;
+      auto done = false;
+      auto extra = "";
       switch (node.Call.callee->type.kind) {
         case Type::Kind::AddressMul: {
+          // TODO If range, create subspan, even from pointer here!
           ends = "[]";
           break;
         }
         case Type::Kind::Array: {
           // TODO Generate bounds assert, perhaps via rio_Span_..._get or such.
-          printf(".items");
-          ends = "[]";
+          if (node.type.kind == Type::Kind::Array) {
+            // TODO If range, create subspan.
+            printf("(");
+            gen_type(state, node.type);
+            printf("){(");
+            gen_expr(state, *node.Call.callee);
+            printf(").items");
+            printf("}");
+            done = true;
+          } else {
+            extra = ".items";
+            ends = "[]";
+          }
           break;
         }
         default: {
@@ -200,9 +213,12 @@ auto gen_expr(GenState* state, const Node& node) -> void {
           break;
         }
       }
-      printf("%c", ends[0]);
-      gen_list_items(state, *node.Call.args);
-      printf("%c", ends[1]);
+      if (!done) {
+        gen_expr(state, *node.Call.callee);
+        printf("%s%c", extra, ends[0]);
+        gen_list_items(state, *node.Call.args);
+        printf("%c", ends[1]);
+      }
       break;
     }
     case Node::Kind::Case: {

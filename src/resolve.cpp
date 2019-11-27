@@ -380,18 +380,20 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
       resolve_expr(state, node->Call.callee, {Type::Kind::None});
       Type proc_type = node->Call.callee->type;
       Type args_type = {Type::Kind::None};
+      auto indexing = false;
       switch (proc_type.kind) {
         case Type::Kind::AddressMul:
         case Type::Kind::Array: {
-          // TODO Expect int/slice array for args?
+          // TODO Expect `[int | int..]` for args?
           if (proc_type.arg) {
-            node->type = *proc_type.arg;
+            indexing = true;
           }
           break;
         }
         case Type::Kind::Proc: {
           node->type = proc_type.node->Fun.ret_type->type;
           if (proc_type.node) {
+            // TODO If we support overloading, this should become a union.
             args_type.node = proc_type.node->Fun.params;
             if (args_type.node) {
               args_type.kind = Type::Kind::Tuple;
@@ -402,6 +404,15 @@ auto resolve_expr(ResolveState* state, Node* node, const Type& type) -> void {
         default: break;
       }
       resolve_expr(state, node->Call.args, args_type);
+      // Handle overloading once we know args type details.
+      if (indexing) {
+        auto items = node->Call.args->Tuple.items;
+        if (items.len && items[0]->type.kind == Type::Kind::Range) {
+          ensure_span_type(state, node, proc_type.arg);
+        } else {
+          node->type = *proc_type.arg;
+        }
+      }
       break;
     }
     case Node::Kind::Case: {

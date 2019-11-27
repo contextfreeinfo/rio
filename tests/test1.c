@@ -207,7 +207,6 @@ void tests_test1_test_indexing(rio_Span_float const scores) {
   rio_float const score = scores.items[1];
   printf("score from span: %g\n", score);
   tests_test1_show_scores(scores);
-  rio_Range_int const r = (rio_Range_int){0, 1, 1, false};
 }
 
 void tests_test1_greet(rio_string const name, rio_int const age) {
