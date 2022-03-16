@@ -29,11 +29,12 @@ pub fn main() !void {
     try stdout.print("Run {s}", .{name});
     const file = try std.fs.cwd().openFile(name, .{});
     defer file.close();
+    var buffering = std.io.bufferedReader(file.reader());
     // TODO Change to streaming bytes from buffered reader.
-    const source = try file.reader().readAllAlloc(allocator, max_file_size);
-    _ = source;
-    const tokens = try lex.lex(allocator, source);
-    defer tokens.deinit();
+    // const source = try file.reader().readAllAlloc(allocator, max_file_size);
+    // _ = source;
+    try lex.lex(allocator, buffering.reader());
+    // defer tokens.deinit();
 }
 
 test "basic test" {

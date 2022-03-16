@@ -36,14 +36,23 @@ pub const Token = union(enum) {
     when_key,
 };
 
-pub fn lex(allocator: Allocator, source: String) !ArrayList(Token) {
+pub fn lex(allocator: Allocator, reader: anytype) !void {
     _ = allocator;
-    _ = source;
-    _ = Token.float;
-    var tokens = ArrayList(Token).init(allocator);
-    try tokens.append(Token.dot);
-    // TODO Allocate string data in one buffer and tokens in another.
-    // TODO Use u32 indices into text buffer.
-    try tokens.append(Token{ .id = "hi" });
-    return tokens;
+    var n = @as(u32, 0);
+    while (true) {
+        const c = reader.readByte() catch |err| switch (err) {
+            error.EndOfStream => break,
+            else => |e| return e,
+        };
+        _ = c;
+        n += 1;
+    }
+    std.debug.print("Read: {}\n", .{n});
+    // _ = Token.float;
+    // var tokens = ArrayList(Token).init(allocator);
+    // try tokens.append(Token.dot);
+    // // TODO Allocate string data in one buffer and tokens in another.
+    // // TODO Use u32 indices into text buffer.
+    // try tokens.append(Token{ .id = "hi" });
+    // return tokens;
 }
