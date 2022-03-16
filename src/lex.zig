@@ -7,6 +7,7 @@ const String = []const u8;
 const Index = u32;
 
 // From `std.sort`.
+// TODO Need this in tree?
 const Range = struct {
     start: Index,
     end: Index,
@@ -23,26 +24,28 @@ const Range = struct {
     }
 };
 
-pub const Token = union(enum) {
+pub const TokenKind = union(enum) {
     add,
     as,
     be,
     case,
     colon,
-    comment: Range,
+    comment, // has text
     div,
     do,
     dot,
     else_key,
     end,
+    eol,
     eq,
     eq_eq,
-    float: Range,
+    float, // has text
     for_key,
     ge,
     geq,
-    id: Range,
-    int: Range,
+    hspace, // has text
+    id, // has text
+    int, // has text
     le,
     leq,
     mul,
@@ -56,15 +59,24 @@ pub const Token = union(enum) {
     when_key,
 };
 
-pub fn Lexer(comptime Alloc: type, comptime Reader: type) type {
+pub const Token = struct {
+    kind: TokenKind,
+    begin: Index,
+};
+
+pub fn Lexer(comptime Reader: type) type {
     return struct {
-        allocator: Alloc,
+        buffer: ArrayList(u8),
+        col: Index,
+        index: Index,
+        line: Index,
         reader: Reader,
+        unread: ?u8,
 
         const Self = @This();
 
         pub fn deinit(self: Self) void {
-            _ = self;
+            self.buffer.deinit();
         }
 
         pub fn lex(self: Self) !void {
@@ -88,16 +100,32 @@ pub fn Lexer(comptime Alloc: type, comptime Reader: type) type {
             // return tokens;
         }
 
-        pub fn next(self: Self) !Token {
-            _ = self;
-            return Token.dot;
+        pub fn peek(self: *Self) !u8 {
+            if (self.unread == null) {
+                self.unread = try self.reader.readByte();
+            }
+            return self.unread.?;
+        }
+
+        pub fn next(self: *Self) !Token {
+            self.buffer.clearRetainingCapacity();
+            switch (try self.peek()) {
+                ' ', '\t' => {},
+                else => {},
+            }
+            // TODO Lex.
+            return Token{.kind = TokenKind.dot, .begin = 0};
         }
     };
 }
 
-pub fn lexer(allocator: Allocator, reader: anytype) Lexer(@TypeOf(allocator), @TypeOf(reader)) {
+pub fn lexer(allocator: Allocator, reader: anytype) Lexer(@TypeOf(reader)) {
     return .{
-        .allocator = allocator,
+        .buffer = std.ArrayList(u8).init(allocator),
+        .col = 0,
+        .index = 0,
+        .line = 0,
         .reader = reader,
+        .unread = null,
     };
 }

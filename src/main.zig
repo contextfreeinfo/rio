@@ -34,7 +34,7 @@ pub fn main() !void {
     // const source = try file.reader().readAllAlloc(allocator, max_file_size);
     // _ = source;
     // try lex.lex(allocator, buffering.reader());
-    const lexer = lex.lexer(allocator, buffering.reader());
+    var lexer = lex.lexer(allocator, buffering.reader());
     defer lexer.deinit();
     _ = try lexer.next();
     try lexer.lex();
