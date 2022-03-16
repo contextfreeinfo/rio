@@ -1,0 +1,5 @@
+use "c"
+
+do
+  printf "Hi!\n"
+end

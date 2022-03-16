@@ -10,6 +10,11 @@ A script-feeling, safe, naturally compatible replacement for C, with no runtime 
 See also my [YouTube channel called Context Free](https://www.youtube.com/channel/UCS4FAVeYW_IaZqAbqhlvxlA) where I discuss programming languages, including things I think about while working on Rio.
 
 
+## To do
+
+- A mode that spits out all inferred types, effects, locked imports, and so on.
+
+
 ## Description
 
 For an example, here's a Rio script:
@@ -24,37 +29,34 @@ do
   show_prices([
     # Shorthand field names work like JS or Rust
     {age, name},
-    {name = "Bernie", age = 14},
-    {name = "Clara", age = 9},
-    {name = "Darlene", age = 68},
+    {name: "Bernie", age: 14},
+    {name: "Clara", age: 9},
+    {name: "Darlene", age: 68},
   ])
 end do
 
-Person struct
-  name: string
-  age: int
+Person = struct
+  name as string
+  age as int
 end
 
-show_prices proc(persons: [Person])
-  for person in persons
+show_prices = for(persons as [Person])
+  persons each for person
     printf("%s pays $%.2f\n", person.name, ticket_price(person.age))
   end
 end
 
-ticket_price proc(age: int): float
+ticket_price = for(age: int): float
   if
-    case age <= 11
-      6.75
+  case age <= 11
+    6.75
+  case age >= 62
+    7.00
+  else
+    if age < 18
+      printf("You think age %d gets child prices here?\n", age)
     end
-    case age >= 62
-      7.00
-    end
-    else
-      if age < 18
-        printf("You think age %d gets child prices here?\n", age)
-      end
-      11.00
-    end
+    11.00
   end if
 end ticket_price
 ```
