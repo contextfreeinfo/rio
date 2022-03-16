@@ -17,10 +17,9 @@ const Script = struct {
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
+    const allocator = std.heap.page_allocator;
     const args = try std.process.argsAlloc(allocator);
+    defer std.process.argsFree(allocator, args);
     if (args.len < 3) {
         try stdout.print("Usage: rio run [script.rio]", .{});
         // std.process.exit(1);
@@ -30,9 +29,11 @@ pub fn main() !void {
     try stdout.print("Run {s}", .{name});
     const file = try std.fs.cwd().openFile(name, .{});
     defer file.close();
+    // TODO Change to streaming bytes from buffered reader.
     const source = try file.reader().readAllAlloc(allocator, max_file_size);
     _ = source;
-    _ = try lex.lex(allocator, source);
+    const tokens = try lex.lex(allocator, source);
+    defer tokens.deinit();
 }
 
 test "basic test" {

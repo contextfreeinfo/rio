@@ -9,6 +9,7 @@ pub const Token = union(enum) {
     be,
     case,
     colon,
+    comment: String,
     div,
     do,
     dot,
@@ -16,16 +17,15 @@ pub const Token = union(enum) {
     end,
     eq,
     eq_eq,
-    float,
+    float: String,
     for_key,
     ge,
     geq,
     id: String,
-    int,
+    int: String,
     le,
     leq,
     mul,
-    range,
     round_begin,
     round_end,
     string,
@@ -41,7 +41,9 @@ pub fn lex(allocator: Allocator, source: String) !ArrayList(Token) {
     _ = source;
     _ = Token.float;
     var tokens = ArrayList(Token).init(allocator);
-    try tokens.append(Token.float);
+    try tokens.append(Token.dot);
+    // TODO Allocate string data in one buffer and tokens in another.
+    // TODO Use u32 indices into text buffer.
     try tokens.append(Token{ .id = "hi" });
     return tokens;
 }
