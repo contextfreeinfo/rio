@@ -26,15 +26,18 @@ pub fn main() !void {
         return;
     }
     const name = args[2];
-    try stdout.print("Run {s}", .{name});
+    try stdout.print("Run {s}\n", .{name});
     const file = try std.fs.cwd().openFile(name, .{});
     defer file.close();
     var buffering = std.io.bufferedReader(file.reader());
     // TODO Change to streaming bytes from buffered reader.
     // const source = try file.reader().readAllAlloc(allocator, max_file_size);
     // _ = source;
-    try lex.lex(allocator, buffering.reader());
-    // defer tokens.deinit();
+    // try lex.lex(allocator, buffering.reader());
+    const lexer = lex.lexer(allocator, buffering.reader());
+    defer lexer.deinit();
+    _ = try lexer.next();
+    try lexer.lex();
 }
 
 test "basic test" {
