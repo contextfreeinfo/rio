@@ -26,28 +26,33 @@ const Range = struct {
 
 pub const TokenKind = enum {
     add,
-    as,
-    be,
-    case,
     colon,
-    comment, // has text
+    comment,
     div,
-    do,
     dot,
-    else_key,
     escape,
     escape_begin,
     escape_end,
-    end,
     eq,
     eq_eq,
-    float, // has text
-    for_key,
+    float,
     ge,
     geq,
-    hspace, // has text
-    id, // has text
-    int, // has text
+    hspace,
+    id,
+    int,
+    key_as,
+    key_be,
+    key_case,
+    key_do,
+    key_else,
+    key_end,
+    key_for,
+    key_include,
+    key_struct,
+    key_to,
+    key_use,
+    key_when,
     le,
     leq,
     mul,
@@ -57,12 +62,8 @@ pub const TokenKind = enum {
     string_begin,
     string_end,
     string_text,
-    struct_key,
     sub,
-    to,
-    use,
     vspace,
-    when_key,
 };
 
 // pub const Token = struct {
