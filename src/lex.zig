@@ -24,7 +24,7 @@ const Range = struct {
     }
 };
 
-pub const TokenKind = union(enum) {
+pub const TokenKind = enum {
     add,
     as,
     be,
@@ -35,8 +35,10 @@ pub const TokenKind = union(enum) {
     do,
     dot,
     else_key,
+    escape,
+    escape_begin,
+    escape_end,
     end,
-    eol,
     eq,
     eq_eq,
     float, // has text
@@ -49,83 +51,258 @@ pub const TokenKind = union(enum) {
     le,
     leq,
     mul,
+    other,
     round_begin,
     round_end,
-    string,
+    string_begin,
+    string_end,
+    string_text,
     struct_key,
     sub,
     to,
     use,
+    vspace,
     when_key,
 };
 
-pub const Token = struct {
-    kind: TokenKind,
-    begin: Index,
-};
+// pub const Token = struct {
+//     kind: TokenKind,
+//     begin: Index,
+// };
+
+pub fn last(comptime Item: type, items: []const Item) ?Item {
+    return if (items.len > 0) items[items.len - 1] else null;
+}
 
 pub fn Lexer(comptime Reader: type) type {
     return struct {
-        buffer: ArrayList(u8),
         col: Index,
         index: Index,
         line: Index,
         reader: Reader,
+        stack: ArrayList(TokenKind),
+        text: ?*ArrayList(u8),
         unread: ?u8,
 
         const Self = @This();
 
         pub fn deinit(self: Self) void {
-            self.buffer.deinit();
+            self.stack.deinit();
         }
 
-        pub fn lex(self: Self) !void {
-            var reader = self.reader;
-            var n = @as(u32, 0);
-            while (true) {
-                const byte = reader.readByte() catch |err| switch (err) {
-                    error.EndOfStream => break,
-                    else => |e| return e,
-                };
-                _ = byte;
-                n += 1;
+        pub fn next(self: *Self) !?TokenKind {
+            const mode = last(TokenKind, self.stack.items) orelse TokenKind.round_begin;
+            return switch (mode) {
+                .string_begin => self.modeNextString(),
+                else => self.modeNextCode(),
+            } catch |err| switch (err) {
+                error.EndOfStream => null,
+                else => |e| return e,
+            };
+        }
+
+        fn advance(self: *Self) !?u8 {
+            const byte = try self.readByte();
+            if (self.text) |text| {
+                try text.append(byte);
             }
-            std.debug.print("Read: {} {}\n", .{ n, @sizeOf(Token) });
-            // _ = Token.float;
-            // var tokens = ArrayList(Token).init(allocator);
-            // try tokens.append(Token.dot);
-            // // TODO Allocate string data in one buffer and tokens in another.
-            // // TODO Use u32 indices into text buffer.
-            // try tokens.append(Token{ .id = "hi" });
-            // return tokens;
+            self.index += 1;
+            if (byte == '\n') {
+                self.col = 0;
+                self.line += 1;
+            }
+            return self.peekByte() catch |err| switch (err) {
+                error.EndOfStream => null,
+                else => |e| return e,
+            };
         }
 
-        pub fn peek(self: *Self) !u8 {
+        fn modeNextCode(self: *Self) !TokenKind {
+            return switch (try self.peekByte()) {
+                // TODO Unicode ids.
+                'A'...'Z', 'a'...'z', '_' => self.nextId(),
+                '0'...'9' => self.nextNumber(),
+                '(' => self.nextRoundBegin(),
+                ')' => self.nextRoundEnd(),
+                '.' => self.nextSingle(TokenKind.dot),
+                ':' => self.nextSingle(TokenKind.colon),
+                '#' => self.nextComment(),
+                ' ', '\t' => self.nextHspace(),
+                '\r', '\n' => self.nextVspace(),
+                '"' => self.nextStringBegin(),
+                else => self.nextSingle(TokenKind.other),
+            };
+        }
+
+        fn modeNextString(self: *Self) !TokenKind {
+            // TODO Handle newlines
+            return switch (try self.peekByte()) {
+                '\\' => self.nextEscape(),
+                '"' => self.nextStringEnd(),
+                else => self.nextStringText(),
+            };
+        }
+
+        fn nextComment(self: *Self) !TokenKind {
+            while (true) {
+                switch ((try self.advance()) orelse break) {
+                    '\r', '\n' => break,
+                    else => {},
+                }
+            }
+            return TokenKind.comment;
+        }
+
+        fn nextEscape(self: *Self) !TokenKind {
+            switch ((try self.advance()) orelse return TokenKind.escape) {
+                '(' => {
+                    _ = try self.advance();
+                    try self.stack.append(TokenKind.round_begin);
+                    return TokenKind.escape_begin;
+                },
+                // TODO Unicode escapes.
+                // 'u' => ... expect parens with only int inside.
+                else => {
+                    _ = try self.advance();
+                    return TokenKind.escape;
+                },
+            }
+        }
+
+        fn nextHspace(self: *Self) !TokenKind {
+            while (true) {
+                switch ((try self.advance()) orelse break) {
+                    ' ', '\t' => {},
+                    else => break,
+                }
+            }
+            return TokenKind.hspace;
+        }
+
+        fn nextId(self: *Self) !TokenKind {
+            while (true) {
+                switch ((try self.advance()) orelse break) {
+                    // TODO Unicode ids.
+                    // TODO Hack separate keys.
+                    'A'...'Z', 'a'...'z', '_', '-', '0'...'9' => {},
+                    else => break,
+                }
+            }
+            return TokenKind.id;
+        }
+
+        fn nextNumber(self: *Self) !TokenKind {
+            while (true) {
+                switch ((try self.advance()) orelse break) {
+                    '0'...'9' => {},
+                    '.' => return try self.nextNumberFrac(),
+                    // 'e' => self.nextNumberExp(),
+                    // 'x' => self.nextNumberHex(),
+                    else => break,
+                }
+            }
+            return TokenKind.int;
+        }
+
+        fn nextNumberFrac(self: *Self) !TokenKind {
+            // TODO Is `0 .til 5` good enough or do we need lookahead of 2?
+            _ = try self.advance();
+            while (true) {
+                switch ((try self.advance()) orelse break) {
+                    '0'...'9' => {},
+                    // 'e' => self.nextNumberExp(),
+                    else => break,
+                }
+            }
+            return TokenKind.float;
+        }
+
+        fn nextRoundBegin(self: *Self) !TokenKind {
+            _ = try self.advance();
+            if (self.stack.items.len > 0) {
+                try self.stack.append(TokenKind.round_begin);
+            }
+            return TokenKind.round_begin;
+        }
+
+        fn nextRoundEnd(self: *Self) !TokenKind {
+            _ = try self.advance();
+            if (last(TokenKind, self.stack.items)) |mode| {
+                if (mode == TokenKind.round_begin) {
+                    self.stack.items.len -= 1;
+                    if (last(TokenKind, self.stack.items)) |old| {
+                        if (old == TokenKind.string_begin) {
+                            return TokenKind.escape_end;
+                        }
+                    }
+                }
+            }
+            return TokenKind.round_end;
+        }
+
+        fn nextSingle(self: *Self, kind: TokenKind) !TokenKind {
+            _ = try self.advance();
+            return kind;
+        }
+
+        fn nextStringBegin(self: *Self) !TokenKind {
+            _ = try self.advance();
+            try self.stack.append(TokenKind.string_begin);
+            return TokenKind.string_begin;
+        }
+
+        fn nextStringEnd(self: *Self) !TokenKind {
+            _ = try self.advance();
+            self.stack.items.len -= 1;
+            return TokenKind.string_end;
+        }
+
+        fn nextStringText(self: *Self) !TokenKind {
+            while (true) {
+                switch ((try self.advance()) orelse break) {
+                    '"', '\\' => break,
+                    else => {},
+                }
+            }
+            return TokenKind.string_text;
+        }
+
+        fn nextVspace(self: *Self) !TokenKind {
+            while (true) {
+                switch ((try self.advance()) orelse break) {
+                    '\r', '\n' => {},
+                    else => break,
+                }
+            }
+            return TokenKind.vspace;
+        }
+
+        fn peekByte(self: *Self) !u8 {
             if (self.unread == null) {
                 self.unread = try self.reader.readByte();
             }
             return self.unread.?;
         }
 
-        pub fn next(self: *Self) !Token {
-            self.buffer.clearRetainingCapacity();
-            switch (try self.peek()) {
-                ' ', '\t' => {},
-                else => {},
+        fn readByte(self: *Self) !u8 {
+            if (self.unread) |unread| {
+                self.unread = null;
+                return unread;
             }
-            // TODO Lex.
-            return Token{.kind = TokenKind.dot, .begin = 0};
+            return try self.reader.readByte();
         }
     };
 }
 
-pub fn lexer(allocator: Allocator, reader: anytype) Lexer(@TypeOf(reader)) {
+pub fn lexer(allocator: Allocator, reader: anytype, text: ?*std.ArrayList(u8)) Lexer(@TypeOf(reader)) {
+    // TODO Just pass in an optional text buffer and let them handle it elsewhere?
     return .{
-        .buffer = std.ArrayList(u8).init(allocator),
         .col = 0,
         .index = 0,
         .line = 0,
         .reader = reader,
+        .stack = ArrayList(TokenKind).init(allocator),
+        .text = text,
         .unread = null,
     };
 }
