@@ -6,7 +6,8 @@ do
   age = 40
   show-prices of
     persons = _ of
-      # Shorthand field names work like JS or Rust
+      # We know if there are positionals or not, and we store in lock file.
+      # Or force positional with `(parens)`?
       _ age name
       _ name: "Bernie" age: 14
       _ name: "Clara" age: 9
@@ -38,3 +39,9 @@ ticket-price = for age as Int to Float be
     end
   end when
 end ticket-price
+
+# List Item = ...
+# sort of
+#   Item with Comparable: ...
+# end = ...
+# sort (Item with Comparable: ...) (n as Int: ...) = ...

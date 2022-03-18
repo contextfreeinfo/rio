@@ -25,19 +25,11 @@ const Range = struct {
 };
 
 pub const TokenKind = enum {
-    add,
-    colon,
     comment,
-    div,
-    dot,
     escape,
     escape_begin,
     escape_end,
-    eq,
-    eq_eq,
     float,
-    ge,
-    geq,
     hspace,
     id,
     int,
@@ -53,18 +45,54 @@ pub const TokenKind = enum {
     key_to,
     key_use,
     key_when,
-    le,
-    leq,
-    mul,
+    op_add,
+    op_colon,
+    op_div,
+    op_dot,
+    op_eq,
+    op_eqeq,
+    op_ge,
+    op_geq,
+    op_le,
+    op_leq,
+    op_mul,
+    op_sub,
     other,
     round_begin,
     round_end,
     string_begin,
     string_end,
     string_text,
-    sub,
     vspace,
 };
+
+pub const TokenCategory = enum {
+    content,
+    id,
+    key,
+    op,
+    other,
+    space,
+};
+
+pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
+    return switch (kind) {
+        .comment, .escape, .float, .int, .string_text => .content,
+        .id => .id,
+        .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_struct, .key_to, .key_use, .key_when => .key,
+        .escape_begin, .escape_end, .op_add, .op_colon, .op_div, .op_dot, .op_eq, .op_eqeq, .op_ge, .op_geq, .op_le, .op_leq, .op_mul, .op_sub, .round_begin, .round_end, .string_begin, .string_end => .op,
+        .other => .other,
+        .hspace, .vspace => .space,
+    };
+}
+
+// pub fn shouldInternText(kind: TokenKind, text: []const u8) bool {
+//     return switch (tokenKindCategory(kind)) {
+//         .content, .space => text.len < 16,
+//         .id, .key, .op => true,
+//         .other => false,
+//     };
+// }
 
 // pub const Token = struct {
 //     kind: TokenKind,
@@ -125,8 +153,8 @@ pub fn Lexer(comptime Reader: type) type {
                 '0'...'9' => self.nextNumber(),
                 '(' => self.nextRoundBegin(),
                 ')' => self.nextRoundEnd(),
-                '.' => self.nextSingle(TokenKind.dot),
-                ':' => self.nextSingle(TokenKind.colon),
+                '.' => self.nextSingle(TokenKind.op_dot),
+                ':' => self.nextSingle(TokenKind.op_colon),
                 '#' => self.nextComment(),
                 ' ', '\t' => self.nextHspace(),
                 '\r', '\n' => self.nextVspace(),
@@ -184,7 +212,7 @@ pub fn Lexer(comptime Reader: type) type {
             while (true) {
                 switch ((try self.advance()) orelse break) {
                     // TODO Unicode ids.
-                    // TODO Hack separate keys.
+                    // TODO Hack separate keys. Grabbing interned might still be less efficient.
                     'A'...'Z', 'a'...'z', '_', '-', '0'...'9' => {},
                     else => break,
                 }
@@ -295,6 +323,7 @@ pub fn Lexer(comptime Reader: type) type {
     };
 }
 
+// TODO Move this to Lexer.init
 pub fn lexer(allocator: Allocator, reader: anytype, text: ?*std.ArrayList(u8)) Lexer(@TypeOf(reader)) {
     // TODO Just pass in an optional text buffer and let them handle it elsewhere?
     return .{

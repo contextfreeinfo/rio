@@ -1,3 +1,4 @@
+const intern = @import("./intern.zig");
 const lex = @import("./lex.zig");
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -39,14 +40,22 @@ pub fn main() !void {
     var lexer = lex.lexer(allocator, buffering.reader(), &text);
     defer lexer.deinit();
     var n = @as(u32, 0);
+    // TODO Arena for intern buffer.
+    var interner = intern.Interner.init(allocator);
+    defer interner.deinit();
     while (true) {
+        // TODO Intern ids, keys, ops, whitespace, and small strings & numbers
+        // TODO Into array list (indices) or into arena (pointers)?
         text.clearRetainingCapacity();
         const token = (try lexer.next()) orelse break;
-        _ = token;
-        std.debug.print("{} {s}\n", .{token, text.items});
+        std.debug.print("{} {s} {}\n", .{ token, text.items, text.items.len });
+        _ = try interner.intern(text.items);
         n += 1;
     }
-    std.debug.print("Read: {} {}, {} {}\n", .{ n, lexer.index, lexer.line, lexer.col });
+    std.debug.print("Read: {} {} {}, {} {}\n", .{ n, lexer.index, interner.keys.items.len, lexer.line, lexer.col });
+    const arena_len = interner.arena.state.buffer_list.len();
+    const node_size = interner.arena.state.buffer_list.first.?.data.len;
+    std.debug.print("Intern arena: {} {} {}\n", .{ arena_len, node_size, interner.arena.state.end_index });
 }
 
 test "basic test" {
