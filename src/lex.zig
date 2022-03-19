@@ -76,9 +76,16 @@ pub const TokenCategory = enum {
     space,
 };
 
+pub fn ofId(byte: u8) bool {
+    return switch (byte) {
+        '.', ',', ';', ' ', '\t', '\r', '\n', '(', ')', '[', ']', '{', '}', '#' => false,
+        else => true,
+    };
+}
+
 pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
     return switch (kind) {
-        .comment, .escape, .float, .int, .string_text => .content,
+        .comment, .escape, .int, .string_text => .content,
         .id => .id,
         .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_struct, .key_to, .key_use, .key_when => .key,
         .escape_begin, .escape_end, .op_add, .op_colon, .op_div, .op_dot, .op_eq, .op_eqeq, .op_ge, .op_geq, .op_le, .op_leq, .op_mul, .op_sub, .round_begin, .round_end, .string_begin, .string_end => .op,
@@ -223,11 +230,9 @@ pub fn Lexer(comptime Reader: type) type {
 
         fn nextId(self: *Self) !TokenKind {
             while (true) {
-                switch ((try self.advance()) orelse break) {
-                    // TODO Unicode ids.
-                    // TODO Hack separate keys. Grabbing interned might still be less efficient.
-                    'A'...'Z', 'a'...'z', '_', '-', '0'...'9' => {},
-                    else => break,
+                const byte = try self.advance();
+                if (byte == null or !ofId(byte.?)) {
+                    break;
                 }
             }
             return .id;
@@ -237,26 +242,12 @@ pub fn Lexer(comptime Reader: type) type {
             while (true) {
                 switch ((try self.advance()) orelse break) {
                     '0'...'9' => {},
-                    '.' => return try self.nextNumberFrac(),
                     // 'e' => self.nextNumberExp(),
                     // 'x' => self.nextNumberHex(),
                     else => break,
                 }
             }
             return .int;
-        }
-
-        fn nextNumberFrac(self: *Self) !TokenKind {
-            // TODO Is `0 .til 5` good enough or do we need lookahead of 2?
-            _ = try self.advance();
-            while (true) {
-                switch ((try self.advance()) orelse break) {
-                    '0'...'9' => {},
-                    // 'e' => self.nextNumberExp(),
-                    else => break,
-                }
-            }
-            return .float;
         }
 
         fn nextRoundBegin(self: *Self) !TokenKind {
@@ -303,7 +294,7 @@ pub fn Lexer(comptime Reader: type) type {
         fn nextStringText(self: *Self, comptime end: u8) !TokenKind {
             while (true) {
                 switch ((try self.advance()) orelse break) {
-                    end, '\\' => break,
+                    end, '\\', '\r', '\n' => break,
                     else => {},
                 }
             }

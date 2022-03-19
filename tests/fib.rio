@@ -1,8 +1,8 @@
 use "c"
 
-do
+main = do
   each (range 0 9) for n do
-    _ = printf "fib(%d) = %d\n" n (fib n)
+    ignore printf "fib(%d) = %d\n" n (fib n)
   end
 end
 
