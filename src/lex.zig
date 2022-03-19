@@ -154,10 +154,7 @@ pub fn Lexer(comptime Reader: type) type {
                 self.col = 0;
                 self.line += 1;
             }
-            return self.peekByte() catch |err| switch (err) {
-                error.EndOfStream => null,
-                else => |e| return e,
-            };
+            return try self.peekByteOrNull();
         }
 
         fn modeNextCode(self: *Self) !TokenKind {
@@ -313,12 +310,17 @@ pub fn Lexer(comptime Reader: type) type {
         }
 
         fn nextVspace(self: *Self) !TokenKind {
-            while (true) {
-                switch ((try self.advance()) orelse break) {
-                    '\r', '\n' => {},
-                    else => break,
-                }
+            // Make vspace single for easier counting of lines later.
+            switch (try self.peekByte()) {
+                '\r' => {
+                    const byte = try self.advance();
+                    if (byte == null or byte.? != '\n') {
+                        return .vspace;
+                    }
+                },
+                else => {},
             }
+            _ = try self.advance();
             return .vspace;
         }
 
@@ -327,6 +329,13 @@ pub fn Lexer(comptime Reader: type) type {
                 self.unread = try self.reader.readByte();
             }
             return self.unread.?;
+        }
+
+        fn peekByteOrNull(self: *Self) !?u8 {
+            return self.peekByte() catch |err| switch (err) {
+                error.EndOfStream => null,
+                else => |e| return e,
+            };
         }
 
         fn readByte(self: *Self) !u8 {
