@@ -60,7 +60,8 @@ pub const TokenKind = enum {
     other,
     round_begin,
     round_end,
-    string_begin,
+    string_begin_single,
+    string_begin_double,
     string_end,
     string_text,
     vspace,
@@ -120,9 +121,10 @@ pub fn Lexer(comptime Reader: type) type {
         }
 
         pub fn next(self: *Self) !?TokenKind {
-            const mode = last(TokenKind, self.stack.items) orelse TokenKind.round_begin;
+            const mode = last(TokenKind, self.stack.items) orelse .round_begin;
             return switch (mode) {
-                .string_begin => self.modeNextString(),
+                .string_begin_double => self.modeNextString('"'),
+                .string_begin_single => self.modeNextString('\''),
                 else => self.modeNextCode(),
             } catch |err| switch (err) {
                 error.EndOfStream => null,
@@ -153,22 +155,23 @@ pub fn Lexer(comptime Reader: type) type {
                 '0'...'9' => self.nextNumber(),
                 '(' => self.nextRoundBegin(),
                 ')' => self.nextRoundEnd(),
-                '.' => self.nextSingle(TokenKind.op_dot),
-                ':' => self.nextSingle(TokenKind.op_colon),
+                '.' => self.nextSingle(.op_dot),
+                ':' => self.nextSingle(.op_colon),
                 '#' => self.nextComment(),
                 ' ', '\t' => self.nextHspace(),
                 '\r', '\n' => self.nextVspace(),
-                '"' => self.nextStringBegin(),
-                else => self.nextSingle(TokenKind.other),
+                '"' => self.nextStringBegin(.string_begin_double),
+                '\'' => self.nextStringBegin(.string_begin_single),
+                else => self.nextSingle(.other),
             };
         }
 
-        fn modeNextString(self: *Self) !TokenKind {
+        fn modeNextString(self: *Self, comptime end: u8) !TokenKind {
             // TODO Handle newlines
             return switch (try self.peekByte()) {
                 '\\' => self.nextEscape(),
-                '"' => self.nextStringEnd(),
-                else => self.nextStringText(),
+                end => self.nextStringEnd(),
+                else => self.nextStringText(end),
             };
         }
 
@@ -179,7 +182,7 @@ pub fn Lexer(comptime Reader: type) type {
                     else => {},
                 }
             }
-            return TokenKind.comment;
+            return .comment;
         }
 
         fn nextEscape(self: *Self) !TokenKind {
@@ -187,13 +190,13 @@ pub fn Lexer(comptime Reader: type) type {
                 '(' => {
                     _ = try self.advance();
                     try self.stack.append(TokenKind.round_begin);
-                    return TokenKind.escape_begin;
+                    return .escape_begin;
                 },
                 // TODO Unicode escapes.
                 // 'u' => ... expect parens with only int inside.
                 else => {
                     _ = try self.advance();
-                    return TokenKind.escape;
+                    return .escape;
                 },
             }
         }
@@ -205,7 +208,7 @@ pub fn Lexer(comptime Reader: type) type {
                     else => break,
                 }
             }
-            return TokenKind.hspace;
+            return .hspace;
         }
 
         fn nextId(self: *Self) !TokenKind {
@@ -217,7 +220,7 @@ pub fn Lexer(comptime Reader: type) type {
                     else => break,
                 }
             }
-            return TokenKind.id;
+            return .id;
         }
 
         fn nextNumber(self: *Self) !TokenKind {
@@ -230,7 +233,7 @@ pub fn Lexer(comptime Reader: type) type {
                     else => break,
                 }
             }
-            return TokenKind.int;
+            return .int;
         }
 
         fn nextNumberFrac(self: *Self) !TokenKind {
@@ -243,7 +246,7 @@ pub fn Lexer(comptime Reader: type) type {
                     else => break,
                 }
             }
-            return TokenKind.float;
+            return .float;
         }
 
         fn nextRoundBegin(self: *Self) !TokenKind {
@@ -251,7 +254,7 @@ pub fn Lexer(comptime Reader: type) type {
             if (self.stack.items.len > 0) {
                 try self.stack.append(TokenKind.round_begin);
             }
-            return TokenKind.round_begin;
+            return .round_begin;
         }
 
         fn nextRoundEnd(self: *Self) !TokenKind {
@@ -260,13 +263,14 @@ pub fn Lexer(comptime Reader: type) type {
                 if (mode == TokenKind.round_begin) {
                     self.stack.items.len -= 1;
                     if (last(TokenKind, self.stack.items)) |old| {
-                        if (old == TokenKind.string_begin) {
-                            return TokenKind.escape_end;
+                        switch (old) {
+                            .string_begin_double, .string_begin_single => return .escape_end,
+                            else => {},
                         }
                     }
                 }
             }
-            return TokenKind.round_end;
+            return .round_end;
         }
 
         fn nextSingle(self: *Self, kind: TokenKind) !TokenKind {
@@ -274,26 +278,26 @@ pub fn Lexer(comptime Reader: type) type {
             return kind;
         }
 
-        fn nextStringBegin(self: *Self) !TokenKind {
+        fn nextStringBegin(self: *Self, mode: TokenKind) !TokenKind {
             _ = try self.advance();
-            try self.stack.append(TokenKind.string_begin);
-            return TokenKind.string_begin;
+            try self.stack.append(mode);
+            return mode;
         }
 
         fn nextStringEnd(self: *Self) !TokenKind {
             _ = try self.advance();
             self.stack.items.len -= 1;
-            return TokenKind.string_end;
+            return .string_end;
         }
 
-        fn nextStringText(self: *Self) !TokenKind {
+        fn nextStringText(self: *Self, comptime end: u8) !TokenKind {
             while (true) {
                 switch ((try self.advance()) orelse break) {
-                    '"', '\\' => break,
+                    end, '\\' => break,
                     else => {},
                 }
             }
-            return TokenKind.string_text;
+            return .string_text;
         }
 
         fn nextVspace(self: *Self) !TokenKind {
@@ -303,7 +307,7 @@ pub fn Lexer(comptime Reader: type) type {
                     else => break,
                 }
             }
-            return TokenKind.vspace;
+            return .vspace;
         }
 
         fn peekByte(self: *Self) !u8 {
