@@ -1,5 +1,9 @@
 use "c"
 
-do
-  printf "Hi!\n"
+main = do
+  ignore printf "Hi!\n"
+end
+
+main2 = for env as ref Env to try Ignore be
+  env.out.print? "Hi!"
 end
