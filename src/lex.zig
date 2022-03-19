@@ -116,6 +116,18 @@ pub fn Lexer(comptime Reader: type) type {
 
         const Self = @This();
 
+        pub fn init(allocator: Allocator, reader: anytype, text: ?*std.ArrayList(u8)) Self {
+            return .{
+                .col = 0,
+                .index = 0,
+                .line = 0,
+                .reader = reader,
+                .stack = ArrayList(TokenKind).init(allocator),
+                .text = text,
+                .unread = null,
+            };
+        }
+
         pub fn deinit(self: Self) void {
             self.stack.deinit();
         }
@@ -324,19 +336,5 @@ pub fn Lexer(comptime Reader: type) type {
             }
             return try self.reader.readByte();
         }
-    };
-}
-
-// TODO Move this to Lexer.init
-pub fn lexer(allocator: Allocator, reader: anytype, text: ?*std.ArrayList(u8)) Lexer(@TypeOf(reader)) {
-    // TODO Just pass in an optional text buffer and let them handle it elsewhere?
-    return .{
-        .col = 0,
-        .index = 0,
-        .line = 0,
-        .reader = reader,
-        .stack = ArrayList(TokenKind).init(allocator),
-        .text = text,
-        .unread = null,
     };
 }

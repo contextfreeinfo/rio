@@ -30,14 +30,10 @@ pub fn main() !void {
     try stdout.print("Run {s}\n", .{name});
     const file = try std.fs.cwd().openFile(name, .{});
     defer file.close();
-    var buffering = std.io.bufferedReader(file.reader());
-    // TODO Change to streaming bytes from buffered reader.
-    // const source = try file.reader().readAllAlloc(allocator, max_file_size);
-    // _ = source;
-    // try lex.lex(allocator, buffering.reader());
+    var reader = std.io.bufferedReader(file.reader()).reader();
     var text = std.ArrayList(u8).init(allocator);
     defer text.deinit();
-    var lexer = lex.lexer(allocator, buffering.reader(), &text);
+    var lexer = lex.Lexer(@TypeOf(reader)).init(allocator, reader, &text);
     defer lexer.deinit();
     var n = @as(u32, 0);
     // TODO Arena for intern buffer.
