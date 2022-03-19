@@ -2,12 +2,12 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Index = u32;
 
-pub const Interner = struct {
+pub const Pool = struct {
     arena: std.heap.ArenaAllocator,
     keys: std.ArrayList([]const u8),
     indices: std.StringHashMap(Index),
 
-    pub fn init(allocator: Allocator) Interner {
+    pub fn init(allocator: Allocator) Pool {
         var arena = std.heap.ArenaAllocator.init(allocator);
         return .{
             .arena = arena,
@@ -16,13 +16,13 @@ pub const Interner = struct {
         };
     }
 
-    pub fn deinit(self: *Interner) void {
+    pub fn deinit(self: *Pool) void {
         self.arena.deinit();
         self.keys.deinit();
         self.indices.deinit();
     }
 
-    pub fn intern(self: *Interner, text: []const u8) !Index {
+    pub fn intern(self: *Pool, text: []const u8) !Index {
         var result = try self.indices.getOrPut(text);
         if (!result.found_existing) {
             std.debug.print("New!\n", .{});

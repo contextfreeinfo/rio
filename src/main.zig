@@ -37,21 +37,21 @@ pub fn main() !void {
     defer lexer.deinit();
     var n = @as(u32, 0);
     // TODO Arena for intern buffer.
-    var interner = intern.Interner.init(allocator);
-    defer interner.deinit();
+    var pool = intern.Pool.init(allocator);
+    defer pool.deinit();
     while (true) {
         // TODO Intern ids, keys, ops, whitespace, and small strings & numbers
         // TODO Into array list (indices) or into arena (pointers)?
         text.clearRetainingCapacity();
         const token = (try lexer.next()) orelse break;
         std.debug.print("{} {s} {}\n", .{ token, text.items, text.items.len });
-        _ = try interner.intern(text.items);
+        _ = try pool.intern(text.items);
         n += 1;
     }
-    std.debug.print("Read: {} {} {}, {} {}\n", .{ n, lexer.index, interner.keys.items.len, lexer.line, lexer.col });
-    const arena_len = interner.arena.state.buffer_list.len();
-    const node_size = interner.arena.state.buffer_list.first.?.data.len;
-    std.debug.print("Intern arena: {} {} {}\n", .{ arena_len, node_size, interner.arena.state.end_index });
+    std.debug.print("Read: {} {} {}, {} {}\n", .{ n, lexer.index, pool.keys.items.len, lexer.line, lexer.col });
+    const arena_len = pool.arena.state.buffer_list.len();
+    const node_size = pool.arena.state.buffer_list.first.?.data.len;
+    std.debug.print("Intern arena: {} {} {}\n", .{ arena_len, node_size, pool.arena.state.end_index });
 }
 
 test "basic test" {
