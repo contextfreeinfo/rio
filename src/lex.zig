@@ -186,6 +186,7 @@ pub fn Lexer(comptime Reader: type) type {
             // TODO Handle newlines
             return switch (try self.peekByte()) {
                 '\\' => self.nextEscape(),
+                '\r', '\n' => self.nextStringEndEmpty(),
                 end => self.nextStringEnd(),
                 else => self.nextStringText(end),
             };
@@ -286,6 +287,10 @@ pub fn Lexer(comptime Reader: type) type {
 
         fn nextStringEnd(self: *Self) !TokenKind {
             _ = try self.advance();
+            return self.nextStringEndEmpty();
+        }
+
+        fn nextStringEndEmpty(self: *Self) !TokenKind {
             self.stack.items.len -= 1;
             return .string_end;
         }
