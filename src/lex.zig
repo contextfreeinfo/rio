@@ -118,28 +118,30 @@ pub fn Lexer(comptime Reader: type) type {
         line: Index,
         reader: Reader,
         stack: ArrayList(TokenKind),
-        text: ?*ArrayList(u8),
+        text: ArrayList(u8),
         unread: ?u8,
 
         const Self = @This();
 
-        pub fn init(allocator: Allocator, reader: anytype, text: ?*std.ArrayList(u8)) Self {
+        pub fn init(allocator: Allocator, reader: anytype) Self {
             return .{
                 .col = 0,
                 .index = 0,
                 .line = 0,
                 .reader = reader,
                 .stack = ArrayList(TokenKind).init(allocator),
-                .text = text,
+                .text = ArrayList(u8).init(allocator),
                 .unread = null,
             };
         }
 
         pub fn deinit(self: Self) void {
             self.stack.deinit();
+            self.text.deinit();
         }
 
         pub fn next(self: *Self) !?TokenKind {
+            self.text.clearRetainingCapacity();
             const mode = last(TokenKind, self.stack.items) orelse .round_begin;
             return switch (mode) {
                 .string_begin_double => self.modeNextString('"'),
@@ -153,9 +155,7 @@ pub fn Lexer(comptime Reader: type) type {
 
         fn advance(self: *Self) !?u8 {
             const byte = try self.readByte();
-            if (self.text) |text| {
-                try text.append(byte);
-            }
+            try self.text.append(byte);
             self.index += 1;
             if (byte == '\n') {
                 self.col = 0;
@@ -166,7 +166,6 @@ pub fn Lexer(comptime Reader: type) type {
 
         fn modeNextCode(self: *Self) !TokenKind {
             return switch (try self.peekByte()) {
-                // TODO Unicode ids.
                 'A'...'Z', 'a'...'z', '_' => self.nextId(),
                 '0'...'9' => self.nextNumber(),
                 '(' => self.nextRoundBegin(),
