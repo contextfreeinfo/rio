@@ -1,6 +1,5 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const ArrayList = std.ArrayList;
 const String = []const u8;
 
 // Limit size even on 64-bit systems.
@@ -29,7 +28,7 @@ pub const TokenKind = enum {
     escape,
     escape_begin,
     escape_end,
-    float,
+    frac,
     hspace,
     id,
     int,
@@ -52,20 +51,23 @@ pub const TokenKind = enum {
     op_eq,
     op_eqeq,
     op_ge,
-    op_geq,
+    op_gt,
     op_le,
-    op_leq,
+    op_lt,
     op_mul,
     op_sub,
     other,
     round_begin,
     round_end,
-    string_begin_single,
     string_begin_double,
+    string_begin_single,
     string_end,
     string_text,
     vspace,
 };
+
+pub const token_key_first = TokenKind.key_as;
+pub const token_key_last = TokenKind.key_when;
 
 pub const TokenCategory = enum {
     content,
@@ -78,7 +80,7 @@ pub const TokenCategory = enum {
 
 pub fn ofId(byte: u8) bool {
     return switch (byte) {
-        '.', ',', ';', ' ', '\t', '\r', '\n', '(', ')', '[', ']', '{', '}', '#' => false,
+        '.', ',', ';', ':', ' ', '\t', '\r', '\n', '(', ')', '[', ']', '{', '}', '#' => false,
         else => true,
     };
 }
@@ -92,6 +94,67 @@ pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
         .other => .other,
         .hspace, .vspace => .space,
     };
+}
+
+// For keywords and operators, this gives actual string values.
+// For others, it might just be an approximation.
+pub fn tokenText(kind: TokenKind) []const u8 {
+    return switch (kind) {
+        .comment => "#",
+        .escape => "\\_",
+        .escape_begin => "\\(",
+        .escape_end => ")",
+        .frac => "._",
+        .hspace => " ",
+        .id => "_",
+        .int => "_",
+        .key_as => "as",
+        .key_be => "be",
+        .key_case => "case",
+        .key_do => "do",
+        .key_else => "else",
+        .key_end => "end",
+        .key_for => "for",
+        .key_include => "include",
+        .key_struct => "struct",
+        .key_to => "to",
+        .key_use => "use",
+        .key_when => "when",
+        .op_add => "+",
+        .op_colon => ":",
+        .op_div => "div",
+        .op_dot => ".",
+        .op_eq => "=",
+        .op_eqeq => "==",
+        .op_ge => ">=",
+        .op_gt => ">",
+        .op_le => "<=",
+        .op_lt => "<",
+        .op_mul => "*",
+        .op_sub => "-",
+        .other => "_",
+        .round_begin => "(",
+        .round_end => ")",
+        .string_begin_double => "\"",
+        .string_begin_single => "'",
+        .string_end => "[\"']",
+        .string_text => "_",
+        .vspace => "\n",
+    };
+}
+
+// TODO Replace this with a trie or even a generated or hardcoded switch tree.
+// TODO This is just here now for convenience.
+fn initKeys(allocator: Allocator) !std.StringHashMap(TokenKind) {
+    var keys = std.StringHashMap(TokenKind).init(allocator);
+    // "specifically, it's a slice of https://github.com/ziglang/zig/blob/master/lib/std/builtin.zig#L318 these"
+    // "you can use std.meta.fields(Enum) to get a slice that holds all of the fields in the enum" - random internet person on Zig Discord
+    var int = @enumToInt(token_key_first);
+    while (int < @enumToInt(token_key_last)) : (int += 1) {
+        const kind = @intToEnum(TokenKind, int);
+        try keys.put(tokenText(kind), kind);
+    } 
+    return keys;
 }
 
 // pub fn shouldInternText(kind: TokenKind, text: []const u8) bool {
@@ -115,27 +178,30 @@ pub fn Lexer(comptime Reader: type) type {
     return struct {
         col: Index,
         index: Index,
+        keys: std.StringHashMap(TokenKind),
         line: Index,
         reader: Reader,
-        stack: ArrayList(TokenKind),
-        text: ArrayList(u8),
+        stack: std.ArrayList(TokenKind),
+        text: std.ArrayList(u8),
         unread: ?u8,
 
         const Self = @This();
 
-        pub fn init(allocator: Allocator, reader: anytype) Self {
-            return .{
+        pub fn init(allocator: Allocator, reader: anytype) !Self {
+            return Self{
                 .col = 0,
                 .index = 0,
+                .keys = try initKeys(allocator),
                 .line = 0,
                 .reader = reader,
-                .stack = ArrayList(TokenKind).init(allocator),
-                .text = ArrayList(u8).init(allocator),
+                .stack = std.ArrayList(TokenKind).init(allocator),
+                .text = std.ArrayList(u8).init(allocator),
                 .unread = null,
             };
         }
 
-        pub fn deinit(self: Self) void {
+        pub fn deinit(self: *Self) void {
+            self.keys.deinit();
             self.stack.deinit();
             self.text.deinit();
         }
@@ -235,7 +301,7 @@ pub fn Lexer(comptime Reader: type) type {
                     break;
                 }
             }
-            return .id;
+            return self.keys.get(self.text.items) orelse .id;
         }
 
         fn nextNumber(self: *Self) !TokenKind {

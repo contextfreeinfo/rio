@@ -31,7 +31,7 @@ pub fn main() !void {
     const file = try std.fs.cwd().openFile(name, .{});
     defer file.close();
     var reader = std.io.bufferedReader(file.reader()).reader();
-    var lexer = lex.Lexer(@TypeOf(reader)).init(allocator, reader);
+    var lexer = try lex.Lexer(@TypeOf(reader)).init(allocator, reader);
     defer lexer.deinit();
     var n = @as(u32, 0);
     // TODO Arena for intern buffer.
