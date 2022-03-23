@@ -1,3 +1,4 @@
+const intern = @import("./intern.zig");
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const String = []const u8;
@@ -182,6 +183,7 @@ pub fn Lexer(comptime Reader: type) type {
         index: Index,
         keys: std.StringHashMap(TokenKind),
         line: Index,
+        pool: ?*intern.Pool,
         reader: Reader,
         stack: std.ArrayList(TokenKind),
         text: std.ArrayList(u8),
@@ -189,12 +191,13 @@ pub fn Lexer(comptime Reader: type) type {
 
         const Self = @This();
 
-        pub fn init(allocator: Allocator, reader: anytype) !Self {
+        pub fn init(allocator: Allocator, pool: ?*intern.Pool, reader: anytype) !Self {
             return Self{
                 .col = 0,
                 .index = 0,
                 .keys = try initKeys(allocator),
                 .line = 0,
+                .pool = pool,
                 .reader = reader,
                 .stack = std.ArrayList(TokenKind).init(allocator),
                 .text = std.ArrayList(u8).init(allocator),
@@ -211,7 +214,7 @@ pub fn Lexer(comptime Reader: type) type {
         pub fn next(self: *Self) !?TokenKind {
             self.text.clearRetainingCapacity();
             const mode = last(TokenKind, self.stack.items) orelse .round_begin;
-            return switch (mode) {
+            const result = switch (mode) {
                 .string_begin_double => self.modeNextString('"'),
                 .string_begin_single => self.modeNextString('\''),
                 else => self.modeNextCode(),
@@ -219,6 +222,10 @@ pub fn Lexer(comptime Reader: type) type {
                 error.EndOfStream => null,
                 else => |e| return e,
             };
+            if (self.pool) |pool| {
+                _ = try pool.intern(self.text.items);
+            }
+            return result;
         }
 
         fn advance(self: *Self) !?u8 {

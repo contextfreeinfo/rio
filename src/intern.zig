@@ -7,13 +7,16 @@ pub const Pool = struct {
     keys: std.ArrayList([]const u8),
     indices: std.StringHashMap(Index),
 
-    pub fn init(allocator: Allocator) Pool {
+    pub fn init(allocator: Allocator) !Pool {
         var arena = std.heap.ArenaAllocator.init(allocator);
-        return .{
+        var pool = Pool{
             .arena = arena,
             .keys = std.ArrayList([]const u8).init(allocator),
             .indices = std.StringHashMap(Index).init(allocator),
         };
+        // Empty string is always index 0, just for convenience.
+        _ = try pool.intern("");
+        return pool;
     }
 
     pub fn deinit(self: *Pool) void {
@@ -23,6 +26,7 @@ pub const Pool = struct {
     }
 
     pub fn intern(self: *Pool, text: []const u8) !Index {
+        // TODO Use central arena. Mutex on this function?
         var result = try self.indices.getOrPut(text);
         if (!result.found_existing) {
             std.debug.print("New!\n", .{});

@@ -31,19 +31,17 @@ pub fn main() !void {
     const file = try std.fs.cwd().openFile(name, .{});
     defer file.close();
     var reader = std.io.bufferedReader(file.reader()).reader();
-    var lexer = try lex.Lexer(@TypeOf(reader)).init(allocator, reader);
+    // TODO Make new thing or just optional pool (with 0 -> "") in current lexer?
+    var pool = try intern.Pool.init(allocator);
+    defer pool.deinit();
+    // TODO Generalize new thing for all these, producing better token structs.
+    // TODO Then parse into tree, passing lexer into parser. Still param'd on (just?) Reader?
+    var lexer = try lex.Lexer(@TypeOf(reader)).init(allocator, &pool, reader);
     defer lexer.deinit();
     var n = @as(u32, 0);
-    // TODO Arena for intern buffer.
-    var pool = intern.Pool.init(allocator);
-    defer pool.deinit();
     while (true) {
-        // TODO Intern ids, keys, ops, whitespace, and small strings & numbers
-        // TODO Into array list (indices) or into arena (pointers)?
         const token = (try lexer.next()) orelse break;
-        const text = lexer.text.items;
-        std.debug.print("{} {s} {}\n", .{ token, text, text.len });
-        _ = try pool.intern(text);
+        std.debug.print("{} {s} {}\n", .{ token, lexer.text.items, lexer.text.items.len });
         n += 1;
     }
     std.debug.print("Read: {} {} {}, {} {}\n", .{ n, lexer.index, pool.keys.items.len, lexer.line, lexer.col });
