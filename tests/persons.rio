@@ -16,18 +16,18 @@ do
   end
 end do
 
-Person = struct
-  name as String
-  age as Int
+person = struct
+  name as string
+  age as int
 end
 
-show-prices = for persons as List Person do
+show-prices = for persons as list person do
   persons.each for person do
     printf "%s pays $%.2f\n" person.name person.age.ticket-price
   end
 end
 
-ticket-price = for age as Int to Float be
+ticket-price = for age as int to float be
   when
     case age <= 11 be 6.75
     case age >= 62 be 7.00
