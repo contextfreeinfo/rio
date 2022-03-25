@@ -1,8 +1,8 @@
 use "c"
 
-main = do
+main = do with printf
   each (range 0 9) for n do
-    ignore printf "fib(%d) = %d\n" n (fib n)
+    void of printf "fib(%d) = %d\n" n (fib n)
   end
 end
 
@@ -10,6 +10,6 @@ fib pub = for n as int to int be
   when
     case n <= 0 be 0
     case n == 1 be 1
-    else be fib (n - 2) + fib (n - 1)
+    else be vouch of fib (n - 2) + fib (n - 1)
   end
 end

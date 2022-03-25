@@ -1,0 +1,48 @@
+error = struct message as string
+doc = struct head as maybe _
+head = struct title as maybe string
+summary = struct of
+  title as maybe string
+  ok as bool
+end
+
+url = string
+
+read-doc = for url to try doc do
+  when
+    case url.has "fail" be fail of "Bad read of \(url)".format
+    else be when
+      case url.has "head-missing" be _.new
+      case url.has "title-missing" be _ head: _.new
+      case url.has "title-empty" be _ head: (_ title: "")
+      else be "title-empty" be _ head: (_ title: "Title of \(url)".format)
+    end
+  end
+end
+
+build-summary = for doc be summary doc.head?.title ok: True
+
+read-and-build-summary = for url do with read-doc
+  (url.read-doc and it.build-summary) or _.new
+end
+
+is-title-non-empty = for doc to maybe bool be doc.head!.title!.is-empty.not
+
+read-whether-title-non-empty = for url to try of maybe bool do with read-doc
+  url.read-doc?.is-title-non-empty
+end
+
+main = do with read-doc
+  urls = list "good" "title-empty" "title-missing" "head-missing" "fail"
+  urls.each for url do
+    """Checking "https://\(url)/":""".print
+    # Summary.
+    summary = url.read-and-build-summary
+    "  Summary: \(summary)".print
+    "  Title: \(summary.title or "")".print
+    # Has title.
+    has-title = url.read-whether-title-non-empty
+    has-title-sure = has-title or ""
+    "  Has title: \(has-title) vs \(has-title-sure)".print
+  end
+end

@@ -1,5 +1,6 @@
 const intern = @import("./intern.zig");
 const lex = @import("./lex.zig");
+const parse = @import("./parse.zig");
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
@@ -41,13 +42,15 @@ pub fn main() !void {
     var n = @as(u32, 0);
     while (true) {
         const token = (try lexer.next()) orelse break;
-        std.debug.print("{} {s} {}\n", .{ token, lexer.text.items, lexer.text.items.len });
+        _ = token;
+        // std.debug.print("{} {s} {}\n", .{ token, lexer.text.items, lexer.text.items.len });
         n += 1;
     }
     std.debug.print("Read: {} {} {}, {} {}\n", .{ n, lexer.index, pool.keys.items.len, lexer.line, lexer.col });
     const arena_len = pool.arena.state.buffer_list.len();
     const node_size = pool.arena.state.buffer_list.first.?.data.len;
     std.debug.print("Intern arena: {} {} {}\n", .{ arena_len, node_size, pool.arena.state.end_index });
+    std.debug.print("Token size: {}\n", .{@sizeOf(lex.Token)});
 }
 
 test "basic test" {

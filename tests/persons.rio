@@ -1,33 +1,38 @@
 use "c"
 
-do
+main = do with printf
   # Assignment here declares new *const* values
   name = "Alice"
   age = 40
   show-prices of
-    persons = _ of
+    persons: _ of
       # We know if there are positionals or not, and we store in lock file.
       # Or force positional with `(parens)`?
       _ age name
       _ name: "Bernie" age: 14
       _ name: "Clara" age: 9
       _ name: "Darlene" age: 68
-    end
-  end
+    end persons
+  end show-prices
 end do
 
-person = struct
+default-schema = struct
   name as string
   age as int
 end
 
-show-prices = for persons as list person do
+person = struct
+  name
+  age
+end
+
+show-prices = for persons as list person do with printf
   persons.each for person do
-    printf "%s pays $%.2f\n" person.name person.age.ticket-price
+    void of printf "%s pays $%.2f\n" person.name person.age.ticket-price
   end
 end
 
-ticket-price = for age as int to float be
+ticket-price = for age to float be
   when
     case age <= 11 be 6.75
     case age >= 62 be 7.00

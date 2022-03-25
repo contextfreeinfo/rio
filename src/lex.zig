@@ -156,22 +156,15 @@ fn initKeys(allocator: Allocator) !std.StringHashMap(TokenKind) {
     while (int < @enumToInt(token_key_last)) : (int += 1) {
         const kind = @intToEnum(TokenKind, int);
         try keys.put(tokenText(kind), kind);
-    } 
+    }
     return keys;
 }
 
-// pub fn shouldInternText(kind: TokenKind, text: []const u8) bool {
-//     return switch (tokenKindCategory(kind)) {
-//         .content, .space => text.len < 16,
-//         .id, .key, .op => true,
-//         .other => false,
-//     };
-// }
-
-// pub const Token = struct {
-//     kind: TokenKind,
-//     begin: Index,
-// };
+pub const Token = struct {
+    kind: TokenKind,
+    // Index into arena if arena is given, otherwise the length of the text.
+    text: Index,
+};
 
 pub fn last(comptime Item: type, items: []const Item) ?Item {
     return if (items.len > 0) items[items.len - 1] else null;
@@ -211,21 +204,19 @@ pub fn Lexer(comptime Reader: type) type {
             self.text.deinit();
         }
 
-        pub fn next(self: *Self) !?TokenKind {
+        pub fn next(self: *Self) !?Token {
             self.text.clearRetainingCapacity();
             const mode = last(TokenKind, self.stack.items) orelse .round_begin;
-            const result = switch (mode) {
+            const kind = switch (mode) {
                 .string_begin_double => self.modeNextString('"'),
                 .string_begin_single => self.modeNextString('\''),
                 else => self.modeNextCode(),
             } catch |err| switch (err) {
-                error.EndOfStream => null,
+                error.EndOfStream => return null,
                 else => |e| return e,
             };
-            if (self.pool) |pool| {
-                _ = try pool.intern(self.text.items);
-            }
-            return result;
+            const text = if (self.pool) |pool| try pool.intern(self.text.items) else @intCast(Index, self.text.items.len);
+            return Token{ .kind = kind, .text = text };
         }
 
         fn advance(self: *Self) !?u8 {
@@ -258,7 +249,6 @@ pub fn Lexer(comptime Reader: type) type {
         }
 
         fn modeNextString(self: *Self, comptime end: u8) !TokenKind {
-            // TODO Handle newlines
             return switch (try self.peekByte()) {
                 '\\' => self.nextEscape(),
                 '\r', '\n' => self.nextStringEndEmpty(),

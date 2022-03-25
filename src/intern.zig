@@ -29,7 +29,7 @@ pub const Pool = struct {
         // TODO Use central arena. Mutex on this function?
         var result = try self.indices.getOrPut(text);
         if (!result.found_existing) {
-            std.debug.print("New!\n", .{});
+            // std.debug.print("New!\n", .{});
             const index = self.keys.items.len;
             const key = try self.arena.allocator().dupe(u8, text);
             try self.keys.append(key);

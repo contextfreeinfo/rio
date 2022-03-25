@@ -1,9 +1,9 @@
 use "c"
 
-main = do
-  void printf "Hi!\n"
+main = do with printf
+  void of printf "Hi!\n"
 end
 
-main2 = for env mod to try void be
+main2 = for env as mod _ to try void be
   env.out.print? "Hi!"
 end
