@@ -1,12 +1,12 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const Dex = @import("./dex.zig").Dex;
+const Idx = @import("./idx.zig").Idx;
 
 pub const Index = u32;
 pub const Size = u16;
 
-pub const TextIndex = Dex(u32, u8);
-pub const TextId = Dex(u32, TextIndex);
+pub const TextIndex = Idx(u32, u8);
+pub const TextId = Idx(u32, TextIndex);
 
 pub const Pool = struct {
     begins: std.ArrayList(TextIndex),

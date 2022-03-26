@@ -1,4 +1,4 @@
-pub fn Dex(comptime Index: type, comptime Value: type) type {
+pub fn Idx(comptime Index: type, comptime Value: type) type {
     return struct {
         i: Index,
 
@@ -22,14 +22,14 @@ pub fn Dex(comptime Index: type, comptime Value: type) type {
     };
 }
 
-pub fn DexSlice(comptime DexType: type) type {
+pub fn IdxSlice(comptime IdxType: type) type {
     return struct {
-        ptr: DexType,
+        idx: IdxType,
         // TODO Option for smaller len?
-        len: DexType.Index,
+        len: IdxType.Index,
 
-        pub fn of(ptr: DexType, len: usize) @This() {
-            return .{ .ptr = ptr, .len = DexType.of(len).i };
+        pub fn of(idx: IdxType, len: usize) @This() {
+            return .{ .idx = idx, .len = IdxType.of(len).i };
         }
     };
 }

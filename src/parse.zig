@@ -1,16 +1,13 @@
-const dex = @import("./dex.zig");
+const idx = @import("./idx.zig");
 const intern = @import("./intern.zig");
 const lex = @import("./lex.zig");
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const Dex = dex.Dex;
+const Idx = idx.Idx;
 
-const Index = u32;
-const Size = u32;
-
-pub const NodeId = Dex(u32, Node);
+pub const NodeId = Idx(u32, Node);
 const TextId = intern.TextId;
-const TokenId = Dex(u32, lex.Token);
+const TokenId = Idx(u32, lex.Token);
 
 pub const NodeKind = enum {
     block,
@@ -22,7 +19,7 @@ pub const NodeKind = enum {
     space,
 };
 
-pub const NodeSlice = dex.DexSlice(NodeId);
+pub const NodeSlice = idx.IdxSlice(NodeId);
 
 pub const Node = struct {
     kind: NodeKind,
