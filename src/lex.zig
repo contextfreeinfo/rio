@@ -5,6 +5,7 @@ const String = []const u8;
 
 // Limit size even on 64-bit systems.
 const Index = intern.Index;
+const TextId = intern.TextId;
 
 pub const TokenKind = enum {
     comment,
@@ -144,8 +145,7 @@ fn initKeys(allocator: Allocator) !std.StringHashMap(TokenKind) {
 
 pub const Token = struct {
     kind: TokenKind,
-    // Index into arena if arena is given, otherwise the length of the text.
-    text: Index,
+    text: TextId,
 };
 
 pub fn last(comptime Item: type, items: []const Item) ?Item {
@@ -198,7 +198,7 @@ pub fn Lexer(comptime Reader: type) type {
                 error.EndOfStream => return null,
                 else => |e| return e,
             };
-            const text = if (self.pool) |pool| try pool.intern(self.text.items) else @intCast(Index, self.text.items.len);
+            const text = if (self.pool) |pool| try pool.intern(self.text.items) else TextId.of(self.text.items.len);
             return Token{ .kind = kind, .text = text };
         }
 

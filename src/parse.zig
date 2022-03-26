@@ -1,14 +1,16 @@
+const dex = @import("./dex.zig");
 const intern = @import("./intern.zig");
 const lex = @import("./lex.zig");
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const Dex = dex.Dex;
 
 const Index = u32;
 const Size = u32;
 
-pub const NodeId = Index;
-const TextId = intern.Index;
-const TokenId = Index;
+pub const NodeId = Dex(u32, Node);
+const TextId = intern.TextId;
+const TokenId = Dex(u32, lex.Token);
 
 pub const NodeKind = enum {
     block,
@@ -20,31 +22,13 @@ pub const NodeKind = enum {
     space,
 };
 
-// From `std.sort`.
-// TODO Need this in tree?
-const Range = struct {
-    begin: Index,
-    end: Index, // TODO Or use len: Size???
-
-    fn init(begin: Index, end: Index) Range {
-        return Range{
-            .begin = begin,
-            .end = end,
-        };
-    }
-
-    fn len(self: Range) Index {
-        return self.end - self.begin;
-    }
-};
-
-pub const NodeRange = Range;
+pub const NodeSlice = dex.DexSlice(NodeId);
 
 pub const Node = struct {
     kind: NodeKind,
     data: union {
         // Both of these are pairs of u32 values.
-        kids: NodeRange,
+        kids: NodeSlice,
         token: lex.Token,
     },
 };
@@ -98,13 +82,13 @@ pub fn Parser(comptime Reader: type) type {
 
         fn nest(self: *Self, kind: NodeKind, begin: usize) !void {
             // Move the working nodes into permanent.
-            const nodes_begin = @intCast(NodeId, self.nodes.items.len);
+            const nodes_begin = NodeId.of(self.nodes.items.len);
             try self.nodes.appendSlice(self.working.items[begin..self.working.items.len]);
             self.working.items.len = begin;
             // Make a new working node.
             const parent = Node{
                 .kind = kind,
-                .data = .{ .kids = .{ .begin = nodes_begin, .end = @intCast(NodeId, self.nodes.items.len) } },
+                .data = .{ .kids = NodeSlice.of(nodes_begin, self.nodes.items.len - nodes_begin.i) },
             };
             try self.working.append(parent);
         }
