@@ -1,7 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const Index = u32;
-const Size = u16;
+
+pub const Index = u32;
+pub const Size = u16;
 
 pub const Pool = struct {
     begins: std.ArrayList(Index),

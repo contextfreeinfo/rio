@@ -172,26 +172,20 @@ pub fn last(comptime Item: type, items: []const Item) ?Item {
 
 pub fn Lexer(comptime Reader: type) type {
     return struct {
-        col: Index,
-        index: Index,
         keys: std.StringHashMap(TokenKind),
-        line: Index,
         pool: ?*intern.Pool,
-        reader: Reader,
+        reader: ?Reader,
         stack: std.ArrayList(TokenKind),
         text: std.ArrayList(u8),
         unread: ?u8,
 
         const Self = @This();
 
-        pub fn init(allocator: Allocator, pool: ?*intern.Pool, reader: anytype) !Self {
+        pub fn init(allocator: Allocator, pool: ?*intern.Pool) !Self {
             return Self{
-                .col = 0,
-                .index = 0,
                 .keys = try initKeys(allocator),
-                .line = 0,
                 .pool = pool,
-                .reader = reader,
+                .reader = null,
                 .stack = std.ArrayList(TokenKind).init(allocator),
                 .text = std.ArrayList(u8).init(allocator),
                 .unread = null,
@@ -202,6 +196,13 @@ pub fn Lexer(comptime Reader: type) type {
             self.keys.deinit();
             self.stack.deinit();
             self.text.deinit();
+        }
+
+        pub fn start(self: *Self, reader: Reader) void {
+            self.reader = reader;
+            self.stack.items.len = 0;
+            self.text.items.len = 0;
+            self.unread = null;
         }
 
         pub fn next(self: *Self) !?Token {
@@ -222,11 +223,6 @@ pub fn Lexer(comptime Reader: type) type {
         fn advance(self: *Self) !?u8 {
             const byte = try self.readByte();
             try self.text.append(byte);
-            self.index += 1;
-            if (byte == '\n') {
-                self.col = 0;
-                self.line += 1;
-            }
             return try self.peekByteOrNull();
         }
 
@@ -387,7 +383,7 @@ pub fn Lexer(comptime Reader: type) type {
 
         fn peekByte(self: *Self) !u8 {
             if (self.unread == null) {
-                self.unread = try self.reader.readByte();
+                self.unread = try self.reader.?.readByte();
             }
             return self.unread.?;
         }
@@ -404,7 +400,7 @@ pub fn Lexer(comptime Reader: type) type {
                 self.unread = null;
                 return unread;
             }
-            return try self.reader.readByte();
+            return try self.reader.?.readByte();
         }
     };
 }

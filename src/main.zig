@@ -34,19 +34,25 @@ pub fn main() !void {
     var reader = std.io.bufferedReader(file.reader()).reader();
     var pool = try intern.Pool.init(allocator);
     defer pool.deinit();
-    var parser = try parse.Parser(@TypeOf(reader)).init();
+    // TODO Need to support restart with new reader.
+    var parser = try parse.Parser(@TypeOf(reader)).init(allocator, &pool);
     defer parser.deinit();
-    // TODO Then parse into tree, passing lexer into parser. Still param'd on (just?) Reader?
-    var lexer = try lex.Lexer(@TypeOf(reader)).init(allocator, &pool, reader);
-    defer lexer.deinit();
-    var n = @as(u32, 0);
+    var lexer = &parser.lexer;
+    lexer.start(reader);
+    var byte_count = @as(usize, 0);
+    var line_count = @as(usize, 0);
+    var token_count = @as(usize, 0);
     while (true) {
         const token = (try lexer.next()) orelse break;
         _ = token;
         // std.debug.print("{} {s} {}\n", .{ token, lexer.text.items, lexer.text.items.len });
-        n += 1;
+        byte_count += lexer.text.items.len;
+        if (token.kind == lex.TokenKind.vspace) {
+            line_count += 1;
+        }
+        token_count += 1;
     }
-    std.debug.print("Read: {} {} {}, {} {}\n", .{ n, lexer.index, pool.begins.items.len, lexer.line, lexer.col });
+    std.debug.print("Read: {} {} {} {}\n", .{ token_count, byte_count, pool.begins.items.len, line_count });
     // const arena_len = pool.arena.state.buffer_list.len();
     // const node_size = pool.arena.state.buffer_list.first.?.data.len;
     std.debug.print("Intern storage: {} {}\n", .{ pool.text.capacity, pool.text.items.len });
