@@ -32,10 +32,10 @@ pub fn main() !void {
     const file = try std.fs.cwd().openFile(name, .{});
     defer file.close();
     var reader = std.io.bufferedReader(file.reader()).reader();
-    // TODO Make new thing or just optional pool (with 0 -> "") in current lexer?
     var pool = try intern.Pool.init(allocator);
     defer pool.deinit();
-    // TODO Generalize new thing for all these, producing better token structs.
+    var parser = try parse.Parser(@TypeOf(reader)).init();
+    defer parser.deinit();
     // TODO Then parse into tree, passing lexer into parser. Still param'd on (just?) Reader?
     var lexer = try lex.Lexer(@TypeOf(reader)).init(allocator, &pool, reader);
     defer lexer.deinit();
@@ -46,10 +46,10 @@ pub fn main() !void {
         // std.debug.print("{} {s} {}\n", .{ token, lexer.text.items, lexer.text.items.len });
         n += 1;
     }
-    std.debug.print("Read: {} {} {}, {} {}\n", .{ n, lexer.index, pool.keys.items.len, lexer.line, lexer.col });
-    const arena_len = pool.arena.state.buffer_list.len();
-    const node_size = pool.arena.state.buffer_list.first.?.data.len;
-    std.debug.print("Intern arena: {} {} {}\n", .{ arena_len, node_size, pool.arena.state.end_index });
+    std.debug.print("Read: {} {} {}, {} {}\n", .{ n, lexer.index, pool.begins.items.len, lexer.line, lexer.col });
+    // const arena_len = pool.arena.state.buffer_list.len();
+    // const node_size = pool.arena.state.buffer_list.first.?.data.len;
+    std.debug.print("Intern storage: {} {}\n", .{ pool.text.capacity, pool.text.items.len });
     std.debug.print("Token size: {}\n", .{@sizeOf(lex.Token)});
 }
 
