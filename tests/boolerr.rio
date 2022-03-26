@@ -32,17 +32,17 @@ read-whether-title-non-empty = for url to try of maybe bool do with read-doc
   url.read-doc?.is-title-non-empty
 end
 
-main = do with read-doc
+main = for env! do with read-doc
   urls = list "good" "title-empty" "title-missing" "head-missing" "fail"
+  print = env.out.print
   urls.each for url do
-    """Checking "https://\(url)/":""".print
+    """Checking "https://\(url)/":""".print?
     # Summary.
     summary = url.read-and-build-summary
-    "  Summary: \(summary)".print
-    "  Title: \(summary.title or "")".print
+    "  Summary: \(summary)".print?
+    "  Title: \(summary.title or "")".print?
     # Has title.
     has-title = url.read-whether-title-non-empty
-    has-title-sure = has-title or ""
-    "  Has title: \(has-title) vs \(has-title-sure)".print
+    "  Has title: \(has-title) vs \(has-title or "")".print?
   end
 end

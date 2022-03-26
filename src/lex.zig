@@ -4,25 +4,7 @@ const Allocator = std.mem.Allocator;
 const String = []const u8;
 
 // Limit size even on 64-bit systems.
-const Index = u32;
-
-// From `std.sort`.
-// TODO Need this in tree?
-const Range = struct {
-    start: Index,
-    end: Index,
-
-    fn init(start: Index, end: Index) Range {
-        return Range{
-            .start = start,
-            .end = end,
-        };
-    }
-
-    fn len(self: Range) Index {
-        return self.end - self.start;
-    }
-};
+const Index = intern.Index;
 
 pub const TokenKind = enum {
     comment,

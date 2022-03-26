@@ -37,26 +37,25 @@ pub fn main() !void {
     // TODO Need to support restart with new reader.
     var parser = try parse.Parser(@TypeOf(reader)).init(allocator, &pool);
     defer parser.deinit();
-    var lexer = &parser.lexer;
-    lexer.start(reader);
-    var byte_count = @as(usize, 0);
-    var line_count = @as(usize, 0);
-    var token_count = @as(usize, 0);
-    while (true) {
-        const token = (try lexer.next()) orelse break;
-        _ = token;
-        // std.debug.print("{} {s} {}\n", .{ token, lexer.text.items, lexer.text.items.len });
-        byte_count += lexer.text.items.len;
-        if (token.kind == lex.TokenKind.vspace) {
-            line_count += 1;
-        }
-        token_count += 1;
-    }
-    std.debug.print("Read: {} {} {} {}\n", .{ token_count, byte_count, pool.begins.items.len, line_count });
-    // const arena_len = pool.arena.state.buffer_list.len();
-    // const node_size = pool.arena.state.buffer_list.first.?.data.len;
+    _ = try parser.parse(reader);
+    // var lexer = &parser.lexer;
+    // lexer.start(reader);
+    // var byte_count = @as(usize, 0);
+    // var line_count = @as(usize, 0);
+    // var token_count = @as(usize, 0);
+    // while (true) {
+    //     const token = (try lexer.next()) orelse break;
+    //     _ = token;
+    //     // std.debug.print("{} {s} {}\n", .{ token, lexer.text.items, lexer.text.items.len });
+    //     byte_count += lexer.text.items.len;
+    //     if (token.kind == lex.TokenKind.vspace) {
+    //         line_count += 1;
+    //     }
+    //     token_count += 1;
+    // }
+    // std.debug.print("Read: {} {} {} {}\n", .{ token_count, byte_count, pool.begins.items.len, line_count });
     std.debug.print("Intern storage: {} {}\n", .{ pool.text.capacity, pool.text.items.len });
-    std.debug.print("Token size: {}\n", .{@sizeOf(lex.Token)});
+    std.debug.print("Token size: {} node size: {} {}\n", .{ @sizeOf(lex.Token), @sizeOf(parse.Node), @sizeOf(parse.NodeKind) });
 }
 
 test "basic test" {

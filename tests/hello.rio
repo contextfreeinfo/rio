@@ -1,9 +1,13 @@
-use "c"
+use "c" => ..
 
 main = do with printf
   void of printf "Hi!\n"
 end
 
 main2 = for env as mod _ to try void be
+  env.out.print? "Hi!"
+end
+
+main3 = for env! be
   env.out.print? "Hi!"
 end

@@ -1,4 +1,4 @@
-use "c"
+use "c" => ..
 
 main = do with printf
   # Assignment here declares new *const* values
