@@ -3,11 +3,6 @@ const intern = @import("./intern.zig");
 const lex = @import("./lex.zig");
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const Idx = idx.Idx;
-
-pub const NodeId = Idx(u32, Node);
-const TextId = intern.TextId;
-const TokenId = Idx(u32, lex.Token);
 
 pub const NodeKind = enum {
     block,
@@ -19,6 +14,7 @@ pub const NodeKind = enum {
     space,
 };
 
+pub const NodeId = idx.Idx(u32, Node);
 pub const NodeSlice = idx.IdxSlice(NodeId);
 
 pub const Node = struct {

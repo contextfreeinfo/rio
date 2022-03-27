@@ -41,7 +41,7 @@ pub const Pool = struct {
         if (i.i == 0) return "";
         // std.debug.print("sliceAt {} for size {}\n", .{i, self.begins.items.len});
         const begin = i.from(self.begins.items);
-        return begin.slice(self.text.items, self.sizes.items[i.i]);
+        return begin.slice(self.sizes.items[i.i]).from(self.text.items);
     }
 
     pub fn intern(self: *Pool, text: []const u8) !TextId {
