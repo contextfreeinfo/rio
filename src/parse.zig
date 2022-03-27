@@ -6,6 +6,7 @@ const Allocator = std.mem.Allocator;
 
 pub const NodeKind = enum {
     block,
+    call,
     comment,
     def,
     fun,
@@ -33,12 +34,13 @@ pub const Node = struct {
         while (i < context.indent) : (i += 1) {
             try writer.print(" ", .{});
         }
+        try writer.print("{}", .{self.kind});
         switch (self.kind) {
-            .leaf => try writer.print("{}\n", .{self.data.token.kind}),
+            .leaf => try writer.print(": {}\n", .{self.data.token.kind}),
             else => {
-                try writer.print("-\n", .{});
+                try writer.print("\n", .{});
                 var nested = context;
-                nested.indent += 1;
+                nested.indent += 2;
                 for (self.data.kids.from(context.tree.nodes)) |node| {
                     _ = try node.print(writer, nested);
                 }
@@ -66,6 +68,7 @@ pub const Tree = struct {
     }
 
     pub fn print(self: Self, writer: anytype) !void {
+        // try writer.print("nodes: {}\n", .{self.nodes.len});
         if (self.root()) |r| {
             try r.print(writer, .{ .tree = self, .indent = 0 });
         } else {
@@ -103,6 +106,8 @@ pub fn Parser(comptime Reader: type) type {
             self.nodes.clearRetainingCapacity();
             self.working.clearRetainingCapacity();
             try self.block();
+            // This one doesn't ever appear but should push down the block if any.
+            try self.nest(.block, NodeId.of(0));
             // Retain the buffer on the idea we might need that much again.
             return Tree{ .nodes = (try self.nodes.clone()).items };
         }
@@ -114,15 +119,20 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn block(self: *Self) !void {
+            const begin = self.working.items.len;
             while (true) {
                 try self.space();
                 _ = (try self.peek()) orelse break;
                 try self.blockItem();
                 _ = (try self.peek()) orelse break;
             }
+            if (self.working.items.len > begin) {
+                try self.nest(.block, NodeId.of(begin));
+            }
         }
 
         fn blockItem(self: *Self) !void {
+            const begin = self.working.items.len;
             while (true) {
                 _ = (try self.advance()).?;
                 // TODO Is EndOfStream easier here in parsing?
@@ -132,6 +142,7 @@ pub fn Parser(comptime Reader: type) type {
                     else => {},
                 }
             }
+            try self.nest(.call, NodeId.of(begin));
         }
 
         fn hspace(self: *Self) !void {
@@ -144,19 +155,19 @@ pub fn Parser(comptime Reader: type) type {
             }
             const end = self.working.items.len;
             if (end > begin) {
-                try self.nest(.space, begin);
+                try self.nest(.space, NodeId.of(begin));
             }
         }
 
-        fn nest(self: *Self, kind: NodeKind, begin: usize) !void {
+        fn nest(self: *Self, kind: NodeKind, begin: NodeId) !void {
             // Move the working nodes into permanent.
             const nodes_begin = NodeId.of(self.nodes.items.len);
-            try self.nodes.appendSlice(self.working.items[begin..self.working.items.len]);
-            self.working.items.len = begin;
+            try self.nodes.appendSlice(begin.til(NodeId.of(self.working.items.len)).from(self.working.items));
+            self.working.items.len = begin.i;
             // Make a new working node.
             const parent = Node{
                 .kind = kind,
-                .data = .{ .kids = NodeSlice.of(nodes_begin, self.nodes.items.len - nodes_begin.i) },
+                .data = .{ .kids = nodes_begin.til(NodeId.of(self.nodes.items.len)) },
             };
             try self.working.append(parent);
         }
@@ -186,7 +197,7 @@ pub fn Parser(comptime Reader: type) type {
             }
             const end = self.working.items.len;
             if (end > begin) {
-                try self.nest(.space, begin);
+                try self.nest(.space, NodeId.of(begin));
             }
         }
     };
