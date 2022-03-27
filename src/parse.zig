@@ -24,10 +24,54 @@ pub const Node = struct {
         kids: NodeSlice,
         token: lex.Token,
     },
+
+    const Self = @This();
+
+    pub fn print(self: Self, writer: anytype, context: TreePrintContext) std.os.WriteError!void {
+        _ = self;
+        var i = @as(@TypeOf(context.indent), 0);
+        while (i < context.indent) : (i += 1) {
+            try writer.print(" ", .{});
+        }
+        switch (self.kind) {
+            .leaf => try writer.print("{}\n", .{self.data.token.kind}),
+            else => {
+                try writer.print("-\n", .{});
+                var nested = context;
+                nested.indent += 1;
+                for (self.data.kids.from(context.tree.nodes)) |node| {
+                    _ = try node.print(writer, nested);
+                }
+            },
+        }
+    }
+};
+
+const TreePrintContext = struct {
+    tree: Tree,
+    indent: u16,
 };
 
 pub const Tree = struct {
     nodes: []Node,
+
+    const Self = @This();
+
+    pub fn deinit(self: Self, allocator: Allocator) void {
+        allocator.free(self.nodes);
+    }
+
+    pub fn root(self: Self) ?Node {
+        return if (self.nodes.len > 0) self.nodes[self.nodes.len - 1] else null;
+    }
+
+    pub fn print(self: Self, writer: anytype) !void {
+        if (self.root()) |r| {
+            try r.print(writer, .{ .tree = self, .indent = 0 });
+        } else {
+            try writer.print("()\n", .{});
+        }
+    }
 };
 
 pub fn Parser(comptime Reader: type) type {
@@ -70,7 +114,38 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn block(self: *Self) !void {
-            try self.space();
+            while (true) {
+                try self.space();
+                _ = (try self.peek()) orelse break;
+                try self.blockItem();
+                _ = (try self.peek()) orelse break;
+            }
+        }
+
+        fn blockItem(self: *Self) !void {
+            while (true) {
+                _ = (try self.advance()).?;
+                // TODO Is EndOfStream easier here in parsing?
+                try self.hspace();
+                switch (((try self.peek()) orelse break).kind) {
+                    .vspace => break,
+                    else => {},
+                }
+            }
+        }
+
+        fn hspace(self: *Self) !void {
+            const begin = self.working.items.len;
+            while (true) {
+                switch (((try self.peek()) orelse break).kind) {
+                    .comment, .hspace => _ = try self.advance(),
+                    else => break,
+                }
+            }
+            const end = self.working.items.len;
+            if (end > begin) {
+                try self.nest(.space, begin);
+            }
         }
 
         fn nest(self: *Self, kind: NodeKind, begin: usize) !void {

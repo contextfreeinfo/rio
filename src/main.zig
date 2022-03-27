@@ -37,7 +37,9 @@ pub fn main() !void {
     // TODO Need to support restart with new reader.
     var parser = try parse.Parser(@TypeOf(reader)).init(allocator, &pool);
     defer parser.deinit();
-    _ = try parser.parse(reader);
+    const tree = try parser.parse(reader);
+    defer tree.deinit(allocator);
+    try tree.print(std.io.getStdErr().writer());
     // var lexer = &parser.lexer;
     // lexer.start(reader);
     // var byte_count = @as(usize, 0);
