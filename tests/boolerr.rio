@@ -10,8 +10,8 @@ url = string
 
 read-doc = for url to try doc do
   when
-    case url.has "fail" be fail of "Bad read of \(url)".format
-    else be when
+    case url.has "fail" be fail "Bad read of \(url)".format
+    else be pass when
       case url.has "head-missing" be _.new
       case url.has "title-missing" be _ head: _.new
       case url.has "title-empty" be _ head: (_ title: "")
@@ -26,7 +26,7 @@ read-and-build-summary = for url do with read-doc
   (url.read-doc and it.build-summary) or _.new
 end
 
-is-title-non-empty = for doc to maybe bool be doc.head!.title!.is-empty.not
+is-title-non-empty = for doc to maybe bool be doc.head?.title?.is-empty.not
 
 read-whether-title-non-empty = for url to try of maybe bool do with read-doc
   url.read-doc?.is-title-non-empty
@@ -36,7 +36,7 @@ main = for env! do with read-doc
   urls = list "good" "title-empty" "title-missing" "head-missing" "fail"
   print = env.out.print
   urls.each for url do
-    """Checking "https://\(url)/":""".print?
+    env.out.print? 'Checking "https://\(url)/":'
     # Summary.
     summary = url.read-and-build-summary
     "  Summary: \(summary)".print?

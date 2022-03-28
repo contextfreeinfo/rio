@@ -35,7 +35,7 @@ pub const Pool = struct {
         self.text.deinit();
     }
 
-    fn get(self: Pool, i: TextId) []const u8 {
+    pub fn get(self: Pool, i: TextId) []const u8 {
         // TODO Use central pool. Mutex all access?
         // Special case to avoid access into empty text at start.
         if (i.i == 0) return "";

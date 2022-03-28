@@ -39,7 +39,7 @@ pub fn main() !void {
     defer parser.deinit();
     const tree = try parser.parse(reader);
     defer tree.deinit(allocator);
-    try tree.print(std.io.getStdErr().writer());
+    try tree.print(std.io.getStdErr().writer(), .{ .pool = pool });
     // var lexer = &parser.lexer;
     // lexer.start(reader);
     // var byte_count = @as(usize, 0);

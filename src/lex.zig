@@ -35,11 +35,14 @@ pub const TokenKind = enum {
     op_dot,
     op_eq,
     op_eqeq,
+    op_eqto,
     op_ge,
     op_gt,
     op_le,
     op_lt,
     op_mul,
+    op_question,
+    op_spread,
     op_sub,
     other,
     round_begin,
@@ -65,7 +68,7 @@ pub const TokenCategory = enum {
 
 pub fn ofId(byte: u8) bool {
     return switch (byte) {
-        '.', ',', ';', ':', ' ', '\t', '\r', '\n', '(', ')', '[', ']', '{', '}', '#' => false,
+        '.', ',', ';', ':', '?', ' ', '\t', '\r', '\n', '(', ')', '[', ']', '{', '}', '#' => false,
         else => true,
     };
 }
@@ -112,11 +115,14 @@ pub fn tokenText(kind: TokenKind) []const u8 {
         .op_dot => ".",
         .op_eq => "=",
         .op_eqeq => "==",
+        .op_eqto => "=>",
         .op_ge => ">=",
         .op_gt => ">",
         .op_le => "<=",
         .op_lt => "<",
         .op_mul => "*",
+        .op_question => "?",
+        .op_spread => "..",
         .op_sub => "-",
         .other => "_",
         .round_begin => "(",
@@ -215,8 +221,9 @@ pub fn Lexer(comptime Reader: type) type {
                 '(' => self.nextRoundBegin(),
                 ')' => self.nextRoundEnd(),
                 ':' => self.nextSingle(.op_colon),
-                '.' => self.nextSingle(.op_dot),
-                '=' => self.nextSingle(.op_eq),
+                '.' => self.nextDot(),
+                '?' => self.nextSingle(.op_question),
+                '=' => self.nextEq(),
                 '#' => self.nextComment(),
                 ' ', '\t' => self.nextHspace(),
                 '\r', '\n' => self.nextVspace(),
@@ -243,6 +250,25 @@ pub fn Lexer(comptime Reader: type) type {
                 }
             }
             return .comment;
+        }
+
+        fn nextDot(self: *Self) !TokenKind {
+            const result: TokenKind = switch ((try self.advance()) orelse return .op_dot) {
+                '.' => .op_spread,
+                else => return .op_dot,
+            };
+            _ = try self.advance();
+            return result;
+        }
+
+        fn nextEq(self: *Self) !TokenKind {
+            const result: TokenKind = switch ((try self.advance()) orelse return .op_eq) {
+                '=' => .op_eqeq,
+                '>' => .op_eqto,
+                else => return .op_eq,
+            };
+            _ = try self.advance();
+            return result;
         }
 
         fn nextEscape(self: *Self) !TokenKind {

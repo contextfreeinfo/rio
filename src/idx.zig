@@ -9,7 +9,7 @@ pub fn Idx(comptime Index: type, comptime Value: type) type {
 
         pub fn of(i: usize) Self {
             // TODO Check bounds?
-            return .{.i = @intCast(Index, i)};
+            return .{ .i = @intCast(Index, i) };
         }
 
         pub fn from(self: Self, values: []const Value) Value {
