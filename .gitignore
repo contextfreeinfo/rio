@@ -6,8 +6,8 @@
 /notes/
 /old/old2/tests/nio/run/test*
 /old/old2/tests/run/test*
-/zig-cache/
-/zig-out/
+zig-cache/
+zig-out/
 /.vs/
 /.vscode/
 *.swp

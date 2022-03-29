@@ -124,10 +124,11 @@ pub fn Parser(comptime Reader: type) type {
             return Tree{ .nodes = (try self.nodes.clone()).items };
         }
 
-        fn advance(self: *Self) !?lex.Token {
-            const token = (try self.readToken()) orelse return null;
-            try self.working.append(.{ .kind = .leaf, .data = .{ .token = token } });
-            return try self.peek();
+        fn advance(self: *Self) !void {
+            const token = try self.readToken();
+            if (token.kind != .eof) {
+                try self.working.append(.{ .kind = .leaf, .data = .{ .token = token } });
+            }
         }
 
         fn assign(self: *Self) !void {
@@ -139,9 +140,10 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn atom(self: *Self) !void {
-            switch (((try self.peek()) orelse return).kind) {
+            switch ((try self.peek()).kind) {
+                .eof => return,
                 .string_begin_single, .string_begin_double => try self.string(),
-                else => _ = try self.advance(),
+                else => try self.advance(),
             }
         }
 
@@ -153,9 +155,15 @@ pub fn Parser(comptime Reader: type) type {
             const begin = self.here();
             while (true) {
                 try self.space();
-                _ = (try self.peek()) orelse break;
+                switch ((try self.peek()).kind) {
+                    .eof => break,
+                    else => {},
+                }
                 try self.assign_to();
-                _ = (try self.peek()) orelse break;
+                switch ((try self.peek()).kind) {
+                    .eof => break,
+                    else => {},
+                }
             }
             try self.nestMaybe(.block, begin);
         }
@@ -167,8 +175,8 @@ pub fn Parser(comptime Reader: type) type {
                 try self.colon(count);
                 // TODO Is EndOfStream easier here in parsing?
                 try self.hspace();
-                switch (((try self.peek()) orelse break).kind) {
-                    .op_eq, .op_eqto, .vspace => break,
+                switch ((try self.peek()).kind) {
+                    .eof, .op_eq, .op_eqto, .vspace => break,
                     else => {},
                 }
             }
@@ -190,8 +198,8 @@ pub fn Parser(comptime Reader: type) type {
         fn hspace(self: *Self) !void {
             const begin = self.here();
             while (true) {
-                switch (((try self.peek()) orelse break).kind) {
-                    .comment, .hspace => _ = try self.advance(),
+                switch ((try self.peek()).kind) {
+                    .comment, .hspace => try self.advance(),
                     else => break,
                 }
             }
@@ -209,11 +217,12 @@ pub fn Parser(comptime Reader: type) type {
         fn infixFinish(self: *Self, kind: NodeKind, op: lex.TokenKind, kid: fn(self: *Self) ParseError!void, begin: NodeId) !void {
             try self.hspace();
             while (true) {
-                if (((try self.peek()) orelse return).kind != op) return;
-                _ = (try self.advance()).?;
+                if ((try self.peek()).kind != op) return;
+                try self.advance();
                 try self.space();
-                if ((try self.peek()) != null) { // or any end TODO Use eof token???
-                    try kid(self);
+                switch ((try self.peek()).kind) { // or any end
+                    .eof => {},
+                    else => try kid(self),
                 }
                 try self.nest(kind, begin);
             }
@@ -238,11 +247,11 @@ pub fn Parser(comptime Reader: type) type {
             }
         }
 
-        fn peek(self: *Self) !?lex.Token {
+        fn peek(self: *Self) !lex.Token {
             if (self.unread == null) {
                 self.unread = try self.lexer.next();
             }
-            return self.unread;
+            return self.unread.?;
         }
 
         fn question(self: *Self) !void { // suffix -- any others?
@@ -250,8 +259,8 @@ pub fn Parser(comptime Reader: type) type {
             try self.dot();
             try self.hspace();
             while (true) {
-                if (((try self.peek()) orelse return).kind != .op_question) return;
-                _ = (try self.advance()).?;
+                if ((try self.peek()).kind != .op_question) return;
+                try self.advance();
                 // The goal here is to keep questions outside of dots.
                 try self.nest(.question, begin);
                 // But to let dots proceed still.
@@ -259,7 +268,7 @@ pub fn Parser(comptime Reader: type) type {
             }
         }
 
-        fn readToken(self: *Self) !?lex.Token {
+        fn readToken(self: *Self) !lex.Token {
             if (self.unread) |unread| {
                 self.unread = null;
                 return unread;
@@ -270,8 +279,8 @@ pub fn Parser(comptime Reader: type) type {
         fn space(self: *Self) !void {
             const begin = self.here();
             while (true) {
-                switch (((try self.peek()) orelse break).kind) {
-                    .comment, .hspace, .vspace => _ = try self.advance(),
+                switch ((try self.peek()).kind) {
+                    .comment, .hspace, .vspace => try self.advance(),
                     else => break,
                 }
             }
@@ -280,12 +289,12 @@ pub fn Parser(comptime Reader: type) type {
 
         fn string(self: *Self) !void {
             const begin = self.here();
-            _ = (try self.advance()).?;
+            try self.advance();
             while (true) {
-                switch (((try self.peek()) orelse break).kind) {
-                    .string_end => break,
+                switch ((try self.peek()).kind) {
+                    .eof, .string_end => break,
                     // TODO Escapes.
-                    else => _ = try self.advance(),
+                    else => try self.advance(),
                 }
             }
             _ = try self.advance();

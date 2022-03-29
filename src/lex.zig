@@ -9,6 +9,7 @@ const TextId = intern.TextId;
 
 pub const TokenKind = enum {
     comment,
+    eof,
     escape,
     escape_begin,
     escape_end,
@@ -89,6 +90,7 @@ pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
 pub fn tokenText(kind: TokenKind) []const u8 {
     return switch (kind) {
         .comment => "#",
+        .eof => "eof",
         .escape => "\\_",
         .escape_begin => "\\(",
         .escape_end => ")",
@@ -193,7 +195,7 @@ pub fn Lexer(comptime Reader: type) type {
             self.unread = null;
         }
 
-        pub fn next(self: *Self) !?Token {
+        pub fn next(self: *Self) !Token {
             self.text.clearRetainingCapacity();
             const mode = last(TokenKind, self.stack.items) orelse .round_begin;
             const kind = switch (mode) {
@@ -201,7 +203,7 @@ pub fn Lexer(comptime Reader: type) type {
                 .string_begin_single => self.modeNextString('\''),
                 else => self.modeNextCode(),
             } catch |err| switch (err) {
-                error.EndOfStream => return null,
+                error.EndOfStream => return Token{ .kind = .eof, .text = TextId.of(0) },
                 else => |e| return e,
             };
             const text = if (self.pool) |pool| try pool.intern(self.text.items) else TextId.of(self.text.items.len);
