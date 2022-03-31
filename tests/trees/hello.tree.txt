@@ -1,0 +1,131 @@
+NodeKind.block
+  NodeKind.assign_to
+    NodeKind.call
+      NodeKind.leaf: TokenKind.key_use use
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text c
+        NodeKind.leaf: TokenKind.string_end "
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_eqto =>
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_spread ..
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.vspace 
+
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id main
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id with
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.id printf
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.key_be be
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+  NodeKind.colon
+    NodeKind.leaf: TokenKind.id thing
+    NodeKind.leaf: TokenKind.op_colon :
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id void
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.id of
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.id printf
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text Hi!
+        NodeKind.leaf: TokenKind.escape \n
+        NodeKind.leaf: TokenKind.string_end "
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+    NodeKind.leaf: TokenKind.comment # Abomination testing:
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+    NodeKind.leaf: TokenKind.comment # a: b c: d e f: g
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+    NodeKind.leaf: TokenKind.comment # a: b: c: d: e: f: g
+    NodeKind.leaf: TokenKind.vspace 
+
+  NodeKind.leaf: TokenKind.key_end end
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.vspace 
+
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id main2
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.call
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.id env
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.key_as as
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.other !
+      NodeKind.leaf: TokenKind.id env
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.key_try try
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.id void
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.key_be be
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+  NodeKind.call
+    NodeKind.question
+      NodeKind.dot
+        NodeKind.dot
+          NodeKind.leaf: TokenKind.id env
+          NodeKind.leaf: TokenKind.op_dot .
+          NodeKind.leaf: TokenKind.id out
+        NodeKind.leaf: TokenKind.op_dot .
+        NodeKind.leaf: TokenKind.id print
+      NodeKind.leaf: TokenKind.op_question ?
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf
