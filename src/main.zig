@@ -57,7 +57,8 @@ test "dump trees" {
     // TODO Walk up tree to project root?
     const file = try std.fs.cwd().createFile("tests/trees/hello.tree.txt", .{});
     defer file.close();
-    var out = std.io.bufferedWriter(file.writer()).writer();
-    try dumpTree(allocator, out, "tests/hello.rio");
+    var buffer = std.io.bufferedWriter(file.writer());
+    try dumpTree(allocator, buffer.writer(), "tests/hello.rio");
+    try buffer.flush();
     // try std.testing.expectEqual(10, 3 + 7);
 }

@@ -66,11 +66,68 @@ NodeKind.block
     NodeKind.leaf: TokenKind.vspace 
 
     NodeKind.leaf: TokenKind.hspace   
-    NodeKind.leaf: TokenKind.comment # a: b c: d e f: g
+  NodeKind.colon
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.leaf: TokenKind.op_colon :
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id b
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id c
+        NodeKind.leaf: TokenKind.op_colon :
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.id d
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.id e
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id f
+        NodeKind.leaf: TokenKind.op_colon :
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.id g
+  NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
     NodeKind.leaf: TokenKind.hspace   
-    NodeKind.leaf: TokenKind.comment # a: b: c: d: e: f: g
+  NodeKind.colon
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.leaf: TokenKind.op_colon :
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.colon
+      NodeKind.leaf: TokenKind.id b
+      NodeKind.leaf: TokenKind.op_colon :
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id c
+        NodeKind.leaf: TokenKind.op_colon :
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.colon
+          NodeKind.leaf: TokenKind.id d
+          NodeKind.leaf: TokenKind.op_colon :
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+          NodeKind.colon
+            NodeKind.leaf: TokenKind.id e
+            NodeKind.leaf: TokenKind.op_colon :
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.colon
+              NodeKind.leaf: TokenKind.id f
+              NodeKind.leaf: TokenKind.op_colon :
+              NodeKind.space
+                NodeKind.leaf: TokenKind.hspace  
+              NodeKind.leaf: TokenKind.id g
+  NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
   NodeKind.leaf: TokenKind.key_end end
@@ -79,53 +136,25 @@ NodeKind.block
 
     NodeKind.leaf: TokenKind.vspace 
 
-  NodeKind.assign
-    NodeKind.leaf: TokenKind.id main2
-    NodeKind.space
-      NodeKind.leaf: TokenKind.hspace  
-    NodeKind.leaf: TokenKind.op_eq =
-    NodeKind.space
-      NodeKind.leaf: TokenKind.hspace  
-    NodeKind.call
-      NodeKind.leaf: TokenKind.key_for for
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.id env
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.key_as as
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.other !
-      NodeKind.leaf: TokenKind.id env
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.key_to to
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.key_try try
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.id void
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.key_be be
-  NodeKind.space
+    NodeKind.leaf: TokenKind.comment # main2 = for env as !env to try void be
     NodeKind.leaf: TokenKind.vspace 
 
-    NodeKind.leaf: TokenKind.hspace   
-  NodeKind.call
-    NodeKind.question
-      NodeKind.dot
-        NodeKind.dot
-          NodeKind.leaf: TokenKind.id env
-          NodeKind.leaf: TokenKind.op_dot .
-          NodeKind.leaf: TokenKind.id out
-        NodeKind.leaf: TokenKind.op_dot .
-        NodeKind.leaf: TokenKind.id print
-      NodeKind.leaf: TokenKind.op_question ?
-    NodeKind.space
-      NodeKind.leaf: TokenKind.hspace  
-    NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
-      NodeKind.leaf
+    NodeKind.leaf: TokenKind.comment #   env.out.print? "Hi!"
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.comment # end
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.comment # # main3 = for env! be
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.comment # #   env.out.print? "Hi!"
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.comment # # end
+    NodeKind.leaf: TokenKind.vspace 
+
+Intern storage: 4096 203
+Token size: 8 node size: 16 1

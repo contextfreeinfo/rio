@@ -3,13 +3,13 @@ use "c" => ..
 main = with printf be
   thing: void of printf "Hi!\n"
   # Abomination testing:
-  # a: b c: d e f: g
-  # a: b: c: d: e: f: g
+  a: b c: d e f: g
+  a: b: c: d: e: f: g
 end
 
-main2 = for env as !env to try void be
-  env.out.print? "Hi!"
-end
+# main2 = for env as !env to try void be
+#   env.out.print? "Hi!"
+# end
 
 # # main3 = for env! be
 # #   env.out.print? "Hi!"
