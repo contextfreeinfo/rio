@@ -17,6 +17,10 @@ pub fn Idx(comptime Index: type, comptime Value: type) type {
             return values[self.i];
         }
 
+        pub fn is(self: Self, other: Self) bool {
+            return self.i == other.i;
+        }
+
         pub fn slice(self: Self, l: usize) IdxSlice(Self) {
             return IdxSlice(Self).of(self, l);
         }

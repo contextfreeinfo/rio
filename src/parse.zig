@@ -92,6 +92,7 @@ pub const ParseError = error{OutOfMemory} || std.os.ReadError;
 pub fn Parser(comptime Reader: type) type {
     return struct {
         lexer: lex.Lexer(Reader),
+        line_begins: std.ArrayList(NodeId),
         nodes: std.ArrayList(Node),
         unread: ?lex.Token,
         working: std.ArrayList(Node),
@@ -101,6 +102,7 @@ pub fn Parser(comptime Reader: type) type {
         pub fn init(allocator: Allocator, pool: ?*intern.Pool) !Self {
             return Self{
                 .lexer = try lex.Lexer(Reader).init(allocator, pool),
+                .line_begins = std.ArrayList(NodeId).init(allocator),
                 .nodes = std.ArrayList(Node).init(allocator),
                 .unread = null,
                 .working = std.ArrayList(Node).init(allocator),
@@ -159,7 +161,7 @@ pub fn Parser(comptime Reader: type) type {
                     .eof => break,
                     else => {},
                 }
-                try self.assign_to();
+                try self.line();
                 switch ((try self.peek()).kind) {
                     .eof => break,
                     else => {},
@@ -172,8 +174,8 @@ pub fn Parser(comptime Reader: type) type {
             const begin = self.here();
             var count = @as(u32, 0);
             while (true) : (count += 1) {
-                try self.colon(count);
-                // TODO Is EndOfStream easier here in parsing?
+                // TODO If second time through and first is question, put the question on the outside of the call.
+                try self.colon();
                 try self.hspace();
                 switch ((try self.peek()).kind) {
                     .eof, .op_eq, .op_eqto, .vspace => break,
@@ -185,10 +187,11 @@ pub fn Parser(comptime Reader: type) type {
             }
         }
 
-        fn colon(self: *Self, count: u32) ParseError!void {
+        fn colon(self: *Self) ParseError!void {
             const begin = self.here();
             try self.question();
-            try self.infixFinish(.colon, .op_colon, if (count == 0) call else question, begin);
+            // Line won't repeat colons, since they'll be consumed internally, but eh.
+            try self.infixFinish(.colon, .op_colon, if (begin.is(self.lineBegin())) line else question, begin);
         }
 
         fn here(self: Self) NodeId {
@@ -207,14 +210,14 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         // TODO This nests left, but normal assign (if nesting is allowed) should nest right. (And assign_to should nest left.)
-        fn infix(self: *Self, kind: NodeKind, op: lex.TokenKind, kid: fn(self: *Self) ParseError!void) !void {
+        fn infix(self: *Self, kind: NodeKind, op: lex.TokenKind, kid: fn (self: *Self) ParseError!void) !void {
             const begin = self.here();
             try kid(self);
             try self.infixFinish(kind, op, kid, begin);
         }
 
         // TODO This nests left, but normal assign (if nesting is allowed) should nest right.
-        fn infixFinish(self: *Self, kind: NodeKind, op: lex.TokenKind, kid: fn(self: *Self) ParseError!void, begin: NodeId) !void {
+        fn infixFinish(self: *Self, kind: NodeKind, op: lex.TokenKind, kid: fn (self: *Self) ParseError!void, begin: NodeId) !void {
             try self.hspace();
             while (true) {
                 if ((try self.peek()).kind != op) return;
@@ -226,6 +229,16 @@ pub fn Parser(comptime Reader: type) type {
                 }
                 try self.nest(kind, begin);
             }
+        }
+
+        fn line(self: *Self) !void {
+            try self.line_begins.append(self.here());
+            try self.assign_to();
+            defer self.line_begins.items.len -= 1;
+        }
+
+        fn lineBegin(self: *Self) NodeId {
+            return if (self.line_begins.items.len > 0) self.line_begins.items[self.line_begins.items.len - 1] else NodeId.of(0);
         }
 
         fn nest(self: *Self, kind: NodeKind, begin: NodeId) !void {
