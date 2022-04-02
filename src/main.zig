@@ -18,6 +18,7 @@ pub fn main() !void {
     }
     const name = args[2];
     try out.print("Run {s}\n", .{name});
+    try dumpTree(allocator, out, name);
 }
 
 fn dumpTree(allocator: Allocator, out: anytype, name: String) !void {
@@ -49,16 +50,28 @@ fn dumpTree(allocator: Allocator, out: anytype, name: String) !void {
     // }
     // std.debug.print("Read: {} {} {} {}\n", .{ token_count, byte_count, pool.begins.items.len, line_count });
     try out.print("Intern storage: {} {}\n", .{ pool.text.capacity, pool.text.items.len });
+    try out.print("Tree size: {}\n", .{ tree.nodes.len });
     try out.print("Token size: {} node size: {} {}\n", .{ @sizeOf(lex.Token), @sizeOf(parse.Node), @sizeOf(parse.NodeKind) });
 }
 
 test "dump trees" {
     const allocator = std.heap.page_allocator;
     // TODO Walk up tree to project root?
-    const file = try std.fs.cwd().createFile("tests/trees/hello.tree.txt", .{});
-    defer file.close();
-    var buffer = std.io.bufferedWriter(file.writer());
-    try dumpTree(allocator, buffer.writer(), "tests/hello.rio");
-    try buffer.flush();
-    // try std.testing.expectEqual(10, 3 + 7);
+    // TODO List dir?
+    const names = [_][]const u8{ "boolerr", "fib", "hello", "persons" };
+    for (names) |name| {
+        // Prep write.
+        const out_name = try std.fmt.allocPrint(allocator, "tests/trees/{s}.tree.txt", .{name});
+        defer allocator.free(out_name);
+        const file = try std.fs.cwd().createFile(out_name, .{});
+        defer file.close();
+        var buffer = std.io.bufferedWriter(file.writer());
+        // Read.
+        const in_name = try std.fmt.allocPrint(allocator, "tests/{s}.rio", .{name});
+        defer allocator.free(in_name);
+        try dumpTree(allocator, buffer.writer(), in_name);
+        try buffer.flush();
+        // TODO Assert no changes in git?
+        // try std.testing.expectEqual(10, 3 + 7);
+    }
 }

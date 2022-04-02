@@ -134,6 +134,7 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn assign(self: *Self) !void {
+            // TODO Should be right associative.
             try self.infix(.assign, .op_eq, call);
         }
 
