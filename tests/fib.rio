@@ -1,6 +1,6 @@
 use "c" => ..
 
-main = do with printf
+main = with printf be
   each (range 0 9) for n do
     void of printf "fib(%d) = %d\n" n (fib n)
   end

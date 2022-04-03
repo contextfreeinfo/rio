@@ -27,13 +27,13 @@ NodeKind.block
     NodeKind.space
       NodeKind.leaf: TokenKind.hspace  
     NodeKind.call
-      NodeKind.leaf: TokenKind.key_do do
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
       NodeKind.leaf: TokenKind.id with
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
       NodeKind.leaf: TokenKind.id printf
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.key_be be
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 

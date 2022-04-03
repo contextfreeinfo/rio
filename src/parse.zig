@@ -150,10 +150,6 @@ pub fn Parser(comptime Reader: type) type {
             }
         }
 
-        fn dot(self: *Self) !void {
-            try self.infix(.dot, .op_dot, atom);
-        }
-
         fn block(self: *Self) !void {
             const begin = self.here();
             while (true) {
@@ -175,7 +171,6 @@ pub fn Parser(comptime Reader: type) type {
             const begin = self.here();
             var count = @as(u32, 0);
             while (true) : (count += 1) {
-                // TODO If second time through and first is question, put the question on the outside of the call.
                 try self.colon();
                 try self.hspace();
                 switch ((try self.peek()).kind) {
@@ -184,6 +179,9 @@ pub fn Parser(comptime Reader: type) type {
                 }
             }
             if (count > 0) {
+                // if (begin.from(self.working.items).kind == .question) {
+                //     std.debug.print("Invert question and call!\n", .{});
+                // }
                 try self.nest(.call, begin);
             }
         }
@@ -193,6 +191,10 @@ pub fn Parser(comptime Reader: type) type {
             try self.question();
             // Line won't repeat colons, since they'll be consumed internally, but eh.
             try self.infixFinish(.colon, .op_colon, if (begin.is(self.lineBegin())) line else question, begin);
+        }
+
+        fn dot(self: *Self) !void {
+            try self.infix(.dot, .op_dot, atom);
         }
 
         fn here(self: Self) NodeId {

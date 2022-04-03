@@ -1,4 +1,4 @@
-use "c" => ..
+use "c" => c => ..
 
 main = with printf be
   thing: void of printf "Hi!\n"

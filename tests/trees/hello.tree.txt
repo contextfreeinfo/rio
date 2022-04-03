@@ -1,13 +1,20 @@
 NodeKind.block
   NodeKind.assign_to
-    NodeKind.call
-      NodeKind.leaf: TokenKind.key_use use
+    NodeKind.assign_to
+      NodeKind.call
+        NodeKind.leaf: TokenKind.key_use use
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.string
+          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.string_text c
+          NodeKind.leaf: TokenKind.string_end "
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.op_eqto =>
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
-      NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
-        NodeKind.leaf: TokenKind.string_text c
-        NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.id c
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
     NodeKind.leaf: TokenKind.op_eqto =>
@@ -157,5 +164,5 @@ NodeKind.block
     NodeKind.leaf: TokenKind.vspace 
 
 Intern storage: 4096 203
-Tree size: 142
+Tree size: 149
 Token size: 8 node size: 16 1

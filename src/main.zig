@@ -50,7 +50,7 @@ fn dumpTree(allocator: Allocator, out: anytype, name: String) !void {
     // }
     // std.debug.print("Read: {} {} {} {}\n", .{ token_count, byte_count, pool.begins.items.len, line_count });
     try out.print("Intern storage: {} {}\n", .{ pool.text.capacity, pool.text.items.len });
-    try out.print("Tree size: {}\n", .{ tree.nodes.len });
+    try out.print("Tree size: {}\n", .{tree.nodes.len});
     try out.print("Token size: {} node size: {} {}\n", .{ @sizeOf(lex.Token), @sizeOf(parse.Node), @sizeOf(parse.NodeKind) });
 }
 
@@ -69,6 +69,7 @@ test "dump trees" {
         // Read.
         const in_name = try std.fmt.allocPrint(allocator, "tests/{s}.rio", .{name});
         defer allocator.free(in_name);
+        // std.debug.print("Processing: {s}\n", .{in_name});
         try dumpTree(allocator, buffer.writer(), in_name);
         try buffer.flush();
         // TODO Assert no changes in git?

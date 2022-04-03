@@ -438,13 +438,13 @@ NodeKind.block
       NodeKind.leaf: TokenKind.id url
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.key_do do
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
       NodeKind.leaf: TokenKind.id with
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
       NodeKind.leaf: TokenKind.id read-doc
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.key_be be
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
@@ -603,13 +603,13 @@ NodeKind.block
       NodeKind.leaf: TokenKind.id env!
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.key_do do
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
       NodeKind.leaf: TokenKind.id with
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
       NodeKind.leaf: TokenKind.id read-doc
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.key_be be
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
