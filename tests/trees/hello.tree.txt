@@ -137,6 +137,26 @@ NodeKind.block
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
+    NodeKind.leaf: TokenKind.hspace   
+  NodeKind.colon
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.leaf: TokenKind.op_colon :
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.question
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id hi
+        NodeKind.leaf: TokenKind.op_question ?
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.id there
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+    NodeKind.leaf: TokenKind.comment # a: (hi?) there
+    NodeKind.leaf: TokenKind.vspace 
+
   NodeKind.leaf: TokenKind.key_end end
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
@@ -163,6 +183,6 @@ NodeKind.block
     NodeKind.leaf: TokenKind.comment # # end
     NodeKind.leaf: TokenKind.vspace 
 
-Intern storage: 4096 203
-Tree size: 149
+Intern storage: 4096 227
+Tree size: 167
 Token size: 8 node size: 16 1

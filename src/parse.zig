@@ -7,6 +7,7 @@ const Allocator = std.mem.Allocator;
 pub const NodeKind = enum {
     assign,
     assign_to,
+    be,
     block,
     call,
     colon,
@@ -47,7 +48,7 @@ pub const Node = struct {
                 try writer.print("\n", .{});
                 var nested = context;
                 nested.indent += 2;
-                for (self.data.kids.from(context.tree.nodes)) |node| {
+                for (self.data.kids.from(context.nodes)) |node| {
                     _ = try node.print(writer, nested);
                 }
             },
@@ -55,14 +56,25 @@ pub const Node = struct {
     }
 };
 
+pub fn adjustKids(nodes: []Node, new_begin: u32, offset: u32) void {
+    for (nodes) |*node| {
+        switch (node.kind) {
+            .leaf => {},
+            else => if (node.data.kids.idx.i >= new_begin + offset) {
+                node.data.kids.idx.i -= offset;
+            },
+        }
+    }
+}
+
 pub const TreePrintConfig = struct {
     pool: intern.Pool,
 };
 
 const TreePrintContext = struct {
-    tree: Tree,
     config: TreePrintConfig,
-    indent: u16,
+    indent: u16 = 0,
+    nodes: []Node,
 };
 
 pub const Tree = struct {
@@ -80,7 +92,7 @@ pub const Tree = struct {
 
     pub fn print(self: Self, writer: anytype, config: TreePrintConfig) !void {
         if (self.root()) |r| {
-            try r.print(writer, .{ .tree = self, .config = config, .indent = 0 });
+            try r.print(writer, .{ .nodes = self.nodes, .config = config, .indent = 0 });
         } else {
             try writer.print("()\n", .{});
         }
@@ -145,9 +157,21 @@ pub fn Parser(comptime Reader: type) type {
         fn atom(self: *Self) !void {
             switch ((try self.peek()).kind) {
                 .eof => return,
+                .key_be => try self.be(),
+                .key_for => try self.fun(),
                 .string_begin_single, .string_begin_double => try self.string(),
                 else => try self.advance(),
             }
+        }
+
+        fn be(self: *Self) !void {
+            const begin = self.here();
+            try self.advance();
+            try self.block();
+            if ((try self.peek()).kind == .key_end) {
+                try self.end();
+            }
+            try self.nest(.be, begin);
         }
 
         fn block(self: *Self) !void {
@@ -179,10 +203,35 @@ pub fn Parser(comptime Reader: type) type {
                 }
             }
             if (count > 0) {
-                // if (begin.from(self.working.items).kind == .question) {
-                //     std.debug.print("Invert question and call!\n", .{});
-                // }
+                const first = begin.from(self.working.items);
+                const wrap_question = first.kind == .question;
+                if (wrap_question) {
+                    // Bring out the wrapped kids to working space and adjust.
+                    // Overwrite the question with the question's kid.
+                    self.working.items[begin.i] = first.data.kids.idx.from(self.nodes.items);
+                    const kid_begin = first.data.kids.idx.i;
+                    const kid_count = first.data.kids.len;
+                    if (kid_count > 1) {
+                        // If more than one kid, insert the rest after.
+                        const kids = NodeId.of(kid_begin + 1).slice(kid_count - 1);
+                        try self.working.insertSlice(begin.i + 1, kids.from(self.nodes.items));
+                    }
+                    // Remove these kids from the tree.
+                    std.mem.copy(
+                        Node,
+                        self.nodes.items[kid_begin..self.nodes.items.len - kid_count],
+                        self.nodes.items[kid_begin + kid_count..],
+                    );
+                    self.nodes.items.len -= kid_count;
+                    // Move the pointing back further in the tree, too.
+                    adjustKids(self.nodes.items[kid_begin..], kid_begin, kid_count);
+                    adjustKids(self.working.items[begin.i..], kid_begin, kid_count);
+                }
                 try self.nest(.call, begin);
+                if (wrap_question) {
+                    // Wrap the call in a question.
+                    try self.nest(.question, begin);
+                }
             }
         }
 
@@ -195,6 +244,34 @@ pub fn Parser(comptime Reader: type) type {
 
         fn dot(self: *Self) !void {
             try self.infix(.dot, .op_dot, atom);
+        }
+
+        fn end(self: *Self) !void {
+            const begin = self.here();
+            try self.advance();
+            try self.hspace();
+            switch (lex.tokenKindCategory((try self.peek()).kind)) {
+                // TODO Use for multipop???
+                .id, .key => try self.advance(),
+                else => {},
+            }
+            try self.nest(.end, begin);
+        }
+
+        fn fun(self: *Self) !void {
+            const begin = self.here();
+            try self.fun_part();
+            try self.nest(.fun, begin);
+        }
+
+        fn fun_for(self: *Self) !void {
+        }
+
+        fn fun_part(self: *Self) !void {
+            switch ((try self.peek()).kind) {
+                .key_for => try self.fun_for(),
+                else => {},
+            }
         }
 
         fn here(self: Self) NodeId {

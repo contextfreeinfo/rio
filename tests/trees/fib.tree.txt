@@ -59,7 +59,7 @@ NodeKind.block
     NodeKind.leaf: TokenKind.id n
     NodeKind.space
       NodeKind.leaf: TokenKind.hspace  
-    NodeKind.leaf: TokenKind.key_do do
+    NodeKind.leaf: TokenKind.key_be be
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
@@ -243,6 +243,6 @@ NodeKind.block
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
-Intern storage: 4096 113
+Intern storage: 4096 111
 Tree size: 230
 Token size: 8 node size: 16 1

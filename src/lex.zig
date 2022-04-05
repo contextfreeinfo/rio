@@ -60,6 +60,7 @@ pub const token_key_last = TokenKind.key_when;
 
 pub const TokenCategory = enum {
     content,
+    eof,
     id,
     key,
     op,
@@ -76,10 +77,11 @@ pub fn ofId(byte: u8) bool {
 
 pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
     return switch (kind) {
-        .comment, .escape, .int, .string_text => .content,
+        .comment, .escape, .frac, .int, .string_text => .content,
+        .eof => .eof,
         .id => .id,
-        .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_struct, .key_to, .key_use, .key_when => .key,
-        .escape_begin, .escape_end, .op_add, .op_colon, .op_div, .op_dot, .op_eq, .op_eqeq, .op_ge, .op_geq, .op_le, .op_leq, .op_mul, .op_sub, .round_begin, .round_end, .string_begin, .string_end => .op,
+        .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_struct, .key_to, .key_try, .key_use, .key_when => .key,
+        .escape_begin, .escape_end, .op_add, .op_colon, .op_div, .op_dot, .op_eq, .op_eqeq, .op_eqto, .op_ge, .op_gt, .op_le, .op_lt, .op_mul, .op_question, .op_spread, .op_sub, .round_begin, .round_end, .string_begin_double, .string_begin_single, .string_end => .op,
         .other => .other,
         .hspace, .vspace => .space,
     };
@@ -226,6 +228,8 @@ pub fn Lexer(comptime Reader: type) type {
                 '.' => self.nextDot(),
                 '?' => self.nextSingle(.op_question),
                 '=' => self.nextEq(),
+                // '+' => self.nextSingle(.op_add),
+                // '-' => self.nextSingle(.op_sub),
                 '#' => self.nextComment(),
                 ' ', '\t' => self.nextHspace(),
                 '\r', '\n' => self.nextVspace(),

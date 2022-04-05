@@ -5,6 +5,8 @@ main = with printf be
   # Abomination testing:
   a: b c: d e f: g
   a: b: c: d: e: f: g
+  a: hi? there
+  # a: (hi?) there
 end
 
 # main2 = for env as !env to try void be

@@ -693,8 +693,8 @@ NodeKind.block
     NodeKind.leaf: TokenKind.vspace 
 
     NodeKind.leaf: TokenKind.hspace     
-  NodeKind.call
-    NodeKind.question
+  NodeKind.question
+    NodeKind.call
       NodeKind.dot
         NodeKind.dot
           NodeKind.leaf: TokenKind.id env
@@ -703,16 +703,16 @@ NodeKind.block
         NodeKind.leaf: TokenKind.op_dot .
         NodeKind.leaf: TokenKind.id print
       NodeKind.leaf: TokenKind.op_question ?
-    NodeKind.space
-      NodeKind.leaf: TokenKind.hspace  
-    NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_single '
-      NodeKind.leaf: TokenKind.string_text Checking "https://
-      NodeKind.leaf: TokenKind.escape_begin \(
-      NodeKind.leaf: TokenKind.id url
-      NodeKind.leaf: TokenKind.escape_end )
-      NodeKind.leaf: TokenKind.string_text /":
-      NodeKind.leaf: TokenKind.string_end '
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_single '
+        NodeKind.leaf: TokenKind.string_text Checking "https://
+        NodeKind.leaf: TokenKind.escape_begin \(
+        NodeKind.leaf: TokenKind.id url
+        NodeKind.leaf: TokenKind.escape_end )
+        NodeKind.leaf: TokenKind.string_text /":
+        NodeKind.leaf: TokenKind.string_end '
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
