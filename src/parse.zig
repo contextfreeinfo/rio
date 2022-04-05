@@ -18,6 +18,7 @@ pub const NodeKind = enum {
     fun,
     frac,
     leaf,
+    of,
     question,
     space,
     string,
@@ -38,10 +39,7 @@ pub const Node = struct {
 
     pub fn print(self: Self, writer: anytype, context: TreePrintContext) std.os.WriteError!void {
         _ = self;
-        var i = @as(@TypeOf(context.indent), 0);
-        while (i < context.indent) : (i += 1) {
-            try writer.print(" ", .{});
-        }
+        try printIndent(writer, context.indent);
         try writer.print("{}", .{self.kind});
         switch (self.kind) {
             .leaf => try writer.print(": {} {s}\n", .{ self.data.token.kind, context.config.pool.get(self.data.token.text) }),
@@ -52,7 +50,18 @@ pub const Node = struct {
                 for (self.data.kids.from(context.nodes)) |node| {
                     _ = try node.print(writer, nested);
                 }
+                if (self.data.kids.len > 1) {
+                    try printIndent(writer, context.indent);
+                    try writer.print("/{}\n", .{self.kind});
+                }
             },
+        }
+    }
+
+    fn printIndent(writer: anytype, indent: u16) !void {
+        var i = @as(@TypeOf(indent), 0);
+        while (i < indent) : (i += 1) {
+            try writer.print(" ", .{});
         }
     }
 };
@@ -173,27 +182,12 @@ pub fn Parser(comptime Reader: type) type {
         fn atom(self: *Self) !void {
             switch ((try self.peek()).kind) {
                 .eof, .key_end => {},
-                .key_be => try self.be(),
+                .key_be => try self.blocker(.be),
+                .key_of => try self.blocker(.of),
                 // .key_for => try self.fun(),
                 .string_begin_single, .string_begin_double => try self.string(),
                 else => try self.advance(),
             }
-        }
-
-        fn be(self: *Self) !void {
-            const begin = self.here();
-            try self.advance();
-            try self.hspace();
-            switch ((try self.peek()).kind) {
-                .vspace => {
-                    try self.block();
-                    if ((try self.peek()).kind == .key_end) {
-                        try self.end();
-                    }
-                },
-                else => try self.call(), // TODO Infix ops instead.
-            }
-            try self.nest(.be, begin);
         }
 
         fn block(self: *Self) !void {
@@ -207,6 +201,22 @@ pub fn Parser(comptime Reader: type) type {
                 try self.line();
             }
             try self.nestMaybe(.block, begin);
+        }
+
+        fn blocker(self: *Self, kind: NodeKind) !void {
+            const begin = self.here();
+            try self.advance();
+            try self.hspace();
+            switch ((try self.peek()).kind) {
+                .vspace => {
+                    try self.block();
+                    if ((try self.peek()).kind == .key_end) {
+                        try self.end();
+                    }
+                },
+                else => try self.call(), // TODO Infix ops instead.
+            }
+            try self.nest(kind, begin);
         }
 
         fn call(self: *Self) !void {
