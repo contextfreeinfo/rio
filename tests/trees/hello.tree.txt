@@ -179,6 +179,7 @@ NodeKind.block
                   NodeKind.leaf: TokenKind.hspace  
                 NodeKind.leaf: TokenKind.id there
               /NodeKind.call
+            /NodeKind.question
           /NodeKind.colon
           NodeKind.space
             NodeKind.leaf: TokenKind.vspace 

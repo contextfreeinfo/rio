@@ -37,25 +37,29 @@ pub const Node = struct {
 
     const Self = @This();
 
-    pub fn print(self: Self, writer: anytype, context: TreePrintContext) std.os.WriteError!void {
-        _ = self;
+    pub fn print(self: Self, writer: anytype, context: TreePrintContext) std.os.WriteError!u32 {
+        var count = @as(u32, 0);
         try printIndent(writer, context.indent);
         try writer.print("{}", .{self.kind});
         switch (self.kind) {
-            .leaf => try writer.print(": {} {s}\n", .{ self.data.token.kind, context.config.pool.get(self.data.token.text) }),
+            .leaf => {
+                count += 1;
+                try writer.print(": {} {s}\n", .{ self.data.token.kind, context.config.pool.get(self.data.token.text) });
+            },
             else => {
                 try writer.print("\n", .{});
                 var nested = context;
                 nested.indent += 2;
                 for (self.data.kids.from(context.nodes)) |node| {
-                    _ = try node.print(writer, nested);
+                    count += try node.print(writer, nested);
                 }
-                if (self.data.kids.len > 1) {
+                if (count > 1) {
                     try printIndent(writer, context.indent);
                     try writer.print("/{}\n", .{self.kind});
                 }
             },
         }
+        return count;
     }
 
     fn printIndent(writer: anytype, indent: u16) !void {
@@ -102,7 +106,7 @@ pub const Tree = struct {
 
     pub fn print(self: Self, writer: anytype, config: TreePrintConfig) !void {
         if (self.root()) |r| {
-            try r.print(writer, .{ .nodes = self.nodes, .config = config, .indent = 0 });
+            _ = try r.print(writer, .{ .nodes = self.nodes, .config = config, .indent = 0 });
         } else {
             try writer.print("()\n", .{});
         }

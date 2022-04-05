@@ -881,6 +881,7 @@ NodeKind.block
                         NodeKind.leaf: TokenKind.string_end '
                       /NodeKind.string
                     /NodeKind.call
+                  /NodeKind.question
                   NodeKind.space
                     NodeKind.leaf: TokenKind.vspace 
 
