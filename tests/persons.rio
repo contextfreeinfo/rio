@@ -1,6 +1,6 @@
 use "c" => ..
 
-main = do with printf
+main = with printf be
   # Assignment here declares new *const* values
   name = "Alice"
   age = 40
@@ -14,20 +14,20 @@ main = do with printf
       _ name: "Darlene" age: 68
     end persons
   end show-prices
-end do
+end main
 
-default-schema = struct
+default-schema = struct of
   name as string
   age as int
 end
 
-person = struct
+person = struct of
   name
   age
 end
 
-show-prices = for persons as list person do with printf
-  persons.each for person do
+show-prices = for persons as list person with printf be
+  persons.each for person be
     void of printf "%s pays $%.2f\n" person.name person.age.ticket-price
   end
 end

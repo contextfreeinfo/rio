@@ -40,124 +40,127 @@ NodeKind.block
       NodeKind.leaf: TokenKind.id printf
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.key_be be
-  NodeKind.space
-    NodeKind.leaf: TokenKind.vspace 
-
-    NodeKind.leaf: TokenKind.hspace   
-  NodeKind.colon
-    NodeKind.leaf: TokenKind.id thing
-    NodeKind.leaf: TokenKind.op_colon :
-    NodeKind.space
-      NodeKind.leaf: TokenKind.hspace  
-    NodeKind.call
-      NodeKind.leaf: TokenKind.id void
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.id of
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.id printf
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
-        NodeKind.leaf: TokenKind.string_text Hi!
-        NodeKind.leaf: TokenKind.escape \n
-        NodeKind.leaf: TokenKind.string_end "
-  NodeKind.space
-    NodeKind.leaf: TokenKind.vspace 
-
-    NodeKind.leaf: TokenKind.hspace   
-    NodeKind.leaf: TokenKind.comment # Abomination testing:
-    NodeKind.leaf: TokenKind.vspace 
-
-    NodeKind.leaf: TokenKind.hspace   
-  NodeKind.colon
-    NodeKind.leaf: TokenKind.id a
-    NodeKind.leaf: TokenKind.op_colon :
-    NodeKind.space
-      NodeKind.leaf: TokenKind.hspace  
-    NodeKind.call
-      NodeKind.leaf: TokenKind.id b
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.colon
-        NodeKind.leaf: TokenKind.id c
-        NodeKind.leaf: TokenKind.op_colon :
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
-        NodeKind.leaf: TokenKind.id d
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
-      NodeKind.leaf: TokenKind.id e
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.colon
-        NodeKind.leaf: TokenKind.id f
-        NodeKind.leaf: TokenKind.op_colon :
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
-        NodeKind.leaf: TokenKind.id g
-  NodeKind.space
-    NodeKind.leaf: TokenKind.vspace 
-
-    NodeKind.leaf: TokenKind.hspace   
-  NodeKind.colon
-    NodeKind.leaf: TokenKind.id a
-    NodeKind.leaf: TokenKind.op_colon :
-    NodeKind.space
-      NodeKind.leaf: TokenKind.hspace  
-    NodeKind.colon
-      NodeKind.leaf: TokenKind.id b
-      NodeKind.leaf: TokenKind.op_colon :
-      NodeKind.space
-        NodeKind.leaf: TokenKind.hspace  
-      NodeKind.colon
-        NodeKind.leaf: TokenKind.id c
-        NodeKind.leaf: TokenKind.op_colon :
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
-        NodeKind.colon
-          NodeKind.leaf: TokenKind.id d
-          NodeKind.leaf: TokenKind.op_colon :
+      NodeKind.be
+        NodeKind.leaf: TokenKind.key_be be
+        NodeKind.block
           NodeKind.space
-            NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.vspace 
+
+            NodeKind.leaf: TokenKind.hspace   
           NodeKind.colon
-            NodeKind.leaf: TokenKind.id e
+            NodeKind.leaf: TokenKind.id thing
+            NodeKind.leaf: TokenKind.op_colon :
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.call
+              NodeKind.leaf: TokenKind.id void
+              NodeKind.space
+                NodeKind.leaf: TokenKind.hspace  
+              NodeKind.leaf: TokenKind.id of
+              NodeKind.space
+                NodeKind.leaf: TokenKind.hspace  
+              NodeKind.leaf: TokenKind.id printf
+              NodeKind.space
+                NodeKind.leaf: TokenKind.hspace  
+              NodeKind.string
+                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.string_text Hi!
+                NodeKind.leaf: TokenKind.escape \n
+                NodeKind.leaf: TokenKind.string_end "
+          NodeKind.space
+            NodeKind.leaf: TokenKind.vspace 
+
+            NodeKind.leaf: TokenKind.hspace   
+            NodeKind.leaf: TokenKind.comment # Abomination testing:
+            NodeKind.leaf: TokenKind.vspace 
+
+            NodeKind.leaf: TokenKind.hspace   
+          NodeKind.colon
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.op_colon :
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.call
+              NodeKind.leaf: TokenKind.id b
+              NodeKind.space
+                NodeKind.leaf: TokenKind.hspace  
+              NodeKind.colon
+                NodeKind.leaf: TokenKind.id c
+                NodeKind.leaf: TokenKind.op_colon :
+                NodeKind.space
+                  NodeKind.leaf: TokenKind.hspace  
+                NodeKind.leaf: TokenKind.id d
+                NodeKind.space
+                  NodeKind.leaf: TokenKind.hspace  
+              NodeKind.leaf: TokenKind.id e
+              NodeKind.space
+                NodeKind.leaf: TokenKind.hspace  
+              NodeKind.colon
+                NodeKind.leaf: TokenKind.id f
+                NodeKind.leaf: TokenKind.op_colon :
+                NodeKind.space
+                  NodeKind.leaf: TokenKind.hspace  
+                NodeKind.leaf: TokenKind.id g
+          NodeKind.space
+            NodeKind.leaf: TokenKind.vspace 
+
+            NodeKind.leaf: TokenKind.hspace   
+          NodeKind.colon
+            NodeKind.leaf: TokenKind.id a
             NodeKind.leaf: TokenKind.op_colon :
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
             NodeKind.colon
-              NodeKind.leaf: TokenKind.id f
+              NodeKind.leaf: TokenKind.id b
               NodeKind.leaf: TokenKind.op_colon :
               NodeKind.space
                 NodeKind.leaf: TokenKind.hspace  
-              NodeKind.leaf: TokenKind.id g
-  NodeKind.space
-    NodeKind.leaf: TokenKind.vspace 
+              NodeKind.colon
+                NodeKind.leaf: TokenKind.id c
+                NodeKind.leaf: TokenKind.op_colon :
+                NodeKind.space
+                  NodeKind.leaf: TokenKind.hspace  
+                NodeKind.colon
+                  NodeKind.leaf: TokenKind.id d
+                  NodeKind.leaf: TokenKind.op_colon :
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.hspace  
+                  NodeKind.colon
+                    NodeKind.leaf: TokenKind.id e
+                    NodeKind.leaf: TokenKind.op_colon :
+                    NodeKind.space
+                      NodeKind.leaf: TokenKind.hspace  
+                    NodeKind.colon
+                      NodeKind.leaf: TokenKind.id f
+                      NodeKind.leaf: TokenKind.op_colon :
+                      NodeKind.space
+                        NodeKind.leaf: TokenKind.hspace  
+                      NodeKind.leaf: TokenKind.id g
+          NodeKind.space
+            NodeKind.leaf: TokenKind.vspace 
 
-    NodeKind.leaf: TokenKind.hspace   
-  NodeKind.colon
-    NodeKind.leaf: TokenKind.id a
-    NodeKind.leaf: TokenKind.op_colon :
-    NodeKind.space
-      NodeKind.leaf: TokenKind.hspace  
-    NodeKind.question
-      NodeKind.call
-        NodeKind.leaf: TokenKind.id hi
-        NodeKind.leaf: TokenKind.op_question ?
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
-        NodeKind.leaf: TokenKind.id there
-  NodeKind.space
-    NodeKind.leaf: TokenKind.vspace 
+            NodeKind.leaf: TokenKind.hspace   
+          NodeKind.colon
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.op_colon :
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.question
+              NodeKind.call
+                NodeKind.leaf: TokenKind.id hi
+                NodeKind.leaf: TokenKind.op_question ?
+                NodeKind.space
+                  NodeKind.leaf: TokenKind.hspace  
+                NodeKind.leaf: TokenKind.id there
+          NodeKind.space
+            NodeKind.leaf: TokenKind.vspace 
 
-    NodeKind.leaf: TokenKind.hspace   
-    NodeKind.leaf: TokenKind.comment # a: (hi?) there
-    NodeKind.leaf: TokenKind.vspace 
+            NodeKind.leaf: TokenKind.hspace   
+            NodeKind.leaf: TokenKind.comment # a: (hi?) there
+            NodeKind.leaf: TokenKind.vspace 
 
-  NodeKind.leaf: TokenKind.key_end end
+        NodeKind.end
+          NodeKind.leaf: TokenKind.key_end end
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
@@ -184,5 +187,5 @@ NodeKind.block
     NodeKind.leaf: TokenKind.vspace 
 
 Intern storage: 4096 227
-Tree size: 167
+Tree size: 170
 Token size: 8 node size: 16 1

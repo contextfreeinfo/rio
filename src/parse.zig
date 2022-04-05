@@ -14,6 +14,7 @@ pub const NodeKind = enum {
     comment,
     def,
     dot,
+    end,
     fun,
     frac,
     leaf,
@@ -131,7 +132,22 @@ pub fn Parser(comptime Reader: type) type {
             self.lexer.start(reader);
             self.nodes.clearRetainingCapacity();
             self.working.clearRetainingCapacity();
-            try self.block();
+            var bonus = false;
+            while (true) {
+                try self.block();
+                switch ((try self.peek()).kind) {
+                    .eof => break,
+                    else => {
+                        // Some extra `end` involved.
+                        bonus = true;
+                        try self.advance();
+                    },
+                }
+            }
+            if (bonus) {
+                // Gather multiple top levels into a bonus block.
+                try self.nest(.block, NodeId.of(0));
+            }
             // This one doesn't ever appear but should push down the block if any.
             try self.nest(.block, NodeId.of(0));
             // Retain the buffer on the idea we might need that much again.
@@ -156,9 +172,9 @@ pub fn Parser(comptime Reader: type) type {
 
         fn atom(self: *Self) !void {
             switch ((try self.peek()).kind) {
-                .eof => return,
+                .eof, .key_end => {},
                 .key_be => try self.be(),
-                .key_for => try self.fun(),
+                // .key_for => try self.fun(),
                 .string_begin_single, .string_begin_double => try self.string(),
                 else => try self.advance(),
             }
@@ -167,9 +183,15 @@ pub fn Parser(comptime Reader: type) type {
         fn be(self: *Self) !void {
             const begin = self.here();
             try self.advance();
-            try self.block();
-            if ((try self.peek()).kind == .key_end) {
-                try self.end();
+            try self.hspace();
+            switch ((try self.peek()).kind) {
+                .vspace => {
+                    try self.block();
+                    if ((try self.peek()).kind == .key_end) {
+                        try self.end();
+                    }
+                },
+                else => try self.call(), // TODO Infix ops instead.
             }
             try self.nest(.be, begin);
         }
@@ -179,14 +201,10 @@ pub fn Parser(comptime Reader: type) type {
             while (true) {
                 try self.space();
                 switch ((try self.peek()).kind) {
-                    .eof => break,
+                    .eof, .key_end => break,
                     else => {},
                 }
                 try self.line();
-                switch ((try self.peek()).kind) {
-                    .eof => break,
-                    else => {},
-                }
             }
             try self.nestMaybe(.block, begin);
         }
@@ -198,7 +216,7 @@ pub fn Parser(comptime Reader: type) type {
                 try self.colon();
                 try self.hspace();
                 switch ((try self.peek()).kind) {
-                    .eof, .op_eq, .op_eqto, .vspace => break,
+                    .eof, .key_end, .op_eq, .op_eqto, .vspace => break,
                     else => {},
                 }
             }
@@ -258,21 +276,21 @@ pub fn Parser(comptime Reader: type) type {
             try self.nest(.end, begin);
         }
 
-        fn fun(self: *Self) !void {
-            const begin = self.here();
-            try self.fun_part();
-            try self.nest(.fun, begin);
-        }
+        // fn fun(self: *Self) !void {
+        //     const begin = self.here();
+        //     try self.fun_part();
+        //     try self.nest(.fun, begin);
+        // }
 
-        fn fun_for(self: *Self) !void {
-        }
+        // fn fun_for(self: *Self) !void {
+        // }
 
-        fn fun_part(self: *Self) !void {
-            switch ((try self.peek()).kind) {
-                .key_for => try self.fun_for(),
-                else => {},
-            }
-        }
+        // fn fun_part(self: *Self) !void {
+        //     switch ((try self.peek()).kind) {
+        //         .key_for => try self.fun_for(),
+        //         else => {},
+        //     }
+        // }
 
         fn here(self: Self) NodeId {
             return NodeId.of(self.working.items.len);
@@ -300,11 +318,11 @@ pub fn Parser(comptime Reader: type) type {
         fn infixFinish(self: *Self, kind: NodeKind, op: lex.TokenKind, kid: fn (self: *Self) ParseError!void, begin: NodeId) !void {
             try self.hspace();
             while (true) {
-                if ((try self.peek()).kind != op) return;
+                if ((try self.peek()).kind != op) break;
                 try self.advance();
                 try self.space();
                 switch ((try self.peek()).kind) { // or any end
-                    .eof => {},
+                    .eof, .key_end => {},
                     else => try kid(self),
                 }
                 try self.nest(kind, begin);
@@ -352,7 +370,7 @@ pub fn Parser(comptime Reader: type) type {
             try self.dot();
             try self.hspace();
             while (true) {
-                if ((try self.peek()).kind != .op_question) return;
+                if ((try self.peek()).kind != .op_question) break;
                 try self.advance();
                 // The goal here is to keep questions outside of dots.
                 try self.nest(.question, begin);
@@ -390,7 +408,7 @@ pub fn Parser(comptime Reader: type) type {
                     else => try self.advance(),
                 }
             }
-            _ = try self.advance();
+            try self.advance();
             try self.nest(.string, begin);
         }
     };

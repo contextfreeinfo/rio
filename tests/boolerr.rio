@@ -8,7 +8,7 @@ end
 
 url = string
 
-read-doc = for url to try doc do
+read-doc = for url to try doc be
   when
     case url.has "fail" be fail "Bad read of \(url)".format
     else be pass when
@@ -28,14 +28,14 @@ end
 
 is-title-non-empty = for doc to maybe bool be doc.head?.title?.is-empty.not
 
-read-whether-title-non-empty = for url to try of maybe bool do with read-doc
+read-whether-title-non-empty = for url to try of maybe bool with read-doc be
   url.read-doc?.is-title-non-empty
 end
 
 main = for env! with read-doc be
   urls = list "good" "title-empty" "title-missing" "head-missing" "fail"
   print = env.out.print
-  urls.each for url do
+  urls.each for url be
     env.out.print? 'Checking "https://\(url)/":'
     # Summary.
     summary = url.read-and-build-summary
