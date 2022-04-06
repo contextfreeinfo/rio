@@ -30,7 +30,6 @@ pub const TokenKind = enum {
     key_to,
     key_try,
     key_use,
-    key_when,
     op_add,
     op_colon,
     op_div,
@@ -57,7 +56,7 @@ pub const TokenKind = enum {
 };
 
 pub const token_key_first = TokenKind.key_as;
-pub const token_key_last = TokenKind.key_when;
+pub const token_key_last = TokenKind.key_use;
 
 pub const TokenCategory = enum {
     content,
@@ -81,7 +80,7 @@ pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
         .comment, .escape, .frac, .int, .string_text => .content,
         .eof => .eof,
         .id => .id,
-        .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_of, .key_struct, .key_to, .key_try, .key_use, .key_when => .key,
+        .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_of, .key_struct, .key_to, .key_try, .key_use => .key,
         .escape_begin, .escape_end, .op_add, .op_colon, .op_div, .op_dot, .op_eq, .op_eqeq, .op_eqto, .op_ge, .op_gt, .op_le, .op_lt, .op_mul, .op_question, .op_spread, .op_sub, .round_begin, .round_end, .string_begin_double, .string_begin_single, .string_end => .op,
         .other => .other,
         .hspace, .vspace => .space,
@@ -114,7 +113,6 @@ pub fn tokenText(kind: TokenKind) []const u8 {
         .key_to => "to",
         .key_try => "try",
         .key_use => "use",
-        .key_when => "when",
         .op_add => "+",
         .op_colon => ":",
         .op_div => "div",
@@ -148,7 +146,7 @@ fn initKeys(allocator: Allocator) !std.StringHashMap(TokenKind) {
     // "specifically, it's a slice of https://github.com/ziglang/zig/blob/master/lib/std/builtin.zig#L318 these"
     // "you can use std.meta.fields(Enum) to get a slice that holds all of the fields in the enum" - random internet person on Zig Discord
     var int = @enumToInt(token_key_first);
-    while (int < @enumToInt(token_key_last)) : (int += 1) {
+    while (int <= @enumToInt(token_key_last)) : (int += 1) {
         const kind = @intToEnum(TokenKind, int);
         try keys.put(tokenText(kind), kind);
     }

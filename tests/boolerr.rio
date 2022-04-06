@@ -9,13 +9,13 @@ end
 url = string
 
 read-doc = for url to try doc be
-  when
-    case url.has "fail" be fail "Bad read of \(url)".format
-    else be pass when
-      case url.has "head-missing" be _.new
-      case url.has "title-missing" be _ head: _.new
-      case url.has "title-empty" be _ head: (_ title: "")
-      else be "title-empty" be _ head: (_ title: "Title of \(url)".format)
+  case of
+    url.has "fail" be fail "Bad read of \(url)".format
+    else be pass case of
+      url.has "head-missing" be _.new
+      url.has "title-missing" be _ head: _.new
+      url.has "title-empty" be _ head: (_ title: "")
+      else be _ head: (_ title: "Title of \(url)".format)
     end
   end
 end

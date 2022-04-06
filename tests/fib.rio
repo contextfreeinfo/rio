@@ -7,9 +7,9 @@ main = with printf be
 end
 
 fib pub = for n as int to int be
-  when
-    case n <= 0 be 0
-    case n == 1 be 1
+  case of
+    n <= 0 be 0
+    n == 1 be 1
     else be vouch of fib (n - 2) + fib (n - 1)
   end
 end
