@@ -21,6 +21,7 @@ pub const NodeKind = enum {
     leaf,
     of,
     question,
+    round,
     space,
     string,
 };
@@ -186,10 +187,11 @@ pub fn Parser(comptime Reader: type) type {
 
         fn atom(self: *Self) !void {
             switch ((try self.peek()).kind) {
-                .eof, .escape_end, .key_end => {},
+                .eof, .escape_end, .key_end, .round_end => {},
                 .key_be => try self.blocker(.be),
                 .key_of => try self.blocker(.of),
                 // .key_for => try self.fun(),
+                .round_begin => try self.round(),
                 .string_begin_single, .string_begin_double => try self.string(),
                 else => try self.advance(),
             }
@@ -236,7 +238,7 @@ pub fn Parser(comptime Reader: type) type {
                 try self.colon();
                 try self.hspace();
                 switch ((try self.peek()).kind) {
-                    .eof, .escape_end, .key_end, .op_eq, .op_eqto, .vspace => break,
+                    .eof, .escape_end, .key_end, .op_eq, .op_eqto, .round_end, .vspace => break,
                     else => {},
                 }
             }
@@ -274,14 +276,21 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn check_block_end(self: *Self, kind: lex.TokenKind) ParseError!bool {
-            // TODO Get fancier.
+            // TODO Get fancier?
             _ = self;
             return kind == .key_end;
         }
 
         fn check_escape_end(self: *Self, kind: lex.TokenKind) ParseError!bool {
+            // Nothing much fancier we can do here with nested lexing.
             _ = self;
             return kind == .escape_end;
+        }
+
+        fn check_round_end(self: *Self, kind: lex.TokenKind) ParseError!bool {
+            // TODO Get fancier?
+            _ = self;
+            return kind == .round_end;
         }
 
         fn colon(self: *Self) ParseError!void {
@@ -363,7 +372,7 @@ pub fn Parser(comptime Reader: type) type {
                 try self.advance();
                 try self.space();
                 switch ((try self.peek()).kind) { // or any end
-                    .eof, .escape_end, .key_end => {},
+                    .eof, .escape_end, .key_end, .round_end => {},
                     else => try kid(self),
                 }
                 try self.nest(kind, begin);
@@ -426,6 +435,16 @@ pub fn Parser(comptime Reader: type) type {
                 return unread;
             }
             return try self.lexer.next();
+        }
+
+        fn round(self: *Self) !void {
+            const begin = self.here();
+            try self.advance();
+            try self.block_until(check_round_end);
+            if ((try self.peek()).kind == .round_end) {
+                try self.advance();
+            }
+            try self.nest(.round, begin);
         }
 
         fn space(self: *Self) !void {
