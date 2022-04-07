@@ -15,6 +15,7 @@ pub const NodeKind = enum {
     def,
     dot,
     end,
+    escape,
     fun,
     frac,
     leaf,
@@ -185,7 +186,7 @@ pub fn Parser(comptime Reader: type) type {
 
         fn atom(self: *Self) !void {
             switch ((try self.peek()).kind) {
-                .eof, .key_end => {},
+                .eof, .escape_end, .key_end => {},
                 .key_be => try self.blocker(.be),
                 .key_of => try self.blocker(.of),
                 // .key_for => try self.fun(),
@@ -195,12 +196,17 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn block(self: *Self) !void {
+            try self.block_until(check_block_end);
+        }
+
+        fn block_until(self: *Self, check_end: fn (self: *Self, kind: lex.TokenKind) ParseError!bool) !void {
             const begin = self.here();
             while (true) {
                 try self.space();
-                switch ((try self.peek()).kind) {
-                    .eof, .key_end => break,
-                    else => {},
+                const check = (try self.peek()).kind;
+                switch (check) {
+                    .eof => break,
+                    else => if (try check_end(self, check)) {break;},
                 }
                 try self.line();
             }
@@ -230,7 +236,7 @@ pub fn Parser(comptime Reader: type) type {
                 try self.colon();
                 try self.hspace();
                 switch ((try self.peek()).kind) {
-                    .eof, .key_end, .op_eq, .op_eqto, .vspace => break,
+                    .eof, .escape_end, .key_end, .op_eq, .op_eqto, .vspace => break,
                     else => {},
                 }
             }
@@ -267,6 +273,17 @@ pub fn Parser(comptime Reader: type) type {
             }
         }
 
+        fn check_block_end(self: *Self, kind: lex.TokenKind) ParseError!bool {
+            // TODO Get fancier.
+            _ = self;
+            return kind == .key_end;
+        }
+
+        fn check_escape_end(self: *Self, kind: lex.TokenKind) ParseError!bool {
+            _ = self;
+            return kind == .escape_end;
+        }
+
         fn colon(self: *Self) ParseError!void {
             const begin = self.here();
             try self.question();
@@ -288,6 +305,16 @@ pub fn Parser(comptime Reader: type) type {
                 else => {},
             }
             try self.nest(.end, begin);
+        }
+
+        fn escape(self: *Self) !void {
+            const begin = self.here();
+            try self.advance();
+            try self.block_until(check_escape_end);
+            if ((try self.peek()).kind == .escape_end) {
+                try self.advance();
+            }
+            try self.nest(.escape, begin);
         }
 
         // fn fun(self: *Self) !void {
@@ -336,7 +363,7 @@ pub fn Parser(comptime Reader: type) type {
                 try self.advance();
                 try self.space();
                 switch ((try self.peek()).kind) { // or any end
-                    .eof, .key_end => {},
+                    .eof, .escape_end, .key_end => {},
                     else => try kid(self),
                 }
                 try self.nest(kind, begin);
@@ -418,7 +445,7 @@ pub fn Parser(comptime Reader: type) type {
             while (true) {
                 switch ((try self.peek()).kind) {
                     .eof, .string_end => break,
-                    // TODO Escapes.
+                    .escape_begin => try self.escape(),
                     else => try self.advance(),
                 }
             }

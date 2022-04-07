@@ -628,9 +628,12 @@ NodeKind.block
                               NodeKind.string
                                 NodeKind.leaf: TokenKind.string_begin_double "
                                 NodeKind.leaf: TokenKind.string_text You think age 
-                                NodeKind.leaf: TokenKind.escape_begin \(
-                                NodeKind.leaf: TokenKind.id age
-                                NodeKind.leaf: TokenKind.escape_end )
+                                NodeKind.escape
+                                  NodeKind.leaf: TokenKind.escape_begin \(
+                                  NodeKind.block
+                                    NodeKind.leaf: TokenKind.id age
+                                  NodeKind.leaf: TokenKind.escape_end )
+                                /NodeKind.escape
                                 NodeKind.leaf: TokenKind.string_text  gets child prices here?
                                 NodeKind.leaf: TokenKind.string_end "
                               /NodeKind.string
@@ -715,5 +718,5 @@ NodeKind.block
   /NodeKind.space
 /NodeKind.block
 Intern storage: 4096 541
-Tree size: 544
+Tree size: 546
 Token size: 8 node size: 16 1
