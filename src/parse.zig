@@ -208,7 +208,9 @@ pub fn Parser(comptime Reader: type) type {
                 const check = (try self.peek()).kind;
                 switch (check) {
                     .eof => break,
-                    else => if (try check_end(self, check)) {break;},
+                    else => if (try check_end(self, check)) {
+                        break;
+                    },
                 }
                 try self.line();
             }
@@ -259,8 +261,8 @@ pub fn Parser(comptime Reader: type) type {
                     // Remove these kids from the tree.
                     std.mem.copy(
                         Node,
-                        self.nodes.items[kid_begin..self.nodes.items.len - kid_count],
-                        self.nodes.items[kid_begin + kid_count..],
+                        self.nodes.items[kid_begin .. self.nodes.items.len - kid_count],
+                        self.nodes.items[kid_begin + kid_count ..],
                     );
                     self.nodes.items.len -= kid_count;
                     // Move the pointing back further in the tree, too.
