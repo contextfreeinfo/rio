@@ -32,6 +32,7 @@ pub const TokenKind = enum {
     key_to,
     key_try,
     key_use,
+    key_with,
     op_add,
     op_colon,
     op_div,
@@ -58,7 +59,7 @@ pub const TokenKind = enum {
 };
 
 pub const token_key_first = TokenKind.key_and;
-pub const token_key_last = TokenKind.key_use;
+pub const token_key_last = TokenKind.key_with;
 
 pub const TokenCategory = enum {
     content,
@@ -82,7 +83,7 @@ pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
         .comment, .escape, .frac, .int, .string_text => .content,
         .eof => .eof,
         .id => .id,
-        .key_and, .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_of, .key_or, .key_struct, .key_to, .key_try, .key_use => .key,
+        .key_and, .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_of, .key_or, .key_struct, .key_to, .key_try, .key_use, .key_with => .key,
         .escape_begin, .escape_end, .op_add, .op_colon, .op_div, .op_dot, .op_eq, .op_eqeq, .op_eqto, .op_ge, .op_gt, .op_le, .op_lt, .op_mul, .op_question, .op_spread, .op_sub, .round_begin, .round_end, .string_begin_double, .string_begin_single, .string_end => .op,
         .other => .other,
         .hspace, .vspace => .space,
@@ -117,6 +118,7 @@ pub fn tokenText(kind: TokenKind) []const u8 {
         .key_to => "to",
         .key_try => "try",
         .key_use => "use",
+        .key_with => "with",
         .op_add => "+",
         .op_colon => ":",
         .op_div => "/",
