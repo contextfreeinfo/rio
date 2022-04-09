@@ -58,7 +58,7 @@ test "dump trees" {
     const allocator = std.heap.page_allocator;
     // TODO Walk up tree to project root?
     // TODO List dir?
-    const names = [_][]const u8{ "boolerr", "fib", "hello", "persons" };
+    const names = [_][]const u8{ "boolerr", "fib", "hello", "persons", "wild" };
     for (names) |name| {
         // Prep write.
         const out_name = try std.fmt.allocPrint(allocator, "tests/trees/{s}.tree.txt", .{name});

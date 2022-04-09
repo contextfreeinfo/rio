@@ -1,0 +1,12 @@
+main = for () be
+  # Abomination testing.
+  a: b c: d e f: g
+  a: b: c: d: e: f: g
+  a: hi? there
+  a: (hi?) there
+  a .of
+   b c
+   d.e.f g
+  end a be blah
+  a be good be bad
+end
