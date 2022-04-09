@@ -205,7 +205,7 @@ pub fn Parser(comptime Reader: type) type {
 
         fn atom(self: *Self) !void {
             switch ((try self.peek()).kind) {
-                .eof, .escape_end, .key_end, .round_end => {},
+                .eof, .escape_end, .key_be, .key_end, .round_end => {},
                 // .key_be => try self.blocker(.be, checkBlockEnd),
                 .key_of => try self.blocker(.of, checkBlockEnd),
                 .key_for, .key_to, .key_with => try self.fun(),
@@ -216,11 +216,13 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn beCall(self: *Self) ParseError!void {
-            // Not infix because not nesting.
+            // Probably shouldn't nest be calls, but parse it this way still.
             const begin = self.here();
             try self.subline();
             try self.hspace();
-            if ((try self.peek()).kind == .key_be) {
+            while (true) {
+                try self.hspace();
+                if ((try self.peek()).kind != .key_be) break;
                 try self.blocker(.be, checkBlockEnd);
                 try self.nest(.be_call, begin);
             }
@@ -410,14 +412,12 @@ pub fn Parser(comptime Reader: type) type {
             try self.nestMaybe(.space, begin);
         }
 
-        // TODO This nests left, but normal assign (if nesting is allowed) should nest right. (And assignTo should nest left.)
         fn infix(self: *Self, kind: NodeKind, op: CheckOp, kid: fn (self: *Self) ParseError!void) !void {
             const begin = self.here();
             try kid(self);
             try self.infixFinish(kind, op, kid, begin);
         }
 
-        // TODO This nests left, but normal assign (if nesting is allowed) should nest right.
         fn infixFinish(self: *Self, kind: NodeKind, op: CheckOp, kid: fn (self: *Self) ParseError!void, begin: NodeId) !void {
             try self.hspace();
             while (true) {

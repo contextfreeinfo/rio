@@ -10,7 +10,8 @@ main = for () with printf be
   a .of
    b c
    d.e.f g
-  end
+  end a be blah
+  a be good be bad
 end
 
 # main2 = for env as !env to try void be
