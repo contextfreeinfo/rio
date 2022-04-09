@@ -62,10 +62,11 @@ NodeKind.block
               NodeKind.leaf: TokenKind.round_begin (
               NodeKind.block
                 NodeKind.call
-                  NodeKind.leaf: TokenKind.id range
-                  NodeKind.space
-                    NodeKind.leaf: TokenKind.hspace  
-                  NodeKind.leaf: TokenKind.int 0
+                  NodeKind.dot
+                    NodeKind.leaf: TokenKind.int 0
+                    NodeKind.leaf: TokenKind.op_dot .
+                    NodeKind.leaf: TokenKind.id thru
+                  /NodeKind.dot
                   NodeKind.space
                     NodeKind.leaf: TokenKind.hspace  
                   NodeKind.leaf: TokenKind.int 9
