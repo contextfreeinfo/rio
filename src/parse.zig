@@ -393,7 +393,7 @@ pub fn Parser(comptime Reader: type) type {
                         break;
                     },
                     .key_for => try self.blocker(.fun_for, checkFunPartEnd),
-                    // We expect only one thing under `to`, but be flexible in parsing to match the rest. 
+                    // We expect only one thing under `to`, but be flexible in parsing to match the rest.
                     .key_to => try self.blocker(.fun_to, checkFunPartEnd),
                     .key_with => try self.blocker(.fun_with, checkFunPartEnd),
                     else => break,
