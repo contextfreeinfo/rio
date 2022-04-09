@@ -1,6 +1,6 @@
-error = struct message as string
-doc = struct head as maybe _
-head = struct title as maybe string
+error = struct of message as string
+doc = struct of head as maybe _
+head = struct of title as maybe string
 summary = struct of
   title as maybe string
   ok as bool

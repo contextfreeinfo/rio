@@ -178,7 +178,7 @@ NodeKind.block
         NodeKind.leaf: TokenKind.key_for for
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
-        NodeKind.call
+        NodeKind.as
           NodeKind.leaf: TokenKind.id n
           NodeKind.space
             NodeKind.leaf: TokenKind.hspace  
@@ -188,7 +188,7 @@ NodeKind.block
           NodeKind.leaf: TokenKind.id int
           NodeKind.space
             NodeKind.leaf: TokenKind.hspace  
-        /NodeKind.call
+        /NodeKind.as
       /NodeKind.fun_for
       NodeKind.fun_to
         NodeKind.leaf: TokenKind.key_to to

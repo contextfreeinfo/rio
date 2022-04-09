@@ -297,7 +297,7 @@ NodeKind.block
 
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
-          NodeKind.call
+          NodeKind.as
             NodeKind.leaf: TokenKind.id name
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
@@ -305,13 +305,13 @@ NodeKind.block
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
             NodeKind.leaf: TokenKind.id string
-          /NodeKind.call
+          /NodeKind.as
           NodeKind.space
             NodeKind.leaf: TokenKind.vspace 
 
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
-          NodeKind.call
+          NodeKind.as
             NodeKind.leaf: TokenKind.id age
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
@@ -319,7 +319,7 @@ NodeKind.block
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
             NodeKind.leaf: TokenKind.id int
-          /NodeKind.call
+          /NodeKind.as
           NodeKind.space
             NodeKind.leaf: TokenKind.vspace 
 
@@ -388,20 +388,22 @@ NodeKind.block
         NodeKind.leaf: TokenKind.key_for for
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
-        NodeKind.call
+        NodeKind.as
           NodeKind.leaf: TokenKind.id persons
           NodeKind.space
             NodeKind.leaf: TokenKind.hspace  
           NodeKind.leaf: TokenKind.key_as as
           NodeKind.space
             NodeKind.leaf: TokenKind.hspace  
-          NodeKind.leaf: TokenKind.id list
-          NodeKind.space
-            NodeKind.leaf: TokenKind.hspace  
-          NodeKind.leaf: TokenKind.id person
-          NodeKind.space
-            NodeKind.leaf: TokenKind.hspace  
-        /NodeKind.call
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id list
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.id person
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+          /NodeKind.call
+        /NodeKind.as
       /NodeKind.fun_for
       NodeKind.fun_with
         NodeKind.leaf: TokenKind.key_with with
@@ -741,5 +743,5 @@ NodeKind.block
   /NodeKind.space
 /NodeKind.block
 Intern storage: 4096 545
-Tree size: 560
+Tree size: 561
 Token size: 8 node size: 16 1

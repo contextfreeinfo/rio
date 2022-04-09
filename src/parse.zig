@@ -6,6 +6,7 @@ const Allocator = std.mem.Allocator;
 
 pub const NodeKind = enum {
     add,
+    as,
     assign,
     assign_to,
     be,
@@ -194,6 +195,10 @@ pub fn Parser(comptime Reader: type) type {
             try self.boolOr();
         }
 
+        fn as(self: *Self) !void {
+            try self.infix(.as, opAs, call);
+        }
+
         fn assign(self: *Self) !void {
             // TODO Should be right associative.
             try self.infix(.assign, opEq, beCall);
@@ -279,7 +284,7 @@ pub fn Parser(comptime Reader: type) type {
                 try self.colon();
                 try self.hspace();
                 switch ((try self.peek()).kind) {
-                    .eof, .escape_end, .key_be, .key_end, .key_for, .key_to, .key_with, .op_eq, .op_eqto, .round_end, .vspace => break,
+                    .eof, .escape_end, .key_as, .key_be, .key_end, .key_for, .key_to, .key_with, .op_eq, .op_eqto, .round_end, .vspace => break,
                     else => {},
                 }
             }
@@ -516,7 +521,7 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn subline(self: *Self) !void {
-            try self.call();
+            try self.as();
         }
 
         fn string(self: *Self) !void {
@@ -546,6 +551,10 @@ fn opAdd(kind: lex.TokenKind) bool {
 
 fn opAnd(kind: lex.TokenKind) bool {
     return kind == .key_and;
+}
+
+fn opAs(kind: lex.TokenKind) bool {
+    return kind == .key_as;
 }
 
 fn opColon(kind: lex.TokenKind) bool {
