@@ -1,6 +1,6 @@
 use "c" => ..
 
-main = with printf be
+main = for () with printf be
   # Assignment here declares new *const* values
   name = "Alice"
   age = 40

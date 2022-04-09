@@ -181,7 +181,7 @@ pub fn Parser(comptime Reader: type) type {
             try self.infix(.assign, .op_eq, call);
         }
 
-        fn assign_to(self: *Self) !void {
+        fn assignTo(self: *Self) !void {
             try self.infix(.assign_to, .op_eqto, assign);
         }
 
@@ -198,10 +198,10 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn block(self: *Self) !void {
-            try self.block_until(check_block_end);
+            try self.blockUntil(checkBlockEnd);
         }
 
-        fn block_until(self: *Self, check_end: fn (self: *Self, kind: lex.TokenKind) ParseError!bool) !void {
+        fn blockUntil(self: *Self, check_end: fn (self: *Self, kind: lex.TokenKind) ParseError!bool) !void {
             const begin = self.here();
             while (true) {
                 try self.space();
@@ -277,19 +277,19 @@ pub fn Parser(comptime Reader: type) type {
             }
         }
 
-        fn check_block_end(self: *Self, kind: lex.TokenKind) ParseError!bool {
+        fn checkBlockEnd(self: *Self, kind: lex.TokenKind) ParseError!bool {
             // TODO Get fancier?
             _ = self;
             return kind == .key_end;
         }
 
-        fn check_escape_end(self: *Self, kind: lex.TokenKind) ParseError!bool {
+        fn checkEscapeEnd(self: *Self, kind: lex.TokenKind) ParseError!bool {
             // Nothing much fancier we can do here with nested lexing.
             _ = self;
             return kind == .escape_end;
         }
 
-        fn check_round_end(self: *Self, kind: lex.TokenKind) ParseError!bool {
+        fn checkRoundEnd(self: *Self, kind: lex.TokenKind) ParseError!bool {
             // TODO Get fancier?
             _ = self;
             return kind == .round_end;
@@ -321,7 +321,7 @@ pub fn Parser(comptime Reader: type) type {
         fn escape(self: *Self) !void {
             const begin = self.here();
             try self.advance();
-            try self.block_until(check_escape_end);
+            try self.blockUntil(checkEscapeEnd);
             if ((try self.peek()).kind == .escape_end) {
                 try self.advance();
             }
@@ -359,7 +359,7 @@ pub fn Parser(comptime Reader: type) type {
             try self.nestMaybe(.space, begin);
         }
 
-        // TODO This nests left, but normal assign (if nesting is allowed) should nest right. (And assign_to should nest left.)
+        // TODO This nests left, but normal assign (if nesting is allowed) should nest right. (And assignTo should nest left.)
         fn infix(self: *Self, kind: NodeKind, op: lex.TokenKind, kid: fn (self: *Self) ParseError!void) !void {
             const begin = self.here();
             try kid(self);
@@ -383,7 +383,7 @@ pub fn Parser(comptime Reader: type) type {
 
         fn line(self: *Self) !void {
             try self.line_begins.append(self.here());
-            try self.assign_to();
+            try self.assignTo();
             defer self.line_begins.items.len -= 1;
         }
 
@@ -442,7 +442,7 @@ pub fn Parser(comptime Reader: type) type {
         fn round(self: *Self) !void {
             const begin = self.here();
             try self.advance();
-            try self.block_until(check_round_end);
+            try self.blockUntil(checkRoundEnd);
             if ((try self.peek()).kind == .round_end) {
                 try self.advance();
             }

@@ -1,6 +1,6 @@
 use "c" => c => ..
 
-main = with printf be
+main = for () with printf be
   thing: void of printf "Hi!\n"
   # Abomination testing:
   a: b c: d e f: g
