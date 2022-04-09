@@ -17,6 +17,7 @@ pub const TokenKind = enum {
     hspace,
     id,
     int,
+    key_and,
     key_as,
     key_be,
     key_case,
@@ -26,6 +27,7 @@ pub const TokenKind = enum {
     key_for,
     key_include,
     key_of,
+    key_or,
     key_struct,
     key_to,
     key_try,
@@ -55,7 +57,7 @@ pub const TokenKind = enum {
     vspace,
 };
 
-pub const token_key_first = TokenKind.key_as;
+pub const token_key_first = TokenKind.key_and;
 pub const token_key_last = TokenKind.key_use;
 
 pub const TokenCategory = enum {
@@ -80,7 +82,7 @@ pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
         .comment, .escape, .frac, .int, .string_text => .content,
         .eof => .eof,
         .id => .id,
-        .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_of, .key_struct, .key_to, .key_try, .key_use => .key,
+        .key_and, .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_of, .key_or, .key_struct, .key_to, .key_try, .key_use => .key,
         .escape_begin, .escape_end, .op_add, .op_colon, .op_div, .op_dot, .op_eq, .op_eqeq, .op_eqto, .op_ge, .op_gt, .op_le, .op_lt, .op_mul, .op_question, .op_spread, .op_sub, .round_begin, .round_end, .string_begin_double, .string_begin_single, .string_end => .op,
         .other => .other,
         .hspace, .vspace => .space,
@@ -100,6 +102,7 @@ pub fn tokenText(kind: TokenKind) []const u8 {
         .hspace => " ",
         .id => "_",
         .int => "_",
+        .key_and => "and",
         .key_as => "as",
         .key_be => "be",
         .key_case => "case",
@@ -109,13 +112,14 @@ pub fn tokenText(kind: TokenKind) []const u8 {
         .key_for => "for",
         .key_include => "include",
         .key_of => "of",
+        .key_or => "or",
         .key_struct => "struct",
         .key_to => "to",
         .key_try => "try",
         .key_use => "use",
         .op_add => "+",
         .op_colon => ":",
-        .op_div => "div",
+        .op_div => "/",
         .op_dot => ".",
         .op_eq => "=",
         .op_eqeq => "==",
@@ -228,8 +232,12 @@ pub fn Lexer(comptime Reader: type) type {
                 '.' => self.nextDot(),
                 '?' => self.nextSingle(.op_question),
                 '=' => self.nextEq(),
-                // '+' => self.nextSingle(.op_add),
-                // '-' => self.nextSingle(.op_sub),
+                '<' => self.nextLt(),
+                '>' => self.nextGt(),
+                '+' => self.nextSingle(.op_add),
+                '-' => self.nextSingle(.op_sub),
+                '*' => self.nextSingle(.op_mul),
+                '/' => self.nextSingle(.op_div),
                 '#' => self.nextComment(),
                 ' ', '\t' => self.nextHspace(),
                 '\r', '\n' => self.nextVspace(),
@@ -293,6 +301,15 @@ pub fn Lexer(comptime Reader: type) type {
             }
         }
 
+        fn nextGt(self: *Self) !TokenKind {
+            const result: TokenKind = switch ((try self.advance()) orelse return .op_gt) {
+                '=' => .op_ge,
+                else => return .op_gt,
+            };
+            _ = try self.advance();
+            return result;
+        }
+
         fn nextHspace(self: *Self) !TokenKind {
             while (true) {
                 switch ((try self.advance()) orelse break) {
@@ -311,6 +328,15 @@ pub fn Lexer(comptime Reader: type) type {
                 }
             }
             return self.keys.get(self.text.items) orelse .id;
+        }
+
+        fn nextLt(self: *Self) !TokenKind {
+            const result: TokenKind = switch ((try self.advance()) orelse return .op_lt) {
+                '=' => .op_le,
+                else => return .op_lt,
+            };
+            _ = try self.advance();
+            return result;
         }
 
         fn nextNumber(self: *Self) !TokenKind {

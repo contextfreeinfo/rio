@@ -5,13 +5,17 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 pub const NodeKind = enum {
+    add,
     assign,
     assign_to,
     be,
     block,
+    bool_and,
+    bool_or,
     call,
     colon,
     comment,
+    compare,
     def,
     dot,
     end,
@@ -19,6 +23,7 @@ pub const NodeKind = enum {
     fun,
     frac,
     leaf,
+    mul,
     of,
     question,
     round,
@@ -169,6 +174,10 @@ pub fn Parser(comptime Reader: type) type {
             return Tree{ .nodes = (try self.nodes.clone()).items };
         }
 
+        fn add(self: *Self) !void {
+            try self.infix(.add, opAdd, mul);
+        }
+
         fn advance(self: *Self) !void {
             const token = try self.readToken();
             if (token.kind != .eof) {
@@ -178,11 +187,11 @@ pub fn Parser(comptime Reader: type) type {
 
         fn assign(self: *Self) !void {
             // TODO Should be right associative.
-            try self.infix(.assign, .op_eq, call);
+            try self.infix(.assign, opEq, subline);
         }
 
         fn assignTo(self: *Self) !void {
-            try self.infix(.assign_to, .op_eqto, assign);
+            try self.infix(.assign_to, opEqto, assign);
         }
 
         fn atom(self: *Self) !void {
@@ -228,9 +237,17 @@ pub fn Parser(comptime Reader: type) type {
                         try self.end();
                     }
                 },
-                else => try self.call(), // TODO Infix ops instead.
+                else => try self.subline(),
             }
             try self.nest(kind, begin);
+        }
+
+        fn boolOr(self: *Self) !void {
+            try self.infix(.bool_or, opOr, boolAnd);
+        }
+
+        fn boolAnd(self: *Self) !void {
+            try self.infix(.bool_and, opAnd, compare);
         }
 
         fn call(self: *Self) !void {
@@ -297,13 +314,17 @@ pub fn Parser(comptime Reader: type) type {
 
         fn colon(self: *Self) ParseError!void {
             const begin = self.here();
-            try self.question();
+            try self.boolOr();
             // Line won't repeat colons, since they'll be consumed internally, but eh.
-            try self.infixFinish(.colon, .op_colon, if (begin.is(self.lineBegin())) line else question, begin);
+            try self.infixFinish(.colon, opColon, if (begin.is(self.lineBegin())) line else question, begin);
+        }
+
+        fn compare(self: *Self) !void {
+            try self.infix(.compare, opCompare, add);
         }
 
         fn dot(self: *Self) !void {
-            try self.infix(.dot, .op_dot, atom);
+            try self.infix(.dot, opDot, atom);
         }
 
         fn end(self: *Self) !void {
@@ -360,17 +381,17 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         // TODO This nests left, but normal assign (if nesting is allowed) should nest right. (And assignTo should nest left.)
-        fn infix(self: *Self, kind: NodeKind, op: lex.TokenKind, kid: fn (self: *Self) ParseError!void) !void {
+        fn infix(self: *Self, kind: NodeKind, op: MatchOp, kid: fn (self: *Self) ParseError!void) !void {
             const begin = self.here();
             try kid(self);
             try self.infixFinish(kind, op, kid, begin);
         }
 
         // TODO This nests left, but normal assign (if nesting is allowed) should nest right.
-        fn infixFinish(self: *Self, kind: NodeKind, op: lex.TokenKind, kid: fn (self: *Self) ParseError!void, begin: NodeId) !void {
+        fn infixFinish(self: *Self, kind: NodeKind, op: MatchOp, kid: fn (self: *Self) ParseError!void, begin: NodeId) !void {
             try self.hspace();
             while (true) {
-                if ((try self.peek()).kind != op) break;
+                if (!op((try self.peek()).kind)) break;
                 try self.advance();
                 try self.space();
                 switch ((try self.peek()).kind) { // or any end
@@ -389,6 +410,10 @@ pub fn Parser(comptime Reader: type) type {
 
         fn lineBegin(self: *Self) NodeId {
             return if (self.line_begins.items.len > 0) self.line_begins.items[self.line_begins.items.len - 1] else NodeId.of(0);
+        }
+
+        fn mul(self: *Self) !void {
+            try self.infix(.mul, opMul, question);
         }
 
         fn nest(self: *Self, kind: NodeKind, begin: NodeId) !void {
@@ -427,7 +452,7 @@ pub fn Parser(comptime Reader: type) type {
                 // The goal here is to keep questions outside of dots.
                 try self.nest(.question, begin);
                 // But to let dots proceed still.
-                try self.infixFinish(.dot, .op_dot, atom, begin);
+                try self.infixFinish(.dot, opDot, atom, begin);
             }
         }
 
@@ -460,6 +485,10 @@ pub fn Parser(comptime Reader: type) type {
             try self.nestMaybe(.space, begin);
         }
 
+        fn subline(self: *Self) !void {
+            try self.call();
+        }
+
         fn string(self: *Self) !void {
             const begin = self.here();
             try self.advance();
@@ -474,4 +503,51 @@ pub fn Parser(comptime Reader: type) type {
             try self.nest(.string, begin);
         }
     };
+}
+
+const MatchOp = fn(lex.TokenKind) bool;
+
+fn opAdd(kind: lex.TokenKind) bool {
+    return switch (kind) {
+        .op_add, .op_sub => true,
+        else => false,
+    };
+}
+
+fn opAnd(kind: lex.TokenKind) bool {
+    return kind == .key_and;
+}
+
+fn opColon(kind: lex.TokenKind) bool {
+    return kind == .op_colon;
+}
+
+fn opCompare(kind: lex.TokenKind) bool {
+    return switch (kind) {
+        .op_eqeq, .op_ge, .op_gt, .op_le, .op_lt => true,
+        else => false,
+    };
+}
+
+fn opDot(kind: lex.TokenKind) bool {
+    return kind == .op_dot;
+}
+
+fn opEq(kind: lex.TokenKind) bool {
+    return kind == .op_eq;
+}
+
+fn opEqto(kind: lex.TokenKind) bool {
+    return kind == .op_eqto;
+}
+
+fn opMul(kind: lex.TokenKind) bool {
+    return switch (kind) {
+        .op_div, .op_mul => true,
+        else => false,
+    };
+}
+
+fn opOr(kind: lex.TokenKind) bool {
+    return kind == .key_or;
 }

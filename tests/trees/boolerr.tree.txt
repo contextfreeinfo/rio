@@ -563,11 +563,11 @@ NodeKind.block
 
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
-          NodeKind.call
+          NodeKind.bool_or
             NodeKind.round
               NodeKind.leaf: TokenKind.round_begin (
               NodeKind.block
-                NodeKind.call
+                NodeKind.bool_and
                   NodeKind.dot
                     NodeKind.leaf: TokenKind.id url
                     NodeKind.leaf: TokenKind.op_dot .
@@ -575,7 +575,7 @@ NodeKind.block
                   /NodeKind.dot
                   NodeKind.space
                     NodeKind.leaf: TokenKind.hspace  
-                  NodeKind.leaf: TokenKind.id and
+                  NodeKind.leaf: TokenKind.key_and and
                   NodeKind.space
                     NodeKind.leaf: TokenKind.hspace  
                   NodeKind.dot
@@ -583,13 +583,13 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.op_dot .
                     NodeKind.leaf: TokenKind.id build-summary
                   /NodeKind.dot
-                /NodeKind.call
+                /NodeKind.bool_and
               /NodeKind.block
               NodeKind.leaf: TokenKind.round_end )
             /NodeKind.round
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
-            NodeKind.leaf: TokenKind.id or
+            NodeKind.leaf: TokenKind.key_or or
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
             NodeKind.dot
@@ -597,7 +597,7 @@ NodeKind.block
               NodeKind.leaf: TokenKind.op_dot .
               NodeKind.leaf: TokenKind.id new
             /NodeKind.dot
-          /NodeKind.call
+          /NodeKind.bool_or
           NodeKind.space
             NodeKind.leaf: TokenKind.vspace 
 
@@ -955,7 +955,7 @@ NodeKind.block
                       NodeKind.escape
                         NodeKind.leaf: TokenKind.escape_begin \(
                         NodeKind.block
-                          NodeKind.call
+                          NodeKind.bool_or
                             NodeKind.dot
                               NodeKind.leaf: TokenKind.id summary
                               NodeKind.leaf: TokenKind.op_dot .
@@ -963,14 +963,14 @@ NodeKind.block
                             /NodeKind.dot
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
-                            NodeKind.leaf: TokenKind.id or
+                            NodeKind.leaf: TokenKind.key_or or
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
                             NodeKind.string
                               NodeKind.leaf: TokenKind.string_begin_double "
                               NodeKind.leaf: TokenKind.string_end "
                             /NodeKind.string
-                          /NodeKind.call
+                          /NodeKind.bool_or
                         /NodeKind.block
                         NodeKind.leaf: TokenKind.escape_end )
                       /NodeKind.escape
@@ -1023,18 +1023,18 @@ NodeKind.block
                       NodeKind.escape
                         NodeKind.leaf: TokenKind.escape_begin \(
                         NodeKind.block
-                          NodeKind.call
+                          NodeKind.bool_or
                             NodeKind.leaf: TokenKind.id has-title
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
-                            NodeKind.leaf: TokenKind.id or
+                            NodeKind.leaf: TokenKind.key_or or
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
                             NodeKind.string
                               NodeKind.leaf: TokenKind.string_begin_double "
                               NodeKind.leaf: TokenKind.string_end "
                             /NodeKind.string
-                          /NodeKind.call
+                          /NodeKind.bool_or
                         /NodeKind.block
                         NodeKind.leaf: TokenKind.escape_end )
                       /NodeKind.escape
