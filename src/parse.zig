@@ -129,10 +129,17 @@ pub const ParseError = error{OutOfMemory} || std.os.ReadError;
 
 const Context = struct {
     fun: bool = false,
+    line_begin: NodeId = NodeId.of(0),
 
     fn withFun(self: Context, fun: bool) Context {
         var result = self;
         result.fun = fun;
+        return result;
+    }
+
+    fn withLineBegin(self: Context, line_begin: NodeId) Context {
+        var result = self;
+        result.line_begin = line_begin;
         return result;
     }
 };
@@ -140,7 +147,6 @@ const Context = struct {
 pub fn Parser(comptime Reader: type) type {
     return struct {
         lexer: lex.Lexer(Reader),
-        line_begins: std.ArrayList(NodeId),
         nodes: std.ArrayList(Node),
         unread: ?lex.Token,
         working: std.ArrayList(Node),
@@ -152,7 +158,6 @@ pub fn Parser(comptime Reader: type) type {
         pub fn init(allocator: Allocator, pool: ?*intern.Pool) !Self {
             return Self{
                 .lexer = try lex.Lexer(Reader).init(allocator, pool),
-                .line_begins = std.ArrayList(NodeId).init(allocator),
                 .nodes = std.ArrayList(Node).init(allocator),
                 .unread = null,
                 .working = std.ArrayList(Node).init(allocator),
@@ -357,7 +362,7 @@ pub fn Parser(comptime Reader: type) type {
             const begin = self.here();
             try self.argVal(context);
             // Line won't repeat colons, since they'll be consumed internally, but eh.
-            try self.infixFinish(context, .colon, opColon, if (begin.is(self.lineBegin())) line else question, begin);
+            try self.infixFinish(context, .colon, opColon, if (begin.is(context.line_begin)) line else question, begin);
         }
 
         fn compare(self: *Self, context: Context) !void {
@@ -449,13 +454,7 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn line(self: *Self, context: Context) !void {
-            try self.line_begins.append(self.here());
-            defer self.line_begins.items.len -= 1;
-            try self.assignTo(context);
-        }
-
-        fn lineBegin(self: *Self) NodeId {
-            return if (self.line_begins.items.len > 0) self.line_begins.items[self.line_begins.items.len - 1] else NodeId.of(0);
+            try self.assignTo(context.withLineBegin(self.here()));
         }
 
         fn mul(self: *Self, context: Context) !void {
