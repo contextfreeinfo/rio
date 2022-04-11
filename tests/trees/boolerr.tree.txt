@@ -912,216 +912,218 @@ NodeKind.block
 
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
-          NodeKind.dot
-            NodeKind.leaf: TokenKind.id urls
-            NodeKind.leaf: TokenKind.op_dot .
-            NodeKind.leaf: TokenKind.id each
-          /NodeKind.dot
-          NodeKind.space
-            NodeKind.leaf: TokenKind.hspace  
-          NodeKind.fun
-            NodeKind.fun_for
-              NodeKind.leaf: TokenKind.key_for for
-              NodeKind.space
-                NodeKind.leaf: TokenKind.hspace  
-              NodeKind.leaf: TokenKind.id url
-              NodeKind.space
-                NodeKind.leaf: TokenKind.hspace  
-            /NodeKind.fun_for
-            NodeKind.be
-              NodeKind.leaf: TokenKind.key_be be
-              NodeKind.block
+          NodeKind.be_call
+            NodeKind.dot
+              NodeKind.leaf: TokenKind.id urls
+              NodeKind.leaf: TokenKind.op_dot .
+              NodeKind.leaf: TokenKind.id each
+            /NodeKind.dot
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.fun
+              NodeKind.fun_for
+                NodeKind.leaf: TokenKind.key_for for
                 NodeKind.space
-                  NodeKind.leaf: TokenKind.vspace 
+                  NodeKind.leaf: TokenKind.hspace  
+                NodeKind.leaf: TokenKind.id url
+                NodeKind.space
+                  NodeKind.leaf: TokenKind.hspace  
+              /NodeKind.fun_for
+              NodeKind.be
+                NodeKind.leaf: TokenKind.key_be be
+                NodeKind.block
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.vspace 
 
-                  NodeKind.leaf: TokenKind.hspace     
-                /NodeKind.space
-                NodeKind.question
-                  NodeKind.call
-                    NodeKind.dot
+                    NodeKind.leaf: TokenKind.hspace     
+                  /NodeKind.space
+                  NodeKind.question
+                    NodeKind.call
                       NodeKind.dot
-                        NodeKind.leaf: TokenKind.id env
+                        NodeKind.dot
+                          NodeKind.leaf: TokenKind.id env
+                          NodeKind.leaf: TokenKind.op_dot .
+                          NodeKind.leaf: TokenKind.id out
+                        /NodeKind.dot
                         NodeKind.leaf: TokenKind.op_dot .
-                        NodeKind.leaf: TokenKind.id out
+                        NodeKind.leaf: TokenKind.id print
                       /NodeKind.dot
+                      NodeKind.leaf: TokenKind.op_question ?
+                      NodeKind.space
+                        NodeKind.leaf: TokenKind.hspace  
+                      NodeKind.string
+                        NodeKind.leaf: TokenKind.string_begin_single '
+                        NodeKind.leaf: TokenKind.string_text Checking "https://
+                        NodeKind.escape
+                          NodeKind.leaf: TokenKind.escape_begin \(
+                          NodeKind.block
+                            NodeKind.leaf: TokenKind.id url
+                          NodeKind.leaf: TokenKind.escape_end )
+                        /NodeKind.escape
+                        NodeKind.leaf: TokenKind.string_text /":
+                        NodeKind.leaf: TokenKind.string_end '
+                      /NodeKind.string
+                    /NodeKind.call
+                  /NodeKind.question
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.vspace 
+
+                    NodeKind.leaf: TokenKind.hspace     
+                    NodeKind.leaf: TokenKind.comment # Summary.
+                    NodeKind.leaf: TokenKind.vspace 
+
+                    NodeKind.leaf: TokenKind.hspace     
+                  /NodeKind.space
+                  NodeKind.assign
+                    NodeKind.leaf: TokenKind.id summary
+                    NodeKind.space
+                      NodeKind.leaf: TokenKind.hspace  
+                    NodeKind.leaf: TokenKind.op_eq =
+                    NodeKind.space
+                      NodeKind.leaf: TokenKind.hspace  
+                    NodeKind.dot
+                      NodeKind.leaf: TokenKind.id url
+                      NodeKind.leaf: TokenKind.op_dot .
+                      NodeKind.leaf: TokenKind.id read-and-build-summary
+                    /NodeKind.dot
+                  /NodeKind.assign
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.vspace 
+
+                    NodeKind.leaf: TokenKind.hspace     
+                  /NodeKind.space
+                  NodeKind.question
+                    NodeKind.dot
+                      NodeKind.string
+                        NodeKind.leaf: TokenKind.string_begin_double "
+                        NodeKind.leaf: TokenKind.string_text   Summary: 
+                        NodeKind.escape
+                          NodeKind.leaf: TokenKind.escape_begin \(
+                          NodeKind.block
+                            NodeKind.leaf: TokenKind.id summary
+                          NodeKind.leaf: TokenKind.escape_end )
+                        /NodeKind.escape
+                        NodeKind.leaf: TokenKind.string_end "
+                      /NodeKind.string
                       NodeKind.leaf: TokenKind.op_dot .
                       NodeKind.leaf: TokenKind.id print
                     /NodeKind.dot
                     NodeKind.leaf: TokenKind.op_question ?
+                  /NodeKind.question
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.vspace 
+
+                    NodeKind.leaf: TokenKind.hspace     
+                  /NodeKind.space
+                  NodeKind.question
+                    NodeKind.dot
+                      NodeKind.string
+                        NodeKind.leaf: TokenKind.string_begin_double "
+                        NodeKind.leaf: TokenKind.string_text   Title: 
+                        NodeKind.escape
+                          NodeKind.leaf: TokenKind.escape_begin \(
+                          NodeKind.block
+                            NodeKind.bool_or
+                              NodeKind.dot
+                                NodeKind.leaf: TokenKind.id summary
+                                NodeKind.leaf: TokenKind.op_dot .
+                                NodeKind.leaf: TokenKind.id title
+                              /NodeKind.dot
+                              NodeKind.space
+                                NodeKind.leaf: TokenKind.hspace  
+                              NodeKind.leaf: TokenKind.key_or or
+                              NodeKind.space
+                                NodeKind.leaf: TokenKind.hspace  
+                              NodeKind.string
+                                NodeKind.leaf: TokenKind.string_begin_double "
+                                NodeKind.leaf: TokenKind.string_end "
+                              /NodeKind.string
+                            /NodeKind.bool_or
+                          /NodeKind.block
+                          NodeKind.leaf: TokenKind.escape_end )
+                        /NodeKind.escape
+                        NodeKind.leaf: TokenKind.string_end "
+                      /NodeKind.string
+                      NodeKind.leaf: TokenKind.op_dot .
+                      NodeKind.leaf: TokenKind.id print
+                    /NodeKind.dot
+                    NodeKind.leaf: TokenKind.op_question ?
+                  /NodeKind.question
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.vspace 
+
+                    NodeKind.leaf: TokenKind.hspace     
+                    NodeKind.leaf: TokenKind.comment # Has title.
+                    NodeKind.leaf: TokenKind.vspace 
+
+                    NodeKind.leaf: TokenKind.hspace     
+                  /NodeKind.space
+                  NodeKind.assign
+                    NodeKind.leaf: TokenKind.id has-title
                     NodeKind.space
                       NodeKind.leaf: TokenKind.hspace  
-                    NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_single '
-                      NodeKind.leaf: TokenKind.string_text Checking "https://
-                      NodeKind.escape
-                        NodeKind.leaf: TokenKind.escape_begin \(
-                        NodeKind.block
-                          NodeKind.leaf: TokenKind.id url
-                        NodeKind.leaf: TokenKind.escape_end )
-                      /NodeKind.escape
-                      NodeKind.leaf: TokenKind.string_text /":
-                      NodeKind.leaf: TokenKind.string_end '
-                    /NodeKind.string
-                  /NodeKind.call
-                /NodeKind.question
-                NodeKind.space
-                  NodeKind.leaf: TokenKind.vspace 
-
-                  NodeKind.leaf: TokenKind.hspace     
-                  NodeKind.leaf: TokenKind.comment # Summary.
-                  NodeKind.leaf: TokenKind.vspace 
-
-                  NodeKind.leaf: TokenKind.hspace     
-                /NodeKind.space
-                NodeKind.assign
-                  NodeKind.leaf: TokenKind.id summary
+                    NodeKind.leaf: TokenKind.op_eq =
+                    NodeKind.space
+                      NodeKind.leaf: TokenKind.hspace  
+                    NodeKind.dot
+                      NodeKind.leaf: TokenKind.id url
+                      NodeKind.leaf: TokenKind.op_dot .
+                      NodeKind.leaf: TokenKind.id read-whether-title-non-empty
+                    /NodeKind.dot
+                  /NodeKind.assign
                   NodeKind.space
-                    NodeKind.leaf: TokenKind.hspace  
-                  NodeKind.leaf: TokenKind.op_eq =
-                  NodeKind.space
-                    NodeKind.leaf: TokenKind.hspace  
-                  NodeKind.dot
-                    NodeKind.leaf: TokenKind.id url
-                    NodeKind.leaf: TokenKind.op_dot .
-                    NodeKind.leaf: TokenKind.id read-and-build-summary
-                  /NodeKind.dot
-                /NodeKind.assign
-                NodeKind.space
-                  NodeKind.leaf: TokenKind.vspace 
+                    NodeKind.leaf: TokenKind.vspace 
 
-                  NodeKind.leaf: TokenKind.hspace     
-                /NodeKind.space
-                NodeKind.question
-                  NodeKind.dot
-                    NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
-                      NodeKind.leaf: TokenKind.string_text   Summary: 
-                      NodeKind.escape
-                        NodeKind.leaf: TokenKind.escape_begin \(
-                        NodeKind.block
-                          NodeKind.leaf: TokenKind.id summary
-                        NodeKind.leaf: TokenKind.escape_end )
-                      /NodeKind.escape
-                      NodeKind.leaf: TokenKind.string_end "
-                    /NodeKind.string
-                    NodeKind.leaf: TokenKind.op_dot .
-                    NodeKind.leaf: TokenKind.id print
-                  /NodeKind.dot
-                  NodeKind.leaf: TokenKind.op_question ?
-                /NodeKind.question
-                NodeKind.space
-                  NodeKind.leaf: TokenKind.vspace 
-
-                  NodeKind.leaf: TokenKind.hspace     
-                /NodeKind.space
-                NodeKind.question
-                  NodeKind.dot
-                    NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
-                      NodeKind.leaf: TokenKind.string_text   Title: 
-                      NodeKind.escape
-                        NodeKind.leaf: TokenKind.escape_begin \(
-                        NodeKind.block
-                          NodeKind.bool_or
-                            NodeKind.dot
-                              NodeKind.leaf: TokenKind.id summary
-                              NodeKind.leaf: TokenKind.op_dot .
-                              NodeKind.leaf: TokenKind.id title
-                            /NodeKind.dot
-                            NodeKind.space
-                              NodeKind.leaf: TokenKind.hspace  
-                            NodeKind.leaf: TokenKind.key_or or
-                            NodeKind.space
-                              NodeKind.leaf: TokenKind.hspace  
-                            NodeKind.string
-                              NodeKind.leaf: TokenKind.string_begin_double "
-                              NodeKind.leaf: TokenKind.string_end "
-                            /NodeKind.string
-                          /NodeKind.bool_or
-                        /NodeKind.block
-                        NodeKind.leaf: TokenKind.escape_end )
-                      /NodeKind.escape
-                      NodeKind.leaf: TokenKind.string_end "
-                    /NodeKind.string
-                    NodeKind.leaf: TokenKind.op_dot .
-                    NodeKind.leaf: TokenKind.id print
-                  /NodeKind.dot
-                  NodeKind.leaf: TokenKind.op_question ?
-                /NodeKind.question
-                NodeKind.space
-                  NodeKind.leaf: TokenKind.vspace 
-
-                  NodeKind.leaf: TokenKind.hspace     
-                  NodeKind.leaf: TokenKind.comment # Has title.
-                  NodeKind.leaf: TokenKind.vspace 
-
-                  NodeKind.leaf: TokenKind.hspace     
-                /NodeKind.space
-                NodeKind.assign
-                  NodeKind.leaf: TokenKind.id has-title
-                  NodeKind.space
-                    NodeKind.leaf: TokenKind.hspace  
-                  NodeKind.leaf: TokenKind.op_eq =
-                  NodeKind.space
-                    NodeKind.leaf: TokenKind.hspace  
-                  NodeKind.dot
-                    NodeKind.leaf: TokenKind.id url
-                    NodeKind.leaf: TokenKind.op_dot .
-                    NodeKind.leaf: TokenKind.id read-whether-title-non-empty
-                  /NodeKind.dot
-                /NodeKind.assign
-                NodeKind.space
-                  NodeKind.leaf: TokenKind.vspace 
-
-                  NodeKind.leaf: TokenKind.hspace     
-                /NodeKind.space
-                NodeKind.question
-                  NodeKind.dot
-                    NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
-                      NodeKind.leaf: TokenKind.string_text   Has title: 
-                      NodeKind.escape
-                        NodeKind.leaf: TokenKind.escape_begin \(
-                        NodeKind.block
-                          NodeKind.leaf: TokenKind.id has-title
-                        NodeKind.leaf: TokenKind.escape_end )
-                      /NodeKind.escape
-                      NodeKind.leaf: TokenKind.string_text  vs 
-                      NodeKind.escape
-                        NodeKind.leaf: TokenKind.escape_begin \(
-                        NodeKind.block
-                          NodeKind.bool_or
+                    NodeKind.leaf: TokenKind.hspace     
+                  /NodeKind.space
+                  NodeKind.question
+                    NodeKind.dot
+                      NodeKind.string
+                        NodeKind.leaf: TokenKind.string_begin_double "
+                        NodeKind.leaf: TokenKind.string_text   Has title: 
+                        NodeKind.escape
+                          NodeKind.leaf: TokenKind.escape_begin \(
+                          NodeKind.block
                             NodeKind.leaf: TokenKind.id has-title
-                            NodeKind.space
-                              NodeKind.leaf: TokenKind.hspace  
-                            NodeKind.leaf: TokenKind.key_or or
-                            NodeKind.space
-                              NodeKind.leaf: TokenKind.hspace  
-                            NodeKind.string
-                              NodeKind.leaf: TokenKind.string_begin_double "
-                              NodeKind.leaf: TokenKind.string_end "
-                            /NodeKind.string
-                          /NodeKind.bool_or
-                        /NodeKind.block
-                        NodeKind.leaf: TokenKind.escape_end )
-                      /NodeKind.escape
-                      NodeKind.leaf: TokenKind.string_end "
-                    /NodeKind.string
-                    NodeKind.leaf: TokenKind.op_dot .
-                    NodeKind.leaf: TokenKind.id print
-                  /NodeKind.dot
-                  NodeKind.leaf: TokenKind.op_question ?
-                /NodeKind.question
-                NodeKind.space
-                  NodeKind.leaf: TokenKind.vspace 
+                          NodeKind.leaf: TokenKind.escape_end )
+                        /NodeKind.escape
+                        NodeKind.leaf: TokenKind.string_text  vs 
+                        NodeKind.escape
+                          NodeKind.leaf: TokenKind.escape_begin \(
+                          NodeKind.block
+                            NodeKind.bool_or
+                              NodeKind.leaf: TokenKind.id has-title
+                              NodeKind.space
+                                NodeKind.leaf: TokenKind.hspace  
+                              NodeKind.leaf: TokenKind.key_or or
+                              NodeKind.space
+                                NodeKind.leaf: TokenKind.hspace  
+                              NodeKind.string
+                                NodeKind.leaf: TokenKind.string_begin_double "
+                                NodeKind.leaf: TokenKind.string_end "
+                              /NodeKind.string
+                            /NodeKind.bool_or
+                          /NodeKind.block
+                          NodeKind.leaf: TokenKind.escape_end )
+                        /NodeKind.escape
+                        NodeKind.leaf: TokenKind.string_end "
+                      /NodeKind.string
+                      NodeKind.leaf: TokenKind.op_dot .
+                      NodeKind.leaf: TokenKind.id print
+                    /NodeKind.dot
+                    NodeKind.leaf: TokenKind.op_question ?
+                  /NodeKind.question
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.vspace 
 
-                  NodeKind.leaf: TokenKind.hspace   
-                /NodeKind.space
-              /NodeKind.block
-              NodeKind.end
-                NodeKind.leaf: TokenKind.key_end end
-            /NodeKind.be
-          /NodeKind.fun
+                    NodeKind.leaf: TokenKind.hspace   
+                  /NodeKind.space
+                /NodeKind.block
+                NodeKind.end
+                  NodeKind.leaf: TokenKind.key_end end
+              /NodeKind.be
+            /NodeKind.fun
+          /NodeKind.be_call
           NodeKind.space
             NodeKind.leaf: TokenKind.vspace 
 
@@ -1136,5 +1138,5 @@ NodeKind.block
 
 /NodeKind.block
 Intern storage: 4096 423
-Tree size: 877
+Tree size: 878
 Token size: 8 node size: 16 1

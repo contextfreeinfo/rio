@@ -9,4 +9,7 @@ main = for () be
    d.e.f g
   end a be blah
   a be good be bad
+  a b
+  a for b to c be d
+  a b
 end

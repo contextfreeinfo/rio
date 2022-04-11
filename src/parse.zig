@@ -213,7 +213,6 @@ pub fn Parser(comptime Reader: type) type {
                 .eof, .escape_end, .key_be, .key_end, .round_end => {},
                 // .key_be => try self.blocker(.be, checkBlockEnd),
                 .key_of => try self.blocker(.of, checkBlockEnd),
-                .key_for, .key_to, .key_with => try self.fun(),
                 .round_begin => try self.round(),
                 .string_begin_single, .string_begin_double => try self.string(),
                 else => try self.advance(),
@@ -227,9 +226,13 @@ pub fn Parser(comptime Reader: type) type {
             try self.hspace();
             while (true) {
                 try self.hspace();
-                if ((try self.peek()).kind != .key_be) break;
-                try self.blocker(.be, checkBlockEnd);
-                try self.nest(.be_call, begin);
+                switch ((try self.peek()).kind) {
+                    .key_be, .key_for, .key_to, .key_with => try self.fun(),
+                    else => break,
+                }
+                if (self.here().i > begin.i + 1) {
+                    try self.nest(.be_call, begin);
+                }
             }
         }
 
@@ -281,14 +284,14 @@ pub fn Parser(comptime Reader: type) type {
             const begin = self.here();
             var count = @as(u32, 0);
             while (true) : (count += 1) {
-                try self.colon();
-                try self.hspace();
                 switch ((try self.peek()).kind) {
                     .eof, .escape_end, .key_as, .key_be, .key_end, .key_for, .key_to, .key_with, .op_eq, .op_eqto, .round_end, .vspace => break,
                     else => {},
                 }
+                try self.colon();
+                try self.hspace();
             }
-            if (count > 0) {
+            if (count > 1) {
                 const first = begin.from(self.working.items);
                 const wrap_question = first.kind == .question;
                 if (wrap_question) {
@@ -386,11 +389,16 @@ pub fn Parser(comptime Reader: type) type {
 
         fn fun(self: *Self) !void {
             const begin = self.here();
-            while (true) {
+            var count = @as(u32, 0);
+            while (true) : (count += 1) {
                 switch ((try self.peek()).kind) {
                     .key_be => {
                         try self.blocker(.be, checkBlockEnd);
-                        break;
+                        if (count == 0) {
+                            return;
+                        } else {
+                            break;
+                        }
                     },
                     .key_for => try self.blocker(.fun_for, checkFunPartEnd),
                     // We expect only one thing under `to`, but be flexible in parsing to match the rest.
