@@ -127,6 +127,16 @@ pub const Tree = struct {
 
 pub const ParseError = error{OutOfMemory} || std.os.ReadError;
 
+const Context = struct {
+    fun: bool = false,
+
+    fn withFun(self: Context, fun: bool) Context {
+        var result = self;
+        result.fun = fun;
+        return result;
+    }
+};
+
 pub fn Parser(comptime Reader: type) type {
     return struct {
         lexer: lex.Lexer(Reader),
@@ -137,6 +147,7 @@ pub fn Parser(comptime Reader: type) type {
 
         const Self = @This();
         const CheckEnd = fn (self: *Self, kind: lex.TokenKind) ParseError!bool;
+        const ParseKid = fn (self: *Self, context: Context) ParseError!void;
 
         pub fn init(allocator: Allocator, pool: ?*intern.Pool) !Self {
             return Self{
@@ -180,8 +191,8 @@ pub fn Parser(comptime Reader: type) type {
             return Tree{ .nodes = (try self.nodes.clone()).items };
         }
 
-        fn add(self: *Self) !void {
-            try self.infix(.add, opAdd, mul);
+        fn add(self: *Self, context: Context) !void {
+            try self.infix(context, .add, opAdd, mul);
         }
 
         fn advance(self: *Self) !void {
@@ -191,56 +202,41 @@ pub fn Parser(comptime Reader: type) type {
             }
         }
 
-        fn argVal(self: *Self) !void {
-            try self.boolOr();
+        fn argVal(self: *Self, context: Context) !void {
+            try self.boolOr(context);
         }
 
-        fn as(self: *Self) !void {
-            try self.infix(.as, opAs, call);
+        fn as(self: *Self, context: Context) !void {
+            try self.infix(context, .as, opAs, call);
         }
 
-        fn assign(self: *Self) !void {
+        fn assign(self: *Self, context: Context) !void {
             // TODO Should be right associative.
-            try self.infix(.assign, opEq, beCall);
+            try self.infix(context, .assign, opEq, subline);
         }
 
-        fn assignTo(self: *Self) !void {
-            try self.infix(.assign_to, opEqto, assign);
+        fn assignTo(self: *Self, context: Context) !void {
+            try self.infix(context, .assign_to, opEqto, assign);
         }
 
-        fn atom(self: *Self) !void {
+        fn atom(self: *Self, context: Context) !void {
             switch ((try self.peek()).kind) {
-                .eof, .escape_end, .key_be, .key_end, .round_end => {},
-                // .key_be => try self.blocker(.be, checkBlockEnd),
-                .key_of => try self.blocker(.of, checkBlockEnd),
-                .round_begin => try self.round(),
-                .string_begin_single, .string_begin_double => try self.string(),
+                .eof, .escape_end, .key_end, .round_end => {},
+                .key_be, .key_for, .key_to, .key_with => if (!context.fun) {
+                    try self.fun(context);
+                },
+                .key_of => try self.blocker(context, context.withFun(false), .of, checkBlockEnd),
+                .round_begin => try self.round(context),
+                .string_begin_single, .string_begin_double => try self.string(context),
                 else => try self.advance(),
             }
         }
 
-        fn beCall(self: *Self) ParseError!void {
-            // Probably shouldn't nest be calls, but parse it this way still.
-            const begin = self.here();
-            try self.subline();
-            try self.hspace();
-            while (true) {
-                try self.hspace();
-                switch ((try self.peek()).kind) {
-                    .key_be, .key_for, .key_to, .key_with => try self.fun(),
-                    else => break,
-                }
-                if (self.here().i > begin.i + 1) {
-                    try self.nest(.be_call, begin);
-                }
-            }
-        }
-
         fn block(self: *Self) !void {
-            try self.blockUntil(checkBlockEnd);
+            try self.blockUntil(.{}, checkBlockEnd);
         }
 
-        fn blockUntil(self: *Self, check_end: CheckEnd) !void {
+        fn blockUntil(self: *Self, context: Context, check_end: CheckEnd) !void {
             const begin = self.here();
             while (true) {
                 try self.space();
@@ -251,44 +247,51 @@ pub fn Parser(comptime Reader: type) type {
                         break;
                     },
                 }
-                try self.line();
+                try self.line(context);
             }
             try self.nestMaybe(.block, begin);
         }
 
-        fn blocker(self: *Self, kind: NodeKind, check_end: CheckEnd) !void {
+        fn blocker(self: *Self, context: Context, block_context: Context, kind: NodeKind, check_end: CheckEnd) !void {
             const begin = self.here();
             try self.advance();
             try self.hspace();
             switch ((try self.peek()).kind) {
                 .vspace => {
-                    try self.blockUntil(check_end);
+                    try self.blockUntil(block_context, check_end);
                     if ((try self.peek()).kind == .key_end) {
                         try self.end();
                     }
                 },
-                else => try self.subline(),
+                else => try self.subline(context),
             }
             try self.nest(kind, begin);
         }
 
-        fn boolOr(self: *Self) !void {
-            try self.infix(.bool_or, opOr, boolAnd);
+        fn blockerCommon(self: *Self, context: Context, kind: NodeKind, check_end: CheckEnd) !void {
+            try self.blocker(context, context, kind, check_end);
         }
 
-        fn boolAnd(self: *Self) !void {
-            try self.infix(.bool_and, opAnd, compare);
+        fn boolOr(self: *Self, context: Context) !void {
+            try self.infix(context, .bool_or, opOr, boolAnd);
         }
 
-        fn call(self: *Self) !void {
+        fn boolAnd(self: *Self, context: Context) !void {
+            try self.infix(context, .bool_and, opAnd, compare);
+        }
+
+        fn call(self: *Self, context: Context) !void {
             const begin = self.here();
             var count = @as(u32, 0);
             while (true) : (count += 1) {
                 switch ((try self.peek()).kind) {
-                    .eof, .escape_end, .key_as, .key_be, .key_end, .key_for, .key_to, .key_with, .op_eq, .op_eqto, .round_end, .vspace => break,
+                    .eof, .escape_end, .key_as, .key_end, .op_eq, .op_eqto, .round_end, .vspace => break,
+                    .key_be, .key_for, .key_to, .key_with => if (context.fun) {
+                        break;
+                    },
                     else => {},
                 }
-                try self.colon();
+                try self.colon(context);
                 try self.hspace();
             }
             if (count > 1) {
@@ -350,19 +353,19 @@ pub fn Parser(comptime Reader: type) type {
             return kind == .round_end;
         }
 
-        fn colon(self: *Self) ParseError!void {
+        fn colon(self: *Self, context: Context) ParseError!void {
             const begin = self.here();
-            try self.argVal();
+            try self.argVal(context);
             // Line won't repeat colons, since they'll be consumed internally, but eh.
-            try self.infixFinish(.colon, opColon, if (begin.is(self.lineBegin())) line else question, begin);
+            try self.infixFinish(context, .colon, opColon, if (begin.is(self.lineBegin())) line else question, begin);
         }
 
-        fn compare(self: *Self) !void {
-            try self.infix(.compare, opCompare, add);
+        fn compare(self: *Self, context: Context) !void {
+            try self.infix(context, .compare, opCompare, add);
         }
 
-        fn dot(self: *Self) !void {
-            try self.infix(.dot, opDot, atom);
+        fn dot(self: *Self, context: Context) !void {
+            try self.infix(context, .dot, opDot, atom);
         }
 
         fn end(self: *Self) !void {
@@ -377,33 +380,33 @@ pub fn Parser(comptime Reader: type) type {
             try self.nest(.end, begin);
         }
 
-        fn escape(self: *Self) !void {
+        fn escape(self: *Self, context: Context) !void {
             const begin = self.here();
             try self.advance();
-            try self.blockUntil(checkEscapeEnd);
+            try self.blockUntil(context.withFun(false), checkEscapeEnd);
             if ((try self.peek()).kind == .escape_end) {
                 try self.advance();
             }
             try self.nest(.escape, begin);
         }
 
-        fn fun(self: *Self) !void {
+        fn fun(self: *Self, context: Context) !void {
             const begin = self.here();
             var count = @as(u32, 0);
             while (true) : (count += 1) {
                 switch ((try self.peek()).kind) {
                     .key_be => {
-                        try self.blocker(.be, checkBlockEnd);
+                        try self.blockerCommon(context.withFun(false), .be, checkBlockEnd);
                         if (count == 0) {
                             return;
                         } else {
                             break;
                         }
                     },
-                    .key_for => try self.blocker(.fun_for, checkFunPartEnd),
+                    .key_for => try self.blockerCommon(context.withFun(true), .fun_for, checkFunPartEnd),
                     // We expect only one thing under `to`, but be flexible in parsing to match the rest.
-                    .key_to => try self.blocker(.fun_to, checkFunPartEnd),
-                    .key_with => try self.blocker(.fun_with, checkFunPartEnd),
+                    .key_to => try self.blockerCommon(context.withFun(true), .fun_to, checkFunPartEnd),
+                    .key_with => try self.blockerCommon(context.withFun(true), .fun_with, checkFunPartEnd),
                     else => break,
                 }
             }
@@ -425,13 +428,13 @@ pub fn Parser(comptime Reader: type) type {
             try self.nestMaybe(.space, begin);
         }
 
-        fn infix(self: *Self, kind: NodeKind, op: CheckOp, kid: fn (self: *Self) ParseError!void) !void {
+        fn infix(self: *Self, context: Context, kind: NodeKind, op: CheckOp, kid: ParseKid) !void {
             const begin = self.here();
-            try kid(self);
-            try self.infixFinish(kind, op, kid, begin);
+            try kid(self, context);
+            try self.infixFinish(context, kind, op, kid, begin);
         }
 
-        fn infixFinish(self: *Self, kind: NodeKind, op: CheckOp, kid: fn (self: *Self) ParseError!void, begin: NodeId) !void {
+        fn infixFinish(self: *Self, context: Context, kind: NodeKind, op: CheckOp, kid: ParseKid, begin: NodeId) !void {
             try self.hspace();
             while (true) {
                 if (!op((try self.peek()).kind)) break;
@@ -439,24 +442,24 @@ pub fn Parser(comptime Reader: type) type {
                 try self.space();
                 switch ((try self.peek()).kind) { // or any end
                     .eof, .escape_end, .key_end, .round_end => {},
-                    else => try kid(self),
+                    else => try kid(self, context),
                 }
                 try self.nest(kind, begin);
             }
         }
 
-        fn line(self: *Self) !void {
+        fn line(self: *Self, context: Context) !void {
             try self.line_begins.append(self.here());
-            try self.assignTo();
             defer self.line_begins.items.len -= 1;
+            try self.assignTo(context);
         }
 
         fn lineBegin(self: *Self) NodeId {
             return if (self.line_begins.items.len > 0) self.line_begins.items[self.line_begins.items.len - 1] else NodeId.of(0);
         }
 
-        fn mul(self: *Self) !void {
-            try self.infix(.mul, opMul, question);
+        fn mul(self: *Self, context: Context) !void {
+            try self.infix(context, .mul, opMul, question);
         }
 
         fn nest(self: *Self, kind: NodeKind, begin: NodeId) !void {
@@ -485,9 +488,9 @@ pub fn Parser(comptime Reader: type) type {
             return self.unread.?;
         }
 
-        fn question(self: *Self) !void { // suffix -- any others?
+        fn question(self: *Self, context: Context) !void { // suffix -- any others?
             const begin = self.here();
-            try self.dot();
+            try self.dot(context);
             try self.hspace();
             while (true) {
                 if ((try self.peek()).kind != .op_question) break;
@@ -495,7 +498,7 @@ pub fn Parser(comptime Reader: type) type {
                 // The goal here is to keep questions outside of dots.
                 try self.nest(.question, begin);
                 // But to let dots proceed still.
-                try self.infixFinish(.dot, opDot, atom, begin);
+                try self.infixFinish(context.withFun(false), .dot, opDot, atom, begin);
             }
         }
 
@@ -507,10 +510,10 @@ pub fn Parser(comptime Reader: type) type {
             return try self.lexer.next();
         }
 
-        fn round(self: *Self) !void {
+        fn round(self: *Self, context: Context) !void {
             const begin = self.here();
             try self.advance();
-            try self.blockUntil(checkRoundEnd);
+            try self.blockUntil(context.withFun(false), checkRoundEnd);
             if ((try self.peek()).kind == .round_end) {
                 try self.advance();
             }
@@ -528,17 +531,17 @@ pub fn Parser(comptime Reader: type) type {
             try self.nestMaybe(.space, begin);
         }
 
-        fn subline(self: *Self) !void {
-            try self.as();
+        fn subline(self: *Self, context: Context) !void {
+            try self.as(context);
         }
 
-        fn string(self: *Self) !void {
+        fn string(self: *Self, context: Context) !void {
             const begin = self.here();
             try self.advance();
             while (true) {
                 switch ((try self.peek()).kind) {
                     .eof, .string_end => break,
-                    .escape_begin => try self.escape(),
+                    .escape_begin => try self.escape(context),
                     else => try self.advance(),
                 }
             }

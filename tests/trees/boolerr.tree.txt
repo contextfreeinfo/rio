@@ -225,23 +225,21 @@ NodeKind.block
 
                   NodeKind.leaf: TokenKind.hspace     
                 /NodeKind.space
-                NodeKind.be_call
-                  NodeKind.call
-                    NodeKind.dot
-                      NodeKind.leaf: TokenKind.id url
-                      NodeKind.leaf: TokenKind.op_dot .
-                      NodeKind.leaf: TokenKind.id has
-                    /NodeKind.dot
-                    NodeKind.space
-                      NodeKind.leaf: TokenKind.hspace  
-                    NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
-                      NodeKind.leaf: TokenKind.string_text fail
-                      NodeKind.leaf: TokenKind.string_end "
-                    /NodeKind.string
-                    NodeKind.space
-                      NodeKind.leaf: TokenKind.hspace  
-                  /NodeKind.call
+                NodeKind.call
+                  NodeKind.dot
+                    NodeKind.leaf: TokenKind.id url
+                    NodeKind.leaf: TokenKind.op_dot .
+                    NodeKind.leaf: TokenKind.id has
+                  /NodeKind.dot
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.hspace  
+                  NodeKind.string
+                    NodeKind.leaf: TokenKind.string_begin_double "
+                    NodeKind.leaf: TokenKind.string_text fail
+                    NodeKind.leaf: TokenKind.string_end "
+                  /NodeKind.string
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.hspace  
                   NodeKind.be
                     NodeKind.leaf: TokenKind.key_be be
                     NodeKind.space
@@ -267,13 +265,13 @@ NodeKind.block
                       /NodeKind.dot
                     /NodeKind.call
                   /NodeKind.be
-                /NodeKind.be_call
+                /NodeKind.call
                 NodeKind.space
                   NodeKind.leaf: TokenKind.vspace 
 
                   NodeKind.leaf: TokenKind.hspace     
                 /NodeKind.space
-                NodeKind.be_call
+                NodeKind.call
                   NodeKind.leaf: TokenKind.key_else else
                   NodeKind.space
                     NodeKind.leaf: TokenKind.hspace  
@@ -296,23 +294,21 @@ NodeKind.block
 
                             NodeKind.leaf: TokenKind.hspace       
                           /NodeKind.space
-                          NodeKind.be_call
-                            NodeKind.call
-                              NodeKind.dot
-                                NodeKind.leaf: TokenKind.id url
-                                NodeKind.leaf: TokenKind.op_dot .
-                                NodeKind.leaf: TokenKind.id has
-                              /NodeKind.dot
-                              NodeKind.space
-                                NodeKind.leaf: TokenKind.hspace  
-                              NodeKind.string
-                                NodeKind.leaf: TokenKind.string_begin_double "
-                                NodeKind.leaf: TokenKind.string_text head-missing
-                                NodeKind.leaf: TokenKind.string_end "
-                              /NodeKind.string
-                              NodeKind.space
-                                NodeKind.leaf: TokenKind.hspace  
-                            /NodeKind.call
+                          NodeKind.call
+                            NodeKind.dot
+                              NodeKind.leaf: TokenKind.id url
+                              NodeKind.leaf: TokenKind.op_dot .
+                              NodeKind.leaf: TokenKind.id has
+                            /NodeKind.dot
+                            NodeKind.space
+                              NodeKind.leaf: TokenKind.hspace  
+                            NodeKind.string
+                              NodeKind.leaf: TokenKind.string_begin_double "
+                              NodeKind.leaf: TokenKind.string_text head-missing
+                              NodeKind.leaf: TokenKind.string_end "
+                            /NodeKind.string
+                            NodeKind.space
+                              NodeKind.leaf: TokenKind.hspace  
                             NodeKind.be
                               NodeKind.leaf: TokenKind.key_be be
                               NodeKind.space
@@ -323,29 +319,27 @@ NodeKind.block
                                 NodeKind.leaf: TokenKind.id new
                               /NodeKind.dot
                             /NodeKind.be
-                          /NodeKind.be_call
+                          /NodeKind.call
                           NodeKind.space
                             NodeKind.leaf: TokenKind.vspace 
 
                             NodeKind.leaf: TokenKind.hspace       
                           /NodeKind.space
-                          NodeKind.be_call
-                            NodeKind.call
-                              NodeKind.dot
-                                NodeKind.leaf: TokenKind.id url
-                                NodeKind.leaf: TokenKind.op_dot .
-                                NodeKind.leaf: TokenKind.id has
-                              /NodeKind.dot
-                              NodeKind.space
-                                NodeKind.leaf: TokenKind.hspace  
-                              NodeKind.string
-                                NodeKind.leaf: TokenKind.string_begin_double "
-                                NodeKind.leaf: TokenKind.string_text title-missing
-                                NodeKind.leaf: TokenKind.string_end "
-                              /NodeKind.string
-                              NodeKind.space
-                                NodeKind.leaf: TokenKind.hspace  
-                            /NodeKind.call
+                          NodeKind.call
+                            NodeKind.dot
+                              NodeKind.leaf: TokenKind.id url
+                              NodeKind.leaf: TokenKind.op_dot .
+                              NodeKind.leaf: TokenKind.id has
+                            /NodeKind.dot
+                            NodeKind.space
+                              NodeKind.leaf: TokenKind.hspace  
+                            NodeKind.string
+                              NodeKind.leaf: TokenKind.string_begin_double "
+                              NodeKind.leaf: TokenKind.string_text title-missing
+                              NodeKind.leaf: TokenKind.string_end "
+                            /NodeKind.string
+                            NodeKind.space
+                              NodeKind.leaf: TokenKind.hspace  
                             NodeKind.be
                               NodeKind.leaf: TokenKind.key_be be
                               NodeKind.space
@@ -367,29 +361,27 @@ NodeKind.block
                                 /NodeKind.colon
                               /NodeKind.call
                             /NodeKind.be
-                          /NodeKind.be_call
+                          /NodeKind.call
                           NodeKind.space
                             NodeKind.leaf: TokenKind.vspace 
 
                             NodeKind.leaf: TokenKind.hspace       
                           /NodeKind.space
-                          NodeKind.be_call
-                            NodeKind.call
-                              NodeKind.dot
-                                NodeKind.leaf: TokenKind.id url
-                                NodeKind.leaf: TokenKind.op_dot .
-                                NodeKind.leaf: TokenKind.id has
-                              /NodeKind.dot
-                              NodeKind.space
-                                NodeKind.leaf: TokenKind.hspace  
-                              NodeKind.string
-                                NodeKind.leaf: TokenKind.string_begin_double "
-                                NodeKind.leaf: TokenKind.string_text title-empty
-                                NodeKind.leaf: TokenKind.string_end "
-                              /NodeKind.string
-                              NodeKind.space
-                                NodeKind.leaf: TokenKind.hspace  
-                            /NodeKind.call
+                          NodeKind.call
+                            NodeKind.dot
+                              NodeKind.leaf: TokenKind.id url
+                              NodeKind.leaf: TokenKind.op_dot .
+                              NodeKind.leaf: TokenKind.id has
+                            /NodeKind.dot
+                            NodeKind.space
+                              NodeKind.leaf: TokenKind.hspace  
+                            NodeKind.string
+                              NodeKind.leaf: TokenKind.string_begin_double "
+                              NodeKind.leaf: TokenKind.string_text title-empty
+                              NodeKind.leaf: TokenKind.string_end "
+                            /NodeKind.string
+                            NodeKind.space
+                              NodeKind.leaf: TokenKind.hspace  
                             NodeKind.be
                               NodeKind.leaf: TokenKind.key_be be
                               NodeKind.space
@@ -427,13 +419,13 @@ NodeKind.block
                                 /NodeKind.colon
                               /NodeKind.call
                             /NodeKind.be
-                          /NodeKind.be_call
+                          /NodeKind.call
                           NodeKind.space
                             NodeKind.leaf: TokenKind.vspace 
 
                             NodeKind.leaf: TokenKind.hspace       
                           /NodeKind.space
-                          NodeKind.be_call
+                          NodeKind.call
                             NodeKind.leaf: TokenKind.key_else else
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
@@ -485,7 +477,7 @@ NodeKind.block
                                 /NodeKind.colon
                               /NodeKind.call
                             /NodeKind.be
-                          /NodeKind.be_call
+                          /NodeKind.call
                           NodeKind.space
                             NodeKind.leaf: TokenKind.vspace 
 
@@ -497,7 +489,7 @@ NodeKind.block
                       /NodeKind.of
                     /NodeKind.call
                   /NodeKind.be
-                /NodeKind.be_call
+                /NodeKind.call
                 NodeKind.space
                   NodeKind.leaf: TokenKind.vspace 
 
@@ -912,7 +904,7 @@ NodeKind.block
 
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
-          NodeKind.be_call
+          NodeKind.call
             NodeKind.dot
               NodeKind.leaf: TokenKind.id urls
               NodeKind.leaf: TokenKind.op_dot .
@@ -1123,7 +1115,7 @@ NodeKind.block
                   NodeKind.leaf: TokenKind.key_end end
               /NodeKind.be
             /NodeKind.fun
-          /NodeKind.be_call
+          /NodeKind.call
           NodeKind.space
             NodeKind.leaf: TokenKind.vspace 
 
@@ -1138,5 +1130,5 @@ NodeKind.block
 
 /NodeKind.block
 Intern storage: 4096 423
-Tree size: 878
+Tree size: 874
 Token size: 8 node size: 16 1

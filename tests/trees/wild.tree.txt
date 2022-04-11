@@ -153,7 +153,7 @@ NodeKind.block
 
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
-          NodeKind.be_call
+          NodeKind.call
             NodeKind.dot
               NodeKind.leaf: TokenKind.id a
               NodeKind.space
@@ -214,33 +214,33 @@ NodeKind.block
                 NodeKind.leaf: TokenKind.hspace  
               NodeKind.leaf: TokenKind.id blah
             /NodeKind.be
-          /NodeKind.be_call
+          /NodeKind.call
           NodeKind.space
             NodeKind.leaf: TokenKind.vspace 
 
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
-          NodeKind.be_call
-            NodeKind.be_call
-              NodeKind.leaf: TokenKind.id a
-              NodeKind.space
-                NodeKind.leaf: TokenKind.hspace  
-              NodeKind.be
-                NodeKind.leaf: TokenKind.key_be be
-                NodeKind.space
-                  NodeKind.leaf: TokenKind.hspace  
-                NodeKind.leaf: TokenKind.id good
-                NodeKind.space
-                  NodeKind.leaf: TokenKind.hspace  
-              /NodeKind.be
-            /NodeKind.be_call
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
             NodeKind.be
               NodeKind.leaf: TokenKind.key_be be
               NodeKind.space
                 NodeKind.leaf: TokenKind.hspace  
-              NodeKind.leaf: TokenKind.id bad
+              NodeKind.call
+                NodeKind.leaf: TokenKind.id good
+                NodeKind.space
+                  NodeKind.leaf: TokenKind.hspace  
+                NodeKind.be
+                  NodeKind.leaf: TokenKind.key_be be
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.hspace  
+                  NodeKind.leaf: TokenKind.id bad
+                /NodeKind.be
+              /NodeKind.call
             /NodeKind.be
-          /NodeKind.be_call
+          /NodeKind.call
           NodeKind.space
             NodeKind.leaf: TokenKind.vspace 
 
@@ -257,7 +257,7 @@ NodeKind.block
 
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
-          NodeKind.be_call
+          NodeKind.call
             NodeKind.leaf: TokenKind.id a
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
@@ -285,7 +285,7 @@ NodeKind.block
                 NodeKind.leaf: TokenKind.id d
               /NodeKind.be
             /NodeKind.fun
-          /NodeKind.be_call
+          /NodeKind.call
           NodeKind.space
             NodeKind.leaf: TokenKind.vspace 
 
