@@ -590,9 +590,14 @@ NodeKind.block
         NodeKind.leaf: TokenKind.key_with with
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
-        NodeKind.leaf: TokenKind.id read-doc
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id fx
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+          NodeKind.leaf: TokenKind.id read-doc
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+        /NodeKind.call
       /NodeKind.fun_with
       NodeKind.be
         NodeKind.leaf: TokenKind.key_be be
@@ -760,9 +765,14 @@ NodeKind.block
         NodeKind.leaf: TokenKind.key_with with
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
-        NodeKind.leaf: TokenKind.id read-doc
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id fx
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+          NodeKind.leaf: TokenKind.id read-doc
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+        /NodeKind.call
       /NodeKind.fun_with
       NodeKind.be
         NodeKind.leaf: TokenKind.key_be be
@@ -819,9 +829,14 @@ NodeKind.block
         NodeKind.leaf: TokenKind.key_with with
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
-        NodeKind.leaf: TokenKind.id read-doc
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id fx
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+          NodeKind.leaf: TokenKind.id read-doc
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+        /NodeKind.call
       /NodeKind.fun_with
       NodeKind.be
         NodeKind.leaf: TokenKind.key_be be
@@ -1129,6 +1144,6 @@ NodeKind.block
     NodeKind.leaf: TokenKind.vspace 
 
 /NodeKind.block
-Intern storage: 4096 423
-Tree size: 874
+Intern storage: 4096 425
+Tree size: 886
 Token size: 8 node size: 16 1

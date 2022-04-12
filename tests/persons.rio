@@ -1,6 +1,6 @@
 use "c" => ..
 
-main = for () with printf be
+main = for () with fx printf be
   # Assignment here declares new *const* values
   name = "Alice"
   age = 40
@@ -26,7 +26,7 @@ person = struct of
   age
 end
 
-show-prices = for persons as list person with printf be
+show-prices = for persons as list person with fx printf be
   persons.each for person be
     void of printf "%s pays $%.2f\n" person.name person.age.ticket-price
   end

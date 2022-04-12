@@ -13,3 +13,23 @@ main = for () be
   a for b to c be d
   a b
 end
+
+a = 5 with doc "hello"
+be 4
+b = 3 with doc "hi" be 5
+
+for a
+to there
+be 3
+
+for
+  a
+to
+  there
+be 3
+
+d = 4 with
+  doc "hi"
+  think 2
+end
+e = 5

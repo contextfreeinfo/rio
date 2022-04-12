@@ -1,6 +1,6 @@
 use "c" => c => ..
 
-main = for () with printf be
+main = with fx printf be
   void of printf "Hi!\n"
 end
 

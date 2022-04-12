@@ -39,24 +39,18 @@ NodeKind.block
     NodeKind.space
       NodeKind.leaf: TokenKind.hspace  
     NodeKind.fun
-      NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
-        NodeKind.round
-          NodeKind.leaf: TokenKind.round_begin (
-          NodeKind.leaf: TokenKind.round_end )
-        /NodeKind.round
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
-      /NodeKind.fun_for
       NodeKind.fun_with
         NodeKind.leaf: TokenKind.key_with with
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
-        NodeKind.leaf: TokenKind.id printf
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id fx
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+          NodeKind.leaf: TokenKind.id printf
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+        /NodeKind.call
       /NodeKind.fun_with
       NodeKind.be
         NodeKind.leaf: TokenKind.key_be be
@@ -123,6 +117,6 @@ NodeKind.block
 
   /NodeKind.space
 /NodeKind.block
-Intern storage: 4096 174
-Tree size: 93
+Intern storage: 4096 171
+Tree size: 88
 Token size: 8 node size: 16 1

@@ -22,17 +22,17 @@ end
 
 build-summary = for doc be summary doc.head?.title ok: True
 
-read-and-build-summary = for url with read-doc be
+read-and-build-summary = for url with fx read-doc be
   (url.read-doc and it.build-summary) or _.new
 end
 
 is-title-non-empty = for doc to maybe bool be doc.head?.title?.is-empty.not
 
-read-whether-title-non-empty = for url to try of maybe bool with read-doc be
+read-whether-title-non-empty = for url to try of maybe bool with fx read-doc be
   url.read-doc?.is-title-non-empty
 end
 
-main = for env! with read-doc be
+main = for env! with fx read-doc be
   urls = list "good" "title-empty" "title-missing" "head-missing" "fail"
   print = env.out.print
   urls.each for url be
