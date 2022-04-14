@@ -46,3 +46,5 @@ for
   h: c as d
 to e be f
 for a as b to c as d be e
+for a as b = c to d be e
+for (a as b = c) to d be e
