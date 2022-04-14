@@ -33,3 +33,15 @@ d = 4 with
   think 2
 end
 e = 5
+
+for a as b c as d to e be f
+for (a as b) (c as d) to e be f
+for
+  a as b
+  c as d
+to e be f
+for g: (a as b) h: (c as d) to e be f
+for
+  g: a as b
+  h: c as d
+to e be f
