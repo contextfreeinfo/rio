@@ -581,11 +581,11 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.key_be be
                     NodeKind.space
                       NodeKind.leaf: TokenKind.hspace  
-                    NodeKind.dot
+                    NodeKind.frac
                       NodeKind.leaf: TokenKind.int 6
                       NodeKind.leaf: TokenKind.op_dot .
                       NodeKind.leaf: TokenKind.int 75
-                    /NodeKind.dot
+                    /NodeKind.frac
                   /NodeKind.be
                 /NodeKind.call
                 NodeKind.space
@@ -609,11 +609,11 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.key_be be
                     NodeKind.space
                       NodeKind.leaf: TokenKind.hspace  
-                    NodeKind.dot
+                    NodeKind.frac
                       NodeKind.leaf: TokenKind.int 7
                       NodeKind.leaf: TokenKind.op_dot .
                       NodeKind.leaf: TokenKind.int 00
-                    /NodeKind.dot
+                    /NodeKind.frac
                   /NodeKind.be
                 /NodeKind.call
                 NodeKind.space
@@ -688,11 +688,11 @@ NodeKind.block
 
                         NodeKind.leaf: TokenKind.hspace       
                       /NodeKind.space
-                      NodeKind.dot
+                      NodeKind.frac
                         NodeKind.leaf: TokenKind.int 11
                         NodeKind.leaf: TokenKind.op_dot .
                         NodeKind.leaf: TokenKind.int 00
-                      /NodeKind.dot
+                      /NodeKind.frac
                       NodeKind.space
                         NodeKind.leaf: TokenKind.vspace 
 

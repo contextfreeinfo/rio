@@ -168,6 +168,10 @@ pub fn last(comptime Item: type, items: []const Item) ?Item {
     return if (items.len > 0) items[items.len - 1] else null;
 }
 
+pub fn lastPtr(comptime Item: type, items: []Item) ?*Item {
+    return if (items.len > 0) &items[items.len - 1] else null;
+}
+
 pub fn Lexer(comptime Reader: type) type {
     return struct {
         keys: std.StringHashMap(TokenKind),

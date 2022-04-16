@@ -22,11 +22,11 @@ pub const NodeKind = enum {
     dot,
     end,
     escape,
+    frac,
     fun,
     fun_for,
     fun_to,
     fun_with,
-    frac,
     leaf,
     mul,
     of,
@@ -114,7 +114,7 @@ pub const Tree = struct {
     }
 
     pub fn root(self: Self) ?Node {
-        return if (self.nodes.len > 0) self.nodes[self.nodes.len - 1] else null;
+        return lex.last(Node, self.nodes);
     }
 
     pub fn print(self: Self, writer: anytype, config: TreePrintConfig) !void {
@@ -381,6 +381,30 @@ pub fn Parser(comptime Reader: type) type {
 
         fn dot(self: *Self, context: Context) !void {
             try self.infix(context, .dot, opDot, atom);
+            var last = lex.lastPtr(Node, self.working.items);
+            if (last != null and last.?.kind == .dot) {
+                self.dotConvert(last.?);
+            }
+        }
+
+        fn dotConvert(self: *Self, node: *Node) void {
+            var kids = node.data.kids;
+            var first = &self.nodes.items[kids.idx.i];
+            if (first.kind == .dot) {
+                self.dotConvert(first);
+                return;
+            }
+            // At the innermost dot.
+            for (kids.from(self.nodes.items)) |kid| {
+                if (kid.kind != .leaf) {
+                    return;
+                }
+                switch (kid.data.token.kind) {
+                    .int, .op_dot => {},
+                    else => return,
+                }
+            }
+            node.kind = .frac;
         }
 
         fn end(self: *Self) !void {
