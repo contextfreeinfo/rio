@@ -216,9 +216,17 @@ pub fn Parser(comptime Reader: type) type {
             try self.infix(context, .as, opAs, call);
         }
 
-        fn assign(self: *Self, context: Context) !void {
-            // TODO Should be right associative.
-            try self.infix(context, .assign, opEq, subline);
+        fn assign(self: *Self, context: Context) ParseError!void {
+            // Not normal infix because right associative.
+            const begin = self.here();
+            try self.subline(context);
+            try self.hspace();
+            if ((try self.peek()).kind == .op_eq) {
+                try self.advance();
+                try self.space();
+                try self.assign(context);
+                try self.nest(.assign, begin);
+            }
         }
 
         fn assignTo(self: *Self, context: Context) !void {
@@ -589,10 +597,6 @@ fn opCompare(kind: lex.TokenKind) bool {
 
 fn opDot(kind: lex.TokenKind) bool {
     return kind == .op_dot;
-}
-
-fn opEq(kind: lex.TokenKind) bool {
-    return kind == .op_eq;
 }
 
 fn opEqto(kind: lex.TokenKind) bool {

@@ -53,3 +53,5 @@ for (a as b = c) to d be e
 
 -5
 4 + -5
+
+a = b = c
