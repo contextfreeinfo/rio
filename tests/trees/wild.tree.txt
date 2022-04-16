@@ -1003,10 +1003,10 @@ NodeKind.block
     NodeKind.leaf: TokenKind.vspace 
 
   /NodeKind.space
-  NodeKind.sign
+  NodeKind.sign_int
     NodeKind.leaf: TokenKind.op_sub -
     NodeKind.leaf: TokenKind.int 5
-  /NodeKind.sign
+  /NodeKind.sign_int
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
@@ -1017,10 +1017,10 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_add +
     NodeKind.space
       NodeKind.leaf: TokenKind.hspace  
-    NodeKind.sign
+    NodeKind.sign_int
       NodeKind.leaf: TokenKind.op_sub -
       NodeKind.leaf: TokenKind.int 5
-    /NodeKind.sign
+    /NodeKind.sign_int
   /NodeKind.add
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
@@ -1120,33 +1120,33 @@ NodeKind.block
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
-  NodeKind.sign
-    NodeKind.leaf: TokenKind.op_sub -
-    NodeKind.frac
+  NodeKind.frac
+    NodeKind.sign_int
+      NodeKind.leaf: TokenKind.op_sub -
       NodeKind.leaf: TokenKind.int 1
-      NodeKind.leaf: TokenKind.op_dot .
-      NodeKind.leaf: TokenKind.int 5
-    /NodeKind.frac
-  /NodeKind.sign
+    /NodeKind.sign_int
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.leaf: TokenKind.int 5
+  /NodeKind.frac
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
-  NodeKind.sign
-    NodeKind.leaf: TokenKind.op_sub -
+  NodeKind.dot
     NodeKind.dot
-      NodeKind.dot
-        NodeKind.frac
+      NodeKind.frac
+        NodeKind.sign_int
+          NodeKind.leaf: TokenKind.op_sub -
           NodeKind.leaf: TokenKind.int 1
-          NodeKind.leaf: TokenKind.op_dot .
-          NodeKind.leaf: TokenKind.int 2
-        /NodeKind.frac
+        /NodeKind.sign_int
         NodeKind.leaf: TokenKind.op_dot .
-        NodeKind.leaf: TokenKind.id a
-      /NodeKind.dot
+        NodeKind.leaf: TokenKind.int 2
+      /NodeKind.frac
       NodeKind.leaf: TokenKind.op_dot .
-      NodeKind.leaf: TokenKind.int 3
+      NodeKind.leaf: TokenKind.id a
     /NodeKind.dot
-  /NodeKind.sign
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.leaf: TokenKind.int 3
+  /NodeKind.dot
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
@@ -1155,14 +1155,14 @@ NodeKind.block
       NodeKind.round
         NodeKind.leaf: TokenKind.round_begin (
         NodeKind.block
-          NodeKind.sign
-            NodeKind.leaf: TokenKind.op_sub -
-            NodeKind.frac
+          NodeKind.frac
+            NodeKind.sign_int
+              NodeKind.leaf: TokenKind.op_sub -
               NodeKind.leaf: TokenKind.int 1
-              NodeKind.leaf: TokenKind.op_dot .
-              NodeKind.leaf: TokenKind.int 2
-            /NodeKind.frac
-          /NodeKind.sign
+            /NodeKind.sign_int
+            NodeKind.leaf: TokenKind.op_dot .
+            NodeKind.leaf: TokenKind.int 2
+          /NodeKind.frac
         /NodeKind.block
         NodeKind.leaf: TokenKind.round_end )
       /NodeKind.round
@@ -1172,6 +1172,25 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_dot .
     NodeKind.leaf: TokenKind.int 3
   /NodeKind.dot
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+  NodeKind.sign
+    NodeKind.leaf: TokenKind.op_sub -
+    NodeKind.dot
+      NodeKind.dot
+        NodeKind.dot
+          NodeKind.leaf: TokenKind.id b
+          NodeKind.leaf: TokenKind.op_dot .
+          NodeKind.leaf: TokenKind.id c
+        /NodeKind.dot
+        NodeKind.leaf: TokenKind.op_dot .
+        NodeKind.leaf: TokenKind.id a
+      /NodeKind.dot
+      NodeKind.leaf: TokenKind.op_dot .
+      NodeKind.leaf: TokenKind.int 3
+    /NodeKind.dot
+  /NodeKind.sign
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
@@ -1198,7 +1217,18 @@ NodeKind.block
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
+  NodeKind.frac
+    NodeKind.leaf: TokenKind.int 5
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.sign_int
+      NodeKind.leaf: TokenKind.op_sub -
+      NodeKind.leaf: TokenKind.int 1
+    /NodeKind.sign_int
+  /NodeKind.frac
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
 /NodeKind.block
 Intern storage: 4096 114
-Tree size: 919
+Tree size: 941
 Token size: 8 node size: 16 1

@@ -33,6 +33,7 @@ pub const NodeKind = enum {
     question,
     round,
     sign,
+    sign_int,
     space,
     string,
 };
@@ -396,8 +397,10 @@ pub fn Parser(comptime Reader: type) type {
             }
             // At the innermost dot.
             for (kids.from(self.nodes.items)) |kid| {
-                if (kid.kind != .leaf) {
-                    return;
+                switch (kid.kind) {
+                    .leaf => {},
+                    .sign_int => continue,
+                    else => return,
                 }
                 switch (kid.data.token.kind) {
                     .int, .op_dot => {},
@@ -556,8 +559,16 @@ pub fn Parser(comptime Reader: type) type {
         fn sign(self: *Self, context: Context) ParseError!void {
             const begin = self.here();
             try self.advance();
-            try self.question(context);
-            try self.nest(.sign, begin);
+            switch ((try self.peek()).kind) {
+                .int => {
+                    try self.advance();
+                    try self.nest(.sign_int, begin);
+                },
+                else => {
+                    try self.question(context);
+                    try self.nest(.sign, begin);
+                },
+            }
         }
 
         fn space(self: *Self) !void {
