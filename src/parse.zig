@@ -32,6 +32,7 @@ pub const NodeKind = enum {
     of,
     question,
     round,
+    sign,
     space,
     string,
 };
@@ -231,6 +232,7 @@ pub fn Parser(comptime Reader: type) type {
                     try self.fun(context);
                 },
                 .key_of => try self.blocker(context, context.withFun(false), .of, checkBlockEnd),
+                .op_sub => try self.sign(context),
                 .round_begin => try self.round(context),
                 .string_begin_single, .string_begin_double => try self.string(context),
                 else => try self.advance(),
@@ -517,6 +519,13 @@ pub fn Parser(comptime Reader: type) type {
                 try self.advance();
             }
             try self.nest(.round, begin);
+        }
+
+        fn sign(self: *Self, context: Context) ParseError!void {
+            const begin = self.here();
+            try self.advance();
+            try self.question(context);
+            try self.nest(.sign, begin);
         }
 
         fn space(self: *Self) !void {

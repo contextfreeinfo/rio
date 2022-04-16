@@ -1,3 +1,5 @@
+include "**"
+
 main = for () be
   # Abomination testing.
   a: b c: d e f: g
@@ -48,3 +50,6 @@ to e be f
 for a as b to c as d be e
 for a as b = c to d be e
 for (a as b = c) to d be e
+
+-5
+4 + -5
