@@ -117,6 +117,6 @@ NodeKind.block
 
   /NodeKind.space
 /NodeKind.block
-Intern storage: 4096 171
-Tree size: 88
+Pool storage: 4096 171
+Parsed size: 88
 Token size: 8 node size: 16 1

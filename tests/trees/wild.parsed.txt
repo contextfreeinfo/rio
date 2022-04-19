@@ -1228,7 +1228,81 @@ NodeKind.block
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
+    NodeKind.leaf: TokenKind.vspace 
+
+  /NodeKind.space
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id things
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id _
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.int 1
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.int 2
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text hi
+        NodeKind.leaf: TokenKind.string_end "
+      /NodeKind.string
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.int 4
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id things
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.call
+      NodeKind.round
+        NodeKind.leaf: TokenKind.round_begin (
+        NodeKind.block
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id list
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.id _
+          /NodeKind.call
+        /NodeKind.block
+        NodeKind.leaf: TokenKind.round_end )
+      /NodeKind.round
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.int 1
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.int 2
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text hi
+        NodeKind.leaf: TokenKind.string_end "
+      /NodeKind.string
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.leaf: TokenKind.int 4
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
 /NodeKind.block
-Intern storage: 4096 114
-Tree size: 941
+Pool storage: 4096 125
+Parsed size: 1002
 Token size: 8 node size: 16 1

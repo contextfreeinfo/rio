@@ -67,3 +67,6 @@ a.b?.c.d.e?.f?.g
 a .5
 a 0.5
 5.-1
+
+things = _ 1 2 "hi" 4
+things = (list _) 1 2 "hi" 4
