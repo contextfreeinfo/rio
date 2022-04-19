@@ -28,6 +28,7 @@ pub const NodeKind = enum {
     fun_to,
     fun_with,
     leaf,
+    list,
     mul,
     of,
     question,
@@ -301,7 +302,7 @@ pub fn Parser(comptime Reader: type) type {
             var count = @as(u32, 0);
             while (true) : (count += 1) {
                 switch ((try self.peek()).kind) {
-                    .eof, .escape_end, .key_as, .key_end, .op_eq, .op_eqto, .round_end, .vspace => break,
+                    .eof, .escape_end, .key_as, .key_end, .op_comma, .op_eq, .op_eqto, .round_end, .vspace => break,
                     .key_be, .key_for, .key_to, .key_with => if (context.fun) {
                         break;
                     },
@@ -494,6 +495,10 @@ pub fn Parser(comptime Reader: type) type {
             try self.assignTo(context.withLineBegin(self.here()));
         }
 
+        fn list(self: *Self, context: Context) !void {
+            try self.infix(context, .list, opComma, as);
+        }
+
         fn mul(self: *Self, context: Context) !void {
             try self.infix(context, .mul, opMul, question);
         }
@@ -583,7 +588,7 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn subline(self: *Self, context: Context) !void {
-            try self.as(context);
+            try self.list(context);
         }
 
         fn string(self: *Self, context: Context) !void {
@@ -621,6 +626,10 @@ fn opAs(kind: lex.TokenKind) bool {
 
 fn opColon(kind: lex.TokenKind) bool {
     return kind == .op_colon;
+}
+
+fn opComma(kind: lex.TokenKind) bool {
+    return kind == .op_comma;
 }
 
 fn opCompare(kind: lex.TokenKind) bool {

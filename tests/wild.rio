@@ -70,3 +70,10 @@ a 0.5
 
 things = _ 1 2 "hi" 4
 things = (list _) 1 2 "hi" 4
+
+a b, c d, e f
+a of b: c, d: e
+a of _ b: c d: e
+a b: c d: e
+a b: c, d: e
+a: b, c: d
