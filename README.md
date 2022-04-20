@@ -137,3 +137,49 @@ rio_float sample2_ticket_price(rio_int const age) {
 - Coded in C++ for now but *without* the C++ std lib for faster compiling and fewer dependencies later down the road.
 - Current strategy: Support enough features I can port the compiler to Rio, then port, then finish and polish.
 - Testing output in tcc, since high speed compilation is great. (And testing in gcc, too.)
+
+
+## Build alternatives
+
+```
+2022-04-20T04:19:58Z tjpalmer@pop-os:~/projects/rio
+$ time zig build test 
+All 1 tests passed.
+
+real    0m1.162s
+user    0m1.013s
+sys     0m0.173s
+2022-04-20T04:21:14Z tjpalmer@pop-os:~/projects/rio
+$ time zig build test 
+All 1 tests passed.
+
+real    0m0.017s
+user    0m0.004s
+sys     0m0.014s
+2022-04-20T04:21:21Z tjpalmer@pop-os:~/projects/rio
+```
+
+```
+2022-04-20T04:21:21Z tjpalmer@pop-os:~/projects/rio
+$ time (zig build && gzip -kf zig-out/bin/rio && ls -l zig-out/bin/rio zig-out/bin/rio.gz)
+-rwxrwxr-x 1 tjpalmer tjpalmer 965784 Apr 19 21:21 zig-out/bin/rio
+-rwxrwxr-x 1 tjpalmer tjpalmer 274260 Apr 19 21:21 zig-out/bin/rio.gz
+
+real    0m0.975s
+user    0m0.862s
+sys     0m0.137s
+2022-04-20T04:21:24Z tjpalmer@pop-os:~/projects/rio
+```
+
+```
+2022-04-20T04:21:24Z tjpalmer@pop-os:~/projects/rio
+$ time (zig build -Dtarget=wasm32-wasi && wasm-opt -O4 zig-out/bin/rio.wasm -o zig-out/bin/rio-opt.wasm && gzip -kf zig-out/bin/rio-opt.wasm && ls -l zig-out/bin/rio*.wasm*)
+-rw-rw-r-- 1 tjpalmer tjpalmer 106569 Apr 19 21:21 zig-out/bin/rio-opt.wasm
+-rw-rw-r-- 1 tjpalmer tjpalmer  38795 Apr 19 21:21 zig-out/bin/rio-opt.wasm.gz
+-rwxrwxr-x 1 tjpalmer tjpalmer 307244 Apr 19 21:21 zig-out/bin/rio.wasm
+
+real    0m1.294s
+user    0m3.702s
+sys     0m0.156s
+2022-04-20T04:21:27Z tjpalmer@pop-os:~/projects/rio
+```

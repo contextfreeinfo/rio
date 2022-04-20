@@ -1,1 +1,825 @@
-Normed size: 0
+NodeKind.block
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_include include
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text **
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+  /NodeKind.call
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id main
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.fun
+      NodeKind.fun_for
+        NodeKind.leaf: TokenKind.key_for for
+        NodeKind.round
+          NodeKind.leaf: TokenKind.round_begin (
+          NodeKind.leaf: TokenKind.round_end )
+        /NodeKind.round
+      /NodeKind.fun_for
+      NodeKind.be
+        NodeKind.leaf: TokenKind.key_be be
+        NodeKind.block
+          NodeKind.colon
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.op_colon :
+            NodeKind.call
+              NodeKind.leaf: TokenKind.id b
+              NodeKind.colon
+                NodeKind.leaf: TokenKind.id c
+                NodeKind.leaf: TokenKind.op_colon :
+                NodeKind.leaf: TokenKind.id d
+              /NodeKind.colon
+              NodeKind.leaf: TokenKind.id e
+              NodeKind.colon
+                NodeKind.leaf: TokenKind.id f
+                NodeKind.leaf: TokenKind.op_colon :
+                NodeKind.leaf: TokenKind.id g
+              /NodeKind.colon
+            /NodeKind.call
+          /NodeKind.colon
+          NodeKind.colon
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.op_colon :
+            NodeKind.colon
+              NodeKind.leaf: TokenKind.id b
+              NodeKind.leaf: TokenKind.op_colon :
+              NodeKind.colon
+                NodeKind.leaf: TokenKind.id c
+                NodeKind.leaf: TokenKind.op_colon :
+                NodeKind.colon
+                  NodeKind.leaf: TokenKind.id d
+                  NodeKind.leaf: TokenKind.op_colon :
+                  NodeKind.colon
+                    NodeKind.leaf: TokenKind.id e
+                    NodeKind.leaf: TokenKind.op_colon :
+                    NodeKind.colon
+                      NodeKind.leaf: TokenKind.id f
+                      NodeKind.leaf: TokenKind.op_colon :
+                      NodeKind.leaf: TokenKind.id g
+                    /NodeKind.colon
+                  /NodeKind.colon
+                /NodeKind.colon
+              /NodeKind.colon
+            /NodeKind.colon
+          /NodeKind.colon
+          NodeKind.colon
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.op_colon :
+            NodeKind.question
+              NodeKind.call
+                NodeKind.leaf: TokenKind.id hi
+                NodeKind.leaf: TokenKind.op_question ?
+                NodeKind.leaf: TokenKind.id there
+              /NodeKind.call
+            /NodeKind.question
+          /NodeKind.colon
+          NodeKind.colon
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.op_colon :
+            NodeKind.call
+              NodeKind.round
+                NodeKind.leaf: TokenKind.round_begin (
+                NodeKind.block
+                  NodeKind.question
+                    NodeKind.leaf: TokenKind.id hi
+                    NodeKind.leaf: TokenKind.op_question ?
+                  /NodeKind.question
+                /NodeKind.block
+                NodeKind.leaf: TokenKind.round_end )
+              /NodeKind.round
+              NodeKind.leaf: TokenKind.id there
+            /NodeKind.call
+          /NodeKind.colon
+          NodeKind.call
+            NodeKind.dot
+              NodeKind.leaf: TokenKind.id a
+              NodeKind.leaf: TokenKind.op_dot .
+              NodeKind.of
+                NodeKind.leaf: TokenKind.key_of of
+                NodeKind.block
+                  NodeKind.call
+                    NodeKind.leaf: TokenKind.id b
+                    NodeKind.leaf: TokenKind.id c
+                  /NodeKind.call
+                  NodeKind.call
+                    NodeKind.dot
+                      NodeKind.dot
+                        NodeKind.leaf: TokenKind.id d
+                        NodeKind.leaf: TokenKind.op_dot .
+                        NodeKind.leaf: TokenKind.id e
+                      /NodeKind.dot
+                      NodeKind.leaf: TokenKind.op_dot .
+                      NodeKind.leaf: TokenKind.id f
+                    /NodeKind.dot
+                    NodeKind.leaf: TokenKind.id g
+                  /NodeKind.call
+                /NodeKind.block
+                NodeKind.end
+                  NodeKind.leaf: TokenKind.key_end end
+                  NodeKind.leaf: TokenKind.id a
+                /NodeKind.end
+              /NodeKind.of
+            /NodeKind.dot
+            NodeKind.be
+              NodeKind.leaf: TokenKind.key_be be
+              NodeKind.leaf: TokenKind.id blah
+            /NodeKind.be
+          /NodeKind.call
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.be
+              NodeKind.leaf: TokenKind.key_be be
+              NodeKind.call
+                NodeKind.leaf: TokenKind.id good
+                NodeKind.be
+                  NodeKind.leaf: TokenKind.key_be be
+                  NodeKind.leaf: TokenKind.id bad
+                /NodeKind.be
+              /NodeKind.call
+            /NodeKind.be
+          /NodeKind.call
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.id b
+          /NodeKind.call
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.fun
+              NodeKind.fun_for
+                NodeKind.leaf: TokenKind.key_for for
+                NodeKind.leaf: TokenKind.id b
+              /NodeKind.fun_for
+              NodeKind.fun_to
+                NodeKind.leaf: TokenKind.key_to to
+                NodeKind.leaf: TokenKind.id c
+              /NodeKind.fun_to
+              NodeKind.be
+                NodeKind.leaf: TokenKind.key_be be
+                NodeKind.leaf: TokenKind.id d
+              /NodeKind.be
+            /NodeKind.fun
+          /NodeKind.call
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.id b
+          /NodeKind.call
+        /NodeKind.block
+        NodeKind.end
+          NodeKind.leaf: TokenKind.key_end end
+      /NodeKind.be
+    /NodeKind.fun
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.call
+      NodeKind.leaf: TokenKind.int 5
+      NodeKind.fun
+        NodeKind.fun_with
+          NodeKind.leaf: TokenKind.key_with with
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id doc
+            NodeKind.string
+              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.string_text hello
+              NodeKind.leaf: TokenKind.string_end "
+            /NodeKind.string
+          /NodeKind.call
+        /NodeKind.fun_with
+      /NodeKind.fun
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.be
+    NodeKind.leaf: TokenKind.key_be be
+    NodeKind.leaf: TokenKind.int 4
+  /NodeKind.be
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id b
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.call
+      NodeKind.leaf: TokenKind.int 3
+      NodeKind.fun
+        NodeKind.fun_with
+          NodeKind.leaf: TokenKind.key_with with
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id doc
+            NodeKind.string
+              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.string_text hi
+              NodeKind.leaf: TokenKind.string_end "
+            /NodeKind.string
+          /NodeKind.call
+        /NodeKind.fun_with
+        NodeKind.be
+          NodeKind.leaf: TokenKind.key_be be
+          NodeKind.leaf: TokenKind.int 5
+        /NodeKind.be
+      /NodeKind.fun
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.leaf: TokenKind.id a
+    /NodeKind.fun_for
+  /NodeKind.fun
+  NodeKind.fun
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.leaf: TokenKind.id there
+    /NodeKind.fun_to
+  /NodeKind.fun
+  NodeKind.be
+    NodeKind.leaf: TokenKind.key_be be
+    NodeKind.leaf: TokenKind.int 3
+  /NodeKind.be
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.block
+        NodeKind.leaf: TokenKind.id a
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.block
+        NodeKind.leaf: TokenKind.id there
+    /NodeKind.fun_to
+    NodeKind.be
+      NodeKind.leaf: TokenKind.key_be be
+      NodeKind.leaf: TokenKind.int 3
+    /NodeKind.be
+  /NodeKind.fun
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id d
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.call
+      NodeKind.leaf: TokenKind.int 4
+      NodeKind.fun
+        NodeKind.fun_with
+          NodeKind.leaf: TokenKind.key_with with
+          NodeKind.block
+            NodeKind.call
+              NodeKind.leaf: TokenKind.id doc
+              NodeKind.string
+                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.string_text hi
+                NodeKind.leaf: TokenKind.string_end "
+              /NodeKind.string
+            /NodeKind.call
+            NodeKind.call
+              NodeKind.leaf: TokenKind.id think
+              NodeKind.leaf: TokenKind.int 2
+            /NodeKind.call
+          /NodeKind.block
+          NodeKind.end
+            NodeKind.leaf: TokenKind.key_end end
+        /NodeKind.fun_with
+      /NodeKind.fun
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id e
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.leaf: TokenKind.int 5
+  /NodeKind.assign
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.as
+        NodeKind.as
+          NodeKind.leaf: TokenKind.id a
+          NodeKind.leaf: TokenKind.key_as as
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id b
+            NodeKind.leaf: TokenKind.id c
+          /NodeKind.call
+        /NodeKind.as
+        NodeKind.leaf: TokenKind.key_as as
+        NodeKind.leaf: TokenKind.id d
+      /NodeKind.as
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.leaf: TokenKind.id e
+    /NodeKind.fun_to
+    NodeKind.be
+      NodeKind.leaf: TokenKind.key_be be
+      NodeKind.leaf: TokenKind.id f
+    /NodeKind.be
+  /NodeKind.fun
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.call
+        NodeKind.round
+          NodeKind.leaf: TokenKind.round_begin (
+          NodeKind.block
+            NodeKind.as
+              NodeKind.leaf: TokenKind.id a
+              NodeKind.leaf: TokenKind.key_as as
+              NodeKind.leaf: TokenKind.id b
+            /NodeKind.as
+          /NodeKind.block
+          NodeKind.leaf: TokenKind.round_end )
+        /NodeKind.round
+        NodeKind.round
+          NodeKind.leaf: TokenKind.round_begin (
+          NodeKind.block
+            NodeKind.as
+              NodeKind.leaf: TokenKind.id c
+              NodeKind.leaf: TokenKind.key_as as
+              NodeKind.leaf: TokenKind.id d
+            /NodeKind.as
+          /NodeKind.block
+          NodeKind.leaf: TokenKind.round_end )
+        /NodeKind.round
+      /NodeKind.call
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.leaf: TokenKind.id e
+    /NodeKind.fun_to
+    NodeKind.be
+      NodeKind.leaf: TokenKind.key_be be
+      NodeKind.leaf: TokenKind.id f
+    /NodeKind.be
+  /NodeKind.fun
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.block
+        NodeKind.as
+          NodeKind.leaf: TokenKind.id a
+          NodeKind.leaf: TokenKind.key_as as
+          NodeKind.leaf: TokenKind.id b
+        /NodeKind.as
+        NodeKind.as
+          NodeKind.leaf: TokenKind.id c
+          NodeKind.leaf: TokenKind.key_as as
+          NodeKind.leaf: TokenKind.id d
+        /NodeKind.as
+      /NodeKind.block
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.leaf: TokenKind.id e
+    /NodeKind.fun_to
+    NodeKind.be
+      NodeKind.leaf: TokenKind.key_be be
+      NodeKind.leaf: TokenKind.id f
+    /NodeKind.be
+  /NodeKind.fun
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.call
+        NodeKind.colon
+          NodeKind.leaf: TokenKind.id g
+          NodeKind.leaf: TokenKind.op_colon :
+          NodeKind.round
+            NodeKind.leaf: TokenKind.round_begin (
+            NodeKind.block
+              NodeKind.as
+                NodeKind.leaf: TokenKind.id a
+                NodeKind.leaf: TokenKind.key_as as
+                NodeKind.leaf: TokenKind.id b
+              /NodeKind.as
+            /NodeKind.block
+            NodeKind.leaf: TokenKind.round_end )
+          /NodeKind.round
+        /NodeKind.colon
+        NodeKind.colon
+          NodeKind.leaf: TokenKind.id h
+          NodeKind.leaf: TokenKind.op_colon :
+          NodeKind.round
+            NodeKind.leaf: TokenKind.round_begin (
+            NodeKind.block
+              NodeKind.as
+                NodeKind.leaf: TokenKind.id c
+                NodeKind.leaf: TokenKind.key_as as
+                NodeKind.leaf: TokenKind.id d
+              /NodeKind.as
+            /NodeKind.block
+            NodeKind.leaf: TokenKind.round_end )
+          /NodeKind.round
+        /NodeKind.colon
+      /NodeKind.call
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.leaf: TokenKind.id e
+    /NodeKind.fun_to
+    NodeKind.be
+      NodeKind.leaf: TokenKind.key_be be
+      NodeKind.leaf: TokenKind.id f
+    /NodeKind.be
+  /NodeKind.fun
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.block
+        NodeKind.colon
+          NodeKind.leaf: TokenKind.id g
+          NodeKind.leaf: TokenKind.op_colon :
+          NodeKind.as
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.key_as as
+            NodeKind.leaf: TokenKind.id b
+          /NodeKind.as
+        /NodeKind.colon
+        NodeKind.colon
+          NodeKind.leaf: TokenKind.id h
+          NodeKind.leaf: TokenKind.op_colon :
+          NodeKind.as
+            NodeKind.leaf: TokenKind.id c
+            NodeKind.leaf: TokenKind.key_as as
+            NodeKind.leaf: TokenKind.id d
+          /NodeKind.as
+        /NodeKind.colon
+      /NodeKind.block
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.leaf: TokenKind.id e
+    /NodeKind.fun_to
+    NodeKind.be
+      NodeKind.leaf: TokenKind.key_be be
+      NodeKind.leaf: TokenKind.id f
+    /NodeKind.be
+  /NodeKind.fun
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.as
+        NodeKind.leaf: TokenKind.id a
+        NodeKind.leaf: TokenKind.key_as as
+        NodeKind.leaf: TokenKind.id b
+      /NodeKind.as
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.as
+        NodeKind.leaf: TokenKind.id c
+        NodeKind.leaf: TokenKind.key_as as
+        NodeKind.leaf: TokenKind.id d
+      /NodeKind.as
+    /NodeKind.fun_to
+    NodeKind.be
+      NodeKind.leaf: TokenKind.key_be be
+      NodeKind.leaf: TokenKind.id e
+    /NodeKind.be
+  /NodeKind.fun
+  NodeKind.assign
+    NodeKind.fun
+      NodeKind.fun_for
+        NodeKind.leaf: TokenKind.key_for for
+        NodeKind.as
+          NodeKind.leaf: TokenKind.id a
+          NodeKind.leaf: TokenKind.key_as as
+          NodeKind.leaf: TokenKind.id b
+        /NodeKind.as
+      /NodeKind.fun_for
+    /NodeKind.fun
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id c
+      NodeKind.fun
+        NodeKind.fun_to
+          NodeKind.leaf: TokenKind.key_to to
+          NodeKind.leaf: TokenKind.id d
+        /NodeKind.fun_to
+        NodeKind.be
+          NodeKind.leaf: TokenKind.key_be be
+          NodeKind.leaf: TokenKind.id e
+        /NodeKind.be
+      /NodeKind.fun
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.round
+        NodeKind.leaf: TokenKind.round_begin (
+        NodeKind.block
+          NodeKind.assign
+            NodeKind.as
+              NodeKind.leaf: TokenKind.id a
+              NodeKind.leaf: TokenKind.key_as as
+              NodeKind.leaf: TokenKind.id b
+            /NodeKind.as
+            NodeKind.leaf: TokenKind.op_eq =
+            NodeKind.leaf: TokenKind.id c
+          /NodeKind.assign
+        /NodeKind.block
+        NodeKind.leaf: TokenKind.round_end )
+      /NodeKind.round
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.leaf: TokenKind.id d
+    /NodeKind.fun_to
+    NodeKind.be
+      NodeKind.leaf: TokenKind.key_be be
+      NodeKind.leaf: TokenKind.id e
+    /NodeKind.be
+  /NodeKind.fun
+  NodeKind.sign_int
+    NodeKind.leaf: TokenKind.op_sub -
+    NodeKind.leaf: TokenKind.int 5
+  /NodeKind.sign_int
+  NodeKind.add
+    NodeKind.leaf: TokenKind.int 4
+    NodeKind.leaf: TokenKind.op_add +
+    NodeKind.sign_int
+      NodeKind.leaf: TokenKind.op_sub -
+      NodeKind.leaf: TokenKind.int 5
+    /NodeKind.sign_int
+  /NodeKind.add
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.assign
+      NodeKind.leaf: TokenKind.id b
+      NodeKind.leaf: TokenKind.op_eq =
+      NodeKind.leaf: TokenKind.id c
+    /NodeKind.assign
+  /NodeKind.assign
+  NodeKind.dot
+    NodeKind.question
+      NodeKind.dot
+        NodeKind.question
+          NodeKind.dot
+            NodeKind.dot
+              NodeKind.dot
+                NodeKind.question
+                  NodeKind.dot
+                    NodeKind.leaf: TokenKind.id a
+                    NodeKind.leaf: TokenKind.op_dot .
+                    NodeKind.leaf: TokenKind.id b
+                  /NodeKind.dot
+                  NodeKind.leaf: TokenKind.op_question ?
+                /NodeKind.question
+                NodeKind.leaf: TokenKind.op_dot .
+                NodeKind.leaf: TokenKind.id c
+              /NodeKind.dot
+              NodeKind.leaf: TokenKind.op_dot .
+              NodeKind.leaf: TokenKind.id d
+            /NodeKind.dot
+            NodeKind.leaf: TokenKind.op_dot .
+            NodeKind.leaf: TokenKind.id e
+          /NodeKind.dot
+          NodeKind.leaf: TokenKind.op_question ?
+        /NodeKind.question
+        NodeKind.leaf: TokenKind.op_dot .
+        NodeKind.leaf: TokenKind.id f
+      /NodeKind.dot
+      NodeKind.leaf: TokenKind.op_question ?
+    /NodeKind.question
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.leaf: TokenKind.id g
+  /NodeKind.dot
+  NodeKind.dot
+    NodeKind.question
+      NodeKind.dot
+        NodeKind.frac
+          NodeKind.leaf: TokenKind.int 1
+          NodeKind.leaf: TokenKind.op_dot .
+          NodeKind.leaf: TokenKind.int 5
+        /NodeKind.frac
+        NodeKind.leaf: TokenKind.op_dot .
+        NodeKind.leaf: TokenKind.id c
+      /NodeKind.dot
+      NodeKind.leaf: TokenKind.op_question ?
+    /NodeKind.question
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.leaf: TokenKind.id d
+  /NodeKind.dot
+  NodeKind.dot
+    NodeKind.leaf: TokenKind.int 1
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.leaf: TokenKind.int 5
+  /NodeKind.dot
+  NodeKind.frac
+    NodeKind.sign_int
+      NodeKind.leaf: TokenKind.op_sub -
+      NodeKind.leaf: TokenKind.int 1
+    /NodeKind.sign_int
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.leaf: TokenKind.int 5
+  /NodeKind.frac
+  NodeKind.dot
+    NodeKind.dot
+      NodeKind.frac
+        NodeKind.sign_int
+          NodeKind.leaf: TokenKind.op_sub -
+          NodeKind.leaf: TokenKind.int 1
+        /NodeKind.sign_int
+        NodeKind.leaf: TokenKind.op_dot .
+        NodeKind.leaf: TokenKind.int 2
+      /NodeKind.frac
+      NodeKind.leaf: TokenKind.op_dot .
+      NodeKind.leaf: TokenKind.id a
+    /NodeKind.dot
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.leaf: TokenKind.int 3
+  /NodeKind.dot
+  NodeKind.dot
+    NodeKind.dot
+      NodeKind.round
+        NodeKind.leaf: TokenKind.round_begin (
+        NodeKind.block
+          NodeKind.frac
+            NodeKind.sign_int
+              NodeKind.leaf: TokenKind.op_sub -
+              NodeKind.leaf: TokenKind.int 1
+            /NodeKind.sign_int
+            NodeKind.leaf: TokenKind.op_dot .
+            NodeKind.leaf: TokenKind.int 2
+          /NodeKind.frac
+        /NodeKind.block
+        NodeKind.leaf: TokenKind.round_end )
+      /NodeKind.round
+      NodeKind.leaf: TokenKind.op_dot .
+      NodeKind.leaf: TokenKind.id a
+    /NodeKind.dot
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.leaf: TokenKind.int 3
+  /NodeKind.dot
+  NodeKind.sign
+    NodeKind.leaf: TokenKind.op_sub -
+    NodeKind.dot
+      NodeKind.dot
+        NodeKind.dot
+          NodeKind.leaf: TokenKind.id b
+          NodeKind.leaf: TokenKind.op_dot .
+          NodeKind.leaf: TokenKind.id c
+        /NodeKind.dot
+        NodeKind.leaf: TokenKind.op_dot .
+        NodeKind.leaf: TokenKind.id a
+      /NodeKind.dot
+      NodeKind.leaf: TokenKind.op_dot .
+      NodeKind.leaf: TokenKind.int 3
+    /NodeKind.dot
+  /NodeKind.sign
+  NodeKind.dot
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.leaf: TokenKind.int 5
+  /NodeKind.dot
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.frac
+      NodeKind.leaf: TokenKind.int 0
+      NodeKind.leaf: TokenKind.op_dot .
+      NodeKind.leaf: TokenKind.int 5
+    /NodeKind.frac
+  /NodeKind.call
+  NodeKind.frac
+    NodeKind.leaf: TokenKind.int 5
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.sign_int
+      NodeKind.leaf: TokenKind.op_sub -
+      NodeKind.leaf: TokenKind.int 1
+    /NodeKind.sign_int
+  /NodeKind.frac
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id things
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id _
+      NodeKind.leaf: TokenKind.int 1
+      NodeKind.leaf: TokenKind.int 2
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text hi
+        NodeKind.leaf: TokenKind.string_end "
+      /NodeKind.string
+      NodeKind.leaf: TokenKind.int 4
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id things
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.call
+      NodeKind.round
+        NodeKind.leaf: TokenKind.round_begin (
+        NodeKind.block
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id list
+            NodeKind.leaf: TokenKind.id _
+          /NodeKind.call
+        /NodeKind.block
+        NodeKind.leaf: TokenKind.round_end )
+      /NodeKind.round
+      NodeKind.leaf: TokenKind.int 1
+      NodeKind.leaf: TokenKind.int 2
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text hi
+        NodeKind.leaf: TokenKind.string_end "
+      /NodeKind.string
+      NodeKind.leaf: TokenKind.int 4
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.list
+    NodeKind.list
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id a
+        NodeKind.leaf: TokenKind.id b
+      /NodeKind.call
+      NodeKind.leaf: TokenKind.op_comma ,
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id c
+        NodeKind.leaf: TokenKind.id d
+      /NodeKind.call
+    /NodeKind.list
+    NodeKind.leaf: TokenKind.op_comma ,
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id e
+      NodeKind.leaf: TokenKind.id f
+    /NodeKind.call
+  /NodeKind.list
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.of
+      NodeKind.leaf: TokenKind.key_of of
+      NodeKind.list
+        NodeKind.colon
+          NodeKind.leaf: TokenKind.id b
+          NodeKind.leaf: TokenKind.op_colon :
+          NodeKind.leaf: TokenKind.id c
+        /NodeKind.colon
+        NodeKind.leaf: TokenKind.op_comma ,
+        NodeKind.colon
+          NodeKind.leaf: TokenKind.id d
+          NodeKind.leaf: TokenKind.op_colon :
+          NodeKind.leaf: TokenKind.id e
+        /NodeKind.colon
+      /NodeKind.list
+    /NodeKind.of
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.of
+      NodeKind.leaf: TokenKind.key_of of
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id _
+        NodeKind.colon
+          NodeKind.leaf: TokenKind.id b
+          NodeKind.leaf: TokenKind.op_colon :
+          NodeKind.leaf: TokenKind.id c
+        /NodeKind.colon
+        NodeKind.colon
+          NodeKind.leaf: TokenKind.id d
+          NodeKind.leaf: TokenKind.op_colon :
+          NodeKind.leaf: TokenKind.id e
+        /NodeKind.colon
+      /NodeKind.call
+    /NodeKind.of
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.colon
+      NodeKind.leaf: TokenKind.id b
+      NodeKind.leaf: TokenKind.op_colon :
+      NodeKind.leaf: TokenKind.id c
+    /NodeKind.colon
+    NodeKind.colon
+      NodeKind.leaf: TokenKind.id d
+      NodeKind.leaf: TokenKind.op_colon :
+      NodeKind.leaf: TokenKind.id e
+    /NodeKind.colon
+  /NodeKind.call
+  NodeKind.list
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id a
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id b
+        NodeKind.leaf: TokenKind.op_colon :
+        NodeKind.leaf: TokenKind.id c
+      /NodeKind.colon
+    /NodeKind.call
+    NodeKind.leaf: TokenKind.op_comma ,
+    NodeKind.colon
+      NodeKind.leaf: TokenKind.id d
+      NodeKind.leaf: TokenKind.op_colon :
+      NodeKind.leaf: TokenKind.id e
+    /NodeKind.colon
+  /NodeKind.list
+  NodeKind.colon
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.leaf: TokenKind.op_colon :
+    NodeKind.list
+      NodeKind.leaf: TokenKind.id b
+      NodeKind.leaf: TokenKind.op_comma ,
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id c
+        NodeKind.leaf: TokenKind.op_colon :
+        NodeKind.leaf: TokenKind.id d
+      /NodeKind.colon
+    /NodeKind.list
+  /NodeKind.colon
+/NodeKind.block
+Normed size: 601

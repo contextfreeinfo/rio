@@ -1,1 +1,382 @@
-Normed size: 0
+NodeKind.block
+  NodeKind.assign_to
+    NodeKind.call
+      NodeKind.leaf: TokenKind.key_use use
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text c
+        NodeKind.leaf: TokenKind.string_end "
+      /NodeKind.string
+    /NodeKind.call
+    NodeKind.leaf: TokenKind.op_eqto =>
+    NodeKind.leaf: TokenKind.op_spread ..
+  /NodeKind.assign_to
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id main
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.fun
+      NodeKind.fun_for
+        NodeKind.leaf: TokenKind.key_for for
+        NodeKind.round
+          NodeKind.leaf: TokenKind.round_begin (
+          NodeKind.leaf: TokenKind.round_end )
+        /NodeKind.round
+      /NodeKind.fun_for
+      NodeKind.fun_with
+        NodeKind.leaf: TokenKind.key_with with
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id fx
+          NodeKind.leaf: TokenKind.id printf
+        /NodeKind.call
+      /NodeKind.fun_with
+      NodeKind.be
+        NodeKind.leaf: TokenKind.key_be be
+        NodeKind.block
+          NodeKind.assign
+            NodeKind.leaf: TokenKind.id name
+            NodeKind.leaf: TokenKind.op_eq =
+            NodeKind.string
+              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.string_text Alice
+              NodeKind.leaf: TokenKind.string_end "
+            /NodeKind.string
+          /NodeKind.assign
+          NodeKind.assign
+            NodeKind.leaf: TokenKind.id age
+            NodeKind.leaf: TokenKind.op_eq =
+            NodeKind.leaf: TokenKind.int 40
+          /NodeKind.assign
+          NodeKind.assign
+            NodeKind.leaf: TokenKind.id other-name
+            NodeKind.leaf: TokenKind.op_eq =
+            NodeKind.string
+              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.string_text Bernie
+              NodeKind.leaf: TokenKind.string_end "
+            /NodeKind.string
+          /NodeKind.assign
+          NodeKind.assign
+            NodeKind.leaf: TokenKind.id other-age
+            NodeKind.leaf: TokenKind.op_eq =
+            NodeKind.leaf: TokenKind.int 14
+          /NodeKind.assign
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id show-prices
+            NodeKind.of
+              NodeKind.leaf: TokenKind.key_of of
+              NodeKind.block
+                NodeKind.colon
+                  NodeKind.leaf: TokenKind.id persons
+                  NodeKind.leaf: TokenKind.op_colon :
+                  NodeKind.call
+                    NodeKind.leaf: TokenKind.id _
+                    NodeKind.of
+                      NodeKind.leaf: TokenKind.key_of of
+                      NodeKind.block
+                        NodeKind.call
+                          NodeKind.leaf: TokenKind.id _
+                          NodeKind.leaf: TokenKind.id age
+                          NodeKind.leaf: TokenKind.id name
+                        /NodeKind.call
+                        NodeKind.call
+                          NodeKind.leaf: TokenKind.id _
+                          NodeKind.colon
+                            NodeKind.leaf: TokenKind.id name
+                            NodeKind.leaf: TokenKind.op_colon :
+                            NodeKind.leaf: TokenKind.id other-name
+                          /NodeKind.colon
+                          NodeKind.colon
+                            NodeKind.leaf: TokenKind.id age
+                            NodeKind.leaf: TokenKind.op_colon :
+                            NodeKind.leaf: TokenKind.id other-age
+                          /NodeKind.colon
+                        /NodeKind.call
+                        NodeKind.call
+                          NodeKind.leaf: TokenKind.id _
+                          NodeKind.colon
+                            NodeKind.leaf: TokenKind.id name
+                            NodeKind.leaf: TokenKind.op_colon :
+                            NodeKind.string
+                              NodeKind.leaf: TokenKind.string_begin_double "
+                              NodeKind.leaf: TokenKind.string_text Clara
+                              NodeKind.leaf: TokenKind.string_end "
+                            /NodeKind.string
+                          /NodeKind.colon
+                          NodeKind.colon
+                            NodeKind.leaf: TokenKind.id age
+                            NodeKind.leaf: TokenKind.op_colon :
+                            NodeKind.leaf: TokenKind.int 9
+                          /NodeKind.colon
+                        /NodeKind.call
+                        NodeKind.call
+                          NodeKind.leaf: TokenKind.id _
+                          NodeKind.colon
+                            NodeKind.leaf: TokenKind.id name
+                            NodeKind.leaf: TokenKind.op_colon :
+                            NodeKind.string
+                              NodeKind.leaf: TokenKind.string_begin_double "
+                              NodeKind.leaf: TokenKind.string_text Darlene
+                              NodeKind.leaf: TokenKind.string_end "
+                            /NodeKind.string
+                          /NodeKind.colon
+                          NodeKind.colon
+                            NodeKind.leaf: TokenKind.id age
+                            NodeKind.leaf: TokenKind.op_colon :
+                            NodeKind.leaf: TokenKind.int 68
+                          /NodeKind.colon
+                        /NodeKind.call
+                      /NodeKind.block
+                      NodeKind.end
+                        NodeKind.leaf: TokenKind.key_end end
+                        NodeKind.leaf: TokenKind.id persons
+                      /NodeKind.end
+                    /NodeKind.of
+                  /NodeKind.call
+                /NodeKind.colon
+              /NodeKind.block
+              NodeKind.end
+                NodeKind.leaf: TokenKind.key_end end
+                NodeKind.leaf: TokenKind.id show-prices
+              /NodeKind.end
+            /NodeKind.of
+          /NodeKind.call
+        /NodeKind.block
+        NodeKind.end
+          NodeKind.leaf: TokenKind.key_end end
+          NodeKind.leaf: TokenKind.id main
+        /NodeKind.end
+      /NodeKind.be
+    /NodeKind.fun
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id default-schema
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.call
+      NodeKind.leaf: TokenKind.key_struct struct
+      NodeKind.of
+        NodeKind.leaf: TokenKind.key_of of
+        NodeKind.block
+          NodeKind.as
+            NodeKind.leaf: TokenKind.id name
+            NodeKind.leaf: TokenKind.key_as as
+            NodeKind.leaf: TokenKind.id string
+          /NodeKind.as
+          NodeKind.as
+            NodeKind.leaf: TokenKind.id age
+            NodeKind.leaf: TokenKind.key_as as
+            NodeKind.leaf: TokenKind.id int
+          /NodeKind.as
+        /NodeKind.block
+        NodeKind.end
+          NodeKind.leaf: TokenKind.key_end end
+      /NodeKind.of
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id person
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.call
+      NodeKind.leaf: TokenKind.key_struct struct
+      NodeKind.of
+        NodeKind.leaf: TokenKind.key_of of
+        NodeKind.block
+          NodeKind.leaf: TokenKind.id name
+          NodeKind.leaf: TokenKind.id age
+        /NodeKind.block
+        NodeKind.end
+          NodeKind.leaf: TokenKind.key_end end
+      /NodeKind.of
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id show-prices
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.fun
+      NodeKind.fun_for
+        NodeKind.leaf: TokenKind.key_for for
+        NodeKind.as
+          NodeKind.leaf: TokenKind.id persons
+          NodeKind.leaf: TokenKind.key_as as
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id list
+            NodeKind.leaf: TokenKind.id person
+          /NodeKind.call
+        /NodeKind.as
+      /NodeKind.fun_for
+      NodeKind.fun_with
+        NodeKind.leaf: TokenKind.key_with with
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id fx
+          NodeKind.leaf: TokenKind.id printf
+        /NodeKind.call
+      /NodeKind.fun_with
+      NodeKind.be
+        NodeKind.leaf: TokenKind.key_be be
+        NodeKind.block
+          NodeKind.call
+            NodeKind.dot
+              NodeKind.leaf: TokenKind.id persons
+              NodeKind.leaf: TokenKind.op_dot .
+              NodeKind.leaf: TokenKind.id each
+            /NodeKind.dot
+            NodeKind.fun
+              NodeKind.fun_for
+                NodeKind.leaf: TokenKind.key_for for
+                NodeKind.leaf: TokenKind.id person
+              /NodeKind.fun_for
+              NodeKind.be
+                NodeKind.leaf: TokenKind.key_be be
+                NodeKind.block
+                  NodeKind.call
+                    NodeKind.leaf: TokenKind.id void
+                    NodeKind.of
+                      NodeKind.leaf: TokenKind.key_of of
+                      NodeKind.call
+                        NodeKind.leaf: TokenKind.id printf
+                        NodeKind.string
+                          NodeKind.leaf: TokenKind.string_begin_double "
+                          NodeKind.leaf: TokenKind.string_text %s pays $%.2f
+                          NodeKind.leaf: TokenKind.escape \n
+                          NodeKind.leaf: TokenKind.string_end "
+                        /NodeKind.string
+                        NodeKind.dot
+                          NodeKind.leaf: TokenKind.id person
+                          NodeKind.leaf: TokenKind.op_dot .
+                          NodeKind.leaf: TokenKind.id name
+                        /NodeKind.dot
+                        NodeKind.dot
+                          NodeKind.dot
+                            NodeKind.leaf: TokenKind.id person
+                            NodeKind.leaf: TokenKind.op_dot .
+                            NodeKind.leaf: TokenKind.id age
+                          /NodeKind.dot
+                          NodeKind.leaf: TokenKind.op_dot .
+                          NodeKind.leaf: TokenKind.id ticket-price
+                        /NodeKind.dot
+                      /NodeKind.call
+                    /NodeKind.of
+                  /NodeKind.call
+                /NodeKind.block
+                NodeKind.end
+                  NodeKind.leaf: TokenKind.key_end end
+              /NodeKind.be
+            /NodeKind.fun
+          /NodeKind.call
+        /NodeKind.block
+        NodeKind.end
+          NodeKind.leaf: TokenKind.key_end end
+      /NodeKind.be
+    /NodeKind.fun
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id ticket-price
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.fun
+      NodeKind.fun_for
+        NodeKind.leaf: TokenKind.key_for for
+        NodeKind.leaf: TokenKind.id age
+      /NodeKind.fun_for
+      NodeKind.fun_to
+        NodeKind.leaf: TokenKind.key_to to
+        NodeKind.leaf: TokenKind.id float
+      /NodeKind.fun_to
+      NodeKind.be
+        NodeKind.leaf: TokenKind.key_be be
+        NodeKind.block
+          NodeKind.call
+            NodeKind.leaf: TokenKind.key_case case
+            NodeKind.of
+              NodeKind.leaf: TokenKind.key_of of
+              NodeKind.block
+                NodeKind.call
+                  NodeKind.compare
+                    NodeKind.leaf: TokenKind.id age
+                    NodeKind.leaf: TokenKind.op_le <=
+                    NodeKind.leaf: TokenKind.int 11
+                  /NodeKind.compare
+                  NodeKind.be
+                    NodeKind.leaf: TokenKind.key_be be
+                    NodeKind.frac
+                      NodeKind.leaf: TokenKind.int 6
+                      NodeKind.leaf: TokenKind.op_dot .
+                      NodeKind.leaf: TokenKind.int 75
+                    /NodeKind.frac
+                  /NodeKind.be
+                /NodeKind.call
+                NodeKind.call
+                  NodeKind.compare
+                    NodeKind.leaf: TokenKind.id age
+                    NodeKind.leaf: TokenKind.op_ge >=
+                    NodeKind.leaf: TokenKind.int 62
+                  /NodeKind.compare
+                  NodeKind.be
+                    NodeKind.leaf: TokenKind.key_be be
+                    NodeKind.frac
+                      NodeKind.leaf: TokenKind.int 7
+                      NodeKind.leaf: TokenKind.op_dot .
+                      NodeKind.leaf: TokenKind.int 00
+                    /NodeKind.frac
+                  /NodeKind.be
+                /NodeKind.call
+                NodeKind.call
+                  NodeKind.leaf: TokenKind.key_else else
+                  NodeKind.be
+                    NodeKind.leaf: TokenKind.key_be be
+                    NodeKind.block
+                      NodeKind.call
+                        NodeKind.leaf: TokenKind.id if
+                        NodeKind.compare
+                          NodeKind.leaf: TokenKind.id age
+                          NodeKind.leaf: TokenKind.op_lt <
+                          NodeKind.leaf: TokenKind.int 18
+                        /NodeKind.compare
+                        NodeKind.be
+                          NodeKind.leaf: TokenKind.key_be be
+                          NodeKind.block
+                            NodeKind.call
+                              NodeKind.leaf: TokenKind.id trace
+                              NodeKind.string
+                                NodeKind.leaf: TokenKind.string_begin_double "
+                                NodeKind.leaf: TokenKind.string_text You think age 
+                                NodeKind.escape
+                                  NodeKind.leaf: TokenKind.escape_begin \(
+                                  NodeKind.block
+                                    NodeKind.leaf: TokenKind.id age
+                                  NodeKind.leaf: TokenKind.escape_end )
+                                /NodeKind.escape
+                                NodeKind.leaf: TokenKind.string_text  gets child prices here?
+                                NodeKind.leaf: TokenKind.string_end "
+                              /NodeKind.string
+                            /NodeKind.call
+                          /NodeKind.block
+                          NodeKind.end
+                            NodeKind.leaf: TokenKind.key_end end
+                        /NodeKind.be
+                      /NodeKind.call
+                      NodeKind.frac
+                        NodeKind.leaf: TokenKind.int 11
+                        NodeKind.leaf: TokenKind.op_dot .
+                        NodeKind.leaf: TokenKind.int 00
+                      /NodeKind.frac
+                    /NodeKind.block
+                    NodeKind.end
+                      NodeKind.leaf: TokenKind.key_end end
+                  /NodeKind.be
+                /NodeKind.call
+              /NodeKind.block
+              NodeKind.end
+                NodeKind.leaf: TokenKind.key_end end
+                NodeKind.leaf: TokenKind.key_case case
+              /NodeKind.end
+            /NodeKind.of
+          /NodeKind.call
+        /NodeKind.block
+        NodeKind.end
+          NodeKind.leaf: TokenKind.key_end end
+          NodeKind.leaf: TokenKind.id ticket-price
+        /NodeKind.end
+      /NodeKind.be
+    /NodeKind.fun
+  /NodeKind.assign
+/NodeKind.block
+Normed size: 279

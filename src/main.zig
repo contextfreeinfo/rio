@@ -44,7 +44,10 @@ fn dumpTree(allocator: Allocator, name: String, parsed_out: anytype, normed_out:
     try parsed_out.print("Token size: {} node size: {} {}\n", .{ @sizeOf(lex.Token), @sizeOf(parse.Node), @sizeOf(parse.NodeKind) });
     // Normed ast.
     var normer = try norm.Normer.init(allocator);
+    defer normer.deinit();
     const normed = try normer.build(parsed);
+    defer normed.deinit(allocator);
+    try normed.print(normed_out, .{ .pool = pool });
     try normed_out.print("Normed size: {}\n", .{normed.nodes.len});
 }
 
