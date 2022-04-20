@@ -19,7 +19,7 @@ pub fn main() !void {
     }
     const name = args[2];
     try out.print("Run {s}\n", .{name});
-    try dumpTree(allocator, out, name);
+    try dumpTree(allocator, name, out, out);
 }
 
 pub const Scripter = struct {

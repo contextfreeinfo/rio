@@ -115,16 +115,12 @@ pub const Tree = struct {
         allocator.free(self.nodes);
     }
 
-    pub fn root(self: Self) ?Node {
-        return lex.last(Node, self.nodes);
+    pub fn root(self: Self) Node {
+        return lex.last(Node, self.nodes) orelse Node{ .kind = NodeKind.block, .data = .{ .kids = NodeId.of(0).slice(0) } };
     }
 
     pub fn print(self: Self, writer: anytype, config: TreePrintConfig) !void {
-        if (self.root()) |r| {
-            _ = try r.print(writer, .{ .nodes = self.nodes, .config = config, .indent = 0 });
-        } else {
-            try writer.print("()\n", .{});
-        }
+        _ = try self.root().print(writer, .{ .nodes = self.nodes, .config = config, .indent = 0 });
     }
 };
 

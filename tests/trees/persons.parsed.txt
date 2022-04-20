@@ -99,6 +99,38 @@ NodeKind.block
 
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
+          NodeKind.assign
+            NodeKind.leaf: TokenKind.id other-name
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.op_eq =
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.string
+              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.string_text Bernie
+              NodeKind.leaf: TokenKind.string_end "
+            /NodeKind.string
+          /NodeKind.assign
+          NodeKind.space
+            NodeKind.leaf: TokenKind.vspace 
+
+            NodeKind.leaf: TokenKind.hspace   
+          /NodeKind.space
+          NodeKind.assign
+            NodeKind.leaf: TokenKind.id other-age
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.op_eq =
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.int 14
+          /NodeKind.assign
+          NodeKind.space
+            NodeKind.leaf: TokenKind.vspace 
+
+            NodeKind.leaf: TokenKind.hspace   
+          /NodeKind.space
           NodeKind.call
             NodeKind.leaf: TokenKind.id show-prices
             NodeKind.space
@@ -159,11 +191,7 @@ NodeKind.block
                             NodeKind.leaf: TokenKind.op_colon :
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
-                            NodeKind.string
-                              NodeKind.leaf: TokenKind.string_begin_double "
-                              NodeKind.leaf: TokenKind.string_text Bernie
-                              NodeKind.leaf: TokenKind.string_end "
-                            /NodeKind.string
+                            NodeKind.leaf: TokenKind.id other-name
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
                           /NodeKind.colon
@@ -172,7 +200,7 @@ NodeKind.block
                             NodeKind.leaf: TokenKind.op_colon :
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
-                            NodeKind.leaf: TokenKind.int 14
+                            NodeKind.leaf: TokenKind.id other-age
                           /NodeKind.colon
                         /NodeKind.call
                         NodeKind.space
@@ -752,6 +780,6 @@ NodeKind.block
 
   /NodeKind.space
 /NodeKind.block
-Pool storage: 4096 547
-Parsed size: 569
+Pool storage: 4096 566
+Parsed size: 591
 Token size: 8 node size: 16 1

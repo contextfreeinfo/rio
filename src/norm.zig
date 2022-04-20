@@ -48,6 +48,54 @@ pub const Normer = struct {
 
     pub fn build(self: *Self, parsed: parse.Tree) !Tree {
         self.parsed = parsed;
-        return Tree {.nodes = &.{}};
+        try self.any(parsed.root());
+        return Tree{ .nodes = &.{} };
+    }
+
+    fn any(self: *Self, node: parse.Node) !void {
+        switch (node.kind) {
+            .add => try self.ignore(node),
+            .as => try self.ignore(node),
+            .assign => try self.ignore(node),
+            .assign_to => try self.ignore(node),
+            .be => try self.ignore(node),
+            .be_call => try self.ignore(node),
+            .block => try self.block(node),
+            .bool_and => try self.ignore(node),
+            .bool_or => try self.ignore(node),
+            .call => try self.ignore(node),
+            .colon => try self.ignore(node),
+            .comment => try self.ignore(node),
+            .compare => try self.ignore(node),
+            .def => try self.ignore(node),
+            .dot => try self.ignore(node),
+            .end => try self.ignore(node),
+            .escape => try self.ignore(node),
+            .frac => try self.ignore(node),
+            .fun => try self.ignore(node),
+            .fun_for => try self.ignore(node),
+            .fun_to => try self.ignore(node),
+            .fun_with => try self.ignore(node),
+            .leaf => try self.ignore(node),
+            .list => try self.ignore(node),
+            .mul => try self.ignore(node),
+            .of => try self.ignore(node),
+            .question => try self.ignore(node),
+            .round => try self.ignore(node),
+            .sign => try self.ignore(node),
+            .sign_int => try self.ignore(node),
+            .space => try self.ignore(node),
+            .string => try self.ignore(node),
+        }
+    }
+
+    fn block(self: *Self, node: parse.Node) !void {
+        _ = self;
+        _ = node;
+    }
+
+    fn ignore(self: *Self, node: parse.Node) !void {
+        _ = self;
+        _ = node;
     }
 };

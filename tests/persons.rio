@@ -4,12 +4,14 @@ main = for () with fx printf be
   # Assignment here declares new *const* values
   name = "Alice"
   age = 40
+  other-name = "Bernie"
+  other-age = 14
   show-prices of
     persons: _ of
       # We know if there are positionals or not, and we store in lock file.
       # Or force positional with `(parens)`?
       _ age name
-      _ name: "Bernie" age: 14
+      _ name: other-name age: other-age
       _ name: "Clara" age: 9
       _ name: "Darlene" age: 68
     end persons
