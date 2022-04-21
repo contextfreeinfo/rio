@@ -18,10 +18,6 @@ NodeKind.block
       NodeKind.fun_for
         NodeKind.leaf: TokenKind.key_for for
         NodeKind.round
-          NodeKind.leaf: TokenKind.round_begin (
-          NodeKind.leaf: TokenKind.round_end )
-        /NodeKind.round
-      /NodeKind.fun_for
       NodeKind.fun_with
         NodeKind.leaf: TokenKind.key_with with
         NodeKind.leaf: TokenKind.id printf
@@ -31,20 +27,16 @@ NodeKind.block
         NodeKind.block
           NodeKind.call
             NodeKind.leaf: TokenKind.id each
-            NodeKind.round
-              NodeKind.leaf: TokenKind.round_begin (
-              NodeKind.block
-                NodeKind.call
-                  NodeKind.dot
-                    NodeKind.leaf: TokenKind.int 0
-                    NodeKind.leaf: TokenKind.op_dot .
-                    NodeKind.leaf: TokenKind.id thru
-                  /NodeKind.dot
-                  NodeKind.leaf: TokenKind.int 9
-                /NodeKind.call
-              /NodeKind.block
-              NodeKind.leaf: TokenKind.round_end )
-            /NodeKind.round
+            NodeKind.block
+              NodeKind.call
+                NodeKind.dot
+                  NodeKind.leaf: TokenKind.int 0
+                  NodeKind.leaf: TokenKind.op_dot .
+                  NodeKind.leaf: TokenKind.id thru
+                /NodeKind.dot
+                NodeKind.leaf: TokenKind.int 9
+              /NodeKind.call
+            /NodeKind.block
             NodeKind.fun
               NodeKind.fun_for
                 NodeKind.leaf: TokenKind.key_for for
@@ -66,16 +58,12 @@ NodeKind.block
                           NodeKind.leaf: TokenKind.string_end "
                         /NodeKind.string
                         NodeKind.leaf: TokenKind.id n
-                        NodeKind.round
-                          NodeKind.leaf: TokenKind.round_begin (
-                          NodeKind.block
-                            NodeKind.call
-                              NodeKind.leaf: TokenKind.id fib
-                              NodeKind.leaf: TokenKind.id n
-                            /NodeKind.call
-                          /NodeKind.block
-                          NodeKind.leaf: TokenKind.round_end )
-                        /NodeKind.round
+                        NodeKind.block
+                          NodeKind.call
+                            NodeKind.leaf: TokenKind.id fib
+                            NodeKind.leaf: TokenKind.id n
+                          /NodeKind.call
+                        /NodeKind.block
                       /NodeKind.call
                     /NodeKind.of
                   /NodeKind.call
@@ -149,35 +137,27 @@ NodeKind.block
                       NodeKind.of
                         NodeKind.leaf: TokenKind.key_of of
                         NodeKind.add
-                          NodeKind.round
-                            NodeKind.leaf: TokenKind.round_begin (
-                            NodeKind.block
-                              NodeKind.call
-                                NodeKind.leaf: TokenKind.id fib
-                                NodeKind.add
-                                  NodeKind.leaf: TokenKind.id n
-                                  NodeKind.leaf: TokenKind.op_sub -
-                                  NodeKind.leaf: TokenKind.int 2
-                                /NodeKind.add
-                              /NodeKind.call
-                            /NodeKind.block
-                            NodeKind.leaf: TokenKind.round_end )
-                          /NodeKind.round
+                          NodeKind.block
+                            NodeKind.call
+                              NodeKind.leaf: TokenKind.id fib
+                              NodeKind.add
+                                NodeKind.leaf: TokenKind.id n
+                                NodeKind.leaf: TokenKind.op_sub -
+                                NodeKind.leaf: TokenKind.int 2
+                              /NodeKind.add
+                            /NodeKind.call
+                          /NodeKind.block
                           NodeKind.leaf: TokenKind.op_add +
-                          NodeKind.round
-                            NodeKind.leaf: TokenKind.round_begin (
-                            NodeKind.block
-                              NodeKind.call
-                                NodeKind.leaf: TokenKind.id fib
-                                NodeKind.add
-                                  NodeKind.leaf: TokenKind.id n
-                                  NodeKind.leaf: TokenKind.op_sub -
-                                  NodeKind.leaf: TokenKind.int 1
-                                /NodeKind.add
-                              /NodeKind.call
-                            /NodeKind.block
-                            NodeKind.leaf: TokenKind.round_end )
-                          /NodeKind.round
+                          NodeKind.block
+                            NodeKind.call
+                              NodeKind.leaf: TokenKind.id fib
+                              NodeKind.add
+                                NodeKind.leaf: TokenKind.id n
+                                NodeKind.leaf: TokenKind.op_sub -
+                                NodeKind.leaf: TokenKind.int 1
+                              /NodeKind.add
+                            /NodeKind.call
+                          /NodeKind.block
                         /NodeKind.add
                       /NodeKind.of
                     /NodeKind.call
@@ -195,4 +175,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 140
+Normed size: 126

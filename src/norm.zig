@@ -92,7 +92,7 @@ pub const Normer = struct {
             .mul => try self.simple(node),
             .of => try self.simple(node),
             .question => try self.simple(node),
-            .round => try self.simple(node),
+            .round => try self.round(node),
             .sign => try self.simple(node),
             .sign_int => try self.simple(node),
             .string => try self.simple(node),
@@ -109,7 +109,10 @@ pub const Normer = struct {
     }
 
     fn leaf(self: *Self, node: parse.Node) !void {
-        try self.working.append(node);
+        switch (node.data.token.kind) {
+            .round_begin, .round_end => return,
+            else => try self.working.append(node),
+        }
     }
 
     // TODO Work out how to combine with Parser.nest.
@@ -124,6 +127,17 @@ pub const Normer = struct {
             .data = .{ .kids = nodes_begin.til(NodeId.of(self.nodes.items.len)) },
         };
         try self.working.append(parent);
+    }
+
+    fn round(self: *Self, node: parse.Node) !void {
+        const begin = self.here();
+        for (node.data.kids.from(self.parsed.nodes)) |kid| {
+            try self.any(kid);
+        }
+        if (self.here().i == begin.i) {
+            // Nest only if empty, for unit value.
+            try self.nest(node.kind, begin);
+        }
     }
 
     fn simple(self: *Self, node: parse.Node) !void {

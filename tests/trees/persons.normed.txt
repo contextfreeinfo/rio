@@ -18,10 +18,6 @@ NodeKind.block
       NodeKind.fun_for
         NodeKind.leaf: TokenKind.key_for for
         NodeKind.round
-          NodeKind.leaf: TokenKind.round_begin (
-          NodeKind.leaf: TokenKind.round_end )
-        /NodeKind.round
-      /NodeKind.fun_for
       NodeKind.fun_with
         NodeKind.leaf: TokenKind.key_with with
         NodeKind.call
@@ -379,4 +375,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 279
+Normed size: 277
