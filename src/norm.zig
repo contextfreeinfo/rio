@@ -71,7 +71,7 @@ pub const Normer = struct {
             .assign_to => try self.simple(node),
             .be => try self.simple(node),
             .be_call => try self.simple(node),
-            .block => try self.simple(node),
+            .block => try self.block(node),
             .bool_and => try self.simple(node),
             .bool_or => try self.simple(node),
             .call => try self.simple(node),
@@ -99,6 +99,14 @@ pub const Normer = struct {
         }
     }
 
+    fn block(self: *Self, node: parse.Node) !void {
+        const begin = self.here();
+        try self.kids(node);
+        if (self.here().i > begin.i + 1) {
+            try self.nest(node.kind, begin);
+        }
+    }
+
     fn here(self: Self) NodeId {
         return NodeId.of(self.working.items.len);
     }
@@ -108,9 +116,15 @@ pub const Normer = struct {
         _ = node;
     }
 
+    fn kids(self: *Self, node: parse.Node) !void {
+        for (node.data.kids.from(self.parsed.nodes)) |kid| {
+            try self.any(kid);
+        }
+    }
+
     fn leaf(self: *Self, node: parse.Node) !void {
         switch (node.data.token.kind) {
-            .round_begin, .round_end => return,
+            .escape_begin, .escape_end, .key_be, .key_of, .round_begin, .round_end => return,
             else => try self.working.append(node),
         }
     }
@@ -131,9 +145,7 @@ pub const Normer = struct {
 
     fn round(self: *Self, node: parse.Node) !void {
         const begin = self.here();
-        for (node.data.kids.from(self.parsed.nodes)) |kid| {
-            try self.any(kid);
-        }
+        try self.kids(node);
         if (self.here().i == begin.i) {
             // Nest only if empty, for unit value.
             try self.nest(node.kind, begin);
@@ -142,9 +154,7 @@ pub const Normer = struct {
 
     fn simple(self: *Self, node: parse.Node) !void {
         const begin = self.here();
-        for (node.data.kids.from(self.parsed.nodes)) |kid| {
-            try self.any(kid);
-        }
+        try self.kids(node);
         try self.nest(node.kind, begin);
     }
 };

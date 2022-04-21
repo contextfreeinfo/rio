@@ -27,28 +27,24 @@ NodeKind.block
         /NodeKind.call
       /NodeKind.fun_with
       NodeKind.be
-        NodeKind.leaf: TokenKind.key_be be
-        NodeKind.block
-          NodeKind.call
-            NodeKind.leaf: TokenKind.id void
-            NodeKind.of
-              NodeKind.leaf: TokenKind.key_of of
-              NodeKind.call
-                NodeKind.leaf: TokenKind.id printf
-                NodeKind.string
-                  NodeKind.leaf: TokenKind.string_begin_double "
-                  NodeKind.leaf: TokenKind.string_text Hi!
-                  NodeKind.leaf: TokenKind.escape \n
-                  NodeKind.leaf: TokenKind.string_end "
-                /NodeKind.string
-              /NodeKind.call
-            /NodeKind.of
-          /NodeKind.call
-        /NodeKind.block
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id void
+          NodeKind.of
+            NodeKind.call
+              NodeKind.leaf: TokenKind.id printf
+              NodeKind.string
+                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.string_text Hi!
+                NodeKind.leaf: TokenKind.escape \n
+                NodeKind.leaf: TokenKind.string_end "
+              /NodeKind.string
+            /NodeKind.call
+          /NodeKind.of
+        /NodeKind.call
         NodeKind.end
           NodeKind.leaf: TokenKind.key_end end
       /NodeKind.be
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 38
+Normed size: 35
