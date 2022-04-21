@@ -76,11 +76,10 @@ pub const Normer = struct {
             .bool_or => try self.simple(node),
             .call => try self.simple(node),
             .colon => try self.simple(node),
-            .comment, .space => try self.ignore(node),
+            .comment, .end, .space => try self.ignore(node),
             .compare => try self.simple(node),
             .def => try self.simple(node),
             .dot => try self.simple(node),
-            .end => try self.simple(node),
             .escape => try self.simple(node),
             .frac => try self.simple(node),
             .fun => try self.simple(node),
@@ -90,7 +89,7 @@ pub const Normer = struct {
             .leaf => try self.leaf(node),
             .list => try self.simple(node),
             .mul => try self.simple(node),
-            .of => try self.simple(node),
+            .of => try self.of(node),
             .question => try self.simple(node),
             .round => try self.round(node),
             .sign => try self.simple(node),
@@ -141,6 +140,15 @@ pub const Normer = struct {
             .data = .{ .kids = nodes_begin.til(NodeId.of(self.nodes.items.len)) },
         };
         try self.working.append(parent);
+    }
+
+    fn of(self: *Self, node: parse.Node) !void {
+        for (node.data.kids.from(self.parsed.nodes)) |kid| {
+            switch (kid.kind) {
+                .block => try self.kids(kid),
+                else => try self.any(kid),
+            }
+        }
     }
 
     fn round(self: *Self, node: parse.Node) !void {
