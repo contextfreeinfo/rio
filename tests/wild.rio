@@ -37,9 +37,9 @@ end
 e = 5
 
 for a as b c as d to e be f
-for (a as b) (c as d) to e be f
+for (apple as banana) (c as d) to e be f
 for
-  a as b
+  a as b g
   c as d
 to e be f
 for g: (a as b) h: (c as d) to e be f
@@ -79,3 +79,5 @@ a b: c, d: e
 a: b, c: d
 
 a (b) (c d)
+
+for a b c to d e f be a + b + c

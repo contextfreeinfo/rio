@@ -247,18 +247,63 @@ NodeKind.block
   /NodeKind.fun
   NodeKind.fun
     NodeKind.fun_for
-      NodeKind.call
+      NodeKind.as
+        NodeKind.leaf: TokenKind.id apple
+        NodeKind.leaf: TokenKind.key_as as
+        NodeKind.leaf: TokenKind.id banana
+      /NodeKind.as
+      NodeKind.as
+        NodeKind.leaf: TokenKind.id c
+        NodeKind.leaf: TokenKind.key_as as
+        NodeKind.leaf: TokenKind.id d
+      /NodeKind.as
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.id e
+    NodeKind.be
+      NodeKind.leaf: TokenKind.id f
+  /NodeKind.fun
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.as
+        NodeKind.leaf: TokenKind.id a
+        NodeKind.leaf: TokenKind.key_as as
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id b
+          NodeKind.leaf: TokenKind.id g
+        /NodeKind.call
+      /NodeKind.as
+      NodeKind.as
+        NodeKind.leaf: TokenKind.id c
+        NodeKind.leaf: TokenKind.key_as as
+        NodeKind.leaf: TokenKind.id d
+      /NodeKind.as
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.id e
+    NodeKind.be
+      NodeKind.leaf: TokenKind.id f
+  /NodeKind.fun
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id g
+        NodeKind.leaf: TokenKind.op_colon :
         NodeKind.as
           NodeKind.leaf: TokenKind.id a
           NodeKind.leaf: TokenKind.key_as as
           NodeKind.leaf: TokenKind.id b
         /NodeKind.as
+      /NodeKind.colon
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id h
+        NodeKind.leaf: TokenKind.op_colon :
         NodeKind.as
           NodeKind.leaf: TokenKind.id c
           NodeKind.leaf: TokenKind.key_as as
           NodeKind.leaf: TokenKind.id d
         /NodeKind.as
-      /NodeKind.call
+      /NodeKind.colon
     /NodeKind.fun_for
     NodeKind.fun_to
       NodeKind.leaf: TokenKind.id e
@@ -267,74 +312,24 @@ NodeKind.block
   /NodeKind.fun
   NodeKind.fun
     NodeKind.fun_for
-      NodeKind.block
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id g
+        NodeKind.leaf: TokenKind.op_colon :
         NodeKind.as
           NodeKind.leaf: TokenKind.id a
           NodeKind.leaf: TokenKind.key_as as
           NodeKind.leaf: TokenKind.id b
         /NodeKind.as
+      /NodeKind.colon
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id h
+        NodeKind.leaf: TokenKind.op_colon :
         NodeKind.as
           NodeKind.leaf: TokenKind.id c
           NodeKind.leaf: TokenKind.key_as as
           NodeKind.leaf: TokenKind.id d
         /NodeKind.as
-      /NodeKind.block
-    /NodeKind.fun_for
-    NodeKind.fun_to
-      NodeKind.leaf: TokenKind.id e
-    NodeKind.be
-      NodeKind.leaf: TokenKind.id f
-  /NodeKind.fun
-  NodeKind.fun
-    NodeKind.fun_for
-      NodeKind.call
-        NodeKind.colon
-          NodeKind.leaf: TokenKind.id g
-          NodeKind.leaf: TokenKind.op_colon :
-          NodeKind.as
-            NodeKind.leaf: TokenKind.id a
-            NodeKind.leaf: TokenKind.key_as as
-            NodeKind.leaf: TokenKind.id b
-          /NodeKind.as
-        /NodeKind.colon
-        NodeKind.colon
-          NodeKind.leaf: TokenKind.id h
-          NodeKind.leaf: TokenKind.op_colon :
-          NodeKind.as
-            NodeKind.leaf: TokenKind.id c
-            NodeKind.leaf: TokenKind.key_as as
-            NodeKind.leaf: TokenKind.id d
-          /NodeKind.as
-        /NodeKind.colon
-      /NodeKind.call
-    /NodeKind.fun_for
-    NodeKind.fun_to
-      NodeKind.leaf: TokenKind.id e
-    NodeKind.be
-      NodeKind.leaf: TokenKind.id f
-  /NodeKind.fun
-  NodeKind.fun
-    NodeKind.fun_for
-      NodeKind.block
-        NodeKind.colon
-          NodeKind.leaf: TokenKind.id g
-          NodeKind.leaf: TokenKind.op_colon :
-          NodeKind.as
-            NodeKind.leaf: TokenKind.id a
-            NodeKind.leaf: TokenKind.key_as as
-            NodeKind.leaf: TokenKind.id b
-          /NodeKind.as
-        /NodeKind.colon
-        NodeKind.colon
-          NodeKind.leaf: TokenKind.id h
-          NodeKind.leaf: TokenKind.op_colon :
-          NodeKind.as
-            NodeKind.leaf: TokenKind.id c
-            NodeKind.leaf: TokenKind.key_as as
-            NodeKind.leaf: TokenKind.id d
-          /NodeKind.as
-        /NodeKind.colon
-      /NodeKind.block
+      /NodeKind.colon
     /NodeKind.fun_for
     NodeKind.fun_to
       NodeKind.leaf: TokenKind.id e
@@ -684,5 +679,30 @@ NodeKind.block
       NodeKind.leaf: TokenKind.id d
     /NodeKind.call
   /NodeKind.call
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.id a
+      NodeKind.leaf: TokenKind.id b
+      NodeKind.leaf: TokenKind.id c
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id d
+        NodeKind.leaf: TokenKind.id e
+        NodeKind.leaf: TokenKind.id f
+      /NodeKind.call
+    /NodeKind.fun_to
+    NodeKind.be
+      NodeKind.add
+        NodeKind.add
+          NodeKind.leaf: TokenKind.id a
+          NodeKind.leaf: TokenKind.op_add +
+          NodeKind.leaf: TokenKind.id b
+        /NodeKind.add
+        NodeKind.leaf: TokenKind.op_add +
+        NodeKind.leaf: TokenKind.id c
+      /NodeKind.add
+    /NodeKind.be
+  /NodeKind.fun
 /NodeKind.block
-Normed size: 515
+Normed size: 531

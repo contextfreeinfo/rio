@@ -617,13 +617,13 @@ NodeKind.block
           NodeKind.leaf: TokenKind.round_begin (
           NodeKind.block
             NodeKind.as
-              NodeKind.leaf: TokenKind.id a
+              NodeKind.leaf: TokenKind.id apple
               NodeKind.space
                 NodeKind.leaf: TokenKind.hspace  
               NodeKind.leaf: TokenKind.key_as as
               NodeKind.space
                 NodeKind.leaf: TokenKind.hspace  
-              NodeKind.leaf: TokenKind.id b
+              NodeKind.leaf: TokenKind.id banana
             /NodeKind.as
           /NodeKind.block
           NodeKind.leaf: TokenKind.round_end )
@@ -683,7 +683,12 @@ NodeKind.block
           NodeKind.leaf: TokenKind.key_as as
           NodeKind.space
             NodeKind.leaf: TokenKind.hspace  
-          NodeKind.leaf: TokenKind.id b
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id b
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.id g
+          /NodeKind.call
         /NodeKind.as
         NodeKind.space
           NodeKind.leaf: TokenKind.vspace 
@@ -1506,7 +1511,69 @@ NodeKind.block
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
+    NodeKind.leaf: TokenKind.vspace 
+
+  /NodeKind.space
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.leaf: TokenKind.key_for for
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id a
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.id b
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.id c
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+      /NodeKind.call
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.key_to to
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id d
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.id e
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.id f
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+      /NodeKind.call
+    /NodeKind.fun_to
+    NodeKind.be
+      NodeKind.leaf: TokenKind.key_be be
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.add
+        NodeKind.add
+          NodeKind.leaf: TokenKind.id a
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+          NodeKind.leaf: TokenKind.op_add +
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+          NodeKind.leaf: TokenKind.id b
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+        /NodeKind.add
+        NodeKind.leaf: TokenKind.op_add +
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.id c
+      /NodeKind.add
+    /NodeKind.be
+  /NodeKind.fun
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
 /NodeKind.block
-Pool storage: 4096 126
-Parsed size: 1165
+Pool storage: 4096 137
+Parsed size: 1220
 Token size: 8 node size: 16 1

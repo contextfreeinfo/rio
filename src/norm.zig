@@ -82,7 +82,7 @@ pub const Normer = struct {
             .escape => try self.simple(node),
             .frac => try self.simple(node),
             .fun => try self.simple(node),
-            .fun_for => try self.simple(node),
+            .fun_for => try self.funFor(node),
             .fun_to => try self.simple(node),
             .fun_with => try self.simple(node),
             .leaf => try self.leaf(node),
@@ -106,10 +106,37 @@ pub const Normer = struct {
     }
 
     fn call(self: *Self, node: parse.Node) !void {
+        // TODO Don't hand fun_for or fun_to here! First aren't callees there!
         // TODO If first is dot, invert some, where first is always numbered.
         try self.simple(node);
         // TODO If first is an one-child call, unwrap it.
         // TODO Add numbered colon labels to each guaranteed positional arg.
+    }
+
+    fn funFor(self: *Self, node: parse.Node) !void {
+        const begin = self.here();
+        const node_kids = node.data.kids.from(self.parsed.nodes);
+        var done = false;
+        if (node_kids.len > 0) {
+            // Expand block or call if present.
+            for (node_kids) |kid| {
+                switch (kid.kind) {
+                    .block, .call => {
+                        // TODO Special params handling of kids.
+                        try self.kids(kid);
+                        done = true;
+                        break;
+                    },
+                    else => {},
+                }
+            }
+            if (!done) {
+                // We have one kid at most. Handle it.
+                // TODO Special params handling of kids.
+                try self.kids(node);
+            }
+        }
+        try self.nest(node.kind, begin);
     }
 
     fn here(self: Self) NodeId {
