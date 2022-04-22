@@ -16,10 +16,8 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
-        NodeKind.round
+        NodeKind.call
       NodeKind.fun_with
-        NodeKind.leaf: TokenKind.key_with with
         NodeKind.call
           NodeKind.leaf: TokenKind.id fx
           NodeKind.leaf: TokenKind.id printf
@@ -152,7 +150,6 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
         NodeKind.as
           NodeKind.leaf: TokenKind.id persons
           NodeKind.leaf: TokenKind.key_as as
@@ -163,7 +160,6 @@ NodeKind.block
         /NodeKind.as
       /NodeKind.fun_for
       NodeKind.fun_with
-        NodeKind.leaf: TokenKind.key_with with
         NodeKind.call
           NodeKind.leaf: TokenKind.id fx
           NodeKind.leaf: TokenKind.id printf
@@ -178,9 +174,7 @@ NodeKind.block
           /NodeKind.dot
           NodeKind.fun
             NodeKind.fun_for
-              NodeKind.leaf: TokenKind.key_for for
               NodeKind.leaf: TokenKind.id person
-            /NodeKind.fun_for
             NodeKind.be
               NodeKind.call
                 NodeKind.leaf: TokenKind.id void
@@ -219,13 +213,9 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
         NodeKind.leaf: TokenKind.id age
-      /NodeKind.fun_for
       NodeKind.fun_to
-        NodeKind.leaf: TokenKind.key_to to
         NodeKind.leaf: TokenKind.id float
-      /NodeKind.fun_to
       NodeKind.be
         NodeKind.call
           NodeKind.leaf: TokenKind.key_case case
@@ -295,4 +285,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 218
+Normed size: 211

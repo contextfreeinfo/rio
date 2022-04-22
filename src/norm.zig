@@ -68,18 +68,17 @@ pub const Normer = struct {
             .add => try self.simple(node),
             .as => try self.simple(node),
             .assign => try self.simple(node),
-            .assign_to => try self.simple(node),
+            .assign_to => try self.simple(node), // TODO Convert to assign.
             .be => try self.simple(node),
-            .be_call => try self.simple(node),
             .block => try self.block(node),
             .bool_and => try self.simple(node),
             .bool_or => try self.simple(node),
-            .call => try self.simple(node),
+            .call => try self.call(node),
             .colon => try self.simple(node),
             .comment, .end, .space => try self.ignore(node),
             .compare => try self.simple(node),
             .def => try self.simple(node),
-            .dot => try self.simple(node),
+            .dot => try self.simple(node), // TODO Turn dot into prefix calls. Nest multi-dots.
             .escape => try self.simple(node),
             .frac => try self.simple(node),
             .fun => try self.simple(node),
@@ -106,6 +105,13 @@ pub const Normer = struct {
         }
     }
 
+    fn call(self: *Self, node: parse.Node) !void {
+        // TODO If first is dot, invert some, where first is always numbered.
+        try self.simple(node);
+        // TODO If first is an one-child call, unwrap it.
+        // TODO Add numbered colon labels to each guaranteed positional arg.
+    }
+
     fn here(self: Self) NodeId {
         return NodeId.of(self.working.items.len);
     }
@@ -123,7 +129,7 @@ pub const Normer = struct {
 
     fn leaf(self: *Self, node: parse.Node) !void {
         switch (node.data.token.kind) {
-            .escape_begin, .escape_end, .key_be, .key_of, .round_begin, .round_end => return,
+            .escape_begin, .escape_end, .key_be, .key_of, .key_for, .key_to, .key_with, .round_begin, .round_end => return,
             else => try self.working.append(node),
         }
     }
@@ -154,9 +160,14 @@ pub const Normer = struct {
     fn round(self: *Self, node: parse.Node) !void {
         const begin = self.here();
         try self.kids(node);
-        if (self.here().i == begin.i) {
-            // Nest only if empty, for unit value.
-            try self.nest(node.kind, begin);
+        const end = self.here();
+        switch (end.i - begin.i) {
+            0 => try self.nest(.call, begin), // Void.
+            1 => if (self.parsed.nameOf(self.working.items[end.i - 1])) |_| {
+                // This could be interpreted as a named arg, so wrap it.
+                try self.nest(.call, begin);
+            },
+            else => {},
         }
     }
 

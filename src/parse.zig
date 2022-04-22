@@ -10,7 +10,6 @@ pub const NodeKind = enum {
     assign,
     assign_to,
     be,
-    be_call,
     block,
     bool_and,
     bool_or,
@@ -113,6 +112,18 @@ pub const Tree = struct {
 
     pub fn deinit(self: Self, allocator: Allocator) void {
         allocator.free(self.nodes);
+    }
+
+    pub fn nameOf(self: Self, node: Node) ?intern.TextId {
+        return switch (node.kind) {
+            .dot => self.nameOf(lex.last(Node, node.data.kids.from(self.nodes)).?),
+            .leaf => switch (lex.tokenKindCategory(node.data.token.kind)) {
+                .id, .key => node.data.token.text,
+                else => null,
+            },
+            .question => self.nameOf(node.data.kids.idx.from(self.nodes)),
+            else => null,
+        };
     }
 
     pub fn root(self: Self) Node {

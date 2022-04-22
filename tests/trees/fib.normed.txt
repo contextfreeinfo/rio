@@ -16,11 +16,12 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
-        NodeKind.round
+        NodeKind.call
       NodeKind.fun_with
-        NodeKind.leaf: TokenKind.key_with with
-        NodeKind.leaf: TokenKind.id printf
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id fx
+          NodeKind.leaf: TokenKind.id printf
+        /NodeKind.call
       /NodeKind.fun_with
       NodeKind.be
         NodeKind.call
@@ -35,9 +36,7 @@ NodeKind.block
           /NodeKind.call
           NodeKind.fun
             NodeKind.fun_for
-              NodeKind.leaf: TokenKind.key_for for
               NodeKind.leaf: TokenKind.id n
-            /NodeKind.fun_for
             NodeKind.be
               NodeKind.call
                 NodeKind.leaf: TokenKind.id void
@@ -70,7 +69,6 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
         NodeKind.as
           NodeKind.leaf: TokenKind.id n
           NodeKind.leaf: TokenKind.key_as as
@@ -78,30 +76,32 @@ NodeKind.block
         /NodeKind.as
       /NodeKind.fun_for
       NodeKind.fun_to
-        NodeKind.leaf: TokenKind.key_to to
         NodeKind.leaf: TokenKind.id int
-      /NodeKind.fun_to
       NodeKind.be
         NodeKind.call
           NodeKind.leaf: TokenKind.key_case case
-          NodeKind.call
-            NodeKind.compare
-              NodeKind.leaf: TokenKind.id n
-              NodeKind.leaf: TokenKind.op_le <=
-              NodeKind.leaf: TokenKind.int 0
-            /NodeKind.compare
+          NodeKind.fun
+            NodeKind.fun_for
+              NodeKind.compare
+                NodeKind.leaf: TokenKind.id n
+                NodeKind.leaf: TokenKind.op_le <=
+                NodeKind.leaf: TokenKind.int 0
+              /NodeKind.compare
+            /NodeKind.fun_for
             NodeKind.be
               NodeKind.leaf: TokenKind.int 0
-          /NodeKind.call
-          NodeKind.call
-            NodeKind.compare
-              NodeKind.leaf: TokenKind.id n
-              NodeKind.leaf: TokenKind.op_eqeq ==
-              NodeKind.leaf: TokenKind.int 1
-            /NodeKind.compare
+          /NodeKind.fun
+          NodeKind.fun
+            NodeKind.fun_for
+              NodeKind.compare
+                NodeKind.leaf: TokenKind.id n
+                NodeKind.leaf: TokenKind.op_eqeq ==
+                NodeKind.leaf: TokenKind.int 1
+              /NodeKind.compare
+            /NodeKind.fun_for
             NodeKind.be
               NodeKind.leaf: TokenKind.int 1
-          /NodeKind.call
+          /NodeKind.fun
           NodeKind.call
             NodeKind.leaf: TokenKind.key_else else
             NodeKind.be
@@ -134,4 +134,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 98
+Normed size: 97

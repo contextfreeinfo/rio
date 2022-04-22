@@ -1475,7 +1475,38 @@ NodeKind.block
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
+    NodeKind.leaf: TokenKind.vspace 
+
+  /NodeKind.space
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.round
+      NodeKind.leaf: TokenKind.round_begin (
+      NodeKind.block
+        NodeKind.leaf: TokenKind.id b
+      NodeKind.leaf: TokenKind.round_end )
+    /NodeKind.round
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.round
+      NodeKind.leaf: TokenKind.round_begin (
+      NodeKind.block
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id c
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+          NodeKind.leaf: TokenKind.id d
+        /NodeKind.call
+      /NodeKind.block
+      NodeKind.leaf: TokenKind.round_end )
+    /NodeKind.round
+  /NodeKind.call
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
 /NodeKind.block
 Pool storage: 4096 126
-Parsed size: 1142
+Parsed size: 1165
 Token size: 8 node size: 16 1

@@ -71,11 +71,8 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
         NodeKind.leaf: TokenKind.id url
-      /NodeKind.fun_for
       NodeKind.fun_to
-        NodeKind.leaf: TokenKind.key_to to
         NodeKind.call
           NodeKind.leaf: TokenKind.key_try try
           NodeKind.leaf: TokenKind.id doc
@@ -239,9 +236,7 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
         NodeKind.leaf: TokenKind.id doc
-      /NodeKind.fun_for
       NodeKind.be
         NodeKind.call
           NodeKind.leaf: TokenKind.id summary
@@ -271,11 +266,8 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
         NodeKind.leaf: TokenKind.id url
-      /NodeKind.fun_for
       NodeKind.fun_with
-        NodeKind.leaf: TokenKind.key_with with
         NodeKind.call
           NodeKind.leaf: TokenKind.id fx
           NodeKind.leaf: TokenKind.id read-doc
@@ -311,11 +303,8 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
         NodeKind.leaf: TokenKind.id doc
-      /NodeKind.fun_for
       NodeKind.fun_to
-        NodeKind.leaf: TokenKind.key_to to
         NodeKind.call
           NodeKind.leaf: TokenKind.id maybe
           NodeKind.leaf: TokenKind.id bool
@@ -353,11 +342,8 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
         NodeKind.leaf: TokenKind.id url
-      /NodeKind.fun_for
       NodeKind.fun_to
-        NodeKind.leaf: TokenKind.key_to to
         NodeKind.call
           NodeKind.leaf: TokenKind.key_try try
           NodeKind.call
@@ -367,7 +353,6 @@ NodeKind.block
         /NodeKind.call
       /NodeKind.fun_to
       NodeKind.fun_with
-        NodeKind.leaf: TokenKind.key_with with
         NodeKind.call
           NodeKind.leaf: TokenKind.id fx
           NodeKind.leaf: TokenKind.id read-doc
@@ -394,11 +379,8 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.leaf: TokenKind.key_for for
         NodeKind.leaf: TokenKind.id env!
-      /NodeKind.fun_for
       NodeKind.fun_with
-        NodeKind.leaf: TokenKind.key_with with
         NodeKind.call
           NodeKind.leaf: TokenKind.id fx
           NodeKind.leaf: TokenKind.id read-doc
@@ -459,9 +441,7 @@ NodeKind.block
             /NodeKind.dot
             NodeKind.fun
               NodeKind.fun_for
-                NodeKind.leaf: TokenKind.key_for for
                 NodeKind.leaf: TokenKind.id url
-              /NodeKind.fun_for
               NodeKind.be
                 NodeKind.block
                   NodeKind.question
@@ -578,4 +558,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 423
+Normed size: 410

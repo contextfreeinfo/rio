@@ -1,6 +1,6 @@
 use "c" => ..
 
-main = for () with printf be
+main = for () with fx printf be
   each (0.thru 9) for n be
     void of printf "fib(%d) = %d\n" n (fib n)
   end
@@ -8,8 +8,8 @@ end
 
 fib pub = for n as int to int be
   case of
-    n <= 0 be 0
-    n == 1 be 1
+    for n <= 0 be 0
+    for n == 1 be 1
     else be vouch (fib n - 2) + (fib n - 1)
   end
 end

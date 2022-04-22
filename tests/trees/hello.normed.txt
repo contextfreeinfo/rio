@@ -20,7 +20,6 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_with
-        NodeKind.leaf: TokenKind.key_with with
         NodeKind.call
           NodeKind.leaf: TokenKind.id fx
           NodeKind.leaf: TokenKind.id printf
@@ -43,4 +42,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 32
+Normed size: 31
