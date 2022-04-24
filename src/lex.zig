@@ -20,6 +20,7 @@ pub const TokenKind = enum {
     key_and,
     key_as,
     key_be,
+    key_blank,
     key_case,
     key_do,
     key_else,
@@ -84,7 +85,7 @@ pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
         .comment, .escape, .frac, .int, .string_text => .content,
         .eof => .eof,
         .id => .id,
-        .key_and, .key_as, .key_be, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_of, .key_or, .key_struct, .key_to, .key_try, .key_use, .key_with => .key,
+        .key_and, .key_as, .key_be, .key_blank, .key_case, .key_do, .key_else, .key_end, .key_for, .key_include, .key_of, .key_or, .key_struct, .key_to, .key_try, .key_use, .key_with => .key,
         .escape_begin, .escape_end, .op_add, .op_colon, .op_comma, .op_div, .op_dot, .op_eq, .op_eqeq, .op_eqto, .op_ge, .op_gt, .op_le, .op_lt, .op_mul, .op_question, .op_spread, .op_sub, .round_begin, .round_end, .string_begin_double, .string_begin_single, .string_end => .op,
         .other => .other,
         .hspace, .vspace => .space,
@@ -107,6 +108,7 @@ pub fn tokenText(kind: TokenKind) []const u8 {
         .key_and => "and",
         .key_as => "as",
         .key_be => "be",
+        .key_blank => "_",
         .key_case => "case",
         .key_do => "do",
         .key_else => "else",
@@ -142,9 +144,13 @@ pub fn tokenText(kind: TokenKind) []const u8 {
         .string_begin_double => "\"",
         .string_begin_single => "'",
         .string_end => "[\"']",
-        .string_text => "_",
+        .string_text => "...",
         .vspace => "\n",
     };
+}
+
+pub fn tokenTextSure(token: Token, pool: intern.Pool) []const u8 {
+    return if (token.text.i == 0) tokenText(token.kind) else pool.get(token.text);
 }
 
 // TODO Replace this with a trie or even a generated or hardcoded switch tree.

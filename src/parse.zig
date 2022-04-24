@@ -58,7 +58,8 @@ pub const Node = struct {
         switch (self.kind) {
             .leaf => {
                 count += 1;
-                try writer.print(": {} {s}\n", .{ self.data.token.kind, context.config.pool.get(self.data.token.text) });
+                const text = lex.tokenTextSure(self.data.token, context.config.pool);
+                try writer.print(": {} {s}\n", .{ self.data.token.kind, text });
             },
             else => {
                 try writer.print("\n", .{});

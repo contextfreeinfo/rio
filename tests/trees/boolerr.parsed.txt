@@ -55,7 +55,7 @@ NodeKind.block
             NodeKind.leaf: TokenKind.id maybe
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
-            NodeKind.leaf: TokenKind.id _
+            NodeKind.leaf: TokenKind.key_blank _
           /NodeKind.call
         /NodeKind.as
       /NodeKind.of
@@ -319,7 +319,7 @@ NodeKind.block
                                   NodeKind.space
                                     NodeKind.leaf: TokenKind.hspace  
                                   NodeKind.dot
-                                    NodeKind.leaf: TokenKind.id _
+                                    NodeKind.leaf: TokenKind.key_blank _
                                     NodeKind.leaf: TokenKind.op_dot .
                                     NodeKind.leaf: TokenKind.id new
                                   /NodeKind.dot
@@ -350,7 +350,7 @@ NodeKind.block
                                   NodeKind.space
                                     NodeKind.leaf: TokenKind.hspace  
                                   NodeKind.call
-                                    NodeKind.leaf: TokenKind.id _
+                                    NodeKind.leaf: TokenKind.key_blank _
                                     NodeKind.space
                                       NodeKind.leaf: TokenKind.hspace  
                                     NodeKind.colon
@@ -359,7 +359,7 @@ NodeKind.block
                                       NodeKind.space
                                         NodeKind.leaf: TokenKind.hspace  
                                       NodeKind.dot
-                                        NodeKind.leaf: TokenKind.id _
+                                        NodeKind.leaf: TokenKind.key_blank _
                                         NodeKind.leaf: TokenKind.op_dot .
                                         NodeKind.leaf: TokenKind.id new
                                       /NodeKind.dot
@@ -392,7 +392,7 @@ NodeKind.block
                                   NodeKind.space
                                     NodeKind.leaf: TokenKind.hspace  
                                   NodeKind.call
-                                    NodeKind.leaf: TokenKind.id _
+                                    NodeKind.leaf: TokenKind.key_blank _
                                     NodeKind.space
                                       NodeKind.leaf: TokenKind.hspace  
                                     NodeKind.colon
@@ -404,7 +404,7 @@ NodeKind.block
                                         NodeKind.leaf: TokenKind.round_begin (
                                         NodeKind.block
                                           NodeKind.call
-                                            NodeKind.leaf: TokenKind.id _
+                                            NodeKind.leaf: TokenKind.key_blank _
                                             NodeKind.space
                                               NodeKind.leaf: TokenKind.hspace  
                                             NodeKind.colon
@@ -439,7 +439,7 @@ NodeKind.block
                                   NodeKind.space
                                     NodeKind.leaf: TokenKind.hspace  
                                   NodeKind.call
-                                    NodeKind.leaf: TokenKind.id _
+                                    NodeKind.leaf: TokenKind.key_blank _
                                     NodeKind.space
                                       NodeKind.leaf: TokenKind.hspace  
                                     NodeKind.colon
@@ -451,7 +451,7 @@ NodeKind.block
                                         NodeKind.leaf: TokenKind.round_begin (
                                         NodeKind.block
                                           NodeKind.call
-                                            NodeKind.leaf: TokenKind.id _
+                                            NodeKind.leaf: TokenKind.key_blank _
                                             NodeKind.space
                                               NodeKind.leaf: TokenKind.hspace  
                                             NodeKind.colon
@@ -644,7 +644,7 @@ NodeKind.block
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
             NodeKind.dot
-              NodeKind.leaf: TokenKind.id _
+              NodeKind.leaf: TokenKind.key_blank _
               NodeKind.leaf: TokenKind.op_dot .
               NodeKind.leaf: TokenKind.id new
             /NodeKind.dot

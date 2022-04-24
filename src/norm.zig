@@ -1,4 +1,5 @@
 const idx = @import("./idx.zig");
+const intern = @import("./intern.zig");
 const lex = @import("./lex.zig");
 const parse = @import("./parse.zig");
 const std = @import("std");
@@ -78,7 +79,7 @@ pub const Normer = struct {
             .comment, .end, .space => try self.ignore(node),
             .compare => try self.simple(node),
             .def => try self.simple(node),
-            .dot => try self.simple(node), // TODO Turn dot into prefix calls. Nest multi-dots.
+            .dot => try self.dot(node),
             .escape => try self.simple(node),
             .frac => try self.simple(node),
             .fun => try self.simple(node),
@@ -90,7 +91,7 @@ pub const Normer = struct {
             .mul => try self.simple(node),
             .of => try self.of(node),
             .question => try self.simple(node),
-            .round => try self.round(node),
+            .round => try self.round(node, false),
             .sign => try self.simple(node),
             .sign_int => try self.simple(node),
             .string => try self.simple(node),
@@ -106,11 +107,58 @@ pub const Normer = struct {
     }
 
     fn call(self: *Self, node: parse.Node) !void {
+        const begin = self.here();
         // TODO Don't hand fun_for or fun_to here! First aren't callees there!
-        // TODO If first is dot, invert some, where first is always numbered.
-        try self.simple(node);
-        // TODO If first is an one-child call, unwrap it.
-        // TODO Add numbered colon labels to each guaranteed positional arg.
+        const node_kids = node.data.kids.from(self.parsed.nodes);
+        // We create empty calls from rounds, but shouldn't receive empty calls.
+        std.debug.assert(node_kids.len > 0);
+        const first = node_kids[0];
+        switch (first.kind) {
+            .dot => try self.callDot(first),
+            .round => try self.round(first, false),
+            else => try self.any(first),
+        }
+        for (node_kids[1..]) |kid| {
+            // TODO Also need this logic for `of`.
+            // TODO Add blank labels to each uncertain position vs named arg.
+            switch (kid.kind) {
+                .round => try self.round(kid, true),
+                else => try self.any(kid),
+            }
+        }
+        try self.nest(node.kind, begin);
+    }
+
+    fn callDot(self: *Self, node: parse.Node) !void {
+        // Invert order of first two.
+        var dot_kids = node.data.kids.from(self.parsed.nodes);
+        // Skip past dot.
+        var dot_index = dot_kids.len;
+        for (dot_kids) |kid, index| {
+            if (isLeafOf(kid, .op_dot)) {
+                dot_index = index;
+                break;
+            }
+        }
+        // See if we have something.
+        if (dot_index + 1 < dot_kids.len) {
+            for (dot_kids[dot_index + 1 ..]) |kid| {
+                switch (kid.kind) {
+                    .comment, .end, .space => {},
+                    else => try self.any(kid),
+                }
+            }
+        }
+        // And append the first if we had any.
+        if (dot_index > 0) {
+            try self.any(dot_kids[0]);
+        }
+    }
+
+    fn dot(self: *Self, node: parse.Node) !void {
+        const begin = self.here();
+        try self.callDot(node);
+        try self.nest(.call, begin);
     }
 
     fn funFor(self: *Self, node: parse.Node) !void {
@@ -175,19 +223,20 @@ pub const Normer = struct {
     fn of(self: *Self, node: parse.Node) !void {
         for (node.data.kids.from(self.parsed.nodes)) |kid| {
             switch (kid.kind) {
+                // TODO Need numbering and wrapping logic here.
                 .block => try self.kids(kid),
                 else => try self.any(kid),
             }
         }
     }
 
-    fn round(self: *Self, node: parse.Node) !void {
+    fn round(self: *Self, node: parse.Node, wrap_single: bool) !void {
         const begin = self.here();
         try self.kids(node);
         const end = self.here();
         switch (end.i - begin.i) {
             0 => try self.nest(.call, begin), // Void.
-            1 => if (self.parsed.nameOf(self.working.items[end.i - 1])) |_| {
+            1 => if (wrap_single) if (self.parsed.nameOf(self.working.items[end.i - 1])) |_| {
                 // This could be interpreted as a named arg, so wrap it.
                 try self.nest(.call, begin);
             },
@@ -201,3 +250,11 @@ pub const Normer = struct {
         try self.nest(node.kind, begin);
     }
 };
+
+fn isLeafOf(node: parse.Node, kind: lex.TokenKind) bool {
+    return node.kind == .leaf and node.data.token.kind == kind;
+}
+
+fn leafOf(kind: lex.TokenKind) Node {
+    return .{ .kind = .leaf, .data = .{ .token = .{ .kind = kind, .text = intern.TextId.of(0) } } };
+}

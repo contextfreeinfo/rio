@@ -59,14 +59,14 @@ NodeKind.block
               NodeKind.leaf: TokenKind.id persons
               NodeKind.leaf: TokenKind.op_colon :
               NodeKind.call
-                NodeKind.leaf: TokenKind.id _
+                NodeKind.leaf: TokenKind.key_blank _
                 NodeKind.call
-                  NodeKind.leaf: TokenKind.id _
+                  NodeKind.leaf: TokenKind.key_blank _
                   NodeKind.leaf: TokenKind.id age
                   NodeKind.leaf: TokenKind.id name
                 /NodeKind.call
                 NodeKind.call
-                  NodeKind.leaf: TokenKind.id _
+                  NodeKind.leaf: TokenKind.key_blank _
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id name
                     NodeKind.leaf: TokenKind.op_colon :
@@ -79,7 +79,7 @@ NodeKind.block
                   /NodeKind.colon
                 /NodeKind.call
                 NodeKind.call
-                  NodeKind.leaf: TokenKind.id _
+                  NodeKind.leaf: TokenKind.key_blank _
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id name
                     NodeKind.leaf: TokenKind.op_colon :
@@ -96,7 +96,7 @@ NodeKind.block
                   /NodeKind.colon
                 /NodeKind.call
                 NodeKind.call
-                  NodeKind.leaf: TokenKind.id _
+                  NodeKind.leaf: TokenKind.key_blank _
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id name
                     NodeKind.leaf: TokenKind.op_colon :
@@ -167,11 +167,8 @@ NodeKind.block
       /NodeKind.fun_with
       NodeKind.be
         NodeKind.call
-          NodeKind.dot
-            NodeKind.leaf: TokenKind.id persons
-            NodeKind.leaf: TokenKind.op_dot .
-            NodeKind.leaf: TokenKind.id each
-          /NodeKind.dot
+          NodeKind.leaf: TokenKind.id each
+          NodeKind.leaf: TokenKind.id persons
           NodeKind.fun
             NodeKind.fun_for
               NodeKind.leaf: TokenKind.id person
@@ -186,20 +183,17 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.escape \n
                     NodeKind.leaf: TokenKind.string_end "
                   /NodeKind.string
-                  NodeKind.dot
-                    NodeKind.leaf: TokenKind.id person
-                    NodeKind.leaf: TokenKind.op_dot .
+                  NodeKind.call
                     NodeKind.leaf: TokenKind.id name
-                  /NodeKind.dot
-                  NodeKind.dot
-                    NodeKind.dot
-                      NodeKind.leaf: TokenKind.id person
-                      NodeKind.leaf: TokenKind.op_dot .
-                      NodeKind.leaf: TokenKind.id age
-                    /NodeKind.dot
-                    NodeKind.leaf: TokenKind.op_dot .
+                    NodeKind.leaf: TokenKind.id person
+                  /NodeKind.call
+                  NodeKind.call
                     NodeKind.leaf: TokenKind.id ticket-price
-                  /NodeKind.dot
+                    NodeKind.call
+                      NodeKind.leaf: TokenKind.id age
+                      NodeKind.leaf: TokenKind.id person
+                    /NodeKind.call
+                  /NodeKind.call
                 /NodeKind.call
               /NodeKind.call
             /NodeKind.be
@@ -285,4 +279,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 211
+Normed size: 206

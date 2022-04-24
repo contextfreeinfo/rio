@@ -27,11 +27,8 @@ NodeKind.block
         NodeKind.call
           NodeKind.leaf: TokenKind.id each
           NodeKind.call
-            NodeKind.dot
-              NodeKind.leaf: TokenKind.int 0
-              NodeKind.leaf: TokenKind.op_dot .
-              NodeKind.leaf: TokenKind.id thru
-            /NodeKind.dot
+            NodeKind.leaf: TokenKind.id thru
+            NodeKind.leaf: TokenKind.int 0
             NodeKind.leaf: TokenKind.int 9
           /NodeKind.call
           NodeKind.fun
@@ -71,7 +68,7 @@ NodeKind.block
       NodeKind.fun_for
         NodeKind.as
           NodeKind.colon
-            NodeKind.leaf: TokenKind.int 0
+            NodeKind.leaf: TokenKind.int 1
             NodeKind.leaf: TokenKind.op_colon :
             NodeKind.leaf: TokenKind.id n
           /NodeKind.colon
@@ -138,4 +135,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 100
+Normed size: 98

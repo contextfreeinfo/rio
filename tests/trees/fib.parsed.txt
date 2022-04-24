@@ -185,7 +185,7 @@ NodeKind.block
           NodeKind.leaf: TokenKind.hspace  
         NodeKind.as
           NodeKind.colon
-            NodeKind.leaf: TokenKind.int 0
+            NodeKind.leaf: TokenKind.int 1
             NodeKind.leaf: TokenKind.op_colon :
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  

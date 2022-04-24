@@ -149,7 +149,7 @@ NodeKind.block
                   NodeKind.space
                     NodeKind.leaf: TokenKind.hspace  
                   NodeKind.call
-                    NodeKind.leaf: TokenKind.id _
+                    NodeKind.leaf: TokenKind.key_blank _
                     NodeKind.space
                       NodeKind.leaf: TokenKind.hspace  
                     NodeKind.of
@@ -169,7 +169,7 @@ NodeKind.block
                           NodeKind.leaf: TokenKind.hspace       
                         /NodeKind.space
                         NodeKind.call
-                          NodeKind.leaf: TokenKind.id _
+                          NodeKind.leaf: TokenKind.key_blank _
                           NodeKind.space
                             NodeKind.leaf: TokenKind.hspace  
                           NodeKind.leaf: TokenKind.id age
@@ -183,7 +183,7 @@ NodeKind.block
                           NodeKind.leaf: TokenKind.hspace       
                         /NodeKind.space
                         NodeKind.call
-                          NodeKind.leaf: TokenKind.id _
+                          NodeKind.leaf: TokenKind.key_blank _
                           NodeKind.space
                             NodeKind.leaf: TokenKind.hspace  
                           NodeKind.colon
@@ -209,7 +209,7 @@ NodeKind.block
                           NodeKind.leaf: TokenKind.hspace       
                         /NodeKind.space
                         NodeKind.call
-                          NodeKind.leaf: TokenKind.id _
+                          NodeKind.leaf: TokenKind.key_blank _
                           NodeKind.space
                             NodeKind.leaf: TokenKind.hspace  
                           NodeKind.colon
@@ -239,7 +239,7 @@ NodeKind.block
                           NodeKind.leaf: TokenKind.hspace       
                         /NodeKind.space
                         NodeKind.call
-                          NodeKind.leaf: TokenKind.id _
+                          NodeKind.leaf: TokenKind.key_blank _
                           NodeKind.space
                             NodeKind.leaf: TokenKind.hspace  
                           NodeKind.colon
