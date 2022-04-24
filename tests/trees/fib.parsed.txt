@@ -184,9 +184,15 @@ NodeKind.block
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
         NodeKind.as
-          NodeKind.leaf: TokenKind.id n
-          NodeKind.space
-            NodeKind.leaf: TokenKind.hspace  
+          NodeKind.colon
+            NodeKind.leaf: TokenKind.int 0
+            NodeKind.leaf: TokenKind.op_colon :
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.id n
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+          /NodeKind.colon
           NodeKind.leaf: TokenKind.key_as as
           NodeKind.space
             NodeKind.leaf: TokenKind.hspace  
@@ -366,6 +372,6 @@ NodeKind.block
     NodeKind.leaf: TokenKind.vspace 
 
 /NodeKind.block
-Pool storage: 4096 110
-Parsed size: 284
+Pool storage: 4096 111
+Parsed size: 289
 Token size: 8 node size: 16 1

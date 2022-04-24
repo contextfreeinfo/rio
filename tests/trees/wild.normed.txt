@@ -64,7 +64,6 @@ NodeKind.block
             NodeKind.question
               NodeKind.call
                 NodeKind.leaf: TokenKind.id hi
-                NodeKind.leaf: TokenKind.op_question ?
                 NodeKind.leaf: TokenKind.id there
               /NodeKind.call
             /NodeKind.question
@@ -75,8 +74,6 @@ NodeKind.block
             NodeKind.call
               NodeKind.question
                 NodeKind.leaf: TokenKind.id hi
-                NodeKind.leaf: TokenKind.op_question ?
-              /NodeKind.question
               NodeKind.leaf: TokenKind.id there
             /NodeKind.call
           /NodeKind.colon
@@ -287,7 +284,7 @@ NodeKind.block
   NodeKind.fun
     NodeKind.fun_for
       NodeKind.colon
-        NodeKind.leaf: TokenKind.id g
+        NodeKind.leaf: TokenKind.id gopher
         NodeKind.leaf: TokenKind.op_colon :
         NodeKind.as
           NodeKind.leaf: TokenKind.id a
@@ -313,7 +310,33 @@ NodeKind.block
   NodeKind.fun
     NodeKind.fun_for
       NodeKind.colon
-        NodeKind.leaf: TokenKind.id g
+        NodeKind.leaf: TokenKind.id gopher
+        NodeKind.leaf: TokenKind.op_colon :
+        NodeKind.as
+          NodeKind.leaf: TokenKind.id a
+          NodeKind.leaf: TokenKind.key_as as
+          NodeKind.leaf: TokenKind.id b
+        /NodeKind.as
+      /NodeKind.colon
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id h
+        NodeKind.leaf: TokenKind.op_colon :
+        NodeKind.as
+          NodeKind.leaf: TokenKind.id c
+          NodeKind.leaf: TokenKind.key_as as
+          NodeKind.leaf: TokenKind.id d
+        /NodeKind.as
+      /NodeKind.colon
+    /NodeKind.fun_for
+    NodeKind.fun_to
+      NodeKind.leaf: TokenKind.id e
+    NodeKind.be
+      NodeKind.leaf: TokenKind.id f
+  /NodeKind.fun
+  NodeKind.fun
+    NodeKind.fun_for
+      NodeKind.colon
+        NodeKind.leaf: TokenKind.id gopher
         NodeKind.leaf: TokenKind.op_colon :
         NodeKind.as
           NodeKind.leaf: TokenKind.id a
@@ -426,7 +449,6 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.op_dot .
                     NodeKind.leaf: TokenKind.id b
                   /NodeKind.dot
-                  NodeKind.leaf: TokenKind.op_question ?
                 /NodeKind.question
                 NodeKind.leaf: TokenKind.op_dot .
                 NodeKind.leaf: TokenKind.id c
@@ -437,12 +459,10 @@ NodeKind.block
             NodeKind.leaf: TokenKind.op_dot .
             NodeKind.leaf: TokenKind.id e
           /NodeKind.dot
-          NodeKind.leaf: TokenKind.op_question ?
         /NodeKind.question
         NodeKind.leaf: TokenKind.op_dot .
         NodeKind.leaf: TokenKind.id f
       /NodeKind.dot
-      NodeKind.leaf: TokenKind.op_question ?
     /NodeKind.question
     NodeKind.leaf: TokenKind.op_dot .
     NodeKind.leaf: TokenKind.id g
@@ -458,7 +478,6 @@ NodeKind.block
         NodeKind.leaf: TokenKind.op_dot .
         NodeKind.leaf: TokenKind.id c
       /NodeKind.dot
-      NodeKind.leaf: TokenKind.op_question ?
     /NodeKind.question
     NodeKind.leaf: TokenKind.op_dot .
     NodeKind.leaf: TokenKind.id d
@@ -705,4 +724,4 @@ NodeKind.block
     /NodeKind.be
   /NodeKind.fun
 /NodeKind.block
-Normed size: 531
+Normed size: 545

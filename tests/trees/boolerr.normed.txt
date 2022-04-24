@@ -247,7 +247,6 @@ NodeKind.block
                 NodeKind.leaf: TokenKind.op_dot .
                 NodeKind.leaf: TokenKind.id head
               /NodeKind.dot
-              NodeKind.leaf: TokenKind.op_question ?
             /NodeKind.question
             NodeKind.leaf: TokenKind.op_dot .
             NodeKind.leaf: TokenKind.id title
@@ -321,12 +320,10 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.op_dot .
                     NodeKind.leaf: TokenKind.id head
                   /NodeKind.dot
-                  NodeKind.leaf: TokenKind.op_question ?
                 /NodeKind.question
                 NodeKind.leaf: TokenKind.op_dot .
                 NodeKind.leaf: TokenKind.id title
               /NodeKind.dot
-              NodeKind.leaf: TokenKind.op_question ?
             /NodeKind.question
             NodeKind.leaf: TokenKind.op_dot .
             NodeKind.leaf: TokenKind.id is-empty
@@ -366,7 +363,6 @@ NodeKind.block
               NodeKind.leaf: TokenKind.op_dot .
               NodeKind.leaf: TokenKind.id read-doc
             /NodeKind.dot
-            NodeKind.leaf: TokenKind.op_question ?
           /NodeKind.question
           NodeKind.leaf: TokenKind.op_dot .
           NodeKind.leaf: TokenKind.id is-title-non-empty
@@ -455,7 +451,6 @@ NodeKind.block
                         NodeKind.leaf: TokenKind.op_dot .
                         NodeKind.leaf: TokenKind.id print
                       /NodeKind.dot
-                      NodeKind.leaf: TokenKind.op_question ?
                       NodeKind.string
                         NodeKind.leaf: TokenKind.string_begin_single '
                         NodeKind.leaf: TokenKind.string_text Checking "https://
@@ -487,7 +482,6 @@ NodeKind.block
                       NodeKind.leaf: TokenKind.op_dot .
                       NodeKind.leaf: TokenKind.id print
                     /NodeKind.dot
-                    NodeKind.leaf: TokenKind.op_question ?
                   /NodeKind.question
                   NodeKind.question
                     NodeKind.dot
@@ -513,7 +507,6 @@ NodeKind.block
                       NodeKind.leaf: TokenKind.op_dot .
                       NodeKind.leaf: TokenKind.id print
                     /NodeKind.dot
-                    NodeKind.leaf: TokenKind.op_question ?
                   /NodeKind.question
                   NodeKind.assign
                     NodeKind.leaf: TokenKind.id has-title
@@ -547,7 +540,6 @@ NodeKind.block
                       NodeKind.leaf: TokenKind.op_dot .
                       NodeKind.leaf: TokenKind.id print
                     /NodeKind.dot
-                    NodeKind.leaf: TokenKind.op_question ?
                   /NodeKind.question
                 /NodeKind.block
               /NodeKind.be
@@ -558,4 +550,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 410
+Normed size: 402

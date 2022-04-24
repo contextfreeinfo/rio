@@ -70,7 +70,11 @@ NodeKind.block
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.as
-          NodeKind.leaf: TokenKind.id n
+          NodeKind.colon
+            NodeKind.leaf: TokenKind.int 0
+            NodeKind.leaf: TokenKind.op_colon :
+            NodeKind.leaf: TokenKind.id n
+          /NodeKind.colon
           NodeKind.leaf: TokenKind.key_as as
           NodeKind.leaf: TokenKind.id int
         /NodeKind.as
@@ -134,4 +138,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 97
+Normed size: 100

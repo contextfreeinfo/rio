@@ -42,9 +42,10 @@ for
   a as b g
   c as d
 to e be f
-for g: (a as b) h: (c as d) to e be f
+for gopher: (a as b) h: (c as d) to e be f
+for (gopher: a as b) (h: c as d) to e be f
 for
-  g: a as b
+  gopher: a as b
   h: c as d
 to e be f
 for a as b to c as d be e

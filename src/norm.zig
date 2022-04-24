@@ -83,7 +83,7 @@ pub const Normer = struct {
             .frac => try self.simple(node),
             .fun => try self.simple(node),
             .fun_for => try self.funFor(node),
-            .fun_to => try self.simple(node),
+            .fun_to => try self.simple(node), // TODO What here?
             .fun_with => try self.simple(node),
             .leaf => try self.leaf(node),
             .list => try self.simple(node),
@@ -116,7 +116,6 @@ pub const Normer = struct {
     fn funFor(self: *Self, node: parse.Node) !void {
         const begin = self.here();
         const node_kids = node.data.kids.from(self.parsed.nodes);
-        var done = false;
         if (node_kids.len > 0) {
             // Expand block or call if present.
             for (node_kids) |kid| {
@@ -124,13 +123,11 @@ pub const Normer = struct {
                     .block, .call => {
                         // TODO Special params handling of kids.
                         try self.kids(kid);
-                        done = true;
                         break;
                     },
                     else => {},
                 }
-            }
-            if (!done) {
+            } else {
                 // We have one kid at most. Handle it.
                 // TODO Special params handling of kids.
                 try self.kids(node);
@@ -156,7 +153,7 @@ pub const Normer = struct {
 
     fn leaf(self: *Self, node: parse.Node) !void {
         switch (node.data.token.kind) {
-            .escape_begin, .escape_end, .key_be, .key_of, .key_for, .key_to, .key_with, .round_begin, .round_end => return,
+            .escape_begin, .escape_end, .key_be, .key_of, .key_for, .key_to, .key_with, .op_question, .round_begin, .round_end => return,
             else => try self.working.append(node),
         }
     }
