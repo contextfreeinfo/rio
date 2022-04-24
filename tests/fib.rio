@@ -6,6 +6,7 @@ main = for () with fx printf be
   end
 end
 
+# Positionals must be explicitly numbered as a price.
 fib pub = for 1: n as int to int be
   case of
     for n <= 0 be 0

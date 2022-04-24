@@ -165,6 +165,9 @@ NodeKind.block
 
     NodeKind.leaf: TokenKind.vspace 
 
+    NodeKind.leaf: TokenKind.comment # Positionals must be explicitly numbered as a price.
+    NodeKind.leaf: TokenKind.vspace 
+
   /NodeKind.space
   NodeKind.assign
     NodeKind.call
@@ -372,6 +375,6 @@ NodeKind.block
     NodeKind.leaf: TokenKind.vspace 
 
 /NodeKind.block
-Pool storage: 4096 111
-Parsed size: 289
+Pool storage: 4096 164
+Parsed size: 291
 Token size: 8 node size: 16 1

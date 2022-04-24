@@ -230,17 +230,12 @@ pub const Normer = struct {
         }
     }
 
-    fn round(self: *Self, node: parse.Node, wrap_single: bool) !void {
+    fn round(self: *Self, node: parse.Node, wrap_all: bool) !void {
         const begin = self.here();
         try self.kids(node);
-        const end = self.here();
-        switch (end.i - begin.i) {
-            0 => try self.nest(.call, begin), // Void.
-            1 => if (wrap_single) if (self.parsed.nameOf(self.working.items[end.i - 1])) |_| {
-                // This could be interpreted as a named arg, so wrap it.
-                try self.nest(.call, begin);
-            },
-            else => {},
+        // Equals means void literal.
+        if (wrap_all or self.here().i == begin.i) {
+            try self.nest(node.kind, begin);
         }
     }
 

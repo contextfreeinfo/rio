@@ -16,7 +16,7 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
-        NodeKind.call
+        NodeKind.round
       NodeKind.fun_with
         NodeKind.call
           NodeKind.leaf: TokenKind.id fx
