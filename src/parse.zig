@@ -245,7 +245,7 @@ pub fn Parser(comptime Reader: type) type {
 
         fn atom(self: *Self, context: Context) !void {
             switch ((try self.peek()).kind) {
-                .eof, .escape_end, .key_end, .round_end => {},
+                .eof, .escape_end, .key_end, .op_comma, .round_end => {},
                 .key_be, .key_for, .key_to, .key_with => if (!context.fun) {
                     try self.fun(context);
                 },
@@ -382,7 +382,7 @@ pub fn Parser(comptime Reader: type) type {
             const begin = self.here();
             try self.argVal(context);
             // Line won't repeat colons, since they'll be consumed internally, but eh.
-            try self.infixFinish(context, .colon, opColon, if (begin.is(context.line_begin)) line else question, begin);
+            try self.infixFinish(context, .colon, opColon, if (begin.is(context.line_begin)) lineVal else question, begin);
         }
 
         fn compare(self: *Self, context: Context) !void {
@@ -500,11 +500,27 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn line(self: *Self, context: Context) !void {
+            try self.list(context);
+        }
+
+        fn lineVal(self: *Self, context: Context) !void {
             try self.assignTo(context.withLineBegin(self.here()));
         }
 
-        fn list(self: *Self, context: Context) !void {
-            try self.infix(context, .list, opComma, as);
+        fn list(self: *Self, context: Context) ParseError!void {
+            const begin = self.here();
+            try self.lineVal(context);
+            try self.hspace();
+            var count = @as(u32, 0);
+            while (true) : (count += 1) {
+                if ((try self.peek()).kind != .op_comma) break;
+                try self.advance();
+                try self.space();
+                try self.lineVal(context);
+            }
+            if (count > 0) {
+                try self.nest(.list, begin);
+            }
         }
 
         fn mul(self: *Self, context: Context) !void {
@@ -596,7 +612,7 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn subline(self: *Self, context: Context) !void {
-            try self.list(context);
+            try self.as(context);
         }
 
         fn string(self: *Self, context: Context) !void {

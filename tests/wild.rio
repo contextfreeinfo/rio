@@ -87,3 +87,9 @@ for a b c to d e f be a + b + c
 (a) (b)
 
 (.a 1)
+
+# These two should be equivalent
+a.((b c) (d e))
+(d (b a c) e)
+
+a, b, c

@@ -114,7 +114,7 @@ pub const Normer = struct {
         std.debug.assert(node_kids.len > 0);
         const first = node_kids[0];
         switch (first.kind) {
-            .dot => try self.callDot(first),
+            .dot => try self.dotSwap(first), // TODO If it was a chain, then what???
             .round => try self.round(first, false),
             else => try self.any(first),
         }
@@ -129,7 +129,20 @@ pub const Normer = struct {
         try self.nest(node.kind, begin);
     }
 
-    fn callDot(self: *Self, node: parse.Node) !void {
+    fn dot(self: *Self, node: parse.Node) !void {
+        const begin = self.here();
+        try self.dotSwap(node);
+        try self.nest(.call, begin);
+    }
+
+    fn dotChain(self: *Self, target: ?parse.Node, chain: parse.Node) !void {
+        try self.any(chain);
+        if (target) |target_sure| {
+            try self.any(target_sure);
+        }
+    }
+
+    fn dotSwap(self: *Self, node: parse.Node) !void {
         // Invert order of first two.
         var dot_kids = node.data.kids.from(self.parsed.nodes);
         // Skip past dot.
@@ -145,7 +158,14 @@ pub const Normer = struct {
             for (dot_kids[dot_index + 1 ..]) |kid| {
                 switch (kid.kind) {
                     .comment, .end, .space => {},
-                    else => try self.any(kid),
+                    .of, .round => {
+                        try self.dotChain(if (dot_index > 0) dot_kids[0] else null, kid);
+                        return;
+                    },
+                    else => {
+                        try self.any(kid);
+                        break;
+                    },
                 }
             }
         }
@@ -153,12 +173,6 @@ pub const Normer = struct {
         if (dot_index > 0) {
             try self.any(dot_kids[0]);
         }
-    }
-
-    fn dot(self: *Self, node: parse.Node) !void {
-        const begin = self.here();
-        try self.callDot(node);
-        try self.nest(.call, begin);
     }
 
     fn funFor(self: *Self, node: parse.Node) !void {
