@@ -142,44 +142,44 @@ rio_float sample2_ticket_price(rio_int const age) {
 ## Build alternatives
 
 ```
-2022-04-20T04:19:58Z tjpalmer@pop-os:~/projects/rio
+2022-04-26T04:29:34Z tjpalmer@pop-os:~/projects/rio
 $ time zig build test 
 All 1 tests passed.
 
-real    0m1.162s
-user    0m1.013s
-sys     0m0.173s
-2022-04-20T04:21:14Z tjpalmer@pop-os:~/projects/rio
+real    0m1.123s
+user    0m0.977s
+sys     0m0.167s
+2022-04-26T04:29:38Z tjpalmer@pop-os:~/projects/rio
 $ time zig build test 
 All 1 tests passed.
 
 real    0m0.017s
-user    0m0.004s
-sys     0m0.014s
-2022-04-20T04:21:21Z tjpalmer@pop-os:~/projects/rio
+user    0m0.009s
+sys     0m0.008s
+2022-04-26T04:29:39Z tjpalmer@pop-os:~/projects/rio
 ```
 
 ```
-2022-04-20T04:21:21Z tjpalmer@pop-os:~/projects/rio
+2022-04-26T04:29:50Z tjpalmer@pop-os:~/projects/rio
 $ time (zig build && gzip -kf zig-out/bin/rio && ls -l zig-out/bin/rio zig-out/bin/rio.gz)
--rwxrwxr-x 1 tjpalmer tjpalmer 965784 Apr 19 21:21 zig-out/bin/rio
--rwxrwxr-x 1 tjpalmer tjpalmer 274260 Apr 19 21:21 zig-out/bin/rio.gz
+-rwxrwxr-x 1 tjpalmer tjpalmer 977848 Apr 25 21:30 zig-out/bin/rio
+-rwxrwxr-x 1 tjpalmer tjpalmer 279744 Apr 25 21:30 zig-out/bin/rio.gz
 
-real    0m0.975s
-user    0m0.862s
-sys     0m0.137s
-2022-04-20T04:21:24Z tjpalmer@pop-os:~/projects/rio
+real    0m1.014s
+user    0m0.891s
+sys     0m0.146s
+2022-04-26T04:30:04Z tjpalmer@pop-os:~/projects/rio
 ```
 
 ```
-2022-04-20T04:21:24Z tjpalmer@pop-os:~/projects/rio
+2022-04-26T04:30:17Z tjpalmer@pop-os:~/projects/rio
 $ time (zig build -Dtarget=wasm32-wasi && wasm-opt -O4 zig-out/bin/rio.wasm -o zig-out/bin/rio-opt.wasm && gzip -kf zig-out/bin/rio-opt.wasm && ls -l zig-out/bin/rio*.wasm*)
--rw-rw-r-- 1 tjpalmer tjpalmer 106569 Apr 19 21:21 zig-out/bin/rio-opt.wasm
--rw-rw-r-- 1 tjpalmer tjpalmer  38795 Apr 19 21:21 zig-out/bin/rio-opt.wasm.gz
--rwxrwxr-x 1 tjpalmer tjpalmer 307244 Apr 19 21:21 zig-out/bin/rio.wasm
+-rw-rw-r-- 1 tjpalmer tjpalmer 110593 Apr 25 21:30 zig-out/bin/rio-opt.wasm
+-rw-rw-r-- 1 tjpalmer tjpalmer  40007 Apr 25 21:30 zig-out/bin/rio-opt.wasm.gz
+-rwxrwxr-x 1 tjpalmer tjpalmer 317159 Apr 25 21:30 zig-out/bin/rio.wasm
 
-real    0m1.294s
-user    0m3.702s
-sys     0m0.156s
-2022-04-20T04:21:27Z tjpalmer@pop-os:~/projects/rio
+real    0m1.238s
+user    0m3.841s
+sys     0m0.083s
+2022-04-26T04:30:21Z tjpalmer@pop-os:~/projects/rio
 ```
