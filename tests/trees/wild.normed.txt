@@ -573,23 +573,23 @@ NodeKind.block
       NodeKind.leaf: TokenKind.int 4
     /NodeKind.call
   /NodeKind.assign
-  NodeKind.list
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
     NodeKind.call
       NodeKind.leaf: TokenKind.id a
       NodeKind.leaf: TokenKind.id b
     /NodeKind.call
-    NodeKind.leaf: TokenKind.op_comma ,
     NodeKind.call
       NodeKind.leaf: TokenKind.id c
       NodeKind.leaf: TokenKind.id d
     /NodeKind.call
-    NodeKind.leaf: TokenKind.op_comma ,
     NodeKind.call
       NodeKind.leaf: TokenKind.id e
       NodeKind.leaf: TokenKind.id f
     /NodeKind.call
-  /NodeKind.list
-  NodeKind.list
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
     NodeKind.call
       NodeKind.leaf: TokenKind.id a
       NodeKind.colon
@@ -598,13 +598,12 @@ NodeKind.block
         NodeKind.leaf: TokenKind.id c
       /NodeKind.colon
     /NodeKind.call
-    NodeKind.leaf: TokenKind.op_comma ,
     NodeKind.colon
       NodeKind.leaf: TokenKind.id d
       NodeKind.leaf: TokenKind.op_colon :
       NodeKind.leaf: TokenKind.id e
     /NodeKind.colon
-  /NodeKind.list
+  /NodeKind.call
   NodeKind.call
     NodeKind.leaf: TokenKind.id a
     NodeKind.call
@@ -634,7 +633,8 @@ NodeKind.block
       NodeKind.leaf: TokenKind.id e
     /NodeKind.colon
   /NodeKind.call
-  NodeKind.list
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
     NodeKind.call
       NodeKind.leaf: TokenKind.id a
       NodeKind.colon
@@ -643,26 +643,25 @@ NodeKind.block
         NodeKind.leaf: TokenKind.id c
       /NodeKind.colon
     /NodeKind.call
-    NodeKind.leaf: TokenKind.op_comma ,
     NodeKind.colon
       NodeKind.leaf: TokenKind.id d
       NodeKind.leaf: TokenKind.op_colon :
       NodeKind.leaf: TokenKind.id e
     /NodeKind.colon
-  /NodeKind.list
-  NodeKind.list
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
     NodeKind.colon
       NodeKind.leaf: TokenKind.id a
       NodeKind.leaf: TokenKind.op_colon :
       NodeKind.leaf: TokenKind.id b
     /NodeKind.colon
-    NodeKind.leaf: TokenKind.op_comma ,
     NodeKind.colon
       NodeKind.leaf: TokenKind.id c
       NodeKind.leaf: TokenKind.op_colon :
       NodeKind.leaf: TokenKind.id d
     /NodeKind.colon
-  /NodeKind.list
+  /NodeKind.call
   NodeKind.call
     NodeKind.leaf: TokenKind.id a
     NodeKind.round
@@ -735,12 +734,11 @@ NodeKind.block
     /NodeKind.round
     NodeKind.leaf: TokenKind.id e
   /NodeKind.call
-  NodeKind.list
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
     NodeKind.leaf: TokenKind.id a
-    NodeKind.leaf: TokenKind.op_comma ,
     NodeKind.leaf: TokenKind.id b
-    NodeKind.leaf: TokenKind.op_comma ,
     NodeKind.leaf: TokenKind.id c
-  /NodeKind.list
+  /NodeKind.call
 /NodeKind.block
-Normed size: 555
+Normed size: 553

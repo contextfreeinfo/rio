@@ -87,7 +87,7 @@ pub const Normer = struct {
             .fun_to => try self.simple(node), // TODO What here?
             .fun_with => try self.simple(node),
             .leaf => try self.leaf(node),
-            .list => try self.simple(node),
+            .list => try self.list(node),
             .mul => try self.simple(node),
             .of => try self.of(node),
             .question => try self.simple(node),
@@ -215,9 +215,16 @@ pub const Normer = struct {
 
     fn leaf(self: *Self, node: parse.Node) !void {
         switch (node.data.token.kind) {
-            .escape_begin, .escape_end, .key_be, .key_of, .key_for, .key_to, .key_with, .op_question, .round_begin, .round_end => return,
+            .escape_begin, .escape_end, .key_be, .key_of, .key_for, .key_to, .key_with, .op_comma, .op_question, .round_begin, .round_end => return,
             else => try self.working.append(node),
         }
+    }
+
+    fn list(self: *Self, node: parse.Node) !void {
+        const begin = self.here();
+        try self.working.append(leafOf(.key_blank));
+        try self.kids(node);
+        try self.nest(.call, begin);
     }
 
     // TODO Work out how to combine with Parser.nest.
