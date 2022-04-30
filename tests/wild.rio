@@ -6,7 +6,7 @@ main = for () be
   a: b: c: d: e: f: g
   a: hi? there
   a: (hi?) there
-  aha .of
+  aha.of
     # This needs to chain.
     b c
     d.e.f g
@@ -17,8 +17,19 @@ main = for () be
   a b
 end
 
+bling1.(here there)
+bling2.(here there, d e)
+bling.((here there) (d e))
+bling.(
+  here there
+  d e
+)
 # Maybe useless, but should this be `(here there) bling` or `here bling there`?
+bling.of here there
+# Parse differently?
 bling .of here there
+a1.b.c
+a1 .b .c
 
 a = 5 with doc "hello"
 be 4

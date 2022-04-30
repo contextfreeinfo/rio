@@ -288,7 +288,13 @@ pub fn Parser(comptime Reader: type) type {
                         try self.end();
                     }
                 },
-                else => try self.subline(context),
+                else => {
+                    const sub = self.here();
+                    try self.subline(context);
+                    if (kind != .fun_for) {
+                        try self.nest(.block, sub);
+                    }
+                },
             }
             try self.nest(kind, begin);
         }

@@ -46,14 +46,16 @@ NodeKind.block
         NodeKind.leaf: TokenKind.key_with with
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
-        NodeKind.call
-          NodeKind.leaf: TokenKind.id fx
-          NodeKind.space
-            NodeKind.leaf: TokenKind.hspace  
-          NodeKind.leaf: TokenKind.id printf
-          NodeKind.space
-            NodeKind.leaf: TokenKind.hspace  
-        /NodeKind.call
+        NodeKind.block
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id fx
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.id printf
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+          /NodeKind.call
+        /NodeKind.block
       /NodeKind.fun_with
       NodeKind.be
         NodeKind.leaf: TokenKind.key_be be
@@ -110,34 +112,36 @@ NodeKind.block
                       NodeKind.leaf: TokenKind.key_of of
                       NodeKind.space
                         NodeKind.leaf: TokenKind.hspace  
-                      NodeKind.call
-                        NodeKind.leaf: TokenKind.id printf
-                        NodeKind.space
-                          NodeKind.leaf: TokenKind.hspace  
-                        NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_double "
-                          NodeKind.leaf: TokenKind.string_text fib(%d) = %d
-                          NodeKind.leaf: TokenKind.escape \n
-                          NodeKind.leaf: TokenKind.string_end "
-                        /NodeKind.string
-                        NodeKind.space
-                          NodeKind.leaf: TokenKind.hspace  
-                        NodeKind.leaf: TokenKind.id n
-                        NodeKind.space
-                          NodeKind.leaf: TokenKind.hspace  
-                        NodeKind.round
-                          NodeKind.leaf: TokenKind.round_begin (
-                          NodeKind.block
-                            NodeKind.call
-                              NodeKind.leaf: TokenKind.id fib
-                              NodeKind.space
-                                NodeKind.leaf: TokenKind.hspace  
-                              NodeKind.leaf: TokenKind.id n
-                            /NodeKind.call
-                          /NodeKind.block
-                          NodeKind.leaf: TokenKind.round_end )
-                        /NodeKind.round
-                      /NodeKind.call
+                      NodeKind.block
+                        NodeKind.call
+                          NodeKind.leaf: TokenKind.id printf
+                          NodeKind.space
+                            NodeKind.leaf: TokenKind.hspace  
+                          NodeKind.string
+                            NodeKind.leaf: TokenKind.string_begin_double "
+                            NodeKind.leaf: TokenKind.string_text fib(%d) = %d
+                            NodeKind.leaf: TokenKind.escape \n
+                            NodeKind.leaf: TokenKind.string_end "
+                          /NodeKind.string
+                          NodeKind.space
+                            NodeKind.leaf: TokenKind.hspace  
+                          NodeKind.leaf: TokenKind.id n
+                          NodeKind.space
+                            NodeKind.leaf: TokenKind.hspace  
+                          NodeKind.round
+                            NodeKind.leaf: TokenKind.round_begin (
+                            NodeKind.block
+                              NodeKind.call
+                                NodeKind.leaf: TokenKind.id fib
+                                NodeKind.space
+                                  NodeKind.leaf: TokenKind.hspace  
+                                NodeKind.leaf: TokenKind.id n
+                              /NodeKind.call
+                            /NodeKind.block
+                            NodeKind.leaf: TokenKind.round_end )
+                          /NodeKind.round
+                        /NodeKind.call
+                      /NodeKind.block
                     /NodeKind.of
                   /NodeKind.call
                   NodeKind.space
@@ -208,9 +212,11 @@ NodeKind.block
         NodeKind.leaf: TokenKind.key_to to
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
-        NodeKind.leaf: TokenKind.id int
-        NodeKind.space
-          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.block
+          NodeKind.leaf: TokenKind.id int
+          NodeKind.space
+            NodeKind.leaf: TokenKind.hspace  
+        /NodeKind.block
       /NodeKind.fun_to
       NodeKind.be
         NodeKind.leaf: TokenKind.key_be be
@@ -253,7 +259,8 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.key_be be
                     NodeKind.space
                       NodeKind.leaf: TokenKind.hspace  
-                    NodeKind.leaf: TokenKind.int 0
+                    NodeKind.block
+                      NodeKind.leaf: TokenKind.int 0
                   /NodeKind.be
                 /NodeKind.fun
                 NodeKind.space
@@ -282,7 +289,8 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.key_be be
                     NodeKind.space
                       NodeKind.leaf: TokenKind.hspace  
-                    NodeKind.leaf: TokenKind.int 1
+                    NodeKind.block
+                      NodeKind.leaf: TokenKind.int 1
                   /NodeKind.be
                 /NodeKind.fun
                 NodeKind.space
@@ -298,58 +306,60 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.key_be be
                     NodeKind.space
                       NodeKind.leaf: TokenKind.hspace  
-                    NodeKind.call
-                      NodeKind.leaf: TokenKind.id vouch
-                      NodeKind.space
-                        NodeKind.leaf: TokenKind.hspace  
-                      NodeKind.add
-                        NodeKind.round
-                          NodeKind.leaf: TokenKind.round_begin (
-                          NodeKind.block
-                            NodeKind.call
-                              NodeKind.leaf: TokenKind.id fib
-                              NodeKind.space
-                                NodeKind.leaf: TokenKind.hspace  
-                              NodeKind.add
-                                NodeKind.leaf: TokenKind.id n
-                                NodeKind.space
-                                  NodeKind.leaf: TokenKind.hspace  
-                                NodeKind.leaf: TokenKind.op_sub -
-                                NodeKind.space
-                                  NodeKind.leaf: TokenKind.hspace  
-                                NodeKind.leaf: TokenKind.int 2
-                              /NodeKind.add
-                            /NodeKind.call
-                          /NodeKind.block
-                          NodeKind.leaf: TokenKind.round_end )
-                        /NodeKind.round
+                    NodeKind.block
+                      NodeKind.call
+                        NodeKind.leaf: TokenKind.id vouch
                         NodeKind.space
                           NodeKind.leaf: TokenKind.hspace  
-                        NodeKind.leaf: TokenKind.op_add +
-                        NodeKind.space
-                          NodeKind.leaf: TokenKind.hspace  
-                        NodeKind.round
-                          NodeKind.leaf: TokenKind.round_begin (
-                          NodeKind.block
-                            NodeKind.call
-                              NodeKind.leaf: TokenKind.id fib
-                              NodeKind.space
-                                NodeKind.leaf: TokenKind.hspace  
-                              NodeKind.add
-                                NodeKind.leaf: TokenKind.id n
+                        NodeKind.add
+                          NodeKind.round
+                            NodeKind.leaf: TokenKind.round_begin (
+                            NodeKind.block
+                              NodeKind.call
+                                NodeKind.leaf: TokenKind.id fib
                                 NodeKind.space
                                   NodeKind.leaf: TokenKind.hspace  
-                                NodeKind.leaf: TokenKind.op_sub -
+                                NodeKind.add
+                                  NodeKind.leaf: TokenKind.id n
+                                  NodeKind.space
+                                    NodeKind.leaf: TokenKind.hspace  
+                                  NodeKind.leaf: TokenKind.op_sub -
+                                  NodeKind.space
+                                    NodeKind.leaf: TokenKind.hspace  
+                                  NodeKind.leaf: TokenKind.int 2
+                                /NodeKind.add
+                              /NodeKind.call
+                            /NodeKind.block
+                            NodeKind.leaf: TokenKind.round_end )
+                          /NodeKind.round
+                          NodeKind.space
+                            NodeKind.leaf: TokenKind.hspace  
+                          NodeKind.leaf: TokenKind.op_add +
+                          NodeKind.space
+                            NodeKind.leaf: TokenKind.hspace  
+                          NodeKind.round
+                            NodeKind.leaf: TokenKind.round_begin (
+                            NodeKind.block
+                              NodeKind.call
+                                NodeKind.leaf: TokenKind.id fib
                                 NodeKind.space
                                   NodeKind.leaf: TokenKind.hspace  
-                                NodeKind.leaf: TokenKind.int 1
-                              /NodeKind.add
-                            /NodeKind.call
-                          /NodeKind.block
-                          NodeKind.leaf: TokenKind.round_end )
-                        /NodeKind.round
-                      /NodeKind.add
-                    /NodeKind.call
+                                NodeKind.add
+                                  NodeKind.leaf: TokenKind.id n
+                                  NodeKind.space
+                                    NodeKind.leaf: TokenKind.hspace  
+                                  NodeKind.leaf: TokenKind.op_sub -
+                                  NodeKind.space
+                                    NodeKind.leaf: TokenKind.hspace  
+                                  NodeKind.leaf: TokenKind.int 1
+                                /NodeKind.add
+                              /NodeKind.call
+                            /NodeKind.block
+                            NodeKind.leaf: TokenKind.round_end )
+                          /NodeKind.round
+                        /NodeKind.add
+                      /NodeKind.call
+                    /NodeKind.block
                   /NodeKind.be
                 /NodeKind.call
                 NodeKind.space
@@ -376,5 +386,5 @@ NodeKind.block
 
 /NodeKind.block
 Pool storage: 4096 164
-Parsed size: 291
+Parsed size: 297
 Token size: 8 node size: 16 1

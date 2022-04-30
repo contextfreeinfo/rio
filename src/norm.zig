@@ -248,9 +248,11 @@ pub const Normer = struct {
     fn of(self: *Self, node: parse.Node) !void {
         for (self.kidsFrom(node)) |kid| {
             switch (kid.kind) {
-                // TODO Need numbering and wrapping logic here.
-                .block => try self.kids(kid),
-                else => try self.any(kid),
+                .block => {
+                    try self.kids(kid);
+                    break;
+                },
+                else => {},
             }
         }
     }

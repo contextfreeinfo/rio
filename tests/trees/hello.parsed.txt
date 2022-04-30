@@ -43,14 +43,16 @@ NodeKind.block
         NodeKind.leaf: TokenKind.key_with with
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
-        NodeKind.call
-          NodeKind.leaf: TokenKind.id fx
-          NodeKind.space
-            NodeKind.leaf: TokenKind.hspace  
-          NodeKind.leaf: TokenKind.id printf
-          NodeKind.space
-            NodeKind.leaf: TokenKind.hspace  
-        /NodeKind.call
+        NodeKind.block
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id fx
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.id printf
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+          /NodeKind.call
+        /NodeKind.block
       /NodeKind.fun_with
       NodeKind.be
         NodeKind.leaf: TokenKind.key_be be
@@ -68,17 +70,19 @@ NodeKind.block
               NodeKind.leaf: TokenKind.key_of of
               NodeKind.space
                 NodeKind.leaf: TokenKind.hspace  
-              NodeKind.call
-                NodeKind.leaf: TokenKind.id printf
-                NodeKind.space
-                  NodeKind.leaf: TokenKind.hspace  
-                NodeKind.string
-                  NodeKind.leaf: TokenKind.string_begin_double "
-                  NodeKind.leaf: TokenKind.string_text Hi!
-                  NodeKind.leaf: TokenKind.escape \n
-                  NodeKind.leaf: TokenKind.string_end "
-                /NodeKind.string
-              /NodeKind.call
+              NodeKind.block
+                NodeKind.call
+                  NodeKind.leaf: TokenKind.id printf
+                  NodeKind.space
+                    NodeKind.leaf: TokenKind.hspace  
+                  NodeKind.string
+                    NodeKind.leaf: TokenKind.string_begin_double "
+                    NodeKind.leaf: TokenKind.string_text Hi!
+                    NodeKind.leaf: TokenKind.escape \n
+                    NodeKind.leaf: TokenKind.string_end "
+                  /NodeKind.string
+                /NodeKind.call
+              /NodeKind.block
             /NodeKind.of
           /NodeKind.call
           NodeKind.space
@@ -118,5 +122,5 @@ NodeKind.block
   /NodeKind.space
 /NodeKind.block
 Pool storage: 4096 171
-Parsed size: 88
+Parsed size: 90
 Token size: 8 node size: 16 1
