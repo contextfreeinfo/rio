@@ -179,18 +179,14 @@ NodeKind.block
     NodeKind.leaf: TokenKind.id bling
   /NodeKind.call
   NodeKind.call
-    NodeKind.call
-      NodeKind.leaf: TokenKind.id here
-      NodeKind.leaf: TokenKind.id bling
-      NodeKind.leaf: TokenKind.id there
-    /NodeKind.call
+    NodeKind.leaf: TokenKind.id here
+    NodeKind.leaf: TokenKind.id bling
+    NodeKind.leaf: TokenKind.id there
   /NodeKind.call
   NodeKind.call
-    NodeKind.call
-      NodeKind.leaf: TokenKind.id here
-      NodeKind.leaf: TokenKind.id bling
-      NodeKind.leaf: TokenKind.id there
-    /NodeKind.call
+    NodeKind.leaf: TokenKind.id here
+    NodeKind.leaf: TokenKind.id bling
+    NodeKind.leaf: TokenKind.id there
   /NodeKind.call
   NodeKind.call
     NodeKind.leaf: TokenKind.id c
@@ -869,8 +865,7 @@ NodeKind.block
     NodeKind.leaf: TokenKind.int 5
     NodeKind.leaf: TokenKind.id things
   /NodeKind.call
-  NodeKind.call
-    NodeKind.leaf: TokenKind.id a
+  NodeKind.leaf: TokenKind.id a
   NodeKind.call
     NodeKind.leaf: TokenKind.id length
     NodeKind.call
@@ -892,13 +887,29 @@ NodeKind.block
     NodeKind.leaf: TokenKind.id length
   /NodeKind.call
   NodeKind.call
+    NodeKind.leaf: TokenKind.id a
+    NodeKind.leaf: TokenKind.id wilder
+    NodeKind.leaf: TokenKind.id b
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id wildest
     NodeKind.call
-      NodeKind.leaf: TokenKind.id hi
-      NodeKind.leaf: TokenKind.id there
+      NodeKind.leaf: TokenKind.id a
+      NodeKind.leaf: TokenKind.id wilder
+      NodeKind.leaf: TokenKind.id b
     /NodeKind.call
-    NodeKind.leaf: TokenKind.id kids
+    NodeKind.leaf: TokenKind.id c
+  /NodeKind.call
+  NodeKind.call
     NodeKind.leaf: TokenKind.id more
-    NodeKind.leaf: TokenKind.id world
+    NodeKind.call
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id hi
+        NodeKind.leaf: TokenKind.id there
+      /NodeKind.call
+      NodeKind.leaf: TokenKind.id kids
+      NodeKind.leaf: TokenKind.id world
+    /NodeKind.call
   /NodeKind.call
   NodeKind.call
     NodeKind.leaf: TokenKind.id more
@@ -906,5 +917,47 @@ NodeKind.block
       NodeKind.leaf: TokenKind.id hi
     NodeKind.leaf: TokenKind.id there
   /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id g
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id e
+      NodeKind.call
+        NodeKind.call
+          NodeKind.leaf: TokenKind.id c
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.id that
+            NodeKind.leaf: TokenKind.id b
+          /NodeKind.call
+          NodeKind.leaf: TokenKind.id d
+        /NodeKind.call
+        NodeKind.leaf: TokenKind.id what
+      /NodeKind.call
+      NodeKind.leaf: TokenKind.id f
+    /NodeKind.call
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id map
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id filter
+      NodeKind.leaf: TokenKind.id persons
+      NodeKind.be
+        NodeKind.compare
+          NodeKind.call
+            NodeKind.leaf: TokenKind.id age
+            NodeKind.leaf: TokenKind.id it
+          /NodeKind.call
+          NodeKind.leaf: TokenKind.op_ge >=
+          NodeKind.leaf: TokenKind.int 18
+        /NodeKind.compare
+      /NodeKind.be
+    /NodeKind.call
+    NodeKind.be
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id name
+        NodeKind.leaf: TokenKind.id it
+      /NodeKind.call
+    /NodeKind.be
+  /NodeKind.call
 /NodeKind.block
-Normed size: 675
+Normed size: 714

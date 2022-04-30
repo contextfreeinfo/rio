@@ -134,7 +134,9 @@ pub const Normer = struct {
     fn dot(self: *Self, node: parse.Node) !void {
         const begin = self.here();
         try self.dotSwap(node);
-        try self.nest(.call, begin);
+        if (self.here().i - begin.i > 1) {
+            try self.nest(.call, begin);
+        }
     }
 
     fn dotChain(self: *Self, target: ?Node, chain_kids: []const parse.Node) NormError!void {
@@ -159,10 +161,17 @@ pub const Normer = struct {
                 // .of => {},
                 else => {
                     // Any then make a call of it on target if present.
+                    try self.any(kid);
+                    if (self.here().i > begin.i) {
+                        // Had substance, so use it as callee.
+                        try self.dotChainNest(begin, target, &.{}, chain_kids[kid_index + 1 ..]);
+                        return;
+                    }
+                    // Else just look at the next kid.
                 },
             }
-            try self.any(kid);
         }
+        // Nothing in the chain, so just keep the target if there was one.
         if (target) |target_sure| {
             try self.working.append(target_sure);
         }

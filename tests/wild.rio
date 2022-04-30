@@ -143,6 +143,17 @@ wild of
   length
 end
 
+wilder.of
+  a b
+end
+
+wildest of
+  wilder.of
+    a b
+  end
+  c
+end
+
 world.of
   # Of or splat inside .of is degenerate. Probably who cares on semantics, and just validate against it.
   of
@@ -155,4 +166,18 @@ end
 more of
   (hi)
   there
+end
+
+what.of
+  that.of
+    a b
+    c d
+  end
+  e f
+  g
+end
+
+persons.of
+  filter be it.age >= 18
+  map be it.name
 end
