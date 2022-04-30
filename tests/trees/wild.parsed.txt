@@ -331,6 +331,32 @@ NodeKind.block
 
     NodeKind.leaf: TokenKind.vspace 
 
+    NodeKind.leaf: TokenKind.comment # Maybe useless, but should this be `(here there) bling` or `here bling there`?
+    NodeKind.leaf: TokenKind.vspace 
+
+  /NodeKind.space
+  NodeKind.dot
+    NodeKind.leaf: TokenKind.id bling
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_dot .
+    NodeKind.of
+      NodeKind.leaf: TokenKind.key_of of
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id here
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.id there
+      /NodeKind.call
+    /NodeKind.of
+  /NodeKind.dot
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.vspace 
+
   /NodeKind.space
   NodeKind.assign
     NodeKind.leaf: TokenKind.id a
@@ -1785,6 +1811,6 @@ NodeKind.block
     NodeKind.leaf: TokenKind.vspace 
 
 /NodeKind.block
-Pool storage: 4096 201
-Parsed size: 1380
+Pool storage: 4096 289
+Parsed size: 1399
 Token size: 8 node size: 16 1

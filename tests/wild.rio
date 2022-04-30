@@ -17,6 +17,9 @@ main = for () be
   a b
 end
 
+# Maybe useless, but should this be `(here there) bling` or `here bling there`?
+bling .of here there
+
 a = 5 with doc "hello"
 be 4
 b = 3 with doc "hi" be 5

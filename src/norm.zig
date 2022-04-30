@@ -109,7 +109,7 @@ pub const Normer = struct {
     fn call(self: *Self, node: parse.Node) !void {
         const begin = self.here();
         // TODO Don't hand fun_for or fun_to here! First aren't callees there!
-        const node_kids = node.data.kids.from(self.parsed.nodes);
+        const node_kids = self.kidsFrom(node);
         // We create empty calls from rounds, but shouldn't receive empty calls.
         std.debug.assert(node_kids.len > 0);
         const first = node_kids[0];
@@ -144,7 +144,7 @@ pub const Normer = struct {
 
     fn dotSwap(self: *Self, node: parse.Node) !void {
         // Invert order of first two.
-        var dot_kids = node.data.kids.from(self.parsed.nodes);
+        var dot_kids = self.kidsFrom(node);
         // Skip past dot.
         var dot_index = dot_kids.len;
         for (dot_kids) |kid, index| {
@@ -177,7 +177,7 @@ pub const Normer = struct {
 
     fn funFor(self: *Self, node: parse.Node) !void {
         const begin = self.here();
-        const node_kids = node.data.kids.from(self.parsed.nodes);
+        const node_kids = self.kidsFrom(node);
         if (node_kids.len > 0) {
             // Expand block or call if present.
             for (node_kids) |kid| {
@@ -208,9 +208,13 @@ pub const Normer = struct {
     }
 
     fn kids(self: *Self, node: parse.Node) !void {
-        for (node.data.kids.from(self.parsed.nodes)) |kid| {
+        for (self.kidsFrom(node)) |kid| {
             try self.any(kid);
         }
+    }
+
+    fn kidsFrom(self: Self, node: parse.Node) []const parse.Node {
+        return node.data.kids.from(self.parsed.nodes);
     }
 
     fn leaf(self: *Self, node: parse.Node) !void {
@@ -242,7 +246,7 @@ pub const Normer = struct {
     }
 
     fn of(self: *Self, node: parse.Node) !void {
-        for (node.data.kids.from(self.parsed.nodes)) |kid| {
+        for (self.kidsFrom(node)) |kid| {
             switch (kid.kind) {
                 // TODO Need numbering and wrapping logic here.
                 .block => try self.kids(kid),

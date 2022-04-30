@@ -127,6 +127,13 @@ NodeKind.block
       /NodeKind.be
     /NodeKind.fun
   /NodeKind.assign
+  NodeKind.call
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id here
+      NodeKind.leaf: TokenKind.id there
+    /NodeKind.call
+    NodeKind.leaf: TokenKind.id bling
+  /NodeKind.call
   NodeKind.assign
     NodeKind.leaf: TokenKind.id a
     NodeKind.leaf: TokenKind.op_eq =
@@ -741,4 +748,4 @@ NodeKind.block
     NodeKind.leaf: TokenKind.id c
   /NodeKind.call
 /NodeKind.block
-Normed size: 553
+Normed size: 558
