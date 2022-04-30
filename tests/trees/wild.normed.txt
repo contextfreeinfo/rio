@@ -9,7 +9,6 @@ NodeKind.block
   /NodeKind.call
   NodeKind.assign
     NodeKind.leaf: TokenKind.id main
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.round
@@ -203,7 +202,6 @@ NodeKind.block
   /NodeKind.call
   NodeKind.assign
     NodeKind.leaf: TokenKind.id a
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.int 5
       NodeKind.fun
@@ -224,7 +222,6 @@ NodeKind.block
     NodeKind.leaf: TokenKind.int 4
   NodeKind.assign
     NodeKind.leaf: TokenKind.id b
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.int 3
       NodeKind.fun
@@ -261,7 +258,6 @@ NodeKind.block
   /NodeKind.fun
   NodeKind.assign
     NodeKind.leaf: TokenKind.id d
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.int 4
       NodeKind.fun
@@ -286,7 +282,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id e
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.leaf: TokenKind.int 5
   /NodeKind.assign
   NodeKind.fun
@@ -454,7 +449,6 @@ NodeKind.block
         /NodeKind.as
       /NodeKind.fun_for
     /NodeKind.fun
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.id c
       NodeKind.fun
@@ -473,7 +467,6 @@ NodeKind.block
           NodeKind.leaf: TokenKind.key_as as
           NodeKind.leaf: TokenKind.id b
         /NodeKind.as
-        NodeKind.leaf: TokenKind.op_eq =
         NodeKind.leaf: TokenKind.id c
       /NodeKind.assign
     /NodeKind.fun_for
@@ -496,10 +489,8 @@ NodeKind.block
   /NodeKind.add
   NodeKind.assign
     NodeKind.leaf: TokenKind.id a
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.assign
       NodeKind.leaf: TokenKind.id b
-      NodeKind.leaf: TokenKind.op_eq =
       NodeKind.leaf: TokenKind.id c
     /NodeKind.assign
   /NodeKind.assign
@@ -616,7 +607,6 @@ NodeKind.block
   /NodeKind.frac
   NodeKind.assign
     NodeKind.leaf: TokenKind.id things
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.key_blank _
       NodeKind.leaf: TokenKind.int 1
@@ -631,7 +621,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id things
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.call
         NodeKind.leaf: TokenKind.id list
@@ -959,5 +948,21 @@ NodeKind.block
       /NodeKind.call
     /NodeKind.be
   /NodeKind.call
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id d
+    NodeKind.assign
+      NodeKind.assign
+        NodeKind.leaf: TokenKind.id c
+        NodeKind.assign
+          NodeKind.leaf: TokenKind.id d
+          NodeKind.leaf: TokenKind.id e
+        /NodeKind.assign
+      /NodeKind.assign
+      NodeKind.assign
+        NodeKind.leaf: TokenKind.id b
+        NodeKind.leaf: TokenKind.id a
+      /NodeKind.assign
+    /NodeKind.assign
+  /NodeKind.assign
 /NodeKind.block
 Normed size: 714

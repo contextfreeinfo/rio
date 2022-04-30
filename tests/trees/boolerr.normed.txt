@@ -1,7 +1,6 @@
 NodeKind.block
   NodeKind.assign
     NodeKind.leaf: TokenKind.id error
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.as
@@ -13,7 +12,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id doc
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.as
@@ -28,7 +26,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id head
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.as
@@ -43,7 +40,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id summary
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.as
@@ -63,12 +59,10 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id url
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.leaf: TokenKind.id string
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id read-doc
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.leaf: TokenKind.id url
@@ -217,7 +211,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id build-summary
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.leaf: TokenKind.id doc
@@ -244,7 +237,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id read-and-build-summary
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.leaf: TokenKind.id url
@@ -278,7 +270,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id is-title-non-empty
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.leaf: TokenKind.id doc
@@ -311,7 +302,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id read-whether-title-non-empty
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.leaf: TokenKind.id url
@@ -345,7 +335,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id main
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.leaf: TokenKind.id env!
@@ -359,7 +348,6 @@ NodeKind.block
         NodeKind.block
           NodeKind.assign
             NodeKind.leaf: TokenKind.id urls
-            NodeKind.leaf: TokenKind.op_eq =
             NodeKind.call
               NodeKind.leaf: TokenKind.id list
               NodeKind.string
@@ -391,7 +379,6 @@ NodeKind.block
           /NodeKind.assign
           NodeKind.assign
             NodeKind.leaf: TokenKind.id print
-            NodeKind.leaf: TokenKind.op_eq =
             NodeKind.call
               NodeKind.leaf: TokenKind.id print
               NodeKind.call
@@ -427,7 +414,6 @@ NodeKind.block
                   /NodeKind.question
                   NodeKind.assign
                     NodeKind.leaf: TokenKind.id summary
-                    NodeKind.leaf: TokenKind.op_eq =
                     NodeKind.call
                       NodeKind.leaf: TokenKind.id read-and-build-summary
                       NodeKind.leaf: TokenKind.id url
@@ -470,7 +456,6 @@ NodeKind.block
                   /NodeKind.question
                   NodeKind.assign
                     NodeKind.leaf: TokenKind.id has-title
-                    NodeKind.leaf: TokenKind.op_eq =
                     NodeKind.call
                       NodeKind.leaf: TokenKind.id read-whether-title-non-empty
                       NodeKind.leaf: TokenKind.id url
@@ -508,4 +493,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 366
+Normed size: 351

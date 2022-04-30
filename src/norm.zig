@@ -68,8 +68,8 @@ pub const Normer = struct {
         switch (node.kind) {
             .add => try self.simple(node),
             .as => try self.simple(node),
-            .assign => try self.simple(node),
-            .assign_to => try self.simple(node), // TODO Convert to assign.
+            .assign => try self.assign(node),
+            .assign_to => try self.assign_to(node),
             .be => try self.simple(node),
             .block => try self.block(node),
             .bool_and => try self.simple(node),
@@ -95,6 +95,53 @@ pub const Normer = struct {
             .sign => try self.simple(node),
             .sign_int => try self.simple(node),
             .string => try self.simple(node),
+        }
+    }
+
+    fn assign(self: *Self, node: parse.Node) !void {
+        const begin = self.here();
+        var past_op = false;
+        for (self.kidsFrom(node)) |kid| {
+            // TODO Generify this logic to other ops.
+            if (kid.kind == .leaf and kid.data.token.kind == .op_eq) {
+                if (self.here().i == begin.i) {
+                    try self.working.append(leafOf(.key_blank));
+                }
+                past_op = true;
+            } else {
+                try self.any(kid);
+            }
+        }
+        try self.nest(node.kind, begin);
+    }
+
+    fn assign_to(self: *Self, node: parse.Node) !void {
+        // Convert assign_to into assign, sadly changing order of operation.
+        // But names early are easier for me to read and think about.
+        const begin = self.here();
+        var value: ?Node = null;
+        var past_op = false;
+        for (self.kidsFrom(node)) |kid| {
+            if (kid.kind == .leaf and kid.data.token.kind == .op_eqto) {
+                past_op = true;
+            } else {
+                const kid_begin = self.here();
+                try self.any(kid);
+                if (self.here().i != kid_begin.i) {
+                    if (!past_op) {
+                        // Store value before op.
+                        value = self.pop();
+                    } else {
+                        // Formulate assign after.
+                        if (value) |value_sure| {
+                            try self.working.append(value_sure);
+                        }
+                        try self.nest(.assign, begin);
+                        // Anything else left on this node will be junk.
+                        return;
+                    }
+                }
+            }
         }
     }
 
@@ -326,10 +373,10 @@ pub const Normer = struct {
         if (self.here().i > begin.i) {
             const last = lex.lastPtr(Node, self.working.items).?;
             if (last.kind == .block) {
+                // Blocks of rounds are just extended calls.
                 last.kind = .call;
             }
         }
-        // TODO If block back make it into a big call???
         // Equals means void literal.
         if (wrap_all or self.here().i == begin.i) {
             try self.nest(node.kind, begin);

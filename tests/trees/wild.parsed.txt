@@ -2681,7 +2681,60 @@ NodeKind.block
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
+    NodeKind.leaf: TokenKind.vspace 
+
+  /NodeKind.space
+  NodeKind.assign_to
+    NodeKind.assign_to
+      NodeKind.assign_to
+        NodeKind.leaf: TokenKind.id a
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.op_eqto =>
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+        NodeKind.leaf: TokenKind.id b
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+      /NodeKind.assign_to
+      NodeKind.leaf: TokenKind.op_eqto =>
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+      NodeKind.round
+        NodeKind.leaf: TokenKind.round_begin (
+        NodeKind.block
+          NodeKind.assign
+            NodeKind.leaf: TokenKind.id c
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.leaf: TokenKind.op_eq =
+            NodeKind.space
+              NodeKind.leaf: TokenKind.hspace  
+            NodeKind.assign
+              NodeKind.leaf: TokenKind.id d
+              NodeKind.space
+                NodeKind.leaf: TokenKind.hspace  
+              NodeKind.leaf: TokenKind.op_eq =
+              NodeKind.space
+                NodeKind.leaf: TokenKind.hspace  
+              NodeKind.leaf: TokenKind.id e
+            /NodeKind.assign
+          /NodeKind.assign
+        /NodeKind.block
+        NodeKind.leaf: TokenKind.round_end )
+      /NodeKind.round
+      NodeKind.space
+        NodeKind.leaf: TokenKind.hspace  
+    /NodeKind.assign_to
+    NodeKind.leaf: TokenKind.op_eqto =>
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.id d
+  /NodeKind.assign_to
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
 /NodeKind.block
-Pool storage: 4096 522
-Parsed size: 2010
+Pool storage: 4096 524
+Parsed size: 2053
 Token size: 8 node size: 16 1

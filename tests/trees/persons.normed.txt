@@ -1,5 +1,6 @@
 NodeKind.block
-  NodeKind.assign_to
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.op_spread ..
     NodeKind.call
       NodeKind.leaf: TokenKind.key_use use
       NodeKind.string
@@ -8,12 +9,9 @@ NodeKind.block
         NodeKind.leaf: TokenKind.string_end "
       /NodeKind.string
     /NodeKind.call
-    NodeKind.leaf: TokenKind.op_eqto =>
-    NodeKind.leaf: TokenKind.op_spread ..
-  /NodeKind.assign_to
+  /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id main
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.round
@@ -27,7 +25,6 @@ NodeKind.block
         NodeKind.block
           NodeKind.assign
             NodeKind.leaf: TokenKind.id name
-            NodeKind.leaf: TokenKind.op_eq =
             NodeKind.string
               NodeKind.leaf: TokenKind.string_begin_double "
               NodeKind.leaf: TokenKind.string_text Alice
@@ -36,12 +33,10 @@ NodeKind.block
           /NodeKind.assign
           NodeKind.assign
             NodeKind.leaf: TokenKind.id age
-            NodeKind.leaf: TokenKind.op_eq =
             NodeKind.leaf: TokenKind.int 40
           /NodeKind.assign
           NodeKind.assign
             NodeKind.leaf: TokenKind.id other-name
-            NodeKind.leaf: TokenKind.op_eq =
             NodeKind.string
               NodeKind.leaf: TokenKind.string_begin_double "
               NodeKind.leaf: TokenKind.string_text Bernie
@@ -50,7 +45,6 @@ NodeKind.block
           /NodeKind.assign
           NodeKind.assign
             NodeKind.leaf: TokenKind.id other-age
-            NodeKind.leaf: TokenKind.op_eq =
             NodeKind.leaf: TokenKind.int 14
           /NodeKind.assign
           NodeKind.call
@@ -121,7 +115,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id default-schema
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.as
@@ -138,7 +131,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id person
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.call
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.leaf: TokenKind.id name
@@ -147,7 +139,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id show-prices
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.as
@@ -204,7 +195,6 @@ NodeKind.block
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id ticket-price
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_for
         NodeKind.leaf: TokenKind.id age
@@ -279,4 +269,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 206
+Normed size: 196

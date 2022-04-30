@@ -1,6 +1,8 @@
 NodeKind.block
-  NodeKind.assign_to
-    NodeKind.assign_to
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.op_spread ..
+    NodeKind.assign
+      NodeKind.leaf: TokenKind.id c
       NodeKind.call
         NodeKind.leaf: TokenKind.key_use use
         NodeKind.string
@@ -9,15 +11,10 @@ NodeKind.block
           NodeKind.leaf: TokenKind.string_end "
         /NodeKind.string
       /NodeKind.call
-      NodeKind.leaf: TokenKind.op_eqto =>
-      NodeKind.leaf: TokenKind.id c
-    /NodeKind.assign_to
-    NodeKind.leaf: TokenKind.op_eqto =>
-    NodeKind.leaf: TokenKind.op_spread ..
-  /NodeKind.assign_to
+    /NodeKind.assign
+  /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id main
-    NodeKind.leaf: TokenKind.op_eq =
     NodeKind.fun
       NodeKind.fun_with
         NodeKind.call
@@ -42,4 +39,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 31
+Normed size: 28

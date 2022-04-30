@@ -181,3 +181,5 @@ persons.of
   filter be it.age >= 18
   map be it.name
 end
+
+a => b => (c = d = e) => d
