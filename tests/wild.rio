@@ -107,3 +107,23 @@ a.((b c) (d e))
 (d (b a c) e)
 
 a, b, c
+
+# All the same.
+(boo
+  baa
+  bee
+)
+(boo baa bee)
+(
+  boo
+  baa
+  bee
+)
+# All the same.
+boo (baa bee)
+boo of baa bee
+(boo (baa bee))
+(
+  boo
+  baa bee
+)

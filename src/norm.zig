@@ -158,7 +158,7 @@ pub const Normer = struct {
             for (dot_kids[dot_index + 1 ..]) |kid| {
                 switch (kid.kind) {
                     .comment, .end, .space => {},
-                    .of, .round => {
+                    .of => {
                         try self.dotChain(if (dot_index > 0) dot_kids[0] else null, kid);
                         return;
                     },
@@ -247,12 +247,10 @@ pub const Normer = struct {
 
     fn of(self: *Self, node: parse.Node) !void {
         for (self.kidsFrom(node)) |kid| {
-            switch (kid.kind) {
-                .block => {
-                    try self.kids(kid);
-                    break;
-                },
-                else => {},
+            if (kid.kind == .block) {
+                // Always expand the block.
+                try self.kids(kid);
+                break;
             }
         }
     }
@@ -260,6 +258,11 @@ pub const Normer = struct {
     fn round(self: *Self, node: parse.Node, wrap_all: bool) !void {
         const begin = self.here();
         try self.kids(node);
+        const last = &self.working.items[self.working.items.len - 1];
+        if (last.kind == .block) {
+            last.kind = .call;
+        }
+        // TODO If block back make it into a big call???
         // Equals means void literal.
         if (wrap_all or self.here().i == begin.i) {
             try self.nest(node.kind, begin);

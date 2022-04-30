@@ -164,7 +164,7 @@ NodeKind.block
     NodeKind.leaf: TokenKind.id bling
   /NodeKind.call
   NodeKind.call
-    NodeKind.block
+    NodeKind.call
       NodeKind.call
         NodeKind.leaf: TokenKind.id here
         NodeKind.leaf: TokenKind.id there
@@ -173,7 +173,7 @@ NodeKind.block
         NodeKind.leaf: TokenKind.id d
         NodeKind.leaf: TokenKind.id e
       /NodeKind.call
-    /NodeKind.block
+    /NodeKind.call
     NodeKind.leaf: TokenKind.id bling
   /NodeKind.call
   NodeKind.call
@@ -816,5 +816,52 @@ NodeKind.block
     NodeKind.leaf: TokenKind.id b
     NodeKind.leaf: TokenKind.id c
   /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id boo
+    NodeKind.leaf: TokenKind.id baa
+    NodeKind.leaf: TokenKind.id bee
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id boo
+    NodeKind.leaf: TokenKind.id baa
+    NodeKind.leaf: TokenKind.id bee
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id boo
+    NodeKind.leaf: TokenKind.id baa
+    NodeKind.leaf: TokenKind.id bee
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id boo
+    NodeKind.round
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id baa
+        NodeKind.leaf: TokenKind.id bee
+      /NodeKind.call
+    /NodeKind.round
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id boo
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id baa
+      NodeKind.leaf: TokenKind.id bee
+    /NodeKind.call
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id boo
+    NodeKind.round
+      NodeKind.call
+        NodeKind.leaf: TokenKind.id baa
+        NodeKind.leaf: TokenKind.id bee
+      /NodeKind.call
+    /NodeKind.round
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.id boo
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id baa
+      NodeKind.leaf: TokenKind.id bee
+    /NodeKind.call
+  /NodeKind.call
 /NodeKind.block
-Normed size: 607
+Normed size: 641
