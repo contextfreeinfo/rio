@@ -115,18 +115,20 @@ pub const Normer = struct {
         const first = node_kids[0];
         switch (first.kind) {
             .dot => try self.dotSwap(first), // TODO If it was a chain, then what???
-            .round => try self.round(first, false),
             else => try self.any(first),
         }
-        for (node_kids[1..]) |kid| {
+        try self.callArgs(node_kids[1..]);
+        try self.nest(node.kind, begin);
+    }
+
+    fn callArgs(self: *Self, args: []const parse.Node) !void {
+        for (args) |arg| {
             // TODO Also need this logic for `of`.
-            // TODO Add blank labels to each uncertain position vs named arg.
-            switch (kid.kind) {
-                .round => try self.round(kid, true),
-                else => try self.any(kid),
+            switch (arg.kind) {
+                .round => try self.round(arg, true),
+                else => try self.any(arg),
             }
         }
-        try self.nest(node.kind, begin);
     }
 
     fn dot(self: *Self, node: parse.Node) !void {
@@ -135,11 +137,47 @@ pub const Normer = struct {
         try self.nest(.call, begin);
     }
 
-    fn dotChain(self: *Self, target: ?parse.Node, chain: parse.Node) !void {
-        try self.any(chain);
-        if (target) |target_sure| {
-            try self.any(target_sure);
+    fn dotChain(self: *Self, target: ?Node, chain_kids: []const parse.Node) NormError!void {
+        const begin = self.here();
+        for (chain_kids) |kid, kid_index| {
+            switch (kid.kind) {
+                .call => {
+                    const subs = self.kidsFrom(kid);
+                    // Already in swap context, so no other swapping.
+                    std.debug.assert(subs.len > 0);
+                    try self.any(subs[0]);
+                    try self.dotChainNest(begin, target, subs[1..], chain_kids[kid_index + 1 ..]);
+                    return;
+                },
+                .list => {
+                    // Blank call.
+                    try self.working.append(leafOf(.key_blank));
+                    try self.dotChainNest(begin, target, self.kidsFrom(kid), chain_kids[kid_index + 1 ..]);
+                    return;
+                },
+                // TODO Expand here? But painful to do, and this is degenerate and confusing anyway, so validate against.
+                // .of => {},
+                else => {
+                    // Any then make a call of it on target if present.
+                },
+            }
+            try self.any(kid);
         }
+        if (target) |target_sure| {
+            try self.working.append(target_sure);
+        }
+    }
+
+    fn dotChainNest(self: *Self, begin: NodeId, target: ?Node, args: []const parse.Node, chain_kids: []const parse.Node) !void {
+        // Target.
+        if (target) |target_sure| {
+            try self.working.append(target_sure);
+        }
+        // Others.
+        try self.callArgs(args);
+        try self.nest(.call, begin);
+        // Deepen.
+        try self.dotChain(self.pop(), chain_kids);
     }
 
     fn dotSwap(self: *Self, node: parse.Node) !void {
@@ -159,7 +197,17 @@ pub const Normer = struct {
                 switch (kid.kind) {
                     .comment, .end, .space => {},
                     .of => {
-                        try self.dotChain(if (dot_index > 0) dot_kids[0] else null, kid);
+                        for (self.kidsFrom(kid)) |sub| {
+                            if (sub.kind == .block) {
+                                var target: ?Node = null;
+                                if (dot_index > 0) {
+                                    try self.any(dot_kids[0]);
+                                    target = self.pop();
+                                }
+                                try self.dotChain(target, self.kidsFrom(sub));
+                                break;
+                            }
+                        }
                         return;
                     },
                     else => {
@@ -248,19 +296,29 @@ pub const Normer = struct {
     fn of(self: *Self, node: parse.Node) !void {
         for (self.kidsFrom(node)) |kid| {
             if (kid.kind == .block) {
-                // Always expand the block.
-                try self.kids(kid);
+                // Always expand the block, but track nested parens.
+                try self.callArgs(self.kidsFrom(kid));
                 break;
             }
         }
     }
 
+    fn pop(self: *Self) ?Node {
+        const result = lex.last(Node, self.working.items);
+        if (result) |_| {
+            self.working.items.len -= 1;
+        }
+        return result;
+    }
+
     fn round(self: *Self, node: parse.Node, wrap_all: bool) !void {
         const begin = self.here();
         try self.kids(node);
-        const last = &self.working.items[self.working.items.len - 1];
-        if (last.kind == .block) {
-            last.kind = .call;
+        if (self.here().i > begin.i) {
+            const last = lex.lastPtr(Node, self.working.items).?;
+            if (last.kind == .block) {
+                last.kind = .call;
+            }
         }
         // TODO If block back make it into a big call???
         // Equals means void literal.

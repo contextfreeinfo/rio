@@ -127,3 +127,32 @@ boo of baa bee
   boo
   baa bee
 )
+
+5 things
+
+a.of
+end
+
+wild.of
+  1, 2, 3
+  length
+end
+
+wild of
+  1, 2, 3
+  length
+end
+
+world.of
+  # Of or splat inside .of is degenerate. Probably who cares on semantics, and just validate against it.
+  of
+    hi there
+    kids
+  end
+  more
+end
+
+more of
+  (hi)
+  there
+end
