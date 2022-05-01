@@ -5,7 +5,6 @@ NodeKind.block
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.as
         NodeKind.leaf: TokenKind.id message
-        NodeKind.leaf: TokenKind.key_as as
         NodeKind.leaf: TokenKind.id string
       /NodeKind.as
     /NodeKind.call
@@ -16,7 +15,6 @@ NodeKind.block
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.as
         NodeKind.leaf: TokenKind.id head
-        NodeKind.leaf: TokenKind.key_as as
         NodeKind.call
           NodeKind.leaf: TokenKind.id maybe
           NodeKind.leaf: TokenKind.key_blank _
@@ -30,7 +28,6 @@ NodeKind.block
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.as
         NodeKind.leaf: TokenKind.id title
-        NodeKind.leaf: TokenKind.key_as as
         NodeKind.call
           NodeKind.leaf: TokenKind.id maybe
           NodeKind.leaf: TokenKind.id string
@@ -44,7 +41,6 @@ NodeKind.block
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.as
         NodeKind.leaf: TokenKind.id title
-        NodeKind.leaf: TokenKind.key_as as
         NodeKind.call
           NodeKind.leaf: TokenKind.id maybe
           NodeKind.leaf: TokenKind.id string
@@ -52,7 +48,6 @@ NodeKind.block
       /NodeKind.as
       NodeKind.as
         NodeKind.leaf: TokenKind.id ok
-        NodeKind.leaf: TokenKind.key_as as
         NodeKind.leaf: TokenKind.id bool
       /NodeKind.as
     /NodeKind.call
@@ -134,7 +129,6 @@ NodeKind.block
                         NodeKind.leaf: TokenKind.key_blank _
                         NodeKind.colon
                           NodeKind.leaf: TokenKind.id head
-                          NodeKind.leaf: TokenKind.op_colon :
                           NodeKind.call
                             NodeKind.leaf: TokenKind.id new
                             NodeKind.leaf: TokenKind.key_blank _
@@ -156,12 +150,10 @@ NodeKind.block
                         NodeKind.leaf: TokenKind.key_blank _
                         NodeKind.colon
                           NodeKind.leaf: TokenKind.id head
-                          NodeKind.leaf: TokenKind.op_colon :
                           NodeKind.call
                             NodeKind.leaf: TokenKind.key_blank _
                             NodeKind.colon
                               NodeKind.leaf: TokenKind.id title
-                              NodeKind.leaf: TokenKind.op_colon :
                               NodeKind.string
                                 NodeKind.leaf: TokenKind.string_begin_double "
                                 NodeKind.leaf: TokenKind.string_end "
@@ -179,12 +171,10 @@ NodeKind.block
                         NodeKind.leaf: TokenKind.key_blank _
                         NodeKind.colon
                           NodeKind.leaf: TokenKind.id head
-                          NodeKind.leaf: TokenKind.op_colon :
                           NodeKind.call
                             NodeKind.leaf: TokenKind.key_blank _
                             NodeKind.colon
                               NodeKind.leaf: TokenKind.id title
-                              NodeKind.leaf: TokenKind.op_colon :
                               NodeKind.call
                                 NodeKind.leaf: TokenKind.id format
                                 NodeKind.string
@@ -228,7 +218,6 @@ NodeKind.block
           /NodeKind.call
           NodeKind.colon
             NodeKind.leaf: TokenKind.id ok
-            NodeKind.leaf: TokenKind.op_colon :
             NodeKind.leaf: TokenKind.id True
           /NodeKind.colon
         /NodeKind.call
@@ -493,4 +482,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 351
+Normed size: 340

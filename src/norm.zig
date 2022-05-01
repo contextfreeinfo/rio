@@ -67,15 +67,15 @@ pub const Normer = struct {
     fn any(self: *Self, node: parse.Node) NormError!void {
         switch (node.kind) {
             .add => try self.simple(node),
-            .as => try self.simple(node),
-            .assign => try self.assign(node),
+            .as => try self.infixCustomKind(node, .key_as),
+            .assign => try self.infixCustomKind(node, .op_eq),
             .assign_to => try self.assign_to(node),
             .be => try self.simple(node),
             .block => try self.block(node),
             .bool_and => try self.simple(node),
             .bool_or => try self.simple(node),
             .call => try self.call(node),
-            .colon => try self.simple(node),
+            .colon => try self.infixCustomKind(node, .op_colon),
             .comment, .end, .space => try self.ignore(node),
             .compare => try self.simple(node),
             .def => try self.simple(node),
@@ -96,23 +96,6 @@ pub const Normer = struct {
             .sign_int => try self.simple(node),
             .string => try self.simple(node),
         }
-    }
-
-    fn assign(self: *Self, node: parse.Node) !void {
-        const begin = self.here();
-        var past_op = false;
-        for (self.kidsFrom(node)) |kid| {
-            // TODO Generify this logic to other ops.
-            if (kid.kind == .leaf and kid.data.token.kind == .op_eq) {
-                if (self.here().i == begin.i) {
-                    try self.working.append(leafOf(.key_blank));
-                }
-                past_op = true;
-            } else {
-                try self.any(kid);
-            }
-        }
-        try self.nest(node.kind, begin);
     }
 
     fn assign_to(self: *Self, node: parse.Node) !void {
@@ -309,6 +292,32 @@ pub const Normer = struct {
     fn ignore(self: *Self, node: parse.Node) !void {
         _ = self;
         _ = node;
+    }
+
+    fn infixCustomKind(self: *Self, node: parse.Node, token_kind: lex.TokenKind) !void {
+        const begin = self.here();
+        var past_op = false;
+        for (self.kidsFrom(node)) |kid| {
+            // TODO Generify this logic to other ops.
+            if (kid.kind == .leaf and kid.data.token.kind == token_kind) {
+                if (self.here().i == begin.i) {
+                    // No storage.
+                    try self.working.append(leafOf(.key_blank));
+                }
+                past_op = true;
+            } else {
+                const sub_begin = self.here();
+                try self.any(kid);
+                if (past_op and self.here().i > sub_begin.i) {
+                    // Got a value.
+                    break;
+                }
+            }
+        } else {
+            // No value.
+            try self.working.append(leafOf(.key_blank));
+        }
+        try self.nest(node.kind, begin);
     }
 
     fn kids(self: *Self, node: parse.Node) !void {

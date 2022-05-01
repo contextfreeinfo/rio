@@ -51,7 +51,6 @@ NodeKind.block
             NodeKind.leaf: TokenKind.id show-prices
             NodeKind.colon
               NodeKind.leaf: TokenKind.id persons
-              NodeKind.leaf: TokenKind.op_colon :
               NodeKind.call
                 NodeKind.leaf: TokenKind.key_blank _
                 NodeKind.call
@@ -63,12 +62,10 @@ NodeKind.block
                   NodeKind.leaf: TokenKind.key_blank _
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id name
-                    NodeKind.leaf: TokenKind.op_colon :
                     NodeKind.leaf: TokenKind.id other-name
                   /NodeKind.colon
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id age
-                    NodeKind.leaf: TokenKind.op_colon :
                     NodeKind.leaf: TokenKind.id other-age
                   /NodeKind.colon
                 /NodeKind.call
@@ -76,7 +73,6 @@ NodeKind.block
                   NodeKind.leaf: TokenKind.key_blank _
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id name
-                    NodeKind.leaf: TokenKind.op_colon :
                     NodeKind.string
                       NodeKind.leaf: TokenKind.string_begin_double "
                       NodeKind.leaf: TokenKind.string_text Clara
@@ -85,7 +81,6 @@ NodeKind.block
                   /NodeKind.colon
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id age
-                    NodeKind.leaf: TokenKind.op_colon :
                     NodeKind.leaf: TokenKind.int 9
                   /NodeKind.colon
                 /NodeKind.call
@@ -93,7 +88,6 @@ NodeKind.block
                   NodeKind.leaf: TokenKind.key_blank _
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id name
-                    NodeKind.leaf: TokenKind.op_colon :
                     NodeKind.string
                       NodeKind.leaf: TokenKind.string_begin_double "
                       NodeKind.leaf: TokenKind.string_text Darlene
@@ -102,7 +96,6 @@ NodeKind.block
                   /NodeKind.colon
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id age
-                    NodeKind.leaf: TokenKind.op_colon :
                     NodeKind.leaf: TokenKind.int 68
                   /NodeKind.colon
                 /NodeKind.call
@@ -119,12 +112,10 @@ NodeKind.block
       NodeKind.leaf: TokenKind.key_struct struct
       NodeKind.as
         NodeKind.leaf: TokenKind.id name
-        NodeKind.leaf: TokenKind.key_as as
         NodeKind.leaf: TokenKind.id string
       /NodeKind.as
       NodeKind.as
         NodeKind.leaf: TokenKind.id age
-        NodeKind.leaf: TokenKind.key_as as
         NodeKind.leaf: TokenKind.id int
       /NodeKind.as
     /NodeKind.call
@@ -143,7 +134,6 @@ NodeKind.block
       NodeKind.fun_for
         NodeKind.as
           NodeKind.leaf: TokenKind.id persons
-          NodeKind.leaf: TokenKind.key_as as
           NodeKind.call
             NodeKind.leaf: TokenKind.id list
             NodeKind.leaf: TokenKind.id person
@@ -269,4 +259,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 196
+Normed size: 186
