@@ -446,14 +446,14 @@ NodeKind.block
     NodeKind.leaf: TokenKind.op_sub -
     NodeKind.leaf: TokenKind.int 5
   /NodeKind.sign_int
-  NodeKind.add
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_add add
     NodeKind.leaf: TokenKind.int 4
-    NodeKind.leaf: TokenKind.op_add +
     NodeKind.sign_int
       NodeKind.leaf: TokenKind.op_sub -
       NodeKind.leaf: TokenKind.int 5
     /NodeKind.sign_int
-  /NodeKind.add
+  /NodeKind.call
   NodeKind.assign
     NodeKind.leaf: TokenKind.id a
     NodeKind.assign
@@ -707,15 +707,15 @@ NodeKind.block
       /NodeKind.call
     /NodeKind.fun_to
     NodeKind.be
-      NodeKind.add
-        NodeKind.add
+      NodeKind.call
+        NodeKind.leaf: TokenKind.key_add add
+        NodeKind.call
+          NodeKind.leaf: TokenKind.key_add add
           NodeKind.leaf: TokenKind.id a
-          NodeKind.leaf: TokenKind.op_add +
           NodeKind.leaf: TokenKind.id b
-        /NodeKind.add
-        NodeKind.leaf: TokenKind.op_add +
+        /NodeKind.call
         NodeKind.leaf: TokenKind.id c
-      /NodeKind.add
+      /NodeKind.call
     /NodeKind.be
   /NodeKind.fun
   NodeKind.call
@@ -921,5 +921,22 @@ NodeKind.block
       /NodeKind.assign
     /NodeKind.assign
   /NodeKind.assign
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_add add
+    NodeKind.call
+      NodeKind.leaf: TokenKind.key_mul mul
+      NodeKind.leaf: TokenKind.id x
+      NodeKind.call
+        NodeKind.leaf: TokenKind.key_add add
+        NodeKind.leaf: TokenKind.id y
+        NodeKind.leaf: TokenKind.id z
+      /NodeKind.call
+    /NodeKind.call
+    NodeKind.call
+      NodeKind.leaf: TokenKind.key_div div
+      NodeKind.leaf: TokenKind.id w
+      NodeKind.leaf: TokenKind.id v
+    /NodeKind.call
+  /NodeKind.call
 /NodeKind.block
-Normed size: 671
+Normed size: 684

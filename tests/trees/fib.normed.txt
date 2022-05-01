@@ -107,25 +107,25 @@ NodeKind.block
             NodeKind.be
               NodeKind.call
                 NodeKind.leaf: TokenKind.id vouch
-                NodeKind.add
+                NodeKind.call
+                  NodeKind.leaf: TokenKind.key_add add
                   NodeKind.call
                     NodeKind.leaf: TokenKind.id fib
-                    NodeKind.add
+                    NodeKind.call
+                      NodeKind.leaf: TokenKind.key_sub sub
                       NodeKind.leaf: TokenKind.id n
-                      NodeKind.leaf: TokenKind.op_sub -
                       NodeKind.leaf: TokenKind.int 2
-                    /NodeKind.add
+                    /NodeKind.call
                   /NodeKind.call
-                  NodeKind.leaf: TokenKind.op_add +
                   NodeKind.call
                     NodeKind.leaf: TokenKind.id fib
-                    NodeKind.add
+                    NodeKind.call
+                      NodeKind.leaf: TokenKind.key_sub sub
                       NodeKind.leaf: TokenKind.id n
-                      NodeKind.leaf: TokenKind.op_sub -
                       NodeKind.leaf: TokenKind.int 1
-                    /NodeKind.add
+                    /NodeKind.call
                   /NodeKind.call
-                /NodeKind.add
+                /NodeKind.call
               /NodeKind.call
             /NodeKind.be
           /NodeKind.call

@@ -66,7 +66,7 @@ pub const Normer = struct {
 
     fn any(self: *Self, node: parse.Node) NormError!void {
         switch (node.kind) {
-            .add => try self.simple(node),
+            .add => try self.infixMap(node, mapAdd),
             .as => try self.infixCustomKind(node, .key_as),
             .assign => try self.infixCustomKind(node, .op_eq),
             .assign_to => try self.assign_to(node),
@@ -88,7 +88,7 @@ pub const Normer = struct {
             .fun_with => try self.simple(node),
             .leaf => try self.leaf(node),
             .list => try self.list(node),
-            .mul => try self.simple(node),
+            .mul => try self.infixMap(node, mapMul),
             .of => try self.of(node),
             .question => try self.simple(node),
             .round => try self.round(node, false),
@@ -294,6 +294,38 @@ pub const Normer = struct {
         _ = node;
     }
 
+    fn infixMap(self: *Self, node: parse.Node, map_op: MapOp) !void {
+        // Map from operators to named function calls.
+        const begin = self.here();
+        var first: ?Node = null;
+        var past_op = false;
+        for (self.kidsFrom(node)) |kid| {
+            if (kid.kind == .leaf) {
+                if (map_op(kid.data.token.kind)) |key_kind| {
+                    // Got the op.
+                    past_op = true;
+                    try self.working.append(leafOf(key_kind));
+                    try self.working.append(if (first) |first_sure| first_sure else leafOf(.key_blank));
+                    continue;
+                }
+            }
+            // Not the op.
+            const sub_begin = self.here();
+            try self.any(kid);
+            if (self.here().i > sub_begin.i) {
+                if (!past_op) {
+                    first = self.pop();
+                } else {
+                    break;
+                }
+            }
+        } else {
+            // No value.
+            try self.working.append(leafOf(.key_blank));
+        }
+        try self.nest(.call, begin);
+    }
+
     fn infixCustomKind(self: *Self, node: parse.Node, token_kind: lex.TokenKind) !void {
         const begin = self.here();
         var past_op = false;
@@ -399,10 +431,28 @@ pub const Normer = struct {
     }
 };
 
+const MapOp = fn (kind: lex.TokenKind) ?lex.TokenKind;
+
 fn isLeafOf(node: parse.Node, kind: lex.TokenKind) bool {
     return node.kind == .leaf and node.data.token.kind == kind;
 }
 
 fn leafOf(kind: lex.TokenKind) Node {
     return .{ .kind = .leaf, .data = .{ .token = .{ .kind = kind, .text = intern.TextId.of(0) } } };
+}
+
+fn mapAdd(kind: lex.TokenKind) ?lex.TokenKind {
+    return switch (kind) {
+        .op_add => .key_add,
+        .op_sub => .key_sub,
+        else => null,
+    };
+}
+
+fn mapMul(kind: lex.TokenKind) ?lex.TokenKind {
+    return switch (kind) {
+        .op_div => .key_div,
+        .op_mul => .key_mul,
+        else => null,
+    };
 }
