@@ -192,6 +192,13 @@ text = (cat
   "Who I don't know what happens next, y'all" # "
 )
 
+text = cat of
+  "I once met a fish from Chicago
+  # Comment.
+  "Who I don't know what happens next, y'all
+  # More comment.
+end
+
 text = (
   "I once met a fish from Chicago
   # Comment.

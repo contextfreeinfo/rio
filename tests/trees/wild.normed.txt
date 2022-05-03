@@ -956,6 +956,20 @@ NodeKind.block
   NodeKind.assign
     NodeKind.leaf: TokenKind.id text
     NodeKind.call
+      NodeKind.leaf: TokenKind.id cat
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
+      /NodeKind.string
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
+      /NodeKind.string
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id text
+    NodeKind.call
       NodeKind.string
         NodeKind.leaf: TokenKind.string_begin_double "
         NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
@@ -1005,4 +1019,4 @@ NodeKind.block
     NodeKind.leaf: TokenKind.string_end "
   /NodeKind.string
 /NodeKind.block
-Normed size: 732
+Normed size: 742
