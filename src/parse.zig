@@ -624,14 +624,21 @@ pub fn Parser(comptime Reader: type) type {
         fn string(self: *Self, context: Context) !void {
             const begin = self.here();
             try self.advance();
+            var done = false;
             while (true) {
                 switch ((try self.peek()).kind) {
                     .eof, .string_end => break,
                     .escape_begin => try self.escape(context),
+                    .vspace => {
+                        done = true;
+                        break;
+                    },
                     else => try self.advance(),
                 }
             }
-            try self.advance();
+            if (!done) {
+                try self.advance();
+            }
             try self.nest(.string, begin);
         }
     };

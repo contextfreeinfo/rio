@@ -100,7 +100,7 @@ for a b c to d e f be a + b + c
 
 (a) (b)
 
-(.a 1)
+(.cat 1)
 
 # These two should be equivalent
 a.((b c) (d e))
@@ -185,3 +185,8 @@ end
 a => b => (c = d = e) => d
 
 x * (y + z) + w / v
+
+text = (cat
+  "I once met a fish from Chicago
+  "Who I don't know what happens next, y'all"
+)

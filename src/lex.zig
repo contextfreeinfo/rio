@@ -412,12 +412,13 @@ pub fn Lexer(comptime Reader: type) type {
 
         fn nextStringEnd(self: *Self) !TokenKind {
             _ = try self.advance();
-            return self.nextStringEndEmpty();
+            self.stack.items.len -= 1;
+            return .string_end;
         }
 
         fn nextStringEndEmpty(self: *Self) !TokenKind {
             self.stack.items.len -= 1;
-            return .string_end;
+            return self.nextVspace();
         }
 
         fn nextStringText(self: *Self, comptime end: u8) !TokenKind {

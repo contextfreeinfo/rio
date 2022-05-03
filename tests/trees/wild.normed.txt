@@ -725,7 +725,7 @@ NodeKind.block
   /NodeKind.call
   NodeKind.call
     NodeKind.leaf: TokenKind.op_dot .
-    NodeKind.leaf: TokenKind.id a
+    NodeKind.leaf: TokenKind.id cat
     NodeKind.leaf: TokenKind.int 1
   /NodeKind.call
   NodeKind.call
@@ -938,5 +938,20 @@ NodeKind.block
       NodeKind.leaf: TokenKind.id v
     /NodeKind.call
   /NodeKind.call
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id text
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id cat
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
+      /NodeKind.string
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
+        NodeKind.leaf: TokenKind.string_end "
+      /NodeKind.string
+    /NodeKind.call
+  /NodeKind.assign
 /NodeKind.block
-Normed size: 684
+Normed size: 695
