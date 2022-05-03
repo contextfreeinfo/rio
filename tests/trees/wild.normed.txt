@@ -953,5 +953,56 @@ NodeKind.block
       /NodeKind.string
     /NodeKind.call
   /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id text
+    NodeKind.call
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
+      /NodeKind.string
+      NodeKind.string
+        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
+      /NodeKind.string
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id text
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
+    /NodeKind.string
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
+    /NodeKind.string
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id text
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
+    /NodeKind.string
+  /NodeKind.assign
+  NodeKind.string
+    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
+    NodeKind.leaf: TokenKind.string_end "
+  /NodeKind.string
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id text
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
+    /NodeKind.string
+  /NodeKind.assign
+  NodeKind.string
+    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
+  /NodeKind.string
+  NodeKind.string
+    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.string_end "
+  /NodeKind.string
 /NodeKind.block
-Normed size: 695
+Normed size: 732

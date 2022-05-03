@@ -2806,12 +2806,20 @@ NodeKind.block
           NodeKind.leaf: TokenKind.vspace 
 
           NodeKind.leaf: TokenKind.hspace   
+          NodeKind.leaf: TokenKind.comment # Comment.
+          NodeKind.leaf: TokenKind.vspace 
+
+          NodeKind.leaf: TokenKind.hspace   
         /NodeKind.space
         NodeKind.string
           NodeKind.leaf: TokenKind.string_begin_double "
           NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
           NodeKind.leaf: TokenKind.string_end "
         /NodeKind.string
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace  
+          NodeKind.leaf: TokenKind.comment # "
+        /NodeKind.space
         NodeKind.space
           NodeKind.leaf: TokenKind.vspace 
 
@@ -2822,7 +2830,190 @@ NodeKind.block
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
+    NodeKind.leaf: TokenKind.vspace 
+
+  /NodeKind.space
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id text
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.round
+      NodeKind.leaf: TokenKind.round_begin (
+      NodeKind.block
+        NodeKind.space
+          NodeKind.leaf: TokenKind.vspace 
+
+          NodeKind.leaf: TokenKind.hspace   
+        /NodeKind.space
+        NodeKind.string
+          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
+        /NodeKind.string
+        NodeKind.space
+          NodeKind.leaf: TokenKind.vspace 
+
+          NodeKind.leaf: TokenKind.hspace   
+          NodeKind.leaf: TokenKind.comment # Comment.
+          NodeKind.leaf: TokenKind.vspace 
+
+          NodeKind.leaf: TokenKind.hspace   
+        /NodeKind.space
+        NodeKind.string
+          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
+        /NodeKind.string
+        NodeKind.space
+          NodeKind.leaf: TokenKind.vspace 
+
+          NodeKind.leaf: TokenKind.hspace   
+          NodeKind.leaf: TokenKind.comment # More comment.
+          NodeKind.leaf: TokenKind.vspace 
+
+        /NodeKind.space
+      /NodeKind.block
+      NodeKind.leaf: TokenKind.round_end )
+    /NodeKind.round
+  /NodeKind.assign
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.vspace 
+
+  /NodeKind.space
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id text
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.of
+      NodeKind.leaf: TokenKind.key_of of
+      NodeKind.block
+        NodeKind.space
+          NodeKind.leaf: TokenKind.vspace 
+
+          NodeKind.leaf: TokenKind.hspace   
+        /NodeKind.space
+        NodeKind.string
+          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
+        /NodeKind.string
+        NodeKind.space
+          NodeKind.leaf: TokenKind.vspace 
+
+          NodeKind.leaf: TokenKind.hspace   
+          NodeKind.leaf: TokenKind.comment # Comment.
+          NodeKind.leaf: TokenKind.vspace 
+
+          NodeKind.leaf: TokenKind.hspace   
+        /NodeKind.space
+        NodeKind.string
+          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
+        /NodeKind.string
+        NodeKind.space
+          NodeKind.leaf: TokenKind.vspace 
+
+          NodeKind.leaf: TokenKind.hspace   
+          NodeKind.leaf: TokenKind.comment # More comment.
+          NodeKind.leaf: TokenKind.vspace 
+
+        /NodeKind.space
+      /NodeKind.block
+      NodeKind.end
+        NodeKind.leaf: TokenKind.key_end end
+    /NodeKind.of
+  /NodeKind.assign
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.vspace 
+
+  /NodeKind.space
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id text
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.space
+      NodeKind.leaf: TokenKind.vspace 
+
+      NodeKind.leaf: TokenKind.hspace   
+    /NodeKind.space
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
+    /NodeKind.string
+  /NodeKind.assign
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+    NodeKind.leaf: TokenKind.comment # Comment
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+  /NodeKind.space
+  NodeKind.string
+    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
+    NodeKind.leaf: TokenKind.string_end "
+  /NodeKind.string
+  NodeKind.space
+    NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.comment # "
+  /NodeKind.space
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.vspace 
+
+  /NodeKind.space
+  NodeKind.assign
+    NodeKind.leaf: TokenKind.id text
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.op_eq =
+    NodeKind.space
+      NodeKind.leaf: TokenKind.vspace 
+
+      NodeKind.leaf: TokenKind.hspace   
+    /NodeKind.space
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
+    /NodeKind.string
+  /NodeKind.assign
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+    NodeKind.leaf: TokenKind.comment # Comment
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+  /NodeKind.space
+  NodeKind.string
+    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
+  /NodeKind.string
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.hspace   
+  /NodeKind.space
+  NodeKind.string
+    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.string_end "
+  /NodeKind.string
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
 /NodeKind.block
-Pool storage: 4096 609
-Parsed size: 2119
+Pool storage: 4096 646
+Parsed size: 2250
 Token size: 8 node size: 16 1

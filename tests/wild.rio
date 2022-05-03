@@ -188,5 +188,31 @@ x * (y + z) + w / v
 
 text = (cat
   "I once met a fish from Chicago
-  "Who I don't know what happens next, y'all"
+  # Comment.
+  "Who I don't know what happens next, y'all" # "
 )
+
+text = (
+  "I once met a fish from Chicago
+  # Comment.
+  "Who I don't know what happens next, y'all
+  # More comment.
+)
+
+text = of
+  "I once met a fish from Chicago
+  # Comment.
+  "Who I don't know what happens next, y'all
+  # More comment.
+end
+
+text =
+  "I once met a fish from Chicago
+  # Comment
+  "Who I don't know what happens next, y'all" # "
+
+text =
+  "I once met a fish from Chicago
+  # Comment
+  "Who I don't know what happens next, y'all
+  ""
