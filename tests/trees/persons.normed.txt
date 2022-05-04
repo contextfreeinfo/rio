@@ -235,14 +235,21 @@ NodeKind.block
                   NodeKind.be
                     NodeKind.call
                       NodeKind.leaf: TokenKind.id trace
-                      NodeKind.string
-                        NodeKind.leaf: TokenKind.string_begin_double "
-                        NodeKind.leaf: TokenKind.string_text You think age 
+                      NodeKind.call
+                        NodeKind.leaf: TokenKind.key_blank _
+                        NodeKind.string
+                          NodeKind.leaf: TokenKind.string_begin_double "
+                          NodeKind.leaf: TokenKind.string_text You think age 
+                          NodeKind.leaf: TokenKind.string_end "
+                        /NodeKind.string
                         NodeKind.escape
                           NodeKind.leaf: TokenKind.id age
-                        NodeKind.leaf: TokenKind.string_text  gets child prices here?
-                        NodeKind.leaf: TokenKind.string_end "
-                      /NodeKind.string
+                        NodeKind.string
+                          NodeKind.leaf: TokenKind.string_begin_double "
+                          NodeKind.leaf: TokenKind.string_text  gets child prices here?
+                          NodeKind.leaf: TokenKind.string_end "
+                        /NodeKind.string
+                      /NodeKind.call
                     /NodeKind.call
                   /NodeKind.be
                 /NodeKind.call
@@ -259,4 +266,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 186
+Normed size: 191

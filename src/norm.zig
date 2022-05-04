@@ -94,7 +94,7 @@ pub const Normer = struct {
             .round => try self.round(node, false),
             .sign => try self.simple(node),
             .sign_int => try self.simple(node),
-            .string => try self.simple(node),
+            .string => try self.string(node),
         }
     }
 
@@ -429,6 +429,69 @@ pub const Normer = struct {
         try self.kids(node);
         try self.nest(node.kind, begin);
     }
+
+    fn string(self: *Self, node: parse.Node) !void {
+        // See if we have an escape.
+        var has_escape = false;
+        var string_begin_kind = lex.TokenKind.string_begin_double;
+        var string_begin_text = intern.TextId.of(0);
+        for (self.kidsFrom(node)) |kid| {
+            switch (kid.kind) {
+                .escape => {
+                    has_escape = true;
+                    // We'd already have seen the string begin before now.
+                    break;
+                },
+                .leaf => switch (kid.data.token.kind) {
+                    .string_begin_double, .string_begin_single => {
+                        string_begin_kind = kid.data.token.kind;
+                        string_begin_text = kid.data.token.text;
+                    },
+                    else => {},
+                },
+                else => {},
+            }
+        }
+        if (!has_escape) {
+            return self.simple(node);
+        }
+        // We do have an escape, so construct a tuple.
+        const begin = self.here();
+        try self.working.append(leafOf(.key_blank));
+        var string_begin = self.here();
+        for (self.kidsFrom(node)) |kid| {
+            switch (kid.kind) {
+                .escape => {
+                    if (self.here().i != string_begin.i) {
+                        // End previous string section.
+                        try self.working.append(leafOfText(.string_end, string_begin_text));
+                        try self.nest(.string, string_begin);
+                    }
+                    try self.any(kid);
+                    string_begin = self.here();
+                },
+                else => {
+                    if (kid.kind == .leaf) {
+                        switch (kid.data.token.kind) {
+                            // All string begins are custom here.
+                            .string_begin_double, .string_begin_single => continue,
+                            else => {},
+                        }
+                    }
+                    if (self.here().i == string_begin.i) {
+                        // Start a new string section.
+                        try self.working.append(leafOf(string_begin_kind));
+                    }
+                    try self.any(kid);
+                },
+            }
+        }
+        // Any straggling string.
+        if (self.here().i != string_begin.i) {
+            try self.nest(.string, string_begin);
+        }
+        try self.nest(.call, begin);
+    }
 };
 
 const MapOp = fn (kind: lex.TokenKind) ?lex.TokenKind;
@@ -438,7 +501,11 @@ fn isLeafOf(node: parse.Node, kind: lex.TokenKind) bool {
 }
 
 fn leafOf(kind: lex.TokenKind) Node {
-    return .{ .kind = .leaf, .data = .{ .token = .{ .kind = kind, .text = intern.TextId.of(0) } } };
+    return leafOfText(kind, intern.TextId.of(0));
+}
+
+fn leafOfText(kind: lex.TokenKind, text: intern.TextId) Node {
+    return .{ .kind = .leaf, .data = .{ .token = .{ .kind = kind, .text = text } } };
 }
 
 fn mapAdd(kind: lex.TokenKind) ?lex.TokenKind {

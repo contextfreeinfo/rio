@@ -223,3 +223,8 @@ text =
   # Comment
   "Who I don't know what happens next, y'all
   ""
+
+# All of these are equivalent when normed.
+"hi \(there) yall"
+"hi ", there, " yall"
+_ "hi " there " yall"

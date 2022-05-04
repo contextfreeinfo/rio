@@ -1018,5 +1018,48 @@ NodeKind.block
     NodeKind.leaf: TokenKind.string_begin_double "
     NodeKind.leaf: TokenKind.string_end "
   /NodeKind.string
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text hi 
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+    NodeKind.escape
+      NodeKind.leaf: TokenKind.id there
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text  yall
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text hi 
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+    NodeKind.leaf: TokenKind.id there
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text  yall
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+  /NodeKind.call
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text hi 
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+    NodeKind.leaf: TokenKind.id there
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text  yall
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+  /NodeKind.call
 /NodeKind.block
-Normed size: 742
+Normed size: 776

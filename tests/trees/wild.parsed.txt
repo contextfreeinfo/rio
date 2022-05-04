@@ -3069,7 +3069,73 @@ NodeKind.block
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
+    NodeKind.leaf: TokenKind.vspace 
+
+    NodeKind.leaf: TokenKind.comment # All of these are equivalent when normed.
+    NodeKind.leaf: TokenKind.vspace 
+
+  /NodeKind.space
+  NodeKind.string
+    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.string_text hi 
+    NodeKind.escape
+      NodeKind.leaf: TokenKind.escape_begin \(
+      NodeKind.block
+        NodeKind.leaf: TokenKind.id there
+      NodeKind.leaf: TokenKind.escape_end )
+    /NodeKind.escape
+    NodeKind.leaf: TokenKind.string_text  yall
+    NodeKind.leaf: TokenKind.string_end "
+  /NodeKind.string
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+  NodeKind.list
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text hi 
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+    NodeKind.leaf: TokenKind.op_comma ,
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.id there
+    NodeKind.leaf: TokenKind.op_comma ,
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text  yall
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+  /NodeKind.list
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text hi 
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.leaf: TokenKind.id there
+    NodeKind.space
+      NodeKind.leaf: TokenKind.hspace  
+    NodeKind.string
+      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.string_text  yall
+      NodeKind.leaf: TokenKind.string_end "
+    /NodeKind.string
+  /NodeKind.call
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
 /NodeKind.block
-Pool storage: 4096 646
-Parsed size: 2289
+Pool storage: 4096 698
+Parsed size: 2341
 Token size: 8 node size: 16 1
