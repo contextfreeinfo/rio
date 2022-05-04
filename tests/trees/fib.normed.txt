@@ -82,22 +82,22 @@ NodeKind.block
           NodeKind.leaf: TokenKind.key_case case
           NodeKind.fun
             NodeKind.fun_for
-              NodeKind.compare
+              NodeKind.call
+                NodeKind.leaf: TokenKind.key_le le
                 NodeKind.leaf: TokenKind.id n
-                NodeKind.leaf: TokenKind.op_le <=
                 NodeKind.leaf: TokenKind.int 0
-              /NodeKind.compare
+              /NodeKind.call
             /NodeKind.fun_for
             NodeKind.be
               NodeKind.leaf: TokenKind.int 0
           /NodeKind.fun
           NodeKind.fun
             NodeKind.fun_for
-              NodeKind.compare
+              NodeKind.call
+                NodeKind.leaf: TokenKind.key_eq eq
                 NodeKind.leaf: TokenKind.id n
-                NodeKind.leaf: TokenKind.op_eqeq ==
                 NodeKind.leaf: TokenKind.int 1
-              /NodeKind.compare
+              /NodeKind.call
             /NodeKind.fun_for
             NodeKind.be
               NodeKind.leaf: TokenKind.int 1

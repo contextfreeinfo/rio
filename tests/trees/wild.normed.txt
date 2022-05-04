@@ -888,14 +888,14 @@ NodeKind.block
       NodeKind.leaf: TokenKind.id filter
       NodeKind.leaf: TokenKind.id persons
       NodeKind.be
-        NodeKind.compare
+        NodeKind.call
+          NodeKind.leaf: TokenKind.key_ge ge
           NodeKind.call
             NodeKind.leaf: TokenKind.id age
             NodeKind.leaf: TokenKind.id it
           /NodeKind.call
-          NodeKind.leaf: TokenKind.op_ge >=
           NodeKind.leaf: TokenKind.int 18
-        /NodeKind.compare
+        /NodeKind.call
       /NodeKind.be
     /NodeKind.call
     NodeKind.be

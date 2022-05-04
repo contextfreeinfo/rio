@@ -28,9 +28,15 @@ pub const TokenKind = enum {
     key_do,
     key_else,
     key_end,
+    key_eq,
     key_for,
+    key_ge,
+    key_gt,
     key_include,
+    key_le,
+    key_lt,
     key_mul,
+    key_ne,
     key_of,
     key_or,
     key_struct,
@@ -52,6 +58,7 @@ pub const TokenKind = enum {
     op_le,
     op_lt,
     op_mul,
+    op_ne,
     op_question,
     op_spread,
     op_sub,
@@ -90,8 +97,8 @@ pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
         .comment, .escape, .frac, .int, .string_text => .content,
         .eof => .eof,
         .id => .id,
-        .key_add, .key_and, .key_as, .key_be, .key_blank, .key_case, .key_div, .key_do, .key_else, .key_end, .key_for, .key_include, .key_mul, .key_of, .key_or, .key_struct, .key_sub, .key_to, .key_try, .key_use, .key_with => .key,
-        .escape_begin, .escape_end, .op_add, .op_colon, .op_comma, .op_div, .op_dot, .op_eq, .op_eqeq, .op_eqto, .op_ge, .op_gt, .op_le, .op_lt, .op_mul, .op_question, .op_spread, .op_sub, .round_begin, .round_end, .string_begin_double, .string_begin_single, .string_end => .op,
+        .key_add, .key_and, .key_as, .key_be, .key_blank, .key_case, .key_div, .key_do, .key_else, .key_end, .key_eq, .key_for, .key_ge, .key_gt, .key_include, .key_le, .key_lt, .key_mul, .key_ne, .key_of, .key_or, .key_struct, .key_sub, .key_to, .key_try, .key_use, .key_with => .key,
+        .escape_begin, .escape_end, .op_add, .op_colon, .op_comma, .op_div, .op_dot, .op_eq, .op_eqeq, .op_eqto, .op_ge, .op_gt, .op_le, .op_lt, .op_mul, .op_ne, .op_question, .op_spread, .op_sub, .round_begin, .round_end, .string_begin_double, .string_begin_single, .string_end => .op,
         .other => .other,
         .hspace, .vspace => .space,
     };
@@ -120,9 +127,15 @@ pub fn tokenText(kind: TokenKind) []const u8 {
         .key_do => "do",
         .key_else => "else",
         .key_end => "end",
+        .key_eq => "eq",
         .key_for => "for",
+        .key_ge => "ge",
+        .key_gt => "gt",
         .key_include => "include",
+        .key_le => "le",
+        .key_lt => "lt",
         .key_mul => "mul",
+        .key_ne => "ne",
         .key_of => "of",
         .key_or => "or",
         .key_struct => "struct",
@@ -144,6 +157,7 @@ pub fn tokenText(kind: TokenKind) []const u8 {
         .op_le => "<=",
         .op_lt => "<",
         .op_mul => "*",
+        .op_ne => "!=",
         .op_question => "?",
         .op_spread => "..",
         .op_sub => "-",
@@ -255,6 +269,7 @@ pub fn Lexer(comptime Reader: type) type {
                 '.' => self.nextDot(),
                 ',' => self.nextSingle(.op_comma),
                 '?' => self.nextSingle(.op_question),
+                '!' => self.nextBang(),
                 '=' => self.nextEq(),
                 '<' => self.nextLt(),
                 '>' => self.nextGt(),
@@ -278,6 +293,15 @@ pub fn Lexer(comptime Reader: type) type {
                 end => self.nextStringEnd(),
                 else => self.nextStringText(end),
             };
+        }
+
+        fn nextBang(self: *Self) !TokenKind {
+            const result: TokenKind = switch ((try self.advance()) orelse return .other) {
+                '=' => .op_ne,
+                else => return .other,
+            };
+            _ = try self.advance();
+            return result;
         }
 
         fn nextComment(self: *Self) !TokenKind {

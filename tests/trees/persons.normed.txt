@@ -194,11 +194,11 @@ NodeKind.block
         NodeKind.call
           NodeKind.leaf: TokenKind.key_case case
           NodeKind.call
-            NodeKind.compare
+            NodeKind.call
+              NodeKind.leaf: TokenKind.key_le le
               NodeKind.leaf: TokenKind.id age
-              NodeKind.leaf: TokenKind.op_le <=
               NodeKind.leaf: TokenKind.int 11
-            /NodeKind.compare
+            /NodeKind.call
             NodeKind.be
               NodeKind.frac
                 NodeKind.leaf: TokenKind.int 6
@@ -208,11 +208,11 @@ NodeKind.block
             /NodeKind.be
           /NodeKind.call
           NodeKind.call
-            NodeKind.compare
+            NodeKind.call
+              NodeKind.leaf: TokenKind.key_ge ge
               NodeKind.leaf: TokenKind.id age
-              NodeKind.leaf: TokenKind.op_ge >=
               NodeKind.leaf: TokenKind.int 62
-            /NodeKind.compare
+            /NodeKind.call
             NodeKind.be
               NodeKind.frac
                 NodeKind.leaf: TokenKind.int 7
@@ -227,11 +227,11 @@ NodeKind.block
               NodeKind.block
                 NodeKind.call
                   NodeKind.leaf: TokenKind.id if
-                  NodeKind.compare
+                  NodeKind.call
+                    NodeKind.leaf: TokenKind.key_lt lt
                     NodeKind.leaf: TokenKind.id age
-                    NodeKind.leaf: TokenKind.op_lt <
                     NodeKind.leaf: TokenKind.int 18
-                  /NodeKind.compare
+                  /NodeKind.call
                   NodeKind.be
                     NodeKind.call
                       NodeKind.leaf: TokenKind.id trace

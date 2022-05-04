@@ -77,7 +77,7 @@ pub const Normer = struct {
             .call => try self.call(node),
             .colon => try self.infixCustomKind(node, .op_colon),
             .comment, .end, .space => try self.ignore(node),
-            .compare => try self.simple(node),
+            .compare => try self.infixMap(node, mapCompare),
             .def => try self.simple(node),
             .dot => try self.dot(node),
             .escape => try self.simple(node),
@@ -512,6 +512,18 @@ fn mapAdd(kind: lex.TokenKind) ?lex.TokenKind {
     return switch (kind) {
         .op_add => .key_add,
         .op_sub => .key_sub,
+        else => null,
+    };
+}
+
+fn mapCompare(kind: lex.TokenKind) ?lex.TokenKind {
+    return switch (kind) {
+        .op_eqeq => .key_eq,
+        .op_ge => .key_ge,
+        .op_gt => .key_gt,
+        .op_le => .key_le,
+        .op_lt => .key_lt,
+        .op_ne => .key_ne,
         else => null,
     };
 }
