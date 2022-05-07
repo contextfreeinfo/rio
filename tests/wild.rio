@@ -193,6 +193,7 @@ text = (cat
 )
 
 text = cat of
+  ) # Extra paren for fun.
   "I once met a fish from Chicago
   # Comment.
   "Who I don't know what happens next, y'all
@@ -228,3 +229,18 @@ text =
 "hi \(there) yall"
 "hi ", there, " yall"
 _ "hi " there " yall"
+
+less-than (for (a as int) (b as int)) = a < b
+less-than of
+  for (a as int) (b as int)
+end = a < b
+less-than of
+  for
+    a as int
+    b as int
+  end
+end = a < b
+
+hi
+
+) # Extra paren for fun.

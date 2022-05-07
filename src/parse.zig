@@ -270,6 +270,10 @@ pub fn Parser(comptime Reader: type) type {
                     .eof => break,
                     else => if (try check_end(self, check)) {
                         break;
+                    } else if (check == .round_end) {
+                        // Just eat this unexpected paren. Other blocks are stronger.
+                        try self.advance();
+                        try self.space();
                     },
                 }
                 try self.line(context);

@@ -1061,5 +1061,74 @@ NodeKind.block
       NodeKind.leaf: TokenKind.string_end "
     /NodeKind.string
   /NodeKind.call
+  NodeKind.assign
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id less-than
+      NodeKind.round
+        NodeKind.fun
+          NodeKind.fun_for
+            NodeKind.as
+              NodeKind.leaf: TokenKind.id a
+              NodeKind.leaf: TokenKind.id int
+            /NodeKind.as
+            NodeKind.as
+              NodeKind.leaf: TokenKind.id b
+              NodeKind.leaf: TokenKind.id int
+            /NodeKind.as
+          /NodeKind.fun_for
+        /NodeKind.fun
+      /NodeKind.round
+    /NodeKind.call
+    NodeKind.call
+      NodeKind.leaf: TokenKind.key_lt lt
+      NodeKind.leaf: TokenKind.id a
+      NodeKind.leaf: TokenKind.id b
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id less-than
+      NodeKind.fun
+        NodeKind.fun_for
+          NodeKind.as
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.id int
+          /NodeKind.as
+          NodeKind.as
+            NodeKind.leaf: TokenKind.id b
+            NodeKind.leaf: TokenKind.id int
+          /NodeKind.as
+        /NodeKind.fun_for
+      /NodeKind.fun
+    /NodeKind.call
+    NodeKind.call
+      NodeKind.leaf: TokenKind.key_lt lt
+      NodeKind.leaf: TokenKind.id a
+      NodeKind.leaf: TokenKind.id b
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.assign
+    NodeKind.call
+      NodeKind.leaf: TokenKind.id less-than
+      NodeKind.fun
+        NodeKind.fun_for
+          NodeKind.as
+            NodeKind.leaf: TokenKind.id a
+            NodeKind.leaf: TokenKind.id int
+          /NodeKind.as
+          NodeKind.as
+            NodeKind.leaf: TokenKind.id b
+            NodeKind.leaf: TokenKind.id int
+          /NodeKind.as
+        /NodeKind.fun_for
+      /NodeKind.fun
+    /NodeKind.call
+    NodeKind.call
+      NodeKind.leaf: TokenKind.key_lt lt
+      NodeKind.leaf: TokenKind.id a
+      NodeKind.leaf: TokenKind.id b
+    /NodeKind.call
+  /NodeKind.assign
+  NodeKind.leaf: TokenKind.id hi
 /NodeKind.block
-Normed size: 776
+Normed size: 823
