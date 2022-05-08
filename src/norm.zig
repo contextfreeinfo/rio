@@ -57,6 +57,8 @@ pub const Normer = struct {
     }
 
     pub fn build(self: *Self, parsed: parse.Tree) !Tree {
+        self.nodes.clearRetainingCapacity();
+        self.working.clearRetainingCapacity();
         self.parsed = parsed;
         try self.any(parsed.root());
         // This one doesn't ever appear but should push down the block if any.

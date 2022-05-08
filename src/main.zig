@@ -22,10 +22,51 @@ pub fn main() !void {
     try dumpTree(allocator, name, out, out);
 }
 
-pub const Scripter = struct {
+pub const Script = struct {
+    allocator: Allocator,
     normed: norm.Tree,
     parsed: parse.Tree,
+
+    const Self = @This();
+
+    pub fn deinit(self: *Self) void {
+        self.normed.deinit(self.allocator);
+        self.parsed.deinit(self.allocator);
+    }
 };
+
+pub fn Worker(comptime Reader: type) type {
+    return struct {
+        allocator: Allocator,
+        normer: norm.Normer,
+        parser: parse.Parser(Reader),
+
+        const Self = @This();
+
+        pub fn init(allocator: Allocator, pool: *intern.Pool) !Self {
+            return Self{
+                .allocator = allocator,
+                .normer = try norm.Normer.init(allocator),
+                .parser = try parse.Parser(Reader).init(allocator, pool),
+            };
+        }
+
+        pub fn deinit(self: *Self) void {
+            self.normer.deinit();
+            self.parser.deinit();
+        }
+
+        pub fn process(self: *Self, reader: Reader) !Script {
+            const parsed = try self.parser.parse(reader);
+            const normed = try self.normer.build(parsed);
+            return Script{ .allocator = self.allocator, .normed = normed, .parsed = parsed };
+        }
+    };
+}
+
+const FileBufferedReader = std.io.BufferedReader(4096, std.fs.File.Reader);
+const FileReader = std.io.Reader(*FileBufferedReader, std.fs.File.Reader.Error, FileBufferedReader.read);
+const FileWorker = Worker(FileReader);
 
 fn dumpTree(allocator: Allocator, name: String, parsed_out: anytype, normed_out: anytype) !void {
     const file = try std.fs.cwd().openFile(name, .{});
@@ -59,8 +100,10 @@ fn createFile(allocator: Allocator, comptime template: []const u8, name: []const
 
 test "dump trees" {
     const allocator = std.heap.page_allocator;
-    var node = norm.Node{ .kind = norm.NodeKind.call, .data = .{ .kids = norm.NodeSlice.of(norm.NodeId.of(0), 0) } };
-    _ = node;
+    var pool = try intern.Pool.init(allocator);
+    defer pool.deinit();
+    var worker = try FileWorker.init(allocator, &pool);
+    defer worker.deinit();
     // TODO Walk up tree to project root?
     // TODO List dir?
     const names = [_][]const u8{ "boolerr", "fib", "hello", "persons", "wild" };
@@ -81,5 +124,13 @@ test "dump trees" {
         try normed_buf.flush();
         // TODO Assert no changes in git?
         // try std.testing.expectEqual(10, 3 + 7);
+        // And process again through common worker.
+        const file = try std.fs.cwd().openFile(in_name, .{});
+        defer file.close();
+        var reader = std.io.bufferedReader(file.reader()).reader();
+        var script = try worker.process(reader);
+        defer script.deinit();
+        // Track as we go.
+        std.debug.print("Worker pool storage: {} {}\n", .{ pool.text.capacity, pool.text.items.len });
     }
 }
