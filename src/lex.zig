@@ -233,8 +233,8 @@ pub fn Lexer(comptime Reader: type) type {
 
         pub fn start(self: *Self, reader: Reader) void {
             self.reader = reader;
-            self.stack.items.len = 0;
-            self.text.items.len = 0;
+            self.stack.clearRetainingCapacity();
+            self.text.clearRetainingCapacity();
             self.unread = null;
         }
 

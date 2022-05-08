@@ -184,6 +184,7 @@ pub fn Parser(comptime Reader: type) type {
         pub fn parse(self: *Self, reader: Reader) !Tree {
             self.lexer.start(reader);
             self.nodes.clearRetainingCapacity();
+            self.unread = null;
             self.working.clearRetainingCapacity();
             var bonus = false;
             while (true) {

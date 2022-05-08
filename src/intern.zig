@@ -56,7 +56,7 @@ pub const Pool = struct {
         const index = TextId.of(self.begins.items.len);
         var result = try self.indices.getOrPut(index);
         if (!result.found_existing) {
-            // std.debug.print("New\n", .{});
+            // std.debug.print("New {}\n", .{self.text.items.len});
             // New, so store the new index.
             const begin = TextIndex.of(self.text.items.len);
             try self.text.appendSlice(text);
