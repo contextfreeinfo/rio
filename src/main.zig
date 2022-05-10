@@ -31,6 +31,8 @@ pub const Script = struct {
     allocator: Allocator,
     normed: norm.Tree,
     parsed: parse.Tree,
+    // TODO Who owns the path?
+    path: []const u8,
 
     const Self = @This();
 
@@ -43,6 +45,10 @@ pub const Script = struct {
 pub fn Worker(comptime Reader: type) type {
     return struct {
         allocator: Allocator,
+        // TODO Makes queues of jobs with stage per work job item. Allows pipelining.
+        // TODO For each stage, one processor per core. Memory waste?
+        // TODO Fine-grained lock on interns during io might be ok?
+        // TODO Or do full io then single lexer that owns interns most of the time?
         normer: norm.Normer,
         parser: parse.Parser(Reader),
         pool: *intern.Pool,
@@ -64,13 +70,16 @@ pub fn Worker(comptime Reader: type) type {
         }
 
         pub fn process(self: *Self, reader: Reader) !Script {
+            // TODO Write lock interns during parse or at finer grain?
             const parsed = try self.parser.parse(reader);
+            // Most stages shouldn't ever need even read lock on interns.
             const normed = try self.normer.build(parsed);
-            return Script{ .allocator = self.allocator, .normed = normed, .parsed = parsed };
+            return Script{ .allocator = self.allocator, .normed = normed, .parsed = parsed, .path = "" };
         }
     };
 }
 
+// TODO Virtual file system.
 const FileBufferedReader = std.io.BufferedReader(4096, std.fs.File.Reader);
 const FileReader = std.io.Reader(*FileBufferedReader, std.fs.File.Reader.Error, FileBufferedReader.read);
 const FileWorker = Worker(FileReader);
