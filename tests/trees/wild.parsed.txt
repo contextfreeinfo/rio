@@ -4,9 +4,9 @@ NodeKind.block
     NodeKind.space
       NodeKind.leaf: TokenKind.hspace  
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text **
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
   /NodeKind.call
   NodeKind.space
@@ -568,9 +568,9 @@ NodeKind.block
               NodeKind.space
                 NodeKind.leaf: TokenKind.hspace  
               NodeKind.string
-                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.quote_double "
                 NodeKind.leaf: TokenKind.string_text hello
-                NodeKind.leaf: TokenKind.string_end "
+                NodeKind.leaf: TokenKind.quote_double "
               /NodeKind.string
             /NodeKind.call
           /NodeKind.block
@@ -613,9 +613,9 @@ NodeKind.block
               NodeKind.space
                 NodeKind.leaf: TokenKind.hspace  
               NodeKind.string
-                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.quote_double "
                 NodeKind.leaf: TokenKind.string_text hi
-                NodeKind.leaf: TokenKind.string_end "
+                NodeKind.leaf: TokenKind.quote_double "
               /NodeKind.string
               NodeKind.space
                 NodeKind.leaf: TokenKind.hspace  
@@ -742,9 +742,9 @@ NodeKind.block
               NodeKind.space
                 NodeKind.leaf: TokenKind.hspace  
               NodeKind.string
-                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.quote_double "
                 NodeKind.leaf: TokenKind.string_text hi
-                NodeKind.leaf: TokenKind.string_end "
+                NodeKind.leaf: TokenKind.quote_double "
               /NodeKind.string
             /NodeKind.call
             NodeKind.space
@@ -1580,9 +1580,9 @@ NodeKind.block
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text hi
-        NodeKind.leaf: TokenKind.string_end "
+        NodeKind.leaf: TokenKind.quote_double "
       /NodeKind.string
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
@@ -1621,9 +1621,9 @@ NodeKind.block
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text hi
-        NodeKind.leaf: TokenKind.string_end "
+        NodeKind.leaf: TokenKind.quote_double "
       /NodeKind.string
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
@@ -2799,7 +2799,7 @@ NodeKind.block
           NodeKind.leaf: TokenKind.hspace   
         /NodeKind.space
         NodeKind.string
-          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.quote_double "
           NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
         /NodeKind.string
         NodeKind.space
@@ -2812,9 +2812,9 @@ NodeKind.block
           NodeKind.leaf: TokenKind.hspace   
         /NodeKind.space
         NodeKind.string
-          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.quote_double "
           NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
-          NodeKind.leaf: TokenKind.string_end "
+          NodeKind.leaf: TokenKind.quote_double "
         /NodeKind.string
         NodeKind.space
           NodeKind.leaf: TokenKind.hspace  
@@ -2861,7 +2861,7 @@ NodeKind.block
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
           NodeKind.string
-            NodeKind.leaf: TokenKind.string_begin_double "
+            NodeKind.leaf: TokenKind.quote_double "
             NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
           /NodeKind.string
           NodeKind.space
@@ -2874,7 +2874,7 @@ NodeKind.block
             NodeKind.leaf: TokenKind.hspace   
           /NodeKind.space
           NodeKind.string
-            NodeKind.leaf: TokenKind.string_begin_double "
+            NodeKind.leaf: TokenKind.quote_double "
             NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
           /NodeKind.string
           NodeKind.space
@@ -2913,7 +2913,7 @@ NodeKind.block
           NodeKind.leaf: TokenKind.hspace   
         /NodeKind.space
         NodeKind.string
-          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.quote_double "
           NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
         /NodeKind.string
         NodeKind.space
@@ -2926,7 +2926,7 @@ NodeKind.block
           NodeKind.leaf: TokenKind.hspace   
         /NodeKind.space
         NodeKind.string
-          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.quote_double "
           NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
         /NodeKind.string
         NodeKind.space
@@ -2963,7 +2963,7 @@ NodeKind.block
           NodeKind.leaf: TokenKind.hspace   
         /NodeKind.space
         NodeKind.string
-          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.quote_double "
           NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
         /NodeKind.string
         NodeKind.space
@@ -2976,7 +2976,7 @@ NodeKind.block
           NodeKind.leaf: TokenKind.hspace   
         /NodeKind.space
         NodeKind.string
-          NodeKind.leaf: TokenKind.string_begin_double "
+          NodeKind.leaf: TokenKind.quote_double "
           NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
         /NodeKind.string
         NodeKind.space
@@ -3009,7 +3009,7 @@ NodeKind.block
       NodeKind.leaf: TokenKind.hspace   
     /NodeKind.space
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
     /NodeKind.string
   /NodeKind.assign
@@ -3023,9 +3023,9 @@ NodeKind.block
     NodeKind.leaf: TokenKind.hspace   
   /NodeKind.space
   NodeKind.string
-    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.quote_double "
     NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
-    NodeKind.leaf: TokenKind.string_end "
+    NodeKind.leaf: TokenKind.quote_double "
   /NodeKind.string
   NodeKind.space
     NodeKind.leaf: TokenKind.hspace  
@@ -3048,7 +3048,7 @@ NodeKind.block
       NodeKind.leaf: TokenKind.hspace   
     /NodeKind.space
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
     /NodeKind.string
   /NodeKind.assign
@@ -3062,7 +3062,7 @@ NodeKind.block
     NodeKind.leaf: TokenKind.hspace   
   /NodeKind.space
   NodeKind.string
-    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.quote_double "
     NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
   /NodeKind.string
   NodeKind.space
@@ -3071,8 +3071,8 @@ NodeKind.block
     NodeKind.leaf: TokenKind.hspace   
   /NodeKind.space
   NodeKind.string
-    NodeKind.leaf: TokenKind.string_begin_double "
-    NodeKind.leaf: TokenKind.string_end "
+    NodeKind.leaf: TokenKind.quote_double "
+    NodeKind.leaf: TokenKind.quote_double "
   /NodeKind.string
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
@@ -3084,7 +3084,7 @@ NodeKind.block
 
   /NodeKind.space
   NodeKind.string
-    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.quote_double "
     NodeKind.leaf: TokenKind.string_text hi 
     NodeKind.escape
       NodeKind.leaf: TokenKind.escape_begin \(
@@ -3093,16 +3093,16 @@ NodeKind.block
       NodeKind.leaf: TokenKind.escape_end )
     /NodeKind.escape
     NodeKind.leaf: TokenKind.string_text  yall
-    NodeKind.leaf: TokenKind.string_end "
+    NodeKind.leaf: TokenKind.quote_double "
   /NodeKind.string
   NodeKind.space
     NodeKind.leaf: TokenKind.vspace 
 
   NodeKind.list
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text hi 
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
     NodeKind.leaf: TokenKind.op_comma ,
     NodeKind.space
@@ -3112,9 +3112,9 @@ NodeKind.block
     NodeKind.space
       NodeKind.leaf: TokenKind.hspace  
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text  yall
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
   /NodeKind.list
   NodeKind.space
@@ -3125,9 +3125,9 @@ NodeKind.block
     NodeKind.space
       NodeKind.leaf: TokenKind.hspace  
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text hi 
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
     NodeKind.space
       NodeKind.leaf: TokenKind.hspace  
@@ -3135,9 +3135,9 @@ NodeKind.block
     NodeKind.space
       NodeKind.leaf: TokenKind.hspace  
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text  yall
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
   /NodeKind.call
   NodeKind.space

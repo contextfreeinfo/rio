@@ -253,7 +253,7 @@ pub fn Parser(comptime Reader: type) type {
                 .key_of => try self.blocker(context, context.withFun(false), .of, checkBlockEnd),
                 .op_sub => try self.sign(context),
                 .round_begin => try self.round(context),
-                .string_begin_single, .string_begin_double => try self.string(context),
+                .quote_single, .quote_double => try self.string(context),
                 else => try self.advance(),
             }
         }
@@ -632,7 +632,7 @@ pub fn Parser(comptime Reader: type) type {
             var done = false;
             while (true) {
                 switch ((try self.peek()).kind) {
-                    .eof, .string_end => break,
+                    .eof, .quote_double, .quote_single => break,
                     .escape_begin => try self.escape(context),
                     .vspace => {
                         done = true;

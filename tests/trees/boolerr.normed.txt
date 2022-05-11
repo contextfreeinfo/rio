@@ -74,9 +74,9 @@ NodeKind.block
             NodeKind.leaf: TokenKind.id has
             NodeKind.leaf: TokenKind.id url
             NodeKind.string
-              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.quote_double "
               NodeKind.leaf: TokenKind.string_text fail
-              NodeKind.leaf: TokenKind.string_end "
+              NodeKind.leaf: TokenKind.quote_double "
             /NodeKind.string
             NodeKind.be
               NodeKind.call
@@ -86,16 +86,12 @@ NodeKind.block
                   NodeKind.call
                     NodeKind.leaf: TokenKind.key_blank _
                     NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
+                      NodeKind.leaf: TokenKind.quote_double "
                       NodeKind.leaf: TokenKind.string_text Bad read of 
-                      NodeKind.leaf: TokenKind.string_end "
+                      NodeKind.leaf: TokenKind.quote_double "
                     /NodeKind.string
                     NodeKind.escape
                       NodeKind.leaf: TokenKind.id url
-                    NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
-                      NodeKind.leaf: TokenKind.string_end "
-                    /NodeKind.string
                   /NodeKind.call
                 /NodeKind.call
               /NodeKind.call
@@ -112,9 +108,9 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.id has
                     NodeKind.leaf: TokenKind.id url
                     NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
+                      NodeKind.leaf: TokenKind.quote_double "
                       NodeKind.leaf: TokenKind.string_text head-missing
-                      NodeKind.leaf: TokenKind.string_end "
+                      NodeKind.leaf: TokenKind.quote_double "
                     /NodeKind.string
                     NodeKind.be
                       NodeKind.call
@@ -127,9 +123,9 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.id has
                     NodeKind.leaf: TokenKind.id url
                     NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
+                      NodeKind.leaf: TokenKind.quote_double "
                       NodeKind.leaf: TokenKind.string_text title-missing
-                      NodeKind.leaf: TokenKind.string_end "
+                      NodeKind.leaf: TokenKind.quote_double "
                     /NodeKind.string
                     NodeKind.be
                       NodeKind.call
@@ -148,9 +144,9 @@ NodeKind.block
                     NodeKind.leaf: TokenKind.id has
                     NodeKind.leaf: TokenKind.id url
                     NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
+                      NodeKind.leaf: TokenKind.quote_double "
                       NodeKind.leaf: TokenKind.string_text title-empty
-                      NodeKind.leaf: TokenKind.string_end "
+                      NodeKind.leaf: TokenKind.quote_double "
                     /NodeKind.string
                     NodeKind.be
                       NodeKind.call
@@ -162,8 +158,8 @@ NodeKind.block
                             NodeKind.colon
                               NodeKind.leaf: TokenKind.id title
                               NodeKind.string
-                                NodeKind.leaf: TokenKind.string_begin_double "
-                                NodeKind.leaf: TokenKind.string_end "
+                                NodeKind.leaf: TokenKind.quote_double "
+                                NodeKind.leaf: TokenKind.quote_double "
                               /NodeKind.string
                             /NodeKind.colon
                           /NodeKind.call
@@ -187,16 +183,12 @@ NodeKind.block
                                 NodeKind.call
                                   NodeKind.leaf: TokenKind.key_blank _
                                   NodeKind.string
-                                    NodeKind.leaf: TokenKind.string_begin_double "
+                                    NodeKind.leaf: TokenKind.quote_double "
                                     NodeKind.leaf: TokenKind.string_text Title of 
-                                    NodeKind.leaf: TokenKind.string_end "
+                                    NodeKind.leaf: TokenKind.quote_double "
                                   /NodeKind.string
                                   NodeKind.escape
                                     NodeKind.leaf: TokenKind.id url
-                                  NodeKind.string
-                                    NodeKind.leaf: TokenKind.string_begin_double "
-                                    NodeKind.leaf: TokenKind.string_end "
-                                  /NodeKind.string
                                 /NodeKind.call
                               /NodeKind.call
                             /NodeKind.colon
@@ -354,29 +346,29 @@ NodeKind.block
             NodeKind.call
               NodeKind.leaf: TokenKind.id list
               NodeKind.string
-                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.quote_double "
                 NodeKind.leaf: TokenKind.string_text good
-                NodeKind.leaf: TokenKind.string_end "
+                NodeKind.leaf: TokenKind.quote_double "
               /NodeKind.string
               NodeKind.string
-                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.quote_double "
                 NodeKind.leaf: TokenKind.string_text title-empty
-                NodeKind.leaf: TokenKind.string_end "
+                NodeKind.leaf: TokenKind.quote_double "
               /NodeKind.string
               NodeKind.string
-                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.quote_double "
                 NodeKind.leaf: TokenKind.string_text title-missing
-                NodeKind.leaf: TokenKind.string_end "
+                NodeKind.leaf: TokenKind.quote_double "
               /NodeKind.string
               NodeKind.string
-                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.quote_double "
                 NodeKind.leaf: TokenKind.string_text head-missing
-                NodeKind.leaf: TokenKind.string_end "
+                NodeKind.leaf: TokenKind.quote_double "
               /NodeKind.string
               NodeKind.string
-                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.quote_double "
                 NodeKind.leaf: TokenKind.string_text fail
-                NodeKind.leaf: TokenKind.string_end "
+                NodeKind.leaf: TokenKind.quote_double "
               /NodeKind.string
             /NodeKind.call
           /NodeKind.assign
@@ -408,16 +400,16 @@ NodeKind.block
                       NodeKind.call
                         NodeKind.leaf: TokenKind.key_blank _
                         NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_single '
+                          NodeKind.leaf: TokenKind.quote_single '
                           NodeKind.leaf: TokenKind.string_text Checking "https://
-                          NodeKind.leaf: TokenKind.string_end '
+                          NodeKind.leaf: TokenKind.quote_single '
                         /NodeKind.string
                         NodeKind.escape
                           NodeKind.leaf: TokenKind.id url
                         NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_single '
+                          NodeKind.leaf: TokenKind.quote_single '
                           NodeKind.leaf: TokenKind.string_text /":
-                          NodeKind.leaf: TokenKind.string_end '
+                          NodeKind.leaf: TokenKind.quote_single '
                         /NodeKind.string
                       /NodeKind.call
                     /NodeKind.call
@@ -435,16 +427,12 @@ NodeKind.block
                       NodeKind.call
                         NodeKind.leaf: TokenKind.key_blank _
                         NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_double "
+                          NodeKind.leaf: TokenKind.quote_double "
                           NodeKind.leaf: TokenKind.string_text   Summary: 
-                          NodeKind.leaf: TokenKind.string_end "
+                          NodeKind.leaf: TokenKind.quote_double "
                         /NodeKind.string
                         NodeKind.escape
                           NodeKind.leaf: TokenKind.id summary
-                        NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_double "
-                          NodeKind.leaf: TokenKind.string_end "
-                        /NodeKind.string
                       /NodeKind.call
                     /NodeKind.call
                   /NodeKind.question
@@ -454,9 +442,9 @@ NodeKind.block
                       NodeKind.call
                         NodeKind.leaf: TokenKind.key_blank _
                         NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_double "
+                          NodeKind.leaf: TokenKind.quote_double "
                           NodeKind.leaf: TokenKind.string_text   Title: 
-                          NodeKind.leaf: TokenKind.string_end "
+                          NodeKind.leaf: TokenKind.quote_double "
                         /NodeKind.string
                         NodeKind.escape
                           NodeKind.bool_or
@@ -466,15 +454,11 @@ NodeKind.block
                             /NodeKind.call
                             NodeKind.leaf: TokenKind.key_or or
                             NodeKind.string
-                              NodeKind.leaf: TokenKind.string_begin_double "
-                              NodeKind.leaf: TokenKind.string_end "
+                              NodeKind.leaf: TokenKind.quote_double "
+                              NodeKind.leaf: TokenKind.quote_double "
                             /NodeKind.string
                           /NodeKind.bool_or
                         /NodeKind.escape
-                        NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_double "
-                          NodeKind.leaf: TokenKind.string_end "
-                        /NodeKind.string
                       /NodeKind.call
                     /NodeKind.call
                   /NodeKind.question
@@ -491,31 +475,27 @@ NodeKind.block
                       NodeKind.call
                         NodeKind.leaf: TokenKind.key_blank _
                         NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_double "
+                          NodeKind.leaf: TokenKind.quote_double "
                           NodeKind.leaf: TokenKind.string_text   Has title: 
-                          NodeKind.leaf: TokenKind.string_end "
+                          NodeKind.leaf: TokenKind.quote_double "
                         /NodeKind.string
                         NodeKind.escape
                           NodeKind.leaf: TokenKind.id has-title
                         NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_double "
+                          NodeKind.leaf: TokenKind.quote_double "
                           NodeKind.leaf: TokenKind.string_text  vs 
-                          NodeKind.leaf: TokenKind.string_end "
+                          NodeKind.leaf: TokenKind.quote_double "
                         /NodeKind.string
                         NodeKind.escape
                           NodeKind.bool_or
                             NodeKind.leaf: TokenKind.id has-title
                             NodeKind.leaf: TokenKind.key_or or
                             NodeKind.string
-                              NodeKind.leaf: TokenKind.string_begin_double "
-                              NodeKind.leaf: TokenKind.string_end "
+                              NodeKind.leaf: TokenKind.quote_double "
+                              NodeKind.leaf: TokenKind.quote_double "
                             /NodeKind.string
                           /NodeKind.bool_or
                         /NodeKind.escape
-                        NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_double "
-                          NodeKind.leaf: TokenKind.string_end "
-                        /NodeKind.string
                       /NodeKind.call
                     /NodeKind.call
                   /NodeKind.question
@@ -528,4 +508,4 @@ NodeKind.block
     /NodeKind.fun
   /NodeKind.assign
 /NodeKind.block
-Normed size: 373
+Normed size: 358

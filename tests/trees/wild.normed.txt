@@ -2,9 +2,9 @@ NodeKind.block
   NodeKind.call
     NodeKind.leaf: TokenKind.key_include include
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text **
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
   /NodeKind.call
   NodeKind.assign
@@ -198,9 +198,9 @@ NodeKind.block
           NodeKind.call
             NodeKind.leaf: TokenKind.id doc
             NodeKind.string
-              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.quote_double "
               NodeKind.leaf: TokenKind.string_text hello
-              NodeKind.leaf: TokenKind.string_end "
+              NodeKind.leaf: TokenKind.quote_double "
             /NodeKind.string
           /NodeKind.call
         /NodeKind.fun_with
@@ -218,9 +218,9 @@ NodeKind.block
           NodeKind.call
             NodeKind.leaf: TokenKind.id doc
             NodeKind.string
-              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.quote_double "
               NodeKind.leaf: TokenKind.string_text hi
-              NodeKind.leaf: TokenKind.string_end "
+              NodeKind.leaf: TokenKind.quote_double "
             /NodeKind.string
           /NodeKind.call
         /NodeKind.fun_with
@@ -255,9 +255,9 @@ NodeKind.block
             NodeKind.call
               NodeKind.leaf: TokenKind.id doc
               NodeKind.string
-                NodeKind.leaf: TokenKind.string_begin_double "
+                NodeKind.leaf: TokenKind.quote_double "
                 NodeKind.leaf: TokenKind.string_text hi
-                NodeKind.leaf: TokenKind.string_end "
+                NodeKind.leaf: TokenKind.quote_double "
               /NodeKind.string
             /NodeKind.call
             NodeKind.call
@@ -579,9 +579,9 @@ NodeKind.block
       NodeKind.leaf: TokenKind.int 1
       NodeKind.leaf: TokenKind.int 2
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text hi
-        NodeKind.leaf: TokenKind.string_end "
+        NodeKind.leaf: TokenKind.quote_double "
       /NodeKind.string
       NodeKind.leaf: TokenKind.int 4
     /NodeKind.call
@@ -596,9 +596,9 @@ NodeKind.block
       NodeKind.leaf: TokenKind.int 1
       NodeKind.leaf: TokenKind.int 2
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text hi
-        NodeKind.leaf: TokenKind.string_end "
+        NodeKind.leaf: TokenKind.quote_double "
       /NodeKind.string
       NodeKind.leaf: TokenKind.int 4
     /NodeKind.call
@@ -943,13 +943,13 @@ NodeKind.block
     NodeKind.call
       NodeKind.leaf: TokenKind.id cat
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
       /NodeKind.string
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
-        NodeKind.leaf: TokenKind.string_end "
+        NodeKind.leaf: TokenKind.quote_double "
       /NodeKind.string
     /NodeKind.call
   /NodeKind.assign
@@ -958,11 +958,11 @@ NodeKind.block
     NodeKind.call
       NodeKind.leaf: TokenKind.id cat
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
       /NodeKind.string
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
       /NodeKind.string
     /NodeKind.call
@@ -971,11 +971,11 @@ NodeKind.block
     NodeKind.leaf: TokenKind.id text
     NodeKind.call
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
       /NodeKind.string
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
       /NodeKind.string
     /NodeKind.call
@@ -983,82 +983,82 @@ NodeKind.block
   NodeKind.assign
     NodeKind.leaf: TokenKind.id text
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
     /NodeKind.string
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
     /NodeKind.string
   /NodeKind.assign
   NodeKind.assign
     NodeKind.leaf: TokenKind.id text
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
     /NodeKind.string
   /NodeKind.assign
   NodeKind.string
-    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.quote_double "
     NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
-    NodeKind.leaf: TokenKind.string_end "
+    NodeKind.leaf: TokenKind.quote_double "
   /NodeKind.string
   NodeKind.assign
     NodeKind.leaf: TokenKind.id text
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text I once met a fish from Chicago
     /NodeKind.string
   /NodeKind.assign
   NodeKind.string
-    NodeKind.leaf: TokenKind.string_begin_double "
+    NodeKind.leaf: TokenKind.quote_double "
     NodeKind.leaf: TokenKind.string_text Who I don't know what happens next, y'all
   /NodeKind.string
   NodeKind.string
-    NodeKind.leaf: TokenKind.string_begin_double "
-    NodeKind.leaf: TokenKind.string_end "
+    NodeKind.leaf: TokenKind.quote_double "
+    NodeKind.leaf: TokenKind.quote_double "
   /NodeKind.string
   NodeKind.call
     NodeKind.leaf: TokenKind.key_blank _
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text hi 
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
     NodeKind.escape
       NodeKind.leaf: TokenKind.id there
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text  yall
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
   /NodeKind.call
   NodeKind.call
     NodeKind.leaf: TokenKind.key_blank _
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text hi 
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
     NodeKind.leaf: TokenKind.id there
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text  yall
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
   /NodeKind.call
   NodeKind.call
     NodeKind.leaf: TokenKind.key_blank _
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text hi 
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
     NodeKind.leaf: TokenKind.id there
     NodeKind.string
-      NodeKind.leaf: TokenKind.string_begin_double "
+      NodeKind.leaf: TokenKind.quote_double "
       NodeKind.leaf: TokenKind.string_text  yall
-      NodeKind.leaf: TokenKind.string_end "
+      NodeKind.leaf: TokenKind.quote_double "
     /NodeKind.string
   /NodeKind.call
   NodeKind.assign

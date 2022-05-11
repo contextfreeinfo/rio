@@ -4,9 +4,9 @@ NodeKind.block
     NodeKind.call
       NodeKind.leaf: TokenKind.key_use use
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text c
-        NodeKind.leaf: TokenKind.string_end "
+        NodeKind.leaf: TokenKind.quote_double "
       /NodeKind.string
     /NodeKind.call
   /NodeKind.assign
@@ -26,9 +26,9 @@ NodeKind.block
           NodeKind.assign
             NodeKind.leaf: TokenKind.id name
             NodeKind.string
-              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.quote_double "
               NodeKind.leaf: TokenKind.string_text Alice
-              NodeKind.leaf: TokenKind.string_end "
+              NodeKind.leaf: TokenKind.quote_double "
             /NodeKind.string
           /NodeKind.assign
           NodeKind.assign
@@ -38,9 +38,9 @@ NodeKind.block
           NodeKind.assign
             NodeKind.leaf: TokenKind.id other-name
             NodeKind.string
-              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.quote_double "
               NodeKind.leaf: TokenKind.string_text Bernie
-              NodeKind.leaf: TokenKind.string_end "
+              NodeKind.leaf: TokenKind.quote_double "
             /NodeKind.string
           /NodeKind.assign
           NodeKind.assign
@@ -74,9 +74,9 @@ NodeKind.block
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id name
                     NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
+                      NodeKind.leaf: TokenKind.quote_double "
                       NodeKind.leaf: TokenKind.string_text Clara
-                      NodeKind.leaf: TokenKind.string_end "
+                      NodeKind.leaf: TokenKind.quote_double "
                     /NodeKind.string
                   /NodeKind.colon
                   NodeKind.colon
@@ -89,9 +89,9 @@ NodeKind.block
                   NodeKind.colon
                     NodeKind.leaf: TokenKind.id name
                     NodeKind.string
-                      NodeKind.leaf: TokenKind.string_begin_double "
+                      NodeKind.leaf: TokenKind.quote_double "
                       NodeKind.leaf: TokenKind.string_text Darlene
-                      NodeKind.leaf: TokenKind.string_end "
+                      NodeKind.leaf: TokenKind.quote_double "
                     /NodeKind.string
                   /NodeKind.colon
                   NodeKind.colon
@@ -159,10 +159,10 @@ NodeKind.block
                 NodeKind.call
                   NodeKind.leaf: TokenKind.id printf
                   NodeKind.string
-                    NodeKind.leaf: TokenKind.string_begin_double "
+                    NodeKind.leaf: TokenKind.quote_double "
                     NodeKind.leaf: TokenKind.string_text %s pays $%.2f
                     NodeKind.leaf: TokenKind.escape \n
-                    NodeKind.leaf: TokenKind.string_end "
+                    NodeKind.leaf: TokenKind.quote_double "
                   /NodeKind.string
                   NodeKind.call
                     NodeKind.leaf: TokenKind.id name
@@ -238,16 +238,16 @@ NodeKind.block
                       NodeKind.call
                         NodeKind.leaf: TokenKind.key_blank _
                         NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_double "
+                          NodeKind.leaf: TokenKind.quote_double "
                           NodeKind.leaf: TokenKind.string_text You think age 
-                          NodeKind.leaf: TokenKind.string_end "
+                          NodeKind.leaf: TokenKind.quote_double "
                         /NodeKind.string
                         NodeKind.escape
                           NodeKind.leaf: TokenKind.id age
                         NodeKind.string
-                          NodeKind.leaf: TokenKind.string_begin_double "
+                          NodeKind.leaf: TokenKind.quote_double "
                           NodeKind.leaf: TokenKind.string_text  gets child prices here?
-                          NodeKind.leaf: TokenKind.string_end "
+                          NodeKind.leaf: TokenKind.quote_double "
                         /NodeKind.string
                       /NodeKind.call
                     /NodeKind.call

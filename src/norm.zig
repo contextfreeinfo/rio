@@ -435,8 +435,8 @@ pub const Normer = struct {
     fn string(self: *Self, node: parse.Node) !void {
         // See if we have an escape.
         var has_escape = false;
-        var string_begin_kind = lex.TokenKind.string_begin_double;
-        var string_begin_text = intern.TextId.of(0);
+        var quote_kind = lex.TokenKind.quote_double;
+        var quote_text = intern.TextId.of(0);
         for (self.kidsFrom(node)) |kid| {
             switch (kid.kind) {
                 .escape => {
@@ -445,9 +445,9 @@ pub const Normer = struct {
                     break;
                 },
                 .leaf => switch (kid.data.token.kind) {
-                    .string_begin_double, .string_begin_single => {
-                        string_begin_kind = kid.data.token.kind;
-                        string_begin_text = kid.data.token.text;
+                    .quote_double, .quote_single => {
+                        quote_kind = kid.data.token.kind;
+                        quote_text = kid.data.token.text;
                     },
                     else => {},
                 },
@@ -461,28 +461,26 @@ pub const Normer = struct {
         const begin = self.here();
         try self.working.append(leafOf(.key_blank));
         var string_begin = self.here();
-        for (self.kidsFrom(node)) |kid| {
+        // All string begins are custom here, so start at 1.
+        for (self.kidsFrom(node)[1..]) |kid| {
             switch (kid.kind) {
                 .escape => {
                     if (self.here().i != string_begin.i) {
                         // End previous string section.
-                        try self.working.append(leafOfText(.string_end, string_begin_text));
+                        try self.working.append(leafOfText(quote_kind, quote_text));
                         try self.nest(.string, string_begin);
                     }
                     try self.any(kid);
                     string_begin = self.here();
                 },
                 else => {
-                    if (kid.kind == .leaf) {
-                        switch (kid.data.token.kind) {
-                            // All string begins are custom here.
-                            .string_begin_double, .string_begin_single => continue,
-                            else => {},
-                        }
-                    }
                     if (self.here().i == string_begin.i) {
+                        if (kid.kind == .leaf and kid.data.token.kind == quote_kind) {
+                            // Except this is just the string end.
+                            break;
+                        }
                         // Start a new string section.
-                        try self.working.append(leafOf(string_begin_kind));
+                        try self.working.append(leafOfText(quote_kind, quote_text));
                     }
                     try self.any(kid);
                 },

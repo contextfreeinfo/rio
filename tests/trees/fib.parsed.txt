@@ -5,9 +5,9 @@ NodeKind.block
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text c
-        NodeKind.leaf: TokenKind.string_end "
+        NodeKind.leaf: TokenKind.quote_double "
       /NodeKind.string
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
@@ -118,10 +118,10 @@ NodeKind.block
                           NodeKind.space
                             NodeKind.leaf: TokenKind.hspace  
                           NodeKind.string
-                            NodeKind.leaf: TokenKind.string_begin_double "
+                            NodeKind.leaf: TokenKind.quote_double "
                             NodeKind.leaf: TokenKind.string_text fib(%d) = %d
                             NodeKind.leaf: TokenKind.escape \n
-                            NodeKind.leaf: TokenKind.string_end "
+                            NodeKind.leaf: TokenKind.quote_double "
                           /NodeKind.string
                           NodeKind.space
                             NodeKind.leaf: TokenKind.hspace  

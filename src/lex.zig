@@ -65,9 +65,8 @@ pub const TokenKind = enum {
     other,
     round_begin,
     round_end,
-    string_begin_double,
-    string_begin_single,
-    string_end,
+    quote_double,
+    quote_single,
     string_text,
     vspace,
 };
@@ -98,7 +97,7 @@ pub fn tokenKindCategory(kind: TokenKind) TokenCategory {
         .eof => .eof,
         .id => .id,
         .key_add, .key_and, .key_as, .key_be, .key_blank, .key_case, .key_div, .key_do, .key_else, .key_end, .key_eq, .key_for, .key_ge, .key_gt, .key_include, .key_le, .key_lt, .key_mul, .key_ne, .key_of, .key_or, .key_struct, .key_sub, .key_to, .key_try, .key_use, .key_with => .key,
-        .escape_begin, .escape_end, .op_add, .op_colon, .op_comma, .op_div, .op_dot, .op_eq, .op_eqeq, .op_eqto, .op_ge, .op_gt, .op_le, .op_lt, .op_mul, .op_ne, .op_question, .op_spread, .op_sub, .round_begin, .round_end, .string_begin_double, .string_begin_single, .string_end => .op,
+        .escape_begin, .escape_end, .op_add, .op_colon, .op_comma, .op_div, .op_dot, .op_eq, .op_eqeq, .op_eqto, .op_ge, .op_gt, .op_le, .op_lt, .op_mul, .op_ne, .op_question, .op_spread, .op_sub, .round_begin, .round_end, .quote_double, .quote_single => .op,
         .other => .other,
         .hspace, .vspace => .space,
     };
@@ -164,9 +163,8 @@ pub fn tokenText(kind: TokenKind) []const u8 {
         .other => "_",
         .round_begin => "(",
         .round_end => ")",
-        .string_begin_double => "\"",
-        .string_begin_single => "'",
-        .string_end => "[\"']",
+        .quote_double => "\"",
+        .quote_single => "'",
         .string_text => "...",
         .vspace => "\n",
     };
@@ -242,8 +240,8 @@ pub fn Lexer(comptime Reader: type) type {
             self.text.clearRetainingCapacity();
             const mode = last(TokenKind, self.stack.items) orelse .round_begin;
             const kind = switch (mode) {
-                .string_begin_double => self.modeNextString('"'),
-                .string_begin_single => self.modeNextString('\''),
+                .quote_double => self.modeNextString('"'),
+                .quote_single => self.modeNextString('\''),
                 else => self.modeNextCode(),
             } catch |err| switch (err) {
                 error.EndOfStream => return Token{ .kind = .eof, .text = TextId.of(0) },
@@ -280,8 +278,8 @@ pub fn Lexer(comptime Reader: type) type {
                 '#' => self.nextComment(),
                 ' ', '\t' => self.nextHspace(),
                 '\r', '\n' => self.nextVspace(),
-                '"' => self.nextStringBegin(.string_begin_double),
-                '\'' => self.nextStringBegin(.string_begin_single),
+                '"' => self.nextStringBegin(.quote_double),
+                '\'' => self.nextStringBegin(.quote_single),
                 else => self.nextSingle(.other),
             };
         }
@@ -290,7 +288,7 @@ pub fn Lexer(comptime Reader: type) type {
             return switch (try self.peekByte()) {
                 '\\' => self.nextEscape(),
                 '\r', '\n' => self.nextStringEndEmpty(),
-                end => self.nextStringEnd(),
+                end => self.nextStringEnd(end),
                 else => self.nextStringText(end),
             };
         }
@@ -414,7 +412,7 @@ pub fn Lexer(comptime Reader: type) type {
                     self.stack.items.len -= 1;
                     if (last(TokenKind, self.stack.items)) |old| {
                         switch (old) {
-                            .string_begin_double, .string_begin_single => return .escape_end,
+                            .quote_double, .quote_single => return .escape_end,
                             else => {},
                         }
                     }
@@ -434,10 +432,14 @@ pub fn Lexer(comptime Reader: type) type {
             return mode;
         }
 
-        fn nextStringEnd(self: *Self) !TokenKind {
+        fn nextStringEnd(self: *Self, comptime end: u8) !TokenKind {
             _ = try self.advance();
             self.stack.items.len -= 1;
-            return .string_end;
+            return switch (end) {
+                '"' => .quote_double,
+                '\'' => .quote_single,
+                else => unreachable,
+            };
         }
 
         fn nextStringEndEmpty(self: *Self) !TokenKind {

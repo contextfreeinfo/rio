@@ -5,9 +5,9 @@ NodeKind.block
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
       NodeKind.string
-        NodeKind.leaf: TokenKind.string_begin_double "
+        NodeKind.leaf: TokenKind.quote_double "
         NodeKind.leaf: TokenKind.string_text c
-        NodeKind.leaf: TokenKind.string_end "
+        NodeKind.leaf: TokenKind.quote_double "
       /NodeKind.string
       NodeKind.space
         NodeKind.leaf: TokenKind.hspace  
@@ -77,9 +77,9 @@ NodeKind.block
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
             NodeKind.string
-              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.quote_double "
               NodeKind.leaf: TokenKind.string_text Alice
-              NodeKind.leaf: TokenKind.string_end "
+              NodeKind.leaf: TokenKind.quote_double "
             /NodeKind.string
           /NodeKind.assign
           NodeKind.space
@@ -109,9 +109,9 @@ NodeKind.block
             NodeKind.space
               NodeKind.leaf: TokenKind.hspace  
             NodeKind.string
-              NodeKind.leaf: TokenKind.string_begin_double "
+              NodeKind.leaf: TokenKind.quote_double "
               NodeKind.leaf: TokenKind.string_text Bernie
-              NodeKind.leaf: TokenKind.string_end "
+              NodeKind.leaf: TokenKind.quote_double "
             /NodeKind.string
           /NodeKind.assign
           NodeKind.space
@@ -220,9 +220,9 @@ NodeKind.block
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
                             NodeKind.string
-                              NodeKind.leaf: TokenKind.string_begin_double "
+                              NodeKind.leaf: TokenKind.quote_double "
                               NodeKind.leaf: TokenKind.string_text Clara
-                              NodeKind.leaf: TokenKind.string_end "
+                              NodeKind.leaf: TokenKind.quote_double "
                             /NodeKind.string
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
@@ -250,9 +250,9 @@ NodeKind.block
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
                             NodeKind.string
-                              NodeKind.leaf: TokenKind.string_begin_double "
+                              NodeKind.leaf: TokenKind.quote_double "
                               NodeKind.leaf: TokenKind.string_text Darlene
-                              NodeKind.leaf: TokenKind.string_end "
+                              NodeKind.leaf: TokenKind.quote_double "
                             /NodeKind.string
                             NodeKind.space
                               NodeKind.leaf: TokenKind.hspace  
@@ -502,10 +502,10 @@ NodeKind.block
                           NodeKind.space
                             NodeKind.leaf: TokenKind.hspace  
                           NodeKind.string
-                            NodeKind.leaf: TokenKind.string_begin_double "
+                            NodeKind.leaf: TokenKind.quote_double "
                             NodeKind.leaf: TokenKind.string_text %s pays $%.2f
                             NodeKind.leaf: TokenKind.escape \n
-                            NodeKind.leaf: TokenKind.string_end "
+                            NodeKind.leaf: TokenKind.quote_double "
                           /NodeKind.string
                           NodeKind.space
                             NodeKind.leaf: TokenKind.hspace  
@@ -701,7 +701,7 @@ NodeKind.block
                               NodeKind.space
                                 NodeKind.leaf: TokenKind.hspace  
                               NodeKind.string
-                                NodeKind.leaf: TokenKind.string_begin_double "
+                                NodeKind.leaf: TokenKind.quote_double "
                                 NodeKind.leaf: TokenKind.string_text You think age 
                                 NodeKind.escape
                                   NodeKind.leaf: TokenKind.escape_begin \(
@@ -710,7 +710,7 @@ NodeKind.block
                                   NodeKind.leaf: TokenKind.escape_end )
                                 /NodeKind.escape
                                 NodeKind.leaf: TokenKind.string_text  gets child prices here?
-                                NodeKind.leaf: TokenKind.string_end "
+                                NodeKind.leaf: TokenKind.quote_double "
                               /NodeKind.string
                             /NodeKind.call
                             NodeKind.space
