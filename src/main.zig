@@ -80,9 +80,15 @@ pub fn Worker(comptime Reader: type) type {
 }
 
 // TODO Virtual file system.
+// TODO Function-pointer-based buffer filler has got to be fast enough, right?
 const FileBufferedReader = std.io.BufferedReader(4096, std.fs.File.Reader);
 const FileReader = std.io.Reader(*FileBufferedReader, std.fs.File.Reader.Error, FileBufferedReader.read);
 const FileWorker = Worker(FileReader);
+
+// TODO Remove this once we abstract more. Or keep it? Focus on slice reading?
+const SliceStream = @TypeOf(std.io.fixedBufferStream(""));
+const SliceReader = std.io.Reader(*SliceStream, SliceStream.ReadError, SliceStream.read);
+const SliceWorker = Worker(SliceReader);
 
 fn dumpTree(worker: *FileWorker, name: String, parsed_out: anytype, normed_out: anytype) !void {
     const old_pool_storage = worker.pool.text.items.len;
@@ -135,4 +141,27 @@ test "dump trees" {
         // TODO Assert no changes in git?
         // try std.testing.expectEqual(10, 3 + 7);
     }
+}
+
+test "parse speed" {
+    const allocator = std.heap.page_allocator;
+    const text = @embedFile("../tests/boolerr.rio");
+    var buffer = std.ArrayList(u8).init(allocator);
+    defer buffer.deinit();
+    var n = @as(usize, 0);
+    const scale = try std.fmt.parseInt(usize, std.os.getenv("RIO_TEST_SCALE") orelse "1", 10);
+    while (n < scale) : (n += 1) {
+        try buffer.appendSlice(text);
+    }
+    // TODO Print stats to report file.
+    // std.debug.print("Size: {}\n", .{buffer.items.len});
+    var reader: SliceReader = std.io.fixedBufferStream(@as([]const u8, buffer.items)).reader();
+    // Process it.
+    // TODO Engine should include pool.
+    var pool = try intern.Pool.init(allocator);
+    defer pool.deinit();
+    var worker = try SliceWorker.init(allocator, &pool);
+    defer worker.deinit();
+    var script = try worker.process(reader);
+    defer script.deinit();
 }

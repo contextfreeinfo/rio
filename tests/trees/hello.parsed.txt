@@ -123,4 +123,4 @@ NodeKind.block
 /NodeKind.block
 Pool storage: 4096 128 (539 -> 667)
 Parsed size: 90
-Token size: 8 node size: 16 1
+Token size: 8 node size: 12 1
