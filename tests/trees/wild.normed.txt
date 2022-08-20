@@ -1130,5 +1130,25 @@ NodeKind.block
     /NodeKind.call
   /NodeKind.assign
   NodeKind.leaf: TokenKind.id hi
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
+    NodeKind.escape
+  NodeKind.call
+    NodeKind.leaf: TokenKind.key_blank _
+    NodeKind.escape
+    NodeKind.escape
+    NodeKind.string
+      NodeKind.leaf: TokenKind.quote_double "
+      NodeKind.leaf: TokenKind.string_text hi
+      NodeKind.leaf: TokenKind.quote_double "
+    /NodeKind.string
+    NodeKind.escape
+    NodeKind.escape
+    NodeKind.string
+      NodeKind.leaf: TokenKind.quote_double "
+      NodeKind.leaf: TokenKind.string_text there
+      NodeKind.leaf: TokenKind.quote_double "
+    /NodeKind.string
+  /NodeKind.call
 /NodeKind.block
-Normed size: 823
+Normed size: 840

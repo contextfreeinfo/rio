@@ -2,6 +2,7 @@ const intern = @import("./intern.zig");
 const lex = @import("./lex.zig");
 const norm = @import("./norm.zig");
 const parse = @import("./parse.zig");
+const resolve = @import("./resolve.zig");
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
@@ -52,6 +53,7 @@ pub fn Worker(comptime Reader: type) type {
         normer: norm.Normer,
         parser: parse.Parser(Reader),
         pool: *intern.Pool,
+        resolver: resolve.Resolver,
 
         const Self = @This();
 
@@ -60,6 +62,7 @@ pub fn Worker(comptime Reader: type) type {
                 .allocator = allocator,
                 .normer = try norm.Normer.init(allocator),
                 .parser = try parse.Parser(Reader).init(allocator, pool),
+                .resolver = try resolve.Resolver.init(allocator),
                 .pool = pool,
             };
         }
@@ -67,6 +70,7 @@ pub fn Worker(comptime Reader: type) type {
         pub fn deinit(self: *Self) void {
             self.normer.deinit();
             self.parser.deinit();
+            self.resolver.deinit();
         }
 
         pub fn process(self: *Self, reader: Reader) !Script {
@@ -74,6 +78,7 @@ pub fn Worker(comptime Reader: type) type {
             const parsed = try self.parser.parse(reader);
             // Most stages shouldn't ever need even read lock on interns.
             const normed = try self.normer.build(parsed);
+            _ = try self.resolver.resolve(normed);
             return Script{ .allocator = self.allocator, .normed = normed, .parsed = parsed, .path = "" };
         }
     };

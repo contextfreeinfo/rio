@@ -244,3 +244,6 @@ end = a < b
 hi
 
 ) # Extra paren for fun.
+
+"\(   )"
+"\()\()hi\()\()there"

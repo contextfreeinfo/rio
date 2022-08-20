@@ -3396,8 +3396,49 @@ NodeKind.block
     NodeKind.leaf: TokenKind.comment # Extra paren for fun.
     NodeKind.leaf: TokenKind.vspace 
 
+    NodeKind.leaf: TokenKind.vspace 
+
   /NodeKind.space
+  NodeKind.string
+    NodeKind.leaf: TokenKind.quote_double "
+    NodeKind.escape
+      NodeKind.leaf: TokenKind.escape_begin \(
+      NodeKind.block
+        NodeKind.space
+          NodeKind.leaf: TokenKind.hspace    
+      NodeKind.leaf: TokenKind.escape_end )
+    /NodeKind.escape
+    NodeKind.leaf: TokenKind.quote_double "
+  /NodeKind.string
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
+  NodeKind.string
+    NodeKind.leaf: TokenKind.quote_double "
+    NodeKind.escape
+      NodeKind.leaf: TokenKind.escape_begin \(
+      NodeKind.leaf: TokenKind.escape_end )
+    /NodeKind.escape
+    NodeKind.escape
+      NodeKind.leaf: TokenKind.escape_begin \(
+      NodeKind.leaf: TokenKind.escape_end )
+    /NodeKind.escape
+    NodeKind.leaf: TokenKind.string_text hi
+    NodeKind.escape
+      NodeKind.leaf: TokenKind.escape_begin \(
+      NodeKind.leaf: TokenKind.escape_end )
+    /NodeKind.escape
+    NodeKind.escape
+      NodeKind.leaf: TokenKind.escape_begin \(
+      NodeKind.leaf: TokenKind.escape_end )
+    /NodeKind.escape
+    NodeKind.leaf: TokenKind.string_text there
+    NodeKind.leaf: TokenKind.quote_double "
+  /NodeKind.string
+  NodeKind.space
+    NodeKind.leaf: TokenKind.vspace 
+
 /NodeKind.block
-Pool storage: 4096 650 (1132 -> 1782)
-Parsed size: 2537
+Pool storage: 4096 653 (1132 -> 1785)
+Parsed size: 2568
 Token size: 8 node size: 12 1
