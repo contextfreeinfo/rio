@@ -121,6 +121,6 @@ NodeKind.block
 
   /NodeKind.space
 /NodeKind.block
-Pool storage: 4096 128 (539 -> 667)
+Pool storage: 4096 128 (592 -> 720)
 Parsed size: 90
 Token size: 8 node size: 12 1

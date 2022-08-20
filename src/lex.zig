@@ -74,6 +74,8 @@ pub const TokenKind = enum {
 pub const token_key_first = TokenKind.key_and;
 pub const token_key_last = TokenKind.key_with;
 
+pub const token_kind_count = @typeInfo(TokenKind).Enum.fields.len;
+
 pub const TokenCategory = enum {
     content,
     eof,
@@ -188,6 +190,15 @@ fn initKeys(allocator: Allocator) !std.StringHashMap(TokenKind) {
     return keys;
 }
 
+fn init_token_kind_text_ids(token_kind_text_ids: []TextId, pool: *intern.Pool) !void {
+    _ = pool;
+    for (token_kind_text_ids) |*item, i| {
+        const kind = @intToEnum(TokenKind, i);
+        const text_id = try pool.intern(tokenText(kind));
+        item.* = text_id;
+    }
+}
+
 pub const Token = struct {
     kind: TokenKind,
     text: TextId,
@@ -204,6 +215,7 @@ pub fn lastPtr(comptime Item: type, items: []Item) ?*Item {
 pub fn Lexer(comptime Reader: type) type {
     return struct {
         keys: std.StringHashMap(TokenKind),
+        token_kind_text_ids: [token_kind_count]TextId,
         pool: ?*intern.Pool,
         reader: ?Reader,
         stack: std.ArrayList(TokenKind),
@@ -213,8 +225,11 @@ pub fn Lexer(comptime Reader: type) type {
         const Self = @This();
 
         pub fn init(allocator: Allocator, pool: ?*intern.Pool) !Self {
+            var token_kind_text_ids = [_]TextId{TextId.of(0)} ** token_kind_count;
+            if (pool) |p| try init_token_kind_text_ids(&token_kind_text_ids, p);
             return Self{
                 .keys = try initKeys(allocator),
+                .token_kind_text_ids = token_kind_text_ids,
                 .pool = pool,
                 .reader = null,
                 .stack = std.ArrayList(TokenKind).init(allocator),
@@ -247,7 +262,10 @@ pub fn Lexer(comptime Reader: type) type {
                 error.EndOfStream => return Token{ .kind = .eof, .text = TextId.of(0) },
                 else => |e| return e,
             };
-            const text = if (self.pool) |pool| try pool.intern(self.text.items) else TextId.of(self.text.items.len);
+            const text = switch (tokenKindCategory(kind)) {
+                .key, .op => self.token_kind_text_ids[@enumToInt(kind)],
+                else => if (self.pool) |pool| try pool.intern(self.text.items) else TextId.of(self.text.items.len),
+            };
             return Token{ .kind = kind, .text = text };
         }
 

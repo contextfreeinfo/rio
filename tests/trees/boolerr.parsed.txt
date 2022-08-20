@@ -1189,6 +1189,6 @@ NodeKind.block
     NodeKind.leaf: TokenKind.vspace 
 
 /NodeKind.block
-Pool storage: 4096 425 (0 -> 425)
+Pool storage: 4096 372 (119 -> 491)
 Parsed size: 910
 Token size: 8 node size: 12 1
