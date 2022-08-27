@@ -1,3 +1,4 @@
+const extract = @import("./extract.zig");
 const intern = @import("./intern.zig");
 const lex = @import("./lex.zig");
 const norm = @import("./norm.zig");
@@ -50,6 +51,7 @@ pub fn Worker(comptime Reader: type) type {
         // TODO For each stage, one processor per core. Memory waste?
         // TODO Fine-grained lock on interns during io might be ok?
         // TODO Or do full io then single lexer that owns interns most of the time?
+        extractor: extract.Extractor,
         normer: norm.Normer,
         parser: parse.Parser(Reader),
         pool: *intern.Pool,
@@ -60,6 +62,7 @@ pub fn Worker(comptime Reader: type) type {
         pub fn init(allocator: Allocator, pool: *intern.Pool) !Self {
             return Self{
                 .allocator = allocator,
+                .extractor = try extract.Extractor.init(allocator),
                 .normer = try norm.Normer.init(allocator),
                 .parser = try parse.Parser(Reader).init(allocator, pool),
                 .resolver = try resolve.Resolver.init(allocator),
@@ -68,6 +71,7 @@ pub fn Worker(comptime Reader: type) type {
         }
 
         pub fn deinit(self: *Self) void {
+            self.extractor.deinit();
             self.normer.deinit();
             self.parser.deinit();
             self.resolver.deinit();
@@ -78,6 +82,7 @@ pub fn Worker(comptime Reader: type) type {
             const parsed = try self.parser.parse(reader);
             // Most stages shouldn't ever need even read lock on interns.
             const normed = try self.normer.build(parsed);
+            _ = try self.extractor.extract(normed);
             _ = try self.resolver.resolve(normed);
             return Script{ .allocator = self.allocator, .normed = normed, .parsed = parsed, .path = "" };
         }

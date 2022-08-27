@@ -2,11 +2,12 @@ const idx = @import("./idx.zig");
 const intern = @import("./intern.zig");
 const norm = @import("./norm.zig");
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 
 // TODO Figure out where to define this.
-const FileId = i32;
+pub const FileId = i32;
 
-const Def = struct {
+pub const Def = struct {
     // Could make a function to look up text from node, but this should make
     // scanning defs faster.
     text: intern.TextId,
@@ -17,10 +18,10 @@ const Def = struct {
     // But envs allow easier linear looping through larger lists of defs.
     // parent: DefId,
 };
-const DefId = idx.Idx(u32, Def);
-const DefSlice = idx.IdxSlice(DefId);
+pub const DefId = idx.Idx(u32, Def);
+pub const DefSlice = idx.IdxSlice(DefId);
 
-const Env = struct {
+pub const Env = struct {
     // Presume we have enough tree structure that linear scan is good enough.
     // If someone defines 100s or 1000s or more in a single scope, this could
     // be slow.
@@ -28,14 +29,14 @@ const Env = struct {
     defs: DefSlice,
     parent: EnvId,
 };
-const EnvId = idx.Idx(u32, Def);
+pub const EnvId = idx.Idx(u32, Def);
 
-const Extraction = struct {
+pub const Extraction = struct {
     defs: []Def,
     envs: []Env,
 };
 
-const Extractor = struct {
+pub const Extractor = struct {
     defs: std.ArrayList(Def),
     envs: std.ArrayList(Env),
     normed: norm.Tree,
@@ -55,7 +56,8 @@ const Extractor = struct {
         self.envs.deinit();
     }
 
-    fn extract(self: *Self, normed: ) {
-        //
+    pub fn extract(self: *Self, normed: norm.Tree) !void {
+        _ = self;
+        _ = normed;
     }
 };
