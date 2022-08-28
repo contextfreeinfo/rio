@@ -1,40 +1,43 @@
 + run-all
 + date -u --iso-8601=ns
-2022-08-20T22:26:37,959185825+00:00
+2022-08-28T01:52:16,327249970+00:00
 + git rev-parse HEAD
-7ee77c92acd4ad946518ee0bcef16f2f2339ec26
+bf2a5a3f2b1f47dd40a761323095860a8e5ebe48
 + git status --untracked-files=no
-On branch again
-Your branch is up to date with 'origin/again'.
+On branch again-zig10
+Your branch is up to date with 'origin/again-zig10'.
 
 Changes to be committed:
   (use "git restore --staged <file>..." to unstage)
-	modified:   src/lex.zig
+	modified:   build.zig
+	modified:   report.sh
+	modified:   report.txt
+	modified:   src/idx.zig
+	modified:   src/main.zig
+	modified:   src/norm.zig
+	modified:   src/parse.zig
+	new file:   test.zig
 
 Changes not staged for commit:
   (use "git add <file>..." to update what will be committed)
   (use "git restore <file>..." to discard changes in working directory)
+	modified:   report.sh
 	modified:   report.txt
 	modified:   src/intern.zig
 	modified:   src/norm.zig
 	modified:   src/resolve.zig
-	modified:   tests/trees/boolerr.parsed.txt
-	modified:   tests/trees/fib.parsed.txt
-	modified:   tests/trees/hello.parsed.txt
-	modified:   tests/trees/persons.parsed.txt
-	modified:   tests/trees/wild.parsed.txt
 
 Untracked files not listed (use -u option to show untracked files)
 + wc src/extract.zig src/idx.zig src/intern.zig src/lex.zig src/main.zig src/norm.zig src/parse.zig src/resolve.zig
-   61   227  1612 src/extract.zig
-   55   181  1424 src/idx.zig
+   63   246  1727 src/extract.zig
+   55   181  1440 src/idx.zig
    95   416  3576 src/intern.zig
-  518  1600 16166 src/lex.zig
-  172   710  6890 src/main.zig
-  538  1883 18770 src/norm.zig
-  701  2208 23402 src/parse.zig
+  515  1574 15987 src/lex.zig
+  115   466  4521 src/main.zig
+  539  1896 18865 src/norm.zig
+  708  2296 24151 src/parse.zig
    24    76   513 src/resolve.zig
- 2164  7301 72353 total
+ 2114  7151 70780 total
 + wc tests/boolerr.rio tests/fib.rio tests/hello.rio tests/persons2.rio tests/persons.rio tests/wild.rio
   48  194 1365 tests/boolerr.rio
   16   77  325 tests/fib.rio
@@ -80,131 +83,121 @@ Vulnerability Tsx async abort:   Not affected
 + rm -rf zig-cache zig-out
 + run-case
 + date -u --iso-8601=ns
-2022-08-20T22:26:37,996654005+00:00
+2022-08-28T01:52:16,376252881+00:00
 + zig build test
-1/2 test "dump trees"... OK
-2/2 test "parse speed"... OK
+1/2 test.dump trees... OK
+2/2 test.parse speed... OK
 All 2 tests passed.
 
-real	0m3.937s
-user	0m3.414s
-sys	0m0.572s
+real	0m3.938s
+user	0m3.647s
+sys	0m0.337s
 + RIO_TEST_SCALE=10_000
 + zig build test
-1/2 test "dump trees"... OK
-2/2 test "parse speed"... OK
+1/2 test.dump trees... OK
+2/2 test.parse speed... OK
 All 2 tests passed.
 
-real	0m4.091s
-user	0m3.881s
-sys	0m0.211s
+real	0m6.234s
+user	0m5.888s
+sys	0m0.369s
 + zig build
 + gzip -kf zig-out/bin/rio
 + wc -c zig-out/bin/rio zig-out/bin/rio.gz
-1008272 zig-out/bin/rio
- 290780 zig-out/bin/rio.gz
-1299052 total
+1619808 zig-out/bin/rio
+ 393716 zig-out/bin/rio.gz
+2013524 total
 
-real	0m0.996s
-user	0m0.862s
-sys	0m0.156s
+real	0m1.066s
+user	0m1.010s
+sys	0m0.083s
 + zig build -Dtarget=wasm32-wasi
 + wasm-opt -O4 zig-out/bin/rio.wasm -o zig-out/bin/rio-opt.wasm
 + gzip -kf zig-out/bin/rio-opt.wasm
 + wc -c zig-out/bin/rio-opt.wasm zig-out/bin/rio-opt.wasm.gz zig-out/bin/rio.wasm
-119277 zig-out/bin/rio-opt.wasm
- 43183 zig-out/bin/rio-opt.wasm.gz
-337684 zig-out/bin/rio.wasm
-500144 total
+ 501365 zig-out/bin/rio-opt.wasm
+ 124575 zig-out/bin/rio-opt.wasm.gz
+ 910604 zig-out/bin/rio.wasm
+1536544 total
 
-real	0m1.267s
-user	0m4.031s
-sys	0m0.096s
+real	0m1.647s
+user	0m5.022s
+sys	0m0.139s
 + run-case -Drelease-fast
 + date -u --iso-8601=ns
-2022-08-20T22:26:48,290258538+00:00
+2022-08-28T01:52:29,263511530+00:00
 + zig build test -Drelease-fast
-1/2 test "dump trees"... OK
-2/2 test "parse speed"... OK
+1/2 test.dump trees... OK
+2/2 test.parse speed... OK
 All 2 tests passed.
 
-real	0m6.004s
-user	0m5.741s
-sys	0m0.284s
+real	0m5.840s
+user	0m5.585s
+sys	0m0.262s
 + RIO_TEST_SCALE=10_000
 + zig build test -Drelease-fast
-1/2 test "dump trees"... OK
-2/2 test "parse speed"... OK
+1/2 test.dump trees... OK
+2/2 test.parse speed... OK
 All 2 tests passed.
 
-real	0m0.623s
-user	0m0.438s
-sys	0m0.186s
+real	0m6.699s
+user	0m6.277s
+sys	0m0.423s
 + zig build -Drelease-fast
 + gzip -kf zig-out/bin/rio
 + wc -c zig-out/bin/rio zig-out/bin/rio.gz
- 977640 zig-out/bin/rio
- 258265 zig-out/bin/rio.gz
-1235905 total
+587920 zig-out/bin/rio
+155203 zig-out/bin/rio.gz
+743123 total
 
-real	0m4.667s
-user	0m4.437s
-sys	0m0.252s
+real	0m2.361s
+user	0m2.227s
+sys	0m0.153s
 + zig build -Drelease-fast -Dtarget=wasm32-wasi
 + wasm-opt -O4 zig-out/bin/rio.wasm -o zig-out/bin/rio-opt.wasm
-+ gzip -kf zig-out/bin/rio-opt.wasm
-+ wc -c zig-out/bin/rio-opt.wasm zig-out/bin/rio-opt.wasm.gz zig-out/bin/rio.wasm
- 69145 zig-out/bin/rio-opt.wasm
- 24526 zig-out/bin/rio-opt.wasm.gz
- 76075 zig-out/bin/rio.wasm
-169746 total
+Fatal: unknown debug line opcode: 
 
-real	0m2.426s
-user	0m2.890s
-sys	0m0.129s
+real	0m2.072s
+user	0m2.129s
+sys	0m0.125s
 + run-case -Drelease-small
 + date -u --iso-8601=ns
-2022-08-20T22:27:02,013056775+00:00
+2022-08-28T01:52:46,238062533+00:00
 + zig build test -Drelease-small
-1/2 test "dump trees"... OK
-2/2 test "parse speed"... OK
+1/2 test.dump trees... OK
+2/2 test.parse speed... OK
 All 2 tests passed.
 
-real	0m3.033s
-user	0m2.821s
-sys	0m0.232s
+real	0m3.292s
+user	0m3.115s
+sys	0m0.202s
 + RIO_TEST_SCALE=10_000
 + zig build test -Drelease-small
-1/2 test "dump trees"... OK
-2/2 test "parse speed"... OK
+1/2 test.dump trees... OK
+2/2 test.parse speed... OK
 All 2 tests passed.
 
-real	0m1.179s
-user	0m1.032s
-sys	0m0.148s
+real	0m4.685s
+user	0m4.411s
+sys	0m0.295s
 + zig build -Drelease-small
 + gzip -kf zig-out/bin/rio
 + wc -c zig-out/bin/rio zig-out/bin/rio.gz
-623344 zig-out/bin/rio
-190925 zig-out/bin/rio.gz
-814269 total
+417744 zig-out/bin/rio
+120056 zig-out/bin/rio.gz
+537800 total
 
-real	0m2.678s
-user	0m2.521s
-sys	0m0.180s
+real	0m1.493s
+user	0m1.412s
+sys	0m0.101s
 + zig build -Drelease-small -Dtarget=wasm32-wasi
 + wasm-opt -O4 zig-out/bin/rio.wasm -o zig-out/bin/rio-opt.wasm
-+ gzip -kf zig-out/bin/rio-opt.wasm
-+ wc -c zig-out/bin/rio-opt.wasm zig-out/bin/rio-opt.wasm.gz zig-out/bin/rio.wasm
- 41894 zig-out/bin/rio-opt.wasm
- 17846 zig-out/bin/rio-opt.wasm.gz
- 46774 zig-out/bin/rio.wasm
-106514 total
+Fatal: unknown debug line opcode: 
 
-real	0m1.361s
-user	0m1.544s
-sys	0m0.109s
+real	0m1.371s
+user	0m1.359s
+sys	0m0.129s
 
-real	0m32.309s
-user	0m33.626s
-sys	0m2.571s
+real	0m40.756s
+user	0m42.097s
+sys	0m2.640s

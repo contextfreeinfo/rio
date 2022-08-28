@@ -1,9 +1,9 @@
-pub fn Idx(comptime Index: type, comptime Value: type) type {
+pub fn Idx(comptime IndexType: type, comptime ValueType: type) type {
     return struct {
         i: Index,
 
-        pub const Index = Index;
-        pub const Value = Value;
+        pub const Index = IndexType;
+        pub const Value = ValueType;
 
         const Self = @This();
 

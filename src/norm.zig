@@ -296,6 +296,7 @@ pub const Normer = struct {
         _ = node;
     }
 
+    // TODO? fn infixMap(self: *Self, node: parse.Node, comptime map_op: MapOp) !void {
     fn infixMap(self: *Self, node: parse.Node, map_op: MapOp) !void {
         // Map from operators to named function calls.
         const begin = self.here();
@@ -494,7 +495,7 @@ pub const Normer = struct {
     }
 };
 
-const MapOp = fn (kind: lex.TokenKind) ?lex.TokenKind;
+const MapOp = *const fn (kind: lex.TokenKind) ?lex.TokenKind;
 
 fn isLeafOf(node: parse.Node, kind: lex.TokenKind) bool {
     return node.kind == .leaf and node.data.token.kind == kind;

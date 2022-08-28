@@ -54,12 +54,15 @@ pub const Node = struct {
     pub fn print(self: Self, writer: anytype, context: TreePrintContext) std.os.WriteError!u32 {
         var count = @as(u32, 0);
         try printIndent(writer, context.indent);
-        try writer.print("{}", .{self.kind});
+        const kind = @tagName(self.kind);
+        // TODO Remove "NodeKind." in a future commit without other changes.
+        try writer.print("NodeKind.{s}", .{kind});
         switch (self.kind) {
             .leaf => {
                 count += 1;
                 const text = lex.tokenTextSure(self.data.token, context.config.pool);
-                try writer.print(": {} {s}\n", .{ self.data.token.kind, text });
+                // TODO Remove "TokenKind." in a future commit without other changes.
+                try writer.print(": TokenKind.{s} {s}\n", .{ @tagName(self.data.token.kind), text });
             },
             else => {
                 try writer.print("\n", .{});
@@ -70,7 +73,7 @@ pub const Node = struct {
                 }
                 if (count > 1) {
                     try printIndent(writer, context.indent);
-                    try writer.print("/{}\n", .{self.kind});
+                    try writer.print("/NodeKind.{s}\n", .{kind});
                 }
             },
         }
@@ -163,8 +166,8 @@ pub fn Parser(comptime Reader: type) type {
         working: std.ArrayList(Node),
 
         const Self = @This();
-        const CheckEnd = fn (self: *Self, kind: lex.TokenKind) ParseError!bool;
-        const ParseKid = fn (self: *Self, context: Context) ParseError!void;
+        const CheckEnd = *const fn (self: *Self, kind: lex.TokenKind) ParseError!bool;
+        const ParseKid = *const fn (self: *Self, context: Context) ParseError!void;
 
         pub fn init(allocator: Allocator, pool: ?*intern.Pool) !Self {
             return Self{
@@ -224,7 +227,7 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn as(self: *Self, context: Context) !void {
-            try self.infix(context, .as, opAs, call);
+            try self.infix(context, .as, &opAs, &call);
         }
 
         fn assign(self: *Self, context: Context) ParseError!void {
@@ -241,7 +244,7 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn assignTo(self: *Self, context: Context) !void {
-            try self.infix(context, .assign_to, opEqto, assign);
+            try self.infix(context, .assign_to, &opEqto, &assign);
         }
 
         fn atom(self: *Self, context: Context) !void {
@@ -259,9 +262,10 @@ pub fn Parser(comptime Reader: type) type {
         }
 
         fn block(self: *Self) !void {
-            try self.blockUntil(.{}, checkBlockEnd);
+            try self.blockUntil(.{}, &checkBlockEnd);
         }
 
+        // TODO? fn blockUntil(self: *Self, context: Context, comptime check_end: CheckEnd) !void {
         fn blockUntil(self: *Self, context: Context, check_end: CheckEnd) !void {
             const begin = self.here();
             while (true) {
@@ -282,6 +286,7 @@ pub fn Parser(comptime Reader: type) type {
             try self.nestMaybe(.block, begin);
         }
 
+        // TODO? fn blocker(self: *Self, context: Context, block_context: Context, kind: NodeKind, comptime check_end: CheckEnd) !void {
         fn blocker(self: *Self, context: Context, block_context: Context, kind: NodeKind, check_end: CheckEnd) !void {
             const begin = self.here();
             try self.advance();
@@ -304,16 +309,17 @@ pub fn Parser(comptime Reader: type) type {
             try self.nest(kind, begin);
         }
 
+        // TODO? fn blockerCommon(self: *Self, context: Context, kind: NodeKind, comptime check_end: CheckEnd) !void {
         fn blockerCommon(self: *Self, context: Context, kind: NodeKind, check_end: CheckEnd) !void {
             try self.blocker(context, context, kind, check_end);
         }
 
         fn boolOr(self: *Self, context: Context) !void {
-            try self.infix(context, .bool_or, opOr, boolAnd);
+            try self.infix(context, .bool_or, &opOr, &boolAnd);
         }
 
         fn boolAnd(self: *Self, context: Context) !void {
-            try self.infix(context, .bool_and, opAnd, compare);
+            try self.infix(context, .bool_and, &opAnd, &compare);
         }
 
         fn call(self: *Self, context: Context) !void {
@@ -490,6 +496,7 @@ pub fn Parser(comptime Reader: type) type {
             try self.nestMaybe(.space, begin);
         }
 
+        // TODO? fn infix(self: *Self, context: Context, kind: NodeKind, comptime op: CheckOp, comptime kid: ParseKid) !void {
         fn infix(self: *Self, context: Context, kind: NodeKind, op: CheckOp, kid: ParseKid) !void {
             const begin = self.here();
             try kid(self, context);
@@ -649,7 +656,7 @@ pub fn Parser(comptime Reader: type) type {
     };
 }
 
-const CheckOp = fn (lex.TokenKind) bool;
+const CheckOp = *const fn (lex.TokenKind) bool;
 
 fn opAdd(kind: lex.TokenKind) bool {
     return switch (kind) {
