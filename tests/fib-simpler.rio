@@ -1,15 +1,14 @@
-main = for () with fx printf be
-  each (0.thru 9) for n be
+main = for () be
+  each (thru 0 9) for n be
     void of printf "fib(%d) = %d\n" n (fib n)
   end
 end
 
-# Positionals must be explicitly numbered as a price.
-fib = for 1: n as int to int be
+# Params without default values are positional.
+fib = for n as int to int be
   case of
     for n <= 0 be 0
     for n == 1 be 1
-    # else be (fib n - 2) + (fib n - 1)
     else be fib (n - 2) + fib (n - 1)
   end
 end
