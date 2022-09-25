@@ -19,6 +19,7 @@ type
     keyTo,
     opColon,
     opAdd,
+    opDot,
     opEq,
     opGe,
     opGt,
@@ -110,6 +111,7 @@ proc nextOther(lexing: var Lexing): TokenKind {.raises: [].} =
   case lexing.advance:
     of '(': roundBegin
     of ')': roundEnd
+    of '.': opDot
     of '+': opAdd
     of '-': opSub
     of '=':
