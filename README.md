@@ -137,3 +137,12 @@ rio_float sample2_ticket_price(rio_int const age) {
 - Coded in C++ for now but *without* the C++ std lib for faster compiling and fewer dependencies later down the road.
 - Current strategy: Support enough features I can port the compiler to Rio, then port, then finish and polish.
 - Testing output in tcc, since high speed compilation is great. (And testing in gcc, too.)
+
+
+## Notes
+
+```
+nim c --nimcache:nimcache -d:release --mm:orc nim/main.nim
+nim r --nimcache:nimcache -d:release --mm:orc nim/main.nim
+nim r --nimcache:nimcache -d:release --mm:orc nim/main.nim tests/fib-simpler.rio > tests/trees/
+```

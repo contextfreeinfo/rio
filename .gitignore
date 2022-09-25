@@ -3,6 +3,7 @@
 /old/old2/bin/nio.*
 /old/old2/bin/rio
 /old/old2/bin/rio.*
+/nimcache/
 /notes/
 /old/old2/tests/nio/run/test*
 /old/old2/tests/run/test*
