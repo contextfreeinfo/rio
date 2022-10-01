@@ -12,7 +12,6 @@ type
     integer,
     keyAs,
     keyBe,
-    keyElse,
     keyEnd,
     keyFor,
     keyOf,
@@ -188,7 +187,6 @@ proc newLexer*(): Lexer =
     keys: {
       "as": keyAs,
       "be": keyBe,
-      "else": keyElse,
       "end": keyEnd,
       "for": keyFor,
       "of": keyOf,
