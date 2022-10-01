@@ -7,8 +7,8 @@ end
 # Params without default values are positional.
 fib = for n as int to int be
   case of
-    for n <= 0 be 0
-    for n == 1 be 1
+    if n <= 0 be 0
+    if n == 1 be 1
     else be fib (n - 2) + fib (n - 1)
   end
 end

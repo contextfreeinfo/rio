@@ -95,7 +95,7 @@ proc nextComment(lexing: var Lexing): TokenKind {.raises: [].} =
   lexing.advanceWhile(func(c: char): bool = not (c in VSpaceChars))
   comment
 
-proc nextHspace(lexing: var Lexing): TokenKind {.raises: [].} =
+proc nextHSpace(lexing: var Lexing): TokenKind {.raises: [].} =
   lexing.advanceWhile(func(c: char): bool = c in HSpaceChars)
   hspace
 
@@ -132,7 +132,7 @@ proc nextOther(lexing: var Lexing): TokenKind {.raises: [].} =
         else: other
     else: other
 
-proc nextVspace(lexing: var Lexing): TokenKind {.raises: [].} =
+proc nextVSpace(lexing: var Lexing): TokenKind {.raises: [].} =
   lexing.advanceWhile(func(c: char): bool = c in VSpaceChars)
   vspace
 
@@ -143,9 +143,9 @@ proc nextDefault(lexing: var Lexing): TokenKind {.raises: [].} =
     of '"':
       lexing.mode = stringContent
       lexing.advanceAs(quoteDouble)
-    of HSpaceChars: lexing.nextHspace()
+    of HSpaceChars: lexing.nextHSpace()
     of DigitChars: lexing.nextNumber()
-    of VSpaceChars: lexing.nextVspace()
+    of VSpaceChars: lexing.nextVSpace()
     else: lexing.nextOther()
 
 proc nextStringContent(lexing: var Lexing): TokenKind {.raises: [].} =

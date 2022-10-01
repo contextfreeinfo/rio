@@ -9,7 +9,6 @@ proc main() =
     kind = TokenKind.comment
     kind2 = NodeKind.comment
     comment = 3
-  echo(fmt"Hi {kind} {kind2} {comment}")
   var lexer = newLexer()
   let
     args = commandLineParams()
@@ -20,6 +19,7 @@ proc main() =
         "hi there"
     tokens = lexer.lex(source)
   for token in tokens:
-    echo(fmt"{token} '{lexer.pool[token.text]}'")
+    echo(fmt"{token.kind}: '{lexer.pool[token.text]}'")
+  echo(fmt"interns: {lexer.pool.size}")
 
 main()

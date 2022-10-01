@@ -26,3 +26,5 @@ proc intern*[Id](pool: var Pool[Id], text: string): Id =
   pool.size = next
   pool.texts[next] = text
   next
+
+func size*[Id](pool: Pool[Id]): Id = pool.size
