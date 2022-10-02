@@ -5,10 +5,6 @@ import std/os
 import std/strformat
 
 proc main() =
-  let
-    kind = TokenKind.comment
-    kind2 = NodeKind.comment
-    comment = 3
   var lexer = newLexer()
   let
     args = commandLineParams()
