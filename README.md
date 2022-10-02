@@ -146,3 +146,36 @@ nim c --nimcache:nimcache -d:release --mm:orc nim/main.nim
 nim r --nimcache:nimcache -d:release --mm:orc nim/main.nim
 nim r --nimcache:nimcache -d:release --mm:orc nim/main.nim tests/fib-simpler.rio > tests/trees/
 ```
+
+```
+2022-10-02T15:29:33Z tjpalmer@pop-os:~/projects/rio
+$ nim c --nimcache:nimcache -d:release -d:useMalloc --mm:orc nim/main.nim && valgrind nim/main tests/fib-simpler.rio > tests/trees/fib-simpler.lexed.txt
+Hint: used config file '/home/tjpalmer/apps/nim-1.6.6/config/nim.cfg' [Conf]
+Hint: used config file '/home/tjpalmer/apps/nim-1.6.6/config/config.nims' [Conf]
+............................................................................................
+CC: main.nim
+Hint:  [Link]
+Hint: gc: orc; opt: speed; options: -d:release
+51728 lines; 0.704s; 75.207MiB peakmem; proj: /home/tjpalmer/projects/rio/nim/main.nim; out: /home/tjpalmer/projects/rio/nim/main [SuccessX]
+==76541== Memcheck, a memory error detector
+==76541== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==76541== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==76541== Command: nim/main tests/fib-simpler.rio
+==76541== 
+==76541== 
+==76541== HEAP SUMMARY:
+==76541==     in use at exit: 16,384 bytes in 1 blocks
+==76541==   total heap usage: 351 allocs, 350 frees, 39,421 bytes allocated
+==76541== 
+==76541== LEAK SUMMARY:
+==76541==    definitely lost: 0 bytes in 0 blocks
+==76541==    indirectly lost: 0 bytes in 0 blocks
+==76541==      possibly lost: 0 bytes in 0 blocks
+==76541==    still reachable: 16,384 bytes in 1 blocks
+==76541==         suppressed: 0 bytes in 0 blocks
+==76541== Rerun with --leak-check=full to see details of leaked memory
+==76541== 
+==76541== For lists of detected and suppressed errors, rerun with: -s
+==76541== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+2022-10-02T15:29:55Z tjpalmer@pop-os:~/projects/rio
+```

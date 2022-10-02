@@ -4,7 +4,7 @@ import std/sequtils
 import std/tables
 
 type
-  TokenKind* = enum
+  TokenKind* {.size: sizeof(uint32).} = enum
     comment,
     eof,
     hspace,
@@ -37,22 +37,24 @@ type
 
   TextId* = int32
 
-  # Shared state across lexing tasks.
-  Lexer* = ref object
-    keys: Table[TextId, TokenKind]
-    pool*: Pool[TextId]
+  Lexer* = ref object ## Shared state across lexing tasks.
+    keys: Table[TextId, TokenKind] ## Can be shared across lexers.
+    pool*: Pool[TextId] ## Need to be shared across multiple lexers if any.
+    tokens: seq[Token] ## Working buffer to be cleared per run.
 
   Token* = object
     kind*: TokenKind
     text*: TextId
 
+  Tokens* = ref object
+    tokens*: seq[Token]
+
   LexingMode = enum
     default,
     stringContent
 
-  # Independent state, except for the lexer.
   Lexing = ref object
-    begin: int
+    ## Independent state, except for the lexer.
     index: int
     lexer: Lexer
     mode: LexingMode
@@ -173,13 +175,15 @@ proc next(lexing: var Lexing): Option[Token] {.raises: [].} =
       kind
   some(Token(kind: finalKind, text: text))
 
-proc lex(lexing: var Lexing): seq[Token] =
+proc lex(lexing: var Lexing): Tokens =
+  lexing.lexer.tokens.setLen(0)
   while true:
     let next = lexing.next
     if next.isSome:
-      result.add(next.get)
+      lexing.lexer.tokens.add(next.get)
     else:
       break
+  Tokens(tokens: lexing.lexer.tokens)
 
 proc newLexer*(): Lexer =
   var pool = newPool[TextId]()
@@ -198,6 +202,6 @@ proc newLexer*(): Lexer =
     pool: pool,
   )
 
-proc lex*(lexer: var Lexer, text: string): seq[Token] =
-  var lexing = Lexing(begin: 0, index: 0, lexer: lexer, text: text)
+proc lex*(lexer: var Lexer, text: string): Tokens =
+  var lexing = Lexing(index: 0, lexer: lexer, text: text)
   lexing.lex

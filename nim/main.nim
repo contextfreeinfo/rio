@@ -2,10 +2,10 @@ import intern
 import lex
 import parse
 import std/os
-import std/strformat
 
 proc main() =
   var lexer = newLexer()
+  var parser = newParser()
   let
     args = commandLineParams()
     source =
@@ -14,8 +14,13 @@ proc main() =
       else:
         "hi there"
     tokens = lexer.lex(source)
-  for token in tokens:
-    echo(fmt"{token.kind}: '{lexer.pool[token.text]}'")
-  echo(fmt"interns: {lexer.pool.size}")
+    tree = parser.parse(tokens)
+  discard tree
+  for token in tokens.tokens:
+    echo(token.kind, ": '", lexer.pool[token.text], "'")
+  echo("nodes: ", tree.nodes.len)
+  echo("interns: ", lexer.pool.size)
+  echo("token size: ", sizeof(Token))
+  echo("node size: ", sizeof(Node))
 
 main()

@@ -148,4 +148,7 @@ vspace: '
 keyEnd: 'end'
 vspace: '
 '
+nodes: 0
 interns: 39
+token size: 8
+node size: 12
