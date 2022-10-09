@@ -68,7 +68,7 @@ keyFor: 'for'
 hspace: ' '
 id: 'n'
 hspace: ' '
-keyAs: 'as'
+keyIs: 'is'
 hspace: ' '
 id: 'int'
 hspace: ' '
@@ -148,7 +148,8 @@ vspace: '
 keyEnd: 'end'
 vspace: '
 '
+eof: ''
 nodes: 0
-interns: 39
+interns: 40
 token size: 8
 node size: 12

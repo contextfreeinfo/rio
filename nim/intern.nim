@@ -4,13 +4,17 @@ import std/tables
 
 type
   Pool*[Id] = ref object
+    emptyId*: Id
     ids: Table[string, Id]
     size: Id
     texts: Table[Id, string]
 
 proc newPool*[Id](): Pool[Id] =
   var pool = Pool[Id](
-    ids: initTable[string, Id](), size: 0, texts: initTable[Id, string]()
+    emptyId: 1,
+    ids: initTable[string, Id](),
+    size: 0,
+    texts: initTable[Id, string](),
   )
   discard pool.intern("")
   pool

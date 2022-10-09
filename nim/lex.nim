@@ -14,6 +14,7 @@ type
     keyBe,
     keyEnd,
     keyFor,
+    keyIs,
     keyOf,
     keyTo,
     opColon,
@@ -159,10 +160,10 @@ proc nextStringContent(lexing: var Lexing): TokenKind {.raises: [].} =
       lexing.advanceWhile(func(c: char): bool = not (c in StringSpecialChars))
       stringText
 
-proc next(lexing: var Lexing): Option[Token] {.raises: [].} =
+proc next(lexing: var Lexing): Token {.raises: [].} =
   let begin = lexing.index
   if lexing.index >= lexing.text.len:
-    return none(Token)
+    return Token(kind: TokenKind.eof, text: lexing.lexer.pool.emptyId)
   let
     kind = case lexing.mode:
       of default: lexing.nextDefault()
@@ -173,17 +174,17 @@ proc next(lexing: var Lexing): Option[Token] {.raises: [].} =
       lexing.lexer.keys.getOrDefault(text, kind)
     else:
       kind
-  some(Token(kind: finalKind, text: text))
+  Token(kind: finalKind, text: text)
 
 proc lex(lexing: var Lexing): Tokens =
-  lexing.lexer.tokens.setLen(0)
+  let lexer = addr lexing.lexer
+  lexer.tokens.setLen(0)
   while true:
     let next = lexing.next
-    if next.isSome:
-      lexing.lexer.tokens.add(next.get)
-    else:
+    lexer.tokens.add(next)
+    if next.kind == TokenKind.eof:
       break
-  Tokens(tokens: lexing.lexer.tokens)
+  Tokens(tokens: lexer.tokens)
 
 proc newLexer*(): Lexer =
   var pool = newPool[TextId]()
@@ -193,6 +194,7 @@ proc newLexer*(): Lexer =
       "be": keyBe,
       "end": keyEnd,
       "for": keyFor,
+      "is": keyIs,
       "of": keyOf,
       "to": keyTo,
     }.map(
