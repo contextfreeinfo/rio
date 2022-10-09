@@ -1,6 +1,5 @@
 id: 'main'
 hspace: ' '
-opIs: '='
 hspace: ' '
 keyFor: 'for'
 hspace: ' '
@@ -8,6 +7,10 @@ roundBegin: '('
 roundEnd: ')'
 hspace: ' '
 keyBe: 'be'
+call: (idx: 0, len: 2)
+opIs: '='
+space: (idx: 2, len: 1)
+call: (idx: 3, len: 6)
 vspace: '
 '
 hspace: '  '
@@ -62,7 +65,6 @@ vspace: '
 '
 id: 'fib'
 hspace: ' '
-opIs: '='
 hspace: ' '
 keyFor: 'for'
 hspace: ' '
@@ -77,6 +79,10 @@ hspace: ' '
 id: 'int'
 hspace: ' '
 keyBe: 'be'
+call: (idx: 58, len: 2)
+opIs: '='
+space: (idx: 60, len: 1)
+call: (idx: 61, len: 13)
 vspace: '
 '
 hspace: '  '
@@ -148,8 +154,32 @@ vspace: '
 keyEnd: 'end'
 vspace: '
 '
-eof: ''
-nodes: 0
+define: (idx: 9, len: 4)
+space: (idx: 13, len: 2)
+call: (idx: 15, len: 15)
+space: (idx: 30, len: 2)
+call: (idx: 32, len: 18)
+space: (idx: 50, len: 2)
+call: (idx: 52, len: 1)
+space: (idx: 53, len: 1)
+call: (idx: 54, len: 1)
+space: (idx: 55, len: 3)
+define: (idx: 74, len: 4)
+space: (idx: 78, len: 2)
+call: (idx: 80, len: 3)
+space: (idx: 83, len: 2)
+call: (idx: 85, len: 11)
+space: (idx: 96, len: 2)
+call: (idx: 98, len: 11)
+space: (idx: 109, len: 2)
+call: (idx: 111, len: 25)
+space: (idx: 136, len: 2)
+call: (idx: 138, len: 1)
+space: (idx: 139, len: 1)
+call: (idx: 140, len: 1)
+space: (idx: 141, len: 1)
+tokens: 137
+nodes: 166
 interns: 40
 token size: 8
 node size: 12

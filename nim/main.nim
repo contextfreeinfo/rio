@@ -15,9 +15,15 @@ proc main() =
         "hi there"
     tokens = lexer.lex(source)
     tree = parser.parse(tokens)
-  discard tree
-  for token in tokens.tokens:
-    echo(token.kind, ": '", lexer.pool[token.text], "'")
+  # Report.
+  for node in tree.nodes:
+    case node.kind:
+      of leaf:
+        let token = node.token
+        echo token.kind, ": '", lexer.pool[token.text], "'"
+      else:
+        echo node.kind, ": ", node.kids
+  echo("tokens: ", tokens.tokens.len)
   echo("nodes: ", tree.nodes.len)
   echo("interns: ", lexer.pool.size)
   echo("token size: ", sizeof(Token))

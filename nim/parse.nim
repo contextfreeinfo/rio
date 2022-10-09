@@ -1,10 +1,13 @@
 import lex
+import system/assertions
 
 type
   NodeKind* = enum
+    leaf,
+    bloc, # because block is keyword
+    call,
     comment,
     define,
-    leaf,
     space
 
   NodeId* = int32
@@ -14,11 +17,11 @@ type
     len: NodeId
 
   Node* = object
-    case kind: NodeKind
+    case kind*: NodeKind
     of leaf:
-      token: Token
+      token*: Token
     else:
-      kids: NodeSlice
+      kids*: NodeSlice
 
   Tree* = ref object
     nodes*: seq[Node]
@@ -37,15 +40,19 @@ type
 
 # Support.
 
+func token(parsing: Parsing): Token = parsing.tokens.tokens[parsing.index]
+
 proc advance(parsing: var Parsing) =
-  # Presume we have an eof at the end, so don't go past it.
-  if parsing.index < parsing.tokens.tokens.len - 1:
-    parsing.index += 1
+  # Bounds checked access asserts that nobody eats the eof.
+  parsing.parser.working.add(Node(kind: leaf, token: parsing.token))
+  parsing.index += 1
 
-func here(parsing: Parsing): int32 = int32 parsing.parser.nodes.len
+func here(parsing: Parsing): int32 = int32 parsing.parser.working.len
 
-func peek(parsing: Parsing): TokenKind =
-  parsing.tokens.tokens[parsing.index].kind
+func sliceFrom(begin: NodeId, til: NodeId): NodeSlice =
+  NodeSlice(idx: begin, len: til - begin)
+
+func peek(parsing: Parsing): TokenKind = parsing.token.kind
 
 proc advanceIf(parsing: var Parsing, tokenKind: TokenKind): bool =
   let match = parsing.peek == tokenKind
@@ -54,31 +61,46 @@ proc advanceIf(parsing: var Parsing, tokenKind: TokenKind): bool =
   match
 
 proc nest(parsing: var Parsing, kind: NodeKind, begin: NodeId) =
-  discard
+  # TODO Any way to define a type that statically asserts this?
+  assert kind != leaf
+  let
+    parser = addr parsing.parser
+    nodesBegin = NodeId parser.nodes.len
+  parser.nodes.add(parser.working[begin ..< ^0])
+  parser.working.setLen(begin)
+  {.cast(uncheckedAssign).}: # For `kind` that's asserted above.
+    let parent = Node(
+      kind: kind,
+      kids: sliceFrom(nodesBegin, til = NodeId parser.nodes.len),
+    )
+  parser.working.add(parent)
 
 proc nestMaybe(parsing: var Parsing, kind: NodeKind, begin: NodeId) =
   if parsing.here > begin:
     parsing.nest(kind, begin)
 
-proc nestIfWhile(parsing: var Parsing, tokenKinds: set[TokenKind]) =
+proc nest(parsing: var Parsing, kind: NodeKind, ifWhile: set[TokenKind]) =
   let begin = parsing.here
-  while parsing.peek in tokenKinds:
+  while parsing.peek in ifWhile:
     parsing.advance
-  parsing.nestMaybe(space, begin)
+  parsing.nestMaybe(kind, begin)
 
 # Parsing rules.
 
 proc call(parsing: var Parsing) =
-  discard parsing
+  # TODO Real parsing.
+  parsing.nest(
+    call, ifWhile = {TokenKind.low..TokenKind.high} - {eof, opIs, vspace}
+  )
 
 proc compare(parsing: var Parsing) =
   parsing.call
 
 proc hspace(parsing: var Parsing) =
-  parsing.nestIfWhile {TokenKind.comment, hspace}
+  parsing.nest(space, ifWhile = {TokenKind.comment, hspace})
 
 proc space(parsing: var Parsing) =
-  parsing.nestIfWhile {TokenKind.comment, hspace, vspace}
+  parsing.nest(space, ifWhile = {TokenKind.comment, hspace, vspace})
 
 proc define(parsing: var Parsing) =
   let begin = parsing.here
@@ -87,7 +109,7 @@ proc define(parsing: var Parsing) =
   if parsing.advanceIf(opIs):
     parsing.space
     parsing.define
-    parsing.nest(NodeKind.define, begin)
+    parsing.nest define, begin
 
 proc expression(parsing: var Parsing) = parsing.define
 
@@ -97,10 +119,10 @@ proc parse(parsing: var Parsing): Tree =
   let parser = addr parsing.parser
   parser.nodes.setLen(0)
   parser.working.setLen(0)
-  while true:
+  while parsing.peek != eof:
     parsing.expression
-    # TODO Parse.
-    break
+    parsing.space
+  parsing.nestMaybe(bloc, 0)
   Tree(nodes: parser.nodes)
 
 proc newParser*(): Parser = Parser(
