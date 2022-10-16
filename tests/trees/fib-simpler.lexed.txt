@@ -1,185 +1,208 @@
-id: 'main'
-hspace: ' '
-hspace: ' '
-keyFor: 'for'
-hspace: ' '
-roundBegin: '('
-roundEnd: ')'
-hspace: ' '
-keyBe: 'be'
-call: (idx: 0, len: 2)
-opIs: '='
-space: (idx: 2, len: 1)
-call: (idx: 3, len: 6)
-vspace: '
+bloc
+  define
+    call
+      id: 'main'
+      hspace: ' '
+    /call
+    opIs: '='
+    space
+      hspace: ' '
+    call
+      keyFor: 'for'
+      hspace: ' '
+      roundBegin: '('
+      roundEnd: ')'
+      hspace: ' '
+      keyBe: 'be'
+    /call
+  /define
+  space
+    vspace: '
 '
-hspace: '  '
-id: 'each'
-hspace: ' '
-roundBegin: '('
-integer: '0'
-opDot: '.'
-id: 'thru'
-hspace: ' '
-integer: '9'
-roundEnd: ')'
-hspace: ' '
-keyFor: 'for'
-hspace: ' '
-id: 'n'
-hspace: ' '
-keyBe: 'be'
-vspace: '
+    hspace: '  '
+  /space
+  call
+    id: 'each'
+    hspace: ' '
+    roundBegin: '('
+    integer: '0'
+    opDot: '.'
+    id: 'thru'
+    hspace: ' '
+    integer: '9'
+    roundEnd: ')'
+    hspace: ' '
+    keyFor: 'for'
+    hspace: ' '
+    id: 'n'
+    hspace: ' '
+    keyBe: 'be'
+  /call
+  space
+    vspace: '
 '
-hspace: '    '
-id: 'void'
-hspace: ' '
-keyOf: 'of'
-hspace: ' '
-id: 'printf'
-hspace: ' '
-quoteDouble: '"'
-stringText: 'fib(%d) = %d'
-stringEscape: '\n'
-quoteDouble: '"'
-hspace: ' '
-id: 'n'
-hspace: ' '
-roundBegin: '('
-id: 'fib'
-hspace: ' '
-id: 'n'
-roundEnd: ')'
-vspace: '
+    hspace: '    '
+  /space
+  call
+    id: 'void'
+    hspace: ' '
+    keyOf: 'of'
+    hspace: ' '
+    id: 'printf'
+    hspace: ' '
+    quoteDouble: '"'
+    stringText: 'fib(%d) = %d'
+    stringEscape: '\n'
+    quoteDouble: '"'
+    hspace: ' '
+    id: 'n'
+    hspace: ' '
+    roundBegin: '('
+    id: 'fib'
+    hspace: ' '
+    id: 'n'
+    roundEnd: ')'
+  /call
+  space
+    vspace: '
 '
-hspace: '  '
-keyEnd: 'end'
-vspace: '
+    hspace: '  '
+  /space
+  call
+    keyEnd: 'end'
+  space
+    vspace: '
 '
-keyEnd: 'end'
-vspace: '
+  call
+    keyEnd: 'end'
+  space
+    vspace: '
 
 '
-comment: '# Params without default values are positional.'
-vspace: '
+    comment: '# Params without default values are positional.'
+    vspace: '
 '
-id: 'fib'
-hspace: ' '
-hspace: ' '
-keyFor: 'for'
-hspace: ' '
-id: 'n'
-hspace: ' '
-keyIs: 'is'
-hspace: ' '
-id: 'int'
-hspace: ' '
-keyTo: 'to'
-hspace: ' '
-id: 'int'
-hspace: ' '
-keyBe: 'be'
-call: (idx: 58, len: 2)
-opIs: '='
-space: (idx: 60, len: 1)
-call: (idx: 61, len: 13)
-vspace: '
+  /space
+  define
+    call
+      id: 'fib'
+      hspace: ' '
+    /call
+    opIs: '='
+    space
+      hspace: ' '
+    call
+      keyFor: 'for'
+      hspace: ' '
+      id: 'n'
+      hspace: ' '
+      keyIs: 'is'
+      hspace: ' '
+      id: 'Int'
+      hspace: ' '
+      keyTo: 'to'
+      hspace: ' '
+      id: 'Int'
+      hspace: ' '
+      keyBe: 'be'
+    /call
+  /define
+  space
+    vspace: '
 '
-hspace: '  '
-id: 'switch'
-hspace: ' '
-keyOf: 'of'
-vspace: '
+    hspace: '  '
+  /space
+  call
+    id: 'switch'
+    hspace: ' '
+    keyOf: 'of'
+  /call
+  space
+    vspace: '
 '
-hspace: '    '
-id: 'case'
-hspace: ' '
-id: 'n'
-hspace: ' '
-opLe: '<='
-hspace: ' '
-integer: '0'
-hspace: ' '
-keyBe: 'be'
-hspace: ' '
-integer: '0'
-vspace: '
+    hspace: '    '
+  /space
+  call
+    id: 'case'
+    hspace: ' '
+    id: 'n'
+    hspace: ' '
+    opLe: '<='
+    hspace: ' '
+    integer: '0'
+    hspace: ' '
+    keyBe: 'be'
+    hspace: ' '
+    integer: '0'
+  /call
+  space
+    vspace: '
 '
-hspace: '    '
-id: 'case'
-hspace: ' '
-id: 'n'
-hspace: ' '
-opEq: '=='
-hspace: ' '
-integer: '1'
-hspace: ' '
-keyBe: 'be'
-hspace: ' '
-integer: '1'
-vspace: '
+    hspace: '    '
+  /space
+  call
+    id: 'case'
+    hspace: ' '
+    id: 'n'
+    hspace: ' '
+    opEq: '=='
+    hspace: ' '
+    integer: '1'
+    hspace: ' '
+    keyBe: 'be'
+    hspace: ' '
+    integer: '1'
+  /call
+  space
+    vspace: '
 '
-hspace: '    '
-id: 'else'
-hspace: ' '
-keyBe: 'be'
-hspace: ' '
-id: 'fib'
-hspace: ' '
-roundBegin: '('
-id: 'n'
-hspace: ' '
-opSub: '-'
-hspace: ' '
-integer: '2'
-roundEnd: ')'
-hspace: ' '
-opAdd: '+'
-hspace: ' '
-id: 'fib'
-hspace: ' '
-roundBegin: '('
-id: 'n'
-hspace: ' '
-opSub: '-'
-hspace: ' '
-integer: '1'
-roundEnd: ')'
-vspace: '
+    hspace: '    '
+  /space
+  call
+    id: 'else'
+    hspace: ' '
+    keyBe: 'be'
+    hspace: ' '
+    id: 'fib'
+    hspace: ' '
+    roundBegin: '('
+    id: 'n'
+    hspace: ' '
+    opSub: '-'
+    hspace: ' '
+    integer: '2'
+    roundEnd: ')'
+    hspace: ' '
+    opAdd: '+'
+    hspace: ' '
+    id: 'fib'
+    hspace: ' '
+    roundBegin: '('
+    id: 'n'
+    hspace: ' '
+    opSub: '-'
+    hspace: ' '
+    integer: '1'
+    roundEnd: ')'
+  /call
+  space
+    vspace: '
 '
-hspace: '  '
-keyEnd: 'end'
-vspace: '
+    hspace: '  '
+  /space
+  call
+    keyEnd: 'end'
+  space
+    vspace: '
 '
-keyEnd: 'end'
-vspace: '
+  call
+    keyEnd: 'end'
+  space
+    vspace: '
 '
-define: (idx: 9, len: 4)
-space: (idx: 13, len: 2)
-call: (idx: 15, len: 15)
-space: (idx: 30, len: 2)
-call: (idx: 32, len: 18)
-space: (idx: 50, len: 2)
-call: (idx: 52, len: 1)
-space: (idx: 53, len: 1)
-call: (idx: 54, len: 1)
-space: (idx: 55, len: 3)
-define: (idx: 74, len: 4)
-space: (idx: 78, len: 2)
-call: (idx: 80, len: 3)
-space: (idx: 83, len: 2)
-call: (idx: 85, len: 11)
-space: (idx: 96, len: 2)
-call: (idx: 98, len: 11)
-space: (idx: 109, len: 2)
-call: (idx: 111, len: 25)
-space: (idx: 136, len: 2)
-call: (idx: 138, len: 1)
-space: (idx: 139, len: 1)
-call: (idx: 140, len: 1)
-space: (idx: 141, len: 1)
+/bloc
+nodes: 167
 tokens: 137
-nodes: 166
 interns: 40
 token size: 8
 node size: 12

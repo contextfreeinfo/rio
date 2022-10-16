@@ -5,7 +5,7 @@ main = for () be
 end
 
 # Params without default values are positional.
-fib = for n is int to int be
+fib = for n is Int to Int be
   switch of
     case n <= 0 be 0
     case n == 1 be 1

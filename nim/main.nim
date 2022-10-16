@@ -15,16 +15,17 @@ proc main() =
         "hi there"
     tokens = lexer.lex(source)
     tree = parser.parse(tokens)
+  # TODO Why does this alloc extra to add nodes on existing parser???
+  # for _ in 0..<10:
+  #   # Costs even more on a new parser beyond the cost of parser alloc itself.
+  #   # var p = newParser()
+  #   # discard p
+  #   var p = parser
+  #   discard p.parse(tokens)
   # Report.
-  for node in tree.nodes:
-    case node.kind:
-      of leaf:
-        let token = node.token
-        echo token.kind, ": '", lexer.pool[token.text], "'"
-      else:
-        echo node.kind, ": ", node.kids
-  echo("tokens: ", tokens.tokens.len)
+  tree.print(pool = lexer.pool)
   echo("nodes: ", tree.nodes.len)
+  echo("tokens: ", tokens.tokens.len)
   echo("interns: ", lexer.pool.size)
   echo("token size: ", sizeof(Token))
   echo("node size: ", sizeof(Node))

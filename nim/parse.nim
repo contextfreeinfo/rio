@@ -1,12 +1,13 @@
+import intern
 import lex
 import system/assertions
+import std/strutils
 
 type
   NodeKind* = enum
     leaf,
     bloc, # because block is keyword
     call,
-    comment,
     define,
     space
 
@@ -14,7 +15,7 @@ type
 
   NodeSlice* = object
     idx: NodeId
-    len: NodeId
+    thru: NodeId
 
   Node* = object
     case kind*: NodeKind
@@ -40,17 +41,38 @@ type
 
 # Support.
 
+func len(slice: NodeSlice): int = slice.thru - slice.idx + 1
+
+proc printIndent(indent: int) = stdout.write indent.spaces
+
+proc print(tree: Tree, nodeId: NodeId, pool: Pool[TextId], indent: int) =
+  let node = tree.nodes[nodeId]
+  printIndent(2 * indent)
+  case node.kind:
+  of leaf:
+    echo node.token.kind, ": '", pool[node.token.text], "'"
+  else:
+    echo node.kind
+    for kid in node.kids.idx .. node.kids.thru:
+      tree.print(kid, pool = pool, indent = indent + 1)
+    if node.kids.len > 1:
+      printIndent(2 * indent)
+      echo "/", node.kind
+
+proc print*(tree: Tree, pool: Pool[TextId]) =
+  tree.print(NodeId tree.nodes.high, pool = pool, indent = 0)
+
 func token(parsing: Parsing): Token = parsing.tokens.tokens[parsing.index]
 
 proc advance(parsing: var Parsing) =
-  # Bounds checked access asserts that nobody eats the eof.
+  # Bounds checked access here asserts that nobody eats the eof.
   parsing.parser.working.add(Node(kind: leaf, token: parsing.token))
   parsing.index += 1
 
 func here(parsing: Parsing): int32 = int32 parsing.parser.working.len
 
 func sliceFrom(begin: NodeId, til: NodeId): NodeSlice =
-  NodeSlice(idx: begin, len: til - begin)
+  NodeSlice(idx: begin, thru: til - 1)
 
 func peek(parsing: Parsing): TokenKind = parsing.token.kind
 
@@ -123,6 +145,8 @@ proc parse(parsing: var Parsing): Tree =
     parsing.expression
     parsing.space
   parsing.nestMaybe(bloc, 0)
+  # Final nest pushes down the outer block if it exists.
+  parsing.nest(bloc, 0)
   Tree(nodes: parser.nodes)
 
 proc newParser*(): Parser = Parser(
