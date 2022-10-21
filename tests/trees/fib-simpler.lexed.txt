@@ -1,80 +1,110 @@
-bloc
-  define
-    call
+group
+  infix
+    prefix
       id: 'main'
-      hspace: ' '
-    /call
+      space
+        hspace: ' '
+    /prefix
     opIs: '='
     space
       hspace: ' '
-    call
+    prefix
       keyFor: 'for'
-      hspace: ' '
-      roundBegin: '('
-      roundEnd: ')'
-      hspace: ' '
-      keyBe: 'be'
-    /call
-  /define
-  space
-    vspace: '
+      space
+        hspace: ' '
+      group
+        roundBegin: '('
+        roundEnd: ')'
+      /group
+      space
+        hspace: ' '
+      group
+        keyBe: 'be'
+        space
+          vspace: '
 '
-    hspace: '  '
-  /space
-  call
-    id: 'each'
-    hspace: ' '
-    roundBegin: '('
-    integer: '0'
-    opDot: '.'
-    id: 'thru'
-    hspace: ' '
-    integer: '9'
-    roundEnd: ')'
-    hspace: ' '
-    keyFor: 'for'
-    hspace: ' '
-    id: 'n'
-    hspace: ' '
-    keyBe: 'be'
-  /call
-  space
-    vspace: '
+          hspace: '  '
+        /space
+        prefix
+          id: 'each'
+          space
+            hspace: ' '
+          group
+            roundBegin: '('
+            prefix
+              integer: '0'
+              opDot: '.'
+              id: 'thru'
+              space
+                hspace: ' '
+              integer: '9'
+            /prefix
+            roundEnd: ')'
+          /group
+          space
+            hspace: ' '
+          keyFor: 'for'
+          space
+            hspace: ' '
+          id: 'n'
+          space
+            hspace: ' '
+          group
+            keyBe: 'be'
+            space
+              vspace: '
 '
-    hspace: '    '
-  /space
-  call
-    id: 'void'
-    hspace: ' '
-    keyOf: 'of'
-    hspace: ' '
-    id: 'printf'
-    hspace: ' '
-    quoteDouble: '"'
-    stringText: 'fib(%d) = %d'
-    stringEscape: '\n'
-    quoteDouble: '"'
-    hspace: ' '
-    id: 'n'
-    hspace: ' '
-    roundBegin: '('
-    id: 'fib'
-    hspace: ' '
-    id: 'n'
-    roundEnd: ')'
-  /call
-  space
-    vspace: '
+              hspace: '    '
+            /space
+            prefix
+              id: 'void'
+              space
+                hspace: ' '
+              group
+                keyOf: 'of'
+                space
+                  hspace: ' '
+                prefix
+                  id: 'printf'
+                  space
+                    hspace: ' '
+                  quoteDouble: '"'
+                  stringText: 'fib(%d) = %d'
+                  stringEscape: '\n'
+                  quoteDouble: '"'
+                  space
+                    hspace: ' '
+                  id: 'n'
+                  space
+                    hspace: ' '
+                  group
+                    roundBegin: '('
+                    prefix
+                      id: 'fib'
+                      space
+                        hspace: ' '
+                      id: 'n'
+                    /prefix
+                    roundEnd: ')'
+                  /group
+                /prefix
+              /group
+            /prefix
+            space
+              vspace: '
 '
-    hspace: '  '
-  /space
-  call
-    keyEnd: 'end'
-  space
-    vspace: '
+              hspace: '  '
+            /space
+            keyEnd: 'end'
+          /group
+        /prefix
+        space
+          vspace: '
 '
-  call
-    keyEnd: 'end'
+        keyEnd: 'end'
+      /group
+    /prefix
+  /infix
   space
     vspace: '
 
@@ -83,126 +113,179 @@ bloc
     vspace: '
 '
   /space
-  define
-    call
+  infix
+    prefix
       id: 'fib'
-      hspace: ' '
-    /call
+      space
+        hspace: ' '
+    /prefix
     opIs: '='
     space
       hspace: ' '
-    call
+    prefix
       keyFor: 'for'
-      hspace: ' '
+      space
+        hspace: ' '
       id: 'n'
-      hspace: ' '
+      space
+        hspace: ' '
       keyIs: 'is'
-      hspace: ' '
+      space
+        hspace: ' '
       id: 'Int'
-      hspace: ' '
+      space
+        hspace: ' '
       keyTo: 'to'
-      hspace: ' '
+      space
+        hspace: ' '
       id: 'Int'
-      hspace: ' '
-      keyBe: 'be'
-    /call
-  /define
+      space
+        hspace: ' '
+      group
+        keyBe: 'be'
+        space
+          vspace: '
+'
+          hspace: '  '
+        /space
+        prefix
+          id: 'switch'
+          space
+            hspace: ' '
+          group
+            keyOf: 'of'
+            space
+              vspace: '
+'
+              hspace: '    '
+            /space
+            prefix
+              id: 'case'
+              space
+                hspace: ' '
+              id: 'n'
+              space
+                hspace: ' '
+              opLe: '<='
+              space
+                hspace: ' '
+              integer: '0'
+              space
+                hspace: ' '
+              group
+                keyBe: 'be'
+                space
+                  hspace: ' '
+                prefix
+                  integer: '0'
+              /group
+            /prefix
+            space
+              vspace: '
+'
+              hspace: '    '
+            /space
+            prefix
+              id: 'case'
+              space
+                hspace: ' '
+              id: 'n'
+              space
+                hspace: ' '
+              opEq: '=='
+              space
+                hspace: ' '
+              integer: '1'
+              space
+                hspace: ' '
+              group
+                keyBe: 'be'
+                space
+                  hspace: ' '
+                prefix
+                  integer: '1'
+              /group
+            /prefix
+            space
+              vspace: '
+'
+              hspace: '    '
+            /space
+            prefix
+              id: 'else'
+              space
+                hspace: ' '
+              group
+                keyBe: 'be'
+                space
+                  hspace: ' '
+                prefix
+                  id: 'fib'
+                  space
+                    hspace: ' '
+                  group
+                    roundBegin: '('
+                    prefix
+                      id: 'n'
+                      space
+                        hspace: ' '
+                      opSub: '-'
+                      space
+                        hspace: ' '
+                      integer: '2'
+                    /prefix
+                    roundEnd: ')'
+                  /group
+                  space
+                    hspace: ' '
+                  opAdd: '+'
+                  space
+                    hspace: ' '
+                  id: 'fib'
+                  space
+                    hspace: ' '
+                  group
+                    roundBegin: '('
+                    prefix
+                      id: 'n'
+                      space
+                        hspace: ' '
+                      opSub: '-'
+                      space
+                        hspace: ' '
+                      integer: '1'
+                    /prefix
+                    roundEnd: ')'
+                  /group
+                /prefix
+              /group
+            /prefix
+            space
+              vspace: '
+'
+              hspace: '  '
+            /space
+            keyEnd: 'end'
+          /group
+        /prefix
+        space
+          vspace: '
+'
+        prefix
+          keyEnd: 'end'
+          space
+            hspace: ' '
+          id: 'fib'
+        /prefix
+      /group
+    /prefix
+  /infix
   space
     vspace: '
 '
-    hspace: '  '
-  /space
-  call
-    id: 'switch'
-    hspace: ' '
-    keyOf: 'of'
-  /call
-  space
-    vspace: '
-'
-    hspace: '    '
-  /space
-  call
-    id: 'case'
-    hspace: ' '
-    id: 'n'
-    hspace: ' '
-    opLe: '<='
-    hspace: ' '
-    integer: '0'
-    hspace: ' '
-    keyBe: 'be'
-    hspace: ' '
-    integer: '0'
-  /call
-  space
-    vspace: '
-'
-    hspace: '    '
-  /space
-  call
-    id: 'case'
-    hspace: ' '
-    id: 'n'
-    hspace: ' '
-    opEq: '=='
-    hspace: ' '
-    integer: '1'
-    hspace: ' '
-    keyBe: 'be'
-    hspace: ' '
-    integer: '1'
-  /call
-  space
-    vspace: '
-'
-    hspace: '    '
-  /space
-  call
-    id: 'else'
-    hspace: ' '
-    keyBe: 'be'
-    hspace: ' '
-    id: 'fib'
-    hspace: ' '
-    roundBegin: '('
-    id: 'n'
-    hspace: ' '
-    opSub: '-'
-    hspace: ' '
-    integer: '2'
-    roundEnd: ')'
-    hspace: ' '
-    opAdd: '+'
-    hspace: ' '
-    id: 'fib'
-    hspace: ' '
-    roundBegin: '('
-    id: 'n'
-    hspace: ' '
-    opSub: '-'
-    hspace: ' '
-    integer: '1'
-    roundEnd: ')'
-  /call
-  space
-    vspace: '
-'
-    hspace: '  '
-  /space
-  call
-    keyEnd: 'end'
-  space
-    vspace: '
-'
-  call
-    keyEnd: 'end'
-  space
-    vspace: '
-'
-/bloc
-nodes: 167
-tokens: 137
+/group
+nodes: 230
+tokens: 139
 interns: 40
 token size: 8
 node size: 12

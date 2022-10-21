@@ -5,7 +5,7 @@ import std/os
 
 proc main() =
   var lexer = newLexer()
-  var parser = newParser()
+  var grower = newGrower()
   let
     args = commandLineParams()
     source =
@@ -14,13 +14,13 @@ proc main() =
       else:
         "hi there"
     tokens = lexer.lex(source)
-    tree = parser.parse(tokens)
-  # TODO Why does this alloc extra to add nodes on existing parser???
+    tree = grower.parse(tokens)
+  # TODO Why does this alloc extra to add nodes on existing grower???
   # for _ in 0..<10:
-  #   # Costs even more on a new parser beyond the cost of parser alloc itself.
-  #   # var p = newParser()
+  #   # Costs even more on a new grower beyond the cost of grower alloc itself.
+  #   # var p = newGrower()
   #   # discard p
-  #   var p = parser
+  #   var p = grower
   #   discard p.parse(tokens)
   # Report.
   tree.print(pool = lexer.pool)

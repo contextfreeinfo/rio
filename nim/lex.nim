@@ -66,6 +66,16 @@ const
   HSpaceChars = {' ', '\t'}
   StringSpecialChars = {'"', '\\'}
   VSpaceChars = {'\r', '\n'}
+  keys* = {
+    keyAs,
+    keyBe,
+    keyEnd,
+    keyFor,
+    keyIs,
+    keyOf,
+    keyTo,
+  }
+  idLike* = {id} + keys
 
 func idContinue(c: char): bool {.raises: [].} =
   case c:

@@ -11,4 +11,4 @@ fib = for n is Int to Int be
     case n == 1 be 1
     else be fib (n - 2) + fib (n - 1)
   end
-end
+end fib

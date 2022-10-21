@@ -6,9 +6,9 @@ import std/strutils
 type
   NodeKind* = enum
     leaf,
-    bloc, # because block is keyword
-    call,
-    define,
+    group,
+    prefix,
+    infix,
     space
 
   NodeId* = int32
@@ -24,19 +24,23 @@ type
     else:
       kids*: NodeSlice
 
+  Pass* = enum
+    parse
+
   Tree* = ref object
+    pass*: Pass
     nodes*: seq[Node]
 
-  Parser* = ref object
+  Grower* = ref object
     ## Persistent buffers across uses, retained for better pre-allocation.
-    ## Cleared for each new run.
+    ## Cleared retaining capacity for each new run.
     nodes: seq[Node]
     working: seq[Node]
 
   Parsing = ref object
     ## Information for a particular parse.
     index: int32
-    parser: Parser
+    grower: Grower
     tokens: Tokens
 
 # Support.
@@ -66,10 +70,10 @@ func token(parsing: Parsing): Token = parsing.tokens.tokens[parsing.index]
 
 proc advance(parsing: var Parsing) =
   # Bounds checked access here asserts that nobody eats the eof.
-  parsing.parser.working.add(Node(kind: leaf, token: parsing.token))
+  parsing.grower.working.add(Node(kind: leaf, token: parsing.token))
   parsing.index += 1
 
-func here(parsing: Parsing): int32 = int32 parsing.parser.working.len
+func here(parsing: Parsing): int32 = int32 parsing.grower.working.len
 
 func sliceFrom(begin: NodeId, til: NodeId): NodeSlice =
   NodeSlice(idx: begin, thru: til - 1)
@@ -86,16 +90,16 @@ proc nest(parsing: var Parsing, kind: NodeKind, begin: NodeId) =
   # TODO Any way to define a type that statically asserts this?
   assert kind != leaf
   let
-    parser = addr parsing.parser
-    nodesBegin = NodeId parser.nodes.len
-  parser.nodes.add(parser.working[begin ..< ^0])
-  parser.working.setLen(begin)
+    grower = addr parsing.grower
+    nodesBegin = NodeId grower.nodes.len
+  grower.nodes.add(grower.working[begin ..< ^0])
+  grower.working.setLen(begin)
   {.cast(uncheckedAssign).}: # For `kind` that's asserted above.
     let parent = Node(
       kind: kind,
-      kids: sliceFrom(nodesBegin, til = NodeId parser.nodes.len),
+      kids: sliceFrom(nodesBegin, til = NodeId grower.nodes.len),
     )
-  parser.working.add(parent)
+  grower.working.add(parent)
 
 proc nestMaybe(parsing: var Parsing, kind: NodeKind, begin: NodeId) =
   if parsing.here > begin:
@@ -109,14 +113,7 @@ proc nest(parsing: var Parsing, kind: NodeKind, ifWhile: set[TokenKind]) =
 
 # Parsing rules.
 
-proc call(parsing: var Parsing) =
-  # TODO Real parsing.
-  parsing.nest(
-    call, ifWhile = {TokenKind.low..TokenKind.high} - {eof, opIs, vspace}
-  )
-
-proc compare(parsing: var Parsing) =
-  parsing.call
+proc expression(parsing: var Parsing)
 
 proc hspace(parsing: var Parsing) =
   parsing.nest(space, ifWhile = {TokenKind.comment, hspace})
@@ -124,36 +121,98 @@ proc hspace(parsing: var Parsing) =
 proc space(parsing: var Parsing) =
   parsing.nest(space, ifWhile = {TokenKind.comment, hspace, vspace})
 
+proc group(parsing: var Parsing, until: set[TokenKind]) =
+  parsing.expression
+  parsing.space
+  while not (parsing.peek in until):
+    parsing.expression
+    parsing.space
+
+proc ender(parsing: var Parsing) =
+  let begin = parsing.here
+  if parsing.peek == keyEnd:
+    parsing.advance
+    parsing.hspace
+    if parsing.peek in idLike:
+      parsing.advance
+      parsing.nest(prefix, begin)
+
+proc bloc(parsing: var Parsing) =
+  let begin = parsing.here
+  parsing.advance
+  parsing.hspace
+  if parsing.peek == vspace:
+    # Actual block.
+    # Can put a second space node in a row, but eh.
+    parsing.space
+    parsing.group {eof, keyEnd}
+    parsing.ender
+  else:
+    # Single nested expression.
+    parsing.expression
+  parsing.nest(group, begin)
+
+proc round(parsing: var Parsing) =
+  let begin = parsing.here
+  parsing.advance
+  parsing.group {eof, keyEnd, roundEnd}
+  discard parsing.advanceIf(roundEnd)
+  parsing.nest(group, begin)
+
+proc atom(parsing: var Parsing) =
+  case parsing.peek:
+  of {eof, hspace, opIs, roundEnd, vspace}:
+    return
+  of keyBe, keyOf:
+    parsing.bloc
+  of roundBegin:
+    parsing.round
+  else:
+    parsing.advance
+
+proc call(parsing: var Parsing) =
+  let begin = parsing.here
+  parsing.atom
+  parsing.hspace
+  while not (parsing.peek in {eof, opIs, roundEnd, vspace}):
+    parsing.atom
+    parsing.hspace
+  parsing.nestMaybe(prefix, begin)
+
+proc compare(parsing: var Parsing) =
+  parsing.call
+
 proc define(parsing: var Parsing) =
   let begin = parsing.here
   parsing.compare
   parsing.hspace
   if parsing.advanceIf(opIs):
     parsing.space
+    # Right associative.
     parsing.define
-    parsing.nest define, begin
+    parsing.nest infix, begin
 
 proc expression(parsing: var Parsing) = parsing.define
 
 # Top level.
 
 proc parse(parsing: var Parsing): Tree =
-  let parser = addr parsing.parser
-  parser.nodes.setLen(0)
-  parser.working.setLen(0)
+  let grower = addr parsing.grower
+  grower.nodes.setLen(0)
+  grower.working.setLen(0)
   while parsing.peek != eof:
     parsing.expression
     parsing.space
-  parsing.nestMaybe(bloc, 0)
+  parsing.nestMaybe(group, 0)
   # Final nest pushes down the outer block if it exists.
-  parsing.nest(bloc, 0)
-  Tree(nodes: parser.nodes)
+  parsing.nest(group, 0)
+  Tree(pass: parse, nodes: grower.nodes)
 
-proc newParser*(): Parser = Parser(
+proc newGrower*(): Grower = Grower(
   nodes: newSeq[Node](),
   working: newSeq[Node](),
 )
 
-proc parse*(parser: var Parser, tokens: Tokens): Tree =
-  var parsing = Parsing(index: 0, parser: parser, tokens: tokens)
+proc parse*(grower: var Grower, tokens: Tokens): Tree =
+  var parsing = Parsing(index: 0, grower: grower, tokens: tokens)
   parsing.parse
