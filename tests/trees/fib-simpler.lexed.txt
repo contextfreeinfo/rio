@@ -12,13 +12,13 @@ group
       keyFor: 'for'
       space
         hspace: ' '
-      group
+      prefix
         roundBegin: '('
         roundEnd: ')'
-      /group
+      /prefix
       space
         hspace: ' '
-      group
+      prefix
         keyBe: 'be'
         space
           vspace: '
@@ -29,7 +29,7 @@ group
           id: 'each'
           space
             hspace: ' '
-          group
+          prefix
             roundBegin: '('
             prefix
               integer: '0'
@@ -40,7 +40,7 @@ group
               integer: '9'
             /prefix
             roundEnd: ')'
-          /group
+          /prefix
           space
             hspace: ' '
           keyFor: 'for'
@@ -49,7 +49,7 @@ group
           id: 'n'
           space
             hspace: ' '
-          group
+          prefix
             keyBe: 'be'
             space
               vspace: '
@@ -60,7 +60,7 @@ group
               id: 'void'
               space
                 hspace: ' '
-              group
+              prefix
                 keyOf: 'of'
                 space
                   hspace: ' '
@@ -77,7 +77,7 @@ group
                   id: 'n'
                   space
                     hspace: ' '
-                  group
+                  prefix
                     roundBegin: '('
                     prefix
                       id: 'fib'
@@ -86,9 +86,9 @@ group
                       id: 'n'
                     /prefix
                     roundEnd: ')'
-                  /group
+                  /prefix
                 /prefix
-              /group
+              /prefix
             /prefix
             space
               vspace: '
@@ -96,13 +96,13 @@ group
               hspace: '  '
             /space
             keyEnd: 'end'
-          /group
+          /prefix
         /prefix
         space
           vspace: '
 '
         keyEnd: 'end'
-      /group
+      /prefix
     /prefix
   /infix
   space
@@ -137,13 +137,15 @@ group
         space
           hspace: ' '
       /infix
-      keyTo: 'to'
-      space
-        hspace: ' '
-      id: 'Int'
-      space
-        hspace: ' '
-      group
+      prefix
+        keyTo: 'to'
+        space
+          hspace: ' '
+        id: 'Int'
+        space
+          hspace: ' '
+      /prefix
+      prefix
         keyBe: 'be'
         space
           vspace: '
@@ -154,7 +156,7 @@ group
           id: 'switch'
           space
             hspace: ' '
-          group
+          prefix
             keyOf: 'of'
             space
               vspace: '
@@ -176,13 +178,13 @@ group
                 space
                   hspace: ' '
               /infix
-              group
+              prefix
                 keyBe: 'be'
                 space
                   hspace: ' '
                 prefix
                   integer: '0'
-              /group
+              /prefix
             /prefix
             space
               vspace: '
@@ -204,13 +206,13 @@ group
                 space
                   hspace: ' '
               /infix
-              group
+              prefix
                 keyBe: 'be'
                 space
                   hspace: ' '
                 prefix
                   integer: '1'
-              /group
+              /prefix
             /prefix
             space
               vspace: '
@@ -221,13 +223,13 @@ group
               id: 'else'
               space
                 hspace: ' '
-              group
+              prefix
                 keyBe: 'be'
                 space
                   hspace: ' '
                 prefix
                   infix
-                    group
+                    prefix
                       roundBegin: '('
                       prefix
                         id: 'fib'
@@ -244,13 +246,13 @@ group
                         /infix
                       /prefix
                       roundEnd: ')'
-                    /group
+                    /prefix
                     space
                       hspace: ' '
                     opAdd: '+'
                     space
                       hspace: ' '
-                    group
+                    prefix
                       roundBegin: '('
                       prefix
                         id: 'fib'
@@ -267,9 +269,9 @@ group
                         /infix
                       /prefix
                       roundEnd: ')'
-                    /group
+                    /prefix
                   /infix
-              /group
+              /prefix
             /prefix
             space
               vspace: '
@@ -277,7 +279,7 @@ group
               hspace: '  '
             /space
             keyEnd: 'end'
-          /group
+          /prefix
         /prefix
         space
           vspace: '
@@ -288,14 +290,14 @@ group
             hspace: ' '
           id: 'fib'
         /prefix
-      /group
+      /prefix
     /prefix
   /infix
   space
     vspace: '
 '
 /group
-nodes: 236
+nodes: 237
 tokens: 139
 interns: 40
 token size: 8

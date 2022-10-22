@@ -37,11 +37,14 @@ type
     nodes: seq[Node]
     working: seq[Node]
 
-  Parsing = ref object
+  Parser = object
     ## Information for a particular parse.
+    funLike: bool
     index: int32
     grower: Grower
     tokens: Tokens
+
+  Parsing = ptr Parser
 
 # Support.
 
@@ -118,6 +121,8 @@ proc nest(parsing: var Parsing, kind: NodeKind, ifWhile: set[TokenKind]) =
 
 proc expression(parsing: var Parsing)
 
+proc simpleExpression(parsing: var Parsing)
+
 proc hspace(parsing: var Parsing) =
   parsing.nest(space, ifWhile = {TokenKind.comment, hspace})
 
@@ -157,21 +162,41 @@ proc bloc(parsing: var Parsing) =
   else:
     # Single nested expression.
     parsing.expression
-  parsing.nest(group, begin)
+  # Ends are whitespace after parsing and validation.
+  parsing.nest(prefix, begin)
 
 proc round(parsing: var Parsing) =
   let begin = parsing.here
   parsing.advance
+  parsing.space
   parsing.group {eof, keyEnd, roundEnd}
   discard parsing.advanceIf(roundEnd)
-  parsing.nest(group, begin)
+  # Ends are whitespace after parsing and validation.
+  parsing.nest(prefix, begin)
+
+proc to(parsing: var Parsing) =
+  let begin = parsing.here
+  # Always starts a prefix with up to 1 expression.
+  parsing.advance
+  parsing.space
+  parsing.simpleExpression
+  parsing.nest(prefix, begin)
 
 proc atom(parsing: var Parsing) =
   case parsing.peek:
   of {eof, hspace, opIs, roundEnd, vspace}:
     return
-  of keyBe, keyOf:
+  of keyBe:
+    if parsing.funLike:
+      # Someone else gets this `be`.
+      # TODO Will we need `funLike` for `with`? Or just get rid of it?
+      return
+    else:
+      parsing.bloc
+  of keyOf:
     parsing.bloc
+  of keyTo:
+    parsing.to
   of roundBegin:
     parsing.round
   else:
@@ -188,7 +213,7 @@ proc infix(
   while parsing.advanceIf(ops):
     parsing.space
     parsing.next
-    parsing.nest infix, begin
+    parsing.nest(infix, begin)
 
 proc addSub(parsing: var Parsing) = parsing.infix {opAdd, opSub}: atom
 
@@ -216,9 +241,11 @@ proc define(parsing: var Parsing) =
     parsing.space
     # Right associative.
     parsing.define
-    parsing.nest infix, begin
+    parsing.nest(infix, begin)
 
 proc expression(parsing: var Parsing) = parsing.define
+
+proc simpleExpression(parsing: var Parsing) = parsing.compare
 
 # Top level.
 
@@ -233,6 +260,7 @@ proc parse(parsing: var Parsing): Tree =
       parsing.space
     parsing.expression
     parsing.space
+  # TODO Prefix a phantom `be` to make this `prefix` as well?
   parsing.nestMaybe(group, 0)
   # Final nest pushes down the outer block if it exists.
   parsing.nest(group, 0)
@@ -244,5 +272,6 @@ proc newGrower*(): Grower = Grower(
 )
 
 proc parse*(grower: var Grower, tokens: Tokens): Tree =
-  var parsing = Parsing(index: 0, grower: grower, tokens: tokens)
+  var parser = Parser(funLike: false, index: 0, grower: grower, tokens: tokens)
+  var parsing = addr parser
   parsing.parse
