@@ -123,6 +123,7 @@ proc nextOther(lexing: var Lexing): TokenKind {.raises: [].} =
   case lexing.advance:
     of '(': roundBegin
     of ')': roundEnd
+    of ':': opColon
     of '.': opDot
     of '+': opAdd
     of '-': opSub

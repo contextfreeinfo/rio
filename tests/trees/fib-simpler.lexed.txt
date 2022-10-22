@@ -126,15 +126,17 @@ group
       keyFor: 'for'
       space
         hspace: ' '
-      id: 'n'
-      space
-        hspace: ' '
-      keyIs: 'is'
-      space
-        hspace: ' '
-      id: 'Int'
-      space
-        hspace: ' '
+      infix
+        id: 'n'
+        space
+          hspace: ' '
+        keyIs: 'is'
+        space
+          hspace: ' '
+        id: 'Int'
+        space
+          hspace: ' '
+      /infix
       keyTo: 'to'
       space
         hspace: ' '
@@ -163,15 +165,17 @@ group
               id: 'case'
               space
                 hspace: ' '
-              id: 'n'
-              space
-                hspace: ' '
-              opLe: '<='
-              space
-                hspace: ' '
-              integer: '0'
-              space
-                hspace: ' '
+              infix
+                id: 'n'
+                space
+                  hspace: ' '
+                opLe: '<='
+                space
+                  hspace: ' '
+                integer: '0'
+                space
+                  hspace: ' '
+              /infix
               group
                 keyBe: 'be'
                 space
@@ -189,15 +193,17 @@ group
               id: 'case'
               space
                 hspace: ' '
-              id: 'n'
-              space
-                hspace: ' '
-              opEq: '=='
-              space
-                hspace: ' '
-              integer: '1'
-              space
-                hspace: ' '
+              infix
+                id: 'n'
+                space
+                  hspace: ' '
+                opEq: '=='
+                space
+                  hspace: ' '
+                integer: '1'
+                space
+                  hspace: ' '
+              /infix
               group
                 keyBe: 'be'
                 space
@@ -220,44 +226,49 @@ group
                 space
                   hspace: ' '
                 prefix
-                  id: 'fib'
-                  space
-                    hspace: ' '
-                  group
-                    roundBegin: '('
-                    prefix
-                      id: 'n'
-                      space
-                        hspace: ' '
-                      opSub: '-'
-                      space
-                        hspace: ' '
-                      integer: '2'
-                    /prefix
-                    roundEnd: ')'
-                  /group
-                  space
-                    hspace: ' '
-                  opAdd: '+'
-                  space
-                    hspace: ' '
-                  id: 'fib'
-                  space
-                    hspace: ' '
-                  group
-                    roundBegin: '('
-                    prefix
-                      id: 'n'
-                      space
-                        hspace: ' '
-                      opSub: '-'
-                      space
-                        hspace: ' '
-                      integer: '1'
-                    /prefix
-                    roundEnd: ')'
-                  /group
-                /prefix
+                  infix
+                    group
+                      roundBegin: '('
+                      prefix
+                        id: 'fib'
+                        space
+                          hspace: ' '
+                        infix
+                          id: 'n'
+                          space
+                            hspace: ' '
+                          opSub: '-'
+                          space
+                            hspace: ' '
+                          integer: '2'
+                        /infix
+                      /prefix
+                      roundEnd: ')'
+                    /group
+                    space
+                      hspace: ' '
+                    opAdd: '+'
+                    space
+                      hspace: ' '
+                    group
+                      roundBegin: '('
+                      prefix
+                        id: 'fib'
+                        space
+                          hspace: ' '
+                        infix
+                          id: 'n'
+                          space
+                            hspace: ' '
+                          opSub: '-'
+                          space
+                            hspace: ' '
+                          integer: '1'
+                        /infix
+                      /prefix
+                      roundEnd: ')'
+                    /group
+                  /infix
               /group
             /prefix
             space
@@ -284,7 +295,7 @@ group
     vspace: '
 '
 /group
-nodes: 230
+nodes: 236
 tokens: 139
 interns: 40
 token size: 8

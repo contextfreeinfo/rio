@@ -80,11 +80,14 @@ func sliceFrom(begin: NodeId, til: NodeId): NodeSlice =
 
 func peek(parsing: Parsing): TokenKind = parsing.token.kind
 
-proc advanceIf(parsing: var Parsing, tokenKind: TokenKind): bool =
-  let match = parsing.peek == tokenKind
+proc advanceIf(parsing: var Parsing, tokenKinds: set[TokenKind]): bool =
+  let match = parsing.peek in tokenKinds
   if match:
     parsing.advance
   match
+
+proc advanceIf(parsing: var Parsing, tokenKind: TokenKind): bool =
+  parsing.advanceIf({tokenKind})
 
 proc nest(parsing: var Parsing, kind: NodeKind, begin: NodeId) =
   # TODO Any way to define a type that statically asserts this?
@@ -125,6 +128,10 @@ proc group(parsing: var Parsing, until: set[TokenKind]) =
   parsing.expression
   parsing.space
   while not (parsing.peek in until):
+    if parsing.peek == roundEnd:
+      # Avoid infinite loops.
+      parsing.advance
+      parsing.space
     parsing.expression
     parsing.space
 
@@ -170,21 +177,40 @@ proc atom(parsing: var Parsing) =
   else:
     parsing.advance
 
+proc infix(
+  parsing: var Parsing,
+  ops: set[TokenKind],
+  next: proc(parsing: var Parsing)
+) =
+  let begin = parsing.here
+  parsing.next
+  parsing.hspace
+  while parsing.advanceIf(ops):
+    parsing.space
+    parsing.next
+    parsing.nest infix, begin
+
+proc addSub(parsing: var Parsing) = parsing.infix {opAdd, opSub}: atom
+
+proc compare(parsing: var Parsing) =
+  parsing.infix {opEq, opGe, opGt, opLe, opLt, opNe}: addSub
+
+proc isType(parsing: var Parsing) = parsing.infix {keyIs}: compare
+
+proc colon(parsing: var Parsing) = parsing.infix {opColon}: isType
+
 proc call(parsing: var Parsing) =
   let begin = parsing.here
-  parsing.atom
+  parsing.colon
   parsing.hspace
   while not (parsing.peek in {eof, opIs, roundEnd, vspace}):
-    parsing.atom
+    parsing.colon
     parsing.hspace
   parsing.nestMaybe(prefix, begin)
 
-proc compare(parsing: var Parsing) =
-  parsing.call
-
 proc define(parsing: var Parsing) =
   let begin = parsing.here
-  parsing.compare
+  parsing.call
   parsing.hspace
   if parsing.advanceIf(opIs):
     parsing.space
@@ -201,6 +227,10 @@ proc parse(parsing: var Parsing): Tree =
   grower.nodes.setLen(0)
   grower.working.setLen(0)
   while parsing.peek != eof:
+    if parsing.peek in {keyEnd, roundEnd}:
+      # Avoid infinite loops.
+      parsing.advance
+      parsing.space
     parsing.expression
     parsing.space
   parsing.nestMaybe(group, 0)

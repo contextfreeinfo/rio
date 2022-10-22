@@ -9,6 +9,6 @@ fib = for n is Int to Int be
   switch of
     case n <= 0 be 0
     case n == 1 be 1
-    else be fib (n - 2) + fib (n - 1)
+    else be (fib n - 2) + (fib n - 1)
   end
 end fib
