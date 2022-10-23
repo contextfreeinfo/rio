@@ -39,7 +39,7 @@ type
 
   Parser = object
     ## Information for a particular parse.
-    funlike: bool
+    ## TODO Track ids for contextual block closing?
     index: int32
     grower: Grower
     tokens: Tokens
@@ -208,12 +208,7 @@ proc atom(parsing: var Parsing) =
   of {eof, hspace, opIs, roundEnd, vspace}:
     return
   of keyBe:
-    if parsing.funlike:
-      # Someone else gets this `be`.
-      # TODO Will we need `funlike` for `with`? Or just get rid of it?
-      return
-    else:
-      parsing.bloc
+    parsing.bloc
   of keyFor:
     parsing.fun
   of keyOf:
@@ -263,7 +258,6 @@ proc call(parsing: var Parsing) =
   parsing.nestMaybe(prefix, begin)
 
 proc define(parsing: var Parsing) =
-  # TODO Reset funlike
   let begin = parsing.here
   parsing.call
   parsing.hspace
@@ -302,6 +296,6 @@ proc newGrower*(): Grower = Grower(
 )
 
 proc parse*(grower: var Grower, tokens: Tokens): Tree =
-  var parser = Parser(funlike: false, index: 0, grower: grower, tokens: tokens)
+  var parser = Parser(index: 0, grower: grower, tokens: tokens)
   var parsing = addr parser
   parsing.parse
