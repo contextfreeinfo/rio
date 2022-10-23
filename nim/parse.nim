@@ -39,7 +39,7 @@ type
 
   Parser = object
     ## Information for a particular parse.
-    funLike: bool
+    funlike: bool
     index: int32
     grower: Grower
     tokens: Tokens
@@ -182,17 +182,40 @@ proc to(parsing: var Parsing) =
   parsing.simpleExpression
   parsing.nest(prefix, begin)
 
+proc fun(parsing: var Parsing) =
+  let begin = parsing.here
+  parsing.advance
+  while true:
+    parsing.space
+    case parsing.peek
+    of eof:
+      break
+    of keyBe:
+      parsing.bloc
+      break
+    of keyEnd:
+      parsing.advance
+      break
+    of keyTo:
+      # Would get here eventually, but might as well short-circuit.
+      parsing.to
+    else:
+      parsing.simpleExpression
+  parsing.nest(prefix, begin)
+
 proc atom(parsing: var Parsing) =
   case parsing.peek:
   of {eof, hspace, opIs, roundEnd, vspace}:
     return
   of keyBe:
-    if parsing.funLike:
+    if parsing.funlike:
       # Someone else gets this `be`.
-      # TODO Will we need `funLike` for `with`? Or just get rid of it?
+      # TODO Will we need `funlike` for `with`? Or just get rid of it?
       return
     else:
       parsing.bloc
+  of keyFor:
+    parsing.fun
   of keyOf:
     parsing.bloc
   of keyTo:
@@ -215,7 +238,9 @@ proc infix(
     parsing.next
     parsing.nest(infix, begin)
 
-proc addSub(parsing: var Parsing) = parsing.infix {opAdd, opSub}: atom
+proc dot(parsing: var Parsing) = parsing.infix {opDot}: atom
+
+proc addSub(parsing: var Parsing) = parsing.infix {opAdd, opSub}: dot
 
 proc compare(parsing: var Parsing) =
   parsing.infix {opEq, opGe, opGt, opLe, opLt, opNe}: addSub
@@ -231,9 +256,14 @@ proc call(parsing: var Parsing) =
   while not (parsing.peek in {eof, opIs, roundEnd, vspace}):
     parsing.colon
     parsing.hspace
+  if parsing.here == begin + 1:
+    # See if we can get away with `(a)` and `a` meaning the same thing.
+    # Maybe `a _` or some such is a nullary call?
+    return
   parsing.nestMaybe(prefix, begin)
 
 proc define(parsing: var Parsing) =
+  # TODO Reset funlike
   let begin = parsing.here
   parsing.call
   parsing.hspace
@@ -245,7 +275,7 @@ proc define(parsing: var Parsing) =
 
 proc expression(parsing: var Parsing) = parsing.define
 
-proc simpleExpression(parsing: var Parsing) = parsing.compare
+proc simpleExpression(parsing: var Parsing) = parsing.colon
 
 # Top level.
 
@@ -272,6 +302,6 @@ proc newGrower*(): Grower = Grower(
 )
 
 proc parse*(grower: var Grower, tokens: Tokens): Tree =
-  var parser = Parser(funLike: false, index: 0, grower: grower, tokens: tokens)
+  var parser = Parser(funlike: false, index: 0, grower: grower, tokens: tokens)
   var parsing = addr parser
   parsing.parse
