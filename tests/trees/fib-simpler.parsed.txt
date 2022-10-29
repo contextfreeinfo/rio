@@ -1,4 +1,4 @@
-group
+top
   infix
     prefix
       id: 'main'
@@ -297,9 +297,5 @@ group
   space
     vspace: '
 '
-/group
+/top
 nodes: 236
-tokens: 139
-interns: 40
-token size: 8
-node size: 12

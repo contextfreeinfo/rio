@@ -6,16 +6,16 @@ import std/strutils
 type
   NodeKind* = enum
     leaf,
-    group,
     prefix,
     infix,
-    space
+    space,
+    top,
 
   NodeId* = int32
 
   NodeSlice* = object
-    idx: NodeId
-    thru: NodeId
+    idx*: NodeId
+    thru*: NodeId
 
   Node* = object
     case kind*: NodeKind
@@ -26,6 +26,7 @@ type
 
   Pass* = enum
     parse
+    spaceless
 
   Tree* = ref object
     pass*: Pass
@@ -34,8 +35,8 @@ type
   Grower* = ref object
     ## Persistent buffers across uses, retained for better pre-allocation.
     ## Cleared retaining capacity for each new run.
-    nodes: seq[Node]
-    working: seq[Node]
+    nodes*: seq[Node]
+    working*: seq[Node]
 
   Parser = object
     ## Information for a particular parse.
@@ -48,26 +49,36 @@ type
 
 # Support.
 
-func len(slice: NodeSlice): int = slice.thru - slice.idx + 1
+func len*(slice: NodeSlice): int = slice.thru - slice.idx + 1
 
-proc printIndent(indent: int) = stdout.write indent.spaces
+func rootId*(tree: Tree): NodeId = NodeId tree.nodes.high
 
-proc print(tree: Tree, nodeId: NodeId, pool: Pool[TextId], indent: int) =
+func root*(tree: Tree): Node = tree.nodes[tree.rootId]
+
+proc printIndent(indent: int, file: File = stdout) = file.write indent.spaces
+
+proc print(
+  tree: Tree,
+  nodeId: NodeId,
+  pool: Pool[TextId],
+  indent: int,
+  file: File = stdout,
+) =
   let node = tree.nodes[nodeId]
-  printIndent(2 * indent)
+  printIndent(2 * indent, file = file)
   case node.kind:
   of leaf:
-    echo node.token.kind, ": '", pool[node.token.text], "'"
+    file.writeLine node.token.kind, ": '", pool[node.token.text], "'"
   else:
-    echo node.kind
+    file.writeLine node.kind
     for kid in node.kids.idx .. node.kids.thru:
-      tree.print(kid, pool = pool, indent = indent + 1)
+      tree.print(kid, file = file, pool = pool, indent = indent + 1)
     if node.kids.len > 1:
-      printIndent(2 * indent)
-      echo "/", node.kind
+      printIndent(2 * indent, file = file)
+      file.writeLine "/", node.kind
 
-proc print*(tree: Tree, pool: Pool[TextId]) =
-  tree.print(NodeId tree.nodes.high, pool = pool, indent = 0)
+proc print*(tree: Tree, pool: Pool[TextId], file: File = stdout) =
+  tree.print(tree.rootId, file = file, pool = pool, indent = 0)
 
 func token(parsing: Parsing): Token = parsing.tokens.tokens[parsing.index]
 
@@ -76,7 +87,9 @@ proc advance(parsing: var Parsing) =
   parsing.grower.working.add(Node(kind: leaf, token: parsing.token))
   parsing.index += 1
 
-func here(parsing: Parsing): int32 = int32 parsing.grower.working.len
+func here*(grower: Grower): NodeId = NodeId grower.working.len
+
+func here(parsing: Parsing): NodeId = parsing.grower.here
 
 func sliceFrom(begin: NodeId, til: NodeId): NodeSlice =
   NodeSlice(idx: begin, thru: til - 1)
@@ -92,11 +105,10 @@ proc advanceIf(parsing: var Parsing, tokenKinds: set[TokenKind]): bool =
 proc advanceIf(parsing: var Parsing, tokenKind: TokenKind): bool =
   parsing.advanceIf({tokenKind})
 
-proc nest(parsing: var Parsing, kind: NodeKind, begin: NodeId) =
+proc nest*(grower: var Grower, kind: NodeKind, begin: NodeId) =
   # TODO Any way to define a type that statically asserts this?
   assert kind != leaf
   let
-    grower = addr parsing.grower
     nodesBegin = NodeId grower.nodes.len
   grower.nodes.add(grower.working[begin ..< ^0])
   grower.working.setLen(begin)
@@ -107,9 +119,15 @@ proc nest(parsing: var Parsing, kind: NodeKind, begin: NodeId) =
     )
   grower.working.add(parent)
 
+proc nestMaybe*(grower: var Grower, kind: NodeKind, begin: NodeId) =
+  if grower.here > begin:
+    grower.nest(kind, begin)
+
+proc nest(parsing: var Parsing, kind: NodeKind, begin: NodeId) =
+  parsing.grower.nest(kind, begin)
+
 proc nestMaybe(parsing: var Parsing, kind: NodeKind, begin: NodeId) =
-  if parsing.here > begin:
-    parsing.nest(kind, begin)
+  parsing.grower.nestMaybe(kind, begin)
 
 proc nest(parsing: var Parsing, kind: NodeKind, ifWhile: set[TokenKind]) =
   let begin = parsing.here
@@ -284,10 +302,9 @@ proc parse(parsing: var Parsing): Tree =
       parsing.space
     parsing.expression
     parsing.space
-  # TODO Prefix a phantom `be` to make this `prefix` as well?
-  parsing.nestMaybe(group, 0)
+  parsing.nestMaybe(top, 0)
   # Final nest pushes down the outer block if it exists.
-  parsing.nest(group, 0)
+  parsing.nest(top, 0)
   Tree(pass: parse, nodes: grower.nodes)
 
 proc newGrower*(): Grower = Grower(

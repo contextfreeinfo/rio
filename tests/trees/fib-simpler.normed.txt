@@ -1,0 +1,154 @@
+top
+  infix
+    id: 'main'
+    opIs: '='
+    prefix
+      keyFor: 'for'
+      prefix
+        roundBegin: '('
+        roundEnd: ')'
+      /prefix
+      prefix
+        keyBe: 'be'
+        prefix
+          id: 'each'
+          prefix
+            roundBegin: '('
+            prefix
+              infix
+                integer: '0'
+                opDot: '.'
+                id: 'thru'
+              /infix
+              integer: '9'
+            /prefix
+            roundEnd: ')'
+          /prefix
+          prefix
+            keyFor: 'for'
+            id: 'n'
+            prefix
+              keyBe: 'be'
+              prefix
+                id: 'void'
+                prefix
+                  keyOf: 'of'
+                  prefix
+                    id: 'printf'
+                    quoteDouble: '"'
+                    stringText: 'fib(%d) = %d'
+                    stringEscape: '\n'
+                    quoteDouble: '"'
+                    id: 'n'
+                    prefix
+                      roundBegin: '('
+                      prefix
+                        id: 'fib'
+                        id: 'n'
+                      /prefix
+                      roundEnd: ')'
+                    /prefix
+                  /prefix
+                /prefix
+              /prefix
+              keyEnd: 'end'
+            /prefix
+          /prefix
+        /prefix
+        keyEnd: 'end'
+      /prefix
+    /prefix
+  /infix
+  infix
+    id: 'fib'
+    opIs: '='
+    prefix
+      keyFor: 'for'
+      infix
+        id: 'n'
+        keyIs: 'is'
+        id: 'Int'
+      /infix
+      prefix
+        keyTo: 'to'
+        id: 'Int'
+      /prefix
+      prefix
+        keyBe: 'be'
+        prefix
+          id: 'switch'
+          prefix
+            keyOf: 'of'
+            prefix
+              id: 'case'
+              infix
+                id: 'n'
+                opLe: '<='
+                integer: '0'
+              /infix
+              prefix
+                keyBe: 'be'
+                integer: '0'
+              /prefix
+            /prefix
+            prefix
+              id: 'case'
+              infix
+                id: 'n'
+                opEq: '=='
+                integer: '1'
+              /infix
+              prefix
+                keyBe: 'be'
+                integer: '1'
+              /prefix
+            /prefix
+            prefix
+              id: 'else'
+              prefix
+                keyBe: 'be'
+                infix
+                  prefix
+                    roundBegin: '('
+                    prefix
+                      id: 'fib'
+                      infix
+                        id: 'n'
+                        opSub: '-'
+                        integer: '2'
+                      /infix
+                    /prefix
+                    roundEnd: ')'
+                  /prefix
+                  opAdd: '+'
+                  prefix
+                    roundBegin: '('
+                    prefix
+                      id: 'fib'
+                      infix
+                        id: 'n'
+                        opSub: '-'
+                        integer: '1'
+                      /infix
+                    /prefix
+                    roundEnd: ')'
+                  /prefix
+                /infix
+              /prefix
+            /prefix
+            keyEnd: 'end'
+          /prefix
+        /prefix
+        prefix
+          keyEnd: 'end'
+          id: 'fib'
+        /prefix
+      /prefix
+    /prefix
+  /infix
+/top
+nodes: 110
+tokens: 139
+interns: 40
+token size: 8
+node size: 12
