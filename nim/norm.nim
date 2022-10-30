@@ -52,16 +52,18 @@ proc simplifyRound(norming: var Norming, node: Node) =
 proc simplifyAny(norming: var Norming, node: Node) =
   case node.kind:
   of leaf:
-    if node.token.kind in {roundBegin, roundEnd}:
-      # Effectively whitespace except when empty.
-      return
-    norming.add(node)
+    case node.token.kind
+    # Don't need extra groupers anymore.
+    of keyEnd, roundBegin, roundEnd: discard
+    else: norming.add(node)
   of infix: norming.simplifyInfix(node)
   of prefix:
     let callee = norming.kidAt(node)
     case callee.kind:
     of leaf:
       case callee.token.kind:
+      # TODO Assert matching id before discard.
+      of keyEnd: discard
       of roundBegin: norming.simplifyRound(node)
       else: norming.simplifyGeneric(node)
     of infix:

@@ -224,20 +224,13 @@ proc fun(parsing: var Parsing) =
 
 proc atom(parsing: var Parsing) =
   case parsing.peek:
-  of {eof, hspace, opIs, roundEnd, vspace}:
-    return
-  of keyBe:
-    parsing.bloc
-  of keyFor:
-    parsing.fun
-  of keyOf:
-    parsing.bloc
-  of keyTo:
-    parsing.to
-  of roundBegin:
-    parsing.round
-  else:
-    parsing.advance
+  of {eof, hspace, opIs, roundEnd, vspace}: return
+  of keyBe: parsing.bloc
+  of keyFor: parsing.fun
+  of keyOf: parsing.bloc
+  of keyTo: parsing.to
+  of roundBegin: parsing.round
+  else: parsing.advance
 
 proc infix(
   parsing: var Parsing,
