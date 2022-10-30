@@ -27,6 +27,7 @@ type
   Pass* = enum
     parse
     spaceless
+    simplified
 
   Tree* = ref object
     pass*: Pass

@@ -19,7 +19,8 @@ proc main() =
     tokens = lexer.lex(source)
     parsed = grower.parse(tokens)
     spaceless = grower.spaceless(parsed)
-    tree = spaceless
+    simplified = grower.simplified(spaceless)
+    tree = simplified
   # TODO Why does this alloc extra to add nodes on existing grower???
   # for _ in 0..<10:
   #   # Costs even more on a new grower beyond the cost of grower alloc itself.

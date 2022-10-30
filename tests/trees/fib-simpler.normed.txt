@@ -4,25 +4,18 @@ top
     opIs: '='
     prefix
       keyFor: 'for'
-      prefix
-        roundBegin: '('
-        roundEnd: ')'
-      /prefix
+      roundBegin: '('
       prefix
         keyBe: 'be'
         prefix
           id: 'each'
           prefix
-            roundBegin: '('
-            prefix
-              infix
-                integer: '0'
-                opDot: '.'
-                id: 'thru'
-              /infix
-              integer: '9'
-            /prefix
-            roundEnd: ')'
+            infix
+              integer: '0'
+              opDot: '.'
+              id: 'thru'
+            /infix
+            integer: '9'
           /prefix
           prefix
             keyFor: 'for'
@@ -41,12 +34,8 @@ top
                     quoteDouble: '"'
                     id: 'n'
                     prefix
-                      roundBegin: '('
-                      prefix
-                        id: 'fib'
-                        id: 'n'
-                      /prefix
-                      roundEnd: ')'
+                      id: 'fib'
+                      id: 'n'
                     /prefix
                   /prefix
                 /prefix
@@ -109,29 +98,21 @@ top
                 keyBe: 'be'
                 infix
                   prefix
-                    roundBegin: '('
-                    prefix
-                      id: 'fib'
-                      infix
-                        id: 'n'
-                        opSub: '-'
-                        integer: '2'
-                      /infix
-                    /prefix
-                    roundEnd: ')'
+                    id: 'fib'
+                    infix
+                      id: 'n'
+                      opSub: '-'
+                      integer: '2'
+                    /infix
                   /prefix
                   opAdd: '+'
                   prefix
-                    roundBegin: '('
-                    prefix
-                      id: 'fib'
-                      infix
-                        id: 'n'
-                        opSub: '-'
-                        integer: '1'
-                      /infix
-                    /prefix
-                    roundEnd: ')'
+                    id: 'fib'
+                    infix
+                      id: 'n'
+                      opSub: '-'
+                      integer: '1'
+                    /infix
                   /prefix
                 /infix
               /prefix
@@ -147,7 +128,7 @@ top
     /prefix
   /infix
 /top
-nodes: 110
+nodes: 96
 tokens: 139
 interns: 40
 token size: 8
