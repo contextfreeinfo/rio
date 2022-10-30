@@ -1,7 +1,7 @@
 top
-  infix
-    id: 'main'
+  prefix
     opIs: '='
+    id: 'main'
     prefix
       keyFor: 'for'
       roundBegin: '('
@@ -10,11 +10,11 @@ top
         prefix
           id: 'each'
           prefix
-            infix
-              integer: '0'
+            prefix
               opDot: '.'
+              integer: '0'
               id: 'thru'
-            /infix
+            /prefix
             integer: '9'
           /prefix
           prefix
@@ -40,24 +40,22 @@ top
                   /prefix
                 /prefix
               /prefix
-              keyEnd: 'end'
             /prefix
           /prefix
         /prefix
-        keyEnd: 'end'
       /prefix
     /prefix
-  /infix
-  infix
-    id: 'fib'
+  /prefix
+  prefix
     opIs: '='
+    id: 'fib'
     prefix
       keyFor: 'for'
-      infix
-        id: 'n'
+      prefix
         keyIs: 'is'
+        id: 'n'
         id: 'Int'
-      /infix
+      /prefix
       prefix
         keyTo: 'to'
         id: 'Int'
@@ -70,11 +68,11 @@ top
             keyOf: 'of'
             prefix
               id: 'case'
-              infix
-                id: 'n'
+              prefix
                 opLe: '<='
+                id: 'n'
                 integer: '0'
-              /infix
+              /prefix
               prefix
                 keyBe: 'be'
                 integer: '0'
@@ -82,11 +80,11 @@ top
             /prefix
             prefix
               id: 'case'
-              infix
-                id: 'n'
+              prefix
                 opEq: '=='
+                id: 'n'
                 integer: '1'
-              /infix
+              /prefix
               prefix
                 keyBe: 'be'
                 integer: '1'
@@ -96,39 +94,34 @@ top
               id: 'else'
               prefix
                 keyBe: 'be'
-                infix
-                  prefix
-                    id: 'fib'
-                    infix
-                      id: 'n'
-                      opSub: '-'
-                      integer: '2'
-                    /infix
-                  /prefix
+                prefix
                   opAdd: '+'
                   prefix
                     id: 'fib'
-                    infix
-                      id: 'n'
+                    prefix
                       opSub: '-'
-                      integer: '1'
-                    /infix
+                      id: 'n'
+                      integer: '2'
+                    /prefix
                   /prefix
-                /infix
+                  prefix
+                    id: 'fib'
+                    prefix
+                      opSub: '-'
+                      id: 'n'
+                      integer: '1'
+                    /prefix
+                  /prefix
+                /prefix
               /prefix
             /prefix
-            keyEnd: 'end'
           /prefix
-        /prefix
-        prefix
-          keyEnd: 'end'
-          id: 'fib'
         /prefix
       /prefix
     /prefix
-  /infix
+  /prefix
 /top
-nodes: 96
+nodes: 90
 tokens: 139
 interns: 40
 token size: 8

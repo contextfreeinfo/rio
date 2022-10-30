@@ -12,8 +12,8 @@ proc add(norming: var Norming, node: Node) = norming.grower.working.add(node)
 
 func here(norming: Norming): NodeId = norming.grower.here
 
-# proc nest(norming: var Norming, kind: NodeKind, begin: NodeId) =
-#   norming.grower.nest(kind, begin)
+proc nest(norming: var Norming, kind: NodeKind, begin: NodeId) =
+  norming.grower.nest(kind, begin)
 
 func kidAt(norming: Norming, node: Node, offset: NodeId = 0): Node =
   norming.tree.nodes[node.kids.idx + offset]
@@ -31,6 +31,15 @@ proc simplifyGeneric(norming: var Norming, node: Node) =
     return
   norming.nestMaybe(node.kind, begin)
 
+proc simplifyInfix(norming: var Norming, node: Node) =
+  let begin = norming.here
+  # Convert infix to prefix.
+  norming.add(norming.kidAt(node, 1))
+  norming.simplifyAny(norming.kidAt(node))
+  if node.kids.len == 3:
+    norming.simplifyAny(norming.kidAt(node, 2))
+  norming.nest(prefix, begin)
+
 proc simplifyRound(norming: var Norming, node: Node) =
   if node.kids.len == 2:
     let tail = norming.kidAt(node, 1)
@@ -47,25 +56,19 @@ proc simplifyAny(norming: var Norming, node: Node) =
       # Effectively whitespace except when empty.
       return
     norming.add(node)
-  of infix:
-    # TODO Make prefix
-    norming.simplifyGeneric(node)
+  of infix: norming.simplifyInfix(node)
   of prefix:
     let callee = norming.kidAt(node)
     case callee.kind:
     of leaf:
       case callee.token.kind:
-      of roundBegin:
-        norming.simplifyRound(node)
-      else:
-        norming.simplifyGeneric(node)
+      of roundBegin: norming.simplifyRound(node)
+      else: norming.simplifyGeneric(node)
     of infix:
       # TODO Check if kid 2 is opDot
       norming.simplifyGeneric(node)
-    else:
-      norming.simplifyGeneric(node)
-  of top:
-    norming.simplifyGeneric(node)
+    else: norming.simplifyGeneric(node)
+  of top: norming.simplifyGeneric(node)
   of space:
     assert false
 
