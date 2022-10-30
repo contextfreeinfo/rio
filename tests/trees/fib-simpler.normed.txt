@@ -10,11 +10,8 @@ top
         prefix
           id: 'each'
           prefix
-            prefix
-              opDot: '.'
-              integer: '0'
-              id: 'thru'
-            /prefix
+            id: 'thru'
+            integer: '0'
             integer: '9'
           /prefix
           prefix
@@ -25,20 +22,17 @@ top
               prefix
                 id: 'void'
                 prefix
-                  keyOf: 'of'
+                  id: 'printf'
                   prefix
-                    id: 'printf'
-                    prefix
-                      quoteDouble: '"'
-                      stringText: 'fib(%d) = %d'
-                      stringEscape: '\n'
-                      quoteDouble: '"'
-                    /prefix
+                    quoteDouble: '"'
+                    stringText: 'fib(%d) = %d'
+                    stringEscape: '\n'
+                    quoteDouble: '"'
+                  /prefix
+                  id: 'n'
+                  prefix
+                    id: 'fib'
                     id: 'n'
-                    prefix
-                      id: 'fib'
-                      id: 'n'
-                    /prefix
                   /prefix
                 /prefix
               /prefix
@@ -67,52 +61,49 @@ top
         prefix
           id: 'switch'
           prefix
-            keyOf: 'of'
+            id: 'case'
             prefix
-              id: 'case'
-              prefix
-                opLe: '<='
-                id: 'n'
-                integer: '0'
-              /prefix
-              prefix
-                keyBe: 'be'
-                integer: '0'
-              /prefix
+              opLe: '<='
+              id: 'n'
+              integer: '0'
             /prefix
             prefix
-              id: 'case'
-              prefix
-                opEq: '=='
-                id: 'n'
-                integer: '1'
-              /prefix
-              prefix
-                keyBe: 'be'
-                integer: '1'
-              /prefix
+              keyBe: 'be'
+              integer: '0'
+            /prefix
+          /prefix
+          prefix
+            id: 'case'
+            prefix
+              opEq: '=='
+              id: 'n'
+              integer: '1'
             /prefix
             prefix
-              id: 'else'
+              keyBe: 'be'
+              integer: '1'
+            /prefix
+          /prefix
+          prefix
+            id: 'else'
+            prefix
+              keyBe: 'be'
               prefix
-                keyBe: 'be'
+                opAdd: '+'
                 prefix
-                  opAdd: '+'
+                  id: 'fib'
                   prefix
-                    id: 'fib'
-                    prefix
-                      opSub: '-'
-                      id: 'n'
-                      integer: '2'
-                    /prefix
+                    opSub: '-'
+                    id: 'n'
+                    integer: '2'
                   /prefix
+                /prefix
+                prefix
+                  id: 'fib'
                   prefix
-                    id: 'fib'
-                    prefix
-                      opSub: '-'
-                      id: 'n'
-                      integer: '1'
-                    /prefix
+                    opSub: '-'
+                    id: 'n'
+                    integer: '1'
                   /prefix
                 /prefix
               /prefix
@@ -123,7 +114,7 @@ top
     /prefix
   /prefix
 /top
-nodes: 91
+nodes: 85
 tokens: 139
 interns: 40
 token size: 8

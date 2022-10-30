@@ -40,6 +40,10 @@ proc simplifyInfix(norming: var Norming, node: Node) =
     norming.simplifyAny(norming.kidAt(node, 2))
   norming.nest(prefix, begin)
 
+proc simplifyOf(norming: var Norming, node: Node) =
+  for kidId in node.kids.idx + 1 .. node.kids.thru:
+    norming.simplifyAny(norming.tree.nodes[kidId])
+
 proc simplifyRound(norming: var Norming, node: Node) =
   if node.kids.len == 2:
     let tail = norming.kidAt(node, 1)
@@ -64,6 +68,7 @@ proc simplifyAny(norming: var Norming, node: Node) =
       case callee.token.kind:
       # TODO Assert matching id before discard.
       of keyEnd: discard
+      of keyOf: norming.simplifyOf(node)
       of roundBegin: norming.simplifyRound(node)
       else: norming.simplifyGeneric(node)
     of infix:
