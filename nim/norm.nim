@@ -31,6 +31,20 @@ proc simplifyGeneric(norming: var Norming, node: Node) =
     return
   norming.nestMaybe(node.kind, begin)
 
+proc simplifyDot(norming: var Norming, node: Node) =
+  let callee = norming.kidAt(node)
+  if callee.kids.len == 3:
+    # Reorder and uplift to simple prefix.
+    let begin = norming.here
+    norming.simplifyAny(norming.kidAt(callee, 2))
+    norming.simplifyAny(norming.kidAt(callee))
+    for kidId in node.kids.idx + 1 .. node.kids.thru:
+      norming.simplifyAny(norming.tree.nodes[kidId])
+    norming.nest(prefix, begin)
+  else:
+    # Don't have the right parts for this anyway.
+    norming.simplifyGeneric(node)
+
 proc simplifyInfix(norming: var Norming, node: Node) =
   let begin = norming.here
   # Convert infix to prefix.
@@ -72,12 +86,12 @@ proc simplifyAny(norming: var Norming, node: Node) =
       of roundBegin: norming.simplifyRound(node)
       else: norming.simplifyGeneric(node)
     of infix:
-      # TODO Check if kid 2 is opDot
-      norming.simplifyGeneric(node)
+      case norming.kidAt(callee, 1).token.kind:
+      of opDot: norming.simplifyDot(node)
+      else: norming.simplifyGeneric(node)
     else: norming.simplifyGeneric(node)
   of top: norming.simplifyGeneric(node)
-  of space:
-    assert false
+  of space: assert false
 
 proc spacelessAction(norming: var Norming, node: Node) =
   if node.kind == space:
