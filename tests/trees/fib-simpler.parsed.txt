@@ -71,10 +71,12 @@ top
                     id: 'printf'
                     space
                       hspace: ' '
-                    quoteDouble: '"'
-                    stringText: 'fib(%d) = %d'
-                    stringEscape: '\n'
-                    quoteDouble: '"'
+                    prefix
+                      quoteDouble: '"'
+                      stringText: 'fib(%d) = %d'
+                      stringEscape: '\n'
+                      quoteDouble: '"'
+                    /prefix
                     space
                       hspace: ' '
                     id: 'n'
@@ -298,4 +300,4 @@ top
     vspace: '
 '
 /top
-nodes: 236
+nodes: 237

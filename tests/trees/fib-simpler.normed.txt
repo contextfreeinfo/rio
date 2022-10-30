@@ -28,10 +28,12 @@ top
                   keyOf: 'of'
                   prefix
                     id: 'printf'
-                    quoteDouble: '"'
-                    stringText: 'fib(%d) = %d'
-                    stringEscape: '\n'
-                    quoteDouble: '"'
+                    prefix
+                      quoteDouble: '"'
+                      stringText: 'fib(%d) = %d'
+                      stringEscape: '\n'
+                      quoteDouble: '"'
+                    /prefix
                     id: 'n'
                     prefix
                       id: 'fib'
@@ -121,7 +123,7 @@ top
     /prefix
   /prefix
 /top
-nodes: 90
+nodes: 91
 tokens: 139
 interns: 40
 token size: 8

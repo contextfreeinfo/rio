@@ -184,6 +184,20 @@ proc bloc(parsing: var Parsing) =
   # Ends are whitespace after parsing and validation.
   parsing.nest(prefix, begin)
 
+proc quote(parsing: var Parsing) =
+  let begin = parsing.here
+  parsing.advance
+  while true:
+    case parsing.peek:
+    of quoteDouble:
+      parsing.advance
+      break
+    of eof, vspace:
+      break
+    else:
+      parsing.advance
+  parsing.nest(prefix, begin)
+
 proc round(parsing: var Parsing) =
   let begin = parsing.here
   parsing.advance
@@ -229,6 +243,7 @@ proc atom(parsing: var Parsing) =
   of keyFor: parsing.fun
   of keyOf: parsing.bloc
   of keyTo: parsing.to
+  of quoteDouble: parsing.quote
   of roundBegin: parsing.round
   else: parsing.advance
 
