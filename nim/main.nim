@@ -2,6 +2,7 @@ import intern
 import lex
 import norm
 import parse
+import run
 import std/os
 
 proc main() =
@@ -18,9 +19,8 @@ proc main() =
     outDir = args[1]
     tokens = lexer.lex(source)
     parsed = grower.parse(tokens)
-    spaceless = grower.spaceless(parsed)
-    simplified = grower.simplified(spaceless)
-    tree = simplified
+    tree = grower.normed(parsed)
+  tree.resolve
   # TODO Why does this alloc extra to add nodes on existing grower???
   # for _ in 0..<10:
   #   # Costs even more on a new grower beyond the cost of grower alloc itself.

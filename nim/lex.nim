@@ -34,7 +34,7 @@ type
     roundEnd,
     stringEscape,
     stringText,
-    vspace
+    vspace,
 
   TextId* = int32
 

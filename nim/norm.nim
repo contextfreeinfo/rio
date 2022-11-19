@@ -8,6 +8,23 @@ type
 
   Norming = ptr Normer
 
+func kidAt*(tree: Tree, node: Node, offset: NodeId = 0): Node =
+  tree.nodes[node.kids.idx + offset]
+
+func callee*(tree: Tree, node: Node): Node =
+  case node.kind:
+  of leaf: node
+  of infix: tree.kidAt(node, 1)
+  of prefix: tree.kidAt(node)
+  # TODO Can we just panic? Should this return optional???
+  else: raise ValueError.newException "callee invalid"
+
+func calleeKind*(tree: Tree, node: Node): TokenKind =
+  let callee = tree.callee(node)
+  case callee.kind:
+  of leaf: callee.token.kind
+  else: other
+
 proc add(norming: var Norming, node: Node) = norming.grower.working.add(node)
 
 func here(norming: Norming): NodeId = norming.grower.here
@@ -16,7 +33,7 @@ proc nest(norming: var Norming, kind: NodeKind, begin: NodeId) =
   norming.grower.nest(kind, begin)
 
 func kidAt(norming: Norming, node: Node, offset: NodeId = 0): Node =
-  norming.tree.nodes[node.kids.idx + offset]
+  norming.tree.kidAt(node, offset)
 
 proc nestMaybe(norming: var Norming, kind: NodeKind, begin: NodeId) =
   norming.grower.nestMaybe(kind, begin)
@@ -123,8 +140,13 @@ proc norm(
   norming.nestMaybe(top, begin)
   Tree(pass: pass, nodes: grower.nodes)
 
-proc spaceless*(grower: var Grower, tree: Tree): Tree =
+proc spaceless(grower: var Grower, tree: Tree): Tree =
   grower.norm(spaceless, tree): spacelessAction
 
-proc simplified*(grower: var Grower, tree: Tree): Tree =
+proc simplified(grower: var Grower, tree: Tree): Tree =
   grower.norm(simplified, tree): simplifyAny
+
+proc normed*(grower: var Grower, tree: Tree): Tree =
+  result = tree
+  result = grower.spaceless(result)
+  result = grower.simplified(result)

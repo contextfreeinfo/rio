@@ -4,110 +4,101 @@ top
       id: 'main'
       space
         hspace: ' '
+      prefix
+        keyFor: 'for'
+        space
+          hspace: ' '
+        prefix
+          roundBegin: '('
+          roundEnd: ')'
+        /prefix
+        space
+          hspace: ' '
+      /prefix
     /prefix
     opIs: '='
     space
-      hspace: ' '
+      vspace: '
+'
+      hspace: '  '
+    /space
     prefix
-      keyFor: 'for'
+      id: 'each'
       space
         hspace: ' '
       prefix
         roundBegin: '('
+        prefix
+          infix
+            integer: '0'
+            opDot: '.'
+            id: 'thru'
+          /infix
+          space
+            hspace: ' '
+          integer: '9'
+        /prefix
         roundEnd: ')'
       /prefix
       space
         hspace: ' '
       prefix
-        keyBe: 'be'
+        keyFor: 'for'
         space
-          vspace: '
-'
-          hspace: '  '
-        /space
+          hspace: ' '
+        id: 'n'
+        space
+          hspace: ' '
         prefix
-          id: 'each'
+          keyBe: 'be'
           space
-            hspace: ' '
+            vspace: '
+'
+            hspace: '    '
+          /space
           prefix
-            roundBegin: '('
+            id: 'void'
+            space
+              hspace: ' '
             prefix
-              infix
-                integer: '0'
-                opDot: '.'
-                id: 'thru'
-              /infix
+              keyOf: 'of'
               space
                 hspace: ' '
-              integer: '9'
-            /prefix
-            roundEnd: ')'
-          /prefix
-          space
-            hspace: ' '
-          prefix
-            keyFor: 'for'
-            space
-              hspace: ' '
-            id: 'n'
-            space
-              hspace: ' '
-            prefix
-              keyBe: 'be'
-              space
-                vspace: '
-'
-                hspace: '    '
-              /space
               prefix
-                id: 'void'
+                id: 'printf'
                 space
                   hspace: ' '
                 prefix
-                  keyOf: 'of'
-                  space
-                    hspace: ' '
+                  quoteDouble: '"'
+                  stringText: 'fib(%d) = %d'
+                  stringEscape: '\n'
+                  quoteDouble: '"'
+                /prefix
+                space
+                  hspace: ' '
+                id: 'n'
+                space
+                  hspace: ' '
+                prefix
+                  roundBegin: '('
                   prefix
-                    id: 'printf'
-                    space
-                      hspace: ' '
-                    prefix
-                      quoteDouble: '"'
-                      stringText: 'fib(%d) = %d'
-                      stringEscape: '\n'
-                      quoteDouble: '"'
-                    /prefix
+                    id: 'fib'
                     space
                       hspace: ' '
                     id: 'n'
-                    space
-                      hspace: ' '
-                    prefix
-                      roundBegin: '('
-                      prefix
-                        id: 'fib'
-                        space
-                          hspace: ' '
-                        id: 'n'
-                      /prefix
-                      roundEnd: ')'
-                    /prefix
                   /prefix
+                  roundEnd: ')'
                 /prefix
               /prefix
-              space
-                vspace: '
-'
-                hspace: '  '
-              /space
-              keyEnd: 'end'
             /prefix
           /prefix
-        /prefix
-        space
-          vspace: '
+          space
+            vspace: '
 '
-        keyEnd: 'end'
+            hspace: '  '
+          /space
+          keyEnd: 'end'
+        /prefix
       /prefix
     /prefix
   /infix
@@ -124,175 +115,169 @@ top
       id: 'fib'
       space
         hspace: ' '
+      prefix
+        keyFor: 'for'
+        space
+          hspace: ' '
+        infix
+          id: 'n'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        prefix
+          keyTo: 'to'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /prefix
+      /prefix
     /prefix
     opIs: '='
     space
       hspace: ' '
     prefix
-      keyFor: 'for'
+      keyBe: 'be'
       space
-        hspace: ' '
-      infix
-        id: 'n'
-        space
-          hspace: ' '
-        keyIs: 'is'
-        space
-          hspace: ' '
-        id: 'Int'
-        space
-          hspace: ' '
-      /infix
-      prefix
-        keyTo: 'to'
-        space
-          hspace: ' '
-        id: 'Int'
-        space
-          hspace: ' '
-      /prefix
-      prefix
-        keyBe: 'be'
-        space
-          vspace: '
+        vspace: '
 '
-          hspace: '  '
-        /space
+        hspace: '  '
+      /space
+      prefix
+        id: 'switch'
+        space
+          hspace: ' '
         prefix
-          id: 'switch'
+          keyOf: 'of'
           space
-            hspace: ' '
+            vspace: '
+'
+            hspace: '    '
+          /space
           prefix
-            keyOf: 'of'
-            space
-              vspace: '
-'
-              hspace: '    '
-            /space
-            prefix
-              id: 'case'
+            infix
+              id: 'n'
               space
                 hspace: ' '
-              infix
-                id: 'n'
-                space
-                  hspace: ' '
-                opLe: '<='
-                space
-                  hspace: ' '
-                integer: '0'
-                space
-                  hspace: ' '
-              /infix
-              prefix
-                keyBe: 'be'
-                space
-                  hspace: ' '
-                integer: '0'
-              /prefix
-            /prefix
-            space
-              vspace: '
-'
-              hspace: '    '
-            /space
-            prefix
-              id: 'case'
+              opLe: '<='
               space
                 hspace: ' '
-              infix
-                id: 'n'
-                space
-                  hspace: ' '
-                opEq: '=='
-                space
-                  hspace: ' '
-                integer: '1'
-                space
-                  hspace: ' '
-              /infix
-              prefix
-                keyBe: 'be'
-                space
-                  hspace: ' '
-                integer: '1'
-              /prefix
-            /prefix
-            space
-              vspace: '
-'
-              hspace: '    '
-            /space
-            prefix
-              id: 'else'
+              integer: '0'
               space
                 hspace: ' '
-              prefix
-                keyBe: 'be'
-                space
-                  hspace: ' '
-                infix
-                  prefix
-                    roundBegin: '('
-                    prefix
-                      id: 'fib'
-                      space
-                        hspace: ' '
-                      infix
-                        id: 'n'
-                        space
-                          hspace: ' '
-                        opSub: '-'
-                        space
-                          hspace: ' '
-                        integer: '2'
-                      /infix
-                    /prefix
-                    roundEnd: ')'
-                  /prefix
-                  space
-                    hspace: ' '
-                  opAdd: '+'
-                  space
-                    hspace: ' '
-                  prefix
-                    roundBegin: '('
-                    prefix
-                      id: 'fib'
-                      space
-                        hspace: ' '
-                      infix
-                        id: 'n'
-                        space
-                          hspace: ' '
-                        opSub: '-'
-                        space
-                          hspace: ' '
-                        integer: '1'
-                      /infix
-                    /prefix
-                    roundEnd: ')'
-                  /prefix
-                /infix
-              /prefix
+            /infix
+            prefix
+              keyBe: 'be'
+              space
+                hspace: ' '
+              integer: '0'
             /prefix
-            space
-              vspace: '
-'
-              hspace: '  '
-            /space
-            keyEnd: 'end'
           /prefix
-        /prefix
-        space
-          vspace: '
-'
-        prefix
-          keyEnd: 'end'
           space
-            hspace: ' '
-          id: 'fib'
+            vspace: '
+'
+            hspace: '    '
+          /space
+          prefix
+            infix
+              id: 'n'
+              space
+                hspace: ' '
+              opEq: '=='
+              space
+                hspace: ' '
+              integer: '1'
+              space
+                hspace: ' '
+            /infix
+            prefix
+              keyBe: 'be'
+              space
+                hspace: ' '
+              integer: '1'
+            /prefix
+          /prefix
+          space
+            vspace: '
+'
+            hspace: '    '
+          /space
+          prefix
+            id: 'else'
+            space
+              hspace: ' '
+            prefix
+              keyBe: 'be'
+              space
+                hspace: ' '
+              infix
+                prefix
+                  roundBegin: '('
+                  prefix
+                    id: 'fib'
+                    space
+                      hspace: ' '
+                    infix
+                      id: 'n'
+                      space
+                        hspace: ' '
+                      opSub: '-'
+                      space
+                        hspace: ' '
+                      integer: '2'
+                    /infix
+                  /prefix
+                  roundEnd: ')'
+                /prefix
+                space
+                  hspace: ' '
+                opAdd: '+'
+                space
+                  hspace: ' '
+                prefix
+                  roundBegin: '('
+                  prefix
+                    id: 'fib'
+                    space
+                      hspace: ' '
+                    infix
+                      id: 'n'
+                      space
+                        hspace: ' '
+                      opSub: '-'
+                      space
+                        hspace: ' '
+                      integer: '1'
+                    /infix
+                  /prefix
+                  roundEnd: ')'
+                /prefix
+              /infix
+            /prefix
+          /prefix
+          space
+            vspace: '
+'
+            hspace: '  '
+          /space
+          keyEnd: 'end'
         /prefix
+      /prefix
+      space
+        vspace: '
+'
+      prefix
+        keyEnd: 'end'
+        space
+          hspace: ' '
+        id: 'fib'
       /prefix
     /prefix
   /infix
@@ -300,4 +285,4 @@ top
     vspace: '
 '
 /top
-nodes: 237
+nodes: 224

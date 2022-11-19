@@ -1,14 +1,13 @@
-main = for () be
+main for () =
   each (0.thru 9) for n be
     void of printf "fib(%d) = %d\n" n (fib n)
   end
-end
 
 # Params without default values are positional.
-fib = for n is Int to Int be
+fib for n is Int to Int = be
   switch of
-    case n <= 0 be 0
-    case n == 1 be 1
+    n <= 0 be 0
+    n == 1 be 1
     else be (fib n - 2) + (fib n - 1)
   end
 end fib

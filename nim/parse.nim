@@ -27,6 +27,7 @@ type
   Pass* = enum
     parse
     spaceless
+    # After simplified is just leaf, prefix, and top.
     simplified
 
   Tree* = ref object
@@ -221,8 +222,7 @@ proc fun(parsing: var Parsing) =
   while true:
     parsing.space
     case parsing.peek
-    of eof:
-      break
+    of eof: break
     of keyBe:
       parsing.bloc
       break
@@ -232,8 +232,8 @@ proc fun(parsing: var Parsing) =
     of keyTo:
       # Would get here eventually, but might as well short-circuit.
       parsing.to
-    else:
-      parsing.simpleExpression
+    of opIs: break
+    else: parsing.simpleExpression
   parsing.nest(prefix, begin)
 
 proc atom(parsing: var Parsing) =

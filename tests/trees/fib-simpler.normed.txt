@@ -1,40 +1,39 @@
 top
   prefix
     opIs: '='
-    id: 'main'
     prefix
-      keyFor: 'for'
-      roundBegin: '('
+      id: 'main'
       prefix
-        keyBe: 'be'
+        keyFor: 'for'
+        roundBegin: '('
+      /prefix
+    /prefix
+    prefix
+      id: 'each'
+      prefix
+        id: 'thru'
+        integer: '0'
+        integer: '9'
+      /prefix
+      prefix
+        keyFor: 'for'
+        id: 'n'
         prefix
-          id: 'each'
+          keyBe: 'be'
           prefix
-            id: 'thru'
-            integer: '0'
-            integer: '9'
-          /prefix
-          prefix
-            keyFor: 'for'
-            id: 'n'
+            id: 'void'
             prefix
-              keyBe: 'be'
+              id: 'printf'
               prefix
-                id: 'void'
-                prefix
-                  id: 'printf'
-                  prefix
-                    quoteDouble: '"'
-                    stringText: 'fib(%d) = %d'
-                    stringEscape: '\n'
-                    quoteDouble: '"'
-                  /prefix
-                  id: 'n'
-                  prefix
-                    id: 'fib'
-                    id: 'n'
-                  /prefix
-                /prefix
+                quoteDouble: '"'
+                stringText: 'fib(%d) = %d'
+                stringEscape: '\n'
+                quoteDouble: '"'
+              /prefix
+              id: 'n'
+              prefix
+                id: 'fib'
+                id: 'n'
               /prefix
             /prefix
           /prefix
@@ -44,67 +43,67 @@ top
   /prefix
   prefix
     opIs: '='
-    id: 'fib'
     prefix
-      keyFor: 'for'
+      id: 'fib'
       prefix
-        keyIs: 'is'
-        id: 'n'
-        id: 'Int'
-      /prefix
-      prefix
-        keyTo: 'to'
-        id: 'Int'
-      /prefix
-      prefix
-        keyBe: 'be'
+        keyFor: 'for'
         prefix
-          id: 'switch'
+          keyIs: 'is'
+          id: 'n'
+          id: 'Int'
+        /prefix
+        prefix
+          keyTo: 'to'
+          id: 'Int'
+        /prefix
+      /prefix
+    /prefix
+    prefix
+      keyBe: 'be'
+      prefix
+        id: 'switch'
+        prefix
           prefix
-            id: 'case'
-            prefix
-              opLe: '<='
-              id: 'n'
-              integer: '0'
-            /prefix
-            prefix
-              keyBe: 'be'
-              integer: '0'
-            /prefix
+            opLe: '<='
+            id: 'n'
+            integer: '0'
           /prefix
           prefix
-            id: 'case'
-            prefix
-              opEq: '=='
-              id: 'n'
-              integer: '1'
-            /prefix
-            prefix
-              keyBe: 'be'
-              integer: '1'
-            /prefix
+            keyBe: 'be'
+            integer: '0'
+          /prefix
+        /prefix
+        prefix
+          prefix
+            opEq: '=='
+            id: 'n'
+            integer: '1'
           /prefix
           prefix
-            id: 'else'
+            keyBe: 'be'
+            integer: '1'
+          /prefix
+        /prefix
+        prefix
+          id: 'else'
+          prefix
+            keyBe: 'be'
             prefix
-              keyBe: 'be'
+              opAdd: '+'
               prefix
-                opAdd: '+'
+                id: 'fib'
                 prefix
-                  id: 'fib'
-                  prefix
-                    opSub: '-'
-                    id: 'n'
-                    integer: '2'
-                  /prefix
+                  opSub: '-'
+                  id: 'n'
+                  integer: '2'
                 /prefix
+              /prefix
+              prefix
+                id: 'fib'
                 prefix
-                  id: 'fib'
-                  prefix
-                    opSub: '-'
-                    id: 'n'
-                    integer: '1'
-                  /prefix
+                  opSub: '-'
+                  id: 'n'
+                  integer: '1'
                 /prefix
               /prefix
             /prefix
@@ -114,8 +113,8 @@ top
     /prefix
   /prefix
 /top
-nodes: 85
-tokens: 139
-interns: 40
+nodes: 83
+tokens: 131
+interns: 39
 token size: 8
 node size: 12
