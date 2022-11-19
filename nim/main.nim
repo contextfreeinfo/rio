@@ -9,8 +9,9 @@ proc main() =
   let args = commandLineParams()
   if args.len < 2:
     raise ValueError.newException "Usage for now: rio infile outdir"
-  var lexer = newLexer()
-  var grower = newGrower()
+  var
+    lexer = newLexer()
+    grower = newGrower()
   let
     # TODO Real arg parsing.
     sourcePath = args[0]
@@ -19,8 +20,9 @@ proc main() =
     outDir = args[1]
     tokens = lexer.lex(source)
     parsed = grower.parse(tokens)
-    tree = grower.normed(parsed)
-  tree.resolve
+    normed = grower.normed(parsed)
+    resolved = grower.resolve(normed)
+  discard resolved
   # TODO Why does this alloc extra to add nodes on existing grower???
   # for _ in 0..<10:
   #   # Costs even more on a new grower beyond the cost of grower alloc itself.
@@ -35,14 +37,19 @@ proc main() =
     defer: file.close
     parsed.print(file = file, pool = lexer.pool)
     file.writeLine("nodes: ", parsed.nodes.len)
-  block:
-    let file = open(outDir / sourceName.changeFileExt ".normed.txt", fmWrite)
-    defer: file.close
-    tree.print(file = file, pool = lexer.pool)
-    file.writeLine("nodes: ", tree.nodes.len)
     file.writeLine("tokens: ", tokens.tokens.len)
     file.writeLine("interns: ", lexer.pool.size)
     file.writeLine("token size: ", sizeof(Token))
     file.writeLine("node size: ", sizeof(Node))
+  block:
+    let file = open(outDir / sourceName.changeFileExt ".normed.txt", fmWrite)
+    defer: file.close
+    normed.print(file = file, pool = lexer.pool)
+    file.writeLine("nodes: ", normed.nodes.len)
+  block:
+    let file = open(outDir / sourceName.changeFileExt ".resolved.txt", fmWrite)
+    defer: file.close
+    resolved.print(file = file, pool = lexer.pool)
+    file.writeLine("nodes: ", normed.nodes.len)
 
 main()

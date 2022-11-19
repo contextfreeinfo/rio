@@ -16,7 +16,7 @@ top
           hspace: ' '
       /prefix
     /prefix
-    opIs: '='
+    opDef: '='
     space
       vspace: '
 '
@@ -140,7 +140,7 @@ top
         /prefix
       /prefix
     /prefix
-    opIs: '='
+    opDef: '='
     space
       hspace: ' '
     prefix
@@ -286,3 +286,7 @@ top
 '
 /top
 nodes: 224
+tokens: 131
+interns: 39
+token size: 8
+node size: 12

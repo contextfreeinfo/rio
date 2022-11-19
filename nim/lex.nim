@@ -19,11 +19,11 @@ type
     keyTo,
     opColon,
     opAdd,
+    opDef,
     opDot,
     opEq,
     opGe,
     opGt,
-    opIs,
     opLe,
     opLt,
     opNe,
@@ -34,6 +34,7 @@ type
     roundEnd,
     stringEscape,
     stringText,
+    uid,
     vspace,
 
   TextId* = int32
@@ -130,7 +131,7 @@ proc nextOther(lexing: var Lexing): TokenKind {.raises: [].} =
     of '=':
       case lexing.current:
         of '=': lexing.advanceAs(opEq)
-        else: opIs
+        else: opDef
     of '>':
       case lexing.current:
         of '=': lexing.advanceAs(opGe)
@@ -174,7 +175,7 @@ proc nextStringContent(lexing: var Lexing): TokenKind {.raises: [].} =
 proc next(lexing: var Lexing): Token {.raises: [].} =
   let begin = lexing.index
   if lexing.index >= lexing.text.len:
-    return Token(kind: TokenKind.eof, text: lexing.lexer.pool.emptyId)
+    return Token(kind: TokenKind.eof, text: emptyId)
   let
     kind = case lexing.mode:
       of default: lexing.nextDefault()

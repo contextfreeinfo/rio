@@ -5,11 +5,12 @@ import std/strutils
 
 type
   NodeKind* = enum
-    leaf,
-    prefix,
-    infix,
-    space,
-    top,
+    leaf
+    infix
+    num
+    prefix
+    space
+    top
 
   NodeId* = int32
 
@@ -21,11 +22,17 @@ type
     case kind*: NodeKind
     of leaf:
       token*: Token
+    of num:
+      # Technically could use multiple num nodes for a larger int.
+      # Meanwhile, can't do an int64 here without throwing off 4-byte alignment.
+      signed: int32
+      unsigned: uint32
     else:
       kids*: NodeSlice
 
   Pass* = enum
     parse
+    resolve
     spaceless
     # After simplified is just leaf, prefix, and top.
     simplified
@@ -232,13 +239,13 @@ proc fun(parsing: var Parsing) =
     of keyTo:
       # Would get here eventually, but might as well short-circuit.
       parsing.to
-    of opIs: break
+    of opDef: break
     else: parsing.simpleExpression
   parsing.nest(prefix, begin)
 
 proc atom(parsing: var Parsing) =
   case parsing.peek:
-  of {eof, hspace, opIs, roundEnd, vspace}: return
+  of {eof, hspace, opDef, roundEnd, vspace}: return
   of keyBe: parsing.bloc
   of keyFor: parsing.fun
   of keyOf: parsing.bloc
@@ -275,7 +282,7 @@ proc call(parsing: var Parsing) =
   let begin = parsing.here
   parsing.colon
   parsing.hspace
-  while not (parsing.peek in {eof, opIs, roundEnd, vspace}):
+  while not (parsing.peek in {eof, opDef, roundEnd, vspace}):
     parsing.colon
     parsing.hspace
   if parsing.here == begin + 1:
@@ -288,7 +295,7 @@ proc define(parsing: var Parsing) =
   let begin = parsing.here
   parsing.call
   parsing.hspace
-  if parsing.advanceIf(opIs):
+  if parsing.advanceIf(opDef):
     parsing.space
     # Right associative.
     parsing.define

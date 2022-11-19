@@ -65,9 +65,17 @@ type
 
   Runner = object
     defs: Defs
+    grower: Grower
     tree: Tree
 
   Running = ptr Runner
+
+proc add(running: var Running, node: Node) = running.grower.working.add(node)
+
+func here(running: Running): NodeId = running.grower.here
+
+proc nest(running: var Running, kind: NodeKind, begin: NodeId) =
+  running.grower.nest(kind, begin)
 
 proc extractTops(running: var Running) =
   let
@@ -79,7 +87,7 @@ proc extractTops(running: var Running) =
     # TODO For const strings like "name" we have a TextId for the token inside.
     # TODO name case = for person is Person to String be `person.get "name"`
     # TODO name for person is Person to String = `person.get "name"`
-    if tree.calleeKind(kid) == opIs:
+    if tree.calleeKind(kid) == opDef:
       let target = tree.kidAt(kid, 1)
       # TODO Destructuring at top level? Only for imports???
       if target.kind == leaf:
@@ -96,17 +104,20 @@ proc run(running: var Running, nodeId: NodeId, token: Token): Value =
     Value(kind: valNone)
 
 proc run(running: var Running, node: Node): Value =
+  # Only parent nodes come here.
+  let begin = running.here
   let tree = running.tree
   for kidId in node.kids.idx .. node.kids.thru:
     let kid = tree.nodes[kidId]
     let value =
       case kid.kind:
       of leaf:
+        running.add(kid)
         running.run(kidId, kid.token)
       else:
         # TODO Generalized call dispatch.
         case tree.calleeKind(kid):
-        of opIs:
+        of opDef:
           # TODO Gather up definitions.
           # TODO If destructuring, perform destructure down to single?
           # TODO How to represent overloads?
@@ -114,9 +125,10 @@ proc run(running: var Running, node: Node): Value =
         else:
           running.run(kid)
     discard value
+  running.nest(node.kind, begin)
   Value(kind: valNone)
 
-proc resolve*(tree: Tree) =
+proc resolve*(grower: var Grower, tree: Tree): Tree =
   # TODO Some buffer type for running like for parsing and norming?
   # TODO Resolve imports.
   # TODO Put top levels into seq then sort by name.
@@ -124,7 +136,12 @@ proc resolve*(tree: Tree) =
   # TODO Struct members are brought out to their level.
   # TODO Recurse keeping explicit stack of local definitions to wade through.
   var
-    resolver = Runner(defs: Defs(), tree: tree)
+    resolver = Runner(defs: Defs(), grower: grower, tree: tree)
     running = addr resolver
+  grower.nodes.setLen(0)
+  grower.working.setLen(0)
+  let begin = running.here
   running.extractTops
   discard running.run running.tree.root
+  running.nest(top, begin)
+  Tree(pass: resolve, nodes: grower.nodes)

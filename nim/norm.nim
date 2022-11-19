@@ -86,7 +86,7 @@ proc simplifyRound(norming: var Norming, node: Node) =
 
 proc simplifyAny(norming: var Norming, node: Node) =
   case node.kind:
-  of leaf:
+  of leaf, num:
     case node.token.kind
     # Don't need extra groupers anymore.
     of keyEnd, roundBegin, roundEnd: discard
