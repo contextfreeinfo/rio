@@ -73,6 +73,7 @@ type
   Running = ptr Runner
 
 const
+  stringType = Node(kind: leaf, token: Token(kind: stringText, text: emptyId))
   unknownType = Node(kind: leaf, token: Token(kind: other, text: emptyId))
 
 proc add(running: var Running, node: Node) = running.grower.working.add(node)
@@ -117,11 +118,11 @@ proc buildUdef(
 ) =
   let begin = running.here
   running.add Node(kind: leaf, token: Token(kind: udef, text: emptyId))
-  running.add Node(kind: num, signed: 0, unsigned: running.uid)
+  running.add Node(kind: num, num: NodeNum(signed: 0, unsigned: running.uid))
   running.uid += 1
   let typ = running.action()
-  running.grower.working.insert(typ, begin)
-  running.nest(pretype, begin)
+  running.add(typ)
+  running.nest(prefixt, begin)
 
 proc runDef(running: var Running, node: Node) =
   let tree = running.tree
@@ -148,6 +149,16 @@ proc runFor(running: var Running, node: Node) =
       running.runNode(parent = node, node = kid)
   running.nest(prefix, begin)
 
+proc runQuote(running: var Running, node: Node) =
+  let
+    begin = running.here
+    tree = running.tree
+  for kidId in node.kids.idx .. node.kids.thru:
+    running.runNode(parent = node, node = tree.nodes[kidId])
+  # In the future, these could also become tuples.
+  running.add(stringType)
+  running.nest(prefixt, begin)
+
 proc runPrefix(running: var Running, parent: Node, node: Node) =
   let
     begin = running.here
@@ -162,6 +173,9 @@ proc runPrefix(running: var Running, parent: Node, node: Node) =
     # TODO If destructuring, perform destructure down to single?
     # TODO How to represent overloads?
     running.runDef(node)
+    return
+  of quoteDouble:
+    running.runQuote(node)
     return
   else:
     discard

@@ -14,7 +14,7 @@ func kidAt*(tree: Tree, node: Node, offset: NodeId = 0): Node =
 func callee*(tree: Tree, node: Node): Node =
   case node.kind:
   of leaf: node
-  of infix, pretype: tree.kidAt(node, 1)
+  of infix, prefixt: tree.kidAt(node, 1)
   of prefix: tree.kidAt(node)
   # TODO Can we just panic? Should this return optional???
   else: raise ValueError.newException "callee invalid"
@@ -108,8 +108,8 @@ proc simplifyAny(norming: var Norming, node: Node) =
       else: norming.simplifyGeneric(node)
     else: norming.simplifyGeneric(node)
   of top: norming.simplifyGeneric(node)
-  # TODO Support pretype here in the future?
-  of space, pretype: assert false
+  # TODO Support prefixt here in the future?
+  of space, prefixt: assert false
 
 proc spacelessAction(norming: var Norming, node: Node) =
   if node.kind == space:

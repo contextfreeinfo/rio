@@ -9,11 +9,17 @@ type
     infix
     num
     prefix
-    pretype
+    prefixt
     space
     top
 
   NodeId* = int32
+
+  NodeNum* = object
+    # Technically could use multiple num nodes for a larger int.
+    # Meanwhile, can't do an int64 here without throwing off 4-byte alignment.
+    signed*: int32
+    unsigned*: uint32
 
   NodeSlice* = object
     idx*: NodeId
@@ -24,10 +30,7 @@ type
     of leaf:
       token*: Token
     of num:
-      # Technically could use multiple num nodes for a larger int.
-      # Meanwhile, can't do an int64 here without throwing off 4-byte alignment.
-      signed*: int32
-      unsigned*: uint32
+      num*: NodeNum
     else:
       kids*: NodeSlice
 
@@ -86,7 +89,7 @@ proc print(
     else:
       file.writeLine node.token.kind, ": '", pool[node.token.text], "'"
   of num:
-    file.writeLine "num: ", node.signed, " ", node.unsigned
+    file.writeLine "num: ", node.num.signed, " ", node.num.unsigned
   else:
     file.writeLine node.kind
     for kid in node.kids.idx .. node.kids.thru:

@@ -1,6 +1,5 @@
 top
-  pretype
-    other
+  prefixt
     udef
     num: 0 0
     prefix
@@ -19,24 +18,25 @@ top
       /prefix
       prefix
         keyFor: 'for'
-        pretype
-          other
+        prefixt
           udef
           num: 0 1
           id: 'n'
-        /pretype
+          other
+        /prefixt
         prefix
           keyBe: 'be'
           prefix
             id: 'void'
             prefix
               id: 'printf'
-              prefix
+              prefixt
                 quoteDouble: '"'
                 stringText: 'fib(%d) = %d'
                 stringEscape: '\n'
                 quoteDouble: '"'
-              /prefix
+                stringText
+              /prefixt
               id: 'n'
               prefix
                 id: 'fib'
@@ -47,17 +47,16 @@ top
         /prefix
       /prefix
     /prefix
-  /pretype
-  pretype
     other
+  /prefixt
+  prefixt
     udef
     num: 0 2
     prefix
       id: 'fib'
       prefix
         keyFor: 'for'
-        pretype
-          other
+        prefixt
           udef
           num: 0 3
           prefix
@@ -65,7 +64,8 @@ top
             id: 'n'
             id: 'Int'
           /prefix
-        /pretype
+          other
+        /prefixt
         prefix
           keyTo: 'to'
           id: 'Int'
@@ -125,6 +125,7 @@ top
         /prefix
       /prefix
     /prefix
-  /pretype
+    other
+  /prefixt
 /top
-nodes: 95
+nodes: 96
