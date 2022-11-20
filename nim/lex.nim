@@ -5,37 +5,37 @@ import std/tables
 
 type
   TokenKind* {.size: sizeof(uint32).} = enum
-    comment,
-    eof,
-    hspace,
-    id,
-    integer,
-    keyAs,
-    keyBe,
-    keyEnd,
-    keyFor,
-    keyIs,
-    keyOf,
-    keyTo,
-    opColon,
-    opAdd,
-    opDef,
-    opDot,
-    opEq,
-    opGe,
-    opGt,
-    opLe,
-    opLt,
-    opNe,
-    opSub,
-    other,
-    quoteDouble,
-    roundBegin,
-    roundEnd,
-    stringEscape,
-    stringText,
-    uid,
-    vspace,
+    comment
+    eof
+    hspace
+    id
+    integer
+    keyAs
+    keyBe
+    keyEnd
+    keyFor
+    keyIs
+    keyOf
+    keyTo
+    opColon
+    opAdd
+    opDef
+    opDot
+    opEq
+    opGe
+    opGt
+    opLe
+    opLt
+    opNe
+    opSub
+    other
+    quoteDouble
+    roundBegin
+    roundEnd
+    stringEscape
+    stringText
+    udef
+    vspace
 
   TextId* = int32
 

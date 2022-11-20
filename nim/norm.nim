@@ -138,7 +138,7 @@ proc norm(
   let begin = norming.here
   norming.action(tree.root)
   norming.nestMaybe(top, begin)
-  Tree(pass: pass, nodes: grower.nodes)
+  Tree(pass: pass, nodes: grower.nodes, uid: 0)
 
 proc spaceless(grower: var Grower, tree: Tree): Tree =
   grower.norm(spaceless, tree): spacelessAction

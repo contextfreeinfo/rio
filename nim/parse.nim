@@ -25,8 +25,8 @@ type
     of num:
       # Technically could use multiple num nodes for a larger int.
       # Meanwhile, can't do an int64 here without throwing off 4-byte alignment.
-      signed: int32
-      unsigned: uint32
+      signed*: int32
+      unsigned*: uint32
     else:
       kids*: NodeSlice
 
@@ -37,9 +37,12 @@ type
     # After simplified is just leaf, prefix, and top.
     simplified
 
+  Uid* = uint32
+
   Tree* = ref object
     pass*: Pass
     nodes*: seq[Node]
+    uid*: Uid
 
   Grower* = ref object
     ## Persistent buffers across uses, retained for better pre-allocation.
@@ -77,7 +80,12 @@ proc print(
   printIndent(2 * indent, file = file)
   case node.kind:
   of leaf:
-    file.writeLine node.token.kind, ": '", pool[node.token.text], "'"
+    if node.token.text == emptyId:
+      file.writeLine node.token.kind
+    else:
+      file.writeLine node.token.kind, ": '", pool[node.token.text], "'"
+  of num:
+    file.writeLine "num: ", node.signed, " ", node.unsigned
   else:
     file.writeLine node.kind
     for kid in node.kids.idx .. node.kids.thru:
@@ -321,7 +329,7 @@ proc parse(parsing: var Parsing): Tree =
   parsing.nestMaybe(top, 0)
   # Final nest pushes down the outer block if it exists.
   parsing.nest(top, 0)
-  Tree(pass: parse, nodes: grower.nodes)
+  Tree(pass: parse, nodes: grower.nodes, uid: 0)
 
 proc newGrower*(): Grower = Grower(
   nodes: newSeq[Node](),

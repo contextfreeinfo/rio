@@ -1,6 +1,7 @@
 top
   prefix
-    opDef: '='
+    udef
+    num: 0 0
     prefix
       id: 'main'
       prefix
@@ -42,7 +43,8 @@ top
     /prefix
   /prefix
   prefix
-    opDef: '='
+    udef
+    num: 0 1
     prefix
       id: 'fib'
       prefix
