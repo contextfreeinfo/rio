@@ -6,6 +6,7 @@ import std/tables
 type
   TokenKind* = enum
     comment
+    ellipsis
     eof
     hspace
     id
@@ -27,6 +28,7 @@ type
     opLe
     opLt
     opNe
+    opRange
     opSub
     other
     quoteDouble
@@ -125,25 +127,31 @@ proc nextOther(lexing: var Lexing): TokenKind {.raises: [].} =
     of '(': roundBegin
     of ')': roundEnd
     of ':': opColon
-    of '.': opDot
+    of '.':
+      case lexing.current:
+      of '.':
+        case lexing.advance:
+        of '.': lexing.advanceAs(ellipsis)
+        else: opRange
+      else: opDot
     of '+': opAdd
     of '-': opSub
     of '=':
       case lexing.current:
-        of '=': lexing.advanceAs(opEq)
-        else: opDef
+      of '=': lexing.advanceAs(opEq)
+      else: opDef
     of '>':
       case lexing.current:
-        of '=': lexing.advanceAs(opGe)
-        else: opGt
+      of '=': lexing.advanceAs(opGe)
+      else: opGt
     of '<':
       case lexing.current:
-        of '=': lexing.advanceAs(opLe)
-        else: opLt
+      of '=': lexing.advanceAs(opLe)
+      else: opLt
     of '!':
       case lexing.current:
-        of '=': lexing.advanceAs(opNe)
-        else: other
+      of '=': lexing.advanceAs(opNe)
+      else: other
     else: other
 
 proc nextVSpace(lexing: var Lexing): TokenKind {.raises: [].} =

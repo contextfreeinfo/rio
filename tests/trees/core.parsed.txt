@@ -1,0 +1,475 @@
+top
+  infix
+    prefix
+      id: 'Bool'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'Int'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'IntRange'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    prefix
+      id: 'struct'
+      space
+        hspace: ' '
+      prefix
+        keyOf: 'of'
+        space
+          vspace: '
+'
+          hspace: '  '
+        /space
+        infix
+          id: 'begin'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+        /infix
+        space
+          vspace: '
+'
+          hspace: '  '
+        /space
+        infix
+          id: 'endInclusive'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+        /infix
+        space
+          vspace: '
+'
+        keyEnd: 'end'
+      /prefix
+    /prefix
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'String'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'Type'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    prefix
+      keyFor: 'for'
+      space
+        hspace: ' '
+      id: 'Interface'
+      space
+        hspace: ' '
+      prefix
+        keyBe: 'be'
+        space
+          hspace: ' '
+        id: 'native'
+      /prefix
+    /prefix
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'each'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'printf'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    prefix
+      keyFor: 'for'
+      space
+        vspace: '
+'
+        hspace: '  '
+      /space
+      infix
+        id: 'pattern'
+        space
+          hspace: ' '
+        keyIs: 'is'
+        space
+          hspace: ' '
+        id: 'String'
+      /infix
+      space
+        vspace: '
+'
+        hspace: '  '
+      /space
+      ellipsis: '...'
+      space
+        vspace: '
+'
+      prefix
+        keyTo: 'to'
+        space
+          hspace: ' '
+        id: 'Int'
+        space
+          hspace: ' '
+      /prefix
+      prefix
+        keyBe: 'be'
+        space
+          hspace: ' '
+        id: 'native'
+      /prefix
+    /prefix
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'thru'
+      space
+        hspace: ' '
+      prefix
+        keyFor: 'for'
+        space
+          hspace: ' '
+        infix
+          id: 'begin'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        infix
+          id: 'endInclusive'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        prefix
+          keyTo: 'to'
+          space
+            hspace: ' '
+          id: 'IntRange'
+          space
+            hspace: ' '
+        /prefix
+      /prefix
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    prefix
+      id: '_'
+      space
+        hspace: ' '
+      id: 'begin'
+      space
+        hspace: ' '
+      id: 'endInclusive'
+    /prefix
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'void'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'eq'
+      space
+        hspace: ' '
+      prefix
+        keyFor: 'for'
+        space
+          hspace: ' '
+        infix
+          id: 'x'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        infix
+          id: 'y'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        prefix
+          keyTo: 'to'
+          space
+            hspace: ' '
+          id: 'Bool'
+          space
+            hspace: ' '
+        /prefix
+      /prefix
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'le'
+      space
+        hspace: ' '
+      prefix
+        keyFor: 'for'
+        space
+          hspace: ' '
+        infix
+          id: 'x'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        infix
+          id: 'y'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        prefix
+          keyTo: 'to'
+          space
+            hspace: ' '
+          id: 'Bool'
+          space
+            hspace: ' '
+        /prefix
+      /prefix
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'add'
+      space
+        hspace: ' '
+      prefix
+        keyFor: 'for'
+        space
+          hspace: ' '
+        infix
+          id: 'x'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        infix
+          id: 'y'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        prefix
+          keyTo: 'to'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /prefix
+      /prefix
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'sub'
+      space
+        hspace: ' '
+      prefix
+        keyFor: 'for'
+        space
+          hspace: ' '
+        infix
+          id: 'x'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        infix
+          id: 'y'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /infix
+        prefix
+          keyTo: 'to'
+          space
+            hspace: ' '
+          id: 'Int'
+          space
+            hspace: ' '
+        /prefix
+      /prefix
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+'
+/top
+nodes: 377
+tokens: 215
+interns: 36
+token size: 8
+node size: 12

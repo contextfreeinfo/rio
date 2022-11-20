@@ -5,24 +5,21 @@ import parse
 import run
 import std/os
 
-proc main() =
-  let args = commandLineParams()
-  if args.len < 2:
-    raise ValueError.newException "Usage for now: rio infile outdir"
-  var
-    lexer = newLexer()
-    grower = newGrower()
+type
+  Engine = ref object
+    lexer: Lexer
+    grower: Grower
+
+proc process(
+  engine: Engine, source: string, sourceName: string, outDir: string
+) =
+  var grower = engine.grower
   let
-    # TODO Real arg parsing.
-    sourcePath = args[0]
-    sourceName = sourcePath.extractFilename
-    source = readFile(sourcePath)
-    outDir = args[1]
-    tokens = lexer.lex(source)
+    lexer = engine.lexer
+    tokens = engine.lexer.lex(source)
     parsed = grower.parse(tokens)
     normed = grower.normed(parsed)
     resolved = grower.resolve(normed)
-  discard resolved
   # TODO Why does this alloc extra to add nodes on existing grower???
   # for _ in 0..<10:
   #   # Costs even more on a new grower beyond the cost of grower alloc itself.
@@ -51,5 +48,25 @@ proc main() =
     defer: file.close
     resolved.print(file = file, pool = lexer.pool)
     file.writeLine("nodes: ", resolved.nodes.len)
+
+const
+  coreName = "core.rio"
+  coreSource = staticRead(coreName)
+
+proc main() =
+  let args = commandLineParams()
+  if args.len < 2:
+    raise ValueError.newException "Usage for now: rio infile outdir"
+  var
+    lexer = newLexer()
+    engine = Engine(lexer: lexer, grower: newGrower())
+  let
+    # TODO Real arg parsing.
+    sourcePath = args[0]
+    sourceName = sourcePath.extractFilename
+    source = readFile(sourcePath)
+    outDir = args[1]
+  engine.process(source = coreSource, sourceName = coreName, outDir = outDir)
+  engine.process(source = source, sourceName = sourceName, outDir = outDir)
 
 main()

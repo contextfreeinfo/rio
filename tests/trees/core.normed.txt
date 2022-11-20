@@ -1,0 +1,202 @@
+top
+  prefix
+    opDef: '='
+    id: 'Bool'
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    id: 'Int'
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    id: 'IntRange'
+    prefix
+      id: 'struct'
+      prefix
+        keyIs: 'is'
+        id: 'begin'
+        id: 'Int'
+      /prefix
+      prefix
+        keyIs: 'is'
+        id: 'endInclusive'
+        id: 'Int'
+      /prefix
+    /prefix
+  /prefix
+  prefix
+    opDef: '='
+    id: 'String'
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    id: 'Type'
+    prefix
+      keyFor: 'for'
+      id: 'Interface'
+      prefix
+        keyBe: 'be'
+        id: 'native'
+      /prefix
+    /prefix
+  /prefix
+  prefix
+    opDef: '='
+    id: 'each'
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    id: 'printf'
+    prefix
+      keyFor: 'for'
+      prefix
+        keyIs: 'is'
+        id: 'pattern'
+        id: 'String'
+      /prefix
+      ellipsis: '...'
+      prefix
+        keyTo: 'to'
+        id: 'Int'
+      /prefix
+      prefix
+        keyBe: 'be'
+        id: 'native'
+      /prefix
+    /prefix
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'thru'
+      prefix
+        keyFor: 'for'
+        prefix
+          keyIs: 'is'
+          id: 'begin'
+          id: 'Int'
+        /prefix
+        prefix
+          keyIs: 'is'
+          id: 'endInclusive'
+          id: 'Int'
+        /prefix
+        prefix
+          keyTo: 'to'
+          id: 'IntRange'
+        /prefix
+      /prefix
+    /prefix
+    prefix
+      id: '_'
+      id: 'begin'
+      id: 'endInclusive'
+    /prefix
+  /prefix
+  prefix
+    opDef: '='
+    id: 'void'
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'eq'
+      prefix
+        keyFor: 'for'
+        prefix
+          keyIs: 'is'
+          id: 'x'
+          id: 'Int'
+        /prefix
+        prefix
+          keyIs: 'is'
+          id: 'y'
+          id: 'Int'
+        /prefix
+        prefix
+          keyTo: 'to'
+          id: 'Bool'
+        /prefix
+      /prefix
+    /prefix
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'le'
+      prefix
+        keyFor: 'for'
+        prefix
+          keyIs: 'is'
+          id: 'x'
+          id: 'Int'
+        /prefix
+        prefix
+          keyIs: 'is'
+          id: 'y'
+          id: 'Int'
+        /prefix
+        prefix
+          keyTo: 'to'
+          id: 'Bool'
+        /prefix
+      /prefix
+    /prefix
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'add'
+      prefix
+        keyFor: 'for'
+        prefix
+          keyIs: 'is'
+          id: 'x'
+          id: 'Int'
+        /prefix
+        prefix
+          keyIs: 'is'
+          id: 'y'
+          id: 'Int'
+        /prefix
+        prefix
+          keyTo: 'to'
+          id: 'Int'
+        /prefix
+      /prefix
+    /prefix
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'sub'
+      prefix
+        keyFor: 'for'
+        prefix
+          keyIs: 'is'
+          id: 'x'
+          id: 'Int'
+        /prefix
+        prefix
+          keyIs: 'is'
+          id: 'y'
+          id: 'Int'
+        /prefix
+        prefix
+          keyTo: 'to'
+          id: 'Int'
+        /prefix
+      /prefix
+    /prefix
+    id: 'native'
+  /prefix
+/top
+nodes: 152

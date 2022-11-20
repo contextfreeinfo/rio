@@ -1,0 +1,31 @@
+Bool = native
+
+Int = native
+
+IntRange = struct of
+  begin is Int
+  endInclusive is Int
+end
+
+String = native
+
+Type = for Interface be native
+
+each = native
+
+printf = for
+  pattern is String
+  ...
+to Int be native
+
+thru for begin is Int endInclusive is Int to IntRange = _ begin endInclusive
+
+void = native
+
+eq for x is Int y is Int to Bool = native
+
+le for x is Int y is Int to Bool = native
+
+add for x is Int y is Int to Int = native
+
+sub for x is Int y is Int to Int = native
