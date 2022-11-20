@@ -14,8 +14,8 @@ func kidAt*(tree: Tree, node: Node, offset: NodeId = 0): Node =
 func callee*(tree: Tree, node: Node): Node =
   case node.kind:
   of leaf: node
-  of infix, prefixt: tree.kidAt(node, 1)
-  of prefix: tree.kidAt(node)
+  of infix: tree.kidAt(node, 1)
+  of prefix, prefixt: tree.kidAt(node)
   # TODO Can we just panic? Should this return optional???
   else: raise ValueError.newException "callee invalid"
 
