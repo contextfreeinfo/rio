@@ -72,6 +72,9 @@ type
 
   Running = ptr Runner
 
+const
+  unknownType = Node(kind: leaf, token: Token(kind: other, text: emptyId))
+
 proc add(running: var Running, node: Node) = running.grower.working.add(node)
 
 func here(running: Running): NodeId = running.grower.here
@@ -107,16 +110,42 @@ proc runNode(running: var Running, parent: Node, node: Node)
 #   else:
 #     Value(kind: valNone)
 
-proc runDef(running: var Running, node: Node) =
-  let
-    begin = running.here
-    tree = running.tree
-  # Replace def with udef.
+proc buildUdef(
+  running: var Running,
+  node: Node,
+  action: proc(running: var Running): Node
+) =
+  let begin = running.here
   running.add Node(kind: leaf, token: Token(kind: udef, text: emptyId))
   running.add Node(kind: num, signed: 0, unsigned: running.uid)
   running.uid += 1
-  for kidId in node.kids.idx + 1 .. node.kids.thru:
-    running.runNode(parent = node, node = tree.nodes[kidId])
+  let typ = running.action()
+  running.grower.working.insert(typ, begin)
+  running.nest(pretype, begin)
+
+proc runDef(running: var Running, node: Node) =
+  let tree = running.tree
+  running.buildUdef node, proc(running: var Running): Node =
+    # Skip the original opDef.
+    for kidId in node.kids.idx + 1 .. node.kids.thru:
+      running.runNode(parent = node, node = tree.nodes[kidId])
+    unknownType
+
+proc runFor(running: var Running, node: Node) =
+  let
+    begin = running.here
+    tree = running.tree
+  # TODO Args, return type, maybe be. Effects?
+  for kidId in node.kids.idx .. node.kids.thru:
+    let kid = tree.nodes[kidId]
+    case tree.calleeKind(kid):
+    of keyIs, id:
+      # TODO Only do this for id if kid.kind == id
+      running.buildUdef kid, proc(running: var Running): Node =
+        running.runNode(parent = node, node = kid)
+        unknownType
+    else:
+      running.runNode(parent = node, node = kid)
   running.nest(prefix, begin)
 
 proc runPrefix(running: var Running, parent: Node, node: Node) =
@@ -125,6 +154,9 @@ proc runPrefix(running: var Running, parent: Node, node: Node) =
     tree = running.tree
   # TODO Generalized call dispatch.
   case tree.calleeKind(node):
+  of keyFor:
+    running.runFor(node)
+    return
   of opDef:
     # TODO Gather up definitions.
     # TODO If destructuring, perform destructure down to single?
@@ -175,4 +207,4 @@ proc resolve*(grower: var Grower, tree: Tree): Tree =
   running.extractTops
   running.runTop running.tree.root
   running.nest(top, begin)
-  Tree(pass: resolve, nodes: grower.nodes, uid: uint32(running.uid + 1))
+  Tree(pass: resolve, nodes: grower.nodes, uid: uint32(running.uid))

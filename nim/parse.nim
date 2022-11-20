@@ -9,6 +9,7 @@ type
     infix
     num
     prefix
+    pretype
     space
     top
 

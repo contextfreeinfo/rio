@@ -4,7 +4,7 @@ import std/sequtils
 import std/tables
 
 type
-  TokenKind* {.size: sizeof(uint32).} = enum
+  TokenKind* = enum
     comment
     eof
     hspace

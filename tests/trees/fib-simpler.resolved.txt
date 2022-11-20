@@ -1,5 +1,6 @@
 top
-  prefix
+  pretype
+    other
     udef
     num: 0 0
     prefix
@@ -18,7 +19,12 @@ top
       /prefix
       prefix
         keyFor: 'for'
-        id: 'n'
+        pretype
+          other
+          udef
+          num: 0 1
+          id: 'n'
+        /pretype
         prefix
           keyBe: 'be'
           prefix
@@ -41,19 +47,25 @@ top
         /prefix
       /prefix
     /prefix
-  /prefix
-  prefix
+  /pretype
+  pretype
+    other
     udef
-    num: 0 1
+    num: 0 2
     prefix
       id: 'fib'
       prefix
         keyFor: 'for'
-        prefix
-          keyIs: 'is'
-          id: 'n'
-          id: 'Int'
-        /prefix
+        pretype
+          other
+          udef
+          num: 0 3
+          prefix
+            keyIs: 'is'
+            id: 'n'
+            id: 'Int'
+          /prefix
+        /pretype
         prefix
           keyTo: 'to'
           id: 'Int'
@@ -113,6 +125,6 @@ top
         /prefix
       /prefix
     /prefix
-  /prefix
+  /pretype
 /top
-nodes: 83
+nodes: 95

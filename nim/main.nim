@@ -50,6 +50,6 @@ proc main() =
     let file = open(outDir / sourceName.changeFileExt ".resolved.txt", fmWrite)
     defer: file.close
     resolved.print(file = file, pool = lexer.pool)
-    file.writeLine("nodes: ", normed.nodes.len)
+    file.writeLine("nodes: ", resolved.nodes.len)
 
 main()
