@@ -7,14 +7,25 @@ import std/os
 
 type
   Engine = ref object
-    lexer: Lexer
     grower: Grower
+    lexer: Lexer
+    outDir: string
+
+  Module = ref object
+    # TODO Links from resolved to parsed.
+    parsed: Tree
+    resolved: Tree
 
 proc process(
-  engine: Engine, source: string, sourceName: string, outDir: string
-) =
+  engine: Engine,
+  imports: seq[Module] = @[],
+  source: string,
+  sourceName: string,
+): Module =
+  discard imports
   var grower = engine.grower
   let
+    outDir = engine.outDir
     lexer = engine.lexer
     tokens = engine.lexer.lex(source)
     parsed = grower.parse(tokens)
@@ -28,7 +39,6 @@ proc process(
   #   var p = grower
   #   discard p.parse(tokens)
   # Write.
-  outDir.createDir
   block:
     let file = open(outDir / sourceName.changeFileExt "parsed.txt", fmWrite)
     defer: file.close
@@ -48,6 +58,7 @@ proc process(
     defer: file.close
     resolved.print(file = file, pool = lexer.pool)
     file.writeLine("nodes: ", resolved.nodes.len)
+  Module(parsed: parsed, resolved: resolved)
 
 const
   coreName = "core.rio"
@@ -58,15 +69,18 @@ proc main() =
   if args.len < 2:
     raise ValueError.newException "Usage for now: rio infile outdir"
   var
-    lexer = newLexer()
-    engine = Engine(lexer: lexer, grower: newGrower())
-  let
     # TODO Real arg parsing.
+    outDir = args[1]
+    lexer = newLexer()
+    engine = Engine(grower: newGrower(), lexer: lexer, outDir: outDir)
+  let
     sourcePath = args[0]
     sourceName = sourcePath.extractFilename
     source = readFile(sourcePath)
-    outDir = args[1]
-  engine.process(source = coreSource, sourceName = coreName, outDir = outDir)
-  engine.process(source = source, sourceName = sourceName, outDir = outDir)
+    core = engine.process(source = coreSource, sourceName = coreName)
+    module = engine.process(
+      imports = @[core], source = source, sourceName = sourceName
+    )
+  discard module
 
 main()
