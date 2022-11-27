@@ -80,6 +80,9 @@ proc add(running: var Running, node: Node) = running.grower.working.add(node)
 
 func here(running: Running): NodeId = running.grower.here
 
+func latest(running: Running): Node =
+  running.grower.working[running.grower.working.high]
+
 proc nest(running: var Running, kind: NodeKind, begin: NodeId) =
   running.grower.nest(kind, begin)
 
@@ -87,7 +90,7 @@ proc extractTops(running: var Running) =
   let
     tree = running.tree
     root = tree.root
-  for kidId in root.kids.idx .. root.kids.thru:
+  for kidId in root.kidIds:
     let kid = tree.nodes[kidId]
     # Struct members should be generated as top-level functions by now.
     # TODO For const strings like "name" we have a TextId for the token inside.
@@ -128,7 +131,7 @@ proc runDef(running: var Running, node: Node) =
   let tree = running.tree
   running.buildUdef node, proc(running: var Running): Node =
     # Skip the original opDef.
-    for kidId in node.kids.idx + 1 .. node.kids.thru:
+    for kidId in node.kids.idx + 1 .. node.kidsLast:
       running.runNode(parent = node, node = tree.nodes[kidId])
     unknownType
 
@@ -137,11 +140,11 @@ proc runFor(running: var Running, node: Node) =
     begin = running.here
     tree = running.tree
   # TODO Args, return type, maybe be. Effects?
-  for kidId in node.kids.idx .. node.kids.thru:
+  for kidId in node.kidIds:
     let kid = tree.nodes[kidId]
     case tree.calleeKind(kid):
     of keyIs, id:
-      # TODO Only do this for id if kid.kind == id
+      # TODO Only do this for id if kid.kind == id?
       running.buildUdef kid, proc(running: var Running): Node =
         running.runNode(parent = node, node = kid)
         unknownType
@@ -153,7 +156,7 @@ proc runQuote(running: var Running, node: Node) =
   let
     begin = running.here
     tree = running.tree
-  for kidId in node.kids.idx .. node.kids.thru:
+  for kidId in node.kidIds:
     running.runNode(parent = node, node = tree.nodes[kidId])
   # In the future, these could also become tuples.
   running.add(stringType)
@@ -179,10 +182,11 @@ proc runPrefix(running: var Running, parent: Node, node: Node) =
     return
   else:
     discard
+  # Use raw kid ids by default here and original node kind to preserve typed.
   for kidId in node.kids.idx .. node.kids.thru:
     let kid = tree.nodes[kidId]
     running.runNode(parent = node, node = kid)
-  running.nest(prefix, begin)
+  running.nest(node.kind, begin)
 
 proc runNode(running: var Running, parent: Node, node: Node) =
   case node.kind:
@@ -190,7 +194,7 @@ proc runNode(running: var Running, parent: Node, node: Node) =
     running.add(node)
   of num:
     running.add(node)
-  of prefix:
+  of prefix, prefixt:
     running.runPrefix(parent = parent, node = node)
   else:
     discard
@@ -199,12 +203,17 @@ proc runTop(running: var Running, node: Node) =
   let
     begin = running.here
     tree = running.tree
-  for kidId in node.kids.idx .. node.kids.thru:
+  for kidId in node.kidIds:
     let kid = tree.nodes[kidId]
     running.runNode(parent = node, node = kid)
+    let latest = running.latest
+    if latest.kind in {prefix, prefixt}:
+      if running.grower.nodes.calleeKind(latest) == udef:
+        # echo "udef"
+        discard
   running.nest(top, begin)
 
-proc resolve*(grower: var Grower, tree: Tree): Tree =
+proc resolveOnce(grower: var Grower, tree: Tree): Tree =
   # TODO Some buffer type for running like for parsing and norming?
   # TODO Resolve imports.
   # TODO Put top levels into seq then sort by name.
@@ -215,10 +224,16 @@ proc resolve*(grower: var Grower, tree: Tree): Tree =
     # TODO Get uid from tree!
     resolver = Runner(defs: Defs(), grower: grower, tree: tree, uid: 0)
     running = addr resolver
+  # running.extractTops
   grower.nodes.setLen(0)
   grower.working.setLen(0)
   let begin = running.here
-  running.extractTops
   running.runTop running.tree.root
   running.nest(top, begin)
   Tree(pass: resolve, nodes: grower.nodes, uid: uint32(running.uid))
+
+proc resolve*(grower: var Grower, tree: Tree): Tree =
+  result = tree
+  # TODO Also stop if no changes happen.
+  for _ in 1..5:
+    result = grower.resolveOnce(result)

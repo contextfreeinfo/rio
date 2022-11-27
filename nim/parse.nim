@@ -65,6 +65,15 @@ type
 
 # Support.
 
+func `==`*(x, y: Node): bool =
+  ## Super simple compare that's only useful if a whole node seq is equal.
+  x.kind == y.kind and (
+    case x.kind:
+    of leaf: x.token == y.token
+    of num: x.num == y.num
+    else: x.kids == y.kids
+  )
+
 func len*(slice: NodeSlice): int = slice.thru - slice.idx + 1
 
 func rootId*(tree: Tree): NodeId = NodeId tree.nodes.high

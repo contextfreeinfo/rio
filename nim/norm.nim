@@ -8,22 +8,40 @@ type
 
   Norming = ptr Normer
 
-func kidAt*(tree: Tree, node: Node, offset: NodeId = 0): Node =
-  tree.nodes[node.kids.idx + offset]
+func kidAt*(nodes: seq[Node], node: Node, offset: NodeId = 0): Node =
+  nodes[node.kids.idx + offset]
 
-func callee*(tree: Tree, node: Node): Node =
+func kidAt*(tree: Tree, node: Node, offset: NodeId = 0): Node =
+  tree.nodes.kidAt(node, offset)
+
+func kidsLast*(node: Node): NodeId =
+  case node.kind:
+  of leaf, num: raise ValueError.newException "kids invalid"
+  of prefixt: node.kids.thru - 1
+  else: node.kids.thru
+
+func kidIds*(node: Node): Slice[NodeId] = node.kids.idx .. node.kidsLast
+
+func callee*(nodes: seq[Node], node: Node): Node =
   case node.kind:
   of leaf: node
-  of infix: tree.kidAt(node, 1)
-  of prefix, prefixt: tree.kidAt(node)
+  of infix: nodes.kidAt(node, 1)
+  of prefix, prefixt: nodes.kidAt(node)
   # TODO Can we just panic? Should this return optional???
   else: raise ValueError.newException "callee invalid"
 
-func calleeKind*(tree: Tree, node: Node): TokenKind =
-  let callee = tree.callee(node)
-  case callee.kind:
-  of leaf: callee.token.kind
+func callee*(tree: Tree, node: Node): Node = tree.nodes.callee(node)
+
+func tokenKind*(node: Node): TokenKind =
+  case node.kind:
+  of leaf: node.token.kind
   else: other
+
+func calleeKind*(nodes: seq[Node], node: Node): TokenKind =
+  nodes.callee(node).tokenKind
+
+func calleeKind*(tree: Tree, node: Node): TokenKind =
+  tree.nodes.calleeKind(node)
 
 proc add(norming: var Norming, node: Node) = norming.grower.working.add(node)
 

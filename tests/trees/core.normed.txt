@@ -1,17 +1,26 @@
 top
   prefix
     opDef: '='
-    id: 'Bool'
+    prefix
+      id: 'Bool'
+      id: 'pub'
+    /prefix
     id: 'native'
   /prefix
   prefix
     opDef: '='
-    id: 'Int'
+    prefix
+      id: 'Int'
+      id: 'pub'
+    /prefix
     id: 'native'
   /prefix
   prefix
     opDef: '='
-    id: 'IntRange'
+    prefix
+      id: 'IntRange'
+      id: 'pub'
+    /prefix
     prefix
       id: 'struct'
       prefix
@@ -28,15 +37,28 @@ top
   /prefix
   prefix
     opDef: '='
-    id: 'String'
+    prefix
+      id: 'String'
+      id: 'pub'
+    /prefix
     id: 'native'
   /prefix
   prefix
     opDef: '='
-    id: 'Type'
+    prefix
+      id: 'Type'
+      id: 'pub'
+    /prefix
     prefix
       keyFor: 'for'
-      id: 'Interface'
+      prefix
+        keyIs: 'is'
+        id: 'Interface'
+        prefix
+          id: 'Type'
+          id: 'Interface'
+        /prefix
+      /prefix
       prefix
         keyBe: 'be'
         id: 'native'
@@ -45,12 +67,43 @@ top
   /prefix
   prefix
     opDef: '='
-    id: 'each'
+    prefix
+      id: 'Void'
+      id: 'pub'
+    /prefix
     id: 'native'
   /prefix
   prefix
     opDef: '='
-    id: 'printf'
+    id: 'pub'
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'each'
+      id: 'pub'
+      prefix
+        keyFor: 'for'
+        prefix
+          keyIs: 'is'
+          id: 'range'
+          id: 'IntRange'
+        /prefix
+        prefix
+          keyTo: 'to'
+          id: 'Void'
+        /prefix
+      /prefix
+    /prefix
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'printf'
+      id: 'pub'
+    /prefix
     prefix
       keyFor: 'for'
       prefix
@@ -73,6 +126,7 @@ top
     opDef: '='
     prefix
       id: 'thru'
+      id: 'pub'
       prefix
         keyFor: 'for'
         prefix
@@ -99,13 +153,32 @@ top
   /prefix
   prefix
     opDef: '='
-    id: 'void'
-    id: 'native'
+    prefix
+      id: 'void'
+      id: 'pub'
+    /prefix
+    prefix
+      keyFor: 'for'
+      prefix
+        keyIs: 'is'
+        id: 'any'
+        id: 'Any'
+      /prefix
+      prefix
+        keyTo: 'to'
+        id: 'Void'
+      /prefix
+      prefix
+        keyBe: 'be'
+        roundBegin: '('
+      /prefix
+    /prefix
   /prefix
   prefix
     opDef: '='
     prefix
       id: 'eq'
+      id: 'pub'
       prefix
         keyFor: 'for'
         prefix
@@ -130,6 +203,7 @@ top
     opDef: '='
     prefix
       id: 'le'
+      id: 'pub'
       prefix
         keyFor: 'for'
         prefix
@@ -154,6 +228,7 @@ top
     opDef: '='
     prefix
       id: 'add'
+      id: 'pub'
       prefix
         keyFor: 'for'
         prefix
@@ -178,6 +253,7 @@ top
     opDef: '='
     prefix
       id: 'sub'
+      id: 'pub'
       prefix
         keyFor: 'for'
         prefix
@@ -199,4 +275,4 @@ top
     id: 'native'
   /prefix
 /top
-nodes: 152
+nodes: 208

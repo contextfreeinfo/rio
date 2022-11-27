@@ -4,6 +4,9 @@ top
       id: 'Bool'
       space
         hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
     /prefix
     opDef: '='
     space
@@ -19,6 +22,9 @@ top
       id: 'Int'
       space
         hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
     /prefix
     opDef: '='
     space
@@ -32,6 +38,9 @@ top
   infix
     prefix
       id: 'IntRange'
+      space
+        hspace: ' '
+      id: 'pub'
       space
         hspace: ' '
     /prefix
@@ -88,6 +97,9 @@ top
       id: 'String'
       space
         hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
     /prefix
     opDef: '='
     space
@@ -103,6 +115,9 @@ top
       id: 'Type'
       space
         hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
     /prefix
     opDef: '='
     space
@@ -111,9 +126,26 @@ top
       keyFor: 'for'
       space
         hspace: ' '
-      id: 'Interface'
-      space
-        hspace: ' '
+      infix
+        id: 'Interface'
+        space
+          hspace: ' '
+        keyIs: 'is'
+        space
+          hspace: ' '
+        prefix
+          roundBegin: '('
+          prefix
+            id: 'Type'
+            space
+              hspace: ' '
+            id: 'Interface'
+          /prefix
+          roundEnd: ')'
+        /prefix
+        space
+          hspace: ' '
+      /infix
       prefix
         keyBe: 'be'
         space
@@ -128,7 +160,10 @@ top
 '
   infix
     prefix
-      id: 'each'
+      id: 'Void'
+      space
+        hspace: ' '
+      id: 'pub'
       space
         hspace: ' '
     /prefix
@@ -143,7 +178,67 @@ top
 '
   infix
     prefix
+      id: 'pub'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'each'
+      space
+        hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
+      prefix
+        keyFor: 'for'
+        space
+          hspace: ' '
+        infix
+          id: 'range'
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          id: 'IntRange'
+          space
+            hspace: ' '
+        /infix
+        prefix
+          keyTo: 'to'
+          space
+            hspace: ' '
+          id: 'Void'
+          space
+            hspace: ' '
+        /prefix
+      /prefix
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
       id: 'printf'
+      space
+        hspace: ' '
+      id: 'pub'
       space
         hspace: ' '
     /prefix
@@ -198,6 +293,9 @@ top
   infix
     prefix
       id: 'thru'
+      space
+        hspace: ' '
+      id: 'pub'
       space
         hspace: ' '
       prefix
@@ -258,11 +356,46 @@ top
       id: 'void'
       space
         hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
     /prefix
     opDef: '='
     space
       hspace: ' '
-    id: 'native'
+    prefix
+      keyFor: 'for'
+      space
+        hspace: ' '
+      infix
+        id: 'any'
+        space
+          hspace: ' '
+        keyIs: 'is'
+        space
+          hspace: ' '
+        id: 'Any'
+        space
+          hspace: ' '
+      /infix
+      prefix
+        keyTo: 'to'
+        space
+          hspace: ' '
+        id: 'Void'
+        space
+          hspace: ' '
+      /prefix
+      prefix
+        keyBe: 'be'
+        space
+          hspace: ' '
+        prefix
+          roundBegin: '('
+          roundEnd: ')'
+        /prefix
+      /prefix
+    /prefix
   /infix
   space
     vspace: '
@@ -271,6 +404,9 @@ top
   infix
     prefix
       id: 'eq'
+      space
+        hspace: ' '
+      id: 'pub'
       space
         hspace: ' '
       prefix
@@ -323,6 +459,9 @@ top
       id: 'le'
       space
         hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
       prefix
         keyFor: 'for'
         space
@@ -371,6 +510,9 @@ top
   infix
     prefix
       id: 'add'
+      space
+        hspace: ' '
+      id: 'pub'
       space
         hspace: ' '
       prefix
@@ -423,6 +565,9 @@ top
       id: 'sub'
       space
         hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
       prefix
         keyFor: 'for'
         space
@@ -468,8 +613,8 @@ top
     vspace: '
 '
 /top
-nodes: 377
-tokens: 215
-interns: 36
+nodes: 503
+tokens: 290
+interns: 43
 token size: 8
 node size: 12

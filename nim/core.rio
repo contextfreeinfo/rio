@@ -1,31 +1,35 @@
-Bool = native
+Bool pub = native
 
-Int = native
+Int pub = native
 
-IntRange = struct of
+IntRange pub = struct of
   begin is Int
   endInclusive is Int
 end
 
-String = native
+String pub = native
 
-Type = for Interface be native
+Type pub = for Interface is (Type Interface) be native
 
-each = native
+Void pub = native
 
-printf = for
+pub = native
+
+each pub for range is IntRange to Void = native
+
+printf pub = for
   pattern is String
   ...
 to Int be native
 
-thru for begin is Int endInclusive is Int to IntRange = _ begin endInclusive
+thru pub for begin is Int endInclusive is Int to IntRange = _ begin endInclusive
 
-void = native
+void pub = for any is Any to Void be ()
 
-eq for x is Int y is Int to Bool = native
+eq pub for x is Int y is Int to Bool = native
 
-le for x is Int y is Int to Bool = native
+le pub for x is Int y is Int to Bool = native
 
-add for x is Int y is Int to Int = native
+add pub for x is Int y is Int to Int = native
 
-sub for x is Int y is Int to Int = native
+sub pub for x is Int y is Int to Int = native
