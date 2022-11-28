@@ -72,7 +72,7 @@ proc main() =
     # TODO Real arg parsing.
     outDir = args[1]
     lexer = newLexer()
-    engine = Engine(grower: newGrower(), lexer: lexer, outDir: outDir)
+    engine = Engine(grower: newGrower(lexer.pool), lexer: lexer, outDir: outDir)
   let
     sourcePath = args[0]
     sourceName = sourcePath.extractFilename

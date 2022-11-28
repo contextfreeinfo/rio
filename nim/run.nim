@@ -127,6 +127,12 @@ proc buildUdef(
   running.add(typ)
   running.nest(prefixt, begin)
 
+func getFirstId(nodes: seq[Node], node: Node): Token =
+  case node.kind:
+  of leaf: node.token
+  of num: raise ValueError.newException "id invalid"
+  else: nodes.getFirstId(nodes.kidAt(node))
+
 proc runDef(running: var Running, node: Node) =
   let tree = running.tree
   running.buildUdef node, proc(running: var Running): Node =
@@ -209,8 +215,12 @@ proc runTop(running: var Running, node: Node) =
     let latest = running.latest
     if latest.kind in {prefix, prefixt}:
       if running.grower.nodes.calleeKind(latest) == udef:
-        # echo "udef"
-        discard
+        let
+          # For udefs, we have the id after "udef" and the uid.
+          idNode = running.grower.nodes[latest.kids.idx + 2]
+          idToken = running.grower.nodes.getFirstId(idNode)
+        stdout.write "udef "
+        idToken.print(pool = running.grower.pool)
   running.nest(top, begin)
 
 proc resolveOnce(grower: var Grower, tree: Tree): Tree =
@@ -222,7 +232,7 @@ proc resolveOnce(grower: var Grower, tree: Tree): Tree =
   # TODO Recurse keeping explicit stack of local definitions to wade through.
   var
     # TODO Get uid from tree!
-    resolver = Runner(defs: Defs(), grower: grower, tree: tree, uid: 0)
+    resolver = Runner(defs: Defs(), grower: grower, tree: tree, uid: tree.uid)
     running = addr resolver
   # running.extractTops
   grower.nodes.setLen(0)
@@ -234,6 +244,11 @@ proc resolveOnce(grower: var Grower, tree: Tree): Tree =
 
 proc resolve*(grower: var Grower, tree: Tree): Tree =
   result = tree
-  # TODO Also stop if no changes happen.
-  for _ in 1..5:
+  # TODO Pick a good max iterations.
+  for i in 1..5:
+    let old = result
     result = grower.resolveOnce(result)
+    if result.nodes == old.nodes:
+      echo "Same at ", i
+      break
+    echo "Changed at ", i

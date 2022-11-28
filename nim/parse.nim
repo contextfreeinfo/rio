@@ -51,7 +51,9 @@ type
   Grower* = ref object
     ## Persistent buffers across uses, retained for better pre-allocation.
     ## Cleared retaining capacity for each new run.
+    # Use lexer only for controlled diagnostics.
     nodes*: seq[Node]
+    pool*: Pool[TextId]
     working*: seq[Node]
 
   Parser = object
@@ -82,6 +84,12 @@ func root*(tree: Tree): Node = tree.nodes[tree.rootId]
 
 proc printIndent(indent: int, file: File = stdout) = file.write indent.spaces
 
+proc print*(token: Token, pool: Pool[TextId], file: File = stdout) =
+    if token.text == emptyId:
+      file.writeLine token.kind
+    else:
+      file.writeLine token.kind, ": '", pool[token.text], "'"
+
 proc print(
   tree: Tree,
   nodeId: NodeId,
@@ -93,10 +101,7 @@ proc print(
   printIndent(2 * indent, file = file)
   case node.kind:
   of leaf:
-    if node.token.text == emptyId:
-      file.writeLine node.token.kind
-    else:
-      file.writeLine node.token.kind, ": '", pool[node.token.text], "'"
+    node.token.print(pool = pool, file = file)
   of num:
     file.writeLine "num: ", node.num.signed, " ", node.num.unsigned
   else:
@@ -344,8 +349,9 @@ proc parse(parsing: var Parsing): Tree =
   parsing.nest(top, 0)
   Tree(pass: parse, nodes: grower.nodes, uid: 0)
 
-proc newGrower*(): Grower = Grower(
+proc newGrower*(pool: Pool[TextId]): Grower = Grower(
   nodes: newSeq[Node](),
+  pool: pool,
   working: newSeq[Node](),
 )
 
