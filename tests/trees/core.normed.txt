@@ -25,12 +25,12 @@ top
       id: 'struct'
       prefix
         keyIs: 'is'
-        id: 'begin'
+        id: 'from'
         id: 'Int'
       /prefix
       prefix
         keyIs: 'is'
-        id: 'endInclusive'
+        id: 'thru'
         id: 'Int'
       /prefix
     /prefix
@@ -75,11 +75,6 @@ top
   /prefix
   prefix
     opDef: '='
-    id: 'pub'
-    id: 'native'
-  /prefix
-  prefix
-    opDef: '='
     prefix
       id: 'each'
       id: 'pub'
@@ -96,6 +91,11 @@ top
         /prefix
       /prefix
     /prefix
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    id: 'native'
     id: 'native'
   /prefix
   prefix
@@ -124,6 +124,16 @@ top
   /prefix
   prefix
     opDef: '='
+    id: 'pub'
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    id: 'struct'
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
     prefix
       id: 'thru'
       id: 'pub'
@@ -131,12 +141,12 @@ top
         keyFor: 'for'
         prefix
           keyIs: 'is'
-          id: 'begin'
+          id: 'from'
           id: 'Int'
         /prefix
         prefix
           keyIs: 'is'
-          id: 'endInclusive'
+          id: 'thru'
           id: 'Int'
         /prefix
         prefix
@@ -147,8 +157,8 @@ top
     /prefix
     prefix
       id: '_'
-      id: 'begin'
-      id: 'endInclusive'
+      id: 'from'
+      id: 'thru'
     /prefix
   /prefix
   prefix
@@ -275,4 +285,4 @@ top
     id: 'native'
   /prefix
 /top
-nodes: 208
+nodes: 216

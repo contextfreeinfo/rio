@@ -59,7 +59,7 @@ top
           hspace: '  '
         /space
         infix
-          id: 'begin'
+          id: 'from'
           space
             hspace: ' '
           keyIs: 'is'
@@ -73,7 +73,7 @@ top
           hspace: '  '
         /space
         infix
-          id: 'endInclusive'
+          id: 'thru'
           space
             hspace: ' '
           keyIs: 'is'
@@ -178,21 +178,6 @@ top
 '
   infix
     prefix
-      id: 'pub'
-      space
-        hspace: ' '
-    /prefix
-    opDef: '='
-    space
-      hspace: ' '
-    id: 'native'
-  /infix
-  space
-    vspace: '
-
-'
-  infix
-    prefix
       id: 'each'
       space
         hspace: ' '
@@ -223,6 +208,21 @@ top
             hspace: ' '
         /prefix
       /prefix
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'native'
+      space
+        hspace: ' '
     /prefix
     opDef: '='
     space
@@ -292,6 +292,36 @@ top
 '
   infix
     prefix
+      id: 'pub'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
+      id: 'struct'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
       id: 'thru'
       space
         hspace: ' '
@@ -303,7 +333,7 @@ top
         space
           hspace: ' '
         infix
-          id: 'begin'
+          id: 'from'
           space
             hspace: ' '
           keyIs: 'is'
@@ -314,7 +344,7 @@ top
             hspace: ' '
         /infix
         infix
-          id: 'endInclusive'
+          id: 'thru'
           space
             hspace: ' '
           keyIs: 'is'
@@ -341,10 +371,10 @@ top
       id: '_'
       space
         hspace: ' '
-      id: 'begin'
+      id: 'from'
       space
         hspace: ' '
-      id: 'endInclusive'
+      id: 'thru'
     /prefix
   /infix
   space
@@ -401,6 +431,10 @@ top
     vspace: '
 
 '
+    comment: '# Int like Number -> Int is (Type Number)'
+    vspace: '
+'
+  /space
   infix
     prefix
       id: 'eq'
@@ -452,7 +486,6 @@ top
   /infix
   space
     vspace: '
-
 '
   infix
     prefix
@@ -505,7 +538,6 @@ top
   /infix
   space
     vspace: '
-
 '
   infix
     prefix
@@ -558,7 +590,6 @@ top
   /infix
   space
     vspace: '
-
 '
   infix
     prefix
@@ -613,8 +644,8 @@ top
     vspace: '
 '
 /top
-nodes: 503
-tokens: 290
+nodes: 527
+tokens: 304
 interns: 43
 token size: 8
 node size: 12

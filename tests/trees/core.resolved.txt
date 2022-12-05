@@ -30,12 +30,12 @@ top
       id: 'struct'
       prefix
         keyIs: 'is'
-        id: 'begin'
+        id: 'from'
         id: 'Int'
       /prefix
       prefix
         keyIs: 'is'
-        id: 'endInclusive'
+        id: 'thru'
         id: 'Int'
       /prefix
     /prefix
@@ -93,13 +93,6 @@ top
   prefixt
     udef
     num: 0 7
-    id: 'pub'
-    id: 'native'
-    other
-  /prefixt
-  prefixt
-    udef
-    num: 0 8
     prefix
       id: 'each'
       id: 'pub'
@@ -107,7 +100,7 @@ top
         keyFor: 'for'
         prefixt
           udef
-          num: 0 9
+          num: 0 8
           prefix
             keyIs: 'is'
             id: 'range'
@@ -121,6 +114,13 @@ top
         /prefix
       /prefix
     /prefix
+    id: 'native'
+    other
+  /prefixt
+  prefixt
+    udef
+    num: 0 9
+    id: 'native'
     id: 'native'
     other
   /prefixt
@@ -158,6 +158,20 @@ top
   prefixt
     udef
     num: 0 12
+    id: 'pub'
+    id: 'native'
+    other
+  /prefixt
+  prefixt
+    udef
+    num: 0 13
+    id: 'struct'
+    id: 'native'
+    other
+  /prefixt
+  prefixt
+    udef
+    num: 0 14
     prefix
       id: 'thru'
       id: 'pub'
@@ -165,20 +179,20 @@ top
         keyFor: 'for'
         prefixt
           udef
-          num: 0 13
+          num: 0 15
           prefix
             keyIs: 'is'
-            id: 'begin'
+            id: 'from'
             id: 'Int'
           /prefix
           other
         /prefixt
         prefixt
           udef
-          num: 0 14
+          num: 0 16
           prefix
             keyIs: 'is'
-            id: 'endInclusive'
+            id: 'thru'
             id: 'Int'
           /prefix
           other
@@ -191,14 +205,14 @@ top
     /prefix
     prefix
       id: '_'
-      id: 'begin'
-      id: 'endInclusive'
+      id: 'from'
+      id: 'thru'
     /prefix
     other
   /prefixt
   prefixt
     udef
-    num: 0 15
+    num: 0 17
     prefix
       id: 'void'
       id: 'pub'
@@ -207,7 +221,7 @@ top
       keyFor: 'for'
       prefixt
         udef
-        num: 0 16
+        num: 0 18
         prefix
           keyIs: 'is'
           id: 'any'
@@ -228,7 +242,7 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 17
+    num: 0 19
     prefix
       id: 'eq'
       id: 'pub'
@@ -236,7 +250,7 @@ top
         keyFor: 'for'
         prefixt
           udef
-          num: 0 18
+          num: 0 20
           prefix
             keyIs: 'is'
             id: 'x'
@@ -246,7 +260,7 @@ top
         /prefixt
         prefixt
           udef
-          num: 0 19
+          num: 0 21
           prefix
             keyIs: 'is'
             id: 'y'
@@ -265,7 +279,7 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 20
+    num: 0 22
     prefix
       id: 'le'
       id: 'pub'
@@ -273,7 +287,7 @@ top
         keyFor: 'for'
         prefixt
           udef
-          num: 0 21
+          num: 0 23
           prefix
             keyIs: 'is'
             id: 'x'
@@ -283,7 +297,7 @@ top
         /prefixt
         prefixt
           udef
-          num: 0 22
+          num: 0 24
           prefix
             keyIs: 'is'
             id: 'y'
@@ -302,7 +316,7 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 23
+    num: 0 25
     prefix
       id: 'add'
       id: 'pub'
@@ -310,7 +324,7 @@ top
         keyFor: 'for'
         prefixt
           udef
-          num: 0 24
+          num: 0 26
           prefix
             keyIs: 'is'
             id: 'x'
@@ -320,7 +334,7 @@ top
         /prefixt
         prefixt
           udef
-          num: 0 25
+          num: 0 27
           prefix
             keyIs: 'is'
             id: 'y'
@@ -339,7 +353,7 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 26
+    num: 0 28
     prefix
       id: 'sub'
       id: 'pub'
@@ -347,7 +361,7 @@ top
         keyFor: 'for'
         prefixt
           udef
-          num: 0 27
+          num: 0 29
           prefix
             keyIs: 'is'
             id: 'x'
@@ -357,7 +371,7 @@ top
         /prefixt
         prefixt
           udef
-          num: 0 28
+          num: 0 30
           prefix
             keyIs: 'is'
             id: 'y'
@@ -375,4 +389,4 @@ top
     other
   /prefixt
 /top
-nodes: 294
+nodes: 306

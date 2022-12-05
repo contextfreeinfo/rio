@@ -3,8 +3,8 @@ Bool pub = native
 Int pub = native
 
 IntRange pub = struct of
-  begin is Int
-  endInclusive is Int
+  from is Int
+  thru is Int
 end
 
 String pub = native
@@ -13,23 +13,25 @@ Type pub = for Interface is (Type Interface) be native
 
 Void pub = native
 
-pub = native
-
 each pub for range is IntRange to Void = native
+
+native = native
 
 printf pub = for
   pattern is String
   ...
 to Int be native
 
-thru pub for begin is Int endInclusive is Int to IntRange = _ begin endInclusive
+pub = native
+
+struct = native
+
+thru pub for from is Int thru is Int to IntRange = _ from thru
 
 void pub = for any is Any to Void be ()
 
+# Int like Number -> Int is (Type Number)
 eq pub for x is Int y is Int to Bool = native
-
 le pub for x is Int y is Int to Bool = native
-
 add pub for x is Int y is Int to Int = native
-
 sub pub for x is Int y is Int to Int = native
