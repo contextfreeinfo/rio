@@ -91,23 +91,6 @@ func latest(running: Running): Node =
 proc nest(running: var Running, kind: NodeKind, begin: NodeId) =
   running.grower.nest(kind, begin)
 
-proc extractTops(running: var Running) =
-  let
-    tree = running.tree
-    root = tree.root
-  for kidId in root.kidIds:
-    let kid = tree.nodes[kidId]
-    # Struct members should be generated as top-level functions by now.
-    # TODO For const strings like "name" we have a TextId for the token inside.
-    # TODO name case = for person is Person to String be `person.get "name"`
-    # TODO name for person is Person to String = `person.get "name"`
-    if tree.calleeKind(kid) == opDef:
-      let target = tree.kidAt(kid, 1)
-      # TODO Destructuring at top level? Only for imports???
-      if target.kind == leaf:
-        running.defs.defs.add(Def(name: target.token, node: kidId))
-  echo "Defs: ", running.defs.defs
-
 proc runNode(running: var Running, parent: Node, node: Node)
 
 # proc runToken(running: var Running, nodeId: NodeId, token: Token): Value =
@@ -138,16 +121,42 @@ func getFirstId(nodes: seq[Node], node: Node): Token =
   of num: raise ValueError.newException "id invalid"
   else: nodes.getFirstId(nodes.kidAt(node))
 
-proc extractPubs(tree: Tree) =
+proc extractPubs(running: Running) =
   ## Get just the published top-levels.
+  let tree = running.tree
   for kidId in tree.root.kidIds:
     let kid = tree.nodes[kidId]
     if tree.calleeKind(kid) == udef:
-      let idNode = tree.nodes[kid.kids.idx + 2]
-      for idKidId in idNode.kidIds:
-        let idKid = tree.nodes[idKidId]
-        if idKid.kind == leaf and idKid.token.text == pubId:
-          echo "pub udef: ", tree.nodes.getFirstId(idNode).text
+      let
+        idNode = tree.nodes[kid.kids.idx + 2]
+        idToken = tree.nodes.getFirstId(idNode)
+      var isPub = false
+      block pub:
+        for idKidId in idNode.kidIds:
+          let idKid = tree.nodes[idKidId]
+          if idKid.kind == leaf and idKid.token.text == pubId:
+            isPub = true
+            break pub
+      # TODO Instead of logging, track uid -> nodeid.
+      stdout.write "udef ", if isPub: "pub " else: "    "
+      idToken.print(pool = running.grower.pool)
+
+proc extractTops(running: var Running) =
+  let
+    tree = running.tree
+    root = tree.root
+  for kidId in root.kidIds:
+    let kid = tree.nodes[kidId]
+    # Struct members should be generated as top-level functions by now.
+    # TODO For const strings like "name" we have a TextId for the token inside.
+    # TODO name case = for person is Person to String be `person.get "name"`
+    # TODO name for person is Person to String = `person.get "name"`
+    if tree.calleeKind(kid) == opDef:
+      let target = tree.kidAt(kid, 1)
+      # TODO Destructuring at top level? Only for imports???
+      if target.kind == leaf:
+        running.defs.defs.add(Def(name: target.token, node: kidId))
+  echo "Defs: ", running.defs.defs
 
 proc runDef(running: var Running, node: Node) =
   let tree = running.tree
@@ -228,16 +237,6 @@ proc runTop(running: var Running, node: Node) =
   for kidId in node.kidIds:
     let kid = tree.nodes[kidId]
     running.runNode(parent = node, node = kid)
-    let latest = running.latest
-    if latest.kind in {prefix, prefixt}:
-      if running.grower.nodes.calleeKind(latest) == udef:
-        # TODO Instead of logging, track uid -> nodeid.
-        let
-          # For udefs, we have the id after "udef" and the uid.
-          idNode = running.grower.nodes[latest.kids.idx + 2]
-          idToken = running.grower.nodes.getFirstId(idNode)
-        stdout.write "udef "
-        idToken.print(pool = running.grower.pool)
   running.nest(top, begin)
 
 proc resolveOnce(grower: var Grower, tree: Tree): Tree =
@@ -248,16 +247,20 @@ proc resolveOnce(grower: var Grower, tree: Tree): Tree =
   # TODO Struct members are brought out to their level.
   # TODO Recurse keeping explicit stack of local definitions to wade through.
   var
-    # TODO Get uid from tree!
-    resolver = Runner(defs: Defs(), grower: grower, tree: tree, uid: tree.uid)
-    running = addr resolver
+    runner = Runner(defs: Defs(), grower: grower, tree: tree, uid: tree.uid)
+    running = addr runner
   # running.extractTops
   grower.nodes.setLen(0)
   grower.working.setLen(0)
   let begin = running.here
   running.runTop running.tree.root
   running.nest(top, begin)
-  Tree(pass: resolve, nodes: grower.nodes, uid: uint32(running.uid))
+  result = Tree(pass: resolve, nodes: grower.nodes, uid: uint32(running.uid))
+  var
+    resultRunner =
+      Runner(defs: Defs(), grower: grower, tree: result, uid: result.uid)
+    resultRunning = addr runner
+  resultRunning.extractPubs
 
 proc resolve*(grower: var Grower, imports: seq[Module], tree: Tree): Tree =
   result = tree
@@ -269,4 +272,7 @@ proc resolve*(grower: var Grower, imports: seq[Module], tree: Tree): Tree =
       echo "Same at ", i
       break
     echo "Changed at ", i
-  result.extractPubs
+  var
+    runner = Runner(defs: Defs(), grower: grower, tree: result, uid: result.uid)
+    running = addr runner
+  running.extractPubs
