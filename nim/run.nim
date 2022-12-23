@@ -5,6 +5,11 @@ import parse
 import std/tables
 
 type
+  Module* = ref object
+    # TODO Links from resolved to parsed.
+    parsed*: Tree
+    resolved*: Tree
+
   TypeKind = enum
     typeFun,
     typeInt,
@@ -133,6 +138,17 @@ func getFirstId(nodes: seq[Node], node: Node): Token =
   of num: raise ValueError.newException "id invalid"
   else: nodes.getFirstId(nodes.kidAt(node))
 
+proc extractPubs(tree: Tree) =
+  ## Get just the published top-levels.
+  for kidId in tree.root.kidIds:
+    let kid = tree.nodes[kidId]
+    if tree.calleeKind(kid) == udef:
+      let idNode = tree.nodes[kid.kids.idx + 2]
+      for idKidId in idNode.kidIds:
+        let idKid = tree.nodes[idKidId]
+        if idKid.kind == leaf and idKid.token.text == pubId:
+          echo "pub udef: ", tree.nodes.getFirstId(idNode).text
+
 proc runDef(running: var Running, node: Node) =
   let tree = running.tree
   running.buildUdef node, proc(running: var Running): Node =
@@ -215,6 +231,7 @@ proc runTop(running: var Running, node: Node) =
     let latest = running.latest
     if latest.kind in {prefix, prefixt}:
       if running.grower.nodes.calleeKind(latest) == udef:
+        # TODO Instead of logging, track uid -> nodeid.
         let
           # For udefs, we have the id after "udef" and the uid.
           idNode = running.grower.nodes[latest.kids.idx + 2]
@@ -242,7 +259,7 @@ proc resolveOnce(grower: var Grower, tree: Tree): Tree =
   running.nest(top, begin)
   Tree(pass: resolve, nodes: grower.nodes, uid: uint32(running.uid))
 
-proc resolve*(grower: var Grower, tree: Tree): Tree =
+proc resolve*(grower: var Grower, imports: seq[Module], tree: Tree): Tree =
   result = tree
   # TODO Pick a good max iterations.
   for i in 1..5:
@@ -252,3 +269,4 @@ proc resolve*(grower: var Grower, tree: Tree): Tree =
       echo "Same at ", i
       break
     echo "Changed at ", i
+  result.extractPubs

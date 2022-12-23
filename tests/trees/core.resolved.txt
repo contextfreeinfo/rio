@@ -120,7 +120,10 @@ top
   prefixt
     udef
     num: 0 9
-    id: 'native'
+    prefix
+      id: 'native'
+      id: 'pub'
+    /prefix
     id: 'native'
     other
   /prefixt
@@ -158,14 +161,20 @@ top
   prefixt
     udef
     num: 0 12
-    id: 'pub'
+    prefix
+      id: 'pub'
+      id: 'pub'
+    /prefix
     id: 'native'
     other
   /prefixt
   prefixt
     udef
     num: 0 13
-    id: 'struct'
+    prefix
+      id: 'struct'
+      id: 'pub'
+    /prefix
     id: 'native'
     other
   /prefixt
@@ -389,4 +398,4 @@ top
     other
   /prefixt
 /top
-nodes: 306
+nodes: 312

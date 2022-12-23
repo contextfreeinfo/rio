@@ -15,16 +15,16 @@ Void pub = native
 
 each pub for range is IntRange to Void = native
 
-native = native
+native pub = native
 
 printf pub = for
   pattern is String
   ...
 to Int be native
 
-pub = native
+pub pub = native
 
-struct = native
+struct pub = native
 
 thru pub for from is Int thru is Int to IntRange = _ from thru
 

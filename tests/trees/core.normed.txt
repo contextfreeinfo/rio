@@ -95,7 +95,10 @@ top
   /prefix
   prefix
     opDef: '='
-    id: 'native'
+    prefix
+      id: 'native'
+      id: 'pub'
+    /prefix
     id: 'native'
   /prefix
   prefix
@@ -124,12 +127,18 @@ top
   /prefix
   prefix
     opDef: '='
-    id: 'pub'
+    prefix
+      id: 'pub'
+      id: 'pub'
+    /prefix
     id: 'native'
   /prefix
   prefix
     opDef: '='
-    id: 'struct'
+    prefix
+      id: 'struct'
+      id: 'pub'
+    /prefix
     id: 'native'
   /prefix
   prefix
@@ -285,4 +294,4 @@ top
     id: 'native'
   /prefix
 /top
-nodes: 216
+nodes: 222

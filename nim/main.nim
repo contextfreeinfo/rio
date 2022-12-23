@@ -11,11 +11,6 @@ type
     lexer: Lexer
     outDir: string
 
-  Module = ref object
-    # TODO Links from resolved to parsed.
-    parsed: Tree
-    resolved: Tree
-
 proc process(
   engine: Engine,
   imports: seq[Module] = @[],
@@ -30,7 +25,7 @@ proc process(
     tokens = engine.lexer.lex(source)
     parsed = grower.parse(tokens)
     normed = grower.normed(parsed)
-    resolved = grower.resolve(normed)
+    resolved = grower.resolve(imports = imports, tree = normed)
   # TODO Why does this alloc extra to add nodes on existing grower???
   # for _ in 0..<10:
   #   # Costs even more on a new grower beyond the cost of grower alloc itself.

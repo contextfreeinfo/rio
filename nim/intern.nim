@@ -11,6 +11,7 @@ type
 const
   emptyId* = 1
   blankId* = 2
+  pubId* = 3
 
 proc newPool*[Id](): Pool[Id] =
   var pool = Pool[Id](
@@ -18,8 +19,9 @@ proc newPool*[Id](): Pool[Id] =
     size: 0,
     texts: initTable[Id, string](),
   )
-  discard pool.intern("")
-  discard pool.intern("_")
+  assert pool.intern("") == emptyId
+  assert pool.intern("_") == blankId
+  assert pool.intern("pub") == pubId
   pool
 
 func `[]`*[Id](pool: Pool[Id], id: Id): string = pool.texts[id]

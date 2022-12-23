@@ -223,6 +223,9 @@ top
       id: 'native'
       space
         hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
     /prefix
     opDef: '='
     space
@@ -295,6 +298,9 @@ top
       id: 'pub'
       space
         hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
     /prefix
     opDef: '='
     space
@@ -308,6 +314,9 @@ top
   infix
     prefix
       id: 'struct'
+      space
+        hspace: ' '
+      id: 'pub'
       space
         hspace: ' '
     /prefix
@@ -644,8 +653,8 @@ top
     vspace: '
 '
 /top
-nodes: 527
-tokens: 304
+nodes: 536
+tokens: 310
 interns: 43
 token size: 8
 node size: 12
