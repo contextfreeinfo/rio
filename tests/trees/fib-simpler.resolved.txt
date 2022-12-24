@@ -4,6 +4,7 @@ top
     num: 0 0
     prefix
       id: 'main'
+      id: 'pub'
       prefix
         keyFor: 'for'
         roundBegin: '('
@@ -128,4 +129,4 @@ top
     other
   /prefixt
 /top
-nodes: 96
+nodes: 97

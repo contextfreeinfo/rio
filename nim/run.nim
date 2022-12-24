@@ -69,6 +69,8 @@ type
   DefId = int
 
   Defs = ref object
+    ## Enables keeping things sorted by text key without having a separate list
+    ## of overloads for each key.
     defs: seq[Def]
     table: Table[TextId, int]
 
@@ -143,7 +145,7 @@ proc extractTops(running: Running) =
             isPub = true
             break pub
       running.defs.defs.add(
-        # TODO Need a tree also?
+        # TODO Need a tree or module also?
         Def(
           node: kidId,
           pub: isPub,
@@ -151,33 +153,14 @@ proc extractTops(running: Running) =
           uid: numNode.num.unsigned,
         )
       )
+  # Sort and point to the first for each group.
   running.defs.defs.sort(func (x, y: Def): int = x.text - y.text)
-  for def in running.defs.defs:
-    echo(
-      "udef ",
-      if def.pub: "pub " else: "    ",
-      ": '",
-      running.grower.pool[def.text],
-      "' ",
-      def.uid,
-    )
-
-# proc extractTops(running: var Running) =
-#   let
-#     tree = running.tree
-#     root = tree.root
-#   for kidId in root.kidIds:
-#     let kid = tree.nodes[kidId]
-#     # Struct members should be generated as top-level functions by now.
-#     # TODO For const strings like "name" we have a TextId for the token inside.
-#     # TODO name case = for person is Person to String be `person.get "name"`
-#     # TODO name for person is Person to String = `person.get "name"`
-#     if tree.calleeKind(kid) == opDef:
-#       let target = tree.kidAt(kid, 1)
-#       # TODO Destructuring at top level? Only for imports???
-#       if target.kind == leaf:
-#         running.defs.defs.add(Def(name: target.token, node: kidId))
-#   echo "Defs: ", running.defs.defs
+  var lastText: TextId = 0
+  for index, def in running.defs.defs.pairs:
+    if def.text != lastText:
+      running.defs.table[def.text] = index
+  echo(running.defs.defs)
+  echo(running.defs.table)
 
 proc runDef(running: var Running, node: Node) =
   let tree = running.tree

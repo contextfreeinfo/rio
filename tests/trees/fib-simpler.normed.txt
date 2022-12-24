@@ -3,6 +3,7 @@ top
     opDef: '='
     prefix
       id: 'main'
+      id: 'pub'
       prefix
         keyFor: 'for'
         roundBegin: '('
@@ -113,4 +114,4 @@ top
     /prefix
   /prefix
 /top
-nodes: 83
+nodes: 84

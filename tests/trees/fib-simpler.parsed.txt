@@ -4,6 +4,9 @@ top
       id: 'main'
       space
         hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
       prefix
         keyFor: 'for'
         space
@@ -285,8 +288,8 @@ top
     vspace: '
 '
 /top
-nodes: 224
-tokens: 131
+nodes: 227
+tokens: 133
 interns: 62
 token size: 8
 node size: 12
