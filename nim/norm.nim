@@ -59,8 +59,11 @@ proc nestMaybe(norming: var Norming, kind: NodeKind, begin: NodeId) =
 
 proc simplifyAny(norming: var Norming, node: Node)
 
-proc simplifyGeneric(norming: var Norming, node: Node) =
-  let begin = norming.here
+proc simplifyGeneric(
+  norming: var Norming,
+  node: Node,
+  begin: NodeId = norming.here,
+) =
   for kidId in node.kids.idx .. node.kids.thru:
     norming.simplifyAny(norming.tree.nodes[kidId])
   if node.kind == prefix and norming.here == begin + 1:
@@ -102,6 +105,15 @@ proc simplifyRound(norming: var Norming, node: Node) =
       norming.add(norming.kidAt(node))
       return
   norming.simplifyGeneric(node)
+
+proc simplifyTop(norming: var Norming, node: Node, sourceId: TextId) =
+  let begin = norming.here
+  # Prefix with source id tag.
+  norming.add(Node(kind: leaf, token: Token(kind: id, text: pubId)))
+  norming.add(Node(kind: leaf, token: Token(kind: id, text: sourceId)))
+  norming.nest(prefix, begin)
+  # Now the rest.
+  norming.simplifyGeneric(node, begin = begin)
 
 proc simplifyAny(norming: var Norming, node: Node) =
   case node.kind:
@@ -150,22 +162,13 @@ proc norm(
   pass: Pass,
   tree: Tree,
   action: proc(norming: var Norming, node: Node),
-  sourceId: TextId = 0,
 ): Tree =
   grower.nodes.setLen(0)
   grower.working.setLen(0)
   var normer = Normer(grower: grower, tree: tree)
   var norming = addr normer
   let begin = norming.here
-  echo "begin ", begin
-  if sourceId != 0:
-    # Tag source file.
-    norming.add(Node(kind: leaf, token: Token(kind: id, text: pubId)))
-    norming.add(Node(kind: leaf, token: Token(kind: id, text: sourceId)))
-    norming.nest(prefix, begin)
-    echo "norming.here ", norming.here
   norming.action(tree.root)
-  echo "norming.here2 ", norming.here
   norming.nestMaybe(top, begin)
   Tree(pass: pass, nodes: grower.nodes, uid: 0)
 
@@ -173,7 +176,9 @@ proc spaceless(grower: var Grower, tree: Tree): Tree =
   grower.norm(spaceless, tree): spacelessAction
 
 proc simplified(grower: var Grower, tree: Tree, sourceId: TextId): Tree =
-  grower.norm(simplified, tree, action = simplifyAny, sourceId = sourceId)
+  let simplifyWithSourceId = proc(norming: var Norming, node: Node) =
+    norming.simplifyTop(node, sourceId = sourceId)
+  grower.norm(simplified, tree): simplifyWithSourceId
 
 proc normed*(grower: var Grower, tree: Tree, sourceId: TextId): Tree =
   result = tree

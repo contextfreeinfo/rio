@@ -1,4 +1,8 @@
 top
+  prefix
+    id: 'pub'
+    id: 'fib-simpler.rio'
+  /prefix
   prefixt
     udef
     num: 0 0
@@ -129,4 +133,4 @@ top
     other
   /prefixt
 /top
-nodes: 97
+nodes: 100

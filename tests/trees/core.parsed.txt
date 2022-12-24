@@ -655,6 +655,6 @@ top
 /top
 nodes: 536
 tokens: 310
-interns: 43
+interns: 44
 token size: 8
 node size: 12

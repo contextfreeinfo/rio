@@ -1,5 +1,9 @@
 top
   prefix
+    id: 'pub'
+    id: 'fib-simpler.rio'
+  /prefix
+  prefix
     opDef: '='
     prefix
       id: 'main'
@@ -114,4 +118,4 @@ top
     /prefix
   /prefix
 /top
-nodes: 84
+nodes: 87
