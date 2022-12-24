@@ -2,6 +2,7 @@ import intern
 import lex
 import norm
 import parse
+import std/algorithm
 import std/tables
 
 type
@@ -59,9 +60,11 @@ type
       typeType: Type
 
   Def = object
-    name: Token
     # TODO If we get comptime, do we need a value rather than a node???
     node: NodeId
+    pub: bool
+    text: TextId
+    uid: Uid
 
   DefId = int
 
@@ -121,13 +124,15 @@ func getFirstId(nodes: seq[Node], node: Node): Token =
   of num: raise ValueError.newException "id invalid"
   else: nodes.getFirstId(nodes.kidAt(node))
 
-proc extractPubs(running: Running) =
+proc extractTops(running: Running) =
   ## Get just the published top-levels.
   let tree = running.tree
   for kidId in tree.root.kidIds:
+    # Struct members should be generated as top-level functions.
     let kid = tree.nodes[kidId]
     if tree.calleeKind(kid) == udef:
       let
+        numNode = tree.nodes[kid.kids.idx + 1]
         idNode = tree.nodes[kid.kids.idx + 2]
         idToken = tree.nodes.getFirstId(idNode)
       var isPub = false
@@ -137,26 +142,42 @@ proc extractPubs(running: Running) =
           if idKid.kind == leaf and idKid.token.text == pubId:
             isPub = true
             break pub
-      # TODO Instead of logging, track uid -> nodeid.
-      stdout.write "udef ", if isPub: "pub " else: "    "
-      idToken.print(pool = running.grower.pool)
+      running.defs.defs.add(
+        # TODO Need a tree also?
+        Def(
+          node: kidId,
+          pub: isPub,
+          text: idToken.text,
+          uid: numNode.num.unsigned,
+        )
+      )
+  running.defs.defs.sort(func (x, y: Def): int = x.text - y.text)
+  for def in running.defs.defs:
+    echo(
+      "udef ",
+      if def.pub: "pub " else: "    ",
+      ": '",
+      running.grower.pool[def.text],
+      "' ",
+      def.uid,
+    )
 
-proc extractTops(running: var Running) =
-  let
-    tree = running.tree
-    root = tree.root
-  for kidId in root.kidIds:
-    let kid = tree.nodes[kidId]
-    # Struct members should be generated as top-level functions by now.
-    # TODO For const strings like "name" we have a TextId for the token inside.
-    # TODO name case = for person is Person to String be `person.get "name"`
-    # TODO name for person is Person to String = `person.get "name"`
-    if tree.calleeKind(kid) == opDef:
-      let target = tree.kidAt(kid, 1)
-      # TODO Destructuring at top level? Only for imports???
-      if target.kind == leaf:
-        running.defs.defs.add(Def(name: target.token, node: kidId))
-  echo "Defs: ", running.defs.defs
+# proc extractTops(running: var Running) =
+#   let
+#     tree = running.tree
+#     root = tree.root
+#   for kidId in root.kidIds:
+#     let kid = tree.nodes[kidId]
+#     # Struct members should be generated as top-level functions by now.
+#     # TODO For const strings like "name" we have a TextId for the token inside.
+#     # TODO name case = for person is Person to String be `person.get "name"`
+#     # TODO name for person is Person to String = `person.get "name"`
+#     if tree.calleeKind(kid) == opDef:
+#       let target = tree.kidAt(kid, 1)
+#       # TODO Destructuring at top level? Only for imports???
+#       if target.kind == leaf:
+#         running.defs.defs.add(Def(name: target.token, node: kidId))
+#   echo "Defs: ", running.defs.defs
 
 proc runDef(running: var Running, node: Node) =
   let tree = running.tree
@@ -249,18 +270,13 @@ proc resolveOnce(grower: var Grower, tree: Tree): Tree =
   var
     runner = Runner(defs: Defs(), grower: grower, tree: tree, uid: tree.uid)
     running = addr runner
-  # running.extractTops
+  running.extractTops
   grower.nodes.setLen(0)
   grower.working.setLen(0)
   let begin = running.here
   running.runTop running.tree.root
   running.nest(top, begin)
   result = Tree(pass: resolve, nodes: grower.nodes, uid: uint32(running.uid))
-  var
-    resultRunner =
-      Runner(defs: Defs(), grower: grower, tree: result, uid: result.uid)
-    resultRunning = addr runner
-  resultRunning.extractPubs
 
 proc resolve*(grower: var Grower, imports: seq[Module], tree: Tree): Tree =
   result = tree
@@ -272,7 +288,3 @@ proc resolve*(grower: var Grower, imports: seq[Module], tree: Tree): Tree =
       echo "Same at ", i
       break
     echo "Changed at ", i
-  var
-    runner = Runner(defs: Defs(), grower: grower, tree: result, uid: result.uid)
-    running = addr runner
-  running.extractPubs
