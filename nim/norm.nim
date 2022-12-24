@@ -1,3 +1,4 @@
+import intern
 import lex
 import parse
 
@@ -148,24 +149,33 @@ proc norm(
   grower: var Grower,
   pass: Pass,
   tree: Tree,
-  action: proc(norming: var Norming, node: Node)
+  action: proc(norming: var Norming, node: Node),
+  sourceId: TextId = 0,
 ): Tree =
   grower.nodes.setLen(0)
   grower.working.setLen(0)
   var normer = Normer(grower: grower, tree: tree)
   var norming = addr normer
   let begin = norming.here
+  echo "begin ", begin
+  if sourceId != 0:
+    # Tag source file.
+    norming.add(Node(kind: leaf, token: Token(kind: id, text: pubId)))
+    norming.add(Node(kind: leaf, token: Token(kind: id, text: sourceId)))
+    norming.nest(prefix, begin)
+    echo "norming.here ", norming.here
   norming.action(tree.root)
+  echo "norming.here2 ", norming.here
   norming.nestMaybe(top, begin)
   Tree(pass: pass, nodes: grower.nodes, uid: 0)
 
 proc spaceless(grower: var Grower, tree: Tree): Tree =
   grower.norm(spaceless, tree): spacelessAction
 
-proc simplified(grower: var Grower, tree: Tree): Tree =
-  grower.norm(simplified, tree): simplifyAny
+proc simplified(grower: var Grower, tree: Tree, sourceId: TextId): Tree =
+  grower.norm(simplified, tree, action = simplifyAny, sourceId = sourceId)
 
-proc normed*(grower: var Grower, tree: Tree): Tree =
+proc normed*(grower: var Grower, tree: Tree, sourceId: TextId): Tree =
   result = tree
   result = grower.spaceless(result)
-  result = grower.simplified(result)
+  result = grower.simplified(result, sourceId = sourceId)

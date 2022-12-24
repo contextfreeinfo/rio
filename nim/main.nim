@@ -17,14 +17,15 @@ proc process(
   source: string,
   sourceName: string,
 ): Module =
-  discard imports
   var grower = engine.grower
   let
     outDir = engine.outDir
     lexer = engine.lexer
+    # TODO Track better source path.
+    sourceId = lexer.pool.intern(sourceName)
     tokens = engine.lexer.lex(source)
     parsed = grower.parse(tokens)
-    normed = grower.normed(parsed)
+    normed = grower.normed(parsed, sourceId = sourceId)
     resolved = grower.resolve(imports = imports, tree = normed)
   # TODO Why does this alloc extra to add nodes on existing grower???
   # for _ in 0..<10:
