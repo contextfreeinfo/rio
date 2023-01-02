@@ -1,6 +1,24 @@
 top
   infix
     prefix
+      id: 'Any'
+      space
+        hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
       id: 'Bool'
       space
         hspace: ' '
@@ -653,8 +671,8 @@ top
     vspace: '
 '
 /top
-nodes: 536
-tokens: 310
+nodes: 550
+tokens: 318
 interns: 44
 token size: 8
 node size: 12

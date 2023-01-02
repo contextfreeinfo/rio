@@ -6,6 +6,14 @@ top
   prefix
     opDef: '='
     prefix
+      id: 'Any'
+      id: 'pub'
+    /prefix
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
       id: 'Bool'
       id: 'pub'
     /prefix
@@ -298,4 +306,4 @@ top
     id: 'native'
   /prefix
 /top
-nodes: 225
+nodes: 231

@@ -1,3 +1,5 @@
+Any pub = native
+
 Bool pub = native
 
 Int pub = native

@@ -262,7 +262,7 @@ proc resolveOnce(grower: var Grower, tree: Tree): Tree =
   result = Tree(pass: resolve, nodes: grower.nodes, uid: uint32(running.uid))
 
 proc resolve*(grower: var Grower, imports: seq[Module], tree: Tree): Tree =
-  # TODO Need an id on each module. From interned canonical path?
+  # TODO Grab id from top of each module.
   # TODO Gather the tops/pubs from imports.
   # TODO Deal with more robust imports.
   result = tree
