@@ -5,12 +5,14 @@
 
 ## Goal
 
-A script-feeling, safe, naturally compatible replacement for C, with no runtime nor std lib of its own.
+A safe, tiny, flexible, systemsy, data-friendly, functional-first language, with no runtime nor std lib of its own.
 
 See also my [YouTube channel called Context Free](https://www.youtube.com/channel/UCS4FAVeYW_IaZqAbqhlvxlA) where I discuss programming languages, including things I think about while working on Rio.
 
 
 ## Description
+
+NOTE: These examples are out of date. I've been redoing things on other branches. Maybe I'll merge back to main someday.
 
 For an example, here's a Rio script:
 
