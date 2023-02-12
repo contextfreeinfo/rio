@@ -5,7 +5,7 @@ top
   /prefix
   prefixt
     udef
-    num: 0 0
+    num: 0 1
     prefix
       id: 'main'
       id: 'pub'
@@ -25,7 +25,7 @@ top
         keyFor: 'for'
         prefixt
           udef
-          num: 0 1
+          num: 0 2
           id: 'n'
           other
         /prefixt
@@ -56,14 +56,14 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 2
+    num: 0 3
     prefix
       id: 'fib'
       prefix
         keyFor: 'for'
         prefixt
           udef
-          num: 0 3
+          num: 0 4
           prefix
             keyIs: 'is'
             id: 'n'

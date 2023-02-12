@@ -77,6 +77,7 @@ type
   Runner = object
     defs: Defs
     grower: Grower
+    pool*: Pool[TextId] # Use only for ad hoc debugging.
     tree: Tree
     uid: Uid
 
@@ -96,7 +97,7 @@ func latest(running: Running): Node =
 proc nest(running: var Running, kind: NodeKind, begin: NodeId) =
   running.grower.nest(kind, begin)
 
-proc runNode(running: var Running, parent: Node, node: Node)
+proc runNode(running: var Running, parent: Node, node: Node, nodeId: NodeId)
 
 # proc runToken(running: var Running, nodeId: NodeId, token: Token): Value =
 #   case token.kind:
@@ -106,6 +107,46 @@ proc runNode(running: var Running, parent: Node, node: Node)
 #     Value(kind: valConst, value: nodeId, constType: Type(kind: typeString))
 #   else:
 #     Value(kind: valNone)
+
+func find(defs: Defs, text: TextId): Def =
+  defs.defs[defs.table.getOrDefault(text, 0)]
+
+func getFirstId(nodes: seq[Node], node: Node): Token =
+  case node.kind:
+  of leaf: node.token
+  of num: raise ValueError.newException "id invalid"
+  of prefix:
+    nodes.getFirstId(
+      nodes.kidAt(
+        node,
+        case nodes.calleeKind(node):
+        of keyIs: 1
+        else: 0
+      )
+    )
+  else: nodes.getFirstId(nodes.kidAt(node))
+
+func buildDef(tree: Tree, nodeId: NodeId): Def =
+  let
+    node = tree.nodes[nodeId]
+    numNode = tree.nodes[node.kids.idx + 1]
+    idNode = tree.nodes[node.kids.idx + 2]
+    idToken = tree.nodes.getFirstId(idNode)
+  var isPub = false
+  if idNode.kind notin {leaf, num}:
+    block pub:
+      for idKidId in idNode.kidIds:
+        let idKid = tree.nodes[idKidId]
+        if idKid.kind == leaf and idKid.token.text == pubId:
+          isPub = true
+          break pub
+  # TODO Need a tree or module also?
+  Def(
+    node: nodeId,
+    pub: isPub,
+    text: idToken.text,
+    uid: numNode.num.unsigned,
+  )
 
 proc buildUdef(
   running: var Running,
@@ -120,12 +161,6 @@ proc buildUdef(
   running.add(typ)
   running.nest(prefixt, begin)
 
-func getFirstId(nodes: seq[Node], node: Node): Token =
-  case node.kind:
-  of leaf: node.token
-  of num: raise ValueError.newException "id invalid"
-  else: nodes.getFirstId(nodes.kidAt(node))
-
 proc extractTops(running: Running) =
   ## Get just the published top-levels.
   let tree = running.tree
@@ -133,26 +168,7 @@ proc extractTops(running: Running) =
     # Struct members should be generated as top-level functions.
     let kid = tree.nodes[kidId]
     if tree.calleeKind(kid) == udef:
-      let
-        numNode = tree.nodes[kid.kids.idx + 1]
-        idNode = tree.nodes[kid.kids.idx + 2]
-        idToken = tree.nodes.getFirstId(idNode)
-      var isPub = false
-      block pub:
-        for idKidId in idNode.kidIds:
-          let idKid = tree.nodes[idKidId]
-          if idKid.kind == leaf and idKid.token.text == pubId:
-            isPub = true
-            break pub
-      running.defs.defs.add(
-        # TODO Need a tree or module also?
-        Def(
-          node: kidId,
-          pub: isPub,
-          text: idToken.text,
-          uid: numNode.num.unsigned,
-        )
-      )
+      running.defs.defs.add(buildDef(tree, kidId))
   # Sort and point to the first for each group.
   running.defs.defs.sort(func (x, y: Def): int = x.text - y.text)
   var lastText: TextId = 0
@@ -167,7 +183,7 @@ proc runDef(running: var Running, node: Node) =
   running.buildUdef node, proc(running: var Running): Node =
     # Skip the original opDef.
     for kidId in node.kids.idx + 1 .. node.kidsLast:
-      running.runNode(parent = node, node = tree.nodes[kidId])
+      running.runNode(parent = node, node = tree.nodes[kidId], nodeId = kidId)
     unknownType
 
 proc runFor(running: var Running, node: Node) =
@@ -181,10 +197,10 @@ proc runFor(running: var Running, node: Node) =
     of keyIs, id:
       # TODO Only do this for id if kid.kind == id?
       running.buildUdef kid, proc(running: var Running): Node =
-        running.runNode(parent = node, node = kid)
+        running.runNode(parent = node, node = kid, nodeId = kidId)
         unknownType
     else:
-      running.runNode(parent = node, node = kid)
+      running.runNode(parent = node, node = kid, nodeId = kidId)
   running.nest(prefix, begin)
 
 proc runQuote(running: var Running, node: Node) =
@@ -192,12 +208,12 @@ proc runQuote(running: var Running, node: Node) =
     begin = running.here
     tree = running.tree
   for kidId in node.kidIds:
-    running.runNode(parent = node, node = tree.nodes[kidId])
+    running.runNode(parent = node, node = tree.nodes[kidId], nodeId = kidId)
   # In the future, these could also become tuples.
   running.add(stringType)
   running.nest(prefixt, begin)
 
-proc runPrefix(running: var Running, parent: Node, node: Node) =
+proc runPrefix(running: var Running, parent: Node, node: Node, nodeId: NodeId) =
   let
     begin = running.here
     tree = running.tree
@@ -215,22 +231,30 @@ proc runPrefix(running: var Running, parent: Node, node: Node) =
   of quoteDouble:
     running.runQuote(node)
     return
+  of udef:
+    let def = buildDef(tree, nodeId)
+    # text: idToken.text,
+    # uid: numNode.num.unsigned,
+    echo("saw udef ", running.pool[def.text], " ", def.uid)
   else:
     discard
   # Use raw kid ids by default here and original node kind to preserve typed.
   for kidId in node.kids.idx .. node.kids.thru:
     let kid = tree.nodes[kidId]
-    running.runNode(parent = node, node = kid)
+    running.runNode(parent = node, node = kid, nodeId = kidId)
   running.nest(node.kind, begin)
 
-proc runNode(running: var Running, parent: Node, node: Node) =
+proc runNode(running: var Running, parent: Node, node: Node, nodeId: NodeId) =
   case node.kind:
   of leaf:
+    if node.token.kind == id:
+      let found = running.defs.find(node.token.text)
+      echo("find id ", running.pool[node.token.text], " at " , found.uid)
     running.add(node)
   of num:
     running.add(node)
   of prefix, prefixt:
-    running.runPrefix(parent = parent, node = node)
+    running.runPrefix(parent = parent, node = node, nodeId = nodeId)
   else:
     discard
 
@@ -240,7 +264,7 @@ proc runTop(running: var Running, node: Node) =
     tree = running.tree
   for kidId in node.kidIds:
     let kid = tree.nodes[kidId]
-    running.runNode(parent = node, node = kid)
+    running.runNode(parent = node, node = kid, nodeId = kidId)
   running.nest(top, begin)
 
 proc resolveOnce(grower: var Grower, tree: Tree): Tree =
@@ -251,9 +275,16 @@ proc resolveOnce(grower: var Grower, tree: Tree): Tree =
   # TODO Struct members are brought out to their level.
   # TODO Recurse keeping explicit stack of local definitions to wade through.
   var
-    runner = Runner(defs: Defs(), grower: grower, tree: tree, uid: tree.uid)
+    runner = Runner(
+      defs: Defs(), grower: grower, pool: grower.pool, tree: tree, uid: tree.uid
+    )
     running = addr runner
+  # Add a bogus at 0, so we can use 0 as broken.
+  running.defs.defs.add(Def(node: -1, pub: false, text: 0, uid: 0))
+  running.uid += 1
+  # Extract tops.
   running.extractTops
+  # Build round.
   grower.nodes.setLen(0)
   grower.working.setLen(0)
   let begin = running.here
