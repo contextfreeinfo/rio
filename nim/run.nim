@@ -98,7 +98,13 @@ func latest(running: Running): Node =
 proc nest(running: var Running, kind: NodeKind, begin: NodeId) =
   running.grower.nest(kind, begin)
 
-proc runNode(running: var Running, parent: Node, node: Node, nodeId: NodeId)
+proc runNode(
+  running: var Running,
+  parent: Node,
+  node: Node,
+  nodeId: NodeId,
+  inUdef: bool = false,
+)
 
 # proc runToken(running: var Running, nodeId: NodeId, token: Token): Value =
 #   case token.kind:
@@ -223,12 +229,19 @@ proc runQuote(running: var Running, node: Node) =
   running.add(stringType)
   running.nest(prefixt, begin)
 
-proc runPrefix(running: var Running, parent: Node, node: Node, nodeId: NodeId) =
+proc runPrefix(
+  running: var Running,
+  parent: Node,
+  node: Node,
+  nodeId: NodeId,
+  inUdef: bool = false,
+) =
   let
     defBegin = running.defs.stackDefs.len
     begin = running.here
     tree = running.tree
     calleeKind = tree.calleeKind(node)
+    nowInUdef = calleeKind == udef
   # TODO Generalized call dispatch.
   case calleeKind:
   of keyFor:
@@ -252,19 +265,32 @@ proc runPrefix(running: var Running, parent: Node, node: Node, nodeId: NodeId) =
       running.defs.stackDefs.add(def)
       # text: idToken.text,
       # uid: numNode.num.unsigned,
-      echo("hey ", nodeId, " vs " , running.tree.rootId)
-      echo("saw udef ", running.pool[def.text], " ", def.uid)
+      echo("saw udef ", running.pool[def.text], " ", def.uid, " ", inUdef)
   else:
     discard
   # Use raw kid ids by default here and original node kind to preserve typed.
-  for kidId in node.kids.idx .. node.kids.thru:
+  let lastId = node.kids.thru
+  for kidId in node.kids.idx .. lastId:
     let kid = tree.nodes[kidId]
-    running.runNode(parent = node, node = kid, nodeId = kidId)
+    running.runNode(
+      parent = node,
+      node = kid,
+      nodeId = kidId,
+      inUdef =
+        (nowInUdef and kidId < lastId) or
+        (inUdef and tree.calleeKind(parent) == udef),
+    )
   running.nest(node.kind, begin)
-  if calleeKind != udef:
+  if not (inUdef or nowInUdef):
     running.defs.stackDefs.setLen(defBegin)
 
-proc runNode(running: var Running, parent: Node, node: Node, nodeId: NodeId) =
+proc runNode(
+  running: var Running,
+  parent: Node,
+  node: Node,
+  nodeId: NodeId,
+  inUdef: bool = false,
+) =
   case node.kind:
   of leaf:
     if node.token.kind == id:
@@ -274,7 +300,9 @@ proc runNode(running: var Running, parent: Node, node: Node, nodeId: NodeId) =
   of num:
     running.add(node)
   of prefix, prefixt:
-    running.runPrefix(parent = parent, node = node, nodeId = nodeId)
+    running.runPrefix(
+      parent = parent, node = node, nodeId = nodeId, inUdef = inUdef
+    )
   else:
     discard
 

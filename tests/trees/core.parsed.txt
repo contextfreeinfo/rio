@@ -347,6 +347,11 @@ top
     vspace: '
 
 '
+    comment: '# switch pub = native'
+    vspace: '
+
+'
+  /space
   infix
     prefix
       id: 'thru'
@@ -671,8 +676,8 @@ top
     vspace: '
 '
 /top
-nodes: 550
-tokens: 318
-interns: 44
+nodes: 552
+tokens: 320
+interns: 45
 token size: 8
 node size: 12

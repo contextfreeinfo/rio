@@ -28,6 +28,8 @@ pub pub = native
 
 struct pub = native
 
+# switch pub = native
+
 thru pub for from is Int thru is Int to IntRange = _ from thru
 
 void pub = for any is Any to Void be ()
