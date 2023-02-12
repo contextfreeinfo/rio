@@ -72,6 +72,7 @@ type
     ## Enables keeping things sorted by text key without having a separate list
     ## of overloads for each key.
     defs: seq[Def]
+    stackDefs: seq[Def]
     table: Table[TextId, int]
 
   Runner = object
@@ -109,7 +110,16 @@ proc runNode(running: var Running, parent: Node, node: Node, nodeId: NodeId)
 #     Value(kind: valNone)
 
 func find(defs: Defs, text: TextId): Def =
-  defs.defs[defs.table.getOrDefault(text, 0)]
+  # First look through local stacks.
+  # TODO Just add to overload set?
+  for stackDefId in countdown(defs.stackDefs.high, 0):
+    let stackDef = defs.stackDefs[stackDefId]
+    if stackDef.text == text:
+      return stackDef
+  # Then check top levels.
+  let defId = defs.table.getOrDefault(text, 0)
+  if defId > 0:
+    return defs.defs[defId]
 
 func getFirstId(nodes: seq[Node], node: Node): Token =
   case node.kind:
@@ -215,11 +225,15 @@ proc runQuote(running: var Running, node: Node) =
 
 proc runPrefix(running: var Running, parent: Node, node: Node, nodeId: NodeId) =
   let
+    defBegin = running.defs.stackDefs.len
     begin = running.here
     tree = running.tree
+    calleeKind = tree.calleeKind(node)
   # TODO Generalized call dispatch.
-  case tree.calleeKind(node):
+  case calleeKind:
   of keyFor:
+    # TODO If parent is call, and we're last and grand is udef, then keep
+    # TODO stackDefs for value.
     running.runFor(node)
     return
   of opDef:
@@ -232,10 +246,14 @@ proc runPrefix(running: var Running, parent: Node, node: Node, nodeId: NodeId) =
     running.runQuote(node)
     return
   of udef:
-    let def = buildDef(tree, nodeId)
-    # text: idToken.text,
-    # uid: numNode.num.unsigned,
-    echo("saw udef ", running.pool[def.text], " ", def.uid)
+    if parent.kind != top:
+      let def = buildDef(tree, nodeId)
+      # TODO Support stacks of tables in case many at some level?
+      running.defs.stackDefs.add(def)
+      # text: idToken.text,
+      # uid: numNode.num.unsigned,
+      echo("hey ", nodeId, " vs " , running.tree.rootId)
+      echo("saw udef ", running.pool[def.text], " ", def.uid)
   else:
     discard
   # Use raw kid ids by default here and original node kind to preserve typed.
@@ -243,6 +261,8 @@ proc runPrefix(running: var Running, parent: Node, node: Node, nodeId: NodeId) =
     let kid = tree.nodes[kidId]
     running.runNode(parent = node, node = kid, nodeId = kidId)
   running.nest(node.kind, begin)
+  if calleeKind != udef:
+    running.defs.stackDefs.setLen(defBegin)
 
 proc runNode(running: var Running, parent: Node, node: Node, nodeId: NodeId) =
   case node.kind:
