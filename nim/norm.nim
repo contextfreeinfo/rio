@@ -120,7 +120,7 @@ proc simplifyAny(norming: var Norming, node: Node) =
   of leaf, num:
     case node.token.kind
     # Don't need extra groupers anymore.
-    of keyEnd, roundBegin, roundEnd: discard
+    of keyEnd, roundBegin, roundEnd, squareEnd: discard
     else: norming.add(node)
   of infix: norming.simplifyInfix(node)
   of prefix:

@@ -112,6 +112,36 @@ top
 '
   infix
     prefix
+      id: 'List'
+      space
+        hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
+      prefix
+        squareBegin: '['
+        prefix
+          keyFor: 'for'
+          space
+            hspace: ' '
+          id: 'Item'
+        /prefix
+        squareEnd: ']'
+      /prefix
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
       id: 'String'
       space
         hspace: ' '
@@ -136,41 +166,40 @@ top
       id: 'pub'
       space
         hspace: ' '
+      prefix
+        squareBegin: '['
+        prefix
+          keyFor: 'for'
+          space
+            hspace: ' '
+          infix
+            id: 'Interface'
+            space
+              hspace: ' '
+            keyIs: 'is'
+            space
+              hspace: ' '
+            prefix
+              roundBegin: '('
+              prefix
+                id: 'Type'
+                space
+                  hspace: ' '
+                id: 'Interface'
+              /prefix
+              roundEnd: ')'
+            /prefix
+          /infix
+        /prefix
+        squareEnd: ']'
+      /prefix
+      space
+        hspace: ' '
     /prefix
     opDef: '='
     space
       hspace: ' '
-    prefix
-      keyFor: 'for'
-      space
-        hspace: ' '
-      infix
-        id: 'Interface'
-        space
-          hspace: ' '
-        keyIs: 'is'
-        space
-          hspace: ' '
-        prefix
-          roundBegin: '('
-          prefix
-            id: 'Type'
-            space
-              hspace: ' '
-            id: 'Interface'
-          /prefix
-          roundEnd: ')'
-        /prefix
-        space
-          hspace: ' '
-      /infix
-      prefix
-        keyBe: 'be'
-        space
-          hspace: ' '
-        id: 'native'
-      /prefix
-    /prefix
+    id: 'native'
   /infix
   space
     vspace: '
@@ -347,11 +376,82 @@ top
     vspace: '
 
 '
-    comment: '# switch pub = native'
+  infix
+    prefix
+      id: 'switch'
+      space
+        hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
+      prefix
+        squareBegin: '['
+        prefix
+          keyFor: 'for'
+          space
+            hspace: ' '
+          id: 'Result'
+        /prefix
+        squareEnd: ']'
+      /prefix
+      space
+        hspace: ' '
+      prefix
+        keyFor: 'for'
+        space
+          vspace: '
+'
+          hspace: '  '
+        /space
+        infix
+          prefix
+            roundBegin: '('
+            prefix
+              id: 'cases'
+              space
+                hspace: ' '
+              ellipsis: '...'
+            /prefix
+            roundEnd: ')'
+          /prefix
+          space
+            hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          prefix
+            roundBegin: '('
+            prefix
+              id: 'List'
+              space
+                hspace: ' '
+              id: 'Result'
+            /prefix
+            roundEnd: ')'
+          /prefix
+        /infix
+        space
+          vspace: '
+'
+        prefix
+          keyTo: 'to'
+          space
+            hspace: ' '
+          id: 'Result'
+          space
+            hspace: ' '
+        /prefix
+      /prefix
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
     vspace: '
 
 '
-  /space
   infix
     prefix
       id: 'thru'
@@ -676,8 +776,8 @@ top
     vspace: '
 '
 /top
-nodes: 552
-tokens: 320
-interns: 45
+nodes: 633
+tokens: 367
+interns: 51
 token size: 8
 node size: 12

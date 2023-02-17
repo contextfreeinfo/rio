@@ -34,6 +34,8 @@ type
     quoteDouble
     roundBegin
     roundEnd
+    squareBegin
+    squareEnd
     stringEscape
     stringText
     udef
@@ -126,6 +128,8 @@ proc nextOther(lexing: var Lexing): TokenKind {.raises: [].} =
   case lexing.advance:
     of '(': roundBegin
     of ')': roundEnd
+    of '[': squareBegin
+    of ']': squareEnd
     of ':': opColon
     of '.':
       case lexing.current:

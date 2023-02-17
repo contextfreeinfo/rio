@@ -117,6 +117,8 @@ proc print*(tree: Tree, pool: Pool[TextId], file: File = stdout) =
 
 func token(parsing: Parsing): Token = parsing.tokens.tokens[parsing.index]
 
+func peek(parsing: Parsing): TokenKind = parsing.token.kind
+
 proc advance(parsing: var Parsing) =
   # Bounds checked access here asserts that nobody eats the eof.
   parsing.grower.working.add(Node(kind: leaf, token: parsing.token))
@@ -128,8 +130,6 @@ func here(parsing: Parsing): NodeId = parsing.grower.here
 
 func sliceFrom(begin: NodeId, til: NodeId): NodeSlice =
   NodeSlice(idx: begin, thru: til - 1)
-
-func peek(parsing: Parsing): TokenKind = parsing.token.kind
 
 proc advanceIf(parsing: var Parsing, tokenKinds: set[TokenKind]): bool =
   let match = parsing.peek in tokenKinds
@@ -186,7 +186,7 @@ proc group(parsing: var Parsing, until: set[TokenKind]) =
   parsing.expression
   parsing.space
   while not (parsing.peek in until):
-    if parsing.peek == roundEnd:
+    if parsing.peek in {roundEnd, squareEnd}:
       # Avoid infinite loops.
       parsing.advance
       parsing.space
@@ -241,6 +241,15 @@ proc round(parsing: var Parsing) =
   # Ends are whitespace after parsing and validation.
   parsing.nest(prefix, begin)
 
+proc square(parsing: var Parsing) =
+  let begin = parsing.here
+  parsing.advance
+  parsing.space
+  parsing.group {eof, keyEnd, squareEnd}
+  discard parsing.advanceIf(squareEnd)
+  # Ends are whitespace after parsing and validation.
+  parsing.nest(prefix, begin)
+
 proc to(parsing: var Parsing) =
   let begin = parsing.here
   # Always starts a prefix with up to 1 expression.
@@ -255,7 +264,7 @@ proc fun(parsing: var Parsing) =
   while true:
     parsing.space
     case parsing.peek
-    of eof: break
+    of eof, roundEnd, squareEnd: break
     of keyBe:
       parsing.bloc
       break
@@ -271,13 +280,14 @@ proc fun(parsing: var Parsing) =
 
 proc atom(parsing: var Parsing) =
   case parsing.peek:
-  of {eof, hspace, opDef, roundEnd, vspace}: return
+  of {eof, hspace, opDef, roundEnd, squareEnd, vspace}: return
   of keyBe: parsing.bloc
   of keyFor: parsing.fun
   of keyOf: parsing.bloc
   of keyTo: parsing.to
   of quoteDouble: parsing.quote
   of roundBegin: parsing.round
+  of squareBegin: parsing.square
   else: parsing.advance
 
 proc infix(
@@ -308,7 +318,7 @@ proc call(parsing: var Parsing) =
   let begin = parsing.here
   parsing.colon
   parsing.hspace
-  while not (parsing.peek in {eof, opDef, roundEnd, vspace}):
+  while not (parsing.peek in {eof, opDef, roundEnd, squareEnd, vspace}):
     parsing.colon
     parsing.hspace
   if parsing.here == begin + 1:
@@ -338,7 +348,7 @@ proc parse(parsing: var Parsing): Tree =
   grower.nodes.setLen(0)
   grower.working.setLen(0)
   while parsing.peek != eof:
-    if parsing.peek in {keyEnd, roundEnd}:
+    if parsing.peek in {keyEnd, roundEnd, squareEnd}:
       # Avoid infinite loops.
       parsing.advance
       parsing.space

@@ -9,9 +9,11 @@ IntRange pub = struct of
   thru is Int
 end
 
+List pub [for Item] = native
+
 String pub = native
 
-Type pub = for Interface is (Type Interface) be native
+Type pub [for Interface is (Type Interface)] = native
 
 Void pub = native
 
@@ -28,7 +30,9 @@ pub pub = native
 
 struct pub = native
 
-# switch pub = native
+switch pub [for Result] for
+  (cases ...) is (List Result)
+to Result = native
 
 thru pub for from is Int thru is Int to IntRange = _ from thru
 

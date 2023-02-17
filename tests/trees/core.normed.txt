@@ -50,6 +50,21 @@ top
   prefix
     opDef: '='
     prefix
+      id: 'List'
+      id: 'pub'
+      prefix
+        squareBegin: '['
+        prefix
+          keyFor: 'for'
+          id: 'Item'
+        /prefix
+      /prefix
+    /prefix
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
       id: 'String'
       id: 'pub'
     /prefix
@@ -60,22 +75,22 @@ top
     prefix
       id: 'Type'
       id: 'pub'
-    /prefix
-    prefix
-      keyFor: 'for'
       prefix
-        keyIs: 'is'
-        id: 'Interface'
+        squareBegin: '['
         prefix
-          id: 'Type'
-          id: 'Interface'
+          keyFor: 'for'
+          prefix
+            keyIs: 'is'
+            id: 'Interface'
+            prefix
+              id: 'Type'
+              id: 'Interface'
+            /prefix
+          /prefix
         /prefix
       /prefix
-      prefix
-        keyBe: 'be'
-        id: 'native'
-      /prefix
     /prefix
+    id: 'native'
   /prefix
   prefix
     opDef: '='
@@ -150,6 +165,39 @@ top
     prefix
       id: 'struct'
       id: 'pub'
+    /prefix
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'switch'
+      id: 'pub'
+      prefix
+        squareBegin: '['
+        prefix
+          keyFor: 'for'
+          id: 'Result'
+        /prefix
+      /prefix
+      prefix
+        keyFor: 'for'
+        prefix
+          keyIs: 'is'
+          prefix
+            id: 'cases'
+            ellipsis: '...'
+          /prefix
+          prefix
+            id: 'List'
+            id: 'Result'
+          /prefix
+        /prefix
+        prefix
+          keyTo: 'to'
+          id: 'Result'
+        /prefix
+      /prefix
     /prefix
     id: 'native'
   /prefix
@@ -306,4 +354,4 @@ top
     id: 'native'
   /prefix
 /top
-nodes: 231
+nodes: 266
