@@ -36,7 +36,7 @@ proc process(
   #   discard p.parse(tokens)
   # Write.
   block:
-    let file = open(outDir / sourceName.changeFileExt "parsed.txt", fmWrite)
+    let file = open(outDir / sourceName.changeFileExt ".parsed.txt", fmWrite)
     defer: file.close
     parsed.print(file = file, pool = lexer.pool)
     file.writeLine("nodes: ", parsed.nodes.len)

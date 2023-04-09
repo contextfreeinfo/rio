@@ -2,6 +2,7 @@ top
   prefix
     id: 'pub'
     id: 'core.rio'
+    num: 19 0
   /prefix
   prefixt
     udef
@@ -479,4 +480,4 @@ top
     other
   /prefixt
 /top
-nodes: 374
+nodes: 375

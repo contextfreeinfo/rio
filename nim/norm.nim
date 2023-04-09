@@ -84,10 +84,26 @@ proc simplifyDot(norming: var Norming, node: Node) =
     # Don't have the right parts for this anyway.
     norming.simplifyGeneric(node)
 
+func simplifyOp(norming: var Norming, node: Node): Node =
+  case node.kind:
+  of leaf:
+    let token = case node.token.kind:
+    of opAdd: Token(kind: id, text: addId)
+    of opSub: Token(kind: id, text: subId)
+    of opEq: Token(kind: id, text: eqId)
+    of opGe: Token(kind: id, text: geId)
+    of opGt: Token(kind: id, text: gtId)
+    of opLe: Token(kind: id, text: leId)
+    of opLt: Token(kind: id, text: ltId)
+    of opNe: Token(kind: id, text: neId)
+    else: node.token
+    Node(kind: leaf, token: token)
+  else: node
+
 proc simplifyInfix(norming: var Norming, node: Node) =
   let begin = norming.here
   # Convert infix to prefix.
-  norming.add(norming.kidAt(node, 1))
+  norming.add(norming.simplifyOp(norming.kidAt(node, 1))) #
   norming.simplifyAny(norming.kidAt(node))
   if node.kids.len == 3:
     norming.simplifyAny(norming.kidAt(node, 2))
@@ -111,6 +127,7 @@ proc simplifyTop(norming: var Norming, node: Node, sourceId: TextId) =
   # Prefix with source id tag.
   norming.add(Node(kind: leaf, token: Token(kind: id, text: pubId)))
   norming.add(Node(kind: leaf, token: Token(kind: id, text: sourceId)))
+  norming.add(Node(kind: num, num: NodeNum(signed: sourceId, unsigned: 0)))
   norming.nest(prefix, begin)
   # Now the rest.
   norming.simplifyGeneric(node, begin = begin)
@@ -140,7 +157,7 @@ proc simplifyAny(norming: var Norming, node: Node) =
     else: norming.simplifyGeneric(node)
   of top: norming.simplifyGeneric(node)
   # TODO Support prefixt here in the future?
-  of space, prefixt: assert false
+  of space, prefixt, uref: assert false
 
 proc spacelessAction(norming: var Norming, node: Node) =
   if node.kind == space:

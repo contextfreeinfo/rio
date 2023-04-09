@@ -778,6 +778,6 @@ top
 /top
 nodes: 633
 tokens: 367
-interns: 51
+interns: 55
 token size: 8
 node size: 12

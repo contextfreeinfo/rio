@@ -2,6 +2,7 @@ top
   prefix
     id: 'pub'
     id: 'core.rio'
+    num: 19 0
   /prefix
   prefix
     opDef: '='
@@ -354,4 +355,4 @@ top
     id: 'native'
   /prefix
 /top
-nodes: 266
+nodes: 267

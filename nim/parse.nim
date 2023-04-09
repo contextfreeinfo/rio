@@ -12,6 +12,7 @@ type
     prefixt
     space
     top
+    uref
 
   NodeId* = int32
 
@@ -29,7 +30,7 @@ type
     case kind*: NodeKind
     of leaf:
       token*: Token
-    of num:
+    of num, uref:
       num*: NodeNum
     else:
       kids*: NodeSlice

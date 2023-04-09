@@ -2,6 +2,7 @@ top
   prefix
     id: 'pub'
     id: 'fib-simpler.rio'
+    num: 56 0
   /prefix
   prefixt
     udef
@@ -83,7 +84,7 @@ top
         id: 'switch'
         prefix
           prefix
-            opLe: '<='
+            id: 'le'
             id: 'n'
             integer: '0'
           /prefix
@@ -94,7 +95,7 @@ top
         /prefix
         prefix
           prefix
-            opEq: '=='
+            id: 'eq'
             id: 'n'
             integer: '1'
           /prefix
@@ -108,11 +109,11 @@ top
           prefix
             keyBe: 'be'
             prefix
-              opAdd: '+'
+              id: 'add'
               prefix
                 id: 'fib'
                 prefix
-                  opSub: '-'
+                  id: 'sub'
                   id: 'n'
                   integer: '2'
                 /prefix
@@ -120,7 +121,7 @@ top
               prefix
                 id: 'fib'
                 prefix
-                  opSub: '-'
+                  id: 'sub'
                   id: 'n'
                   integer: '1'
                 /prefix
@@ -133,4 +134,4 @@ top
     other
   /prefixt
 /top
-nodes: 100
+nodes: 101
