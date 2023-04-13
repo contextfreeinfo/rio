@@ -6,6 +6,7 @@ import std/strutils
 type
   NodeKind* = enum
     leaf
+    f64
     infix
     num
     prefix
@@ -26,10 +27,14 @@ type
     idx*: NodeId
     thru*: NodeId
 
-  Node* = object
+  Node* {.packed.} = object
+    pad1: uint8
+    pad2: uint16
     case kind*: NodeKind
     of leaf:
       token*: Token
+    of f64:
+      f64Val*: float64
     of num, uref:
       num*: NodeNum
     else:
@@ -103,6 +108,8 @@ proc print(
   case node.kind:
   of leaf:
     node.token.print(pool = pool, file = file)
+  of f64:
+    file.writeLine "f64: ", node.f64Val
   of num:
     file.writeLine "num: ", node.num.signed, " ", node.num.unsigned
   else:

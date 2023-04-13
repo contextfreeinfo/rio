@@ -219,7 +219,7 @@ top
     udef
     num: 0 18
     prefix
-      id: 'switch'
+      id: 'case'
       id: 'pub'
       prefix
         squareBegin: '['

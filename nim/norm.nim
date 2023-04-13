@@ -157,7 +157,7 @@ proc simplifyAny(norming: var Norming, node: Node) =
     else: norming.simplifyGeneric(node)
   of top: norming.simplifyGeneric(node)
   # TODO Support prefixt here in the future?
-  of space, prefixt, uref: assert false
+  of f64, prefixt, space, uref: assert false
 
 proc spacelessAction(norming: var Norming, node: Node) =
   if node.kind == space:

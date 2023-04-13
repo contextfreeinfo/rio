@@ -178,7 +178,7 @@ proc buildUdef(
   running.nest(prefixt, begin)
 
 proc extractTops(running: Running) =
-  ## Get just the published top-levels.
+  ## Get just the top-level udefs.
   let tree = running.tree
   for kidId in tree.root.kidIds:
     # Struct members should be generated as top-level functions.

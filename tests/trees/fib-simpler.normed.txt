@@ -67,7 +67,7 @@ top
     prefix
       keyBe: 'be'
       prefix
-        id: 'switch'
+        id: 'case'
         prefix
           prefix
             id: 'le'

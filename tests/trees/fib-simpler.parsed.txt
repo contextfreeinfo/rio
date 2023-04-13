@@ -154,7 +154,7 @@ top
         hspace: '  '
       /space
       prefix
-        id: 'switch'
+        id: 'case'
         space
           hspace: ' '
         prefix

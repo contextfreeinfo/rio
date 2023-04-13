@@ -172,7 +172,7 @@ top
   prefix
     opDef: '='
     prefix
-      id: 'switch'
+      id: 'case'
       id: 'pub'
       prefix
         squareBegin: '['

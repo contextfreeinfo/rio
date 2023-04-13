@@ -2,6 +2,7 @@ Any pub = native
 
 Bool pub = native
 
+# Int like Number -> Int is (Type Number)
 Int pub = native
 
 IntRange pub = struct of
@@ -30,7 +31,7 @@ pub pub = native
 
 struct pub = native
 
-switch pub [for Result] for
+case pub [for Result] for
   (cases ...) is (List Result)
 to Result = native
 
@@ -38,7 +39,6 @@ thru pub for from is Int thru is Int to IntRange = _ from thru
 
 void pub = for any is Any to Void be ()
 
-# Int like Number -> Int is (Type Number)
 eq pub for x is Int y is Int to Bool = native
 le pub for x is Int y is Int to Bool = native
 add pub for x is Int y is Int to Int = native
