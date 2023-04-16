@@ -271,6 +271,74 @@ top
 '
   infix
     prefix
+      id: 'true'
+      space
+        hspace: ' '
+      infix
+        id: 'pub'
+        space
+          hspace: ' '
+        keyIs: 'is'
+        space
+          hspace: ' '
+        id: 'Bool'
+        space
+          hspace: ' '
+      /infix
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+'
+  infix
+    prefix
+      id: 'false'
+      space
+        hspace: ' '
+      infix
+        id: 'pub'
+        space
+          hspace: ' '
+        keyIs: 'is'
+        space
+          hspace: ' '
+        id: 'Bool'
+        space
+          hspace: ' '
+      /infix
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'native'
+  /infix
+  space
+    vspace: '
+'
+  infix
+    prefix
+      id: 'else'
+      space
+        hspace: ' '
+      id: 'pub'
+      space
+        hspace: ' '
+    /prefix
+    opDef: '='
+    space
+      hspace: ' '
+    id: 'true'
+  /infix
+  space
+    vspace: '
+
+'
+  infix
+    prefix
       id: 'native'
       space
         hspace: ' '
@@ -776,8 +844,8 @@ top
     vspace: '
 '
 /top
-nodes: 633
-tokens: 367
-interns: 55
+nodes: 689
+tokens: 399
+interns: 58
 token size: 8
 node size: 12

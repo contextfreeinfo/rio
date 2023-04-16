@@ -142,6 +142,8 @@ rio_float sample2_ticket_price(rio_int const age) {
 ## Notes
 
 ```
+time (time nim c --nimcache:nimcache -d:release -d:useMalloc --mm:orc nim/main.nim && time ./nim/main tests/fib-simpler.rio tests/trees/)
+# Older
 nim c --nimcache:nimcache -d:release --mm:orc nim/main.nim
 nim r --nimcache:nimcache -d:release --mm:orc nim/main.nim
 nim r --nimcache:nimcache -d:release --mm:orc nim/main.nim tests/fib-simpler.rio > tests/trees/

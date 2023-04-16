@@ -1,7 +1,7 @@
 top
   prefix
     id: 'pub'
-    id: 'core.rio'
+    stringText: 'core.rio'
     num: 19 0
   /prefix
   prefix
@@ -120,6 +120,38 @@ top
       /prefix
     /prefix
     id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'true'
+      prefix
+        keyIs: 'is'
+        id: 'pub'
+        id: 'Bool'
+      /prefix
+    /prefix
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'false'
+      prefix
+        keyIs: 'is'
+        id: 'pub'
+        id: 'Bool'
+      /prefix
+    /prefix
+    id: 'native'
+  /prefix
+  prefix
+    opDef: '='
+    prefix
+      id: 'else'
+      id: 'pub'
+    /prefix
+    id: 'true'
   /prefix
   prefix
     opDef: '='
@@ -355,4 +387,4 @@ top
     id: 'native'
   /prefix
 /top
-nodes: 267
+nodes: 291

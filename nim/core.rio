@@ -20,6 +20,10 @@ Void pub = native
 
 each pub for range is IntRange to Void = native
 
+true pub is Bool = native
+false pub is Bool = native
+else pub = true
+
 native pub = native
 
 printf pub = for

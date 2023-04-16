@@ -1,7 +1,7 @@
 top
   prefix
     id: 'pub'
-    id: 'core.rio'
+    stringText: 'core.rio'
     num: 19 0
   /prefix
   prefixt
@@ -158,8 +158,12 @@ top
     udef
     num: 0 13
     prefix
-      id: 'native'
-      id: 'pub'
+      id: 'true'
+      prefix
+        keyIs: 'is'
+        id: 'pub'
+        id: 'Bool'
+      /prefix
     /prefix
     id: 'native'
     other
@@ -168,6 +172,40 @@ top
     udef
     num: 0 14
     prefix
+      id: 'false'
+      prefix
+        keyIs: 'is'
+        id: 'pub'
+        id: 'Bool'
+      /prefix
+    /prefix
+    id: 'native'
+    other
+  /prefixt
+  prefixt
+    udef
+    num: 0 15
+    prefix
+      id: 'else'
+      id: 'pub'
+    /prefix
+    id: 'true'
+    other
+  /prefixt
+  prefixt
+    udef
+    num: 0 16
+    prefix
+      id: 'native'
+      id: 'pub'
+    /prefix
+    id: 'native'
+    other
+  /prefixt
+  prefixt
+    udef
+    num: 0 17
+    prefix
       id: 'printf'
       id: 'pub'
     /prefix
@@ -175,7 +213,7 @@ top
       keyFor: 'for'
       prefixt
         udef
-        num: 0 15
+        num: 0 18
         prefix
           keyIs: 'is'
           id: 'pattern'
@@ -197,7 +235,7 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 16
+    num: 0 19
     prefix
       id: 'pub'
       id: 'pub'
@@ -207,7 +245,7 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 17
+    num: 0 20
     prefix
       id: 'struct'
       id: 'pub'
@@ -217,7 +255,7 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 18
+    num: 0 21
     prefix
       id: 'case'
       id: 'pub'
@@ -227,7 +265,7 @@ top
           keyFor: 'for'
           prefixt
             udef
-            num: 0 19
+            num: 0 22
             id: 'Result'
             other
           /prefixt
@@ -237,7 +275,7 @@ top
         keyFor: 'for'
         prefixt
           udef
-          num: 0 20
+          num: 0 23
           prefix
             keyIs: 'is'
             prefix
@@ -262,7 +300,7 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 21
+    num: 0 24
     prefix
       id: 'thru'
       id: 'pub'
@@ -270,7 +308,7 @@ top
         keyFor: 'for'
         prefixt
           udef
-          num: 0 22
+          num: 0 25
           prefix
             keyIs: 'is'
             id: 'from'
@@ -280,7 +318,7 @@ top
         /prefixt
         prefixt
           udef
-          num: 0 23
+          num: 0 26
           prefix
             keyIs: 'is'
             id: 'thru'
@@ -303,7 +341,7 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 24
+    num: 0 27
     prefix
       id: 'void'
       id: 'pub'
@@ -312,7 +350,7 @@ top
       keyFor: 'for'
       prefixt
         udef
-        num: 0 25
+        num: 0 28
         prefix
           keyIs: 'is'
           id: 'any'
@@ -333,46 +371,9 @@ top
   /prefixt
   prefixt
     udef
-    num: 0 26
-    prefix
-      id: 'eq'
-      id: 'pub'
-      prefix
-        keyFor: 'for'
-        prefixt
-          udef
-          num: 0 27
-          prefix
-            keyIs: 'is'
-            id: 'x'
-            id: 'Int'
-          /prefix
-          other
-        /prefixt
-        prefixt
-          udef
-          num: 0 28
-          prefix
-            keyIs: 'is'
-            id: 'y'
-            id: 'Int'
-          /prefix
-          other
-        /prefixt
-        prefix
-          keyTo: 'to'
-          id: 'Bool'
-        /prefix
-      /prefix
-    /prefix
-    id: 'native'
-    other
-  /prefixt
-  prefixt
-    udef
     num: 0 29
     prefix
-      id: 'le'
+      id: 'eq'
       id: 'pub'
       prefix
         keyFor: 'for'
@@ -409,7 +410,7 @@ top
     udef
     num: 0 32
     prefix
-      id: 'add'
+      id: 'le'
       id: 'pub'
       prefix
         keyFor: 'for'
@@ -435,7 +436,7 @@ top
         /prefixt
         prefix
           keyTo: 'to'
-          id: 'Int'
+          id: 'Bool'
         /prefix
       /prefix
     /prefix
@@ -446,7 +447,7 @@ top
     udef
     num: 0 35
     prefix
-      id: 'sub'
+      id: 'add'
       id: 'pub'
       prefix
         keyFor: 'for'
@@ -479,5 +480,42 @@ top
     id: 'native'
     other
   /prefixt
+  prefixt
+    udef
+    num: 0 38
+    prefix
+      id: 'sub'
+      id: 'pub'
+      prefix
+        keyFor: 'for'
+        prefixt
+          udef
+          num: 0 39
+          prefix
+            keyIs: 'is'
+            id: 'x'
+            id: 'Int'
+          /prefix
+          other
+        /prefixt
+        prefixt
+          udef
+          num: 0 40
+          prefix
+            keyIs: 'is'
+            id: 'y'
+            id: 'Int'
+          /prefix
+          other
+        /prefixt
+        prefix
+          keyTo: 'to'
+          id: 'Int'
+        /prefix
+      /prefix
+    /prefix
+    id: 'native'
+    other
+  /prefixt
 /top
-nodes: 375
+nodes: 405

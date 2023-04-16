@@ -1,8 +1,8 @@
 top
   prefix
     id: 'pub'
-    id: 'fib-simpler.rio'
-    num: 56 0
+    stringText: 'fib-simpler.rio'
+    num: 59 0
   /prefix
   prefixt
     udef

@@ -2,6 +2,7 @@ import intern
 import lex
 import system/assertions
 import std/strutils
+import strformat
 
 type
   NodeKind* = enum
@@ -34,6 +35,7 @@ type
     of leaf:
       token*: Token
     of f64:
+      # Bad for packed, but slower might be better than 16 bytes.
       f64Val*: float64
     of num, uref:
       num*: NodeNum
@@ -72,6 +74,8 @@ type
   Parsing = ptr Parser
 
 # Support.
+
+func `$`*(num: NodeNum): string = fmt"({num.signed}, {num.unsigned})"
 
 func `==`*(x, y: Node): bool =
   ## Super simple compare that's only useful if a whole node seq is equal.

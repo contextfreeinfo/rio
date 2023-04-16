@@ -8,15 +8,16 @@ import std/tables
 type
   Module* = ref object
     # TODO Links from resolved to parsed.
+    # TODO Replace parsed with a list of ranges? Would be only 8 bytes each.
     parsed*: Tree
     resolved*: Tree
 
   TypeKind = enum
-    typeFun,
-    typeInt,
-    typeString,
-    typeType,
-    typeUnknown,
+    typeFun
+    typeInt
+    typeString
+    typeType
+    typeUnknown
 
   Type = object
     case kind: TypeKind
@@ -64,7 +65,7 @@ type
     node: NodeId
     pub: bool
     text: TextId
-    uid: Uid
+    uid: NodeNum
 
   DefId = int
 
@@ -142,7 +143,7 @@ func getFirstId(nodes: seq[Node], node: Node): Token =
     )
   else: nodes.getFirstId(nodes.kidAt(node))
 
-func buildDef(tree: Tree, nodeId: NodeId): Def =
+func buildDef(tree: Tree, nodeId: NodeId, moduleId: int32 = 0): Def =
   let
     node = tree.nodes[nodeId]
     numNode = tree.nodes[node.kids.idx + 1]
@@ -161,7 +162,7 @@ func buildDef(tree: Tree, nodeId: NodeId): Def =
     node: nodeId,
     pub: isPub,
     text: idToken.text,
-    uid: numNode.num.unsigned,
+    uid: NodeNum(signed: moduleId, unsigned: numNode.num.unsigned),
   )
 
 proc buildUdef(
@@ -177,22 +178,36 @@ proc buildUdef(
   running.add(typ)
   running.nest(prefixt, begin)
 
-proc extractTops(running: Running) =
+proc extractTops(running: Running, moduleId: int32 = 0) =
   ## Get just the top-level udefs.
   let tree = running.tree
   for kidId in tree.root.kidIds:
     # Struct members should be generated as top-level functions.
     let kid = tree.nodes[kidId]
     if tree.calleeKind(kid) == udef:
-      running.defs.defs.add(buildDef(tree, kidId))
+      let def = buildDef(tree, kidId, moduleId = moduleId)
+      if moduleId == 0 or def.pub:
+        running.defs.defs.add(def)
   # Sort and point to the first for each group.
   running.defs.defs.sort(func (x, y: Def): int = x.text - y.text)
   var lastText: TextId = 0
   for index, def in running.defs.defs.pairs:
     if def.text != lastText:
       running.defs.table[def.text] = index
-  echo(running.defs.defs)
-  echo(running.defs.table)
+  echo("defs: ", running.defs.defs)
+  echo("table: ", running.defs.table)
+
+proc extractExports(running: var Running, module: Module) =
+  # Not all these fields get used for extractTops needs.
+  # TODO Reduce needs for extractTops?
+  var importing = Runner(
+    defs: running.defs,
+    grower: running.grower,
+    pool: running.grower.pool,
+    tree: module.resolved,
+    uid: 0,
+  )
+  (addr importing).extractTops(moduleId = module.resolved.moduleId)
 
 proc runDef(running: var Running, node: Node) =
   let tree = running.tree
@@ -295,7 +310,7 @@ proc runNode(
   of leaf:
     if node.token.kind == id:
       let found = running.defs.find(node.token.text)
-      echo("find id ", running.pool[node.token.text], " at " , found.uid)
+      echo("find id ", running.pool[node.token.text], " at ", found.uid)
     running.add(node)
   of num:
     running.add(node)
@@ -315,7 +330,7 @@ proc runTop(running: var Running, node: Node) =
     running.runNode(parent = node, node = kid, nodeId = kidId)
   running.nest(top, begin)
 
-proc resolveOnce(grower: var Grower, tree: Tree): Tree =
+proc resolveOnce(grower: var Grower, imports: seq[Module], tree: Tree): Tree =
   # TODO Some buffer type for running like for parsing and norming?
   # TODO Resolve imports.
   # TODO Put top levels into seq then sort by name.
@@ -328,7 +343,11 @@ proc resolveOnce(grower: var Grower, tree: Tree): Tree =
     )
     running = addr runner
   # Add a bogus at 0, so we can use 0 as broken.
-  running.defs.defs.add(Def(node: -1, pub: false, text: 0, uid: 0))
+  running.defs.defs.add(
+    Def(node: -1, pub: false, text: 0, uid: NodeNum(signed: 0, unsigned: 0))
+  )
+  for imp in imports:
+    running.extractExports(imp)
   running.uid += 1
   # Extract tops.
   running.extractTops
@@ -341,14 +360,16 @@ proc resolveOnce(grower: var Grower, tree: Tree): Tree =
   result = Tree(pass: resolve, nodes: grower.nodes, uid: uint32(running.uid))
 
 proc resolve*(grower: var Grower, imports: seq[Module], tree: Tree): Tree =
-  # TODO Grab id from top of each module.
-  # TODO Gather the tops/pubs from imports.
-  # TODO Deal with more robust imports.
+  # TODO More robust imports.
   result = tree
   # TODO Pick a good max iterations.
   for i in 1..5:
     let old = result
-    result = grower.resolveOnce(result)
+    result = grower.resolveOnce(
+      # Skip imports first time so local tops can compete.
+      imports = if i > 1: imports else: @[],
+      tree = result,
+    )
     if result.nodes == old.nodes:
       echo "Same at ", i
       break

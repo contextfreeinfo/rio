@@ -44,6 +44,15 @@ func calleeKind*(nodes: seq[Node], node: Node): TokenKind =
 func calleeKind*(tree: Tree, node: Node): TokenKind =
   tree.nodes.calleeKind(node)
 
+func moduleId*(tree: Tree): int32 =
+  ## Gets the module id from the pub node after norming.
+  let first = tree.kidAt(tree.root)
+  if first.kind in {prefix, prefixt}:
+    let callee = tree.kidAt(first)
+    if callee.tokenKind == id and callee.token.text == pubId:
+      return tree.kidAt(first, 2).num.signed
+  -1
+
 proc add(norming: var Norming, node: Node) = norming.grower.working.add(node)
 
 func here(norming: Norming): NodeId = norming.grower.here
@@ -126,7 +135,7 @@ proc simplifyTop(norming: var Norming, node: Node, sourceId: TextId) =
   let begin = norming.here
   # Prefix with source id tag.
   norming.add(Node(kind: leaf, token: Token(kind: id, text: pubId)))
-  norming.add(Node(kind: leaf, token: Token(kind: id, text: sourceId)))
+  norming.add(Node(kind: leaf, token: Token(kind: stringText, text: sourceId)))
   norming.add(Node(kind: num, num: NodeNum(signed: sourceId, unsigned: 0)))
   norming.nest(prefix, begin)
   # Now the rest.
