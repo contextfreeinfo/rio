@@ -11,6 +11,7 @@ type
     # TODO Replace parsed with a list of ranges? Would be only 8 bytes each.
     parsed*: Tree
     resolved*: Tree
+    sourceName*: string
 
   TypeKind = enum
     typeFun

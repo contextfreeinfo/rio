@@ -1,3 +1,4 @@
+import gen_wasm
 import intern
 import lex
 import norm
@@ -54,7 +55,14 @@ proc process(
     defer: file.close
     resolved.print(file = file, pool = lexer.pool)
     file.writeLine("nodes: ", resolved.nodes.len)
-  Module(parsed: parsed, resolved: resolved)
+  Module(parsed: parsed, resolved: resolved, sourceName: sourceName)
+
+proc generate(engine: Engine, module: Module) =
+  let
+    outDir = engine.outDir
+    file = open(outDir / module.sourceName.changeFileExt ".wasm", fmWrite)
+  defer: file.close
+  engine.grower.gen_wasm(module)
 
 const
   coreName = "core.rio"
@@ -77,6 +85,7 @@ proc main() =
     module = engine.process(
       imports = @[core], source = source, sourceName = sourceName
     )
+  engine.generate(module)
   discard module
 
 main()
