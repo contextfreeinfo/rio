@@ -292,4 +292,4 @@ nodes: 227
 tokens: 133
 interns: 76
 token size: 8
-node size: 12
+node size: 16

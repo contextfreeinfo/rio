@@ -12,3 +12,4 @@ zig-out/
 /.vs/
 /.vscode/
 *.swp
+*.wasm

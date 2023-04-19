@@ -28,9 +28,8 @@ type
     idx*: NodeId
     thru*: NodeId
 
-  Node* {.packed.} = object
-    pad1: uint8
-    pad2: uint16
+  Node* = object
+    source*: NodeId
     case kind*: NodeKind
     of leaf:
       token*: Token
@@ -117,7 +116,7 @@ proc print(
   of num:
     file.writeLine "num: ", node.num.signed, " ", node.num.unsigned
   else:
-    file.writeLine node.kind
+    file.writeLine node.kind #, "@", node.source
     for kid in node.kids.idx .. node.kids.thru:
       tree.print(kid, file = file, pool = pool, indent = indent + 1)
     if node.kids.len > 1:
@@ -369,6 +368,9 @@ proc parse(parsing: var Parsing): Tree =
   parsing.nestMaybe(top, 0)
   # Final nest pushes down the outer block if it exists.
   parsing.nest(top, 0)
+  # Assign source to self + 1 for initial parse, then done.
+  for id in 0 ..< grower.nodes.len:
+    grower.nodes[id].source = NodeId id + 1
   Tree(pass: parse, nodes: grower.nodes, uid: 0)
 
 proc newGrower*(pool: Pool[TextId]): Grower = Grower(
