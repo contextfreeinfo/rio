@@ -62,7 +62,8 @@ proc generate(engine: Engine, module: Module) =
     outDir = engine.outDir
     file = open(outDir / module.sourceName.changeFileExt ".wasm", fmWrite)
   defer: file.close
-  engine.grower.gen_wasm(module)
+  let buffer = engine.grower.gen_wasm(module)
+  discard file.writeBytes(buffer, 0, buffer.len)
 
 const
   coreName = "core.rio"
