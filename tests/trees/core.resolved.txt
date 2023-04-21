@@ -106,7 +106,10 @@ top
               id: 'Interface'
               prefix
                 id: 'Type'
-                id: 'Interface'
+                prefix
+                  squareBegin: '['
+                  id: 'Interface'
+                /prefix
               /prefix
             /prefix
             other
@@ -266,7 +269,7 @@ top
           prefixt
             udef
             num: 0 22
-            id: 'Result'
+            id: 'Value'
             other
           /prefixt
         /prefix
@@ -279,19 +282,34 @@ top
           prefix
             keyIs: 'is'
             prefix
-              id: 'cases'
+              id: 'branches'
               ellipsis: '...'
             /prefix
             prefix
               id: 'List'
-              id: 'Result'
+              prefix
+                squareBegin: '['
+                prefix
+                  id: 'struct'
+                  prefix
+                    keyIs: 'is'
+                    id: 'condition'
+                    id: 'Bool'
+                  /prefix
+                  prefix
+                    keyIs: 'is'
+                    id: 'value'
+                    id: 'Value'
+                  /prefix
+                /prefix
+              /prefix
             /prefix
           /prefix
           other
         /prefixt
         prefix
           keyTo: 'to'
-          id: 'Result'
+          id: 'Value'
         /prefix
       /prefix
     /prefix
@@ -518,4 +536,4 @@ top
     other
   /prefixt
 /top
-nodes: 405
+nodes: 418

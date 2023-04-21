@@ -189,7 +189,11 @@ top
                 id: 'Type'
                 space
                   hspace: ' '
-                id: 'Interface'
+                prefix
+                  squareBegin: '['
+                  id: 'Interface'
+                  squareEnd: ']'
+                /prefix
               /prefix
               roundEnd: ')'
             /prefix
@@ -462,7 +466,7 @@ top
           keyFor: 'for'
           space
             hspace: ' '
-          id: 'Result'
+          id: 'Value'
         /prefix
         squareEnd: ']'
       /prefix
@@ -479,7 +483,7 @@ top
           prefix
             roundBegin: '('
             prefix
-              id: 'cases'
+              id: 'branches'
               space
                 hspace: ' '
               ellipsis: '...'
@@ -497,7 +501,39 @@ top
               id: 'List'
               space
                 hspace: ' '
-              id: 'Result'
+              prefix
+                squareBegin: '['
+                prefix
+                  roundBegin: '('
+                  prefix
+                    id: 'struct'
+                    space
+                      hspace: ' '
+                    infix
+                      id: 'condition'
+                      space
+                        hspace: ' '
+                      keyIs: 'is'
+                      space
+                        hspace: ' '
+                      id: 'Bool'
+                      space
+                        hspace: ' '
+                    /infix
+                    infix
+                      id: 'value'
+                      space
+                        hspace: ' '
+                      keyIs: 'is'
+                      space
+                        hspace: ' '
+                      id: 'Value'
+                    /infix
+                  /prefix
+                  roundEnd: ')'
+                /prefix
+                squareEnd: ']'
+              /prefix
             /prefix
             roundEnd: ')'
           /prefix
@@ -509,7 +545,7 @@ top
           keyTo: 'to'
           space
             hspace: ' '
-          id: 'Result'
+          id: 'Value'
           space
             hspace: ' '
         /prefix
@@ -844,8 +880,8 @@ top
     vspace: '
 '
 /top
-nodes: 689
-tokens: 399
-interns: 58
+nodes: 719
+tokens: 417
+interns: 60
 token size: 8
 node size: 16

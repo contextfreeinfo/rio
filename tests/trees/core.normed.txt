@@ -85,7 +85,10 @@ top
             id: 'Interface'
             prefix
               id: 'Type'
-              id: 'Interface'
+              prefix
+                squareBegin: '['
+                id: 'Interface'
+              /prefix
             /prefix
           /prefix
         /prefix
@@ -210,7 +213,7 @@ top
         squareBegin: '['
         prefix
           keyFor: 'for'
-          id: 'Result'
+          id: 'Value'
         /prefix
       /prefix
       prefix
@@ -218,17 +221,32 @@ top
         prefix
           keyIs: 'is'
           prefix
-            id: 'cases'
+            id: 'branches'
             ellipsis: '...'
           /prefix
           prefix
             id: 'List'
-            id: 'Result'
+            prefix
+              squareBegin: '['
+              prefix
+                id: 'struct'
+                prefix
+                  keyIs: 'is'
+                  id: 'condition'
+                  id: 'Bool'
+                /prefix
+                prefix
+                  keyIs: 'is'
+                  id: 'value'
+                  id: 'Value'
+                /prefix
+              /prefix
+            /prefix
           /prefix
         /prefix
         prefix
           keyTo: 'to'
-          id: 'Result'
+          id: 'Value'
         /prefix
       /prefix
     /prefix
@@ -387,4 +405,4 @@ top
     id: 'native'
   /prefix
 /top
-nodes: 291
+nodes: 304
