@@ -44,16 +44,12 @@
     local.get 1)
   (func (;3;) (type 3) (param i32)
     (local i32 i32)
-    global.get 0
     i32.const 8
-    i32.sub
-    local.tee 1
-    global.set 0
-    global.get 0
+    call 5
+    local.set 1
     i32.const 4
-    i32.sub
-    local.tee 2
-    global.set 0
+    call 5
+    local.set 2
     local.get 1
     local.get 0
     i32.const 4
@@ -71,10 +67,21 @@
     local.get 2
     call 0
     drop
-    global.get 0
     i32.const 12
+    call 4)
+  (func (;4;) (type 3) (param i32)
+    global.get 0
+    local.get 0
     i32.add
     global.set 0)
+  (func (;5;) (type 2) (param i32) (result i32)
+    (local i32)
+    global.get 0
+    i32.const 8
+    i32.sub
+    local.tee 1
+    global.set 0
+    local.get 1)
   (memory (;0;) 1)
   (global (;0;) (mut i32) (i32.const 1024))
   (export "memory" (memory 0))

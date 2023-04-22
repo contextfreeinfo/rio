@@ -11,7 +11,7 @@
 (memory 1)
 (export "memory" (memory 0))
 
-(global $stacktop (mut i32) (i32.const 1024))
+(global $stack-top (mut i32) (i32.const 1024))
 
 (func $main (export "_start")
   (call $fib (i32.const 9))
@@ -44,22 +44,29 @@
 (func $print (param $text i32)
   (local $iovec i32)
   (local $nwritten i32)
-  (global.set $stacktop
-    (local.tee $iovec (i32.sub (global.get $stacktop) (i32.const 8)))
-  )
-  (global.set $stacktop
-    (local.tee $nwritten (i32.sub (global.get $stacktop) (i32.const 4)))
-  )
+  (local.set $iovec (call $stack-push (i32.const 8)))
+  (local.set $nwritten (call $stack-push (i32.const 4)))
   (i32.store (local.get $iovec) (i32.add (local.get $text) (i32.const 4)))
   (i32.store
-    (i32.add (local.get $iovec) (i32.const 4))
-    (i32.load (local.get $text))
+    (i32.add (local.get $iovec) (i32.const 4)) (i32.load (local.get $text))
   )
   (call $fd-write
     (i32.const 1) (local.get $iovec) (i32.const 1) (local.get $nwritten)
   )
   drop
-  (global.set $stacktop (i32.add (global.get $stacktop) (i32.const 12)))
+  (call $stack-pop (i32.const 12))
+)
+
+(func $stack-pop (param $n i32)
+  (global.set $stack-top (i32.add (global.get $stack-top) (local.get $n)))
+)
+
+(func $stack-push (param $n i32) (result i32)
+  (local $address i32)
+  (global.set $stack-top
+    (local.tee $address (i32.sub (global.get $stack-top) (i32.const 8)))
+  )
+  local.get $address
 )
 
 (data $message0 (i32.const 1024) "\04\00\00\00fib(")
