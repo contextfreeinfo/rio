@@ -1,0 +1,83 @@
+$ xxd hi.wasm 
+00000000: 0061 736d 0100 0000 010c 0260 047f 7f7f  .asm.......`....
+          magic     version   types
+                                bytes
+                                   count
+                                     functype
+                                        incount
+                                          i32. .
+00000010: 7f01 7f60 0000 0223 0116 7761 7369 5f73  ...`...#..wasi_s
+          i32            imports
+            outcount       bytes
+               i32            count
+                 functype       bytes
+                    incount        data
+                      outcount
+00000020: 6e61 7073 686f 745f 7072 6576 6965 7731  napshot_preview1
+00000030: 0866 645f 7772 6974 6500 0003 0302 0101  .fd_write.......
+          bytes                 func funcsec count
+            data                   type bytes
+                                          count
+                                             type
+                                               type
+00000040: 0503 0100 0107 1302 066d 656d 6f72 7902  .........memory.
+          mems count  exports bytes            mem
+            bytes   min  bytes  data
+                 nomax     count
+00000050: 0006 5f73 7461 7274 0001 0a24 0206 0010  .._start...$....
+          idx                 func codesec   locals
+            bytes               idx  bytes     call
+               data                     count
+                                          size
+00000060: 0210 020b 1b00 4100 4108 3602 0041 0441  ......A.A.6..A.A
+          funcidx   size i32.const i32.store
+            call      locals  i32.const   i32.const
+               funcidx     i32  i32  align   i32
+                 end                    offset i32.const
+00000070: 0a36 0200 4101 4100 4101 4114 1000 1a0b  .6..A.A.A.A.....
+          i32  align  i32     i32.const call drop
+            i32.store    i32.const i32.const   end
+                 offset    i32  i32  i32  funcidx
+                    i32.const
+00000080: 0b10 0100 4108 0b0a 4869 2074 6865 7265  ....A...Hi there
+          datas  active0 end  data
+            bytes   i32.const
+               cout   i32  bytes
+00000090: 210a                                     !.
+
+$ wasm-objdump -h hi.wasm 
+hi.wasm:	file format wasm 0x1
+Sections:
+     Type start=0x0000000a end=0x00000016 (size=0x0000000c) count: 2
+   Import start=0x00000018 end=0x0000003b (size=0x00000023) count: 1
+ Function start=0x0000003d end=0x00000040 (size=0x00000003) count: 2
+   Memory start=0x00000042 end=0x00000045 (size=0x00000003) count: 1
+   Export start=0x00000047 end=0x0000005a (size=0x00000013) count: 2
+     Code start=0x0000005c end=0x00000080 (size=0x00000024) count: 2
+     Data start=0x00000082 end=0x00000092 (size=0x00000010) count: 1
+
+$ wasm2wat hi.wasm 
+(module
+  (type (;0;) (func (param i32 i32 i32 i32) (result i32)))
+  (type (;1;) (func))
+  (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
+  (func (;1;) (type 1)
+    call 2
+    call 2)
+  (func (;2;) (type 1)
+    i32.const 0
+    i32.const 8
+    i32.store
+    i32.const 4
+    i32.const 10
+    i32.store
+    i32.const 1
+    i32.const 0
+    i32.const 1
+    i32.const 20
+    call 0
+    drop)
+  (memory (;0;) 1)
+  (export "memory" (memory 0))
+  (export "_start" (func 1))
+  (data (;0;) (i32.const 8) "Hi there!\0a"))
