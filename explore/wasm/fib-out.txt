@@ -1,0 +1,49 @@
+BeginModule(version: 1)
+  BeginTypeSection(6)
+    OnTypeCount(1)
+    OnFuncType(index: 0, params: [i32], results: [i32])
+  EndTypeSection
+  BeginFunctionSection(2)
+    OnFunctionCount(1)
+    OnFunction(index: 0, sig_index: 0)
+  EndFunctionSection
+  BeginMemorySection(3)
+    OnMemoryCount(1)
+    OnMemory(index: 0, initial: 1)
+  EndMemorySection
+  BeginCodeSection(51)
+    OnFunctionBodyCount(1)
+    BeginFunctionBody(0, size:49)
+    OnLocalDeclCount(1)
+    OnLocalDecl(index: 0, count: 1, type: i32)
+    OnLocalGetExpr(index: 0)
+    OnI32ConstExpr(0 (0x0))
+    OnCompareExpr("i32.le_s" (76))
+    OnIfExpr(sig: void)
+    OnI32ConstExpr(0 (0x0))
+    OnLocalSetExpr(index: 1)
+    OnElseExpr
+    OnLocalGetExpr(index: 0)
+    OnI32ConstExpr(1 (0x1))
+    OnCompareExpr("i32.eq" (70))
+    OnIfExpr(sig: void)
+    OnI32ConstExpr(1 (0x1))
+    OnLocalSetExpr(index: 1)
+    OnElseExpr
+    OnLocalGetExpr(index: 0)
+    OnI32ConstExpr(2 (0x2))
+    OnBinaryExpr("i32.sub" (107))
+    OnCallExpr(func_index: 0)
+    OnLocalGetExpr(index: 0)
+    OnI32ConstExpr(1 (0x1))
+    OnBinaryExpr("i32.sub" (107))
+    OnCallExpr(func_index: 0)
+    OnBinaryExpr("i32.add" (106))
+    OnLocalSetExpr(index: 1)
+    OnEndExpr
+    OnEndExpr
+    OnLocalGetExpr(index: 1)
+    OnEndExpr
+    EndFunctionBody(0)
+  EndCodeSection
+EndModule
