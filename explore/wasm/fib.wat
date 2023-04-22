@@ -9,16 +9,15 @@
     (local.set $result (i32.const 0))
   else
     (i32.eq (local.get $n) (i32.const 1))
-    if
-      (local.set $result (i32.const 1))
+    if (result i32)
+      i32.const 1
     else
-      (local.set $result
-        (i32.add
-          (call $fib (i32.sub (local.get $n) (i32.const 2)))
-          (call $fib (i32.sub (local.get $n) (i32.const 1)))
-        )
+      (i32.add
+        (call $fib (i32.sub (local.get $n) (i32.const 2)))
+        (call $fib (i32.sub (local.get $n) (i32.const 1)))
       )
     end
+    local.set $result
   end
   local.get $result
 )
