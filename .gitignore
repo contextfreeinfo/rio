@@ -11,5 +11,6 @@ zig-cache/
 zig-out/
 /.vs/
 /.vscode/
+*.o
 *.swp
 *.wasm
