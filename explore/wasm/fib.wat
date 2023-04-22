@@ -57,6 +57,7 @@
 )
 
 (func $print-i32 (export "print-i32") (param $n i32)
+  (local $temp i32)
   (local $neg i32)
   (local $text i32)
   (local $buffer i32)
@@ -73,24 +74,35 @@
     (local.set $cursor (i32.add (local.get $cursor) (i32.const 1)))
     (local.set $n (i32.sub (i32.const 0) (local.get $n)))
   end
-  ;; Now start putting in the digits in reverse order because that's easier.
+  ;; Figure out where to start writing digits.
+  ;; This presumes it's easier and/or faster to calculate twice than to reverse
+  ;; an array.
+  (local.set $temp (local.get $n))
+  loop $size
+    (local.set $cursor (i32.add (local.get $cursor) (i32.const 1)))
+    ;; Divide by 10.
+    (local.tee $temp (i32.div_u (local.get $temp) (i32.const 10)))
+    (i32.ne (i32.const 0))
+    br_if $size
+  end
+  (i32.store (local.get $text)
+    (i32.sub (local.get $cursor) (local.get $buffer))
+  )
+  ;; Now start putting in the digits in order from back to front.
   loop $digits
+    ;; We'd have advanced past our last digit above, so subtract first.
+    (local.set $cursor (i32.sub (local.get $cursor) (i32.const 1)))
     ;; Add the digit to ascii '0' 0x30.
     (i32.store8 (local.get $cursor)
       (i32.add (i32.rem_u (local.get $n) (i32.const 10)) (i32.const 0x30))
     )
-    (local.set $cursor (i32.add (local.get $cursor) (i32.const 1)))
     ;; Divide by 10.
     (local.tee $n (i32.div_u (local.get $n) (i32.const 10)))
     ;; Break if done. We get at least one digit above.
     (i32.ne (i32.const 0))
     br_if $digits
   end
-  ;; TODO Reverse digits!
-  ;; Store size and print.
-  (i32.store (local.get $text)
-    (i32.sub (local.get $cursor) (local.get $buffer))
-  )
+  ;; Print and done.
   (call $print (local.get $text))
   (call $stack-pop (i32.const 16))
 )
