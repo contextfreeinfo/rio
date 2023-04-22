@@ -14,7 +14,6 @@
 (global $stack-top (mut i32) (i32.const 1024))
 
 (func $main (export "_start")
-  (call $print-i32 (i32.const 1))
   (call $print (i32.const 1024))
   (call $print (i32.const 1032))
   (call $print-i32 (call $fib (i32.const 9)))
@@ -57,7 +56,7 @@
   (call $stack-pop (i32.const 12))
 )
 
-(func $print-i32 (param $n i32)
+(func $print-i32 (export "print-i32") (param $n i32)
   (local $neg i32)
   (local $text i32)
   (local $buffer i32)
@@ -68,7 +67,7 @@
   (local.set $buffer (i32.add (local.get $text) (i32.const 4)))
   (local.set $cursor (local.get $buffer))
   ;; Put in a dash for negative.
-  (local.tee $neg (i32.le_s (local.get $n) (i32.const 0)))
+  (local.tee $neg (i32.lt_s (local.get $n) (i32.const 0)))
   if
     (i32.store8 (local.get $cursor) (i32.const 0x2d))
     (local.set $cursor (i32.add (local.get $cursor) (i32.const 1)))
@@ -82,9 +81,9 @@
     )
     (local.set $cursor (i32.add (local.get $cursor) (i32.const 1)))
     ;; Divide by 10.
-    (local.set $n (i32.div_u (local.get $n) (i32.const 10)))
+    (local.tee $n (i32.div_u (local.get $n) (i32.const 10)))
     ;; Break if done. We get at least one digit above.
-    (i32.eqz (local.get $n))
+    (i32.ne (i32.const 0))
     br_if $digits
   end
   ;; TODO Reverse digits!
@@ -103,7 +102,7 @@
 (func $stack-push (param $n i32) (result i32)
   (local $address i32)
   (global.set $stack-top
-    (local.tee $address (i32.sub (global.get $stack-top) (i32.const 8)))
+    (local.tee $address (i32.sub (global.get $stack-top) (local.get $n)))
   )
   local.get $address
 )

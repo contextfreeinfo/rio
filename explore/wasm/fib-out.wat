@@ -5,8 +5,6 @@
   (type (;3;) (func (param i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func (;1;) (type 1)
-    i32.const 1
-    call 4
     i32.const 1024
     call 3
     i32.const 1032
@@ -84,7 +82,7 @@
     local.set 4
     local.get 0
     i32.const 0
-    i32.le_s
+    i32.lt_s
     local.tee 1
     if  ;; label = @1
       local.get 4
@@ -114,9 +112,9 @@
       local.get 0
       i32.const 10
       i32.div_u
-      local.set 0
-      local.get 0
-      i32.eqz
+      local.tee 0
+      i32.const 0
+      i32.ne
       br_if 0 (;@1;)
     end
     local.get 2
@@ -136,7 +134,7 @@
   (func (;6;) (type 2) (param i32) (result i32)
     (local i32)
     global.get 0
-    i32.const 8
+    local.get 0
     i32.sub
     local.tee 1
     global.set 0
@@ -145,6 +143,7 @@
   (global (;0;) (mut i32) (i32.const 1024))
   (export "memory" (memory 0))
   (export "_start" (func 1))
+  (export "print-i32" (func 4))
   (data (;0;) (i32.const 1024) "\04\00\00\00fib(")
   (data (;1;) (i32.const 1032) "\04\00\00\00) = ")
   (data (;2;) (i32.const 1040) "\01\00\00\00\0a\00\00\00"))
