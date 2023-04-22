@@ -14,11 +14,11 @@
 (global $stack-top (mut i32) (i32.const 1024))
 
 (func $main (export "_start")
-  (call $fib (i32.const 9))
+  (call $print-i32 (i32.const 1))
   (call $print (i32.const 1024))
   (call $print (i32.const 1032))
+  (call $print-i32 (call $fib (i32.const 9)))
   (call $print (i32.const 1040))
-  drop
 )
 
 (func $fib (param $n i32) (result i32)
@@ -55,6 +55,45 @@
   )
   drop
   (call $stack-pop (i32.const 12))
+)
+
+(func $print-i32 (param $n i32)
+  (local $neg i32)
+  (local $text i32)
+  (local $buffer i32)
+  (local $cursor i32)
+  ;; Need 4 bytes for size and up to 11 bytes for signed 32-bit in base 10.
+  ;; Round up to 12 just nice alignment.
+  (local.set $text (call $stack-push (i32.const 16)))
+  (local.set $buffer (i32.add (local.get $text) (i32.const 4)))
+  (local.set $cursor (local.get $buffer))
+  ;; Put in a dash for negative.
+  (local.tee $neg (i32.le_s (local.get $n) (i32.const 0)))
+  if
+    (i32.store8 (local.get $cursor) (i32.const 0x2d))
+    (local.set $cursor (i32.add (local.get $cursor) (i32.const 1)))
+    (local.set $n (i32.sub (i32.const 0) (local.get $n)))
+  end
+  ;; Now start putting in the digits in reverse order because that's easier.
+  loop $digits
+    ;; Add the digit to ascii '0' 0x30.
+    (i32.store8 (local.get $cursor)
+      (i32.add (i32.rem_u (local.get $n) (i32.const 10)) (i32.const 0x30))
+    )
+    (local.set $cursor (i32.add (local.get $cursor) (i32.const 1)))
+    ;; Divide by 10.
+    (local.set $n (i32.div_u (local.get $n) (i32.const 10)))
+    ;; Break if done. We get at least one digit above.
+    (i32.eqz (local.get $n))
+    br_if $digits
+  end
+  ;; TODO Reverse digits!
+  ;; Store size and print.
+  (i32.store (local.get $text)
+    (i32.sub (local.get $cursor) (local.get $buffer))
+  )
+  (call $print (local.get $text))
+  (call $stack-pop (i32.const 16))
 )
 
 (func $stack-pop (param $n i32)
