@@ -123,17 +123,13 @@ top
       space
         hspace: ' '
       prefix
-        squareBegin: '['
-        prefix
-          keyFor: 'for'
-          space
-            hspace: ' '
-          id: 'Item'
-        /prefix
-        squareEnd: ']'
+        keyFor: 'for'
+        space
+          hspace: ' '
+        id: 'Item'
+        space
+          hspace: ' '
       /prefix
-      space
-        hspace: ' '
     /prefix
     opDef: '='
     space
@@ -171,38 +167,30 @@ top
       space
         hspace: ' '
       prefix
-        squareBegin: '['
-        prefix
-          keyFor: 'for'
+        keyFor: 'for'
+        space
+          hspace: ' '
+        infix
+          id: 'Interface'
           space
             hspace: ' '
-          infix
-            id: 'Interface'
-            space
-              hspace: ' '
-            keyIs: 'is'
-            space
-              hspace: ' '
+          keyIs: 'is'
+          space
+            hspace: ' '
+          prefix
+            roundBegin: '('
             prefix
-              roundBegin: '('
-              prefix
-                id: 'Type'
-                space
-                  hspace: ' '
-                prefix
-                  squareBegin: '['
-                  id: 'Interface'
-                  squareEnd: ']'
-                /prefix
-              /prefix
-              roundEnd: ')'
+              id: 'Type'
+              space
+                hspace: ' '
+              id: 'Interface'
             /prefix
-          /infix
-        /prefix
-        squareEnd: ']'
+            roundEnd: ')'
+          /prefix
+          space
+            hspace: ' '
+        /infix
       /prefix
-      space
-        hspace: ' '
     /prefix
     opDef: '='
     space
@@ -502,37 +490,33 @@ top
               space
                 hspace: ' '
               prefix
-                squareBegin: '['
+                roundBegin: '('
                 prefix
-                  roundBegin: '('
-                  prefix
-                    id: 'struct'
+                  id: 'struct'
+                  space
+                    hspace: ' '
+                  infix
+                    id: 'condition'
                     space
                       hspace: ' '
-                    infix
-                      id: 'condition'
-                      space
-                        hspace: ' '
-                      keyIs: 'is'
-                      space
-                        hspace: ' '
-                      id: 'Bool'
-                      space
-                        hspace: ' '
-                    /infix
-                    infix
-                      id: 'value'
-                      space
-                        hspace: ' '
-                      keyIs: 'is'
-                      space
-                        hspace: ' '
-                      id: 'Value'
-                    /infix
-                  /prefix
-                  roundEnd: ')'
+                    keyIs: 'is'
+                    space
+                      hspace: ' '
+                    id: 'Bool'
+                    space
+                      hspace: ' '
+                  /infix
+                  infix
+                    id: 'value'
+                    space
+                      hspace: ' '
+                    keyIs: 'is'
+                    space
+                      hspace: ' '
+                    id: 'Value'
+                  /infix
                 /prefix
-                squareEnd: ']'
+                roundEnd: ')'
               /prefix
             /prefix
             roundEnd: ')'
@@ -880,8 +864,8 @@ top
     vspace: '
 '
 /top
-nodes: 719
-tokens: 417
+nodes: 707
+tokens: 409
 interns: 60
 token size: 8
 node size: 16

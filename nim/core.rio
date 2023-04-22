@@ -2,7 +2,7 @@ Any pub = native
 
 Bool pub = native
 
-# Int like Number -> Int is (Type [Number])
+# Int like Number -> Int is (Type Number)
 Int pub = native
 
 IntRange pub = struct of
@@ -10,11 +10,11 @@ IntRange pub = struct of
   thru is Int
 end
 
-List pub [for Item] = native
+List pub for Item = native
 
 String pub = native
 
-Type pub [for Interface is (Type [Interface])] = native
+Type pub for Interface is (Type Interface) = native
 
 Void pub = native
 
@@ -36,7 +36,7 @@ pub pub = native
 struct pub = native
 
 case pub [for Value] for
-  (branches ...) is (List [(struct condition is Bool value is Value)])
+  (branches ...) is (List (struct condition is Bool value is Value))
 to Value = native
 
 thru pub for from is Int thru is Int to IntRange = _ from thru

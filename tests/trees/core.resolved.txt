@@ -63,16 +63,13 @@ top
       id: 'List'
       id: 'pub'
       prefix
-        squareBegin: '['
-        prefix
-          keyFor: 'for'
-          prefixt
-            udef
-            num: 0 6
-            id: 'Item'
-            other
-          /prefixt
-        /prefix
+        keyFor: 'for'
+        prefixt
+          udef
+          num: 0 6
+          id: 'Item'
+          other
+        /prefixt
       /prefix
     /prefix
     id: 'native'
@@ -95,26 +92,20 @@ top
       id: 'Type'
       id: 'pub'
       prefix
-        squareBegin: '['
-        prefix
-          keyFor: 'for'
-          prefixt
-            udef
-            num: 0 9
+        keyFor: 'for'
+        prefixt
+          udef
+          num: 0 9
+          prefix
+            keyIs: 'is'
+            id: 'Interface'
             prefix
-              keyIs: 'is'
+              id: 'Type'
               id: 'Interface'
-              prefix
-                id: 'Type'
-                prefix
-                  squareBegin: '['
-                  id: 'Interface'
-                /prefix
-              /prefix
             /prefix
-            other
-          /prefixt
-        /prefix
+          /prefix
+          other
+        /prefixt
       /prefix
     /prefix
     id: 'native'
@@ -288,19 +279,16 @@ top
             prefix
               id: 'List'
               prefix
-                squareBegin: '['
+                id: 'struct'
                 prefix
-                  id: 'struct'
-                  prefix
-                    keyIs: 'is'
-                    id: 'condition'
-                    id: 'Bool'
-                  /prefix
-                  prefix
-                    keyIs: 'is'
-                    id: 'value'
-                    id: 'Value'
-                  /prefix
+                  keyIs: 'is'
+                  id: 'condition'
+                  id: 'Bool'
+                /prefix
+                prefix
+                  keyIs: 'is'
+                  id: 'value'
+                  id: 'Value'
                 /prefix
               /prefix
             /prefix
@@ -536,4 +524,4 @@ top
     other
   /prefixt
 /top
-nodes: 418
+nodes: 410

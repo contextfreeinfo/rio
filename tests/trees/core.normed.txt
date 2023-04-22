@@ -54,11 +54,8 @@ top
       id: 'List'
       id: 'pub'
       prefix
-        squareBegin: '['
-        prefix
-          keyFor: 'for'
-          id: 'Item'
-        /prefix
+        keyFor: 'for'
+        id: 'Item'
       /prefix
     /prefix
     id: 'native'
@@ -77,19 +74,13 @@ top
       id: 'Type'
       id: 'pub'
       prefix
-        squareBegin: '['
+        keyFor: 'for'
         prefix
-          keyFor: 'for'
+          keyIs: 'is'
+          id: 'Interface'
           prefix
-            keyIs: 'is'
+            id: 'Type'
             id: 'Interface'
-            prefix
-              id: 'Type'
-              prefix
-                squareBegin: '['
-                id: 'Interface'
-              /prefix
-            /prefix
           /prefix
         /prefix
       /prefix
@@ -227,19 +218,16 @@ top
           prefix
             id: 'List'
             prefix
-              squareBegin: '['
+              id: 'struct'
               prefix
-                id: 'struct'
-                prefix
-                  keyIs: 'is'
-                  id: 'condition'
-                  id: 'Bool'
-                /prefix
-                prefix
-                  keyIs: 'is'
-                  id: 'value'
-                  id: 'Value'
-                /prefix
+                keyIs: 'is'
+                id: 'condition'
+                id: 'Bool'
+              /prefix
+              prefix
+                keyIs: 'is'
+                id: 'value'
+                id: 'Value'
               /prefix
             /prefix
           /prefix
@@ -405,4 +393,4 @@ top
     id: 'native'
   /prefix
 /top
-nodes: 304
+nodes: 296
