@@ -10,7 +10,7 @@ const print = @import("std").debug.print;
 
 pub fn main() void {
     for ([_]u0{0} ** 10) |_, n| {
-        print("fib({}) = {}\n", .{ n, fib(@intCast(i32, n)) });
+        print("fib({}) = {}\n", .{ n, fib2(@intCast(i32, n)) });
     }
 }
 
@@ -21,4 +21,14 @@ export fn fib(n: i32) i32 {
         1
     else
         fib(n - 2) + fib(n - 1);
+}
+
+export fn fibby(n: i32, result: *i32) void {
+    result.* = fib(n);
+}
+
+export fn fib2(n: i32) i32 {
+    var result: i32 = 0;
+    fibby(n, &result);
+    return result;
 }
