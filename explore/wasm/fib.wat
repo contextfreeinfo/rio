@@ -92,6 +92,7 @@
     (i32.ne (i32.const 0))
     br_if $size
   end
+  ;; Store the size before we start moving the cursor back.
   (i32.store (local.get $text)
     (i32.sub (local.get $cursor) (local.get $buffer))
   )
