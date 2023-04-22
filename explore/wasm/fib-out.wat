@@ -5,15 +5,27 @@
   (type (;3;) (func (param i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func (;1;) (type 1)
-    i32.const 1024
-    call 3
-    i32.const 1032
-    call 3
-    i32.const 9
-    call 2
-    call 4
-    i32.const 1040
-    call 3)
+    (local i32)
+    loop  ;; label = @1
+      i32.const 1024
+      call 3
+      local.get 0
+      call 4
+      i32.const 1032
+      call 3
+      local.get 0
+      call 2
+      call 4
+      i32.const 1040
+      call 3
+      local.get 0
+      i32.const 1
+      i32.add
+      local.tee 0
+      i32.const 9
+      i32.le_s
+      br_if 0 (;@1;)
+    end)
   (func (;2;) (type 2) (param i32) (result i32)
     (local i32)
     local.get 0

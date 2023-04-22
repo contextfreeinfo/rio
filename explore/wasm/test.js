@@ -10,7 +10,7 @@ async function run() {
     },
   );
   const printI32 = instantiation.instance.exports["print-i32"];
-  printI32(1);
+  printI32(-456);
 }
 
 run();

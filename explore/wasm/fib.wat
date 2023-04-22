@@ -14,10 +14,17 @@
 (global $stack-top (mut i32) (i32.const 1024))
 
 (func $main (export "_start")
-  (call $print (i32.const 1024))
-  (call $print (i32.const 1032))
-  (call $print-i32 (call $fib (i32.const 9)))
-  (call $print (i32.const 1040))
+  (local $n i32)
+  loop $each
+    (call $print (i32.const 1024))
+    (call $print-i32 (local.get $n))
+    (call $print (i32.const 1032))
+    (call $print-i32 (call $fib (local.get $n)))
+    (call $print (i32.const 1040))
+    (local.tee $n (i32.add (local.get $n) (i32.const 1)))
+    (i32.le_s (i32.const 9))
+    br_if $each
+  end
 )
 
 (func $fib (param $n i32) (result i32)
