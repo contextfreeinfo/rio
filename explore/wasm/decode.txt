@@ -15,11 +15,9 @@ $ xxd hi.wasm
                       outcount
 00000020: 6e61 7073 686f 745f 7072 6576 6965 7731  napshot_preview1
 00000030: 0866 645f 7772 6974 6500 0003 0302 0101  .fd_write.......
-          bytes                 func funcsec count
-            data                   type bytes
+          bytes                 func funcsec type
+            data                   type bytes  type
                                           count
-                                             type
-                                               type
 00000040: 0503 0100 0107 1302 066d 656d 6f72 7902  .........memory.
           mems count  exports bytes            mem
             bytes   min  bytes  data
