@@ -58,7 +58,8 @@ type
   Grower* = ref object
     ## Persistent buffers across uses, retained for better pre-allocation.
     ## Cleared retaining capacity for each new run.
-    # Use lexer only for controlled diagnostics.
+    # Use lexer only for controlled diagnostics. (Or macros???)
+    bytes*: seq[uint8]
     nodes*: seq[Node]
     pool*: Pool[TextId]
     working*: seq[Node]
@@ -374,6 +375,7 @@ proc parse(parsing: var Parsing): Tree =
   Tree(pass: parse, nodes: grower.nodes, uid: 0)
 
 proc newGrower*(pool: Pool[TextId]): Grower = Grower(
+  bytes: newSeq[uint8](),
   nodes: newSeq[Node](),
   pool: pool,
   working: newSeq[Node](),
