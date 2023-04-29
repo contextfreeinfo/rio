@@ -1,4 +1,4 @@
-;; wat2wasm greet.wat && wasm2wat greet.wasm -o greet-out.wat && bun run greet.ts
+;; wat2wasm greet.wat && wasm2wat greet.wasm -o greet-out.wat && bun run wasmini.ts greet.wasm
 
 (import "env" "print" (func $print (param $text i32)))
 
