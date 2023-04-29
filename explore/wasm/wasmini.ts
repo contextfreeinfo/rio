@@ -4,7 +4,7 @@ async function load(path: string) {
   return await WebAssembly.compile(await fs.readFile(path));
 }
 
-async function instantiateGreet(module: WebAssembly.Module) {
+async function instantiateWasminiApp(module: WebAssembly.Module) {
   const env = {
     print: (address: number) => {
       // Structural access.
@@ -31,5 +31,5 @@ type WasminiApp = {
 };
 
 const module = await load(Bun.argv[3]);
-const exports = await instantiateGreet(module);
+const exports = await instantiateWasminiApp(module);
 exports.main();
