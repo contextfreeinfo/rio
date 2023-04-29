@@ -1,12 +1,14 @@
 ;; wat2wasm fib.wat && wasm2wat -v fib.wasm -o fib-out.wat 2> fib-out.txt && wasmer run fib.wasm
 
-(import "wasi_snapshot_preview1" "fd_write" 
+(import "wasi_snapshot_preview1" "fd_write"
   (func $fd-write
     (param $fd i32) 
     (param $iovec i32)
     (param $len i32)
     (param $written i32)
-    (result i32)))
+    (result i32)
+  )
+)
 
 (memory 1)
 (export "memory" (memory 0))
