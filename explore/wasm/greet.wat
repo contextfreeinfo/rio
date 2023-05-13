@@ -2,8 +2,7 @@
 
 (import "env" "print" (func $print (param $text i32)))
 
-(memory 1)
-(export "memory" (memory 0))
+(memory (export "memory") 1)
 
 (func (export "main")
   (call $print (i32.const 0))

@@ -10,8 +10,7 @@
   )
 )
 
-(memory 1)
-(export "memory" (memory 0))
+(memory (export "memory") 1)
 
 (global $stack-top (mut i32) (i32.const 1024))
 
