@@ -24,7 +24,7 @@ Changes not staged for commit:
 	modified:   tests/trees/persons.parsed.txt
 	modified:   tests/trees/wild.parsed.txt
 
-Untracked files not listed (use -u option to show untracked files)
+no changes added to commit (use "git add" and/or "git commit -a")
 + wc src/extract.zig src/idx.zig src/intern.zig src/lex.zig src/main.zig src/norm.zig src/parse.zig src/resolve.zig
    61   227  1612 src/extract.zig
    55   181  1424 src/idx.zig

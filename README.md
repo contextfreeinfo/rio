@@ -10,6 +10,15 @@ A script-feeling, safe, naturally compatible replacement for C, with no runtime 
 See also my [YouTube channel called Context Free](https://www.youtube.com/channel/UCS4FAVeYW_IaZqAbqhlvxlA) where I discuss programming languages, including things I think about while working on Rio.
 
 
+```
+time (
+  nim c -d:release -o:nim/rio nim/main.nim &&
+  /usr/bin/time -v nim/rio tests/fib-simpler.rio tests/trees/ &&
+  wasm2wat tests/trees/fib-simpler.wasm -o tests/trees/fib-simpler.wat
+)
+```
+
+
 ## To do
 
 - A mode that spits out all inferred types, effects, locked imports, and so on.

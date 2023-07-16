@@ -467,6 +467,7 @@ pub const Normer = struct {
                 .escape => {
                     if (self.here().i != string_begin.i) {
                         // End previous string section.
+                        // TODO Or should norm leave nothing on end but vspace on danglers?
                         try self.working.append(leafOfText(quote_kind, quote_text));
                         try self.nest(.string, string_begin);
                     }

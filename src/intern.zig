@@ -24,6 +24,8 @@ pub const Pool = struct {
             .text = std.ArrayList(u8).init(allocator),
         };
         // Empty string is always index 0, just for convenience.
+        // TODO Change 0 to unknown and 1 to explicit empty?
+        // TODO Make 2 through n be different numbers of space chars?
         _ = try pool.intern("");
         return pool;
     }

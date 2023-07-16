@@ -19,5 +19,6 @@ pub const Resolver = struct {
     pub fn resolve(self: *Self, tree: Tree) !void {
         _ = self;
         _ = tree;
+        // TODO Build a side array with matched indexing to tree?
     }
 };

@@ -1,0 +1,40 @@
+use "c"
+
+do
+  # Assignment here declares new *const* values
+  name = "Alice"
+  age = 40
+  (show_prices
+    persons = (List
+      # Shorthand field names work like JS or Rust
+      _ age name
+      _ (name = "Bernie") (age = 14)
+      _ (name = "Clara") (age = 9)
+      _ (name = "Darlene") (age = 68)
+    )
+  )
+end do
+
+Person = struct
+  name as String
+  age as Int
+end
+
+show_prices = for (persons as List Person) do
+  each persons for person do
+    printf "%s pays $%.2f\n" person.name (ticket_price person.age)
+  end
+end
+
+ticket_price = (age: Int) => Float {
+  when {
+    age <= 11 => 6.75
+    age >= 62 => 7.00
+    else => {
+      if age < 18 {
+        printf( "You think age %d gets child prices here?\n", age)
+      }
+      11.00
+    }
+  }
+}
