@@ -1,5 +1,0 @@
-#declare_note(foreign)
-#declare_note(static_assert)
-#declare_note(always)
-
-#always

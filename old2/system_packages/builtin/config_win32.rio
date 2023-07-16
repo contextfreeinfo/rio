@@ -1,1 +1,0 @@
-let mut RIOOS: *const char = "win32";
