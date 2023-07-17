@@ -1,4 +1,4 @@
-use std::{sync::Arc, fs::read_to_string};
+use std::{fs::read_to_string, sync::Arc};
 
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
@@ -29,15 +29,13 @@ fn main() -> Result<()> {
     env_logger::init();
     let cli = Cli::parse();
     match &cli.command {
-        Commands::Run(args) => {
-            run_app(args)
-        }
+        Commands::Run(args) => run_app(args),
     }
 }
 
 fn run_app(args: &RunArgs) -> Result<()> {
     let rodeo = Arc::new(ThreadedRodeo::default());
-    let lexer = Lexer { rodeo: rodeo.clone() };
+    let mut lexer = Lexer::new(rodeo.clone());
     let source = read_to_string(args.app.as_str())?;
     lexer.lex(source.as_str());
     Ok(())
