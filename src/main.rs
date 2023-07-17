@@ -34,8 +34,8 @@ fn main() -> Result<()> {
 }
 
 fn run_app(args: &RunArgs) -> Result<()> {
-    let rodeo = Arc::new(ThreadedRodeo::default());
-    let mut lexer = Lexer::new(rodeo.clone());
+    let interner = Arc::new(ThreadedRodeo::default());
+    let mut lexer = Lexer::new(interner.clone());
     let source = read_to_string(args.app.as_str())?;
     lexer.lex(source.as_str());
     Ok(())
