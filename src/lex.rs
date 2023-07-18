@@ -111,11 +111,10 @@ impl Lexer {
         self.trim(source);
         loop {
             match source.peek() {
-                Some('"') => {
+                Some('"') | None => {
                     self.next(source);
                     break;
                 }
-                None => break,
                 _ => {}
             }
             self.next(source);

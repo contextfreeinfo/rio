@@ -4,9 +4,10 @@ use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
 
-use crate::lex::Lexer;
+use crate::{lex::Lexer, parse::Node};
 
 mod lex;
+mod parse;
 
 #[derive(Parser)]
 #[command(about, version, long_about = None)]
@@ -26,6 +27,7 @@ struct RunArgs {
 }
 
 fn main() -> Result<()> {
+    println!("{}", std::mem::size_of::<Node>());
     env_logger::init();
     let cli = Cli::parse();
     match &cli.command {
