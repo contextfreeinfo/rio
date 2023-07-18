@@ -26,8 +26,15 @@ impl Token {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TokenKind {
+    CurlyClose,
+    CurlyOpen,
+    Define,
     HSpace,
     Id,
+    RoundClose,
+    RoundOpen,
+    String,
+    VSpace,
 }
 
 impl Lexer {
@@ -43,18 +50,47 @@ impl Lexer {
         self.tokens.clear();
         let mut source = source.chars().peekable();
         loop {
-            match self.next(&mut source) {
+            match source.peek() {
                 Some(c) => match c {
-                    ' ' | '\t' => self.white(&mut source),
-                    '=' => {}
-                    _ => {}
+                    ' ' | '\t' => self.hspace(&mut source),
+                    '\n' => {
+                        self.trim(&mut source);
+                        self.push(TokenKind::VSpace);
+                    }
+                    '\r' => {
+                        self.trim(&mut source);
+                        if source.peek() == Some(&'\n') {
+                            self.next(&mut source);
+                        }
+                        self.push(TokenKind::VSpace);
+                    }
+                    '"' => self.string(&mut source),
+                    '{' => self.trim_push(&mut source, TokenKind::CurlyOpen),
+                    '}' => self.trim_push(&mut source, TokenKind::CurlyClose),
+                    '(' => self.trim_push(&mut source, TokenKind::RoundOpen),
+                    ')' => self.trim_push(&mut source, TokenKind::RoundClose),
+                    '=' => self.trim_push(&mut source, TokenKind::Define),
+                    _ => {
+                        self.next(&mut source);
+                    }
                 },
                 None => break,
             }
         }
-        let atom = self.interner.get_or_intern(self.buffer.as_str());
-        self.tokens.push(Token::new(TokenKind::Id, atom));
+        self.trim(&mut source);
         self.tokens.clone()
+    }
+
+    fn hspace(&mut self, source: &mut Peekable<Chars>) {
+        self.trim(source);
+        loop {
+            match source.peek() {
+                Some(' ' | '\t') => {}
+                _ => break,
+            }
+            self.next(source);
+        }
+        self.push(TokenKind::HSpace);
     }
 
     fn next(&mut self, source: &mut Peekable<Chars>) -> Option<char> {
@@ -71,15 +107,31 @@ impl Lexer {
         self.tokens.push(Token::new(kind, atom));
     }
 
-    fn white(&mut self, source: &mut Peekable<Chars>) {
+    fn string(&mut self, source: &mut Peekable<Chars>) {
+        self.trim(source);
         loop {
-            let next = source.peek();
-            match next {
-                Some(' ' | '\t') => {}
-                _ => break,
+            match source.peek() {
+                Some('"') => {
+                    self.next(source);
+                    break;
+                }
+                None => break,
+                _ => {}
             }
             self.next(source);
         }
-        self.push(TokenKind::HSpace);
+        self.push(TokenKind::String);
+    }
+
+    fn trim(&mut self, source: &mut Peekable<Chars>) {
+        if !self.buffer.is_empty() {
+            self.push(TokenKind::Id);
+        }
+        self.next(source);
+    }
+
+    fn trim_push(&mut self, source: &mut Peekable<Chars>, kind: TokenKind) {
+        self.trim(source);
+        self.push(kind);
     }
 }
