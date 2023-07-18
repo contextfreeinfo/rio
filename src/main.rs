@@ -37,6 +37,10 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let interner = Arc::new(ThreadedRodeo::default());
     let mut lexer = Lexer::new(interner.clone());
     let source = read_to_string(args.app.as_str())?;
-    lexer.lex(source.as_str());
+    let tokens = lexer.lex(source.as_str());
+    for token in &tokens {
+        let atom = token.intern;
+        println!("{:?} {:?}", token, interner.resolve(&atom));
+    }
     Ok(())
 }
