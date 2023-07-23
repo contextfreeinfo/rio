@@ -1,4 +1,4 @@
-use std::{iter::Peekable, str::Chars, sync::Arc};
+use std::{fmt::Debug, iter::Peekable, str::Chars, sync::Arc};
 
 use lasso::{Spur, ThreadedRodeo};
 
@@ -12,10 +12,16 @@ pub struct Lexer {
 pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     pub intern: Intern,
+}
+
+impl Debug for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}:{}", self.kind, self.intern.into_inner()))
+    }
 }
 
 impl Token {
@@ -33,6 +39,7 @@ pub enum TokenKind {
     Id,
     RoundClose,
     RoundOpen,
+    // TODO String parts and lex mode stack. Is call stack good enough?
     String,
     VSpace,
 }
