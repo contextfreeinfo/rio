@@ -9,7 +9,7 @@ use crate::{lex::Lexer, parse::Node};
 mod lex;
 mod parse;
 
-#[derive(Parser)]
+#[derive(clap::Parser)]
 #[command(about, version, long_about = None)]
 struct Cli {
     #[command(subcommand)]
@@ -44,5 +44,7 @@ fn run_app(args: &RunArgs) -> Result<()> {
         let atom = token.intern;
         println!("{:?} {:?}", token, interner.resolve(&atom));
     }
+    let mut parser = parse::Parser::new();
+    parser.parse(&tokens);
     Ok(())
 }

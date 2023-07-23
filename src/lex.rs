@@ -2,13 +2,6 @@ use std::{fmt::Debug, iter::Peekable, str::Chars, sync::Arc};
 
 use lasso::{Spur, ThreadedRodeo};
 
-#[derive(Default)]
-pub struct Lexer {
-    buffer: String,
-    interner: Interner,
-    tokens: Vec<Token>,
-}
-
 pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
 
@@ -42,6 +35,13 @@ pub enum TokenKind {
     // TODO String parts and lex mode stack. Is call stack good enough?
     String,
     VSpace,
+}
+
+#[derive(Default)]
+pub struct Lexer {
+    buffer: String,
+    interner: Interner,
+    tokens: Vec<Token>,
 }
 
 impl Lexer {
