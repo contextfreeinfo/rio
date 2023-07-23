@@ -45,6 +45,7 @@ fn run_app(args: &RunArgs) -> Result<()> {
         println!("{:?} {:?}", token, interner.resolve(&atom));
     }
     let mut parser = parse::Parser::new();
-    parser.parse(&tokens);
+    let tree = parser.parse(&tokens);
+    println!("{tree:?}");
     Ok(())
 }
