@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
 
-use crate::{lex::Lexer, parse::Node};
+use crate::{lex::Lexer, parse::{Node, print_tree}};
 
 mod lex;
 mod parse;
@@ -47,5 +47,6 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let mut parser = parse::Parser::new();
     let tree = parser.parse(&tokens);
     println!("{tree:?}");
+    print_tree(&tree, interner.as_ref());
     Ok(())
 }

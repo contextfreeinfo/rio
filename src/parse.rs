@@ -1,6 +1,11 @@
-use std::{fmt::Debug, iter::Peekable, ops::Range, slice::Iter};
+use std::{
+    fmt::Debug,
+    iter::Peekable,
+    ops::{Index, Range},
+    slice::Iter,
+};
 
-use crate::lex::{Token, TokenKind};
+use crate::lex::{Intern, Token, TokenKind};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub enum Node {
@@ -11,6 +16,31 @@ pub enum Node {
     Leaf {
         token: Token,
     },
+}
+
+pub fn print_tree<Map>(nodes: &[Node], map: &Map)
+where
+    Map: Index<Intern, Output = str>,
+{
+    print_at(nodes, map, nodes.len() - 1, 0);
+}
+
+fn print_at<Map>(nodes: &[Node], map: &Map, index: usize, indent: usize)
+where
+    Map: Index<Intern, Output = str>,
+{
+    let node = nodes[index];
+    print!("{: <1$}", "", indent);
+    match node {
+        Node::Branch { kind, range } => {
+            println!("{kind:?}");
+            let range: Range<usize> = range.into();
+            for index in range {
+                print_at(nodes, map, index, indent + 2);
+            }
+        }
+        Node::Leaf { token } => println!("{:?} {:?}", token.kind, &map[token.intern]),
+    }
 }
 
 impl Debug for Node {
@@ -39,7 +69,7 @@ pub enum BranchKind {
     Block,
     Call,
     Def,
-    Function,
+    Fun,
 }
 
 // Duplicated from std Range so it can be Copy.
@@ -50,6 +80,18 @@ pub struct SimpleRange<Idx> {
     pub start: Idx,
     /// The upper bound of the range (exclusive).
     pub end: Idx,
+}
+
+impl<Idx> From<SimpleRange<Idx>> for Range<Idx> {
+    fn from(value: SimpleRange<Idx>) -> Self {
+        value.start..value.end
+    }
+}
+
+impl From<SimpleRange<u32>> for Range<usize> {
+    fn from(value: SimpleRange<u32>) -> Self {
+        value.start as usize..value.end as usize
+    }
 }
 
 impl<Idx> From<Range<Idx>> for SimpleRange<Idx> {

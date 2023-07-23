@@ -18,8 +18,8 @@ impl Debug for Token {
 }
 
 impl Token {
-    pub fn new(kind: TokenKind, atom: Intern) -> Self {
-        Self { kind, intern: atom }
+    pub fn new(kind: TokenKind, intern: Intern) -> Self {
+        Self { kind, intern }
     }
 }
 
