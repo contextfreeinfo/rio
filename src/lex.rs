@@ -109,9 +109,9 @@ impl Lexer {
     }
 
     fn push(&mut self, kind: TokenKind) {
-        let atom = self.interner.get_or_intern(self.buffer.as_str());
+        let intern = self.interner.get_or_intern(self.buffer.as_str());
         self.buffer.clear();
-        self.tokens.push(Token::new(kind, atom));
+        self.tokens.push(Token::new(kind, intern));
     }
 
     fn string(&mut self, source: &mut Peekable<Chars>) {

@@ -4,7 +4,10 @@ use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
 
-use crate::{lex::Lexer, parse::{Node, print_tree}};
+use crate::{
+    lex::Lexer,
+    parse::{print_tree, Node},
+};
 
 mod lex;
 mod parse;
@@ -27,7 +30,7 @@ struct RunArgs {
 }
 
 fn main() -> Result<()> {
-    println!("{}", std::mem::size_of::<Node>());
+    println!("Node size: {}", std::mem::size_of::<Node>());
     env_logger::init();
     let cli = Cli::parse();
     match &cli.command {
@@ -40,13 +43,8 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let mut lexer = Lexer::new(interner.clone());
     let source = read_to_string(args.app.as_str())?;
     let tokens = lexer.lex(source.as_str());
-    for token in &tokens {
-        let atom = token.intern;
-        println!("{:?} {:?}", token, interner.resolve(&atom));
-    }
     let mut parser = parse::Parser::new();
     let tree = parser.parse(&tokens);
-    println!("{tree:?}");
     print_tree(&tree, interner.as_ref());
     Ok(())
 }
