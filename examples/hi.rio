@@ -1,4 +1,4 @@
 main = {
     message = "Hi!"
-    print(message)
+    print message
 }

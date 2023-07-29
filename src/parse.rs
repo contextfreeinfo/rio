@@ -145,12 +145,13 @@ impl TreeBuilder {
         self.working.push(node.into());
     }
 
-    pub fn wrap(&mut self, kind: BranchKind) {
-        let old = self.nodes.len();
-        self.nodes.extend(self.working.drain(..));
+    pub fn wrap(&mut self, kind: BranchKind, start: u32) {
+        let start = start as usize;
+        let nodes_start = self.nodes.len();
+        self.nodes.extend(self.working.drain(start..));
         self.working.push(Node::Branch {
             kind,
-            range: (old..self.nodes.len()).into(),
+            range: (nodes_start..self.nodes.len()).into(),
         });
     }
 }
@@ -170,52 +171,167 @@ impl Parser {
     pub fn parse(&mut self, source: &[Token]) -> Vec<Node> {
         self.builder.clear();
         let mut source = source.iter().peekable();
-        self.block(&mut source);
-        self.builder.wrap(BranchKind::Block);
+        self.block(&mut source, TokenKind::CurlyClose);
+        self.builder.wrap(BranchKind::Block, 0);
         self.builder.extract()
     }
 
-    fn block(&mut self, source: &mut Tokens) {
-        let old = self.builder.pos();
+    fn advance(&mut self, source: &mut Tokens) {
+        let next = source.next();
+        if let Some(token) = next {
+            self.builder.push(token);
+        }
+    }
+
+    fn atom(&mut self, source: &mut Tokens) {
+        self.skip_h(source);
+        // let old = self.builder.pos();
+        match peek(source) {
+            Some(token) => match token.kind {
+                TokenKind::CurlyOpen => self.advance(source),
+                TokenKind::Id => self.advance(source),
+                TokenKind::RoundOpen => self.advance(source),
+                TokenKind::String => self.advance(source),
+                TokenKind::VSpace => {}
+                _ => self.advance(source),
+            },
+            None => {}
+        }
+    }
+
+    fn block(&mut self, source: &mut Tokens, ender: TokenKind) {
+        let start = self.builder.pos();
         loop {
-            self.skip_h(source);
+            self.block_content(source);
+            if let Some(Token { kind: ender, .. }) = peek(source) {
+                self.advance(source);
+                break;
+            }
+        }
+        if self.builder.pos() > start {
+            self.builder.wrap(BranchKind::Block, start);
+        }
+    }
+
+    fn block_content(&mut self, source: &mut Tokens) {
+        loop {
+            self.skip_hv(source);
             match peek(source) {
-                Some(token) => match token {
+                Some(token) => match token.kind {
+                    TokenKind::CurlyClose | TokenKind::RoundClose => break,
                     _ => {
-                        self.next(source);
+                        self.def(source);
                     }
                 },
                 None => break,
             }
         }
+        self.skip_hv(source);
+    }
+
+    fn call(&mut self, source: &mut Tokens) {
         self.skip_h(source);
-        // TODO Refine wrapping conditions.
-        if self.builder.pos() > old {
-            self.builder.wrap(BranchKind::Block);
+        let start = self.builder.pos();
+        self.atom(source);
+        let mut post = self.builder.pos();
+        if post > start {
+            // TODO Can we leaving trailing hspace, or do we need to have an indicator?
+            match peek(source) {
+                Some(token) => match token.kind {
+                    TokenKind::HSpace | TokenKind::CurlyOpen => {
+                        // TODO Spaced args.
+                        self.skip_h(source);
+                        post = self.builder.pos();
+                        self.spaced(source);
+                    }
+                    TokenKind::RoundOpen => {
+                        // TODO Expand paren-comma args.
+                        self.advance(source);
+                        self.block_content(source);
+                        match peek(source) {
+                            Some(Token {
+                                kind: TokenKind::RoundClose,
+                                ..
+                            }) => {
+                                self.advance(source);
+                                // TODO Nest call and loop here!
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                },
+                None => {}
+            }
+            if self.builder.pos() > post {
+                self.builder.wrap(BranchKind::Call, start);
+            }
         }
     }
 
-    fn next(&mut self, source: &mut Tokens) -> Option<Token> {
-        let next = source.next();
-        if let Some(token) = next {
-            self.builder.push(token);
+    fn def(&mut self, source: &mut Tokens) {
+        self.skip_h(source);
+        let start = self.builder.pos();
+        self.call(source);
+        if self.builder.pos() > start {
+            self.skip_h(source);
+            match peek(source) {
+                Some(token) => match token.kind {
+                    TokenKind::Define => {
+                        self.advance(source);
+                        self.skip_hv(source);
+                        // Right-side descent.
+                        self.def(source);
+                        self.builder.wrap(BranchKind::Def, start);
+                    }
+                    _ => {}
+                },
+                None => {}
+            }
         }
-        next.copied()
+    }
+
+    fn skip<F>(&mut self, source: &mut Tokens, skipping: F)
+    where
+        F: Fn(TokenKind) -> bool,
+    {
+        loop {
+            match peek(source) {
+                Some(token) => {
+                    if skipping(token.kind) {
+                        source.next();
+                        self.builder.push(token);
+                    } else {
+                        break;
+                    }
+                }
+                _ => break,
+            }
+        }
     }
 
     fn skip_h(&mut self, source: &mut Tokens) {
+        self.skip(source, |kind| kind == TokenKind::HSpace);
+    }
+
+    fn skip_hv(&mut self, source: &mut Tokens) {
+        self.skip(source, |kind| {
+            kind == TokenKind::HSpace || kind == TokenKind::VSpace
+        });
+    }
+
+    fn spaced(&mut self, source: &mut Tokens) {
         loop {
+            self.skip_h(source);
             match peek(source) {
-                Some(
-                    token @ Token {
-                        kind: TokenKind::HSpace,
-                        ..
-                    },
-                ) => {
-                    source.next();
-                    self.builder.push(token);
-                }
-                _ => break,
+                Some(token) => match token.kind {
+                    TokenKind::CurlyClose
+                    | TokenKind::Define
+                    | TokenKind::RoundClose
+                    | TokenKind::VSpace => break,
+                    _ => self.atom(source),
+                },
+                None => break,
             }
         }
     }
