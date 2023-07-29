@@ -171,7 +171,7 @@ impl Parser {
     pub fn parse(&mut self, source: &[Token]) -> Vec<Node> {
         self.builder.clear();
         let mut source = source.iter().peekable();
-        self.block(&mut source, TokenKind::CurlyClose);
+        self.block_top(&mut source);
         self.builder.wrap(BranchKind::Block, 0);
         self.builder.extract()
     }
@@ -188,7 +188,7 @@ impl Parser {
         // let old = self.builder.pos();
         match peek(source) {
             Some(token) => match token.kind {
-                TokenKind::CurlyOpen => self.advance(source),
+                TokenKind::CurlyOpen => self.block(source),
                 TokenKind::Id => self.advance(source),
                 TokenKind::RoundOpen => self.advance(source),
                 TokenKind::String => self.advance(source),
@@ -199,13 +199,28 @@ impl Parser {
         }
     }
 
-    fn block(&mut self, source: &mut Tokens, ender: TokenKind) {
+    fn block(&mut self, source: &mut Tokens) {
         let start = self.builder.pos();
+        let ender = match peek(source) {
+            Some(token) => match token.kind {
+                TokenKind::CurlyOpen => TokenKind::CurlyClose,
+                TokenKind::RoundOpen => TokenKind::RoundClose,
+                _ => return,
+            },
+            None => return,
+        };
+        self.advance(source);
         loop {
             self.block_content(source);
-            if let Some(Token { kind: ender, .. }) = peek(source) {
-                self.advance(source);
-                break;
+            match peek(source) {
+                Some(token) => {
+                    self.advance(source);
+                    match () {
+                        _ if token.kind == ender => break,
+                        _ => {}
+                    }
+                }
+                None => break,
             }
         }
         if self.builder.pos() > start {
@@ -227,6 +242,19 @@ impl Parser {
             }
         }
         self.skip_hv(source);
+    }
+
+    fn block_top(&mut self, source: &mut Tokens) {
+        let start = self.builder.pos();
+        loop {
+            self.block_content(source);
+            if let None = peek(source) {
+                break;
+            }
+        }
+        if self.builder.pos() > start {
+            self.builder.wrap(BranchKind::Block, start);
+        }
     }
 
     fn call(&mut self, source: &mut Tokens) {
@@ -283,6 +311,7 @@ impl Parser {
                         // Right-side descent.
                         self.def(source);
                         self.builder.wrap(BranchKind::Def, start);
+                        self.skip_hv(source);
                     }
                     _ => {}
                 },
