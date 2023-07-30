@@ -188,11 +188,10 @@ impl Parser {
         // let old = self.builder.pos();
         match peek(source) {
             Some(token) => match token.kind {
-                TokenKind::CurlyOpen => self.block(source),
+                TokenKind::Comma | TokenKind::VSpace => {}
+                TokenKind::CurlyOpen | TokenKind::RoundOpen => self.block(source),
                 TokenKind::Id => self.advance(source),
-                TokenKind::RoundOpen => self.advance(source),
                 TokenKind::String => self.advance(source),
-                TokenKind::VSpace => {}
                 _ => self.advance(source),
             },
             None => {}
@@ -233,6 +232,7 @@ impl Parser {
             self.skip_hv(source);
             match peek(source) {
                 Some(token) => match token.kind {
+                    TokenKind::Comma => self.advance(source),
                     TokenKind::CurlyClose | TokenKind::RoundClose => break,
                     _ => {
                         self.def(source);
@@ -261,38 +261,49 @@ impl Parser {
         self.skip_h(source);
         let start = self.builder.pos();
         self.atom(source);
-        let mut post = self.builder.pos();
-        if post > start {
-            // TODO Can we leaving trailing hspace, or do we need to have an indicator?
-            match peek(source) {
-                Some(token) => match token.kind {
-                    TokenKind::HSpace | TokenKind::CurlyOpen => {
-                        // TODO Spaced args.
-                        self.skip_h(source);
-                        post = self.builder.pos();
-                        self.spaced(source);
-                    }
-                    TokenKind::RoundOpen => {
-                        // TODO Expand paren-comma args.
-                        self.advance(source);
-                        self.block_content(source);
-                        match peek(source) {
-                            Some(Token {
-                                kind: TokenKind::RoundClose,
-                                ..
-                            }) => {
-                                self.advance(source);
-                                // TODO Nest call and loop here!
-                            }
-                            _ => {}
+        loop {
+            let mut post = self.builder.pos();
+            if post > start {
+                // TODO Can we leaving trailing hspace, or do we need to have an indicator?
+                match peek(source) {
+                    Some(token) => match token.kind {
+                        TokenKind::HSpace | TokenKind::CurlyOpen => {
+                            self.skip_h(source);
+                            post = self.builder.pos();
+                            self.spaced(source);
                         }
-                    }
-                    _ => {}
-                },
-                None => {}
-            }
-            if self.builder.pos() > post {
-                self.builder.wrap(BranchKind::Call, start);
+                        TokenKind::RoundOpen => {
+                            // TODO Expand paren-comma args.
+                            self.advance(source);
+                            self.block_content(source);
+                            match peek(source) {
+                                Some(Token {
+                                    kind: TokenKind::RoundClose,
+                                    ..
+                                }) => {
+                                    self.advance(source);
+                                }
+                                _ => {}
+                            }
+                            self.skip_h(source);
+                            match peek(source) {
+                                Some(Token {
+                                    kind: TokenKind::CurlyOpen,
+                                    ..
+                                }) => {
+                                    self.block(source);
+                                    self.skip_h(source);
+                                }
+                                _ => {}
+                            }
+                        }
+                        _ => break,
+                    },
+                    None => break,
+                }
+                if self.builder.pos() > post {
+                    self.builder.wrap(BranchKind::Call, start);
+                }
             }
         }
     }
@@ -354,7 +365,8 @@ impl Parser {
             self.skip_h(source);
             match peek(source) {
                 Some(token) => match token.kind {
-                    TokenKind::CurlyClose
+                    TokenKind::Comma
+                    | TokenKind::CurlyClose
                     | TokenKind::Define
                     | TokenKind::RoundClose
                     | TokenKind::VSpace => break,

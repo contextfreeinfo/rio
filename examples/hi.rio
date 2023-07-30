@@ -1,4 +1,9 @@
 main = {
     message = "Hi!"
+    print-twice message
+}
+
+print-twice = for message {
+    print message
     print message
 }
