@@ -10,6 +10,14 @@ use std::{
 
 use crate::lex::{Intern, Token, TokenKind};
 
+macro_rules! loop_some {
+    {$t:tt} => {(|| -> Option<()> {
+        loop {
+            $t
+        }
+    })()};
+}
+
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub enum Node {
     Branch {
@@ -197,81 +205,65 @@ impl Parser {
         }
     }
 
-    fn atom(&mut self, source: &mut Tokens) {
+    fn atom(&mut self, source: &mut Tokens) -> Option<()> {
         self.skip_h(source);
-        // let old = self.builder.pos();
-        match peek(source) {
-            Some(token) => match token.kind {
-                TokenKind::Comma | TokenKind::VSpace => {}
-                TokenKind::CurlyOpen | TokenKind::RoundOpen => self.block(source),
-                TokenKind::Id => self.advance(source),
-                TokenKind::String => self.advance(source),
-                _ => self.advance(source),
-            },
-            None => {}
+        match peek(source)? {
+            TokenKind::Comma | TokenKind::VSpace => {}
+            TokenKind::CurlyOpen | TokenKind::RoundOpen => self.block(source)?,
+            TokenKind::Id => self.advance(source),
+            TokenKind::String => self.advance(source),
+            _ => self.advance(source),
         }
+        Some(())
     }
 
-    fn block(&mut self, source: &mut Tokens) {
+    fn block(&mut self, source: &mut Tokens) -> Option<()> {
         let start = self.builder.pos();
-        let ender = match peek(source) {
-            Some(token) => match token.kind {
-                TokenKind::CurlyOpen => TokenKind::CurlyClose,
-                TokenKind::RoundOpen => TokenKind::RoundClose,
-                _ => return,
-            },
-            None => return,
+        let ender = match peek(source)? {
+            TokenKind::CurlyOpen => TokenKind::CurlyClose,
+            TokenKind::RoundOpen => TokenKind::RoundClose,
+            _ => panic!(),
         };
         self.advance(source);
-        loop {
+        loop_some!({
             self.block_content(source);
-            match peek(source) {
-                Some(token) => {
-                    self.advance(source);
-                    match () {
-                        _ if token.kind == ender => break,
-                        _ => {}
-                    }
-                }
-                None => break,
+            let kind = peek(source)?;
+            self.advance(source);
+            if kind == ender {
+                None?
             }
-        }
+        });
         if self.builder.pos() > start {
             self.builder.wrap(BranchKind::Block, start);
         }
+        Some(())
     }
 
-    fn block_content(&mut self, source: &mut Tokens) {
-        loop {
+    fn block_content(&mut self, source: &mut Tokens) -> Option<()> {
+        loop_some!({
             self.skip_hv(source);
-            match peek(source) {
-                Some(token) => match token.kind {
-                    TokenKind::Comma => self.advance(source),
-                    TokenKind::CurlyClose | TokenKind::RoundClose => break,
-                    _ => {
-                        self.def(source);
-                    }
-                },
-                None => break,
+            match peek(source)? {
+                TokenKind::Comma => self.advance(source),
+                TokenKind::CurlyClose | TokenKind::RoundClose => None?,
+                _ => {
+                    self.def(source);
+                }
             }
-        }
-        self.skip_hv(source);
+        });
+        self.skip_hv(source)
     }
 
     fn block_top(&mut self, source: &mut Tokens) {
         let start = self.builder.pos();
-        loop {
-            self.block_content(source);
-            if let None = peek(source) {
-                break;
-            }
-        }
+        loop_some!({
+            self.block_content(source)?;
+        });
         if self.builder.pos() > start {
             self.builder.wrap(BranchKind::Block, start);
         }
     }
 
-    fn call(&mut self, source: &mut Tokens) {
+    fn call(&mut self, source: &mut Tokens) -> Option<()> {
         self.skip_h(source);
         let start = self.builder.pos();
         self.atom(source);
@@ -279,41 +271,26 @@ impl Parser {
             let mut post = self.builder.pos();
             if post > start {
                 // TODO Can we leaving trailing hspace, or do we need to have an indicator?
-                match peek(source) {
-                    Some(token) => match token.kind {
-                        TokenKind::HSpace | TokenKind::CurlyOpen => {
-                            self.skip_h(source);
-                            post = self.builder.pos();
-                            self.spaced(source);
-                        }
-                        TokenKind::RoundOpen => {
-                            // TODO Expand paren-comma args.
+                match peek(source)? {
+                    TokenKind::HSpace | TokenKind::CurlyOpen => {
+                        self.skip_h(source);
+                        post = self.builder.pos();
+                        self.spaced(source);
+                    }
+                    TokenKind::RoundOpen => {
+                        // TODO Expand paren-comma args.
+                        self.advance(source);
+                        self.block_content(source);
+                        if peek(source)? == TokenKind::RoundClose {
                             self.advance(source);
-                            self.block_content(source);
-                            match peek(source) {
-                                Some(Token {
-                                    kind: TokenKind::RoundClose,
-                                    ..
-                                }) => {
-                                    self.advance(source);
-                                }
-                                _ => {}
-                            }
-                            self.skip_h(source);
-                            match peek(source) {
-                                Some(Token {
-                                    kind: TokenKind::CurlyOpen,
-                                    ..
-                                }) => {
-                                    self.block(source);
-                                    self.skip_h(source);
-                                }
-                                _ => {}
-                            }
                         }
-                        _ => break,
-                    },
-                    None => break,
+                        self.skip_h(source);
+                        if peek(source)? == TokenKind::CurlyOpen {
+                            self.block(source);
+                            self.skip_h(source);
+                        }
+                    }
+                    _ => None?,
                 }
                 if self.builder.pos() > post {
                     self.builder.wrap(BranchKind::Call, start);
@@ -322,76 +299,69 @@ impl Parser {
         }
     }
 
-    fn def(&mut self, source: &mut Tokens) {
+    fn def(&mut self, source: &mut Tokens) -> Option<()> {
         self.skip_h(source);
         let start = self.builder.pos();
         self.call(source);
         if self.builder.pos() > start {
             self.skip_h(source);
-            match peek(source) {
-                Some(token) => match token.kind {
-                    TokenKind::Define => {
-                        self.advance(source);
-                        self.skip_hv(source);
-                        // Right-side descent.
-                        self.def(source);
-                        self.builder.wrap(BranchKind::Def, start);
-                        self.skip_hv(source);
-                    }
-                    _ => {}
-                },
-                None => {}
+            if peek(source)? == TokenKind::Define {
+                self.advance(source);
+                self.skip_hv(source);
+                // Right-side descent.
+                self.def(source);
+                self.builder.wrap(BranchKind::Def, start);
+                self.skip_hv(source)?;
             }
         }
+        Some(())
     }
 
-    fn skip<F>(&mut self, source: &mut Tokens, skipping: F)
+    fn skip<F>(&mut self, source: &mut Tokens, skipping: F) -> Option<()>
     where
         F: Fn(TokenKind) -> bool,
     {
         loop {
-            match peek(source) {
-                Some(token) => {
-                    if skipping(token.kind) {
-                        source.next();
-                        self.builder.push(token);
-                    } else {
-                        break;
-                    }
-                }
-                _ => break,
+            let token = peek_token(source)?;
+            if skipping(token.kind) {
+                source.next();
+                self.builder.push(token);
+            } else {
+                break;
             }
         }
+        Some(())
     }
 
-    fn skip_h(&mut self, source: &mut Tokens) {
-        self.skip(source, |kind| kind == TokenKind::HSpace);
+    fn skip_h(&mut self, source: &mut Tokens) -> Option<()> {
+        self.skip(source, |kind| kind == TokenKind::HSpace)
     }
 
-    fn skip_hv(&mut self, source: &mut Tokens) {
+    fn skip_hv(&mut self, source: &mut Tokens) -> Option<()> {
         self.skip(source, |kind| {
             kind == TokenKind::HSpace || kind == TokenKind::VSpace
-        });
+        })
     }
 
-    fn spaced(&mut self, source: &mut Tokens) {
+    fn spaced(&mut self, source: &mut Tokens) -> Option<()> {
         loop {
             self.skip_h(source);
-            match peek(source) {
-                Some(token) => match token.kind {
-                    TokenKind::Comma
-                    | TokenKind::CurlyClose
-                    | TokenKind::Define
-                    | TokenKind::RoundClose
-                    | TokenKind::VSpace => break,
-                    _ => self.atom(source),
-                },
-                None => break,
-            }
+            match peek(source)? {
+                TokenKind::Comma
+                | TokenKind::CurlyClose
+                | TokenKind::Define
+                | TokenKind::RoundClose
+                | TokenKind::VSpace => None?,
+                _ => self.atom(source),
+            };
         }
     }
 }
 
-fn peek(source: &mut Tokens) -> Option<Token> {
+fn peek(source: &mut Tokens) -> Option<TokenKind> {
+    source.peek().map(|it| it.kind)
+}
+
+fn peek_token(source: &mut Tokens) -> Option<Token> {
     source.peek().copied().copied()
 }
