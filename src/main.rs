@@ -1,12 +1,17 @@
-use std::{fs::read_to_string, sync::Arc};
+use std::{
+    fs::{create_dir_all, read_to_string, File},
+    io::Write,
+    path::Path,
+    sync::Arc,
+};
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
 
 use crate::{
     lex::Lexer,
-    parse::{print_tree, Node},
+    parse::{write_tree, Node},
 };
 
 mod lex;
@@ -27,10 +32,11 @@ enum Commands {
 #[derive(Args)]
 struct RunArgs {
     app: String,
+    #[arg(long)]
+    dump: Option<String>,
 }
 
 fn main() -> Result<()> {
-    println!("Node size: {}", std::mem::size_of::<Node>());
     env_logger::init();
     let cli = Cli::parse();
     match &cli.command {
@@ -45,6 +51,24 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let tokens = lexer.lex(source.as_str());
     let mut parser = parse::Parser::new();
     let tree = parser.parse(&tokens);
-    print_tree(&tree, interner.as_ref());
+    dump_tree(args, tree, interner)?;
+    Ok(())
+}
+
+fn dump_tree(args: &RunArgs, tree: Vec<Node>, interner: Arc<ThreadedRodeo>) -> Result<()> {
+    if let Some(dump) = &args.dump {
+        create_dir_all(dump)?;
+        let name = Path::new(&args.app)
+            .file_stem()
+            .ok_or(Error::msg("no name"))?
+            .to_str()
+            .ok_or(Error::msg("bad name"))?;
+        let path = Path::new(dump).join(format!("{name}.parse.txt"));
+        let mut file = File::create(path)?;
+        write_tree(&mut file, &tree, interner.as_ref())?;
+        writeln!(&mut file, "")?;
+        writeln!(&mut file, "Node size: {}", std::mem::size_of::<Node>())?;
+        writeln!(&mut file, "Tree len: {}", tree.len())?;
+    }
     Ok(())
 }

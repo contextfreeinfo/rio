@@ -1,5 +1,8 @@
+use anyhow::Result;
 use std::{
     fmt::Debug,
+    fs::File,
+    io::Write,
     iter::Peekable,
     ops::{Index, Range},
     slice::Iter,
@@ -18,29 +21,41 @@ pub enum Node {
     },
 }
 
-pub fn print_tree<Map>(nodes: &[Node], map: &Map)
+pub fn write_tree<Map>(file: &mut File, nodes: &[Node], map: &Map) -> Result<()>
 where
     Map: Index<Intern, Output = str>,
 {
-    print_at(nodes, map, nodes.len() - 1, 0);
+    write_at(file, nodes, map, nodes.len() - 1, 0)?;
+    Ok(())
 }
 
-fn print_at<Map>(nodes: &[Node], map: &Map, index: usize, indent: usize)
+fn write_at<Map>(
+    file: &mut File,
+    nodes: &[Node],
+    map: &Map,
+    index: usize,
+    indent: usize,
+) -> Result<()>
 where
     Map: Index<Intern, Output = str>,
 {
     let node = nodes[index];
-    print!("{: <1$}", "", indent);
+    write!(file, "{: <1$}", "", indent)?;
     match node {
         Node::Branch { kind, range } => {
-            println!("{kind:?}");
+            writeln!(file, "{kind:?}")?;
             let range: Range<usize> = range.into();
-            for index in range {
-                print_at(nodes, map, index, indent + 2);
+            for index in range.clone() {
+                write_at(file, nodes, map, index, indent + 2)?;
+            }
+            if range.len() > 1 {
+                write!(file, "{: <1$}", "", indent)?;
+                writeln!(file, "/{kind:?}")?;
             }
         }
-        Node::Leaf { token } => println!("{:?} {:?}", token.kind, &map[token.intern]),
+        Node::Leaf { token } => writeln!(file, "{:?} {:?}", token.kind, &map[token.intern])?,
     }
+    Ok(())
 }
 
 impl Debug for Node {
@@ -69,7 +84,6 @@ pub enum BranchKind {
     Block,
     Call,
     Def,
-    Fun,
 }
 
 // Duplicated from std Range so it can be Copy.

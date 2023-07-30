@@ -1,0 +1,66 @@
+Block
+  Def
+    Id "main"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Block
+      CurlyOpen "{"
+      VSpace "\n"
+      HSpace "    "
+      Def
+        Id "message"
+        HSpace " "
+        Define "="
+        HSpace " "
+        String "\"Hi!\""
+      /Def
+      VSpace "\n"
+      HSpace "    "
+      Call
+        Id "print-twice"
+        HSpace " "
+        Id "message"
+      /Call
+      VSpace "\n"
+      CurlyClose "}"
+    /Block
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "print-twice"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "for"
+      HSpace " "
+      Id "message"
+      HSpace " "
+      Block
+        CurlyOpen "{"
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "print"
+          HSpace " "
+          Id "message"
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "print"
+          HSpace " "
+          Id "message"
+        /Call
+        VSpace "\n"
+        CurlyClose "}"
+      /Block
+    /Call
+  /Def
+  VSpace "\n"
+/Block
+
+Node size: 12
+Tree len: 53
