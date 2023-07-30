@@ -133,7 +133,12 @@ impl Lexer {
 
     fn trim(&mut self, source: &mut Peekable<Chars>) {
         if !self.buffer.is_empty() {
-            self.push(TokenKind::Id);
+            let kind = match self.buffer.as_str() {
+                "be" => TokenKind::CurlyOpen,
+                "end" => TokenKind::CurlyClose,
+                _ => TokenKind::Id,
+            };
+            self.push(kind);
         }
         self.next(source);
     }

@@ -39,7 +39,7 @@ Block
       Id "message"
       HSpace " "
       Block
-        CurlyOpen "{"
+        CurlyOpen "be"
         VSpace "\n"
         HSpace "    "
         Call
@@ -55,7 +55,7 @@ Block
           Id "message"
         /Call
         VSpace "\n"
-        CurlyClose "}"
+        CurlyClose "end"
       /Block
     /Call
   /Def
