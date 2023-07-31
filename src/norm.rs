@@ -1,6 +1,10 @@
-use crate::parse::{TreeBuilder, Node};
+use std::ops::Range;
 
-#[derive(Default)]
+use crate::{
+    lex::TokenKind,
+    parse::{BranchKind, Node, TreeBuilder},
+};
+
 pub struct Normer {
     pub builder: TreeBuilder,
 }
@@ -12,9 +16,27 @@ impl Normer {
 
     pub fn norm(&mut self, tree: &[Node]) -> Vec<Node> {
         self.builder.clear();
-        // let mut source = source.iter().peekable();
-        // self.block_top(&mut source);
-        // self.builder.wrap(BranchKind::Block, 0);
+        self.any(&tree);
+        self.builder.wrap(BranchKind::Block, 0);
         self.builder.extract()
+    }
+
+    fn any(&mut self, tree: &[Node]) -> Option<()> {
+        let root = *tree.last()?;
+        match root {
+            Node::Branch { kind, range } => {
+                let start = self.builder.pos();
+                let range: Range<usize> = range.into();
+                for index in range.clone() {
+                    self.any(&tree[..index + 1]);
+                }
+                self.builder.wrap(kind, start);
+            }
+            Node::Leaf { token } => match token.kind {
+                TokenKind::HSpace | TokenKind::VSpace => {}
+                _ => self.builder.push(root),
+            },
+        }
+        Some(())
     }
 }

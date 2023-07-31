@@ -1,6 +1,7 @@
 use std::{
     fs::{create_dir_all, read_to_string, File},
     io::Write,
+    ops::Index,
     path::Path,
     sync::Arc,
 };
@@ -8,6 +9,7 @@ use std::{
 use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
+use lex::Intern;
 use norm::Normer;
 use parse::TreeBuilder;
 
@@ -54,14 +56,18 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let tokens = lexer.lex(source.as_str());
     let builder = TreeBuilder::default();
     let mut parser = parse::Parser::new(builder);
-    let tree = parser.parse(&tokens);
-    dump_tree(args, &tree, interner)?;
+    let parsed_tree = parser.parse(&tokens);
+    dump_tree("parse", args, &parsed_tree, interner.as_ref())?;
     let mut normer = Normer::new(parser.builder);
-    normer.norm(&tree);
+    let normed_tree = normer.norm(&parsed_tree);
+    dump_tree("norm", args, &normed_tree, interner.as_ref())?;
     Ok(())
 }
 
-fn dump_tree(args: &RunArgs, tree: &[Node], interner: Arc<ThreadedRodeo>) -> Result<()> {
+fn dump_tree<Map>(stage: &str, args: &RunArgs, tree: &[Node], map: &Map) -> Result<()>
+where
+    Map: Index<Intern, Output = str>,
+{
     if let Some(dump) = &args.dump {
         create_dir_all(dump)?;
         let name = Path::new(&args.app)
@@ -69,9 +75,9 @@ fn dump_tree(args: &RunArgs, tree: &[Node], interner: Arc<ThreadedRodeo>) -> Res
             .ok_or(Error::msg("no name"))?
             .to_str()
             .ok_or(Error::msg("bad name"))?;
-        let path = Path::new(dump).join(format!("{name}.parse.txt"));
+        let path = Path::new(dump).join(format!("{name}.{stage}.txt"));
         let mut file = File::create(path)?;
-        write_tree(&mut file, &tree, interner.as_ref())?;
+        write_tree(&mut file, &tree, map)?;
         writeln!(&mut file, "")?;
         writeln!(&mut file, "Node size: {}", std::mem::size_of::<Node>())?;
         writeln!(&mut file, "Tree len: {}", tree.len())?;
