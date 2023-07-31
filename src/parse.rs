@@ -182,17 +182,17 @@ type Tokens<'a> = Peekable<Iter<'a, Token>>;
 
 #[derive(Default)]
 pub struct Parser {
-    builder: TreeBuilder,
+    pub builder: TreeBuilder,
 }
 
 impl Parser {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(builder: TreeBuilder) -> Self {
+        Self { builder }
     }
 
-    pub fn parse(&mut self, source: &[Token]) -> Vec<Node> {
+    pub fn parse(&mut self, tokens: &[Token]) -> Vec<Node> {
         self.builder.clear();
-        let mut source = source.iter().peekable();
+        let mut source = tokens.iter().peekable();
         self.block_top(&mut source);
         self.builder.wrap(BranchKind::Block, 0);
         self.builder.extract()

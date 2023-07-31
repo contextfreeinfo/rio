@@ -8,6 +8,8 @@ use std::{
 use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
+use norm::Normer;
+use parse::TreeBuilder;
 
 use crate::{
     lex::Lexer,
@@ -15,6 +17,7 @@ use crate::{
 };
 
 mod lex;
+mod norm;
 mod parse;
 
 #[derive(clap::Parser)]
@@ -49,13 +52,16 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let mut lexer = Lexer::new(interner.clone());
     let source = read_to_string(args.app.as_str())?;
     let tokens = lexer.lex(source.as_str());
-    let mut parser = parse::Parser::new();
+    let builder = TreeBuilder::default();
+    let mut parser = parse::Parser::new(builder);
     let tree = parser.parse(&tokens);
-    dump_tree(args, tree, interner)?;
+    dump_tree(args, &tree, interner)?;
+    let mut normer = Normer::new(parser.builder);
+    normer.norm(&tree);
     Ok(())
 }
 
-fn dump_tree(args: &RunArgs, tree: Vec<Node>, interner: Arc<ThreadedRodeo>) -> Result<()> {
+fn dump_tree(args: &RunArgs, tree: &[Node], interner: Arc<ThreadedRodeo>) -> Result<()> {
     if let Some(dump) = &args.dump {
         create_dir_all(dump)?;
         let name = Path::new(&args.app)
