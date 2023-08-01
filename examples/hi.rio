@@ -3,7 +3,7 @@ main = {
     print-twice message
 }
 
-print-twice = for message be
+print-twice = for(message: Text): Null be
     print message
     print message
 end

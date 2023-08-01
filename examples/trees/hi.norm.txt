@@ -14,9 +14,14 @@ Block
   /Def
   Def
     Id "print-twice"
-    Call
-      Id "for"
-      Id "message"
+    Fun
+      Group
+        Typed
+          Id "message"
+          Id "Text"
+        /Typed
+      Typed
+        Id "Null"
       Block
         Call
           Id "print"
@@ -27,9 +32,9 @@ Block
           Id "message"
         /Call
       /Block
-    /Call
+    /Fun
   /Def
 /Block
 
 Node size: 12
-Tree len: 22
+Tree len: 26

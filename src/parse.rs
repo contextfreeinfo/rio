@@ -92,6 +92,9 @@ pub enum BranchKind {
     Block,
     Call,
     Def,
+    Fun,
+    Group,
+    Typed,
 }
 
 // Duplicated from std Range so it can be Copy.
@@ -208,8 +211,9 @@ impl Parser {
     fn atom(&mut self, source: &mut Tokens) -> Option<()> {
         self.skip_h(source);
         match peek(source)? {
-            TokenKind::Comma | TokenKind::VSpace => {}
+            TokenKind::Colon | TokenKind::Comma | TokenKind::VSpace => {}
             TokenKind::CurlyOpen | TokenKind::RoundOpen => self.block(source)?,
+            TokenKind::Fun => self.fun(source)?,
             TokenKind::Id => self.advance(source),
             TokenKind::String => self.advance(source),
             _ => self.advance(source),
@@ -263,7 +267,7 @@ impl Parser {
         }
     }
 
-    fn call(&mut self, source: &mut Tokens) -> Option<()> {
+    fn call(&mut self, source: &mut Tokens, allow_block: bool) -> Option<()> {
         self.skip_h(source);
         let start = self.builder.pos();
         self.atom(source);
@@ -274,6 +278,9 @@ impl Parser {
                 match peek(source)? {
                     TokenKind::HSpace | TokenKind::CurlyOpen => {
                         self.skip_h(source);
+                        if !allow_block && peek(source)? == TokenKind::CurlyOpen {
+                            break;
+                        }
                         post = self.builder.pos();
                         self.spaced(source);
                     }
@@ -286,23 +293,27 @@ impl Parser {
                         }
                         self.skip_h(source);
                         if peek(source)? == TokenKind::CurlyOpen {
+                            if !allow_block {
+                                break;
+                            }
                             self.block(source);
                             self.skip_h(source);
                         }
                     }
-                    _ => None?,
+                    _ => break,
                 }
                 if self.builder.pos() > post {
                     self.builder.wrap(BranchKind::Call, start);
                 }
             }
         }
+        Some(())
     }
 
     fn def(&mut self, source: &mut Tokens) -> Option<()> {
         self.skip_h(source);
         let start = self.builder.pos();
-        self.call(source);
+        self.typed(source);
         if self.builder.pos() > start {
             self.skip_h(source);
             if peek(source)? == TokenKind::Define {
@@ -314,6 +325,41 @@ impl Parser {
                 self.skip_hv(source)?;
             }
         }
+        Some(())
+    }
+
+    fn fun(&mut self, source: &mut Tokens) -> Option<()> {
+        let start = self.builder.pos();
+        self.advance(source);
+        self.skip_h(source);
+        let args_start = self.builder.pos();
+        match peek(source)? {
+            TokenKind::Id => {
+                self.advance(source);
+                self.skip_h(source);
+            }
+            TokenKind::RoundOpen => {
+                // TODO Expand paren-comma args.
+                self.advance(source);
+                self.block_content(source);
+                if peek(source)? == TokenKind::RoundClose {
+                    self.advance(source);
+                }
+            }
+            _ => return Some(()),
+        }
+        self.builder.wrap(BranchKind::Group, args_start);
+        self.skip_h(source);
+        if peek(source)? == TokenKind::Colon {
+            let sub = self.builder.pos();
+            self.advance(source);
+            self.skip_hv(source);
+            self.call(source, false);
+            self.builder.wrap(BranchKind::Typed, sub);
+            self.skip_h(source);
+        }
+        self.atom(source);
+        self.builder.wrap(BranchKind::Fun, start);
         Some(())
     }
 
@@ -355,6 +401,23 @@ impl Parser {
                 _ => self.atom(source),
             };
         }
+    }
+
+    fn typed(&mut self, source: &mut Tokens) -> Option<()> {
+        self.skip_h(source);
+        let start = self.builder.pos();
+        self.call(source, true);
+        self.skip_h(source);
+        loop {
+            if peek(source)? != TokenKind::Colon {
+                break;
+            }
+            self.advance(source);
+            self.skip_hv(source);
+            self.call(source, false);
+            self.builder.wrap(BranchKind::Typed, start);
+        }
+        Some(())
     }
 }
 

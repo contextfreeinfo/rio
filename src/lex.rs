@@ -25,10 +25,12 @@ impl Token {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TokenKind {
+    Colon,
     Comma,
     CurlyClose,
     CurlyOpen,
     Define,
+    Fun,
     HSpace,
     Id,
     RoundClose,
@@ -73,6 +75,7 @@ impl Lexer {
                         self.push(TokenKind::VSpace);
                     }
                     '"' => self.string(&mut source),
+                    ':' => self.trim_push(&mut source, TokenKind::Colon),
                     ',' | ';' => self.trim_push(&mut source, TokenKind::Comma),
                     '{' => self.trim_push(&mut source, TokenKind::CurlyOpen),
                     '}' => self.trim_push(&mut source, TokenKind::CurlyClose),
@@ -136,6 +139,7 @@ impl Lexer {
             let kind = match self.buffer.as_str() {
                 "be" => TokenKind::CurlyOpen,
                 "end" => TokenKind::CurlyClose,
+                "for" => TokenKind::Fun,
                 _ => TokenKind::Id,
             };
             self.push(kind);

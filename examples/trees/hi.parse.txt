@@ -33,11 +33,24 @@ Block
     HSpace " "
     Define "="
     HSpace " "
-    Call
-      Id "for"
-      HSpace " "
-      Id "message"
-      HSpace " "
+    Fun
+      Fun "for"
+      Group
+        RoundOpen "("
+        Typed
+          Id "message"
+          Colon ":"
+          HSpace " "
+          Id "Text"
+        /Typed
+        RoundClose ")"
+      /Group
+      Typed
+        Colon ":"
+        HSpace " "
+        Id "Null"
+        HSpace " "
+      /Typed
       Block
         CurlyOpen "be"
         VSpace "\n"
@@ -57,10 +70,10 @@ Block
         VSpace "\n"
         CurlyClose "end"
       /Block
-    /Call
+    /Fun
   /Def
   VSpace "\n"
 /Block
 
 Node size: 12
-Tree len: 53
+Tree len: 63

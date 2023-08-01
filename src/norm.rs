@@ -33,10 +33,15 @@ impl Normer {
                 self.builder.wrap(kind, start);
             }
             Node::Leaf { token } => match token.kind {
-                TokenKind::CurlyClose
+                TokenKind::Colon
+                | TokenKind::Comma
+                | TokenKind::CurlyClose
                 | TokenKind::CurlyOpen
                 | TokenKind::Define
+                | TokenKind::Fun
                 | TokenKind::HSpace
+                | TokenKind::RoundClose
+                | TokenKind::RoundOpen
                 | TokenKind::VSpace => {}
                 _ => self.builder.push(root),
             },
