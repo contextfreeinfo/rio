@@ -1,29 +1,23 @@
 Block
   Def
     Id "main"
-    Define "="
     Block
-      CurlyOpen "{"
       Def
         Id "message"
-        Define "="
         String "\"Hi!\""
       /Def
       Call
         Id "print-twice"
         Id "message"
       /Call
-      CurlyClose "}"
     /Block
   /Def
   Def
     Id "print-twice"
-    Define "="
     Call
       Id "for"
       Id "message"
       Block
-        CurlyOpen "be"
         Call
           Id "print"
           Id "message"
@@ -32,11 +26,10 @@ Block
           Id "print"
           Id "message"
         /Call
-        CurlyClose "end"
       /Block
     /Call
   /Def
 /Block
 
 Node size: 12
-Tree len: 29
+Tree len: 22
