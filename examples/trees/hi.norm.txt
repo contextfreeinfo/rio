@@ -21,7 +21,9 @@ Block
           Id "Text"
         /Typed
       Typed
+        None ""
         Id "Null"
+      /Typed
       Block
         Call
           Id "print"
@@ -37,4 +39,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 26
+Tree len: 27

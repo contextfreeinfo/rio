@@ -33,6 +33,7 @@ pub enum TokenKind {
     Fun,
     HSpace,
     Id,
+    None,
     RoundClose,
     RoundOpen,
     // TODO String parts and lex mode stack. Is call stack good enough?
