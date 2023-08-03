@@ -12,6 +12,7 @@ use lasso::ThreadedRodeo;
 use lex::Intern;
 use norm::Normer;
 use parse::TreeBuilder;
+use run::Runner;
 
 use crate::{
     lex::Lexer,
@@ -21,6 +22,7 @@ use crate::{
 mod lex;
 mod norm;
 mod parse;
+mod run;
 
 #[derive(clap::Parser)]
 #[command(about, version, long_about = None)]
@@ -62,6 +64,8 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let mut normer = Normer::new(parser.builder, none_key);
     let normed_tree = normer.norm(&parsed_tree);
     dump_tree("norm", args, &normed_tree, interner.as_ref())?;
+    let mut runner = Runner::new(normer.builder);
+    runner.run(&normed_tree);
     Ok(())
 }
 
