@@ -2,7 +2,7 @@ use std::{collections::HashMap, ops::Range};
 
 use crate::{
     lex::{Intern, Token, TokenKind},
-    parse::{BranchKind, Node, TreeBuilder},
+    tree::{BranchKind, Node, TreeBuilder},
 };
 
 pub struct Runner {

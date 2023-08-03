@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crate::{
     lex::{Intern, Token, TokenKind},
-    parse::{BranchKind, Node, TreeBuilder},
+    tree::{BranchKind, Node, TreeBuilder},
 };
 
 pub struct Normer {

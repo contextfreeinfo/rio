@@ -11,18 +11,16 @@ use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
 use lex::Intern;
 use norm::Normer;
-use parse::TreeBuilder;
 use run::Runner;
+use tree::{write_tree, Node, TreeBuilder};
 
-use crate::{
-    lex::Lexer,
-    parse::{write_tree, Node},
-};
+use crate::lex::Lexer;
 
 mod lex;
 mod norm;
 mod parse;
 mod run;
+mod tree;
 
 #[derive(clap::Parser)]
 #[command(about, version, long_about = None)]
