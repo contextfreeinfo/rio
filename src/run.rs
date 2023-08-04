@@ -7,17 +7,69 @@ use crate::{
 
 pub struct Runner {
     pub builder: TreeBuilder,
+    id_num: u32,
 }
 
 impl Runner {
     pub fn new(builder: TreeBuilder) -> Self {
-        Self { builder }
+        Self { builder, id_num: 1 }
     }
 
     pub fn run(&mut self, tree: &[Node]) -> Vec<Node> {
+        let tree = self.convert_ids(tree);
         self.builder.clear();
-        self.resolve_top(tree);
+        self.resolve_top(&tree);
+        self.builder.extract();
+        tree
+    }
+
+    fn convert_ids(&mut self, tree: &[Node]) -> Vec<Node> {
+        self.builder.clear();
+        self.convert_ids_at(tree);
+        self.builder.wrap(BranchKind::Block, 0);
         self.builder.extract()
+    }
+
+    fn convert_ids_at(&mut self, tree: &[Node]) -> Option<()> {
+        match *tree.last()? {
+            Node::Branch { kind, range } => {
+                let start = self.builder.pos();
+                let range: Range<usize> = range.into();
+                for kid_index in range.clone() {
+                    let sub = &tree[..kid_index + 1];
+                    match kind {
+                        BranchKind::Def => {
+                            if kid_index == range.start {
+                                if let Node::Leaf {
+                                    token:
+                                        Token {
+                                            kind: TokenKind::Id,
+                                            intern,
+                                        },
+                                } = sub.last().unwrap()
+                                {
+                                    // Got an id assignment.
+                                    // TODO Normalize fancier assignments before we get here.
+                                    let num = self.id_num;
+                                    self.id_num += 1;
+                                    let intern = intern.clone();
+                                    self.builder.push(Node::Id { intern, num });
+                                    continue;
+                                }
+                            }
+                        }
+                        BranchKind::Fun => {
+                            // TODO Go through first if group and find params.
+                        }
+                        _ => {}
+                    }
+                    self.convert_ids_at(sub);
+                }
+                self.builder.wrap(kind, start);
+            }
+            node @ _ => self.builder.push(node),
+        }
+        Some(())
     }
 
     fn find_id(&mut self, tree: &[Node]) -> Option<Intern> {
@@ -35,13 +87,7 @@ impl Runner {
                 }
                 self.builder.wrap(kind, start);
             }
-            Node::Leaf {
-                token:
-                    Token {
-                        kind: TokenKind::Id,
-                        intern,
-                    },
-            } => return Some(intern),
+            Node::Id { intern, .. } => return Some(intern),
             _ => {}
         }
         None
@@ -49,6 +95,7 @@ impl Runner {
 
     fn resolve_top(&mut self, tree: &[Node]) -> Option<()> {
         let root = *tree.last()?;
+        // TODO Need both num and index in value!
         let mut scope = HashMap::<Intern, usize>::new();
         match root {
             Node::Branch {

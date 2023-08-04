@@ -60,10 +60,11 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let parsed_tree = parser.parse(&tokens);
     dump_tree("parse", args, &parsed_tree, interner.as_ref())?;
     let mut normer = Normer::new(parser.builder, none_key);
-    let normed_tree = normer.norm(&parsed_tree);
-    dump_tree("norm", args, &normed_tree, interner.as_ref())?;
+    let tree = normer.norm(&parsed_tree);
+    dump_tree("norm", args, &tree, interner.as_ref())?;
     let mut runner = Runner::new(normer.builder);
-    runner.run(&normed_tree);
+    let tree = runner.run(&tree);
+    dump_tree("run", args, &tree, interner.as_ref())?;
     Ok(())
 }
 

@@ -15,6 +15,10 @@ pub enum Node {
         kind: BranchKind,
         range: SimpleRange<u32>,
     },
+    Id {
+        intern: Intern,
+        num: u32,
+    },
     Leaf {
         token: Token,
     },
@@ -52,6 +56,7 @@ where
                 writeln!(file, "/{kind:?}")?;
             }
         }
+        Node::Id { intern, num } => writeln!(file, "{}@{num}", &map[intern])?,
         Node::Leaf { token } => writeln!(file, "{:?} {:?}", token.kind, &map[token.intern])?,
     }
     Ok(())
@@ -61,6 +66,9 @@ impl Debug for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Branch { kind, range } => f.write_fmt(format_args!("{kind:?}({range:?})")),
+            Self::Id { intern, num } => {
+                f.write_fmt(format_args!("{:?}@{num}", intern.into_inner()))
+            }
             Self::Leaf { token } => f.write_fmt(format_args!("{token:?}")),
         }
     }
