@@ -44,8 +44,8 @@ pub enum TokenKind {
 #[derive(Default)]
 pub struct Lexer {
     buffer: String,
-    interner: Interner,
-    tokens: Vec<Token>,
+    pub interner: Interner,
+    pub tokens: Vec<Token>,
 }
 
 impl Lexer {
