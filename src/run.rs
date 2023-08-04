@@ -15,19 +15,16 @@ impl Runner {
         Self { builder, id_num: 1 }
     }
 
-    pub fn run(&mut self, tree: &[Node]) -> Vec<Node> {
-        let tree = self.convert_ids(tree);
-        self.builder.clear();
-        self.resolve_top(&tree);
-        self.builder.extract();
-        tree
+    pub fn run(&mut self, tree: &mut Vec<Node>) {
+        self.convert_ids(tree);
+        self.resolve_top(tree);
     }
 
-    fn convert_ids(&mut self, tree: &[Node]) -> Vec<Node> {
+    fn convert_ids(&mut self, tree: &mut Vec<Node>) {
         self.builder.clear();
         self.convert_ids_at(tree);
         self.builder.wrap(BranchKind::Block, 0);
-        self.builder.extract()
+        self.builder.drain_into(tree);
     }
 
     fn convert_ids_at(&mut self, tree: &[Node]) -> Option<()> {
@@ -52,7 +49,7 @@ impl Runner {
                                     // TODO Normalize fancier assignments before we get here.
                                     let num = self.id_num;
                                     self.id_num += 1;
-                                    let intern = intern.clone();
+                                    let intern = *intern;
                                     self.builder.push(Node::Id { intern, num });
                                     continue;
                                 }

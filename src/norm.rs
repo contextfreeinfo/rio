@@ -18,11 +18,11 @@ impl Normer {
         }
     }
 
-    pub fn norm(&mut self, tree: &[Node]) -> Vec<Node> {
+    pub fn norm(&mut self, tree: &mut Vec<Node>) {
         self.builder.clear();
         self.any(&tree, 0);
         self.builder.wrap(BranchKind::Block, 0);
-        self.builder.extract()
+        self.builder.drain_into(tree);
     }
 
     fn any(&mut self, tree: &[Node], index: usize) -> Option<()> {

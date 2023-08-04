@@ -2,7 +2,7 @@ use std::{iter::Peekable, slice::Iter};
 
 use crate::{
     lex::{Token, TokenKind},
-    tree::{BranchKind, Node, TreeBuilder},
+    tree::{BranchKind, TreeBuilder},
 };
 
 macro_rules! loop_some {
@@ -25,12 +25,11 @@ impl Parser {
         Self { builder }
     }
 
-    pub fn parse(&mut self, tokens: &[Token]) -> Vec<Node> {
+    pub fn parse(&mut self, tokens: &[Token]) {
         self.builder.clear();
         let mut source = tokens.iter().peekable();
         self.block_top(&mut source);
         self.builder.wrap(BranchKind::Block, 0);
-        self.builder.extract()
     }
 
     fn advance(&mut self, source: &mut Tokens) {

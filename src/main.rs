@@ -52,19 +52,25 @@ fn main() -> Result<()> {
 fn run_app(args: &RunArgs) -> Result<()> {
     let interner = Arc::new(ThreadedRodeo::default());
     let none_key = interner.get_or_intern("");
+    // Lex
     let mut lexer = Lexer::new(interner.clone());
     let source = read_to_string(args.app.as_str())?;
     let tokens = lexer.lex(source.as_str());
-    let builder = TreeBuilder::default();
-    let mut parser = parse::Parser::new(builder);
-    let parsed_tree = parser.parse(&tokens);
+    // Parse
+    let mut parser = parse::Parser::new(TreeBuilder::default());
+    parser.parse(&tokens);
+    let parsed_tree = parser.builder.nodes.clone();
     dump_tree("parse", args, &parsed_tree, interner.as_ref())?;
+    let mut tree = parsed_tree.clone();
+    // Norm
     let mut normer = Normer::new(parser.builder, none_key);
-    let tree = normer.norm(&parsed_tree);
+    normer.norm(&mut tree);
     dump_tree("norm", args, &tree, interner.as_ref())?;
+    // Run
     let mut runner = Runner::new(normer.builder);
-    let tree = runner.run(&tree);
+    runner.run(&mut tree);
     dump_tree("run", args, &tree, interner.as_ref())?;
+    // Done
     Ok(())
 }
 

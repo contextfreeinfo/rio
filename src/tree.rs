@@ -154,8 +154,9 @@ impl TreeBuilder {
         self.working.clear();
     }
 
-    pub fn extract(&mut self) -> Vec<Node> {
-        self.nodes.clone()
+    pub fn drain_into(&mut self, tree: &mut Vec<Node>) {
+        tree.clone_from(&self.nodes);
+        self.clear();
     }
 
     pub fn pos(&self) -> u32 {
