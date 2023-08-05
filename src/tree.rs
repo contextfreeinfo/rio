@@ -38,28 +38,40 @@ fn write_at<Map>(
     map: &Map,
     index: usize,
     indent: usize,
-) -> Result<()>
+) -> Result<usize>
 where
     Map: Index<Intern, Output = str>,
 {
+    let mut line_count = 0;
     let node = nodes[index];
     write!(file, "{: <1$}", "", indent)?;
     match node {
         Node::Branch { kind, range } => {
             writeln!(file, "{kind:?}")?;
+            line_count += 1;
             let range: Range<usize> = range.into();
+            let mut sub_count = 0;
             for index in range.clone() {
-                write_at(file, nodes, map, index, indent + 2)?;
+                sub_count += write_at(file, nodes, map, index, indent + 2)?;
             }
-            if range.len() > 1 {
+            line_count += sub_count;
+            if sub_count > 1 {
+                // More than one kid might be easier to track with an explicit close.
                 write!(file, "{: <1$}", "", indent)?;
                 writeln!(file, "/{kind:?}")?;
+                line_count += 1;
             }
         }
-        Node::Id { intern, num } => writeln!(file, "{}@{num}", &map[intern])?,
-        Node::Leaf { token } => writeln!(file, "{:?} {:?}", token.kind, &map[token.intern])?,
+        Node::Id { intern, num } => {
+            writeln!(file, "{}@{num}", &map[intern])?;
+            line_count += 1;
+        }
+        Node::Leaf { token } => {
+            writeln!(file, "{:?} {:?}", token.kind, &map[token.intern])?;
+            line_count += 1;
+        }
     }
-    Ok(())
+    Ok(line_count)
 }
 
 impl Debug for Node {
