@@ -1,4 +1,8 @@
 Block
+  Comment "# Can we leave off `for` for 0-ary funs?"
+  VSpace "\n"
+  Comment "# Infer return type when unspecified?"
+  VSpace "\n"
   Def
     Id "main"
     HSpace " "
@@ -28,6 +32,8 @@ Block
   /Def
   VSpace "\n"
   VSpace "\n"
+  Comment "# Allow both be/end and {}?"
+  VSpace "\n"
   Def
     Id "print-twice"
     HSpace " "
@@ -55,10 +61,17 @@ Block
         CurlyOpen "be"
         VSpace "\n"
         HSpace "    "
+        Comment "# Both call forms are allowed, but whitespace matters."
+        VSpace "\n"
+        HSpace "    "
+        Comment "# `print (message)` would be different."
+        VSpace "\n"
+        HSpace "    "
         Call
           Id "print"
-          HSpace " "
+          RoundOpen "("
           Id "message"
+          RoundClose ")"
         /Call
         VSpace "\n"
         HSpace "    "
@@ -76,4 +89,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 63
+Tree len: 76

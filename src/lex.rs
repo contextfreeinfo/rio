@@ -27,6 +27,7 @@ impl Token {
 pub enum TokenKind {
     Colon,
     Comma,
+    Comment,
     CurlyClose,
     CurlyOpen,
     Define,
@@ -75,6 +76,7 @@ impl Lexer {
                         }
                         self.push(TokenKind::VSpace);
                     }
+                    '#' => self.comment(&mut source),
                     '"' => self.string(&mut source),
                     ':' => self.trim_push(&mut source, TokenKind::Colon),
                     ',' | ';' => self.trim_push(&mut source, TokenKind::Comma),
@@ -92,6 +94,18 @@ impl Lexer {
         }
         self.trim(&mut source);
         self.tokens.clone()
+    }
+
+    fn comment(&mut self, source: &mut Peekable<Chars>) {
+        self.trim(source);
+        loop {
+            match source.peek() {
+                Some('\r' | '\n') | None => break,
+                _ => {}
+            }
+            self.next(source);
+        }
+        self.push(TokenKind::Comment);
     }
 
     fn hspace(&mut self, source: &mut Peekable<Chars>) {

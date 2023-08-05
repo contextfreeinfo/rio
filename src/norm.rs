@@ -45,6 +45,7 @@ impl Normer {
                     }
                 }
                 TokenKind::Comma
+                | TokenKind::Comment
                 | TokenKind::CurlyClose
                 | TokenKind::CurlyOpen
                 | TokenKind::Fun
