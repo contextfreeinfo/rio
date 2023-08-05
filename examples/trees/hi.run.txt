@@ -17,7 +17,7 @@ Block
     Fun
       Group
         Typed
-          Id "message"
+          message@4
           Id "Text"
         /Typed
       Typed
