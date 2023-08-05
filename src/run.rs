@@ -132,7 +132,7 @@ impl Runner {
                 }
                 self.builder.wrap(kind, start);
             }
-            Node::Id { intern, .. } => return Some(intern),
+            Node::IdDef { intern, .. } => return Some(intern),
             _ => {}
         }
         None
@@ -141,7 +141,7 @@ impl Runner {
     fn push_id(&mut self, intern: lasso::Spur) {
         let num = self.id_num;
         self.id_num += 1;
-        self.builder.push(Node::Id { intern, num });
+        self.builder.push(Node::IdDef { intern, num });
     }
 
     fn push_id_maybe(&mut self, node: Node) -> bool {

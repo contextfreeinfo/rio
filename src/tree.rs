@@ -15,7 +15,7 @@ pub enum Node {
         kind: BranchKind,
         range: SimpleRange<u32>,
     },
-    Id {
+    IdDef {
         intern: Intern,
         num: u32,
     },
@@ -62,8 +62,8 @@ where
                 line_count += 1;
             }
         }
-        Node::Id { intern, num } => {
-            writeln!(file, "{}@{num}", &map[intern])?;
+        Node::IdDef { intern, num } => {
+            writeln!(file, "IdDef {}@{num}", &map[intern])?;
             line_count += 1;
         }
         Node::Leaf { token } => {
@@ -78,7 +78,7 @@ impl Debug for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Branch { kind, range } => f.write_fmt(format_args!("{kind:?}({range:?})")),
-            Self::Id { intern, num } => {
+            Self::IdDef { intern, num } => {
                 f.write_fmt(format_args!("{:?}@{num}", intern.into_inner()))
             }
             Self::Leaf { token } => f.write_fmt(format_args!("{token:?}")),

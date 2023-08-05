@@ -1,9 +1,9 @@
 Block
   Def
-    main@1
+    IdDef main@1
     Block
       Def
-        message@2
+        IdDef message@2
         String "\"Hi!\""
       /Def
       Call
@@ -13,11 +13,11 @@ Block
     /Block
   /Def
   Def
-    print-twice@3
+    IdDef print-twice@3
     Fun
       Group
         Typed
-          message@4
+          IdDef message@4
           Id "Text"
         /Typed
       /Group

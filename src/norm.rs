@@ -36,7 +36,7 @@ impl Normer {
                 }
                 self.builder.wrap(kind, start);
             }
-            Node::Id { .. } => self.builder.push(root),
+            Node::IdDef { .. } => self.builder.push(root),
             Node::Leaf { token } => match token.kind {
                 TokenKind::Colon | TokenKind::Define => {
                     // Keep binaries in their place.
