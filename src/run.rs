@@ -33,7 +33,6 @@ impl Runner {
                 let start = self.builder.pos();
                 let range: Range<usize> = range.into();
                 for kid_index in range.clone() {
-                    let sub = &tree[..kid_index + 1];
                     match kind {
                         BranchKind::Def => {
                             if kid_index == range.start {
@@ -43,13 +42,12 @@ impl Runner {
                                             kind: TokenKind::Id,
                                             intern,
                                         },
-                                } = sub.last().unwrap()
+                                } = tree[kid_index]
                                 {
                                     // Got an id assignment.
                                     // TODO Normalize fancier assignments before we get here.
                                     let num = self.id_num;
                                     self.id_num += 1;
-                                    let intern = *intern;
                                     self.builder.push(Node::Id { intern, num });
                                     continue;
                                 }
@@ -60,7 +58,7 @@ impl Runner {
                         }
                         _ => {}
                     }
-                    self.convert_ids_at(sub);
+                    self.convert_ids_at(&tree[..kid_index + 1]);
                 }
                 self.builder.wrap(kind, start);
             }
