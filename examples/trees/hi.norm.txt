@@ -3,7 +3,10 @@ Block
     Id "main"
     Block
       Def
-        Id "message"
+        Typed
+          Id "message"
+          Id "Text"
+        /Typed
         String "\"Hi!\""
       /Def
       Call
@@ -23,7 +26,7 @@ Block
       /Params
       Params
         Typed
-          None ""
+          None
           Id "Null"
         /Typed
       /Params
@@ -42,4 +45,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 28
+Tree len: 30

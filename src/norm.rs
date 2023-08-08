@@ -44,8 +44,7 @@ impl Normer {
                 TokenKind::Colon | TokenKind::Define => {
                     // Keep binaries in their place.
                     if index == 0 {
-                        let none = self.cart.none;
-                        self.builder().push(none);
+                        self.builder().push_none();
                     }
                 }
                 TokenKind::Comma

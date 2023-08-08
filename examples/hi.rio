@@ -1,7 +1,7 @@
 # Can we leave off `for` for 0-ary funs?
 # Infer return type when unspecified?
 main = {
-    message = "Hi!"
+    message: Text = "Hi!"
     print-twice message
 }
 

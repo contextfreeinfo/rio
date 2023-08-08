@@ -105,6 +105,7 @@ pub enum BranchKind {
     Def,
     Fun,
     // Group,
+    None,
     Params,
     Typed,
 }
@@ -181,6 +182,10 @@ impl TreeBuilder {
         N: Into<Node>,
     {
         self.working.push(node.into());
+    }
+
+    pub fn push_none(&mut self) {
+        self.wrap(BranchKind::None, self.pos());
     }
 
     pub fn wrap(&mut self, kind: BranchKind, start: u32) {

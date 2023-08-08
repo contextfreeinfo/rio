@@ -51,6 +51,7 @@ fn main() -> Result<()> {
 
 pub struct Cart {
     pub tree_builder: TreeBuilder,
+    // TODO Remove none?
     pub none: Token,
 }
 
@@ -58,6 +59,7 @@ fn run_app(args: &RunArgs) -> Result<()> {
     // Resources
     let interner = Arc::new(ThreadedRodeo::default());
     let none_key = interner.get_or_intern("");
+    // println!("none_key: {:?}", none_key.into_inner());
     let none = Token::new(TokenKind::None, none_key);
     let mut lexer = Lexer::new(interner.clone());
     let mut source = String::new();

@@ -3,7 +3,10 @@ Block
     IdDef main@1
     Block
       Def
-        IdDef message@2
+        Typed
+          Id "message"
+          Id "Text"
+        /Typed
         String "\"Hi!\""
       /Def
       Call
@@ -13,17 +16,17 @@ Block
     /Block
   /Def
   Def
-    IdDef print-twice@3
+    IdDef print-twice@2
     Fun
       Params
         Typed
-          IdDef message@4
+          IdDef message@3
           Id "Text"
         /Typed
       /Params
       Params
         Typed
-          None ""
+          None
           Id "Null"
         /Typed
       /Params
@@ -42,4 +45,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 28
+Tree len: 30

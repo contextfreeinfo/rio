@@ -207,8 +207,7 @@ impl Parser {
                 _ => {
                     // Implied anonymous return var.
                     let typed_start = self.builder().pos();
-                    let none = self.cart.none;
-                    self.builder().push(none);
+                    self.builder().push_none();
                     self.call(source, false);
                     self.builder().wrap(BranchKind::Typed, typed_start);
                 }
