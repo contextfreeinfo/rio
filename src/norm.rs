@@ -33,64 +33,60 @@ impl Normer {
 
     fn define_at(&mut self, tree: &[Node]) -> Option<()> {
         match *tree.last()? {
-            Node::Branch { kind, range } => match kind {
-                BranchKind::Def => {
-                    let start = self.builder().pos();
-                    let range: Range<usize> = range.into();
-                    // We can't parse a Def of range len 0.
-                    let first = tree[range.start];
-                    let range = match first {
-                        Node::Branch {
-                            kind: BranchKind::Typed,
-                            range: first_range,
-                        } => {
-                            // Expand typed in place.
-                            let first_range: Range<usize> = first_range.into();
-                            for kid_index in first_range.clone() {
-                                self.define_at(&tree[..kid_index + 1]);
+            Node::Branch { kind, range } => {
+                let start = self.builder().pos();
+                let range: Range<usize> = range.into();
+                // Maybe handle some kids in custom fashion.
+                let range = match kind {
+                    BranchKind::Def => {
+                        // We can't parse a Def of range len 0.
+                        match tree[range.start] {
+                            Node::Branch {
+                                kind: BranchKind::Typed,
+                                range: first_range,
+                            } => {
+                                // Expand typed in place.
+                                let first_range: Range<usize> = first_range.into();
+                                for kid_index in first_range.clone() {
+                                    self.define_at(&tree[..kid_index + 1]);
+                                }
+                                range.start + 1..range.end
                             }
-                            range.start + 1..range.end
+                            Node::Leaf {
+                                token:
+                                    token @ Token {
+                                        kind: TokenKind::Id,
+                                        ..
+                                    },
+                            } => {
+                                self.builder().push(token);
+                                // Untyped, so push empty type after id.
+                                self.builder().push_none();
+                                range.start + 1..range.end
+                            }
+                            _ => range,
                         }
-                        Node::Leaf {
-                            token:
-                                token @ Token {
-                                    kind: TokenKind::Id,
-                                    ..
-                                },
-                        } => {
-                            self.builder().push(token);
-                            // Untyped, so push empty type after id.
-                            self.builder().push_none();
-                            range.start + 1..range.end
-                        }
-                        _ => range,
-                    };
-                    for kid_index in range.clone() {
-                        self.define_at(&tree[..kid_index + 1]);
                     }
-                    self.builder().wrap(kind, start);
+                    _ => range,
+                };
+                // Loop remaining kids.
+                for kid_index in range.clone() {
+                    // TODO If we're a params, turn kid Ids to Defs.
+                    self.define_at(&tree[..kid_index + 1]);
                 }
-                BranchKind::Typed => {
-                    // This typed wasn't the lead of a def, or we'd have handled it in that branch.
-                    // So make a def out of it.
-                    let start = self.builder().pos();
-                    let range: Range<usize> = range.into();
-                    for kid_index in range.clone() {
-                        self.define_at(&tree[..kid_index + 1]);
+                // Finalize.
+                let kind = match kind {
+                    BranchKind::Typed => {
+                        // This typed wasn't the lead of a def, or we'd have handled it in that branch.
+                        // No value, so push empty value after type.
+                        self.builder().push_none();
+                        // And make a def out of it.
+                        BranchKind::Def
                     }
-                    // No value, so push empty value after type.
-                    self.builder().push_none();
-                    self.builder().wrap(BranchKind::Def, start);
-                }
-                _ => {
-                    let start = self.builder().pos();
-                    let range: Range<usize> = range.into();
-                    for kid_index in range.clone() {
-                        self.define_at(&tree[..kid_index + 1]);
-                    }
-                    self.builder().wrap(kind, start);
-                }
-            },
+                    _ => kind,
+                };
+                self.builder().wrap(kind, start);
+            }
             node @ _ => self.builder().push(node),
         }
         Some(())
