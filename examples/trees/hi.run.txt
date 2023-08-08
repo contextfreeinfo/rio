@@ -19,16 +19,18 @@ Block
     None
     Fun
       Params
-        Typed
+        Def
           IdDef message@4
           Id "Text"
-        /Typed
+          None
+        /Def
       /Params
       Params
-        Typed
+        Def
           None
           Id "Null"
-        /Typed
+          None
+        /Def
       /Params
       Block
         Call
@@ -45,4 +47,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 31
+Tree len: 33

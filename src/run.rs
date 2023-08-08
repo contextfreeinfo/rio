@@ -46,77 +46,12 @@ impl Runner {
                                 }
                             }
                         }
-                        BranchKind::Fun => {
-                            if kid_index == range.start {
-                                self.convert_params_ids(&tree[..kid_index + 1]);
-                                continue;
-                            }
-                        }
                         _ => {}
                     }
                     self.convert_ids_at(&tree[..kid_index + 1]);
                 }
                 self.builder().wrap(kind, start);
             }
-            node @ _ => self.builder().push(node),
-        }
-        Some(())
-    }
-
-    fn convert_param_ids(&mut self, tree: &[Node]) -> Option<()> {
-        match *tree.last()? {
-            // Expect param, typed or not. TODO Always enforce typed before here?
-            Node::Branch {
-                kind: BranchKind::Typed,
-                range,
-            } => {
-                let start = self.builder().pos();
-                let range: Range<usize> = range.into();
-                // Loop params.
-                for kid_index in range.clone() {
-                    let kid = tree[kid_index];
-                    if kid_index == range.start {
-                        if kid_index == range.start {
-                            if self.push_id_maybe(tree[kid_index]) {
-                                continue;
-                            }
-                        }
-                    }
-                    self.builder().push(kid);
-                }
-                self.builder().wrap(BranchKind::Typed, start);
-            }
-            node @ _ => self.builder().push(node),
-        }
-        Some(())
-    }
-
-    fn convert_params_ids(&mut self, tree: &[Node]) -> Option<()> {
-        match *tree.last()? {
-            // Expect param group. TODO Macros?
-            Node::Branch {
-                kind: BranchKind::Params,
-                range,
-            } => {
-                let start = self.builder().pos();
-                let range: Range<usize> = range.into();
-                // Loop params.
-                for kid_index in range.clone() {
-                    match tree[kid_index] {
-                        Node::Branch { .. } => {
-                            self.convert_param_ids(&tree[..kid_index + 1]);
-                        }
-                        node @ _ => {
-                            // Maybe Lonely id.
-                            if !self.push_id_maybe(node) {
-                                self.builder().push(node)
-                            }
-                        }
-                    }
-                }
-                self.builder().wrap(BranchKind::Params, start);
-            }
-            // TODO Report error. Store error?
             node @ _ => self.builder().push(node),
         }
         Some(())

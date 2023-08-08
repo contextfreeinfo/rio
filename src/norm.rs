@@ -70,9 +70,19 @@ impl Normer {
                     }
                     self.builder().wrap(kind, start);
                 }
+                BranchKind::Typed => {
+                    // This typed wasn't the lead of a def, or we'd have handled it in that branch.
+                    // So make a def out of it.
+                    let start = self.builder().pos();
+                    let range: Range<usize> = range.into();
+                    for kid_index in range.clone() {
+                        self.define_at(&tree[..kid_index + 1]);
+                    }
+                    // No value, so push empty value after type.
+                    self.builder().push_none();
+                    self.builder().wrap(BranchKind::Def, start);
+                }
                 _ => {
-                    // TODO Change Typed to Def with separate type?
-                    // TODO Change all Def to triples? Quads? Kids with meta lists?
                     let start = self.builder().pos();
                     let range: Range<usize> = range.into();
                     for kid_index in range.clone() {
