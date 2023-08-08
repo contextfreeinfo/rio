@@ -3,6 +3,7 @@ use std::{iter::Peekable, slice::Iter};
 use crate::{
     lex::{Token, TokenKind},
     tree::{BranchKind, TreeBuilder},
+    Cart,
 };
 
 macro_rules! loop_some {
@@ -15,27 +16,30 @@ macro_rules! loop_some {
 
 type Tokens<'a> = Peekable<Iter<'a, Token>>;
 
-#[derive(Default)]
 pub struct Parser {
-    pub builder: TreeBuilder,
+    pub cart: Cart,
 }
 
 impl Parser {
-    pub fn new(builder: TreeBuilder) -> Self {
-        Self { builder }
+    pub fn new(cart: Cart) -> Self {
+        Self { cart }
     }
 
     pub fn parse(&mut self, tokens: &[Token]) {
-        self.builder.clear();
+        self.builder().clear();
         let mut source = tokens.iter().peekable();
         self.block_top(&mut source);
-        self.builder.wrap(BranchKind::Block, 0);
+        self.builder().wrap(BranchKind::Block, 0);
+    }
+
+    fn builder(&mut self) -> &mut TreeBuilder {
+        &mut self.cart.tree_builder
     }
 
     fn advance(&mut self, source: &mut Tokens) {
         let next = source.next();
         if let Some(token) = next {
-            self.builder.push(token);
+            self.builder().push(token);
         }
     }
 
@@ -53,7 +57,7 @@ impl Parser {
     }
 
     fn block(&mut self, source: &mut Tokens) -> Option<()> {
-        let start = self.builder.pos();
+        let start = self.builder().pos();
         let ender = match peek(source)? {
             TokenKind::CurlyOpen => TokenKind::CurlyClose,
             TokenKind::RoundOpen => TokenKind::RoundClose,
@@ -68,8 +72,8 @@ impl Parser {
                 None?
             }
         });
-        if self.builder.pos() > start {
-            self.builder.wrap(BranchKind::Block, start);
+        if self.builder().pos() > start {
+            self.builder().wrap(BranchKind::Block, start);
         }
         Some(())
     }
@@ -89,21 +93,21 @@ impl Parser {
     }
 
     fn block_top(&mut self, source: &mut Tokens) {
-        let start = self.builder.pos();
+        let start = self.builder().pos();
         loop_some!({
             self.block_content(source)?;
         });
-        if self.builder.pos() > start {
-            self.builder.wrap(BranchKind::Block, start);
+        if self.builder().pos() > start {
+            self.builder().wrap(BranchKind::Block, start);
         }
     }
 
     fn call(&mut self, source: &mut Tokens, allow_block: bool) -> Option<()> {
         self.skip_h(source);
-        let start = self.builder.pos();
+        let start = self.builder().pos();
         self.atom(source);
         loop {
-            let mut post = self.builder.pos();
+            let mut post = self.builder().pos();
             if post > start {
                 // TODO Can we leaving trailing hspace, or do we need to have an indicator?
                 match peek(source)? {
@@ -112,7 +116,7 @@ impl Parser {
                         if !allow_block && peek(source)? == TokenKind::CurlyOpen {
                             break;
                         }
-                        post = self.builder.pos();
+                        post = self.builder().pos();
                         self.spaced(source);
                     }
                     TokenKind::RoundOpen => {
@@ -133,8 +137,8 @@ impl Parser {
                     }
                     _ => break,
                 }
-                if self.builder.pos() > post {
-                    self.builder.wrap(BranchKind::Call, start);
+                if self.builder().pos() > post {
+                    self.builder().wrap(BranchKind::Call, start);
                 }
             }
         }
@@ -143,16 +147,16 @@ impl Parser {
 
     fn def(&mut self, source: &mut Tokens) -> Option<()> {
         self.skip_h(source);
-        let start = self.builder.pos();
+        let start = self.builder().pos();
         self.typed(source);
-        if self.builder.pos() > start {
+        if self.builder().pos() > start {
             self.skip_h(source);
             if peek(source)? == TokenKind::Define {
                 self.advance(source);
                 self.skip_hv(source);
                 // Right-side descent.
                 self.def(source);
-                self.builder.wrap(BranchKind::Def, start);
+                self.builder().wrap(BranchKind::Def, start);
                 self.skip_hv(source)?;
             }
         }
@@ -160,18 +164,20 @@ impl Parser {
     }
 
     fn fun(&mut self, source: &mut Tokens) -> Option<()> {
-        let start = self.builder.pos();
+        let start = self.builder().pos();
         self.advance(source);
         self.skip_h(source);
-        let args_start = self.builder.pos();
+        // TODO Type params
+        // In params
+        let in_params_start = self.builder().pos();
         match peek(source)? {
             TokenKind::Id => {
                 self.advance(source);
                 self.skip_h(source);
             }
             TokenKind::RoundOpen => {
-                // TODO Expand paren-comma args.
                 self.advance(source);
+                // TODO Call it Params.
                 self.block_content(source);
                 if peek(source)? == TokenKind::RoundClose {
                     self.advance(source);
@@ -179,18 +185,40 @@ impl Parser {
             }
             _ => return Some(()),
         }
-        self.builder.wrap(BranchKind::Group, args_start);
+        self.builder().wrap(BranchKind::Params, in_params_start);
         self.skip_h(source);
-        if peek(source)? == TokenKind::Colon {
-            let sub = self.builder.pos();
+        // Out params
+        let has_out = peek(source)? == TokenKind::Colon;
+        if has_out {
             self.advance(source);
             self.skip_hv(source);
-            self.call(source, false);
-            self.builder.wrap(BranchKind::Typed, sub);
-            self.skip_h(source);
         }
+        let out_params_start = self.builder().pos();
+        if has_out {
+            match peek(source)? {
+                TokenKind::RoundOpen => {
+                    // Explicit return vars.
+                    self.advance(source);
+                    self.block_content(source);
+                    if peek(source)? == TokenKind::RoundClose {
+                        self.advance(source);
+                    }
+                }
+                _ => {
+                    // Implied anonymous return var.
+                    let typed_start = self.builder().pos();
+                    let none = self.cart.none;
+                    self.builder().push(none);
+                    self.call(source, false);
+                    self.builder().wrap(BranchKind::Typed, typed_start);
+                }
+            }
+        }
+        self.builder().wrap(BranchKind::Params, out_params_start);
+        self.skip_h(source);
+        // Body
         self.atom(source);
-        self.builder.wrap(BranchKind::Fun, start);
+        self.builder().wrap(BranchKind::Fun, start);
         Some(())
     }
 
@@ -202,7 +230,7 @@ impl Parser {
             let token = peek_token(source)?;
             if skipping(token.kind) {
                 source.next();
-                self.builder.push(token);
+                self.builder().push(token);
             } else {
                 break;
             }
@@ -236,7 +264,7 @@ impl Parser {
 
     fn typed(&mut self, source: &mut Tokens) -> Option<()> {
         self.skip_h(source);
-        let start = self.builder.pos();
+        let start = self.builder().pos();
         self.call(source, true);
         self.skip_h(source);
         loop {
@@ -246,7 +274,7 @@ impl Parser {
             self.advance(source);
             self.skip_hv(source);
             self.call(source, false);
-            self.builder.wrap(BranchKind::Typed, start);
+            self.builder().wrap(BranchKind::Typed, start);
         }
         Some(())
     }

@@ -104,7 +104,8 @@ pub enum BranchKind {
     Call,
     Def,
     Fun,
-    Group,
+    // Group,
+    Params,
     Typed,
 }
 

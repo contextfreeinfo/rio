@@ -9,7 +9,7 @@ use std::{
 use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
-use lex::Intern;
+use lex::{Intern, Token, TokenKind};
 use norm::Normer;
 use run::Runner;
 use tree::{write_tree, Node, TreeBuilder};
@@ -49,13 +49,20 @@ fn main() -> Result<()> {
     }
 }
 
+pub struct Cart {
+    pub tree_builder: TreeBuilder,
+    pub none: Token,
+}
+
 fn run_app(args: &RunArgs) -> Result<()> {
     // Resources
     let interner = Arc::new(ThreadedRodeo::default());
     let none_key = interner.get_or_intern("");
+    let none = Token::new(TokenKind::None, none_key);
     let mut lexer = Lexer::new(interner.clone());
     let mut source = String::new();
     let tree_builder = TreeBuilder::default();
+    let cart = Cart { tree_builder, none };
     // Input
     let mut file = File::open(args.app.as_str())?;
     file.read_to_string(&mut source)?;
@@ -66,17 +73,17 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let mut parsed_tree = Vec::<Node>::new();
     let mut tree = Vec::<Node>::new();
     // Parse
-    let mut parser = parse::Parser::new(tree_builder);
+    let mut parser = parse::Parser::new(cart);
     parser.parse(&lexer.tokens);
-    parsed_tree.clone_from(&parser.builder.nodes);
+    parsed_tree.clone_from(&parser.cart.tree_builder.nodes);
     dump_tree("parse", args, &parsed_tree, lexer.interner.as_ref())?;
     tree.clone_from(&parsed_tree);
     // Norm
-    let mut normer = Normer::new(parser.builder, none_key);
+    let mut normer = Normer::new(parser.cart);
     normer.norm(&mut tree);
     dump_tree("norm", args, &tree, lexer.interner.as_ref())?;
     // Run
-    let mut runner = Runner::new(normer.builder);
+    let mut runner = Runner::new(normer.cart);
     runner.run(&mut tree);
     dump_tree("run", args, &tree, lexer.interner.as_ref())?;
     // Done

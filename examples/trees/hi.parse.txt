@@ -41,7 +41,7 @@ Block
     HSpace " "
     Fun
       Fun "for"
-      Group
+      Params
         RoundOpen "("
         Typed
           Id "message"
@@ -50,13 +50,16 @@ Block
           Id "Text"
         /Typed
         RoundClose ")"
-      /Group
-      Typed
-        Colon ":"
-        HSpace " "
-        Id "Null"
-        HSpace " "
-      /Typed
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None ""
+          Id "Null"
+          HSpace " "
+        /Typed
+      /Params
       Block
         CurlyOpen "be"
         VSpace "\n"
@@ -89,4 +92,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 76
+Tree len: 78

@@ -15,16 +15,18 @@ Block
   Def
     Id "print-twice"
     Fun
-      Group
+      Params
         Typed
           Id "message"
           Id "Text"
         /Typed
-      /Group
-      Typed
-        None ""
-        Id "Null"
-      /Typed
+      /Params
+      Params
+        Typed
+          None ""
+          Id "Null"
+        /Typed
+      /Params
       Block
         Call
           Id "print"
@@ -40,4 +42,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 27
+Tree len: 28

@@ -3,16 +3,17 @@ use std::{collections::HashMap, ops::Range};
 use crate::{
     lex::{Intern, Token, TokenKind},
     tree::{BranchKind, Node, TreeBuilder},
+    Cart,
 };
 
 pub struct Runner {
-    pub builder: TreeBuilder,
+    pub cart: Cart,
     id_num: u32,
 }
 
 impl Runner {
-    pub fn new(builder: TreeBuilder) -> Self {
-        Self { builder, id_num: 1 }
+    pub fn new(cart: Cart) -> Self {
+        Self { cart, id_num: 1 }
     }
 
     pub fn run(&mut self, tree: &mut Vec<Node>) {
@@ -20,17 +21,21 @@ impl Runner {
         self.resolve_top(tree);
     }
 
+    fn builder(&mut self) -> &mut TreeBuilder {
+        &mut self.cart.tree_builder
+    }
+
     fn convert_ids(&mut self, tree: &mut Vec<Node>) {
-        self.builder.clear();
+        self.builder().clear();
         self.convert_ids_at(tree);
-        self.builder.wrap(BranchKind::Block, 0);
-        self.builder.drain_into(tree);
+        self.builder().wrap(BranchKind::Block, 0);
+        self.builder().drain_into(tree);
     }
 
     fn convert_ids_at(&mut self, tree: &[Node]) -> Option<()> {
         match *tree.last()? {
             Node::Branch { kind, range } => {
-                let start = self.builder.pos();
+                let start = self.builder().pos();
                 let range: Range<usize> = range.into();
                 for kid_index in range.clone() {
                     match kind {
@@ -51,9 +56,9 @@ impl Runner {
                     }
                     self.convert_ids_at(&tree[..kid_index + 1]);
                 }
-                self.builder.wrap(kind, start);
+                self.builder().wrap(kind, start);
             }
-            node @ _ => self.builder.push(node),
+            node @ _ => self.builder().push(node),
         }
         Some(())
     }
@@ -65,7 +70,7 @@ impl Runner {
                 kind: BranchKind::Typed,
                 range,
             } => {
-                let start = self.builder.pos();
+                let start = self.builder().pos();
                 let range: Range<usize> = range.into();
                 // Loop params.
                 for kid_index in range.clone() {
@@ -77,11 +82,11 @@ impl Runner {
                             }
                         }
                     }
-                    self.builder.push(kid);
+                    self.builder().push(kid);
                 }
-                self.builder.wrap(BranchKind::Typed, start);
+                self.builder().wrap(BranchKind::Typed, start);
             }
-            node @ _ => self.builder.push(node),
+            node @ _ => self.builder().push(node),
         }
         Some(())
     }
@@ -90,10 +95,10 @@ impl Runner {
         match *tree.last()? {
             // Expect param group. TODO Macros?
             Node::Branch {
-                kind: BranchKind::Group,
+                kind: BranchKind::Params,
                 range,
             } => {
-                let start = self.builder.pos();
+                let start = self.builder().pos();
                 let range: Range<usize> = range.into();
                 // Loop params.
                 for kid_index in range.clone() {
@@ -104,15 +109,15 @@ impl Runner {
                         node @ _ => {
                             // Maybe Lonely id.
                             if !self.push_id_maybe(node) {
-                                self.builder.push(node)
+                                self.builder().push(node)
                             }
                         }
                     }
                 }
-                self.builder.wrap(BranchKind::Group, start);
+                self.builder().wrap(BranchKind::Params, start);
             }
             // TODO Report error. Store error?
-            node @ _ => self.builder.push(node),
+            node @ _ => self.builder().push(node),
         }
         Some(())
     }
@@ -121,7 +126,7 @@ impl Runner {
         let root = *tree.last()?;
         match root {
             Node::Branch { kind, range } => {
-                let start = self.builder.pos();
+                let start = self.builder().pos();
                 let range: Range<usize> = range.into();
                 for kid_index in range.clone() {
                     match self.find_id(&tree[..kid_index + 1]) {
@@ -130,7 +135,7 @@ impl Runner {
                     }
                     // self.any(&tree[..kid_index + 1], kid_index - range.start);
                 }
-                self.builder.wrap(kind, start);
+                self.builder().wrap(kind, start);
             }
             Node::IdDef { intern, .. } => return Some(intern),
             _ => {}
@@ -141,7 +146,7 @@ impl Runner {
     fn push_id(&mut self, intern: lasso::Spur) {
         let num = self.id_num;
         self.id_num += 1;
-        self.builder.push(Node::IdDef { intern, num });
+        self.builder().push(Node::IdDef { intern, num });
     }
 
     fn push_id_maybe(&mut self, node: Node) -> bool {
@@ -169,7 +174,7 @@ impl Runner {
                 kind: BranchKind::Block,
                 range,
             } => {
-                let start = self.builder.pos();
+                let start = self.builder().pos();
                 let range: Range<usize> = range.into();
                 for kid_index in range.clone() {
                     let kid = tree[kid_index];
@@ -184,7 +189,7 @@ impl Runner {
                     }
                     // self.any(&tree[..kid_index + 1], kid_index - range.start);
                 }
-                self.builder.wrap(BranchKind::Block, start);
+                self.builder().wrap(BranchKind::Block, start);
             }
             _ => panic!(),
         }
