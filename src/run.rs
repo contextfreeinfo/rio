@@ -18,7 +18,7 @@ impl Runner {
 
     pub fn run(&mut self, tree: &mut Vec<Node>) {
         self.convert_ids(tree);
-        self.resolve_top(tree);
+        self.extract_top(tree);
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {
@@ -57,27 +57,6 @@ impl Runner {
         Some(())
     }
 
-    fn find_id(&mut self, tree: &[Node]) -> Option<Intern> {
-        let root = *tree.last()?;
-        match root {
-            Node::Branch { kind, range } => {
-                let start = self.builder().pos();
-                let range: Range<usize> = range.into();
-                for kid_index in range.clone() {
-                    match self.find_id(&tree[..kid_index + 1]) {
-                        result @ Some(..) => return result,
-                        _ => {}
-                    }
-                    // self.any(&tree[..kid_index + 1], kid_index - range.start);
-                }
-                self.builder().wrap(kind, start);
-            }
-            Node::IdDef { intern, .. } => return Some(intern),
-            _ => {}
-        }
-        None
-    }
-
     fn push_id(&mut self, intern: lasso::Spur) {
         let num = self.id_num;
         self.id_num += 1;
@@ -100,9 +79,8 @@ impl Runner {
         }
     }
 
-    fn resolve_top(&mut self, tree: &[Node]) -> Option<()> {
+    fn extract_top(&mut self, tree: &[Node]) -> Option<()> {
         let root = *tree.last()?;
-        // TODO Need both num and index in value!
         let mut scope = HashMap::<Intern, usize>::new();
         match root {
             Node::Branch {
@@ -115,14 +93,13 @@ impl Runner {
                     let kid = tree[kid_index];
                     if let Node::Branch {
                         kind: BranchKind::Def,
-                        ..
+                        range: kid_range,
                     } = kid
                     {
-                        if let Some(id) = self.find_id(&tree[..kid_index + 1]) {
-                            scope.insert(id, kid_index);
+                        if let Node::IdDef { intern, .. } = tree[kid_range.start as usize] {
+                            scope.insert(intern, kid_index);
                         }
                     }
-                    // self.any(&tree[..kid_index + 1], kid_index - range.start);
                 }
                 self.builder().wrap(BranchKind::Block, start);
             }
