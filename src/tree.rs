@@ -9,7 +9,7 @@ use anyhow::Result;
 
 use crate::lex::{Intern, Token};
 
-#[derive(Clone, Copy, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Source(u32);
 
 impl Into<Source> for usize {
@@ -200,15 +200,29 @@ where
 #[derive(Default)]
 pub struct TreeBuilder {
     pub nodes: Vec<Node>,
+    // Source separate from node so we don't throw off alignment and waste ram.
     pub sources: Vec<Source>,
+    source_map: Vec<Source>,
     working: Vec<Node>,
     working_sources: Vec<Source>,
 }
 
 impl TreeBuilder {
     pub fn clear(&mut self) {
+        if self.sources.is_empty() {
+            if self.source_map.is_empty() {
+                // Fill initial.
+                self.source_map
+                    .extend((0..self.nodes.len()).map(|it| Source(it as u32)))
+            }
+        } else {
+            // Pass along the original sources across the rounds.
+            self.source_map.clear();
+            self.source_map.extend(self.sources.drain(..));
+        }
+        // println!("Sources: {:?}", self.source_map);
+        // Others can just be cleared.
         self.nodes.clear();
-        self.sources.clear();
         self.working.clear();
         self.working_sources.clear();
     }
@@ -228,7 +242,7 @@ impl TreeBuilder {
         S: Into<Source>,
     {
         self.working.push(node.into());
-        self.working_sources.push(source.into());
+        self.push_source(source.into());
     }
 
     pub fn push_none<S>(&mut self, source: S)
@@ -245,12 +259,22 @@ impl TreeBuilder {
         let start = start as usize;
         let nodes_start = self.nodes.len();
         self.nodes.extend(self.working.drain(start..));
-        self.sources.extend(self.working_sources.drain(start..));
+        if !self.working_sources.is_empty() {
+            self.sources.extend(self.working_sources.drain(start..));
+        }
         self.working.push(Node::Branch {
             kind,
             range: (nodes_start..self.nodes.len()).into(),
             typ,
         });
-        self.working_sources.push(source.into());
+        self.push_source(source.into());
+    }
+
+    fn push_source(&mut self, source: Source) {
+        if self.source_map.len() > source.0 as usize {
+            // Pass along from earlier rounds.
+            let source = self.source_map[source.0 as usize];
+            self.working_sources.push(source);
+        }
     }
 }

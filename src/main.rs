@@ -80,14 +80,17 @@ fn run_app(args: &RunArgs) -> Result<()> {
     parsed_tree.clone_from(&parser.cart.tree_builder.nodes);
     dump_tree("parse", args, &parsed_tree, lexer.interner.as_ref())?;
     tree.clone_from(&parsed_tree);
+    let cart = parser.cart;
     // Norm
-    let mut normer = Normer::new(parser.cart);
+    let mut normer = Normer::new(cart);
     normer.norm(&mut tree);
     dump_tree("norm", args, &tree, lexer.interner.as_ref())?;
+    let cart = normer.cart;
     // Run
-    let mut runner = Runner::new(normer.cart);
+    let mut runner = Runner::new(cart);
     runner.run(&mut tree);
     dump_tree("run", args, &tree, lexer.interner.as_ref())?;
+    // let cart = runner.cart;
     // Done
     Ok(())
 }

@@ -1,3 +1,6 @@
+# profile=debug
+# cargo build && \
+profile=release
 cargo build --release && \
-ls -lh target/release/rio && \
-/usr/bin/time -v target/release/rio run examples/hi.rio --dump examples/trees
+ls -lh target/$profile/rio && \
+RUST_BACKTRACE=1 /usr/bin/time -v target/$profile/rio run examples/hi.rio --dump examples/trees
