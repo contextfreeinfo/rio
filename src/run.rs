@@ -8,17 +8,24 @@ use crate::{
 
 pub struct Runner {
     pub cart: Cart,
-    id_num: u32,
+    id_defs: Vec<u32>,
+    tops: HashMap<Intern, u32>,
 }
 
 impl Runner {
     pub fn new(cart: Cart) -> Self {
-        Self { cart, id_num: 1 }
+        Self {
+            cart,
+            id_defs: vec![0],
+            tops: HashMap::new(),
+        }
     }
 
     pub fn run(&mut self, tree: &mut Vec<Node>) {
         self.convert_ids(tree);
         self.extract_top(tree);
+        println!("Defs: {:?}", self.id_defs);
+        println!("Tops: {:?}", self.tops);
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {
@@ -26,6 +33,7 @@ impl Runner {
     }
 
     fn convert_ids(&mut self, tree: &mut Vec<Node>) {
+        self.id_defs.fill(0);
         self.builder().clear();
         self.convert_ids_at(tree);
         self.builder().wrap(BranchKind::Block, 0);
@@ -41,7 +49,7 @@ impl Runner {
                     match kind {
                         BranchKind::Def => {
                             if kid_index == range.start {
-                                if self.push_id_maybe(tree[kid_index]) {
+                                if self.push_id_maybe(tree[kid_index], tree.len() as u32 - 1) {
                                     continue;
                                 }
                             }
@@ -52,18 +60,23 @@ impl Runner {
                 }
                 self.builder().wrap(kind, start);
             }
-            node @ _ => self.builder().push(node),
+            node @ _ => {
+                if let Node::IdDef { num, .. } = node {
+                    self.id_defs[num as usize] = tree.len() as u32 - 1;
+                }
+                self.builder().push(node);
+            }
         }
         Some(())
     }
 
-    fn push_id(&mut self, intern: lasso::Spur) {
-        let num = self.id_num;
-        self.id_num += 1;
+    fn push_id(&mut self, intern: lasso::Spur, index: u32) {
+        let num = self.id_defs.len() as u32;
+        self.id_defs.push(index);
         self.builder().push(Node::IdDef { intern, num });
     }
 
-    fn push_id_maybe(&mut self, node: Node) -> bool {
+    fn push_id_maybe(&mut self, node: Node, index: u32) -> bool {
         match node {
             Node::Leaf {
                 token:
@@ -72,7 +85,7 @@ impl Runner {
                         intern,
                     },
             } => {
-                self.push_id(intern);
+                self.push_id(intern, index);
                 true
             }
             _ => false,
@@ -81,7 +94,7 @@ impl Runner {
 
     fn extract_top(&mut self, tree: &[Node]) -> Option<()> {
         let root = *tree.last()?;
-        let mut scope = HashMap::<Intern, usize>::new();
+        self.tops.clear();
         match root {
             Node::Branch {
                 kind: BranchKind::Block,
@@ -96,8 +109,8 @@ impl Runner {
                         range: kid_range,
                     } = kid
                     {
-                        if let Node::IdDef { intern, .. } = tree[kid_range.start as usize] {
-                            scope.insert(intern, kid_index);
+                        if let Node::IdDef { intern, num } = tree[kid_range.start as usize] {
+                            self.tops.insert(intern, num);
                         }
                     }
                 }
@@ -105,7 +118,6 @@ impl Runner {
             }
             _ => panic!(),
         }
-        println!("Scope: {:?}", scope);
         Some(())
     }
 }
