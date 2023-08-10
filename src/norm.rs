@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crate::{
     lex::{Token, TokenKind},
-    tree::{BranchKind, Node, TreeBuilder, Type},
+    tree::{BranchKind, Node, TreeBuilder, Type, Nod},
     Cart,
 };
 
@@ -33,16 +33,17 @@ impl Normer {
     }
 
     fn define_at(&mut self, tree: &[Node]) -> Option<()> {
-        match *tree.last()? {
-            Node::Branch { kind, range, .. } => {
+        let node = *tree.last()?;
+        match node.nod {
+            Nod::Branch { kind, range, .. } => {
                 let start = self.builder().pos();
                 let range: Range<usize> = range.into();
                 // Maybe handle some kids in custom fashion.
                 let range = match kind {
                     BranchKind::Def => {
                         // We can't parse a Def of range len 0.
-                        match tree[range.start] {
-                            Node::Branch {
+                        match tree[range.start].nod {
+                            Nod::Branch {
                                 kind: BranchKind::Typed,
                                 range: first_range,
                                 ..
@@ -54,7 +55,7 @@ impl Normer {
                                 }
                                 range.start + 1..range.end
                             }
-                            Node::Leaf {
+                            Nod::Leaf {
                                 token:
                                     token @ Token {
                                         kind: TokenKind::Id,
@@ -62,7 +63,7 @@ impl Normer {
                                     },
                                 ..
                             } => {
-                                self.builder().push(token, range.start);
+                                self.builder().push_at(token, range.start);
                                 // Untyped, so push empty type after id.
                                 self.builder().push_none(range.start);
                                 range.start + 1..range.end
@@ -91,7 +92,7 @@ impl Normer {
                 self.builder()
                     .wrap(kind, start, Type::default(), tree.len() - 1);
             }
-            node @ _ => self.builder().push(node, tree.len() - 1),
+            _ => self.builder().push_at(node, tree.len() - 1),
         }
         Some(())
     }
@@ -106,8 +107,8 @@ impl Normer {
 
     fn trim_at(&mut self, tree: &[Node], index: usize) -> Option<()> {
         let root = *tree.last()?;
-        match root {
-            Node::Branch { kind, range, .. } => {
+        match root.nod {
+            Nod::Branch { kind, range, .. } => {
                 // TODO Change Typed to Def with separate type?
                 // TODO Change all Def to triples? Quads? Kids with meta lists?
                 let start = self.builder().pos();
@@ -118,8 +119,8 @@ impl Normer {
                 self.builder()
                     .wrap(kind, start, Type::default(), tree.len() - 1);
             }
-            Node::IdDef { .. } => self.builder().push(root, tree.len() - 1),
-            Node::Leaf { token, .. } => match token.kind {
+            Nod::IdDef { .. } => self.builder().push_at(root, tree.len() - 1),
+            Nod::Leaf { token, .. } => match token.kind {
                 TokenKind::Colon | TokenKind::Define => {
                     // Keep binaries in their place.
                     if index == 0 {
@@ -135,7 +136,7 @@ impl Normer {
                 | TokenKind::RoundClose
                 | TokenKind::RoundOpen
                 | TokenKind::VSpace => {}
-                _ => self.builder().push(root, tree.len() - 1),
+                _ => self.builder().push_at(root, tree.len() - 1),
             },
             _ => todo!(),
         }

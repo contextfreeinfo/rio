@@ -2,7 +2,7 @@ use std::{collections::HashMap, ops::Range};
 
 use crate::{
     lex::{Intern, Token, TokenKind},
-    tree::{BranchKind, Node, TreeBuilder, Type},
+    tree::{BranchKind, Nod, Node, TreeBuilder, Type},
     Cart,
 };
 
@@ -42,8 +42,9 @@ impl Runner {
     }
 
     fn convert_ids_at(&mut self, tree: &[Node]) -> Option<()> {
-        match *tree.last()? {
-            Node::Branch { kind, range, typ } => {
+        let node = *tree.last()?;
+        match node.nod {
+            Nod::Branch { kind, range, .. } => {
                 let start = self.builder().pos();
                 let range: Range<usize> = range.into();
                 for kid_index in range.clone() {
@@ -59,34 +60,30 @@ impl Runner {
                     }
                     self.convert_ids_at(&tree[..kid_index + 1]);
                 }
-                self.builder().wrap(kind, start, typ, tree.len() - 1);
+                self.builder().wrap(kind, start, node.typ, node.source);
             }
-            node @ _ => {
-                if let Node::IdDef { num, .. } = node {
+            _ => {
+                if let Nod::IdDef { num, .. } = node.nod {
                     self.id_defs[num as usize] = tree.len() as u32 - 1;
                 }
-                self.builder().push(node, tree.len() - 1);
+                self.builder().push_at(node, tree.len() - 1);
             }
         }
         Some(())
     }
 
-    fn push_id(&mut self, intern: lasso::Spur, index: u32) {
+    fn push_id(&mut self, node: Node, index: u32, intern: Intern) {
         let num = self.id_defs.len() as u32;
         self.id_defs.push(index);
-        self.builder().push(
-            Node::IdDef {
-                intern,
-                num,
-                typ: Type::default(),
-            },
-            index as usize,
-        );
+        self.builder().push(Node {
+            nod: Nod::IdDef { intern, num },
+            ..node
+        });
     }
 
     fn push_id_maybe(&mut self, node: Node, index: u32) -> bool {
-        match node {
-            Node::Leaf {
+        match node.nod {
+            Nod::Leaf {
                 token:
                     Token {
                         kind: TokenKind::Id,
@@ -94,7 +91,7 @@ impl Runner {
                     },
                 ..
             } => {
-                self.push_id(intern, index);
+                self.push_id(node, index, intern);
                 true
             }
             _ => false,
@@ -104,8 +101,8 @@ impl Runner {
     fn extract_top(&mut self, tree: &[Node]) -> Option<()> {
         let root = *tree.last()?;
         self.tops.clear();
-        match root {
-            Node::Branch {
+        match root.nod {
+            Nod::Branch {
                 kind: BranchKind::Block,
                 range,
                 ..
@@ -113,13 +110,13 @@ impl Runner {
                 let range: Range<usize> = range.into();
                 for kid_index in range.clone() {
                     let kid = tree[kid_index];
-                    if let Node::Branch {
+                    if let Nod::Branch {
                         kind: BranchKind::Def,
                         range: kid_range,
                         ..
-                    } = kid
+                    } = kid.nod
                     {
-                        if let Node::IdDef { intern, num, .. } = tree[kid_range.start as usize] {
+                        if let Nod::IdDef { intern, num, .. } = tree[kid_range.start as usize].nod {
                             self.tops.insert(intern, num);
                         }
                     }

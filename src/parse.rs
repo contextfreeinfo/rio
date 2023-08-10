@@ -39,7 +39,7 @@ impl Parser {
     fn advance(&mut self, source: &mut Tokens) {
         let next = source.next();
         if let Some(token) = next {
-            self.builder().push(token, 0);
+            self.builder().push_at(token, 0);
         }
     }
 
@@ -229,7 +229,7 @@ impl Parser {
             let token = peek_token(source)?;
             if skipping(token.kind) {
                 source.next();
-                self.builder().push(token, 0);
+                self.builder().push_at(token, 0);
             } else {
                 break;
             }

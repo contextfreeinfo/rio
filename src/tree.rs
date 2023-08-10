@@ -27,37 +27,29 @@ impl Into<Type> for usize {
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum Node {
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct Node {
+    pub typ: Type,
+    pub source: Source,
+    pub nod: Nod,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub enum Nod {
     Branch {
-        typ: Type,
         kind: BranchKind,
         range: SimpleRange<u32>,
     },
     Float64 {
-        typ: Type,
-        value: f64,
+        value: [u8; 8],
     },
     IdDef {
-        typ: Type,
         intern: Intern,
         num: u32,
     },
     Leaf {
-        typ: Type,
         token: Token,
     },
-}
-
-impl Node {
-    pub fn typ(&self) -> Type {
-        match *self {
-            Node::Branch { typ, .. } => typ,
-            Node::Float64 { typ, .. } => typ,
-            Node::IdDef { typ, .. } => typ,
-            Node::Leaf { typ, .. } => typ,
-        }
-    }
 }
 
 pub fn write_tree<Map>(file: &mut File, nodes: &[Node], map: &Map) -> Result<()>
@@ -81,8 +73,8 @@ where
     let mut line_count = 0;
     let node = nodes[index];
     write!(file, "{: <1$}", "", indent)?;
-    match node {
-        Node::Branch { kind, range, .. } => {
+    match node.nod {
+        Nod::Branch { kind, range } => {
             writeln!(file, "{kind:?}")?;
             line_count += 1;
             let range: Range<usize> = range.into();
@@ -98,11 +90,11 @@ where
                 line_count += 1;
             }
         }
-        Node::IdDef { intern, num, .. } => {
+        Nod::IdDef { intern, num } => {
             writeln!(file, "IdDef {}@{num}", &map[intern])?;
             line_count += 1;
         }
-        Node::Leaf { token, .. } => {
+        Nod::Leaf { token } => {
             writeln!(file, "{:?} {:?}", token.kind, &map[token.intern])?;
             line_count += 1;
         }
@@ -113,12 +105,12 @@ where
 
 impl Debug for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Branch { kind, range, .. } => f.write_fmt(format_args!("{kind:?}({range:?})")),
-            Self::IdDef { intern, num, .. } => {
+        match self.nod {
+            Nod::Branch { kind, range, .. } => f.write_fmt(format_args!("{kind:?}({range:?})")),
+            Nod::IdDef { intern, num, .. } => {
                 f.write_fmt(format_args!("{:?}@{num}", intern.into_inner()))
             }
-            Self::Leaf { token, .. } => f.write_fmt(format_args!("{token:?}")),
+            Nod::Leaf { token, .. } => f.write_fmt(format_args!("{token:?}")),
             _ => todo!(),
         }
     }
@@ -126,9 +118,10 @@ impl Debug for Node {
 
 impl From<Token> for Node {
     fn from(token: Token) -> Self {
-        Node::Leaf {
-            token,
+        Node {
             typ: Type::default(),
+            source: Source(0),
+            nod: Nod::Leaf { token },
         }
     }
 }
@@ -200,28 +193,12 @@ where
 #[derive(Default)]
 pub struct TreeBuilder {
     pub nodes: Vec<Node>,
-    // Source separate from node so we don't throw off alignment and waste ram.
-    pub sources: Vec<Source>,
-    source_map: Vec<Source>,
     working: Vec<Node>,
     working_sources: Vec<Source>,
 }
 
 impl TreeBuilder {
     pub fn clear(&mut self) {
-        if self.sources.is_empty() {
-            if self.source_map.is_empty() {
-                // Fill initial.
-                self.source_map
-                    .extend((0..self.nodes.len()).map(|it| Source(it as u32)))
-            }
-        } else {
-            // Pass along the original sources across the rounds.
-            self.source_map.clear();
-            self.source_map.extend(self.sources.drain(..));
-        }
-        // println!("Sources: {:?}", self.source_map);
-        // Others can just be cleared.
         self.nodes.clear();
         self.working.clear();
         self.working_sources.clear();
@@ -236,13 +213,19 @@ impl TreeBuilder {
         self.working.len() as u32
     }
 
-    pub fn push<N, S>(&mut self, node: N, source: S)
+    pub fn push(&mut self, node: Node) {
+        self.working.push(node);
+    }
+
+    pub fn push_at<N, S>(&mut self, node: N, source: S)
     where
         N: Into<Node>,
         S: Into<Source>,
     {
-        self.working.push(node.into());
-        self.push_source(source.into());
+        self.working.push(Node {
+            source: source.into(),
+            ..node.into()
+        });
     }
 
     pub fn push_none<S>(&mut self, source: S)
@@ -259,22 +242,14 @@ impl TreeBuilder {
         let start = start as usize;
         let nodes_start = self.nodes.len();
         self.nodes.extend(self.working.drain(start..));
-        if !self.working_sources.is_empty() {
-            self.sources.extend(self.working_sources.drain(start..));
-        }
-        self.working.push(Node::Branch {
-            kind,
-            range: (nodes_start..self.nodes.len()).into(),
+        let source = source.into();
+        self.working.push(Node {
             typ,
+            source,
+            nod: Nod::Branch {
+                kind,
+                range: (nodes_start..self.nodes.len()).into(),
+            },
         });
-        self.push_source(source.into());
-    }
-
-    fn push_source(&mut self, source: Source) {
-        if self.source_map.len() > source.0 as usize {
-            // Pass along from earlier rounds.
-            let source = self.source_map[source.0 as usize];
-            self.working_sources.push(source);
-        }
     }
 }
