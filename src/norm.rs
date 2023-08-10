@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crate::{
     lex::{Token, TokenKind},
-    tree::{BranchKind, Node, TreeBuilder, Type, Nod},
+    tree::{BranchKind, Nod, Node, TreeBuilder, Type},
     Cart,
 };
 
@@ -41,8 +41,9 @@ impl Normer {
                 // Maybe handle some kids in custom fashion.
                 let range = match kind {
                     BranchKind::Def => {
+                        let kid = tree[range.start];
                         // We can't parse a Def of range len 0.
-                        match tree[range.start].nod {
+                        match kid.nod {
                             Nod::Branch {
                                 kind: BranchKind::Typed,
                                 range: first_range,
@@ -57,15 +58,15 @@ impl Normer {
                             }
                             Nod::Leaf {
                                 token:
-                                    token @ Token {
+                                    Token {
                                         kind: TokenKind::Id,
                                         ..
                                     },
                                 ..
                             } => {
-                                self.builder().push_at(token, range.start);
+                                self.builder().push(kid);
                                 // Untyped, so push empty type after id.
-                                self.builder().push_none(range.start);
+                                self.builder().push_none(kid.source);
                                 range.start + 1..range.end
                             }
                             _ => range,
@@ -83,16 +84,16 @@ impl Normer {
                     BranchKind::Typed => {
                         // This typed wasn't the lead of a def, or we'd have handled it in that branch.
                         // No value, so push empty value after type.
-                        self.builder().push_none(tree.len() - 1);
+                        self.builder().push_none(node.source);
                         // And make a def out of it.
                         BranchKind::Def
                     }
                     _ => kind,
                 };
                 self.builder()
-                    .wrap(kind, start, Type::default(), tree.len() - 1);
+                    .wrap(kind, start, Type::default(), node.source);
             }
-            _ => self.builder().push_at(node, tree.len() - 1),
+            _ => self.builder().push(node),
         }
         Some(())
     }
