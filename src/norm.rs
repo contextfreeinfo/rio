@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crate::{
     lex::{Token, TokenKind},
-    tree::{BranchKind, Node, TreeBuilder},
+    tree::{BranchKind, Node, TreeBuilder, Type},
     Cart,
 };
 
@@ -27,13 +27,14 @@ impl Normer {
     fn define(&mut self, tree: &mut Vec<Node>) {
         self.builder().clear();
         self.define_at(&tree);
-        self.builder().wrap(BranchKind::Block, 0);
+        self.builder()
+            .wrap(BranchKind::Block, 0, Type::default(), 0);
         self.builder().drain_into(tree);
     }
 
     fn define_at(&mut self, tree: &[Node]) -> Option<()> {
         match *tree.last()? {
-            Node::Branch { kind, range } => {
+            Node::Branch { kind, range, .. } => {
                 let start = self.builder().pos();
                 let range: Range<usize> = range.into();
                 // Maybe handle some kids in custom fashion.
@@ -44,6 +45,7 @@ impl Normer {
                             Node::Branch {
                                 kind: BranchKind::Typed,
                                 range: first_range,
+                                ..
                             } => {
                                 // Expand typed in place.
                                 let first_range: Range<usize> = first_range.into();
@@ -58,10 +60,11 @@ impl Normer {
                                         kind: TokenKind::Id,
                                         ..
                                     },
+                                ..
                             } => {
-                                self.builder().push(token);
+                                self.builder().push(token, range.start);
                                 // Untyped, so push empty type after id.
-                                self.builder().push_none();
+                                self.builder().push_none(range.start);
                                 range.start + 1..range.end
                             }
                             _ => range,
@@ -79,15 +82,16 @@ impl Normer {
                     BranchKind::Typed => {
                         // This typed wasn't the lead of a def, or we'd have handled it in that branch.
                         // No value, so push empty value after type.
-                        self.builder().push_none();
+                        self.builder().push_none(tree.len() - 1);
                         // And make a def out of it.
                         BranchKind::Def
                     }
                     _ => kind,
                 };
-                self.builder().wrap(kind, start);
+                self.builder()
+                    .wrap(kind, start, Type::default(), tree.len() - 1);
             }
-            node @ _ => self.builder().push(node),
+            node @ _ => self.builder().push(node, tree.len() - 1),
         }
         Some(())
     }
@@ -95,14 +99,15 @@ impl Normer {
     fn trim(&mut self, tree: &mut Vec<Node>) {
         self.builder().clear();
         self.trim_at(&tree, 0);
-        self.builder().wrap(BranchKind::Block, 0);
+        self.builder()
+            .wrap(BranchKind::Block, 0, Type::default(), 0);
         self.builder().drain_into(tree);
     }
 
     fn trim_at(&mut self, tree: &[Node], index: usize) -> Option<()> {
         let root = *tree.last()?;
         match root {
-            Node::Branch { kind, range } => {
+            Node::Branch { kind, range, .. } => {
                 // TODO Change Typed to Def with separate type?
                 // TODO Change all Def to triples? Quads? Kids with meta lists?
                 let start = self.builder().pos();
@@ -110,14 +115,15 @@ impl Normer {
                 for kid_index in range.clone() {
                     self.trim_at(&tree[..kid_index + 1], kid_index - range.start);
                 }
-                self.builder().wrap(kind, start);
+                self.builder()
+                    .wrap(kind, start, Type::default(), tree.len() - 1);
             }
-            Node::IdDef { .. } => self.builder().push(root),
-            Node::Leaf { token } => match token.kind {
+            Node::IdDef { .. } => self.builder().push(root, tree.len() - 1),
+            Node::Leaf { token, .. } => match token.kind {
                 TokenKind::Colon | TokenKind::Define => {
                     // Keep binaries in their place.
                     if index == 0 {
-                        self.builder().push_none();
+                        self.builder().push_none(tree.len() - 1);
                     }
                 }
                 TokenKind::Comma
@@ -129,8 +135,9 @@ impl Normer {
                 | TokenKind::RoundClose
                 | TokenKind::RoundOpen
                 | TokenKind::VSpace => {}
-                _ => self.builder().push(root),
+                _ => self.builder().push(root, tree.len() - 1),
             },
+            _ => todo!(),
         }
         Some(())
     }

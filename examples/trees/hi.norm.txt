@@ -46,5 +46,5 @@ Block
   /Def
 /Block
 
-Node size: 12
+Node size: 16
 Tree len: 33

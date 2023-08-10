@@ -2,7 +2,7 @@ use std::{iter::Peekable, slice::Iter};
 
 use crate::{
     lex::{Token, TokenKind},
-    tree::{BranchKind, TreeBuilder},
+    tree::{BranchKind, TreeBuilder, Type},
     Cart,
 };
 
@@ -29,7 +29,7 @@ impl Parser {
         self.builder().clear();
         let mut source = tokens.iter().peekable();
         self.block_top(&mut source);
-        self.builder().wrap(BranchKind::Block, 0);
+        self.wrap(BranchKind::Block, 0);
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {
@@ -39,7 +39,7 @@ impl Parser {
     fn advance(&mut self, source: &mut Tokens) {
         let next = source.next();
         if let Some(token) = next {
-            self.builder().push(token);
+            self.builder().push(token, 0);
         }
     }
 
@@ -73,7 +73,7 @@ impl Parser {
             }
         });
         if self.builder().pos() > start {
-            self.builder().wrap(BranchKind::Block, start);
+            self.wrap(BranchKind::Block, start);
         }
         Some(())
     }
@@ -98,7 +98,7 @@ impl Parser {
             self.block_content(source)?;
         });
         if self.builder().pos() > start {
-            self.builder().wrap(BranchKind::Block, start);
+            self.wrap(BranchKind::Block, start);
         }
     }
 
@@ -138,7 +138,7 @@ impl Parser {
                     _ => break,
                 }
                 if self.builder().pos() > post {
-                    self.builder().wrap(BranchKind::Call, start);
+                    self.wrap(BranchKind::Call, start);
                 }
             }
         }
@@ -156,7 +156,7 @@ impl Parser {
                 self.skip_hv(source);
                 // Right-side descent.
                 self.def(source);
-                self.builder().wrap(BranchKind::Def, start);
+                self.wrap(BranchKind::Def, start);
                 self.skip_hv(source)?;
             }
         }
@@ -185,7 +185,7 @@ impl Parser {
             }
             _ => return Some(()),
         }
-        self.builder().wrap(BranchKind::Params, in_params_start);
+        self.wrap(BranchKind::Params, in_params_start);
         self.skip_h(source);
         // Out params
         let has_out = peek(source)? == TokenKind::Colon;
@@ -207,17 +207,17 @@ impl Parser {
                 _ => {
                     // Implied anonymous return var.
                     let typed_start = self.builder().pos();
-                    self.builder().push_none();
+                    self.builder().push_none(0);
                     self.call(source, false);
-                    self.builder().wrap(BranchKind::Typed, typed_start);
+                    self.wrap(BranchKind::Typed, typed_start);
                 }
             }
         }
-        self.builder().wrap(BranchKind::Params, out_params_start);
+        self.wrap(BranchKind::Params, out_params_start);
         self.skip_h(source);
         // Body
         self.atom(source);
-        self.builder().wrap(BranchKind::Fun, start);
+        self.wrap(BranchKind::Fun, start);
         Some(())
     }
 
@@ -229,7 +229,7 @@ impl Parser {
             let token = peek_token(source)?;
             if skipping(token.kind) {
                 source.next();
-                self.builder().push(token);
+                self.builder().push(token, 0);
             } else {
                 break;
             }
@@ -273,9 +273,13 @@ impl Parser {
             self.advance(source);
             self.skip_hv(source);
             self.call(source, false);
-            self.builder().wrap(BranchKind::Typed, start);
+            self.wrap(BranchKind::Typed, start);
         }
         Some(())
+    }
+
+    fn wrap(&mut self, kind: BranchKind, start: u32) {
+        self.builder().wrap(kind, start, Type::default(), 0);
     }
 }
 
