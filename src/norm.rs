@@ -15,8 +15,8 @@ impl Normer {
         Self { cart }
     }
 
-    pub fn norm(&mut self, tree: &mut Vec<Node>) {
-        self.trim(tree);
+    pub fn norm(&mut self, parsed_tree: &[Nod], tree: &mut Vec<Node>) {
+        self.trim(parsed_tree, tree);
         self.define(tree);
     }
 
@@ -52,7 +52,7 @@ impl Normer {
                                 // Expand typed in place.
                                 let first_range: Range<usize> = first_range.into();
                                 for kid_index in first_range.clone() {
-                                    self.define_at(&tree[..kid_index + 1]);
+                                    self.define_at(&tree[..=kid_index]);
                                 }
                                 range.start + 1..range.end
                             }
@@ -77,7 +77,7 @@ impl Normer {
                 // Loop remaining kids.
                 for kid_index in range.clone() {
                     // TODO If we're a params, turn kid Ids to Defs.
-                    self.define_at(&tree[..kid_index + 1]);
+                    self.define_at(&tree[..=kid_index]);
                 }
                 // Finalize.
                 let kind = match kind {
@@ -98,29 +98,28 @@ impl Normer {
         Some(())
     }
 
-    fn trim(&mut self, tree: &mut Vec<Node>) {
+    fn trim(&mut self, parsed_tree: &[Nod], tree: &mut Vec<Node>) {
         self.builder().clear();
-        self.trim_at(&tree, 0);
+        self.trim_at(&parsed_tree, 0);
         self.builder()
             .wrap(BranchKind::Block, 0, Type::default(), 0);
         self.builder().drain_into(tree);
     }
 
-    fn trim_at(&mut self, tree: &[Node], index: usize) -> Option<()> {
+    fn trim_at(&mut self, tree: &[Nod], index: usize) -> Option<()> {
         let root = *tree.last()?;
-        match root.nod {
+        match root {
             Nod::Branch { kind, range, .. } => {
                 // TODO Change Typed to Def with separate type?
                 // TODO Change all Def to triples? Quads? Kids with meta lists?
                 let start = self.builder().pos();
                 let range: Range<usize> = range.into();
                 for kid_index in range.clone() {
-                    self.trim_at(&tree[..kid_index + 1], kid_index - range.start);
+                    self.trim_at(&tree[..=kid_index], kid_index - range.start);
                 }
                 self.builder()
                     .wrap(kind, start, Type::default(), tree.len() - 1);
             }
-            Nod::IdDef { .. } => self.builder().push_at(root, tree.len() - 1),
             Nod::Leaf { token, .. } => match token.kind {
                 TokenKind::Colon | TokenKind::Define => {
                     // Keep binaries in their place.
@@ -137,7 +136,7 @@ impl Normer {
                 | TokenKind::RoundClose
                 | TokenKind::RoundOpen
                 | TokenKind::VSpace => {}
-                _ => self.builder().push_at(root, tree.len() - 1),
+                _ => self.builder().push_at(token, tree.len() - 1),
             },
             _ => todo!(),
         }

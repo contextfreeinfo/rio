@@ -58,7 +58,7 @@ impl Runner {
                         }
                         _ => {}
                     }
-                    self.convert_ids_at(&tree[..kid_index + 1]);
+                    self.convert_ids_at(&tree[..=kid_index]);
                 }
                 self.builder().wrap(kind, start, node.typ, node.source);
             }

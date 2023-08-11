@@ -12,7 +12,7 @@ use lasso::ThreadedRodeo;
 use lex::{Intern, Token, TokenKind};
 use norm::Normer;
 use run::Runner;
-use tree::{write_tree, Node, TreeBuilder};
+use tree::{write_tree, Nod, Node, Nody, TreeBuilder};
 
 use crate::lex::Lexer;
 
@@ -72,18 +72,17 @@ fn run_app(args: &RunArgs) -> Result<()> {
     lexer.lex(source.as_str());
     // Products
     // TODO Smaller just to keep source and vec of ranges?
-    let mut parsed_tree = Vec::<Node>::new();
     let mut tree = Vec::<Node>::new();
     // Parse
     let mut parser = parse::Parser::new(cart);
     parser.parse(&lexer.tokens);
-    parsed_tree.clone_from(&parser.cart.tree_builder.nodes);
+    let mut parsed_tree = Vec::<Nod>::with_capacity(parser.cart.tree_builder.nodes.len());
+    parsed_tree.extend(parser.cart.tree_builder.nodes.iter().map(|n| n.nod()));
     dump_tree("parse", args, &parsed_tree, lexer.interner.as_ref())?;
-    tree.clone_from(&parsed_tree);
     let cart = parser.cart;
     // Norm
     let mut normer = Normer::new(cart);
-    normer.norm(&mut tree);
+    normer.norm(&parsed_tree, &mut tree);
     dump_tree("norm", args, &tree, lexer.interner.as_ref())?;
     let cart = normer.cart;
     // Run
@@ -95,9 +94,10 @@ fn run_app(args: &RunArgs) -> Result<()> {
     Ok(())
 }
 
-fn dump_tree<Map>(stage: &str, args: &RunArgs, tree: &[Node], map: &Map) -> Result<()>
+fn dump_tree<Map, Node>(stage: &str, args: &RunArgs, tree: &[Node], map: &Map) -> Result<()>
 where
     Map: Index<Intern, Output = str>,
+    Node: Nody,
 {
     if let Some(dump) = &args.dump {
         create_dir_all(dump)?;

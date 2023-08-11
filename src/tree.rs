@@ -52,7 +52,23 @@ pub enum Nod {
     },
 }
 
-pub fn write_tree<Map>(file: &mut File, nodes: &[Node], map: &Map) -> Result<()>
+pub trait Nody {
+    fn nod(&self) -> Nod;
+}
+
+impl Nody for Node {
+    fn nod(&self) -> Nod {
+        self.nod
+    }
+}
+
+impl Nody for Nod {
+    fn nod(&self) -> Nod {
+        *self
+    }
+}
+
+pub fn write_tree<Map>(file: &mut File, nodes: &[impl Nody], map: &Map) -> Result<()>
 where
     Map: Index<Intern, Output = str>,
 {
@@ -62,7 +78,7 @@ where
 
 fn write_at<Map>(
     file: &mut File,
-    nodes: &[Node],
+    nodes: &[impl Nody],
     map: &Map,
     index: usize,
     indent: usize,
@@ -71,9 +87,9 @@ where
     Map: Index<Intern, Output = str>,
 {
     let mut line_count = 0;
-    let node = nodes[index];
+    let node = &nodes[index];
     write!(file, "{: <1$}", "", indent)?;
-    match node.nod {
+    match node.nod() {
         Nod::Branch { kind, range } => {
             writeln!(file, "{kind:?}")?;
             line_count += 1;

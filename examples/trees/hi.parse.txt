@@ -96,5 +96,5 @@ Block
   VSpace "\n"
 /Block
 
-Node size: 20
+Node size: 12
 Tree len: 82
