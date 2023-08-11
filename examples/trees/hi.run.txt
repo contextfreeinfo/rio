@@ -9,8 +9,8 @@ Block
         String "\"Hi!\""
       /Def
       Call
-        Id "print-twice"
-        Id "message"
+        IdRef print-twice@3
+        IdRef message@2
       /Call
     /Block
   /Def
@@ -35,11 +35,11 @@ Block
       Block
         Call
           Id "print"
-          Id "message"
+          IdRef message@4
         /Call
         Call
           Id "print"
-          Id "message"
+          IdRef message@4
         /Call
       /Block
     /Fun

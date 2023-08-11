@@ -47,6 +47,10 @@ pub enum Nod {
         intern: Intern,
         num: u32,
     },
+    IdRef {
+        intern: Intern,
+        num: u32,
+    },
     Leaf {
         token: Token,
     },
@@ -108,6 +112,10 @@ where
         }
         Nod::IdDef { intern, num } => {
             writeln!(file, "IdDef {}@{num}", &map[intern])?;
+            line_count += 1;
+        }
+        Nod::IdRef { intern, num } => {
+            writeln!(file, "IdRef {}@{num}", &map[intern])?;
             line_count += 1;
         }
         Nod::Leaf { token } => {

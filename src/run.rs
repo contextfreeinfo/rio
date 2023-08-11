@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{collections::HashMap, ops::Range};
 
 use crate::{
     lex::{Intern, Token, TokenKind},
@@ -19,7 +19,10 @@ pub struct Runner {
     def_indices: Vec<Index>,
     scope: Vec<ScopeEntry>,
     // Single vector to support overloading while trying to limit allocations.
+    // TODO Differentiate overload and full definitions.
+    // TODO Find or make some abstraction for this kind of multimap?
     tops: Vec<ScopeEntry>,
+    top_map: HashMap<Intern, u32>,
 }
 
 impl Runner {
@@ -29,6 +32,7 @@ impl Runner {
             def_indices: vec![Index::default()],
             scope: vec![],
             tops: vec![],
+            top_map: HashMap::new(),
         }
     }
 
@@ -38,7 +42,8 @@ impl Runner {
         self.tops.sort();
         self.resolve(tree);
         println!("Defs: {:?}", self.def_indices);
-        println!("Tops: {:?}", self.tops);
+        // println!("Tops: {:?}", self.tops);
+        // println!("Top map: {:?}", self.top_map);
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {
@@ -79,7 +84,7 @@ impl Runner {
                 if let Nod::IdDef { num, .. } = node.nod {
                     self.def_indices[num as usize] = Index(tree.len() as u32 - 1);
                 }
-                self.builder().push_at(node, tree.len() - 1);
+                self.builder().push(node);
             }
         }
         Some(())
@@ -137,6 +142,14 @@ impl Runner {
             }
             _ => panic!(),
         }
+        self.top_map.clear();
+        let mut last = Intern::default();
+        for (index, (intern, ..)) in self.tops.iter().enumerate() {
+            if *intern != last {
+                self.top_map.insert(*intern, index as u32);
+                last = *intern
+            }
+        }
         Some(())
     }
 
@@ -163,21 +176,54 @@ impl Runner {
                 }
                 match node.nod {
                     Nod::Branch {
-                        kind: BranchKind::Params,
+                        kind: BranchKind::Def | BranchKind::Params,
                         ..
                     } => {}
-                    _ => if scope_start < self.scope.len() {
-                        // Reset scope if we're not in params.
-                        println!("Popping from: {:?}", self.scope);
-                        self.scope.resize(scope_start, ScopeEntry::default());
+                    _ => {
+                        if scope_start < self.scope.len() {
+                            // Reset scope if we're not in params.
+                            // println!("Popping from: {:?}", self.scope);
+                            self.scope.resize(scope_start, ScopeEntry::default());
+                        }
                     }
                 }
                 self.builder().wrap(kind, start, node.typ, node.source);
             }
+            Nod::Leaf {
+                token:
+                    Token {
+                        kind: TokenKind::Id,
+                        intern,
+                    },
+            } => {
+                let node = match self.resolve_def(intern) {
+                    Some(num) => Node {
+                        nod: Nod::IdRef { intern, num: num.0 },
+                        ..node
+                    },
+                    _ => node,
+                };
+                self.builder().push(node);
+            }
             _ => {
-                self.builder().push_at(node, tree.len() - 1);
+                self.builder().push(node);
             }
         }
         Some(())
+    }
+
+    fn resolve_def(&mut self, intern: Intern) -> Option<DefNum> {
+        for entry in self.scope.iter().rev() {
+            // println!("Check {intern:?} vs {entry:?}");
+            if entry.0 == intern {
+                // TODO Check overloads! Would need more context specs.
+                return Some(entry.1);
+            }
+        }
+        if let Some(index) = self.top_map.get(&intern) {
+            // TODO Check overloads!
+            return Some(self.tops[*index as usize].1);
+        }
+        None
     }
 }
