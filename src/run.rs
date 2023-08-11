@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Range};
+use std::ops::Range;
 
 use crate::{
     lex::{Intern, Token, TokenKind},
@@ -6,25 +6,38 @@ use crate::{
     Cart,
 };
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct Index(u32);
+
+#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+pub struct DefNum(u32);
+
+type ScopeEntry = (Intern, DefNum);
+
 pub struct Runner {
     pub cart: Cart,
-    id_defs: Vec<u32>,
-    tops: HashMap<Intern, u32>,
+    def_indices: Vec<Index>,
+    scope: Vec<ScopeEntry>,
+    // Single vector to support overloading while trying to limit allocations.
+    tops: Vec<ScopeEntry>,
 }
 
 impl Runner {
     pub fn new(cart: Cart) -> Self {
         Self {
             cart,
-            id_defs: vec![0],
-            tops: HashMap::new(),
+            def_indices: vec![Index::default()],
+            scope: vec![],
+            tops: vec![],
         }
     }
 
     pub fn run(&mut self, tree: &mut Vec<Node>) {
         self.convert_ids(tree);
         self.extract_top(tree);
-        println!("Defs: {:?}", self.id_defs);
+        self.tops.sort();
+        self.resolve(tree);
+        println!("Defs: {:?}", self.def_indices);
         println!("Tops: {:?}", self.tops);
     }
 
@@ -33,7 +46,7 @@ impl Runner {
     }
 
     fn convert_ids(&mut self, tree: &mut Vec<Node>) {
-        self.id_defs.fill(0);
+        self.def_indices.fill(Index::default());
         self.builder().clear();
         self.convert_ids_at(tree);
         self.builder()
@@ -64,7 +77,7 @@ impl Runner {
             }
             _ => {
                 if let Nod::IdDef { num, .. } = node.nod {
-                    self.id_defs[num as usize] = tree.len() as u32 - 1;
+                    self.def_indices[num as usize] = Index(tree.len() as u32 - 1);
                 }
                 self.builder().push_at(node, tree.len() - 1);
             }
@@ -73,8 +86,8 @@ impl Runner {
     }
 
     fn push_id(&mut self, node: Node, index: u32, intern: Intern) {
-        let num = self.id_defs.len() as u32;
-        self.id_defs.push(index);
+        let num = self.def_indices.len() as u32;
+        self.def_indices.push(Index(index));
         self.builder().push(Node {
             nod: Nod::IdDef { intern, num },
             ..node
@@ -117,12 +130,53 @@ impl Runner {
                     } = kid.nod
                     {
                         if let Nod::IdDef { intern, num, .. } = tree[kid_range.start as usize].nod {
-                            self.tops.insert(intern, num);
+                            self.tops.push((intern, DefNum(num)));
                         }
                     }
                 }
             }
             _ => panic!(),
+        }
+        Some(())
+    }
+
+    fn resolve(&mut self, tree: &mut Vec<Node>) {
+        self.builder().clear();
+        self.resolve_at(tree);
+        self.builder()
+            .wrap(BranchKind::Block, 0, Type::default(), 0);
+        self.builder().drain_into(tree);
+    }
+
+    fn resolve_at(&mut self, tree: &[Node]) -> Option<()> {
+        let node = *tree.last()?;
+        match node.nod {
+            Nod::Branch { kind, range, .. } => {
+                let scope_start = self.scope.len();
+                let start = self.builder().pos();
+                let range: Range<usize> = range.into();
+                for kid_index in range.clone() {
+                    if let Nod::IdDef { intern, num } = tree[kid_index].nod {
+                        self.scope.push((intern, DefNum(num)));
+                    }
+                    self.resolve_at(&tree[..=kid_index]);
+                }
+                match node.nod {
+                    Nod::Branch {
+                        kind: BranchKind::Params,
+                        ..
+                    } => {}
+                    _ => if scope_start < self.scope.len() {
+                        // Reset scope if we're not in params.
+                        println!("Popping from: {:?}", self.scope);
+                        self.scope.resize(scope_start, ScopeEntry::default());
+                    }
+                }
+                self.builder().wrap(kind, start, node.typ, node.source);
+            }
+            _ => {
+                self.builder().push_at(node, tree.len() - 1);
+            }
         }
         Some(())
     }
