@@ -52,7 +52,6 @@ fn main() -> Result<()> {
 
 pub struct Cart {
     pub tree_builder: TreeBuilder,
-    // TODO Remove none?
     pub none: Token,
 }
 
@@ -63,29 +62,16 @@ fn run_app(args: &RunArgs) -> Result<()> {
     // println!("none_key: {:?}", none_key.into_inner());
     let none = Token::new(TokenKind::None, none_key);
     let mut lexer = Lexer::new(interner.clone());
-    let mut source = String::new();
     let tree_builder = TreeBuilder::default();
     let cart = Cart { tree_builder, none };
-    // Input
-    let mut file = File::open(args.app.as_str())?;
-    file.read_to_string(&mut source)?;
     // Lex
-    lexer.lex(source.as_str());
-    // Products
-    // TODO Smaller just to keep source and vec of ranges?
-    let mut tree = Vec::<Node>::new();
+    lex(args, &mut lexer)?;
     // Parse
-    let mut parser = parse::Parser::new(cart);
-    parser.parse(&lexer.tokens);
-    let mut parsed_tree = Vec::<Nod>::with_capacity(parser.cart.tree_builder.nodes.len());
-    parsed_tree.extend(parser.cart.tree_builder.nodes.iter().map(|n| n.nod()));
+    let (parsed_tree, cart) = parse(cart, &lexer);
     dump_tree("parse", args, &parsed_tree, lexer.interner.as_ref())?;
-    let cart = parser.cart;
     // Norm
-    let mut normer = Normer::new(cart);
-    normer.norm(&parsed_tree, &mut tree);
+    let (mut tree, cart) = norm(cart, parsed_tree);
     dump_tree("norm", args, &tree, lexer.interner.as_ref())?;
-    let cart = normer.cart;
     // Run
     let mut runner = Runner::new(cart);
     runner.run(&mut tree);
@@ -93,6 +79,29 @@ fn run_app(args: &RunArgs) -> Result<()> {
     // let cart = runner.cart;
     // Done
     Ok(())
+}
+
+fn lex(args: &RunArgs, lexer: &mut Lexer) -> Result<(), Error> {
+    let mut file = File::open(args.app.as_str())?;
+    let mut source = String::new();
+    file.read_to_string(&mut source)?;
+    lexer.lex(source.as_str());
+    Ok(())
+}
+
+fn parse(cart: Cart, lexer: &Lexer) -> (Vec<Nod>, Cart) {
+    let mut parser = parse::Parser::new(cart);
+    parser.parse(&lexer.tokens);
+    let mut parsed_tree = Vec::<Nod>::with_capacity(parser.cart.tree_builder.nodes.len());
+    parsed_tree.extend(parser.cart.tree_builder.nodes.iter().map(|n| n.nod()));
+    (parsed_tree, parser.cart)
+}
+
+fn norm(cart: Cart, parsed_tree: Vec<Nod>) -> (Vec<Node>, Cart) {
+    let mut tree = Vec::<Node>::new();
+    let mut normer = Normer::new(cart);
+    normer.norm(&parsed_tree, &mut tree);
+    (tree, normer.cart)
 }
 
 fn dump_tree<Map, Node>(stage: &str, args: &RunArgs, tree: &[Node], map: &Map) -> Result<()>
