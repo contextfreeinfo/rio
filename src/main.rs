@@ -16,6 +16,7 @@ use tree::{write_tree, Nod, Node, Nody, TreeBuilder};
 
 use crate::lex::Lexer;
 
+// mod core;
 mod lex;
 mod norm;
 mod parse;

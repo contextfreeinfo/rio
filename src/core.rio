@@ -1,0 +1,7 @@
+Null* = native()
+
+Text* = native()
+
+native* = native()
+
+print* = native()
