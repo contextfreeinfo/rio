@@ -9,7 +9,7 @@ Block
     Define "="
     HSpace " "
     Block
-      CurlyOpen "{"
+      CurlyOpen "be"
       VSpace "\n"
       HSpace "    "
       Def
@@ -32,7 +32,7 @@ Block
         Id "message"
       /Call
       VSpace "\n"
-      CurlyClose "}"
+      CurlyClose "end"
     /Block
   /Def
   VSpace "\n"
@@ -61,7 +61,7 @@ Block
       Params
         Typed
           None
-          Id "Null"
+          Id "Void"
           HSpace " "
         /Typed
       /Params

@@ -1,6 +1,6 @@
-Null* = native()
-
 Text* = native()
+
+Void* = native()
 
 native* = native()
 

@@ -28,7 +28,7 @@ Block
       Params
         Def
           None
-          Id "Null"
+          Id "Void"
           None
         /Def
       /Params
