@@ -1,0 +1,29 @@
+Block
+  Def
+    Id "Text*"
+    None
+    Call
+      Id "native"
+  /Def
+  Def
+    Id "Void*"
+    None
+    Call
+      Id "native"
+  /Def
+  Def
+    Id "native*"
+    None
+    Call
+      Id "native"
+  /Def
+  Def
+    Id "print*"
+    None
+    Call
+      Id "native"
+  /Def
+/Block
+
+Node size: 20
+Tree len: 21

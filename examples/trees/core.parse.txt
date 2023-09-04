@@ -1,0 +1,56 @@
+Block
+  Def
+    Id "Text*"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "native"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "Void*"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "native"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "native*"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "native"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "print*"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "native"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+  /Def
+  VSpace "\n"
+/Block
+
+Node size: 12
+Tree len: 44

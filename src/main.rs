@@ -9,7 +9,7 @@ use std::{
 use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
-use lex::{Intern, Token, TokenKind};
+use lex::{Intern, Interner};
 use norm::Normer;
 use run::Runner;
 use tree::{write_tree, Nod, Node, Nody, TreeBuilder};
@@ -51,41 +51,57 @@ fn main() -> Result<()> {
 }
 
 pub struct Cart {
+    pub interner: Interner,
     pub tree_builder: TreeBuilder,
-    pub none: Token,
 }
 
 fn run_app(args: &RunArgs) -> Result<()> {
     // Resources
     let interner = Arc::new(ThreadedRodeo::default());
-    let none_key = interner.get_or_intern("");
-    // println!("none_key: {:?}", none_key.into_inner());
-    let none = Token::new(TokenKind::None, none_key);
-    let mut lexer = Lexer::new(interner.clone());
+    // Reserve first slot for empty. TODO Reserve others?
+    interner.get_or_intern("");
     let tree_builder = TreeBuilder::default();
-    let cart = Cart { tree_builder, none };
-    // Lex
-    lex(args, &mut lexer)?;
-    // Parse
-    let (parsed_tree, cart) = parse(cart, &lexer);
-    dump_tree("parse", args, &parsed_tree, lexer.interner.as_ref())?;
-    // Norm
-    let (mut tree, cart) = norm(cart, parsed_tree);
-    dump_tree("norm", args, &tree, lexer.interner.as_ref())?;
-    // Run
-    let mut runner = Runner::new(cart);
-    runner.run(&mut tree);
-    dump_tree("run", args, &tree, lexer.interner.as_ref())?;
-    // let cart = runner.cart;
-    // Done
+    let cart = Cart {
+        interner: interner.clone(),
+        tree_builder,
+    };
+    // Process
+    let cart = build(args, "core", cart)?;
+    build(args, args.app.as_str(), cart)?;
     Ok(())
 }
 
-fn lex(args: &RunArgs, lexer: &mut Lexer) -> Result<(), Error> {
-    let mut file = File::open(args.app.as_str())?;
-    let mut source = String::new();
-    file.read_to_string(&mut source)?;
-    lexer.lex(source.as_str());
+fn build(args: &RunArgs, name: &str, cart: Cart) -> Result<Cart> {
+    let interner = cart.interner.clone();
+    // Lex
+    // TODO Reserver lexer somewhere to reuse its resources?
+    let mut lexer = Lexer::new(interner.clone());
+    lex(name, &mut lexer)?;
+    // Parse
+    let (parsed_tree, cart) = parse(cart, &lexer);
+    dump_tree("parse", args, name, &parsed_tree, interner.as_ref())?;
+    // Norm
+    let (mut tree, cart) = norm(cart, parsed_tree);
+    dump_tree("norm", args, name, &tree, interner.as_ref())?;
+    // Run
+    // TODO Keep runner to reuse resources, or move them into module?
+    let mut runner = Runner::new(cart);
+    runner.run(&mut tree);
+    dump_tree("run", args, name, &tree, interner.as_ref())?;
+    // Done
+    Ok(runner.cart)
+}
+
+fn lex(name: &str, lexer: &mut Lexer) -> Result<(), Error> {
+    match name {
+        "core" => lexer.lex(include_str!("core.rio")),
+        _ => {
+            let mut file = File::open(name)?;
+            let mut source = String::new();
+            file.read_to_string(&mut source)?;
+            lexer.lex(&source);
+        }
+    };
     Ok(())
 }
 
@@ -104,14 +120,20 @@ fn norm(cart: Cart, parsed_tree: Vec<Nod>) -> (Vec<Node>, Cart) {
     (tree, normer.cart)
 }
 
-fn dump_tree<Map, Node>(stage: &str, args: &RunArgs, tree: &[Node], map: &Map) -> Result<()>
+fn dump_tree<Map, Node>(
+    stage: &str,
+    args: &RunArgs,
+    name: &str,
+    tree: &[Node],
+    map: &Map,
+) -> Result<()>
 where
     Map: Index<Intern, Output = str>,
     Node: Nody,
 {
     if let Some(dump) = &args.dump {
         create_dir_all(dump)?;
-        let name = Path::new(&args.app)
+        let name = Path::new(name)
             .file_stem()
             .ok_or(Error::msg("no name"))?
             .to_str()

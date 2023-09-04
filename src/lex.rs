@@ -57,7 +57,7 @@ impl Lexer {
         }
     }
 
-    pub fn lex(&mut self, source: &str) -> Vec<Token> {
+    pub fn lex(&mut self, source: &str) {
         self.buffer.clear();
         self.tokens.clear();
         let mut source = source.chars().peekable();
@@ -93,7 +93,6 @@ impl Lexer {
             }
         }
         self.trim(&mut source);
-        self.tokens.clone()
     }
 
     fn comment(&mut self, source: &mut Peekable<Chars>) {
