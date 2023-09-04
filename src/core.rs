@@ -19,7 +19,7 @@ pub struct NativeFun {
 }
 
 impl Debug for NativeFun {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("NativeFun")
             .field("name", &self.name)
             // .field("fun", &self.fun)

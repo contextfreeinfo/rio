@@ -128,7 +128,7 @@ where
 }
 
 impl Debug for Node {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self.nod {
             Nod::Branch { kind, range, .. } => f.write_fmt(format_args!("{kind:?}({range:?})")),
             Nod::IdDef { intern, num, .. } => {
@@ -209,7 +209,7 @@ impl<T> Debug for SimpleRange<T>
 where
     T: Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.write_fmt(format_args!("{:?}..{:?}", self.start, self.end))
     }
 }
