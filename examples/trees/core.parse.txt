@@ -1,6 +1,9 @@
 Block
   Def
-    Id "Text*"
+    Pub
+      Id "Text"
+      Star "*"
+    /Pub
     HSpace " "
     Define "="
     HSpace " "
@@ -13,7 +16,10 @@ Block
   VSpace "\n"
   VSpace "\n"
   Def
-    Id "Void*"
+    Pub
+      Id "Void"
+      Star "*"
+    /Pub
     HSpace " "
     Define "="
     HSpace " "
@@ -26,7 +32,10 @@ Block
   VSpace "\n"
   VSpace "\n"
   Def
-    Id "native*"
+    Pub
+      Id "native"
+      Star "*"
+    /Pub
     HSpace " "
     Define "="
     HSpace " "
@@ -39,7 +48,10 @@ Block
   VSpace "\n"
   VSpace "\n"
   Def
-    Id "print*"
+    Pub
+      Id "print"
+      Star "*"
+    /Pub
     HSpace " "
     Define "="
     HSpace " "
@@ -53,4 +65,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 44
+Tree len: 52

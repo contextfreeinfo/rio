@@ -105,7 +105,7 @@ impl Parser {
     fn call(&mut self, source: &mut Tokens, allow_block: bool) -> Option<()> {
         self.skip_h(source);
         let start = self.builder().pos();
-        self.atom(source);
+        self.starred(source);
         loop {
             let mut post = self.builder().pos();
             if post > start {
@@ -256,9 +256,19 @@ impl Parser {
                 | TokenKind::Define
                 | TokenKind::RoundClose
                 | TokenKind::VSpace => None?,
-                _ => self.atom(source),
+                _ => self.starred(source),
             };
         }
+    }
+
+    fn starred(&mut self, source: &mut Tokens) -> Option<()> {
+        let start = self.builder().pos();
+        self.atom(source);
+        if peek(source)? == TokenKind::Star {
+            self.advance(source);
+            self.wrap(BranchKind::Pub, start);
+        }
+        Some(())
     }
 
     fn typed(&mut self, source: &mut Tokens) -> Option<()> {

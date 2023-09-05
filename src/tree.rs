@@ -165,6 +165,7 @@ pub enum BranchKind {
     // Group,
     None,
     Params,
+    Pub,
     Typed,
 }
 

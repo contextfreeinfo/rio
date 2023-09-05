@@ -56,6 +56,17 @@ impl Normer {
                                 }
                                 range.start + 1..range.end
                             }
+                            Nod::Branch {
+                                kind: BranchKind::Pub,
+                                range: first_range,
+                                ..
+                            } => {
+                                // TODO Take over the entire def? Add a separate node for metadata?
+                                self.builder().push(tree[first_range.start as usize]);
+                                // Untyped, so push empty type after id.
+                                self.builder().push_none(kid.source);
+                                range.start + 1..range.end
+                            }
                             Nod::Leaf {
                                 token:
                                     Token {
@@ -71,6 +82,12 @@ impl Normer {
                             }
                             _ => range,
                         }
+                    }
+                    BranchKind::Pub => {
+                        // TODO Take over the entire def? Add a separate node for metadata?
+                        // TODO Some way to unify with other pub handling?
+                        self.builder().push(tree[range.start as usize]);
+                        return Some(());
                     }
                     _ => range,
                 };

@@ -1,27 +1,27 @@
 Block
   Def
-    IdDef Text*@1
+    IdDef Text@1
     None
     Call
-      Id "native"
+      IdRef native@3
   /Def
   Def
-    IdDef Void*@2
+    IdDef Void@2
     None
     Call
-      Id "native"
+      IdRef native@3
   /Def
   Def
-    IdDef native*@3
+    IdDef native@3
     None
     Call
-      Id "native"
+      IdRef native@3
   /Def
   Def
-    IdDef print*@4
+    IdDef print@4
     None
     Call
-      Id "native"
+      IdRef native@3
   /Def
 /Block
 

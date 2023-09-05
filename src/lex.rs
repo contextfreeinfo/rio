@@ -37,6 +37,7 @@ pub enum TokenKind {
     None,
     RoundClose,
     RoundOpen,
+    Star,
     // TODO String parts and lex mode stack. Is call stack good enough?
     String,
     VSpace,
@@ -85,6 +86,7 @@ impl Lexer {
                     '(' => self.trim_push(&mut source, TokenKind::RoundOpen),
                     ')' => self.trim_push(&mut source, TokenKind::RoundClose),
                     '=' => self.trim_push(&mut source, TokenKind::Define),
+                    '*' => self.trim_push(&mut source, TokenKind::Star),
                     _ => {
                         self.next(&mut source);
                     }

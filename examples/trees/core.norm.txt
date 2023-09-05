@@ -1,24 +1,24 @@
 Block
   Def
-    Id "Text*"
+    Id "Text"
     None
     Call
       Id "native"
   /Def
   Def
-    Id "Void*"
+    Id "Void"
     None
     Call
       Id "native"
   /Def
   Def
-    Id "native*"
+    Id "native"
     None
     Call
       Id "native"
   /Def
   Def
-    Id "print*"
+    Id "print"
     None
     Call
       Id "native"

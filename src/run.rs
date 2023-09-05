@@ -39,7 +39,6 @@ impl Runner {
     pub fn run(&mut self, tree: &mut Vec<Node>) {
         self.convert_ids(tree);
         self.extract_top(tree);
-        self.tops.sort();
         self.resolve(tree);
         println!("Defs: {:?}", self.def_indices);
         // println!("Tops: {:?}", self.tops);
@@ -142,6 +141,8 @@ impl Runner {
             }
             _ => panic!(),
         }
+        // Sort then map.
+        self.tops.sort();
         self.top_map.clear();
         let mut last = Intern::default();
         for (index, (intern, ..)) in self.tops.iter().enumerate() {
