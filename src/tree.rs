@@ -43,16 +43,12 @@ pub enum Nod {
     Float64 {
         value: [u8; 8],
     },
-    IdDef {
-        intern: Intern,
-        num: u32,
-    },
-    IdRef {
-        intern: Intern,
-        num: u32,
-    },
     Leaf {
         token: Token,
+    },
+    Uid {
+        intern: Intern,
+        num: u32,
     },
 }
 
@@ -110,16 +106,12 @@ where
                 line_count += 1;
             }
         }
-        Nod::IdDef { intern, num } => {
-            writeln!(file, "IdDef {}@{num}", &map[intern])?;
-            line_count += 1;
-        }
-        Nod::IdRef { intern, num } => {
-            writeln!(file, "IdRef {}@{num}", &map[intern])?;
-            line_count += 1;
-        }
         Nod::Leaf { token } => {
             writeln!(file, "{:?} {:?}", token.kind, &map[token.intern])?;
+            line_count += 1;
+        }
+        Nod::Uid { intern, num } => {
+            writeln!(file, "Uid {}@{num}", &map[intern])?;
             line_count += 1;
         }
         _ => todo!(),
@@ -131,10 +123,10 @@ impl Debug for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self.nod {
             Nod::Branch { kind, range, .. } => f.write_fmt(format_args!("{kind:?}({range:?})")),
-            Nod::IdDef { intern, num, .. } => {
+            Nod::Leaf { token, .. } => f.write_fmt(format_args!("{token:?}")),
+            Nod::Uid { intern, num, .. } => {
                 f.write_fmt(format_args!("{:?}@{num}", intern.into_inner()))
             }
-            Nod::Leaf { token, .. } => f.write_fmt(format_args!("{token:?}")),
             _ => todo!(),
         }
     }

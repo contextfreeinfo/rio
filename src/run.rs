@@ -80,7 +80,7 @@ impl Runner {
                 self.builder().wrap(kind, start, node.typ, node.source);
             }
             _ => {
-                if let Nod::IdDef { num, .. } = node.nod {
+                if let Nod::Uid { num, .. } = node.nod {
                     self.def_indices[num as usize] = Index(tree.len() as u32 - 1);
                 }
                 self.builder().push(node);
@@ -93,7 +93,7 @@ impl Runner {
         let num = self.def_indices.len() as u32;
         self.def_indices.push(Index(index));
         self.builder().push(Node {
-            nod: Nod::IdDef { intern, num },
+            nod: Nod::Uid { intern, num },
             ..node
         });
     }
@@ -133,7 +133,7 @@ impl Runner {
                         ..
                     } = kid.nod
                     {
-                        if let Nod::IdDef { intern, num, .. } = tree[kid_range.start as usize].nod {
+                        if let Nod::Uid { intern, num, .. } = tree[kid_range.start as usize].nod {
                             self.tops.push((intern, DefNum(num)));
                         }
                     }
@@ -169,9 +169,11 @@ impl Runner {
                 let scope_start = self.scope.len();
                 let start = self.builder().pos();
                 let range: Range<usize> = range.into();
-                for kid_index in range.clone() {
-                    if let Nod::IdDef { intern, num } = tree[kid_index].nod {
-                        self.scope.push((intern, DefNum(num)));
+                for (local_index, kid_index) in range.clone().enumerate() {
+                    if kind == BranchKind::Def && local_index == 0 {
+                        if let Nod::Uid { intern, num } = tree[kid_index].nod {
+                            self.scope.push((intern, DefNum(num)));
+                        }
                     }
                     self.resolve_at(&tree[..=kid_index]);
                 }
@@ -199,7 +201,7 @@ impl Runner {
             } => {
                 let node = match self.resolve_def(intern) {
                     Some(num) => Node {
-                        nod: Nod::IdRef { intern, num: num.0 },
+                        nod: Nod::Uid { intern, num: num.0 },
                         ..node
                     },
                     _ => node,
