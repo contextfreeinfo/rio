@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use crate::{
-    lex::{Token, TokenKind},
+    lex::TokenKind,
     tree::{BranchKind, Nod, Node, TreeBuilder, Type},
     Cart,
 };
@@ -52,42 +52,19 @@ impl Normer {
                                 // Expand typed in place.
                                 let first_range: Range<usize> = first_range.into();
                                 for kid_index in first_range.clone() {
+                                    // TODO Why recurse instead of special handling?
                                     self.define_at(&tree[..=kid_index]);
                                 }
                                 range.start + 1..range.end
                             }
-                            Nod::Branch {
-                                kind: BranchKind::Pub,
-                                range: first_range,
-                                ..
-                            } => {
-                                // TODO Take over the entire def? Add a separate node for metadata?
-                                self.builder().push(tree[first_range.start as usize]);
+                            _ => {
+                                // TODO Why recurse instead of special handling?
+                                self.define_at(&tree[..=range.start]);
                                 // Untyped, so push empty type after id.
                                 self.builder().push_none(kid.source);
                                 range.start + 1..range.end
                             }
-                            Nod::Leaf {
-                                token:
-                                    Token {
-                                        kind: TokenKind::Id,
-                                        ..
-                                    },
-                                ..
-                            } => {
-                                self.builder().push(kid);
-                                // Untyped, so push empty type after id.
-                                self.builder().push_none(kid.source);
-                                range.start + 1..range.end
-                            }
-                            _ => range,
                         }
-                    }
-                    BranchKind::Pub => {
-                        // TODO Take over the entire def? Add a separate node for metadata?
-                        // TODO Some way to unify with other pub handling?
-                        self.builder().push(tree[range.start as usize]);
-                        return Some(());
                     }
                     _ => range,
                 };
@@ -152,6 +129,7 @@ impl Normer {
                 | TokenKind::HSpace
                 | TokenKind::RoundClose
                 | TokenKind::RoundOpen
+                | TokenKind::Star
                 | TokenKind::VSpace => {}
                 _ => self.builder().push_at(token, tree.len() - 1),
             },

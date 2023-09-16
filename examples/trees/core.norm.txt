@@ -1,24 +1,28 @@
 Block
   Def
-    Id "Text"
+    Pub
+      Id "Text"
     None
     Call
       Id "native"
   /Def
   Def
-    Id "Void"
+    Pub
+      Id "Void"
     None
     Call
       Id "native"
   /Def
   Def
-    Id "native"
+    Pub
+      Id "native"
     None
     Call
       Id "native"
   /Def
   Def
-    Id "print"
+    Pub
+      Id "print"
     None
     Call
       Id "native"
@@ -26,4 +30,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 21
+Tree len: 25

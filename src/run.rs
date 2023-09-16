@@ -68,7 +68,7 @@ impl Runner {
                     match kind {
                         BranchKind::Def => {
                             if kid_index == range.start {
-                                if self.push_id_maybe(tree[kid_index], tree.len() as u32 - 1) {
+                                if self.push_id_maybe(&tree[..=kid_index], tree.len() as u32 - 1) {
                                     continue;
                                 }
                             }
@@ -98,8 +98,23 @@ impl Runner {
         });
     }
 
-    fn push_id_maybe(&mut self, node: Node, index: u32) -> bool {
+    fn push_id_maybe(&mut self, tree: &[Node], index: u32) -> bool {
+        let node = *tree.last().unwrap();
         match node.nod {
+            Nod::Branch {
+                kind: BranchKind::Pub,
+                range,
+            } => {
+                let start = self.builder().pos();
+                let range: Range<usize> = range.into();
+                if self.push_id_maybe(&tree[..=range.start], index) {
+                    self.builder()
+                        .wrap(BranchKind::Pub, start, Type::default(), node.source);
+                    true
+                } else {
+                    false
+                }
+            }
             Nod::Leaf {
                 token:
                     Token {
@@ -133,8 +148,9 @@ impl Runner {
                         ..
                     } = kid.nod
                     {
-                        if let Nod::Uid { intern, num, .. } = tree[kid_range.start as usize].nod {
-                            self.tops.push((intern, DefNum(num)));
+                        match scope_entry(&tree[..=kid_range.start as usize]) {
+                            Some(entry) => self.tops.push(entry),
+                            None => (),
                         }
                     }
                 }
@@ -171,8 +187,9 @@ impl Runner {
                 let range: Range<usize> = range.into();
                 for (local_index, kid_index) in range.clone().enumerate() {
                     if kind == BranchKind::Def && local_index == 0 {
-                        if let Nod::Uid { intern, num } = tree[kid_index].nod {
-                            self.scope.push((intern, DefNum(num)));
+                        match scope_entry(&tree[..=kid_index]) {
+                            Some(entry) => self.scope.push(entry),
+                            None => (),
                         }
                     }
                     self.resolve_at(&tree[..=kid_index]);
@@ -228,5 +245,17 @@ impl Runner {
             return Some(self.tops[*index as usize].1);
         }
         None
+    }
+}
+
+fn scope_entry(tree: &[Node]) -> Option<ScopeEntry> {
+    // TODO Include pub status in entry?
+    match tree.last().unwrap().nod {
+        Nod::Branch {
+            kind: BranchKind::Pub,
+            range,
+        } => scope_entry(&tree[..=range.start as usize]),
+        Nod::Uid { intern, num } => Some((intern, DefNum(num))),
+        _ => None,
     }
 }

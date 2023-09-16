@@ -1,24 +1,28 @@
 Block
   Def
-    Uid Text@1
+    Pub
+      Uid Text@1
     None
     Call
       Uid native@3
   /Def
   Def
-    Uid Void@2
+    Pub
+      Uid Void@2
     None
     Call
       Uid native@3
   /Def
   Def
-    Uid native@3
+    Pub
+      Uid native@3
     None
     Call
       Uid native@3
   /Def
   Def
-    Uid print@4
+    Pub
+      Uid print@4
     None
     Call
       Uid native@3
@@ -26,4 +30,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 21
+Tree len: 25
