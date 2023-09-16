@@ -1,6 +1,7 @@
 Block
   Def
-    Id "main"
+    Pub
+      Id "main"
     None
     Block
       Def
@@ -47,4 +48,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 33
+Tree len: 34

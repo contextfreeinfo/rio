@@ -30,10 +30,11 @@ pub struct Runner {
 
 impl Runner {
     pub fn new(cart: Cart) -> Self {
+        let module = cart.modules.len() as u16 + 1;
         Self {
             cart,
             def_indices: vec![Index::default()],
-            module: 1, // TODO Differentiate!
+            module,
             scope: vec![],
             tops: vec![],
             top_map: HashMap::new(),
@@ -44,6 +45,8 @@ impl Runner {
         self.convert_ids(tree);
         self.extract_top(tree);
         self.resolve(tree);
+        // TODO Store module details!
+        self.cart.modules.push(self.module);
         println!("Defs: {:?}", self.def_indices);
         // println!("Tops: {:?}", self.tops);
         // println!("Top map: {:?}", self.top_map);

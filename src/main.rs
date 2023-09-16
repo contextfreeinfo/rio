@@ -52,6 +52,7 @@ fn main() -> Result<()> {
 
 pub struct Cart {
     pub interner: Interner,
+    pub modules: Vec<u16>,
     pub tree_builder: TreeBuilder,
 }
 
@@ -63,6 +64,7 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let tree_builder = TreeBuilder::default();
     let cart = Cart {
         interner: interner.clone(),
+        modules: vec![],
         tree_builder,
     };
     // Process
