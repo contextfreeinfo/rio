@@ -10,13 +10,16 @@ use crate::{
 pub struct Index(u32);
 
 #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
-pub struct DefNum(u32);
-
-type ScopeEntry = (Intern, DefNum);
+struct ScopeEntry {
+    intern: Intern,
+    module: u16,
+    num: u32,
+}
 
 pub struct Runner {
     pub cart: Cart,
     def_indices: Vec<Index>,
+    module: u16,
     scope: Vec<ScopeEntry>,
     // Single vector to support overloading while trying to limit allocations.
     // TODO Differentiate overload and full definitions.
@@ -30,6 +33,7 @@ impl Runner {
         Self {
             cart,
             def_indices: vec![Index::default()],
+            module: 1, // TODO Differentiate!
             scope: vec![],
             tops: vec![],
             top_map: HashMap::new(),
@@ -68,7 +72,11 @@ impl Runner {
                     match kind {
                         BranchKind::Def => {
                             if kid_index == range.start {
-                                if self.push_id_maybe(&tree[..=kid_index], tree.len() as u32 - 1) {
+                                if self.push_id_maybe(
+                                    &tree[..=kid_index],
+                                    tree.len() as u32 - 1,
+                                    false,
+                                ) {
                                     continue;
                                 }
                             }
@@ -81,6 +89,7 @@ impl Runner {
             }
             _ => {
                 if let Nod::Uid { num, .. } = node.nod {
+                    // TODO Check if external module!
                     self.def_indices[num as usize] = Index(tree.len() as u32 - 1);
                 }
                 self.builder().push(node);
@@ -89,31 +98,29 @@ impl Runner {
         Some(())
     }
 
-    fn push_id(&mut self, node: Node, index: u32, intern: Intern) {
+    fn push_id(&mut self, node: Node, index: u32, intern: Intern, r#pub: bool) {
+        let module = if r#pub { self.module } else { 0 };
         let num = self.def_indices.len() as u32;
         self.def_indices.push(Index(index));
         self.builder().push(Node {
-            nod: Nod::Uid { intern, num },
+            nod: Nod::Uid {
+                intern,
+                module,
+                num,
+            },
             ..node
         });
     }
 
-    fn push_id_maybe(&mut self, tree: &[Node], index: u32) -> bool {
+    fn push_id_maybe(&mut self, tree: &[Node], index: u32, r#pub: bool) -> bool {
         let node = *tree.last().unwrap();
         match node.nod {
             Nod::Branch {
                 kind: BranchKind::Pub,
                 range,
             } => {
-                let start = self.builder().pos();
                 let range: Range<usize> = range.into();
-                if self.push_id_maybe(&tree[..=range.start], index) {
-                    self.builder()
-                        .wrap(BranchKind::Pub, start, Type::default(), node.source);
-                    true
-                } else {
-                    false
-                }
+                self.push_id_maybe(&tree[..=range.start], index, true)
             }
             Nod::Leaf {
                 token:
@@ -123,7 +130,7 @@ impl Runner {
                     },
                 ..
             } => {
-                self.push_id(node, index, intern);
+                self.push_id(node, index, intern, r#pub);
                 true
             }
             _ => false,
@@ -161,7 +168,7 @@ impl Runner {
         self.tops.sort();
         self.top_map.clear();
         let mut last = Intern::default();
-        for (index, (intern, ..)) in self.tops.iter().enumerate() {
+        for (index, ScopeEntry { intern, .. }) in self.tops.iter().enumerate() {
             if *intern != last {
                 self.top_map.insert(*intern, index as u32);
                 last = *intern
@@ -217,8 +224,12 @@ impl Runner {
                     },
             } => {
                 let node = match self.resolve_def(intern) {
-                    Some(num) => Node {
-                        nod: Nod::Uid { intern, num: num.0 },
+                    Some(entry) => Node {
+                        nod: Nod::Uid {
+                            intern,
+                            module: entry.module,
+                            num: entry.num,
+                        },
                         ..node
                     },
                     _ => node,
@@ -232,30 +243,33 @@ impl Runner {
         Some(())
     }
 
-    fn resolve_def(&mut self, intern: Intern) -> Option<DefNum> {
+    fn resolve_def(&mut self, intern: Intern) -> Option<ScopeEntry> {
         for entry in self.scope.iter().rev() {
             // println!("Check {intern:?} vs {entry:?}");
-            if entry.0 == intern {
+            if entry.intern == intern {
                 // TODO Check overloads! Would need more context specs.
-                return Some(entry.1);
+                return Some(*entry);
             }
         }
         if let Some(index) = self.top_map.get(&intern) {
             // TODO Check overloads!
-            return Some(self.tops[*index as usize].1);
+            return Some(self.tops[*index as usize]);
         }
         None
     }
 }
 
 fn scope_entry(tree: &[Node]) -> Option<ScopeEntry> {
-    // TODO Include pub status in entry?
     match tree.last().unwrap().nod {
-        Nod::Branch {
-            kind: BranchKind::Pub,
-            range,
-        } => scope_entry(&tree[..=range.start as usize]),
-        Nod::Uid { intern, num } => Some((intern, DefNum(num))),
+        Nod::Uid {
+            intern,
+            module,
+            num,
+        } => Some(ScopeEntry {
+            intern,
+            module,
+            num,
+        }),
         _ => None,
     }
 }

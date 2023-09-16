@@ -48,6 +48,7 @@ pub enum Nod {
     },
     Uid {
         intern: Intern,
+        module: u16,
         num: u32,
     },
 }
@@ -66,6 +67,12 @@ impl Nody for Nod {
     fn nod(&self) -> Nod {
         *self
     }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+pub struct DefNum {
+    pub module: u32,
+    pub num: u32,
 }
 
 pub fn write_tree<Map>(file: &mut File, nodes: &[impl Nody], map: &Map) -> Result<()>
@@ -110,8 +117,8 @@ where
             writeln!(file, "{:?} {:?}", token.kind, &map[token.intern])?;
             line_count += 1;
         }
-        Nod::Uid { intern, num } => {
-            writeln!(file, "Uid {}@{num}", &map[intern])?;
+        Nod::Uid { intern, module, num } => {
+            writeln!(file, "Uid {}@{module}:{num}", &map[intern])?;
             line_count += 1;
         }
         _ => todo!(),
@@ -124,8 +131,8 @@ impl Debug for Node {
         match self.nod {
             Nod::Branch { kind, range, .. } => f.write_fmt(format_args!("{kind:?}({range:?})")),
             Nod::Leaf { token, .. } => f.write_fmt(format_args!("{token:?}")),
-            Nod::Uid { intern, num, .. } => {
-                f.write_fmt(format_args!("{:?}@{num}", intern.into_inner()))
+            Nod::Uid { intern, module, num } => {
+                f.write_fmt(format_args!("{:?}@{module}:{num}", intern.into_inner()))
             }
             _ => todo!(),
         }

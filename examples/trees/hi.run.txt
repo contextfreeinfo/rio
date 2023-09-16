@@ -1,26 +1,26 @@
 Block
   Def
-    Uid main@1
+    Uid main@0:1
     None
     Block
       Def
-        Uid message@2
+        Uid message@0:2
         Id "Text"
         String "\"Hi!\""
       /Def
       Call
-        Uid print-twice@3
-        Uid message@2
+        Uid print-twice@0:3
+        Uid message@0:2
       /Call
     /Block
   /Def
   Def
-    Uid print-twice@3
+    Uid print-twice@0:3
     None
     Fun
       Params
         Def
-          Uid message@4
+          Uid message@0:4
           Id "Text"
           None
         /Def
@@ -35,11 +35,11 @@ Block
       Block
         Call
           Id "print"
-          Uid message@4
+          Uid message@0:4
         /Call
         Call
           Id "print"
-          Uid message@4
+          Uid message@0:4
         /Call
       /Block
     /Fun
