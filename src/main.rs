@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::{create_dir_all, File},
     io::{Read, Write},
     ops::Index,
@@ -11,7 +12,7 @@ use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
 use lex::{Intern, Interner};
 use norm::Normer;
-use run::Runner;
+use run::{Module, Runner};
 use tree::{write_tree, Nod, Node, Nody, TreeBuilder};
 
 use crate::lex::Lexer;
@@ -51,8 +52,9 @@ fn main() -> Result<()> {
 }
 
 pub struct Cart {
+    pub core: Option<Module>,
     pub interner: Interner,
-    pub modules: Vec<u16>,
+    pub modules: HashMap<Intern, Module>,
     pub tree_builder: TreeBuilder,
 }
 
@@ -63,8 +65,9 @@ fn run_app(args: &RunArgs) -> Result<()> {
     interner.get_or_intern("");
     let tree_builder = TreeBuilder::default();
     let cart = Cart {
+        core: None,
         interner: interner.clone(),
-        modules: vec![],
+        modules: HashMap::new(),
         tree_builder,
     };
     // Process
@@ -83,15 +86,20 @@ fn build(args: &RunArgs, name: &str, cart: Cart) -> Result<Cart> {
     let (parsed_tree, cart) = parse(cart, &lexer);
     dump_tree("parse", args, name, &parsed_tree, interner.as_ref())?;
     // Norm
-    let (mut tree, cart) = norm(cart, parsed_tree);
+    let (mut tree, mut cart) = norm(cart, parsed_tree);
     dump_tree("norm", args, name, &tree, interner.as_ref())?;
     // Run
     // TODO Keep runner to reuse resources, or move them into module?
-    let mut runner = Runner::new(cart);
-    runner.run(&mut tree);
+    let runner = Runner::new(&mut cart);
+    let module = runner.run(interner.get_or_intern(name), &mut tree);
+    if name == "core" {
+        cart.core = Some(module);
+    } else {
+        cart.modules.insert(module.name, module);
+    }
     dump_tree("run", args, name, &tree, interner.as_ref())?;
     // Done
-    Ok(runner.cart)
+    Ok(cart)
 }
 
 fn lex(name: &str, lexer: &mut Lexer) -> Result<(), Error> {

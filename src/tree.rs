@@ -117,7 +117,11 @@ where
             writeln!(file, "{:?} {:?}", token.kind, &map[token.intern])?;
             line_count += 1;
         }
-        Nod::Uid { intern, module, num } => {
+        Nod::Uid {
+            intern,
+            module,
+            num,
+        } => {
             writeln!(file, "Uid {}@{module}:{num}", &map[intern])?;
             line_count += 1;
         }
@@ -131,9 +135,11 @@ impl Debug for Node {
         match self.nod {
             Nod::Branch { kind, range, .. } => f.write_fmt(format_args!("{kind:?}({range:?})")),
             Nod::Leaf { token, .. } => f.write_fmt(format_args!("{token:?}")),
-            Nod::Uid { intern, module, num } => {
-                f.write_fmt(format_args!("{:?}@{module}:{num}", intern.into_inner()))
-            }
+            Nod::Uid {
+                intern,
+                module,
+                num,
+            } => f.write_fmt(format_args!("{:?}@{module}:{num}", intern.into_inner())),
             _ => todo!(),
         }
     }

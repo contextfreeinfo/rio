@@ -10,27 +10,36 @@ use crate::{
 pub struct Index(u32);
 
 #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
-struct ScopeEntry {
+pub struct ScopeEntry {
     intern: Intern,
     module: u16,
     num: u32,
 }
 
-pub struct Runner {
-    pub cart: Cart,
-    def_indices: Vec<Index>,
+pub struct Module {
+    pub def_indices: Vec<Index>,
+    pub name: Intern,
+    pub num: u16,
+    // TODO Find or make some abstraction for this kind of multimap?
+    pub tops: Vec<ScopeEntry>,
+    pub top_map: HashMap<Intern, u32>,
+}
+
+pub struct Runner<'a> {
+    pub cart: &'a mut Cart,
+    pub def_indices: Vec<Index>,
     module: u16,
     scope: Vec<ScopeEntry>,
     // Single vector to support overloading while trying to limit allocations.
     // TODO Differentiate overload and full definitions.
     // TODO Find or make some abstraction for this kind of multimap?
-    tops: Vec<ScopeEntry>,
-    top_map: HashMap<Intern, u32>,
+    pub tops: Vec<ScopeEntry>,
+    pub top_map: HashMap<Intern, u32>,
 }
 
-impl Runner {
-    pub fn new(cart: Cart) -> Self {
-        let module = cart.modules.len() as u16 + 1;
+impl<'a> Runner<'a> {
+    pub fn new(cart: &'a mut Cart) -> Self {
+        let module = cart.modules.len() as u16 + cart.core.is_some() as u16 + 1;
         Self {
             cart,
             def_indices: vec![Index::default()],
@@ -41,15 +50,20 @@ impl Runner {
         }
     }
 
-    pub fn run(&mut self, tree: &mut Vec<Node>) {
+    pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
         self.convert_ids(tree);
         self.extract_top(tree);
         self.resolve(tree);
-        // TODO Store module details!
-        self.cart.modules.push(self.module);
         println!("Defs: {:?}", self.def_indices);
         // println!("Tops: {:?}", self.tops);
         // println!("Top map: {:?}", self.top_map);
+        Module {
+            def_indices: self.def_indices,
+            name,
+            num: self.module,
+            tops: self.tops,
+            top_map: self.top_map,
+        }
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {
