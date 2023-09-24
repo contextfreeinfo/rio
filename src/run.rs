@@ -305,6 +305,11 @@ impl<'a> Runner<'a> {
             // TODO Check overloads!
             return Some(self.tops[*index as usize]);
         }
+        // TODO Work through imports more generally.
+        if let Some(core) = &self.cart.core {
+            // TODO Check overloads!
+            return core.get_top(intern);
+        }
         None
     }
 }

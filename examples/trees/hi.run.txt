@@ -5,7 +5,7 @@ Block
     Block
       Def
         Uid message@0:2
-        Id "Text"
+        Uid Text@1:1
         String "\"Hi!\""
       /Def
       Call
@@ -21,24 +21,24 @@ Block
       Params
         Def
           Uid message@0:4
-          Id "Text"
+          Uid Text@1:1
           None
         /Def
       /Params
       Params
         Def
           None
-          Id "Void"
+          Uid Void@1:2
           None
         /Def
       /Params
       Block
         Call
-          Id "print"
+          Uid print@1:4
           Uid message@0:4
         /Call
         Call
-          Id "print"
+          Uid print@1:4
           Uid message@0:4
         /Call
       /Block
