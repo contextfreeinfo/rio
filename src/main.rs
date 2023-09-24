@@ -12,7 +12,7 @@ use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
 use lex::{Intern, Interner};
 use norm::Normer;
-use run::{Module, Runner};
+use run::{CoreExports, Module, Runner};
 use tree::{write_tree, Nod, Node, Nody, TreeBuilder};
 
 use crate::lex::Lexer;
@@ -53,6 +53,7 @@ fn main() -> Result<()> {
 
 pub struct Cart {
     pub core: Option<Module>,
+    pub core_exports: CoreExports,
     pub interner: Interner,
     pub modules: HashMap<Intern, Module>,
     pub tree_builder: TreeBuilder,
@@ -66,6 +67,7 @@ fn run_app(args: &RunArgs) -> Result<()> {
     let tree_builder = TreeBuilder::default();
     let cart = Cart {
         core: None,
+        core_exports: Default::default(),
         interner: interner.clone(),
         modules: HashMap::new(),
         tree_builder,
@@ -94,6 +96,8 @@ fn build(args: &RunArgs, name: &str, cart: Cart) -> Result<Cart> {
     let module = runner.run(interner.get_or_intern(name), &mut tree);
     if name == "core" {
         cart.core = Some(module);
+        cart.core_exports = CoreExports::extract(cart.core.as_ref().unwrap(), &cart.interner);
+        // println!("{:?}", cart.core_exports);
     } else {
         cart.modules.insert(module.name, module);
     }

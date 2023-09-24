@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Range};
 
 use crate::{
-    lex::{Intern, Token, TokenKind},
+    lex::{Intern, Interner, Token, TokenKind},
     tree::{BranchKind, Nod, Node, TreeBuilder, Type},
     Cart,
 };
@@ -23,6 +23,39 @@ pub struct Module {
     // TODO Find or make some abstraction for this kind of multimap?
     pub tops: Vec<ScopeEntry>,
     pub top_map: HashMap<Intern, u32>,
+}
+
+impl Module {
+    pub fn get_top(&self, intern: Intern) -> Option<ScopeEntry> {
+        // TODO None on duplicates.
+        self.top_map
+            .get(&intern)
+            .map(|ind| self.tops[*ind as usize])
+    }
+}
+
+/// Provide easy access for comparing resolutions to core native definitions.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CoreExports {
+    pub native_fun: ScopeEntry,
+    pub print_fun: ScopeEntry,
+    pub text_type: ScopeEntry,
+    pub void_type: ScopeEntry,
+}
+
+impl CoreExports {
+    pub fn extract(core: &Module, interner: &Interner) -> CoreExports {
+        let get = |name: &str| {
+            // If called at the right point in processing, we should have these.
+            core.get_top(interner.get(name).unwrap()).unwrap()
+        };
+        CoreExports {
+            native_fun: get("native"),
+            print_fun: get("print"),
+            text_type: get("Text"),
+            void_type: get("Void"),
+        }
+    }
 }
 
 pub struct Runner<'a> {
