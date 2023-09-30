@@ -1,7 +1,12 @@
+# Function<params: Tuple<Type???>, result: Type>
 Function* = native()
 
 Text* = native()
 
+# Magical vararg???
+Tuple* = native()
+
+# Enum???
 Type* = native()
 
 Void* = native()

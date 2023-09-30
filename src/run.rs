@@ -41,6 +41,7 @@ pub struct CoreExports {
     pub native_fun: ScopeEntry,
     pub print_fun: ScopeEntry,
     pub text_type: ScopeEntry,
+    pub tuple_type: ScopeEntry,
     pub type_type: ScopeEntry,
     pub void_type: ScopeEntry,
 }
@@ -56,6 +57,7 @@ impl CoreExports {
             native_fun: get("native"),
             print_fun: get("print"),
             text_type: get("Text"),
+            tuple_type: get("Tuple"),
             type_type: get("Type"),
             void_type: get("Void"),
         }

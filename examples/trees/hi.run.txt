@@ -28,17 +28,17 @@ Block
       Params
         Def
           None
-          Uid Void@1:4
+          Uid Void@1:5
           None
         /Def
       /Params
       Block
         Call
-          Uid print@1:6
+          Uid print@1:7
           Uid message@0:4
         /Call
         Call
-          Uid print@1:6
+          Uid print@1:7
           Uid message@0:4
         /Call
       /Block

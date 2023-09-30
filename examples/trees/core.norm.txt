@@ -15,6 +15,13 @@ Block
   /Def
   Def
     Pub
+      Id "Tuple"
+    None
+    Call
+      Id "native"
+  /Def
+  Def
+    Pub
       Id "Type"
     None
     Call
@@ -44,4 +51,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 37
+Tree len: 43

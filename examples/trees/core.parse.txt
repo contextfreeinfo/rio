@@ -1,4 +1,6 @@
 Block
+  Comment "# Function<params: Tuple<Type???>, result: Type>"
+  VSpace "\n"
   Def
     Pub
       Id "Function"
@@ -30,6 +32,26 @@ Block
     /Call
   /Def
   VSpace "\n"
+  VSpace "\n"
+  Comment "# Magical vararg???"
+  VSpace "\n"
+  Def
+    Pub
+      Id "Tuple"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "native"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Comment "# Enum???"
   VSpace "\n"
   Def
     Pub
@@ -97,4 +119,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 78
+Tree len: 97

@@ -3,39 +3,45 @@ Block
     Uid Function@1:1
     None
     Call
-      Uid native@1:5
+      Uid native@1:6
   /Def
   Def
     Uid Text@1:2
     None
     Call
-      Uid native@1:5
+      Uid native@1:6
   /Def
   Def
-    Uid Type@1:3
+    Uid Tuple@1:3
     None
     Call
-      Uid native@1:5
+      Uid native@1:6
   /Def
   Def
-    Uid Void@1:4
+    Uid Type@1:4
     None
     Call
-      Uid native@1:5
+      Uid native@1:6
   /Def
   Def
-    Uid native@1:5
+    Uid Void@1:5
     None
     Call
-      Uid native@1:5
+      Uid native@1:6
   /Def
   Def
-    Uid print@1:6
+    Uid native@1:6
     None
     Call
-      Uid native@1:5
+      Uid native@1:6
+  /Def
+  Def
+    Uid print@1:7
+    None
+    Call
+      Uid native@1:6
   /Def
 /Block
 
 Node size: 20
-Tree len: 31
+Tree len: 36
