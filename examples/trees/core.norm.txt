@@ -1,7 +1,21 @@
 Block
   Def
     Pub
+      Id "Function"
+    None
+    Call
+      Id "native"
+  /Def
+  Def
+    Pub
       Id "Text"
+    None
+    Call
+      Id "native"
+  /Def
+  Def
+    Pub
+      Id "Type"
     None
     Call
       Id "native"
@@ -30,4 +44,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 25
+Tree len: 37

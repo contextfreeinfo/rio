@@ -5,7 +5,7 @@ Block
     Block
       Def
         Uid message@0:2
-        Uid Text@1:1
+        Uid Text@1:2
         String "\"Hi!\""
       /Def
       Call
@@ -21,24 +21,24 @@ Block
       Params
         Def
           Uid message@0:4
-          Uid Text@1:1
+          Uid Text@1:2
           None
         /Def
       /Params
       Params
         Def
           None
-          Uid Void@1:2
+          Uid Void@1:4
           None
         /Def
       /Params
       Block
         Call
-          Uid print@1:4
+          Uid print@1:6
           Uid message@0:4
         /Call
         Call
-          Uid print@1:4
+          Uid print@1:6
           Uid message@0:4
         /Call
       /Block

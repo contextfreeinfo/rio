@@ -1,7 +1,39 @@
 Block
   Def
     Pub
+      Id "Function"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "native"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Pub
       Id "Text"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "native"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Pub
+      Id "Type"
       Star "*"
     /Pub
     HSpace " "
@@ -65,4 +97,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 52
+Tree len: 78

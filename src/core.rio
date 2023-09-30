@@ -1,4 +1,8 @@
+Function* = native()
+
 Text* = native()
+
+Type* = native()
 
 Void* = native()
 

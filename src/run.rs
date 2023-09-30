@@ -37,9 +37,11 @@ impl Module {
 /// Provide easy access for comparing resolutions to core native definitions.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CoreExports {
+    pub function_type: ScopeEntry,
     pub native_fun: ScopeEntry,
     pub print_fun: ScopeEntry,
     pub text_type: ScopeEntry,
+    pub type_type: ScopeEntry,
     pub void_type: ScopeEntry,
 }
 
@@ -50,9 +52,11 @@ impl CoreExports {
             core.get_top(interner.get(name).unwrap()).unwrap()
         };
         CoreExports {
+            function_type: get("Function"),
             native_fun: get("native"),
             print_fun: get("print"),
             text_type: get("Text"),
+            type_type: get("Type"),
             void_type: get("Void"),
         }
     }
@@ -87,6 +91,7 @@ impl<'a> Runner<'a> {
         self.convert_ids(tree);
         self.extract_top(tree);
         self.resolve(tree);
+        self.eval(tree);
         println!("Defs: {:?}", self.def_indices);
         // println!("Tops: {:?}", self.tops);
         // println!("Top map: {:?}", self.top_map);
@@ -224,6 +229,11 @@ impl<'a> Runner<'a> {
                 last = *intern
             }
         }
+        Some(())
+    }
+
+    fn eval(&mut self, tree: &mut Vec<Node>) -> Option<()> {
+        let node = *tree.last()?;
         Some(())
     }
 
