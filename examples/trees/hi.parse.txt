@@ -12,7 +12,7 @@ Block
     Define "="
     HSpace " "
     Block
-      CurlyOpen "be"
+      Be "be"
       VSpace "\n"
       HSpace "    "
       Def
@@ -35,7 +35,7 @@ Block
         Id "message"
       /Call
       VSpace "\n"
-      CurlyClose "end"
+      End "end"
     /Block
   /Def
   VSpace "\n"
@@ -69,7 +69,7 @@ Block
         /Typed
       /Params
       Block
-        CurlyOpen "be"
+        Be "be"
         VSpace "\n"
         HSpace "    "
         Comment "# Both call forms are allowed, but whitespace matters."
@@ -92,7 +92,7 @@ Block
           Id "message"
         /Call
         VSpace "\n"
-        CurlyClose "end"
+        End "end"
       /Block
     /Fun
   /Def

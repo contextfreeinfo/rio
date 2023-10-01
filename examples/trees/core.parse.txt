@@ -111,7 +111,7 @@ Block
         /Typed
       /Params
       Block
-        CurlyOpen "be"
+        Be "be"
         HSpace " "
         Call
           Id "native"
@@ -119,7 +119,7 @@ Block
           RoundClose ")"
           HSpace " "
         /Call
-        CurlyClose "end"
+        End "end"
       /Block
     /Fun
   /Def
@@ -163,7 +163,7 @@ Block
         /Typed
       /Params
       Block
-        CurlyOpen "be"
+        Be "be"
         HSpace " "
         Call
           Id "native"
@@ -171,7 +171,7 @@ Block
           RoundClose ")"
           HSpace " "
         /Call
-        CurlyClose "end"
+        End "end"
       /Block
     /Fun
   /Def

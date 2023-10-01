@@ -121,10 +121,12 @@ impl Normer {
                         self.builder().push_none(tree.len() - 1);
                     }
                 }
-                TokenKind::Comma
+                TokenKind::Be
+                | TokenKind::Comma
                 | TokenKind::Comment
                 | TokenKind::CurlyClose
                 | TokenKind::CurlyOpen
+                | TokenKind::End
                 | TokenKind::Fun
                 | TokenKind::HSpace
                 | TokenKind::RoundClose

@@ -25,12 +25,14 @@ impl Token {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TokenKind {
+    Be,
     Colon,
     Comma,
     Comment,
     CurlyClose,
     CurlyOpen,
     Define,
+    End,
     Fun,
     HSpace,
     Id,
@@ -153,8 +155,8 @@ impl Lexer {
     fn trim(&mut self, source: &mut Peekable<Chars>) {
         if !self.buffer.is_empty() {
             let kind = match self.buffer.as_str() {
-                "be" => TokenKind::CurlyOpen,
-                "end" => TokenKind::CurlyClose,
+                "be" => TokenKind::Be,
+                "end" => TokenKind::End,
                 "for" => TokenKind::Fun,
                 _ => TokenKind::Id,
             };

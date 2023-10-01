@@ -47,7 +47,7 @@ impl Parser {
         self.skip_h(source);
         match peek(source)? {
             TokenKind::Colon | TokenKind::Comma | TokenKind::VSpace => {}
-            TokenKind::CurlyOpen | TokenKind::RoundOpen => self.block(source)?,
+            TokenKind::Be | TokenKind::CurlyOpen | TokenKind::RoundOpen => self.block(source)?,
             TokenKind::Fun => self.fun(source)?,
             TokenKind::Id => self.advance(source),
             TokenKind::String => self.advance(source),
@@ -59,6 +59,7 @@ impl Parser {
     fn block(&mut self, source: &mut Tokens) -> Option<()> {
         let start = self.builder().pos();
         let ender = match peek(source)? {
+            TokenKind::Be => TokenKind::End,
             TokenKind::CurlyOpen => TokenKind::CurlyClose,
             TokenKind::RoundOpen => TokenKind::RoundClose,
             _ => panic!(),
@@ -83,7 +84,7 @@ impl Parser {
             self.skip_hv(source);
             match peek(source)? {
                 TokenKind::Comma => self.advance(source),
-                TokenKind::CurlyClose | TokenKind::RoundClose => None?,
+                TokenKind::CurlyClose | TokenKind::End | TokenKind::RoundClose => None?,
                 _ => {
                     self.def(source);
                 }
@@ -111,9 +112,11 @@ impl Parser {
             if post > start {
                 // TODO Can we leaving trailing hspace, or do we need to have an indicator?
                 match peek(source)? {
-                    TokenKind::HSpace | TokenKind::CurlyOpen => {
+                    TokenKind::HSpace | TokenKind::Be | TokenKind::CurlyOpen => {
                         self.skip_h(source);
-                        if !allow_block && peek(source)? == TokenKind::CurlyOpen {
+                        if !allow_block
+                            && matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen)
+                        {
                             break;
                         }
                         post = self.builder().pos();
@@ -127,7 +130,7 @@ impl Parser {
                             self.advance(source);
                         }
                         self.skip_h(source);
-                        if peek(source)? == TokenKind::CurlyOpen {
+                        if matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen) {
                             if !allow_block {
                                 break;
                             }
@@ -254,6 +257,7 @@ impl Parser {
                 TokenKind::Comma
                 | TokenKind::CurlyClose
                 | TokenKind::Define
+                | TokenKind::End
                 | TokenKind::RoundClose
                 | TokenKind::VSpace => None?,
                 _ => self.starred(source),
