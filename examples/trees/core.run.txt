@@ -1,47 +1,71 @@
 Block
   Def
     Uid Function@1:1
-    None
+    Uid Type@1:3
     Call
-      Uid native@1:6
+      Uid native@1:5
   /Def
   Def
     Uid Text@1:2
-    None
+    Uid Type@1:3
     Call
-      Uid native@1:6
+      Uid native@1:5
   /Def
   Def
-    Uid Tuple@1:3
-    None
+    Uid Type@1:3
+    Uid Type@1:3
     Call
-      Uid native@1:6
+      Uid native@1:5
   /Def
   Def
-    Uid Type@1:4
-    None
+    Uid Void@1:4
+    Uid Type@1:3
     Call
-      Uid native@1:6
+      Uid native@1:5
   /Def
   Def
-    Uid Void@1:5
+    Uid native@1:5
     None
-    Call
-      Uid native@1:6
+    Fun
+      Params
+      Params
+        Def
+          None
+          Uid Void@1:4
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Uid native@1:5
+      /Block
+    /Fun
   /Def
   Def
-    Uid native@1:6
+    Uid print@1:6
     None
-    Call
-      Uid native@1:6
-  /Def
-  Def
-    Uid print@1:7
-    None
-    Call
-      Uid native@1:6
+    Fun
+      Params
+        Def
+          Uid text@0:7
+          Uid Text@1:2
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Uid Void@1:4
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Uid native@1:5
+      /Block
+    /Fun
   /Def
 /Block
 
 Node size: 20
-Tree len: 36
+Tree len: 51

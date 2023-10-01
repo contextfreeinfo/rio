@@ -1,16 +1,17 @@
-# Function<params: Tuple<Type???>, result: Type>
-Function* = native()
+# Function<Struct, Struct>
+Function*: Type = native()
 
-Text* = native()
-
-# Magical vararg???
-Tuple* = native()
+Text*: Type = native()
 
 # Enum???
-Type* = native()
+Type*: Type = native()
 
-Void* = native()
+Void*: Type = native()
 
-native* = native()
+native* = for(): Void be native() end
 
-print* = native()
+# print*: Function<[Text], [Void]> = native()
+# print*: Function<[Text], Void> = native()
+# print*: Function<Text, Void> = native()
+# print*: for(Text): Void = native()
+print* = for(text: Text): Void be native() end

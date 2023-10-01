@@ -1,12 +1,17 @@
 Block
-  Comment "# Function<params: Tuple<Type???>, result: Type>"
+  Comment "# Function<Struct, Struct>"
   VSpace "\n"
   Def
-    Pub
-      Id "Function"
-      Star "*"
-    /Pub
-    HSpace " "
+    Typed
+      Pub
+        Id "Function"
+        Star "*"
+      /Pub
+      Colon ":"
+      HSpace " "
+      Id "Type"
+      HSpace " "
+    /Typed
     Define "="
     HSpace " "
     Call
@@ -18,29 +23,16 @@ Block
   VSpace "\n"
   VSpace "\n"
   Def
-    Pub
-      Id "Text"
-      Star "*"
-    /Pub
-    HSpace " "
-    Define "="
-    HSpace " "
-    Call
-      Id "native"
-      RoundOpen "("
-      RoundClose ")"
-    /Call
-  /Def
-  VSpace "\n"
-  VSpace "\n"
-  Comment "# Magical vararg???"
-  VSpace "\n"
-  Def
-    Pub
-      Id "Tuple"
-      Star "*"
-    /Pub
-    HSpace " "
+    Typed
+      Pub
+        Id "Text"
+        Star "*"
+      /Pub
+      Colon ":"
+      HSpace " "
+      Id "Type"
+      HSpace " "
+    /Typed
     Define "="
     HSpace " "
     Call
@@ -54,11 +46,37 @@ Block
   Comment "# Enum???"
   VSpace "\n"
   Def
-    Pub
+    Typed
+      Pub
+        Id "Type"
+        Star "*"
+      /Pub
+      Colon ":"
+      HSpace " "
       Id "Type"
-      Star "*"
-    /Pub
+      HSpace " "
+    /Typed
+    Define "="
     HSpace " "
+    Call
+      Id "native"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Typed
+      Pub
+        Id "Void"
+        Star "*"
+      /Pub
+      Colon ":"
+      HSpace " "
+      Id "Type"
+      HSpace " "
+    /Typed
     Define "="
     HSpace " "
     Call
@@ -71,35 +89,49 @@ Block
   VSpace "\n"
   Def
     Pub
-      Id "Void"
-      Star "*"
-    /Pub
-    HSpace " "
-    Define "="
-    HSpace " "
-    Call
-      Id "native"
-      RoundOpen "("
-      RoundClose ")"
-    /Call
-  /Def
-  VSpace "\n"
-  VSpace "\n"
-  Def
-    Pub
       Id "native"
       Star "*"
     /Pub
     HSpace " "
     Define "="
     HSpace " "
-    Call
-      Id "native"
-      RoundOpen "("
-      RoundClose ")"
-    /Call
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Void"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        CurlyOpen "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+          HSpace " "
+        /Call
+        CurlyClose "end"
+      /Block
+    /Fun
   /Def
   VSpace "\n"
+  VSpace "\n"
+  Comment "# print*: Function<[Text], [Void]> = native()"
+  VSpace "\n"
+  Comment "# print*: Function<[Text], Void> = native()"
+  VSpace "\n"
+  Comment "# print*: Function<Text, Void> = native()"
+  VSpace "\n"
+  Comment "# print*: for(Text): Void = native()"
   VSpace "\n"
   Def
     Pub
@@ -109,14 +141,42 @@ Block
     HSpace " "
     Define "="
     HSpace " "
-    Call
-      Id "native"
-      RoundOpen "("
-      RoundClose ")"
-    /Call
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "text"
+          Colon ":"
+          HSpace " "
+          Id "Text"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Void"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        CurlyOpen "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+          HSpace " "
+        /Call
+        CurlyClose "end"
+      /Block
+    /Fun
   /Def
   VSpace "\n"
 /Block
 
 Node size: 12
-Tree len: 97
+Tree len: 145

@@ -23,6 +23,7 @@ pub struct Module {
     // TODO Find or make some abstraction for this kind of multimap?
     pub tops: Vec<ScopeEntry>,
     pub top_map: HashMap<Intern, u32>,
+    pub tree: Vec<Node>,
 }
 
 impl Module {
@@ -41,7 +42,6 @@ pub struct CoreExports {
     pub native_fun: ScopeEntry,
     pub print_fun: ScopeEntry,
     pub text_type: ScopeEntry,
-    pub tuple_type: ScopeEntry,
     pub type_type: ScopeEntry,
     pub void_type: ScopeEntry,
 }
@@ -57,7 +57,6 @@ impl CoreExports {
             native_fun: get("native"),
             print_fun: get("print"),
             text_type: get("Text"),
-            tuple_type: get("Tuple"),
             type_type: get("Type"),
             void_type: get("Void"),
         }
@@ -65,6 +64,7 @@ impl CoreExports {
 }
 
 pub struct Runner<'a> {
+    bonus: TreeBuilder,
     pub cart: &'a mut Cart,
     pub def_indices: Vec<Index>,
     module: u16,
@@ -80,6 +80,7 @@ impl<'a> Runner<'a> {
     pub fn new(cart: &'a mut Cart) -> Self {
         let module = cart.modules.len() as u16 + cart.core.is_some() as u16 + 1;
         Self {
+            bonus: TreeBuilder::default(),
             cart,
             def_indices: vec![Index::default()],
             module,
@@ -90,6 +91,7 @@ impl<'a> Runner<'a> {
     }
 
     pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
+        self.bonus.clear();
         self.convert_ids(tree);
         self.extract_top(tree);
         self.resolve(tree);
@@ -103,11 +105,17 @@ impl<'a> Runner<'a> {
             num: self.module,
             tops: self.tops,
             top_map: self.top_map,
+            tree: self.cart.tree_builder.nodes.clone(),
         }
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {
         &mut self.cart.tree_builder
+    }
+
+    fn eval(&mut self, tree: &mut Vec<Node>) -> Option<()> {
+        let node = *tree.last()?;
+        Some(())
     }
 
     fn convert_ids(&mut self, tree: &mut Vec<Node>) {
@@ -231,11 +239,6 @@ impl<'a> Runner<'a> {
                 last = *intern
             }
         }
-        Some(())
-    }
-
-    fn eval(&mut self, tree: &mut Vec<Node>) -> Option<()> {
-        let node = *tree.last()?;
         Some(())
     }
 

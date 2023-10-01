@@ -2,35 +2,28 @@ Block
   Def
     Pub
       Id "Function"
-    None
+    Id "Type"
     Call
       Id "native"
   /Def
   Def
     Pub
       Id "Text"
-    None
-    Call
-      Id "native"
-  /Def
-  Def
-    Pub
-      Id "Tuple"
-    None
+    Id "Type"
     Call
       Id "native"
   /Def
   Def
     Pub
       Id "Type"
-    None
+    Id "Type"
     Call
       Id "native"
   /Def
   Def
     Pub
       Id "Void"
-    None
+    Id "Type"
     Call
       Id "native"
   /Def
@@ -38,17 +31,47 @@ Block
     Pub
       Id "native"
     None
-    Call
-      Id "native"
+    Fun
+      Params
+      Params
+        Def
+          None
+          Id "Void"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
   /Def
   Def
     Pub
       Id "print"
     None
-    Call
-      Id "native"
+    Fun
+      Params
+        Def
+          Id "text"
+          Id "Text"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Void"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
   /Def
 /Block
 
 Node size: 20
-Tree len: 43
+Tree len: 57
