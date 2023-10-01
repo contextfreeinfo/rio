@@ -65,14 +65,18 @@ impl Parser {
             _ => panic!(),
         };
         self.advance(source);
-        loop_some!({
-            self.block_content(source);
-            let kind = peek(source)?;
-            self.advance(source);
-            if kind == ender {
-                None?
-            }
-        });
+        self.skip_h(source);
+        match peek(source)? {
+            TokenKind::VSpace => loop_some!({
+                self.block_content(source);
+                let kind = peek(source)?;
+                self.advance(source);
+                if kind == ender {
+                    None?
+                }
+            }),
+            _ => self.call(source, true),
+        };
         if self.builder().pos() > start {
             self.wrap(BranchKind::Block, start);
         }
@@ -241,12 +245,17 @@ impl Parser {
     }
 
     fn skip_h(&mut self, source: &mut Tokens) -> Option<()> {
-        self.skip(source, |kind| kind == TokenKind::HSpace)
+        self.skip(source, |kind| {
+            matches!(kind, TokenKind::Comment | TokenKind::HSpace)
+        })
     }
 
     fn skip_hv(&mut self, source: &mut Tokens) -> Option<()> {
         self.skip(source, |kind| {
-            kind == TokenKind::HSpace || kind == TokenKind::VSpace
+            matches!(
+                kind,
+                TokenKind::Comment | TokenKind::HSpace | TokenKind::VSpace
+            )
         })
     }
 

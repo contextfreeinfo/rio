@@ -117,9 +117,7 @@ Block
           Id "native"
           RoundOpen "("
           RoundClose ")"
-          HSpace " "
         /Call
-        End "end"
       /Block
     /Fun
   /Def
@@ -169,9 +167,7 @@ Block
           Id "native"
           RoundOpen "("
           RoundClose ")"
-          HSpace " "
         /Call
-        End "end"
       /Block
     /Fun
   /Def
@@ -179,4 +175,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 145
+Tree len: 141
