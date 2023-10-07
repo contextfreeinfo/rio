@@ -18,8 +18,17 @@ impl Into<Source> for usize {
     }
 }
 
-#[derive(Clone, Copy, Default, Eq, PartialEq)]
-pub struct Type(u32);
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct Type(pub u32);
+
+impl Type {
+    pub fn or(self, other: Type) -> Type {
+        match self.0 {
+            0 => other,
+            _ => self,
+        }
+    }
+}
 
 impl Into<Type> for usize {
     fn into(self) -> Type {
@@ -55,17 +64,26 @@ pub enum Nod {
 
 pub trait Nody {
     fn nod(&self) -> Nod;
+    fn typ(&self) -> Type;
 }
 
 impl Nody for Node {
     fn nod(&self) -> Nod {
         self.nod
     }
+
+    fn typ(&self) -> Type {
+        self.typ
+    }
 }
 
 impl Nody for Nod {
     fn nod(&self) -> Nod {
         *self
+    }
+
+    fn typ(&self) -> Type {
+        Type(0)
     }
 }
 
@@ -95,11 +113,20 @@ where
 {
     let mut line_count = 0;
     let node = &nodes[index];
+    let mut finish = |file: &mut File| -> Result<()> {
+        let typ = node.typ().0;
+        match typ {
+            0 => writeln!(file),
+            _ => writeln!(file, " ({})", node.typ().0),
+        }?;
+        line_count += 1;
+        Ok(())
+    };
     write!(file, "{: <1$}", "", indent)?;
     match node.nod() {
         Nod::Branch { kind, range } => {
-            writeln!(file, "{kind:?}")?;
-            line_count += 1;
+            write!(file, "{kind:?}")?;
+            finish(file)?;
             let range: Range<usize> = range.into();
             let mut sub_count = 0;
             for index in range.clone() {
@@ -114,16 +141,16 @@ where
             }
         }
         Nod::Leaf { token } => {
-            writeln!(file, "{:?} {:?}", token.kind, &map[token.intern])?;
-            line_count += 1;
+            write!(file, "{:?} {:?}", token.kind, &map[token.intern])?;
+            finish(file)?;
         }
         Nod::Uid {
             intern,
             module,
             num,
         } => {
-            writeln!(file, "Uid {}@{module}:{num}", &map[intern])?;
-            line_count += 1;
+            write!(file, "Uid {}@{module}:{num}", &map[intern])?;
+            finish(file)?;
         }
         _ => todo!(),
     }
@@ -167,12 +194,18 @@ pub enum BranchKind {
     Call,
     Def,
     Fun,
+    FunType,     // (ParamsType, Type)
+    Generic,     // (Params, <Something>)
+    GenericCall, // (<Something>, ...) distinct from other Call because infer.
     // Group,
     None,
     Params,
+    ParamTypes,
     Pub,
     Struct,
+    Type, // FunType | GenericCall | Uid
     Typed,
+    Types, // Type*
 }
 
 // Duplicated from std Range so it can be Copy.
@@ -240,6 +273,32 @@ impl TreeBuilder {
         self.clear();
     }
 
+    pub fn pop(&mut self) -> Option<Node> {
+        if self.nodes.is_empty() {
+            // Nothing to pop.
+            return None;
+        }
+        match self.working.len() {
+            0 => {
+                // Pop the top node into working.
+                self.working.push(self.nodes.pop().unwrap());
+                None
+            }
+            _ => {
+                // Pop the top working, pulling in its kids.
+                let top = self.working.pop().unwrap();
+                match top.nod {
+                    Nod::Branch { range, .. } => {
+                        let range: Range<usize> = range.into();
+                        self.working.extend(self.nodes.drain(range));
+                    }
+                    _ => {}
+                }
+                Some(top)
+            }
+        }
+    }
+
     pub fn pos(&self) -> u32 {
         self.working.len() as u32
     }
@@ -259,6 +318,24 @@ impl TreeBuilder {
         });
     }
 
+    pub fn push_tree(&mut self, nodes: &[Node]) {
+        if nodes.is_empty() {
+            return;
+        }
+        let node = *nodes.last().unwrap();
+        match node.nod {
+            Nod::Branch { kind, range } => {
+                let start = self.pos();
+                let range: Range<usize> = range.into();
+                for kid_index in range.clone() {
+                    self.push_tree(&nodes[..kid_index]);
+                }
+                self.wrap(kind, start, node.typ, node.source);
+            },
+            _ => self.push(node),
+        }
+    }
+
     pub fn push_none<S>(&mut self, source: S)
     where
         S: Into<Source>,
@@ -274,7 +351,7 @@ impl TreeBuilder {
         let nodes_start = self.nodes.len();
         self.nodes.extend(self.working.drain(start..));
         let source = source.into();
-        self.working.push(Node {
+        self.push(Node {
             typ,
             source,
             nod: Nod::Branch {

@@ -44,7 +44,11 @@ Block
       /Block
     /Fun
   /Def
+  Types
+    Uid Text@1:2
+    Uid Text@1:2
+  /Types
 /Block
 
 Node size: 20
-Tree len: 33
+Tree len: 36

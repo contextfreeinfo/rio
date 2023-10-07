@@ -13,7 +13,7 @@ use lasso::ThreadedRodeo;
 use lex::{Intern, Interner};
 use norm::Normer;
 use run::{CoreExports, Module, Runner};
-use tree::{write_tree, Nod, Node, Nody, TreeBuilder};
+use tree::{write_tree, Nod, Node, Nody, TreeBuilder, Type};
 
 use crate::lex::Lexer;
 

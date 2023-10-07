@@ -2,7 +2,7 @@ use std::{collections::HashMap, ops::Range};
 
 use crate::{
     lex::{Intern, Interner, Token, TokenKind},
-    tree::{BranchKind, Nod, Node, TreeBuilder, Type},
+    tree::{BranchKind, Nod, Node, SimpleRange, TreeBuilder, Type},
     Cart,
 };
 
@@ -64,7 +64,6 @@ impl CoreExports {
 }
 
 pub struct Runner<'a> {
-    bonus: TreeBuilder,
     pub cart: &'a mut Cart,
     pub def_indices: Vec<Index>,
     module: u16,
@@ -74,28 +73,30 @@ pub struct Runner<'a> {
     // TODO Find or make some abstraction for this kind of multimap?
     pub tops: Vec<ScopeEntry>,
     pub top_map: HashMap<Intern, u32>,
+    types: TreeBuilder,
 }
 
 impl<'a> Runner<'a> {
     pub fn new(cart: &'a mut Cart) -> Self {
         let module = cart.modules.len() as u16 + cart.core.is_some() as u16 + 1;
         Self {
-            bonus: TreeBuilder::default(),
             cart,
             def_indices: vec![Index::default()],
             module,
             scope: vec![],
             tops: vec![],
             top_map: HashMap::new(),
+            types: TreeBuilder::default(),
         }
     }
 
     pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
-        self.bonus.clear();
+        self.types.clear();
         self.convert_ids(tree);
         self.extract_top(tree);
         self.resolve(tree);
-        self.eval(tree);
+        self.eval(tree, Type(0));
+        self.append_types(tree);
         println!("Defs: {:?}", self.def_indices);
         // println!("Tops: {:?}", self.tops);
         // println!("Top map: {:?}", self.top_map);
@@ -109,12 +110,61 @@ impl<'a> Runner<'a> {
         }
     }
 
+    fn append_types(&mut self, tree: &mut Vec<Node>) {
+        self.builder().nodes.extend_from_slice(&tree);
+        self.builder().pop();
+        self.builder().pop();
+        // Double-wrap to push a block.
+        self.types.wrap(BranchKind::Types, 0, Type(0), 0);
+        self.types.wrap(BranchKind::Types, 0, Type(0), 0);
+        self.cart.tree_builder.push_tree(&self.types.nodes);
+        self.builder().wrap(BranchKind::Block, 0, Type(0), 0);
+        self.builder().wrap(BranchKind::Block, 0, Type(0), 0);
+        self.builder().drain_into(tree);
+    }
+
     fn builder(&mut self) -> &mut TreeBuilder {
         &mut self.cart.tree_builder
     }
 
-    fn eval(&mut self, tree: &mut Vec<Node>) -> Option<()> {
+    fn eval(&mut self, tree: &[Node], typ: Type) -> Option<()> {
         let node = *tree.last()?;
+        let mut typ = typ.or(node.typ);
+        match node.nod {
+            Nod::Branch { kind, range } => {
+                let range: Range<usize> = range.into();
+                match kind {
+                    BranchKind::Def => {
+                        let start = range.start;
+                        let id = tree[start];
+                        let xtype = tree[start + 1];
+                        let value = tree[start + 2];
+                        if typ.0 == 0 {
+                            match xtype.nod {
+                                Nod::Uid { .. } => {
+                                    self.types.push(xtype);
+                                    typ = Type(self.types.pos() - 1);
+                                }
+                                _ => {}
+                            }
+                            println!("{:?} {:?}", id, xtype);
+                        }
+                    }
+                    _ => {}
+                }
+                for kid_index in range.clone() {
+                    self.eval(&tree[..=kid_index], Type(0));
+                }
+                // if let Nod::Branch {
+                //     kind: BranchKind::None,
+                //     ..
+                // } = xtype.nod
+                // {
+                //     println!("def: ");
+                // }
+            }
+            _ => {}
+        }
         Some(())
     }
 
