@@ -19,17 +19,17 @@ Block
     None
     Fun
       Params
-        Def
-          Uid message@0:4
+        Def (1)
+          Uid message@0:4 (1)
           Uid Text@1:2
-          None
+          None (1)
         /Def
       /Params
       Params
-        Def
-          None
+        Def (2)
+          None (2)
           Uid Void@1:4
-          None
+          None (2)
         /Def
       /Params
       Block
@@ -45,8 +45,8 @@ Block
     /Fun
   /Def
   Types
-    Uid Text@1:2
-    Uid Text@1:2
+    (1) Uid Text@1:2
+    (2) Uid Text@1:2
   /Types
 /Block
 

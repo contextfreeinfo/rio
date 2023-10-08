@@ -95,7 +95,7 @@ impl<'a> Runner<'a> {
         self.convert_ids(tree);
         self.extract_top(tree);
         self.resolve(tree);
-        self.eval(tree, Type(0));
+        self.type_any(tree, Type(0));
         self.append_types(tree);
         println!("Defs: {:?}", self.def_indices);
         // println!("Tops: {:?}", self.tops);
@@ -127,45 +127,72 @@ impl<'a> Runner<'a> {
         &mut self.cart.tree_builder
     }
 
-    fn eval(&mut self, tree: &[Node], typ: Type) -> Option<()> {
+    fn build_type(&mut self, tree: &[Node]) -> bool {
+        let node = *tree.last().unwrap();
+        match node.nod {
+            // TODO Complex types.
+            Nod::Uid { .. } => {
+                // TODO Look up existing type.
+                self.types.push(node);
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn type_any(&mut self, tree: &mut [Node], typ: Type) -> Option<()> {
         let node = *tree.last()?;
         let mut typ = typ.or(node.typ);
         match node.nod {
             Nod::Branch { kind, range } => {
                 let range: Range<usize> = range.into();
-                match kind {
+                let handled = match kind {
                     BranchKind::Def => {
-                        let start = range.start;
-                        let id = tree[start];
-                        let xtype = tree[start + 1];
-                        let value = tree[start + 2];
-                        if typ.0 == 0 {
-                            match xtype.nod {
-                                Nod::Uid { .. } => {
-                                    self.types.push(xtype);
-                                    typ = Type(self.types.pos() - 1);
-                                }
-                                _ => {}
-                            }
-                            println!("{:?} {:?}", id, xtype);
-                        }
+                        typ = self.type_def(&range, tree, typ);
+                        true
                     }
-                    _ => {}
+                    BranchKind::Fun => {
+                        println!("Interpret fun sig as type");
+                        false
+                    }
+                    _ => false,
+                };
+                // TODO Eventually, should we handle everything above?
+                if !handled {
+                    for kid_index in range.clone() {
+                        self.type_any(&mut tree[..=kid_index], Type::default());
+                    }
                 }
-                for kid_index in range.clone() {
-                    self.eval(&tree[..=kid_index], Type(0));
-                }
-                // if let Nod::Branch {
-                //     kind: BranchKind::None,
-                //     ..
-                // } = xtype.nod
-                // {
-                //     println!("def: ");
-                // }
             }
             _ => {}
         }
+        // TODO Push with new typ instead?
+        tree.last_mut().unwrap().typ = typ;
         Some(())
+    }
+
+    fn type_def(&mut self, range: &Range<usize>, tree: &mut [Node], mut typ: Type) -> Type {
+        let start = range.start;
+        let xtype = tree[start + 1];
+        let value = tree[start + 2];
+        if typ.0 == 0 {
+            // Prioritize previously evaluated types, first from
+            // the explicit type.
+            typ = xtype.typ.or(value.typ);
+            if typ.0 == 0 {
+                // Failing that, interpret the explicit type
+                // from the tree.
+                if self.build_type(&tree[..=start + 1]) {
+                    typ = Type(self.types.pos() - 1);
+                }
+            }
+        }
+        // There should always be exactly 3 kids of defs.
+        self.type_any(&mut tree[..=start], typ);
+        // TODO Look up Type type.
+        self.type_any(&mut tree[..=start + 1], Type::default());
+        self.type_any(&mut tree[..=start + 2], typ);
+        typ
     }
 
     fn convert_ids(&mut self, tree: &mut Vec<Node>) {

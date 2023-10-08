@@ -97,14 +97,16 @@ pub fn write_tree<Map>(file: &mut File, nodes: &[impl Nody], map: &Map) -> Resul
 where
     Map: Index<Intern, Output = str>,
 {
-    write_at(file, nodes, map, nodes.len() - 1, 0)?;
+    write_at(file, None::<Nod>, nodes, map, 0, nodes.len() - 1, 0)?;
     Ok(())
 }
 
 fn write_at<Map>(
     file: &mut File,
+    parent: Option<Nod>,
     nodes: &[impl Nody],
     map: &Map,
+    kid_index: usize,
     index: usize,
     indent: usize,
 ) -> Result<usize>
@@ -122,15 +124,35 @@ where
         line_count += 1;
         Ok(())
     };
+    // Indent.
     write!(file, "{: <1$}", "", indent)?;
+    // Type index.
+    if matches!(
+        parent,
+        Some(Nod::Branch {
+            kind: BranchKind::Types,
+            ..
+        }),
+    ) {
+        write!(file, "({}) ", kid_index + 1)?;
+    }
+    // Node info.
     match node.nod() {
         Nod::Branch { kind, range } => {
             write!(file, "{kind:?}")?;
             finish(file)?;
             let range: Range<usize> = range.into();
             let mut sub_count = 0;
-            for index in range.clone() {
-                sub_count += write_at(file, nodes, map, index, indent + 2)?;
+            for (kid_index, index) in range.clone().enumerate() {
+                sub_count += write_at(
+                    file,
+                    Some(node.nod()),
+                    nodes,
+                    map,
+                    kid_index,
+                    index,
+                    indent + 2,
+                )?;
             }
             line_count += sub_count;
             if sub_count > 1 {
@@ -331,7 +353,7 @@ impl TreeBuilder {
                     self.push_tree(&nodes[..kid_index]);
                 }
                 self.wrap(kind, start, node.typ, node.source);
-            },
+            }
             _ => self.push(node),
         }
     }
