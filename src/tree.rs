@@ -350,7 +350,7 @@ impl TreeBuilder {
                 let start = self.pos();
                 let range: Range<usize> = range.into();
                 for kid_index in range.clone() {
-                    self.push_tree(&nodes[..kid_index]);
+                    self.push_tree(&nodes[..=kid_index]);
                 }
                 self.wrap(kind, start, node.typ, node.source);
             }

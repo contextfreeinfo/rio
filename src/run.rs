@@ -183,7 +183,7 @@ impl<'a> Runner<'a> {
                 // Failing that, interpret the explicit type
                 // from the tree.
                 if self.build_type(&tree[..=start + 1]) {
-                    typ = Type(self.types.pos() - 1);
+                    typ = Type(self.types.pos());
                 }
             }
         }

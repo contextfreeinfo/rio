@@ -3,10 +3,10 @@ Block
     Uid main@2:1
     None
     Block
-      Def
-        Uid message@0:2
+      Def (1)
+        Uid message@0:2 (1)
         Uid Text@1:2
-        String "\"Hi!\""
+        String "\"Hi!\"" (1)
       /Def
       Call
         Uid print-twice@0:3
@@ -19,17 +19,17 @@ Block
     None
     Fun
       Params
-        Def (1)
-          Uid message@0:4 (1)
+        Def (2)
+          Uid message@0:4 (2)
           Uid Text@1:2
-          None (1)
+          None (2)
         /Def
       /Params
       Params
-        Def (2)
-          None (2)
+        Def (3)
+          None (3)
           Uid Void@1:4
-          None (2)
+          None (3)
         /Def
       /Params
       Block
@@ -47,8 +47,9 @@ Block
   Types
     (1) Uid Text@1:2
     (2) Uid Text@1:2
+    (3) Uid Void@1:4
   /Types
 /Block
 
 Node size: 20
-Tree len: 36
+Tree len: 37
