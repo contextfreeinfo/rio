@@ -166,7 +166,7 @@ impl<'a> Runner<'a> {
             }
             _ => {}
         }
-        // TODO Push with new typ instead?
+        // Assign on existing structure lets us go in arbitrary order easier.
         tree.last_mut().unwrap().typ = typ;
         Some(())
     }
@@ -180,18 +180,22 @@ impl<'a> Runner<'a> {
             // the explicit type.
             typ = xtype.typ.or(value.typ);
             if typ.0 == 0 {
-                // Failing that, interpret the explicit type
-                // from the tree.
+                // Failing that, interpret the explicit type from the tree.
                 if self.build_type(&tree[..=start + 1]) {
                     typ = Type(self.types.pos());
                 }
             }
         }
-        // There should always be exactly 3 kids of defs.
+        // There should always be exactly 3 kids of defs: id, xtype, value.
+        // Check value first in case we want the type from it.
+        self.type_any(&mut tree[..=start + 2], typ);
+        if typ.0 == 0 {
+            // We did't have type yet, so try the value's type.
+            typ = tree[start + 2].typ;
+        }
         self.type_any(&mut tree[..=start], typ);
         // TODO Look up Type type.
         self.type_any(&mut tree[..=start + 1], Type::default());
-        self.type_any(&mut tree[..=start + 2], typ);
         typ
     }
 
