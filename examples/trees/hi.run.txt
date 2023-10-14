@@ -5,7 +5,7 @@ Block
     Block
       Def (1)
         Uid message@0:2 (1)
-        Uid Text@1:2
+        None
         String "\"Hi!\"" (1)
       /Def
       Call

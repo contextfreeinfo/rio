@@ -16,13 +16,8 @@ Block
       VSpace "\n"
       HSpace "    "
       Def
-        Typed
-          Id "message"
-          Colon ":"
-          HSpace " "
-          Id "Text"
-          HSpace " "
-        /Typed
+        Id "message"
+        HSpace " "
         Define "="
         HSpace " "
         String "\"Hi!\""
@@ -100,4 +95,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 84
+Tree len: 80

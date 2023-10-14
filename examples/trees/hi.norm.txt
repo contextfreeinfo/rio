@@ -6,7 +6,7 @@ Block
     Block
       Def
         Id "message"
-        Id "Text"
+        None
         String "\"Hi!\""
       /Def
       Call

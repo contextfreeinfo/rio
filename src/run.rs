@@ -2,7 +2,7 @@ use std::{collections::HashMap, ops::Range};
 
 use crate::{
     lex::{Intern, Interner, Token, TokenKind},
-    tree::{BranchKind, Nod, Node, SimpleRange, TreeBuilder, Type},
+    tree::{BranchKind, Nod, Node, TreeBuilder, Type},
     Cart,
 };
 
@@ -14,6 +14,25 @@ pub struct ScopeEntry {
     intern: Intern,
     module: u16,
     num: u32,
+}
+
+impl From<ScopeEntry> for Node {
+    fn from(value: ScopeEntry) -> Self {
+        let ScopeEntry {
+            intern,
+            module,
+            num,
+        } = value;
+        Node {
+            typ: 0.into(),
+            source: 0.into(),
+            nod: Nod::Uid {
+                intern,
+                module,
+                num,
+            },
+        }
+    }
 }
 
 pub struct Module {
@@ -127,16 +146,16 @@ impl<'a> Runner<'a> {
         &mut self.cart.tree_builder
     }
 
-    fn build_type(&mut self, tree: &[Node]) -> bool {
+    fn build_type(&mut self, tree: &[Node]) -> Option<Type> {
         let node = *tree.last().unwrap();
         match node.nod {
             // TODO Complex types.
             Nod::Uid { .. } => {
                 // TODO Look up existing type.
                 self.types.push(node);
-                true
+                Some(Type(self.types.pos()))
             }
-            _ => false,
+            _ => None,
         }
     }
 
@@ -144,6 +163,14 @@ impl<'a> Runner<'a> {
         let node = *tree.last()?;
         let mut typ = typ.or(node.typ);
         match node.nod {
+            Nod::Leaf { token } => match token.kind {
+                TokenKind::String => {
+                    typ = self
+                        .build_type(&[self.cart.core_exports.text_type.into()])
+                        .unwrap();
+                }
+                _ => {}
+            },
             Nod::Branch { kind, range } => {
                 let range: Range<usize> = range.into();
                 let handled = match kind {
@@ -181,8 +208,8 @@ impl<'a> Runner<'a> {
             typ = xtype.typ.or(value.typ);
             if typ.0 == 0 {
                 // Failing that, interpret the explicit type from the tree.
-                if self.build_type(&tree[..=start + 1]) {
-                    typ = Type(self.types.pos());
+                if let Some(built_typ) = self.build_type(&tree[..=start + 1]) {
+                    typ = built_typ;
                 }
             }
         }
