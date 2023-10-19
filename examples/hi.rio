@@ -1,6 +1,6 @@
 # Can we leave off `for` for 0-ary funs?
 # Infer return type when unspecified?
-main* = be
+main* = for() be
     message = "Hi!"
     print-twice message
 end

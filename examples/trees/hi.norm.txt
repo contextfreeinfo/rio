@@ -3,17 +3,21 @@ Block
     Pub
       Id "main"
     None
-    Block
-      Def
-        Id "message"
-        None
-        String "\"Hi!\""
-      /Def
-      Call
-        Id "print-twice"
-        Id "message"
-      /Call
-    /Block
+    Fun
+      Params
+      Params
+      Block
+        Def
+          Id "message"
+          None
+          String "\"Hi!\""
+        /Def
+        Call
+          Id "print-twice"
+          Id "message"
+        /Call
+      /Block
+    /Fun
   /Def
   Def
     Id "print-twice"
@@ -48,4 +52,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 34
+Tree len: 37

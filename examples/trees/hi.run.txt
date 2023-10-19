@@ -2,17 +2,21 @@ Block
   Def
     Uid main@2:1
     None
-    Block
-      Def (1)
-        Uid message@0:2 (1)
-        None
-        String "\"Hi!\"" (1)
-      /Def
-      Call
-        Uid print-twice@0:3
-        Uid message@0:2
-      /Call
-    /Block
+    Fun
+      Params
+      Params
+      Block
+        Def (1)
+          Uid message@0:2 (1)
+          None
+          String "\"Hi!\"" (1)
+        /Def
+        Call
+          Uid print-twice@0:3
+          Uid message@0:2
+        /Call
+      /Block
+    /Fun
   /Def
   Def
     Uid print-twice@0:3
@@ -52,4 +56,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 37
+Tree len: 40

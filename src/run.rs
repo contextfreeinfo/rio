@@ -179,7 +179,7 @@ impl<'a> Runner<'a> {
                         true
                     }
                     BranchKind::Fun => {
-                        println!("Interpret fun sig as type");
+                        self.type_fun(tree, typ);
                         false
                     }
                     _ => false,
@@ -224,6 +224,12 @@ impl<'a> Runner<'a> {
         // TODO Look up Type type.
         self.type_any(&mut tree[..=start + 1], Type::default());
         typ
+    }
+
+    fn type_fun(&mut self, tree: &mut [Node], typ: Type) {
+        let node = tree.last().unwrap();
+        let Nod::Branch { kind: BranchKind::Fun, range } = node.nod else { panic!() };
+        println!("Interpret fun sig as type");
     }
 
     fn convert_ids(&mut self, tree: &mut Vec<Node>) {
