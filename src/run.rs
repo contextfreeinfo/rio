@@ -179,8 +179,8 @@ impl<'a> Runner<'a> {
                         true
                     }
                     BranchKind::Fun => {
-                        self.type_fun(tree, typ);
-                        false
+                        typ = self.type_fun(tree, typ);
+                        true
                     }
                     _ => false,
                 };
@@ -203,8 +203,8 @@ impl<'a> Runner<'a> {
         let xtype = tree[start + 1];
         let value = tree[start + 2];
         if typ.0 == 0 {
-            // Prioritize previously evaluated types, first from
-            // the explicit type.
+            // Prioritize previously evaluated types, first from the explicit
+            // type.
             typ = xtype.typ.or(value.typ);
             if typ.0 == 0 {
                 // Failing that, interpret the explicit type from the tree.
@@ -226,10 +226,24 @@ impl<'a> Runner<'a> {
         typ
     }
 
-    fn type_fun(&mut self, tree: &mut [Node], typ: Type) {
+    fn type_fun(&mut self, tree: &mut [Node], typ: Type) -> Type {
         let node = tree.last().unwrap();
         let Nod::Branch { kind: BranchKind::Fun, range } = node.nod else { panic!() };
-        println!("Interpret fun sig as type");
+        // Kids
+        let range: Range<usize> = range.into();
+        for kid_index in range.clone() {
+            self.type_any(&mut tree[..=kid_index], Type::default());
+        }
+        // Function
+        self.types.push(Node {
+            typ,
+            source: 0.into(),
+            nod: Nod::Branch {
+                kind: BranchKind::FunType,
+                range: (0u32..0u32).into(),
+            },
+        });
+        Type(self.types.pos())
     }
 
     fn convert_ids(&mut self, tree: &mut Vec<Node>) {

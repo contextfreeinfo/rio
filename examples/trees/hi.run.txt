@@ -1,8 +1,8 @@
 Block
-  Def
-    Uid main@2:1
+  Def (2)
+    Uid main@2:1 (2)
     None
-    Fun
+    Fun (2)
       Params
       Params
       Block
@@ -18,22 +18,22 @@ Block
       /Block
     /Fun
   /Def
-  Def
-    Uid print-twice@0:3
+  Def (5)
+    Uid print-twice@0:3 (5)
     None
-    Fun
+    Fun (5)
       Params
-        Def (2)
-          Uid message@0:4 (2)
+        Def (3)
+          Uid message@0:4 (3)
           Uid Text@1:2
-          None (2)
+          None (3)
         /Def
       /Params
       Params
-        Def (3)
-          None (3)
+        Def (4)
+          None (4)
           Uid Void@1:4
-          None (3)
+          None (4)
         /Def
       /Params
       Block
@@ -50,10 +50,12 @@ Block
   /Def
   Types
     (1) Uid Text@1:2
-    (2) Uid Text@1:2
-    (3) Uid Void@1:4
+    (2) FunType
+    (3) Uid Text@1:2
+    (4) Uid Void@1:4
+    (5) FunType
   /Types
 /Block
 
 Node size: 20
-Tree len: 40
+Tree len: 42
