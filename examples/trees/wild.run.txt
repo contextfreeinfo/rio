@@ -1,17 +1,17 @@
 Block
-  Fun (1)
-    Params
-    Params
-  /Fun
   Fun (2)
     Params
     Params
   /Fun
-  Fun (3)
+  Fun (4)
     Params
     Params
   /Fun
-  Fun (4)
+  Fun (6)
+    Params
+    Params
+  /Fun
+  Fun (8)
     Params
       Id "5"
     Params
@@ -21,13 +21,17 @@ Block
       Id "5"
   /Call
   Types
-    (1) FunType
-    (2) FunType
-    (3) FunType
-    (4) FunType
+    (1) Uid Void@1:4
+    (2) FunType (1)
+    (3) Uid Void@1:4
+    (4) FunType (3)
+    (5) Uid Void@1:4
+    (6) FunType (5)
+    (7) Uid Void@1:4
+    (8) FunType (7)
       None
   /Types
 /Block
 
 Node size: 20
-Tree len: 23
+Tree len: 27

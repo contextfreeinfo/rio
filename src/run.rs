@@ -257,6 +257,11 @@ impl<'a> Runner<'a> {
                 tree[start + 1].typ = body_type;
                 out_type = body_type;
             }
+        } else if out_type.0 == 0 {
+            // Infer void for empty body. TODO Infer by context with default return value?
+            out_type = self
+                .build_type(&[self.cart.core_exports.void_type.into()])
+                .unwrap();
         }
         // After digging subtrees, we're ready to push type refs.
         let types_start = self.types.pos();
