@@ -23,43 +23,37 @@ Block
     Call (4)
       Uid native@1:5
   /Def
-  Def (6)
-    Uid native@1:5 (6)
+  Def (5)
+    Uid native@1:5 (5)
     None
-    Fun (6)
+    Fun (5)
       Params
       Params
-        Def (5)
-          None (5)
-          Uid Void@1:4
-          None (5)
-        /Def
-      /Params
-      Block (5)
+      Block
         Call
           Uid native@1:5
       /Block
     /Fun
   /Def
-  Def (9)
-    Uid print@1:6 (9)
+  Def (8)
+    Uid print@1:6 (8)
     None
-    Fun (9)
+    Fun (8)
+      Params
+        Def (6)
+          Uid text@0:7 (6)
+          Uid Text@1:2
+          None (6)
+        /Def
+      /Params
       Params
         Def (7)
-          Uid text@0:7 (7)
-          Uid Text@1:2
+          None (7)
+          Uid Void@1:4
           None (7)
         /Def
       /Params
-      Params
-        Def (8)
-          None (8)
-          Uid Void@1:4
-          None (8)
-        /Def
-      /Params
-      Block (8)
+      Block (7)
         Call
           Uid native@1:5
       /Block
@@ -70,14 +64,13 @@ Block
     (2) Uid Type@1:3
     (3) Uid Type@1:3
     (4) Uid Type@1:3
-    (5) Uid Void@1:4
-    (6) FunType (5)
-    (7) Uid Text@1:2
-    (8) Uid Void@1:4
-    (9) FunType (8)
-      None (7)
+    (5) FunType
+    (6) Uid Text@1:2
+    (7) Uid Void@1:4
+    (8) FunType (7)
+      None (6)
   /Types
 /Block
 
 Node size: 20
-Tree len: 62
+Tree len: 57

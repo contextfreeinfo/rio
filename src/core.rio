@@ -8,7 +8,7 @@ Type*: Type = native()
 
 Void*: Type = native()
 
-native* = for(): Void be native()
+native* = for() be native()
 
 # print*: Function<[Text], [Void]> = native()
 # print*: Function<[Text], Void> = native()

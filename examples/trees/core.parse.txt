@@ -101,15 +101,8 @@ Block
         RoundOpen "("
         RoundClose ")"
       /Params
-      Colon ":"
       HSpace " "
       Params
-        Typed
-          None
-          Id "Void"
-          HSpace " "
-        /Typed
-      /Params
       Block
         Be "be"
         HSpace " "
@@ -175,4 +168,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 141
+Tree len: 136
