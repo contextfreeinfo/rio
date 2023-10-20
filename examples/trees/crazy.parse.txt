@@ -1,0 +1,34 @@
+Block
+  Fun
+    Fun "for"
+    Params
+      RoundOpen "("
+      RoundClose ")"
+    /Params
+    Params
+  /Fun
+  Comma ";"
+  HSpace " "
+  Fun
+    Fun "for"
+    Params
+      RoundOpen "("
+      RoundClose ")"
+    /Params
+    Params
+  /Fun
+  Comma ";"
+  HSpace " "
+  Fun
+    Fun "for"
+    Params
+      RoundOpen "("
+      RoundClose ")"
+    /Params
+    Params
+  /Fun
+  VSpace "\n"
+/Block
+
+Node size: 12
+Tree len: 24

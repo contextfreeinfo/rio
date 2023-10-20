@@ -1,0 +1,22 @@
+Block
+  Fun (1)
+    Params
+    Params
+  /Fun
+  Fun (2)
+    Params
+    Params
+  /Fun
+  Fun (3)
+    Params
+    Params
+  /Fun
+  Types
+    (1) FunType
+    (2) FunType
+    (3) FunType
+  /Types
+/Block
+
+Node size: 20
+Tree len: 14

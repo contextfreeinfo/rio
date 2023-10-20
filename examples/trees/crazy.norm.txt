@@ -1,0 +1,17 @@
+Block
+  Fun
+    Params
+    Params
+  /Fun
+  Fun
+    Params
+    Params
+  /Fun
+  Fun
+    Params
+    Params
+  /Fun
+/Block
+
+Node size: 20
+Tree len: 10

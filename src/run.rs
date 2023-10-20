@@ -250,11 +250,13 @@ impl<'a> Runner<'a> {
         let out_range: Range<usize> = out_range.into();
         let mut out_type = self.type_any(&mut tree[..=out_range.start], Type::default());
         // Body
-        let body_type = self.type_any(&mut tree[..=start + 2], out_type.or(typ));
-        if out_type.0 == 0 {
-            // Infer return type from body.
-            tree[start + 1].typ = body_type;
-            out_type = body_type;
+        if range.len() > 2 {
+            let body_type = self.type_any(&mut tree[..=start + 2], out_type.or(typ));
+            if out_type.0 == 0 {
+                // Infer return type from body.
+                tree[start + 1].typ = body_type;
+                out_type = body_type;
+            }
         }
         // After digging subtrees, we're ready to push type refs.
         let types_start = self.types.pos();
