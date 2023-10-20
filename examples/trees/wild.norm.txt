@@ -11,7 +11,16 @@ Block
     Params
     Params
   /Fun
+  Fun
+    Params
+      Id "5"
+    Params
+  /Fun
+  Call
+    Block
+      Id "5"
+  /Call
 /Block
 
 Node size: 20
-Tree len: 10
+Tree len: 17
