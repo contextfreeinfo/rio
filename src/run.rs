@@ -92,6 +92,7 @@ pub struct Runner<'a> {
     // TODO Find or make some abstraction for this kind of multimap?
     pub tops: Vec<ScopeEntry>,
     pub top_map: HashMap<Intern, u32>,
+    type_refs: Vec<Type>,
     types: TreeBuilder,
 }
 
@@ -105,6 +106,7 @@ impl<'a> Runner<'a> {
             scope: vec![],
             tops: vec![],
             top_map: HashMap::new(),
+            type_refs: vec![],
             types: TreeBuilder::default(),
         }
     }
@@ -114,7 +116,9 @@ impl<'a> Runner<'a> {
         self.convert_ids(tree);
         self.extract_top(tree);
         self.resolve(tree);
-        self.type_any(tree, Type(0));
+        if !tree.is_empty() {
+            self.type_any(tree, Type(0));
+        }
         self.append_types(tree);
         println!("Defs: {:?}", self.def_indices);
         // println!("Tops: {:?}", self.tops);
@@ -159,8 +163,8 @@ impl<'a> Runner<'a> {
         }
     }
 
-    fn type_any(&mut self, tree: &mut [Node], typ: Type) -> Option<()> {
-        let node = *tree.last()?;
+    fn type_any(&mut self, tree: &mut [Node], typ: Type) -> Type {
+        let node = *tree.last().unwrap();
         let mut typ = typ.or(node.typ);
         match node.nod {
             Nod::Leaf { token } => match token.kind {
@@ -195,7 +199,7 @@ impl<'a> Runner<'a> {
         }
         // Assign on existing structure lets us go in arbitrary order easier.
         tree.last_mut().unwrap().typ = typ;
-        Some(())
+        typ
     }
 
     fn type_def(&mut self, range: &Range<usize>, tree: &mut [Node], mut typ: Type) -> Type {
@@ -231,18 +235,42 @@ impl<'a> Runner<'a> {
         let Nod::Branch { kind: BranchKind::Fun, range } = node.nod else { panic!() };
         // Kids
         let range: Range<usize> = range.into();
-        for kid_index in range.clone() {
-            self.type_any(&mut tree[..=kid_index], Type::default());
+        // Should always be in-params, out(-params), body.
+        let Range { start, .. } = range;
+        // Params
+        let Nod::Branch { range: params_range, .. } = tree[start].nod else { panic!() };
+        let params_range: Range<usize> = params_range.into();
+        let ref_start = self.type_refs.len();
+        for param_index in params_range.clone() {
+            let param_type = self.type_any(&mut tree[..=param_index], Type::default());
+            self.type_refs.push(param_type);
+        }
+        // Return
+        let Nod::Branch { range: out_range, .. } = tree[start + 1].nod else { panic!() };
+        let out_range: Range<usize> = out_range.into();
+        let mut out_type = self.type_any(&mut tree[..=out_range.start], Type::default());
+        // Body
+        let body_type = self.type_any(&mut tree[..=start + 2], out_type.or(typ));
+        if out_type.0 == 0 {
+            // Infer return type from body.
+            tree[start + 1].typ = body_type;
+            out_type = body_type;
+        }
+        // After digging subtrees, we're ready to push type refs.
+        let types_start = self.types.pos();
+        for param_type in self.type_refs.drain(ref_start..) {
+            self.types.push(Node {
+                typ: param_type,
+                source: 0.into(),
+                nod: Nod::Branch {
+                    kind: BranchKind::None,
+                    range: (0u32..0u32).into(),
+                },
+            });
         }
         // Function
-        self.types.push(Node {
-            typ,
-            source: 0.into(),
-            nod: Nod::Branch {
-                kind: BranchKind::FunType,
-                range: (0u32..0u32).into(),
-            },
-        });
+        self.types
+            .wrap(BranchKind::FunType, types_start, out_type, 0);
         Type(self.types.pos())
     }
 

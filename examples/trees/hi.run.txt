@@ -36,7 +36,7 @@ Block
           None (4)
         /Def
       /Params
-      Block
+      Block (4)
         Call
           Uid print@1:6
           Uid message@0:4
@@ -53,9 +53,10 @@ Block
     (2) FunType
     (3) Uid Text@1:2
     (4) Uid Void@1:4
-    (5) FunType
+    (5) FunType (4)
+      None (3)
   /Types
 /Block
 
 Node size: 20
-Tree len: 42
+Tree len: 43
