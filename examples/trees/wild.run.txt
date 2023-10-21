@@ -45,6 +45,44 @@ Block
     Block
       Id "a"
   /Fun
+  Fun (10)
+    Params
+      Block
+        Def
+          Uid a@0:3
+          Id "A"
+          None
+        /Def
+        Def
+          Uid b@0:4
+          Id "B"
+          None
+        /Def
+      /Block
+    /Params
+    Params
+      Def
+        None
+        Id "C"
+        None
+      /Def
+    /Params
+    Block
+      Id "a"
+  /Fun
+  Fun (11)
+    Params
+      Id "a"
+    Params
+      Def
+        None
+        Id "B"
+        None
+      /Def
+    /Params
+    Block
+      Id "a"
+  /Fun
   Types
     (1) Uid Void@1:4
     (2) FunType (1)
@@ -57,8 +95,12 @@ Block
       None
     (9) FunType
       None
+    (10) FunType
+      None
+    (11) FunType
+      None
   /Types
 /Block
 
 Node size: 20
-Tree len: 47
+Tree len: 79

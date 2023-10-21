@@ -54,6 +54,51 @@ Block
   VSpace "\n"
   Fun
     Fun "for"
+    HSpace " "
+    Params
+      Block
+        CurlyOpen "{"
+        HSpace " "
+        Typed
+          Id "a"
+          Colon ":"
+          HSpace " "
+          Id "A"
+        /Typed
+        Comma ","
+        HSpace " "
+        Typed
+          Id "b"
+          Colon ":"
+          HSpace " "
+          Id "B"
+          HSpace " "
+        /Typed
+        CurlyClose "}"
+      /Block
+    /Params
+    Colon ":"
+    HSpace " "
+    Params
+      Typed
+        None
+        Id "C"
+        HSpace " "
+      /Typed
+    /Params
+    Block
+      Be "be"
+      VSpace "\n"
+      HSpace "    "
+      Id "a"
+      VSpace "\n"
+      End "end"
+    /Block
+  /Fun
+  VSpace "\n"
+  VSpace "\n"
+  Fun
+    Fun "for"
     Params
       RoundOpen "("
       Block
@@ -97,7 +142,29 @@ Block
     /Block
   /Fun
   VSpace "\n"
+  VSpace "\n"
+  Fun
+    Fun "for"
+    HSpace " "
+    Params
+      Id "a"
+    Colon ":"
+    HSpace " "
+    Params
+      Typed
+        None
+        Id "B"
+        HSpace " "
+      /Typed
+    /Params
+    Block
+      Be "be"
+      HSpace " "
+      Id "a"
+    /Block
+  /Fun
+  VSpace "\n"
 /Block
 
 Node size: 12
-Tree len: 82
+Tree len: 137

@@ -204,8 +204,8 @@ impl Parser {
         // In params
         let in_params_start = self.builder().pos();
         match peek(source)? {
-            TokenKind::Id => {
-                self.advance(source);
+            TokenKind::CurlyOpen | TokenKind::Id => {
+                self.atom(source);
                 self.skip_h(source);
             }
             TokenKind::RoundOpen => {
@@ -289,10 +289,12 @@ impl Parser {
 
     fn spaced(&mut self, source: &mut Tokens) -> Option<()> {
         loop {
-            debug!("spaced");
             self.skip_h(source);
-            match peek(source)? {
+            let next = peek(source)?;
+            debug!("spaced: {next:?}");
+            match next {
                 TokenKind::Comma
+                | TokenKind::Colon
                 | TokenKind::CurlyClose
                 | TokenKind::Define
                 | TokenKind::End

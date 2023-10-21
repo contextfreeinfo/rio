@@ -5,6 +5,12 @@ for
 for 5
 for be 5
 
+for { a: A, b: B }: C be
+    a
+end
+
 for({ a: A, b: B }): C be
     a
 end
+
+for a: B be a
