@@ -1,5 +1,7 @@
 use std::{iter::Peekable, slice::Iter};
 
+use log::debug;
+
 use crate::{
     lex::{Token, TokenKind},
     tree::{BranchKind, TreeBuilder, Type},
@@ -38,12 +40,14 @@ impl Parser {
 
     fn advance(&mut self, source: &mut Tokens) {
         let next = source.next();
+        debug!("Advance past {:?}", next);
         if let Some(token) = next {
             self.builder().push_at(token, 0);
         }
     }
 
     fn atom(&mut self, source: &mut Tokens) -> Option<()> {
+        debug!("atom");
         self.skip_h(source);
         match peek(source)? {
             TokenKind::Colon | TokenKind::Comma | TokenKind::VSpace => {}
@@ -53,10 +57,12 @@ impl Parser {
             TokenKind::String => self.advance(source),
             _ => self.advance(source),
         }
+        debug!("/atom");
         Some(())
     }
 
     fn block(&mut self, source: &mut Tokens) -> Option<()> {
+        debug!("block");
         let start = self.builder().pos();
         let ender = match peek(source)? {
             TokenKind::Be => TokenKind::End,
@@ -66,24 +72,29 @@ impl Parser {
         };
         self.advance(source);
         self.skip_h(source);
-        match peek(source)? {
-            TokenKind::VSpace => loop_some!({
+        if ender == TokenKind::End && peek(source)? != TokenKind::VSpace {
+            // Inline be ...
+            self.call(source, true);
+        } else {
+            // Actually wrapped block.
+            loop_some!({
                 self.block_content(source);
                 let kind = peek(source)?;
                 self.advance(source);
                 if kind == ender {
                     None?
                 }
-            }),
-            _ => self.call(source, true),
-        };
+            });
+        }
         if self.builder().pos() > start {
             self.wrap(BranchKind::Block, start);
         }
+        debug!("/block");
         Some(())
     }
 
     fn block_content(&mut self, source: &mut Tokens) -> Option<()> {
+        debug!("block_content");
         loop_some!({
             self.skip_hv(source);
             match peek(source)? {
@@ -94,13 +105,23 @@ impl Parser {
                 }
             }
         });
+        debug!("/block_content");
         self.skip_hv(source)
     }
 
     fn block_top(&mut self, source: &mut Tokens) {
         let start = self.builder().pos();
         loop_some!({
+            debug!("block_top: {:?}", peek(source));
             self.block_content(source)?;
+            if matches!(
+                peek(source)?,
+                TokenKind::CurlyClose | TokenKind::End | TokenKind::RoundClose,
+            ) {
+                // Eat trash. TODO Avoid ever getting here.
+                self.advance(source);
+                self.skip_hv(source);
+            }
         });
         if self.builder().pos() > start {
             self.wrap(BranchKind::Block, start);
@@ -112,47 +133,50 @@ impl Parser {
         let start = self.builder().pos();
         self.starred(source);
         loop {
+            debug!("call: {:?}", peek(source));
             let mut post = self.builder().pos();
-            if post > start {
-                // TODO Can we leaving trailing hspace, or do we need to have an indicator?
-                match peek(source)? {
-                    TokenKind::HSpace | TokenKind::Be | TokenKind::CurlyOpen => {
-                        self.skip_h(source);
-                        if !allow_block
-                            && matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen)
-                        {
+            if post <= start {
+                break;
+            }
+            // TODO Can we leaving trailing hspace, or do we need to have an indicator?
+            match peek(source)? {
+                TokenKind::HSpace | TokenKind::Be | TokenKind::CurlyOpen => {
+                    self.skip_h(source);
+                    if !allow_block && matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen)
+                    {
+                        break;
+                    }
+                    post = self.builder().pos();
+                    self.spaced(source);
+                }
+                TokenKind::RoundOpen => {
+                    // TODO Expand paren-comma args.
+                    self.advance(source);
+                    self.block_content(source);
+                    if peek(source)? == TokenKind::RoundClose {
+                        self.advance(source);
+                    }
+                    self.skip_h(source);
+                    if matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen) {
+                        if !allow_block {
                             break;
                         }
-                        post = self.builder().pos();
-                        self.spaced(source);
-                    }
-                    TokenKind::RoundOpen => {
-                        // TODO Expand paren-comma args.
-                        self.advance(source);
-                        self.block_content(source);
-                        if peek(source)? == TokenKind::RoundClose {
-                            self.advance(source);
-                        }
+                        self.block(source);
                         self.skip_h(source);
-                        if matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen) {
-                            if !allow_block {
-                                break;
-                            }
-                            self.block(source);
-                            self.skip_h(source);
-                        }
                     }
-                    _ => break,
                 }
-                if self.builder().pos() > post {
-                    self.wrap(BranchKind::Call, start);
-                }
+                _ => break,
             }
+            if self.builder().pos() > post {
+                self.wrap(BranchKind::Call, start);
+            }
+            debug!("/call");
         }
         Some(())
     }
 
     fn def(&mut self, source: &mut Tokens) -> Option<()> {
+        debug!("def");
         self.skip_h(source);
         let start = self.builder().pos();
         self.typed(source);
@@ -167,10 +191,12 @@ impl Parser {
                 self.skip_hv(source)?;
             }
         }
+        debug!("/def");
         Some(())
     }
 
     fn fun(&mut self, source: &mut Tokens) -> Option<()> {
+        debug!("fun");
         let start = self.builder().pos();
         self.advance(source);
         self.skip_h(source);
@@ -225,6 +251,7 @@ impl Parser {
         // Body
         self.atom(source);
         self.wrap(BranchKind::Fun, start);
+        debug!("/fun");
         Some(())
     }
 
@@ -235,6 +262,7 @@ impl Parser {
         loop {
             let token = peek_token(source)?;
             if skipping(token.kind) {
+                debug!("Skipping {:?}", token);
                 source.next();
                 self.builder().push_at(token, 0);
             } else {
@@ -261,6 +289,7 @@ impl Parser {
 
     fn spaced(&mut self, source: &mut Tokens) -> Option<()> {
         loop {
+            debug!("spaced");
             self.skip_h(source);
             match peek(source)? {
                 TokenKind::Comma
@@ -271,20 +300,24 @@ impl Parser {
                 | TokenKind::VSpace => None?,
                 _ => self.starred(source),
             };
+            debug!("/spaced");
         }
     }
 
     fn starred(&mut self, source: &mut Tokens) -> Option<()> {
+        debug!("starred");
         let start = self.builder().pos();
         self.atom(source);
         if peek(source)? == TokenKind::Star {
             self.advance(source);
             self.wrap(BranchKind::Pub, start);
         }
+        debug!("/starred");
         Some(())
     }
 
     fn typed(&mut self, source: &mut Tokens) -> Option<()> {
+        debug!("typed");
         self.skip_h(source);
         let start = self.builder().pos();
         self.call(source, true);
@@ -298,6 +331,7 @@ impl Parser {
             self.call(source, false);
             self.wrap(BranchKind::Typed, start);
         }
+        debug!("/typed");
         Some(())
     }
 

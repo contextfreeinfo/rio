@@ -20,7 +20,32 @@ Block
     Block
       Id "5"
   /Call
+  Fun
+    Params
+      Block
+        Def
+          Id "a"
+          Id "A"
+          None
+        /Def
+        Def
+          Id "b"
+          Id "B"
+          None
+        /Def
+      /Block
+    /Params
+    Params
+      Def
+        None
+        Id "C"
+        None
+      /Def
+    /Params
+    Block
+      Id "a"
+  /Fun
 /Block
 
 Node size: 20
-Tree len: 17
+Tree len: 35
