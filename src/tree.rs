@@ -279,15 +279,13 @@ where
 #[derive(Default)]
 pub struct TreeBuilder {
     pub nodes: Vec<Node>,
-    working: Vec<Node>,
-    working_sources: Vec<Source>,
+    pub working: Vec<Node>,
 }
 
 impl TreeBuilder {
     pub fn clear(&mut self) {
         self.nodes.clear();
         self.working.clear();
-        self.working_sources.clear();
     }
 
     pub fn drain_into(&mut self, tree: &mut Vec<Node>) {

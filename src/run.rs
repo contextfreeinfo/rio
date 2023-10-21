@@ -83,6 +83,7 @@ impl CoreExports {
 }
 
 pub struct Runner<'a> {
+    any_change: bool,
     pub cart: &'a mut Cart,
     pub def_indices: Vec<Index>,
     module: u16,
@@ -100,6 +101,7 @@ impl<'a> Runner<'a> {
     pub fn new(cart: &'a mut Cart) -> Self {
         let module = cart.modules.len() as u16 + cart.core.is_some() as u16 + 1;
         Self {
+            any_change: false,
             cart,
             def_indices: vec![Index::default()],
             module,
@@ -112,6 +114,7 @@ impl<'a> Runner<'a> {
     }
 
     pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
+        let max_rounds = 10;
         self.types.clear();
         self.convert_ids(tree);
         self.update_def_inds(tree);
@@ -121,7 +124,13 @@ impl<'a> Runner<'a> {
         if !tree.is_empty() {
             // Keep full tree for typing or eval so we can reference anywhere.
             let end = tree.len() - 1;
-            self.type_any(tree, end, Type(0));
+            for _ in 0..max_rounds {
+                self.any_change = false;
+                self.type_any(tree, end, Type(0));
+                if !self.any_change {
+                    break;
+                }
+            }
         }
         self.append_types(tree);
         // println!("Tops: {:?}", self.tops);
@@ -154,15 +163,26 @@ impl<'a> Runner<'a> {
     }
 
     fn build_type(&mut self, tree: &[Node]) -> Option<Type> {
-        let node = *tree.last().unwrap();
+        let node = tree.last().unwrap();
         match node.nod {
             // TODO Complex types.
             Nod::Uid { .. } => {
                 // TODO Look up existing type.
-                self.types.push(node);
-                Some(Type(self.types.pos()))
+                if node.typ.0 == 0 {
+                    self.types.push(*node);
+                    Some(Type(self.types.pos()))
+                } else {
+                    Some(node.typ)
+                }
             }
             _ => None,
+        }
+    }
+
+    fn set_type(&mut self, node: &mut Node, typ: Type) {
+        if node.typ != typ {
+            node.typ = typ;
+            self.any_change = true;
         }
     }
 
@@ -192,9 +212,11 @@ impl<'a> Runner<'a> {
             }
             Nod::Leaf { token } => match token.kind {
                 TokenKind::String => {
-                    typ = self
-                        .build_type(&[self.cart.core_exports.text_type.into()])
-                        .unwrap();
+                    if typ.0 == 0 {
+                        typ = self
+                            .build_type(&[self.cart.core_exports.text_type.into()])
+                            .unwrap();
+                    }
                 }
                 _ => {}
             },
@@ -212,7 +234,7 @@ impl<'a> Runner<'a> {
             _ => {}
         }
         // Assign on existing structure lets us go in arbitrary order easier.
-        tree[at].typ = typ;
+        self.set_type(&mut tree[at], typ);
         typ
     }
 
@@ -255,44 +277,71 @@ impl<'a> Runner<'a> {
         let Nod::Branch { range: params_range, .. } = tree[start].nod else { panic!() };
         let params_range: Range<usize> = params_range.into();
         let ref_start = self.type_refs.len();
+        let mut any_change = false;
         for param_index in params_range.clone() {
+            let old_type = tree[param_index].typ;
             let param_type = self.type_any(tree, param_index, Type::default());
             self.type_refs.push(param_type);
+            any_change |= param_type != old_type;
         }
         // Return
         let Nod::Branch { range: out_range, .. } = tree[start + 1].nod else { panic!() };
         let out_range: Range<usize> = out_range.into();
-        let mut out_type = self.type_any(tree, out_range.start, Type::default());
+        let old_out_type = if node.typ.0 == 0 {
+            Type(0)
+        } else {
+            self.types.working[node.typ.0 as usize - 1].typ
+        };
+        let mut out_type = if out_range.is_empty() {
+            old_out_type.or(
+                // See if we're expecting a particular return type.
+                if typ.0 != 0 {
+                    self.types.working[typ.0 as usize - 1].typ
+                } else {
+                    Type(0)
+                },
+            )
+        } else {
+            self.type_any(tree, out_range.start, old_out_type)
+        };
         // Body
         if range.len() > 2 {
-            let body_type = self.type_any(tree, start + 2, out_type.or(typ));
-            if out_type.0 == 0 {
+            let body_type = self.type_any(tree, start + 2, out_type.or(old_out_type));
+            if out_type.0 == 0 && tree[out_range.start].typ.0 == 0 {
                 // Infer return type from body.
-                tree[start + 1].typ = body_type;
+                self.set_type(&mut tree[out_range.start], body_type);
                 out_type = body_type;
             }
         } else if out_type.0 == 0 {
             // Infer void for empty body. TODO Infer by context with default return value?
-            out_type = self
-                .build_type(&[self.cart.core_exports.void_type.into()])
-                .unwrap();
+            out_type = match old_out_type.0 {
+                0 => self
+                    .build_type(&[self.cart.core_exports.void_type.into()])
+                    .unwrap(),
+                _ => old_out_type,
+            }
         }
-        // After digging subtrees, we're ready to push type refs.
-        let types_start = self.types.pos();
-        for param_type in self.type_refs.drain(ref_start..) {
-            self.types.push(Node {
-                typ: param_type,
-                source: 0.into(),
-                nod: Nod::Branch {
-                    kind: BranchKind::None,
-                    range: (0u32..0u32).into(),
-                },
-            });
+        any_change |= out_type != old_out_type;
+        if node.typ.0 == 0 || any_change {
+            // After digging subtrees, we're ready to push type refs.
+            let types_start = self.types.pos();
+            for param_type in self.type_refs.drain(ref_start..) {
+                self.types.push(Node {
+                    typ: param_type,
+                    source: 0.into(),
+                    nod: Nod::Branch {
+                        kind: BranchKind::None,
+                        range: (0u32..0u32).into(),
+                    },
+                });
+            }
+            // Function
+            self.types
+                .wrap(BranchKind::FunType, types_start, out_type, 0);
+            Type(self.types.pos())
+        } else {
+            node.typ
         }
-        // Function
-        self.types
-            .wrap(BranchKind::FunType, types_start, out_type, 0);
-        Type(self.types.pos())
     }
 
     fn convert_ids(&mut self, tree: &mut Vec<Node>) {
