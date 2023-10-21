@@ -10,6 +10,6 @@ run-dump() {
 # cargo build && \
 profile=release
 cargo build --release && \
-ls -lh target/$profile/rio && \
+ls -l target/$profile/rio && \
 run-dump hi && \
 run-dump wild

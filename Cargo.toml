@@ -10,7 +10,7 @@ anyhow = "1.0.72"
 clap = { version = "4.3.12", features = ["derive"] }
 env_logger = "0.10.0"
 lasso = { version = "0.7.2", features = ["multi-threaded"] }
-log = "0.4.19"
+log = { version = "0.4.19", features = ["release_max_level_warn"] }
 
 [profile.release]
 # Got smaller with s than z in a quick check.
