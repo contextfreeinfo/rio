@@ -13,7 +13,7 @@ Block
         /Def
         Call
           Uid print-twice@0:3
-          Uid message@0:2
+          Uid message@0:2 (1)
         /Call
       /Block
     /Fun
@@ -39,11 +39,11 @@ Block
       Block (4)
         Call
           Uid print@1:6
-          Uid message@0:4
+          Uid message@0:4 (3)
         /Call
         Call
           Uid print@1:6
-          Uid message@0:4
+          Uid message@0:4 (3)
         /Call
       /Block
     /Fun

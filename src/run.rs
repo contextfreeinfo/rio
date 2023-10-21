@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct Index(u32);
+pub struct Index(pub u32);
 
 #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ScopeEntry {
@@ -114,13 +114,16 @@ impl<'a> Runner<'a> {
     pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
         self.types.clear();
         self.convert_ids(tree);
+        self.update_def_inds(tree);
         self.extract_top(tree);
+        println!("Defs of {}: {:?}", tree.len(), self.def_indices);
         self.resolve(tree);
         if !tree.is_empty() {
-            self.type_any(tree, Type(0));
+            // Keep full tree for typing or eval so we can reference anywhere.
+            let end = tree.len() - 1;
+            self.type_any(tree, end, Type(0));
         }
         self.append_types(tree);
-        println!("Defs: {:?}", self.def_indices);
         // println!("Tops: {:?}", self.tops);
         // println!("Top map: {:?}", self.top_map);
         Module {
@@ -163,10 +166,30 @@ impl<'a> Runner<'a> {
         }
     }
 
-    fn type_any(&mut self, tree: &mut [Node], typ: Type) -> Type {
-        let node = *tree.last().unwrap();
+    fn type_any(&mut self, tree: &mut [Node], at: usize, typ: Type) -> Type {
+        let node = tree[at];
         let mut typ = typ.or(node.typ);
         match node.nod {
+            Nod::Branch { kind, range } => {
+                let range: Range<usize> = range.into();
+                let handled = match kind {
+                    BranchKind::Def => {
+                        typ = self.type_def(tree, &range, typ);
+                        true
+                    }
+                    BranchKind::Fun => {
+                        typ = self.type_fun(tree, at, typ);
+                        true
+                    }
+                    _ => false,
+                };
+                // TODO Eventually, should we handle everything above?
+                if !handled {
+                    for kid_index in range.clone() {
+                        self.type_any(tree, kid_index, Type::default());
+                    }
+                }
+            }
             Nod::Leaf { token } => match token.kind {
                 TokenKind::String => {
                     typ = self
@@ -175,34 +198,25 @@ impl<'a> Runner<'a> {
                 }
                 _ => {}
             },
-            Nod::Branch { kind, range } => {
-                let range: Range<usize> = range.into();
-                let handled = match kind {
-                    BranchKind::Def => {
-                        typ = self.type_def(&range, tree, typ);
-                        true
+            Nod::Uid { module, num, .. } => {
+                if module == 0 || module == self.module {
+                    // Dig from this module
+                    let def_typ = tree[self.def_indices[num as usize].0 as usize].typ;
+                    if def_typ.0 != 0 {
+                        typ = def_typ;
                     }
-                    BranchKind::Fun => {
-                        typ = self.type_fun(tree, typ);
-                        true
-                    }
-                    _ => false,
-                };
-                // TODO Eventually, should we handle everything above?
-                if !handled {
-                    for kid_index in range.clone() {
-                        self.type_any(&mut tree[..=kid_index], Type::default());
-                    }
+                } else {
+                    // TODO Dig from other modules
                 }
             }
             _ => {}
         }
         // Assign on existing structure lets us go in arbitrary order easier.
-        tree.last_mut().unwrap().typ = typ;
+        tree[at].typ = typ;
         typ
     }
 
-    fn type_def(&mut self, range: &Range<usize>, tree: &mut [Node], mut typ: Type) -> Type {
+    fn type_def(&mut self, tree: &mut [Node], range: &Range<usize>, mut typ: Type) -> Type {
         let start = range.start;
         let xtype = tree[start + 1];
         let value = tree[start + 2];
@@ -219,19 +233,19 @@ impl<'a> Runner<'a> {
         }
         // There should always be exactly 3 kids of defs: id, xtype, value.
         // Check value first in case we want the type from it.
-        self.type_any(&mut tree[..=start + 2], typ);
+        self.type_any(tree, start + 2, typ);
         if typ.0 == 0 {
             // We did't have type yet, so try the value's type.
             typ = tree[start + 2].typ;
         }
-        self.type_any(&mut tree[..=start], typ);
+        self.type_any(tree, start, typ);
         // TODO Look up Type type.
-        self.type_any(&mut tree[..=start + 1], Type::default());
+        self.type_any(tree, start + 1, Type::default());
         typ
     }
 
-    fn type_fun(&mut self, tree: &mut [Node], typ: Type) -> Type {
-        let node = tree.last().unwrap();
+    fn type_fun(&mut self, tree: &mut [Node], at: usize, typ: Type) -> Type {
+        let node = tree[at];
         let Nod::Branch { kind: BranchKind::Fun, range } = node.nod else { panic!() };
         // Kids
         let range: Range<usize> = range.into();
@@ -242,16 +256,16 @@ impl<'a> Runner<'a> {
         let params_range: Range<usize> = params_range.into();
         let ref_start = self.type_refs.len();
         for param_index in params_range.clone() {
-            let param_type = self.type_any(&mut tree[..=param_index], Type::default());
+            let param_type = self.type_any(tree, param_index, Type::default());
             self.type_refs.push(param_type);
         }
         // Return
         let Nod::Branch { range: out_range, .. } = tree[start + 1].nod else { panic!() };
         let out_range: Range<usize> = out_range.into();
-        let mut out_type = self.type_any(&mut tree[..=out_range.start], Type::default());
+        let mut out_type = self.type_any(tree, out_range.start, Type::default());
         // Body
         if range.len() > 2 {
-            let body_type = self.type_any(&mut tree[..=start + 2], out_type.or(typ));
+            let body_type = self.type_any(tree, start + 2, out_type.or(typ));
             if out_type.0 == 0 {
                 // Infer return type from body.
                 tree[start + 1].typ = body_type;
@@ -315,21 +329,16 @@ impl<'a> Runner<'a> {
                 }
                 self.builder().wrap(kind, start, node.typ, node.source);
             }
-            _ => {
-                if let Nod::Uid { num, .. } = node.nod {
-                    // TODO Check if external module!
-                    self.def_indices[num as usize] = Index(tree.len() as u32 - 1);
-                }
-                self.builder().push(node);
-            }
+            _ => self.builder().push(node),
         }
         Some(())
     }
 
-    fn push_id(&mut self, node: Node, index: u32, intern: Intern, r#pub: bool) {
+    fn push_id(&mut self, node: Node, intern: Intern, r#pub: bool) {
         let module = if r#pub { self.module } else { 0 };
         let num = self.def_indices.len() as u32;
-        self.def_indices.push(Index(index));
+        // Fix indices later.
+        self.def_indices.push(Index(0));
         self.builder().push(Node {
             nod: Nod::Uid {
                 intern,
@@ -358,7 +367,7 @@ impl<'a> Runner<'a> {
                     },
                 ..
             } => {
-                self.push_id(node, index, intern, r#pub);
+                self.push_id(node, intern, r#pub);
                 true
             }
             _ => false,
@@ -489,6 +498,22 @@ impl<'a> Runner<'a> {
             return core.get_top(intern);
         }
         None
+    }
+
+    /// Update def indices for current tree.
+    fn update_def_inds(&mut self, tree: &mut [Node]) {
+        for (at, node) in tree.iter().enumerate() {
+            if let Nod::Branch {
+                kind: BranchKind::Def,
+                range,
+            } = node.nod
+            {
+                let range: Range<usize> = range.into();
+                if let Nod::Uid { num, .. } = tree[range.start].nod {
+                    self.def_indices[num as usize] = Index(at as u32);
+                }
+            }
+        }
     }
 }
 
