@@ -1,6 +1,5 @@
 use std::{
     fmt::Debug,
-    fs::File,
     io::Write,
     ops::{Index, Range},
 };
@@ -93,7 +92,7 @@ pub struct DefNum {
     pub num: u32,
 }
 
-pub fn write_tree<Map>(file: &mut File, nodes: &[impl Nody], map: &Map) -> Result<()>
+pub fn write_tree<Map>(file: &mut impl Write, nodes: &[impl Nody], map: &Map) -> Result<()>
 where
     Map: Index<Intern, Output = str>,
 {
@@ -101,7 +100,7 @@ where
     Ok(())
 }
 
-fn write_at<Map>(
+fn write_at<Map, File>(
     file: &mut File,
     parent: Option<Nod>,
     nodes: &[impl Nody],
@@ -112,6 +111,7 @@ fn write_at<Map>(
 ) -> Result<usize>
 where
     Map: Index<Intern, Output = str>,
+    File: Write,
 {
     let mut line_count = 0;
     let node = &nodes[index];

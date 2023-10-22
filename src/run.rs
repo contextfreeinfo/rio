@@ -114,18 +114,19 @@ impl<'a> Runner<'a> {
     }
 
     pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
-        let max_rounds = 10;
         self.types.clear();
         self.convert_ids(tree);
         self.update_def_inds(tree);
         self.extract_top(tree);
         println!("Defs of {}: {:?}", tree.len(), self.def_indices);
+        // TODO Multiple big rounds of resolution and typing.
         self.resolve(tree);
         if !tree.is_empty() {
-            // Keep full tree for typing or eval so we can reference anywhere.
             let end = tree.len() - 1;
-            for _ in 0..max_rounds {
+            // 2 rounds of typing lets us get back references.
+            for _ in 0..2 {
                 self.any_change = false;
+                // Keep full tree for typing or eval so we can reference anywhere.
                 self.type_any(tree, end, Type(0));
                 if !self.any_change {
                     break;
@@ -133,6 +134,7 @@ impl<'a> Runner<'a> {
             }
         }
         self.append_types(tree);
+        self.update_def_inds(tree);
         // println!("Tops: {:?}", self.tops);
         // println!("Top map: {:?}", self.top_map);
         Module {
@@ -141,7 +143,7 @@ impl<'a> Runner<'a> {
             num: self.module,
             tops: self.tops,
             top_map: self.top_map,
-            tree: self.cart.tree_builder.nodes.clone(),
+            tree: tree.clone(),
         }
     }
 
@@ -228,7 +230,14 @@ impl<'a> Runner<'a> {
                         typ = def_typ;
                     }
                 } else {
-                    // TODO Dig from other modules
+                    // Dig from other modules
+                    let other = &self.cart.modules[module as usize - 1];
+                    let other_node = other.tree[(other.def_indices[num as usize].0 as usize)];
+                    let def_typ = other_node.typ;
+                    if def_typ.0 != 0 {
+                        // TODO Copy type into our types.
+                        println!("Found {def_typ:?} in module {module}");
+                    }
                 }
             }
             _ => {}
