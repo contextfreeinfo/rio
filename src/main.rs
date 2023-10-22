@@ -52,10 +52,10 @@ fn main() -> Result<()> {
 }
 
 pub struct Cart {
-    pub core: Option<Module>,
     pub core_exports: CoreExports,
     pub interner: Interner,
-    pub modules: HashMap<Intern, Module>,
+    pub modules: Vec<Module>,
+    pub module_map: HashMap<Intern, u16>,
     pub tree_builder: TreeBuilder,
 }
 
@@ -66,10 +66,10 @@ fn run_app(args: &RunArgs) -> Result<()> {
     interner.get_or_intern("");
     let tree_builder = TreeBuilder::default();
     let cart = Cart {
-        core: None,
         core_exports: Default::default(),
         interner: interner.clone(),
-        modules: HashMap::new(),
+        modules: vec![],
+        module_map: HashMap::new(),
         tree_builder,
     };
     // Process
@@ -95,12 +95,11 @@ fn build(args: &RunArgs, name: &str, cart: Cart) -> Result<Cart> {
     let runner = Runner::new(&mut cart);
     let module = runner.run(interner.get_or_intern(name), &mut tree);
     if name == "core" {
-        cart.core = Some(module);
-        cart.core_exports = CoreExports::extract(cart.core.as_ref().unwrap(), &cart.interner);
+        cart.core_exports = CoreExports::extract(&module, &cart.interner);
         // println!("{:?}", cart.core_exports);
-    } else {
-        cart.modules.insert(module.name, module);
     }
+    cart.module_map.insert(module.name, cart.modules.len() as u16 + 1);
+    cart.modules.push(module);
     dump_tree("run", args, name, &tree, interner.as_ref())?;
     // Done
     Ok(cart)

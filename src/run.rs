@@ -99,7 +99,7 @@ pub struct Runner<'a> {
 
 impl<'a> Runner<'a> {
     pub fn new(cart: &'a mut Cart) -> Self {
-        let module = cart.modules.len() as u16 + cart.core.is_some() as u16 + 1;
+        let module = cart.modules.len() as u16 + 1;
         Self {
             any_change: false,
             cart,
@@ -542,7 +542,7 @@ impl<'a> Runner<'a> {
             return Some(self.tops[*index as usize]);
         }
         // TODO Work through imports more generally.
-        if let Some(core) = &self.cart.core {
+        if let Some(core) = self.cart.modules.get(0) {
             // TODO Check overloads!
             return core.get_top(intern);
         }
