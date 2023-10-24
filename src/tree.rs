@@ -96,7 +96,7 @@ pub fn write_tree<Map>(file: &mut impl Write, nodes: &[impl Nody], map: &Map) ->
 where
     Map: Index<Intern, Output = str>,
 {
-    write_at(file, None::<Nod>, nodes, map, 0, nodes.len() - 1, 0)?;
+    write_at(file, None::<Nod>, nodes, map, nodes.len() - 1, 0)?;
     Ok(())
 }
 
@@ -105,7 +105,6 @@ fn write_at<Map, File>(
     parent: Option<Nod>,
     nodes: &[impl Nody],
     map: &Map,
-    kid_index: usize,
     index: usize,
     indent: usize,
 ) -> Result<usize>
@@ -126,6 +125,7 @@ where
     };
     // Indent.
     write!(file, "{: <1$}", "", indent)?;
+    // write!(file, "{index} ");
     // Type index.
     if matches!(
         parent,
@@ -134,7 +134,7 @@ where
             ..
         }),
     ) {
-        write!(file, "({}) ", kid_index + 1)?;
+        write!(file, "({}) ", index + 1)?;
     }
     // Node info.
     match node.nod() {
@@ -143,16 +143,8 @@ where
             finish(file)?;
             let range: Range<usize> = range.into();
             let mut sub_count = 0;
-            for (kid_index, index) in range.clone().enumerate() {
-                sub_count += write_at(
-                    file,
-                    Some(node.nod()),
-                    nodes,
-                    map,
-                    kid_index,
-                    index,
-                    indent + 2,
-                )?;
+            for index in range.clone() {
+                sub_count += write_at(file, Some(node.nod()), nodes, map, index, indent + 2)?;
             }
             line_count += sub_count;
             if sub_count > 1 {

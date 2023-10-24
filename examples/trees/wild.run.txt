@@ -1,17 +1,17 @@
 Block
-  Fun (2)
+  Fun (60)
     Params
     Params
   /Fun
-  Fun (4)
+  Fun (62)
     Params
     Params
   /Fun
-  Fun (6)
+  Fun (64)
     Params
     Params
   /Fun
-  Fun (8)
+  Fun (66)
     Params
       Id "5"
     Params
@@ -20,7 +20,7 @@ Block
     Block
       Id "5"
   /Call
-  Fun (9)
+  Fun (67)
     Params
       Block
         Def
@@ -45,7 +45,7 @@ Block
     Block
       Id "a"
   /Fun
-  Fun (10)
+  Fun (68)
     Params
       Block
         Def
@@ -70,7 +70,7 @@ Block
     Block
       Id "a"
   /Fun
-  Fun (11)
+  Fun (69)
     Params
       Id "a"
     Params
@@ -84,20 +84,20 @@ Block
       Id "a"
   /Fun
   Types
-    (1) Uid Void@1:4
-    (2) FunType (1)
-    (3) Uid Void@1:4
-    (4) FunType (3)
-    (5) Uid Void@1:4
-    (6) FunType (5)
-    (7) Uid Void@1:4
-    (8) FunType (7)
+    (59) Uid Void@1:4
+    (60) FunType (59)
+    (61) Uid Void@1:4
+    (62) FunType (61)
+    (63) Uid Void@1:4
+    (64) FunType (63)
+    (65) Uid Void@1:4
+    (66) FunType (65)
       None
-    (9) FunType
+    (67) FunType
       None
-    (10) FunType
+    (68) FunType
       None
-    (11) FunType
+    (69) FunType
       None
   /Types
 /Block

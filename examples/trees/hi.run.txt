@@ -1,60 +1,60 @@
 Block
-  Def (2)
-    Uid main@2:1 (2)
+  Def (36)
+    Uid main@2:1 (36)
     None
-    Fun (2)
+    Fun (36)
       Params
       Params
       Block
-        Def (1)
-          Uid message@0:2 (1)
+        Def (35)
+          Uid message@0:2 (35)
           None
-          String "\"Hi!\"" (1)
+          String "\"Hi!\"" (35)
         /Def
         Call
-          Uid print-twice@0:3 (5)
-          Uid message@0:2 (1)
+          Uid print-twice@0:3 (39)
+          Uid message@0:2 (35)
         /Call
       /Block
     /Fun
   /Def
-  Def (5)
-    Uid print-twice@0:3 (5)
+  Def (39)
+    Uid print-twice@0:3 (39)
     None
-    Fun (5)
+    Fun (39)
       Params
-        Def (3)
-          Uid message@0:4 (3)
+        Def (37)
+          Uid message@0:4 (37)
           Uid Text@1:2
-          None (3)
+          None (37)
         /Def
       /Params
       Params
-        Def (4)
-          None (4)
+        Def (38)
+          None (38)
           Uid Void@1:4
-          None (4)
+          None (38)
         /Def
       /Params
-      Block (4)
+      Block (38)
         Call
           Uid print@1:6
-          Uid message@0:4 (3)
+          Uid message@0:4 (37)
         /Call
         Call
           Uid print@1:6
-          Uid message@0:4 (3)
+          Uid message@0:4 (37)
         /Call
       /Block
     /Fun
   /Def
   Types
-    (1) Uid Text@1:2
-    (2) FunType
-    (3) Uid Text@1:2
-    (4) Uid Void@1:4
-    (5) FunType (4)
-      None (3)
+    (35) Uid Text@1:2
+    (36) FunType
+    (37) Uid Text@1:2
+    (38) Uid Void@1:4
+    (39) FunType (38)
+      None (37)
   /Types
 /Block
 

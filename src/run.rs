@@ -155,9 +155,19 @@ impl<'a> Runner<'a> {
         self.types.wrap(BranchKind::Types, 0, Type(0), 0);
         self.types.wrap(BranchKind::Types, 0, Type(0), 0);
         self.cart.tree_builder.push_tree(&self.types.nodes);
+        // TODO Add types offset to all types for direct indexing?
+        let Nod::Branch { range, .. } = self.builder().working.last().unwrap().nod else { panic!() };
+        let types_offset = range.start;
+        dbg!(types_offset);
         self.builder().wrap(BranchKind::Block, 0, Type(0), 0);
         self.builder().wrap(BranchKind::Block, 0, Type(0), 0);
         self.builder().drain_into(tree);
+        // Now point directly to tree position.
+        for node in tree {
+            if node.typ.0 != 0 {
+                node.typ.0 += types_offset;
+            }
+        }
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {
@@ -225,17 +235,17 @@ impl<'a> Runner<'a> {
             Nod::Uid { module, num, .. } => {
                 if module == 0 || module == self.module {
                     // Dig from this module
-                    let def_typ = tree[self.def_indices[num as usize].0 as usize].typ;
+                    let def_typ = tree[self.def_indices[num as usize].0 as usize - 1].typ;
                     if def_typ.0 != 0 {
                         typ = def_typ;
                     }
                 } else {
                     // Dig from other modules
                     let other = &self.cart.modules[module as usize - 1];
-                    let other_node = other.tree[(other.def_indices[num as usize].0 as usize)];
+                    let other_node = other.tree[(other.def_indices[num as usize].0 as usize - 1)];
                     let def_typ = other_node.typ;
                     if def_typ.0 != 0 {
-                        // TODO Copy type into our types.
+                        // TODO Copy type into our types. Or make a node for foreign reference?
                         println!("Found {def_typ:?} in module {module}");
                     }
                 }
@@ -568,7 +578,7 @@ impl<'a> Runner<'a> {
             {
                 let range: Range<usize> = range.into();
                 if let Nod::Uid { num, .. } = tree[range.start].nod {
-                    self.def_indices[num as usize] = Index(at as u32);
+                    self.def_indices[num as usize] = Index(at as u32 + 1);
                 }
             }
         }

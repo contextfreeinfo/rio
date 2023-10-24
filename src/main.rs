@@ -98,7 +98,8 @@ fn build(args: &RunArgs, name: &str, cart: Cart) -> Result<Cart> {
         cart.core_exports = CoreExports::extract(&module, &cart.interner);
         // println!("{:?}", cart.core_exports);
     }
-    cart.module_map.insert(module.name, cart.modules.len() as u16 + 1);
+    cart.module_map
+        .insert(module.name, cart.modules.len() as u16 + 1);
     cart.modules.push(module);
     dump_tree("run", args, name, &tree, interner.as_ref())?;
     // Done
