@@ -118,7 +118,7 @@ where
         let typ = node.typ().0;
         match typ {
             0 => writeln!(file),
-            _ => writeln!(file, " ({})", node.typ().0),
+            _ => writeln!(file, " _{}_", node.typ().0),
         }?;
         line_count += 1;
         Ok(())
@@ -134,7 +134,8 @@ where
             ..
         }),
     ) {
-        write!(file, "({}) ", index + 1)?;
+        // Underscores usually allow easy select word then search.
+        write!(file, "_{}_ ", index + 1)?;
     }
     // Node info.
     match node.nod() {
