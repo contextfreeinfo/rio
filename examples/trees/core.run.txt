@@ -1,30 +1,31 @@
 Block
+  Module "core" 1
   Def _42_
-    Uid Function@1:1 _42_
+    Uid Function@1:1* _42_
     Uid Type@1:3 _44_
     Call _42_
       Uid native@1:5 _46_
   /Def
   Def _43_
-    Uid Text@1:2 _43_
+    Uid Text@1:2* _43_
     Uid Type@1:3 _44_
     Call _43_
       Uid native@1:5 _46_
   /Def
   Def _44_
-    Uid Type@1:3 _44_
+    Uid Type@1:3* _44_
     Uid Type@1:3 _44_
     Call _44_
       Uid native@1:5 _46_
   /Def
   Def _45_
-    Uid Void@1:4 _45_
+    Uid Void@1:4* _45_
     Uid Type@1:3 _44_
     Call _45_
       Uid native@1:5 _46_
   /Def
   Def _46_
-    Uid native@1:5 _46_
+    Uid native@1:5* _46_
     None
     Fun _46_
       Params
@@ -36,12 +37,12 @@ Block
     /Fun
   /Def
   Def _49_
-    Uid print@1:6 _49_
+    Uid print@1:6* _49_
     None
     Fun _49_
       Params
         Def _47_
-          Uid text@0:7 _47_
+          Uid text@1:7 private _47_
           Uid Text@1:2 _43_
           None _47_
         /Def
@@ -73,4 +74,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 57
+Tree len: 58

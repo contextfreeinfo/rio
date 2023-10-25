@@ -1,30 +1,31 @@
 Block
+  Module "examples/hi.rio" 2
   Def _36_
-    Uid main@2:1 _36_
+    Uid main@2:1* _36_
     None
     Fun _36_
       Params
       Params
       Block
         Def _35_
-          Uid message@0:2 _35_
+          Uid message@2:2 private _35_
           None
           String "\"Hi!\"" _35_
         /Def
         Call
-          Uid print-twice@0:3 _39_
-          Uid message@0:2 _35_
+          Uid print-twice@2:3 private _39_
+          Uid message@2:2 private _35_
         /Call
       /Block
     /Fun
   /Def
   Def _39_
-    Uid print-twice@0:3 _39_
+    Uid print-twice@2:3 private _39_
     None
     Fun _39_
       Params
         Def _37_
-          Uid message@0:4 _37_
+          Uid message@2:4 private _37_
           Uid Text@1:2
           None _37_
         /Def
@@ -39,11 +40,11 @@ Block
       Block _38_
         Call
           Uid print@1:6
-          Uid message@0:4 _37_
+          Uid message@2:4 private _37_
         /Call
         Call
           Uid print@1:6
-          Uid message@0:4 _37_
+          Uid message@2:4 private _37_
         /Call
       /Block
     /Fun
@@ -59,4 +60,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 43
+Tree len: 44

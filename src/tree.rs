@@ -9,7 +9,7 @@ use anyhow::Result;
 use crate::lex::{Intern, Token};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct Source(u32);
+pub struct Source(pub u32);
 
 impl Into<Source> for usize {
     fn into(self) -> Source {
@@ -54,6 +54,10 @@ pub enum Nod {
     Leaf {
         token: Token,
     },
+    ModuleId {
+        name: Intern,
+        module: u16,
+    },
     Uid {
         intern: Intern,
         module: u16,
@@ -96,7 +100,7 @@ pub fn write_tree<Map>(file: &mut impl Write, nodes: &[impl Nody], map: &Map) ->
 where
     Map: Index<Intern, Output = str>,
 {
-    write_at(file, None::<Nod>, nodes, map, nodes.len() - 1, 0)?;
+    write_at(file, None::<Nod>, nodes, map, 0, nodes.len() - 1, 0, 0)?;
     Ok(())
 }
 
@@ -105,7 +109,9 @@ fn write_at<Map, File>(
     parent: Option<Nod>,
     nodes: &[impl Nody],
     map: &Map,
+    tree_module: u16,
     index: usize,
+    kid_index: usize,
     indent: usize,
 ) -> Result<usize>
 where
@@ -144,8 +150,21 @@ where
             finish(file)?;
             let range: Range<usize> = range.into();
             let mut sub_count = 0;
-            for index in range.clone() {
-                sub_count += write_at(file, Some(node.nod()), nodes, map, index, indent + 2)?;
+            let mut tree_module = tree_module;
+            for (kid_index, index) in range.clone().enumerate() {
+                if let Nod::ModuleId { module, .. } = nodes[index].nod() {
+                    tree_module = module;
+                }
+                sub_count += write_at(
+                    file,
+                    Some(node.nod()),
+                    nodes,
+                    map,
+                    tree_module,
+                    index,
+                    kid_index,
+                    indent + 2,
+                )?;
             }
             line_count += sub_count;
             if sub_count > 1 {
@@ -159,12 +178,49 @@ where
             write!(file, "{:?} {:?}", token.kind, &map[token.intern])?;
             finish(file)?;
         }
+        Nod::ModuleId {
+            name: intern,
+            module,
+        } => {
+            write!(file, "Module {:?} {module}", &map[intern])?;
+            finish(file)?;
+        }
         Nod::Uid {
             intern,
             module,
             num,
         } => {
-            write!(file, "Uid {}@{module}:{num}", &map[intern])?;
+            // Goal here is to allow search in file find all matching uids while
+            // also still being clear about underlying values.
+            let star = if tree_module != 0 {
+                if module != 0
+                    && kid_index == 0
+                    && matches!(
+                        parent,
+                        Some(Nod::Branch {
+                            kind: BranchKind::Def,
+                            ..
+                        })
+                    )
+                {
+                    // Explicitly public def.
+                    "*"
+                } else if module == 0 {
+                    // Unexpectedly private (non-module-marked) ref.
+                    " private"
+                } else {
+                    // Private def or expectedly module-marked ref.
+                    ""
+                }
+            } else {
+                // No tree module info, so let raw number speak for themselves.
+                ""
+            };
+            let module = match module {
+                0 => tree_module,
+                _ => module,
+            };
+            write!(file, "Uid {}@{module}:{num}{star}", &map[intern])?;
             finish(file)?;
         }
         _ => todo!(),

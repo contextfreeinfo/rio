@@ -87,6 +87,7 @@ pub struct Runner<'a> {
     pub cart: &'a mut Cart,
     pub def_indices: Vec<Index>,
     module: u16,
+    pending: Option<Node>,
     scope: Vec<ScopeEntry>,
     // Single vector to support overloading while trying to limit allocations.
     // TODO Differentiate overload and full definitions.
@@ -104,6 +105,7 @@ impl<'a> Runner<'a> {
             any_change: false,
             cart,
             def_indices: vec![Index::default()],
+            pending: None,
             module,
             scope: vec![],
             tops: vec![],
@@ -115,6 +117,14 @@ impl<'a> Runner<'a> {
 
     pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
         self.types.clear();
+        self.pending = Some(Node {
+            typ: 0.into(),
+            source: 0.into(),
+            nod: Nod::ModuleId {
+                name,
+                module: self.module,
+            },
+        });
         self.convert_ids(tree);
         self.update_def_inds(tree);
         self.extract_top(tree);
@@ -377,6 +387,10 @@ impl<'a> Runner<'a> {
         match node.nod {
             Nod::Branch { kind, range, .. } => {
                 let start = self.builder().pos();
+                if let Some(pending) = self.pending {
+                    self.builder().push(pending);
+                    self.pending = None;
+                }
                 let range: Range<usize> = range.into();
                 for kid_index in range.clone() {
                     match kind {
