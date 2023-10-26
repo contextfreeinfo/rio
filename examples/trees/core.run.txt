@@ -1,75 +1,75 @@
 Block
   Module "core" 1
-  Def _42_
-    Uid Function@1:1* _42_
-    Uid Type@1:3 _44_
-    Call _42_
-      Uid native@1:5 _46_
+  Def@51 :@42
+    Uid Function@1* :@42
+    Uid Type@3 :@44
+    Call :@42
+      Uid native@5 :@46
   /Def
-  Def _43_
-    Uid Text@1:2* _43_
-    Uid Type@1:3 _44_
-    Call _43_
-      Uid native@1:5 _46_
+  Def@52 :@43
+    Uid Text@2* :@43
+    Uid Type@3 :@44
+    Call :@43
+      Uid native@5 :@46
   /Def
-  Def _44_
-    Uid Type@1:3* _44_
-    Uid Type@1:3 _44_
-    Call _44_
-      Uid native@1:5 _46_
+  Def@53 :@44
+    Uid Type@3* :@44
+    Uid Type@3 :@44
+    Call :@44
+      Uid native@5 :@46
   /Def
-  Def _45_
-    Uid Void@1:4* _45_
-    Uid Type@1:3 _44_
-    Call _45_
-      Uid native@1:5 _46_
+  Def@54 :@45
+    Uid Void@4* :@45
+    Uid Type@3 :@44
+    Call :@45
+      Uid native@5 :@46
   /Def
-  Def _46_
-    Uid native@1:5* _46_
+  Def@55 :@46
+    Uid native@5* :@46
     None
-    Fun _46_
+    Fun :@46
       Params
       Params
       Block
         Call
-          Uid native@1:5 _46_
+          Uid native@5 :@46
       /Block
     /Fun
   /Def
-  Def _49_
-    Uid print@1:6* _49_
+  Def@56 :@49
+    Uid print@6* :@49
     None
-    Fun _49_
+    Fun :@49
       Params
-        Def _47_
-          Uid text@1:7 private _47_
-          Uid Text@1:2 _43_
-          None _47_
+        Def@28 :@47
+          Uid text@7 private :@47
+          Uid Text@2 :@43
+          None :@47
         /Def
       /Params
       Params
-        Def _48_
-          None _48_
-          Uid Void@1:4 _45_
-          None _48_
+        Def@32 :@48
+          None :@48
+          Uid Void@4 :@45
+          None :@48
         /Def
       /Params
-      Block _48_
+      Block :@48
         Call
-          Uid native@1:5 _46_
+          Uid native@5 :@46
       /Block
     /Fun
   /Def
   Types
-    _42_ Uid Type@1:3
-    _43_ Uid Type@1:3
-    _44_ Uid Type@1:3
-    _45_ Uid Type@1:3
-    _46_ FunType
-    _47_ Uid Text@1:2
-    _48_ Uid Void@1:4
-    _49_ FunType _48_
-      None _47_
+    Uid@42 Type@3
+    Uid@43 Type@3
+    Uid@44 Type@3
+    Uid@45 Type@3
+    FunType@46
+    Uid@47 Text@2
+    Uid@48 Void@4
+    FunType@49 :@48
+      None :@47
   /Types
 /Block
 

@@ -1,18 +1,18 @@
 Block
   Module "examples/wild.rio" 2
-  Fun _60_
+  Fun :@60
     Params
     Params
   /Fun
-  Fun _62_
+  Fun :@62
     Params
     Params
   /Fun
-  Fun _64_
+  Fun :@64
     Params
     Params
   /Fun
-  Fun _66_
+  Fun :@66
     Params
       Id "5"
     Params
@@ -21,23 +21,23 @@ Block
     Block
       Id "5"
   /Call
-  Fun _67_
+  Fun :@67
     Params
       Block
-        Def
-          Uid a@2:1 private
+        Def@18
+          Uid a@1 private
           Id "A"
           None
         /Def
-        Def
-          Uid b@2:2 private
+        Def@19
+          Uid b@2 private
           Id "B"
           None
         /Def
       /Block
     /Params
     Params
-      Def
+      Def@24
         None
         Id "C"
         None
@@ -46,23 +46,23 @@ Block
     Block
       Id "a"
   /Fun
-  Fun _68_
+  Fun :@68
     Params
       Block
-        Def
-          Uid a@2:3 private
+        Def@35
+          Uid a@3 private
           Id "A"
           None
         /Def
-        Def
-          Uid b@2:4 private
+        Def@36
+          Uid b@4 private
           Id "B"
           None
         /Def
       /Block
     /Params
     Params
-      Def
+      Def@41
         None
         Id "C"
         None
@@ -71,11 +71,11 @@ Block
     Block
       Id "a"
   /Fun
-  Fun _69_
+  Fun :@69
     Params
       Id "a"
     Params
-      Def
+      Def@50
         None
         Id "B"
         None
@@ -85,20 +85,20 @@ Block
       Id "a"
   /Fun
   Types
-    _59_ Uid Void@1:4
-    _60_ FunType _59_
-    _61_ Uid Void@1:4
-    _62_ FunType _61_
-    _63_ Uid Void@1:4
-    _64_ FunType _63_
-    _65_ Uid Void@1:4
-    _66_ FunType _65_
+    Uid@59 Void@1.4
+    FunType@60 :@59
+    Uid@61 Void@1.4
+    FunType@62 :@61
+    Uid@63 Void@1.4
+    FunType@64 :@63
+    Uid@65 Void@1.4
+    FunType@66 :@65
       None
-    _67_ FunType
+    FunType@67
       None
-    _68_ FunType
+    FunType@68
       None
-    _69_ FunType
+    FunType@69
       None
   /Types
 /Block

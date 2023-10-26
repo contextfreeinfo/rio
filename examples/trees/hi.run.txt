@@ -1,61 +1,61 @@
 Block
   Module "examples/hi.rio" 2
-  Def _36_
-    Uid main@2:1* _36_
+  Def@41 :@36
+    Uid main@1* :@36
     None
-    Fun _36_
+    Fun :@36
       Params
       Params
       Block
-        Def _35_
-          Uid message@2:2 private _35_
+        Def@6 :@35
+          Uid message@2 private :@35
           None
-          String "\"Hi!\"" _35_
+          String "\"Hi!\"" :@35
         /Def
         Call
-          Uid print-twice@2:3 private _39_
-          Uid message@2:2 private _35_
+          Uid print-twice@3 private :@39
+          Uid message@2 private :@35
         /Call
       /Block
     /Fun
   /Def
-  Def _39_
-    Uid print-twice@2:3 private _39_
+  Def@42 :@39
+    Uid print-twice@3 private :@39
     None
-    Fun _39_
+    Fun :@39
       Params
-        Def _37_
-          Uid message@2:4 private _37_
-          Uid Text@1:2
-          None _37_
+        Def@17 :@37
+          Uid message@4 private :@37
+          Uid Text@1.2
+          None :@37
         /Def
       /Params
       Params
-        Def _38_
-          None _38_
-          Uid Void@1:4
-          None _38_
+        Def@21 :@38
+          None :@38
+          Uid Void@1.4
+          None :@38
         /Def
       /Params
-      Block _38_
+      Block :@38
         Call
-          Uid print@1:6
-          Uid message@2:4 private _37_
+          Uid print@1.6
+          Uid message@4 private :@37
         /Call
         Call
-          Uid print@1:6
-          Uid message@2:4 private _37_
+          Uid print@1.6
+          Uid message@4 private :@37
         /Call
       /Block
     /Fun
   /Def
   Types
-    _35_ Uid Text@1:2
-    _36_ FunType
-    _37_ Uid Text@1:2
-    _38_ Uid Void@1:4
-    _39_ FunType _38_
-      None _37_
+    Uid@35 Text@1.2
+    FunType@36
+    Uid@37 Text@1.2
+    Uid@38 Void@1.4
+    FunType@39 :@38
+      None :@37
   /Types
 /Block
 

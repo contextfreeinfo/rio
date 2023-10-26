@@ -128,7 +128,6 @@ impl<'a> Runner<'a> {
         self.convert_ids(tree);
         self.update_def_inds(tree);
         self.extract_top(tree);
-        println!("Defs of {}: {:?}", tree.len(), self.def_indices);
         // TODO Multiple big rounds of resolution and typing.
         self.resolve(tree);
         if !tree.is_empty() {
@@ -145,6 +144,7 @@ impl<'a> Runner<'a> {
         }
         self.append_types(tree);
         self.update_def_inds(tree);
+        println!("Defs of {}: {:?}", tree.len(), self.def_indices);
         // println!("Tops: {:?}", self.tops);
         // println!("Top map: {:?}", self.top_map);
         Module {

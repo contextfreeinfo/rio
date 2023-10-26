@@ -124,29 +124,40 @@ where
         let typ = node.typ().0;
         match typ {
             0 => writeln!(file),
-            _ => writeln!(file, " _{}_", node.typ().0),
+            _ => writeln!(file, " :@{}", node.typ().0),
         }?;
         line_count += 1;
         Ok(())
     };
     // Indent.
     write!(file, "{: <1$}", "", indent)?;
-    // write!(file, "{index} ");
     // Type index.
-    if matches!(
-        parent,
-        Some(Nod::Branch {
-            kind: BranchKind::Types,
-            ..
-        }),
-    ) {
-        // Underscores usually allow easy select word then search.
-        write!(file, "_{}_ ", index + 1)?;
-    }
+    let write_index = |file: &mut File| -> Result<()> {
+        if (tree_module != 0
+            && matches!(
+                node.nod(),
+                Nod::Branch {
+                    kind: BranchKind::Def,
+                    ..
+                }
+            ))
+            || matches!(
+                parent,
+                Some(Nod::Branch {
+                    kind: BranchKind::Types,
+                    ..
+                })
+            )
+        {
+            write!(file, "@{}", index + 1)?;
+        }
+        Ok(())
+    };
     // Node info.
     match node.nod() {
         Nod::Branch { kind, range } => {
             write!(file, "{kind:?}")?;
+            write_index(file)?;
             finish(file)?;
             let range: Range<usize> = range.into();
             let mut sub_count = 0;
@@ -175,14 +186,18 @@ where
             }
         }
         Nod::Leaf { token } => {
-            write!(file, "{:?} {:?}", token.kind, &map[token.intern])?;
+            write!(file, "{:?}", token.kind)?;
+            write_index(file)?;
+            write!(file, " {:?}", &map[token.intern])?;
             finish(file)?;
         }
         Nod::ModuleId {
             name: intern,
             module,
         } => {
-            write!(file, "Module {:?} {module}", &map[intern])?;
+            write!(file, "Module")?;
+            write_index(file)?;
+            write!(file, " {:?} {module}", &map[intern])?;
             finish(file)?;
         }
         Nod::Uid {
@@ -190,9 +205,17 @@ where
             module,
             num,
         } => {
-            // Goal here is to allow search in file find all matching uids while
-            // also still being clear about underlying values.
+            write!(file, "Uid")?;
+            write_index(file)?;
+            write!(file, " {}@", &map[intern])?;
+            // Try to be both pretty and clear to the extent that makes sense.
             let star = if tree_module != 0 {
+                // Try to be pretty, since we have some context.
+                if module != 0 && module != tree_module {
+                    // External symbol so give the source.
+                    write!(file, "{module}.")?;
+                }
+                // TODO If module == tree_module or 0 then no prefix at all?
                 if module != 0
                     && kid_index == 0
                     && matches!(
@@ -213,14 +236,11 @@ where
                     ""
                 }
             } else {
-                // No tree module info, so let raw number speak for themselves.
+                // No tree module info, so let raw number speak for itself.
+                write!(file, "{module}.")?;
                 ""
             };
-            let module = match module {
-                0 => tree_module,
-                _ => module,
-            };
-            write!(file, "Uid {}@{module}:{num}{star}", &map[intern])?;
+            write!(file, "{num}{star}")?;
             finish(file)?;
         }
         _ => todo!(),
