@@ -36,7 +36,6 @@ impl From<ScopeEntry> for Node {
 }
 
 pub struct Module {
-    pub def_indices: Vec<Index>,
     pub name: Intern,
     pub num: u16,
     // TODO Find or make some abstraction for this kind of multimap?
@@ -142,13 +141,16 @@ impl<'a> Runner<'a> {
                 }
             }
         }
+        // Finalize things.
         self.append_types(tree);
+        // Appending types shifted indices, so update them.
         self.update_def_inds(tree);
-        println!("Defs of {}: {:?}", tree.len(), self.def_indices);
+        // println!("Defs of {}: {:?}", tree.len(), self.def_indices);
+        // Then replace indirect indices with direct.
+        self.update_uids_at_end(tree);
         // println!("Tops: {:?}", self.tops);
         // println!("Top map: {:?}", self.top_map);
         Module {
-            def_indices: self.def_indices,
             name,
             num: self.module,
             tops: self.tops,
@@ -165,7 +167,6 @@ impl<'a> Runner<'a> {
         self.types.wrap(BranchKind::Types, 0, Type(0), 0);
         self.types.wrap(BranchKind::Types, 0, Type(0), 0);
         self.cart.tree_builder.push_tree(&self.types.nodes);
-        // TODO Add types offset to all types for direct indexing?
         let Nod::Branch { range, .. } = self.builder().working.last().unwrap().nod else { panic!() };
         let types_offset = range.start;
         dbg!(types_offset);
@@ -189,7 +190,7 @@ impl<'a> Runner<'a> {
         match node.nod {
             // TODO Complex types.
             Nod::Uid { .. } => {
-                // TODO Look up existing type.
+                // TODO Try to look up existing type after pushing.
                 if node.typ.0 == 0 {
                     self.types.push(*node);
                     Some(Type(self.types.pos()))
@@ -244,15 +245,15 @@ impl<'a> Runner<'a> {
             },
             Nod::Uid { module, num, .. } => {
                 if module == 0 || module == self.module {
-                    // Dig from this module
+                    // Dig from this module using indirect indices.
                     let def_typ = tree[self.def_indices[num as usize].0 as usize - 1].typ;
                     if def_typ.0 != 0 {
                         typ = def_typ;
                     }
                 } else {
-                    // Dig from other modules
+                    // Dig from other modules using direct indices.
                     let other = &self.cart.modules[module as usize - 1];
-                    let other_node = other.tree[(other.def_indices[num as usize].0 as usize - 1)];
+                    let other_node = other.tree[num as usize - 1];
                     let def_typ = other_node.typ;
                     if def_typ.0 != 0 {
                         // TODO Copy type into our types. Or make a node for foreign reference?
@@ -595,6 +596,30 @@ impl<'a> Runner<'a> {
                     self.def_indices[num as usize] = Index(at as u32 + 1);
                 }
             }
+        }
+    }
+
+    fn update_uids_at_end(&mut self, tree: &mut [Node]) {
+        // Tree
+        for mut node in tree {
+            if let Nod::Uid {
+                intern,
+                module,
+                num,
+            } = node.nod
+            {
+                if module == 0 || module == self.module {
+                    node.nod = Nod::Uid {
+                        intern,
+                        module,
+                        num: self.def_indices[num as usize].0,
+                    };
+                }
+            }
+        }
+        // Tops
+        for mut top in self.tops.iter_mut() {
+            top.num = self.def_indices[top.num as usize].0;
         }
     }
 }

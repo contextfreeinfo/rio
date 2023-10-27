@@ -25,12 +25,12 @@ Block
     Params
       Block
         Def@18
-          Uid a@1
+          Uid a@18
           Id "A"
           None
         /Def
         Def@19
-          Uid b@2
+          Uid b@19
           Id "B"
           None
         /Def
@@ -50,12 +50,12 @@ Block
     Params
       Block
         Def@35
-          Uid a@3
+          Uid a@35
           Id "A"
           None
         /Def
         Def@36
-          Uid b@4
+          Uid b@36
           Id "B"
           None
         /Def
@@ -85,13 +85,13 @@ Block
       Id "a"
   /Fun
   Types
-    Uid@59 Void@1@4
+    Uid@59 Void@1@54
     FunType@60 :@59
-    Uid@61 Void@1@4
+    Uid@61 Void@1@54
     FunType@62 :@61
-    Uid@63 Void@1@4
+    Uid@63 Void@1@54
     FunType@64 :@63
-    Uid@65 Void@1@4
+    Uid@65 Void@1@54
     FunType@66 :@65
       None
     FunType@67

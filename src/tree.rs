@@ -207,13 +207,13 @@ where
         } => {
             write!(file, "Uid")?;
             write_index(file)?;
-            write!(file, " {}@", &map[intern])?;
+            write!(file, " {}", &map[intern])?;
             // Try to be both pretty and clear to the extent that makes sense.
             let star = if tree_module != 0 {
                 // Try to be pretty, since we have some context.
                 if module != 0 && module != tree_module {
                     // External symbol so give the source.
-                    write!(file, "{module}@")?;
+                    write!(file, "@{module}")?;
                 }
                 // TODO If module == tree_module or 0 then no prefix at all?
                 if module != 0
@@ -234,10 +234,10 @@ where
                 }
             } else {
                 // No tree module info, so let raw number speak for itself.
-                write!(file, "{module}@")?;
+                write!(file, "@{module}")?;
                 ""
             };
-            write!(file, "{num}{star}")?;
+            write!(file, "@{num}{star}")?;
             finish(file)?;
         }
         _ => todo!(),

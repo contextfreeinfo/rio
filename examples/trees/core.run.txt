@@ -1,73 +1,73 @@
 Block
   Module "core" 1
   Def@51 :@42
-    Uid Function@1* :@42
-    Uid Type@3 :@44
+    Uid Function@51* :@42
+    Uid Type@53 :@44
     Call :@42
-      Uid native@5 :@46
+      Uid native@55 :@46
   /Def
   Def@52 :@43
-    Uid Text@2* :@43
-    Uid Type@3 :@44
+    Uid Text@52* :@43
+    Uid Type@53 :@44
     Call :@43
-      Uid native@5 :@46
+      Uid native@55 :@46
   /Def
   Def@53 :@44
-    Uid Type@3* :@44
-    Uid Type@3 :@44
+    Uid Type@53* :@44
+    Uid Type@53 :@44
     Call :@44
-      Uid native@5 :@46
+      Uid native@55 :@46
   /Def
   Def@54 :@45
-    Uid Void@4* :@45
-    Uid Type@3 :@44
+    Uid Void@54* :@45
+    Uid Type@53 :@44
     Call :@45
-      Uid native@5 :@46
+      Uid native@55 :@46
   /Def
   Def@55 :@46
-    Uid native@5* :@46
+    Uid native@55* :@46
     None
     Fun :@46
       Params
       Params
       Block
         Call
-          Uid native@5 :@46
+          Uid native@55 :@46
       /Block
     /Fun
   /Def
   Def@56 :@49
-    Uid print@6* :@49
+    Uid print@56* :@49
     None
     Fun :@49
       Params
         Def@28 :@47
-          Uid text@7 :@47
-          Uid Text@2 :@43
+          Uid text@28 :@47
+          Uid Text@52 :@43
           None :@47
         /Def
       /Params
       Params
         Def@32 :@48
           None :@48
-          Uid Void@4 :@45
+          Uid Void@54 :@45
           None :@48
         /Def
       /Params
       Block :@48
         Call
-          Uid native@5 :@46
+          Uid native@55 :@46
       /Block
     /Fun
   /Def
   Types
-    Uid@42 Type@3
-    Uid@43 Type@3
-    Uid@44 Type@3
-    Uid@45 Type@3
+    Uid@42 Type@53
+    Uid@43 Type@53
+    Uid@44 Type@53
+    Uid@45 Type@53
     FunType@46
-    Uid@47 Text@2
-    Uid@48 Void@4
+    Uid@47 Text@52
+    Uid@48 Void@54
     FunType@49 :@48
       None :@47
   /Types
