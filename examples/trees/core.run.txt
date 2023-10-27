@@ -42,7 +42,7 @@ Block
     Fun :@49
       Params
         Def@28 :@47
-          Uid text@7 private :@47
+          Uid text@7 :@47
           Uid Text@2 :@43
           None :@47
         /Def

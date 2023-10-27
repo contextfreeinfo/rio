@@ -213,7 +213,7 @@ where
                 // Try to be pretty, since we have some context.
                 if module != 0 && module != tree_module {
                     // External symbol so give the source.
-                    write!(file, "{module}.")?;
+                    write!(file, "{module}@")?;
                 }
                 // TODO If module == tree_module or 0 then no prefix at all?
                 if module != 0
@@ -228,16 +228,13 @@ where
                 {
                     // Explicitly public def.
                     "*"
-                } else if module == 0 {
-                    // Unexpectedly private (non-module-marked) ref.
-                    " private"
                 } else {
-                    // Private def or expectedly module-marked ref.
+                    // Ref or private def.
                     ""
                 }
             } else {
                 // No tree module info, so let raw number speak for itself.
-                write!(file, "{module}.")?;
+                write!(file, "{module}@")?;
                 ""
             };
             write!(file, "{num}{star}")?;
