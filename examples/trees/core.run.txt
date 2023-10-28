@@ -32,7 +32,7 @@ Block
       Params
       Block
         Call
-          Uid native@55 :@46
+          Uid native@55
       /Block
     /Fun
   /Def

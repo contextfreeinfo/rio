@@ -1,9 +1,9 @@
 Block
   Module "examples/hi.rio" 2
-  Def@51 :@38
-    Uid main@51* :@38
+  Def@52 :@38
+    Uid main@52* :@38
     None
-    Fun :@38
+    Fun :@50
       Params
       Params
       Block :@41
@@ -13,14 +13,14 @@ Block
           String "\"Hi!\"" :@37
         /Def
         Call :@41
-          Uid print-twice@52 :@49
+          Uid print-twice@53 :@49
           Uid message@6 :@37
         /Call
       /Block
     /Fun
   /Def
-  Def@52 :@49
-    Uid print-twice@52 :@49
+  Def@53 :@49
+    Uid print-twice@53 :@49
     None
     Fun :@49
       Params
@@ -66,8 +66,9 @@ Block
       None :@47
     FunType@49 :@41
       None :@39
+    FunType@50 :@41
   /Types
 /Block
 
 Node size: 20
-Tree len: 54
+Tree len: 55
