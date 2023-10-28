@@ -20,6 +20,61 @@ impl Typer {
             types: TreeBuilder::default(),
         }
     }
+
+    fn ingest_type(&mut self, other: &[Node], typ: Type) -> Type {
+        // TODO Or make a node for foreign reference?
+        // TODO At least fix type refs, so simple copy probably no good.
+        if typ.0 == 0 {
+            return typ;
+        }
+        let node = other[typ.0 as usize - 1];
+        let new_ref = match node.typ.0 {
+            0 => node.typ,
+            _ => self.ingest_type(other, node.typ),
+        };
+        match node.nod {
+            Nod::Branch {
+                kind: BranchKind::None,
+                ..
+            } => {
+                // All we need is the ref ingestion from above.
+            }
+            Nod::Branch { kind, range } => {
+                let range: Range<usize> = range.into();
+                let ref_start = self.type_refs.len();
+                for kid_index in range.clone() {
+                    let kid_type = self.ingest_type(other, Type(kid_index as u32 + 1));
+                    self.type_refs.push(kid_type);
+                }
+                let start = self.types.pos();
+                self.push_type_refs(ref_start);
+                self.types.wrap(kind, start, new_ref, 0);
+            }
+            Nod::Uid { .. } => {
+                self.types.push(Node {
+                    typ: new_ref,
+                    ..node
+                });
+            }
+            _ => {
+                self.types.push_tree(&other[..typ.0 as usize - 1]);
+            }
+        }
+        Type(self.types.pos())
+    }
+
+    fn push_type_refs(&mut self, ref_start: usize) {
+        for param_type in self.type_refs.drain(ref_start..) {
+            self.types.push(Node {
+                typ: param_type,
+                source: 0.into(),
+                nod: Nod::Branch {
+                    kind: BranchKind::None,
+                    range: (0u32..0u32).into(),
+                },
+            });
+        }
+    }
 }
 
 pub fn type_tree(runner: &mut Runner, tree: &mut [Node]) {
@@ -132,13 +187,7 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
                 let def_typ = other_node.typ;
                 if def_typ.0 != 0 {
                     // Copy type into our types.
-                    // TODO Or make a node for foreign reference?
-                    // TODO At least fix type refs, so simple copy probably no good.
-                    println!("Found {def_typ:?} in module {module}");
-                    runner
-                        .typer
-                        .types
-                        .push_tree(&other.tree[..def_typ.0 as usize]);
+                    runner.typer.ingest_type(&other.tree, def_typ);
                     typ = Type(runner.typer.types.pos());
                 }
             }
@@ -235,16 +284,7 @@ fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
     if node.typ.0 == 0 || any_change {
         // After digging subtrees, we're ready to push type refs.
         let types_start = runner.typer.types.pos();
-        for param_type in runner.typer.type_refs.drain(ref_start..) {
-            runner.typer.types.push(Node {
-                typ: param_type,
-                source: 0.into(),
-                nod: Nod::Branch {
-                    kind: BranchKind::None,
-                    range: (0u32..0u32).into(),
-                },
-            });
-        }
+        runner.typer.push_type_refs(ref_start);
         // Function
         runner
             .typer

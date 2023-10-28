@@ -250,11 +250,14 @@ impl Debug for Node {
         match self.nod {
             Nod::Branch { kind, range, .. } => f.write_fmt(format_args!("{kind:?}({range:?})")),
             Nod::Leaf { token, .. } => f.write_fmt(format_args!("{token:?}")),
+            Nod::ModuleId { name, module } => {
+                f.write_fmt(format_args!("Module {:?} {module}", name.into_inner()))
+            }
             Nod::Uid {
                 intern,
                 module,
                 num,
-            } => f.write_fmt(format_args!("{:?}@{module}:{num}", intern.into_inner())),
+            } => f.write_fmt(format_args!("{:?}@{module}@{num}", intern.into_inner())),
             _ => todo!(),
         }
     }
