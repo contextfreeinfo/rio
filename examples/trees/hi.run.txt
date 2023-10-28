@@ -6,13 +6,13 @@ Block
     Fun :@38
       Params
       Params
-      Block
+      Block :@41
         Def@6 :@37
           Uid message@6 :@37
           None
           String "\"Hi!\"" :@37
         /Def
-        Call
+        Call :@41
           Uid print-twice@52 :@49
           Uid message@6 :@37
         /Call
@@ -37,12 +37,12 @@ Block
           None :@41
         /Def
       /Params
-      Block :@41
-        Call
+      Block :@46
+        Call :@43
           Uid print@1@56 :@45
           Uid message@17 :@39
         /Call
-        Call
+        Call :@46
           Uid print@1@56 :@48
           Uid message@17 :@39
         /Call

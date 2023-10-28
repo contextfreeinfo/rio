@@ -80,8 +80,8 @@ impl Typer {
 pub fn type_tree(runner: &mut Runner, tree: &mut [Node]) {
     if !tree.is_empty() {
         let end = tree.len() - 1;
-        // 2 rounds of typing lets us get back references.
-        for _ in 0..2 {
+        // I've seen it need 3 to percolate some things back and forth.
+        for _ in 0..3 {
             runner.any_change = false;
             // Keep full tree for typing or eval so we can reference anywhere.
             type_any(runner, tree, end, Type(0));
@@ -148,6 +148,14 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
         Nod::Branch { kind, range } => {
             let range: Range<usize> = range.into();
             let handled = match kind {
+                BranchKind::Block => {
+                    typ = type_block(runner, tree, &range, typ);
+                    true
+                }
+                BranchKind::Call => {
+                    typ = type_call(runner, tree, &range, typ);
+                    true
+                }
                 BranchKind::Def => {
                     typ = type_def(runner, tree, &range, typ);
                     true
@@ -196,6 +204,34 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
     }
     // Assign on existing structure lets us go in arbitrary order easier.
     set_type(runner, &mut tree[at], typ);
+    typ
+}
+
+fn type_block(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut typ: Type) -> Type {
+    // Block type is last type.
+    for kid_index in range.clone() {
+        let last = kid_index == range.end - 1;
+        let expected = if last { typ } else { Type::default() };
+        let found = type_any(runner, tree, kid_index, expected);
+        if last {
+            typ = found;
+        }
+    }
+    typ
+}
+
+fn type_call(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut typ: Type) -> Type {
+    for (local_index, kid_index) in range.clone().enumerate() {
+        let kid = tree[kid_index];
+        if local_index == 0 && kid.typ.0 != 0 {
+            // TODO Also grab all expected param types for later kids.
+            let return_type = runner.typer.types.working[kid.typ.0 as usize - 1].typ;
+            if return_type.0 != 0 {
+                typ = return_type;
+            }
+        }
+        type_any(runner, tree, kid_index, Type::default());
+    }
     typ
 }
 
