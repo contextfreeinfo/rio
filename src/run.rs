@@ -250,14 +250,18 @@ impl<'a> Runner<'a> {
                     if def_typ.0 != 0 {
                         typ = def_typ;
                     }
-                } else {
+                } else if typ.0 == 0 {
                     // Dig from other modules using direct indices.
                     let other = &self.cart.modules[module as usize - 1];
                     let other_node = other.tree[num as usize - 1];
                     let def_typ = other_node.typ;
                     if def_typ.0 != 0 {
-                        // TODO Copy type into our types. Or make a node for foreign reference?
+                        // Copy type into our types.
+                        // TODO Or make a node for foreign reference?
+                        // TODO At least fix type refs, so simple copy probably no good.
                         println!("Found {def_typ:?} in module {module}");
+                        self.types.push_tree(&other.tree[..def_typ.0 as usize]);
+                        typ = Type(self.types.pos());
                     }
                 }
             }
@@ -370,6 +374,7 @@ impl<'a> Runner<'a> {
                 .wrap(BranchKind::FunType, types_start, out_type, 0);
             Type(self.types.pos())
         } else {
+            self.type_refs.drain(ref_start..);
             node.typ
         }
     }

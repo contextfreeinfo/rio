@@ -1,63 +1,69 @@
 Block
   Module "examples/hi.rio" 2
-  Def@41 :@36
-    Uid main@41* :@36
+  Def@47 :@38
+    Uid main@47* :@38
     None
-    Fun :@36
+    Fun :@38
       Params
       Params
       Block
-        Def@6 :@35
-          Uid message@6 :@35
+        Def@6 :@37
+          Uid message@6 :@37
           None
-          String "\"Hi!\"" :@35
+          String "\"Hi!\"" :@37
         /Def
         Call
-          Uid print-twice@42 :@39
-          Uid message@6 :@35
+          Uid print-twice@48 :@45
+          Uid message@6 :@37
         /Call
       /Block
     /Fun
   /Def
-  Def@42 :@39
-    Uid print-twice@42 :@39
+  Def@48 :@45
+    Uid print-twice@48 :@45
     None
-    Fun :@39
+    Fun :@45
       Params
-        Def@17 :@37
-          Uid message@17 :@37
-          Uid Text@1@52
-          None :@37
+        Def@17 :@39
+          Uid message@17 :@39
+          Uid Text@1@52 :@40
+          None :@39
         /Def
       /Params
       Params
-        Def@21 :@38
-          None :@38
-          Uid Void@1@54
-          None :@38
+        Def@21 :@41
+          None :@41
+          Uid Void@1@54 :@42
+          None :@41
         /Def
       /Params
-      Block :@38
+      Block :@41
         Call
-          Uid print@1@56
-          Uid message@17 :@37
+          Uid print@1@56 :@43
+          Uid message@17 :@39
         /Call
         Call
-          Uid print@1@56
-          Uid message@17 :@37
+          Uid print@1@56 :@44
+          Uid message@17 :@39
         /Call
       /Block
     /Fun
   /Def
   Types
-    Uid@35 Text@1@52
-    FunType@36
     Uid@37 Text@1@52
-    Uid@38 Void@1@54
-    FunType@39 :@38
-      None :@37
+    FunType@38
+    Uid@39 Text@1@52
+    Uid@40 Type@1@53
+    Uid@41 Void@1@54
+    Uid@42 Type@1@53
+    FunType@43 :@84
+      None :@83
+    FunType@44 :@84
+      None :@83
+    FunType@45 :@41
+      None :@39
   /Types
 /Block
 
 Node size: 20
-Tree len: 44
+Tree len: 50
