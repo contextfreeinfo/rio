@@ -3,6 +3,7 @@ use std::{collections::HashMap, ops::Range};
 use crate::{
     lex::{Intern, Interner, Token, TokenKind},
     tree::{BranchKind, Nod, Node, TreeBuilder, Type},
+    typ::{append_types, type_tree, Typer},
     Cart,
 };
 
@@ -82,10 +83,10 @@ impl CoreExports {
 }
 
 pub struct Runner<'a> {
-    any_change: bool,
+    pub any_change: bool,
     pub cart: &'a mut Cart,
     pub def_indices: Vec<Index>,
-    module: u16,
+    pub module: u16,
     pending: Option<Node>,
     scope: Vec<ScopeEntry>,
     // Single vector to support overloading while trying to limit allocations.
@@ -93,8 +94,7 @@ pub struct Runner<'a> {
     // TODO Find or make some abstraction for this kind of multimap?
     pub tops: Vec<ScopeEntry>,
     pub top_map: HashMap<Intern, u32>,
-    type_refs: Vec<Type>,
-    types: TreeBuilder,
+    pub typer: Typer,
 }
 
 impl<'a> Runner<'a> {
@@ -109,13 +109,12 @@ impl<'a> Runner<'a> {
             scope: vec![],
             tops: vec![],
             top_map: HashMap::new(),
-            type_refs: vec![],
-            types: TreeBuilder::default(),
+            typer: Typer::new(),
         }
     }
 
     pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
-        self.types.clear();
+        self.typer.types.clear();
         self.pending = Some(Node {
             typ: 0.into(),
             source: 0.into(),
@@ -129,20 +128,9 @@ impl<'a> Runner<'a> {
         self.extract_top(tree);
         // TODO Multiple big rounds of resolution and typing.
         self.resolve(tree);
-        if !tree.is_empty() {
-            let end = tree.len() - 1;
-            // 2 rounds of typing lets us get back references.
-            for _ in 0..2 {
-                self.any_change = false;
-                // Keep full tree for typing or eval so we can reference anywhere.
-                self.type_any(tree, end, Type(0));
-                if !self.any_change {
-                    break;
-                }
-            }
-        }
+        type_tree(&mut self, tree);
         // Finalize things.
-        self.append_types(tree);
+        append_types(&mut self, tree);
         // Appending types shifted indices, so update them.
         self.update_def_inds(tree);
         // println!("Defs of {}: {:?}", tree.len(), self.def_indices);
@@ -159,224 +147,8 @@ impl<'a> Runner<'a> {
         }
     }
 
-    fn append_types(&mut self, tree: &mut Vec<Node>) {
-        self.builder().nodes.extend_from_slice(&tree);
-        self.builder().pop();
-        self.builder().pop();
-        // Double-wrap to push a block.
-        self.types.wrap(BranchKind::Types, 0, Type(0), 0);
-        self.types.wrap(BranchKind::Types, 0, Type(0), 0);
-        self.cart.tree_builder.push_tree(&self.types.nodes);
-        let Nod::Branch { range, .. } = self.builder().working.last().unwrap().nod else { panic!() };
-        let types_offset = range.start;
-        dbg!(types_offset);
-        self.builder().wrap(BranchKind::Block, 0, Type(0), 0);
-        self.builder().wrap(BranchKind::Block, 0, Type(0), 0);
-        self.builder().drain_into(tree);
-        // Now point directly to tree position.
-        for node in tree {
-            if node.typ.0 != 0 {
-                node.typ.0 += types_offset;
-            }
-        }
-    }
-
-    fn builder(&mut self) -> &mut TreeBuilder {
+    pub fn builder(&mut self) -> &mut TreeBuilder {
         &mut self.cart.tree_builder
-    }
-
-    fn build_type(&mut self, tree: &[Node]) -> Option<Type> {
-        let node = tree.last().unwrap();
-        match node.nod {
-            // TODO Complex types.
-            Nod::Uid { .. } => {
-                // TODO Try to look up existing type after pushing.
-                if node.typ.0 == 0 {
-                    self.types.push(*node);
-                    Some(Type(self.types.pos()))
-                } else {
-                    Some(node.typ)
-                }
-            }
-            _ => None,
-        }
-    }
-
-    fn set_type(&mut self, node: &mut Node, typ: Type) {
-        if node.typ != typ {
-            node.typ = typ;
-            self.any_change = true;
-        }
-    }
-
-    fn type_any(&mut self, tree: &mut [Node], at: usize, typ: Type) -> Type {
-        let node = tree[at];
-        let mut typ = typ.or(node.typ);
-        match node.nod {
-            Nod::Branch { kind, range } => {
-                let range: Range<usize> = range.into();
-                let handled = match kind {
-                    BranchKind::Def => {
-                        typ = self.type_def(tree, &range, typ);
-                        true
-                    }
-                    BranchKind::Fun => {
-                        typ = self.type_fun(tree, at, typ);
-                        true
-                    }
-                    _ => false,
-                };
-                // TODO Eventually, should we handle everything above?
-                if !handled {
-                    for kid_index in range.clone() {
-                        self.type_any(tree, kid_index, Type::default());
-                    }
-                }
-            }
-            Nod::Leaf { token } => match token.kind {
-                TokenKind::String => {
-                    if typ.0 == 0 {
-                        typ = self
-                            .build_type(&[self.cart.core_exports.text_type.into()])
-                            .unwrap();
-                    }
-                }
-                _ => {}
-            },
-            Nod::Uid { module, num, .. } => {
-                if module == 0 || module == self.module {
-                    // Dig from this module using indirect indices.
-                    let def_typ = tree[self.def_indices[num as usize].0 as usize - 1].typ;
-                    if def_typ.0 != 0 {
-                        typ = def_typ;
-                    }
-                } else if typ.0 == 0 {
-                    // Dig from other modules using direct indices.
-                    let other = &self.cart.modules[module as usize - 1];
-                    let other_node = other.tree[num as usize - 1];
-                    let def_typ = other_node.typ;
-                    if def_typ.0 != 0 {
-                        // Copy type into our types.
-                        // TODO Or make a node for foreign reference?
-                        // TODO At least fix type refs, so simple copy probably no good.
-                        println!("Found {def_typ:?} in module {module}");
-                        self.types.push_tree(&other.tree[..def_typ.0 as usize]);
-                        typ = Type(self.types.pos());
-                    }
-                }
-            }
-            _ => {}
-        }
-        // Assign on existing structure lets us go in arbitrary order easier.
-        self.set_type(&mut tree[at], typ);
-        typ
-    }
-
-    fn type_def(&mut self, tree: &mut [Node], range: &Range<usize>, mut typ: Type) -> Type {
-        let start = range.start;
-        let xtype = tree[start + 1];
-        let value = tree[start + 2];
-        if typ.0 == 0 {
-            // Prioritize previously evaluated types, first from the explicit
-            // type.
-            typ = xtype.typ.or(value.typ);
-            if typ.0 == 0 {
-                // Failing that, interpret the explicit type from the tree.
-                if let Some(built_typ) = self.build_type(&tree[..=start + 1]) {
-                    typ = built_typ;
-                }
-            }
-        }
-        // There should always be exactly 3 kids of defs: id, xtype, value.
-        // Check value first in case we want the type from it.
-        self.type_any(tree, start + 2, typ);
-        if typ.0 == 0 {
-            // We did't have type yet, so try the value's type.
-            typ = tree[start + 2].typ;
-        }
-        self.type_any(tree, start, typ);
-        // TODO Look up Type type.
-        self.type_any(tree, start + 1, Type::default());
-        typ
-    }
-
-    fn type_fun(&mut self, tree: &mut [Node], at: usize, typ: Type) -> Type {
-        let node = tree[at];
-        let Nod::Branch { kind: BranchKind::Fun, range } = node.nod else { panic!() };
-        // Kids
-        let range: Range<usize> = range.into();
-        // Should always be in-params, out(-params), body.
-        let Range { start, .. } = range;
-        // Params
-        let Nod::Branch { range: params_range, .. } = tree[start].nod else { panic!() };
-        let params_range: Range<usize> = params_range.into();
-        let ref_start = self.type_refs.len();
-        let mut any_change = false;
-        for param_index in params_range.clone() {
-            let old_type = tree[param_index].typ;
-            let param_type = self.type_any(tree, param_index, Type::default());
-            self.type_refs.push(param_type);
-            any_change |= param_type != old_type;
-        }
-        // Return
-        let Nod::Branch { range: out_range, .. } = tree[start + 1].nod else { panic!() };
-        let out_range: Range<usize> = out_range.into();
-        let old_out_type = if node.typ.0 == 0 {
-            Type(0)
-        } else {
-            self.types.working[node.typ.0 as usize - 1].typ
-        };
-        let mut out_type = if out_range.is_empty() {
-            old_out_type.or(
-                // See if we're expecting a particular return type.
-                if typ.0 != 0 {
-                    self.types.working[typ.0 as usize - 1].typ
-                } else {
-                    Type(0)
-                },
-            )
-        } else {
-            self.type_any(tree, out_range.start, old_out_type)
-        };
-        // Body
-        if range.len() > 2 {
-            let body_type = self.type_any(tree, start + 2, out_type.or(old_out_type));
-            if out_type.0 == 0 && tree[out_range.start].typ.0 == 0 {
-                // Infer return type from body.
-                self.set_type(&mut tree[out_range.start], body_type);
-                out_type = body_type;
-            }
-        } else if out_type.0 == 0 {
-            // Infer void for empty body. TODO Infer by context with default return value?
-            out_type = match old_out_type.0 {
-                0 => self
-                    .build_type(&[self.cart.core_exports.void_type.into()])
-                    .unwrap(),
-                _ => old_out_type,
-            }
-        }
-        any_change |= out_type != old_out_type;
-        if node.typ.0 == 0 || any_change {
-            // After digging subtrees, we're ready to push type refs.
-            let types_start = self.types.pos();
-            for param_type in self.type_refs.drain(ref_start..) {
-                self.types.push(Node {
-                    typ: param_type,
-                    source: 0.into(),
-                    nod: Nod::Branch {
-                        kind: BranchKind::None,
-                        range: (0u32..0u32).into(),
-                    },
-                });
-            }
-            // Function
-            self.types
-                .wrap(BranchKind::FunType, types_start, out_type, 0);
-            Type(self.types.pos())
-        } else {
-            self.type_refs.drain(ref_start..);
-            node.typ
-        }
     }
 
     fn convert_ids(&mut self, tree: &mut Vec<Node>) {

@@ -23,6 +23,7 @@ mod norm;
 mod parse;
 mod run;
 mod tree;
+mod typ;
 
 #[derive(clap::Parser)]
 #[command(about, version, long_about = None)]
