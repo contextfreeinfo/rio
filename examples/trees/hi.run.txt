@@ -1,63 +1,76 @@
 Block
   Module "examples/hi.rio" 2
-  Def@41 :@36
-    Uid main@41* :@36
+  Def@51 :@42
+    Uid main@51* :@42
     None
-    Fun :@36
+    Fun :@42
       Params
       Params
       Block
-        Def@6 :@35
-          Uid message@6 :@35
+        Def@6 :@41
+          Uid message@6 :@41
           None
-          String "\"Hi!\"" :@35
+          String "\"Hi!\"" :@41
         /Def
         Call
-          Uid print-twice@42 :@39
-          Uid message@6 :@35
+          Uid print-twice@52 :@49
+          Uid message@6 :@41
         /Call
       /Block
     /Fun
   /Def
-  Def@42 :@39
-    Uid print-twice@42 :@39
+  Def@52 :@49
+    Uid print-twice@52 :@49
     None
-    Fun :@39
+    Fun :@49
       Params
-        Def@17 :@37
-          Uid message@17 :@37
-          Uid Text@1@52
-          None :@37
+        Def@17 :@43
+          Uid message@17 :@43
+          Uid Text@1@54 :@44
+          None :@43
         /Def
       /Params
       Params
-        Def@21 :@38
-          None :@38
-          Uid Void@1@54
-          None :@38
+        Def@21 :@45
+          None :@45
+          Uid Void@1@56 :@46
+          None :@45
         /Def
       /Params
-      Block :@38
+      Block :@45
         Call
-          Uid print@1@56
-          Uid message@17 :@37
+          Uid print@1@58 :@47
+          Uid message@17 :@43
         /Call
         Call
-          Uid print@1@56
-          Uid message@17 :@37
+          Uid print@1@58 :@48
+          Uid message@17 :@43
         /Call
       /Block
     /Fun
   /Def
   Types
-    Uid@35 Text@1@52
-    FunType@36
-    Uid@37 Text@1@52
-    Uid@38 Void@1@54
-    FunType@39 :@38
-      None :@37
+    Uid@41 Text@1@54
+    FunType@42
+      None
+    Uid@43 Text@1@54
+    Uid@44 Type@1@55
+    Uid@45 Void@1@56
+    Uid@46 Type@1@55
+    FunType@47
+      Uid Text@1@54
+      Uid Void@1@56
+    /FunType
+    FunType@48
+      Uid Text@1@54
+      Uid Void@1@56
+    /FunType
+    FunType@49
+      Uid Text@1@54
+      Uid Void@1@56
+    /FunType
   /Types
 /Block
 
 Node size: 20
-Tree len: 44
+Tree len: 54

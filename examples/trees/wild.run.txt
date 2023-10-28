@@ -1,18 +1,18 @@
 Block
   Module "examples/wild.rio" 2
-  Fun :@60
+  Fun :@67
     Params
     Params
   /Fun
-  Fun :@62
+  Fun :@69
     Params
     Params
   /Fun
-  Fun :@64
+  Fun :@71
     Params
     Params
   /Fun
-  Fun :@66
+  Fun :@73
     Params
       Id "5"
     Params
@@ -21,7 +21,7 @@ Block
     Block
       Id "5"
   /Call
-  Fun :@67
+  Fun :@74
     Params
       Block
         Def@18
@@ -46,7 +46,7 @@ Block
     Block
       Id "a"
   /Fun
-  Fun :@68
+  Fun :@75
     Params
       Block
         Def@35
@@ -71,7 +71,7 @@ Block
     Block
       Id "a"
   /Fun
-  Fun :@69
+  Fun :@76
     Params
       Id "a"
     Params
@@ -85,23 +85,34 @@ Block
       Id "a"
   /Fun
   Types
-    Uid@59 Void@1@54
-    FunType@60 :@59
-    Uid@61 Void@1@54
-    FunType@62 :@61
-    Uid@63 Void@1@54
-    FunType@64 :@63
-    Uid@65 Void@1@54
-    FunType@66 :@65
-      None
+    Uid@66 Void@1@56
     FunType@67
-      None
-    FunType@68
-      None
+      Uid Void@1@56
+    Uid@68 Void@1@56
     FunType@69
+      Uid Void@1@56
+    Uid@70 Void@1@56
+    FunType@71
+      Uid Void@1@56
+    Uid@72 Void@1@56
+    FunType@73
       None
+      Uid Void@1@56
+    /FunType
+    FunType@74
+      None
+      None
+    /FunType
+    FunType@75
+      None
+      None
+    /FunType
+    FunType@76
+      None
+      None
+    /FunType
   /Types
 /Block
 
 Node size: 20
-Tree len: 80
+Tree len: 87

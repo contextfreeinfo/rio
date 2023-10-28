@@ -422,6 +422,25 @@ impl TreeBuilder {
         }
     }
 
+    /// TODO How to merge with push_tree vs borrow checker?
+    fn push_tree_with(&mut self, node: Node) {
+        match node.nod {
+            Nod::Branch { kind, range } => {
+                let start = self.pos();
+                let range: Range<usize> = range.into();
+                for kid_index in range.clone() {
+                    self.push_tree_with(self.nodes[kid_index]);
+                }
+                self.wrap(kind, start, node.typ, node.source);
+            }
+            _ => self.push(node),
+        }
+    }
+
+    pub fn push_working(&mut self, from: u32) {
+        self.push_tree_with(self.working[from as usize]);
+    }
+
     pub fn push_none<S>(&mut self, source: S)
     where
         S: Into<Source>,

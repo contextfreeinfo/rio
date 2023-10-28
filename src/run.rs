@@ -167,9 +167,9 @@ impl<'a> Runner<'a> {
         self.types.wrap(BranchKind::Types, 0, Type(0), 0);
         self.types.wrap(BranchKind::Types, 0, Type(0), 0);
         self.cart.tree_builder.push_tree(&self.types.nodes);
+        // Get offset for direct pointing.
         let Nod::Branch { range, .. } = self.builder().working.last().unwrap().nod else { panic!() };
         let types_offset = range.start;
-        dbg!(types_offset);
         self.builder().wrap(BranchKind::Block, 0, Type(0), 0);
         self.builder().wrap(BranchKind::Block, 0, Type(0), 0);
         self.builder().drain_into(tree);
@@ -250,14 +250,18 @@ impl<'a> Runner<'a> {
                     if def_typ.0 != 0 {
                         typ = def_typ;
                     }
-                } else {
+                } else if typ.0 == 0 {
                     // Dig from other modules using direct indices.
                     let other = &self.cart.modules[module as usize - 1];
                     let other_node = other.tree[num as usize - 1];
                     let def_typ = other_node.typ;
                     if def_typ.0 != 0 {
-                        // TODO Copy type into our types. Or make a node for foreign reference?
-                        println!("Found {def_typ:?} in module {module}");
+                        // Copy type into our types.
+                        // TODO Map of external uids to our current type nums?
+                        // TODO Might be faster than collapsing by value.
+                        // println!("Found {def_typ:?} in module {module}");
+                        self.types.push_tree(&other.tree[..def_typ.0 as usize]);
+                        typ = Type(self.types.pos());
                     }
                 }
             }
@@ -297,6 +301,7 @@ impl<'a> Runner<'a> {
     }
 
     fn type_fun(&mut self, tree: &mut [Node], at: usize, typ: Type) -> Type {
+        let _ = typ;
         let node = tree[at];
         let Nod::Branch { kind: BranchKind::Fun, range } = node.nod else { panic!() };
         // Kids
@@ -317,59 +322,83 @@ impl<'a> Runner<'a> {
         // Return
         let Nod::Branch { range: out_range, .. } = tree[start + 1].nod else { panic!() };
         let out_range: Range<usize> = out_range.into();
-        let old_out_type = if node.typ.0 == 0 {
-            Type(0)
+        let old_out_type_defined = if node.typ.0 == 0 {
+            false
         } else {
-            self.types.working[node.typ.0 as usize - 1].typ
+            match self.types.working[node.typ.0 as usize - 1].nod {
+                Nod::Branch {
+                    range: old_range, ..
+                } => {
+                    old_range.end > old_range.start
+                        && !matches!(
+                            // TODO Find index matching this to know old type.
+                            self.types.nodes[old_range.end as usize - 1].nod,
+                            Nod::Branch {
+                                kind: BranchKind::None,
+                                ..
+                            }
+                        )
+                }
+                _ => false,
+            }
         };
         let mut out_type = if out_range.is_empty() {
-            old_out_type.or(
-                // See if we're expecting a particular return type.
-                if typ.0 != 0 {
-                    self.types.working[typ.0 as usize - 1].typ
-                } else {
-                    Type(0)
-                },
-            )
+            Type(0)
+            // TODO Find index matching last of `typ`.
+            // old_out_type_defined.or(
+            //     // See if we're expecting a particular return type.
+            //     if typ.0 != 0 {
+            //         self.types.working[typ.0 as usize - 1].typ
+            //     } else {
+            //         Type(0)
+            //     },
+            // )
         } else {
-            self.type_any(tree, out_range.start, old_out_type)
+            self.type_any(tree, out_range.start, Type(0))
         };
         // Body
         if range.len() > 2 {
-            let body_type = self.type_any(tree, start + 2, out_type.or(old_out_type));
+            let body_type = self.type_any(tree, start + 2, out_type);
             if out_type.0 == 0 && tree[out_range.start].typ.0 == 0 {
                 // Infer return type from body.
                 self.set_type(&mut tree[out_range.start], body_type);
                 out_type = body_type;
             }
-        } else if out_type.0 == 0 {
+        } else if out_type.0 == 0 && !old_out_type_defined {
             // Infer void for empty body. TODO Infer by context with default return value?
-            out_type = match old_out_type.0 {
-                0 => self
-                    .build_type(&[self.cart.core_exports.void_type.into()])
-                    .unwrap(),
-                _ => old_out_type,
-            }
+            out_type = self
+                .build_type(&[self.cart.core_exports.void_type.into()])
+                .unwrap();
         }
-        any_change |= out_type != old_out_type;
+        any_change |= out_type.0 != 0 && !old_out_type_defined;
         if node.typ.0 == 0 || any_change {
-            // After digging subtrees, we're ready to push type refs.
+            // After digging subtrees, we're ready to push types.
             let types_start = self.types.pos();
+            let none = Node {
+                typ: 0.into(),
+                source: 0.into(),
+                nod: Nod::Branch {
+                    kind: BranchKind::None,
+                    range: (0u32..0u32).into(),
+                },
+            };
             for param_type in self.type_refs.drain(ref_start..) {
-                self.types.push(Node {
-                    typ: param_type,
-                    source: 0.into(),
-                    nod: Nod::Branch {
-                        kind: BranchKind::None,
-                        range: (0u32..0u32).into(),
-                    },
-                });
+                match param_type.0 {
+                    0 => self.types.push(none),
+                    _ => self.types.push_working(param_type.0 - 1),
+                }
+            }
+            // Last is always return type.
+            match out_type.0 {
+                0 => self.types.push(none),
+                _ => self.types.push_working(out_type.0 - 1),
             }
             // Function
             self.types
-                .wrap(BranchKind::FunType, types_start, out_type, 0);
+                .wrap(BranchKind::FunType, types_start, Type(0), 0);
             Type(self.types.pos())
         } else {
+            self.type_refs.drain(ref_start..);
             node.typ
         }
     }
