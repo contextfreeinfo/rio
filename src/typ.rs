@@ -136,6 +136,9 @@ fn build_type(runner: &mut Runner, tree: &[Node]) -> Option<Type> {
 
 fn set_type(runner: &mut Runner, node: &mut Node, typ: Type) {
     if node.typ != typ && typ.0 != 0 {
+        // if node.typ.0 != 0 {
+        //     println!("aha {node:?}: {:?} -> {:?}", node.typ, typ);
+        // }
         node.typ = typ;
         runner.any_change = true;
     }
