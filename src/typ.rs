@@ -81,8 +81,7 @@ pub fn type_tree(runner: &mut Runner, tree: &mut [Node]) {
     if !tree.is_empty() {
         let end = tree.len() - 1;
         // I've seen it need 3 to percolate some things back and forth.
-        // TODO Why need 4 for now? Why wrong value on 3?
-        for _ in 0..4 {
+        for _ in 0..3 {
             runner.any_change = false;
             // Keep full tree for typing or eval so we can reference anywhere.
             type_any(runner, tree, end, Type(0));
@@ -136,7 +135,7 @@ fn build_type(runner: &mut Runner, tree: &[Node]) -> Option<Type> {
 }
 
 fn set_type(runner: &mut Runner, node: &mut Node, typ: Type) {
-    if node.typ != typ {
+    if node.typ != typ && typ.0 != 0 {
         node.typ = typ;
         runner.any_change = true;
     }
@@ -304,11 +303,13 @@ fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
     };
     // Body
     if range.len() > 2 {
-        // TODO Why doesn't void percolate up here for example main???
+        // TODO If we have an out type that was missing parts that the new one has, use the new one.
         let body_type = type_any(runner, tree, start + 2, out_type.or(old_out_type));
         if out_type.0 == 0 && (out_range.is_empty() || tree[out_range.start].typ.0 == 0) {
             // Infer return type from body.
-            set_type(runner, &mut tree[out_range.start], body_type);
+            if !out_range.is_empty() {
+                set_type(runner, &mut tree[out_range.start], body_type);
+            }
             out_type = body_type;
         }
     } else if out_type.0 == 0 {

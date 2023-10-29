@@ -1,5 +1,7 @@
 use std::{collections::HashMap, ops::Range};
 
+use log::debug;
+
 use crate::{
     lex::{Intern, Interner, Token, TokenKind},
     tree::{BranchKind, Nod, Node, TreeBuilder, Type},
@@ -114,6 +116,7 @@ impl<'a> Runner<'a> {
     }
 
     pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
+        debug!("---");
         self.typer.types.clear();
         self.pending = Some(Node {
             typ: 0.into(),
