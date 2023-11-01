@@ -238,14 +238,19 @@ fn type_call(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut t
     typ
 }
 
+// fn is_none(nod: Nod) -> bool {
+//     matches!(nod, Nod::Branch { kind: BranchKind::None, .. })
+// }
+
 fn type_def(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut typ: Type) -> Type {
     let start = range.start;
-    let xtype = tree[start + 1];
+    // let xtype_given = !is_none(tree[start + 1].nod);
     let value = tree[start + 2];
     if typ.0 == 0 {
         // Prioritize previously evaluated types, first from the explicit
         // type.
-        typ = xtype.typ.or(value.typ);
+        // TODO Is xtype typ always Type?
+        typ = value.typ;
         if typ.0 == 0 {
             // Failing that, interpret the explicit type from the tree.
             if let Some(built_typ) = build_type(runner, &tree[..=start + 1]) {
@@ -256,10 +261,21 @@ fn type_def(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut ty
     // There should always be exactly 3 kids of defs: id, xtype, value.
     // Check value first in case we want the type from it.
     type_any(runner, tree, start + 2, typ);
+    let value = tree[start + 2];
+    // if tree[start].typ.0 == 2 {
+    //     println!(">");
+    // }
+    // if value.typ.0 == 14 {
+    //     println!(">> vs {typ:?}");
+    // }
+    // TODO If typ is FunType but has nones where value type doesn't, also use value type.
     if typ.0 == 0 {
         // We did't have type yet, so try the value's type.
-        typ = tree[start + 2].typ;
+        typ = value.typ;
     }
+    // if tree[start].typ.0 == 2 {
+    //     println!("Aha! vs {typ:?}");
+    // }
     type_any(runner, tree, start, typ);
     // TODO Look up Type type.
     type_any(runner, tree, start + 1, Type::default());
@@ -323,7 +339,7 @@ fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
         }
     }
     any_change |= out_type != old_out_type;
-    if node.typ.0 == 0 || any_change {
+    if any_change || node.typ.0 == 0 || (out_type.0 != 0 && old_out_type.0 == 0) {
         // After digging subtrees, we're ready to push type refs.
         let types_start = runner.typer.types.pos();
         runner.typer.push_type_refs(ref_start);
