@@ -63,6 +63,15 @@ impl Typer {
         Type(self.types.pos())
     }
 
+    fn more_precise(&self, a: Type, b: Type) -> bool {
+        a.0 != 0
+            && (b.0 == 0
+                // We store return types in this spot for fun types, and this
+                // seems likely to be meaningful in a general sense.
+                || (self.types.working[a.0 as usize - 1].typ.0 != 0
+                    && self.types.working[b.0 as usize - 1].typ.0 == 0))
+    }
+
     fn push_type_refs(&mut self, ref_start: usize) {
         for param_type in self.type_refs.drain(ref_start..) {
             self.types.push(Node {
@@ -136,9 +145,6 @@ fn build_type(runner: &mut Runner, tree: &[Node]) -> Option<Type> {
 
 fn set_type(runner: &mut Runner, node: &mut Node, typ: Type) {
     if node.typ != typ && typ.0 != 0 {
-        // if node.typ.0 != 0 {
-        //     println!("aha {node:?}: {:?} -> {:?}", node.typ, typ);
-        // }
         node.typ = typ;
         runner.any_change = true;
     }
@@ -262,21 +268,15 @@ fn type_def(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut ty
     // Check value first in case we want the type from it.
     type_any(runner, tree, start + 2, typ);
     let value = tree[start + 2];
-    // if tree[start].typ.0 == 2 {
-    //     println!(">");
-    // }
-    // if value.typ.0 == 14 {
-    //     println!(">> vs {typ:?}");
-    // }
-    // TODO If typ is FunType but has nones where value type doesn't, also use value type.
-    if typ.0 == 0 {
-        // We did't have type yet, so try the value's type.
+    // TODO If typ is FunType but has nones where value type doesn't, also use value type!
+    if runner.typer.more_precise(value.typ, typ) {
+        // Keep the better type from value.
         typ = value.typ;
     }
-    // if tree[start].typ.0 == 2 {
-    //     println!("Aha! vs {typ:?}");
-    // }
     type_any(runner, tree, start, typ);
+    if runner.typer.more_precise(typ, tree[start].typ) {
+        tree[start].typ = typ;
+    }
     // TODO Look up Type type.
     type_any(runner, tree, start + 1, Type::default());
     typ
