@@ -5,7 +5,7 @@ use lasso::{Spur, ThreadedRodeo};
 pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     pub intern: Intern,
@@ -23,7 +23,7 @@ impl Token {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TokenKind {
     Be,
     Colon,

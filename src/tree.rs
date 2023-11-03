@@ -8,7 +8,7 @@ use anyhow::Result;
 
 use crate::lex::{Intern, Token};
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Source(pub u32);
 
 impl Into<Source> for usize {
@@ -17,7 +17,7 @@ impl Into<Source> for usize {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Type(pub u32);
 
 impl Type {
@@ -35,14 +35,14 @@ impl Into<Type> for usize {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Node {
     pub nod: Nod,
     pub source: Source,
     pub typ: Type,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum Nod {
     Branch {
         kind: BranchKind,
@@ -293,7 +293,7 @@ impl From<&Token> for Node {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
 pub enum BranchKind {
     Block,
     Call,
