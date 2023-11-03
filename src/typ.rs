@@ -49,15 +49,18 @@ impl Typer {
                 let start = self.types.pos();
                 self.push_type_refs(ref_start);
                 self.types.wrap(kind, start, new_ref, 0);
+                self.unify();
             }
             Nod::Uid { .. } => {
                 self.types.push(Node {
                     typ: new_ref,
                     ..node
                 });
+                self.unify();
             }
             _ => {
                 self.types.push_tree(&other[..typ.0 as usize - 1]);
+                self.unify();
             }
         }
         Type(self.types.pos())
@@ -82,7 +85,12 @@ impl Typer {
                     range: (0u32..0u32).into(),
                 },
             });
+            // Already shallow refs, so no need to unify.
         }
+    }
+
+    fn unify(&mut self) -> Type {
+        Type(self.types.pos())
     }
 }
 
@@ -134,7 +142,7 @@ fn build_type(runner: &mut Runner, tree: &[Node]) -> Option<Type> {
             // TODO Try to look up existing type after pushing.
             if node.typ.0 == 0 {
                 runner.typer.types.push(*node);
-                Some(Type(runner.typer.types.pos()))
+                Some(runner.typer.unify())
             } else {
                 Some(node.typ)
             }
@@ -348,7 +356,7 @@ fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
             .typer
             .types
             .wrap(BranchKind::FunType, types_start, out_type, 0);
-        Type(runner.typer.types.pos())
+        runner.typer.unify()
     } else {
         runner.typer.type_refs.drain(ref_start..);
         node.typ
