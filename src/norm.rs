@@ -96,7 +96,7 @@ impl Normer {
         self.builder().clear();
         self.trim_at(&parsed_tree, 0);
         self.builder()
-            .wrap(BranchKind::Block, 0, Type::default(), 0);
+            .wrap(BranchKind::Block, 0, Type::default(), tree.len());
         self.builder().drain_into(tree);
     }
 
@@ -112,13 +112,13 @@ impl Normer {
                     self.trim_at(&tree[..=kid_index], kid_index - range.start);
                 }
                 self.builder()
-                    .wrap(kind, start, Type::default(), tree.len() - 1);
+                    .wrap(kind, start, Type::default(), tree.len());
             }
             Nod::Leaf { token, .. } => match token.kind {
                 TokenKind::Colon | TokenKind::Define => {
                     // Keep binaries in their place.
                     if index == 0 {
-                        self.builder().push_none(tree.len() - 1);
+                        self.builder().push_none(tree.len());
                     }
                 }
                 TokenKind::Be
@@ -133,7 +133,7 @@ impl Normer {
                 | TokenKind::RoundOpen
                 | TokenKind::Star
                 | TokenKind::VSpace => {}
-                _ => self.builder().push_at(token, tree.len() - 1),
+                _ => self.builder().push_at(token, tree.len()),
             },
             _ => todo!(),
         }

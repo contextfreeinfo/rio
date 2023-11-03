@@ -37,9 +37,9 @@ impl Into<Type> for usize {
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Node {
-    pub typ: Type,
-    pub source: Source,
     pub nod: Nod,
+    pub source: Source,
+    pub typ: Type,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -67,12 +67,17 @@ pub enum Nod {
 
 pub trait Nody {
     fn nod(&self) -> Nod;
+    fn source(&self) -> Source;
     fn typ(&self) -> Type;
 }
 
 impl Nody for Node {
     fn nod(&self) -> Nod {
         self.nod
+    }
+
+    fn source(&self) -> Source {
+        self.source
     }
 
     fn typ(&self) -> Type {
@@ -83,6 +88,10 @@ impl Nody for Node {
 impl Nody for Nod {
     fn nod(&self) -> Nod {
         *self
+    }
+
+    fn source(&self) -> Source {
+        Source(0)
     }
 
     fn typ(&self) -> Type {
@@ -104,6 +113,8 @@ where
     Ok(())
 }
 
+const SHOW_SOURCES: bool = false;
+
 fn write_at<Map, File>(
     file: &mut File,
     parent: Option<Nod>,
@@ -121,11 +132,13 @@ where
     let mut line_count = 0;
     let node = &nodes[index];
     let mut finish = |file: &mut File| -> Result<()> {
-        let typ = node.typ().0;
-        match typ {
-            0 => writeln!(file),
-            _ => writeln!(file, " :@{}", node.typ().0),
-        }?;
+        if node.typ().0 != 0 {
+            write!(file, " :@{}", node.typ().0)?;
+        }
+        if SHOW_SOURCES && node.source().0 != 0 {
+            write!(file, " ({})", node.source().0)?;
+        }
+        writeln!(file)?;
         line_count += 1;
         Ok(())
     };
@@ -133,14 +146,15 @@ where
     write!(file, "{: <1$}", "", indent)?;
     // Type index.
     let write_index = |file: &mut File| -> Result<()> {
-        if (tree_module != 0
-            && matches!(
-                node.nod(),
-                Nod::Branch {
-                    kind: BranchKind::Def,
-                    ..
-                }
-            ))
+        if SHOW_SOURCES
+            || tree_module != 0
+                && matches!(
+                    node.nod(),
+                    Nod::Branch {
+                        kind: BranchKind::Def,
+                        ..
+                    }
+                )
             || matches!(
                 parent,
                 Some(Nod::Branch {
