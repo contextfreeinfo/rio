@@ -1,5 +1,7 @@
 use std::{
+    collections::hash_map::DefaultHasher,
     fmt::Debug,
+    hash::{Hash, Hasher},
     io::Write,
     ops::{Index, Range},
 };
@@ -65,7 +67,7 @@ pub enum Nod {
     },
 }
 
-pub trait Nody {
+pub trait Nody: Copy + Hash {
     fn nod(&self) -> Nod;
     fn source(&self) -> Source;
     fn typ(&self) -> Type;
@@ -96,6 +98,25 @@ impl Nody for Nod {
 
     fn typ(&self) -> Type {
         Type(0)
+    }
+}
+
+pub fn tree_hash<N: Nody>(tree: &[N]) -> u64 {
+    // I haven't worked out how to implement Iterator for trees without heap
+    // allocation, so use recursion to walk through it.
+    let mut hasher = DefaultHasher::new();
+    tree_hash_with(&mut hasher, tree);
+    hasher.finish()
+}
+
+fn tree_hash_with<N: Nody>(hasher: &mut impl Hasher, tree: &[N]) {
+    let Some(node) = tree.last() else { return };
+    node.hash(hasher);
+    if let Nod::Branch { range, .. } = node.nod() {
+        let range: Range<usize> = range.into();
+        for index in range {
+            tree_hash_with(hasher, &tree[..=index]);
+        }
     }
 }
 
@@ -464,3 +485,5 @@ impl TreeBuilder {
         });
     }
 }
+
+// TODO Some WorkingTree type for implementing Iterator?
