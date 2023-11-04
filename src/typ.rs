@@ -1,31 +1,132 @@
-use std::{collections::HashMap, ops::Range};
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    collections::{
+        hash_map::{DefaultHasher, RandomState},
+        HashMap,
+    },
+    hash::{BuildHasher, Hash, Hasher},
+    ops::Range,
+    rc::Rc,
+};
 
-use smallvec::{SmallVec, smallvec};
+// use smallvec::{smallvec, SmallVec};
 
 use crate::{
     lex::TokenKind,
     run::Runner,
-    tree::{BranchKind, Nod, Node, TreeBuilder, Type, Source},
+    tree::{tree_hash_with, BranchKind, Nod, Node, Source, TreeBuilder, Type},
 };
 
 pub struct Typer {
     pub any_change: bool,
     // We expect few collisions, and 2 costs the same as 1: 24 bytes.
-    pub map: HashMap<u64, SmallVec<[Type; 2]>>,
+    // Alternative: Rc types TreeBuilder with TypeTree type that references it
+    // and also holds an index.
+    // pub map: HashMap<u64, SmallVec<[Type; 2]>>,
+    pub map: HashMap<Type, Type, BuildTypeHasher>,
     pub type_refs: Vec<Type>,
-    pub types: TreeBuilder,
-    // pub t: Rc<TreeBuilder>,
+    types: Rc<RefCell<TreeBuilder>>,
+    // pub t: Rc<RefCell<TreeBuilder>>,
+}
+
+pub struct TypeHasher {
+    hasher: DefaultHasher,
+    types: Rc<RefCell<TreeBuilder>>,
+}
+
+pub struct BuildTypeHasher {
+    state: RandomState,
+    types: Rc<RefCell<TreeBuilder>>,
+}
+
+impl BuildTypeHasher {
+    pub fn new(types: Rc<RefCell<TreeBuilder>>) -> Self {
+        BuildTypeHasher {
+            state: RandomState::new(),
+            types,
+        }
+    }
+}
+
+impl BuildHasher for BuildTypeHasher {
+    type Hasher = TypeHasher;
+
+    fn build_hasher(&self) -> Self::Hasher {
+        TypeHasher {
+            hasher: self.state.build_hasher(),
+            types: self.types.clone(),
+        }
+    }
+}
+
+trait TypeHasherTrait: Hasher {}
+
+impl Hasher for TypeHasher {
+    fn finish(&self) -> u64 {
+        self.hasher.finish()
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        self.hasher.write(bytes)
+    }
+
+    fn write_u32(&mut self, i: u32) {
+        // Hack knowing that all u32 values will be typ indices.
+        let types = self.types.borrow();
+        if let Some(node) = types.working.get(i as usize - 1) {
+            tree_hash_with(&mut self.hasher, node, &types.nodes);
+        }
+    }
+}
+
+pub struct TypeTree {
+    typ: Type,
+    types: Rc<RefCell<TreeBuilder>>,
+}
+
+// impl Hash for TypeTree2 {
+//     fn hash<H: Hasher + TypeHasherTrait>(&self, state: &mut H) {
+//         self.typ.hash(state);
+//     }
+// }
+
+impl PartialEq for TypeTree {
+    fn eq(&self, other: &Self) -> bool {
+        // TODO Fix.
+        self.typ == other.typ
+    }
+}
+
+impl Hash for TypeTree {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let types = self.types.borrow();
+        if let Some(node) = types.working.get(self.typ.0 as usize) {
+            tree_hash_with(state, node, &types.nodes);
+        }
+    }
 }
 
 impl Typer {
     pub fn new() -> Self {
-        let types = TreeBuilder::default();
+        let types = Rc::new(RefCell::new(TreeBuilder::default()));
         Self {
             any_change: false,
-            map: HashMap::new(),
+            map: HashMap::with_hasher(BuildTypeHasher::new(types.clone())),
             type_refs: vec![],
-            types,
+            types: types.clone(),
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.types.borrow_mut().clear();
+    }
+
+    fn types_ref(&self) -> Ref<'_, TreeBuilder> {
+        self.types.borrow()
+    }
+
+    fn types_mut(&mut self) -> RefMut<'_, TreeBuilder> {
+        self.types.borrow_mut()
     }
 
     fn ingest_type(&mut self, other: &[Node], typ: Type) -> Type {
@@ -53,24 +154,24 @@ impl Typer {
                     let kid_type = self.ingest_type(other, Type(kid_index as u32 + 1));
                     self.type_refs.push(kid_type);
                 }
-                let start = self.types.pos();
+                let start = self.types_ref().pos();
                 self.push_type_refs(ref_start);
-                self.types.wrap(kind, start, new_ref, 0);
+                self.types_mut().wrap(kind, start, new_ref, 0);
                 self.unify();
             }
             Nod::Uid { .. } => {
-                self.types.push(Node {
+                self.types_mut().push(Node {
                     typ: new_ref,
                     ..node
                 });
                 self.unify();
             }
             _ => {
-                self.types.push_tree(&other[..typ.0 as usize - 1]);
+                self.types_mut().push_tree(&other[..typ.0 as usize - 1]);
                 self.unify();
             }
         }
-        Type(self.types.pos())
+        Type(self.types_ref().pos())
     }
 
     fn more_precise(&self, a: Type, b: Type) -> bool {
@@ -78,13 +179,13 @@ impl Typer {
             && (b.0 == 0
                 // We store return types in this spot for fun types, and this
                 // seems likely to be meaningful in a general sense.
-                || (self.types.working[a.0 as usize - 1].typ.0 != 0
-                    && self.types.working[b.0 as usize - 1].typ.0 == 0))
+                || (self.types_ref().working[a.0 as usize - 1].typ.0 != 0
+                    && self.types_ref().working[b.0 as usize - 1].typ.0 == 0))
     }
 
     fn push_type_refs(&mut self, ref_start: usize) {
         for param_type in self.type_refs.drain(ref_start..) {
-            self.types.push(Node {
+            self.types.borrow_mut().push(Node {
                 typ: param_type,
                 source: 0.into(),
                 nod: Nod::Branch {
@@ -99,22 +200,35 @@ impl Typer {
     fn unify(&mut self) -> Type {
         // Ensure all sources are 0 for type nodes so we're consistent for
         // hashing and comparison.
-        self.types.working.last_mut().unwrap().source = Source(0);
+        self.types_mut().working.last_mut().unwrap().source = Source(0);
         // Now find a key to represent our type.
         // I'm concerned that a custom Hasher would need a back re
-        let hash = self.types.working_tree_hash(self.types.pos() - 1);
-        let typ = Type(self.types.pos());
-        match self.map.get_mut(&hash) {
-            Some(entry) => {
-                // TODO Check first for duplicate!
-                entry.push(typ);
-                println!("Dupe: {typ:?}");
+        // let hash = types.working_tree_hash(types.pos() - 1);
+        let typ = Type(self.types_ref().pos());
+        let typ = match self.map.get(&typ).copied() {
+            Some(typ) => {
+                println!("found {typ:?}");
+                // TODO Pop end of working and any of its kids.
+                typ
             },
             None => {
-                // No matching hash means no matching type.
-                self.map.insert(hash, smallvec![typ]);
-            }
-        }
+                self.map.insert(typ, typ);
+                typ
+            },
+        };
+        // self.m.g
+        // match self.map.get_mut(&hash) {
+        //     Some(entry) => {
+        //         // TODO Check first for duplicate!
+        //         entry.push(typ);
+        //         println!("Dupe: {typ:?}");
+        //     }
+        //     None => {
+        //         // No matching hash means no matching type.
+        //         self.map.insert(hash, smallvec![typ]);
+        //     }
+        // }
+        // self.m.ins
         // If not there, then add it.
         // self.map.insert(TypeMapEntry { hash, typ });
         typ
@@ -141,12 +255,18 @@ pub fn append_types(runner: &mut Runner, tree: &mut Vec<Node>) {
     runner.builder().pop();
     runner.builder().pop();
     // Double-wrap to push a block.
-    runner.typer.types.wrap(BranchKind::Types, 0, Type(0), 0);
-    runner.typer.types.wrap(BranchKind::Types, 0, Type(0), 0);
+    runner
+        .typer
+        .types_mut()
+        .wrap(BranchKind::Types, 0, Type(0), 0);
+    runner
+        .typer
+        .types_mut()
+        .wrap(BranchKind::Types, 0, Type(0), 0);
     runner
         .cart
         .tree_builder
-        .push_tree(&runner.typer.types.nodes);
+        .push_tree(&runner.typer.types_ref().nodes);
     // Find new types offset in tree.
     let Nod::Branch { range, .. } = runner.builder().working.last().unwrap().nod else { panic!() };
     let types_offset = range.start;
@@ -168,7 +288,7 @@ fn build_type(runner: &mut Runner, tree: &[Node]) -> Option<Type> {
         Nod::Uid { .. } => {
             // TODO Try to look up existing type after pushing.
             if node.typ.0 == 0 {
-                runner.typer.types.push(*node);
+                runner.typer.types_mut().push(*node);
                 Some(runner.typer.unify())
             } else {
                 Some(node.typ)
@@ -240,7 +360,7 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
                 if def_typ.0 != 0 {
                     // Copy type into our types.
                     runner.typer.ingest_type(&other.tree, def_typ);
-                    typ = Type(runner.typer.types.pos());
+                    typ = Type(runner.typer.types_ref().pos());
                 }
             }
         }
@@ -269,7 +389,7 @@ fn type_call(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut t
         let kid = tree[kid_index];
         if local_index == 0 && kid.typ.0 != 0 {
             // TODO Also grab all expected param types for later kids.
-            let return_type = runner.typer.types.working[kid.typ.0 as usize - 1].typ;
+            let return_type = runner.typer.types_ref().working[kid.typ.0 as usize - 1].typ;
             if return_type.0 != 0 {
                 typ = return_type;
             }
@@ -341,13 +461,13 @@ fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
     let old_out_type = if node.typ.0 == 0 {
         Type(0)
     } else {
-        runner.typer.types.working[node.typ.0 as usize - 1].typ
+        runner.typer.types_ref().working[node.typ.0 as usize - 1].typ
     };
     let mut out_type = if out_range.is_empty() {
         old_out_type.or(
             // See if we're expecting a particular return type.
             if typ.0 != 0 {
-                runner.typer.types.working[typ.0 as usize - 1].typ
+                runner.typer.types_ref().working[typ.0 as usize - 1].typ
             } else {
                 Type(0)
             },
@@ -376,12 +496,12 @@ fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
     any_change |= out_type != old_out_type;
     if any_change || node.typ.0 == 0 || (out_type.0 != 0 && old_out_type.0 == 0) {
         // After digging subtrees, we're ready to push type refs.
-        let types_start = runner.typer.types.pos();
+        let types_start = runner.typer.types_ref().pos();
         runner.typer.push_type_refs(ref_start);
         // Function
         runner
             .typer
-            .types
+            .types_mut()
             .wrap(BranchKind::FunType, types_start, out_type, 0);
         runner.typer.unify()
     } else {

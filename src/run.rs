@@ -114,7 +114,7 @@ impl<'a> Runner<'a> {
 
     pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
         // println!("--- hash: {}", tree_hash(&tree));
-        self.typer.types.clear();
+        self.typer.clear();
         self.pending = Some(Node {
             typ: 0.into(),
             source: 0.into(),

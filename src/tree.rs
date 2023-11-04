@@ -109,17 +109,17 @@ pub fn tree_hash<N: Nody>(tree: &[N]) -> u64 {
     // allocation, so use recursion to walk through it.
     let mut hasher = DefaultHasher::new();
     if let Some(node) = tree.last() {
-        tree_hash_with(&mut hasher, *node, tree);
+        tree_hash_with(&mut hasher, node, tree);
     }
     hasher.finish()
 }
 
-fn tree_hash_with<N: Nody>(hasher: &mut impl Hasher, node: N, tree: &[N]) {
+pub fn tree_hash_with<N: Nody>(hasher: &mut impl Hasher, node: &N, tree: &[N]) {
     node.hash(hasher);
     if let Nod::Branch { range, .. } = node.nod() {
         let range: Range<usize> = range.into();
         for index in range {
-            tree_hash_with(hasher, tree[index], tree);
+            tree_hash_with(hasher, &tree[index], tree);
         }
     }
 }
@@ -490,7 +490,7 @@ impl TreeBuilder {
     pub fn working_tree_hash(&self, index: u32) -> u64 {
         let mut hasher = DefaultHasher::new();
         if let Some(node) = self.working.get(index as usize) {
-            tree_hash_with(&mut hasher, *node, &self.nodes);
+            tree_hash_with(&mut hasher, node, &self.nodes);
         }
         hasher.finish()
     }
