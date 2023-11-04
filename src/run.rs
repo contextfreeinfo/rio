@@ -86,7 +86,6 @@ impl CoreExports {
 }
 
 pub struct Runner<'a> {
-    pub any_change: bool,
     pub cart: &'a mut Cart,
     pub def_indices: Vec<Index>,
     pub module: u16,
@@ -101,7 +100,6 @@ impl<'a> Runner<'a> {
     pub fn new(cart: &'a mut Cart) -> Self {
         let module = cart.modules.len() as u16 + 1;
         Self {
-            any_change: false,
             cart,
             def_indices: vec![Index::default()],
             pending: None,

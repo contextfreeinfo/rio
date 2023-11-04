@@ -18,13 +18,13 @@ use crate::{
 };
 
 pub struct Typer {
-    pub any_change: bool,
+    any_change: bool,
     // We expect few collisions, and 2 costs the same as 1: 24 bytes.
     // Alternative: Rc types TreeBuilder with TypeTree type that references it
     // and also holds an index.
     // pub map: HashMap<u64, SmallVec<[Type; 2]>>,
-    pub map: HashMap<Type, Type, BuildTypeHasher>,
-    pub type_refs: Vec<Type>,
+    map: HashMap<Type, Type, BuildTypeHasher>,
+    type_refs: Vec<Type>,
     types: Rc<RefCell<TreeBuilder>>,
     // pub t: Rc<RefCell<TreeBuilder>>,
 }
@@ -63,7 +63,9 @@ trait TypeHasherTrait: Hasher {}
 
 impl Hasher for TypeHasher {
     fn finish(&self) -> u64 {
-        self.hasher.finish()
+        let a = self.hasher.finish();
+        // println!("finish {a}");
+        a
     }
 
     fn write(&mut self, bytes: &[u8]) {
@@ -73,7 +75,9 @@ impl Hasher for TypeHasher {
     fn write_u32(&mut self, i: u32) {
         // Hack knowing that all u32 values will be typ indices.
         let types = self.types.borrow();
+        // println!("hack {i}");
         if let Some(node) = types.working.get(i as usize - 1) {
+            // println!("-");
             tree_hash_with(&mut self.hasher, node, &types.nodes);
         }
     }
@@ -240,10 +244,10 @@ pub fn type_tree(runner: &mut Runner, tree: &mut [Node]) {
         let end = tree.len() - 1;
         // I've seen it need 3 to percolate some things back and forth.
         for _ in 0..3 {
-            runner.any_change = false;
+            runner.typer.any_change = false;
             // Keep full tree for typing or eval so we can reference anywhere.
             type_any(runner, tree, end, Type(0));
-            if !runner.any_change {
+            if !runner.typer.any_change {
                 break;
             }
         }
@@ -301,7 +305,7 @@ fn build_type(runner: &mut Runner, tree: &[Node]) -> Option<Type> {
 fn set_type(runner: &mut Runner, node: &mut Node, typ: Type) {
     if node.typ != typ && typ.0 != 0 {
         node.typ = typ;
-        runner.any_change = true;
+        runner.typer.any_change = true;
     }
 }
 
