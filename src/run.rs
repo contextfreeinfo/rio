@@ -1,9 +1,10 @@
-use std::{collections::HashMap, ops::Range};
+use std::ops::Range;
 
 use crate::{
     lex::{Intern, Interner, Token, TokenKind},
-    tree::{BranchKind, Nod, Node, TreeBuilder, Type, tree_hash},
+    tree::{BranchKind, Nod, Node, TreeBuilder, Type},
     typ::{append_types, type_tree, Typer},
+    util::{MultiMap, MultiMapEntry},
     Cart,
 };
 
@@ -39,18 +40,20 @@ impl From<ScopeEntry> for Node {
 pub struct Module {
     pub name: Intern,
     pub num: u16,
-    // TODO Find or make some abstraction for this kind of multimap?
-    pub tops: Vec<ScopeEntry>,
-    pub top_map: HashMap<Intern, u32>,
+    pub tops: MultiMap<Intern, ScopeEntry>,
     pub tree: Vec<Node>,
+}
+
+impl MultiMapEntry<Intern> for ScopeEntry {
+    fn key(&self) -> Intern {
+        self.intern
+    }
 }
 
 impl Module {
     pub fn get_top(&self, intern: Intern) -> Option<ScopeEntry> {
-        // TODO None on duplicates.
-        self.top_map
-            .get(&intern)
-            .map(|ind| self.tops[*ind as usize])
+        // TODO None on duplicates with type info.
+        self.tops.get(intern).next().copied()
     }
 }
 
@@ -89,11 +92,8 @@ pub struct Runner<'a> {
     pub module: u16,
     pending: Option<Node>,
     scope: Vec<ScopeEntry>,
-    // Single vector to support overloading while trying to limit allocations.
     // TODO Differentiate overload and full definitions.
-    // TODO Find or make some abstraction for this kind of multimap?
-    pub tops: Vec<ScopeEntry>,
-    pub top_map: HashMap<Intern, u32>,
+    pub tops: MultiMap<Intern, ScopeEntry>,
     pub typer: Typer,
 }
 
@@ -107,15 +107,13 @@ impl<'a> Runner<'a> {
             pending: None,
             module,
             scope: vec![],
-            tops: vec![],
-            top_map: HashMap::new(),
+            tops: MultiMap::new(),
             typer: Typer::new(),
         }
     }
 
     pub fn run(mut self, name: Intern, tree: &mut Vec<Node>) -> Module {
-        // println!("---");
-        println!("hash: {}", tree_hash(&tree));
+        // println!("--- hash: {}", tree_hash(&tree));
         self.typer.types.clear();
         self.pending = Some(Node {
             typ: 0.into(),
@@ -144,7 +142,6 @@ impl<'a> Runner<'a> {
             name,
             num: self.module,
             tops: self.tops,
-            top_map: self.top_map,
             tree: tree.clone(),
         }
     }
@@ -238,7 +235,7 @@ impl<'a> Runner<'a> {
 
     fn extract_top(&mut self, tree: &[Node]) -> Option<()> {
         let root = *tree.last()?;
-        self.tops.clear();
+        self.tops.values.clear();
         match root.nod {
             Nod::Branch {
                 kind: BranchKind::Block,
@@ -255,7 +252,7 @@ impl<'a> Runner<'a> {
                     } = kid.nod
                     {
                         match scope_entry(&tree[..=kid_range.start as usize]) {
-                            Some(entry) => self.tops.push(entry),
+                            Some(entry) => self.tops.values.push(entry),
                             None => (),
                         }
                     }
@@ -264,15 +261,7 @@ impl<'a> Runner<'a> {
             _ => panic!(),
         }
         // Sort then map.
-        self.tops.sort();
-        self.top_map.clear();
-        let mut last = Intern::default();
-        for (index, ScopeEntry { intern, .. }) in self.tops.iter().enumerate() {
-            if *intern != last {
-                self.top_map.insert(*intern, index as u32);
-                last = *intern
-            }
-        }
+        self.tops.update(true);
         Some(())
     }
 
@@ -350,9 +339,9 @@ impl<'a> Runner<'a> {
                 return Some(*entry);
             }
         }
-        if let Some(index) = self.top_map.get(&intern) {
+        if let Some(entry) = self.tops.get(intern).next() {
             // TODO Check overloads!
-            return Some(self.tops[*index as usize]);
+            return Some(*entry);
         }
         // TODO Work through imports more generally.
         if let Some(core) = self.cart.modules.get(0) {
@@ -397,7 +386,7 @@ impl<'a> Runner<'a> {
             }
         }
         // Tops
-        for mut top in self.tops.iter_mut() {
+        for mut top in self.tops.values.iter_mut() {
             top.num = self.def_indices[top.num as usize].0;
         }
     }

@@ -1,23 +1,30 @@
-use std::ops::Range;
+use std::{collections::HashMap, ops::Range};
+
+use smallvec::{SmallVec, smallvec};
 
 use crate::{
     lex::TokenKind,
     run::Runner,
-    tree::{BranchKind, Nod, Node, TreeBuilder, Type},
+    tree::{BranchKind, Nod, Node, TreeBuilder, Type, Source},
 };
 
 pub struct Typer {
     pub any_change: bool,
+    // We expect few collisions, and 2 costs the same as 1: 24 bytes.
+    pub map: HashMap<u64, SmallVec<[Type; 2]>>,
     pub type_refs: Vec<Type>,
     pub types: TreeBuilder,
+    // pub t: Rc<TreeBuilder>,
 }
 
 impl Typer {
     pub fn new() -> Self {
+        let types = TreeBuilder::default();
         Self {
             any_change: false,
+            map: HashMap::new(),
             type_refs: vec![],
-            types: TreeBuilder::default(),
+            types,
         }
     }
 
@@ -90,7 +97,27 @@ impl Typer {
     }
 
     fn unify(&mut self) -> Type {
-        Type(self.types.pos())
+        // Ensure all sources are 0 for type nodes so we're consistent for
+        // hashing and comparison.
+        self.types.working.last_mut().unwrap().source = Source(0);
+        // Now find a key to represent our type.
+        // I'm concerned that a custom Hasher would need a back re
+        let hash = self.types.working_tree_hash(self.types.pos() - 1);
+        let typ = Type(self.types.pos());
+        match self.map.get_mut(&hash) {
+            Some(entry) => {
+                // TODO Check first for duplicate!
+                entry.push(typ);
+                println!("Dupe: {typ:?}");
+            },
+            None => {
+                // No matching hash means no matching type.
+                self.map.insert(hash, smallvec![typ]);
+            }
+        }
+        // If not there, then add it.
+        // self.map.insert(TypeMapEntry { hash, typ });
+        typ
     }
 }
 

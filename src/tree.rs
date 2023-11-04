@@ -10,6 +10,8 @@ use anyhow::Result;
 
 use crate::lex::{Intern, Token};
 
+const SHOW_SOURCES: bool = false;
+
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Source(pub u32);
 
@@ -101,21 +103,23 @@ impl Nody for Nod {
     }
 }
 
+#[allow(dead_code)]
 pub fn tree_hash<N: Nody>(tree: &[N]) -> u64 {
     // I haven't worked out how to implement Iterator for trees without heap
     // allocation, so use recursion to walk through it.
     let mut hasher = DefaultHasher::new();
-    tree_hash_with(&mut hasher, tree);
+    if let Some(node) = tree.last() {
+        tree_hash_with(&mut hasher, *node, tree);
+    }
     hasher.finish()
 }
 
-fn tree_hash_with<N: Nody>(hasher: &mut impl Hasher, tree: &[N]) {
-    let Some(node) = tree.last() else { return };
+fn tree_hash_with<N: Nody>(hasher: &mut impl Hasher, node: N, tree: &[N]) {
     node.hash(hasher);
     if let Nod::Branch { range, .. } = node.nod() {
         let range: Range<usize> = range.into();
         for index in range {
-            tree_hash_with(hasher, &tree[..=index]);
+            tree_hash_with(hasher, tree[index], tree);
         }
     }
 }
@@ -133,8 +137,6 @@ where
     write_at(file, None::<Nod>, nodes, map, 0, nodes.len() - 1, 0, 0)?;
     Ok(())
 }
-
-const SHOW_SOURCES: bool = false;
 
 fn write_at<Map, File>(
     file: &mut File,
@@ -484,6 +486,12 @@ impl TreeBuilder {
             },
         });
     }
-}
 
-// TODO Some WorkingTree type for implementing Iterator?
+    pub fn working_tree_hash(&self, index: u32) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        if let Some(node) = self.working.get(index as usize) {
+            tree_hash_with(&mut hasher, *node, &self.nodes);
+        }
+        hasher.finish()
+    }
+}

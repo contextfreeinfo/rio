@@ -11,6 +11,7 @@ clap = { version = "4.3.12", features = ["derive"] }
 env_logger = "0.10.0"
 lasso = { version = "0.7.2", features = ["multi-threaded"] }
 log = { version = "0.4.19", features = ["release_max_level_warn"] }
+smallvec = "1.11.1"
 
 [profile.release]
 # Got smaller with s than z in a quick check.

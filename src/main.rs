@@ -24,6 +24,7 @@ mod parse;
 mod run;
 mod tree;
 mod typ;
+mod util;
 
 #[derive(clap::Parser)]
 #[command(about, version, long_about = None)]
@@ -76,6 +77,7 @@ fn run_app(args: &RunArgs) -> Result<()> {
     // Process
     let cart = build(args, "core", cart)?;
     build(args, args.app.as_str(), cart)?;
+    println!("type map entry size: {}", std::mem::size_of::<smallvec::SmallVec<[tree::Type; 2]>>());
     Ok(())
 }
 
