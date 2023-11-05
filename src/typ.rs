@@ -156,8 +156,8 @@ impl Typer {
         };
         let typ = match self.map.get(&key).copied() {
             Some(typ) => {
-                // println!("found {typ:?}");
-                // TODO Pop end of working and any of its kids.
+                // Don't need that one anymore.
+                self.types_mut().pop_working_tree();
                 typ
             }
             None => {
@@ -202,6 +202,8 @@ pub fn append_types(runner: &mut Runner, tree: &mut Vec<Node>) {
         .tree_builder
         .push_tree(&runner.typer.types_ref().nodes);
     // Find new types offset in tree.
+    // TODO Also remove unused types and build an offset lookup vector?
+    // TODO We can have unused types from looped type refinement.
     let Nod::Branch { range, .. } = runner.builder().working.last().unwrap().nod else { panic!() };
     let types_offset = range.start;
     runner.builder().wrap(BranchKind::Block, 0, Type(0), 0);
@@ -293,6 +295,7 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
                 let def_typ = other_node.typ;
                 if def_typ.0 != 0 {
                     // Copy type into our types.
+                    // TODO Keep a map from uids to local types to save time?
                     typ = runner.typer.ingest_type(&other.tree, def_typ);
                 }
             }

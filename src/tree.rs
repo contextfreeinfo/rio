@@ -459,18 +459,30 @@ impl TreeBuilder {
                 self.working.push(self.nodes.pop().unwrap());
                 None
             }
-            _ => {
-                // Pop the top working, pulling in its kids.
-                let top = self.working.pop().unwrap();
-                match top.nod {
-                    Nod::Branch { range, .. } => {
-                        let range: Range<usize> = range.into();
-                        self.working.extend(self.nodes.drain(range));
-                    }
-                    _ => {}
-                }
-                Some(top)
+            _ => self.pop_working(),
+        }
+    }
+
+    fn pop_working(&mut self) -> Option<Node> {
+        // Pop the top working, pulling in its kids.
+        let top = self.working.pop().unwrap();
+        match top.nod {
+            Nod::Branch { range, .. } => {
+                let range: Range<usize> = range.into();
+                self.working.extend(self.nodes.drain(range));
             }
+            _ => {}
+        }
+        Some(top)
+    }
+
+    pub fn pop_working_tree(&mut self) {
+        if self.working.is_empty() {
+            return;
+        }
+        let goal = self.pos() - 1;
+        while self.pos() > goal {
+            self.pop_working();
         }
     }
 
