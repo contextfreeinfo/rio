@@ -33,7 +33,7 @@ Block
       Params
         Def@21 :@41
           None :@41
-          Uid Void@1@54 :@42
+          Uid Void@1@54 :@40
           None :@41
         /Def
       /Params
@@ -43,7 +43,7 @@ Block
           Uid message@17 :@37
         /Call
         Call :@41
-          Uid print@1@56 :@48
+          Uid print@1@56 :@45
           Uid message@17 :@37
         /Call
       /Block

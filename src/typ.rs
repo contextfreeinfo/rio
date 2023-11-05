@@ -84,7 +84,7 @@ impl Typer {
             0 => node.typ,
             _ => self.ingest_type(other, node.typ),
         };
-        match node.nod {
+        let result = match node.nod {
             Nod::Branch {
                 kind: BranchKind::None,
                 ..
@@ -116,7 +116,9 @@ impl Typer {
                 self.types_mut().push_tree(&other[..typ.0 as usize - 1]);
                 self.unify()
             }
-        }
+        };
+        // println!("/Ingest {typ:?} {result:?}");
+        result
     }
 
     fn more_precise(&self, a: Type, b: Type) -> bool {
@@ -291,8 +293,7 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
                 let def_typ = other_node.typ;
                 if def_typ.0 != 0 {
                     // Copy type into our types.
-                    runner.typer.ingest_type(&other.tree, def_typ);
-                    typ = Type(runner.typer.types_ref().pos());
+                    typ = runner.typer.ingest_type(&other.tree, def_typ);
                 }
             }
         }
