@@ -77,7 +77,7 @@ fn run_app(args: &RunArgs) -> Result<()> {
     // Process
     let cart = build(args, "core", cart)?;
     build(args, args.app.as_str(), cart)?;
-    println!("type map entry size: {}", std::mem::size_of::<smallvec::SmallVec<[tree::Type; 2]>>());
+    // println!("type tree size: {}", std::mem::size_of::<typ::TypeTree>());
     Ok(())
 }
 

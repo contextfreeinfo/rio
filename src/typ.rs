@@ -6,8 +6,6 @@ use std::{
     rc::Rc,
 };
 
-// use smallvec::{smallvec, SmallVec};
-
 use crate::{
     lex::TokenKind,
     run::Runner,
@@ -40,43 +38,6 @@ impl PartialEq for TypeTree {
 }
 
 impl Eq for TypeTree {}
-
-impl TypeTree {
-    // fn types_eq(types: &TreeBuilder, a: Type, b: Type) -> bool {
-    //     // This is good enough because only nested do "None @..." type refs, and
-    //     // those always do, and we never need to compare none with top level.
-    //     types.working_tree_eq(a.0 - 1, b.0 - 1)
-    //     // if a == b {
-    //     //     return true;
-    //     // }
-    //     // if let Some(node_a) = types.working.get(a.0 as usize - 1) {
-    //     //     if let Some(node_b) = types.working.get(b.0 as usize - 1) {
-    //     //         if node_a == node_b {
-    //     //             return true;
-    //     //         }
-    //     //         if node_a.typ != node_b.typ {
-    //     //             // Covers return type cases for functions.
-    //     //             return false;
-    //     //         }
-    //     //         if let Nod::Branch { range: range_a, .. } = node_a.nod {
-    //     //             let range_a: Range<usize> = range_a.into();
-    //     //             if let Nod::Branch { range: range_b, .. } = node_b.nod {
-    //     //                 let range_b: Range<usize> = range_b.into();
-    //     //                 if range_a.len() != range_b.len() {
-    //     //                     return false
-    //     //                 }
-    //     //                 // Only need to check one level deep on kids.
-    //     //                 for (index_a, index_b) in range_a.zip(range_b) {
-    //     //                     // TODO Walk kids.
-    //     //                 }
-    //     //             }
-    //     //         }
-    //     //     }
-    //     // }
-    //     // // types.working_tree_eq(a.0 - 1, b.0 - 1)
-    //     // false
-    // }
-}
 
 impl Hash for TypeTree {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -186,9 +147,6 @@ impl Typer {
         // Ensure all sources are 0 for type nodes so we're consistent for
         // hashing and comparison.
         self.types_mut().working.last_mut().unwrap().source = Source(0);
-        // Now find a key to represent our type.
-        // I'm concerned that a custom Hasher would need a back re
-        // let hash = types.working_tree_hash(types.pos() - 1);
         let typ = Type(self.types_ref().pos());
         let key = TypeTree {
             typ,
@@ -205,21 +163,6 @@ impl Typer {
                 typ
             }
         };
-        // self.m.g
-        // match self.map.get_mut(&hash) {
-        //     Some(entry) => {
-        //         // TODO Check first for duplicate!
-        //         entry.push(typ);
-        //         println!("Dupe: {typ:?}");
-        //     }
-        //     None => {
-        //         // No matching hash means no matching type.
-        //         self.map.insert(hash, smallvec![typ]);
-        //     }
-        // }
-        // self.m.ins
-        // If not there, then add it.
-        // self.map.insert(TypeMapEntry { hash, typ });
         typ
     }
 }

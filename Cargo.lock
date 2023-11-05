@@ -373,7 +373,6 @@ dependencies = [
  "env_logger",
  "lasso",
  "log",
- "smallvec",
 ]
 
 [[package]]
