@@ -4,11 +4,11 @@ Block
     Params
     Params
   /Fun
-  Fun :@62
+  Fun :@60
     Params
     Params
   /Fun
-  Fun :@64
+  Fun :@60
     Params
     Params
   /Fun
@@ -46,7 +46,7 @@ Block
     Block
       Id "a"
   /Fun
-  Fun :@68
+  Fun :@67
     Params
       Block
         Def@35
@@ -71,7 +71,7 @@ Block
     Block
       Id "a"
   /Fun
-  Fun :@69
+  Fun :@67
     Params
       Id "a"
     Params
@@ -88,11 +88,11 @@ Block
     Uid@59 Void@1@54
     FunType@60 :@59
     Uid@61 Void@1@54
-    FunType@62 :@61
+    FunType@62 :@59
     Uid@63 Void@1@54
-    FunType@64 :@63
+    FunType@64 :@59
     Uid@65 Void@1@54
-    FunType@66 :@65
+    FunType@66 :@59
       None
     FunType@67
       None

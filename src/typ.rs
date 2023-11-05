@@ -1,10 +1,7 @@
 use std::{
     cell::{Ref, RefCell, RefMut},
-    collections::{
-        hash_map::{DefaultHasher, RandomState},
-        HashMap,
-    },
-    hash::{BuildHasher, Hash, Hasher},
+    collections::HashMap,
+    hash::Hash,
     ops::Range,
     rc::Rc,
 };
@@ -19,68 +16,10 @@ use crate::{
 
 pub struct Typer {
     any_change: bool,
-    // We expect few collisions, and 2 costs the same as 1: 24 bytes.
-    // Alternative: Rc types TreeBuilder with TypeTree type that references it
-    // and also holds an index.
-    // pub map: HashMap<u64, SmallVec<[Type; 2]>>,
-    map: HashMap<Type, Type, BuildTypeHasher>,
+    map: HashMap<TypeTree, Type>,
     type_refs: Vec<Type>,
+    // Need Rc so we can also store refs inside the map keys.
     types: Rc<RefCell<TreeBuilder>>,
-    // pub t: Rc<RefCell<TreeBuilder>>,
-}
-
-pub struct TypeHasher {
-    hasher: DefaultHasher,
-    types: Rc<RefCell<TreeBuilder>>,
-}
-
-pub struct BuildTypeHasher {
-    state: RandomState,
-    types: Rc<RefCell<TreeBuilder>>,
-}
-
-impl BuildTypeHasher {
-    pub fn new(types: Rc<RefCell<TreeBuilder>>) -> Self {
-        BuildTypeHasher {
-            state: RandomState::new(),
-            types,
-        }
-    }
-}
-
-impl BuildHasher for BuildTypeHasher {
-    type Hasher = TypeHasher;
-
-    fn build_hasher(&self) -> Self::Hasher {
-        TypeHasher {
-            hasher: self.state.build_hasher(),
-            types: self.types.clone(),
-        }
-    }
-}
-
-trait TypeHasherTrait: Hasher {}
-
-impl Hasher for TypeHasher {
-    fn finish(&self) -> u64 {
-        let a = self.hasher.finish();
-        // println!("finish {a}");
-        a
-    }
-
-    fn write(&mut self, bytes: &[u8]) {
-        self.hasher.write(bytes)
-    }
-
-    fn write_u32(&mut self, i: u32) {
-        // Hack knowing that all u32 values will be typ indices.
-        let types = self.types.borrow();
-        // println!("hack {i}");
-        if let Some(node) = types.working.get(i as usize - 1) {
-            // println!("-");
-            tree_hash_with(&mut self.hasher, node, &types.nodes);
-        }
-    }
 }
 
 pub struct TypeTree {
@@ -88,23 +27,63 @@ pub struct TypeTree {
     types: Rc<RefCell<TreeBuilder>>,
 }
 
-// impl Hash for TypeTree2 {
-//     fn hash<H: Hasher + TypeHasherTrait>(&self, state: &mut H) {
-//         self.typ.hash(state);
-//     }
-// }
-
 impl PartialEq for TypeTree {
     fn eq(&self, other: &Self) -> bool {
-        // TODO Fix.
-        self.typ == other.typ
+        let result = self
+            .types
+            .borrow()
+            .working_tree_eq(self.typ.0 - 1, other.typ.0 - 1);
+        // println!("eq: {result}");
+        result
+        // TypeTree::types_eq(&self.types.borrow(), self.typ, other.typ)
     }
+}
+
+impl Eq for TypeTree {}
+
+impl TypeTree {
+    // fn types_eq(types: &TreeBuilder, a: Type, b: Type) -> bool {
+    //     // This is good enough because only nested do "None @..." type refs, and
+    //     // those always do, and we never need to compare none with top level.
+    //     types.working_tree_eq(a.0 - 1, b.0 - 1)
+    //     // if a == b {
+    //     //     return true;
+    //     // }
+    //     // if let Some(node_a) = types.working.get(a.0 as usize - 1) {
+    //     //     if let Some(node_b) = types.working.get(b.0 as usize - 1) {
+    //     //         if node_a == node_b {
+    //     //             return true;
+    //     //         }
+    //     //         if node_a.typ != node_b.typ {
+    //     //             // Covers return type cases for functions.
+    //     //             return false;
+    //     //         }
+    //     //         if let Nod::Branch { range: range_a, .. } = node_a.nod {
+    //     //             let range_a: Range<usize> = range_a.into();
+    //     //             if let Nod::Branch { range: range_b, .. } = node_b.nod {
+    //     //                 let range_b: Range<usize> = range_b.into();
+    //     //                 if range_a.len() != range_b.len() {
+    //     //                     return false
+    //     //                 }
+    //     //                 // Only need to check one level deep on kids.
+    //     //                 for (index_a, index_b) in range_a.zip(range_b) {
+    //     //                     // TODO Walk kids.
+    //     //                 }
+    //     //             }
+    //     //         }
+    //     //     }
+    //     // }
+    //     // // types.working_tree_eq(a.0 - 1, b.0 - 1)
+    //     // false
+    // }
 }
 
 impl Hash for TypeTree {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // let h = self.types.borrow().working_tree_hash(self.typ.0 - 1);
+        // println!("hash: {h} for {:?}", self.typ);
         let types = self.types.borrow();
-        if let Some(node) = types.working.get(self.typ.0 as usize) {
+        if let Some(node) = types.working.get(self.typ.0 as usize - 1) {
             tree_hash_with(state, node, &types.nodes);
         }
     }
@@ -115,7 +94,7 @@ impl Typer {
         let types = Rc::new(RefCell::new(TreeBuilder::default()));
         Self {
             any_change: false,
-            map: HashMap::with_hasher(BuildTypeHasher::new(types.clone())),
+            map: HashMap::new(),
             type_refs: vec![],
             types: types.clone(),
         }
@@ -134,8 +113,8 @@ impl Typer {
     }
 
     fn ingest_type(&mut self, other: &[Node], typ: Type) -> Type {
-        // TODO Or make a node for foreign reference?
-        // TODO At least fix type refs, so simple copy probably no good.
+        // Ingest from another module.
+        // println!("Ingest {typ:?}");
         if typ.0 == 0 {
             return typ;
         }
@@ -150,32 +129,33 @@ impl Typer {
                 ..
             } => {
                 // All we need is the ref ingestion from above.
+                new_ref
             }
             Nod::Branch { kind, range } => {
                 let range: Range<usize> = range.into();
                 let ref_start = self.type_refs.len();
                 for kid_index in range.clone() {
                     let kid_type = self.ingest_type(other, Type(kid_index as u32 + 1));
+                    // println!("  kid type: {kid_type:?}");
                     self.type_refs.push(kid_type);
                 }
                 let start = self.types_ref().pos();
                 self.push_type_refs(ref_start);
                 self.types_mut().wrap(kind, start, new_ref, 0);
-                self.unify();
+                self.unify()
             }
             Nod::Uid { .. } => {
                 self.types_mut().push(Node {
                     typ: new_ref,
                     ..node
                 });
-                self.unify();
+                self.unify()
             }
             _ => {
                 self.types_mut().push_tree(&other[..typ.0 as usize - 1]);
-                self.unify();
+                self.unify()
             }
         }
-        Type(self.types_ref().pos())
     }
 
     fn more_precise(&self, a: Type, b: Type) -> bool {
@@ -188,9 +168,10 @@ impl Typer {
     }
 
     fn push_type_refs(&mut self, ref_start: usize) {
-        for param_type in self.type_refs.drain(ref_start..) {
+        for type_ref in self.type_refs.drain(ref_start..) {
+            // println!("push type ref: {type_ref:?}");
             self.types.borrow_mut().push(Node {
-                typ: param_type,
+                typ: type_ref,
                 source: 0.into(),
                 nod: Nod::Branch {
                     kind: BranchKind::None,
@@ -209,16 +190,20 @@ impl Typer {
         // I'm concerned that a custom Hasher would need a back re
         // let hash = types.working_tree_hash(types.pos() - 1);
         let typ = Type(self.types_ref().pos());
-        let typ = match self.map.get(&typ).copied() {
+        let key = TypeTree {
+            typ,
+            types: self.types.clone(),
+        };
+        let typ = match self.map.get(&key).copied() {
             Some(typ) => {
-                println!("found {typ:?}");
+                // println!("found {typ:?}");
                 // TODO Pop end of working and any of its kids.
                 typ
-            },
+            }
             None => {
-                self.map.insert(typ, typ);
+                self.map.insert(key, typ);
                 typ
-            },
+            }
         };
         // self.m.g
         // match self.map.get_mut(&hash) {
@@ -443,6 +428,7 @@ fn type_def(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut ty
 
 fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Type {
     let node = tree[at];
+    // println!("Type fun @{at}: {node:?}");
     let Nod::Branch { kind: BranchKind::Fun, range } = node.nod else { panic!() };
     // Kids
     let range: Range<usize> = range.into();
@@ -456,6 +442,7 @@ fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
     for param_index in params_range.clone() {
         let old_type = tree[param_index].typ;
         let param_type = type_any(runner, tree, param_index, Type::default());
+        // println!("param {param_type:?}");
         runner.typer.type_refs.push(param_type);
         any_change |= param_type != old_type;
     }

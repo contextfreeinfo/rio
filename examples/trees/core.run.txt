@@ -2,26 +2,26 @@ Block
   Module "core" 1
   Def@51 :@42
     Uid Function@51* :@42
-    Uid Type@53 :@44
+    Uid Type@53 :@42
     Call :@42
       Uid native@55 :@46
   /Def
-  Def@52 :@43
-    Uid Text@52* :@43
-    Uid Type@53 :@44
-    Call :@43
+  Def@52 :@42
+    Uid Text@52* :@42
+    Uid Type@53 :@42
+    Call :@42
       Uid native@55 :@46
   /Def
-  Def@53 :@44
-    Uid Type@53* :@44
-    Uid Type@53 :@44
-    Call :@44
+  Def@53 :@42
+    Uid Type@53* :@42
+    Uid Type@53 :@42
+    Call :@42
       Uid native@55 :@46
   /Def
-  Def@54 :@45
-    Uid Void@54* :@45
-    Uid Type@53 :@44
-    Call :@45
+  Def@54 :@42
+    Uid Void@54* :@42
+    Uid Type@53 :@42
+    Call :@42
       Uid native@55 :@46
   /Def
   Def@55 :@46
@@ -43,14 +43,14 @@ Block
       Params
         Def@28 :@47
           Uid text@28 :@47
-          Uid Text@52 :@43
+          Uid Text@52 :@42
           None :@47
         /Def
       /Params
       Params
         Def@32 :@48
           None :@48
-          Uid Void@54 :@45
+          Uid Void@54 :@42
           None :@48
         /Def
       /Params

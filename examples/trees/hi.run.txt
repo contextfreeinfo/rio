@@ -13,21 +13,21 @@ Block
           String "\"Hi!\"" :@37
         /Def
         Call :@41
-          Uid print-twice@53 :@49
+          Uid print-twice@53 :@45
           Uid message@6 :@37
         /Call
       /Block
     /Fun
   /Def
-  Def@53 :@49
-    Uid print-twice@53 :@49
+  Def@53 :@45
+    Uid print-twice@53 :@45
     None
-    Fun :@49
+    Fun :@45
       Params
-        Def@17 :@39
-          Uid message@17 :@39
+        Def@17 :@37
+          Uid message@17 :@37
           Uid Text@1@52 :@40
-          None :@39
+          None :@37
         /Def
       /Params
       Params
@@ -37,14 +37,14 @@ Block
           None :@41
         /Def
       /Params
-      Block :@46
-        Call :@43
+      Block :@41
+        Call :@41
           Uid print@1@56 :@45
-          Uid message@17 :@39
+          Uid message@17 :@37
         /Call
-        Call :@46
+        Call :@41
           Uid print@1@56 :@48
-          Uid message@17 :@39
+          Uid message@17 :@37
         /Call
       /Block
     /Fun
@@ -58,14 +58,14 @@ Block
     Uid@42 Type@1@53
     Uid@43 Void@1@54
     Uid@44 Text@1@52
-    FunType@45 :@43
-      None :@44
+    FunType@45 :@41
+      None :@37
     Uid@46 Void@1@54
     Uid@47 Text@1@52
-    FunType@48 :@46
-      None :@47
+    FunType@48 :@41
+      None :@37
     FunType@49 :@41
-      None :@39
+      None :@37
     FunType@50 :@41
   /Types
 /Block

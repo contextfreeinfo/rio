@@ -46,7 +46,7 @@ pub struct Node {
     pub typ: Type,
 }
 
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Nod {
     Branch {
         kind: BranchKind,
@@ -69,7 +69,7 @@ pub enum Nod {
     },
 }
 
-pub trait Nody: Copy + Hash {
+pub trait Nody: Copy + Debug + Eq + Hash {
     fn nod(&self) -> Nod;
     fn source(&self) -> Source;
     fn typ(&self) -> Type;
@@ -114,13 +114,62 @@ pub fn tree_hash<N: Nody>(tree: &[N]) -> u64 {
     hasher.finish()
 }
 
+pub fn tree_eq<N: Nody>(a: N, b: N, tree: &[N]) -> bool {
+    // println!("tree_eq: {a:?} vs {b:?}");
+    if a == b {
+        return true;
+    }
+    // Check type.
+    if a.typ() != b.typ() {
+        return false;
+    }
+    // Also check source because hash picks them up by default.
+    if a.source() != b.source() {
+        return false;
+    }
+    // If both are branches, check kinds and kids.
+    if let Nod::Branch {
+        kind: kind_a,
+        range: range_a,
+    } = a.nod()
+    {
+        let range_a: Range<usize> = range_a.into();
+        if let Nod::Branch {
+            kind: kind_b,
+            range: range_b,
+            ..
+        } = b.nod()
+        {
+            // Check branch-specific things.
+            if kind_a != kind_b {
+                return false;
+            }
+            let range_b: Range<usize> = range_b.into();
+            if range_a.len() != range_b.len() {
+                return false;
+            }
+            for (index_a, index_b) in range_a.zip(range_b) {
+                if !tree_eq(tree[index_a], tree[index_b], tree) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+    // Default to direct equality, where we already checked typ.
+    a.nod() == b.nod()
+}
+
 pub fn tree_hash_with<N: Nody>(hasher: &mut impl Hasher, node: &N, tree: &[N]) {
-    node.hash(hasher);
-    if let Nod::Branch { range, .. } = node.nod() {
+    if let Nod::Branch { kind, range } = node.nod() {
+        'B'.hash(hasher);
+        kind.hash(hasher);
         let range: Range<usize> = range.into();
         for index in range {
             tree_hash_with(hasher, &tree[index], tree);
         }
+    } else {
+        node.hash(hasher);
     }
 }
 
@@ -485,6 +534,19 @@ impl TreeBuilder {
                 range: (nodes_start..self.nodes.len()).into(),
             },
         });
+    }
+
+    pub fn working_tree_eq(&self, a: u32, b: u32) -> bool {
+        // println!("eq");
+        if a == b {
+            return true;
+        }
+        if let Some(a) = self.working.get(a as usize) {
+            if let Some(b) = self.working.get(b as usize) {
+                return tree_eq(*a, *b, &self.nodes);
+            }
+        }
+        false
     }
 
     pub fn working_tree_hash(&self, index: u32) -> u64 {
