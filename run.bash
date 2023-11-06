@@ -13,3 +13,5 @@ cargo build --release && \
 ls -l target/$profile/rio && \
 run-dump hi && \
 run-dump wild
+
+# cargo build --profile release-lto && ls -l ./target/release-lto/rio

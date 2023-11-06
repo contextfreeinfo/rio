@@ -14,6 +14,7 @@ use lex::{Intern, Interner};
 use norm::Normer;
 use run::{CoreExports, Module, Runner};
 use tree::{write_tree, Nod, Node, Nody, TreeBuilder};
+use wasm::write_wasm;
 
 use crate::lex::Lexer;
 
@@ -25,6 +26,7 @@ mod run;
 mod tree;
 mod typ;
 mod util;
+mod wasm;
 
 #[derive(clap::Parser)]
 #[command(about, version, long_about = None)]
@@ -105,6 +107,8 @@ fn build(args: &RunArgs, name: &str, cart: Cart) -> Result<Cart> {
         .insert(module.name, cart.modules.len() as u16 + 1);
     cart.modules.push(module);
     dump_tree("run", args, name, &tree, interner.as_ref())?;
+    // Write
+    write_wasm(&cart);
     // Done
     Ok(cart)
 }
