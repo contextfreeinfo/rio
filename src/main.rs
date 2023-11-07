@@ -11,6 +11,7 @@ use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
 use lex::{Intern, Interner};
+use link::link_modules;
 use norm::Normer;
 use run::{CoreExports, Module, Runner};
 use tree::{write_tree, Nod, Node, Nody, TreeBuilder};
@@ -20,6 +21,7 @@ use crate::lex::Lexer;
 
 // mod core;
 mod lex;
+mod link;
 mod norm;
 mod parse;
 mod run;
@@ -107,6 +109,8 @@ fn build(args: &RunArgs, name: &str, cart: Cart) -> Result<Cart> {
         .insert(module.name, cart.modules.len() as u16 + 1);
     cart.modules.push(module);
     dump_tree("run", args, name, &tree, interner.as_ref())?;
+    // Link
+    link_modules(&cart);
     // Write
     write_wasm(&cart);
     // Done
