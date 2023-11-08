@@ -3,7 +3,8 @@
 run-dump() {
     # RUST_LOG=debug \
     RUST_BACKTRACE=1 /usr/bin/time -v \
-        target/$profile/rio run examples/$1.rio --dump examples/trees
+        target/$profile/rio run examples/$1.rio \
+            --dump trees --outdir examples/out
 }
 
 # profile=debug

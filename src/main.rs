@@ -8,7 +8,7 @@ use std::{
 };
 
 use anyhow::{Error, Result};
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
 use lex::{Intern, Interner};
 use link::link_modules;
@@ -46,7 +46,14 @@ enum Commands {
 struct RunArgs {
     app: String,
     #[arg(long)]
-    dump: Option<String>,
+    dump: Vec<DumpOption>,
+    #[arg(long)]
+    outdir: Option<String>,
+}
+
+#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd, ValueEnum)]
+enum DumpOption {
+    Trees,
 }
 
 fn main() -> Result<()> {
@@ -156,7 +163,7 @@ where
     Map: Index<Intern, Output = str>,
     Node: Nody,
 {
-    if let Some(dump) = &args.dump {
+    if let Some(dump) = &args.outdir {
         create_dir_all(dump)?;
         let name = Path::new(name)
             .file_stem()
