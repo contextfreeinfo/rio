@@ -7,12 +7,19 @@ import time as t
 
 def main() -> None:
     install_tools()
-    build_and_run("release")
+    profile = "release"
+    # profile = "release-lto"
+    build_and_run(profile)
 
 
 def build_and_run(profile: str) -> None:
     # Build
-    sp.check_call([cargo, "build", f"--{profile}"])
+    print(f"building profile {profile} ...")
+    if profile in {"debug", "release"}:
+        profile_args = [f"--{profile}"]
+    else:
+        profile_args = ["--profile", profile]
+    sp.check_call([cargo, "build", *profile_args])
     rio = p.Path("target", profile, "rio")
     # Report
     size = rio.stat().st_size
@@ -50,18 +57,19 @@ def run_example(rio: p.Path, example: str) -> None:
     start_time = t.time()
     examples = "examples"
     examples_out = f"{examples}/out"
+    example_path = f"{examples}/{example}.rio"
     sp.check_call(
         args=[
             rio,
             "run",
-            f"{examples}/{example}.rio",
+            example_path,
             *["--dump", "trees"],
             *["--outdir", examples_out],
         ],
         env={"RUST_BACKTRACE": "1"},
     )
     elapsed = t.time() - start_time
-    print(f"ran {example} in {elapsed:.4f} seconds")
+    print(f"built {example_path} in {elapsed:.4f} seconds")
     # Wat
     sp.check_call(
         args=[
