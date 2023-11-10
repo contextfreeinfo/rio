@@ -43,7 +43,7 @@ enum Commands {
 }
 
 #[derive(Args)]
-struct RunArgs {
+pub struct RunArgs {
     app: String,
     #[arg(long)]
     dump: Vec<DumpOption>,
@@ -119,7 +119,7 @@ fn build(args: &RunArgs, name: &str, cart: Cart) -> Result<Cart> {
     // Link
     link_modules(&cart);
     // Write
-    write_wasm(&cart);
+    write_wasm(args, &cart)?;
     // Done
     Ok(cart)
 }
@@ -163,19 +163,25 @@ where
     Map: Index<Intern, Output = str>,
     Node: Nody,
 {
-    if let Some(dump) = &args.outdir {
-        create_dir_all(dump)?;
-        let name = Path::new(name)
-            .file_stem()
-            .ok_or(Error::msg("no name"))?
-            .to_str()
-            .ok_or(Error::msg("bad name"))?;
-        let path = Path::new(dump).join(format!("{name}.{stage}.txt"));
-        let mut file = File::create(path)?;
-        write_tree(&mut file, &tree, map)?;
-        writeln!(&mut file, "")?;
-        writeln!(&mut file, "Node size: {}", std::mem::size_of::<Node>())?;
-        writeln!(&mut file, "Tree len: {}", tree.len())?;
+    if args
+        .dump
+        .iter()
+        .any(|dump| matches!(dump, DumpOption::Trees))
+    {
+        if let Some(outdir) = &args.outdir {
+            create_dir_all(outdir)?;
+            let name = Path::new(name)
+                .file_stem()
+                .ok_or(Error::msg("no name"))?
+                .to_str()
+                .ok_or(Error::msg("bad name"))?;
+            let path = Path::new(outdir).join(format!("{name}.{stage}.txt"));
+            let mut file = File::create(path)?;
+            write_tree(&mut file, &tree, map)?;
+            writeln!(&mut file, "")?;
+            writeln!(&mut file, "Node size: {}", std::mem::size_of::<Node>())?;
+            writeln!(&mut file, "Tree len: {}", tree.len())?;
+        }
     }
     Ok(())
 }

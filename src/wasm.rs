@@ -1,10 +1,37 @@
-use wasm_encoder::TypeSection;
+use std::{fs::{create_dir_all, File}, path::Path, io::Write};
 
-use crate::Cart;
+use anyhow::{Ok, Result, Error};
+use wasm_encoder::{CodeSection, ExportSection, FunctionSection, TypeSection};
 
-pub fn write_wasm(cart: &Cart) {
+use crate::{Cart, RunArgs};
+
+pub fn write_wasm(args: &RunArgs, cart: &Cart) -> Result<()> {
+    // TODO Default to current dir?
+    let Some(outdir) = &args.outdir else { return Ok(()) };
     let mut module = wasm_encoder::Module::new();
     let _ = cart;
+    // Types
     let types = TypeSection::new();
     module.section(&types);
+    // Functions
+    let functions = FunctionSection::new();
+    module.section(&functions);
+    // Exports
+    let exports = ExportSection::new();
+    module.section(&exports);
+    // Codes
+    let codes = CodeSection::new();
+    module.section(&codes);
+    // Finish
+    let wasm = module.finish();
+    create_dir_all(outdir)?;
+    let name = Path::new(args.app.as_str())
+        .file_stem()
+        .ok_or(Error::msg("no name"))?
+        .to_str()
+        .ok_or(Error::msg("bad name"))?;
+    let path = Path::new(outdir).join(format!("{name}.wasm"));
+    let mut file = File::create(path)?;
+    file.write_all(&wasm)?;
+    Ok(())
 }

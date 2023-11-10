@@ -4,7 +4,8 @@ run-dump() {
     # RUST_LOG=debug \
     RUST_BACKTRACE=1 /usr/bin/time -v \
         target/$profile/rio run examples/$1.rio \
-            --dump trees --outdir examples/out
+            --dump trees --outdir examples/out &&
+    target/$profile/wasmprinter examples/out/$1.wasm
 }
 
 # profile=debug
