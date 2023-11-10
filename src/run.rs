@@ -368,7 +368,7 @@ impl<'a> Runner<'a> {
 
     fn update_uids_at_end(&mut self, tree: &mut [Node]) {
         // Tree
-        for mut node in tree {
+        for node in tree {
             if let Nod::Uid {
                 intern,
                 module,
@@ -385,7 +385,7 @@ impl<'a> Runner<'a> {
             }
         }
         // Tops
-        for mut top in self.tops.values.iter_mut() {
+        for top in self.tops.values.iter_mut() {
             top.num = self.def_indices[top.num as usize].0;
         }
     }
