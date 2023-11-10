@@ -8,10 +8,8 @@ Try this for now:
 cargo run -- run examples/hi.rio
 ```
 
-Or for more fun:
+Or for more fun, which cargo installs wasm-tools and wasmi_cli:
 
 ```sh
-cargo build --release && \
-ls -lh target/release/rio && \
-/usr/bin/time -v target/release/rio run examples/hi.rio
+python run.py
 ```
