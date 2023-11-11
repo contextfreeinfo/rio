@@ -39,11 +39,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Run(RunArgs),
+    Build(BuildArgs),
 }
 
 #[derive(Args)]
-pub struct RunArgs {
+pub struct BuildArgs {
     app: String,
     #[arg(long)]
     dump: Vec<DumpOption>,
@@ -60,7 +60,7 @@ fn main() -> Result<()> {
     env_logger::init();
     let cli = Cli::parse();
     match &cli.command {
-        Commands::Run(args) => run_app(args),
+        Commands::Build(args) => run_app(args),
     }
 }
 
@@ -72,7 +72,7 @@ pub struct Cart {
     pub tree_builder: TreeBuilder,
 }
 
-fn run_app(args: &RunArgs) -> Result<()> {
+fn run_app(args: &BuildArgs) -> Result<()> {
     // Resources
     let interner = Arc::new(ThreadedRodeo::default());
     // Reserve first slot for empty. TODO Reserve others?
@@ -92,7 +92,7 @@ fn run_app(args: &RunArgs) -> Result<()> {
     Ok(())
 }
 
-fn build(args: &RunArgs, name: &str, cart: Cart) -> Result<Cart> {
+fn build(args: &BuildArgs, name: &str, cart: Cart) -> Result<Cart> {
     let interner = cart.interner.clone();
     // Lex
     // TODO Reserver lexer somewhere to reuse its resources?
@@ -154,7 +154,7 @@ fn norm(cart: Cart, parsed_tree: Vec<Nod>) -> (Vec<Node>, Cart) {
 
 fn dump_tree<Map, Node>(
     stage: &str,
-    args: &RunArgs,
+    args: &BuildArgs,
     name: &str,
     tree: &[Node],
     map: &Map,

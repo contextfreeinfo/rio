@@ -3,9 +3,9 @@ use std::{fs::{create_dir_all, File}, path::Path, io::Write};
 use anyhow::{Ok, Result, Error};
 use wasm_encoder::{CodeSection, ExportSection, FunctionSection, TypeSection};
 
-use crate::{Cart, RunArgs};
+use crate::{Cart, BuildArgs};
 
-pub fn write_wasm(args: &RunArgs, cart: &Cart) -> Result<()> {
+pub fn write_wasm(args: &BuildArgs, cart: &Cart) -> Result<()> {
     // TODO Default to current dir?
     let Some(outdir) = &args.outdir else { return Ok(()) };
     let mut module = wasm_encoder::Module::new();

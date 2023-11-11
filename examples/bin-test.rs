@@ -1,6 +1,10 @@
-use std::{fs, path::Path, process::Command};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+    time::Instant,
+};
 
-// #[test]
 fn main() {
     install_tools();
     let profile = "release";
@@ -13,10 +17,7 @@ fn build_and_run(profile: &str) {
     println!("building profile {profile} ...");
     let profile_args = match profile {
         "debug" | "release" => vec![format!("--{profile}")],
-        _ => vec!["--profile", profile]
-            .iter()
-            .map(|s| (*s).into())
-            .collect(),
+        _ => ["--profile", profile].iter().map(|s| (*s).into()).collect(),
     };
     Command::new(CARGO)
         .arg("build")
@@ -25,7 +26,7 @@ fn build_and_run(profile: &str) {
         .unwrap();
     let rio = Path::new("target").join(profile).join("rio");
     // Report
-    let Ok(metadata) = fs::metadata(rio) else {
+    let Ok(metadata) = fs::metadata(&rio) else {
         panic!()
     };
     println!(
@@ -34,7 +35,9 @@ fn build_and_run(profile: &str) {
         metadata.len() as f64 / (1 << 20) as f64
     );
     // Run
-    // TODO
+    for example in ["hi", "wild"] {
+        run_example(&rio, example);
+    }
 }
 
 fn install_if_missing(command: &str) {
@@ -49,8 +52,32 @@ fn install_if_missing(command: &str) {
 }
 
 fn install_tools() {
-    install_if_missing("wasm-tools");
+    install_if_missing(WASM_TOOLS);
     // install_if_missing("wasmi_cli");
 }
 
+fn run_example(rio: &PathBuf, example: &str) {
+    let examples = "examples";
+    let examples_out = format!("{examples}/out");
+    let example_path = format!("{examples}/{example}.rio");
+    // Wasm
+    let start = Instant::now();
+    Command::new(rio)
+        .args(["build", &example_path])
+        .args(["--dump", "trees"])
+        .args(["--outdir", &examples_out])
+        .env("RUST_BACKTRACE", "1")
+        .output()
+        .unwrap();
+    println!("built {example_path} in {:.1?}", start.elapsed());
+    // Wat
+    Command::new(WASM_TOOLS)
+        .args(["print", &format!("{examples_out}/{example}.wasm")])
+        .args(["--output", &format!("{examples_out}/{example}.wat")])
+        .status()
+        .unwrap();
+    // TODO Run
+}
+
 const CARGO: &str = "cargo";
+const WASM_TOOLS: &str = "wasm-tools";
