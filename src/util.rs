@@ -46,7 +46,9 @@ where
             self.values.sort_by_key(|value| value.key())
         }
         self.map.clear();
-        let Some(first) = self.values.first() else { return };
+        let Some(first) = self.values.first() else {
+            return;
+        };
         let mut last_key = first.key().clone();
         self.map.insert(last_key, 0);
         for (index, value) in self.values.iter().enumerate().skip(1) {

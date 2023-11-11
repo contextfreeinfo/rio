@@ -21,7 +21,9 @@ fn fun_name(nodes: TreeBuilder, cart: &Cart) {
     let types_start = nodes.pos();
     let _ = types_start;
     for module in &cart.modules {
-        let Nod::Branch { range, .. } = module.tree.last().unwrap().nod else { panic!() };
+        let Nod::Branch { range, .. } = module.tree.last().unwrap().nod else {
+            panic!()
+        };
         let range: Range<usize> = range.into();
         for index in range {
             let node = module.tree[index];

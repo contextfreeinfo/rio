@@ -204,7 +204,9 @@ pub fn append_types(runner: &mut Runner, tree: &mut Vec<Node>) {
     // Find new types offset in tree.
     // TODO Also remove unused types and build an offset lookup vector?
     // TODO We can have unused types from looped type refinement.
-    let Nod::Branch { range, .. } = runner.builder().working.last().unwrap().nod else { panic!() };
+    let Nod::Branch { range, .. } = runner.builder().working.last().unwrap().nod else {
+        panic!()
+    };
     let types_offset = range.start;
     runner.builder().wrap(BranchKind::Block, 0, Type(0), 0);
     runner.builder().wrap(BranchKind::Block, 0, Type(0), 0);
@@ -376,13 +378,25 @@ fn type_def(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut ty
 fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Type {
     let node = tree[at];
     // println!("Type fun @{at}: {node:?}");
-    let Nod::Branch { kind: BranchKind::Fun, range } = node.nod else { panic!() };
+    let Nod::Branch {
+        kind: BranchKind::Fun,
+        range,
+    } = node.nod
+    else {
+        panic!()
+    };
     // Kids
     let range: Range<usize> = range.into();
     // Should always be in-params, out(-params), body.
     let Range { start, .. } = range;
     // Params
-    let Nod::Branch { range: params_range, .. } = tree[start].nod else { panic!() };
+    let Nod::Branch {
+        range: params_range,
+        ..
+    } = tree[start].nod
+    else {
+        panic!()
+    };
     let params_range: Range<usize> = params_range.into();
     let ref_start = runner.typer.type_refs.len();
     let mut any_change = false;
@@ -394,7 +408,12 @@ fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
         any_change |= param_type != old_type;
     }
     // Return
-    let Nod::Branch { range: out_range, .. } = tree[start + 1].nod else { panic!() };
+    let Nod::Branch {
+        range: out_range, ..
+    } = tree[start + 1].nod
+    else {
+        panic!()
+    };
     let out_range: Range<usize> = out_range.into();
     let old_out_type = if node.typ.0 == 0 {
         Type(0)
