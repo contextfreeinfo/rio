@@ -14,8 +14,13 @@ Or for more fun, which cargo installs wasm-tools and wasmi_cli:
 python run.py
 ```
 
-Or maybe soon just this? It abusively builds rio separately and runs it.
+Or maybe soon just this? It abusively builds rio separately and runs it. It also
+cargo installs additional binaries such as wasm-tools and/or wasmi_cli.
+
+TODO Just download third-party binaries directly into rio's own app space if not
+already present on the system? Should rio itself do this for some options? Maybe
+offer to do so?
 
 ```sh
-cargo test -- --nocapture
+cargo run --example bin_test
 ```

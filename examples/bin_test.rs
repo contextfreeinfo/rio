@@ -1,18 +1,16 @@
-#![cfg(test)]
-
 use std::{fs, path::Path, process::Command};
 
-#[test]
-fn run_things() {
+// #[test]
+fn main() {
     install_tools();
     let profile = "release";
-    let profile = "release-lto";
+    // let profile = "release-lto";
     build_and_run(profile);
 }
 
 fn build_and_run(profile: &str) {
     // Build
-    println!("building profile {profile}");
+    println!("building profile {profile} ...");
     let profile_args = match profile {
         "debug" | "release" => vec![format!("--{profile}")],
         _ => vec!["--profile", profile]
