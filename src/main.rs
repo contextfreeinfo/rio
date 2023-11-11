@@ -25,6 +25,7 @@ mod link;
 mod norm;
 mod parse;
 mod run;
+mod tests;
 mod tree;
 mod typ;
 mod util;

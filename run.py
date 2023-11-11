@@ -41,7 +41,8 @@ def install_if_missing(command: str) -> None:
 
 def install_tools() -> None:
     install_if_missing(wasm_tools)
-    install_if_missing(wasmi_cli)
+    if False:
+        install_if_missing(wasmi_cli)
 
 
 def is_found(command: str) -> bool:
