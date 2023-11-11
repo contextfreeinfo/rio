@@ -5,18 +5,27 @@ use std::{
     time::Instant,
 };
 
+use clap::Parser;
+
+#[derive(clap::Parser)]
+struct Cli {
+    #[arg(long)]
+    profile: Option<String>,
+}
+
 fn main() {
+    let cli = Cli::parse();
     install_tools();
-    let profile = "release";
-    // let profile = "release-lto";
-    build_and_run(profile);
+    let profile = cli.profile.unwrap_or("release".into());
+    build_and_run(&profile);
 }
 
 fn build_and_run(profile: &str) {
     // Build
     println!("building profile {profile} ...");
     let profile_args = match profile {
-        "debug" | "release" => vec![format!("--{profile}")],
+        "debug" => vec![],
+        "release" => vec![format!("--{profile}")],
         _ => ["--profile", profile].iter().map(|s| (*s).into()).collect(),
     };
     Command::new(CARGO)

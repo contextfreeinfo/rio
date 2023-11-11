@@ -9,8 +9,15 @@ cargo run -- build examples/hi.rio
 ```
 
 Or for more fun, which cargo installs wasm-tools and wasmi_cli then builds and
-runs rio and so on.
+runs rio and so on:
 
 ```sh
 cargo run --example bin-test
+```
+
+Or for smaller binary size and maybe faster, though I don't have large enough
+rio examples yet to know:
+
+```sh
+cargo run --example bin-test -- --profile release-lto
 ```
