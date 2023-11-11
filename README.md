@@ -22,5 +22,5 @@ already present on the system? Should rio itself do this for some options? Maybe
 offer to do so?
 
 ```sh
-cargo run --example bin_test
+cargo run --example bin-test
 ```
