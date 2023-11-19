@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::{create_dir_all, File},
-    io::{Read, Write},
+    io::{BufWriter, Read, Write},
     ops::Index,
     path::Path,
     sync::Arc,
@@ -176,11 +176,12 @@ where
                 .to_str()
                 .ok_or(Error::msg("bad name"))?;
             let path = Path::new(outdir).join(format!("{name}.{stage}.txt"));
-            let mut file = File::create(path)?;
-            write_tree(&mut file, &tree, map)?;
-            writeln!(&mut file, "")?;
-            writeln!(&mut file, "Node size: {}", std::mem::size_of::<Node>())?;
-            writeln!(&mut file, "Tree len: {}", tree.len())?;
+            let file = File::create(path)?;
+            let mut buf = BufWriter::new(file);
+            write_tree(&mut buf, &tree, map)?;
+            writeln!(&mut buf, "")?;
+            writeln!(&mut buf, "Node size: {}", std::mem::size_of::<Node>())?;
+            writeln!(&mut buf, "Tree len: {}", tree.len())?;
         }
     }
     Ok(())

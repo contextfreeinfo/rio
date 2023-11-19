@@ -2,7 +2,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
     process::Command,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use clap::Parser;
@@ -11,16 +11,18 @@ use clap::Parser;
 struct Cli {
     #[arg(long)]
     profile: Option<String>,
+    #[arg(long)]
+    quick: bool,
 }
 
 fn main() {
     let cli = Cli::parse();
     install_tools();
-    let profile = cli.profile.unwrap_or("release".into());
-    build_and_run(&profile);
+    let profile = cli.profile.clone().unwrap_or("release".into());
+    build_and_run(&profile, &cli);
 }
 
-fn build_and_run(profile: &str) {
+fn build_and_run(profile: &str, cli: &Cli) {
     // Build
     println!("building profile {profile} ...");
     let profile_args = match profile {
@@ -28,6 +30,7 @@ fn build_and_run(profile: &str) {
         "release" => vec![format!("--{profile}")],
         _ => ["--profile", profile].iter().map(|s| (*s).into()).collect(),
     };
+    let start = Instant::now();
     Command::new(CARGO)
         .arg("build")
         .args(profile_args)
@@ -35,17 +38,10 @@ fn build_and_run(profile: &str) {
         .unwrap();
     let rio = Path::new("target").join(profile).join("rio");
     // Report
-    let Ok(metadata) = fs::metadata(&rio) else {
-        panic!()
-    };
-    println!(
-        "built rio: {} bytes or {:.3} MB",
-        metadata.len(),
-        metadata.len() as f64 / (1 << 20) as f64
-    );
+    report_build(&rio, start.elapsed());
     // Run
     for example in ["hi", "wild"] {
-        run_example(&rio, example);
+        run_example(&rio, example, cli);
     }
 }
 
@@ -65,7 +61,21 @@ fn install_tools() {
     // install_if_missing("wasmi_cli");
 }
 
-fn run_example(rio: &PathBuf, example: &str) {
+fn report_build<P: AsRef<Path>>(path: P, duration: Duration) {
+    let path = path.as_ref();
+    let Ok(metadata) = fs::metadata(path) else {
+        panic!()
+    };
+    println!(
+        "built {} in {:.1?}: {} bytes ({:.2} MB)",
+        path.to_str().unwrap(),
+        duration,
+        metadata.len(),
+        metadata.len() as f64 / (1 << 20) as f64
+    );
+}
+
+fn run_example(rio: &PathBuf, example: &str, cli: &Cli) {
     let examples = "examples";
     let examples_out = format!("{examples}/out");
     let example_path = format!("{examples}/{example}.rio");
@@ -73,15 +83,20 @@ fn run_example(rio: &PathBuf, example: &str) {
     let start = Instant::now();
     Command::new(rio)
         .args(["build", &example_path])
-        .args(["--dump", "trees"])
+        .args(if cli.quick {
+            vec![]
+        } else {
+            vec!["--dump", "trees"]
+        })
         .args(["--outdir", &examples_out])
         .env("RUST_BACKTRACE", "1")
         .output()
         .unwrap();
-    println!("built {example_path} in {:.1?}", start.elapsed());
+    let wasm = format!("{examples_out}/{example}.wasm");
+    report_build(Path::new(&wasm), start.elapsed());
     // Wat
     Command::new(WASM_TOOLS)
-        .args(["print", &format!("{examples_out}/{example}.wasm")])
+        .args(["print", &wasm])
         .args(["--output", &format!("{examples_out}/{example}.wat")])
         .status()
         .unwrap();
