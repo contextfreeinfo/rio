@@ -5,7 +5,7 @@ for
 for 5
 for be 5
 
-for { a: A, b: B }: C be
+for { a: A = 1, b: B }: C be
     a
 end
 
@@ -14,3 +14,31 @@ for({ a: A, b: B }): C be
 end
 
 for a: B be a
+
+# match a [b, c]
+match a on
+    b
+    c
+end
+
+f { a = g b, c = d } [e, x] for y be blah y
+f of
+    a = g b
+    c = d
+on
+    e
+    x
+with for y be
+    blah y
+end
+await of request something
+
+f a with b = g c
+f a { b = g c, d = e }
+f a with
+    b = g c
+    d = e
+end
+
+item from items.each
+print item

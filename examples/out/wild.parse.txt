@@ -59,12 +59,18 @@ Block
       Block
         CurlyOpen "{"
         HSpace " "
-        Typed
-          Id "a"
-          Colon ":"
+        Def
+          Typed
+            Id "a"
+            Colon ":"
+            HSpace " "
+            Id "A"
+            HSpace " "
+          /Typed
+          Define "="
           HSpace " "
-          Id "A"
-        /Typed
+          Id "1"
+        /Def
         Comma ","
         HSpace " "
         Typed
@@ -164,7 +170,257 @@ Block
     /Block
   /Fun
   VSpace "\n"
+  VSpace "\n"
+  Comment "# match a [b, c]"
+  VSpace "\n"
+  Call
+    Id "match"
+    HSpace " "
+    Id "a"
+    HSpace " "
+    Id "on"
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  Id "b"
+  VSpace "\n"
+  HSpace "    "
+  Id "c"
+  VSpace "\n"
+  End "end"
+  VSpace "\n"
+  VSpace "\n"
+  Call
+    Id "f"
+    HSpace " "
+    Block
+      CurlyOpen "{"
+      HSpace " "
+      Def
+        Id "a"
+        HSpace " "
+        Define "="
+        HSpace " "
+        Call
+          Id "g"
+          HSpace " "
+          Id "b"
+        /Call
+      /Def
+      Comma ","
+      HSpace " "
+      Def
+        Id "c"
+        HSpace " "
+        Define "="
+        HSpace " "
+        Id "d"
+        HSpace " "
+      /Def
+      CurlyClose "}"
+    /Block
+    HSpace " "
+    Id "[e"
+  /Call
+  Comma ","
+  HSpace " "
+  Call
+    Id "x]"
+    HSpace " "
+    Fun
+      Fun "for"
+      HSpace " "
+      Params
+        Id "y"
+        HSpace " "
+      /Params
+      Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "blah"
+          HSpace " "
+          Id "y"
+        /Call
+      /Block
+    /Fun
+  /Call
+  VSpace "\n"
+  Call
+    Id "f"
+    HSpace " "
+    Id "of"
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  Def
+    Id "a"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "g"
+      HSpace " "
+      Id "b"
+    /Call
+  /Def
+  VSpace "\n"
+  HSpace "    "
+  Def
+    Id "c"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Id "d"
+  /Def
+  VSpace "\n"
+  Id "on"
+  VSpace "\n"
+  HSpace "    "
+  Id "e"
+  VSpace "\n"
+  HSpace "    "
+  Id "x"
+  VSpace "\n"
+  Call
+    Id "with"
+    HSpace " "
+    Fun
+      Fun "for"
+      HSpace " "
+      Params
+        Id "y"
+        HSpace " "
+      /Params
+      Params
+      Block
+        Be "be"
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "blah"
+          HSpace " "
+          Id "y"
+        /Call
+        VSpace "\n"
+        End "end"
+      /Block
+    /Fun
+  /Call
+  VSpace "\n"
+  Call
+    Id "await"
+    HSpace " "
+    Id "of"
+    HSpace " "
+    Id "request"
+    HSpace " "
+    Id "something"
+  /Call
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Call
+      Id "f"
+      HSpace " "
+      Id "a"
+      HSpace " "
+      Id "with"
+      HSpace " "
+      Id "b"
+      HSpace " "
+    /Call
+    Define "="
+    HSpace " "
+    Call
+      Id "g"
+      HSpace " "
+      Id "c"
+    /Call
+  /Def
+  VSpace "\n"
+  Call
+    Id "f"
+    HSpace " "
+    Id "a"
+    HSpace " "
+    Block
+      CurlyOpen "{"
+      HSpace " "
+      Def
+        Id "b"
+        HSpace " "
+        Define "="
+        HSpace " "
+        Call
+          Id "g"
+          HSpace " "
+          Id "c"
+        /Call
+      /Def
+      Comma ","
+      HSpace " "
+      Def
+        Id "d"
+        HSpace " "
+        Define "="
+        HSpace " "
+        Id "e"
+        HSpace " "
+      /Def
+      CurlyClose "}"
+    /Block
+  /Call
+  VSpace "\n"
+  Call
+    Id "f"
+    HSpace " "
+    Id "a"
+    HSpace " "
+    Id "with"
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  Def
+    Id "b"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "g"
+      HSpace " "
+      Id "c"
+    /Call
+  /Def
+  VSpace "\n"
+  HSpace "    "
+  Def
+    Id "d"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Id "e"
+  /Def
+  VSpace "\n"
+  End "end"
+  VSpace "\n"
+  VSpace "\n"
+  Call
+    Id "item"
+    HSpace " "
+    Id "from"
+    HSpace " "
+    Id "items.each"
+  /Call
+  VSpace "\n"
+  Call
+    Id "print"
+    HSpace " "
+    Id "item"
+  /Call
+  VSpace "\n"
 /Block
 
 Node size: 12
-Tree len: 137
+Tree len: 357

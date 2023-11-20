@@ -26,7 +26,7 @@ Block
         Def
           Id "a"
           Id "A"
-          None
+          Id "1"
         /Def
         Def
           Id "b"
@@ -83,7 +83,146 @@ Block
     Block
       Id "a"
   /Fun
+  Call
+    Id "match"
+    Id "a"
+    Id "on"
+  /Call
+  Id "b"
+  Id "c"
+  Call
+    Id "f"
+    Block
+      Def
+        Id "a"
+        None
+        Call
+          Id "g"
+          Id "b"
+        /Call
+      /Def
+      Def
+        Id "c"
+        None
+        Id "d"
+      /Def
+    /Block
+    Id "[e"
+  /Call
+  Call
+    Id "x]"
+    Fun
+      Params
+        Id "y"
+      Params
+      Block
+        Call
+          Id "blah"
+          Id "y"
+        /Call
+      /Block
+    /Fun
+  /Call
+  Call
+    Id "f"
+    Id "of"
+  /Call
+  Def
+    Id "a"
+    None
+    Call
+      Id "g"
+      Id "b"
+    /Call
+  /Def
+  Def
+    Id "c"
+    None
+    Id "d"
+  /Def
+  Id "on"
+  Id "e"
+  Id "x"
+  Call
+    Id "with"
+    Fun
+      Params
+        Id "y"
+      Params
+      Block
+        Call
+          Id "blah"
+          Id "y"
+        /Call
+      /Block
+    /Fun
+  /Call
+  Call
+    Id "await"
+    Id "of"
+    Id "request"
+    Id "something"
+  /Call
+  Def
+    Call
+      Id "f"
+      Id "a"
+      Id "with"
+      Id "b"
+    /Call
+    None
+    Call
+      Id "g"
+      Id "c"
+    /Call
+  /Def
+  Call
+    Id "f"
+    Id "a"
+    Block
+      Def
+        Id "b"
+        None
+        Call
+          Id "g"
+          Id "c"
+        /Call
+      /Def
+      Def
+        Id "d"
+        None
+        Id "e"
+      /Def
+    /Block
+  /Call
+  Call
+    Id "f"
+    Id "a"
+    Id "with"
+  /Call
+  Def
+    Id "b"
+    None
+    Call
+      Id "g"
+      Id "c"
+    /Call
+  /Def
+  Def
+    Id "d"
+    None
+    Id "e"
+  /Def
+  Call
+    Id "item"
+    Id "from"
+    Id "items.each"
+  /Call
+  Call
+    Id "print"
+    Id "item"
+  /Call
 /Block
 
 Node size: 20
-Tree len: 63
+Tree len: 169
