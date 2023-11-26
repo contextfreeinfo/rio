@@ -6,7 +6,8 @@ use std::{
 
 use anyhow::{Error, Ok, Result};
 use wasm_encoder::{
-    CodeSection, EntityType, ExportSection, FunctionSection, ImportSection, TypeSection, ValType,
+    CodeSection, DataSection, EntityType, ExportSection, FunctionSection, GlobalSection,
+    ImportSection, MemorySection, MemoryType, TypeSection, ValType,
 };
 
 use crate::{BuildArgs, Cart};
@@ -53,8 +54,11 @@ impl WasmWriter {
         self.build_types();
         self.build_imports();
         self.build_functions();
+        self.build_memory();
+        self.build_globals();
         self.build_exports();
         self.build_codes();
+        self.build_data();
         Ok(())
     }
 
@@ -71,6 +75,11 @@ impl WasmWriter {
         self.module.section(&codes);
     }
 
+    fn build_data(&mut self) {
+        let data = DataSection::new();
+        self.module.section(&data);
+    }
+
     fn build_exports(&mut self) {
         let exports = ExportSection::new();
         self.module.section(&exports);
@@ -81,10 +90,26 @@ impl WasmWriter {
         self.module.section(&functions);
     }
 
+    fn build_globals(&mut self) {
+        let globals = GlobalSection::new();
+        self.module.section(&globals);
+    }
+
     fn build_imports(&mut self) {
         let mut imports = ImportSection::new();
         self.add_fd_write_import(&mut imports);
         self.module.section(&imports);
+    }
+
+    fn build_memory(&mut self) {
+        let mut memory = MemorySection::new();
+        memory.memory(MemoryType {
+            minimum: 1,
+            maximum: None,
+            memory64: false,
+            shared: false,
+        });
+        self.module.section(&memory);
     }
 
     fn build_types(&mut self) {

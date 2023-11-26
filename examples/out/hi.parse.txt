@@ -1,8 +1,4 @@
 Block
-  Comment "# Can we leave off `for` for 0-ary funs?"
-  VSpace "\n"
-  Comment "# Infer return type when unspecified?"
-  VSpace "\n"
   Def
     Pub
       Id "main"
@@ -43,8 +39,6 @@ Block
     /Fun
   /Def
   VSpace "\n"
-  VSpace "\n"
-  Comment "# Allow both be/end and {}?"
   VSpace "\n"
   Def
     Id "print-twice"
@@ -104,4 +98,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 87
+Tree len: 81

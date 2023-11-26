@@ -1,11 +1,8 @@
-# Can we leave off `for` for 0-ary funs?
-# Infer return type when unspecified?
 main* = for() be
     message = "Hi!"
     print-twice message
 end
 
-# Allow both be/end and {}?
 print-twice = for(message: Text): Void be
     # Both call forms are allowed, but whitespace matters.
     # `print (message)` would be different.
