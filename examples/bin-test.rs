@@ -90,7 +90,7 @@ fn run_example(rio: &PathBuf, example: &str, cli: &Cli) {
         })
         .args(["--outdir", &examples_out])
         .env("RUST_BACKTRACE", "1")
-        .output()
+        .status()
         .unwrap();
     let wasm = format!("{examples_out}/{example}.wasm");
     report_build(Path::new(&wasm), start.elapsed());

@@ -86,8 +86,12 @@ fn run_app(args: &BuildArgs) -> Result<()> {
         tree_builder,
     };
     // Process
-    let cart = build(args, "core", cart)?;
-    build(args, args.app.as_str(), cart)?;
+    let mut cart = build(args, "core", cart)?;
+    cart = build(args, args.app.as_str(), cart)?;
+    // Link
+    link_modules(&cart);
+    // Write
+    write_wasm(args, &cart)?;
     // println!("type tree size: {}", std::mem::size_of::<typ::TypeTree>());
     Ok(())
 }
@@ -116,10 +120,6 @@ fn build(args: &BuildArgs, name: &str, cart: Cart) -> Result<Cart> {
         .insert(module.name, cart.modules.len() as u16 + 1);
     cart.modules.push(module);
     dump_tree("run", args, name, &tree, interner.as_ref())?;
-    // Link
-    link_modules(&cart);
-    // Write
-    write_wasm(args, &cart)?;
     // Done
     Ok(cart)
 }

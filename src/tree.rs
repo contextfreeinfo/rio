@@ -395,6 +395,12 @@ pub struct SimpleRange<Idx> {
     pub end: Idx,
 }
 
+impl SimpleRange<u32> {
+    pub fn len(&self) -> usize {
+        (self.end - self.start).try_into().unwrap()
+    }
+}
+
 impl<Idx> From<SimpleRange<Idx>> for Range<Idx> {
     fn from(value: SimpleRange<Idx>) -> Self {
         value.start..value.end

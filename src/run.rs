@@ -13,9 +13,9 @@ pub struct Index(pub u32);
 
 #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ScopeEntry {
-    intern: Intern,
-    module: u16,
-    num: u32,
+    pub intern: Intern,
+    pub module: u16,
+    pub num: u32,
 }
 
 impl From<ScopeEntry> for Node {

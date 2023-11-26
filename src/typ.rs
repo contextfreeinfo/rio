@@ -202,7 +202,7 @@ pub fn append_types(runner: &mut Runner, tree: &mut Vec<Node>) {
         .tree_builder
         .push_tree(&runner.typer.types_ref().nodes);
     // Find new types offset in tree.
-    // TODO Also remove unused types and build an offset lookup vector?
+    // TODO Also remove unused types. Needs an offset lookup vector?
     // TODO We can have unused types from looped type refinement.
     let Nod::Branch { range, .. } = runner.builder().working.last().unwrap().nod else {
         panic!()

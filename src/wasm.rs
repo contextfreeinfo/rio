@@ -1,7 +1,9 @@
 use std::{
     fs::{create_dir_all, File},
     io::Write,
+    ops::Range,
     path::Path,
+    vec,
 };
 
 use anyhow::{Error, Ok, Result};
@@ -10,12 +12,15 @@ use wasm_encoder::{
     ImportSection, MemorySection, MemoryType, TypeSection, ValType,
 };
 
-use crate::{BuildArgs, Cart};
+use crate::{
+    tree::{BranchKind, Nod},
+    BuildArgs, Cart,
+};
 
 pub fn write_wasm(args: &BuildArgs, cart: &Cart) -> Result<()> {
     let _ = cart;
     let mut writer = WasmWriter::new();
-    writer.build()?;
+    writer.build(&cart)?;
     let wasm = writer.module.finish();
     write_out(args, wasm)
 }
@@ -50,8 +55,8 @@ impl WasmWriter {
         }
     }
 
-    fn build(&mut self) -> Result<()> {
-        self.build_types();
+    fn build(&mut self, cart: &Cart) -> Result<()> {
+        self.build_types(cart);
         self.build_imports();
         self.build_functions();
         self.build_memory();
@@ -112,10 +117,58 @@ impl WasmWriter {
         self.module.section(&memory);
     }
 
-    fn build_types(&mut self) {
+    fn build_types(&mut self, cart: &Cart) {
         let mut types = TypeSection::new();
         add_fd_write_type(&mut types);
         self.fd_write_type = Some(EntityType::Function(0));
+        // Add function types.
+        let core = cart.core_exports;
+        let void = core.void_type.num;
+        let tree = &cart.modules[1].tree;
+        if let Nod::Branch { range, .. } = tree.last().unwrap().nod {
+            let range: Range<usize> = range.into();
+            // Reverse because we expect types near the end.
+            for kid_index in range.rev() {
+                let kid = tree[kid_index];
+                if let Nod::Branch {
+                    kind: BranchKind::Types,
+                    range: types_range,
+                    ..
+                } = kid.nod
+                {
+                    let types_range: Range<usize> = types_range.into();
+                    for type_index in types_range {
+                        let type_kid = tree[type_index];
+                        if let Nod::Branch {
+                            kind: BranchKind::FunType,
+                            range: params_range,
+                            ..
+                        } = type_kid.nod
+                        {
+                            // TODO Check for things other than int, like float.
+                            let params = vec![ValType::I32; params_range.len()];
+                            let results = match type_kid.typ.0 {
+                                0 => vec![],
+                                typ @ _ => match tree[typ as usize - 1].nod {
+                                    Nod::Uid { module: 1, num, .. } => match num {
+                                        _ if num == void => vec![],
+                                        _ => vec![ValType::I32],
+                                    },
+                                    _ => {
+                                        println!("What to do? {typ}");
+                                        vec![]
+                                    }
+                                },
+                            };
+                            // TODO Reuse previously defined types at wasm level.
+                            // TODO Keep map from module type to wasm type.
+                            types.function(params, results);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
         self.module.section(&types);
     }
 }
