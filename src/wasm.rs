@@ -12,8 +12,8 @@ use std::{
 
 use anyhow::{Error, Ok, Result};
 use wasm_encoder::{
-    CodeSection, DataSection, EntityType, ExportSection, FunctionSection, GlobalSection,
-    ImportSection, MemorySection, MemoryType, TypeSection, ValType,
+    CodeSection, DataSection, EntityType, ExportKind, ExportSection, FunctionSection,
+    GlobalSection, ImportSection, MemorySection, MemoryType, TypeSection, ValType,
 };
 
 use crate::{
@@ -94,7 +94,8 @@ impl WasmWriter {
     }
 
     fn build_exports(&mut self) {
-        let exports = ExportSection::new();
+        let mut exports = ExportSection::new();
+        exports.export("memory", ExportKind::Memory, 0);
         self.module.section(&exports);
     }
 
