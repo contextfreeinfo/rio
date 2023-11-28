@@ -1,8 +1,12 @@
 use std::{
+    cell::RefCell,
+    collections::{hash_map::Entry, HashMap},
     fs::{create_dir_all, File},
+    hash::Hash,
     io::Write,
     ops::Range,
     path::Path,
+    rc::Rc,
     vec,
 };
 
@@ -45,6 +49,8 @@ fn write_out(args: &BuildArgs, wasm: Vec<u8>) -> Result<()> {
 struct WasmWriter {
     fd_write_type: Option<EntityType>,
     module: wasm_encoder::Module,
+    type_offset: usize,
+    type_table: Vec<usize>,
 }
 
 impl WasmWriter {
@@ -52,6 +58,8 @@ impl WasmWriter {
         WasmWriter {
             fd_write_type: None,
             module: wasm_encoder::Module::new(),
+            type_offset: 0,
+            type_table: vec![],
         }
     }
 
@@ -119,11 +127,59 @@ impl WasmWriter {
 
     fn build_types(&mut self, cart: &Cart) {
         let mut types = TypeSection::new();
+        let val_types = Rc::new(RefCell::new(Vec::<ValType>::new()));
+        // Duplicate some of the tree push, find duplicate, and pop logic, but
+        // specifically for wasm fun types.
+        // TODO Reuse type tree logic from elsewhere?
+        #[derive(Clone)]
+        struct WasmFunType {
+            val_types: Rc<RefCell<Vec<ValType>>>,
+            params: Range<usize>,
+            results: Range<usize>,
+        }
+        impl Eq for WasmFunType {}
+        impl Hash for WasmFunType {
+            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                let val_types = self.val_types.borrow();
+                for param in self.params.clone() {
+                    val_types[param].hash(state);
+                }
+                for result in self.results.clone() {
+                    val_types[result].hash(state);
+                }
+            }
+        }
+        impl PartialEq for WasmFunType {
+            fn eq(&self, other: &Self) -> bool {
+                if self.params.len() != other.params.len() {
+                    return false;
+                }
+                if self.results.len() != other.results.len() {
+                    return false;
+                }
+                let val_types = self.val_types.borrow();
+                for (a, b) in self.params.clone().zip(other.params.clone()) {
+                    if val_types[a] != val_types[b] {
+                        return false;
+                    }
+                }
+                for (a, b) in self.results.clone().zip(other.results.clone()) {
+                    if val_types[a] != val_types[b] {
+                        return false;
+                    }
+                }
+                true
+            }
+        }
+        let mut type_indices = HashMap::<WasmFunType, usize>::new();
+        // TODO Use wasm type logic for custom type also, so we don't duplicate those either.
+        // TODO Do that by including it in the common module first in some fashion?
         add_fd_write_type(&mut types);
         self.fd_write_type = Some(EntityType::Function(0));
         // Add function types.
         let core = cart.core_exports;
         let void = core.void_type.num;
+        // TODO We probably do want to link everything into one module before getting here so we can keep this simple.
         let tree = &cart.modules[1].tree;
         if let Nod::Branch { range, .. } = tree.last().unwrap().nod {
             let range: Range<usize> = range.into();
@@ -137,6 +193,7 @@ impl WasmWriter {
                 } = kid.nod
                 {
                     let types_range: Range<usize> = types_range.into();
+                    self.type_offset = types_range.start;
                     for type_index in types_range {
                         let type_kid = tree[type_index];
                         if let Nod::Branch {
@@ -145,24 +202,49 @@ impl WasmWriter {
                             ..
                         } = type_kid.nod
                         {
-                            // TODO Check for things other than int, like float.
-                            let params = vec![ValType::I32; params_range.len()];
-                            let results = match type_kid.typ.0 {
-                                0 => vec![],
+                            let params_start = val_types.borrow().len();
+                            let params_range: Range<usize> = params_range.into();
+                            for _ in params_range.clone() {
+                                // TODO Check for things other than int, like float.
+                                val_types.borrow_mut().push(ValType::I32);
+                            }
+                            let results_start = val_types.borrow().len();
+                            match type_kid.typ.0 {
+                                0 => {}
                                 typ @ _ => match tree[typ as usize - 1].nod {
                                     Nod::Uid { module: 1, num, .. } => match num {
-                                        _ if num == void => vec![],
-                                        _ => vec![ValType::I32],
+                                        _ if num == void => {}
+                                        _ => val_types.borrow_mut().push(ValType::I32),
                                     },
                                     _ => {
                                         println!("What to do? {typ}");
-                                        vec![]
                                     }
                                 },
                             };
-                            // TODO Reuse previously defined types at wasm level.
-                            // TODO Keep map from module type to wasm type.
-                            types.function(params, results);
+                            let fun_type = WasmFunType {
+                                val_types: val_types.clone(),
+                                params: params_start..results_start,
+                                results: results_start..val_types.borrow().len(),
+                            };
+                            let next = type_indices.len();
+                            let entry = type_indices.entry(fun_type.clone());
+                            let wasm_index = match entry {
+                                Entry::Occupied(old) => {
+                                    // We don't need the latest additions.
+                                    val_types.borrow_mut().truncate(params_start);
+                                    *old.get()
+                                }
+                                Entry::Vacant(vacancy) => {
+                                    // TODO Keep map from module type to wasm type.
+                                    let val_types = val_types.borrow();
+                                    let params = &val_types[fun_type.params];
+                                    let results = &val_types[fun_type.results];
+                                    types.function(params.iter().cloned(), results.iter().cloned());
+                                    vacancy.insert(next);
+                                    next
+                                }
+                            };
+                            self.type_table.push(wasm_index);
                         }
                     }
                     break;
