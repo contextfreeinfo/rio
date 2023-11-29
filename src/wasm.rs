@@ -17,7 +17,7 @@ use wasm_encoder::{
 };
 
 use crate::{
-    tree::{BranchKind, Nod},
+    tree::{BranchKind, Nod, Node},
     BuildArgs, Cart,
 };
 
@@ -66,7 +66,7 @@ impl WasmWriter {
     fn build(&mut self, cart: &Cart) -> Result<()> {
         self.build_types(cart);
         self.build_imports();
-        self.build_functions();
+        self.build_functions(cart);
         self.build_memory();
         self.build_globals();
         self.build_exports();
@@ -99,8 +99,26 @@ impl WasmWriter {
         self.module.section(&exports);
     }
 
-    fn build_functions(&mut self) {
-        let functions = FunctionSection::new();
+    fn build_functions(&mut self, cart: &Cart) {
+        let mut functions = FunctionSection::new();
+        fn dig(tree: &[Node], wasm: &mut WasmWriter, functions: &mut FunctionSection) {
+            let node = tree.last().unwrap();
+            if let Nod::Branch { kind, range } = node.nod {
+                if kind == BranchKind::Fun && node.typ.0 != 0 {
+                    let typ = node.typ.0 as usize - 1 - wasm.type_offset;
+                    let typ = wasm.type_table[typ];
+                    if typ != 0 {
+                        // TODO Can't add these until we add function bodies in code.
+                        // functions.function(typ as u32);
+                    }
+                }
+                let range: Range<usize> = range.into();
+                for kid_index in range {
+                    dig(&tree[0..=kid_index], wasm, functions);
+                }
+            }
+        }
+        dig(&cart.modules[1].tree, self, &mut functions);
         self.module.section(&functions);
     }
 
@@ -178,6 +196,7 @@ impl WasmWriter {
         add_fd_write_type(&mut types);
         self.fd_write_type = Some(EntityType::Function(0));
         // Add function types.
+        let prebaked_types_offset = types.len() as usize;
         let core = cart.core_exports;
         let void = core.void_type.num;
         // TODO We probably do want to link everything into one module before getting here so we can keep this simple.
@@ -227,7 +246,7 @@ impl WasmWriter {
                                 params: params_start..results_start,
                                 results: results_start..val_types.borrow().len(),
                             };
-                            let next = type_indices.len();
+                            let next = type_indices.len() + prebaked_types_offset;
                             let entry = type_indices.entry(fun_type.clone());
                             let wasm_index = match entry {
                                 Entry::Occupied(old) => {
@@ -245,7 +264,9 @@ impl WasmWriter {
                                     next
                                 }
                             };
-                            self.type_table.push(wasm_index);
+                            self.type_table.push(wasm_index + 1);
+                        } else {
+                            self.type_table.push(0);
                         }
                     }
                     break;
