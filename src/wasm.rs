@@ -12,8 +12,8 @@ use std::{
 
 use anyhow::{Error, Ok, Result};
 use wasm_encoder::{
-    CodeSection, DataSection, EntityType, ExportKind, ExportSection, FunctionSection,
-    GlobalSection, ImportSection, MemorySection, MemoryType, TypeSection, ValType,
+    CodeSection, DataSection, EntityType, ExportKind, ExportSection, Function, FunctionSection,
+    GlobalSection, ImportSection, Instruction, MemorySection, MemoryType, TypeSection, ValType,
 };
 
 use crate::{
@@ -70,7 +70,7 @@ impl WasmWriter {
         self.build_memory();
         self.build_globals();
         self.build_exports();
-        self.build_codes();
+        self.build_codes(cart);
         self.build_data();
         Ok(())
     }
@@ -83,8 +83,21 @@ impl WasmWriter {
         );
     }
 
-    fn build_codes(&mut self) {
-        let codes = CodeSection::new();
+    fn build_codes(&mut self, cart: &Cart) {
+        let mut codes = CodeSection::new();
+        fn dig(tree: &[Node], wasm: &mut WasmWriter, codes: &mut CodeSection) {
+            let node = *tree.last().unwrap();
+            if let Nod::Branch { kind, range } = node.nod {
+                if kind == BranchKind::Fun && node.typ.0 != 0 {
+                    translate_fun(codes, tree, node);
+                }
+                let range: Range<usize> = range.into();
+                for kid_index in range {
+                    dig(&tree[0..=kid_index], wasm, codes);
+                }
+            }
+        }
+        dig(&cart.modules[1].tree, self, &mut codes);
         self.module.section(&codes);
     }
 
@@ -108,8 +121,7 @@ impl WasmWriter {
                     let typ = node.typ.0 as usize - 1 - wasm.type_offset;
                     let typ = wasm.type_table[typ];
                     if typ != 0 {
-                        // TODO Can't add these until we add function bodies in code.
-                        // functions.function(typ as u32);
+                        functions.function(typ as u32 - 1);
                     }
                 }
                 let range: Range<usize> = range.into();
@@ -275,6 +287,15 @@ impl WasmWriter {
         }
         self.module.section(&types);
     }
+}
+
+fn translate_fun(codes: &mut CodeSection, tree: &[Node], kid: Node) {
+    let locals = vec![];
+    let mut fun = Function::new(locals);
+    _ = tree;
+    _ = kid;
+    fun.instruction(&Instruction::End);
+    codes.function(&fun);
 }
 
 fn add_fd_write_type(types: &mut TypeSection) {
