@@ -48,7 +48,9 @@ fn write_out(args: &BuildArgs, wasm: Vec<u8>) -> Result<()> {
 
 struct WasmWriter {
     fd_write_type: Option<EntityType>,
+    lookup_table: Vec<Lookup>,
     module: wasm_encoder::Module,
+    stack_start: usize,
     type_offset: usize,
     type_table: Vec<usize>,
 }
@@ -57,7 +59,9 @@ impl WasmWriter {
     fn new() -> WasmWriter {
         WasmWriter {
             fd_write_type: None,
+            lookup_table: vec![],
             module: wasm_encoder::Module::new(),
+            stack_start: 4096,
             type_offset: 0,
             type_table: vec![],
         }
@@ -89,7 +93,7 @@ impl WasmWriter {
             let node = *tree.last().unwrap();
             if let Nod::Branch { kind, range } = node.nod {
                 if kind == BranchKind::Fun && node.typ.0 != 0 {
-                    translate_fun(codes, tree, node);
+                    wasm.translate_fun(codes, tree, node);
                 }
                 let range: Range<usize> = range.into();
                 for kid_index in range {
@@ -205,8 +209,7 @@ impl WasmWriter {
         let mut type_indices = HashMap::<WasmFunType, usize>::new();
         // TODO Use wasm type logic for custom type also, so we don't duplicate those either.
         // TODO Do that by including it in the common module first in some fashion?
-        add_fd_write_type(&mut types);
-        self.fd_write_type = Some(EntityType::Function(0));
+        self.fd_write_type = Some(add_fd_write_type(&mut types));
         // Add function types.
         let prebaked_types_offset = types.len() as usize;
         let core = cart.core_exports;
@@ -287,19 +290,56 @@ impl WasmWriter {
         }
         self.module.section(&types);
     }
+
+    fn translate_fun(&self, codes: &mut CodeSection, tree: &[Node], node: Node) {
+        let locals = vec![];
+        let mut fun = Function::new(locals);
+        let Nod::Branch {
+            kind: BranchKind::Fun,
+            range,
+        } = node.nod
+        else {
+            panic!()
+        };
+        if range.len() == 3 {
+            // let range: Range<usize> = range.into();
+            let Nod::Branch {
+                kind: BranchKind::Block,
+                range: body_range,
+            } = tree[range.start as usize + 2].nod
+            else {
+                panic!()
+            };
+            println!("body {}", body_range.end - body_range.start);
+            fun.instruction(&Instruction::I32Const(4));
+            // // Params
+            // let Nod::Branch {
+            //     kind: BranchKind::Params,
+            //     range: params_range,
+            // } = tree[range.start].nod
+            // else {
+            //     panic!()
+            // };
+            // let params_range: Range<usize> = params_range.into();
+            // for param_index in params_range {
+            //     _ = params_range;
+            //     // fun.instruction(&Instruction)
+            // }
+            // End
+        }
+        fun.instruction(&Instruction::End);
+        codes.function(&fun);
+    }
 }
 
-fn translate_fun(codes: &mut CodeSection, tree: &[Node], kid: Node) {
-    let locals = vec![];
-    let mut fun = Function::new(locals);
-    _ = tree;
-    _ = kid;
-    fun.instruction(&Instruction::End);
-    codes.function(&fun);
-}
-
-fn add_fd_write_type(types: &mut TypeSection) {
+fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
     let params = vec![ValType::I32, ValType::I32, ValType::I32, ValType::I32];
     let results = vec![ValType::I32];
     types.function(params, results);
+    EntityType::Function(types.len() - 1)
+}
+
+enum Lookup {
+    Datum { index: u32 },
+    Fun { index: u32 },
 }
