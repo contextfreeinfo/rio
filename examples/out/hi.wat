@@ -10,5 +10,6 @@
     i32.const 4
   )
   (memory (;0;) 1)
+  (global (;0;) (mut i32) i32.const 4096)
   (export "memory" (memory 0))
 )

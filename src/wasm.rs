@@ -12,8 +12,9 @@ use std::{
 
 use anyhow::{Error, Ok, Result};
 use wasm_encoder::{
-    CodeSection, DataSection, EntityType, ExportKind, ExportSection, Function, FunctionSection,
-    GlobalSection, ImportSection, Instruction, MemorySection, MemoryType, TypeSection, ValType,
+    CodeSection, ConstExpr, DataSection, EntityType, ExportKind, ExportSection, Function,
+    FunctionSection, GlobalSection, GlobalType, ImportSection, Instruction, MemorySection,
+    MemoryType, TypeSection, ValType,
 };
 
 use crate::{
@@ -49,22 +50,26 @@ fn write_out(args: &BuildArgs, wasm: Vec<u8>) -> Result<()> {
 
 struct WasmWriter<'a> {
     cart: &'a Cart,
+    data_offset: u32,
     fd_write_type: Option<EntityType>,
     lookup_table: Vec<Lookup>,
     module: wasm_encoder::Module,
-    stack_start: usize,
+    stack_start: u32,
     type_offset: usize,
     type_table: Vec<usize>,
 }
 
 impl<'a> WasmWriter<'a> {
     fn new(cart: &Cart) -> WasmWriter {
+        // Let stack go down and data go up.
+        let stack_start = 4096;
         WasmWriter {
             cart,
+            data_offset: stack_start,
             fd_write_type: None,
-            lookup_table: vec![],
+            lookup_table: vec![Lookup::Boring; cart.modules[1].tree.len()],
             module: wasm_encoder::Module::new(),
-            stack_start: 4096,
+            stack_start,
             type_offset: 0,
             type_table: vec![],
         }
@@ -94,14 +99,13 @@ impl<'a> WasmWriter<'a> {
     fn build_codes(&mut self) {
         let mut codes = CodeSection::new();
         fn dig(node: Node, wasm: &mut WasmWriter, codes: &mut CodeSection) {
-            let tree = &wasm.cart.modules[1].tree;
             if let Nod::Branch { kind, range } = node.nod {
                 if kind == BranchKind::Fun && node.typ.0 != 0 {
-                    wasm.translate_fun(codes, tree, node);
+                    wasm.translate_fun(codes, node);
                 }
                 let range: Range<usize> = range.into();
                 for kid_index in range {
-                    dig(tree[kid_index], wasm, codes);
+                    dig(wasm.cart.modules[1].tree[kid_index], wasm, codes);
                 }
             }
         }
@@ -143,7 +147,14 @@ impl<'a> WasmWriter<'a> {
     }
 
     fn build_globals(&mut self) {
-        let globals = GlobalSection::new();
+        let mut globals = GlobalSection::new();
+        globals.global(
+            GlobalType {
+                val_type: ValType::I32,
+                mutable: true,
+            },
+            &ConstExpr::i32_const(self.stack_start as i32),
+        );
         self.module.section(&globals);
     }
 
@@ -296,7 +307,7 @@ impl<'a> WasmWriter<'a> {
         self.module.section(&types);
     }
 
-    fn translate_fun(&self, codes: &mut CodeSection, tree: &[Node], node: Node) {
+    fn translate_fun(&self, codes: &mut CodeSection, node: Node) {
         let locals = vec![];
         let mut fun = Function::new(locals);
         let Nod::Branch {
@@ -308,6 +319,7 @@ impl<'a> WasmWriter<'a> {
         };
         if range.len() == 3 {
             // let range: Range<usize> = range.into();
+            let tree = &self.cart.modules[1].tree;
             let Nod::Branch {
                 kind: BranchKind::Block,
                 range: body_range,
@@ -353,14 +365,26 @@ impl<'a> WasmWriter<'a> {
                             intern,
                         },
                 } => {
+                    // TODO Tokenize string literals more for better content.
                     let text = &wasm.cart.interner[intern];
-                    println!("Reserve data for: {text}");
+                    let index = align(4, wasm.data_offset);
+                    wasm.lookup_table[tree.len() - 1] = Lookup::Datum { index };
+                    // Space for both size and data.
+                    wasm.data_offset = index + 4 + text.len() as u32;
                 }
                 _ => {}
             }
         }
         dig(&self.cart.modules[1].tree, self);
     }
+}
+
+fn align(size: u32, index: u32) -> u32 {
+    index
+        + match index % size {
+            0 => 0,
+            offset @ _ => size - offset,
+        }
 }
 
 fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
@@ -370,7 +394,9 @@ fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
     EntityType::Function(types.len() - 1)
 }
 
+#[derive(Clone, Copy, Debug)]
 enum Lookup {
+    Boring,
     Datum { index: u32 },
     Fun { index: u32 },
 }
