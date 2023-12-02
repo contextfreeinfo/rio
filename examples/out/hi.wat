@@ -12,4 +12,5 @@
   (memory (;0;) 1)
   (global (;0;) (mut i32) i32.const 4096)
   (export "memory" (memory 0))
+  (data (;0;) (i32.const 4096) "\05\00\00\00\22Hi!\22\00")
 )

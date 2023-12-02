@@ -114,7 +114,36 @@ impl<'a> WasmWriter<'a> {
     }
 
     fn build_data(&mut self) {
-        let data = DataSection::new();
+        let mut data = DataSection::new();
+        let mut buffer = vec![];
+        for (index, lookup) in self.lookup_table.iter().enumerate() {
+            if let Lookup::Datum { address } = *lookup {
+                let node = self.cart.modules[1].tree[index];
+                match node.nod {
+                    Nod::Leaf {
+                        token:
+                            Token {
+                                kind: TokenKind::String,
+                                intern,
+                            },
+                    } => {
+                        let text = &self.cart.interner[intern];
+                        let len_bytes = (text.len() as u32).to_le_bytes();
+                        buffer.clear();
+                        buffer.extend_from_slice(&len_bytes);
+                        buffer.extend_from_slice(text.as_bytes());
+                        // Null-terminate for safety, but not included in length.
+                        buffer.push(0);
+                        data.active(
+                            0,
+                            &ConstExpr::i32_const(address as i32),
+                            buffer.iter().copied(),
+                        );
+                    }
+                    _ => {}
+                }
+            }
+        }
         self.module.section(&data);
     }
 
@@ -327,7 +356,8 @@ impl<'a> WasmWriter<'a> {
             else {
                 panic!()
             };
-            println!("body {}", body_range.end - body_range.start);
+            _ = body_range;
+            // println!("body {}", body_range.end - body_range.start);
             fun.instruction(&Instruction::I32Const(4));
             // // Params
             // let Nod::Branch {
@@ -368,7 +398,7 @@ impl<'a> WasmWriter<'a> {
                     // TODO Tokenize string literals more for better content.
                     let text = &wasm.cart.interner[intern];
                     let index = align(4, wasm.data_offset);
-                    wasm.lookup_table[tree.len() - 1] = Lookup::Datum { index };
+                    wasm.lookup_table[tree.len() - 1] = Lookup::Datum { address: index };
                     // Space for both size and data.
                     wasm.data_offset = index + 4 + text.len() as u32;
                 }
@@ -397,6 +427,6 @@ fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
 #[derive(Clone, Copy, Debug)]
 enum Lookup {
     Boring,
-    Datum { index: u32 },
+    Datum { address: u32 },
     Fun { index: u32 },
 }
