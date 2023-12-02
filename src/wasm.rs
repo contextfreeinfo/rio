@@ -17,14 +17,15 @@ use wasm_encoder::{
 };
 
 use crate::{
+    lex::{Token, TokenKind},
     tree::{BranchKind, Nod, Node},
     BuildArgs, Cart,
 };
 
 pub fn write_wasm(args: &BuildArgs, cart: &Cart) -> Result<()> {
     let _ = cart;
-    let mut writer = WasmWriter::new();
-    writer.build(&cart)?;
+    let mut writer = WasmWriter::new(&cart);
+    writer.build()?;
     let wasm = writer.module.finish();
     write_out(args, wasm)
 }
@@ -46,7 +47,8 @@ fn write_out(args: &BuildArgs, wasm: Vec<u8>) -> Result<()> {
     Ok(())
 }
 
-struct WasmWriter {
+struct WasmWriter<'a> {
+    cart: &'a Cart,
     fd_write_type: Option<EntityType>,
     lookup_table: Vec<Lookup>,
     module: wasm_encoder::Module,
@@ -55,9 +57,10 @@ struct WasmWriter {
     type_table: Vec<usize>,
 }
 
-impl WasmWriter {
-    fn new() -> WasmWriter {
+impl<'a> WasmWriter<'a> {
+    fn new(cart: &Cart) -> WasmWriter {
         WasmWriter {
+            cart,
             fd_write_type: None,
             lookup_table: vec![],
             module: wasm_encoder::Module::new(),
@@ -67,14 +70,15 @@ impl WasmWriter {
         }
     }
 
-    fn build(&mut self, cart: &Cart) -> Result<()> {
-        self.build_types(cart);
+    fn build(&mut self) -> Result<()> {
+        self.scrape_data();
+        self.build_types();
         self.build_imports();
-        self.build_functions(cart);
+        self.build_functions();
         self.build_memory();
         self.build_globals();
         self.build_exports();
-        self.build_codes(cart);
+        self.build_codes();
         self.build_data();
         Ok(())
     }
@@ -87,21 +91,21 @@ impl WasmWriter {
         );
     }
 
-    fn build_codes(&mut self, cart: &Cart) {
+    fn build_codes(&mut self) {
         let mut codes = CodeSection::new();
-        fn dig(tree: &[Node], wasm: &mut WasmWriter, codes: &mut CodeSection) {
-            let node = *tree.last().unwrap();
+        fn dig(node: Node, wasm: &mut WasmWriter, codes: &mut CodeSection) {
+            let tree = &wasm.cart.modules[1].tree;
             if let Nod::Branch { kind, range } = node.nod {
                 if kind == BranchKind::Fun && node.typ.0 != 0 {
                     wasm.translate_fun(codes, tree, node);
                 }
                 let range: Range<usize> = range.into();
                 for kid_index in range {
-                    dig(&tree[0..=kid_index], wasm, codes);
+                    dig(tree[kid_index], wasm, codes);
                 }
             }
         }
-        dig(&cart.modules[1].tree, self, &mut codes);
+        dig(*self.cart.modules[1].tree.last().unwrap(), self, &mut codes);
         self.module.section(&codes);
     }
 
@@ -116,7 +120,7 @@ impl WasmWriter {
         self.module.section(&exports);
     }
 
-    fn build_functions(&mut self, cart: &Cart) {
+    fn build_functions(&mut self) {
         let mut functions = FunctionSection::new();
         fn dig(tree: &[Node], wasm: &mut WasmWriter, functions: &mut FunctionSection) {
             let node = tree.last().unwrap();
@@ -134,7 +138,7 @@ impl WasmWriter {
                 }
             }
         }
-        dig(&cart.modules[1].tree, self, &mut functions);
+        dig(&self.cart.modules[1].tree, self, &mut functions);
         self.module.section(&functions);
     }
 
@@ -160,7 +164,7 @@ impl WasmWriter {
         self.module.section(&memory);
     }
 
-    fn build_types(&mut self, cart: &Cart) {
+    fn build_types(&mut self) {
         let mut types = TypeSection::new();
         let val_types = Rc::new(RefCell::new(Vec::<ValType>::new()));
         // Duplicate some of the tree push, find duplicate, and pop logic, but
@@ -212,6 +216,7 @@ impl WasmWriter {
         self.fd_write_type = Some(add_fd_write_type(&mut types));
         // Add function types.
         let prebaked_types_offset = types.len() as usize;
+        let cart = &self.cart;
         let core = cart.core_exports;
         let void = core.void_type.num;
         // TODO We probably do want to link everything into one module before getting here so we can keep this simple.
@@ -329,6 +334,32 @@ impl WasmWriter {
         }
         fun.instruction(&Instruction::End);
         codes.function(&fun);
+    }
+
+    fn scrape_data(&mut self) {
+        fn dig(tree: &[Node], wasm: &mut WasmWriter) {
+            let node = tree.last().unwrap();
+            match node.nod {
+                Nod::Branch { range, .. } => {
+                    let range: Range<usize> = range.into();
+                    for kid_index in range {
+                        dig(&tree[0..=kid_index], wasm);
+                    }
+                }
+                Nod::Leaf {
+                    token:
+                        Token {
+                            kind: TokenKind::String,
+                            intern,
+                        },
+                } => {
+                    let text = &wasm.cart.interner[intern];
+                    println!("Reserve data for: {text}");
+                }
+                _ => {}
+            }
+        }
+        dig(&self.cart.modules[1].tree, self);
     }
 }
 
