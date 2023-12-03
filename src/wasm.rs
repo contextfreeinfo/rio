@@ -109,16 +109,18 @@ impl<'a> WasmWriter<'a> {
                 }
             }
         }
-        dig(*self.cart.modules[1].tree.last().unwrap(), self, &mut codes);
+        dig(*self.tree().last().unwrap(), self, &mut codes);
         self.module.section(&codes);
     }
 
     fn build_data(&mut self) {
+        // TODO Option to just concatenate everything into one?
+        // TODO Probably makes smaller file, but easier to dig around this way.
         let mut data = DataSection::new();
         let mut buffer = vec![];
         for (index, lookup) in self.lookup_table.iter().enumerate() {
             if let Lookup::Datum { address } = *lookup {
-                let node = self.cart.modules[1].tree[index];
+                let node = self.tree()[index];
                 match node.nod {
                     Nod::Leaf {
                         token:
@@ -336,6 +338,62 @@ impl<'a> WasmWriter<'a> {
         self.module.section(&types);
     }
 
+    fn scrape_data(&mut self) {
+        fn dig(tree: &[Node], wasm: &mut WasmWriter) {
+            let node = tree.last().unwrap();
+            match node.nod {
+                Nod::Branch { range, .. } => {
+                    let range: Range<usize> = range.into();
+                    for kid_index in range {
+                        dig(&tree[0..=kid_index], wasm);
+                    }
+                }
+                Nod::Leaf {
+                    token:
+                        Token {
+                            kind: TokenKind::String,
+                            intern,
+                        },
+                } => {
+                    // TODO Tokenize string literals more for better content.
+                    // TODO If we already have a reference to this intern, reuse that. Need a map?
+                    let text = &wasm.cart.interner[intern];
+                    let index = align(4, wasm.data_offset);
+                    wasm.lookup_table[tree.len() - 1] = Lookup::Datum { address: index };
+                    // Space for both size and data.
+                    wasm.data_offset = index + 4 + text.len() as u32;
+                }
+                _ => {}
+            }
+        }
+        dig(&self.cart.modules[1].tree, self);
+    }
+
+    fn translate_any(&self, fun: &mut Function, index: usize) {
+        let node = self.tree()[index];
+        match node.nod {
+            Nod::Branch { range, .. } => {
+                let range: Range<usize> = range.into();
+                for kid_index in range {
+                    self.translate_any(fun, kid_index);
+                }
+            }
+            Nod::Leaf {
+                token:
+                    Token {
+                        kind: TokenKind::String,
+                        ..
+                    },
+            } => {
+                let Lookup::Datum { address } = self.lookup_table[index] else {
+                    panic!()
+                };
+                fun.instruction(&Instruction::I32Const(address as i32));
+            }
+            _ => {}
+        }
+    }
+
     fn translate_fun(&self, codes: &mut CodeSection, node: Node) {
         let locals = vec![];
         let mut fun = Function::new(locals);
@@ -347,8 +405,7 @@ impl<'a> WasmWriter<'a> {
             panic!()
         };
         if range.len() == 3 {
-            // let range: Range<usize> = range.into();
-            let tree = &self.cart.modules[1].tree;
+            let tree = self.tree();
             let Nod::Branch {
                 kind: BranchKind::Block,
                 range: body_range,
@@ -357,8 +414,8 @@ impl<'a> WasmWriter<'a> {
                 panic!()
             };
             _ = body_range;
+            self.translate_any(&mut fun, range.start as usize + 2);
             // println!("body {}", body_range.end - body_range.start);
-            fun.instruction(&Instruction::I32Const(4));
             // // Params
             // let Nod::Branch {
             //     kind: BranchKind::Params,
@@ -378,34 +435,8 @@ impl<'a> WasmWriter<'a> {
         codes.function(&fun);
     }
 
-    fn scrape_data(&mut self) {
-        fn dig(tree: &[Node], wasm: &mut WasmWriter) {
-            let node = tree.last().unwrap();
-            match node.nod {
-                Nod::Branch { range, .. } => {
-                    let range: Range<usize> = range.into();
-                    for kid_index in range {
-                        dig(&tree[0..=kid_index], wasm);
-                    }
-                }
-                Nod::Leaf {
-                    token:
-                        Token {
-                            kind: TokenKind::String,
-                            intern,
-                        },
-                } => {
-                    // TODO Tokenize string literals more for better content.
-                    let text = &wasm.cart.interner[intern];
-                    let index = align(4, wasm.data_offset);
-                    wasm.lookup_table[tree.len() - 1] = Lookup::Datum { address: index };
-                    // Space for both size and data.
-                    wasm.data_offset = index + 4 + text.len() as u32;
-                }
-                _ => {}
-            }
-        }
-        dig(&self.cart.modules[1].tree, self);
+    fn tree(&self) -> &[Node] {
+        &self.cart.modules[1].tree
     }
 }
 
