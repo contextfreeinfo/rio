@@ -89,6 +89,7 @@ fn run_example(rio: &PathBuf, example: &str, cli: &Cli) {
             vec!["--dump", "trees"]
         })
         .args(["--outdir", &examples_out])
+        .arg("--time")
         .env("RUST_BACKTRACE", "1")
         .status()
         .unwrap();

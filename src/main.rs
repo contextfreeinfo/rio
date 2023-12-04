@@ -5,6 +5,7 @@ use std::{
     ops::Index,
     path::Path,
     sync::Arc,
+    time::Instant,
 };
 
 use anyhow::{Error, Result};
@@ -49,6 +50,8 @@ pub struct BuildArgs {
     dump: Vec<DumpOption>,
     #[arg(long)]
     outdir: Option<String>,
+    #[arg(long)]
+    time: bool,
 }
 
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd, ValueEnum)]
@@ -73,6 +76,7 @@ pub struct Cart {
 }
 
 fn run_app(args: &BuildArgs) -> Result<()> {
+    let start = Instant::now();
     // Resources
     let interner = Arc::new(ThreadedRodeo::default());
     // Reserve first slot for empty. TODO Reserve others?
@@ -90,9 +94,19 @@ fn run_app(args: &BuildArgs) -> Result<()> {
     cart = build(args, args.app.as_str(), cart)?;
     // Link
     link_modules(&cart);
+    let prewasm = start.elapsed();
     // Write
-    write_wasm(args, &cart)?;
+    let prewrite = write_wasm(args, &cart, start)?;
     // println!("type tree size: {}", std::mem::size_of::<typ::TypeTree>());
+    if args.time {
+        println!(
+            "building {}: main {:.1?}, wasm {:.1?}, write {:.1?}",
+            args.app.as_str(),
+            prewasm,
+            prewrite,
+            start.elapsed()
+        );
+    }
     Ok(())
 }
 

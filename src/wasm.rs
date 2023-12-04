@@ -7,7 +7,7 @@ use std::{
     ops::Range,
     path::Path,
     rc::Rc,
-    vec,
+    vec, time::{Instant, Duration},
 };
 
 use anyhow::{Error, Ok, Result};
@@ -23,12 +23,14 @@ use crate::{
     BuildArgs, Cart,
 };
 
-pub fn write_wasm(args: &BuildArgs, cart: &Cart) -> Result<()> {
+pub fn write_wasm(args: &BuildArgs, cart: &Cart, start: Instant) -> Result<Duration> {
     let _ = cart;
     let mut writer = WasmWriter::new(&cart);
     writer.build()?;
     let wasm = writer.module.finish();
-    write_out(args, wasm)
+    let duration = start.elapsed();
+    write_out(args, wasm);
+    Ok(duration)
 }
 
 fn write_out(args: &BuildArgs, wasm: Vec<u8>) -> Result<()> {
