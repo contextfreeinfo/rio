@@ -29,7 +29,7 @@ pub fn write_wasm(args: &BuildArgs, cart: &Cart, start: Instant) -> Result<Durat
     writer.build()?;
     let wasm = writer.module.finish();
     let duration = start.elapsed();
-    write_out(args, wasm);
+    write_out(args, wasm)?;
     Ok(duration)
 }
 
@@ -56,6 +56,7 @@ struct WasmWriter<'a> {
     fd_write_type: Option<EntityType>,
     lookup_table: Vec<Lookup>,
     module: wasm_encoder::Module,
+    print_type: u32,
     stack_start: u32,
     type_offset: usize,
     type_table: Vec<usize>,
@@ -71,6 +72,7 @@ impl<'a> WasmWriter<'a> {
             fd_write_type: None,
             lookup_table: vec![Lookup::Boring; cart.modules[1].tree.len()],
             module: wasm_encoder::Module::new(),
+            print_type: 0,
             stack_start,
             type_offset: 0,
             type_table: vec![],
@@ -100,6 +102,7 @@ impl<'a> WasmWriter<'a> {
 
     fn build_codes(&mut self) {
         let mut codes = CodeSection::new();
+        add_print_codes(&mut codes);
         fn dig(node: Node, wasm: &mut WasmWriter, codes: &mut CodeSection) {
             if let Nod::Branch { kind, range } = node.nod {
                 if kind == BranchKind::Fun && node.typ.0 != 0 {
@@ -159,6 +162,7 @@ impl<'a> WasmWriter<'a> {
 
     fn build_functions(&mut self) {
         let mut functions = FunctionSection::new();
+        functions.function(self.print_type);
         fn dig(tree: &[Node], wasm: &mut WasmWriter, functions: &mut FunctionSection) {
             let node = tree.last().unwrap();
             if let Nod::Branch { kind, range } = node.nod {
@@ -258,6 +262,7 @@ impl<'a> WasmWriter<'a> {
         // TODO Use wasm type logic for custom type also, so we don't duplicate those either.
         // TODO Do that by including it in the common module first in some fashion?
         self.fd_write_type = Some(add_fd_write_type(&mut types));
+        self.print_type = add_print_type(&mut types);
         // Add function types.
         let prebaked_types_offset = types.len() as usize;
         let cart = &self.cart;
@@ -398,7 +403,7 @@ impl<'a> WasmWriter<'a> {
 
     fn translate_fun(&self, codes: &mut CodeSection, node: Node) {
         let locals = vec![];
-        let mut fun = Function::new(locals);
+        let mut func = Function::new(locals);
         let Nod::Branch {
             kind: BranchKind::Fun,
             range,
@@ -416,7 +421,7 @@ impl<'a> WasmWriter<'a> {
                 panic!()
             };
             _ = body_range;
-            self.translate_any(&mut fun, range.start as usize + 2);
+            self.translate_any(&mut func, range.start as usize + 2);
             // println!("body {}", body_range.end - body_range.start);
             // // Params
             // let Nod::Branch {
@@ -433,8 +438,8 @@ impl<'a> WasmWriter<'a> {
             // }
             // End
         }
-        fun.instruction(&Instruction::End);
-        codes.function(&fun);
+        func.instruction(&Instruction::End);
+        codes.function(&func);
     }
 
     fn tree(&self) -> &[Node] {
@@ -455,6 +460,21 @@ fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
     let results = vec![ValType::I32];
     types.function(params, results);
     EntityType::Function(types.len() - 1)
+}
+
+fn add_print_codes(codes: &mut CodeSection) {
+    let locals = vec![];
+    let mut func = Function::new(locals);
+    func.instruction(&Instruction::I32Const(8));
+    // func.instruction(&Instruction::Call(1));
+    codes.function(&func);
+}
+
+fn add_print_type(types: &mut TypeSection) -> u32 {
+    let params = vec![ValType::I32];
+    let results = vec![];
+    types.function(params, results);
+    types.len() as u32 - 1
 }
 
 #[derive(Clone, Copy, Debug)]
