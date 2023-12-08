@@ -7,7 +7,8 @@ use std::{
     ops::Range,
     path::Path,
     rc::Rc,
-    vec, time::{Instant, Duration},
+    time::{Duration, Instant},
+    vec,
 };
 
 use anyhow::{Error, Ok, Result};
@@ -57,6 +58,7 @@ struct WasmWriter<'a> {
     lookup_table: Vec<Lookup>,
     module: wasm_encoder::Module,
     print_type: u32,
+    push_type: u32,
     stack_start: u32,
     type_offset: usize,
     type_table: Vec<usize>,
@@ -73,6 +75,7 @@ impl<'a> WasmWriter<'a> {
             lookup_table: vec![Lookup::Boring; cart.modules[1].tree.len()],
             module: wasm_encoder::Module::new(),
             print_type: 0,
+            push_type: 0,
             stack_start,
             type_offset: 0,
             type_table: vec![],
@@ -103,6 +106,8 @@ impl<'a> WasmWriter<'a> {
     fn build_codes(&mut self) {
         let mut codes = CodeSection::new();
         add_print_codes(&mut codes);
+        add_pop_codes(&mut codes);
+        add_push_codes(&mut codes);
         fn dig(node: Node, wasm: &mut WasmWriter, codes: &mut CodeSection) {
             if let Nod::Branch { kind, range } = node.nod {
                 if kind == BranchKind::Fun && node.typ.0 != 0 {
@@ -162,7 +167,9 @@ impl<'a> WasmWriter<'a> {
 
     fn build_functions(&mut self) {
         let mut functions = FunctionSection::new();
-        functions.function(self.print_type);
+        functions.function(self.print_type); // print
+        functions.function(self.print_type); // pop
+        functions.function(self.push_type); // push
         fn dig(tree: &[Node], wasm: &mut WasmWriter, functions: &mut FunctionSection) {
             let node = tree.last().unwrap();
             if let Nod::Branch { kind, range } = node.nod {
@@ -263,6 +270,7 @@ impl<'a> WasmWriter<'a> {
         // TODO Do that by including it in the common module first in some fashion?
         self.fd_write_type = Some(add_fd_write_type(&mut types));
         self.print_type = add_print_type(&mut types);
+        self.push_type = add_push_type(&mut types);
         // Add function types.
         let prebaked_types_offset = types.len() as usize;
         let cart = &self.cart;
@@ -455,6 +463,15 @@ fn align(size: u32, index: u32) -> u32 {
         }
 }
 
+fn add_codes(codes: &mut CodeSection, instructions: &[Instruction]) {
+    let locals = vec![];
+    let mut func = Function::new(locals);
+    for instruction in instructions {
+        func.instruction(instruction);
+    }
+    codes.function(&func);
+}
+
 fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
     let params = vec![ValType::I32, ValType::I32, ValType::I32, ValType::I32];
     let results = vec![ValType::I32];
@@ -462,17 +479,34 @@ fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
     EntityType::Function(types.len() - 1)
 }
 
+fn add_pop_codes(codes: &mut CodeSection) {
+    add_codes(codes, &[]);
+}
+
 fn add_print_codes(codes: &mut CodeSection) {
-    let locals = vec![];
-    let mut func = Function::new(locals);
-    func.instruction(&Instruction::I32Const(8));
-    // func.instruction(&Instruction::Call(1));
-    codes.function(&func);
+    add_codes(
+        codes,
+        &[
+            Instruction::I32Const(8),
+            // Instruction::Call(1),
+        ],
+    );
+}
+
+fn add_push_codes(codes: &mut CodeSection) {
+    add_codes(codes, &[]);
 }
 
 fn add_print_type(types: &mut TypeSection) -> u32 {
     let params = vec![ValType::I32];
     let results = vec![];
+    types.function(params, results);
+    types.len() as u32 - 1
+}
+
+fn add_push_type(types: &mut TypeSection) -> u32 {
+    let params = vec![ValType::I32];
+    let results = vec![ValType::I32];
     types.function(params, results);
     types.len() as u32 - 1
 }
