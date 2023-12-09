@@ -14,7 +14,7 @@ use std::{
 use anyhow::{Error, Ok, Result};
 use wasm_encoder::{
     CodeSection, ConstExpr, DataSection, EntityType, ExportKind, ExportSection, Function,
-    FunctionSection, GlobalSection, GlobalType, ImportSection, Instruction, MemorySection,
+    FunctionSection, GlobalSection, GlobalType, ImportSection, Instruction, MemArg, MemorySection,
     MemoryType, TypeSection, ValType,
 };
 
@@ -54,14 +54,25 @@ fn write_out(args: &BuildArgs, wasm: Vec<u8>) -> Result<()> {
 struct WasmWriter<'a> {
     cart: &'a Cart,
     data_offset: u32,
-    fd_write_type: Option<EntityType>,
+    imports_len: u32,
     lookup_table: Vec<Lookup>,
     module: wasm_encoder::Module,
-    print_type: u32,
-    push_type: u32,
+    predefs: Predefs,
+    stack_global: u32,
     stack_start: u32,
     type_offset: usize,
     type_table: Vec<usize>,
+}
+
+#[derive(Debug, Default)]
+struct Predefs {
+    fd_write_fun: u32,
+    fd_write_type: Option<EntityType>,
+    pop_fun: u32,
+    print_fun: u32,
+    print_type: u32,
+    push_fun: u32,
+    push_type: u32,
 }
 
 impl<'a> WasmWriter<'a> {
@@ -71,11 +82,11 @@ impl<'a> WasmWriter<'a> {
         WasmWriter {
             cart,
             data_offset: stack_start,
-            fd_write_type: None,
+            imports_len: 0,
             lookup_table: vec![Lookup::Boring; cart.modules[1].tree.len()],
             module: wasm_encoder::Module::new(),
-            print_type: 0,
-            push_type: 0,
+            predefs: Predefs::default(),
+            stack_global: 0,
             stack_start,
             type_offset: 0,
             type_table: vec![],
@@ -95,19 +106,20 @@ impl<'a> WasmWriter<'a> {
         Ok(())
     }
 
-    fn add_fd_write_import(&self, imports: &mut ImportSection) {
+    fn add_fd_write_import(&mut self, imports: &mut ImportSection) {
+        self.predefs.fd_write_fun = imports.len();
         imports.import(
             "wasi_snapshot_preview1",
             "fd_write",
-            self.fd_write_type.unwrap(),
+            self.predefs.fd_write_type.unwrap(),
         );
     }
 
     fn build_codes(&mut self) {
         let mut codes = CodeSection::new();
-        add_print_codes(&mut codes);
-        add_pop_codes(&mut codes);
-        add_push_codes(&mut codes);
+        self.code_print(&mut codes);
+        self.code_pop(&mut codes);
+        self.code_push(&mut codes);
         fn dig(node: Node, wasm: &mut WasmWriter, codes: &mut CodeSection) {
             if let Nod::Branch { kind, range } = node.nod {
                 if kind == BranchKind::Fun && node.typ.0 != 0 {
@@ -167,9 +179,11 @@ impl<'a> WasmWriter<'a> {
 
     fn build_functions(&mut self) {
         let mut functions = FunctionSection::new();
-        functions.function(self.print_type); // print
-        functions.function(self.print_type); // pop
-        functions.function(self.push_type); // push
+        // Predef funs
+        self.predefs.print_fun = add_fun(&mut functions, self.predefs.print_type);
+        self.predefs.pop_fun = add_fun(&mut functions, self.predefs.print_type); // reusing print_type
+        self.predefs.push_fun = add_fun(&mut &mut functions, self.predefs.push_type);
+        // User funs
         fn dig(tree: &[Node], wasm: &mut WasmWriter, functions: &mut FunctionSection) {
             let node = tree.last().unwrap();
             if let Nod::Branch { kind, range } = node.nod {
@@ -206,6 +220,7 @@ impl<'a> WasmWriter<'a> {
         let mut imports = ImportSection::new();
         self.add_fd_write_import(&mut imports);
         self.module.section(&imports);
+        self.imports_len = imports.len();
     }
 
     fn build_memory(&mut self) {
@@ -268,9 +283,9 @@ impl<'a> WasmWriter<'a> {
         let mut type_indices = HashMap::<WasmFunType, usize>::new();
         // TODO Use wasm type logic for custom type also, so we don't duplicate those either.
         // TODO Do that by including it in the common module first in some fashion?
-        self.fd_write_type = Some(add_fd_write_type(&mut types));
-        self.print_type = add_print_type(&mut types);
-        self.push_type = add_push_type(&mut types);
+        self.predefs.fd_write_type = Some(add_fd_write_type(&mut types));
+        self.predefs.print_type = add_print_type(&mut types);
+        self.predefs.push_type = add_push_type(&mut types);
         // Add function types.
         let prebaked_types_offset = types.len() as usize;
         let cart = &self.cart;
@@ -351,6 +366,65 @@ impl<'a> WasmWriter<'a> {
             }
         }
         self.module.section(&types);
+    }
+
+    fn code_pop(&self, codes: &mut CodeSection) {
+        add_codes(
+            codes,
+            &[
+                Instruction::GlobalGet(self.stack_global),
+                Instruction::LocalGet(0),
+                Instruction::I32Add,
+                Instruction::GlobalSet(0),
+            ],
+        );
+    }
+
+    fn code_print(&self, codes: &mut CodeSection) {
+        let (text, iovec, nwritten) = (0, 1, 2);
+        add_codes(
+            codes,
+            &[
+                // Push iovec.
+                Instruction::I32Const(8),
+                Instruction::Call(self.predefs.push_fun),
+                Instruction::LocalSet(iovec),
+                // Push nwritten.
+                Instruction::I32Const(4),
+                Instruction::Call(self.predefs.push_fun),
+                Instruction::LocalSet(nwritten),
+                // Put text pointer in iovec.
+                Instruction::LocalGet(iovec),
+                Instruction::LocalGet(text),
+                Instruction::I32Const(4),
+                Instruction::I32Add,
+                Instruction::I32Store(MemArg {
+                    offset: 0,
+                    align: 0,
+                    memory_index: 0,
+                }),
+                // Put text size in iovec.
+                // TODO
+                // Call fd_write.
+                // TODO
+                // Finish.
+                // TODO
+            ],
+        );
+    }
+
+    fn code_push(&self, codes: &mut CodeSection) {
+        add_codes(
+            codes,
+            &[
+                Instruction::GlobalGet(self.stack_global),
+                Instruction::LocalGet(0),
+                Instruction::I32Sub,
+                Instruction::LocalTee(1),
+                Instruction::GlobalSet(0),
+                Instruction::LocalGet(1),
+            ],
+        );
     }
 
     fn scrape_data(&mut self) {
@@ -479,22 +553,9 @@ fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
     EntityType::Function(types.len() - 1)
 }
 
-fn add_pop_codes(codes: &mut CodeSection) {
-    add_codes(codes, &[]);
-}
-
-fn add_print_codes(codes: &mut CodeSection) {
-    add_codes(
-        codes,
-        &[
-            Instruction::I32Const(8),
-            // Instruction::Call(1),
-        ],
-    );
-}
-
-fn add_push_codes(codes: &mut CodeSection) {
-    add_codes(codes, &[]);
+fn add_fun(functions: &mut FunctionSection, type_index: u32) -> u32 {
+    functions.function(type_index);
+    functions.len() - 1
 }
 
 fn add_print_type(types: &mut TypeSection) -> u32 {
