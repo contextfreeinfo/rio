@@ -19,7 +19,7 @@ use wasm_encoder::{
 };
 
 use crate::{
-    lex::{Token, TokenKind},
+    lex::{Token, TokenKind, Intern},
     tree::{BranchKind, Nod, Node},
     BuildArgs, Cart,
 };
@@ -56,6 +56,7 @@ struct WasmWriter<'a> {
     data_offset: u32,
     imports_len: u32,
     lookup_table: Vec<Lookup>,
+    main_id: Option<Intern>,
     module: wasm_encoder::Module,
     predefs: Predefs,
     stack_global: u32,
@@ -79,11 +80,13 @@ impl<'a> WasmWriter<'a> {
     fn new(cart: &Cart) -> WasmWriter {
         // Let stack go down and data go up.
         let stack_start = 4096;
+        cart.interner.get("main");
         WasmWriter {
             cart,
             data_offset: stack_start,
             imports_len: 0,
             lookup_table: vec![Lookup::Boring; cart.modules[1].tree.len()],
+            main_id: cart.interner.get("main"),
             module: wasm_encoder::Module::new(),
             predefs: Predefs::default(),
             stack_global: 0,
@@ -174,6 +177,7 @@ impl<'a> WasmWriter<'a> {
     fn build_exports(&mut self) {
         let mut exports = ExportSection::new();
         exports.export("memory", ExportKind::Memory, 0);
+        // TODO Dig for functions again?
         self.module.section(&exports);
     }
 
@@ -371,6 +375,7 @@ impl<'a> WasmWriter<'a> {
     fn code_pop(&self, codes: &mut CodeSection) {
         add_codes(
             codes,
+            &[],
             &[
                 Instruction::GlobalGet(self.stack_global),
                 Instruction::LocalGet(0),
@@ -384,6 +389,7 @@ impl<'a> WasmWriter<'a> {
         let (text, iovec, nwritten) = (0, 1, 2);
         add_codes(
             codes,
+            &[(2, ValType::I32)],
             &[
                 // Push iovec.
                 Instruction::I32Const(8),
@@ -435,6 +441,7 @@ impl<'a> WasmWriter<'a> {
     fn code_push(&self, codes: &mut CodeSection) {
         add_codes(
             codes,
+            &[(1, ValType::I32)],
             &[
                 Instruction::GlobalGet(self.stack_global),
                 Instruction::LocalGet(0),
@@ -556,9 +563,8 @@ fn align(size: u32, index: u32) -> u32 {
         }
 }
 
-fn add_codes(codes: &mut CodeSection, instructions: &[Instruction]) {
-    let locals = vec![];
-    let mut func = Function::new(locals);
+fn add_codes(codes: &mut CodeSection, locals: &[(u32, ValType)], instructions: &[Instruction]) {
+    let mut func = Function::new(locals.iter().copied());
     for instruction in instructions {
         func.instruction(instruction);
     }

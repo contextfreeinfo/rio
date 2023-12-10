@@ -6,6 +6,7 @@
   (type (;4;) (func (param i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func (;1;) (type 1) (param i32)
+    (local i32 i32)
     i32.const 8
     call 2
     local.set 1
@@ -39,6 +40,7 @@
     global.set 0
   )
   (func (;3;) (type 2) (param i32) (result i32)
+    (local i32)
     global.get 0
     local.get 0
     i32.sub
