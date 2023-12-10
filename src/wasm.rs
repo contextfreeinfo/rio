@@ -19,7 +19,8 @@ use wasm_encoder::{
 };
 
 use crate::{
-    lex::{Token, TokenKind, Intern},
+    lex::{Intern, Token, TokenKind},
+    run::ScopeEntry,
     tree::{BranchKind, Nod, Node},
     BuildArgs, Cart,
 };
@@ -118,6 +119,11 @@ impl<'a> WasmWriter<'a> {
         );
     }
 
+    fn add_fun(&self, functions: &mut FunctionSection, type_index: u32) -> u32 {
+        functions.function(type_index);
+        functions.len() - 1 + self.imports_len
+    }
+
     fn build_codes(&mut self) {
         let mut codes = CodeSection::new();
         self.code_print(&mut codes);
@@ -177,25 +183,81 @@ impl<'a> WasmWriter<'a> {
     fn build_exports(&mut self) {
         let mut exports = ExportSection::new();
         exports.export("memory", ExportKind::Memory, 0);
-        // TODO Dig for functions again?
+        for ScopeEntry {
+            intern,
+            module,
+            num,
+        } in self.cart.modules[1].tops.values.iter().copied()
+        {
+            // Check exported and if it's a function.
+            if module != 0 {
+                if let Lookup::Fun { index } = self.lookup_table[num as usize - 1] {
+                    let name = if Some(intern) == self.main_id {
+                        // TODO Main separate from start? Just some top level non-named main indicator?
+                        "_start"
+                    } else {
+                        &self.cart.interner[intern]
+                    };
+                    exports.export(name, ExportKind::Func, index);
+                }
+            }
+        }
+        // for (node_index, node) in self.cart.modules[1].tree.iter().enumerate() {
+        //     if let Nod::Branch {
+        //         kind: BranchKind::Fun,
+        //         ..
+        //     } = node.nod
+        //     {
+        //         if let Lookup::Fun { index: fun_index } = self.lookup_table[node_index] {
+        //             // exports.ex
+        //         }
+        //     }
+        // }
+        // fn dig(tree: &[Node], wasm: &mut WasmWriter, exports: &mut ExportSection) {
+        //     let node = tree.last().unwrap();
+        //     if let Nod::Branch { kind, range } = node.nod {
+        //         if kind == BranchKind::Fun && node.typ.0 != 0 {
+        //             let typ = node.typ.0 as usize - 1 - wasm.type_offset;
+        //             let typ = wasm.type_table[typ];
+        //             if typ != 0 {
+        //                 // functions.function(typ as u32 - 1);
+        //             }
+        //         }
+        //         let range: Range<usize> = range.into();
+        //         for kid_index in range {
+        //             dig(&tree[0..=kid_index], wasm, exports);
+        //         }
+        //     }
+        // }
+        // dig(&self.cart.modules[1].tree, self, &mut exports);
         self.module.section(&exports);
     }
 
     fn build_functions(&mut self) {
         let mut functions = FunctionSection::new();
         // Predef funs
-        self.predefs.print_fun = add_fun(&mut functions, self.predefs.print_type);
-        self.predefs.pop_fun = add_fun(&mut functions, self.predefs.print_type); // reusing print_type
-        self.predefs.push_fun = add_fun(&mut &mut functions, self.predefs.push_type);
+        self.predefs.print_fun = self.add_fun(&mut functions, self.predefs.print_type);
+        self.predefs.pop_fun = self.add_fun(&mut functions, self.predefs.print_type); // reusing print_type
+        self.predefs.push_fun = self.add_fun(&mut &mut functions, self.predefs.push_type);
         // User funs
         fn dig(tree: &[Node], wasm: &mut WasmWriter, functions: &mut FunctionSection) {
-            let node = tree.last().unwrap();
-            if let Nod::Branch { kind, range } = node.nod {
-                if kind == BranchKind::Fun && node.typ.0 != 0 {
+            let node = *tree.last().unwrap();
+            let check = match node.nod {
+                Nod::Branch {
+                    kind: BranchKind::Def,
+                    range,
+                } => tree[range.start as usize + 2],
+                _ => node,
+            };
+            if let Nod::Branch { kind, range } = check.nod {
+                if kind == BranchKind::Fun && check.typ.0 != 0 {
                     let typ = node.typ.0 as usize - 1 - wasm.type_offset;
                     let typ = wasm.type_table[typ];
                     if typ != 0 {
                         functions.function(typ as u32 - 1);
+                        wasm.lookup_table[tree.len() - 1] = Lookup::Fun {
+                            index: functions.len() - 1 + wasm.imports_len,
+                        };
                     }
                 }
                 let range: Range<usize> = range.into();
@@ -576,11 +638,6 @@ fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
     let results = vec![ValType::I32];
     types.function(params, results);
     EntityType::Function(types.len() - 1)
-}
-
-fn add_fun(functions: &mut FunctionSection, type_index: u32) -> u32 {
-    functions.function(type_index);
-    functions.len() - 1
 }
 
 fn add_print_type(types: &mut TypeSection) -> u32 {

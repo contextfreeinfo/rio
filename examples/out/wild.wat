@@ -8,10 +8,10 @@
   (func (;1;) (type 1) (param i32)
     (local i32 i32)
     i32.const 8
-    call 2
+    call 3
     local.set 1
     i32.const 4
-    call 2
+    call 3
     local.set 2
     local.get 1
     local.get 0
@@ -31,7 +31,7 @@
     call 0
     drop
     i32.const 12
-    call 1
+    call 2
   )
   (func (;2;) (type 1) (param i32)
     global.get 0
