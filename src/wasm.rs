@@ -404,11 +404,30 @@ impl<'a> WasmWriter<'a> {
                     memory_index: 0,
                 }),
                 // Put text size in iovec.
-                // TODO
+                Instruction::LocalGet(iovec),
+                Instruction::I32Const(4),
+                Instruction::I32Add,
+                Instruction::LocalGet(text),
+                Instruction::I32Load(MemArg {
+                    offset: 0,
+                    align: 2,
+                    memory_index: 0,
+                }),
+                Instruction::I32Store(MemArg {
+                    offset: 0,
+                    align: 2,
+                    memory_index: 0,
+                }),
                 // Call fd_write.
-                // TODO
+                Instruction::I32Const(1),
+                Instruction::LocalGet(iovec),
+                Instruction::I32Const(1),
+                Instruction::LocalGet(nwritten),
+                Instruction::Call(self.predefs.fd_write_fun),
+                Instruction::Drop,
                 // Finish.
-                // TODO
+                Instruction::I32Const(12),
+                Instruction::Call(self.predefs.pop_fun),
             ],
         );
     }

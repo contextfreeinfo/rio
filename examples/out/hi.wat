@@ -17,6 +17,20 @@
     i32.const 4
     i32.add
     i32.store align=1
+    local.get 1
+    i32.const 4
+    i32.add
+    local.get 0
+    i32.load
+    i32.store
+    i32.const 1
+    local.get 1
+    i32.const 1
+    local.get 2
+    call 0
+    drop
+    i32.const 12
+    call 1
   )
   (func (;2;) (type 1) (param i32)
     global.get 0
