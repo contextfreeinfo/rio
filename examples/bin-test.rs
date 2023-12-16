@@ -36,7 +36,10 @@ fn build_and_run(profile: &str, cli: &Cli) {
         .args(profile_args)
         .status()
         .unwrap();
-    let rio = Path::new("target").join(profile).join("rio");
+    let mut rio = PathBuf::new().join("target").join(profile).join("rio");
+    if cfg!(target_os = "windows") {
+        rio.set_extension("exe");
+    }
     // Report
     report_build(&rio, start.elapsed());
     // Run
