@@ -70,6 +70,7 @@ struct WasmWriter<'a> {
 struct Predefs {
     fd_write_fun: u32,
     fd_write_type: Option<EntityType>,
+    pop_type: u32,
     pop_fun: u32,
     print_fun: u32,
     print_type: u32,
@@ -161,9 +162,7 @@ impl<'a> WasmWriter<'a> {
                             },
                     } => {
                         let text = &self.cart.interner[intern];
-                        let len_bytes = (text.len() as u32).to_le_bytes();
                         buffer.clear();
-                        buffer.extend_from_slice(&len_bytes);
                         buffer.extend_from_slice(text.as_bytes());
                         // Null-terminate for safety, but not included in length.
                         buffer.push(0);
@@ -237,7 +236,7 @@ impl<'a> WasmWriter<'a> {
         let mut functions = FunctionSection::new();
         // Predef funs
         self.predefs.print_fun = self.add_fun(&mut functions, self.predefs.print_type);
-        self.predefs.pop_fun = self.add_fun(&mut functions, self.predefs.print_type); // reusing print_type
+        self.predefs.pop_fun = self.add_fun(&mut functions, self.predefs.pop_type);
         self.predefs.push_fun = self.add_fun(&mut &mut functions, self.predefs.push_type);
         // User funs
         fn dig(tree: &[Node], wasm: &mut WasmWriter, functions: &mut FunctionSection) {
@@ -350,6 +349,7 @@ impl<'a> WasmWriter<'a> {
         // TODO Use wasm type logic for custom type also, so we don't duplicate those either.
         // TODO Do that by including it in the common module first in some fashion?
         self.predefs.fd_write_type = Some(add_fd_write_type(&mut types));
+        self.predefs.pop_type = add_pop_type(&mut types);
         self.predefs.print_type = add_print_type(&mut types);
         self.predefs.push_type = add_push_type(&mut types);
         // Add function types.
@@ -382,9 +382,15 @@ impl<'a> WasmWriter<'a> {
                         {
                             let params_start = val_types.borrow().len();
                             let params_range: Range<usize> = params_range.into();
-                            for _ in params_range.clone() {
-                                // TODO Check for things other than int, like float.
-                                val_types.borrow_mut().push(ValType::I32);
+                            for param_index in params_range.clone() {
+                                let val_types_mut = &mut val_types.borrow_mut();
+                                match simple_wasm_type(cart, tree, tree[param_index]) {
+                                    SimpleWasmType::Span => {
+                                        val_types_mut.push(ValType::I32);
+                                        val_types_mut.push(ValType::I32);
+                                    }
+                                    _ => val_types_mut.push(ValType::I32),
+                                }
                             }
                             let results_start = val_types.borrow().len();
                             match type_kid.typ.0 {
@@ -448,7 +454,7 @@ impl<'a> WasmWriter<'a> {
     }
 
     fn code_print(&self, codes: &mut CodeSection) {
-        let (text, iovec, nwritten) = (0, 1, 2);
+        let (text_len, text, iovec, nwritten) = (0, 1, 2, 3);
         add_codes(
             codes,
             &[(2, ValType::I32)],
@@ -464,28 +470,13 @@ impl<'a> WasmWriter<'a> {
                 // Put text pointer in iovec.
                 Instruction::LocalGet(iovec),
                 Instruction::LocalGet(text),
-                Instruction::I32Const(4),
-                Instruction::I32Add,
-                Instruction::I32Store(MemArg {
-                    offset: 0,
-                    align: 0,
-                    memory_index: 0,
-                }),
+                Instruction::I32Store(mem_arg(0)),
                 // Put text size in iovec.
                 Instruction::LocalGet(iovec),
                 Instruction::I32Const(4),
                 Instruction::I32Add,
-                Instruction::LocalGet(text),
-                Instruction::I32Load(MemArg {
-                    offset: 0,
-                    align: 2,
-                    memory_index: 0,
-                }),
-                Instruction::I32Store(MemArg {
-                    offset: 0,
-                    align: 2,
-                    memory_index: 0,
-                }),
+                Instruction::LocalGet(text_len),
+                Instruction::I32Store(mem_arg(2)),
                 // Call fd_write.
                 Instruction::I32Const(1),
                 Instruction::LocalGet(iovec),
@@ -537,8 +528,8 @@ impl<'a> WasmWriter<'a> {
                     let text = &wasm.cart.interner[intern];
                     let index = align(4, wasm.data_offset);
                     wasm.lookup_table[tree.len() - 1] = Lookup::Datum { address: index };
-                    // Space for both size and data.
-                    wasm.data_offset = index + 4 + text.len() as u32;
+                    // Space for raw data and null char
+                    wasm.data_offset = index + text.len() as u32 + 1;
                 }
                 _ => {}
             }
@@ -559,13 +550,21 @@ impl<'a> WasmWriter<'a> {
                 token:
                     Token {
                         kind: TokenKind::String,
-                        ..
+                        intern,
                     },
             } => {
+                let text = &self.cart.interner[intern];
                 let Lookup::Datum { address } = self.lookup_table[index] else {
                     panic!()
                 };
-                fun.instruction(&Instruction::I32Const(address as i32));
+                add_instructions(
+                    fun,
+                    &[
+                        // String size and set memory address.
+                        Instruction::I32Const(text.len() as i32),
+                        Instruction::I32Const(address as i32),
+                    ],
+                );
             }
             _ => {}
         }
@@ -627,10 +626,14 @@ fn align(size: u32, index: u32) -> u32 {
 
 fn add_codes(codes: &mut CodeSection, locals: &[(u32, ValType)], instructions: &[Instruction]) {
     let mut func = Function::new(locals.iter().copied());
+    add_instructions(&mut func, instructions);
+    codes.function(&func);
+}
+
+fn add_instructions(func: &mut Function, instructions: &[Instruction<'_>]) {
     for instruction in instructions {
         func.instruction(instruction);
     }
-    codes.function(&func);
 }
 
 fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
@@ -640,8 +643,15 @@ fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
     EntityType::Function(types.len() - 1)
 }
 
-fn add_print_type(types: &mut TypeSection) -> u32 {
+fn add_pop_type(types: &mut TypeSection) -> u32 {
     let params = vec![ValType::I32];
+    let results = vec![];
+    types.function(params, results);
+    types.len() as u32 - 1
+}
+
+fn add_print_type(types: &mut TypeSection) -> u32 {
+    let params = vec![ValType::I32, ValType::I32];
     let results = vec![];
     types.function(params, results);
     types.len() as u32 - 1
@@ -654,9 +664,37 @@ fn add_push_type(types: &mut TypeSection) -> u32 {
     types.len() as u32 - 1
 }
 
+fn mem_arg(align: u32) -> MemArg {
+    MemArg {
+        offset: 0,
+        align,
+        memory_index: 0,
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 enum Lookup {
     Boring,
     Datum { address: u32 },
     Fun { index: u32 },
+    Local { index: u32 },
+}
+
+#[derive(Clone, Copy, Debug)]
+enum SimpleWasmType {
+    I32,
+    Other,
+    Span,
+}
+
+fn simple_wasm_type(cart: &Cart, tree: &[Node], node: Node) -> SimpleWasmType {
+    if node.typ.0 > 0 {
+        if let Nod::Uid { module, num, .. } = tree[node.typ.0 as usize - 1].nod {
+            if module == 1 && num == cart.core_exports.text_type.num {
+                return SimpleWasmType::Span;
+            }
+        }
+    }
+    // TODO I32 vs float types vs ...
+    return SimpleWasmType::Other;
 }
