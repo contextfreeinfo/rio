@@ -17,6 +17,7 @@
     local.get 0
     i32.const 4
     i32.add
+    i32.load
     i32.store align=1
     local.get 1
     i32.const 4

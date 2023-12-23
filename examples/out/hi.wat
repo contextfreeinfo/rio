@@ -17,6 +17,7 @@
     local.get 0
     i32.const 4
     i32.add
+    i32.load
     i32.store align=1
     local.get 1
     i32.const 4
@@ -56,5 +57,5 @@
   (global (;0;) (mut i32) i32.const 4096)
   (export "memory" (memory 0))
   (export "_start" (func 4))
-  (data (;0;) (i32.const 4096) "\05\00\00\00\22Hi!\22\00")
+  (data (;0;) (i32.const 4096) "\05\00\00\00\08\10\00\00\22Hi!\22\00")
 )

@@ -161,9 +161,11 @@ impl<'a> WasmWriter<'a> {
                             },
                     } => {
                         let text = &self.cart.interner[intern];
-                        let len_bytes = (text.len() as u32).to_le_bytes();
                         buffer.clear();
+                        let len_bytes = (text.len() as u32).to_le_bytes();
                         buffer.extend_from_slice(&len_bytes);
+                        let text_address_bytes = (address as u32 + 8).to_le_bytes();
+                        buffer.extend_from_slice(&text_address_bytes);
                         buffer.extend_from_slice(text.as_bytes());
                         // Null-terminate for safety, but not included in length.
                         buffer.push(0);
@@ -466,26 +468,15 @@ impl<'a> WasmWriter<'a> {
                 Instruction::LocalGet(text),
                 Instruction::I32Const(4),
                 Instruction::I32Add,
-                Instruction::I32Store(MemArg {
-                    offset: 0,
-                    align: 0,
-                    memory_index: 0,
-                }),
+                Instruction::I32Load(mem_arg(2)),
+                Instruction::I32Store(mem_arg(0)), // TODO Should align 2(**2)?
                 // Put text size in iovec.
                 Instruction::LocalGet(iovec),
                 Instruction::I32Const(4),
                 Instruction::I32Add,
                 Instruction::LocalGet(text),
-                Instruction::I32Load(MemArg {
-                    offset: 0,
-                    align: 2,
-                    memory_index: 0,
-                }),
-                Instruction::I32Store(MemArg {
-                    offset: 0,
-                    align: 2,
-                    memory_index: 0,
-                }),
+                Instruction::I32Load(mem_arg(2)),
+                Instruction::I32Store(mem_arg(2)),
                 // Call fd_write.
                 Instruction::I32Const(1),
                 Instruction::LocalGet(iovec),
@@ -652,6 +643,14 @@ fn add_push_type(types: &mut TypeSection) -> u32 {
     let results = vec![ValType::I32];
     types.function(params, results);
     types.len() as u32 - 1
+}
+
+fn mem_arg(align: u32) -> MemArg {
+    MemArg {
+        offset: 0,
+        align,
+        memory_index: 0,
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
