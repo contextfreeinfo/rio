@@ -570,9 +570,7 @@ impl<'a> WasmWriter<'a> {
         }
     }
 
-    fn translate_fun(&self, codes: &mut CodeSection, node: Node) {
-        let locals = vec![];
-        let mut func = Function::new(locals);
+    fn translate_fun(&mut self, codes: &mut CodeSection, node: Node) {
         let Nod::Branch {
             kind: BranchKind::Fun,
             range,
@@ -580,33 +578,82 @@ impl<'a> WasmWriter<'a> {
         else {
             panic!()
         };
-        if range.len() == 3 {
-            let tree = self.tree();
+        let range: Range<usize> = range.into();
+        let mut func = if range.len() == 3 {
+            // Params
+            let Nod::Branch {
+                kind: BranchKind::Params,
+                range: params_range,
+            } = self.tree()[range.start].nod
+            else {
+                panic!()
+            };
+            let params_range: Range<usize> = params_range.into();
+            let mut param_local_count = 0u32;
+            let mut locals = vec![];
+            for param_index in params_range {
+                self.lookup_table[param_index] = Lookup::Local {
+                    index: locals.len() as u32,
+                };
+                match simple_wasm_type(self.cart, self.tree(), self.tree()[param_index]) {
+                    SimpleWasmType::Span => {
+                        param_local_count += 2;
+                    }
+                    _ => {
+                        // TODO Check type.
+                        param_local_count += 1;
+                    }
+                }
+            }
+            // Dig for more locals.
+            fn dig_locals(
+                node_index: usize,
+                wasm: &mut WasmWriter,
+                locals: &mut Vec<ValType>,
+                param_local_count: u32,
+            ) {
+                let node = wasm.tree()[node_index];
+                if let Nod::Branch { kind, range } = node.nod {
+                    if kind == BranchKind::Def {
+                        wasm.lookup_table[node_index] = Lookup::Local {
+                            index: locals.len() as u32 + param_local_count,
+                        };
+                        match simple_wasm_type(wasm.cart, wasm.tree(), wasm.tree()[node_index]) {
+                            SimpleWasmType::Span => {
+                                locals.push(ValType::I32);
+                                locals.push(ValType::I32);
+                            }
+                            _ => {
+                                locals.push(ValType::I32);
+                            }
+                        }
+                    }
+                    let range: Range<usize> = range.into();
+                    for kid_index in range {
+                        dig_locals(kid_index, wasm, locals, param_local_count);
+                    }
+                }
+            }
+            let body_index = range.start + 2;
+            dig_locals(body_index, self, &mut locals, param_local_count);
+            let mut func = Function::new_with_locals_types(locals);
+            // Body
+            // TODO Prepass to mark further locals in lookup.
             let Nod::Branch {
                 kind: BranchKind::Block,
                 range: body_range,
-            } = tree[range.start as usize + 2].nod
+            } = self.tree()[body_index].nod
             else {
                 panic!()
             };
             _ = body_range;
-            self.translate_any(&mut func, range.start as usize + 2);
+            self.translate_any(&mut func, body_index);
             // println!("body {}", body_range.end - body_range.start);
-            // // Params
-            // let Nod::Branch {
-            //     kind: BranchKind::Params,
-            //     range: params_range,
-            // } = tree[range.start].nod
-            // else {
-            //     panic!()
-            // };
-            // let params_range: Range<usize> = params_range.into();
-            // for param_index in params_range {
-            //     _ = params_range;
-            //     // fun.instruction(&Instruction)
-            // }
             // End
-        }
+            func
+        } else {
+            Function::new([])
+        };
         func.instruction(&Instruction::End);
         codes.function(&func);
     }
@@ -662,6 +709,21 @@ fn add_push_type(types: &mut TypeSection) -> u32 {
     let results = vec![ValType::I32];
     types.function(params, results);
     types.len() as u32 - 1
+}
+
+fn mark_local(node_index: usize, wasm: &mut WasmWriter, locals: &mut Vec<ValType>) {
+    wasm.lookup_table[node_index] = Lookup::Local {
+        index: locals.len() as u32,
+    };
+    match simple_wasm_type(wasm.cart, wasm.tree(), wasm.tree()[node_index]) {
+        SimpleWasmType::Span => {
+            locals.push(ValType::I32);
+            locals.push(ValType::I32);
+        }
+        _ => {
+            locals.push(ValType::I32);
+        }
+    }
 }
 
 fn mem_arg(align: u32) -> MemArg {

@@ -47,6 +47,7 @@
     local.get 1
   )
   (func (;4;) (type 4)
+    (local i32 i32)
     i32.const 5
     i32.const 4096
   )
