@@ -50,6 +50,8 @@
     (local i32 i32)
     i32.const 5
     i32.const 4096
+    local.set 1
+    local.set 0
   )
   (func (;5;) (type 5) (param i32 i32))
   (memory (;0;) 1)

@@ -540,6 +540,33 @@ impl<'a> WasmWriter<'a> {
     fn translate_any(&self, fun: &mut Function, index: usize) {
         let node = self.tree()[index];
         match node.nod {
+            Nod::Branch {
+                kind: BranchKind::Def,
+                range,
+            } => {
+                let range: Range<usize> = range.into();
+                if range.len() == 3 {
+                    self.translate_any(fun, range.end - 1);
+                    let Lookup::Local { index: local_index } = self.lookup_table[index] else {
+                        panic!()
+                    };
+                    match simple_wasm_type(self.cart, self.tree(), node) {
+                        SimpleWasmType::Span => {
+                            add_instructions(
+                                fun,
+                                &[
+                                    // Reverse order because we'd have loaded the pointer most recently.
+                                    Instruction::LocalSet(local_index + 1),
+                                    Instruction::LocalSet(local_index),
+                                ],
+                            );
+                        }
+                        _ => {
+                            fun.instruction(&Instruction::LocalSet(local_index));
+                        }
+                    }
+                }
+            }
             Nod::Branch { range, .. } => {
                 let range: Range<usize> = range.into();
                 for kid_index in range {
@@ -638,7 +665,6 @@ impl<'a> WasmWriter<'a> {
             dig_locals(body_index, self, &mut locals, param_local_count);
             let mut func = Function::new_with_locals_types(locals);
             // Body
-            // TODO Prepass to mark further locals in lookup.
             let Nod::Branch {
                 kind: BranchKind::Block,
                 range: body_range,
@@ -648,7 +674,6 @@ impl<'a> WasmWriter<'a> {
             };
             _ = body_range;
             self.translate_any(&mut func, body_index);
-            // println!("body {}", body_range.end - body_range.start);
             // End
             func
         } else {
@@ -674,6 +699,7 @@ fn align(size: u32, index: u32) -> u32 {
 fn add_codes(codes: &mut CodeSection, locals: &[(u32, ValType)], instructions: &[Instruction]) {
     let mut func = Function::new(locals.iter().copied());
     add_instructions(&mut func, instructions);
+    func.instruction(&Instruction::End);
     codes.function(&func);
 }
 
@@ -709,21 +735,6 @@ fn add_push_type(types: &mut TypeSection) -> u32 {
     let results = vec![ValType::I32];
     types.function(params, results);
     types.len() as u32 - 1
-}
-
-fn mark_local(node_index: usize, wasm: &mut WasmWriter, locals: &mut Vec<ValType>) {
-    wasm.lookup_table[node_index] = Lookup::Local {
-        index: locals.len() as u32,
-    };
-    match simple_wasm_type(wasm.cart, wasm.tree(), wasm.tree()[node_index]) {
-        SimpleWasmType::Span => {
-            locals.push(ValType::I32);
-            locals.push(ValType::I32);
-        }
-        _ => {
-            locals.push(ValType::I32);
-        }
-    }
 }
 
 fn mem_arg(align: u32) -> MemArg {
