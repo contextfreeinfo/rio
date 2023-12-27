@@ -541,6 +541,38 @@ impl<'a> WasmWriter<'a> {
         let node = self.tree()[index];
         match node.nod {
             Nod::Branch {
+                kind: BranchKind::Call,
+                range,
+            } => {
+                let range: Range<usize> = range.into();
+                let args_range = range.start + 1..range.end;
+                for arg_index in args_range {
+                    self.translate_any(fun, arg_index);
+                }
+                let mut handled = false;
+                match self.tree()[range.start].nod {
+                    Nod::Uid { module, num, .. } => {
+                        // TODO Instead track all modules.
+                        if module == 1 {
+                            // TODO Put these in a lookup table also?
+                            if num == self.cart.core_exports.print_fun.num {
+                                fun.instruction(&Instruction::Call(self.predefs.print_fun));
+                                handled = true;
+                            }
+                        } else if module == 0 || module == 2 {
+                            if let Lookup::Fun { index } = self.lookup_table[num as usize] {
+                                fun.instruction(&Instruction::Call(index));
+                                handled = true;
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                if !handled {
+                    println!("Call target@{} unhandled", range.start);
+                }
+            }
+            Nod::Branch {
                 kind: BranchKind::Def,
                 range,
             } => {
@@ -555,7 +587,7 @@ impl<'a> WasmWriter<'a> {
                             add_instructions(
                                 fun,
                                 &[
-                                    // Reverse order because we'd have loaded the pointer most recently.
+                                    // Reverse order because we'd have loaded the last value most recently.
                                     Instruction::LocalSet(local_index + 1),
                                     Instruction::LocalSet(local_index),
                                 ],
@@ -592,6 +624,24 @@ impl<'a> WasmWriter<'a> {
                         Instruction::I32Const(address as i32),
                     ],
                 );
+            }
+            Nod::Uid { module, num, .. } => {
+                if module == 0 || module == 2 {
+                    println!("Push @{num}");
+                    if let Lookup::Local { index: local_index } = self.lookup_table[num as usize] {
+                        println!("    local {local_index}");
+                        match simple_wasm_type(self.cart, self.tree(), self.tree()[index]) {
+                            SimpleWasmType::Span => {
+                                fun.instruction(&Instruction::LocalGet(local_index));
+                                fun.instruction(&Instruction::LocalGet(local_index + 1));
+                            }
+                            _ => {
+                                // TODO Check type.
+                                fun.instruction(&Instruction::LocalGet(local_index));
+                            }
+                        }
+                    }
+                }
             }
             _ => {}
         }

@@ -53,7 +53,10 @@
     local.set 1
     local.set 0
   )
-  (func (;5;) (type 5) (param i32 i32))
+  (func (;5;) (type 5) (param i32 i32)
+    call 1
+    call 1
+  )
   (memory (;0;) 1)
   (global (;0;) (mut i32) i32.const 4096)
   (export "memory" (memory 0))
