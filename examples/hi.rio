@@ -1,12 +1,12 @@
 main* = for() be
     message = "I say \"Hi!\""
-    print-twice(message)
-    print("")
+    print-twice(message, "")
 end
 
-print-twice = for(message: Text): Void be
+print-twice = for(message: Text, middle: Text): Void be
     # Both call forms are allowed, but whitespace matters.
     # `print (message)` would be different.
     print(message)
+    print(middle)
     print message
 end

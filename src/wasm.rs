@@ -682,7 +682,7 @@ impl<'a> WasmWriter<'a> {
             let mut locals = vec![];
             for param_index in params_range {
                 self.lookup_table[param_index] = Lookup::Local {
-                    index: locals.len() as u32,
+                    index: param_local_count,
                 };
                 match simple_wasm_type(self.cart, self.tree(), self.tree()[param_index]) {
                     SimpleWasmType::Span => {

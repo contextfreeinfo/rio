@@ -15,9 +15,6 @@ Block
         Call
           Id "print-twice"
           Id "message"
-        /Call
-        Call
-          Id "print"
           String ""
         /Call
       /Block
@@ -30,6 +27,11 @@ Block
       Params
         Def
           Id "message"
+          Id "Text"
+          None
+        /Def
+        Def
+          Id "middle"
           Id "Text"
           None
         /Def
@@ -48,6 +50,10 @@ Block
         /Call
         Call
           Id "print"
+          Id "middle"
+        /Call
+        Call
+          Id "print"
           Id "message"
         /Call
       /Block
@@ -56,4 +62,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 40
+Tree len: 45

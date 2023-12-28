@@ -41,13 +41,8 @@ Block
           Id "print-twice"
           RoundOpen "("
           Id "message"
-          RoundClose ")"
-        /Call
-        VSpace "\n"
-        HSpace "    "
-        Call
-          Id "print"
-          RoundOpen "("
+          Comma ","
+          HSpace " "
           StringParts
             StringEdge "\""
             StringEdge "\""
@@ -72,6 +67,14 @@ Block
         RoundOpen "("
         Typed
           Id "message"
+          Colon ":"
+          HSpace " "
+          Id "Text"
+        /Typed
+        Comma ","
+        HSpace " "
+        Typed
+          Id "middle"
           Colon ":"
           HSpace " "
           Id "Text"
@@ -107,6 +110,14 @@ Block
         HSpace "    "
         Call
           Id "print"
+          RoundOpen "("
+          Id "middle"
+          RoundClose ")"
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "print"
           HSpace " "
           Id "message"
         /Call
@@ -119,4 +130,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 99
+Tree len: 109
