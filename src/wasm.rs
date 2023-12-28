@@ -157,7 +157,7 @@ impl<'a> WasmWriter<'a> {
                     Nod::Leaf {
                         token:
                             Token {
-                                kind: TokenKind::StringText,
+                                kind: TokenKind::String,
                                 intern,
                             },
                     } => {
@@ -530,7 +530,7 @@ impl<'a> WasmWriter<'a> {
                 Nod::Leaf {
                     token:
                         Token {
-                            kind: TokenKind::StringText,
+                            kind: TokenKind::String,
                             intern,
                         },
                 } => {
@@ -619,7 +619,7 @@ impl<'a> WasmWriter<'a> {
             Nod::Leaf {
                 token:
                     Token {
-                        kind: TokenKind::StringText,
+                        kind: TokenKind::String,
                         intern,
                     },
             } => {

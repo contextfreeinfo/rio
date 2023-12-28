@@ -329,7 +329,7 @@ impl Parser {
                 None?;
             }
         });
-        self.wrap(BranchKind::String, start);
+        self.wrap(BranchKind::StringParts, start);
         debug!("/string");
     }
 

@@ -1,73 +1,68 @@
 Block
   Module "examples/hi.rio" 2
-  Def@49 :@47
-    Uid main@49* :@47
+  Def@45 :@43
+    Uid main@45* :@43
     None
-    Fun :@47
+    Fun :@43
       Params
       Params
-      Block :@43
-        Def@12
-          Uid message@12
+      Block :@39
+        Def@8 :@38
+          Uid message@8 :@38
           None
-          String
-            StringText "I say " :@42
-            StringEscape "\""
-            StringText "Hi!" :@42
-            StringEscape "\""
-          /String
+          String "I say \"Hi!\"" :@38
         /Def
-        Call :@43
-          Uid print-twice@50 :@44
-          Uid message@12
+        Call :@39
+          Uid print-twice@46 :@40
+          Uid message@8 :@38
         /Call
-        Call :@43
-          Uid print@1@53 :@44
-          String
+        Call :@39
+          Uid print@1@53 :@40
+          String "" :@38
         /Call
       /Block
     /Fun
   /Def
-  Def@50 :@44
-    Uid print-twice@50 :@44
+  Def@46 :@40
+    Uid print-twice@46 :@40
     None
-    Fun :@44
+    Fun :@40
       Params
-        Def@24 :@42
-          Uid message@24 :@42
-          Uid Text@1@49 :@46
-          None :@42
+        Def@20 :@38
+          Uid message@20 :@38
+          Uid Text@1@49 :@42
+          None :@38
         /Def
       /Params
       Params
-        Def@28 :@43
-          None :@43
-          Uid Void@1@51 :@46
-          None :@43
+        Def@24 :@39
+          None :@39
+          Uid Void@1@51 :@42
+          None :@39
         /Def
       /Params
-      Block :@43
-        Call :@43
-          Uid print@1@53 :@44
-          Uid message@24 :@42
+      Block :@39
+        Call :@39
+          Uid print@1@53 :@40
+          Uid message@20 :@38
         /Call
-        Call :@43
-          Uid print@1@53 :@44
-          Uid message@24 :@42
+        Call :@39
+          Uid print@1@53 :@40
+          Uid message@20 :@38
         /Call
       /Block
     /Fun
   /Def
   Types
-    Uid@42 Text@1@49
-    Uid@43 Void@1@51
-    FunType@44 :@43
-      None :@42
-    FunType@45
-    Uid@46 Type@1@50
-    FunType@47 :@43
+    Uid@38 Text@1@49
+    Uid@39 Void@1@51
+    FunType@40 :@39
+      None :@38
+    FunType@41
+    Uid@42 Type@1@50
+    FunType@43 :@39
   /Types
 /Block
 
 Node size: 20
-Tree len: 52
+Tree len: 48

@@ -43,7 +43,7 @@ pub enum TokenKind {
     RoundOpen,
     Star,
     // TODO String parts and lex mode stack. Is call stack good enough?
-    StringText,
+    String,
     StringEdge,
     StringEscape,
     StringEscaper,
@@ -157,7 +157,7 @@ impl<'a> Lexer<'a> {
         loop {
             match source.peek() {
                 Some('\\') => {
-                    self.push_maybe(TokenKind::StringText);
+                    self.push_maybe(TokenKind::String);
                     self.next(source);
                     self.push(TokenKind::StringEscaper);
                     if let Some(_) = source.peek() {
@@ -166,7 +166,7 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 Some('"') | None => {
-                    self.push_maybe(TokenKind::StringText);
+                    self.push_maybe(TokenKind::String);
                     self.next(source);
                     break;
                 }

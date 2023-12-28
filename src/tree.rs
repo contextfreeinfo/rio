@@ -379,7 +379,7 @@ pub enum BranchKind {
     Params,
     ParamTypes,
     Pub,
-    String,
+    StringParts,
     Struct,
     Type, // FunType | GenericCall | Uid
     Typed,

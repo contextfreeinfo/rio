@@ -47,14 +47,16 @@
     local.get 1
   )
   (func (;4;) (type 5)
-    (local i32)
-    i32.const 6
+    (local i32 i32)
+    i32.const 11
     i32.const 4096
-    i32.const 3
-    i32.const 4104
+    local.set 1
     local.set 0
     local.get 0
+    local.get 1
     call 5
+    i32.const 0
+    i32.const 4108
     call 1
   )
   (func (;5;) (type 4) (param i32 i32)
@@ -69,6 +71,6 @@
   (global (;0;) (mut i32) i32.const 4096)
   (export "memory" (memory 0))
   (export "_start" (func 4))
-  (data (;0;) (i32.const 4096) "I say \00")
-  (data (;1;) (i32.const 4104) "Hi!\00")
+  (data (;0;) (i32.const 4096) "I say \22Hi!\22\00")
+  (data (;1;) (i32.const 4108) "\00")
 )

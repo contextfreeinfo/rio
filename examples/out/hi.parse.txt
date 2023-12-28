@@ -24,16 +24,16 @@ Block
           HSpace " "
           Define "="
           HSpace " "
-          String
+          StringParts
             StringEdge "\""
-            StringText "I say "
+            String "I say "
             StringEscaper "\\"
             StringEscape "\""
-            StringText "Hi!"
+            String "Hi!"
             StringEscaper "\\"
             StringEscape "\""
             StringEdge "\""
-          /String
+          /StringParts
         /Def
         VSpace "\n"
         HSpace "    "
@@ -48,10 +48,10 @@ Block
         Call
           Id "print"
           RoundOpen "("
-          String
+          StringParts
             StringEdge "\""
             StringEdge "\""
-          /String
+          /StringParts
           RoundClose ")"
         /Call
         VSpace "\n"
