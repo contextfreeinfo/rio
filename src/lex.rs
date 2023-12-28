@@ -2,6 +2,8 @@ use std::{fmt::Debug, iter::Peekable, str::Chars, sync::Arc};
 
 use lasso::{Spur, ThreadedRodeo};
 
+use crate::Cart;
+
 pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
 
@@ -42,26 +44,27 @@ pub enum TokenKind {
     Star,
     // TODO String parts and lex mode stack. Is call stack good enough?
     String,
+    StringEdge,
+    StringEscape,
+    StringEscaper,
     VSpace,
 }
 
-#[derive(Default)]
-pub struct Lexer {
-    buffer: String,
-    pub interner: Interner,
+pub struct Lexer<'a> {
+    pub cart: &'a mut Cart,
     pub tokens: Vec<Token>,
 }
 
-impl Lexer {
-    pub fn new(interner: Interner) -> Self {
+impl<'a> Lexer<'a> {
+    pub fn new(cart: &'a mut Cart) -> Self {
         Self {
-            interner,
-            ..Default::default()
+            cart,
+            tokens: vec![],
         }
     }
 
     pub fn lex(&mut self, source: &str) {
-        self.buffer.clear();
+        self.buffer().clear();
         self.tokens.clear();
         let mut source = source.chars().peekable();
         loop {
@@ -99,6 +102,10 @@ impl Lexer {
         self.trim(&mut source);
     }
 
+    fn buffer(&mut self) -> &mut String {
+        &mut self.cart.buffer
+    }
+
     fn comment(&mut self, source: &mut Peekable<Chars>) {
         self.trim(source);
         loop {
@@ -126,35 +133,54 @@ impl Lexer {
     fn next(&mut self, source: &mut Peekable<Chars>) -> Option<char> {
         let next = source.next();
         if let Some(c) = next {
-            self.buffer.push(c);
+            self.buffer().push(c);
         }
         next
     }
 
     fn push(&mut self, kind: TokenKind) {
-        let intern = self.interner.get_or_intern(self.buffer.as_str());
-        self.buffer.clear();
+        let val = self.cart.buffer.as_str();
+        let intern = self.cart.interner.get_or_intern(val);
+        self.buffer().clear();
         self.tokens.push(Token::new(kind, intern));
     }
 
+    fn push_maybe(&mut self, kind: TokenKind) {
+        if !self.buffer().is_empty() {
+            self.push(kind);
+        }
+    }
+
     fn string(&mut self, source: &mut Peekable<Chars>) {
-        self.trim(source);
+        self.trim_push(source, TokenKind::StringEdge);
+        // TODO Better string lexing.
         loop {
             match source.peek() {
+                Some('\\') => {
+                    self.push_maybe(TokenKind::String);
+                    self.next(source);
+                    self.push(TokenKind::StringEscaper);
+                    if let Some(_) = source.peek() {
+                        self.next(source);
+                        self.push(TokenKind::StringEscape);
+                    }
+                }
                 Some('"') | None => {
+                    self.push_maybe(TokenKind::String);
                     self.next(source);
                     break;
                 }
-                _ => {}
+                _ => {
+                    self.next(source);
+                }
             }
-            self.next(source);
         }
-        self.push(TokenKind::String);
+        self.push(TokenKind::StringEdge);
     }
 
     fn trim(&mut self, source: &mut Peekable<Chars>) {
-        if !self.buffer.is_empty() {
-            let kind = match self.buffer.as_str() {
+        if !self.buffer().is_empty() {
+            let kind = match self.buffer().as_str() {
                 "be" => TokenKind::Be,
                 "end" => TokenKind::End,
                 "for" => TokenKind::Fun,

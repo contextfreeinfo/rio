@@ -1,64 +1,68 @@
 Block
   Module "examples/hi.rio" 2
-  Def@42 :@40
-    Uid main@42* :@40
+  Def@45 :@43
+    Uid main@45* :@43
     None
-    Fun :@40
+    Fun :@43
       Params
       Params
-      Block :@38
-        Def@6 :@35
-          Uid message@6 :@35
+      Block :@39
+        Def@8 :@38
+          Uid message@8 :@38
           None
-          String "\"Hi!\"" :@35
+          String "I say \"Hi!\"" :@38
         /Def
-        Call :@38
-          Uid print-twice@43 :@39
-          Uid message@6 :@35
+        Call :@39
+          Uid print-twice@46 :@40
+          Uid message@8 :@38
+        /Call
+        Call :@39
+          Uid print@1@53 :@40
+          String "" :@38
         /Call
       /Block
     /Fun
   /Def
-  Def@43 :@39
-    Uid print-twice@43 :@39
+  Def@46 :@40
+    Uid print-twice@46 :@40
     None
-    Fun :@39
+    Fun :@40
       Params
-        Def@17 :@35
-          Uid message@17 :@35
-          Uid Text@1@49 :@37
-          None :@35
-        /Def
-      /Params
-      Params
-        Def@21 :@38
-          None :@38
-          Uid Void@1@51 :@37
+        Def@20 :@38
+          Uid message@20 :@38
+          Uid Text@1@49 :@42
           None :@38
         /Def
       /Params
-      Block :@38
-        Call :@38
-          Uid print@1@53 :@39
-          Uid message@17 :@35
+      Params
+        Def@24 :@39
+          None :@39
+          Uid Void@1@51 :@42
+          None :@39
+        /Def
+      /Params
+      Block :@39
+        Call :@39
+          Uid print@1@53 :@40
+          Uid message@20 :@38
         /Call
-        Call :@38
-          Uid print@1@53 :@39
-          Uid message@17 :@35
+        Call :@39
+          Uid print@1@53 :@40
+          Uid message@20 :@38
         /Call
       /Block
     /Fun
   /Def
   Types
-    Uid@35 Text@1@49
-    FunType@36
-    Uid@37 Type@1@50
-    Uid@38 Void@1@51
-    FunType@39 :@38
-      None :@35
-    FunType@40 :@38
+    Uid@38 Text@1@49
+    Uid@39 Void@1@51
+    FunType@40 :@39
+      None :@38
+    FunType@41
+    Uid@42 Type@1@50
+    FunType@43 :@39
   /Types
 /Block
 
 Node size: 20
-Tree len: 45
+Tree len: 48

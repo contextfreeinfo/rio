@@ -54,7 +54,7 @@ impl Parser {
             TokenKind::Be | TokenKind::CurlyOpen | TokenKind::RoundOpen => self.block(source)?,
             TokenKind::Fun => self.fun(source)?,
             TokenKind::Id => self.advance(source),
-            TokenKind::String => self.advance(source),
+            TokenKind::StringEdge => self.string(source),
             _ => self.advance(source),
         }
         debug!("/atom");
@@ -316,6 +316,21 @@ impl Parser {
         }
         debug!("/starred");
         Some(())
+    }
+
+    fn string(&mut self, source: &mut Peekable<Iter<'_, Token>>) {
+        debug!("string");
+        let start = self.builder().pos();
+        self.advance(source);
+        loop_some!({
+            let next = peek(source)?;
+            self.advance(source);
+            if next == TokenKind::StringEdge {
+                None?;
+            }
+        });
+        self.wrap(BranchKind::StringParts, start);
+        debug!("/string");
     }
 
     fn typed(&mut self, source: &mut Tokens) -> Option<()> {

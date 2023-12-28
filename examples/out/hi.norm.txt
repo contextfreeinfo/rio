@@ -10,11 +10,15 @@ Block
         Def
           Id "message"
           None
-          String "\"Hi!\""
+          String "I say \"Hi!\""
         /Def
         Call
           Id "print-twice"
           Id "message"
+        /Call
+        Call
+          Id "print"
+          String ""
         /Call
       /Block
     /Fun
@@ -52,4 +56,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 37
+Tree len: 40

@@ -1,8 +1,8 @@
 use std::ops::Range;
 
 use crate::{
-    lex::TokenKind,
-    tree::{BranchKind, Nod, Node, TreeBuilder, Type},
+    lex::{Token, TokenKind},
+    tree::{BranchKind, Nod, Node, Nody, TreeBuilder, Type},
     Cart,
 };
 
@@ -103,6 +103,43 @@ impl Normer {
     fn trim_at(&mut self, tree: &[Nod], index: usize) -> Option<()> {
         let root = *tree.last()?;
         match root {
+            Nod::Branch {
+                kind: BranchKind::StringParts,
+                range,
+            } => {
+                let range: Range<usize> = range.into();
+                let buffer = &mut self.cart.buffer;
+                buffer.clear();
+                for kid_index in range.clone() {
+                    if let Nod::Leaf { token } = tree[kid_index].nod() {
+                        match token {
+                            Token {
+                                kind: TokenKind::StringEscape,
+                                intern,
+                            } => {
+                                let value = match self.cart.interner[intern].chars().next().unwrap()
+                                {
+                                    'n' => '\n',
+                                    ch => ch,
+                                };
+                                buffer.push(value);
+                            }
+                            Token {
+                                kind: TokenKind::String,
+                                intern,
+                            } => {
+                                buffer.push_str(&self.cart.interner[intern]);
+                            }
+                            // Skip others.
+                            _ => {}
+                        }
+                    }
+                }
+                let intern = self.cart.interner.get_or_intern(&buffer);
+                buffer.clear();
+                self.builder()
+                    .push_at(Token::new(TokenKind::String, intern), tree.len());
+            }
             Nod::Branch { kind, range, .. } => {
                 // TODO Change Typed to Def with separate type?
                 // TODO Change all Def to triples? Quads? Kids with meta lists?
