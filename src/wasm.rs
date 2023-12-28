@@ -537,7 +537,8 @@ impl<'a> WasmWriter<'a> {
                     // TODO Tokenize string literals more for better content.
                     // TODO If we already have a reference to this intern, reuse that. Need a map?
                     let text = &wasm.cart.interner[intern];
-                    let index = align(4, wasm.data_offset);
+                    let index = wasm.data_offset;
+                    // let index = align(4, wasm.data_offset); // Had included 4-byte size before.
                     wasm.lookup_table[tree.len() - 1] = Lookup::Datum { address: index };
                     // Space for raw data and null char
                     wasm.data_offset = index + text.len() as u32 + 1;
@@ -749,6 +750,7 @@ impl<'a> WasmWriter<'a> {
     }
 }
 
+#[allow(dead_code)] // We'll definitely use this later.
 fn align(size: u32, index: u32) -> u32 {
     index
         + match index % size {
