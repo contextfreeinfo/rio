@@ -260,8 +260,19 @@ impl<'a> WasmWriter<'a> {
                     }
                 }
                 let range: Range<usize> = range.into();
-                for kid_index in range {
+                for kid_index in range.clone() {
                     dig(&tree[0..=kid_index], wasm, functions);
+                }
+                // After kids, possibly propagate up to def.
+                if kind == BranchKind::Def && range.len() == 3 {
+                    let last = range.end - 1;
+                    if let Nod::Branch {
+                        kind: BranchKind::Fun,
+                        ..
+                    } = tree[last].nod
+                    {
+                        wasm.lookup_table[tree.len() - 1] = wasm.lookup_table[last];
+                    }
                 }
             }
         }
@@ -560,7 +571,7 @@ impl<'a> WasmWriter<'a> {
                                 handled = true;
                             }
                         } else if module == 0 || module == 2 {
-                            if let Lookup::Fun { index } = self.lookup_table[num as usize] {
+                            if let Lookup::Fun { index } = self.lookup_table[num as usize - 1] {
                                 fun.instruction(&Instruction::Call(index));
                                 handled = true;
                             }
@@ -627,9 +638,9 @@ impl<'a> WasmWriter<'a> {
             }
             Nod::Uid { module, num, .. } => {
                 if module == 0 || module == 2 {
-                    println!("Push @{num}");
-                    if let Lookup::Local { index: local_index } = self.lookup_table[num as usize] {
-                        println!("    local {local_index}");
+                    if let Lookup::Local { index: local_index } =
+                        self.lookup_table[num as usize - 1]
+                    {
                         match simple_wasm_type(self.cart, self.tree(), self.tree()[index]) {
                             SimpleWasmType::Span => {
                                 fun.instruction(&Instruction::LocalGet(local_index));

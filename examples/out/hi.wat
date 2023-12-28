@@ -52,9 +52,16 @@
     i32.const 4096
     local.set 1
     local.set 0
+    local.get 0
+    local.get 1
+    call 5
   )
   (func (;5;) (type 5) (param i32 i32)
+    local.get 0
+    local.get 1
     call 1
+    local.get 0
+    local.get 1
     call 1
   )
   (memory (;0;) 1)
