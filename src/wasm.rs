@@ -201,34 +201,6 @@ impl<'a> WasmWriter<'a> {
                 }
             }
         }
-        // for (node_index, node) in self.cart.modules[1].tree.iter().enumerate() {
-        //     if let Nod::Branch {
-        //         kind: BranchKind::Fun,
-        //         ..
-        //     } = node.nod
-        //     {
-        //         if let Lookup::Fun { index: fun_index } = self.lookup_table[node_index] {
-        //             // exports.ex
-        //         }
-        //     }
-        // }
-        // fn dig(tree: &[Node], wasm: &mut WasmWriter, exports: &mut ExportSection) {
-        //     let node = tree.last().unwrap();
-        //     if let Nod::Branch { kind, range } = node.nod {
-        //         if kind == BranchKind::Fun && node.typ.0 != 0 {
-        //             let typ = node.typ.0 as usize - 1 - wasm.type_offset;
-        //             let typ = wasm.type_table[typ];
-        //             if typ != 0 {
-        //                 // functions.function(typ as u32 - 1);
-        //             }
-        //         }
-        //         let range: Range<usize> = range.into();
-        //         for kid_index in range {
-        //             dig(&tree[0..=kid_index], wasm, exports);
-        //         }
-        //     }
-        // }
-        // dig(&self.cart.modules[1].tree, self, &mut exports);
         self.module.section(&exports);
     }
 
