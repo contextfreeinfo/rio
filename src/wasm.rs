@@ -70,10 +70,12 @@ struct WasmWriter<'a> {
 struct Predefs {
     fd_write_fun: u32,
     fd_write_type: Option<EntityType>,
+    newline_address: u32,
     pop_type: u32,
     pop_fun: u32,
     print_fun: u32,
     print_type: u32,
+    print_inline_fun: u32,
     push_fun: u32,
     push_type: u32,
 }
@@ -128,6 +130,7 @@ impl<'a> WasmWriter<'a> {
     fn build_codes(&mut self) {
         let mut codes = CodeSection::new();
         self.code_print(&mut codes);
+        self.code_print_inline(&mut codes);
         self.code_pop(&mut codes);
         self.code_push(&mut codes);
         fn dig(node: Node, wasm: &mut WasmWriter, codes: &mut CodeSection) {
@@ -149,7 +152,12 @@ impl<'a> WasmWriter<'a> {
         // TODO Option to just concatenate everything into one?
         // TODO Probably makes smaller file, but easier to dig around this way.
         let mut data = DataSection::new();
-        let mut buffer = vec![];
+        data.active(
+            0,
+            &ConstExpr::i32_const(self.predefs.newline_address as i32),
+            NEWLINE.as_bytes().iter().copied(),
+        );
+        let mut buffer = vec![]; // TODO Reuse cart buffer? String vs Vec<u8>?
         for (index, lookup) in self.lookup_table.iter().enumerate() {
             if let Lookup::Datum { address } = *lookup {
                 let node = self.tree()[index];
@@ -208,6 +216,7 @@ impl<'a> WasmWriter<'a> {
         let mut functions = FunctionSection::new();
         // Predef funs
         self.predefs.print_fun = self.add_fun(&mut functions, self.predefs.print_type);
+        self.predefs.print_inline_fun = self.add_fun(&mut functions, self.predefs.print_type);
         self.predefs.pop_fun = self.add_fun(&mut functions, self.predefs.pop_type);
         self.predefs.push_fun = self.add_fun(&mut &mut functions, self.predefs.push_type);
         // User funs
@@ -437,6 +446,22 @@ impl<'a> WasmWriter<'a> {
     }
 
     fn code_print(&self, codes: &mut CodeSection) {
+        let (text_len, text) = (0, 1);
+        add_codes(
+            codes,
+            &[],
+            &[
+                Instruction::LocalGet(text_len),
+                Instruction::LocalGet(text),
+                Instruction::Call(self.predefs.print_inline_fun),
+                Instruction::I32Const(NEWLINE.len() as i32 - 1),
+                Instruction::I32Const(self.predefs.newline_address as i32),
+                Instruction::Call(self.predefs.print_inline_fun),
+            ],
+        );
+    }
+
+    fn code_print_inline(&self, codes: &mut CodeSection) {
         let (text_len, text, iovec, nwritten) = (0, 1, 2, 3);
         add_codes(
             codes,
@@ -490,6 +515,10 @@ impl<'a> WasmWriter<'a> {
     }
 
     fn scrape_data(&mut self) {
+        // Add a "\n" for newline printing convenience.
+        self.predefs.newline_address = self.data_offset;
+        self.data_offset += NEWLINE.len() as u32;
+        // Now check in program.
         fn dig(tree: &[Node], wasm: &mut WasmWriter) {
             let node = tree.last().unwrap();
             match node.nod {
@@ -806,3 +835,5 @@ fn simple_wasm_type(cart: &Cart, tree: &[Node], node: Node) -> SimpleWasmType {
     // TODO I32 vs float types vs ...
     return SimpleWasmType::Other;
 }
+
+const NEWLINE: &str = "\n\0";
