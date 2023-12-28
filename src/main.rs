@@ -11,7 +11,7 @@ use std::{
 use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
-use lex::{Intern, Interner};
+use lex::{Intern, Interner, Token};
 use link::link_modules;
 use norm::Normer;
 use run::{CoreExports, Module, Runner};
@@ -68,6 +68,7 @@ fn main() -> Result<()> {
 }
 
 pub struct Cart {
+    pub buffer: String,
     pub core_exports: CoreExports,
     pub interner: Interner,
     pub modules: Vec<Module>,
@@ -83,6 +84,7 @@ fn run_app(args: &BuildArgs) -> Result<()> {
     interner.get_or_intern("");
     let tree_builder = TreeBuilder::default();
     let cart = Cart {
+        buffer: String::new(),
         core_exports: Default::default(),
         interner: interner.clone(),
         modules: vec![],
@@ -110,14 +112,15 @@ fn run_app(args: &BuildArgs) -> Result<()> {
     Ok(())
 }
 
-fn build(args: &BuildArgs, name: &str, cart: Cart) -> Result<Cart> {
+fn build(args: &BuildArgs, name: &str, mut cart: Cart) -> Result<Cart> {
     let interner = cart.interner.clone();
     // Lex
     // TODO Reserver lexer somewhere to reuse its resources?
-    let mut lexer = Lexer::new(interner.clone());
+    let mut lexer = Lexer::new(&mut cart);
     lex(name, &mut lexer)?;
+    let tokens = lexer.tokens;
     // Parse
-    let (parsed_tree, cart) = parse(cart, &lexer);
+    let (parsed_tree, cart) = parse(cart, &tokens);
     dump_tree("parse", args, name, &parsed_tree, interner.as_ref())?;
     // Norm
     let (mut tree, mut cart) = norm(cart, parsed_tree);
@@ -151,9 +154,9 @@ fn lex(name: &str, lexer: &mut Lexer) -> Result<(), Error> {
     Ok(())
 }
 
-fn parse(cart: Cart, lexer: &Lexer) -> (Vec<Nod>, Cart) {
+fn parse(cart: Cart, tokens: &[Token]) -> (Vec<Nod>, Cart) {
     let mut parser = parse::Parser::new(cart);
-    parser.parse(&lexer.tokens);
+    parser.parse(tokens);
     let mut parsed_tree = Vec::<Nod>::with_capacity(parser.cart.tree_builder.nodes.len());
     parsed_tree.extend(parser.cart.tree_builder.nodes.iter().map(|n| n.nod()));
     (parsed_tree, parser.cart)

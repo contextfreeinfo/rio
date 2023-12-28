@@ -276,7 +276,7 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
             }
         }
         Nod::Leaf { token } => match token.kind {
-            TokenKind::String => {
+            TokenKind::StringText => {
                 if typ.0 == 0 {
                     typ = build_type(runner, &[runner.cart.core_exports.text_type.into()]).unwrap();
                 }

@@ -132,6 +132,8 @@ impl Normer {
                 | TokenKind::RoundClose
                 | TokenKind::RoundOpen
                 | TokenKind::Star
+                | TokenKind::StringEdge
+                | TokenKind::StringEscaper
                 | TokenKind::VSpace => {}
                 _ => self.builder().push_at(token, tree.len()),
             },

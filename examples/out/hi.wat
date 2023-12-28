@@ -3,8 +3,8 @@
   (type (;1;) (func (param i32)))
   (type (;2;) (func (param i32 i32)))
   (type (;3;) (func (param i32) (result i32)))
-  (type (;4;) (func))
-  (type (;5;) (func (param i32 i32)))
+  (type (;4;) (func (param i32 i32)))
+  (type (;5;) (func))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func (;1;) (type 2) (param i32 i32)
     (local i32 i32)
@@ -46,17 +46,18 @@
     global.set 0
     local.get 1
   )
-  (func (;4;) (type 4)
-    (local i32 i32)
-    i32.const 5
+  (func (;4;) (type 5)
+    (local i32)
+    i32.const 6
     i32.const 4096
-    local.set 1
+    i32.const 3
+    i32.const 4104
     local.set 0
     local.get 0
-    local.get 1
     call 5
+    call 1
   )
-  (func (;5;) (type 5) (param i32 i32)
+  (func (;5;) (type 4) (param i32 i32)
     local.get 0
     local.get 1
     call 1
@@ -68,5 +69,6 @@
   (global (;0;) (mut i32) i32.const 4096)
   (export "memory" (memory 0))
   (export "_start" (func 4))
-  (data (;0;) (i32.const 4096) "\22Hi!\22\00")
+  (data (;0;) (i32.const 4096) "I say \00")
+  (data (;1;) (i32.const 4104) "Hi!\00")
 )

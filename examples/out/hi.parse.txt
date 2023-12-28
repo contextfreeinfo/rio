@@ -24,14 +24,35 @@ Block
           HSpace " "
           Define "="
           HSpace " "
-          String "\"Hi!\""
+          String
+            StringEdge "\""
+            StringText "I say "
+            StringEscaper "\\"
+            StringEscape "\""
+            StringText "Hi!"
+            StringEscaper "\\"
+            StringEscape "\""
+            StringEdge "\""
+          /String
         /Def
         VSpace "\n"
         HSpace "    "
         Call
           Id "print-twice"
-          HSpace " "
+          RoundOpen "("
           Id "message"
+          RoundClose ")"
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "print"
+          RoundOpen "("
+          String
+            StringEdge "\""
+            StringEdge "\""
+          /String
+          RoundClose ")"
         /Call
         VSpace "\n"
         End "end"
@@ -98,4 +119,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 81
+Tree len: 99

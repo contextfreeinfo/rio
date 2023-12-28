@@ -1,6 +1,7 @@
 main* = for() be
-    message = "Hi!"
-    print-twice message
+    message = "I say \"Hi!\""
+    print-twice(message)
+    print("")
 end
 
 print-twice = for(message: Text): Void be
