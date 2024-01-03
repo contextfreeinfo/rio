@@ -4,7 +4,7 @@ main* = for() be
 end
 
 print-twice = for(message: Text, middle: Text): Void be
-    # Both call forms below are allowed.
+    # Both call syntax forms below mean the same thing.
     print(message)
     print(middle)
     print message
