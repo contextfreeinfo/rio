@@ -25,6 +25,27 @@ Block
   Def
     Typed
       Pub
+        Id "Int32"
+        Star "*"
+      /Pub
+      Colon ":"
+      HSpace " "
+      Id "Type"
+      HSpace " "
+    /Typed
+    Define "="
+    HSpace " "
+    Call
+      Id "native"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Typed
+      Pub
         Id "Text"
         Star "*"
       /Pub
@@ -168,4 +189,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 136
+Tree len: 153

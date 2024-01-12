@@ -1,6 +1,8 @@
 # Function<Struct, Struct>
 Function*: Type = native()
 
+Int32*: Type = native()
+
 Text*: Type = native()
 
 # Enum???

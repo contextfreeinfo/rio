@@ -61,6 +61,7 @@ impl Module {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CoreExports {
     pub function_type: ScopeEntry,
+    pub int32_type: ScopeEntry,
     pub native_fun: ScopeEntry,
     pub print_fun: ScopeEntry,
     pub text_type: ScopeEntry,
@@ -76,6 +77,7 @@ impl CoreExports {
         };
         CoreExports {
             function_type: get("Function"),
+            int32_type: get("Int32"),
             native_fun: get("native"),
             print_fun: get("print"),
             text_type: get("Text"),

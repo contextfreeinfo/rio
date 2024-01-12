@@ -8,6 +8,13 @@ Block
   /Def
   Def
     Pub
+      Id "Int32"
+    Id "Type"
+    Call
+      Id "native"
+  /Def
+  Def
+    Pub
       Id "Text"
     Id "Type"
     Call
@@ -68,4 +75,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 53
+Tree len: 59

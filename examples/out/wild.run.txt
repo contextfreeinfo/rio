@@ -220,17 +220,17 @@ Block
     Id "items.each"
   /Call
   Call :@144
-    Uid print@1@53 :@149
+    Uid print@1@58 :@149
     Id "item"
   /Call
   Types
-    Uid@144 Void@1@51
+    Uid@144 Void@1@56
     FunType@145 :@144
     FunType@146 :@144
       None
     FunType@147
       None
-    Uid@148 Text@1@49
+    Uid@148 Text@1@54
     FunType@149 :@144
       None :@148
   /Types
