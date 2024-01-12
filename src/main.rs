@@ -186,13 +186,14 @@ where
         .any(|dump| matches!(dump, DumpOption::Trees))
     {
         if let Some(outdir) = &args.outdir {
-            create_dir_all(outdir)?;
             let name = Path::new(name)
                 .file_stem()
                 .ok_or(Error::msg("no name"))?
                 .to_str()
                 .ok_or(Error::msg("bad name"))?;
-            let path = Path::new(outdir).join(format!("{name}.{stage}.txt"));
+            let subdir = Path::new(outdir).join(name);
+            create_dir_all(subdir.clone())?;
+            let path = subdir.join(format!("{name}.{stage}.txt"));
             let file = File::create(path)?;
             let mut buf = BufWriter::new(file);
             write_tree(&mut buf, &tree, map)?;

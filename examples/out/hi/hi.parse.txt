@@ -94,10 +94,7 @@ Block
         Be "be"
         VSpace "\n"
         HSpace "    "
-        Comment "# Both call forms are allowed, but whitespace matters."
-        VSpace "\n"
-        HSpace "    "
-        Comment "# `print (message)` would be different."
+        Comment "# Both call syntax forms below mean the same thing."
         VSpace "\n"
         HSpace "    "
         Call
@@ -130,4 +127,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 109
+Tree len: 106
