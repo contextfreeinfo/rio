@@ -4,8 +4,7 @@ main* = for() be
 end
 
 print-twice = for(message: Text, middle: Text): Void be
-    # Both call forms are allowed, but whitespace matters.
-    # `print (message)` would be different.
+    # Both call syntax forms below mean the same thing.
     print(message)
     print(middle)
     print message
