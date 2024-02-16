@@ -43,7 +43,7 @@ fn build_and_run(profile: &str, cli: &Cli) {
     // Report
     report_build(&rio, start.elapsed());
     // Run
-    for example in ["hi", "wild"] {
+    for example in ["branch", "hi", "wild"] {
         run_example(&rio, example, cli);
     }
 }

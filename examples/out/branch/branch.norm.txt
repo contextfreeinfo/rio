@@ -1,0 +1,51 @@
+Block
+  Def
+    Pub
+      Id "main"
+    None
+    Fun
+      Params
+      Params
+      Block
+        Def
+          Id "n"
+          None
+          Id "2"
+        /Def
+        Def
+          Id "message"
+          None
+          Call
+            Id "branch"
+            Id "on"
+          /Call
+        /Def
+        Call
+          Id "case"
+          Id "n"
+          Id "<"
+          Id "0"
+          String "negative"
+        /Call
+        Call
+          Id "case"
+          Id "n"
+          Id ">"
+          Id "0"
+          String "positive"
+        /Call
+        Call
+          Id "else"
+          String "zero"
+        /Call
+      /Block
+    /Fun
+  /Def
+  Call
+    Id "print"
+    Id "message"
+  /Call
+/Block
+
+Node size: 20
+Tree len: 37

@@ -1,0 +1,107 @@
+Block
+  Def
+    Pub
+      Id "main"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        RoundClose ")"
+      /Params
+      HSpace " "
+      Params
+      Block
+        Be "be"
+        VSpace "\n"
+        HSpace "    "
+        Def
+          Id "n"
+          HSpace " "
+          Define "="
+          HSpace " "
+          Id "2"
+        /Def
+        VSpace "\n"
+        HSpace "    "
+        Def
+          Id "message"
+          HSpace " "
+          Define "="
+          HSpace " "
+          Call
+            Id "branch"
+            HSpace " "
+            Id "on"
+          /Call
+        /Def
+        VSpace "\n"
+        HSpace "        "
+        Call
+          Id "case"
+          HSpace " "
+          Id "n"
+          HSpace " "
+          Id "<"
+          HSpace " "
+          Id "0"
+          HSpace " "
+          StringParts
+            StringEdge "\""
+            String "negative"
+            StringEdge "\""
+          /StringParts
+        /Call
+        VSpace "\n"
+        HSpace "        "
+        Call
+          Id "case"
+          HSpace " "
+          Id "n"
+          HSpace " "
+          Id ">"
+          HSpace " "
+          Id "0"
+          HSpace " "
+          StringParts
+            StringEdge "\""
+            String "positive"
+            StringEdge "\""
+          /StringParts
+        /Call
+        VSpace "\n"
+        HSpace "        "
+        Call
+          Id "else"
+          HSpace " "
+          StringParts
+            StringEdge "\""
+            String "zero"
+            StringEdge "\""
+          /StringParts
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        End "end"
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  HSpace "    "
+  Call
+    Id "print"
+    RoundOpen "("
+    Id "message"
+    RoundClose ")"
+  /Call
+  VSpace "\n"
+  End "end"
+  VSpace "\n"
+/Block
+
+Node size: 12
+Tree len: 88

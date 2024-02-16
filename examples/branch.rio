@@ -1,0 +1,9 @@
+main* = for() be
+    n = 2
+    message = branch on
+        case n < 0 "negative"
+        case n > 0 "positive"
+        else "zero"
+    end
+    print(message)
+end

@@ -1,17 +1,132 @@
 Block
   Def
     Pub
-      Id "Function"
-    Id "Type"
+      Id "Case"
+    None
     Call
-      Id "native"
+      Id "for<Value>"
+      Block
+        Call
+          Id "struct"
+          Id "of"
+        /Call
+      /Block
+    /Call
+  /Def
+  Def
+    Id "claim"
+    Id "Claim"
+    None
+  /Def
+  Def
+    Id "value"
+    Id "Value"
+    None
   /Def
   Def
     Pub
+      Id "Claim"
+    None
+    Id "Either<Void"
+  /Def
+  Id "Void>"
+  Def
+    Pub
+      Id "Either"
+    None
+    Id "for<YesValue"
+  /Def
+  Call
+    Id "NoValue>"
+    Block
+      Call
+        Id "Yes<YesValue>"
+        Id "|"
+        Id "No<NoValue>"
+      /Call
+    /Block
+  /Call
+  Def
+    Pub
+      Id "Function"
+    None
+    Id "for<ArgTypes"
+  /Def
+  Call
+    Id "ReturnType>"
+    Block
+      Call
+        Id "class"
+        Id "of"
+      /Call
+    /Block
+  /Call
+  Def
+    Pub
       Id "Int32"
-    Id "Type"
+    None
     Call
-      Id "native"
+      Id "class"
+      Id "of"
+    /Call
+  /Def
+  Def
+    Id "add"
+    None
+    Fun
+      Params
+        Def
+          Id "other"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    Pub
+      Id "List"
+    None
+    Call
+      Id "for<Item>"
+      Block
+        Call
+          Id "class"
+          Id "of"
+        /Call
+      /Block
+    /Call
+  /Def
+  Def
+    Pub
+      Id "No"
+    None
+    Call
+      Id "for<Value>"
+      Block
+        Call
+          Id "ordered"
+          Id "struct"
+          Id "of"
+        /Call
+      /Block
+    /Call
+  /Def
+  Def
+    Id "value"
+    Id "Value"
+    None
   /Def
   Def
     Pub
@@ -23,9 +138,40 @@ Block
   Def
     Pub
       Id "Type"
-    Id "Type"
+    None
     Call
-      Id "native"
+      Id "class"
+      Id "of"
+    /Call
+  /Def
+  Def
+    Id "union"
+    None
+    Fun
+      Params
+        Def
+          Id "a"
+          Id "Type"
+          None
+        /Def
+        Def
+          Id "b"
+          Id "Type"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Type"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
   /Def
   Def
     Pub
@@ -36,7 +182,135 @@ Block
   /Def
   Def
     Pub
+      Id "Yes"
+    None
+    Call
+      Id "for<Value>"
+      Block
+        Call
+          Id "ordered"
+          Id "struct"
+          Id "of"
+        /Call
+      /Block
+    /Call
+  /Def
+  Def
+    Id "value"
+    Id "Value"
+    None
+  /Def
+  Def
+    Pub
+      Id "branch"
+    None
+    Def
+      Call
+        Id "for<Value>"
+        Def
+          Id "cases..."
+          Id "List<Case<Value>>"
+          None
+        /Def
+      /Call
+      Id "Value"
+      None
+    /Def
+  /Def
+  Block
+    Call
       Id "native"
+  /Block
+  Def
+    Pub
+      Id "case"
+    None
+    Def
+      Call
+        Id "for<Value>"
+        Def
+          Id "claim"
+          Id "Claim"
+          None
+        /Def
+        Def
+          Id "value"
+          Id "Value"
+          None
+        /Def
+      /Call
+      Id "Case<Value>"
+      None
+    /Def
+  /Def
+  Block
+    Block
+      Id "claim"
+      Id "value"
+    /Block
+  /Block
+  Def
+    Pub
+      Id "class"
+    None
+    Fun
+      Params
+      Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    Pub
+      Id "else"
+    None
+    Def
+      Call
+        Id "for<Value>"
+        Def
+          Id "value"
+          Id "Value"
+          None
+        /Def
+      /Call
+      Id "Case<Value>"
+      None
+    /Def
+  /Def
+  Block
+    Call
+      Id "case"
+      Id "true"
+      Id "value"
+    /Call
+  /Block
+  Def
+    Pub
+      Id "false"
+    None
+    Call
+      Id "No"
+      Id "void"
+    /Call
+  /Def
+  Def
+    Pub
+      Id "native"
+    None
+    Fun
+      Params
+      Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    Pub
+      Id "ordered"
     None
     Fun
       Params
@@ -72,7 +346,36 @@ Block
       /Block
     /Fun
   /Def
+  Def
+    Pub
+      Id "struct"
+    None
+    Fun
+      Params
+      Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    Pub
+      Id "true"
+    None
+    Call
+      Id "Yes"
+      Id "void"
+    /Call
+  /Def
+  Def
+    Pub
+      Id "void"
+    Id "Void"
+    Call
+      Id "native"
+  /Def
 /Block
 
 Node size: 20
-Tree len: 59
+Tree len: 285
