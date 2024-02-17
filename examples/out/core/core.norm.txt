@@ -62,7 +62,8 @@ Block
     /Call
   /Def
   Def
-    Id "add"
+    Pub
+      Id "add"
     None
     Fun
       Params
@@ -87,6 +88,81 @@ Block
   /Def
   Def
     Pub
+      Id "gt"
+    None
+    Fun
+      Params
+        Def
+          Id "other"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Claim"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    Pub
+      Id "lt"
+    None
+    Fun
+      Params
+        Def
+          Id "other"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Claim"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    Pub
+      Id "eq"
+    None
+    Fun
+      Params
+        Def
+          Id "other"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Claim"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    Pub
       Id "List"
     None
     Call
@@ -99,6 +175,17 @@ Block
       /Block
     /Call
   /Def
+  Def
+    Pub
+      Id "Maybe"
+    None
+    Call
+      Id "for<Value>"
+      Block
+        Id "Either<Value"
+    /Call
+  /Def
+  Id "Void>"
   Def
     Pub
       Id "No"
@@ -162,7 +249,8 @@ Block
     /Call
   /Def
   Def
-    Id "union"
+    Pub
+      Id "union"
     None
     Fun
       Params
@@ -367,4 +455,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 278
+Tree len: 343

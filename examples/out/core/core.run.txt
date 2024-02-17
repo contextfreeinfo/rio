@@ -1,7 +1,7 @@
 Block
   Module "core" 1
-  Def@234
-    Uid Case@234*
+  Def@291
+    Uid Case@291*
     None
     Call
       Id "for<Value>"
@@ -10,14 +10,14 @@ Block
     /Call
   /Def
   Id "Value>"
-  Def@236
-    Uid Claim@236*
+  Def@293
+    Uid Claim@293*
     None
     Id "Either<Void"
   /Def
   Id "Void>"
-  Def@238
-    Uid Either@238*
+  Def@295
+    Uid Either@295*
     None
     Id "for<YesValue"
   /Def
@@ -31,8 +31,8 @@ Block
       /Call
     /Block
   /Call
-  Def@240
-    Uid Function@240*
+  Def@297
+    Uid Function@297*
     None
     Def@24
       Uid for<ArgTypes@24
@@ -44,77 +44,159 @@ Block
     Id "ReturnType>"
     Block
       Call
-        Uid class@259 :@229
+        Uid class@321 :@286
         Of "of"
       /Call
     /Block
   /Call
-  Def@242
-    Uid Int32@242*
+  Def@299
+    Uid Int32@299*
     None
     Call
-      Uid class@259 :@229
+      Uid class@321 :@286
       Of "of"
     /Call
   /Def
-  Def@243 :@226
-    Uid add@243 :@226
+  Def@300 :@281
+    Uid add@300* :@281
     None
-    Fun :@226
+    Fun :@281
       Params
-        Def@38 :@225
-          Uid other@38 :@225
-          Uid Int32@242
-          None :@225
+        Def@38 :@280
+          Uid other@38 :@280
+          Uid Int32@299
+          None :@280
         /Def
       /Params
       Params
-        Def@42 :@225
-          None :@225
-          Uid Int32@242
-          None :@225
+        Def@42 :@280
+          None :@280
+          Uid Int32@299
+          None :@280
         /Def
       /Params
-      Block :@225
-        Call :@225
-          Uid native@263 :@229
+      Block :@280
+        Call :@280
+          Uid native@325 :@286
       /Block
     /Fun
   /Def
-  Def@244
-    Uid List@244*
+  Def@301 :@283
+    Uid gt@301* :@283
+    None
+    Fun :@283
+      Params
+        Def@54 :@280
+          Uid other@54 :@280
+          Uid Int32@299
+          None :@280
+        /Def
+      /Params
+      Params
+        Def@58 :@282
+          None :@282
+          Uid Claim@293
+          None :@282
+        /Def
+      /Params
+      Block :@282
+        Call :@282
+          Uid native@325 :@286
+      /Block
+    /Fun
+  /Def
+  Def@302 :@283
+    Uid lt@302* :@283
+    None
+    Fun :@283
+      Params
+        Def@70 :@280
+          Uid other@70 :@280
+          Uid Int32@299
+          None :@280
+        /Def
+      /Params
+      Params
+        Def@74 :@282
+          None :@282
+          Uid Claim@293
+          None :@282
+        /Def
+      /Params
+      Block :@282
+        Call :@282
+          Uid native@325 :@286
+      /Block
+    /Fun
+  /Def
+  Def@303 :@283
+    Uid eq@303* :@283
+    None
+    Fun :@283
+      Params
+        Def@86 :@280
+          Uid other@86 :@280
+          Uid Int32@299
+          None :@280
+        /Def
+      /Params
+      Params
+        Def@90 :@282
+          None :@282
+          Uid Claim@293
+          None :@282
+        /Def
+      /Params
+      Block :@282
+        Call :@282
+          Uid native@325 :@286
+      /Block
+    /Fun
+  /Def
+  Def@304
+    Uid List@304*
     None
     Call
       Id "for<Item>"
       Block
         Call
-          Uid class@259 :@229
+          Uid class@321 :@286
           Of "of"
         /Call
       /Block
     /Call
   /Def
-  Def@245
-    Uid No@245*
+  Def@305
+    Uid Maybe@305*
+    None
+    Call
+      Id "for<Value>"
+      Block
+        Id "Either<Value"
+    /Call
+  /Def
+  Id "Void>"
+  Def@307
+    Uid No@307*
     None
     Call
       Id "for<Value>"
       Block
         Call
-          Uid ordered@264 :@229
-          Uid struct@266 :@229
+          Uid ordered@326 :@286
+          Uid struct@328 :@286
           Of "of"
         /Call
       /Block
     /Call
   /Def
-  Def@246
-    Uid value@246
+  Def@308
+    Uid value@308
     Id "Value"
     None
   /Def
-  Def@247
-    Uid Pair@247*
+  Def@309
+    Uid Pair@309*
     None
     Id "for<Key"
   /Def
@@ -122,98 +204,98 @@ Block
     Id "Value>"
     Block
       Call
-        Uid ordered@264 :@229
-        Uid struct@266 :@229
+        Uid ordered@326 :@286
+        Uid struct@328 :@286
         Of "of"
       /Call
     /Block
   /Call
-  Def@249
-    Uid key@249
+  Def@311
+    Uid key@311
     Id "Key"
     None
   /Def
-  Def@250
-    Uid value@250
+  Def@312
+    Uid value@312
     Id "Value"
     None
   /Def
-  Def@251 :@227
-    Uid Text@251* :@227
-    Uid Type@252
-    Call :@227
-      Uid native@263 :@229
+  Def@313 :@284
+    Uid Text@313* :@284
+    Uid Type@314
+    Call :@284
+      Uid native@325 :@286
   /Def
-  Def@252
-    Uid Type@252*
+  Def@314
+    Uid Type@314*
     None
     Call
-      Uid class@259 :@229
+      Uid class@321 :@286
       Of "of"
     /Call
   /Def
-  Def@253 :@228
-    Uid union@253 :@228
+  Def@315 :@285
+    Uid union@315* :@285
     None
-    Fun :@228
+    Fun :@285
       Params
-        Def@101 :@227
-          Uid a@101 :@227
-          Uid Type@252
-          None :@227
+        Def@155 :@284
+          Uid a@155 :@284
+          Uid Type@314
+          None :@284
         /Def
-        Def@102 :@227
-          Uid b@102 :@227
-          Uid Type@252
-          None :@227
+        Def@156 :@284
+          Uid b@156 :@284
+          Uid Type@314
+          None :@284
         /Def
       /Params
       Params
-        Def@106 :@227
-          None :@227
-          Uid Type@252
-          None :@227
+        Def@160 :@284
+          None :@284
+          Uid Type@314
+          None :@284
         /Def
       /Params
-      Block :@227
-        Call :@227
-          Uid native@263 :@229
+      Block :@284
+        Call :@284
+          Uid native@325 :@286
       /Block
     /Fun
   /Def
-  Def@254 :@227
-    Uid Void@254* :@227
-    Uid Type@252
-    Call :@227
-      Uid native@263 :@229
+  Def@316 :@284
+    Uid Void@316* :@284
+    Uid Type@314
+    Call :@284
+      Uid native@325 :@286
   /Def
-  Def@255
-    Uid Yes@255*
+  Def@317
+    Uid Yes@317*
     None
     Call
       Id "for<Value>"
       Block
         Call
-          Uid ordered@264 :@229
-          Uid struct@266 :@229
+          Uid ordered@326 :@286
+          Uid struct@328 :@286
           Of "of"
         /Call
       /Block
     /Call
   /Def
-  Def@256
-    Uid value@256
+  Def@318
+    Uid value@318
     Id "Value"
     None
   /Def
-  Def@257
-    Uid branch@257*
+  Def@319
+    Uid branch@319*
     None
-    Def@141
+    Def@195
       Call
         Id "for<Value>"
-        Def@135
-          Uid cases@135
+        Def@189
+          Uid cases@189
           Id "List<Case<Value>>"
           None
         /Def
@@ -224,28 +306,28 @@ Block
   /Def
   Block
     Call
-      Uid native@263 :@229
+      Uid native@325 :@286
   /Block
-  Def@259 :@229
-    Uid class@259* :@229
+  Def@321 :@286
+    Uid class@321* :@286
     None
-    Fun :@229
+    Fun :@286
       Params
       Params
       Block
         Call
-          Uid native@263 :@229
+          Uid native@325 :@286
       /Block
     /Fun
   /Def
-  Def@260
-    Uid else@260*
+  Def@322
+    Uid else@322*
     None
-    Def@162
+    Def@216
       Call
         Id "for<Value>"
-        Def@156
-          Uid value@156
+        Def@210
+          Uid value@210
           Id "Value"
           None
         /Def
@@ -256,109 +338,112 @@ Block
   /Def
   Block
     Infix
-      Uid true@267
+      Uid true@329
       To "to"
-      Uid value@256
+      Uid value@318
     /Infix
   /Block
-  Def@262
-    Uid false@262*
+  Def@324
+    Uid false@324*
     None
     Call
-      Uid No@245
-      Uid void@268 :@231
+      Uid No@307
+      Uid void@330 :@288
     /Call
   /Def
-  Def@263 :@229
-    Uid native@263* :@229
+  Def@325 :@286
+    Uid native@325* :@286
     None
-    Fun :@229
+    Fun :@286
       Params
       Params
       Block
         Call
-          Uid native@263 :@229
+          Uid native@325 :@286
       /Block
     /Fun
   /Def
-  Def@264 :@229
-    Uid ordered@264* :@229
+  Def@326 :@286
+    Uid ordered@326* :@286
     None
-    Fun :@229
+    Fun :@286
       Params
       Params
       Block
         Call
-          Uid native@263 :@229
+          Uid native@325 :@286
       /Block
     /Fun
   /Def
-  Def@265 :@232
-    Uid print@265* :@232
+  Def@327 :@289
+    Uid print@327* :@289
     None
-    Fun :@232
+    Fun :@289
       Params
-        Def@191 :@230
-          Uid text@191 :@230
-          Uid Text@251 :@227
-          None :@230
+        Def@245 :@287
+          Uid text@245 :@287
+          Uid Text@313 :@284
+          None :@287
         /Def
       /Params
       Params
-        Def@195 :@231
-          None :@231
-          Uid Void@254 :@227
-          None :@231
+        Def@249 :@288
+          None :@288
+          Uid Void@316 :@284
+          None :@288
         /Def
       /Params
-      Block :@231
-        Call :@231
-          Uid native@263 :@229
+      Block :@288
+        Call :@288
+          Uid native@325 :@286
       /Block
     /Fun
   /Def
-  Def@266 :@229
-    Uid struct@266* :@229
+  Def@328 :@286
+    Uid struct@328* :@286
     None
-    Fun :@229
+    Fun :@286
       Params
       Params
       Block
         Call
-          Uid native@263 :@229
+          Uid native@325 :@286
       /Block
     /Fun
   /Def
-  Def@267
-    Uid true@267*
+  Def@329
+    Uid true@329*
     None
     Call
-      Uid Yes@255
-      Uid void@268 :@231
+      Uid Yes@317
+      Uid void@330 :@288
     /Call
   /Def
-  Def@268 :@231
-    Uid void@268* :@231
-    Uid Void@254 :@227
-    Call :@231
-      Uid native@263 :@229
+  Def@330 :@288
+    Uid void@330* :@288
+    Uid Void@316 :@284
+    Call :@288
+      Uid native@325 :@286
   /Def
   Types
-    Uid@225 Int32@242
-    FunType@226 :@225
-      None :@225
-    Uid@227 Type@252
-    FunType@228 :@227
-      None :@227
-      None :@227
+    Uid@280 Int32@299
+    FunType@281 :@280
+      None :@280
+    Uid@282 Claim@293
+    FunType@283 :@282
+      None :@280
+    Uid@284 Type@314
+    FunType@285 :@284
+      None :@284
+      None :@284
     /FunType
-    FunType@229
-    Uid@230 Text@251
-    Uid@231 Void@254
-    FunType@232 :@231
-      None :@230
+    FunType@286
+    Uid@287 Text@313
+    Uid@288 Void@316
+    FunType@289 :@288
+      None :@287
   /Types
 /Block
 
 Node size: 20
-Tree len: 270
+Tree len: 332

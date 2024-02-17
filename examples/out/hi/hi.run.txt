@@ -27,43 +27,43 @@ Block
       Params
         Def@21 :@45
           Uid message@21 :@45
-          Uid Text@1@251 :@47
+          Uid Text@1@313 :@47
           None :@45
         /Def
         Def@22 :@45
           Uid middle@22 :@45
-          Uid Text@1@251 :@47
+          Uid Text@1@313 :@47
           None :@45
         /Def
       /Params
       Params
         Def@26 :@48
           None :@48
-          Uid Void@1@254 :@47
+          Uid Void@1@316 :@47
           None :@48
         /Def
       /Params
       Block :@48
         Call :@48
-          Uid print@1@265 :@49
+          Uid print@1@327 :@49
           Uid message@21 :@45
         /Call
         Call :@48
-          Uid print@1@265 :@49
+          Uid print@1@327 :@49
           Uid middle@22 :@45
         /Call
         Call :@48
-          Uid print@1@265 :@49
+          Uid print@1@327 :@49
           Uid message@21 :@45
         /Call
       /Block
     /Fun
   /Def
   Types
-    Uid@45 Text@1@251
+    Uid@45 Text@1@313
     FunType@46
-    Uid@47 Type@1@252
-    Uid@48 Void@1@254
+    Uid@47 Type@1@314
+    Uid@48 Void@1@316
     FunType@49 :@48
       None :@45
     FunType@50 :@48

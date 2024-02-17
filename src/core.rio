@@ -9,12 +9,17 @@ Function* = for<ArgTypes: List<Type>, ReturnType> be class of
 end
 
 Int32* = class of
-    add = for(other: Int32): Int32 be native()
+    add* = for(other: Int32): Int32 be native()
+    gt* = for(other: Int32): Claim be native()
+    lt* = for(other: Int32): Claim be native()
+    eq* = for(other: Int32): Claim be native()
 end
 
 List* = for<Item> be class of
     # TODO
 end
+
+Maybe* = for<Value> be Either<Value, Void>
 
 No* = for<Value> be ordered struct of
     value: Value
@@ -28,7 +33,7 @@ end
 Text*: Type = native()
 
 Type* = class of
-    union = for(a: Type, b: Type): Type be native()
+    union* = for(a: Type, b: Type): Type be native()
 end
 
 Void*: Type = native()

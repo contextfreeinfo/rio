@@ -120,7 +120,10 @@ Block
   VSpace "\n"
   HSpace "    "
   Def
-    Id "add"
+    Pub
+      Id "add"
+      Star "*"
+    /Pub
     HSpace " "
     Define "="
     HSpace " "
@@ -142,6 +145,132 @@ Block
         Typed
           None
           Id "Int32"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  HSpace "    "
+  Def
+    Pub
+      Id "gt"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "other"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  HSpace "    "
+  Def
+    Pub
+      Id "lt"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "other"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  HSpace "    "
+  Def
+    Pub
+      Id "eq"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "other"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
           HSpace " "
         /Typed
       /Params
@@ -187,6 +316,29 @@ Block
   Comment "# TODO"
   VSpace "\n"
   End "end"
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Pub
+      Id "Maybe"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "for<Value>"
+      HSpace " "
+      Block
+        Be "be"
+        HSpace " "
+        Id "Either<Value"
+      /Block
+    /Call
+  /Def
+  Comma ","
+  HSpace " "
+  Id "Void>"
   VSpace "\n"
   VSpace "\n"
   Def
@@ -310,7 +462,10 @@ Block
   VSpace "\n"
   HSpace "    "
   Def
-    Id "union"
+    Pub
+      Id "union"
+      Star "*"
+    /Pub
     HSpace " "
     Define "="
     HSpace " "
@@ -714,4 +869,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 584
+Tree len: 706
