@@ -229,7 +229,7 @@ Block
           Id "items.each"
         /Call
         Call :@228
-          Uid print@1@420 :@233
+          Uid print@1@490 :@233
           Id "item"
         /Call
         Call
@@ -273,7 +273,7 @@ Block
               String "negative" :@232
             /Call
             Call
-              Uid else@1@415 :@234
+              Uid else@1@485 :@234
               String "several" :@232
             /Call
           /Block
@@ -318,16 +318,16 @@ Block
     /Infix
   /Call
   Types
-    Uid@228 Void@1@410
+    Uid@228 Void@1@480
     FunType@229 :@228
     FunType@230 :@228
       None
     FunType@231
       None
-    Uid@232 Text@1@408
+    Uid@232 Text@1@478
     FunType@233 :@228
       None :@232
-    Uid@234 Case@1@397
+    Uid@234 Case@1@466
   /Types
 /Block
 

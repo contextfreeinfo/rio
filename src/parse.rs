@@ -268,7 +268,7 @@ impl Parser {
                 self.atom(source);
                 self.skip_h(source);
             }
-            // TODO If angle, also try paren afterward.
+            // TODO If angle, also try paren afterward. If so, nested funs.
             TokenKind::AngleOpen | TokenKind::RoundOpen => {
                 self.advance(source);
                 // TODO Call it Params.

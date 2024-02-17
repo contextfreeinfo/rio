@@ -16,7 +16,7 @@ Block
           Uid message@30
           None
           Call
-            Uid branch@1@412
+            Uid branch@1@482
             Block
               With "with"
               Infix
@@ -38,23 +38,23 @@ Block
                 String "positive" :@39
               /Infix
               Call
-                Uid else@1@415 :@40
+                Uid else@1@485 :@40
                 String "zero" :@39
               /Call
             /Block
           /Call
         /Def
         Call :@41
-          Uid print@1@420 :@42
+          Uid print@1@490 :@42
           Uid message@30
         /Call
       /Block
     /Fun
   /Def
   Types
-    Uid@39 Text@1@408
-    Uid@40 Case@1@397
-    Uid@41 Void@1@410
+    Uid@39 Text@1@478
+    Uid@40 Case@1@466
+    Uid@41 Void@1@480
     FunType@42 :@41
       None :@39
     FunType@43

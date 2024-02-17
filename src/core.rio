@@ -1,4 +1,6 @@
-Case* = for<Value> be Pair<Claim, Value>
+# TODO Array of fixed size? Static size?
+
+Case* = for<Value> be Pair<Lazy<Claim>, Lazy<Value>>
 
 Claim* = Either<Void, Void>
 
@@ -13,6 +15,22 @@ Int32* = class of
     gt* = for(other: Int32): Claim be native()
     lt* = for(other: Int32): Claim be native()
     eq* = for(other: Int32): Claim be native()
+end
+
+Lazy* = for<Value> be class of
+    builder: Function<[], Value>
+end with # TODO Just with.
+    value* = for() be
+        if (not maybe) be
+            # TODO If this/self is a box, maybe such mutation has meaning?
+            # This mutation is implementation, although builder has to be
+            # immutable or else time of build could make a difference.
+            maybe := Yes(builder())
+        end
+        (maybe as Yes).value
+    end
+
+    maybe: Maybe<Value> = false
 end
 
 List* = for<Item> be class of

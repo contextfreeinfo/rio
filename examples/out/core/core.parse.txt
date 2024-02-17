@@ -1,4 +1,7 @@
 Block
+  Comment "# TODO Array of fixed size? Static size?"
+  VSpace "\n"
+  VSpace "\n"
   Def
     Pub
       Id "Case"
@@ -22,10 +25,20 @@ Block
         Call
           Id "Pair"
           AngleOpen "<"
-          Id "Claim"
+          Call
+            Id "Lazy"
+            AngleOpen "<"
+            Id "Claim"
+            AngleClose ">"
+          /Call
           Comma ","
           HSpace " "
-          Id "Value"
+          Call
+            Id "Lazy"
+            AngleOpen "<"
+            Id "Value"
+            AngleClose ">"
+          /Call
           AngleClose ">"
         /Call
       /Block
@@ -331,6 +344,176 @@ Block
         End "end"
       /Block
     /Call
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Pub
+      Id "Lazy"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        AngleOpen "<"
+        Id "Value"
+        AngleClose ">"
+      /Params
+      HSpace " "
+      Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "class"
+          HSpace " "
+          Block
+            Of "of"
+            VSpace "\n"
+            HSpace "    "
+            Typed
+              Id "builder"
+              Colon ":"
+              HSpace " "
+              Call
+                Id "Function"
+                AngleOpen "<"
+                Id "[]"
+                Comma ","
+                HSpace " "
+                Id "Value"
+                AngleClose ">"
+              /Call
+            /Typed
+            VSpace "\n"
+            End "end"
+          /Block
+          HSpace " "
+          Block
+            With "with"
+            HSpace " "
+            Comment "# TODO Just with."
+            VSpace "\n"
+            HSpace "    "
+            Def
+              Pub
+                Id "value"
+                Star "*"
+              /Pub
+              HSpace " "
+              Define "="
+              HSpace " "
+              Fun
+                Fun "for"
+                Params
+                  RoundOpen "("
+                  RoundClose ")"
+                /Params
+                HSpace " "
+                Params
+                Block
+                  Be "be"
+                  VSpace "\n"
+                  HSpace "        "
+                  Call
+                    Id "if"
+                    HSpace " "
+                    Block
+                      RoundOpen "("
+                      Call
+                        Id "not"
+                        HSpace " "
+                        Id "maybe"
+                      /Call
+                      RoundClose ")"
+                    /Block
+                    HSpace " "
+                    Block
+                      Be "be"
+                      VSpace "\n"
+                      HSpace "            "
+                      Comment "# TODO If this/self is a box, maybe such mutation has meaning?"
+                      VSpace "\n"
+                      HSpace "            "
+                      Comment "# This mutation is implementation, although builder has to be"
+                      VSpace "\n"
+                      HSpace "            "
+                      Comment "# immutable or else time of build could make a difference."
+                      VSpace "\n"
+                      HSpace "            "
+                      Typed
+                        Id "maybe"
+                        HSpace " "
+                        Colon ":"
+                        Call
+                          Define "="
+                          HSpace " "
+                          Id "Yes"
+                          Block
+                            RoundOpen "("
+                            Call
+                              Id "builder"
+                              RoundOpen "("
+                              RoundClose ")"
+                            /Call
+                            RoundClose ")"
+                          /Block
+                        /Call
+                      /Typed
+                      VSpace "\n"
+                      HSpace "        "
+                      End "end"
+                    /Block
+                  /Call
+                  VSpace "\n"
+                  HSpace "        "
+                  Block
+                    RoundOpen "("
+                    Call
+                      Id "maybe"
+                      HSpace " "
+                      Id "as"
+                      HSpace " "
+                      Id "Yes"
+                    /Call
+                    RoundClose ")"
+                  /Block
+                  Id ".value"
+                  VSpace "\n"
+                  HSpace "    "
+                  End "end"
+                /Block
+              /Fun
+            /Def
+            VSpace "\n"
+            VSpace "\n"
+            HSpace "    "
+            Def
+              Typed
+                Id "maybe"
+                Colon ":"
+                HSpace " "
+                Call
+                  Id "Maybe"
+                  AngleOpen "<"
+                  Id "Value"
+                  AngleClose ">"
+                  HSpace " "
+                /Call
+              /Typed
+              Define "="
+              HSpace " "
+              Id "false"
+            /Def
+            VSpace "\n"
+            End "end"
+          /Block
+        /Call
+      /Block
+    /Fun
   /Def
   VSpace "\n"
   VSpace "\n"
@@ -988,4 +1171,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 799
+Tree len: 952

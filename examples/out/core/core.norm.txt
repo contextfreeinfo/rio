@@ -14,8 +14,18 @@ Block
         Call
           Id "Pair"
           AngleOpen "<"
-          Id "Claim"
-          Id "Value"
+          Call
+            Id "Lazy"
+            AngleOpen "<"
+            Id "Claim"
+            AngleClose ">"
+          /Call
+          Call
+            Id "Lazy"
+            AngleOpen "<"
+            Id "Value"
+            AngleClose ">"
+          /Call
           AngleClose ">"
         /Call
       /Block
@@ -202,6 +212,93 @@ Block
         /Def
       /Block
     /Call
+  /Def
+  Def
+    Pub
+      Id "Lazy"
+    None
+    Fun
+      Params
+        AngleOpen "<"
+        Id "Value"
+        AngleClose ">"
+      /Params
+      Params
+      Block
+        Call
+          Id "class"
+          Block
+            Of "of"
+            Def
+              Id "builder"
+              Call
+                Id "Function"
+                AngleOpen "<"
+                Id "[]"
+                Id "Value"
+                AngleClose ">"
+              /Call
+              None
+            /Def
+          /Block
+          Block
+            With "with"
+            Def
+              Pub
+                Id "value"
+              None
+              Fun
+                Params
+                Params
+                Block
+                  Call
+                    Id "if"
+                    Block
+                      Call
+                        Id "not"
+                        Id "maybe"
+                      /Call
+                    /Block
+                    Block
+                      Def
+                        Id "maybe"
+                        Call
+                          None
+                          Id "Yes"
+                          Block
+                            Call
+                              Id "builder"
+                          /Block
+                        /Call
+                        None
+                      /Def
+                    /Block
+                  /Call
+                  Block
+                    Call
+                      Id "maybe"
+                      Id "as"
+                      Id "Yes"
+                    /Call
+                  /Block
+                  Id ".value"
+                /Block
+              /Fun
+            /Def
+            Def
+              Id "maybe"
+              Call
+                Id "Maybe"
+                AngleOpen "<"
+                Id "Value"
+                AngleClose ">"
+              /Call
+              Id "false"
+            /Def
+          /Block
+        /Call
+      /Block
+    /Fun
   /Def
   Def
     Pub
@@ -564,4 +661,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 426
+Tree len: 498
