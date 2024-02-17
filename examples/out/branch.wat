@@ -58,10 +58,8 @@
     (local i32 i32)
     local.set 0
     local.set 1
-    local.get 0
     i32.const 8
     i32.const 4098
-    local.get 0
     i32.const 8
     i32.const 4107
     i32.const 4

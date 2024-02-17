@@ -1,13 +1,10 @@
-Case* = for<Value> be struct of
-    claim: Claim
-    value: Value
-end
+Case* = for<Value> be Pair<Claim, Value>
 
 Claim* = Either<Void, Void>
 
 Either* = for<YesValue, NoValue> be Yes<YesValue> | No<NoValue>
 
-Function* = for<ArgTypes, ReturnType> be class of
+Function* = for<ArgTypes: List<Type>, ReturnType> be class of
     # TODO
 end
 
@@ -23,6 +20,11 @@ No* = for<Value> be ordered struct of
     value: Value
 end
 
+Pair* = for<Key, Value> be ordered struct of
+    key: Key
+    value: Value
+end
+
 Text*: Type = native()
 
 Type* = class of
@@ -35,13 +37,11 @@ Yes* = for<Value> be ordered struct of
     value: Value
 end
 
-branch* = for<Value>(cases...: List<Case<Value>>): Value be native()
-
-case* = for<Value>(claim: Claim, value: Value): Case<Value> be {claim, value}
+branch* = for<Value>(cases: List<Case<Value>>): Value be native()
 
 class* = for() be native()
 
-else* = for<Value>(value: Value): Case<Value> be case true value
+else* = for<Value>(value: Value): Case<Value> be true to value
 
 false* = No(void)
 

@@ -16,39 +16,39 @@ Block
           Uid message@22
           None
           Call
-            Uid branch@1@263
-            Id "on"
+            Uid branch@1@257
+            Id "with"
           /Call
         /Def
         Call
-          Uid case@1@265
           Uid n@21
           Id "<"
           Id "0"
+          Id "to"
           String "negative" :@35
         /Call
         Call
-          Uid case@1@265
           Uid n@21
           Id ">"
           Id "0"
+          Id "to"
           String "positive" :@35
         /Call
         Call
-          Uid else@1@268
+          Uid else@1@260
           String "zero" :@35
         /Call
       /Block
     /Fun
   /Def
   Call :@37
-    Uid print@1@273 :@38
+    Uid print@1@265 :@38
     Id "message"
   /Call
   Types
-    Uid@35 Text@1@257
+    Uid@35 Text@1@251
     FunType@36
-    Uid@37 Void@1@260
+    Uid@37 Void@1@254
     FunType@38 :@37
       None :@35
   /Types

@@ -6,23 +6,10 @@ Block
     Call
       Id "for<Value>"
       Block
-        Call
-          Id "struct"
-          Id "of"
-        /Call
-      /Block
+        Id "Pair<Claim"
     /Call
   /Def
-  Def
-    Id "claim"
-    Id "Claim"
-    None
-  /Def
-  Def
-    Id "value"
-    Id "Value"
-    None
-  /Def
+  Id "Value>"
   Def
     Pub
       Id "Claim"
@@ -50,7 +37,11 @@ Block
     Pub
       Id "Function"
     None
-    Id "for<ArgTypes"
+    Def
+      Id "for<ArgTypes"
+      Id "List<Type>"
+      None
+    /Def
   /Def
   Call
     Id "ReturnType>"
@@ -122,6 +113,32 @@ Block
         /Call
       /Block
     /Call
+  /Def
+  Def
+    Id "value"
+    Id "Value"
+    None
+  /Def
+  Def
+    Pub
+      Id "Pair"
+    None
+    Id "for<Key"
+  /Def
+  Call
+    Id "Value>"
+    Block
+      Call
+        Id "ordered"
+        Id "struct"
+        Id "of"
+      /Call
+    /Block
+  /Call
+  Def
+    Id "key"
+    Id "Key"
+    None
   /Def
   Def
     Id "value"
@@ -208,7 +225,7 @@ Block
       Call
         Id "for<Value>"
         Def
-          Id "cases..."
+          Id "cases"
           Id "List<Case<Value>>"
           None
         /Def
@@ -220,34 +237,6 @@ Block
   Block
     Call
       Id "native"
-  /Block
-  Def
-    Pub
-      Id "case"
-    None
-    Def
-      Call
-        Id "for<Value>"
-        Def
-          Id "claim"
-          Id "Claim"
-          None
-        /Def
-        Def
-          Id "value"
-          Id "Value"
-          None
-        /Def
-      /Call
-      Id "Case<Value>"
-      None
-    /Def
-  /Def
-  Block
-    Block
-      Id "claim"
-      Id "value"
-    /Block
   /Block
   Def
     Pub
@@ -281,8 +270,8 @@ Block
   /Def
   Block
     Call
-      Id "case"
       Id "true"
+      Id "to"
       Id "value"
     /Call
   /Block
@@ -378,4 +367,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 285
+Tree len: 278

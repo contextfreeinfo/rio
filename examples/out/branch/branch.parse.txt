@@ -36,19 +36,19 @@ Block
           Call
             Id "branch"
             HSpace " "
-            Id "on"
+            Id "with"
           /Call
         /Def
         VSpace "\n"
         HSpace "        "
         Call
-          Id "case"
-          HSpace " "
           Id "n"
           HSpace " "
           Id "<"
           HSpace " "
           Id "0"
+          HSpace " "
+          Id "to"
           HSpace " "
           StringParts
             StringEdge "\""
@@ -59,13 +59,13 @@ Block
         VSpace "\n"
         HSpace "        "
         Call
-          Id "case"
-          HSpace " "
           Id "n"
           HSpace " "
           Id ">"
           HSpace " "
           Id "0"
+          HSpace " "
+          Id "to"
           HSpace " "
           StringParts
             StringEdge "\""

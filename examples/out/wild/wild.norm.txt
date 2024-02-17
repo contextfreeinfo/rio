@@ -222,7 +222,49 @@ Block
     Id "print"
     Id "item"
   /Call
+  Call
+    Id "match"
+    Id "x"
+    Id "with"
+  /Call
+  Call
+    Id "0"
+    Id "to"
+    String "no"
+  /Call
+  Call
+    Id "1"
+    Id "to"
+    String "a single"
+  /Call
+  Call
+    Id "2"
+    Id "to"
+    String "a couple of"
+  /Call
+  Call
+    Id "any"
+    Id "[3"
+  /Call
+  Id "4"
+  Id "5"
+  Call
+    Id "6]"
+    Id "to"
+    String "a few of"
+  /Call
+  Call
+    Id "case"
+    Id "x"
+    Id "<"
+    Id "0"
+    String "negative"
+  /Call
+  Call
+    Id "else"
+    String "several"
+  /Call
 /Block
 
 Node size: 20
-Tree len: 169
+Tree len: 203

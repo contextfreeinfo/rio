@@ -17,21 +17,21 @@ Block
           None
           Call
             Id "branch"
-            Id "on"
+            Id "with"
           /Call
         /Def
         Call
-          Id "case"
           Id "n"
           Id "<"
           Id "0"
+          Id "to"
           String "negative"
         /Call
         Call
-          Id "case"
           Id "n"
           Id ">"
           Id "0"
+          Id "to"
           String "positive"
         /Call
         Call

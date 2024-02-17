@@ -420,7 +420,111 @@ Block
     Id "item"
   /Call
   VSpace "\n"
+  VSpace "\n"
+  Call
+    Id "match"
+    HSpace " "
+    Id "x"
+    HSpace " "
+    Id "with"
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  Call
+    Id "0"
+    HSpace " "
+    Id "to"
+    HSpace " "
+    StringParts
+      StringEdge "\""
+      String "no"
+      StringEdge "\""
+    /StringParts
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  Call
+    Id "1"
+    HSpace " "
+    Id "to"
+    HSpace " "
+    StringParts
+      StringEdge "\""
+      String "a single"
+      StringEdge "\""
+    /StringParts
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  Call
+    Id "2"
+    HSpace " "
+    Id "to"
+    HSpace " "
+    StringParts
+      StringEdge "\""
+      String "a couple of"
+      StringEdge "\""
+    /StringParts
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  Call
+    Id "any"
+    HSpace " "
+    Id "[3"
+  /Call
+  Comma ","
+  HSpace " "
+  Id "4"
+  Comma ","
+  HSpace " "
+  Id "5"
+  Comma ","
+  HSpace " "
+  Call
+    Id "6]"
+    HSpace " "
+    Id "to"
+    HSpace " "
+    StringParts
+      StringEdge "\""
+      String "a few of"
+      StringEdge "\""
+    /StringParts
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  Call
+    Id "case"
+    HSpace " "
+    Id "x"
+    HSpace " "
+    Id "<"
+    HSpace " "
+    Id "0"
+    HSpace " "
+    StringParts
+      StringEdge "\""
+      String "negative"
+      StringEdge "\""
+    /StringParts
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  Call
+    Id "else"
+    HSpace " "
+    StringParts
+      StringEdge "\""
+      String "several"
+      StringEdge "\""
+    /StringParts
+  /Call
+  VSpace "\n"
+  End "end"
+  VSpace "\n"
 /Block
 
 Node size: 12
-Tree len: 357
+Tree len: 447

@@ -13,32 +13,13 @@ Block
       Block
         Be "be"
         HSpace " "
-        Call
-          Id "struct"
-          HSpace " "
-          Id "of"
-        /Call
+        Id "Pair<Claim"
       /Block
     /Call
   /Def
-  VSpace "\n"
-  HSpace "    "
-  Typed
-    Id "claim"
-    Colon ":"
-    HSpace " "
-    Id "Claim"
-  /Typed
-  VSpace "\n"
-  HSpace "    "
-  Typed
-    Id "value"
-    Colon ":"
-    HSpace " "
-    Id "Value"
-  /Typed
-  VSpace "\n"
-  End "end"
+  Comma ","
+  HSpace " "
+  Id "Value>"
   VSpace "\n"
   VSpace "\n"
   Def
@@ -93,7 +74,12 @@ Block
     HSpace " "
     Define "="
     HSpace " "
-    Id "for<ArgTypes"
+    Typed
+      Id "for<ArgTypes"
+      Colon ":"
+      HSpace " "
+      Id "List<Type>"
+    /Typed
   /Def
   Comma ","
   HSpace " "
@@ -227,6 +213,53 @@ Block
       /Block
     /Call
   /Def
+  VSpace "\n"
+  HSpace "    "
+  Typed
+    Id "value"
+    Colon ":"
+    HSpace " "
+    Id "Value"
+  /Typed
+  VSpace "\n"
+  End "end"
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Pub
+      Id "Pair"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Id "for<Key"
+  /Def
+  Comma ","
+  HSpace " "
+  Call
+    Id "Value>"
+    HSpace " "
+    Block
+      Be "be"
+      HSpace " "
+      Call
+        Id "ordered"
+        HSpace " "
+        Id "struct"
+        HSpace " "
+        Id "of"
+      /Call
+    /Block
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  Typed
+    Id "key"
+    Colon ":"
+    HSpace " "
+    Id "Key"
+  /Typed
   VSpace "\n"
   HSpace "    "
   Typed
@@ -395,7 +428,7 @@ Block
         Id "for<Value>"
         RoundOpen "("
         Typed
-          Id "cases..."
+          Id "cases"
           Colon ":"
           HSpace " "
           Id "List<Case<Value>>"
@@ -416,54 +449,6 @@ Block
       RoundOpen "("
       RoundClose ")"
     /Call
-  /Block
-  VSpace "\n"
-  VSpace "\n"
-  Def
-    Pub
-      Id "case"
-      Star "*"
-    /Pub
-    HSpace " "
-    Define "="
-    HSpace " "
-    Typed
-      Call
-        Id "for<Value>"
-        RoundOpen "("
-        Typed
-          Id "claim"
-          Colon ":"
-          HSpace " "
-          Id "Claim"
-        /Typed
-        Comma ","
-        HSpace " "
-        Typed
-          Id "value"
-          Colon ":"
-          HSpace " "
-          Id "Value"
-        /Typed
-        RoundClose ")"
-      /Call
-      Colon ":"
-      HSpace " "
-      Id "Case<Value>"
-      HSpace " "
-    /Typed
-  /Def
-  Block
-    Be "be"
-    HSpace " "
-    Block
-      CurlyOpen "{"
-      Id "claim"
-      Comma ","
-      HSpace " "
-      Id "value"
-      CurlyClose "}"
-    /Block
   /Block
   VSpace "\n"
   VSpace "\n"
@@ -526,9 +511,9 @@ Block
     Be "be"
     HSpace " "
     Call
-      Id "case"
-      HSpace " "
       Id "true"
+      HSpace " "
+      Id "to"
       HSpace " "
       Id "value"
     /Call
@@ -729,4 +714,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 596
+Tree len: 584
