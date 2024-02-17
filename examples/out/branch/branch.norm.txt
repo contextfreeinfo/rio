@@ -20,24 +20,24 @@ Block
             With "with"
           /Call
         /Def
-        Call
-          Id "n"
-          Id "<"
+        Infix
           Infix
+            Id "n"
+            AngleOpen "<"
             Id "0"
-            To "to"
-            String "negative"
           /Infix
-        /Call
-        Call
-          Id "n"
-          Id ">"
+          To "to"
+          String "negative"
+        /Infix
+        Infix
           Infix
+            Id "n"
+            AngleClose ">"
             Id "0"
-            To "to"
-            String "positive"
           /Infix
-        /Call
+          To "to"
+          String "positive"
+        /Infix
         Call
           Id "else"
           String "zero"

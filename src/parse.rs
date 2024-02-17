@@ -8,6 +8,31 @@ use crate::{
     Cart,
 };
 
+macro_rules! define_infix {
+    ($name:ident, $next:ident, $must_space:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {
+        fn $name(&mut self, source: &mut Tokens) -> Option<bool> {
+            debug!("{}", stringify!($name));
+            self.skip_h(source);
+            let start = self.builder().pos();
+            let mut skipped = self.$next(source)?;
+            loop {
+                let pre_space = self.builder().pos();
+                self.skip_h(source);
+                let did_space = skipped || self.builder().pos() > pre_space;
+                if ($must_space && !did_space) || !matches!(peek(source)?, $pattern $(if $guard)?) {
+                    debug!("/{}", stringify!($name));
+                    return Some(did_space);
+                }
+                self.advance(source);
+                self.skip_hv(source);
+                let maybe_skipped = self.$next(source);
+                self.wrap(BranchKind::Infix, start);
+                skipped = maybe_skipped?;
+            }
+        }
+    };
+}
+
 macro_rules! loop_some {
     {$t:tt} => {(|| -> Option<()> {
         loop {
@@ -132,7 +157,7 @@ impl Parser {
         debug!("call");
         self.skip_h(source);
         let start = self.builder().pos();
-        let had_space = self.pair(source).unwrap();
+        let had_space = self.pair(source)?;
         loop {
             debug!("call loop: {:?}", peek(source));
             let mut post = self.builder().pos();
@@ -180,6 +205,13 @@ impl Parser {
         debug!("/call");
         Some(())
     }
+
+    define_infix!(
+        compare,
+        starred,
+        true,
+        TokenKind::AngleClose | TokenKind::AngleOpen,
+    );
 
     fn def(&mut self, source: &mut Tokens) -> Option<()> {
         debug!("def");
@@ -261,24 +293,7 @@ impl Parser {
         Some(())
     }
 
-    fn pair(&mut self, source: &mut Tokens) -> Option<bool> {
-        debug!("pair");
-        self.skip_h(source);
-        let start = self.builder().pos();
-        self.starred(source);
-        loop {
-            let pre_space = self.builder().pos();
-            self.skip_h(source);
-            if peek(source)? != TokenKind::To {
-                debug!("/pair");
-                return Some(self.builder().pos() > pre_space);
-            }
-            self.advance(source);
-            self.skip_hv(source);
-            self.starred(source);
-            self.wrap(BranchKind::Infix, start);
-        }
-    }
+    define_infix!(pair, compare, false, TokenKind::To);
 
     fn skip<F>(&mut self, source: &mut Tokens, skipping: F) -> Option<()>
     where
@@ -331,7 +346,7 @@ impl Parser {
         }
     }
 
-    fn starred(&mut self, source: &mut Tokens) -> Option<()> {
+    fn starred(&mut self, source: &mut Tokens) -> Option<bool> {
         debug!("starred");
         let start = self.builder().pos();
         self.atom(source);
@@ -340,7 +355,7 @@ impl Parser {
             self.wrap(BranchKind::Pub, start);
         }
         debug!("/starred");
-        Some(())
+        Some(false)
     }
 
     fn string(&mut self, source: &mut Peekable<Iter<'_, Token>>) {

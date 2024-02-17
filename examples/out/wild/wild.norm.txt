@@ -255,9 +255,11 @@ Block
   /Infix
   Call
     Id "case"
-    Id "x"
-    Id "<"
-    Id "0"
+    Infix
+      Id "x"
+      AngleOpen "<"
+      Id "0"
+    /Infix
     String "negative"
   /Call
   Call
@@ -305,4 +307,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 232
+Tree len: 233

@@ -3,48 +3,66 @@ Block
     Pub
       Id "Case"
     None
-    Call
-      Id "for<Value>"
-      Block
-        Id "Pair<Claim"
-    /Call
   /Def
-  Id "Value>"
+  AngleOpen "<"
+  Id "Value"
+  Call
+    AngleClose ">"
+    Block
+      Id "Pair"
+    AngleOpen "<"
+    Id "Claim"
+  /Call
+  Id "Value"
+  AngleClose ">"
   Def
     Pub
       Id "Claim"
     None
-    Id "Either<Void"
+    Id "Either"
   /Def
-  Id "Void>"
+  AngleOpen "<"
+  Id "Void"
+  Id "Void"
+  AngleClose ">"
   Def
     Pub
       Id "Either"
     None
-    Id "for<YesValue"
   /Def
+  AngleOpen "<"
+  Id "YesValue"
+  Id "NoValue"
   Call
-    Id "NoValue>"
+    AngleClose ">"
     Block
-      Call
-        Id "Yes<YesValue>"
-        Id "|"
-        Id "No<NoValue>"
-      /Call
-    /Block
+      Id "Yes"
+    AngleOpen "<"
+    Id "YesValue"
+    AngleClose ">"
+    Id "|"
+    Id "No"
+    AngleOpen "<"
+    Id "NoValue"
+    AngleClose ">"
   /Call
   Def
     Pub
       Id "Function"
     None
-    Def
-      Id "for<ArgTypes"
-      Id "List<Type>"
-      None
-    /Def
   /Def
+  AngleOpen "<"
+  Def
+    Id "ArgTypes"
+    Id "List"
+    None
+  /Def
+  AngleOpen "<"
+  Id "Type"
+  AngleClose ">"
+  Id "ReturnType"
   Call
-    Id "ReturnType>"
+    AngleClose ">"
     Block
       Call
         Id "class"
@@ -165,42 +183,51 @@ Block
     Pub
       Id "List"
     None
-    Call
-      Id "for<Item>"
-      Block
-        Call
-          Id "class"
-          Of "of"
-        /Call
-      /Block
-    /Call
   /Def
+  AngleOpen "<"
+  Id "Item"
+  Call
+    AngleClose ">"
+    Block
+      Call
+        Id "class"
+        Of "of"
+      /Call
+    /Block
+  /Call
   Def
     Pub
       Id "Maybe"
     None
-    Call
-      Id "for<Value>"
-      Block
-        Id "Either<Value"
-    /Call
   /Def
-  Id "Void>"
+  AngleOpen "<"
+  Id "Value"
+  Call
+    AngleClose ">"
+    Block
+      Id "Either"
+    AngleOpen "<"
+    Id "Value"
+  /Call
+  Id "Void"
+  AngleClose ">"
   Def
     Pub
       Id "No"
     None
-    Call
-      Id "for<Value>"
-      Block
-        Call
-          Id "ordered"
-          Id "struct"
-          Of "of"
-        /Call
-      /Block
-    /Call
   /Def
+  AngleOpen "<"
+  Id "Value"
+  Call
+    AngleClose ">"
+    Block
+      Call
+        Id "ordered"
+        Id "struct"
+        Of "of"
+      /Call
+    /Block
+  /Call
   Def
     Id "value"
     Id "Value"
@@ -210,10 +237,12 @@ Block
     Pub
       Id "Pair"
     None
-    Id "for<Key"
   /Def
+  AngleOpen "<"
+  Id "Key"
+  Id "Value"
   Call
-    Id "Value>"
+    AngleClose ">"
     Block
       Call
         Id "ordered"
@@ -289,17 +318,19 @@ Block
     Pub
       Id "Yes"
     None
-    Call
-      Id "for<Value>"
-      Block
-        Call
-          Id "ordered"
-          Id "struct"
-          Of "of"
-        /Call
-      /Block
-    /Call
   /Def
+  AngleOpen "<"
+  Id "Value"
+  Call
+    AngleClose ">"
+    Block
+      Call
+        Id "ordered"
+        Id "struct"
+        Of "of"
+      /Call
+    /Block
+  /Call
   Def
     Id "value"
     Id "Value"
@@ -309,18 +340,26 @@ Block
     Pub
       Id "branch"
     None
-    Def
-      Call
-        Id "for<Value>"
-        Def
-          Id "cases"
-          Id "List<Case<Value>>"
-          None
-        /Def
-      /Call
+  /Def
+  AngleOpen "<"
+  Id "Value"
+  Def
+    Call
+      AngleClose ">"
+      Def
+        Id "cases"
+        Id "List"
+        None
+      /Def
+      AngleOpen "<"
+      Id "Case"
+      AngleOpen "<"
       Id "Value"
-      None
-    /Def
+      AngleClose ">"
+      AngleClose ">"
+    /Call
+    Id "Value"
+    None
   /Def
   Block
     Call
@@ -343,26 +382,33 @@ Block
     Pub
       Id "else"
     None
-    Def
-      Call
-        Id "for<Value>"
-        Def
-          Id "value"
-          Id "Value"
-          None
-        /Def
-      /Call
-      Id "Case<Value>"
-      None
-    /Def
   /Def
-  Block
-    Infix
-      Id "true"
-      To "to"
-      Id "value"
-    /Infix
-  /Block
+  AngleOpen "<"
+  Id "Value"
+  Def
+    Call
+      AngleClose ">"
+      Def
+        Id "value"
+        Id "Value"
+        None
+      /Def
+    /Call
+    Id "Case"
+    None
+  /Def
+  AngleOpen "<"
+  Id "Value"
+  Call
+    AngleClose ">"
+    Block
+      Infix
+        Id "true"
+        To "to"
+        Id "value"
+      /Infix
+    /Block
+  /Call
   Def
     Pub
       Id "false"
@@ -455,4 +501,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 343
+Tree len: 390

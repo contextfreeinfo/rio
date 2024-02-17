@@ -28,6 +28,8 @@ impl Token {
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TokenKind {
     Also,
+    AngleClose,
+    AngleOpen,
     Be,
     Colon,
     Comma,
@@ -90,6 +92,8 @@ impl<'a> Lexer<'a> {
                     '"' => self.string(&mut source),
                     ':' => self.trim_push(&mut source, TokenKind::Colon),
                     ',' | ';' => self.trim_push(&mut source, TokenKind::Comma),
+                    '<' => self.trim_push(&mut source, TokenKind::AngleOpen),
+                    '>' => self.trim_push(&mut source, TokenKind::AngleClose),
                     '{' => self.trim_push(&mut source, TokenKind::CurlyOpen),
                     '}' => self.trim_push(&mut source, TokenKind::CurlyClose),
                     '(' => self.trim_push(&mut source, TokenKind::RoundOpen),

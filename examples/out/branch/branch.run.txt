@@ -1,9 +1,9 @@
 Block
   Module "examples/branch.rio" 2
-  Def@42 :@38
-    Uid main@42* :@38
+  Def@43 :@39
+    Uid main@43* :@39
     None
-    Fun :@38
+    Fun :@39
       Params
       Params
       Block
@@ -16,47 +16,48 @@ Block
           Uid message@24
           None
           Call
-            Uid branch@1@319
+            Uid branch@1@360 :@37
             With "with"
           /Call
         /Def
-        Call
-          Uid n@23
-          Id "<"
+        Infix
           Infix
+            Uid n@23
+            AngleOpen "<"
             Id "0"
-            To "to"
-            String "negative" :@37
           /Infix
-        /Call
-        Call
-          Uid n@23
-          Id ">"
+          To "to"
+          String "negative" :@38
+        /Infix
+        Infix
           Infix
+            Uid n@23
+            AngleClose ">"
             Id "0"
-            To "to"
-            String "positive" :@37
           /Infix
-        /Call
+          To "to"
+          String "positive" :@38
+        /Infix
         Call
-          Uid else@1@322
-          String "zero" :@37
+          Uid else@1@366
+          String "zero" :@38
         /Call
       /Block
     /Fun
   /Def
-  Call :@39
-    Uid print@1@327 :@40
+  Call :@40
+    Uid print@1@376 :@41
     Id "message"
   /Call
   Types
-    Uid@37 Text@1@313
-    FunType@38
-    Uid@39 Void@1@316
-    FunType@40 :@39
-      None :@37
+    Uid@37 List@1@329
+    Uid@38 Text@1@351
+    FunType@39
+    Uid@40 Void@1@354
+    FunType@41 :@40
+      None :@38
   /Types
 /Block
 
 Node size: 20
-Tree len: 45
+Tree len: 46

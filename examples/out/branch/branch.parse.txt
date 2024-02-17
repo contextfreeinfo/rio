@@ -41,42 +41,42 @@ Block
         /Def
         VSpace "\n"
         HSpace "        "
-        Call
-          Id "n"
-          HSpace " "
-          Id "<"
-          HSpace " "
+        Infix
           Infix
+            Id "n"
+            HSpace " "
+            AngleOpen "<"
+            HSpace " "
             Id "0"
-            HSpace " "
-            To "to"
-            HSpace " "
-            StringParts
-              StringEdge "\""
-              String "negative"
-              StringEdge "\""
-            /StringParts
           /Infix
-        /Call
+          HSpace " "
+          To "to"
+          HSpace " "
+          StringParts
+            StringEdge "\""
+            String "negative"
+            StringEdge "\""
+          /StringParts
+        /Infix
         VSpace "\n"
         HSpace "        "
-        Call
-          Id "n"
-          HSpace " "
-          Id ">"
-          HSpace " "
+        Infix
           Infix
+            Id "n"
+            HSpace " "
+            AngleClose ">"
+            HSpace " "
             Id "0"
-            HSpace " "
-            To "to"
-            HSpace " "
-            StringParts
-              StringEdge "\""
-              String "positive"
-              StringEdge "\""
-            /StringParts
           /Infix
-        /Call
+          HSpace " "
+          To "to"
+          HSpace " "
+          StringParts
+            StringEdge "\""
+            String "positive"
+            StringEdge "\""
+          /StringParts
+        /Infix
         VSpace "\n"
         HSpace "        "
         Call

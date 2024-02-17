@@ -498,11 +498,13 @@ Block
   Call
     Id "case"
     HSpace " "
-    Id "x"
-    HSpace " "
-    Id "<"
-    HSpace " "
-    Id "0"
+    Infix
+      Id "x"
+      HSpace " "
+      AngleOpen "<"
+      HSpace " "
+      Id "0"
+    /Infix
     HSpace " "
     StringParts
       StringEdge "\""
@@ -538,8 +540,8 @@ Block
       To "to"
       HSpace " "
       Id "b"
+      HSpace " "
     /Infix
-    HSpace " "
     To "to"
     HSpace " "
     Id "c"
@@ -552,8 +554,8 @@ Block
       To "to"
       VSpace "\n"
       To "to"
+      HSpace " "
     /Infix
-    HSpace " "
     Id "eggplant"
   /Call
   VSpace "\n"
@@ -564,8 +566,8 @@ Block
       To "to"
       HSpace " "
       To "to"
+      HSpace " "
     /Infix
-    HSpace " "
     Id "giraffe"
   /Call
   VSpace "\n"
@@ -590,4 +592,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 500
+Tree len: 501
