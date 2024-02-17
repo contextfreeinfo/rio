@@ -1,63 +1,66 @@
 Block
   Module "examples/branch.rio" 2
-  Def@43 :@39
-    Uid main@43* :@39
+  Def@46 :@44
+    Uid main@46* :@44
     None
-    Fun :@39
+    Fun :@44
       Params
       Params
-      Block
-        Def@23
-          Uid n@23
+      Block :@41
+        Def@29
+          Uid n@29
           None
           Id "2"
         /Def
-        Def@24
-          Uid message@24
+        Def@30
+          Uid message@30
           None
           Call
-            Uid branch@1@360 :@37
-            With "with"
+            Uid branch@1@367 :@39
+            Block
+              With "with"
+              Infix
+                Infix
+                  Uid n@29
+                  AngleOpen "<"
+                  Id "0"
+                /Infix
+                To "to"
+                String "negative" :@40
+              /Infix
+              Infix
+                Infix
+                  Uid n@29
+                  AngleClose ">"
+                  Id "0"
+                /Infix
+                To "to"
+                String "positive" :@40
+              /Infix
+              Call
+                Uid else@1@373
+                String "zero" :@40
+              /Call
+            /Block
           /Call
         /Def
-        Infix
-          Infix
-            Uid n@23
-            AngleOpen "<"
-            Id "0"
-          /Infix
-          To "to"
-          String "negative" :@38
-        /Infix
-        Infix
-          Infix
-            Uid n@23
-            AngleClose ">"
-            Id "0"
-          /Infix
-          To "to"
-          String "positive" :@38
-        /Infix
-        Call
-          Uid else@1@366
-          String "zero" :@38
+        Call :@41
+          Uid print@1@383 :@42
+          Uid message@30
         /Call
       /Block
     /Fun
   /Def
-  Call :@40
-    Uid print@1@376 :@41
-    Id "message"
-  /Call
   Types
-    Uid@37 List@1@329
-    Uid@38 Text@1@351
-    FunType@39
-    Uid@40 Void@1@354
-    FunType@41 :@40
-      None :@38
+    Uid@39 List@1@341
+    Uid@40 Text@1@360
+    Uid@41 Void@1@362
+    FunType@42 :@41
+      None :@40
+    FunType@43
+    FunType@44 :@41
   /Types
 /Block
 
 Node size: 20
-Tree len: 46
+Tree len: 48

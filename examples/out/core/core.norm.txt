@@ -66,7 +66,8 @@ Block
     Block
       Call
         Id "class"
-        Of "of"
+        Block
+          Of "of"
       /Call
     /Block
   /Call
@@ -76,108 +77,110 @@ Block
     None
     Call
       Id "class"
-      Of "of"
+      Block
+        Of "of"
+        Def
+          Pub
+            Id "add"
+          None
+          Fun
+            Params
+              Def
+                Id "other"
+                Id "Int32"
+                None
+              /Def
+            /Params
+            Params
+              Def
+                None
+                Id "Int32"
+                None
+              /Def
+            /Params
+            Block
+              Call
+                Id "native"
+            /Block
+          /Fun
+        /Def
+        Def
+          Pub
+            Id "gt"
+          None
+          Fun
+            Params
+              Def
+                Id "other"
+                Id "Int32"
+                None
+              /Def
+            /Params
+            Params
+              Def
+                None
+                Id "Claim"
+                None
+              /Def
+            /Params
+            Block
+              Call
+                Id "native"
+            /Block
+          /Fun
+        /Def
+        Def
+          Pub
+            Id "lt"
+          None
+          Fun
+            Params
+              Def
+                Id "other"
+                Id "Int32"
+                None
+              /Def
+            /Params
+            Params
+              Def
+                None
+                Id "Claim"
+                None
+              /Def
+            /Params
+            Block
+              Call
+                Id "native"
+            /Block
+          /Fun
+        /Def
+        Def
+          Pub
+            Id "eq"
+          None
+          Fun
+            Params
+              Def
+                Id "other"
+                Id "Int32"
+                None
+              /Def
+            /Params
+            Params
+              Def
+                None
+                Id "Claim"
+                None
+              /Def
+            /Params
+            Block
+              Call
+                Id "native"
+            /Block
+          /Fun
+        /Def
+      /Block
     /Call
-  /Def
-  Def
-    Pub
-      Id "add"
-    None
-    Fun
-      Params
-        Def
-          Id "other"
-          Id "Int32"
-          None
-        /Def
-      /Params
-      Params
-        Def
-          None
-          Id "Int32"
-          None
-        /Def
-      /Params
-      Block
-        Call
-          Id "native"
-      /Block
-    /Fun
-  /Def
-  Def
-    Pub
-      Id "gt"
-    None
-    Fun
-      Params
-        Def
-          Id "other"
-          Id "Int32"
-          None
-        /Def
-      /Params
-      Params
-        Def
-          None
-          Id "Claim"
-          None
-        /Def
-      /Params
-      Block
-        Call
-          Id "native"
-      /Block
-    /Fun
-  /Def
-  Def
-    Pub
-      Id "lt"
-    None
-    Fun
-      Params
-        Def
-          Id "other"
-          Id "Int32"
-          None
-        /Def
-      /Params
-      Params
-        Def
-          None
-          Id "Claim"
-          None
-        /Def
-      /Params
-      Block
-        Call
-          Id "native"
-      /Block
-    /Fun
-  /Def
-  Def
-    Pub
-      Id "eq"
-    None
-    Fun
-      Params
-        Def
-          Id "other"
-          Id "Int32"
-          None
-        /Def
-      /Params
-      Params
-        Def
-          None
-          Id "Claim"
-          None
-        /Def
-      /Params
-      Block
-        Call
-          Id "native"
-      /Block
-    /Fun
   /Def
   Def
     Pub
@@ -191,7 +194,8 @@ Block
     Block
       Call
         Id "class"
-        Of "of"
+        Block
+          Of "of"
       /Call
     /Block
   /Call
@@ -224,15 +228,17 @@ Block
       Call
         Id "ordered"
         Id "struct"
-        Of "of"
+        Block
+          Of "of"
+          Def
+            Id "value"
+            Id "Value"
+            None
+          /Def
+        /Block
       /Call
     /Block
   /Call
-  Def
-    Id "value"
-    Id "Value"
-    None
-  /Def
   Def
     Pub
       Id "Pair"
@@ -247,20 +253,22 @@ Block
       Call
         Id "ordered"
         Id "struct"
-        Of "of"
+        Block
+          Of "of"
+          Def
+            Id "key"
+            Id "Key"
+            None
+          /Def
+          Def
+            Id "value"
+            Id "Value"
+            None
+          /Def
+        /Block
       /Call
     /Block
   /Call
-  Def
-    Id "key"
-    Id "Key"
-    None
-  /Def
-  Def
-    Id "value"
-    Id "Value"
-    None
-  /Def
   Def
     Pub
       Id "Text"
@@ -274,38 +282,40 @@ Block
     None
     Call
       Id "class"
-      Of "of"
-    /Call
-  /Def
-  Def
-    Pub
-      Id "union"
-    None
-    Fun
-      Params
-        Def
-          Id "a"
-          Id "Type"
-          None
-        /Def
-        Def
-          Id "b"
-          Id "Type"
-          None
-        /Def
-      /Params
-      Params
-        Def
-          None
-          Id "Type"
-          None
-        /Def
-      /Params
       Block
-        Call
-          Id "native"
+        Of "of"
+        Def
+          Pub
+            Id "union"
+          None
+          Fun
+            Params
+              Def
+                Id "a"
+                Id "Type"
+                None
+              /Def
+              Def
+                Id "b"
+                Id "Type"
+                None
+              /Def
+            /Params
+            Params
+              Def
+                None
+                Id "Type"
+                None
+              /Def
+            /Params
+            Block
+              Call
+                Id "native"
+            /Block
+          /Fun
+        /Def
       /Block
-    /Fun
+    /Call
   /Def
   Def
     Pub
@@ -327,15 +337,17 @@ Block
       Call
         Id "ordered"
         Id "struct"
-        Of "of"
+        Block
+          Of "of"
+          Def
+            Id "value"
+            Id "Value"
+            None
+          /Def
+        /Block
       /Call
     /Block
   /Call
-  Def
-    Id "value"
-    Id "Value"
-    None
-  /Def
   Def
     Pub
       Id "branch"
@@ -501,4 +513,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 390
+Tree len: 397

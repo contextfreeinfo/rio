@@ -76,7 +76,11 @@ impl Parser {
         self.skip_h(source);
         match peek(source)? {
             TokenKind::Colon | TokenKind::Comma | TokenKind::VSpace => {}
-            TokenKind::Be | TokenKind::CurlyOpen | TokenKind::RoundOpen => self.block(source)?,
+            TokenKind::Be
+            | TokenKind::CurlyOpen
+            | TokenKind::Of
+            | TokenKind::RoundOpen
+            | TokenKind::With => self.block(source)?,
             TokenKind::Fun => self.fun(source)?,
             TokenKind::Id => self.advance(source),
             TokenKind::StringEdge => self.string(source),
@@ -90,7 +94,7 @@ impl Parser {
         debug!("block");
         let start = self.builder().pos();
         let ender = match peek(source)? {
-            TokenKind::Be => TokenKind::End,
+            TokenKind::Be | TokenKind::Of | TokenKind::With => TokenKind::End,
             TokenKind::CurlyOpen => TokenKind::CurlyClose,
             TokenKind::RoundOpen => TokenKind::RoundClose,
             _ => panic!(),
@@ -169,11 +173,20 @@ impl Parser {
             if had_space
                 || matches!(
                     peeked,
-                    TokenKind::HSpace | TokenKind::Be | TokenKind::CurlyOpen
+                    TokenKind::HSpace
+                        | TokenKind::Be
+                        | TokenKind::CurlyOpen
+                        | TokenKind::Of
+                        | TokenKind::With
                 )
             {
                 self.skip_h(source);
-                if !allow_block && matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen) {
+                if !allow_block
+                    && matches!(
+                        peek(source)?,
+                        TokenKind::Be | TokenKind::CurlyOpen | TokenKind::Of | TokenKind::With
+                    )
+                {
                     break;
                 }
                 post = self.builder().pos();
@@ -186,7 +199,10 @@ impl Parser {
                     self.advance(source);
                 }
                 self.skip_h(source);
-                if matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen) {
+                if matches!(
+                    peek(source)?,
+                    TokenKind::Be | TokenKind::CurlyOpen | TokenKind::Of | TokenKind::With
+                ) {
                     if !allow_block {
                         break;
                     }

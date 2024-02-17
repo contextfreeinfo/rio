@@ -17,39 +17,41 @@ Block
           None
           Call
             Id "branch"
-            With "with"
+            Block
+              With "with"
+              Infix
+                Infix
+                  Id "n"
+                  AngleOpen "<"
+                  Id "0"
+                /Infix
+                To "to"
+                String "negative"
+              /Infix
+              Infix
+                Infix
+                  Id "n"
+                  AngleClose ">"
+                  Id "0"
+                /Infix
+                To "to"
+                String "positive"
+              /Infix
+              Call
+                Id "else"
+                String "zero"
+              /Call
+            /Block
           /Call
         /Def
-        Infix
-          Infix
-            Id "n"
-            AngleOpen "<"
-            Id "0"
-          /Infix
-          To "to"
-          String "negative"
-        /Infix
-        Infix
-          Infix
-            Id "n"
-            AngleClose ">"
-            Id "0"
-          /Infix
-          To "to"
-          String "positive"
-        /Infix
         Call
-          Id "else"
-          String "zero"
+          Id "print"
+          Id "message"
         /Call
       /Block
     /Fun
   /Def
-  Call
-    Id "print"
-    Id "message"
-  /Call
 /Block
 
 Node size: 20
-Tree len: 39
+Tree len: 40

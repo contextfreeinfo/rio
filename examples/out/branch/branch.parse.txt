@@ -36,76 +36,78 @@ Block
           Call
             Id "branch"
             HSpace " "
-            With "with"
+            Block
+              With "with"
+              VSpace "\n"
+              HSpace "        "
+              Infix
+                Infix
+                  Id "n"
+                  HSpace " "
+                  AngleOpen "<"
+                  HSpace " "
+                  Id "0"
+                /Infix
+                HSpace " "
+                To "to"
+                HSpace " "
+                StringParts
+                  StringEdge "\""
+                  String "negative"
+                  StringEdge "\""
+                /StringParts
+              /Infix
+              VSpace "\n"
+              HSpace "        "
+              Infix
+                Infix
+                  Id "n"
+                  HSpace " "
+                  AngleClose ">"
+                  HSpace " "
+                  Id "0"
+                /Infix
+                HSpace " "
+                To "to"
+                HSpace " "
+                StringParts
+                  StringEdge "\""
+                  String "positive"
+                  StringEdge "\""
+                /StringParts
+              /Infix
+              VSpace "\n"
+              HSpace "        "
+              Call
+                Id "else"
+                HSpace " "
+                StringParts
+                  StringEdge "\""
+                  String "zero"
+                  StringEdge "\""
+                /StringParts
+              /Call
+              VSpace "\n"
+              HSpace "    "
+              End "end"
+            /Block
           /Call
         /Def
         VSpace "\n"
-        HSpace "        "
-        Infix
-          Infix
-            Id "n"
-            HSpace " "
-            AngleOpen "<"
-            HSpace " "
-            Id "0"
-          /Infix
-          HSpace " "
-          To "to"
-          HSpace " "
-          StringParts
-            StringEdge "\""
-            String "negative"
-            StringEdge "\""
-          /StringParts
-        /Infix
-        VSpace "\n"
-        HSpace "        "
-        Infix
-          Infix
-            Id "n"
-            HSpace " "
-            AngleClose ">"
-            HSpace " "
-            Id "0"
-          /Infix
-          HSpace " "
-          To "to"
-          HSpace " "
-          StringParts
-            StringEdge "\""
-            String "positive"
-            StringEdge "\""
-          /StringParts
-        /Infix
-        VSpace "\n"
-        HSpace "        "
+        HSpace "    "
         Call
-          Id "else"
-          HSpace " "
-          StringParts
-            StringEdge "\""
-            String "zero"
-            StringEdge "\""
-          /StringParts
+          Id "print"
+          RoundOpen "("
+          Id "message"
+          RoundClose ")"
         /Call
         VSpace "\n"
-        HSpace "    "
         End "end"
       /Block
     /Fun
   /Def
   VSpace "\n"
-  HSpace "    "
-  Call
-    Id "print"
-    RoundOpen "("
-    Id "message"
-    RoundClose ")"
-  /Call
-  VSpace "\n"
-  End "end"
-  VSpace "\n"
 /Block
 
 Node size: 12
-Tree len: 90
+Tree len: 91

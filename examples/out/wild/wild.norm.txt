@@ -125,186 +125,198 @@ Block
   /Call
   Call
     Id "f"
-    Of "of"
-  /Call
-  Def
-    Id "a"
-    None
-    Call
-      Id "g"
-      Id "b"
-    /Call
-  /Def
-  Def
-    Id "c"
-    None
-    Id "d"
-  /Def
-  Id "on"
-  Id "e"
-  Id "x"
-  Call
-    With "with"
-    Fun
-      Params
-        Id "y"
-      Params
+    Infix
       Block
-        Call
-          Id "blah"
-          Id "y"
-        /Call
-      /Block
-    /Fun
-  /Call
-  Call
-    Id "await"
-    Of "of"
-    Id "request"
-    Id "something"
-  /Call
-  Def
-    Call
-      Id "f"
-      Id "a"
-      With "with"
-      Id "b"
-    /Call
-    None
-    Call
-      Id "g"
-      Id "c"
-    /Call
-  /Def
-  Call
-    Id "f"
-    Id "a"
-    Block
-      Def
-        Id "b"
-        None
-        Call
-          Id "g"
+        Of "of"
+        Def
+          Id "a"
+          None
+          Call
+            Id "g"
+            Id "b"
+          /Call
+        /Def
+        Def
           Id "c"
-        /Call
-      /Def
-      Def
-        Id "d"
-        None
+          None
+          Id "d"
+        /Def
+        Id "on"
         Id "e"
-      /Def
-    /Block
-  /Call
-  Call
-    Id "f"
-    Id "a"
-    With "with"
-  /Call
-  Def
-    Id "b"
-    None
-    Call
-      Id "g"
-      Id "c"
-    /Call
-  /Def
-  Def
-    Id "d"
-    None
-    Id "e"
-  /Def
-  Call
-    Id "item"
-    Id "from"
-    Id "items.each"
-  /Call
-  Call
-    Id "print"
-    Id "item"
-  /Call
-  Call
-    Id "match"
-    Id "x"
-    With "with"
-  /Call
-  Infix
-    Id "0"
-    To "to"
-    String "no"
-  /Infix
-  Infix
-    Id "1"
-    To "to"
-    String "a single"
-  /Infix
-  Infix
-    Id "2"
-    To "to"
-    String "a couple of"
-  /Infix
-  Call
-    Id "any"
-    Id "[3"
-  /Call
-  Id "4"
-  Id "5"
-  Infix
-    Id "6]"
-    To "to"
-    String "a few of"
-  /Infix
-  Call
-    Id "case"
-    Infix
-      Id "x"
-      AngleOpen "<"
-      Id "0"
+        Id "x"
+        Block
+          With "with"
+          Fun
+            Params
+              Id "y"
+            Params
+            Block
+              Call
+                Id "blah"
+                Id "y"
+              /Call
+            /Block
+          /Fun
+        /Block
+        Call
+          Id "await"
+          Block
+            Of "of"
+            Call
+              Id "request"
+              Id "something"
+            /Call
+          /Block
+        /Call
+        Def
+          Call
+            Id "f"
+            Id "a"
+            Block
+              With "with"
+              Id "b"
+            /Block
+          /Call
+          None
+          Call
+            Id "g"
+            Id "c"
+          /Call
+        /Def
+        Call
+          Id "f"
+          Id "a"
+          Block
+            Def
+              Id "b"
+              None
+              Call
+                Id "g"
+                Id "c"
+              /Call
+            /Def
+            Def
+              Id "d"
+              None
+              Id "e"
+            /Def
+          /Block
+        /Call
+        Call
+          Id "f"
+          Id "a"
+          Block
+            With "with"
+            Def
+              Id "b"
+              None
+              Call
+                Id "g"
+                Id "c"
+              /Call
+            /Def
+            Def
+              Id "d"
+              None
+              Id "e"
+            /Def
+          /Block
+        /Call
+        Call
+          Id "item"
+          Id "from"
+          Id "items.each"
+        /Call
+        Call
+          Id "print"
+          Id "item"
+        /Call
+        Call
+          Id "match"
+          Id "x"
+          Block
+            With "with"
+            Infix
+              Id "0"
+              To "to"
+              String "no"
+            /Infix
+            Infix
+              Id "1"
+              To "to"
+              String "a single"
+            /Infix
+            Infix
+              Id "2"
+              To "to"
+              String "a couple of"
+            /Infix
+            Call
+              Id "any"
+              Id "[3"
+            /Call
+            Id "4"
+            Id "5"
+            Infix
+              Id "6]"
+              To "to"
+              String "a few of"
+            /Infix
+            Call
+              Id "case"
+              Infix
+                Id "x"
+                AngleOpen "<"
+                Id "0"
+              /Infix
+              String "negative"
+            /Call
+            Call
+              Id "else"
+              String "several"
+            /Call
+          /Block
+        /Call
+        Call
+          To "to"
+          Id "dog"
+        /Call
+        Infix
+          Infix
+            Id "a"
+            To "to"
+            Id "b"
+          /Infix
+          To "to"
+          Id "c"
+        /Infix
+        Call
+          Infix
+            Id "a"
+            To "to"
+            To "to"
+          /Infix
+          Id "eggplant"
+        /Call
+        Call
+          Infix
+            Id "fish"
+            To "to"
+            To "to"
+          /Infix
+          Id "giraffe"
+        /Call
+        Infix
+          To "to"
+          To "to"
+          Id "hyena"
+        /Infix
+      /Block
+      To "to"
+      Block
     /Infix
-    String "negative"
-  /Call
-  Call
-    Id "else"
-    String "several"
-  /Call
-  Call
-    To "to"
-    Id "dog"
-  /Call
-  Infix
-    Infix
-      Id "a"
-      To "to"
-      Id "b"
-    /Infix
-    To "to"
-    Id "c"
-  /Infix
-  Call
-    Infix
-      Id "a"
-      To "to"
-      To "to"
-    /Infix
-    Id "eggplant"
-  /Call
-  Call
-    Infix
-      Id "fish"
-      To "to"
-      To "to"
-    /Infix
-    Id "giraffe"
-  /Call
-  Infix
-    To "to"
-    To "to"
-    Id "hyena"
-  /Infix
-  Call
-    To "to"
-    Block
   /Call
 /Block
 
 Node size: 20
-Tree len: 233
+Tree len: 239
