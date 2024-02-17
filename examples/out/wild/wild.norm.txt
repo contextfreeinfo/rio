@@ -125,7 +125,7 @@ Block
   /Call
   Call
     Id "f"
-    Id "of"
+    Of "of"
   /Call
   Def
     Id "a"
@@ -144,7 +144,7 @@ Block
   Id "e"
   Id "x"
   Call
-    Id "with"
+    With "with"
     Fun
       Params
         Id "y"
@@ -159,7 +159,7 @@ Block
   /Call
   Call
     Id "await"
-    Id "of"
+    Of "of"
     Id "request"
     Id "something"
   /Call
@@ -167,7 +167,7 @@ Block
     Call
       Id "f"
       Id "a"
-      Id "with"
+      With "with"
       Id "b"
     /Call
     None
@@ -198,7 +198,7 @@ Block
   Call
     Id "f"
     Id "a"
-    Id "with"
+    With "with"
   /Call
   Def
     Id "b"
@@ -225,34 +225,34 @@ Block
   Call
     Id "match"
     Id "x"
-    Id "with"
+    With "with"
   /Call
-  Call
+  Infix
     Id "0"
-    Id "to"
+    To "to"
     String "no"
-  /Call
-  Call
+  /Infix
+  Infix
     Id "1"
-    Id "to"
+    To "to"
     String "a single"
-  /Call
-  Call
+  /Infix
+  Infix
     Id "2"
-    Id "to"
+    To "to"
     String "a couple of"
-  /Call
+  /Infix
   Call
     Id "any"
     Id "[3"
   /Call
   Id "4"
   Id "5"
-  Call
+  Infix
     Id "6]"
-    Id "to"
+    To "to"
     String "a few of"
-  /Call
+  /Infix
   Call
     Id "case"
     Id "x"
@@ -264,7 +264,45 @@ Block
     Id "else"
     String "several"
   /Call
+  Call
+    To "to"
+    Id "dog"
+  /Call
+  Infix
+    Infix
+      Id "a"
+      To "to"
+      Id "b"
+    /Infix
+    To "to"
+    Id "c"
+  /Infix
+  Call
+    Infix
+      Id "a"
+      To "to"
+      To "to"
+    /Infix
+    Id "eggplant"
+  /Call
+  Call
+    Infix
+      Id "fish"
+      To "to"
+      To "to"
+    /Infix
+    Id "giraffe"
+  /Call
+  Infix
+    To "to"
+    To "to"
+    Id "hyena"
+  /Infix
+  Call
+    To "to"
+    Block
+  /Call
 /Block
 
 Node size: 20
-Tree len: 203
+Tree len: 232

@@ -51,3 +51,11 @@ match x with
     case x < 0 "negative"
     else "several"
 end
+
+to dog
+a to b to c
+a to
+to eggplant
+fish to to giraffe
+to to hyena
+end to be

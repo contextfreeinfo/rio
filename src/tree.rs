@@ -375,6 +375,7 @@ pub enum BranchKind {
     Generic,     // (Params, <Something>)
     GenericCall, // (<Something>, ...) distinct from other Call because infer.
     // Group,
+    Infix,
     None,
     Params,
     ParamTypes,

@@ -36,7 +36,7 @@ Block
           Call
             Id "branch"
             HSpace " "
-            Id "with"
+            With "with"
           /Call
         /Def
         VSpace "\n"
@@ -46,15 +46,17 @@ Block
           HSpace " "
           Id "<"
           HSpace " "
-          Id "0"
-          HSpace " "
-          Id "to"
-          HSpace " "
-          StringParts
-            StringEdge "\""
-            String "negative"
-            StringEdge "\""
-          /StringParts
+          Infix
+            Id "0"
+            HSpace " "
+            To "to"
+            HSpace " "
+            StringParts
+              StringEdge "\""
+              String "negative"
+              StringEdge "\""
+            /StringParts
+          /Infix
         /Call
         VSpace "\n"
         HSpace "        "
@@ -63,15 +65,17 @@ Block
           HSpace " "
           Id ">"
           HSpace " "
-          Id "0"
-          HSpace " "
-          Id "to"
-          HSpace " "
-          StringParts
-            StringEdge "\""
-            String "positive"
-            StringEdge "\""
-          /StringParts
+          Infix
+            Id "0"
+            HSpace " "
+            To "to"
+            HSpace " "
+            StringParts
+              StringEdge "\""
+              String "positive"
+              StringEdge "\""
+            /StringParts
+          /Infix
         /Call
         VSpace "\n"
         HSpace "        "
@@ -104,4 +108,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 88
+Tree len: 90

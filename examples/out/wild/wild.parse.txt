@@ -250,7 +250,7 @@ Block
   Call
     Id "f"
     HSpace " "
-    Id "of"
+    Of "of"
   /Call
   VSpace "\n"
   HSpace "    "
@@ -284,7 +284,7 @@ Block
   Id "x"
   VSpace "\n"
   Call
-    Id "with"
+    With "with"
     HSpace " "
     Fun
       Fun "for"
@@ -312,7 +312,7 @@ Block
   Call
     Id "await"
     HSpace " "
-    Id "of"
+    Of "of"
     HSpace " "
     Id "request"
     HSpace " "
@@ -326,7 +326,7 @@ Block
       HSpace " "
       Id "a"
       HSpace " "
-      Id "with"
+      With "with"
       HSpace " "
       Id "b"
       HSpace " "
@@ -378,7 +378,7 @@ Block
     HSpace " "
     Id "a"
     HSpace " "
-    Id "with"
+    With "with"
   /Call
   VSpace "\n"
   HSpace "    "
@@ -426,47 +426,47 @@ Block
     HSpace " "
     Id "x"
     HSpace " "
-    Id "with"
+    With "with"
   /Call
   VSpace "\n"
   HSpace "    "
-  Call
+  Infix
     Id "0"
     HSpace " "
-    Id "to"
+    To "to"
     HSpace " "
     StringParts
       StringEdge "\""
       String "no"
       StringEdge "\""
     /StringParts
-  /Call
+  /Infix
   VSpace "\n"
   HSpace "    "
-  Call
+  Infix
     Id "1"
     HSpace " "
-    Id "to"
+    To "to"
     HSpace " "
     StringParts
       StringEdge "\""
       String "a single"
       StringEdge "\""
     /StringParts
-  /Call
+  /Infix
   VSpace "\n"
   HSpace "    "
-  Call
+  Infix
     Id "2"
     HSpace " "
-    Id "to"
+    To "to"
     HSpace " "
     StringParts
       StringEdge "\""
       String "a couple of"
       StringEdge "\""
     /StringParts
-  /Call
+  /Infix
   VSpace "\n"
   HSpace "    "
   Call
@@ -482,17 +482,17 @@ Block
   Id "5"
   Comma ","
   HSpace " "
-  Call
+  Infix
     Id "6]"
     HSpace " "
-    Id "to"
+    To "to"
     HSpace " "
     StringParts
       StringEdge "\""
       String "a few of"
       StringEdge "\""
     /StringParts
-  /Call
+  /Infix
   VSpace "\n"
   HSpace "    "
   Call
@@ -524,7 +524,70 @@ Block
   VSpace "\n"
   End "end"
   VSpace "\n"
+  VSpace "\n"
+  Call
+    To "to"
+    HSpace " "
+    Id "dog"
+  /Call
+  VSpace "\n"
+  Infix
+    Infix
+      Id "a"
+      HSpace " "
+      To "to"
+      HSpace " "
+      Id "b"
+    /Infix
+    HSpace " "
+    To "to"
+    HSpace " "
+    Id "c"
+  /Infix
+  VSpace "\n"
+  Call
+    Infix
+      Id "a"
+      HSpace " "
+      To "to"
+      VSpace "\n"
+      To "to"
+    /Infix
+    HSpace " "
+    Id "eggplant"
+  /Call
+  VSpace "\n"
+  Call
+    Infix
+      Id "fish"
+      HSpace " "
+      To "to"
+      HSpace " "
+      To "to"
+    /Infix
+    HSpace " "
+    Id "giraffe"
+  /Call
+  VSpace "\n"
+  Infix
+    To "to"
+    HSpace " "
+    To "to"
+    HSpace " "
+    Id "hyena"
+  /Infix
+  VSpace "\n"
+  End "end"
+  HSpace " "
+  Call
+    To "to"
+    HSpace " "
+    Block
+      Be "be"
+      VSpace "\n"
+    /Block
+  /Call
 /Block
 
 Node size: 12
-Tree len: 447
+Tree len: 500

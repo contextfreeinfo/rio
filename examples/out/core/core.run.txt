@@ -45,7 +45,7 @@ Block
     Block
       Call
         Uid class@259 :@229
-        Id "of"
+        Of "of"
       /Call
     /Block
   /Call
@@ -54,7 +54,7 @@ Block
     None
     Call
       Uid class@259 :@229
-      Id "of"
+      Of "of"
     /Call
   /Def
   Def@243 :@226
@@ -89,7 +89,7 @@ Block
       Block
         Call
           Uid class@259 :@229
-          Id "of"
+          Of "of"
         /Call
       /Block
     /Call
@@ -103,7 +103,7 @@ Block
         Call
           Uid ordered@264 :@229
           Uid struct@266 :@229
-          Id "of"
+          Of "of"
         /Call
       /Block
     /Call
@@ -124,7 +124,7 @@ Block
       Call
         Uid ordered@264 :@229
         Uid struct@266 :@229
-        Id "of"
+        Of "of"
       /Call
     /Block
   /Call
@@ -149,7 +149,7 @@ Block
     None
     Call
       Uid class@259 :@229
-      Id "of"
+      Of "of"
     /Call
   /Def
   Def@253 :@228
@@ -196,7 +196,7 @@ Block
         Call
           Uid ordered@264 :@229
           Uid struct@266 :@229
-          Id "of"
+          Of "of"
         /Call
       /Block
     /Call
@@ -255,11 +255,11 @@ Block
     /Def
   /Def
   Block
-    Call
+    Infix
       Uid true@267
-      Id "to"
+      To "to"
       Uid value@256
-    /Call
+    /Infix
   /Block
   Def@262
     Uid false@262*

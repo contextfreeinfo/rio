@@ -129,49 +129,55 @@ impl Parser {
     }
 
     fn call(&mut self, source: &mut Tokens, allow_block: bool) -> Option<()> {
+        debug!("call");
         self.skip_h(source);
         let start = self.builder().pos();
-        self.starred(source);
+        let had_space = self.pair(source).unwrap();
         loop {
-            debug!("call: {:?}", peek(source));
+            debug!("call loop: {:?}", peek(source));
             let mut post = self.builder().pos();
             if post <= start {
                 break;
             }
             // TODO Can we leaving trailing hspace, or do we need to have an indicator?
-            match peek(source)? {
-                TokenKind::HSpace | TokenKind::Be | TokenKind::CurlyOpen => {
-                    self.skip_h(source);
-                    if !allow_block && matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen)
-                    {
+            let peeked = peek(source)?;
+            if had_space
+                || matches!(
+                    peeked,
+                    TokenKind::HSpace | TokenKind::Be | TokenKind::CurlyOpen
+                )
+            {
+                self.skip_h(source);
+                if !allow_block && matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen) {
+                    break;
+                }
+                post = self.builder().pos();
+                self.spaced(source);
+            } else if peeked == TokenKind::RoundOpen {
+                // TODO Expand paren-comma args.
+                self.advance(source);
+                self.block_content(source);
+                if peek(source)? == TokenKind::RoundClose {
+                    self.advance(source);
+                }
+                self.skip_h(source);
+                if matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen) {
+                    if !allow_block {
                         break;
                     }
-                    post = self.builder().pos();
-                    self.spaced(source);
-                }
-                TokenKind::RoundOpen => {
-                    // TODO Expand paren-comma args.
-                    self.advance(source);
-                    self.block_content(source);
-                    if peek(source)? == TokenKind::RoundClose {
-                        self.advance(source);
-                    }
+                    self.block(source);
                     self.skip_h(source);
-                    if matches!(peek(source)?, TokenKind::Be | TokenKind::CurlyOpen) {
-                        if !allow_block {
-                            break;
-                        }
-                        self.block(source);
-                        self.skip_h(source);
-                    }
                 }
-                _ => break,
+            } else {
+                break;
             }
-            if self.builder().pos() > post {
-                self.wrap(BranchKind::Call, start);
+            if self.builder().pos() <= post {
+                break;
             }
-            debug!("/call");
+            self.wrap(BranchKind::Call, start);
+            debug!("/call loop");
         }
+        debug!("/call");
         Some(())
     }
 
@@ -255,6 +261,25 @@ impl Parser {
         Some(())
     }
 
+    fn pair(&mut self, source: &mut Tokens) -> Option<bool> {
+        debug!("pair");
+        self.skip_h(source);
+        let start = self.builder().pos();
+        self.starred(source);
+        loop {
+            let pre_space = self.builder().pos();
+            self.skip_h(source);
+            if peek(source)? != TokenKind::To {
+                debug!("/pair");
+                return Some(self.builder().pos() > pre_space);
+            }
+            self.advance(source);
+            self.skip_hv(source);
+            self.starred(source);
+            self.wrap(BranchKind::Infix, start);
+        }
+    }
+
     fn skip<F>(&mut self, source: &mut Tokens, skipping: F) -> Option<()>
     where
         F: Fn(TokenKind) -> bool,
@@ -300,7 +325,7 @@ impl Parser {
                 | TokenKind::End
                 | TokenKind::RoundClose
                 | TokenKind::VSpace => None?,
-                _ => self.starred(source),
+                _ => self.pair(source),
             };
             debug!("/spaced");
         }
@@ -340,6 +365,7 @@ impl Parser {
         self.call(source, true);
         self.skip_h(source);
         loop {
+            debug!("typed loop: {:?}", peek(source)?);
             if peek(source)? != TokenKind::Colon {
                 break;
             }

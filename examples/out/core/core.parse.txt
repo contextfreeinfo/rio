@@ -92,7 +92,7 @@ Block
       Call
         Id "class"
         HSpace " "
-        Id "of"
+        Of "of"
       /Call
     /Block
   /Call
@@ -114,7 +114,7 @@ Block
     Call
       Id "class"
       HSpace " "
-      Id "of"
+      Of "of"
     /Call
   /Def
   VSpace "\n"
@@ -177,7 +177,7 @@ Block
         Call
           Id "class"
           HSpace " "
-          Id "of"
+          Of "of"
         /Call
       /Block
     /Call
@@ -208,7 +208,7 @@ Block
           HSpace " "
           Id "struct"
           HSpace " "
-          Id "of"
+          Of "of"
         /Call
       /Block
     /Call
@@ -248,7 +248,7 @@ Block
         HSpace " "
         Id "struct"
         HSpace " "
-        Id "of"
+        Of "of"
       /Call
     /Block
   /Call
@@ -304,7 +304,7 @@ Block
     Call
       Id "class"
       HSpace " "
-      Id "of"
+      Of "of"
     /Call
   /Def
   VSpace "\n"
@@ -398,7 +398,7 @@ Block
           HSpace " "
           Id "struct"
           HSpace " "
-          Id "of"
+          Of "of"
         /Call
       /Block
     /Call
@@ -510,13 +510,13 @@ Block
   Block
     Be "be"
     HSpace " "
-    Call
+    Infix
       Id "true"
       HSpace " "
-      Id "to"
+      To "to"
       HSpace " "
       Id "value"
-    /Call
+    /Infix
   /Block
   VSpace "\n"
   VSpace "\n"

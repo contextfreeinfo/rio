@@ -48,7 +48,7 @@ Block
     Block
       Call
         Id "class"
-        Id "of"
+        Of "of"
       /Call
     /Block
   /Call
@@ -58,7 +58,7 @@ Block
     None
     Call
       Id "class"
-      Id "of"
+      Of "of"
     /Call
   /Def
   Def
@@ -94,7 +94,7 @@ Block
       Block
         Call
           Id "class"
-          Id "of"
+          Of "of"
         /Call
       /Block
     /Call
@@ -109,7 +109,7 @@ Block
         Call
           Id "ordered"
           Id "struct"
-          Id "of"
+          Of "of"
         /Call
       /Block
     /Call
@@ -131,7 +131,7 @@ Block
       Call
         Id "ordered"
         Id "struct"
-        Id "of"
+        Of "of"
       /Call
     /Block
   /Call
@@ -158,7 +158,7 @@ Block
     None
     Call
       Id "class"
-      Id "of"
+      Of "of"
     /Call
   /Def
   Def
@@ -207,7 +207,7 @@ Block
         Call
           Id "ordered"
           Id "struct"
-          Id "of"
+          Of "of"
         /Call
       /Block
     /Call
@@ -269,11 +269,11 @@ Block
     /Def
   /Def
   Block
-    Call
+    Infix
       Id "true"
-      Id "to"
+      To "to"
       Id "value"
-    /Call
+    /Infix
   /Block
   Def
     Pub

@@ -27,6 +27,7 @@ impl Token {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TokenKind {
+    Also,
     Be,
     Colon,
     Comma,
@@ -39,6 +40,7 @@ pub enum TokenKind {
     HSpace,
     Id,
     None,
+    Of,
     RoundClose,
     RoundOpen,
     Star,
@@ -47,7 +49,9 @@ pub enum TokenKind {
     StringEdge,
     StringEscape,
     StringEscaper,
+    To,
     VSpace,
+    With,
 }
 
 pub struct Lexer<'a> {
@@ -181,9 +185,13 @@ impl<'a> Lexer<'a> {
     fn trim(&mut self, source: &mut Peekable<Chars>) {
         if !self.buffer().is_empty() {
             let kind = match self.buffer().as_str() {
+                "also" => TokenKind::Also,
                 "be" => TokenKind::Be,
                 "end" => TokenKind::End,
                 "for" => TokenKind::Fun,
+                "of" => TokenKind::Of,
+                "to" => TokenKind::To,
+                "with" => TokenKind::With,
                 _ => TokenKind::Id,
             };
             self.push(kind);
