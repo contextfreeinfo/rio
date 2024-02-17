@@ -93,12 +93,7 @@ impl Parser {
     fn block(&mut self, source: &mut Tokens) -> Option<()> {
         debug!("block");
         let start = self.builder().pos();
-        let ender = match peek(source)? {
-            TokenKind::Be | TokenKind::Of | TokenKind::With => TokenKind::End,
-            TokenKind::CurlyOpen => TokenKind::CurlyClose,
-            TokenKind::RoundOpen => TokenKind::RoundClose,
-            _ => panic!(),
-        };
+        let ender = choose_ender(peek(source)?);
         self.advance(source);
         self.skip_h(source);
         if ender == TokenKind::End && peek(source)? != TokenKind::VSpace {
@@ -128,7 +123,10 @@ impl Parser {
             self.skip_hv(source);
             match peek(source)? {
                 TokenKind::Comma => self.advance(source),
-                TokenKind::CurlyClose | TokenKind::End | TokenKind::RoundClose => None?,
+                TokenKind::AngleClose
+                | TokenKind::CurlyClose
+                | TokenKind::End
+                | TokenKind::RoundClose => None?,
                 _ => {
                     self.def(source);
                 }
@@ -145,7 +143,10 @@ impl Parser {
             self.block_content(source)?;
             if matches!(
                 peek(source)?,
-                TokenKind::CurlyClose | TokenKind::End | TokenKind::RoundClose,
+                TokenKind::AngleClose
+                    | TokenKind::CurlyClose
+                    | TokenKind::End
+                    | TokenKind::RoundClose,
             ) {
                 // Eat trash. TODO Avoid ever getting here.
                 self.advance(source);
@@ -191,11 +192,15 @@ impl Parser {
                 }
                 post = self.builder().pos();
                 self.spaced(source);
-            } else if peeked == TokenKind::RoundOpen {
+            } else if matches!(peeked, TokenKind::AngleOpen | TokenKind::RoundOpen) {
+                if peeked == TokenKind::AngleOpen && had_space {
+                    // This is less-than, not angle bracket.
+                    break;
+                }
                 // TODO Expand paren-comma args.
                 self.advance(source);
                 self.block_content(source);
-                if peek(source)? == TokenKind::RoundClose {
+                if peek(source)? == choose_ender(peeked) {
                     self.advance(source);
                 }
                 self.skip_h(source);
@@ -257,16 +262,18 @@ impl Parser {
         // TODO Type params
         // In params
         let in_params_start = self.builder().pos();
-        match peek(source)? {
+        let start_kind = peek(source)?;
+        match start_kind {
             TokenKind::CurlyOpen | TokenKind::Id => {
                 self.atom(source);
                 self.skip_h(source);
             }
-            TokenKind::RoundOpen => {
+            // TODO If angle, also try paren afterward.
+            TokenKind::AngleOpen | TokenKind::RoundOpen => {
                 self.advance(source);
                 // TODO Call it Params.
                 self.block_content(source);
-                if peek(source)? == TokenKind::RoundClose {
+                if peek(source)? == choose_ender(start_kind) {
                     self.advance(source);
                 }
             }
@@ -349,7 +356,8 @@ impl Parser {
             let next = peek(source)?;
             debug!("spaced: {next:?}");
             match next {
-                TokenKind::Comma
+                TokenKind::AngleClose
+                | TokenKind::Comma
                 | TokenKind::Colon
                 | TokenKind::CurlyClose
                 | TokenKind::Define
@@ -411,6 +419,16 @@ impl Parser {
 
     fn wrap(&mut self, kind: BranchKind, start: u32) {
         self.builder().wrap(kind, start, Type::default(), 0);
+    }
+}
+
+fn choose_ender(token_kind: TokenKind) -> TokenKind {
+    match token_kind {
+        TokenKind::AngleOpen => TokenKind::AngleClose,
+        TokenKind::Be | TokenKind::Of | TokenKind::With => TokenKind::End,
+        TokenKind::CurlyOpen => TokenKind::CurlyClose,
+        TokenKind::RoundOpen => TokenKind::RoundClose,
+        _ => panic!(),
     }
 }
 
