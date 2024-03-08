@@ -1,5 +1,6 @@
 Block
   Module "examples/wild.rio" 2
+  Id "a.b"
   Fun :@229
     Params
     Params
@@ -229,7 +230,7 @@ Block
           Id "items.each"
         /Call
         Call :@228
-          Uid print@1@490 :@233
+          Uid print@1@535 :@233
           Id "item"
         /Call
         Call
@@ -273,7 +274,7 @@ Block
               String "negative" :@232
             /Call
             Call
-              Uid else@1@485 :@234
+              Uid else@1@530 :@234
               String "several" :@232
             /Call
           /Block
@@ -318,18 +319,18 @@ Block
     /Infix
   /Call
   Types
-    Uid@228 Void@1@480
+    Uid@228 Void@1@525
     FunType@229 :@228
     FunType@230 :@228
       None
     FunType@231
       None
-    Uid@232 Text@1@478
+    Uid@232 Text@1@523
     FunType@233 :@228
       None :@232
-    Uid@234 Case@1@466
+    Uid@234 Case@1@509
   /Types
 /Block
 
 Node size: 20
-Tree len: 251
+Tree len: 252

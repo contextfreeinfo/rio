@@ -13,7 +13,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
 use lex::{Intern, Interner, Token};
 use link::link_modules;
-use norm::Normer;
+use norm::{CoreInterns, Normer};
 use run::{CoreExports, Module, Runner};
 use tree::{write_tree, Nod, Node, Nody, TreeBuilder};
 use wasm::write_wasm;
@@ -70,6 +70,7 @@ fn main() -> Result<()> {
 pub struct Cart {
     pub buffer: String,
     pub core_exports: CoreExports,
+    pub core_interns: CoreInterns,
     pub interner: Interner,
     pub modules: Vec<Module>,
     pub module_map: HashMap<Intern, u16>,
@@ -86,6 +87,7 @@ fn run_app(args: &BuildArgs) -> Result<()> {
     let cart = Cart {
         buffer: String::new(),
         core_exports: Default::default(),
+        core_interns: CoreInterns::new(&interner),
         interner: interner.clone(),
         modules: vec![],
         module_map: HashMap::new(),

@@ -1,4 +1,5 @@
 Block
+  Id "a.b"
   Fun
     Params
     Params
@@ -319,4 +320,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 239
+Tree len: 240

@@ -1,13 +1,31 @@
 use std::ops::Range;
 
 use crate::{
-    lex::{Token, TokenKind},
+    lex::{Intern, Interner, Token, TokenKind},
     tree::{BranchKind, Nod, Node, Nody, TreeBuilder, Type},
     Cart,
 };
 
 pub struct Normer {
     pub cart: Cart,
+}
+
+/// Provide easy access for comparing resolutions to core native definitions.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CoreInterns {
+    gt: Intern,
+    lt: Intern,
+    pair: Intern,
+}
+
+impl CoreInterns {
+    pub fn new(interner: &Interner) -> Self {
+        Self {
+            gt: interner.get_or_intern("gt"),
+            lt: interner.get_or_intern("lt"),
+            pair: interner.get_or_intern("Pair"),
+        }
+    }
 }
 
 impl Normer {
@@ -17,6 +35,7 @@ impl Normer {
 
     pub fn norm(&mut self, parsed_tree: &[Nod], tree: &mut Vec<Node>) {
         self.trim(parsed_tree, tree);
+        self.replace_infix(tree);
         self.define(tree);
     }
 
@@ -84,6 +103,45 @@ impl Normer {
                     }
                     _ => kind,
                 };
+                self.builder()
+                    .wrap(kind, start, Type::default(), node.source);
+            }
+            _ => self.builder().push(node),
+        }
+        Some(())
+    }
+
+    fn replace_infix(&mut self, tree: &mut Vec<Node>) {
+        self.builder().clear();
+        self.replace_infix_at(&tree);
+        self.builder()
+            .wrap(BranchKind::Block, 0, Type::default(), 0);
+        self.builder().drain_into(tree);
+    }
+
+    fn replace_infix_at(&mut self, tree: &[Node]) -> Option<()> {
+        let node = *tree.last()?;
+        match node.nod {
+            Nod::Branch { kind, range, .. } => {
+                let start = self.builder().pos();
+                let range: Range<usize> = range.into();
+                match kind {
+                    BranchKind::Infix => {
+                        let Nod::Leaf { token: op } = tree[range.start + 1].nod else {
+                            panic!()
+                        };
+                        match op.kind {
+                            TokenKind::AngleClose => {}
+                            TokenKind::AngleOpen => {}
+                            TokenKind::To => {}
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+                for kid_index in range.clone() {
+                    self.replace_infix_at(&tree[..=kid_index]);
+                }
                 self.builder()
                     .wrap(kind, start, Type::default(), node.source);
             }

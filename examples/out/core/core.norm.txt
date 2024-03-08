@@ -215,6 +215,66 @@ Block
   /Def
   Def
     Pub
+      Id "gt"
+    None
+    Fun
+      Params
+        Def
+          Id "a"
+          Id "Int32"
+          None
+        /Def
+        Def
+          Id "b"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Claim"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    Pub
+      Id "lt"
+    None
+    Fun
+      Params
+        Def
+          Id "a"
+          Id "Int32"
+          None
+        /Def
+        Def
+          Id "b"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Claim"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    Pub
       Id "Lazy"
     None
     Fun
@@ -661,4 +721,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 498
+Tree len: 542

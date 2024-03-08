@@ -347,6 +347,107 @@ Block
   /Def
   VSpace "\n"
   VSpace "\n"
+  Comment "# Probably temporary until member access is implemented."
+  VSpace "\n"
+  Def
+    Pub
+      Id "gt"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "a"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        Comma ","
+        HSpace " "
+        Typed
+          Id "b"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  Def
+    Pub
+      Id "lt"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "a"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        Comma ","
+        HSpace " "
+        Typed
+          Id "b"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  VSpace "\n"
   Def
     Pub
       Id "Lazy"
@@ -1171,4 +1272,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 952
+Tree len: 1033
