@@ -65,7 +65,6 @@
   (func (;10;) (type 5) (param i32))
   (func (;11;) (type 5) (param i32))
   (func (;12;) (type 5) (param i32))
-  (func (;13;) (type 5) (param i32))
   (memory (;0;) 1)
   (global (;0;) (mut i32) i32.const 4096)
   (export "memory" (memory 0))

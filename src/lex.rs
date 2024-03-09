@@ -41,6 +41,7 @@ pub enum TokenKind {
     Fun,
     HSpace,
     Id,
+    Int,
     None,
     Of,
     RoundClose,
@@ -100,6 +101,7 @@ impl<'a> Lexer<'a> {
                     ')' => self.trim_push(&mut source, TokenKind::RoundClose),
                     '=' => self.trim_push(&mut source, TokenKind::Define),
                     '*' => self.trim_push(&mut source, TokenKind::Star),
+                    '0'..='9' if self.buffer().is_empty() => self.number(&mut source),
                     _ => {
                         self.next(&mut source);
                     }
@@ -144,6 +146,18 @@ impl<'a> Lexer<'a> {
             self.buffer().push(c);
         }
         next
+    }
+
+    fn number(&mut self, source: &mut Peekable<Chars>) {
+        self.trim(source);
+        loop {
+            match source.peek() {
+                Some('0'..='9') => {}
+                _ => break,
+            }
+            self.next(source);
+        }
+        self.push(TokenKind::Int);
     }
 
     fn push(&mut self, kind: TokenKind) {

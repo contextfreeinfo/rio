@@ -12,14 +12,10 @@ Block
     Params
     Params
   /Fun
-  Fun
-    Params
-      Id "5"
-    Params
-  /Fun
+  Int "5"
   Call
     Block
-      Id "5"
+      Int "5"
   /Call
   Fun
     Params
@@ -27,7 +23,7 @@ Block
         Def
           Id "a"
           Id "A"
-          Id "1"
+          Int "1"
         /Def
         Def
           Id "b"
@@ -240,28 +236,29 @@ Block
             With "with"
             Call
               Id "Pair"
-              Id "0"
+              Int "0"
               String "no"
             /Call
             Call
               Id "Pair"
-              Id "1"
+              Int "1"
               String "a single"
             /Call
             Call
               Id "Pair"
-              Id "2"
+              Int "2"
               String "a couple of"
             /Call
             Call
               Id "any"
               Id "[3"
             /Call
-            Id "4"
-            Id "5"
+            Int "4"
+            Int "5"
+            Int "6"
             Call
               Id "Pair"
-              Id "6]"
+              Id "]"
               String "a few of"
             /Call
             Call
@@ -269,7 +266,7 @@ Block
               Call
                 Id "lt"
                 Id "x"
-                Id "0"
+                Int "0"
               /Call
               String "negative"
             /Call
@@ -320,4 +317,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 240
+Tree len: 238

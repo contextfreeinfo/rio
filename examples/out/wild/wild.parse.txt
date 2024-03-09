@@ -36,13 +36,9 @@ Block
   VSpace "\n"
   Fun "for"
   VSpace "\n"
-  Fun
-    Fun "for"
-    HSpace " "
-    Params
-      Id "5"
-    Params
-  /Fun
+  Fun "for"
+  HSpace " "
+  Int "5"
   VSpace "\n"
   Call
     Fun "for"
@@ -50,7 +46,7 @@ Block
     Block
       Be "be"
       HSpace " "
-      Id "5"
+      Int "5"
     /Block
   /Call
   VSpace "\n"
@@ -72,7 +68,7 @@ Block
           /Typed
           Define "="
           HSpace " "
-          Id "1"
+          Int "1"
         /Def
         Comma ","
         HSpace " "
@@ -443,7 +439,7 @@ Block
             VSpace "\n"
             HSpace "    "
             Infix
-              Id "0"
+              Int "0"
               HSpace " "
               To "to"
               HSpace " "
@@ -456,7 +452,7 @@ Block
             VSpace "\n"
             HSpace "    "
             Infix
-              Id "1"
+              Int "1"
               HSpace " "
               To "to"
               HSpace " "
@@ -469,7 +465,7 @@ Block
             VSpace "\n"
             HSpace "    "
             Infix
-              Id "2"
+              Int "2"
               HSpace " "
               To "to"
               HSpace " "
@@ -488,14 +484,15 @@ Block
             /Call
             Comma ","
             HSpace " "
-            Id "4"
+            Int "4"
             Comma ","
             HSpace " "
-            Id "5"
+            Int "5"
             Comma ","
             HSpace " "
+            Int "6"
             Infix
-              Id "6]"
+              Id "]"
               HSpace " "
               To "to"
               HSpace " "
@@ -515,7 +512,7 @@ Block
                 HSpace " "
                 AngleOpen "<"
                 HSpace " "
-                Id "0"
+                Int "0"
               /Infix
               HSpace " "
               StringParts
@@ -607,4 +604,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 510
+Tree len: 508

@@ -10,7 +10,7 @@ Block
         Def
           Id "n"
           None
-          Id "2"
+          Int "2"
         /Def
         Def
           Id "message"
@@ -24,7 +24,7 @@ Block
                 Call
                   Id "lt"
                   Id "n"
-                  Id "0"
+                  Int "0"
                 /Call
                 String "negative"
               /Call
@@ -33,7 +33,7 @@ Block
                 Call
                   Id "gt"
                   Id "n"
-                  Id "0"
+                  Int "0"
                 /Call
                 String "positive"
               /Call

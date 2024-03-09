@@ -24,7 +24,7 @@ Block
           HSpace " "
           Define "="
           HSpace " "
-          Id "2"
+          Int "2"
         /Def
         VSpace "\n"
         HSpace "    "
@@ -46,7 +46,7 @@ Block
                   HSpace " "
                   AngleOpen "<"
                   HSpace " "
-                  Id "0"
+                  Int "0"
                 /Infix
                 HSpace " "
                 To "to"
@@ -65,7 +65,7 @@ Block
                   HSpace " "
                   AngleClose ">"
                   HSpace " "
-                  Id "0"
+                  Int "0"
                 /Infix
                 HSpace " "
                 To "to"

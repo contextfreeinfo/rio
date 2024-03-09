@@ -55,6 +55,9 @@ pub enum Nod {
     Float64 {
         value: [u8; 8],
     },
+    Int {
+        value: [u8; 8],
+    },
     Leaf {
         token: Token,
     },
@@ -376,6 +379,7 @@ pub enum BranchKind {
     GenericCall, // (<Something>, ...) distinct from other Call because infer.
     // Group,
     Infix,
+    List,
     None,
     Params,
     ParamTypes,
