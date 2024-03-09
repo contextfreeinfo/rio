@@ -599,11 +599,11 @@ Block
     /Def
   /Def
   Block
-    Infix
+    Call
+      Uid Pair@522 :@495
       Uid true@537
-      To "to"
       Id "value"
-    /Infix
+    /Call
   /Block
   Def@532
     Uid false@532*

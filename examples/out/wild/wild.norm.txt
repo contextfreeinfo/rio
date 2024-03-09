@@ -126,7 +126,8 @@ Block
   /Call
   Call
     Id "f"
-    Infix
+    Call
+      Id "Pair"
       Block
         Of "of"
         Def
@@ -237,39 +238,39 @@ Block
           Id "x"
           Block
             With "with"
-            Infix
+            Call
+              Id "Pair"
               Id "0"
-              To "to"
               String "no"
-            /Infix
-            Infix
+            /Call
+            Call
+              Id "Pair"
               Id "1"
-              To "to"
               String "a single"
-            /Infix
-            Infix
+            /Call
+            Call
+              Id "Pair"
               Id "2"
-              To "to"
               String "a couple of"
-            /Infix
+            /Call
             Call
               Id "any"
               Id "[3"
             /Call
             Id "4"
             Id "5"
-            Infix
+            Call
+              Id "Pair"
               Id "6]"
-              To "to"
               String "a few of"
-            /Infix
+            /Call
             Call
               Id "case"
-              Infix
+              Call
+                Id "lt"
                 Id "x"
-                AngleOpen "<"
                 Id "0"
-              /Infix
+              /Call
               String "negative"
             /Call
             Call
@@ -282,40 +283,39 @@ Block
           To "to"
           Id "dog"
         /Call
-        Infix
-          Infix
-            Id "a"
-            To "to"
-            Id "b"
-          /Infix
-          To "to"
-          Id "c"
-        /Infix
         Call
-          Infix
+          Id "Pair"
+          Call
+            Id "Pair"
+            Id "a"
+            Id "b"
+          /Call
+          Id "c"
+        /Call
+        Call
+          Call
+            Id "Pair"
             Id "a"
             To "to"
-            To "to"
-          /Infix
+          /Call
           Id "eggplant"
         /Call
         Call
-          Infix
+          Call
+            Id "Pair"
             Id "fish"
             To "to"
-            To "to"
-          /Infix
+          /Call
           Id "giraffe"
         /Call
-        Infix
-          To "to"
+        Call
+          Id "Pair"
           To "to"
           Id "hyena"
-        /Infix
+        /Call
       /Block
-      To "to"
       Block
-    /Infix
+    /Call
   /Call
 /Block
 

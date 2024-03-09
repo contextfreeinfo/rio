@@ -125,25 +125,42 @@ impl Normer {
             Nod::Branch { kind, range, .. } => {
                 let start = self.builder().pos();
                 let range: Range<usize> = range.into();
-                match kind {
+                let done = match kind {
                     BranchKind::Infix => {
                         let Nod::Leaf { token: op } = tree[range.start + 1].nod else {
                             panic!()
                         };
-                        match op.kind {
-                            TokenKind::AngleClose => {}
-                            TokenKind::AngleOpen => {}
-                            TokenKind::To => {}
-                            _ => {}
-                        }
+                        (|| {
+                            let intern = match op.kind {
+                                TokenKind::AngleClose => self.cart.core_interns.gt,
+                                TokenKind::AngleOpen => self.cart.core_interns.lt,
+                                TokenKind::To => self.cart.core_interns.pair,
+                                _ => return false,
+                            };
+                            self.builder()
+                                .push_at(Token::new(TokenKind::Id, intern), node.source);
+                            self.replace_infix_at(&tree[..=range.start]);
+                            if range.len() > 2 {
+                                self.replace_infix_at(&tree[..range.end]);
+                            }
+                            self.builder().wrap(
+                                BranchKind::Call,
+                                start,
+                                Type::default(),
+                                node.source,
+                            );
+                            true
+                        })()
                     }
-                    _ => {}
+                    _ => false,
+                };
+                if !done {
+                    for kid_index in range.clone() {
+                        self.replace_infix_at(&tree[..=kid_index]);
+                    }
+                    self.builder()
+                        .wrap(kind, start, Type::default(), node.source);
                 }
-                for kid_index in range.clone() {
-                    self.replace_infix_at(&tree[..=kid_index]);
-                }
-                self.builder()
-                    .wrap(kind, start, Type::default(), node.source);
             }
             _ => self.builder().push(node),
         }

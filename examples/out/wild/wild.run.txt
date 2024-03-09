@@ -1,19 +1,19 @@
 Block
   Module "examples/wild.rio" 2
   Id "a.b"
-  Fun :@229
+  Fun :@235
     Params
     Params
   /Fun
-  Fun :@229
+  Fun :@235
     Params
     Params
   /Fun
-  Fun :@229
+  Fun :@235
     Params
     Params
   /Fun
-  Fun :@230
+  Fun :@236
     Params
       Id "5"
     Params
@@ -22,7 +22,7 @@ Block
     Block
       Id "5"
   /Call
-  Fun :@231
+  Fun :@237
     Params
       Block
         Def@18
@@ -47,7 +47,7 @@ Block
     Block
       Id "a"
   /Fun
-  Fun :@231
+  Fun :@237
     Params
       Block
         Def@35
@@ -72,7 +72,7 @@ Block
     Block
       Id "a"
   /Fun
-  Fun :@231
+  Fun :@237
     Params
       Id "a"
     Params
@@ -113,7 +113,7 @@ Block
   /Call
   Call
     Id "x]"
-    Fun :@231
+    Fun :@237
       Params
         Id "y"
       Params
@@ -127,7 +127,8 @@ Block
   /Call
   Call
     Id "f"
-    Infix
+    Call
+      Uid Pair@1@522 :@238
       Block
         Of "of"
         Def@202
@@ -146,9 +147,9 @@ Block
         Id "on"
         Id "e"
         Id "x"
-        Block :@231
+        Block :@237
           With "with"
-          Fun :@231
+          Fun :@237
             Params
               Id "y"
             Params
@@ -229,8 +230,8 @@ Block
           Id "from"
           Id "items.each"
         /Call
-        Call :@228
-          Uid print@1@535 :@233
+        Call :@234
+          Uid print@1@535 :@240
           Id "item"
         /Call
         Call
@@ -238,44 +239,44 @@ Block
           Id "x"
           Block
             With "with"
-            Infix
+            Call
+              Uid Pair@1@522 :@238
               Id "0"
-              To "to"
-              String "no" :@232
-            /Infix
-            Infix
+              String "no" :@239
+            /Call
+            Call
+              Uid Pair@1@522 :@238
               Id "1"
-              To "to"
-              String "a single" :@232
-            /Infix
-            Infix
+              String "a single" :@239
+            /Call
+            Call
+              Uid Pair@1@522 :@238
               Id "2"
-              To "to"
-              String "a couple of" :@232
-            /Infix
+              String "a couple of" :@239
+            /Call
             Call
               Id "any"
               Id "[3"
             /Call
             Id "4"
             Id "5"
-            Infix
-              Id "6]"
-              To "to"
-              String "a few of" :@232
-            /Infix
             Call
-              Id "case"
-              Infix
-                Id "x"
-                AngleOpen "<"
-                Id "0"
-              /Infix
-              String "negative" :@232
+              Uid Pair@1@522 :@238
+              Id "6]"
+              String "a few of" :@239
             /Call
             Call
-              Uid else@1@530 :@234
-              String "several" :@232
+              Id "case"
+              Call :@241
+                Uid lt@1@517 :@243
+                Id "x"
+                Id "0"
+              /Call
+              String "negative" :@239
+            /Call
+            Call
+              Uid else@1@530 :@244
+              String "several" :@239
             /Call
           /Block
         /Call
@@ -283,54 +284,65 @@ Block
           To "to"
           Id "dog"
         /Call
-        Infix
-          Infix
-            Uid a@202
-            To "to"
-            Id "b"
-          /Infix
-          To "to"
-          Uid c@203
-        /Infix
         Call
-          Infix
+          Uid Pair@1@522 :@238
+          Call
+            Uid Pair@1@522 :@238
+            Uid a@202
+            Id "b"
+          /Call
+          Uid c@203
+        /Call
+        Call
+          Call
+            Uid Pair@1@522 :@238
             Uid a@202
             To "to"
-            To "to"
-          /Infix
+          /Call
           Id "eggplant"
         /Call
         Call
-          Infix
+          Call
+            Uid Pair@1@522 :@238
             Id "fish"
             To "to"
-            To "to"
-          /Infix
+          /Call
           Id "giraffe"
         /Call
-        Infix
-          To "to"
+        Call
+          Uid Pair@1@522 :@238
           To "to"
           Id "hyena"
-        /Infix
+        /Call
       /Block
-      To "to"
       Block
-    /Infix
+    /Call
   /Call
   Types
-    Uid@228 Void@1@525
-    FunType@229 :@228
-    FunType@230 :@228
+    Uid@234 Void@1@525
+    FunType@235 :@234
+    FunType@236 :@234
       None
-    FunType@231
+    FunType@237
       None
-    Uid@232 Text@1@523
-    FunType@233 :@228
-      None :@232
-    Uid@234 Case@1@509
+    FunType@238
+      None
+      None
+      None
+      None
+    /FunType
+    Uid@239 Text@1@523
+    FunType@240 :@234
+      None :@239
+    Uid@241 Claim@1@510
+    Uid@242 Int32@1@515
+    FunType@243 :@241
+      None :@242
+      None :@242
+    /FunType
+    Uid@244 Case@1@509
   /Types
 /Block
 
 Node size: 20
-Tree len: 252
+Tree len: 262

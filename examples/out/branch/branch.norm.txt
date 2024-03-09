@@ -19,24 +19,24 @@ Block
             Id "branch"
             Block
               With "with"
-              Infix
-                Infix
+              Call
+                Id "Pair"
+                Call
+                  Id "lt"
                   Id "n"
-                  AngleOpen "<"
                   Id "0"
-                /Infix
-                To "to"
+                /Call
                 String "negative"
-              /Infix
-              Infix
-                Infix
+              /Call
+              Call
+                Id "Pair"
+                Call
+                  Id "gt"
                   Id "n"
-                  AngleClose ">"
                   Id "0"
-                /Infix
-                To "to"
+                /Call
                 String "positive"
-              /Infix
+              /Call
               Call
                 Id "else"
                 String "zero"
