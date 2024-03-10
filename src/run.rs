@@ -60,6 +60,8 @@ impl Module {
 /// Provide easy access for comparing resolutions to core native definitions.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CoreExports {
+    pub branch_fun: ScopeEntry,
+    pub else_fun: ScopeEntry,
     pub function_type: ScopeEntry,
     pub gt_fun: ScopeEntry,
     pub int32_type: ScopeEntry,
@@ -79,6 +81,8 @@ impl CoreExports {
             core.get_top(interner.get(name).unwrap()).unwrap()
         };
         CoreExports {
+            branch_fun: get("branch"),
+            else_fun: get("else"),
             function_type: get("Function"),
             gt_fun: get("gt"),
             int32_type: get("Int32"),

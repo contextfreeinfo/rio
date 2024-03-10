@@ -74,6 +74,11 @@ false* = No(void)
 
 native* = for() be native()
 
+not* = for(claim: Claim): Claim be branch with
+    claim to false
+    else true
+end
+
 ordered* = for() be native()
 
 # print*: Function<[Text], [Void]> = native()

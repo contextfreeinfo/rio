@@ -35,7 +35,7 @@ impl Normer {
 
     pub fn norm(&mut self, parsed_tree: &[Nod], tree: &mut Vec<Node>) {
         self.trim(parsed_tree, tree);
-        self.replace_infix(tree);
+        self.rebranch(tree);
         self.define(tree);
     }
 
@@ -111,21 +111,39 @@ impl Normer {
         Some(())
     }
 
-    fn replace_infix(&mut self, tree: &mut Vec<Node>) {
+    fn rebranch(&mut self, tree: &mut Vec<Node>) {
         self.builder().clear();
-        self.replace_infix_at(&tree);
+        self.rebranch_at(&tree);
         self.builder()
             .wrap(BranchKind::Block, 0, Type::default(), 0);
         self.builder().drain_into(tree);
     }
 
-    fn replace_infix_at(&mut self, tree: &[Node]) -> Option<()> {
+    fn rebranch_at(&mut self, tree: &[Node]) -> Option<()> {
         let node = *tree.last()?;
         match node.nod {
             Nod::Branch { kind, range, .. } => {
+                let mut kind = kind;
                 let start = self.builder().pos();
-                let range: Range<usize> = range.into();
+                let mut range: Range<usize> = range.into();
                 let done = match kind {
+                    BranchKind::Block => {
+                        if !range.is_empty()
+                            && matches!(
+                                tree[range.start].nod,
+                                Nod::Leaf {
+                                    token: Token {
+                                        kind: TokenKind::With,
+                                        ..
+                                    },
+                                }
+                            )
+                        {
+                            range = range.start + 1..range.end;
+                            kind = BranchKind::List;
+                        }
+                        false
+                    }
                     BranchKind::Infix => {
                         let Nod::Leaf { token: op } = tree[range.start + 1].nod else {
                             panic!()
@@ -139,9 +157,9 @@ impl Normer {
                             };
                             self.builder()
                                 .push_at(Token::new(TokenKind::Id, intern), node.source);
-                            self.replace_infix_at(&tree[..=range.start]);
+                            self.rebranch_at(&tree[..=range.start]);
                             if range.len() > 2 {
-                                self.replace_infix_at(&tree[..range.end]);
+                                self.rebranch_at(&tree[..range.end]);
                             }
                             self.builder().wrap(
                                 BranchKind::Call,
@@ -156,7 +174,7 @@ impl Normer {
                 };
                 if !done {
                     for kid_index in range.clone() {
-                        self.replace_infix_at(&tree[..=kid_index]);
+                        self.rebranch_at(&tree[..=kid_index]);
                     }
                     self.builder()
                         .wrap(kind, start, Type::default(), node.source);

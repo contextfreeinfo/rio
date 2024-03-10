@@ -1,78 +1,77 @@
 Block
   Module "examples/branch.rio" 2
-  Def@56 :@54
-    Uid main@56* :@54
+  Def@55 :@53
+    Uid main@55* :@53
     None
-    Fun :@54
+    Fun :@53
       Params
       Params
-      Block :@51
-        Def@29
-          Uid n@29
+      Block :@50
+        Def@28
+          Uid n@28
           None
           Int32 2
         /Def
-        Def@30
-          Uid message@30
+        Def@29
+          Uid message@29
           None
           Call
-            Uid branch@1@527
-            Block
-              With "with"
+            Uid branch@1@552
+            List
               Call
-                Uid Pair@1@522 :@45
-                Call :@46
-                  Uid lt@1@517 :@48
-                  Uid n@29
+                Uid Pair@1@547 :@44
+                Call :@45
+                  Uid lt@1@542 :@47
+                  Uid n@28
                   Int32 0
                 /Call
-                String "negative" :@49
+                String "negative" :@48
               /Call
               Call
-                Uid Pair@1@522 :@45
-                Call :@46
-                  Uid gt@1@516 :@48
-                  Uid n@29
+                Uid Pair@1@547 :@44
+                Call :@45
+                  Uid gt@1@541 :@47
+                  Uid n@28
                   Int32 0
                 /Call
-                String "positive" :@49
+                String "positive" :@48
               /Call
               Call
-                Uid else@1@530 :@50
-                String "zero" :@49
+                Uid else@1@555 :@49
+                String "zero" :@48
               /Call
-            /Block
+            /List
           /Call
         /Def
-        Call :@51
-          Uid print@1@535 :@52
-          Uid message@30
+        Call :@50
+          Uid print@1@561 :@51
+          Uid message@29
         /Call
       /Block
     /Fun
   /Def
   Types
-    FunType@45
+    FunType@44
       None
       None
       None
       None
     /FunType
-    Uid@46 Claim@1@510
-    Uid@47 Int32@1@515
-    FunType@48 :@46
-      None :@47
-      None :@47
+    Uid@45 Claim@1@535
+    Uid@46 Int32@1@540
+    FunType@47 :@45
+      None :@46
+      None :@46
     /FunType
-    Uid@49 Text@1@523
-    Uid@50 Case@1@509
-    Uid@51 Void@1@525
-    FunType@52 :@51
-      None :@49
-    FunType@53
-    FunType@54 :@51
+    Uid@48 Text@1@548
+    Uid@49 Case@1@534
+    Uid@50 Void@1@550
+    FunType@51 :@50
+      None :@48
+    FunType@52
+    FunType@53 :@50
   /Types
 /Block
 
 Node size: 20
-Tree len: 58
+Tree len: 57

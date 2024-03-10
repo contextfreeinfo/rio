@@ -142,8 +142,7 @@ Block
         Id "on"
         Id "e"
         Id "x"
-        Block
-          With "with"
+        List
           Fun
             Params
               Id "y"
@@ -155,7 +154,7 @@ Block
               /Call
             /Block
           /Fun
-        /Block
+        /List
         Call
           Id "await"
           Block
@@ -170,10 +169,8 @@ Block
           Call
             Id "f"
             Id "a"
-            Block
-              With "with"
+            List
               Id "b"
-            /Block
           /Call
           None
           Call
@@ -203,8 +200,7 @@ Block
         Call
           Id "f"
           Id "a"
-          Block
-            With "with"
+          List
             Def
               Id "b"
               None
@@ -218,7 +214,7 @@ Block
               None
               Id "e"
             /Def
-          /Block
+          /List
         /Call
         Call
           Id "item"
@@ -232,8 +228,7 @@ Block
         Call
           Id "match"
           Id "x"
-          Block
-            With "with"
+          List
             Call
               Id "Pair"
               Int32 0
@@ -274,7 +269,7 @@ Block
               Id "else"
               String "several"
             /Call
-          /Block
+          /List
         /Call
         Call
           To "to"
@@ -317,4 +312,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 238
+Tree len: 234

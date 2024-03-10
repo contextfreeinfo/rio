@@ -301,8 +301,7 @@ Block
               None
             /Def
           /Block
-          Block
-            With "with"
+          List
             Def
               Pub
                 Id "value"
@@ -355,7 +354,7 @@ Block
               /Call
               Id "false"
             /Def
-          /Block
+          /List
         /Call
       /Block
     /Fun
@@ -653,6 +652,43 @@ Block
   /Def
   Def
     Pub
+      Id "not"
+    None
+    Fun
+      Params
+        Def
+          Id "claim"
+          Id "Claim"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Claim"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "branch"
+          List
+            Call
+              Id "Pair"
+              Id "claim"
+              Id "false"
+            /Call
+            Call
+              Id "else"
+              Id "true"
+            /Call
+          /List
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    Pub
       Id "ordered"
     None
     Fun
@@ -721,4 +757,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 542
+Tree len: 567

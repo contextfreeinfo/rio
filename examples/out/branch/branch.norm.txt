@@ -17,8 +17,7 @@ Block
           None
           Call
             Id "branch"
-            Block
-              With "with"
+            List
               Call
                 Id "Pair"
                 Call
@@ -41,7 +40,7 @@ Block
                 Id "else"
                 String "zero"
               /Call
-            /Block
+            /List
           /Call
         /Def
         Call
@@ -54,4 +53,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 40
+Tree len: 39

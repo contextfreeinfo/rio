@@ -1126,6 +1126,68 @@ Block
   VSpace "\n"
   Def
     Pub
+      Id "not"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "claim"
+          Colon ":"
+          HSpace " "
+          Id "Claim"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "branch"
+          HSpace " "
+          Block
+            With "with"
+            VSpace "\n"
+            HSpace "    "
+            Infix
+              Id "claim"
+              HSpace " "
+              To "to"
+              HSpace " "
+              Id "false"
+            /Infix
+            VSpace "\n"
+            HSpace "    "
+            Call
+              Id "else"
+              HSpace " "
+              Id "true"
+            /Call
+            VSpace "\n"
+            End "end"
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Pub
       Id "ordered"
       Star "*"
     /Pub
@@ -1272,4 +1334,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 1033
+Tree len: 1083
