@@ -57,7 +57,7 @@
     local.get 1
   )
   (func (;5;) (type 7)
-    (local i32 i32)
+    (local i32 i32 i32)
     local.set 0
     local.get 0
     i32.const 8
@@ -67,8 +67,10 @@
     i32.const 4107
     i32.const 4
     i32.const 4116
+    local.set 2
     local.set 1
     local.get 1
+    local.get 2
     call 1
   )
   (memory (;0;) 1)

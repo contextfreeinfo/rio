@@ -275,6 +275,11 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
                 }
             }
         }
+        Nod::Int32 { .. } => {
+            if typ.0 == 0 {
+                typ = build_type(runner, &[runner.cart.core_exports.int32_type.into()]).unwrap();
+            }
+        }
         Nod::Leaf { token } => match token.kind {
             TokenKind::String => {
                 if typ.0 == 0 {
@@ -323,16 +328,50 @@ fn type_block(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut 
 }
 
 fn type_call(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut typ: Type) -> Type {
+    let mut type_branch = false;
     for (local_index, kid_index) in range.clone().enumerate() {
         let kid = tree[kid_index];
-        if local_index == 0 && kid.typ.0 != 0 {
-            // TODO Also grab all expected param types for later kids.
-            let return_type = runner.typer.types_ref().working[kid.typ.0 as usize - 1].typ;
-            if return_type.0 != 0 {
-                typ = return_type;
+        if local_index == 0 {
+            if kid.typ.0 != 0 {
+                // TODO Also grab all expected param types for later kids.
+                let return_type = runner.typer.types_ref().working[kid.typ.0 as usize - 1].typ;
+                if return_type.0 != 0 {
+                    typ = return_type;
+                }
+            } else if let Nod::Uid { module, num, .. } = kid.nod {
+                // Special-case some until we process type args.
+                let branch_fun = runner.cart.core_exports.branch_fun;
+                if module == branch_fun.module && num == branch_fun.num {
+                    type_branch = true;
+                }
             }
         }
         type_any(runner, tree, kid_index, Type::default());
+    }
+    if type_branch && range.len() == 2 {
+        if let Nod::Branch {
+            kind: BranchKind::List,
+            range: cases_range,
+        } = tree[range.start + 1].nod
+        {
+            // With kids typed, we should be able to see the type of the branch.
+            // TODO Do we want this generally because of generics, or should we just be patient on rounds?
+            let cases_range: Range<usize> = cases_range.into();
+            if !cases_range.is_empty() {
+                // Just go with the first case for now.
+                // It ought to be a pair, but don't bother checking that for now.
+                if let Nod::Branch {
+                    range: case_range, ..
+                } = tree[cases_range.start].nod
+                {
+                    let case_range: Range<usize> = case_range.into();
+                    if case_range.len() > 1 {
+                        // Then look at the last thing in each case.
+                        typ = tree[case_range.end - 1].typ;
+                    }
+                }
+            }
+        }
     }
     typ
 }

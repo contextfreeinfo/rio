@@ -7,32 +7,32 @@ Block
       Params
       Params
       Block :@50
-        Def@28
-          Uid n@28
+        Def@28 :@44
+          Uid n@28 :@44
           None
-          Int32 2
+          Int32 2 :@44
         /Def
-        Def@29
-          Uid message@29
+        Def@29 :@48
+          Uid message@29 :@48
           None
-          Call
+          Call :@48
             Uid branch@1@552
             List
               Call
-                Uid Pair@1@547 :@44
-                Call :@45
+                Uid Pair@1@547 :@45
+                Call :@46
                   Uid lt@1@542 :@47
-                  Uid n@28
-                  Int32 0
+                  Uid n@28 :@44
+                  Int32 0 :@44
                 /Call
                 String "negative" :@48
               /Call
               Call
-                Uid Pair@1@547 :@44
-                Call :@45
+                Uid Pair@1@547 :@45
+                Call :@46
                   Uid gt@1@541 :@47
-                  Uid n@28
-                  Int32 0
+                  Uid n@28 :@44
+                  Int32 0 :@44
                 /Call
                 String "positive" :@48
               /Call
@@ -45,23 +45,23 @@ Block
         /Def
         Call :@50
           Uid print@1@561 :@51
-          Uid message@29
+          Uid message@29 :@48
         /Call
       /Block
     /Fun
   /Def
   Types
-    FunType@44
+    Uid@44 Int32@1@540
+    FunType@45
       None
       None
       None
       None
     /FunType
-    Uid@45 Claim@1@535
-    Uid@46 Int32@1@540
-    FunType@47 :@45
-      None :@46
-      None :@46
+    Uid@46 Claim@1@535
+    FunType@47 :@46
+      None :@44
+      None :@44
     /FunType
     Uid@48 Text@1@548
     Uid@49 Case@1@534
