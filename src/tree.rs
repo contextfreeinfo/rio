@@ -55,8 +55,8 @@ pub enum Nod {
     Float64 {
         value: [u8; 8],
     },
-    Int {
-        value: [u8; 8],
+    Int32 {
+        value: i32,
     },
     Leaf {
         token: Token,
@@ -273,6 +273,11 @@ where
                 writeln!(file, "/{kind:?}")?;
                 line_count += 1;
             }
+        }
+        Nod::Int32 { value } => {
+            write!(file, "Int32")?;
+            write!(file, " {}", value)?;
+            finish(file)?;
         }
         Nod::Leaf { token } => {
             write!(file, "{:?}", token.kind)?;

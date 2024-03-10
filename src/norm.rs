@@ -233,6 +233,15 @@ impl Normer {
                         self.builder().push_none(tree.len());
                     }
                 }
+                TokenKind::Int => {
+                    let _ = self.cart.interner[token.intern].parse().map(|value: i32| {
+                        self.builder().push(Node {
+                            nod: Nod::Int32 { value },
+                            source: tree.len().into(),
+                            typ: Type(0),
+                        });
+                    });
+                }
                 TokenKind::Be
                 | TokenKind::Comma
                 | TokenKind::Comment

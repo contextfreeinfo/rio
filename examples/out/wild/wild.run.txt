@@ -13,10 +13,10 @@ Block
     Params
     Params
   /Fun
-  Int "5"
+  Int32 5
   Call
     Block
-      Int "5"
+      Int32 5
   /Call
   Fun :@233
     Params
@@ -24,7 +24,7 @@ Block
         Def@15
           Uid a@15
           Id "A"
-          Int "1"
+          Int32 1
         /Def
         Def@16
           Uid b@16
@@ -237,26 +237,26 @@ Block
             With "with"
             Call
               Uid Pair@1@522 :@234
-              Int "0"
+              Int32 0
               String "no" :@235
             /Call
             Call
               Uid Pair@1@522 :@234
-              Int "1"
+              Int32 1
               String "a single" :@235
             /Call
             Call
               Uid Pair@1@522 :@234
-              Int "2"
+              Int32 2
               String "a couple of" :@235
             /Call
             Call
               Id "any"
               Id "[3"
             /Call
-            Int "4"
-            Int "5"
-            Int "6"
+            Int32 4
+            Int32 5
+            Int32 6
             Call
               Uid Pair@1@522 :@234
               Id "]"
@@ -267,7 +267,7 @@ Block
               Call :@237
                 Uid lt@1@517 :@239
                 Id "x"
-                Int "0"
+                Int32 0
               /Call
               String "negative" :@235
             /Call
