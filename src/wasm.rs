@@ -574,36 +574,36 @@ impl<'a> WasmWriter<'a> {
                             for arg_index in args_range.clone() {
                                 self.translate_any(fun, arg_index);
                             }
-                            let arg_type = if args_range.is_empty() {
-                                None
-                            } else {
-                                Some(simple_wasm_type(
+                            let arg_type = match () {
+                                _ if args_range.is_empty() => None,
+                                _ => Some(simple_wasm_type(
                                     self.cart,
                                     self.tree(),
                                     self.tree()[args_range.start],
-                                ))
+                                )),
                             };
                             if module == 1 {
                                 // TODO Put these in a lookup table also?
                                 handled = true;
-                                if num == core.gt_fun.num {
-                                    match arg_type {
+                                match () {
+                                    _ if num == core.gt_fun.num => match arg_type {
                                         Some(SimpleWasmType::I32) => {
                                             fun.instruction(&Instruction::I32GtS);
                                         }
                                         _ => {}
-                                    }
-                                } else if num == core.lt_fun.num {
-                                    match arg_type {
+                                    },
+                                    _ if num == core.lt_fun.num => match arg_type {
                                         Some(SimpleWasmType::I32) => {
                                             fun.instruction(&Instruction::I32LtS);
                                         }
                                         _ => {}
+                                    },
+                                    _ if num == core.print_fun.num => {
+                                        fun.instruction(&Instruction::Call(self.predefs.print_fun));
                                     }
-                                } else if num == core.print_fun.num {
-                                    fun.instruction(&Instruction::Call(self.predefs.print_fun));
-                                } else {
-                                    handled = false;
+                                    _ => {
+                                        handled = false;
+                                    }
                                 }
                             } else if module == 0 || module == 2 {
                                 if let Lookup::Fun { index } = self.lookup_table[num as usize - 1] {
