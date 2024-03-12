@@ -560,24 +560,50 @@ impl<'a> WasmWriter<'a> {
                 let mut handled = false;
                 let range: Range<usize> = range.into();
                 let args_range = range.start + 1..range.end;
+                let core = self.cart.core_exports;
                 match self.tree()[range.start].nod {
                     Nod::Uid { module, num, .. } => {
                         // TODO Instead track all modules.
                         if module == 1 {
-                            if num == self.cart.core_exports.branch_fun.num {
+                            if num == core.branch_fun.num {
                                 self.translate_branch(fun, args_range.clone());
                                 handled = true;
                             }
                         }
                         if !handled {
-                            for arg_index in args_range {
+                            for arg_index in args_range.clone() {
                                 self.translate_any(fun, arg_index);
                             }
+                            let arg_type = if args_range.is_empty() {
+                                None
+                            } else {
+                                Some(simple_wasm_type(
+                                    self.cart,
+                                    self.tree(),
+                                    self.tree()[args_range.start],
+                                ))
+                            };
                             if module == 1 {
                                 // TODO Put these in a lookup table also?
-                                if num == self.cart.core_exports.print_fun.num {
+                                handled = true;
+                                if num == core.gt_fun.num {
+                                    match arg_type {
+                                        Some(SimpleWasmType::I32) => {
+                                            fun.instruction(&Instruction::I32GtS);
+                                        }
+                                        _ => {}
+                                    }
+                                } else if num == core.lt_fun.num {
+                                    match arg_type {
+                                        Some(SimpleWasmType::I32) => {
+                                            fun.instruction(&Instruction::I32LtS);
+                                        }
+                                        _ => {}
+                                    }
+                                } else if num == core.print_fun.num {
                                     fun.instruction(&Instruction::Call(self.predefs.print_fun));
-                                    handled = true;
+                                } else {
+                                    handled = false;
                                 }
                             } else if module == 0 || module == 2 {
                                 if let Lookup::Fun { index } = self.lookup_table[num as usize - 1] {
@@ -625,6 +651,9 @@ impl<'a> WasmWriter<'a> {
                 for kid_index in range {
                     self.translate_any(fun, kid_index);
                 }
+            }
+            Nod::Int32 { value } => {
+                add_instructions(fun, &[Instruction::I32Const(value)]);
             }
             Nod::Leaf {
                 token:
@@ -891,8 +920,12 @@ enum SimpleWasmType {
 fn simple_wasm_type(cart: &Cart, tree: &[Node], node: Node) -> SimpleWasmType {
     if node.typ.0 > 0 {
         if let Nod::Uid { module, num, .. } = tree[node.typ.0 as usize - 1].nod {
-            if module == 1 && num == cart.core_exports.text_type.num {
-                return SimpleWasmType::Span;
+            if module == 1 {
+                if num == cart.core_exports.int32_type.num {
+                    return SimpleWasmType::I32;
+                } else if num == cart.core_exports.text_type.num {
+                    return SimpleWasmType::Span;
+                }
             }
         }
     }

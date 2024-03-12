@@ -58,13 +58,18 @@
   )
   (func (;5;) (type 7)
     (local i32 i32 i32)
+    i32.const 2
     local.set 0
     local.get 0
+    i32.const 0
+    i32.lt_s
     if (result i32) ;; label = @1
       i32.const 8
       i32.const 4098
     else
       local.get 0
+      i32.const 0
+      i32.gt_s
       if (result i32) ;; label = @2
         i32.const 8
         i32.const 4107
