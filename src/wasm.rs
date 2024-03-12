@@ -13,14 +13,14 @@ use std::{
 
 use anyhow::{Error, Ok, Result};
 use wasm_encoder::{
-    CodeSection, ConstExpr, DataSection, EntityType, ExportKind, ExportSection, Function,
-    FunctionSection, GlobalSection, GlobalType, ImportSection, Instruction, MemArg, MemorySection,
-    MemoryType, TypeSection, ValType,
+    BlockType, CodeSection, ConstExpr, DataSection, EntityType, ExportKind, ExportSection,
+    Function, FunctionSection, GlobalSection, GlobalType, ImportSection, Instruction, MemArg,
+    MemorySection, MemoryType, TypeSection, ValType,
 };
 
 use crate::{
     lex::{Intern, Token, TokenKind},
-    run::ScopeEntry,
+    run::{CoreExports, ScopeEntry},
     tree::{BranchKind, Nod, Node},
     BuildArgs, Cart,
 };
@@ -557,25 +557,33 @@ impl<'a> WasmWriter<'a> {
                 kind: BranchKind::Call,
                 range,
             } => {
+                let mut handled = false;
                 let range: Range<usize> = range.into();
                 let args_range = range.start + 1..range.end;
-                for arg_index in args_range {
-                    self.translate_any(fun, arg_index);
-                }
-                let mut handled = false;
                 match self.tree()[range.start].nod {
                     Nod::Uid { module, num, .. } => {
                         // TODO Instead track all modules.
                         if module == 1 {
-                            // TODO Put these in a lookup table also?
-                            if num == self.cart.core_exports.print_fun.num {
-                                fun.instruction(&Instruction::Call(self.predefs.print_fun));
+                            if num == self.cart.core_exports.branch_fun.num {
+                                self.translate_branch(fun, args_range.clone());
                                 handled = true;
                             }
-                        } else if module == 0 || module == 2 {
-                            if let Lookup::Fun { index } = self.lookup_table[num as usize - 1] {
-                                fun.instruction(&Instruction::Call(index));
-                                handled = true;
+                        }
+                        if !handled {
+                            for arg_index in args_range {
+                                self.translate_any(fun, arg_index);
+                            }
+                            if module == 1 {
+                                // TODO Put these in a lookup table also?
+                                if num == self.cart.core_exports.print_fun.num {
+                                    fun.instruction(&Instruction::Call(self.predefs.print_fun));
+                                    handled = true;
+                                }
+                            } else if module == 0 || module == 2 {
+                                if let Lookup::Fun { index } = self.lookup_table[num as usize - 1] {
+                                    fun.instruction(&Instruction::Call(index));
+                                    handled = true;
+                                }
                             }
                         }
                     }
@@ -657,6 +665,62 @@ impl<'a> WasmWriter<'a> {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn translate_branch(&self, fun: &mut Function, args_range: Range<usize>) {
+        if args_range.len() != 1 {
+            return;
+        }
+        let Nod::Branch { range, .. } = self.tree()[args_range.start].nod else {
+            return;
+        };
+        let range: Range<usize> = range.into();
+        self.translate_branch_cases(fun, range);
+    }
+
+    fn translate_branch_cases(&self, fun: &mut Function, range: Range<usize>) {
+        let CoreExports {
+            else_fun,
+            pair_type,
+            ..
+        } = self.cart.core_exports;
+        if !range.is_empty() {
+            let Nod::Branch {
+                range: case_range, ..
+            } = self.tree()[range.start].nod
+            else {
+                return;
+            };
+            let case_range: Range<usize> = case_range.into();
+            if case_range.is_empty() {
+                return;
+            }
+            // Check if Pair or else.
+            let Nod::Uid { module, num, .. } = self.tree()[case_range.start].nod else {
+                return;
+            };
+            if module != pair_type.module {
+                return;
+            }
+            if num == pair_type.num {
+                if case_range.len() != 3 {
+                    return;
+                }
+                self.translate_any(fun, case_range.start + 1);
+                fun.instruction(&Instruction::If(BlockType::Result(ValType::I32)));
+                self.translate_any(fun, case_range.start + 2);
+                if range.len() > 1 {
+                    fun.instruction(&Instruction::Else);
+                    self.translate_branch_cases(fun, range.start + 1..range.end);
+                }
+                fun.instruction(&Instruction::End);
+            } else if num == else_fun.num {
+                if case_range.len() != 2 {
+                    return;
+                }
+                self.translate_any(fun, case_range.start + 1);
+            }
         }
     }
 

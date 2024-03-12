@@ -60,13 +60,19 @@
     (local i32 i32 i32)
     local.set 0
     local.get 0
-    i32.const 8
-    i32.const 4098
-    local.get 0
-    i32.const 8
-    i32.const 4107
-    i32.const 4
-    i32.const 4116
+    if (result i32) ;; label = @1
+      i32.const 8
+      i32.const 4098
+    else
+      local.get 0
+      if (result i32) ;; label = @2
+        i32.const 8
+        i32.const 4107
+      else
+        i32.const 4
+        i32.const 4116
+      end
+    end
     local.set 2
     local.set 1
     local.get 1
