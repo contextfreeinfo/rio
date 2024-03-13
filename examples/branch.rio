@@ -5,16 +5,16 @@ main* = for() be
     describe(0)
 end
 
-describe = for(n: Int32) be
+describe = for(i: Int32) be
     # TODO Fix this parsing.
     # print description(n)
-    print(description(n))
+    print(description(i))
 end
 
-description = for(n: Int32) be
+description = for(i: Int32) be
     message = branch with
-        n < 0 to "negative"
-        n > 0 to "positive"
+        i < 0 to "negative"
+        i > 0 to "positive"
         else "zero"
     end
     message

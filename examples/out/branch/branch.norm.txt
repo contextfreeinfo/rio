@@ -24,7 +24,7 @@ Block
     Fun
       Params
         Def
-          Id "n"
+          Id "i"
           Id "Int32"
           None
         /Def
@@ -35,7 +35,7 @@ Block
           Id "print"
           Call
             Id "description"
-            Id "n"
+            Id "i"
           /Call
         /Call
       /Block
@@ -47,7 +47,7 @@ Block
     Fun
       Params
         Def
-          Id "n"
+          Id "i"
           Id "Int32"
           None
         /Def
@@ -64,7 +64,7 @@ Block
                 Id "Pair"
                 Call
                   Id "lt"
-                  Id "n"
+                  Id "i"
                   Int32 0
                 /Call
                 String "negative"
@@ -73,7 +73,7 @@ Block
                 Id "Pair"
                 Call
                   Id "gt"
-                  Id "n"
+                  Id "i"
                   Int32 0
                 /Call
                 String "positive"

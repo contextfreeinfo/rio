@@ -24,7 +24,7 @@ Block
     Fun :@83
       Params
         Def@16 :@72
-          Uid n@16 :@72
+          Uid i@16 :@72
           Uid Int32@1@540
           None :@72
         /Def
@@ -35,7 +35,7 @@ Block
           Uid print@1@561 :@76
           Call :@75
             Uid description@87 :@82
-            Uid n@16 :@72
+            Uid i@16 :@72
           /Call
         /Call
       /Block
@@ -47,7 +47,7 @@ Block
     Fun :@82
       Params
         Def@31 :@72
-          Uid n@31 :@72
+          Uid i@31 :@72
           Uid Int32@1@540
           None :@72
         /Def
@@ -64,7 +64,7 @@ Block
                 Uid Pair@1@547 :@78
                 Call :@79
                   Uid lt@1@542 :@80
-                  Uid n@31 :@72
+                  Uid i@31 :@72
                   Int32 0 :@72
                 /Call
                 String "negative" :@75
@@ -73,7 +73,7 @@ Block
                 Uid Pair@1@547 :@78
                 Call :@79
                   Uid gt@1@541 :@80
-                  Uid n@31 :@72
+                  Uid i@31 :@72
                   Int32 0 :@72
                 /Call
                 String "positive" :@75

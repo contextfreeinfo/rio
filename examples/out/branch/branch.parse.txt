@@ -56,7 +56,7 @@ Block
       Params
         RoundOpen "("
         Typed
-          Id "n"
+          Id "i"
           Colon ":"
           HSpace " "
           Id "Int32"
@@ -81,7 +81,7 @@ Block
           Call
             Id "description"
             RoundOpen "("
-            Id "n"
+            Id "i"
             RoundClose ")"
           /Call
           RoundClose ")"
@@ -103,7 +103,7 @@ Block
       Params
         RoundOpen "("
         Typed
-          Id "n"
+          Id "i"
           Colon ":"
           HSpace " "
           Id "Int32"
@@ -130,7 +130,7 @@ Block
               HSpace "        "
               Infix
                 Infix
-                  Id "n"
+                  Id "i"
                   HSpace " "
                   AngleOpen "<"
                   HSpace " "
@@ -149,7 +149,7 @@ Block
               HSpace "        "
               Infix
                 Infix
-                  Id "n"
+                  Id "i"
                   HSpace " "
                   AngleClose ">"
                   HSpace " "
