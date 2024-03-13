@@ -21,7 +21,7 @@ use wasm_encoder::{
 use crate::{
     lex::{Intern, Token, TokenKind},
     run::{CoreExports, ScopeEntry},
-    tree::{BranchKind, Nod, Node},
+    tree::{BranchKind, Nod, Node, Type},
     BuildArgs, Cart,
 };
 
@@ -293,11 +293,16 @@ impl<'a> WasmWriter<'a> {
 
     fn build_types(&mut self) {
         let mut types = TypeSection::new();
+        // The goal here is to build non-duplicated function types using a
+        // single buffer rather than lots of individual objects.
+        // Apparently, I found that easier to do on Rc and believed that was
+        // likely more efficient than lots of individual allocations.
+        // Probably decided that without measuring anything, though.
         let val_types = Rc::new(RefCell::new(Vec::<ValType>::new()));
         // Duplicate some of the tree push, find duplicate, and pop logic, but
         // specifically for wasm fun types.
         // TODO Reuse type tree logic from elsewhere?
-        #[derive(Clone)]
+        #[derive(Clone, Debug)]
         struct WasmFunType {
             val_types: Rc<RefCell<Vec<ValType>>>,
             params: Range<usize>,
@@ -348,7 +353,6 @@ impl<'a> WasmWriter<'a> {
         let prebaked_types_offset = types.len() as usize;
         let cart = &self.cart;
         let core = cart.core_exports;
-        let void = core.void_type.num;
         // TODO We probably do want to link everything into one module before getting here so we can keep this simple.
         let tree = &cart.modules[1].tree;
         if let Nod::Branch { range, .. } = tree.last().unwrap().nod {
@@ -364,66 +368,78 @@ impl<'a> WasmWriter<'a> {
                 {
                     let types_range: Range<usize> = types_range.into();
                     self.type_offset = types_range.start;
+                    let mut build_type = |params_range: Range<usize>, return_type_index: usize| {
+                        let params_start = val_types.borrow().len();
+                        // TODO Provide empty params range for not funs.
+                        for param_index in params_range.clone() {
+                            let val_types_mut = &mut val_types.borrow_mut();
+                            match simple_wasm_type(cart, tree, tree[param_index]) {
+                                SimpleWasmType::Span => {
+                                    val_types_mut.push(ValType::I32);
+                                    val_types_mut.push(ValType::I32);
+                                }
+                                _ => val_types_mut.push(ValType::I32),
+                            }
+                        }
+                        let results_start = val_types.borrow().len();
+                        // TODO Just use type_kid.nod directly for not funs.
+                        match return_type_index {
+                            0 => {}
+                            _ => match tree[return_type_index - 1].nod {
+                                Nod::Uid { module: 1, num, .. } => {
+                                    let val_types_mut = &mut val_types.borrow_mut();
+                                    match num {
+                                        _ if num == core.void_type.num => {}
+                                        _ if num == core.text_type.num => {
+                                            val_types_mut.push(ValType::I32);
+                                            val_types_mut.push(ValType::I32);
+                                        }
+                                        _ => val_types_mut.push(ValType::I32),
+                                    }
+                                }
+                                _ => {
+                                    // println!("What to do? {typ}");
+                                }
+                            },
+                        };
+                        let fun_type = WasmFunType {
+                            val_types: val_types.clone(),
+                            params: params_start..results_start,
+                            results: results_start..val_types.borrow().len(),
+                        };
+                        let next = type_indices.len() + prebaked_types_offset;
+                        let entry = type_indices.entry(fun_type.clone());
+                        let wasm_index = match entry {
+                            Entry::Occupied(old) => {
+                                // We don't need the latest additions.
+                                val_types.borrow_mut().truncate(params_start);
+                                *old.get()
+                            }
+                            Entry::Vacant(vacancy) => {
+                                // TODO Keep map from module type to wasm type.
+                                let val_types = val_types.borrow();
+                                let params = &val_types[fun_type.params];
+                                let results = &val_types[fun_type.results];
+                                types.function(params.iter().cloned(), results.iter().cloned());
+                                vacancy.insert(next);
+                                next
+                            }
+                        };
+                        wasm_index
+                    };
                     for type_index in types_range {
                         let type_kid = tree[type_index];
-                        if let Nod::Branch {
-                            kind: BranchKind::FunType,
-                            range: params_range,
-                            ..
-                        } = type_kid.nod
-                        {
-                            let params_start = val_types.borrow().len();
-                            let params_range: Range<usize> = params_range.into();
-                            for param_index in params_range.clone() {
-                                let val_types_mut = &mut val_types.borrow_mut();
-                                match simple_wasm_type(cart, tree, tree[param_index]) {
-                                    SimpleWasmType::Span => {
-                                        val_types_mut.push(ValType::I32);
-                                        val_types_mut.push(ValType::I32);
-                                    }
-                                    _ => val_types_mut.push(ValType::I32),
-                                }
-                            }
-                            let results_start = val_types.borrow().len();
-                            match type_kid.typ.0 {
-                                0 => {}
-                                typ @ _ => match tree[typ as usize - 1].nod {
-                                    Nod::Uid { module: 1, num, .. } => match num {
-                                        _ if num == void => {}
-                                        _ => val_types.borrow_mut().push(ValType::I32),
-                                    },
-                                    _ => {
-                                        println!("What to do? {typ}");
-                                    }
-                                },
-                            };
-                            let fun_type = WasmFunType {
-                                val_types: val_types.clone(),
-                                params: params_start..results_start,
-                                results: results_start..val_types.borrow().len(),
-                            };
-                            let next = type_indices.len() + prebaked_types_offset;
-                            let entry = type_indices.entry(fun_type.clone());
-                            let wasm_index = match entry {
-                                Entry::Occupied(old) => {
-                                    // We don't need the latest additions.
-                                    val_types.borrow_mut().truncate(params_start);
-                                    *old.get()
-                                }
-                                Entry::Vacant(vacancy) => {
-                                    // TODO Keep map from module type to wasm type.
-                                    let val_types = val_types.borrow();
-                                    let params = &val_types[fun_type.params];
-                                    let results = &val_types[fun_type.results];
-                                    types.function(params.iter().cloned(), results.iter().cloned());
-                                    vacancy.insert(next);
-                                    next
-                                }
-                            };
-                            self.type_table.push(wasm_index + 1);
-                        } else {
-                            self.type_table.push(0);
-                        }
+                        let wasm_index = match type_kid.nod {
+                            Nod::Branch {
+                                kind: BranchKind::FunType,
+                                range: params_range,
+                                ..
+                            } => build_type(params_range.into(), type_kid.typ.0 as usize),
+                            // Make function type [] -> T so we can make multivalued block types.
+                            // Could go with only multivalued, but this is simpler.
+                            _ => build_type(0..0, type_index + 1),
+                        };
+                        self.type_table.push(wasm_index + 1);
                     }
                     break;
                 }
@@ -566,7 +582,7 @@ impl<'a> WasmWriter<'a> {
                         // TODO Instead track all modules.
                         if module == 1 {
                             if num == core.branch_fun.num {
-                                self.translate_branch(fun, args_range.clone());
+                                self.translate_branch(fun, args_range.clone(), node.typ);
                                 handled = true;
                             }
                         }
@@ -583,8 +599,8 @@ impl<'a> WasmWriter<'a> {
                                 )),
                             };
                             if module == 1 {
-                                // TODO Put these in a lookup table also?
                                 handled = true;
+                                // TODO Put these in a lookup table also?
                                 match () {
                                     _ if num == core.gt_fun.num => match arg_type {
                                         Some(SimpleWasmType::I32) => {
@@ -697,7 +713,7 @@ impl<'a> WasmWriter<'a> {
         }
     }
 
-    fn translate_branch(&self, fun: &mut Function, args_range: Range<usize>) {
+    fn translate_branch(&self, fun: &mut Function, args_range: Range<usize>, typ: Type) {
         if args_range.len() != 1 {
             return;
         }
@@ -705,10 +721,20 @@ impl<'a> WasmWriter<'a> {
             return;
         };
         let range: Range<usize> = range.into();
-        self.translate_branch_cases(fun, range);
+        let typ = typ.0 as usize - 1 - self.type_offset;
+        let block_type = match typ {
+            0 => BlockType::Empty,
+            _ => BlockType::FunctionType((self.type_table[typ] - 1) as u32),
+        };
+        self.translate_branch_cases(fun, range, block_type);
     }
 
-    fn translate_branch_cases(&self, fun: &mut Function, range: Range<usize>) {
+    fn translate_branch_cases(
+        &self,
+        fun: &mut Function,
+        range: Range<usize>,
+        block_type: BlockType,
+    ) {
         let CoreExports {
             else_fun,
             pair_type,
@@ -737,11 +763,11 @@ impl<'a> WasmWriter<'a> {
                     return;
                 }
                 self.translate_any(fun, case_range.start + 1);
-                fun.instruction(&Instruction::If(BlockType::Result(ValType::I32)));
+                fun.instruction(&Instruction::If(block_type));
                 self.translate_any(fun, case_range.start + 2);
                 if range.len() > 1 {
                     fun.instruction(&Instruction::Else);
-                    self.translate_branch_cases(fun, range.start + 1..range.end);
+                    self.translate_branch_cases(fun, range.start + 1..range.end, block_type);
                 }
                 fun.instruction(&Instruction::End);
             } else if num == else_fun.num {
