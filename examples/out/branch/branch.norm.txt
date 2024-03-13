@@ -7,11 +7,53 @@ Block
       Params
       Params
       Block
+        Call
+          Id "describe"
+          Int32 2
+        /Call
+        Call
+          Id "describe"
+          Int32 0
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    Id "describe"
+    None
+    Fun
+      Params
         Def
           Id "n"
+          Id "Int32"
           None
-          Int32 2
         /Def
+      /Params
+      Params
+      Block
+        Call
+          Id "print"
+          Call
+            Id "description"
+            Id "n"
+          /Call
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    Id "description"
+    None
+    Fun
+      Params
+        Def
+          Id "n"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+      Block
         Def
           Id "message"
           None
@@ -43,14 +85,11 @@ Block
             /List
           /Call
         /Def
-        Call
-          Id "print"
-          Id "message"
-        /Call
+        Id "message"
       /Block
     /Fun
   /Def
 /Block
 
 Node size: 20
-Tree len: 39
+Tree len: 66

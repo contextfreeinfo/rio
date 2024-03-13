@@ -19,13 +19,101 @@ Block
         Be "be"
         VSpace "\n"
         HSpace "    "
-        Def
-          Id "n"
-          HSpace " "
-          Define "="
-          HSpace " "
+        Call
+          Id "describe"
+          RoundOpen "("
           Int "2"
-        /Def
+          RoundClose ")"
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Comment "# TODO Parse negatives."
+        VSpace "\n"
+        HSpace "    "
+        Comment "# describe(-1)"
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "describe"
+          RoundOpen "("
+          Int "0"
+          RoundClose ")"
+        /Call
+        VSpace "\n"
+        End "end"
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "describe"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "n"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      HSpace " "
+      Params
+      Block
+        Be "be"
+        VSpace "\n"
+        HSpace "    "
+        Comment "# TODO Fix this parsing."
+        VSpace "\n"
+        HSpace "    "
+        Comment "# print description(n)"
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "print"
+          RoundOpen "("
+          Call
+            Id "description"
+            RoundOpen "("
+            Id "n"
+            RoundClose ")"
+          /Call
+          RoundClose ")"
+        /Call
+        VSpace "\n"
+        End "end"
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "description"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "n"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      HSpace " "
+      Params
+      Block
+        Be "be"
         VSpace "\n"
         HSpace "    "
         Def
@@ -95,12 +183,7 @@ Block
         /Def
         VSpace "\n"
         HSpace "    "
-        Call
-          Id "print"
-          RoundOpen "("
-          Id "message"
-          RoundClose ")"
-        /Call
+        Id "message"
         VSpace "\n"
         End "end"
       /Block
@@ -110,4 +193,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 91
+Tree len: 162

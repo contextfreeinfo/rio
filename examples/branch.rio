@@ -1,9 +1,21 @@
 main* = for() be
-    n = 2
+    describe(2)
+    # TODO Parse negatives.
+    # describe(-1)
+    describe(0)
+end
+
+describe = for(n: Int32) be
+    # TODO Fix this parsing.
+    # print description(n)
+    print(description(n))
+end
+
+description = for(n: Int32) be
     message = branch with
         n < 0 to "negative"
         n > 0 to "positive"
         else "zero"
     end
-    print(message)
+    message
 end

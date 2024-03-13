@@ -1,77 +1,121 @@
 Block
   Module "examples/branch.rio" 2
-  Def@55 :@53
-    Uid main@55* :@53
+  Def@85 :@73
+    Uid main@85* :@73
     None
-    Fun :@53
+    Fun :@73
       Params
       Params
-      Block :@50
-        Def@28 :@44
-          Uid n@28 :@44
-          None
-          Int32 2 :@44
-        /Def
-        Def@29 :@48
-          Uid message@29 :@48
-          None
-          Call :@48
-            Uid branch@1@552
-            List
-              Call
-                Uid Pair@1@547 :@45
-                Call :@46
-                  Uid lt@1@542 :@47
-                  Uid n@28 :@44
-                  Int32 0 :@44
-                /Call
-                String "negative" :@48
-              /Call
-              Call
-                Uid Pair@1@547 :@45
-                Call :@46
-                  Uid gt@1@541 :@47
-                  Uid n@28 :@44
-                  Int32 0 :@44
-                /Call
-                String "positive" :@48
-              /Call
-              Call
-                Uid else@1@555 :@49
-                String "zero" :@48
-              /Call
-            /List
-          /Call
-        /Def
-        Call :@50
-          Uid print@1@561 :@51
-          Uid message@29 :@48
+      Block
+        Call
+          Uid describe@86 :@83
+          Int32 2 :@72
+        /Call
+        Call
+          Uid describe@86 :@83
+          Int32 0 :@72
         /Call
       /Block
     /Fun
   /Def
+  Def@86 :@83
+    Uid describe@86 :@83
+    None
+    Fun :@83
+      Params
+        Def@16 :@72
+          Uid n@16 :@72
+          Uid Int32@1@540
+          None :@72
+        /Def
+      /Params
+      Params
+      Block :@74
+        Call :@74
+          Uid print@1@561 :@76
+          Call :@75
+            Uid description@87 :@82
+            Uid n@16 :@72
+          /Call
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def@87 :@82
+    Uid description@87 :@82
+    None
+    Fun :@82
+      Params
+        Def@31 :@72
+          Uid n@31 :@72
+          Uid Int32@1@540
+          None :@72
+        /Def
+      /Params
+      Params
+      Block :@75
+        Def@54 :@75
+          Uid message@54 :@75
+          None
+          Call :@75
+            Uid branch@1@552
+            List
+              Call
+                Uid Pair@1@547 :@78
+                Call :@79
+                  Uid lt@1@542 :@80
+                  Uid n@31 :@72
+                  Int32 0 :@72
+                /Call
+                String "negative" :@75
+              /Call
+              Call
+                Uid Pair@1@547 :@78
+                Call :@79
+                  Uid gt@1@541 :@80
+                  Uid n@31 :@72
+                  Int32 0 :@72
+                /Call
+                String "positive" :@75
+              /Call
+              Call
+                Uid else@1@555 :@81
+                String "zero" :@75
+              /Call
+            /List
+          /Call
+        /Def
+        Uid message@54 :@75
+      /Block
+    /Fun
+  /Def
   Types
-    Uid@44 Int32@1@540
-    FunType@45
+    Uid@72 Int32@1@540
+    FunType@73
+    Uid@74 Void@1@550
+    Uid@75 Text@1@548
+    FunType@76 :@74
+      None :@75
+    FunType@77
+      None :@72
+    FunType@78
       None
       None
       None
       None
     /FunType
-    Uid@46 Claim@1@535
-    FunType@47 :@46
-      None :@44
-      None :@44
+    Uid@79 Claim@1@535
+    FunType@80 :@79
+      None :@72
+      None :@72
     /FunType
-    Uid@48 Text@1@548
-    Uid@49 Case@1@534
-    Uid@50 Void@1@550
-    FunType@51 :@50
-      None :@48
-    FunType@52
-    FunType@53 :@50
+    Uid@81 Case@1@534
+    FunType@82 :@75
+      None :@72
+    FunType@83 :@74
+      None :@72
   /Types
 /Block
 
 Node size: 20
-Tree len: 57
+Tree len: 89
