@@ -63,6 +63,8 @@
   (func (;5;) (type 5)
     i32.const 2
     call 6
+    i32.const -1
+    call 6
     i32.const 0
     call 6
   )
@@ -95,6 +97,11 @@
     local.set 1
     local.get 1
     local.get 2
+  )
+  (func (;8;) (type 10) (param i32 i32) (result i32)
+    local.get 0
+    local.get 1
+    i32.lt_s
   )
   (memory (;0;) 1)
   (global (;0;) (mut i32) i32.const 4096)

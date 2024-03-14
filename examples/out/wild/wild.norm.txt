@@ -1,5 +1,13 @@
 Block
   Id "a.b"
+  Call
+    Id "-"
+    Int32 5
+  /Call
+  Call
+    Id "-"
+    Int32 5
+  /Call
   Fun
     Params
     Params
@@ -312,4 +320,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 234
+Tree len: 240

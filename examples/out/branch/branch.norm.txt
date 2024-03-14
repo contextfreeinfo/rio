@@ -13,6 +13,10 @@ Block
         /Call
         Call
           Id "describe"
+          Int32 -1
+        /Call
+        Call
+          Id "describe"
           Int32 0
         /Call
       /Block
@@ -89,7 +93,33 @@ Block
       /Block
     /Fun
   /Def
+  Def
+    Id "less"
+    None
+    Fun
+      Params
+        Def
+          Id "i"
+          Id "Int32"
+          None
+        /Def
+        Def
+          Id "j"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+      Block
+        Call
+          Id "lt"
+          Id "i"
+          Id "j"
+        /Call
+      /Block
+    /Fun
+  /Def
 /Block
 
 Node size: 20
-Tree len: 66
+Tree len: 88

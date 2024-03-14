@@ -102,11 +102,13 @@ Block
   Call
     Id "|"
     HSpace " "
-    Id "No"
-    AngleOpen "<"
-    Id "NoValue"
+    Call
+      Id "No"
+      AngleOpen "<"
+      Id "NoValue"
+      AngleClose ">"
+    /Call
   /Call
-  AngleClose ">"
   VSpace "\n"
   VSpace "\n"
   Def
@@ -552,8 +554,8 @@ Block
                         Call
                           Define "="
                           HSpace " "
-                          Id "Yes"
-                          Block
+                          Call
+                            Id "Yes"
                             RoundOpen "("
                             Call
                               Id "builder"
@@ -561,7 +563,7 @@ Block
                               RoundClose ")"
                             /Call
                             RoundClose ")"
-                          /Block
+                          /Call
                         /Call
                       /Typed
                       VSpace "\n"
@@ -1215,13 +1217,7 @@ Block
   /Def
   VSpace "\n"
   VSpace "\n"
-  Comment "# print*: Function<[Text], [Void]> = native()"
-  VSpace "\n"
   Comment "# print*: Function<[Text], Void> = native()"
-  VSpace "\n"
-  Comment "# print*: Function<Text, Void> = native()"
-  VSpace "\n"
-  Comment "# print*: for(Text): Void = native()"
   VSpace "\n"
   Def
     Pub
@@ -1334,4 +1330,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 1083
+Tree len: 1078

@@ -27,10 +27,12 @@ Block
         /Call
         VSpace "\n"
         HSpace "    "
-        Comment "# TODO Parse negatives."
-        VSpace "\n"
-        HSpace "    "
-        Comment "# describe(-1)"
+        Call
+          Id "describe"
+          RoundOpen "("
+          Int "-1"
+          RoundClose ")"
+        /Call
         VSpace "\n"
         HSpace "    "
         Call
@@ -69,22 +71,15 @@ Block
         Be "be"
         VSpace "\n"
         HSpace "    "
-        Comment "# TODO Fix this parsing."
-        VSpace "\n"
-        HSpace "    "
-        Comment "# print description(n)"
-        VSpace "\n"
-        HSpace "    "
         Call
           Id "print"
-          RoundOpen "("
+          HSpace " "
           Call
             Id "description"
             RoundOpen "("
             Id "i"
             RoundClose ")"
           /Call
-          RoundClose ")"
         /Call
         VSpace "\n"
         End "end"
@@ -190,7 +185,49 @@ Block
     /Fun
   /Def
   VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "less"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "i"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        Comma ","
+        HSpace " "
+        Typed
+          Id "j"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      HSpace " "
+      Params
+      Block
+        Be "be"
+        HSpace " "
+        Infix
+          Id "i"
+          HSpace " "
+          AngleOpen "<"
+          HSpace " "
+          Id "j"
+        /Infix
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
 /Block
 
 Node size: 12
-Tree len: 162
+Tree len: 191

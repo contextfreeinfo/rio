@@ -67,11 +67,13 @@ Block
   /Def
   Call
     Id "|"
-    Id "No"
-    AngleOpen "<"
-    Id "NoValue"
+    Call
+      Id "No"
+      AngleOpen "<"
+      Id "NoValue"
+      AngleClose ">"
+    /Call
   /Call
-  AngleClose ">"
   Def
     Pub
       Id "Function"
@@ -323,11 +325,11 @@ Block
                         Id "maybe"
                         Call
                           None
-                          Id "Yes"
-                          Block
+                          Call
+                            Id "Yes"
                             Call
                               Id "builder"
-                          /Block
+                          /Call
                         /Call
                         None
                       /Def
@@ -757,4 +759,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 567
+Tree len: 568

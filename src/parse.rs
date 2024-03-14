@@ -159,10 +159,23 @@ impl Parser {
     }
 
     fn call(&mut self, source: &mut Tokens, allow_block: bool) -> Option<()> {
+        self.call_maybe_spaced(source, allow_block, true, None)
+    }
+
+    fn call_maybe_spaced(
+        &mut self,
+        source: &mut Tokens,
+        allow_block: bool,
+        allow_spaced: bool,
+        start: Option<u32>,
+    ) -> Option<()> {
         debug!("call");
         self.skip_h(source);
-        let start = self.builder().pos();
-        let had_space = self.pair(source)?;
+        let start = start.unwrap_or_else(|| self.builder().pos());
+        let had_space = match allow_spaced {
+            true => self.pair(source)?,
+            false => false,
+        };
         loop {
             debug!("call loop: {:?}", peek(source));
             let mut post = self.builder().pos();
@@ -171,15 +184,16 @@ impl Parser {
             }
             // TODO Can we leaving trailing hspace, or do we need to have an indicator?
             let peeked = peek(source)?;
-            if had_space
-                || matches!(
-                    peeked,
-                    TokenKind::HSpace
-                        | TokenKind::Be
-                        | TokenKind::CurlyOpen
-                        | TokenKind::Of
-                        | TokenKind::With
-                )
+            if allow_spaced
+                && (had_space
+                    || matches!(
+                        peeked,
+                        TokenKind::HSpace
+                            | TokenKind::Be
+                            | TokenKind::CurlyOpen
+                            | TokenKind::Of
+                            | TokenKind::With
+                    ))
             {
                 self.skip_h(source);
                 if !allow_block
@@ -363,11 +377,12 @@ impl Parser {
                 | TokenKind::Define
                 | TokenKind::End
                 | TokenKind::RoundClose
-                | TokenKind::VSpace => None?,
+                | TokenKind::VSpace => break,
                 _ => self.pair(source),
             };
             debug!("/spaced");
         }
+        Some(())
     }
 
     fn starred(&mut self, source: &mut Tokens) -> Option<bool> {
@@ -377,6 +392,9 @@ impl Parser {
         if peek(source)? == TokenKind::Star {
             self.advance(source);
             self.wrap(BranchKind::Pub, start);
+        }
+        if matches!(peek(source)?, TokenKind::AngleOpen | TokenKind::RoundOpen) {
+            self.call_maybe_spaced(source, false, false, Some(start));
         }
         debug!("/starred");
         Some(false)

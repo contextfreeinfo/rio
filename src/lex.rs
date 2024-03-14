@@ -101,7 +101,7 @@ impl<'a> Lexer<'a> {
                     ')' => self.trim_push(&mut source, TokenKind::RoundClose),
                     '=' => self.trim_push(&mut source, TokenKind::Define),
                     '*' => self.trim_push(&mut source, TokenKind::Star),
-                    '0'..='9' if self.buffer().is_empty() => self.number(&mut source),
+                    '-' | '0'..='9' if self.buffer().is_empty() => self.number(&mut source),
                     _ => {
                         self.next(&mut source);
                     }
@@ -149,6 +149,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn number(&mut self, source: &mut Peekable<Chars>) {
+        let negative = *source.peek().unwrap() == '-';
         self.trim(source);
         loop {
             match source.peek() {
@@ -156,6 +157,10 @@ impl<'a> Lexer<'a> {
                 _ => break,
             }
             self.next(source);
+        }
+        if negative && self.buffer().len() < 2 {
+            // Disconnected minus.
+            return;
         }
         self.push(TokenKind::Int);
     }

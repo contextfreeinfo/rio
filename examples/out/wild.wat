@@ -3,8 +3,8 @@
   (type (;1;) (func (param i32)))
   (type (;2;) (func (param i32 i32)))
   (type (;3;) (func (param i32) (result i32)))
-  (type (;4;) (func))
-  (type (;5;) (func (result i32)))
+  (type (;4;) (func (result i32)))
+  (type (;5;) (func))
   (type (;6;) (func (param i32)))
   (type (;7;) (func (param i32 i32 i32 i32)))
   (type (;8;) (func (result i32 i32)))
@@ -59,9 +59,9 @@
     global.set 0
     local.get 1
   )
-  (func (;5;) (type 4))
-  (func (;6;) (type 4))
-  (func (;7;) (type 4))
+  (func (;5;) (type 5))
+  (func (;6;) (type 5))
+  (func (;7;) (type 5))
   (func (;8;) (type 6) (param i32))
   (func (;9;) (type 6) (param i32))
   (func (;10;) (type 6) (param i32))

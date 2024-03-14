@@ -1,5 +1,7 @@
 a.b
 
+- 5; -(5)
+
 for(); for(); for()
 
 # Some of these might need improved handling

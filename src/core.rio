@@ -81,10 +81,7 @@ end
 
 ordered* = for() be native()
 
-# print*: Function<[Text], [Void]> = native()
 # print*: Function<[Text], Void> = native()
-# print*: Function<Text, Void> = native()
-# print*: for(Text): Void = native()
 print* = for(text: Text): Void be native()
 
 struct* = for() be native()
