@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="256"
+   height="256"
+   version="1.1"
+   viewBox="0 0 256 256"
+   id="svg8"
+   sodipodi:docname="rio-logo-stream4 (copy).svg"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs12" />
+  <sodipodi:namedview
+     id="namedview10"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:pageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     showgrid="false"
+     objecttolerance="20"
+     inkscape:zoom="2.317432"
+     inkscape:cx="113.9192"
+     inkscape:cy="139.80993"
+     inkscape:window-width="1920"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="32"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g6"
+     guidetolerance="20" />
+  <!-- <style>svg {background: black}</style> -->
+  <g
+     id="g6">
+    <path
+       style="fill:#7777bb;stroke:none"
+       d="M 0.0150361,0.01662974 0.00670856,31.905688 C 28.680813,36.069818 79.897775,44.560138 96.186866,69.873978 116.83469,101.96133 -25.907162,111.97654 4.2901925,158.30832 28.357275,195.23443 53.210856,212.1777 109.43147,256.57893 l 146.6615,0.3029 v 0 C 170.4207,189.44968 160.34071,179.28767 138.76141,156.66433 109.88071,126.38635 185.34795,102.28652 171.36136,69.944872 154.37073,30.656874 42.370956,4.7715832 0.0150361,0.01662974 Z"
+       id="path4"
+       sodipodi:nodetypes="cccscccssc" />
+  </g>
+</svg>
