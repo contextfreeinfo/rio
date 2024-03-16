@@ -68,7 +68,7 @@ branch* = for<Value>(cases: List<Case<Value>>): Value be native()
 
 class* = for() be native()
 
-else* = for<Value>(value: Value): Case<Value> be true to value
+else* = for<Value>(value: Lazy<Value>): Case<Value> be true to value
 
 false* = No(void)
 
