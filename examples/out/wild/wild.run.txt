@@ -132,7 +132,7 @@ Block
   Call
     Id "f"
     Call
-      Uid Pair@1@548 :@235
+      Uid Pair@1@552 :@235
       Block
         Of "of"
         Def@200
@@ -231,7 +231,7 @@ Block
           Id "items.each"
         /Call
         Call :@232
-          Uid print@1@562 :@237
+          Uid print@1@566 :@237
           Id "item"
         /Call
         Call
@@ -239,17 +239,17 @@ Block
           Id "x"
           List
             Call
-              Uid Pair@1@548 :@235
+              Uid Pair@1@552 :@235
               Int32 0 :@231
               String "no" :@236
             /Call
             Call
-              Uid Pair@1@548 :@235
+              Uid Pair@1@552 :@235
               Int32 1 :@231
               String "a single" :@236
             /Call
             Call
-              Uid Pair@1@548 :@235
+              Uid Pair@1@552 :@235
               Int32 2 :@231
               String "a couple of" :@236
             /Call
@@ -261,21 +261,21 @@ Block
             Int32 5 :@231
             Int32 6 :@231
             Call
-              Uid Pair@1@548 :@235
+              Uid Pair@1@552 :@235
               Id "]"
               String "a few of" :@236
             /Call
             Call
               Id "case"
               Call :@238
-                Uid lt@1@543 :@239
+                Uid lt@1@547 :@239
                 Id "x"
                 Int32 0 :@231
               /Call
               String "negative" :@236
             /Call
             Call
-              Uid else@1@556 :@240
+              Uid else@1@560 :@240
               String "several" :@236
             /Call
           /List
@@ -285,9 +285,9 @@ Block
           Id "dog"
         /Call
         Call
-          Uid Pair@1@548 :@235
+          Uid Pair@1@552 :@235
           Call
-            Uid Pair@1@548 :@235
+            Uid Pair@1@552 :@235
             Uid a@200
             Id "b"
           /Call
@@ -295,7 +295,7 @@ Block
         /Call
         Call
           Call
-            Uid Pair@1@548 :@235
+            Uid Pair@1@552 :@235
             Uid a@200
             To "to"
           /Call
@@ -303,14 +303,14 @@ Block
         /Call
         Call
           Call
-            Uid Pair@1@548 :@235
+            Uid Pair@1@552 :@235
             Id "fish"
             To "to"
           /Call
           Id "giraffe"
         /Call
         Call
-          Uid Pair@1@548 :@235
+          Uid Pair@1@552 :@235
           To "to"
           Id "hyena"
         /Call
@@ -319,8 +319,8 @@ Block
     /Call
   /Call
   Types
-    Uid@231 Int32@1@541
-    Uid@232 Void@1@551
+    Uid@231 Int32@1@545
+    Uid@232 Void@1@555
     FunType@233 :@232
     FunType@234
       None
@@ -330,15 +330,15 @@ Block
       None
       None
     /FunType
-    Uid@236 Text@1@549
+    Uid@236 Text@1@553
     FunType@237 :@232
       None :@236
-    Uid@238 Claim@1@537
+    Uid@238 Claim@1@541
     FunType@239 :@238
       None :@231
       None :@231
     /FunType
-    Uid@240 Case@1@536
+    Uid@240 Case@1@540
   /Types
 /Block
 

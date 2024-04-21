@@ -1053,7 +1053,12 @@ Block
             Id "value"
             Colon ":"
             HSpace " "
-            Id "Value"
+            Call
+              Id "Lazy"
+              AngleOpen "<"
+              Id "Value"
+              AngleClose ">"
+            /Call
           /Typed
           RoundClose ")"
         /Block
@@ -1330,4 +1335,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 1078
+Tree len: 1082

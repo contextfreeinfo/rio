@@ -611,7 +611,12 @@ Block
         Block
           Def
             Id "value"
-            Id "Value"
+            Call
+              Id "Lazy"
+              AngleOpen "<"
+              Id "Value"
+              AngleClose ">"
+            /Call
             None
           /Def
         /Block
@@ -759,4 +764,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 568
+Tree len: 572

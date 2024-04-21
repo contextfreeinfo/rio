@@ -29,14 +29,14 @@ Block
       Params
         Def@19 :@95
           Uid i@19 :@95
-          Uid Int32@1@541
+          Uid Int32@1@545
           None :@95
         /Def
       /Params
       Params
       Block :@97
         Call :@97
-          Uid print@1@562 :@99
+          Uid print@1@566 :@99
           Call :@98
             Uid description@111 :@105
             Uid i@19 :@95
@@ -52,7 +52,7 @@ Block
       Params
         Def@34 :@95
           Uid i@34 :@95
-          Uid Int32@1@541
+          Uid Int32@1@545
           None :@95
         /Def
       /Params
@@ -62,28 +62,28 @@ Block
           Uid message@57 :@98
           None
           Call :@98
-            Uid branch@1@553
+            Uid branch@1@557
             List
               Call
-                Uid Pair@1@548 :@101
+                Uid Pair@1@552 :@101
                 Call :@102
-                  Uid lt@1@543 :@103
+                  Uid lt@1@547 :@103
                   Uid i@34 :@95
                   Int32 0 :@95
                 /Call
                 String "negative" :@98
               /Call
               Call
-                Uid Pair@1@548 :@101
+                Uid Pair@1@552 :@101
                 Call :@102
-                  Uid gt@1@542 :@103
+                  Uid gt@1@546 :@103
                   Uid i@34 :@95
                   Int32 0 :@95
                 /Call
                 String "positive" :@98
               /Call
               Call
-                Uid else@1@556 :@104
+                Uid else@1@560 :@104
                 String "zero" :@98
               /Call
             /List
@@ -100,19 +100,19 @@ Block
       Params
         Def@71 :@95
           Uid i@71 :@95
-          Uid Int32@1@541
+          Uid Int32@1@545
           None :@95
         /Def
         Def@72 :@95
           Uid j@72 :@95
-          Uid Int32@1@541
+          Uid Int32@1@545
           None :@95
         /Def
       /Params
       Params
       Block :@102
         Call :@102
-          Uid lt@1@543 :@103
+          Uid lt@1@547 :@103
           Uid i@71 :@95
           Uid j@72 :@95
         /Call
@@ -120,10 +120,10 @@ Block
     /Fun
   /Def
   Types
-    Uid@95 Int32@1@541
+    Uid@95 Int32@1@545
     FunType@96
-    Uid@97 Void@1@551
-    Uid@98 Text@1@549
+    Uid@97 Void@1@555
+    Uid@98 Text@1@553
     FunType@99 :@97
       None :@98
     FunType@100
@@ -134,12 +134,12 @@ Block
       None
       None
     /FunType
-    Uid@102 Claim@1@537
+    Uid@102 Claim@1@541
     FunType@103 :@102
       None :@95
       None :@95
     /FunType
-    Uid@104 Case@1@536
+    Uid@104 Case@1@540
     FunType@105 :@98
       None :@95
     FunType@106
