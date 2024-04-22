@@ -3,6 +3,40 @@ Block
   VSpace "\n"
   VSpace "\n"
   Call
+    Call
+      Id "a"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+    RoundOpen "("
+    RoundClose ")"
+  /Call
+  VSpace "\n"
+  Call
+    Call
+      Id "a"
+      RoundOpen "("
+      RoundClose ")"
+    /Call
+    HSpace " "
+    Block
+      RoundOpen "("
+      RoundClose ")"
+    /Block
+  /Call
+  VSpace "\n"
+  VSpace "\n"
+  Block
+    With "with"
+    VSpace "\n"
+    HSpace "    "
+    Id "hi"
+    VSpace "\n"
+    End "end"
+  /Block
+  VSpace "\n"
+  VSpace "\n"
+  Call
     Id "-"
     HSpace " "
     Int "5"
@@ -262,9 +296,9 @@ Block
   /Call
   VSpace "\n"
   Call
-    Id "f"
-    HSpace " "
-    Infix
+    Call
+      Id "f"
+      HSpace " "
       Block
         Of "of"
         VSpace "\n"
@@ -298,325 +332,327 @@ Block
         HSpace "    "
         Id "x"
         VSpace "\n"
+      /Block
+    /Call
+    Block
+      With "with"
+      HSpace " "
+      Fun
+        Fun "for"
+        HSpace " "
+        Params
+          Id "y"
+          HSpace " "
+        /Params
+        Params
         Block
-          With "with"
-          HSpace " "
-          Fun
-            Fun "for"
+          Be "be"
+          VSpace "\n"
+          HSpace "    "
+          Call
+            Id "blah"
             HSpace " "
-            Params
-              Id "y"
-              HSpace " "
-            /Params
-            Params
-            Block
-              Be "be"
-              VSpace "\n"
-              HSpace "    "
-              Call
-                Id "blah"
-                HSpace " "
-                Id "y"
-              /Call
-              VSpace "\n"
-              End "end"
-            /Block
-          /Fun
+            Id "y"
+          /Call
+          VSpace "\n"
+          End "end"
         /Block
-        VSpace "\n"
+      /Fun
+    /Block
+  /Call
+  VSpace "\n"
+  Call
+    Id "await"
+    HSpace " "
+    Block
+      Of "of"
+      HSpace " "
+      Call
+        Id "request"
+        HSpace " "
+        Id "something"
+      /Call
+    /Block
+  /Call
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Call
+      Id "f"
+      HSpace " "
+      Id "a"
+      HSpace " "
+      Block
+        With "with"
+        HSpace " "
+        Id "b"
+        HSpace " "
+      /Block
+    /Call
+    Define "="
+    HSpace " "
+    Call
+      Id "g"
+      HSpace " "
+      Id "c"
+    /Call
+  /Def
+  VSpace "\n"
+  Call
+    Id "f"
+    HSpace " "
+    Id "a"
+    HSpace " "
+    Block
+      CurlyOpen "{"
+      HSpace " "
+      Def
+        Id "b"
+        HSpace " "
+        Define "="
+        HSpace " "
         Call
-          Id "await"
-          HSpace " "
-          Block
-            Of "of"
-            HSpace " "
-            Call
-              Id "request"
-              HSpace " "
-              Id "something"
-            /Call
-          /Block
-        /Call
-        VSpace "\n"
-        VSpace "\n"
-        Def
-          Call
-            Id "f"
-            HSpace " "
-            Id "a"
-            HSpace " "
-            Block
-              With "with"
-              HSpace " "
-              Id "b"
-              HSpace " "
-            /Block
-          /Call
-          Define "="
-          HSpace " "
-          Call
-            Id "g"
-            HSpace " "
-            Id "c"
-          /Call
-        /Def
-        VSpace "\n"
-        Call
-          Id "f"
-          HSpace " "
-          Id "a"
-          HSpace " "
-          Block
-            CurlyOpen "{"
-            HSpace " "
-            Def
-              Id "b"
-              HSpace " "
-              Define "="
-              HSpace " "
-              Call
-                Id "g"
-                HSpace " "
-                Id "c"
-              /Call
-            /Def
-            Comma ","
-            HSpace " "
-            Def
-              Id "d"
-              HSpace " "
-              Define "="
-              HSpace " "
-              Id "e"
-              HSpace " "
-            /Def
-            CurlyClose "}"
-          /Block
-        /Call
-        VSpace "\n"
-        Call
-          Id "f"
-          HSpace " "
-          Id "a"
-          HSpace " "
-          Block
-            With "with"
-            VSpace "\n"
-            HSpace "    "
-            Def
-              Id "b"
-              HSpace " "
-              Define "="
-              HSpace " "
-              Call
-                Id "g"
-                HSpace " "
-                Id "c"
-              /Call
-            /Def
-            VSpace "\n"
-            HSpace "    "
-            Def
-              Id "d"
-              HSpace " "
-              Define "="
-              HSpace " "
-              Id "e"
-            /Def
-            VSpace "\n"
-            End "end"
-          /Block
-        /Call
-        VSpace "\n"
-        VSpace "\n"
-        Call
-          Id "item"
-          HSpace " "
-          Id "from"
-          HSpace " "
-          Id "items.each"
-        /Call
-        VSpace "\n"
-        Call
-          Id "print"
-          HSpace " "
-          Id "item"
-        /Call
-        VSpace "\n"
-        VSpace "\n"
-        Call
-          Id "match"
-          HSpace " "
-          Id "x"
-          HSpace " "
-          Block
-            With "with"
-            VSpace "\n"
-            HSpace "    "
-            Infix
-              Int "0"
-              HSpace " "
-              To "to"
-              HSpace " "
-              StringParts
-                StringEdge "\""
-                String "no"
-                StringEdge "\""
-              /StringParts
-            /Infix
-            VSpace "\n"
-            HSpace "    "
-            Infix
-              Int "1"
-              HSpace " "
-              To "to"
-              HSpace " "
-              StringParts
-                StringEdge "\""
-                String "a single"
-                StringEdge "\""
-              /StringParts
-            /Infix
-            VSpace "\n"
-            HSpace "    "
-            Infix
-              Int "2"
-              HSpace " "
-              To "to"
-              HSpace " "
-              StringParts
-                StringEdge "\""
-                String "a couple of"
-                StringEdge "\""
-              /StringParts
-            /Infix
-            VSpace "\n"
-            HSpace "    "
-            Call
-              Id "any"
-              HSpace " "
-              Id "[3"
-            /Call
-            Comma ","
-            HSpace " "
-            Int "4"
-            Comma ","
-            HSpace " "
-            Int "5"
-            Comma ","
-            HSpace " "
-            Int "6"
-            Infix
-              Id "]"
-              HSpace " "
-              To "to"
-              HSpace " "
-              StringParts
-                StringEdge "\""
-                String "a few of"
-                StringEdge "\""
-              /StringParts
-            /Infix
-            VSpace "\n"
-            HSpace "    "
-            Call
-              Id "case"
-              HSpace " "
-              Infix
-                Id "x"
-                HSpace " "
-                AngleOpen "<"
-                HSpace " "
-                Int "0"
-              /Infix
-              HSpace " "
-              StringParts
-                StringEdge "\""
-                String "negative"
-                StringEdge "\""
-              /StringParts
-            /Call
-            VSpace "\n"
-            HSpace "    "
-            Call
-              Id "else"
-              HSpace " "
-              StringParts
-                StringEdge "\""
-                String "several"
-                StringEdge "\""
-              /StringParts
-            /Call
-            VSpace "\n"
-            End "end"
-          /Block
-        /Call
-        VSpace "\n"
-        VSpace "\n"
-        Call
-          To "to"
-          HSpace " "
-          Id "dog"
-        /Call
-        VSpace "\n"
-        Infix
-          Infix
-            Id "a"
-            HSpace " "
-            To "to"
-            HSpace " "
-            Id "b"
-            HSpace " "
-          /Infix
-          To "to"
+          Id "g"
           HSpace " "
           Id "c"
-        /Infix
-        VSpace "\n"
-        Call
-          Infix
-            Id "a"
-            HSpace " "
-            To "to"
-            VSpace "\n"
-            To "to"
-            HSpace " "
-          /Infix
-          Id "eggplant"
         /Call
-        VSpace "\n"
+      /Def
+      Comma ","
+      HSpace " "
+      Def
+        Id "d"
+        HSpace " "
+        Define "="
+        HSpace " "
+        Id "e"
+        HSpace " "
+      /Def
+      CurlyClose "}"
+    /Block
+  /Call
+  VSpace "\n"
+  Call
+    Id "f"
+    HSpace " "
+    Id "a"
+    HSpace " "
+    Block
+      With "with"
+      VSpace "\n"
+      HSpace "    "
+      Def
+        Id "b"
+        HSpace " "
+        Define "="
+        HSpace " "
         Call
-          Infix
-            Id "fish"
-            HSpace " "
-            To "to"
-            HSpace " "
-            To "to"
-            HSpace " "
-          /Infix
-          Id "giraffe"
+          Id "g"
+          HSpace " "
+          Id "c"
         /Call
-        VSpace "\n"
+      /Def
+      VSpace "\n"
+      HSpace "    "
+      Def
+        Id "d"
+        HSpace " "
+        Define "="
+        HSpace " "
+        Id "e"
+      /Def
+      VSpace "\n"
+      End "end"
+    /Block
+  /Call
+  VSpace "\n"
+  VSpace "\n"
+  Call
+    Id "item"
+    HSpace " "
+    Id "from"
+    HSpace " "
+    Id "items.each"
+  /Call
+  VSpace "\n"
+  Call
+    Id "print"
+    HSpace " "
+    Id "item"
+  /Call
+  VSpace "\n"
+  VSpace "\n"
+  Call
+    Id "match"
+    HSpace " "
+    Id "x"
+    HSpace " "
+    Block
+      With "with"
+      VSpace "\n"
+      HSpace "    "
+      Infix
+        Int "0"
+        HSpace " "
+        To "to"
+        HSpace " "
+        StringParts
+          StringEdge "\""
+          String "no"
+          StringEdge "\""
+        /StringParts
+      /Infix
+      VSpace "\n"
+      HSpace "    "
+      Infix
+        Int "1"
+        HSpace " "
+        To "to"
+        HSpace " "
+        StringParts
+          StringEdge "\""
+          String "a single"
+          StringEdge "\""
+        /StringParts
+      /Infix
+      VSpace "\n"
+      HSpace "    "
+      Infix
+        Int "2"
+        HSpace " "
+        To "to"
+        HSpace " "
+        StringParts
+          StringEdge "\""
+          String "a couple of"
+          StringEdge "\""
+        /StringParts
+      /Infix
+      VSpace "\n"
+      HSpace "    "
+      Call
+        Id "any"
+        HSpace " "
+        Id "[3"
+      /Call
+      Comma ","
+      HSpace " "
+      Int "4"
+      Comma ","
+      HSpace " "
+      Int "5"
+      Comma ","
+      HSpace " "
+      Int "6"
+      Infix
+        Id "]"
+        HSpace " "
+        To "to"
+        HSpace " "
+        StringParts
+          StringEdge "\""
+          String "a few of"
+          StringEdge "\""
+        /StringParts
+      /Infix
+      VSpace "\n"
+      HSpace "    "
+      Call
+        Id "case"
+        HSpace " "
         Infix
-          To "to"
+          Id "x"
           HSpace " "
-          To "to"
+          AngleOpen "<"
           HSpace " "
-          Id "hyena"
+          Int "0"
+          HSpace " "
         /Infix
-        VSpace "\n"
-        End "end"
-      /Block
+        StringParts
+          StringEdge "\""
+          String "negative"
+          StringEdge "\""
+        /StringParts
+      /Call
+      VSpace "\n"
+      HSpace "    "
+      Call
+        Id "else"
+        HSpace " "
+        StringParts
+          StringEdge "\""
+          String "several"
+          StringEdge "\""
+        /StringParts
+      /Call
+      VSpace "\n"
+      End "end"
+    /Block
+  /Call
+  VSpace "\n"
+  VSpace "\n"
+  Call
+    To "to"
+    HSpace " "
+    Id "dog"
+  /Call
+  VSpace "\n"
+  Infix
+    Infix
+      Id "a"
       HSpace " "
       To "to"
       HSpace " "
-      Block
-        Be "be"
-        VSpace "\n"
-      /Block
+      Id "b"
+      HSpace " "
     /Infix
+    To "to"
+    HSpace " "
+    Id "c"
+  /Infix
+  VSpace "\n"
+  Call
+    Infix
+      Id "a"
+      HSpace " "
+      To "to"
+      VSpace "\n"
+      To "to"
+      HSpace " "
+    /Infix
+    Id "eggplant"
+  /Call
+  VSpace "\n"
+  Call
+    Infix
+      Id "fish"
+      HSpace " "
+      To "to"
+      HSpace " "
+      To "to"
+      HSpace " "
+    /Infix
+    Id "giraffe"
+  /Call
+  VSpace "\n"
+  Infix
+    To "to"
+    HSpace " "
+    To "to"
+    HSpace " "
+    Id "hyena"
+  /Infix
+  VSpace "\n"
+  End "end"
+  HSpace " "
+  Call
+    To "to"
+    HSpace " "
+    Block
+      Be "be"
+      VSpace "\n"
+    /Block
   /Call
 /Block
 
 Node size: 12
-Tree len: 521
+Tree len: 550

@@ -130,8 +130,8 @@ Block
                   AngleOpen "<"
                   HSpace " "
                   Int "0"
+                  HSpace " "
                 /Infix
-                HSpace " "
                 To "to"
                 HSpace " "
                 StringParts
@@ -149,8 +149,8 @@ Block
                   AngleClose ">"
                   HSpace " "
                   Int "0"
+                  HSpace " "
                 /Infix
-                HSpace " "
                 To "to"
                 HSpace " "
                 StringParts

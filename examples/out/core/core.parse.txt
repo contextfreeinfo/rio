@@ -90,25 +90,25 @@ Block
         Be "be"
         HSpace " "
         Call
-          Id "Yes"
-          AngleOpen "<"
-          Id "YesValue"
-          AngleClose ">"
+          Call
+            Id "Yes"
+            AngleOpen "<"
+            Id "YesValue"
+            AngleClose ">"
+          /Call
           HSpace " "
+          Id "|"
+          HSpace " "
+          Call
+            Id "No"
+            AngleOpen "<"
+            Id "NoValue"
+            AngleClose ">"
+          /Call
         /Call
       /Block
     /Fun
   /Def
-  Call
-    Id "|"
-    HSpace " "
-    Call
-      Id "No"
-      AngleOpen "<"
-      Id "NoValue"
-      AngleClose ">"
-    /Call
-  /Call
   VSpace "\n"
   VSpace "\n"
   Def
@@ -471,34 +471,32 @@ Block
         Be "be"
         HSpace " "
         Call
-          Id "class"
-          HSpace " "
-          Block
-            Of "of"
-            VSpace "\n"
-            HSpace "    "
-            Typed
-              Id "builder"
-              Colon ":"
-              HSpace " "
-              Call
-                Id "Function"
-                AngleOpen "<"
-                Id "[]"
-                Comma ","
+          Call
+            Id "class"
+            HSpace " "
+            Block
+              Of "of"
+              VSpace "\n"
+              HSpace "    "
+              Typed
+                Id "builder"
+                Colon ":"
                 HSpace " "
-                Id "Value"
-                AngleClose ">"
-              /Call
-            /Typed
-            VSpace "\n"
-            End "end"
-          /Block
-          HSpace " "
+                Call
+                  Id "Function"
+                  AngleOpen "<"
+                  Id "[]"
+                  Comma ","
+                  HSpace " "
+                  Id "Value"
+                  AngleClose ">"
+                /Call
+              /Typed
+              VSpace "\n"
+            /Block
+          /Call
           Block
             With "with"
-            HSpace " "
-            Comment "# TODO Just with."
             VSpace "\n"
             HSpace "    "
             Def
@@ -604,8 +602,8 @@ Block
                   AngleOpen "<"
                   Id "Value"
                   AngleClose ">"
-                  HSpace " "
                 /Call
+                HSpace " "
               /Typed
               Define "="
               HSpace " "
@@ -714,21 +712,23 @@ Block
         Call
           Id "ordered"
           HSpace " "
-          Id "struct"
-          HSpace " "
-          Block
-            Of "of"
-            VSpace "\n"
-            HSpace "    "
-            Typed
-              Id "value"
-              Colon ":"
-              HSpace " "
-              Id "Value"
-            /Typed
-            VSpace "\n"
-            End "end"
-          /Block
+          Call
+            Id "struct"
+            HSpace " "
+            Block
+              Of "of"
+              VSpace "\n"
+              HSpace "    "
+              Typed
+                Id "value"
+                Colon ":"
+                HSpace " "
+                Id "Value"
+              /Typed
+              VSpace "\n"
+              End "end"
+            /Block
+          /Call
         /Call
       /Block
     /Fun
@@ -761,29 +761,31 @@ Block
         Call
           Id "ordered"
           HSpace " "
-          Id "struct"
-          HSpace " "
-          Block
-            Of "of"
-            VSpace "\n"
-            HSpace "    "
-            Typed
-              Id "key"
-              Colon ":"
-              HSpace " "
-              Id "Key"
-            /Typed
-            VSpace "\n"
-            HSpace "    "
-            Typed
-              Id "value"
-              Colon ":"
-              HSpace " "
-              Id "Value"
-            /Typed
-            VSpace "\n"
-            End "end"
-          /Block
+          Call
+            Id "struct"
+            HSpace " "
+            Block
+              Of "of"
+              VSpace "\n"
+              HSpace "    "
+              Typed
+                Id "key"
+                Colon ":"
+                HSpace " "
+                Id "Key"
+              /Typed
+              VSpace "\n"
+              HSpace "    "
+              Typed
+                Id "value"
+                Colon ":"
+                HSpace " "
+                Id "Value"
+              /Typed
+              VSpace "\n"
+              End "end"
+            /Block
+          /Call
         /Call
       /Block
     /Fun
@@ -925,21 +927,23 @@ Block
         Call
           Id "ordered"
           HSpace " "
-          Id "struct"
-          HSpace " "
-          Block
-            Of "of"
-            VSpace "\n"
-            HSpace "    "
-            Typed
-              Id "value"
-              Colon ":"
-              HSpace " "
-              Id "Value"
-            /Typed
-            VSpace "\n"
-            End "end"
-          /Block
+          Call
+            Id "struct"
+            HSpace " "
+            Block
+              Of "of"
+              VSpace "\n"
+              HSpace "    "
+              Typed
+                Id "value"
+                Colon ":"
+                HSpace " "
+                Id "Value"
+              /Typed
+              VSpace "\n"
+              End "end"
+            /Block
+          /Call
         /Call
       /Block
     /Fun
@@ -1065,10 +1069,12 @@ Block
       /Fun
       Colon ":"
       HSpace " "
-      Id "Case"
-      AngleOpen "<"
-      Id "Value"
-      AngleClose ">"
+      Call
+        Id "Case"
+        AngleOpen "<"
+        Id "Value"
+        AngleClose ">"
+      /Call
       HSpace " "
     /Typed
   /Def
@@ -1335,4 +1341,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 1082
+Tree len: 1083

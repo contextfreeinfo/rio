@@ -23,7 +23,7 @@ lt* = for(a: Int32, b: Int32): Claim be native()
 
 Lazy* = for<Value> be class of
     builder: Function<[], Value>
-end with # TODO Just with.
+with
     value* = for() be
         if (not maybe) be
             # TODO If this/self is a box, maybe such mutation has meaning?

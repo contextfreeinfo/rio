@@ -1,5 +1,12 @@
 a.b
 
+a()()
+a() ()
+
+with
+    hi
+end
+
 - 5; -(5)
 
 for(); for(); for()

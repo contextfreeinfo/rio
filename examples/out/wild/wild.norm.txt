@@ -1,6 +1,17 @@
 Block
   Id "a.b"
   Call
+    Call
+      Id "a"
+  /Call
+  Call
+    Call
+      Id "a"
+    Block
+  /Call
+  List
+    Id "hi"
+  Call
     Id "-"
     Int32 5
   /Call
@@ -129,9 +140,8 @@ Block
     /Fun
   /Call
   Call
-    Id "f"
     Call
-      Id "Pair"
+      Id "f"
       Block
         Of "of"
         Def
@@ -150,174 +160,177 @@ Block
         Id "on"
         Id "e"
         Id "x"
-        List
-          Fun
-            Params
-              Id "y"
-            Params
-            Block
-              Call
-                Id "blah"
-                Id "y"
-              /Call
-            /Block
-          /Fun
-        /List
-        Call
-          Id "await"
-          Block
-            Of "of"
-            Call
-              Id "request"
-              Id "something"
-            /Call
-          /Block
-        /Call
-        Def
+      /Block
+    /Call
+    List
+      Fun
+        Params
+          Id "y"
+        Params
+        Block
           Call
-            Id "f"
-            Id "a"
-            List
-              Id "b"
+            Id "blah"
+            Id "y"
           /Call
-          None
-          Call
-            Id "g"
-            Id "c"
-          /Call
-        /Def
+        /Block
+      /Fun
+    /List
+  /Call
+  Call
+    Id "await"
+    Block
+      Of "of"
+      Call
+        Id "request"
+        Id "something"
+      /Call
+    /Block
+  /Call
+  Def
+    Call
+      Id "f"
+      Id "a"
+      List
+        Id "b"
+    /Call
+    None
+    Call
+      Id "g"
+      Id "c"
+    /Call
+  /Def
+  Call
+    Id "f"
+    Id "a"
+    Block
+      Def
+        Id "b"
+        None
         Call
-          Id "f"
-          Id "a"
-          Block
-            Def
-              Id "b"
-              None
-              Call
-                Id "g"
-                Id "c"
-              /Call
-            /Def
-            Def
-              Id "d"
-              None
-              Id "e"
-            /Def
-          /Block
-        /Call
-        Call
-          Id "f"
-          Id "a"
-          List
-            Def
-              Id "b"
-              None
-              Call
-                Id "g"
-                Id "c"
-              /Call
-            /Def
-            Def
-              Id "d"
-              None
-              Id "e"
-            /Def
-          /List
-        /Call
-        Call
-          Id "item"
-          Id "from"
-          Id "items.each"
-        /Call
-        Call
-          Id "print"
-          Id "item"
-        /Call
-        Call
-          Id "match"
-          Id "x"
-          List
-            Call
-              Id "Pair"
-              Int32 0
-              String "no"
-            /Call
-            Call
-              Id "Pair"
-              Int32 1
-              String "a single"
-            /Call
-            Call
-              Id "Pair"
-              Int32 2
-              String "a couple of"
-            /Call
-            Call
-              Id "any"
-              Id "[3"
-            /Call
-            Int32 4
-            Int32 5
-            Int32 6
-            Call
-              Id "Pair"
-              Id "]"
-              String "a few of"
-            /Call
-            Call
-              Id "case"
-              Call
-                Id "lt"
-                Id "x"
-                Int32 0
-              /Call
-              String "negative"
-            /Call
-            Call
-              Id "else"
-              String "several"
-            /Call
-          /List
-        /Call
-        Call
-          To "to"
-          Id "dog"
-        /Call
-        Call
-          Id "Pair"
-          Call
-            Id "Pair"
-            Id "a"
-            Id "b"
-          /Call
+          Id "g"
           Id "c"
         /Call
+      /Def
+      Def
+        Id "d"
+        None
+        Id "e"
+      /Def
+    /Block
+  /Call
+  Call
+    Id "f"
+    Id "a"
+    List
+      Def
+        Id "b"
+        None
         Call
-          Call
-            Id "Pair"
-            Id "a"
-            To "to"
-          /Call
-          Id "eggplant"
+          Id "g"
+          Id "c"
         /Call
+      /Def
+      Def
+        Id "d"
+        None
+        Id "e"
+      /Def
+    /List
+  /Call
+  Call
+    Id "item"
+    Id "from"
+    Id "items.each"
+  /Call
+  Call
+    Id "print"
+    Id "item"
+  /Call
+  Call
+    Id "match"
+    Id "x"
+    List
+      Call
+        Id "Pair"
+        Int32 0
+        String "no"
+      /Call
+      Call
+        Id "Pair"
+        Int32 1
+        String "a single"
+      /Call
+      Call
+        Id "Pair"
+        Int32 2
+        String "a couple of"
+      /Call
+      Call
+        Id "any"
+        Id "[3"
+      /Call
+      Int32 4
+      Int32 5
+      Int32 6
+      Call
+        Id "Pair"
+        Id "]"
+        String "a few of"
+      /Call
+      Call
+        Id "case"
         Call
-          Call
-            Id "Pair"
-            Id "fish"
-            To "to"
-          /Call
-          Id "giraffe"
+          Id "lt"
+          Id "x"
+          Int32 0
         /Call
-        Call
-          Id "Pair"
-          To "to"
-          Id "hyena"
-        /Call
-      /Block
-      Block
+        String "negative"
+      /Call
+      Call
+        Id "else"
+        String "several"
+      /Call
+    /List
+  /Call
+  Call
+    To "to"
+    Id "dog"
+  /Call
+  Call
+    Id "Pair"
+    Call
+      Id "Pair"
+      Id "a"
+      Id "b"
     /Call
+    Id "c"
+  /Call
+  Call
+    Call
+      Id "Pair"
+      Id "a"
+      To "to"
+    /Call
+    Id "eggplant"
+  /Call
+  Call
+    Call
+      Id "Pair"
+      Id "fish"
+      To "to"
+    /Call
+    Id "giraffe"
+  /Call
+  Call
+    Id "Pair"
+    To "to"
+    Id "hyena"
+  /Call
+  Call
+    To "to"
+    Block
   /Call
 /Block
 
 Node size: 20
-Tree len: 240
+Tree len: 250

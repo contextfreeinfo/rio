@@ -57,23 +57,23 @@ Block
       Params
       Block
         Call
-          Id "Yes"
-          AngleOpen "<"
-          Id "YesValue"
-          AngleClose ">"
+          Call
+            Id "Yes"
+            AngleOpen "<"
+            Id "YesValue"
+            AngleClose ">"
+          /Call
+          Id "|"
+          Call
+            Id "No"
+            AngleOpen "<"
+            Id "NoValue"
+            AngleClose ">"
+          /Call
         /Call
       /Block
     /Fun
   /Def
-  Call
-    Id "|"
-    Call
-      Id "No"
-      AngleOpen "<"
-      Id "NoValue"
-      AngleClose ">"
-    /Call
-  /Call
   Def
     Pub
       Id "Function"
@@ -288,21 +288,23 @@ Block
       Params
       Block
         Call
-          Id "class"
-          Block
-            Of "of"
-            Def
-              Id "builder"
-              Call
-                Id "Function"
-                AngleOpen "<"
-                Id "[]"
-                Id "Value"
-                AngleClose ">"
-              /Call
-              None
-            /Def
-          /Block
+          Call
+            Id "class"
+            Block
+              Of "of"
+              Def
+                Id "builder"
+                Call
+                  Id "Function"
+                  AngleOpen "<"
+                  Id "[]"
+                  Id "Value"
+                  AngleClose ">"
+                /Call
+                None
+              /Def
+            /Block
+          /Call
           List
             Def
               Pub
@@ -417,15 +419,17 @@ Block
       Block
         Call
           Id "ordered"
-          Id "struct"
-          Block
-            Of "of"
-            Def
-              Id "value"
-              Id "Value"
-              None
-            /Def
-          /Block
+          Call
+            Id "struct"
+            Block
+              Of "of"
+              Def
+                Id "value"
+                Id "Value"
+                None
+              /Def
+            /Block
+          /Call
         /Call
       /Block
     /Fun
@@ -445,20 +449,22 @@ Block
       Block
         Call
           Id "ordered"
-          Id "struct"
-          Block
-            Of "of"
-            Def
-              Id "key"
-              Id "Key"
-              None
-            /Def
-            Def
-              Id "value"
-              Id "Value"
-              None
-            /Def
-          /Block
+          Call
+            Id "struct"
+            Block
+              Of "of"
+              Def
+                Id "key"
+                Id "Key"
+                None
+              /Def
+              Def
+                Id "value"
+                Id "Value"
+                None
+              /Def
+            /Block
+          /Call
         /Call
       /Block
     /Fun
@@ -532,15 +538,17 @@ Block
       Block
         Call
           Id "ordered"
-          Id "struct"
-          Block
-            Of "of"
-            Def
-              Id "value"
-              Id "Value"
-              None
-            /Def
-          /Block
+          Call
+            Id "struct"
+            Block
+              Of "of"
+              Def
+                Id "value"
+                Id "Value"
+                None
+              /Def
+            /Block
+          /Call
         /Call
       /Block
     /Fun
@@ -621,10 +629,12 @@ Block
           /Def
         /Block
       /Fun
-      Id "Case"
-      AngleOpen "<"
-      Id "Value"
-      AngleClose ">"
+      Call
+        Id "Case"
+        AngleOpen "<"
+        Id "Value"
+        AngleClose ">"
+      /Call
       None
     /Def
   /Def
@@ -764,4 +774,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 572
+Tree len: 577

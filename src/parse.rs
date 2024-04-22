@@ -104,8 +104,10 @@ impl Parser {
             loop_some!({
                 self.block_content(source);
                 let kind = peek(source)?;
-                self.advance(source);
-                if kind == ender {
+                if kind != TokenKind::With {
+                    self.advance(source);
+                }
+                if kind == ender || (ender == TokenKind::End && kind == TokenKind::With) {
                     None?
                 }
             });
@@ -126,14 +128,16 @@ impl Parser {
                 TokenKind::AngleClose
                 | TokenKind::CurlyClose
                 | TokenKind::End
-                | TokenKind::RoundClose => None?,
+                | TokenKind::RoundClose
+                | TokenKind::With => None?,
                 _ => {
                     self.def(source);
                 }
             }
         });
         debug!("/block_content");
-        self.skip_hv(source)
+        self.skip_hv(source);
+        Some(())
     }
 
     fn block_top(&mut self, source: &mut Tokens) {
@@ -141,16 +145,20 @@ impl Parser {
         loop_some!({
             debug!("block_top: {:?}", peek(source));
             self.block_content(source)?;
-            if matches!(
-                peek(source)?,
+            match peek(source)? {
                 TokenKind::AngleClose
-                    | TokenKind::CurlyClose
-                    | TokenKind::End
-                    | TokenKind::RoundClose,
-            ) {
-                // Eat trash. TODO Avoid ever getting here.
-                self.advance(source);
-                self.skip_hv(source);
+                | TokenKind::CurlyClose
+                | TokenKind::End
+                | TokenKind::RoundClose => {
+                    // Eat trash. TODO Avoid ever getting here.
+                    self.advance(source);
+                    self.skip_hv(source);
+                }
+                TokenKind::With => {
+                    // Also trash, but be nicer.
+                    self.atom(source);
+                }
+                _ => {}
             }
         });
         if self.builder().pos() > start {
@@ -159,23 +167,14 @@ impl Parser {
     }
 
     fn call(&mut self, source: &mut Tokens, allow_block: bool) -> Option<()> {
-        self.call_maybe_spaced(source, allow_block, true, None)
+        self.call_maybe_spaced(source, allow_block)
     }
 
-    fn call_maybe_spaced(
-        &mut self,
-        source: &mut Tokens,
-        allow_block: bool,
-        allow_spaced: bool,
-        start: Option<u32>,
-    ) -> Option<()> {
+    fn call_maybe_spaced(&mut self, source: &mut Tokens, allow_block: bool) -> Option<()> {
         debug!("call");
         self.skip_h(source);
-        let start = start.unwrap_or_else(|| self.builder().pos());
-        let had_space = match allow_spaced {
-            true => self.pair(source)?,
-            false => false,
-        };
+        let start = self.builder().pos();
+        let had_space = self.pair(source)?;
         loop {
             debug!("call loop: {:?}", peek(source));
             let mut post = self.builder().pos();
@@ -184,54 +183,28 @@ impl Parser {
             }
             // TODO Can we leaving trailing hspace, or do we need to have an indicator?
             let peeked = peek(source)?;
-            if allow_spaced
-                && (had_space
-                    || matches!(
-                        peeked,
-                        TokenKind::HSpace
-                            | TokenKind::Be
-                            | TokenKind::CurlyOpen
-                            | TokenKind::Of
-                            | TokenKind::With
-                    ))
+            if had_space
+                || matches!(
+                    peeked,
+                    TokenKind::HSpace | TokenKind::Be | TokenKind::CurlyOpen | TokenKind::With
+                )
             {
                 self.skip_h(source);
                 if !allow_block
                     && matches!(
                         peek(source)?,
-                        TokenKind::Be | TokenKind::CurlyOpen | TokenKind::Of | TokenKind::With
+                        TokenKind::Be | TokenKind::CurlyOpen | TokenKind::With
                     )
                 {
                     break;
                 }
                 post = self.builder().pos();
                 self.spaced(source);
-            } else if matches!(peeked, TokenKind::AngleOpen | TokenKind::RoundOpen) {
-                if peeked == TokenKind::AngleOpen && had_space {
-                    // This is less-than, not angle bracket.
-                    break;
-                }
-                // TODO Expand paren-comma args.
-                self.advance(source);
-                self.block_content(source);
-                if peek(source)? == choose_ender(peeked) {
-                    self.advance(source);
-                }
-                self.skip_h(source);
-                if matches!(
-                    peek(source)?,
-                    TokenKind::Be | TokenKind::CurlyOpen | TokenKind::Of | TokenKind::With
-                ) {
-                    if !allow_block {
-                        break;
-                    }
-                    self.block(source);
-                    self.skip_h(source);
-                }
             } else {
                 break;
             }
             if self.builder().pos() <= post {
+                // TODO What does this mean???
                 break;
             }
             self.wrap(BranchKind::Call, start);
@@ -241,9 +214,45 @@ impl Parser {
         Some(())
     }
 
+    fn call_tight(&mut self, source: &mut Tokens) -> Option<bool> {
+        debug!("call_tight");
+        let start = self.builder().pos();
+        self.starred(source)?;
+        let mut skipped;
+        loop {
+            let peeked = peek(source)?;
+            match peeked {
+                TokenKind::AngleOpen | TokenKind::RoundOpen => {
+                    // Unspaced open brackets bind tightly.
+                    // self.call_maybe_spaced(source, false, false, Some(start));
+                    // TODO Below instead of `call_maybe_spaced` above.
+                    // TODO Expand paren-comma args.
+                    self.advance(source);
+                    self.block_content(source);
+                    if peek(source)? == choose_ender(peeked) {
+                        self.advance(source);
+                    }
+                }
+                _ => {
+                    skipped = self.skip_h(source)?;
+                    match peek(source)? {
+                        // Of blocks bind tightly.
+                        TokenKind::Of => {
+                            self.starred(source)?;
+                        }
+                        _ => break,
+                    }
+                }
+            };
+            self.wrap(BranchKind::Call, start);
+        }
+        debug!("/call_tight");
+        Some(skipped)
+    }
+
     define_infix!(
         compare,
-        starred,
+        call_tight,
         true,
         TokenKind::AngleClose | TokenKind::AngleOpen,
     );
@@ -332,30 +341,32 @@ impl Parser {
 
     define_infix!(pair, compare, false, TokenKind::To);
 
-    fn skip<F>(&mut self, source: &mut Tokens, skipping: F) -> Option<()>
+    fn skip<F>(&mut self, source: &mut Tokens, skipping: F) -> Option<bool>
     where
         F: Fn(TokenKind) -> bool,
     {
+        let mut skipped = false;
         loop {
             let token = peek_token(source)?;
             if skipping(token.kind) {
                 debug!("Skipping {:?}", token);
+                skipped = true;
                 source.next();
                 self.builder().push_at(token, 0);
             } else {
                 break;
             }
         }
-        Some(())
+        Some(skipped)
     }
 
-    fn skip_h(&mut self, source: &mut Tokens) -> Option<()> {
+    fn skip_h(&mut self, source: &mut Tokens) -> Option<bool> {
         self.skip(source, |kind| {
             matches!(kind, TokenKind::Comment | TokenKind::HSpace)
         })
     }
 
-    fn skip_hv(&mut self, source: &mut Tokens) -> Option<()> {
+    fn skip_hv(&mut self, source: &mut Tokens) -> Option<bool> {
         self.skip(source, |kind| {
             matches!(
                 kind,
@@ -392,9 +403,6 @@ impl Parser {
         if peek(source)? == TokenKind::Star {
             self.advance(source);
             self.wrap(BranchKind::Pub, start);
-        }
-        if matches!(peek(source)?, TokenKind::AngleOpen | TokenKind::RoundOpen) {
-            self.call_maybe_spaced(source, false, false, Some(start));
         }
         debug!("/starred");
         Some(false)
