@@ -11,14 +11,14 @@ main* = for() be
 end
 
 Person = struct of
-    name: String
+    name: Text
     age: Int
 end
 
-build = for(name: String, age: Int): Person be {name, age}
+build = for(name: Text, age: Int): Person be {name, age}
 
 describe = for(person: Person) be
-    # TODO String interp and auto struct printing.
+    # TODO Text interp and auto struct printing.
     print "Person:"
     print person.name
     print(

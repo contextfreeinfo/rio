@@ -164,7 +164,7 @@ Block
           Id "name"
           Colon ":"
           HSpace " "
-          Id "String"
+          Id "Text"
         /Typed
         VSpace "\n"
         HSpace "    "
@@ -194,7 +194,7 @@ Block
           Id "name"
           Colon ":"
           HSpace " "
-          Id "String"
+          Id "Text"
         /Typed
         Comma ","
         HSpace " "
@@ -254,7 +254,7 @@ Block
         Be "be"
         VSpace "\n"
         HSpace "    "
-        Comment "# TODO String interp and auto struct printing."
+        Comment "# TODO Text interp and auto struct printing."
         VSpace "\n"
         HSpace "    "
         Call

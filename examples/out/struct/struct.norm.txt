@@ -78,7 +78,7 @@ Block
         Of "of"
         Def
           Id "name"
-          Id "String"
+          Id "Text"
           None
         /Def
         Def
@@ -96,7 +96,7 @@ Block
       Params
         Def
           Id "name"
-          Id "String"
+          Id "Text"
           None
         /Def
         Def
