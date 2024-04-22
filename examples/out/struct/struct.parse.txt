@@ -117,6 +117,15 @@ Block
             VSpace "\n"
             HSpace "        "
             Def
+              Id "age"
+              HSpace " "
+              Define "="
+              HSpace " "
+              Int "9"
+            /Def
+            VSpace "\n"
+            HSpace "        "
+            Def
               Id "name"
               HSpace " "
               Define "="
@@ -126,15 +135,6 @@ Block
                 String "Denise"
                 StringEdge "\""
               /StringParts
-            /Def
-            VSpace "\n"
-            HSpace "        "
-            Def
-              Id "age"
-              HSpace " "
-              Define "="
-              HSpace " "
-              Int "9"
             /Def
             VSpace "\n"
             HSpace "    "

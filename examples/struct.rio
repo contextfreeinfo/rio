@@ -5,8 +5,8 @@ main* = for() be
     describe {name = "Bob", alice.age}
     describe build("Carl", 10)
     describe of
-        name = "Denise"
         age = 9
+        name = "Denise"
     end
 end
 

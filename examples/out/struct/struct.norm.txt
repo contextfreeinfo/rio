@@ -55,14 +55,14 @@ Block
           Block
             Of "of"
             Def
-              Id "name"
-              None
-              String "Denise"
-            /Def
-            Def
               Id "age"
               None
               Int32 9
+            /Def
+            Def
+              Id "name"
+              None
+              String "Denise"
             /Def
           /Block
         /Call
