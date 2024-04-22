@@ -37,6 +37,45 @@ Block
   VSpace "\n"
   VSpace "\n"
   Call
+    Id "blah"
+    HSpace " "
+    Id "something"
+    HSpace " "
+    Block
+      With "with"
+      VSpace "\n"
+      HSpace "    "
+      Id "a"
+      VSpace "\n"
+      HSpace "    "
+      Id "b"
+      VSpace "\n"
+      End "end"
+    /Block
+    HSpace " "
+    Fun
+      Fun "for"
+      HSpace " "
+      Params
+        Id "something"
+        HSpace " "
+      /Params
+      Params
+      Block
+        Be "be"
+        HSpace " "
+        Comment "# TODO with for? also for?"
+        VSpace "\n"
+        HSpace "    "
+        Id "c"
+        VSpace "\n"
+        End "end"
+      /Block
+    /Fun
+  /Call
+  VSpace "\n"
+  VSpace "\n"
+  Call
     Id "-"
     HSpace " "
     Int "5"
@@ -655,4 +694,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 550
+Tree len: 584

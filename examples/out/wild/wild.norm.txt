@@ -12,6 +12,21 @@ Block
   List
     Id "hi"
   Call
+    Id "blah"
+    Id "something"
+    List
+      Id "a"
+      Id "b"
+    /List
+    Fun
+      Params
+        Id "something"
+      Params
+      Block
+        Id "c"
+    /Fun
+  /Call
+  Call
     Id "-"
     Int32 5
   /Call
@@ -333,4 +348,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 250
+Tree len: 262
