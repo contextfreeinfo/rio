@@ -71,6 +71,9 @@ Block
           HSpace " "
           Block
             CurlyOpen "{"
+            Id "alice.age"
+            Comma ","
+            HSpace " "
             Def
               Id "name"
               HSpace " "
@@ -82,9 +85,6 @@ Block
                 StringEdge "\""
               /StringParts
             /Def
-            Comma ","
-            HSpace " "
-            Id "alice.age"
             CurlyClose "}"
           /Block
         /Call

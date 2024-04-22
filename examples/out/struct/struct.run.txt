@@ -33,13 +33,13 @@ Block
         /Call
         Call
           Uid describe@149 :@144
-          Block
-            Def@19 :@132
-              Uid name@19 :@132
+          Block :@132
+            Id "alice.age"
+            Def@20 :@132
+              Uid name@20 :@132
               None
               String "Bob" :@132
             /Def
-            Id "alice.age"
           /Block
         /Call
         Call

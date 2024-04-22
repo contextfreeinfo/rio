@@ -34,12 +34,12 @@ Block
         Call
           Id "describe"
           Block
+            Id "alice.age"
             Def
               Id "name"
               None
               String "Bob"
             /Def
-            Id "alice.age"
           /Block
         /Call
         Call
