@@ -1,0 +1,205 @@
+Block
+  Module "examples/struct.rio" 2
+  Def@145 :@134
+    Uid main@145* :@134
+    None
+    Fun :@134
+      Params
+      Params
+      Block
+        Def@39 :@132
+          Uid name@39 :@132
+          None
+          String "Alice" :@132
+        /Def
+        Def@40
+          Uid alice@40
+          None
+          Call
+            Uid Person@146
+            Block :@133
+              Uid name@39 :@132
+              Def@8 :@133
+                Uid age@8 :@133
+                None
+                Int32 40 :@133
+              /Def
+            /Block
+          /Call
+        /Def
+        Call
+          Uid describe@148 :@143
+          Uid alice@40
+        /Call
+        Call
+          Uid describe@148 :@143
+          Block
+            Def@19 :@132
+              Uid name@19 :@132
+              None
+              String "Bob" :@132
+            /Def
+            Id "alice.age"
+          /Block
+        /Call
+        Call
+          Uid describe@148 :@143
+          Call :@135
+            Uid build@147 :@136
+            String "Carl" :@132
+            Int32 10 :@133
+          /Call
+        /Call
+        Call
+          Uid describe@148 :@143
+          Block :@133
+            Of "of"
+            Def@35 :@132
+              Uid name@35 :@132
+              None
+              String "Denise" :@132
+            /Def
+            Def@36 :@133
+              Uid age@36 :@133
+              None
+              Int32 9 :@133
+            /Def
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def@146
+    Uid Person@146
+    None
+    Call
+      Uid struct@1@571 :@134
+      Block
+        Of "of"
+        Def@58
+          Uid name@58
+          Id "String"
+          None
+        /Def
+        Def@59
+          Uid age@59
+          Id "Int"
+          None
+        /Def
+      /Block
+    /Call
+  /Def
+  Def@147 :@136
+    Uid build@147 :@136
+    None
+    Fun :@136
+      Params
+        Def@71
+          Uid name@71
+          Id "String"
+          None
+        /Def
+        Def@72
+          Uid age@72
+          Id "Int"
+          None
+        /Def
+      /Params
+      Params
+        Def@76 :@135
+          None :@135
+          Uid Person@146
+          None :@135
+        /Def
+      /Params
+      Block :@135
+        Block :@135
+          Uid name@71
+          Uid age@72 :@135
+        /Block
+      /Block
+    /Fun
+  /Def
+  Def@148 :@143
+    Uid describe@148 :@143
+    None
+    Fun :@143
+      Params
+        Def@89 :@135
+          Uid person@89 :@135
+          Uid Person@146
+          None :@135
+        /Def
+      /Params
+      Params
+      Block :@137
+        Call :@137
+          Uid print@1@570 :@138
+          String "Person:" :@132
+        /Call
+        Call :@137
+          Uid print@1@570 :@138
+          Id "person.name"
+        /Call
+        Call :@137
+          Uid print@1@570 :@138
+          Call
+            Uid branch@1@561
+            List
+              Call
+                Call :@139
+                  Uid gt@1@550 :@140
+                  Id "person.age"
+                /Call
+                Call
+                  Uid Pair@1@556 :@141
+                  Int32 18 :@133
+                  String "adult" :@132
+                /Call
+              /Call
+              Call
+                Uid else@1@564
+                String "minor" :@132
+              /Call
+            /List
+          /Call
+        /Call
+        Call :@137
+          Uid print@1@570 :@138
+          String "" :@132
+        /Call
+      /Block
+    /Fun
+  /Def
+  Types
+    Uid@132 Text@1@557
+    Uid@133 Int32@1@549
+    FunType@134
+    Uid@135 Person@146
+    FunType@136 :@135
+      None
+      None
+    /FunType
+    Uid@137 Void@1@559
+    FunType@138 :@137
+      None :@132
+    Uid@139 Claim@1@546
+    FunType@140 :@139
+      None :@133
+      None :@133
+    /FunType
+    FunType@141
+      None
+      None
+      None
+      None
+    /FunType
+    FunType@142
+      None :@135
+    FunType@143 :@137
+      None :@135
+  /Types
+/Block
+
+Node size: 20
+Tree len: 150

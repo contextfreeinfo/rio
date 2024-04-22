@@ -1,0 +1,349 @@
+Block
+  Def
+    Pub
+      Id "main"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        RoundClose ")"
+      /Params
+      HSpace " "
+      Params
+      Block
+        Be "be"
+        VSpace "\n"
+        HSpace "    "
+        Def
+          Id "name"
+          HSpace " "
+          Define "="
+          HSpace " "
+          StringParts
+            StringEdge "\""
+            String "Alice"
+            StringEdge "\""
+          /StringParts
+        /Def
+        VSpace "\n"
+        HSpace "    "
+        Def
+          Id "alice"
+          HSpace " "
+          Define "="
+          HSpace " "
+          Call
+            Id "Person"
+            HSpace " "
+            Block
+              CurlyOpen "{"
+              Id "name"
+              Comma ","
+              HSpace " "
+              Def
+                Id "age"
+                HSpace " "
+                Define "="
+                HSpace " "
+                Int "40"
+              /Def
+              CurlyClose "}"
+            /Block
+          /Call
+        /Def
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "describe"
+          RoundOpen "("
+          Id "alice"
+          RoundClose ")"
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "describe"
+          HSpace " "
+          Block
+            CurlyOpen "{"
+            Def
+              Id "name"
+              HSpace " "
+              Define "="
+              HSpace " "
+              StringParts
+                StringEdge "\""
+                String "Bob"
+                StringEdge "\""
+              /StringParts
+            /Def
+            Comma ","
+            HSpace " "
+            Id "alice.age"
+            CurlyClose "}"
+          /Block
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "describe"
+          HSpace " "
+          Call
+            Id "build"
+            RoundOpen "("
+            StringParts
+              StringEdge "\""
+              String "Carl"
+              StringEdge "\""
+            /StringParts
+            Comma ","
+            HSpace " "
+            Int "10"
+            RoundClose ")"
+          /Call
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "describe"
+          HSpace " "
+          Block
+            Of "of"
+            VSpace "\n"
+            HSpace "        "
+            Def
+              Id "name"
+              HSpace " "
+              Define "="
+              HSpace " "
+              StringParts
+                StringEdge "\""
+                String "Denise"
+                StringEdge "\""
+              /StringParts
+            /Def
+            VSpace "\n"
+            HSpace "        "
+            Def
+              Id "age"
+              HSpace " "
+              Define "="
+              HSpace " "
+              Int "9"
+            /Def
+            VSpace "\n"
+            HSpace "    "
+            End "end"
+          /Block
+        /Call
+        VSpace "\n"
+        End "end"
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "Person"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Call
+      Id "struct"
+      HSpace " "
+      Block
+        Of "of"
+        VSpace "\n"
+        HSpace "    "
+        Typed
+          Id "name"
+          Colon ":"
+          HSpace " "
+          Id "String"
+        /Typed
+        VSpace "\n"
+        HSpace "    "
+        Typed
+          Id "age"
+          Colon ":"
+          HSpace " "
+          Id "Int"
+        /Typed
+        VSpace "\n"
+        End "end"
+      /Block
+    /Call
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "build"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "name"
+          Colon ":"
+          HSpace " "
+          Id "String"
+        /Typed
+        Comma ","
+        HSpace " "
+        Typed
+          Id "age"
+          Colon ":"
+          HSpace " "
+          Id "Int"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Person"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Block
+          CurlyOpen "{"
+          Id "name"
+          Comma ","
+          HSpace " "
+          Id "age"
+          CurlyClose "}"
+        /Block
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "describe"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "person"
+          Colon ":"
+          HSpace " "
+          Id "Person"
+        /Typed
+        RoundClose ")"
+      /Params
+      HSpace " "
+      Params
+      Block
+        Be "be"
+        VSpace "\n"
+        HSpace "    "
+        Comment "# TODO String interp and auto struct printing."
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "print"
+          HSpace " "
+          StringParts
+            StringEdge "\""
+            String "Person:"
+            StringEdge "\""
+          /StringParts
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "print"
+          HSpace " "
+          Id "person.name"
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "print"
+          RoundOpen "("
+          VSpace "\n"
+          HSpace "        "
+          Call
+            Id "branch"
+            HSpace " "
+            Block
+              With "with"
+              VSpace "\n"
+              HSpace "            "
+              Call
+                Infix
+                  Id "person.age"
+                  HSpace " "
+                  AngleClose ">"
+                  Define "="
+                  HSpace " "
+                /Infix
+                Infix
+                  Int "18"
+                  HSpace " "
+                  To "to"
+                  HSpace " "
+                  StringParts
+                    StringEdge "\""
+                    String "adult"
+                    StringEdge "\""
+                  /StringParts
+                /Infix
+              /Call
+              VSpace "\n"
+              HSpace "            "
+              Call
+                Id "else"
+                HSpace " "
+                StringParts
+                  StringEdge "\""
+                  String "minor"
+                  StringEdge "\""
+                /StringParts
+              /Call
+              VSpace "\n"
+              HSpace "        "
+              End "end"
+            /Block
+          /Call
+          VSpace "\n"
+          HSpace "    "
+          RoundClose ")"
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "print"
+          HSpace " "
+          StringParts
+            StringEdge "\""
+            StringEdge "\""
+          /StringParts
+        /Call
+        VSpace "\n"
+        End "end"
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+/Block
+
+Node size: 12
+Tree len: 288

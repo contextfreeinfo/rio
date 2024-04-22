@@ -1,0 +1,177 @@
+Block
+  Def
+    Pub
+      Id "main"
+    None
+    Fun
+      Params
+      Params
+      Block
+        Def
+          Id "name"
+          None
+          String "Alice"
+        /Def
+        Def
+          Id "alice"
+          None
+          Call
+            Id "Person"
+            Block
+              Id "name"
+              Def
+                Id "age"
+                None
+                Int32 40
+              /Def
+            /Block
+          /Call
+        /Def
+        Call
+          Id "describe"
+          Id "alice"
+        /Call
+        Call
+          Id "describe"
+          Block
+            Def
+              Id "name"
+              None
+              String "Bob"
+            /Def
+            Id "alice.age"
+          /Block
+        /Call
+        Call
+          Id "describe"
+          Call
+            Id "build"
+            String "Carl"
+            Int32 10
+          /Call
+        /Call
+        Call
+          Id "describe"
+          Block
+            Of "of"
+            Def
+              Id "name"
+              None
+              String "Denise"
+            /Def
+            Def
+              Id "age"
+              None
+              Int32 9
+            /Def
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    Id "Person"
+    None
+    Call
+      Id "struct"
+      Block
+        Of "of"
+        Def
+          Id "name"
+          Id "String"
+          None
+        /Def
+        Def
+          Id "age"
+          Id "Int"
+          None
+        /Def
+      /Block
+    /Call
+  /Def
+  Def
+    Id "build"
+    None
+    Fun
+      Params
+        Def
+          Id "name"
+          Id "String"
+          None
+        /Def
+        Def
+          Id "age"
+          Id "Int"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Person"
+          None
+        /Def
+      /Params
+      Block
+        Block
+          Id "name"
+          Id "age"
+        /Block
+      /Block
+    /Fun
+  /Def
+  Def
+    Id "describe"
+    None
+    Fun
+      Params
+        Def
+          Id "person"
+          Id "Person"
+          None
+        /Def
+      /Params
+      Params
+      Block
+        Call
+          Id "print"
+          String "Person:"
+        /Call
+        Call
+          Id "print"
+          Id "person.name"
+        /Call
+        Call
+          Id "print"
+          Call
+            Id "branch"
+            List
+              Call
+                Call
+                  Id "gt"
+                  Id "person.age"
+                /Call
+                Call
+                  Id "Pair"
+                  Int32 18
+                  String "adult"
+                /Call
+              /Call
+              Call
+                Id "else"
+                String "minor"
+              /Call
+            /List
+          /Call
+        /Call
+        Call
+          Id "print"
+          String ""
+        /Call
+      /Block
+    /Fun
+  /Def
+/Block
+
+Node size: 20
+Tree len: 126

@@ -43,7 +43,7 @@ fn build_and_run(profile: &str, cli: &Cli) {
     // Report
     report_build(&rio, start.elapsed());
     // Run
-    for example in ["branch", "hi", "wild"] {
+    for example in ["branch", "hi", "struct", "wild"] {
         run_example(&rio, example, cli);
     }
 }
@@ -84,7 +84,7 @@ fn run_example(rio: &PathBuf, example: &str, cli: &Cli) {
     let example_path = format!("{examples}/{example}.rio");
     // Wasm
     let start = Instant::now();
-    Command::new(rio)
+    let status = Command::new(rio)
         .args(["build", &example_path])
         .args(if cli.quick {
             vec![]
@@ -96,6 +96,10 @@ fn run_example(rio: &PathBuf, example: &str, cli: &Cli) {
         .env("RUST_BACKTRACE", "1")
         .status()
         .unwrap();
+    if !status.success() {
+        println!("build failed");
+        return;
+    }
     let wasm = format!("{examples_out}/{example}.wasm");
     report_build(Path::new(&wasm), start.elapsed());
     // Wat

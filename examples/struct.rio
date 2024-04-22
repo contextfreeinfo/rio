@@ -1,0 +1,31 @@
+main* = for() be
+    name = "Alice"
+    alice = Person {name, age = 40}
+    describe(alice)
+    describe {name = "Bob", alice.age}
+    describe build("Carl", 10)
+    describe of
+        name = "Denise"
+        age = 9
+    end
+end
+
+Person = struct of
+    name: String
+    age: Int
+end
+
+build = for(name: String, age: Int): Person be {name, age}
+
+describe = for(person: Person) be
+    # TODO String interp and auto struct printing.
+    print "Person:"
+    print person.name
+    print(
+        branch with
+            person.age >= 18 to "adult"
+            else "minor"
+        end
+    )
+    print ""
+end
