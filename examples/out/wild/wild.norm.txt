@@ -9,6 +9,30 @@ Block
       Id "a"
     Block
   /Call
+  Call
+    Call
+      Id "say"
+      Id "a"
+      Id "b"
+    /Call
+    List
+      Id "c"
+      Id "d"
+    /List
+  /Call
+  Call
+    Call
+      Id "say"
+      Id "a"
+      Id "b"
+    /Call
+    List
+      Id "c"
+      Id "d"
+    /List
+  /Call
+  Id "e"
+  Id "f"
   List
     Id "hi"
   Call
@@ -348,4 +372,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 262
+Tree len: 280

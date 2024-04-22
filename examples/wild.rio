@@ -3,6 +3,26 @@ a.b
 a()()
 a() ()
 
+say(
+    a
+    b
+) with
+    c
+    d
+end
+
+say(
+    a
+    b
+    with # TODO Don't exit parens
+        c
+        d
+    end
+    end # TODO Don't exit parens
+    e
+    f
+)
+
 with
     hi
 end

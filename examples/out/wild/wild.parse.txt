@@ -26,6 +26,77 @@ Block
   /Call
   VSpace "\n"
   VSpace "\n"
+  Call
+    Call
+      Id "say"
+      RoundOpen "("
+      VSpace "\n"
+      HSpace "    "
+      Id "a"
+      VSpace "\n"
+      HSpace "    "
+      Id "b"
+      VSpace "\n"
+      RoundClose ")"
+    /Call
+    HSpace " "
+    Block
+      With "with"
+      VSpace "\n"
+      HSpace "    "
+      Id "c"
+      VSpace "\n"
+      HSpace "    "
+      Id "d"
+      VSpace "\n"
+      End "end"
+    /Block
+  /Call
+  VSpace "\n"
+  VSpace "\n"
+  Call
+    Call
+      Id "say"
+      RoundOpen "("
+      VSpace "\n"
+      HSpace "    "
+      Id "a"
+      VSpace "\n"
+      HSpace "    "
+      Id "b"
+      VSpace "\n"
+      HSpace "    "
+    /Call
+    Block
+      With "with"
+      HSpace " "
+      Comment "# TODO Don't exit parens"
+      VSpace "\n"
+      HSpace "        "
+      Id "c"
+      VSpace "\n"
+      HSpace "        "
+      Id "d"
+      VSpace "\n"
+      HSpace "    "
+      End "end"
+    /Block
+  /Call
+  VSpace "\n"
+  HSpace "    "
+  End "end"
+  HSpace " "
+  Comment "# TODO Don't exit parens"
+  VSpace "\n"
+  HSpace "    "
+  Id "e"
+  VSpace "\n"
+  HSpace "    "
+  Id "f"
+  VSpace "\n"
+  RoundClose ")"
+  VSpace "\n"
+  VSpace "\n"
   Block
     With "with"
     VSpace "\n"
@@ -694,4 +765,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 584
+Tree len: 649
