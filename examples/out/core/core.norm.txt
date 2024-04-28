@@ -98,8 +98,7 @@ Block
       Block
         Call
           Id "class"
-          Block
-            Of "of"
+          Struct
         /Call
       /Block
     /Fun
@@ -110,8 +109,7 @@ Block
     None
     Call
       Id "class"
-      Block
-        Of "of"
+      Struct
         Def
           Pub
             Id "add"
@@ -212,7 +210,7 @@ Block
             /Block
           /Fun
         /Def
-      /Block
+      /Struct
     /Call
   /Def
   Def
@@ -410,8 +408,7 @@ Block
         Call
           Call
             Id "class"
-            Block
-              Of "of"
+            Struct
               Def
                 Id "builder"
                 Call
@@ -423,7 +420,7 @@ Block
                 /Call
                 None
               /Def
-            /Block
+            /Struct
           /Call
           List
             Def
@@ -497,8 +494,7 @@ Block
       Block
         Call
           Id "class"
-          Block
-            Of "of"
+          Struct
         /Call
       /Block
     /Fun
@@ -541,14 +537,13 @@ Block
           Id "ordered"
           Call
             Id "struct"
-            Block
-              Of "of"
+            Struct
               Def
                 Id "value"
                 Id "Value"
                 None
               /Def
-            /Block
+            /Struct
           /Call
         /Call
       /Block
@@ -571,8 +566,7 @@ Block
           Id "ordered"
           Call
             Id "struct"
-            Block
-              Of "of"
+            Struct
               Def
                 Id "key"
                 Id "Key"
@@ -583,7 +577,7 @@ Block
                 Id "Value"
                 None
               /Def
-            /Block
+            /Struct
           /Call
         /Call
       /Block
@@ -602,8 +596,7 @@ Block
     None
     Call
       Id "class"
-      Block
-        Of "of"
+      Struct
         Def
           Pub
             Id "union"
@@ -634,7 +627,7 @@ Block
             /Block
           /Fun
         /Def
-      /Block
+      /Struct
     /Call
   /Def
   Def
@@ -660,14 +653,13 @@ Block
           Id "ordered"
           Call
             Id "struct"
-            Block
-              Of "of"
+            Struct
               Def
                 Id "value"
                 Id "Value"
                 None
               /Def
-            /Block
+            /Struct
           /Call
         /Call
       /Block
@@ -894,4 +886,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 665
+Tree len: 657

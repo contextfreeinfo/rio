@@ -43,7 +43,7 @@ Block
       Id "a"
       Id "b"
     /List
-    Fun :@250
+    Fun :@248
       Params
         Id "something"
       Params
@@ -53,43 +53,43 @@ Block
   /Call
   Call
     Id "-"
-    Int32 5 :@251
+    Int32 5 :@249
   /Call
   Call
     Id "-"
-    Int32 5 :@251
+    Int32 5 :@249
   /Call
-  Fun :@253
+  Fun :@251
     Params
     Params
   /Fun
-  Fun :@253
+  Fun :@251
     Params
     Params
   /Fun
-  Fun :@253
+  Fun :@251
     Params
     Params
   /Fun
-  Int32 5 :@251
+  Int32 5 :@249
   Call
-    Block :@251
-      Int32 5 :@251
+    Block :@249
+      Int32 5 :@249
   /Call
-  Fun :@250
+  Fun :@248
     Params
-      Block
-        Def@50 :@251
-          Uid a@50 :@251
+      Struct
+        Def@50 :@249
+          Uid a@50 :@249
           Id "A"
-          Int32 1 :@251
+          Int32 1 :@249
         /Def
         Def@51
           Uid b@51
           Id "B"
           None
         /Def
-      /Block
+      /Struct
     /Params
     Params
       Def@56
@@ -101,9 +101,9 @@ Block
     Block
       Id "a"
   /Fun
-  Fun :@250
+  Fun :@248
     Params
-      Block
+      Struct
         Def@67
           Uid a@67
           Id "A"
@@ -114,7 +114,7 @@ Block
           Id "B"
           None
         /Def
-      /Block
+      /Struct
     /Params
     Params
       Def@73
@@ -126,7 +126,7 @@ Block
     Block
       Id "a"
   /Fun
-  Fun :@250
+  Fun :@248
     Params
       Id "a"
     Params
@@ -148,7 +148,7 @@ Block
   Id "c"
   Call
     Id "f"
-    Block
+    Struct
       Def@98
         Uid a@98
         None
@@ -162,12 +162,12 @@ Block
         None
         Id "d"
       /Def
-    /Block
+    /Struct
     Id "[e"
   /Call
   Call
     Id "x]"
-    Fun :@250
+    Fun :@248
       Params
         Id "y"
       Params
@@ -182,28 +182,27 @@ Block
   Call
     Call
       Id "f"
-      Block
-        Of "of"
-        Def@121
-          Uid a@121
+      Struct
+        Def@120
+          Uid a@120
           None
           Call
             Id "g"
             Id "b"
           /Call
         /Def
-        Def@122
-          Uid c@122
+        Def@121
+          Uid c@121
           None
           Id "d"
         /Def
         Id "on"
         Id "e"
         Id "x"
-      /Block
+      /Struct
     /Call
     List
-      Fun :@250
+      Fun :@248
         Params
           Id "y"
         Params
@@ -218,15 +217,14 @@ Block
   /Call
   Call
     Id "await"
-    Block
-      Of "of"
+    Struct
       Call
         Id "request"
         Id "something"
       /Call
-    /Block
+    /Struct
   /Call
-  Def@286
+  Def@284
     Call
       Id "f"
       Id "a"
@@ -242,36 +240,36 @@ Block
   Call
     Id "f"
     Id "a"
-    Block
-      Def@161
-        Uid b@161
+    Struct
+      Def@159
+        Uid b@159
         None
         Call
           Id "g"
           Id "c"
         /Call
       /Def
-      Def@162
-        Uid d@162
+      Def@160
+        Uid d@160
         None
         Id "e"
       /Def
-    /Block
+    /Struct
   /Call
   Call
     Id "f"
     Id "a"
     List
-      Def@174
-        Uid b@174
+      Def@172
+        Uid b@172
         None
         Call
           Id "g"
           Id "c"
         /Call
       /Def
-      Def@175
-        Uid d@175
+      Def@173
+        Uid d@173
         None
         Id "e"
       /Def
@@ -282,8 +280,8 @@ Block
     Id "from"
     Id "items.each"
   /Call
-  Call :@252
-    Uid print@1@654 :@255
+  Call :@250
+    Uid print@1@646 :@253
     Id "item"
   /Call
   Call
@@ -291,44 +289,44 @@ Block
     Id "x"
     List
       Call
-        Uid Pair@1@640 :@256
-        Int32 0 :@251
-        String "no" :@254
+        Uid Pair@1@632 :@254
+        Int32 0 :@249
+        String "no" :@252
       /Call
       Call
-        Uid Pair@1@640 :@256
-        Int32 1 :@251
-        String "a single" :@254
+        Uid Pair@1@632 :@254
+        Int32 1 :@249
+        String "a single" :@252
       /Call
       Call
-        Uid Pair@1@640 :@256
-        Int32 2 :@251
-        String "a couple of" :@254
+        Uid Pair@1@632 :@254
+        Int32 2 :@249
+        String "a couple of" :@252
       /Call
       Call
         Id "any"
         Id "[3"
       /Call
-      Int32 4 :@251
-      Int32 5 :@251
-      Int32 6 :@251
+      Int32 4 :@249
+      Int32 5 :@249
+      Int32 6 :@249
       Call
-        Uid Pair@1@640 :@256
+        Uid Pair@1@632 :@254
         Id "]"
-        String "a few of" :@254
+        String "a few of" :@252
       /Call
       Call
         Id "case"
-        Call :@257
-          Uid lt@1@634 :@258
+        Call :@255
+          Uid lt@1@626 :@256
           Id "x"
-          Int32 0 :@251
+          Int32 0 :@249
         /Call
-        String "negative" :@254
+        String "negative" :@252
       /Call
       Call
-        Uid else@1@648
-        String "several" :@254
+        Uid else@1@640
+        String "several" :@252
       /Call
     /List
   /Call
@@ -337,9 +335,9 @@ Block
     Id "dog"
   /Call
   Call
-    Uid Pair@1@640 :@256
+    Uid Pair@1@632 :@254
     Call
-      Uid Pair@1@640 :@256
+      Uid Pair@1@632 :@254
       Id "a"
       Id "b"
     /Call
@@ -347,7 +345,7 @@ Block
   /Call
   Call
     Call
-      Uid Pair@1@640 :@256
+      Uid Pair@1@632 :@254
       Id "a"
       To "to"
     /Call
@@ -355,14 +353,14 @@ Block
   /Call
   Call
     Call
-      Uid Pair@1@640 :@256
+      Uid Pair@1@632 :@254
       Id "fish"
       To "to"
     /Call
     Id "giraffe"
   /Call
   Call
-    Uid Pair@1@640 :@256
+    Uid Pair@1@632 :@254
     To "to"
     Id "hyena"
   /Call
@@ -371,27 +369,27 @@ Block
     Block
   /Call
   Types
-    FunType@250
+    FunType@248
       None
-    Uid@251 Int32@1@629
-    Uid@252 Void@1@643
-    FunType@253 :@252
-    Uid@254 Text@1@641
-    FunType@255 :@252
-      None :@254
-    FunType@256
+    Uid@249 Int32@1@621
+    Uid@250 Void@1@635
+    FunType@251 :@250
+    Uid@252 Text@1@633
+    FunType@253 :@250
+      None :@252
+    FunType@254
       None
       None
       None
       None
     /FunType
-    Uid@257 Claim@1@626
-    FunType@258 :@257
-      None :@251
-      None :@251
+    Uid@255 Claim@1@618
+    FunType@256 :@255
+      None :@249
+      None :@249
     /FunType
   /Types
 /Block
 
 Node size: 20
-Tree len: 299
+Tree len: 297

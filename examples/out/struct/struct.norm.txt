@@ -17,14 +17,14 @@ Block
           None
           Call
             Id "Person"
-            Block
+            Struct
               Id "name"
               Def
                 Id "age"
                 None
                 Int32 40
               /Def
-            /Block
+            /Struct
           /Call
         /Def
         Call
@@ -33,14 +33,14 @@ Block
         /Call
         Call
           Id "describe"
-          Block
+          Struct
             Id "alice.age"
             Def
               Id "name"
               None
               String "Bob"
             /Def
-          /Block
+          /Struct
         /Call
         Call
           Id "describe"
@@ -52,8 +52,7 @@ Block
         /Call
         Call
           Id "describe"
-          Block
-            Of "of"
+          Struct
             Def
               Id "age"
               None
@@ -64,7 +63,7 @@ Block
               None
               String "Denise"
             /Def
-          /Block
+          /Struct
         /Call
       /Block
     /Fun
@@ -74,8 +73,7 @@ Block
     None
     Call
       Id "struct"
-      Block
-        Of "of"
+      Struct
         Def
           Id "name"
           Id "Text"
@@ -86,7 +84,7 @@ Block
           Id "Int32"
           None
         /Def
-      /Block
+      /Struct
     /Call
   /Def
   Def
@@ -113,10 +111,10 @@ Block
         /Def
       /Params
       Block
-        Block
+        Struct
           Id "name"
           Id "age"
-        /Block
+        /Struct
       /Block
     /Fun
   /Def
@@ -172,4 +170,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 125
+Tree len: 123

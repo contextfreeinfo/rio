@@ -136,19 +136,20 @@ impl Normer {
                 let mut range: Range<usize> = range.into();
                 let done = match kind {
                     BranchKind::Block => {
-                        if !range.is_empty()
-                            && matches!(
-                                tree[range.start].nod,
-                                Nod::Leaf {
-                                    token: Token {
-                                        kind: TokenKind::With,
-                                        ..
-                                    },
+                        if !range.is_empty() {
+                            if let Nod::Leaf { token } = tree[range.start].nod {
+                                let new_kind = match token.kind {
+                                    TokenKind::CurlyOpen | TokenKind::Of => {
+                                        Some(BranchKind::Struct)
+                                    }
+                                    TokenKind::With => Some(BranchKind::List),
+                                    _ => None,
+                                };
+                                if let Some(new_kind) = new_kind {
+                                    range = range.start + 1..range.end;
+                                    kind = new_kind;
                                 }
-                            )
-                        {
-                            range = range.start + 1..range.end;
-                            kind = BranchKind::List;
+                            }
                         }
                         false
                     }
@@ -276,7 +277,6 @@ impl Normer {
                 | TokenKind::Comma
                 | TokenKind::Comment
                 | TokenKind::CurlyClose
-                | TokenKind::CurlyOpen
                 | TokenKind::End
                 | TokenKind::Fun
                 | TokenKind::HSpace

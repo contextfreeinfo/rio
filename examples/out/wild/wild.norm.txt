@@ -77,7 +77,7 @@ Block
   /Call
   Fun
     Params
-      Block
+      Struct
         Def
           Id "a"
           Id "A"
@@ -88,7 +88,7 @@ Block
           Id "B"
           None
         /Def
-      /Block
+      /Struct
     /Params
     Params
       Def
@@ -102,7 +102,7 @@ Block
   /Fun
   Fun
     Params
-      Block
+      Struct
         Def
           Id "a"
           Id "A"
@@ -113,7 +113,7 @@ Block
           Id "B"
           None
         /Def
-      /Block
+      /Struct
     /Params
     Params
       Def
@@ -147,7 +147,7 @@ Block
   Id "c"
   Call
     Id "f"
-    Block
+    Struct
       Def
         Id "a"
         None
@@ -161,7 +161,7 @@ Block
         None
         Id "d"
       /Def
-    /Block
+    /Struct
     Id "[e"
   /Call
   Call
@@ -181,8 +181,7 @@ Block
   Call
     Call
       Id "f"
-      Block
-        Of "of"
+      Struct
         Def
           Id "a"
           None
@@ -199,7 +198,7 @@ Block
         Id "on"
         Id "e"
         Id "x"
-      /Block
+      /Struct
     /Call
     List
       Fun
@@ -217,13 +216,12 @@ Block
   /Call
   Call
     Id "await"
-    Block
-      Of "of"
+    Struct
       Call
         Id "request"
         Id "something"
       /Call
-    /Block
+    /Struct
   /Call
   Def
     Call
@@ -241,7 +239,7 @@ Block
   Call
     Id "f"
     Id "a"
-    Block
+    Struct
       Def
         Id "b"
         None
@@ -255,7 +253,7 @@ Block
         None
         Id "e"
       /Def
-    /Block
+    /Struct
   /Call
   Call
     Id "f"
@@ -372,4 +370,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 280
+Tree len: 278
