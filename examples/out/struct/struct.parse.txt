@@ -287,26 +287,23 @@ Block
               With "with"
               VSpace "\n"
               HSpace "            "
-              Call
+              Infix
                 Infix
                   Id "person.age"
                   HSpace " "
-                  AngleClose ">"
-                  Define "="
+                  GreaterEq ">="
                   HSpace " "
-                /Infix
-                Infix
                   Int "18"
                   HSpace " "
-                  To "to"
-                  HSpace " "
-                  StringParts
-                    StringEdge "\""
-                    String "adult"
-                    StringEdge "\""
-                  /StringParts
                 /Infix
-              /Call
+                To "to"
+                HSpace " "
+                StringParts
+                  StringEdge "\""
+                  String "adult"
+                  StringEdge "\""
+                /StringParts
+              /Infix
               VSpace "\n"
               HSpace "            "
               Call
@@ -346,4 +343,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 288
+Tree len: 286

@@ -147,15 +147,13 @@ Block
             Id "branch"
             List
               Call
+                Id "Pair"
                 Call
-                  Id "gt"
+                  Id "ge"
                   Id "person.age"
-                /Call
-                Call
-                  Id "Pair"
                   Int32 18
-                  String "adult"
                 /Call
+                String "adult"
               /Call
               Call
                 Id "else"
@@ -174,4 +172,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 126
+Tree len: 125

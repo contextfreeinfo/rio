@@ -254,7 +254,12 @@ impl Parser {
         compare,
         call_tight,
         true,
-        TokenKind::AngleClose | TokenKind::AngleOpen,
+        TokenKind::AngleClose
+            | TokenKind::AngleOpen
+            | TokenKind::Eq
+            | TokenKind::GreaterEq
+            | TokenKind::LessEq
+            | TokenKind::NotEq,
     );
 
     fn def(&mut self, source: &mut Tokens) -> Option<()> {

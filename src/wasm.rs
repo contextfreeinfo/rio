@@ -602,15 +602,39 @@ impl<'a> WasmWriter<'a> {
                                 handled = true;
                                 // TODO Put these in a lookup table also?
                                 match () {
+                                    _ if num == core.eq_fun.num => match arg_type {
+                                        Some(SimpleWasmType::I32) => {
+                                            fun.instruction(&Instruction::I32Eq);
+                                        }
+                                        _ => {}
+                                    },
+                                    _ if num == core.ge_fun.num => match arg_type {
+                                        Some(SimpleWasmType::I32) => {
+                                            fun.instruction(&Instruction::I32GeS);
+                                        }
+                                        _ => {}
+                                    },
                                     _ if num == core.gt_fun.num => match arg_type {
                                         Some(SimpleWasmType::I32) => {
                                             fun.instruction(&Instruction::I32GtS);
                                         }
                                         _ => {}
                                     },
+                                    _ if num == core.le_fun.num => match arg_type {
+                                        Some(SimpleWasmType::I32) => {
+                                            fun.instruction(&Instruction::I32LeS);
+                                        }
+                                        _ => {}
+                                    },
                                     _ if num == core.lt_fun.num => match arg_type {
                                         Some(SimpleWasmType::I32) => {
                                             fun.instruction(&Instruction::I32LtS);
+                                        }
+                                        _ => {}
+                                    },
+                                    _ if num == core.ne_fun.num => match arg_type {
+                                        Some(SimpleWasmType::I32) => {
+                                            fun.instruction(&Instruction::I32Ne);
                                         }
                                         _ => {}
                                     },

@@ -38,11 +38,15 @@ pub enum TokenKind {
     CurlyOpen,
     Define,
     End,
+    Eq,
     Fun,
+    GreaterEq,
     HSpace,
     Id,
     Int,
+    LessEq,
     None,
+    NotEq,
     Of,
     RoundClose,
     RoundOpen,
@@ -93,13 +97,50 @@ impl<'a> Lexer<'a> {
                     '"' => self.string(&mut source),
                     ':' => self.trim_push(&mut source, TokenKind::Colon),
                     ',' | ';' => self.trim_push(&mut source, TokenKind::Comma),
-                    '<' => self.trim_push(&mut source, TokenKind::AngleOpen),
-                    '>' => self.trim_push(&mut source, TokenKind::AngleClose),
+                    '<' => {
+                        self.trim(&mut source);
+                        match source.peek() {
+                            Some('=') => {
+                                self.next(&mut source);
+                                self.push(TokenKind::LessEq);
+                            }
+                            _ => self.push(TokenKind::AngleOpen),
+                        }
+                    }
+                    '>' => {
+                        self.trim(&mut source);
+                        match source.peek() {
+                            Some('=') => {
+                                self.next(&mut source);
+                                self.push(TokenKind::GreaterEq);
+                            }
+                            _ => self.push(TokenKind::AngleClose),
+                        }
+                    }
                     '{' => self.trim_push(&mut source, TokenKind::CurlyOpen),
                     '}' => self.trim_push(&mut source, TokenKind::CurlyClose),
                     '(' => self.trim_push(&mut source, TokenKind::RoundOpen),
                     ')' => self.trim_push(&mut source, TokenKind::RoundClose),
-                    '=' => self.trim_push(&mut source, TokenKind::Define),
+                    '=' => {
+                        self.trim(&mut source);
+                        match source.peek() {
+                            Some('=') => {
+                                self.next(&mut source);
+                                self.push(TokenKind::Eq);
+                            }
+                            _ => self.push(TokenKind::Define),
+                        }
+                    }
+                    '!' => {
+                        self.trim(&mut source);
+                        match source.peek() {
+                            Some('=') => {
+                                self.next(&mut source);
+                                self.push(TokenKind::NotEq);
+                            }
+                            _ => {}
+                        }
+                    }
                     '*' => self.trim_push(&mut source, TokenKind::Star),
                     '-' | '0'..='9' if self.buffer().is_empty() => self.number(&mut source),
                     _ => {

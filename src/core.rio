@@ -18,8 +18,12 @@ Int32* = class of
 end
 
 # Probably temporary until member access is implemented.
+eq* = for(a: Int32, b: Int32): Claim be native()
+ge* = for(a: Int32, b: Int32): Claim be native()
 gt* = for(a: Int32, b: Int32): Claim be native()
+le* = for(a: Int32, b: Int32): Claim be native()
 lt* = for(a: Int32, b: Int32): Claim be native()
+ne* = for(a: Int32, b: Int32): Claim be native()
 
 Lazy* = for<Value> be class of
     builder: Function<[], Value>

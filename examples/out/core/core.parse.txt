@@ -353,6 +353,104 @@ Block
   VSpace "\n"
   Def
     Pub
+      Id "eq"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "a"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        Comma ","
+        HSpace " "
+        Typed
+          Id "b"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  Def
+    Pub
+      Id "ge"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "a"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        Comma ","
+        HSpace " "
+        Typed
+          Id "b"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  Def
+    Pub
       Id "gt"
       Star "*"
     /Pub
@@ -402,7 +500,105 @@ Block
   VSpace "\n"
   Def
     Pub
+      Id "le"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "a"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        Comma ","
+        HSpace " "
+        Typed
+          Id "b"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  Def
+    Pub
       Id "lt"
+      Star "*"
+    /Pub
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "a"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        Comma ","
+        HSpace " "
+        Typed
+          Id "b"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "native"
+          RoundOpen "("
+          RoundClose ")"
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  Def
+    Pub
+      Id "ne"
       Star "*"
     /Pub
     HSpace " "
@@ -1341,4 +1537,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 1083
+Tree len: 1239

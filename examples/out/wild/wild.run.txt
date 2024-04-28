@@ -283,7 +283,7 @@ Block
     Id "items.each"
   /Call
   Call :@252
-    Uid print@1@570 :@255
+    Uid print@1@654 :@255
     Id "item"
   /Call
   Call
@@ -291,17 +291,17 @@ Block
     Id "x"
     List
       Call
-        Uid Pair@1@556 :@256
+        Uid Pair@1@640 :@256
         Int32 0 :@251
         String "no" :@254
       /Call
       Call
-        Uid Pair@1@556 :@256
+        Uid Pair@1@640 :@256
         Int32 1 :@251
         String "a single" :@254
       /Call
       Call
-        Uid Pair@1@556 :@256
+        Uid Pair@1@640 :@256
         Int32 2 :@251
         String "a couple of" :@254
       /Call
@@ -313,21 +313,21 @@ Block
       Int32 5 :@251
       Int32 6 :@251
       Call
-        Uid Pair@1@556 :@256
+        Uid Pair@1@640 :@256
         Id "]"
         String "a few of" :@254
       /Call
       Call
         Id "case"
         Call :@257
-          Uid lt@1@551 :@258
+          Uid lt@1@634 :@258
           Id "x"
           Int32 0 :@251
         /Call
         String "negative" :@254
       /Call
       Call
-        Uid else@1@564
+        Uid else@1@648
         String "several" :@254
       /Call
     /List
@@ -337,9 +337,9 @@ Block
     Id "dog"
   /Call
   Call
-    Uid Pair@1@556 :@256
+    Uid Pair@1@640 :@256
     Call
-      Uid Pair@1@556 :@256
+      Uid Pair@1@640 :@256
       Id "a"
       Id "b"
     /Call
@@ -347,7 +347,7 @@ Block
   /Call
   Call
     Call
-      Uid Pair@1@556 :@256
+      Uid Pair@1@640 :@256
       Id "a"
       To "to"
     /Call
@@ -355,14 +355,14 @@ Block
   /Call
   Call
     Call
-      Uid Pair@1@556 :@256
+      Uid Pair@1@640 :@256
       Id "fish"
       To "to"
     /Call
     Id "giraffe"
   /Call
   Call
-    Uid Pair@1@556 :@256
+    Uid Pair@1@640 :@256
     To "to"
     Id "hyena"
   /Call
@@ -373,10 +373,10 @@ Block
   Types
     FunType@250
       None
-    Uid@251 Int32@1@549
-    Uid@252 Void@1@559
+    Uid@251 Int32@1@629
+    Uid@252 Void@1@643
     FunType@253 :@252
-    Uid@254 Text@1@557
+    Uid@254 Text@1@641
     FunType@255 :@252
       None :@254
     FunType@256
@@ -385,7 +385,7 @@ Block
       None
       None
     /FunType
-    Uid@257 Claim@1@546
+    Uid@257 Claim@1@626
     FunType@258 :@257
       None :@251
       None :@251

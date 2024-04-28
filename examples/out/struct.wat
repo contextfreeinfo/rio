@@ -8,8 +8,8 @@
   (type (;6;) (func))
   (type (;7;) (func (param i32 i32 i32)))
   (type (;8;) (func (param i32 i32)))
-  (type (;9;) (func (param i32 i32) (result i32)))
-  (type (;10;) (func (param i32 i32 i32 i32)))
+  (type (;9;) (func (param i32 i32 i32 i32)))
+  (type (;10;) (func (param i32 i32) (result i32)))
   (type (;11;) (func (param i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func (;1;) (type 2) (param i32 i32)
@@ -101,6 +101,14 @@
     i32.const 4120
     call 1
     call 1
+    i32.const 18
+    if (type 4) (result i32 i32) ;; label = @1
+      i32.const 5
+      i32.const 4128
+    else
+      i32.const 5
+      i32.const 4134
+    end
     call 1
     i32.const 0
     i32.const 4140
