@@ -83,7 +83,7 @@ Block
         /Def
         Def
           Id "age"
-          Id "Int"
+          Id "Int32"
           None
         /Def
       /Block
@@ -101,7 +101,7 @@ Block
         /Def
         Def
           Id "age"
-          Id "Int"
+          Id "Int32"
           None
         /Def
       /Params

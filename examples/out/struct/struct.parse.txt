@@ -172,7 +172,7 @@ Block
           Id "age"
           Colon ":"
           HSpace " "
-          Id "Int"
+          Id "Int32"
         /Typed
         VSpace "\n"
         End "end"
@@ -202,7 +202,7 @@ Block
           Id "age"
           Colon ":"
           HSpace " "
-          Id "Int"
+          Id "Int32"
         /Typed
         RoundClose ")"
       /Params

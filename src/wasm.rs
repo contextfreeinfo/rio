@@ -721,10 +721,12 @@ impl<'a> WasmWriter<'a> {
             return;
         };
         let range: Range<usize> = range.into();
-        let typ = typ.0 as usize - 1 - self.type_offset;
-        let block_type = match typ {
+        let block_type = match typ.0 {
             0 => BlockType::Empty,
-            _ => BlockType::FunctionType((self.type_table[typ] - 1) as u32),
+            _ => {
+                let typ = typ.0 as usize - 1 - self.type_offset;
+                BlockType::FunctionType((self.type_table[typ] - 1) as u32)
+            }
         };
         self.translate_branch_cases(fun, range, block_type);
     }

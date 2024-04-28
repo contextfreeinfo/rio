@@ -74,17 +74,17 @@ Block
     None
     Call
       Uid struct@1@571 :@134
-      Block
+      Block :@133
         Of "of"
         Def@58 :@132
           Uid name@58 :@132
           Uid Text@1@557 :@135
           None :@132
         /Def
-        Def@59
-          Uid age@59
-          Id "Int"
-          None
+        Def@59 :@133
+          Uid age@59 :@133
+          Uid Int32@1@549
+          None :@133
         /Def
       /Block
     /Call
@@ -99,10 +99,10 @@ Block
           Uid Text@1@557 :@135
           None :@132
         /Def
-        Def@72
-          Uid age@72
-          Id "Int"
-          None
+        Def@72 :@133
+          Uid age@72 :@133
+          Uid Int32@1@549
+          None :@133
         /Def
       /Params
       Params
@@ -112,10 +112,10 @@ Block
           None :@136
         /Def
       /Params
-      Block :@136
-        Block :@136
+      Block :@133
+        Block :@133
           Uid name@71 :@132
-          Uid age@72 :@136
+          Uid age@72 :@133
         /Block
       /Block
     /Fun
@@ -179,7 +179,7 @@ Block
     Uid@136 Person@147
     FunType@137 :@136
       None :@132
-      None
+      None :@133
     /FunType
     Uid@138 Void@1@559
     FunType@139 :@138
