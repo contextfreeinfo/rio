@@ -1,5 +1,8 @@
 Block
-  Id "a.b"
+  Dot
+    Id "a"
+    Id "b"
+  /Dot
   Call
     Call
       Id "a"
@@ -277,7 +280,10 @@ Block
   Call
     Id "item"
     Id "from"
-    Id "items.each"
+    Dot
+      Id "items"
+      Id "each"
+    /Dot
   /Call
   Call
     Id "print"
@@ -370,4 +376,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 278
+Tree len: 282

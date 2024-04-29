@@ -37,6 +37,7 @@ pub enum TokenKind {
     CurlyClose,
     CurlyOpen,
     Define,
+    Dot,
     End,
     Eq,
     Fun,
@@ -121,6 +122,7 @@ impl<'a> Lexer<'a> {
                     '}' => self.trim_push(&mut source, TokenKind::CurlyClose),
                     '(' => self.trim_push(&mut source, TokenKind::RoundOpen),
                     ')' => self.trim_push(&mut source, TokenKind::RoundClose),
+                    '.' => self.trim_push(&mut source, TokenKind::Dot),
                     '=' => {
                         self.trim(&mut source);
                         match source.peek() {

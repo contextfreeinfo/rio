@@ -71,7 +71,11 @@ Block
           HSpace " "
           Block
             CurlyOpen "{"
-            Id "alice.age"
+            Infix
+              Id "alice"
+              Dot "."
+              Id "age"
+            /Infix
             Comma ","
             HSpace " "
             Def
@@ -271,7 +275,11 @@ Block
         Call
           Id "print"
           HSpace " "
-          Id "person.name"
+          Infix
+            Id "person"
+            Dot "."
+            Id "name"
+          /Infix
         /Call
         VSpace "\n"
         HSpace "    "
@@ -289,7 +297,11 @@ Block
               HSpace "            "
               Infix
                 Infix
-                  Id "person.age"
+                  Infix
+                    Id "person"
+                    Dot "."
+                    Id "age"
+                  /Infix
                   HSpace " "
                   GreaterEq ">="
                   HSpace " "
@@ -343,4 +355,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 286
+Tree len: 295

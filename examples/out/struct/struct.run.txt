@@ -1,203 +1,212 @@
 Block
   Module "examples/struct.rio" 2
-  Def@144 :@131
-    Uid main@144* :@131
+  Def@150 :@137
+    Uid main@150* :@137
     None
-    Fun :@131
+    Fun :@137
       Params
       Params
       Block
-        Def@38 :@129
-          Uid name@38 :@129
+        Def@40 :@135
+          Uid name@40 :@135
           None
-          String "Alice" :@129
+          String "Alice" :@135
         /Def
-        Def@39
-          Uid alice@39
+        Def@41
+          Uid alice@41
           None
           Call
-            Uid Person@145 :@132
+            Uid Person@151 :@138
             Struct
-              Uid name@38 :@129
-              Def@8 :@130
-                Uid age@8 :@130
+              Uid name@40 :@135
+              Def@8 :@136
+                Uid age@8 :@136
                 None
-                Int32 40 :@130
+                Int32 40 :@136
               /Def
             /Struct
           /Call
         /Def
         Call
-          Uid describe@147 :@142
-          Uid alice@39
+          Uid describe@153 :@148
+          Uid alice@41
         /Call
         Call
-          Uid describe@147 :@142
+          Uid describe@153 :@148
           Struct
-            Id "alice.age"
-            Def@20 :@129
-              Uid name@20 :@129
+            Dot
+              Uid alice@41
+              Id "age"
+            /Dot
+            Def@22 :@135
+              Uid name@22 :@135
               None
-              String "Bob" :@129
+              String "Bob" :@135
             /Def
           /Struct
         /Call
         Call
-          Uid describe@147 :@142
-          Call :@134
-            Uid build@146 :@135
-            String "Carl" :@129
-            Int32 10 :@130
+          Uid describe@153 :@148
+          Call :@140
+            Uid build@152 :@141
+            String "Carl" :@135
+            Int32 10 :@136
           /Call
         /Call
         Call
-          Uid describe@147 :@142
+          Uid describe@153 :@148
           Struct
-            Def@34 :@130
-              Uid age@34 :@130
+            Def@36 :@136
+              Uid age@36 :@136
               None
-              Int32 9 :@130
+              Int32 9 :@136
             /Def
-            Def@35 :@129
-              Uid name@35 :@129
+            Def@37 :@135
+              Uid name@37 :@135
               None
-              String "Denise" :@129
+              String "Denise" :@135
             /Def
           /Struct
         /Call
       /Block
     /Fun
   /Def
-  Def@145 :@132
-    Uid Person@145 :@132
+  Def@151 :@138
+    Uid Person@151 :@138
     None
-    Call :@132
-      Uid struct@1@652 :@133
+    Call :@138
+      Uid struct@1@653 :@139
       Struct
-        Def@56 :@129
-          Uid name@56 :@129
-          Uid Text@1@638 :@132
-          None :@129
+        Def@58 :@135
+          Uid name@58 :@135
+          Uid Text@1@639 :@138
+          None :@135
         /Def
-        Def@57 :@130
-          Uid age@57 :@130
-          Uid Int32@1@626
-          None :@130
+        Def@59 :@136
+          Uid age@59 :@136
+          Uid Int32@1@627
+          None :@136
         /Def
       /Struct
     /Call
   /Def
-  Def@146 :@135
-    Uid build@146 :@135
+  Def@152 :@141
+    Uid build@152 :@141
     None
-    Fun :@135
+    Fun :@141
       Params
-        Def@69 :@129
-          Uid name@69 :@129
-          Uid Text@1@638 :@132
-          None :@129
+        Def@71 :@135
+          Uid name@71 :@135
+          Uid Text@1@639 :@138
+          None :@135
         /Def
-        Def@70 :@130
-          Uid age@70 :@130
-          Uid Int32@1@626
-          None :@130
+        Def@72 :@136
+          Uid age@72 :@136
+          Uid Int32@1@627
+          None :@136
         /Def
       /Params
       Params
-        Def@74 :@134
-          None :@134
-          Uid Person@145 :@132
-          None :@134
+        Def@76 :@140
+          None :@140
+          Uid Person@151 :@138
+          None :@140
         /Def
       /Params
-      Block :@134
-        Struct :@134
-          Uid name@69 :@129
-          Uid age@70 :@130
+      Block :@140
+        Struct :@140
+          Uid name@71 :@135
+          Uid age@72 :@136
         /Struct
       /Block
     /Fun
   /Def
-  Def@147 :@142
-    Uid describe@147 :@142
+  Def@153 :@148
+    Uid describe@153 :@148
     None
-    Fun :@142
+    Fun :@148
       Params
-        Def@87 :@134
-          Uid person@87 :@134
-          Uid Person@145 :@132
-          None :@134
+        Def@89 :@140
+          Uid person@89 :@140
+          Uid Person@151 :@138
+          None :@140
         /Def
       /Params
       Params
-      Block :@136
-        Call :@136
-          Uid print@1@651 :@137
-          String "Person:" :@129
+      Block :@142
+        Call :@142
+          Uid print@1@652 :@143
+          String "Person:" :@135
         /Call
-        Call :@136
-          Uid print@1@651 :@137
-          Id "person.name"
+        Call :@142
+          Uid print@1@652 :@143
+          Dot
+            Uid person@89 :@140
+            Id "name"
+          /Dot
         /Call
-        Call :@136
-          Uid print@1@651 :@137
-          Call :@129
-            Uid branch@1@642
+        Call :@142
+          Uid print@1@652 :@143
+          Call :@135
+            Uid branch@1@643
             List
               Call
-                Uid Pair@1@637 :@138
-                Call :@139
-                  Uid ge@1@628 :@140
-                  Id "person.age"
-                  Int32 18 :@130
+                Uid Pair@1@638 :@144
+                Call :@145
+                  Uid ge@1@629 :@146
+                  Dot
+                    Uid person@89 :@140
+                    Id "age"
+                  /Dot
+                  Int32 18 :@136
                 /Call
-                String "adult" :@129
+                String "adult" :@135
               /Call
               Call
-                Uid else@1@645
-                String "minor" :@129
+                Uid else@1@646
+                String "minor" :@135
               /Call
             /List
           /Call
         /Call
-        Call :@136
-          Uid print@1@651 :@137
-          String "" :@129
+        Call :@142
+          Uid print@1@652 :@143
+          String "" :@135
         /Call
       /Block
     /Fun
   /Def
   Types
-    Uid@129 Text@1@638
-    Uid@130 Int32@1@626
-    FunType@131
-    Uid@132 Type@1@639
-    FunType@133 :@132
-    Uid@134 Person@145
-    FunType@135 :@134
-      None :@129
-      None :@130
+    Uid@135 Text@1@639
+    Uid@136 Int32@1@627
+    FunType@137
+    Uid@138 Type@1@640
+    FunType@139 :@138
+    Uid@140 Person@151
+    FunType@141 :@140
+      None :@135
+      None :@136
     /FunType
-    Uid@136 Void@1@640
-    FunType@137 :@136
-      None :@129
-    FunType@138
+    Uid@142 Void@1@641
+    FunType@143 :@142
+      None :@135
+    FunType@144
       None
       None
       None
       None
     /FunType
-    Uid@139 Claim@1@623
-    FunType@140 :@139
-      None :@130
-      None :@130
+    Uid@145 Claim@1@624
+    FunType@146 :@145
+      None :@136
+      None :@136
     /FunType
-    FunType@141
-      None :@134
-    FunType@142 :@136
-      None :@134
+    FunType@147
+      None :@140
+    FunType@148 :@142
+      None :@140
   /Types
 /Block
 
 Node size: 20
-Tree len: 149
+Tree len: 155

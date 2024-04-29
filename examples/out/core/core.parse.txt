@@ -767,18 +767,21 @@ Block
                   /Call
                   VSpace "\n"
                   HSpace "        "
-                  Block
-                    RoundOpen "("
-                    Call
-                      Id "maybe"
-                      HSpace " "
-                      Id "as"
-                      HSpace " "
-                      Id "Yes"
-                    /Call
-                    RoundClose ")"
-                  /Block
-                  Id ".value"
+                  Infix
+                    Block
+                      RoundOpen "("
+                      Call
+                        Id "maybe"
+                        HSpace " "
+                        Id "as"
+                        HSpace " "
+                        Id "Yes"
+                      /Call
+                      RoundClose ")"
+                    /Block
+                    Dot "."
+                    Id "value"
+                  /Infix
                   VSpace "\n"
                   HSpace "    "
                   End "end"
@@ -1544,4 +1547,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 1244
+Tree len: 1246

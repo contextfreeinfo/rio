@@ -12,7 +12,6 @@ macro_rules! define_infix {
     ($name:ident, $next:ident, $must_space:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {
         fn $name(&mut self, source: &mut Tokens) -> Option<bool> {
             debug!("{}", stringify!($name));
-            self.skip_h(source);
             let start = self.builder().pos();
             let mut skipped = self.$next(source)?;
             loop {
@@ -217,12 +216,11 @@ impl Parser {
     fn call_tight(&mut self, source: &mut Tokens) -> Option<bool> {
         debug!("call_tight");
         let start = self.builder().pos();
-        self.starred(source)?;
-        let mut skipped;
+        let mut skipped = self.dot(source)?;
         loop {
             let peeked = peek(source)?;
             match peeked {
-                TokenKind::AngleOpen | TokenKind::RoundOpen => {
+                TokenKind::AngleOpen | TokenKind::RoundOpen if !skipped => {
                     // Unspaced open brackets bind tightly.
                     // self.call_maybe_spaced(source, false, false, Some(start));
                     // TODO Below instead of `call_maybe_spaced` above.
@@ -234,11 +232,10 @@ impl Parser {
                     }
                 }
                 _ => {
-                    skipped = self.skip_h(source)?;
                     match peek(source)? {
                         // Of blocks bind tightly.
                         TokenKind::Of => {
-                            self.starred(source)?;
+                            skipped = self.dot(source)?;
                         }
                         _ => break,
                     }
@@ -281,6 +278,8 @@ impl Parser {
         debug!("/def");
         Some(())
     }
+
+    define_infix!(dot, starred, false, TokenKind::Dot,);
 
     fn fun(&mut self, source: &mut Tokens) -> Option<()> {
         debug!("fun");

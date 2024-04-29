@@ -378,6 +378,7 @@ pub enum BranchKind {
     Block,
     Call,
     Def,
+    Dot,
     Fun,
     FunType,     // (ParamsType, Type)
     Generic,     // (Params, <Something>)

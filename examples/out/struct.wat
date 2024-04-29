@@ -73,6 +73,7 @@
     local.set 2
     local.get 2
     call 7
+    local.get 2
     i32.const 3
     i32.const 4104
     local.set 5
@@ -100,7 +101,9 @@
     i32.const 7
     i32.const 4120
     call 1
+    local.get 0
     call 1
+    local.get 0
     i32.const 18
     if (type 4) (result i32 i32) ;; label = @1
       i32.const 5

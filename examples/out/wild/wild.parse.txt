@@ -1,5 +1,9 @@
 Block
-  Id "a.b"
+  Infix
+    Id "a"
+    Dot "."
+    Id "b"
+  /Infix
   VSpace "\n"
   VSpace "\n"
   Call
@@ -581,7 +585,11 @@ Block
     HSpace " "
     Id "from"
     HSpace " "
-    Id "items.each"
+    Infix
+      Id "items"
+      Dot "."
+      Id "each"
+    /Infix
   /Call
   VSpace "\n"
   Call
@@ -765,4 +773,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 649
+Tree len: 655

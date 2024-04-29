@@ -34,7 +34,10 @@ Block
         Call
           Id "describe"
           Struct
-            Id "alice.age"
+            Dot
+              Id "alice"
+              Id "age"
+            /Dot
             Def
               Id "name"
               None
@@ -137,7 +140,10 @@ Block
         /Call
         Call
           Id "print"
-          Id "person.name"
+          Dot
+            Id "person"
+            Id "name"
+          /Dot
         /Call
         Call
           Id "print"
@@ -148,7 +154,10 @@ Block
                 Id "Pair"
                 Call
                   Id "ge"
-                  Id "person.age"
+                  Dot
+                    Id "person"
+                    Id "age"
+                  /Dot
                   Int32 18
                 /Call
                 String "adult"
@@ -170,4 +179,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 123
+Tree len: 129

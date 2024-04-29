@@ -454,14 +454,16 @@ Block
                       /Def
                     /Block
                   /Call
-                  Block
-                    Call
-                      Id "maybe"
-                      Id "as"
-                      Id "Yes"
-                    /Call
-                  /Block
-                  Id ".value"
+                  Dot
+                    Block
+                      Call
+                        Id "maybe"
+                        Id "as"
+                        Id "Yes"
+                      /Call
+                    /Block
+                    Id "value"
+                  /Dot
                 /Block
               /Fun
             /Def
@@ -892,4 +894,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 661
+Tree len: 662

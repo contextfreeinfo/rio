@@ -158,28 +158,32 @@ impl Normer {
                             panic!()
                         };
                         (|| {
-                            let intern = match op.kind {
-                                TokenKind::AngleClose => self.cart.core_interns.gt,
-                                TokenKind::AngleOpen => self.cart.core_interns.lt,
-                                TokenKind::Eq => self.cart.core_interns.eq,
-                                TokenKind::GreaterEq => self.cart.core_interns.ge,
-                                TokenKind::LessEq => self.cart.core_interns.le,
-                                TokenKind::NotEq => self.cart.core_interns.ne,
-                                TokenKind::To => self.cart.core_interns.pair,
-                                _ => return false,
+                            let (new_kind, intern) = match op.kind {
+                                TokenKind::Dot => (BranchKind::Dot, None),
+                                _ => {
+                                    let intern = match op.kind {
+                                        TokenKind::AngleClose => self.cart.core_interns.gt,
+                                        TokenKind::AngleOpen => self.cart.core_interns.lt,
+                                        TokenKind::Eq => self.cart.core_interns.eq,
+                                        TokenKind::GreaterEq => self.cart.core_interns.ge,
+                                        TokenKind::LessEq => self.cart.core_interns.le,
+                                        TokenKind::NotEq => self.cart.core_interns.ne,
+                                        TokenKind::To => self.cart.core_interns.pair,
+                                        _ => return false,
+                                    };
+                                    (BranchKind::Call, Some(intern))
+                                }
                             };
-                            self.builder()
-                                .push_at(Token::new(TokenKind::Id, intern), node.source);
+                            if let Some(intern) = intern {
+                                self.builder()
+                                    .push_at(Token::new(TokenKind::Id, intern), node.source);
+                            }
                             self.rebranch_at(&tree[..=range.start]);
                             if range.len() > 2 {
                                 self.rebranch_at(&tree[..range.end]);
                             }
-                            self.builder().wrap(
-                                BranchKind::Call,
-                                start,
-                                Type::default(),
-                                node.source,
-                            );
+                            self.builder()
+                                .wrap(new_kind, start, Type::default(), node.source);
                             true
                         })()
                     }
