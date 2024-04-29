@@ -861,6 +861,12 @@ Block
     Fun
       Params
       Params
+        Def
+          None
+          Id "Type"
+          None
+        /Def
+      /Params
       Block
         Call
           Id "native"
@@ -886,4 +892,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 657
+Tree len: 661

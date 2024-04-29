@@ -1,9 +1,9 @@
 Block
   Module "core" 1
-  Def@617 :@602
-    Uid Case@617* :@602
+  Def@622 :@606
+    Uid Case@622* :@606
     None
-    Fun :@602
+    Fun :@606
       Params
         AngleOpen "<"
         Id "Value"
@@ -12,16 +12,16 @@ Block
       Params
       Block
         Call
-          Uid Pair@632 :@603
+          Uid Pair@637 :@607
           AngleOpen "<"
           Call
-            Uid Lazy@628 :@602
+            Uid Lazy@633 :@606
             AngleOpen "<"
-            Uid Claim@618
+            Uid Claim@623
             AngleClose ">"
           /Call
           Call
-            Uid Lazy@628 :@602
+            Uid Lazy@633 :@606
             AngleOpen "<"
             Id "Value"
             AngleClose ">"
@@ -31,21 +31,21 @@ Block
       /Block
     /Fun
   /Def
-  Def@618
-    Uid Claim@618*
+  Def@623
+    Uid Claim@623*
     None
     Call
-      Uid Either@619 :@603
+      Uid Either@624 :@607
       AngleOpen "<"
-      Uid Void@635 :@610
-      Uid Void@635 :@610
+      Uid Void@640 :@614
+      Uid Void@640 :@614
       AngleClose ">"
     /Call
   /Def
-  Def@619 :@603
-    Uid Either@619* :@603
+  Def@624 :@607
+    Uid Either@624* :@607
     None
-    Fun :@603
+    Fun :@607
       Params
         AngleOpen "<"
         Id "YesValue"
@@ -56,14 +56,14 @@ Block
       Block
         Call
           Call
-            Uid Yes@636 :@602
+            Uid Yes@641 :@606
             AngleOpen "<"
             Id "YesValue"
             AngleClose ">"
           /Call
           Id "|"
           Call
-            Uid No@631 :@602
+            Uid No@636 :@606
             AngleOpen "<"
             Id "NoValue"
             AngleClose ">"
@@ -72,18 +72,18 @@ Block
       /Block
     /Fun
   /Def
-  Def@620 :@603
-    Uid Function@620* :@603
+  Def@625 :@607
+    Uid Function@625* :@607
     None
-    Fun :@603
+    Fun :@607
       Params
         AngleOpen "<"
         Def@62
           Uid ArgTypes@62
           Call
-            Uid List@629 :@602
+            Uid List@634 :@606
             AngleOpen "<"
-            Uid Type@634
+            Uid Type@639
             AngleClose ">"
           /Call
           None
@@ -94,295 +94,295 @@ Block
       Params
       Block
         Call
-          Uid class@639 :@609
+          Uid class@644 :@613
           Struct
         /Call
       /Block
     /Fun
   /Def
-  Def@621
-    Uid Int32@621*
+  Def@626
+    Uid Int32@626*
     None
     Call
-      Uid class@639 :@609
+      Uid class@644 :@613
       Struct
-        Def@138 :@605
-          Uid add@138* :@605
+        Def@138 :@609
+          Uid add@138* :@609
           None
-          Fun :@605
+          Fun :@609
             Params
-              Def@77 :@604
-                Uid other@77 :@604
-                Uid Int32@621
-                None :@604
+              Def@77 :@608
+                Uid other@77 :@608
+                Uid Int32@626
+                None :@608
               /Def
             /Params
             Params
-              Def@81 :@604
-                None :@604
-                Uid Int32@621
-                None :@604
+              Def@81 :@608
+                None :@608
+                Uid Int32@626
+                None :@608
               /Def
             /Params
-            Block :@604
-              Call :@604
-                Uid native@643 :@609
+            Block :@608
+              Call :@608
+                Uid native@648 :@613
             /Block
           /Fun
         /Def
-        Def@139 :@607
-          Uid gt@139* :@607
+        Def@139 :@611
+          Uid gt@139* :@611
           None
-          Fun :@607
+          Fun :@611
             Params
-              Def@93 :@604
-                Uid other@93 :@604
-                Uid Int32@621
-                None :@604
+              Def@93 :@608
+                Uid other@93 :@608
+                Uid Int32@626
+                None :@608
               /Def
             /Params
             Params
-              Def@97 :@606
-                None :@606
-                Uid Claim@618
-                None :@606
+              Def@97 :@610
+                None :@610
+                Uid Claim@623
+                None :@610
               /Def
             /Params
-            Block :@606
-              Call :@606
-                Uid native@643 :@609
+            Block :@610
+              Call :@610
+                Uid native@648 :@613
             /Block
           /Fun
         /Def
-        Def@140 :@607
-          Uid lt@140* :@607
+        Def@140 :@611
+          Uid lt@140* :@611
           None
-          Fun :@607
+          Fun :@611
             Params
-              Def@109 :@604
-                Uid other@109 :@604
-                Uid Int32@621
-                None :@604
+              Def@109 :@608
+                Uid other@109 :@608
+                Uid Int32@626
+                None :@608
               /Def
             /Params
             Params
-              Def@113 :@606
-                None :@606
-                Uid Claim@618
-                None :@606
+              Def@113 :@610
+                None :@610
+                Uid Claim@623
+                None :@610
               /Def
             /Params
-            Block :@606
-              Call :@606
-                Uid native@643 :@609
+            Block :@610
+              Call :@610
+                Uid native@648 :@613
             /Block
           /Fun
         /Def
-        Def@141 :@607
-          Uid eq@141* :@607
+        Def@141 :@611
+          Uid eq@141* :@611
           None
-          Fun :@607
+          Fun :@611
             Params
-              Def@125 :@604
-                Uid other@125 :@604
-                Uid Int32@621
-                None :@604
+              Def@125 :@608
+                Uid other@125 :@608
+                Uid Int32@626
+                None :@608
               /Def
             /Params
             Params
-              Def@129 :@606
-                None :@606
-                Uid Claim@618
-                None :@606
+              Def@129 :@610
+                None :@610
+                Uid Claim@623
+                None :@610
               /Def
             /Params
-            Block :@606
-              Call :@606
-                Uid native@643 :@609
+            Block :@610
+              Call :@610
+                Uid native@648 :@613
             /Block
           /Fun
         /Def
       /Struct
     /Call
   /Def
-  Def@622 :@608
-    Uid eq@622* :@608
+  Def@627 :@612
+    Uid eq@627* :@612
     None
-    Fun :@608
+    Fun :@612
       Params
-        Def@153 :@604
-          Uid a@153 :@604
-          Uid Int32@621
-          None :@604
+        Def@153 :@608
+          Uid a@153 :@608
+          Uid Int32@626
+          None :@608
         /Def
-        Def@154 :@604
-          Uid b@154 :@604
-          Uid Int32@621
-          None :@604
+        Def@154 :@608
+          Uid b@154 :@608
+          Uid Int32@626
+          None :@608
         /Def
       /Params
       Params
-        Def@158 :@606
-          None :@606
-          Uid Claim@618
-          None :@606
+        Def@158 :@610
+          None :@610
+          Uid Claim@623
+          None :@610
         /Def
       /Params
-      Block :@606
-        Call :@606
-          Uid native@643 :@609
+      Block :@610
+        Call :@610
+          Uid native@648 :@613
       /Block
     /Fun
   /Def
-  Def@623 :@608
-    Uid ge@623* :@608
+  Def@628 :@612
+    Uid ge@628* :@612
     None
-    Fun :@608
+    Fun :@612
       Params
-        Def@173 :@604
-          Uid a@173 :@604
-          Uid Int32@621
-          None :@604
+        Def@173 :@608
+          Uid a@173 :@608
+          Uid Int32@626
+          None :@608
         /Def
-        Def@174 :@604
-          Uid b@174 :@604
-          Uid Int32@621
-          None :@604
+        Def@174 :@608
+          Uid b@174 :@608
+          Uid Int32@626
+          None :@608
         /Def
       /Params
       Params
-        Def@178 :@606
-          None :@606
-          Uid Claim@618
-          None :@606
+        Def@178 :@610
+          None :@610
+          Uid Claim@623
+          None :@610
         /Def
       /Params
-      Block :@606
-        Call :@606
-          Uid native@643 :@609
+      Block :@610
+        Call :@610
+          Uid native@648 :@613
       /Block
     /Fun
   /Def
-  Def@624 :@608
-    Uid gt@624* :@608
+  Def@629 :@612
+    Uid gt@629* :@612
     None
-    Fun :@608
+    Fun :@612
       Params
-        Def@193 :@604
-          Uid a@193 :@604
-          Uid Int32@621
-          None :@604
+        Def@193 :@608
+          Uid a@193 :@608
+          Uid Int32@626
+          None :@608
         /Def
-        Def@194 :@604
-          Uid b@194 :@604
-          Uid Int32@621
-          None :@604
+        Def@194 :@608
+          Uid b@194 :@608
+          Uid Int32@626
+          None :@608
         /Def
       /Params
       Params
-        Def@198 :@606
-          None :@606
-          Uid Claim@618
-          None :@606
+        Def@198 :@610
+          None :@610
+          Uid Claim@623
+          None :@610
         /Def
       /Params
-      Block :@606
-        Call :@606
-          Uid native@643 :@609
+      Block :@610
+        Call :@610
+          Uid native@648 :@613
       /Block
     /Fun
   /Def
-  Def@625 :@608
-    Uid le@625* :@608
+  Def@630 :@612
+    Uid le@630* :@612
     None
-    Fun :@608
+    Fun :@612
       Params
-        Def@213 :@604
-          Uid a@213 :@604
-          Uid Int32@621
-          None :@604
+        Def@213 :@608
+          Uid a@213 :@608
+          Uid Int32@626
+          None :@608
         /Def
-        Def@214 :@604
-          Uid b@214 :@604
-          Uid Int32@621
-          None :@604
+        Def@214 :@608
+          Uid b@214 :@608
+          Uid Int32@626
+          None :@608
         /Def
       /Params
       Params
-        Def@218 :@606
-          None :@606
-          Uid Claim@618
-          None :@606
+        Def@218 :@610
+          None :@610
+          Uid Claim@623
+          None :@610
         /Def
       /Params
-      Block :@606
-        Call :@606
-          Uid native@643 :@609
+      Block :@610
+        Call :@610
+          Uid native@648 :@613
       /Block
     /Fun
   /Def
-  Def@626 :@608
-    Uid lt@626* :@608
+  Def@631 :@612
+    Uid lt@631* :@612
     None
-    Fun :@608
+    Fun :@612
       Params
-        Def@233 :@604
-          Uid a@233 :@604
-          Uid Int32@621
-          None :@604
+        Def@233 :@608
+          Uid a@233 :@608
+          Uid Int32@626
+          None :@608
         /Def
-        Def@234 :@604
-          Uid b@234 :@604
-          Uid Int32@621
-          None :@604
+        Def@234 :@608
+          Uid b@234 :@608
+          Uid Int32@626
+          None :@608
         /Def
       /Params
       Params
-        Def@238 :@606
-          None :@606
-          Uid Claim@618
-          None :@606
+        Def@238 :@610
+          None :@610
+          Uid Claim@623
+          None :@610
         /Def
       /Params
-      Block :@606
-        Call :@606
-          Uid native@643 :@609
+      Block :@610
+        Call :@610
+          Uid native@648 :@613
       /Block
     /Fun
   /Def
-  Def@627 :@608
-    Uid ne@627* :@608
+  Def@632 :@612
+    Uid ne@632* :@612
     None
-    Fun :@608
+    Fun :@612
       Params
-        Def@253 :@604
-          Uid a@253 :@604
-          Uid Int32@621
-          None :@604
+        Def@253 :@608
+          Uid a@253 :@608
+          Uid Int32@626
+          None :@608
         /Def
-        Def@254 :@604
-          Uid b@254 :@604
-          Uid Int32@621
-          None :@604
+        Def@254 :@608
+          Uid b@254 :@608
+          Uid Int32@626
+          None :@608
         /Def
       /Params
       Params
-        Def@258 :@606
-          None :@606
-          Uid Claim@618
-          None :@606
+        Def@258 :@610
+          None :@610
+          Uid Claim@623
+          None :@610
         /Def
       /Params
-      Block :@606
-        Call :@606
-          Uid native@643 :@609
+      Block :@610
+        Call :@610
+          Uid native@648 :@613
       /Block
     /Fun
   /Def
-  Def@628 :@602
-    Uid Lazy@628* :@602
+  Def@633 :@606
+    Uid Lazy@633* :@606
     None
-    Fun :@602
+    Fun :@606
       Params
         AngleOpen "<"
         Id "Value"
@@ -392,12 +392,12 @@ Block
       Block
         Call
           Call
-            Uid class@639 :@609
+            Uid class@644 :@613
             Struct
               Def@278
                 Uid builder@278
                 Call
-                  Uid Function@620 :@603
+                  Uid Function@625 :@607
                   AngleOpen "<"
                   Id "[]"
                   Id "Value"
@@ -408,18 +408,18 @@ Block
             /Struct
           /Call
           List
-            Def@316 :@609
-              Uid value@316* :@609
+            Def@316 :@613
+              Uid value@316* :@613
               None
-              Fun :@609
+              Fun :@613
                 Params
                 Params
                 Block
                   Call
                     Id "if"
-                    Block :@606
-                      Call :@606
-                        Uid not@644 :@612
+                    Block :@610
+                      Call :@610
+                        Uid not@649 :@616
                         Id "maybe"
                       /Call
                     /Block
@@ -429,7 +429,7 @@ Block
                         Call
                           None
                           Call
-                            Uid Yes@636 :@602
+                            Uid Yes@641 :@606
                             Call
                               Id "builder"
                           /Call
@@ -442,7 +442,7 @@ Block
                     Call
                       Id "maybe"
                       Id "as"
-                      Uid Yes@636 :@602
+                      Uid Yes@641 :@606
                     /Call
                   /Block
                   Id ".value"
@@ -452,22 +452,22 @@ Block
             Def@317
               Uid maybe@317
               Call
-                Uid Maybe@630 :@602
+                Uid Maybe@635 :@606
                 AngleOpen "<"
                 Id "Value"
                 AngleClose ">"
               /Call
-              Uid false@642
+              Uid false@647
             /Def
           /List
         /Call
       /Block
     /Fun
   /Def
-  Def@629 :@602
-    Uid List@629* :@602
+  Def@634 :@606
+    Uid List@634* :@606
     None
-    Fun :@602
+    Fun :@606
       Params
         AngleOpen "<"
         Id "Item"
@@ -476,16 +476,16 @@ Block
       Params
       Block
         Call
-          Uid class@639 :@609
+          Uid class@644 :@613
           Struct
         /Call
       /Block
     /Fun
   /Def
-  Def@630 :@602
-    Uid Maybe@630* :@602
+  Def@635 :@606
+    Uid Maybe@635* :@606
     None
-    Fun :@602
+    Fun :@606
       Params
         AngleOpen "<"
         Id "Value"
@@ -494,19 +494,19 @@ Block
       Params
       Block
         Call
-          Uid Either@619 :@603
+          Uid Either@624 :@607
           AngleOpen "<"
           Id "Value"
-          Uid Void@635 :@610
+          Uid Void@640 :@614
           AngleClose ">"
         /Call
       /Block
     /Fun
   /Def
-  Def@631 :@602
-    Uid No@631* :@602
+  Def@636 :@606
+    Uid No@636* :@606
     None
-    Fun :@602
+    Fun :@606
       Params
         AngleOpen "<"
         Id "Value"
@@ -515,9 +515,9 @@ Block
       Params
       Block
         Call
-          Uid ordered@645 :@609
-          Call
-            Uid struct@647 :@609
+          Uid ordered@650 :@613
+          Call :@614
+            Uid struct@652 :@620
             Struct
               Def@360
                 Uid value@360
@@ -530,10 +530,10 @@ Block
       /Block
     /Fun
   /Def
-  Def@632 :@603
-    Uid Pair@632* :@603
+  Def@637 :@607
+    Uid Pair@637* :@607
     None
-    Fun :@603
+    Fun :@607
       Params
         AngleOpen "<"
         Id "Key"
@@ -543,9 +543,9 @@ Block
       Params
       Block
         Call
-          Uid ordered@645 :@609
-          Call
-            Uid struct@647 :@609
+          Uid ordered@650 :@613
+          Call :@614
+            Uid struct@652 :@620
             Struct
               Def@382
                 Uid key@382
@@ -563,60 +563,60 @@ Block
       /Block
     /Fun
   /Def
-  Def@633 :@610
-    Uid Text@633* :@610
-    Uid Type@634
-    Call :@610
-      Uid native@643 :@609
+  Def@638 :@614
+    Uid Text@638* :@614
+    Uid Type@639
+    Call :@614
+      Uid native@648 :@613
   /Def
-  Def@634
-    Uid Type@634*
+  Def@639
+    Uid Type@639*
     None
     Call
-      Uid class@639 :@609
+      Uid class@644 :@613
       Struct
-        Def@419 :@611
-          Uid union@419* :@611
+        Def@419 :@615
+          Uid union@419* :@615
           None
-          Fun :@611
+          Fun :@615
             Params
-              Def@405 :@610
-                Uid a@405 :@610
-                Uid Type@634
-                None :@610
+              Def@405 :@614
+                Uid a@405 :@614
+                Uid Type@639
+                None :@614
               /Def
-              Def@406 :@610
-                Uid b@406 :@610
-                Uid Type@634
-                None :@610
+              Def@406 :@614
+                Uid b@406 :@614
+                Uid Type@639
+                None :@614
               /Def
             /Params
             Params
-              Def@410 :@610
-                None :@610
-                Uid Type@634
-                None :@610
+              Def@410 :@614
+                None :@614
+                Uid Type@639
+                None :@614
               /Def
             /Params
-            Block :@610
-              Call :@610
-                Uid native@643 :@609
+            Block :@614
+              Call :@614
+                Uid native@648 :@613
             /Block
           /Fun
         /Def
       /Struct
     /Call
   /Def
-  Def@635 :@610
-    Uid Void@635* :@610
-    Uid Type@634
-    Call :@610
-      Uid native@643 :@609
+  Def@640 :@614
+    Uid Void@640* :@614
+    Uid Type@639
+    Call :@614
+      Uid native@648 :@613
   /Def
-  Def@636 :@602
-    Uid Yes@636* :@602
+  Def@641 :@606
+    Uid Yes@641* :@606
     None
-    Fun :@602
+    Fun :@606
       Params
         AngleOpen "<"
         Id "Value"
@@ -625,9 +625,9 @@ Block
       Params
       Block
         Call
-          Uid ordered@645 :@609
-          Call
-            Uid struct@647 :@609
+          Uid ordered@650 :@613
+          Call :@614
+            Uid struct@652 :@620
             Struct
               Def@435
                 Uid value@435
@@ -640,11 +640,11 @@ Block
       /Block
     /Fun
   /Def
-  Def@637
-    Uid branch@637*
+  Def@642
+    Uid branch@642*
     None
     Def@470
-      Fun :@602
+      Fun :@606
         Params
           AngleOpen "<"
           Id "Value"
@@ -655,10 +655,10 @@ Block
           Def@461
             Uid cases@461
             Call
-              Uid List@629 :@602
+              Uid List@634 :@606
               AngleOpen "<"
               Call
-                Uid Case@617 :@602
+                Uid Case@622 :@606
                 AngleOpen "<"
                 Id "Value"
                 AngleClose ">"
@@ -675,25 +675,25 @@ Block
   /Def
   Block
     Call
-      Uid native@643 :@609
+      Uid native@648 :@613
   /Block
-  Def@639 :@609
-    Uid class@639* :@609
+  Def@644 :@613
+    Uid class@644* :@613
     None
-    Fun :@609
+    Fun :@613
       Params
       Params
       Block
         Call
-          Uid native@643 :@609
+          Uid native@648 :@613
       /Block
     /Fun
   /Def
-  Def@640
-    Uid else@640*
+  Def@645
+    Uid else@645*
     None
     Def@504
-      Fun :@602
+      Fun :@606
         Params
           AngleOpen "<"
           Id "Value"
@@ -704,7 +704,7 @@ Block
           Def@491
             Uid value@491
             Call
-              Uid Lazy@628 :@602
+              Uid Lazy@633 :@606
               AngleOpen "<"
               Id "Value"
               AngleClose ">"
@@ -714,7 +714,7 @@ Block
         /Block
       /Fun
       Call
-        Uid Case@617 :@602
+        Uid Case@622 :@606
         AngleOpen "<"
         Id "Value"
         AngleClose ">"
@@ -724,165 +724,172 @@ Block
   /Def
   Block
     Call
-      Uid Pair@632 :@603
-      Uid true@648
+      Uid Pair@637 :@607
+      Uid true@653
       Id "value"
     /Call
   /Block
-  Def@642
-    Uid false@642*
+  Def@647
+    Uid false@647*
     None
     Call
-      Uid No@631 :@602
-      Uid void@649 :@614
+      Uid No@636 :@606
+      Uid void@654 :@618
     /Call
   /Def
-  Def@643 :@609
-    Uid native@643* :@609
+  Def@648 :@613
+    Uid native@648* :@613
     None
-    Fun :@609
+    Fun :@613
       Params
       Params
       Block
         Call
-          Uid native@643 :@609
+          Uid native@648 :@613
       /Block
     /Fun
   /Def
-  Def@644 :@612
-    Uid not@644* :@612
+  Def@649 :@616
+    Uid not@649* :@616
     None
-    Fun :@612
+    Fun :@616
       Params
-        Def@525 :@606
-          Uid claim@525 :@606
-          Uid Claim@618
-          None :@606
+        Def@525 :@610
+          Uid claim@525 :@610
+          Uid Claim@623
+          None :@610
         /Def
       /Params
       Params
-        Def@529 :@606
-          None :@606
-          Uid Claim@618
-          None :@606
+        Def@529 :@610
+          None :@610
+          Uid Claim@623
+          None :@610
         /Def
       /Params
-      Block :@606
-        Call :@606
-          Uid branch@637
+      Block :@610
+        Call :@610
+          Uid branch@642
           List
             Call
-              Uid Pair@632 :@603
-              Uid claim@525 :@606
-              Uid false@642
+              Uid Pair@637 :@607
+              Uid claim@525 :@610
+              Uid false@647
             /Call
             Call
-              Uid else@640
-              Uid true@648
+              Uid else@645
+              Uid true@653
             /Call
           /List
         /Call
       /Block
     /Fun
   /Def
-  Def@645 :@609
-    Uid ordered@645* :@609
+  Def@650 :@613
+    Uid ordered@650* :@613
     None
-    Fun :@609
+    Fun :@613
       Params
       Params
       Block
         Call
-          Uid native@643 :@609
+          Uid native@648 :@613
       /Block
     /Fun
   /Def
-  Def@646 :@615
-    Uid print@646* :@615
+  Def@651 :@619
+    Uid print@651* :@619
     None
-    Fun :@615
+    Fun :@619
       Params
-        Def@557 :@613
-          Uid text@557 :@613
-          Uid Text@633 :@610
-          None :@613
+        Def@557 :@617
+          Uid text@557 :@617
+          Uid Text@638 :@614
+          None :@617
         /Def
       /Params
       Params
-        Def@561 :@614
+        Def@561 :@618
+          None :@618
+          Uid Void@640 :@614
+          None :@618
+        /Def
+      /Params
+      Block :@618
+        Call :@618
+          Uid native@648 :@613
+      /Block
+    /Fun
+  /Def
+  Def@652 :@620
+    Uid struct@652* :@620
+    None
+    Fun :@620
+      Params
+      Params
+        Def@573 :@614
           None :@614
-          Uid Void@635 :@610
+          Uid Type@639
           None :@614
         /Def
       /Params
       Block :@614
         Call :@614
-          Uid native@643 :@609
+          Uid native@648 :@613
       /Block
     /Fun
   /Def
-  Def@647 :@609
-    Uid struct@647* :@609
-    None
-    Fun :@609
-      Params
-      Params
-      Block
-        Call
-          Uid native@643 :@609
-      /Block
-    /Fun
-  /Def
-  Def@648
-    Uid true@648*
+  Def@653
+    Uid true@653*
     None
     Call
-      Uid Yes@636 :@602
-      Uid void@649 :@614
+      Uid Yes@641 :@606
+      Uid void@654 :@618
     /Call
   /Def
-  Def@649 :@614
-    Uid void@649* :@614
-    Uid Void@635 :@610
-    Call :@614
-      Uid native@643 :@609
+  Def@654 :@618
+    Uid void@654* :@618
+    Uid Void@640 :@614
+    Call :@618
+      Uid native@648 :@613
   /Def
   Types
-    FunType@602
+    FunType@606
       None
       None
       None
     /FunType
-    FunType@603
+    FunType@607
       None
       None
       None
       None
     /FunType
-    Uid@604 Int32@621
-    FunType@605 :@604
-      None :@604
-    Uid@606 Claim@618
-    FunType@607 :@606
-      None :@604
-    FunType@608 :@606
-      None :@604
-      None :@604
-    /FunType
-    FunType@609
-    Uid@610 Type@634
+    Uid@608 Int32@626
+    FunType@609 :@608
+      None :@608
+    Uid@610 Claim@623
     FunType@611 :@610
-      None :@610
-      None :@610
+      None :@608
+    FunType@612 :@610
+      None :@608
+      None :@608
     /FunType
-    FunType@612 :@606
-      None :@606
-    Uid@613 Text@633
-    Uid@614 Void@635
+    FunType@613
+    Uid@614 Type@639
     FunType@615 :@614
-      None :@613
+      None :@614
+      None :@614
+    /FunType
+    FunType@616 :@610
+      None :@610
+    Uid@617 Text@638
+    Uid@618 Void@640
+    FunType@619 :@618
+      None :@617
+    FunType@620 :@614
   /Types
 /Block
 
 Node size: 20
-Tree len: 651
+Tree len: 656

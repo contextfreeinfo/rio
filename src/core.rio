@@ -88,7 +88,7 @@ ordered* = for() be native()
 # print*: Function<[Text], Void> = native()
 print* = for(text: Text): Void be native()
 
-struct* = for() be native()
+struct* = for(): Type be native()
 
 true* = Yes(void)
 
