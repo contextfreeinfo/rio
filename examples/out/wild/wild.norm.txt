@@ -1,7 +1,21 @@
 Block
+  Def
+    Id "b"
+    None
+    Int32 2
+  /Def
   Dot
     Id "a"
     Id "b"
+  /Dot
+  Dot
+    Id "a"
+    Block
+      Call
+        Id "b"
+        Id "there"
+      /Call
+    /Block
   /Dot
   Call
     Call
@@ -376,4 +390,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 282
+Tree len: 292

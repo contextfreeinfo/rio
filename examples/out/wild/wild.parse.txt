@@ -1,8 +1,31 @@
 Block
+  Def
+    Id "b"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Int "2"
+  /Def
+  VSpace "\n"
+  VSpace "\n"
   Infix
     Id "a"
     Dot "."
     Id "b"
+  /Infix
+  VSpace "\n"
+  Infix
+    Id "a"
+    Dot "."
+    Block
+      RoundOpen "("
+      Call
+        Id "b"
+        HSpace " "
+        Id "there"
+      /Call
+      RoundClose ")"
+    /Block
   /Infix
   VSpace "\n"
   VSpace "\n"
@@ -773,4 +796,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 655
+Tree len: 674

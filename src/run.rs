@@ -300,11 +300,27 @@ impl<'a> Runner<'a> {
                 let start = self.builder().pos();
                 let range: Range<usize> = range.into();
                 for (local_index, kid_index) in range.clone().enumerate() {
-                    if kind == BranchKind::Def && local_index == 0 {
-                        match scope_entry(&tree[..=kid_index]) {
-                            Some(entry) => self.scope.push(entry),
-                            None => (),
+                    match kind {
+                        BranchKind::Def => {
+                            if local_index == 0 {
+                                match scope_entry(&tree[..=kid_index]) {
+                                    Some(entry) => self.scope.push(entry),
+                                    None => (),
+                                }
+                            }
                         }
+                        BranchKind::Dot => {
+                            if kid_index == range.end - 1 {
+                                // Resolving dot targets is different.
+                                // But only bother with special treatment for simple leaves.
+                                let kid = tree[kid_index];
+                                if let Nod::Leaf { .. } = kid.nod {
+                                    self.builder().push(kid);
+                                    continue;
+                                }
+                            }
+                        }
+                        _ => {}
                     }
                     self.resolve_at(&tree[..=kid_index]);
                 }

@@ -51,6 +51,8 @@ No* = for<Value> be ordered struct of
     value: Value
 end
 
+# Ordered class with greaterOrEquals, ...
+
 Pair* = for<Key, Value> be ordered struct of
     key: Key
     value: Value
