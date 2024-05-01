@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     lex::TokenKind,
-    run::Runner,
+    run::{CoreExports, Runner},
     tree::{tree_hash_with, BranchKind, Nod, Node, Source, TreeBuilder, Type},
 };
 
@@ -236,6 +236,31 @@ fn build_type(runner: &mut Runner, tree: &[Node]) -> Option<Type> {
     }
 }
 
+type NodeAccess<'a> = (&'a [Node], usize);
+
+/// Return the tree and and the index in the tree pointed at by the ref, if it's
+/// a Uid.
+fn get_node_access<'a>(runner: &'a Runner, tree: &'a [Node], ref_: Node) -> Option<NodeAccess<'a>> {
+    let Nod::Uid { module, num, .. } = ref_.nod else {
+        return None;
+    };
+    let access = if module == 0 || module == runner.module {
+        (
+            tree.as_ref(),
+            runner.def_indices[num as usize].0 as usize - 1,
+        )
+    } else {
+        if num == 0 {
+            return None;
+        }
+        (
+            runner.cart.modules[module as usize - 1].tree.as_slice(),
+            num as usize - 1,
+        )
+    };
+    Some(access)
+}
+
 fn set_type(runner: &mut Runner, node: &mut Node, typ: Type) {
     if node.typ != typ && typ.0 != 0 {
         node.typ = typ;
@@ -260,6 +285,10 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
                 }
                 BranchKind::Def => {
                     typ = type_def(runner, tree, &range, typ);
+                    true
+                }
+                BranchKind::Dot => {
+                    typ = type_dot(runner, tree, &range, typ);
                     true
                 }
                 BranchKind::Fun => {
@@ -412,6 +441,77 @@ fn type_def(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut ty
     // TODO Look up Type type.
     type_any(runner, tree, start + 1, Type::default());
     typ
+}
+
+fn type_dot(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ: Type) -> Type {
+    // Just recurse until below is worked out.
+    // TODO When should we actually be doing this?
+    for kid_index in range.clone() {
+        type_any(runner, tree, kid_index, Type::default());
+    }
+    // Validate that expected kids exist.
+    if range.len() != 2 {
+        return typ;
+    }
+    // Get the type node.
+    let struct_type_index = tree[range.start].typ.0 as usize;
+    if struct_type_index == 0 {
+        return typ;
+    }
+    let struct_type = runner.typer.types_ref().working[struct_type_index - 1];
+    // Get the def node.
+    let Some((def_tree, def_index)) = get_node_access(runner, tree, struct_type) else {
+        return typ;
+    };
+    let def = def_tree[def_index];
+    println!(
+        "dot: {:?} {:?} {:?}",
+        tree[range.start].typ, struct_type.nod, def
+    );
+    find_field_def(runner, def_tree, def_index);
+    typ
+}
+
+fn find_field_def(runner: &Runner, tree: &[Node], at: usize) -> Option<()> {
+    let Nod::Branch {
+        kind: BranchKind::Def,
+        range,
+    } = tree[at].nod
+    else {
+        return None;
+    };
+    // TODO Validate elsewhere that all ranges have len == 3?
+    let Nod::Branch {
+        kind: BranchKind::Call,
+        range,
+    } = tree[range.end as usize - 1].nod
+    else {
+        return None;
+    };
+    // Expect a simple call to struct.
+    if range.len() != 2 {
+        return None;
+    }
+    // TODO Defer call to struct as a validation thing?
+    let Nod::Uid { module, num, .. } = tree[range.start as usize].nod else {
+        return None;
+    };
+    let CoreExports { struct_fun, .. } = runner.cart.core_exports;
+    if !(module == struct_fun.module && num == struct_fun.num) {
+        return None;
+    }
+    // TODO Also support classes?
+    let Nod::Branch {
+        kind: BranchKind::Struct,
+        range,
+    } = tree[range.start as usize + 1].nod
+    else {
+        return None;
+    };
+    // Loop kid defs.
+    // TODO
+    println!("struct call: {:?}", tree[range.start as usize].nod);
+    Some(())
 }
 
 fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Type {
