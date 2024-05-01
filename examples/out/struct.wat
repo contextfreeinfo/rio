@@ -105,6 +105,7 @@
     call 1
     local.get 0
     i32.const 18
+    i32.ge_s
     if (type 4) (result i32 i32) ;; label = @1
       i32.const 5
       i32.const 4128

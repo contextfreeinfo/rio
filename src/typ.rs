@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    lex::TokenKind,
+    lex::{Token, TokenKind},
     run::{CoreExports, Runner},
     tree::{tree_hash_with, BranchKind, Nod, Node, Source, TreeBuilder, Type},
 };
@@ -463,16 +463,18 @@ fn type_dot(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ: T
     let Some((def_tree, def_index)) = get_node_access(runner, tree, struct_type) else {
         return typ;
     };
-    let def = def_tree[def_index];
-    println!(
-        "dot: {:?} {:?} {:?}",
-        tree[range.start].typ, struct_type.nod, def
-    );
-    find_field_def(runner, def_tree, def_index);
-    typ
+    // And the field id.
+    let Nod::Leaf { token } = tree[range.start + 1].nod else {
+        return typ;
+    };
+    // println!(
+    //     "dot: {:?} {:?} {:?}",
+    //     tree[range.start].typ, struct_type.nod, token
+    // );
+    find_field_def(runner, def_tree, def_index, token).unwrap_or(typ)
 }
 
-fn find_field_def(runner: &Runner, tree: &[Node], at: usize) -> Option<()> {
+fn find_field_def(runner: &Runner, tree: &[Node], at: usize, id: Token) -> Option<Type> {
     let Nod::Branch {
         kind: BranchKind::Def,
         range,
@@ -480,7 +482,7 @@ fn find_field_def(runner: &Runner, tree: &[Node], at: usize) -> Option<()> {
     else {
         return None;
     };
-    // TODO Validate elsewhere that all ranges have len == 3?
+    // TODO Validate elsewhere that all Def ranges have len == 3?
     let Nod::Branch {
         kind: BranchKind::Call,
         range,
@@ -501,6 +503,7 @@ fn find_field_def(runner: &Runner, tree: &[Node], at: usize) -> Option<()> {
         return None;
     }
     // TODO Also support classes?
+    // println!("struct call: {:?}", tree[range.start as usize + 1].nod);
     let Nod::Branch {
         kind: BranchKind::Struct,
         range,
@@ -509,9 +512,26 @@ fn find_field_def(runner: &Runner, tree: &[Node], at: usize) -> Option<()> {
         return None;
     };
     // Loop kid defs.
-    // TODO
-    println!("struct call: {:?}", tree[range.start as usize].nod);
-    Some(())
+    let range: Range<usize> = range.into();
+    for (local_index, kid_index) in range.clone().enumerate() {
+        let _ = local_index;
+        // TODO Use local_index for Sid.
+        let Nod::Branch {
+            kind: BranchKind::Def,
+            range: field_range,
+        } = tree[kid_index].nod
+        else {
+            continue;
+        };
+        let Nod::Uid { intern, .. } = tree[field_range.start as usize].nod else {
+            continue;
+        };
+        if intern == id.intern {
+            // println!("  found field: {:?} {:?}", intern, tree[kid_index].typ);
+            return Some(tree[kid_index].typ);
+        }
+    }
+    None
 }
 
 fn type_fun(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Type {
