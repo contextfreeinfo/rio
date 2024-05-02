@@ -471,10 +471,15 @@ fn type_dot(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ: T
     //     "dot: {:?} {:?} {:?}",
     //     tree[range.start].typ, struct_type.nod, token
     // );
-    find_field_def(runner, def_tree, def_index, token).unwrap_or(typ)
+    // TODO Modify leaf to Sid or Uid.
+    let Some(uid) = find_field_def(runner, def_tree, def_index, token) else {
+        return typ;
+    };
+    tree[range.start + 1] = uid;
+    uid.typ
 }
 
-fn find_field_def(runner: &Runner, tree: &[Node], at: usize, id: Token) -> Option<Type> {
+fn find_field_def(runner: &Runner, tree: &[Node], at: usize, id: Token) -> Option<Node> {
     let Nod::Branch {
         kind: BranchKind::Def,
         range,
@@ -515,7 +520,10 @@ fn find_field_def(runner: &Runner, tree: &[Node], at: usize, id: Token) -> Optio
     let range: Range<usize> = range.into();
     for (local_index, kid_index) in range.clone().enumerate() {
         let _ = local_index;
-        // TODO Use local_index for Sid.
+        // TODO Use local_index for Sid?
+        // TODO Change to Uid for finished modules?
+        // TODO How do Uids work for local var references already?
+        // TODO Just try Uid to start with?
         let Nod::Branch {
             kind: BranchKind::Def,
             range: field_range,
@@ -523,12 +531,13 @@ fn find_field_def(runner: &Runner, tree: &[Node], at: usize, id: Token) -> Optio
         else {
             continue;
         };
-        let Nod::Uid { intern, .. } = tree[field_range.start as usize].nod else {
+        let field_id = tree[field_range.start as usize];
+        let Nod::Uid { intern, .. } = field_id.nod else {
             continue;
         };
         if intern == id.intern {
             // println!("  found field: {:?} {:?}", intern, tree[kid_index].typ);
-            return Some(tree[kid_index].typ);
+            return Some(field_id);
         }
     }
     None

@@ -65,6 +65,7 @@ pub enum Nod {
         name: Intern,
         module: u16,
     },
+    // TODO Sid for Scope/Struct id?
     Uid {
         intern: Intern,
         module: u16,

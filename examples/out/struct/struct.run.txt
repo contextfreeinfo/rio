@@ -142,7 +142,7 @@ Block
           Uid print@1@652 :@143
           Dot :@135
             Uid person@89 :@140
-            Id "name"
+            Uid name@58 :@135
           /Dot
         /Call
         Call :@142
@@ -156,7 +156,7 @@ Block
                   Uid ge@1@629 :@146
                   Dot :@136
                     Uid person@89 :@140
-                    Id "age"
+                    Uid age@59 :@136
                   /Dot
                   Int32 18 :@136
                 /Call
