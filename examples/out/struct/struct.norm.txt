@@ -18,7 +18,11 @@ Block
           Call
             Id "Person"
             Struct
-              Id "name"
+              Def
+                Id "name"
+                None
+                Id "name"
+              /Def
               Def
                 Id "age"
                 None
@@ -34,10 +38,14 @@ Block
         Call
           Id "describe"
           Struct
-            Dot
-              Id "alice"
+            Def
               Id "age"
-            /Dot
+              None
+              Dot
+                Id "alice"
+                Id "age"
+              /Dot
+            /Def
             Def
               Id "name"
               None
@@ -115,8 +123,16 @@ Block
       /Params
       Block
         Struct
-          Id "name"
-          Id "age"
+          Def
+            Id "name"
+            None
+            Id "name"
+          /Def
+          Def
+            Id "age"
+            None
+            Id "age"
+          /Def
         /Struct
       /Block
     /Fun
@@ -179,4 +195,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 129
+Tree len: 141

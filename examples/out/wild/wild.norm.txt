@@ -212,9 +212,21 @@ Block
           None
           Id "d"
         /Def
-        Id "on"
-        Id "e"
-        Id "x"
+        Def
+          Id "on"
+          None
+          Id "on"
+        /Def
+        Def
+          Id "e"
+          None
+          Id "e"
+        /Def
+        Def
+          Id "x"
+          None
+          Id "x"
+        /Def
       /Struct
     /Call
     List
@@ -390,4 +402,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 292
+Tree len: 301

@@ -140,7 +140,48 @@ impl Normer {
                             if let Nod::Leaf { token } = tree[range.start].nod {
                                 let new_kind = match token.kind {
                                     TokenKind::CurlyOpen | TokenKind::Of => {
-                                        Some(BranchKind::Struct)
+                                        // Special handling for struct field punning.
+                                        for kid_index in range.start + 1..range.end {
+                                            let kid = tree[kid_index];
+                                            match kid.nod {
+                                                Nod::Branch {
+                                                    kind: BranchKind::Def,
+                                                    ..
+                                                } => {
+                                                    // Already a def, so keep it as is.
+                                                    self.rebranch_at(&tree[..=kid_index]);
+                                                }
+                                                _ => {
+                                                    // See if we have a relevant id to pun.
+                                                    let id_node = find_id(&tree[..=kid_index]);
+                                                    if let Some(id_node) = id_node {
+                                                        // Got an id to work with, so pun it.
+                                                        let kid_start = self.builder().pos();
+                                                        self.builder()
+                                                            .push_at(id_node, id_node.source);
+                                                        // self.builder().push_none(kid.source);
+                                                        self.rebranch_at(&tree[..=kid_index]);
+                                                        self.builder().wrap(
+                                                            BranchKind::Def,
+                                                            kid_start,
+                                                            Type::default(),
+                                                            kid.source,
+                                                        );
+                                                    } else {
+                                                        // Nope, so don't bother.
+                                                        // TODO Always make defs in structs, but with some blank ("_") id?
+                                                        self.rebranch_at(&tree[..=kid_index]);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        self.builder().wrap(
+                                            BranchKind::Struct,
+                                            start,
+                                            Type::default(),
+                                            node.source,
+                                        );
+                                        return Some(());
                                     }
                                     TokenKind::With => Some(BranchKind::List),
                                     _ => None,
@@ -293,5 +334,42 @@ impl Normer {
             _ => todo!(),
         }
         Some(())
+    }
+}
+
+/// Find an id for punning purposes.
+fn find_id(tree: &[Node]) -> Option<Node> {
+    let node = *tree.last()?;
+    match node.nod {
+        // Dig into dots.
+        Nod::Branch {
+            kind: BranchKind::Infix,
+            range,
+        } => {
+            let range: Range<usize> = range.into();
+            if range.len() > 2
+                && matches!(
+                    tree[range.end - 2].nod,
+                    Nod::Leaf {
+                        token: Token {
+                            kind: TokenKind::Dot,
+                            ..
+                        }
+                    }
+                )
+            {
+                find_id(&tree[..range.end])
+            } else {
+                None
+            }
+        }
+        // Simple id.
+        Nod::Leaf {
+            token: Token {
+                kind: TokenKind::Id,
+                ..
+            },
+        } => Some(node),
+        _ => None,
     }
 }

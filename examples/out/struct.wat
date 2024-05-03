@@ -61,23 +61,24 @@
     local.get 1
   )
   (func (;5;) (type 6)
-    (local i32 i32 i32 i32 i32 i32 i32 i32 i32)
+    (local i32 i32 i32 i32 i32 i32 i32 i32 i32 i32 i32)
     i32.const 5
     i32.const 4098
     local.set 1
     local.set 0
-    local.get 0
-    local.get 1
-    i32.const 40
+    local.get 3
     local.set 3
+    i32.const 40
+    local.set 4
     local.set 2
     local.get 2
     call 7
     local.get 2
+    local.set 5
     i32.const 3
     i32.const 4104
-    local.set 5
-    local.set 4
+    local.set 7
+    local.set 6
     call 7
     i32.const 4
     i32.const 4108
@@ -85,17 +86,19 @@
     call 6
     call 7
     i32.const 9
-    local.set 6
+    local.set 8
     i32.const 6
     i32.const 4113
-    local.set 8
-    local.set 7
+    local.set 10
+    local.set 9
     call 7
   )
   (func (;6;) (type 7) (param i32 i32 i32)
-    local.get 0
-    local.get 1
-    local.get 2
+    (local i32 i32)
+    local.get 3
+    local.set 3
+    local.get 4
+    local.set 4
   )
   (func (;7;) (type 11) (param i32)
     i32.const 7
