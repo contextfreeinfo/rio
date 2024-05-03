@@ -170,10 +170,13 @@ impl Typer {
 }
 
 pub fn type_tree(runner: &mut Runner, tree: &mut [Node]) {
+    // println!("\n\n--- Start typing ---\n");
     if !tree.is_empty() {
         let end = tree.len() - 1;
-        // I've seen it need 3 to percolate some things back and forth.
-        for _ in 0..3 {
+        // I've seen it need 4 or 5 to percolate some things back and forth.
+        // So allow at least some bonus beyond that.
+        for _i in 0..10 {
+            // println!("Super loop {_i}");
             runner.typer.any_change = false;
             // Keep full tree for typing or eval so we can reference anywhere.
             type_any(runner, tree, end, Type(0));
@@ -224,13 +227,14 @@ fn build_type(runner: &mut Runner, tree: &[Node]) -> Option<Type> {
     match node.nod {
         // TODO Complex types.
         Nod::Uid { .. } => {
-            // TODO Try to look up existing type after pushing.
-            if node.typ.0 == 0 {
-                runner.typer.types_mut().push(*node);
-                Some(runner.typer.unify())
-            } else {
-                Some(node.typ)
-            }
+            let node = Node {
+                // Only function types should have types on them so far.
+                typ: Type(0),
+                ..*node
+            };
+            runner.typer.types_mut().push(node);
+            // Try to look up existing type after pushing.
+            Some(runner.typer.unify())
         }
         _ => None,
     }
@@ -361,15 +365,26 @@ fn type_call(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut t
     for (local_index, kid_index) in range.clone().enumerate() {
         let kid = tree[kid_index];
         if local_index == 0 {
+            let CoreExports {
+                branch_fun,
+                type_type,
+                ..
+            } = runner.cart.core_exports;
             if kid.typ.0 != 0 {
                 // TODO Also grab all expected param types for later kids.
-                let return_type = runner.typer.types_ref().working[kid.typ.0 as usize - 1].typ;
+                let callee_type = runner.typer.types_ref().working[kid.typ.0 as usize - 1];
+                let return_type = callee_type.typ;
                 if return_type.0 != 0 {
                     typ = return_type;
+                } else if let Nod::Uid { module, num, .. } = callee_type.nod {
+                    if module == type_type.module && num == type_type.num {
+                        if let Some(built_type) = build_type(runner, &tree[..=kid_index]) {
+                            typ = built_type;
+                        }
+                    }
                 }
             } else if let Nod::Uid { module, num, .. } = kid.nod {
                 // Special-case some until we process type args.
-                let branch_fun = runner.cart.core_exports.branch_fun;
                 if module == branch_fun.module && num == branch_fun.num {
                     type_branch = true;
                 }

@@ -1,29 +1,29 @@
 Block
   Module "examples/branch.rio" 2
-  Def@108 :@96
-    Uid main@108* :@96
+  Def@109 :@107
+    Uid main@109* :@107
     None
-    Fun :@96
+    Fun :@107
       Params
       Params
-      Block
-        Call
-          Uid describe@109 :@106
+      Block :@97
+        Call :@97
+          Uid describe@110 :@106
           Int32 2 :@95
         /Call
-        Call
-          Uid describe@109 :@106
+        Call :@97
+          Uid describe@110 :@106
           Int32 -1 :@95
         /Call
-        Call
-          Uid describe@109 :@106
+        Call :@97
+          Uid describe@110 :@106
           Int32 0 :@95
         /Call
       /Block
     /Fun
   /Def
-  Def@109 :@106
-    Uid describe@109 :@106
+  Def@110 :@106
+    Uid describe@110 :@106
     None
     Fun :@106
       Params
@@ -38,15 +38,15 @@ Block
         Call :@97
           Uid print@1@652 :@99
           Call :@98
-            Uid description@110 :@104
+            Uid description@111 :@104
             Uid i@19 :@95
           /Call
         /Call
       /Block
     /Fun
   /Def
-  Def@110 :@104
-    Uid description@110 :@104
+  Def@111 :@104
+    Uid description@111 :@104
     None
     Fun :@104
       Params
@@ -93,8 +93,8 @@ Block
       /Block
     /Fun
   /Def
-  Def@111 :@103
-    Uid less@111 :@103
+  Def@112 :@103
+    Uid less@112 :@103
     None
     Fun :@103
       Params
@@ -147,8 +147,9 @@ Block
     /FunType
     FunType@106 :@97
       None :@95
+    FunType@107 :@97
   /Types
 /Block
 
 Node size: 20
-Tree len: 113
+Tree len: 114

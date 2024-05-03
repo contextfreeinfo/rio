@@ -1,22 +1,22 @@
 Block
   Module "examples/struct.rio" 2
-  Def@150 :@137
-    Uid main@150* :@137
+  Def@151 :@149
+    Uid main@151* :@149
     None
-    Fun :@137
+    Fun :@149
       Params
       Params
-      Block
+      Block :@142
         Def@40 :@135
           Uid name@40 :@135
           None
           String "Alice" :@135
         /Def
-        Def@41
-          Uid alice@41
+        Def@41 :@140
+          Uid alice@41 :@140
           None
-          Call
-            Uid Person@151 :@138
+          Call :@140
+            Uid Person@152 :@138
             Struct
               Uid name@40 :@135
               Def@8 :@136
@@ -27,16 +27,16 @@ Block
             /Struct
           /Call
         /Def
-        Call
-          Uid describe@153 :@148
-          Uid alice@41
+        Call :@142
+          Uid describe@154 :@148
+          Uid alice@41 :@140
         /Call
-        Call
-          Uid describe@153 :@148
+        Call :@142
+          Uid describe@154 :@148
           Struct
-            Dot
-              Uid alice@41
-              Id "age"
+            Dot :@136
+              Uid alice@41 :@140
+              Uid age@59 :@136
             /Dot
             Def@22 :@135
               Uid name@22 :@135
@@ -45,16 +45,16 @@ Block
             /Def
           /Struct
         /Call
-        Call
-          Uid describe@153 :@148
+        Call :@142
+          Uid describe@154 :@148
           Call :@140
-            Uid build@152 :@141
+            Uid build@153 :@141
             String "Carl" :@135
             Int32 10 :@136
           /Call
         /Call
-        Call
-          Uid describe@153 :@148
+        Call :@142
+          Uid describe@154 :@148
           Struct
             Def@36 :@136
               Uid age@36 :@136
@@ -71,8 +71,8 @@ Block
       /Block
     /Fun
   /Def
-  Def@151 :@138
-    Uid Person@151 :@138
+  Def@152 :@138
+    Uid Person@152 :@138
     None
     Call :@138
       Uid struct@1@653 :@139
@@ -90,8 +90,8 @@ Block
       /Struct
     /Call
   /Def
-  Def@152 :@141
-    Uid build@152 :@141
+  Def@153 :@141
+    Uid build@153 :@141
     None
     Fun :@141
       Params
@@ -109,7 +109,7 @@ Block
       Params
         Def@76 :@140
           None :@140
-          Uid Person@151 :@138
+          Uid Person@152 :@138
           None :@140
         /Def
       /Params
@@ -121,14 +121,14 @@ Block
       /Block
     /Fun
   /Def
-  Def@153 :@148
-    Uid describe@153 :@148
+  Def@154 :@148
+    Uid describe@154 :@148
     None
     Fun :@148
       Params
         Def@89 :@140
           Uid person@89 :@140
-          Uid Person@151 :@138
+          Uid Person@152 :@138
           None :@140
         /Def
       /Params
@@ -182,7 +182,7 @@ Block
     FunType@137
     Uid@138 Type@1@640
     FunType@139 :@138
-    Uid@140 Person@151
+    Uid@140 Person@152
     FunType@141 :@140
       None :@135
       None :@136
@@ -205,8 +205,9 @@ Block
       None :@140
     FunType@148 :@142
       None :@140
+    FunType@149 :@142
   /Types
 /Block
 
 Node size: 20
-Tree len: 155
+Tree len: 156
