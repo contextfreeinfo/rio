@@ -13,6 +13,7 @@ pub struct Normer {
 /// Provide easy access for comparing resolutions to core native definitions.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CoreInterns {
+    add: Intern,
     eq: Intern,
     ge: Intern,
     gt: Intern,
@@ -20,11 +21,13 @@ pub struct CoreInterns {
     lt: Intern,
     ne: Intern,
     pair: Intern,
+    sub: Intern,
 }
 
 impl CoreInterns {
     pub fn new(interner: &Interner) -> Self {
         Self {
+            add: interner.get_or_intern("add"),
             eq: interner.get_or_intern("eq"),
             ge: interner.get_or_intern("ge"),
             gt: interner.get_or_intern("gt"),
@@ -32,6 +35,7 @@ impl CoreInterns {
             lt: interner.get_or_intern("lt"),
             ne: interner.get_or_intern("ne"),
             pair: interner.get_or_intern("Pair"),
+            sub: interner.get_or_intern("sub"),
         }
     }
 }
@@ -208,7 +212,9 @@ impl Normer {
                                         TokenKind::Eq => self.cart.core_interns.eq,
                                         TokenKind::GreaterEq => self.cart.core_interns.ge,
                                         TokenKind::LessEq => self.cart.core_interns.le,
+                                        TokenKind::Minus => self.cart.core_interns.sub,
                                         TokenKind::NotEq => self.cart.core_interns.ne,
+                                        TokenKind::Plus => self.cart.core_interns.add,
                                         TokenKind::To => self.cart.core_interns.pair,
                                         _ => return false,
                                     };

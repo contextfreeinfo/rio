@@ -83,16 +83,16 @@ Block
     Uid Person@164 :@150
     None
     Call :@150
-      Uid struct@1@653 :@151
+      Uid struct@1@698 :@151
       Struct
         Def@64 :@147
           Uid name@64 :@147
-          Uid Text@1@639 :@150
+          Uid Text@1@684 :@150
           None :@147
         /Def
         Def@65 :@148
           Uid age@65 :@148
-          Uid Int32@1@627
+          Uid Int32@1@670
           None :@148
         /Def
       /Struct
@@ -105,12 +105,12 @@ Block
       Params
         Def@77 :@147
           Uid name@77 :@147
-          Uid Text@1@639 :@150
+          Uid Text@1@684 :@150
           None :@147
         /Def
         Def@78 :@148
           Uid age@78 :@148
-          Uid Int32@1@627
+          Uid Int32@1@670
           None :@148
         /Def
       /Params
@@ -151,25 +151,25 @@ Block
       Params
       Block :@154
         Call :@154
-          Uid print@1@652 :@155
+          Uid print@1@697 :@155
           String "Person:" :@147
         /Call
         Call :@154
-          Uid print@1@652 :@155
+          Uid print@1@697 :@155
           Dot :@147
             Uid person@101 :@152
             Uid name@64 :@147
           /Dot
         /Call
         Call :@154
-          Uid print@1@652 :@155
+          Uid print@1@697 :@155
           Call :@147
-            Uid branch@1@643
+            Uid branch@1@688
             List
               Call
-                Uid Pair@1@638 :@156
+                Uid Pair@1@683 :@156
                 Call :@157
-                  Uid ge@1@629 :@158
+                  Uid ge@1@673 :@158
                   Dot :@148
                     Uid person@101 :@152
                     Uid age@65 :@148
@@ -179,31 +179,31 @@ Block
                 String "adult" :@147
               /Call
               Call
-                Uid else@1@646
+                Uid else@1@691
                 String "minor" :@147
               /Call
             /List
           /Call
         /Call
         Call :@154
-          Uid print@1@652 :@155
+          Uid print@1@697 :@155
           String "" :@147
         /Call
       /Block
     /Fun
   /Def
   Types
-    Uid@147 Text@1@639
-    Uid@148 Int32@1@627
+    Uid@147 Text@1@684
+    Uid@148 Int32@1@670
     FunType@149
-    Uid@150 Type@1@640
+    Uid@150 Type@1@685
     FunType@151 :@150
     Uid@152 Person@164
     FunType@153 :@152
       None :@147
       None :@148
     /FunType
-    Uid@154 Void@1@641
+    Uid@154 Void@1@686
     FunType@155 :@154
       None :@147
     FunType@156
@@ -212,7 +212,7 @@ Block
       None
       None
     /FunType
-    Uid@157 Claim@1@624
+    Uid@157 Claim@1@667
     FunType@158 :@157
       None :@148
       None :@148

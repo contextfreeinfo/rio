@@ -602,6 +602,12 @@ impl<'a> WasmWriter<'a> {
                                 handled = true;
                                 // TODO Put these in a lookup table also?
                                 match () {
+                                    _ if num == core.add_fun.num => match arg_type {
+                                        Some(SimpleWasmType::I32) => {
+                                            fun.instruction(&Instruction::I32Add);
+                                        }
+                                        _ => {}
+                                    },
                                     _ if num == core.eq_fun.num => match arg_type {
                                         Some(SimpleWasmType::I32) => {
                                             fun.instruction(&Instruction::I32Eq);
@@ -641,6 +647,12 @@ impl<'a> WasmWriter<'a> {
                                     _ if num == core.print_fun.num => {
                                         fun.instruction(&Instruction::Call(self.predefs.print_fun));
                                     }
+                                    _ if num == core.sub_fun.num => match arg_type {
+                                        Some(SimpleWasmType::I32) => {
+                                            fun.instruction(&Instruction::I32Sub);
+                                        }
+                                        _ => {}
+                                    },
                                     _ => {
                                         handled = false;
                                     }

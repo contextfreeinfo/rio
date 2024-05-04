@@ -174,14 +174,14 @@ Block
   VSpace "\n"
   VSpace "\n"
   Call
-    Id "-"
+    Minus "-"
     HSpace " "
     Int "5"
   /Call
   Comma ";"
   HSpace " "
   Call
-    Id "-"
+    Minus "-"
     RoundOpen "("
     Int "5"
     RoundClose ")"

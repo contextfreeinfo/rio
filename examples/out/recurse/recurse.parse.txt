@@ -45,7 +45,7 @@ Block
           Id "count"
           Colon ":"
           HSpace " "
-          Id "Int"
+          Id "Int32"
         /Typed
         RoundClose ")"
       /Params
@@ -88,13 +88,13 @@ Block
               Call
                 Id "recurse"
                 RoundOpen "("
-                Call
+                Infix
                   Id "count"
                   HSpace " "
-                  Id "-"
+                  Minus "-"
                   HSpace " "
                   Int "1"
-                /Call
+                /Infix
                 RoundClose ")"
               /Call
             /Infix

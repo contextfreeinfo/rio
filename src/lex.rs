@@ -46,9 +46,11 @@ pub enum TokenKind {
     Id,
     Int,
     LessEq,
+    Minus,
     None,
     NotEq,
     Of,
+    Plus,
     RoundClose,
     RoundOpen,
     Star,
@@ -144,6 +146,7 @@ impl<'a> Lexer<'a> {
                         }
                     }
                     '*' => self.trim_push(&mut source, TokenKind::Star),
+                    '+' => self.trim_push(&mut source, TokenKind::Plus),
                     '-' | '0'..='9' if self.buffer().is_empty() => self.number(&mut source),
                     _ => {
                         self.next(&mut source);
@@ -203,6 +206,7 @@ impl<'a> Lexer<'a> {
         }
         if negative && self.buffer().len() < 2 {
             // Disconnected minus.
+            self.push(TokenKind::Minus);
             return;
         }
         self.push(TokenKind::Int);

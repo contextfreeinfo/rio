@@ -60,6 +60,7 @@ impl Module {
 /// Provide easy access for comparing resolutions to core native definitions.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CoreExports {
+    pub add_fun: ScopeEntry,
     pub branch_fun: ScopeEntry,
     pub else_fun: ScopeEntry,
     pub eq_fun: ScopeEntry,
@@ -74,6 +75,7 @@ pub struct CoreExports {
     pub pair_type: ScopeEntry,
     pub print_fun: ScopeEntry,
     pub struct_fun: ScopeEntry,
+    pub sub_fun: ScopeEntry,
     pub text_type: ScopeEntry,
     pub type_type: ScopeEntry,
     pub void_type: ScopeEntry,
@@ -86,6 +88,7 @@ impl CoreExports {
             core.get_top(interner.get(name).unwrap()).unwrap()
         };
         CoreExports {
+            add_fun: get("add"),
             branch_fun: get("branch"),
             else_fun: get("else"),
             eq_fun: get("eq"),
@@ -100,6 +103,7 @@ impl CoreExports {
             pair_type: get("Pair"),
             print_fun: get("print"),
             struct_fun: get("struct"),
+            sub_fun: get("sub"),
             text_type: get("Text"),
             type_type: get("Type"),
             void_type: get("Void"),
@@ -305,27 +309,27 @@ impl<'a> Runner<'a> {
                 match kind {
                     BranchKind::Def => {
                         let entry = scope_entry(&tree[..=range.start]);
-                        let is_fun = matches!(
-                            tree[range.end - 1].nod,
-                            Nod::Branch {
-                                kind: BranchKind::Fun,
-                                ..
-                            }
-                        );
+                        // Technically, don't need letrec for tops/classes.
+                        // TODO Which is less surprising/confusing/annoying?
+                        // let is_fun = matches!(
+                        //     tree[range.end - 1].nod,
+                        //     Nod::Branch {
+                        //         kind: BranchKind::Fun,
+                        //         ..
+                        //     }
+                        // );
                         // Add scope def either before or after resolving kids depending on simple fun def.
                         // This is currently the "let vs let rec" of Rio.
-                        if is_fun {
-                            if let Some(entry) = entry {
-                                self.scope.push(entry);
-                            }
-                        }
+                        // if is_fun {
+                        //     if let Some(entry) = entry {
+                        //         self.scope.push(entry);
+                        //     }
+                        // }
                         for kid_index in range.clone() {
                             self.resolve_at(&tree[..=kid_index]);
                         }
-                        if !is_fun {
-                            if let Some(entry) = entry {
-                                self.scope.push(entry);
-                            }
+                        if let Some(entry) = entry {
+                            self.scope.push(entry);
                         }
                     }
                     BranchKind::Dot => {

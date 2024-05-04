@@ -69,8 +69,11 @@
     call 1
     local.get 0
     i32.const 1
+    i32.gt_s
     if ;; label = @1
+      local.get 0
       i32.const 1
+      i32.sub
       call 6
     else
       if ;; label = @2

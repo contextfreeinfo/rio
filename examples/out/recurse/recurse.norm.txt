@@ -21,7 +21,7 @@ Block
       Params
         Def
           Id "count"
-          Id "Int"
+          Id "Int32"
           None
         /Def
       /Params
@@ -44,8 +44,8 @@ Block
               Call
                 Id "recurse"
                 Call
+                  Id "sub"
                   Id "count"
-                  Id "-"
                   Int32 1
                 /Call
               /Call

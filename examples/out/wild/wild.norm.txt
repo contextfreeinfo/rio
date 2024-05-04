@@ -68,11 +68,11 @@ Block
     /Fun
   /Call
   Call
-    Id "-"
+    Minus "-"
     Int32 5
   /Call
   Call
-    Id "-"
+    Minus "-"
     Int32 5
   /Call
   Fun

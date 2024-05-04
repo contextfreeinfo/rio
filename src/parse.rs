@@ -70,6 +70,8 @@ impl Parser {
         }
     }
 
+    define_infix!(add, call_tight, true, TokenKind::Minus | TokenKind::Plus);
+
     fn atom(&mut self, source: &mut Tokens) -> Option<()> {
         debug!("atom");
         self.skip_h(source);
@@ -249,7 +251,7 @@ impl Parser {
 
     define_infix!(
         compare,
-        call_tight,
+        add,
         true,
         TokenKind::AngleClose
             | TokenKind::AngleOpen

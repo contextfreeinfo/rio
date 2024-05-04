@@ -69,11 +69,11 @@ Block
     /Fun
   /Call
   Call
-    Id "-"
+    Minus "-"
     Int32 5 :@269
   /Call
   Call
-    Id "-"
+    Minus "-"
     Int32 5 :@269
   /Call
   Fun :@272
@@ -313,7 +313,7 @@ Block
     /Dot
   /Call
   Call :@271
-    Uid print@1@652 :@274
+    Uid print@1@697 :@274
     Id "item"
   /Call
   Call
@@ -321,17 +321,17 @@ Block
     Id "x"
     List
       Call
-        Uid Pair@1@638 :@275
+        Uid Pair@1@683 :@275
         Int32 0 :@269
         String "no" :@273
       /Call
       Call
-        Uid Pair@1@638 :@275
+        Uid Pair@1@683 :@275
         Int32 1 :@269
         String "a single" :@273
       /Call
       Call
-        Uid Pair@1@638 :@275
+        Uid Pair@1@683 :@275
         Int32 2 :@269
         String "a couple of" :@273
       /Call
@@ -343,21 +343,21 @@ Block
       Int32 5 :@269
       Int32 6 :@269
       Call
-        Uid Pair@1@638 :@275
+        Uid Pair@1@683 :@275
         Id "]"
         String "a few of" :@273
       /Call
       Call
         Id "case"
         Call :@276
-          Uid lt@1@632 :@277
+          Uid lt@1@676 :@277
           Id "x"
           Int32 0 :@269
         /Call
         String "negative" :@273
       /Call
       Call
-        Uid else@1@646
+        Uid else@1@691
         String "several" :@273
       /Call
     /List
@@ -367,9 +367,9 @@ Block
     Id "dog"
   /Call
   Call
-    Uid Pair@1@638 :@275
+    Uid Pair@1@683 :@275
     Call
-      Uid Pair@1@638 :@275
+      Uid Pair@1@683 :@275
       Id "a"
       Uid b@279 :@269
     /Call
@@ -377,7 +377,7 @@ Block
   /Call
   Call
     Call
-      Uid Pair@1@638 :@275
+      Uid Pair@1@683 :@275
       Id "a"
       To "to"
     /Call
@@ -385,14 +385,14 @@ Block
   /Call
   Call
     Call
-      Uid Pair@1@638 :@275
+      Uid Pair@1@683 :@275
       Id "fish"
       To "to"
     /Call
     Id "giraffe"
   /Call
   Call
-    Uid Pair@1@638 :@275
+    Uid Pair@1@683 :@275
     To "to"
     Id "hyena"
   /Call
@@ -401,12 +401,12 @@ Block
     Block
   /Call
   Types
-    Uid@269 Int32@1@627
+    Uid@269 Int32@1@670
     FunType@270
       None
-    Uid@271 Void@1@641
+    Uid@271 Void@1@686
     FunType@272 :@271
-    Uid@273 Text@1@639
+    Uid@273 Text@1@684
     FunType@274 :@271
       None :@273
     FunType@275
@@ -415,7 +415,7 @@ Block
       None
       None
     /FunType
-    Uid@276 Claim@1@624
+    Uid@276 Claim@1@667
     FunType@277 :@276
       None :@269
       None :@269
