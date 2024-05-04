@@ -1,0 +1,11 @@
+main* = for() be
+    recurse(3)
+end
+
+recurse = for(count: Int) be
+    print("counting ...")
+    branch with
+        count > 1 to recurse(count - 1)
+        else to print("done")
+    end
+end

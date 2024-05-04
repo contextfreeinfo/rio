@@ -1,0 +1,69 @@
+Block
+  Def
+    Pub
+      Id "main"
+    None
+    Fun
+      Params
+      Params
+      Block
+        Call
+          Id "recurse"
+          Int32 3
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    Id "recurse"
+    None
+    Fun
+      Params
+        Def
+          Id "count"
+          Id "Int"
+          None
+        /Def
+      /Params
+      Params
+      Block
+        Call
+          Id "print"
+          String "counting ..."
+        /Call
+        Call
+          Id "branch"
+          List
+            Call
+              Id "Pair"
+              Call
+                Id "gt"
+                Id "count"
+                Int32 1
+              /Call
+              Call
+                Id "recurse"
+                Call
+                  Id "count"
+                  Id "-"
+                  Int32 1
+                /Call
+              /Call
+            /Call
+            Call
+              Id "Pair"
+              Id "else"
+              Call
+                Id "print"
+                String "done"
+              /Call
+            /Call
+          /List
+        /Call
+      /Block
+    /Fun
+  /Def
+/Block
+
+Node size: 20
+Tree len: 47

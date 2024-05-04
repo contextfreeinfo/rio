@@ -1,0 +1,90 @@
+Block
+  Module "examples/recurse.rio" 2
+  Def@62 :@53
+    Uid main@62* :@53
+    None
+    Fun :@53
+      Params
+      Params
+      Block
+        Call
+          Uid recurse@63 :@60
+          Int32 3 :@52
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def@63 :@60
+    Uid recurse@63 :@60
+    None
+    Fun :@60
+      Params
+        Def@13
+          Uid count@13
+          Id "Int"
+          None
+        /Def
+      /Params
+      Params
+      Block
+        Call :@54
+          Uid print@1@652 :@56
+          String "counting ..." :@55
+        /Call
+        Call
+          Uid branch@1@643
+          List
+            Call
+              Uid Pair@1@638 :@57
+              Call :@58
+                Uid gt@1@630 :@59
+                Uid count@13
+                Int32 1 :@52
+              /Call
+              Call
+                Uid recurse@63 :@60
+                Call
+                  Uid count@13
+                  Id "-"
+                  Int32 1 :@52
+                /Call
+              /Call
+            /Call
+            Call
+              Uid Pair@1@638 :@57
+              Uid else@1@646
+              Call :@54
+                Uid print@1@652 :@56
+                String "done" :@55
+              /Call
+            /Call
+          /List
+        /Call
+      /Block
+    /Fun
+  /Def
+  Types
+    Uid@52 Int32@1@627
+    FunType@53
+    Uid@54 Void@1@641
+    Uid@55 Text@1@639
+    FunType@56 :@54
+      None :@55
+    FunType@57
+      None
+      None
+      None
+      None
+    /FunType
+    Uid@58 Claim@1@624
+    FunType@59 :@58
+      None :@52
+      None :@52
+    /FunType
+    FunType@60
+      None
+  /Types
+/Block
+
+Node size: 20
+Tree len: 65

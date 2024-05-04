@@ -287,6 +287,7 @@ impl<'a> Runner<'a> {
     }
 
     fn resolve(&mut self, tree: &mut Vec<Node>) {
+        // println!("\n--- Resolving ---\n");
         self.builder().clear();
         self.resolve_at(tree);
         self.builder()
@@ -301,17 +302,34 @@ impl<'a> Runner<'a> {
                 let scope_start = self.scope.len();
                 let start = self.builder().pos();
                 let range: Range<usize> = range.into();
-                for (local_index, kid_index) in range.clone().enumerate() {
-                    match kind {
-                        BranchKind::Def => {
-                            if local_index == 0 {
-                                match scope_entry(&tree[..=kid_index]) {
-                                    Some(entry) => self.scope.push(entry),
-                                    None => (),
-                                }
+                match kind {
+                    BranchKind::Def => {
+                        let entry = scope_entry(&tree[..=range.start]);
+                        let is_fun = matches!(
+                            tree[range.end - 1].nod,
+                            Nod::Branch {
+                                kind: BranchKind::Fun,
+                                ..
+                            }
+                        );
+                        // Add scope def either before or after resolving kids depending on simple fun def.
+                        // This is currently the "let vs let rec" of Rio.
+                        if is_fun {
+                            if let Some(entry) = entry {
+                                self.scope.push(entry);
                             }
                         }
-                        BranchKind::Dot => {
+                        for kid_index in range.clone() {
+                            self.resolve_at(&tree[..=kid_index]);
+                        }
+                        if !is_fun {
+                            if let Some(entry) = entry {
+                                self.scope.push(entry);
+                            }
+                        }
+                    }
+                    BranchKind::Dot => {
+                        for kid_index in range.clone() {
                             if kid_index == range.end - 1 {
                                 // Resolving dot targets is different.
                                 // But only bother with special treatment for simple leaves.
@@ -321,10 +339,19 @@ impl<'a> Runner<'a> {
                                     continue;
                                 }
                             }
+                            self.resolve_at(&tree[..=kid_index]);
                         }
-                        _ => {}
                     }
-                    self.resolve_at(&tree[..=kid_index]);
+                    _ => {
+                        if matches!(kind, BranchKind::Def) {
+                            if let Some(entry) = scope_entry(&tree[..=range.start]) {
+                                self.scope.push(entry);
+                            }
+                        }
+                        for kid_index in range.clone() {
+                            self.resolve_at(&tree[..=kid_index]);
+                        }
+                    }
                 }
                 match node.nod {
                     Nod::Branch {
@@ -348,6 +375,10 @@ impl<'a> Runner<'a> {
                         intern,
                     },
             } => {
+                // println!(
+                //     "Checking {:?} @{}",
+                //     &self.cart.interner[intern], node.source.0
+                // );
                 let node = match self.resolve_def(intern) {
                     Some(entry) => Node {
                         nod: Nod::Uid {
@@ -370,13 +401,18 @@ impl<'a> Runner<'a> {
 
     fn resolve_def(&mut self, intern: Intern) -> Option<ScopeEntry> {
         for entry in self.scope.iter().rev() {
-            // println!("Check {intern:?} vs {entry:?}");
+            // println!(
+            //     "   Check {:?} at {}/{}",
+            //     &self.cart.interner[entry.intern], entry.module, entry.num
+            // );
             if entry.intern == intern {
+                // println!("   Found in scope!");
                 // TODO Check overloads! Would need more context specs.
                 return Some(*entry);
             }
         }
         if let Some(entry) = self.tops.get(intern).next() {
+            // println!("   Found at top!");
             // TODO Check overloads!
             return Some(*entry);
         }

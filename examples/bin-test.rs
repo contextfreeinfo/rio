@@ -43,7 +43,9 @@ fn build_and_run(profile: &str, cli: &Cli) {
     // Report
     report_build(&rio, start.elapsed());
     // Run
-    for example in ["branch", "hi", "struct", "wild"] {
+    let examples = ["branch", "hi", "recurse", "struct", "wild"];
+    // let examples = ["struct"];
+    for example in examples {
         run_example(&rio, example, cli);
     }
 }

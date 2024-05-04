@@ -18,10 +18,10 @@ Block
           Call :@152
             Uid Person@164 :@150
             Struct
-              Def@10
-                Uid name@10
+              Def@10 :@147
+                Uid name@10 :@147
                 None
-                Uid name@10
+                Uid name@46 :@147
               /Def
               Def@11 :@148
                 Uid age@11 :@148
@@ -123,15 +123,15 @@ Block
       /Params
       Block :@152
         Struct :@152
-          Def@89
-            Uid name@89
+          Def@89 :@147
+            Uid name@89 :@147
             None
-            Uid name@89
+            Uid name@77 :@147
           /Def
-          Def@90
-            Uid age@90
+          Def@90 :@148
+            Uid age@90 :@148
             None
-            Uid age@90
+            Uid age@78 :@148
           /Def
         /Struct
       /Block
