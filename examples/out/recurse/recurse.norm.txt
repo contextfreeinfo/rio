@@ -8,14 +8,14 @@ Block
       Params
       Block
         Call
-          Id "recurse"
+          Id "count-down"
           Int32 3
         /Call
       /Block
     /Fun
   /Def
   Def
-    Id "recurse"
+    Id "count-down"
     None
     Fun
       Params
@@ -42,7 +42,7 @@ Block
                 Int32 1
               /Call
               Call
-                Id "recurse"
+                Id "count-down"
                 Call
                   Id "sub"
                   Id "count"
@@ -51,7 +51,6 @@ Block
               /Call
             /Call
             Call
-              Id "Pair"
               Id "else"
               Call
                 Id "print"
@@ -63,7 +62,22 @@ Block
       /Block
     /Fun
   /Def
+  Def
+    Id "is-even"
+    None
+    Fun
+      Params
+        Def
+          Id "i"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+      Block
+    /Fun
+  /Def
 /Block
 
 Node size: 20
-Tree len: 47
+Tree len: 57

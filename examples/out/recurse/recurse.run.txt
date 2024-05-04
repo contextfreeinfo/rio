@@ -1,61 +1,60 @@
 Block
   Module "examples/recurse.rio" 2
-  Def@65 :@55
-    Uid main@65* :@55
+  Def@74 :@64
+    Uid main@74* :@64
     None
-    Fun :@55
+    Fun :@64
       Params
       Params
       Block
         Call
-          Uid recurse@66 :@63
-          Int32 3 :@54
+          Uid count-down@75 :@72
+          Int32 3 :@63
         /Call
       /Block
     /Fun
   /Def
-  Def@66 :@63
-    Uid recurse@66 :@63
+  Def@75 :@72
+    Uid count-down@75 :@72
     None
-    Fun :@63
+    Fun :@72
       Params
-        Def@13 :@54
-          Uid count@13 :@54
+        Def@13 :@63
+          Uid count@13 :@63
           Uid Int32@1@670
-          None :@54
+          None :@63
         /Def
       /Params
       Params
       Block
-        Call :@56
-          Uid print@1@697 :@58
-          String "counting ..." :@57
+        Call :@65
+          Uid print@1@697 :@67
+          String "counting ..." :@66
         /Call
         Call
           Uid branch@1@688
           List
             Call
-              Uid Pair@1@683 :@59
-              Call :@60
-                Uid gt@1@674 :@61
-                Uid count@13 :@54
-                Int32 1 :@54
+              Uid Pair@1@683 :@68
+              Call :@69
+                Uid gt@1@674 :@70
+                Uid count@13 :@63
+                Int32 1 :@63
               /Call
               Call
-                Uid recurse@66 :@63
-                Call :@54
-                  Uid sub@1@678 :@62
-                  Uid count@13 :@54
-                  Int32 1 :@54
+                Uid count-down@75 :@72
+                Call :@63
+                  Uid sub@1@678 :@71
+                  Uid count@13 :@63
+                  Int32 1 :@63
                 /Call
               /Call
             /Call
             Call
-              Uid Pair@1@683 :@59
               Uid else@1@691
-              Call :@56
-                Uid print@1@697 :@58
-                String "done" :@57
+              Call :@65
+                Uid print@1@697 :@67
+                String "done" :@66
               /Call
             /Call
           /List
@@ -63,32 +62,47 @@ Block
       /Block
     /Fun
   /Def
+  Def@76 :@72
+    Uid is-even@76 :@72
+    None
+    Fun :@72
+      Params
+        Def@46 :@63
+          Uid i@46 :@63
+          Uid Int32@1@670
+          None :@63
+        /Def
+      /Params
+      Params
+      Block
+    /Fun
+  /Def
   Types
-    Uid@54 Int32@1@670
-    FunType@55
-    Uid@56 Void@1@686
-    Uid@57 Text@1@684
-    FunType@58 :@56
-      None :@57
-    FunType@59
+    Uid@63 Int32@1@670
+    FunType@64
+    Uid@65 Void@1@686
+    Uid@66 Text@1@684
+    FunType@67 :@65
+      None :@66
+    FunType@68
       None
       None
       None
       None
     /FunType
-    Uid@60 Claim@1@667
-    FunType@61 :@60
-      None :@54
-      None :@54
+    Uid@69 Claim@1@667
+    FunType@70 :@69
+      None :@63
+      None :@63
     /FunType
-    FunType@62 :@54
-      None :@54
-      None :@54
+    FunType@71 :@63
+      None :@63
+      None :@63
     /FunType
-    FunType@63
-      None :@54
+    FunType@72
+      None :@63
   /Types
 /Block
 
 Node size: 20
-Tree len: 68
+Tree len: 78

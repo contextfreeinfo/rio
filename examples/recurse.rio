@@ -1,11 +1,14 @@
 main* = for() be
-    recurse(3)
+    count-down(3)
 end
 
-recurse = for(count: Int32) be
+count-down = for(count: Int32) be
     print("counting ...")
     branch with
-        count > 1 to recurse(count - 1)
-        else to print("done")
+        count > 1 to count-down(count - 1)
+        else print("done")
     end
+end
+
+is-even = for(i: Int32) be
 end

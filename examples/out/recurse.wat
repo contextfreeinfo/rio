@@ -76,13 +76,12 @@
       i32.sub
       call 6
     else
-      if ;; label = @2
-        i32.const 4
-        i32.const 4111
-        call 1
-      end
+      i32.const 4
+      i32.const 4111
+      call 1
     end
   )
+  (func (;7;) (type 10) (param i32))
   (memory (;0;) 1)
   (global (;0;) (mut i32) i32.const 4096)
   (export "memory" (memory 0))

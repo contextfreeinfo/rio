@@ -20,7 +20,7 @@ Block
         VSpace "\n"
         HSpace "    "
         Call
-          Id "recurse"
+          Id "count-down"
           RoundOpen "("
           Int "3"
           RoundClose ")"
@@ -33,7 +33,7 @@ Block
   VSpace "\n"
   VSpace "\n"
   Def
-    Id "recurse"
+    Id "count-down"
     HSpace " "
     Define "="
     HSpace " "
@@ -86,7 +86,7 @@ Block
               To "to"
               HSpace " "
               Call
-                Id "recurse"
+                Id "count-down"
                 RoundOpen "("
                 Infix
                   Id "count"
@@ -100,10 +100,8 @@ Block
             /Infix
             VSpace "\n"
             HSpace "        "
-            Infix
+            Call
               Id "else"
-              HSpace " "
-              To "to"
               HSpace " "
               Call
                 Id "print"
@@ -115,7 +113,7 @@ Block
                 /StringParts
                 RoundClose ")"
               /Call
-            /Infix
+            /Call
             VSpace "\n"
             HSpace "    "
             End "end"
@@ -127,7 +125,35 @@ Block
     /Fun
   /Def
   VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "is-even"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "i"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      HSpace " "
+      Params
+      Block
+        Be "be"
+        VSpace "\n"
+        End "end"
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
 /Block
 
 Node size: 12
-Tree len: 107
+Tree len: 128
