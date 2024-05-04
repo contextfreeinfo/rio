@@ -7,9 +7,26 @@ Block
       Params
       Params
       Block
+        Def
+          Id "i"
+          None
+          Int32 3
+        /Def
         Call
           Id "count-down"
-          Int32 3
+          Id "i"
+        /Call
+        Call
+          Id "report-oddness"
+          Id "i"
+        /Call
+        Call
+          Id "report-oddness"
+          Call
+            Id "add"
+            Id "i"
+            Int32 1
+          /Call
         /Call
       /Block
     /Fun
@@ -74,10 +91,136 @@ Block
         /Def
       /Params
       Params
+        Def
+          None
+          Id "Claim"
+          None
+        /Def
+      /Params
       Block
+        Call
+          Id "branch"
+          List
+            Call
+              Id "Pair"
+              Call
+                Id "gt"
+                Id "i"
+                Int32 0
+              /Call
+              Call
+                Id "is-odd"
+                Call
+                  Id "sub"
+                  Id "i"
+                  Int32 1
+                /Call
+              /Call
+            /Call
+            Call
+              Id "else"
+              Call
+                Id "gt"
+                Int32 2
+                Int32 1
+              /Call
+            /Call
+          /List
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    Id "is-odd"
+    None
+    Fun
+      Params
+        Def
+          Id "i"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+        Def
+          None
+          Id "Claim"
+          None
+        /Def
+      /Params
+      Block
+        Call
+          Id "branch"
+          List
+            Call
+              Id "Pair"
+              Call
+                Id "gt"
+                Id "i"
+                Int32 0
+              /Call
+              Call
+                Id "is-even"
+                Call
+                  Id "sub"
+                  Id "i"
+                  Int32 1
+                /Call
+              /Call
+            /Call
+            Call
+              Id "else"
+              Call
+                Id "gt"
+                Int32 0
+                Int32 1
+              /Call
+            /Call
+          /List
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    Id "report-oddness"
+    None
+    Fun
+      Params
+        Def
+          Id "i"
+          Id "Int32"
+          None
+        /Def
+      /Params
+      Params
+      Block
+        Call
+          Id "branch"
+          List
+            Call
+              Id "Pair"
+              Call
+                Id "is-even"
+                Id "i"
+              /Call
+              Call
+                Id "print"
+                String "even"
+              /Call
+            /Call
+            Call
+              Id "else"
+              Call
+                Id "print"
+                String "odd"
+              /Call
+            /Call
+          /List
+        /Call
+      /Block
     /Fun
   /Def
 /Block
 
 Node size: 20
-Tree len: 57
+Tree len: 158

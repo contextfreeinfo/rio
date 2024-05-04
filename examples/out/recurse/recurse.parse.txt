@@ -19,10 +19,41 @@ Block
         Be "be"
         VSpace "\n"
         HSpace "    "
+        Def
+          Id "i"
+          HSpace " "
+          Define "="
+          HSpace " "
+          Int "3"
+        /Def
+        VSpace "\n"
+        HSpace "    "
         Call
           Id "count-down"
           RoundOpen "("
-          Int "3"
+          Id "i"
+          RoundClose ")"
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "report-oddness"
+          RoundOpen "("
+          Id "i"
+          RoundClose ")"
+        /Call
+        VSpace "\n"
+        HSpace "    "
+        Call
+          Id "report-oddness"
+          RoundOpen "("
+          Infix
+            Id "i"
+            HSpace " "
+            Plus "+"
+            HSpace " "
+            Int "1"
+          /Infix
           RoundClose ")"
         /Call
         VSpace "\n"
@@ -143,12 +174,227 @@ Block
         /Typed
         RoundClose ")"
       /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "branch"
+          HSpace " "
+          Block
+            With "with"
+            VSpace "\n"
+            HSpace "    "
+            Infix
+              Infix
+                Id "i"
+                HSpace " "
+                AngleClose ">"
+                HSpace " "
+                Int "0"
+                HSpace " "
+              /Infix
+              To "to"
+              HSpace " "
+              Call
+                Id "is-odd"
+                RoundOpen "("
+                Infix
+                  Id "i"
+                  HSpace " "
+                  Minus "-"
+                  HSpace " "
+                  Int "1"
+                /Infix
+                RoundClose ")"
+              /Call
+            /Infix
+            VSpace "\n"
+            HSpace "    "
+            Call
+              Id "else"
+              HSpace " "
+              Infix
+                Int "2"
+                HSpace " "
+                AngleClose ">"
+                HSpace " "
+                Int "1"
+                HSpace " "
+                Comment "# TODO true"
+              /Infix
+            /Call
+            VSpace "\n"
+            End "end"
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "is-odd"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "i"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
+      Colon ":"
+      HSpace " "
+      Params
+        Typed
+          None
+          Id "Claim"
+          HSpace " "
+        /Typed
+      /Params
+      Block
+        Be "be"
+        HSpace " "
+        Call
+          Id "branch"
+          HSpace " "
+          Block
+            With "with"
+            VSpace "\n"
+            HSpace "    "
+            Infix
+              Infix
+                Id "i"
+                HSpace " "
+                AngleClose ">"
+                HSpace " "
+                Int "0"
+                HSpace " "
+              /Infix
+              To "to"
+              HSpace " "
+              Call
+                Id "is-even"
+                RoundOpen "("
+                Infix
+                  Id "i"
+                  HSpace " "
+                  Minus "-"
+                  HSpace " "
+                  Int "1"
+                /Infix
+                RoundClose ")"
+              /Call
+            /Infix
+            VSpace "\n"
+            HSpace "    "
+            Call
+              Id "else"
+              HSpace " "
+              Infix
+                Int "0"
+                HSpace " "
+                AngleClose ">"
+                HSpace " "
+                Int "1"
+                HSpace " "
+                Comment "# TODO false"
+              /Infix
+            /Call
+            VSpace "\n"
+            End "end"
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace "\n"
+  VSpace "\n"
+  Def
+    Id "report-oddness"
+    HSpace " "
+    Define "="
+    HSpace " "
+    Fun
+      Fun "for"
+      Params
+        RoundOpen "("
+        Typed
+          Id "i"
+          Colon ":"
+          HSpace " "
+          Id "Int32"
+        /Typed
+        RoundClose ")"
+      /Params
       HSpace " "
       Params
       Block
         Be "be"
-        VSpace "\n"
-        End "end"
+        HSpace " "
+        Call
+          Id "branch"
+          HSpace " "
+          Block
+            With "with"
+            VSpace "\n"
+            HSpace "    "
+            Infix
+              Call
+                Id "is-even"
+                RoundOpen "("
+                Id "i"
+                RoundClose ")"
+              /Call
+              HSpace " "
+              To "to"
+              HSpace " "
+              Call
+                Id "print"
+                RoundOpen "("
+                StringParts
+                  StringEdge "\""
+                  String "even"
+                  StringEdge "\""
+                /StringParts
+                RoundClose ")"
+              /Call
+            /Infix
+            VSpace "\n"
+            HSpace "    "
+            Call
+              Id "else"
+              HSpace " "
+              Call
+                Id "print"
+                RoundOpen "("
+                StringParts
+                  StringEdge "\""
+                  String "odd"
+                  StringEdge "\""
+                /StringParts
+                RoundClose ")"
+              /Call
+            /Call
+            VSpace "\n"
+            End "end"
+          /Block
+        /Call
       /Block
     /Fun
   /Def
@@ -156,4 +402,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 128
+Tree len: 331
