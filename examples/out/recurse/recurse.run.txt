@@ -13,7 +13,7 @@ Block
           Int32 3 :@158
         /Def
         Call
-          Uid count-down@173 :@167
+          Uid countDown@173 :@167
           Uid i@17 :@158
         /Call
         Call :@159
@@ -38,7 +38,7 @@ Block
     /Fun
   /Def
   Def@173 :@167
-    Uid count-down@173 :@167
+    Uid countDown@173 :@167
     None
     Fun :@167
       Params
@@ -65,7 +65,7 @@ Block
                 Int32 1 :@158
               /Call
               Call
-                Uid count-down@173 :@167
+                Uid countDown@173 :@167
                 Call :@158
                   Uid sub@1@678 :@162
                   Uid count@30 :@158
@@ -86,7 +86,7 @@ Block
     /Fun
   /Def
   Def@174 :@168
-    Uid is-even@174 :@168
+    Uid isEven@174 :@168
     None
     Fun :@168
       Params
@@ -115,7 +115,7 @@ Block
                 Int32 0 :@158
               /Call
               Call :@165
-                Uid is-odd@175 :@168
+                Uid isOdd@175 :@168
                 Call :@158
                   Uid sub@1@678 :@162
                   Uid i@63 :@158
@@ -133,7 +133,7 @@ Block
     /Fun
   /Def
   Def@175 :@168
-    Uid is-odd@175 :@168
+    Uid isOdd@175 :@168
     None
     Fun :@168
       Params
@@ -162,7 +162,7 @@ Block
                 Int32 0 :@158
               /Call
               Call :@165
-                Uid is-even@174 :@168
+                Uid isEven@174 :@168
                 Call :@158
                   Uid sub@1@678 :@162
                   Uid i@95 :@158
@@ -198,7 +198,7 @@ Block
             Call
               Uid Pair@1@683 :@164
               Call :@165
-                Uid is-even@174 :@168
+                Uid isEven@174 :@168
                 Uid i@127 :@158
               /Call
               String "even" :@160

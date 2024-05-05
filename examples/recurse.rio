@@ -1,29 +1,29 @@
 main* = for() be
     i = 3
-    count-down(i)
+    countDown(i)
     print oddness(i)
     print oddness(i + 1)
 end
 
-count-down = for(count: Int32) be
+countDown = for(count: Int32) be
     print("counting ...")
     branch with
-        count > 1 to count-down(count - 1)
+        count > 1 to countDown(count - 1)
         else print("done")
     end
 end
 
-is-even = for(i: Int32): Claim be branch with
-    i > 0 to is-odd(i - 1)
+isEven = for(i: Int32): Claim be branch with
+    i > 0 to isOdd(i - 1)
     else true
 end
 
-is-odd = for(i: Int32): Claim be branch with
-    i > 0 to is-even(i - 1)
+isOdd = for(i: Int32): Claim be branch with
+    i > 0 to isEven(i - 1)
     else false
 end
 
 oddness = for(i: Int32) be branch with
-    is-even(i) to "even"
+    isEven(i) to "even"
     else "odd"
 end

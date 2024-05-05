@@ -13,7 +13,7 @@ Block
           String "I say \"Hi!\"" :@45
         /Def
         Call :@48
-          Uid print-twice@54 :@50
+          Uid printTwice@54 :@50
           Uid message@7 :@45
           String "" :@45
         /Call
@@ -21,7 +21,7 @@ Block
     /Fun
   /Def
   Def@54 :@50
-    Uid print-twice@54 :@50
+    Uid printTwice@54 :@50
     None
     Fun :@50
       Params

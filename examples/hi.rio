@@ -1,9 +1,9 @@
 main* = for() be
     message = "I say \"Hi!\""
-    print-twice(message, "")
+    printTwice(message, "")
 end
 
-print-twice = for(message: Text, middle: Text): Void be
+printTwice = for(message: Text, middle: Text): Void be
     # Both call syntax forms below mean the same thing.
     print(message)
     print(middle)

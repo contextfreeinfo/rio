@@ -29,7 +29,7 @@ Block
         VSpace "\n"
         HSpace "    "
         Call
-          Id "count-down"
+          Id "countDown"
           RoundOpen "("
           Id "i"
           RoundClose ")"
@@ -72,7 +72,7 @@ Block
   VSpace "\n"
   VSpace "\n"
   Def
-    Id "count-down"
+    Id "countDown"
     HSpace " "
     Define "="
     HSpace " "
@@ -125,7 +125,7 @@ Block
               To "to"
               HSpace " "
               Call
-                Id "count-down"
+                Id "countDown"
                 RoundOpen "("
                 Infix
                   Id "count"
@@ -166,7 +166,7 @@ Block
   VSpace "\n"
   VSpace "\n"
   Def
-    Id "is-even"
+    Id "isEven"
     HSpace " "
     Define "="
     HSpace " "
@@ -213,7 +213,7 @@ Block
               To "to"
               HSpace " "
               Call
-                Id "is-odd"
+                Id "isOdd"
                 RoundOpen "("
                 Infix
                   Id "i"
@@ -242,7 +242,7 @@ Block
   VSpace "\n"
   VSpace "\n"
   Def
-    Id "is-odd"
+    Id "isOdd"
     HSpace " "
     Define "="
     HSpace " "
@@ -289,7 +289,7 @@ Block
               To "to"
               HSpace " "
               Call
-                Id "is-even"
+                Id "isEven"
                 RoundOpen "("
                 Infix
                   Id "i"
@@ -348,7 +348,7 @@ Block
             HSpace "    "
             Infix
               Call
-                Id "is-even"
+                Id "isEven"
                 RoundOpen "("
                 Id "i"
                 RoundClose ")"

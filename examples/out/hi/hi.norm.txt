@@ -13,7 +13,7 @@ Block
           String "I say \"Hi!\""
         /Def
         Call
-          Id "print-twice"
+          Id "printTwice"
           Id "message"
           String ""
         /Call
@@ -21,7 +21,7 @@ Block
     /Fun
   /Def
   Def
-    Id "print-twice"
+    Id "printTwice"
     None
     Fun
       Params

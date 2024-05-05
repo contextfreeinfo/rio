@@ -38,7 +38,7 @@ Block
         VSpace "\n"
         HSpace "    "
         Call
-          Id "print-twice"
+          Id "printTwice"
           RoundOpen "("
           Id "message"
           Comma ","
@@ -57,7 +57,7 @@ Block
   VSpace "\n"
   VSpace "\n"
   Def
-    Id "print-twice"
+    Id "printTwice"
     HSpace " "
     Define "="
     HSpace " "

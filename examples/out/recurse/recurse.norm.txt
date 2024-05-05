@@ -13,7 +13,7 @@ Block
           Int32 3
         /Def
         Call
-          Id "count-down"
+          Id "countDown"
           Id "i"
         /Call
         Call
@@ -38,7 +38,7 @@ Block
     /Fun
   /Def
   Def
-    Id "count-down"
+    Id "countDown"
     None
     Fun
       Params
@@ -65,7 +65,7 @@ Block
                 Int32 1
               /Call
               Call
-                Id "count-down"
+                Id "countDown"
                 Call
                   Id "sub"
                   Id "count"
@@ -86,7 +86,7 @@ Block
     /Fun
   /Def
   Def
-    Id "is-even"
+    Id "isEven"
     None
     Fun
       Params
@@ -115,7 +115,7 @@ Block
                 Int32 0
               /Call
               Call
-                Id "is-odd"
+                Id "isOdd"
                 Call
                   Id "sub"
                   Id "i"
@@ -133,7 +133,7 @@ Block
     /Fun
   /Def
   Def
-    Id "is-odd"
+    Id "isOdd"
     None
     Fun
       Params
@@ -162,7 +162,7 @@ Block
                 Int32 0
               /Call
               Call
-                Id "is-even"
+                Id "isEven"
                 Call
                   Id "sub"
                   Id "i"
@@ -198,7 +198,7 @@ Block
             Call
               Id "Pair"
               Call
-                Id "is-even"
+                Id "isEven"
                 Id "i"
               /Call
               String "even"
