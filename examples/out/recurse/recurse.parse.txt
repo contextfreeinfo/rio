@@ -96,13 +96,12 @@ Block
         HSpace "    "
         Call
           Id "print"
-          RoundOpen "("
+          HSpace " "
           StringParts
             StringEdge "\""
             String "counting ..."
             StringEdge "\""
           /StringParts
-          RoundClose ")"
         /Call
         VSpace "\n"
         HSpace "    "
@@ -142,16 +141,19 @@ Block
             Call
               Id "else"
               HSpace " "
-              Call
-                Id "print"
-                RoundOpen "("
-                StringParts
-                  StringEdge "\""
-                  String "done"
-                  StringEdge "\""
-                /StringParts
-                RoundClose ")"
-              /Call
+              Block
+                Be "be"
+                HSpace " "
+                Call
+                  Id "print"
+                  HSpace " "
+                  StringParts
+                    StringEdge "\""
+                    String "done"
+                    StringEdge "\""
+                  /StringParts
+                /Call
+              /Block
             /Call
             VSpace "\n"
             HSpace "    "
@@ -384,4 +386,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 315
+Tree len: 316

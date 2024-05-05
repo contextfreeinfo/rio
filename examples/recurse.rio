@@ -6,10 +6,10 @@ main* = for() be
 end
 
 countDown = for(count: Int32) be
-    print("counting ...")
+    print "counting ..."
     branch with
         count > 1 to countDown(count - 1)
-        else print("done")
+        else be print "done"
     end
 end
 

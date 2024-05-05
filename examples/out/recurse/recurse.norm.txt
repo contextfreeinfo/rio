@@ -103,33 +103,31 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "branch"
-          List
+      Call
+        Id "branch"
+        List
+          Call
+            Id "Pair"
             Call
-              Id "Pair"
+              Id "gt"
+              Id "i"
+              Int32 0
+            /Call
+            Call
+              Id "isOdd"
               Call
-                Id "gt"
+                Id "sub"
                 Id "i"
-                Int32 0
-              /Call
-              Call
-                Id "isOdd"
-                Call
-                  Id "sub"
-                  Id "i"
-                  Int32 1
-                /Call
+                Int32 1
               /Call
             /Call
-            Call
-              Id "else"
-              Id "true"
-            /Call
-          /List
-        /Call
-      /Block
+          /Call
+          Call
+            Id "else"
+            Id "true"
+          /Call
+        /List
+      /Call
     /Fun
   /Def
   Def
@@ -150,33 +148,31 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "branch"
-          List
+      Call
+        Id "branch"
+        List
+          Call
+            Id "Pair"
             Call
-              Id "Pair"
+              Id "gt"
+              Id "i"
+              Int32 0
+            /Call
+            Call
+              Id "isEven"
               Call
-                Id "gt"
+                Id "sub"
                 Id "i"
-                Int32 0
-              /Call
-              Call
-                Id "isEven"
-                Call
-                  Id "sub"
-                  Id "i"
-                  Int32 1
-                /Call
+                Int32 1
               /Call
             /Call
-            Call
-              Id "else"
-              Id "false"
-            /Call
-          /List
-        /Call
-      /Block
+          /Call
+          Call
+            Id "else"
+            Id "false"
+          /Call
+        /List
+      /Call
     /Fun
   /Def
   Def
@@ -191,28 +187,26 @@ Block
         /Def
       /Params
       Params
-      Block
-        Call
-          Id "branch"
-          List
+      Call
+        Id "branch"
+        List
+          Call
+            Id "Pair"
             Call
-              Id "Pair"
-              Call
-                Id "isEven"
-                Id "i"
-              /Call
-              String "even"
+              Id "isEven"
+              Id "i"
             /Call
-            Call
-              Id "else"
-              String "odd"
-            /Call
-          /List
-        /Call
-      /Block
+            String "even"
+          /Call
+          Call
+            Id "else"
+            String "odd"
+          /Call
+        /List
+      /Call
     /Fun
   /Def
 /Block
 
 Node size: 20
-Tree len: 152
+Tree len: 149

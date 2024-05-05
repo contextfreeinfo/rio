@@ -10,12 +10,10 @@ Block
   /Dot
   Dot
     Id "a"
-    Block
-      Call
-        Id "b"
-        Id "there"
-      /Call
-    /Block
+    Call
+      Id "b"
+      Id "there"
+    /Call
   /Dot
   Call
     Call
@@ -63,8 +61,7 @@ Block
       Params
         Id "something"
       Params
-      Block
-        Id "c"
+      Id "c"
     /Fun
   /Call
   Call
@@ -89,9 +86,7 @@ Block
   /Fun
   Int32 5
   Call
-    Block
-      Int32 5
-  /Call
+    Int32 5
   Fun
     Params
       Struct
@@ -114,8 +109,7 @@ Block
         None
       /Def
     /Params
-    Block
-      Id "a"
+    Id "a"
   /Fun
   Fun
     Params
@@ -139,8 +133,7 @@ Block
         None
       /Def
     /Params
-    Block
-      Id "a"
+    Id "a"
   /Fun
   Fun
     Params
@@ -152,8 +145,7 @@ Block
         None
       /Def
     /Params
-    Block
-      Id "a"
+    Id "a"
   /Fun
   Call
     Id "match"
@@ -187,12 +179,10 @@ Block
       Params
         Id "y"
       Params
-      Block
-        Call
-          Id "blah"
-          Id "y"
-        /Call
-      /Block
+      Call
+        Id "blah"
+        Id "y"
+      /Call
     /Fun
   /Call
   Call
@@ -234,12 +224,10 @@ Block
         Params
           Id "y"
         Params
-        Block
-          Call
-            Id "blah"
-            Id "y"
-          /Call
-        /Block
+        Call
+          Id "blah"
+          Id "y"
+        /Call
       /Fun
     /List
   /Call
@@ -402,4 +390,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 301
+Tree len: 293

@@ -140,7 +140,10 @@ impl Normer {
                 let mut range: Range<usize> = range.into();
                 let done = match kind {
                     BranchKind::Block => {
-                        if !range.is_empty() {
+                        if range.len() == 1 {
+                            self.rebranch_at(&tree[..=range.start]);
+                            return Some(());
+                        } else if !range.is_empty() {
                             if let Nod::Leaf { token } = tree[range.start].nod {
                                 let new_kind = match token.kind {
                                     TokenKind::CurlyOpen | TokenKind::Of => {

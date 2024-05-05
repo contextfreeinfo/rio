@@ -285,56 +285,59 @@ Block
         HSpace "    "
         Call
           Id "print"
-          RoundOpen "("
-          VSpace "\n"
-          HSpace "        "
-          Call
-            Id "branch"
-            HSpace " "
-            Block
-              With "with"
-              VSpace "\n"
-              HSpace "            "
-              Infix
+          HSpace " "
+          Block
+            Be "be"
+            VSpace "\n"
+            HSpace "        "
+            Call
+              Id "branch"
+              HSpace " "
+              Block
+                With "with"
+                VSpace "\n"
+                HSpace "            "
                 Infix
                   Infix
-                    Id "person"
-                    Dot "."
-                    Id "age"
+                    Infix
+                      Id "person"
+                      Dot "."
+                      Id "age"
+                    /Infix
+                    HSpace " "
+                    GreaterEq ">="
+                    HSpace " "
+                    Int "18"
+                    HSpace " "
                   /Infix
+                  To "to"
                   HSpace " "
-                  GreaterEq ">="
-                  HSpace " "
-                  Int "18"
-                  HSpace " "
+                  StringParts
+                    StringEdge "\""
+                    String "adult"
+                    StringEdge "\""
+                  /StringParts
                 /Infix
-                To "to"
-                HSpace " "
-                StringParts
-                  StringEdge "\""
-                  String "adult"
-                  StringEdge "\""
-                /StringParts
-              /Infix
-              VSpace "\n"
-              HSpace "            "
-              Call
-                Id "else"
-                HSpace " "
-                StringParts
-                  StringEdge "\""
-                  String "minor"
-                  StringEdge "\""
-                /StringParts
-              /Call
-              VSpace "\n"
-              HSpace "        "
-              End "end"
-            /Block
-          /Call
-          VSpace "\n"
-          HSpace "    "
-          RoundClose ")"
+                VSpace "\n"
+                HSpace "            "
+                Call
+                  Id "else"
+                  HSpace " "
+                  StringParts
+                    StringEdge "\""
+                    String "minor"
+                    StringEdge "\""
+                  /StringParts
+                /Call
+                VSpace "\n"
+                HSpace "        "
+                End "end"
+              /Block
+            /Call
+            VSpace "\n"
+            HSpace "    "
+            End "end"
+          /Block
         /Call
         VSpace "\n"
         HSpace "    "
@@ -355,4 +358,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 295
+Tree len: 297

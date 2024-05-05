@@ -1,155 +1,151 @@
 Block
   Module "examples/branch.rio" 2
-  Def@109 :@107
-    Uid main@109* :@107
+  Def@107 :@105
+    Uid main@107* :@105
     None
-    Fun :@107
+    Fun :@105
       Params
       Params
-      Block :@97
-        Call :@97
-          Uid describe@110 :@106
-          Int32 2 :@95
+      Block :@95
+        Call :@95
+          Uid describe@108 :@104
+          Int32 2 :@93
         /Call
-        Call :@97
-          Uid describe@110 :@106
-          Int32 -1 :@95
+        Call :@95
+          Uid describe@108 :@104
+          Int32 -1 :@93
         /Call
-        Call :@97
-          Uid describe@110 :@106
-          Int32 0 :@95
+        Call :@95
+          Uid describe@108 :@104
+          Int32 0 :@93
         /Call
       /Block
     /Fun
   /Def
-  Def@110 :@106
-    Uid describe@110 :@106
-    None
-    Fun :@106
-      Params
-        Def@19 :@95
-          Uid i@19 :@95
-          Uid Int32@1@670
-          None :@95
-        /Def
-      /Params
-      Params
-      Block :@97
-        Call :@97
-          Uid print@1@697 :@99
-          Call :@98
-            Uid description@111 :@104
-            Uid i@19 :@95
-          /Call
-        /Call
-      /Block
-    /Fun
-  /Def
-  Def@111 :@104
-    Uid description@111 :@104
+  Def@108 :@104
+    Uid describe@108 :@104
     None
     Fun :@104
       Params
-        Def@34 :@95
-          Uid i@34 :@95
-          Uid Int32@1@670
-          None :@95
+        Def@19 :@93
+          Uid i@19 :@93
+          Uid Int32@1@635
+          None :@93
         /Def
       /Params
       Params
-      Block :@98
-        Def@57 :@98
-          Uid message@57 :@98
+      Call :@95
+        Uid print@1@662 :@97
+        Call :@96
+          Uid description@109 :@102
+          Uid i@19 :@93
+        /Call
+      /Call
+    /Fun
+  /Def
+  Def@109 :@102
+    Uid description@109 :@102
+    None
+    Fun :@102
+      Params
+        Def@33 :@93
+          Uid i@33 :@93
+          Uid Int32@1@635
+          None :@93
+        /Def
+      /Params
+      Params
+      Block :@96
+        Def@56 :@96
+          Uid message@56 :@96
           None
-          Call :@98
-            Uid branch@1@688
+          Call :@96
+            Uid branch@1@653
             List
               Call
-                Uid Pair@1@683 :@101
-                Call :@102
-                  Uid lt@1@676 :@103
-                  Uid i@34 :@95
-                  Int32 0 :@95
+                Uid Pair@1@648 :@99
+                Call :@100
+                  Uid lt@1@641 :@101
+                  Uid i@33 :@93
+                  Int32 0 :@93
                 /Call
-                String "negative" :@98
+                String "negative" :@96
               /Call
               Call
-                Uid Pair@1@683 :@101
-                Call :@102
-                  Uid gt@1@674 :@103
-                  Uid i@34 :@95
-                  Int32 0 :@95
+                Uid Pair@1@648 :@99
+                Call :@100
+                  Uid gt@1@639 :@101
+                  Uid i@33 :@93
+                  Int32 0 :@93
                 /Call
-                String "positive" :@98
+                String "positive" :@96
               /Call
               Call
-                Uid else@1@691
-                String "zero" :@98
+                Uid else@1@656
+                String "zero" :@96
               /Call
             /List
           /Call
         /Def
-        Uid message@57 :@98
+        Uid message@56 :@96
       /Block
     /Fun
   /Def
-  Def@112 :@103
-    Uid less@112 :@103
+  Def@110 :@101
+    Uid less@110 :@101
     None
-    Fun :@103
+    Fun :@101
       Params
-        Def@71 :@95
-          Uid i@71 :@95
-          Uid Int32@1@670
-          None :@95
+        Def@70 :@93
+          Uid i@70 :@93
+          Uid Int32@1@635
+          None :@93
         /Def
-        Def@72 :@95
-          Uid j@72 :@95
-          Uid Int32@1@670
-          None :@95
+        Def@71 :@93
+          Uid j@71 :@93
+          Uid Int32@1@635
+          None :@93
         /Def
       /Params
       Params
-      Block :@102
-        Call :@102
-          Uid lt@1@676 :@103
-          Uid i@71 :@95
-          Uid j@72 :@95
-        /Call
-      /Block
+      Call :@100
+        Uid lt@1@641 :@101
+        Uid i@70 :@93
+        Uid j@71 :@93
+      /Call
     /Fun
   /Def
   Types
-    Uid@95 Int32@1@670
-    FunType@96
-    Uid@97 Void@1@686
-    Uid@98 Text@1@684
-    FunType@99 :@97
-      None :@98
-    FunType@100
-      None :@95
-    FunType@101
+    Uid@93 Int32@1@635
+    FunType@94
+    Uid@95 Void@1@651
+    Uid@96 Text@1@649
+    FunType@97 :@95
+      None :@96
+    FunType@98
+      None :@93
+    FunType@99
       None
       None
       None
       None
     /FunType
-    Uid@102 Claim@1@667
-    FunType@103 :@102
-      None :@95
-      None :@95
+    Uid@100 Claim@1@632
+    FunType@101 :@100
+      None :@93
+      None :@93
     /FunType
-    FunType@104 :@98
-      None :@95
-    FunType@105
-      None :@95
-      None :@95
+    FunType@102 :@96
+      None :@93
+    FunType@103
+      None :@93
+      None :@93
     /FunType
-    FunType@106 :@97
-      None :@95
-    FunType@107 :@97
+    FunType@104 :@95
+      None :@93
+    FunType@105 :@95
   /Types
 /Block
 
 Node size: 20
-Tree len: 114
+Tree len: 112

@@ -121,20 +121,18 @@ Block
           None
         /Def
       /Params
-      Block
-        Struct
-          Def
-            Id "name"
-            None
-            Id "name"
-          /Def
-          Def
-            Id "age"
-            None
-            Id "age"
-          /Def
-        /Struct
-      /Block
+      Struct
+        Def
+          Id "name"
+          None
+          Id "name"
+        /Def
+        Def
+          Id "age"
+          None
+          Id "age"
+        /Def
+      /Struct
     /Fun
   /Def
   Def
@@ -195,4 +193,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 141
+Tree len: 140

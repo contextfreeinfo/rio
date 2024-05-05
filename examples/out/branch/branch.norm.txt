@@ -34,15 +34,13 @@ Block
         /Def
       /Params
       Params
-      Block
+      Call
+        Id "print"
         Call
-          Id "print"
-          Call
-            Id "description"
-            Id "i"
-          /Call
+          Id "description"
+          Id "i"
         /Call
-      /Block
+      /Call
     /Fun
   /Def
   Def
@@ -110,16 +108,14 @@ Block
         /Def
       /Params
       Params
-      Block
-        Call
-          Id "lt"
-          Id "i"
-          Id "j"
-        /Call
-      /Block
+      Call
+        Id "lt"
+        Id "i"
+        Id "j"
+      /Call
     /Fun
   /Def
 /Block
 
 Node size: 20
-Tree len: 88
+Tree len: 86

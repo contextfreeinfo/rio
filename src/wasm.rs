@@ -896,14 +896,6 @@ impl<'a> WasmWriter<'a> {
             dig_locals(body_index, self, &mut locals, param_local_count);
             let mut func = Function::new_with_locals_types(locals);
             // Body
-            let Nod::Branch {
-                kind: BranchKind::Block,
-                range: body_range,
-            } = self.tree()[body_index].nod
-            else {
-                panic!()
-            };
-            _ = body_range;
             self.translate_any(&mut func, body_index);
             // End
             func

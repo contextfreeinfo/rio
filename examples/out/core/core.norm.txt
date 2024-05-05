@@ -10,25 +10,23 @@ Block
         AngleClose ">"
       /Params
       Params
-      Block
+      Call
+        Id "Pair"
+        AngleOpen "<"
         Call
-          Id "Pair"
+          Id "Lazy"
           AngleOpen "<"
-          Call
-            Id "Lazy"
-            AngleOpen "<"
-            Id "Claim"
-            AngleClose ">"
-          /Call
-          Call
-            Id "Lazy"
-            AngleOpen "<"
-            Id "Value"
-            AngleClose ">"
-          /Call
+          Id "Claim"
           AngleClose ">"
         /Call
-      /Block
+        Call
+          Id "Lazy"
+          AngleOpen "<"
+          Id "Value"
+          AngleClose ">"
+        /Call
+        AngleClose ">"
+      /Call
     /Fun
   /Def
   Def
@@ -55,23 +53,21 @@ Block
         AngleClose ">"
       /Params
       Params
-      Block
+      Call
         Call
-          Call
-            Id "Yes"
-            AngleOpen "<"
-            Id "YesValue"
-            AngleClose ">"
-          /Call
-          Id "|"
-          Call
-            Id "No"
-            AngleOpen "<"
-            Id "NoValue"
-            AngleClose ">"
-          /Call
+          Id "Yes"
+          AngleOpen "<"
+          Id "YesValue"
+          AngleClose ">"
         /Call
-      /Block
+        Id "|"
+        Call
+          Id "No"
+          AngleOpen "<"
+          Id "NoValue"
+          AngleClose ">"
+        /Call
+      /Call
     /Fun
   /Def
   Def
@@ -95,12 +91,10 @@ Block
         AngleClose ">"
       /Params
       Params
-      Block
-        Call
-          Id "class"
-          Struct
-        /Call
-      /Block
+      Call
+        Id "class"
+        Of "of"
+      /Call
     /Fun
   /Def
   Def
@@ -129,10 +123,8 @@ Block
                 None
               /Def
             /Params
-            Block
-              Call
-                Id "native"
-            /Block
+            Call
+              Id "native"
           /Fun
         /Def
         Def
@@ -154,10 +146,8 @@ Block
                 None
               /Def
             /Params
-            Block
-              Call
-                Id "native"
-            /Block
+            Call
+              Id "native"
           /Fun
         /Def
         Def
@@ -179,10 +169,8 @@ Block
                 None
               /Def
             /Params
-            Block
-              Call
-                Id "native"
-            /Block
+            Call
+              Id "native"
           /Fun
         /Def
         Def
@@ -204,10 +192,8 @@ Block
                 None
               /Def
             /Params
-            Block
-              Call
-                Id "native"
-            /Block
+            Call
+              Id "native"
           /Fun
         /Def
       /Struct
@@ -237,10 +223,8 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -267,10 +251,8 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -297,10 +279,8 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -327,10 +307,8 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -357,10 +335,8 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -387,10 +363,8 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -417,10 +391,8 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -447,10 +419,8 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -464,82 +434,74 @@ Block
         AngleClose ">"
       /Params
       Params
-      Block
+      Call
         Call
-          Call
-            Id "class"
-            Struct
-              Def
-                Id "builder"
-                Call
-                  Id "Function"
-                  AngleOpen "<"
-                  Id "[]"
-                  Id "Value"
-                  AngleClose ">"
-                /Call
-                None
-              /Def
-            /Struct
-          /Call
-          List
+          Id "class"
+          Struct
             Def
-              Pub
-                Id "value"
-              None
-              Fun
-                Params
-                Params
-                Block
-                  Call
-                    Id "if"
-                    Block
-                      Call
-                        Id "not"
-                        Id "maybe"
-                      /Call
-                    /Block
-                    Block
-                      Def
-                        Id "maybe"
-                        Call
-                          None
-                          Call
-                            Id "Yes"
-                            Call
-                              Id "builder"
-                          /Call
-                        /Call
-                        None
-                      /Def
-                    /Block
-                  /Call
-                  Dot
-                    Block
-                      Call
-                        Id "maybe"
-                        Id "as"
-                        Id "Yes"
-                      /Call
-                    /Block
-                    Id "value"
-                  /Dot
-                /Block
-              /Fun
-            /Def
-            Def
-              Id "maybe"
+              Id "builder"
               Call
-                Id "Maybe"
+                Id "Function"
                 AngleOpen "<"
+                Id "[]"
                 Id "Value"
                 AngleClose ">"
               /Call
-              Id "false"
+              None
             /Def
-          /List
+          /Struct
         /Call
-      /Block
+        List
+          Def
+            Pub
+              Id "value"
+            None
+            Fun
+              Params
+              Params
+              Block
+                Call
+                  Id "if"
+                  Call
+                    Id "not"
+                    Id "maybe"
+                  /Call
+                  Def
+                    Id "maybe"
+                    Call
+                      None
+                      Call
+                        Id "Yes"
+                        Call
+                          Id "builder"
+                      /Call
+                    /Call
+                    None
+                  /Def
+                /Call
+                Dot
+                  Call
+                    Id "maybe"
+                    Id "as"
+                    Id "Yes"
+                  /Call
+                  Id "value"
+                /Dot
+              /Block
+            /Fun
+          /Def
+          Def
+            Id "maybe"
+            Call
+              Id "Maybe"
+              AngleOpen "<"
+              Id "Value"
+              AngleClose ">"
+            /Call
+            Id "false"
+          /Def
+        /List
+      /Call
     /Fun
   /Def
   Def
@@ -553,12 +515,10 @@ Block
         AngleClose ">"
       /Params
       Params
-      Block
-        Call
-          Id "class"
-          Struct
-        /Call
-      /Block
+      Call
+        Id "class"
+        Of "of"
+      /Call
     /Fun
   /Def
   Def
@@ -572,15 +532,13 @@ Block
         AngleClose ">"
       /Params
       Params
-      Block
-        Call
-          Id "Either"
-          AngleOpen "<"
-          Id "Value"
-          Id "Void"
-          AngleClose ">"
-        /Call
-      /Block
+      Call
+        Id "Either"
+        AngleOpen "<"
+        Id "Value"
+        Id "Void"
+        AngleClose ">"
+      /Call
     /Fun
   /Def
   Def
@@ -594,21 +552,19 @@ Block
         AngleClose ">"
       /Params
       Params
-      Block
+      Call
+        Id "ordered"
         Call
-          Id "ordered"
-          Call
-            Id "struct"
-            Struct
-              Def
-                Id "value"
-                Id "Value"
-                None
-              /Def
-            /Struct
-          /Call
+          Id "struct"
+          Struct
+            Def
+              Id "value"
+              Id "Value"
+              None
+            /Def
+          /Struct
         /Call
-      /Block
+      /Call
     /Fun
   /Def
   Def
@@ -623,26 +579,24 @@ Block
         AngleClose ">"
       /Params
       Params
-      Block
+      Call
+        Id "ordered"
         Call
-          Id "ordered"
-          Call
-            Id "struct"
-            Struct
-              Def
-                Id "key"
-                Id "Key"
-                None
-              /Def
-              Def
-                Id "value"
-                Id "Value"
-                None
-              /Def
-            /Struct
-          /Call
+          Id "struct"
+          Struct
+            Def
+              Id "key"
+              Id "Key"
+              None
+            /Def
+            Def
+              Id "value"
+              Id "Value"
+              None
+            /Def
+          /Struct
         /Call
-      /Block
+      /Call
     /Fun
   /Def
   Def
@@ -683,10 +637,8 @@ Block
                 None
               /Def
             /Params
-            Block
-              Call
-                Id "native"
-            /Block
+            Call
+              Id "native"
           /Fun
         /Def
       /Struct
@@ -710,21 +662,19 @@ Block
         AngleClose ">"
       /Params
       Params
-      Block
+      Call
+        Id "ordered"
         Call
-          Id "ordered"
-          Call
-            Id "struct"
-            Struct
-              Def
-                Id "value"
-                Id "Value"
-                None
-              /Def
-            /Struct
-          /Call
+          Id "struct"
+          Struct
+            Def
+              Id "value"
+              Id "Value"
+              None
+            /Def
+          /Struct
         /Call
-      /Block
+      /Call
     /Fun
   /Def
   Def
@@ -739,32 +689,28 @@ Block
           AngleClose ">"
         /Params
         Params
-        Block
-          Def
-            Id "cases"
+        Def
+          Id "cases"
+          Call
+            Id "List"
+            AngleOpen "<"
             Call
-              Id "List"
+              Id "Case"
               AngleOpen "<"
-              Call
-                Id "Case"
-                AngleOpen "<"
-                Id "Value"
-                AngleClose ">"
-              /Call
+              Id "Value"
               AngleClose ">"
             /Call
-            None
-          /Def
-        /Block
+            AngleClose ">"
+          /Call
+          None
+        /Def
       /Fun
       Id "Value"
       None
     /Def
   /Def
-  Block
-    Call
-      Id "native"
-  /Block
+  Call
+    Id "native"
   Def
     Pub
       Id "class"
@@ -772,10 +718,8 @@ Block
     Fun
       Params
       Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -790,18 +734,16 @@ Block
           AngleClose ">"
         /Params
         Params
-        Block
-          Def
-            Id "value"
-            Call
-              Id "Lazy"
-              AngleOpen "<"
-              Id "Value"
-              AngleClose ">"
-            /Call
-            None
-          /Def
-        /Block
+        Def
+          Id "value"
+          Call
+            Id "Lazy"
+            AngleOpen "<"
+            Id "Value"
+            AngleClose ">"
+          /Call
+          None
+        /Def
       /Fun
       Call
         Id "Case"
@@ -812,13 +754,11 @@ Block
       None
     /Def
   /Def
-  Block
-    Call
-      Id "Pair"
-      Id "true"
-      Id "value"
-    /Call
-  /Block
+  Call
+    Id "Pair"
+    Id "true"
+    Id "value"
+  /Call
   Def
     Pub
       Id "false"
@@ -835,10 +775,8 @@ Block
     Fun
       Params
       Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -860,22 +798,20 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "branch"
-          List
-            Call
-              Id "Pair"
-              Id "claim"
-              Id "false"
-            /Call
-            Call
-              Id "else"
-              Id "true"
-            /Call
-          /List
-        /Call
-      /Block
+      Call
+        Id "branch"
+        List
+          Call
+            Id "Pair"
+            Id "claim"
+            Id "false"
+          /Call
+          Call
+            Id "else"
+            Id "true"
+          /Call
+        /List
+      /Call
     /Fun
   /Def
   Def
@@ -885,10 +821,8 @@ Block
     Fun
       Params
       Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -910,10 +844,8 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -929,10 +861,8 @@ Block
           None
         /Def
       /Params
-      Block
-        Call
-          Id "native"
-      /Block
+      Call
+        Id "native"
     /Fun
   /Def
   Def
@@ -954,4 +884,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 706
+Tree len: 671
