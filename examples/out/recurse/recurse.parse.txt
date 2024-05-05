@@ -37,24 +37,32 @@ Block
         VSpace "\n"
         HSpace "    "
         Call
-          Id "report-oddness"
-          RoundOpen "("
-          Id "i"
-          RoundClose ")"
+          Id "print"
+          HSpace " "
+          Call
+            Id "oddness"
+            RoundOpen "("
+            Id "i"
+            RoundClose ")"
+          /Call
         /Call
         VSpace "\n"
         HSpace "    "
         Call
-          Id "report-oddness"
-          RoundOpen "("
-          Infix
-            Id "i"
-            HSpace " "
-            Plus "+"
-            HSpace " "
-            Int "1"
-          /Infix
-          RoundClose ")"
+          Id "print"
+          HSpace " "
+          Call
+            Id "oddness"
+            RoundOpen "("
+            Infix
+              Id "i"
+              HSpace " "
+              Plus "+"
+              HSpace " "
+              Int "1"
+            /Infix
+            RoundClose ")"
+          /Call
         /Call
         VSpace "\n"
         End "end"
@@ -222,15 +230,7 @@ Block
             Call
               Id "else"
               HSpace " "
-              Infix
-                Int "2"
-                HSpace " "
-                AngleClose ">"
-                HSpace " "
-                Int "1"
-                HSpace " "
-                Comment "# TODO true"
-              /Infix
+              Id "true"
             /Call
             VSpace "\n"
             End "end"
@@ -306,15 +306,7 @@ Block
             Call
               Id "else"
               HSpace " "
-              Infix
-                Int "0"
-                HSpace " "
-                AngleClose ">"
-                HSpace " "
-                Int "1"
-                HSpace " "
-                Comment "# TODO false"
-              /Infix
+              Id "false"
             /Call
             VSpace "\n"
             End "end"
@@ -326,7 +318,7 @@ Block
   VSpace "\n"
   VSpace "\n"
   Def
-    Id "report-oddness"
+    Id "oddness"
     HSpace " "
     Define "="
     HSpace " "
@@ -364,32 +356,22 @@ Block
               HSpace " "
               To "to"
               HSpace " "
-              Call
-                Id "print"
-                RoundOpen "("
-                StringParts
-                  StringEdge "\""
-                  String "even"
-                  StringEdge "\""
-                /StringParts
-                RoundClose ")"
-              /Call
+              StringParts
+                StringEdge "\""
+                String "even"
+                StringEdge "\""
+              /StringParts
             /Infix
             VSpace "\n"
             HSpace "    "
             Call
               Id "else"
               HSpace " "
-              Call
-                Id "print"
-                RoundOpen "("
-                StringParts
-                  StringEdge "\""
-                  String "odd"
-                  StringEdge "\""
-                /StringParts
-                RoundClose ")"
-              /Call
+              StringParts
+                StringEdge "\""
+                String "odd"
+                StringEdge "\""
+              /StringParts
             /Call
             VSpace "\n"
             End "end"
@@ -402,4 +384,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 331
+Tree len: 315

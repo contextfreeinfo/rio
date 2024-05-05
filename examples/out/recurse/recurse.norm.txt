@@ -17,15 +17,21 @@ Block
           Id "i"
         /Call
         Call
-          Id "report-oddness"
-          Id "i"
+          Id "print"
+          Call
+            Id "oddness"
+            Id "i"
+          /Call
         /Call
         Call
-          Id "report-oddness"
+          Id "print"
           Call
-            Id "add"
-            Id "i"
-            Int32 1
+            Id "oddness"
+            Call
+              Id "add"
+              Id "i"
+              Int32 1
+            /Call
           /Call
         /Call
       /Block
@@ -119,11 +125,7 @@ Block
             /Call
             Call
               Id "else"
-              Call
-                Id "gt"
-                Int32 2
-                Int32 1
-              /Call
+              Id "true"
             /Call
           /List
         /Call
@@ -170,11 +172,7 @@ Block
             /Call
             Call
               Id "else"
-              Call
-                Id "gt"
-                Int32 0
-                Int32 1
-              /Call
+              Id "false"
             /Call
           /List
         /Call
@@ -182,7 +180,7 @@ Block
     /Fun
   /Def
   Def
-    Id "report-oddness"
+    Id "oddness"
     None
     Fun
       Params
@@ -203,17 +201,11 @@ Block
                 Id "is-even"
                 Id "i"
               /Call
-              Call
-                Id "print"
-                String "even"
-              /Call
+              String "even"
             /Call
             Call
               Id "else"
-              Call
-                Id "print"
-                String "odd"
-              /Call
+              String "odd"
             /Call
           /List
         /Call
@@ -223,4 +215,4 @@ Block
 /Block
 
 Node size: 20
-Tree len: 158
+Tree len: 152

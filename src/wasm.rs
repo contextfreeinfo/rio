@@ -743,6 +743,17 @@ impl<'a> WasmWriter<'a> {
                             }
                         }
                     }
+                } else if module == 1 {
+                    let core = self.cart.core_exports;
+                    match () {
+                        _ if num == core.false_val.num => {
+                            add_instructions(fun, &[Instruction::I32Const(0)]);
+                        }
+                        _ if num == core.true_val.num => {
+                            add_instructions(fun, &[Instruction::I32Const(1)]);
+                        }
+                        _ => {}
+                    }
                 }
             }
             _ => {}

@@ -64,6 +64,7 @@ pub struct CoreExports {
     pub branch_fun: ScopeEntry,
     pub else_fun: ScopeEntry,
     pub eq_fun: ScopeEntry,
+    pub false_val: ScopeEntry,
     pub function_type: ScopeEntry,
     pub ge_fun: ScopeEntry,
     pub gt_fun: ScopeEntry,
@@ -77,6 +78,7 @@ pub struct CoreExports {
     pub struct_fun: ScopeEntry,
     pub sub_fun: ScopeEntry,
     pub text_type: ScopeEntry,
+    pub true_val: ScopeEntry,
     pub type_type: ScopeEntry,
     pub void_type: ScopeEntry,
 }
@@ -92,6 +94,7 @@ impl CoreExports {
             branch_fun: get("branch"),
             else_fun: get("else"),
             eq_fun: get("eq"),
+            false_val: get("false"),
             function_type: get("Function"),
             ge_fun: get("ge"),
             gt_fun: get("gt"),
@@ -105,6 +108,7 @@ impl CoreExports {
             struct_fun: get("struct"),
             sub_fun: get("sub"),
             text_type: get("Text"),
+            true_val: get("true"),
             type_type: get("Type"),
             void_type: get("Void"),
         }

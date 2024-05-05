@@ -1,77 +1,83 @@
 Block
   Module "examples/recurse.rio" 2
-  Def@178 :@176
-    Uid main@178* :@176
+  Def@172 :@170
+    Uid main@172* :@170
     None
-    Fun :@176
+    Fun :@170
       Params
       Params
-      Block :@167
-        Def@13 :@164
-          Uid i@13 :@164
+      Block :@159
+        Def@17 :@158
+          Uid i@17 :@158
           None
-          Int32 3 :@164
+          Int32 3 :@158
         /Def
         Call
-          Uid count-down@179 :@173
-          Uid i@13 :@164
+          Uid count-down@173 :@167
+          Uid i@17 :@158
         /Call
-        Call :@167
-          Uid report-oddness@182 :@175
-          Uid i@13 :@164
+        Call :@159
+          Uid print@1@697 :@161
+          Call :@160
+            Uid oddness@176 :@169
+            Uid i@17 :@158
+          /Call
         /Call
-        Call :@167
-          Uid report-oddness@182 :@175
-          Call :@164
-            Uid add@1@671 :@165
-            Uid i@13 :@164
-            Int32 1 :@164
+        Call :@159
+          Uid print@1@697 :@161
+          Call :@160
+            Uid oddness@176 :@169
+            Call :@158
+              Uid add@1@671 :@162
+              Uid i@17 :@158
+              Int32 1 :@158
+            /Call
           /Call
         /Call
       /Block
     /Fun
   /Def
-  Def@179 :@173
-    Uid count-down@179 :@173
+  Def@173 :@167
+    Uid count-down@173 :@167
     None
-    Fun :@173
+    Fun :@167
       Params
-        Def@26 :@164
-          Uid count@26 :@164
+        Def@30 :@158
+          Uid count@30 :@158
           Uid Int32@1@670
-          None :@164
+          None :@158
         /Def
       /Params
       Params
       Block
-        Call :@167
-          Uid print@1@697 :@169
-          String "counting ..." :@168
+        Call :@159
+          Uid print@1@697 :@161
+          String "counting ..." :@160
         /Call
         Call
           Uid branch@1@688
           List
             Call
-              Uid Pair@1@683 :@170
-              Call :@171
-                Uid gt@1@674 :@172
-                Uid count@26 :@164
-                Int32 1 :@164
+              Uid Pair@1@683 :@164
+              Call :@165
+                Uid gt@1@674 :@166
+                Uid count@30 :@158
+                Int32 1 :@158
               /Call
               Call
-                Uid count-down@179 :@173
-                Call :@164
-                  Uid sub@1@678 :@165
-                  Uid count@26 :@164
-                  Int32 1 :@164
+                Uid count-down@173 :@167
+                Call :@158
+                  Uid sub@1@678 :@162
+                  Uid count@30 :@158
+                  Int32 1 :@158
                 /Call
               /Call
             /Call
             Call
               Uid else@1@691
-              Call :@167
-                Uid print@1@697 :@169
-                String "done" :@168
+              Call :@159
+                Uid print@1@697 :@161
+                String "done" :@160
               /Call
             /Call
           /List
@@ -79,141 +85,127 @@ Block
       /Block
     /Fun
   /Def
-  Def@180 :@174
-    Uid is-even@180 :@174
+  Def@174 :@168
+    Uid is-even@174 :@168
     None
-    Fun :@174
+    Fun :@168
       Params
-        Def@59 :@164
-          Uid i@59 :@164
+        Def@63 :@158
+          Uid i@63 :@158
           Uid Int32@1@670
-          None :@164
+          None :@158
         /Def
       /Params
       Params
-        Def@63 :@171
-          None :@171
+        Def@67 :@165
+          None :@165
           Uid Claim@1@667
-          None :@171
+          None :@165
         /Def
       /Params
-      Block :@171
-        Call :@171
+      Block :@165
+        Call :@165
           Uid branch@1@688
           List
             Call
-              Uid Pair@1@683 :@170
-              Call :@171
-                Uid gt@1@674 :@172
-                Uid i@59 :@164
-                Int32 0 :@164
+              Uid Pair@1@683 :@164
+              Call :@165
+                Uid gt@1@674 :@166
+                Uid i@63 :@158
+                Int32 0 :@158
               /Call
-              Call :@171
-                Uid is-odd@181 :@174
-                Call :@164
-                  Uid sub@1@678 :@165
-                  Uid i@59 :@164
-                  Int32 1 :@164
+              Call :@165
+                Uid is-odd@175 :@168
+                Call :@158
+                  Uid sub@1@678 :@162
+                  Uid i@63 :@158
+                  Int32 1 :@158
                 /Call
               /Call
             /Call
             Call
               Uid else@1@691
-              Call :@171
-                Uid gt@1@674 :@172
-                Int32 2 :@164
-                Int32 1 :@164
-              /Call
+              Uid true@1@699
             /Call
           /List
         /Call
       /Block
     /Fun
   /Def
-  Def@181 :@174
-    Uid is-odd@181 :@174
+  Def@175 :@168
+    Uid is-odd@175 :@168
     None
-    Fun :@174
+    Fun :@168
       Params
-        Def@94 :@164
-          Uid i@94 :@164
+        Def@95 :@158
+          Uid i@95 :@158
           Uid Int32@1@670
-          None :@164
+          None :@158
         /Def
       /Params
       Params
-        Def@98 :@171
-          None :@171
+        Def@99 :@165
+          None :@165
           Uid Claim@1@667
-          None :@171
+          None :@165
         /Def
       /Params
-      Block :@171
-        Call :@171
+      Block :@165
+        Call :@165
           Uid branch@1@688
           List
             Call
-              Uid Pair@1@683 :@170
-              Call :@171
-                Uid gt@1@674 :@172
-                Uid i@94 :@164
-                Int32 0 :@164
+              Uid Pair@1@683 :@164
+              Call :@165
+                Uid gt@1@674 :@166
+                Uid i@95 :@158
+                Int32 0 :@158
               /Call
-              Call :@171
-                Uid is-even@180 :@174
-                Call :@164
-                  Uid sub@1@678 :@165
-                  Uid i@94 :@164
-                  Int32 1 :@164
+              Call :@165
+                Uid is-even@174 :@168
+                Call :@158
+                  Uid sub@1@678 :@162
+                  Uid i@95 :@158
+                  Int32 1 :@158
                 /Call
               /Call
             /Call
             Call
               Uid else@1@691
-              Call :@171
-                Uid gt@1@674 :@172
-                Int32 0 :@164
-                Int32 1 :@164
-              /Call
+              Uid false@1@693
             /Call
           /List
         /Call
       /Block
     /Fun
   /Def
-  Def@182 :@175
-    Uid report-oddness@182 :@175
+  Def@176 :@169
+    Uid oddness@176 :@169
     None
-    Fun :@175
+    Fun :@169
       Params
-        Def@129 :@164
-          Uid i@129 :@164
+        Def@127 :@158
+          Uid i@127 :@158
           Uid Int32@1@670
-          None :@164
+          None :@158
         /Def
       /Params
       Params
-      Block :@167
-        Call :@167
+      Block :@160
+        Call :@160
           Uid branch@1@688
           List
             Call
-              Uid Pair@1@683 :@170
-              Call :@171
-                Uid is-even@180 :@174
-                Uid i@129 :@164
+              Uid Pair@1@683 :@164
+              Call :@165
+                Uid is-even@174 :@168
+                Uid i@127 :@158
               /Call
-              Call :@167
-                Uid print@1@697 :@169
-                String "even" :@168
-              /Call
+              String "even" :@160
             /Call
             Call
               Uid else@1@691
-              Call :@167
-                Uid print@1@697 :@169
-                String "odd" :@168
-              /Call
+              String "odd" :@160
             /Call
           /List
         /Call
@@ -221,36 +213,36 @@ Block
     /Fun
   /Def
   Types
-    Uid@164 Int32@1@670
-    FunType@165 :@164
-      None :@164
-      None :@164
+    Uid@158 Int32@1@670
+    Uid@159 Void@1@686
+    Uid@160 Text@1@684
+    FunType@161 :@159
+      None :@160
+    FunType@162 :@158
+      None :@158
+      None :@158
     /FunType
-    FunType@166
-    Uid@167 Void@1@686
-    Uid@168 Text@1@684
-    FunType@169 :@167
-      None :@168
-    FunType@170
+    FunType@163
+    FunType@164
       None
       None
       None
       None
     /FunType
-    Uid@171 Claim@1@667
-    FunType@172 :@171
-      None :@164
-      None :@164
+    Uid@165 Claim@1@667
+    FunType@166 :@165
+      None :@158
+      None :@158
     /FunType
-    FunType@173
-      None :@164
-    FunType@174 :@171
-      None :@164
-    FunType@175 :@167
-      None :@164
-    FunType@176 :@167
+    FunType@167
+      None :@158
+    FunType@168 :@165
+      None :@158
+    FunType@169 :@160
+      None :@158
+    FunType@170 :@159
   /Types
 /Block
 
 Node size: 20
-Tree len: 184
+Tree len: 178

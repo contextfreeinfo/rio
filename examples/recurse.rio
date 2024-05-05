@@ -1,8 +1,8 @@
 main* = for() be
     i = 3
     count-down(i)
-    report-oddness(i)
-    report-oddness(i + 1)
+    print oddness(i)
+    print oddness(i + 1)
 end
 
 count-down = for(count: Int32) be
@@ -15,15 +15,15 @@ end
 
 is-even = for(i: Int32): Claim be branch with
     i > 0 to is-odd(i - 1)
-    else 2 > 1 # TODO true
+    else true
 end
 
 is-odd = for(i: Int32): Claim be branch with
     i > 0 to is-even(i - 1)
-    else 0 > 1 # TODO false
+    else false
 end
 
-report-oddness = for(i: Int32) be branch with
-    is-even(i) to print("even")
-    else print("odd")
+oddness = for(i: Int32) be branch with
+    is-even(i) to "even"
+    else "odd"
 end
