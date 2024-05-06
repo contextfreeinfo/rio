@@ -288,15 +288,14 @@ Block
           HSpace " "
           Block
             Be "be"
-            VSpace "\n"
-            HSpace "        "
+            HSpace " "
             Call
               Id "branch"
               HSpace " "
               Block
                 With "with"
                 VSpace "\n"
-                HSpace "            "
+                HSpace "        "
                 Infix
                   Infix
                     Infix
@@ -319,7 +318,7 @@ Block
                   /StringParts
                 /Infix
                 VSpace "\n"
-                HSpace "            "
+                HSpace "        "
                 Call
                   Id "else"
                   HSpace " "
@@ -330,13 +329,10 @@ Block
                   /StringParts
                 /Call
                 VSpace "\n"
-                HSpace "        "
+                HSpace "    "
                 End "end"
               /Block
             /Call
-            VSpace "\n"
-            HSpace "    "
-            End "end"
           /Block
         /Call
         VSpace "\n"
@@ -358,4 +354,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 297
+Tree len: 293

@@ -104,7 +104,7 @@ fn run_app(args: &BuildArgs) -> Result<()> {
     // println!("type tree size: {}", std::mem::size_of::<typ::TypeTree>());
     if args.time {
         println!(
-            "building {}: main {:.1?}, wasm {:.1?}, write {:.1?}",
+            "built from {}: main {:.1?}, wasm {:.1?}, write {:.1?}",
             args.app.as_str(),
             prewasm,
             prewrite,
