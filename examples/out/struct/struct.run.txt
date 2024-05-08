@@ -17,7 +17,7 @@ Block
           None
           Call :@151
             Uid Person@163 :@149
-            Struct
+            Struct :@151
               Def@10 :@146
                 Uid name@10 :@146
                 None
@@ -37,7 +37,7 @@ Block
         /Call
         Call :@153
           Uid describe@165 :@159
-          Struct
+          Struct :@151
             Def@27 :@147
               Uid age@27 :@147
               None
@@ -63,7 +63,7 @@ Block
         /Call
         Call :@153
           Uid describe@165 :@159
-          Struct
+          Struct :@151
             Def@42 :@147
               Uid age@42 :@147
               None
@@ -84,7 +84,7 @@ Block
     None
     Call :@149
       Uid struct@1@663 :@150
-      Struct
+      StructDef
         Def@64 :@146
           Uid name@64 :@146
           Uid Text@1@649 :@149
@@ -95,7 +95,7 @@ Block
           Uid Int32@1@635
           None :@147
         /Def
-      /Struct
+      /StructDef
     /Call
   /Def
   Def@164 :@152

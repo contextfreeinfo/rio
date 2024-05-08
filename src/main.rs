@@ -131,10 +131,10 @@ fn build(args: &BuildArgs, name: &str, mut cart: Cart) -> Result<Cart> {
     // TODO Keep runner to reuse resources, or move them into module?
     let runner = Runner::new(&mut cart);
     let module = runner.run(interner.get_or_intern(name), &mut tree);
-    if name == "core" {
-        cart.core_exports = CoreExports::extract(&module, &cart.interner);
-        // println!("{:?}", cart.core_exports);
-    }
+    // if name == "core" {
+    //     cart.core_exports = CoreExports::extract(&module, &cart.interner);
+    //     // println!("{:?}", cart.core_exports);
+    // }
     cart.module_map
         .insert(module.name, cart.modules.len() as u16 + 1);
     cart.modules.push(module);

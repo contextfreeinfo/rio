@@ -302,7 +302,7 @@ Block
   /Call
   Call :@263
     Uid print@1@662 :@266
-    Id "item"
+    Id "item" :@265
   /Call
   Call
     Id "match"
@@ -339,7 +339,7 @@ Block
         Id "case"
         Call :@268
           Uid lt@1@641 :@269
-          Id "x"
+          Id "x" :@261
           Int32 0 :@261
         /Call
         String "negative" :@265

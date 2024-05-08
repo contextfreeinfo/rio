@@ -393,6 +393,7 @@ pub enum BranchKind {
     Pub,
     StringParts,
     Struct,
+    StructDef,
     Type, // FunType | GenericCall | Uid
     Typed,
     Types, // Type*

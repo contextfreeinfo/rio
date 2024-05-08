@@ -299,6 +299,13 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
                     typ = type_fun(runner, tree, at, typ);
                     true
                 }
+                BranchKind::Struct if node.typ.0 == 0 => {
+                    // TODO Reassign def uids.
+                    if runner.module != 1 {
+                        // println!("untyped struct instance");
+                    }
+                    false
+                }
                 _ => false,
             };
             // TODO Eventually, should we handle everything above?
@@ -361,6 +368,8 @@ fn type_block(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut 
 }
 
 fn type_call(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut typ: Type) -> Type {
+    let mut arg_types_range: Option<Range<usize>> = None;
+    let mut next_kid_typ = Type::default();
     let mut type_branch = false;
     for (local_index, kid_index) in range.clone().enumerate() {
         let kid = tree[kid_index];
@@ -371,26 +380,49 @@ fn type_call(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut t
                 ..
             } = runner.cart.core_exports;
             if kid.typ.0 != 0 {
-                // TODO Also grab all expected param types for later kids.
                 let callee_type = runner.typer.types_ref().working[kid.typ.0 as usize - 1];
+                if let Nod::Branch {
+                    kind: BranchKind::FunType,
+                    range: fun_type_range,
+                } = callee_type.nod
+                {
+                    arg_types_range = Some(fun_type_range.into());
+                }
                 let return_type = callee_type.typ;
                 if return_type.0 != 0 {
                     typ = return_type;
                 } else if let Nod::Uid { module, num, .. } = callee_type.nod {
-                    if module == type_type.module && num == type_type.num {
+                    if runner.is_core(module) && num == type_type.num {
                         if let Some(built_type) = build_type(runner, &tree[..=kid_index]) {
                             typ = built_type;
+                            next_kid_typ = typ;
+                            continue;
                         }
                     }
                 }
             } else if let Nod::Uid { module, num, .. } = kid.nod {
-                // Special-case some until we process type args.
-                if module == branch_fun.module && num == branch_fun.num {
-                    type_branch = true;
+                if runner.is_core(module) {
+                    match () {
+                        _ if num == branch_fun.num => {
+                            // Special-case some until we process type args.
+                            type_branch = true;
+                        }
+                        _ => {}
+                    }
                 }
             }
         }
-        type_any(runner, tree, kid_index, Type::default());
+        if next_kid_typ == Type::default() {
+            // Use param types if we have those.
+            if let Some(arg_types_range) = arg_types_range.clone() {
+                if local_index - 1 < arg_types_range.len() {
+                    let arg_type_index = arg_types_range.start + local_index - 1;
+                    next_kid_typ = runner.typer.types_ref().nodes[arg_type_index].typ;
+                }
+            }
+        }
+        type_any(runner, tree, kid_index, next_kid_typ);
+        next_kid_typ = Type::default();
     }
     if type_branch && range.len() == 2 {
         if let Nod::Branch {
@@ -525,7 +557,7 @@ fn find_field_def(runner: &Runner, tree: &[Node], at: usize, id: Token) -> Optio
     // TODO Also support classes?
     // println!("struct call: {:?}", tree[range.start as usize + 1].nod);
     let Nod::Branch {
-        kind: BranchKind::Struct,
+        kind: BranchKind::StructDef,
         range,
     } = tree[range.start as usize + 1].nod
     else {

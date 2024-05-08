@@ -446,7 +446,7 @@ Block
                   Id "if"
                   Call :@618
                     Uid not@660 :@625
-                    Id "maybe"
+                    Id "maybe" :@618
                   /Call
                   Def@318
                     Uid maybe@318
@@ -472,15 +472,15 @@ Block
               /Block
             /Fun
           /Def
-          Def@340
-            Uid maybe@340
+          Def@340 :@618
+            Uid maybe@340 :@618
             Call
               Uid Maybe@646 :@614
               AngleOpen "<"
               Id "Value"
               AngleClose ">"
             /Call
-            Uid false@658
+            Uid false@658 :@618
           /Def
         /List
       /Call
@@ -535,13 +535,13 @@ Block
         Uid ordered@661 :@622
         Call :@623
           Uid struct@663 :@629
-          Struct
+          StructDef
             Def@380
               Uid value@380
               Id "Value"
               None
             /Def
-          /Struct
+          /StructDef
         /Call
       /Call
     /Fun
@@ -561,7 +561,7 @@ Block
         Uid ordered@661 :@622
         Call :@623
           Uid struct@663 :@629
-          Struct
+          StructDef
             Def@401
               Uid key@401
               Id "Key"
@@ -572,7 +572,7 @@ Block
               Id "Value"
               None
             /Def
-          /Struct
+          /StructDef
         /Call
       /Call
     /Fun
@@ -639,13 +639,13 @@ Block
         Uid ordered@661 :@622
         Call :@623
           Uid struct@663 :@629
-          Struct
+          StructDef
             Def@452
               Uid value@452
               Id "Value"
               None
             /Def
-          /Struct
+          /StructDef
         /Call
       /Call
     /Fun
@@ -726,13 +726,13 @@ Block
   /Def
   Call
     Uid Pair@648 :@615
-    Uid true@664
+    Uid true@664 :@618
     Id "value"
   /Call
-  Def@658
-    Uid false@658*
-    None
-    Call
+  Def@658 :@618
+    Uid false@658* :@618
+    Uid Claim@632
+    Call :@618
       Uid No@647 :@614
       Uid void@665 :@627
     /Call
@@ -771,11 +771,11 @@ Block
           Call
             Uid Pair@648 :@615
             Uid claim@535 :@618
-            Uid false@658
+            Uid false@658 :@618
           /Call
           Call
             Uid else@656
-            Uid true@664
+            Uid true@664 :@618
           /Call
         /List
       /Call
@@ -829,10 +829,10 @@ Block
         Uid native@659 :@622
     /Fun
   /Def
-  Def@664
-    Uid true@664*
-    None
-    Call
+  Def@664 :@618
+    Uid true@664* :@618
+    Uid Claim@632
+    Call :@618
       Uid Yes@652 :@614
       Uid void@665 :@627
     /Call

@@ -762,7 +762,7 @@ Block
   Def
     Pub
       Id "false"
-    None
+    Id "Claim"
     Call
       Id "No"
       Id "void"
@@ -868,7 +868,7 @@ Block
   Def
     Pub
       Id "true"
-    None
+    Id "Claim"
     Call
       Id "Yes"
       Id "void"

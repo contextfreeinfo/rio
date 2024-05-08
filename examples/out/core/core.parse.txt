@@ -1391,12 +1391,19 @@ Block
   /Block
   VSpace "\n"
   VSpace "\n"
+  Comment "# TODO No type annotation needed once we process types more."
+  VSpace "\n"
   Def
-    Pub
-      Id "false"
-      Star "*"
-    /Pub
-    HSpace " "
+    Typed
+      Pub
+        Id "false"
+        Star "*"
+      /Pub
+      Colon ":"
+      HSpace " "
+      Id "Claim"
+      HSpace " "
+    /Typed
     Define "="
     HSpace " "
     Call
@@ -1608,12 +1615,19 @@ Block
   /Def
   VSpace "\n"
   VSpace "\n"
+  Comment "# TODO No type annotation needed once we process types more."
+  VSpace "\n"
   Def
-    Pub
-      Id "true"
-      Star "*"
-    /Pub
-    HSpace " "
+    Typed
+      Pub
+        Id "true"
+        Star "*"
+      /Pub
+      Colon ":"
+      HSpace " "
+      Id "Claim"
+      HSpace " "
+    /Typed
     Define "="
     HSpace " "
     Call
@@ -1648,4 +1662,4 @@ Block
 /Block
 
 Node size: 12
-Tree len: 1327
+Tree len: 1339

@@ -84,10 +84,13 @@ pub struct CoreExports {
 }
 
 impl CoreExports {
-    pub fn extract(core: &Module, interner: &Interner) -> CoreExports {
+    pub fn extract(tops: &MultiMap<Intern, ScopeEntry>, interner: &Interner) -> CoreExports {
         let get = |name: &str| {
-            // If called at the right point in processing, we should have these.
-            core.get_top(interner.get(name).unwrap()).unwrap()
+            // If called late enough in processing, we should have these.
+            tops.get(interner.get(name).unwrap())
+                .next()
+                .copied()
+                .unwrap()
         };
         CoreExports {
             add_fun: get("add"),
@@ -121,7 +124,7 @@ pub struct Runner<'a> {
     pub module: u16,
     pending: Option<Node>,
     scope: Vec<ScopeEntry>,
-    // TODO Differentiate overload and full definitions.
+    // TODO Differentiate overload and full definitions. Or no overloads?
     pub tops: MultiMap<Intern, ScopeEntry>,
     pub typer: Typer,
 }
@@ -155,8 +158,13 @@ impl<'a> Runner<'a> {
         self.convert_ids(tree);
         self.update_def_inds(tree);
         self.extract_top(tree);
+        if self.module == 1 {
+            // Get intermediate nums for internal recognition.
+            self.cart.core_exports = CoreExports::extract(&self.tops, &self.cart.interner);
+        }
         // TODO Multiple big rounds of resolution and typing.
         self.resolve(tree);
+        self.evaluate(tree);
         type_tree(&mut self, tree);
         // Finalize things.
         append_types(&mut self, tree);
@@ -167,6 +175,10 @@ impl<'a> Runner<'a> {
         self.update_uids_at_end(tree);
         // println!("Tops: {:?}", self.tops);
         // println!("Top map: {:?}", self.top_map);
+        if self.module == 1 {
+            // Get final nums for use from other modules.
+            self.cart.core_exports = CoreExports::extract(&self.tops, &self.cart.interner);
+        }
         Module {
             name,
             num: self.module,
@@ -220,6 +232,81 @@ impl<'a> Runner<'a> {
             _ => self.builder().push(node),
         }
         Some(())
+    }
+
+    pub fn evaluate(&mut self, tree: &mut Vec<Node>) {
+        // println!("evaluate");
+        self.builder().clear();
+        self.evaluate_at(tree, None);
+        self.builder()
+            .wrap(BranchKind::Block, 0, Type::default(), 0);
+        self.builder().drain_into(tree);
+    }
+
+    fn evaluate_at(&mut self, tree: &[Node], override_kind: Option<BranchKind>) -> Option<()> {
+        let node = *tree.last()?;
+        match node.nod {
+            Nod::Branch { kind, range, .. } => {
+                let start = self.builder().pos();
+                let range: Range<usize> = range.into();
+                if kind == BranchKind::Call {
+                    if let Nod::Uid { module, num, .. } = tree[range.start].nod {
+                        if self.is_core(module) {
+                            let core = self.cart.core_exports;
+                            match () {
+                                _ if num == core.struct_fun.num => {
+                                    self.evaluate_struct(tree);
+                                    return Some(());
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                for kid_index in range.clone() {
+                    self.evaluate_at(&tree[..=kid_index], None);
+                }
+                self.builder()
+                    .wrap(override_kind.unwrap_or(kind), start, node.typ, node.source);
+            }
+            _ => self.builder().push(node),
+        }
+        Some(())
+    }
+
+    fn evaluate_struct(&mut self, tree: &[Node]) -> Option<()> {
+        let node = *tree.last()?;
+        let Nod::Branch { kind, range } = node.nod else {
+            panic!()
+        };
+        let start = self.builder().pos();
+        let range: Range<usize> = range.into();
+        match range.len() {
+            2 => {
+                self.evaluate_at(&tree[..=range.start], None);
+                if let Nod::Branch {
+                    kind: BranchKind::Struct,
+                    ..
+                } = tree[range.start + 1].nod
+                {
+                    // All this effort just to replace Struct with StructDef.
+                    self.evaluate_at(&tree[..=range.start + 1], Some(BranchKind::StructDef));
+                } else {
+                    self.evaluate_at(&tree[..=range.start + 1], None);
+                }
+            }
+            _ => {
+                for kid_index in range.clone() {
+                    self.evaluate_at(&tree[..=kid_index], None);
+                }
+            }
+        }
+        self.builder().wrap(kind, start, node.typ, node.source);
+        Some(())
+    }
+
+    pub fn is_core(&self, module: u16) -> bool {
+        module == 1 || self.module == 1
     }
 
     fn push_id(&mut self, node: Node, intern: Intern, r#pub: bool) {

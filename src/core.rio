@@ -78,7 +78,8 @@ class* = for() be native()
 
 else* = for<Value>(value: Lazy<Value>): Case<Value> be true to value
 
-false* = No(void)
+# TODO No type annotation needed once we process types more.
+false*: Claim = No(void)
 
 native* = for() be native()
 
@@ -94,6 +95,7 @@ print* = for(text: Text): Void be native()
 
 struct* = for(): Type be native()
 
-true* = Yes(void)
+# TODO No type annotation needed once we process types more.
+true*: Claim = Yes(void)
 
 void*: Void = native()
