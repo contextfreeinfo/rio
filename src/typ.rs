@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    lex::{Token, TokenKind},
+    lex::{Intern, Token, TokenKind},
     run::{CoreExports, Runner},
     tree::{tree_hash_with, BranchKind, Nod, Node, Source, TreeBuilder, Type},
 };
@@ -299,12 +299,15 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
                     typ = type_fun(runner, tree, at, typ);
                     true
                 }
-                BranchKind::Struct if node.typ.0 == 0 => {
+                BranchKind::Struct => {
+                    // We don't use struct contents to infer struct type.
+                    // TODO Should we?
+                    type_struct(runner, tree, &range, typ);
                     // TODO Reassign def uids.
-                    if runner.module != 1 {
-                        // println!("untyped struct instance");
-                    }
-                    false
+                    // if runner.module != 1 {
+                    //     println!("untyped struct instance");
+                    // }
+                    true
                 }
                 _ => false,
             };
@@ -500,18 +503,13 @@ fn type_dot(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ: T
     if range.len() != 2 {
         return typ;
     }
-    // Get the type node.
-    let struct_type_index = tree[range.start].typ.0 as usize;
-    if struct_type_index == 0 {
-        return typ;
-    }
-    let struct_type = runner.typer.types_ref().working[struct_type_index - 1];
-    // Get the def node.
-    let Some((def_tree, def_index)) = get_node_access(runner, tree, struct_type) else {
+    // Get the field id.
+    let Nod::Leaf { token } = tree[range.start + 1].nod else {
         return typ;
     };
-    // And the field id.
-    let Nod::Leaf { token } = tree[range.start + 1].nod else {
+    // Get the def node.
+    let Some((def_tree, def_index)) = find_id_type_node_access(runner, tree, tree[range.start].typ)
+    else {
         return typ;
     };
     // println!(
@@ -519,14 +517,73 @@ fn type_dot(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ: T
     //     tree[range.start].typ, struct_type.nod, token
     // );
     // TODO Modify leaf to Sid or Uid.
-    let Some(uid) = find_field_def(runner, def_tree, def_index, token) else {
+    let Some(uid) = find_field_def(runner, def_tree, def_index, token.intern) else {
         return typ;
     };
     tree[range.start + 1] = uid;
     uid.typ
 }
 
-fn find_field_def(runner: &Runner, tree: &[Node], at: usize, id: Token) -> Option<Node> {
+fn find_id_type_node_access<'a>(
+    runner: &'a Runner,
+    tree: &'a [Node],
+    struct_type_ref: Type,
+) -> Option<NodeAccess<'a>> {
+    let struct_type_index = struct_type_ref.0 as usize;
+    if struct_type_index == 0 {
+        return None;
+    }
+    let struct_type = runner.typer.types_ref().working[struct_type_index - 1];
+    get_node_access(runner, tree, struct_type)
+}
+
+fn type_struct(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ: Type) -> Type {
+    // Do simple inference for starters.
+    // TODO Avoid simple if we work out name-correlated typing down below.
+    for kid_index in range.clone() {
+        type_any(runner, tree, kid_index, Type::default());
+    }
+    if typ.0 == 0 {
+        return typ;
+    }
+    // Get the struct def node.
+    let Some((def_tree, def_index)) = find_id_type_node_access(runner, tree, typ) else {
+        // Loop the kids.
+        return typ;
+    };
+    // println!("found struct");
+    for kid_index in range.clone() {
+        let Nod::Branch {
+            kind: BranchKind::Def,
+            range: kid_range,
+        } = tree[kid_index].nod
+        else {
+            continue;
+        };
+        let kid_range: Range<usize> = kid_range.into();
+        let intern = match tree[kid_range.start].nod {
+            // TODO See if the module matches the struct def and the num is within the struct def range?
+            // TODO If so, presume done and skip out?
+            // TODO Or just use Sid later and look for those?
+            Nod::Uid { intern, .. } => intern,
+            // TODO Will they always be Uid by this point?
+            // Nod::Leaf { token } => token.intern,
+            _ => continue,
+        };
+        // TODO Better than O(n^2).
+        let Some(uid) = find_field_def(runner, def_tree, def_index, intern) else {
+            continue;
+        };
+        // println!("  found field def");
+        // TODO Update uid and type.
+        // TODO Reype value in terms of newly expected type.
+        // tree[range.start + 1] = uid;
+        // type_any(runner, tree, kid_index, Type::default());
+    }
+    typ
+}
+
+fn find_field_def(runner: &Runner, tree: &[Node], at: usize, key: Intern) -> Option<Node> {
     let Nod::Branch {
         kind: BranchKind::Def,
         range,
@@ -582,7 +639,7 @@ fn find_field_def(runner: &Runner, tree: &[Node], at: usize, id: Token) -> Optio
         let Nod::Uid { intern, .. } = field_id.nod else {
             continue;
         };
-        if intern == id.intern {
+        if intern == key {
             // println!("  found field: {:?} {:?}", intern, tree[kid_index].typ);
             return Some(field_id);
         }
