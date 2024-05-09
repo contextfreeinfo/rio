@@ -19,12 +19,12 @@ Block
             Uid Person@163 :@149
             Struct :@151
               Def@10 :@146
-                Uid name@10 :@146
+                Sid name@0 :@146
                 None
                 Uid name@46 :@146
               /Def
               Def@11 :@147
-                Uid age@11 :@147
+                Sid age@1 :@147
                 None
                 Int32 40 :@147
               /Def
@@ -39,15 +39,15 @@ Block
           Uid describe@165 :@159
           Struct :@151
             Def@27 :@147
-              Uid age@27 :@147
+              Sid age@1 :@147
               None
               Dot :@147
                 Uid alice@47 :@151
-                Uid age@65 :@147
+                Sid age@1 :@147
               /Dot
             /Def
             Def@28 :@146
-              Uid name@28 :@146
+              Sid name@0 :@146
               None
               String "Bob" :@146
             /Def
@@ -65,12 +65,12 @@ Block
           Uid describe@165 :@159
           Struct :@151
             Def@42 :@147
-              Uid age@42 :@147
+              Sid age@1 :@147
               None
               Int32 9 :@147
             /Def
             Def@43 :@146
-              Uid name@43 :@146
+              Sid name@0 :@146
               None
               String "Denise" :@146
             /Def
@@ -123,12 +123,12 @@ Block
       /Params
       Struct :@151
         Def@89 :@146
-          Uid name@89 :@146
+          Sid name@0 :@146
           None
           Uid name@77 :@146
         /Def
         Def@90 :@147
-          Uid age@90 :@147
+          Sid age@1 :@147
           None
           Uid age@78 :@147
         /Def
@@ -156,7 +156,7 @@ Block
           Uid print@1@662 :@154
           Dot :@146
             Uid person@100 :@151
-            Uid name@64 :@146
+            Sid name@0 :@146
           /Dot
         /Call
         Call :@153
@@ -170,7 +170,7 @@ Block
                   Uid ge@1@638 :@157
                   Dot :@147
                     Uid person@100 :@151
-                    Uid age@65 :@147
+                    Sid age@1 :@147
                   /Dot
                   Int32 18 :@147
                 /Call

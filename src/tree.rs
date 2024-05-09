@@ -65,7 +65,12 @@ pub enum Nod {
         name: Intern,
         module: u16,
     },
-    // TODO Sid for Scope/Struct id?
+    // For scoped or struct id.
+    Sid {
+        intern: Intern,
+        num: u32,
+    },
+    // For unique id.
     Uid {
         intern: Intern,
         module: u16,
@@ -293,6 +298,13 @@ where
             write!(file, "Module")?;
             write_index(file)?;
             write!(file, " {:?} {module}", &map[intern])?;
+            finish(file)?;
+        }
+        Nod::Sid { intern, num } => {
+            write!(file, "Sid")?;
+            write_index(file)?;
+            write!(file, " {}", &map[intern])?;
+            write!(file, "@{num}")?;
             finish(file)?;
         }
         Nod::Uid {

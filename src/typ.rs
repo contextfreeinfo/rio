@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    lex::{Intern, Token, TokenKind},
+    lex::{Intern, TokenKind},
     run::{CoreExports, Runner},
     tree::{tree_hash_with, BranchKind, Nod, Node, Source, TreeBuilder, Type},
 };
@@ -302,11 +302,8 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
                 BranchKind::Struct => {
                     // We don't use struct contents to infer struct type.
                     // TODO Should we?
+                    // println!("type struct at: {at}");
                     type_struct(runner, tree, &range, typ);
-                    // TODO Reassign def uids.
-                    // if runner.module != 1 {
-                    //     println!("untyped struct instance");
-                    // }
                     true
                 }
                 _ => false,
@@ -546,6 +543,10 @@ fn type_struct(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ
     if typ.0 == 0 {
         return typ;
     }
+    // Because of borrows, we can't safely modify our tree in place.
+    // So gather these up for later use.
+    // TODO Instead of Runner, pass in something else that has a reusable buffer?
+    let mut uids = Vec::<Option<Node>>::new();
     // Get the struct def node.
     let Some((def_tree, def_index)) = find_id_type_node_access(runner, tree, typ) else {
         // Loop the kids.
@@ -553,32 +554,58 @@ fn type_struct(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ
     };
     // println!("found struct");
     for kid_index in range.clone() {
+        let mut uid: Option<Node> = None;
+        // Use one-pass loop for local block break.
+        loop {
+            let Nod::Branch {
+                kind: BranchKind::Def,
+                range: kid_range,
+            } = tree[kid_index].nod
+            else {
+                break;
+            };
+            let kid_range: Range<usize> = kid_range.into();
+            let intern = match tree[kid_range.start].nod {
+                Nod::Sid { .. } => {
+                    // Already passed this way.
+                    return typ;
+                }
+                Nod::Uid { intern, .. } => intern,
+                // TODO Will they always be Uid by this point?
+                // Nod::Leaf { token } => token.intern,
+                _ => break,
+            };
+            // TODO Better than O(n^2).
+            uid = find_field_def(runner, def_tree, def_index, intern);
+            break;
+        }
+        uids.push(uid);
+    }
+    // println!("--> Aligning struct with kids starting at: {}", range.start);
+    // Above borrow should be done, so redo the loop with known alignment.
+    for (kid_index, uid) in range.clone().zip(uids) {
+        let Some(uid) = uid else {
+            continue;
+        };
         let Nod::Branch {
             kind: BranchKind::Def,
             range: kid_range,
         } = tree[kid_index].nod
         else {
-            continue;
+            panic!();
         };
+        // if kid_index == 88 || kid_index == 89 {
+        //     println!("    Whoa from {:?}", uid.nod);
+        // }
         let kid_range: Range<usize> = kid_range.into();
-        let intern = match tree[kid_range.start].nod {
-            // TODO See if the module matches the struct def and the num is within the struct def range?
-            // TODO If so, presume done and skip out?
-            // TODO Or just use Sid later and look for those?
-            Nod::Uid { intern, .. } => intern,
-            // TODO Will they always be Uid by this point?
-            // Nod::Leaf { token } => token.intern,
-            _ => continue,
-        };
-        // TODO Better than O(n^2).
-        let Some(uid) = find_field_def(runner, def_tree, def_index, intern) else {
-            continue;
-        };
-        // println!("  found field def");
-        // TODO Update uid and type.
-        // TODO Reype value in terms of newly expected type.
-        // tree[range.start + 1] = uid;
-        // type_any(runner, tree, kid_index, Type::default());
+        // Point the uid to original field uid.
+        let instance_uid = &mut tree[kid_range.start];
+        instance_uid.nod = uid.nod;
+        instance_uid.typ = uid.typ;
+        // Retype the kid based on the field type.
+        if tree[kid_range.end - 1].typ.0 == 0 {
+            type_any(runner, tree, kid_range.end - 1, uid.typ);
+        }
     }
     typ
 }
@@ -641,7 +668,14 @@ fn find_field_def(runner: &Runner, tree: &[Node], at: usize, key: Intern) -> Opt
         };
         if intern == key {
             // println!("  found field: {:?} {:?}", intern, tree[kid_index].typ);
-            return Some(field_id);
+            return Some(Node {
+                nod: Nod::Sid {
+                    intern,
+                    num: local_index as u32,
+                },
+                source: Source::default(),
+                typ: field_id.typ,
+            });
         }
     }
     None
