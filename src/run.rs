@@ -62,6 +62,7 @@ impl Module {
 pub struct CoreExports {
     pub add_fun: ScopeEntry,
     pub branch_fun: ScopeEntry,
+    pub claim_type: ScopeEntry,
     pub else_fun: ScopeEntry,
     pub eq_fun: ScopeEntry,
     pub false_val: ScopeEntry,
@@ -95,6 +96,7 @@ impl CoreExports {
         CoreExports {
             add_fun: get("add"),
             branch_fun: get("branch"),
+            claim_type: get("Claim"),
             else_fun: get("else"),
             eq_fun: get("eq"),
             false_val: get("false"),
@@ -255,7 +257,8 @@ impl<'a> Runner<'a> {
                             let core = self.cart.core_exports;
                             match () {
                                 _ if num == core.struct_fun.num => {
-                                    self.evaluate_struct(tree);
+                                    // TODO Similar for `class` or `pact` later.
+                                    self.evaluate_struct_def_call(tree);
                                     return Some(());
                                 }
                                 _ => {}
@@ -263,18 +266,34 @@ impl<'a> Runner<'a> {
                         }
                     }
                 }
-                for kid_index in range.clone() {
-                    self.evaluate_at(&tree[..=kid_index], None);
+                let kind = override_kind.unwrap_or(kind);
+                match kind {
+                    BranchKind::Struct => {
+                        for kid_index in range.clone() {
+                            let kid_kind = match tree[kid_index].nod {
+                                Nod::Branch {
+                                    kind: BranchKind::Def | BranchKind::Field,
+                                    ..
+                                } => Some(BranchKind::Field),
+                                _ => None,
+                            };
+                            self.evaluate_at(&tree[..=kid_index], kid_kind);
+                        }
+                    }
+                    _ => {
+                        for kid_index in range.clone() {
+                            self.evaluate_at(&tree[..=kid_index], None);
+                        }
+                    }
                 }
-                self.builder()
-                    .wrap(override_kind.unwrap_or(kind), start, node.typ, node.source);
+                self.builder().wrap(kind, start, node.typ, node.source);
             }
             _ => self.builder().push(node),
         }
         Some(())
     }
 
-    fn evaluate_struct(&mut self, tree: &[Node]) -> Option<()> {
+    fn evaluate_struct_def_call(&mut self, tree: &[Node]) -> Option<()> {
         let node = *tree.last()?;
         let Nod::Branch { kind, range } = node.nod else {
             panic!()

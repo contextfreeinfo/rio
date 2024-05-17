@@ -18,16 +18,16 @@ Block
           Call :@151
             Uid Person@163 :@149
             Struct :@151
-              Def@10 :@146
+              Field :@146
                 Sid name@0 :@146
                 None
                 Uid name@46 :@146
-              /Def
-              Def@11 :@147
+              /Field
+              Field :@147
                 Sid age@1 :@147
                 None
                 Int32 40 :@147
-              /Def
+              /Field
             /Struct
           /Call
         /Def
@@ -38,19 +38,19 @@ Block
         Call :@153
           Uid describe@165 :@159
           Struct :@151
-            Def@27 :@147
+            Field :@147
               Sid age@1 :@147
               None
               Dot :@147
                 Uid alice@47 :@151
                 Sid age@1 :@147
               /Dot
-            /Def
-            Def@28 :@146
+            /Field
+            Field :@146
               Sid name@0 :@146
               None
               String "Bob" :@146
-            /Def
+            /Field
           /Struct
         /Call
         Call :@153
@@ -64,16 +64,16 @@ Block
         Call :@153
           Uid describe@165 :@159
           Struct :@151
-            Def@42 :@147
+            Field :@147
               Sid age@1 :@147
               None
               Int32 9 :@147
-            /Def
-            Def@43 :@146
+            /Field
+            Field :@146
               Sid name@0 :@146
               None
               String "Denise" :@146
-            /Def
+            /Field
           /Struct
         /Call
       /Block
@@ -122,16 +122,16 @@ Block
         /Def
       /Params
       Struct :@151
-        Def@89 :@146
+        Field :@146
           Sid name@0 :@146
           None
           Uid name@77 :@146
-        /Def
-        Def@90 :@147
+        /Field
+        Field :@147
           Sid age@1 :@147
           None
           Uid age@78 :@147
-        /Def
+        /Field
       /Struct
     /Fun
   /Def

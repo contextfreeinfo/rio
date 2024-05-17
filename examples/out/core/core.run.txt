@@ -100,8 +100,8 @@ Block
     Call
       Uid class@655 :@622
       Struct
-        Def@131 :@617
-          Uid add@131* :@617
+        Field :@617
+          Uid add@131 :@617
           None
           Fun :@617
             Params
@@ -121,9 +121,9 @@ Block
             Call :@616
               Uid native@659 :@622
           /Fun
-        /Def
-        Def@132 :@619
-          Uid gt@132* :@619
+        /Field
+        Field :@619
+          Uid gt@132 :@619
           None
           Fun :@619
             Params
@@ -143,9 +143,9 @@ Block
             Call :@618
               Uid native@659 :@622
           /Fun
-        /Def
-        Def@133 :@619
-          Uid lt@133* :@619
+        /Field
+        Field :@619
+          Uid lt@133 :@619
           None
           Fun :@619
             Params
@@ -165,9 +165,9 @@ Block
             Call :@618
               Uid native@659 :@622
           /Fun
-        /Def
-        Def@134 :@619
-          Uid eq@134* :@619
+        /Field
+        Field :@619
+          Uid eq@134 :@619
           None
           Fun :@619
             Params
@@ -187,7 +187,7 @@ Block
             Call :@618
               Uid native@659 :@622
           /Fun
-        /Def
+        /Field
       /Struct
     /Call
   /Def
@@ -421,7 +421,7 @@ Block
         Call
           Uid class@655 :@622
           Struct
-            Def@303
+            Field
               Uid builder@303
               Call
                 Uid Function@634 :@615
@@ -431,7 +431,7 @@ Block
                 AngleClose ">"
               /Call
               None
-            /Def
+            /Field
           /Struct
         /Call
         List
@@ -589,8 +589,8 @@ Block
     Call
       Uid class@655 :@622
       Struct
-        Def@436 :@624
-          Uid union@436* :@624
+        Field :@624
+          Uid union@436 :@624
           None
           Fun :@624
             Params
@@ -615,7 +615,7 @@ Block
             Call :@623
               Uid native@659 :@622
           /Fun
-        /Def
+        /Field
       /Struct
     /Call
   /Def

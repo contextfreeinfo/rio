@@ -91,16 +91,16 @@ Block
   Fun :@262
     Params
       Struct
-        Def@57 :@261
+        Field :@261
           Uid a@57 :@261
           Id "A"
           Int32 1 :@261
-        /Def
-        Def@58
+        /Field
+        Field
           Uid b@58
           Id "B"
           None
-        /Def
+        /Field
       /Struct
     /Params
     Params
@@ -115,16 +115,16 @@ Block
   Fun :@262
     Params
       Struct
-        Def@73
+        Field
           Uid a@73
           Id "A"
           None
-        /Def
-        Def@74
+        /Field
+        Field
           Uid b@74
           Id "B"
           None
-        /Def
+        /Field
       /Struct
     /Params
     Params
@@ -158,19 +158,19 @@ Block
   Call
     Id "f"
     Struct
-      Def@102
+      Field
         Uid a@102
         None
         Call
           Id "g"
           Uid b@271 :@261
         /Call
-      /Def
-      Def@103
+      /Field
+      Field
         Uid c@103
         None
         Id "d"
-      /Def
+      /Field
     /Struct
     Id "[e"
   /Call
@@ -190,34 +190,34 @@ Block
     Call
       Id "f"
       Struct
-        Def@132
+        Field
           Uid a@132
           None
           Call
             Id "g"
             Uid b@271 :@261
           /Call
-        /Def
-        Def@133
+        /Field
+        Field
           Uid c@133
           None
           Id "d"
-        /Def
-        Def@134
+        /Field
+        Field
           Uid on@134
           None
           Id "on"
-        /Def
-        Def@135
+        /Field
+        Field
           Uid e@135
           None
           Id "e"
-        /Def
-        Def@136
+        /Field
+        Field
           Uid x@136
           None
           Id "x"
-        /Def
+        /Field
       /Struct
     /Call
     List
@@ -258,19 +258,19 @@ Block
     Id "f"
     Id "a"
     Struct
-      Def@170
+      Field
         Uid b@170
         None
         Call
           Id "g"
           Id "c"
         /Call
-      /Def
-      Def@171
+      /Field
+      Field
         Uid d@171
         None
         Id "e"
-      /Def
+      /Field
     /Struct
   /Call
   Call

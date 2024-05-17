@@ -287,7 +287,7 @@ fn type_any(runner: &mut Runner, tree: &mut [Node], at: usize, typ: Type) -> Typ
                     typ = type_call(runner, tree, &range, typ);
                     true
                 }
-                BranchKind::Def => {
+                BranchKind::Def | BranchKind::Field => {
                     typ = type_def(runner, tree, &range, typ);
                     true
                 }
@@ -546,6 +546,7 @@ fn type_struct(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ
     // Because of borrows, we can't safely modify our tree in place.
     // So gather these up for later use.
     // TODO Instead of Runner, pass in something else that has a reusable buffer?
+    // TODO Instead module id and def_index for NodeAccess? Then no need to retain refs?
     let mut uids = Vec::<Option<Node>>::new();
     // Get the struct def node.
     let Some((def_tree, def_index)) = find_id_type_node_access(runner, tree, typ) else {
@@ -558,7 +559,7 @@ fn type_struct(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ
         // Use one-pass loop for local block break.
         loop {
             let Nod::Branch {
-                kind: BranchKind::Def,
+                kind: BranchKind::Field,
                 range: kid_range,
             } = tree[kid_index].nod
             else {
@@ -588,7 +589,7 @@ fn type_struct(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ
             continue;
         };
         let Nod::Branch {
-            kind: BranchKind::Def,
+            kind: BranchKind::Field,
             range: kid_range,
         } = tree[kid_index].nod
         else {

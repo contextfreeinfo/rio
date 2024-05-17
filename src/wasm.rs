@@ -698,10 +698,23 @@ impl<'a> WasmWriter<'a> {
                     }
                 }
             }
-            Nod::Branch { range, .. } => {
+            Nod::Branch {
+                kind: BranchKind::Field,
+                range,
+            } => {
+                // TODO Store to memory.
                 let range: Range<usize> = range.into();
                 for kid_index in range {
                     self.translate_any(fun, kid_index);
+                }
+            }
+            Nod::Branch { kind, range } => {
+                let range: Range<usize> = range.into();
+                for kid_index in range {
+                    self.translate_any(fun, kid_index);
+                }
+                if kind == BranchKind::Struct {
+                    // TODO Push address.
                 }
             }
             Nod::Int32 { value } => {
@@ -987,12 +1000,15 @@ enum SimpleWasmType {
 fn simple_wasm_type(cart: &Cart, tree: &[Node], node: Node) -> SimpleWasmType {
     if node.typ.0 > 0 {
         if let Nod::Uid { module, num, .. } = tree[node.typ.0 as usize - 1].nod {
-            if module == 1 {
-                if num == cart.core_exports.int32_type.num {
-                    return SimpleWasmType::I32;
-                } else if num == cart.core_exports.text_type.num {
-                    return SimpleWasmType::Span;
-                }
+            match module {
+                1 => match () {
+                    _ if num == cart.core_exports.claim_type.num => return SimpleWasmType::I32,
+                    _ if num == cart.core_exports.int32_type.num => return SimpleWasmType::I32,
+                    _ if num == cart.core_exports.text_type.num => return SimpleWasmType::Span,
+                    _ => {}
+                },
+                // Presume something referenced by pointer.
+                _ => return SimpleWasmType::I32,
             }
         }
     }
