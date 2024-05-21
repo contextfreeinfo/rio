@@ -703,6 +703,7 @@ impl<'a> WasmWriter<'a> {
                 range,
             } => {
                 // TODO Store to memory.
+                // TODO Stack pointer conventions.
                 let range: Range<usize> = range.into();
                 for kid_index in range {
                     self.translate_any(fun, kid_index);
@@ -714,7 +715,10 @@ impl<'a> WasmWriter<'a> {
                     self.translate_any(fun, kid_index);
                 }
                 if kind == BranchKind::Struct {
-                    // TODO Push address.
+                    let size = type_size(&self.cart, 2, node.typ);
+                    println!("Struct size: {size}");
+                    // TODO Load address?
+                    // TODO When already inside a struct, don't?
                 }
             }
             Nod::Int32 { value } => {
@@ -1014,6 +1018,66 @@ fn simple_wasm_type(cart: &Cart, tree: &[Node], node: Node) -> SimpleWasmType {
     }
     // TODO I32 vs float types vs ...
     return SimpleWasmType::Other;
+}
+
+fn type_size(cart: &Cart, module: usize, typ: Type) -> usize {
+    // TODO Cache type sizes and field offsets!!!
+    if typ.0 == 0 {
+        return 4;
+    }
+    let Nod::Uid {
+        module: def_module,
+        num,
+        ..
+    } = cart.modules[module - 1].tree[typ.0 as usize - 1].nod
+    else {
+        return 4;
+    };
+    if def_module == 1 {
+        // TODO Structs from core.
+        return match () {
+            _ if num == cart.core_exports.text_type.num => 8,
+            _ => 4,
+        };
+    }
+    let def_module = match def_module {
+        0 => module,
+        _ => def_module as usize,
+    };
+    let tree = &cart.modules[def_module - 1].tree;
+    // Get Def.
+    let Nod::Branch {
+        kind: BranchKind::Def,
+        range,
+    } = tree[num as usize - 1].nod
+    else {
+        return 4;
+    };
+    let range: Range<usize> = range.into();
+    // Get Call.
+    let Nod::Branch {
+        kind: BranchKind::Call,
+        range,
+    } = tree[range.end - 1].nod
+    else {
+        return 4;
+    };
+    let range: Range<usize> = range.into();
+    // Get StructDef.
+    let Nod::Branch {
+        kind: BranchKind::StructDef,
+        range,
+    } = tree[range.end - 1].nod
+    else {
+        return 4;
+    };
+    let range: Range<usize> = range.into();
+    let size: usize = range
+        .clone()
+        .map(|kid_index| type_size(cart, def_module, tree[kid_index].typ))
+        .sum();
+    // dbg!(size);
+    size
 }
 
 const NEWLINE: &str = "\n\0";
