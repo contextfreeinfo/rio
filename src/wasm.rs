@@ -56,7 +56,7 @@ struct WasmWriter<'a> {
     cart: &'a Cart,
     data_offset: u32,
     imports_len: u32,
-    lookup_table: Vec<Lookup>,
+    lookup_table: Vec<Vec<Lookup>>,
     main_id: Option<Intern>,
     module: wasm_encoder::Module,
     predefs: Predefs,
@@ -89,7 +89,11 @@ impl<'a> WasmWriter<'a> {
             cart,
             data_offset: stack_start,
             imports_len: 0,
-            lookup_table: vec![Lookup::Boring; cart.modules[1].tree.len()],
+            lookup_table: cart
+                .modules
+                .iter()
+                .map(|module| vec![Lookup::Boring; module.tree.len()])
+                .collect(),
             main_id: cart.interner.get("main"),
             module: wasm_encoder::Module::new(),
             predefs: Predefs::default(),
@@ -158,7 +162,7 @@ impl<'a> WasmWriter<'a> {
             NEWLINE.as_bytes().iter().copied(),
         );
         let mut buffer = vec![]; // TODO Reuse cart buffer? String vs Vec<u8>?
-        for (index, lookup) in self.lookup_table.iter().enumerate() {
+        for (index, lookup) in self.lookup_table[1].iter().enumerate() {
             if let Lookup::Datum { address } = *lookup {
                 let node = self.tree()[index];
                 match node.nod {
@@ -198,7 +202,7 @@ impl<'a> WasmWriter<'a> {
         {
             // Check exported and if it's a function.
             if module != 0 {
-                if let Lookup::Fun { index } = self.lookup_table[num as usize - 1] {
+                if let Lookup::Fun { index } = self.lookup_table[1][num as usize - 1] {
                     let name = if Some(intern) == self.main_id {
                         // TODO Main separate from start? Just some top level non-named main indicator?
                         "_start"
@@ -235,7 +239,7 @@ impl<'a> WasmWriter<'a> {
                     let typ = wasm.type_table[typ];
                     if typ != 0 {
                         functions.function(typ as u32 - 1);
-                        wasm.lookup_table[tree.len() - 1] = Lookup::Fun {
+                        wasm.lookup_table[1][tree.len() - 1] = Lookup::Fun {
                             index: functions.len() - 1 + wasm.imports_len,
                         };
                     }
@@ -252,7 +256,7 @@ impl<'a> WasmWriter<'a> {
                         ..
                     } = tree[last].nod
                     {
-                        wasm.lookup_table[tree.len() - 1] = wasm.lookup_table[last];
+                        wasm.lookup_table[1][tree.len() - 1] = wasm.lookup_table[1][last];
                     }
                 }
             }
@@ -556,7 +560,7 @@ impl<'a> WasmWriter<'a> {
                     let text = &wasm.cart.interner[intern];
                     let index = wasm.data_offset;
                     // let index = align(4, wasm.data_offset); // Had included 4-byte size before.
-                    wasm.lookup_table[tree.len() - 1] = Lookup::Datum { address: index };
+                    wasm.lookup_table[1][tree.len() - 1] = Lookup::Datum { address: index };
                     // Space for raw data and null char
                     wasm.data_offset = index + text.len() as u32 + 1;
                 }
@@ -566,7 +570,7 @@ impl<'a> WasmWriter<'a> {
         dig(&self.cart.modules[1].tree, self);
     }
 
-    fn translate_any(&self, fun: &mut Function, index: usize) {
+    fn translate_any(&mut self, fun: &mut Function, index: usize) {
         let node = self.tree()[index];
         match node.nod {
             Nod::Branch {
@@ -658,7 +662,9 @@ impl<'a> WasmWriter<'a> {
                                     }
                                 }
                             } else if module == 0 || module == 2 {
-                                if let Lookup::Fun { index } = self.lookup_table[num as usize - 1] {
+                                if let Lookup::Fun { index } =
+                                    self.lookup_table[1][num as usize - 1]
+                                {
                                     fun.instruction(&Instruction::Call(index));
                                     handled = true;
                                 }
@@ -678,7 +684,7 @@ impl<'a> WasmWriter<'a> {
                 let range: Range<usize> = range.into();
                 if range.len() == 3 {
                     self.translate_any(fun, range.end - 1);
-                    let Lookup::Local { index: local_index } = self.lookup_table[index] else {
+                    let Lookup::Local { index: local_index } = self.lookup_table[1][index] else {
                         panic!()
                     };
                     match simple_wasm_type(self.cart, self.tree(), node) {
@@ -715,7 +721,7 @@ impl<'a> WasmWriter<'a> {
                     self.translate_any(fun, kid_index);
                 }
                 if kind == BranchKind::Struct {
-                    let size = type_size(&self.cart, 2, node.typ);
+                    let size = type_size(self, 2, node.typ);
                     println!("Struct size: {size}");
                     // TODO Load address?
                     // TODO When already inside a struct, don't?
@@ -732,7 +738,7 @@ impl<'a> WasmWriter<'a> {
                     },
             } => {
                 let text = &self.cart.interner[intern];
-                let Lookup::Datum { address } = self.lookup_table[index] else {
+                let Lookup::Datum { address } = self.lookup_table[1][index] else {
                     panic!()
                 };
                 add_instructions(
@@ -747,7 +753,7 @@ impl<'a> WasmWriter<'a> {
             Nod::Uid { module, num, .. } => {
                 if module == 0 || module == 2 {
                     if let Lookup::Local { index: local_index } =
-                        self.lookup_table[num as usize - 1]
+                        self.lookup_table[1][num as usize - 1]
                     {
                         match simple_wasm_type(self.cart, self.tree(), self.tree()[index]) {
                             SimpleWasmType::Span => {
@@ -777,7 +783,7 @@ impl<'a> WasmWriter<'a> {
         }
     }
 
-    fn translate_branch(&self, fun: &mut Function, args_range: Range<usize>, typ: Type) {
+    fn translate_branch(&mut self, fun: &mut Function, args_range: Range<usize>, typ: Type) {
         if args_range.len() != 1 {
             return;
         }
@@ -796,7 +802,7 @@ impl<'a> WasmWriter<'a> {
     }
 
     fn translate_branch_cases(
-        &self,
+        &mut self,
         fun: &mut Function,
         range: Range<usize>,
         block_type: BlockType,
@@ -867,7 +873,7 @@ impl<'a> WasmWriter<'a> {
             let mut param_local_count = 0u32;
             let mut locals = vec![];
             for param_index in params_range {
-                self.lookup_table[param_index] = Lookup::Local {
+                self.lookup_table[1][param_index] = Lookup::Local {
                     index: param_local_count,
                 };
                 match simple_wasm_type(self.cart, self.tree(), self.tree()[param_index]) {
@@ -890,7 +896,7 @@ impl<'a> WasmWriter<'a> {
                 let node = wasm.tree()[node_index];
                 if let Nod::Branch { kind, range } = node.nod {
                     if kind == BranchKind::Def {
-                        wasm.lookup_table[node_index] = Lookup::Local {
+                        wasm.lookup_table[1][node_index] = Lookup::Local {
                             index: locals.len() as u32 + param_local_count,
                         };
                         match simple_wasm_type(wasm.cart, wasm.tree(), wasm.tree()[node_index]) {
@@ -990,8 +996,10 @@ fn mem_arg(align: u32) -> MemArg {
 enum Lookup {
     Boring,
     Datum { address: u32 },
+    FieldDef { offset: u32 },
     Fun { index: u32 },
     Local { index: u32 },
+    StructDef { size: u32 },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1020,7 +1028,8 @@ fn simple_wasm_type(cart: &Cart, tree: &[Node], node: Node) -> SimpleWasmType {
     return SimpleWasmType::Other;
 }
 
-fn type_size(cart: &Cart, module: usize, typ: Type) -> usize {
+fn type_size(writer: &mut WasmWriter, module: usize, typ: Type) -> usize {
+    let cart = &writer.cart;
     // TODO Cache type sizes and field offsets!!!
     if typ.0 == 0 {
         return 4;
@@ -1064,19 +1073,26 @@ fn type_size(cart: &Cart, module: usize, typ: Type) -> usize {
     };
     let range: Range<usize> = range.into();
     // Get StructDef.
+    let struct_def_index = range.end - 1;
     let Nod::Branch {
         kind: BranchKind::StructDef,
         range,
-    } = tree[range.end - 1].nod
+    } = tree[struct_def_index].nod
     else {
         return 4;
     };
+    if let Lookup::StructDef { size } = writer.lookup_table[def_module - 1][struct_def_index] {
+        println!("cached");
+        return size as usize;
+    }
     let range: Range<usize> = range.into();
-    let size: usize = range
-        .clone()
-        .map(|kid_index| type_size(cart, def_module, tree[kid_index].typ))
-        .sum();
-    // dbg!(size);
+    let mut size = 0usize;
+    for kid_index in range.clone() {
+        let kid_size = type_size(writer, def_module, tree[kid_index].typ);
+        // TODO Assign offset
+        size += kid_size;
+    }
+    writer.lookup_table[def_module - 1][struct_def_index] = Lookup::StructDef { size: size as u32 };
     size
 }
 
