@@ -715,16 +715,16 @@ impl<'a> WasmWriter<'a> {
                     self.translate_any(fun, kid_index);
                 }
             }
+            Nod::Branch {
+                kind: BranchKind::Struct,
+                ..
+            } => {
+                self.translate_struct(fun, node);
+            }
             Nod::Branch { kind, range } => {
                 let range: Range<usize> = range.into();
                 for kid_index in range {
                     self.translate_any(fun, kid_index);
-                }
-                if kind == BranchKind::Struct {
-                    let size = type_size(self, 2, node.typ);
-                    println!("Struct size: {size}");
-                    // TODO Load address?
-                    // TODO When already inside a struct, don't?
                 }
             }
             Nod::Int32 { value } => {
@@ -929,6 +929,42 @@ impl<'a> WasmWriter<'a> {
         codes.function(&func);
     }
 
+    fn translate_struct(&mut self, fun: &mut Function, node: Node) {
+        let info = type_info_get(self, 2, node.typ);
+        println!("Struct info: {:?}", info.clone());
+        // TODO Store to memory.
+        // TODO Stack pointer conventions.
+        let Nod::Branch { range, .. } = node.nod else {
+            panic!()
+        };
+        let range: Range<usize> = range.into();
+        for kid_index in range {
+            let Nod::Branch {
+                kind: BranchKind::Field,
+                range: sub_range,
+            } = self.tree()[kid_index].nod
+            else {
+                continue;
+            };
+            let kid_range: Range<usize> = sub_range.into();
+            let Nod::Sid { num, .. } = self.tree()[kid_range.start].nod else {
+                continue;
+            };
+            let Lookup::FieldDef { offset } =
+                self.lookup_table[info.module - 1][info.range.start + num as usize]
+            else {
+                continue;
+            };
+            println!("Offset: {offset}");
+            self.translate_any(fun, kid_range.end - 1);
+        }
+        // TODO Push some space.
+        // TODO Pass in context below.
+        // TODO Specialized processing for struct kids and Sid nodes?
+        // TODO Load address?
+        // TODO When already inside a struct, don't?
+    }
+
     fn tree(&self) -> &[Node] {
         &self.cart.modules[1].tree
     }
@@ -1028,11 +1064,22 @@ fn simple_wasm_type(cart: &Cart, tree: &[Node], node: Node) -> SimpleWasmType {
     return SimpleWasmType::Other;
 }
 
-fn type_size(writer: &mut WasmWriter, module: usize, typ: Type) -> usize {
+#[derive(Clone, Debug)]
+struct TypeInfo {
+    module: usize,       // includes +1
+    range: Range<usize>, // direct kid indices
+    size: usize,
+}
+
+fn type_info_get(writer: &mut WasmWriter, module: usize, typ: Type) -> TypeInfo {
+    let info = TypeInfo {
+        module,
+        range: Range::default(),
+        size: 4,
+    };
     let cart = &writer.cart;
-    // TODO Cache type sizes and field offsets!!!
     if typ.0 == 0 {
-        return 4;
+        return info;
     }
     let Nod::Uid {
         module: def_module,
@@ -1040,18 +1087,27 @@ fn type_size(writer: &mut WasmWriter, module: usize, typ: Type) -> usize {
         ..
     } = cart.modules[module - 1].tree[typ.0 as usize - 1].nod
     else {
-        return 4;
+        return info;
+    };
+    let info = TypeInfo {
+        module: def_module as usize,
+        ..info
     };
     if def_module == 1 {
         // TODO Structs from core.
-        return match () {
+        let size: usize = match () {
             _ if num == cart.core_exports.text_type.num => 8,
             _ => 4,
         };
+        return TypeInfo { size, ..info };
     }
     let def_module = match def_module {
         0 => module,
         _ => def_module as usize,
+    };
+    let info = TypeInfo {
+        module: def_module as usize,
+        ..info
     };
     let tree = &cart.modules[def_module - 1].tree;
     // Get Def.
@@ -1060,7 +1116,7 @@ fn type_size(writer: &mut WasmWriter, module: usize, typ: Type) -> usize {
         range,
     } = tree[num as usize - 1].nod
     else {
-        return 4;
+        return info;
     };
     let range: Range<usize> = range.into();
     // Get Call.
@@ -1069,7 +1125,7 @@ fn type_size(writer: &mut WasmWriter, module: usize, typ: Type) -> usize {
         range,
     } = tree[range.end - 1].nod
     else {
-        return 4;
+        return info;
     };
     let range: Range<usize> = range.into();
     // Get StructDef.
@@ -1079,21 +1135,42 @@ fn type_size(writer: &mut WasmWriter, module: usize, typ: Type) -> usize {
         range,
     } = tree[struct_def_index].nod
     else {
-        return 4;
+        return info;
     };
+    let range: Range<usize> = range.into();
+    // TODO Also check if we're already processing this struct type to prevent cycles.
     if let Lookup::StructDef { size } = writer.lookup_table[def_module - 1][struct_def_index] {
         println!("cached");
-        return size as usize;
+        // This also means that all the field offsets have been set.
+        return TypeInfo {
+            size: size as usize,
+            range,
+            ..info
+        };
     }
-    let range: Range<usize> = range.into();
+    // TODO Mark lookup as being processed, so we can error on cycles.
     let mut size = 0usize;
     for kid_index in range.clone() {
-        let kid_size = type_size(writer, def_module, tree[kid_index].typ);
-        // TODO Assign offset
+        let kid = tree[kid_index];
+        let kid_size = type_info_get(writer, def_module, kid.typ).size;
+        // TODO Padding.
+        if let Nod::Branch {
+            kind: BranchKind::Def,
+            ..
+        } = kid.nod
+        {
+            writer.lookup_table[def_module - 1][kid_index] = Lookup::FieldDef {
+                offset: size as u32,
+            };
+        }
         size += kid_size;
     }
     writer.lookup_table[def_module - 1][struct_def_index] = Lookup::StructDef { size: size as u32 };
-    size
+    TypeInfo {
+        range,
+        size,
+        ..info
+    }
 }
 
 const NEWLINE: &str = "\n\0";
