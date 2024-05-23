@@ -66,12 +66,16 @@
     i32.const 4098
     local.set 1
     local.set 0
+    i32.const 12
+    call 4
     local.get 0
     local.get 1
     i32.const 40
     local.set 2
     local.get 2
     call 7
+    i32.const 12
+    call 4
     local.get 2
     i32.const 3
     i32.const 4104
@@ -81,15 +85,23 @@
     i32.const 10
     call 6
     call 7
+    i32.const 12
+    call 4
     i32.const 9
     i32.const 6
     i32.const 4113
     call 7
+    i32.const 36
+    call 3
   )
   (func (;6;) (type 7) (param i32 i32 i32)
+    i32.const 12
+    call 4
     local.get 0
     local.get 1
     local.get 2
+    i32.const 12
+    call 3
   )
   (func (;7;) (type 11) (param i32)
     i32.const 7

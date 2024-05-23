@@ -140,7 +140,7 @@ impl<'a> WasmWriter<'a> {
         fn dig(node: Node, wasm: &mut WasmWriter, codes: &mut CodeSection) {
             if let Nod::Branch { kind, range } = node.nod {
                 if kind == BranchKind::Fun && node.typ.0 != 0 {
-                    wasm.translate_fun(codes, node);
+                    wasm.translate_fun(codes, node, &mut TranslateContext::default());
                 }
                 let range: Range<usize> = range.into();
                 for kid_index in range {
@@ -570,7 +570,7 @@ impl<'a> WasmWriter<'a> {
         dig(&self.cart.modules[1].tree, self);
     }
 
-    fn translate_any(&mut self, fun: &mut Function, index: usize) {
+    fn translate_any(&mut self, fun: &mut Function, index: usize, context: &mut TranslateContext) {
         let node = self.tree()[index];
         match node.nod {
             Nod::Branch {
@@ -586,13 +586,13 @@ impl<'a> WasmWriter<'a> {
                         // TODO Instead track all modules.
                         if module == 1 {
                             if num == core.branch_fun.num {
-                                self.translate_branch(fun, args_range.clone(), node.typ);
+                                self.translate_branch(fun, args_range.clone(), node.typ, context);
                                 handled = true;
                             }
                         }
                         if !handled {
                             for arg_index in args_range.clone() {
-                                self.translate_any(fun, arg_index);
+                                self.translate_any(fun, arg_index, context);
                             }
                             let arg_type = match () {
                                 _ if args_range.is_empty() => None,
@@ -683,7 +683,7 @@ impl<'a> WasmWriter<'a> {
             } => {
                 let range: Range<usize> = range.into();
                 if range.len() == 3 {
-                    self.translate_any(fun, range.end - 1);
+                    self.translate_any(fun, range.end - 1, context);
                     let Lookup::Local { index: local_index } = self.lookup_table[1][index] else {
                         panic!()
                     };
@@ -712,19 +712,20 @@ impl<'a> WasmWriter<'a> {
                 // TODO Stack pointer conventions.
                 let range: Range<usize> = range.into();
                 for kid_index in range {
-                    self.translate_any(fun, kid_index);
+                    self.translate_any(fun, kid_index, context);
                 }
             }
             Nod::Branch {
                 kind: BranchKind::Struct,
                 ..
             } => {
-                self.translate_struct(fun, node);
+                self.translate_struct(fun, node, context);
+                // TODO What address do we have on the stack now?
             }
-            Nod::Branch { kind, range } => {
+            Nod::Branch { range, .. } => {
                 let range: Range<usize> = range.into();
                 for kid_index in range {
-                    self.translate_any(fun, kid_index);
+                    self.translate_any(fun, kid_index, context);
                 }
             }
             Nod::Int32 { value } => {
@@ -783,7 +784,13 @@ impl<'a> WasmWriter<'a> {
         }
     }
 
-    fn translate_branch(&mut self, fun: &mut Function, args_range: Range<usize>, typ: Type) {
+    fn translate_branch(
+        &mut self,
+        fun: &mut Function,
+        args_range: Range<usize>,
+        typ: Type,
+        context: &mut TranslateContext,
+    ) {
         if args_range.len() != 1 {
             return;
         }
@@ -798,7 +805,7 @@ impl<'a> WasmWriter<'a> {
                 BlockType::FunctionType((self.type_table[typ] - 1) as u32)
             }
         };
-        self.translate_branch_cases(fun, range, block_type);
+        self.translate_branch_cases(fun, range, block_type, context);
     }
 
     fn translate_branch_cases(
@@ -806,6 +813,7 @@ impl<'a> WasmWriter<'a> {
         fun: &mut Function,
         range: Range<usize>,
         block_type: BlockType,
+        context: &mut TranslateContext,
     ) {
         let CoreExports {
             else_fun,
@@ -834,24 +842,34 @@ impl<'a> WasmWriter<'a> {
                 if case_range.len() != 3 {
                     return;
                 }
-                self.translate_any(fun, case_range.start + 1);
+                self.translate_any(fun, case_range.start + 1, context);
                 fun.instruction(&Instruction::If(block_type));
-                self.translate_any(fun, case_range.start + 2);
+                self.translate_any(fun, case_range.start + 2, context);
                 if range.len() > 1 {
                     fun.instruction(&Instruction::Else);
-                    self.translate_branch_cases(fun, range.start + 1..range.end, block_type);
+                    self.translate_branch_cases(
+                        fun,
+                        range.start + 1..range.end,
+                        block_type,
+                        context,
+                    );
                 }
                 fun.instruction(&Instruction::End);
             } else if num == else_fun.num {
                 if case_range.len() != 2 {
                     return;
                 }
-                self.translate_any(fun, case_range.start + 1);
+                self.translate_any(fun, case_range.start + 1, context);
             }
         }
     }
 
-    fn translate_fun(&mut self, codes: &mut CodeSection, node: Node) {
+    fn translate_fun(
+        &mut self,
+        codes: &mut CodeSection,
+        node: Node,
+        context: &mut TranslateContext,
+    ) {
         let Nod::Branch {
             kind: BranchKind::Fun,
             range,
@@ -919,21 +937,37 @@ impl<'a> WasmWriter<'a> {
             dig_locals(body_index, self, &mut locals, param_local_count);
             let mut func = Function::new_with_locals_types(locals);
             // Body
-            self.translate_any(&mut func, body_index);
+            self.translate_any(&mut func, body_index, context);
             // End
             func
         } else {
             Function::new([])
         };
+        if context.pushed > 0 {
+            add_instructions(
+                &mut func,
+                &[
+                    Instruction::I32Const(context.pushed as i32),
+                    Instruction::Call(self.predefs.pop_fun),
+                ],
+            );
+        }
         func.instruction(&Instruction::End);
         codes.function(&func);
     }
 
-    fn translate_struct(&mut self, fun: &mut Function, node: Node) {
+    fn translate_struct(&mut self, fun: &mut Function, node: Node, context: &mut TranslateContext) {
         let info = type_info_get(self, 2, node.typ);
-        println!("Struct info: {:?}", info.clone());
-        // TODO Store to memory.
-        // TODO Stack pointer conventions.
+        // Push stack space for struct. TODO Only if not inside other struct!
+        context.pushed += info.size;
+        add_instructions(
+            fun,
+            &[
+                Instruction::I32Const(info.size as i32),
+                Instruction::Call(self.predefs.push_fun),
+            ],
+        );
+        // println!("Struct info: {:?}", info.clone());
         let Nod::Branch { range, .. } = node.nod else {
             panic!()
         };
@@ -956,13 +990,10 @@ impl<'a> WasmWriter<'a> {
                 continue;
             };
             println!("Offset: {offset}");
-            self.translate_any(fun, kid_range.end - 1);
+            // TODO If it's a struct, recurse directly with some context?
+            self.translate_any(fun, kid_range.end - 1, context);
+            // TODO Store using some baseline and the offset.
         }
-        // TODO Push some space.
-        // TODO Pass in context below.
-        // TODO Specialized processing for struct kids and Sid nodes?
-        // TODO Load address?
-        // TODO When already inside a struct, don't?
     }
 
     fn tree(&self) -> &[Node] {
@@ -1043,6 +1074,11 @@ enum SimpleWasmType {
     I32,
     Other,
     Span,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct TranslateContext {
+    pushed: usize,
 }
 
 fn simple_wasm_type(cart: &Cart, tree: &[Node], node: Node) -> SimpleWasmType {
