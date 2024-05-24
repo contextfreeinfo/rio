@@ -577,22 +577,33 @@ impl<'a> WasmWriter<'a> {
                 kind: BranchKind::Call,
                 range,
             } => {
+                let info = type_info_get(self, 2, node.typ);
+                if !info.range.is_empty() {
+                    // Presume a struct that we need to fill with the result.
+                    context.push(info.size, self, fun);
+                }
                 let mut handled = false;
                 let range: Range<usize> = range.into();
                 let args_range = range.start + 1..range.end;
                 let core = self.cart.core_exports;
+                let mut local_context = *context;
                 match self.tree()[range.start].nod {
                     Nod::Uid { module, num, .. } => {
                         // TODO Instead track all modules.
                         if module == 1 {
                             if num == core.branch_fun.num {
-                                self.translate_branch(fun, args_range.clone(), node.typ, context);
+                                self.translate_branch(
+                                    fun,
+                                    args_range.clone(),
+                                    node.typ,
+                                    &mut local_context,
+                                );
                                 handled = true;
                             }
                         }
                         if !handled {
                             for arg_index in args_range.clone() {
-                                self.translate_any(fun, arg_index, context);
+                                self.translate_any(fun, arg_index, &mut local_context);
                             }
                             let arg_type = match () {
                                 _ if args_range.is_empty() => None,
@@ -603,64 +614,7 @@ impl<'a> WasmWriter<'a> {
                                 )),
                             };
                             if module == 1 {
-                                handled = true;
-                                // TODO Put these in a lookup table also?
-                                match () {
-                                    _ if num == core.add_fun.num => match arg_type {
-                                        Some(SimpleWasmType::I32) => {
-                                            fun.instruction(&Instruction::I32Add);
-                                        }
-                                        _ => {}
-                                    },
-                                    _ if num == core.eq_fun.num => match arg_type {
-                                        Some(SimpleWasmType::I32) => {
-                                            fun.instruction(&Instruction::I32Eq);
-                                        }
-                                        _ => {}
-                                    },
-                                    _ if num == core.ge_fun.num => match arg_type {
-                                        Some(SimpleWasmType::I32) => {
-                                            fun.instruction(&Instruction::I32GeS);
-                                        }
-                                        _ => {}
-                                    },
-                                    _ if num == core.gt_fun.num => match arg_type {
-                                        Some(SimpleWasmType::I32) => {
-                                            fun.instruction(&Instruction::I32GtS);
-                                        }
-                                        _ => {}
-                                    },
-                                    _ if num == core.le_fun.num => match arg_type {
-                                        Some(SimpleWasmType::I32) => {
-                                            fun.instruction(&Instruction::I32LeS);
-                                        }
-                                        _ => {}
-                                    },
-                                    _ if num == core.lt_fun.num => match arg_type {
-                                        Some(SimpleWasmType::I32) => {
-                                            fun.instruction(&Instruction::I32LtS);
-                                        }
-                                        _ => {}
-                                    },
-                                    _ if num == core.ne_fun.num => match arg_type {
-                                        Some(SimpleWasmType::I32) => {
-                                            fun.instruction(&Instruction::I32Ne);
-                                        }
-                                        _ => {}
-                                    },
-                                    _ if num == core.print_fun.num => {
-                                        fun.instruction(&Instruction::Call(self.predefs.print_fun));
-                                    }
-                                    _ if num == core.sub_fun.num => match arg_type {
-                                        Some(SimpleWasmType::I32) => {
-                                            fun.instruction(&Instruction::I32Sub);
-                                        }
-                                        _ => {}
-                                    },
-                                    _ => {
-                                        handled = false;
-                                    }
-                                }
+                                handled = self.translate_core_call(num, arg_type, fun);
                             } else if module == 0 || module == 2 {
                                 if let Lookup::Fun { index } =
                                     self.lookup_table[1][num as usize - 1]
@@ -676,6 +630,7 @@ impl<'a> WasmWriter<'a> {
                 if !handled {
                     println!("Call target@{} unhandled", range.start);
                 }
+                local_context.pop_to(context, self, fun);
             }
             Nod::Branch {
                 kind: BranchKind::Def,
@@ -864,12 +819,80 @@ impl<'a> WasmWriter<'a> {
         }
     }
 
+    fn translate_core_call(
+        &mut self,
+        num: u32,
+        arg_type: Option<SimpleWasmType>,
+        fun: &mut Function,
+    ) -> bool {
+        // TODO Put these in a lookup table also?
+        let core = self.cart.core_exports;
+        match () {
+            _ if num == core.add_fun.num => match arg_type {
+                Some(SimpleWasmType::I32) => {
+                    fun.instruction(&Instruction::I32Add);
+                }
+                _ => {}
+            },
+            _ if num == core.eq_fun.num => match arg_type {
+                Some(SimpleWasmType::I32) => {
+                    fun.instruction(&Instruction::I32Eq);
+                }
+                _ => {}
+            },
+            _ if num == core.ge_fun.num => match arg_type {
+                Some(SimpleWasmType::I32) => {
+                    fun.instruction(&Instruction::I32GeS);
+                }
+                _ => {}
+            },
+            _ if num == core.gt_fun.num => match arg_type {
+                Some(SimpleWasmType::I32) => {
+                    fun.instruction(&Instruction::I32GtS);
+                }
+                _ => {}
+            },
+            _ if num == core.le_fun.num => match arg_type {
+                Some(SimpleWasmType::I32) => {
+                    fun.instruction(&Instruction::I32LeS);
+                }
+                _ => {}
+            },
+            _ if num == core.lt_fun.num => match arg_type {
+                Some(SimpleWasmType::I32) => {
+                    fun.instruction(&Instruction::I32LtS);
+                }
+                _ => {}
+            },
+            _ if num == core.ne_fun.num => match arg_type {
+                Some(SimpleWasmType::I32) => {
+                    fun.instruction(&Instruction::I32Ne);
+                }
+                _ => {}
+            },
+            _ if num == core.print_fun.num => {
+                fun.instruction(&Instruction::Call(self.predefs.print_fun));
+            }
+            _ if num == core.sub_fun.num => match arg_type {
+                Some(SimpleWasmType::I32) => {
+                    fun.instruction(&Instruction::I32Sub);
+                }
+                _ => {}
+            },
+            _ => {
+                return false;
+            }
+        }
+        true
+    }
+
     fn translate_fun(
         &mut self,
         codes: &mut CodeSection,
         node: Node,
         context: &mut TranslateContext,
     ) {
+        let old_context = *context;
         let Nod::Branch {
             kind: BranchKind::Fun,
             range,
@@ -943,15 +966,7 @@ impl<'a> WasmWriter<'a> {
         } else {
             Function::new([])
         };
-        if context.pushed > 0 {
-            add_instructions(
-                &mut func,
-                &[
-                    Instruction::I32Const(context.pushed as i32),
-                    Instruction::Call(self.predefs.pop_fun),
-                ],
-            );
-        }
+        context.pop_to(&old_context, self, &mut func);
         func.instruction(&Instruction::End);
         codes.function(&func);
     }
@@ -959,14 +974,7 @@ impl<'a> WasmWriter<'a> {
     fn translate_struct(&mut self, fun: &mut Function, node: Node, context: &mut TranslateContext) {
         let info = type_info_get(self, 2, node.typ);
         // Push stack space for struct. TODO Only if not inside other struct!
-        context.pushed += info.size;
-        add_instructions(
-            fun,
-            &[
-                Instruction::I32Const(info.size as i32),
-                Instruction::Call(self.predefs.push_fun),
-            ],
-        );
+        context.push(info.size, self, fun);
         // println!("Struct info: {:?}", info.clone());
         let Nod::Branch { range, .. } = node.nod else {
             panic!()
@@ -1079,6 +1087,32 @@ enum SimpleWasmType {
 #[derive(Clone, Copy, Debug, Default)]
 struct TranslateContext {
     pushed: usize,
+}
+
+impl TranslateContext {
+    fn pop_to(&self, context: &TranslateContext, writer: &WasmWriter, fun: &mut Function) {
+        let delta = self.pushed - context.pushed;
+        if delta > 0 {
+            add_instructions(
+                fun,
+                &[
+                    Instruction::I32Const(delta as i32),
+                    Instruction::Call(writer.predefs.pop_fun),
+                ],
+            );
+        }
+    }
+
+    fn push(&mut self, size: usize, writer: &WasmWriter, fun: &mut Function) {
+        self.pushed += size;
+        add_instructions(
+            fun,
+            &[
+                Instruction::I32Const(size as i32),
+                Instruction::Call(writer.predefs.push_fun),
+            ],
+        );
+    }
 }
 
 fn simple_wasm_type(cart: &Cart, tree: &[Node], node: Node) -> SimpleWasmType {
