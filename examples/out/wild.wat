@@ -11,21 +11,21 @@
   (type (;9;) (func (param i32 i32 i32 i32)))
   (type (;10;) (func (param i32 i32) (result i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
-  (func (;1;) (type 2) (param i32 i32)
+  (func $print (;1;) (type 2) (param i32 i32)
     local.get 0
     local.get 1
-    call 2
+    call $-printInline
     i32.const 1
     i32.const 4096
-    call 2
+    call $-printInline
   )
-  (func (;2;) (type 2) (param i32 i32)
+  (func $-printInline (;2;) (type 2) (param i32 i32)
     (local i32 i32)
     i32.const 8
-    call 4
+    call $-push
     local.set 2
     i32.const 4
-    call 4
+    call $-push
     local.set 3
     local.get 2
     local.get 1
@@ -42,15 +42,15 @@
     call 0
     drop
     i32.const 12
-    call 3
+    call $-pop
   )
-  (func (;3;) (type 1) (param i32)
+  (func $-pop (;3;) (type 1) (param i32)
     global.get 0
     local.get 0
     i32.add
     global.set 0
   )
-  (func (;4;) (type 3) (param i32) (result i32)
+  (func $-push (;4;) (type 3) (param i32) (result i32)
     (local i32)
     global.get 0
     local.get 0

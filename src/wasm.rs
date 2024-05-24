@@ -15,7 +15,7 @@ use anyhow::{Error, Ok, Result};
 use wasm_encoder::{
     BlockType, CodeSection, ConstExpr, DataSection, EntityType, ExportKind, ExportSection,
     Function, FunctionSection, GlobalSection, GlobalType, ImportSection, Instruction, MemArg,
-    MemorySection, MemoryType, TypeSection, ValType,
+    MemorySection, MemoryType, NameMap, NameSection, TypeSection, ValType,
 };
 
 use crate::{
@@ -114,6 +114,7 @@ impl<'a> WasmWriter<'a> {
         self.build_exports();
         self.build_codes();
         self.build_data();
+        self.build_names();
         Ok(())
     }
 
@@ -293,6 +294,35 @@ impl<'a> WasmWriter<'a> {
             shared: false,
         });
         self.module.section(&memory);
+    }
+
+    fn build_names(&mut self) {
+        let mut names = NameSection::new();
+        let mut functions = NameMap::new();
+        // Predef funs
+        functions.append(self.predefs.print_fun, "print");
+        functions.append(self.predefs.print_inline_fun, "-printInline");
+        functions.append(self.predefs.pop_fun, "-pop");
+        functions.append(self.predefs.push_fun, "-push");
+        // User funs
+        let tree = &self.cart.modules[1].tree;
+        for (index, node) in tree.iter().enumerate() {
+            if let Nod::Branch {
+                kind: BranchKind::Def,
+                range,
+            } = node.nod
+            {
+                let range: Range<usize> = range.into();
+                if let Lookup::Fun { index } = self.lookup_table[1][index] {
+                    if let Nod::Uid { intern, .. } = tree[range.start].nod {
+                        let name = &self.cart.interner[intern];
+                        functions.append(index, name);
+                    }
+                }
+            }
+        }
+        names.functions(&functions);
+        self.module.section(&names);
     }
 
     fn build_types(&mut self) {
