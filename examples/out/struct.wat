@@ -81,6 +81,9 @@
     i32.const 12
     call $-push
     local.get 2
+    i32.const 8
+    i32.add
+    i32.load align=1
     i32.const 3
     i32.const 4104
     call $describe
@@ -120,8 +123,12 @@
     i32.const 4120
     call $print
     local.get 0
+    i32.load align=1
     call $print
     local.get 0
+    i32.const 8
+    i32.add
+    i32.load align=1
     i32.const 18
     i32.ge_s
     if (type 4) (result i32 i32) ;; label = @1

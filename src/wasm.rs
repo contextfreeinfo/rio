@@ -690,14 +690,44 @@ impl<'a> WasmWriter<'a> {
                 }
             }
             Nod::Branch {
-                kind: BranchKind::Field,
+                kind: BranchKind::Dot,
                 range,
             } => {
-                // TODO Store to memory.
-                // TODO Stack pointer conventions.
                 let range: Range<usize> = range.into();
-                for kid_index in range {
-                    self.translate_any(fun, kid_index, context);
+                self.translate_any(fun, range.start, context);
+                if range.len() == 2 {
+                    let info = type_info_get(self, 2, self.tree()[range.start].typ);
+                    // If we got a sid at all, presumably is within range.
+                    if let Nod::Sid { num, .. } = self.tree()[range.start + 1].nod {
+                        if let Lookup::FieldDef { offset } =
+                            self.lookup_table[info.module - 1][info.range.start + num as usize]
+                        {
+                            if offset != 0 {
+                                add_instructions(
+                                    fun,
+                                    &[Instruction::I32Const(offset as i32), Instruction::I32Add],
+                                );
+                            }
+                            // TODO If the type is a struct, just keep the address instead of loading.
+                            match simple_wasm_type(self.cart, self.tree(), self.tree()[index]) {
+                                SimpleWasmType::Span => {
+                                    add_instructions(
+                                        fun,
+                                        &[
+                                            // TODO Dup address value on stack.
+                                            Instruction::I32Load(mem_arg(0)),
+                                            // Instruction::I32Const(4),
+                                            // Instruction::I32Add,
+                                            // Instruction::I32Load(mem_arg(0)),
+                                        ],
+                                    );
+                                }
+                                _ => {
+                                    fun.instruction(&Instruction::I32Load(mem_arg(0)));
+                                }
+                            }
+                        };
+                    }
                 }
             }
             Nod::Branch {
