@@ -70,6 +70,8 @@ struct WasmWriter<'a> {
 struct Predefs {
     fd_write_fun: u32,
     fd_write_type: Option<EntityType>,
+    load2_fun: u32,
+    load2_type: u32,
     newline_address: u32,
     pop_type: u32,
     pop_fun: u32,
@@ -134,6 +136,7 @@ impl<'a> WasmWriter<'a> {
 
     fn build_codes(&mut self) {
         let mut codes = CodeSection::new();
+        self.code_load2(&mut codes);
         self.code_print(&mut codes);
         self.code_print_inline(&mut codes);
         self.code_pop(&mut codes);
@@ -220,6 +223,7 @@ impl<'a> WasmWriter<'a> {
     fn build_functions(&mut self) {
         let mut functions = FunctionSection::new();
         // Predef funs
+        self.predefs.load2_fun = self.add_fun(&mut &mut functions, self.predefs.load2_type);
         self.predefs.print_fun = self.add_fun(&mut functions, self.predefs.print_type);
         self.predefs.print_inline_fun = self.add_fun(&mut functions, self.predefs.print_type);
         self.predefs.pop_fun = self.add_fun(&mut functions, self.predefs.pop_type);
@@ -300,6 +304,7 @@ impl<'a> WasmWriter<'a> {
         let mut names = NameSection::new();
         let mut functions = NameMap::new();
         // Predef funs
+        functions.append(self.predefs.load2_fun, "-load2");
         functions.append(self.predefs.print_fun, "print");
         functions.append(self.predefs.print_inline_fun, "-printInline");
         functions.append(self.predefs.pop_fun, "-pop");
@@ -380,6 +385,7 @@ impl<'a> WasmWriter<'a> {
         // TODO Use wasm type logic for custom type also, so we don't duplicate those either.
         // TODO Do that by including it in the common module first in some fashion?
         self.predefs.fd_write_type = Some(add_fd_write_type(&mut types));
+        self.predefs.load2_type = add_load2_type(&mut types);
         self.predefs.pop_type = add_pop_type(&mut types);
         self.predefs.print_type = add_print_type(&mut types);
         self.predefs.push_type = add_push_type(&mut types);
@@ -480,6 +486,22 @@ impl<'a> WasmWriter<'a> {
             }
         }
         self.module.section(&types);
+    }
+
+    fn code_load2(&self, codes: &mut CodeSection) {
+        let address = 0;
+        add_codes(
+            codes,
+            &[],
+            &[
+                Instruction::LocalGet(address),
+                Instruction::I32Load(mem_arg(0)),
+                Instruction::LocalGet(address),
+                Instruction::I32Const(4),
+                Instruction::I32Add,
+                Instruction::I32Load(mem_arg(0)),
+            ],
+        );
     }
 
     fn code_pop(&self, codes: &mut CodeSection) {
@@ -711,16 +733,7 @@ impl<'a> WasmWriter<'a> {
                             // TODO If the type is a struct, just keep the address instead of loading.
                             match simple_wasm_type(self.cart, self.tree(), self.tree()[index]) {
                                 SimpleWasmType::Span => {
-                                    add_instructions(
-                                        fun,
-                                        &[
-                                            // TODO Dup address value on stack.
-                                            Instruction::I32Load(mem_arg(0)),
-                                            // Instruction::I32Const(4),
-                                            // Instruction::I32Add,
-                                            // Instruction::I32Load(mem_arg(0)),
-                                        ],
-                                    );
+                                    fun.instruction(&Instruction::Call(self.predefs.load2_fun));
                                 }
                                 _ => {
                                     fun.instruction(&Instruction::I32Load(mem_arg(0)));
@@ -1096,6 +1109,13 @@ fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
     let results = vec![ValType::I32];
     types.function(params, results);
     EntityType::Function(types.len() - 1)
+}
+
+fn add_load2_type(types: &mut TypeSection) -> u32 {
+    let params = vec![ValType::I32];
+    let results = vec![ValType::I32, ValType::I32];
+    types.function(params, results);
+    types.len() as u32 - 1
 }
 
 fn add_pop_type(types: &mut TypeSection) -> u32 {
