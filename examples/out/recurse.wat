@@ -22,7 +22,7 @@
     i32.add
     i32.load align=1
   )
-  (func $print (;2;) (type 3) (param i32 i32)
+  (func $core::print (;2;) (type 3) (param i32 i32)
     local.get 0
     local.get 1
     call $-printInline
@@ -78,17 +78,17 @@
     call $countDown
     local.get 0
     call $oddness
-    call $print
+    call $core::print
     local.get 0
     i32.const 1
     i32.add
     call $oddness
-    call $print
+    call $core::print
   )
   (func $countDown (;7;) (type 11) (param i32)
     i32.const 12
     i32.const 4098
-    call $print
+    call $core::print
     local.get 0
     i32.const 1
     i32.gt_s
@@ -100,7 +100,7 @@
     else
       i32.const 4
       i32.const 4111
-      call $print
+      call $core::print
     end
   )
   (func $isEven (;8;) (type 12) (param i32) (result i32)

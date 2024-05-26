@@ -305,7 +305,7 @@ impl<'a> WasmWriter<'a> {
         let mut functions = NameMap::new();
         // Predef funs
         functions.append(self.predefs.load2_fun, "-load2");
-        functions.append(self.predefs.print_fun, "print");
+        functions.append(self.predefs.print_fun, "core::print");
         functions.append(self.predefs.print_inline_fun, "-printInline");
         functions.append(self.predefs.pop_fun, "-pop");
         functions.append(self.predefs.push_fun, "-push");

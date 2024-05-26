@@ -21,7 +21,7 @@
     i32.add
     i32.load align=1
   )
-  (func $print (;2;) (type 3) (param i32 i32)
+  (func $core::print (;2;) (type 3) (param i32 i32)
     local.get 0
     local.get 1
     call $-printInline
@@ -130,10 +130,10 @@
   (func $describe (;8;) (type 12) (param i32)
     i32.const 7
     i32.const 4120
-    call $print
+    call $core::print
     local.get 0
     call $-load2
-    call $print
+    call $core::print
     local.get 0
     i32.const 8
     i32.add
@@ -147,10 +147,10 @@
       i32.const 5
       i32.const 4134
     end
-    call $print
+    call $core::print
     i32.const 0
     i32.const 4140
-    call $print
+    call $core::print
   )
   (memory (;0;) 1)
   (global (;0;) (mut i32) i32.const 4096)

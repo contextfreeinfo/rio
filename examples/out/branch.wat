@@ -21,7 +21,7 @@
     i32.add
     i32.load align=1
   )
-  (func $print (;2;) (type 3) (param i32 i32)
+  (func $core::print (;2;) (type 3) (param i32 i32)
     local.get 0
     local.get 1
     call $-printInline
@@ -80,7 +80,7 @@
   (func $describe (;7;) (type 9) (param i32)
     local.get 0
     call $description
-    call $print
+    call $core::print
   )
   (func $description (;8;) (type 12) (param i32) (result i32 i32)
     (local i32 i32)
