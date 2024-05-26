@@ -68,10 +68,10 @@ struct WasmWriter<'a> {
 
 #[derive(Debug, Default)]
 struct Predefs {
+    dup_fun: u32,
+    dup_type: u32,
     fd_write_fun: u32,
     fd_write_type: Option<EntityType>,
-    load2_fun: u32,
-    load2_type: u32,
     newline_address: u32,
     pop_type: u32,
     pop_fun: u32,
@@ -136,7 +136,7 @@ impl<'a> WasmWriter<'a> {
 
     fn build_codes(&mut self) {
         let mut codes = CodeSection::new();
-        self.code_load2(&mut codes);
+        self.code_dup(&mut codes);
         self.code_print(&mut codes);
         self.code_print_inline(&mut codes);
         self.code_pop(&mut codes);
@@ -223,7 +223,7 @@ impl<'a> WasmWriter<'a> {
     fn build_functions(&mut self) {
         let mut functions = FunctionSection::new();
         // Predef funs
-        self.predefs.load2_fun = self.add_fun(&mut &mut functions, self.predefs.load2_type);
+        self.predefs.dup_fun = self.add_fun(&mut &mut functions, self.predefs.dup_type);
         self.predefs.print_fun = self.add_fun(&mut functions, self.predefs.print_type);
         self.predefs.print_inline_fun = self.add_fun(&mut functions, self.predefs.print_type);
         self.predefs.pop_fun = self.add_fun(&mut functions, self.predefs.pop_type);
@@ -304,7 +304,7 @@ impl<'a> WasmWriter<'a> {
         let mut names = NameSection::new();
         let mut functions = NameMap::new();
         // Predef funs
-        functions.append(self.predefs.load2_fun, "-load2");
+        functions.append(self.predefs.dup_fun, "-i32.dup");
         functions.append(self.predefs.print_fun, "core::print");
         functions.append(self.predefs.print_inline_fun, "-printInline");
         functions.append(self.predefs.pop_fun, "-pop");
@@ -385,7 +385,7 @@ impl<'a> WasmWriter<'a> {
         // TODO Use wasm type logic for custom type also, so we don't duplicate those either.
         // TODO Do that by including it in the common module first in some fashion?
         self.predefs.fd_write_type = Some(add_fd_write_type(&mut types));
-        self.predefs.load2_type = add_load2_type(&mut types);
+        self.predefs.dup_type = add_dup_type(&mut types);
         self.predefs.pop_type = add_pop_type(&mut types);
         self.predefs.print_type = add_print_type(&mut types);
         self.predefs.push_type = add_push_type(&mut types);
@@ -488,18 +488,15 @@ impl<'a> WasmWriter<'a> {
         self.module.section(&types);
     }
 
-    fn code_load2(&self, codes: &mut CodeSection) {
-        let address = 0;
+    fn code_dup(&self, codes: &mut CodeSection) {
+        let (value, temp) = (0, 1);
         add_codes(
             codes,
-            &[],
+            &[(1, ValType::I32)],
             &[
-                Instruction::LocalGet(address),
-                Instruction::I32Load(mem_arg(0)),
-                Instruction::LocalGet(address),
-                Instruction::I32Const(4),
-                Instruction::I32Add,
-                Instruction::I32Load(mem_arg(0)),
+                Instruction::LocalGet(value),
+                Instruction::LocalTee(temp),
+                Instruction::LocalGet(temp),
             ],
         );
     }
@@ -733,7 +730,16 @@ impl<'a> WasmWriter<'a> {
                             // TODO If the type is a struct, just keep the address instead of loading.
                             match simple_wasm_type(self.cart, self.tree(), self.tree()[index]) {
                                 SimpleWasmType::Span => {
-                                    fun.instruction(&Instruction::Call(self.predefs.load2_fun));
+                                    add_instructions(
+                                        fun,
+                                        &[
+                                            Instruction::Call(self.predefs.dup_fun),
+                                            Instruction::I32Load(mem_arg(0)),
+                                            Instruction::I32Const(4),
+                                            Instruction::I32Add,
+                                            Instruction::I32Load(mem_arg(0)),
+                                        ],
+                                    );
                                 }
                                 _ => {
                                     fun.instruction(&Instruction::I32Load(mem_arg(0)));
@@ -1056,7 +1062,7 @@ impl<'a> WasmWriter<'a> {
             panic!()
         };
         let range: Range<usize> = range.into();
-        for kid_index in range {
+        for kid_index in range.clone() {
             let Nod::Branch {
                 kind: BranchKind::Field,
                 range: sub_range,
@@ -1076,8 +1082,13 @@ impl<'a> WasmWriter<'a> {
             println!("Offset: {offset}");
             // TODO If it's a struct, recurse directly with some context?
             self.translate_any(fun, kid_range.end - 1, context);
-            // TODO If before last, tee, else not
+            if kid_index < range.end - 1 {
+                // TODO Tee to temp
+            }
             // TODO Add offset, and store
+            if kid_index < range.end - 1 {
+                // TODO Get temp
+            }
         }
     }
 
@@ -1115,7 +1126,7 @@ fn add_fd_write_type(types: &mut TypeSection) -> EntityType {
     EntityType::Function(types.len() - 1)
 }
 
-fn add_load2_type(types: &mut TypeSection) -> u32 {
+fn add_dup_type(types: &mut TypeSection) -> u32 {
     let params = vec![ValType::I32];
     let results = vec![ValType::I32, ValType::I32];
     types.function(params, results);

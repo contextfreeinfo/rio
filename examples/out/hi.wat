@@ -10,13 +10,11 @@
   (type (;8;) (func (param i32 i32)))
   (type (;9;) (func (param i32 i32 i32 i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
-  (func $-load2 (;1;) (type 1) (param i32) (result i32 i32)
+  (func $-i32.dup (;1;) (type 1) (param i32) (result i32 i32)
+    (local i32)
     local.get 0
-    i32.load align=1
-    local.get 0
-    i32.const 4
-    i32.add
-    i32.load align=1
+    local.tee 1
+    local.get 1
   )
   (func $core::print (;2;) (type 3) (param i32 i32)
     local.get 0
