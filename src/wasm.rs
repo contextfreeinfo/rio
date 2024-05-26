@@ -1031,6 +1031,9 @@ impl<'a> WasmWriter<'a> {
             }
             let body_index = range.start + 2;
             dig_locals(body_index, self, &mut locals, param_local_count);
+            // Make a temp local for whatever needs.
+            context.temp_local = locals.len() + param_local_count as usize;
+            locals.push(ValType::I32);
             let mut func = Function::new_with_locals_types(locals);
             // Body
             self.translate_any(&mut func, body_index, context);
@@ -1073,7 +1076,8 @@ impl<'a> WasmWriter<'a> {
             println!("Offset: {offset}");
             // TODO If it's a struct, recurse directly with some context?
             self.translate_any(fun, kid_range.end - 1, context);
-            // TODO Store using some baseline and the offset.
+            // TODO If before last, tee, else not
+            // TODO Add offset, and store
         }
     }
 
@@ -1167,6 +1171,7 @@ enum SimpleWasmType {
 #[derive(Clone, Copy, Debug, Default)]
 struct TranslateContext {
     pushed: usize,
+    temp_local: usize,
 }
 
 impl TranslateContext {

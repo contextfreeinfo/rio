@@ -67,7 +67,7 @@
     local.get 1
   )
   (func $main (;6;) (type 6)
-    (local i32 i32)
+    (local i32 i32 i32)
     i32.const 11
     i32.const 4098
     local.set 1
@@ -79,6 +79,7 @@
     call $printTwice
   )
   (func $printTwice (;7;) (type 9) (param i32 i32 i32 i32)
+    (local i32)
     local.get 0
     local.get 1
     call $core::print
