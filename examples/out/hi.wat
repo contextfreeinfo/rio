@@ -4,11 +4,12 @@
   (type (;2;) (func (param i32)))
   (type (;3;) (func (param i32 i32)))
   (type (;4;) (func (param i32) (result i32)))
-  (type (;5;) (func (result i32 i32)))
-  (type (;6;) (func))
-  (type (;7;) (func (result i32)))
-  (type (;8;) (func (param i32 i32)))
-  (type (;9;) (func (param i32 i32 i32 i32)))
+  (type (;5;) (func (param i32 i32 i32) (result i32 i32 i32)))
+  (type (;6;) (func (result i32 i32)))
+  (type (;7;) (func))
+  (type (;8;) (func (result i32)))
+  (type (;9;) (func (param i32 i32)))
+  (type (;10;) (func (param i32 i32 i32 i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func $-i32.dup (;1;) (type 1) (param i32) (result i32 i32)
     (local i32)
@@ -64,7 +65,12 @@
     global.set 0
     local.get 1
   )
-  (func $main (;6;) (type 6)
+  (func $-swap12 (;6;) (type 5) (param i32 i32 i32) (result i32 i32 i32)
+    local.get 1
+    local.get 0
+    local.get 2
+  )
+  (func $main (;7;) (type 7)
     (local i32 i32 i32)
     i32.const 11
     i32.const 4098
@@ -76,7 +82,7 @@
     i32.const 4110
     call $printTwice
   )
-  (func $printTwice (;7;) (type 9) (param i32 i32 i32 i32)
+  (func $printTwice (;8;) (type 10) (param i32 i32 i32 i32)
     (local i32)
     local.get 0
     local.get 1

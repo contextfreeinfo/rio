@@ -4,14 +4,15 @@
   (type (;2;) (func (param i32)))
   (type (;3;) (func (param i32 i32)))
   (type (;4;) (func (param i32) (result i32)))
-  (type (;5;) (func (result i32)))
-  (type (;6;) (func))
-  (type (;7;) (func (result i32 i32)))
-  (type (;8;) (func (param i32 i32)))
-  (type (;9;) (func (param i32)))
-  (type (;10;) (func (param i32 i32 i32 i32)))
-  (type (;11;) (func (param i32 i32) (result i32)))
-  (type (;12;) (func (param i32) (result i32 i32)))
+  (type (;5;) (func (param i32 i32 i32) (result i32 i32 i32)))
+  (type (;6;) (func (result i32)))
+  (type (;7;) (func))
+  (type (;8;) (func (result i32 i32)))
+  (type (;9;) (func (param i32 i32)))
+  (type (;10;) (func (param i32)))
+  (type (;11;) (func (param i32 i32 i32 i32)))
+  (type (;12;) (func (param i32 i32) (result i32)))
+  (type (;13;) (func (param i32) (result i32 i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func $-i32.dup (;1;) (type 1) (param i32) (result i32 i32)
     (local i32)
@@ -67,7 +68,12 @@
     global.set 0
     local.get 1
   )
-  (func $main (;6;) (type 6)
+  (func $-swap12 (;6;) (type 5) (param i32 i32 i32) (result i32 i32 i32)
+    local.get 1
+    local.get 0
+    local.get 2
+  )
+  (func $main (;7;) (type 7)
     (local i32)
     i32.const 2
     call $describe
@@ -76,25 +82,25 @@
     i32.const 0
     call $describe
   )
-  (func $describe (;7;) (type 9) (param i32)
+  (func $describe (;8;) (type 10) (param i32)
     (local i32)
     local.get 0
     call $description
     call $core::print
   )
-  (func $description (;8;) (type 12) (param i32) (result i32 i32)
+  (func $description (;9;) (type 13) (param i32) (result i32 i32)
     (local i32 i32 i32)
     local.get 0
     i32.const 0
     i32.lt_s
-    if (type 7) (result i32 i32) ;; label = @1
+    if (type 8) (result i32 i32) ;; label = @1
       i32.const 8
       i32.const 4098
     else
       local.get 0
       i32.const 0
       i32.gt_s
-      if (type 7) (result i32 i32) ;; label = @2
+      if (type 8) (result i32 i32) ;; label = @2
         i32.const 8
         i32.const 4107
       else
@@ -107,7 +113,7 @@
     local.get 1
     local.get 2
   )
-  (func $less (;9;) (type 11) (param i32 i32) (result i32)
+  (func $less (;10;) (type 12) (param i32 i32) (result i32)
     (local i32)
     local.get 0
     local.get 1

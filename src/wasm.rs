@@ -80,6 +80,9 @@ struct Predefs {
     print_inline_fun: u32,
     push_fun: u32,
     push_type: u32,
+    // TODO Remove swap12 if we end special span treatment.
+    swap12_fun: u32,
+    swap12_type: u32,
 }
 
 impl<'a> WasmWriter<'a> {
@@ -141,6 +144,7 @@ impl<'a> WasmWriter<'a> {
         self.code_print_inline(&mut codes);
         self.code_pop(&mut codes);
         self.code_push(&mut codes);
+        self.code_swap12(&mut codes);
         fn dig(node: Node, wasm: &mut WasmWriter, codes: &mut CodeSection) {
             if let Nod::Branch { kind, range } = node.nod {
                 if kind == BranchKind::Fun && node.typ.0 != 0 {
@@ -228,6 +232,7 @@ impl<'a> WasmWriter<'a> {
         self.predefs.print_inline_fun = self.add_fun(&mut functions, self.predefs.print_type);
         self.predefs.pop_fun = self.add_fun(&mut functions, self.predefs.pop_type);
         self.predefs.push_fun = self.add_fun(&mut &mut functions, self.predefs.push_type);
+        self.predefs.swap12_fun = self.add_fun(&mut &mut functions, self.predefs.swap12_type);
         // User funs
         fn dig(tree: &[Node], wasm: &mut WasmWriter, functions: &mut FunctionSection) {
             let node = *tree.last().unwrap();
@@ -309,6 +314,7 @@ impl<'a> WasmWriter<'a> {
         functions.append(self.predefs.print_inline_fun, "-printInline");
         functions.append(self.predefs.pop_fun, "-pop");
         functions.append(self.predefs.push_fun, "-push");
+        functions.append(self.predefs.swap12_fun, "-swap12");
         // User funs
         let tree = &self.cart.modules[1].tree;
         for (index, node) in tree.iter().enumerate() {
@@ -389,6 +395,7 @@ impl<'a> WasmWriter<'a> {
         self.predefs.pop_type = add_pop_type(&mut types);
         self.predefs.print_type = add_print_type(&mut types);
         self.predefs.push_type = add_push_type(&mut types);
+        self.predefs.swap12_type = add_swap12_type(&mut types);
         // Add function types.
         let prebaked_types_offset = types.len() as usize;
         let cart = &self.cart;
@@ -579,6 +586,19 @@ impl<'a> WasmWriter<'a> {
                 Instruction::LocalTee(1),
                 Instruction::GlobalSet(0),
                 Instruction::LocalGet(1),
+            ],
+        );
+    }
+
+    fn code_swap12(&self, codes: &mut CodeSection) {
+        add_codes(
+            codes,
+            &[],
+            &[
+                // Looks more like swap01, but swap12 refers to how far back the stack.
+                Instruction::LocalGet(1),
+                Instruction::LocalGet(0),
+                Instruction::LocalGet(2),
             ],
         );
     }
@@ -1079,15 +1099,41 @@ impl<'a> WasmWriter<'a> {
             else {
                 continue;
             };
-            println!("Offset: {offset}");
-            // TODO If it's a struct, recurse directly with some context?
-            self.translate_any(fun, kid_range.end - 1, context);
             if kid_index < range.end - 1 {
-                // TODO Tee to temp
+                fun.instruction(&Instruction::Call(self.predefs.dup_fun));
             }
-            // TODO Add offset, and store
-            if kid_index < range.end - 1 {
-                // TODO Get temp
+            if offset != 0 {
+                add_instructions(
+                    fun,
+                    &[Instruction::I32Const(offset as i32), Instruction::I32Add],
+                );
+            }
+            // TODO If it's a struct, recurse directly with some context?
+            let simple_type =
+                simple_wasm_type(self.cart, self.tree(), self.tree()[kid_range.end - 1]);
+            // TODO End all special treatment of spans? Make it just a struct?
+            if simple_type == SimpleWasmType::Span {
+                add_instructions(
+                    fun,
+                    &[
+                        Instruction::Call(self.predefs.dup_fun),
+                        Instruction::I32Const(4),
+                        Instruction::I32Add,
+                        Instruction::I32Store(mem_arg(0)),
+                    ],
+                );
+            }
+            // Main value store to memory.
+            self.translate_any(fun, kid_range.end - 1, context);
+            if simple_type == SimpleWasmType::Span {
+                // Go from address, address + 4, value0, value1
+                // to address, value0, address + 4, value1
+                fun.instruction(&Instruction::Call(self.predefs.swap12_fun));
+            }
+            fun.instruction(&Instruction::I32Store(mem_arg(0)));
+            if simple_type == SimpleWasmType::Span {
+                // Also store the second half of the span.
+                fun.instruction(&Instruction::I32Store(mem_arg(0)));
             }
         }
     }
@@ -1154,6 +1200,13 @@ fn add_push_type(types: &mut TypeSection) -> u32 {
     types.len() as u32 - 1
 }
 
+fn add_swap12_type(types: &mut TypeSection) -> u32 {
+    let params = vec![ValType::I32, ValType::I32, ValType::I32];
+    let results = vec![ValType::I32, ValType::I32, ValType::I32];
+    types.function(params, results);
+    types.len() as u32 - 1
+}
+
 fn mem_arg(align: u32) -> MemArg {
     MemArg {
         offset: 0,
@@ -1172,7 +1225,7 @@ enum Lookup {
     StructDef { size: u32 },
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum SimpleWasmType {
     I32,
     Other,
@@ -1306,7 +1359,7 @@ fn type_info_get(writer: &mut WasmWriter, module: usize, typ: Type) -> TypeInfo 
     let range: Range<usize> = range.into();
     // TODO Also check if we're already processing this struct type to prevent cycles.
     if let Lookup::StructDef { size } = writer.lookup_table[def_module - 1][struct_def_index] {
-        println!("cached");
+        // println!("cached");
         // This also means that all the field offsets have been set.
         return TypeInfo {
             size: size as usize,
