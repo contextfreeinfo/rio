@@ -415,65 +415,75 @@ impl<'a> WasmWriter<'a> {
                 {
                     let types_range: Range<usize> = types_range.into();
                     self.type_offset = types_range.start;
-                    let mut build_type = |params_range: Range<usize>, return_type_index: usize| {
-                        let params_start = val_types.borrow().len();
-                        // TODO Provide empty params range for not funs.
-                        for param_index in params_range.clone() {
-                            let val_types_mut = &mut val_types.borrow_mut();
-                            match simple_wasm_type(cart, tree, tree[param_index]) {
-                                SimpleWasmType::Span => {
-                                    val_types_mut.push(ValType::I32);
-                                    val_types_mut.push(ValType::I32);
-                                }
-                                _ => val_types_mut.push(ValType::I32),
+                    let mut build_type =
+                        |writer: &mut WasmWriter,
+                         params_range: Range<usize>,
+                         return_type_index: usize| {
+                            let params_start = val_types.borrow().len();
+                            let info = type_info_get(writer, 2, Type(return_type_index as u32));
+                            if !info.range.is_empty() {
+                                // Struct, so use first param for result address.
+                                val_types.borrow_mut().push(ValType::I32);
                             }
-                        }
-                        let results_start = val_types.borrow().len();
-                        // TODO Just use type_kid.nod directly for not funs.
-                        match return_type_index {
-                            0 => {}
-                            _ => match tree[return_type_index - 1].nod {
-                                Nod::Uid { module: 1, num, .. } => {
-                                    let val_types_mut = &mut val_types.borrow_mut();
-                                    match num {
-                                        _ if num == core.void_type.num => {}
-                                        _ if num == core.text_type.num => {
-                                            val_types_mut.push(ValType::I32);
-                                            val_types_mut.push(ValType::I32);
-                                        }
-                                        _ => val_types_mut.push(ValType::I32),
+                            // TODO Provide empty params range for not funs.
+                            for param_index in params_range.clone() {
+                                let val_types_mut = &mut val_types.borrow_mut();
+                                match simple_wasm_type(cart, tree, tree[param_index]) {
+                                    SimpleWasmType::Span => {
+                                        val_types_mut.push(ValType::I32);
+                                        val_types_mut.push(ValType::I32);
                                     }
+                                    _ => val_types_mut.push(ValType::I32),
                                 }
-                                _ => {
-                                    // println!("What to do? {typ}");
+                            }
+                            let results_start = val_types.borrow().len();
+                            // TODO Just use type_kid.nod directly for not funs.
+                            match return_type_index {
+                                0 => {}
+                                _ => match tree[return_type_index - 1].nod {
+                                    Nod::Uid { module: 1, num, .. } => {
+                                        let val_types_mut = &mut val_types.borrow_mut();
+                                        match num {
+                                            _ if num == core.void_type.num => {}
+                                            _ if num == core.text_type.num => {
+                                                val_types_mut.push(ValType::I32);
+                                                val_types_mut.push(ValType::I32);
+                                            }
+                                            _ => val_types_mut.push(ValType::I32),
+                                        }
+                                    }
+                                    _ => {
+                                        if info.range.is_empty() {
+                                            // println!("What to do?");
+                                        }
+                                    }
+                                },
+                            };
+                            let fun_type = WasmFunType {
+                                val_types: val_types.clone(),
+                                params: params_start..results_start,
+                                results: results_start..val_types.borrow().len(),
+                            };
+                            let next = type_indices.len() + prebaked_types_offset;
+                            let entry = type_indices.entry(fun_type.clone());
+                            let wasm_index = match entry {
+                                Entry::Occupied(old) => {
+                                    // We don't need the latest additions.
+                                    val_types.borrow_mut().truncate(params_start);
+                                    *old.get()
                                 }
-                            },
+                                Entry::Vacant(vacancy) => {
+                                    // TODO Keep map from module type to wasm type.
+                                    let val_types = val_types.borrow();
+                                    let params = &val_types[fun_type.params];
+                                    let results = &val_types[fun_type.results];
+                                    types.function(params.iter().cloned(), results.iter().cloned());
+                                    vacancy.insert(next);
+                                    next
+                                }
+                            };
+                            wasm_index
                         };
-                        let fun_type = WasmFunType {
-                            val_types: val_types.clone(),
-                            params: params_start..results_start,
-                            results: results_start..val_types.borrow().len(),
-                        };
-                        let next = type_indices.len() + prebaked_types_offset;
-                        let entry = type_indices.entry(fun_type.clone());
-                        let wasm_index = match entry {
-                            Entry::Occupied(old) => {
-                                // We don't need the latest additions.
-                                val_types.borrow_mut().truncate(params_start);
-                                *old.get()
-                            }
-                            Entry::Vacant(vacancy) => {
-                                // TODO Keep map from module type to wasm type.
-                                let val_types = val_types.borrow();
-                                let params = &val_types[fun_type.params];
-                                let results = &val_types[fun_type.results];
-                                types.function(params.iter().cloned(), results.iter().cloned());
-                                vacancy.insert(next);
-                                next
-                            }
-                        };
-                        wasm_index
-                    };
                     for type_index in types_range {
                         let type_kid = tree[type_index];
                         let wasm_index = match type_kid.nod {
@@ -481,10 +491,10 @@ impl<'a> WasmWriter<'a> {
                                 kind: BranchKind::FunType,
                                 range: params_range,
                                 ..
-                            } => build_type(params_range.into(), type_kid.typ.0 as usize),
+                            } => build_type(self, params_range.into(), type_kid.typ.0 as usize),
                             // Make function type [] -> T so we can make multivalued block types.
                             // Could go with only multivalued, but this is simpler.
-                            _ => build_type(0..0, type_index + 1),
+                            _ => build_type(self, 0..0, type_index + 1),
                         };
                         self.type_table.push(wasm_index + 1);
                     }
@@ -697,6 +707,8 @@ impl<'a> WasmWriter<'a> {
                     _ => {}
                 }
                 if !handled {
+                    // TODO Does this include call to struct type copies/constructors?
+                    // TODO Optimize away before wasm?
                     println!("Call target@{} unhandled", range.start);
                 }
                 local_context.pop_to(context, self, fun);
@@ -1010,7 +1022,12 @@ impl<'a> WasmWriter<'a> {
                 panic!()
             };
             let params_range: Range<usize> = params_range.into();
-            let mut param_local_count = 0u32;
+            // Start params at 1 if we need to return a struct, using param 0 for return address.
+            let return_info = type_info_get(self, 2, self.tree()[node.typ.0 as usize - 1].typ);
+            let mut param_local_count = match () {
+                _ if return_info.range.is_empty() => 0u32,
+                _ => 1u32,
+            };
             let mut locals = vec![];
             for param_index in params_range {
                 self.lookup_table[1][param_index] = Lookup::Local {
@@ -1068,6 +1085,7 @@ impl<'a> WasmWriter<'a> {
         } else {
             Function::new([])
         };
+        // TODO If return type is struct, copy into return value param.
         context.pop_to(&old_context, self, &mut func);
         func.instruction(&Instruction::End);
         codes.function(&func);
