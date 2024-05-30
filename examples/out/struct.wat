@@ -14,10 +14,8 @@
   (type (;12;) (func (param i32 i32) (result i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func $-i32.dup (;1;) (type 1) (param i32) (result i32 i32)
-    (local i32)
     local.get 0
-    local.tee 1
-    local.get 1
+    local.get 0
   )
   (func $core::print (;2;) (type 3) (param i32 i32)
     local.get 0
@@ -67,10 +65,14 @@
     global.set 0
     local.get 1
   )
-  (func $-swap12 (;6;) (type 5) (param i32 i32 i32) (result i32 i32 i32)
+  (func $-rot3 (;6;) (type 5) (param i32 i32 i32) (result i32 i32 i32)
+    local.get 2
+    local.get 0
+    local.get 1
+  )
+  (func $-swap (param i32 i32) (result i32 i32)
     local.get 1
     local.get 0
-    local.get 2
   )
   (func $main (;7;) (type 8)
     (local i32 i32 i32 i32)
@@ -78,29 +80,29 @@
     i32.const 4098
     local.set 1
     local.set 0
-    i32.const 12
-    call $-push
+    ;; Alice.
     i32.const 12
     call $-push
     call $-i32.dup
     call $-i32.dup
     i32.const 4
     i32.add
-    i32.store align=1
+    call $-swap
     local.get 0
     local.get 1
-    call $-swap12
-    i32.store align=1
-    i32.store align=1
+    call $-rot3
+    i32.store
+    i32.store
+    call $-i32.dup
     i32.const 8
     i32.add
     i32.const 40
     i32.store align=1
-    i32.const 12
-    call $-pop
+    ;; Set and describe.
     local.set 2
     local.get 2
     call $describe
+    ;; Bob with age first.
     i32.const 12
     call $-push
     call $-i32.dup
@@ -109,22 +111,25 @@
     local.get 2
     i32.const 8
     i32.add
-    i32.load align=1
-    i32.store align=1
+    i32.load
+    i32.store
+    call $-i32.dup
     call $-i32.dup
     i32.const 4
     i32.add
-    i32.store align=1
+    call $-swap
     i32.const 3
     i32.const 4104
-    call $-swap12
-    i32.store align=1
-    i32.store align=1
+    call $-rot3
+    i32.store
+    i32.store
     call $describe
     i32.const 12
     call $-pop
+    ;; Build Carl.
     i32.const 12
     call $-push
+    call $-i32.dup
     i32.const 4
     i32.const 4108
     i32.const 10
@@ -132,22 +137,24 @@
     call $describe
     i32.const 12
     call $-pop
+    ;; Denise with age first.
     i32.const 12
     call $-push
     call $-i32.dup
     i32.const 8
     i32.add
     i32.const 9
-    i32.store align=1
+    i32.store
+    call $-i32.dup
     call $-i32.dup
     i32.const 4
     i32.add
-    i32.store align=1
+    call $-swap
     i32.const 6
     i32.const 4113
-    call $-swap12
-    i32.store align=1
-    i32.store align=1
+    call $-rot3
+    i32.store
+    i32.store
     call $describe
     i32.const 12
     call $-pop
@@ -162,16 +169,22 @@
     call $-i32.dup
     i32.const 4
     i32.add
-    i32.store align=1
+    call $-swap
     local.get 1
     local.get 2
-    call $-swap12
-    i32.store align=1
-    i32.store align=1
+    call $-rot3
+    i32.store
+    i32.store
+    call $-i32.dup
     i32.const 8
     i32.add
     local.get 3
-    i32.store align=1
+    i32.store
+    ;; Return result.
+    local.get 0
+    call $-swap
+    i32.const 12
+    memory.copy
     i32.const 12
     call $-pop
   )
@@ -182,10 +195,11 @@
     call $core::print
     local.get 0
     call $-i32.dup
-    i32.load align=1
+    i32.load
+    call $-swap
     i32.const 4
     i32.add
-    i32.load align=1
+    i32.load
     call $core::print
     local.get 0
     i32.const 8
