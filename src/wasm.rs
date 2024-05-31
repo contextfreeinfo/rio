@@ -668,6 +668,7 @@ impl<'a> WasmWriter<'a> {
                 if !info.range.is_empty() {
                     // Presume a struct that we need to fill with the result.
                     context.push(info.size, self, fun);
+                    fun.instruction(&Instruction::Call(self.predefs.dup_fun));
                 }
                 let mut handled = false;
                 let range: Range<usize> = range.into();
@@ -774,15 +775,16 @@ impl<'a> WasmWriter<'a> {
                                         fun,
                                         &[
                                             Instruction::Call(self.predefs.dup_fun),
-                                            Instruction::I32Load(mem_arg(0)),
+                                            Instruction::I32Load(mem_arg(2)),
+                                            Instruction::Call(self.predefs.swap_fun),
                                             Instruction::I32Const(4),
                                             Instruction::I32Add,
-                                            Instruction::I32Load(mem_arg(0)),
+                                            Instruction::I32Load(mem_arg(2)),
                                         ],
                                     );
                                 }
                                 _ => {
-                                    fun.instruction(&Instruction::I32Load(mem_arg(0)));
+                                    fun.instruction(&Instruction::I32Load(mem_arg(2)));
                                 }
                             }
                         };
@@ -1088,12 +1090,26 @@ impl<'a> WasmWriter<'a> {
             let mut func = Function::new_with_locals_types(locals);
             // Body
             self.translate_any(&mut func, body_index, context);
+            // If return type is struct, copy into address in param 0.
+            if !return_info.range.is_empty() {
+                add_instructions(
+                    &mut func,
+                    &[
+                        Instruction::LocalGet(0),
+                        Instruction::Call(self.predefs.swap_fun),
+                        Instruction::I32Const(return_info.size as i32),
+                        Instruction::MemoryCopy {
+                            src_mem: 0,
+                            dst_mem: 0,
+                        },
+                    ],
+                );
+            }
             // End
             func
         } else {
             Function::new([])
         };
-        // TODO If return type is struct, copy into address in param 0.
         context.pop_to(&old_context, self, &mut func);
         func.instruction(&Instruction::End);
         codes.function(&func);
@@ -1125,9 +1141,7 @@ impl<'a> WasmWriter<'a> {
             else {
                 continue;
             };
-            if kid_index < range.end - 1 {
-                fun.instruction(&Instruction::Call(self.predefs.dup_fun));
-            }
+            fun.instruction(&Instruction::Call(self.predefs.dup_fun));
             if offset != 0 {
                 add_instructions(
                     fun,
@@ -1145,7 +1159,7 @@ impl<'a> WasmWriter<'a> {
                         Instruction::Call(self.predefs.dup_fun),
                         Instruction::I32Const(4),
                         Instruction::I32Add,
-                        Instruction::I32Store(mem_arg(0)),
+                        Instruction::Call(self.predefs.swap_fun),
                     ],
                 );
             }
@@ -1318,6 +1332,7 @@ fn simple_wasm_type(cart: &Cart, tree: &[Node], node: Node) -> SimpleWasmType {
 
 #[derive(Clone, Debug)]
 struct TypeInfo {
+    // TODO Align?
     module: usize,       // includes +1
     range: Range<usize>, // direct kid indices
     size: usize,
