@@ -5,19 +5,18 @@
   (type (;3;) (func (param i32 i32)))
   (type (;4;) (func (param i32) (result i32)))
   (type (;5;) (func (param i32 i32 i32) (result i32 i32 i32)))
-  (type (;6;) (func (result i32)))
-  (type (;7;) (func (param i32)))
-  (type (;8;) (func))
-  (type (;9;) (func (result i32 i32)))
-  (type (;10;) (func (param i32 i32)))
-  (type (;11;) (func (param i32 i32 i32 i32)))
-  (type (;12;) (func (param i32 i32) (result i32)))
+  (type (;6;) (func (param i32 i32) (result i32 i32)))
+  (type (;7;) (func (result i32)))
+  (type (;8;) (func (param i32)))
+  (type (;9;) (func))
+  (type (;10;) (func (result i32 i32)))
+  (type (;11;) (func (param i32 i32)))
+  (type (;12;) (func (param i32 i32 i32 i32)))
+  (type (;13;) (func (param i32 i32) (result i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func $-i32.dup (;1;) (type 1) (param i32) (result i32 i32)
-    (local i32)
     local.get 0
-    local.tee 1
-    local.get 1
+    local.get 0
   )
   (func $core::print (;2;) (type 3) (param i32 i32)
     local.get 0
@@ -67,30 +66,34 @@
     global.set 0
     local.get 1
   )
-  (func $-swap12 (;6;) (type 5) (param i32 i32 i32) (result i32 i32 i32)
+  (func $-rot3 (;6;) (type 5) (param i32 i32 i32) (result i32 i32 i32)
+    local.get 2
+    local.get 0
+    local.get 1
+  )
+  (func $-swap (;7;) (type 6) (param i32 i32) (result i32 i32)
     local.get 1
     local.get 0
-    local.get 2
   )
-  (func (;7;) (type 7) (param i32)
+  (func (;8;) (type 8) (param i32)
     (local i32)
   )
-  (func (;8;) (type 8))
-  (func (;9;) (type 8))
-  (func (;10;) (type 8))
-  (func (;11;) (type 7) (param i32)
+  (func (;9;) (type 9))
+  (func (;10;) (type 9))
+  (func (;11;) (type 9))
+  (func (;12;) (type 8) (param i32)
     (local i32)
   )
-  (func (;12;) (type 7) (param i32)
+  (func (;13;) (type 8) (param i32)
     (local i32)
   )
-  (func (;13;) (type 7) (param i32)
+  (func (;14;) (type 8) (param i32)
     (local i32)
   )
-  (func (;14;) (type 7) (param i32)
+  (func (;15;) (type 8) (param i32)
     (local i32)
   )
-  (func (;15;) (type 7) (param i32)
+  (func (;16;) (type 8) (param i32)
     (local i32)
   )
   (memory (;0;) 1)

@@ -80,9 +80,11 @@ struct Predefs {
     print_inline_fun: u32,
     push_fun: u32,
     push_type: u32,
-    // TODO Remove swap12 if we end special span treatment.
-    swap12_fun: u32,
-    swap12_type: u32,
+    // TODO Remove rots and swaps if we end special span treatment?
+    rot3_fun: u32,
+    rot3_type: u32,
+    swap_fun: u32,
+    swap_type: u32,
 }
 
 impl<'a> WasmWriter<'a> {
@@ -144,7 +146,8 @@ impl<'a> WasmWriter<'a> {
         self.code_print_inline(&mut codes);
         self.code_pop(&mut codes);
         self.code_push(&mut codes);
-        self.code_swap12(&mut codes);
+        self.code_rot3(&mut codes);
+        self.code_swap(&mut codes);
         fn dig(node: Node, wasm: &mut WasmWriter, codes: &mut CodeSection) {
             if let Nod::Branch { kind, range } = node.nod {
                 if kind == BranchKind::Fun && node.typ.0 != 0 {
@@ -232,7 +235,8 @@ impl<'a> WasmWriter<'a> {
         self.predefs.print_inline_fun = self.add_fun(&mut functions, self.predefs.print_type);
         self.predefs.pop_fun = self.add_fun(&mut functions, self.predefs.pop_type);
         self.predefs.push_fun = self.add_fun(&mut &mut functions, self.predefs.push_type);
-        self.predefs.swap12_fun = self.add_fun(&mut &mut functions, self.predefs.swap12_type);
+        self.predefs.rot3_fun = self.add_fun(&mut &mut functions, self.predefs.rot3_type);
+        self.predefs.swap_fun = self.add_fun(&mut &mut functions, self.predefs.swap_type);
         // User funs
         fn dig(tree: &[Node], wasm: &mut WasmWriter, functions: &mut FunctionSection) {
             let node = *tree.last().unwrap();
@@ -314,7 +318,8 @@ impl<'a> WasmWriter<'a> {
         functions.append(self.predefs.print_inline_fun, "-printInline");
         functions.append(self.predefs.pop_fun, "-pop");
         functions.append(self.predefs.push_fun, "-push");
-        functions.append(self.predefs.swap12_fun, "-swap12");
+        functions.append(self.predefs.rot3_fun, "-rot3");
+        functions.append(self.predefs.swap_fun, "-swap");
         // User funs
         let tree = &self.cart.modules[1].tree;
         for (index, node) in tree.iter().enumerate() {
@@ -395,7 +400,8 @@ impl<'a> WasmWriter<'a> {
         self.predefs.pop_type = add_pop_type(&mut types);
         self.predefs.print_type = add_print_type(&mut types);
         self.predefs.push_type = add_push_type(&mut types);
-        self.predefs.swap12_type = add_swap12_type(&mut types);
+        self.predefs.rot3_type = add_rot3_type(&mut types);
+        self.predefs.swap_type = add_swap_type(&mut types);
         // Add function types.
         let prebaked_types_offset = types.len() as usize;
         let cart = &self.cart;
@@ -506,15 +512,10 @@ impl<'a> WasmWriter<'a> {
     }
 
     fn code_dup(&self, codes: &mut CodeSection) {
-        let (value, temp) = (0, 1);
         add_codes(
             codes,
-            &[(1, ValType::I32)],
-            &[
-                Instruction::LocalGet(value),
-                Instruction::LocalTee(temp),
-                Instruction::LocalGet(temp),
-            ],
+            &[],
+            &[Instruction::LocalGet(0), Instruction::LocalGet(0)],
         );
     }
 
@@ -600,16 +601,23 @@ impl<'a> WasmWriter<'a> {
         );
     }
 
-    fn code_swap12(&self, codes: &mut CodeSection) {
+    fn code_rot3(&self, codes: &mut CodeSection) {
         add_codes(
             codes,
             &[],
             &[
-                // Looks more like swap01, but swap12 refers to how far back the stack.
-                Instruction::LocalGet(1),
-                Instruction::LocalGet(0),
                 Instruction::LocalGet(2),
+                Instruction::LocalGet(0),
+                Instruction::LocalGet(1),
             ],
+        );
+    }
+
+    fn code_swap(&self, codes: &mut CodeSection) {
+        add_codes(
+            codes,
+            &[],
+            &[Instruction::LocalGet(1), Instruction::LocalGet(0)],
         );
     }
 
@@ -1085,7 +1093,7 @@ impl<'a> WasmWriter<'a> {
         } else {
             Function::new([])
         };
-        // TODO If return type is struct, copy into return value param.
+        // TODO If return type is struct, copy into address in param 0.
         context.pop_to(&old_context, self, &mut func);
         func.instruction(&Instruction::End);
         codes.function(&func);
@@ -1146,12 +1154,12 @@ impl<'a> WasmWriter<'a> {
             if simple_type == SimpleWasmType::Span {
                 // Go from address, address + 4, value0, value1
                 // to address, value0, address + 4, value1
-                fun.instruction(&Instruction::Call(self.predefs.swap12_fun));
+                fun.instruction(&Instruction::Call(self.predefs.rot3_fun));
             }
-            fun.instruction(&Instruction::I32Store(mem_arg(0)));
+            fun.instruction(&Instruction::I32Store(mem_arg(2)));
             if simple_type == SimpleWasmType::Span {
                 // Also store the second half of the span.
-                fun.instruction(&Instruction::I32Store(mem_arg(0)));
+                fun.instruction(&Instruction::I32Store(mem_arg(2)));
             }
         }
     }
@@ -1218,9 +1226,16 @@ fn add_push_type(types: &mut TypeSection) -> u32 {
     types.len() as u32 - 1
 }
 
-fn add_swap12_type(types: &mut TypeSection) -> u32 {
+fn add_rot3_type(types: &mut TypeSection) -> u32 {
     let params = vec![ValType::I32, ValType::I32, ValType::I32];
     let results = vec![ValType::I32, ValType::I32, ValType::I32];
+    types.function(params, results);
+    types.len() as u32 - 1
+}
+
+fn add_swap_type(types: &mut TypeSection) -> u32 {
+    let params = vec![ValType::I32, ValType::I32];
+    let results = vec![ValType::I32, ValType::I32];
     types.function(params, results);
     types.len() as u32 - 1
 }

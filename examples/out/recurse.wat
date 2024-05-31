@@ -5,21 +5,20 @@
   (type (;3;) (func (param i32 i32)))
   (type (;4;) (func (param i32) (result i32)))
   (type (;5;) (func (param i32 i32 i32) (result i32 i32 i32)))
-  (type (;6;) (func (result i32)))
-  (type (;7;) (func))
-  (type (;8;) (func (result i32 i32)))
-  (type (;9;) (func (param i32 i32)))
-  (type (;10;) (func (param i32 i32) (result i32)))
-  (type (;11;) (func (param i32 i32 i32 i32)))
-  (type (;12;) (func (param i32)))
-  (type (;13;) (func (param i32) (result i32)))
-  (type (;14;) (func (param i32) (result i32 i32)))
+  (type (;6;) (func (param i32 i32) (result i32 i32)))
+  (type (;7;) (func (result i32)))
+  (type (;8;) (func))
+  (type (;9;) (func (result i32 i32)))
+  (type (;10;) (func (param i32 i32)))
+  (type (;11;) (func (param i32 i32) (result i32)))
+  (type (;12;) (func (param i32 i32 i32 i32)))
+  (type (;13;) (func (param i32)))
+  (type (;14;) (func (param i32) (result i32)))
+  (type (;15;) (func (param i32) (result i32 i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func $-i32.dup (;1;) (type 1) (param i32) (result i32 i32)
-    (local i32)
     local.get 0
-    local.tee 1
-    local.get 1
+    local.get 0
   )
   (func $core::print (;2;) (type 3) (param i32 i32)
     local.get 0
@@ -69,12 +68,16 @@
     global.set 0
     local.get 1
   )
-  (func $-swap12 (;6;) (type 5) (param i32 i32 i32) (result i32 i32 i32)
+  (func $-rot3 (;6;) (type 5) (param i32 i32 i32) (result i32 i32 i32)
+    local.get 2
+    local.get 0
+    local.get 1
+  )
+  (func $-swap (;7;) (type 6) (param i32 i32) (result i32 i32)
     local.get 1
     local.get 0
-    local.get 2
   )
-  (func $main (;7;) (type 7)
+  (func $main (;8;) (type 8)
     (local i32 i32)
     i32.const 3
     local.set 0
@@ -89,7 +92,7 @@
     call $oddness
     call $core::print
   )
-  (func $countDown (;8;) (type 12) (param i32)
+  (func $countDown (;9;) (type 13) (param i32)
     (local i32)
     i32.const 12
     i32.const 4098
@@ -108,12 +111,12 @@
       call $core::print
     end
   )
-  (func $isEven (;9;) (type 13) (param i32) (result i32)
+  (func $isEven (;10;) (type 14) (param i32) (result i32)
     (local i32)
     local.get 0
     i32.const 0
     i32.gt_s
-    if (type 6) (result i32) ;; label = @1
+    if (type 7) (result i32) ;; label = @1
       local.get 0
       i32.const 1
       i32.sub
@@ -122,12 +125,12 @@
       i32.const 1
     end
   )
-  (func $isOdd (;10;) (type 13) (param i32) (result i32)
+  (func $isOdd (;11;) (type 14) (param i32) (result i32)
     (local i32)
     local.get 0
     i32.const 0
     i32.gt_s
-    if (type 6) (result i32) ;; label = @1
+    if (type 7) (result i32) ;; label = @1
       local.get 0
       i32.const 1
       i32.sub
@@ -136,11 +139,11 @@
       i32.const 0
     end
   )
-  (func $oddness (;11;) (type 14) (param i32) (result i32 i32)
+  (func $oddness (;12;) (type 15) (param i32) (result i32 i32)
     (local i32)
     local.get 0
     call $isEven
-    if (type 8) (result i32 i32) ;; label = @1
+    if (type 9) (result i32 i32) ;; label = @1
       i32.const 4
       i32.const 4116
     else
