@@ -76,7 +76,7 @@
     local.get 0
   )
   (func $main (;8;) (type 9)
-    (local i32 i32 i32 i32)
+    (local i32 i32 i32)
     i32.const 5
     i32.const 4098
     local.set 1
@@ -158,7 +158,6 @@
     call $-pop
   )
   (func $build (;9;) (type 11) (param i32 i32 i32 i32)
-    (local i32)
     i32.const 12
     call $-push
     call $-i32.dup
@@ -184,7 +183,6 @@
     call $-pop
   )
   (func $describe (;10;) (type 10) (param i32)
-    (local i32)
     i32.const 7
     i32.const 4120
     call $core::print

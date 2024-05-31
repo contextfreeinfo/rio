@@ -21,3 +21,10 @@ rio examples yet to know:
 ```sh
 cargo run --example bin-test -- --profile release-lto
 ```
+
+Example usage of wasm-opt:
+
+```sh
+wasm-opt -O3 --enable-multivalue --enable-bulk-memory \
+    examples/out/branch.wasm -o examples/out/branch-opt.wasm
+```

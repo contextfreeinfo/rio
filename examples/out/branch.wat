@@ -77,7 +77,6 @@
     local.get 0
   )
   (func $main (;8;) (type 8)
-    (local i32)
     i32.const 2
     call $describe
     i32.const -1
@@ -86,13 +85,12 @@
     call $describe
   )
   (func $describe (;9;) (type 11) (param i32)
-    (local i32)
     local.get 0
     call $description
     call $core::print
   )
   (func $description (;10;) (type 14) (param i32) (result i32 i32)
-    (local i32 i32 i32)
+    (local i32 i32)
     local.get 0
     i32.const 0
     i32.lt_s
@@ -117,7 +115,6 @@
     local.get 2
   )
   (func $less (;11;) (type 13) (param i32 i32) (result i32)
-    (local i32)
     local.get 0
     local.get 1
     i32.lt_s
