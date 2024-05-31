@@ -168,6 +168,7 @@ impl<'a> Runner<'a> {
         self.resolve(tree);
         self.evaluate(tree);
         type_tree(&mut self, tree);
+        self.clean(tree);
         // Finalize things.
         append_types(&mut self, tree);
         // Appending types shifted indices, so update them.
@@ -191,6 +192,43 @@ impl<'a> Runner<'a> {
 
     pub fn builder(&mut self) -> &mut TreeBuilder {
         &mut self.cart.tree_builder
+    }
+
+    fn clean(&mut self, tree: &mut Vec<Node>) {
+        self.builder().clear();
+        self.clean_at(tree);
+        self.builder()
+            .wrap(BranchKind::Block, 0, Type::default(), 0);
+        self.builder().drain_into(tree);
+    }
+
+    fn clean_at(&mut self, tree: &[Node]) -> Option<()> {
+        let node = *tree.last()?;
+        match node.nod {
+            Nod::Branch { kind, range, .. } => {
+                let start = self.builder().pos();
+                let range: Range<usize> = range.into();
+                if kind == BranchKind::Call && range.len() == 2 {
+                    let typ = tree[range.start].typ;
+                    if typ.0 != 0 {
+                        let type_node = self.typer.types_ref().working[typ.0 as usize - 1];
+                        if let Nod::Uid { module: 1, num, .. } = type_node.nod {
+                            if self.cart.core_exports.type_type.num == num {
+                                // Call to type, so clean that out now that typing is over.
+                                self.clean_at(&tree[..=range.start + 1]);
+                                return Some(());
+                            }
+                        }
+                    }
+                }
+                for kid_index in range.clone() {
+                    self.clean_at(&tree[..=kid_index]);
+                }
+                self.builder().wrap(kind, start, node.typ, node.source);
+            }
+            _ => self.builder().push(node),
+        }
+        Some(())
     }
 
     fn convert_ids(&mut self, tree: &mut Vec<Node>) {

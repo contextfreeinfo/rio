@@ -5,14 +5,13 @@
   (type (;3;) (func (param i32 i32)))
   (type (;4;) (func (param i32) (result i32)))
   (type (;5;) (func (param i32 i32 i32) (result i32 i32 i32)))
-  (type (;6;) (func (param i32 i32) (result i32 i32)))
-  (type (;7;) (func (result i32 i32)))
-  (type (;8;) (func (result i32)))
-  (type (;9;) (func))
-  (type (;10;) (func (param i32)))
-  (type (;11;) (func (param i32 i32 i32 i32)))
-  (type (;12;) (func (param i32 i32)))
-  (type (;13;) (func (param i32 i32) (result i32)))
+  (type (;6;) (func (result i32 i32)))
+  (type (;7;) (func (result i32)))
+  (type (;8;) (func))
+  (type (;9;) (func (param i32)))
+  (type (;10;) (func (param i32 i32 i32 i32)))
+  (type (;11;) (func (param i32 i32)))
+  (type (;12;) (func (param i32 i32) (result i32)))
   (import "wasi_snapshot_preview1" "fd_write" (func (;0;) (type 0)))
   (func $-i32.dup (;1;) (type 1) (param i32) (result i32 i32)
     local.get 0
@@ -71,35 +70,39 @@
     local.get 0
     local.get 1
   )
-  (func $-swap (;7;) (type 6) (param i32 i32) (result i32 i32)
+  (func $-swap (param i32 i32) (result i32 i32)
     local.get 1
     local.get 0
   )
-  (func $main (;8;) (type 9)
+  (func $main (;7;) (type 8)
     (local i32 i32 i32 i32)
     i32.const 5
     i32.const 4098
     local.set 1
     local.set 0
+    ;; Alice.
     i32.const 12
     call $-push
     call $-i32.dup
     call $-i32.dup
     i32.const 4
     i32.add
-    i32.store align=1
+    call $-swap
     local.get 0
     local.get 1
     call $-rot3
     i32.store
     i32.store
+    call $-i32.dup
     i32.const 8
     i32.add
     i32.const 40
-    i32.store
+    i32.store align=1
+    ;; Set and describe.
     local.set 2
     local.get 2
     call $describe
+    ;; Bob with age first.
     i32.const 12
     call $-push
     call $-i32.dup
@@ -108,12 +111,13 @@
     local.get 2
     i32.const 8
     i32.add
-    i32.load align=1
+    i32.load
     i32.store
+    call $-i32.dup
     call $-i32.dup
     i32.const 4
     i32.add
-    i32.store align=1
+    call $-swap
     i32.const 3
     i32.const 4104
     call $-rot3
@@ -122,8 +126,10 @@
     call $describe
     i32.const 12
     call $-pop
+    ;; Build Carl.
     i32.const 12
     call $-push
+    call $-i32.dup
     i32.const 4
     i32.const 4108
     i32.const 10
@@ -131,6 +137,7 @@
     call $describe
     i32.const 12
     call $-pop
+    ;; Denise with age first.
     i32.const 12
     call $-push
     call $-i32.dup
@@ -139,9 +146,10 @@
     i32.const 9
     i32.store
     call $-i32.dup
+    call $-i32.dup
     i32.const 4
     i32.add
-    i32.store align=1
+    call $-swap
     i32.const 6
     i32.const 4113
     call $-rot3
@@ -153,7 +161,7 @@
     i32.const 12
     call $-pop
   )
-  (func $build (;9;) (type 11) (param i32 i32 i32 i32)
+  (func $build (;8;) (type 10) (param i32 i32 i32 i32)
     (local i32)
     i32.const 12
     call $-push
@@ -161,30 +169,37 @@
     call $-i32.dup
     i32.const 4
     i32.add
-    i32.store align=1
+    call $-swap
     local.get 1
     local.get 2
     call $-rot3
     i32.store
     i32.store
+    call $-i32.dup
     i32.const 8
     i32.add
     local.get 3
     i32.store
+    ;; Return result.
+    local.get 0
+    call $-swap
+    i32.const 12
+    memory.copy
     i32.const 12
     call $-pop
   )
-  (func $describe (;10;) (type 10) (param i32)
+  (func $describe (;9;) (type 9) (param i32)
     (local i32)
     i32.const 7
     i32.const 4120
     call $core::print
     local.get 0
     call $-i32.dup
-    i32.load align=1
+    i32.load
+    call $-swap
     i32.const 4
     i32.add
-    i32.load align=1
+    i32.load
     call $core::print
     local.get 0
     i32.const 8
@@ -192,7 +207,7 @@
     i32.load align=1
     i32.const 18
     i32.ge_s
-    if (type 7) (result i32 i32) ;; label = @1
+    if (type 6) (result i32 i32) ;; label = @1
       i32.const 5
       i32.const 4128
     else

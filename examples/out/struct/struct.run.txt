@@ -1,227 +1,224 @@
 Block
   Module "examples/struct.rio" 2
-  Def@162 :@160
-    Uid main@162* :@160
+  Def@160 :@158
+    Uid main@160* :@158
     None
-    Fun :@160
+    Fun :@158
       Params
       Params
-      Block :@153
-        Def@46 :@146
-          Uid name@46 :@146
+      Block :@151
+        Def@44 :@144
+          Uid name@44 :@144
           None
-          String "Alice" :@146
+          String "Alice" :@144
         /Def
-        Def@47 :@151
-          Uid alice@47 :@151
+        Def@45 :@149
+          Uid alice@45 :@149
           None
-          Call :@151
-            Uid Person@163 :@149
-            Struct :@151
-              Field :@146
-                Sid name@0 :@146
-                None
-                Uid name@46 :@146
-              /Field
-              Field :@147
-                Sid age@1 :@147
-                None
-                Int32 40 :@147
-              /Field
-            /Struct
-          /Call
-        /Def
-        Call :@153
-          Uid describe@165 :@159
-          Uid alice@47 :@151
-        /Call
-        Call :@153
-          Uid describe@165 :@159
-          Struct :@151
-            Field :@147
-              Sid age@1 :@147
+          Struct :@149
+            Field :@144
+              Sid name@0 :@144
               None
-              Dot :@147
-                Uid alice@47 :@151
-                Sid age@1 :@147
+              Uid name@44 :@144
+            /Field
+            Field :@145
+              Sid age@1 :@145
+              None
+              Int32 40 :@145
+            /Field
+          /Struct
+        /Def
+        Call :@151
+          Uid describe@163 :@157
+          Uid alice@45 :@149
+        /Call
+        Call :@151
+          Uid describe@163 :@157
+          Struct :@149
+            Field :@145
+              Sid age@1 :@145
+              None
+              Dot :@145
+                Uid alice@45 :@149
+                Sid age@1 :@145
               /Dot
             /Field
-            Field :@146
-              Sid name@0 :@146
+            Field :@144
+              Sid name@0 :@144
               None
-              String "Bob" :@146
+              String "Bob" :@144
             /Field
           /Struct
         /Call
-        Call :@153
-          Uid describe@165 :@159
-          Call :@151
-            Uid build@164 :@152
-            String "Carl" :@146
-            Int32 10 :@147
+        Call :@151
+          Uid describe@163 :@157
+          Call :@149
+            Uid build@162 :@150
+            String "Carl" :@144
+            Int32 10 :@145
           /Call
         /Call
-        Call :@153
-          Uid describe@165 :@159
-          Struct :@151
-            Field :@147
-              Sid age@1 :@147
+        Call :@151
+          Uid describe@163 :@157
+          Struct :@149
+            Field :@145
+              Sid age@1 :@145
               None
-              Int32 9 :@147
+              Int32 9 :@145
             /Field
-            Field :@146
-              Sid name@0 :@146
+            Field :@144
+              Sid name@0 :@144
               None
-              String "Denise" :@146
+              String "Denise" :@144
             /Field
           /Struct
         /Call
       /Block
     /Fun
   /Def
-  Def@163 :@149
-    Uid Person@163 :@149
+  Def@161 :@147
+    Uid Person@161 :@147
     None
-    Call :@149
-      Uid struct@1@663 :@150
+    Call :@147
+      Uid struct@1@663 :@148
       StructDef
-        Def@64 :@146
-          Uid name@64 :@146
-          Uid Text@1@649 :@149
-          None :@146
+        Def@62 :@144
+          Uid name@62 :@144
+          Uid Text@1@649 :@147
+          None :@144
         /Def
-        Def@65 :@147
-          Uid age@65 :@147
+        Def@63 :@145
+          Uid age@63 :@145
           Uid Int32@1@635
-          None :@147
+          None :@145
         /Def
       /StructDef
     /Call
   /Def
-  Def@164 :@152
-    Uid build@164 :@152
+  Def@162 :@150
+    Uid build@162 :@150
     None
-    Fun :@152
+    Fun :@150
       Params
-        Def@77 :@146
-          Uid name@77 :@146
-          Uid Text@1@649 :@149
-          None :@146
+        Def@75 :@144
+          Uid name@75 :@144
+          Uid Text@1@649 :@147
+          None :@144
         /Def
-        Def@78 :@147
-          Uid age@78 :@147
+        Def@76 :@145
+          Uid age@76 :@145
           Uid Int32@1@635
-          None :@147
+          None :@145
         /Def
       /Params
       Params
-        Def@82 :@151
-          None :@151
-          Uid Person@163 :@149
-          None :@151
+        Def@80 :@149
+          None :@149
+          Uid Person@161 :@147
+          None :@149
         /Def
       /Params
-      Struct :@151
-        Field :@146
-          Sid name@0 :@146
+      Struct :@149
+        Field :@144
+          Sid name@0 :@144
           None
-          Uid name@77 :@146
+          Uid name@75 :@144
         /Field
-        Field :@147
-          Sid age@1 :@147
+        Field :@145
+          Sid age@1 :@145
           None
-          Uid age@78 :@147
+          Uid age@76 :@145
         /Field
       /Struct
     /Fun
   /Def
-  Def@165 :@159
-    Uid describe@165 :@159
+  Def@163 :@157
+    Uid describe@163 :@157
     None
-    Fun :@159
+    Fun :@157
       Params
-        Def@100 :@151
-          Uid person@100 :@151
-          Uid Person@163 :@149
-          None :@151
+        Def@98 :@149
+          Uid person@98 :@149
+          Uid Person@161 :@147
+          None :@149
         /Def
       /Params
       Params
-      Block :@153
-        Call :@153
-          Uid print@1@662 :@154
-          String "Person:" :@146
+      Block :@151
+        Call :@151
+          Uid print@1@662 :@152
+          String "Person:" :@144
         /Call
-        Call :@153
-          Uid print@1@662 :@154
-          Dot :@146
-            Uid person@100 :@151
-            Sid name@0 :@146
+        Call :@151
+          Uid print@1@662 :@152
+          Dot :@144
+            Uid person@98 :@149
+            Sid name@0 :@144
           /Dot
         /Call
-        Call :@153
-          Uid print@1@662 :@154
-          Call :@146
+        Call :@151
+          Uid print@1@662 :@152
+          Call :@144
             Uid branch@1@653
             List
               Call
-                Uid Pair@1@648 :@155
-                Call :@156
-                  Uid ge@1@638 :@157
-                  Dot :@147
-                    Uid person@100 :@151
-                    Sid age@1 :@147
+                Uid Pair@1@648 :@153
+                Call :@154
+                  Uid ge@1@638 :@155
+                  Dot :@145
+                    Uid person@98 :@149
+                    Sid age@1 :@145
                   /Dot
-                  Int32 18 :@147
+                  Int32 18 :@145
                 /Call
-                String "adult" :@146
+                String "adult" :@144
               /Call
               Call
                 Uid else@1@656
-                String "minor" :@146
+                String "minor" :@144
               /Call
             /List
           /Call
         /Call
-        Call :@153
-          Uid print@1@662 :@154
-          String "" :@146
+        Call :@151
+          Uid print@1@662 :@152
+          String "" :@144
         /Call
       /Block
     /Fun
   /Def
   Types
-    Uid@146 Text@1@649
-    Uid@147 Int32@1@635
-    FunType@148
-    Uid@149 Type@1@650
+    Uid@144 Text@1@649
+    Uid@145 Int32@1@635
+    FunType@146
+    Uid@147 Type@1@650
+    FunType@148 :@147
+    Uid@149 Person@161
     FunType@150 :@149
-    Uid@151 Person@163
+      None :@144
+      None :@145
+    /FunType
+    Uid@151 Void@1@651
     FunType@152 :@151
-      None :@146
-      None :@147
-    /FunType
-    Uid@153 Void@1@651
-    FunType@154 :@153
-      None :@146
-    FunType@155
+      None :@144
+    FunType@153
       None
       None
       None
       None
     /FunType
-    Uid@156 Claim@1@632
-    FunType@157 :@156
-      None :@147
-      None :@147
+    Uid@154 Claim@1@632
+    FunType@155 :@154
+      None :@145
+      None :@145
     /FunType
-    FunType@158
-      None :@151
-    FunType@159 :@153
-      None :@151
-    FunType@160 :@153
+    FunType@156
+      None :@149
+    FunType@157 :@151
+      None :@149
+    FunType@158 :@151
   /Types
 /Block
 
 Node size: 20
-Tree len: 167
+Tree len: 165

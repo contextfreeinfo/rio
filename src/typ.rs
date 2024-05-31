@@ -65,7 +65,7 @@ impl Typer {
         self.types.borrow_mut().clear();
     }
 
-    fn types_ref(&self) -> Ref<'_, TreeBuilder> {
+    pub fn types_ref(&self) -> Ref<'_, TreeBuilder> {
         self.types.borrow()
     }
 
