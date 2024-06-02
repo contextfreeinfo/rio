@@ -91,23 +91,19 @@
     i32.store
     i32.store offset=4
     call $-i32.dup
-    i32.const 8
-    i32.add
     i32.const 40
-    i32.store
+    i32.store offset=8
     local.set 2
     local.get 2
     call $describe
     i32.const 12
     call $-push
     call $-i32.dup
-    i32.const 8
-    i32.add
     local.get 2
     i32.const 8
     i32.add
     i32.load
-    i32.store
+    i32.store offset=8
     call $-i32.dup
     call $-i32.dup
     i32.const 3
@@ -131,10 +127,8 @@
     i32.const 12
     call $-push
     call $-i32.dup
-    i32.const 8
-    i32.add
     i32.const 9
-    i32.store
+    i32.store offset=8
     call $-i32.dup
     call $-i32.dup
     i32.const 6
@@ -159,10 +153,8 @@
     i32.store
     i32.store offset=4
     call $-i32.dup
-    i32.const 8
-    i32.add
     local.get 3
-    i32.store
+    i32.store offset=8
     local.get 0
     call $-swap
     i32.const 12

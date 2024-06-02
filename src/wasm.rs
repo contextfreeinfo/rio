@@ -1140,13 +1140,8 @@ impl<'a> WasmWriter<'a> {
             else {
                 continue;
             };
+            let offset = offset as u64;
             fun.instruction(&Instruction::Call(self.predefs.dup_fun));
-            if offset != 0 {
-                add_instructions(
-                    fun,
-                    &[Instruction::I32Const(offset as i32), Instruction::I32Add],
-                );
-            }
             // TODO If it's a struct, recurse directly with some context?
             let simple_type =
                 simple_wasm_type(self.cart, self.tree(), self.tree()[kid_range.end - 1]);
@@ -1161,11 +1156,15 @@ impl<'a> WasmWriter<'a> {
                 // to address, value0, address + 4, value1
                 fun.instruction(&Instruction::Call(self.predefs.rot3_fun));
             }
-            fun.instruction(&Instruction::I32Store(mem_arg(2)));
+            fun.instruction(&Instruction::I32Store(MemArg {
+                offset,
+                align: 2,
+                memory_index: 0,
+            }));
             if simple_type == SimpleWasmType::Span {
                 // Store the second half of the span.
                 fun.instruction(&Instruction::I32Store(MemArg {
-                    offset: 4,
+                    offset: offset + 4,
                     align: 2,
                     memory_index: 0,
                 }));
