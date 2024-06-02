@@ -777,9 +777,11 @@ impl<'a> WasmWriter<'a> {
                                             Instruction::Call(self.predefs.dup_fun),
                                             Instruction::I32Load(mem_arg(2)),
                                             Instruction::Call(self.predefs.swap_fun),
-                                            Instruction::I32Const(4),
-                                            Instruction::I32Add,
-                                            Instruction::I32Load(mem_arg(2)),
+                                            Instruction::I32Load(MemArg {
+                                                offset: 4,
+                                                align: 2,
+                                                memory_index: 0,
+                                            }),
                                         ],
                                     );
                                 }
@@ -1150,15 +1152,7 @@ impl<'a> WasmWriter<'a> {
                 simple_wasm_type(self.cart, self.tree(), self.tree()[kid_range.end - 1]);
             // TODO End all special treatment of spans? Make it just a struct?
             if simple_type == SimpleWasmType::Span {
-                add_instructions(
-                    fun,
-                    &[
-                        Instruction::Call(self.predefs.dup_fun),
-                        Instruction::I32Const(4),
-                        Instruction::I32Add,
-                        Instruction::Call(self.predefs.swap_fun),
-                    ],
-                );
+                fun.instruction(&Instruction::Call(self.predefs.dup_fun));
             }
             // Main value store to memory.
             self.translate_any(fun, kid_range.end - 1, context);
@@ -1169,8 +1163,12 @@ impl<'a> WasmWriter<'a> {
             }
             fun.instruction(&Instruction::I32Store(mem_arg(2)));
             if simple_type == SimpleWasmType::Span {
-                // Also store the second half of the span.
-                fun.instruction(&Instruction::I32Store(mem_arg(2)));
+                // Store the second half of the span.
+                fun.instruction(&Instruction::I32Store(MemArg {
+                    offset: 4,
+                    align: 2,
+                    memory_index: 0,
+                }));
             }
         }
     }

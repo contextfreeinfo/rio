@@ -85,14 +85,11 @@
     call $-push
     call $-i32.dup
     call $-i32.dup
-    i32.const 4
-    i32.add
-    call $-swap
     local.get 0
     local.get 1
     call $-rot3
     i32.store
-    i32.store
+    i32.store offset=4
     call $-i32.dup
     i32.const 8
     i32.add
@@ -113,14 +110,11 @@
     i32.store
     call $-i32.dup
     call $-i32.dup
-    i32.const 4
-    i32.add
-    call $-swap
     i32.const 3
     i32.const 4104
     call $-rot3
     i32.store
-    i32.store
+    i32.store offset=4
     call $describe
     i32.const 12
     call $-pop
@@ -143,14 +137,11 @@
     i32.store
     call $-i32.dup
     call $-i32.dup
-    i32.const 4
-    i32.add
-    call $-swap
     i32.const 6
     i32.const 4113
     call $-rot3
     i32.store
-    i32.store
+    i32.store offset=4
     call $describe
     i32.const 12
     call $-pop
@@ -162,14 +153,11 @@
     call $-push
     call $-i32.dup
     call $-i32.dup
-    i32.const 4
-    i32.add
-    call $-swap
     local.get 1
     local.get 2
     call $-rot3
     i32.store
-    i32.store
+    i32.store offset=4
     call $-i32.dup
     i32.const 8
     i32.add
@@ -190,9 +178,7 @@
     call $-i32.dup
     i32.load
     call $-swap
-    i32.const 4
-    i32.add
-    i32.load
+    i32.load offset=4
     call $core::print
     local.get 0
     i32.const 8
