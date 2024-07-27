@@ -56,6 +56,8 @@ pub enum Nod {
         value: [u8; 8],
     },
     Int32 {
+        // TODO value: [u8; 8] for i64?
+        // TODO separate type from storage?
         value: i32,
     },
     Leaf {
