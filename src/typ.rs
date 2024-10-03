@@ -411,8 +411,7 @@ fn type_call(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, mut t
                     }
                 }
             }
-        }
-        if next_kid_typ == Type::default() {
+        } else if next_kid_typ == Type::default() {
             // Use param types if we have those.
             if let Some(arg_types_range) = arg_types_range.clone() {
                 if local_index - 1 < arg_types_range.len() {

@@ -1,8 +1,8 @@
 main* = for() be
     name = "Alice"
-    alice = Person {name, age = 40}
+    alice = Person{name, age = 40}
     describe(alice)
-    describe {alice.age, name = "Bob"}
+    describe{alice.age, name = "Bob"}
     describe build("Carl", 10)
     describe of
         age = 9
