@@ -1,9 +1,0 @@
-/examples/out/*.wasm
-/explore/*.wasm
-/explore/*-out.txt
-/explore/*-out.wat
-/notes/
-/target/
-/.vs/
-/.vscode/
-*.swp
