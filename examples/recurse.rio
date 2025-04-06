@@ -1,0 +1,29 @@
+main* = for () be
+    i = 3
+    countDown i
+    print (oddness i)
+    print (oddness i + 1)
+end
+
+countDown = for count:Int32 be
+    print "counting ..."
+    branch of
+        count > 1 to countDown (count - 1)
+        true to print "done"
+    end
+end
+
+isEven = for i:Int32 be:Claim branch of
+    i > 0 to isOdd (i - 1)
+    true to true
+end
+
+isOdd = for i:Int32 be:Claim branch of
+    i > 0 to isEven (i - 1)
+    true to false
+end
+
+oddness = for i:Int32 be branch of
+    isEven i to "even"
+    true to "odd"
+end

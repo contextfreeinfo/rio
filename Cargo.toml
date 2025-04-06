@@ -4,3 +4,20 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.97"
+clap = { version = "4.5.35", features = ["derive"] }
+env_logger = "0.11.8"
+lasso = { version = "0.7.3", features = ["multi-threaded"] }
+log = { version = "0.4.27", features = ["release_max_level_error"] }
+wasm-encoder = "0.228.0"
+
+[profile.release]
+# Got smaller with s than z in a quick check.
+opt-level = "s"
+strip = true
+
+[profile.release-lto]
+# Shrink more per https://github.com/johnthagen/min-sized-rust
+inherits = "release"
+lto = true
+panic = "abort"

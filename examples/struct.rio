@@ -1,0 +1,29 @@
+main* = for () be
+    name = "Alice"
+    alice = Person {name, age = 40}
+    describe alice
+    describe {alice.age, name = "Bob"}
+    describe (build "Carl" 10)
+    describe with
+        age = 9
+        name = "Denise"
+    end
+end
+
+Person = struct of
+    name:Text
+    age:Int32
+end
+
+build = for name:Text age:Int32 be:Person {name, age}
+
+describe = for person:Person be
+    # TODO Text interp and auto struct printing.
+    print "Person:"
+    print person.name
+    print be branch of
+        person.age >= 18 to "adult"
+        true to "minor"
+    end
+    print ""
+end

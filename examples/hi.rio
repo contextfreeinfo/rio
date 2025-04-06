@@ -1,0 +1,10 @@
+main* = for () be
+    message = "I say \"Hi!\""
+    printTwice message ""
+end
+
+printTwice = for message:Text middle:Text be:Void
+    print message
+    print middle
+    print message
+end
