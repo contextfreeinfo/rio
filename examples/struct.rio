@@ -10,7 +10,7 @@ main* = for () be
     end
 end
 
-Person = struct of
+Person = struct with
     name:Text
     age:Int32
 end
