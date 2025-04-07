@@ -1,6 +1,7 @@
 use std::{fmt::Debug, iter::Peekable, str::Chars, sync::Arc};
 
 use lasso::{Spur, ThreadedRodeo};
+use num_derive::FromPrimitive;
 
 use crate::Cart;
 
@@ -25,7 +26,7 @@ impl Token {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 pub enum TokenKind {
     Also,
     AngleClose,
@@ -62,6 +63,7 @@ pub enum TokenKind {
     To,
     VSpace,
     With,
+    Last,
 }
 
 pub struct Lexer<'a> {

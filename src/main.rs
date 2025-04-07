@@ -3,10 +3,13 @@ use std::{fs::File, io::Read, sync::Arc};
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 use lasso::ThreadedRodeo;
-use lex::{Interner, Lexer};
-use log::info;
+use lex::{Interner, Lexer, Token, TokenKind};
+use log::debug;
+use parse::{ParseBranch, ParseBranchKind, ParseNode};
 
 mod lex;
+mod parse;
+mod tree;
 
 #[derive(clap::Parser)]
 #[command(about, version, long_about = None)]
@@ -32,6 +35,15 @@ pub struct Cart {
 
 fn main() -> Result<()> {
     env_logger::init();
+    // dbg!(size_of::<ParseNode>());
+    // dbg!(align_of::<ParseNode>());
+    // dbg!(size_of::<ParseBranch>());
+    // dbg!(align_of::<ParseBranch>());
+    // dbg!(size_of::<Token>());
+    // dbg!(align_of::<Token>());
+    // dbg!(align_of::<f64>());
+    // dbg!(TokenKind::AngleClose as u32);
+    // dbg!(ParseBranchKind::Infix as u32);
     let cli = Cli::parse();
     match cli.command {
         Commands::Build(args) => build(args),
@@ -50,8 +62,7 @@ fn build(args: BuildArgs) -> Result<()> {
     let mut lexer = Lexer::new(&mut cart);
     lex(args.app.as_str(), &mut lexer)?;
     let tokens = lexer.tokens;
-    // dbg!(tokens);
-    let _ = tokens;
+    debug!("{tokens:?}");
     Ok(())
 }
 
