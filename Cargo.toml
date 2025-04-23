@@ -1,5 +1,5 @@
 [package]
-name = "rio2"
+name = "rio"
 version = "0.1.0"
 edition = "2024"
 
@@ -12,6 +12,7 @@ log = { version = "0.4.27", features = ["release_max_level_error"] }
 num-derive = "0.4.2"
 num-traits = "0.2.19"
 static_assertions = "1.1.0"
+strum = { version = "0.27.1", features = ["derive"] }
 wasm-encoder = "0.228.0"
 
 [profile.release]

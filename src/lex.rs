@@ -2,8 +2,9 @@ use std::{fmt::Debug, iter::Peekable, str::Chars, sync::Arc};
 
 use lasso::{Spur, ThreadedRodeo};
 use num_derive::FromPrimitive;
+use strum::EnumCount;
 
-use crate::Cart;
+use crate::{Cart, tree::Index};
 
 pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
@@ -26,9 +27,9 @@ impl Token {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, EnumCount, Eq, FromPrimitive, Hash, PartialEq)]
 pub enum TokenKind {
-    Also,
+    Also = TOKEN_KIND_START as isize,
     AngleClose,
     AngleOpen,
     Be,
@@ -63,8 +64,10 @@ pub enum TokenKind {
     To,
     VSpace,
     With,
-    Last,
 }
+
+pub const TOKEN_KIND_START: Index = 0;
+pub const TOKEN_KIND_END: Index = TOKEN_KIND_START + TokenKind::COUNT as Index;
 
 pub struct Lexer<'a> {
     pub cart: &'a mut Cart,

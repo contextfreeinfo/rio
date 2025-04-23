@@ -10,7 +10,7 @@ pub struct SimpleRange<Idx> {
     pub end: Idx,
 }
 
-impl SimpleRange<u32> {
+impl SimpleRange<Index> {
     pub fn len(&self) -> usize {
         (self.end - self.start).try_into().unwrap()
     }
@@ -22,8 +22,8 @@ impl<Idx> From<SimpleRange<Idx>> for Range<Idx> {
     }
 }
 
-impl From<SimpleRange<u32>> for Range<usize> {
-    fn from(value: SimpleRange<u32>) -> Self {
+impl From<SimpleRange<Index>> for Range<usize> {
+    fn from(value: SimpleRange<Index>) -> Self {
         value.start as usize..value.end as usize
     }
 }
@@ -37,17 +37,22 @@ impl<Idx> From<Range<Idx>> for SimpleRange<Idx> {
     }
 }
 
-impl From<Range<usize>> for SimpleRange<u32> {
+impl From<Range<usize>> for SimpleRange<Index> {
     fn from(value: Range<usize>) -> Self {
-        (value.start as u32..value.end as u32).into()
+        (value.start as Index..value.end as Index).into()
     }
 }
 
 #[derive(Default)]
 pub struct TreeBuilder {
-    pub nodes: Vec<u32>,
-    pub working: Vec<u32>,
+    pub nodes: Vec<Chunk>,
+    pub working: Vec<Chunk>,
 }
+
+pub type Chunk = u32;
+pub const CHUNK_SIZE: usize = size_of::<Chunk>();
+
+pub type Index = u32;
 
 impl TreeBuilder {
     pub fn clear(&mut self) {
@@ -55,19 +60,19 @@ impl TreeBuilder {
         self.working.clear();
     }
 
-    pub fn drain_into(&mut self, tree: &mut Vec<u32>) {
+    pub fn drain_into(&mut self, tree: &mut Vec<Chunk>) {
         tree.clone_from(&self.nodes);
         self.clear();
     }
 
-    pub fn pos(&self) -> u32 {
-        self.working.len() as u32
+    pub fn pos(&self) -> Index {
+        self.working.len() as Index
     }
 
     pub fn push<T>(&mut self, node: T) {
-        let ptr = &node as *const T as *const u32;
-        assert!(std::mem::size_of::<T>() % 4 == 0);
-        let len = std::mem::size_of::<T>() / 4;
+        let ptr = &raw const node as *const Chunk;
+        assert!(size_of::<T>() % CHUNK_SIZE == 0);
+        let len = size_of::<T>() / CHUNK_SIZE;
         let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
         self.working.extend_from_slice(slice);
     }
@@ -94,7 +99,7 @@ mod test {
         assert_eq!(2, builder.working.len());
         builder.push(ParseBranch {
             kind: ParseBranchKind::Call,
-            range: (0..1u32).into(),
+            range: (0..1 as Index).into(),
         });
         assert_eq!(5, builder.working.len());
         let offset = 0usize;
