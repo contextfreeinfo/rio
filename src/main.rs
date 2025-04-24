@@ -9,7 +9,8 @@ use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
 use lex::{Interner, Lexer, Token};
-use tree::TreeBuilder;
+use parse::write_parse_tree;
+use tree::{Chunk, TreeBuilder, TreeWriter};
 
 mod lex;
 mod parse;
@@ -95,7 +96,7 @@ impl Cart {
     fn build(&mut self) -> Result<()> {
         let outdir = self.make_outdir()?;
         self.lex(outdir.as_ref())?;
-        self.parse()?;
+        self.parse(outdir.as_ref())?;
         Ok(())
     }
 
@@ -103,12 +104,7 @@ impl Cart {
         let mut lexer = Lexer::new(self);
         lex(&mut lexer)?;
         if let Some(outdir) = outdir {
-            let name = outdir.file_name().unwrap().to_string_lossy();
-            let stage = "lex";
-            let path = outdir.join(format!("{name}.{stage}.txt"));
-            // dbg!(&path);
-            let file = File::create(path)?;
-            let mut writer = BufWriter::new(file);
+            let mut writer = make_dump_writer("lex", outdir)?;
             for token in &self.tokens {
                 let text = &self.interner[token.intern];
                 writeln!(writer, "{:?}: {text:?}", token.kind)?;
@@ -134,10 +130,16 @@ impl Cart {
         Ok(Some(subdir))
     }
 
-    fn parse(&mut self) -> Result<()> {
+    fn parse(&mut self, outdir: Option<&PathBuf>) -> Result<Vec<Chunk>> {
         let mut parser = parse::Parser::new(self);
         parser.parse();
-        Ok(())
+        let parse_tree = parser.cart.tree_builder.chunks.clone();
+        if let Some(outdir) = outdir {
+            let mut writer = make_dump_writer("parse", outdir)?;
+            let writer = TreeWriter::new(&mut writer, self.interner.as_ref());
+            write_parse_tree(&writer, &parse_tree);
+        }
+        Ok(parse_tree)
     }
 }
 
@@ -152,4 +154,11 @@ fn lex(lexer: &mut Lexer) -> Result<()> {
         }
     };
     Ok(())
+}
+
+fn make_dump_writer(stage: &str, outdir: &Path) -> Result<BufWriter<File>> {
+    let name = outdir.file_name().unwrap().to_string_lossy();
+    let path = outdir.join(format!("{name}.{stage}.txt"));
+    let file = File::create(path)?;
+    Ok(BufWriter::new(file))
 }

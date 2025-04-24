@@ -1,12 +1,12 @@
 use crate::{
     Cart,
-    lex::{TOKEN_KIND_END, Token, TokenKind},
-    tree::{CHUNK_SIZE, Chunk, Index, SimpleRange, TreeBuilder},
+    lex::{Intern, TOKEN_KIND_END, TOKEN_KIND_START, Token, TokenKind},
+    tree::{CHUNK_SIZE, Chunk, Index, SimpleRange, TreeBuilder, TreeWriter},
 };
 use log::debug;
 use num_derive::FromPrimitive;
 use static_assertions::const_assert;
-use std::ptr::read_unaligned;
+use std::{io::Write, ptr::read_unaligned};
 use strum::EnumCount;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -25,6 +25,7 @@ impl ParseNode {
                 read_unaligned(ptr)
             };
             if node.kind as Index >= PARSE_BRANCH_KIND_START {
+                assert!((node.kind as Index) < PARSE_BRANCH_KIND_END);
                 return (ParseNode::Branch(node), offset + PARSE_BRANCH_SIZE);
             }
         }
@@ -34,7 +35,7 @@ impl ParseNode {
             let ptr = codes.as_ptr() as *const Token;
             read_unaligned(ptr)
         };
-        assert!((node.kind as Index) < TOKEN_KIND_END);
+        assert!((TOKEN_KIND_START..TOKEN_KIND_END).contains(&(node.kind as Index)));
         (ParseNode::Leaf(node), offset + TOKEN_SIZE)
     }
 }
@@ -114,7 +115,7 @@ impl<'a> Parser<'a> {
         self.builder().clear();
         self.block_top();
         self.wrap(ParseBranchKind::Block, 0);
-        dbg!(self.builder().nodes.len());
+        dbg!(self.builder().chunks.len());
         dbg!(self.builder().working.len());
     }
 
@@ -518,7 +519,7 @@ impl<'a> Parser<'a> {
     }
 
     fn wrap(&mut self, kind: ParseBranchKind, start: Index) {
-        let range = self.builder().commit_range(start);
+        let range = self.builder().apply_range(start);
         let branch = ParseBranch { kind, range };
         self.builder().push(branch);
     }
@@ -532,4 +533,12 @@ fn choose_ender(token_kind: TokenKind) -> TokenKind {
         TokenKind::RoundOpen => TokenKind::RoundClose,
         _ => panic!(),
     }
+}
+
+pub fn write_parse_tree<File, Map>(writer: &TreeWriter<'_, File, Map>, chunks: &[Chunk])
+where
+    File: Write,
+    Map: std::ops::Index<Intern, Output = str>,
+{
+    //
 }

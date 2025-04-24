@@ -1,4 +1,6 @@
-use std::ops::Range;
+use std::{io::Write, ops::Range};
+
+use crate::lex::Intern;
 
 // Duplicated from std Range so it can be Copy.
 // See: https://github.com/rust-lang/rust/pull/27186#issuecomment-123390413
@@ -45,7 +47,7 @@ impl From<Range<usize>> for SimpleRange<Index> {
 
 #[derive(Default)]
 pub struct TreeBuilder {
-    pub nodes: Vec<Chunk>,
+    pub chunks: Vec<Chunk>,
     pub working: Vec<Chunk>,
 }
 
@@ -56,22 +58,22 @@ pub type Index = u32;
 
 impl TreeBuilder {
     pub fn clear(&mut self) {
-        self.nodes.clear();
+        self.chunks.clear();
         self.working.clear();
     }
 
-    pub fn commit_range(&mut self, start: Index) -> SimpleRange<Index> {
+    pub fn apply_range(&mut self, start: Index) -> SimpleRange<Index> {
         let start = start as usize;
-        let nodes_start = self.pos();
-        self.nodes.extend(self.working.drain(start..));
+        let applied_start = self.pos();
+        self.chunks.extend(self.working.drain(start..));
         SimpleRange {
-            start: nodes_start,
+            start: applied_start,
             end: self.pos(),
         }
     }
 
     pub fn drain_into(&mut self, tree: &mut Vec<Chunk>) {
-        tree.clone_from(&self.nodes);
+        tree.clone_from(&self.chunks);
         self.clear();
     }
 
@@ -85,6 +87,30 @@ impl TreeBuilder {
         let len = size_of::<T>() / CHUNK_SIZE;
         let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
         self.working.extend_from_slice(slice);
+    }
+}
+
+pub struct TreeWriter<'a, File, Map>
+where
+    File: Write,
+    Map: std::ops::Index<Intern, Output = str>,
+{
+    file: &'a mut File,
+    level: usize,
+    map: &'a Map,
+}
+
+impl<'a, File, Map> TreeWriter<'a, File, Map>
+where
+    File: Write,
+    Map: std::ops::Index<Intern, Output = str>,
+{
+    pub fn new(file: &'a mut File, map: &'a Map) -> Self {
+        Self {
+            file,
+            level: 0,
+            map,
+        }
     }
 }
 
