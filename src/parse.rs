@@ -1,12 +1,12 @@
 use crate::{
     Cart,
     lex::{TOKEN_KIND_END, Token, TokenKind},
-    tree::{CHUNK_SIZE, Chunk, Index, SimpleRange},
+    tree::{CHUNK_SIZE, Chunk, Index, SimpleRange, TreeBuilder},
 };
-use lasso::Iter;
+use log::debug;
 use num_derive::FromPrimitive;
 use static_assertions::const_assert;
-use std::{iter::Peekable, ptr::read_unaligned};
+use std::{iter::Peekable, ptr::read_unaligned, slice::Iter};
 use strum::EnumCount;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -58,14 +58,121 @@ pub struct ParseBranch {
     pub range: SimpleRange<u32>,
 }
 
-pub struct Parser {
-    pub cart: Cart,
+macro_rules! loop_some {
+    {$t:tt} => {(|| -> Option<()> {
+        loop {
+            $t
+        }
+    })()};
 }
 
-impl Parser {
-    pub fn new(cart: Cart) -> Self {
-        Self { cart }
+pub struct Parser<'a> {
+    pub cart: &'a mut Cart,
+    pub token_index: usize,
+}
+
+impl<'a> Parser<'a> {
+    pub fn new(cart: &'a mut Cart) -> Self {
+        Self {
+            cart,
+            token_index: 0,
+        }
+    }
+
+    pub fn parse(&mut self) {
+        self.builder().clear();
+        self.block_top();
+        // self.wrap(BranchKind::Block, 0);
+    }
+
+    fn builder(&mut self) -> &mut TreeBuilder {
+        &mut self.cart.tree_builder
+    }
+
+    fn advance(&mut self) {
+        if self.token_index >= self.cart.tokens.len() {
+            return;
+        }
+        let token = self.cart.tokens[self.token_index];
+        debug!("Advance past {:?}", token);
+        self.token_index += 1;
+        self.builder().push(token);
+    }
+
+    fn block_top(&mut self) {
+        let start = self.builder().pos();
+        loop_some!({
+            debug!("block_top: {:?}", self.peek());
+            // self.block_content()?;
+            match self.peek()? {
+                TokenKind::AngleClose
+                | TokenKind::CurlyClose
+                | TokenKind::End
+                | TokenKind::RoundClose => {
+                    // Eat trash. TODO Avoid ever getting here?
+                    self.advance();
+                    self.skip_hv();
+                }
+                TokenKind::With => {
+                    // Also trash, but be nicer.
+                    // self.atom();
+                }
+                _ => {}
+            }
+            self.advance();
+        });
+        if self.builder().pos() > start {
+            // self.wrap(ParseBranchKind::Block, start);
+        }
+    }
+
+    fn peek(&self) -> Option<TokenKind> {
+        self.cart.tokens.get(self.token_index).map(|x| x.kind)
+    }
+
+    fn peek_token(&self) -> Option<Token> {
+        self.cart.tokens.get(self.token_index).copied()
+    }
+
+    fn skip<F>(&mut self, skipping: F) -> Option<bool>
+    where
+        F: Fn(TokenKind) -> bool,
+    {
+        let mut skipped = false;
+        loop {
+            let token = self.peek_token()?;
+            if skipping(token.kind) {
+                debug!("Skipping {:?}", token);
+                skipped = true;
+                self.token_index += 1;
+                self.builder().push(token);
+            } else {
+                break;
+            }
+        }
+        Some(skipped)
+    }
+
+    fn skip_h(&mut self) -> Option<bool> {
+        self.skip(|kind| matches!(kind, TokenKind::Comment | TokenKind::HSpace))
+    }
+
+    fn skip_hv(&mut self) -> Option<bool> {
+        self.skip(|kind| {
+            matches!(
+                kind,
+                TokenKind::Comment | TokenKind::HSpace | TokenKind::VSpace
+            )
+        })
     }
 }
 
 type Tokens<'a> = Peekable<Iter<'a, Token>>;
+
+fn peek(source: &mut Tokens) -> Option<TokenKind> {
+    source.peek().map(|it| it.kind)
+}
+
+fn peek_token(source: &mut Tokens) -> Option<Token> {
+    source.peek().copied().copied()
+}

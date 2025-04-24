@@ -8,9 +8,8 @@ use std::{
 use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
-use lex::{Interner, Lexer, Token, TokenKind};
-use log::debug;
-use parse::{ParseBranch, ParseBranchKind, ParseNode};
+use lex::{Interner, Lexer, Token};
+use tree::TreeBuilder;
 
 mod lex;
 mod parse;
@@ -46,8 +45,10 @@ enum DumpOption {
 
 pub struct Cart {
     pub args: BuildArgs,
-    pub buffer: String,
     pub interner: Interner,
+    pub text: String,
+    pub tokens: Vec<Token>,
+    pub tree_builder: TreeBuilder,
 }
 
 fn main() -> Result<()> {
@@ -68,15 +69,7 @@ fn main() -> Result<()> {
 }
 
 fn build(args: BuildArgs) -> Result<()> {
-    // Resources
-    let interner = Arc::new(ThreadedRodeo::default());
-    // Reserve first slot for empty. TODO Reserve others?
-    interner.get_or_intern("");
-    let mut cart = Cart {
-        args: args.clone(),
-        buffer: String::new(),
-        interner: interner.clone(),
-    };
+    let mut cart = Cart::new(args.clone());
     if let Err(err) = cart.build() {
         println!("Failed building: {}", &args.app);
         return Err(err);
@@ -85,24 +78,38 @@ fn build(args: BuildArgs) -> Result<()> {
 }
 
 impl Cart {
+    fn new(args: BuildArgs) -> Self {
+        // Resources
+        let interner = Arc::new(ThreadedRodeo::default());
+        // Reserve first slot for empty. TODO Reserve others?
+        interner.get_or_intern("");
+        Self {
+            args: args.clone(),
+            text: String::new(),
+            interner: interner.clone(),
+            tokens: vec![],
+            tree_builder: TreeBuilder::default(),
+        }
+    }
+
     fn build(&mut self) -> Result<()> {
         let outdir = self.make_outdir()?;
         self.lex(outdir.as_ref())?;
+        self.parse()?;
         Ok(())
     }
 
     fn lex(&mut self, outdir: Option<&PathBuf>) -> Result<()> {
         let mut lexer = Lexer::new(self);
         lex(&mut lexer)?;
-        let tokens = lexer.tokens;
         if let Some(outdir) = outdir {
             let name = outdir.file_name().unwrap().to_string_lossy();
             let stage = "lex";
             let path = outdir.join(format!("{name}.{stage}.txt"));
-            dbg!(&path);
+            // dbg!(&path);
             let file = File::create(path)?;
             let mut writer = BufWriter::new(file);
-            for token in &tokens {
+            for token in &self.tokens {
                 let text = &self.interner[token.intern];
                 writeln!(writer, "{:?}: {text:?}", token.kind)?;
             }
@@ -126,6 +133,12 @@ impl Cart {
         create_dir_all(subdir.clone())?;
         Ok(Some(subdir))
     }
+
+    fn parse(&mut self) -> Result<()> {
+        let mut parser = parse::Parser::new(self);
+        parser.parse();
+        Ok(())
+    }
 }
 
 fn lex(lexer: &mut Lexer) -> Result<()> {
@@ -134,9 +147,8 @@ fn lex(lexer: &mut Lexer) -> Result<()> {
         "core" => todo!(), // lexer.lex(include_str!("core.rio"))
         _ => {
             let mut file = File::open(name)?;
-            let mut source = String::new();
-            file.read_to_string(&mut source)?;
-            lexer.lex(&source);
+            file.read_to_string(&mut lexer.cart.text)?;
+            lexer.lex();
         }
     };
     Ok(())

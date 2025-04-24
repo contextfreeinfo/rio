@@ -71,131 +71,133 @@ pub const TOKEN_KIND_END: Index = TOKEN_KIND_START + TokenKind::COUNT as Index;
 
 pub struct Lexer<'a> {
     pub cart: &'a mut Cart,
-    pub tokens: Vec<Token>,
+    pub source_index: usize,
+    pub token_start: usize,
 }
 
 impl<'a> Lexer<'a> {
     pub fn new(cart: &'a mut Cart) -> Self {
         Self {
             cart,
-            tokens: vec![],
+            source_index: 0,
+            token_start: 0,
         }
     }
 
-    pub fn lex(&mut self, source: &str) {
-        self.buffer().clear();
-        self.tokens.clear();
-        let mut source = source.chars().peekable();
-        while let Some(c) = source.peek() {
+    pub fn lex(&mut self) {
+        self.tokens().clear();
+        while let Some(c) = self.peek() {
             match c {
-                ' ' | '\t' => self.hspace(&mut source),
+                ' ' | '\t' => self.hspace(),
                 '\n' => {
-                    self.trim(&mut source);
+                    self.trim();
                     self.push(TokenKind::VSpace);
                 }
                 '\r' => {
-                    self.trim(&mut source);
-                    if source.peek() == Some(&'\n') {
-                        self.next(&mut source);
+                    self.trim();
+                    if self.peek() == Some('\n') {
+                        self.next();
                     }
                     self.push(TokenKind::VSpace);
                 }
-                '#' => self.comment(&mut source),
-                '"' => self.string(&mut source),
-                ':' => self.trim_push(&mut source, TokenKind::Colon),
-                ',' | ';' => self.trim_push(&mut source, TokenKind::Comma),
+                '#' => self.comment(),
+                '"' => self.string(),
+                ':' => self.trim_push(TokenKind::Colon),
+                ',' | ';' => self.trim_push(TokenKind::Comma),
                 '<' => {
-                    self.trim(&mut source);
-                    match source.peek() {
+                    self.trim();
+                    match self.peek() {
                         Some('=') => {
-                            self.next(&mut source);
+                            self.next();
                             self.push(TokenKind::LessEq);
                         }
                         _ => self.push(TokenKind::AngleOpen),
                     }
                 }
                 '>' => {
-                    self.trim(&mut source);
-                    match source.peek() {
+                    self.trim();
+                    match self.peek() {
                         Some('=') => {
-                            self.next(&mut source);
+                            self.next();
                             self.push(TokenKind::GreaterEq);
                         }
                         _ => self.push(TokenKind::AngleClose),
                     }
                 }
-                '{' => self.trim_push(&mut source, TokenKind::CurlyOpen),
-                '}' => self.trim_push(&mut source, TokenKind::CurlyClose),
-                '(' => self.trim_push(&mut source, TokenKind::RoundOpen),
-                ')' => self.trim_push(&mut source, TokenKind::RoundClose),
-                '.' => self.trim_push(&mut source, TokenKind::Dot),
+                '{' => self.trim_push(TokenKind::CurlyOpen),
+                '}' => self.trim_push(TokenKind::CurlyClose),
+                '(' => self.trim_push(TokenKind::RoundOpen),
+                ')' => self.trim_push(TokenKind::RoundClose),
+                '.' => self.trim_push(TokenKind::Dot),
                 '=' => {
-                    self.trim(&mut source);
-                    match source.peek() {
+                    self.trim();
+                    match self.peek() {
                         Some('=') => {
-                            self.next(&mut source);
+                            self.next();
                             self.push(TokenKind::Eq);
                         }
                         _ => self.push(TokenKind::Define),
                     }
                 }
                 '!' => {
-                    self.trim(&mut source);
-                    if let Some('=') = source.peek() {
-                        self.next(&mut source);
+                    self.trim();
+                    if let Some('=') = self.peek() {
+                        self.next();
                         self.push(TokenKind::NotEq);
                     }
                 }
-                '*' => self.trim_push(&mut source, TokenKind::Star),
-                '+' => self.trim_push(&mut source, TokenKind::Plus),
-                '-' | '0'..='9' if self.buffer().is_empty() => self.number(&mut source),
+                '*' => self.trim_push(TokenKind::Star),
+                '+' => self.trim_push(TokenKind::Plus),
+                '-' | '0'..='9' if self.token_text().is_empty() => self.number(),
                 _ => {
-                    self.next(&mut source);
+                    self.next();
                 }
             }
         }
-        self.trim(&mut source);
+        self.trim();
     }
 
-    fn buffer(&mut self) -> &mut String {
-        &mut self.cart.buffer
+    fn token_text(&self) -> &str {
+        &self.cart.text[self.token_start..self.source_index]
     }
 
-    fn comment(&mut self, source: &mut Peekable<Chars>) {
-        self.trim(source);
+    fn tokens(&mut self) -> &mut Vec<Token> {
+        &mut self.cart.tokens
+    }
+
+    fn comment(&mut self) {
+        self.trim();
         loop {
-            match source.peek() {
+            match self.peek() {
                 Some('\r' | '\n') | None => break,
                 _ => {}
             }
-            self.next(source);
+            self.next();
         }
         self.push(TokenKind::Comment);
     }
 
-    fn hspace(&mut self, source: &mut Peekable<Chars>) {
-        self.trim(source);
-        while let Some(' ' | '\t') = source.peek() {
-            self.next(source);
+    fn hspace(&mut self) {
+        self.trim();
+        while let Some(' ' | '\t') = self.peek() {
+            self.next();
         }
         self.push(TokenKind::HSpace);
     }
 
-    fn next(&mut self, source: &mut Peekable<Chars>) -> Option<char> {
-        let next = source.next();
-        if let Some(c) = next {
-            self.buffer().push(c);
-        }
-        next
+    fn next(&mut self) -> Option<char> {
+        let c = self.peek()?;
+        self.source_index += c.len_utf8();
+        Some(c)
     }
 
-    fn number(&mut self, source: &mut Peekable<Chars>) {
-        let negative = *source.peek().unwrap() == '-';
-        self.trim(source);
-        while let Some('0'..='9') = source.peek() {
-            self.next(source);
+    fn number(&mut self) {
+        let negative = self.peek().unwrap() == '-';
+        self.trim();
+        while let Some('0'..='9') = self.peek() {
+            self.next();
         }
-        if negative && self.buffer().len() < 2 {
+        if negative && self.token_text().len() < 2 {
             // Disconnected minus.
             self.push(TokenKind::Minus);
             return;
@@ -203,49 +205,53 @@ impl<'a> Lexer<'a> {
         self.push(TokenKind::Int);
     }
 
+    fn peek(&mut self) -> Option<char> {
+        self.cart.text[self.source_index..].chars().next()
+    }
+
     fn push(&mut self, kind: TokenKind) {
-        let val = self.cart.buffer.as_str();
+        let val = self.token_text();
         let intern = self.cart.interner.get_or_intern(val);
-        self.buffer().clear();
-        self.tokens.push(Token::new(kind, intern));
+        self.token_start = self.source_index;
+        self.tokens().push(Token::new(kind, intern));
     }
 
     fn push_maybe(&mut self, kind: TokenKind) {
-        if !self.buffer().is_empty() {
+        if !self.token_text().is_empty() {
             self.push(kind);
         }
     }
 
-    fn string(&mut self, source: &mut Peekable<Chars>) {
-        self.trim_push(source, TokenKind::StringEdge);
+    fn string(&mut self) {
+        self.trim_push(TokenKind::StringEdge);
         // TODO Better string lexing.
         loop {
-            match source.peek() {
+            match self.peek() {
                 Some('\\') => {
                     self.push_maybe(TokenKind::String);
-                    self.next(source);
+                    self.next();
                     self.push(TokenKind::StringEscaper);
-                    if source.peek().is_some() {
-                        self.next(source);
+                    if self.peek().is_some() {
+                        self.next();
                         self.push(TokenKind::StringEscape);
                     }
                 }
                 Some('"') | None => {
                     self.push_maybe(TokenKind::String);
-                    self.next(source);
+                    self.next();
                     break;
                 }
                 _ => {
-                    self.next(source);
+                    self.next();
                 }
             }
         }
         self.push(TokenKind::StringEdge);
     }
 
-    fn trim(&mut self, source: &mut Peekable<Chars>) {
-        if !self.buffer().is_empty() {
-            let kind = match self.buffer().as_str() {
+    fn trim(&mut self) {
+        if !self.token_text().is_empty() {
+            let kind = match self.token_text() {
                 "also" => TokenKind::Also,
                 "be" => TokenKind::Be,
                 "end" => TokenKind::End,
@@ -257,11 +263,11 @@ impl<'a> Lexer<'a> {
             };
             self.push(kind);
         }
-        self.next(source);
+        self.next();
     }
 
-    fn trim_push(&mut self, source: &mut Peekable<Chars>, kind: TokenKind) {
-        self.trim(source);
+    fn trim_push(&mut self, kind: TokenKind) {
+        self.trim();
         self.push(kind);
     }
 }
