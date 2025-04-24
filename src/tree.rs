@@ -60,6 +60,16 @@ impl TreeBuilder {
         self.working.clear();
     }
 
+    pub fn commit_range(&mut self, start: Index) -> SimpleRange<Index> {
+        let start = start as usize;
+        let nodes_start = self.pos();
+        self.nodes.extend(self.working.drain(start..));
+        SimpleRange {
+            start: nodes_start,
+            end: self.pos(),
+        }
+    }
+
     pub fn drain_into(&mut self, tree: &mut Vec<Chunk>) {
         tree.clone_from(&self.nodes);
         self.clear();
