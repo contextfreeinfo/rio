@@ -136,8 +136,8 @@ impl Cart {
         let parse_tree = parser.cart.tree_builder.chunks.clone();
         if let Some(outdir) = outdir {
             let mut writer = make_dump_writer("parse", outdir)?;
-            let writer = TreeWriter::new(&mut writer, self.interner.as_ref());
-            write_parse_tree(&writer, &parse_tree);
+            let mut writer = TreeWriter::new(&parse_tree, &mut writer, self.interner.as_ref());
+            write_parse_tree(&mut writer)?;
         }
         Ok(parse_tree)
     }

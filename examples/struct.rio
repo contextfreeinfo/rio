@@ -21,7 +21,7 @@ describe = for person:Person be
     # TODO Text interp and auto struct printing.
     print "Person:"
     print person.name
-    print be branch of
+    print branch of
         person.age >= 18 to "adult"
         true to "minor"
     end

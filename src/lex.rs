@@ -1,10 +1,10 @@
-use std::{fmt::Debug, iter::Peekable, str::Chars, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
 use lasso::{Spur, ThreadedRodeo};
 use num_derive::FromPrimitive;
 use strum::EnumCount;
 
-use crate::{Cart, tree::Index};
+use crate::{Cart, tree::Size};
 
 pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
@@ -66,8 +66,8 @@ pub enum TokenKind {
     With,
 }
 
-pub const TOKEN_KIND_START: Index = 0;
-pub const TOKEN_KIND_END: Index = TOKEN_KIND_START + TokenKind::COUNT as Index;
+pub const TOKEN_KIND_START: Size = 0;
+pub const TOKEN_KIND_END: Size = TOKEN_KIND_START + TokenKind::COUNT as Size;
 
 pub struct Lexer<'a> {
     pub cart: &'a mut Cart,

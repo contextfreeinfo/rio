@@ -1,12 +1,13 @@
 use crate::{
     Cart,
     lex::{Intern, TOKEN_KIND_END, TOKEN_KIND_START, Token, TokenKind},
-    tree::{CHUNK_SIZE, Chunk, Index, SimpleRange, TreeBuilder, TreeWriter},
+    tree::{CHUNK_SIZE, Chunk, SimpleRange, Size, TreeBuilder, TreeWriter},
 };
+use anyhow::{Ok, Result};
 use log::debug;
 use num_derive::FromPrimitive;
 use static_assertions::const_assert;
-use std::{io::Write, ptr::read_unaligned};
+use std::{io::Write, ops::Range, ptr::read_unaligned};
 use strum::EnumCount;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -24,8 +25,8 @@ impl ParseNode {
                 let ptr = codes.as_ptr() as *const ParseBranch;
                 read_unaligned(ptr)
             };
-            if node.kind as Index >= PARSE_BRANCH_KIND_START {
-                assert!((node.kind as Index) < PARSE_BRANCH_KIND_END);
+            if node.kind as Size >= PARSE_BRANCH_KIND_START {
+                assert!((node.kind as Size) < PARSE_BRANCH_KIND_END);
                 return (ParseNode::Branch(node), offset + PARSE_BRANCH_SIZE);
             }
         }
@@ -35,7 +36,7 @@ impl ParseNode {
             let ptr = codes.as_ptr() as *const Token;
             read_unaligned(ptr)
         };
-        assert!((TOKEN_KIND_START..TOKEN_KIND_END).contains(&(node.kind as Index)));
+        assert!((TOKEN_KIND_START..TOKEN_KIND_END).contains(&(node.kind as Size)));
         (ParseNode::Leaf(node), offset + TOKEN_SIZE)
     }
 }
@@ -56,8 +57,8 @@ pub enum ParseBranchKind {
     StringParts,
 }
 
-const PARSE_BRANCH_KIND_START: Index = 0x1000 as Index;
-const PARSE_BRANCH_KIND_END: Index = PARSE_BRANCH_KIND_START + ParseBranchKind::COUNT as Index;
+const PARSE_BRANCH_KIND_START: Size = 0x1000 as Size;
+const PARSE_BRANCH_KIND_END: Size = PARSE_BRANCH_KIND_START + ParseBranchKind::COUNT as Size;
 const_assert!(PARSE_BRANCH_KIND_START >= TOKEN_KIND_END);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -114,7 +115,10 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) {
         self.builder().clear();
         self.block_top();
+        let end = self.builder().chunks.len();
         self.wrap(ParseBranchKind::Block, 0);
+        // Need to know where the top starts.
+        self.builder().chunks.push(Size::try_from(end).unwrap());
         dbg!(self.builder().chunks.len());
         dbg!(self.builder().working.len());
     }
@@ -226,7 +230,7 @@ impl<'a> Parser<'a> {
             }
         });
         if self.builder().pos() > start {
-            // self.wrap(ParseBranchKind::Block, start);
+            self.wrap(ParseBranchKind::Block, start);
         }
     }
 
@@ -518,7 +522,7 @@ impl<'a> Parser<'a> {
         Some(())
     }
 
-    fn wrap(&mut self, kind: ParseBranchKind, start: Index) {
+    fn wrap(&mut self, kind: ParseBranchKind, start: Size) {
         let range = self.builder().apply_range(start);
         let branch = ParseBranch { kind, range };
         self.builder().push(branch);
@@ -535,10 +539,45 @@ fn choose_ender(token_kind: TokenKind) -> TokenKind {
     }
 }
 
-pub fn write_parse_tree<File, Map>(writer: &TreeWriter<'_, File, Map>, chunks: &[Chunk])
+pub fn write_parse_tree<File, Map>(writer: &mut TreeWriter<'_, File, Map>) -> Result<()>
 where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
 {
-    //
+    let chunks = writer.chunks;
+    let (top, end) = ParseNode::read(chunks, *chunks.last().unwrap() as usize);
+    assert_eq!(chunks.len() - 1, end);
+    write_parse_tree_at(writer, top, 0)
+}
+
+pub fn write_parse_tree_at<File, Map>(
+    writer: &mut TreeWriter<'_, File, Map>,
+    node: ParseNode,
+    indent: usize,
+) -> Result<()>
+where
+    File: Write,
+    Map: std::ops::Index<Intern, Output = str>,
+{
+    writer.indent(indent)?;
+    match node {
+        ParseNode::Branch(branch) => {
+            writeln!(writer.file, "{:?}", branch.kind)?;
+            let range: Range<usize> = branch.range.into();
+            let mut offset = range.start;
+            while offset < range.end {
+                let (node, next_offset) = ParseNode::read(writer.chunks, offset);
+                write_parse_tree_at(writer, node, indent + 1)?;
+                offset = next_offset;
+            }
+            writer.indent(indent)?;
+            writeln!(writer.file, "/{:?}", branch.kind)?;
+        }
+        ParseNode::Leaf(token) => writeln!(
+            writer.file,
+            "{:?}: {:?}",
+            token.kind, &writer.map[token.intern]
+        )?,
+    }
+    Ok(())
 }
