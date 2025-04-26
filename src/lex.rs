@@ -2,6 +2,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use lasso::{Spur, ThreadedRodeo};
 use num_derive::FromPrimitive;
+use static_assertions::const_assert_eq;
 use strum::EnumCount;
 
 use crate::{Cart, tree::Size};
@@ -9,6 +10,7 @@ use crate::{Cart, tree::Size};
 pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
 
+#[repr(C)]
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
@@ -27,6 +29,7 @@ impl Token {
     }
 }
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug, EnumCount, Eq, FromPrimitive, Hash, PartialEq)]
 pub enum TokenKind {
     Also = TOKEN_KIND_START as isize,
@@ -68,6 +71,7 @@ pub enum TokenKind {
 
 pub const TOKEN_KIND_START: Size = 0;
 pub const TOKEN_KIND_END: Size = TOKEN_KIND_START + TokenKind::COUNT as Size;
+const_assert_eq!(0, std::mem::offset_of!(Token, kind));
 
 pub struct Lexer<'a> {
     pub cart: &'a mut Cart,
@@ -85,6 +89,10 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn lex(&mut self) {
+        // dbg!(std::mem::size_of::<Token>());
+        // dbg!(std::mem::align_of::<Token>());
+        // dbg!(std::mem::offset_of!(Token, kind));
+        // dbg!(std::mem::offset_of!(Token, intern));
         self.tokens().clear();
         while let Some(c) = self.peek() {
             match c {

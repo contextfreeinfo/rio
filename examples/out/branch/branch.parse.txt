@@ -1,4 +1,223 @@
 Block
  Def
   Pub
-   
+   Id: "main"
+   Star: "*"
+  /Pub
+  HSpace: " "
+  Define: "="
+  HSpace: " "
+  Fun
+   Fun: "for"
+   HSpace: " "
+   Params
+    RoundOpen: "("
+    RoundClose: ")"
+   /Params
+   HSpace: " "
+   Params
+   Block
+    Be: "be"
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "describe"
+     HSpace: " "
+     Int: "2"
+    /Call
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "describe"
+     HSpace: " "
+     Int: "-1"
+    /Call
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "describe"
+     HSpace: " "
+     Int: "0"
+    /Call
+    VSpace: "\n"
+    End: "end"
+   /Block
+  /Fun
+ /Def
+ VSpace: "\n"
+ VSpace: "\n"
+ Def
+  Id: "describe"
+  HSpace: " "
+  Define: "="
+  HSpace: " "
+  Fun
+   Fun: "for"
+   HSpace: " "
+   Params
+    Id: "i"
+   Colon: ":"
+   Params
+    Typed
+     Id: "Int32"
+     HSpace: " "
+    /Typed
+   Block
+    Be: "be"
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "print"
+     HSpace: " "
+     Block
+      RoundOpen: "("
+      Call
+       Id: "description"
+       HSpace: " "
+       Id: "i"
+      /Call
+      RoundClose: ")"
+     /Block
+    /Call
+    VSpace: "\n"
+    End: "end"
+   /Block
+  /Fun
+ /Def
+ VSpace: "\n"
+ VSpace: "\n"
+ Def
+  Id: "description"
+  HSpace: " "
+  Define: "="
+  HSpace: " "
+  Fun
+   Fun: "for"
+   HSpace: " "
+   Params
+    Id: "i"
+   Colon: ":"
+   Params
+    Typed
+     Id: "Int32"
+     HSpace: " "
+    /Typed
+   Block
+    Be: "be"
+    VSpace: "\n"
+    HSpace: "    "
+    Def
+     Id: "message"
+     HSpace: " "
+     Define: "="
+     HSpace: " "
+     Call
+      Id: "branch"
+      HSpace: " "
+      Block
+       With: "with"
+       VSpace: "\n"
+       HSpace: "        "
+       Infix
+        Infix
+         Id: "i"
+         HSpace: " "
+         AngleOpen: "<"
+         HSpace: " "
+         Int: "0"
+         HSpace: " "
+        /Infix
+        To: "to"
+        HSpace: " "
+        StringParts
+         StringEdge: "\""
+         String: "negative"
+         StringEdge: "\""
+        /StringParts
+       /Infix
+       VSpace: "\n"
+       HSpace: "        "
+       Infix
+        Infix
+         Id: "i"
+         HSpace: " "
+         AngleClose: ">"
+         HSpace: " "
+         Int: "0"
+         HSpace: " "
+        /Infix
+        To: "to"
+        HSpace: " "
+        StringParts
+         StringEdge: "\""
+         String: "positive"
+         StringEdge: "\""
+        /StringParts
+       /Infix
+       VSpace: "\n"
+       HSpace: "        "
+       Call
+        Id: "else"
+        HSpace: " "
+        StringParts
+         StringEdge: "\""
+         String: "zero"
+         StringEdge: "\""
+        /StringParts
+       /Call
+       VSpace: "\n"
+       HSpace: "    "
+       End: "end"
+      /Block
+     /Call
+    /Def
+    VSpace: "\n"
+    HSpace: "    "
+    Id: "message"
+    VSpace: "\n"
+    End: "end"
+   /Block
+  /Fun
+ /Def
+ VSpace: "\n"
+ VSpace: "\n"
+ Def
+  Id: "less"
+  HSpace: " "
+  Define: "="
+  HSpace: " "
+  Typed
+   Fun
+    Fun: "for"
+    HSpace: " "
+    Params
+     Id: "i"
+    Colon: ":"
+    Params
+     Typed
+      Call
+       Id: "Int32"
+       HSpace: " "
+       Id: "j"
+      /Call
+   /Fun
+   Colon: ":"
+   Id: "Int32"
+   HSpace: " "
+  /Typed
+ /Def
+ Block
+  Be: "be"
+  HSpace: " "
+  Infix
+   Id: "i"
+   HSpace: " "
+   AngleOpen: "<"
+   HSpace: " "
+   Id: "j"
+  /Infix
+ /Block
+ VSpace: "\n"
+/Block
+
+Bytes: 1656

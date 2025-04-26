@@ -68,11 +68,7 @@ impl TreeBuilder {
         let start = start as usize;
         let applied_start = self.chunks.len();
         self.chunks.extend(self.working.drain(start..));
-        Range {
-            start: applied_start,
-            end: self.chunks.len(),
-        }
-        .into()
+        (applied_start..self.chunks.len()).into()
     }
 
     pub fn drain_into(&mut self, tree: &mut Vec<Chunk>) {

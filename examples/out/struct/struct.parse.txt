@@ -1,4 +1,343 @@
 Block
  Def
   Pub
-   
+   Id: "main"
+   Star: "*"
+  /Pub
+  HSpace: " "
+  Define: "="
+  HSpace: " "
+  Fun
+   Fun: "for"
+   HSpace: " "
+   Params
+    RoundOpen: "("
+    RoundClose: ")"
+   /Params
+   HSpace: " "
+   Params
+   Block
+    Be: "be"
+    VSpace: "\n"
+    HSpace: "    "
+    Def
+     Id: "name"
+     HSpace: " "
+     Define: "="
+     HSpace: " "
+     StringParts
+      StringEdge: "\""
+      String: "Alice"
+      StringEdge: "\""
+     /StringParts
+    /Def
+    VSpace: "\n"
+    HSpace: "    "
+    Def
+     Id: "alice"
+     HSpace: " "
+     Define: "="
+     HSpace: " "
+     Call
+      Id: "Person"
+      HSpace: " "
+      Block
+       CurlyOpen: "{"
+       Id: "name"
+       Comma: ","
+       HSpace: " "
+       Def
+        Id: "age"
+        HSpace: " "
+        Define: "="
+        HSpace: " "
+        Int: "40"
+       /Def
+       CurlyClose: "}"
+      /Block
+     /Call
+    /Def
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "describe"
+     HSpace: " "
+     Id: "alice"
+    /Call
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "describe"
+     HSpace: " "
+     Block
+      CurlyOpen: "{"
+      Infix
+       Id: "alice"
+       Dot: "."
+       Id: "age"
+      /Infix
+      Comma: ","
+      HSpace: " "
+      Def
+       Id: "name"
+       HSpace: " "
+       Define: "="
+       HSpace: " "
+       StringParts
+        StringEdge: "\""
+        String: "Bob"
+        StringEdge: "\""
+       /StringParts
+      /Def
+      CurlyClose: "}"
+     /Block
+    /Call
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "describe"
+     HSpace: " "
+     Block
+      RoundOpen: "("
+      Call
+       Id: "build"
+       HSpace: " "
+       StringParts
+        StringEdge: "\""
+        String: "Carl"
+        StringEdge: "\""
+       /StringParts
+       HSpace: " "
+       Int: "10"
+      /Call
+      RoundClose: ")"
+     /Block
+    /Call
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "describe"
+     HSpace: " "
+     Block
+      With: "with"
+      VSpace: "\n"
+      HSpace: "        "
+      Def
+       Id: "age"
+       HSpace: " "
+       Define: "="
+       HSpace: " "
+       Int: "9"
+      /Def
+      VSpace: "\n"
+      HSpace: "        "
+      Def
+       Id: "name"
+       HSpace: " "
+       Define: "="
+       HSpace: " "
+       StringParts
+        StringEdge: "\""
+        String: "Denise"
+        StringEdge: "\""
+       /StringParts
+      /Def
+      VSpace: "\n"
+      HSpace: "    "
+      End: "end"
+     /Block
+    /Call
+    VSpace: "\n"
+    End: "end"
+   /Block
+  /Fun
+ /Def
+ VSpace: "\n"
+ VSpace: "\n"
+ Def
+  Id: "Person"
+  HSpace: " "
+  Define: "="
+  HSpace: " "
+  Call
+   Id: "struct"
+   HSpace: " "
+   Block
+    With: "with"
+    VSpace: "\n"
+    HSpace: "    "
+    Typed
+     Id: "name"
+     Colon: ":"
+     Id: "Text"
+    /Typed
+    VSpace: "\n"
+    HSpace: "    "
+    Typed
+     Id: "age"
+     Colon: ":"
+     Id: "Int32"
+    /Typed
+    VSpace: "\n"
+    End: "end"
+   /Block
+  /Call
+ /Def
+ VSpace: "\n"
+ VSpace: "\n"
+ Def
+  Id: "build"
+  HSpace: " "
+  Define: "="
+  HSpace: " "
+  Typed
+   Fun
+    Fun: "for"
+    HSpace: " "
+    Params
+     Id: "name"
+    Colon: ":"
+    Params
+     Typed
+      Call
+       Id: "Text"
+       HSpace: " "
+       Id: "age"
+      /Call
+   /Fun
+   Colon: ":"
+   Id: "Int32"
+   HSpace: " "
+  /Typed
+ /Def
+ Typed
+  Block
+   Be: "be"
+  Colon: ":"
+  Id: "Person"
+  HSpace: " "
+ /Typed
+ Block
+  CurlyOpen: "{"
+  Id: "name"
+  Comma: ","
+  HSpace: " "
+  Id: "age"
+  CurlyClose: "}"
+ /Block
+ VSpace: "\n"
+ VSpace: "\n"
+ Def
+  Id: "describe"
+  HSpace: " "
+  Define: "="
+  HSpace: " "
+  Fun
+   Fun: "for"
+   HSpace: " "
+   Params
+    Id: "person"
+   Colon: ":"
+   Params
+    Typed
+     Id: "Person"
+     HSpace: " "
+    /Typed
+   Block
+    Be: "be"
+    VSpace: "\n"
+    HSpace: "    "
+    Comment: "# TODO Text interp and auto struct printing."
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "print"
+     HSpace: " "
+     StringParts
+      StringEdge: "\""
+      String: "Person:"
+      StringEdge: "\""
+     /StringParts
+    /Call
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "print"
+     HSpace: " "
+     Infix
+      Id: "person"
+      Dot: "."
+      Id: "name"
+     /Infix
+    /Call
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "print"
+     HSpace: " "
+     Call
+      Id: "branch"
+      HSpace: " "
+      Block
+       Of: "of"
+       VSpace: "\n"
+       HSpace: "        "
+       Infix
+        Infix
+         Infix
+          Id: "person"
+          Dot: "."
+          Id: "age"
+         /Infix
+         HSpace: " "
+         GreaterEq: ">="
+         HSpace: " "
+         Int: "18"
+         HSpace: " "
+        /Infix
+        To: "to"
+        HSpace: " "
+        StringParts
+         StringEdge: "\""
+         String: "adult"
+         StringEdge: "\""
+        /StringParts
+       /Infix
+       VSpace: "\n"
+       HSpace: "        "
+       Infix
+        Id: "true"
+        HSpace: " "
+        To: "to"
+        HSpace: " "
+        StringParts
+         StringEdge: "\""
+         String: "minor"
+         StringEdge: "\""
+        /StringParts
+       /Infix
+       VSpace: "\n"
+       HSpace: "    "
+       End: "end"
+      /Block
+     /Call
+    /Call
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+     Id: "print"
+     HSpace: " "
+     StringParts
+      StringEdge: "\""
+      StringEdge: "\""
+     /StringParts
+    /Call
+    VSpace: "\n"
+    End: "end"
+   /Block
+  /Fun
+ /Def
+ VSpace: "\n"
+/Block
+
+Bytes: 2532

@@ -138,6 +138,12 @@ impl Cart {
             let mut writer = make_dump_writer("parse", outdir)?;
             let mut writer = TreeWriter::new(&parse_tree, &mut writer, self.interner.as_ref());
             write_parse_tree(&mut writer)?;
+            writeln!(writer.file)?;
+            writeln!(
+                writer.file,
+                "Bytes: {}",
+                std::mem::size_of_val(parse_tree.as_slice())
+            )?;
         }
         Ok(parse_tree)
     }

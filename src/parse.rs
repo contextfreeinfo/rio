@@ -6,7 +6,7 @@ use crate::{
 use anyhow::{Ok, Result};
 use log::debug;
 use num_derive::FromPrimitive;
-use static_assertions::const_assert;
+use static_assertions::{const_assert, const_assert_eq};
 use std::{io::Write, ops::Range, ptr::read_unaligned};
 use strum::EnumCount;
 
@@ -17,33 +17,35 @@ pub enum ParseNode {
 }
 
 impl ParseNode {
-    pub fn read(codes: &[Chunk], offset: usize) -> (ParseNode, usize) {
-        let codes = &codes[offset..];
-        if PARSE_BRANCH_SIZE <= codes.len() {
-            // Check branch.
-            let node = unsafe {
-                let ptr = codes.as_ptr() as *const ParseBranch;
-                read_unaligned(ptr)
-            };
-            if node.kind as Size >= PARSE_BRANCH_KIND_START {
-                assert!((node.kind as Size) < PARSE_BRANCH_KIND_END);
-                return (ParseNode::Branch(node), offset + PARSE_BRANCH_SIZE);
+    pub fn read(chunks: &[Chunk], offset: usize) -> (ParseNode, usize) {
+        let chunks = &chunks[offset..];
+        let kind = chunks[0];
+        match kind {
+            PARSE_BRANCH_KIND_START..PARSE_BRANCH_KIND_END => {
+                assert!(chunks.len() >= PARSE_BRANCH_SIZE);
+                let node = unsafe {
+                    let ptr = chunks.as_ptr() as *const ParseBranch;
+                    read_unaligned(ptr)
+                };
+                (ParseNode::Branch(node), offset + PARSE_BRANCH_SIZE)
             }
+            TOKEN_KIND_START..TOKEN_KIND_END => {
+                assert!(chunks.len() >= TOKEN_SIZE);
+                let node = unsafe {
+                    let ptr = chunks.as_ptr() as *const Token;
+                    read_unaligned(ptr)
+                };
+                (ParseNode::Leaf(node), offset + TOKEN_SIZE)
+            }
+            _ => panic!(),
         }
-        // Check token.
-        assert!(TOKEN_SIZE <= codes.len());
-        let node = unsafe {
-            let ptr = codes.as_ptr() as *const Token;
-            read_unaligned(ptr)
-        };
-        assert!((TOKEN_KIND_START..TOKEN_KIND_END).contains(&(node.kind as Size)));
-        (ParseNode::Leaf(node), offset + TOKEN_SIZE)
     }
 }
 
 const PARSE_BRANCH_SIZE: usize = size_of::<ParseBranch>() / CHUNK_SIZE;
 const TOKEN_SIZE: usize = size_of::<Token>() / CHUNK_SIZE;
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug, EnumCount, Eq, FromPrimitive, Hash, PartialEq)]
 pub enum ParseBranchKind {
     Block = PARSE_BRANCH_KIND_START as isize,
@@ -60,7 +62,9 @@ pub enum ParseBranchKind {
 const PARSE_BRANCH_KIND_START: Size = 0x1000 as Size;
 const PARSE_BRANCH_KIND_END: Size = PARSE_BRANCH_KIND_START + ParseBranchKind::COUNT as Size;
 const_assert!(PARSE_BRANCH_KIND_START >= TOKEN_KIND_END);
+const_assert_eq!(0, std::mem::offset_of!(ParseBranch, kind));
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ParseBranch {
     pub kind: ParseBranchKind,
@@ -119,8 +123,6 @@ impl<'a> Parser<'a> {
         self.wrap(ParseBranchKind::Block, 0);
         // Need to know where the top starts.
         self.builder().chunks.push(Size::try_from(end).unwrap());
-        dbg!(self.builder().chunks.len());
-        dbg!(self.builder().working.len());
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {
@@ -565,13 +567,17 @@ where
             writeln!(writer.file, "{:?}", branch.kind)?;
             let range: Range<usize> = branch.range.into();
             let mut offset = range.start;
+            let mut count = 0;
             while offset < range.end {
                 let (node, next_offset) = ParseNode::read(writer.chunks, offset);
                 write_parse_tree_at(writer, node, indent + 1)?;
                 offset = next_offset;
+                count += 1;
             }
-            writer.indent(indent)?;
-            writeln!(writer.file, "/{:?}", branch.kind)?;
+            if count > 1 {
+                writer.indent(indent)?;
+                writeln!(writer.file, "/{:?}", branch.kind)?;
+            }
         }
         ParseNode::Leaf(token) => writeln!(
             writer.file,

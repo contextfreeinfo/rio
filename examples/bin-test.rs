@@ -41,9 +41,9 @@ fn build_and_run(profile: &str, cli: &Cli) {
         rio.set_extension("exe");
     }
     // Report
-    dbg!(&rio);
     report_build(&rio, start.elapsed());
     // Run
+    // let examples = ["hi"];
     let examples = ["branch", "hi", "recurse", "struct"]; // , "wild"];
     // let examples = ["struct"];
     for example in examples {
