@@ -104,11 +104,12 @@ impl Cart {
         let mut lexer = Lexer::new(self);
         lex(&mut lexer)?;
         if let Some(outdir) = outdir {
-            let mut writer = make_dump_writer("lex", outdir)?;
-            for token in &self.tokens {
-                let text = &self.interner[token.intern];
-                writeln!(writer, "{:?}: {text:?}", token.kind)?;
-            }
+            let _ = outdir;
+            // let mut writer = make_dump_writer("lex", outdir)?;
+            // for token in &self.tokens {
+            //     let text = &self.interner[token.intern];
+            //     writeln!(writer, "{:?}: {text:?}", token.kind)?;
+            // }
         }
         Ok(())
     }
