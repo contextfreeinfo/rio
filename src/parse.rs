@@ -288,30 +288,15 @@ impl<'a> Parser<'a> {
         debug!("call_tight");
         let start = self.builder().pos();
         let mut skipped = self.dot()?;
+        #[allow(clippy::while_let_loop)] // because maybe include `with` here
         loop {
-            let peeked = self.peek()?;
-            match peeked {
-                TokenKind::AngleOpen | TokenKind::RoundOpen if !skipped => {
-                    // Unspaced open brackets bind tightly.
-                    // self.call_maybe_spaced(false, false, Some(start));
-                    // TODO Below instead of `call_maybe_spaced` above.
-                    // TODO Expand paren-comma args.
-                    self.advance();
-                    self.block_content();
-                    if self.peek()? == choose_ender(peeked) {
-                        self.advance();
-                    }
+            match self.peek()? {
+                // Of blocks bind tightly. TODO Also `with`?
+                TokenKind::Of => {
+                    skipped = self.dot()?;
                 }
-                _ => {
-                    match self.peek()? {
-                        // Of blocks bind tightly.
-                        TokenKind::Of => {
-                            skipped = self.dot()?;
-                        }
-                        _ => break,
-                    }
-                }
-            };
+                _ => break,
+            }
             self.wrap(ParseBranchKind::Call, start);
         }
         debug!("/call_tight");

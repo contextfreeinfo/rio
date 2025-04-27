@@ -155,15 +155,17 @@ Block
               /Infix
               VSpace: "\n"
               HSpace: "        "
-              Call
-                Id: "else"
+              Infix
+                Id: "true"
+                HSpace: " "
+                To: "to"
                 HSpace: " "
                 StringParts
                   StringEdge: "\""
                   String: "zero"
                   StringEdge: "\""
                 /StringParts
-              /Call
+              /Infix
               VSpace: "\n"
               HSpace: "    "
               End: "end"
@@ -218,4 +220,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 1608
+Bytes: 1624
