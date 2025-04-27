@@ -139,7 +139,7 @@ impl<'a> Parser<'a> {
         self.builder().push(token);
     }
 
-    define_infix!(add, call_tight, true, TokenKind::Minus | TokenKind::Plus);
+    define_infix!(add, typed, true, TokenKind::Minus | TokenKind::Plus);
 
     fn atom(&mut self) -> Option<()> {
         debug!("atom");
@@ -334,7 +334,7 @@ impl<'a> Parser<'a> {
         debug!("def");
         self.skip_h();
         let start = self.builder().pos();
-        self.typed();
+        self.call(true);
         if self.builder().pos() > start {
             self.skip_h();
             if self.peek()? == TokenKind::Define {
@@ -360,52 +360,29 @@ impl<'a> Parser<'a> {
         // TODO Type params
         // In params
         let in_params_start = self.builder().pos();
-        let start_kind = self.peek()?;
-        match start_kind {
-            TokenKind::CurlyOpen | TokenKind::Id => {
-                self.atom();
-                self.skip_h();
-            }
-            // TODO If angle, also try paren afterward. If so, nested funs.
-            TokenKind::AngleOpen | TokenKind::RoundOpen => {
-                self.advance();
-                // TODO Call it Params.
-                self.block_content();
-                if self.peek()? == choose_ender(start_kind) {
-                    self.advance();
+        loop {
+            let start_kind = self.peek()?;
+            match start_kind {
+                TokenKind::Be => break,
+                TokenKind::Colon | TokenKind::CurlyOpen | TokenKind::Id | TokenKind::RoundOpen => {
+                    // TODO Really only expect typed.
+                    self.pair();
+                    self.skip_h();
                 }
-            }
-            _ => return Some(()),
-        }
-        self.wrap(ParseBranchKind::Params, in_params_start);
-        self.skip_h();
-        // Out params
-        let has_out = self.peek()? == TokenKind::Colon;
-        if has_out {
-            self.advance();
-            self.skip_hv();
-        }
-        let out_params_start = self.builder().pos();
-        if has_out {
-            match self.peek()? {
-                TokenKind::RoundOpen => {
-                    // Explicit return vars.
+                // TODO Fix angle handling. Maybe just before in params?
+                // TODO If angle, also try paren afterward. If so, nested funs.
+                TokenKind::AngleOpen => {
                     self.advance();
+                    // TODO Call it Params?
                     self.block_content();
-                    if self.peek()? == TokenKind::RoundClose {
+                    if self.peek()? == choose_ender(start_kind) {
                         self.advance();
                     }
                 }
-                _ => {
-                    // Implied anonymous return var.
-                    let typed_start = self.builder().pos();
-                    // self.builder().push_none(0);
-                    self.call(false);
-                    self.wrap(ParseBranchKind::Typed, typed_start);
-                }
+                _ => return Some(()),
             }
         }
-        self.wrap(ParseBranchKind::Params, out_params_start);
+        self.wrap(ParseBranchKind::Params, in_params_start);
         self.skip_h();
         // Body
         self.atom();
@@ -504,24 +481,20 @@ impl<'a> Parser<'a> {
         debug!("/string");
     }
 
-    fn typed(&mut self) -> Option<()> {
-        debug!("typed");
-        self.skip_h();
+    fn typed(&mut self) -> Option<bool> {
         let start = self.builder().pos();
-        self.call(true);
+        let mut skipped = self.call_tight()?;
+        let pre_space = self.builder().pos();
         self.skip_h();
-        loop {
-            debug!("typed loop: {:?}", self.peek()?);
-            if self.peek()? != TokenKind::Colon {
-                break;
-            }
+        skipped |= self.builder().pos() > pre_space;
+        if self.peek()? == TokenKind::Colon {
             self.advance();
             self.skip_hv();
-            self.call(false);
+            let maybe_skipped = self.call_tight();
             self.wrap(ParseBranchKind::Typed, start);
+            skipped = maybe_skipped?;
         }
-        debug!("/typed");
-        Some(())
+        Some(skipped)
     }
 
     fn wrap(&mut self, kind: ParseBranchKind, start: Size) {
@@ -570,7 +543,7 @@ where
             let mut count = 0;
             while offset < range.end {
                 let (node, next_offset) = ParseNode::read(writer.chunks, offset);
-                write_parse_tree_at(writer, node, indent + 1)?;
+                write_parse_tree_at(writer, node, indent + 2)?;
                 offset = next_offset;
                 count += 1;
             }

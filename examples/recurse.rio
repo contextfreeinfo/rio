@@ -13,12 +13,12 @@ countDown = for count:Int32 be
     end
 end
 
-isEven = for i:Int32 be:Claim branch of
+isEven = for i:Int32 :Claim be branch of
     i > 0 to isOdd i - 1
     true to true
 end
 
-isOdd = for i:Int32 be:Claim branch of
+isOdd = for i:Int32 :Claim be branch of
     i > 0 to isEven i - 1
     true to false
 end

@@ -1,115 +1,117 @@
 Block
- Def
-  Pub
-   Id: "main"
-   Star: "*"
-  /Pub
-  HSpace: " "
-  Define: "="
-  HSpace: " "
-  Fun
-   Fun: "for"
-   HSpace: " "
-   Params
-    RoundOpen: "("
-    RoundClose: ")"
-   /Params
-   HSpace: " "
-   Params
-   Block
-    Be: "be"
-    VSpace: "\n"
-    HSpace: "    "
-    Def
-     Id: "message"
-     HSpace: " "
-     Define: "="
-     HSpace: " "
-     StringParts
-      StringEdge: "\""
-      String: "I say "
-      StringEscaper: "\\"
-      StringEscape: "\""
-      String: "Hi!"
-      StringEscaper: "\\"
-      StringEscape: "\""
-      StringEdge: "\""
-     /StringParts
-    /Def
-    VSpace: "\n"
-    HSpace: "    "
-    Call
-     Id: "printTwice"
-     HSpace: " "
-     Id: "message"
-     HSpace: " "
-     StringParts
-      StringEdge: "\""
-      StringEdge: "\""
-     /StringParts
-    /Call
-    VSpace: "\n"
-    End: "end"
-   /Block
-  /Fun
- /Def
- VSpace: "\n"
- VSpace: "\n"
- Def
-  Id: "printTwice"
-  HSpace: " "
-  Define: "="
-  HSpace: " "
-  Typed
-   Fun
-    Fun: "for"
+  Def
+    Pub
+      Id: "main"
+      Star: "*"
+    /Pub
     HSpace: " "
-    Params
-     Id: "message"
-    Colon: ":"
-    Params
-     Typed
-      Call
-       Id: "Text"
-       HSpace: " "
-       Id: "middle"
-      /Call
-   /Fun
-   Colon: ":"
-   Id: "Text"
-   HSpace: " "
-  /Typed
- /Def
- Typed
-  Block
-   Be: "be"
-  Colon: ":"
-  Id: "Void"
- /Typed
- VSpace: "\n"
- HSpace: "    "
- Call
-  Id: "print"
-  HSpace: " "
-  Id: "message"
- /Call
- VSpace: "\n"
- HSpace: "    "
- Call
-  Id: "print"
-  HSpace: " "
-  Id: "middle"
- /Call
- VSpace: "\n"
- HSpace: "    "
- Call
-  Id: "print"
-  HSpace: " "
-  Id: "message"
- /Call
- VSpace: "\n"
- End: "end"
- VSpace: "\n"
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Block
+          RoundOpen: "("
+          RoundClose: ")"
+        /Block
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Id: "message"
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          StringParts
+            StringEdge: "\""
+            String: "I say "
+            StringEscaper: "\\"
+            StringEscape: "\""
+            String: "Hi!"
+            StringEscaper: "\\"
+            StringEscape: "\""
+            StringEdge: "\""
+          /StringParts
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "printTwice"
+          HSpace: " "
+          Id: "message"
+          HSpace: " "
+          StringParts
+            StringEdge: "\""
+            StringEdge: "\""
+          /StringParts
+        /Call
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "printTwice"
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "message"
+          Colon: ":"
+          Id: "Text"
+          HSpace: " "
+        /Typed
+        Typed
+          Id: "middle"
+          Colon: ":"
+          Id: "Text"
+          HSpace: " "
+        /Typed
+        Typed
+          Colon: ":"
+          Id: "Void"
+          HSpace: " "
+        /Typed
+      /Params
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "print"
+          HSpace: " "
+          Id: "message"
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "print"
+          HSpace: " "
+          Id: "middle"
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "print"
+          HSpace: " "
+          Id: "message"
+        /Call
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
 /Block
 
-Bytes: 856
+Bytes: 840

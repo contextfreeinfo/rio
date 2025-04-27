@@ -3,7 +3,7 @@ main* = for () be
     printTwice message ""
 end
 
-printTwice = for message:Text middle:Text be:Void
+printTwice = for message:Text middle:Text :Void be
     print message
     print middle
     print message

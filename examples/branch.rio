@@ -12,7 +12,7 @@ description = for i:Int32 be
     message = branch with
         i < 0 to "negative"
         i > 0 to "positive"
-        else "zero"
+        true to "zero"
     end
     message
 end
