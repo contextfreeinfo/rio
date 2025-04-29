@@ -18,6 +18,7 @@ pub enum ParseNode {
 
 impl ParseNode {
     pub fn read(chunks: &[Chunk], offset: usize) -> (ParseNode, usize) {
+        assert_ne!(0, offset);
         let chunks = &chunks[offset..];
         let kind = chunks[0];
         match kind {
@@ -154,11 +155,15 @@ impl<'a> Parser<'a> {
 
     pub fn parse(&mut self) {
         self.builder().clear();
+        // Avoid 0 pointers, saving it instead for top start index.
+        self.builder().chunks.push(0);
         self.block_top();
+        // Track where the end is going before pushing it there.
         let end = self.builder().chunks.len();
         self.wrap(ParseBranchKind::Block, 0);
-        // Need to know where the top starts.
-        self.builder().chunks.push(Size::try_from(end).unwrap());
+        self.builder().chunks[0] = Size::try_from(end).unwrap();
+        // Drain into tree.
+        self.cart.tree.clear();
         self.cart.tree.append(&mut self.cart.tree_builder.chunks);
     }
 
@@ -542,8 +547,8 @@ where
     Map: std::ops::Index<Intern, Output = str>,
 {
     let chunks = writer.chunks;
-    let (top, end) = ParseNode::read(chunks, *chunks.last().unwrap() as usize);
-    assert_eq!(chunks.len() - 1, end);
+    let (top, end) = ParseNode::read(chunks, *chunks.first().unwrap() as usize);
+    assert_eq!(chunks.len(), end);
     write_parse_tree_at(writer, top, 0)
 }
 

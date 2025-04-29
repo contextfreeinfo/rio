@@ -1,5 +1,8 @@
 use crate::{
-    lex::{Token, TokenKind}, parse::{ParseBranch, ParseBranchKind, ParseNode, ParseNodeStepper, PARSE_BRANCH_KIND_END}, tree::{Chunk, Size, SizeRange, TreeBuilder}, Cart
+    Cart,
+    lex::{Token, TokenKind},
+    parse::{PARSE_BRANCH_KIND_END, ParseBranch, ParseBranchKind, ParseNode, ParseNodeStepper},
+    tree::{Chunk, Size, SizeRange, TreeBuilder},
 };
 use num_derive::FromPrimitive;
 use static_assertions::const_assert;
@@ -96,7 +99,7 @@ impl<'a> Normer<'a> {
     }
 
     pub fn norm(&mut self) {
-        self.top(*self.chunks().last().unwrap());
+        self.top(*self.chunks().first().unwrap());
     }
 
     // General helpers
