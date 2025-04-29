@@ -64,6 +64,8 @@ impl TreeBuilder {
     pub fn clear(&mut self) {
         self.chunks.clear();
         self.working.clear();
+        // Avoid 0 pointers, saving it instead for top start index.
+        self.chunks.push(0);
     }
 
     pub fn apply_range(&mut self, start: Size) -> SizeRange {

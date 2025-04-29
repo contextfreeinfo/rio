@@ -155,8 +155,6 @@ impl<'a> Parser<'a> {
 
     pub fn parse(&mut self) {
         self.builder().clear();
-        // Avoid 0 pointers, saving it instead for top start index.
-        self.builder().chunks.push(0);
         self.block_top();
         // Track where the end is going before pushing it there.
         let end = self.builder().chunks.len();

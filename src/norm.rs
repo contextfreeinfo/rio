@@ -99,6 +99,7 @@ impl<'a> Normer<'a> {
     }
 
     pub fn norm(&mut self) {
+        self.builder().clear();
         self.top(*self.chunks().first().unwrap());
     }
 
