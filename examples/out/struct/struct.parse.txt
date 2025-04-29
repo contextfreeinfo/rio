@@ -149,6 +149,50 @@ Block
           /Block
         /Call
         VSpace: "\n"
+        HSpace: "    "
+        Def
+          Typed
+            Id: "eli"
+            Colon: ":"
+            HSpace: " "
+            Id: "Person"
+            HSpace: " "
+          /Typed
+          Define: "="
+          HSpace: " "
+          Block
+            CurlyOpen: "{"
+            Def
+              Id: "name"
+              HSpace: " "
+              Define: "="
+              HSpace: " "
+              StringParts
+                StringEdge: "\""
+                String: "Eli"
+                StringEdge: "\""
+              /StringParts
+            /Def
+            Comma: ","
+            HSpace: " "
+            Def
+              Id: "age"
+              HSpace: " "
+              Define: "="
+              HSpace: " "
+              Int: "35"
+            /Def
+            CurlyClose: "}"
+          /Block
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "describe"
+          HSpace: " "
+          Id: "eli"
+        /Call
+        VSpace: "\n"
         End: "end"
       /Block
     /Fun
@@ -341,4 +385,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 2504
+Bytes: 2828

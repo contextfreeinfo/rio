@@ -8,6 +8,8 @@ main* = for () be
         age = 9
         name = "Denise"
     end
+    eli: Person = {name = "Eli", age = 35}
+    describe eli
 end
 
 Person = struct with

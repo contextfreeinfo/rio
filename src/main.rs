@@ -13,6 +13,7 @@ use parse::write_parse_tree;
 use tree::{Chunk, TreeBuilder, TreeWriter};
 
 mod lex;
+mod norm;
 mod parse;
 mod tree;
 
@@ -47,8 +48,10 @@ enum DumpOption {
 pub struct Cart {
     pub args: BuildArgs,
     pub interner: Interner,
+    pub outdir: Option<PathBuf>,
     pub text: String,
     pub tokens: Vec<Token>,
+    pub tree: Vec<Chunk>,
     pub tree_builder: TreeBuilder,
 }
 
@@ -86,31 +89,33 @@ impl Cart {
         interner.get_or_intern("");
         Self {
             args: args.clone(),
-            text: String::new(),
             interner: interner.clone(),
+            outdir: None,
+            text: String::new(),
             tokens: vec![],
+            tree: vec![],
             tree_builder: TreeBuilder::default(),
         }
     }
 
     fn build(&mut self) -> Result<()> {
-        let outdir = self.make_outdir()?;
-        self.lex(outdir.as_ref())?;
-        self.parse(outdir.as_ref())?;
+        self.outdir = self.make_outdir()?;
+        self.lex()?;
+        self.parse()?;
+        self.norm()?;
         Ok(())
     }
 
-    fn lex(&mut self, outdir: Option<&PathBuf>) -> Result<()> {
+    fn lex(&mut self) -> Result<()> {
         let mut lexer = Lexer::new(self);
         lex(&mut lexer)?;
-        if let Some(outdir) = outdir {
-            let _ = outdir;
-            // let mut writer = make_dump_writer("lex", outdir)?;
-            // for token in &self.tokens {
-            //     let text = &self.interner[token.intern];
-            //     writeln!(writer, "{:?}: {text:?}", token.kind)?;
-            // }
-        }
+        // if let Some(outdir) = &self.outdir {
+        //     let mut writer = make_dump_writer("lex", outdir)?;
+        //     for token in &self.tokens {
+        //         let text = &self.interner[token.intern];
+        //         writeln!(writer, "{:?}: {text:?}", token.kind)?;
+        //     }
+        // }
         Ok(())
     }
 
@@ -131,22 +136,28 @@ impl Cart {
         Ok(Some(subdir))
     }
 
-    fn parse(&mut self, outdir: Option<&PathBuf>) -> Result<Vec<Chunk>> {
-        let mut parser = parse::Parser::new(self);
-        parser.parse();
-        let parse_tree = parser.cart.tree_builder.chunks.clone();
-        if let Some(outdir) = outdir {
-            let mut writer = make_dump_writer("parse", outdir)?;
-            let mut writer = TreeWriter::new(&parse_tree, &mut writer, self.interner.as_ref());
-            write_parse_tree(&mut writer)?;
-            writeln!(writer.file)?;
-            writeln!(
-                writer.file,
-                "Bytes: {}",
-                std::mem::size_of_val(parse_tree.as_slice())
-            )?;
+    fn norm(&mut self) -> Result<()> {
+        norm::Normer::new(self).norm();
+        // TODO Dump if wanted.
+        Ok(())
+    }
+
+    fn parse(&mut self) -> Result<()> {
+        parse::Parser::new(self).parse();
+        if self.args.dump.contains(&DumpOption::Trees) {
+            if let Some(outdir) = &self.outdir {
+                let mut writer = make_dump_writer("parse", outdir)?;
+                let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
+                write_parse_tree(&mut writer)?;
+                writeln!(writer.file)?;
+                writeln!(
+                    writer.file,
+                    "Bytes: {}",
+                    std::mem::size_of_val(self.tree.as_slice())
+                )?;
+            }
         }
-        Ok(parse_tree)
+        Ok(())
     }
 }
 

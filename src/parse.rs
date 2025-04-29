@@ -1,7 +1,7 @@
 use crate::{
     Cart,
     lex::{Intern, TOKEN_KIND_END, TOKEN_KIND_START, Token, TokenKind},
-    tree::{CHUNK_SIZE, Chunk, SimpleRange, Size, TreeBuilder, TreeWriter},
+    tree::{CHUNK_SIZE, Chunk, SimpleRange, Size, SizeRange, TreeBuilder, TreeWriter},
 };
 use anyhow::{Ok, Result};
 use log::debug;
@@ -42,6 +42,42 @@ impl ParseNode {
     }
 }
 
+pub struct ParseNodeStepper {
+    pub node: Option<ParseNode>,
+    start: usize,
+    end: usize,
+}
+
+impl ParseNodeStepper {
+    pub fn new(range: SizeRange) -> Self {
+        Self {
+            node: None,
+            start: range.start as usize,
+            end: range.end as usize,
+        }
+    }
+
+    pub fn next(&mut self, chunks: &[Chunk]) -> Option<ParseNode> {
+        self.node = None;
+        while self.start < self.end {
+            let (node, offset) = ParseNode::read(chunks, self.start);
+            self.node = match node {
+                ParseNode::Leaf(Token {
+                    // TODO What else to skip?
+                    kind: TokenKind::HSpace | TokenKind::VSpace,
+                    ..
+                }) => None,
+                _ => Some(node),
+            };
+            self.start = offset;
+            if self.node.is_some() {
+                break;
+            }
+        }
+        self.node
+    }
+}
+
 const PARSE_BRANCH_SIZE: usize = size_of::<ParseBranch>() / CHUNK_SIZE;
 const TOKEN_SIZE: usize = size_of::<Token>() / CHUNK_SIZE;
 
@@ -59,8 +95,8 @@ pub enum ParseBranchKind {
     StringParts,
 }
 
-const PARSE_BRANCH_KIND_START: Size = 0x1000 as Size;
-const PARSE_BRANCH_KIND_END: Size = PARSE_BRANCH_KIND_START + ParseBranchKind::COUNT as Size;
+pub const PARSE_BRANCH_KIND_START: Size = 0x1000 as Size;
+pub const PARSE_BRANCH_KIND_END: Size = PARSE_BRANCH_KIND_START + ParseBranchKind::COUNT as Size;
 const_assert!(PARSE_BRANCH_KIND_START >= TOKEN_KIND_END);
 const_assert_eq!(0, std::mem::offset_of!(ParseBranch, kind));
 
@@ -123,6 +159,7 @@ impl<'a> Parser<'a> {
         self.wrap(ParseBranchKind::Block, 0);
         // Need to know where the top starts.
         self.builder().chunks.push(Size::try_from(end).unwrap());
+        self.cart.tree.append(&mut self.cart.tree_builder.chunks);
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {

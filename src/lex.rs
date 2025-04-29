@@ -11,7 +11,7 @@ pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
 
 #[repr(C)]
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Default, Eq, Hash, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     pub intern: Intern,
@@ -30,9 +30,11 @@ impl Token {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, EnumCount, Eq, FromPrimitive, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, EnumCount, Eq, FromPrimitive, Hash, PartialEq)]
 pub enum TokenKind {
-    Also = TOKEN_KIND_START as isize,
+    #[default]
+    None = TOKEN_KIND_START as isize,
+    Also,
     AngleClose,
     AngleOpen,
     Be,

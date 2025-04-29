@@ -14,7 +14,9 @@ pub struct SimpleRange<Idx> {
     pub end: Idx,
 }
 
-impl SimpleRange<Size> {
+pub type SizeRange = SimpleRange<Size>;
+
+impl SizeRange {
     pub fn len(&self) -> usize {
         (self.end - self.start).try_into().unwrap()
     }
@@ -26,8 +28,8 @@ impl<Idx> From<SimpleRange<Idx>> for Range<Idx> {
     }
 }
 
-impl From<SimpleRange<Size>> for Range<usize> {
-    fn from(value: SimpleRange<Size>) -> Self {
+impl From<SizeRange> for Range<usize> {
+    fn from(value: SizeRange) -> Self {
         value.start as usize..value.end as usize
     }
 }
@@ -41,7 +43,7 @@ impl<Idx> From<Range<Idx>> for SimpleRange<Idx> {
     }
 }
 
-impl From<Range<usize>> for SimpleRange<Size> {
+impl From<Range<usize>> for SizeRange {
     fn from(value: Range<usize>) -> Self {
         (value.start as Size..value.end as Size).into()
     }
@@ -64,16 +66,11 @@ impl TreeBuilder {
         self.working.clear();
     }
 
-    pub fn apply_range(&mut self, start: Size) -> SimpleRange<Size> {
+    pub fn apply_range(&mut self, start: Size) -> SizeRange {
         let start = start as usize;
         let applied_start = self.chunks.len();
         self.chunks.extend(self.working.drain(start..));
         (applied_start..self.chunks.len()).into()
-    }
-
-    pub fn drain_into(&mut self, tree: &mut Vec<Chunk>) {
-        tree.clone_from(&self.chunks);
-        self.clear();
     }
 
     pub fn pos(&self) -> Size {
