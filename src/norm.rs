@@ -28,6 +28,14 @@ macro_rules! generate_node_enums {
                 $variant($variant),
             )*
         }
+
+        $(
+            impl NodeData for $variant {
+                fn kind() -> NodeKind {
+                    NodeKind::$variant
+                }
+            }
+        )*
     };
 }
 
@@ -37,6 +45,10 @@ generate_node_enums!(Block, Call, Def, Fun, Tok,);
 const NODE_KIND_START: Size = 0x2000 as Size;
 const NODE_KIND_END: Size = NODE_KIND_START + NodeKind::COUNT as Size;
 const_assert!(NODE_KIND_START >= PARSE_BRANCH_KIND_END);
+
+trait NodeData {
+    fn kind() -> NodeKind;
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
@@ -113,6 +125,11 @@ impl<'a> Normer<'a> {
         &self.cart.tree
     }
 
+    fn push<T: NodeData>(&mut self, node: T) {
+        self.builder().push(T::kind());
+        self.builder().push(node);
+    }
+
     fn read(&self, offset: Size) -> (ParseNode, Size) {
         let pair = ParseNode::read(self.chunks(), offset as usize);
         // TODO Let ParseNode::read work with Size directly?
@@ -164,8 +181,7 @@ impl<'a> Normer<'a> {
             type_spec: Default::default(),
             value: Default::default(),
         };
-        self.builder().push(NodeKind::Def);
-        self.builder().push(def);
+        self.push(def);
         dbg!(def);
         dbg!(&self.builder().working);
     }

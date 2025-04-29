@@ -1,6 +1,7 @@
 use std::{
     fs::{File, create_dir_all},
     io::{BufWriter, Read, Write},
+    num::NonZeroU32,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -8,7 +9,7 @@ use std::{
 use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
-use lex::{Interner, Lexer, Token};
+use lex::{Intern, Interner, Lexer, Token};
 use parse::write_parse_tree;
 use tree::{Chunk, TreeBuilder, TreeWriter};
 
@@ -86,7 +87,9 @@ impl Cart {
         // Resources
         let interner = Arc::new(ThreadedRodeo::default());
         // Reserve first slot for empty. TODO Reserve others?
-        interner.get_or_intern("");
+        let empty_intern = interner.get_or_intern("");
+        assert_eq!(Intern::default(), empty_intern);
+        assert_eq!(NonZeroU32::new(1).unwrap(), empty_intern.into_inner());
         Self {
             args: args.clone(),
             interner: interner.clone(),
