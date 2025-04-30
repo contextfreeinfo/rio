@@ -18,6 +18,7 @@ pub enum ParseNode {
 
 impl ParseNode {
     pub fn read(chunks: &[Chunk], offset: usize) -> (ParseNode, usize) {
+        // Or we could use Option<NonZeroU32> or whatever everywhere.
         assert_ne!(0, offset);
         let chunks = &chunks[offset..];
         let kind = chunks[0];
@@ -44,7 +45,6 @@ impl ParseNode {
 }
 
 pub struct ParseNodeStepper {
-    pub node: Option<ParseNode>,
     start: usize,
     end: usize,
 }
@@ -52,30 +52,32 @@ pub struct ParseNodeStepper {
 impl ParseNodeStepper {
     pub fn new(range: SizeRange) -> Self {
         Self {
-            node: None,
             start: range.start as usize,
             end: range.end as usize,
         }
     }
 
-    pub fn next(&mut self, chunks: &[Chunk]) -> Option<ParseNode> {
-        self.node = None;
+    pub fn next(&mut self, chunks: &[Chunk]) -> Option<(ParseNode, Size)> {
+        let mut node: Option<ParseNode> = None;
+        let mut source: Size = 0;
         while self.start < self.end {
-            let (node, offset) = ParseNode::read(chunks, self.start);
-            self.node = match node {
+            // Guaranteed to cast since start and end were both originally Size.
+            source = self.start as Size;
+            let (next, offset) = ParseNode::read(chunks, self.start);
+            node = match next {
                 ParseNode::Leaf(Token {
                     // TODO What else to skip?
                     kind: TokenKind::HSpace | TokenKind::VSpace,
                     ..
                 }) => None,
-                _ => Some(node),
+                _ => Some(next),
             };
             self.start = offset;
-            if self.node.is_some() {
+            if node.is_some() {
                 break;
             }
         }
-        self.node
+        node.map(|node| (node, source))
     }
 }
 
@@ -156,11 +158,10 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) {
         self.builder().clear();
         self.block_top();
-        // Track where the end is going before pushing it there.
-        let end = self.builder().chunks.len();
+        // Finish top and drain tree.
+        // The end of the last range is naturally the start of the last node,
+        // because the kid range ends that way.
         self.wrap(ParseBranchKind::Block, 0);
-        self.builder().chunks[0] = Size::try_from(end).unwrap();
-        // Drain into tree.
         self.cart.tree.clear();
         self.cart.tree.append(&mut self.cart.tree_builder.chunks);
     }
@@ -545,7 +546,7 @@ where
     Map: std::ops::Index<Intern, Output = str>,
 {
     let chunks = writer.chunks;
-    let (top, end) = ParseNode::read(chunks, *chunks.first().unwrap() as usize);
+    let (top, end) = ParseNode::read(chunks, *chunks.last().unwrap() as usize);
     assert_eq!(chunks.len(), end);
     write_parse_tree_at(writer, top, 0)
 }

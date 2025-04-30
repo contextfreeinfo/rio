@@ -39,16 +39,20 @@ macro_rules! generate_node_enums {
     };
 }
 
-generate_node_enums!(Block, Call, Def, Fun, Tok,);
+impl Node {
+    // TODO Read
+}
+
+trait NodeData {
+    fn kind() -> NodeKind;
+}
 
 // const NODE_SIZE: usize = size_of::<Node>() / CHUNK_SIZE;
 const NODE_KIND_START: Size = 0x2000 as Size;
 const NODE_KIND_END: Size = NODE_KIND_START + NodeKind::COUNT as Size;
 const_assert!(NODE_KIND_START >= PARSE_BRANCH_KIND_END);
 
-trait NodeData {
-    fn kind() -> NodeKind;
-}
+generate_node_enums!(Block, Call, Def, Fun, Public, Tok,);
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
@@ -61,7 +65,7 @@ pub struct NodeMeta {
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Block {
     meta: NodeMeta,
-    items: SizeRange,
+    kids: SizeRange,
 }
 
 #[repr(C)]
@@ -76,10 +80,9 @@ pub struct Call {
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Def {
     meta: NodeMeta,
-    id: Tok,
+    target: Size,
     public: bool,
-    type_spec: Size,
-    value: SizeRange,
+    value: Size,
 }
 
 #[repr(C)]
@@ -93,9 +96,17 @@ pub struct Fun {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct Tok {
+pub struct Public {
     meta: NodeMeta,
+    kid: Size,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct Tok {
+    // Token first so we can use the builtin kind.
     token: Token,
+    meta: NodeMeta,
 }
 
 #[allow(unused)]
@@ -112,7 +123,8 @@ impl<'a> Normer<'a> {
 
     pub fn norm(&mut self) {
         self.builder().clear();
-        self.top(*self.chunks().first().unwrap());
+        self.wrap(|s| s.top(*s.chunks().last().unwrap()));
+        dbg!(&self.builder().chunks);
     }
 
     // General helpers
@@ -136,83 +148,100 @@ impl<'a> Normer<'a> {
         (pair.0, pair.1.try_into().unwrap())
     }
 
+    fn wrap<F: FnOnce(&mut Self)>(&mut self, build: F) -> SizeRange {
+        let start = self.builder().pos();
+        build(self);
+        self.builder().apply_range(start)
+    }
+
+    fn wrap_node(&mut self, node: ParseNode, source: Size) -> SizeRange {
+        self.wrap(|s| s.node(node, source))
+    }
+
     // Processors
 
-    fn def(&mut self, branch: ParseBranch) {
+    fn def(&mut self, branch: ParseBranch, source: Size) {
         let mut stepper = ParseNodeStepper::new(branch.range);
-        let mut kid = stepper.next(self.chunks()).unwrap();
-        let id = match kid {
-            ParseNode::Leaf(token) if token.kind == TokenKind::Define => None,
+        let (target, target_source) = stepper.next(self.chunks()).unwrap();
+        let mut kid = target;
+        let target = match kid {
+            ParseNode::Leaf(token) if token.kind == TokenKind::Define => 0,
             _ => {
-                let first = kid;
-                kid = stepper.next(self.chunks()).unwrap();
-                match first {
-                    ParseNode::Leaf(token) if matches!(token.kind, TokenKind::Id) => Some(Tok {
-                        meta: NodeMeta {
-                            source: Default::default(), // TODO source!
-                            typ: Default::default(),
-                        },
-                        token,
-                    }),
-                    ParseNode::Branch(branch) => match branch.kind {
-                        ParseBranchKind::Pub => {
-                            // TODO Handle typed case.
-                            None
-                        }
-                        ParseBranchKind::Typed => {
-                            // TODO Handle typed case.
-                            None
-                        }
-                        _ => None,
-                    },
-                    _ => None,
-                }
+                let target = self.wrap_node(target, target_source).start;
+                // commit and remember idx
+                kid = stepper.next(self.chunks()).unwrap().0;
+                target
             }
         };
         assert!(matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::Define));
-        if let Some(node) = stepper.next(self.chunks()) {
-            // TODO What?
-            self.node(node);
-        }
+        let value = stepper
+            .next(self.chunks())
+            .map(|(node, source)| self.wrap_node(node, source).start)
+            .unwrap_or(0);
         let def = Def {
-            meta: Default::default(),
-            id: id.unwrap_or_default(),
-            public: false,
-            type_spec: Default::default(),
-            value: Default::default(),
+            meta: NodeMeta { source, typ: 0 },
+            target,
+            public: false, // to be filled in later but only matters for tops?
+            value,
         };
         self.push(def);
-        dbg!(def);
-        dbg!(&self.builder().working);
     }
 
-    fn node(&mut self, node: ParseNode) {
+    fn node(&mut self, node: ParseNode, source: Size) {
         dbg!(node);
         match node {
             ParseNode::Branch(branch) => match branch.kind {
                 ParseBranchKind::Block => {}
                 ParseBranchKind::Call => {}
                 ParseBranchKind::Infix => {}
-                ParseBranchKind::Def => self.def(branch),
+                ParseBranchKind::Def => self.def(branch, source),
                 ParseBranchKind::Params => {}
                 ParseBranchKind::Typed => {}
                 ParseBranchKind::Fun => {}
-                ParseBranchKind::Pub => {}
+                ParseBranchKind::Pub => self.public(branch, source),
                 ParseBranchKind::StringParts => {}
             },
-            ParseNode::Leaf(token) => {}
+            ParseNode::Leaf(token) => self.token(token, source),
         }
     }
 
-    fn top(&mut self, offset: Size) {
-        let ParseNode::Branch(branch) = self.read(offset).0 else {
+    fn public(&mut self, branch: ParseBranch, source: u32) {
+        let mut stepper = ParseNodeStepper::new(branch.range);
+        let (kid, kid_source) = stepper.next(self.chunks()).unwrap();
+        let kid = match kid {
+            ParseNode::Leaf(token) if token.kind == TokenKind::Star => 0,
+            _ => self.wrap_node(kid, kid_source).start,
+        };
+        let public = Public {
+            meta: NodeMeta { source, typ: 0 },
+            kid,
+        };
+        self.push(public);
+    }
+
+    fn top(&mut self, source: Size) {
+        let ParseNode::Branch(branch) = self.read(source).0 else {
             panic!()
         };
-        let mut offset = branch.range.start;
-        while offset < branch.range.end {
-            let (kid, next) = self.read(offset);
-            self.node(kid);
-            offset = next;
-        }
+        let kids = self.wrap(|s| {
+            let mut stepper = ParseNodeStepper::new(branch.range);
+            while let Some((kid, source)) = stepper.next(s.chunks()) {
+                s.node(kid, source);
+            }
+        });
+        let block = Block {
+            meta: NodeMeta { source, typ: 0 },
+            kids,
+        };
+        self.push(block);
+    }
+
+    fn token(&mut self, token: Token, source: Size) {
+        let tok = Tok {
+            token,
+            meta: NodeMeta { source, typ: 0 },
+        };
+        // Go straight to builder to avoid extra kind chunk.
+        self.builder().push(tok);
     }
 }

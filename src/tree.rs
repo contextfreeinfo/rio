@@ -64,7 +64,7 @@ impl TreeBuilder {
     pub fn clear(&mut self) {
         self.chunks.clear();
         self.working.clear();
-        // Avoid 0 pointers, saving it instead for top start index.
+        // Avoid 0 pointers, so burn the first chunk.
         self.chunks.push(0);
     }
 
