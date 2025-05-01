@@ -572,7 +572,7 @@ where
             let mut count = 0;
             while offset < range.end {
                 let (node, next_offset) = ParseNode::read(writer.chunks, offset);
-                write_parse_tree_at(writer, node, indent + 2)?;
+                write_parse_tree_at(writer, node, indent + writer.indent)?;
                 offset = next_offset;
                 count += 1;
             }

@@ -95,6 +95,7 @@ where
 {
     pub chunks: &'a [Chunk],
     pub file: &'a mut File,
+    pub indent: usize,
     pub map: &'a Map,
 }
 
@@ -104,7 +105,12 @@ where
     Map: std::ops::Index<Intern, Output = str>,
 {
     pub fn new(chunks: &'a [Chunk], file: &'a mut File, map: &'a Map) -> Self {
-        Self { chunks, file, map }
+        Self {
+            chunks,
+            file,
+            indent: 2,
+            map,
+        }
     }
 
     pub fn indent(&mut self, indent: usize) -> Result<()> {

@@ -1,6 +1,15 @@
 Block
   Def
+    target = Public Id: "main"
+    value = Id: "printTwice"
+  /Def
   Def
+    target = Id: "printTwice"
+    value = Def
+      target = Public Id: "main"
+      value = Id: "printTwice"
+    /Def
+  /Def
 /Block
 
 Bytes: 112

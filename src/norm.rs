@@ -25,9 +25,10 @@ macro_rules! generate_node_enums {
             )*
         }
 
-        #[derive(Clone, Copy, Debug, EnumCount, Eq, Hash, PartialEq)]
+        #[derive(Clone, Copy, Debug, Default, EnumCount, Eq, Hash, PartialEq)]
         pub enum Node {
             #[allow(unused)]
+            #[default]
             None,
             $(
                 $variant($variant),
@@ -57,20 +58,28 @@ macro_rules! read_node {
 
 impl Node {
     pub fn read(chunks: &[Chunk], offset: Size) -> (Node, Size) {
-        assert_ne!(0, offset);
-        let kind = chunks[offset as usize];
-        let chunks = &chunks[offset as usize + 1..];
+        if offset == 0 {
+            return (Node::None, 0);
+        }
+        let chunks = &chunks[offset as usize..];
+        let kind = chunks[0];
         match kind {
-            NODE_KIND_START..NODE_KIND_END => match NodeKind::from_u32(kind).unwrap() {
-                NodeKind::None => panic!(),
-                NodeKind::Block => read_node!(Block, chunks, offset),
-                NodeKind::Call => read_node!(Call, chunks, offset),
-                NodeKind::Def => read_node!(Def, chunks, offset),
-                NodeKind::Fun => read_node!(Fun, chunks, offset),
-                NodeKind::Public => read_node!(Public, chunks, offset),
-                NodeKind::Tok => read_node!(Tok, chunks, offset),
-            },
-            TOKEN_KIND_START..TOKEN_KIND_END => read_node!(Tok, chunks, offset),
+            NODE_KIND_START..NODE_KIND_END => {
+                let chunks = &chunks[1..];
+                match NodeKind::from_u32(kind).unwrap() {
+                    NodeKind::None => panic!(),
+                    NodeKind::Block => read_node!(Block, chunks, offset),
+                    NodeKind::Call => read_node!(Call, chunks, offset),
+                    NodeKind::Def => read_node!(Def, chunks, offset),
+                    NodeKind::Fun => read_node!(Fun, chunks, offset),
+                    NodeKind::Public => read_node!(Public, chunks, offset),
+                    NodeKind::Tok => read_node!(Tok, chunks, offset),
+                }
+            }
+            TOKEN_KIND_START..TOKEN_KIND_END => {
+                // dbg!(&chunks[..Tok::CHUNK_SIZE as usize]);
+                read_node!(Tok, chunks, offset)
+            }
             _ => panic!(),
         }
     }
@@ -167,9 +176,9 @@ impl<'a> Normer<'a> {
     pub fn norm(&mut self) {
         self.builder().clear();
         self.wrap(|s| s.top(*s.chunks().last().unwrap()));
-        dbg!(&self.builder().chunks);
         self.cart.tree.clear();
         self.cart.tree.append(&mut self.cart.tree_builder.chunks);
+        // dbg!(&self.cart.tree);
     }
 
     // General helpers
@@ -232,7 +241,7 @@ impl<'a> Normer<'a> {
     }
 
     fn node(&mut self, node: ParseNode, source: Size) {
-        dbg!(node);
+        // dbg!(node);
         match node {
             ParseNode::Branch(branch) => match branch.kind {
                 ParseBranchKind::Block => {}
@@ -298,53 +307,99 @@ where
     let chunks = writer.chunks;
     let (top, end) = Node::read(chunks, *chunks.last().unwrap());
     assert_eq!(chunks.len(), end as usize);
-    write_tree_at(writer, top, 0)
+    let context = TreeWriting {
+        node: top,
+        ..Default::default()
+    };
+    write_tree_at(writer, context)
+}
+
+#[derive(Default)]
+pub struct TreeWriting {
+    indent: usize,
+    inline: bool,
+    label: &'static str,
+    node: Node,
 }
 
 pub fn write_tree_at<File, Map>(
     writer: &mut TreeWriter<'_, File, Map>,
-    node: Node,
-    indent: usize,
+    context: TreeWriting,
 ) -> Result<()>
 where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
 {
-    writer.indent(indent)?;
-    match node {
-        Node::None => panic!(),
-        Node::Block(data) => {
-            writeln!(writer.file, "{:?}", data.kind())?;
-            let range = data.kids;
+    if !context.inline {
+        writer.indent(context.indent)?;
+    }
+    if !context.label.is_empty() {
+        write!(writer.file, "{} = ", context.label)?;
+    }
+    let indented = TreeWriting {
+        indent: context.indent + writer.indent,
+        ..Default::default()
+    };
+    match context.node {
+        Node::None => writeln!(writer.file, "{:?}", NodeKind::None)?,
+        Node::Block(block) => {
+            writeln!(writer.file, "{:?}", block.kind())?;
+            let range = block.kids;
             let mut offset = range.start;
             let mut count = 0;
             while offset < range.end {
                 let (node, next_offset) = Node::read(writer.chunks, offset);
-                write_tree_at(writer, node, indent + 2)?;
+                write_tree_at(writer, TreeWriting { node, ..indented })?;
                 offset = next_offset;
                 count += 1;
             }
             if count > 1 {
-                writer.indent(indent)?;
-                writeln!(writer.file, "/{:?}", data.kind())?;
+                writer.indent(context.indent)?;
+                writeln!(writer.file, "/{:?}", block.kind())?;
             }
         }
-        Node::Call(data) => {
+        Node::Call(call) => {
             writeln!(writer.file, "{:?}", Call::KIND)?;
         }
-        Node::Def(data) => {
+        Node::Def(def) => {
             writeln!(writer.file, "{:?}", Def::KIND)?;
+            write_tree_at(
+                writer,
+                TreeWriting {
+                    label: "target",
+                    node: Node::read(writer.chunks, def.target).0,
+                    ..indented
+                },
+            )?;
+            write_tree_at(
+                writer,
+                TreeWriting {
+                    label: "value",
+                    node: Node::read(writer.chunks, def.value).0,
+                    ..indented
+                },
+            )?;
+            writer.indent(context.indent)?;
+            writeln!(writer.file, "/{:?}", def.kind())?;
         }
-        Node::Fun(data) => {
+        Node::Fun(fun) => {
             writeln!(writer.file, "{:?}", Fun::KIND)?;
         }
-        Node::Public(data) => {
-            writeln!(writer.file, "{:?}", Public::KIND)?;
+        Node::Public(public) => {
+            write!(writer.file, "{:?} ", Public::KIND)?;
+            write_tree_at(
+                writer,
+                TreeWriting {
+                    inline: true,
+                    node: Node::read(writer.chunks, public.kid).0,
+                    ..indented
+                },
+            )?;
         }
-        Node::Tok(data) => writeln!(
+        Node::Tok(tok) => writeln!(
             writer.file,
             "{:?}: {:?}",
-            data.token.kind, &writer.map[data.token.intern]
+            tok.token.kind, &writer.map[tok.token.intern]
         )?,
     }
     Ok(())
