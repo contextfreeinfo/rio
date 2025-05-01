@@ -1,14 +1,11 @@
 Block
   Def
     target = Public Id: "main"
-    value = Id: "printTwice"
+    value = None
   /Def
   Def
     target = Id: "printTwice"
-    value = Def
-      target = Public Id: "main"
-      value = Id: "printTwice"
-    /Def
+    value = None
   /Def
 /Block
 

@@ -205,7 +205,10 @@ impl<'a> Normer<'a> {
     fn wrap<F: FnOnce(&mut Self)>(&mut self, build: F) -> SizeRange {
         let start = self.builder().pos();
         build(self);
-        self.builder().apply_range(start)
+        match () {
+            _ if self.builder().pos() == start => SizeRange::default(),
+            _ => self.builder().apply_range(start),
+        }
     }
 
     fn wrap_node(&mut self, node: ParseNode, source: Size) -> SizeRange {
@@ -240,6 +243,12 @@ impl<'a> Normer<'a> {
         self.push(def);
     }
 
+    fn fun(&mut self, branch: ParseBranch, source: Size) {
+        let mut stepper = ParseNodeStepper::new(branch.range);
+        let (kid, kid_source) = stepper.next(self.chunks()).unwrap();
+        assert!(matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::Fun));
+    }
+
     fn node(&mut self, node: ParseNode, source: Size) {
         // dbg!(node);
         match node {
@@ -250,7 +259,7 @@ impl<'a> Normer<'a> {
                 ParseBranchKind::Def => self.def(branch, source),
                 ParseBranchKind::Params => {}
                 ParseBranchKind::Typed => {}
-                ParseBranchKind::Fun => {}
+                ParseBranchKind::Fun => self.fun(branch, source),
                 ParseBranchKind::Pub => self.public(branch, source),
                 ParseBranchKind::StringParts => {}
             },
