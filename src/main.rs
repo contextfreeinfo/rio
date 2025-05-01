@@ -10,6 +10,7 @@ use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
 use lex::{Intern, Interner, Lexer, Token};
+use norm::write_tree;
 use parse::write_parse_tree;
 use tree::{Chunk, TreeBuilder, TreeWriter};
 
@@ -141,7 +142,19 @@ impl Cart {
 
     fn norm(&mut self) -> Result<()> {
         norm::Normer::new(self).norm();
-        // TODO Dump if wanted.
+        if self.args.dump.contains(&DumpOption::Trees) {
+            if let Some(outdir) = &self.outdir {
+                let mut writer = make_dump_writer("norm", outdir)?;
+                let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
+                write_tree(&mut writer)?;
+                writeln!(writer.file)?;
+                writeln!(
+                    writer.file,
+                    "Bytes: {}",
+                    std::mem::size_of_val(self.tree.as_slice())
+                )?;
+            }
+        }
         Ok(())
     }
 

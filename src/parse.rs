@@ -7,9 +7,11 @@ use anyhow::{Ok, Result};
 use log::debug;
 use num_derive::FromPrimitive;
 use static_assertions::{const_assert, const_assert_eq};
-use std::{io::Write, ops::Range, ptr::read_unaligned};
+use std::{io::Write, ops::Range};
 use strum::EnumCount;
 
+// TODO Combine multiple files into one parse tree.
+// TODO Track the node ranges for each file.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum ParseNode {
     Branch(ParseBranch),
@@ -27,7 +29,7 @@ impl ParseNode {
                 assert!(chunks.len() >= PARSE_BRANCH_SIZE);
                 let node = unsafe {
                     let ptr = chunks.as_ptr() as *const ParseBranch;
-                    read_unaligned(ptr)
+                    std::ptr::read(ptr)
                 };
                 (ParseNode::Branch(node), offset + PARSE_BRANCH_SIZE)
             }
@@ -35,7 +37,7 @@ impl ParseNode {
                 assert!(chunks.len() >= TOKEN_SIZE);
                 let node = unsafe {
                     let ptr = chunks.as_ptr() as *const Token;
-                    read_unaligned(ptr)
+                    std::ptr::read(ptr)
                 };
                 (ParseNode::Leaf(node), offset + TOKEN_SIZE)
             }
@@ -82,7 +84,7 @@ impl ParseNodeStepper {
 }
 
 const PARSE_BRANCH_SIZE: usize = size_of::<ParseBranch>() / CHUNK_SIZE;
-const TOKEN_SIZE: usize = size_of::<Token>() / CHUNK_SIZE;
+pub const TOKEN_SIZE: usize = size_of::<Token>() / CHUNK_SIZE;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, EnumCount, Eq, FromPrimitive, Hash, PartialEq)]
@@ -102,6 +104,7 @@ pub const PARSE_BRANCH_KIND_START: Size = 0x1000 as Size;
 pub const PARSE_BRANCH_KIND_END: Size = PARSE_BRANCH_KIND_START + ParseBranchKind::COUNT as Size;
 const_assert!(PARSE_BRANCH_KIND_START >= TOKEN_KIND_END);
 const_assert_eq!(0, std::mem::offset_of!(ParseBranch, kind));
+const_assert_eq!(CHUNK_SIZE, align_of::<ParseNode>());
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

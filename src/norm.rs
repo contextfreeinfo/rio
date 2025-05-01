@@ -1,15 +1,20 @@
+use std::io::Write;
+
 use crate::{
     Cart,
-    lex::{Token, TokenKind},
+    lex::{Intern, TOKEN_KIND_END, TOKEN_KIND_START, Token, TokenKind},
     parse::{PARSE_BRANCH_KIND_END, ParseBranch, ParseBranchKind, ParseNode, ParseNodeStepper},
-    tree::{Chunk, Size, SizeRange, TreeBuilder},
+    tree::{CHUNK_SIZE, Chunk, Size, SizeRange, TreeBuilder, TreeWriter},
 };
+use anyhow::Result;
 use num_derive::FromPrimitive;
-use static_assertions::const_assert;
+use num_traits::FromPrimitive;
+use static_assertions::{const_assert, const_assert_eq};
 use strum::EnumCount;
 
+// Unify enum data with enum numbers with supporting struct values.
+// Lots of this could be avoided if Rust enums were different.
 macro_rules! generate_node_enums {
-    // Match the input pattern: list of variants and their corresponding discriminants
     ($($variant:ident),*$(,)*) => {
         #[repr(u32)]
         #[derive(Clone, Copy, Debug, EnumCount, FromPrimitive, Eq, Hash, PartialEq)]
@@ -31,26 +36,59 @@ macro_rules! generate_node_enums {
 
         $(
             impl NodeData for $variant {
-                fn kind() -> NodeKind {
-                    NodeKind::$variant
-                }
+                const CHUNK_SIZE: Size = (size_of::<$variant>() / CHUNK_SIZE) as Size;
+                const KIND: NodeKind = NodeKind::$variant;
             }
         )*
     };
 }
 
+macro_rules! read_node {
+    ($Ty:ident, $chunks:expr, $offset:expr) => {{
+        assert!($chunks.len() >= $Ty::CHUNK_SIZE as usize);
+        let data = unsafe {
+            let ptr = $chunks.as_ptr() as *const $Ty;
+            std::ptr::read(ptr)
+        };
+        // Access enum and struct impl both.
+        (Node::$Ty(data), $offset + $Ty::CHUNK_SIZE + 1)
+    }};
+}
+
 impl Node {
-    // TODO Read
+    pub fn read(chunks: &[Chunk], offset: Size) -> (Node, Size) {
+        assert_ne!(0, offset);
+        let kind = chunks[offset as usize];
+        let chunks = &chunks[offset as usize + 1..];
+        match kind {
+            NODE_KIND_START..NODE_KIND_END => match NodeKind::from_u32(kind).unwrap() {
+                NodeKind::None => panic!(),
+                NodeKind::Block => read_node!(Block, chunks, offset),
+                NodeKind::Call => read_node!(Call, chunks, offset),
+                NodeKind::Def => read_node!(Def, chunks, offset),
+                NodeKind::Fun => read_node!(Fun, chunks, offset),
+                NodeKind::Public => read_node!(Public, chunks, offset),
+                NodeKind::Tok => read_node!(Tok, chunks, offset),
+            },
+            TOKEN_KIND_START..TOKEN_KIND_END => read_node!(Tok, chunks, offset),
+            _ => panic!(),
+        }
+    }
 }
 
 trait NodeData {
-    fn kind() -> NodeKind;
+    const CHUNK_SIZE: Size;
+    const KIND: NodeKind;
+    fn kind(&self) -> NodeKind {
+        Self::KIND
+    }
 }
 
 // const NODE_SIZE: usize = size_of::<Node>() / CHUNK_SIZE;
 const NODE_KIND_START: Size = 0x2000 as Size;
 const NODE_KIND_END: Size = NODE_KIND_START + NodeKind::COUNT as Size;
 const_assert!(NODE_KIND_START >= PARSE_BRANCH_KIND_END);
+const_assert_eq!(CHUNK_SIZE, align_of::<Node>());
 
 generate_node_enums!(Block, Call, Def, Fun, Public, Tok,);
 
@@ -59,6 +97,12 @@ generate_node_enums!(Block, Call, Def, Fun, Public, Tok,);
 pub struct NodeMeta {
     source: Size,
     typ: Size,
+}
+
+impl NodeMeta {
+    pub fn at(source: Size) -> Self {
+        Self { source, typ: 0 }
+    }
 }
 
 #[repr(C)]
@@ -79,9 +123,8 @@ pub struct Call {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Def {
-    meta: NodeMeta,
-    target: Size,
-    public: bool,
+    meta: NodeMeta, // typ eventually implies type
+    target: Size,   // uid eventually implies pub
     value: Size,
 }
 
@@ -125,6 +168,8 @@ impl<'a> Normer<'a> {
         self.builder().clear();
         self.wrap(|s| s.top(*s.chunks().last().unwrap()));
         dbg!(&self.builder().chunks);
+        self.cart.tree.clear();
+        self.cart.tree.append(&mut self.cart.tree_builder.chunks);
     }
 
     // General helpers
@@ -138,7 +183,7 @@ impl<'a> Normer<'a> {
     }
 
     fn push<T: NodeData>(&mut self, node: T) {
-        self.builder().push(T::kind());
+        self.builder().push(T::KIND);
         self.builder().push(node);
     }
 
@@ -179,9 +224,8 @@ impl<'a> Normer<'a> {
             .map(|(node, source)| self.wrap_node(node, source).start)
             .unwrap_or(0);
         let def = Def {
-            meta: NodeMeta { source, typ: 0 },
+            meta: NodeMeta::at(source),
             target,
-            public: false, // to be filled in later but only matters for tops?
             value,
         };
         self.push(def);
@@ -213,7 +257,7 @@ impl<'a> Normer<'a> {
             _ => self.wrap_node(kid, kid_source).start,
         };
         let public = Public {
-            meta: NodeMeta { source, typ: 0 },
+            meta: NodeMeta::at(source),
             kid,
         };
         self.push(public);
@@ -230,7 +274,7 @@ impl<'a> Normer<'a> {
             }
         });
         let block = Block {
-            meta: NodeMeta { source, typ: 0 },
+            meta: NodeMeta::at(source),
             kids,
         };
         self.push(block);
@@ -239,9 +283,69 @@ impl<'a> Normer<'a> {
     fn token(&mut self, token: Token, source: Size) {
         let tok = Tok {
             token,
-            meta: NodeMeta { source, typ: 0 },
+            meta: NodeMeta::at(source),
         };
         // Go straight to builder to avoid extra kind chunk.
         self.builder().push(tok);
     }
+}
+
+pub fn write_tree<File, Map>(writer: &mut TreeWriter<'_, File, Map>) -> Result<()>
+where
+    File: Write,
+    Map: std::ops::Index<Intern, Output = str>,
+{
+    let chunks = writer.chunks;
+    let (top, end) = Node::read(chunks, *chunks.last().unwrap());
+    assert_eq!(chunks.len(), end as usize);
+    write_tree_at(writer, top, 0)
+}
+
+pub fn write_tree_at<File, Map>(
+    writer: &mut TreeWriter<'_, File, Map>,
+    node: Node,
+    indent: usize,
+) -> Result<()>
+where
+    File: Write,
+    Map: std::ops::Index<Intern, Output = str>,
+{
+    writer.indent(indent)?;
+    match node {
+        Node::None => panic!(),
+        Node::Block(data) => {
+            writeln!(writer.file, "{:?}", data.kind())?;
+            let range = data.kids;
+            let mut offset = range.start;
+            let mut count = 0;
+            while offset < range.end {
+                let (node, next_offset) = Node::read(writer.chunks, offset);
+                write_tree_at(writer, node, indent + 2)?;
+                offset = next_offset;
+                count += 1;
+            }
+            if count > 1 {
+                writer.indent(indent)?;
+                writeln!(writer.file, "/{:?}", data.kind())?;
+            }
+        }
+        Node::Call(data) => {
+            writeln!(writer.file, "{:?}", Call::KIND)?;
+        }
+        Node::Def(data) => {
+            writeln!(writer.file, "{:?}", Def::KIND)?;
+        }
+        Node::Fun(data) => {
+            writeln!(writer.file, "{:?}", Fun::KIND)?;
+        }
+        Node::Public(data) => {
+            writeln!(writer.file, "{:?}", Public::KIND)?;
+        }
+        Node::Tok(data) => writeln!(
+            writer.file,
+            "{:?}: {:?}",
+            data.token.kind, &writer.map[data.token.intern]
+        )?,
+    }
+    Ok(())
 }
