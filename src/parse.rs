@@ -6,13 +6,15 @@ use crate::{
 use anyhow::{Ok, Result};
 use log::debug;
 use num_derive::FromPrimitive;
+use postcard::take_from_bytes;
+use serde::{Deserialize, Serialize};
 use static_assertions::{const_assert, const_assert_eq};
 use std::{io::Write, ops::Range};
 use strum::EnumCount;
 
 // TODO Combine multiple files into one parse tree.
 // TODO Track the node ranges for each file.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ParseNode {
     Branch(ParseBranch),
     Leaf(Token),
@@ -87,7 +89,9 @@ const PARSE_BRANCH_SIZE: usize = size_of::<ParseBranch>() / CHUNK_SIZE;
 pub const TOKEN_SIZE: usize = size_of::<Token>() / CHUNK_SIZE;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, EnumCount, Eq, FromPrimitive, Hash, PartialEq)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, EnumCount, Eq, FromPrimitive, Hash, PartialEq, Serialize,
+)]
 pub enum ParseBranchKind {
     Block = PARSE_BRANCH_KIND_START as isize,
     Call,
@@ -107,7 +111,7 @@ const_assert_eq!(0, std::mem::offset_of!(ParseBranch, kind));
 const_assert_eq!(CHUNK_SIZE, align_of::<ParseNode>());
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ParseBranch {
     pub kind: ParseBranchKind,
     pub range: SimpleRange<u32>,
@@ -147,14 +151,14 @@ macro_rules! loop_some {
 
 pub struct Parser<'a> {
     pub cart: &'a mut Cart,
-    pub token_index: usize,
+    pub tokens_index: usize,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(cart: &'a mut Cart) -> Self {
         Self {
             cart,
-            token_index: 0,
+            tokens_index: 0,
         }
     }
 
@@ -174,12 +178,13 @@ impl<'a> Parser<'a> {
     }
 
     fn advance(&mut self) {
-        if self.token_index >= self.cart.tokens.len() {
+        if self.tokens_index >= self.cart.tokens.len() {
             return;
         }
-        let token = self.cart.tokens[self.token_index];
+        let (token, unused) =
+            take_from_bytes::<Token>(&self.cart.tokens[self.tokens_index..]).unwrap();
         debug!("Advance past {:?}", token);
-        self.token_index += 1;
+        self.tokens_index = self.cart.tokens.len() - unused.len();
         self.builder().push(token);
     }
 
@@ -423,11 +428,22 @@ impl<'a> Parser<'a> {
     define_infix!(pair, compare, false, TokenKind::To);
 
     fn peek(&self) -> Option<TokenKind> {
-        self.cart.tokens.get(self.token_index).map(|x| x.kind)
+        self.peek_token().map(|x| x.kind)
     }
 
     fn peek_token(&self) -> Option<Token> {
-        self.cart.tokens.get(self.token_index).copied()
+        self.peek_token_step().map(|x| x.0)
+    }
+
+    fn peek_token_step(&self) -> Option<(Token, usize)> {
+        match () {
+            _ if self.tokens_index < self.cart.tokens.len() => {
+                let (token, unused) =
+                    take_from_bytes(&self.cart.tokens[self.tokens_index..]).unwrap();
+                Some((token, self.cart.tokens.len() - unused.len()))
+            }
+            _ => None,
+        }
     }
 
     fn skip<F>(&mut self, skipping: F) -> Option<bool>
@@ -436,11 +452,11 @@ impl<'a> Parser<'a> {
     {
         let mut skipped = false;
         loop {
-            let token = self.peek_token()?;
+            let (token, next) = self.peek_token_step()?;
             if skipping(token.kind) {
                 debug!("Skipping {:?}", token);
                 skipped = true;
-                self.token_index += 1;
+                self.tokens_index = next;
                 self.builder().push(token);
             } else {
                 break;

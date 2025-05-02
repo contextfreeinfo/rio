@@ -1,12 +1,13 @@
 use std::{io::Write, ops::Range};
 
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 use crate::lex::Intern;
 
 // Duplicated from std Range so it can be Copy.
 // See: https://github.com/rust-lang/rust/pull/27186#issuecomment-123390413
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq, Hash, Serialize)]
 pub struct SimpleRange<Idx> {
     /// The lower bound of the range (inclusive).
     pub start: Idx,

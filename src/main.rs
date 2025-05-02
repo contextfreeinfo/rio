@@ -9,9 +9,9 @@ use std::{
 use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
-use lex::{Intern, Interner, Lexer, Token};
+use lex::{Intern, Interner, Lexer};
 use norm::write_tree;
-use parse::write_parse_tree;
+use parse::{ParseNode, write_parse_tree};
 use tree::{Chunk, TreeBuilder, TreeWriter};
 
 mod lex;
@@ -52,7 +52,7 @@ pub struct Cart {
     pub interner: Interner,
     pub outdir: Option<PathBuf>,
     pub text: String,
-    pub tokens: Vec<Token>,
+    pub tokens: Vec<u8>,
     pub tree: Vec<Chunk>,
     pub tree_builder: TreeBuilder,
 }
@@ -113,6 +113,7 @@ impl Cart {
     fn lex(&mut self) -> Result<()> {
         let mut lexer = Lexer::new(self);
         lex(&mut lexer)?;
+        dbg!(self.tokens.len());
         // if let Some(outdir) = &self.outdir {
         //     let mut writer = make_dump_writer("lex", outdir)?;
         //     for token in &self.tokens {
@@ -170,6 +171,20 @@ impl Cart {
                     writer.file,
                     "Bytes: {}",
                     std::mem::size_of_val(self.tree.as_slice())
+                )?;
+                // Explore postcard size.
+                let mut nodes = vec![];
+                let mut offset = 1;
+                while offset < self.tree.len() {
+                    let (node, next) = ParseNode::read(&self.tree, offset);
+                    nodes.push(node);
+                    offset = next;
+                }
+                let posted = postcard::to_stdvec(&nodes).unwrap();
+                writeln!(
+                    writer.file,
+                    "Postcard bytes: {}",
+                    std::mem::size_of_val(posted.as_slice())
                 )?;
             }
         }

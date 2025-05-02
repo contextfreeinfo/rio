@@ -247,6 +247,7 @@ impl<'a> Normer<'a> {
         let mut stepper = ParseNodeStepper::new(branch.range);
         let (kid, kid_source) = stepper.next(self.chunks()).unwrap();
         assert!(matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::Fun));
+        // TODO
     }
 
     fn node(&mut self, node: ParseNode, source: Size) {

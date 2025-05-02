@@ -115,3 +115,4 @@ Block
 /Block
 
 Bytes: 840
+Postcard bytes: 319
