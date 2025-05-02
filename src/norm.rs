@@ -4,7 +4,7 @@ use crate::{
     Cart,
     lex::{Intern, TOKEN_KIND_END, TOKEN_KIND_START, Token, TokenKind},
     parse::{PARSE_BRANCH_KIND_END, ParseBranch, ParseBranchKind, ParseNode, ParseNodeStepper},
-    tree::{CHUNK_SIZE, Chunk, Size, SizeRange, TreeBuilder, TreeWriter},
+    tree::{CHUNK_SIZE, Chunk, Size, SizeRange, TreeBuilder, TreeBytes, TreeWriter},
 };
 use anyhow::Result;
 use num_derive::FromPrimitive;
@@ -175,7 +175,8 @@ impl<'a> Normer<'a> {
 
     pub fn norm(&mut self) {
         self.builder().clear();
-        self.wrap(|s| s.top(*s.chunks().last().unwrap()));
+        let source = TreeBytes::top_of(&self.cart.tree_bytes).try_into().unwrap();
+        self.wrap(|s| s.top(source));
         self.cart.tree.clear();
         self.cart.tree.append(&mut self.cart.tree_builder.chunks);
         // dbg!(&self.cart.tree);
@@ -187,17 +188,13 @@ impl<'a> Normer<'a> {
         &mut self.cart.tree_builder
     }
 
-    fn chunks(&self) -> &[Chunk] {
-        &self.cart.tree
-    }
-
     fn push<T: NodeData>(&mut self, node: T) {
         self.builder().push(T::KIND);
         self.builder().push(node);
     }
 
     fn read(&self, offset: Size) -> (ParseNode, Size) {
-        let pair = ParseNode::read(self.chunks(), offset as usize);
+        let pair = ParseNode::read(&self.cart.tree_bytes, offset as usize);
         // TODO Let ParseNode::read work with Size directly?
         (pair.0, pair.1.try_into().unwrap())
     }
@@ -219,20 +216,20 @@ impl<'a> Normer<'a> {
 
     fn def(&mut self, branch: ParseBranch, source: Size) {
         let mut stepper = ParseNodeStepper::new(branch.range);
-        let (target, target_source) = stepper.next(self.chunks()).unwrap();
+        let (target, target_source) = stepper.next(&self.cart.tree_bytes).unwrap();
         let mut kid = target;
         let target = match kid {
             ParseNode::Leaf(token) if token.kind == TokenKind::Define => 0,
             _ => {
                 let target = self.wrap_node(target, target_source).start;
                 // commit and remember idx
-                kid = stepper.next(self.chunks()).unwrap().0;
+                kid = stepper.next(&self.cart.tree_bytes).unwrap().0;
                 target
             }
         };
         assert!(matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::Define));
         let value = stepper
-            .next(self.chunks())
+            .next(&self.cart.tree_bytes)
             .map(|(node, source)| self.wrap_node(node, source).start)
             .unwrap_or(0);
         let def = Def {
@@ -245,7 +242,7 @@ impl<'a> Normer<'a> {
 
     fn fun(&mut self, branch: ParseBranch, source: Size) {
         let mut stepper = ParseNodeStepper::new(branch.range);
-        let (kid, kid_source) = stepper.next(self.chunks()).unwrap();
+        let (kid, kid_source) = stepper.next(&self.cart.tree_bytes).unwrap();
         assert!(matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::Fun));
         // TODO
     }
@@ -270,7 +267,7 @@ impl<'a> Normer<'a> {
 
     fn public(&mut self, branch: ParseBranch, source: u32) {
         let mut stepper = ParseNodeStepper::new(branch.range);
-        let (kid, kid_source) = stepper.next(self.chunks()).unwrap();
+        let (kid, kid_source) = stepper.next(&self.cart.tree_bytes).unwrap();
         let kid = match kid {
             ParseNode::Leaf(token) if token.kind == TokenKind::Star => 0,
             _ => self.wrap_node(kid, kid_source).start,
@@ -288,7 +285,7 @@ impl<'a> Normer<'a> {
         };
         let kids = self.wrap(|s| {
             let mut stepper = ParseNodeStepper::new(branch.range);
-            while let Some((kid, source)) = stepper.next(s.chunks()) {
+            while let Some((kid, source)) = stepper.next(&s.cart.tree_bytes) {
                 s.node(kid, source);
             }
         });

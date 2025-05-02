@@ -1,10 +1,7 @@
 use crate::{
     Cart,
-    lex::{Intern, TOKEN_KIND_END, TOKEN_KIND_START, Token, TokenKind},
-    tree::{
-        CHUNK_SIZE, Chunk, SimpleRange, Size, SizeRange, TreeBuilder, TreeBytes, TreeBytesWriter,
-        TreeWriter,
-    },
+    lex::{Intern, TOKEN_KIND_END, Token, TokenKind},
+    tree::{CHUNK_SIZE, SimpleRange, Size, SizeRange, TreeBytes, TreeBytesWriter},
 };
 use anyhow::{Ok, Result};
 use log::debug;
@@ -24,33 +21,7 @@ pub enum ParseNode {
 }
 
 impl ParseNode {
-    pub fn read(chunks: &[Chunk], offset: usize) -> (ParseNode, usize) {
-        // Seems less bother than Option<NonZeroU32> or whatever everywhere.
-        assert_ne!(0, offset);
-        let chunks = &chunks[offset..];
-        let kind = chunks[0];
-        match kind {
-            PARSE_BRANCH_KIND_START..PARSE_BRANCH_KIND_END => {
-                assert!(chunks.len() >= PARSE_BRANCH_SIZE);
-                let node = unsafe {
-                    let ptr = chunks.as_ptr() as *const ParseBranch;
-                    std::ptr::read(ptr)
-                };
-                (ParseNode::Branch(node), offset + PARSE_BRANCH_SIZE)
-            }
-            TOKEN_KIND_START..TOKEN_KIND_END => {
-                assert!(chunks.len() >= TOKEN_SIZE);
-                let node = unsafe {
-                    let ptr = chunks.as_ptr() as *const Token;
-                    std::ptr::read(ptr)
-                };
-                (ParseNode::Leaf(node), offset + TOKEN_SIZE)
-            }
-            _ => panic!(),
-        }
-    }
-
-    pub fn read_bytes(bytes: &[u8], offset: usize) -> (ParseNode, usize) {
+    pub fn read(bytes: &[u8], offset: usize) -> (ParseNode, usize) {
         assert_ne!(0, offset);
         let (node, unused) = take_from_bytes(&bytes[offset..]).unwrap();
         (node, bytes.len() - unused.len())
@@ -60,8 +31,6 @@ impl ParseNode {
 pub struct ParseNodeStepper {
     start: usize,
     end: usize,
-    bytes_start: usize,
-    bytes_end: usize,
 }
 
 impl ParseNodeStepper {
@@ -69,12 +38,10 @@ impl ParseNodeStepper {
         Self {
             start: range.start as usize,
             end: range.end as usize,
-            bytes_start: range.start as usize,
-            bytes_end: range.end as usize,
         }
     }
 
-    pub fn next(&mut self, chunks: &[Chunk]) -> Option<(ParseNode, Size)> {
+    pub fn next(&mut self, chunks: &[u8]) -> Option<(ParseNode, Size)> {
         let mut node: Option<ParseNode> = None;
         let mut source: Size = 0;
         while self.start < self.end {
@@ -96,33 +63,7 @@ impl ParseNodeStepper {
         }
         node.map(|node| (node, source))
     }
-
-    pub fn next_bytes(&mut self, chunks: &[u8]) -> Option<(ParseNode, Size)> {
-        let mut node: Option<ParseNode> = None;
-        let mut source: Size = 0;
-        while self.start < self.end {
-            // Guaranteed to cast since start and end were both originally Size.
-            source = self.start as Size;
-            let (next, offset) = ParseNode::read_bytes(chunks, self.start);
-            node = match next {
-                ParseNode::Leaf(Token {
-                    // TODO What else to skip?
-                    kind: TokenKind::HSpace | TokenKind::VSpace,
-                    ..
-                }) => None,
-                _ => Some(next),
-            };
-            self.start = offset;
-            if node.is_some() {
-                break;
-            }
-        }
-        node.map(|node| (node, source))
-    }
 }
-
-const PARSE_BRANCH_SIZE: usize = size_of::<ParseBranch>() / CHUNK_SIZE;
-pub const TOKEN_SIZE: usize = size_of::<Token>() / CHUNK_SIZE;
 
 #[repr(C)]
 #[derive(
@@ -158,11 +99,9 @@ macro_rules! define_infix {
         fn $name(&mut self) -> Option<bool> {
             debug!("{}", stringify!($name));
             let start = self.builder().pos();
-            let start_bytes = self.cart.tree_bytes_builder.pos();
             let mut skipped = self.$next()?;
             loop {
                 let pre_space = self.builder().pos();
-                let pre_space_bytes = self.cart.tree_bytes_builder.pos();
                 self.skip_h();
                 let did_space = skipped || self.builder().pos() > pre_space;
                 if ($must_space && !did_space) || !matches!(self.peek()?, $pattern $(if $guard)?) {
@@ -173,7 +112,6 @@ macro_rules! define_infix {
                 self.skip_hv();
                 let maybe_skipped = self.$next();
                 self.wrap(ParseBranchKind::Infix, start);
-                self.wrap_bytes(ParseBranchKind::Infix, start_bytes);
                 skipped = maybe_skipped?;
             }
         }
@@ -203,24 +141,20 @@ impl<'a> Parser<'a> {
 
     pub fn parse(&mut self) {
         self.builder().clear();
-        self.cart.tree_bytes_builder.clear();
         self.block_top();
         // Finish top and drain tree.
-        let bytes_top = self.cart.tree_bytes_builder.applied.len();
+        let bytes_top = self.builder().applied.len();
         // The end of the last range is naturally the start of the last node,
         // because the kid range ends that way.
         self.wrap(ParseBranchKind::Block, 0);
-        self.wrap_bytes(ParseBranchKind::Block, 0);
-        self.cart.tree.clear();
-        self.cart.tree.append(&mut self.cart.tree_builder.chunks);
         self.cart.tree_bytes.clear();
         self.cart
             .tree_bytes_builder
             .drain_into(&mut self.cart.tree_bytes, bytes_top);
     }
 
-    fn builder(&mut self) -> &mut TreeBuilder {
-        &mut self.cart.tree_builder
+    fn builder(&mut self) -> &mut TreeBytes {
+        &mut self.cart.tree_bytes_builder
     }
 
     fn advance(&mut self) {
@@ -231,8 +165,7 @@ impl<'a> Parser<'a> {
             take_from_bytes::<Token>(&self.cart.tokens[self.tokens_index..]).unwrap();
         debug!("Advance past {:?}", token);
         self.tokens_index = self.cart.tokens.len() - unused.len();
-        self.builder().push(token);
-        self.cart.tree_bytes_builder.push(ParseNode::Leaf(token));
+        self.builder().push(ParseNode::Leaf(token));
     }
 
     define_infix!(add, typed, true, TokenKind::Minus | TokenKind::Plus);
@@ -259,7 +192,6 @@ impl<'a> Parser<'a> {
     fn block(&mut self) -> Option<()> {
         debug!("block");
         let start = self.builder().pos();
-        let start_bytes = self.cart.tree_bytes_builder.pos();
         let ender = choose_ender(self.peek()?);
         self.advance();
         self.skip_h();
@@ -281,7 +213,6 @@ impl<'a> Parser<'a> {
         }
         if self.builder().pos() > start {
             self.wrap(ParseBranchKind::Block, start);
-            self.wrap_bytes(ParseBranchKind::Block, start_bytes);
         }
         debug!("/block");
         Some(())
@@ -310,7 +241,6 @@ impl<'a> Parser<'a> {
 
     fn block_top(&mut self) {
         let start = self.builder().pos();
-        let start_bytes = self.cart.tree_bytes_builder.pos();
         loop_some!({
             debug!("block_top: {:?}", self.peek());
             self.block_content()?;
@@ -332,7 +262,6 @@ impl<'a> Parser<'a> {
         });
         if self.builder().pos() > start {
             self.wrap(ParseBranchKind::Block, start);
-            self.wrap_bytes(ParseBranchKind::Block, start_bytes);
         }
     }
 
@@ -344,7 +273,6 @@ impl<'a> Parser<'a> {
         debug!("call");
         self.skip_h();
         let start = self.builder().pos();
-        let start_bytes = self.cart.tree_bytes_builder.pos();
         let had_space = self.pair()?;
         loop {
             debug!("call loop: {:?}", self.peek());
@@ -379,7 +307,6 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.wrap(ParseBranchKind::Call, start);
-            self.wrap_bytes(ParseBranchKind::Call, start_bytes);
             debug!("/call loop");
         }
         debug!("/call");
@@ -389,7 +316,6 @@ impl<'a> Parser<'a> {
     fn call_tight(&mut self) -> Option<bool> {
         debug!("call_tight");
         let start = self.builder().pos();
-        let start_bytes = self.cart.tree_bytes_builder.pos();
         let mut skipped = self.dot()?;
         #[allow(clippy::while_let_loop)] // because maybe include `with` here
         loop {
@@ -401,7 +327,6 @@ impl<'a> Parser<'a> {
                 _ => break,
             }
             self.wrap(ParseBranchKind::Call, start);
-            self.wrap_bytes(ParseBranchKind::Call, start_bytes);
         }
         debug!("/call_tight");
         Some(skipped)
@@ -423,7 +348,6 @@ impl<'a> Parser<'a> {
         debug!("def");
         self.skip_h();
         let start = self.builder().pos();
-        let start_bytes = self.cart.tree_bytes_builder.pos();
         self.call(true);
         if self.builder().pos() > start {
             self.skip_h();
@@ -433,7 +357,6 @@ impl<'a> Parser<'a> {
                 // Right-side descent.
                 self.def();
                 self.wrap(ParseBranchKind::Def, start);
-                self.wrap_bytes(ParseBranchKind::Def, start_bytes);
                 self.skip_hv()?;
             }
         }
@@ -446,13 +369,11 @@ impl<'a> Parser<'a> {
     fn fun(&mut self) -> Option<()> {
         debug!("fun");
         let start = self.builder().pos();
-        let start_bytes = self.cart.tree_bytes_builder.pos();
         self.advance();
         self.skip_h();
         // TODO Type params
         // In params
         let in_params_start = self.builder().pos();
-        let in_params_start_bytes = self.cart.tree_bytes_builder.pos();
         loop {
             let start_kind = self.peek()?;
             match start_kind {
@@ -476,12 +397,10 @@ impl<'a> Parser<'a> {
             }
         }
         self.wrap(ParseBranchKind::Params, in_params_start);
-        self.wrap_bytes(ParseBranchKind::Params, in_params_start_bytes);
         self.skip_h();
         // Body
         self.atom();
         self.wrap(ParseBranchKind::Fun, start);
-        self.wrap_bytes(ParseBranchKind::Fun, start_bytes);
         debug!("/fun");
         Some(())
     }
@@ -518,8 +437,7 @@ impl<'a> Parser<'a> {
                 debug!("Skipping {:?}", token);
                 skipped = true;
                 self.tokens_index = next;
-                self.builder().push(token);
-                self.cart.tree_bytes_builder.push(ParseNode::Leaf(token));
+                self.builder().push(ParseNode::Leaf(token));
             } else {
                 break;
             }
@@ -564,12 +482,10 @@ impl<'a> Parser<'a> {
     fn starred(&mut self) -> Option<bool> {
         debug!("starred");
         let start = self.builder().pos();
-        let start_bytes = self.cart.tree_bytes_builder.pos();
         self.atom();
         if self.peek()? == TokenKind::Star {
             self.advance();
             self.wrap(ParseBranchKind::Pub, start);
-            self.wrap_bytes(ParseBranchKind::Pub, start_bytes);
         }
         debug!("/starred");
         Some(false)
@@ -578,7 +494,6 @@ impl<'a> Parser<'a> {
     fn string(&mut self) {
         debug!("string");
         let start = self.builder().pos();
-        let start_bytes = self.cart.tree_bytes_builder.pos();
         self.advance();
         loop_some!({
             let next = self.peek()?;
@@ -588,13 +503,11 @@ impl<'a> Parser<'a> {
             }
         });
         self.wrap(ParseBranchKind::StringParts, start);
-        self.wrap_bytes(ParseBranchKind::StringParts, start_bytes);
         debug!("/string");
     }
 
     fn typed(&mut self) -> Option<bool> {
         let start = self.builder().pos();
-        let start_bytes = self.cart.tree_bytes_builder.pos();
         let mut skipped = self.call_tight()?;
         let pre_space = self.builder().pos();
         self.skip_h();
@@ -604,7 +517,6 @@ impl<'a> Parser<'a> {
             self.skip_hv();
             let maybe_skipped = self.call_tight();
             self.wrap(ParseBranchKind::Typed, start);
-            self.wrap_bytes(ParseBranchKind::Typed, start_bytes);
             skipped = maybe_skipped?;
         }
         Some(skipped)
@@ -613,13 +525,7 @@ impl<'a> Parser<'a> {
     fn wrap(&mut self, kind: ParseBranchKind, start: Size) {
         let range = self.builder().apply_range(start);
         let branch = ParseBranch { kind, range };
-        self.builder().push(branch);
-    }
-
-    fn wrap_bytes(&mut self, kind: ParseBranchKind, start: Size) {
-        let range = self.cart.tree_bytes_builder.apply_range(start);
-        let branch = ParseBranch { kind, range };
-        self.cart.tree_bytes_builder.push(ParseNode::Branch(branch));
+        self.builder().push(ParseNode::Branch(branch));
     }
 }
 
@@ -633,65 +539,18 @@ fn choose_ender(token_kind: TokenKind) -> TokenKind {
     }
 }
 
-pub fn write_parse_tree<File, Map>(writer: &mut TreeWriter<'_, File, Map>) -> Result<()>
-where
-    File: Write,
-    Map: std::ops::Index<Intern, Output = str>,
-{
-    let chunks = writer.chunks;
-    let (top, end) = ParseNode::read(chunks, *chunks.last().unwrap() as usize);
-    assert_eq!(chunks.len(), end);
-    write_parse_tree_at(writer, top, 0)
-}
-
-pub fn write_parse_tree_at<File, Map>(
-    writer: &mut TreeWriter<'_, File, Map>,
-    node: ParseNode,
-    indent: usize,
-) -> Result<()>
-where
-    File: Write,
-    Map: std::ops::Index<Intern, Output = str>,
-{
-    writer.indent(indent)?;
-    match node {
-        ParseNode::Branch(branch) => {
-            writeln!(writer.file, "{:?}", branch.kind)?;
-            let range: Range<usize> = branch.range.into();
-            let mut offset = range.start;
-            let mut count = 0;
-            while offset < range.end {
-                let (node, next_offset) = ParseNode::read(writer.chunks, offset);
-                write_parse_tree_at(writer, node, indent + writer.indent)?;
-                offset = next_offset;
-                count += 1;
-            }
-            if count > 1 {
-                writer.indent(indent)?;
-                writeln!(writer.file, "/{:?}", branch.kind)?;
-            }
-        }
-        ParseNode::Leaf(token) => writeln!(
-            writer.file,
-            "{:?}: {:?}",
-            token.kind, &writer.map[token.intern]
-        )?,
-    }
-    Ok(())
-}
-
-pub fn write_parse_tree_bytes<File, Map>(writer: &mut TreeBytesWriter<'_, File, Map>) -> Result<()>
+pub fn write_parse_tree<File, Map>(writer: &mut TreeBytesWriter<'_, File, Map>) -> Result<()>
 where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
 {
     let bytes = writer.bytes;
-    let (top, end) = ParseNode::read_bytes(bytes, TreeBytes::top_of(bytes));
+    let (top, end) = ParseNode::read(bytes, TreeBytes::top_of(bytes));
     assert_eq!(bytes.len(), end);
-    write_parse_tree_bytes_at(writer, top, 0)
+    write_parse_tree_at(writer, top, 0)
 }
 
-pub fn write_parse_tree_bytes_at<File, Map>(
+pub fn write_parse_tree_at<File, Map>(
     writer: &mut TreeBytesWriter<'_, File, Map>,
     node: ParseNode,
     indent: usize,
@@ -708,8 +567,8 @@ where
             let mut offset = range.start;
             let mut count = 0;
             while offset < range.end {
-                let (node, next_offset) = ParseNode::read_bytes(writer.bytes, offset);
-                write_parse_tree_bytes_at(writer, node, indent + writer.indent)?;
+                let (node, next_offset) = ParseNode::read(writer.bytes, offset);
+                write_parse_tree_at(writer, node, indent + writer.indent)?;
                 offset = next_offset;
                 count += 1;
             }

@@ -11,7 +11,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
 use lex::{Intern, Interner, Lexer};
 use norm::write_tree;
-use parse::{write_parse_tree, write_parse_tree_bytes};
+use parse::write_parse_tree;
 use tree::{Chunk, TreeBuilder, TreeBytes, TreeBytesWriter, TreeWriter};
 
 mod lex;
@@ -169,19 +169,9 @@ impl Cart {
         if self.args.dump.contains(&DumpOption::Trees) {
             if let Some(outdir) = &self.outdir {
                 let mut writer = make_dump_writer("parse", outdir)?;
-                let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
-                write_parse_tree(&mut writer)?;
-                writeln!(writer.file)?;
-                writeln!(
-                    writer.file,
-                    "Bytes: {}",
-                    std::mem::size_of_val(self.tree.as_slice())
-                )?;
-                // Bytes tree.
-                let mut writer = make_dump_writer("parse-bytes", outdir)?;
                 let mut writer =
                     TreeBytesWriter::new(&self.tree_bytes, &mut writer, self.interner.as_ref());
-                write_parse_tree_bytes(&mut writer)?;
+                write_parse_tree(&mut writer)?;
                 writeln!(writer.file)?;
                 writeln!(writer.file, "Bytes: {}", self.tree_bytes.len())?;
             }
