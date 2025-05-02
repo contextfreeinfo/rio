@@ -1,0 +1,20 @@
+Block
+  Def
+    target = Public Id: "main"
+    value = None
+  /Def
+  Def
+    target = Id: "describe"
+    value = None
+  /Def
+  Def
+    target = Id: "description"
+    value = None
+  /Def
+  Def
+    target = Id: "less"
+    value = None
+  /Def
+/Block
+
+Bytes: 67

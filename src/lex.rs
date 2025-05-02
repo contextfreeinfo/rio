@@ -1,17 +1,15 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, mem::take, sync::Arc};
 
 use lasso::{Spur, ThreadedRodeo};
-use num_derive::FromPrimitive;
-use static_assertions::const_assert_eq;
-use strum::EnumCount;
+use postcard::to_extend;
+use serde::{Deserialize, Serialize};
 
-use crate::{Cart, tree::Size};
+use crate::Cart;
 
 pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
 
-#[repr(C)]
-#[derive(Clone, Copy, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Token {
     pub kind: TokenKind,
     pub intern: Intern,
@@ -29,11 +27,10 @@ impl Token {
     }
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default, EnumCount, Eq, FromPrimitive, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub enum TokenKind {
     #[default]
-    None = TOKEN_KIND_START as isize,
+    None,
     Also,
     AngleClose,
     AngleOpen,
@@ -71,10 +68,6 @@ pub enum TokenKind {
     With,
 }
 
-pub const TOKEN_KIND_START: Size = 0;
-pub const TOKEN_KIND_END: Size = TOKEN_KIND_START + TokenKind::COUNT as Size;
-const_assert_eq!(0, std::mem::offset_of!(Token, kind));
-
 pub struct Lexer<'a> {
     pub cart: &'a mut Cart,
     pub source_index: usize,
@@ -95,7 +88,7 @@ impl<'a> Lexer<'a> {
         // dbg!(std::mem::align_of::<Token>());
         // dbg!(std::mem::offset_of!(Token, kind));
         // dbg!(std::mem::offset_of!(Token, intern));
-        self.tokens().clear();
+        self.cart.tokens.clear();
         while let Some(c) = self.peek() {
             match c {
                 ' ' | '\t' => self.hspace(),
@@ -171,10 +164,6 @@ impl<'a> Lexer<'a> {
         &self.cart.text[self.token_start..self.source_index]
     }
 
-    fn tokens(&mut self) -> &mut Vec<Token> {
-        &mut self.cart.tokens
-    }
-
     fn comment(&mut self) {
         self.trim();
         loop {
@@ -223,7 +212,8 @@ impl<'a> Lexer<'a> {
         let val = self.token_text();
         let intern = self.cart.interner.get_or_intern(val);
         self.token_start = self.source_index;
-        self.tokens().push(Token::new(kind, intern));
+        let token_bytes = take(&mut self.cart.tokens);
+        self.cart.tokens = to_extend(&Token::new(kind, intern), token_bytes).unwrap();
     }
 
     fn push_maybe(&mut self, kind: TokenKind) {

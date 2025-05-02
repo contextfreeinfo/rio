@@ -9,10 +9,10 @@ use std::{
 use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
-use lex::{Intern, Interner, Lexer, Token};
+use lex::{Intern, Interner, Lexer};
 use norm::write_tree;
 use parse::write_parse_tree;
-use tree::{Chunk, TreeBuilder, TreeWriter};
+use tree::{TreeBuilder, TreeWriter};
 
 mod lex;
 mod norm;
@@ -52,8 +52,8 @@ pub struct Cart {
     pub interner: Interner,
     pub outdir: Option<PathBuf>,
     pub text: String,
-    pub tokens: Vec<Token>,
-    pub tree: Vec<Chunk>,
+    pub tokens: Vec<u8>,
+    pub tree: Vec<u8>,
     pub tree_builder: TreeBuilder,
 }
 
@@ -98,7 +98,7 @@ impl Cart {
             text: String::new(),
             tokens: vec![],
             tree: vec![],
-            tree_builder: TreeBuilder::default(),
+            tree_builder: Default::default(),
         }
     }
 
@@ -113,6 +113,7 @@ impl Cart {
     fn lex(&mut self) -> Result<()> {
         let mut lexer = Lexer::new(self);
         lex(&mut lexer)?;
+        // dbg!(self.tokens.len());
         // if let Some(outdir) = &self.outdir {
         //     let mut writer = make_dump_writer("lex", outdir)?;
         //     for token in &self.tokens {
@@ -148,11 +149,7 @@ impl Cart {
                 let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
                 write_tree(&mut writer)?;
                 writeln!(writer.file)?;
-                writeln!(
-                    writer.file,
-                    "Bytes: {}",
-                    std::mem::size_of_val(self.tree.as_slice())
-                )?;
+                writeln!(writer.file, "Bytes: {}", self.tree.len())?;
             }
         }
         Ok(())
@@ -160,17 +157,14 @@ impl Cart {
 
     fn parse(&mut self) -> Result<()> {
         parse::Parser::new(self).parse();
+        // dbg!(self.tree_bytes.len());
         if self.args.dump.contains(&DumpOption::Trees) {
             if let Some(outdir) = &self.outdir {
                 let mut writer = make_dump_writer("parse", outdir)?;
                 let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
                 write_parse_tree(&mut writer)?;
                 writeln!(writer.file)?;
-                writeln!(
-                    writer.file,
-                    "Bytes: {}",
-                    std::mem::size_of_val(self.tree.as_slice())
-                )?;
+                writeln!(writer.file, "Bytes: {}", self.tree.len())?;
             }
         }
         Ok(())

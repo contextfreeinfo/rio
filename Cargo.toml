@@ -7,12 +7,10 @@ edition = "2024"
 anyhow = "1.0.97"
 clap = { version = "4.5.35", features = ["derive"] }
 env_logger = "0.11.8"
-lasso = { version = "0.7.3", features = ["multi-threaded"] }
+lasso = { version = "0.7.3", features = ["multi-threaded", "serialize"] }
 log = { version = "0.4.27", features = ["release_max_level_error"] }
-num-derive = "0.4.2"
-num-traits = "0.2.19"
-static_assertions = "1.1.0"
-strum = { version = "0.27.1", features = ["derive"] }
+postcard = { version = "1.1.1", features = ["use-std"]}
+serde = "1.0.219"
 wasm-encoder = "0.228.0"
 
 [profile.release]

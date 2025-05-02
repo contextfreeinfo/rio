@@ -1,48 +1,27 @@
 use crate::{
     Cart,
-    lex::{Intern, TOKEN_KIND_END, TOKEN_KIND_START, Token, TokenKind},
-    tree::{CHUNK_SIZE, Chunk, SimpleRange, Size, SizeRange, TreeBuilder, TreeWriter},
+    lex::{Intern, Token, TokenKind},
+    tree::{SimpleRange, Size, SizeRange, TreeBuilder, TreeWriter},
 };
 use anyhow::{Ok, Result};
 use log::debug;
-use num_derive::FromPrimitive;
-use static_assertions::{const_assert, const_assert_eq};
+use postcard::take_from_bytes;
+use serde::{Deserialize, Serialize};
 use std::{io::Write, ops::Range};
-use strum::EnumCount;
 
 // TODO Combine multiple files into one parse tree.
 // TODO Track the node ranges for each file.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ParseNode {
     Branch(ParseBranch),
     Leaf(Token),
 }
 
 impl ParseNode {
-    pub fn read(chunks: &[Chunk], offset: usize) -> (ParseNode, usize) {
-        // Or we could use Option<NonZeroU32> or whatever everywhere.
+    pub fn read(bytes: &[u8], offset: usize) -> (ParseNode, usize) {
         assert_ne!(0, offset);
-        let chunks = &chunks[offset..];
-        let kind = chunks[0];
-        match kind {
-            PARSE_BRANCH_KIND_START..PARSE_BRANCH_KIND_END => {
-                assert!(chunks.len() >= PARSE_BRANCH_SIZE);
-                let node = unsafe {
-                    let ptr = chunks.as_ptr() as *const ParseBranch;
-                    std::ptr::read(ptr)
-                };
-                (ParseNode::Branch(node), offset + PARSE_BRANCH_SIZE)
-            }
-            TOKEN_KIND_START..TOKEN_KIND_END => {
-                assert!(chunks.len() >= TOKEN_SIZE);
-                let node = unsafe {
-                    let ptr = chunks.as_ptr() as *const Token;
-                    std::ptr::read(ptr)
-                };
-                (ParseNode::Leaf(node), offset + TOKEN_SIZE)
-            }
-            _ => panic!(),
-        }
+        let (node, unused) = take_from_bytes(&bytes[offset..]).unwrap();
+        (node, bytes.len() - unused.len())
     }
 }
 
@@ -59,7 +38,7 @@ impl ParseNodeStepper {
         }
     }
 
-    pub fn next(&mut self, chunks: &[Chunk]) -> Option<(ParseNode, Size)> {
+    pub fn next(&mut self, chunks: &[u8]) -> Option<(ParseNode, Size)> {
         let mut node: Option<ParseNode> = None;
         let mut source: Size = 0;
         while self.start < self.end {
@@ -83,13 +62,9 @@ impl ParseNodeStepper {
     }
 }
 
-const PARSE_BRANCH_SIZE: usize = size_of::<ParseBranch>() / CHUNK_SIZE;
-pub const TOKEN_SIZE: usize = size_of::<Token>() / CHUNK_SIZE;
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, EnumCount, Eq, FromPrimitive, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ParseBranchKind {
-    Block = PARSE_BRANCH_KIND_START as isize,
+    Block,
     Call,
     Infix,
     Def,
@@ -100,14 +75,7 @@ pub enum ParseBranchKind {
     StringParts,
 }
 
-pub const PARSE_BRANCH_KIND_START: Size = 0x1000 as Size;
-pub const PARSE_BRANCH_KIND_END: Size = PARSE_BRANCH_KIND_START + ParseBranchKind::COUNT as Size;
-const_assert!(PARSE_BRANCH_KIND_START >= TOKEN_KIND_END);
-const_assert_eq!(0, std::mem::offset_of!(ParseBranch, kind));
-const_assert_eq!(CHUNK_SIZE, align_of::<ParseNode>());
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ParseBranch {
     pub kind: ParseBranchKind,
     pub range: SimpleRange<u32>,
@@ -147,14 +115,14 @@ macro_rules! loop_some {
 
 pub struct Parser<'a> {
     pub cart: &'a mut Cart,
-    pub token_index: usize,
+    pub tokens_index: usize,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(cart: &'a mut Cart) -> Self {
         Self {
             cart,
-            token_index: 0,
+            tokens_index: 0,
         }
     }
 
@@ -162,11 +130,11 @@ impl<'a> Parser<'a> {
         self.builder().clear();
         self.block_top();
         // Finish top and drain tree.
-        // The end of the last range is naturally the start of the last node,
-        // because the kid range ends that way.
+        let bytes_top = self.builder().applied.len();
         self.wrap(ParseBranchKind::Block, 0);
-        self.cart.tree.clear();
-        self.cart.tree.append(&mut self.cart.tree_builder.chunks);
+        self.cart
+            .tree_builder
+            .drain_into(&mut self.cart.tree, bytes_top);
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {
@@ -174,13 +142,14 @@ impl<'a> Parser<'a> {
     }
 
     fn advance(&mut self) {
-        if self.token_index >= self.cart.tokens.len() {
+        if self.tokens_index >= self.cart.tokens.len() {
             return;
         }
-        let token = self.cart.tokens[self.token_index];
+        let (token, unused) =
+            take_from_bytes::<Token>(&self.cart.tokens[self.tokens_index..]).unwrap();
         debug!("Advance past {:?}", token);
-        self.token_index += 1;
-        self.builder().push(token);
+        self.tokens_index = self.cart.tokens.len() - unused.len();
+        self.builder().push(ParseNode::Leaf(token));
     }
 
     define_infix!(add, typed, true, TokenKind::Minus | TokenKind::Plus);
@@ -423,11 +392,22 @@ impl<'a> Parser<'a> {
     define_infix!(pair, compare, false, TokenKind::To);
 
     fn peek(&self) -> Option<TokenKind> {
-        self.cart.tokens.get(self.token_index).map(|x| x.kind)
+        self.peek_token().map(|x| x.kind)
     }
 
     fn peek_token(&self) -> Option<Token> {
-        self.cart.tokens.get(self.token_index).copied()
+        self.peek_token_step().map(|x| x.0)
+    }
+
+    fn peek_token_step(&self) -> Option<(Token, usize)> {
+        match () {
+            _ if self.tokens_index < self.cart.tokens.len() => {
+                let (token, unused) =
+                    take_from_bytes(&self.cart.tokens[self.tokens_index..]).unwrap();
+                Some((token, self.cart.tokens.len() - unused.len()))
+            }
+            _ => None,
+        }
     }
 
     fn skip<F>(&mut self, skipping: F) -> Option<bool>
@@ -436,12 +416,12 @@ impl<'a> Parser<'a> {
     {
         let mut skipped = false;
         loop {
-            let token = self.peek_token()?;
+            let (token, next) = self.peek_token_step()?;
             if skipping(token.kind) {
                 debug!("Skipping {:?}", token);
                 skipped = true;
-                self.token_index += 1;
-                self.builder().push(token);
+                self.tokens_index = next;
+                self.builder().push(ParseNode::Leaf(token));
             } else {
                 break;
             }
@@ -529,7 +509,7 @@ impl<'a> Parser<'a> {
     fn wrap(&mut self, kind: ParseBranchKind, start: Size) {
         let range = self.builder().apply_range(start);
         let branch = ParseBranch { kind, range };
-        self.builder().push(branch);
+        self.builder().push(ParseNode::Branch(branch));
     }
 }
 
@@ -548,9 +528,9 @@ where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
 {
-    let chunks = writer.chunks;
-    let (top, end) = ParseNode::read(chunks, *chunks.last().unwrap() as usize);
-    assert_eq!(chunks.len(), end);
+    let bytes = writer.bytes;
+    let (top, end) = ParseNode::read(bytes, TreeBuilder::top_of(bytes));
+    assert_eq!(bytes.len(), end);
     write_parse_tree_at(writer, top, 0)
 }
 
@@ -571,7 +551,7 @@ where
             let mut offset = range.start;
             let mut count = 0;
             while offset < range.end {
-                let (node, next_offset) = ParseNode::read(writer.chunks, offset);
+                let (node, next_offset) = ParseNode::read(writer.bytes, offset);
                 write_parse_tree_at(writer, node, indent + writer.indent)?;
                 offset = next_offset;
                 count += 1;

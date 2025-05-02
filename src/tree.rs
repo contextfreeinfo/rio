@@ -1,12 +1,14 @@
-use std::{io::Write, ops::Range};
+use std::{io::Write, mem::take, ops::Range};
 
 use anyhow::Result;
+use postcard::{from_bytes, to_extend, to_slice};
+use serde::{Deserialize, Serialize};
 
 use crate::lex::Intern;
 
 // Duplicated from std Range so it can be Copy.
 // See: https://github.com/rust-lang/rust/pull/27186#issuecomment-123390413
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq, Hash, Serialize)]
 pub struct SimpleRange<Idx> {
     /// The lower bound of the range (inclusive).
     pub start: Idx,
@@ -51,49 +53,55 @@ impl From<Range<usize>> for SizeRange {
 
 #[derive(Default)]
 pub struct TreeBuilder {
-    pub chunks: Vec<Chunk>,
-    pub working: Vec<Chunk>,
+    pub applied: Vec<u8>,
+    pub working: Vec<u8>,
 }
 
-pub type Chunk = u32;
-pub const CHUNK_SIZE: usize = size_of::<Chunk>();
-
-pub type Size = u32;
+// https://postcard.jamesmunns.com/wire-format.html#maximum-encoded-length
+const MAX_USIZE_ENCODED_LEN: usize = 10;
 
 impl TreeBuilder {
     pub fn clear(&mut self) {
-        self.chunks.clear();
+        self.applied.clear();
         self.working.clear();
-        // Avoid 0 pointers, so burn the first chunk.
-        self.chunks.push(0);
+        // Avoid 0 pointers, and reserve aligned space for start index.
+        self.applied.extend([0; MAX_USIZE_ENCODED_LEN]);
+    }
+
+    pub fn drain_into(&mut self, tree: &mut Vec<u8>, top: usize) {
+        tree.clear();
+        tree.append(&mut self.applied);
+        to_slice(&top, &mut tree[..MAX_USIZE_ENCODED_LEN]).unwrap();
     }
 
     pub fn apply_range(&mut self, start: Size) -> SizeRange {
         let start = start as usize;
-        let applied_start = self.chunks.len();
-        self.chunks.extend(self.working.drain(start..));
-        (applied_start..self.chunks.len()).into()
+        let applied_start = self.applied.len();
+        self.applied.extend(self.working.drain(start..));
+        (applied_start..self.applied.len()).into()
     }
 
     pub fn pos(&self) -> Size {
         self.working.len() as Size
     }
 
-    pub fn push<T>(&mut self, node: T) {
-        let ptr = &raw const node as *const Chunk;
-        assert!(size_of::<T>() % CHUNK_SIZE == 0);
-        let len = size_of::<T>() / CHUNK_SIZE;
-        let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
-        self.working.extend_from_slice(slice);
+    pub fn push<T: Serialize>(&mut self, node: T) {
+        self.working = to_extend(&node, take(&mut self.working)).unwrap();
+    }
+
+    pub fn top_of(bytes: &[u8]) -> usize {
+        from_bytes(&bytes[..MAX_USIZE_ENCODED_LEN]).unwrap()
     }
 }
+
+pub type Size = u32;
 
 pub struct TreeWriter<'a, File, Map>
 where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
 {
-    pub chunks: &'a [Chunk],
+    pub bytes: &'a [u8],
     pub file: &'a mut File,
     pub indent: usize,
     pub map: &'a Map,
@@ -104,9 +112,9 @@ where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
 {
-    pub fn new(chunks: &'a [Chunk], file: &'a mut File, map: &'a Map) -> Self {
+    pub fn new(bytes: &'a [u8], file: &'a mut File, map: &'a Map) -> Self {
         Self {
-            chunks,
+            bytes,
             file,
             indent: 2,
             map,
@@ -116,46 +124,5 @@ where
     pub fn indent(&mut self, indent: usize) -> Result<()> {
         write!(self.file, "{: <1$}", "", indent)?;
         Ok(())
-    }
-}
-
-#[allow(unused)]
-mod test {
-    use lasso::Key;
-
-    use crate::{
-        lex::{Intern, Token, TokenKind},
-        parse::{ParseBranch, ParseBranchKind, ParseNode},
-    };
-
-    use super::*;
-
-    #[test]
-    fn build() {
-        let mut builder = TreeBuilder::default();
-        builder.push(Token {
-            kind: TokenKind::Be,
-            intern: Intern::try_from_usize(1).unwrap(),
-        });
-        assert_eq!(2, builder.working.len());
-        builder.push(ParseBranch {
-            kind: ParseBranchKind::Call,
-            range: (0..1 as Size).into(),
-        });
-        assert_eq!(5, builder.working.len());
-        let offset = 0usize;
-        // Read first.
-        let (node, offset) = ParseNode::read(&builder.working, offset);
-        let ParseNode::Leaf(token) = node else {
-            panic!()
-        };
-        assert_eq!(TokenKind::Be, token.kind);
-        assert_eq!(2, offset);
-        // Read second.
-        let (node, offset) = ParseNode::read(&builder.working, offset);
-        let ParseNode::Branch(branch) = node else {
-            panic!()
-        };
-        assert!(branch.kind == ParseBranchKind::Call);
     }
 }
