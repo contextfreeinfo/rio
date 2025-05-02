@@ -52,7 +52,7 @@ impl From<Range<usize>> for SizeRange {
 }
 
 #[derive(Default)]
-pub struct TreeBytes {
+pub struct TreeBuilder {
     pub applied: Vec<u8>,
     pub working: Vec<u8>,
 }
@@ -60,7 +60,7 @@ pub struct TreeBytes {
 // https://postcard.jamesmunns.com/wire-format.html#maximum-encoded-length
 const MAX_USIZE_ENCODED_LEN: usize = 10;
 
-impl TreeBytes {
+impl TreeBuilder {
     pub fn clear(&mut self) {
         self.applied.clear();
         self.working.clear();
@@ -96,7 +96,7 @@ impl TreeBytes {
 
 pub type Size = u32;
 
-pub struct TreeBytesWriter<'a, File, Map>
+pub struct TreeWriter<'a, File, Map>
 where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
@@ -107,7 +107,7 @@ where
     pub map: &'a Map,
 }
 
-impl<'a, File, Map> TreeBytesWriter<'a, File, Map>
+impl<'a, File, Map> TreeWriter<'a, File, Map>
 where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,

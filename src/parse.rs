@@ -1,7 +1,7 @@
 use crate::{
     Cart,
     lex::{Intern, Token, TokenKind},
-    tree::{SimpleRange, Size, SizeRange, TreeBytes, TreeBytesWriter},
+    tree::{SimpleRange, Size, SizeRange, TreeBuilder, TreeWriter},
 };
 use anyhow::{Ok, Result};
 use log::debug;
@@ -62,7 +62,6 @@ impl ParseNodeStepper {
     }
 }
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ParseBranchKind {
     Block,
@@ -76,7 +75,6 @@ pub enum ParseBranchKind {
     StringParts,
 }
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ParseBranch {
     pub kind: ParseBranchKind,
@@ -135,12 +133,12 @@ impl<'a> Parser<'a> {
         let bytes_top = self.builder().applied.len();
         self.wrap(ParseBranchKind::Block, 0);
         self.cart
-            .tree_bytes_builder
-            .drain_into(&mut self.cart.tree_bytes, bytes_top);
+            .tree_builder
+            .drain_into(&mut self.cart.tree, bytes_top);
     }
 
-    fn builder(&mut self) -> &mut TreeBytes {
-        &mut self.cart.tree_bytes_builder
+    fn builder(&mut self) -> &mut TreeBuilder {
+        &mut self.cart.tree_builder
     }
 
     fn advance(&mut self) {
@@ -525,19 +523,19 @@ fn choose_ender(token_kind: TokenKind) -> TokenKind {
     }
 }
 
-pub fn write_parse_tree<File, Map>(writer: &mut TreeBytesWriter<'_, File, Map>) -> Result<()>
+pub fn write_parse_tree<File, Map>(writer: &mut TreeWriter<'_, File, Map>) -> Result<()>
 where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
 {
     let bytes = writer.bytes;
-    let (top, end) = ParseNode::read(bytes, TreeBytes::top_of(bytes));
+    let (top, end) = ParseNode::read(bytes, TreeBuilder::top_of(bytes));
     assert_eq!(bytes.len(), end);
     write_parse_tree_at(writer, top, 0)
 }
 
 pub fn write_parse_tree_at<File, Map>(
-    writer: &mut TreeBytesWriter<'_, File, Map>,
+    writer: &mut TreeWriter<'_, File, Map>,
     node: ParseNode,
     indent: usize,
 ) -> Result<()>

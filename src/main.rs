@@ -12,7 +12,7 @@ use lasso::ThreadedRodeo;
 use lex::{Intern, Interner, Lexer};
 use norm::write_tree;
 use parse::write_parse_tree;
-use tree::{TreeBytes, TreeBytesWriter};
+use tree::{TreeBuilder, TreeWriter};
 
 mod lex;
 mod norm;
@@ -53,8 +53,8 @@ pub struct Cart {
     pub outdir: Option<PathBuf>,
     pub text: String,
     pub tokens: Vec<u8>,
-    pub tree_bytes: Vec<u8>,
-    pub tree_bytes_builder: TreeBytes,
+    pub tree: Vec<u8>,
+    pub tree_builder: TreeBuilder,
 }
 
 fn main() -> Result<()> {
@@ -97,8 +97,8 @@ impl Cart {
             outdir: None,
             text: String::new(),
             tokens: vec![],
-            tree_bytes: vec![],
-            tree_bytes_builder: Default::default(),
+            tree: vec![],
+            tree_builder: Default::default(),
         }
     }
 
@@ -146,11 +146,10 @@ impl Cart {
         if self.args.dump.contains(&DumpOption::Trees) {
             if let Some(outdir) = &self.outdir {
                 let mut writer = make_dump_writer("norm", outdir)?;
-                let mut writer =
-                    TreeBytesWriter::new(&self.tree_bytes, &mut writer, self.interner.as_ref());
+                let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
                 write_tree(&mut writer)?;
                 writeln!(writer.file)?;
-                writeln!(writer.file, "Bytes: {}", self.tree_bytes.len())?;
+                writeln!(writer.file, "Bytes: {}", self.tree.len())?;
             }
         }
         Ok(())
@@ -162,11 +161,10 @@ impl Cart {
         if self.args.dump.contains(&DumpOption::Trees) {
             if let Some(outdir) = &self.outdir {
                 let mut writer = make_dump_writer("parse", outdir)?;
-                let mut writer =
-                    TreeBytesWriter::new(&self.tree_bytes, &mut writer, self.interner.as_ref());
+                let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
                 write_parse_tree(&mut writer)?;
                 writeln!(writer.file)?;
-                writeln!(writer.file, "Bytes: {}", self.tree_bytes.len())?;
+                writeln!(writer.file, "Bytes: {}", self.tree.len())?;
             }
         }
         Ok(())

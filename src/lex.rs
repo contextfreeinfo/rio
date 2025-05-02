@@ -9,7 +9,6 @@ use crate::Cart;
 pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
 
-#[repr(C)]
 #[derive(Clone, Copy, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Token {
     pub kind: TokenKind,
@@ -28,7 +27,6 @@ impl Token {
     }
 }
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub enum TokenKind {
     #[default]

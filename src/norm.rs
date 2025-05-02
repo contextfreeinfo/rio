@@ -4,7 +4,7 @@ use crate::{
     Cart,
     lex::{Intern, Token, TokenKind},
     parse::{ParseBranch, ParseBranchKind, ParseNode, ParseNodeStepper},
-    tree::{Size, SizeRange, TreeBytes, TreeBytesWriter},
+    tree::{Size, SizeRange, TreeBuilder, TreeWriter},
 };
 use anyhow::Result;
 use postcard::take_from_bytes;
@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 // Lots of this could be avoided if Rust enums were different.
 macro_rules! generate_node_enums {
     ($($variant:ident),*$(,)*) => {
-        #[repr(u32)]
         #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         enum NodeKind {
             None,
@@ -60,7 +59,6 @@ trait NodeData {
 
 generate_node_enums!(Block, Call, Def, Fun, Public, Tok,);
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct NodeMeta {
     source: Size,
@@ -73,14 +71,12 @@ impl NodeMeta {
     }
 }
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Block {
     meta: NodeMeta,
     kids: SizeRange,
 }
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Call {
     meta: NodeMeta,
@@ -88,7 +84,6 @@ pub struct Call {
     args: SizeRange,
 }
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Def {
     meta: NodeMeta, // typ eventually implies type
@@ -96,7 +91,6 @@ pub struct Def {
     value: Size,
 }
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Fun {
     meta: NodeMeta,
@@ -105,19 +99,16 @@ pub struct Fun {
     body: Size,
 }
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Public {
     meta: NodeMeta,
     kid: Size,
 }
 
-#[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Tok {
-    // Token first so we can use the builtin kind.
-    token: Token,
     meta: NodeMeta,
+    token: Token,
 }
 
 #[allow(unused)]
@@ -134,18 +125,18 @@ impl<'a> Normer<'a> {
 
     pub fn norm(&mut self) {
         self.builder().clear();
-        let source = TreeBytes::top_of(&self.cart.tree_bytes).try_into().unwrap();
+        let source = TreeBuilder::top_of(&self.cart.tree).try_into().unwrap();
         // Finish top and drain tree.
         let bytes_top = self.wrap(|s| s.top(source)).start;
         self.cart
-            .tree_bytes_builder
-            .drain_into(&mut self.cart.tree_bytes, bytes_top.try_into().unwrap());
+            .tree_builder
+            .drain_into(&mut self.cart.tree, bytes_top.try_into().unwrap());
     }
 
     // General helpers
 
-    fn builder(&mut self) -> &mut TreeBytes {
-        &mut self.cart.tree_bytes_builder
+    fn builder(&mut self) -> &mut TreeBuilder {
+        &mut self.cart.tree_builder
     }
 
     fn push(&mut self, node: Node) {
@@ -153,7 +144,7 @@ impl<'a> Normer<'a> {
     }
 
     fn read(&self, offset: Size) -> (ParseNode, Size) {
-        let pair = ParseNode::read(&self.cart.tree_bytes, offset as usize);
+        let pair = ParseNode::read(&self.cart.tree, offset as usize);
         // TODO Let ParseNode::read work with Size directly?
         (pair.0, pair.1.try_into().unwrap())
     }
@@ -179,20 +170,20 @@ impl<'a> Normer<'a> {
 
     fn def(&mut self, branch: ParseBranch, source: Size) {
         let mut stepper = ParseNodeStepper::new(branch.range);
-        let (target, target_source) = stepper.next(&self.cart.tree_bytes).unwrap();
+        let (target, target_source) = stepper.next(&self.cart.tree).unwrap();
         let mut kid = target;
         let target = match kid {
             ParseNode::Leaf(token) if token.kind == TokenKind::Define => 0,
             _ => {
                 let target = self.wrap_node(target, target_source).start;
                 // commit and remember idx
-                kid = stepper.next(&self.cart.tree_bytes).unwrap().0;
+                kid = stepper.next(&self.cart.tree).unwrap().0;
                 target
             }
         };
         assert!(matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::Define));
         let value = stepper
-            .next(&self.cart.tree_bytes)
+            .next(&self.cart.tree)
             .map(|(node, source)| self.wrap_node(node, source).start)
             .unwrap_or(0);
         let def = Def {
@@ -205,7 +196,7 @@ impl<'a> Normer<'a> {
 
     fn fun(&mut self, branch: ParseBranch, source: Size) {
         let mut stepper = ParseNodeStepper::new(branch.range);
-        let (kid, kid_source) = stepper.next(&self.cart.tree_bytes).unwrap();
+        let (kid, kid_source) = stepper.next(&self.cart.tree).unwrap();
         assert!(matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::Fun));
         // TODO
     }
@@ -230,7 +221,7 @@ impl<'a> Normer<'a> {
 
     fn public(&mut self, branch: ParseBranch, source: u32) {
         let mut stepper = ParseNodeStepper::new(branch.range);
-        let (kid, kid_source) = stepper.next(&self.cart.tree_bytes).unwrap();
+        let (kid, kid_source) = stepper.next(&self.cart.tree).unwrap();
         let kid = match kid {
             ParseNode::Leaf(token) if token.kind == TokenKind::Star => 0,
             _ => self.wrap_node(kid, kid_source).start,
@@ -248,7 +239,7 @@ impl<'a> Normer<'a> {
         };
         let kids = self.wrap(|s| {
             let mut stepper = ParseNodeStepper::new(branch.range);
-            while let Some((kid, source)) = stepper.next(&s.cart.tree_bytes) {
+            while let Some((kid, source)) = stepper.next(&s.cart.tree) {
                 s.node(kid, source);
             }
         });
@@ -269,13 +260,13 @@ impl<'a> Normer<'a> {
     }
 }
 
-pub fn write_tree<File, Map>(writer: &mut TreeBytesWriter<'_, File, Map>) -> Result<()>
+pub fn write_tree<File, Map>(writer: &mut TreeWriter<'_, File, Map>) -> Result<()>
 where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
 {
     let bytes = writer.bytes;
-    let (top, end) = Node::read(bytes, TreeBytes::top_of(bytes).try_into().unwrap());
+    let (top, end) = Node::read(bytes, TreeBuilder::top_of(bytes).try_into().unwrap());
     assert_eq!(bytes.len(), end as usize);
     let context = TreeWriting {
         node: top,
@@ -293,7 +284,7 @@ pub struct TreeWriting {
 }
 
 pub fn write_tree_at<File, Map>(
-    writer: &mut TreeBytesWriter<'_, File, Map>,
+    writer: &mut TreeWriter<'_, File, Map>,
     context: TreeWriting,
 ) -> Result<()>
 where
