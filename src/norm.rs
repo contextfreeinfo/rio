@@ -3,30 +3,27 @@ use std::io::Write;
 use crate::{
     Cart,
     lex::{Intern, Token, TokenKind},
-    parse::{PARSE_BRANCH_KIND_END, ParseBranch, ParseBranchKind, ParseNode, ParseNodeStepper},
-    tree::{CHUNK_SIZE, Size, SizeRange, TreeBytes, TreeBytesWriter},
+    parse::{ParseBranch, ParseBranchKind, ParseNode, ParseNodeStepper},
+    tree::{Size, SizeRange, TreeBytes, TreeBytesWriter},
 };
 use anyhow::Result;
-use num_derive::FromPrimitive;
 use postcard::take_from_bytes;
 use serde::{Deserialize, Serialize};
-use static_assertions::{const_assert, const_assert_eq};
-use strum::EnumCount;
 
 // Unify enum data with enum numbers with supporting struct values.
 // Lots of this could be avoided if Rust enums were different.
 macro_rules! generate_node_enums {
     ($($variant:ident),*$(,)*) => {
         #[repr(u32)]
-        #[derive(Clone, Copy, Debug, EnumCount, FromPrimitive, Eq, Hash, PartialEq)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         enum NodeKind {
-            None = NODE_KIND_START,
+            None,
             $(
                 $variant,
             )*
         }
 
-        #[derive(Clone, Copy, Debug, Default, Deserialize, EnumCount, Eq, Hash, PartialEq, Serialize)]
+        #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
         pub enum Node {
             #[allow(unused)]
             #[default]
@@ -38,7 +35,6 @@ macro_rules! generate_node_enums {
 
         $(
             impl NodeData for $variant {
-                const CHUNK_SIZE: Size = (size_of::<$variant>() / CHUNK_SIZE) as Size;
                 const KIND: NodeKind = NodeKind::$variant;
             }
         )*
@@ -56,18 +52,11 @@ impl Node {
 }
 
 trait NodeData {
-    const CHUNK_SIZE: Size;
     const KIND: NodeKind;
     fn kind(&self) -> NodeKind {
         Self::KIND
     }
 }
-
-// const NODE_SIZE: usize = size_of::<Node>() / CHUNK_SIZE;
-const NODE_KIND_START: Size = 0x2000 as Size;
-const NODE_KIND_END: Size = NODE_KIND_START + NodeKind::COUNT as Size;
-const_assert!(NODE_KIND_START >= PARSE_BRANCH_KIND_END);
-const_assert_eq!(CHUNK_SIZE, align_of::<Node>());
 
 generate_node_enums!(Block, Call, Def, Fun, Public, Tok,);
 
@@ -160,7 +149,6 @@ impl<'a> Normer<'a> {
     }
 
     fn push(&mut self, node: Node) {
-        let old = self.builder().pos();
         self.builder().push(node);
     }
 

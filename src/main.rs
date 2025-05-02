@@ -12,7 +12,7 @@ use lasso::ThreadedRodeo;
 use lex::{Intern, Interner, Lexer};
 use norm::write_tree;
 use parse::write_parse_tree;
-use tree::{Chunk, TreeBuilder, TreeBytes, TreeBytesWriter};
+use tree::{TreeBytes, TreeBytesWriter};
 
 mod lex;
 mod norm;
@@ -53,9 +53,7 @@ pub struct Cart {
     pub outdir: Option<PathBuf>,
     pub text: String,
     pub tokens: Vec<u8>,
-    pub tree: Vec<Chunk>,
     pub tree_bytes: Vec<u8>,
-    pub tree_builder: TreeBuilder,
     pub tree_bytes_builder: TreeBytes,
 }
 
@@ -99,9 +97,7 @@ impl Cart {
             outdir: None,
             text: String::new(),
             tokens: vec![],
-            tree: vec![],
             tree_bytes: vec![],
-            tree_builder: Default::default(),
             tree_bytes_builder: Default::default(),
         }
     }

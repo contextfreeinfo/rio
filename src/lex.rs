@@ -1,13 +1,10 @@
 use std::{fmt::Debug, mem::take, sync::Arc};
 
 use lasso::{Spur, ThreadedRodeo};
-use num_derive::FromPrimitive;
 use postcard::to_extend;
 use serde::{Deserialize, Serialize};
-use static_assertions::const_assert_eq;
-use strum::EnumCount;
 
-use crate::{Cart, tree::Size};
+use crate::Cart;
 
 pub type Intern = Spur;
 pub type Interner = Arc<ThreadedRodeo>;
@@ -32,22 +29,10 @@ impl Token {
 }
 
 #[repr(C)]
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Deserialize,
-    Default,
-    EnumCount,
-    Eq,
-    FromPrimitive,
-    Hash,
-    PartialEq,
-    Serialize,
-)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub enum TokenKind {
     #[default]
-    None = TOKEN_KIND_START as isize,
+    None,
     Also,
     AngleClose,
     AngleOpen,
@@ -84,10 +69,6 @@ pub enum TokenKind {
     VSpace,
     With,
 }
-
-pub const TOKEN_KIND_START: Size = 0;
-pub const TOKEN_KIND_END: Size = TOKEN_KIND_START + TokenKind::COUNT as Size;
-const_assert_eq!(0, std::mem::offset_of!(Token, kind));
 
 pub struct Lexer<'a> {
     pub cart: &'a mut Cart,

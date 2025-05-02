@@ -94,75 +94,7 @@ impl TreeBytes {
     }
 }
 
-#[derive(Default)]
-pub struct TreeBuilder {
-    pub chunks: Vec<Chunk>,
-    pub working: Vec<Chunk>,
-}
-
-pub type Chunk = u32;
-pub const CHUNK_SIZE: usize = size_of::<Chunk>();
-
 pub type Size = u32;
-
-impl TreeBuilder {
-    pub fn clear(&mut self) {
-        self.chunks.clear();
-        self.working.clear();
-        // Avoid 0 pointers, so burn the first chunk.
-        self.chunks.push(0);
-    }
-
-    pub fn apply_range(&mut self, start: Size) -> SizeRange {
-        let start = start as usize;
-        let applied_start = self.chunks.len();
-        self.chunks.extend(self.working.drain(start..));
-        (applied_start..self.chunks.len()).into()
-    }
-
-    pub fn pos(&self) -> Size {
-        self.working.len() as Size
-    }
-
-    pub fn push<T>(&mut self, node: T) {
-        let ptr = &raw const node as *const Chunk;
-        assert!(size_of::<T>() % CHUNK_SIZE == 0);
-        let len = size_of::<T>() / CHUNK_SIZE;
-        let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
-        self.working.extend_from_slice(slice);
-    }
-}
-
-pub struct TreeWriter<'a, File, Map>
-where
-    File: Write,
-    Map: std::ops::Index<Intern, Output = str>,
-{
-    pub chunks: &'a [Chunk],
-    pub file: &'a mut File,
-    pub indent: usize,
-    pub map: &'a Map,
-}
-
-impl<'a, File, Map> TreeWriter<'a, File, Map>
-where
-    File: Write,
-    Map: std::ops::Index<Intern, Output = str>,
-{
-    pub fn new(chunks: &'a [Chunk], file: &'a mut File, map: &'a Map) -> Self {
-        Self {
-            chunks,
-            file,
-            indent: 2,
-            map,
-        }
-    }
-
-    pub fn indent(&mut self, indent: usize) -> Result<()> {
-        write!(self.file, "{: <1$}", "", indent)?;
-        Ok(())
-    }
-}
 
 pub struct TreeBytesWriter<'a, File, Map>
 where

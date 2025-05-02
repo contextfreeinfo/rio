@@ -1,16 +1,13 @@
 use crate::{
     Cart,
-    lex::{Intern, TOKEN_KIND_END, Token, TokenKind},
-    tree::{CHUNK_SIZE, SimpleRange, Size, SizeRange, TreeBytes, TreeBytesWriter},
+    lex::{Intern, Token, TokenKind},
+    tree::{SimpleRange, Size, SizeRange, TreeBytes, TreeBytesWriter},
 };
 use anyhow::{Ok, Result};
 use log::debug;
-use num_derive::FromPrimitive;
 use postcard::take_from_bytes;
 use serde::{Deserialize, Serialize};
-use static_assertions::{const_assert, const_assert_eq};
 use std::{io::Write, ops::Range};
-use strum::EnumCount;
 
 // TODO Combine multiple files into one parse tree.
 // TODO Track the node ranges for each file.
@@ -66,11 +63,9 @@ impl ParseNodeStepper {
 }
 
 #[repr(C)]
-#[derive(
-    Clone, Copy, Debug, Deserialize, EnumCount, Eq, FromPrimitive, Hash, PartialEq, Serialize,
-)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ParseBranchKind {
-    Block = PARSE_BRANCH_KIND_START as isize,
+    Block,
     Call,
     Infix,
     Def,
@@ -80,12 +75,6 @@ pub enum ParseBranchKind {
     Pub,
     StringParts,
 }
-
-pub const PARSE_BRANCH_KIND_START: Size = 0x1000 as Size;
-pub const PARSE_BRANCH_KIND_END: Size = PARSE_BRANCH_KIND_START + ParseBranchKind::COUNT as Size;
-const_assert!(PARSE_BRANCH_KIND_START >= TOKEN_KIND_END);
-const_assert_eq!(0, std::mem::offset_of!(ParseBranch, kind));
-const_assert_eq!(CHUNK_SIZE, align_of::<ParseNode>());
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
