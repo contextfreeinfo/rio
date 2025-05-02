@@ -144,10 +144,7 @@ impl<'a> Parser<'a> {
         self.block_top();
         // Finish top and drain tree.
         let bytes_top = self.builder().applied.len();
-        // The end of the last range is naturally the start of the last node,
-        // because the kid range ends that way.
         self.wrap(ParseBranchKind::Block, 0);
-        self.cart.tree_bytes.clear();
         self.cart
             .tree_bytes_builder
             .drain_into(&mut self.cart.tree_bytes, bytes_top);

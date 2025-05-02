@@ -2,13 +2,14 @@ use std::io::Write;
 
 use crate::{
     Cart,
-    lex::{Intern, TOKEN_KIND_END, TOKEN_KIND_START, Token, TokenKind},
+    lex::{Intern, Token, TokenKind},
     parse::{PARSE_BRANCH_KIND_END, ParseBranch, ParseBranchKind, ParseNode, ParseNodeStepper},
-    tree::{CHUNK_SIZE, Chunk, Size, SizeRange, TreeBuilder, TreeBytes, TreeWriter},
+    tree::{CHUNK_SIZE, Size, SizeRange, TreeBytes, TreeBytesWriter},
 };
 use anyhow::Result;
 use num_derive::FromPrimitive;
-use num_traits::FromPrimitive;
+use postcard::take_from_bytes;
+use serde::{Deserialize, Serialize};
 use static_assertions::{const_assert, const_assert_eq};
 use strum::EnumCount;
 
@@ -25,7 +26,7 @@ macro_rules! generate_node_enums {
             )*
         }
 
-        #[derive(Clone, Copy, Debug, Default, EnumCount, Eq, Hash, PartialEq)]
+        #[derive(Clone, Copy, Debug, Default, Deserialize, EnumCount, Eq, Hash, PartialEq, Serialize)]
         pub enum Node {
             #[allow(unused)]
             #[default]
@@ -44,44 +45,13 @@ macro_rules! generate_node_enums {
     };
 }
 
-macro_rules! read_node {
-    ($Ty:ident, $chunks:expr, $offset:expr) => {{
-        assert!($chunks.len() >= $Ty::CHUNK_SIZE as usize);
-        let data = unsafe {
-            let ptr = $chunks.as_ptr() as *const $Ty;
-            std::ptr::read(ptr)
-        };
-        // Access enum and struct impl both.
-        (Node::$Ty(data), $offset + $Ty::CHUNK_SIZE + 1)
-    }};
-}
-
 impl Node {
-    pub fn read(chunks: &[Chunk], offset: Size) -> (Node, Size) {
+    pub fn read(bytes: &[u8], offset: Size) -> (Node, Size) {
         if offset == 0 {
             return (Node::None, 0);
         }
-        let chunks = &chunks[offset as usize..];
-        let kind = chunks[0];
-        match kind {
-            NODE_KIND_START..NODE_KIND_END => {
-                let chunks = &chunks[1..];
-                match NodeKind::from_u32(kind).unwrap() {
-                    NodeKind::None => panic!(),
-                    NodeKind::Block => read_node!(Block, chunks, offset),
-                    NodeKind::Call => read_node!(Call, chunks, offset),
-                    NodeKind::Def => read_node!(Def, chunks, offset),
-                    NodeKind::Fun => read_node!(Fun, chunks, offset),
-                    NodeKind::Public => read_node!(Public, chunks, offset),
-                    NodeKind::Tok => read_node!(Tok, chunks, offset),
-                }
-            }
-            TOKEN_KIND_START..TOKEN_KIND_END => {
-                // dbg!(&chunks[..Tok::CHUNK_SIZE as usize]);
-                read_node!(Tok, chunks, offset)
-            }
-            _ => panic!(),
-        }
+        let (node, unused) = take_from_bytes(&bytes[offset as usize..]).unwrap();
+        (node, (bytes.len() - unused.len()).try_into().unwrap())
     }
 }
 
@@ -102,7 +72,7 @@ const_assert_eq!(CHUNK_SIZE, align_of::<Node>());
 generate_node_enums!(Block, Call, Def, Fun, Public, Tok,);
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct NodeMeta {
     source: Size,
     typ: Size,
@@ -115,14 +85,14 @@ impl NodeMeta {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Block {
     meta: NodeMeta,
     kids: SizeRange,
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Call {
     meta: NodeMeta,
     fun: Size,
@@ -130,7 +100,7 @@ pub struct Call {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Def {
     meta: NodeMeta, // typ eventually implies type
     target: Size,   // uid eventually implies pub
@@ -138,7 +108,7 @@ pub struct Def {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Fun {
     meta: NodeMeta,
     params: SizeRange,
@@ -147,14 +117,14 @@ pub struct Fun {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Public {
     meta: NodeMeta,
     kid: Size,
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Tok {
     // Token first so we can use the builtin kind.
     token: Token,
@@ -176,20 +146,21 @@ impl<'a> Normer<'a> {
     pub fn norm(&mut self) {
         self.builder().clear();
         let source = TreeBytes::top_of(&self.cart.tree_bytes).try_into().unwrap();
-        self.wrap(|s| s.top(source));
-        self.cart.tree.clear();
-        self.cart.tree.append(&mut self.cart.tree_builder.chunks);
-        // dbg!(&self.cart.tree);
+        // Finish top and drain tree.
+        let bytes_top = self.wrap(|s| s.top(source)).start;
+        self.cart
+            .tree_bytes_builder
+            .drain_into(&mut self.cart.tree_bytes, bytes_top.try_into().unwrap());
     }
 
     // General helpers
 
-    fn builder(&mut self) -> &mut TreeBuilder {
-        &mut self.cart.tree_builder
+    fn builder(&mut self) -> &mut TreeBytes {
+        &mut self.cart.tree_bytes_builder
     }
 
-    fn push<T: NodeData>(&mut self, node: T) {
-        self.builder().push(T::KIND);
+    fn push(&mut self, node: Node) {
+        let old = self.builder().pos();
         self.builder().push(node);
     }
 
@@ -202,10 +173,14 @@ impl<'a> Normer<'a> {
     fn wrap<F: FnOnce(&mut Self)>(&mut self, build: F) -> SizeRange {
         let start = self.builder().pos();
         build(self);
-        match () {
+        let result = match () {
             _ if self.builder().pos() == start => SizeRange::default(),
-            _ => self.builder().apply_range(start),
-        }
+            _ => {
+                let range = self.builder().apply_range(start);
+                range
+            }
+        };
+        result
     }
 
     fn wrap_node(&mut self, node: ParseNode, source: Size) -> SizeRange {
@@ -237,7 +212,7 @@ impl<'a> Normer<'a> {
             target,
             value,
         };
-        self.push(def);
+        self.push(Node::Def(def));
     }
 
     fn fun(&mut self, branch: ParseBranch, source: Size) {
@@ -276,7 +251,7 @@ impl<'a> Normer<'a> {
             meta: NodeMeta::at(source),
             kid,
         };
-        self.push(public);
+        self.push(Node::Public(public));
     }
 
     fn top(&mut self, source: Size) {
@@ -293,7 +268,7 @@ impl<'a> Normer<'a> {
             meta: NodeMeta::at(source),
             kids,
         };
-        self.push(block);
+        self.push(Node::Block(block));
     }
 
     fn token(&mut self, token: Token, source: Size) {
@@ -302,18 +277,18 @@ impl<'a> Normer<'a> {
             meta: NodeMeta::at(source),
         };
         // Go straight to builder to avoid extra kind chunk.
-        self.builder().push(tok);
+        self.builder().push(Node::Tok(tok));
     }
 }
 
-pub fn write_tree<File, Map>(writer: &mut TreeWriter<'_, File, Map>) -> Result<()>
+pub fn write_tree<File, Map>(writer: &mut TreeBytesWriter<'_, File, Map>) -> Result<()>
 where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
 {
-    let chunks = writer.chunks;
-    let (top, end) = Node::read(chunks, *chunks.last().unwrap());
-    assert_eq!(chunks.len(), end as usize);
+    let bytes = writer.bytes;
+    let (top, end) = Node::read(bytes, TreeBytes::top_of(bytes).try_into().unwrap());
+    assert_eq!(bytes.len(), end as usize);
     let context = TreeWriting {
         node: top,
         ..Default::default()
@@ -330,7 +305,7 @@ pub struct TreeWriting {
 }
 
 pub fn write_tree_at<File, Map>(
-    writer: &mut TreeWriter<'_, File, Map>,
+    writer: &mut TreeBytesWriter<'_, File, Map>,
     context: TreeWriting,
 ) -> Result<()>
 where
@@ -355,7 +330,7 @@ where
             let mut offset = range.start;
             let mut count = 0;
             while offset < range.end {
-                let (node, next_offset) = Node::read(writer.chunks, offset);
+                let (node, next_offset) = Node::read(writer.bytes, offset);
                 write_tree_at(writer, TreeWriting { node, ..indented })?;
                 offset = next_offset;
                 count += 1;
@@ -374,7 +349,7 @@ where
                 writer,
                 TreeWriting {
                     label: "target",
-                    node: Node::read(writer.chunks, def.target).0,
+                    node: Node::read(writer.bytes, def.target).0,
                     ..indented
                 },
             )?;
@@ -382,7 +357,7 @@ where
                 writer,
                 TreeWriting {
                     label: "value",
-                    node: Node::read(writer.chunks, def.value).0,
+                    node: Node::read(writer.bytes, def.value).0,
                     ..indented
                 },
             )?;
@@ -398,7 +373,7 @@ where
                 writer,
                 TreeWriting {
                     inline: true,
-                    node: Node::read(writer.chunks, public.kid).0,
+                    node: Node::read(writer.bytes, public.kid).0,
                     ..indented
                 },
             )?;

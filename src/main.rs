@@ -12,7 +12,7 @@ use lasso::ThreadedRodeo;
 use lex::{Intern, Interner, Lexer};
 use norm::write_tree;
 use parse::write_parse_tree;
-use tree::{Chunk, TreeBuilder, TreeBytes, TreeBytesWriter, TreeWriter};
+use tree::{Chunk, TreeBuilder, TreeBytes, TreeBytesWriter};
 
 mod lex;
 mod norm;
@@ -117,7 +117,7 @@ impl Cart {
     fn lex(&mut self) -> Result<()> {
         let mut lexer = Lexer::new(self);
         lex(&mut lexer)?;
-        dbg!(self.tokens.len());
+        // dbg!(self.tokens.len());
         // if let Some(outdir) = &self.outdir {
         //     let mut writer = make_dump_writer("lex", outdir)?;
         //     for token in &self.tokens {
@@ -150,14 +150,11 @@ impl Cart {
         if self.args.dump.contains(&DumpOption::Trees) {
             if let Some(outdir) = &self.outdir {
                 let mut writer = make_dump_writer("norm", outdir)?;
-                let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
+                let mut writer =
+                    TreeBytesWriter::new(&self.tree_bytes, &mut writer, self.interner.as_ref());
                 write_tree(&mut writer)?;
                 writeln!(writer.file)?;
-                writeln!(
-                    writer.file,
-                    "Bytes: {}",
-                    std::mem::size_of_val(self.tree.as_slice())
-                )?;
+                writeln!(writer.file, "Bytes: {}", self.tree_bytes.len())?;
             }
         }
         Ok(())
@@ -165,7 +162,7 @@ impl Cart {
 
     fn parse(&mut self) -> Result<()> {
         parse::Parser::new(self).parse();
-        dbg!(self.tree_bytes.len());
+        // dbg!(self.tree_bytes.len());
         if self.args.dump.contains(&DumpOption::Trees) {
             if let Some(outdir) = &self.outdir {
                 let mut writer = make_dump_writer("parse", outdir)?;

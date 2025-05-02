@@ -21,4 +21,4 @@ Block
   /Def
 /Block
 
-Bytes: 220
+Bytes: 80
