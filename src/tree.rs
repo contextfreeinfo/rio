@@ -1,6 +1,7 @@
-use std::{io::Write, ops::Range};
+use std::{io::Write, mem::take, ops::Range};
 
 use anyhow::Result;
+use postcard::{from_bytes, to_extend, to_slice};
 use serde::{Deserialize, Serialize};
 
 use crate::lex::Intern;
@@ -47,6 +48,49 @@ impl<Idx> From<Range<Idx>> for SimpleRange<Idx> {
 impl From<Range<usize>> for SizeRange {
     fn from(value: Range<usize>) -> Self {
         (value.start as Size..value.end as Size).into()
+    }
+}
+
+#[derive(Default)]
+pub struct TreeBytes {
+    pub applied: Vec<u8>,
+    pub working: Vec<u8>,
+}
+
+// https://postcard.jamesmunns.com/wire-format.html#maximum-encoded-length
+const MAX_USIZE_ENCODED_LEN: usize = 10;
+
+impl TreeBytes {
+    pub fn clear(&mut self) {
+        self.applied.clear();
+        self.working.clear();
+        // Avoid 0 pointers, and reserve aligned space for start index.
+        self.applied.extend([0; MAX_USIZE_ENCODED_LEN]);
+    }
+
+    pub fn drain_into(&mut self, tree: &mut Vec<u8>, top: usize) {
+        tree.clear();
+        tree.append(&mut self.applied);
+        to_slice(&top, &mut tree[..MAX_USIZE_ENCODED_LEN]).unwrap();
+    }
+
+    pub fn apply_range(&mut self, start: Size) -> SizeRange {
+        let start = start as usize;
+        let applied_start = self.applied.len();
+        self.applied.extend(self.working.drain(start..));
+        (applied_start..self.applied.len()).into()
+    }
+
+    pub fn pos(&self) -> Size {
+        self.working.len() as Size
+    }
+
+    pub fn push<T: Serialize>(&mut self, node: T) {
+        self.working = to_extend(&node, take(&mut self.working)).unwrap();
+    }
+
+    pub fn top_of(bytes: &[u8]) -> usize {
+        from_bytes(&bytes[..MAX_USIZE_ENCODED_LEN]).unwrap()
     }
 }
 
@@ -108,6 +152,37 @@ where
     pub fn new(chunks: &'a [Chunk], file: &'a mut File, map: &'a Map) -> Self {
         Self {
             chunks,
+            file,
+            indent: 2,
+            map,
+        }
+    }
+
+    pub fn indent(&mut self, indent: usize) -> Result<()> {
+        write!(self.file, "{: <1$}", "", indent)?;
+        Ok(())
+    }
+}
+
+pub struct TreeBytesWriter<'a, File, Map>
+where
+    File: Write,
+    Map: std::ops::Index<Intern, Output = str>,
+{
+    pub bytes: &'a [u8],
+    pub file: &'a mut File,
+    pub indent: usize,
+    pub map: &'a Map,
+}
+
+impl<'a, File, Map> TreeBytesWriter<'a, File, Map>
+where
+    File: Write,
+    Map: std::ops::Index<Intern, Output = str>,
+{
+    pub fn new(bytes: &'a [u8], file: &'a mut File, map: &'a Map) -> Self {
+        Self {
+            bytes,
             file,
             indent: 2,
             map,

@@ -11,8 +11,8 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
 use lex::{Intern, Interner, Lexer};
 use norm::write_tree;
-use parse::{ParseNode, write_parse_tree};
-use tree::{Chunk, TreeBuilder, TreeWriter};
+use parse::{write_parse_tree, write_parse_tree_bytes};
+use tree::{Chunk, TreeBuilder, TreeBytes, TreeBytesWriter, TreeWriter};
 
 mod lex;
 mod norm;
@@ -54,7 +54,9 @@ pub struct Cart {
     pub text: String,
     pub tokens: Vec<u8>,
     pub tree: Vec<Chunk>,
+    pub tree_bytes: Vec<u8>,
     pub tree_builder: TreeBuilder,
+    pub tree_bytes_builder: TreeBytes,
 }
 
 fn main() -> Result<()> {
@@ -98,7 +100,9 @@ impl Cart {
             text: String::new(),
             tokens: vec![],
             tree: vec![],
-            tree_builder: TreeBuilder::default(),
+            tree_bytes: vec![],
+            tree_builder: Default::default(),
+            tree_bytes_builder: Default::default(),
         }
     }
 
@@ -161,6 +165,7 @@ impl Cart {
 
     fn parse(&mut self) -> Result<()> {
         parse::Parser::new(self).parse();
+        dbg!(self.tree_bytes.len());
         if self.args.dump.contains(&DumpOption::Trees) {
             if let Some(outdir) = &self.outdir {
                 let mut writer = make_dump_writer("parse", outdir)?;
@@ -172,20 +177,13 @@ impl Cart {
                     "Bytes: {}",
                     std::mem::size_of_val(self.tree.as_slice())
                 )?;
-                // Explore postcard size.
-                let mut nodes = vec![];
-                let mut offset = 1;
-                while offset < self.tree.len() {
-                    let (node, next) = ParseNode::read(&self.tree, offset);
-                    nodes.push(node);
-                    offset = next;
-                }
-                let posted = postcard::to_stdvec(&nodes).unwrap();
-                writeln!(
-                    writer.file,
-                    "Postcard bytes: {}",
-                    std::mem::size_of_val(posted.as_slice())
-                )?;
+                // Bytes tree.
+                let mut writer = make_dump_writer("parse-bytes", outdir)?;
+                let mut writer =
+                    TreeBytesWriter::new(&self.tree_bytes, &mut writer, self.interner.as_ref());
+                write_parse_tree_bytes(&mut writer)?;
+                writeln!(writer.file)?;
+                writeln!(writer.file, "Bytes: {}", self.tree_bytes.len())?;
             }
         }
         Ok(())
