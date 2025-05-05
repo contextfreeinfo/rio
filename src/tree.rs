@@ -16,11 +16,11 @@ pub struct SimpleRange<Idx> {
     pub end: Idx,
 }
 
-pub type SizeRange = SimpleRange<Size>;
+pub type SizeRange = SimpleRange<usize>;
 
 impl SizeRange {
     pub fn len(&self) -> usize {
-        (self.end - self.start).try_into().unwrap()
+        self.end - self.start
     }
 }
 
@@ -30,24 +30,12 @@ impl<Idx> From<SimpleRange<Idx>> for Range<Idx> {
     }
 }
 
-impl From<SizeRange> for Range<usize> {
-    fn from(value: SizeRange) -> Self {
-        value.start as usize..value.end as usize
-    }
-}
-
 impl<Idx> From<Range<Idx>> for SimpleRange<Idx> {
     fn from(value: Range<Idx>) -> Self {
         SimpleRange {
             start: value.start,
             end: value.end,
         }
-    }
-}
-
-impl From<Range<usize>> for SizeRange {
-    fn from(value: Range<usize>) -> Self {
-        (value.start as Size..value.end as Size).into()
     }
 }
 
@@ -74,15 +62,14 @@ impl TreeBuilder {
         to_slice(&top, &mut tree[..MAX_USIZE_ENCODED_LEN]).unwrap();
     }
 
-    pub fn apply_range(&mut self, start: Size) -> SizeRange {
-        let start = start as usize;
+    pub fn apply_range(&mut self, start: usize) -> SizeRange {
         let applied_start = self.applied.len();
         self.applied.extend(self.working.drain(start..));
         (applied_start..self.applied.len()).into()
     }
 
-    pub fn pos(&self) -> Size {
-        self.working.len() as Size
+    pub fn pos(&self) -> usize {
+        self.working.len()
     }
 
     pub fn push<T: Serialize>(&mut self, node: T) {
@@ -93,8 +80,6 @@ impl TreeBuilder {
         from_bytes(&bytes[..MAX_USIZE_ENCODED_LEN]).unwrap()
     }
 }
-
-pub type Size = u32;
 
 pub struct TreeWriter<'a, File, Map>
 where

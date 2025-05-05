@@ -1,20 +1,85 @@
 Block
   Def
     target = Public Id: "main"
-    value = None
+    value = Fun
+      params = None
+      returning = None
+      body = Block
+        Call
+          fun = Id: "describe"
+          args = Range
+            Int: "2"
+        /Call
+        Call
+          fun = Id: "describe"
+          args = Range
+            Int: "-1"
+        /Call
+        Call
+          fun = Id: "describe"
+          args = Range
+            Int: "0"
+        /Call
+      /Block
+    /Fun
   /Def
   Def
     target = Id: "describe"
-    value = None
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int32"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "print"
+          args = None
+        /Call
+      /Block
+    /Fun
   /Def
   Def
     target = Id: "description"
-    value = None
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int32"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Def
+          target = Id: "message"
+          value = Call
+            fun = Id: "branch"
+            args = None
+          /Call
+        /Def
+        Id: "message"
+      /Block
+    /Fun
   /Def
   Def
     target = Id: "less"
-    value = None
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int32"
+        /Typed
+        Typed
+          target = Id: "j"
+          type = Id: "Int32"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+    /Fun
   /Def
 /Block
 
-Bytes: 67
+Bytes: 307

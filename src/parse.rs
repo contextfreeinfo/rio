@@ -1,7 +1,7 @@
 use crate::{
     Cart,
     lex::{Intern, Token, TokenKind},
-    tree::{SimpleRange, Size, SizeRange, TreeBuilder, TreeWriter},
+    tree::{SizeRange, TreeBuilder, TreeWriter},
 };
 use anyhow::{Ok, Result};
 use log::debug;
@@ -15,6 +15,12 @@ use std::{io::Write, ops::Range};
 pub enum ParseNode {
     Branch(ParseBranch),
     Leaf(Token),
+}
+
+impl Default for ParseNode {
+    fn default() -> Self {
+        ParseNode::Leaf(Default::default())
+    }
 }
 
 impl ParseNode {
@@ -33,22 +39,22 @@ pub struct ParseNodeStepper {
 impl ParseNodeStepper {
     pub fn new(range: SizeRange) -> Self {
         Self {
-            start: range.start as usize,
-            end: range.end as usize,
+            start: range.start,
+            end: range.end,
         }
     }
 
-    pub fn next(&mut self, chunks: &[u8]) -> Option<(ParseNode, Size)> {
+    pub fn next(&mut self, chunks: &[u8]) -> Option<(ParseNode, usize)> {
         let mut node: Option<ParseNode> = None;
-        let mut source: Size = 0;
+        let mut source = 0;
         while self.start < self.end {
             // Guaranteed to cast since start and end were both originally Size.
-            source = self.start as Size;
+            source = self.start;
             let (next, offset) = ParseNode::read(chunks, self.start);
             node = match next {
                 ParseNode::Leaf(Token {
                     // TODO What else to skip?
-                    kind: TokenKind::HSpace | TokenKind::VSpace,
+                    kind: TokenKind::Comma | TokenKind::HSpace | TokenKind::VSpace,
                     ..
                 }) => None,
                 _ => Some(next),
@@ -78,7 +84,7 @@ pub enum ParseBranchKind {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ParseBranch {
     pub kind: ParseBranchKind,
-    pub range: SimpleRange<u32>,
+    pub range: SizeRange,
 }
 
 macro_rules! define_infix {
@@ -506,7 +512,7 @@ impl<'a> Parser<'a> {
         Some(skipped)
     }
 
-    fn wrap(&mut self, kind: ParseBranchKind, start: Size) {
+    fn wrap(&mut self, kind: ParseBranchKind, start: usize) {
         let range = self.builder().apply_range(start);
         let branch = ParseBranch { kind, range };
         self.builder().push(ParseNode::Branch(branch));

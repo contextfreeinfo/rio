@@ -1,20 +1,115 @@
 Block
   Def
     target = Public Id: "main"
-    value = None
+    value = Fun
+      params = None
+      returning = None
+      body = Block
+        Def
+          target = Id: "name"
+          value = String: "Alice"
+        /Def
+        Def
+          target = Id: "alice"
+          value = Call
+            fun = Id: "Person"
+            args = None
+          /Call
+        /Def
+        Call
+          fun = Id: "describe"
+          args = Range
+            Id: "alice"
+        /Call
+        Call
+          fun = Id: "describe"
+          args = None
+        /Call
+        Call
+          fun = Id: "describe"
+          args = None
+        /Call
+        Call
+          fun = Id: "describe"
+          args = None
+        /Call
+        Def
+          target = Typed
+            target = Id: "eli"
+            type = Id: "Person"
+          /Typed
+          value = None
+        /Def
+        Call
+          fun = Id: "describe"
+          args = Range
+            Id: "eli"
+        /Call
+      /Block
+    /Fun
   /Def
   Def
     target = Id: "Person"
-    value = None
+    value = Call
+      fun = Id: "struct"
+      args = None
+    /Call
   /Def
   Def
     target = Id: "build"
-    value = None
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "name"
+          type = Id: "Text"
+        /Typed
+        Typed
+          target = Id: "age"
+          type = Id: "Int32"
+        /Typed
+      /Range
+      returning = Id: "Person"
+      body = Block
+    /Fun
   /Def
   Def
     target = Id: "describe"
-    value = None
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "person"
+          type = Id: "Person"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Comment: "# TODO Text interp and auto struct printing."
+        Call
+          fun = Id: "print"
+          args = Range
+            String: "Person:"
+        /Call
+        Call
+          fun = Id: "print"
+          args = None
+        /Call
+        Call
+          fun = Id: "print"
+          args = Range
+            Call
+              fun = Id: "branch"
+              args = None
+            /Call
+          /Range
+        /Call
+        Call
+          fun = Id: "print"
+          args = Range
+            String: ""
+        /Call
+      /Block
+    /Fun
   /Def
 /Block
 
-Bytes: 68
+Bytes: 441

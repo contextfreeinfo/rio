@@ -1,24 +1,107 @@
 Block
   Def
     target = Public Id: "main"
-    value = None
+    value = Fun
+      params = None
+      returning = None
+      body = Block
+        Def
+          target = Id: "i"
+          value = Int: "3"
+        /Def
+        Call
+          fun = Id: "countDown"
+          args = Range
+            Id: "i"
+        /Call
+        Call
+          fun = Id: "print"
+          args = None
+        /Call
+        Call
+          fun = Id: "print"
+          args = None
+        /Call
+      /Block
+    /Fun
   /Def
   Def
     target = Id: "countDown"
-    value = None
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "count"
+          type = Id: "Int32"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "print"
+          args = Range
+            String: "counting ..."
+        /Call
+        Call
+          fun = Id: "branch"
+          args = None
+        /Call
+      /Block
+    /Fun
   /Def
   Def
     target = Id: "isEven"
-    value = None
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int32"
+        /Typed
+      /Range
+      returning = Id: "Claim"
+      body = Block
+        Call
+          fun = Id: "branch"
+          args = None
+        /Call
+      /Block
+    /Fun
   /Def
   Def
     target = Id: "isOdd"
-    value = None
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int32"
+        /Typed
+      /Range
+      returning = Id: "Claim"
+      body = Block
+        Call
+          fun = Id: "branch"
+          args = None
+        /Call
+      /Block
+    /Fun
   /Def
   Def
     target = Id: "oddness"
-    value = None
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int32"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "branch"
+          args = None
+        /Call
+      /Block
+    /Fun
   /Def
 /Block
 
-Bytes: 80
+Bytes: 400

@@ -179,6 +179,7 @@ fn lex(lexer: &mut Lexer) -> Result<()> {
             let mut file = File::open(name)?;
             file.read_to_string(&mut lexer.cart.text)?;
             lexer.lex();
+            lexer.cart.text.clear();
         }
     };
     Ok(())
