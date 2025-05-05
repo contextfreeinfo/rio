@@ -1,4 +1,4 @@
-main* = for () be
+main* = for void be
     message = "I say \"Hi!\""
     printTwice message ""
 end

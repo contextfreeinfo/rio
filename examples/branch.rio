@@ -1,4 +1,4 @@
-main* = for () be
+main* = for void be
     describe 2
     describe -1
     describe 0
@@ -9,7 +9,7 @@ describe = for i:Int32 be
 end
 
 description = for i:Int32 be
-    message = branch with
+    message = branch of
         i < 0 to "negative"
         i > 0 to "positive"
         true to "zero"

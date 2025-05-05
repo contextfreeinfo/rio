@@ -191,7 +191,7 @@ impl<'a> Normer<'a> {
             TokenKind::Be => self.block_be(stepper, source),
             TokenKind::CurlyOpen | TokenKind::With => {}
             TokenKind::Of => {}
-            TokenKind::RoundOpen => {}
+            TokenKind::RoundOpen => self.round(stepper, source),
             _ => panic!("{open:?}"),
         }
     }
@@ -213,6 +213,16 @@ impl<'a> Normer<'a> {
         self.push(block.as_node());
     }
 
+    fn block_of(&mut self, mut stepper: ParseNodeStepper) {
+        while let Some((kid, kid_source)) = stepper.next(&self.cart.tree) {
+            if matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::End) {
+                // TODO Tagged ends?
+                break;
+            }
+            self.node(kid, kid_source);
+        }
+    }
+
     fn call(&mut self, branch: ParseBranch, source: usize) {
         let mut stepper = ParseNodeStepper::new(branch.range);
         let fun = stepper
@@ -221,7 +231,20 @@ impl<'a> Normer<'a> {
             .unwrap_or(0);
         let args = self.wrap(|s| {
             while let Some((kid, kid_source)) = stepper.next(&s.cart.tree) {
-                s.node(kid, kid_source);
+                match kid {
+                    ParseNode::Branch(branch) if branch.kind == ParseBranchKind::Block => {
+                        let mut stepper = ParseNodeStepper::new(branch.range);
+                        let (open, _) = stepper.next(&s.cart.tree).unwrap();
+                        let ParseNode::Leaf(open) = open else {
+                            panic!()
+                        };
+                        match open.kind {
+                            TokenKind::Also | TokenKind::Of => s.block_of(stepper),
+                            _ => s.node(kid, kid_source),
+                        }
+                    }
+                    _ => s.node(kid, kid_source),
+                }
             }
         });
         let call = Call {
@@ -341,6 +364,15 @@ impl<'a> Normer<'a> {
             kid,
         };
         self.push(public.as_node());
+    }
+
+    fn round(&mut self, mut stepper: ParseNodeStepper, _source: usize) {
+        // TODO If empty, store a unit/null/void indicator?
+        if let Some((kid, kid_source)) = stepper.next(&self.cart.tree) {
+            if !matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::RoundClose) {
+                self.node(kid, kid_source);
+            }
+        }
     }
 
     fn string_parts(&mut self, branch: ParseBranch, source: usize) {

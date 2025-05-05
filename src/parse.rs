@@ -54,7 +54,8 @@ impl ParseNodeStepper {
             node = match next {
                 ParseNode::Leaf(Token {
                     // TODO What else to skip?
-                    kind: TokenKind::Comma | TokenKind::HSpace | TokenKind::VSpace,
+                    kind:
+                        TokenKind::Comma | TokenKind::Comment | TokenKind::HSpace | TokenKind::VSpace,
                     ..
                 }) => None,
                 _ => Some(next),

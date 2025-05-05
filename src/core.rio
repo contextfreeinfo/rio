@@ -1,0 +1,43 @@
+Claim* = <Maybe Void>
+
+false* = no void
+
+Int32*:Type = native also module with
+    add* = for other:Int32 :Int32 be native void
+    eq* = for other:Int32 :Claim be native void
+    ge* = for other:Int32 :Claim be native void
+    gt* = for other:Int32 :Claim be native void
+    le* = for other:Int32 :Claim be native void
+    lt* = for other:Int32 :Claim be native void
+    ne* = for other:Int32 :Claim be native void
+    sub* = for other:Int32 :Int32 be native void
+end
+
+Maybe* = <for Value be> <Either Value Void>
+
+native* = for void be native void
+
+No* = <for Value be> struct with
+    value:Value
+end
+
+no* = <for Value be> for value:Value be No {value}
+
+null* = false
+
+Pair* = <for Key Value be> struct with
+    key:Key
+    value:Value
+end
+
+true* = yes void
+
+Void*:Type = native void
+
+void*:Void = native void
+
+Yes* = <for Value be> struct with
+    value:Value
+end
+
+yes* = <for Value be> for value:Value be Yes {value}

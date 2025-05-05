@@ -11,10 +11,7 @@ Block
       Fun: "for"
       HSpace: " "
       Params
-        Block
-          RoundOpen: "("
-          RoundClose: ")"
-        /Block
+        Id: "void"
         HSpace: " "
       /Params
       Block
@@ -114,7 +111,7 @@ Block
             Id: "branch"
             HSpace: " "
             Block
-              With: "with"
+              Of: "of"
               VSpace: "\n"
               HSpace: "        "
               Infix
@@ -220,4 +217,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 660
+Bytes: 653

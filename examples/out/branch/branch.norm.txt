@@ -2,7 +2,8 @@ Block
   Def
     target = Public Id: "main"
     value = Fun
-      params = None
+      params = Range
+        Id: "void"
       returning = None
       body = Block
         Call
@@ -36,7 +37,13 @@ Block
       body = Block
         Call
           fun = Id: "print"
-          args = None
+          args = Range
+            Call
+              fun = Id: "description"
+              args = Range
+                Id: "i"
+            /Call
+          /Range
         /Call
       /Block
     /Fun
@@ -82,4 +89,4 @@ Block
   /Def
 /Block
 
-Bytes: 307
+Bytes: 335

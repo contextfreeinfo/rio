@@ -11,10 +11,7 @@ Block
       Fun: "for"
       HSpace: " "
       Params
-        Block
-          RoundOpen: "("
-          RoundClose: ")"
-        /Block
+        Id: "void"
         HSpace: " "
       /Params
       Block
@@ -374,4 +371,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 1116
+Bytes: 1109

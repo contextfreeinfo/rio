@@ -2,7 +2,8 @@ Block
   Def
     target = Public Id: "main"
     value = Fun
-      params = None
+      params = Range
+        Id: "void"
       returning = None
       body = Block
         Def
@@ -16,11 +17,22 @@ Block
         /Call
         Call
           fun = Id: "print"
-          args = None
+          args = Range
+            Call
+              fun = Id: "oddness"
+              args = Range
+                Id: "i"
+            /Call
+          /Range
         /Call
         Call
           fun = Id: "print"
-          args = None
+          args = Range
+            Call
+              fun = Id: "oddness"
+              args = None
+            /Call
+          /Range
         /Call
       /Block
     /Fun
@@ -43,7 +55,17 @@ Block
         /Call
         Call
           fun = Id: "branch"
-          args = None
+          args = Range
+            Call
+              fun = None
+              args = None
+            /Call
+            Call
+              fun = None
+              args = Range
+                String: "done"
+            /Call
+          /Range
         /Call
       /Block
     /Fun
@@ -61,7 +83,12 @@ Block
       body = Block
         Call
           fun = Id: "branch"
-          args = None
+          args = Range
+            Call
+              fun = None
+              args = None
+            /Call
+          /Range
         /Call
       /Block
     /Fun
@@ -79,7 +106,12 @@ Block
       body = Block
         Call
           fun = Id: "branch"
-          args = None
+          args = Range
+            Call
+              fun = None
+              args = None
+            /Call
+          /Range
         /Call
       /Block
     /Fun
@@ -97,11 +129,16 @@ Block
       body = Block
         Call
           fun = Id: "branch"
-          args = None
+          args = Range
+            Call
+              fun = Id: "isEven"
+              args = None
+            /Call
+          /Range
         /Call
       /Block
     /Fun
   /Def
 /Block
 
-Bytes: 400
+Bytes: 498

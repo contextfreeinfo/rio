@@ -2,7 +2,8 @@ Block
   Def
     target = Public Id: "main"
     value = Fun
-      params = None
+      params = Range
+        Id: "void"
       returning = None
       body = Block
         Def
@@ -27,7 +28,15 @@ Block
         /Call
         Call
           fun = Id: "describe"
-          args = None
+          args = Range
+            Call
+              fun = Id: "build"
+              args = Range
+                String: "Carl"
+                Int: "10"
+              /Range
+            /Call
+          /Range
         /Call
         Call
           fun = Id: "describe"
@@ -83,7 +92,6 @@ Block
       /Range
       returning = None
       body = Block
-        Comment: "# TODO Text interp and auto struct printing."
         Call
           fun = Id: "print"
           args = Range
@@ -112,4 +120,4 @@ Block
   /Def
 /Block
 
-Bytes: 441
+Bytes: 468
