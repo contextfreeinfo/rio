@@ -64,7 +64,7 @@ trait NodeData {
     }
 }
 
-generate_node_enums!(Block, Call, Def, Fun, Public, Tok, Typed);
+generate_node_enums!(Block, Call, Def, Fun, Public, Structured, Tok, Typed);
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct NodeMeta {
@@ -110,6 +110,12 @@ pub struct Fun {
 pub struct Public {
     meta: NodeMeta,
     kid: usize,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
+pub struct Structured {
+    meta: NodeMeta,
+    defs: SizeRange,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
@@ -189,7 +195,7 @@ impl<'a> Normer<'a> {
         match open.kind {
             TokenKind::Also => {}
             TokenKind::Be => self.block_be(stepper, source),
-            TokenKind::CurlyOpen | TokenKind::With => {}
+            TokenKind::CurlyOpen | TokenKind::With => self.structured(stepper, source),
             TokenKind::Of => {}
             TokenKind::RoundOpen => self.round(stepper, source),
             _ => panic!("{open:?}"),
@@ -406,6 +412,44 @@ impl<'a> Normer<'a> {
         self.push(tok.as_node());
     }
 
+    fn structured(&mut self, mut stepper: ParseNodeStepper, source: usize) {
+        let defs = self.wrap(|s| {
+            while let Some((kid, kid_source)) = stepper.next(&s.cart.tree) {
+                if matches!(
+                    kid,
+                    ParseNode::Leaf(Token {
+                        kind: TokenKind::CurlyClose | TokenKind::End,
+                        ..
+                    })
+                ) {
+                    // TODO Tagged ends?
+                    break;
+                }
+                match kid {
+                    ParseNode::Leaf(_) => {
+                        let target = s.wrap_node(kid, kid_source);
+                        let def = Def {
+                            meta: NodeMeta::at(kid_source),
+                            target,
+                            value: target,
+                        };
+                        s.push(def.as_node());
+                    }
+                    ParseNode::Branch(branch) if branch.kind != ParseBranchKind::Def => {
+                        // TODO Dig into dots and calls. Easier later in normed mode pass?
+                        s.node(kid, kid_source)
+                    }
+                    _ => s.node(kid, kid_source),
+                }
+            }
+        });
+        let structured = Structured {
+            meta: NodeMeta::at(source),
+            defs,
+        };
+        self.push(structured.as_node());
+    }
+
     fn top(&mut self, source: usize) {
         let ParseNode::Branch(branch) = self.read(source).0 else {
             panic!()
@@ -513,12 +557,12 @@ where
                        range: SizeRange|
      -> Result<usize> {
         let mut result = 0;
-        let params_start = match range.start {
+        let range_kind = match range.start {
             0 => "None",
             _ => "Range",
         };
         writer.indent(context.indent + writer.indent)?;
-        writeln!(writer.file, "{label} = {params_start}")?;
+        writeln!(writer.file, "{label} = {range_kind}")?;
         let indented_more = TreeWriting {
             indent: indented.indent + writer.indent,
             ..indented
@@ -539,7 +583,7 @@ where
         result += count;
         if count > 1 {
             writer.indent(indented.indent)?;
-            writeln!(writer.file, "/{params_start}")?;
+            writeln!(writer.file, "/{range_kind}")?;
             result += 1;
         }
         Ok(result)
@@ -637,6 +681,23 @@ where
                     ..indented
                 },
             )? - 1;
+        }
+        Node::Structured(structured) => {
+            writeln!(writer.file, "{:?}", structured.kind())?;
+            let range = structured.defs;
+            let mut offset = range.start;
+            let mut count = 0;
+            while offset < range.end {
+                let (node, next_offset) = Node::read(writer.bytes, offset);
+                count += write_tree_at(writer, TreeWriting { node, ..indented })?;
+                offset = next_offset;
+            }
+            result += count;
+            if count > 1 {
+                writer.indent(context.indent)?;
+                writeln!(writer.file, "/{:?}", structured.kind())?;
+                result += 1;
+            }
         }
         Node::Tok(tok) => writeln!(
             writer.file,

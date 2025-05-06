@@ -188,7 +188,7 @@ impl<'a> Parser<'a> {
         self.skip_h();
         if ender == TokenKind::End && self.peek()? != TokenKind::VSpace {
             // Inline be ...
-            self.call(true);
+            self.pair();
         } else {
             // Actually wrapped block.
             loop_some!({
@@ -256,52 +256,44 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn call(&mut self, allow_block: bool) -> Option<()> {
-        self.call_maybe_spaced(allow_block)
-    }
-
-    fn call_maybe_spaced(&mut self, allow_block: bool) -> Option<()> {
+    fn call(&mut self) -> Option<bool> {
         debug!("call");
         self.skip_h();
         let start = self.builder().pos();
-        let had_space = self.pair()?;
+        self.compare()?;
+        // let had_space = self.compare()?;
+        let mut multiple = false;
         loop {
             debug!("call loop: {:?}", self.peek());
-            let mut post = self.builder().pos();
+            let post = self.builder().pos();
             if post <= start {
                 break;
             }
-            // TODO Can we leaving trailing hspace, or do we need to have an indicator?
+            self.skip_h();
             let peeked = self.peek()?;
-            if had_space
-                || matches!(
-                    peeked,
-                    TokenKind::HSpace | TokenKind::Be | TokenKind::CurlyOpen | TokenKind::With
-                )
-            {
-                self.skip_h();
-                if !allow_block
-                    && matches!(
-                        self.peek()?,
-                        TokenKind::Be | TokenKind::CurlyOpen | TokenKind::With
-                    )
-                {
-                    break;
-                }
-                post = self.builder().pos();
-                self.spaced();
-            } else {
-                break;
-            }
-            if self.builder().pos() <= post {
-                // TODO What does this mean???
-                break;
-            }
-            self.wrap(ParseBranchKind::Call, start);
+            match peeked {
+                TokenKind::AngleClose
+                | TokenKind::Comma
+                | TokenKind::Colon
+                | TokenKind::CurlyClose
+                | TokenKind::Define
+                | TokenKind::End
+                | TokenKind::RoundClose
+                | TokenKind::To
+                | TokenKind::VSpace => break,
+                // Same effect as above, but with different intent.
+                TokenKind::Be | TokenKind::With => break,
+                _ => {}
+            };
+            self.compare()?;
+            multiple = true;
             debug!("/call loop");
         }
+        if multiple {
+            self.wrap(ParseBranchKind::Call, start);
+        }
         debug!("/call");
-        Some(())
+        Some(false)
     }
 
     fn call_tight(&mut self) -> Option<bool> {
@@ -311,8 +303,8 @@ impl<'a> Parser<'a> {
         #[allow(clippy::while_let_loop)] // because maybe include `with` here
         loop {
             match self.peek()? {
-                // Of blocks bind tightly. TODO Also `with`?
-                TokenKind::Of => {
+                // Some blocks bind tightly.
+                TokenKind::Of | TokenKind::With => {
                     skipped = self.dot()?;
                 }
                 _ => break,
@@ -339,7 +331,7 @@ impl<'a> Parser<'a> {
         debug!("def");
         self.skip_h();
         let start = self.builder().pos();
-        self.call(true);
+        self.pair();
         if self.builder().pos() > start {
             self.skip_h();
             if self.peek()? == TokenKind::Define {
@@ -371,7 +363,7 @@ impl<'a> Parser<'a> {
                 TokenKind::Be => break,
                 TokenKind::Colon | TokenKind::CurlyOpen | TokenKind::Id | TokenKind::RoundOpen => {
                     // TODO Really only expect typed.
-                    self.pair();
+                    self.compare();
                     self.skip_h();
                 }
                 // TODO Fix angle handling. Maybe just before in params?
@@ -396,7 +388,7 @@ impl<'a> Parser<'a> {
         Some(())
     }
 
-    define_infix!(pair, compare, false, TokenKind::To);
+    define_infix!(pair, call, false, TokenKind::To);
 
     fn peek(&self) -> Option<TokenKind> {
         self.peek_token().map(|x| x.kind)
@@ -447,27 +439,6 @@ impl<'a> Parser<'a> {
                 TokenKind::Comment | TokenKind::HSpace | TokenKind::VSpace
             )
         })
-    }
-
-    fn spaced(&mut self) -> Option<()> {
-        loop {
-            self.skip_h();
-            let next = self.peek()?;
-            debug!("spaced: {next:?}");
-            match next {
-                TokenKind::AngleClose
-                | TokenKind::Comma
-                | TokenKind::Colon
-                | TokenKind::CurlyClose
-                | TokenKind::Define
-                | TokenKind::End
-                | TokenKind::RoundClose
-                | TokenKind::VSpace => break,
-                _ => self.pair(),
-            };
-            debug!("/spaced");
-        }
-        Some(())
     }
 
     fn starred(&mut self) -> Option<bool> {

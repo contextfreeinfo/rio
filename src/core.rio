@@ -1,5 +1,10 @@
 Claim* = <Maybe Void>
 
+Either* = <for YesValue NoValue be> union of
+    Yes YesValue
+    No NoValue
+end
+
 false* = no void
 
 Int32*:Type = native also module with

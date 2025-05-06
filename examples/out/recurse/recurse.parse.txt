@@ -112,46 +112,46 @@ Block
             Of: "of"
             VSpace: "\n"
             HSpace: "        "
-            Call
-              Infix
-                Infix
-                  Id: "count"
-                  HSpace: " "
-                  AngleClose: ">"
-                  HSpace: " "
-                  Int: "1"
-                  HSpace: " "
-                /Infix
-                To: "to"
-                HSpace: " "
-                Id: "countDown"
-                HSpace: " "
-              /Infix
+            Infix
               Infix
                 Id: "count"
                 HSpace: " "
-                Minus: "-"
+                AngleClose: ">"
                 HSpace: " "
                 Int: "1"
+                HSpace: " "
               /Infix
-            /Call
+              To: "to"
+              HSpace: " "
+              Call
+                Id: "countDown"
+                HSpace: " "
+                Infix
+                  Id: "count"
+                  HSpace: " "
+                  Minus: "-"
+                  HSpace: " "
+                  Int: "1"
+                /Infix
+              /Call
+            /Infix
             VSpace: "\n"
             HSpace: "        "
-            Call
-              Infix
-                Id: "true"
-                HSpace: " "
-                To: "to"
-                HSpace: " "
+            Infix
+              Id: "true"
+              HSpace: " "
+              To: "to"
+              HSpace: " "
+              Call
                 Id: "print"
                 HSpace: " "
-              /Infix
-              StringParts
-                StringEdge: "\""
-                String: "done"
-                StringEdge: "\""
-              /StringParts
-            /Call
+                StringParts
+                  StringEdge: "\""
+                  String: "done"
+                  StringEdge: "\""
+                /StringParts
+              /Call
+            /Infix
             VSpace: "\n"
             HSpace: "    "
             End: "end"
@@ -195,29 +195,29 @@ Block
             Of: "of"
             VSpace: "\n"
             HSpace: "    "
-            Call
-              Infix
-                Infix
-                  Id: "i"
-                  HSpace: " "
-                  AngleClose: ">"
-                  HSpace: " "
-                  Int: "0"
-                  HSpace: " "
-                /Infix
-                To: "to"
-                HSpace: " "
-                Id: "isOdd"
-                HSpace: " "
-              /Infix
+            Infix
               Infix
                 Id: "i"
                 HSpace: " "
-                Minus: "-"
+                AngleClose: ">"
                 HSpace: " "
-                Int: "1"
+                Int: "0"
+                HSpace: " "
               /Infix
-            /Call
+              To: "to"
+              HSpace: " "
+              Call
+                Id: "isOdd"
+                HSpace: " "
+                Infix
+                  Id: "i"
+                  HSpace: " "
+                  Minus: "-"
+                  HSpace: " "
+                  Int: "1"
+                /Infix
+              /Call
+            /Infix
             VSpace: "\n"
             HSpace: "    "
             Infix
@@ -267,29 +267,29 @@ Block
             Of: "of"
             VSpace: "\n"
             HSpace: "    "
-            Call
-              Infix
-                Infix
-                  Id: "i"
-                  HSpace: " "
-                  AngleClose: ">"
-                  HSpace: " "
-                  Int: "0"
-                  HSpace: " "
-                /Infix
-                To: "to"
-                HSpace: " "
-                Id: "isEven"
-                HSpace: " "
-              /Infix
+            Infix
               Infix
                 Id: "i"
                 HSpace: " "
-                Minus: "-"
+                AngleClose: ">"
                 HSpace: " "
-                Int: "1"
+                Int: "0"
+                HSpace: " "
               /Infix
-            /Call
+              To: "to"
+              HSpace: " "
+              Call
+                Id: "isEven"
+                HSpace: " "
+                Infix
+                  Id: "i"
+                  HSpace: " "
+                  Minus: "-"
+                  HSpace: " "
+                  Int: "1"
+                /Infix
+              /Call
+            /Infix
             VSpace: "\n"
             HSpace: "    "
             Infix
@@ -333,21 +333,21 @@ Block
             Of: "of"
             VSpace: "\n"
             HSpace: "    "
-            Call
-              Id: "isEven"
-              HSpace: " "
-              Infix
+            Infix
+              Call
+                Id: "isEven"
+                HSpace: " "
                 Id: "i"
                 HSpace: " "
-                To: "to"
-                HSpace: " "
-                StringParts
-                  StringEdge: "\""
-                  String: "even"
-                  StringEdge: "\""
-                /StringParts
-              /Infix
-            /Call
+              /Call
+              To: "to"
+              HSpace: " "
+              StringParts
+                StringEdge: "\""
+                String: "even"
+                StringEdge: "\""
+              /StringParts
+            /Infix
             VSpace: "\n"
             HSpace: "    "
             Infix

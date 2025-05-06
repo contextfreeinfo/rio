@@ -14,7 +14,18 @@ Block
           target = Id: "alice"
           value = Call
             fun = Id: "Person"
-            args = None
+            args = Range
+              Structured
+                Def
+                  target = Id: "name"
+                  value = Id: "name"
+                /Def
+                Def
+                  target = Id: "age"
+                  value = Int: "40"
+                /Def
+              /Structured
+            /Range
           /Call
         /Def
         Call
@@ -24,7 +35,14 @@ Block
         /Call
         Call
           fun = Id: "describe"
-          args = None
+          args = Range
+            Structured
+              Def
+                target = Id: "name"
+                value = String: "Bob"
+              /Def
+            /Structured
+          /Range
         /Call
         Call
           fun = Id: "describe"
@@ -40,14 +58,34 @@ Block
         /Call
         Call
           fun = Id: "describe"
-          args = None
+          args = Range
+            Structured
+              Def
+                target = Id: "age"
+                value = Int: "9"
+              /Def
+              Def
+                target = Id: "name"
+                value = String: "Denise"
+              /Def
+            /Structured
+          /Range
         /Call
         Def
           target = Typed
             target = Id: "eli"
             type = Id: "Person"
           /Typed
-          value = None
+          value = Structured
+            Def
+              target = Id: "name"
+              value = String: "Eli"
+            /Def
+            Def
+              target = Id: "age"
+              value = Int: "35"
+            /Def
+          /Structured
         /Def
         Call
           fun = Id: "describe"
@@ -61,7 +99,18 @@ Block
     target = Id: "Person"
     value = Call
       fun = Id: "struct"
-      args = None
+      args = Range
+        Structured
+          Typed
+            target = Id: "name"
+            type = Id: "Text"
+          /Typed
+          Typed
+            target = Id: "age"
+            type = Id: "Int32"
+          /Typed
+        /Structured
+      /Range
     /Call
   /Def
   Def
@@ -79,6 +128,17 @@ Block
       /Range
       returning = Id: "Person"
       body = Block
+        Structured
+          Def
+            target = Id: "name"
+            value = Id: "name"
+          /Def
+          Def
+            target = Id: "age"
+            value = Id: "age"
+          /Def
+        /Structured
+      /Block
     /Fun
   /Def
   Def
@@ -120,4 +180,4 @@ Block
   /Def
 /Block
 
-Bytes: 468
+Bytes: 718

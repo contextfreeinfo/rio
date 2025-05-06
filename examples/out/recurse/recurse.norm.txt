@@ -55,17 +55,7 @@ Block
         /Call
         Call
           fun = Id: "branch"
-          args = Range
-            Call
-              fun = None
-              args = None
-            /Call
-            Call
-              fun = None
-              args = Range
-                String: "done"
-            /Call
-          /Range
+          args = None
         /Call
       /Block
     /Fun
@@ -83,12 +73,7 @@ Block
       body = Block
         Call
           fun = Id: "branch"
-          args = Range
-            Call
-              fun = None
-              args = None
-            /Call
-          /Range
+          args = None
         /Call
       /Block
     /Fun
@@ -106,12 +91,7 @@ Block
       body = Block
         Call
           fun = Id: "branch"
-          args = Range
-            Call
-              fun = None
-              args = None
-            /Call
-          /Range
+          args = None
         /Call
       /Block
     /Fun
@@ -129,16 +109,11 @@ Block
       body = Block
         Call
           fun = Id: "branch"
-          args = Range
-            Call
-              fun = Id: "isEven"
-              args = None
-            /Call
-          /Range
+          args = None
         /Call
       /Block
     /Fun
   /Def
 /Block
 
-Bytes: 498
+Bytes: 440
