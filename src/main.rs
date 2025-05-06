@@ -9,9 +9,9 @@ use std::{
 use anyhow::{Error, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lasso::ThreadedRodeo;
-use lex::{Intern, Interner, Lexer};
+use lex::{Intern, Interner, Lexer, TokenKind};
 use norm::write_tree;
-use parse::write_parse_tree;
+use parse::{ParseNode, write_parse_tree};
 use tree::{TreeBuilder, TreeWriter};
 
 mod lex;
@@ -49,6 +49,7 @@ enum DumpOption {
 
 pub struct Cart {
     pub args: BuildArgs,
+    pub core_interns: CoreInterns,
     pub interner: Interner,
     pub outdir: Option<PathBuf>,
     pub text: String,
@@ -93,6 +94,7 @@ impl Cart {
         assert_eq!(NonZeroU32::new(1).unwrap(), empty_intern.into_inner());
         Self {
             args: args.clone(),
+            core_interns: CoreInterns::new(&interner),
             interner: interner.clone(),
             outdir: None,
             text: String::new(),
@@ -190,4 +192,53 @@ fn make_dump_writer(stage: &str, outdir: &Path) -> Result<BufWriter<File>> {
     let path = outdir.join(format!("{name}.{stage}.txt"));
     let file = File::create(path)?;
     Ok(BufWriter::new(file))
+}
+
+/// Provide easy access for comparing resolutions to core native definitions.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CoreInterns {
+    add: Intern,
+    eq: Intern,
+    ge: Intern,
+    gt: Intern,
+    le: Intern,
+    lt: Intern,
+    ne: Intern,
+    pair: Intern,
+    sub: Intern,
+}
+
+impl CoreInterns {
+    pub fn new(interner: &Interner) -> Self {
+        Self {
+            add: interner.get_or_intern("add"),
+            eq: interner.get_or_intern("eq"),
+            ge: interner.get_or_intern("ge"),
+            gt: interner.get_or_intern("gt"),
+            le: interner.get_or_intern("le"),
+            lt: interner.get_or_intern("lt"),
+            ne: interner.get_or_intern("ne"),
+            pair: interner.get_or_intern("pair"),
+            sub: interner.get_or_intern("sub"),
+        }
+    }
+
+    pub fn token_to_intern(&self, node: ParseNode) -> Option<Intern> {
+        let intern = match node {
+            ParseNode::Leaf(token) => match token.kind {
+                TokenKind::AngleClose => self.gt,
+                TokenKind::AngleOpen => self.lt,
+                TokenKind::Eq => self.eq,
+                TokenKind::GreaterEq => self.ge,
+                TokenKind::LessEq => self.le,
+                TokenKind::Minus => self.sub,
+                TokenKind::NotEq => self.ne,
+                TokenKind::Plus => self.add,
+                TokenKind::To => self.pair,
+                _ => return None,
+            },
+            _ => return None,
+        };
+        Some(intern)
+    }
 }

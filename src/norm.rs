@@ -261,6 +261,40 @@ impl<'a> Normer<'a> {
         self.push(call.as_node());
     }
 
+    fn infix(&mut self, branch: ParseBranch, source: usize) {
+        let mut stepper = ParseNodeStepper::new(branch.range);
+        let (a, a_source) = stepper.next(&self.cart.tree).unwrap();
+        let (fun, fun_source) = stepper.next(&self.cart.tree).unwrap();
+        let Some(fun) = self.cart.core_interns.token_to_intern(fun) else {
+            // Presumably only happens on bad macros?
+            return;
+        };
+        let fun = self
+            .wrap(|s| {
+                let tok = Tok {
+                    meta: NodeMeta::at(fun_source),
+                    token: Token {
+                        kind: TokenKind::Id,
+                        intern: fun,
+                    },
+                };
+                s.push(tok.as_node());
+            })
+            .start;
+        let args = self.wrap(|s| {
+            s.node(a, a_source);
+            if let Some((b, b_source)) = stepper.next(&s.cart.tree) {
+                s.node(b, b_source)
+            }
+        });
+        let call = Call {
+            meta: NodeMeta::at(source),
+            fun,
+            args,
+        };
+        self.push(call.as_node());
+    }
+
     fn def(&mut self, branch: ParseBranch, source: usize) {
         let mut stepper = ParseNodeStepper::new(branch.range);
         let (target, target_source) = stepper.next(&self.cart.tree).unwrap();
@@ -323,7 +357,7 @@ impl<'a> Normer<'a> {
             ParseNode::Branch(branch) => match branch.kind {
                 ParseBranchKind::Block => self.block(branch, source),
                 ParseBranchKind::Call => self.call(branch, source),
-                ParseBranchKind::Infix => {}
+                ParseBranchKind::Infix => self.infix(branch, source),
                 ParseBranchKind::Def => self.def(branch, source),
                 ParseBranchKind::Params => panic!(), // handled elsewhere
                 ParseBranchKind::Typed => self.typed(branch, source),

@@ -63,7 +63,41 @@ Block
           target = Id: "message"
           value = Call
             fun = Id: "branch"
-            args = None
+            args = Range
+              Call
+                fun = Id: "pair"
+                args = Range
+                  Call
+                    fun = Id: "lt"
+                    args = Range
+                      Id: "i"
+                      Int: "0"
+                    /Range
+                  /Call
+                  String: "negative"
+                /Range
+              /Call
+              Call
+                fun = Id: "pair"
+                args = Range
+                  Call
+                    fun = Id: "gt"
+                    args = Range
+                      Id: "i"
+                      Int: "0"
+                    /Range
+                  /Call
+                  String: "positive"
+                /Range
+              /Call
+              Call
+                fun = Id: "pair"
+                args = Range
+                  Id: "true"
+                  String: "zero"
+                /Range
+              /Call
+            /Range
           /Call
         /Def
         Id: "message"
@@ -85,8 +119,16 @@ Block
       /Range
       returning = None
       body = Block
+        Call
+          fun = Id: "lt"
+          args = Range
+            Id: "i"
+            Id: "j"
+          /Range
+        /Call
+      /Block
     /Fun
   /Def
 /Block
 
-Bytes: 335
+Bytes: 495

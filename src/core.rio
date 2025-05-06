@@ -35,6 +35,8 @@ Pair* = <for Key Value be> struct with
     value:Value
 end
 
+pair* = <for Key Value be> for key:Key value:Value be Pair {key, value}
+
 true* = yes void
 
 Void*:Type = native void

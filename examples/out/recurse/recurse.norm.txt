@@ -30,7 +30,15 @@ Block
           args = Range
             Call
               fun = Id: "oddness"
-              args = None
+              args = Range
+                Call
+                  fun = Id: "add"
+                  args = Range
+                    Id: "i"
+                    Int: "1"
+                  /Range
+                /Call
+              /Range
             /Call
           /Range
         /Call
@@ -55,7 +63,43 @@ Block
         /Call
         Call
           fun = Id: "branch"
-          args = None
+          args = Range
+            Call
+              fun = Id: "pair"
+              args = Range
+                Call
+                  fun = Id: "gt"
+                  args = Range
+                    Id: "count"
+                    Int: "1"
+                  /Range
+                /Call
+                Call
+                  fun = Id: "countDown"
+                  args = Range
+                    Call
+                      fun = Id: "sub"
+                      args = Range
+                        Id: "count"
+                        Int: "1"
+                      /Range
+                    /Call
+                  /Range
+                /Call
+              /Range
+            /Call
+            Call
+              fun = Id: "pair"
+              args = Range
+                Id: "true"
+                Call
+                  fun = Id: "print"
+                  args = Range
+                    String: "done"
+                /Call
+              /Range
+            /Call
+          /Range
         /Call
       /Block
     /Fun
@@ -73,7 +117,39 @@ Block
       body = Block
         Call
           fun = Id: "branch"
-          args = None
+          args = Range
+            Call
+              fun = Id: "pair"
+              args = Range
+                Call
+                  fun = Id: "gt"
+                  args = Range
+                    Id: "i"
+                    Int: "0"
+                  /Range
+                /Call
+                Call
+                  fun = Id: "isOdd"
+                  args = Range
+                    Call
+                      fun = Id: "sub"
+                      args = Range
+                        Id: "i"
+                        Int: "1"
+                      /Range
+                    /Call
+                  /Range
+                /Call
+              /Range
+            /Call
+            Call
+              fun = Id: "pair"
+              args = Range
+                Id: "true"
+                Id: "true"
+              /Range
+            /Call
+          /Range
         /Call
       /Block
     /Fun
@@ -91,7 +167,39 @@ Block
       body = Block
         Call
           fun = Id: "branch"
-          args = None
+          args = Range
+            Call
+              fun = Id: "pair"
+              args = Range
+                Call
+                  fun = Id: "gt"
+                  args = Range
+                    Id: "i"
+                    Int: "0"
+                  /Range
+                /Call
+                Call
+                  fun = Id: "isEven"
+                  args = Range
+                    Call
+                      fun = Id: "sub"
+                      args = Range
+                        Id: "i"
+                        Int: "1"
+                      /Range
+                    /Call
+                  /Range
+                /Call
+              /Range
+            /Call
+            Call
+              fun = Id: "pair"
+              args = Range
+                Id: "true"
+                Id: "false"
+              /Range
+            /Call
+          /Range
         /Call
       /Block
     /Fun
@@ -109,11 +217,30 @@ Block
       body = Block
         Call
           fun = Id: "branch"
-          args = None
+          args = Range
+            Call
+              fun = Id: "pair"
+              args = Range
+                Call
+                  fun = Id: "isEven"
+                  args = Range
+                    Id: "i"
+                /Call
+                String: "even"
+              /Range
+            /Call
+            Call
+              fun = Id: "pair"
+              args = Range
+                Id: "true"
+                String: "odd"
+              /Range
+            /Call
+          /Range
         /Call
       /Block
     /Fun
   /Def
 /Block
 
-Bytes: 440
+Bytes: 909
