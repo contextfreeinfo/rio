@@ -1,50 +1,58 @@
-Claim* = <Maybe Void>
+abstract* = for void be native
 
-Either* = <for YesValue NoValue be> union of
+Array* = (for Item size:Int) be native
+
+Claim* = Maybe Void
+
+Either* = (for YesValue NoValue) union of
     Yes YesValue
     No NoValue
 end
 
 false* = no void
 
-Int32*:Type = native also module with
-    add* = for other:Int32 :Int32 be native void
-    eq* = for other:Int32 :Claim be native void
-    ge* = for other:Int32 :Claim be native void
-    gt* = for other:Int32 :Claim be native void
-    le* = for other:Int32 :Claim be native void
-    lt* = for other:Int32 :Claim be native void
-    ne* = for other:Int32 :Claim be native void
-    sub* = for other:Int32 :Int32 be native void
+Int* = class with
+    add* = for other:Int :Int be native
+    eq* = for other:Int :Claim be native
+    ge* = for other:Int :Claim be native
+    gt* = for other:Int :Claim be native
+    le* = for other:Int :Claim be native
+    lt* = for other:Int :Claim be native
+    ne* = for other:Int :Claim be native
+    sub* = for other:Int :Int be native
 end
 
-Maybe* = <for Value be> <Either Value Void>
+Maybe* = (for Value) Either Value Void
 
-native* = for void be native void
+native* = for void be native
 
-No* = <for Value be> struct with
+No* = (for Value) struct with
     value:Value
 end
 
-no* = <for Value be> for value:Value be No {value}
+no* = (for Value) for value:Value be No {value}
 
 null* = false
 
-Pair* = <for Key Value be> struct with
+Pair* = (for Key Value) struct with
     key:Key
     value:Value
 end
 
-pair* = <for Key Value be> for key:Key value:Value be Pair {key, value}
+pair* = (for Key Value) for key:Key value:Value be Pair {key, value}
+
+Predicate* = (for Subject) interface for subject:Subject :Claim be abstract
 
 true* = yes void
 
-Void*:Type = native void
+Type* = (for Bound) native
 
-void*:Void = native void
+Void*:Type = native
 
-Yes* = <for Value be> struct with
+void*:Void = native
+
+Yes* = (for Value) struct with
     value:Value
 end
 
-yes* = <for Value be> for value:Value be Yes {value}
+yes* = (for Value) for value:Value be Yes {value}

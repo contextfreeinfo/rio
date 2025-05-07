@@ -353,7 +353,7 @@ impl<'a> Parser<'a> {
         debug!("fun");
         let start = self.builder().pos();
         self.advance();
-        self.skip_h();
+        self.skip_hv();
         // TODO Type params
         // In params
         let in_params_start = self.builder().pos();
@@ -364,7 +364,7 @@ impl<'a> Parser<'a> {
                 TokenKind::Colon | TokenKind::CurlyOpen | TokenKind::Id | TokenKind::RoundOpen => {
                     // TODO Really only expect typed.
                     self.compare();
-                    self.skip_h();
+                    self.skip_hv();
                 }
                 // TODO Fix angle handling. Maybe just before in params?
                 // TODO If angle, also try paren afterward. If so, nested funs.
