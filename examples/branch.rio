@@ -4,11 +4,11 @@ main* = for void be
     describe 0
 end
 
-describe = for i:Int32 be
-    print (description i)
+describe = for i:Int be
+    print of description i
 end
 
-description = for i:Int32 be
+description = for i:Int be
     message = branch of
         i < 0 to "negative"
         i > 0 to "positive"
@@ -17,4 +17,4 @@ description = for i:Int32 be
     message
 end
 
-less = for i:Int32 j:Int32 be i < j
+less = for i:Int j:Int be i < j

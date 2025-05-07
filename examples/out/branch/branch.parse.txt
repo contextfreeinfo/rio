@@ -56,7 +56,7 @@ Block
         Typed
           Id: "i"
           Colon: ":"
-          Id: "Int32"
+          Id: "Int"
           HSpace: " "
         /Typed
       Block
@@ -67,13 +67,13 @@ Block
           Id: "print"
           HSpace: " "
           Block
-            RoundOpen: "("
+            Of: "of"
+            HSpace: " "
             Call
               Id: "description"
               HSpace: " "
               Id: "i"
             /Call
-            RoundClose: ")"
           /Block
         /Call
         VSpace: "\n"
@@ -95,7 +95,7 @@ Block
         Typed
           Id: "i"
           Colon: ":"
-          Id: "Int32"
+          Id: "Int"
           HSpace: " "
         /Typed
       Block
@@ -191,13 +191,13 @@ Block
         Typed
           Id: "i"
           Colon: ":"
-          Id: "Int32"
+          Id: "Int"
           HSpace: " "
         /Typed
         Typed
           Id: "j"
           Colon: ":"
-          Id: "Int32"
+          Id: "Int"
           HSpace: " "
         /Typed
       /Params

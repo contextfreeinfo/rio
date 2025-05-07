@@ -14,10 +14,10 @@ end
 
 Person = struct with
     name:Text
-    age:Int32
+    age:Int
 end
 
-build = for name:Text age:Int32 :Person be {name, age}
+build = for name:Text age:Int :Person be {name, age}
 
 describe = for person:Person be
     # TODO Text interp and auto struct printing.

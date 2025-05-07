@@ -53,7 +53,8 @@ Block
           Id: "print"
           HSpace: " "
           Block
-            RoundOpen: "("
+            Of: "of"
+            HSpace: " "
             Call
               Id: "oddness"
               HSpace: " "
@@ -65,7 +66,6 @@ Block
                 Int: "1"
               /Infix
             /Call
-            RoundClose: ")"
           /Block
         /Call
         VSpace: "\n"
@@ -87,7 +87,7 @@ Block
         Typed
           Id: "count"
           Colon: ":"
-          Id: "Int32"
+          Id: "Int"
           HSpace: " "
         /Typed
       Block
@@ -176,7 +176,7 @@ Block
         Typed
           Id: "i"
           Colon: ":"
-          Id: "Int32"
+          Id: "Int"
           HSpace: " "
         /Typed
         Typed
@@ -248,7 +248,7 @@ Block
         Typed
           Id: "i"
           Colon: ":"
-          Id: "Int32"
+          Id: "Int"
           HSpace: " "
         /Typed
         Typed
@@ -320,7 +320,7 @@ Block
         Typed
           Id: "i"
           Colon: ":"
-          Id: "Int32"
+          Id: "Int"
           HSpace: " "
         /Typed
       Block

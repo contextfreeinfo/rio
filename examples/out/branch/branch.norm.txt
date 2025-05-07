@@ -30,7 +30,7 @@ Block
       params = Range
         Typed
           target = Id: "i"
-          type = Id: "Int32"
+          type = Id: "Int"
         /Typed
       /Range
       returning = None
@@ -54,7 +54,7 @@ Block
       params = Range
         Typed
           target = Id: "i"
-          type = Id: "Int32"
+          type = Id: "Int"
         /Typed
       /Range
       returning = None
@@ -110,11 +110,11 @@ Block
       params = Range
         Typed
           target = Id: "i"
-          type = Id: "Int32"
+          type = Id: "Int"
         /Typed
         Typed
           target = Id: "j"
-          type = Id: "Int32"
+          type = Id: "Int"
         /Typed
       /Range
       returning = None

@@ -218,7 +218,7 @@ Block
         Typed
           Id: "age"
           Colon: ":"
-          Id: "Int32"
+          Id: "Int"
         /Typed
         VSpace: "\n"
         End: "end"
@@ -245,7 +245,7 @@ Block
         Typed
           Id: "age"
           Colon: ":"
-          Id: "Int32"
+          Id: "Int"
           HSpace: " "
         /Typed
         Typed
