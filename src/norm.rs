@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 macro_rules! generate_node_enums {
     ($($variant:ident),*$(,)*) => {
         #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-        enum NodeKind {
+        pub enum NodeKind {
             None,
             $(
                 $variant,
@@ -45,6 +45,19 @@ macro_rules! generate_node_enums {
 }
 
 impl Node {
+    pub fn id(bytes: &[u8], node: Node) -> Option<Intern> {
+        match node {
+            Node::Def(def) => Node::id(bytes, Node::read(bytes, def.target).0),
+            Node::Public(public) => Node::id(bytes, Node::read(bytes, public.kid).0),
+            Node::Tok(tok) => match tok.token.kind {
+                TokenKind::Id => Some(tok.token.intern),
+                _ => None,
+            },
+            Node::Typed(typed) => Node::id(bytes, Node::read(bytes, typed.target).0),
+            _ => None,
+        }
+    }
+
     pub fn read(bytes: &[u8], offset: usize) -> (Node, usize) {
         if offset == 0 {
             return (Node::None, 0);
@@ -52,15 +65,50 @@ impl Node {
         let (node, unused) = take_from_bytes(&bytes[offset..]).unwrap();
         (node, bytes.len() - unused.len())
     }
+
+    // pub fn read_node(bytes: &[u8], offset: usize) -> Option<Node> {
+    //     match () {
+    //         _ if (0..bytes.len()).contains(&offset) => Some(Node::read(bytes, offset).0),
+    //         _ => None,
+    //     }
+    // }
 }
 
-trait NodeData {
+pub trait NodeData {
     const KIND: NodeKind;
 
     fn as_node(&self) -> Node;
 
     fn kind(&self) -> NodeKind {
         Self::KIND
+    }
+}
+
+pub struct NodeStepper {
+    start: usize,
+    end: usize,
+}
+
+impl NodeStepper {
+    pub fn new(range: SizeRange) -> Self {
+        Self {
+            start: range.start,
+            end: range.end,
+        }
+    }
+
+    pub fn next(&mut self, chunks: &[u8]) -> Option<Node> {
+        self.next_idx(chunks).map(|x| x.0)
+    }
+
+    pub fn next_idx(&mut self, chunks: &[u8]) -> Option<(Node, usize)> {
+        let idx = self.start;
+        let (node, offset) = match () {
+            _ if self.start < self.end => Node::read(chunks, self.start),
+            _ => return None,
+        };
+        self.start = offset;
+        Some((node, idx))
     }
 }
 
@@ -80,55 +128,55 @@ impl NodeMeta {
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Block {
-    meta: NodeMeta,
-    kids: SizeRange,
+    pub meta: NodeMeta,
+    pub kids: SizeRange,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Call {
-    meta: NodeMeta,
-    fun: usize,
-    args: SizeRange,
+    pub meta: NodeMeta,
+    pub fun: usize,
+    pub args: SizeRange,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Def {
-    meta: NodeMeta, // typ eventually implies type
-    target: usize,  // uid eventually implies pub
-    value: usize,
+    pub meta: NodeMeta, // typ eventually implies type
+    pub target: usize,  // uid eventually implies pub
+    pub value: usize,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Fun {
-    meta: NodeMeta,
-    params: SizeRange,
-    returning: usize,
-    body: usize,
+    pub meta: NodeMeta,
+    pub params: SizeRange,
+    pub returning: usize,
+    pub body: usize,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Public {
-    meta: NodeMeta,
-    kid: usize,
+    pub meta: NodeMeta,
+    pub kid: usize,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Structured {
-    meta: NodeMeta,
-    defs: SizeRange,
+    pub meta: NodeMeta,
+    pub defs: SizeRange,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Tok {
-    meta: NodeMeta,
-    token: Token,
+    pub meta: NodeMeta,
+    pub token: Token,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Typed {
-    meta: NodeMeta,
-    target: usize,
-    typ: usize,
+    pub meta: NodeMeta,
+    pub target: usize,
+    pub typ: usize,
 }
 
 #[allow(unused)]
@@ -147,10 +195,8 @@ impl<'a> Normer<'a> {
         self.builder().clear();
         let source = TreeBuilder::top_of(&self.cart.tree);
         // Finish top and drain tree.
-        let bytes_top = self.wrap(|s| s.top(source)).start;
-        self.cart
-            .tree_builder
-            .drain_into(&mut self.cart.tree, bytes_top);
+        let top = self.wrap(|s| s.top(source)).start;
+        self.cart.tree_builder.drain_into(&mut self.cart.tree, top);
     }
 
     // General helpers
@@ -601,10 +647,9 @@ where
             indent: indented.indent + writer.indent,
             ..indented
         };
-        let mut offset = range.start;
         let mut count = 0;
-        while offset < range.end {
-            let (node, next_offset) = Node::read(writer.bytes, offset);
+        let mut stepper = NodeStepper::new(range);
+        while let Some(node) = stepper.next(writer.bytes) {
             count += write_tree_at(
                 writer,
                 TreeWriting {
@@ -612,7 +657,6 @@ where
                     ..indented_more
                 },
             )?;
-            offset = next_offset;
         }
         result += count;
         if count > 1 {
@@ -626,13 +670,10 @@ where
         Node::None => writeln!(writer.file, "{:?}", NodeKind::None)?,
         Node::Block(block) => {
             writeln!(writer.file, "{:?}", block.kind())?;
-            let range = block.kids;
-            let mut offset = range.start;
             let mut count = 0;
-            while offset < range.end {
-                let (node, next_offset) = Node::read(writer.bytes, offset);
+            let mut stepper = NodeStepper::new(block.kids);
+            while let Some(node) = stepper.next(writer.bytes) {
                 count += write_tree_at(writer, TreeWriting { node, ..indented })?;
-                offset = next_offset;
             }
             result += count;
             if count > 1 {
@@ -718,13 +759,10 @@ where
         }
         Node::Structured(structured) => {
             writeln!(writer.file, "{:?}", structured.kind())?;
-            let range = structured.defs;
-            let mut offset = range.start;
             let mut count = 0;
-            while offset < range.end {
-                let (node, next_offset) = Node::read(writer.bytes, offset);
+            let mut stepper = NodeStepper::new(structured.defs);
+            while let Some(node) = stepper.next(writer.bytes) {
                 count += write_tree_at(writer, TreeWriting { node, ..indented })?;
-                offset = next_offset;
             }
             result += count;
             if count > 1 {

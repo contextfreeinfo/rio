@@ -12,11 +12,13 @@ use lasso::ThreadedRodeo;
 use lex::{Intern, Interner, Lexer, TokenKind};
 use norm::write_tree;
 use parse::{ParseNode, write_parse_tree};
+use refine::extract::IdxMap;
 use tree::{TreeBuilder, TreeWriter};
 
 mod lex;
 mod norm;
 mod parse;
+mod refine;
 mod tree;
 
 #[derive(clap::Parser)]
@@ -53,7 +55,9 @@ pub struct Cart {
     pub interner: Interner,
     pub outdir: Option<PathBuf>,
     pub text: String,
+    // TODO Just use tree for tokens?
     pub tokens: Vec<u8>,
+    pub tops: IdxMap<Intern, usize>,
     pub tree: Vec<u8>,
     pub tree_builder: TreeBuilder,
 }
@@ -99,6 +103,7 @@ impl Cart {
             outdir: None,
             text: String::new(),
             tokens: vec![],
+            tops: Default::default(),
             tree: vec![],
             tree_builder: Default::default(),
         }
@@ -109,6 +114,20 @@ impl Cart {
         self.lex()?;
         self.parse()?;
         self.norm()?;
+        self.refine()?;
+        Ok(())
+    }
+
+    fn maybe_dump_normed(&self, stage: &'static str) -> Result<()> {
+        if self.args.dump.contains(&DumpOption::Trees) {
+            if let Some(outdir) = &self.outdir {
+                let mut writer = make_dump_writer(stage, outdir)?;
+                let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
+                write_tree(&mut writer)?;
+                writeln!(writer.file)?;
+                writeln!(writer.file, "Bytes: {}", self.tree.len())?;
+            }
+        }
         Ok(())
     }
 
@@ -145,15 +164,7 @@ impl Cart {
 
     fn norm(&mut self) -> Result<()> {
         norm::Normer::new(self).norm();
-        if self.args.dump.contains(&DumpOption::Trees) {
-            if let Some(outdir) = &self.outdir {
-                let mut writer = make_dump_writer("norm", outdir)?;
-                let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
-                write_tree(&mut writer)?;
-                writeln!(writer.file)?;
-                writeln!(writer.file, "Bytes: {}", self.tree.len())?;
-            }
-        }
+        self.maybe_dump_normed("norm")?;
         Ok(())
     }
 
@@ -169,6 +180,12 @@ impl Cart {
                 writeln!(writer.file, "Bytes: {}", self.tree.len())?;
             }
         }
+        Ok(())
+    }
+
+    fn refine(&mut self) -> Result<()> {
+        refine::Refiner::new(self).refine();
+        self.maybe_dump_normed("refine")?;
         Ok(())
     }
 }
