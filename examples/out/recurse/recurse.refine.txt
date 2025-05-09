@@ -1,13 +1,17 @@
 Block
   Def
-    target = Public Uid 0.1: "main"
+    target = Public Uid 0/1: "main"
     value = Fun
       params = Range
-        Id: "void"
+        Def
+          target = Uid 0/2: "void"
+          value = None
+        /Def
+      /Range
       returning = None
       body = Block
         Def
-          target = Uid 0.2: "i"
+          target = Uid 0/3: "i"
           value = Int: "3"
         /Def
         Call
@@ -46,13 +50,16 @@ Block
     /Fun
   /Def
   Def
-    target = Uid 0.3: "countDown"
+    target = Uid 0/4: "countDown"
     value = Fun
       params = Range
-        Typed
-          target = Id: "count"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Uid 0/5: "count"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -105,13 +112,16 @@ Block
     /Fun
   /Def
   Def
-    target = Uid 0.4: "isEven"
+    target = Uid 0/6: "isEven"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Uid 0/7: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = Id: "Claim"
       body = Block
@@ -155,13 +165,16 @@ Block
     /Fun
   /Def
   Def
-    target = Uid 0.5: "isOdd"
+    target = Uid 0/8: "isOdd"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Uid 0/9: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = Id: "Claim"
       body = Block
@@ -205,13 +218,16 @@ Block
     /Fun
   /Def
   Def
-    target = Uid 0.6: "oddness"
+    target = Uid 0/10: "oddness"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Uid 0/11: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -243,4 +259,4 @@ Block
   /Def
 /Block
 
-Bytes: 920
+Bytes: 967

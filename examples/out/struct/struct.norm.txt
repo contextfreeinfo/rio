@@ -3,7 +3,11 @@ Block
     target = Public Id: "main"
     value = Fun
       params = Range
-        Id: "void"
+        Def
+          target = Id: "void"
+          value = None
+        /Def
+      /Range
       returning = None
       body = Block
         Def
@@ -117,14 +121,20 @@ Block
     target = Id: "build"
     value = Fun
       params = Range
-        Typed
-          target = Id: "name"
-          type = Id: "Text"
-        /Typed
-        Typed
-          target = Id: "age"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "name"
+            type = Id: "Text"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Id: "age"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = Id: "Person"
       body = Block
@@ -145,10 +155,13 @@ Block
     target = Id: "describe"
     value = Fun
       params = Range
-        Typed
-          target = Id: "person"
-          type = Id: "Person"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "person"
+            type = Id: "Person"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -199,4 +212,4 @@ Block
   /Def
 /Block
 
-Bytes: 792
+Bytes: 819

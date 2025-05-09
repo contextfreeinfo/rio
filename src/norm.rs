@@ -45,19 +45,6 @@ macro_rules! generate_node_enums {
 }
 
 impl Node {
-    pub fn id(bytes: &[u8], node: Node) -> Option<Intern> {
-        match node {
-            Node::Def(def) => Node::id(bytes, Node::read(bytes, def.target).0),
-            Node::Public(public) => Node::id(bytes, Node::read(bytes, public.kid).0),
-            Node::Tok(tok) => match tok.token.kind {
-                TokenKind::Id => Some(tok.token.intern),
-                _ => None,
-            },
-            Node::Typed(typed) => Node::id(bytes, Node::read(bytes, typed.target).0),
-            _ => None,
-        }
-    }
-
     pub fn read(bytes: &[u8], offset: usize) -> (Node, usize) {
         if offset == 0 {
             return (Node::None, 0);
@@ -66,12 +53,15 @@ impl Node {
         (node, bytes.len() - unused.len())
     }
 
-    // pub fn read_node(bytes: &[u8], offset: usize) -> Option<Node> {
-    //     match () {
-    //         _ if (0..bytes.len()).contains(&offset) => Some(Node::read(bytes, offset).0),
-    //         _ => None,
-    //     }
-    // }
+    pub fn uid(bytes: &[u8], node: Node) -> Option<Uid> {
+        match node {
+            Node::Def(def) => Node::uid(bytes, Node::read(bytes, def.target).0),
+            Node::Public(public) => Node::uid(bytes, Node::read(bytes, public.kid).0),
+            Node::Typed(typed) => Node::uid(bytes, Node::read(bytes, typed.target).0),
+            Node::Uid(uid) => Some(uid),
+            _ => None,
+        }
+    }
 }
 
 pub trait NodeData {
@@ -425,18 +415,34 @@ impl<'a> Normer<'a> {
     /// Returns the index for the return type, possibly 0.
     fn params(&mut self, branch: ParseBranch) -> usize {
         let mut stepper = ParseNodeStepper::new(branch.range);
-        // TODO More syntax/nesting for params vs return type?
         let mut last: Option<Typed> = None;
         while let Some((kid, source)) = stepper.next(&self.cart.tree) {
+            let push_typed = |s: &mut Self, kid: Typed| {
+                // Wrap in def.
+                let def = Def {
+                    meta: NodeMeta::at(source),
+                    target: s.wrap(|s| s.push(kid.as_node())).start,
+                    value: 0,
+                };
+                s.push(def.as_node());
+            };
             if let Some(last) = last.take() {
-                self.push(last.as_node());
+                push_typed(self, last);
             }
             match kid {
+                ParseNode::Leaf(_) => {
+                    let def = Def {
+                        meta: NodeMeta::at(source),
+                        target: self.wrap_node(kid, source),
+                        value: 0,
+                    };
+                    self.push(def.as_node());
+                }
                 ParseNode::Branch(kid) if kid.kind == ParseBranchKind::Typed => {
                     let kid = self.typed_data(kid, source);
                     match kid.target {
                         0 => last = Some(kid),
-                        _ => self.push(kid.as_node()),
+                        _ => push_typed(self, kid),
                     }
                 }
                 _ => self.node(kid, source),
@@ -808,7 +814,7 @@ where
         Node::Uid(uid) => {
             writeln!(
                 writer.file,
-                "{:?} {}.{}: {:?}",
+                "{:?} {}/{}: {:?}",
                 uid.kind(),
                 uid.module,
                 uid.num,

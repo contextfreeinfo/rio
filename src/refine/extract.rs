@@ -1,57 +1,9 @@
-use std::{collections::HashMap, hash::Hash, mem::replace};
-
 use crate::{
     Cart,
     lex::TokenKind,
-    norm::{
-        Block, Call, Def, Fun, Node, NodeData, NodeMeta, NodeStepper, Public, Structured, Typed,
-        Uid,
-    },
+    norm::{Block, Call, Def, Fun, Node, NodeData, NodeStepper, Public, Structured, Typed, Uid},
     tree::{SizeRange, TreeBuilder},
 };
-
-/// While inserted, the index shouldn't change, which is an index into the
-/// values vec, even when new values are assigned.
-#[derive(Debug, Default)]
-pub struct IdxMap<K, V> {
-    pub map: HashMap<K, usize>,
-    pub values: Vec<V>,
-}
-
-impl<K, V> IdxMap<K, V> {
-    pub fn get(&mut self, key: &K) -> Option<&V>
-    where
-        K: Eq + Hash,
-    {
-        self.get_idx(key).map(|idx| &self.values[idx])
-    }
-
-    pub fn get_idx(&mut self, key: &K) -> Option<usize>
-    where
-        K: Eq + Hash,
-    {
-        self.map.get(key).copied()
-    }
-
-    /// Returns the index and the old value if any.
-    pub fn insert(&mut self, key: K, value: V) -> (usize, Option<V>)
-    where
-        K: Eq + Hash,
-    {
-        match self.map.get(&key) {
-            Some(idx) => {
-                let old = replace(&mut self.values[*idx], value);
-                (*idx, Some(old))
-            }
-            None => {
-                let idx = self.values.len();
-                self.values.push(value);
-                self.map.insert(key, idx);
-                (idx, None)
-            }
-        }
-    }
-}
 
 pub struct Extractor<'a> {
     pub cart: &'a mut Cart,
@@ -67,16 +19,13 @@ impl<'a> Extractor<'a> {
         if self.cart.defs.is_empty() {
             self.cart.defs.push(Default::default());
         }
-        if self.cart.tops.values.is_empty() {
-            self.cart.tops.values.push(Default::default());
-        }
         // Convert def ids to uids.
         self.builder().clear();
         let top = TreeBuilder::top_of(&self.cart.tree);
         let top = self.wrap(|s| s.convert_def_ids(s.read(top), false)).start;
         self.cart.tree_builder.drain_into(&mut self.cart.tree, top);
-        // Extract top defs.
-        self.extract_tops(Node::read(&self.cart.tree, top).0);
+        // Extract defs.
+        self.extract_defs(self.read(top));
     }
 
     // General helpers
@@ -206,38 +155,24 @@ impl<'a> Extractor<'a> {
         }
     }
 
-    // Extract tops
+    // Extract indices
 
-    fn extract_tops(&mut self, top: Node) {
+    fn extract_defs(&mut self, top: Node) {
         let Node::Block(top) = top else {
             return;
         };
-        // First gather all tops, clearing out old indices.
-        for top in &mut self.cart.tops.values {
-            *top = 0;
-        }
+        self.cart.tops.clear();
         let mut stepper = NodeStepper::new(top.kids);
         while let Some((kid, idx)) = stepper.next_idx(&self.cart.tree) {
-            // TODO Recognize both uids and ids.
-            // TODO Get source/type along with id?
-            // TODO Rather just recurse with context until we get to id?
-            let Some(id) = Node::id(&self.cart.tree, kid) else {
+            let Some(uid) = Node::uid(&self.cart.tree, kid) else {
                 continue;
             };
-            // TODO Report error if old value nonzero.
-            // TODO Store better def entries than just idx?
-            // TODO Convert ids in separate pass.
-            let num = self.cart.tops.insert(id, idx).0;
-            let uid = Uid {
-                meta: NodeMeta::at(0),
-                intern: id,
-                module: 0,
-                num,
-            };
-            // dbg!(uid);
-            // TODO Replace ids with uids.
+            // TODO Report error if duplicate values
+            self.cart.tops.insert(uid.intern, uid.num);
+            self.cart.defs[uid.num] = idx;
         }
-        // Then recurse.
-        // dbg!(&self.cart.tops);
+        dbg!(&self.cart.tops);
+        // TODO Go deep through tree.
+        dbg!(&self.cart.defs);
     }
 }

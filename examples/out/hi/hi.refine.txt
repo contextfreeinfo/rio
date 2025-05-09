@@ -1,13 +1,17 @@
 Block
   Def
-    target = Public Uid 0.1: "main"
+    target = Public Uid 0/1: "main"
     value = Fun
       params = Range
-        Id: "void"
+        Def
+          target = Uid 0/2: "void"
+          value = None
+        /Def
+      /Range
       returning = None
       body = Block
         Def
-          target = Uid 0.2: "message"
+          target = Uid 0/3: "message"
           value = String: "I say \"Hi!\""
         /Def
         Call
@@ -21,17 +25,23 @@ Block
     /Fun
   /Def
   Def
-    target = Uid 0.3: "printTwice"
+    target = Uid 0/4: "printTwice"
     value = Fun
       params = Range
-        Typed
-          target = Id: "message"
-          type = Id: "Text"
-        /Typed
-        Typed
-          target = Id: "middle"
-          type = Id: "Text"
-        /Typed
+        Def
+          target = Typed
+            target = Uid 0/5: "message"
+            type = Id: "Text"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Uid 0/6: "middle"
+            type = Id: "Text"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = Id: "Void"
       body = Block
@@ -55,4 +65,4 @@ Block
   /Def
 /Block
 
-Bytes: 228
+Bytes: 256

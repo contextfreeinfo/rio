@@ -1,9 +1,5 @@
 use std::{
-    fs::{File, create_dir_all},
-    io::{BufWriter, Read, Write},
-    num::NonZeroU32,
-    path::{Path, PathBuf},
-    sync::Arc,
+    collections::HashMap, fs::{create_dir_all, File}, io::{BufWriter, Read, Write}, num::NonZeroU32, path::{Path, PathBuf}, sync::Arc
 };
 
 use anyhow::{Error, Result};
@@ -12,7 +8,6 @@ use lasso::ThreadedRodeo;
 use lex::{Intern, Interner, Lexer, TokenKind};
 use norm::write_tree;
 use parse::{ParseNode, write_parse_tree};
-use refine::extract::IdxMap;
 use tree::{TreeBuilder, TreeWriter};
 
 mod lex;
@@ -60,7 +55,7 @@ pub struct Cart {
     pub text: String,
     // TODO Just use tree for tokens?
     pub tokens: Vec<u8>,
-    pub tops: IdxMap<Intern, usize>,
+    pub tops: HashMap<Intern, usize>,
     pub tree: Vec<u8>,
     pub tree_builder: TreeBuilder,
 }

@@ -3,7 +3,11 @@ Block
     target = Public Id: "main"
     value = Fun
       params = Range
-        Id: "void"
+        Def
+          target = Id: "void"
+          value = None
+        /Def
+      /Range
       returning = None
       body = Block
         Def
@@ -49,10 +53,13 @@ Block
     target = Id: "countDown"
     value = Fun
       params = Range
-        Typed
-          target = Id: "count"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "count"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -108,10 +115,13 @@ Block
     target = Id: "isEven"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = Id: "Claim"
       body = Block
@@ -158,10 +168,13 @@ Block
     target = Id: "isOdd"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = Id: "Claim"
       body = Block
@@ -208,10 +221,13 @@ Block
     target = Id: "oddness"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -243,4 +259,4 @@ Block
   /Def
 /Block
 
-Bytes: 909
+Bytes: 942

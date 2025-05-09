@@ -3,7 +3,11 @@ Block
     target = Public Id: "main"
     value = Fun
       params = Range
-        Id: "void"
+        Def
+          target = Id: "void"
+          value = None
+        /Def
+      /Range
       returning = None
       body = Block
         Def
@@ -24,14 +28,20 @@ Block
     target = Id: "printTwice"
     value = Fun
       params = Range
-        Typed
-          target = Id: "message"
-          type = Id: "Text"
-        /Typed
-        Typed
-          target = Id: "middle"
-          type = Id: "Text"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "message"
+            type = Id: "Text"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Id: "middle"
+            type = Id: "Text"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = Id: "Void"
       body = Block
@@ -55,4 +65,4 @@ Block
   /Def
 /Block
 
-Bytes: 223
+Bytes: 243

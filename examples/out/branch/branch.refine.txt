@@ -1,9 +1,13 @@
 Block
   Def
-    target = Public Uid 0.1: "main"
+    target = Public Uid 0/1: "main"
     value = Fun
       params = Range
-        Id: "void"
+        Def
+          target = Uid 0/2: "void"
+          value = None
+        /Def
+      /Range
       returning = None
       body = Block
         Call
@@ -25,13 +29,16 @@ Block
     /Fun
   /Def
   Def
-    target = Uid 0.2: "describe"
+    target = Uid 0/3: "describe"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Uid 0/4: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -49,18 +56,21 @@ Block
     /Fun
   /Def
   Def
-    target = Uid 0.3: "description"
+    target = Uid 0/5: "description"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Uid 0/6: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
         Def
-          target = Uid 0.4: "message"
+          target = Uid 0/7: "message"
           value = Call
             fun = Id: "branch"
             args = Range
@@ -105,17 +115,23 @@ Block
     /Fun
   /Def
   Def
-    target = Uid 0.5: "less"
+    target = Uid 0/8: "less"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
-        Typed
-          target = Id: "j"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Uid 0/9: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Uid 0/10: "j"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -131,4 +147,4 @@ Block
   /Def
 /Block
 
-Bytes: 508
+Bytes: 555
