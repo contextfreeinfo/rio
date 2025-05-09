@@ -1,5 +1,10 @@
 use std::{
-    collections::HashMap, fs::{create_dir_all, File}, io::{BufWriter, Read, Write}, num::NonZeroU32, path::{Path, PathBuf}, sync::Arc
+    collections::HashMap,
+    fs::{File, create_dir_all},
+    io::{BufWriter, Read, Write},
+    num::NonZeroU32,
+    path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use anyhow::{Error, Result};
