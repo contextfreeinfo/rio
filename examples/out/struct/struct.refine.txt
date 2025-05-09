@@ -1,3 +1,202 @@
 Block
+  Def
+    target = Public Uid 0.1: "main"
+    value = Fun
+      params = Range
+        Id: "void"
+      returning = None
+      body = Block
+        Def
+          target = Uid 0.2: "name"
+          value = String: "Alice"
+        /Def
+        Def
+          target = Uid 0.3: "alice"
+          value = Call
+            fun = Id: "Person"
+            args = Range
+              Structured
+                Def
+                  target = Uid 0.4: "name"
+                  value = Id: "name"
+                /Def
+                Def
+                  target = Uid 0.5: "age"
+                  value = Int: "40"
+                /Def
+              /Structured
+            /Range
+          /Call
+        /Def
+        Call
+          fun = Id: "describe"
+          args = Range
+            Id: "alice"
+        /Call
+        Call
+          fun = Id: "describe"
+          args = Range
+            Structured
+              Def
+                target = Uid 0.6: "name"
+                value = String: "Bob"
+              /Def
+            /Structured
+          /Range
+        /Call
+        Call
+          fun = Id: "describe"
+          args = Range
+            Call
+              fun = Id: "build"
+              args = Range
+                String: "Carl"
+                Int: "10"
+              /Range
+            /Call
+          /Range
+        /Call
+        Call
+          fun = Id: "describe"
+          args = Range
+            Structured
+              Def
+                target = Uid 0.7: "age"
+                value = Int: "9"
+              /Def
+              Def
+                target = Uid 0.8: "name"
+                value = String: "Denise"
+              /Def
+            /Structured
+          /Range
+        /Call
+        Def
+          target = Typed
+            target = Uid 0.9: "eli"
+            type = Id: "Person"
+          /Typed
+          value = Structured
+            Def
+              target = Uid 0.10: "name"
+              value = String: "Eli"
+            /Def
+            Def
+              target = Uid 0.11: "age"
+              value = Int: "35"
+            /Def
+          /Structured
+        /Def
+        Call
+          fun = Id: "describe"
+          args = Range
+            Id: "eli"
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0.12: "Person"
+    value = Call
+      fun = Id: "struct"
+      args = Range
+        Structured
+          Typed
+            target = Id: "name"
+            type = Id: "Text"
+          /Typed
+          Typed
+            target = Id: "age"
+            type = Id: "Int"
+          /Typed
+        /Structured
+      /Range
+    /Call
+  /Def
+  Def
+    target = Uid 0.13: "build"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "name"
+          type = Id: "Text"
+        /Typed
+        Typed
+          target = Id: "age"
+          type = Id: "Int"
+        /Typed
+      /Range
+      returning = Id: "Person"
+      body = Block
+        Structured
+          Def
+            target = Uid 0.14: "name"
+            value = Id: "name"
+          /Def
+          Def
+            target = Uid 0.15: "age"
+            value = Id: "age"
+          /Def
+        /Structured
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0.16: "describe"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "person"
+          type = Id: "Person"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "print"
+          args = Range
+            String: "Person:"
+        /Call
+        Call
+          fun = Id: "print"
+          args = None
+        /Call
+        Call
+          fun = Id: "print"
+          args = Range
+            Call
+              fun = Id: "branch"
+              args = Range
+                Call
+                  fun = Id: "pair"
+                  args = Range
+                    Call
+                      fun = Id: "ge"
+                      args = Range
+                        Int: "18"
+                    /Call
+                    String: "adult"
+                  /Range
+                /Call
+                Call
+                  fun = Id: "pair"
+                  args = Range
+                    Id: "true"
+                    String: "minor"
+                  /Range
+                /Call
+              /Range
+            /Call
+          /Range
+        /Call
+        Call
+          fun = Id: "print"
+          args = Range
+            String: ""
+        /Call
+      /Block
+    /Fun
+  /Def
+/Block
 
-Bytes: 15
+Bytes: 831

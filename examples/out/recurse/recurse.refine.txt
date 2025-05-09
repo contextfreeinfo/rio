@@ -1,3 +1,246 @@
 Block
+  Def
+    target = Public Uid 0.1: "main"
+    value = Fun
+      params = Range
+        Id: "void"
+      returning = None
+      body = Block
+        Def
+          target = Uid 0.2: "i"
+          value = Int: "3"
+        /Def
+        Call
+          fun = Id: "countDown"
+          args = Range
+            Id: "i"
+        /Call
+        Call
+          fun = Id: "print"
+          args = Range
+            Call
+              fun = Id: "oddness"
+              args = Range
+                Id: "i"
+            /Call
+          /Range
+        /Call
+        Call
+          fun = Id: "print"
+          args = Range
+            Call
+              fun = Id: "oddness"
+              args = Range
+                Call
+                  fun = Id: "add"
+                  args = Range
+                    Id: "i"
+                    Int: "1"
+                  /Range
+                /Call
+              /Range
+            /Call
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0.3: "countDown"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "count"
+          type = Id: "Int"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "print"
+          args = Range
+            String: "counting ..."
+        /Call
+        Call
+          fun = Id: "branch"
+          args = Range
+            Call
+              fun = Id: "pair"
+              args = Range
+                Call
+                  fun = Id: "gt"
+                  args = Range
+                    Id: "count"
+                    Int: "1"
+                  /Range
+                /Call
+                Call
+                  fun = Id: "countDown"
+                  args = Range
+                    Call
+                      fun = Id: "sub"
+                      args = Range
+                        Id: "count"
+                        Int: "1"
+                      /Range
+                    /Call
+                  /Range
+                /Call
+              /Range
+            /Call
+            Call
+              fun = Id: "pair"
+              args = Range
+                Id: "true"
+                Call
+                  fun = Id: "print"
+                  args = Range
+                    String: "done"
+                /Call
+              /Range
+            /Call
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0.4: "isEven"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int"
+        /Typed
+      /Range
+      returning = Id: "Claim"
+      body = Block
+        Call
+          fun = Id: "branch"
+          args = Range
+            Call
+              fun = Id: "pair"
+              args = Range
+                Call
+                  fun = Id: "gt"
+                  args = Range
+                    Id: "i"
+                    Int: "0"
+                  /Range
+                /Call
+                Call
+                  fun = Id: "isOdd"
+                  args = Range
+                    Call
+                      fun = Id: "sub"
+                      args = Range
+                        Id: "i"
+                        Int: "1"
+                      /Range
+                    /Call
+                  /Range
+                /Call
+              /Range
+            /Call
+            Call
+              fun = Id: "pair"
+              args = Range
+                Id: "true"
+                Id: "true"
+              /Range
+            /Call
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0.5: "isOdd"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int"
+        /Typed
+      /Range
+      returning = Id: "Claim"
+      body = Block
+        Call
+          fun = Id: "branch"
+          args = Range
+            Call
+              fun = Id: "pair"
+              args = Range
+                Call
+                  fun = Id: "gt"
+                  args = Range
+                    Id: "i"
+                    Int: "0"
+                  /Range
+                /Call
+                Call
+                  fun = Id: "isEven"
+                  args = Range
+                    Call
+                      fun = Id: "sub"
+                      args = Range
+                        Id: "i"
+                        Int: "1"
+                      /Range
+                    /Call
+                  /Range
+                /Call
+              /Range
+            /Call
+            Call
+              fun = Id: "pair"
+              args = Range
+                Id: "true"
+                Id: "false"
+              /Range
+            /Call
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0.6: "oddness"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "branch"
+          args = Range
+            Call
+              fun = Id: "pair"
+              args = Range
+                Call
+                  fun = Id: "isEven"
+                  args = Range
+                    Id: "i"
+                /Call
+                String: "even"
+              /Range
+            /Call
+            Call
+              fun = Id: "pair"
+              args = Range
+                Id: "true"
+                String: "odd"
+              /Range
+            /Call
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+/Block
 
-Bytes: 15
+Bytes: 920

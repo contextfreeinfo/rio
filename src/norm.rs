@@ -112,7 +112,7 @@ impl NodeStepper {
     }
 }
 
-generate_node_enums!(Block, Call, Def, Fun, Public, Structured, Tok, Typed);
+generate_node_enums!(Block, Call, Def, Fun, Public, Structured, Tok, Typed, Uid);
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct NodeMeta {
@@ -179,6 +179,14 @@ pub struct Typed {
     pub typ: usize,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
+pub struct Uid {
+    pub meta: NodeMeta,
+    pub intern: Intern,
+    pub module: usize,
+    pub num: usize,
+}
+
 #[allow(unused)]
 const SIZE_FOR_EASY_VIEW_IN_EDITOR: usize = size_of::<Def>();
 
@@ -193,9 +201,8 @@ impl<'a> Normer<'a> {
 
     pub fn norm(&mut self) {
         self.builder().clear();
-        let source = TreeBuilder::top_of(&self.cart.tree);
-        // Finish top and drain tree.
-        let top = self.wrap(|s| s.top(source)).start;
+        let top = TreeBuilder::top_of(&self.cart.tree);
+        let top = self.wrap(|s| s.top(top)).start;
         self.cart.tree_builder.drain_into(&mut self.cart.tree, top);
     }
 
@@ -796,6 +803,17 @@ where
             )?;
             writer.indent(context.indent)?;
             writeln!(writer.file, "/{:?}", typed.kind())?;
+            result += 1;
+        }
+        Node::Uid(uid) => {
+            writeln!(
+                writer.file,
+                "{:?} {}.{}: {:?}",
+                uid.kind(),
+                uid.module,
+                uid.num,
+                &writer.map[uid.intern]
+            )?;
             result += 1;
         }
     }

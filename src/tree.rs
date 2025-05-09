@@ -39,6 +39,49 @@ impl<Idx> From<Range<Idx>> for SimpleRange<Idx> {
     }
 }
 
+pub struct SimpleRangeIterator<Idx> {
+    range: SimpleRange<Idx>,
+    range_idx: Idx,
+}
+
+pub trait Next {
+    fn next(&self) -> Self;
+}
+
+impl Next for usize {
+    fn next(&self) -> Self {
+        *self + 1
+    }
+}
+
+impl<Idx: Copy + Next + PartialOrd> Iterator for SimpleRangeIterator<Idx> {
+    type Item = Idx;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match () {
+            _ if self.range_idx < self.range.end => {
+                let result = Some(self.range_idx);
+                self.range_idx = self.range_idx.next();
+                result
+            }
+            _ => None,
+        }
+    }
+}
+
+impl<Idx: Copy + Next + PartialOrd> IntoIterator for SimpleRange<Idx> {
+    type Item = Idx;
+
+    type IntoIter = SimpleRangeIterator<Idx>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        SimpleRangeIterator {
+            range: self,
+            range_idx: self.start,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct TreeBuilder {
     pub applied: Vec<u8>,

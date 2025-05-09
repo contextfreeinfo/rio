@@ -14,6 +14,8 @@ impl<'a> Refiner<'a> {
     }
 
     pub fn refine(&mut self) {
+        self.cart.defs.clear();
+        // Every step can be run in a cycle, ideally until convergence.
         Extractor::new(self.cart).extract();
         // self.builder().clear();
         // let source = TreeBuilder::top_of(&self.cart.tree);

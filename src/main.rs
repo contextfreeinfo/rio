@@ -49,9 +49,12 @@ enum DumpOption {
     Trees,
 }
 
+/// Contains the reusable resources for building a module.
 pub struct Cart {
     pub args: BuildArgs,
     pub core_interns: CoreInterns,
+    /// From uid num to def idx.
+    pub defs: Vec<usize>,
     pub interner: Interner,
     pub outdir: Option<PathBuf>,
     pub text: String,
@@ -99,6 +102,7 @@ impl Cart {
         Self {
             args: args.clone(),
             core_interns: CoreInterns::new(&interner),
+            defs: vec![],
             interner: interner.clone(),
             outdir: None,
             text: String::new(),

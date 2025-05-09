@@ -256,6 +256,7 @@ impl<'a> Lexer<'a> {
                 "be" => TokenKind::Be,
                 "end" => TokenKind::End,
                 "for" => TokenKind::Fun,
+                // TODO into for piping?
                 "of" => TokenKind::Of,
                 "to" => TokenKind::To,
                 "with" => TokenKind::With,

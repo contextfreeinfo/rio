@@ -1,3 +1,58 @@
 Block
+  Def
+    target = Public Uid 0.1: "main"
+    value = Fun
+      params = Range
+        Id: "void"
+      returning = None
+      body = Block
+        Def
+          target = Uid 0.2: "message"
+          value = String: "I say \"Hi!\""
+        /Def
+        Call
+          fun = Id: "printTwice"
+          args = Range
+            Id: "message"
+            String: ""
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0.3: "printTwice"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "message"
+          type = Id: "Text"
+        /Typed
+        Typed
+          target = Id: "middle"
+          type = Id: "Text"
+        /Typed
+      /Range
+      returning = Id: "Void"
+      body = Block
+        Call
+          fun = Id: "print"
+          args = Range
+            Id: "message"
+        /Call
+        Call
+          fun = Id: "print"
+          args = Range
+            Id: "middle"
+        /Call
+        Call
+          fun = Id: "print"
+          args = Range
+            Id: "message"
+        /Call
+      /Block
+    /Fun
+  /Def
+/Block
 
-Bytes: 15
+Bytes: 228
