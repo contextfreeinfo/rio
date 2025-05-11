@@ -13,6 +13,7 @@ use lasso::ThreadedRodeo;
 use lex::{Intern, Interner, Lexer, TokenKind};
 use norm::write_tree;
 use parse::{ParseNode, write_parse_tree};
+use refine::resolve::UidInfo;
 use tree::{TreeBuilder, TreeWriter};
 
 mod lex;
@@ -57,6 +58,7 @@ pub struct Cart {
     pub defs: Vec<usize>,
     pub interner: Interner,
     pub outdir: Option<PathBuf>,
+    pub scope: Vec<UidInfo>,
     pub text: String,
     // TODO Just use tree for tokens?
     pub tokens: Vec<u8>,
@@ -102,13 +104,14 @@ impl Cart {
         Self {
             args: args.clone(),
             core_interns: CoreInterns::new(&interner),
-            defs: vec![],
+            defs: Default::default(),
             interner: interner.clone(),
-            outdir: None,
-            text: String::new(),
-            tokens: vec![],
+            outdir: Default::default(),
+            scope: Default::default(),
+            text: Default::default(),
+            tokens: Default::default(),
             tops: Default::default(),
-            tree: vec![],
+            tree: Default::default(),
             tree_builder: Default::default(),
         }
     }

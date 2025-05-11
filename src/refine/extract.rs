@@ -22,7 +22,7 @@ impl<'a> Extractor<'a> {
 
     pub fn update_defs(&mut self) {
         self.update_defs_at(TreeBuilder::top_of(&self.cart.tree), 0);
-        dbg!(&self.cart.defs);
+        // dbg!(&self.cart.defs);
     }
 
     pub fn update_tops(&mut self) {
@@ -38,7 +38,7 @@ impl<'a> Extractor<'a> {
             // TODO Report error if duplicates.
             self.cart.tops.insert(uid.intern, uid.num);
         }
-        dbg!(&self.cart.tops);
+        // dbg!(&self.cart.tops);
     }
 
     // General helpers
