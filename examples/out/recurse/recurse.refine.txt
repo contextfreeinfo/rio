@@ -15,17 +15,19 @@ Block
           value = Int: "3"
         /Def
         Call
-          fun = Id: "countDown"
+          fun = Uid 0/4: "countDown"
           args = Range
-            Id: "i"
+            Uid 0/3: "i"
+          /Range
         /Call
         Call
           fun = Id: "print"
           args = Range
             Call
-              fun = Id: "oddness"
+              fun = Uid 0/10: "oddness"
               args = Range
-                Id: "i"
+                Uid 0/3: "i"
+              /Range
             /Call
           /Range
         /Call
@@ -33,12 +35,12 @@ Block
           fun = Id: "print"
           args = Range
             Call
-              fun = Id: "oddness"
+              fun = Uid 0/10: "oddness"
               args = Range
                 Call
                   fun = Id: "add"
                   args = Range
-                    Id: "i"
+                    Uid 0/3: "i"
                     Int: "1"
                   /Range
                 /Call
@@ -77,17 +79,17 @@ Block
                 Call
                   fun = Id: "gt"
                   args = Range
-                    Id: "count"
+                    Uid 0/5: "count"
                     Int: "1"
                   /Range
                 /Call
                 Call
-                  fun = Id: "countDown"
+                  fun = Uid 0/4: "countDown"
                   args = Range
                     Call
                       fun = Id: "sub"
                       args = Range
-                        Id: "count"
+                        Uid 0/5: "count"
                         Int: "1"
                       /Range
                     /Call
@@ -134,17 +136,17 @@ Block
                 Call
                   fun = Id: "gt"
                   args = Range
-                    Id: "i"
+                    Uid 0/7: "i"
                     Int: "0"
                   /Range
                 /Call
                 Call
-                  fun = Id: "isOdd"
+                  fun = Uid 0/8: "isOdd"
                   args = Range
                     Call
                       fun = Id: "sub"
                       args = Range
-                        Id: "i"
+                        Uid 0/7: "i"
                         Int: "1"
                       /Range
                     /Call
@@ -187,17 +189,17 @@ Block
                 Call
                   fun = Id: "gt"
                   args = Range
-                    Id: "i"
+                    Uid 0/9: "i"
                     Int: "0"
                   /Range
                 /Call
                 Call
-                  fun = Id: "isEven"
+                  fun = Uid 0/6: "isEven"
                   args = Range
                     Call
                       fun = Id: "sub"
                       args = Range
-                        Id: "i"
+                        Uid 0/9: "i"
                         Int: "1"
                       /Range
                     /Call
@@ -238,9 +240,10 @@ Block
               fun = Id: "pair"
               args = Range
                 Call
-                  fun = Id: "isEven"
+                  fun = Uid 0/6: "isEven"
                   args = Range
-                    Id: "i"
+                    Uid 0/11: "i"
+                  /Range
                 /Call
                 String: "even"
               /Range
@@ -259,4 +262,4 @@ Block
   /Def
 /Block
 
-Bytes: 967
+Bytes: 984

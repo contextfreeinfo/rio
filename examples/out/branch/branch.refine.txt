@@ -11,17 +11,17 @@ Block
       returning = None
       body = Block
         Call
-          fun = Id: "describe"
+          fun = Uid 0/3: "describe"
           args = Range
             Int: "2"
         /Call
         Call
-          fun = Id: "describe"
+          fun = Uid 0/3: "describe"
           args = Range
             Int: "-1"
         /Call
         Call
-          fun = Id: "describe"
+          fun = Uid 0/3: "describe"
           args = Range
             Int: "0"
         /Call
@@ -46,9 +46,10 @@ Block
           fun = Id: "print"
           args = Range
             Call
-              fun = Id: "description"
+              fun = Uid 0/5: "description"
               args = Range
-                Id: "i"
+                Uid 0/4: "i"
+              /Range
             /Call
           /Range
         /Call
@@ -80,7 +81,7 @@ Block
                   Call
                     fun = Id: "lt"
                     args = Range
-                      Id: "i"
+                      Uid 0/6: "i"
                       Int: "0"
                     /Range
                   /Call
@@ -93,7 +94,7 @@ Block
                   Call
                     fun = Id: "gt"
                     args = Range
-                      Id: "i"
+                      Uid 0/6: "i"
                       Int: "0"
                     /Range
                   /Call
@@ -110,7 +111,7 @@ Block
             /Range
           /Call
         /Def
-        Id: "message"
+        Uid 0/7: "message"
       /Block
     /Fun
   /Def
@@ -138,8 +139,8 @@ Block
         Call
           fun = Id: "lt"
           args = Range
-            Id: "i"
-            Id: "j"
+            Uid 0/9: "i"
+            Uid 0/10: "j"
           /Range
         /Call
       /Block
@@ -147,4 +148,4 @@ Block
   /Def
 /Block
 
-Bytes: 555
+Bytes: 566

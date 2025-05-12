@@ -41,6 +41,10 @@ Block
           fun = Id: "describe"
           args = Range
             Structured
+              Dot
+                scope = Id: "alice"
+                member = Id: "age"
+              /Dot
               Def
                 target = Id: "name"
                 value = String: "Bob"
@@ -172,7 +176,12 @@ Block
         /Call
         Call
           fun = Id: "print"
-          args = None
+          args = Range
+            Dot
+              scope = Id: "person"
+              member = Id: "name"
+            /Dot
+          /Range
         /Call
         Call
           fun = Id: "print"
@@ -186,7 +195,12 @@ Block
                     Call
                       fun = Id: "ge"
                       args = Range
+                        Dot
+                          scope = Id: "person"
+                          member = Id: "age"
+                        /Dot
                         Int: "18"
+                      /Range
                     /Call
                     String: "adult"
                   /Range
@@ -212,4 +226,4 @@ Block
   /Def
 /Block
 
-Bytes: 819
+Bytes: 881

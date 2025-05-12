@@ -17,12 +17,12 @@ Block
         Def
           target = Uid 0/4: "alice"
           value = Call
-            fun = Id: "Person"
+            fun = Uid 0/14: "Person"
             args = Range
               Structured
                 Def
                   target = Uid 0/5: "name"
-                  value = Id: "name"
+                  value = Uid 0/3: "name"
                 /Def
                 Def
                   target = Uid 0/6: "age"
@@ -33,26 +33,31 @@ Block
           /Call
         /Def
         Call
-          fun = Id: "describe"
+          fun = Uid 0/20: "describe"
           args = Range
-            Id: "alice"
+            Uid 0/4: "alice"
+          /Range
         /Call
         Call
-          fun = Id: "describe"
+          fun = Uid 0/20: "describe"
           args = Range
             Structured
+              Dot
+                scope = Uid 0/7: "alice"
+                member = Id: "age"
+              /Dot
               Def
-                target = Uid 0/7: "name"
+                target = Uid 0/8: "name"
                 value = String: "Bob"
               /Def
             /Structured
           /Range
         /Call
         Call
-          fun = Id: "describe"
+          fun = Uid 0/20: "describe"
           args = Range
             Call
-              fun = Id: "build"
+              fun = Uid 0/15: "build"
               args = Range
                 String: "Carl"
                 Int: "10"
@@ -61,15 +66,15 @@ Block
           /Range
         /Call
         Call
-          fun = Id: "describe"
+          fun = Uid 0/20: "describe"
           args = Range
             Structured
               Def
-                target = Uid 0/8: "age"
+                target = Uid 0/9: "age"
                 value = Int: "9"
               /Def
               Def
-                target = Uid 0/9: "name"
+                target = Uid 0/10: "name"
                 value = String: "Denise"
               /Def
             /Structured
@@ -77,30 +82,31 @@ Block
         /Call
         Def
           target = Typed
-            target = Uid 0/10: "eli"
-            type = Id: "Person"
+            target = Uid 0/11: "eli"
+            type = Uid 0/14: "Person"
           /Typed
           value = Structured
             Def
-              target = Uid 0/11: "name"
+              target = Uid 0/12: "name"
               value = String: "Eli"
             /Def
             Def
-              target = Uid 0/12: "age"
+              target = Uid 0/13: "age"
               value = Int: "35"
             /Def
           /Structured
         /Def
         Call
-          fun = Id: "describe"
+          fun = Uid 0/20: "describe"
           args = Range
-            Id: "eli"
+            Uid 0/11: "eli"
+          /Range
         /Call
       /Block
     /Fun
   /Def
   Def
-    target = Uid 0/13: "Person"
+    target = Uid 0/14: "Person"
     value = Call
       fun = Id: "struct"
       args = Range
@@ -118,47 +124,47 @@ Block
     /Call
   /Def
   Def
-    target = Uid 0/14: "build"
+    target = Uid 0/15: "build"
     value = Fun
       params = Range
         Def
           target = Typed
-            target = Uid 0/15: "name"
+            target = Uid 0/16: "name"
             type = Id: "Text"
           /Typed
           value = None
         /Def
         Def
           target = Typed
-            target = Uid 0/16: "age"
+            target = Uid 0/17: "age"
             type = Id: "Int"
           /Typed
           value = None
         /Def
       /Range
-      returning = Id: "Person"
+      returning = Uid 0/14: "Person"
       body = Block
         Structured
           Def
-            target = Uid 0/17: "name"
-            value = Id: "name"
+            target = Uid 0/18: "name"
+            value = Uid 0/16: "name"
           /Def
           Def
-            target = Uid 0/18: "age"
-            value = Id: "age"
+            target = Uid 0/19: "age"
+            value = Uid 0/17: "age"
           /Def
         /Structured
       /Block
     /Fun
   /Def
   Def
-    target = Uid 0/19: "describe"
+    target = Uid 0/20: "describe"
     value = Fun
       params = Range
         Def
           target = Typed
-            target = Uid 0/20: "person"
-            type = Id: "Person"
+            target = Uid 0/21: "person"
+            type = Uid 0/14: "Person"
           /Typed
           value = None
         /Def
@@ -172,7 +178,12 @@ Block
         /Call
         Call
           fun = Id: "print"
-          args = None
+          args = Range
+            Dot
+              scope = Uid 0/22: "person"
+              member = Id: "name"
+            /Dot
+          /Range
         /Call
         Call
           fun = Id: "print"
@@ -186,7 +197,12 @@ Block
                     Call
                       fun = Id: "ge"
                       args = Range
+                        Dot
+                          scope = Uid 0/23: "person"
+                          member = Id: "age"
+                        /Dot
                         Int: "18"
+                      /Range
                     /Call
                     String: "adult"
                   /Range
@@ -212,4 +228,4 @@ Block
   /Def
 /Block
 
-Bytes: 871
+Bytes: 949

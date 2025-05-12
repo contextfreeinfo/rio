@@ -2,8 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Cart,
-    lex::Intern,
-    norm::{Block, Call, Def, Fun, Node, NodeData, NodeStepper, Public, Structured, Typed},
+    lex::{Intern, TokenKind},
+    norm::{
+        Block, Call, Def, Dot, Fun, Node, NodeData, NodeStepper, Public, Structured, Typed, Uid,
+    },
     tree::{SizeRange, TreeBuilder},
 };
 
@@ -27,7 +29,7 @@ impl<'a> Resolver<'a> {
         self.builder().clear();
         self.cart.scope.clear();
         let top = self
-            .wrap(|s| s.resolve_at(TreeBuilder::top_of(&s.cart.tree)))
+            .wrap(|s| s.resolve_at(TreeBuilder::top_of(&s.cart.tree), 0, false))
             .start;
         self.cart.tree_builder.drain_into(&mut self.cart.tree, top);
     }
@@ -71,47 +73,70 @@ impl<'a> Resolver<'a> {
 
     // Resolve
 
-    fn resolve_at(&mut self, idx: usize) {
+    fn resolve_at(&mut self, idx: usize, depth: usize, structured: bool) {
         let node = self.read(idx);
         match node {
             Node::Block(block) => {
+                let scope_start = self.cart.scope.len();
                 let kids = self.wrap(|s| {
                     let mut stepper = NodeStepper::new(block.kids);
                     while let Some((_, idx)) = stepper.next_idx(&s.cart.tree) {
-                        s.resolve_at(idx);
+                        s.resolve_at(idx, depth + 1, false);
                     }
                 });
+                self.cart.scope.truncate(scope_start);
                 self.push(Block { kids, ..block });
             }
             Node::Call(call) => {
-                let fun = self.wrap_one(|s| s.resolve_at(call.fun));
+                let fun = self.wrap_one(|s| s.resolve_at(call.fun, depth + 1, false));
                 let args = self.wrap(|s| {
                     let mut stepper = NodeStepper::new(call.args);
                     while let Some((_, idx)) = stepper.next_idx(&s.cart.tree) {
-                        s.resolve_at(idx);
+                        s.resolve_at(idx, depth + 1, false);
                     }
                 });
                 self.push(Call { fun, args, ..call });
             }
             Node::Def(def) => {
-                // New def just for target.
-                let target = self.wrap_one(|s| s.resolve_at(def.target));
-                let value = self.wrap_one(|s| s.resolve_at(def.value));
+                if depth > 1 && !structured {
+                    if let Some(uid) = Node::uid(&self.cart.tree, node) {
+                        self.cart.scope.push(UidInfo {
+                            intern: uid.intern,
+                            module: uid.module,
+                            num: uid.num,
+                        });
+                    }
+                }
+                let target = self.wrap_one(|s| s.resolve_at(def.target, depth + 1, false));
+                let value = self.wrap_one(|s| s.resolve_at(def.value, depth + 1, false));
                 self.push(Def {
                     target,
                     value,
                     ..def
                 });
             }
+            Node::Dot(dot) => {
+                let scope = self.wrap_one(|s| s.resolve_at(dot.scope, depth + 1, false));
+                let member = match self.read(dot.member) {
+                    // TODO Special-case member resolution.
+                    tok @ Node::Tok(_) => self.wrap_one(|s| s.push_node(tok)),
+                    _ => self.wrap_one(|s| s.resolve_at(dot.member, depth + 1, false)),
+                };
+                self.push(Dot {
+                    scope,
+                    member,
+                    ..dot
+                });
+            }
             Node::Fun(fun) => {
                 let params = self.wrap(|s| {
                     let mut stepper = NodeStepper::new(fun.params);
                     while let Some((_, idx)) = stepper.next_idx(&s.cart.tree) {
-                        s.resolve_at(idx);
+                        s.resolve_at(idx, depth + 1, false);
                     }
                 });
-                let returning = self.wrap_one(|s| s.resolve_at(fun.returning));
-                let body = self.wrap_one(|s| s.resolve_at(fun.body));
+                let returning = self.wrap_one(|s| s.resolve_at(fun.returning, depth + 1, false));
+                let body = self.wrap_one(|s| s.resolve_at(fun.body, depth + 1, false));
                 self.push(Fun {
                     params,
                     returning,
@@ -120,24 +145,57 @@ impl<'a> Resolver<'a> {
                 });
             }
             Node::Public(public) => {
-                // Forward def.
-                let kid = self.wrap_one(|s| s.resolve_at(public.kid));
+                let kid = self.wrap_one(|s| s.resolve_at(public.kid, depth + 1, false));
                 self.push(Public { kid, ..public });
             }
             Node::Structured(structured) => {
                 let defs = self.wrap(|s| {
                     let mut stepper = NodeStepper::new(structured.defs);
                     while let Some((_, idx)) = stepper.next_idx(&s.cart.tree) {
-                        s.resolve_at(idx);
+                        // TODO Special-case structured definition.
+                        s.resolve_at(idx, depth + 1, true);
                     }
                 });
                 self.push(Structured { defs, ..structured });
             }
-            Node::Tok(_) => self.push_node(node),
+            Node::Tok(tok) => {
+                // Skip resolving if not an id.
+                if tok.token.kind != TokenKind::Id {
+                    // TODO Should this ever happen in normalized trees?
+                    self.push_node(node);
+                    return;
+                }
+                // Walk nested scope.
+                for entry in self.cart.scope.iter().rev() {
+                    if entry.intern == tok.token.intern {
+                        let uid = Uid {
+                            meta: tok.meta,
+                            intern: entry.intern,
+                            module: entry.module,
+                            num: entry.num,
+                        };
+                        self.push(uid);
+                        return;
+                    }
+                }
+                // Check tops.
+                if let Some(entry) = self.cart.tops.get(&tok.token.intern) {
+                    let entry = self.read(self.cart.defs[*entry]);
+                    if let Some(entry) = Node::uid(&self.cart.tree, entry) {
+                        let uid = Uid {
+                            meta: tok.meta,
+                            ..entry
+                        };
+                        self.push(uid);
+                        return;
+                    }
+                }
+                // If we didn't find anything, just keep the token.
+                self.push_node(node);
+            }
             Node::Typed(typed) => {
-                // Forward def just for target.
-                let target = self.wrap_one(|s| s.resolve_at(typed.target));
-                let typ = self.wrap_one(|s| s.resolve_at(typed.typ));
+                let target = self.wrap_one(|s| s.resolve_at(typed.target, depth + 1, false));
+                let typ = self.wrap_one(|s| s.resolve_at(typed.typ, depth + 1, false));
                 self.push(Typed {
                     target,
                     typ,

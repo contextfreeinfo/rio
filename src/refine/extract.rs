@@ -1,7 +1,9 @@
 use crate::{
     Cart,
     lex::TokenKind,
-    norm::{Block, Call, Def, Fun, Node, NodeData, NodeStepper, Public, Structured, Typed, Uid},
+    norm::{
+        Block, Call, Def, Dot, Fun, Node, NodeData, NodeStepper, Public, Structured, Typed, Uid,
+    },
     tree::{SizeRange, TreeBuilder},
 };
 
@@ -132,6 +134,16 @@ impl<'a> Extractor<'a> {
                 });
                 self.push(Call { fun, args, ..call });
             }
+            Node::Dot(dot) => {
+                // New def just for target.
+                let scope = self.wrap_one(|s| s.convert_def_ids_at(s.read(dot.scope), true));
+                let member = self.wrap_one(|s| s.convert_def_ids_at(s.read(dot.member), false));
+                self.push(Dot {
+                    scope,
+                    member,
+                    ..dot
+                });
+            }
             Node::Def(def) => {
                 // New def just for target.
                 let target = self.wrap_one(|s| s.convert_def_ids_at(s.read(def.target), true));
@@ -205,6 +217,10 @@ impl<'a> Extractor<'a> {
             Node::Def(def) => {
                 self.update_defs_at(def.target, idx);
                 self.update_defs_at(def.value, 0);
+            }
+            Node::Dot(dot) => {
+                self.update_defs_at(dot.scope, idx);
+                self.update_defs_at(dot.member, 0);
             }
             Node::Fun(fun) => {
                 update_defs_at_range(self, fun.params);

@@ -102,7 +102,9 @@ impl NodeStepper {
     }
 }
 
-generate_node_enums!(Block, Call, Def, Fun, Public, Structured, Tok, Typed, Uid);
+generate_node_enums!(
+    Block, Call, Def, Dot, Fun, Public, Structured, Tok, Typed, Uid
+);
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct NodeMeta {
@@ -134,6 +136,13 @@ pub struct Def {
     pub meta: NodeMeta, // typ eventually implies type
     pub target: usize,  // uid eventually implies pub
     pub value: usize,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
+pub struct Dot {
+    pub meta: NodeMeta,
+    pub scope: usize,
+    pub member: usize,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
@@ -308,6 +317,26 @@ impl<'a> Normer<'a> {
         let mut stepper = ParseNodeStepper::new(branch.range);
         let (a, a_source) = stepper.next(&self.cart.tree).unwrap();
         let (fun, fun_source) = stepper.next(&self.cart.tree).unwrap();
+        // Special-case dot operations.
+        if let ParseNode::Leaf(Token {
+            kind: TokenKind::Dot,
+            ..
+        }) = fun
+        {
+            let a = self.wrap_node(a, a_source);
+            let b = match stepper.next(&self.cart.tree) {
+                Some((b, b_source)) => self.wrap_node(b, b_source),
+                _ => 0,
+            };
+            let dot = Dot {
+                meta: NodeMeta::at(source),
+                scope: a,
+                member: b,
+            };
+            self.push(dot.as_node());
+            return;
+        }
+        // Otherwise treat as calls.
         let Some(fun) = self.cart.core_interns.token_to_intern(fun) else {
             // Presumably only happens on bad macros?
             return;
@@ -709,6 +738,28 @@ where
             // Close
             writer.indent(context.indent)?;
             writeln!(writer.file, "/{:?}", call.kind())?;
+        }
+        Node::Dot(dot) => {
+            writeln!(writer.file, "{:?}", dot.kind())?;
+            result += write_tree_at(
+                writer,
+                TreeWriting {
+                    label: "scope",
+                    node: Node::read(writer.bytes, dot.scope).0,
+                    ..indented
+                },
+            )?;
+            result += write_tree_at(
+                writer,
+                TreeWriting {
+                    label: "member",
+                    node: Node::read(writer.bytes, dot.member).0,
+                    ..indented
+                },
+            )?;
+            writer.indent(context.indent)?;
+            writeln!(writer.file, "/{:?}", dot.kind())?;
+            result += 1;
         }
         Node::Def(def) => {
             writeln!(writer.file, "{:?}", def.kind())?;

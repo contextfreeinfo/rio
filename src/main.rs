@@ -222,6 +222,7 @@ fn make_dump_writer(stage: &str, outdir: &Path) -> Result<BufWriter<File>> {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CoreInterns {
     add: Intern,
+    dot: Intern,
     eq: Intern,
     ge: Intern,
     gt: Intern,
@@ -235,14 +236,15 @@ pub struct CoreInterns {
 impl CoreInterns {
     pub fn new(interner: &Interner) -> Self {
         Self {
-            add: interner.get_or_intern("add"),
+            add: interner.get_or_intern("add"), // TODO Straight to Uid?
+            dot: interner.get_or_intern("dot"),
             eq: interner.get_or_intern("eq"),
             ge: interner.get_or_intern("ge"),
             gt: interner.get_or_intern("gt"),
             le: interner.get_or_intern("le"),
             lt: interner.get_or_intern("lt"),
             ne: interner.get_or_intern("ne"),
-            pair: interner.get_or_intern("pair"),
+            pair: interner.get_or_intern("pair"), // TODO Straight to Uid?
             sub: interner.get_or_intern("sub"),
         }
     }
@@ -252,6 +254,7 @@ impl CoreInterns {
             ParseNode::Leaf(token) => match token.kind {
                 TokenKind::AngleClose => self.gt,
                 TokenKind::AngleOpen => self.lt,
+                TokenKind::Dot => self.dot,
                 TokenKind::Eq => self.eq,
                 TokenKind::GreaterEq => self.ge,
                 TokenKind::LessEq => self.le,
