@@ -20,12 +20,12 @@ end
 build = for name:Text age:Int :Person be {name, age}
 
 describe = for person:Person be
-    # TODO Text interp and auto struct printing.
-    print "Person:"
-    print person.name
-    print branch of
+    # TODO Text interp and auto struct logging.
+    log "Person:"
+    log person.name
+    log branch of
         person.age >= 18 to "adult"
         true to "minor"
     end
-    print ""
+    log ""
 end

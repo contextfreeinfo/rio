@@ -289,11 +289,11 @@ Block
         Be: "be"
         VSpace: "\n"
         HSpace: "    "
-        Comment: "# TODO Text interp and auto struct printing."
+        Comment: "# TODO Text interp and auto struct logging."
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           StringParts
             StringEdge: "\""
@@ -304,7 +304,7 @@ Block
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           Infix
             Id: "person"
@@ -315,7 +315,7 @@ Block
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           Call
             Id: "branch"
@@ -367,7 +367,7 @@ Block
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           StringParts
             StringEdge: "\""

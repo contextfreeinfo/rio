@@ -43,7 +43,7 @@ Block
       returning = None
       body = Block
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             Call
               fun = Uid 0/5: "description"

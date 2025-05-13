@@ -35,7 +35,7 @@ Block
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           Block
             RoundOpen: "("
@@ -50,7 +50,7 @@ Block
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           Block
             Of: "of"
@@ -95,7 +95,7 @@ Block
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           StringParts
             StringEdge: "\""
@@ -143,7 +143,7 @@ Block
               To: "to"
               HSpace: " "
               Call
-                Id: "print"
+                Id: "log"
                 HSpace: " "
                 StringParts
                   StringEdge: "\""

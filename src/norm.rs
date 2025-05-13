@@ -359,6 +359,7 @@ impl<'a> Normer<'a> {
                 s.node(b, b_source)
             }
         });
+        // TODO Make this into a dot call instead? Except for pair?
         let call = Call {
             meta: NodeMeta::at(source),
             fun,

@@ -170,12 +170,12 @@ Block
       returning = None
       body = Block
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             String: "Person:"
         /Call
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             Dot
               scope = Id: "person"
@@ -184,7 +184,7 @@ Block
           /Range
         /Call
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             Call
               fun = Id: "branch"
@@ -217,7 +217,7 @@ Block
           /Range
         /Call
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             String: ""
         /Call

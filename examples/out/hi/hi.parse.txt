@@ -37,7 +37,7 @@ Block
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "printTwice"
+          Id: "logTwice"
           HSpace: " "
           Id: "message"
           HSpace: " "
@@ -54,7 +54,7 @@ Block
   VSpace: "\n"
   VSpace: "\n"
   Def
-    Id: "printTwice"
+    Id: "logTwice"
     HSpace: " "
     Define: "="
     HSpace: " "
@@ -85,21 +85,21 @@ Block
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           Id: "message"
         /Call
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           Id: "middle"
         /Call
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           Id: "message"
         /Call

@@ -1,10 +1,10 @@
 main* = for void be
     message = "I say \"Hi!\""
-    printTwice message ""
+    logTwice message ""
 end
 
-printTwice = for message:Text middle:Text :Void be
-    print message
-    print middle
-    print message
+logTwice = for message:Text middle:Text :Void be
+    log message
+    log middle
+    log message
 end

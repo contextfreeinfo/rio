@@ -64,7 +64,7 @@ Block
         VSpace: "\n"
         HSpace: "    "
         Call
-          Id: "print"
+          Id: "log"
           HSpace: " "
           Block
             Of: "of"

@@ -5,7 +5,7 @@ main* = for void be
 end
 
 describe = for i:Int be
-    print of description i
+    log of description i
 end
 
 description = for i:Int be

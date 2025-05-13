@@ -22,6 +22,8 @@ Int* = class with
     sub* = for other:Int :Int be native
 end
 
+log* = (for Value) for value:Value be native
+
 Maybe* = (for Value) Either Value Void
 
 native* = for void be native

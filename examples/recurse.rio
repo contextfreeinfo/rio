@@ -1,15 +1,15 @@
 main* = for void be
     i = 3
     countDown i
-    print (oddness i)
-    print of oddness i + 1
+    log (oddness i)
+    log of oddness i + 1
 end
 
 countDown = for count:Int be
-    print "counting ..."
+    log "counting ..."
     branch of
         count > 1 to countDown count - 1
-        true to print "done"
+        true to log "done"
     end
 end
 

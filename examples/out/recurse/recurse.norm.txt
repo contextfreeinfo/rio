@@ -20,7 +20,7 @@ Block
             Id: "i"
         /Call
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             Call
               fun = Id: "oddness"
@@ -30,7 +30,7 @@ Block
           /Range
         /Call
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             Call
               fun = Id: "oddness"
@@ -64,7 +64,7 @@ Block
       returning = None
       body = Block
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             String: "counting ..."
         /Call
@@ -100,7 +100,7 @@ Block
               args = Range
                 Id: "true"
                 Call
-                  fun = Id: "print"
+                  fun = Id: "log"
                   args = Range
                     String: "done"
                 /Call

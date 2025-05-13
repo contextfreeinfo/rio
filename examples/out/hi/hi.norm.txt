@@ -15,7 +15,7 @@ Block
           value = String: "I say \"Hi!\""
         /Def
         Call
-          fun = Id: "printTwice"
+          fun = Id: "logTwice"
           args = Range
             Id: "message"
             String: ""
@@ -25,7 +25,7 @@ Block
     /Fun
   /Def
   Def
-    target = Id: "printTwice"
+    target = Id: "logTwice"
     value = Fun
       params = Range
         Def
@@ -46,17 +46,17 @@ Block
       returning = Id: "Void"
       body = Block
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             Id: "message"
         /Call
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             Id: "middle"
         /Call
         Call
-          fun = Id: "print"
+          fun = Id: "log"
           args = Range
             Id: "message"
         /Call

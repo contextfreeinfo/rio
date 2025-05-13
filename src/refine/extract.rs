@@ -146,6 +146,7 @@ impl<'a> Extractor<'a> {
             }
             Node::Def(def) => {
                 // New def just for target.
+                // TODO Special-case target for structured!
                 let target = self.wrap_one(|s| s.convert_def_ids_at(s.read(def.target), true));
                 let value = self.wrap_one(|s| s.convert_def_ids_at(s.read(def.value), false));
                 self.push(Def {
