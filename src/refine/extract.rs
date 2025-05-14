@@ -1,5 +1,5 @@
 use crate::{
-    Cart,
+    Cart, impl_tree_builder_wrap,
     lex::TokenKind,
     norm::{
         Block, Call, Def, Dot, Fun, Node, NodeData, NodeStepper, Public, Structured, Typed, Uid,
@@ -65,18 +65,7 @@ impl<'a> Extractor<'a> {
         self.read(TreeBuilder::top_of(&self.cart.tree))
     }
 
-    fn wrap<F: FnOnce(&mut Self)>(&mut self, build: F) -> SizeRange {
-        let start = self.builder().pos();
-        build(self);
-        let result = match () {
-            _ if self.builder().pos() == start => SizeRange::default(),
-            _ => {
-                let range = self.builder().apply_range(start);
-                range
-            }
-        };
-        result
-    }
+    impl_tree_builder_wrap!();
 
     fn wrap_one<F: FnOnce(&mut Self)>(&mut self, build: F) -> usize {
         self.wrap(build).start

@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use crate::{
-    Cart,
+    Cart, impl_tree_builder_wrap,
     lex::{Intern, Token, TokenKind},
     parse::{ParseBranch, ParseBranchKind, ParseNode, ParseNodeStepper},
     tree::{SizeRange, TreeBuilder, TreeWriter},
@@ -219,18 +219,7 @@ impl<'a> Normer<'a> {
         ParseNode::read(&self.cart.tree, offset)
     }
 
-    fn wrap<F: FnOnce(&mut Self)>(&mut self, build: F) -> SizeRange {
-        let start = self.builder().pos();
-        build(self);
-        let result = match () {
-            _ if self.builder().pos() == start => SizeRange::default(),
-            _ => {
-                let range = self.builder().apply_range(start);
-                range
-            }
-        };
-        result
-    }
+    impl_tree_builder_wrap!();
 
     fn wrap_node(&mut self, node: ParseNode, source: usize) -> usize {
         self.wrap(|s| s.node(node, source)).start

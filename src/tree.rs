@@ -124,6 +124,20 @@ impl TreeBuilder {
     }
 }
 
+#[macro_export]
+macro_rules! impl_tree_builder_wrap {
+    () => {
+        fn wrap<F: FnOnce(&mut Self)>(&mut self, build: F) -> SizeRange {
+            let start = self.builder().pos();
+            build(self);
+            match () {
+                _ if self.builder().pos() == start => SizeRange::default(),
+                _ => self.builder().apply_range(start),
+            }
+        }
+    };
+}
+
 pub struct TreeWriter<'a, File, Map>
 where
     File: Write,
