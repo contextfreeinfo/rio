@@ -1,13 +1,73 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
-    Cart, impl_tree_builder_wrap,
-    lex::TokenKind,
-    norm::{
+    impl_tree_builder_wrap, lex::{Intern, TokenKind}, norm::{
         Block, Call, Def, Dot, Fun, Node, NodeData, NodeStepper, Public, Structured, Typed, Uid,
-    },
-    tree::{SizeRange, TreeBuilder},
+    }, tree::{SizeRange, TreeBuilder}, Cart
 };
 
 use super::resolve::UidInfo;
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum Typ {
+    #[default]
+    None,
+    Simple(UidInfo),
+    Function(FunctionTyp),
+    Bound(BoundTyp),
+    Generic(GenericTyp),
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum GenericBase {
+    #[default]
+    None,
+    Simple(UidInfo),
+    /// For partial application. Needed?
+    Bound(Box<BoundTyp>),
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum TypArg {
+    #[default]
+    None,
+    Typ(Typ),
+    UInt(usize),
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum TypParamKind {
+    #[default]
+    None,
+    /// The arg is for the bound, allowing None.
+    Typ(Typ),
+    UInt,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct FunctionTyp {
+    params: Vec<Typ>,
+    returning: Box<Typ>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct TypParam {
+    /// For messaging only.
+    id: Intern,
+    kind: TypParamKind,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct BoundTyp {
+    typ: GenericTyp,
+    args: Vec<TypArg>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct GenericTyp {
+    typ: GenericBase,
+    params: Vec<TypParam>,
+}
 
 pub struct Typer<'a> {
     pub cart: &'a mut Cart,
