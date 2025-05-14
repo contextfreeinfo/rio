@@ -4,7 +4,7 @@ use std::{
     io::{BufWriter, Read, Write},
     num::NonZeroU32,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, RwLock},
 };
 
 use anyhow::{Error, Result};
@@ -50,34 +50,45 @@ enum DumpOption {
     Trees,
 }
 
+pub type DefNum = usize;
+pub type TreeIdx = usize;
+
+#[derive(Default)]
+pub struct Module {
+    pub defs: Vec<TreeIdx>,
+    pub tops: HashMap<Intern, DefNum>,
+    pub tree: Vec<u8>,
+}
+
+#[derive(Default)]
+pub struct Catalog {
+    // TODO cart pool?
+    // TODO module map?
+    pub modules: Vec<Module>,
+}
+
 /// Contains the reusable resources for building a module.
 pub struct Cart {
     pub args: BuildArgs,
+    pub catalog: Arc<RwLock<Catalog>>,
+    pub core_defs: CoreDefs,
     pub core_interns: CoreInterns,
     /// From uid num to def idx.
-    pub defs: Vec<usize>,
+    pub defs: Vec<TreeIdx>,
     pub interner: Interner,
+    pub name: String,
     pub outdir: Option<PathBuf>,
     pub scope: Vec<UidInfo>,
     pub text: String,
     // TODO Just use tree for tokens?
     pub tokens: Vec<u8>,
-    pub tops: HashMap<Intern, usize>,
+    pub tops: HashMap<Intern, DefNum>,
     pub tree: Vec<u8>,
     pub tree_builder: TreeBuilder,
 }
 
 fn main() -> Result<()> {
     env_logger::init();
-    // dbg!(size_of::<ParseNode>());
-    // dbg!(align_of::<ParseNode>());
-    // dbg!(size_of::<ParseBranch>());
-    // dbg!(align_of::<ParseBranch>());
-    // dbg!(size_of::<Token>());
-    // dbg!(align_of::<Token>());
-    // dbg!(align_of::<f64>());
-    // dbg!(TokenKind::AngleClose as u32);
-    // dbg!(ParseBranchKind::Infix as u32);
     let cli = Cli::parse();
     match cli.command {
         Commands::Build(args) => build(args),
@@ -85,8 +96,20 @@ fn main() -> Result<()> {
 }
 
 fn build(args: BuildArgs) -> Result<()> {
-    let mut cart = Cart::new(args.clone());
-    if let Err(err) = cart.build() {
+    // Start catalog, avoiding zeros.
+    let mut catalog = Catalog::default();
+    catalog.modules.push(Default::default());
+    let catalog = Arc::new(RwLock::new(catalog));
+    let mut cart = Cart::new(args.clone(), catalog.clone())?;
+    // Put in core as module 1.
+    if let Err(err) = cart.build("", Some(CORE_TEXT)) {
+        println!("Failed building: core");
+        return Err(err);
+    }
+    cart.extract_core_defs();
+    // Then build requested module.
+    // TODO And imports and things.
+    if let Err(err) = cart.build(&args.app, None) {
         println!("Failed building: {}", &args.app);
         return Err(err);
     }
@@ -94,18 +117,21 @@ fn build(args: BuildArgs) -> Result<()> {
 }
 
 impl Cart {
-    fn new(args: BuildArgs) -> Self {
+    fn new(args: BuildArgs, catalog: Arc<RwLock<Catalog>>) -> Result<Self> {
         // Resources
         let interner = Arc::new(ThreadedRodeo::default());
         // Reserve first slot for empty. TODO Reserve others?
         let empty_intern = interner.get_or_intern("");
         assert_eq!(Intern::default(), empty_intern);
         assert_eq!(NonZeroU32::new(1).unwrap(), empty_intern.into_inner());
-        Self {
+        let mut result = Self {
             args: args.clone(),
+            catalog,
+            core_defs: Default::default(),
             core_interns: CoreInterns::new(&interner),
             defs: Default::default(),
             interner: interner.clone(),
+            name: Default::default(),
             outdir: Default::default(),
             scope: Default::default(),
             text: Default::default(),
@@ -113,20 +139,42 @@ impl Cart {
             tops: Default::default(),
             tree: Default::default(),
             tree_builder: Default::default(),
-        }
+        };
+        result.outdir = result.make_outdir()?;
+        Ok(result)
     }
 
-    fn build(&mut self) -> Result<()> {
-        self.outdir = self.make_outdir()?;
-        self.lex()?;
+    fn build(&mut self, name: &str, text: Option<&str>) -> Result<()> {
+        self.name.clear();
+        self.name.push_str(name);
+        self.lex(text)?;
         self.parse()?;
         self.norm()?;
         self.refine()?;
+        let module = Module {
+            // Expect clone to trim capacity, which it seems to at the moment.
+            defs: self.defs.clone(),
+            tops: self.tops.clone(),
+            tree: self.tree.clone(),
+        };
+        let mut catalog = self.catalog.write().unwrap();
+        catalog.modules.push(module);
         Ok(())
     }
 
+    fn extract_core_defs(&mut self) {
+        let catalog = self.catalog.read().unwrap();
+        let core = &catalog.modules[1];
+        // Caching frequently used things in each cart should speed processing.
+        self.core_defs = CoreDefs {
+            int: core.tops[&self.core_interns.int],
+            log: core.tops[&self.core_interns.log],
+            text: core.tops[&self.core_interns.text],
+        };
+    }
+
     fn maybe_dump_normed(&self, stage: &'static str) -> Result<()> {
-        if self.args.dump.contains(&DumpOption::Trees) {
+        if self.args.dump.contains(&DumpOption::Trees) && !self.name.is_empty() {
             if let Some(outdir) = &self.outdir {
                 let mut writer = make_dump_writer(stage, outdir)?;
                 let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
@@ -138,17 +186,9 @@ impl Cart {
         Ok(())
     }
 
-    fn lex(&mut self) -> Result<()> {
+    fn lex(&mut self, text: Option<&str>) -> Result<()> {
         let mut lexer = Lexer::new(self);
-        lex(&mut lexer)?;
-        // dbg!(self.tokens.len());
-        // if let Some(outdir) = &self.outdir {
-        //     let mut writer = make_dump_writer("lex", outdir)?;
-        //     for token in &self.tokens {
-        //         let text = &self.interner[token.intern];
-        //         writeln!(writer, "{:?}: {text:?}", token.kind)?;
-        //     }
-        // }
+        lex(&mut lexer, text)?;
         Ok(())
     }
 
@@ -177,8 +217,7 @@ impl Cart {
 
     fn parse(&mut self) -> Result<()> {
         parse::Parser::new(self).parse();
-        // dbg!(self.tree_bytes.len());
-        if self.args.dump.contains(&DumpOption::Trees) {
+        if self.args.dump.contains(&DumpOption::Trees) && !self.name.is_empty() {
             if let Some(outdir) = &self.outdir {
                 let mut writer = make_dump_writer("parse", outdir)?;
                 let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
@@ -197,17 +236,17 @@ impl Cart {
     }
 }
 
-fn lex(lexer: &mut Lexer) -> Result<()> {
-    let name = lexer.cart.args.app.as_str();
-    match name {
-        "core" => todo!(), // lexer.lex(include_str!("core.rio"))
+fn lex(lexer: &mut Lexer, text: Option<&str>) -> Result<()> {
+    let name = lexer.cart.name.as_str();
+    lexer.cart.text.clear();
+    match text {
+        Some(text) => lexer.cart.text.push_str(text),
         _ => {
-            let mut file = File::open(name)?;
-            file.read_to_string(&mut lexer.cart.text)?;
-            lexer.lex();
-            lexer.cart.text.clear();
+            File::open(name)?.read_to_string(&mut lexer.cart.text)?;
         }
     };
+    lexer.lex();
+    lexer.cart.text.clear();
     Ok(())
 }
 
@@ -225,11 +264,22 @@ pub struct CoreInterns {
     eq: Intern,
     ge: Intern,
     gt: Intern,
+    int: Intern,
     le: Intern,
     lt: Intern,
+    log: Intern,
     ne: Intern,
     pair: Intern,
     sub: Intern,
+    text: Intern,
+}
+
+/// Provide easy access for comparing resolutions to core native definitions.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CoreDefs {
+    pub int: DefNum,
+    pub log: DefNum,
+    pub text: DefNum,
 }
 
 impl CoreInterns {
@@ -237,13 +287,16 @@ impl CoreInterns {
         Self {
             add: interner.get_or_intern("add"), // TODO Straight to Uid?
             eq: interner.get_or_intern("eq"),
+            int: interner.get_or_intern("Int"),
             ge: interner.get_or_intern("ge"),
             gt: interner.get_or_intern("gt"),
             le: interner.get_or_intern("le"),
+            log: interner.get_or_intern("log"),
             lt: interner.get_or_intern("lt"),
             ne: interner.get_or_intern("ne"),
             pair: interner.get_or_intern("pair"), // TODO Straight to Uid?
             sub: interner.get_or_intern("sub"),
+            text: interner.get_or_intern("Text"),
         }
     }
 
@@ -266,3 +319,5 @@ impl CoreInterns {
         Some(intern)
     }
 }
+
+const CORE_TEXT: &str = include_str!("core.rio");

@@ -47,6 +47,8 @@ Predicate* = (for Subject) interface for subject:Subject :Claim be abstract
 
 true* = yes void
 
+Text*:Type = native
+
 Type* = (for Bound) native
 
 Void*:Type = native
