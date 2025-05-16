@@ -10,7 +10,7 @@ Block
       /Range
       returning = None
       body = Block
-        Id: "native"
+        Id: "extern"
     /Fun
   /Def
   Def
@@ -34,7 +34,7 @@ Block
       /Range
       returning = None
       body = Block
-        Id: "native"
+        Id: "extern"
     /Fun
   /Def
   Def
@@ -71,7 +71,7 @@ Block
           /Range
           returning = Id: "String"
           body = Block
-            Id: "native"
+            Id: "extern"
         /Fun
       /Block
     /Fun
@@ -145,7 +145,7 @@ Block
               /Range
               returning = Id: "Int"
               body = Block
-                Id: "native"
+                Id: "extern"
             /Fun
           /Def
           Def
@@ -162,7 +162,7 @@ Block
               /Range
               returning = Id: "Claim"
               body = Block
-                Id: "native"
+                Id: "extern"
             /Fun
           /Def
           Def
@@ -179,7 +179,7 @@ Block
               /Range
               returning = Id: "Claim"
               body = Block
-                Id: "native"
+                Id: "extern"
             /Fun
           /Def
           Def
@@ -196,7 +196,7 @@ Block
               /Range
               returning = Id: "Claim"
               body = Block
-                Id: "native"
+                Id: "extern"
             /Fun
           /Def
           Def
@@ -213,7 +213,7 @@ Block
               /Range
               returning = Id: "Claim"
               body = Block
-                Id: "native"
+                Id: "extern"
             /Fun
           /Def
           Def
@@ -230,7 +230,7 @@ Block
               /Range
               returning = Id: "Claim"
               body = Block
-                Id: "native"
+                Id: "extern"
             /Fun
           /Def
           Def
@@ -247,7 +247,7 @@ Block
               /Range
               returning = Id: "Claim"
               body = Block
-                Id: "native"
+                Id: "extern"
             /Fun
           /Def
           Def
@@ -264,7 +264,7 @@ Block
               /Range
               returning = Id: "Int"
               body = Block
-                Id: "native"
+                Id: "extern"
             /Fun
           /Def
         /Structured
@@ -297,7 +297,7 @@ Block
           /Range
           returning = None
           body = Block
-            Id: "native"
+            Id: "extern"
         /Fun
       /Block
     /Fun
@@ -327,7 +327,7 @@ Block
     /Fun
   /Def
   Def
-    target = Public Id: "native"
+    target = Public Id: "extern"
     value = Fun
       params = Range
         Def
@@ -337,7 +337,7 @@ Block
       /Range
       returning = None
       body = Block
-        Id: "native"
+        Id: "extern"
     /Fun
   /Def
   Def
@@ -566,7 +566,7 @@ Block
       target = Public Id: "Text"
       type = Id: "Type"
     /Typed
-    value = Id: "native"
+    value = Id: "extern"
   /Def
   Def
     target = Public Id: "Type"
@@ -586,7 +586,7 @@ Block
       /Range
       returning = None
       body = Block
-        Id: "native"
+        Id: "extern"
     /Fun
   /Def
   Def
@@ -594,14 +594,14 @@ Block
       target = Public Id: "Void"
       type = Id: "Type"
     /Typed
-    value = Id: "native"
+    value = Id: "extern"
   /Def
   Def
     target = Typed
       target = Public Id: "void"
       type = Id: "Void"
     /Typed
-    value = Id: "native"
+    value = Id: "extern"
   /Def
   Def
     target = Public Id: "Yes"

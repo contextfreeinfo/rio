@@ -17,7 +17,7 @@ Block
       Block
         Be: "be"
         HSpace: " "
-        Id: "native"
+        Id: "extern"
       /Block
     /Fun
   /Def
@@ -51,7 +51,7 @@ Block
       Block
         Be: "be"
         HSpace: " "
-        Id: "native"
+        Id: "extern"
       /Block
     /Fun
   /Def
@@ -113,7 +113,7 @@ Block
           Block
             Be: "be"
             HSpace: " "
-            Id: "native"
+            Id: "extern"
           /Block
         /Fun
       /Block
@@ -236,7 +236,7 @@ Block
             Block
               Be: "be"
               HSpace: " "
-              Id: "native"
+              Id: "extern"
             /Block
           /Fun
         /Def
@@ -269,7 +269,7 @@ Block
             Block
               Be: "be"
               HSpace: " "
-              Id: "native"
+              Id: "extern"
             /Block
           /Fun
         /Def
@@ -302,7 +302,7 @@ Block
             Block
               Be: "be"
               HSpace: " "
-              Id: "native"
+              Id: "extern"
             /Block
           /Fun
         /Def
@@ -335,7 +335,7 @@ Block
             Block
               Be: "be"
               HSpace: " "
-              Id: "native"
+              Id: "extern"
             /Block
           /Fun
         /Def
@@ -368,7 +368,7 @@ Block
             Block
               Be: "be"
               HSpace: " "
-              Id: "native"
+              Id: "extern"
             /Block
           /Fun
         /Def
@@ -401,7 +401,7 @@ Block
             Block
               Be: "be"
               HSpace: " "
-              Id: "native"
+              Id: "extern"
             /Block
           /Fun
         /Def
@@ -434,7 +434,7 @@ Block
             Block
               Be: "be"
               HSpace: " "
-              Id: "native"
+              Id: "extern"
             /Block
           /Fun
         /Def
@@ -467,7 +467,7 @@ Block
             Block
               Be: "be"
               HSpace: " "
-              Id: "native"
+              Id: "extern"
             /Block
           /Fun
         /Def
@@ -512,7 +512,7 @@ Block
           Block
             Be: "be"
             HSpace: " "
-            Id: "native"
+            Id: "extern"
           /Block
         /Fun
       /Block
@@ -557,7 +557,7 @@ Block
   VSpace: "\n"
   Def
     Pub
-      Id: "native"
+      Id: "extern"
       Star: "*"
     /Pub
     HSpace: " "
@@ -573,7 +573,7 @@ Block
       Block
         Be: "be"
         HSpace: " "
-        Id: "native"
+        Id: "extern"
       /Block
     /Fun
   /Def
@@ -892,7 +892,7 @@ Block
     /Typed
     Define: "="
     HSpace: " "
-    Id: "native"
+    Id: "extern"
   /Def
   VSpace: "\n"
   VSpace: "\n"
@@ -925,7 +925,7 @@ Block
       Block
         Be: "be"
         HSpace: " "
-        Id: "native"
+        Id: "extern"
       /Block
     /Fun
   /Def
@@ -943,7 +943,7 @@ Block
     /Typed
     Define: "="
     HSpace: " "
-    Id: "native"
+    Id: "extern"
   /Def
   VSpace: "\n"
   VSpace: "\n"
@@ -959,7 +959,7 @@ Block
     /Typed
     Define: "="
     HSpace: " "
-    Id: "native"
+    Id: "extern"
   /Def
   VSpace: "\n"
   VSpace: "\n"

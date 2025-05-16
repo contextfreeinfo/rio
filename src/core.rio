@@ -1,10 +1,10 @@
-abstract* = for void be native
+abstract* = for void be extern
 
-Array* = for Item:Type size:Int be native
+Array* = for Item:Type size:Int be extern
 
 Claim* = Maybe Void
 
-describe* = for Value:Type be for value:Value :String be native
+describe* = for Value:Type be for value:Value :String be extern
 
 Either* = for YesValue:Type NoValue:Type be union of
     Yes YesValue
@@ -14,22 +14,22 @@ end
 false* = no! void
 
 Int* = class with
-    add* = for other:Int :Int be native
-    eq* = for other:Int :Claim be native
-    ge* = for other:Int :Claim be native
-    gt* = for other:Int :Claim be native
-    le* = for other:Int :Claim be native
-    lt* = for other:Int :Claim be native
-    ne* = for other:Int :Claim be native
-    sub* = for other:Int :Int be native
+    add* = for other:Int :Int be extern
+    eq* = for other:Int :Claim be extern
+    ge* = for other:Int :Claim be extern
+    gt* = for other:Int :Claim be extern
+    le* = for other:Int :Claim be extern
+    lt* = for other:Int :Claim be extern
+    ne* = for other:Int :Claim be extern
+    sub* = for other:Int :Int be extern
 end
 
-log* = for Value:Type be for value:Value be native
+log* = for Value:Type be for value:Value be extern
 # TODO Also think and cry for log levels?
 
 Maybe* = for Value:Type be Either Value Void
 
-native* = for void be native
+extern* = for void be extern
 
 No* = for Value:Type be struct with
     value:Value
@@ -52,13 +52,13 @@ end
 
 true* = yes! void
 
-Text*:Type = native
+Text*:Type = extern
 
-Type* = for Bound:(Maybe Type) be native
+Type* = for Bound:(Maybe Type) be extern
 
-Void*:Type = native
+Void*:Type = extern
 
-void*:Void = native
+void*:Void = extern
 
 Yes* = for Value:Type be struct with
     value:Value
