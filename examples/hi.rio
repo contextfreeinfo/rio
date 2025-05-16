@@ -4,7 +4,7 @@ main* = for void be
 end
 
 logTwice = for message:Text middle:Text :Void be
-    log message
-    log middle
-    log message
+    log! message
+    log! middle
+    log! message
 end

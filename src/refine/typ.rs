@@ -8,6 +8,8 @@ use crate::{
 
 use super::resolve::UidInfo;
 
+// TODO Just values instead of types?
+
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum Typ {
     #[default]

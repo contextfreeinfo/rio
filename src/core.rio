@@ -1,15 +1,17 @@
 abstract* = for void be native
 
-Array* = (for Item size:Int) be native
+Array* = for Item:Type size:Int be native
 
 Claim* = Maybe Void
 
-Either* = (for YesValue NoValue) union of
+describe* = for Value:Type be for value:Value :String be native
+
+Either* = for YesValue:Type NoValue:Type be union of
     Yes YesValue
     No NoValue
 end
 
-false* = no void
+false* = no! void
 
 Int* = class with
     add* = for other:Int :Int be native
@@ -22,41 +24,44 @@ Int* = class with
     sub* = for other:Int :Int be native
 end
 
-log* = (for Value) for value:Value be native
+log* = for Value:Type be for value:Value be native
+# TODO Also think and cry for log levels?
 
-Maybe* = (for Value) Either Value Void
+Maybe* = for Value:Type be Either Value Void
 
 native* = for void be native
 
-No* = (for Value) struct with
+No* = for Value:Type be struct with
     value:Value
 end
 
-no* = (for Value) for value:Value be No {value}
+no* = for Value:Type be for value:Value be No! {value}
 
 null* = false
 
-Pair* = (for Key Value) struct with
+Pair* = for Key:Type Value:Type be struct with
     key:Key
     value:Value
 end
 
-pair* = (for Key Value) for key:Key value:Value be Pair {key, value}
+pair* = for Key:Type Value:Type be for key:Key value:Value be Pair! {key, value}
 
-Predicate* = (for Subject) interface for subject:Subject :Claim be abstract
+Predicate* = for Subject:Type be
+    interface for subject:Subject :Claim be abstract
+end
 
-true* = yes void
+true* = yes! void
 
 Text*:Type = native
 
-Type* = (for Bound) native
+Type* = for Bound:(Maybe Type) be native
 
 Void*:Type = native
 
 void*:Void = native
 
-Yes* = (for Value) struct with
+Yes* = for Value:Type be struct with
     value:Value
 end
 
-yes* = (for Value) for value:Value be Yes {value}
+yes* = for Value:Type be for value:Value be Yes! {value}

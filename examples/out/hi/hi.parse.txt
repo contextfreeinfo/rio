@@ -86,6 +86,7 @@ Block
         HSpace: "    "
         Call
           Id: "log"
+          Id: "!"
           HSpace: " "
           Id: "message"
         /Call
@@ -93,6 +94,7 @@ Block
         HSpace: "    "
         Call
           Id: "log"
+          Id: "!"
           HSpace: " "
           Id: "middle"
         /Call
@@ -100,6 +102,7 @@ Block
         HSpace: "    "
         Call
           Id: "log"
+          Id: "!"
           HSpace: " "
           Id: "message"
         /Call
@@ -111,4 +114,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 329
+Bytes: 338

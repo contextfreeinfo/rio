@@ -48,18 +48,21 @@ Block
         Call
           fun = Id: "log"
           args = Range
+            Id: "!"
             Uid 0/5: "message"
           /Range
         /Call
         Call
           fun = Id: "log"
           args = Range
+            Id: "!"
             Uid 0/6: "middle"
           /Range
         /Call
         Call
           fun = Id: "log"
           args = Range
+            Id: "!"
             Uid 0/5: "message"
           /Range
         /Call
@@ -68,4 +71,4 @@ Block
   /Def
 /Block
 
-Bytes: 261
+Bytes: 279
