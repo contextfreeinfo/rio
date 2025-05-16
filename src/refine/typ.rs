@@ -1,9 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    impl_tree_builder_wrap, lex::{Intern, TokenKind}, norm::{
+    Cart, impl_tree_builder_wrap,
+    lex::{Intern, TokenKind},
+    norm::{
         Block, Call, Def, Dot, Fun, Node, NodeData, NodeStepper, Public, Structured, Typed, Uid,
-    }, tree::{SizeRange, TreeBuilder}, Cart
+    },
+    tree::{SizeRange, TreeBuilder},
 };
 
 use super::resolve::UidInfo;
@@ -25,7 +28,7 @@ pub enum GenericBase {
     #[default]
     None,
     Simple(UidInfo),
-    /// For partial application. Needed?
+    /// For partial application. Needed? TODO If so, always collapse when can.
     Bound(Box<BoundTyp>),
 }
 

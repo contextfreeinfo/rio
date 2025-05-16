@@ -1,0 +1,1060 @@
+Block
+  Def
+    Pub
+      Id: "abstract"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Id: "void"
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "native"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Array"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Item"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+        Typed
+          Id: "size"
+          Colon: ":"
+          Id: "Int"
+          HSpace: " "
+        /Typed
+      /Params
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "native"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Claim"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Call
+      Id: "Maybe"
+      HSpace: " "
+      Id: "Void"
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "describe"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Value"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Fun
+          Fun: "for"
+          HSpace: " "
+          Params
+            Typed
+              Id: "value"
+              Colon: ":"
+              Id: "Value"
+              HSpace: " "
+            /Typed
+            Typed
+              Colon: ":"
+              Id: "String"
+              HSpace: " "
+            /Typed
+          /Params
+          Block
+            Be: "be"
+            HSpace: " "
+            Id: "native"
+          /Block
+        /Fun
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Either"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "YesValue"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+        Typed
+          Id: "NoValue"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      /Params
+      Block
+        Be: "be"
+        HSpace: " "
+        Call
+          Id: "union"
+          HSpace: " "
+          Block
+            Of: "of"
+            VSpace: "\n"
+            HSpace: "    "
+            Call
+              Id: "Yes"
+              HSpace: " "
+              Id: "YesValue"
+            /Call
+            VSpace: "\n"
+            HSpace: "    "
+            Call
+              Id: "No"
+              HSpace: " "
+              Id: "NoValue"
+            /Call
+            VSpace: "\n"
+            End: "end"
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "false"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Call
+      Id: "no"
+      Id: "!"
+      HSpace: " "
+      Id: "void"
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Int"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Call
+      Id: "class"
+      HSpace: " "
+      Block
+        With: "with"
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Pub
+            Id: "add"
+            Star: "*"
+          /Pub
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Fun
+            Fun: "for"
+            HSpace: " "
+            Params
+              Typed
+                Id: "other"
+                Colon: ":"
+                Id: "Int"
+                HSpace: " "
+              /Typed
+              Typed
+                Colon: ":"
+                Id: "Int"
+                HSpace: " "
+              /Typed
+            /Params
+            Block
+              Be: "be"
+              HSpace: " "
+              Id: "native"
+            /Block
+          /Fun
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Pub
+            Id: "eq"
+            Star: "*"
+          /Pub
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Fun
+            Fun: "for"
+            HSpace: " "
+            Params
+              Typed
+                Id: "other"
+                Colon: ":"
+                Id: "Int"
+                HSpace: " "
+              /Typed
+              Typed
+                Colon: ":"
+                Id: "Claim"
+                HSpace: " "
+              /Typed
+            /Params
+            Block
+              Be: "be"
+              HSpace: " "
+              Id: "native"
+            /Block
+          /Fun
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Pub
+            Id: "ge"
+            Star: "*"
+          /Pub
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Fun
+            Fun: "for"
+            HSpace: " "
+            Params
+              Typed
+                Id: "other"
+                Colon: ":"
+                Id: "Int"
+                HSpace: " "
+              /Typed
+              Typed
+                Colon: ":"
+                Id: "Claim"
+                HSpace: " "
+              /Typed
+            /Params
+            Block
+              Be: "be"
+              HSpace: " "
+              Id: "native"
+            /Block
+          /Fun
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Pub
+            Id: "gt"
+            Star: "*"
+          /Pub
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Fun
+            Fun: "for"
+            HSpace: " "
+            Params
+              Typed
+                Id: "other"
+                Colon: ":"
+                Id: "Int"
+                HSpace: " "
+              /Typed
+              Typed
+                Colon: ":"
+                Id: "Claim"
+                HSpace: " "
+              /Typed
+            /Params
+            Block
+              Be: "be"
+              HSpace: " "
+              Id: "native"
+            /Block
+          /Fun
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Pub
+            Id: "le"
+            Star: "*"
+          /Pub
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Fun
+            Fun: "for"
+            HSpace: " "
+            Params
+              Typed
+                Id: "other"
+                Colon: ":"
+                Id: "Int"
+                HSpace: " "
+              /Typed
+              Typed
+                Colon: ":"
+                Id: "Claim"
+                HSpace: " "
+              /Typed
+            /Params
+            Block
+              Be: "be"
+              HSpace: " "
+              Id: "native"
+            /Block
+          /Fun
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Pub
+            Id: "lt"
+            Star: "*"
+          /Pub
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Fun
+            Fun: "for"
+            HSpace: " "
+            Params
+              Typed
+                Id: "other"
+                Colon: ":"
+                Id: "Int"
+                HSpace: " "
+              /Typed
+              Typed
+                Colon: ":"
+                Id: "Claim"
+                HSpace: " "
+              /Typed
+            /Params
+            Block
+              Be: "be"
+              HSpace: " "
+              Id: "native"
+            /Block
+          /Fun
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Pub
+            Id: "ne"
+            Star: "*"
+          /Pub
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Fun
+            Fun: "for"
+            HSpace: " "
+            Params
+              Typed
+                Id: "other"
+                Colon: ":"
+                Id: "Int"
+                HSpace: " "
+              /Typed
+              Typed
+                Colon: ":"
+                Id: "Claim"
+                HSpace: " "
+              /Typed
+            /Params
+            Block
+              Be: "be"
+              HSpace: " "
+              Id: "native"
+            /Block
+          /Fun
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Pub
+            Id: "sub"
+            Star: "*"
+          /Pub
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Fun
+            Fun: "for"
+            HSpace: " "
+            Params
+              Typed
+                Id: "other"
+                Colon: ":"
+                Id: "Int"
+                HSpace: " "
+              /Typed
+              Typed
+                Colon: ":"
+                Id: "Int"
+                HSpace: " "
+              /Typed
+            /Params
+            Block
+              Be: "be"
+              HSpace: " "
+              Id: "native"
+            /Block
+          /Fun
+        /Def
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "log"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Value"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Fun
+          Fun: "for"
+          HSpace: " "
+          Params
+            Typed
+              Id: "value"
+              Colon: ":"
+              Id: "Value"
+              HSpace: " "
+            /Typed
+          Block
+            Be: "be"
+            HSpace: " "
+            Id: "native"
+          /Block
+        /Fun
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  Comment: "# TODO Also think and cry for log levels?"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Maybe"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Value"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Call
+          Id: "Either"
+          HSpace: " "
+          Id: "Value"
+          HSpace: " "
+          Id: "Void"
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "native"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Id: "void"
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "native"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "No"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Value"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Call
+          Id: "struct"
+          HSpace: " "
+          Block
+            With: "with"
+            VSpace: "\n"
+            HSpace: "    "
+            Typed
+              Id: "value"
+              Colon: ":"
+              Id: "Value"
+            /Typed
+            VSpace: "\n"
+            End: "end"
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "no"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Value"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Fun
+          Fun: "for"
+          HSpace: " "
+          Params
+            Typed
+              Id: "value"
+              Colon: ":"
+              Id: "Value"
+              HSpace: " "
+            /Typed
+          Block
+            Be: "be"
+            HSpace: " "
+            Call
+              Id: "No"
+              Id: "!"
+              HSpace: " "
+              Block
+                CurlyOpen: "{"
+                Id: "value"
+                CurlyClose: "}"
+              /Block
+            /Call
+          /Block
+        /Fun
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "null"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Id: "false"
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Pair"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Key"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+        Typed
+          Id: "Value"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      /Params
+      Block
+        Be: "be"
+        HSpace: " "
+        Call
+          Id: "struct"
+          HSpace: " "
+          Block
+            With: "with"
+            VSpace: "\n"
+            HSpace: "    "
+            Typed
+              Id: "key"
+              Colon: ":"
+              Id: "Key"
+            /Typed
+            VSpace: "\n"
+            HSpace: "    "
+            Typed
+              Id: "value"
+              Colon: ":"
+              Id: "Value"
+            /Typed
+            VSpace: "\n"
+            End: "end"
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "pair"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Key"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+        Typed
+          Id: "Value"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      /Params
+      Block
+        Be: "be"
+        HSpace: " "
+        Fun
+          Fun: "for"
+          HSpace: " "
+          Params
+            Typed
+              Id: "key"
+              Colon: ":"
+              Id: "Key"
+              HSpace: " "
+            /Typed
+            Typed
+              Id: "value"
+              Colon: ":"
+              Id: "Value"
+              HSpace: " "
+            /Typed
+          /Params
+          Block
+            Be: "be"
+            HSpace: " "
+            Call
+              Id: "Pair"
+              Id: "!"
+              HSpace: " "
+              Block
+                CurlyOpen: "{"
+                Id: "key"
+                Comma: ","
+                HSpace: " "
+                Id: "value"
+                CurlyClose: "}"
+              /Block
+            /Call
+          /Block
+        /Fun
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Predicate"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Subject"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "interface"
+          HSpace: " "
+          Fun
+            Fun: "for"
+            HSpace: " "
+            Params
+              Typed
+                Id: "subject"
+                Colon: ":"
+                Id: "Subject"
+                HSpace: " "
+              /Typed
+              Typed
+                Colon: ":"
+                Id: "Claim"
+                HSpace: " "
+              /Typed
+            /Params
+            Block
+              Be: "be"
+              HSpace: " "
+              Id: "abstract"
+            /Block
+          /Fun
+        /Call
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "true"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Call
+      Id: "yes"
+      Id: "!"
+      HSpace: " "
+      Id: "void"
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Typed
+      Pub
+        Id: "Text"
+        Star: "*"
+      /Pub
+      Colon: ":"
+      Id: "Type"
+      HSpace: " "
+    /Typed
+    Define: "="
+    HSpace: " "
+    Id: "native"
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Type"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Bound"
+          Colon: ":"
+          Block
+            RoundOpen: "("
+            Call
+              Id: "Maybe"
+              HSpace: " "
+              Id: "Type"
+            /Call
+            RoundClose: ")"
+          /Block
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "native"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Typed
+      Pub
+        Id: "Void"
+        Star: "*"
+      /Pub
+      Colon: ":"
+      Id: "Type"
+      HSpace: " "
+    /Typed
+    Define: "="
+    HSpace: " "
+    Id: "native"
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Typed
+      Pub
+        Id: "void"
+        Star: "*"
+      /Pub
+      Colon: ":"
+      Id: "Void"
+      HSpace: " "
+    /Typed
+    Define: "="
+    HSpace: " "
+    Id: "native"
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Yes"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Value"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Call
+          Id: "struct"
+          HSpace: " "
+          Block
+            With: "with"
+            VSpace: "\n"
+            HSpace: "    "
+            Typed
+              Id: "value"
+              Colon: ":"
+              Id: "Value"
+            /Typed
+            VSpace: "\n"
+            End: "end"
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "yes"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Value"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Fun
+          Fun: "for"
+          HSpace: " "
+          Params
+            Typed
+              Id: "value"
+              Colon: ":"
+              Id: "Value"
+              HSpace: " "
+            /Typed
+          Block
+            Be: "be"
+            HSpace: " "
+            Call
+              Id: "Yes"
+              Id: "!"
+              HSpace: " "
+              Block
+                CurlyOpen: "{"
+                Id: "value"
+                CurlyClose: "}"
+              /Block
+            /Call
+          /Block
+        /Fun
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+/Block
+
+Bytes: 3197

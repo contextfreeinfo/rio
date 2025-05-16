@@ -78,6 +78,7 @@ pub struct Cart {
     pub interner: Interner,
     pub name: String,
     pub outdir: Option<PathBuf>,
+    pub path: String,
     pub scope: Vec<UidInfo>,
     pub text: String,
     // TODO Just use tree for tokens?
@@ -96,13 +97,18 @@ fn main() -> Result<()> {
 }
 
 fn build(args: BuildArgs) -> Result<()> {
-    // Start catalog, avoiding zeros.
+    // Start catalog and interner, avoiding zeros.
     let mut catalog = Catalog::default();
     catalog.modules.push(Default::default());
     let catalog = Arc::new(RwLock::new(catalog));
-    let mut cart = Cart::new(args.clone(), catalog.clone())?;
+    let interner = Arc::new(ThreadedRodeo::default());
+    let empty_intern = interner.get_or_intern("");
+    assert_eq!(Intern::default(), empty_intern);
+    assert_eq!(NonZeroU32::new(1).unwrap(), empty_intern.into_inner());
+    // Use shared resources above for each cart (once we have multiple carts).
+    let mut cart = Cart::new(args.clone(), catalog.clone(), interner.clone())?;
     // Put in core as module 1.
-    if let Err(err) = cart.build("", Some(CORE_TEXT)) {
+    if let Err(err) = cart.build("core", Some(CORE_TEXT)) {
         println!("Failed building: core");
         return Err(err);
     }
@@ -117,36 +123,39 @@ fn build(args: BuildArgs) -> Result<()> {
 }
 
 impl Cart {
-    fn new(args: BuildArgs, catalog: Arc<RwLock<Catalog>>) -> Result<Self> {
-        // Resources
-        let interner = Arc::new(ThreadedRodeo::default());
-        // Reserve first slot for empty. TODO Reserve others?
-        let empty_intern = interner.get_or_intern("");
-        assert_eq!(Intern::default(), empty_intern);
-        assert_eq!(NonZeroU32::new(1).unwrap(), empty_intern.into_inner());
-        let mut result = Self {
+    fn new(args: BuildArgs, catalog: Arc<RwLock<Catalog>>, interner: Interner) -> Result<Self> {
+        Ok(Self {
             args: args.clone(),
             catalog,
             core_defs: Default::default(),
             core_interns: CoreInterns::new(&interner),
             defs: Default::default(),
-            interner: interner.clone(),
+            interner,
             name: Default::default(),
             outdir: Default::default(),
+            path: Default::default(),
             scope: Default::default(),
             text: Default::default(),
             tokens: Default::default(),
             tops: Default::default(),
             tree: Default::default(),
             tree_builder: Default::default(),
-        };
-        result.outdir = result.make_outdir()?;
-        Ok(result)
+        })
     }
 
-    fn build(&mut self, name: &str, text: Option<&str>) -> Result<()> {
+    fn build(&mut self, path: &str, text: Option<&str>) -> Result<()> {
+        // Update path and name.
+        self.path.clear();
+        self.path.push_str(path);
+        let name = Path::new(path)
+            .file_stem()
+            .ok_or(Error::msg("no name"))?
+            .to_str()
+            .ok_or(Error::msg("bad name"))?;
         self.name.clear();
         self.name.push_str(name);
+        self.outdir = self.make_outdir()?;
+        // Build.
         self.lex(text)?;
         self.parse()?;
         self.norm()?;
@@ -173,19 +182,6 @@ impl Cart {
         };
     }
 
-    fn maybe_dump_normed(&self, stage: &'static str) -> Result<()> {
-        if self.args.dump.contains(&DumpOption::Trees) && !self.name.is_empty() {
-            if let Some(outdir) = &self.outdir {
-                let mut writer = make_dump_writer(stage, outdir)?;
-                let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
-                write_tree(&mut writer)?;
-                writeln!(writer.file)?;
-                writeln!(writer.file, "Bytes: {}", self.tree.len())?;
-            }
-        }
-        Ok(())
-    }
-
     fn lex(&mut self, text: Option<&str>) -> Result<()> {
         let mut lexer = Lexer::new(self);
         lex(&mut lexer, text)?;
@@ -199,14 +195,22 @@ impl Cart {
         let Some(outdir) = self.args.outdir.as_ref() else {
             return Ok(None);
         };
-        let name = Path::new(&self.args.app)
-            .file_stem()
-            .ok_or(Error::msg("no name"))?
-            .to_str()
-            .ok_or(Error::msg("bad name"))?;
-        let subdir = Path::new(outdir).join(name);
+        let subdir = Path::new(outdir).join(&self.name);
         create_dir_all(subdir.clone())?;
         Ok(Some(subdir))
+    }
+
+    fn maybe_dump_normed(&self, stage: &'static str) -> Result<()> {
+        if self.args.dump.contains(&DumpOption::Trees) {
+            if let Some(outdir) = &self.outdir {
+                let mut writer = make_dump_writer(stage, outdir)?;
+                let mut writer = TreeWriter::new(&self.tree, &mut writer, self.interner.as_ref());
+                write_tree(&mut writer)?;
+                writeln!(writer.file)?;
+                writeln!(writer.file, "Bytes: {}", self.tree.len())?;
+            }
+        }
+        Ok(())
     }
 
     fn norm(&mut self) -> Result<()> {
@@ -237,12 +241,12 @@ impl Cart {
 }
 
 fn lex(lexer: &mut Lexer, text: Option<&str>) -> Result<()> {
-    let name = lexer.cart.name.as_str();
+    let path = lexer.cart.path.as_str();
     lexer.cart.text.clear();
     match text {
         Some(text) => lexer.cart.text.push_str(text),
         _ => {
-            File::open(name)?.read_to_string(&mut lexer.cart.text)?;
+            File::open(path)?.read_to_string(&mut lexer.cart.text)?;
         }
     };
     lexer.lex();

@@ -1,0 +1,698 @@
+Block
+  Def
+    target = Public Uid 0/1: "abstract"
+    value = Fun
+      params = Range
+        Def
+          target = Uid 0/2: "void"
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Uid 0/36: "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/3: "Array"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/4: "Item"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Uid 0/5: "size"
+            type = Uid 0/14: "Int"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Uid 0/36: "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/6: "Claim"
+    value = Call
+      fun = Uid 0/34: "Maybe"
+      args = Range
+        Uid 0/62: "Void"
+      /Range
+    /Call
+  /Def
+  Def
+    target = Public Uid 0/7: "describe"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/8: "Value"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Fun
+          params = Range
+            Def
+              target = Typed
+                target = Uid 0/9: "value"
+                type = Uid 0/8: "Value"
+              /Typed
+              value = None
+            /Def
+          /Range
+          returning = Id: "String"
+          body = Block
+            Uid 0/36: "native"
+          /Block
+        /Fun
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/10: "Either"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/11: "YesValue"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Uid 0/12: "NoValue"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "union"
+          args = Range
+            Call
+              fun = Uid 0/64: "Yes"
+              args = Range
+                Uid 0/11: "YesValue"
+              /Range
+            /Call
+            Call
+              fun = Uid 0/38: "No"
+              args = Range
+                Uid 0/12: "NoValue"
+              /Range
+            /Call
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/13: "false"
+    value = Call
+      fun = Uid 0/40: "no"
+      args = Range
+        Id: "!"
+        Uid 0/2: "void"
+      /Range
+    /Call
+  /Def
+  Def
+    target = Public Uid 0/14: "Int"
+    value = Call
+      fun = Id: "class"
+      args = Range
+        Structured
+          Def
+            target = Public Uid 0/15: "add"
+            value = Fun
+              params = Range
+                Def
+                  target = Typed
+                    target = Uid 0/16: "other"
+                    type = Uid 0/14: "Int"
+                  /Typed
+                  value = None
+                /Def
+              /Range
+              returning = Uid 0/14: "Int"
+              body = Block
+                Uid 0/36: "native"
+              /Block
+            /Fun
+          /Def
+          Def
+            target = Public Uid 0/17: "eq"
+            value = Fun
+              params = Range
+                Def
+                  target = Typed
+                    target = Uid 0/18: "other"
+                    type = Uid 0/14: "Int"
+                  /Typed
+                  value = None
+                /Def
+              /Range
+              returning = Uid 0/6: "Claim"
+              body = Block
+                Uid 0/36: "native"
+              /Block
+            /Fun
+          /Def
+          Def
+            target = Public Uid 0/19: "ge"
+            value = Fun
+              params = Range
+                Def
+                  target = Typed
+                    target = Uid 0/20: "other"
+                    type = Uid 0/14: "Int"
+                  /Typed
+                  value = None
+                /Def
+              /Range
+              returning = Uid 0/6: "Claim"
+              body = Block
+                Uid 0/36: "native"
+              /Block
+            /Fun
+          /Def
+          Def
+            target = Public Uid 0/21: "gt"
+            value = Fun
+              params = Range
+                Def
+                  target = Typed
+                    target = Uid 0/22: "other"
+                    type = Uid 0/14: "Int"
+                  /Typed
+                  value = None
+                /Def
+              /Range
+              returning = Uid 0/6: "Claim"
+              body = Block
+                Uid 0/36: "native"
+              /Block
+            /Fun
+          /Def
+          Def
+            target = Public Uid 0/23: "le"
+            value = Fun
+              params = Range
+                Def
+                  target = Typed
+                    target = Uid 0/24: "other"
+                    type = Uid 0/14: "Int"
+                  /Typed
+                  value = None
+                /Def
+              /Range
+              returning = Uid 0/6: "Claim"
+              body = Block
+                Uid 0/36: "native"
+              /Block
+            /Fun
+          /Def
+          Def
+            target = Public Uid 0/25: "lt"
+            value = Fun
+              params = Range
+                Def
+                  target = Typed
+                    target = Uid 0/26: "other"
+                    type = Uid 0/14: "Int"
+                  /Typed
+                  value = None
+                /Def
+              /Range
+              returning = Uid 0/6: "Claim"
+              body = Block
+                Uid 0/36: "native"
+              /Block
+            /Fun
+          /Def
+          Def
+            target = Public Uid 0/27: "ne"
+            value = Fun
+              params = Range
+                Def
+                  target = Typed
+                    target = Uid 0/28: "other"
+                    type = Uid 0/14: "Int"
+                  /Typed
+                  value = None
+                /Def
+              /Range
+              returning = Uid 0/6: "Claim"
+              body = Block
+                Uid 0/36: "native"
+              /Block
+            /Fun
+          /Def
+          Def
+            target = Public Uid 0/29: "sub"
+            value = Fun
+              params = Range
+                Def
+                  target = Typed
+                    target = Uid 0/30: "other"
+                    type = Uid 0/14: "Int"
+                  /Typed
+                  value = None
+                /Def
+              /Range
+              returning = Uid 0/14: "Int"
+              body = Block
+                Uid 0/36: "native"
+              /Block
+            /Fun
+          /Def
+        /Structured
+      /Range
+    /Call
+  /Def
+  Def
+    target = Public Uid 0/31: "log"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/32: "Value"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Fun
+          params = Range
+            Def
+              target = Typed
+                target = Uid 0/33: "value"
+                type = Uid 0/32: "Value"
+              /Typed
+              value = None
+            /Def
+          /Range
+          returning = None
+          body = Block
+            Uid 0/36: "native"
+          /Block
+        /Fun
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/34: "Maybe"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/35: "Value"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Uid 0/10: "Either"
+          args = Range
+            Uid 0/35: "Value"
+            Uid 0/62: "Void"
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/36: "native"
+    value = Fun
+      params = Range
+        Def
+          target = Uid 0/37: "void"
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Uid 0/36: "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/38: "No"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/39: "Value"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "struct"
+          args = Range
+            Structured
+              Typed
+                target = Id: "value"
+                type = Uid 0/39: "Value"
+              /Typed
+            /Structured
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/40: "no"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/41: "Value"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Fun
+          params = Range
+            Def
+              target = Typed
+                target = Uid 0/42: "value"
+                type = Uid 0/41: "Value"
+              /Typed
+              value = None
+            /Def
+          /Range
+          returning = None
+          body = Block
+            Call
+              fun = Uid 0/38: "No"
+              args = Range
+                Id: "!"
+                Structured
+                  Def
+                    target = Uid 0/43: "value"
+                    value = Uid 0/42: "value"
+                  /Def
+                /Structured
+              /Range
+            /Call
+          /Block
+        /Fun
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/44: "null"
+    value = Uid 0/13: "false"
+  /Def
+  Def
+    target = Public Uid 0/45: "Pair"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/46: "Key"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Uid 0/47: "Value"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "struct"
+          args = Range
+            Structured
+              Typed
+                target = Id: "key"
+                type = Uid 0/46: "Key"
+              /Typed
+              Typed
+                target = Id: "value"
+                type = Uid 0/47: "Value"
+              /Typed
+            /Structured
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/48: "pair"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/49: "Key"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Uid 0/50: "Value"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Fun
+          params = Range
+            Def
+              target = Typed
+                target = Uid 0/51: "key"
+                type = Uid 0/49: "Key"
+              /Typed
+              value = None
+            /Def
+            Def
+              target = Typed
+                target = Uid 0/52: "value"
+                type = Uid 0/50: "Value"
+              /Typed
+              value = None
+            /Def
+          /Range
+          returning = None
+          body = Block
+            Call
+              fun = Uid 0/45: "Pair"
+              args = Range
+                Id: "!"
+                Structured
+                  Def
+                    target = Uid 0/53: "key"
+                    value = Uid 0/51: "key"
+                  /Def
+                  Def
+                    target = Uid 0/54: "value"
+                    value = Uid 0/52: "value"
+                  /Def
+                /Structured
+              /Range
+            /Call
+          /Block
+        /Fun
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/55: "Predicate"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/56: "Subject"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "interface"
+          args = Range
+            Fun
+              params = Range
+                Def
+                  target = Typed
+                    target = Uid 0/57: "subject"
+                    type = Uid 0/56: "Subject"
+                  /Typed
+                  value = None
+                /Def
+              /Range
+              returning = Uid 0/6: "Claim"
+              body = Block
+                Uid 0/1: "abstract"
+              /Block
+            /Fun
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/58: "true"
+    value = Call
+      fun = Uid 0/66: "yes"
+      args = Range
+        Id: "!"
+        Uid 0/37: "void"
+      /Range
+    /Call
+  /Def
+  Def
+    target = Typed
+      target = Public Uid 0/59: "Text"
+      type = Uid 0/60: "Type"
+    /Typed
+    value = Uid 0/36: "native"
+  /Def
+  Def
+    target = Public Uid 0/60: "Type"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/61: "Bound"
+            type = Call
+              fun = Uid 0/34: "Maybe"
+              args = Range
+                Uid 0/60: "Type"
+              /Range
+            /Call
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Uid 0/36: "native"
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Typed
+      target = Public Uid 0/62: "Void"
+      type = Uid 0/60: "Type"
+    /Typed
+    value = Uid 0/36: "native"
+  /Def
+  Def
+    target = Typed
+      target = Public Uid 0/63: "void"
+      type = Uid 0/62: "Void"
+    /Typed
+    value = Uid 0/36: "native"
+  /Def
+  Def
+    target = Public Uid 0/64: "Yes"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/65: "Value"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "struct"
+          args = Range
+            Structured
+              Typed
+                target = Id: "value"
+                type = Uid 0/65: "Value"
+              /Typed
+            /Structured
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Public Uid 0/66: "yes"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/67: "Value"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Fun
+          params = Range
+            Def
+              target = Typed
+                target = Uid 0/68: "value"
+                type = Uid 0/67: "Value"
+              /Typed
+              value = None
+            /Def
+          /Range
+          returning = None
+          body = Block
+            Call
+              fun = Uid 0/64: "Yes"
+              args = Range
+                Id: "!"
+                Structured
+                  Def
+                    target = Uid 0/69: "value"
+                    value = Uid 0/68: "value"
+                  /Def
+                /Structured
+              /Range
+            /Call
+          /Block
+        /Fun
+      /Block
+    /Fun
+  /Def
+/Block
+
+Bytes: 3064
