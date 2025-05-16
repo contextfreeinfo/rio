@@ -187,7 +187,6 @@ Block
     HSpace: " "
     Call
       Id: "no"
-      Id: "!"
       HSpace: " "
       Id: "void"
     /Call
@@ -657,7 +656,6 @@ Block
             HSpace: " "
             Call
               Id: "No"
-              Id: "!"
               HSpace: " "
               Block
                 CurlyOpen: "{"
@@ -790,7 +788,6 @@ Block
             HSpace: " "
             Call
               Id: "Pair"
-              Id: "!"
               HSpace: " "
               Block
                 CurlyOpen: "{"
@@ -873,7 +870,6 @@ Block
     HSpace: " "
     Call
       Id: "yes"
-      Id: "!"
       HSpace: " "
       Id: "void"
     /Call
@@ -1041,7 +1037,6 @@ Block
             HSpace: " "
             Call
               Id: "Yes"
-              Id: "!"
               HSpace: " "
               Block
                 CurlyOpen: "{"
@@ -1057,4 +1052,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 3197
+Bytes: 3182

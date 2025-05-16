@@ -120,9 +120,7 @@ Block
     value = Call
       fun = Id: "no"
       args = Range
-        Id: "!"
         Id: "void"
-      /Range
     /Call
   /Def
   Def
@@ -397,7 +395,6 @@ Block
             Call
               fun = Id: "No"
               args = Range
-                Id: "!"
                 Structured
                   Def
                     target = Id: "value"
@@ -497,7 +494,6 @@ Block
             Call
               fun = Id: "Pair"
               args = Range
-                Id: "!"
                 Structured
                   Def
                     target = Id: "key"
@@ -556,9 +552,7 @@ Block
     value = Call
       fun = Id: "yes"
       args = Range
-        Id: "!"
         Id: "void"
-      /Range
     /Call
   /Def
   Def
@@ -660,7 +654,6 @@ Block
             Call
               fun = Id: "Yes"
               args = Range
-                Id: "!"
                 Structured
                   Def
                     target = Id: "value"
@@ -676,4 +669,4 @@ Block
   /Def
 /Block
 
-Bytes: 2780
+Bytes: 2750

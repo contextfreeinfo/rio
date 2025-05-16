@@ -11,7 +11,7 @@ Either* = for YesValue:Type NoValue:Type be union of
     No NoValue
 end
 
-false* = no! void
+false* = no void
 
 Int* = class with
     add* = for other:Int :Int be extern
@@ -35,7 +35,7 @@ No* = for Value:Type be struct with
     value:Value
 end
 
-no* = for Value:Type be for value:Value be No! {value}
+no* = for Value:Type be for value:Value be No {value}
 
 null* = false
 
@@ -44,13 +44,13 @@ Pair* = for Key:Type Value:Type be struct with
     value:Value
 end
 
-pair* = for Key:Type Value:Type be for key:Key value:Value be Pair! {key, value}
+pair* = for Key:Type Value:Type be for key:Key value:Value be Pair {key, value}
 
 Predicate* = for Subject:Type be
     interface for subject:Subject :Claim be abstract
 end
 
-true* = yes! void
+true* = yes void
 
 Text*:Type = extern
 
@@ -64,4 +64,4 @@ Yes* = for Value:Type be struct with
     value:Value
 end
 
-yes* = for Value:Type be for value:Value be Yes! {value}
+yes* = for Value:Type be for value:Value be Yes {value}
