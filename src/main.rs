@@ -21,6 +21,7 @@ mod norm;
 mod parse;
 mod refine;
 mod tree;
+mod value;
 
 #[derive(clap::Parser)]
 #[command(about, version, long_about = None)]
