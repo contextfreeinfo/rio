@@ -585,6 +585,26 @@ Block
   /Def
   Def
     target = Typed
+      target = Public Id: "Val"
+      type = Id: "Type"
+    /Typed
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Id: "Ref"
+            type = Id: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Id: "extern"
+    /Fun
+  /Def
+  Def
+    target = Typed
       target = Public Id: "Void"
       type = Id: "Type"
     /Typed
@@ -669,4 +689,4 @@ Block
   /Def
 /Block
 
-Bytes: 2750
+Bytes: 2836

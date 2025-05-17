@@ -56,6 +56,9 @@ Text*:Type = extern
 
 Type* = for Bound:(Maybe Type) be extern
 
+Val*:Type = for Ref:Type be extern
+# For expanded value forms of class types?
+
 Void*:Type = extern
 
 void*:Void = extern

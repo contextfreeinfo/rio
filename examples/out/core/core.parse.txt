@@ -930,6 +930,39 @@ Block
   Def
     Typed
       Pub
+        Id: "Val"
+        Star: "*"
+      /Pub
+      Colon: ":"
+      Id: "Type"
+      HSpace: " "
+    /Typed
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Ref"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "extern"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  Comment: "# For expanded value forms of class types?"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Typed
+      Pub
         Id: "Void"
         Star: "*"
       /Pub
@@ -1052,4 +1085,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 3182
+Bytes: 3284

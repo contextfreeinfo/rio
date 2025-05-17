@@ -44,7 +44,7 @@ Block
     value = Call
       fun = Uid 0/34: "Maybe"
       args = Range
-        Uid 0/62: "Void"
+        Uid 0/64: "Void"
       /Range
     /Call
   /Def
@@ -105,7 +105,7 @@ Block
           fun = Id: "union"
           args = Range
             Call
-              fun = Uid 0/64: "Yes"
+              fun = Uid 0/66: "Yes"
               args = Range
                 Uid 0/11: "YesValue"
               /Range
@@ -334,7 +334,7 @@ Block
           fun = Uid 0/10: "Either"
           args = Range
             Uid 0/35: "Value"
-            Uid 0/62: "Void"
+            Uid 0/64: "Void"
           /Range
         /Call
       /Block
@@ -568,7 +568,7 @@ Block
   Def
     target = Public Uid 0/58: "true"
     value = Call
-      fun = Uid 0/66: "yes"
+      fun = Uid 0/68: "yes"
       args = Range
         Uid 0/37: "void"
       /Range
@@ -606,25 +606,46 @@ Block
   /Def
   Def
     target = Typed
-      target = Public Uid 0/62: "Void"
+      target = Public Uid 0/62: "Val"
+      type = Uid 0/60: "Type"
+    /Typed
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/63: "Ref"
+            type = Uid 0/60: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Uid 0/36: "extern"
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Typed
+      target = Public Uid 0/64: "Void"
       type = Uid 0/60: "Type"
     /Typed
     value = Uid 0/36: "extern"
   /Def
   Def
     target = Typed
-      target = Public Uid 0/63: "void"
-      type = Uid 0/62: "Void"
+      target = Public Uid 0/65: "void"
+      type = Uid 0/64: "Void"
     /Typed
     value = Uid 0/36: "extern"
   /Def
   Def
-    target = Public Uid 0/64: "Yes"
+    target = Public Uid 0/66: "Yes"
     value = Fun
       params = Range
         Def
           target = Typed
-            target = Uid 0/65: "Value"
+            target = Uid 0/67: "Value"
             type = Uid 0/60: "Type"
           /Typed
           value = None
@@ -638,7 +659,7 @@ Block
             Structured
               Typed
                 target = Id: "value"
-                type = Uid 0/65: "Value"
+                type = Uid 0/67: "Value"
               /Typed
             /Structured
           /Range
@@ -647,12 +668,12 @@ Block
     /Fun
   /Def
   Def
-    target = Public Uid 0/66: "yes"
+    target = Public Uid 0/68: "yes"
     value = Fun
       params = Range
         Def
           target = Typed
-            target = Uid 0/67: "Value"
+            target = Uid 0/69: "Value"
             type = Uid 0/60: "Type"
           /Typed
           value = None
@@ -664,8 +685,8 @@ Block
           params = Range
             Def
               target = Typed
-                target = Uid 0/68: "value"
-                type = Uid 0/67: "Value"
+                target = Uid 0/70: "value"
+                type = Uid 0/69: "Value"
               /Typed
               value = None
             /Def
@@ -673,12 +694,12 @@ Block
           returning = None
           body = Block
             Call
-              fun = Uid 0/64: "Yes"
+              fun = Uid 0/66: "Yes"
               args = Range
                 Structured
                   Def
-                    target = Uid 0/69: "value"
-                    value = Uid 0/68: "value"
+                    target = Uid 0/71: "value"
+                    value = Uid 0/70: "value"
                   /Def
                 /Structured
               /Range
@@ -690,4 +711,4 @@ Block
   /Def
 /Block
 
-Bytes: 3034
+Bytes: 3129
