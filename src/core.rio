@@ -4,6 +4,11 @@ Array* = for Item:Type size:Int be extern
 
 Claim* = Maybe Void
 
+Class* = struct with
+    face:Interface
+    fields:(List Field)
+end
+
 describe* = for Value:Type be for value:Value :String be extern
 
 Either* = for YesValue:Type NoValue:Type be union of
@@ -12,6 +17,14 @@ Either* = for YesValue:Type NoValue:Type be union of
 end
 
 false* = no void
+
+Field* = struct with
+    # TODO This needs dynamic typing and sizing for `type` and `default`.
+    name:Text
+    type:Type
+    default:(Maybe type)
+    offset:Int
+end
 
 Int* = class with
     add* = for other:Int :Int be extern
@@ -22,6 +35,12 @@ Int* = class with
     lt* = for other:Int :Claim be extern
     ne* = for other:Int :Claim be extern
     sub* = for other:Int :Int be extern
+end
+
+Interface* = struct with
+    name:Text
+    # TODO constructor separate?
+    # methods:(List Function)
 end
 
 log* = for Value:Type be for value:Value be extern
@@ -50,11 +69,20 @@ Predicate* = for Subject:Type be
     interface for subject:Subject :Claim be abstract
 end
 
+Struct* = struct with
+    name:Text
+    fields:(List Field)
+end
+
+struct* = extern
+
 true* = yes void
 
 Text*:Type = extern
 
 Type* = for Bound:(Maybe Type) be extern
+
+# Type* = union ... ???
 
 Val*:Type = for Ref:Type be extern
 # For expanded value forms of class types?

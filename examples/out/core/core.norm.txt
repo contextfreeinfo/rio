@@ -46,6 +46,28 @@ Block
     /Call
   /Def
   Def
+    target = Public Id: "Class"
+    value = Call
+      fun = Id: "struct"
+      args = Range
+        Structured
+          Typed
+            target = Id: "face"
+            type = Id: "Interface"
+          /Typed
+          Typed
+            target = Id: "fields"
+            type = Call
+              fun = Id: "List"
+              args = Range
+                Id: "Field"
+            /Call
+          /Typed
+        /Structured
+      /Range
+    /Call
+  /Def
+  Def
     target = Public Id: "describe"
     value = Fun
       params = Range
@@ -121,6 +143,36 @@ Block
       fun = Id: "no"
       args = Range
         Id: "void"
+    /Call
+  /Def
+  Def
+    target = Public Id: "Field"
+    value = Call
+      fun = Id: "struct"
+      args = Range
+        Structured
+          Typed
+            target = Id: "name"
+            type = Id: "Text"
+          /Typed
+          Typed
+            target = Id: "type"
+            type = Id: "Type"
+          /Typed
+          Typed
+            target = Id: "default"
+            type = Call
+              fun = Id: "Maybe"
+              args = Range
+                Id: "type"
+            /Call
+          /Typed
+          Typed
+            target = Id: "offset"
+            type = Id: "Int"
+          /Typed
+        /Structured
+      /Range
     /Call
   /Def
   Def
@@ -265,6 +317,20 @@ Block
                 Id: "extern"
             /Fun
           /Def
+        /Structured
+      /Range
+    /Call
+  /Def
+  Def
+    target = Public Id: "Interface"
+    value = Call
+      fun = Id: "struct"
+      args = Range
+        Structured
+          Typed
+            target = Id: "name"
+            type = Id: "Text"
+          /Typed
         /Structured
       /Range
     /Call
@@ -548,6 +614,32 @@ Block
     /Fun
   /Def
   Def
+    target = Public Id: "Struct"
+    value = Call
+      fun = Id: "struct"
+      args = Range
+        Structured
+          Typed
+            target = Id: "name"
+            type = Id: "Text"
+          /Typed
+          Typed
+            target = Id: "fields"
+            type = Call
+              fun = Id: "List"
+              args = Range
+                Id: "Field"
+            /Call
+          /Typed
+        /Structured
+      /Range
+    /Call
+  /Def
+  Def
+    target = Public Id: "struct"
+    value = Id: "extern"
+  /Def
+  Def
     target = Public Id: "true"
     value = Call
       fun = Id: "yes"
@@ -689,4 +781,4 @@ Block
   /Def
 /Block
 
-Bytes: 2836
+Bytes: 3266

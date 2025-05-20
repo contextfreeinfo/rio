@@ -75,6 +75,48 @@ Block
   VSpace: "\n"
   Def
     Pub
+      Id: "Class"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Call
+      Id: "struct"
+      HSpace: " "
+      Block
+        With: "with"
+        VSpace: "\n"
+        HSpace: "    "
+        Typed
+          Id: "face"
+          Colon: ":"
+          Id: "Interface"
+        /Typed
+        VSpace: "\n"
+        HSpace: "    "
+        Typed
+          Id: "fields"
+          Colon: ":"
+          Block
+            RoundOpen: "("
+            Call
+              Id: "List"
+              HSpace: " "
+              Id: "Field"
+            /Call
+            RoundClose: ")"
+          /Block
+        /Typed
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
       Id: "describe"
       Star: "*"
     /Pub
@@ -189,6 +231,65 @@ Block
       Id: "no"
       HSpace: " "
       Id: "void"
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Field"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Call
+      Id: "struct"
+      HSpace: " "
+      Block
+        With: "with"
+        VSpace: "\n"
+        HSpace: "    "
+        Comment: "# TODO This needs dynamic typing and sizing for `type` and `default`."
+        VSpace: "\n"
+        HSpace: "    "
+        Typed
+          Id: "name"
+          Colon: ":"
+          Id: "Text"
+        /Typed
+        VSpace: "\n"
+        HSpace: "    "
+        Typed
+          Id: "type"
+          Colon: ":"
+          Id: "Type"
+        /Typed
+        VSpace: "\n"
+        HSpace: "    "
+        Typed
+          Id: "default"
+          Colon: ":"
+          Block
+            RoundOpen: "("
+            Call
+              Id: "Maybe"
+              HSpace: " "
+              Id: "type"
+            /Call
+            RoundClose: ")"
+          /Block
+        /Typed
+        VSpace: "\n"
+        HSpace: "    "
+        Typed
+          Id: "offset"
+          Colon: ":"
+          Id: "Int"
+        /Typed
+        VSpace: "\n"
+        End: "end"
+      /Block
     /Call
   /Def
   VSpace: "\n"
@@ -470,6 +571,39 @@ Block
             /Block
           /Fun
         /Def
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "Interface"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Call
+      Id: "struct"
+      HSpace: " "
+      Block
+        With: "with"
+        VSpace: "\n"
+        HSpace: "    "
+        Typed
+          Id: "name"
+          Colon: ":"
+          Id: "Text"
+        /Typed
+        VSpace: "\n"
+        HSpace: "    "
+        Comment: "# TODO constructor separate?"
+        VSpace: "\n"
+        HSpace: "    "
+        Comment: "# methods:(List Function)"
         VSpace: "\n"
         End: "end"
       /Block
@@ -862,6 +996,60 @@ Block
   VSpace: "\n"
   Def
     Pub
+      Id: "Struct"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Call
+      Id: "struct"
+      HSpace: " "
+      Block
+        With: "with"
+        VSpace: "\n"
+        HSpace: "    "
+        Typed
+          Id: "name"
+          Colon: ":"
+          Id: "Text"
+        /Typed
+        VSpace: "\n"
+        HSpace: "    "
+        Typed
+          Id: "fields"
+          Colon: ":"
+          Block
+            RoundOpen: "("
+            Call
+              Id: "List"
+              HSpace: " "
+              Id: "Field"
+            /Call
+            RoundClose: ")"
+          /Block
+        /Typed
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
+      Id: "struct"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Id: "extern"
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
       Id: "true"
       Star: "*"
     /Pub
@@ -925,6 +1113,9 @@ Block
       /Block
     /Fun
   /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# Type* = union ... ???"
   VSpace: "\n"
   VSpace: "\n"
   Def
@@ -1085,4 +1276,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 3284
+Bytes: 3857

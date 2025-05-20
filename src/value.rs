@@ -1,17 +1,17 @@
 use crate::lex::Intern;
 use crate::refine::resolve::UidInfo;
-use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
 
 enum Value {
+    // Immediate values for speed?
     Claim(bool),
     Int(isize),
     Float(f64),
-    Function(Function),
-    List(Arc<Vec<Value>>),
-    ListBuilder(Arc<Mutex<Vec<Value>>>),
-    Ref(usize),
     /// Intern would be risky since strings can be generated in loops.
-    Text(Arc<String>),
+    Function(UidInfo),
+    Ref(Ref),
     Typ(Arc<Typ>),
 }
 
@@ -54,6 +54,9 @@ struct BoundTyp {
     args: Vec<Arc<Typ>>,
 }
 
+/// No multithreading in interpreter?
+type Buffer = Rc<RefCell<u8>>;
+
 struct ClassTyp {
     name: Intern,
     uid: UidInfo,
@@ -66,11 +69,6 @@ struct FieldDef {
     default: Value,
 }
 
-struct Function {
-    uid: UidInfo,
-    typ: Arc<Typ>,
-}
-
 struct FunctionTyp {
     params: Vec<Arc<Typ>>,
     returning: Arc<Typ>,
@@ -80,6 +78,11 @@ struct FunctionTyp {
 struct GenericTyp {
     base: Arc<Typ>,
     params: Vec<TypParam>,
+}
+
+struct Ref {
+    address: usize,
+    buffer: Buffer,
 }
 
 struct StructTyp {
