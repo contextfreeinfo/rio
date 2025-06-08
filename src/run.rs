@@ -251,19 +251,11 @@ impl<'a> Runner<'a> {
                 }
                 let range: Range<usize> = range.into();
                 for kid_index in range.clone() {
-                    match kind {
-                        BranchKind::Def => {
-                            if kid_index == range.start {
-                                if self.push_id_maybe(
-                                    &tree[..=kid_index],
-                                    tree.len() as u32 - 1,
-                                    false,
-                                ) {
-                                    continue;
-                                }
-                            }
-                        }
-                        _ => {}
+                    if kind == BranchKind::Def
+                        && kid_index == range.start
+                        && self.push_id_maybe(&tree[..=kid_index], false)
+                    {
+                        continue;
                     }
                     self.convert_ids_at(&tree[..=kid_index]);
                 }
@@ -381,7 +373,7 @@ impl<'a> Runner<'a> {
         });
     }
 
-    fn push_id_maybe(&mut self, tree: &[Node], index: u32, r#pub: bool) -> bool {
+    fn push_id_maybe(&mut self, tree: &[Node], r#pub: bool) -> bool {
         let node = *tree.last().unwrap();
         match node.nod {
             Nod::Branch {
@@ -389,7 +381,7 @@ impl<'a> Runner<'a> {
                 range,
             } => {
                 let range: Range<usize> = range.into();
-                self.push_id_maybe(&tree[..=range.start], index, true)
+                self.push_id_maybe(&tree[..=range.start], true)
             }
             Nod::Leaf {
                 token:
@@ -424,9 +416,8 @@ impl<'a> Runner<'a> {
                         ..
                     } = kid.nod
                     {
-                        match scope_entry(&tree[..=kid_range.start as usize]) {
-                            Some(entry) => self.tops.values.push(entry),
-                            None => (),
+                        if let Some(entry) = scope_entry(&tree[..=kid_range.start as usize]) {
+                            self.tops.values.push(entry)
                         }
                     }
                 }
@@ -569,7 +560,7 @@ impl<'a> Runner<'a> {
             return Some(*entry);
         }
         // TODO Work through imports more generally.
-        if let Some(core) = self.cart.modules.get(0) {
+        if let Some(core) = self.cart.modules.first() {
             // TODO Check overloads!
             return core.get_top(intern);
         }

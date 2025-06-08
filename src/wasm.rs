@@ -27,7 +27,7 @@ use crate::{
 
 pub fn write_wasm(args: &BuildArgs, cart: &Cart, start: Instant) -> Result<Duration> {
     let _ = cart;
-    let mut writer = WasmWriter::new(&cart);
+    let mut writer = WasmWriter::new(cart);
     writer.build()?;
     let wasm = writer.module.finish();
     let duration = start.elapsed();
@@ -230,13 +230,13 @@ impl<'a> WasmWriter<'a> {
     fn build_functions(&mut self) {
         let mut functions = FunctionSection::new();
         // Predef funs
-        self.predefs.dup_fun = self.add_fun(&mut &mut functions, self.predefs.dup_type);
+        self.predefs.dup_fun = self.add_fun(&mut functions, self.predefs.dup_type);
         self.predefs.print_fun = self.add_fun(&mut functions, self.predefs.print_type);
         self.predefs.print_inline_fun = self.add_fun(&mut functions, self.predefs.print_type);
         self.predefs.pop_fun = self.add_fun(&mut functions, self.predefs.pop_type);
-        self.predefs.push_fun = self.add_fun(&mut &mut functions, self.predefs.push_type);
-        self.predefs.rot3_fun = self.add_fun(&mut &mut functions, self.predefs.rot3_type);
-        self.predefs.swap_fun = self.add_fun(&mut &mut functions, self.predefs.swap_type);
+        self.predefs.push_fun = self.add_fun(&mut functions, self.predefs.push_type);
+        self.predefs.rot3_fun = self.add_fun(&mut functions, self.predefs.rot3_type);
+        self.predefs.swap_fun = self.add_fun(&mut functions, self.predefs.swap_type);
         // User funs
         fn dig(tree: &[Node], wasm: &mut WasmWriter, functions: &mut FunctionSection) {
             let node = *tree.last().unwrap();

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, hash::Hash};
 
+#[derive(Default)]
 pub struct MultiMap<K, V>
 where
     K: Copy + Hash + Eq + Ord,
@@ -26,16 +27,16 @@ where
         }
     }
 
-    pub fn get<'a>(&'a self, key: K) -> MultiMapIterator<'a, K, V> {
+    pub fn get(&self, key: K) -> MultiMapIterator<'_, K, V> {
         match self.map.get(&key) {
             Some(index) => MultiMapIterator {
                 index: *index as usize,
-                key: key.clone(),
+                key,
                 values: &self.values,
             },
             None => MultiMapIterator {
                 index: 0,
-                key: key.clone(),
+                key,
                 values: &[],
             },
         }
@@ -49,7 +50,7 @@ where
         let Some(first) = self.values.first() else {
             return;
         };
-        let mut last_key = first.key().clone();
+        let mut last_key = first.key();
         self.map.insert(last_key, 0);
         for (index, value) in self.values.iter().enumerate().skip(1) {
             let key = value.key();

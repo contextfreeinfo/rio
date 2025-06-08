@@ -81,78 +81,72 @@ impl<'a> Lexer<'a> {
         self.buffer().clear();
         self.tokens.clear();
         let mut source = source.chars().peekable();
-        loop {
-            match source.peek() {
-                Some(c) => match c {
-                    ' ' | '\t' => self.hspace(&mut source),
-                    '\n' => {
-                        self.trim(&mut source);
-                        self.push(TokenKind::VSpace);
-                    }
-                    '\r' => {
-                        self.trim(&mut source);
-                        if source.peek() == Some(&'\n') {
-                            self.next(&mut source);
-                        }
-                        self.push(TokenKind::VSpace);
-                    }
-                    '#' => self.comment(&mut source),
-                    '"' => self.string(&mut source),
-                    ':' => self.trim_push(&mut source, TokenKind::Colon),
-                    ',' | ';' => self.trim_push(&mut source, TokenKind::Comma),
-                    '<' => {
-                        self.trim(&mut source);
-                        match source.peek() {
-                            Some('=') => {
-                                self.next(&mut source);
-                                self.push(TokenKind::LessEq);
-                            }
-                            _ => self.push(TokenKind::AngleOpen),
-                        }
-                    }
-                    '>' => {
-                        self.trim(&mut source);
-                        match source.peek() {
-                            Some('=') => {
-                                self.next(&mut source);
-                                self.push(TokenKind::GreaterEq);
-                            }
-                            _ => self.push(TokenKind::AngleClose),
-                        }
-                    }
-                    '{' => self.trim_push(&mut source, TokenKind::CurlyOpen),
-                    '}' => self.trim_push(&mut source, TokenKind::CurlyClose),
-                    '(' => self.trim_push(&mut source, TokenKind::RoundOpen),
-                    ')' => self.trim_push(&mut source, TokenKind::RoundClose),
-                    '.' => self.trim_push(&mut source, TokenKind::Dot),
-                    '=' => {
-                        self.trim(&mut source);
-                        match source.peek() {
-                            Some('=') => {
-                                self.next(&mut source);
-                                self.push(TokenKind::Eq);
-                            }
-                            _ => self.push(TokenKind::Define),
-                        }
-                    }
-                    '!' => {
-                        self.trim(&mut source);
-                        match source.peek() {
-                            Some('=') => {
-                                self.next(&mut source);
-                                self.push(TokenKind::NotEq);
-                            }
-                            _ => {}
-                        }
-                    }
-                    '*' => self.trim_push(&mut source, TokenKind::Star),
-                    '+' => self.trim_push(&mut source, TokenKind::Plus),
-                    '-' | '0'..='9' if self.buffer().is_empty() => self.number(&mut source),
-                    _ => {
+        while let Some(c) = source.peek() {
+            match c {
+                ' ' | '\t' => self.hspace(&mut source),
+                '\n' => {
+                    self.trim(&mut source);
+                    self.push(TokenKind::VSpace);
+                }
+                '\r' => {
+                    self.trim(&mut source);
+                    if source.peek() == Some(&'\n') {
                         self.next(&mut source);
                     }
-                },
-                None => break,
+                    self.push(TokenKind::VSpace);
+                }
+                '#' => self.comment(&mut source),
+                '"' => self.string(&mut source),
+                ':' => self.trim_push(&mut source, TokenKind::Colon),
+                ',' | ';' => self.trim_push(&mut source, TokenKind::Comma),
+                '<' => {
+                    self.trim(&mut source);
+                    match source.peek() {
+                        Some('=') => {
+                            self.next(&mut source);
+                            self.push(TokenKind::LessEq);
+                        }
+                        _ => self.push(TokenKind::AngleOpen),
+                    }
+                }
+                '>' => {
+                    self.trim(&mut source);
+                    match source.peek() {
+                        Some('=') => {
+                            self.next(&mut source);
+                            self.push(TokenKind::GreaterEq);
+                        }
+                        _ => self.push(TokenKind::AngleClose),
+                    }
+                }
+                '{' => self.trim_push(&mut source, TokenKind::CurlyOpen),
+                '}' => self.trim_push(&mut source, TokenKind::CurlyClose),
+                '(' => self.trim_push(&mut source, TokenKind::RoundOpen),
+                ')' => self.trim_push(&mut source, TokenKind::RoundClose),
+                '.' => self.trim_push(&mut source, TokenKind::Dot),
+                '=' => {
+                    self.trim(&mut source);
+                    match source.peek() {
+                        Some('=') => {
+                            self.next(&mut source);
+                            self.push(TokenKind::Eq);
+                        }
+                        _ => self.push(TokenKind::Define),
+                    }
+                }
+                '!' => {
+                    self.trim(&mut source);
+                    if let Some('=') = source.peek() {
+                        self.next(&mut source);
+                        self.push(TokenKind::NotEq);
+                    }
+                }
+                '*' => self.trim_push(&mut source, TokenKind::Star),
+                '+' => self.trim_push(&mut source, TokenKind::Plus),
+                '-' | '0'..='9' if self.buffer().is_empty() => self.number(&mut source),
+                _ => {
+                    self.next(&mut source);
+                }
             }
         }
         self.trim(&mut source);
@@ -176,11 +170,7 @@ impl<'a> Lexer<'a> {
 
     fn hspace(&mut self, source: &mut Peekable<Chars>) {
         self.trim(source);
-        loop {
-            match source.peek() {
-                Some(' ' | '\t') => {}
-                _ => break,
-            }
+        while let Some(' ' | '\t') = source.peek() {
             self.next(source);
         }
         self.push(TokenKind::HSpace);
@@ -197,11 +187,7 @@ impl<'a> Lexer<'a> {
     fn number(&mut self, source: &mut Peekable<Chars>) {
         let negative = *source.peek().unwrap() == '-';
         self.trim(source);
-        loop {
-            match source.peek() {
-                Some('0'..='9') => {}
-                _ => break,
-            }
+        while let Some('0'..='9') = source.peek() {
             self.next(source);
         }
         if negative && self.buffer().len() < 2 {
@@ -234,7 +220,7 @@ impl<'a> Lexer<'a> {
                     self.push_maybe(TokenKind::String);
                     self.next(source);
                     self.push(TokenKind::StringEscaper);
-                    if let Some(_) = source.peek() {
+                    if source.peek().is_some() {
                         self.next(source);
                         self.push(TokenKind::StringEscape);
                     }

@@ -57,7 +57,7 @@ impl Normer {
 
     fn define(&mut self, tree: &mut Vec<Node>) {
         self.builder().clear();
-        self.define_at(&tree);
+        self.define_at(tree);
         self.builder()
             .wrap(BranchKind::Block, 0, Type::default(), 0);
         self.builder().drain_into(tree);
@@ -125,7 +125,7 @@ impl Normer {
 
     fn rebranch(&mut self, tree: &mut Vec<Node>) {
         self.builder().clear();
-        self.rebranch_at(&tree);
+        self.rebranch_at(tree);
         self.builder()
             .wrap(BranchKind::Block, 0, Type::default(), 0);
         self.builder().drain_into(tree);
@@ -254,7 +254,7 @@ impl Normer {
 
     fn trim(&mut self, parsed_tree: &[Nod], tree: &mut Vec<Node>) {
         self.builder().clear();
-        self.trim_at(&parsed_tree, 0);
+        self.trim_at(parsed_tree, 0);
         self.builder()
             .wrap(BranchKind::Block, 0, Type::default(), tree.len());
         self.builder().drain_into(tree);

@@ -555,14 +555,14 @@ fn type_struct(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ
     // println!("found struct");
     for kid_index in range.clone() {
         let mut uid: Option<Node> = None;
-        // Use one-pass loop for local block break.
-        loop {
+        // Use labeled block for local break.
+        'scope: {
             let Nod::Branch {
                 kind: BranchKind::Field,
                 range: kid_range,
             } = tree[kid_index].nod
             else {
-                break;
+                break 'scope;
             };
             let kid_range: Range<usize> = kid_range.into();
             let intern = match tree[kid_range.start].nod {
@@ -573,11 +573,11 @@ fn type_struct(runner: &mut Runner, tree: &mut [Node], range: &Range<usize>, typ
                 Nod::Uid { intern, .. } => intern,
                 // TODO Will they always be Uid by this point?
                 // Nod::Leaf { token } => token.intern,
-                _ => break,
+                _ => break 'scope,
             };
             // TODO Better than O(n^2).
             uid = find_field_def(runner, def_tree, def_index, intern);
-            break;
+            break 'scope;
         }
         uids.push(uid);
     }

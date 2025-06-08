@@ -15,9 +15,9 @@ const SHOW_SOURCES: bool = false;
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Source(pub u32);
 
-impl Into<Source> for usize {
-    fn into(self) -> Source {
-        Source(self as u32)
+impl From<usize> for Source {
+    fn from(val: usize) -> Self {
+        Source(val as u32)
     }
 }
 
@@ -33,9 +33,9 @@ impl Type {
     }
 }
 
-impl Into<Type> for usize {
-    fn into(self) -> Type {
-        Type(self as u32)
+impl From<usize> for Type {
+    fn from(val: usize) -> Self {
+        Type(val as u32)
     }
 }
 
@@ -501,12 +501,9 @@ impl TreeBuilder {
     fn pop_working(&mut self) -> Option<Node> {
         // Pop the top working, pulling in its kids.
         let top = self.working.pop().unwrap();
-        match top.nod {
-            Nod::Branch { range, .. } => {
-                let range: Range<usize> = range.into();
-                self.working.extend(self.nodes.drain(range));
-            }
-            _ => {}
+        if let Nod::Branch { range, .. } = top.nod {
+            let range: Range<usize> = range.into();
+            self.working.extend(self.nodes.drain(range));
         }
         Some(top)
     }

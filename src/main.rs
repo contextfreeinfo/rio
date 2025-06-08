@@ -198,8 +198,8 @@ where
             let path = subdir.join(format!("{name}.{stage}.txt"));
             let file = File::create(path)?;
             let mut buf = BufWriter::new(file);
-            write_tree(&mut buf, &tree, map)?;
-            writeln!(&mut buf, "")?;
+            write_tree(&mut buf, tree, map)?;
+            writeln!(&mut buf)?;
             writeln!(&mut buf, "Node size: {}", std::mem::size_of::<Node>())?;
             writeln!(&mut buf, "Tree len: {}", tree.len())?;
         }
