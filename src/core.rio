@@ -16,6 +16,8 @@ Either* = for YesValue:Type NoValue:Type be union of
     No NoValue
 end
 
+extern* = for void be extern
+
 false* = no void
 
 Field* = struct with
@@ -43,12 +45,14 @@ Interface* = struct with
     # methods:(List Function)
 end
 
+List* = for Item:Type be class with
+    # TODO
+end
+
 log* = for Value:Type be for value:Value be extern
 # TODO Also think and cry for log levels?
 
 Maybe* = for Value:Type be Either Value Void
-
-extern* = for void be extern
 
 No* = for Value:Type be struct with
     value:Value

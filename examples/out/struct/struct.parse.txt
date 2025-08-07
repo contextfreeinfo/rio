@@ -151,7 +151,6 @@ Block
           Typed
             Id: "eli"
             Colon: ":"
-            HSpace: " "
             Id: "Person"
             HSpace: " "
           /Typed
@@ -382,4 +381,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 1141
+Bytes: 1138

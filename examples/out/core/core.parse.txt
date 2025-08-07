@@ -221,6 +221,30 @@ Block
   VSpace: "\n"
   Def
     Pub
+      Id: "extern"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Id: "void"
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "extern"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
       Id: "false"
       Star: "*"
     /Pub
@@ -613,6 +637,44 @@ Block
   VSpace: "\n"
   Def
     Pub
+      Id: "List"
+      Star: "*"
+    /Pub
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      HSpace: " "
+      Params
+        Typed
+          Id: "Item"
+          Colon: ":"
+          Id: "Type"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Call
+          Id: "class"
+          HSpace: " "
+          Block
+            With: "with"
+            VSpace: "\n"
+            HSpace: "    "
+            Comment: "# TODO"
+            VSpace: "\n"
+            End: "end"
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Pub
       Id: "log"
       Star: "*"
     /Pub
@@ -683,30 +745,6 @@ Block
           HSpace: " "
           Id: "Void"
         /Call
-      /Block
-    /Fun
-  /Def
-  VSpace: "\n"
-  VSpace: "\n"
-  Def
-    Pub
-      Id: "extern"
-      Star: "*"
-    /Pub
-    HSpace: " "
-    Define: "="
-    HSpace: " "
-    Fun
-      Fun: "for"
-      HSpace: " "
-      Params
-        Id: "void"
-        HSpace: " "
-      /Params
-      Block
-        Be: "be"
-        HSpace: " "
-        Id: "extern"
       /Block
     /Fun
   /Def
@@ -1276,4 +1314,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 3857
+Bytes: 3974

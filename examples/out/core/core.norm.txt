@@ -138,6 +138,20 @@ Block
     /Fun
   /Def
   Def
+    target = Public Id: "extern"
+    value = Fun
+      params = Range
+        Def
+          target = Id: "void"
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Id: "extern"
+    /Fun
+  /Def
+  Def
     target = Public Id: "false"
     value = Call
       fun = Id: "no"
@@ -336,6 +350,28 @@ Block
     /Call
   /Def
   Def
+    target = Public Id: "List"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Id: "Item"
+            type = Id: "Type"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "class"
+          args = Range
+            Structured
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
     target = Public Id: "log"
     value = Fun
       params = Range
@@ -388,20 +424,6 @@ Block
           /Range
         /Call
       /Block
-    /Fun
-  /Def
-  Def
-    target = Public Id: "extern"
-    value = Fun
-      params = Range
-        Def
-          target = Id: "void"
-          value = None
-        /Def
-      /Range
-      returning = None
-      body = Block
-        Id: "extern"
     /Fun
   /Def
   Def
@@ -781,4 +803,4 @@ Block
   /Def
 /Block
 
-Bytes: 3266
+Bytes: 3354
