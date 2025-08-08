@@ -1,0 +1,20 @@
+main* = for() Void be
+    describe(2)
+    describe(-1)
+    describe(0)
+end
+
+describe = for(i Int) be
+    log(description(i))
+end
+
+description = for(i Int) be
+    message = case of
+        i < 0 be "negative"
+        i > 0 be "positive"
+        else be "zero"
+    end
+    message
+end
+
+less = for(i Int, j Int) be i < j

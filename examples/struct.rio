@@ -1,0 +1,31 @@
+main* = for() be
+    name = "Alice"
+    alice = Person { name, age = 40 }
+    describe(alice)
+    describe({ alice.age, name = "Bob" })
+    describe(build("Carl", 10))
+    describe({
+        age = 9
+        name = "Denise"
+    })
+    eli as Person = { name = "Eli", age = 35 }
+    describe(eli)
+end
+
+Person = struct of
+    name Text
+    age Int
+end
+
+build = for(name Text, age Int) Person be { name, age }
+
+describe = for(person Person) be
+    # TODO Text interp and auto struct loging.
+    log("Person:")
+    log(person.name)
+    log(case of
+        person.age >= 18 be "adult"
+        else be "minor"
+    end)
+    log("")
+end

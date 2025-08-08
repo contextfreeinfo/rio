@@ -1,0 +1,16 @@
+[package]
+name = "rio"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[profile.release]
+# Got smaller with s than z in a quick check.
+opt-level = "s"
+strip = true
+
+[profile.release-lto]
+inherits = "release"
+lto = true
+panic = "abort"

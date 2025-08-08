@@ -1,0 +1,29 @@
+main* = for() be
+    i = 3
+    countDown(i)
+    log(oddness(i))
+    log(oddness(i + 1))
+end
+
+countDown = for(count Int) be
+    log("counting ...")
+    case of
+        count > 1 be countDown(count - 1)
+        else be log("done")
+    end
+end
+
+isEven = for(i Int) Claim be case of
+    i > 0 be isOdd(i - 1)
+    else be true
+end
+
+isOdd = for(i Int) Claim be case of
+    i > 0 be isEven(i - 1)
+    else be false
+end
+
+oddness = for(i Int) be case of
+    isEven(i) be "even"
+    else be "odd"
+end
