@@ -4,6 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.98"
+argh = "0.1.13"
+# Adds 100s of KB to the binary: clap = { version = "4.5.43", features = ["derive"] }
+# Adds about 1 MB to the binary: env_logger = "0.11.8"
+log = "0.4.27"
+postcard = { version = "1.1.3", features = ["use-std"] }
+serde = "1.0.219"
+wasm-encoder = "0.236.0"
 
 [profile.release]
 # Got smaller with s than z in a quick check.

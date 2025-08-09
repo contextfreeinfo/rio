@@ -63,11 +63,12 @@ log* = for (value Any) Void be extern()
 
 Maybe[Value]* = Either[Value, Void]
 
-No[Value]* = struct of
-    value Value
+# Keeping YesValue purposely makes this hard to use in isolation.
+No[YesValue, NoValue]* = struct of
+    value NoValue
 end
 
-no[Value]* = for(value Value) be No { value }
+no[YesValue, NoValue]* = for(value NoValue) No[YesValue, _] be No { value }
 
 null* = false
 
@@ -104,6 +105,7 @@ Void = extern() as Type
 
 void* = extern() as Void
 
+# Yes can be used in isolation as a box.
 Yes[Value]* = struct of
     value Value
 end
