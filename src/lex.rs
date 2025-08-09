@@ -28,8 +28,6 @@ pub enum TokenKind {
     #[default]
     None,
     Also,
-    AngleClose,
-    AngleOpen,
     Be,
     Colon,
     Comma,
@@ -41,10 +39,12 @@ pub enum TokenKind {
     End,
     Eq,
     Fun,
+    Greater,
     GreaterEq,
     HSpace,
     Id,
     Int,
+    Less,
     LessEq,
     Minus,
     // None,
@@ -53,6 +53,8 @@ pub enum TokenKind {
     Plus,
     RoundClose,
     RoundOpen,
+    SquareClose,
+    SquareOpen,
     Star,
     // TODO String parts and lex mode stack. Is call stack good enough?
     String,
@@ -61,7 +63,6 @@ pub enum TokenKind {
     StringEscaper,
     To,
     VSpace,
-    With,
 }
 
 pub struct Lexer<'a> {
@@ -106,7 +107,7 @@ impl<'a> Lexer<'a> {
                             self.next();
                             self.push(TokenKind::LessEq);
                         }
-                        _ => self.push(TokenKind::AngleOpen),
+                        _ => self.push(TokenKind::Less),
                     }
                 }
                 '>' => {
@@ -116,13 +117,15 @@ impl<'a> Lexer<'a> {
                             self.next();
                             self.push(TokenKind::GreaterEq);
                         }
-                        _ => self.push(TokenKind::AngleClose),
+                        _ => self.push(TokenKind::Greater),
                     }
                 }
                 '{' => self.trim_push(TokenKind::CurlyOpen),
                 '}' => self.trim_push(TokenKind::CurlyClose),
                 '(' => self.trim_push(TokenKind::RoundOpen),
                 ')' => self.trim_push(TokenKind::RoundClose),
+                '[' => self.trim_push(TokenKind::SquareOpen),
+                ']' => self.trim_push(TokenKind::SquareClose),
                 '.' => self.trim_push(TokenKind::Dot),
                 '=' => {
                     self.trim();
@@ -150,6 +153,8 @@ impl<'a> Lexer<'a> {
             }
         }
         self.trim();
+        // TODO Maybe worth storing elsewhere if we switch to ranges for sources.
+        self.cart.text.clear();
     }
 
     fn token_text(&self) -> &str {
@@ -251,7 +256,6 @@ impl<'a> Lexer<'a> {
                 // TODO into for piping?
                 "of" => TokenKind::Of,
                 "to" => TokenKind::To,
-                "with" => TokenKind::With,
                 _ => TokenKind::Id,
             };
             self.push(kind);

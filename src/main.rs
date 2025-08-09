@@ -3,11 +3,12 @@ use std::{cell::RefCell, fs::File, io::Read};
 use anyhow::Result;
 use argh::FromArgs;
 
-use crate::{intern::Interner, lex::Lexer, parse::Parser};
+use crate::{intern::Interner, lex::Lexer, parse::Parser, tree::TreeBuilder};
 
 mod intern;
 mod lex;
 mod parse;
+mod tree;
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Top-level command.
@@ -50,6 +51,7 @@ struct Cart {
     pub bytes: Vec<u8>,
     pub interner: RefCell<Interner>,
     pub text: String,
+    pub tree_builder: TreeBuilder,
 }
 
 fn build(args: BuildArgs) -> Result<()> {
@@ -57,9 +59,10 @@ fn build(args: BuildArgs) -> Result<()> {
     // Always keep an empty string at zero.
     cart.interner.borrow_mut().intern("");
     File::open(args.path)?.read_to_string(&mut cart.text)?;
-    dbg!(cart.text.len());
+    // dbg!(cart.text.len());
     Lexer::new(&mut cart).lex();
-    dbg!(cart.bytes.len());
+    // dbg!(cart.bytes.len());
     Parser::new(&mut cart).parse();
+    // dbg!(cart.bytes.len());
     Ok(())
 }
