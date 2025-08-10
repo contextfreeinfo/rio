@@ -76,7 +76,7 @@ fn report_build<P: AsRef<Path>>(path: P, duration: Duration) {
         panic!()
     };
     println!(
-        "built {} in {:.1?}: {} bytes ({:.0} KiB)",
+        "built {} in {:.1?}: {} bytes ({:.1} KiB)",
         path.to_str().unwrap(),
         duration,
         metadata.len(),
