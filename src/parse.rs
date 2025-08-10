@@ -1,10 +1,14 @@
+use std::{io::Write, ops::Range};
+
+use anyhow::Result;
 use postcard::take_from_bytes;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     Cart,
+    intern::Intern,
     lex::{Token, TokenKind},
-    tree::{SizeRange, TreeBuilder},
+    tree::{SizeRange, TreeBuilder, TreeWriter},
 };
 
 // TODO Combine multiple files into one parse tree.
@@ -13,6 +17,20 @@ use crate::{
 pub enum ParseNode {
     Branch(ParseBranch),
     Leaf(Token),
+}
+
+impl Default for ParseNode {
+    fn default() -> Self {
+        ParseNode::Leaf(Default::default())
+    }
+}
+
+impl ParseNode {
+    pub fn read(bytes: &[u8], offset: usize) -> (ParseNode, usize) {
+        assert_ne!(0, offset);
+        let (node, unused) = take_from_bytes(&bytes[offset..]).unwrap();
+        (node, bytes.len() - unused.len())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -38,8 +56,8 @@ macro_rules! define_infix {
     ($name:ident, $next:ident, $pattern:pat $(if $guard:expr)? $(,)?) => {
         fn $name(&mut self) -> Option<()> {
             let start = self.builder().pos();
+            self.$next()?;
             loop_some!({
-                self.skip_h()?;
                 if !matches!(self.peek()?, $pattern $(if $guard)?) {
                     return Some(());
                 }
@@ -102,7 +120,6 @@ impl<'a> Parser<'a> {
     }
 
     fn atom(&mut self) -> Option<()> {
-        self.skip_h();
         match self.peek()? {
             TokenKind::Colon | TokenKind::Comma | TokenKind::VSpace => {}
             // TokenKind::Be
@@ -172,22 +189,17 @@ impl<'a> Parser<'a> {
 
     fn def(&mut self) -> Option<()> {
         // debug!("def");
-        self.skip_h();
         let start = self.builder().pos();
         self.compare();
-        if self.builder().pos() > start {
-            self.skip_h();
-            if self.peek()? == TokenKind::Define {
-                self.advance();
-                self.skip_hv();
-                // Right-side descent.
-                // TODO Error on nested assignment later?
-                self.def();
-                self.wrap(ParseBranchKind::Def, start);
-                self.skip_hv()?;
-            }
+        if self.builder().pos() > start && self.peek()? == TokenKind::Define {
+            self.advance();
+            self.skip_hv();
+            // Right-side descent.
+            // TODO Error on nested assignment later?
+            self.def();
+            self.wrap(ParseBranchKind::Def, start);
+            self.skip_hv()?;
         }
-        // debug!("/def");
         Some(())
     }
 
@@ -230,7 +242,7 @@ impl<'a> Parser<'a> {
                 // debug!("Skipping {:?}", token);
                 self.advance();
             } else {
-                None?;
+                return Some(());
             }
         })?;
         Some(())
@@ -253,7 +265,9 @@ impl<'a> Parser<'a> {
         let start = self.tokens_index;
         f(self)?;
         match () {
-            _ if self.tokens_index == start => None,
+            _ if self.tokens_index == start => {
+                None
+            }
             _ => Some(()),
         }
     }
@@ -263,4 +277,51 @@ impl<'a> Parser<'a> {
         let branch = ParseBranch { kind, range };
         self.builder().push(ParseNode::Branch(branch));
     }
+}
+
+pub fn write_parse_tree<File, Map>(writer: &mut TreeWriter<'_, File, Map>) -> Result<()>
+where
+    File: Write,
+    Map: std::ops::Index<Intern, Output = str>,
+{
+    let bytes = writer.bytes;
+    let (top, end) = ParseNode::read(bytes, TreeBuilder::top_of(bytes));
+    assert_eq!(bytes.len(), end);
+    write_parse_tree_at(writer, top, 0)
+}
+
+pub fn write_parse_tree_at<File, Map>(
+    writer: &mut TreeWriter<'_, File, Map>,
+    node: ParseNode,
+    indent: usize,
+) -> Result<()>
+where
+    File: Write,
+    Map: std::ops::Index<Intern, Output = str>,
+{
+    writer.indent(indent)?;
+    match node {
+        ParseNode::Branch(branch) => {
+            writeln!(writer.file, "{:?}", branch.kind)?;
+            let range: Range<usize> = branch.range.into();
+            let mut offset = range.start;
+            let mut count = 0;
+            while offset < range.end {
+                let (node, next_offset) = ParseNode::read(writer.bytes, offset);
+                write_parse_tree_at(writer, node, indent + writer.indent)?;
+                offset = next_offset;
+                count += 1;
+            }
+            if count > 1 {
+                writer.indent(indent)?;
+                writeln!(writer.file, "/{:?}", branch.kind)?;
+            }
+        }
+        ParseNode::Leaf(token) => writeln!(
+            writer.file,
+            "{:?}: {:?}",
+            token.kind, &writer.map[token.intern]
+        )?,
+    }
+    Ok(())
 }

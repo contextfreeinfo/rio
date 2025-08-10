@@ -1,9 +1,18 @@
-use std::{cell::RefCell, fs::File, io::Read};
+use std::{
+    cell::RefCell,
+    fs::File,
+    io::{Read, Write, stdout},
+};
 
 use anyhow::Result;
 use argh::FromArgs;
 
-use crate::{intern::Interner, lex::Lexer, parse::Parser, tree::TreeBuilder};
+use crate::{
+    intern::Interner,
+    lex::Lexer,
+    parse::{Parser, write_parse_tree},
+    tree::{TreeBuilder, TreeWriter},
+};
 
 mod intern;
 mod lex;
@@ -63,6 +72,11 @@ fn build(args: BuildArgs) -> Result<()> {
     Lexer::new(&mut cart).lex();
     // dbg!(cart.bytes.len());
     Parser::new(&mut cart).parse();
+    let stdout = stdout();
+    let mut writer: &mut dyn Write = &mut stdout.lock();
+    let interner = &*cart.interner.borrow();
+    let mut writer = TreeWriter::new(&cart.bytes, &mut writer, interner);
+    write_parse_tree(&mut writer)?;
     // dbg!(cart.bytes.len());
     Ok(())
 }

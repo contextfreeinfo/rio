@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::Ref, collections::HashMap, ops::Index};
 
 pub type Intern = usize;
 
@@ -27,5 +27,13 @@ impl Interner {
     pub fn resolve(&self, id: Intern) -> &str {
         // Presents in the call as bound to the Interner lifetime, which is correct.
         &self.texts[id]
+    }
+}
+
+impl Index<Intern> for Interner {
+    type Output = str;
+
+    fn index(&self, intern: Intern) -> &Self::Output {
+        self.resolve(intern)
     }
 }
