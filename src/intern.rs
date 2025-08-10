@@ -1,4 +1,4 @@
-use std::{cell::Ref, collections::HashMap, ops::Index};
+use std::{collections::HashMap, ops::Index};
 
 pub type Intern = usize;
 

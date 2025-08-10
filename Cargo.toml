@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.98"
-argh = "0.1.13"
+argh = { git = "https://github.com/google/argh.git", rev = "39b3091d52d90edff365ed9f23711888d9b47854" }
 # Adds 100s of KB to the binary: clap = { version = "4.5.43", features = ["derive"] }
 # Adds about 1 MB to the binary: env_logger = "0.11.8"
 log = "0.4.27"

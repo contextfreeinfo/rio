@@ -248,11 +248,6 @@ impl<'a> Parser<'a> {
         Some(())
     }
 
-    /// Might call manually to control where whitespace gathers.
-    fn skip_h(&mut self) -> Option<()> {
-        self.peek_token_step().map(|_| ())
-    }
-
     fn skip_hv(&mut self) -> Option<()> {
         self.skip(|kind| matches!(kind, TokenKind::VSpace))
     }
@@ -265,9 +260,7 @@ impl<'a> Parser<'a> {
         let start = self.tokens_index;
         f(self)?;
         match () {
-            _ if self.tokens_index == start => {
-                None
-            }
+            _ if self.tokens_index == start => None,
             _ => Some(()),
         }
     }
