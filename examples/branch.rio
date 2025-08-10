@@ -1,4 +1,4 @@
-main* = for() Void be
+main := for() Void be
     describe(2)
     describe(-1)
     describe(0)

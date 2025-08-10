@@ -1,11 +1,8 @@
 Block
   Def
-    Infix
-      Id: "main"
-      Star: "*"
-      HSpace: " "
-    /Infix
-    Define: "="
+    Id: "main"
+    HSpace: " "
+    DefinePub: ":="
     HSpace: " "
     Fun
       Fun: "for"
@@ -128,4 +125,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 383
+Bytes: 374

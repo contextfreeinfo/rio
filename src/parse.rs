@@ -228,7 +228,7 @@ impl<'a> Parser<'a> {
         // debug!("def");
         let start = self.pos();
         self.compare();
-        if self.pos() > start && self.peek()? == TokenKind::Define {
+        if self.pos() > start && matches!(self.peek()?, TokenKind::Define | TokenKind::DefinePub) {
             self.advance();
             self.skip_hv();
             // Right-side descent.

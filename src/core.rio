@@ -1,34 +1,34 @@
-# abstract* = for void be extern
+# abstract := for void be extern
 
-Any* = extern() as Type
+Any := extern() as Type
 
-# Array* = for Item:Type size:Int be extern
+# Array := for Item:Type size:Int be extern
 
-# Claim* = Maybe Void
+# Claim := Maybe Void
 
-# Class* = struct with
+# Class := struct with
 #     face:Interface
 #     fields:(List Field)
 # end
 
-# describe* = for Value:Type be for value:Value :String be extern
+# describe := for Value:Type be for value:Value :String be extern
 
-Either[YesValue, NoValue]* = union of
+Either[YesValue, NoValue] := union of
     Yes[YesValue]
     No[NoValue]
 end
 
-Error* = struct of
+Error := struct of
     message Text
 end
 
-error* = for(message Text) be Error { message }
+error := for(message Text) be Error { message }
 
-extern* = for() Any be extern()
+extern := for() Any be extern()
 
-false* = null[Void]
+false := null[Void]
 
-# Field* = struct with
+# Field := struct with
 #     # TODO This needs dynamic typing and sizing for `type` and `default`.
 #     name:Text
 #     type:Type
@@ -36,78 +36,78 @@ false* = null[Void]
 #     offset:Int
 # end
 
-Float* = extern() as Type
+Float := extern() as Type
 
-Int* = extern() as Type
-# Int* = class with
-#     add* = for other:Int :Int be extern
-#     eq* = for other:Int :Claim be extern
-#     ge* = for other:Int :Claim be extern
-#     gt* = for other:Int :Claim be extern
-#     le* = for other:Int :Claim be extern
-#     lt* = for other:Int :Claim be extern
-#     ne* = for other:Int :Claim be extern
-#     sub* = for other:Int :Int be extern
+Int := extern() as Type
+# Int := class with
+#     add := for other:Int :Int be extern
+#     eq := for other:Int :Claim be extern
+#     ge := for other:Int :Claim be extern
+#     gt := for other:Int :Claim be extern
+#     le := for other:Int :Claim be extern
+#     lt := for other:Int :Claim be extern
+#     ne := for other:Int :Claim be extern
+#     sub := for other:Int :Int be extern
 # end
 
-# Interface* = struct with
+# Interface := struct with
 #     name:Text
 #     # TODO constructor separate?
 #     # methods:(List Function)
 # end
 
-List[Item]* = extern() as Type
+List[Item] := extern() as Type
 
-log* = for (value Any) Void be extern()
+log := for (value Any) Void be extern()
 # # TODO Also think and cry for log levels?
 
-Maybe[Value]* = Either[Value, Void]
+Maybe[Value] := Either[Value, Void]
 
 # Keeping YesValue purposely makes this hard to use in isolation.
-No[YesValue, NoValue]* = struct of
+No[YesValue, NoValue] := struct of
     value NoValue
 end
 
-no[YesValue, NoValue]* = for(value NoValue) No[YesValue, _] be No { value }
+no[YesValue, NoValue] := for(value NoValue) No[YesValue, _] be No { value }
 
-null[YesValue]* = no[YesValue, _](void)
+null[YesValue] := no[YesValue, _](void)
 
-# Pair* = for Key:Type Value:Type be struct with
+# Pair := for Key:Type Value:Type be struct with
 #     key:Key
 #     value:Value
 # end
 
-# pair* = for Key:Type Value:Type be for key:Key value:Value be Pair {key, value}
+# pair := for Key:Type Value:Type be for key:Key value:Value be Pair {key, value}
 
-# Predicate* = for Subject:Type be
+# Predicate := for Subject:Type be
 #     interface for subject:Subject :Claim be abstract
 # end
 
-Ref[Value]* = class(val Value) of
-    value* = val
+Ref[Value] := class(val Value) of
+    value := val
 end
 
-# Struct* = struct with
+# Struct := struct with
 #     name:Text
 #     fields:(List Field)
 # end
 
-true* = yes(void)
+true := yes(void)
 
-Text* = extern() as Type
+Text := extern() as Type
 
-Try[Value]* = Maybe[Value, Error]
+Try[Value] := Maybe[Value, Error]
 
-Type* = extern() as Type
-# Type* = union ... ???
+Type := extern() as Type
+# Type := union ... ???
 
 Void = extern() as Type
 
-void* = extern() as Void
+void := extern() as Void
 
 # Yes can be used in isolation as a box.
-Yes[Value]* = struct of
+Yes[Value] := struct of
     value Value
 end
 
-yes[Value]* = for(value Value) be Yes { value }
+yes[Value] := for(value Value) be Yes { value }

@@ -35,6 +35,7 @@ pub enum TokenKind {
     CurlyClose,
     CurlyOpen,
     Define,
+    DefinePub,
     Dot,
     End,
     Eq,
@@ -99,7 +100,16 @@ impl<'a> Lexer<'a> {
                 }
                 '#' => self.comment(),
                 '"' => self.string(),
-                ':' => self.trim_push(TokenKind::Colon),
+                ':' =>  {
+                    self.trim();
+                    match self.peek() {
+                        Some('=') => {
+                            self.next();
+                            self.push(TokenKind::DefinePub);
+                        }
+                        _ => self.push(TokenKind::Colon),
+                    }
+                }
                 ',' | ';' => self.trim_push(TokenKind::Comma),
                 '<' => {
                     self.trim();
