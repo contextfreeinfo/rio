@@ -26,7 +26,7 @@ error* = for(message Text) be Error { message }
 
 extern* = for() Any be extern()
 
-false* = no(void)
+false* = null[Void]
 
 # Field* = struct with
 #     # TODO This needs dynamic typing and sizing for `type` and `default`.
@@ -70,7 +70,7 @@ end
 
 no[YesValue, NoValue]* = for(value NoValue) No[YesValue, _] be No { value }
 
-null* = false
+null[YesValue]* = no[YesValue, _](void)
 
 # Pair* = for Key:Type Value:Type be struct with
 #     key:Key
