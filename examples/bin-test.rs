@@ -76,11 +76,11 @@ fn report_build<P: AsRef<Path>>(path: P, duration: Duration) {
         panic!()
     };
     println!(
-        "built {} in {:.1?}: {} bytes ({:.2} MB)",
+        "built {} in {:.1?}: {} bytes ({:.0} KiB)",
         path.to_str().unwrap(),
         duration,
         metadata.len(),
-        metadata.len() as f64 / (1 << 20) as f64
+        metadata.len() as f64 / (1 << 10) as f64
     );
 }
 
