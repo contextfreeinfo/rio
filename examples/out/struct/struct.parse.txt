@@ -1,12 +1,14 @@
 Block
-  Id: "main"
   Def
-    Star: "*"
-    HSpace: " "
+    Infix
+      Id: "main"
+      Star: "*"
+      HSpace: " "
+    /Infix
     Define: "="
     HSpace: " "
-    Fun: "for"
   /Def
+  Fun: "for"
   RoundOpen: "("
   RoundClose: ")"
   HSpace: " "
@@ -18,10 +20,12 @@ Block
     HSpace: " "
     Define: "="
     HSpace: " "
-    StringEdge: "\""
+    StringParts
+      StringEdge: "\""
+      String: "Alice"
+      StringEdge: "\""
+    /StringParts
   /Def
-  String: "Alice"
-  StringEdge: "\""
   VSpace: "\n"
   HSpace: "    "
   Def
@@ -68,11 +72,13 @@ Block
     HSpace: " "
     Define: "="
     HSpace: " "
-    StringEdge: "\""
+    StringParts
+      StringEdge: "\""
+      String: "Bob"
+      StringEdge: "\""
+    /StringParts
+    HSpace: " "
   /Def
-  String: "Bob"
-  StringEdge: "\""
-  HSpace: " "
   CurlyClose: "}"
   RoundClose: ")"
   VSpace: "\n"
@@ -81,9 +87,11 @@ Block
   RoundOpen: "("
   Id: "build"
   RoundOpen: "("
-  StringEdge: "\""
-  String: "Carl"
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "Carl"
+    StringEdge: "\""
+  /StringParts
   Comma: ","
   HSpace: " "
   Int: "10"
@@ -110,10 +118,12 @@ Block
     HSpace: " "
     Define: "="
     HSpace: " "
-    StringEdge: "\""
+    StringParts
+      StringEdge: "\""
+      String: "Denise"
+      StringEdge: "\""
+    /StringParts
   /Def
-  String: "Denise"
-  StringEdge: "\""
   VSpace: "\n"
   HSpace: "    "
   CurlyClose: "}"
@@ -129,18 +139,20 @@ Block
     HSpace: " "
     Define: "="
     HSpace: " "
-    CurlyOpen: "{"
-    HSpace: " "
   /Def
+  CurlyOpen: "{"
+  HSpace: " "
   Def
     Id: "name"
     HSpace: " "
     Define: "="
     HSpace: " "
-    StringEdge: "\""
+    StringParts
+      StringEdge: "\""
+      String: "Eli"
+      StringEdge: "\""
+    /StringParts
   /Def
-  String: "Eli"
-  StringEdge: "\""
   Comma: ","
   HSpace: " "
   Def
@@ -234,9 +246,11 @@ Block
   HSpace: "    "
   Id: "log"
   RoundOpen: "("
-  StringEdge: "\""
-  String: "Person:"
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "Person:"
+    StringEdge: "\""
+  /StringParts
   RoundClose: ")"
   VSpace: "\n"
   HSpace: "    "
@@ -267,18 +281,22 @@ Block
   /Infix
   Be: "be"
   HSpace: " "
-  StringEdge: "\""
-  String: "adult"
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "adult"
+    StringEdge: "\""
+  /StringParts
   VSpace: "\n"
   HSpace: "        "
   Id: "else"
   HSpace: " "
   Be: "be"
   HSpace: " "
-  StringEdge: "\""
-  String: "minor"
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "minor"
+    StringEdge: "\""
+  /StringParts
   VSpace: "\n"
   HSpace: "    "
   End: "end"
@@ -287,12 +305,14 @@ Block
   HSpace: "    "
   Id: "log"
   RoundOpen: "("
-  StringEdge: "\""
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    StringEdge: "\""
+  /StringParts
   RoundClose: ")"
   VSpace: "\n"
   End: "end"
   VSpace: "\n"
 /Block
 
-Bytes: 883
+Bytes: 939

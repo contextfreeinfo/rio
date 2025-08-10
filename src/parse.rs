@@ -104,7 +104,7 @@ impl<'a> Parser<'a> {
             .drain_into(&mut self.cart.bytes, bytes_top);
     }
 
-    define_infix!(add, atom, TokenKind::Minus | TokenKind::Plus);
+    define_infix!(add, multiply, TokenKind::Minus | TokenKind::Plus);
 
     fn advance(&mut self) {
         let Some((token, next)) = self.peek_token_step() else {
@@ -127,9 +127,9 @@ impl<'a> Parser<'a> {
             // | TokenKind::Of
             // | TokenKind::RoundOpen => self.block()?,
             // TokenKind::Fun => self.fun()?,
-            TokenKind::Id => self.advance(),
-            // TokenKind::StringEdge => self.string(),
-            _ => self.advance(),
+            TokenKind::Id | TokenKind::Int => self.advance(),
+            TokenKind::StringEdge => self.string(),
+            _ => {}
         }
         Some(())
     }
@@ -203,6 +203,8 @@ impl<'a> Parser<'a> {
         Some(())
     }
 
+    define_infix!(multiply, atom, TokenKind::Slash | TokenKind::Star);
+
     fn peek(&mut self) -> Option<TokenKind> {
         self.peek_token_step().map(|it| it.0.kind)
     }
@@ -250,6 +252,19 @@ impl<'a> Parser<'a> {
 
     fn skip_hv(&mut self) -> Option<()> {
         self.skip(|kind| matches!(kind, TokenKind::VSpace))
+    }
+
+    fn string(&mut self) {
+        let start = self.builder().pos();
+        self.advance();
+        loop_some!({
+            let next = self.peek()?;
+            self.advance();
+            if next == TokenKind::StringEdge {
+                None?;
+            }
+        });
+        self.wrap(ParseBranchKind::StringParts, start);
     }
 
     /// None if done or if no advance happened.

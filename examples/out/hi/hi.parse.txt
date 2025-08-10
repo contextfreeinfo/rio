@@ -1,12 +1,14 @@
 Block
-  Id: "main"
   Def
-    Star: "*"
-    HSpace: " "
+    Infix
+      Id: "main"
+      Star: "*"
+      HSpace: " "
+    /Infix
     Define: "="
     HSpace: " "
-    Fun: "for"
   /Def
+  Fun: "for"
   RoundOpen: "("
   RoundClose: ")"
   HSpace: " "
@@ -18,15 +20,17 @@ Block
     HSpace: " "
     Define: "="
     HSpace: " "
-    StringEdge: "\""
+    StringParts
+      StringEdge: "\""
+      String: "I say "
+      StringEscaper: "\\"
+      StringEscape: "\""
+      String: "Hi!"
+      StringEscaper: "\\"
+      StringEscape: "\""
+      StringEdge: "\""
+    /StringParts
   /Def
-  String: "I say "
-  StringEscaper: "\\"
-  StringEscape: "\""
-  String: "Hi!"
-  StringEscaper: "\\"
-  StringEscape: "\""
-  StringEdge: "\""
   VSpace: "\n"
   HSpace: "    "
   Id: "logTwice"
@@ -34,8 +38,10 @@ Block
   Id: "message"
   Comma: ","
   HSpace: " "
-  StringEdge: "\""
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    StringEdge: "\""
+  /StringParts
   RoundClose: ")"
   VSpace: "\n"
   End: "end"
@@ -46,8 +52,8 @@ Block
     HSpace: " "
     Define: "="
     HSpace: " "
-    Fun: "for"
   /Def
+  Fun: "for"
   RoundOpen: "("
   Id: "message"
   HSpace: " "
@@ -85,4 +91,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 261
+Bytes: 273

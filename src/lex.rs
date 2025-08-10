@@ -55,6 +55,7 @@ pub enum TokenKind {
     RoundOpen,
     SquareClose,
     SquareOpen,
+    Slash,
     Star,
     // TODO String parts and lex mode stack. Is call stack good enough?
     String,

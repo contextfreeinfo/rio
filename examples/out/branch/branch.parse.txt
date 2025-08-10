@@ -1,12 +1,14 @@
 Block
-  Id: "main"
   Def
-    Star: "*"
-    HSpace: " "
+    Infix
+      Id: "main"
+      Star: "*"
+      HSpace: " "
+    /Infix
     Define: "="
     HSpace: " "
-    Fun: "for"
   /Def
+  Fun: "for"
   RoundOpen: "("
   RoundClose: ")"
   HSpace: " "
@@ -40,8 +42,8 @@ Block
     HSpace: " "
     Define: "="
     HSpace: " "
-    Fun: "for"
   /Def
+  Fun: "for"
   RoundOpen: "("
   Id: "i"
   HSpace: " "
@@ -97,9 +99,11 @@ Block
   /Infix
   Be: "be"
   HSpace: " "
-  StringEdge: "\""
-  String: "negative"
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "negative"
+    StringEdge: "\""
+  /StringParts
   VSpace: "\n"
   HSpace: "        "
   Infix
@@ -112,18 +116,22 @@ Block
   /Infix
   Be: "be"
   HSpace: " "
-  StringEdge: "\""
-  String: "positive"
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "positive"
+    StringEdge: "\""
+  /StringParts
   VSpace: "\n"
   HSpace: "        "
   Id: "else"
   HSpace: " "
   Be: "be"
   HSpace: " "
-  StringEdge: "\""
-  String: "zero"
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "zero"
+    StringEdge: "\""
+  /StringParts
   VSpace: "\n"
   HSpace: "    "
   End: "end"
@@ -162,4 +170,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 486
+Bytes: 504

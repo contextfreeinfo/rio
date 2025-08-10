@@ -1,12 +1,14 @@
 Block
-  Id: "main"
   Def
-    Star: "*"
-    HSpace: " "
+    Infix
+      Id: "main"
+      Star: "*"
+      HSpace: " "
+    /Infix
     Define: "="
     HSpace: " "
-    Fun: "for"
   /Def
+  Fun: "for"
   RoundOpen: "("
   RoundClose: ")"
   HSpace: " "
@@ -70,9 +72,11 @@ Block
   HSpace: "    "
   Id: "log"
   RoundOpen: "("
-  StringEdge: "\""
-  String: "counting ..."
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "counting ..."
+    StringEdge: "\""
+  /StringParts
   RoundClose: ")"
   VSpace: "\n"
   HSpace: "    "
@@ -109,9 +113,11 @@ Block
   HSpace: " "
   Id: "log"
   RoundOpen: "("
-  StringEdge: "\""
-  String: "done"
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "done"
+    StringEdge: "\""
+  /StringParts
   RoundClose: ")"
   VSpace: "\n"
   HSpace: "    "
@@ -247,21 +253,25 @@ Block
   HSpace: " "
   Be: "be"
   HSpace: " "
-  StringEdge: "\""
-  String: "even"
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "even"
+    StringEdge: "\""
+  /StringParts
   VSpace: "\n"
   HSpace: "    "
   Id: "else"
   HSpace: " "
   Be: "be"
   HSpace: " "
-  StringEdge: "\""
-  String: "odd"
-  StringEdge: "\""
+  StringParts
+    StringEdge: "\""
+    String: "odd"
+    StringEdge: "\""
+  /StringParts
   VSpace: "\n"
   End: "end"
   VSpace: "\n"
 /Block
 
-Bytes: 790
+Bytes: 818
