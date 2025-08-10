@@ -7,44 +7,56 @@ Block
     /Infix
     Define: "="
     HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        Block
+          RoundOpen: "("
+          RoundClose: ")"
+        /Block
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Id: "message"
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          StringParts
+            StringEdge: "\""
+            String: "I say "
+            StringEscaper: "\\"
+            StringEscape: "\""
+            String: "Hi!"
+            StringEscaper: "\\"
+            StringEscape: "\""
+            StringEdge: "\""
+          /StringParts
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "logTwice"
+          Block
+            RoundOpen: "("
+            Id: "message"
+            Comma: ","
+            HSpace: " "
+            StringParts
+              StringEdge: "\""
+              StringEdge: "\""
+            /StringParts
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Fun
   /Def
-  Fun: "for"
-  RoundOpen: "("
-  RoundClose: ")"
-  HSpace: " "
-  Be: "be"
-  VSpace: "\n"
-  HSpace: "    "
-  Def
-    Id: "message"
-    HSpace: " "
-    Define: "="
-    HSpace: " "
-    StringParts
-      StringEdge: "\""
-      String: "I say "
-      StringEscaper: "\\"
-      StringEscape: "\""
-      String: "Hi!"
-      StringEscaper: "\\"
-      StringEscape: "\""
-      StringEdge: "\""
-    /StringParts
-  /Def
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "logTwice"
-  RoundOpen: "("
-  Id: "message"
-  Comma: ","
-  HSpace: " "
-  StringParts
-    StringEdge: "\""
-    StringEdge: "\""
-  /StringParts
-  RoundClose: ")"
-  VSpace: "\n"
-  End: "end"
   VSpace: "\n"
   VSpace: "\n"
   Def
@@ -52,43 +64,68 @@ Block
     HSpace: " "
     Define: "="
     HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        Typed
+          Block
+            RoundOpen: "("
+            Typed
+              Id: "message"
+              HSpace: " "
+              Id: "Text"
+            /Typed
+            Comma: ","
+            HSpace: " "
+            Typed
+              Id: "middle"
+              HSpace: " "
+              Id: "Text"
+            /Typed
+            RoundClose: ")"
+          /Block
+          HSpace: " "
+          Id: "Void"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "log"
+          Block
+            RoundOpen: "("
+            Id: "message"
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "log"
+          Block
+            RoundOpen: "("
+            Id: "middle"
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "log"
+          Block
+            RoundOpen: "("
+            Id: "message"
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Fun
   /Def
-  Fun: "for"
-  RoundOpen: "("
-  Id: "message"
-  HSpace: " "
-  Id: "Text"
-  Comma: ","
-  HSpace: " "
-  Id: "middle"
-  HSpace: " "
-  Id: "Text"
-  RoundClose: ")"
-  HSpace: " "
-  Id: "Void"
-  HSpace: " "
-  Be: "be"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "log"
-  RoundOpen: "("
-  Id: "message"
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "log"
-  RoundOpen: "("
-  Id: "middle"
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "log"
-  RoundOpen: "("
-  Id: "message"
-  RoundClose: ")"
-  VSpace: "\n"
-  End: "end"
   VSpace: "\n"
 /Block
 
-Bytes: 273
+Bytes: 383

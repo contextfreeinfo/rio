@@ -7,62 +7,82 @@ Block
     /Infix
     Define: "="
     HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        Block
+          RoundOpen: "("
+          RoundClose: ")"
+        /Block
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Id: "name"
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          StringParts
+            StringEdge: "\""
+            String: "Alice"
+            StringEdge: "\""
+          /StringParts
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Id: "alice"
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Id: "Person"
+          HSpace: " "
+        /Def
+        Block
+          CurlyOpen: "{"
+          HSpace: " "
+          Id: "name"
+          Comma: ","
+          HSpace: " "
+          Def
+            Id: "age"
+            HSpace: " "
+            Define: "="
+            HSpace: " "
+            Int: "40"
+            HSpace: " "
+          /Def
+          CurlyClose: "}"
+        /Block
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "describe"
+          Block
+            RoundOpen: "("
+            Id: "alice"
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "describe"
+          Block
+            RoundOpen: "("
+            Block
+              CurlyOpen: "{"
+              HSpace: " "
+              Id: "alice"
+            /Block
+          /Block
+        /Call
+      /Block
+    /Fun
   /Def
-  Fun: "for"
-  RoundOpen: "("
-  RoundClose: ")"
-  HSpace: " "
-  Be: "be"
-  VSpace: "\n"
-  HSpace: "    "
-  Def
-    Id: "name"
-    HSpace: " "
-    Define: "="
-    HSpace: " "
-    StringParts
-      StringEdge: "\""
-      String: "Alice"
-      StringEdge: "\""
-    /StringParts
-  /Def
-  VSpace: "\n"
-  HSpace: "    "
-  Def
-    Id: "alice"
-    HSpace: " "
-    Define: "="
-    HSpace: " "
-    Id: "Person"
-    HSpace: " "
-  /Def
-  CurlyOpen: "{"
-  HSpace: " "
-  Id: "name"
-  Comma: ","
-  HSpace: " "
-  Def
-    Id: "age"
-    HSpace: " "
-    Define: "="
-    HSpace: " "
-    Int: "40"
-    HSpace: " "
-  /Def
-  CurlyClose: "}"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "describe"
-  RoundOpen: "("
-  Id: "alice"
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "describe"
-  RoundOpen: "("
-  CurlyOpen: "{"
-  HSpace: " "
-  Id: "alice"
   Dot: "."
   Id: "age"
   Comma: ","
@@ -83,51 +103,65 @@ Block
   RoundClose: ")"
   VSpace: "\n"
   HSpace: "    "
-  Id: "describe"
-  RoundOpen: "("
-  Id: "build"
-  RoundOpen: "("
-  StringParts
-    StringEdge: "\""
-    String: "Carl"
-    StringEdge: "\""
-  /StringParts
-  Comma: ","
-  HSpace: " "
-  Int: "10"
-  RoundClose: ")"
-  RoundClose: ")"
+  Call
+    Id: "describe"
+    Block
+      RoundOpen: "("
+      Call
+        Id: "build"
+        Block
+          RoundOpen: "("
+          StringParts
+            StringEdge: "\""
+            String: "Carl"
+            StringEdge: "\""
+          /StringParts
+          Comma: ","
+          HSpace: " "
+          Int: "10"
+          RoundClose: ")"
+        /Block
+      /Call
+      RoundClose: ")"
+    /Block
+  /Call
   VSpace: "\n"
   HSpace: "    "
-  Id: "describe"
-  RoundOpen: "("
-  CurlyOpen: "{"
-  VSpace: "\n"
-  HSpace: "        "
-  Def
-    Id: "age"
-    HSpace: " "
-    Define: "="
-    HSpace: " "
-    Int: "9"
-  /Def
-  VSpace: "\n"
-  HSpace: "        "
-  Def
-    Id: "name"
-    HSpace: " "
-    Define: "="
-    HSpace: " "
-    StringParts
-      StringEdge: "\""
-      String: "Denise"
-      StringEdge: "\""
-    /StringParts
-  /Def
-  VSpace: "\n"
-  HSpace: "    "
-  CurlyClose: "}"
-  RoundClose: ")"
+  Call
+    Id: "describe"
+    Block
+      RoundOpen: "("
+      Block
+        CurlyOpen: "{"
+        VSpace: "\n"
+        HSpace: "        "
+        Def
+          Id: "age"
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Int: "9"
+        /Def
+        VSpace: "\n"
+        HSpace: "        "
+        Def
+          Id: "name"
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          StringParts
+            StringEdge: "\""
+            String: "Denise"
+            StringEdge: "\""
+          /StringParts
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        CurlyClose: "}"
+      /Block
+      RoundClose: ")"
+    /Block
+  /Call
   VSpace: "\n"
   HSpace: "    "
   Id: "eli"
@@ -139,137 +173,184 @@ Block
     HSpace: " "
     Define: "="
     HSpace: " "
+    Block
+      CurlyOpen: "{"
+      HSpace: " "
+      Def
+        Id: "name"
+        HSpace: " "
+        Define: "="
+        HSpace: " "
+        StringParts
+          StringEdge: "\""
+          String: "Eli"
+          StringEdge: "\""
+        /StringParts
+      /Def
+      Comma: ","
+      HSpace: " "
+      Def
+        Id: "age"
+        HSpace: " "
+        Define: "="
+        HSpace: " "
+        Int: "35"
+        HSpace: " "
+      /Def
+      CurlyClose: "}"
+    /Block
   /Def
-  CurlyOpen: "{"
+  VSpace: "\n"
+  HSpace: "    "
+  Call
+    Id: "describe"
+    Block
+      RoundOpen: "("
+      Id: "eli"
+      RoundClose: ")"
+    /Block
+  /Call
+  VSpace: "\n"
+  End: "end"
+  VSpace: "\n"
+  VSpace: "\n"
+  Id: "Person"
   HSpace: " "
-  Def
+  Define: "="
+  HSpace: " "
+  Id: "struct"
+  HSpace: " "
+  Block
+    Of: "of"
+    VSpace: "\n"
+    HSpace: "    "
     Id: "name"
     HSpace: " "
-    Define: "="
-    HSpace: " "
-    StringParts
-      StringEdge: "\""
-      String: "Eli"
-      StringEdge: "\""
-    /StringParts
-  /Def
-  Comma: ","
-  HSpace: " "
-  Def
+    Id: "Text"
+    VSpace: "\n"
+    HSpace: "    "
     Id: "age"
     HSpace: " "
-    Define: "="
-    HSpace: " "
-    Int: "35"
-    HSpace: " "
-  /Def
-  CurlyClose: "}"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "describe"
-  RoundOpen: "("
-  Id: "eli"
-  RoundClose: ")"
-  VSpace: "\n"
-  End: "end"
+    Id: "Int"
+    VSpace: "\n"
+    End: "end"
+  /Block
   VSpace: "\n"
   VSpace: "\n"
   Def
-    Id: "Person"
+    Id: "build"
     HSpace: " "
     Define: "="
     HSpace: " "
-    Id: "struct"
-    HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        Typed
+          Block
+            RoundOpen: "("
+            Typed
+              Id: "name"
+              HSpace: " "
+              Id: "Text"
+            /Typed
+            Comma: ","
+            HSpace: " "
+            Typed
+              Id: "age"
+              HSpace: " "
+              Id: "Int"
+            /Typed
+            RoundClose: ")"
+          /Block
+          HSpace: " "
+          Id: "Person"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Block
+          CurlyOpen: "{"
+          HSpace: " "
+          Id: "name"
+          Comma: ","
+          HSpace: " "
+          Id: "age"
+          HSpace: " "
+          CurlyClose: "}"
+        /Block
+      /Block
+    /Fun
   /Def
-  Of: "of"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "name"
-  HSpace: " "
-  Id: "Text"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "age"
-  HSpace: " "
-  Id: "Int"
-  VSpace: "\n"
-  End: "end"
   VSpace: "\n"
   VSpace: "\n"
-  Id: "build"
-  HSpace: " "
-  Define: "="
-  HSpace: " "
-  Fun: "for"
-  RoundOpen: "("
-  Id: "name"
-  HSpace: " "
-  Id: "Text"
-  Comma: ","
-  HSpace: " "
-  Id: "age"
-  HSpace: " "
-  Id: "Int"
-  RoundClose: ")"
-  HSpace: " "
-  Id: "Person"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  CurlyOpen: "{"
-  HSpace: " "
-  Id: "name"
-  Comma: ","
-  HSpace: " "
-  Id: "age"
-  HSpace: " "
-  CurlyClose: "}"
-  VSpace: "\n"
-  VSpace: "\n"
-  Id: "describe"
-  HSpace: " "
-  Define: "="
-  HSpace: " "
-  Fun: "for"
-  RoundOpen: "("
-  Id: "person"
-  HSpace: " "
-  Id: "Person"
-  RoundClose: ")"
-  HSpace: " "
-  Be: "be"
-  VSpace: "\n"
-  HSpace: "    "
-  Comment: "# TODO Text interp and auto struct loging."
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "log"
-  RoundOpen: "("
-  StringParts
-    StringEdge: "\""
-    String: "Person:"
-    StringEdge: "\""
-  /StringParts
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "log"
-  RoundOpen: "("
-  Id: "person"
+  Def
+    Id: "describe"
+    HSpace: " "
+    Define: "="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        Block
+          RoundOpen: "("
+          Typed
+            Id: "person"
+            HSpace: " "
+            Id: "Person"
+          /Typed
+          RoundClose: ")"
+        /Block
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Comment: "# TODO Text interp and auto struct loging."
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "log"
+          Block
+            RoundOpen: "("
+            StringParts
+              StringEdge: "\""
+              String: "Person:"
+              StringEdge: "\""
+            /StringParts
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "log"
+          Block
+            RoundOpen: "("
+            Id: "person"
+          /Block
+        /Call
+      /Block
+    /Fun
+  /Def
   Dot: "."
   Id: "name"
   RoundClose: ")"
   VSpace: "\n"
   HSpace: "    "
   Id: "log"
-  RoundOpen: "("
-  Id: "case"
-  HSpace: " "
-  Of: "of"
-  VSpace: "\n"
-  HSpace: "        "
-  Id: "person"
+  Block
+    RoundOpen: "("
+    Id: "case"
+    HSpace: " "
+    Block
+      Of: "of"
+      VSpace: "\n"
+      HSpace: "        "
+      Id: "person"
+    /Block
+  /Block
   Dot: "."
   Infix
     Id: "age"
@@ -279,40 +360,48 @@ Block
     Int: "18"
     HSpace: " "
   /Infix
-  Be: "be"
-  HSpace: " "
-  StringParts
-    StringEdge: "\""
-    String: "adult"
-    StringEdge: "\""
-  /StringParts
+  Block
+    Be: "be"
+    HSpace: " "
+    StringParts
+      StringEdge: "\""
+      String: "adult"
+      StringEdge: "\""
+    /StringParts
+  /Block
   VSpace: "\n"
   HSpace: "        "
   Id: "else"
   HSpace: " "
-  Be: "be"
-  HSpace: " "
-  StringParts
-    StringEdge: "\""
-    String: "minor"
-    StringEdge: "\""
-  /StringParts
+  Block
+    Be: "be"
+    HSpace: " "
+    StringParts
+      StringEdge: "\""
+      String: "minor"
+      StringEdge: "\""
+    /StringParts
+  /Block
   VSpace: "\n"
   HSpace: "    "
   End: "end"
   RoundClose: ")"
   VSpace: "\n"
   HSpace: "    "
-  Id: "log"
-  RoundOpen: "("
-  StringParts
-    StringEdge: "\""
-    StringEdge: "\""
-  /StringParts
-  RoundClose: ")"
+  Call
+    Id: "log"
+    Block
+      RoundOpen: "("
+      StringParts
+        StringEdge: "\""
+        StringEdge: "\""
+      /StringParts
+      RoundClose: ")"
+    /Block
+  /Call
   VSpace: "\n"
   End: "end"
   VSpace: "\n"
 /Block
 
-Bytes: 939
+Bytes: 1209

@@ -7,271 +7,397 @@ Block
     /Infix
     Define: "="
     HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        Block
+          RoundOpen: "("
+          RoundClose: ")"
+        /Block
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Id: "i"
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Int: "3"
+        /Def
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "countDown"
+          Block
+            RoundOpen: "("
+            Id: "i"
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "log"
+          Block
+            RoundOpen: "("
+            Call
+              Id: "oddness"
+              Block
+                RoundOpen: "("
+                Id: "i"
+                RoundClose: ")"
+              /Block
+            /Call
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "log"
+          Block
+            RoundOpen: "("
+            Call
+              Id: "oddness"
+              Block
+                RoundOpen: "("
+                Infix
+                  Id: "i"
+                  HSpace: " "
+                  Plus: "+"
+                  HSpace: " "
+                  Int: "1"
+                /Infix
+                RoundClose: ")"
+              /Block
+            /Call
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Fun
   /Def
-  Fun: "for"
-  RoundOpen: "("
-  RoundClose: ")"
-  HSpace: " "
-  Be: "be"
   VSpace: "\n"
-  HSpace: "    "
+  VSpace: "\n"
   Def
-    Id: "i"
+    Id: "countDown"
     HSpace: " "
     Define: "="
     HSpace: " "
-    Int: "3"
+    Fun
+      Fun: "for"
+      Params
+        Block
+          RoundOpen: "("
+          Typed
+            Id: "count"
+            HSpace: " "
+            Id: "Int"
+          /Typed
+          RoundClose: ")"
+        /Block
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "log"
+          Block
+            RoundOpen: "("
+            StringParts
+              StringEdge: "\""
+              String: "counting ..."
+              StringEdge: "\""
+            /StringParts
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Id: "case"
+        HSpace: " "
+        Block
+          Of: "of"
+          VSpace: "\n"
+          HSpace: "        "
+          Infix
+            Id: "count"
+            HSpace: " "
+            Greater: ">"
+            HSpace: " "
+            Int: "1"
+            HSpace: " "
+          /Infix
+          Block
+            Be: "be"
+            HSpace: " "
+            Call
+              Id: "countDown"
+              Block
+                RoundOpen: "("
+                Infix
+                  Id: "count"
+                  HSpace: " "
+                  Minus: "-"
+                  HSpace: " "
+                  Int: "1"
+                /Infix
+                RoundClose: ")"
+              /Block
+            /Call
+          /Block
+          VSpace: "\n"
+          HSpace: "        "
+          Id: "else"
+          HSpace: " "
+          Block
+            Be: "be"
+            HSpace: " "
+            Call
+              Id: "log"
+              Block
+                RoundOpen: "("
+                StringParts
+                  StringEdge: "\""
+                  String: "done"
+                  StringEdge: "\""
+                /StringParts
+                RoundClose: ")"
+              /Block
+            /Call
+          /Block
+          VSpace: "\n"
+          HSpace: "    "
+          End: "end"
+        /Block
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Fun
   /Def
   VSpace: "\n"
-  HSpace: "    "
-  Id: "countDown"
-  RoundOpen: "("
-  Id: "i"
-  RoundClose: ")"
   VSpace: "\n"
-  HSpace: "    "
-  Id: "log"
-  RoundOpen: "("
-  Id: "oddness"
-  RoundOpen: "("
-  Id: "i"
-  RoundClose: ")"
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "log"
-  RoundOpen: "("
-  Id: "oddness"
-  RoundOpen: "("
-  Infix
-    Id: "i"
+  Def
+    Id: "isEven"
     HSpace: " "
-    Plus: "+"
+    Define: "="
     HSpace: " "
-    Int: "1"
-  /Infix
-  RoundClose: ")"
-  RoundClose: ")"
-  VSpace: "\n"
-  End: "end"
-  VSpace: "\n"
-  VSpace: "\n"
-  Id: "countDown"
-  HSpace: " "
-  Define: "="
-  HSpace: " "
-  Fun: "for"
-  RoundOpen: "("
-  Id: "count"
-  HSpace: " "
-  Id: "Int"
-  RoundClose: ")"
-  HSpace: " "
-  Be: "be"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "log"
-  RoundOpen: "("
-  StringParts
-    StringEdge: "\""
-    String: "counting ..."
-    StringEdge: "\""
-  /StringParts
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "case"
-  HSpace: " "
-  Of: "of"
-  VSpace: "\n"
-  HSpace: "        "
-  Infix
-    Id: "count"
+    Fun
+      Fun: "for"
+      Params
+        Typed
+          Block
+            RoundOpen: "("
+            Typed
+              Id: "i"
+              HSpace: " "
+              Id: "Int"
+            /Typed
+            RoundClose: ")"
+          /Block
+          HSpace: " "
+          Id: "Claim"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "case"
+        HSpace: " "
+      /Block
+    /Fun
+  /Def
+  Block
+    Of: "of"
+    VSpace: "\n"
+    HSpace: "    "
+    Infix
+      Id: "i"
+      HSpace: " "
+      Greater: ">"
+      HSpace: " "
+      Int: "0"
+      HSpace: " "
+    /Infix
+    Block
+      Be: "be"
+      HSpace: " "
+      Call
+        Id: "isOdd"
+        Block
+          RoundOpen: "("
+          Infix
+            Id: "i"
+            HSpace: " "
+            Minus: "-"
+            HSpace: " "
+            Int: "1"
+          /Infix
+          RoundClose: ")"
+        /Block
+      /Call
+    /Block
+    VSpace: "\n"
+    HSpace: "    "
+    Id: "else"
     HSpace: " "
-    Greater: ">"
+    Block
+      Be: "be"
+      HSpace: " "
+      Id: "true"
+    /Block
+    VSpace: "\n"
+    End: "end"
+  /Block
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "isOdd"
     HSpace: " "
-    Int: "1"
+    Define: "="
     HSpace: " "
-  /Infix
-  Be: "be"
-  HSpace: " "
-  Id: "countDown"
-  RoundOpen: "("
-  Infix
-    Id: "count"
+    Fun
+      Fun: "for"
+      Params
+        Typed
+          Block
+            RoundOpen: "("
+            Typed
+              Id: "i"
+              HSpace: " "
+              Id: "Int"
+            /Typed
+            RoundClose: ")"
+          /Block
+          HSpace: " "
+          Id: "Claim"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "case"
+        HSpace: " "
+      /Block
+    /Fun
+  /Def
+  Block
+    Of: "of"
+    VSpace: "\n"
+    HSpace: "    "
+    Infix
+      Id: "i"
+      HSpace: " "
+      Greater: ">"
+      HSpace: " "
+      Int: "0"
+      HSpace: " "
+    /Infix
+    Block
+      Be: "be"
+      HSpace: " "
+      Call
+        Id: "isEven"
+        Block
+          RoundOpen: "("
+          Infix
+            Id: "i"
+            HSpace: " "
+            Minus: "-"
+            HSpace: " "
+            Int: "1"
+          /Infix
+          RoundClose: ")"
+        /Block
+      /Call
+    /Block
+    VSpace: "\n"
+    HSpace: "    "
+    Id: "else"
     HSpace: " "
-    Minus: "-"
+    Block
+      Be: "be"
+      HSpace: " "
+      Id: "false"
+    /Block
+    VSpace: "\n"
+    End: "end"
+  /Block
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "oddness"
     HSpace: " "
-    Int: "1"
-  /Infix
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "        "
-  Id: "else"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  Id: "log"
-  RoundOpen: "("
-  StringParts
-    StringEdge: "\""
-    String: "done"
-    StringEdge: "\""
-  /StringParts
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  End: "end"
-  VSpace: "\n"
-  End: "end"
-  VSpace: "\n"
-  VSpace: "\n"
-  Id: "isEven"
-  HSpace: " "
-  Define: "="
-  HSpace: " "
-  Fun: "for"
-  RoundOpen: "("
-  Id: "i"
-  HSpace: " "
-  Id: "Int"
-  RoundClose: ")"
-  HSpace: " "
-  Id: "Claim"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  Id: "case"
-  HSpace: " "
-  Of: "of"
-  VSpace: "\n"
-  HSpace: "    "
-  Infix
-    Id: "i"
+    Define: "="
     HSpace: " "
-    Greater: ">"
+    Fun
+      Fun: "for"
+      Params
+        Block
+          RoundOpen: "("
+          Typed
+            Id: "i"
+            HSpace: " "
+            Id: "Int"
+          /Typed
+          RoundClose: ")"
+        /Block
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "case"
+        HSpace: " "
+      /Block
+    /Fun
+  /Def
+  Block
+    Of: "of"
+    VSpace: "\n"
+    HSpace: "    "
+    Call
+      Id: "isEven"
+      Block
+        RoundOpen: "("
+        Id: "i"
+        RoundClose: ")"
+      /Block
+    /Call
     HSpace: " "
-    Int: "0"
+    Block
+      Be: "be"
+      HSpace: " "
+      StringParts
+        StringEdge: "\""
+        String: "even"
+        StringEdge: "\""
+      /StringParts
+    /Block
+    VSpace: "\n"
+    HSpace: "    "
+    Id: "else"
     HSpace: " "
-  /Infix
-  Be: "be"
-  HSpace: " "
-  Id: "isOdd"
-  RoundOpen: "("
-  Infix
-    Id: "i"
-    HSpace: " "
-    Minus: "-"
-    HSpace: " "
-    Int: "1"
-  /Infix
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "else"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  Id: "true"
-  VSpace: "\n"
-  End: "end"
-  VSpace: "\n"
-  VSpace: "\n"
-  Id: "isOdd"
-  HSpace: " "
-  Define: "="
-  HSpace: " "
-  Fun: "for"
-  RoundOpen: "("
-  Id: "i"
-  HSpace: " "
-  Id: "Int"
-  RoundClose: ")"
-  HSpace: " "
-  Id: "Claim"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  Id: "case"
-  HSpace: " "
-  Of: "of"
-  VSpace: "\n"
-  HSpace: "    "
-  Infix
-    Id: "i"
-    HSpace: " "
-    Greater: ">"
-    HSpace: " "
-    Int: "0"
-    HSpace: " "
-  /Infix
-  Be: "be"
-  HSpace: " "
-  Id: "isEven"
-  RoundOpen: "("
-  Infix
-    Id: "i"
-    HSpace: " "
-    Minus: "-"
-    HSpace: " "
-    Int: "1"
-  /Infix
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "else"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  Id: "false"
-  VSpace: "\n"
-  End: "end"
-  VSpace: "\n"
-  VSpace: "\n"
-  Id: "oddness"
-  HSpace: " "
-  Define: "="
-  HSpace: " "
-  Fun: "for"
-  RoundOpen: "("
-  Id: "i"
-  HSpace: " "
-  Id: "Int"
-  RoundClose: ")"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  Id: "case"
-  HSpace: " "
-  Of: "of"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "isEven"
-  RoundOpen: "("
-  Id: "i"
-  RoundClose: ")"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  StringParts
-    StringEdge: "\""
-    String: "even"
-    StringEdge: "\""
-  /StringParts
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "else"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  StringParts
-    StringEdge: "\""
-    String: "odd"
-    StringEdge: "\""
-  /StringParts
-  VSpace: "\n"
-  End: "end"
+    Block
+      Be: "be"
+      HSpace: " "
+      StringParts
+        StringEdge: "\""
+        String: "odd"
+        StringEdge: "\""
+      /StringParts
+    /Block
+    VSpace: "\n"
+    End: "end"
+  /Block
   VSpace: "\n"
 /Block
 
-Bytes: 818
+Bytes: 1194

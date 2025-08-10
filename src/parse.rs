@@ -44,6 +44,7 @@ pub enum ParseBranchKind {
     Fun,
     Pub,
     StringParts,
+    TypCall,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -55,7 +56,7 @@ pub struct ParseBranch {
 macro_rules! define_infix {
     ($name:ident, $next:ident, $pattern:pat $(if $guard:expr)? $(,)?) => {
         fn $name(&mut self) -> Option<()> {
-            let start = self.builder().pos();
+            let start = self.pos();
             self.$next()?;
             loop_some!({
                 if !matches!(self.peek()?, $pattern $(if $guard)?) {
@@ -63,8 +64,9 @@ macro_rules! define_infix {
                 }
                 self.advance();
                 self.skip_hv()?;
-                self.$next()?;
+                let progress = self.try_progress(|s| s.$next());
                 self.wrap(ParseBranchKind::Infix, start);
+                progress?;
             })
         }
     };
@@ -121,15 +123,40 @@ impl<'a> Parser<'a> {
 
     fn atom(&mut self) -> Option<()> {
         match self.peek()? {
-            TokenKind::Colon | TokenKind::Comma | TokenKind::VSpace => {}
-            // TokenKind::Be
-            // | TokenKind::CurlyOpen
-            // | TokenKind::Of
-            // | TokenKind::RoundOpen => self.block()?,
-            // TokenKind::Fun => self.fun()?,
+            TokenKind::RoundOpen => {
+                // TODO For round open, mode stack for ignoring vspace before infix.
+                self.block()?
+            }
+            TokenKind::Be | TokenKind::CurlyOpen | TokenKind::Of => self.block()?,
+            TokenKind::Fun => self.fun()?,
             TokenKind::Id | TokenKind::Int => self.advance(),
             TokenKind::StringEdge => self.string(),
             _ => {}
+        }
+        Some(())
+    }
+
+    fn block(&mut self) -> Option<()> {
+        let start = self.pos();
+        let ender = choose_ender(self.peek()?);
+        self.advance();
+        if ender == TokenKind::End && self.peek()? != TokenKind::VSpace {
+            // Inline be ...
+            self.def()?;
+        } else {
+            // Actually wrapped block.
+            loop_some!({
+                let progress = self.try_progress(|s| s.block_content());
+                let kind = self.peek()?;
+                if kind == ender {
+                    self.advance();
+                    None?
+                }
+                progress?;
+            });
+        }
+        if self.pos() > start {
+            self.wrap(ParseBranchKind::Block, start);
         }
         Some(())
     }
@@ -143,7 +170,7 @@ impl<'a> Parser<'a> {
                 | TokenKind::End
                 | TokenKind::RoundClose
                 | TokenKind::SquareClose => None?,
-                _ => self.try_advance(|s| s.def())?,
+                _ => self.try_progress(|s| s.def())?,
             }
         });
         self.skip_hv();
@@ -167,13 +194,23 @@ impl<'a> Parser<'a> {
             }
             self.advance();
         });
-        if self.builder().pos() > start {
+        if self.pos() > start {
             self.wrap(ParseBranchKind::Block, start);
         }
     }
 
     fn builder(&mut self) -> &mut TreeBuilder {
         &mut self.cart.tree_builder
+    }
+
+    fn call(&mut self) -> Option<()> {
+        let start = self.pos();
+        self.typ_call()?;
+        if self.peek()? == TokenKind::RoundOpen {
+            self.block();
+            self.wrap(ParseBranchKind::Call, start);
+        }
+        Some(())
     }
 
     define_infix!(
@@ -189,9 +226,9 @@ impl<'a> Parser<'a> {
 
     fn def(&mut self) -> Option<()> {
         // debug!("def");
-        let start = self.builder().pos();
+        let start = self.pos();
         self.compare();
-        if self.builder().pos() > start && self.peek()? == TokenKind::Define {
+        if self.pos() > start && self.peek()? == TokenKind::Define {
             self.advance();
             self.skip_hv();
             // Right-side descent.
@@ -203,7 +240,58 @@ impl<'a> Parser<'a> {
         Some(())
     }
 
-    define_infix!(multiply, atom, TokenKind::Slash | TokenKind::Star);
+    fn fun(&mut self) -> Option<()> {
+        let start = self.pos();
+        self.advance();
+        self.skip_hv();
+        // TODO Type params
+        // In params
+        let in_params_start = self.pos();
+        match self.peek() {
+            Some(TokenKind::Id) => {
+                self.atom();
+            }
+            Some(TokenKind::RoundOpen) => {
+                let block_start = self.pos();
+                self.advance();
+                loop_some!({
+                    let param_start = self.pos();
+                    let progress = self.try_progress(|s| s.def());
+                    if !matches!(
+                        self.peek(),
+                        Some(TokenKind::Comma | TokenKind::RoundClose | TokenKind::VSpace)
+                    ) {
+                        self.def();
+                        self.wrap(ParseBranchKind::Typed, param_start);
+                    }
+                    self.skip(|k| matches!(k, TokenKind::Comma | TokenKind::VSpace));
+                    if self.peek() == Some(TokenKind::RoundClose) {
+                        self.advance();
+                        None?
+                    }
+                    progress?
+                });
+                self.wrap(ParseBranchKind::Block, block_start);
+                // self.skip_hv();
+                if self.peek() != Some(TokenKind::Be) {
+                    // if self.peek() == Some(TokenKind::As) {
+                    //     self.advance();
+                    // }
+                    self.def();
+                    self.wrap(ParseBranchKind::Typed, block_start);
+                    // self.skip_hv();
+                }
+            }
+            _ => {}
+        }
+        self.wrap(ParseBranchKind::Params, in_params_start);
+        // Body
+        self.def();
+        self.wrap(ParseBranchKind::Fun, start);
+        Some(())
+    }
+
+    define_infix!(multiply, call, TokenKind::Slash | TokenKind::Star);
 
     fn peek(&mut self) -> Option<TokenKind> {
         self.peek_token_step().map(|it| it.0.kind)
@@ -255,7 +343,7 @@ impl<'a> Parser<'a> {
     }
 
     fn string(&mut self) {
-        let start = self.builder().pos();
+        let start = self.pos();
         self.advance();
         loop_some!({
             let next = self.peek()?;
@@ -267,8 +355,9 @@ impl<'a> Parser<'a> {
         self.wrap(ParseBranchKind::StringParts, start);
     }
 
-    /// None if done or if no advance happened.
-    fn try_advance<F>(&mut self, f: F) -> Option<()>
+    /// None if done or if no advance happened. Option<()> elsewhere has None
+    /// to mean the input is done.
+    fn try_progress<F>(&mut self, f: F) -> Option<()>
     where
         F: FnOnce(&mut Self) -> Option<()>,
     {
@@ -280,10 +369,29 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn typ_call(&mut self) -> Option<()> {
+        let start = self.pos();
+        self.atom()?;
+        if self.peek()? == TokenKind::SquareOpen {
+            self.block();
+            self.wrap(ParseBranchKind::TypCall, start);
+        }
+        Some(())
+    }
+
     fn wrap(&mut self, kind: ParseBranchKind, start: usize) {
         let range = self.builder().apply_range(start);
         let branch = ParseBranch { kind, range };
         self.builder().push(ParseNode::Branch(branch));
+    }
+}
+
+fn choose_ender(token_kind: TokenKind) -> TokenKind {
+    match token_kind {
+        TokenKind::Be | TokenKind::Of => TokenKind::End,
+        TokenKind::CurlyOpen => TokenKind::CurlyClose,
+        TokenKind::RoundOpen => TokenKind::RoundClose,
+        _ => panic!(),
     }
 }
 

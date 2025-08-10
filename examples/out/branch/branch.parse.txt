@@ -7,34 +7,55 @@ Block
     /Infix
     Define: "="
     HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        Typed
+          Block
+            RoundOpen: "("
+            RoundClose: ")"
+          /Block
+          HSpace: " "
+          Id: "Void"
+          HSpace: " "
+        /Typed
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "describe"
+          Block
+            RoundOpen: "("
+            Int: "2"
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "describe"
+          Block
+            RoundOpen: "("
+            Int: "-1"
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "describe"
+          Block
+            RoundOpen: "("
+            Int: "0"
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Fun
   /Def
-  Fun: "for"
-  RoundOpen: "("
-  RoundClose: ")"
-  HSpace: " "
-  Id: "Void"
-  HSpace: " "
-  Be: "be"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "describe"
-  RoundOpen: "("
-  Int: "2"
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "describe"
-  RoundOpen: "("
-  Int: "-1"
-  RoundClose: ")"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "describe"
-  RoundOpen: "("
-  Int: "0"
-  RoundClose: ")"
-  VSpace: "\n"
-  End: "end"
   VSpace: "\n"
   VSpace: "\n"
   Def
@@ -42,132 +63,184 @@ Block
     HSpace: " "
     Define: "="
     HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        Block
+          RoundOpen: "("
+          Typed
+            Id: "i"
+            HSpace: " "
+            Id: "Int"
+          /Typed
+          RoundClose: ")"
+        /Block
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Call
+          Id: "log"
+          Block
+            RoundOpen: "("
+            Call
+              Id: "description"
+              Block
+                RoundOpen: "("
+                Id: "i"
+                RoundClose: ")"
+              /Block
+            /Call
+            RoundClose: ")"
+          /Block
+        /Call
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Fun
   /Def
-  Fun: "for"
-  RoundOpen: "("
-  Id: "i"
-  HSpace: " "
-  Id: "Int"
-  RoundClose: ")"
-  HSpace: " "
-  Be: "be"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "log"
-  RoundOpen: "("
-  Id: "description"
-  RoundOpen: "("
-  Id: "i"
-  RoundClose: ")"
-  RoundClose: ")"
-  VSpace: "\n"
-  End: "end"
   VSpace: "\n"
   VSpace: "\n"
-  Id: "description"
-  HSpace: " "
-  Define: "="
-  HSpace: " "
-  Fun: "for"
-  RoundOpen: "("
-  Id: "i"
-  HSpace: " "
-  Id: "Int"
-  RoundClose: ")"
-  HSpace: " "
-  Be: "be"
-  VSpace: "\n"
-  HSpace: "    "
   Def
-    Id: "message"
+    Id: "description"
     HSpace: " "
     Define: "="
     HSpace: " "
-    Id: "case"
-    HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        Block
+          RoundOpen: "("
+          Typed
+            Id: "i"
+            HSpace: " "
+            Id: "Int"
+          /Typed
+          RoundClose: ")"
+        /Block
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        VSpace: "\n"
+        HSpace: "    "
+        Def
+          Id: "message"
+          HSpace: " "
+          Define: "="
+          HSpace: " "
+          Id: "case"
+          HSpace: " "
+        /Def
+        Block
+          Of: "of"
+          VSpace: "\n"
+          HSpace: "        "
+          Infix
+            Id: "i"
+            HSpace: " "
+            Less: "<"
+            HSpace: " "
+            Int: "0"
+            HSpace: " "
+          /Infix
+          Block
+            Be: "be"
+            HSpace: " "
+            StringParts
+              StringEdge: "\""
+              String: "negative"
+              StringEdge: "\""
+            /StringParts
+          /Block
+          VSpace: "\n"
+          HSpace: "        "
+          Infix
+            Id: "i"
+            HSpace: " "
+            Greater: ">"
+            HSpace: " "
+            Int: "0"
+            HSpace: " "
+          /Infix
+          Block
+            Be: "be"
+            HSpace: " "
+            StringParts
+              StringEdge: "\""
+              String: "positive"
+              StringEdge: "\""
+            /StringParts
+          /Block
+          VSpace: "\n"
+          HSpace: "        "
+          Id: "else"
+          HSpace: " "
+          Block
+            Be: "be"
+            HSpace: " "
+            StringParts
+              StringEdge: "\""
+              String: "zero"
+              StringEdge: "\""
+            /StringParts
+          /Block
+          VSpace: "\n"
+          HSpace: "    "
+          End: "end"
+        /Block
+        VSpace: "\n"
+        HSpace: "    "
+        Id: "message"
+        VSpace: "\n"
+        End: "end"
+      /Block
+    /Fun
   /Def
-  Of: "of"
-  VSpace: "\n"
-  HSpace: "        "
-  Infix
-    Id: "i"
-    HSpace: " "
-    Less: "<"
-    HSpace: " "
-    Int: "0"
-    HSpace: " "
-  /Infix
-  Be: "be"
-  HSpace: " "
-  StringParts
-    StringEdge: "\""
-    String: "negative"
-    StringEdge: "\""
-  /StringParts
-  VSpace: "\n"
-  HSpace: "        "
-  Infix
-    Id: "i"
-    HSpace: " "
-    Greater: ">"
-    HSpace: " "
-    Int: "0"
-    HSpace: " "
-  /Infix
-  Be: "be"
-  HSpace: " "
-  StringParts
-    StringEdge: "\""
-    String: "positive"
-    StringEdge: "\""
-  /StringParts
-  VSpace: "\n"
-  HSpace: "        "
-  Id: "else"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  StringParts
-    StringEdge: "\""
-    String: "zero"
-    StringEdge: "\""
-  /StringParts
-  VSpace: "\n"
-  HSpace: "    "
-  End: "end"
-  VSpace: "\n"
-  HSpace: "    "
-  Id: "message"
-  VSpace: "\n"
-  End: "end"
   VSpace: "\n"
   VSpace: "\n"
-  Id: "less"
-  HSpace: " "
-  Define: "="
-  HSpace: " "
-  Fun: "for"
-  RoundOpen: "("
-  Id: "i"
-  HSpace: " "
-  Id: "Int"
-  Comma: ","
-  HSpace: " "
-  Id: "j"
-  HSpace: " "
-  Id: "Int"
-  RoundClose: ")"
-  HSpace: " "
-  Be: "be"
-  HSpace: " "
-  Infix
-    Id: "i"
+  Def
+    Id: "less"
     HSpace: " "
-    Less: "<"
+    Define: "="
     HSpace: " "
-    Id: "j"
-  /Infix
+    Fun
+      Fun: "for"
+      Params
+        Block
+          RoundOpen: "("
+          Typed
+            Id: "i"
+            HSpace: " "
+            Id: "Int"
+          /Typed
+          Comma: ","
+          HSpace: " "
+          Typed
+            Id: "j"
+            HSpace: " "
+            Id: "Int"
+          /Typed
+          RoundClose: ")"
+        /Block
+        HSpace: " "
+      /Params
+      Block
+        Be: "be"
+        HSpace: " "
+        Infix
+          Id: "i"
+          HSpace: " "
+          Less: "<"
+          HSpace: " "
+          Id: "j"
+        /Infix
+      /Block
+    /Fun
+  /Def
   VSpace: "\n"
 /Block
 
-Bytes: 504
+Bytes: 724
