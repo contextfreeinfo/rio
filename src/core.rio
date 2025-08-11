@@ -1,7 +1,5 @@
 # abstract := for void be extern
 
-Any = extern() as Type
-
 # Array := for Item:Type size:Int be extern
 
 Claim := Maybe[Void, Void]
@@ -24,7 +22,7 @@ end
 
 error := for(message Text) be Error { message }
 
-extern = for() Any be extern()
+extern = extern
 
 false := null[Void]
 
