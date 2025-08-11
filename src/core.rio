@@ -94,7 +94,7 @@ true := yes(void)
 
 Text := extern() as Type
 
-Try[Value] := Maybe[Value, Error]
+Try[Value] := Either[Value, Error]
 
 Type := extern() as Type
 # Type := union ... ???
