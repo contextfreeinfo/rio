@@ -13,6 +13,8 @@ Block
           fun = Id: "logTwice"
           args = Range
             Id: "message"
+            String: ""
+          /Range
         /Call
       /Block
     /Fun
@@ -54,4 +56,4 @@ Block
   /Def
 /Block
 
-Bytes: 200
+Bytes: 207

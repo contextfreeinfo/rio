@@ -278,20 +278,25 @@ impl<'a> Normer<'a> {
             .map(|(kid, kid_source)| self.wrap_node(kid, kid_source))
             .unwrap_or(0);
         let args = self.wrap(|s| {
+            let Some((block_kid, _)) = stepper.next(&s.cart.bytes) else {
+                return;
+            };
+            let ParseNode::Branch(branch) = block_kid else {
+                return;
+            };
+            if branch.kind != ParseBranchKind::Block {
+                return;
+            }
+            let mut stepper = ParseNodeStepper::new(branch.range);
             while let Some((kid, kid_source)) = stepper.next(&s.cart.bytes) {
                 match kid {
-                    ParseNode::Branch(branch) if branch.kind == ParseBranchKind::Block => {
-                        let mut stepper = ParseNodeStepper::new(branch.range);
-                        let (open, _) = stepper.next(&s.cart.bytes).unwrap();
-                        let ParseNode::Leaf(open) = open else {
-                            panic!()
-                        };
-                        match open.kind {
-                            TokenKind::Also | TokenKind::Of => s.block_of(stepper),
-                            _ => s.node(kid, kid_source),
-                        }
+                    ParseNode::Leaf(Token {
+                        kind: TokenKind::RoundClose | TokenKind::RoundOpen,
+                        ..
+                    }) => {}
+                    _ => {
+                        s.node(kid, kid_source);
                     }
-                    _ => s.node(kid, kid_source),
                 }
             }
         });

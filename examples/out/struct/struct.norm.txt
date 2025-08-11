@@ -57,6 +57,8 @@ Block
         fun = Id: "build"
         args = Range
           String: "Carl"
+          Int: "10"
+        /Range
       /Call
     /Range
   /Call
@@ -181,4 +183,4 @@ Block
   End: "end"
 /Block
 
-Bytes: 767
+Bytes: 773
