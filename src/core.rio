@@ -1,10 +1,10 @@
 # abstract := for void be extern
 
-Any := extern() as Type
+Any = extern() as Type
 
 # Array := for Item:Type size:Int be extern
 
-# Claim := Maybe Void
+Claim := Maybe[Void, Void]
 
 # Class := struct with
 #     face:Interface
@@ -24,7 +24,7 @@ end
 
 error := for(message Text) be Error { message }
 
-extern := for() Any be extern()
+extern = for() Any be extern()
 
 false := null[Void]
 
@@ -58,7 +58,7 @@ Int := extern() as Type
 
 List[Item] := extern() as Type
 
-log := for (value Any) Void be extern()
+log[Value] := for (value Value) Void be extern()
 # # TODO Also think and cry for log levels?
 
 Maybe[Value] := Either[Value, Void]
@@ -70,7 +70,7 @@ end
 
 no[YesValue, NoValue] := for(value NoValue) No[YesValue, _] be No { value }
 
-null[YesValue] := no[YesValue, _](void)
+null[Value] := no[Value, _](void)
 
 # Pair := for Key:Type Value:Type be struct with
 #     key:Key
@@ -101,7 +101,7 @@ Try[Value] := Maybe[Value, Error]
 Type := extern() as Type
 # Type := union ... ???
 
-Void = extern() as Type
+Void := extern() as Type
 
 void := extern() as Void
 
