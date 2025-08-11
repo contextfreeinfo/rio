@@ -9,14 +9,12 @@ use anyhow::{Error, Result};
 use argh::{FromArgValue, FromArgs};
 
 use crate::{
-    intern::Interner,
-    lex::Lexer,
-    parse::{Parser, write_parse_tree},
-    tree::{TreeBuilder, TreeWriter},
+    intern::{Intern, Interner}, lex::{Lexer, TokenKind}, norm::write_tree, parse::{write_parse_tree, ParseNode, Parser}, tree::{TreeBuilder, TreeWriter}
 };
 
 mod intern;
 mod lex;
+mod norm;
 mod parse;
 mod tree;
 
@@ -81,6 +79,7 @@ fn build(args: BuildArgs) -> Result<()> {
 struct Cart {
     pub args: BuildArgs,
     pub bytes: Vec<u8>,
+    pub core_interns: CoreInterns,
     pub name: String,
     pub interner: RefCell<Interner>,
     pub outdir: Option<PathBuf>,
@@ -90,18 +89,19 @@ struct Cart {
 
 impl Cart {
     fn new(args: BuildArgs) -> Self {
-        let s = Self {
+        let mut interner = Interner::default();
+        // Always keep an empty string at zero.
+        interner.intern("");
+        Self {
             args: args.clone(),
             bytes: Default::default(),
-            interner: Default::default(),
+            core_interns: CoreInterns::new(&mut interner),
+            interner: RefCell::new(interner),
             name: Default::default(),
             outdir: Default::default(),
             text: Default::default(),
             tree_builder: Default::default(),
-        };
-        // Always keep an empty string at zero.
-        s.interner.borrow_mut().intern("");
-        s
+        }
     }
 
     fn build(&mut self) -> Result<()> {
@@ -131,6 +131,7 @@ impl Cart {
             }
         }
         // dbg!(cart.bytes.len());
+        self.norm()?;
         Ok(())
     }
 
@@ -145,6 +146,26 @@ impl Cart {
         create_dir_all(subdir.clone())?;
         Ok(Some(subdir))
     }
+
+    fn maybe_dump_normed(&self, stage: &'static str) -> Result<()> {
+        if self.args.dump.contains(&DumpOption::Trees) {
+            if let Some(outdir) = &self.outdir {
+                let interner = &*self.interner.borrow();
+                let mut writer = make_dump_writer(stage, outdir)?;
+                let mut writer = TreeWriter::new(&self.bytes, &mut writer, interner);
+                write_tree(&mut writer)?;
+                writeln!(writer.file)?;
+                writeln!(writer.file, "Bytes: {}", self.bytes.len())?;
+            }
+        }
+        Ok(())
+    }
+
+    fn norm(&mut self) -> Result<()> {
+        norm::Normer::new(self).norm();
+        self.maybe_dump_normed("norm")?;
+        Ok(())
+    }
 }
 
 fn make_dump_writer(stage: &str, outdir: &Path) -> Result<BufWriter<File>> {
@@ -152,4 +173,59 @@ fn make_dump_writer(stage: &str, outdir: &Path) -> Result<BufWriter<File>> {
     let path = outdir.join(format!("{name}.{stage}.txt"));
     let file = File::create(path)?;
     Ok(BufWriter::new(file))
+}
+
+/// Provide easy access for comparing resolutions to core native definitions.
+#[derive(Clone, Copy, Debug)]
+pub struct CoreInterns {
+    add: Intern,
+    eq: Intern,
+    ge: Intern,
+    gt: Intern,
+    // int: Intern,
+    le: Intern,
+    lt: Intern,
+    // log: Intern,
+    ne: Intern,
+    pair: Intern,
+    sub: Intern,
+    // text: Intern,
+}
+
+impl CoreInterns {
+    pub fn new(interner: &mut Interner) -> Self {
+        Self {
+            add: interner.intern("add"), // TODO Straight to Uid?
+            eq: interner.intern("eq"),
+            // int: interner.intern("Int"),
+            ge: interner.intern("ge"),
+            gt: interner.intern("gt"),
+            le: interner.intern("le"),
+            // log: interner.intern("log"),
+            lt: interner.intern("lt"),
+            ne: interner.intern("ne"),
+            pair: interner.intern("pair"), // TODO Straight to Uid?
+            sub: interner.intern("sub"),
+            // text: interner.intern("Text"),
+        }
+    }
+
+    pub fn token_to_intern(&self, node: ParseNode) -> Option<Intern> {
+        let intern = match node {
+            ParseNode::Leaf(token) => match token.kind {
+                TokenKind::Eq => self.eq,
+                TokenKind::Greater => self.gt,
+                TokenKind::GreaterEq => self.ge,
+                TokenKind::Less => self.lt,
+                TokenKind::LessEq => self.le,
+                TokenKind::Minus => self.sub,
+                TokenKind::NotEq => self.ne,
+                TokenKind::Plus => self.add,
+                TokenKind::To => self.pair,
+                _ => return None,
+            },
+            _ => return None,
+        };
+        Some(intern)
+    }
 }

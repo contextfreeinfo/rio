@@ -1,0 +1,92 @@
+Block
+  Def
+    target = Id: "main"
+    value = Fun
+      params = None
+      returning = Id: "Void"
+      body = Block
+        Call
+          fun = Id: "describe"
+          args = Range
+            Int: "2"
+        /Call
+        Call
+          fun = Id: "describe"
+          args = Range
+            Int: "-1"
+        /Call
+        Call
+          fun = Id: "describe"
+          args = Range
+            Int: "0"
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Id: "describe"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "log"
+          args = Range
+            Call
+              fun = Id: "description"
+              args = Range
+                Id: "i"
+            /Call
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Id: "description"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Def
+          target = Id: "message"
+          value = Id: "case"
+        /Def
+        Id: "message"
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Id: "less"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "lt"
+          args = Range
+            Id: "i"
+            Id: "j"
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+/Block
+
+Bytes: 337

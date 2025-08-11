@@ -33,6 +33,44 @@ impl ParseNode {
     }
 }
 
+pub struct ParseNodeStepper {
+    start: usize,
+    end: usize,
+}
+
+impl ParseNodeStepper {
+    pub fn new(range: SizeRange) -> Self {
+        Self {
+            start: range.start,
+            end: range.end,
+        }
+    }
+
+    pub fn next(&mut self, chunks: &[u8]) -> Option<(ParseNode, usize)> {
+        let mut node: Option<ParseNode> = None;
+        let mut source = 0;
+        while self.start < self.end {
+            // Guaranteed to cast since start and end were both originally Size.
+            source = self.start;
+            let (next, offset) = ParseNode::read(chunks, self.start);
+            node = match next {
+                ParseNode::Leaf(Token {
+                    // TODO What else to skip?
+                    kind:
+                        TokenKind::Comma | TokenKind::Comment | TokenKind::HSpace | TokenKind::VSpace,
+                    ..
+                }) => None,
+                _ => Some(next),
+            };
+            self.start = offset;
+            if node.is_some() {
+                break;
+            }
+        }
+        node.map(|node| (node, source))
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ParseBranchKind {
     Block,

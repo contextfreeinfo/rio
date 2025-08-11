@@ -1,0 +1,184 @@
+Block
+  Def
+    target = Id: "main"
+    value = Fun
+      params = None
+      returning = None
+      body = Block
+        Def
+          target = Id: "name"
+          value = String: "Alice"
+        /Def
+        Def
+          target = Id: "alice"
+          value = Id: "Person"
+        /Def
+        Structured
+          Def
+            target = Id: "name"
+            value = Id: "name"
+          /Def
+          Def
+            target = Id: "age"
+            value = Int: "40"
+          /Def
+        /Structured
+        Call
+          fun = Id: "describe"
+          args = Range
+            Id: "alice"
+        /Call
+        Call
+          fun = Id: "describe"
+          args = Range
+            Structured
+              Def
+                target = Id: "alice"
+                value = Id: "alice"
+              /Def
+            /Structured
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Dot: "."
+  Id: "age"
+  Def
+    target = Id: "name"
+    value = String: "Bob"
+  /Def
+  CurlyClose: "}"
+  RoundClose: ")"
+  Call
+    fun = Id: "describe"
+    args = Range
+      Call
+        fun = Id: "build"
+        args = Range
+          String: "Carl"
+      /Call
+    /Range
+  /Call
+  Call
+    fun = Id: "describe"
+    args = Range
+      Structured
+        Def
+          target = Id: "age"
+          value = Int: "9"
+        /Def
+        Def
+          target = Id: "name"
+          value = String: "Denise"
+        /Def
+      /Structured
+    /Range
+  /Call
+  Id: "eli"
+  Id: "as"
+  Def
+    target = Id: "Person"
+    value = Structured
+      Def
+        target = Id: "name"
+        value = String: "Eli"
+      /Def
+      Def
+        target = Id: "age"
+        value = Int: "35"
+      /Def
+    /Structured
+  /Def
+  Call
+    fun = Id: "describe"
+    args = Range
+      Id: "eli"
+  /Call
+  End: "end"
+  Id: "Person"
+  Define: "="
+  Id: "struct"
+  Def
+    target = Id: "build"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Typed
+              target = Id: "name"
+              type = Id: "Text"
+            /Typed
+            type = Id: "Person"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Structured
+          Def
+            target = Id: "name"
+            value = Id: "name"
+          /Def
+          Def
+            target = Id: "age"
+            value = Id: "age"
+          /Def
+        /Structured
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Id: "describe"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "person"
+          type = Id: "Person"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "log"
+          args = Range
+            String: "Person:"
+        /Call
+        Call
+          fun = Id: "log"
+          args = Range
+            Id: "person"
+        /Call
+      /Block
+    /Fun
+  /Def
+  Dot: "."
+  Id: "name"
+  RoundClose: ")"
+  Id: "log"
+  Id: "case"
+  Dot: "."
+  Call
+    fun = Id: "ge"
+    args = Range
+      Id: "age"
+      Int: "18"
+    /Range
+  /Call
+  Block
+    String: "adult"
+  Id: "else"
+  Block
+    String: "minor"
+  End: "end"
+  RoundClose: ")"
+  Call
+    fun = Id: "log"
+    args = Range
+      String: ""
+  /Call
+  End: "end"
+/Block
+
+Bytes: 767

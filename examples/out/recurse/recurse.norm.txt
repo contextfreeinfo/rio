@@ -1,0 +1,123 @@
+Block
+  Def
+    target = Id: "main"
+    value = Fun
+      params = None
+      returning = None
+      body = Block
+        Def
+          target = Id: "i"
+          value = Int: "3"
+        /Def
+        Call
+          fun = Id: "countDown"
+          args = Range
+            Id: "i"
+        /Call
+        Call
+          fun = Id: "log"
+          args = Range
+            Call
+              fun = Id: "oddness"
+              args = Range
+                Id: "i"
+            /Call
+          /Range
+        /Call
+        Call
+          fun = Id: "log"
+          args = Range
+            Call
+              fun = Id: "oddness"
+              args = Range
+                Call
+                  fun = Id: "add"
+                  args = Range
+                    Id: "i"
+                    Int: "1"
+                  /Range
+                /Call
+              /Range
+            /Call
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Id: "countDown"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "count"
+          type = Id: "Int"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "log"
+          args = Range
+            String: "counting ..."
+        /Call
+        Id: "case"
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Id: "isEven"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Typed
+              target = Id: "i"
+              type = Id: "Int"
+            /Typed
+            type = Id: "Claim"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Id: "case"
+    /Fun
+  /Def
+  Def
+    target = Id: "isOdd"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Typed
+              target = Id: "i"
+              type = Id: "Int"
+            /Typed
+            type = Id: "Claim"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Id: "case"
+    /Fun
+  /Def
+  Def
+    target = Id: "oddness"
+    value = Fun
+      params = Range
+        Typed
+          target = Id: "i"
+          type = Id: "Int"
+        /Typed
+      /Range
+      returning = None
+      body = Block
+        Id: "case"
+    /Fun
+  /Def
+/Block
+
+Bytes: 451
