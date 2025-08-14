@@ -23,7 +23,7 @@ end
 Maybe accept it in a function like this?
 
 ```rb
-printThings = for(things Things, io extern) be
+printThings = for(things Things) with(io) Void be
     # ...
 end
 ```
@@ -33,5 +33,5 @@ interface impl in the first place, but that requires more setup and could
 presumably slow down all uses. Might matter in some cases?
 
 ```rb
-Io = interface of io extern
+Io = interface extends io
 ```
