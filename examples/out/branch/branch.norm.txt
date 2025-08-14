@@ -27,10 +27,13 @@ Block
     target = Id: "describe"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -51,10 +54,13 @@ Block
     target = Id: "description"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -70,10 +76,20 @@ Block
     target = Id: "less"
     value = Fun
       params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Id: "j"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -89,4 +105,4 @@ Block
   /Def
 /Block
 
-Bytes: 337
+Bytes: 385

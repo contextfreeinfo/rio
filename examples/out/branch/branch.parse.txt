@@ -7,15 +7,14 @@ Block
     Fun
       Fun: "for"
       Params
-        Typed
-          Block
-            RoundOpen: "("
-            RoundClose: ")"
-          /Block
-          HSpace: " "
-          Id: "Void"
-          HSpace: " "
-        /Typed
+        RoundOpen: "("
+        RoundClose: ")"
+      /Params
+      Typed
+        HSpace: " "
+        Id: "Void"
+        HSpace: " "
+      /Typed
       Block
         Be: "be"
         VSpace: "\n"
@@ -63,17 +62,15 @@ Block
     Fun
       Fun: "for"
       Params
-        Block
-          RoundOpen: "("
-          Typed
-            Id: "i"
-            HSpace: " "
-            Id: "Int"
-          /Typed
-          RoundClose: ")"
-        /Block
-        HSpace: " "
+        RoundOpen: "("
+        Typed
+          Id: "i"
+          HSpace: " "
+          Id: "Int"
+        /Typed
+        RoundClose: ")"
       /Params
+      HSpace: " "
       Block
         Be: "be"
         VSpace: "\n"
@@ -108,17 +105,15 @@ Block
     Fun
       Fun: "for"
       Params
-        Block
-          RoundOpen: "("
-          Typed
-            Id: "i"
-            HSpace: " "
-            Id: "Int"
-          /Typed
-          RoundClose: ")"
-        /Block
-        HSpace: " "
+        RoundOpen: "("
+        Typed
+          Id: "i"
+          HSpace: " "
+          Id: "Int"
+        /Typed
+        RoundClose: ")"
       /Params
+      HSpace: " "
       Block
         Be: "be"
         VSpace: "\n"
@@ -206,24 +201,22 @@ Block
     Fun
       Fun: "for"
       Params
-        Block
-          RoundOpen: "("
-          Typed
-            Id: "i"
-            HSpace: " "
-            Id: "Int"
-          /Typed
-          Comma: ","
+        RoundOpen: "("
+        Typed
+          Id: "i"
           HSpace: " "
-          Typed
-            Id: "j"
-            HSpace: " "
-            Id: "Int"
-          /Typed
-          RoundClose: ")"
-        /Block
+          Id: "Int"
+        /Typed
+        Comma: ","
         HSpace: " "
+        Typed
+          Id: "j"
+          HSpace: " "
+          Id: "Int"
+        /Typed
+        RoundClose: ")"
       /Params
+      HSpace: " "
       Block
         Be: "be"
         HSpace: " "
@@ -240,4 +233,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 715
+Bytes: 691

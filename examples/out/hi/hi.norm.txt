@@ -25,16 +25,20 @@ Block
       params = Range
         Def
           target = Typed
-            target = Typed
-              target = Id: "message"
-              type = Id: "Text"
-            /Typed
-            type = Id: "Void"
+            target = Id: "message"
+            type = Id: "Text"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Id: "middle"
+            type = Id: "Text"
           /Typed
           value = None
         /Def
       /Range
-      returning = None
+      returning = Id: "Void"
       body = Block
         Call
           fun = Id: "log"
@@ -56,4 +60,4 @@ Block
   /Def
 /Block
 
-Bytes: 207
+Bytes: 228

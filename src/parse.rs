@@ -284,13 +284,13 @@ impl<'a> Parser<'a> {
         self.skip_hv();
         // TODO Type params
         // In params
-        let in_params_start = self.pos();
+        let params_start = self.pos();
         match self.peek() {
             Some(TokenKind::Id) => {
                 self.atom();
+                self.wrap(ParseBranchKind::Params, params_start);
             }
             Some(TokenKind::RoundOpen) => {
-                let block_start = self.pos();
                 self.advance();
                 loop_some!({
                     let param_start = self.pos();
@@ -309,20 +309,20 @@ impl<'a> Parser<'a> {
                     }
                     progress?
                 });
-                self.wrap(ParseBranchKind::Block, block_start);
+                self.wrap(ParseBranchKind::Params, params_start);
                 // self.skip_hv();
+                let typed_start = self.pos();
                 if self.peek() != Some(TokenKind::Be) {
                     // if self.peek() == Some(TokenKind::As) {
                     //     self.advance();
                     // }
                     self.def();
-                    self.wrap(ParseBranchKind::Typed, block_start);
+                    self.wrap(ParseBranchKind::Typed, typed_start);
                     // self.skip_hv();
                 }
             }
             _ => {}
         }
-        self.wrap(ParseBranchKind::Params, in_params_start);
         // Body
         self.def();
         self.wrap(ParseBranchKind::Fun, start);

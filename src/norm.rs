@@ -396,17 +396,35 @@ impl<'a> Normer<'a> {
         let (kid, _) = stepper.next(&self.cart.bytes).unwrap();
         assert!(matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::Fun));
         let mut kiddles = stepper.next(&self.cart.bytes);
-        let mut returning = 0usize;
         let params = match kiddles {
             Some((kid, _)) => match kid {
                 ParseNode::Branch(branch) if branch.kind == ParseBranchKind::Params => {
-                    let params = self.wrap(|s| returning = s.params(branch));
+                    let params = self.wrap(|s| s.params(branch));
                     kiddles = stepper.next(&self.cart.bytes);
                     params
                 }
                 _ => SizeRange::default(),
             },
             None => SizeRange::default(),
+        };
+        let returning = match kiddles {
+            Some((
+                ParseNode::Branch(ParseBranch {
+                    kind: ParseBranchKind::Typed,
+                    range,
+                }),
+                _,
+            )) => {
+                // Special typed handling here for return types.
+                let mut kid_stepper = ParseNodeStepper::new(range);
+                let returning = match kid_stepper.next(&self.cart.bytes) {
+                    Some((kid, kid_source)) => self.wrap_node(kid, kid_source),
+                    None => 0,
+                };
+                kiddles = stepper.next(&self.cart.bytes);
+                returning
+            }
+            _ => 0,
         };
         let body = match kiddles {
             Some((kid, kid_source)) => self.wrap_node(kid, kid_source),
@@ -440,24 +458,14 @@ impl<'a> Normer<'a> {
         }
     }
 
-    /// Returns the index for the return type, possibly 0.
-    fn params(&mut self, branch: ParseBranch) -> usize {
+    fn params(&mut self, branch: ParseBranch) {
         let mut stepper = ParseNodeStepper::new(branch.range);
-        let mut last: Option<Typed> = None;
         while let Some((kid, source)) = stepper.next(&self.cart.bytes) {
-            let push_typed = |s: &mut Self, kid: Typed| {
-                // Wrap in def.
-                let def = Def {
-                    meta: NodeMeta::at(source),
-                    target: s.wrap(|s| s.push(kid.as_node())).start,
-                    value: 0,
-                };
-                s.push(def.as_node());
-            };
-            if let Some(last) = last.take() {
-                push_typed(self, last);
-            }
             match kid {
+                ParseNode::Leaf(Token {
+                    kind: TokenKind::RoundOpen | TokenKind::RoundClose,
+                    ..
+                }) => {}
                 ParseNode::Leaf(_) => {
                     let def = Def {
                         meta: NodeMeta::at(source),
@@ -468,15 +476,16 @@ impl<'a> Normer<'a> {
                 }
                 ParseNode::Branch(kid) if kid.kind == ParseBranchKind::Typed => {
                     let kid = self.typed_data(kid, source);
-                    match kid.target {
-                        0 => last = Some(kid),
-                        _ => push_typed(self, kid),
-                    }
+                    let def = Def {
+                        meta: NodeMeta::at(source),
+                        target: self.wrap(|s| s.push(kid.as_node())).start,
+                        value: 0,
+                    };
+                    self.push(def.as_node());
                 }
                 _ => self.node(kid, source),
             }
         }
-        last.map(|last| last.typ).unwrap_or(0)
     }
 
     fn public(&mut self, branch: ParseBranch, source: usize) {

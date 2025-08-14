@@ -7,12 +7,10 @@ Block
     Fun
       Fun: "for"
       Params
-        Block
-          RoundOpen: "("
-          RoundClose: ")"
-        /Block
-        HSpace: " "
+        RoundOpen: "("
+        RoundClose: ")"
       /Params
+      HSpace: " "
       Block
         Be: "be"
         VSpace: "\n"
@@ -242,27 +240,26 @@ Block
     Fun
       Fun: "for"
       Params
+        RoundOpen: "("
         Typed
-          Block
-            RoundOpen: "("
-            Typed
-              Id: "name"
-              HSpace: " "
-              Id: "Text"
-            /Typed
-            Comma: ","
-            HSpace: " "
-            Typed
-              Id: "age"
-              HSpace: " "
-              Id: "Int"
-            /Typed
-            RoundClose: ")"
-          /Block
+          Id: "name"
           HSpace: " "
-          Id: "Person"
-          HSpace: " "
+          Id: "Text"
         /Typed
+        Comma: ","
+        HSpace: " "
+        Typed
+          Id: "age"
+          HSpace: " "
+          Id: "Int"
+        /Typed
+        RoundClose: ")"
+      /Params
+      Typed
+        HSpace: " "
+        Id: "Person"
+        HSpace: " "
+      /Typed
       Block
         Be: "be"
         HSpace: " "
@@ -289,17 +286,15 @@ Block
     Fun
       Fun: "for"
       Params
-        Block
-          RoundOpen: "("
-          Typed
-            Id: "person"
-            HSpace: " "
-            Id: "Person"
-          /Typed
-          RoundClose: ")"
-        /Block
-        HSpace: " "
+        RoundOpen: "("
+        Typed
+          Id: "person"
+          HSpace: " "
+          Id: "Person"
+        /Typed
+        RoundClose: ")"
       /Params
+      HSpace: " "
       Block
         Be: "be"
         VSpace: "\n"
@@ -401,4 +396,4 @@ Block
   VSpace: "\n"
 /Block
 
-Bytes: 1200
+Bytes: 1182

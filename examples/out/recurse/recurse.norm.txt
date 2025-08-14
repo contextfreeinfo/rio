@@ -48,10 +48,13 @@ Block
     target = Id: "countDown"
     value = Fun
       params = Range
-        Typed
-          target = Id: "count"
-          type = Id: "Int"
-        /Typed
+        Def
+          target = Typed
+            target = Id: "count"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
       /Range
       returning = None
       body = Block
@@ -70,16 +73,13 @@ Block
       params = Range
         Def
           target = Typed
-            target = Typed
-              target = Id: "i"
-              type = Id: "Int"
-            /Typed
-            type = Id: "Claim"
+            target = Id: "i"
+            type = Id: "Int"
           /Typed
           value = None
         /Def
       /Range
-      returning = None
+      returning = Id: "Claim"
       body = Block
         Id: "case"
     /Fun
@@ -90,11 +90,25 @@ Block
       params = Range
         Def
           target = Typed
-            target = Typed
-              target = Id: "i"
-              type = Id: "Int"
-            /Typed
-            type = Id: "Claim"
+            target = Id: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = Id: "Claim"
+      body = Block
+        Id: "case"
+    /Fun
+  /Def
+  Def
+    target = Id: "oddness"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Id: "i"
+            type = Id: "Int"
           /Typed
           value = None
         /Def
@@ -104,20 +118,6 @@ Block
         Id: "case"
     /Fun
   /Def
-  Def
-    target = Id: "oddness"
-    value = Fun
-      params = Range
-        Typed
-          target = Id: "i"
-          type = Id: "Int"
-        /Typed
-      /Range
-      returning = None
-      body = Block
-        Id: "case"
-    /Fun
-  /Def
 /Block
 
-Bytes: 451
+Bytes: 449
