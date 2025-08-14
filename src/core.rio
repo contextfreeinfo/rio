@@ -16,15 +16,13 @@ Either[YesValue, NoValue] := union of
     No[NoValue]
 end
 
-Error := struct of
-    message Text
-end
+Error := struct of message Text
 
 error := for(message Text) be Error { message }
 
 false := null[Void]
 
-# Field := struct with
+# Field := struct of
 #     # TODO This needs dynamic typing and sizing for `type` and `default`.
 #     name:Text
 #     type:Type
@@ -35,7 +33,7 @@ false := null[Void]
 Float := magic as Type
 
 Int := magic as Type
-# Int := class with
+# Int := class of
 #     add := for other:Int :Int be magic
 #     eq := for other:Int :Claim be magic
 #     ge := for other:Int :Claim be magic
@@ -46,7 +44,7 @@ Int := magic as Type
 #     sub := for other:Int :Int be magic
 # end
 
-# Interface := struct with
+# Interface := struct of
 #     name:Text
 #     # TODO constructor separate?
 #     # methods:(List Function)
@@ -62,15 +60,13 @@ magic = magic
 Maybe[Value] := Either[Value, Void]
 
 # Keeping YesValue purposely makes this hard to use in isolation.
-No[YesValue, NoValue] := struct of
-    value NoValue
-end
+No[YesValue, NoValue] := struct of value NoValue
 
 no[YesValue, NoValue] := for(value NoValue) No[YesValue, _] be No { value }
 
 null[Value] := no[Value, _](void)
 
-# Pair := for Key:Type Value:Type be struct with
+# Pair := for Key:Type Value:Type be struct of
 #     key:Key
 #     value:Value
 # end
@@ -104,8 +100,6 @@ Void := magic as Type
 void := magic as Void
 
 # Yes can be used in isolation as a box.
-Yes[Value] := struct of
-    value Value
-end
+Yes[Value] := struct of value Value
 
 yes[Value] := for(value Value) be Yes { value }
