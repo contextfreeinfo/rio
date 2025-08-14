@@ -14,8 +14,9 @@ it an interface with extra indirection?
 
 ```rb
 # Group of related imports.
+# TODO Some way to define subgroupings? subIo = io.(print, read)???
 io = extern of
-    print = for ...
+    print = for(text Text) Void
     # ...
 end
 ```
@@ -23,9 +24,17 @@ end
 Maybe accept it in a function like this?
 
 ```rb
-printThings = for(things Things) with(io) Void be
+printThings = for(things Things) and(io) Void be
     # ...
 end
+```
+
+Some way to define external handles?
+
+```rb
+# TODO Put these in extern groups to control external namespacing?
+File = extern interface
+# TODO Some automatable standardized "close" for extern handles?
 ```
 
 Maybe allow easy definition of an interface? Alternatively, just use an
