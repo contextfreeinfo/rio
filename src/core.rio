@@ -1,6 +1,6 @@
-# abstract := for void be extern
+# abstract := for void be magic
 
-# Array := for Item:Type size:Int be extern
+# Array := for Item:Type size:Int be magic
 
 Claim := Maybe[Void, Void]
 
@@ -9,7 +9,7 @@ Claim := Maybe[Void, Void]
 #     fields:(List Field)
 # end
 
-# describe := for Value:Type be for value:Value :String be extern
+# describe := for Value:Type be for value:Value :String be magic
 
 Either[YesValue, NoValue] := union of
     Yes[YesValue]
@@ -22,8 +22,6 @@ end
 
 error := for(message Text) be Error { message }
 
-extern = for() be extern()
-
 false := null[Void]
 
 # Field := struct with
@@ -34,18 +32,18 @@ false := null[Void]
 #     offset:Int
 # end
 
-Float := extern() as Type
+Float := magic as Type
 
-Int := extern() as Type
+Int := magic as Type
 # Int := class with
-#     add := for other:Int :Int be extern
-#     eq := for other:Int :Claim be extern
-#     ge := for other:Int :Claim be extern
-#     gt := for other:Int :Claim be extern
-#     le := for other:Int :Claim be extern
-#     lt := for other:Int :Claim be extern
-#     ne := for other:Int :Claim be extern
-#     sub := for other:Int :Int be extern
+#     add := for other:Int :Int be magic
+#     eq := for other:Int :Claim be magic
+#     ge := for other:Int :Claim be magic
+#     gt := for other:Int :Claim be magic
+#     le := for other:Int :Claim be magic
+#     lt := for other:Int :Claim be magic
+#     ne := for other:Int :Claim be magic
+#     sub := for other:Int :Int be magic
 # end
 
 # Interface := struct with
@@ -54,10 +52,12 @@ Int := extern() as Type
 #     # methods:(List Function)
 # end
 
-List[Item] := extern() as Type
+List[Item] := magic as Type
 
-log[Value] := for (value Value) Void be extern()
+log[Value] := for (value Value) Void be magic
 # # TODO Also think and cry for log levels?
+
+magic = magic
 
 Maybe[Value] := Either[Value, Void]
 
@@ -92,16 +92,16 @@ end
 
 true := yes(void)
 
-Text := extern() as Type
+Text := magic as Type
 
 Try[Value] := Either[Value, Error]
 
-Type := extern() as Type
+Type := magic as Type
 # Type := union ... ???
 
-Void := extern() as Type
+Void := magic as Type
 
-void := extern() as Void
+void := magic as Void
 
 # Yes can be used in isolation as a box.
 Yes[Value] := struct of
