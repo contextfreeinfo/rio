@@ -136,15 +136,16 @@ impl Cart {
         Lexer::new(self).lex();
         // dbg!(cart.bytes.len());
         Parser::new(self).parse();
-        if self.args.dump.contains(&DumpOption::Trees) && !self.name.is_empty() {
-            if let Some(outdir) = &self.outdir {
-                let interner = &*self.interner.borrow();
-                let mut writer = make_dump_writer("parse", outdir)?;
-                let mut writer = TreeWriter::new(&self.bytes, &mut writer, interner);
-                write_parse_tree(&mut writer)?;
-                writeln!(writer.file)?;
-                writeln!(writer.file, "Bytes: {}", self.bytes.len())?;
-            }
+        if self.args.dump.contains(&DumpOption::Trees)
+            && !self.name.is_empty()
+            && let Some(outdir) = &self.outdir
+        {
+            let interner = &*self.interner.borrow();
+            let mut writer = make_dump_writer("parse", outdir)?;
+            let mut writer = TreeWriter::new(&self.bytes, &mut writer, interner);
+            write_parse_tree(&mut writer)?;
+            writeln!(writer.file)?;
+            writeln!(writer.file, "Bytes: {}", self.bytes.len())?;
         }
         // dbg!(cart.bytes.len());
         self.norm()?;
@@ -165,15 +166,15 @@ impl Cart {
     }
 
     fn maybe_dump_normed(&self, stage: &'static str) -> Result<()> {
-        if self.args.dump.contains(&DumpOption::Trees) {
-            if let Some(outdir) = &self.outdir {
-                let interner = &*self.interner.borrow();
-                let mut writer = make_dump_writer(stage, outdir)?;
-                let mut writer = TreeWriter::new(&self.bytes, &mut writer, interner);
-                write_tree(&mut writer)?;
-                writeln!(writer.file)?;
-                writeln!(writer.file, "Bytes: {}", self.bytes.len())?;
-            }
+        if self.args.dump.contains(&DumpOption::Trees)
+            && let Some(outdir) = &self.outdir
+        {
+            let interner = &*self.interner.borrow();
+            let mut writer = make_dump_writer(stage, outdir)?;
+            let mut writer = TreeWriter::new(&self.bytes, &mut writer, interner);
+            write_tree(&mut writer)?;
+            writeln!(writer.file)?;
+            writeln!(writer.file, "Bytes: {}", self.bytes.len())?;
         }
         Ok(())
     }
