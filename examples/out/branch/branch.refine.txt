@@ -1,6 +1,6 @@
 Block
   Def
-    target = Uid 0/1: "main"
+    target = Public Uid 0/1: "main"
     value = Fun
       params = None
       returning = Id: "Void"
@@ -106,4 +106,4 @@ Block
   /Def
 /Block
 
-Bytes: 415
+Bytes: 421

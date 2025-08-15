@@ -261,6 +261,7 @@ impl<'a> Normer<'a> {
         self.push(block.as_node());
     }
 
+    #[allow(dead_code)]
     fn block_of(&mut self, mut stepper: ParseNodeStepper) {
         while let Some((kid, kid_source)) = stepper.next(&self.cart.bytes) {
             if matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::End) {
@@ -376,9 +377,19 @@ impl<'a> Normer<'a> {
                 target
             }
         };
-        assert!(
-            matches!(kid, ParseNode::Leaf(token) if matches!(token.kind, TokenKind::Define | TokenKind::DefinePub))
-        );
+        let target = match kid {
+            ParseNode::Leaf(Token {
+                kind: TokenKind::DefinePub,
+                ..
+            }) => {
+                let public = Public {
+                    meta: NodeMeta::at(source),
+                    kid: target,
+                };
+                self.wrap(|s| s.push(public.as_node())).start
+            }
+            _ => target,
+        };
         let value = stepper
             .next(&self.cart.bytes)
             .map(|(node, source)| self.wrap_node(node, source))
@@ -504,10 +515,10 @@ impl<'a> Normer<'a> {
 
     fn round(&mut self, mut stepper: ParseNodeStepper, _source: usize) {
         // TODO If empty, store a unit/null/void indicator?
-        if let Some((kid, kid_source)) = stepper.next(&self.cart.bytes) {
-            if !matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::RoundClose) {
-                self.node(kid, kid_source);
-            }
+        if let Some((kid, kid_source)) = stepper.next(&self.cart.bytes)
+            && !matches!(kid, ParseNode::Leaf(token) if token.kind == TokenKind::RoundClose)
+        {
+            self.node(kid, kid_source);
         }
     }
 
