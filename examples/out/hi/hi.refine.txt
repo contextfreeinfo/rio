@@ -1,0 +1,66 @@
+Block
+  Def
+    target = Uid 0/1: "main"
+    value = Fun
+      params = None
+      returning = None
+      body = Block
+        Def
+          target = Uid 0/2: "message"
+          value = String: "I say \"Hi!\""
+        /Def
+        Call
+          fun = Uid 0/3: "logTwice"
+          args = Range
+            Uid 0/2: "message"
+            String: ""
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0/3: "logTwice"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/4: "message"
+            type = Id: "Text"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Uid 0/5: "middle"
+            type = Id: "Text"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = Id: "Void"
+      body = Block
+        Call
+          fun = Id: "log"
+          args = Range
+            Uid 0/4: "message"
+          /Range
+        /Call
+        Call
+          fun = Id: "log"
+          args = Range
+            Uid 0/5: "middle"
+          /Range
+        /Call
+        Call
+          fun = Id: "log"
+          args = Range
+            Uid 0/4: "message"
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+/Block
+
+Bytes: 244

@@ -1,5 +1,6 @@
 use std::{
     cell::RefCell,
+    collections::HashMap,
     fs::{File, create_dir_all},
     io::{BufWriter, Read, Write},
     path::{Path, PathBuf},
@@ -9,13 +10,19 @@ use anyhow::{Error, Result};
 use argh::{FromArgValue, FromArgs};
 
 use crate::{
-    intern::{Intern, Interner}, lex::{Lexer, TokenKind}, norm::write_tree, parse::{write_parse_tree, ParseNode, Parser}, tree::{TreeBuilder, TreeWriter}
+    intern::{Intern, Interner},
+    lex::{Lexer, TokenKind},
+    norm::write_tree,
+    parse::{ParseNode, Parser, write_parse_tree},
+    refine::resolve::UidInfo,
+    tree::{TreeBuilder, TreeWriter},
 };
 
 mod intern;
 mod lex;
 mod norm;
 mod parse;
+mod refine;
 mod tree;
 
 #[derive(Clone, FromArgs, PartialEq, Debug)]
@@ -76,14 +83,20 @@ fn build(args: BuildArgs) -> Result<()> {
     cart.build()
 }
 
+pub type DefNum = usize;
+pub type TreeIdx = usize;
+
 struct Cart {
     pub args: BuildArgs,
     pub bytes: Vec<u8>,
     pub core_interns: CoreInterns,
+    pub defs: Vec<TreeIdx>,
     pub name: String,
     pub interner: RefCell<Interner>,
     pub outdir: Option<PathBuf>,
+    pub scope: Vec<UidInfo>,
     pub text: String,
+    pub tops: HashMap<Intern, DefNum>,
     pub tree_builder: TreeBuilder,
 }
 
@@ -96,10 +109,13 @@ impl Cart {
             args: args.clone(),
             bytes: Default::default(),
             core_interns: CoreInterns::new(&mut interner),
+            defs: Default::default(),
             interner: RefCell::new(interner),
             name: Default::default(),
             outdir: Default::default(),
+            scope: Default::default(),
             text: Default::default(),
+            tops: Default::default(),
             tree_builder: Default::default(),
         }
     }
@@ -132,6 +148,7 @@ impl Cart {
         }
         // dbg!(cart.bytes.len());
         self.norm()?;
+        self.refine()?;
         Ok(())
     }
 
@@ -164,6 +181,12 @@ impl Cart {
     fn norm(&mut self) -> Result<()> {
         norm::Normer::new(self).norm();
         self.maybe_dump_normed("norm")?;
+        Ok(())
+    }
+
+    fn refine(&mut self) -> Result<()> {
+        refine::Refiner::new(self).refine();
+        self.maybe_dump_normed("refine")?;
         Ok(())
     }
 }

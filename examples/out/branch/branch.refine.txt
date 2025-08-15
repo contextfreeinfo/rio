@@ -1,0 +1,109 @@
+Block
+  Def
+    target = Uid 0/1: "main"
+    value = Fun
+      params = None
+      returning = Id: "Void"
+      body = Block
+        Call
+          fun = Uid 0/2: "describe"
+          args = Range
+            Int: "2"
+        /Call
+        Call
+          fun = Uid 0/2: "describe"
+          args = Range
+            Int: "-1"
+        /Call
+        Call
+          fun = Uid 0/2: "describe"
+          args = Range
+            Int: "0"
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0/2: "describe"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/3: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "log"
+          args = Range
+            Call
+              fun = Uid 0/4: "description"
+              args = Range
+                Uid 0/3: "i"
+              /Range
+            /Call
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0/4: "description"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/5: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Def
+          target = Uid 0/6: "message"
+          value = Id: "case"
+        /Def
+        Uid 0/6: "message"
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0/7: "less"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/8: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+        Def
+          target = Typed
+            target = Uid 0/9: "j"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "lt"
+          args = Range
+            Uid 0/8: "i"
+            Uid 0/9: "j"
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+/Block
+
+Bytes: 415

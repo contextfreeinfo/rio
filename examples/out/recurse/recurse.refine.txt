@@ -1,0 +1,125 @@
+Block
+  Def
+    target = Uid 0/1: "main"
+    value = Fun
+      params = None
+      returning = None
+      body = Block
+        Def
+          target = Uid 0/2: "i"
+          value = Int: "3"
+        /Def
+        Call
+          fun = Uid 0/3: "countDown"
+          args = Range
+            Uid 0/2: "i"
+          /Range
+        /Call
+        Call
+          fun = Id: "log"
+          args = Range
+            Call
+              fun = Uid 0/9: "oddness"
+              args = Range
+                Uid 0/2: "i"
+              /Range
+            /Call
+          /Range
+        /Call
+        Call
+          fun = Id: "log"
+          args = Range
+            Call
+              fun = Uid 0/9: "oddness"
+              args = Range
+                Call
+                  fun = Id: "add"
+                  args = Range
+                    Uid 0/2: "i"
+                    Int: "1"
+                  /Range
+                /Call
+              /Range
+            /Call
+          /Range
+        /Call
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0/3: "countDown"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/4: "count"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Call
+          fun = Id: "log"
+          args = Range
+            String: "counting ..."
+        /Call
+        Id: "case"
+      /Block
+    /Fun
+  /Def
+  Def
+    target = Uid 0/5: "isEven"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/6: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = Id: "Claim"
+      body = Block
+        Id: "case"
+    /Fun
+  /Def
+  Def
+    target = Uid 0/7: "isOdd"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/8: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = Id: "Claim"
+      body = Block
+        Id: "case"
+    /Fun
+  /Def
+  Def
+    target = Uid 0/9: "oddness"
+    value = Fun
+      params = Range
+        Def
+          target = Typed
+            target = Uid 0/10: "i"
+            type = Id: "Int"
+          /Typed
+          value = None
+        /Def
+      /Range
+      returning = None
+      body = Block
+        Id: "case"
+    /Fun
+  /Def
+/Block
+
+Bytes: 481

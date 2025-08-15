@@ -100,7 +100,7 @@ impl<'a> Lexer<'a> {
                 }
                 '#' => self.comment(),
                 '"' => self.string(),
-                ':' =>  {
+                ':' => {
                     self.trim();
                     match self.peek() {
                         Some('=') => {
