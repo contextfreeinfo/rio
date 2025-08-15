@@ -4,9 +4,7 @@ use crate::{
     Cart, impl_tree_builder_wrap,
     intern::Intern,
     lex::TokenKind,
-    norm::{
-        Block, Call, Def, Dot, Fun, Node, NodeData, NodeStepper, Public, Structured, Typed, Uid,
-    },
+    norm::{Block, Call, Def, Dot, Fun, Node, NodeData, NodeStepper, Structured, Typed, Uid},
     tree::{SizeRange, TreeBuilder},
 };
 
@@ -87,14 +85,15 @@ impl<'a> Resolver<'a> {
                 self.push(Call { fun, args, ..call });
             }
             Node::Def(def) => {
-                if depth > 1 && !structured {
-                    if let Some(uid) = Node::uid(&self.cart.bytes, node) {
-                        self.cart.scope.push(UidInfo {
-                            intern: uid.intern,
-                            module: uid.module,
-                            num: uid.num,
-                        });
-                    }
+                if depth > 1
+                    && !structured
+                    && let Some(uid) = Node::uid(&self.cart.bytes, node)
+                {
+                    self.cart.scope.push(UidInfo {
+                        intern: uid.intern,
+                        module: uid.module,
+                        num: uid.num,
+                    });
                 }
                 let target = self.wrap_one(|s| s.resolve_at(def.target, depth + 1, false));
                 let value = self.wrap_one(|s| s.resolve_at(def.value, depth + 1, false));
@@ -132,10 +131,6 @@ impl<'a> Resolver<'a> {
                     body,
                     ..fun
                 });
-            }
-            Node::Public(public) => {
-                let kid = self.wrap_one(|s| s.resolve_at(public.kid, depth + 1, false));
-                self.push(Public { kid, ..public });
             }
             Node::Structured(structured) => {
                 let defs = self.wrap(|s| {

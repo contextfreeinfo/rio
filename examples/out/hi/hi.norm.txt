@@ -1,6 +1,7 @@
 Block
   Def
-    target = Public Id: "main"
+    target = Id: "main"
+    public = true
     value = Fun
       params = None
       returning = None

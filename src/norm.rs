@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use crate::{
-    Cart, impl_tree_builder_wrap,
+    Cart, TreeIdx, impl_tree_builder_wrap,
     intern::Intern,
     lex::{Token, TokenKind},
     parse::{ParseBranch, ParseBranchKind, ParseNode, ParseNodeStepper},
@@ -57,7 +57,6 @@ impl Node {
     pub fn uid(bytes: &[u8], node: Node) -> Option<Uid> {
         match node {
             Node::Def(def) => Node::uid(bytes, Node::read(bytes, def.target).0),
-            Node::Public(public) => Node::uid(bytes, Node::read(bytes, public.kid).0),
             Node::Typed(typed) => Node::uid(bytes, Node::read(bytes, typed.target).0),
             Node::Uid(uid) => Some(uid),
             _ => None,
@@ -103,9 +102,7 @@ impl NodeStepper {
     }
 }
 
-generate_node_enums!(
-    Block, Call, Def, Dot, Fun, Public, Structured, Tok, Typed, Uid
-);
+generate_node_enums!(Block, Call, Def, Dot, Fun, Structured, Tok, Typed, Uid);
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct NodeMeta {
@@ -128,36 +125,31 @@ pub struct Block {
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Call {
     pub meta: NodeMeta,
-    pub fun: usize,
+    pub fun: TreeIdx,
     pub args: SizeRange,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Def {
-    pub meta: NodeMeta, // typ eventually implies type
-    pub target: usize,  // uid eventually implies pub
-    pub value: usize,
+    pub meta: NodeMeta,  // typ eventually implies type
+    pub target: TreeIdx, // uid eventually implies pub
+    pub public: bool,
+    pub value: TreeIdx,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Dot {
     pub meta: NodeMeta,
-    pub scope: usize,
-    pub member: usize,
+    pub scope: TreeIdx,
+    pub member: TreeIdx,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Fun {
     pub meta: NodeMeta,
     pub params: SizeRange,
-    pub returning: usize,
-    pub body: usize,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
-pub struct Public {
-    pub meta: NodeMeta,
-    pub kid: usize,
+    pub returning: TreeIdx,
+    pub body: TreeIdx,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
@@ -175,16 +167,16 @@ pub struct Tok {
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Typed {
     pub meta: NodeMeta,
-    pub target: usize,
-    pub typ: usize,
+    pub target: TreeIdx,
+    pub typ: TreeIdx,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Uid {
     pub meta: NodeMeta,
     pub intern: Intern,
-    pub module: usize,
-    pub num: usize,
+    pub module: TreeIdx,
+    pub num: TreeIdx,
 }
 
 #[allow(unused)]
@@ -377,19 +369,13 @@ impl<'a> Normer<'a> {
                 target
             }
         };
-        let target = match kid {
+        let public = matches!(
+            kid,
             ParseNode::Leaf(Token {
                 kind: TokenKind::DefinePub,
                 ..
-            }) => {
-                let public = Public {
-                    meta: NodeMeta::at(source),
-                    kid: target,
-                };
-                self.wrap(|s| s.push(public.as_node())).start
-            }
-            _ => target,
-        };
+            })
+        );
         let value = stepper
             .next(&self.cart.bytes)
             .map(|(node, source)| self.wrap_node(node, source))
@@ -397,6 +383,7 @@ impl<'a> Normer<'a> {
         let def = Def {
             meta: NodeMeta::at(source),
             target,
+            public,
             value,
         };
         self.push(def.as_node());
@@ -461,7 +448,6 @@ impl<'a> Normer<'a> {
                 ParseBranchKind::Params => panic!(),
                 ParseBranchKind::Typed => self.typed(branch, source),
                 ParseBranchKind::Fun => self.fun(branch, source),
-                ParseBranchKind::Pub => self.public(branch, source),
                 ParseBranchKind::StringParts => self.string_parts(branch, source),
                 ParseBranchKind::TypCall => todo!(),
             },
@@ -481,6 +467,7 @@ impl<'a> Normer<'a> {
                     let def = Def {
                         meta: NodeMeta::at(source),
                         target: self.wrap_node(kid, source),
+                        public: false,
                         value: 0,
                     };
                     self.push(def.as_node());
@@ -490,6 +477,7 @@ impl<'a> Normer<'a> {
                     let def = Def {
                         meta: NodeMeta::at(source),
                         target: self.wrap(|s| s.push(kid.as_node())).start,
+                        public: false,
                         value: 0,
                     };
                     self.push(def.as_node());
@@ -497,20 +485,6 @@ impl<'a> Normer<'a> {
                 _ => self.node(kid, source),
             }
         }
-    }
-
-    fn public(&mut self, branch: ParseBranch, source: usize) {
-        let mut stepper = ParseNodeStepper::new(branch.range);
-        let (kid, kid_source) = stepper.next(&self.cart.bytes).unwrap();
-        let kid = match kid {
-            ParseNode::Leaf(token) if token.kind == TokenKind::Star => 0,
-            _ => self.wrap_node(kid, kid_source),
-        };
-        let public = Public {
-            meta: NodeMeta::at(source),
-            kid,
-        };
-        self.push(public.as_node());
     }
 
     fn round(&mut self, mut stepper: ParseNodeStepper, _source: usize) {
@@ -578,6 +552,7 @@ impl<'a> Normer<'a> {
                         let def = Def {
                             meta: NodeMeta::at(kid_source),
                             target,
+                            public: false,
                             value: target,
                         };
                         s.push(def.as_node());
@@ -786,6 +761,10 @@ where
                     ..indented
                 },
             )?;
+            if def.public {
+                writer.indent(indented.indent)?;
+                writeln!(writer.file, "public = true")?;
+            }
             result += write_tree_at(
                 writer,
                 TreeWriting {
@@ -824,17 +803,6 @@ where
             // Close
             writer.indent(context.indent)?;
             writeln!(writer.file, "/{:?}", fun.kind())?;
-        }
-        Node::Public(public) => {
-            write!(writer.file, "{:?} ", public.kind())?;
-            result += write_tree_at(
-                writer,
-                TreeWriting {
-                    inline: true,
-                    node: Node::read(writer.bytes, public.kid).0,
-                    ..indented
-                },
-            )? - 1;
         }
         Node::Structured(structured) => {
             writeln!(writer.file, "{:?}", structured.kind())?;

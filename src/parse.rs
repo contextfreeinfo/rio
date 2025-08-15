@@ -80,7 +80,6 @@ pub enum ParseBranchKind {
     Params,
     Typed,
     Fun,
-    Pub,
     StringParts,
     TypCall,
 }

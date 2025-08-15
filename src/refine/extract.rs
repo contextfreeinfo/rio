@@ -1,9 +1,7 @@
 use crate::{
     Cart, impl_tree_builder_wrap,
     lex::TokenKind,
-    norm::{
-        Block, Call, Def, Dot, Fun, Node, NodeData, NodeStepper, Public, Structured, Typed, Uid,
-    },
+    norm::{Block, Call, Def, Dot, Fun, Node, NodeData, NodeStepper, Structured, Typed, Uid},
     tree::{SizeRange, TreeBuilder},
 };
 
@@ -88,19 +86,20 @@ impl<'a> Extractor<'a> {
     }
 
     fn convert_def_ids_at(&mut self, node: Node, def: bool) {
-        if let Node::Tok(tok) = node {
-            if def && tok.token.kind == TokenKind::Id {
-                let uid = Uid {
-                    meta: tok.meta,
-                    intern: tok.token.intern,
-                    module: 0, // TODO
-                    num: self.cart.defs.len(),
-                };
-                self.push(uid);
-                // Figure out idx later.
-                self.cart.defs.push(0);
-                return;
-            }
+        if let Node::Tok(tok) = node
+            && def
+            && tok.token.kind == TokenKind::Id
+        {
+            let uid = Uid {
+                meta: tok.meta,
+                intern: tok.token.intern,
+                module: 0, // TODO
+                num: self.cart.defs.len(),
+            };
+            self.push(uid);
+            // Figure out idx later.
+            self.cart.defs.push(0);
+            return;
         }
         // TODO Reduce boilerplate.
         match node {
@@ -161,11 +160,6 @@ impl<'a> Extractor<'a> {
                     ..fun
                 });
             }
-            Node::Public(public) => {
-                // Forward def.
-                let kid = self.wrap_one(|s| s.convert_def_ids_at(s.read(public.kid), def));
-                self.push(Public { kid, ..public });
-            }
             Node::Structured(structured) => {
                 let defs = self.wrap(|s| {
                     let mut stepper = NodeStepper::new(structured.defs);
@@ -217,7 +211,6 @@ impl<'a> Extractor<'a> {
                 self.update_defs_at(fun.returning, 0);
                 self.update_defs_at(fun.body, 0);
             }
-            Node::Public(public) => self.update_defs_at(public.kid, def),
             Node::Structured(structured) => update_defs_at_range(self, structured.defs),
             Node::Typed(typed) => {
                 self.update_defs_at(typed.target, def);
