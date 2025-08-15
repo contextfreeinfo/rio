@@ -3,7 +3,6 @@ Block
     target = Uid 0/1: "main"
     public = true
     value = Fun
-      params = None
       returning = Id: "Void"
       body = Block
         Call

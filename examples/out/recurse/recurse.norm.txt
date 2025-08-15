@@ -3,7 +3,6 @@ Block
     target = Id: "main"
     public = true
     value = Fun
-      params = None
       body = Block
         Def
           target = Id: "i"

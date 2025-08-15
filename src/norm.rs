@@ -683,7 +683,7 @@ where
      -> Result<usize> {
         let mut result = 0;
         let range_kind = match range.start {
-            0 => "None",
+            0 => return Ok(0),
             _ => "Range",
         };
         writer.indent(context.indent + writer.indent)?;
