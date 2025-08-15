@@ -29,14 +29,10 @@ Block
     value = Fun
       params = Range
         Def
-          target = Typed
-            target = Uid 0/3: "i"
-            type = Id: "Int"
-          /Typed
-          value = None
+          target = Uid 0/3: "i"
+          type = Id: "Int"
         /Def
       /Range
-      returning = None
       body = Block
         Call
           fun = Id: "log"
@@ -57,14 +53,10 @@ Block
     value = Fun
       params = Range
         Def
-          target = Typed
-            target = Uid 0/5: "i"
-            type = Id: "Int"
-          /Typed
-          value = None
+          target = Uid 0/5: "i"
+          type = Id: "Int"
         /Def
       /Range
-      returning = None
       body = Block
         Def
           target = Uid 0/6: "message"
@@ -79,21 +71,14 @@ Block
     value = Fun
       params = Range
         Def
-          target = Typed
-            target = Uid 0/8: "i"
-            type = Id: "Int"
-          /Typed
-          value = None
+          target = Uid 0/8: "i"
+          type = Id: "Int"
         /Def
         Def
-          target = Typed
-            target = Uid 0/9: "j"
-            type = Id: "Int"
-          /Typed
-          value = None
+          target = Uid 0/9: "j"
+          type = Id: "Int"
         /Def
       /Range
-      returning = None
       body = Block
         Call
           fun = Id: "lt"
@@ -107,4 +92,4 @@ Block
   /Def
 /Block
 
-Bytes: 424
+Bytes: 414

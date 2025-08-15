@@ -57,7 +57,6 @@ impl Node {
     pub fn uid(bytes: &[u8], node: Node) -> Option<Uid> {
         match node {
             Node::Def(def) => Node::uid(bytes, Node::read(bytes, def.target).0),
-            Node::Typed(typed) => Node::uid(bytes, Node::read(bytes, typed.target).0),
             Node::Uid(uid) => Some(uid),
             _ => None,
         }
@@ -131,9 +130,12 @@ pub struct Call {
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
 pub struct Def {
-    pub meta: NodeMeta,  // typ eventually implies type
-    pub target: TreeIdx, // uid eventually implies pub
+    pub meta: NodeMeta,
+    pub target: TreeIdx,
     pub public: bool,
+    /// Explicitly specified type information.
+    /// Might be cleared after full typing.
+    pub typ: TreeIdx,
     pub value: TreeIdx,
 }
 
@@ -165,6 +167,7 @@ pub struct Tok {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default, Eq, Hash, PartialEq, Serialize)]
+/// Reserve this just for actual casts.
 pub struct Typed {
     pub meta: NodeMeta,
     pub target: TreeIdx,
@@ -384,6 +387,7 @@ impl<'a> Normer<'a> {
             meta: NodeMeta::at(source),
             target,
             public,
+            typ: 0,
             value,
         };
         self.push(def.as_node());
@@ -468,16 +472,19 @@ impl<'a> Normer<'a> {
                         meta: NodeMeta::at(source),
                         target: self.wrap_node(kid, source),
                         public: false,
+                        typ: 0,
                         value: 0,
                     };
                     self.push(def.as_node());
                 }
                 ParseNode::Branch(kid) if kid.kind == ParseBranchKind::Typed => {
-                    let kid = self.typed_data(kid, source);
+                    let (target, typ) = self.typed_data(kid);
                     let def = Def {
                         meta: NodeMeta::at(source),
-                        target: self.wrap(|s| s.push(kid.as_node())).start,
+                        target,
                         public: false,
+                        typ,
+                        // typ: 0,
                         value: 0,
                     };
                     self.push(def.as_node());
@@ -553,6 +560,7 @@ impl<'a> Normer<'a> {
                             meta: NodeMeta::at(kid_source),
                             target,
                             public: false,
+                            typ: 0,
                             value: target,
                         };
                         s.push(def.as_node());
@@ -599,12 +607,18 @@ impl<'a> Normer<'a> {
     }
 
     fn typed(&mut self, branch: ParseBranch, source: usize) {
-        let node = self.typed_data(branch, source);
+        // println!("typed");
+        let (target, typ) = self.typed_data(branch);
+        let node = Typed {
+            meta: NodeMeta::at(source),
+            target,
+            typ,
+        };
         self.push(node.as_node());
     }
 
     /// Returns the node instead of pushing it.
-    fn typed_data(&mut self, branch: ParseBranch, source: usize) -> Typed {
+    fn typed_data(&mut self, branch: ParseBranch) -> (TreeIdx, TreeIdx) {
         let mut stepper = ParseNodeStepper::new(branch.range);
         let (target, target_source) = stepper.next(&self.cart.bytes).unwrap();
         let target = self.wrap_node(target, target_source);
@@ -612,11 +626,7 @@ impl<'a> Normer<'a> {
             .next(&self.cart.bytes)
             .map(|(node, source)| self.wrap_node(node, source))
             .unwrap_or(0);
-        Typed {
-            meta: NodeMeta::at(source),
-            target,
-            typ,
-        }
+        (target, typ)
     }
 }
 
@@ -653,6 +663,9 @@ where
     File: Write,
     Map: std::ops::Index<Intern, Output = str>,
 {
+    if matches!(context.node, Node::None) {
+        return Ok(0);
+    }
     let mut result = 1usize;
     if !context.inline {
         writer.indent(context.indent)?;
@@ -765,6 +778,14 @@ where
                 writer.indent(indented.indent)?;
                 writeln!(writer.file, "public = true")?;
             }
+            result += write_tree_at(
+                writer,
+                TreeWriting {
+                    label: "type",
+                    node: Node::read(writer.bytes, def.typ).0,
+                    ..indented
+                },
+            )?;
             result += write_tree_at(
                 writer,
                 TreeWriting {

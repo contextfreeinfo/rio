@@ -4,7 +4,6 @@ Block
     public = true
     value = Fun
       params = None
-      returning = None
       body = Block
         Def
           target = Id: "i"
@@ -50,14 +49,10 @@ Block
     value = Fun
       params = Range
         Def
-          target = Typed
-            target = Id: "count"
-            type = Id: "Int"
-          /Typed
-          value = None
+          target = Id: "count"
+          type = Id: "Int"
         /Def
       /Range
-      returning = None
       body = Block
         Call
           fun = Id: "log"
@@ -73,11 +68,8 @@ Block
     value = Fun
       params = Range
         Def
-          target = Typed
-            target = Id: "i"
-            type = Id: "Int"
-          /Typed
-          value = None
+          target = Id: "i"
+          type = Id: "Int"
         /Def
       /Range
       returning = Id: "Claim"
@@ -90,11 +82,8 @@ Block
     value = Fun
       params = Range
         Def
-          target = Typed
-            target = Id: "i"
-            type = Id: "Int"
-          /Typed
-          value = None
+          target = Id: "i"
+          type = Id: "Int"
         /Def
       /Range
       returning = Id: "Claim"
@@ -107,18 +96,14 @@ Block
     value = Fun
       params = Range
         Def
-          target = Typed
-            target = Id: "i"
-            type = Id: "Int"
-          /Typed
-          value = None
+          target = Id: "i"
+          type = Id: "Int"
         /Def
       /Range
-      returning = None
       body = Block
         Id: "case"
     /Fun
   /Def
 /Block
 
-Bytes: 460
+Bytes: 442

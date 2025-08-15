@@ -96,9 +96,11 @@ impl<'a> Resolver<'a> {
                     });
                 }
                 let target = self.wrap_one(|s| s.resolve_at(def.target, depth + 1, false));
+                let typ = self.wrap_one(|s| s.resolve_at(def.typ, depth + 1, false));
                 let value = self.wrap_one(|s| s.resolve_at(def.value, depth + 1, false));
                 self.push(Def {
                     target,
+                    typ,
                     value,
                     ..def
                 });

@@ -4,7 +4,6 @@ Block
     public = true
     value = Fun
       params = None
-      returning = None
       body = Block
         Def
           target = Id: "message"
@@ -25,18 +24,12 @@ Block
     value = Fun
       params = Range
         Def
-          target = Typed
-            target = Id: "message"
-            type = Id: "Text"
-          /Typed
-          value = None
+          target = Id: "message"
+          type = Id: "Text"
         /Def
         Def
-          target = Typed
-            target = Id: "middle"
-            type = Id: "Text"
-          /Typed
-          value = None
+          target = Id: "middle"
+          type = Id: "Text"
         /Def
       /Range
       returning = Id: "Void"
@@ -61,4 +54,4 @@ Block
   /Def
 /Block
 
-Bytes: 234
+Bytes: 225

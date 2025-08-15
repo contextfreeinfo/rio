@@ -4,7 +4,6 @@ Block
     public = true
     value = Fun
       params = None
-      returning = None
       body = Block
         Def
           target = Uid 0/2: "name"
@@ -108,18 +107,12 @@ Block
     value = Fun
       params = Range
         Def
-          target = Typed
-            target = Uid 0/14: "name"
-            type = Id: "Text"
-          /Typed
-          value = None
+          target = Uid 0/14: "name"
+          type = Id: "Text"
         /Def
         Def
-          target = Typed
-            target = Uid 0/15: "age"
-            type = Id: "Int"
-          /Typed
-          value = None
+          target = Uid 0/15: "age"
+          type = Id: "Int"
         /Def
       /Range
       returning = Uid 0/10: "Person"
@@ -142,14 +135,10 @@ Block
     value = Fun
       params = Range
         Def
-          target = Typed
-            target = Uid 0/19: "person"
-            type = Uid 0/10: "Person"
-          /Typed
-          value = None
+          target = Uid 0/19: "person"
+          type = Uid 0/10: "Person"
         /Def
       /Range
-      returning = None
       body = Block
         Call
           fun = Id: "log"
@@ -193,4 +182,4 @@ Block
   End: "end"
 /Block
 
-Bytes: 886
+Bytes: 910
