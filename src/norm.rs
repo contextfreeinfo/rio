@@ -132,6 +132,7 @@ pub struct Call {
 pub struct Def {
     pub meta: NodeMeta,
     pub target: TreeIdx,
+    pub params: TreeIdx,
     pub public: bool,
     /// Explicitly specified type information.
     /// Might be cleared after full typing.
@@ -235,6 +236,9 @@ impl<'a> Normer<'a> {
             TokenKind::CurlyOpen => self.structured(stepper, source),
             TokenKind::Of => {}
             TokenKind::RoundOpen => self.round(stepper, source),
+            TokenKind::SquareOpen => {
+                // TODO
+            }
             _ => panic!("{open:?}"),
         }
     }
@@ -363,8 +367,25 @@ impl<'a> Normer<'a> {
         let mut stepper = ParseNodeStepper::new(branch.range);
         let (target, target_source) = stepper.next(&self.cart.bytes).unwrap();
         let mut kid = target;
+        let mut params = 0;
         let target = match kid {
-            ParseNode::Leaf(token) if token.kind == TokenKind::Define => 0,
+            ParseNode::Leaf(token)
+                if matches!(token.kind, TokenKind::Define | TokenKind::DefinePub) =>
+            {
+                // Missing left-hand side.
+                0
+            }
+            ParseNode::Branch(branch) if branch.kind == ParseBranchKind::TypCall => {
+                // Generic definition.
+                let mut typ_call_stepper = ParseNodeStepper::new(branch.range);
+                let (target, target_source) = typ_call_stepper.next(&self.cart.bytes).unwrap();
+                let target = self.wrap_node(target, target_source);
+                let (params_node, params_source) = typ_call_stepper.next(&self.cart.bytes).unwrap();
+                params = self.wrap_node(params_node, params_source);
+                // commit and remember idx
+                kid = stepper.next(&self.cart.bytes).unwrap().0;
+                target
+            }
             _ => {
                 let target = self.wrap_node(target, target_source);
                 // commit and remember idx
@@ -374,10 +395,7 @@ impl<'a> Normer<'a> {
         };
         let public = matches!(
             kid,
-            ParseNode::Leaf(Token {
-                kind: TokenKind::DefinePub,
-                ..
-            })
+            ParseNode::Leaf(token) if token.kind == TokenKind::DefinePub
         );
         let value = stepper
             .next(&self.cart.bytes)
@@ -386,6 +404,7 @@ impl<'a> Normer<'a> {
         let def = Def {
             meta: NodeMeta::at(source),
             target,
+            params,
             public,
             typ: 0,
             value,
@@ -453,7 +472,7 @@ impl<'a> Normer<'a> {
                 ParseBranchKind::Typed => self.typed(branch, source),
                 ParseBranchKind::Fun => self.fun(branch, source),
                 ParseBranchKind::StringParts => self.string_parts(branch, source),
-                ParseBranchKind::TypCall => todo!(),
+                ParseBranchKind::TypCall => self.typ_call(branch, source),
             },
             ParseNode::Leaf(token) => self.token(token, source),
         }
@@ -471,6 +490,7 @@ impl<'a> Normer<'a> {
                     let def = Def {
                         meta: NodeMeta::at(source),
                         target: self.wrap_node(kid, source),
+                        params: 0,
                         public: false,
                         typ: 0,
                         value: 0,
@@ -482,6 +502,7 @@ impl<'a> Normer<'a> {
                     let def = Def {
                         meta: NodeMeta::at(source),
                         target,
+                        params: 0,
                         public: false,
                         typ,
                         // typ: 0,
@@ -559,6 +580,7 @@ impl<'a> Normer<'a> {
                         let def = Def {
                             meta: NodeMeta::at(kid_source),
                             target,
+                            params: 0,
                             public: false,
                             typ: 0,
                             value: target,
@@ -604,6 +626,10 @@ impl<'a> Normer<'a> {
         };
         // Go straight to builder to avoid extra kind chunk.
         self.builder().push(tok.as_node());
+    }
+
+    fn typ_call(&mut self, branch: ParseBranch, source: usize) {
+        // TODO
     }
 
     fn typed(&mut self, branch: ParseBranch, source: usize) {

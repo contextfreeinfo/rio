@@ -1,0 +1,767 @@
+Block
+  Comment: "# abstract := for void be extern"
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# Array := for Item:Type size:Int be extern"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "Claim"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    TypCall
+      Id: "Maybe"
+      Block
+        SquareOpen: "["
+        Id: "Void"
+        Comma: ","
+        HSpace: " "
+        Id: "Void"
+        SquareClose: "]"
+      /Block
+    /TypCall
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# Class := struct with"
+  VSpace: "\n"
+  Comment: "#     face:Interface"
+  VSpace: "\n"
+  Comment: "#     fields:(List Field)"
+  VSpace: "\n"
+  Comment: "# end"
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# describe := for Value:Type be for value:Value :String be extern"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "Either"
+      Block
+        SquareOpen: "["
+        Id: "YesValue"
+        Comma: ","
+        HSpace: " "
+        Id: "NoValue"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Id: "union"
+    HSpace: " "
+  /Def
+  Block
+    Of: "of"
+    VSpace: "\n"
+    HSpace: "    "
+    TypCall
+      Id: "Yes"
+      Block
+        SquareOpen: "["
+        Id: "YesValue"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    VSpace: "\n"
+    HSpace: "    "
+    TypCall
+      Id: "No"
+      Block
+        SquareOpen: "["
+        Id: "NoValue"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    VSpace: "\n"
+    End: "end"
+  /Block
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "Error"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Id: "struct"
+    HSpace: " "
+  /Def
+  Block
+    Of: "of"
+    HSpace: " "
+    Id: "message"
+    HSpace: " "
+  /Block
+  Id: "Text"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "error"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        RoundOpen: "("
+        Typed
+          Id: "message"
+          HSpace: " "
+          Id: "Text"
+        /Typed
+        RoundClose: ")"
+      /Params
+      HSpace: " "
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "Error"
+        HSpace: " "
+      /Block
+    /Fun
+  /Def
+  Block
+    CurlyOpen: "{"
+    HSpace: " "
+    Id: "message"
+    HSpace: " "
+    CurlyClose: "}"
+  /Block
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "extern"
+      Block
+        SquareOpen: "["
+        Id: "Result"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        RoundOpen: "("
+        Typed
+          Id: "scope"
+          HSpace: " "
+          Id: "Text"
+        /Typed
+        Comma: ","
+        HSpace: " "
+        Typed
+          Id: "name"
+          HSpace: " "
+          Id: "Text"
+        /Typed
+        RoundClose: ")"
+      /Params
+      Typed
+        HSpace: " "
+        Id: "Result"
+        HSpace: " "
+      /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "extern"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "false"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    TypCall
+      Id: "null"
+      Block
+        SquareOpen: "["
+        Id: "Void"
+        SquareClose: "]"
+      /Block
+    /TypCall
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# Field := struct of"
+  VSpace: "\n"
+  Comment: "#     # TODO This needs dynamic typing and sizing for `type` and `default`."
+  VSpace: "\n"
+  Comment: "#     name:Text"
+  VSpace: "\n"
+  Comment: "#     type:Type"
+  VSpace: "\n"
+  Comment: "#     default:(Maybe type)"
+  VSpace: "\n"
+  Comment: "#     offset:Int"
+  VSpace: "\n"
+  Comment: "# end"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "Float"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Call
+      TypCall
+        Id: "extern"
+        Block
+          SquareOpen: "["
+          Id: "Type"
+          SquareClose: "]"
+        /Block
+      /TypCall
+      Block
+        RoundOpen: "("
+        RoundClose: ")"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "Int"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Call
+      TypCall
+        Id: "extern"
+        Block
+          SquareOpen: "["
+          Id: "Type"
+          SquareClose: "]"
+        /Block
+      /TypCall
+      Block
+        RoundOpen: "("
+        RoundClose: ")"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  Comment: "# Int := class of"
+  VSpace: "\n"
+  Comment: "#     add := for other:Int :Int be extern"
+  VSpace: "\n"
+  Comment: "#     eq := for other:Int :Claim be extern"
+  VSpace: "\n"
+  Comment: "#     ge := for other:Int :Claim be extern"
+  VSpace: "\n"
+  Comment: "#     gt := for other:Int :Claim be extern"
+  VSpace: "\n"
+  Comment: "#     le := for other:Int :Claim be extern"
+  VSpace: "\n"
+  Comment: "#     lt := for other:Int :Claim be extern"
+  VSpace: "\n"
+  Comment: "#     ne := for other:Int :Claim be extern"
+  VSpace: "\n"
+  Comment: "#     sub := for other:Int :Int be extern"
+  VSpace: "\n"
+  Comment: "# end"
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# Interface := struct of"
+  VSpace: "\n"
+  Comment: "#     name:Text"
+  VSpace: "\n"
+  Comment: "#     # TODO constructor separate?"
+  VSpace: "\n"
+  Comment: "#     # methods:(List Function)"
+  VSpace: "\n"
+  Comment: "# end"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "List"
+      Block
+        SquareOpen: "["
+        Id: "Item"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Call
+      TypCall
+        Id: "extern"
+        Block
+          SquareOpen: "["
+          Id: "Type"
+          SquareClose: "]"
+        /Block
+      /TypCall
+      Block
+        RoundOpen: "("
+        RoundClose: ")"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "log"
+      Block
+        SquareOpen: "["
+        Id: "Value"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        RoundOpen: "("
+        Typed
+          Id: "value"
+          HSpace: " "
+          Id: "Value"
+        /Typed
+        RoundClose: ")"
+      /Params
+      Typed
+        HSpace: " "
+        Id: "Void"
+        HSpace: " "
+      /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "extern"
+      /Block
+    /Fun
+  /Def
+  VSpace: "\n"
+  Comment: "# # TODO Also think and cry for log levels?"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "Maybe"
+      Block
+        SquareOpen: "["
+        Id: "Value"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    TypCall
+      Id: "Either"
+      Block
+        SquareOpen: "["
+        Id: "Value"
+        Comma: ","
+        HSpace: " "
+        Id: "Void"
+        SquareClose: "]"
+      /Block
+    /TypCall
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# Keeping YesValue purposely makes this hard to use in isolation."
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "No"
+      Block
+        SquareOpen: "["
+        Id: "YesValue"
+        Comma: ","
+        HSpace: " "
+        Id: "NoValue"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Id: "struct"
+    HSpace: " "
+  /Def
+  Block
+    Of: "of"
+    HSpace: " "
+    Id: "value"
+    HSpace: " "
+  /Block
+  Id: "NoValue"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "no"
+      Block
+        SquareOpen: "["
+        Id: "YesValue"
+        Comma: ","
+        HSpace: " "
+        Id: "NoValue"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        RoundOpen: "("
+        Typed
+          Id: "value"
+          HSpace: " "
+          Id: "NoValue"
+        /Typed
+        RoundClose: ")"
+      /Params
+      Typed
+        HSpace: " "
+        TypCall
+          Id: "No"
+          Block
+            SquareOpen: "["
+            Id: "YesValue"
+            Comma: ","
+            HSpace: " "
+            Id: "_"
+            SquareClose: "]"
+          /Block
+        /TypCall
+        HSpace: " "
+      /Typed
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "No"
+        HSpace: " "
+      /Block
+    /Fun
+  /Def
+  Block
+    CurlyOpen: "{"
+    HSpace: " "
+    Id: "value"
+    HSpace: " "
+    CurlyClose: "}"
+  /Block
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "null"
+      Block
+        SquareOpen: "["
+        Id: "Value"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Call
+      TypCall
+        Id: "no"
+        Block
+          SquareOpen: "["
+          Id: "Value"
+          Comma: ","
+          HSpace: " "
+          Id: "_"
+          SquareClose: "]"
+        /Block
+      /TypCall
+      Block
+        RoundOpen: "("
+        Id: "void"
+        RoundClose: ")"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# Pair := for Key:Type Value:Type be struct of"
+  VSpace: "\n"
+  Comment: "#     key:Key"
+  VSpace: "\n"
+  Comment: "#     value:Value"
+  VSpace: "\n"
+  Comment: "# end"
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# pair := for Key:Type Value:Type be for key:Key value:Value be Pair {key, value}"
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# Predicate := for Subject:Type be"
+  VSpace: "\n"
+  Comment: "#     interface for subject:Subject :Claim be abstract"
+  VSpace: "\n"
+  Comment: "# end"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "Ref"
+      Block
+        SquareOpen: "["
+        Id: "Value"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Call
+      Id: "class"
+      Block
+        RoundOpen: "("
+        Id: "val"
+        HSpace: " "
+        Id: "Value"
+        RoundClose: ")"
+      /Block
+    /Call
+    HSpace: " "
+  /Def
+  Block
+    Of: "of"
+    VSpace: "\n"
+    HSpace: "    "
+    Def
+      Id: "value"
+      HSpace: " "
+      DefinePub: ":="
+      HSpace: " "
+      Id: "val"
+    /Def
+    VSpace: "\n"
+    End: "end"
+  /Block
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# Struct := struct with"
+  VSpace: "\n"
+  Comment: "#     name:Text"
+  VSpace: "\n"
+  Comment: "#     fields:(List Field)"
+  VSpace: "\n"
+  Comment: "# end"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "true"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Call
+      Id: "yes"
+      Block
+        RoundOpen: "("
+        Id: "void"
+        RoundClose: ")"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "Text"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Call
+      TypCall
+        Id: "extern"
+        Block
+          SquareOpen: "["
+          Id: "Type"
+          SquareClose: "]"
+        /Block
+      /TypCall
+      Block
+        RoundOpen: "("
+        RoundClose: ")"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "Try"
+      Block
+        SquareOpen: "["
+        Id: "Value"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    TypCall
+      Id: "Either"
+      Block
+        SquareOpen: "["
+        Id: "Value"
+        Comma: ","
+        HSpace: " "
+        Id: "Error"
+        SquareClose: "]"
+      /Block
+    /TypCall
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "Type"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Call
+      TypCall
+        Id: "extern"
+        Block
+          SquareOpen: "["
+          Id: "Type"
+          SquareClose: "]"
+        /Block
+      /TypCall
+      Block
+        RoundOpen: "("
+        RoundClose: ")"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  Comment: "# Type := union ... ???"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "Void"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Call
+      TypCall
+        Id: "extern"
+        Block
+          SquareOpen: "["
+          Id: "Type"
+          SquareClose: "]"
+        /Block
+      /TypCall
+      Block
+        RoundOpen: "("
+        RoundClose: ")"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    Id: "void"
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Call
+      TypCall
+        Id: "extern"
+        Block
+          SquareOpen: "["
+          Id: "Void"
+          SquareClose: "]"
+        /Block
+      /TypCall
+      Block
+        RoundOpen: "("
+        RoundClose: ")"
+      /Block
+    /Call
+  /Def
+  VSpace: "\n"
+  VSpace: "\n"
+  Comment: "# Yes can be used in isolation as a box."
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "Yes"
+      Block
+        SquareOpen: "["
+        Id: "Value"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Id: "struct"
+    HSpace: " "
+  /Def
+  Block
+    Of: "of"
+    HSpace: " "
+    Id: "value"
+    HSpace: " "
+  /Block
+  Id: "Value"
+  VSpace: "\n"
+  VSpace: "\n"
+  Def
+    TypCall
+      Id: "yes"
+      Block
+        SquareOpen: "["
+        Id: "Value"
+        SquareClose: "]"
+      /Block
+    /TypCall
+    HSpace: " "
+    DefinePub: ":="
+    HSpace: " "
+    Fun
+      Fun: "for"
+      Params
+        RoundOpen: "("
+        Typed
+          Id: "value"
+          HSpace: " "
+          Id: "Value"
+        /Typed
+        RoundClose: ")"
+      /Params
+      HSpace: " "
+      Block
+        Be: "be"
+        HSpace: " "
+        Id: "Yes"
+        HSpace: " "
+      /Block
+    /Fun
+  /Def
+  Block
+    CurlyOpen: "{"
+    HSpace: " "
+    Id: "value"
+    HSpace: " "
+    CurlyClose: "}"
+  /Block
+  VSpace: "\n"
+/Block
+
+Bytes: 2284

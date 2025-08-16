@@ -79,8 +79,18 @@ fn main() -> Result<()> {
 }
 
 fn build(args: BuildArgs) -> Result<()> {
-    let mut cart = Cart::new(args);
-    cart.build()
+    let mut cart = Cart::new(args.clone());
+    if let Err(err) = cart.build("core", Some(CORE_TEXT)) {
+        println!("Failed building: core");
+        return Err(err);
+    }
+    // cart.extract_core_defs();
+    // TODO And imports and things.
+    if let Err(err) = cart.build(&args.path, None) {
+        println!("Failed building: {}", &args.path);
+        return Err(err);
+    }
+    Ok(())
 }
 
 pub type DefNum = usize;
@@ -120,8 +130,8 @@ impl Cart {
         }
     }
 
-    fn build(&mut self) -> Result<()> {
-        let name = Path::new(&self.args.path)
+    fn build(&mut self, path: &str, text: Option<&str>) -> Result<()> {
+        let name = Path::new(path)
             .file_stem()
             .ok_or(Error::msg("no name"))?
             .to_str()
@@ -131,7 +141,15 @@ impl Cart {
         self.outdir = self.make_outdir()?;
         // Always keep an empty string at zero.
         self.interner.borrow_mut().intern("");
-        File::open(&self.args.path)?.read_to_string(&mut self.text)?;
+        match text {
+            Some(text) => {
+                self.text.clear();
+                self.text.push_str(text);
+            }
+            None => {
+                File::open(&self.args.path)?.read_to_string(&mut self.text)?;
+            }
+        }
         // dbg!(cart.text.len());
         Lexer::new(self).lex();
         // dbg!(cart.bytes.len());
@@ -253,3 +271,5 @@ impl CoreInterns {
         Some(intern)
     }
 }
+
+const CORE_TEXT: &str = include_str!("core.rio");

@@ -6,7 +6,7 @@ use crate::Cart;
 
 pub mod extract;
 pub mod resolve;
-// pub mod typ;
+pub mod typ;
 
 pub struct Refiner<'a> {
     pub cart: &'a mut Cart,

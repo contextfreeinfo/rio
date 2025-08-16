@@ -1,0 +1,207 @@
+Block
+  Def
+    target = Id: "Claim"
+    public = true
+  /Def
+  Def
+    target = Id: "Either"
+    public = true
+    value = Id: "union"
+  /Def
+  Def
+    target = Id: "Error"
+    public = true
+    value = Id: "struct"
+  /Def
+  Id: "Text"
+  Def
+    target = Id: "error"
+    public = true
+    value = Fun
+      params = Range
+        Def
+          target = Id: "message"
+          type = Id: "Text"
+        /Def
+      /Range
+      body = Block
+        Id: "Error"
+    /Fun
+  /Def
+  Structured
+    Def
+      target = Id: "message"
+      value = Id: "message"
+    /Def
+  /Structured
+  Def
+    target = Id: "extern"
+    public = true
+    value = Fun
+      params = Range
+        Def
+          target = Id: "scope"
+          type = Id: "Text"
+        /Def
+        Def
+          target = Id: "name"
+          type = Id: "Text"
+        /Def
+      /Range
+      returning = Id: "Result"
+      body = Block
+        Id: "extern"
+    /Fun
+  /Def
+  Def
+    target = Id: "false"
+    public = true
+  /Def
+  Def
+    target = Id: "Float"
+    public = true
+    value = Call
+    /Call
+  /Def
+  Def
+    target = Id: "Int"
+    public = true
+    value = Call
+    /Call
+  /Def
+  Def
+    target = Id: "List"
+    public = true
+    value = Call
+    /Call
+  /Def
+  Def
+    target = Id: "log"
+    public = true
+    value = Fun
+      params = Range
+        Def
+          target = Id: "value"
+          type = Id: "Value"
+        /Def
+      /Range
+      returning = Id: "Void"
+      body = Block
+        Id: "extern"
+    /Fun
+  /Def
+  Def
+    target = Id: "Maybe"
+    public = true
+  /Def
+  Def
+    target = Id: "No"
+    public = true
+    value = Id: "struct"
+  /Def
+  Id: "NoValue"
+  Def
+    target = Id: "no"
+    public = true
+    value = Fun
+      params = Range
+        Def
+          target = Id: "value"
+          type = Id: "NoValue"
+        /Def
+      /Range
+      body = Block
+        Id: "No"
+    /Fun
+  /Def
+  Structured
+    Def
+      target = Id: "value"
+      value = Id: "value"
+    /Def
+  /Structured
+  Def
+    target = Id: "null"
+    public = true
+    value = Call
+      args = Range
+        Id: "void"
+    /Call
+  /Def
+  Def
+    target = Id: "Ref"
+    public = true
+    value = Call
+      fun = Id: "class"
+      args = Range
+        Id: "val"
+        Id: "Value"
+      /Range
+    /Call
+  /Def
+  Def
+    target = Id: "true"
+    public = true
+    value = Call
+      fun = Id: "yes"
+      args = Range
+        Id: "void"
+    /Call
+  /Def
+  Def
+    target = Id: "Text"
+    public = true
+    value = Call
+    /Call
+  /Def
+  Def
+    target = Id: "Try"
+    public = true
+  /Def
+  Def
+    target = Id: "Type"
+    public = true
+    value = Call
+    /Call
+  /Def
+  Def
+    target = Id: "Void"
+    public = true
+    value = Call
+    /Call
+  /Def
+  Def
+    target = Id: "void"
+    public = true
+    value = Call
+    /Call
+  /Def
+  Def
+    target = Id: "Yes"
+    public = true
+    value = Id: "struct"
+  /Def
+  Id: "Value"
+  Def
+    target = Id: "yes"
+    public = true
+    value = Fun
+      params = Range
+        Def
+          target = Id: "value"
+          type = Id: "Value"
+        /Def
+      /Range
+      body = Block
+        Id: "Yes"
+    /Fun
+  /Def
+  Structured
+    Def
+      target = Id: "value"
+      value = Id: "value"
+    /Def
+  /Structured
+/Block
+
+Bytes: 887

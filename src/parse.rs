@@ -428,7 +428,8 @@ fn choose_ender(token_kind: TokenKind) -> TokenKind {
         TokenKind::Be | TokenKind::Of => TokenKind::End,
         TokenKind::CurlyOpen => TokenKind::CurlyClose,
         TokenKind::RoundOpen => TokenKind::RoundClose,
-        _ => panic!(),
+        TokenKind::SquareOpen => TokenKind::SquareClose,
+        _ => panic!("{token_kind:?}"),
     }
 }
 
