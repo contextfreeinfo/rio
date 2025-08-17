@@ -4,6 +4,7 @@ use std::{
     fs::{File, create_dir_all},
     io::{BufWriter, Read, Write},
     path::{Path, PathBuf},
+    rc::Rc,
 };
 
 use anyhow::{Error, Result};
@@ -79,12 +80,16 @@ fn main() -> Result<()> {
 }
 
 fn build(args: BuildArgs) -> Result<()> {
-    let mut cart = Cart::new(args.clone());
+    // Start catalog (TODO and interner?), avoiding zeros.
+    let mut catalog = Catalog::default();
+    catalog.modules.push(Default::default());
+    let catalog = Rc::new(RefCell::new(catalog));
+    let mut cart = Cart::new(args.clone(), catalog);
     if let Err(err) = cart.build("core", Some(CORE_TEXT)) {
         println!("Failed building: core");
         return Err(err);
     }
-    // cart.extract_core_defs();
+    cart.extract_core_defs();
     // TODO And imports and things.
     if let Err(err) = cart.build(&args.path, None) {
         println!("Failed building: {}", &args.path);
@@ -96,9 +101,25 @@ fn build(args: BuildArgs) -> Result<()> {
 pub type DefNum = usize;
 pub type TreeIdx = usize;
 
+#[derive(Default)]
+pub struct Module {
+    pub defs: Vec<TreeIdx>,
+    pub tops: HashMap<Intern, DefNum>,
+    pub tree: Vec<u8>,
+}
+
+#[derive(Default)]
+pub struct Catalog {
+    // TODO cart pool?
+    // TODO module map?
+    pub modules: Vec<Module>,
+}
+
 struct Cart {
     pub args: BuildArgs,
     pub bytes: Vec<u8>,
+    pub catalog: Rc<RefCell<Catalog>>,
+    pub core_defs: CoreDefs,
     pub core_interns: CoreInterns,
     pub defs: Vec<TreeIdx>,
     pub name: String,
@@ -111,13 +132,15 @@ struct Cart {
 }
 
 impl Cart {
-    fn new(args: BuildArgs) -> Self {
+    fn new(args: BuildArgs, catalog: Rc<RefCell<Catalog>>) -> Self {
         let mut interner = Interner::default();
         // Always keep an empty string at zero.
         interner.intern("");
         Self {
             args: args.clone(),
             bytes: Default::default(),
+            catalog,
+            core_defs: Default::default(),
             core_interns: CoreInterns::new(&mut interner),
             defs: Default::default(),
             interner: RefCell::new(interner),
@@ -168,7 +191,27 @@ impl Cart {
         // dbg!(cart.bytes.len());
         self.norm()?;
         self.refine()?;
+        let module = Module {
+            // Expect clone to trim capacity, which it seems to at the moment.
+            defs: self.defs.clone(),
+            tops: self.tops.clone(),
+            tree: self.bytes.clone(),
+        };
+        let mut catalog = self.catalog.borrow_mut();
+        catalog.modules.push(module);
         Ok(())
+    }
+
+    fn extract_core_defs(&mut self) {
+        let catalog = self.catalog.borrow_mut();
+        let core = &catalog.modules[1];
+        // Caching frequently used things in each cart should speed processing.
+        // TODO Cache instead only in catalog if not behind a mutex?
+        self.core_defs = CoreDefs {
+            int: core.tops[&self.core_interns.int],
+            log: core.tops[&self.core_interns.log],
+            text: core.tops[&self.core_interns.text],
+        };
     }
 
     fn make_outdir(&self) -> Result<Option<PathBuf>> {
@@ -224,14 +267,22 @@ pub struct CoreInterns {
     eq: Intern,
     ge: Intern,
     gt: Intern,
-    // int: Intern,
+    int: Intern,
     le: Intern,
     lt: Intern,
-    // log: Intern,
+    log: Intern,
     ne: Intern,
     pair: Intern,
     sub: Intern,
-    // text: Intern,
+    text: Intern,
+}
+
+/// Provide easy access for comparing resolutions to core native definitions.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CoreDefs {
+    pub int: DefNum,
+    pub log: DefNum,
+    pub text: DefNum,
 }
 
 impl CoreInterns {
@@ -239,16 +290,16 @@ impl CoreInterns {
         Self {
             add: interner.intern("add"), // TODO Straight to Uid?
             eq: interner.intern("eq"),
-            // int: interner.intern("Int"),
+            int: interner.intern("Int"),
             ge: interner.intern("ge"),
             gt: interner.intern("gt"),
             le: interner.intern("le"),
-            // log: interner.intern("log"),
+            log: interner.intern("log"),
             lt: interner.intern("lt"),
             ne: interner.intern("ne"),
             pair: interner.intern("pair"), // TODO Straight to Uid?
             sub: interner.intern("sub"),
-            // text: interner.intern("Text"),
+            text: interner.intern("Text"),
         }
     }
 
