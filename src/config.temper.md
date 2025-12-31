@@ -1,11 +1,6 @@
-# Rio
+# Rio Engine
 
-This file is used for library configuration.
+Embeddable engine for processing, running, and translating Rio programs. Called
+rio-engine so separate rio packages can be tied to full cli apps.
 
-The `name` export defines the library name:
-
-    export let name = "rio";
-
-By default, the current directory is imported as a module. It can import
-other module directories. See Temper documentation for additional config
-options.
+    export let name = "rio-engine";
