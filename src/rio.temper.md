@@ -2,14 +2,18 @@
 
 Backends need to provide access to source code. We just receive it here.
 
-    export let process(source: String): Void {
-      lex(source);
+    export class Engine {
+      private lexer: Lexer = new Lexer();
+
+      public process(source: String): Void {
+        lexer.lex(source);
+      }
     }
 
 We can directly test here, though.
 
     test("lex") {
-      let tokens = lex(hi);
+      let tokens = new Lexer().lex(hi);
       assert(tokens.length > 0);
     }
 

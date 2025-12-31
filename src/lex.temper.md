@@ -1,19 +1,30 @@
-## Lexer
+## Lexing
 
-    export let lex(source: String): List<Token> {
-      [
-        new Token(tokenNone, 0),
-      ]
-    }
+### Token
+
+We plan to switch to struct Token in the future for efficiency. And even if we
+support unions in structs, we still might want a separate TokenKind, because we
+want the same layout for each token kind here.
 
     export class Token(
       public kind: TokenKind,
       public text: TextId,
     ) {}
 
-    let TokenKind = Int;
-    let TextId = Int;
+### TextId
 
+We intern strings so we can store them as Int32 values, largely so we can use
+structs in the future instead of classes.
+
+    let TextId = Int32;
+
+
+### TokenKind
+
+It would be nice to have simple enum instead of Int, so long as enums can be
+stored in structs in the future.
+
+    let TokenKind = Int32;
     export let tokenNone: TokenKind = 0;
     export let tokenAdd: TokenKind = tokenNone + 1;
     export let tokenAs: TokenKind = tokenAdd + 1;
@@ -66,9 +77,44 @@
     export let tokenVar: TokenKind = tokenUse + 1;
     export let tokenVartype: TokenKind = tokenVar + 1;
 
+### Lexer
+
+Ideally, we reuse the lexer and just clear out the tokens while retaining
+capacity, to reduce allocations.
+
     class Lexer {
       public var index: StringIndex = String.begin;
       public var source: String = "";
       public var peeked: Int = 0;
-      public var tokens: ListBuilder<Token> = new ListBuilder();
+
+Retaining capacity matters less when using class Token instead of struct, but
+ideally we can improve on this later.
+
+      public tokens: ListBuilder<Token> = new ListBuilder();
+
+#### lex
+
+You can call lex multiple times on the same lexer.
+
+      public lex(source: String): List<Token> {
+
+For reuse, first reset the lexer.
+
+        index = String.begin;
+        this.source = source;
+        peeked = 0;
+        tokens.clear();
+
+Now do lexing.
+
+        doLex();
+        tokens.toList()
+      }
+
+#### doLex
+
+      private doLex(): Void {
+        tokens.add(new Token(tokenNone, 0));
+      }
+
     }
