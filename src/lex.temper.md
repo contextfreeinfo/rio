@@ -82,7 +82,7 @@ stored in structs in the future.
 Ideally, we reuse the lexer and just clear out the tokens while retaining
 capacity, to reduce allocations.
 
-    class Lexer(
+    export class Lexer(
       public interner: Interner = new Interner(),
     ) {
       public var source: String = "";

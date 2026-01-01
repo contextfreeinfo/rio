@@ -4,7 +4,7 @@
 
 An abstraction for providing int ids for unique string values.
 
-    class Interner {
+    export class Interner {
       private interns: MapBuilder<String, Int> = do {
         let interns = new MapBuilder<String, Int>();
 
