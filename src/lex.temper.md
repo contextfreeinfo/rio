@@ -82,10 +82,13 @@ stored in structs in the future.
 Ideally, we reuse the lexer and just clear out the tokens while retaining
 capacity, to reduce allocations.
 
-    class Lexer {
-      public var index: StringIndex = String.begin;
+    class Lexer(
+      public interner: Interner = new Interner(),
+    ) {
       public var source: String = "";
+      public var index: StringIndex = String.begin;
       public var peeked: Int = 0;
+      public var hasPeeked: Boolean = false;
 
 Retaining capacity matters less when using class Token instead of struct, but
 ideally we can improve on this later.
@@ -100,9 +103,10 @@ You can call lex multiple times on the same lexer.
 
 For reuse, first reset the lexer.
 
-        index = String.begin;
         this.source = source;
+        index = String.begin;
         peeked = 0;
+        hasPeeked = false;
         tokens.clear();
 
 Now do lexing.
@@ -115,6 +119,52 @@ Now do lexing.
 
       private doLex(): Void {
         tokens.add(new Token(tokenNone, 0));
+        while (has()) {
+          next();
+        }
       }
 
+#### has
+
+      private has(): Boolean {
+        index < source.end
+      }
+
+#### next
+
+      private next(): Void {
+        hasPeeked = false;
+        if (!has()) {
+          return;
+        }
+        index = source.next(index);
+      }
+
+#### peek
+
+      private peek(): Int {
+        if (hasPeeked) {
+          return peeked;
+        }
+        if (!has()) {
+          return 0;
+        }
+
+This decoding might require calculation from multiple bytes, such as utf8.
+TODO Do we have a way to advance and decode at the same time?
+
+        peeked = source[index];
+        hasPeeked = true;
+        return peeked;
+      }
+
+#### push
+
+      private push(kind: TokenKind, start: StringIndex): Void {
+        if (start < index) {
+          let text = source.slice(start, index);
+          let textId = interner[text];
+          tokens.add(new Token(kind, textId));
+        }
+      }
     }
