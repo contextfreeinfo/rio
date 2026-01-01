@@ -1,4 +1,4 @@
-## Interning
+## Text utilities
 
 ### Interner
 
@@ -33,4 +33,19 @@ backends.
           else -> found
         }
       }
+    }
+
+### Unicode support
+
+Well, we're starting out with just ASCII support. Maybe Temper should get fuller
+Unicode support sometime, because replicating here won't be fun. How consistent
+is different target std lib support for Unicode character sets?
+
+#### isLetter
+
+    let isLetter(c: Int): Boolean {
+      return
+        c >= char"A" && c <= char"Z" ||
+        c >= char"a" && c <= char"z"
+      ;
     }

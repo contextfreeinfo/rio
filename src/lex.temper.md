@@ -120,6 +120,10 @@ Now do lexing.
       private doLex(): Void {
         tokens.add(new Token(tokenNone, 0));
         while (has()) {
+          let c = peek();
+          if (isLetter(c) || c == char"$" || c == char"_") {
+            // id();
+          }
           next();
         }
       }
