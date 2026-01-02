@@ -1,5 +1,5 @@
 fn main() {
-    rio_engine::init(None);
+    let _ = rio_engine::init(None);
     let interner = rio_engine::Interner::new();
     let lexer = rio_engine::Lexer::new(Some(interner.clone()));
     let tokens = lexer.lex(SOURCE);

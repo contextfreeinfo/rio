@@ -17,6 +17,58 @@ want the same layout for each token kind here.
       public stringify(interner: Interner): String {
         "(${kind}: ${interner.string(text)})"
       }
+
+      public static none: TokenKind = 0;
+      public static add: TokenKind = Token.none + 1;
+      public static nym`as`: TokenKind = Token.add + 1;
+      public static nym`break`: TokenKind = Token.as + 1;
+      public static nym`case`: TokenKind = Token.break + 1;
+      public static change: TokenKind = Token.case + 1;
+      public static nym`class`: TokenKind = Token.change + 1;
+      public static comma: TokenKind = Token.class + 1;
+      public static commentOpen: TokenKind = Token.comma + 1;
+      public static commentText: TokenKind = Token.commentOpen + 1;
+      public static nym`const`: TokenKind = Token.commentText + 1;
+      public static nym`continue`: TokenKind = Token.const + 1;
+      public static nym`else`: TokenKind = Token.continue + 1;
+      public static end: TokenKind = Token.else + 1;
+      public static eq: TokenKind = Token.end + 1;
+      public static eqEq: TokenKind = Token.eq + 1;
+      public static nym`enum`: TokenKind = Token.eqEq + 1;
+      public static nym`for`: TokenKind = Token.enum + 1;
+      public static from: TokenKind = Token.for + 1;
+      public static fun: TokenKind = Token.from + 1;
+      public static ge: TokenKind = Token.fun + 1;
+      public static gt: TokenKind = Token.ge + 1;
+      public static hSpace: TokenKind = Token.gt + 1;
+      public static id: TokenKind = Token.hSpace + 1;
+      public static nym`if`: TokenKind = Token.id + 1;
+      public static int: TokenKind = Token.if + 1;
+      public static nym`is`: TokenKind = Token.int + 1;
+      public static nym`import`: TokenKind = Token.is + 1;
+      public static le: TokenKind = Token.import + 1;
+      public static lt: TokenKind = Token.le + 1;
+      public static junk: TokenKind = Token.lt + 1;
+      public static not: TokenKind = Token.junk + 1;
+      public static neq: TokenKind = Token.not + 1;
+      public static plug: TokenKind = Token.neq + 1;
+      public static pub: TokenKind = Token.plug + 1;
+      public static nym`return`: TokenKind = Token.pub + 1;
+      public static roundClose: TokenKind = Token.return + 1;
+      public static roundOpen: TokenKind = Token.roundClose + 1;
+      public static stringEscape: TokenKind = Token.roundOpen + 1;
+      public static stringText: TokenKind = Token.stringEscape + 1;
+      public static stringClose: TokenKind = Token.stringText + 1;
+      public static stringOpen: TokenKind = Token.stringClose + 1;
+      public static struct: TokenKind = Token.stringOpen + 1;
+      public static sub: TokenKind = Token.struct + 1;
+      public static switch: TokenKind = Token.sub + 1;
+      public static then: TokenKind = Token.switch + 1;
+      public static vSpace: TokenKind = Token.then + 1;
+      public static union: TokenKind = Token.vSpace + 1;
+      public static use: TokenKind = Token.union + 1;
+      public static nym`var`: TokenKind = Token.use + 1;
+      public static vartype: TokenKind = Token.var + 1;
     }
 
 ### TextId
@@ -33,57 +85,6 @@ It would be nice to have simple enum instead of Int, so long as enums can be
 stored in structs in the future.
 
     let TokenKind = Int32;
-    export let tokenNone: TokenKind = 0;
-    export let tokenAdd: TokenKind = tokenNone + 1;
-    export let tokenAs: TokenKind = tokenAdd + 1;
-    export let tokenBreak: TokenKind = tokenAs + 1;
-    export let tokenCase: TokenKind = tokenBreak + 1;
-    export let tokenChange: TokenKind = tokenCase + 1;
-    export let tokenClass: TokenKind = tokenChange + 1;
-    export let tokenComma: TokenKind = tokenClass + 1;
-    export let tokenCommentOpen: TokenKind = tokenComma + 1;
-    export let tokenCommentText: TokenKind = tokenCommentOpen + 1;
-    export let tokenConst: TokenKind = tokenCommentText + 1;
-    export let tokenContinue: TokenKind = tokenConst + 1;
-    export let tokenElse: TokenKind = tokenContinue + 1;
-    export let tokenEnd: TokenKind = tokenElse + 1;
-    export let tokenEq: TokenKind = tokenEnd + 1;
-    export let tokenEqEq: TokenKind = tokenEq + 1;
-    export let tokenEnum: TokenKind = tokenEqEq + 1;
-    export let tokenFor: TokenKind = tokenEnum + 1;
-    export let tokenFrom: TokenKind = tokenFor + 1;
-    export let tokenFun: TokenKind = tokenFrom + 1;
-    export let tokenGe: TokenKind = tokenFun + 1;
-    export let tokenGt: TokenKind = tokenGe + 1;
-    export let tokenHSpace: TokenKind = tokenGt + 1;
-    export let tokenId: TokenKind = tokenHSpace + 1;
-    export let tokenIf: TokenKind = tokenId + 1;
-    export let tokenInt: TokenKind = tokenIf + 1;
-    export let tokenIs: TokenKind = tokenInt + 1;
-    export let tokenImport: TokenKind = tokenIs + 1;
-    export let tokenLe: TokenKind = tokenImport + 1;
-    export let tokenLt: TokenKind = tokenLe + 1;
-    export let tokenJunk: TokenKind = tokenLt + 1;
-    export let tokenNot: TokenKind = tokenJunk + 1;
-    export let tokenNeq: TokenKind = tokenNot + 1;
-    export let tokenPlug: TokenKind = tokenNeq + 1;
-    export let tokenPub: TokenKind = tokenPlug + 1;
-    export let tokenReturn: TokenKind = tokenPub + 1;
-    export let tokenRoundClose: TokenKind = tokenReturn + 1;
-    export let tokenRoundOpen: TokenKind = tokenRoundClose + 1;
-    export let tokenStringEscape: TokenKind = tokenRoundOpen + 1;
-    export let tokenStringText: TokenKind = tokenStringEscape + 1;
-    export let tokenStringClose: TokenKind = tokenStringText + 1;
-    export let tokenStringOpen: TokenKind = tokenStringClose + 1;
-    export let tokenStruct: TokenKind = tokenStringOpen + 1;
-    export let tokenSub: TokenKind = tokenStruct + 1;
-    export let tokenSwitch: TokenKind = tokenSub + 1;
-    export let tokenThen: TokenKind = tokenSwitch + 1;
-    export let tokenVSpace: TokenKind = tokenThen + 1;
-    export let tokenUnion: TokenKind = tokenVSpace + 1;
-    export let tokenUse: TokenKind = tokenUnion + 1;
-    export let tokenVar: TokenKind = tokenUse + 1;
-    export let tokenVartype: TokenKind = tokenVar + 1;
 
 ### Lexer
 
@@ -179,10 +180,10 @@ Check here for keywords to avoid making extra slices elsewhere. Maybe this is
 worth it?
 
           let kind = when (kind) {
-            tokenId -> do {
+            Token.id -> do {
               let kind = keys.getOr(text, -1);
               when (kind) {
-                -1 -> tokenId;
+                -1 -> Token.id;
                 else -> kind;
               }
             }
@@ -205,37 +206,37 @@ worth it?
           }
           next();
         }
-        push(tokenId, start);
+        push(Token.id, start);
       }
     }
 
 ### Keywords
 
     let keys = new Map([
-      new Pair("as", tokenAs),
-      new Pair("break", tokenBreak),
-      new Pair("case", tokenCase),
-      new Pair("class", tokenClass),
-      new Pair("change", tokenChange),
-      new Pair("const", tokenConst),
-      new Pair("continue", tokenContinue),
-      new Pair("else", tokenElse),
-      new Pair("end", tokenEnd),
-      new Pair("if", tokenIf),
-      new Pair("is", tokenIs),
-      new Pair("import", tokenImport),
-      new Pair("enum", tokenEnum),
-      new Pair("for", tokenFor),
-      new Pair("from", tokenFrom),
-      new Pair("fun", tokenFun),
-      new Pair("plug", tokenPlug),
-      new Pair("pub", tokenPub),
-      new Pair("return", tokenReturn),
-      new Pair("struct", tokenStruct),
-      new Pair("switch", tokenSwitch),
-      new Pair("then", tokenThen),
-      new Pair("union", tokenUnion),
-      new Pair("use", tokenUse),
-      new Pair("var", tokenVar),
-      new Pair("vartype", tokenVartype),
+      new Pair("as", Token.as),
+      new Pair("break", Token.break),
+      new Pair("case", Token.case),
+      new Pair("class", Token.class),
+      new Pair("change", Token.change),
+      new Pair("const", Token.const),
+      new Pair("continue", Token.continue),
+      new Pair("else", Token.else),
+      new Pair("end", Token.end),
+      new Pair("if", Token.if),
+      new Pair("is", Token.is),
+      new Pair("import", Token.import),
+      new Pair("enum", Token.enum),
+      new Pair("for", Token.for),
+      new Pair("from", Token.from),
+      new Pair("fun", Token.fun),
+      new Pair("plug", Token.plug),
+      new Pair("pub", Token.pub),
+      new Pair("return", Token.return),
+      new Pair("struct", Token.struct),
+      new Pair("switch", Token.switch),
+      new Pair("then", Token.then),
+      new Pair("union", Token.union),
+      new Pair("use", Token.use),
+      new Pair("var", Token.var),
+      new Pair("vartype", Token.vartype),
     ]);
