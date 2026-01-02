@@ -181,23 +181,6 @@ Now do lexing.
         tokens.toList()
       }
 
-#### doLex
-
-      private doLex(): Void {
-        while (has()) {
-          let c = peek();
-          if (isLetter(c) || c == char"$" || c == char"_") {
-            id();
-          } else if (isDigit(c)) {
-            number();
-          } else if (c == char" " || c == char"\t") {
-            hspace();
-          } else {
-            next();
-          }
-        }
-      }
-
 #### has
 
       private has(): Boolean {
@@ -256,6 +239,92 @@ worth it?
         }
       }
 
+#### doLex
+
+      private doLex(): Void {
+        token: while (has()) {
+          let c = peek();
+          if (isLetter(c) || c == char"$" || c == char"_") {
+            id();
+          } else if (isDigit(c)) {
+            number();
+          } else if (c == char" " || c == char"\t") {
+            hspace();
+          } else {
+            let start = index;
+            next();
+            let kind = when (c) {
+              char"#" -> do {
+                push(Token.commentOpen, start);
+                comment();
+                continue token;
+              }
+              char'"' -> do {
+                push(Token.stringOpen, start);
+                string();
+                continue token;
+              }
+              char"=" -> when (peek()) {
+                char"=" -> do {
+                  next();
+                  Token.eqEq
+                }
+                else -> Token.eq
+              }
+              char"+" -> do {
+                // TODO Compound operators.
+                Token.add
+              }
+              char"-" -> do {
+                // TODO Compound operators.
+                // TODO Incorporated negation on numbers.
+                Token.sub
+              }
+              char"<" -> when (peek()) {
+                char"=" -> do {
+                  next();
+                  Token.le
+                }
+                else -> Token.lt
+              }
+              char">" -> when (peek()) {
+                char"=" -> do {
+                  next();
+                  Token.ge
+                }
+                else -> Token.gt
+              }
+              char"," -> Token.comma;
+              char"(" -> Token.roundOpen;
+              char")" -> Token.roundClose;
+              char"\r" -> do {
+                if (peek() == char"\n") {
+                  next();
+                }
+                Token.vSpace
+              }
+              char"\n" -> Token.vSpace;
+              else -> Token.junk;
+            };
+            push(kind, start);
+          }
+        }
+      }
+
+#### comment
+
+      private comment(): Void {
+        let start = index;
+        comment: while (has()) {
+          let c = peek();
+          if (c == char"\n") {
+            break comment;
+          }
+          next();
+        }
+        push(Token.commentText, start);
+      }
+
 #### hspace
 
       private hspace(): Void {
@@ -302,6 +371,69 @@ worth it?
         // TODO Check if it's a float literal at this point.
         push(Token.int, start);
       }
+
+#### string
+
+Here we loop a mini state machine of sorts, pushing tokens as we go. Each escape
+or the text between them is a different token.
+
+      private string(): Void {
+        var start = index;
+        var kind = Token.stringText;
+        string: while (has()) {
+          let c = peek();
+
+And here's our current state variety for escapes. If no next, we just get a
+dangling escape.
+
+TODO For interpolation, call back into doLex?
+
+          if (kind == Token.stringEscape) {
+            if (!(c == char"\r" || c == char"\n")) {
+              next();
+            }
+            push(kind, start);
+            kind = Token.stringText;
+            start = index;
+            continue string;
+          }
+
+The main case is continuing string text here.
+
+          when (c) {
+
+Explicit string termination.
+
+            char'"' -> do {
+              push(kind, start);
+              start = index;
+              next();
+              kind = Token.stringClose;
+              break string;
+            }
+
+Start escape.
+
+            char "\\" -> do {
+              push(kind, start);
+              kind = Token.stringEscape;
+              start = index;
+            }
+
+Multiline strings are handled at the parsing level, not in the lexer.
+
+            char"\r", char"\n" -> break string;
+          }
+          next();
+        }
+
+Most commonly stringClose, but could be a dangling end.
+
+        push(kind, start);
+      }
+
+#### Lexer class end
+
     }
 
 ### Keywords

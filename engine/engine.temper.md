@@ -14,10 +14,14 @@ We can directly test here, though.
 
     test("lex") {
       let tokens = new Lexer().lex(hi);
-      assert(tokens.length == 57);
+      assert(tokens.length == 73);
     }
 
-    let hi = """
+For now, export test data for easier testing in backends.
+
+TODO Stop exporting test data. Maybe make a separate test data library?
+
+    export let hi = """
       "pub fun main(sys)
       "   # Prove we can call twice.
       "   greet()
@@ -28,6 +32,9 @@ We can directly test here, though.
       "   # Had some parsing bugs, so try string variety.
       "   log("I say, \"Hi!\"")
       "   log("Now bye.")
-      "   log("")
+      "   log("
+      "     # Also try danglers just above and below.
+      "     "\\
+      "   )
       "end
     ;
