@@ -11,11 +11,11 @@ want the same layout for each token kind here.
       public text: TextId,
     ) {
       public toString(): String {
-        "(${kind}: ${text})"
+        "(${Token.names[kind]}: ${text})"
       }
 
       public stringify(interner: Interner): String {
-        "(${kind}: ${interner.string(text)})"
+        "(${Token.names[kind]}: ${interner.string(text)})"
       }
 
       public static none: TokenKind = 0;
@@ -69,6 +69,63 @@ want the same layout for each token kind here.
       public static use: TokenKind = Token.union + 1;
       public static nym`var`: TokenKind = Token.use + 1;
       public static vartype: TokenKind = Token.var + 1;
+
+We currently rely on maintaining the same order below as above. Standardizing
+enums in Temper would be nice.
+
+      public static names = [
+        "none",
+        "add",
+        "as",
+        "break",
+        "case",
+        "change",
+        "class",
+        "comma",
+        "commentOpen",
+        "commentText",
+        "const",
+        "continue",
+        "else",
+        "end",
+        "eq",
+        "eqEq",
+        "enum",
+        "for",
+        "from",
+        "fun",
+        "ge",
+        "gt",
+        "hSpace",
+        "id",
+        "if",
+        "int",
+        "is",
+        "import",
+        "le",
+        "lt",
+        "junk",
+        "not",
+        "neq",
+        "plug",
+        "pub",
+        "return",
+        "roundClose",
+        "roundOpen",
+        "stringEscape",
+        "stringText",
+        "stringClose",
+        "stringOpen",
+        "struct",
+        "sub",
+        "switch",
+        "then",
+        "vSpace",
+        "union",
+        "use",
+        "var",
+        "vartype",
+      ];
     }
 
 ### TextId
