@@ -3,9 +3,9 @@ fn main() {
     let interner = rio_engine::Interner::new();
     let lexer = rio_engine::Lexer::new(Some(interner.clone()));
     let tokens = lexer.lex(SOURCE);
-    println!("Tokens: {}", tokens.len());
+    println!("Tokens:");
     for token in tokens.iter() {
-        println!("Tokens: {}", token.stringify(interner.clone()));
+        println!("{}", token.stringify(interner.clone()));
     }
 }
 

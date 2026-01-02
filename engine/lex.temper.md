@@ -15,7 +15,7 @@ want the same layout for each token kind here.
       }
 
       public stringify(interner: Interner): String {
-        "(${Token.names[kind]}: ${interner.string(text)})"
+        "(${Token.names[kind]}: \"${interner.string(text)}\")"
       }
 
       public static none: TokenKind = 0;
@@ -188,8 +188,13 @@ Now do lexing.
           let c = peek();
           if (isLetter(c) || c == char"$" || c == char"_") {
             id();
+          } else if (isDigit(c)) {
+            number();
+          } else if (c == char" " || c == char"\t") {
+            hspace();
+          } else {
+            next();
           }
-          next();
         }
       }
 
@@ -251,6 +256,21 @@ worth it?
         }
       }
 
+#### hspace
+
+      private hspace(): Void {
+        let start = index;
+        next();
+        hspace: while (has()) {
+          let c = peek();
+          if (!(c == char" " || c == char"\t")) {
+            break hspace;
+          }
+          next();
+        }
+        push(Token.hSpace, start);
+      }
+
 #### id
 
       private id(): Void {
@@ -264,6 +284,23 @@ worth it?
           next();
         }
         push(Token.id, start);
+      }
+
+#### number
+
+      private number(): Void {
+        let start = index;
+        // TODO Include negative in int literal?
+        next();
+        int: while (has()) {
+          let c = peek();
+          if (!isDigit(c)) {
+            break int;
+          }
+          next();
+        }
+        // TODO Check if it's a float literal at this point.
+        push(Token.int, start);
       }
     }
 
