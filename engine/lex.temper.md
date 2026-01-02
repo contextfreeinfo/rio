@@ -18,6 +18,11 @@ want the same layout for each token kind here.
         "(${Token.names[kind]}: \"${interner.string(text)}\")"
       }
 
+#### TokenKind values
+
+Store these inside `Token` for now for convenience, until we have enums in
+Temper.
+
       public static none: TokenKind = 0;
       public static add: TokenKind = Token.none + 1;
       public static nym`as`: TokenKind = Token.add + 1;
@@ -70,8 +75,10 @@ want the same layout for each token kind here.
       public static nym`var`: TokenKind = Token.use + 1;
       public static vartype: TokenKind = Token.var + 1;
 
-We currently rely on maintaining the same order below as above. Standardizing
-enums in Temper would be nice.
+#### TokenKind names
+
+We currently rely on maintaining the same order below as above. Ideally, Temper
+enums provide these automatically.
 
       public static names = [
         "none",
