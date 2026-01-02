@@ -258,6 +258,10 @@ worth it?
           } else if (c == char" " || c == char"\t") {
             hspace();
           } else {
+
+Above deals in char ranges. Below branches on the individual char and always
+immediate consumes the first char before taking next steps.
+
             let start = index;
             next();
             let kind = when (c) {
