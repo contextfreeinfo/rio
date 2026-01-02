@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rio-engine = { path = "../temper.out/rust/rio-engine" }
+rio-engine = { path = "../engine/temper.out/rust/rio-engine" }
 
 [profile.release]
 # Got smaller with s than z in a quick check.
