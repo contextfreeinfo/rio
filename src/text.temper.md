@@ -5,47 +5,72 @@
 An abstraction for providing int ids for unique string values.
 
     export class Interner {
-      private interns: MapBuilder<String, Int> = do {
-        let interns = new MapBuilder<String, Int>();
+
+We need two-way mapping if we want strings back out.
+
+      private strings: MapBuilder<Int, String> = new MapBuilder();
+      private ids: MapBuilder<String, Int> = do {
+        let ids = new MapBuilder<String, Int>();
 
 Always initialize empty string to intern id 0.
 
-        interns[""] = 0;
-        interns
+        ids[""] = 0;
+        strings[0] = "";
+        ids
       };
 
       public get(string: String): Int {
 
-We always keep empty string at intern 0, so we could specialize around that, but
+We always keep empty string at id 0, so we could specialize around that, but
 we don't expect to check on it often, so don't bother. Using a negative default
 ensures that "" as 0 also gets handled here.
 
 Also, use `getOr` presuming that it's faster than handling bubbles on most
 backends.
 
-        let found = interns.getOr(string, -1);
+        let found = ids.getOr(string, -1);
         when (found) {
           -1 -> do {
-            let intern = interns.length;
-            interns[string] = intern;
-            intern
+            let id = ids.length;
+            ids[string] = id;
+            strings[id] = string;
+            id
           }
           else -> found
         }
       }
+
+      public string(id: Int): String? {
+        when (id) {
+          0 -> "";
+          else -> do {
+            let s = strings.getOr(id, "");
+            when (s) {
+              "" -> null;
+              else -> s;
+            }
+          }
+        }
+      }
     }
 
-### Unicode support
+### Character classes
 
-Well, we're starting out with just ASCII support. Maybe Temper should get fuller
+We're starting out with just ASCII support. Maybe Temper should get fuller
 Unicode support sometime, because replicating here won't be fun. How consistent
 is different target std lib support for Unicode character sets?
 
+#### isDigit
+
+    let isDigit(c: Int): Boolean {
+      c >= char"0" && c <= char"9"
+    }
+
 #### isLetter
 
+This one especially might should be Unicode.
+
     let isLetter(c: Int): Boolean {
-      return
-        c >= char"A" && c <= char"Z" ||
-        c >= char"a" && c <= char"z"
-      ;
+      c >= char"A" && c <= char"Z" ||
+      c >= char"a" && c <= char"z"
     }

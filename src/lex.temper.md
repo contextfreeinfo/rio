@@ -9,7 +9,15 @@ want the same layout for each token kind here.
     export class Token(
       public kind: TokenKind,
       public text: TextId,
-    ) {}
+    ) {
+      public toString(): String {
+        "(${kind}: ${text})"
+      }
+
+      public stringify(interner: Interner): String {
+        "(${kind}: ${interner.string(text)})"
+      }
+    }
 
 ### TextId
 
@@ -118,11 +126,10 @@ Now do lexing.
 #### doLex
 
       private doLex(): Void {
-        tokens.add(new Token(tokenNone, 0));
         while (has()) {
           let c = peek();
           if (isLetter(c) || c == char"$" || c == char"_") {
-            // id();
+            id();
           }
           next();
         }
@@ -167,8 +174,68 @@ TODO Do we have a way to advance and decode at the same time?
       private push(kind: TokenKind, start: StringIndex): Void {
         if (start < index) {
           let text = source.slice(start, index);
+
+Check here for keywords to avoid making extra slices elsewhere. Maybe this is
+worth it?
+
+          let kind = when (kind) {
+            tokenId -> do {
+              let kind = keys.getOr(text, -1);
+              when (kind) {
+                -1 -> tokenId;
+                else -> kind;
+              }
+            }
+            else -> kind
+          };
           let textId = interner[text];
           tokens.add(new Token(kind, textId));
         }
       }
+
+#### id
+
+      private id(): Void {
+        let start = index;
+        next();
+        id: while (has()) {
+          let c = peek();
+          if (!(isDigit(c) || isLetter(c) || c == char"_")) {
+            break id;
+          }
+          next();
+        }
+        push(tokenId, start);
+      }
     }
+
+### Keywords
+
+    let keys = new Map([
+      new Pair("as", tokenAs),
+      new Pair("break", tokenBreak),
+      new Pair("case", tokenCase),
+      new Pair("class", tokenClass),
+      new Pair("change", tokenChange),
+      new Pair("const", tokenConst),
+      new Pair("continue", tokenContinue),
+      new Pair("else", tokenElse),
+      new Pair("end", tokenEnd),
+      new Pair("if", tokenIf),
+      new Pair("is", tokenIs),
+      new Pair("import", tokenImport),
+      new Pair("enum", tokenEnum),
+      new Pair("for", tokenFor),
+      new Pair("from", tokenFrom),
+      new Pair("fun", tokenFun),
+      new Pair("plug", tokenPlug),
+      new Pair("pub", tokenPub),
+      new Pair("return", tokenReturn),
+      new Pair("struct", tokenStruct),
+      new Pair("switch", tokenSwitch),
+      new Pair("then", tokenThen),
+      new Pair("union", tokenUnion),
+      new Pair("use", tokenUse),
+      new Pair("var", tokenVar),
+      new Pair("vartype", tokenVartype),
+    ]);

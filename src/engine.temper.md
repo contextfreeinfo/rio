@@ -14,7 +14,7 @@ We can directly test here, though.
 
     test("lex") {
       let tokens = new Lexer().lex(hi);
-      assert(tokens.length > 0);
+      assert(tokens.length == 31);
     }
 
     let hi = """
