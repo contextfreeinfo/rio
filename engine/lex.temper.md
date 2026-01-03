@@ -448,7 +448,7 @@ Most commonly stringClose, but could be a dangling end.
         push(kind, start);
       }
 
-#### Lexer class end
+#### Lexer end
 
     }
 

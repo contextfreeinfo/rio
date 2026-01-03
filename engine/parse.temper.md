@@ -65,6 +65,11 @@ We currently can't represent the Item kind because of
       private nodes: ListBuilder<ParseNode> = new ListBuilder();
       private work: ListBuilder<ParseNode> = new ListBuilder();
 
+#### parse
+
+Returns a list of parse nodes, where the last node is the root of the tree and
+index 0 is always bogus.
+
       public parse(tokens: List<Token>): List<ParseNode> {
 
 Reset for reuse.
@@ -80,6 +85,108 @@ Always add a bogus node at the start so index 0 always means bad.
 
 Now parse.
 
+        doParse();
         nodes.toList()
       }
+
+#### commit
+
+Moves a working range into actual tree nodes. This strategy allows buffer reuse
+rather than allocating lots of individual lists for nodes.
+
+      private commit(kind: ParseKind, start: Int): Void {
+        let oldLength = nodes.length;
+
+TODO Does slice allocation here slow things down? Would looping be slower?
+
+        nodes.addAll(work.slice(start, work.length));
+        let parent = new ParseParent(kind, new Range(oldLength, nodes.length));
+        work.add(parent)
+      }
+
+#### has
+
+Here we don't just check if empty, but we also eat comments and horizontal
+space, which don't affect parsing.
+
+      private has(): Boolean {
+        has: while (index < tokens.length) {
+          let token = tokens[index];
+          when (token.kind) {
+
+We do nest comment text under the comment open, though.
+
+            Token.commentOpen -> do {
+              let start = work.length;
+              pushToken(token);
+              let next = tokens[index];
+              if (next.kind == Token.commentText) {
+                pushToken(next);
+                commit(Parse.comment, start);
+              }
+              continue has;
+            }
+
+Horizontal space is just pushed as filler.
+
+            Token.hSpace -> pushToken(token);
+
+Found a significant token, so done.
+
+            else -> return true;
+          }
+        }
+
+Ran out of tokens.
+
+        false
+      }
+
+#### peek
+
+Panics if !has, so check that first.
+
+      private peek(): Token {
+        tokens[index]
+      }
+
+#### pushToken
+
+      private pushToken(token: Token): Void {
+        work.add(token);
+        index += 1;
+      }
+
+#### doParse
+
+This handles the top block, which has slightly different rules than nested
+blocks because it doesn't end until tokens run out.
+
+      private doParse(): Void {
+        let start = work.length;
+        while (has()) {
+
+TODO Remove this eating when we implement.
+
+          pushToken(peek())
+        }
+      }
+
+```go
+func (p *parser) parseBlockTop() {
+	start := len(p.work)
+	for p.has() {
+		switch t := p.peek(); t.Kind {
+		case TokenVSpace:
+			p.pushToken(t)
+		default:
+			p.parseStatement()
+		}
+	}
+	p.commit(ParseBlock, start)
+}
+```
+
+#### Parser end
+
     }
