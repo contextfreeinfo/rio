@@ -2,18 +2,26 @@
 
 ### ParseNode
 
+    // union
+    export sealed interface ParseNode {
+      public get parseKind(): ParseKind;
+    }
+
     // struct
-    export class ParseNode(
+    export class ParseParent(
       public kind: ParseKind,
       public kids: Range/*<ParseNode>*/,
-      public token: Token,
-    ) {}
+    ) extends ParseNode {
+      public get parseKind(): ParseKind {
+        kind
+      }
+    }
 
 ### ParseKind
 
     export let ParseKind = Int32;
 
-type Parse just exists for hosting parse kind values.
+Type Parse just exists for hosting parse kind values.
 
     export class Parse {
       public static none: ParseKind = 0;
@@ -40,8 +48,38 @@ type Parse just exists for hosting parse kind values.
 
 ### Range
 
+We currently can't represent the Item kind because of
+[a bug in Rust codegen](https://github.com/temperlang/temper/issues/271).
+
     // struct
     export class Range/*<Item>*/(
       public start: Int,
       public end: Int,
     ) {}
+
+### Parser
+
+    export class Parser {
+      private var tokens: List<Token> = [];
+      private var index: Int = 0;
+      private nodes: ListBuilder<ParseNode> = new ListBuilder();
+      private work: ListBuilder<ParseNode> = new ListBuilder();
+
+      public parse(tokens: List<Token>): List<ParseNode> {
+
+Reset for reuse.
+
+        this.tokens = tokens;
+        index = 0;
+        work.clear();
+        nodes.clear();
+
+Always add a bogus node at the start so index 0 always means bad.
+
+        nodes.add(new ParseParent(Parse.none, new Range(0, 0)));
+
+Now parse.
+
+        nodes.toList()
+      }
+    }

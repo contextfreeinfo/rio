@@ -10,7 +10,11 @@ want the same layout for each token kind here.
     export class Token(
       public kind: TokenKind,
       public text: TextId,
-    ) {
+    ) extends ParseNode {
+      public get parseKind(): ParseKind {
+        Parse.token
+      }
+
       public toString(): String {
         "(${Token.names[kind]}: ${text})"
       }

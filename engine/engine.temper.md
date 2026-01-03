@@ -12,9 +12,11 @@ Backends need to provide access to source code. We just receive it here.
 
 We can directly test here, though.
 
-    test("lex") {
+    test("steps") {
       let tokens = new Lexer().lex(hi);
       assert(tokens.length == 73);
+      let parseNodes = new Parser().parse(tokens);
+      assert(parseNodes.length == 1);
     }
 
 For now, export test data for easier testing in backends.
