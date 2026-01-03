@@ -21,7 +21,7 @@ For now, export test data for easier testing in backends.
 
 TODO Stop exporting test data. Maybe make a separate test data library?
 
-    export let hi = """
+    export let hi = raw"""
       "pub fun main(sys)
       "   # Prove we can call twice.
       "   greet()
@@ -34,7 +34,7 @@ TODO Stop exporting test data. Maybe make a separate test data library?
       "   log("Now bye.")
       "   log("
       "     # Also try danglers just above and below.
-      "     "\\
+      "     "\
       "   )
       "end
     ;

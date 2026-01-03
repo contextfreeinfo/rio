@@ -6,6 +6,7 @@ We plan to switch to struct Token in the future for efficiency. And even if we
 support unions in structs, we still might want a separate TokenKind, because we
 want the same layout for each token kind here.
 
+    // struct
     export class Token(
       public kind: TokenKind,
       public text: TextId,
