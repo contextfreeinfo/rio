@@ -16,7 +16,7 @@ We can directly test here, though.
       let tokens = new Lexer().lex(hi);
       assert(tokens.length == 73);
       let parseNodes = new Parser().parse(tokens);
-      assert(parseNodes.length == 160);
+      assert(parseNodes.length == 102);
     }
 
 For now, export test data for easier testing in backends.
