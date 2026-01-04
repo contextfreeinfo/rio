@@ -4,8 +4,68 @@
 
     // union
     export sealed interface ParseNode {
+
+#### parseKind
+
+For the moment, at least, we use Token instances directly as ParseNode instances
+to avoid extra allocations. So name this `parseKind` to keep it different from
+the token `kind`.
+
+In the future, presumably ParseNode is a union of Token and ParseParent.
+
       public get parseKind(): ParseKind;
+
+#### stringifyTree
+
+      public static stringifyTree(
+        nodes: List<ParseNode>,
+        interner: Interner,
+      ): String {
+        let builder = new StringBuilder();
+        let root = nodes[nodes.length - 1];
+        stringifyParseTreeWith(builder, 0, root, nodes, interner);
+        builder.toString()
+      }
     }
+
+#### stringifyParseTreeWith
+
+    let stringifyParseTreeWith(
+      builder: StringBuilder,
+      indent: Int,
+      node: ParseNode,
+      nodes: List<ParseNode>,
+      interner: Interner,
+    ): Void {
+      appendIndent(builder, indent);
+      when (node) {
+        is ParseParent -> do {
+          builder.append(Parse.names[node.kind]);
+          builder.append("\n");
+          let indent = indent + 1;
+          for (var i = node.kids.start; i < node.kids.end; i += 1) {
+            stringifyParseTreeWith(builder, indent, nodes[i], nodes, interner);
+          }
+        }
+        is Token -> do {
+          // TODO Stringify token into builder directly.
+          builder.append(node.stringify(interner));
+          builder.append("\n");
+        }
+      }
+    }
+
+#### appendIndent
+
+    let appendIndent(builder: StringBuilder, indent: Int): Void {
+      for (var i = 0; i < indent; i += 1) {
+        builder.append("   ");
+      }
+    }
+
+### ParseParent
+
+A parse tree is constructed of ParseParent nodes, with Token nodes as leaves.
 
     // struct
     export class ParseParent(
@@ -44,6 +104,34 @@ Type Parse just exists for hosting parse kind values.
       public static switchEmpty: ParseKind = Parse.switch + 1;
       public static token: ParseKind = Parse.switchEmpty + 1;
       public static nym`var`: ParseKind = Parse.token + 1;
+
+#### ParseKind names
+
+As for TokenKind names, order matters here, and Temper should automate in the
+future.
+
+      public static names = [
+        "none",
+        "args",
+        "block",
+        "call",
+        "case",
+        "comment",
+        "else",
+        "fun",
+        "infix",
+        "junk",
+        "modify",
+        "param",
+        "params",
+        "prefix",
+        "return",
+        "string",
+        "switch",
+        "switchEmpty",
+        "token",
+        "var",
+      ];
     }
 
 ### Range
@@ -171,6 +259,10 @@ TODO Remove this eating when we implement.
           pushToken(peek())
         }
         commit(Parse.block, start);
+
+Finally, push the above root block itself.
+
+        commit(Parse.block, 0);
       }
 
 ```go

@@ -1,11 +1,14 @@
 fn main() {
     let _ = rio_engine::init(None);
     let interner = rio_engine::Interner::new();
+    // Lex
     let lexer = rio_engine::Lexer::new(Some(interner.clone()));
     let tokens = lexer.lex(rio_engine::hi());
-    println!("Tokens:");
-    for token in tokens.iter() {
-        println!("{}", token.stringify(interner.clone()));
-    }
-    // TODO Print parse tree
+    // Parse
+    let parser = rio_engine::Parser::new();
+    let parse_tree = parser.parse(tokens);
+    print!(
+        "{}",
+        rio_engine::ParseNode::stringify_tree(parse_tree.clone(), interner.clone())
+    );
 }
