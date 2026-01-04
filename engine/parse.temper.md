@@ -194,7 +194,9 @@ rather than allocating lots of individual lists for nodes.
 
 TODO Does slice allocation here slow things down? Would looping be slower?
 
-        nodes.addAll(work.slice(start, work.length));
+TODO Maybe change out the splice method for something else???
+
+        nodes.addAll(work.splice(start, work.length - start));
         let parent = new ParseParent(kind, new Range(oldLength, nodes.length));
         work.add(parent)
       }
