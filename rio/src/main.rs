@@ -7,4 +7,5 @@ fn main() {
     for token in tokens.iter() {
         println!("{}", token.stringify(interner.clone()));
     }
+    // TODO Print parse tree
 }
