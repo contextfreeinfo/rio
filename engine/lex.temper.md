@@ -482,3 +482,9 @@ Most commonly stringClose, but could be a dangling end.
       new Pair("var", Token.var),
       new Pair("vartype", Token.vartype),
     ]);
+
+#### noneToken
+
+A placeholder object for use as a bogus value for tokens.
+
+    let noneToken = new Token(Token.none, 0);
