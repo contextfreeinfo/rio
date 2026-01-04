@@ -16,11 +16,11 @@ want the same layout for each token kind here.
       }
 
       public toString(): String {
-        "(${Token.names[kind]}: ${text})"
+        "${Token.names[kind]} \"${text}\""
       }
 
       public stringify(interner: Interner): String {
-        "(${Token.names[kind]}: \"${interner.string(text)}\")"
+        "${Token.names[kind]} \"${interner.string(text)}\""
       }
 
 #### TokenKind values
@@ -50,8 +50,8 @@ Temper.
       public static fun: TokenKind = Token.from + 1;
       public static ge: TokenKind = Token.fun + 1;
       public static gt: TokenKind = Token.ge + 1;
-      public static hSpace: TokenKind = Token.gt + 1;
-      public static id: TokenKind = Token.hSpace + 1;
+      public static hspace: TokenKind = Token.gt + 1;
+      public static id: TokenKind = Token.hspace + 1;
       public static nym`if`: TokenKind = Token.id + 1;
       public static int: TokenKind = Token.if + 1;
       public static nym`is`: TokenKind = Token.int + 1;
@@ -74,8 +74,8 @@ Temper.
       public static sub: TokenKind = Token.struct + 1;
       public static switch: TokenKind = Token.sub + 1;
       public static then: TokenKind = Token.switch + 1;
-      public static vSpace: TokenKind = Token.then + 1;
-      public static union: TokenKind = Token.vSpace + 1;
+      public static vspace: TokenKind = Token.then + 1;
+      public static union: TokenKind = Token.vspace + 1;
       public static use: TokenKind = Token.union + 1;
       public static nym`var`: TokenKind = Token.use + 1;
       public static vartype: TokenKind = Token.var + 1;
@@ -108,7 +108,7 @@ enums provide these automatically.
         "fun",
         "ge",
         "gt",
-        "hSpace",
+        "hspace",
         "id",
         "if",
         "int",
@@ -132,7 +132,7 @@ enums provide these automatically.
         "sub",
         "switch",
         "then",
-        "vSpace",
+        "vspace",
         "union",
         "use",
         "var",
@@ -317,9 +317,9 @@ immediate consumes the first char before taking next steps.
                 if (peek() == char"\n") {
                   next();
                 }
-                Token.vSpace
+                Token.vspace
               }
-              char"\n" -> Token.vSpace;
+              char"\n" -> Token.vspace;
               else -> Token.junk;
             };
             push(kind, start);
@@ -353,7 +353,7 @@ immediate consumes the first char before taking next steps.
           }
           next();
         }
-        push(Token.hSpace, start);
+        push(Token.hspace, start);
       }
 
 #### id

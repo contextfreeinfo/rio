@@ -129,7 +129,7 @@ We do nest comment text under the comment open, though.
 
 Horizontal space is just pushed as filler.
 
-            Token.hSpace -> pushToken(token);
+            Token.hspace -> pushToken(token);
 
 Found a significant token, so done.
 
@@ -170,6 +170,7 @@ TODO Remove this eating when we implement.
 
           pushToken(peek())
         }
+        commit(Parse.block, start);
       }
 
 ```go
