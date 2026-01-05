@@ -24,6 +24,11 @@ For now, export test data for easier testing in backends.
 TODO Stop exporting test data. Maybe make a separate test data library?
 
     export let hi = raw"""
+      // "const cli = import("whatever.com/there/cli")
+      // "import "whatever.com/there/cli"
+      // "import cli
+      // "
+      // "pub fun main(sys cli.Sys)
       "pub fun main(sys)
       "   # Prove we can call twice.
       "   greet()
