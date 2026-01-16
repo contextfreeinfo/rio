@@ -5,6 +5,24 @@ tables and are cross-referenced by index. Beyond that, the nodes are designed to
 be convenient but versatile. Ideally we have as few node types as needed for
 easy tree handling.
 
+### Modular
+
+    export interface Modular {
+      public nodes: Listed<Node>;
+      public blocks: Listed<Block>;
+      public breaks: Listed<Break>;
+      public calls: Listed<Call>;
+      public cases: Listed<Case>;
+      // TODO classes
+      // TODO froms
+      public funs: Listed<Fun>;
+      public gets: Listed<Get>;
+      // TODO ifs
+      // TODO loops
+      public switches: Listed<Switch>;
+      public vars: Listed<Var>;
+    }
+
 ### ModuleBuilder
 
 The expectation again is that most of these things will be structs in the
@@ -17,7 +35,7 @@ non-recursive.
 Some passes are handy with mutability, although mutable types are slower in
 Temper-built Rust than are imu types.
 
-    export class ModuleBuilder { // TODO extends Modular?
+    export class ModuleBuilder extends Modular {
 
 #### reset
 
