@@ -8,6 +8,13 @@ easy tree handling.
 ### Modular
 
     export interface Modular {
+
+#### stringify
+
+TODO
+
+#### Data
+
       public nodes: Listed<Node>;
       public blocks: Listed<Block>;
       public breaks: Listed<Break>;
@@ -35,7 +42,19 @@ non-recursive.
 Some passes are handy with mutability, although mutable types are slower in
 Temper-built Rust than are imu types.
 
-    export class ModuleBuilder extends Modular {
+    export class ModuleBuilder { // TODO extends Modular
+
+#### modular
+
+TODO Temporary workaround for covariant return issues?
+TODO More efficient in Rust, anyway, to avoid repeated cast wrapping?
+
+And note that we can't cache this because that would create reference cycles.
+Make it an explicit method instead of a getter, so we understand there's cost.
+
+      public modular(): Modular {
+        new ModuleBuilderModular(this)
+      }
 
 #### reset
 
@@ -62,10 +81,6 @@ TODO Or use the results from splice here to make a Module instance?
         switches.splice(1);
         vars.splice(1);
       }
-
-#### stringify
-
-TODO
 
 #### Data
 
@@ -134,6 +149,24 @@ Node kinds go here for now.
       public static type: NodeKind = Node.switch + 1;
       public static value: NodeKind = Node.type + 1; 
       public static var: NodeKind = Node.value + 1;
+    }
+
+    class ModuleBuilderModular(
+      private builder: ModuleBuilder,
+    ) extends Modular {
+      public get nodes: Listed<Node> { builder.nodes }
+      public get blocks: Listed<Block> { builder.blocks };
+      public get breaks: Listed<Break> { builder.breaks };
+      public get calls: Listed<Call> { builder.calls };
+      public get cases: Listed<Case> { builder.cases };
+      // TODO classes
+      // TODO froms
+      public get funs: Listed<Fun> { builder.funs };
+      public get gets: Listed<Get> { builder.gets };
+      // TODO ifs
+      // TODO loops
+      public get switches: Listed<Switch> { builder.switches };
+      public get vars: Listed<Var> { builder.vars };
     }
 
 ### Block
