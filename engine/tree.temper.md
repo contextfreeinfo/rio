@@ -17,18 +17,72 @@ non-recursive.
 Some passes are handy with mutability, although mutable types are slower in
 Temper-built Rust than are imu types.
 
-    export class ModuleBuilder() {
-      public nodes: ListBuilder<Node> = new ListBuilder();
-      public work: ListBuilder<Node> = new ListBuilder();
-      public blocks: ListBuilder<Block> = new ListBuilder();
+    export class ModuleBuilder { // TODO extends Modular?
+
+#### reset
+
+Call reset before each reuse of a ModuleBuilder.
+
+      public reset(): Void {
+
+TODO Some remove range option that doesn't allocate?
+
+TODO Or use the results from splice here to make a Module instance?
+
+        nodes.splice(1);
+        work.splice(1);
+        blocks.splice(1);
+        breaks.splice(1);
+        calls.splice(1);
+        cases.splice(1);
+        // classes.splice(1);
+        // froms.splice(1);
+        funs.splice(1);
+        gets.splice(1);
+        // ifs.splice(1);
+        // loops.splice(1);
+        switches.splice(1);
+        vars.splice(1);
+      }
+
+#### stringify
+
+TODO
+
+#### Data
+
+Init everything to a bogus member at 0 so that can mean a nullish value.
+
+Nodes reference side tables by kind and index.
+
+      public nodes: ListBuilder<Node> = [new Node()].toListBuilder();
+      public work: ListBuilder<Node> = [new Node()].toListBuilder();
+
+Separate side tables should help if we support value types and/or structs, so
+design for that already.
+
+      public blocks: ListBuilder<Block> = [new Block()].toListBuilder();
+      public breaks: ListBuilder<Break> = [new Break()].toListBuilder();
+      public calls: ListBuilder<Call> = [new Call()].toListBuilder();
+      public cases: ListBuilder<Case> = [new Case()].toListBuilder();
+      // TODO classes
+      // TODO froms
+      public funs: ListBuilder<Fun> = [new Fun()].toListBuilder();
+      public gets: ListBuilder<Get> = [new Get()].toListBuilder();
+      // TODO ifs
+      // TODO loops
+      public switches: ListBuilder<Switch> = [new Switch()].toListBuilder();
+      public vars: ListBuilder<Var> = [new Var()].toListBuilder();
     }
 
 ### Source
 
     export class Source(
-      public path: String,
+      public path: TextId,
       public range: Range,
-    ) {}
+    ) {
+      public static none: Source = { path: 0, range: Range.empty };
+    }
 
 ### Node
 
@@ -42,9 +96,9 @@ Temper-built Rust than are imu types.
 
 The node kind says which side table the index is for.
 
-      public kind: NodeKind,
-      public index: DetailId,
-      public source: Source,
+      public kind: NodeKind = Node.none,
+      public index: DetailId = 0,
+      public source: Source = Source.none,
     ) {
 
 Node kinds go here for now.
@@ -69,44 +123,8 @@ Node kinds go here for now.
 All node detail types have an index back into the main node list.
 
     export class Block(
-      public index: NodeId,
-      public kids: NodeRange,
-    ) {}
-
-### Call
-
-    export class Call(
-      public index: NodeId,
-      public callee: NodeId,
-      public args: NodeRange,
-    ) {}
-
-### Case
-
-    export class Case(
-      public index: NodeId,
-      public patterns: NodeRange,
-      public gate: NodeId,
-      public kids: NodeRange,
-    ) {}
-
-### Fun
-
-    export class Fun(
-      public index: NodeId,
-      public name: TextId,
-      public flags: DefFlags,
-      public params: NodeRange,
-      public nym`return`: NodeId,
-      public kid: NodeRange,
-    ) {}
-
-### Get
-
-    export class Get(
-      public index: NodeId,
-      public subject: NodeId,
-      public member: NodeId,
+      public index: NodeId = 0,
+      public kids: NodeRange = Range.empty,
     ) {}
 
 ### Break
@@ -114,8 +132,63 @@ All node detail types have an index back into the main node list.
 Break also handles returns.
 
     export class Break(
-      public index: NodeId,
-      public kind: TokenKind,
-      public label: NodeId,
-      public value: NodeId,
+      public index: NodeId = 0,
+      public kind: TokenKind = Token.none,
+      public label: NodeId = 0,
+      public value: NodeId = 0,
+    ) {}
+
+### Call
+
+    export class Call(
+      public index: NodeId = 0,
+      public callee: NodeId = 0,
+      public args: NodeRange = Range.empty,
+    ) {}
+
+### Case
+
+    export class Case(
+      public index: NodeId = 0,
+      public patterns: NodeRange = Range.empty,
+      public gate: NodeId = 0,
+      public kids: NodeRange = Range.empty,
+    ) {}
+
+### Fun
+
+    export class Fun(
+      public index: NodeId = 0,
+      public name: TextId = 0,
+      public flags: DefFlags = 0,
+      public params: NodeRange = Range.empty,
+      public nym`return`: NodeId = 0,
+      public kid: NodeRange = Range.empty,
+    ) {}
+
+### Get
+
+For any dot access, actually, including as an assignment target.
+
+    export class Get(
+      public index: NodeId = 0,
+      public subject: NodeId = 0,
+      public member: NodeId = 0,
+    ) {}
+
+### Switch
+
+    export class Switch(
+      public subject: NodeId = 0,
+      public kids: Range = Range.empty,
+    ) {}
+
+### Var
+
+    export class Var(
+      public index: NodeId = 0,
+      public name: TextId = 0,
+      public flags: DefFlags = 0,
+      public type: NodeId = 0,
+      public value: NodeId = 0,
     ) {}

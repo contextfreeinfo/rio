@@ -148,7 +148,9 @@ We currently can't represent the Item kind because of
     export class Range/*<Item>*/(
       public start: Int,
       public end: Int,
-    ) {}
+    ) {
+      public static empty: Range = new Range(0, 0);
+    }
 
 ### Parser
 
