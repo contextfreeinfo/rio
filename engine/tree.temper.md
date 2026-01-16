@@ -32,14 +32,18 @@ Temper-built Rust than are imu types.
 
 ### Node
 
+    export let DefFlags = Int;
+    export let DetailId = Int;
+    export let NodeId = Int;
     export let NodeKind = Int;
+    export let NodeRange = Range;
 
     export class Node(
 
 The node kind says which side table the index is for.
 
       public kind: NodeKind,
-      public index: Int,
+      public index: DetailId,
       public source: Source,
     ) {
 
@@ -65,44 +69,44 @@ Node kinds go here for now.
 All node detail types have an index back into the main node list.
 
     export class Block(
-      public index: Int,
-      public kids: Range,
+      public index: NodeId,
+      public kids: NodeRange,
     ) {}
 
 ### Call
 
     export class Call(
-      public index: Int,
-      public callee: Int,
-      public args: Range,
+      public index: NodeId,
+      public callee: NodeId,
+      public args: NodeRange,
     ) {}
 
 ### Case
 
     export class Case(
-      public index: Int,
-      public patterns: Range,
-      public gate: Int,
-      public kids: Range,
+      public index: NodeId,
+      public patterns: NodeRange,
+      public gate: NodeId,
+      public kids: NodeRange,
     ) {}
 
 ### Fun
 
     export class Fun(
-      public index: Int,
-      public name: Int,
-      public flags: Int,
-      public params: Range,
-      public nym`return`: Int,
-      public kid: Range,
+      public index: NodeId,
+      public name: TextId,
+      public flags: DefFlags,
+      public params: NodeRange,
+      public nym`return`: NodeId,
+      public kid: NodeRange,
     ) {}
 
 ### Get
 
     export class Get(
-      public index: Int,
-      public subject: Int,
-      public member: Int,
+      public index: NodeId,
+      public subject: NodeId,
+      public member: NodeId,
     ) {}
 
 ### Break
@@ -110,8 +114,8 @@ All node detail types have an index back into the main node list.
 Break also handles returns.
 
     export class Break(
-      public index: Int,
+      public index: NodeId,
       public kind: TokenKind,
-      public label: Int,
-      public value: Int,
+      public label: NodeId,
+      public value: NodeId,
     ) {}
