@@ -5,6 +5,9 @@ tables and are cross-referenced by index. Beyond that, the nodes are designed to
 be convenient but versatile. Ideally we have as few node types as needed for
 easy tree handling.
 
+And I guess technically people could call this an abstract *syntax* tree, but
+meh.
+
 ### Modular
 
 TODO Just make a separate Tree or Module thing and require pumping into there

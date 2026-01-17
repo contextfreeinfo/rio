@@ -11,4 +11,8 @@ fn main() {
         "{}",
         rio_engine::ParseNode::stringify_tree(parse_tree.clone(), interner.clone())
     );
+    // Norm
+    let normer = rio_engine::Normer::new();
+    let normed = normer.norm(parse_tree);
+    let _ = normed;
 }
