@@ -198,7 +198,7 @@ TODO Does slice allocation here slow things down? Would looping be slower?
 
 TODO Maybe change out the splice method for something else???
 
-        nodes.addAll(work.splice(start, work.length - start));
+        nodes.addAll(work.splice(start));
         let parent = new ParseParent(kind, new Range(oldLength, nodes.length));
         work.add(parent)
       }

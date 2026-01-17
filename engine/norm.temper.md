@@ -5,6 +5,7 @@ I using norming to mean converting a parse tree into an abstract tree.
     export class Normer {
 
       private builder: ModuleBuilder = new ModuleBuilder();
+      // private get workStart(): Int { builder.work.length }
 
       private var parsed: List<ParseNode> = [];
 
@@ -24,12 +25,21 @@ thing, but being able to reassign nodes in place can be handy.
         return new ModuleBuilder();
       }
 
+#### loopParsed
+
+      private loopParsed(parent: ParseParent, looper: ParseNodeLooper): Void {
+        let kids = parent.kids;
+        for (var i = kids.start; i < kids.end; ++i) {
+          looper(parsed[i]);
+        }
+      }
+
 #### normNode
 
       private normNode(node: ParseNode): Void {
         when (node.parseKind) {
           Parse.args -> normArgs(node as ParseParent);
-          Parse.block -> void;
+          Parse.block -> normBlock(node as ParseParent);
           Parse.call -> void;
           Parse.case -> void;
           Parse.comment -> void;
@@ -56,4 +66,18 @@ thing, but being able to reassign nodes in place can be handy.
         //
       }
 
+#### normBlock
+
+      private normBlock(node: ParseParent): Void {
+        let start = builder.work.length;
+        loopParsed(node) { kid =>
+          normNode(kid);
+        }
+        builder.commitBlock(start);
+      }
+
     }
+
+#### ParseNodeLooper
+
+    @fun interface ParseNodeLooper(node: ParseNode): Void;

@@ -83,6 +83,38 @@ Call reset before each reuse of a ModuleBuilder.
         resetOne(vars);
       }
 
+#### commit
+
+      public commit(parent: Node, start: Int): Void {
+        commitHeadless(start);
+        work.add(parent);
+      }
+
+#### commitBlock
+
+      public commitBlock(start: Int): Void {
+        let oldLength = nodes.length;
+        commit(
+
+TODO Track the source as we go automatically in some fashion?
+
+          { kind: Node.block, index: blocks.length, source: Source.none },
+          start,
+        )
+        blocks.add({
+          class: Block,
+          // TODO No way to get index here. We'd have to get it later.
+          kids: { start: oldLength, end: nodes.length },
+        });
+      }
+
+#### commitHeadless
+
+      public commitHeadless(start: Int): Void {
+        // TODO Loop through making new versions of each side table entry with the NodeId of each?
+        nodes.addAll(work.splice(start));
+      }
+
 #### Data
 
 Init everything to a bogus member at 0 so that can mean a nullish value.
