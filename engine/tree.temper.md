@@ -8,14 +8,6 @@ easy tree handling.
 And I guess technically people could call this an abstract *syntax* tree, but
 meh.
 
-### stringify
-
-TODO
-
-    export let stringify(tree: Listed<Node>): String {
-      ""
-    }
-
 ### ModuleBuilder
 
 We can't have both mutable children and recursive types, because that would
@@ -104,8 +96,22 @@ The original plan was to make this a value-friendly type and store side tables
 of value-friendly types, but I wimped out and simplified down to sealed
 interface.
 
+TODO Could we still make this a value type as an enum?
+
     export sealed interface Node {
       public source: Source;
+
+#### stringifyTree
+
+TODO Stringify tree.
+
+      public static stringifyTree(
+        nodes: Listed<Node>,
+        interner: Interner,
+      ): String {
+        ""
+      }
+
     }
 
 TODO Making emptyNode a static member of the Node interface silently blocked
@@ -152,13 +158,25 @@ Break also handles returns.
 
 ### Fun
 
+TODO If we want to enum Node, we might want to break these bigger nodes into a
+collection of smaller nodes, so we don't get any much bigger than others. I
+think this is currently 10 * 4 == 40 bytes if all were value types. And Block is
+only 5 * 4 == 20 bytes. Adjustments below get Fun down to either 4 or 6 items
+for 16 or 24 bytes, so we could look into such later.
+
     export class Fun(
+
+TODO Like maybe have a Def node and even delegate Source to it?
+
       public source: Source = Source.none,
       public name: TextId = 0,
       public flags: DefFlags = 0,
+
+TODO And even a Signature node to keep params and return together?
+
       public params: NodeRange = Range.empty,
       public nym`return`: NodeId = 0,
-      public kid: NodeRange = Range.empty,
+      public kids: NodeRange = Range.empty,
     ) extends Node {}
 
 ### Get
