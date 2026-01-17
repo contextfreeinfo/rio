@@ -20,6 +20,10 @@ In the future, presumably ParseNode is a union of Token and ParseParent.
 
       public get parseKind(): ParseKind;
 
+#### token
+
+      public get token(): Token;
+
 #### stringifyTree
 
       public static stringifyTree(
@@ -32,6 +36,8 @@ In the future, presumably ParseNode is a union of Token and ParseParent.
         builder.toString()
       }
     }
+
+    let noneParse = new ParseParent(Parse.none, Range.empty);
 
 #### stringifyParseTreeWith
 
@@ -79,6 +85,10 @@ A parse tree is constructed of ParseParent nodes, with Token nodes as leaves.
     ) extends ParseNode {
       public get parseKind(): ParseKind {
         kind
+      }
+
+      public get token(): Token {
+        noneToken
       }
     }
 
@@ -150,6 +160,10 @@ We currently can't represent the Item kind because of
       public end: Int,
     ) {
       public static empty: Range = new Range(0, 0);
+
+      public get length(): Int {
+        end - start
+      }
     }
 
 ### Parser

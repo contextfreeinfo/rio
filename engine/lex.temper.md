@@ -15,6 +15,10 @@ want the same layout for each token kind here.
         Parse.token
       }
 
+      public get token(): Token {
+        this
+      }
+
       public toString(): String {
         "${Token.names[kind]} \"${text}\""
       }

@@ -56,6 +56,13 @@ parse tree building.
         nodes.addAll(work.splice(start));
       }
 
+#### popWorkBlock
+
+      public popWorkBlock(): Range {
+        let last = work.removeLast() as Block orelse panic();
+        last.kids
+      }
+
 #### Data
 
 Init everything to a bogus member at 0 so that can mean a nullish value.
@@ -151,6 +158,7 @@ Break also handles returns.
 
     export class Case(
       public source: Source = Source.none,
+      public always: Boolean = false,
       public patterns: NodeRange = Range.empty,
       public gate: NodeId = 0,
       public kids: NodeRange = Range.empty,

@@ -7,10 +7,10 @@ fn main() {
     // Parse
     let parser = rio_engine::Parser::new();
     let parse_tree = parser.parse(tokens);
-    print!(
-        "{}",
-        rio_engine::ParseNode::stringify_tree(parse_tree.clone(), interner.clone())
-    );
+    // print!(
+    //     "{}",
+    //     rio_engine::ParseNode::stringify_tree(parse_tree.clone(), interner.clone())
+    // );
     // Norm
     let normer = rio_engine::Normer::new();
     let normed = normer.norm(parse_tree);
