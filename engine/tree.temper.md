@@ -7,6 +7,9 @@ easy tree handling.
 
 ### Modular
 
+TODO Just make a separate Tree or Module thing and require pumping into there
+instead of worrying about this interface.
+
     export interface Modular {
 
 #### stringify
@@ -61,25 +64,20 @@ Make it an explicit method instead of a getter, so we understand there's cost.
 Call reset before each reuse of a ModuleBuilder.
 
       public reset(): Void {
-
-TODO Some remove range option that doesn't allocate?
-
-TODO Or use the results from splice here to make a Module instance?
-
-        nodes.splice(1);
-        work.splice(1);
-        blocks.splice(1);
-        breaks.splice(1);
-        calls.splice(1);
-        cases.splice(1);
-        // classes.splice(1);
-        // froms.splice(1);
-        funs.splice(1);
-        gets.splice(1);
-        // ifs.splice(1);
-        // loops.splice(1);
-        switches.splice(1);
-        vars.splice(1);
+        resetOne(nodes);
+        resetOne(work);
+        resetOne(blocks);
+        resetOne(breaks);
+        resetOne(calls);
+        resetOne(cases);
+        // resetOne(classes);
+        // resetOne(froms);
+        resetOne(funs);
+        resetOne(gets);
+        // resetOne(ifs);
+        // resetOne(loops);
+        resetOne(switches);
+        resetOne(vars);
       }
 
 #### Data
@@ -106,6 +104,12 @@ design for that already.
       // TODO loops
       public switches: ListBuilder<Switch> = [new Switch()].toListBuilder();
       public vars: ListBuilder<Var> = [new Var()].toListBuilder();
+    }
+
+    let resetOne<T>(items: ListBuilder<T>): Void {
+      let first = items[0];
+      items.clear();
+      items.add(first);
     }
 
 ### Source
@@ -152,21 +156,24 @@ Node kinds go here for now.
     }
 
     class ModuleBuilderModular(
-      private builder: ModuleBuilder,
+      @noProperty builder: ModuleBuilder,
     ) extends Modular {
-      public get nodes: Listed<Node> { builder.nodes }
-      public get blocks: Listed<Block> { builder.blocks };
-      public get breaks: Listed<Break> { builder.breaks };
-      public get calls: Listed<Call> { builder.calls };
-      public get cases: Listed<Case> { builder.cases };
+
+TODO Better to precache all these referenced?
+
+      public nodes: Listed<Node> = builder.nodes;
+      public blocks: Listed<Block> = builder.blocks;
+      public breaks: Listed<Break> = builder.breaks;
+      public calls: Listed<Call> = builder.calls;
+      public cases: Listed<Case> = builder.cases;
       // TODO classes
       // TODO froms
-      public get funs: Listed<Fun> { builder.funs };
-      public get gets: Listed<Get> { builder.gets };
+      public funs: Listed<Fun> = builder.funs;
+      public gets: Listed<Get> = builder.gets;
       // TODO ifs
       // TODO loops
-      public get switches: Listed<Switch> { builder.switches };
-      public get vars: Listed<Var> { builder.vars };
+      public switches: Listed<Switch> = builder.switches;
+      public vars: Listed<Var> = builder.vars;
     }
 
 ### Block
