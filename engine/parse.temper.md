@@ -20,9 +20,13 @@ In the future, presumably ParseNode is a union of Token and ParseParent.
 
       public get parseKind(): ParseKind;
 
-#### token
+#### asParent
 
-      public get token(): Token;
+      public get asParent(): ParseParent;
+
+#### asToken
+
+      public get asToken(): Token;
 
 #### stringifyTree
 
@@ -87,7 +91,11 @@ A parse tree is constructed of ParseParent nodes, with Token nodes as leaves.
         kind
       }
 
-      public get token(): Token {
+      public get asParent(): ParseParent {
+        this
+      }
+
+      public get asToken(): Token {
         noneToken
       }
     }

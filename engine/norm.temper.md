@@ -45,7 +45,7 @@ Otherwise returns parent kids end.
         kidIndex: Int = parent.kids.start,
       ): Int {
         let kidIndex = nextParsed(parent, kidIndex);
-        when (parsedAt(parent, kidIndex).token.kind) {
+        when (parsedAt(parent, kidIndex).asToken.kind) {
           kind -> kidIndex;
           else -> parent.kids.end;
         }
@@ -86,7 +86,7 @@ Returns the index of the nearest meaningful parse node, starting at start.
           when (kid.parseKind) {
             Parse.comment -> void;
             Parse.token -> do {
-              when (kid.token.kind) {
+              when (kid.asToken.kind) {
                 Token.commentOpen, Token.commentText, Token.hspace -> void;
                 Token.vspace -> if (keepVSpace) {
                   return i;
@@ -104,11 +104,11 @@ Returns the index of the nearest meaningful parse node, starting at start.
 
       private normNode(node: ParseNode): Void {
         when (node.parseKind) {
-          Parse.args -> normArgs(node as ParseParent);
-          Parse.block -> normBlock(node as ParseParent);
-          Parse.call -> normCall(node as ParseParent);
-          Parse.case -> normCase(node as ParseParent);
-          Parse.else -> normElse(node as ParseParent);
+          Parse.args -> normArgs(node.asParent);
+          Parse.block -> normBlock(node.asParent);
+          Parse.call -> normCall(node.asParent);
+          Parse.case -> normCase(node.asParent);
+          Parse.else -> normElse(node.asParent);
           Parse.fun -> void;
           Parse.infix -> void;
           Parse.modify -> void;
@@ -188,7 +188,7 @@ Nothing to do with these.
         var args = Range.empty;
         var part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         if (part.parseKind == Parse.args) {
-          normArgs(part as ParseParent orelse panic());
+          normArgs(part.asParent);
           args = builder.popWorkBlock();
           part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         }
@@ -205,14 +205,14 @@ We're about to push the callee as the next committed node.
         var part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         var patterns = Range.empty;
         if (part.parseKind == Parse.args) {
-          let args = part as ParseParent orelse panic();
+          let args = part.asParent;
           normArgItems(args, args.kids.start);
           patterns = builder.popWorkBlock();
           part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         }
         var kids = Range.empty;
         if (part.parseKind == Parse.block) {
-          normBlock(part as ParseParent orelse panic());
+          normBlock(part.asParent);
           kids = builder.popWorkBlock();
           part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         }
@@ -226,11 +226,41 @@ We're about to push the callee as the next committed node.
         var part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         var kids = Range.empty;
         if (part.parseKind == Parse.block) {
-          normBlock(part as ParseParent orelse panic());
+          normBlock(part.asParent);
           kids = builder.popWorkBlock();
           part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         }
         builder.work.add({ class: Case, always: true, kids });
+      }
+
+#### normFun
+
+      private normFun(node: ParseParent): Void {
+        var kidIndex = expectToken(node, Token.fun);
+        var part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        var name = 0;
+        if (part.asToken.kind == Token.id) {
+          name = part.asToken.text;
+          part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        }
+        var params = Range.empty;
+        if (part.parseKind == Parse.params) {
+          normParams(part.asParent);
+          params = builder.popWorkBlock();
+          part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        }
+        var kids = Range.empty;
+        if (part.parseKind == Parse.block) {
+          normBlock(part.asParent);
+          kids = builder.popWorkBlock();
+          part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        }
+        builder.work.add({ class: Fun, name, params, kids });
+      }
+
+#### normParams
+
+      private normParams(node: ParseParent): Void {
       }
 
     }

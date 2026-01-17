@@ -15,7 +15,11 @@ want the same layout for each token kind here.
         Parse.token
       }
 
-      public get token(): Token {
+      public get asParent(): ParseParent {
+        noneParse
+      }
+
+      public get asToken(): Token {
         this
       }
 
