@@ -103,24 +103,24 @@ Returns the index of the nearest meaningful parse node, starting at start.
 #### normNode
 
       private normNode(node: ParseNode): Void {
+        let asParent = node.asParent;
         when (node.parseKind) {
-          Parse.args -> normArgs(node.asParent);
-          Parse.block -> normBlock(node.asParent);
-          Parse.call -> normCall(node.asParent);
-          Parse.case -> normCase(node.asParent);
-          Parse.else -> normElse(node.asParent);
-          Parse.fun -> void;
-          Parse.infix -> void;
-          Parse.modify -> void;
-          Parse.param -> void;
-          Parse.params -> void;
-          Parse.prefix -> void;
-          Parse.return -> void;
-          Parse.string -> void;
-          Parse.switch -> void;
-          Parse.switchEmpty -> void;
-          Parse.token -> void;
-          Parse.var -> void;
+          Parse.args -> normArgs(asParent);
+          Parse.block -> normBlock(asParent);
+          Parse.call -> normCall(asParent);
+          Parse.case -> normCase(asParent);
+          Parse.else -> normElse(asParent);
+          Parse.fun -> normFun(asParent);
+          Parse.infix -> normFun(asParent);
+          Parse.modify -> normModify(asParent);
+          Parse.param -> normParam(asParent);
+          Parse.params -> normParams(asParent);
+          Parse.prefix -> normPrefix(asParent);
+          Parse.return -> normReturn(asParent);
+          Parse.string -> normString(asParent);
+          Parse.switch, Parse.switchEmpty -> normSwitch(asParent);
+          Parse.token -> normToken(node.asToken);
+          Parse.var -> normVar(asParent);
 
 Nothing to do with these.
 
@@ -258,9 +258,64 @@ We're about to push the callee as the next committed node.
         builder.work.add({ class: Fun, name, params, kids });
       }
 
+#### normInfix
+
+      private normInfix(node: ParseParent): Void {
+      }
+
+#### normModify
+
+      private normModify(node: ParseParent): Void {
+      }
+
+#### normParam
+
+      private normParam(node: ParseParent): Void {
+      }
+
 #### normParams
 
       private normParams(node: ParseParent): Void {
+      }
+
+#### normPrefix
+
+      private normPrefix(node: ParseParent): Void {
+      }
+
+#### normReturn
+
+      private normReturn(node: ParseParent): Void {
+      }
+
+#### normString
+
+      private normString(node: ParseParent): Void {
+      }
+
+#### normSwitch
+
+      private normSwitch(node: ParseParent): Void {
+      }
+
+#### normToken
+
+      private normToken(token: Token): Void {
+      }
+
+#### normTokenInt
+
+      private normTokenInt(node: ParseParent): Void {
+      }
+
+#### normVar
+
+      private normVar(node: ParseParent): Void {
+      }
+
+#### normVarFinish
+
+      private normVarFinish(node: ParseParent): Void {
       }
 
     }
