@@ -93,9 +93,26 @@ Resets a list down to the first member, avoiding splice because that allocates.
       public static none: Source = { path: 0, range: Range.empty };
     }
 
-### Node
+### Definition flags
 
     export let DefFlags = Int;
+
+    export class DefFlag {
+      public static capture = 1;
+      public static global = DefFlag.capture * 2;
+      public static plug = DefFlag.global * 2;
+      public static pub = DefFlag.plug * 2;
+    }
+
+### Definition
+
+    export sealed interface Def {
+      public name: TextId;
+      public flags: DefFlags;
+    }
+
+### Node
+
     export let NodeId = Int;
     export let NodeRange = Range;
 
@@ -185,7 +202,7 @@ TODO And even a Signature node to keep params and return together?
       public params: NodeRange = Range.empty,
       public nym`return`: NodeId = 0,
       public kids: NodeRange = Range.empty,
-    ) extends Node {}
+    ) extends Node & Def {}
 
 ### Get
 
@@ -225,4 +242,4 @@ defining such imports?
       public flags: DefFlags = 0,
       public type: NodeId = 0,
       public value: NodeId = 0,
-    ) extends Node {}
+    ) extends Node & Def {}

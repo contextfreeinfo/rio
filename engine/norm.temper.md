@@ -261,7 +261,10 @@ We're about to push the callee as the next committed node.
         var params = Range.empty;
         if (part.parseKind == Parse.params) {
           normParams(part.asParent);
-          params = builder.popWorkBlock();
+
+TODO Get back to this when params pushes a block.
+
+          // params = builder.popWorkBlock();
           part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         }
         var kids = Range.empty;
@@ -276,7 +279,8 @@ We're about to push the callee as the next committed node.
 #### normInfix
 
 We turn infix expressions into method calls, such as changing `a + b` into
-`a.add(b)`.
+`a.add(b)`. And this is an example of the abstract tree not being so directly
+tied to core syntax.
 
       private normInfix(node: ParseParent): Void {
         let start = builder.work.length;
@@ -326,6 +330,47 @@ Finish.
 #### normModify
 
       private normModify(node: ParseParent): Void {
+
+Gather up flags.
+
+        var flags = 0;
+        var kidIndex = nextParsed(node);
+        var part = parsedAt(node, kidIndex);
+        modify: while (true) {
+          when (part.asToken.kind) {
+            Token.plug -> flags |= DefFlag.plug;
+            Token.pub -> flags |= DefFlag.pub;
+            else -> break modify;
+          }
+          part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        }
+
+Apply them to any nested def.
+
+        normNode(part);
+        part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        let workTop = builder.work[builder.work.length - 1];
+
+We really badly need `{ ...workTop, flags }` splatting here.
+
+        when (workTop) {
+          is Fun -> builder.work[builder.work.length - 1] = {
+            class: Fun,
+            flags: flags | workTop.flags,
+            source: workTop.source,
+            name: workTop.name,
+            params: workTop.params,
+            nym`return`: workTop.return,
+            kids: workTop.kids,
+          };
+          is Var -> builder.work[builder.work.length - 1] = {
+            class: Var,
+            flags: flags | workTop.flags,
+            name: workTop.name,
+            type: workTop.type,
+            value: workTop.value,
+          };
+        }
       }
 
 #### normParam
