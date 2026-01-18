@@ -1,4 +1,7 @@
-# Implementation for Rio
+# Engine
+
+The core functionality of Rio parsing, interpreting, and translating goes in
+this library, but it doesn't connect much to actual capabilities.
 
 Backends need to provide access to source code. We just receive it here.
 
@@ -10,14 +13,26 @@ Backends need to provide access to source code. We just receive it here.
       }
     }
 
-We can directly test here, though.
+## Testing
+
+### Test cases
+
+We can directly test here, even though we can't read files at runtime.
 
     test("steps") {
-      let tokens = new Lexer().lex(hi);
+      let interner = new Interner();
+      let tokens = new Lexer(interner).lex(hi);
       assert(tokens.length == 73);
       let parseNodes = new Parser().parse(tokens);
       assert(parseNodes.length == 102);
+
+TODO We apparently don't actually commit any nodes yet while norming.
+
+      let normed = new Normer(interner).norm(parseNodes);
+      assert(normed.nodes.length == 1);
     }
+
+### Test data
 
 For now, export test data for easier testing in backends.
 

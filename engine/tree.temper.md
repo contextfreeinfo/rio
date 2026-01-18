@@ -197,6 +197,18 @@ For any dot access, actually, including as an assignment target.
       public member: NodeId = 0,
     ) extends Node {}
 
+### Ref
+
+    export class Ref(
+      public source: Source = Source.none,
+      public name: TextId = 0,
+
+TODO For imports, should module be here, or should we have a different node for
+defining such imports?
+
+      public target: NodeId = 0,
+    ) extends Node {}
+
 ### Switch
 
     export class Switch(

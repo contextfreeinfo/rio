@@ -2,7 +2,9 @@
 
 I using norming to mean converting a parse tree into an abstract tree.
 
-    export class Normer {
+    export class Normer(
+      public interner: Interner,
+    ) {
 
       private builder: ModuleBuilder = new ModuleBuilder();
       // private get workStart(): Int { builder.work.length }
@@ -98,6 +100,19 @@ Returns the index of the nearest meaningful parse node, starting at start.
           }
         }
         kids.end
+      }
+
+#### normNodeCommit
+
+      private normNodeCommit(node: ParseNode): NodeId {
+        let start = builder.work.length;
+        normNode(node);
+        if (builder.work.length > start) {
+          builder.commitHeadless(start);
+          builder.nodes.length - 1
+        } else {
+          0
+        }
       }
 
 #### normNode
@@ -260,7 +275,52 @@ We're about to push the callee as the next committed node.
 
 #### normInfix
 
+We turn infix expressions into method calls, such as changing `a + b` into
+`a.add(b)`.
+
       private normInfix(node: ParseParent): Void {
+        let start = builder.work.length;
+
+Make a get node for the method call, treating the first operand as the subject.
+
+        var kidIndex = nextParsed(node);
+        let subject = normNodeCommit(parsedAt(node, kidIndex));
+
+Translate the operator to a method name.
+
+        var member = 0;
+        let op = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        let name = when (op.asToken.kind) {
+          Token.add -> "add";
+          Token.eqEq -> "eq";
+          Token.gt -> "gt";
+          Token.lt -> "lt";
+          Token.sub -> "sub";
+          else -> "";
+        };
+        if (name != "") {
+          let name = interner[name];
+          builder.work.add({ class: Ref, name });
+          builder.commitHeadless(start);
+          member = builder.nodes.length - 1;
+        }
+
+Commit the get.
+
+        builder.commit(start, { class: Get, subject, member });
+        builder.commitHeadless(start);
+        let callee = builder.nodes.length - 1;
+
+Make the other operand a method arg.
+
+        let other = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        normNode(other);
+        builder.commitBlock(start);
+        let args = builder.popWorkBlock();
+
+Finish.
+
+        builder.commit(start, { class: Call, callee, args });
       }
 
 #### normModify
