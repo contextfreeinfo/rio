@@ -11,6 +11,11 @@ I using norming to mean converting a parse tree into an abstract tree.
 
       private var parsed: List<ParseNode> = [];
 
+#### parsedAt
+
+This both ensures we stay within kid bounds as well as providing a helping
+none-like object when out of bounds that makes processing logic easier.
+
       private parsedAt(parent: ParseParent, kidIndex: Int): ParseNode {
         let kids = parent.kids;
         if (kidIndex >= kids.start && kidIndex < kids.end) {
@@ -201,6 +206,11 @@ Nothing to do with these.
         var kidIndex = nextParsed(node);
         normNode(parsedAt(node, kidIndex));
         var args = Range.empty;
+
+We use this idiom of separate calls to `nextParsed` and `parsedAt` instead of a
+combo call because we don't yet support value types. I'm just concerned about
+doing lots of extra allocation for now.
+
         var part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         if (part.parseKind == Parse.args) {
           normArgs(part.asParent);
@@ -261,10 +271,7 @@ We're about to push the callee as the next committed node.
         var params = Range.empty;
         if (part.parseKind == Parse.params) {
           normParams(part.asParent);
-
-TODO Get back to this when params pushes a block.
-
-          // params = builder.popWorkBlock();
+          params = builder.popWorkBlock();
           part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         }
         var kids = Range.empty;
@@ -351,7 +358,8 @@ Apply them to any nested def.
         part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
         let workTop = builder.work[builder.work.length - 1];
 
-We really badly need `{ ...workTop, flags }` splatting here.
+TODO We really badly need `{ ...workTop, flags: flags | workTop.flags }`
+splatting here.
 
         when (workTop) {
           is Fun -> builder.work[builder.work.length - 1] = {
@@ -376,11 +384,31 @@ We really badly need `{ ...workTop, flags }` splatting here.
 #### normParam
 
       private normParam(node: ParseParent): Void {
+        normVarFinish(node);
       }
 
 #### normParams
 
       private normParams(node: ParseParent): Void {
+        let start = builder.work.length;
+        var kidIndex = expectToken(node, Token.roundOpen);
+        params: while (true) {
+          let part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+          when (part.parseKind) {
+            Parse.param -> normParam(part.asParent);
+            else -> when (part.asToken.kind) {
+
+TODO Error on repeated or missing commas.
+
+              Token.comma -> void;
+              else -> break params;
+            }
+          }
+        }
+
+TODO Error on missing close paren or other such.
+
+        builder.commitBlock(start);
       }
 
 #### normPrefix
@@ -420,7 +448,41 @@ We really badly need `{ ...workTop, flags }` splatting here.
 
 #### normVarFinish
 
+Used both for var declarations and for params, which have no leading `var`.
+
       private normVarFinish(node: ParseParent): Void {
+        let start = builder.work.length;
+        var kidIndex = nextParsed(node);
+        var part = parsedAt(node, kidIndex);
+
+Name, which could be missing for bad syntax like `var = 5` or whatever.
+
+        var name = 0;
+        if (part.asToken.kind == Token.id) {
+          name = part.asToken.text;
+          part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        }
+
+Type, which is optional and recognized by something that's not `=`.
+
+        var type = 0;
+        if (part.parseKind != Parse.none && part.asToken.kind != Token.eq) {
+          type = normNodeCommit(part);
+          part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        }
+
+Value, which is optional and recognized by `=` before it.
+
+        var value = 0;
+        if (part.asToken.kind == Token.eq) {
+          part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+          value = normNodeCommit(part);
+          part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        }
+
+Any flags are applied higher up the parse tree norming after we're done here.
+
+        builder.commit(start, { class: Var, name, type, value });
       }
 
     }
