@@ -439,6 +439,10 @@ TODO What other prefixes do we support?
 
           else -> void;
         }
+
+For now, just norm the arg in any case.
+
+        normNode(arg);
       }
 
 #### normReturn
