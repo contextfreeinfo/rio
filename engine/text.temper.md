@@ -40,6 +40,8 @@ backends.
         }
       }
 
+TODO Should this panic, since we expect to use it only in controlled cases?
+
       public string(id: Int): String? {
         when (id) {
           0 -> "";

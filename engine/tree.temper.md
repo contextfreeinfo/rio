@@ -214,6 +214,13 @@ For any dot access, actually, including as an assignment target.
       public member: NodeId = 0,
     ) extends Node {}
 
+### IntValue
+
+    export class IntValue(
+      public source: Source = Source.none,
+      public value: Int = 0,
+    ) extends Node {}
+
 ### Ref
 
     export class Ref(

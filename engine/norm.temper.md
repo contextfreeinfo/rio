@@ -414,6 +414,31 @@ TODO Error on missing close paren or other such.
 #### normPrefix
 
       private normPrefix(node: ParseParent): Void {
+        var kidIndex = nextParsed(node);
+        let prefix = parsedAt(node, kidIndex);
+        let arg = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        when (prefix.asToken.kind) {
+          Token.sub -> when (arg.asToken.kind) {
+
+For ints, directly incorporate the negative into the original integer value. I'm
+not yet sure whether int literals will be arbitrary precision, but if not, it
+simplifies things at max negative value if the int value is just negative to
+start with.
+
+            Token.int -> do {
+              normTokenInt(arg.asToken, -1);
+              return;
+            }
+
+TODO Call neg method.
+
+            else -> void;
+          }
+
+TODO What other prefixes do we support?
+
+          else -> void;
+        }
       }
 
 #### normReturn
@@ -438,7 +463,16 @@ TODO Error on missing close paren or other such.
 
 #### normTokenInt
 
-      private normTokenInt(node: ParseParent): Void {
+      private normTokenInt(node: Token, scale: Int): Void {
+        let text = interner.string(node.text) ?? panic();
+        let value = scale * text.toInt32() orelse do {
+
+TODO Report error? What else to do on overflow? Should we have wrapping int
+parsing in Temper?
+
+          0
+        };
+        builder.work.add({ class: IntValue, value });
       }
 
 #### normVar
