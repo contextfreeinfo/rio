@@ -448,6 +448,10 @@ For now, just norm the arg in any case.
 #### normReturn
 
       private normReturn(node: ParseParent): Void {
+        var kidIndex = expectToken(node, Token.return);
+        let part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        let value = normNodeCommit(part);
+        builder.work.add({ class: Break, kind: Token.return, value });
       }
 
 #### normString
