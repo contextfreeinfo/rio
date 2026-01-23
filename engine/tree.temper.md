@@ -233,6 +233,13 @@ defining such imports?
       public target: NodeId = 0,
     ) extends Node {}
 
+### StringValue
+
+    export class StringValue(
+      public source: Source = Source.none,
+      public value: TextId = 0,
+    ) extends Node {}
+
 ### Switch
 
     export class Switch(

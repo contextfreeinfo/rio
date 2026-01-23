@@ -38,7 +38,7 @@ none-like object when out of bounds that makes processing logic easier.
 TODO Some way to pull out one ModuleBuilder from another. Could pull out an imu
 thing, but being able to reassign nodes in place can be handy.
 
-        return new ModuleBuilder();
+        return builder;
       }
 
 #### expectToken
@@ -384,7 +384,7 @@ splatting here.
 #### normParam
 
       private normParam(node: ParseParent): Void {
-        normVarFinish(node);
+        normVarFinish(node, node.kids.start);
       }
 
 #### normParams
@@ -457,16 +457,85 @@ For now, just norm the arg in any case.
 #### normString
 
       private normString(node: ParseParent): Void {
+        let buffer = new StringBuilder();
+        var kidIndex = expectToken(node, Token.stringOpen);
+        parts: while (true) {
+          let part =
+            parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+          let token = part.asToken;
+          when (token.kind) {
+            Token.stringText -> do {
+              let text = interner.string(token.text) ?? panic();
+              buffer.append(text);
+            }
+            Token.stringEscape -> do {
+              let text = interner.string(token.text) ?? panic();
+              let index = text.next(String.begin);
+              if (index < text.end) {
+
+TODO Multi-char escapes.
+
+                let c = text[index];
+                when (c) {
+
+TODO Syntax highlighting is off in vscode here.
+
+                  char'"', char"\\" -> // "
+                    buffer.appendCodePoint(c) orelse panic();
+                  char"n" -> buffer.append("\n");
+                  char"r" -> buffer.append("\r");
+                  char"t" -> buffer.append("\t");
+                }
+              }
+            }
+            Token.stringClose, Token.none -> break parts;
+          }
+        }
+        let value = interner[buffer.toString()];
+        builder.work.add({ class: StringValue, value });
       }
 
 #### normSwitch
 
       private normSwitch(node: ParseParent): Void {
+        var kidIndex = expectToken(node, Token.switch);
+        var part = parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+
+The alternative to `Parse.switch` is `Parse.switchEmpty`, which expects no
+subject.
+
+        if (part.parseKind == Parse.switch) {
+          normNode(part);
+          var part =
+            parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        }
+
+TODO skipThen helper? or should `then` be part of the ParseBlock node?
+
+        if (part.asToken.kind == Token.then) {
+          var part =
+            parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        }
+        var kids = Range.empty;
+        if (part.parseKind == Parse.block) {
+          normBlock(part.asParent);
+          kids = builder.popWorkBlock();
+          var part =
+            parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
+        }
+
+TODO Actually include the subject if given.
+
+        builder.work.add({ class: Switch, kids });
       }
 
 #### normToken
 
       private normToken(token: Token): Void {
+        when (token.kind) {
+          Token.id -> builder.work.add({ class: Ref, name: token.text });
+          Token.int -> normTokenInt(token, 1);
+        }
       }
 
 #### normTokenInt
@@ -486,15 +555,17 @@ parsing in Temper?
 #### normVar
 
       private normVar(node: ParseParent): Void {
+        var kidIndex = expectToken(node, Token.var);
+        normVarFinish(node, kidIndex + 1);
       }
 
 #### normVarFinish
 
 Used both for var declarations and for params, which have no leading `var`.
 
-      private normVarFinish(node: ParseParent): Void {
+      private normVarFinish(node: ParseParent, kidStart: Int): Void {
         let start = builder.work.length;
-        var kidIndex = nextParsed(node);
+        var kidIndex = nextParsed(node, kidStart);
         var part = parsedAt(node, kidIndex);
 
 Name, which could be missing for bad syntax like `var = 5` or whatever.

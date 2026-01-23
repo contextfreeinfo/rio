@@ -29,7 +29,7 @@ We can directly test here, even though we can't read files at runtime.
 TODO We apparently don't actually commit any nodes yet while norming.
 
       let normed = new Normer(interner).norm(parseNodes);
-      assert(normed.nodes.length == 1);
+      assert(normed.nodes.length == 19);
     }
 
 ### Test data
