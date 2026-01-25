@@ -34,11 +34,12 @@ none-like object when out of bounds that makes processing logic easier.
           return new ModuleBuilder();
         }
         normNode(parsed[parsed.length - 1]);
+        builder.commitBlock(0);
 
 TODO Some way to pull out one ModuleBuilder from another. Could pull out an imu
 thing, but being able to reassign nodes in place can be handy.
 
-        return builder;
+        return builder.extract();
       }
 
 #### expectToken

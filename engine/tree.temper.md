@@ -17,7 +17,9 @@ recursive by using indices into the node list builder.
 Individual node types themselves are imu, however, so fully imu lists also can
 be made.
 
-    export class ModuleBuilder { // TODO extends Modular
+    export class ModuleBuilder(
+      public nodes: ListBuilder<Node> = [emptyNode].toListBuilder(),
+    ) { // TODO extends Modular
 
 #### reset
 
@@ -56,6 +58,14 @@ parse tree building.
         nodes.addAll(work.splice(start));
       }
 
+#### extract
+
+Provides a copy of the builder for use in later passes.
+
+      public extract(): ModuleBuilder {
+        new ModuleBuilder(nodes.toListBuilder())
+      }
+
 #### popWorkBlock
 
       public popWorkBlock(): Range {
@@ -69,7 +79,6 @@ Init everything to a bogus member at 0 so that can mean a nullish value.
 
 Nodes reference side tables by kind and index.
 
-      public nodes: ListBuilder<Node> = [emptyNode].toListBuilder();
       public work: ListBuilder<Node> = [emptyNode].toListBuilder();
 
     }
