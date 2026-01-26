@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 fn main() {
     let _ = rio_engine::init(None);
     let interner = rio_engine::Interner::new();
@@ -19,22 +17,8 @@ fn main() {
     // Norm
     let normer = rio_engine::Normer::new(interner.clone());
     let normed = normer.norm(parse_tree);
-    let _ = normed;
-    let buffer = Arc::new(Mutex::new(String::new()));
-    let stringer = rio_engine::TreeStringerBuilder {
-        interner: interner.clone(),
-        appender: {
-            let buffer = buffer.clone();
-            Arc::new(move |string: Arc<String>| buffer.lock().unwrap().push_str(string.as_str()))
-        },
-    }
-    .build();
-    normed
-        .nodes()
-        .read()
-        .unwrap()
-        .last()
-        .unwrap()
-        .stringify(stringer);
-    print!("{}", &buffer.lock().unwrap());
+    print!(
+        "{}",
+        rio_engine::Node::stringify_tree(normed.nodes(), interner.clone())
+    );
 }

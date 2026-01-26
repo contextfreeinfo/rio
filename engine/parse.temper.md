@@ -31,7 +31,7 @@ In the future, presumably ParseNode is a union of Token and ParseParent.
 #### stringifyTree
 
       public static stringifyTree(
-        nodes: List<ParseNode>,
+        nodes: Listed<ParseNode>,
         interner: Interner,
       ): String {
         let builder = new StringBuilder();
@@ -49,7 +49,7 @@ In the future, presumably ParseNode is a union of Token and ParseParent.
       builder: StringBuilder,
       indent: Int,
       node: ParseNode,
-      nodes: List<ParseNode>,
+      nodes: Listed<ParseNode>,
       interner: Interner,
     ): Void {
       appendIndent(builder, indent);

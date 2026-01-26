@@ -142,6 +142,25 @@ TODO Could we still make this a value type as an enum?
         stringer.endLine();
       }
 
+#### stringifyTree
+
+      public static stringifyTree(
+        nodes: Listed<Node>,
+        interner: Interner,
+      ): String {
+        if (nodes.isEmpty) {
+          return "";
+        }
+        let buffer = new StringBuilder();
+        let stringer = new TreeStringer(
+          nodes,
+          interner,
+          fn (string) { buffer.append(string) },
+        );
+        nodes[nodes.length - 1].stringify(stringer);
+        buffer.toString()
+      }
+
     }
 
 TODO Making emptyNode a static member of the Node interface silently blocked
@@ -156,6 +175,7 @@ TODO Work around failing StringBuilder property type.
     export @fun interface Appender(string: String): Void;
 
     export class TreeStringer(
+      public nodes: Listed<Node>,
       public interner: Interner,
       public appender: Appender,
       // public builder: StringBuilder = new StringBuilder(),
