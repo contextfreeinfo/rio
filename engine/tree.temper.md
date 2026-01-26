@@ -134,14 +134,6 @@ TODO Could we still make this a value type as an enum?
     export sealed interface Node {
       public source: Source;
 
-#### stringify
-
-      public stringify(stringer: TreeStringer): Void {
-        stringer.indent();
-        stringer.append("TODO Some Node");
-        stringer.endLine();
-      }
-
 #### stringifyTree
 
       public static stringifyTree(
@@ -157,7 +149,7 @@ TODO Could we still make this a value type as an enum?
           interner,
           fn (string) { buffer.append(string) },
         );
-        nodes[nodes.length - 1].stringify(stringer);
+        stringer.stringify(nodes[nodes.length - 1]);
         buffer.toString()
       }
 
@@ -195,6 +187,23 @@ TODO Work around failing StringBuilder property type.
         for (var i = 0; i < indentLevel; ++i) {
           // builder.append(indentText);
           append(indentText);
+        }
+      }
+
+      public stringify(node: Node): Void {
+        when (node) {
+          is Block -> stringifyBlock(node);
+          else -> do {
+            indent();
+            append("TODO Some Node");
+            endLine();
+          }
+        }
+      }
+
+      public stringifyBlock(block: Block): Void {
+        for (var i = block.kids.start; i < block.kids.end; ++i) {
+          stringify(nodes[i]);
         }
       }
     }
