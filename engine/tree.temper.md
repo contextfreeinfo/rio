@@ -134,15 +134,12 @@ TODO Could we still make this a value type as an enum?
     export sealed interface Node {
       public source: Source;
 
-#### stringifyTree
+#### stringify
 
-TODO Stringify tree.
-
-      public static stringifyTree(
-        nodes: Listed<Node>,
-        interner: Interner,
-      ): String {
-        ""
+      public stringify(stringer: TreeStringer): Void {
+        stringer.indent();
+        stringer.append("TODO Some Node");
+        stringer.endLine();
       }
 
     }
@@ -151,6 +148,36 @@ TODO Making emptyNode a static member of the Node interface silently blocked
 backend translations.
 
     let emptyNode: Node = new Block() as Node;
+
+### TreeStringer
+
+TODO Work around failing StringBuilder property type.
+
+    export @fun interface Appender(string: String): Void;
+
+    export class TreeStringer(
+      public interner: Interner,
+      public appender: Appender,
+      // public builder: StringBuilder = new StringBuilder(),
+      public var indentLevel: Int = 0,
+      public indentText: String = "  ",
+    ) {
+      public append(string: String): Void {
+        appender(string);
+      }
+
+      public endLine(): Void {
+        // builder.append("\n");
+        append("\n");
+      }
+
+      public indent(): Void {
+        for (var i = 0; i < indentLevel; ++i) {
+          // builder.append(indentText);
+          append(indentText);
+        }
+      }
+    }
 
 ### Block
 
