@@ -149,7 +149,7 @@ TODO Could we still make this a value type as an enum?
           interner,
           fn (string) { buffer.append(string) },
         );
-        stringer.stringify(nodes[nodes.length - 1]);
+        stringer.stringify(nodes.length - 1);
         buffer.toString()
       }
 
@@ -174,14 +174,21 @@ TODO Work around failing StringBuilder property type.
       public var indentLevel: Int = 0,
       public indentText: String = "  ",
     ) {
+
+#### append
+
       public append(string: String): Void {
         appender(string);
       }
+
+#### endLine
 
       public endLine(): Void {
         // builder.append("\n");
         append("\n");
       }
+
+#### indent
 
       public indent(): Void {
         for (var i = 0; i < indentLevel; ++i) {
@@ -190,20 +197,105 @@ TODO Work around failing StringBuilder property type.
         }
       }
 
-      public stringify(node: Node): Void {
+#### stringify
+
+      public stringify(index: NodeId): Void {
+        let node = nodes[index];
+
+TODO Until we improve codegen, put these in order of most to least likely. Well,
+maybe get stats first then sort them.
+
         when (node) {
           is Block -> stringifyBlock(node);
-          else -> do {
-            indent();
-            append("TODO Some Node");
-            endLine();
-          }
+          is Break -> stringifyBreak(node);
+          is Call -> stringifyCall(node);
+          is Fun -> stringifyFun(node);
+          is Ref -> stringifyRef(node);
+          else -> append("TODO Some Node");
         }
       }
 
+#### stringifyBlock
+
       public stringifyBlock(block: Block): Void {
-        for (var i = block.kids.start; i < block.kids.end; ++i) {
-          stringify(nodes[i]);
+        stringifyStatements(block.kids);
+      }
+
+#### stringifyBreak
+
+      public stringifyBreak(nym`break`: Break): Void {
+        indent();
+        when (nym`break`.kind) {
+          Token.break -> append("break");
+          Token.return -> append("return");
+          else -> panic();
+        }
+
+TODO Break labels.
+
+        if (nym`break`.value != 0) {
+          append(" ");
+          stringify(nym`break`.value);
+        }
+        endLine();
+      }
+
+#### stringifyCall
+
+      public stringifyCall(call: Call): Void {
+        stringify(call.callee);
+        append("(");
+        let args = call.args;
+        for (var i = args.start; i < args.end; ++i) {
+          if (i > args.start) {
+            append(", ");
+          }
+          stringify(i);
+        }
+        append(")");
+      }
+
+#### stringifyFun
+
+      public stringifyFun(fun: Fun): Void {
+        indent();
+        append("fun");
+        if (fun.name != 0) {
+          append(" ");
+          append(interner.string(fun.name) ?? panic());
+        }
+        append("(");
+        let params = fun.params;
+        for (var i = params.start; i < params.end; ++i) {
+          if (i > params.start) {
+            append(", ");
+          }
+          let param = nodes[i] as Var orelse panic();
+          // stringify(i);
+        }
+        append(")");
+        endLine();
+        ++indentLevel;
+        stringifyStatements(fun.kids);
+        --indentLevel;
+        indent();
+        append("end");
+        endLine();
+      }
+
+#### stringifyRef
+
+      public stringifyRef(ref: Ref): Void {
+        append(interner.string(ref.name) ?? panic());
+      }
+
+#### stringifyStatements
+
+      public stringifyStatements(kids: NodeRange): Void {
+        for (var i = kids.start; i < kids.end; ++i) {
+          indent();
+          stringify(i);
+          endLine();
         }
       }
     }
