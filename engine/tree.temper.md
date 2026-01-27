@@ -210,6 +210,7 @@ maybe get stats first then sort them.
           is Break -> stringifyBreak(node);
           is Call -> stringifyCall(node);
           is Fun -> stringifyFun(node);
+          is StringValue -> stringifyStringValue(node);
           is Ref -> stringifyRef(node);
           else -> append("TODO Some Node");
         }
@@ -297,6 +298,43 @@ TODO Break labels.
           stringify(i);
           endLine();
         }
+      }
+
+#### stringifyStringValue
+
+      public stringifyStringValue(value: StringValue): Void {
+        let text = interner.string(value.value) ?? panic();
+        append("\"");
+        var lastStart = String.begin;
+        chars: for (var i = String.begin; i < text.end; i = text.next(i)) {
+          let c = text[i];
+
+TODO What else should be escaped?
+
+          let escape = when (c) {
+            char'"' -> '"';
+            char "\\" -> "\\";
+            char"\n" -> "n";
+            char"\r" -> "r";
+            char"\t" -> "t";
+            else -> if (c < char" ") {
+              let pad = if (c < 0x10) { "0" } else { "" };
+              "\\x${pad}${c.toString(0x10)}"
+            } else {
+              continue chars;
+            }
+          }
+          if (lastStart < i) {
+            append(text.slice(lastStart, i));
+            lastStart = text.next(i);
+          }
+          append("\\");
+          append(escape);
+        }
+        if (lastStart < text.end) {
+          append(text.slice(lastStart, text.end));
+        }
+        append("\"");
       }
     }
 
