@@ -457,9 +457,12 @@ For now, just norm the arg in any case.
 
 #### normString
 
+TODO How or where to merge multiple sequential strings? Parsing or here? Later?
+
       private normString(node: ParseParent): Void {
         let buffer = new StringBuilder();
         var kidIndex = expectToken(node, Token.stringOpen);
+        var hadClose = false;
         parts: while (true) {
           let part =
             parsedAt(node, (kidIndex = nextParsed(node, kidIndex + 1)));
@@ -487,10 +490,28 @@ TODO Syntax highlighting is off in vscode here.
                   char"r" -> buffer.append("\r");
                   char"t" -> buffer.append("\t");
                 }
+              } else {
+
+This should only happen if we have a dangling escape, which avoids a newline.
+
+TODO Ignore trailing whitespace after a dangling escape. Handle in lexer???
+
+                hadClose = true;
+                break parts;
               }
             }
-            Token.stringClose, Token.none -> break parts;
+            Token.stringClose -> do {
+              hadClose = true;
+              break parts;
+            }
+            Token.none -> break parts;
           }
+        }
+
+Strings without explicit ends have an implied newline.
+
+        if (!hadClose) {
+          buffer.append("\n");
         }
         let value = interner[buffer.toString()];
         builder.work.add({ class: StringValue, value });

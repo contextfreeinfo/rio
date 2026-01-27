@@ -326,8 +326,8 @@ TODO What else should be escaped?
           }
           if (lastStart < i) {
             append(text.slice(lastStart, i));
-            lastStart = text.next(i);
           }
+          lastStart = text.next(i);
           append("\\");
           append(escape);
         }
