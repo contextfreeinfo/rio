@@ -21,13 +21,13 @@ We can directly test here, even though we can't read files at runtime.
 
     test("steps") {
       let interner = new Interner();
+      // Lex.
       let tokens = new Lexer(interner).lex(hi);
       assert(tokens.length == 87);
+      // Parse.
       let parseNodes = new Parser().parse(tokens);
       assert(parseNodes.length == 118);
-
-TODO We apparently don't actually commit any nodes yet while norming.
-
+      // Norm.
       let normed = new Normer(interner).norm(parseNodes);
       assert(normed.nodes.length == 22);
       assert(normed.nodes[normed.nodes.length - 1] is Block);
