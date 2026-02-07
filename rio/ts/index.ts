@@ -16,6 +16,10 @@ function main() {
     const normer = new engine.Normer(interner);
     const normed = normer.norm(parseTree);
     console.log(engine.Node.stringifyTree(normed.nodes, interner));
+
+    // Resolve
+    const resolver = new engine.Resolver();
+    resolver.resolve(normed);
 }
 
 main()

@@ -21,6 +21,12 @@ be made.
       public nodes: ListBuilder<Node> = [emptyNode].toListBuilder(),
     ) { // TODO extends Modular
 
+#### root
+
+      public get root(): Block {
+        nodes[nodes.length - 1] as Block orelse panic()
+      }
+
 #### reset
 
 Call reset before each reuse of a ModuleBuilder.
@@ -155,10 +161,24 @@ TODO Could we still make this a value type as an enum?
 
     }
 
+
 TODO Making emptyNode a static member of the Node interface silently blocked
 backend translations.
 
     let emptyNode: Node = new Block() as Node;
+
+### nodeAsDef
+
+TODO Make this a member method of Node, but Rust ends up with a problem.
+
+    @extension("asDef")
+    export let nodeAsDef(node: Node): Def? {
+      when (node) {
+        is Fun -> node;
+        is Var -> node;
+        else -> null;
+      }
+    }
 
 ### TreeStringer
 

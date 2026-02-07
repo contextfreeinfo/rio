@@ -2,6 +2,8 @@
 
 I using norming to mean converting a parse tree into an abstract tree.
 
+### Normer
+
     export class Normer(
       public interner: Interner,
     ) {

@@ -31,6 +31,8 @@ We can directly test here, even though we can't read files at runtime.
       let normed = new Normer(interner).norm(parseNodes);
       assert(normed.nodes.length == 22);
       assert(normed.nodes[normed.nodes.length - 1] is Block);
+      // Resolve.
+      new Resolver().resolve(normed);
     }
 
 ### Test data

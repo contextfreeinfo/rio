@@ -21,4 +21,8 @@ fn main() {
         "{}",
         rio_engine::Node::stringify_tree(normed.nodes(), interner.clone())
     );
+
+    // Resolve
+    let resolver = rio_engine::Resolver::new();
+    resolver.resolve(normed.clone());
 }
