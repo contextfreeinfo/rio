@@ -195,21 +195,17 @@ To resolve, first look bottom up (last to first) through the scope.
         let name = ref.name;
         for (var i = scopeNames.length - 1; i >= 0; --i) {
           if (name == scopeNames[i]) {
-            nodes[id] = {
-              class: Ref,
-              source: ref.source,
-              name,
-              target: scopeNodes[i],
-            };
+            let target = scopeNodes[i];
+            nodes[id] = { class: Ref, source: ref.source, name, target };
             return;
           }
         }
 
 Then if that fails, check the top-level defs here.
 
-        let top = tops.getOr(name, 0);
-        if (top != 0) {
-          nodes[id] = { class: Ref, source: ref.source, name, target: top };
+        let target = tops.getOr(name, 0);
+        if (target != 0) {
+          nodes[id] = { class: Ref, source: ref.source, name, target };
           return;
         }
 

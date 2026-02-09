@@ -17,12 +17,12 @@ fn main() {
     // Norm
     let normer = rio_engine::Normer::new(interner.clone());
     let normed = normer.norm(parse_tree);
-    print!(
-        "{}",
-        rio_engine::Node::stringify_tree(normed.nodes(), interner.clone())
-    );
 
     // Resolve
     let resolver = rio_engine::Resolver::new();
     resolver.resolve(normed.clone());
+    print!(
+        "{}",
+        rio_engine::Node::stringify_tree(normed.nodes(), interner.clone())
+    );
 }

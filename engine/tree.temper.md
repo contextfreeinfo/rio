@@ -229,7 +229,7 @@ maybe get stats first then sort them.
           is Block -> stringifyBlock(node);
           is Break -> stringifyBreak(node);
           is Call -> stringifyCall(node);
-          is Fun -> stringifyFun(node);
+          is Fun -> stringifyFun(node, index);
           is StringValue -> stringifyStringValue(node);
           is Ref -> stringifyRef(node);
           else -> append("TODO Some Node");
@@ -278,12 +278,14 @@ TODO Break labels.
 
 #### stringifyFun
 
-      public stringifyFun(fun: Fun): Void {
+      public stringifyFun(fun: Fun, id: NodeId): Void {
         indent();
         append("fun");
         if (fun.name != 0) {
           append(" ");
           append(interner.string(fun.name) ?? panic());
+          append("@");
+          append(id.toString());
         }
         append("(");
         let params = fun.params;
@@ -308,6 +310,10 @@ TODO Break labels.
 
       public stringifyRef(ref: Ref): Void {
         append(interner.string(ref.name) ?? panic());
+        if (ref.target != 0) {
+          append("@");
+          append(ref.target.toString());
+        }
       }
 
 #### stringifyStatements
