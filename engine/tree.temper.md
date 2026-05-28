@@ -1,4 +1,4 @@
-## Abstract tree
+# Abstract tree
 
 There's a single abstract tree for each module. Node details are stored in side
 tables and are cross-referenced by index. Beyond that, the nodes are designed to
@@ -8,7 +8,7 @@ easy tree handling.
 And I guess technically people could call this an abstract *syntax* tree, but
 meh.
 
-### ModuleBuilder
+## ModuleBuilder
 
 We can't have both mutable children and recursive types, because that would
 allow for cycles. So we either need to be immutable or non-recursive. We avoid
@@ -21,13 +21,17 @@ be made.
       public nodes: ListBuilder<Node> = [emptyNode].toListBuilder(),
     ) { // TODO extends Modular
 
-#### root
+### tops
+
+      public tops: MapBuilder<TextId, NodeId> = new MapBuilder();
+
+### root
 
       public get root(): Block {
         nodes[nodes.length - 1] as Block orelse panic()
       }
 
-#### reset
+### reset
 
 Call reset before each reuse of a ModuleBuilder.
 
@@ -36,14 +40,14 @@ Call reset before each reuse of a ModuleBuilder.
         resetOne(work);
       }
 
-#### commit
+### commit
 
       public commit(start: Int, parent: Node): Void {
         commitHeadless(start);
         work.add(parent);
       }
 
-#### commitBlock
+### commitBlock
 
       public commitBlock(start: Int): Void {
         commit(start, {
@@ -55,7 +59,7 @@ Call reset before each reuse of a ModuleBuilder.
         });
       }
 
-#### commitHeadless
+### commitHeadless
 
 TODO Is looping faster than intermediate allocation here? Same issue as for
 parse tree building.
@@ -64,7 +68,7 @@ parse tree building.
         nodes.addAll(work.splice(start));
       }
 
-#### extract
+### extract
 
 Provides a copy of the builder for use in later passes.
 
@@ -72,14 +76,14 @@ Provides a copy of the builder for use in later passes.
         new ModuleBuilder(nodes.toListBuilder())
       }
 
-#### popWorkBlock
+### popWorkBlock
 
       public popWorkBlock(): Range {
         let last = work.removeLast() as Block orelse panic();
         last.kids
       }
 
-#### Data
+### Data
 
 Init everything to a bogus member at 0 so that can mean a nullish value.
 
@@ -89,7 +93,7 @@ Nodes reference side tables by kind and index.
 
     }
 
-### resetOne
+## resetOne
 
 Resets a list down to the first member, avoiding splice because that allocates.
 
@@ -99,7 +103,7 @@ Resets a list down to the first member, avoiding splice because that allocates.
       items.add(first);
     }
 
-### Source
+## Source
 
     export class Source(
       public path: TextId,
@@ -108,7 +112,7 @@ Resets a list down to the first member, avoiding splice because that allocates.
       public static none: Source = { path: 0, range: Range.empty };
     }
 
-### Definition flags
+## Definition flags
 
     export let DefFlags = Int;
 
@@ -119,14 +123,14 @@ Resets a list down to the first member, avoiding splice because that allocates.
       public static pub = DefFlag.plug * 2;
     }
 
-### Definition
+## Definition
 
     export sealed interface Def {
       public name: TextId;
       public flags: DefFlags;
     }
 
-### Node
+## Node
 
     export let NodeId = Int;
     export let NodeRange = Range;
@@ -140,7 +144,7 @@ TODO Could we still make this a value type as an enum?
     export sealed interface Node {
       public source: Source;
 
-#### stringifyTree
+### stringifyTree
 
       public static stringifyTree(
         nodes: Listed<Node>,
@@ -167,7 +171,7 @@ backend translations.
 
     let emptyNode: Node = new Block() as Node;
 
-### nodeAsDef
+## nodeAsDef
 
 TODO Make this a member method of Node, but Rust ends up with a problem.
 
@@ -180,7 +184,7 @@ TODO Make this a member method of Node, but Rust ends up with a problem.
       }
     }
 
-### TreeStringer
+## TreeStringer
 
 TODO Work around failing StringBuilder property type.
 
@@ -195,20 +199,20 @@ TODO Work around failing StringBuilder property type.
       public indentText: String = "  ",
     ) {
 
-#### append
+### append
 
       public append(string: String): Void {
         appender(string);
       }
 
-#### endLine
+### endLine
 
       public endLine(): Void {
         // builder.append("\n");
         append("\n");
       }
 
-#### indent
+### indent
 
       public indent(): Void {
         for (var i = 0; i < indentLevel; ++i) {
@@ -217,7 +221,7 @@ TODO Work around failing StringBuilder property type.
         }
       }
 
-#### stringify
+### stringify
 
       public stringify(index: NodeId): Void {
         let node = nodes[index];
@@ -236,13 +240,13 @@ maybe get stats first then sort them.
         }
       }
 
-#### stringifyBlock
+### stringifyBlock
 
       public stringifyBlock(block: Block): Void {
         stringifyStatements(block.kids);
       }
 
-#### stringifyBreak
+### stringifyBreak
 
       public stringifyBreak(nym`break`: Break): Void {
         indent();
@@ -261,7 +265,7 @@ TODO Break labels.
         endLine();
       }
 
-#### stringifyCall
+### stringifyCall
 
       public stringifyCall(call: Call): Void {
         stringify(call.callee);
@@ -276,7 +280,7 @@ TODO Break labels.
         append(")");
       }
 
-#### stringifyFun
+### stringifyFun
 
       public stringifyFun(fun: Fun, id: NodeId): Void {
         indent();
@@ -306,7 +310,7 @@ TODO Break labels.
         endLine();
       }
 
-#### stringifyRef
+### stringifyRef
 
       public stringifyRef(ref: Ref): Void {
         append(interner.string(ref.name) ?? panic());
@@ -316,7 +320,7 @@ TODO Break labels.
         }
       }
 
-#### stringifyStatements
+### stringifyStatements
 
       public stringifyStatements(kids: NodeRange): Void {
         for (var i = kids.start; i < kids.end; ++i) {
@@ -326,7 +330,7 @@ TODO Break labels.
         }
       }
 
-#### stringifyStringValue
+### stringifyStringValue
 
       public stringifyStringValue(value: StringValue): Void {
         let text = interner.string(value.value) ?? panic();
@@ -364,7 +368,7 @@ TODO What else should be escaped?
       }
     }
 
-### Block
+## Block
 
 All node detail types have an index back into the main node list.
 
@@ -373,7 +377,7 @@ All node detail types have an index back into the main node list.
       public kids: NodeRange = Range.empty,
     ) extends Node {}
 
-### Break
+## Break
 
 Break also handles returns.
 
@@ -384,7 +388,7 @@ Break also handles returns.
       public value: NodeId = 0,
     ) extends Node {}
 
-### Call
+## Call
 
     export class Call(
       public source: Source = Source.none,
@@ -392,7 +396,7 @@ Break also handles returns.
       public args: NodeRange = Range.empty,
     ) extends Node {}
 
-### Case
+## Case
 
     export class Case(
       public source: Source = Source.none,
@@ -402,7 +406,7 @@ Break also handles returns.
       public kids: NodeRange = Range.empty,
     ) extends Node {}
 
-### Fun
+## Fun
 
 TODO If we want to enum Node, we might want to break these bigger nodes into a
 collection of smaller nodes, so we don't get any much bigger than others. I
@@ -425,7 +429,7 @@ TODO And even a Signature node to keep params and return together?
       public kids: NodeRange = Range.empty,
     ) extends Node & Def {}
 
-### Get
+## Get
 
 For any dot access, actually, including as an assignment target.
 
@@ -435,14 +439,14 @@ For any dot access, actually, including as an assignment target.
       public member: NodeId = 0,
     ) extends Node {}
 
-### IntValue
+## IntValue
 
     export class IntValue(
       public source: Source = Source.none,
       public value: Int = 0,
     ) extends Node {}
 
-### Ref
+## Ref
 
     export class Ref(
       public source: Source = Source.none,
@@ -454,14 +458,14 @@ defining such imports?
       public target: NodeId = 0,
     ) extends Node {}
 
-### StringValue
+## StringValue
 
     export class StringValue(
       public source: Source = Source.none,
       public value: TextId = 0,
     ) extends Node {}
 
-### Switch
+## Switch
 
     export class Switch(
       public source: Source = Source.none,
@@ -469,7 +473,7 @@ defining such imports?
       public kids: Range = Range.empty,
     ) extends Node {}
 
-### Var
+## Var
 
     export class Var(
       public source: Source = Source.none,
