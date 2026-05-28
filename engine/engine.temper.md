@@ -7,9 +7,23 @@ Backends need to provide access to source code. We just receive it here.
 
     export class Engine {
       private lexer: Lexer = new Lexer();
+      private parser: Parser = new Parser();
+      private normer: Normer = new Normer(lexer.interner);
+      private resolver: Resolver = new Resolver();
+      public modules: MapBuilder<String, ModuleBuilder> =
+        new MapBuilder<String, ModuleBuilder>();
 
-      public process(source: String): Void {
-        lexer.lex(source);
+      public process(name: String, source: String): ModuleBuilder {
+        if (modules.length == 0 && name != "core") {
+          process("core", coreSource);
+        }
+        let tokens = lexer.lex(source);
+        let parseNodes = parser.parse(tokens);
+        let normed = normer.norm(parseNodes);
+        resolver.resolve(normed);
+        // Store the result and also return for convenience.
+        modules[name] = normed;
+        normed
       }
     }
 
@@ -18,6 +32,24 @@ Backends need to provide access to source code. We just receive it here.
 ### Test cases
 
 We can directly test here, even though we can't read files at runtime.
+
+#### Use an engine
+
+Run through an engine for aggregate behavior.
+
+    test("engine") {
+      let engine = new Engine();
+      let module = engine.process("hi", hi);
+      assert(engine.modules.length == 2);
+      assert(module.nodes.length == expectedHiLength);
+      assert(engine.modules["core"].nodes.length == 85);
+    }
+
+    let expectedHiLength = 22;
+
+#### Manual steps
+
+Check results as we go.
 
     test("steps") {
       let interner = new Interner();
@@ -29,7 +61,7 @@ We can directly test here, even though we can't read files at runtime.
       assert(parseNodes.length == 118);
       // Norm.
       let normed = new Normer(interner).norm(parseNodes);
-      assert(normed.nodes.length == 22);
+      assert(normed.nodes.length == expectedHiLength);
       assert(normed.nodes[normed.nodes.length - 1] is Block);
       // Resolve.
       new Resolver().resolve(normed);
