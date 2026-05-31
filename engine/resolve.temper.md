@@ -214,27 +214,31 @@ To resolve, first look bottom up (last to first) through the scope.
           }
         }
 
-Then if that fails, check the top-level defs here.
+Then if that fails, check the top-level defs here. First us then imports.
 
-        let target = tops.getOr(name, 0);
-        if (target != 0) {
-          nodes[id] = { class: Ref, source: ref.source, name, target };
-          return;
+TODO Provide imports in resolution order.
+
+        let checkTops(
+          module: TextId,
+          tops: MapBuilder<TextId, NodeId>,
+        ): Boolean {
+          let target = tops.getOr(name, 0);
+          let found = target != 0;
+          if (found) {
+            nodes[id] = { class: Ref, source: ref.source, name, module, target };
+          }
+          found
         }
 
-TODO And if that fails, check imports. Should provide them in resolution order?
-
+        if (checkTops(0, tops)) {
+          return;
+        }
         for (var i = 0; i < modules.length; i += 1) {
           let modulePair = modules[i];
-          let module = modulePair.key;
-          let tops = modulePair.value.tops;
-          let target = tops.getOr(name, 0);
-          if (target != 0) {
-            nodes[id] = { class: Ref, source: ref.source, name, module, target };
+          if (checkTops(modulePair.key, modulePair.value.tops)) {
             return;
           }
         }
-
       }
 
 #### resolveSwitch
