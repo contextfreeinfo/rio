@@ -316,6 +316,10 @@ TODO Break labels.
         append(interner.string(ref.name) ?? panic());
         if (ref.target != 0) {
           append("@");
+          if (ref.module != 0) {
+            append(ref.module.toString());
+            append("/");
+          }
           append(ref.target.toString());
         }
       }
@@ -451,10 +455,7 @@ For any dot access, actually, including as an assignment target.
     export class Ref(
       public source: Source = Source.none,
       public name: TextId = 0,
-
-TODO For imports, should module be here, or should we have a different node for
-defining such imports?
-
+      public module: TextId = 0,
       public target: NodeId = 0,
     ) extends Node {}
 

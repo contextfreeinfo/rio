@@ -10,8 +10,7 @@ Backends need to provide access to source code. We just receive it here.
       private parser: Parser = new Parser();
       private normer: Normer = new Normer(lexer.interner);
       private resolver: Resolver = new Resolver();
-      public modules: MapBuilder<String, ModuleBuilder> =
-        new MapBuilder<String, ModuleBuilder>();
+      public modules: MapBuilder<TextId, ModuleBuilder> = new MapBuilder();
 
       public process(name: String, source: String): ModuleBuilder {
         if (modules.length == 0 && name != "core") {
@@ -20,20 +19,40 @@ Backends need to provide access to source code. We just receive it here.
         let tokens = lexer.lex(source);
         let parseNodes = parser.parse(tokens);
         let normed = normer.norm(parseNodes);
-        resolver.resolve(normed);
+        resolver.resolve(normed, modules);
         // Store the result and also return for convenience.
-        modules[name] = normed;
+        modules[textId(name)] = normed;
         normed
+      }
+
+### interner
+
+      public get interner(): Interner {
+        lexer.interner
+      }
+
+### string
+
+Get the string representation of the text id from the interner.
+
+      public string(text: TextId): String? {
+        lexer.interner.string(text)
+      }
+
+### textId
+
+Get the id representation of the string from the interner.
+
+      public textId(string: String): TextId {
+        lexer.interner[string]
       }
     }
 
 ## Testing
 
-### Test cases
-
 We can directly test here, even though we can't read files at runtime.
 
-#### Use an engine
+### Use an engine
 
 Run through an engine for aggregate behavior.
 
@@ -42,12 +61,18 @@ Run through an engine for aggregate behavior.
       let module = engine.process("hi", hi);
       assert(engine.modules.length == 2);
       assert(module.nodes.length == expectedHiLength);
-      assert(engine.modules["core"].nodes.length == 85);
+      let core = engine.modules[engine.textId("core")];
+      assert(core.nodes.length == 85);
+      assert(core.tops.length == 8);
+      assert(
+        core.tops.keys().join(" ") { x => engine.string(x) ?? "?" } ==
+          "error false log no null true void yes",
+      );
     }
 
     let expectedHiLength = 22;
 
-#### Manual steps
+### Manual steps
 
 Check results as we go.
 

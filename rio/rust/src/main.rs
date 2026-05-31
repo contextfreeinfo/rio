@@ -20,7 +20,7 @@ fn main() {
 
     // Resolve
     let resolver = rio_engine::Resolver::new();
-    resolver.resolve(normed.clone());
+    resolver.resolve(normed.clone(), None);
     print!(
         "{}",
         rio_engine::Node::stringify_tree(normed.nodes(), interner.clone())

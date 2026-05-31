@@ -22,19 +22,32 @@ less allocation happening.
       private scopeNames: ListBuilder<TextId> = new ListBuilder();
       private scopeNodes: ListBuilder<NodeId> = new ListBuilder();
 
-TODO Just keep `tops` in ModuleBuilder the whole time?
+Make empty placeholders to start with for avoiding null handling. We get these
+from elsewhere.
 
-      private tops: MapBuilder<TextId, NodeId> = new MapBuilder();
+      private var modules: List<Pair<TextId, ModuleBuilder>> = [];
+      private var tops: MapBuilder<TextId, NodeId> = new MapBuilder();
 
 #### resolve
 
-      public resolve(module: ModuleBuilder): Void {
+      public resolve(
+        module: ModuleBuilder,
+
+TODO For now, this is all modules, but maybe should pass in only actual imports?
+
+        modules: Mapped<TextId, ModuleBuilder> = new Map([]),
+      ): Void {
 
 Clean up before processing, reusing previously allocated space where possible.
 
         nodes = module.nodes;
         scopeNames.clear();
         scopeNodes.clear();
+
+But use the some outsiders here for convenience.
+
+        this.modules = modules.toList();
+        tops = module.tops;
         tops.clear();
 
 Extract tops.
@@ -209,7 +222,18 @@ Then if that fails, check the top-level defs here.
           return;
         }
 
-TODO And if that fails, check builtins.
+TODO And if that fails, check imports. Should provide them in resolution order?
+
+        for (var i = 0; i < modules.length; i += 1) {
+          let modulePair = modules[i];
+          let module = modulePair.key;
+          let tops = modulePair.value.tops;
+          let target = tops.getOr(name, 0);
+          if (target != 0) {
+            nodes[id] = { class: Ref, source: ref.source, name, module, target };
+            return;
+          }
+        }
 
       }
 
