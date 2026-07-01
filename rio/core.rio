@@ -1,26 +1,32 @@
+Any :: handle
+
 Bool :: Maybe[Void]
 
-Either :: union[YesValue, NoValue]
-    Yes[YesValue]
-    No[NoValue]
+Either :: union($YesValue: Type, $NoValue: Type)
+    Yes(YesValue)
+    No(NoValue)
 end
 
 Error :: struct
     message: String
 end
 
-error :: proc(message: String) -> (err: Error)
+error :: proc(message: String): Error
     err = { message }
 end
 
-Float :: struct
-end
+Float32 :: opaque
 
-Int :: struct
-end
+Int :: opaque
 
-List :: class[Item]
+List :: struct($Item: Type)
 end
 
 log :: proc(message: String)
 end
+
+Try :: union($Value: Type)
+    Either(Value, Error)
+end
+
+Type :: opaque
