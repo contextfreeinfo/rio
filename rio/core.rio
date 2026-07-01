@@ -1,6 +1,6 @@
 pub
 
-Any :: opaque
+Any :: extern struct
 
 Bool :: Maybe[Void]
 
@@ -19,9 +19,9 @@ end
 
 false :: no[Void](void)
 
-Float32 :: opaque
+Float32 :: extern struct
 
-Int :: opaque
+Int :: extern struct
 
 len :: proc
     list_len
@@ -29,10 +29,9 @@ len :: proc
     weak_len
 end
 
-List :: opaque[Item]
+List :: extern struct[Item]
 
-log :: proc(message: String)
-end
+log :: extern proc(message: String)
 
 Maybe :: union[Value]
     Either[Value, Void]
@@ -48,7 +47,7 @@ no :: proc[Value](value: Value) -> No[Value]
     return { value }
 end
 
-Ref :: opaque[Value]
+Ref :: extern struct[Value]
 
 Span :: struct[Item]
     list: List[Item]
@@ -65,14 +64,16 @@ Try :: union[Value]
     Either[Value, Error]
 end
 
-Type :: opaque
+Type :: extern struct
+
+UInt8 :: extern struct
 
 Void :: struct
 end
 
 void :: Void {}
 
-Weak :: opaque[Value]
+Weak :: extern struct[Value]
 
 Yes :: struct[Value]
     value: Value
