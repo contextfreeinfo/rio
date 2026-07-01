@@ -1,0 +1,26 @@
+Bool :: Maybe[Void]
+
+Either :: union[YesValue, NoValue]
+    Yes[YesValue]
+    No[NoValue]
+end
+
+Error :: struct
+    message: String
+end
+
+error :: proc(message: String) -> (err: Error)
+    err = { message }
+end
+
+Float :: struct
+end
+
+Int :: struct
+end
+
+List :: class[Item]
+end
+
+log :: proc(message: String)
+end
