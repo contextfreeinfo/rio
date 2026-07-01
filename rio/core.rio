@@ -17,7 +17,7 @@ error :: proc(message: String) -> Error
     return { message }
 end
 
-false :: nil[Void]
+false :: no[Void](void)
 
 Float32 :: opaque
 
@@ -38,21 +38,26 @@ Maybe :: union[Value]
     Either[Value, Void]
 end
 
-nil :: proc[Value] -> No[Value, Void]
-    return no[Value, _](void)
+nil :: false
+
+No :: struct[Value]
+    value: Value
 end
 
-No :: struct[YesValue, NoValue]
-    value: NoValue
-end
-
-no :: proc[YesValue, NoValue](value: NoValue) -> No[NoValue]
+no :: proc[Value](value: Value) -> No[Value]
     return { value }
 end
 
 Ref :: opaque[Value]
 
-String :: opaque
+Span :: struct[Item]
+    list: List[Item]
+    range: Range
+end
+
+String :: struct
+    slice: Span[UInt8]
+end
 
 true :: yes(void)
 
@@ -73,6 +78,6 @@ Yes :: struct[Value]
     value: Value
 end
 
-yes :: proc[Value](value: Value) -> No[Value]
+yes :: proc[Value](value: Value) -> Yes[Value]
     return { value }
 end
