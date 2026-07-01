@@ -1,8 +1,10 @@
-Any :: handle
+pub
 
-Bool :: Maybe[Void]
+Any :: opaque
 
-Either :: union($YesValue: Type, $NoValue: Type)
+Bool :: Maybe(Void)
+
+Either :: union($YesValue, $NoValue)
     Yes(YesValue)
     No(NoValue)
 end
@@ -11,22 +13,66 @@ Error :: struct
     message: String
 end
 
-error :: proc(message: String): Error
-    err = { message }
+error :: proc(message: String) -> Error
+    return { message }
 end
+
+false :: nil[Void]
 
 Float32 :: opaque
 
 Int :: opaque
 
-List :: struct($Item: Type)
+len :: proc
+    list_len
+    ref_len
+    weak_len
 end
+
+List :: opaque($Item)
 
 log :: proc(message: String)
 end
 
-Try :: union($Value: Type)
+Maybe :: union($Value)
+    Either(Value, Void)
+end
+
+nil :: proc[$Value] -> No(Value, Void)
+    return no[Value, _](void)
+end
+
+No :: struct($YesValue, $NoValue)
+    value: NoValue
+end
+
+no :: proc[$YesValue, $NoValue](value: NoValue) -> No(NoValue)
+    return { value }
+end
+
+Ref :: opaque($Value)
+
+String :: opaque
+
+true :: yes(void)
+
+Try :: union($Value)
     Either(Value, Error)
 end
 
 Type :: opaque
+
+Void :: struct
+end
+
+void :: Void {}
+
+Weak :: opaque($Value)
+
+Yes :: struct($Value)
+    value: Value
+end
+
+yes :: proc[$Value](value: Value) -> No(Value)
+    return { value }
+end
