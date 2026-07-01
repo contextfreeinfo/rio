@@ -2,11 +2,11 @@ pub
 
 Any :: opaque
 
-Bool :: Maybe(Void)
+Bool :: Maybe[Void]
 
-Either :: union($YesValue, $NoValue)
-    Yes(YesValue)
-    No(NoValue)
+Either :: union[YesValue, NoValue]
+    Yes[YesValue]
+    No[NoValue]
 end
 
 Error :: struct
@@ -29,35 +29,35 @@ len :: proc
     weak_len
 end
 
-List :: opaque($Item)
+List :: opaque[Item]
 
 log :: proc(message: String)
 end
 
-Maybe :: union($Value)
-    Either(Value, Void)
+Maybe :: union[Value]
+    Either[Value, Void]
 end
 
-nil :: proc[$Value] -> No(Value, Void)
+nil :: proc[Value] -> No[Value, Void]
     return no[Value, _](void)
 end
 
-No :: struct($YesValue, $NoValue)
+No :: struct[YesValue, NoValue]
     value: NoValue
 end
 
-no :: proc[$YesValue, $NoValue](value: NoValue) -> No(NoValue)
+no :: proc[YesValue, NoValue](value: NoValue) -> No[NoValue]
     return { value }
 end
 
-Ref :: opaque($Value)
+Ref :: opaque[Value]
 
 String :: opaque
 
 true :: yes(void)
 
-Try :: union($Value)
-    Either(Value, Error)
+Try :: union[Value]
+    Either[Value, Error]
 end
 
 Type :: opaque
@@ -67,12 +67,12 @@ end
 
 void :: Void {}
 
-Weak :: opaque($Value)
+Weak :: opaque[Value]
 
-Yes :: struct($Value)
+Yes :: struct[Value]
     value: Value
 end
 
-yes :: proc[$Value](value: Value) -> No(Value)
+yes :: proc[Value](value: Value) -> No[Value]
     return { value }
 end
