@@ -1,8 +1,16 @@
 pub
 
-Any :: extern struct
+access :: extern proc[Value](box: Weak[Value]) -> Maybe[Box[Value]]
+
+Any :: extern union
+
+Array :: extern struct[Item: Type, len: int]
 
 Bool :: Maybe[Void]
+
+Box :: extern struct[Value]
+
+box :: extern proc[Value](value: Value) -> Box[Value]
 
 Either :: union[YesValue, NoValue]
     Yes[YesValue]
@@ -23,12 +31,6 @@ Float32 :: extern struct
 
 Int :: extern struct
 
-len :: proc
-    list_len
-    ref_len
-    weak_len
-end
-
 List :: extern struct[Item]
 
 log :: extern proc(message: String)
@@ -47,15 +49,15 @@ no :: proc[Value](value: Value) -> No[Value]
     return { value }
 end
 
-Ref :: extern struct[Value]
-
-Span :: struct[Item]
-    list: List[Item]
-    range: Range
+slice :: proc
+    arraySlice
+    listSlice
 end
 
+Span :: extern struct[Item]
+
 String :: struct
-    slice: Span[UInt8]
+    span: Span[UInt8]
 end
 
 true :: yes(void)
@@ -68,12 +70,16 @@ Type :: extern struct
 
 UInt8 :: extern struct
 
+unbox :: extern proc[Value](box: Box[Value]) -> Value
+
 Void :: struct
 end
 
 void :: Void {}
 
 Weak :: extern struct[Value]
+
+weak :: extern proc[Value](value: Box[Value]) -> Weak[Value]
 
 Yes :: struct[Value]
     value: Value
