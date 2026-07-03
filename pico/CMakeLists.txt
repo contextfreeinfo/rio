@@ -20,7 +20,14 @@ add_executable(hi
     main.c
 )
 
+target_include_directories(hi PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+
 if(PROJECT_TYPE STREQUAL "PICO")
-    target_link_libraries(hi pico_stdlib)
+    target_link_libraries(hi
+        pico_stdlib
+        tinyusb_host
+    )
+    pico_enable_stdio_usb(hi 0)
+    pico_enable_stdio_uart(hi 1)
     pico_add_extra_outputs(hi)
 endif()
