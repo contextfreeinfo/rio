@@ -1,5 +1,8 @@
 *.bin
 *.exe
+build/
+build-host/
+build-pico/
 target/
 temper.keep/
 temper.out/
