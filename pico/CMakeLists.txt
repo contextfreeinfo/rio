@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.13...3.27)
+cmake_minimum_required(VERSION 3.13)
 
 project(rio)
 
-add_executable(hi
+add_executable(rio
     main.c
-    sys.c
+    sys-stdio.c
 )
