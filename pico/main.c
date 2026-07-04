@@ -2,16 +2,16 @@
 #include <stdio.h>
 #include "engine.h"
 
-void rio_main_System_log_puts(const rio_System*, const char* message) {
+void rio_main_Sys_log_puts(const rio_Sys*, const char* message) {
     puts(message);
 }
 
 int main() {
-    rio_System system = {
+    rio_Sys sys = {
         .state = NULL,
-        .log = rio_main_System_log_puts,
+        .log = rio_main_Sys_log_puts,
     };
-    rio_log(&system, "Hi there!");
-    rio_log(&system, "Bye y'all!");
+    rio_log(&sys, "Hi there!");
+    rio_log(&sys, "Bye y'all!");
     return 0;
 }
