@@ -1,5 +1,5 @@
 #include "system.h"
 
-void rio_System_log(rio_System* self, char* message) {
+void rio_log(const rio_System* self, const char* message) {
     self->log(self, message);
 }

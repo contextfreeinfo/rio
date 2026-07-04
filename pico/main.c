@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "engine.h"
 
-void rio_main_System_log_puts(rio_System*, char* message) {
+void rio_main_System_log_puts(const rio_System*, const char* message) {
     puts(message);
 }
 
@@ -11,7 +11,7 @@ int main() {
         .state = NULL,
         .log = rio_main_System_log_puts,
     };
-    rio_System_log(&system, "Hi there!");
-    rio_System_log(&system, "Bye y'all!");
+    rio_log(&system, "Hi there!");
+    rio_log(&system, "Bye y'all!");
     return 0;
 }

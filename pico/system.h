@@ -4,7 +4,7 @@ struct rio_System;
 
 typedef struct rio_System {
     void* state;
-    void (*log)(struct rio_System*, char* message);
+    void (*log)(const struct rio_System*, const char* message);
 } rio_System;
 
-void rio_System_log(rio_System*, char* message);
+void rio_log(const rio_System*, const char* message);
