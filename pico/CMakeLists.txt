@@ -4,5 +4,5 @@ project(rio)
 
 add_executable(hi
     main.c
-    system.c
+    sys.c
 )

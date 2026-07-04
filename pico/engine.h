@@ -1,7 +1,7 @@
 #pragma once
 
 #include "lex.h"
-#include "system.h"
+#include "sys.h"
 
 typedef struct rio_Engine {
     //
