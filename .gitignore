@@ -1,5 +1,6 @@
 *.bin
 *.exe
+*.o
 build/
 build-host/
 build-pico/
