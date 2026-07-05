@@ -15,7 +15,8 @@ int main(int argc, const char** argv) {
         rio_StdFile file = { .file = f };
         rio_Lexer lexer = { .file = &file };
         while (!rio_lex_next(&lexer)) {
-            rio_log(lexer.token.text);
+            rio_Token token = lexer.token;
+            printf("%s; %zu..%zu\n", token.text, token.start, token.end);
         }
         rio_close(&file);
     }
