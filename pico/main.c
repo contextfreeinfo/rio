@@ -17,7 +17,10 @@ int main(int argc, const char** argv) {
             fclose(f);
             return rio_Err_bad;
         }
-        rio_lex(file);
+        rio_Lexer lexer = { .file = file };
+        while (!rio_lex_next(&lexer)) {
+            rio_log(lexer.token.text);
+        }
         rio_close(file);
     }
     return 0;
