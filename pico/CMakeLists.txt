@@ -9,5 +9,5 @@ endif()
 add_executable(rio
     main.c
     lex.c
-    sys-stdio.c
+    sys-std.c
 )

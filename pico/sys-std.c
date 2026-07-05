@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "sys-stdio.h"
+#include "sys-std.h"
 
 rio_Err rio_close(rio_File file) {
     rio_StdioFile* f = file;

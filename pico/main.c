@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "engine.h"
-#include "sys-stdio.h"
+#include "sys-std.h"
 
 int main(int argc, const char** argv) {
     if (argc > 1) {
