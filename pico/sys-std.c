@@ -3,11 +3,11 @@
 #include "sys-std.h"
 
 rio_Err rio_close(rio_File file) {
-    rio_StdioFile* f = file;
+    rio_StdFile* f = file;
     if (f->file) {
         fclose(f->file);
     }
-    free(f);
+    *f = (rio_StdFile){ .file = NULL };
     return 0;
 }
 
@@ -17,7 +17,7 @@ rio_Err rio_log(const char* message) {
 }
 
 rio_Err rio_file_make(FILE* file, rio_File* result) {
-    rio_StdioFile* f = malloc(sizeof(rio_StdioFile));
+    rio_StdFile* f = malloc(sizeof(rio_StdFile));
     if (!f) {
         return rio_Err_bad;
     }
@@ -29,7 +29,7 @@ rio_Err rio_file_make(FILE* file, rio_File* result) {
 }
 
 rio_Err rio_read(rio_File file, char* c) {
-    rio_StdioFile* f = file;
+    rio_StdFile* f = file;
     if (f->start >= f->end && f->file) {
         size_t bytes = fread(f->buffer, 1, sizeof(f->buffer), f->file);
         if (bytes < sizeof(f->buffer)) {

@@ -12,16 +12,12 @@ int main(int argc, const char** argv) {
             rio_log(path);
             return rio_Err_bad;
         }
-        rio_File file;
-        if (rio_file_make(f, &file)) {
-            fclose(f);
-            return rio_Err_bad;
-        }
-        rio_Lexer lexer = { .file = file };
+        rio_StdFile file = { .file = f };
+        rio_Lexer lexer = { .file = &file };
         while (!rio_lex_next(&lexer)) {
             rio_log(lexer.token.text);
         }
-        rio_close(file);
+        rio_close(&file);
     }
     return 0;
 }
