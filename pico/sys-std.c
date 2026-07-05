@@ -16,18 +16,6 @@ rio_Err rio_log(const char* message) {
     return 0;
 }
 
-rio_Err rio_file_make(FILE* file, rio_File* result) {
-    rio_StdFile* f = malloc(sizeof(rio_StdFile));
-    if (!f) {
-        return rio_Err_bad;
-    }
-    f->file = file;
-    f->start = 0;
-    f->end = 0;
-    *result = f;
-    return 0;
-}
-
 rio_Err rio_read(rio_File file, char* c) {
     rio_StdFile* f = file;
     if (f->start >= f->end && f->file) {
