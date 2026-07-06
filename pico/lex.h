@@ -5,7 +5,12 @@
 
 typedef enum rio_TokenKind {
     rio_TokenKind_unknown,
+    rio_TokenKind_colon,
+    rio_TokenKind_endLine,
     rio_TokenKind_name,
+    rio_TokenKind_roundOpen,
+    rio_TokenKind_roundClose,
+    rio_TokenKind_space,
     rio_TokenKind_stringOpen,
     rio_TokenKind_stringText,
     rio_TokenKind_stringEscape,

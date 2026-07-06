@@ -1,6 +1,8 @@
 #include "lex.h"
 #include <stdbool.h>
 
+// Char kinds.
+
 bool rio_isDigit(char c) {
     return c >= '0' && c <= '9';
 }
@@ -15,15 +17,7 @@ bool rio_isNameStart(char c) {
     ;
 }
 
-rio_Err rio_lexRead(rio_Lexer* lexer, char* c) {
-    if (lexer->pending) {
-        *c = lexer->pending;
-        lexer->pending = 0;
-        return 0;
-    } else {
-        return rio_read(lexer->file, c);
-    }
-}
+// Helpers.
 
 rio_Err rio_lexFinishToken(rio_Lexer* lexer, rio_Err err, size_t size) {
     rio_Token* token = &lexer->token;
@@ -35,28 +29,22 @@ rio_Err rio_lexFinishToken(rio_Lexer* lexer, rio_Err err, size_t size) {
     return 0;
 }
 
-rio_Err rio_lexName(rio_Lexer* lexer, char start) {
-    rio_Err err;
-    rio_Token* token = &lexer->token;
-    size_t size = 0;
-    token->text[size++] = start;
-    while (size < sizeof(token->text) - 1) {
-        char c;
-        err = rio_lexRead(lexer, &c);
-        if (err) goto token_done;
-        if (!(rio_isNameStart(c) || rio_isDigit(c))) {
-            lexer->pending = c;
-            goto token_done;
-        }
-        token->text[size++] = c;
+rio_Err rio_lexRead(rio_Lexer* lexer, char* c) {
+    if (lexer->pending) {
+        *c = lexer->pending;
+        lexer->pending = 0;
+        return 0;
+    } else {
+        return rio_read(lexer->file, c);
     }
-    token_done:
-    return rio_lexFinishToken(lexer, err, size);
 }
 
-rio_Err rio_lexNewline(rio_Lexer* lexer, char start) {
+// Token kinds.
+
+rio_Err rio_lexEndLine(rio_Lexer* lexer, char start) {
     rio_Err err;
     rio_Token* token = &lexer->token;
+    token->kind = rio_TokenKind_endLine;
     size_t size = 0;
     token->text[size++] = start;
     if (start == '\r') {
@@ -76,9 +64,30 @@ rio_Err rio_lexNewline(rio_Lexer* lexer, char start) {
     return rio_lexFinishToken(lexer, err, size);
 }
 
+rio_Err rio_lexName(rio_Lexer* lexer, char start) {
+    rio_Err err;
+    rio_Token* token = &lexer->token;
+    token->kind = rio_TokenKind_name;
+    size_t size = 0;
+    token->text[size++] = start;
+    while (size < sizeof(token->text) - 1) {
+        char c;
+        err = rio_lexRead(lexer, &c);
+        if (err) goto token_done;
+        if (!(rio_isNameStart(c) || rio_isDigit(c))) {
+            lexer->pending = c;
+            goto token_done;
+        }
+        token->text[size++] = c;
+    }
+    token_done:
+    return rio_lexFinishToken(lexer, err, size);
+}
+
 rio_Err rio_lexSpace(rio_Lexer* lexer, char start) {
     rio_Err err;
     rio_Token* token = &lexer->token;
+    token->kind = rio_TokenKind_space;
     size_t size = 0;
     token->text[size++] = start;
     while (size < sizeof(token->text) - 1) {
@@ -99,9 +108,12 @@ rio_Err rio_lexSpace(rio_Lexer* lexer, char start) {
     return rio_lexFinishToken(lexer, err, size);
 }
 
+// Lex modes.
+
 rio_Err rio_lexModeString(rio_Lexer* lexer) {
     rio_Err err;
     rio_Token* token = &lexer->token;
+    token->kind = rio_TokenKind_stringText;
     size_t size = 0;
     while (size < sizeof(token->text) - 1) {
         char c;
@@ -116,7 +128,7 @@ rio_Err rio_lexModeString(rio_Lexer* lexer) {
             } else {
                 token->text[size++] = c;
                 lexer->mode = rio_LexMode_default;
-                token->kind = rio_TokenKind_stringOpen;
+                token->kind = rio_TokenKind_stringClose;
             }
             goto token_done;
         }
@@ -129,7 +141,7 @@ rio_Err rio_lexModeString(rio_Lexer* lexer) {
 rio_Err rio_lexNext(rio_Lexer* lexer) {
     rio_Err err;
     rio_Token* token = &lexer->token;
-    token->start = token->end;
+    *token = (rio_Token){ .start = token->end };
     switch (lexer->mode) {
     case rio_LexMode_default:
         break; // to below
@@ -146,10 +158,19 @@ rio_Err rio_lexNext(rio_Lexer* lexer) {
         return rio_lexSpace(lexer, c);
     case '\r':
     case '\n':
-        return rio_lexNewline(lexer, c);
+        return rio_lexEndLine(lexer, c);
     case '"':
         lexer->mode = rio_LexMode_string;
         token->kind = rio_TokenKind_stringOpen;
+        break;
+    case ':':
+        token->kind = rio_TokenKind_colon;
+        break;
+    case '(':
+        token->kind = rio_TokenKind_roundOpen;
+        break;
+    case ')':
+        token->kind = rio_TokenKind_roundClose;
         break;
     default:
         if (rio_isNameStart(c)) {
