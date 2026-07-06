@@ -16,12 +16,12 @@ rio_Err rio_run(int argc, const char** argv) {
     }
     rio_StdFile file = { .file = f };
     rio_Lexer lexer = { .file = &file };
-    while (!rio_lex_next(&lexer)) {
+    while (!rio_lexNext(&lexer)) {
         rio_Token token = lexer.token;
         printf("%s; %zu..%zu\n", token.text, token.start, token.end);
     }
     rio_close(&file);
-    if ((err = rio_gen_demo())) return err;
+    if ((err = rio_genDemo())) return err;
     return 0;
 }
 

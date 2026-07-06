@@ -7,4 +7,4 @@
 // TODO Wasm gen good on pico so we can deploy directly to itch or wherever.
 // TODO Run on native code
 
-rio_Err rio_gen_demo(void);
+rio_Err rio_genDemo(void);

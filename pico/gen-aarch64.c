@@ -10,7 +10,7 @@ static const uint32_t instructions[] = {
     0xd65f03c0 // ret
 };
 
-rio_Err rio_gen_demo(void) {
+rio_Err rio_genDemo(void) {
     rio_Err err = 0;
     long page_size = sysconf(_SC_PAGESIZE);
     if (page_size < 0) return rio_Err_bad;
