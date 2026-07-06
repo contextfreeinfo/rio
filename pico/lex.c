@@ -83,10 +83,18 @@ rio_Err rio_lexName(rio_Lexer* lexer, char start) {
     }
     token_done:
     err = rio_lexFinishToken(lexer, err, size);
-    if (!strcmp(token->text, "end")) {
-        token->kind = rio_TokenKind_end;
-    } else if (!strcmp(token->text, "proc")) {
-        token->kind = rio_TokenKind_proc;
+    // Find keywords. Switch first char maybe speeds up a little.
+    switch (token->text[0]) {
+    case 'e':
+        if (!strcmp(token->text + 1, "nd")) {
+            token->kind = rio_TokenKind_end;
+        }
+        break;
+    case 'p':
+        if (!strcmp(token->text + 1, "roc")) {
+            token->kind = rio_TokenKind_proc;
+        }
+        break;
     }
     return err;
 }
