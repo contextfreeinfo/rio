@@ -1,4 +1,4 @@
 ```sh
 time cmake -S . -B build
-time cmake --build build && ls -l build && ./build/rio
+./run.sh ../examples/hi/hi.rio
 ```
