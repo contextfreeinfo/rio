@@ -1,5 +1,6 @@
 #include "lex.h"
 #include <stdbool.h>
+#include <string.h>
 
 // Char kinds.
 
@@ -81,7 +82,13 @@ rio_Err rio_lexName(rio_Lexer* lexer, char start) {
         token->text[size++] = c;
     }
     token_done:
-    return rio_lexFinishToken(lexer, err, size);
+    err = rio_lexFinishToken(lexer, err, size);
+    if (!strcmp(token->text, "end")) {
+        token->kind = rio_TokenKind_end;
+    } else if (!strcmp(token->text, "proc")) {
+        token->kind = rio_TokenKind_proc;
+    }
+    return err;
 }
 
 rio_Err rio_lexSpace(rio_Lexer* lexer, char start) {
@@ -142,16 +149,19 @@ rio_Err rio_lexNext(rio_Lexer* lexer) {
     rio_Err err;
     rio_Token* token = &lexer->token;
     *token = (rio_Token){ .start = token->end };
+    // Switch mode.
     switch (lexer->mode) {
     case rio_LexMode_default:
         break; // to below
     case rio_LexMode_string:
         return rio_lexModeString(lexer);
     }
+    // Default mode.
     size_t size = 0;
     char c;
     err = rio_lexRead(lexer, &c);
     if (err) goto token_done;
+    // Switch char.
     switch (c) {
     case ' ':
     case '\t':
@@ -177,6 +187,7 @@ rio_Err rio_lexNext(rio_Lexer* lexer) {
             return rio_lexName(lexer, c);
         }
     }
+    // Keep the char.
     token->text[size++] = c;
     token_done:
     return rio_lexFinishToken(lexer, err, size);
