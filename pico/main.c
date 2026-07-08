@@ -15,19 +15,11 @@ rio_Err rio_run(int argc, const char** argv) {
         return rio_Err_bad;
     }
     rio_StdFile file = { .file = f };
-    rio_Lexer lexer = { .file = &file };
-    while (!rio_lexNext(&lexer)) {
-        rio_Token token = lexer.token;
-        printf(
-            "%s (%d); %zu..%zu\n",
-            token.text,
-            token.kind,
-            token.start,
-            token.end
-        );
-    }
+    err = rio_parse(&file);
     rio_close(&file);
-    if ((err = rio_genDemo())) return err;
+    if (err) return err;
+    err = rio_genDemo();
+    if (err) return err;
     return 0;
 }
 
