@@ -6,7 +6,7 @@
 uint8_t rio_archcode[rio_archcode_size] = {0};
 uint8_t rio_globals[rio_globals_size] = {0};
 uint16_t rio_names[rio_names_size] = {0};
-uint8_t rio_text[rio_text_size] = {0};
+uint8_t rio_data[rio_data_size] = {0};
 
 typedef struct rio_Parser {
     rio_Lexer lexer;
@@ -59,17 +59,59 @@ rio_Err rio_parserEnsureAdvance(rio_Parser* parser, size_t oldStart) {
     return 0;
 }
 
+rio_Err rio_parseExpression(rio_Parser* parser);
+
+rio_Err rio_parseTupleContent(rio_Parser* parser) {
+    rio_Err err = 0;
+    if ((err = rio_parserAdvance(parser, true))) return err;
+    while (parser->lexer.token.kind != rio_TokenKind_roundClose) {
+        size_t oldStart = parser->lexer.token.start;
+        if ((err = rio_parseExpression(parser))) return err;
+        if ((err = rio_parserEnsureAdvance(parser, oldStart))) return err;
+        // TODO Check comma.
+        if ((err = rio_eatEndLines(parser))) return err;
+    }
+    if ((err = rio_parserAdvance(parser, false))) return err;
+    return err;
+}
+
+rio_Err rio_parseBlock(rio_Parser* parser) {
+    rio_Err err = 0;
+    if ((err = rio_eatEndLines(parser))) return err;
+    while (parser->lexer.token.kind != rio_TokenKind_end) {
+        size_t oldStart = parser->lexer.token.start;
+        if ((err = rio_parseExpression(parser))) return err;
+        if ((err = rio_parserEnsureAdvance(parser, oldStart))) return err;
+        // TODO Check comma.
+        if ((err = rio_eatEndLines(parser))) return err;
+    }
+    if ((err = rio_parserAdvance(parser, false))) return err;
+    printf("Block end\n");
+    return err;
+}
+
+rio_Err rio_parseProc(rio_Parser* parser) {
+    rio_Err err = 0;
+    if ((err = rio_parserAdvance(parser, true))) return err;
+    if (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
+        printf("Params start\n");
+        if ((err = rio_parseTupleContent(parser))) return err;
+        printf("Params end\n");
+    }
+    if ((err = rio_parseBlock(parser))) return err;
+    return err;
+}
+
 rio_Err rio_parseAtom(rio_Parser* parser) {
     rio_Err err = 0;
     switch (parser->lexer.token.kind) {
     case rio_TokenKind_name:
-        // TODO Put the name somewhere.
         printf("Name\n");
-        if (!(err = rio_parserAdvance(parser, false))) return err;
+        if ((err = rio_parserAdvance(parser, false))) return err;
+        // TODO Put the name somewhere.
         break;
     case rio_TokenKind_proc:
-        // TODO Parse proc.
-        break;
+        return rio_parseProc(parser);
     case rio_TokenKind_roundOpen:
         // TODO Parse parenthesized.
         break;
@@ -87,17 +129,7 @@ rio_Err rio_parseCall(rio_Parser* parser) {
     if (err) return err;
     while (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
         printf("Call start\n");
-        while (true) {
-            size_t oldStart = parser->lexer.token.start;
-            if ((err = rio_parseAtom(parser))) return err;
-            // TODO Check comma.
-            if ((err = rio_parserEnsureAdvance(parser, oldStart))) return err;
-            // TODO Check comma again?
-            if (parser->lexer.token.kind == rio_TokenKind_roundClose) {
-                goto callDone;
-            }
-        }
-        callDone:
+        if ((err = rio_parseTupleContent(parser))) return err;
         printf("Call end\n");
     }
     return err;
@@ -130,6 +162,10 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     if (err) return err;
     // TODO Apply value.
     return rio_eatEndLines(parser);
+}
+
+rio_Err rio_parseExpression(rio_Parser* parser) {
+    return rio_parseColon(parser);
 }
 
 rio_Err rio_parse(rio_File file) {
