@@ -43,7 +43,7 @@ rio_Err rio_lexRead(rio_Lexer* lexer, char* c) {
 // Token kinds.
 
 rio_Err rio_lexEndLine(rio_Lexer* lexer, char start) {
-    rio_Err err;
+    rio_Err err = 0;
     rio_Token* token = &lexer->token;
     token->kind = rio_TokenKind_endLine;
     size_t size = 0;

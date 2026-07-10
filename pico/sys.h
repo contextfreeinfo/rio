@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util.h"
+
 typedef enum rio_Err {
     rio_Err_none,
     rio_Err_bad,

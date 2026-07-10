@@ -3,14 +3,10 @@
 #include <stdio.h>
 #include "lex.h"
 
-uint8_t rio_archcode[rio_archcode_size] = {0};
-uint8_t rio_globals[rio_globals_size] = {0};
-uint16_t rio_names[rio_names_size] = {0};
-uint8_t rio_data[rio_data_size] = {0};
-
-typedef struct rio_Parser {
-    rio_Lexer lexer;
-} rio_Parser;
+// uint8_t rio_archcode[rio_archcode_size] = {0};
+// uint8_t rio_globals[rio_globals_size] = {0};
+// uint16_t rio_names[rio_names_size] = {0};
+// uint8_t rio_data[rio_data_size] = {0};
 
 rio_Err rio_parserAdvance(rio_Parser* parser, bool skipEndLines) {
     rio_Err err = 0;
@@ -116,7 +112,7 @@ rio_Err rio_parseAtom(rio_Parser* parser) {
         // TODO Parse parenthesized.
         break;
     case rio_TokenKind_stringOpen:
-        // TODO Parse string.
+        // TODO Parse string!
         break;
     default:
         break;
@@ -168,16 +164,15 @@ rio_Err rio_parseExpression(rio_Parser* parser) {
     return rio_parseColon(parser);
 }
 
-rio_Err rio_parse(rio_File file) {
-    rio_Parser parser = { .lexer = { .file = file } };
+rio_Err rio_parse(rio_Parser* parser) {
     // Prime the pump.
-    rio_Err err = rio_parserAdvance(&parser, true);
+    rio_Err err = rio_parserAdvance(parser, true);
     if (err) return 0; // Presume empty for now.
     // Go until eof.
-    size_t oldStart = parser.lexer.token.start;
-    while (!rio_parseColon(&parser)) {
-        if ((err = rio_parserEnsureAdvance(&parser, oldStart))) goto done;
-        oldStart = parser.lexer.token.start;
+    size_t oldStart = parser->lexer.token.start;
+    while (!rio_parseColon(parser)) {
+        if ((err = rio_parserEnsureAdvance(parser, oldStart))) goto done;
+        oldStart = parser->lexer.token.start;
     }
     done:
     return 0;

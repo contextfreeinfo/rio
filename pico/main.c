@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "engine.h"
 #include "gen.h"
 #include "sys-std.h"
@@ -14,13 +15,23 @@ rio_Err rio_run(int argc, const char** argv) {
         rio_log(path);
         return rio_Err_bad;
     }
+    size_t dataSize = 4 << 20;
+    uint8_t* dataBytes = malloc(dataSize);
+    if (!dataBytes) return rio_Err_bad;
+    memset(dataBytes, 0, dataSize);
     rio_StdFile file = { .file = f };
-    err = rio_parse(&file);
+    rio_Parser parser = {
+        .data = { .size = dataSize, .items = dataBytes },
+        .lexer = { .file = &file },
+    };
+    err = rio_parse(&parser);
     rio_close(&file);
-    if (err) return err;
+    if (err) goto freeData;
     err = rio_genDemo();
-    if (err) return err;
-    return 0;
+    if (err) goto freeData;
+    freeData:
+    free(dataBytes);
+    return err;
 }
 
 int main(int argc, const char** argv) {
