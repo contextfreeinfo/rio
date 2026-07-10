@@ -20,7 +20,9 @@ rio_Err rio_run(int argc, const char** argv) {
     uint8_t* dataBytes = malloc(dataSize);
     if (!dataBytes) return rio_Err_bad;
     memset(dataBytes, 0, dataSize);
-    rio_Engine engine = { .data = { .size = dataSize, .items = dataBytes } };
+    rio_Engine engine = {
+        .data = {{ .size = dataSize, .items = dataBytes }},
+    };
     rio_StdFile file = { .file = f };
     rio_Parser parser = {
         .engine = &engine,

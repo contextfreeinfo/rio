@@ -14,5 +14,14 @@ typedef enum rio_Err {
     Type* items; \
 } rio_Span_##Type
 
-rio_defineSpan(uint8_t);
-typedef rio_Span_uint8_t rio_Bytes;
+#define rio_defineBuffer(Type) typedef struct rio_Buffer_##Type { \
+    rio_Span_##Type span; \
+    size_t used; \
+} rio_Buffer_##Type
+
+typedef uint8_t Byte;
+
+rio_defineSpan(Byte);
+rio_defineBuffer(Byte);
+
+rio_Err rio_pushBytes(rio_Buffer_Byte* engine, rio_Span_Byte bytes);
