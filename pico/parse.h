@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "engine.h"
 #include "lex.h"
 #include "sys.h"
 
@@ -16,8 +17,7 @@
 // extern uint8_t rio_data[rio_data_size];
 
 typedef struct rio_Parser {
-    rio_Bytes data;
-    size_t dataSize;
+    rio_Engine* engine;
     rio_Lexer lexer;
 } rio_Parser;
 

@@ -3,6 +3,7 @@
 #include <string.h>
 #include "engine.h"
 #include "gen.h"
+#include "parse.h"
 #include "sys-std.h"
 
 rio_Err rio_run(int argc, const char** argv) {
@@ -19,9 +20,10 @@ rio_Err rio_run(int argc, const char** argv) {
     uint8_t* dataBytes = malloc(dataSize);
     if (!dataBytes) return rio_Err_bad;
     memset(dataBytes, 0, dataSize);
+    rio_Engine engine = { .data = { .size = dataSize, .items = dataBytes } };
     rio_StdFile file = { .file = f };
     rio_Parser parser = {
-        .data = { .size = dataSize, .items = dataBytes },
+        .engine = &engine,
         .lexer = { .file = &file },
     };
     err = rio_parse(&parser);
