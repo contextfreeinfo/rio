@@ -8,6 +8,7 @@ endif()
 
 add_executable(rio
     main.c
+    engine.c
     lex.c
     parse.c
     util.c

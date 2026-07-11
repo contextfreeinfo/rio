@@ -98,6 +98,48 @@ rio_Err rio_parseProc(rio_Parser* parser) {
     return err;
 }
 
+rio_Err rio_parseString(rio_Parser* parser) {
+    rio_Err err = 0;
+    rio_Buffer_Byte* buffer = &parser->engine->data;
+    // Remember where we were for size later.
+    rio_Buffer_Byte sizeBuffer = *buffer;
+    if ((err = rio_pushBytesInt32(buffer, 0))) return err;
+    // But put in address now.
+    // TODO Use trampolines for native function pointers?
+    if ((err = rio_pushBytesInt32(buffer, buffer->used + 4))) return err;
+    int32_t start = buffer->used;
+    rio_Token* token = &parser->lexer.token;
+    while (true) {
+        // The first advance gets past the open quote.
+        if ((err = rio_parserAdvance(parser, false))) return err;
+        switch (token->kind) {
+        case rio_TokenKind_endLine:
+            if ((err = rio_pushBytesByte(buffer, '\n'))) return err;
+            goto done;
+        case rio_TokenKind_stringClose:
+            err = rio_parserAdvance(parser, false);
+            goto done;
+        case rio_TokenKind_stringEscape:
+            // TODO Push unescaped.
+            break;
+        default:;
+            // TODO Assert rio_TokenKind_stringText?
+            rio_Span_Byte bytes = {
+                .size = token->end - token->start,
+                .items = (Byte*)token->text,
+            };
+            if ((err = rio_pushBytes(buffer, bytes))) return err;
+        }
+    }
+    done:
+    // We know there's space here because we got past it.
+    rio_pushBytesInt32(&sizeBuffer, buffer->used - start);
+    // Null-terminate then pad to 4-bytes alignment.
+    if ((err = rio_pushBytesByte(buffer, '\0'))) return err;
+    // TODO Pad total to 4-byte alignment.
+    return err;
+}
+
 rio_Err rio_parseAtom(rio_Parser* parser) {
     rio_Err err = 0;
     switch (parser->lexer.token.kind) {
@@ -105,19 +147,17 @@ rio_Err rio_parseAtom(rio_Parser* parser) {
         printf("Name\n");
         if ((err = rio_parserAdvance(parser, false))) return err;
         // TODO Put the name somewhere.
-        break;
+        return err;
     case rio_TokenKind_proc:
         return rio_parseProc(parser);
     case rio_TokenKind_roundOpen:
         // TODO Parse parenthesized.
-        break;
+        return err;
     case rio_TokenKind_stringOpen:
-        // TODO Parse string!
-        break;
+        return rio_parseString(parser);
     default:
-        break;
+        return err;
     }
-    return err;
 }
 
 rio_Err rio_parseCall(rio_Parser* parser) {
@@ -169,6 +209,7 @@ rio_Err rio_parse(rio_Parser* parser) {
     rio_Err err = rio_parserAdvance(parser, true);
     if (err) return 0; // Presume empty for now.
     // Go until eof.
+    // TODO Distinguish out of memory from end of file.
     size_t oldStart = parser->lexer.token.start;
     while (!rio_parseColon(parser)) {
         if ((err = rio_parserEnsureAdvance(parser, oldStart))) goto done;

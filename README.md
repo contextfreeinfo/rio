@@ -1,8 +1,13 @@
 Thoughts:
 
 - No dynamic memory allocation
-- Pointers only in parameters and locals
-- ?Maybe, [_]Array, and []Span types
+- Refs only in parameters and locals
+- &Reference, ?Maybe, [_]Array, and []Span types
+- &mut Ref, []mut Span, else deeply imu?
+- Refs can't be nil
+- Named args good because can't store refs/spans in structs?
+- No numeric address access? Still can compare for equality only?
+- Numeric zero, empty slices, and empty arrays are falsy
 - Vague inspiration from Lua and Odin
 - Clean module hierarchy on dots
 - Direct native codegen in some cases, such as thumb-2 / rp2350 / Fruit Jam

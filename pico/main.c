@@ -31,6 +31,7 @@ rio_Err rio_run(int argc, const char** argv) {
     err = rio_parse(&parser);
     rio_close(&file);
     if (err) goto freeData;
+    rio_reportEngine(&engine);
     err = rio_genDemo();
     if (err) goto freeData;
     freeData:
