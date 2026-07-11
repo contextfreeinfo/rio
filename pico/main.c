@@ -16,7 +16,7 @@ rio_Err rio_run(int argc, const char** argv) {
         rio_log(path);
         return rio_Err_bad;
     }
-    size_t dataSize = 4 << 20;
+    size_t dataSize = 2 << 20;
     uint8_t* dataBytes = malloc(dataSize);
     if (!dataBytes) return rio_Err_bad;
     memset(dataBytes, 0, dataSize);

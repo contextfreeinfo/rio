@@ -136,7 +136,7 @@ rio_Err rio_parseString(rio_Parser* parser) {
     rio_pushBytesInt32(&sizeBuffer, buffer->used - start);
     // Null-terminate then pad to 4-bytes alignment.
     if ((err = rio_pushBytesByte(buffer, '\0'))) return err;
-    // TODO Pad total to 4-byte alignment.
+    if ((err = rio_pushBytesPad32(buffer))) return err;
     return err;
 }
 

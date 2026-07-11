@@ -18,3 +18,13 @@ rio_Err rio_pushBytesInt32(rio_Buffer_Byte* buffer, int32_t value) {
     rio_Span_Byte span = { .size = sizeof(value), .items = (Byte*)&value };
     return rio_pushBytes(buffer, span);
 }
+
+rio_Err rio_pushBytesPad32(rio_Buffer_Byte* buffer) {
+    rio_Err err = 0;
+    // Write zeros even though we've likely precleared.
+    // TODO Could optimize this into single increment and memset, but meh?
+    while (buffer->used % 4) {
+        if ((err = rio_pushBytesByte(buffer, 0))) return err;
+    }
+    return 0;
+}
