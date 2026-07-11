@@ -6,6 +6,8 @@ this library, but it doesn't connect much to actual capabilities.
 Backends need to provide access to source code. We just receive it here.
 
     export class Engine {
+      private var core: Core = new Core();
+      private var coreModule: ModuleBuilder = new ModuleBuilder();
       private lexer: Lexer = new Lexer();
       private parser: Parser = new Parser();
       private normer: Normer = new Normer(lexer.interner);
@@ -13,9 +15,7 @@ Backends need to provide access to source code. We just receive it here.
       public modules: MapBuilder<TextId, ModuleBuilder> = new MapBuilder();
 
       public process(name: String, source: String): ModuleBuilder {
-        if (modules.length == 0 && name != "core") {
-          process("core", coreSource);
-        }
+        initCoreIfNeeded(name);
         let tokens = lexer.lex(source);
         let parseNodes = parser.parse(tokens);
         let normed = normer.norm(parseNodes);
@@ -25,23 +25,39 @@ Backends need to provide access to source code. We just receive it here.
         normed
       }
 
+### initCore
+
+      private initCoreIfNeeded(name: String): Void {
+        if (modules.length == 0 && name != "core") {
+          coreModule = process("core", coreSource);
+          let coreTops = coreModule.tops;
+          do {
+            core = {
+              class: Core,
+              error: coreTops[textId("error")],
+              false: coreTops[textId("false")],
+              log: coreTops[textId("log")],
+              no: coreTops[textId("no")],
+              null: coreTops[textId("null")],
+              true: coreTops[textId("true")],
+              void: coreTops[textId("void")],
+              yes: coreTops[textId("yes")],
+            };
+          } orelse panic();
+        }
+      }
+
 ### interner
+
+Provide the interner publicly but also helpers, all for convenience.
 
       public get interner(): Interner {
         lexer.interner
       }
 
-### string
-
-Get the string representation of the text id from the interner.
-
       public string(text: TextId): String? {
         lexer.interner.string(text)
       }
-
-### textId
-
-Get the id representation of the string from the interner.
 
       public textId(string: String): TextId {
         lexer.interner[string]

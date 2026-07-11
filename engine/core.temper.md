@@ -5,6 +5,22 @@ if we're fast enough and core is small enough, it won't matter too much for now.
 
 For now, the core library is loaded in an Engine.
 
+## Core definitions
+
+Extracting the ids for core definitions makes it easier to tie them to special
+processing.
+
+    class Core(
+      public error: NodeId = 0,
+      public false: NodeId = 0,
+      public log: NodeId = 0,
+      public no: NodeId = 0,
+      public null: NodeId = 0,
+      public true: NodeId = 0,
+      public void: NodeId = 0,
+      public yes: NodeId = 0,
+    ) {}
+
 ## Core library source
 
 It would be nice to have this as a separate file, but we don't currently have
