@@ -23,18 +23,22 @@ typedef enum rio_NodeKind {
     rio_NodeKind_proc,
 } rio_NodeKind;
 
+typedef struct rio_Node_Name {
+    int32_t name;
+} rio_Node_Name;
+
 typedef struct rio_Node {
     rio_NodeKind kind;
-    // TODO Union.
+    union {
+        rio_Node_Name name;
+    } value;
 } rio_Node;
 
 typedef struct rio_Parser {
     rio_Engine* engine;
     rio_Lexer lexer;
     rio_Buffer_Byte names; // As null-terminated?
-    // For short-term tracking.
-    int32_t name;
-    rio_Node node;
+    rio_Node node; // For returning up the parse stack.
 } rio_Parser;
 
 rio_Err rio_parse(rio_Parser* parser);

@@ -89,9 +89,11 @@ rio_Err rio_parseBlock(rio_Parser* parser) {
 rio_Err rio_parseName(rio_Parser* parser) {
     rio_Err err = 0;
     printf("Name\n");
-    parser->node = (rio_Node){ .kind = rio_NodeKind_name };
     rio_Buffer_Byte* buffer = &parser->names;
-    parser->name = buffer->used;
+    parser->node = (rio_Node){
+        .kind = rio_NodeKind_name,
+        .value = {.name = {.name = buffer->used}},
+    };
     rio_Token* token = &parser->lexer.token;
     rio_Span_Byte name = {
         .size = token->end - token->start,
@@ -193,7 +195,7 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     if (parser->lexer.token.kind != rio_TokenKind_colon) return err;
     if ((err = rio_parserAdvance(parser, true))) return err;
     // Got a colon, so remember name.
-    int32_t name = parser->node.kind == rio_NodeKind_name ? parser->name : 0;
+    rio_Node nameNode = parser->node;
     // Type or control flow.
     printf("Type or control flow\n");
     // TODO Eat newlines.
@@ -214,12 +216,13 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     err = rio_parseCall(parser);
     if (err) return err;
     // Apply value.
-    if (name) {
+    if (nameNode.kind == rio_NodeKind_name) {
+        rio_Byte* name = &parser->names.span.items[nameNode.value.name.name];
         // TODO If top-level, add to tops table.
         // TODO Handle whatever for the specific value node we got.
         switch (parser->node.kind) {
         case rio_NodeKind_proc:
-            printf("Defined proc: %s\n", &parser->names.span.items[name]);
+            printf("Defined proc: %s\n", name);
             break;
         default:;
         }
