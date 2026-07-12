@@ -4,7 +4,7 @@
 #include "sys.h"
 
 typedef enum rio_TokenKind {
-    rio_TokenKind_unknown,
+    rio_TokenKind_nil,
     rio_TokenKind_colon,
     rio_TokenKind_end,
     rio_TokenKind_endLine,
@@ -19,11 +19,13 @@ typedef enum rio_TokenKind {
     rio_TokenKind_stringClose,
 } rio_TokenKind;
 
+#define rio_tokenMax 256
+
 typedef struct rio_Token {
     rio_TokenKind kind;
     size_t start;
     size_t end;
-    char text[256];
+    char text[rio_tokenMax];
 } rio_Token;
 
 typedef enum rio_LexMode {

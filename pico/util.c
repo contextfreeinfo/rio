@@ -9,13 +9,13 @@ rio_Err rio_pushBytes(rio_Buffer_Byte* buffer, rio_Span_Byte bytes) {
     return 0;
 }
 
-rio_Err rio_pushBytesByte(rio_Buffer_Byte* buffer, Byte value) {
-    rio_Span_Byte span = { .size = sizeof(value), .items = (Byte*)&value };
+rio_Err rio_pushBytesByte(rio_Buffer_Byte* buffer, rio_Byte value) {
+    rio_Span_Byte span = { .size = sizeof(value), .items = (rio_Byte*)&value };
     return rio_pushBytes(buffer, span);
 }
 
 rio_Err rio_pushBytesInt32(rio_Buffer_Byte* buffer, int32_t value) {
-    rio_Span_Byte span = { .size = sizeof(value), .items = (Byte*)&value };
+    rio_Span_Byte span = { .size = sizeof(value), .items = (rio_Byte*)&value };
     return rio_pushBytes(buffer, span);
 }
 

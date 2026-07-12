@@ -16,9 +16,24 @@
 // extern uint16_t rio_names[rio_names_size];
 // extern uint8_t rio_data[rio_data_size];
 
+typedef enum rio_NodeKind {
+    rio_NodeKind_nil,
+    rio_NodeKind_call,
+    rio_NodeKind_name,
+    rio_NodeKind_proc,
+} rio_NodeKind;
+
+typedef struct rio_Node {
+    rio_NodeKind kind;
+    // TODO Union.
+} rio_Node;
+
 typedef struct rio_Parser {
     rio_Engine* engine;
     rio_Lexer lexer;
+    // For short-term tracking.
+    rio_Token name;
+    rio_Node node;
 } rio_Parser;
 
 rio_Err rio_parse(rio_Parser* parser);

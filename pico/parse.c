@@ -86,6 +86,13 @@ rio_Err rio_parseBlock(rio_Parser* parser) {
     return err;
 }
 
+rio_Err rio_parseName(rio_Parser* parser) {
+    printf("Name\n");
+    parser->name = parser->lexer.token;
+    parser->node = (rio_Node){ .kind = rio_NodeKind_name };
+    return rio_parserAdvance(parser, false);
+}
+
 rio_Err rio_parseProc(rio_Parser* parser) {
     rio_Err err = 0;
     if ((err = rio_parserAdvance(parser, true))) return err;
@@ -95,6 +102,7 @@ rio_Err rio_parseProc(rio_Parser* parser) {
         printf("Params end\n");
     }
     if ((err = rio_parseBlock(parser))) return err;
+    parser->node = (rio_Node){ .kind = rio_NodeKind_proc };
     return err;
 }
 
@@ -126,7 +134,7 @@ rio_Err rio_parseString(rio_Parser* parser) {
             // TODO Assert rio_TokenKind_stringText?
             rio_Span_Byte bytes = {
                 .size = token->end - token->start,
-                .items = (Byte*)token->text,
+                .items = (rio_Byte*)token->text,
             };
             if ((err = rio_pushBytes(buffer, bytes))) return err;
         }
@@ -142,12 +150,10 @@ rio_Err rio_parseString(rio_Parser* parser) {
 
 rio_Err rio_parseAtom(rio_Parser* parser) {
     rio_Err err = 0;
+    parser->node = (rio_Node){ .kind = rio_NodeKind_nil };
     switch (parser->lexer.token.kind) {
     case rio_TokenKind_name:
-        printf("Name\n");
-        if ((err = rio_parserAdvance(parser, false))) return err;
-        // TODO Put the name somewhere.
-        return err;
+        return rio_parseName(parser);
     case rio_TokenKind_proc:
         return rio_parseProc(parser);
     case rio_TokenKind_roundOpen:
@@ -167,6 +173,7 @@ rio_Err rio_parseCall(rio_Parser* parser) {
         printf("Call start\n");
         if ((err = rio_parseTupleContent(parser))) return err;
         printf("Call end\n");
+        parser->node = (rio_Node){ .kind = rio_NodeKind_call };
     }
     return err;
 }
@@ -174,6 +181,8 @@ rio_Err rio_parseCall(rio_Parser* parser) {
 rio_Err rio_parseColon(rio_Parser* parser) {
     rio_Err err = rio_parseCall(parser);
     if (err) return err;
+    rio_Token nameToken =
+        parser->node.kind == rio_NodeKind_name ? parser->name : (rio_Token){0};
     printf("Checking for colon\n");
     if (parser->lexer.token.kind != rio_TokenKind_colon) return err;
     if ((err = rio_parserAdvance(parser, true))) return err;
@@ -196,7 +205,20 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     printf("Value\n");
     err = rio_parseCall(parser);
     if (err) return err;
-    // TODO Apply value.
+    // Apply value.
+    rio_Span_Byte span = {
+        .size = nameToken.end - nameToken.start,
+        .items = (rio_Byte*)nameToken.text,
+    };
+    if (parser->node.kind == rio_NodeKind_proc) {
+        rio_Buffer_Byte* buffer = &parser->engine->data;
+        if ((err = rio_pushBytesInt32(buffer, span.size))) return err;
+        if ((err = rio_pushBytesInt32(buffer, buffer->used + 4))) return err;
+        if ((err = rio_pushBytes(buffer, span))) return err;
+        if ((err = rio_pushBytesByte(buffer, 0))) return err;
+        if ((err = rio_pushBytesPad32(buffer))) return err;
+        // TODO Also store the ref to the
+    }
     return rio_eatEndLines(parser);
 }
 
@@ -211,7 +233,7 @@ rio_Err rio_parse(rio_Parser* parser) {
     // Go until eof.
     // TODO Distinguish out of memory from end of file.
     size_t oldStart = parser->lexer.token.start;
-    while (!rio_parseColon(parser)) {
+    while (!rio_parseExpression(parser)) {
         if ((err = rio_parserEnsureAdvance(parser, oldStart))) goto done;
         oldStart = parser->lexer.token.start;
     }

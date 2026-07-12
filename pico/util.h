@@ -11,7 +11,7 @@ typedef enum rio_Err {
 
 #define rio_defineSpan(Type) typedef struct rio_Span_##Type { \
     size_t size; \
-    Type* items; \
+    rio_##Type* items; \
 } rio_Span_##Type
 
 #define rio_defineBuffer(Type) typedef struct rio_Buffer_##Type { \
@@ -19,12 +19,12 @@ typedef enum rio_Err {
     size_t used; \
 } rio_Buffer_##Type
 
-typedef uint8_t Byte;
+typedef uint8_t rio_Byte;
 
 rio_defineSpan(Byte);
 rio_defineBuffer(Byte);
 
 rio_Err rio_pushBytes(rio_Buffer_Byte* buffer, rio_Span_Byte bytes);
-rio_Err rio_pushBytesByte(rio_Buffer_Byte* buffer, Byte value);
+rio_Err rio_pushBytesByte(rio_Buffer_Byte* buffer, rio_Byte value);
 rio_Err rio_pushBytesInt32(rio_Buffer_Byte* buffer, int32_t value);
 rio_Err rio_pushBytesPad32(rio_Buffer_Byte* buffer);
