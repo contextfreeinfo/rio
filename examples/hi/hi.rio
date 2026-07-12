@@ -1,3 +1,7 @@
 main :: proc()
+    greet()
+end
+
+greet :: proc()
     log("Hi there!")
 end

@@ -33,7 +33,7 @@ typedef struct rio_Parser {
     rio_Lexer lexer;
     rio_Buffer_Byte names; // As null-terminated?
     // For short-term tracking.
-    rio_Token name;
+    int32_t name;
     rio_Node node;
 } rio_Parser;
 

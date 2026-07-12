@@ -87,9 +87,18 @@ rio_Err rio_parseBlock(rio_Parser* parser) {
 }
 
 rio_Err rio_parseName(rio_Parser* parser) {
+    rio_Err err = 0;
     printf("Name\n");
-    parser->name = parser->lexer.token;
     parser->node = (rio_Node){ .kind = rio_NodeKind_name };
+    rio_Buffer_Byte* buffer = &parser->names;
+    parser->name = buffer->used;
+    rio_Token* token = &parser->lexer.token;
+    rio_Span_Byte name = {
+        .size = token->end - token->start,
+        .items = (rio_Byte*)token->text,
+    };
+    if ((err = rio_pushBytes(buffer, name))) return err;
+    if ((err = rio_pushBytesByte(buffer, 0))) return err;
     return rio_parserAdvance(parser, false);
 }
 
@@ -184,8 +193,7 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     if (parser->lexer.token.kind != rio_TokenKind_colon) return err;
     if ((err = rio_parserAdvance(parser, true))) return err;
     // Got a colon, so remember name.
-    rio_Token nameToken =
-        parser->node.kind == rio_NodeKind_name ? parser->name : (rio_Token){0};
+    int32_t name = parser->node.kind == rio_NodeKind_name ? parser->name : 0;
     // Type or control flow.
     printf("Type or control flow\n");
     // TODO Eat newlines.
@@ -206,16 +214,15 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     err = rio_parseCall(parser);
     if (err) return err;
     // Apply value.
-    rio_Span_Byte name = {
-        .size = nameToken.end - nameToken.start,
-        .items = (rio_Byte*)nameToken.text,
-    };
-    if (name.size) {
-        rio_Buffer_Byte* buffer = &parser->names;
-        if ((err = rio_pushBytes(buffer, name))) return err;
-        if ((err = rio_pushBytesByte(buffer, 0))) return err;
+    if (name) {
         // TODO If top-level, add to tops table.
         // TODO Handle whatever for the specific value node we got.
+        switch (parser->node.kind) {
+        case rio_NodeKind_proc:
+            printf("Defined proc: %s\n", &parser->names.span.items[name]);
+            break;
+        default:;
+        }
     }
     return rio_eatEndLines(parser);
 }
@@ -243,8 +250,14 @@ void rio_reportParser(rio_Parser* parser) {
     printf("Names:\n");
     rio_Span_Byte data = parser->names.span;
     size_t used = parser->names.used;
+    // TODO Report names as strings with start.
+    size_t lastStart = 0;
     for (size_t index = 0; index < used; index += 1) {
-        printf("%zu: %d\n", index, data.items[index]);
+        if (index == lastStart) {
+            printf("%zu: %s\n", index, &data.items[index]);
+        } else if (!data.items[index]) {
+            lastStart = index + 1;
+        }
     }
     printf("\n");
     rio_reportEngine(parser->engine);

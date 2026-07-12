@@ -34,7 +34,11 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_Parser parser = {
         .engine = &engine,
         .lexer = {.file = &file},
-        .names = {{.size = namesSize, .items = namesBytes}},
+        .names = {
+            .span = {.size = namesSize, .items = namesBytes},
+            // This makes index 0 always be an invalid empty name.
+            .used = 2,
+        },
     };
     err = rio_parse(&parser);
     rio_close(&file);
