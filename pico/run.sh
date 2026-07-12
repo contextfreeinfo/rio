@@ -5,3 +5,4 @@ set -e
 time cmake --build build
 ls -l build
 build/rio "$@"
+time build/rio "$@" > /dev/null
