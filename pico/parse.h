@@ -31,9 +31,12 @@ typedef struct rio_Node {
 typedef struct rio_Parser {
     rio_Engine* engine;
     rio_Lexer lexer;
+    rio_Buffer_Byte names; // As null-terminated?
     // For short-term tracking.
     rio_Token name;
     rio_Node node;
 } rio_Parser;
 
 rio_Err rio_parse(rio_Parser* parser);
+
+void rio_reportParser(rio_Parser* parser);

@@ -16,24 +16,35 @@ rio_Err rio_run(int argc, const char** argv) {
         rio_log(path);
         return rio_Err_bad;
     }
+    // Data.
     size_t dataSize = 2 << 20;
     uint8_t* dataBytes = malloc(dataSize);
     if (!dataBytes) return rio_Err_bad;
     memset(dataBytes, 0, dataSize);
+    // Names.
+    size_t namesSize = 64 << 10;
+    uint8_t* namesBytes = malloc(namesSize);
+    if (!namesBytes) goto freeData;
+    memset(namesBytes, 0, namesSize);
+    // Engine.
     rio_Engine engine = {
-        .data = {{ .size = dataSize, .items = dataBytes }},
+        .data = {{.size = dataSize, .items = dataBytes}},
     };
-    rio_StdFile file = { .file = f };
+    rio_StdFile file = {.file = f};
     rio_Parser parser = {
         .engine = &engine,
-        .lexer = { .file = &file },
+        .lexer = {.file = &file},
+        .names = {{.size = namesSize, .items = namesBytes}},
     };
     err = rio_parse(&parser);
     rio_close(&file);
-    if (err) goto freeData;
-    rio_reportEngine(&engine);
+    if (err) goto done;
+    rio_reportParser(&parser);
     err = rio_genDemo();
-    if (err) goto freeData;
+    if (err) goto done;
+    done:;
+    // freeNames:
+    free(namesBytes);
     freeData:
     free(dataBytes);
     return err;
