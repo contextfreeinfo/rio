@@ -16,6 +16,8 @@
 // extern uint16_t rio_names[rio_names_size];
 // extern uint8_t rio_data[rio_data_size];
 
+#define rio_namesSize 0x10000
+
 typedef enum rio_NodeKind {
     rio_NodeKind_nil,
     rio_NodeKind_call,
@@ -37,7 +39,7 @@ typedef struct rio_Node {
 typedef struct rio_Parser {
     rio_Engine* engine;
     rio_Lexer lexer;
-    rio_Buffer_Byte names; // As null-terminated?
+    rio_Table names;
     rio_Node node; // For returning up the parse stack.
 } rio_Parser;
 

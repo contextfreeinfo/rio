@@ -28,3 +28,78 @@ rio_Err rio_pushBytesPad32(rio_Buffer_Byte* buffer) {
     }
     return 0;
 }
+
+uint32_t rio_hash(rio_Byte* string) {
+    // Attempting fxhash.
+    uint32_t fxPrime = 0x9e3779b9;
+    uint32_t hash = 0;
+    union {
+        rio_Byte bytes[4];
+        uint32_t value;
+    } chunk;
+    // TODO Optimize more? Do compilers already do well with this?
+    size_t j = 0;
+    for (size_t i = 0; j == i; i += 4) {
+        chunk.value = 0;
+        for (j = i; string[j]; j += 1) {
+            chunk.bytes[j - i] = string[j];
+        }
+        hash = ((hash << 5) | (hash >> 27)) ^ chunk.value;
+        hash *= fxPrime;
+    }
+    return hash;
+}
+
+rio_Err rio_table(rio_Table* table, rio_Byte* string, int32_t* intern) {
+    rio_Err err = 0;
+    if (!*string) {
+        if (intern) *intern = 0;
+        return 0;
+    }
+    uint32_t indexStart = rio_hash(string) % table->starts.size;
+    uint32_t index = indexStart;
+    do {
+        rio_UInt16 maybeStart = table->starts.items[index];
+        if (maybeStart) {
+            // Try to match it.
+            char* maybeString = (char*)(table->strings.span.items + maybeStart);
+            if (!strcmp((char*)string, maybeString)) {
+                // Found it.
+                if (intern) *intern = index;
+                return 0;
+            }
+        } else {
+            // Try to fit it.
+            maybeStart = (rio_UInt16)table->strings.used;
+            size_t size = strlen((char*)string) + 1;
+            rio_Span_Byte span = {.size = size, .items = string};
+            if ((err = rio_pushBytes(&table->strings, span))) return err;
+            table->starts.items[index] = maybeStart;
+            // Fit it.
+            if (intern) *intern = index;
+            return 0;
+        }
+        index = (index + 1) % table->starts.size;
+    } while (index != indexStart);
+    // We neither found nor fit it.
+    return rio_Err_bad;
+}
+
+rio_Err rio_tabled(rio_Table* table, int32_t intern, rio_Byte** string) {
+    rio_Err err = 0;
+    // The only valid empty string intern is 0.
+    if (!intern) {
+        *string = table->strings.span.items;
+        return 0;
+    }
+    // Out of bounds is bad.
+    // TODO Coordinate types better. Mostly, we don't expect large sizes.
+    if (intern < 0 || intern >= (int32_t)table->starts.size) return rio_Err_bad;
+    // See what we have, where index 0 now means no entry.
+    rio_UInt16 start = table->starts.items[intern];
+    if (!start) return rio_Err_bad;
+    if (string) {
+        *string = table->strings.span.items + start;
+    }
+    return err;
+}

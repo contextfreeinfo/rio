@@ -89,18 +89,14 @@ rio_Err rio_parseBlock(rio_Parser* parser) {
 rio_Err rio_parseName(rio_Parser* parser) {
     rio_Err err = 0;
     printf("Name\n");
-    rio_Buffer_Byte* buffer = &parser->names;
+    int32_t index = 0;
+    // All our token texts also are null-terminated.
+    rio_Byte* text = (rio_Byte*)parser->lexer.token.text;
+    if ((err = rio_table(&parser->names, text, &index))) return err;
     parser->node = (rio_Node){
         .kind = rio_NodeKind_name,
-        .value = {.name = {.name = buffer->used}},
+        .value = {.name = {.name = index}},
     };
-    rio_Token* token = &parser->lexer.token;
-    rio_Span_Byte name = {
-        .size = token->end - token->start,
-        .items = (rio_Byte*)token->text,
-    };
-    if ((err = rio_pushBytes(buffer, name))) return err;
-    if ((err = rio_pushBytesByte(buffer, 0))) return err;
     return rio_parserAdvance(parser, false);
 }
 
@@ -217,7 +213,8 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     if (err) return err;
     // Apply value.
     if (nameNode.kind == rio_NodeKind_name) {
-        rio_Byte* name = &parser->names.span.items[nameNode.value.name.name];
+        rio_Byte* name;
+        rio_tabled(&parser->names, nameNode.value.name.name, &name);
         // TODO If top-level, add to tops table.
         // TODO Handle whatever for the specific value node we got.
         switch (parser->node.kind) {
@@ -251,15 +248,13 @@ rio_Err rio_parse(rio_Parser* parser) {
 
 void rio_reportParser(rio_Parser* parser) {
     printf("Names:\n");
-    rio_Span_Byte data = parser->names.span;
-    size_t used = parser->names.used;
+    rio_Span_UInt16 starts = parser->names.starts;
+    rio_Span_Byte strings = parser->names.strings.span;
     // TODO Report names as strings with start.
-    size_t lastStart = 0;
-    for (size_t index = 0; index < used; index += 1) {
-        if (index == lastStart) {
-            printf("%zu: %s\n", index, &data.items[index]);
-        } else if (!data.items[index]) {
-            lastStart = index + 1;
+    for (size_t index = 0; index < starts.size; index += 1) {
+        size_t start = starts.items[index];
+        if (start) {
+            printf("%zu@%zu: %s\n", index, start, strings.items + start);
         }
     }
     printf("\n");

@@ -22,10 +22,17 @@ rio_Err rio_run(int argc, const char** argv) {
     if (!dataBytes) return rio_Err_bad;
     memset(dataBytes, 0, dataSize);
     // Names.
-    size_t namesSize = 64 << 10;
-    uint8_t* namesBytes = malloc(namesSize);
+    uint8_t* namesBytes = malloc(rio_namesSize);
     if (!namesBytes) goto freeData;
-    memset(namesBytes, 0, namesSize);
+    memset(namesBytes, 0, rio_namesSize);
+    // Name Starts.
+    // If each name averages 7 bytes, that's 8 with null char, meaning bytes / 4
+    // still is likely to be half empty.
+    size_t nameStartsLen = rio_namesSize / 4;
+    size_t nameStartsBytesSize = nameStartsLen * sizeof(rio_UInt16);
+    rio_UInt16* nameStarts = malloc(nameStartsBytesSize);
+    if (!nameStarts) goto freeNames;
+    memset(nameStarts, 0, nameStartsBytesSize);
     // Engine.
     rio_Engine engine = {
         .data = {{.size = dataSize, .items = dataBytes}},
@@ -35,9 +42,12 @@ rio_Err rio_run(int argc, const char** argv) {
         .engine = &engine,
         .lexer = {.file = &file},
         .names = {
-            .span = {.size = namesSize, .items = namesBytes},
-            // This makes index 0 always be an invalid empty name.
-            .used = 2,
+            .starts = {.size = nameStartsLen, .items = nameStarts},
+            .strings = {
+                .span = {.size = rio_namesSize, .items = namesBytes},
+                // This makes index 0 always be an invalid empty name.
+                .used = 2,
+            },
         },
     };
     err = rio_parse(&parser);
@@ -47,7 +57,9 @@ rio_Err rio_run(int argc, const char** argv) {
     err = rio_genDemo();
     if (err) goto done;
     done:;
-    // freeNames:
+    // freeNameStarts:;
+    free(nameStarts);
+    freeNames:
     free(namesBytes);
     freeData:
     free(dataBytes);
