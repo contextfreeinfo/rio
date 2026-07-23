@@ -7,11 +7,11 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 endif()
 
 add_executable(rio
-    main.c
-    engine.c
-    lex.c
-    parse.c
-    util.c
-    gen-aarch64.c
-    sys-std.c
+    src/main.c
+    src/engine.c
+    src/lex.c
+    src/parse.c
+    src/util.c
+    src/gen-aarch64.c
+    src/sys-std.c
 )

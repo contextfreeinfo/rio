@@ -1,4 +1,18 @@
-Thoughts:
+## Building
+
+Once:
+
+```sh
+time cmake -S . -B build
+```
+
+Repeatedly:
+
+```sh
+./run.sh examples/hi/hi.rio
+```
+
+## Thoughts
 
 - No dynamic memory allocation
 - Refs only in parameters and locals
