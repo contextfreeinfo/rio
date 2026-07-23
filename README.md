@@ -9,6 +9,7 @@ Thoughts:
 - No numeric address access? Still can compare for equality only?
 - Numeric zero, empty slices, and empty arrays are falsy
 - Vague inspiration from Lua and Odin
+- Override constants from command line args including for global array sizes
 - Clean module hierarchy on dots
 - Direct native codegen in some cases, such as thumb-2 / rp2350 / Fruit Jam
 - Fallback codegen/exec on wasm (and wamr???)

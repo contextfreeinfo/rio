@@ -1,4 +1,5 @@
 #include "util.h"
+#include <stdio.h>
 #include <string.h>
 
 rio_Err rio_pushBytes(rio_Buffer_Byte* buffer, rio_Span_Byte bytes) {
@@ -38,15 +39,20 @@ uint32_t rio_hash(rio_Byte* string) {
         uint32_t value;
     } chunk;
     // TODO Optimize more? Do compilers already do well with this?
+    // TODO I'm getting nonunique results from this, so review it.
     size_t j = 0;
-    for (size_t i = 0; j == i; i += 4) {
+    printf("hash: %s\n", string);
+    while (*string) {
         chunk.value = 0;
-        for (j = i; string[j]; j += 1) {
-            chunk.bytes[j - i] = string[j];
-        }
+        if (*string) chunk.bytes[0] = *(string++);
+        if (*string) chunk.bytes[1] = *(string++);
+        if (*string) chunk.bytes[2] = *(string++);
+        if (*string) chunk.bytes[3] = *(string++);
         hash = ((hash << 5) | (hash >> 27)) ^ chunk.value;
+        printf("after %zu: %x -> %x\n", j, chunk.value, hash);
         hash *= fxPrime;
     }
+    printf("/hash: %x\n", hash);
     return hash;
 }
 
