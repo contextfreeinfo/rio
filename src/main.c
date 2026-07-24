@@ -17,6 +17,10 @@ rio_Err rio_run(int argc, const char** argv) {
         return rio_Err_bad;
     }
     // Data.
+    // TODO Ensure full pages for marking as read-only.
+    // TODO How to separate code? Wasm wants ids.
+    // TODO But use common address space by default?
+    // TODO How to generalize function pointers across both wasm and native?
     size_t dataSize = 2 << 20;
     uint8_t* dataBytes = malloc(dataSize);
     if (!dataBytes) return rio_Err_bad;
@@ -35,7 +39,8 @@ rio_Err rio_run(int argc, const char** argv) {
     memset(nameStarts, 0, nameStartsBytesSize);
     // Engine.
     rio_Engine engine = {
-        .data = {{.size = dataSize, .items = dataBytes}},
+        // Use up the first 4-byte word so nil pointers aren't useful.
+        .data = {{.size = dataSize, .items = dataBytes}, .used = 4},
     };
     rio_StdFile file = {.file = f};
     rio_Parser parser = {
