@@ -2,6 +2,9 @@
 
 #include "sys.h"
 
+#define rio_codeSize 0x100000
+#define rio_dataSize 0x200000
+
 typedef struct rio_Engine {
     // TODO Constant data in one place.
     // TODO Separate space for writable memory.

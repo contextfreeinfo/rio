@@ -16,15 +16,17 @@ rio_Err rio_run(int argc, const char** argv) {
         rio_log(path);
         return rio_Err_bad;
     }
+    // Code.
+    // Because typing, we can keep function pointers/ids separate from data
+    // pointers. This is also nice for wasm.
+    uint8_t* codeBytes = malloc(rio_codeSize);
+    if (!codeBytes) return rio_Err_bad;
+    memset(codeBytes, 0, rio_codeSize);
     // Data.
     // TODO Ensure full pages for marking as read-only.
-    // TODO How to separate code? Wasm wants ids.
-    // TODO But use common address space by default?
-    // TODO How to generalize function pointers across both wasm and native?
-    size_t dataSize = 2 << 20;
-    uint8_t* dataBytes = malloc(dataSize);
-    if (!dataBytes) return rio_Err_bad;
-    memset(dataBytes, 0, dataSize);
+    uint8_t* dataBytes = malloc(rio_dataSize);
+    if (!dataBytes) goto freeCode;
+    memset(dataBytes, 0, rio_dataSize);
     // Names.
     uint8_t* namesBytes = malloc(rio_namesSize);
     if (!namesBytes) goto freeData;
@@ -39,8 +41,9 @@ rio_Err rio_run(int argc, const char** argv) {
     memset(nameStarts, 0, nameStartsBytesSize);
     // Engine.
     rio_Engine engine = {
-        // Use up the first 4-byte word so nil pointers aren't useful.
-        .data = {{.size = dataSize, .items = dataBytes}, .used = 4},
+        // Use up each first 4-byte word so nil pointers aren't useful.
+        .code = {{.size = rio_codeSize, .items = codeBytes}, .used = 4},
+        .data = {{.size = rio_dataSize, .items = dataBytes}, .used = 4},
     };
     rio_StdFile file = {.file = f};
     rio_Parser parser = {
@@ -68,6 +71,8 @@ rio_Err rio_run(int argc, const char** argv) {
     free(namesBytes);
     freeData:
     free(dataBytes);
+    freeCode:
+    free(codeBytes);
     return err;
 }
 
