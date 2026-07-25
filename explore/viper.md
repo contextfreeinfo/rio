@@ -1,4 +1,17 @@
-## ARM
+## rpi4 python 3.14
+
+```py
+>>> def spin(n: int):
+...     for _ in range(n):
+...         pass
+...         
+>>> t = time.time(); spin(10_000_000); time.time() - t
+0.4927072525024414
+# or about 0.13597 on my x64 laptop
+# or about 0.23200 on my x64 laptop in firefox at https://pyodide.org/en/stable/console.html
+```
+
+## rp2350 arm32
 
 ```py
 >>> def spin(n: int):
@@ -110,7 +123,7 @@
 0.533435
 ```
 
-## RISC-V
+## rp2350 risc-v
 
 ```py
 >>> def spin(n: int):
