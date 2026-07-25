@@ -219,3 +219,104 @@ Traceback (most recent call last):
   File "<stdin>", line 3, in aspinf
 SyntaxError: invalid RV32 instruction 'fcvt_s_w'
 ```
+
+## rp2350 wili8jam
+
+```lua
+> t = time(); for _ = 1, 10000000, 1 do; end; print(time() - t)
+1.5387
+> t = time(); for _ = 1, 10000000, 1.0 do; end; print(time() - t)
+7.0276
+> t = time(); for _ = 1, 10000000, 1.5 do; end; print(time() - t)
+4.6573
+```
+
+```c
+void __attribute__((optimize("O0"))) spin(void) {
+    clock_t t = clock();
+    for (int i = 0; i < 100'000'000; i += 1) {
+        // pass
+    }
+    float elapsed = (float)(clock() - t) / (float)CLOCKS_PER_SEC;
+    p8_console_printf("spin: %f\n", elapsed);
+}
+// spin: 3.990000
+void __attribute__((optimize("O0"))) spin(void) {
+    clock_t t = clock();
+    for (int i = 0; i < 10'000'000; i += 1) {
+        // pass
+    }
+    float elapsed = (float)(clock() - t) / (float)CLOCKS_PER_SEC;
+    p8_console_printf("spin: %f\n", elapsed);
+}
+// spin: 0.400000
+void __attribute__((optimize("O0"))) spin(void) {
+    clock_t t = clock();
+    // for (int i = 0; i < 10'000'000; i += 1) {
+    //     // pass
+    // }
+    for (float i = 0.0; i < 10'000'000.0; i += 1.0) {
+        // pass
+    }
+    float elapsed = (float)(clock() - t) / (float)CLOCKS_PER_SEC;
+    p8_console_printf("spin: %f\n", elapsed);
+}
+// spin: 0.480000
+void __attribute__((optimize("O0"))) spin(void) {
+    clock_t t = clock();
+    // for (int i = 0; i < 10'000'000; i += 1) {
+    //     // pass
+    // }
+    for (float i = 0.0; i < 10'000'000.0; i += 0.5) {
+        // pass
+    }
+    float elapsed = (float)(clock() - t) / (float)CLOCKS_PER_SEC;
+    p8_console_printf("spin: %f\n", elapsed);
+}
+// hang
+void __attribute__((optimize("O0"))) spin(void) {
+    clock_t t = clock();
+    // for (int i = 0; i < 10'000'000; i += 1) {
+    //     // pass
+    // }
+    for (float i = 0.0; i < 10'000'000.0; i += 1.5) {
+        // pass
+    }
+    float elapsed = (float)(clock() - t) / (float)CLOCKS_PER_SEC;
+    p8_console_printf("spin: %f\n", elapsed);
+}
+// spin: 0.310000
+void __attribute__((optimize("O0"))) spin(void) {
+    clock_t t = clock();
+    // for (int i = 0; i < 10'000'000; i += 1) {
+    //     // pass
+    // }
+    for (double i = 0.0; i < 10'000'000.0; i += 1.5) {
+        // pass
+    }
+    float elapsed = (float)(clock() - t) / (float)CLOCKS_PER_SEC;
+    p8_console_printf("spin: %f\n", elapsed);
+}
+// spin 1.200000
+```
+
+## rpi4 lua 5.4.7
+
+```lua
+> t = os.clock(); for _ = 1, 10000000, 1 do; end; print(os.clock() - t)
+0.142049
+> t = os.clock(); for _ = 1, 10000000, 1 do; end; print(os.clock() - t)
+0.077202
+> t = os.clock(); for _ = 1, 100000000, 1 do; end; print(os.clock() - t)
+0.816999
+> t = os.clock(); for _ = 1, 100000000, 1 do; end; print(os.clock() - t)
+0.770083
+> t = os.clock(); for _ = 1, 100000000, 1.0 do; end; print(os.clock() - t)
+1.067942
+> t = os.clock(); for _ = 1, 100000000, 1.0 do; end; print(os.clock() - t)
+1.003533
+> t = os.clock(); for _ = 1, 100000000, 1.5 do; end; print(os.clock() - t)
+0.668098
+> t = os.clock(); for _ = 1, 100000000, 1.5 do; end; print(os.clock() - t)
+0.708609
+```
