@@ -28,7 +28,7 @@ Some observations:
 
 - On rp2350, lua interpreter is about 3-4x slower than unoptimized C here.
 - On rp2350, python interpreter is about 30x slower than unoptimized C here.
-- On rp2350, viper compiled ints are close to unoptimized C here.
+- On rp2350, viper compiled ints are about 50% slower than unoptimized C here.
 - Viper doesn't do much useful with floats.
 - RPi4 python interpreter is about the same as unoptimized rp2350 C here.
 
