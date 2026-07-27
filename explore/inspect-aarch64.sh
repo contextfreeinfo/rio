@@ -1,7 +1,7 @@
 as -o test-aarch64.o test-aarch64.s
 objdump -d test-aarch64.o
 
-CFLAGS=-O2
+# CFLAGS=-O2
 
 gcc $CFLAGS -c main.c -o main.o
 gcc $CFLAGS -S main.c -o main.s
