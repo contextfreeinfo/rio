@@ -1,9 +1,36 @@
 #include "gen.h"
+#include "gen-aarch64.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+
+rio_Gen rio_a64Gen(void) {
+    return (rio_Gen){
+        .arg = rio_a64Arg,
+        .call = rio_a64Call,
+        .ret = rio_a64Ret,
+    };
+}
+
+rio_Err rio_a64Arg(rio_Buffer_Byte code, int32_t index, int32_t value) {
+    (void)code;
+    (void)index;
+    (void)value;
+    return 0;
+}
+
+rio_Err rio_a64Call(rio_Buffer_Byte code, int32_t proc) {
+    (void)code;
+    (void)proc;
+    return 0;
+}
+
+rio_Err rio_a64Ret(rio_Buffer_Byte code) {
+    (void)code;
+    return 0;
+}
 
 static const uint32_t instructions[] = {
     0x0b010000, // add w0, w0, w1

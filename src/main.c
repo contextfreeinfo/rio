@@ -3,6 +3,7 @@
 #include <string.h>
 #include "engine.h"
 #include "gen.h"
+#include "gen-aarch64.h"
 #include "parse.h"
 #include "sys-std.h"
 
