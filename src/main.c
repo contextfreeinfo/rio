@@ -49,6 +49,7 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_StdFile file = {.file = f};
     rio_Parser parser = {
         .engine = &engine,
+        .gen = rio_a64Gen(),
         .lexer = {.file = &file},
         .names = {
             .starts = {.size = nameStartsLen, .items = nameStarts},

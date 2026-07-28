@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include "engine.h"
+#include "gen.h"
 #include "lex.h"
 #include "sys.h"
 
@@ -38,6 +39,7 @@ typedef struct rio_Node {
 
 typedef struct rio_Parser {
     rio_Engine* engine;
+    rio_Gen gen;
     rio_Lexer lexer;
     rio_Table names;
     rio_Node node; // For returning up the parse stack.

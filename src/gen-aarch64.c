@@ -8,7 +8,9 @@
 
 rio_Gen rio_a64Gen(void) {
     return (rio_Gen){
-        .arg = rio_a64Arg,
+        .argFloat = rio_a64ArgFloat,
+        .argInt = rio_a64ArgInt,
+        .argPtr = rio_a64ArgPtr,
         .call = rio_a64Call,
         .procStart = rio_a64ProcStart,
         .procEnd = rio_a64ProcEnd,
@@ -16,31 +18,47 @@ rio_Gen rio_a64Gen(void) {
     };
 }
 
-rio_Err rio_a64Arg(rio_Buffer_Byte code, int32_t index, int32_t value) {
+rio_Err rio_a64ArgFloat(rio_Buffer_Byte* code, int index, float value) {
     (void)code;
     (void)index;
     (void)value;
     return 0;
 }
 
-rio_Err rio_a64Call(rio_Buffer_Byte code, int32_t proc) {
+rio_Err rio_a64ArgInt(rio_Buffer_Byte* code, int index, int32_t value) {
+    (void)code;
+    (void)index;
+    (void)value;
+    return 0;
+}
+
+rio_Err rio_a64ArgPtr(rio_Buffer_Byte* code, int index, intptr_t value) {
+    (void)code;
+    (void)index;
+    (void)value;
+    return 0;
+}
+
+rio_Err rio_a64Call(rio_Buffer_Byte* code, intptr_t proc) {
     (void)code;
     (void)proc;
     return 0;
 }
 
-rio_Err rio_a64ProcStart(rio_Buffer_Byte code) {
+rio_Err rio_a64ProcStart(rio_Buffer_Byte* code) {
+    printf("----------> rio_a64ProcStart\n");
     (void)code;
     return 0;
 }
 
-rio_Err rio_a64ProcEnd(rio_Buffer_Byte code, size_t start) {
+rio_Err rio_a64ProcEnd(rio_Buffer_Byte* code, size_t start) {
+    printf("----------> rio_a64ProcEnd: %zu\n", start);
     (void)code;
     (void)start;
     return 0;
 }
 
-rio_Err rio_a64Ret(rio_Buffer_Byte code) {
+rio_Err rio_a64Ret(rio_Buffer_Byte* code) {
     // TODO
     // >>> import re
     // >>> re.sub(r"(.{4})(?=.)", r"\1_", f"{0xd65f03c0:032b}")

@@ -103,12 +103,15 @@ rio_Err rio_parseName(rio_Parser* parser) {
 rio_Err rio_parseProc(rio_Parser* parser) {
     rio_Err err = 0;
     if ((err = rio_parserAdvance(parser, true))) return err;
+    size_t start = parser->engine->code.used;
+    if ((err = parser->gen.procStart(&parser->engine->code))) return err;
     if (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
         printf("Params start\n");
         if ((err = rio_parseTupleContent(parser))) return err;
         printf("Params end\n");
     }
     if ((err = rio_parseBlock(parser))) return err;
+    if ((err = parser->gen.procEnd(&parser->engine->code, start))) return err;
     parser->node = (rio_Node){ .kind = rio_NodeKind_proc };
     return err;
 }
