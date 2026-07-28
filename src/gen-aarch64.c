@@ -10,6 +10,8 @@ rio_Gen rio_a64Gen(void) {
     return (rio_Gen){
         .arg = rio_a64Arg,
         .call = rio_a64Call,
+        .procStart = rio_a64ProcStart,
+        .procEnd = rio_a64ProcEnd,
         .ret = rio_a64Ret,
     };
 }
@@ -27,7 +29,22 @@ rio_Err rio_a64Call(rio_Buffer_Byte code, int32_t proc) {
     return 0;
 }
 
+rio_Err rio_a64ProcStart(rio_Buffer_Byte code) {
+    (void)code;
+    return 0;
+}
+
+rio_Err rio_a64ProcEnd(rio_Buffer_Byte code, size_t start) {
+    (void)code;
+    (void)start;
+    return 0;
+}
+
 rio_Err rio_a64Ret(rio_Buffer_Byte code) {
+    // TODO
+    // >>> import re
+    // >>> re.sub(r"(.{4})(?=.)", r"\1_", f"{0xd65f03c0:032b}")
+    // '1101_0110_0101_1111_0000_00-11_110-0_0000'
     (void)code;
     return 0;
 }

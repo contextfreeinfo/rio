@@ -15,5 +15,11 @@ typedef struct rio_Gen {
 
     rio_Err (*call)(rio_Buffer_Byte code, int32_t proc);
 
+    // Track code used before this call.
+    rio_Err (*procStart)(rio_Buffer_Byte code);
+
+    // Pass the used index from before start as the start.
+    rio_Err (*procEnd)(rio_Buffer_Byte code, size_t start);
+
     rio_Err (*ret)(rio_Buffer_Byte code);
 } rio_Gen;

@@ -1,8 +1,12 @@
-int add_two(int a, int b) {
+int addTwo(int a, int b) {
     return a + b;
 }
 
-int mul_two(int a, int b) {
+int addThree(int a, int b, int c) {
+    return addTwo(addTwo(a, b), c);
+}
+
+int mulTwo(int a, int b) {
     return a * b;
 }
 
@@ -11,8 +15,8 @@ void spin(int max, int step) {
 }
 
 int main(void) {
-    int sum = add_two(3, 4);
-    int prod = mul_two(sum, 5);
+    int sum = addTwo(3, 4);
+    int prod = mulTwo(sum, 5);
     spin(10000000, 1);
     // while(1);
     return prod;
