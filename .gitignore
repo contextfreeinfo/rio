@@ -2,8 +2,7 @@
 *.exe
 *.o
 build/
-build-host/
-build-pico/
+build-*/
 target/
 temper.keep/
 temper.out/
