@@ -67,10 +67,17 @@ rio_Err rio_a64Ret(rio_Buffer_Byte* code) {
     return 0;
 }
 
+#if defined(__aarch64__)
 static const uint32_t instructions[] = {
     0x0b010000, // add w0, w0, w1
-    0xd65f03c0 // ret
+    0xd65f03c0, // ret
 };
+#elif defined(__thumb2__)
+static const uint32_t instructions[] = {
+    0,
+};
+#endif
+
 
 rio_Err rio_genDemo(void) {
     rio_Err err = 0;
@@ -95,9 +102,14 @@ rio_Err rio_genDemo(void) {
         err = rio_Err_bad;
         goto done;
     }
+#if defined(__aarch64__)
     int (*add)(int, int) = (int (*)(int, int))(intptr_t)exec_mem;
     int result = add(3, 4);
     printf("Add result: %d\n", result);
+#elif defined(__thumb2__)
+    // TODO Call here, too, once we have instructions.
+    printf("Add result: not yet\n");
+#endif
     done:
     munmap(exec_mem, page_size);
     return err;

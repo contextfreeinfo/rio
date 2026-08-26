@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.13)
 
 project(rio)
 
-if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic -pedantic-errors -Werror)
-endif()
-
 add_executable(rio
     src/main.c
     src/engine.c
@@ -15,3 +11,10 @@ add_executable(rio
     src/gen-aarch64.c
     src/sys-std.c
 )
+
+if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+    target_compile_options(rio PRIVATE
+        -Wall -Wextra -Wpedantic -pedantic-errors -Werror
+    )
+endif()
+
