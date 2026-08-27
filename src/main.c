@@ -3,7 +3,6 @@
 #include <string.h>
 #include "engine.h"
 #include "gen.h"
-#include "gen-aarch64.h"
 #include "parse.h"
 #include "sys-std.h"
 
@@ -49,7 +48,7 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_StdFile file = {.file = f};
     rio_Parser parser = {
         .engine = &engine,
-        .gen = rio_a64Gen(),
+        .gen = {.code = &engine.code},
         .lexer = {.file = &file},
         .names = {
             .starts = {.size = nameStartsLen, .items = nameStarts},

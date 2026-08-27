@@ -12,6 +12,15 @@ Repeatedly:
 ./run.sh examples/hi/hi.rio
 ```
 
+Or for thumb2:
+
+```sh
+# Once: cmake -B build-thumb --toolchain toolchains/thumb2.cmake
+cmake --build build-thumb -j4 && \
+    ls -l build-thumb/rio && \
+    build-thumb/rio examples/hi/hi.rio
+```
+
 ## Thoughts
 
 - No dynamic memory allocation

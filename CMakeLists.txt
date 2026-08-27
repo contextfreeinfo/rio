@@ -8,7 +8,7 @@ add_executable(rio
     src/lex.c
     src/parse.c
     src/util.c
-    src/gen-aarch64.c
+    src/gen.c
     src/sys-std.c
 )
 
