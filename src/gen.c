@@ -72,18 +72,8 @@
     #include "gen-thumb.c"
 #endif
 
-#if defined(__aarch64__)
-static const uint32_t instructions[] = {
-    0x0b010000, // add w0, w0, w1
-    0xd65f03c0, // ret
-};
-#elif defined(__thumb2__)
-static const uint32_t instructions[] = {
-    0,
-};
-#endif
-
-rio_Err rio_genDemo(void) {
+rio_Err rio_genDemo(rio_Gen* gen) {
+    (void)gen;
     rio_Err err = 0;
     long page_size = sysconf(_SC_PAGESIZE);
     if (page_size < 0) return rio_Err_bad;
@@ -106,14 +96,10 @@ rio_Err rio_genDemo(void) {
         err = rio_Err_bad;
         goto done;
     }
-#if defined(__aarch64__)
-    int (*add)(int, int) = (int (*)(int, int))(intptr_t)exec_mem;
+    uint8_t* execAddr = rio_addrForExec(exec_mem);
+    int (*add)(int, int) = (int (*)(int, int))(intptr_t)execAddr;
     int result = add(3, 4);
     printf("Add result: %d\n", result);
-#elif defined(__thumb2__)
-    // TODO Call here, too, once we have instructions.
-    printf("Add result: not yet\n");
-#endif
     done:
     munmap(exec_mem, page_size);
     return err;

@@ -63,7 +63,7 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_close(&file);
     if (err) goto done;
     rio_reportParser(&parser);
-    err = rio_genDemo();
+    err = rio_genDemo(&parser.gen);
     if (err) goto done;
     done:;
     // freeNameStarts:;

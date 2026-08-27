@@ -5,6 +5,15 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+static const uint32_t instructions[] = {
+    0x0b010000, // add w0, w0, w1
+    0xd65f03c0, // ret
+};
+
+uint8_t* rio_addrForExec(uint8_t* addr) {
+    return addr;
+}
+
 // rio_Gen rio_a64Gen(void) {
 //     return (rio_Gen){
 //         .argFloat = rio_a64ArgFloat,

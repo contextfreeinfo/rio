@@ -10,25 +10,6 @@
 // TODO Maybe just have a hardcoded function to call that might or might not
 // TODO also generate wasm?
 
-// typedef enum rio_CodeKind {
-//     rio_CodeKind_nil,
-//     rio_CodeKind_intVal,
-//     rio_CodeKind_intAdd,
-//     rio_CodeKind_return,
-// } rio_Code;
-
-// typedef struct rio_Code {
-//     rio_CodeKind kind;
-//     union {
-//         int32_t i;
-//     };
-// };
-
-rio_Err rio_genDemo(void);
-
-rio_Err rio_genIntAdd(void);
-rio_Err rio_genRet(void);
-
 // Function pointers allow for changing arch based on command line args.
 typedef struct rio_Gen {
     rio_Buffer_Byte* code;
@@ -44,3 +25,24 @@ typedef struct rio_Gen {
     // rio_Err (*procEnd)(rio_Buffer_Byte* code, size_t start);
     // rio_Err (*ret)(rio_Buffer_Byte* code);
 } rio_Gen;
+
+// typedef enum rio_CodeKind {
+//     rio_CodeKind_nil,
+//     rio_CodeKind_intVal,
+//     rio_CodeKind_intAdd,
+//     rio_CodeKind_return,
+// } rio_Code;
+
+// typedef struct rio_Code {
+//     rio_CodeKind kind;
+//     union {
+//         int32_t i;
+//     };
+// };
+
+rio_Err rio_genDemo(rio_Gen* gen);
+
+rio_Err rio_genIntAdd(rio_Gen* gen);
+rio_Err rio_genRet(rio_Gen* gen);
+
+uint8_t* rio_addrForExec(uint8_t* addr);
