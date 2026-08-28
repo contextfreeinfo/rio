@@ -43,6 +43,7 @@ typedef struct rio_Gen {
 rio_Err rio_genDemo(rio_Gen* gen);
 
 rio_Err rio_genIntAdd(rio_Gen* gen);
+rio_Err rio_genPtr(rio_Gen* gen, intptr_t value);
 rio_Err rio_genRet(rio_Gen* gen);
 
 uint8_t* rio_addrForExec(uint8_t* addr);

@@ -45,6 +45,8 @@ rio_Err rio_run(int argc, const char** argv) {
         .code = {{.size = rio_codeSize, .items = codeBytes}, .used = 4},
         .data = {{.size = rio_dataSize, .items = dataBytes}, .used = 4},
     };
+    // TODO Figure out what really to do about memory vs data.
+    engine.memory = engine.data;
     rio_StdFile file = {.file = f};
     rio_Parser parser = {
         .engine = &engine,
@@ -64,6 +66,7 @@ rio_Err rio_run(int argc, const char** argv) {
     if (err) goto done;
     rio_reportParser(&parser);
     err = rio_genDemo(&parser.gen);
+    rio_runLog(&engine, 1);
     if (err) goto done;
     done:;
     // freeNameStarts:;

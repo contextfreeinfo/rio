@@ -17,3 +17,5 @@ typedef struct rio_Engine {
 } rio_Engine;
 
 void rio_reportEngine(rio_Engine* engine);
+
+rio_Err rio_runLog(rio_Engine* engine, int32_t message);
