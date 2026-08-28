@@ -100,21 +100,43 @@ rio_Err rio_parseName(rio_Parser* parser) {
     return rio_parserAdvance(parser, false);
 }
 
-rio_Err rio_parseProc(rio_Parser* parser) {
+rio_Err rio_parseProcProto(rio_Parser* parser) {
     rio_Err err = 0;
     if ((err = rio_parserAdvance(parser, true))) return err;
-    // TODO Only gen on 2nd pass.
-    // size_t start = parser->engine->code.used;
-    // if ((err = parser->gen.procStart(&parser->engine->code))) return err;
     if (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
         printf("Params start\n");
         if ((err = rio_parseTupleContent(parser))) return err;
         printf("Params end\n");
     }
+    parser->node = (rio_Node){ .kind = rio_NodeKind_proc };
+    return err;
+}
+
+rio_Err rio_parseProc(rio_Parser* parser) {
+    rio_Err err = 0;
+    // size_t start = parser->engine->code.used;
+    // if ((err = parser->gen.procStart(&parser->engine->code))) return err;
+    if ((err = rio_parseProcProto(parser))) return err;
     if ((err = rio_parseBlock(parser))) return err;
     // if ((err = parser->gen.procEnd(&parser->engine->code, start))) return err;
     parser->node = (rio_Node){ .kind = rio_NodeKind_proc };
     return err;
+}
+
+rio_Err rio_parseDeclare(rio_Parser* parser) {
+    rio_Err err = 0;
+    if ((err = rio_parserAdvance(parser, true))) return err;
+    parser->node = (rio_Node){ .kind = rio_NodeKind_nil };
+    // We can declare either procs or types without defining them.
+    switch (parser->lexer.token.kind) {
+    case rio_TokenKind_proc:
+        return rio_parseProcProto(parser);
+    // case rio_TokenKind_struct:
+    //     // TODO Just consume the struct token?
+    //     return err;
+    default:
+        return err;
+    }
 }
 
 rio_Err rio_parseString(rio_Parser* parser) {
@@ -162,6 +184,8 @@ rio_Err rio_parseAtom(rio_Parser* parser) {
     rio_Err err = 0;
     parser->node = (rio_Node){ .kind = rio_NodeKind_nil };
     switch (parser->lexer.token.kind) {
+    case rio_TokenKind_declare:
+        return rio_parseDeclare(parser);
     case rio_TokenKind_name:
         return rio_parseName(parser);
     case rio_TokenKind_proc:

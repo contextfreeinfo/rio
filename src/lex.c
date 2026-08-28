@@ -85,6 +85,11 @@ rio_Err rio_lexName(rio_Lexer* lexer, char start) {
     err = rio_lexFinishToken(lexer, err, size);
     // Find keywords. Switch first char maybe speeds up a little.
     switch (token->text[0]) {
+    case 'd':
+        if (!strcmp(token->text + 1, "eclare")) {
+            token->kind = rio_TokenKind_declare;
+        }
+        break;
     case 'e':
         if (!strcmp(token->text + 1, "nd")) {
             token->kind = rio_TokenKind_end;

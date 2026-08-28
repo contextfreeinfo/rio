@@ -1,3 +1,5 @@
+greet :: declare proc()
+
 main :: proc()
   greet()
 end
