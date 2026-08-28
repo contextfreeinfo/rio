@@ -10,13 +10,28 @@ rio_Err rio_pushBytes(rio_Buffer_Byte* buffer, rio_Span_Byte bytes) {
 }
 
 rio_Err rio_pushBytesByte(rio_Buffer_Byte* buffer, rio_Byte value) {
-    rio_Span_Byte span = { .size = sizeof(value), .items = (rio_Byte*)&value };
+    rio_Span_Byte span = {.size = sizeof(value), .items = (rio_Byte*)&value};
+    return rio_pushBytes(buffer, span);
+}
+
+rio_Err rio_pushBytesInt32Pre(rio_Buffer_Byte* buffer, int32_t value) {
+    rio_Span_Byte span = {.size = sizeof(value), .items = (rio_Byte*)&value};
+    return rio_pushBytes(buffer, span);
+}
+
+rio_Err rio_pushBytesInt64Pre(rio_Buffer_Byte* buffer, int64_t value) {
+    rio_Span_Byte span = {.size = sizeof(value), .items = (rio_Byte*)&value};
     return rio_pushBytes(buffer, span);
 }
 
 rio_Err rio_pushBytesInt32(rio_Buffer_Byte* buffer, int32_t value) {
-    rio_Span_Byte span = { .size = sizeof(value), .items = (rio_Byte*)&value };
-    return rio_pushBytes(buffer, span);
+    rio_pushBytesPad32(buffer);
+    return rio_pushBytesInt32Pre(buffer, value);
+}
+
+rio_Err rio_pushBytesInt64(rio_Buffer_Byte* buffer, int64_t value) {
+    rio_pushBytesPad64(buffer);
+    return rio_pushBytesInt64Pre(buffer, value);
 }
 
 rio_Err rio_pushBytesPad32(rio_Buffer_Byte* buffer) {
@@ -24,6 +39,16 @@ rio_Err rio_pushBytesPad32(rio_Buffer_Byte* buffer) {
     // Write zeros even though we've likely precleared.
     // TODO Could optimize this into single increment and memset, but meh?
     while (buffer->used % 4) {
+        if ((err = rio_pushBytesByte(buffer, 0))) return err;
+    }
+    return 0;
+}
+
+rio_Err rio_pushBytesPad64(rio_Buffer_Byte* buffer) {
+    rio_Err err = 0;
+    // Write zeros even though we've likely precleared.
+    // TODO Could optimize this into single increment and memset, but meh?
+    while (buffer->used % 8) {
         if ((err = rio_pushBytesByte(buffer, 0))) return err;
     }
     return 0;

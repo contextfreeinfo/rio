@@ -142,12 +142,13 @@ rio_Err rio_parseDeclare(rio_Parser* parser) {
 rio_Err rio_parseString(rio_Parser* parser) {
     rio_Err err = 0;
     rio_Buffer_Byte* buffer = &parser->engine->data;
+    // Push address now.
+    if ((err = rio_memPushPtr(buffer, buffer->used + rio_ptrSize + 4))) {
+        return err;
+    }
     // Remember where we were for size later.
     rio_Buffer_Byte sizeBuffer = *buffer;
     if ((err = rio_pushBytesInt32(buffer, 0))) return err;
-    // But put in address now.
-    // TODO Use trampolines for native function pointers?
-    if ((err = rio_pushBytesInt32(buffer, buffer->used + 4))) return err;
     int32_t start = buffer->used;
     rio_Token* token = &parser->lexer.token;
     while (true) {
@@ -175,8 +176,6 @@ rio_Err rio_parseString(rio_Parser* parser) {
     done:
     // We know there's space here because we got past it.
     rio_pushBytesInt32(&sizeBuffer, buffer->used - start);
-    // Pad to 4-byte alignment.
-    if ((err = rio_pushBytesPad32(buffer))) return err;
     return err;
 }
 

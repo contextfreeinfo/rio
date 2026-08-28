@@ -1,6 +1,13 @@
 #pragma once
 
+#include "engine.h"
 #include "util.h"
+
+#if defined(__aarch64__)
+    #define rio_ptrSize 8
+#elif defined(__thumb2__)
+    #define rio_ptrSize 4
+#endif
 
 // TODO Include wasm gen everywhere, including pico.
 // TODO Run on wasm most places.
@@ -45,5 +52,7 @@ rio_Err rio_genDemo(rio_Gen* gen);
 rio_Err rio_genIntAdd(rio_Gen* gen);
 rio_Err rio_genPtr(rio_Gen* gen, intptr_t value);
 rio_Err rio_genRet(rio_Gen* gen);
+
+rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset);
 
 uint8_t* rio_addrForExec(uint8_t* addr);

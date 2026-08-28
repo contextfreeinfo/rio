@@ -66,7 +66,7 @@ rio_Err rio_run(int argc, const char** argv) {
     if (err) goto done;
     rio_reportParser(&parser);
     err = rio_genDemo(&parser.gen);
-    rio_runLog(&engine, 1);
+    rio_runLog((rio_Blob*)(engine.memory.span.items + rio_ptrSize));
     if (err) goto done;
     done:;
     // freeNameStarts:;
