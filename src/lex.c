@@ -4,17 +4,17 @@
 
 // Char kinds.
 
-bool rio_isDigit(char c) {
+bool rio_isDigit(uint8_t c) {
     return c >= '0' && c <= '9';
 }
 
-bool rio_isNameStart(char c) {
+bool rio_isNameStart(uint8_t c) {
     return
         c == '_' ||
         (c >= 'A' && c <= 'Z') ||
         (c >= 'a' && c <= 'z') ||
         // Not all of these are good for names, but unicode processing is big.
-        c < 0
+        c > 127
     ;
 }
 
@@ -30,7 +30,7 @@ rio_Err rio_lexFinishToken(rio_Lexer* lexer, rio_Err err, size_t size) {
     return 0;
 }
 
-rio_Err rio_lexRead(rio_Lexer* lexer, char* c) {
+rio_Err rio_lexRead(rio_Lexer* lexer, uint8_t* c) {
     if (lexer->pending) {
         *c = lexer->pending;
         lexer->pending = 0;
@@ -42,14 +42,14 @@ rio_Err rio_lexRead(rio_Lexer* lexer, char* c) {
 
 // Token kinds.
 
-rio_Err rio_lexEndLine(rio_Lexer* lexer, char start) {
+rio_Err rio_lexEndLine(rio_Lexer* lexer, uint8_t start) {
     rio_Err err = 0;
     rio_Token* token = &lexer->token;
     token->kind = rio_TokenKind_endLine;
     size_t size = 0;
     token->text[size++] = start;
     if (start == '\r') {
-        char c;
+        uint8_t c;
         err = rio_lexRead(lexer, &c);
         if (err) goto token_done;
         switch (c) {
@@ -65,14 +65,14 @@ rio_Err rio_lexEndLine(rio_Lexer* lexer, char start) {
     return rio_lexFinishToken(lexer, err, size);
 }
 
-rio_Err rio_lexName(rio_Lexer* lexer, char start) {
+rio_Err rio_lexName(rio_Lexer* lexer, uint8_t start) {
     rio_Err err;
     rio_Token* token = &lexer->token;
     token->kind = rio_TokenKind_name;
     size_t size = 0;
     token->text[size++] = start;
     while (size < sizeof(token->text) - 1) {
-        char c;
+        uint8_t c;
         err = rio_lexRead(lexer, &c);
         if (err) goto token_done;
         if (!(rio_isNameStart(c) || rio_isDigit(c))) {
@@ -104,14 +104,14 @@ rio_Err rio_lexName(rio_Lexer* lexer, char start) {
     return err;
 }
 
-rio_Err rio_lexSpace(rio_Lexer* lexer, char start) {
+rio_Err rio_lexSpace(rio_Lexer* lexer, uint8_t start) {
     rio_Err err;
     rio_Token* token = &lexer->token;
     token->kind = rio_TokenKind_space;
     size_t size = 0;
     token->text[size++] = start;
     while (size < sizeof(token->text) - 1) {
-        char c;
+        uint8_t c;
         err = rio_lexRead(lexer, &c);
         if (err) goto token_done;
         switch (c) {
@@ -136,7 +136,7 @@ rio_Err rio_lexModeString(rio_Lexer* lexer) {
     token->kind = rio_TokenKind_stringText;
     size_t size = 0;
     while (size < sizeof(token->text) - 1) {
-        char c;
+        uint8_t c;
         err = rio_lexRead(lexer, &c);
         if (err) goto token_done;
         switch (c) {
@@ -171,7 +171,7 @@ rio_Err rio_lexNext(rio_Lexer* lexer) {
     }
     // Default mode.
     size_t size = 0;
-    char c;
+    uint8_t c;
     err = rio_lexRead(lexer, &c);
     if (err) goto token_done;
     // Switch char.

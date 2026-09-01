@@ -16,7 +16,7 @@ rio_Err rio_log(const char* message) {
     return 0;
 }
 
-rio_Err rio_read(rio_File file, char* c) {
+rio_Err rio_read(rio_File file, uint8_t* c) {
     rio_StdFile* f = file;
     if (f->start >= f->end && f->file) {
         size_t bytes = fread(f->buffer, 1, sizeof(f->buffer), f->file);

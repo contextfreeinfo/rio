@@ -1,30 +1,23 @@
 ## Building
 
-Once:
-
-```sh
-time cmake -S . -B build
-```
-
-Repeatedly:
+Run:
 
 ```sh
 ./run.sh examples/hi/hi.rio
 ```
 
-Or for thumb2:
+Or for thumb2, if on a system that can run thumb2:
 
 ```sh
-# Once: cmake -B build-thumb --toolchain toolchains/thumb2.cmake
-cmake --build build-thumb -j4 && \
-    ls -l build-thumb/rio && \
-    build-thumb/rio examples/hi/hi.rio
+./run.sh --thumb examples/hi/hi.rio
 ```
 
 ## Thoughts
 
 - No dynamic memory allocation
+- Maybe no recursion???
 - Refs only in parameters and locals
+- Maybe a shadow stack for platforms with limited stack space
 - &Reference, ?Maybe, [_]Array, and []Span types
 - &mut Ref, []mut Span, else deeply imu?
 - Refs can't be nil
@@ -35,7 +28,7 @@ cmake --build build-thumb -j4 && \
 - Override constants from command line args including for global array sizes
 - Clean module hierarchy on dots
 - Direct native codegen in some cases, such as thumb-2 / rp2350 / Fruit Jam
-- Fallback codegen/exec on wasm (and wamr???)
+- Fallback codegen/exec on wasm (and wamr or wasmi???)
 - Range type for slicing
 - Redefine any constant as command line arg definition
 - Nil value of enum or union for false
