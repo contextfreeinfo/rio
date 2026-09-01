@@ -14,7 +14,7 @@ bool rio_isNameStart(char c) {
         (c >= 'A' && c <= 'Z') ||
         (c >= 'a' && c <= 'z') ||
         // Not all of these are good for names, but unicode processing is big.
-        c > 127
+        c < 0
     ;
 }
 

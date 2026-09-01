@@ -3,9 +3,9 @@
 #include "engine.h"
 #include "util.h"
 
-#if defined(__aarch64__)
+#if UINTPTR_MAX == 0xffffffffffffffffULL
     #define rio_ptrSize 8
-#elif defined(__thumb2__)
+#elif UINTPTR_MAX == 0xffffffffU
     #define rio_ptrSize 4
 #endif
 

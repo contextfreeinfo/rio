@@ -1,9 +1,4 @@
 #include "gen.h"
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <unistd.h>
 
 static const uint32_t instructions[] = {
     0x0b010000, // add w0, w0, w1
