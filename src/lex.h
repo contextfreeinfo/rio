@@ -6,6 +6,7 @@
 typedef enum rio_TokenKind {
     rio_TokenKind_nil,
     rio_TokenKind_colon,
+    rio_TokenKind_comment,
     rio_TokenKind_declare,
     rio_TokenKind_end,
     rio_TokenKind_endLine,

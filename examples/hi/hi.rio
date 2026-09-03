@@ -1,9 +1,9 @@
-greet :: declare proc()
-
-main :: proc()
-  greet()
-end
+# greet :: declare proc()
 
 greet :: proc()
   log("Hi there!")
+end
+
+main :: proc()
+  greet()
 end

@@ -23,6 +23,6 @@ fi
 
 time cmake --build $dir
 ls -l $dir/rio
-build/rio "$args"
-time build/rio "$args" > /dev/null
-# /usr/bin/time -v build/rio "$args" > /dev/null
+$dir/rio "$args"
+time $dir/rio "$args" > /dev/null
+# /usr/bin/time -v $dir/rio "$args" > /dev/null

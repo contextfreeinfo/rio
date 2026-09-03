@@ -20,6 +20,7 @@ rio_Err rio_parserAdvance(rio_Parser* parser, bool skipEndLines) {
             token.end
         );
         switch (token.kind) {
+        case rio_TokenKind_comment:
         case rio_TokenKind_space:
             goto next;
         // case rio_TokenKind_comment:
@@ -38,7 +39,7 @@ rio_Err rio_parserAdvance(rio_Parser* parser, bool skipEndLines) {
 
 rio_Err rio_eatEndLines(rio_Parser* parser) {
     switch (parser->lexer.token.kind) {
-    // case rio_TokenKind_comment:
+    case rio_TokenKind_comment:
     case rio_TokenKind_endLine:
     case rio_TokenKind_space:
         return rio_parserAdvance(parser, true);

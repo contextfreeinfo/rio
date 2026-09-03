@@ -42,6 +42,30 @@ rio_Err rio_lexRead(rio_Lexer* lexer, uint8_t* c) {
 
 // Token kinds.
 
+rio_Err rio_lexComment(rio_Lexer* lexer, uint8_t start) {
+    rio_Err err;
+    rio_Token* token = &lexer->token;
+    token->kind = rio_TokenKind_comment;
+    size_t size = 0;
+    token->text[size++] = start;
+    while (size < sizeof(token->text) - 1) {
+        uint8_t c;
+        err = rio_lexRead(lexer, &c);
+        if (err) goto token_done;
+        switch (c) {
+        case '\r':
+        case '\n':
+            lexer->pending = c;
+            goto token_done;
+        default:
+            break;
+        }
+        token->text[size++] = c;
+    }
+    token_done:
+    return rio_lexFinishToken(lexer, err, size);
+}
+
 rio_Err rio_lexEndLine(rio_Lexer* lexer, uint8_t start) {
     rio_Err err = 0;
     rio_Token* token = &lexer->token;
@@ -182,6 +206,8 @@ rio_Err rio_lexNext(rio_Lexer* lexer) {
     case '\r':
     case '\n':
         return rio_lexEndLine(lexer, c);
+    case '#':
+        return rio_lexComment(lexer, c);
     case '"':
         lexer->mode = rio_LexMode_string;
         token->kind = rio_TokenKind_stringOpen;
