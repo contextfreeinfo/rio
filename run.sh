@@ -21,8 +21,8 @@ if [ ! -d "$dir" ]; then
     time cmake -B "$dir" $toolchain
 fi
 
-time cmake --build build
-ls -l "$dir/rio"
+time cmake --build $dir
+ls -l $dir/rio
 build/rio "$args"
 time build/rio "$args" > /dev/null
 # /usr/bin/time -v build/rio "$args" > /dev/null

@@ -32,14 +32,17 @@ rio_Err rio_pushBytes(rio_Buffer_Byte* buffer, rio_Span_Byte bytes);
 rio_Err rio_pushBytesByte(rio_Buffer_Byte* buffer, rio_Byte value);
 
 // "Pre" versions presume padding has already been done.
+rio_Err rio_pushBytesInt16Pre(rio_Buffer_Byte* buffer, int16_t value);
 rio_Err rio_pushBytesInt32Pre(rio_Buffer_Byte* buffer, int32_t value);
 rio_Err rio_pushBytesInt64Pre(rio_Buffer_Byte* buffer, int64_t value);
 
 // Defaults here always pad before pushing.
+rio_Err rio_pushBytesInt16(rio_Buffer_Byte* buffer, int16_t value);
 rio_Err rio_pushBytesInt32(rio_Buffer_Byte* buffer, int32_t value);
 rio_Err rio_pushBytesInt64(rio_Buffer_Byte* buffer, int64_t value);
 
 // For manual padding.
+rio_Err rio_pushBytesPad16(rio_Buffer_Byte* buffer);
 rio_Err rio_pushBytesPad32(rio_Buffer_Byte* buffer);
 rio_Err rio_pushBytesPad64(rio_Buffer_Byte* buffer);
 
