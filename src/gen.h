@@ -21,6 +21,7 @@
 typedef struct rio_Gen {
     rio_Buffer_Byte* code;
     int stackSize;
+    // TODO Also keep a count on dups for each active reg?
 
     // rio_Err (*argFloat)(rio_Buffer_Byte* code, int index, float value);
     // rio_Err (*argInt)(rio_Buffer_Byte* code, int index, int32_t value);
@@ -49,9 +50,14 @@ typedef struct rio_Gen {
 
 rio_Err rio_genDemo(rio_Gen* gen);
 
+// TODO Include pop arity directly in call, so auto-poppers can skip pops?
 rio_Err rio_genCall(rio_Gen* gen, intptr_t target);
 rio_Err rio_genIntAdd(rio_Gen* gen);
-rio_Err rio_genPtr(rio_Gen* gen, intptr_t value);
+// TODO Separate options for pushing/popping shadow stack?
+rio_Err rio_genPop(rio_Gen* gen);
+// TODO Always pushing intptr_t is possibly wasteful when spilling smaller vals.
+// TODO Track sizes for more efficient spilling?
+rio_Err rio_genPush(rio_Gen* gen, intptr_t value);
 rio_Err rio_genRet(rio_Gen* gen);
 
 rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset);

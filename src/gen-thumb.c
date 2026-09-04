@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include "gen.h"
 
 static const uint16_t instructions[] = {
@@ -47,5 +48,60 @@ rio_Err rio_genCall(rio_Gen* gen, intptr_t target) {
     rio_Err err = 0;
     if ((err = rio_pushBytesInt16(gen->code, upper))) return err;
     if ((err = rio_pushBytesInt16(gen->code, lower))) return err;
+    return 0;
+}
+
+rio_Err rio_genMovT(rio_Buffer_Byte* code, uint8_t rd, uint16_t imm16) {
+    // Get bit regions.
+    uint16_t imm4 = (imm16 >> 12) & 0x0f;
+    uint16_t i = (imm16 >> 11) & 0x01;
+    uint16_t imm3 = (imm16 >> 8) & 0x07;
+    uint16_t imm8 = imm16 & 0xff;
+    // Build instruction halves.
+    // TODO Merge with movw, since only this constant is different?
+    uint16_t upper = 0xf2c0 | (i << 10) | imm4;
+    uint16_t lower = (imm3 << 12) | ((rd & 0xf) << 8) | imm8;
+    // Push instructions.
+    rio_Err err = 0;
+    if ((err = rio_pushBytesInt16(code, upper))) return err;
+    if ((err = rio_pushBytesInt16(code, lower))) return err;
+    return 0;
+}
+
+rio_Err rio_genMovW(rio_Buffer_Byte* code, uint8_t rd, uint16_t imm16) {
+    // Get bit regions.
+    uint16_t imm4 = (imm16 >> 12) & 0x0f;
+    uint16_t i = (imm16 >> 11) & 0x01;
+    uint16_t imm3 = (imm16 >> 8) & 0x07;
+    uint16_t imm8 = imm16 & 0xff;
+    // Build instruction halves.
+    uint16_t upper = 0xf240 | (i << 10) | imm4;
+    uint16_t lower = (imm3 << 12) | ((rd & 0xf) << 8) | imm8;
+    // Push instructions.
+    rio_Err err = 0;
+    if ((err = rio_pushBytesInt16(code, upper))) return err;
+    if ((err = rio_pushBytesInt16(code, lower))) return err;
+    return 0;
+}
+
+rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
+    rio_Err err = 0;
+    // TODO Cycle regs.
+    uint8_t rd = 0;
+    uint32_t val = (uint32_t)value;
+    uint16_t low = (uint16_t)(val & 0xffff);
+    if (low <= 0xff && false) { // TODO drop false
+        // TODO 8-bit mode.
+        // TODO When set flags?
+    } else if (low <= 0xfff && false) { // TODO drop false
+        // TODO 12-bit mode.
+        // TODO When set flags?
+    } else { // 16-bit mode.
+        if ((err = rio_genMovW(gen->code, rd, low))) return err;
+    }
+    uint16_t high = (uint16_t)(val >> 16);
+    if (high) { // Whether any high bits.
+        if ((err = rio_genMovT(gen->code, rd, high))) return err;
+    }
     return 0;
 }
