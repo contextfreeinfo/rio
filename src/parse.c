@@ -98,6 +98,9 @@ rio_Err rio_parseName(rio_Parser* parser) {
         .kind = rio_NodeKind_name,
         .value = {.name = {.name = index}},
     };
+    // if (!hold) {
+    //     // TODO Push value to code gen.
+    // }
     return rio_parserAdvance(parser, false);
 }
 
@@ -115,12 +118,13 @@ rio_Err rio_parseProcProto(rio_Parser* parser) {
 
 rio_Err rio_parseProc(rio_Parser* parser) {
     rio_Err err = 0;
-    // size_t start = parser->engine->code.used;
+    size_t start = parser->engine->code.used;
     // if ((err = parser->gen.procStart(&parser->engine->code))) return err;
     if ((err = rio_parseProcProto(parser))) return err;
     if ((err = rio_parseBlock(parser))) return err;
     // if ((err = parser->gen.procEnd(&parser->engine->code, start))) return err;
-    parser->node = (rio_Node){ .kind = rio_NodeKind_proc };
+    if ((err = rio_genRet(&parser->gen))) return err;
+    parser->node = (rio_Node){ .kind = rio_NodeKind_proc, .start = start };
     return err;
 }
 
@@ -177,6 +181,9 @@ rio_Err rio_parseString(rio_Parser* parser) {
     done:
     // We know there's space here because we got past it.
     rio_pushBytesInt32(&sizeBuffer, buffer->used - start);
+    if ((
+        err = rio_genPush(&parser->gen, (intptr_t)(buffer->span.items + start))
+    )) return err;
     return err;
 }
 
@@ -205,9 +212,12 @@ rio_Err rio_parseCall(rio_Parser* parser) {
     if (err) return err;
     while (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
         printf("Call start\n");
+        // TODO Remember provided address.
+        // TODO If we know the arity already, we can put in right registers.
         if ((err = rio_parseTupleContent(parser))) return err;
         printf("Call end\n");
         parser->node = (rio_Node){ .kind = rio_NodeKind_call };
+        // TODO Call address.
     }
     return err;
 }
@@ -247,7 +257,13 @@ rio_Err rio_parseColon(rio_Parser* parser) {
         // TODO Handle whatever for the specific value node we got.
         switch (parser->node.kind) {
         case rio_NodeKind_proc:
-            printf("Defined proc: %s\n", name);
+            printf(
+                "Defined proc: %s (%d) at 0x%x -> %p\n",
+                name,
+                nameNode.value.name.name,
+                (uint32_t)parser->node.start,
+                parser->node.start + parser->engine->code.span.items
+            );
             break;
         default:;
         }

@@ -21,7 +21,9 @@ rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset) {
     return rio_pushBytesInt32Pre(buffer, addr);
 }
 
-rio_Err rio_genCall(rio_Gen* gen, intptr_t target) {
+rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
+    // TODO Rotate args into place.
+    (void)arity;
     intptr_t source = (intptr_t)(gen->code->span.items + gen->code->used + 4);
     intptr_t offsetBig = target - source;
     // Assert range limits, approximately 16Mi.
@@ -48,6 +50,7 @@ rio_Err rio_genCall(rio_Gen* gen, intptr_t target) {
     rio_Err err = 0;
     if ((err = rio_pushBytesInt16(gen->code, upper))) return err;
     if ((err = rio_pushBytesInt16(gen->code, lower))) return err;
+    // TODO Pop args.
     return 0;
 }
 
@@ -103,5 +106,11 @@ rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
     if (high) { // Whether any high bits.
         if ((err = rio_genMovT(gen->code, rd, high))) return err;
     }
+    return 0;
+}
+
+rio_Err rio_genRet(rio_Gen* gen) {
+    rio_Err err = 0;
+    if ((err = rio_pushBytesInt16(gen->code, 0x4770))) return err;
     return 0;
 }

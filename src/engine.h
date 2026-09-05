@@ -8,7 +8,7 @@
 typedef struct rio_Proc {
     // TODO Params
     // TODO Return type
-    size_t addr;
+    intptr_t addr;
 } rio_Proc;
 
 rio_defineSpan(Proc);

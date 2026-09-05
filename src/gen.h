@@ -50,8 +50,7 @@ typedef struct rio_Gen {
 
 rio_Err rio_genDemo(rio_Gen* gen);
 
-// TODO Include pop arity directly in call, so auto-poppers can skip pops?
-rio_Err rio_genCall(rio_Gen* gen, intptr_t target);
+rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity);
 rio_Err rio_genIntAdd(rio_Gen* gen);
 // TODO Separate options for pushing/popping shadow stack?
 rio_Err rio_genPop(rio_Gen* gen);

@@ -32,6 +32,7 @@ typedef struct rio_Node_Name {
 
 typedef struct rio_Node {
     rio_NodeKind kind;
+    size_t start;
     union {
         rio_Node_Name name;
     } value;

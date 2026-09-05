@@ -2,13 +2,31 @@
 #include <assert.h>
 #include <stdio.h>
 
-void rio_reportEngine(rio_Engine* engine) {
-    printf("Data:\n");
-    rio_Span_Byte data = engine->data.span;
-    size_t used = engine->data.used;
-    for (size_t index = 0; index < used; index += 1) {
-        printf("%zu: %d\n", index, data.items[index]);
+static void printBuffer(rio_Buffer_Byte* buffer) {
+    rio_Span_Byte bytes = buffer->span;
+    size_t used = buffer->used;
+    size_t bytesPerLine = 16;
+    for (size_t index = 0; index < used; index += bytesPerLine) {
+        printf("0x%08x: ", (uint32_t)index);
+        for (size_t offset = 0; offset < bytesPerLine; offset += 1) {
+            if (offset && !(offset % 4)) printf("_");
+            printf("%02x", bytes.items[index + offset]);
+        }
+        printf(" ");
+        for (size_t offset = 0; offset < bytesPerLine; offset += 1) {
+            char c = bytes.items[index + offset];
+            if (c < 32 || c > 126) c = '_';
+            printf("%c", c);
+        }
+        printf("\n");
     }
+}
+
+void rio_reportEngine(rio_Engine* engine) {
+    printf("Code:\n");
+    printBuffer(&engine->code);
+    printf("Data:\n");
+    printBuffer(&engine->data);
 }
 
 rio_Err rio_runLog(rio_Blob* message) {

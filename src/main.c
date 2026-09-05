@@ -22,6 +22,7 @@ rio_Err rio_run(int argc, const char** argv) {
     uint8_t* codeBytes = malloc(rio_codeSize);
     if (!codeBytes) return rio_Err_bad;
     memset(codeBytes, 0, rio_codeSize);
+    err = rio_Err_bad;
     // Data.
     // TODO Ensure full pages for marking as read-only.
     uint8_t* dataBytes = malloc(rio_dataSize);
@@ -39,11 +40,23 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_UInt16* nameStarts = malloc(nameStartsBytesSize);
     if (!nameStarts) goto freeNames;
     memset(nameStarts, 0, nameStartsBytesSize);
+    // Procs.
+    // TODO Union procs with structs?
+    size_t rio_procsSize = 0x1000;
+    rio_Proc* procs = malloc(rio_procsSize * sizeof(rio_Proc));
+    if (!procs) goto freeNameStarts;
     // Engine.
     rio_Engine engine = {
-        // Use up each first 4-byte word so nil pointers aren't useful.
-        .code = {{.size = rio_codeSize, .items = codeBytes}, .used = 4},
-        .data = {{.size = rio_dataSize, .items = dataBytes}, .used = 4},
+        .code = {
+            .span = {.size = rio_codeSize, .items = codeBytes},
+            // Use up each first word so nil pointers aren't useful.
+            .used = rio_ptrSize,
+        },
+        .data = {
+            .span = {.size = rio_dataSize, .items = dataBytes},
+            .used = rio_ptrSize,
+        },
+        .procs = {{.size = rio_procsSize, .items = procs}, .used = 1},
     };
     // TODO Figure out what really to do about memory vs data.
     engine.memory = engine.data;
@@ -69,7 +82,8 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_runLog((rio_Blob*)(engine.memory.span.items + rio_ptrSize));
     if (err) goto done;
     done:;
-    // freeNameStarts:;
+    // freeProcs:
+    freeNameStarts:
     free(nameStarts);
     freeNames:
     free(namesBytes);
