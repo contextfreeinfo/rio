@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include "sys.h"
 
 #define rio_codeSize 0x100000
@@ -11,10 +12,12 @@ typedef struct rio_Def {
     uint16_t flags; // Reserved. Basic types go here?
     uint8_t* type; // 0 i32, 1 f32, 2 bool, else composite desc address?
     union {
-        uint8_t* ptr;
-        int32_t i32;
-        float f32;
-    } value;
+        intptr_t intptrVal;
+        uint8_t* ptrVal;
+        bool boolVal;
+        int32_t i32Val;
+        float f32Val;
+    };
 } rio_Def;
 
 rio_defineSpan(Def);

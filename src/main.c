@@ -56,7 +56,7 @@ rio_Err rio_run(int argc, const char** argv) {
         },
         .defs = {{.size = rio_defsSize, .items = defs}, .used = 1},
     };
-    // TODO Figure out what really to do about memory vs data.
+    // TODO Combine memory with data for local running but not wasm?
     engine.memory = engine.data;
     rio_StdFile file = {.file = f};
     rio_Parser parser = {
@@ -72,6 +72,15 @@ rio_Err rio_run(int argc, const char** argv) {
             },
         },
     };
+    // Prefill defs such as `log`.
+    // TODO Better helpers for pushing to buffers.
+    engine.defs.span.items[1] = (rio_Def){
+        .name = 0, // TODO interned "log"
+        .intptrVal = (intptr_t)rio_log,
+    };
+    engine.defs.used += 1;
+    printf("log fun at %p\n", engine.defs.span.items[1].ptrVal);
+    // Parse/process.
     err = rio_parse(&parser);
     rio_close(&file);
     if (err) goto done;

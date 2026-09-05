@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "gen.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -7,7 +8,7 @@ static void printBuffer(rio_Buffer_Byte* buffer) {
     size_t used = buffer->used;
     size_t bytesPerLine = 16;
     for (size_t index = 0; index < used; index += bytesPerLine) {
-        printf("0x%08x: ", (uint32_t)index);
+        printf("%p: ", bytes.items + index);
         size_t bytesThisLine = used - index;
         if (bytesThisLine > bytesPerLine) {
             bytesThisLine = bytesPerLine;
