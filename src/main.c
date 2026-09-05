@@ -41,8 +41,6 @@ rio_Err rio_run(int argc, const char** argv) {
     if (!nameStarts) goto freeNames;
     memset(nameStarts, 0, nameStartsBytesSize);
     // Procs.
-    // TODO Union procs with structs?
-    size_t rio_procsSize = 0x1000;
     rio_Proc* procs = malloc(rio_procsSize * sizeof(rio_Proc));
     if (!procs) goto freeNameStarts;
     // Engine.
