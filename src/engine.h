@@ -4,15 +4,17 @@
 
 #define rio_codeSize 0x100000
 #define rio_dataSize 0x200000
-
 #define rio_defsSize 0x2000
-
-// TODO Union procs with structs?
-#define rio_procsSize 0x1000
 
 typedef struct rio_Def {
     uint16_t name;
-    uint16_t index; // If int32_t or size_t, up to 1/2 MB on thumb for 64k defs.
+    uint16_t flags; // Reserved. Basic types go here?
+    uint8_t* type; // 0 i32, 1 f32, 2 bool, else composite desc address?
+    union {
+        uint8_t* ptr;
+        int32_t i32;
+        float f32;
+    } value;
 } rio_Def;
 
 rio_defineSpan(Def);
@@ -35,15 +37,10 @@ typedef struct rio_Engine {
     // TODO So keep them in the data.
     // TODO Also separate table of types?
     rio_Buffer_Byte code;
-    // TODO defs buffer that fills up across modules and stackly in locals?
-    // TODO After a module is done, move pubs elsewhere or collapse non-pubs?
-    // TODO Then each module gives its range of pub defs.
-    // TODO Separate defs for module stack from all module pubs.
-    rio_Buffer_Def locals;
-    rio_Buffer_Def pubs;
+    // TODO Defs for active space. Pub module members go into memory.
+    rio_Buffer_Def defs;
     rio_Buffer_Byte data; // TODO Combine data with memory.
     rio_Buffer_Byte memory;
-    rio_Buffer_Proc procs;
 } rio_Engine;
 
 void rio_reportEngine(rio_Engine* engine);

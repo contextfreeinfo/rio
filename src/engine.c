@@ -8,13 +8,22 @@ static void printBuffer(rio_Buffer_Byte* buffer) {
     size_t bytesPerLine = 16;
     for (size_t index = 0; index < used; index += bytesPerLine) {
         printf("0x%08x: ", (uint32_t)index);
+        size_t bytesThisLine = used - index;
+        if (bytesThisLine > bytesPerLine) {
+            bytesThisLine = bytesPerLine;
+        }
         for (size_t offset = 0; offset < bytesPerLine; offset += 1) {
-            if (offset && !(offset % 4)) printf("_");
-            printf("%02x", bytes.items[index + offset]);
+            if (offset < bytesThisLine) {
+                if (offset && !(offset % 4)) printf("_");
+                printf("%02x", bytes.items[index + offset]);
+            } else {
+                if (offset && !(offset % 4)) printf(" ");
+                printf("  ");
+            }
         }
         printf(" ");
-        for (size_t offset = 0; offset < bytesPerLine; offset += 1) {
-            char c = bytes.items[index + offset];
+        for (size_t offset = 0; offset < bytesThisLine; offset += 1) {
+            uint8_t c = bytes.items[index + offset];
             if (c < 32 || c > 126) c = '_';
             printf("%c", c);
         }

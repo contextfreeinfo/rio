@@ -40,9 +40,9 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_UInt16* nameStarts = malloc(nameStartsBytesSize);
     if (!nameStarts) goto freeNames;
     memset(nameStarts, 0, nameStartsBytesSize);
-    // Procs.
-    rio_Proc* procs = malloc(rio_procsSize * sizeof(rio_Proc));
-    if (!procs) goto freeNameStarts;
+    // Defs.
+    rio_Def* defs = malloc(rio_defsSize * sizeof(rio_Def));
+    if (!defs) goto freeNameStarts;
     // Engine.
     rio_Engine engine = {
         .code = {
@@ -54,7 +54,7 @@ rio_Err rio_run(int argc, const char** argv) {
             .span = {.size = rio_dataSize, .items = dataBytes},
             .used = rio_ptrSize,
         },
-        .procs = {{.size = rio_procsSize, .items = procs}, .used = 1},
+        .defs = {{.size = rio_defsSize, .items = defs}, .used = 1},
     };
     // TODO Figure out what really to do about memory vs data.
     engine.memory = engine.data;
