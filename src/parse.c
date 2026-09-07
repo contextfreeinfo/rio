@@ -217,12 +217,15 @@ rio_Err rio_parseCall(rio_Parser* parser) {
         // TODO pushing callee address in the first place?
     }
     while (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
+        // TODO Validate callee type. Get arity from it.
+        size_t arity = 0;
         printf("Call %d start\n", name);
         if ((err = rio_parseTupleContent(parser))) return err;
         printf("Call %d end\n", name);
         parser->node = (rio_Node){ .kind = rio_NodeKind_call };
-        // TODO Find target address.
-        if ((err = rio_genCall(&parser->gen, 0, 0))) return err;
+        rio_Def* def = rio_findDef(&parser->engine->defs, name);
+        intptr_t target = def ? def->ptrVal : 0;
+        if ((err = rio_genCall(&parser->gen, target, arity))) return err;
     }
     return err;
 }

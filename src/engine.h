@@ -32,6 +32,8 @@ typedef struct rio_Def {
 rio_defineSpan(Def);
 rio_defineBuffer(Def);
 
+rio_Def* rio_findDef(rio_Buffer_Def* defs, int32_t name);
+
 typedef struct rio_Proc {
     // TODO Params
     // TODO Return type

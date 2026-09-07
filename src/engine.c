@@ -3,6 +3,17 @@
 #include <assert.h>
 #include <stdio.h>
 
+rio_Def* rio_findDef(rio_Buffer_Def* defs, int32_t name) {
+    if (name < 0 || name > 0xffff) return NULL;
+    uint16_t small = (uint16_t)name;
+    rio_Def* def = defs->span.items;
+    rio_Def* end = def + defs->used;
+    for (; def < end; def += 1) {
+        if (def->name == small) return def;
+    }
+    return NULL;
+}
+
 static void printBuffer(rio_Buffer_Byte* buffer) {
     rio_Span_Byte bytes = buffer->span;
     size_t used = buffer->used;
