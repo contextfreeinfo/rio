@@ -7,16 +7,25 @@
 #define rio_dataSize 0x200000
 #define rio_defsSize 0x2000
 
+typedef enum rio_Type {
+    rio_Type_int,
+    rio_Type_float,
+    rio_Type_bool,
+    rio_Type_composite, // TODO Subdivide?
+} rio_Type;
+
+// Currently 12 bytes on thumb2 and 24 bytes on arm64.
 typedef struct rio_Def {
     uint16_t name;
-    uint16_t flags; // Reserved. Basic types go here?
+    bool constant : 1;
+    uint16_t reserved : 15; // Reserved. Basic types go here?
     uint8_t* type; // 0 i32, 1 f32, 2 bool, else composite desc address?
     union {
-        intptr_t intptrVal;
-        uint8_t* ptrVal;
+        // Only values for constants should appear here.
         bool boolVal;
-        int32_t i32Val;
         float f32Val;
+        int32_t i32Val;
+        intptr_t ptrVal;
     };
 } rio_Def;
 
@@ -29,8 +38,8 @@ typedef struct rio_Proc {
     intptr_t addr;
 } rio_Proc;
 
-rio_defineSpan(Proc);
-rio_defineBuffer(Proc);
+// rio_defineSpan(Proc);
+// rio_defineBuffer(Proc);
 
 typedef struct rio_Engine {
     // TODO Constant data in one place.

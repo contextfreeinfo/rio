@@ -22,15 +22,19 @@ rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset) {
 }
 
 rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
-    // TODO Rotate args into place.
+    // TODO Pop args into place.
     (void)arity;
     intptr_t source = (intptr_t)(gen->code->span.items + gen->code->used + 4);
-    intptr_t offsetBig = target - source;
+    // TODO Pop target from stack to r12.
+    intptr_t offsetBig = target ? target - source : 0;
     // Assert range limits, approximately 16Mi.
-    if (offsetBig < -(16 << 20)) return rio_Err_bad;
-    if (offsetBig > (16 << 20) - 2) return rio_Err_bad;
+    if (!target || offsetBig < -(16 << 20) || offsetBig > (16 << 20) - 2) {
+        // BLX register 12. Expect bit 0 set to 1 in advance.
+        return rio_pushBytesInt16(gen->code, 0x47e0);
+    }
     int32_t offset = (int32_t)offsetBig;
     // // Clear the thumb bit.
+    // // TODO Doesn't matter since we shift it out, anyway?
     // offset &= ~1;
     // Convert to half-word offset.
     offset >>= 1;

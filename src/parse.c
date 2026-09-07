@@ -210,14 +210,19 @@ rio_Err rio_parseAtom(rio_Parser* parser) {
 rio_Err rio_parseCall(rio_Parser* parser) {
     rio_Err err = rio_parseAtom(parser);
     if (err) return err;
+    int32_t name = 0;
+    if (parser->node.kind == rio_NodeKind_name) {
+        name = parser->node.value.name.name;
+        // TODO If we get a constant call address, avoid instructions for
+        // TODO pushing callee address in the first place?
+    }
     while (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
-        printf("Call start\n");
-        // TODO Remember provided address.
-        // TODO If we know the arity already, we can put in right registers.
+        printf("Call %d start\n", name);
         if ((err = rio_parseTupleContent(parser))) return err;
-        printf("Call end\n");
+        printf("Call %d end\n", name);
         parser->node = (rio_Node){ .kind = rio_NodeKind_call };
-        // TODO Call address.
+        // TODO Find target address.
+        if ((err = rio_genCall(&parser->gen, 0, 0))) return err;
     }
     return err;
 }
@@ -255,14 +260,26 @@ rio_Err rio_parseColon(rio_Parser* parser) {
         rio_tabled(&parser->names, nameNode.value.name.name, &name);
         // TODO If top-level, add to tops table.
         // TODO Handle whatever for the specific value node we got.
+        rio_Def def = {
+            .name = nameNode.value.name.name,
+            .constant = true,
+            .type = NULL, // TODO Actual type description pointer.
+        };
         switch (parser->node.kind) {
         case rio_NodeKind_proc:
+            def.ptrVal = (intptr_t)(
+                rio_addrForExec(
+                    parser->node.start + parser->engine->code.span.items
+                )
+            );
+            if ((err = rio_pushDef(&parser->engine->defs, def))) return err;
             printf(
-                "Defined proc: %s (%d) at 0x%x -> %p\n",
+                "Defined proc: %s (%d) %zu at 0x%x -> %p\n",
                 name,
-                nameNode.value.name.name,
+                def.name,
+                parser->engine->defs.used - 1,
                 (uint32_t)parser->node.start,
-                parser->node.start + parser->engine->code.span.items
+                (void*)def.ptrVal
             );
             break;
         default:;

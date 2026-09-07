@@ -73,13 +73,15 @@ rio_Err rio_run(int argc, const char** argv) {
         },
     };
     // Prefill defs such as `log`.
-    // TODO Better helpers for pushing to buffers.
-    engine.defs.span.items[1] = (rio_Def){
-        .name = 0, // TODO interned "log"
-        .intptrVal = (intptr_t)rio_log,
-    };
-    engine.defs.used += 1;
-    printf("log fun at %p\n", engine.defs.span.items[1].ptrVal);
+    // And we know initial defs won't overflow.
+    int32_t logName;
+    rio_table(&parser.names, (rio_Byte*)"log", &logName);
+    rio_pushDef(&engine.defs, (rio_Def){
+        .name = logName,
+        .ptrVal = (intptr_t)rio_log,
+    });
+    rio_Def logDef = engine.defs.span.items[engine.defs.used - 1];
+    printf("log fun %d at %p\n", logDef.name, (void*)logDef.ptrVal);
     // Parse/process.
     err = rio_parse(&parser);
     rio_close(&file);
@@ -87,6 +89,7 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_reportParser(&parser);
     err = rio_genDemo(&parser.gen);
     rio_runLog((rio_Blob*)(engine.memory.span.items + rio_ptrSize));
+    // printf("def size: %zu\n", sizeof(rio_Def));
     if (err) goto done;
     done:;
     // freeProcs:

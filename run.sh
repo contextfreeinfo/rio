@@ -22,7 +22,8 @@ if [ ! -d "$dir" ]; then
 fi
 
 time cmake --build $dir
-ls -l $dir/rio
 $dir/rio "$args"
 time $dir/rio "$args" > /dev/null
 # /usr/bin/time -v $dir/rio "$args" > /dev/null
+
+ls -l $dir/rio

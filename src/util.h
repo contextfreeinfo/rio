@@ -17,7 +17,15 @@ typedef enum rio_Err {
 #define rio_defineBuffer(Type) typedef struct rio_Buffer_##Type { \
     rio_Span_##Type span; \
     size_t used; \
-} rio_Buffer_##Type
+} rio_Buffer_##Type; \
+static inline rio_Err rio_push##Type( \
+    rio_Buffer_##Type* buffer, rio_##Type item \
+) { \
+    if (buffer->used >= buffer->span.size - 1) return rio_Err_bad; \
+    buffer->span.items[buffer->used++] = item; \
+    return 0; \
+} \
+struct _rio_dummy /* to expect trailing semi */
 
 typedef uint8_t rio_Byte;
 typedef uint16_t rio_UInt16;
