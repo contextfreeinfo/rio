@@ -51,12 +51,12 @@ void rio_reportEngine(rio_Engine* engine) {
     // Dump code to binary file for disassembly.
     // objdump -D -b binary -m arm -M force-thumb code.bin
     FILE* bin = fopen("code.bin", "wb");
-    // fwrite(engine->code.span.items, 1, engine->code.used, bin);
-    for (size_t i = 0; i < engine->code.used; i += 1) {
-        uint8_t byte = engine->code.span.items[i];
-        int written = fwrite(&byte, 1, 1, bin);
-        printf("%02x %d %d\n", (unsigned int)byte, byte, written);
-    }
+    fwrite(engine->code.span.items, 1, engine->code.used, bin);
+    // for (size_t i = 0; i < engine->code.used; i += 1) {
+    //     uint8_t byte = engine->code.span.items[i];
+    //     int written = fwrite(&byte, 1, 1, bin);
+    //     printf("%02x %d %d\n", (unsigned int)byte, byte, written);
+    // }
     int closed = fclose(bin);
     printf("closed: %d\n", closed);
     FILE* in = fopen("code.bin", "rb");
@@ -64,10 +64,10 @@ void rio_reportEngine(rio_Engine* engine) {
     size_t i = 0;
     printf("Checking ...\n");
     while (fread(&byte, 1, 1, in)) {
-        printf(
-            "byte 0x%02x vs 0x%02x at %zu\n",
-            engine->code.span.items[i], byte, i
-        );
+        // printf(
+        //     "byte 0x%02x vs 0x%02x at %zu\n",
+        //     engine->code.span.items[i], byte, i
+        // );
         if (engine->code.span.items[i] != byte) {
             printf("diff at %zu\n", i);
         }
