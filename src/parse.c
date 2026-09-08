@@ -218,6 +218,7 @@ rio_Err rio_parseCall(rio_Parser* parser) {
     }
     while (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
         // TODO Validate callee type. Get arity from it.
+        // TODO From rio, always describe types through handles to prevent mut?
         size_t arity = 0;
         printf("Call %d start\n", name);
         if ((err = rio_parseTupleContent(parser))) return err;

@@ -48,6 +48,11 @@ void rio_reportEngine(rio_Engine* engine) {
     printBuffer(&engine->code);
     printf("Data:\n");
     printBuffer(&engine->data);
+    // Dump code to binary file for disassembly.
+    // objdump -D -b binary -m arm -M force-thumb code.bin
+    FILE* bin = fopen("code.bin", "w");
+    fwrite(engine->code.span.items, 1, engine->code.used, bin);
+    fclose(bin);
 }
 
 rio_Err rio_runLog(rio_Blob* message) {
