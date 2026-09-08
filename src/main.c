@@ -92,7 +92,8 @@ rio_Err rio_run(int argc, const char** argv) {
     // printf("def size: %zu\n", sizeof(rio_Def));
     if (err) goto done;
     done:;
-    // freeProcs:
+    // freeDefs:
+    free(defs);
     freeNameStarts:
     free(nameStarts);
     freeNames:

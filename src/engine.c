@@ -6,9 +6,9 @@
 rio_Def* rio_findDef(rio_Buffer_Def* defs, int32_t name) {
     if (name < 0 || name > 0xffff) return NULL;
     uint16_t small = (uint16_t)name;
-    rio_Def* def = defs->span.items;
-    rio_Def* end = def + defs->used;
-    for (; def < end; def += 1) {
+    rio_Def* def = defs->span.items + defs->used - 1;
+    rio_Def* end = defs->span.items;
+    for (; def >= end; def -= 1) {
         if (def->name == small) return def;
     }
     return NULL;
@@ -54,10 +54,11 @@ void rio_reportEngine(rio_Engine* engine) {
     // fwrite(engine->code.span.items, 1, engine->code.used, bin);
     for (size_t i = 0; i < engine->code.used; i += 1) {
         uint8_t byte = engine->code.span.items[i];
-        printf("%02x\n", byte);
-        fwrite(&byte, 1, 1, bin);
+        int written = fwrite(&byte, 1, 1, bin);
+        printf("%02x %d %d\n", (unsigned int)byte, byte, written);
     }
-    fclose(bin);
+    int closed = fclose(bin);
+    printf("closed: %d\n", closed);
 }
 
 rio_Err rio_runLog(rio_Blob* message) {
