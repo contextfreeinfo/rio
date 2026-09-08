@@ -59,6 +59,22 @@ void rio_reportEngine(rio_Engine* engine) {
     }
     int closed = fclose(bin);
     printf("closed: %d\n", closed);
+    FILE* in = fopen("code.bin", "rb");
+    uint8_t byte;
+    size_t i = 0;
+    printf("Checking ...\n");
+    while (fread(&byte, 1, 1, in)) {
+        printf(
+            "byte 0x%02x vs 0x%02x at %zu\n",
+            engine->code.span.items[i], byte, i
+        );
+        if (engine->code.span.items[i] != byte) {
+            printf("diff at %zu\n", i);
+        }
+        i += 1;
+    }
+    fclose(in);
+    printf("... check done\n");
 }
 
 rio_Err rio_runLog(rio_Blob* message) {
