@@ -50,8 +50,13 @@ void rio_reportEngine(rio_Engine* engine) {
     printBuffer(&engine->data);
     // Dump code to binary file for disassembly.
     // objdump -D -b binary -m arm -M force-thumb code.bin
-    FILE* bin = fopen("code.bin", "w");
-    fwrite(engine->code.span.items, 1, engine->code.used, bin);
+    FILE* bin = fopen("code.bin", "wb");
+    // fwrite(engine->code.span.items, 1, engine->code.used, bin);
+    for (size_t i = 0; i < engine->code.used; i += 1) {
+        uint8_t byte = engine->code.span.items[i];
+        printf("%02x\n", byte);
+        fwrite(&byte, 1, 1, bin);
+    }
     fclose(bin);
 }
 

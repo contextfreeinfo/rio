@@ -26,7 +26,8 @@ $dir/rio "$args"
 time $dir/rio "$args" > /dev/null
 # /usr/bin/time -v $dir/rio "$args" > /dev/null
 if [[ "$dir" == "build-thumb" ]]; then
-    objdump -D -b binary -m arm -M force-thumb code.bin
+    # objdump -D -b binary -m arm -M force-thumb code.bin
+    xxd code.bin
 fi
 
 ls -l $dir/rio
