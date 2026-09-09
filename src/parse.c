@@ -101,6 +101,20 @@ rio_Err rio_parseName(rio_Parser* parser) {
     // if (!hold) {
     //     // TODO Push value to code gen.
     // }
+    rio_Def* def = rio_findDef(&parser->engine->defs, index);
+    if (def) {
+        printf("---> found: %d\n", index);
+        if (def->constant) {
+            // TODO Handle different types.
+            if ((err = rio_genPush(&parser->gen, def->ptrVal))) return err;
+        } else if (def->local) {
+            // TODO Handle different types.
+            // TODO Get value from frame-relative address.
+        } else {
+            // TODO Handle different types.
+            // TODO Get value from address.
+        }
+    }
     return rio_parserAdvance(parser, false);
 }
 
@@ -181,9 +195,8 @@ rio_Err rio_parseString(rio_Parser* parser) {
     done:
     // We know there's space here because we got past it.
     rio_pushBytesInt32(&sizeBuffer, buffer->used - start);
-    if ((
-        err = rio_genPush(&parser->gen, (intptr_t)(buffer->span.items + start))
-    )) return err;
+    intptr_t address = (intptr_t)(buffer->span.items + start);
+    if ((err = rio_genPush(&parser->gen, address))) return err;
     return err;
 }
 

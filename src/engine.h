@@ -16,15 +16,19 @@ typedef enum rio_Type {
 
 // Currently 12 bytes on thumb2 and 24 bytes on arm64.
 typedef struct rio_Def {
-    uint16_t name;
+    uint16_t name; // TODO Make this 32 bits on arm64?
     bool constant : 1;
-    uint16_t reserved : 15; // Reserved. Basic types go here?
+    bool local : 1; // If true, the address is frame relative???
+    uint16_t reserved : 14; // Reserved. Basic types go here?
     uint8_t* type; // 0 i32, 1 f32, 2 bool, else composite desc address?
     union {
         // Only values for constants should appear here.
         bool boolVal;
         float f32Val;
         int32_t i32Val;
+        // For a constant function, the actual address of the function.
+        // If not constant, either a global or frame relative address.
+        // For a function variable, the *pointer* is stored at this address.
         intptr_t ptrVal;
     };
 } rio_Def;

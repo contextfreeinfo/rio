@@ -78,6 +78,7 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_table(&parser.names, (rio_Byte*)"log", &logName);
     rio_pushDef(&engine.defs, (rio_Def){
         .name = logName,
+        .constant = true,
         .ptrVal = (intptr_t)rio_log,
     });
     rio_Def logDef = engine.defs.span.items[engine.defs.used - 1];
