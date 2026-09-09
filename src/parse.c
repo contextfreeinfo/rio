@@ -221,24 +221,30 @@ rio_Err rio_parseAtom(rio_Parser* parser) {
 }
 
 rio_Err rio_parseCall(rio_Parser* parser) {
+    size_t start = parser->engine->code.used;
     rio_Err err = rio_parseAtom(parser);
     if (err) return err;
     int32_t name = 0;
     if (parser->node.kind == rio_NodeKind_name) {
         name = parser->node.value.name.name;
-        // TODO If we get a constant call address, avoid instructions for
-        // TODO pushing callee address in the first place?
+        // TODO Pop used back to start. (Should also be only 4 bytes in this case?)
     }
     while (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
         // TODO Validate callee type. Get arity from it.
         // TODO From rio, always describe types through handles to prevent mut?
+        rio_Def* def = rio_findDef(&parser->engine->defs, name);
+        intptr_t target = def && def->constant ? def->ptrVal : 0;
+        if (target) {
+            // Just skip the old push because we'll provide it more directly.
+            // size_t used = parser->engine->code.used;
+            // printf("-------> gap: %zu\n", used - start);
+            parser->engine->code.used = start;
+        }
         size_t arity = 0;
         printf("Call %d start\n", name);
         if ((err = rio_parseTupleContent(parser))) return err;
         printf("Call %d end\n", name);
         parser->node = (rio_Node){ .kind = rio_NodeKind_call };
-        rio_Def* def = rio_findDef(&parser->engine->defs, name);
-        intptr_t target = def ? def->ptrVal : 0;
         if ((err = rio_genCall(&parser->gen, target, arity))) return err;
     }
     return err;
@@ -306,6 +312,7 @@ rio_Err rio_parseColon(rio_Parser* parser) {
 }
 
 rio_Err rio_parseExpression(rio_Parser* parser) {
+    parser->node = (rio_Node){ .kind = rio_NodeKind_nil };
     return rio_parseColon(parser);
 }
 
