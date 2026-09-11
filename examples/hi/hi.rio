@@ -1,11 +1,16 @@
-# greet :: declare proc()
-
+# Well, technically does more than greet, but meh.
 greet :: proc()
   log("Hi there!")
   log("Bye now!")
 end
 
+# Just to prove nested and repeated calls work.
+greetTwice :: proc()
+  greet()
+  greet()
+end
+
+# Main naturally goes last.
 main :: proc()
-  greet()
-  greet()
+  greetTwice()
 end

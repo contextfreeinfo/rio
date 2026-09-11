@@ -88,7 +88,6 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_close(&file);
     if (err) goto done;
     rio_reportParser(&parser);
-    if ((err = rio_genDemo(&parser.gen))) goto done;
     if ((err = rio_enableExec(codeBytes, rio_codeSize))) goto done;
     if (engine.main) {
         void (*codeMain)(void) = (void (*)(void))engine.main;

@@ -36,22 +36,6 @@ typedef struct rio_Gen {
     // rio_Err (*ret)(rio_Buffer_Byte* code);
 } rio_Gen;
 
-// typedef enum rio_CodeKind {
-//     rio_CodeKind_nil,
-//     rio_CodeKind_intVal,
-//     rio_CodeKind_intAdd,
-//     rio_CodeKind_return,
-// } rio_Code;
-
-// typedef struct rio_Code {
-//     rio_CodeKind kind;
-//     union {
-//         int32_t i;
-//     };
-// };
-
-rio_Err rio_genDemo(rio_Gen* gen);
-
 // If target is null, get target from stack.
 rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity);
 
