@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdio.h>
 #include "gen.h"
 
 uint8_t* rio_addrForExec(uint8_t* addr) {
@@ -49,6 +50,14 @@ rio_Err rio_genMovW(rio_Buffer_Byte* code, uint8_t rd, uint16_t imm16) {
     return 0;
 }
 
+rio_Err checkPushR0(rio_Gen* gen) {
+    if (gen->state) {
+        gen->state = 0;
+        return rio_pushBytesInt16(gen->code, (int16_t)0xb401);
+    }
+    return 0;
+}
+
 static rio_Err putReg(rio_Gen* gen, uint8_t rd, intptr_t value) {
     rio_Err err = 0;
     // TODO Cycle regs.
@@ -72,6 +81,7 @@ static rio_Err putReg(rio_Gen* gen, uint8_t rd, intptr_t value) {
 
 rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
     rio_Err err = 0;
+    if ((err = checkPushR0(gen))) return err;
     // TODO Pop args into place.
     (void)arity;
     intptr_t source = (intptr_t)(gen->code->span.items + gen->code->used + 4);
@@ -116,11 +126,17 @@ rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
     rio_Err err = 0;
     // Max of 3 args.
     if (count > 3) count = 3;
-    // Because we push first arg first, we can't pop all at once, because thumb
-    // puts those in the wrong order.
-    for (; count; count -= 1) {
-        int16_t bits = (int16_t)0xbc00 | (1 << (count - 1));
-        if ((err = rio_pushBytesInt16(gen->code, bits))) return err;
+    if (count == 1 && gen->state) {
+        gen->state = 0;
+    } else if (count) {
+        // TODO Instead move last arg in place instead of pushing.
+        if ((err = checkPushR0(gen))) return err;
+        // Because we push first arg first, we can't pop all at once, because
+        // thumb puts those in the wrong order.
+        for (; count; count -= 1) {
+            int16_t bits = (int16_t)0xbc00 | (1 << (count - 1));
+            if ((err = rio_pushBytesInt16(gen->code, bits))) return err;
+        }
     }
     return 0;
 }
@@ -148,9 +164,16 @@ rio_Err rio_genProcEnd(rio_Gen* gen) {
 
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
     rio_Err err = 0;
+    // printf("---------------------> genPush was %d\n", gen->state);
+    if ((err = checkPushR0(gen))) return err;
     // Put r0 then push r0.
     // TODO Defer push of r0 in case the next instruction is pop r0?
     if ((err = putReg(gen, 0, value))) return err;
-    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xb401))) return err;
+    gen->state = 1;
+    return 0;
+}
+
+rio_Err rio_genUnusedPush(rio_Gen* gen) {
+    gen->state = 0;
     return 0;
 }

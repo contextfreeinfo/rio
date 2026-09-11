@@ -251,11 +251,12 @@ rio_Err rio_parseCall(rio_Parser* parser) {
         // TODO From rio, always describe types through handles to prevent mut?
         rio_Def* def = rio_findDef(&parser->engine->defs, name);
         intptr_t target = def && def->constant ? def->ptrVal : 0;
-        if (target) {
+        if (target && parser->engine->code.used > start) {
             // Just skip the old push because we'll provide it more directly.
             // size_t used = parser->engine->code.used;
             // printf("-------> gap: %zu\n", used - start);
             parser->engine->code.used = start;
+            rio_genUnusedPush(&parser->gen);
         }
         size_t arity = 0;
         if (rio_verbosity) printf("Call %d start\n", name);

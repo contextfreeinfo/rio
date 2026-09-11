@@ -42,3 +42,8 @@ rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
     (void)value;
     return 0;
 }
+
+rio_Err rio_genUnusedPush(rio_Gen* gen) {
+    gen->state = 0;
+    return 0;
+}

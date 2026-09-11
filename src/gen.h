@@ -22,8 +22,7 @@
 // Function pointers allow for changing arch based on command line args.
 typedef struct rio_Gen {
     rio_Buffer_Byte* code;
-    int stackSize;
-    // TODO Also keep a count on dups for each active reg?
+    int state;
 
     // rio_Err (*argFloat)(rio_Buffer_Byte* code, int index, float value);
     // rio_Err (*argInt)(rio_Buffer_Byte* code, int index, int32_t value);
@@ -51,6 +50,8 @@ rio_Err rio_genProcEnd(rio_Gen* gen);
 // Always push intptr_t to keep things simple, even if non-pointer types are
 // smaller on 64-bit systems.
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value);
+
+rio_Err rio_genUnusedPush(rio_Gen* gen);
 
 rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset);
 
