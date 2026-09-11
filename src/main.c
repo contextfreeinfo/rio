@@ -19,8 +19,8 @@ rio_Err rio_run(int argc, const char** argv) {
     // Code.
     // Because typing, we can keep function pointers/ids separate from data
     // pointers. This is also nice for wasm.
-    uint8_t* codeBytes = malloc(rio_codeSize);
-    if (!codeBytes) return rio_Err_bad;
+    uint8_t* codeBytes = NULL;
+    if ((err = rio_allocPages(rio_codeSize, &codeBytes))) return err;
     memset(codeBytes, 0, rio_codeSize);
     err = rio_Err_bad;
     // Data.
@@ -88,7 +88,13 @@ rio_Err rio_run(int argc, const char** argv) {
     rio_close(&file);
     if (err) goto done;
     rio_reportParser(&parser);
-    err = rio_genDemo(&parser.gen);
+    if ((err = rio_genDemo(&parser.gen))) goto done;
+    if ((err = rio_enableExec(codeBytes, rio_codeSize))) goto done;
+    if (engine.main) {
+        void (*codeMain)(void) = (void (*)(void))engine.main;
+        printf("Wanting to call main at: %p\n", (void*)(intptr_t)codeMain);
+        // codeMain();
+    }
     rio_runLog((rio_Blob*)(engine.memory.span.items + rio_ptrSize));
     // printf("def size: %zu\n", sizeof(rio_Def));
     if (err) goto done;
@@ -102,7 +108,7 @@ rio_Err rio_run(int argc, const char** argv) {
     freeData:
     free(dataBytes);
     freeCode:
-    free(codeBytes);
+    rio_freePages(codeBytes, rio_codeSize);
     return err;
 }
 

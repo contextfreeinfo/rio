@@ -9,7 +9,7 @@ add_executable(rio
     src/parse.c
     src/util.c
     src/gen.c
-    src/sys-std.c
+    src/sys.c
 )
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")

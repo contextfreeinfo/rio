@@ -59,6 +59,7 @@ typedef struct rio_Engine {
     rio_Buffer_Def defs;
     rio_Buffer_Byte data; // TODO Combine data with memory.
     rio_Buffer_Byte memory;
+    intptr_t main;
 } rio_Engine;
 
 void rio_reportEngine(rio_Engine* engine);

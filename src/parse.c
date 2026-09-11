@@ -1,7 +1,8 @@
-#include "parse.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include "lex.h"
+#include "parse.h"
 
 // uint8_t rio_archcode[rio_archcode_size] = {0};
 // uint8_t rio_globals[rio_globals_size] = {0};
@@ -319,6 +320,10 @@ rio_Err rio_parseColon(rio_Parser* parser) {
                 (uint32_t)parser->node.start,
                 (void*)def.ptrVal
             );
+            // TODO Instead know the int for main and check that.
+            if (!strcmp((char*)name, "main")) {
+                parser->engine->main = def.ptrVal;
+            }
             break;
         default:;
         }
