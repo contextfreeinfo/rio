@@ -1,6 +1,8 @@
 #include "util.h"
 #include <string.h>
 
+int rio_verbosity = 0;
+
 rio_Err rio_pushBytes(rio_Buffer_Byte* buffer, rio_Span_Byte bytes) {
     size_t remaining = buffer->span.size - buffer->used;
     if (remaining < bytes.size) return rio_Err_bad;

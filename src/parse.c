@@ -13,13 +13,15 @@ rio_Err rio_parserAdvance(rio_Parser* parser, bool skipEndLines) {
     rio_Err err = 0;
     while (!(err = rio_lexNext(&parser->lexer))) {
         rio_Token token = parser->lexer.token;
-        printf(
-            "%s (%d); %zu..%zu\n",
-            token.text,
-            token.kind,
-            token.start,
-            token.end
-        );
+        if (rio_verbosity) {
+            printf(
+                "%s (%d); %zu..%zu\n",
+                token.text,
+                token.kind,
+                token.start,
+                token.end
+            );
+        }
         switch (token.kind) {
         case rio_TokenKind_comment:
         case rio_TokenKind_space:
@@ -53,7 +55,7 @@ rio_Err rio_eatEndLines(rio_Parser* parser) {
 
 rio_Err rio_parserEnsureAdvance(rio_Parser* parser, size_t oldStart) {
     if (parser->lexer.token.start == oldStart) {
-        printf("Had to advance\n");
+        if (rio_verbosity) printf("Had to advance\n");
         return rio_parserAdvance(parser, false);
     }
     return 0;
@@ -99,13 +101,13 @@ rio_Err rio_parseBlock(rio_Parser* parser) {
         if ((err = rio_eatEndLines(parser))) return err;
     }
     if ((err = rio_parserAdvance(parser, false))) return err;
-    printf("Block end\n");
+    if (rio_verbosity) printf("Block end\n");
     return err;
 }
 
 rio_Err rio_parseName(rio_Parser* parser) {
     rio_Err err = 0;
-    printf("Name\n");
+    if (rio_verbosity) printf("Name\n");
     int32_t index = 0;
     // All our token texts also are null-terminated.
     rio_Byte* text = (rio_Byte*)parser->lexer.token.text;
@@ -119,7 +121,7 @@ rio_Err rio_parseName(rio_Parser* parser) {
     // }
     rio_Def* def = rio_findDef(&parser->engine->defs, index);
     if (def) {
-        printf("---> found: %d\n", index);
+        if (rio_verbosity) printf("---> found: %d\n", index);
         if (def->constant) {
             // TODO Handle different types.
             if ((err = rio_genPush(&parser->gen, def->ptrVal))) return err;
@@ -138,9 +140,9 @@ rio_Err rio_parseProcProto(rio_Parser* parser) {
     rio_Err err = 0;
     if ((err = rio_parserAdvance(parser, true))) return err;
     if (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
-        printf("Params start\n");
+        if (rio_verbosity) printf("Params start\n");
         if ((err = rio_parseTupleContent(parser))) return err;
-        printf("Params end\n");
+        if (rio_verbosity) printf("Params end\n");
     }
     parser->node = (rio_Node){ .kind = rio_NodeKind_proc };
     return err;
@@ -256,9 +258,9 @@ rio_Err rio_parseCall(rio_Parser* parser) {
             parser->engine->code.used = start;
         }
         size_t arity = 0;
-        printf("Call %d start\n", name);
+        if (rio_verbosity) printf("Call %d start\n", name);
         if ((err = rio_parseTupleContent(parser))) return err;
-        printf("Call %d end\n", name);
+        if (rio_verbosity) printf("Call %d end\n", name);
         parser->node = (rio_Node){ .kind = rio_NodeKind_call };
         if ((err = rio_genCall(&parser->gen, target, arity))) return err;
     }
@@ -268,13 +270,13 @@ rio_Err rio_parseCall(rio_Parser* parser) {
 rio_Err rio_parseColon(rio_Parser* parser) {
     rio_Err err = rio_parseCall(parser);
     if (err) return err;
-    printf("Checking for colon\n");
+    if (rio_verbosity) printf("Checking for colon\n");
     if (parser->lexer.token.kind != rio_TokenKind_colon) return err;
     if ((err = rio_parserAdvance(parser, true))) return err;
     // Got a colon, so remember name.
     rio_Node nameNode = parser->node;
     // Type or control flow.
-    printf("Type or control flow\n");
+    if (rio_verbosity) printf("Type or control flow\n");
     // TODO Eat newlines.
     // TODO Retain any name from earlier for definition.
     err = rio_parseCall(parser);
@@ -289,7 +291,7 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     }
     // Value.
     // TODO Eat newlines.
-    printf("Value\n");
+    if (rio_verbosity) printf("Value\n");
     err = rio_parseCall(parser);
     if (err) return err;
     // Apply value.
@@ -311,14 +313,16 @@ rio_Err rio_parseColon(rio_Parser* parser) {
                 )
             );
             if ((err = rio_pushDef(&parser->engine->defs, def))) return err;
-            printf(
-                "Defined proc: %s (%d) %zu at 0x%x -> %p\n",
-                name,
-                def.name,
-                parser->engine->defs.used - 1,
-                (uint32_t)parser->node.start,
-                (void*)def.ptrVal
-            );
+            if (rio_verbosity) {
+                printf(
+                    "Defined proc: %s (%d) %zu at 0x%x -> %p\n",
+                    name,
+                    def.name,
+                    parser->engine->defs.used - 1,
+                    (uint32_t)parser->node.start,
+                    (void*)def.ptrVal
+                );
+            }
             // TODO Instead know the int for main and check that.
             if (!strcmp((char*)name, "main")) {
                 parser->engine->main = def.ptrVal;
@@ -351,16 +355,18 @@ rio_Err rio_parse(rio_Parser* parser) {
 }
 
 void rio_reportParser(rio_Parser* parser) {
-    printf("Names:\n");
+    if (rio_verbosity) printf("Names:\n");
     rio_Span_UInt16 starts = parser->names.starts;
     rio_Span_Byte strings = parser->names.strings.span;
     // TODO Report names as strings with start.
     for (size_t index = 0; index < starts.size; index += 1) {
         size_t start = starts.items[index];
         if (start) {
-            printf("%zu@%zu: %s\n", index, start, strings.items + start);
+            if (rio_verbosity) {
+                printf("%zu@%zu: %s\n", index, start, strings.items + start);
+            }
         }
     }
-    printf("\n");
+    if (rio_verbosity) printf("\n");
     rio_reportEngine(parser->engine);
 }

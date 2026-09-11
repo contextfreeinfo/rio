@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+extern int rio_verbosity;
+
 typedef enum rio_Err {
     rio_Err_none,
     rio_Err_bad,

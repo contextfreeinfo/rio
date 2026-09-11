@@ -6,10 +6,8 @@
 #include "parse.h"
 #include "sys-std.h"
 
-rio_Err rio_run(int argc, const char** argv) {
-    if (argc < 2) return rio_Err_bad;
+rio_Err rio_run(const char* path) {
     rio_Err err = 0;
-    const char* path = argv[1];
     FILE* f = fopen(path, "r");
     if (!f) {
         rio_log("Failed to open:");
@@ -82,16 +80,20 @@ rio_Err rio_run(int argc, const char** argv) {
         .ptrVal = (intptr_t)rio_log,
     });
     rio_Def logDef = engine.defs.span.items[engine.defs.used - 1];
-    printf("log fun %d at %p\n", logDef.name, (void*)logDef.ptrVal);
+    if (rio_verbosity) {
+        printf("log fun %d at %p\n", logDef.name, (void*)logDef.ptrVal);
+    }
     // Parse/process.
     err = rio_parse(&parser);
     rio_close(&file);
     if (err) goto done;
-    rio_reportParser(&parser);
+    if (rio_verbosity) rio_reportParser(&parser);
     if ((err = rio_enableExec(codeBytes, rio_codeSize))) goto done;
     if (engine.main) {
         void (*codeMain)(void) = (void (*)(void))engine.main;
-        printf("Wanting to call main at: %p\n", (void*)(intptr_t)codeMain);
+        if (rio_verbosity) {
+            printf("Wanting to call main at: %p\n", (void*)(intptr_t)codeMain);
+        }
         #if defined(__thumb2__)
             codeMain();
         #endif
@@ -116,12 +118,18 @@ rio_Err rio_run(int argc, const char** argv) {
 }
 
 int main(int argc, const char** argv) {
-    // TODO Better arg parse.
+    // TODO Better arg parse then call run with info struct.
+    int scriptArg = 1;
     if (argc > 1) {
-        return rio_run(argc, argv);
-    } else {
-        // TODO Better help.
-        printf("Script not specified.\n");
+        if (!strcmp(argv[1], "--verbose")) {
+            scriptArg += 1;
+            rio_verbosity = 1;
+        }
     }
-    return 0;
+    if (scriptArg >= argc) {
+        fprintf(stderr, "No script given.\n");
+        return rio_Err_bad;
+    }
+    const char* path = argv[scriptArg];
+    return rio_run(path);
 }

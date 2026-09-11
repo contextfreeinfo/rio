@@ -22,7 +22,7 @@ if [ ! -d "$dir" ]; then
 fi
 
 time cmake --build $dir
-$dir/rio "$args"
+$dir/rio --verbose "$args"
 time $dir/rio "$args" > /dev/null
 # /usr/bin/time -v $dir/rio "$args" > /dev/null
 if [[ "$dir" == "build-thumb" ]]; then

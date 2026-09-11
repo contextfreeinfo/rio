@@ -5,11 +5,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-static const uint8_t instructions[] = {
-    0x8d, 0x04, 0x37, // lea eax, [rdi + rsi]
-    0xc3,             // ret
-};
-
 uint8_t* rio_addrForExec(uint8_t* addr) {
     return addr;
 }
