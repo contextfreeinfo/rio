@@ -26,6 +26,12 @@ rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
     return 0;
 }
 
+rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
+    (void)gen;
+    (void)count;
+    return 0;
+}
+
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
     (void)gen;
     (void)value;

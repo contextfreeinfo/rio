@@ -9,6 +9,8 @@
     #define rio_ptrSize 4
 #endif
 
+#define rio_maxArgs 3
+
 // TODO Include wasm gen everywhere, including pico.
 // TODO Run on wasm most places.
 // TODO Wasm gen good on pico so we can deploy directly to itch or wherever?
@@ -52,12 +54,16 @@ rio_Err rio_genDemo(rio_Gen* gen);
 
 // If target is null, get target from stack.
 rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity);
+
 rio_Err rio_genIntAdd(rio_Gen* gen);
+
 // TODO Separate options for pushing/popping shadow stack?
-rio_Err rio_genPop(rio_Gen* gen);
-// TODO Always pushing intptr_t is possibly wasteful when spilling smaller vals.
-// TODO Track sizes for more efficient spilling?
+rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count);
+
+// Always push intptr_t to keep things simple, even if non-pointer types are
+// smaller on 64-bit systems.
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value);
+
 rio_Err rio_genRet(rio_Gen* gen);
 
 rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset);

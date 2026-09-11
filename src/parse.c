@@ -38,10 +38,12 @@ rio_Err rio_parserAdvance(rio_Parser* parser, bool skipEndLines) {
 }
 
 rio_Err rio_eatEndLines(rio_Parser* parser) {
+    // printf("-------------------> kind %d\n", parser->lexer.token.kind);
     switch (parser->lexer.token.kind) {
     case rio_TokenKind_comment:
     case rio_TokenKind_endLine:
     case rio_TokenKind_space:
+        // printf("-------------------> advancing\n");
         return rio_parserAdvance(parser, true);
     default:
         return 0;
@@ -61,13 +63,26 @@ rio_Err rio_parseExpression(rio_Parser* parser);
 rio_Err rio_parseTupleContent(rio_Parser* parser) {
     rio_Err err = 0;
     if ((err = rio_parserAdvance(parser, true))) return err;
+    int count = 0;
     while (parser->lexer.token.kind != rio_TokenKind_roundClose) {
         size_t oldStart = parser->lexer.token.start;
         if ((err = rio_parseExpression(parser))) return err;
+        // TODO Error if we hadn't advanced? Could be empty arg?
         if ((err = rio_parserEnsureAdvance(parser, oldStart))) return err;
+        // Separate error checking should let us know if all was valid.
+        // Presume all machine code bad if there were any errors.
+        count += 1;
+        if (parser->lexer.token.kind == rio_TokenKind_comma) {
+            if ((err = rio_parserAdvance(parser, true))) return err;
+        } else {
+            // Error should come later if this was other than expr or close.
+            if ((err = rio_eatEndLines(parser))) return err;
+        }
+        // printf("-------=====> count %zu\n", count);
         // TODO Check comma.
-        if ((err = rio_eatEndLines(parser))) return err;
+        // printf("-------=====> ate\n");
     }
+    if ((err = rio_genPopAsArgs(&parser->gen, count))) return err;
     if ((err = rio_parserAdvance(parser, false))) return err;
     return err;
 }

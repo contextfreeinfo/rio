@@ -215,6 +215,9 @@ rio_Err rio_lexNext(rio_Lexer* lexer) {
     case ':':
         token->kind = rio_TokenKind_colon;
         break;
+    case ',':
+        token->kind = rio_TokenKind_comma;
+        break;
     case '(':
         token->kind = rio_TokenKind_roundOpen;
         break;

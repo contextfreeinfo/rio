@@ -3,6 +3,7 @@
 *.o
 build/
 build-*/
+ignore/
 target/
 temper.keep/
 temper.out/

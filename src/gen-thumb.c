@@ -54,7 +54,7 @@ rio_Err rio_genMovW(rio_Buffer_Byte* code, uint8_t rd, uint16_t imm16) {
     return 0;
 }
 
-rio_Err rio_genPushReg(rio_Gen* gen, uint8_t rd, intptr_t value) {
+static rio_Err putReg(rio_Gen* gen, uint8_t rd, intptr_t value) {
     rio_Err err = 0;
     // TODO Cycle regs.
     uint32_t val = (uint32_t)value;
@@ -85,7 +85,7 @@ rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
     if (!target || offsetBig < -(16 << 20) || offsetBig > (16 << 20) - 2) {
         if (target) {
             // BLX register 12. Expect bit 0 set to 1 in advance.
-            if ((err = rio_genPushReg(gen, 12, target))) return err;
+            if ((err = putReg(gen, 12, target))) return err;
         } else {
             // TODO Pop target to register 12.
         }
@@ -107,17 +107,37 @@ rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
     uint32_t j1 = i1 ^ s ^ 1;
     uint32_t j2 = i2 ^ s ^ 1;
     // Build two halves then full.
-    uint16_t upper = 0xF000 | (s << 10) | imm10;
-    uint16_t lower = 0xD000 | (j1 << 13) | (1 << 12) | (j2 << 11) | imm11;
+    uint16_t upper = 0xf000 | (s << 10) | imm10;
+    uint16_t lower = 0xd000 | (j1 << 13) | (j2 << 11) | imm11;
     // Push instructions.
     if ((err = rio_pushBytesInt16(gen->code, upper))) return err;
     if ((err = rio_pushBytesInt16(gen->code, lower))) return err;
-    // TODO Pop args.
+    // TODO If non-void, push return value.
+    return 0;
+}
+
+rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
+    if (!count) return 0;
+    rio_Err err = 0;
+    // Max of 3 args.
+    if (count > 3) count = 3;
+    // Because we push first arg first, we can't pop all at once, because thumb
+    // puts those in the wrong order.
+    for (; count; count -= 1) {
+        int16_t bits = (int16_t)0xbc00 | (1 << (count - 1));
+        if ((err = rio_pushBytesInt16(gen->code, bits))) return err;
+    }
     return 0;
 }
 
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
-    return rio_genPushReg(gen, 3, value);
+    rio_Err err = 0;
+    // Put r3 then push r3.
+    // TODO Instead keep last always in r3?
+    // TODO Need to track first push / last pop for that.
+    if ((err = putReg(gen, 3, value))) return err;
+    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xb408))) return err;
+    return 0;
 }
 
 rio_Err rio_genRet(rio_Gen* gen) {
