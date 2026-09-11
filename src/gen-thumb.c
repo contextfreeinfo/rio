@@ -148,10 +148,9 @@ rio_Err rio_genProcEnd(rio_Gen* gen) {
 
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
     rio_Err err = 0;
-    // Put r3 then push r3.
-    // TODO Instead keep last always in r3?
-    // TODO Need to track first push / last pop for that.
-    if ((err = putReg(gen, 3, value))) return err;
-    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xb408))) return err;
+    // Put r0 then push r0.
+    // TODO Defer push of r0 in case the next instruction is pop r0?
+    if ((err = putReg(gen, 0, value))) return err;
+    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xb401))) return err;
     return 0;
 }
