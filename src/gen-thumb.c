@@ -130,6 +130,27 @@ rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
     return 0;
 }
 
+rio_Err rio_genProcBegin(rio_Gen* gen) {
+    rio_Err err = 0;
+    // push {r7, lr}
+    // TODO sub sp, #[locals size] -- need to remember where this is
+    // TODO add r7, sp, #0 -- why not mov???
+    // TODO movs r[arg], #[local]
+    // TODO ...args...
+    // TODO b [after the end code]
+    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xb580))) return err;
+    return 0;
+}
+
+rio_Err rio_genProcEnd(rio_Gen* gen) {
+    rio_Err err = 0;
+    // TODO adds r7, #[locals size] -- all returns can branch here
+    // TODO mov sp, r7
+    // pop {r7, pc}
+    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xbd80))) return err;
+    return 0;
+}
+
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
     rio_Err err = 0;
     // Put r3 then push r3.
@@ -137,11 +158,5 @@ rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
     // TODO Need to track first push / last pop for that.
     if ((err = putReg(gen, 3, value))) return err;
     if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xb408))) return err;
-    return 0;
-}
-
-rio_Err rio_genRet(rio_Gen* gen) {
-    rio_Err err = 0;
-    if ((err = rio_pushBytesInt16(gen->code, 0x4770))) return err;
     return 0;
 }

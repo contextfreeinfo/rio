@@ -32,13 +32,18 @@ rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
     return 0;
 }
 
-rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
+rio_Err rio_genProcBegin(rio_Gen* gen) {
     (void)gen;
-    (void)value;
     return 0;
 }
 
-rio_Err rio_genRet(rio_Gen* gen) {
+rio_Err rio_genProcEnd(rio_Gen* gen) {
     (void)gen;
+    return 0;
+}
+
+rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
+    (void)gen;
+    (void)value;
     return 0;
 }

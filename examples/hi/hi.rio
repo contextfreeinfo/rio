@@ -2,8 +2,10 @@
 
 greet :: proc()
   log("Hi there!")
+  log("Bye now!")
 end
 
 main :: proc()
+  greet()
   greet()
 end

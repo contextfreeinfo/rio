@@ -93,9 +93,13 @@ rio_Err rio_run(int argc, const char** argv) {
     if (engine.main) {
         void (*codeMain)(void) = (void (*)(void))engine.main;
         printf("Wanting to call main at: %p\n", (void*)(intptr_t)codeMain);
-        // codeMain();
+        #if defined(__thumb2__)
+            codeMain();
+        #endif
     }
-    rio_runLog((rio_Blob*)(engine.memory.span.items + rio_ptrSize));
+    // This log was a test of string layout, but we'd want to get the actual
+    // address of the message from the defs.
+    // rio_runLog((rio_Blob*)(engine.memory.span.items + rio_ptrSize));
     // printf("def size: %zu\n", sizeof(rio_Def));
     if (err) goto done;
     done:;

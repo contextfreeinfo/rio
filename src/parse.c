@@ -149,11 +149,10 @@ rio_Err rio_parseProcProto(rio_Parser* parser) {
 rio_Err rio_parseProc(rio_Parser* parser) {
     rio_Err err = 0;
     size_t start = parser->engine->code.used;
-    // if ((err = parser->gen.procStart(&parser->engine->code))) return err;
     if ((err = rio_parseProcProto(parser))) return err;
+    if ((err = rio_genProcBegin(&parser->gen))) return err;
     if ((err = rio_parseBlock(parser))) return err;
-    // if ((err = parser->gen.procEnd(&parser->engine->code, start))) return err;
-    if ((err = rio_genRet(&parser->gen))) return err;
+    if ((err = rio_genProcEnd(&parser->gen))) return err;
     parser->node = (rio_Node){ .kind = rio_NodeKind_proc, .start = start };
     return err;
 }

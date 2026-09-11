@@ -60,11 +60,13 @@ rio_Err rio_genIntAdd(rio_Gen* gen);
 // TODO Separate options for pushing/popping shadow stack?
 rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count);
 
+rio_Err rio_genProcBegin(rio_Gen* gen);
+
+rio_Err rio_genProcEnd(rio_Gen* gen);
+
 // Always push intptr_t to keep things simple, even if non-pointer types are
 // smaller on 64-bit systems.
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value);
-
-rio_Err rio_genRet(rio_Gen* gen);
 
 rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset);
 
