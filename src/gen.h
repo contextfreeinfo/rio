@@ -53,6 +53,8 @@ rio_Err rio_genPush(rio_Gen* gen, intptr_t value);
 
 rio_Err rio_genUnusedPush(rio_Gen* gen);
 
+rio_Err rio_memPadPtr(rio_Buffer_Byte* buffer);
+
 rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset);
 
 uint8_t* rio_addrForExec(uint8_t* addr);

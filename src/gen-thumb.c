@@ -7,6 +7,10 @@ uint8_t* rio_addrForExec(uint8_t* addr) {
     return addr + 1;
 }
 
+rio_Err rio_memPadPtr(rio_Buffer_Byte* buffer) {
+    return rio_pushBytesPad32(buffer);
+}
+
 rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset) {
     rio_Err err = 0;
     size_t old = buffer->used;

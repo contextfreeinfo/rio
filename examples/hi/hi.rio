@@ -13,4 +13,5 @@ end
 # Main naturally goes last.
 main :: proc()
   greetTwice()
+  log("Really now.")
 end

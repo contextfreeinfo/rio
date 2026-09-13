@@ -77,7 +77,7 @@ rio_Err rio_run(const char* path) {
     rio_pushDef(&engine.defs, (rio_Def){
         .name = logName,
         .constant = true,
-        .ptrVal = (intptr_t)rio_log,
+        .ptrVal = (intptr_t)rio_runLog,
     });
     rio_Def logDef = engine.defs.span.items[engine.defs.used - 1];
     if (rio_verbosity) {

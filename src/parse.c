@@ -179,7 +179,9 @@ rio_Err rio_parseString(rio_Parser* parser) {
     rio_Err err = 0;
     rio_Buffer_Byte* buffer = &parser->engine->data;
     // Push address now.
-    if ((err = rio_memPushPtr(buffer, buffer->used + rio_ptrSize + 4))) {
+    if ((err = rio_memPadPtr(buffer))) return err;
+    size_t addressStart = buffer->used;
+    if ((err = rio_memPushPtr(buffer, addressStart + rio_ptrSize + 4))) {
         return err;
     }
     // Remember where we were for size later.
@@ -212,7 +214,8 @@ rio_Err rio_parseString(rio_Parser* parser) {
     done:
     // We know there's space here because we got past it.
     rio_pushBytesInt32(&sizeBuffer, buffer->used - start);
-    intptr_t address = (intptr_t)(buffer->span.items + start);
+    intptr_t address = (intptr_t)(buffer->span.items + addressStart);
+    if (rio_verbosity) printf("Pushing string address: %p\n", (void*)address);
     if ((err = rio_genPush(&parser->gen, address))) return err;
     return err;
 }
