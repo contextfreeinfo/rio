@@ -80,6 +80,7 @@ void rio_reportEngine(rio_Engine* engine) {
 rio_Err rio_runLog(rio_Blob* message) {
     size_t size = (size_t)message->size;
     size_t written = fwrite(message->items, size, 1, stdout);
+    if (fflush(stdout)) return rio_Err_bad;
     if (puts("") < 0) return rio_Err_bad;
     return written == size ? 0 : rio_Err_bad;
 }
