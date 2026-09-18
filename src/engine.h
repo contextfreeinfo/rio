@@ -48,17 +48,31 @@ typedef struct rio_Proc {
 // rio_defineBuffer(Proc);
 
 typedef struct rio_Engine {
-    // TODO Constant data in one place.
-    // TODO Separate space for writable memory.
-    // TODO How to init writable memory?
-    // TODO Any type descriptions here need available also at runtime.
-    // TODO So keep them in the data.
-    // TODO Also separate table of types?
+    // At runtime, we only need to keep code and data/memory.
+    // TODO If we do only indirect or relative calls, this could be movable.
     rio_Buffer_Byte code;
-    // TODO Defs for active space. Pub module members go into memory.
+    // TODO Globals can't go here. Is the space wasted?
+    // TODO Shadow stack this counting down from the end of data?
     rio_Buffer_Def defs;
-    rio_Buffer_Byte data; // TODO Combine data with memory.
+    // TODO Separate constant data from runtime memory?
+    // TODO Can we compile to wasm without that?
+    rio_Buffer_Byte data;
     rio_Buffer_Byte memory;
+    // Types also include procedure signatures.
+    // It would be nice to store type defs in memory for rtti, but if we keep
+    // them there, people might be afraid to define them and waste memory.
+    // So this is for data that we discard at runtime.
+    // TODO Globals can't go here. Is the space wasted?
+    // TODO Same concern applies to source being compiled.
+    // TODO Or *can* globals go here if zero init?
+    // TODO Maybe zero-init arrays/globals are tracked from the back.
+    // TODO Every zero-init global shrinks the size of the data span?
+    rio_Buffer_Byte types;
+    // Zero space is contiguous with data/memory, so zeroStart can't go below
+    // the *end* of the data buffer used size, or vice versa.
+    uint8_t* zeroStart;
+    uint8_t* zeroEnd;
+    // TODO This could instead easily be an index into the code buffer.
     intptr_t main;
 } rio_Engine;
 
