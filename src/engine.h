@@ -6,6 +6,7 @@
 #define rio_codeSize 0x100000
 #define rio_dataSize 0x200000
 #define rio_defsSize 0x2000
+#define rio_typesSize 0x20000
 
 typedef enum rio_Type {
     rio_Type_int,

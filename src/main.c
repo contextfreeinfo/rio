@@ -21,8 +21,7 @@ rio_Err rio_run(const char* path) {
     if ((err = rio_allocPages(rio_codeSize, &codeBytes))) return err;
     memset(codeBytes, 0, rio_codeSize);
     err = rio_Err_bad;
-    // Data.
-    // TODO Ensure full pages for marking as read-only.
+    // Data. See later for some of the usage of this space.
     uint8_t* dataBytes = malloc(rio_dataSize);
     if (!dataBytes) goto freeCode;
     memset(dataBytes, 0, rio_dataSize);
@@ -41,18 +40,33 @@ rio_Err rio_run(const char* path) {
     // Defs.
     rio_Def* defs = malloc(rio_defsSize * sizeof(rio_Def));
     if (!defs) goto freeNameStarts;
+    // Types.
+    uint8_t* typesBytes = malloc(rio_typesSize);
+    if (!typesBytes) goto freeDefs;
+    memset(typesBytes, 0, rio_typesSize);
     // Engine.
+    uint8_t* zeroEnd = dataBytes + rio_dataSize;
     rio_Engine engine = {
         .code = {
             .span = {.size = rio_codeSize, .items = codeBytes},
             // Use up each first word so nil pointers aren't useful.
             .used = rio_ptrSize,
         },
+        // Initialized data space grows from bottom up.
         .data = {
             .span = {.size = rio_dataSize, .items = dataBytes},
             .used = rio_ptrSize,
         },
+        // Zero-init allocations are empty to start with and grow down.
+        .zeroStart = zeroEnd,
+        .zeroEnd = zeroEnd,
+        // Defs are logically separate from data/memory.
+        // In Spry, these and more inhabit the zero space.
         .defs = {{.size = rio_defsSize, .items = defs}, .used = 1},
+        .types = {
+            .span = {.size = rio_typesSize, .items = typesBytes},
+            .used = rio_ptrSize,
+        },
     };
     // TODO Combine memory with data for local running but not wasm?
     engine.memory = engine.data;
@@ -104,7 +118,9 @@ rio_Err rio_run(const char* path) {
     // printf("def size: %zu\n", sizeof(rio_Def));
     if (err) goto done;
     done:;
-    // freeDefs:
+    // freeTypes:
+    free(typesBytes);
+    freeDefs:
     free(defs);
     freeNameStarts:
     free(nameStarts);
