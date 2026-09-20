@@ -179,6 +179,7 @@ rio_Err rio_parseString(rio_Parser* parser) {
     rio_Err err = 0;
     rio_Buffer_Byte* buffer = &parser->engine->data;
     // Push address now.
+    // TODO Helpers for data that also check zero space.
     if ((err = rio_memPadPtr(buffer))) return err;
     size_t addressStart = buffer->used;
     if ((err = rio_memPushPtr(buffer, addressStart + rio_ptrSize + 4))) {

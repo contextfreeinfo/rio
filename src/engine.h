@@ -8,12 +8,16 @@
 #define rio_defsSize 0x2000
 #define rio_typesSize 0x20000
 
-typedef enum rio_Type {
-    rio_Type_int,
-    rio_Type_float,
-    rio_Type_bool,
-    rio_Type_composite, // TODO Subdivide?
-} rio_Type;
+typedef enum rio_TypeKind {
+    rio_TypeKind_void,
+    rio_TypeKind_bool,
+    rio_TypeKind_float,
+    rio_TypeKind_int,
+    rio_TypeKind_proc,
+    rio_TypeKind_span,
+    rio_TypeKind_struct,
+    rio_TypeKind_union,
+} rio_TypeKind;
 
 // Currently 12 bytes on thumb2 and 24 bytes on arm64.
 typedef struct rio_Def {
@@ -21,7 +25,7 @@ typedef struct rio_Def {
     bool constant : 1;
     bool local : 1; // If true, the address is frame relative???
     uint16_t reserved : 14; // Reserved. Basic types go here?
-    uint8_t* type; // 0 i32, 1 f32, 2 bool, else composite desc address?
+    uint8_t* type; // 0 void, 1 bool, 2 f32, 3 i32, else composite desc address?
     union {
         // Only values for constants should appear here.
         bool boolVal;
@@ -40,13 +44,20 @@ rio_defineBuffer(Def);
 rio_Def* rio_findDef(rio_Buffer_Def* defs, int32_t name);
 
 typedef struct rio_Proc {
-    // TODO Params
-    // TODO Return type
+    rio_Span_Def params;
+    uint8_t* returnType;
     intptr_t addr;
 } rio_Proc;
 
 // rio_defineSpan(Proc);
 // rio_defineBuffer(Proc);
+
+typedef struct rio_Type {
+    rio_TypeKind kind;
+    union {
+        rio_Proc proc;
+    };
+} rio_Type;
 
 typedef struct rio_Engine {
     // At runtime, we only need to keep code and data/memory.
@@ -76,6 +87,12 @@ typedef struct rio_Engine {
     // TODO This could instead easily be an index into the code buffer.
     intptr_t main;
 } rio_Engine;
+
+rio_Err rio_enginePadDataPtr(rio_Engine* engine);
+rio_Err rio_enginePushDataPtr(rio_Engine* engine, intptr_t ptr);
+rio_Err rio_enginePushDataInt32(rio_Engine* engine, int32_t i);
+rio_Err rio_enginePadZeroPtrArray(rio_Engine* engine, size_t count);
+rio_Err rio_enginePadZeroIntArray(rio_Engine* engine, size_t count);
 
 void rio_reportEngine(rio_Engine* engine);
 
