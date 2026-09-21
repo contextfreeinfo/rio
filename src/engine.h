@@ -8,11 +8,23 @@
 #define rio_defsSize 0x2000
 #define rio_typesSize 0x20000
 
+// Usable directly as type ids.
+typedef enum rio_CoreType {
+    // Primitive types.
+    rio_CoreType_void,
+    rio_CoreType_bool,
+    rio_CoreType_float,
+    rio_CoreType_int,
+    // Semi-primitive types.
+    rio_CoreType_blob,
+    rio_CoreType_string,
+    // Any value >= end requires a description in memory.
+    rio_CoreType_end,
+} rio_CoreType;
+
+// Kinds of aggregate types requiring descriptions in memory.
 typedef enum rio_TypeKind {
-    rio_TypeKind_void,
-    rio_TypeKind_bool,
-    rio_TypeKind_float,
-    rio_TypeKind_int,
+    rio_TypeKind_none,
     rio_TypeKind_proc,
     rio_TypeKind_span,
     rio_TypeKind_struct,
@@ -21,11 +33,12 @@ typedef enum rio_TypeKind {
 
 // Currently 12 bytes on thumb2 and 24 bytes on arm64.
 typedef struct rio_Def {
-    uint16_t name; // TODO Make this 32 bits on arm64?
+    uint16_t name;
     bool constant : 1;
     bool local : 1; // If true, the address is frame relative???
     uint16_t reserved : 14; // Reserved. Basic types go here?
-    uint8_t* type; // 0 void, 1 bool, 2 f32, 3 i32, else composite desc address?
+    // Wastes 32 bits here on 64-bit arch.
+    uint8_t* type; // Core type or address.
     union {
         // Only values for constants should appear here.
         bool boolVal;
@@ -43,21 +56,31 @@ rio_defineBuffer(Def);
 
 rio_Def* rio_findDef(rio_Buffer_Def* defs, int32_t name);
 
-typedef struct rio_Proc {
-    rio_Span_Def params;
+// Currently 8 bytes on arch32 and 16 bytes on arch64.
+typedef struct rio_Field {
+    uint16_t name;
+    uint16_t offset;
+    uint8_t* type; // Core type or address.
+} rio_Field;
+
+rio_defineSpan(Field);
+rio_defineBuffer(Field);
+
+// Should be 8 bytes on arch32 or 16 bytes on arch64.
+typedef struct rio_ProcType {
+    uint8_t typeKind; // Always value rio_TypeKind_proc.
+    // Expected to immediate precede in memory?
+    uint8_t paramCount;
+    uint16_t reserved;
+    // Wastes 32 bits here on arch64.
+    // rio_Span_Def params;
     uint8_t* returnType;
-    intptr_t addr;
-} rio_Proc;
+} rio_ProcType;
 
-// rio_defineSpan(Proc);
-// rio_defineBuffer(Proc);
-
-typedef struct rio_Type {
-    rio_TypeKind kind;
-    union {
-        rio_Proc proc;
-    };
-} rio_Type;
+typedef struct rio_CommonNames {
+    rio_Intern integer;
+    rio_Intern string;
+} rio_CommonNames;
 
 typedef struct rio_Engine {
     // At runtime, we only need to keep code and data/memory.
@@ -70,6 +93,9 @@ typedef struct rio_Engine {
     // TODO Can we compile to wasm without that?
     rio_Buffer_Byte data;
     rio_Buffer_Byte memory;
+    // For efficient reference to names.
+    rio_Table names;
+    rio_CommonNames commonNames;
     // Types also include procedure signatures.
     // It would be nice to store type defs in memory for rtti, but if we keep
     // them there, people might be afraid to define them and waste memory.

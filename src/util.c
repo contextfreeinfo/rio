@@ -86,7 +86,7 @@ uint32_t rio_hash(rio_Byte* string) {
     return hash;
 }
 
-rio_Err rio_table(rio_Table* table, rio_Byte* string, int32_t* intern) {
+rio_Err rio_table(rio_Table* table, rio_Byte* string, rio_Intern* intern) {
     rio_Err err = 0;
     if (!*string) {
         if (intern) *intern = 0;
@@ -101,7 +101,8 @@ rio_Err rio_table(rio_Table* table, rio_Byte* string, int32_t* intern) {
             char* maybeString = (char*)(table->strings.span.items + maybeStart);
             if (!strcmp((char*)string, maybeString)) {
                 // Found it.
-                if (intern) *intern = index;
+                // TODO Verify that it's in range?
+                if (intern) *intern = (rio_Intern)index;
                 return 0;
             }
         } else {
@@ -121,7 +122,7 @@ rio_Err rio_table(rio_Table* table, rio_Byte* string, int32_t* intern) {
     return rio_Err_bad;
 }
 
-rio_Err rio_tabled(rio_Table* table, int32_t intern, rio_Byte** string) {
+rio_Err rio_tabled(rio_Table* table, rio_Intern intern, rio_Byte** string) {
     rio_Err err = 0;
     // The only valid empty string intern is 0.
     if (!intern) {
@@ -129,8 +130,9 @@ rio_Err rio_tabled(rio_Table* table, int32_t intern, rio_Byte** string) {
         return 0;
     }
     // Out of bounds is bad.
-    // TODO Coordinate types better. Mostly, we don't expect large sizes.
-    if (intern < 0 || intern >= (int32_t)table->starts.size) return rio_Err_bad;
+    if (intern >= (rio_Intern)table->starts.size) {
+        return rio_Err_bad;
+    }
     // See what we have, where index 0 now means no entry.
     rio_UInt16 start = table->starts.items[intern];
     if (!start) return rio_Err_bad;

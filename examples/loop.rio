@@ -1,5 +1,5 @@
 # Log the message a given number of times.
-logRepeatedly :: proc(message: String, times: Int)
+loopLog :: proc(message: String, times: Int)
   n := 0
   while n < times
     log(message)
@@ -9,6 +9,6 @@ end
 
 # Greet until we say bye.
 main :: proc()
-  logRepeatedly("Hi there!", 3)
+  loopLog("Hi there!", 3)
   log("Bye now!")
 end

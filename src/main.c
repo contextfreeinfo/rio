@@ -63,9 +63,18 @@ rio_Err rio_run(const char* path) {
         // Defs are logically separate from data/memory.
         // In Spry, these and more inhabit the zero space.
         .defs = {{.size = rio_defsSize, .items = defs}, .used = 1},
+        .names = {
+            .starts = {.size = nameStartsLen, .items = nameStarts},
+            .strings = {
+                .span = {.size = rio_namesSize, .items = namesBytes},
+                // This makes index 0 always be an invalid empty name.
+                .used = 2,
+            },
+        },
         .types = {
             .span = {.size = rio_typesSize, .items = typesBytes},
-            .used = rio_ptrSize,
+            // Give some extra start here for more primitive types.
+            .used = 2 * rio_ptrSize,
         },
     };
     // TODO Combine memory with data for local running but not wasm?
@@ -75,19 +84,11 @@ rio_Err rio_run(const char* path) {
         .engine = &engine,
         .gen = {.code = &engine.code},
         .lexer = {.file = &file},
-        .names = {
-            .starts = {.size = nameStartsLen, .items = nameStarts},
-            .strings = {
-                .span = {.size = rio_namesSize, .items = namesBytes},
-                // This makes index 0 always be an invalid empty name.
-                .used = 2,
-            },
-        },
     };
     // Prefill defs such as `log`.
     // And we know initial defs won't overflow.
-    int32_t logName;
-    rio_table(&parser.names, (rio_Byte*)"log", &logName);
+    rio_Intern logName;
+    rio_table(&engine.names, (rio_Byte*)"log", &logName);
     rio_pushDef(&engine.defs, (rio_Def){
         .name = logName,
         .constant = true,

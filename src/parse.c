@@ -108,10 +108,10 @@ rio_Err rio_parseBlock(rio_Parser* parser) {
 rio_Err rio_parseName(rio_Parser* parser) {
     rio_Err err = 0;
     if (rio_verbosity) printf("Name\n");
-    int32_t index = 0;
+    rio_Intern index = 0;
     // All our token texts also are null-terminated.
     rio_Byte* text = (rio_Byte*)parser->lexer.token.text;
-    if ((err = rio_table(&parser->names, text, &index))) return err;
+    if ((err = rio_table(&parser->engine->names, text, &index))) return err;
     parser->node = (rio_Node){
         .kind = rio_NodeKind_name,
         .value = {.name = {.name = index}},
@@ -134,6 +134,37 @@ rio_Err rio_parseName(rio_Parser* parser) {
         }
     }
     return rio_parserAdvance(parser, false);
+}
+
+rio_Err rio_parseStructFieldDefs(rio_Parser* parser) {
+    rio_Err err = 0;
+    if ((err = rio_parserAdvance(parser, true))) return err;
+    int count = 0;
+    while (
+        parser->lexer.token.kind != rio_TokenKind_roundClose &&
+        parser->lexer.token.kind != rio_TokenKind_end
+    ) {
+        size_t oldStart = parser->lexer.token.start;
+        // TODO If colon, skip name?
+        if ((err = rio_parseName(parser))) return err;
+        // TODO Error if we hadn't advanced? Could be empty arg?
+        if ((err = rio_parserEnsureAdvance(parser, oldStart))) return err;
+        // Separate error checking should let us know if all was valid.
+        // Presume all machine code bad if there were any errors.
+        count += 1;
+        if (parser->lexer.token.kind == rio_TokenKind_comma) {
+            if ((err = rio_parserAdvance(parser, true))) return err;
+        } else {
+            // Error should come later if this was other than expr or close.
+            if ((err = rio_eatEndLines(parser))) return err;
+        }
+        // printf("-------=====> count %zu\n", count);
+        // TODO Check comma.
+        // printf("-------=====> ate\n");
+    }
+    if ((err = rio_genPopAsArgs(&parser->gen, count))) return err;
+    if ((err = rio_parserAdvance(parser, false))) return err;
+    return err;
 }
 
 rio_Err rio_parseProcProto(rio_Parser* parser) {
@@ -302,7 +333,7 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     // Apply value.
     if (nameNode.kind == rio_NodeKind_name) {
         rio_Byte* name;
-        rio_tabled(&parser->names, nameNode.value.name.name, &name);
+        rio_tabled(&parser->engine->names, nameNode.value.name.name, &name);
         // TODO If top-level, add to tops table.
         // TODO Handle whatever for the specific value node we got.
         rio_Def def = {
@@ -361,8 +392,8 @@ rio_Err rio_parse(rio_Parser* parser) {
 
 void rio_reportParser(rio_Parser* parser) {
     if (rio_verbosity) printf("Names:\n");
-    rio_Span_UInt16 starts = parser->names.starts;
-    rio_Span_Byte strings = parser->names.strings.span;
+    rio_Span_UInt16 starts = parser->engine->names.starts;
+    rio_Span_Byte strings = parser->engine->names.strings.span;
     // TODO Report names as strings with start.
     for (size_t index = 0; index < starts.size; index += 1) {
         size_t start = starts.items[index];
