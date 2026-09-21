@@ -11,6 +11,7 @@
 // Usable directly as type ids.
 typedef enum rio_CoreType {
     // Primitive types.
+    rio_CoreType_none,
     rio_CoreType_void,
     rio_CoreType_bool,
     rio_CoreType_float,
@@ -33,7 +34,7 @@ typedef enum rio_TypeKind {
 
 // Currently 12 bytes on thumb2 and 24 bytes on arm64.
 typedef struct rio_Def {
-    uint16_t name;
+    rio_Intern name;
     bool constant : 1;
     bool local : 1; // If true, the address is frame relative???
     uint16_t reserved : 14; // Reserved. Basic types go here?
@@ -78,6 +79,8 @@ typedef struct rio_ProcType {
 } rio_ProcType;
 
 typedef struct rio_CommonNames {
+    rio_Intern typeBool;
+    rio_Intern typeFloat;
     rio_Intern typeInt;
     rio_Intern typeString;
 } rio_CommonNames;

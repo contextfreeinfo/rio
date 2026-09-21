@@ -19,11 +19,11 @@ rio_Err rio_engineInit(rio_Engine* engine) {
     rio_Intern name;
     // Init common names.
     if ((err = rio_table(&engine->names, (rio_Byte*)"Bool", &name))) return err;
-    engine->commonNames.typeInt = name;
+    engine->commonNames.typeBool = name;
     if ((err = rio_table(&engine->names, (rio_Byte*)"Float", &name))) {
         return err;
     }
-    engine->commonNames.typeInt = name;
+    engine->commonNames.typeFloat = name;
     if ((err = rio_table(&engine->names, (rio_Byte*)"Int", &name))) return err;
     engine->commonNames.typeInt = name;
     if ((err = rio_table(&engine->names, (rio_Byte*)"String", &name))) {

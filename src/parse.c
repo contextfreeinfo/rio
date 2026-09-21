@@ -90,6 +90,35 @@ rio_Err rio_parseTupleContent(rio_Parser* parser) {
     return err;
 }
 
+// Same parsing as rio_parseTupleContent, but different handling.
+rio_Err rio_parseFields(rio_Parser* parser) {
+    rio_Err err = 0;
+    if ((err = rio_parserAdvance(parser, true))) return err;
+    int count = 0;
+    while (parser->lexer.token.kind != rio_TokenKind_roundClose) {
+        size_t oldStart = parser->lexer.token.start;
+        if ((err = rio_parseExpression(parser))) return err;
+        // TODO Check if we have exactly one new def.
+        // TODO Error if we hadn't advanced? Could be empty arg?
+        if ((err = rio_parserEnsureAdvance(parser, oldStart))) return err;
+        // Separate error checking should let us know if all was valid.
+        // Presume all machine code bad if there were any errors.
+        count += 1;
+        if (parser->lexer.token.kind == rio_TokenKind_comma) {
+            if ((err = rio_parserAdvance(parser, true))) return err;
+        } else {
+            // Error should come later if this was other than expr or close.
+            if ((err = rio_eatEndLines(parser))) return err;
+        }
+        // printf("-------=====> count %zu\n", count);
+        // TODO Check comma.
+        // printf("-------=====> ate\n");
+    }
+    if ((err = rio_genPopAsArgs(&parser->gen, count))) return err;
+    if ((err = rio_parserAdvance(parser, false))) return err;
+    return err;
+}
+
 rio_Err rio_parseBlock(rio_Parser* parser) {
     rio_Err err = 0;
     if ((err = rio_eatEndLines(parser))) return err;
@@ -136,43 +165,12 @@ rio_Err rio_parseName(rio_Parser* parser) {
     return rio_parserAdvance(parser, false);
 }
 
-rio_Err rio_parseStructFieldDefs(rio_Parser* parser) {
-    rio_Err err = 0;
-    if ((err = rio_parserAdvance(parser, true))) return err;
-    int count = 0;
-    while (
-        parser->lexer.token.kind != rio_TokenKind_roundClose &&
-        parser->lexer.token.kind != rio_TokenKind_end
-    ) {
-        size_t oldStart = parser->lexer.token.start;
-        // TODO If colon, skip name?
-        if ((err = rio_parseName(parser))) return err;
-        // TODO Error if we hadn't advanced? Could be empty arg?
-        if ((err = rio_parserEnsureAdvance(parser, oldStart))) return err;
-        // Separate error checking should let us know if all was valid.
-        // Presume all machine code bad if there were any errors.
-        count += 1;
-        if (parser->lexer.token.kind == rio_TokenKind_comma) {
-            if ((err = rio_parserAdvance(parser, true))) return err;
-        } else {
-            // Error should come later if this was other than expr or close.
-            if ((err = rio_eatEndLines(parser))) return err;
-        }
-        // printf("-------=====> count %zu\n", count);
-        // TODO Check comma.
-        // printf("-------=====> ate\n");
-    }
-    if ((err = rio_genPopAsArgs(&parser->gen, count))) return err;
-    if ((err = rio_parserAdvance(parser, false))) return err;
-    return err;
-}
-
 rio_Err rio_parseProcProto(rio_Parser* parser) {
     rio_Err err = 0;
     if ((err = rio_parserAdvance(parser, true))) return err;
     if (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
         if (rio_verbosity) printf("Params start\n");
-        if ((err = rio_parseTupleContent(parser))) return err;
+        if ((err = rio_parseFields(parser))) return err;
         if (rio_verbosity) printf("Params end\n");
     }
     parser->node = (rio_Node){ .kind = rio_NodeKind_proc };
@@ -321,8 +319,42 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     case rio_TokenKind_colon:
         if ((err = rio_parserAdvance(parser, true))) return err;
         break;
-    // TODO case rio_TokenKind_eq:
+    case rio_TokenKind_eq:
+        printf("---------==============> Var init!\n");
+        return err;
     default:
+        printf("---------==============> Var decl!\n");
+        rio_Node typeNode = parser->node;
+        if (typeNode.kind == rio_NodeKind_name) {
+            rio_Byte* typeText;
+            rio_Intern typeName = typeNode.value.name.name;
+            rio_tabled(
+                &parser->engine->names, typeNode.value.name.name, &typeText
+            );
+            printf("type: %s\n", typeText);
+            // TODO Extract type calculation logic, including type def lookup.
+            rio_CommonNames* commonNames = &parser->engine->commonNames;
+            intptr_t type;
+            if (typeName == commonNames->typeBool) {
+                type = rio_CoreType_bool;
+            } else if (typeName == commonNames->typeFloat) {
+                type = rio_CoreType_float;
+            } else if (typeName == commonNames->typeInt) {
+                type = rio_CoreType_int;
+            } else if (typeName == commonNames->typeString) {
+                type = rio_CoreType_string;
+            } else {
+                type = 0;
+            }
+            // TODO Check for eq.
+            if (nameNode.kind == rio_NodeKind_name) {
+                rio_Def def = {
+                    .name = nameNode.value.name.name,
+                    .type = (uint8_t*)type,
+                };
+                if ((err = rio_pushDef(&parser->engine->defs, def))) return err;
+            }
+        }
         return err;
     }
     // Value.

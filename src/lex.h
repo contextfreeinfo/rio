@@ -11,6 +11,7 @@ typedef enum rio_TokenKind {
     rio_TokenKind_declare,
     rio_TokenKind_end,
     rio_TokenKind_endLine,
+    rio_TokenKind_eq,
     rio_TokenKind_name,
     rio_TokenKind_proc,
     rio_TokenKind_roundOpen,
