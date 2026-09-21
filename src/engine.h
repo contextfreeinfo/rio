@@ -78,8 +78,8 @@ typedef struct rio_ProcType {
 } rio_ProcType;
 
 typedef struct rio_CommonNames {
-    rio_Intern integer;
-    rio_Intern string;
+    rio_Intern typeInt;
+    rio_Intern typeString;
 } rio_CommonNames;
 
 typedef struct rio_Engine {
@@ -113,6 +113,8 @@ typedef struct rio_Engine {
     // TODO This could instead easily be an index into the code buffer.
     intptr_t main;
 } rio_Engine;
+
+rio_Err rio_engineInit(rio_Engine* engine);
 
 rio_Err rio_enginePadDataPtr(rio_Engine* engine);
 rio_Err rio_enginePushDataPtr(rio_Engine* engine, intptr_t ptr);

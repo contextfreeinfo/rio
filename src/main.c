@@ -78,7 +78,10 @@ rio_Err rio_run(const char* path) {
         },
     };
     // TODO Combine memory with data for local running but not wasm?
+    // TODO Maybe good helper functions can work things out w/o major revamp?
     engine.memory = engine.data;
+    // TODO Combine more init?
+    if ((err = rio_engineInit(&engine))) goto done;
     rio_StdFile file = {.file = f};
     rio_Parser parser = {
         .engine = &engine,

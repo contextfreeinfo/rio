@@ -14,6 +14,25 @@ rio_Def* rio_findDef(rio_Buffer_Def* defs, int32_t name) {
     return NULL;
 }
 
+rio_Err rio_engineInit(rio_Engine* engine) {
+    rio_Err err = 0;
+    rio_Intern name;
+    // Init common names.
+    if ((err = rio_table(&engine->names, (rio_Byte*)"Bool", &name))) return err;
+    engine->commonNames.typeInt = name;
+    if ((err = rio_table(&engine->names, (rio_Byte*)"Float", &name))) {
+        return err;
+    }
+    engine->commonNames.typeInt = name;
+    if ((err = rio_table(&engine->names, (rio_Byte*)"Int", &name))) return err;
+    engine->commonNames.typeInt = name;
+    if ((err = rio_table(&engine->names, (rio_Byte*)"String", &name))) {
+        return err;
+    }
+    engine->commonNames.typeString = name;
+    return 0;
+}
+
 static void printBuffer(rio_Buffer_Byte* buffer) {
     rio_Span_Byte bytes = buffer->span;
     size_t used = buffer->used;
