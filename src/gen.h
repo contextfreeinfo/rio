@@ -3,12 +3,6 @@
 #include "engine.h"
 #include "util.h"
 
-#if UINTPTR_MAX == 0xffffffffffffffffULL
-    #define rio_ptrSize 8
-#elif UINTPTR_MAX == 0xffffffffU
-    #define rio_ptrSize 4
-#endif
-
 #define rio_maxArgs 3
 
 // TODO Include wasm gen everywhere, including pico.

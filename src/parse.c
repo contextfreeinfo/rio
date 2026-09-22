@@ -82,25 +82,50 @@ rio_Err rio_parseTupleContent(rio_Parser* parser) {
             if ((err = rio_eatEndLines(parser))) return err;
         }
         // printf("-------=====> count %zu\n", count);
-        // TODO Check comma.
         // printf("-------=====> ate\n");
     }
     if ((err = rio_genPopAsArgs(&parser->gen, count))) return err;
-    if ((err = rio_parserAdvance(parser, false))) return err;
+    if (parser->lexer.token.kind == rio_TokenKind_roundClose) {
+        printf("Close tuple\n");
+        if ((err = rio_parserAdvance(parser, false))) return err;
+    }
     return err;
 }
 
 // Same parsing as rio_parseTupleContent, but different handling.
-rio_Err rio_parseFields(rio_Parser* parser) {
+rio_Err rio_parseFields(rio_Parser* parser, rio_TokenKind end) {
     rio_Err err = 0;
     if ((err = rio_parserAdvance(parser, true))) return err;
     int count = 0;
     while (parser->lexer.token.kind != rio_TokenKind_roundClose) {
         size_t oldStart = parser->lexer.token.start;
+        rio_Buffer_Def* defs = &parser->engine->defs;
+        size_t oldDefsUsed = defs->used;
         if ((err = rio_parseExpression(parser))) return err;
-        // TODO Check if we have exactly one new def.
         // TODO Error if we hadn't advanced? Could be empty arg?
         if ((err = rio_parserEnsureAdvance(parser, oldStart))) return err;
+        size_t newDefsUsed = parser->engine->defs.used;
+        if (newDefsUsed - oldDefsUsed == 1) {
+            printf("Got 1 def\n");
+            rio_Def* def = &defs->span.items[defs->used - 1];
+            rio_Field param = {
+                .name = def->name,
+                // For now, space out everything on the stack by pointer size.
+                // Space matters most on mcu, but that's arch32.
+                // TODO Better packing inside actual structs for arch64?
+                .offset = count * rio_ptrSize,
+                .type = def->type,
+            };
+            if ((err = rio_pushBytes(
+                &parser->engine->types,
+                (rio_Span_Byte){
+                    .size = sizeof(param),
+                    .items = (rio_Byte*)&param,
+                }
+            ))) return err;
+        } else {
+            printf("Expected 1 def, not: %d\n", newDefsUsed - oldDefsUsed);
+        }
         // Separate error checking should let us know if all was valid.
         // Presume all machine code bad if there were any errors.
         count += 1;
@@ -111,11 +136,12 @@ rio_Err rio_parseFields(rio_Parser* parser) {
             if ((err = rio_eatEndLines(parser))) return err;
         }
         // printf("-------=====> count %zu\n", count);
-        // TODO Check comma.
         // printf("-------=====> ate\n");
     }
-    if ((err = rio_genPopAsArgs(&parser->gen, count))) return err;
-    if ((err = rio_parserAdvance(parser, false))) return err;
+    if (parser->lexer.token.kind == end) {
+        printf("Close fields\n");
+        if ((err = rio_parserAdvance(parser, false))) return err;
+    }
     return err;
 }
 
@@ -126,7 +152,6 @@ rio_Err rio_parseBlock(rio_Parser* parser) {
         size_t oldStart = parser->lexer.token.start;
         if ((err = rio_parseExpression(parser))) return err;
         if ((err = rio_parserEnsureAdvance(parser, oldStart))) return err;
-        // TODO Check comma.
         if ((err = rio_eatEndLines(parser))) return err;
     }
     if ((err = rio_parserAdvance(parser, false))) return err;
@@ -169,8 +194,14 @@ rio_Err rio_parseProcProto(rio_Parser* parser) {
     rio_Err err = 0;
     if ((err = rio_parserAdvance(parser, true))) return err;
     if (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
+        // TODO Start stack frame?
+        // TODO Adjust param defs to claim local and proper frame offset.
         if (rio_verbosity) printf("Params start\n");
-        if ((err = rio_parseFields(parser))) return err;
+        // rio_Buffer_Def* defs = &parser->engine->defs;
+        // size_t oldDefsUsed = defs->used;
+        if ((err = rio_parseFields(parser, rio_TokenKind_roundClose))) {
+            return err;
+        }
         if (rio_verbosity) printf("Params end\n");
     }
     parser->node = (rio_Node){ .kind = rio_NodeKind_proc };
@@ -325,6 +356,7 @@ rio_Err rio_parseColon(rio_Parser* parser) {
     default:
         printf("---------==============> Var decl!\n");
         rio_Node typeNode = parser->node;
+        // TODO Support span and/or ref types also.
         if (typeNode.kind == rio_NodeKind_name) {
             rio_Byte* typeText;
             rio_Intern typeName = typeNode.value.name.name;

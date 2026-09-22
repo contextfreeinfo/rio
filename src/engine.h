@@ -59,7 +59,7 @@ rio_Def* rio_findDef(rio_Buffer_Def* defs, int32_t name);
 
 // Currently 8 bytes on arch32 and 16 bytes on arch64.
 typedef struct rio_Field {
-    uint16_t name;
+    rio_Intern name;
     uint16_t offset;
     uint8_t* type; // Core type or address.
 } rio_Field;

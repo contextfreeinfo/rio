@@ -6,12 +6,17 @@
 #include "parse.h"
 #include "sys-std.h"
 
-rio_Err rio_run(const char* path) {
+typedef struct rio_RunArgs {
+    const char* path;
+    bool inert;
+} rio_RunArgs;
+
+rio_Err rio_run(rio_RunArgs* args) {
     rio_Err err = 0;
-    FILE* f = fopen(path, "r");
+    FILE* f = fopen(args->path, "r");
     if (!f) {
         rio_log("Failed to open:");
-        rio_log(path);
+        rio_log(args->path);
         return rio_Err_bad;
     }
     // Code.
@@ -113,7 +118,9 @@ rio_Err rio_run(const char* path) {
             printf("Wanting to call main at: %p\n", (void*)(intptr_t)codeMain);
         }
         #if defined(__thumb2__)
-            codeMain();
+            if (!args->inert) {
+                codeMain();
+            }
         #endif
     }
     // This log was a test of string layout, but we'd want to get the actual
@@ -138,18 +145,22 @@ rio_Err rio_run(const char* path) {
 }
 
 int main(int argc, const char** argv) {
-    // TODO Better arg parse then call run with info struct.
-    int scriptArg = 1;
-    if (argc > 1) {
-        if (!strcmp(argv[1], "--verbose")) {
-            scriptArg += 1;
+    // TODO Better arg parse.
+    rio_RunArgs args = {0};
+    for (int i = 1; i < argc; i += 1) {
+        const char* arg = argv[i];
+        // printf("arg: %s\n", arg);
+        if (!strcmp(arg, "--verbose")) {
             rio_verbosity = 1;
+        } else if (!strcmp(arg, "--inert")) {
+            args.inert = true;
+        } else {
+            args.path = arg;
         }
     }
-    if (scriptArg >= argc) {
+    if (!args.path) {
         fprintf(stderr, "No script given.\n");
         return rio_Err_bad;
     }
-    const char* path = argv[scriptArg];
-    return rio_run(path);
+    return rio_run(&args);
 }

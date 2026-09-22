@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define rio_ptrSize sizeof(intptr_t)
+
 extern int rio_verbosity;
 
 typedef enum rio_Err {
