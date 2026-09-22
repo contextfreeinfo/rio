@@ -95,12 +95,15 @@ rio_Err rio_run(rio_RunArgs* args) {
     };
     // Prefill defs such as `log`.
     // And we know initial defs won't overflow.
+    // TODO Define std functions or types in engine init.
+    // TODO Just have a struct for expected function pointers.
     rio_Intern logName;
     rio_table(&engine.names, (rio_Byte*)"log", &logName);
     rio_pushDef(&engine.defs, (rio_Def){
         .name = logName,
         .constant = true,
         .ptrVal = (intptr_t)rio_runLog,
+        // TODO .type = ...
     });
     rio_Def logDef = engine.defs.span.items[engine.defs.used - 1];
     if (rio_verbosity) {

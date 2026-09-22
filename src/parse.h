@@ -32,7 +32,9 @@ typedef struct rio_Node_Name {
 
 typedef struct rio_Node {
     rio_NodeKind kind;
+    // TODO Do start and type go in the union?
     size_t start;
+    uint8_t* type;
     union {
         rio_Node_Name name;
     } value;

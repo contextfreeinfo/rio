@@ -193,18 +193,33 @@ rio_Err rio_parseName(rio_Parser* parser) {
 rio_Err rio_parseProcProto(rio_Parser* parser) {
     rio_Err err = 0;
     if ((err = rio_parserAdvance(parser, true))) return err;
+    rio_Buffer_Def* defs = &parser->engine->defs;
+    size_t oldDefsUsed = defs->used;
     if (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
         // TODO Start stack frame?
         // TODO Adjust param defs to claim local and proper frame offset.
         if (rio_verbosity) printf("Params start\n");
-        // rio_Buffer_Def* defs = &parser->engine->defs;
-        // size_t oldDefsUsed = defs->used;
         if ((err = rio_parseFields(parser, rio_TokenKind_roundClose))) {
             return err;
         }
         if (rio_verbosity) printf("Params end\n");
     }
-    parser->node = (rio_Node){ .kind = rio_NodeKind_proc };
+    // TODO Return type.
+    rio_ProcType type = {
+        .typeKind = rio_TypeKind_proc,
+        .paramCount = defs->used - oldDefsUsed,
+        .returnType = (uint8_t*)rio_CoreType_void,
+    };
+    rio_Buffer_Byte* types = &parser->engine->types;
+    uint8_t* typePtr = &types->span.items[types->used];
+    if ((err = rio_pushBytes(
+        types,
+        (rio_Span_Byte){
+            .size = sizeof(type),
+            .items = (rio_Byte*)&type,
+        }
+    ))) return err;
+    parser->node = (rio_Node){ .kind = rio_NodeKind_proc, .type = typePtr };
     return err;
 }
 
@@ -212,10 +227,13 @@ rio_Err rio_parseProc(rio_Parser* parser) {
     rio_Err err = 0;
     size_t start = parser->engine->code.used;
     if ((err = rio_parseProcProto(parser))) return err;
+    // We already have some info in the node from parsing the proto.
+    rio_Node procNode = parser->node;
+    procNode.start = start;
     if ((err = rio_genProcBegin(&parser->gen))) return err;
     if ((err = rio_parseBlock(parser))) return err;
     if ((err = rio_genProcEnd(&parser->gen))) return err;
-    parser->node = (rio_Node){ .kind = rio_NodeKind_proc, .start = start };
+    parser->node = procNode;
     return err;
 }
 
@@ -399,11 +417,13 @@ rio_Err rio_parseColon(rio_Parser* parser) {
         rio_Byte* name;
         rio_tabled(&parser->engine->names, nameNode.value.name.name, &name);
         // TODO If top-level, add to tops table.
+        // TODO Reset tops table for each module?
         // TODO Handle whatever for the specific value node we got.
         rio_Def def = {
             .name = nameNode.value.name.name,
             .constant = true,
-            .type = NULL, // TODO Actual type description pointer.
+            // TODO Ensure the node type is always NULL unless meaningful.
+            .type = parser->node.type,
         };
         switch (parser->node.kind) {
         case rio_NodeKind_proc:
