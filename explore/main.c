@@ -3,6 +3,9 @@ int addTwo(int a, int b) {
 }
 
 int addThree(int a, int b, int c) {
+    if (!c) {
+        return addTwo(a, b);
+    }
     return addTwo(addTwo(a, b), c);
 }
 

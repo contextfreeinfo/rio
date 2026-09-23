@@ -31,13 +31,18 @@ rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
     return 0;
 }
 
-rio_Err rio_genProcBegin(rio_Gen* gen) {
+rio_Err rio_genProcBegin(
+    rio_Gen* gen, uint8_t paramCount, uint8_t** returnAddress
+) {
     (void)gen;
+    (void)paramCount;
+    *returnOffset = NULL;
     return 0;
 }
 
-rio_Err rio_genProcEnd(rio_Gen* gen) {
+rio_Err rio_genProcEnd(rio_Gen* procBeginGen, uint16_t frameSize) {
     (void)gen;
+    (void)frameSize;
     return 0;
 }
 

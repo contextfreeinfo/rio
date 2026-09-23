@@ -78,6 +78,11 @@ typedef struct rio_ProcType {
     uint8_t* returnType;
 } rio_ProcType;
 
+typedef struct rio_ProcInfo {
+    uint8_t* returnAddress; // Jump address to return from the proc.
+    uint8_t stackWords; // Max allowed is 127 words.
+} rio_ProcInfo;
+
 typedef struct rio_CommonNames {
     rio_Intern typeBool;
     rio_Intern typeFloat;
@@ -92,6 +97,7 @@ typedef struct rio_Engine {
     // TODO Globals can't go here. Is the space wasted?
     // TODO Shadow stack this counting down from the end of data?
     rio_Buffer_Def defs;
+    rio_ProcInfo procInfo;
     // TODO Separate constant data from runtime memory?
     // TODO Can we compile to wasm without that?
     rio_Buffer_Byte data;

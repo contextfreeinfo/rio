@@ -146,24 +146,56 @@ rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
     return 0;
 }
 
-rio_Err rio_genProcBegin(rio_Gen* gen) {
+rio_Err rio_genProcBegin(
+    rio_Gen* gen, uint8_t paramCount, uint8_t** returnAddress
+) {
     rio_Err err = 0;
     // push {r7, lr}
-    // TODO sub sp, #[locals size] -- need to remember where this is
-    // TODO add r7, sp, #0 -- why not mov???
-    // TODO movs r[arg], #[local]
-    // TODO ...args...
-    // TODO b [after the end code]
     if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xb580))) return err;
+    // Use param count as placeholder for frame size for now.
+    // TODO Just say 0 frame size at start?
+    // Max frame size of 127 words. TODO Validate this limit in parsing???
+    // That's up to 508 bytes, which is about 1/4th of the rp2350 stack size.
+    int16_t subSp = 0xb080 | paramCount;
+    // sub sp, #[frame size in words]
+    if ((err = rio_pushBytesInt16(gen->code, subSp))) return err;
+    // add r7, sp, #0 to match gcc, but mov r7, sp is also only 16 bits.
+    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xaf00))) return err;
+    // Branch past return code.
+    // TODO b [after the end code]
+    // Store the address for branching to for return from the procedure.
+    *returnAddress = &gen->code->span.items[gen->code->used];
+    // Add return logic early, so we already know where to branch to.
+    // This logic differs from gcc, which does `adds r7, #` then `mov sp, r7`.
+    // But that doesn't get the automatic x4 that we get here.
+    // This logic also reflects better the push frame instructions above.
+    // mov sp, r7
+    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0x46bd))) return err;
+    // add sp, #[frame size in words]
+    // TODO Also always just start with 0?
+    int16_t addSp = 0xb000 | paramCount;
+    if ((err = rio_pushBytesInt16(gen->code, addSp))) return err;
+    // pop {r7, pc}
+    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xbd80))) return err;
+    // Here's where we need to branch to on begin.
+    // Push args here so all the start and end code is fixed size.
+    // TODO ...args...
+    // TODO movs r[arg], #[local]
     return 0;
 }
 
-rio_Err rio_genProcEnd(rio_Gen* gen) {
+rio_Err rio_genProcEnd(rio_Gen* procBeginGen, uint16_t frameSize) {
     rio_Err err = 0;
-    // TODO adds r7, #[locals size] -- all returns can branch here
-    // TODO mov sp, r7
-    // pop {r7, pc}
-    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xbd80))) return err;
+    // Frame size here is a multiple of 4, so round up.
+    frameSize = (frameSize + 3) >> 2;
+    // Max of 127 words. TODO Validate this limit in parsing???
+    // That's up to 508 bytes, which is about 1/4th of the rp2350 stack size.
+    if (frameSize > 0xff) return rio_Err_bad;
+    // int16_t sub = 0xb080 | frameSize;
+    // sub sp, #[frame size in words]
+    (void)err;
+    (void)procBeginGen;
+    // if ((err = rio_pushBytesInt16(procBeginGen->code, sub))) return err;
     return 0;
 }
 

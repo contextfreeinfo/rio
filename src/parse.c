@@ -226,15 +226,19 @@ rio_Err rio_parseProc(rio_Parser* parser) {
     rio_Err err = 0;
     size_t start = parser->engine->code.used;
     if ((err = rio_parseProcProto(parser))) return err;
+    rio_ProcType* procType = (rio_ProcType*)parser->node.type;
+    uint8_t paramCount = procType->paramCount;
     // We already have some info in the node from parsing the proto.
     rio_Node procNode = parser->node;
     procNode.start = start;
-    if ((err = rio_genProcBegin(&parser->gen))) return err;
+    if ((err = rio_genProcBegin(
+        &parser->gen, paramCount, &parser->engine->procInfo.returnAddress
+    ))) return err;
     // TODO Gen start stack frame?
     // TODO Placeholder for stack size?
     // TODO Also reset?
     if ((err = rio_parseBlock(parser))) return err;
-    if ((err = rio_genProcEnd(&parser->gen))) return err;
+    if ((err = rio_genProcEnd(&parser->gen, paramCount << 2))) return err;
     parser->node = procNode;
     return err;
 }

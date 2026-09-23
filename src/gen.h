@@ -37,9 +37,14 @@ rio_Err rio_genIntAdd(rio_Gen* gen);
 // TODO Separate options for pushing/popping shadow stack?
 rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count);
 
-rio_Err rio_genProcBegin(rio_Gen* gen);
+// The frame size is a placeholder that might be adjust at proc end.
+// The returnAddress is the code address to jump to for returning from the proc.
+rio_Err rio_genProcBegin(
+    rio_Gen* gen, uint8_t paramCount, uint8_t** returnAddress
+);
 
-rio_Err rio_genProcEnd(rio_Gen* gen);
+// Pass in a gen that remembers where it was at the start of the proc.
+rio_Err rio_genProcEnd(rio_Gen* procBeginGen, uint16_t frameSize);
 
 // Always push intptr_t to keep things simple, even if non-pointer types are
 // smaller on 64-bit systems.
