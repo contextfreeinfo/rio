@@ -196,7 +196,6 @@ rio_Err rio_parseProcProto(rio_Parser* parser) {
     rio_Buffer_Def* defs = &parser->engine->defs;
     size_t oldDefsUsed = defs->used;
     if (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
-        // TODO Start stack frame?
         // TODO Adjust param defs to claim local and proper frame offset.
         if (rio_verbosity) printf("Params start\n");
         if ((err = rio_parseFields(parser, rio_TokenKind_roundClose))) {
@@ -231,6 +230,9 @@ rio_Err rio_parseProc(rio_Parser* parser) {
     rio_Node procNode = parser->node;
     procNode.start = start;
     if ((err = rio_genProcBegin(&parser->gen))) return err;
+    // TODO Gen start stack frame?
+    // TODO Placeholder for stack size?
+    // TODO Also reset?
     if ((err = rio_parseBlock(parser))) return err;
     if ((err = rio_genProcEnd(&parser->gen))) return err;
     parser->node = procNode;
@@ -251,6 +253,14 @@ rio_Err rio_parseDeclare(rio_Parser* parser) {
     default:
         return err;
     }
+}
+
+rio_Err rio_parseInt(rio_Parser* parser) {
+    rio_Err err = 0;
+    rio_Token* token = &parser->lexer.token;
+    // printf("--------------------------> int: %d\n", token->intValue);
+    if ((err = rio_genPush(&parser->gen, token->intValue))) return err;
+    return 0;
 }
 
 rio_Err rio_parseString(rio_Parser* parser) {
@@ -305,6 +315,8 @@ rio_Err rio_parseAtom(rio_Parser* parser) {
     switch (parser->lexer.token.kind) {
     case rio_TokenKind_declare:
         return rio_parseDeclare(parser);
+    case rio_TokenKind_int:
+        return rio_parseInt(parser);
     case rio_TokenKind_name:
         return rio_parseName(parser);
     case rio_TokenKind_proc:

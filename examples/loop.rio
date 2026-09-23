@@ -1,7 +1,7 @@
 # Log the message a given number of times.
 loopLog :: proc(message: String, times: Int)
   n := 0
-  while n < times
+  for n < times
     log(message)
     n += 1
   end

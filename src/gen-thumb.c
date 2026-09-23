@@ -67,9 +67,10 @@ static rio_Err putReg(rio_Gen* gen, uint8_t rd, intptr_t value) {
     // TODO Cycle regs.
     uint32_t val = (uint32_t)value;
     uint16_t low = (uint16_t)(val & 0xffff);
-    if (low <= 0xff && false) { // TODO drop false
-        // TODO 8-bit mode.
-        // TODO When set flags?
+    if (low <= 0xff && value >= 0) { // TODO MVNS for negative values
+        uint16_t mov = 0x2000 | (rd << 8) | low;
+        // Sets flags, but meh.
+        if ((err = rio_pushBytesInt16(gen->code, mov))) return err;
     } else if (low <= 0xfff && false) { // TODO drop false
         // TODO 12-bit mode.
         // TODO When set flags?

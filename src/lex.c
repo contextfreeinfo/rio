@@ -1,5 +1,6 @@
 #include "lex.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 // Char kinds.
@@ -119,12 +120,66 @@ rio_Err rio_lexName(rio_Lexer* lexer, uint8_t start) {
             token->kind = rio_TokenKind_end;
         }
         break;
+    case 'f':
+        if (!strcmp(token->text + 1, "or")) {
+            token->kind = rio_TokenKind_for;
+        }
+        break;
     case 'p':
         if (!strcmp(token->text + 1, "roc")) {
             token->kind = rio_TokenKind_proc;
         }
         break;
     }
+    return err;
+}
+
+rio_Err rio_lexNumber(rio_Lexer* lexer, uint8_t start) {
+    rio_Err err = 0;
+    rio_Token* token = &lexer->token;
+    size_t size = 0;
+    token->text[size++] = start;
+    // Start by just consuming all chars that could possibly be part of a number
+    // literal, even hex and other letters and float parts. Parse after that.
+    // But purposely don't try to stop early in things like 123abc. It's written
+    // as if one literal, so treat it as such, but error as needed.
+    while (size < sizeof(token->text) - 1) {
+        uint8_t c;
+        err = rio_lexRead(lexer, &c);
+        if (err) goto textDone;
+        if (!(
+            rio_isNameStart(c) || rio_isDigit(c) ||
+            c == '.' || c == '+' || c == '-'
+        )) {
+            lexer->pending = c;
+            goto textDone;
+        }
+        token->text[size++] = c;
+    }
+    textDone:
+    // Get the text locked in.
+    if ((err = rio_lexFinishToken(lexer, err, size))) return err;
+    // But go ahead and get the numeric value now, too.
+    // Handle int first.
+    // TODO Check for starting 0b or 0x. (Or 0o???)
+    // printf(">>>------> number text: %s\n", token->text);
+    int32_t intValue = 0;
+    for (size_t i = 0; i < size; i += 1) {
+        uint8_t c = token->text[i];
+        // TODO Also allow a/A through f/F if hex.
+        // TODO Track errors.
+        // Meanwhile, this does already correctly skip underscores.
+        if (rio_isDigit(c)) {
+            int32_t digit = c - '0';
+            intValue = 10 * intValue + digit;
+        } // else TODO End int part on dot or exponent.
+    }
+    // intDone:
+    // TODO More parsing.
+    token->kind = rio_TokenKind_int;
+    token->intValue = intValue;
+    // printf(">>>-------------------------L> int: %d vs %d\n", intValue, token->intValue);
+    // tokenDone:
     return err;
 }
 
@@ -228,7 +283,9 @@ rio_Err rio_lexNext(rio_Lexer* lexer) {
         token->kind = rio_TokenKind_roundClose;
         break;
     default:
-        if (rio_isNameStart(c)) {
+        if (rio_isDigit(c)) {
+            return rio_lexNumber(lexer, c);
+        } else if (rio_isNameStart(c)) {
             return rio_lexName(lexer, c);
         }
     }
