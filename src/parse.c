@@ -339,9 +339,12 @@ rio_Err rio_parseAtom(rio_Parser* parser) {
 }
 
 rio_Err rio_parseCall(rio_Parser* parser) {
+    rio_Err err = 0;
+    // Flush push in case of nullary proc call that thinks existing state
+    // applies to a call below.
+    if ((err = rio_genFlushPush(&parser->gen))) return err;
     size_t start = parser->engine->code.used;
-    rio_Err err = rio_parseAtom(parser);
-    if (err) return err;
+    if ((err = rio_parseAtom(parser))) return err;
     int32_t name = 0;
     if (parser->node.kind == rio_NodeKind_name) {
         name = parser->node.value.name.name;
@@ -350,14 +353,19 @@ rio_Err rio_parseCall(rio_Parser* parser) {
     while (parser->lexer.token.kind == rio_TokenKind_roundOpen) {
         // TODO Validate callee type. Get arity from it.
         // TODO From rio, always describe types through handles to prevent mut?
-        rio_Def* def = rio_findDef(&parser->engine->defs, name);
-        intptr_t target = def && def->constant ? def->ptrVal : 0;
-        if (target && parser->engine->code.used > start) {
-            // Just skip the old push because we'll provide it more directly.
-            // size_t used = parser->engine->code.used;
-            // printf("-------> gap: %zu\n", used - start);
-            parser->engine->code.used = start;
-            rio_genUnusedPush(&parser->gen);
+        intptr_t target = 0;
+        if (name) {
+            rio_Def* def = rio_findDef(&parser->engine->defs, name);
+            target = def && def->constant ? def->ptrVal : 0;
+            if (target && parser->engine->code.used > start) {
+                // Just skip the old push because we'll provide it more directly.
+                // size_t used = parser->engine->code.used;
+                // printf("-------> gap: %zu\n", used - start);
+                parser->engine->code.used = start;
+                rio_genUnusedPush(&parser->gen);
+            }
+            // For `a()()` chained calls, name can only apply to the first.
+            name = 0;
         }
         size_t arity = 0;
         if (rio_verbosity) printf("Call %d start\n", name);

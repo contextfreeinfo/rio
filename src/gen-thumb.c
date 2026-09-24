@@ -21,6 +21,29 @@ rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset) {
     return rio_pushBytesInt32Pre(buffer, addr);
 }
 
+#define rio_genThumbDump false
+// #define rio_genThumbDump true
+
+static rio_Err pushCode(rio_Buffer_Byte* buffer, uint16_t code) {
+    #if rio_genThumbDump
+        printf("-------------- code[%04x] -> 0x%04x\n", buffer->used, code);
+    #endif
+    return rio_pushBytesInt16(buffer, code);
+}
+
+static rio_Err pushCodes(
+    rio_Buffer_Byte* buffer, uint16_t* codes, size_t count
+) {
+    #if rio_genThumbDump
+        for (size_t i = 0; i < count; i += 1) {
+            size_t at = buffer->used + i * 2;
+            printf("-------------- code[%04x] -> 0x%04x\n", at, codes[i]);
+        }
+    #endif
+    rio_Span_Byte bytes = {.size = count * 2, .items = (uint8_t*)codes};
+    return rio_pushBytes(buffer, bytes);
+}
+
 rio_Err rio_genMovT(rio_Buffer_Byte* code, uint8_t rd, uint16_t imm16) {
     // Get bit regions.
     uint16_t imm4 = (imm16 >> 12) & 0x0f;
@@ -29,12 +52,13 @@ rio_Err rio_genMovT(rio_Buffer_Byte* code, uint8_t rd, uint16_t imm16) {
     uint16_t imm8 = imm16 & 0xff;
     // Build instruction halves.
     // TODO Merge with movw, since only this constant is different?
-    uint16_t upper = 0xf2c0 | (i << 10) | imm4;
-    uint16_t lower = (imm3 << 12) | ((rd & 0xf) << 8) | imm8;
+    uint16_t codes[] = {
+        0xf2c0 | (i << 10) | imm4,
+        (imm3 << 12) | ((rd & 0xf) << 8) | imm8,
+    };
     // Push instructions.
     rio_Err err = 0;
-    if ((err = rio_pushBytesInt16(code, upper))) return err;
-    if ((err = rio_pushBytesInt16(code, lower))) return err;
+    if ((err = pushCodes(code, codes, 2))) return err;
     return 0;
 }
 
@@ -45,19 +69,21 @@ rio_Err rio_genMovW(rio_Buffer_Byte* code, uint8_t rd, uint16_t imm16) {
     uint16_t imm3 = (imm16 >> 8) & 0x07;
     uint16_t imm8 = imm16 & 0xff;
     // Build instruction halves.
-    uint16_t upper = 0xf240 | (i << 10) | imm4;
-    uint16_t lower = (imm3 << 12) | ((rd & 0xf) << 8) | imm8;
+    uint16_t codes[] = {
+        0xf240 | (i << 10) | imm4,
+        (imm3 << 12) | ((rd & 0xf) << 8) | imm8,
+    };
     // Push instructions.
     rio_Err err = 0;
-    if ((err = rio_pushBytesInt16(code, upper))) return err;
-    if ((err = rio_pushBytesInt16(code, lower))) return err;
+    if ((err = pushCodes(code, codes, 2))) return err;
     return 0;
 }
 
 rio_Err checkPushR0(rio_Gen* gen) {
     if (gen->state) {
+        // printf("---------------------> pushR0\n");
         gen->state = 0;
-        return rio_pushBytesInt16(gen->code, (int16_t)0xb401);
+        return pushCode(gen->code, (int16_t)0xb401);
     }
     return 0;
 }
@@ -70,7 +96,7 @@ static rio_Err putReg(rio_Gen* gen, uint8_t rd, intptr_t value) {
     if (low <= 0xff && value >= 0) { // TODO MVNS for negative values
         uint16_t mov = 0x2000 | (rd << 8) | low;
         // Sets flags, but meh.
-        if ((err = rio_pushBytesInt16(gen->code, mov))) return err;
+        if ((err = pushCode(gen->code, mov))) return err;
     } else if (low <= 0xfff && false) { // TODO drop false
         // TODO 12-bit mode.
         // TODO When set flags?
@@ -102,12 +128,12 @@ static rio_Err genBranchW(
     // Calculate j1 and j2 using "arm scramble formula".
     uint32_t j1 = i1 ^ s ^ 1;
     uint32_t j2 = i2 ^ s ^ 1;
-    // Build two halves then full.
-    uint16_t upper = 0xf000 | (s << 10) | imm10;
-    lower |= (j1 << 13) | (j2 << 11) | imm11;
-    // Push instructions.
-    if ((err = rio_pushBytesInt16(code, upper))) return err;
-    if ((err = rio_pushBytesInt16(code, lower))) return err;
+    // Push two halves.
+    uint16_t codes[] = {
+        0xf000 | (s << 10) | imm10,
+        lower | (j1 << 13) | (j2 << 11) | imm11,
+    };
+    if ((err = pushCodes(code, codes, 2))) return err;
     // TODO If non-void, push return value.
     return 0;
 }
@@ -127,7 +153,7 @@ rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
         } else {
             // TODO Pop target to register 12.
         }
-        return rio_pushBytesInt16(gen->code, 0x47e0);
+        return pushCode(gen->code, 0x47e0);
     }
     // bl
     int32_t offset = (int32_t)offsetBig;
@@ -140,6 +166,7 @@ rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
     if (!count) return 0;
     rio_Err err = 0;
     // Max of 3 args.
+    // printf("---------------------> genPopAsArgs was %d, %d\n", gen->state, count);
     if (count > 3) count = 3;
     if (count == 1 && gen->state) {
         gen->state = 0;
@@ -150,7 +177,7 @@ rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
         // thumb puts those in the wrong order.
         for (; count; count -= 1) {
             int16_t bits = (int16_t)0xbc00 | (1 << (count - 1));
-            if ((err = rio_pushBytesInt16(gen->code, bits))) return err;
+            if ((err = pushCode(gen->code, bits))) return err;
         }
     }
     return 0;
@@ -160,35 +187,38 @@ rio_Err rio_genProcBegin(
     rio_Gen* gen, uint8_t paramCount, uint8_t** returnAddress
 ) {
     rio_Err err = 0;
-    // push {r7, lr}
-    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xb580))) return err;
-    // Use param count as placeholder for frame size for now.
-    // TODO Just say 0 frame size at start?
-    // Max frame size of 127 words. TODO Validate this limit in parsing???
-    // That's up to 508 bytes, which is about 1/4th of the rp2350 stack size.
-    int16_t subSp = 0xb080 | paramCount;
-    // sub sp, #[frame size in words]
-    if ((err = rio_pushBytesInt16(gen->code, subSp))) return err;
-    // mov r7, sp
-    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0x466f))) return err;
-    // Branch past return code.
-    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xe002))) return err;
     // Store the address for branching to for return from the procedure.
     // TODO If a big array push, we could calculate this based on an offset.
-    *returnAddress = &gen->code->span.items[gen->code->used];
-    // Add return logic early, so we already know where to branch to.
-    // This logic differs from gcc, which does `adds r7, #` then `mov sp, r7`.
-    // But that doesn't get the automatic x4 that we get here.
-    // This logic also reflects better the push frame instructions above.
-    // TODO Merge sequential writes into single array push?
-    // mov sp, r7
-    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0x46bd))) return err;
-    // add sp, #[frame size in words]
-    // TODO Also always just start with 0?
-    int16_t addSp = 0xb000 | paramCount;
-    if ((err = rio_pushBytesInt16(gen->code, addSp))) return err;
-    // pop {r7, pc}
-    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xbd80))) return err;
+    // And the return address is after the first 4 codes below, or 8 bytes.
+    *returnAddress = gen->code->span.items + gen->code->used + 8;
+    // TODO Move this array to global space?
+    uint16_t codes[] = {
+        // push {r7, lr}
+        0xb580,
+        // sub sp, #[frame size in words]
+        // Use param count as placeholder for frame size for now.
+        // TODO Just say 0 frame size at start?
+        // Max frame size of 127 words. TODO Validate this limit in parsing???
+        // That's up to 508 bytes, which is about 1/4th of rp2350 stack size.
+        0xb080 | paramCount,
+        // mov r7, sp
+        0x466f,
+        // Branch past return code.
+        0xe002,
+        // Add return logic early, so we already know where to branch to.
+        // This logic differs from gcc, which does `adds r7, #` then `mov sp, r7`.
+        // But that doesn't get the automatic x4 that we get here.
+        // This logic also reflects better the push frame instructions above.
+        // TODO Merge sequential writes into single array push?
+        // mov sp, r7
+        0x46bd,
+        // add sp, #[frame size in words]
+        // TODO Also always just start with 0?
+        0xb000 | paramCount,
+        // pop {r7, pc}
+        0xbd80,
+    };
+    if ((err = pushCodes(gen->code, codes, 7))) return err;
     // Here's where we need to branch to on begin.
     // Push args here so all the start and end code above is fixed size.
     for (uint16_t param = 0; param < paramCount; param += 1) {
@@ -196,7 +226,7 @@ rio_Err rio_genProcBegin(
         // Where p is multiplied by 4 automatically.
         // 0b01100_ppppp_111_nnn
         uint16_t store = 0x6038 | (param << 6) | param;
-        if ((err = rio_pushBytesInt16(gen->code, store))) return err;
+        if ((err = pushCode(gen->code, store))) return err;
     }
     return 0;
 }
@@ -227,7 +257,7 @@ rio_Err rio_genRet(rio_Gen* gen, uint8_t* returnAddress) {
         offset >>= 1;
         uint32_t imm11 = offset & 0x7ff;
         uint16_t branch = 0xe000 | imm11;
-        if ((err = rio_pushBytesInt16(gen->code, branch))) return err;
+        if ((err = pushCode(gen->code, branch))) return err;
         return 0;
     }
     // b.w
@@ -237,13 +267,17 @@ rio_Err rio_genRet(rio_Gen* gen, uint8_t* returnAddress) {
 
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
     rio_Err err = 0;
-    // printf("---------------------> genPush was %d\n", gen->state);
+    // printf("---------------------> genPush was %d, %x\n", gen->state, value);
     if ((err = checkPushR0(gen))) return err;
     // Put r0 then push r0.
     // TODO Defer push of r0 in case the next instruction is pop r0?
     if ((err = putReg(gen, 0, value))) return err;
     gen->state = 1;
     return 0;
+}
+
+rio_Err rio_genFlushPush(rio_Gen* gen) {
+    return checkPushR0(gen);
 }
 
 rio_Err rio_genUnusedPush(rio_Gen* gen) {

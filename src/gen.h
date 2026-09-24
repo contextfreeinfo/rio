@@ -52,6 +52,8 @@ rio_Err rio_genRet(rio_Gen* gen, uint8_t* returnAddress);
 // smaller on 64-bit systems.
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value);
 
+rio_Err rio_genFlushPush(rio_Gen* gen);
+
 rio_Err rio_genUnusedPush(rio_Gen* gen);
 
 rio_Err rio_memPadPtr(rio_Buffer_Byte* buffer);
