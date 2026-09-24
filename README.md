@@ -9,7 +9,7 @@ Run:
 Or for thumb2, if on a system that can run thumb2:
 
 ```sh
-./run.sh --thumb examples/hi/hi.rio
+./run.sh --thumb examples/hi.rio
 # Or also use --inert to avoid actually running code.
 ./run.sh --thumb examples/loop.rio --inert
 ```

@@ -46,6 +46,12 @@ rio_Err rio_genProcEnd(rio_Gen* procBeginGen, uint16_t frameSize) {
     return 0;
 }
 
+rio_Err rio_genRet(rio_Gen* gen, uint8_t* returnAddress) {
+    (void)gen;
+    (void)returnAddress;
+    return 0;
+}
+
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
     (void)gen;
     (void)value;

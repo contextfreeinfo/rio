@@ -84,6 +84,34 @@ static rio_Err putReg(rio_Gen* gen, uint8_t rd, intptr_t value) {
     return 0;
 }
 
+static rio_Err genBranchW(
+    rio_Buffer_Byte* code, uint16_t lower, int32_t offset
+) {
+    rio_Err err = 0;
+    // // Clear the thumb bit.
+    // // TODO Doesn't matter since we shift it out, anyway?
+    // offset &= ~1;
+    // Convert to half-word offset.
+    offset >>= 1;
+    // Split bits.
+    uint32_t s = (offset >> 23) & 1;
+    uint32_t i1 = (offset >> 22) & 1;
+    uint32_t i2 = (offset >> 21) & 1;
+    uint32_t imm10 = (offset >> 11) & 0x3ff;
+    uint32_t imm11 = offset & 0x7ff;
+    // Calculate j1 and j2 using "arm scramble formula".
+    uint32_t j1 = i1 ^ s ^ 1;
+    uint32_t j2 = i2 ^ s ^ 1;
+    // Build two halves then full.
+    uint16_t upper = 0xf000 | (s << 10) | imm10;
+    lower |= (j1 << 13) | (j2 << 11) | imm11;
+    // Push instructions.
+    if ((err = rio_pushBytesInt16(code, upper))) return err;
+    if ((err = rio_pushBytesInt16(code, lower))) return err;
+    // TODO If non-void, push return value.
+    return 0;
+}
+
 rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
     rio_Err err = 0;
     if ((err = checkPushR0(gen))) return err;
@@ -101,27 +129,9 @@ rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
         }
         return rio_pushBytesInt16(gen->code, 0x47e0);
     }
+    // bl
     int32_t offset = (int32_t)offsetBig;
-    // // Clear the thumb bit.
-    // // TODO Doesn't matter since we shift it out, anyway?
-    // offset &= ~1;
-    // Convert to half-word offset.
-    offset >>= 1;
-    // Split bits.
-    uint32_t s = (offset >> 23) & 1;
-    uint32_t i1 = (offset >> 22) & 1;
-    uint32_t i2 = (offset >> 21) & 1;
-    uint32_t imm10 = (offset >> 11) & 0x3ff;
-    uint32_t imm11 = offset & 0x7ff;
-    // Calculate j1 and j2 using "arm scramble formula".
-    uint32_t j1 = i1 ^ s ^ 1;
-    uint32_t j2 = i2 ^ s ^ 1;
-    // Build two halves then full.
-    uint16_t upper = 0xf000 | (s << 10) | imm10;
-    uint16_t lower = 0xd000 | (j1 << 13) | (j2 << 11) | imm11;
-    // Push instructions.
-    if ((err = rio_pushBytesInt16(gen->code, upper))) return err;
-    if ((err = rio_pushBytesInt16(gen->code, lower))) return err;
+    if ((err = genBranchW(gen->code, 0xd000, offset))) return err;
     // TODO If non-void, push return value.
     return 0;
 }
@@ -162,13 +172,15 @@ rio_Err rio_genProcBegin(
     // add r7, sp, #0 to match gcc, but mov r7, sp is also only 16 bits.
     if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xaf00))) return err;
     // Branch past return code.
-    // TODO b [after the end code]
+    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xe002))) return err;
     // Store the address for branching to for return from the procedure.
+    // TODO If a big array push, we could calculate this based on an offset.
     *returnAddress = &gen->code->span.items[gen->code->used];
     // Add return logic early, so we already know where to branch to.
     // This logic differs from gcc, which does `adds r7, #` then `mov sp, r7`.
     // But that doesn't get the automatic x4 that we get here.
     // This logic also reflects better the push frame instructions above.
+    // TODO Merge sequential writes into single array push?
     // mov sp, r7
     if ((err = rio_pushBytesInt16(gen->code, (int16_t)0x46bd))) return err;
     // add sp, #[frame size in words]
@@ -196,6 +208,16 @@ rio_Err rio_genProcEnd(rio_Gen* procBeginGen, uint16_t frameSize) {
     (void)err;
     (void)procBeginGen;
     // if ((err = rio_pushBytesInt16(procBeginGen->code, sub))) return err;
+    return 0;
+}
+
+rio_Err rio_genRet(rio_Gen* gen, uint8_t* returnAddress) {
+    rio_Err err = 0;
+    intptr_t source = (intptr_t)(gen->code->span.items + gen->code->used + 4);
+    intptr_t offsetBig = (intptr_t)returnAddress - source;
+    int32_t offset = (int32_t)offsetBig;
+    // b.w
+    if ((err = genBranchW(gen->code, 0x9000, offset))) return err;
     return 0;
 }
 

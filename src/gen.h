@@ -46,6 +46,8 @@ rio_Err rio_genProcBegin(
 // Pass in a gen that remembers where it was at the start of the proc.
 rio_Err rio_genProcEnd(rio_Gen* procBeginGen, uint16_t frameSize);
 
+rio_Err rio_genRet(rio_Gen* gen, uint8_t* returnAddress);
+
 // Always push intptr_t to keep things simple, even if non-pointer types are
 // smaller on 64-bit systems.
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value);

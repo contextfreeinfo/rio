@@ -238,6 +238,9 @@ rio_Err rio_parseProc(rio_Parser* parser) {
     // TODO Placeholder for stack size?
     // TODO Also reset?
     if ((err = rio_parseBlock(parser))) return err;
+    if ((err = rio_genRet(
+        &parser->gen, parser->engine->procInfo.returnAddress
+    ))) return err;
     if ((err = rio_genProcEnd(&parser->gen, paramCount << 2))) return err;
     parser->node = procNode;
     return err;
