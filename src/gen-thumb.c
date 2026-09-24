@@ -213,9 +213,18 @@ rio_Err rio_genProcEnd(rio_Gen* procBeginGen, uint16_t frameSize) {
 
 rio_Err rio_genRet(rio_Gen* gen, uint8_t* returnAddress) {
     rio_Err err = 0;
+    // TODO On wasm, this might ignore returnAddress entirely.
     intptr_t source = (intptr_t)(gen->code->span.items + gen->code->used + 4);
     intptr_t offsetBig = (intptr_t)returnAddress - source;
     int32_t offset = (int32_t)offsetBig;
+    if (offset >= -2048 && offset <= 2046) {
+        // Small branch.
+        offset >>= 1;
+        uint32_t imm11 = offset & 0x7ff;
+        uint16_t branch = 0xe000 | imm11;
+        if ((err = rio_pushBytesInt16(gen->code, branch))) return err;
+        return 0;
+    }
     // b.w
     if ((err = genBranchW(gen->code, 0x9000, offset))) return err;
     return 0;
