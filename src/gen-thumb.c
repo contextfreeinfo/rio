@@ -190,9 +190,14 @@ rio_Err rio_genProcBegin(
     // pop {r7, pc}
     if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xbd80))) return err;
     // Here's where we need to branch to on begin.
-    // Push args here so all the start and end code is fixed size.
-    // TODO ...args...
-    // TODO movs r[arg], #[local]
+    // Push args here so all the start and end code above is fixed size.
+    for (uint16_t param = 0; param < paramCount; param += 1) {
+        // TODO movs rn, [r7, #param]
+        // Where p is multiplied by 4 automatically.
+        // 0b01100_ppppp_111_nnn
+        uint16_t store = 0x6038 | (param << 6) | param;
+        if ((err = rio_pushBytesInt16(gen->code, store))) return err;
+    }
     return 0;
 }
 
