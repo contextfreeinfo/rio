@@ -169,8 +169,8 @@ rio_Err rio_genProcBegin(
     int16_t subSp = 0xb080 | paramCount;
     // sub sp, #[frame size in words]
     if ((err = rio_pushBytesInt16(gen->code, subSp))) return err;
-    // add r7, sp, #0 to match gcc, but mov r7, sp is also only 16 bits.
-    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xaf00))) return err;
+    // mov r7, sp
+    if ((err = rio_pushBytesInt16(gen->code, (int16_t)0x466f))) return err;
     // Branch past return code.
     if ((err = rio_pushBytesInt16(gen->code, (int16_t)0xe002))) return err;
     // Store the address for branching to for return from the procedure.
