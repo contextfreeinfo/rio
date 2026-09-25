@@ -86,7 +86,7 @@ rio_Err rio_parseTupleContent(rio_Parser* parser) {
     }
     if ((err = rio_genPopAsArgs(&parser->gen, count))) return err;
     if (parser->lexer.token.kind == rio_TokenKind_roundClose) {
-        printf("Close tuple\n");
+        if (rio_verbosity) printf("Close tuple\n");
         if ((err = rio_parserAdvance(parser, false))) return err;
     }
     return err;
