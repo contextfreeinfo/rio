@@ -276,6 +276,16 @@ rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
     return 0;
 }
 
+rio_Err rio_genGetLocal(rio_Gen* gen, uint8_t offset) {
+    rio_Err err = 0;
+    if ((err = checkPushR0(gen))) return err;
+    offset >>= 2;
+    uint16_t load = 0x6838 | (offset << 6);
+    if ((err = pushCode(gen->code, load))) return err;
+    gen->state = 1;
+    return 0;
+}
+
 rio_Err rio_genFlushPush(rio_Gen* gen) {
     return checkPushR0(gen);
 }

@@ -13,7 +13,6 @@ target_link_libraries(rio PRIVATE rio-lib)
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     target_compile_options(rio PRIVATE
-        -Wall -Wextra -Wpedantic -pedantic-errors -Werror
+        -Wall -Wextra -Wpedantic -pedantic-errors -Werror -fstack-usage
     )
 endif()
-
