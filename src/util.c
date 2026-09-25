@@ -8,6 +8,10 @@ static intptr_t stackBase;
 static intptr_t deepestStack;
 static intptr_t maxStack = 0x10000000;
 
+intptr_t rio_maxStackSeen(void) {
+    return stackBase - deepestStack;
+}
+
 void rio_initStackCheck(intptr_t maxStack_) {
     uint8_t mark;
     stackBase = (intptr_t)&mark;

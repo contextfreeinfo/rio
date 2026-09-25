@@ -13,6 +13,7 @@ typedef enum rio_Err {
     rio_Err_eof,
 } rio_Err;
 
+intptr_t rio_maxStackSeen(void);
 void rio_initStackCheck(intptr_t maxStack);
 rio_Err rio_checkStack(void);
 
