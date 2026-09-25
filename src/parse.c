@@ -492,6 +492,8 @@ rio_Err rio_parseColon(rio_Parser* parser) {
 }
 
 rio_Err rio_parseExpression(rio_Parser* parser) {
+    rio_Err err;
+    if ((err = rio_checkStack())) return err;
     parser->node = (rio_Node){ .kind = rio_NodeKind_nil };
     return rio_parseColon(parser);
 }

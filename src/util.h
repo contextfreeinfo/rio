@@ -13,6 +13,9 @@ typedef enum rio_Err {
     rio_Err_eof,
 } rio_Err;
 
+void rio_initStackCheck(intptr_t maxStack);
+rio_Err rio_checkStack(void);
+
 #define rio_defineSpan(Type) typedef struct rio_Span_##Type { \
     size_t size; \
     rio_##Type* items; \

@@ -13,6 +13,7 @@ typedef struct rio_RunArgs {
 
 rio_Err rio_run(rio_RunArgs* args) {
     rio_Err err = 0;
+    rio_initStackCheck(2048);
     FILE* f = fopen(args->path, "r");
     if (!f) {
         rio_log("Failed to open:");

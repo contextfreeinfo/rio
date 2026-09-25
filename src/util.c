@@ -1,7 +1,38 @@
 #include "util.h"
+#include <stdio.h>
 #include <string.h>
 
 int rio_verbosity = 0;
+
+static intptr_t stackBase;
+static intptr_t deepestStack;
+static intptr_t maxStack = 0x10000000;
+
+void rio_initStackCheck(intptr_t maxStack_) {
+    uint8_t mark;
+    stackBase = (intptr_t)&mark;
+    maxStack = maxStack_;
+}
+
+rio_Err rio_checkStack(void) {
+    uint8_t markVar;
+    intptr_t mark = (intptr_t)&markVar;
+    if (mark < deepestStack) {
+        deepestStack = mark;
+    }
+    intptr_t depth = stackBase - mark;
+    if (rio_verbosity) {
+        printf(
+            "rio_checkStack: %d (%d), %d (%d)\n",
+            mark, depth, deepestStack, stackBase - deepestStack
+        );
+    }
+    if (depth > maxStack) {
+        printf("Stack overflow: %d\n", depth);
+        return rio_Err_bad;
+    }
+    return 0;
+}
 
 rio_Err rio_pushBytes(rio_Buffer_Byte* buffer, rio_Span_Byte bytes) {
     size_t remaining = buffer->span.size - buffer->used;
