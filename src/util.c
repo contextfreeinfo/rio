@@ -17,6 +17,7 @@ intptr_t rio_maxStackDepthSeen(void) {
 }
 
 void rio_initStackCheck(intptr_t maxStack_) {
+    // TODO Option instead to specify address limit.
     uint8_t mark;
     stackBase = (intptr_t)&mark;
     deepestStack = stackBase;

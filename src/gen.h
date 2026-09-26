@@ -53,6 +53,7 @@ rio_Err rio_genRet(rio_Gen* gen, uint8_t* returnAddress);
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value);
 
 rio_Err rio_genGetLocal(rio_Gen* gen, uint8_t offset);
+rio_Err rio_genPutLocal(rio_Gen* gen, uint8_t offset);
 
 rio_Err rio_genFlushPush(rio_Gen* gen);
 

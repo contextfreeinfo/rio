@@ -45,8 +45,10 @@ typedef struct rio_Def {
         bool boolVal;
         float f32Val;
         int32_t i32Val;
+        // Offset from frame for local.
+        uint8_t offsetVal;
         // For a constant function, the actual address of the function.
-        // If not constant, either a global or frame relative address.
+        // If global but not constant, a global address.
         // For a function variable, the *pointer* is stored at this address.
         intptr_t ptrVal;
     };

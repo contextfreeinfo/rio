@@ -181,7 +181,7 @@ rio_Err rio_parseName(rio_Parser* parser) {
         if (def->constant) {
             if ((err = rio_genPush(&parser->gen, def->ptrVal))) return err;
         } else if (def->local) {
-            if ((err = rio_genGetLocal(&parser->gen, (uint8_t)def->ptrVal))) {
+            if ((err = rio_genGetLocal(&parser->gen, def->offsetVal))) {
                 return err;
             }
         } else {
@@ -207,8 +207,10 @@ rio_Err rio_parseProcProto(rio_Parser* parser) {
             rio_Def* param = &defs->span.items[i];
             // Locals get frame-relative addressing.
             param->local = true;
-            param->ptrVal = (i - oldDefsUsed) * rio_ptrSize;
+            param->offsetVal = i - oldDefsUsed;
         }
+        parser->engine->localsDepth = defs->used - oldDefsUsed;
+        parser->engine->procInfo.maxLocalsDepth = parser->engine->localsDepth;
         if (rio_verbosity) printf("Params end\n");
     }
     // TODO Return type.
@@ -250,7 +252,9 @@ rio_Err rio_parseProc(rio_Parser* parser) {
     if ((err = rio_genRet(
         &parser->gen, parser->engine->procInfo.returnAddress
     ))) return err;
-    if ((err = rio_genProcEnd(&parser->gen, paramCount << 2))) return err;
+    if ((err = rio_genProcEnd(
+        &parser->gen, parser->engine->procInfo.maxLocalsDepth
+    ))) return err;
     parser->node = procNode;
     // In case of nested procs.
     parser->engine->procInfo = oldProcInfo;
@@ -405,9 +409,31 @@ rio_Err rio_parseColon(rio_Parser* parser) {
         break;
     case rio_TokenKind_eq:
         printf("---------==============> Var init!\n");
-        // TODO Expand frame. Expand proc frame if past max.
         if ((err = rio_parserAdvance(parser, true))) return err;
         if ((err = rio_parseCall(parser))) return err;
+        // TODO If the value was a constant, can just put in the constant.
+        // Maybe expand block and proc frame.
+        rio_ProcInfo* procInfo = &parser->engine->procInfo;
+        if (procInfo->returnAddress) {
+            parser->engine->localsDepth += 1;
+            if (parser->engine->localsDepth > procInfo->maxLocalsDepth) {
+                procInfo->maxLocalsDepth = parser->engine->localsDepth;
+            }
+            if (nameNode.kind == rio_NodeKind_name) {
+                rio_Def def = {
+                    .name = nameNode.value.name.name,
+                    // .type = (uint8_t*)type, // TODO Get inferred type.
+                    .local = true,
+                    .offsetVal = parser->engine->localsDepth - 1,
+                };
+                if ((err = rio_pushDef(&parser->engine->defs, def))) return err;
+                if ((err = rio_genPutLocal(&parser->gen, def.offsetVal))) {
+                    return err;
+                }
+            }
+        } else {
+            // TODO Make space for it as a global.
+        }
         return err;
     default:
         printf("---------==============> Var decl!\n");
@@ -434,7 +460,7 @@ rio_Err rio_parseColon(rio_Parser* parser) {
             } else {
                 type = 0;
             }
-            // TODO Check for eq.
+            // TODO Share code with eq?
             if (nameNode.kind == rio_NodeKind_name) {
                 rio_Def def = {
                     .name = nameNode.value.name.name,
