@@ -242,6 +242,7 @@ rio_Err rio_parseProc(rio_Parser* parser) {
     // We already have some info in the node from parsing the proto.
     rio_Node procNode = parser->node;
     procNode.start = start;
+    size_t oldUsed = parser->gen.code->used;
     if ((err = rio_genProcBegin(
         &parser->gen, paramCount, &parser->engine->procInfo.returnAddress
     ))) return err;
@@ -253,7 +254,7 @@ rio_Err rio_parseProc(rio_Parser* parser) {
         &parser->gen, parser->engine->procInfo.returnAddress
     ))) return err;
     if ((err = rio_genProcEnd(
-        &parser->gen, parser->engine->procInfo.maxLocalsDepth
+        &parser->gen, oldUsed, parser->engine->procInfo.maxLocalsDepth
     ))) return err;
     parser->node = procNode;
     // In case of nested procs.

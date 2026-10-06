@@ -231,18 +231,12 @@ rio_Err rio_genProcBegin(
     return 0;
 }
 
-rio_Err rio_genProcEnd(rio_Gen* procBeginGen, uint16_t frameSize) {
-    rio_Err err = 0;
-    // Frame size here is a multiple of 4, so round up.
-    frameSize = (frameSize + 3) >> 2;
+rio_Err rio_genProcEnd(rio_Gen* gen, size_t oldUsed, uint16_t frameSize) {
     // Max of 127 words. TODO Validate this limit in parsing???
     // That's up to 508 bytes, which is about 1/4th of the rp2350 stack size.
-    if (frameSize > 0xff) return rio_Err_bad;
-    // int16_t sub = 0xb080 | frameSize;
+    if (frameSize > 127) return rio_Err_bad;
     // sub sp, #[frame size in words]
-    (void)err;
-    (void)procBeginGen;
-    // if ((err = rio_pushBytesInt16(procBeginGen->code, sub))) return err;
+    gen->code->span.items[oldUsed + 2] = 0xb080 | frameSize;
     return 0;
 }
 
