@@ -34,6 +34,12 @@ rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity);
 
 rio_Err rio_genIntAdd(rio_Gen* gen);
 
+// The breakAddress is the code address to jump to for breaking from the loop.
+rio_Err rio_genLoopBeginWhile(rio_Gen* gen, uint8_t** breakAddress);
+
+// Pass in where it was at the start of the proc.
+rio_Err rio_genLoopEnd(rio_Gen* gen, size_t start, uint8_t* breakAddress);
+
 // TODO Separate options for pushing/popping shadow stack?
 rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count);
 
@@ -43,7 +49,7 @@ rio_Err rio_genProcBegin(
     rio_Gen* gen, uint8_t paramCount, uint8_t** returnAddress
 );
 
-// Pass in a gen that remembers where it was at the start of the proc.
+// Pass in oldUsed that remembers where it was at the start of the proc.
 rio_Err rio_genProcEnd(rio_Gen* gen, size_t oldUsed, uint16_t frameSize);
 
 rio_Err rio_genRet(rio_Gen* gen, uint8_t* returnAddress);

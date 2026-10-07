@@ -138,6 +138,24 @@ static rio_Err genBranchW(
     return 0;
 }
 
+static rio_Err genBranch(rio_Gen* gen, uint8_t* address) {
+    rio_Err err = 0;
+    intptr_t source = (intptr_t)(gen->code->span.items + gen->code->used + 4);
+    intptr_t offsetBig = (intptr_t)address - source;
+    int32_t offset = (int32_t)offsetBig;
+    if (offset >= -2048 && offset <= 2046) {
+        // Small branch.
+        offset >>= 1;
+        uint32_t imm11 = offset & 0x7ff;
+        uint16_t branch = 0xe000 | imm11;
+        if ((err = pushCode(gen->code, branch))) return err;
+        return 0;
+    }
+    // b.w
+    if ((err = genBranchW(gen->code, 0x9000, offset))) return err;
+    return 0;
+}
+
 rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
     rio_Err err = 0;
     if ((err = checkPushR0(gen))) return err;
@@ -162,6 +180,33 @@ rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
     return 0;
 }
 
+static uint16_t loopWhileBeginCodes[] = {
+    // cmp r0, #0
+    // TODO Specialized codes to optimize top-level compares.
+    0x2800,
+    // bne #2
+    0xd101,
+    // b.w [zero bits] as a placeholder to break from loop.
+    0xf000, 0x9000,
+};
+
+rio_Err rio_genLoopBeginWhile(rio_Gen* gen, uint8_t** breakAddress) {
+    rio_Err err = 0;
+    *breakAddress = gen->code->span.items + gen->code->used + 4;
+    // TODO Macro for pushing array of codes with auto size.
+    if ((err = pushCodes(gen->code, loopWhileBeginCodes, 4))) return err;
+    return 0;
+}
+
+rio_Err rio_genLoopEnd(rio_Gen* gen, size_t start, uint8_t* breakAddress) {
+    rio_Err err = 0;
+    uint8_t* address = gen->code->span.items + start;
+    if ((err = genBranch(gen, address))) return err;
+    // TODO Update break codes to jump here.
+    (void)breakAddress;
+    return 0;
+}
+
 rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
     if (!count) return 0;
     rio_Err err = 0;
@@ -183,42 +228,38 @@ rio_Err rio_genPopAsArgs(rio_Gen* gen, size_t count) {
     return 0;
 }
 
+static uint16_t procBeginCodes[] = {
+    // push {r7, lr}
+    0xb580,
+    // sub sp, #[frame size in words], using #0 as placeholder.
+    // Max frame size of 127 words. TODO Validate this limit in parsing???
+    // That's up to 508 bytes, which is about 1/4th of rp2350 stack size.
+    0xb080,
+    // mov r7, sp
+    0x466f,
+    // Branch past return code.
+    0xe002,
+    // Add return logic early, so we already know where to branch to.
+    // This logic differs from gcc, which does `adds r7, #` then `mov sp, r7`.
+    // But that doesn't get the automatic x4 that we get here.
+    // This logic also reflects better the push frame instructions above.
+    // TODO Merge sequential writes into single array push?
+    // mov sp, r7
+    0x46bd,
+    // add sp, #[frame size in words], using #0 as a placeholder.
+    0xb000,
+    // pop {r7, pc}
+    0xbd80,
+};
+
 rio_Err rio_genProcBegin(
     rio_Gen* gen, uint8_t paramCount, uint8_t** returnAddress
 ) {
     rio_Err err = 0;
     // Store the address for branching to for return from the procedure.
-    // TODO If a big array push, we could calculate this based on an offset.
-    // And the return address is after the first 4 codes below, or 8 bytes.
+    // And the return address is after the first 4 codes, or 8 bytes.
     *returnAddress = gen->code->span.items + gen->code->used + 8;
-    // TODO Move this array to global space?
-    uint16_t codes[] = {
-        // push {r7, lr}
-        0xb580,
-        // sub sp, #[frame size in words]
-        // Use param count as placeholder for frame size for now.
-        // TODO Just say 0 frame size at start?
-        // Max frame size of 127 words. TODO Validate this limit in parsing???
-        // That's up to 508 bytes, which is about 1/4th of rp2350 stack size.
-        0xb080 | paramCount,
-        // mov r7, sp
-        0x466f,
-        // Branch past return code.
-        0xe002,
-        // Add return logic early, so we already know where to branch to.
-        // This logic differs from gcc, which does `adds r7, #` then `mov sp, r7`.
-        // But that doesn't get the automatic x4 that we get here.
-        // This logic also reflects better the push frame instructions above.
-        // TODO Merge sequential writes into single array push?
-        // mov sp, r7
-        0x46bd,
-        // add sp, #[frame size in words]
-        // TODO Also always just start with 0?
-        0xb000 | paramCount,
-        // pop {r7, pc}
-        0xbd80,
-    };
-    if ((err = pushCodes(gen->code, codes, 7))) return err;
+    if ((err = pushCodes(gen->code, procBeginCodes, 7))) return err;
     // Here's where we need to branch to on begin.
     // Push args here so all the start and end code above is fixed size.
     for (uint16_t param = 0; param < paramCount; param += 1) {
@@ -237,26 +278,14 @@ rio_Err rio_genProcEnd(rio_Gen* gen, size_t oldUsed, uint16_t frameSize) {
     if (frameSize > 127) return rio_Err_bad;
     // sub sp, #[frame size in words]
     gen->code->span.items[oldUsed + 2] = 0xb080 | frameSize;
+    // add sp, #[frame size in words]
+    gen->code->span.items[oldUsed + 10] = 0xb000 | frameSize;
     return 0;
 }
 
 rio_Err rio_genRet(rio_Gen* gen, uint8_t* returnAddress) {
-    rio_Err err = 0;
-    // TODO On wasm, this might ignore returnAddress entirely.
-    intptr_t source = (intptr_t)(gen->code->span.items + gen->code->used + 4);
-    intptr_t offsetBig = (intptr_t)returnAddress - source;
-    int32_t offset = (int32_t)offsetBig;
-    if (offset >= -2048 && offset <= 2046) {
-        // Small branch.
-        offset >>= 1;
-        uint32_t imm11 = offset & 0x7ff;
-        uint16_t branch = 0xe000 | imm11;
-        if ((err = pushCode(gen->code, branch))) return err;
-        return 0;
-    }
-    // b.w
-    if ((err = genBranchW(gen->code, 0x9000, offset))) return err;
-    return 0;
+    // TODO On wasm, ret might ignore returnAddress entirely.
+    return genBranch(gen, returnAddress);
 }
 
 rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {

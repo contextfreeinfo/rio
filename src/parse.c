@@ -278,6 +278,30 @@ rio_Err rio_parseDeclare(rio_Parser* parser) {
     }
 }
 
+rio_Err rio_parseFor(rio_Parser* parser) {
+    rio_Err err = 0;
+    if ((err = rio_parserAdvance(parser, false))) return err;
+    // TODO Remember branch address.
+    // TODO Start loop.
+    size_t oldUsed = parser->gen.code->used;
+    uint8_t* breakAddress = NULL;
+    (void)oldUsed;
+    if (parser->lexer.token.kind != rio_TokenKind_endLine) {
+        if ((err = rio_parseExpression(parser))) return err;
+        if ((err = rio_genLoopBeginWhile(
+            &parser->gen, &breakAddress
+        ))) return err;
+        // TODO Recognize and support for each loops.
+    } else {
+        // TODO Infinite loop?
+    }
+    if ((err = rio_parseBlock(parser))) return err;
+    if ((err = rio_genLoopEnd(&parser->gen, oldUsed, breakAddress))) return err;
+    // TODO Gen continue.
+    // TODO Finish loop for adjust break address.
+    return 0;
+}
+
 rio_Err rio_parseInt(rio_Parser* parser) {
     rio_Err err = 0;
     rio_Token* token = &parser->lexer.token;
@@ -338,6 +362,8 @@ rio_Err rio_parseAtom(rio_Parser* parser) {
     switch (parser->lexer.token.kind) {
     case rio_TokenKind_declare:
         return rio_parseDeclare(parser);
+    case rio_TokenKind_for:
+        return rio_parseFor(parser);
     case rio_TokenKind_int:
         return rio_parseInt(parser);
     case rio_TokenKind_name:
@@ -409,13 +435,18 @@ rio_Err rio_parseColon(rio_Parser* parser) {
         if ((err = rio_parserAdvance(parser, true))) return err;
         break;
     case rio_TokenKind_eq:
-        printf("---------==============> Var init!\n");
+        printf(
+            "---------==============> Var init! 0x%zx\n",
+            parser->gen.code->used
+        );
         if ((err = rio_parserAdvance(parser, true))) return err;
         if ((err = rio_parseCall(parser))) return err;
+        printf("Finish value at 0x%zx\n", parser->gen.code->used);
         // TODO If the value was a constant, can just put in the constant.
         // Maybe expand block and proc frame.
         rio_ProcInfo* procInfo = &parser->engine->procInfo;
         if (procInfo->returnAddress) {
+            // We're in a local space.
             parser->engine->localsDepth += 1;
             if (parser->engine->localsDepth > procInfo->maxLocalsDepth) {
                 procInfo->maxLocalsDepth = parser->engine->localsDepth;
@@ -431,6 +462,7 @@ rio_Err rio_parseColon(rio_Parser* parser) {
                 if ((err = rio_genPutLocal(&parser->gen, def.offsetVal))) {
                     return err;
                 }
+                printf("Finish put local at 0x%zx\n", parser->gen.code->used);
             }
         } else {
             // TODO Make space for it as a global.
