@@ -202,7 +202,13 @@ rio_Err rio_genLoopEnd(rio_Gen* gen, size_t start, uint8_t* breakAddress) {
     rio_Err err = 0;
     uint8_t* address = gen->code->span.items + start;
     if ((err = genBranch(gen, address))) return err;
-    // TODO Update break codes to jump here.
+    // Update break codes to jump here.
+    intptr_t dest = (intptr_t)(gen->code->span.items + gen->code->used);
+    intptr_t offsetBig = dest - (intptr_t)(breakAddress + 4);
+    int32_t offset = (int32_t)offsetBig;
+    rio_Buffer_Byte breakCode = *gen->code;
+    breakCode.used = breakAddress - breakCode.span.items;
+    if ((err = genBranchW(&breakCode, 0x9000, offset))) return err;
     (void)breakAddress;
     return 0;
 }
