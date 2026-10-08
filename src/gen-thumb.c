@@ -180,6 +180,28 @@ rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity) {
     return 0;
 }
 
+rio_Err rio_genIntOp(rio_Gen* gen, rio_TokenKind op) {
+    rio_Err err;
+    if ((err = checkPushR0(gen))) return err;
+    switch (op) {
+    case rio_TokenKind_lt:
+        // cmp r0, r1
+        if ((err = pushCode(gen->code, 0x4288))) return err;
+        // mov r0, #0
+        if ((err = pushCode(gen->code, 0x2000))) return err;
+        // it lt
+        // Nybble 3 here varies by compare op.
+        if ((err = pushCode(gen->code, 0xbfb8))) return err;
+        // mov(lt) r0, #1
+        if ((err = pushCode(gen->code, 0x2001))) return err;
+        break;
+    default:
+        // TODO Just crash instead?
+        return rio_Err_bad;
+    }
+    return 0;
+}
+
 static uint16_t loopWhileBeginCodes[] = {
     // cmp r0, #0
     // TODO Specialized codes to optimize top-level compares.
@@ -307,6 +329,7 @@ rio_Err rio_genPush(rio_Gen* gen, intptr_t value) {
 
 rio_Err rio_genGetLocal(rio_Gen* gen, uint8_t offset) {
     rio_Err err = 0;
+    // printf("---------------------> getLocal was %d, %x\n", gen->state, offset);
     if (offset > 127) return rio_Err_bad;
     if ((err = checkPushR0(gen))) return err;
     uint16_t load = 0x6838 | (offset << 6);
@@ -318,8 +341,10 @@ rio_Err rio_genGetLocal(rio_Gen* gen, uint8_t offset) {
 rio_Err rio_genPutLocal(rio_Gen* gen, uint8_t offset) {
     rio_Err err = 0;
     if (offset > 127) return rio_Err_bad;
-    uint16_t load = 0x6038 | (offset << 6);
-    if ((err = pushCode(gen->code, load))) return err;
+    uint16_t store = 0x6038 | (offset << 6);
+    if ((err = pushCode(gen->code, store))) return err;
+    // Pop arg.
+    gen->state = 0;
     return 0;
 }
 

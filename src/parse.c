@@ -281,11 +281,9 @@ rio_Err rio_parseDeclare(rio_Parser* parser) {
 rio_Err rio_parseFor(rio_Parser* parser) {
     rio_Err err = 0;
     if ((err = rio_parserAdvance(parser, false))) return err;
-    // TODO Remember branch address.
-    // TODO Start loop.
+    // if (rio_verbosity) printf("Advanced past for\n");
     size_t oldUsed = parser->gen.code->used;
     uint8_t* breakAddress = NULL;
-    (void)oldUsed;
     if (parser->lexer.token.kind != rio_TokenKind_endLine) {
         if ((err = rio_parseExpression(parser))) return err;
         if ((err = rio_genLoopBeginWhile(
@@ -307,6 +305,7 @@ rio_Err rio_parseInt(rio_Parser* parser) {
     rio_Token* token = &parser->lexer.token;
     // printf("--------------------------> int: %d\n", token->intValue);
     if ((err = rio_genPush(&parser->gen, token->intValue))) return err;
+    if ((err = rio_parserAdvance(parser, false))) return err;
     return 0;
 }
 
@@ -380,7 +379,7 @@ rio_Err rio_parseAtom(rio_Parser* parser) {
     }
 }
 
-rio_Err rio_parseCall(rio_Parser* parser) {
+static rio_Err parseCall(rio_Parser* parser) {
     rio_Err err = 0;
     // Flush push in case of nullary proc call that thinks existing state
     // applies to a call below.
@@ -419,17 +418,42 @@ rio_Err rio_parseCall(rio_Parser* parser) {
     return err;
 }
 
-rio_Err rio_parseColon(rio_Parser* parser) {
-    rio_Err err = rio_parseCall(parser);
-    if (err) return err;
+static rio_Err parseCompare(rio_Parser* parser) {
+    rio_Err err;
+    if ((err = parseCall(parser))) return err;
+    // if (rio_verbosity) printf("Find compare\n");
+    while (true) {
+        rio_TokenKind op = parser->lexer.token.kind;
+        switch (op) {
+        case rio_TokenKind_lt:
+            if ((err = rio_parserAdvance(parser, true))) return err;
+            if ((err = parseCall(parser))) return err;
+            // TODO Simplify this gen if we're in a branch condition already.
+            // TODO Defer gen op to allow gen dup for &&.
+            // TODO Gen different things for different types.
+            if ((err = rio_genPopAsArgs(&parser->gen, 2))) return err;
+            if ((err = rio_genIntOp(&parser->gen, op))) return err;
+        default:
+            // Not an op for us, at least.
+            goto done;
+        }
+    }
+    done:
+    return 0;
+}
+
+static rio_Err parseColon(rio_Parser* parser) {
+    rio_Err err;
+    // if (rio_verbosity) printf("Initial expression\n");
+    if ((err = parseCompare(parser))) return err;
     if (rio_verbosity) printf("Checking for colon\n");
-    if (parser->lexer.token.kind != rio_TokenKind_colon) return err;
+    if (parser->lexer.token.kind != rio_TokenKind_colon) return 0;
     if ((err = rio_parserAdvance(parser, true))) return err;
     // Got a colon, so remember name.
     rio_Node nameNode = parser->node;
     // Type or control flow.
     if (rio_verbosity) printf("Type or control flow\n");
-    if ((err = rio_parseCall(parser))) return err;
+    if ((err = parseCompare(parser))) return err;
     switch (parser->lexer.token.kind) {
     case rio_TokenKind_colon:
         if ((err = rio_parserAdvance(parser, true))) return err;
@@ -440,7 +464,7 @@ rio_Err rio_parseColon(rio_Parser* parser) {
             parser->gen.code->used
         );
         if ((err = rio_parserAdvance(parser, true))) return err;
-        if ((err = rio_parseCall(parser))) return err;
+        if ((err = parseCompare(parser))) return err;
         printf("Finish value at 0x%zx\n", parser->gen.code->used);
         // TODO If the value was a constant, can just put in the constant.
         // Maybe expand block and proc frame.
@@ -467,7 +491,7 @@ rio_Err rio_parseColon(rio_Parser* parser) {
         } else {
             // TODO Make space for it as a global.
         }
-        return err;
+        return 0;
     default:
         printf("---------==============> Var decl!\n");
         rio_Node* typeNode = &parser->node;
@@ -502,12 +526,12 @@ rio_Err rio_parseColon(rio_Parser* parser) {
                 if ((err = rio_pushDef(&parser->engine->defs, def))) return err;
             }
         }
-        return err;
+        return 0;
     }
     // Value.
     // TODO Eat newlines.
     if (rio_verbosity) printf("Value\n");
-    if ((err = rio_parseCall(parser))) return err;
+    if ((err = parseCompare(parser))) return err;
     // Apply value.
     if (nameNode.kind == rio_NodeKind_name) {
         rio_Byte* name;
@@ -554,7 +578,7 @@ rio_Err rio_parseExpression(rio_Parser* parser) {
     rio_Err err;
     if ((err = rio_checkStack())) return err;
     parser->node = (rio_Node){ .kind = rio_NodeKind_nil };
-    return rio_parseColon(parser);
+    return parseColon(parser);
 }
 
 rio_Err rio_parse(rio_Parser* parser) {
@@ -566,6 +590,7 @@ rio_Err rio_parse(rio_Parser* parser) {
     size_t oldStart = parser->lexer.token.start;
     while (!rio_parseExpression(parser)) {
         if ((err = rio_parserEnsureAdvance(parser, oldStart))) goto done;
+        if ((err = rio_eatEndLines(parser))) return err;
         oldStart = parser->lexer.token.start;
     }
     done:

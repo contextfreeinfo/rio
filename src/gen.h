@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine.h"
+#include "lex.h"
 #include "util.h"
 
 #define rio_maxArgs 3
@@ -32,7 +33,8 @@ typedef struct rio_Gen {
 // If target is null, get target from stack.
 rio_Err rio_genCall(rio_Gen* gen, intptr_t target, size_t arity);
 
-rio_Err rio_genIntAdd(rio_Gen* gen);
+// Maybe not all ops work here, but many do.
+rio_Err rio_genIntOp(rio_Gen* gen, rio_TokenKind op);
 
 // The breakAddress is the code address to jump to for breaking from the loop.
 rio_Err rio_genLoopBeginWhile(rio_Gen* gen, uint8_t** breakAddress);
