@@ -1,6 +1,10 @@
 # Log the message a given number of times.
 loopLog :: proc(message: String, times: Int)
   n := 0
+  # cmp r0, r1
+  # mov r0, #0
+  # it lt        0b1011_1111_1011_1100
+  # movlt r0, #1 0b001_00_000_00000001
   for n < times
     log(message)
     n += 1

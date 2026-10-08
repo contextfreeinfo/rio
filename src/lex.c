@@ -183,6 +183,29 @@ rio_Err rio_lexNumber(rio_Lexer* lexer, uint8_t start) {
     return err;
 }
 
+rio_Err rio_lexPlus(rio_Lexer* lexer, uint8_t start) {
+    rio_Err err;
+    rio_Token* token = &lexer->token;
+    token->kind = rio_TokenKind_plus;
+    size_t size = 0;
+    token->text[size++] = start;
+    uint8_t c;
+    err = rio_lexRead(lexer, &c);
+    if (err) goto token_done;
+    switch (c) {
+    case '=':
+        token->kind = rio_TokenKind_plusEq;
+        token->text[size++] = c;
+        break;
+    default:
+        lexer->pending = c;
+        break;
+    }
+    token_done:
+    err = rio_lexFinishToken(lexer, err, size);
+    return err;
+}
+
 rio_Err rio_lexSpace(rio_Lexer* lexer, uint8_t start) {
     rio_Err err;
     rio_Token* token = &lexer->token;
@@ -276,6 +299,11 @@ rio_Err rio_lexNext(rio_Lexer* lexer) {
     case '=':
         token->kind = rio_TokenKind_eq;
         break;
+    case '<':
+        token->kind = rio_TokenKind_lt;
+        break;
+    case '+':
+        return rio_lexPlus(lexer, c);
     case '(':
         token->kind = rio_TokenKind_roundOpen;
         break;
