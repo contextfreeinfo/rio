@@ -136,7 +136,7 @@ These are from `bench/`, comparing against Lua 5.5 on the same machine. Times ar
 | particles: 10k structs × 1000 steps | 0.27 | 0.39 | 0.93 |
 | sieve: 2M, ×10 | 0.61 | 0.59 | 1.44 |
 
-nib comes out 2.4–4.2× faster. The speed comes from static types (no tag checks), absolute-slot operands (static frames), constants preloaded in memory, compare-and-branch fusion, a dedicated `for` loop op, and destination retargeting that removes most moves.
+These are Windows numbers, where nib came out 2.4–4.2× faster. On Linux with a faster Lua build, particles measured 0.29s vs 0.59s, about 2×, so expect roughly 2–4× depending on the Lua build. The particles sums differ only because nib floats are f32: Lua with f32 rounding emulated gives the identical 43926.92. The speed comes from static types (no tag checks), absolute-slot operands (static frames), constants preloaded in memory, compare-and-branch fusion, a dedicated `for` loop op, and destination retargeting that removes most moves.
 
 ## Layout
 
