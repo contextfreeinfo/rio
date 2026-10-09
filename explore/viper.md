@@ -38,6 +38,52 @@ Some observations:
 screen /dev/ttyACM0 115200
 ```
 
+## rpi4
+
+```
+tom@raspberrypi:~/projects/rio/explore $ gcc -std=c2x -O0 count.c && time ./a.out
+
+real	0m5.518s
+user	0m5.492s
+sys	0m0.004s
+tom@raspberrypi:~/projects/rio/explore $ arm-linux-gnueabihf-gcc -mthumb -mcpu=cortex-a72 -mfloat-abi=hard -mfpu=neon-fp-armv8 -std=c2x -O0 count.c && time ./a.out
+
+real	0m5.510s
+user	0m5.497s
+sys	0m0.001s
+tom@raspberrypi:~/projects/rio/explore $ time lua count.lua 
+
+real	0m9.155s
+user	0m9.137s
+sys	0m0.004s
+tom@raspberrypi:~/projects/rio/explore $ time ../build-thumb/rio ../examples/count.rio 
+
+real	0m14.099s
+user	0m14.056s
+sys	0m0.000s
+tom@raspberrypi:~/projects/rio/explore $ time python count.py 
+
+real	0m49.336s
+user	0m49.102s
+sys	0m0.025s
+tom@raspberrypi:~/projects/rio/explore $ gcc --version
+gcc (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+tom@raspberrypi:~/projects/rio/explore $ arm-linux-gnueabihf-gcc --version
+arm-linux-gnueabihf-gcc (Debian 12.2.0-14) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+tom@raspberrypi:~/projects/rio/explore $ lua -v
+Lua 5.1.5  Copyright (C) 1994-2012 Lua.org, PUC-Rio
+tom@raspberrypi:~/projects/rio/explore $ python --version
+Python 3.14.3
+```
+
 ## rpi4 python 3.14
 
 ```py
@@ -168,6 +214,25 @@ screen /dev/ttyACM0 115200
 >>> t = time.ticks_us(); aspinf(10_000_000); time.ticks_diff(time.ticks_us(), t) / 1e6
 10000000
 0.533435
+```
+
+```
+main :: proc()
+  n := 0
+  for n < 10_000_000
+    n += 1
+  end
+end
+-----
+Key: 114 76800 20014C58
+runState 20042664 size 196608
+size 196608, data 65536, zero 98304, work 98304
+Max stack: 0x20081d47 592
+Time: 0.945885 <--<< rio
+Key: 115 76800 20014C58
+Time: 0.451912 <--<< unoptimized c
+-----
+And this might even be a higher clock rate than the other tests.
 ```
 
 ## rp2350 risc-v

@@ -1,0 +1,8 @@
+# Micro benchmark because we can.
+# Just make sure others don't optimize out the loop.
+main :: proc()
+  i := 0
+  for i < 1_000_000_000
+    i += 1
+  end
+end
