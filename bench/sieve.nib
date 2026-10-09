@@ -1,0 +1,23 @@
+M :: 2000000
+flags: blob[M]
+main :: proc()
+  t := clock()
+  count := 0
+  for rep in 0..<10
+    for i in 0..<M
+      flags[i] = 1
+    end
+    count = 0
+    for i in 2..<M
+      if flags[i] != 0
+        count += 1
+        j := i + i
+        for j < M
+          flags[j] = 0
+          j += i
+        end
+      end
+    end
+  end
+  log("sieve", count, clock() - t)
+end

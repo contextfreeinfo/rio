@@ -1,0 +1,11 @@
+add3 :: proc(a: i32, b: i32, c: i32) -> i32
+  return a + b + c
+end
+main :: proc()
+  t := clock()
+  s := 0
+  for i in 0..<30000000
+    s = add3(s, i, 1) & 0xffffff
+  end
+  log("calls", s, clock() - t)
+end

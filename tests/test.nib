@@ -1,0 +1,215 @@
+// nib test suite: prints "FAIL" on any failed check (ctest watches for it)
+
+fails := 0
+check :: proc(ok: bool, what: string)
+  if !ok
+    log("FAIL:", what)
+    fails += 1
+  end
+end
+
+// ---- arithmetic & inference
+a := 7
+b := 3
+check(a + b == 10, "add")
+check(a - b * 2 == 1, "precedence")
+check(a / b == 2 && a % b == 1, "div mod")
+check(-a == -7 && ~0 == -1 && !false, "unary")
+check((a << 2) == 28 && (-16 >> 2) == -4, "shifts")
+check((a & 3) == 3 && (a | 8) == 15 && (a ^ 1) == 6, "bitops")
+check(0x7fffffff + 1 == -2147483647 - 1, "wraparound")
+x := 1.5
+y : f32 = 2
+check(x * y == 3.0, "float mul")
+check(x + 1 == 2.5, "const coercion")
+check(f32(a) / 2 == 3.5, "itof")
+check(i32(3.9) == 3 && i32(-3.9) == -3, "ftoi")
+c := 10
+c += 5
+c -= 1
+c *= 2
+c /= 4
+check(c == 7, "compound assign")
+check(1 < 2 && 2 <= 2 && 3 > 2 && 3 >= 3 && 1 != 2, "compare")
+check(false || true, "or")
+check(!(true && false), "and")
+
+// ---- bool
+done := false
+check(!done && done == false && done != true, "bool basics")
+done = 3 > 2
+check(done, "bool from compare")
+flags: [4]bool
+flags[2] = true
+check(!flags[0] && flags[2], "bool array")
+check(i32(true) + i32(false) == 1 && bool(5) && !bool(0), "bool casts")
+nz := 7
+check(bool(nz) && i32(nz > 3) == 1, "bool casts runtime")
+both :: proc(a: bool, b: bool) -> bool
+  return a && b
+end
+check(both(true, nz == 7) && !both(true, false), "bool params/return")
+Flag :: struct
+  on: bool
+  n: i32
+end
+fl := Flag{true, 2}
+check(fl.on, "bool field")
+
+// ---- constants
+N :: 16
+HALF :: N / 2
+PI :: 3.14159
+GREETING :: "hello"
+check(HALF == 8, "const fold")
+check(GREETING == "hello" && len(GREETING) == 5, "string const")
+
+// ---- control flow
+sum := 0
+for i in 0..<10
+  sum += i
+end
+check(sum == 45, "for range")
+sum = 0
+for i in 1..=10
+  if i % 2 == 0
+    continue
+  end
+  sum += i
+end
+check(sum == 25, "for continue")
+n := 0
+for n < 100
+  n += 7
+end
+check(n == 105, "while")
+n = 0
+for
+  n += 1
+  if n == 5
+    break
+  end
+end
+check(n == 5, "loop break")
+grade := 75
+g := 0
+if grade >= 90
+  g = 1
+else if grade >= 70
+  g = 2
+else
+  g = 3
+end
+check(g == 2, "else if")
+
+// ---- structs & contiguous arrays
+Vec :: struct
+  x, y: f32
+end
+Particle :: struct
+  pos, vel: Vec
+  life: i32
+  tag: blob[4]
+end
+parts: [100]Particle
+for i in 0..<len(parts)
+  parts[i].pos = Vec{f32(i), 0}
+  parts[i].vel = Vec{1, 2}
+  parts[i].life = i
+end
+step :: proc(ps: []Particle, dt: f32)
+  for i in 0..<len(ps)
+    ps[i].pos.x += ps[i].vel.x * dt
+    ps[i].pos.y += ps[i].vel.y * dt
+    ps[i].life -= 1
+  end
+end
+step(parts, 0.5)
+check(parts[10].pos.x == 10.5 && parts[10].pos.y == 1 && parts[10].life == 9, "struct array update")
+step(parts[50:], 1)
+check(parts[49].life == 48 && parts[50].life == 48, "subslice")
+parts[3].tag[0] = 'Z'
+check(parts[3].tag[0] == 90 && len(parts[3].tag) == 4, "inline blob")
+v := Vec{3, 4}
+w := v
+w.x = 10
+check(v.x == 3 && w.x == 10, "struct copy semantics")
+partial := Particle{Vec{1, 1}}
+check(partial.life == 0 && partial.vel.y == 0, "partial literal zeroes")
+
+dot :: proc(a: Vec, b: Vec) -> f32
+  return a.x * b.x + a.y * b.y
+end
+add :: proc(a: Vec, b: Vec) -> Vec
+  return Vec{a.x + b.x, a.y + b.y}
+end
+check(dot(v, Vec{1, 1}) == 7, "struct params")
+r := add(v, add(v, v))
+check(r.x == 9 && r.y == 12, "struct return nested")
+check(add(v, v).y == 8, "field of call")
+
+// ---- slices, blobs, strings
+data: [8]i32
+for i in 0..<8
+  data[i] = i * i
+end
+total :: proc(s: []i32) -> i32
+  t := 0
+  for i in 0..<len(s)
+    t += s[i]
+  end
+  return t
+end
+check(total(data) == 140, "array to slice")
+check(total(data[2:4]) == 13, "slice range")
+check(total(data[:3]) == 5 && total(data[6:]) == 85, "open slices")
+mid := data[1:7]
+check(len(mid) == 6 && mid[0] == 1, "slice var")
+buf: blob[16]
+for i in 0..<len(buf)
+  buf[i] = 'a' + i
+end
+s := string(buf[0:5])
+check(s == "abcde", "blob to string")
+check(s[1] == 'b', "string index")
+check(buf[255 & 3] == 'd', "blob index")
+Named :: struct
+  name: string
+  id: i32
+end
+people: [3]Named
+people[0] = Named{"ann", 1}
+people[1].name = "bob"
+check(people[1].name == "bob" && len(people[0].name) == 3, "strings in global structs")
+
+// ---- math builtins
+check(abs(-3) == 3 && abs(-2.5) == 2.5, "abs")
+check(min(3, 4) == 3 && max(2.0, 5) == 5.0, "min max")
+check(sqrt(16) == 4 && floor(2.7) == 2 && ceil(2.1) == 3 && round(2.5) == 3, "math")
+check(abs(sin(0.0)) < 0.0001 && abs(cos(0.0) - 1) < 0.0001, "trig")
+check(pow(2, 10) == 1024 && abs(atan2(1, 1) - PI / 4) < 0.001, "math2")
+
+// ---- procs calling procs (no recursion)
+sq :: proc(v: i32) -> i32
+  return v * v
+end
+sumsq :: proc(a: i32, b: i32) -> i32
+  return sq(a) + sq(b)
+end
+check(sumsq(3, 4) == 25 && sq(sq(2)) == 16 && sumsq(sq(1), sumsq(1, 1)) == 5, "nested calls")
+counter := 0
+bump :: proc()
+  counter += 1
+end
+bump()
+bump()
+check(counter == 2, "globals from procs")
+
+// ---- ffi
+t0 := clock()
+check(t0 >= 0, "ffi clock")
+
+log("bool", true, false, "int", 42, "float", 1.25, "neg", -0.5, "big", 123456789.0, "str", GREETING)
+if fails == 0
+  log("all tests passed")
+end

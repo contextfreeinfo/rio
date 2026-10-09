@@ -1,0 +1,27 @@
+P :: struct
+  x, y, vx, vy: f32
+end
+N :: 10000
+ps: [N]P
+main :: proc()
+  for i in 0..<N
+    ps[i] = P{f32(i), 0, 1, f32(i % 7)}
+  end
+  t := clock()
+  for step in 0..<1000
+    for i in 0..<N
+      ps[i].vy -= 0.01
+      ps[i].x += ps[i].vx * 0.016
+      ps[i].y += ps[i].vy * 0.016
+      if ps[i].y < 0
+        ps[i].y = -ps[i].y
+        ps[i].vy = -ps[i].vy * 0.9
+      end
+    end
+  end
+  sum := 0.0
+  for i in 0..<N
+    sum += ps[i].y
+  end
+  log("particles", sum, clock() - t)
+end
