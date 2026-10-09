@@ -113,7 +113,10 @@ rio_Err rio_run(rio_RunArgs* args) {
     // Parse/process.
     err = rio_parse(&parser);
     rio_close(&file);
-    if (err) goto done;
+    if (err) {
+        fprintf(stderr, "Compiling failed!\n");
+        goto done;
+    }
     if (rio_verbosity) rio_reportParser(&parser);
     if ((err = rio_enableExec(codeBytes, rio_codeSize))) goto done;
     if (engine.main) {

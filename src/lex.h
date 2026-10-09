@@ -18,7 +18,7 @@ typedef enum rio_TokenKind {
     rio_TokenKind_int,
     rio_TokenKind_lt,
     rio_TokenKind_name,
-    // rio_TokenKind_nil,
+    rio_TokenKind_nil,
     rio_TokenKind_plus,
     rio_TokenKind_plusEq,
     rio_TokenKind_proc,

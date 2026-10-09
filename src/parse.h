@@ -20,14 +20,16 @@
 #define rio_namesSize 0x10000
 
 typedef enum rio_NodeKind {
-    rio_NodeKind_nil,
+    rio_NodeKind_none,
     rio_NodeKind_call,
     rio_NodeKind_name,
     rio_NodeKind_proc,
 } rio_NodeKind;
 
 typedef struct rio_Node_Name {
-    int32_t name;
+    bool isLocal : 1;
+    int8_t local : 7;
+    int16_t name;
 } rio_Node_Name;
 
 typedef struct rio_Node {
@@ -45,6 +47,8 @@ typedef struct rio_Parser {
     rio_Gen gen;
     rio_Lexer lexer;
     rio_Node node; // For returning values up the parse stack.
+    // Other state.
+    // TODO Move things here from engine?
 } rio_Parser;
 
 rio_Err rio_parse(rio_Parser* parser);

@@ -96,6 +96,7 @@ typedef struct rio_Engine {
     // At runtime, we only need to keep code and data/memory.
     // TODO If we do only indirect or relative calls, this could be movable.
     rio_Buffer_Byte code;
+    // TODO Which of these should be in rio_Parser?
     // TODO Globals can't go here. Is the space wasted?
     // TODO Shadow stack this counting down from the end of data?
     rio_Buffer_Def defs;

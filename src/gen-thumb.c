@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include "gen.h"
 
+#define rio_genThumbDump false
+// #define rio_genThumbDump true
+
 uint8_t* rio_addrForExec(uint8_t* addr) {
     // Offset by 1 for thumb.
     return addr + 1;
@@ -20,9 +23,6 @@ rio_Err rio_memPushPtr(rio_Buffer_Byte* buffer, size_t offset) {
     int32_t addr = (int32_t)((uint32_t)buffer->span.items + offset);
     return rio_pushBytesInt32Pre(buffer, addr);
 }
-
-#define rio_genThumbDump false
-// #define rio_genThumbDump true
 
 static rio_Err pushCode(rio_Buffer_Byte* buffer, uint16_t code) {
     #if rio_genThumbDump
@@ -187,16 +187,21 @@ rio_Err rio_genIntOp(rio_Gen* gen, rio_TokenKind op) {
     case rio_TokenKind_lt:
         // cmp r0, r1
         if ((err = pushCode(gen->code, 0x4288))) return err;
-        // mov r0, #0
-        if ((err = pushCode(gen->code, 0x2000))) return err;
-        // it lt
+        // ite lt - mask 0100 for (t)e100 - e is negated lsbit of 0xb -> 0b1011
         // Nybble 3 here varies by compare op.
-        if ((err = pushCode(gen->code, 0xbfb8))) return err;
+        if ((err = pushCode(gen->code, 0xbfb4))) return err;
         // mov(lt) r0, #1
         if ((err = pushCode(gen->code, 0x2001))) return err;
+        // mov(ge) r0, #0
+        if ((err = pushCode(gen->code, 0x2000))) return err;
+        break;
+    case rio_TokenKind_plus:
+        // add r0, r0, r1
+        if ((err = pushCode(gen->code, 0x1840))) return err;
         break;
     default:
         // TODO Just crash instead?
+        fprintf(stderr, "Unknown op: %d\n", op);
         return rio_Err_bad;
     }
     return 0;
