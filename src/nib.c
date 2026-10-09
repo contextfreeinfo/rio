@@ -16,13 +16,7 @@
 #define NORET
 #endif
 
-#define OPS(X) X(MOV) X(ADD) X(SUB) X(MUL) X(DIV) X(MOD) X(AND) X(OR) X(XOR) X(SHL) X(SHR) \
-  X(NEG) X(BNOT) X(NOT) X(FADD) X(FSUB) X(FMUL) X(FDIV) X(FNEG) \
-  X(EQ) X(NE) X(LT) X(LE) X(FEQ) X(FNE) X(FLT) X(FLE) X(SEQ) X(SNE) \
-  X(ITOF) X(FTOI) X(LDW) X(LDB) X(LEA) X(M1) X(M2) X(IABS) X(IMIN) X(IMAX) X(FMIN) X(FMAX) \
-  X(MOV2) X(LDW2) X(STW) X(STB) X(STW2) X(IDX) X(SLICE) X(COPY) X(ZERO) \
-  X(JMP) X(JZ) X(JNZ) X(JLT) X(JLE) X(JEQ) X(JNE) X(JFLT) X(JFLE) X(JFEQ) X(JFNE) X(FORI) \
-  X(CALL) X(RET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGE) X(HALT)
+#define OPS NIB_OPS
 #define OPENUM(o) OP_##o,
 enum { OPS(OPENUM) OP_DATA = 255 };
 #define OP_LASTDST OP_FMAX /* ops up to here write one scalar to slot a */
@@ -32,7 +26,7 @@ enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, T
   TK_OR, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
 enum { TY_VOID, TY_I32, TY_F32, TY_BYTE, TY_STR, TY_BLOB, TY_BOOL };
 enum { K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL };
-enum { S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI };
+enum { S_VAR = NIB_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI };
 enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN };
 enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
 enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR };
@@ -268,12 +262,25 @@ static int kslot2(Nib *vm, uint32_t a, uint32_t b) {
   R[vm->nk].u = a; R[vm->nk + 1].u = b; vm->nk += 2;
   return (int)vm->nk - 2;
 }
+/* constant holding a static address; marks those slots as address-taken (they can't become C locals in AOT) */
+static uint32_t expose(Nib *vm, uint32_t a, uint32_t n) {
+  uint32_t w;
+  for (w = a / 4; w < 0x10000 && w * 4 < a + n; w++) vm->exposed[w >> 3] |= (uint8_t)(1u << (w & 7));
+  return a;
+}
+static int kaddr(Nib *vm, uint32_t a, uint32_t n) { return kslot(vm, expose(vm, a, n)); }
+/* is the last instruction (+data word) an IDX writing temp d? */
+static NibIns *lastidx(Nib *vm, int d) {
+  NibIns *x = vm->pc >= 2 ? &vm->code[vm->pc - 2] : 0;
+  return x && d >= (int)vm->nact && vm->lastlabel != vm->pc && x->op == OP_IDX && x->a == d ? x : 0;
+}
 /* if the last instruction wrote temp `from`, make it write `to` instead */
 static int retarget(Nib *vm, int from, int to) {
   NibIns *i;
   if (!vm->pc || vm->lastlabel == vm->pc || from < (int)vm->nact) return 0;
   i = &vm->code[vm->pc - 1];
-  if (i->op > OP_LASTDST || i->a != from) return 0;
+  if (i->op == OP_DATA && vm->pc >= 2 && (i[-1].op == OP_LDX || i[-1].op == OP_LDXB)) i--;
+  if ((i->op > OP_LASTDST && i->op != OP_LDX && i->op != OP_LDXB) || i->a != from) return 0;
   i->a = (uint16_t)to;
   return 1;
 }
@@ -298,7 +305,11 @@ static int toslot(Nib *vm, Ex *e, int reuse) {
   if (e->k == EK_CONST) return kslot(vm, (uint32_t)e->a);
   if (e->k == EK_ST) {
     if (k != K_BYTE && e->a < 0x40000) return e->a >> 2;
-    e->k = EK_MEM; e->a = kslot(vm, (uint32_t)e->a); e->off = 0;
+    e->k = EK_MEM; e->a = kaddr(vm, (uint32_t)e->a, k == K_BYTE ? 1 : 4); e->off = 0;
+  }
+  if (reuse && lastidx(vm, e->a)) { /* fuse index + load */
+    vm->code[vm->pc - 2].op = k == K_BYTE ? OP_LDXB : OP_LDX; vm->code[vm->pc - 1].a = (uint16_t)e->off;
+    return e->a;
   }
   d = reuse && e->a >= (int)vm->nact ? e->a : alloc(vm, 1);
   emit(vm, k == K_BYTE ? OP_LDB : OP_LDW, d, e->a, e->off);
@@ -309,7 +320,7 @@ static int toslot2(Nib *vm, Ex *e) {
   NibType *ty; int d;
   needval(vm, e); ty = TY(e->t);
   if (ty->k == K_ARR) {
-    if (e->k == EK_ST) return kslot2(vm, (uint32_t)e->a, ty->n);
+    if (e->k == EK_ST) return kslot2(vm, expose(vm, (uint32_t)e->a, ty->size), ty->n);
     d = alloc(vm, 2);
     emit(vm, OP_LEA, d, e->a, e->off); emit(vm, OP_MOV, d + 1, kslot(vm, ty->n), 0);
     return d;
@@ -317,7 +328,7 @@ static int toslot2(Nib *vm, Ex *e) {
   if (ty->k != K_SLICE) fail(vm, "expected a slice");
   if (e->k == EK_ST) {
     if (e->a < 0x3FFFC) return e->a >> 2;
-    e->k = EK_MEM; e->a = kslot(vm, (uint32_t)e->a); e->off = 0;
+    e->k = EK_MEM; e->a = kaddr(vm, (uint32_t)e->a, 8); e->off = 0;
   }
   d = alloc(vm, 2);
   emit(vm, OP_LDW2, d, e->a, e->off);
@@ -327,7 +338,7 @@ static int toslot2(Nib *vm, Ex *e) {
 static int toaddr(Nib *vm, Ex *e) {
   int d;
   needval(vm, e);
-  if (e->k == EK_ST) return kslot(vm, (uint32_t)e->a);
+  if (e->k == EK_ST) return kaddr(vm, (uint32_t)e->a, TY(e->t)->size);
   if (!e->off) return e->a;
   d = alloc(vm, 1);
   emit(vm, OP_LEA, d, e->a, e->off);
@@ -345,7 +356,7 @@ static void store(Nib *vm, Ex *d, Ex *s) {
   if (k == K_SLICE) {
     ss = toslot2(vm, s);
     if (d->k == EK_ST && d->a < 0x3FFFC) { if (d->a >> 2 != ss) emit(vm, OP_MOV2, d->a >> 2, ss, 0); return; }
-    if (d->k == EK_ST) { d->k = EK_MEM; d->a = kslot(vm, (uint32_t)d->a); d->off = 0; }
+    if (d->k == EK_ST) { d->k = EK_MEM; d->a = kaddr(vm, (uint32_t)d->a, 8); d->off = 0; }
     emit(vm, OP_STW2, d->a, ss, d->off);
     return;
   }
@@ -357,20 +368,38 @@ static void store(Nib *vm, Ex *d, Ex *s) {
     return;
   }
   ss = toslot(vm, s, 1);
-  if (d->k == EK_ST) { d->k = EK_MEM; d->a = kslot(vm, (uint32_t)d->a); d->off = 0; }
+  if (d->k == EK_MEM && lastidx(vm, d->a)) { /* fuse index + store */
+    NibIns *x = &vm->code[vm->pc - 2];
+    x->op = k == K_BYTE ? OP_STXB : OP_STX; x->a = x->b; x->b = x->c; x->c = (uint16_t)ss;
+    vm->code[vm->pc - 1].a = (uint16_t)d->off;
+    return;
+  }
+  if (d->k == EK_ST) { d->k = EK_MEM; d->a = kaddr(vm, (uint32_t)d->a, k == K_BYTE ? 1 : 4); d->off = 0; }
   emit(vm, k == K_BYTE ? OP_STB : OP_STW, d->a, ss, d->off);
 }
 /* emit a jump taken when e is false; fuses a preceding compare into a compare-and-branch */
+static int invjump(NibIns *i) {
+  uint16_t t;
+  switch (i->op) {
+  case OP_JZ: i->op = OP_JNZ; break; case OP_JNZ: i->op = OP_JZ; break;
+  case OP_JEQ: i->op = OP_JNE; break; case OP_JNE: i->op = OP_JEQ; break;
+  case OP_JFEQ: i->op = OP_JFNE; break; case OP_JFNE: i->op = OP_JFEQ; break;
+  case OP_JFLT: i->op = OP_JFNLT; break; case OP_JFNLT: i->op = OP_JFLT; break;
+  case OP_JFLE: i->op = OP_JFNLE; break; case OP_JFNLE: i->op = OP_JFLE; break;
+  case OP_JLT: case OP_JLE: i->op = i->op == OP_JLT ? OP_JLE : OP_JLT; t = i->a; i->a = i->b; i->b = t; break;
+  default: return 0;
+  }
+  return 1;
+}
 static int condjump(Nib *vm, Ex *e) {
-  static const uint8_t inv[] = {OP_JNE, OP_JEQ, OP_JLE, OP_JLT, OP_JFNE, OP_JFEQ, OP_JFLE, OP_JFLT};
   needval(vm, e);
   if (e->t != TY_BOOL) fail(vm, "condition must be bool");
   if (e->k == EK_CONST) return e->a ? NONE : emit(vm, OP_JMP, 0, 0, NONE);
   if (e->k == EK_ST && e->a < 0x40000 && (e->a >> 2) >= (int)vm->nact && vm->pc && vm->lastlabel != vm->pc) {
     NibIns *i = &vm->code[vm->pc - 1];
     if (i->a == e->a >> 2 && i->op >= OP_EQ && i->op <= OP_FLE) {
-      int o = i->op - OP_EQ, b = i->b, c = i->c, sw = o == 2 || o == 3 || o == 6 || o == 7;
-      i->op = inv[o]; i->a = (uint16_t)(sw ? c : b); i->b = (uint16_t)(sw ? b : c); i->c = NONE;
+      i->op = (uint8_t)(OP_JEQ + (i->op - OP_EQ)); i->a = i->b; i->b = i->c; i->c = NONE;
+      invjump(i);
       return (int)vm->pc - 1;
     }
   }
@@ -687,8 +716,9 @@ static void finish_call(Nib *vm, Op *m) {
 static void finish_lit(Nib *vm, Op *m) {
   NibType *st = TY(m->b);
   if (m->n < st->nf) {
-    int off = vm->field[st->f0 + m->n].off;
-    emit(vm, OP_ZERO, kslot(vm, (uint32_t)(m->c + off)), (int)st->size - off, 0);
+    int off = vm->field[st->f0 + m->n].off, w;
+    if (st->size - off <= 64) for (w = off / 4; w < (int)st->size / 4; w++) emit(vm, OP_MOV, m->c / 4 + w, kslot(vm, 0), 0);
+    else emit(vm, OP_ZERO, kaddr(vm, (uint32_t)(m->c + off), st->size - off), (int)st->size - off, 0);
   }
   vm->fr = (uint32_t)(m->c / 4 + words(vm, m->b));
   vres(vm, mkex(EK_ST, m->b, m->c), m->fr0);
@@ -810,7 +840,7 @@ static NibBlk *bpush(Nib *vm, int k) {
   if (vm->nblk >= NIB_MAX_BLOCKS) fail(vm, "blocks nested too deep");
   b = &vm->blk[vm->nblk++];
   b->k = (uint8_t)k; b->nsym = (uint16_t)vm->nsym; b->nnames = (uint16_t)vm->nnames; b->nact = (uint16_t)vm->nact;
-  b->a = b->b = b->brk = b->cont = NONE;
+  b->a = b->b = b->brk = b->cont = b->cj = NONE;
   return b;
 }
 static void bscope(Nib *vm, NibBlk *b) { vm->nsym = b->nsym; vm->nnames = b->nnames; vm->nact = vm->fr = b->nact; }
@@ -836,7 +866,7 @@ static void proc_def(Nib *vm, const char *name, int nlen) {
   f->p0 = (uint16_t)vm->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0;
   addsym(vm, name, nlen, S_FN, 0, fi);
   b = bpush(vm, B_PROC); b->a = (uint16_t)skip; b->b = (uint16_t)fi;
-  vm->fr = vm->nact;
+  vm->fr = vm->nact; f->fs = (uint16_t)vm->nact;
   while (TK.t != ')') {
     const char *ns[16]; int nl[16], c = namelist(vm, ns, nl), t = parse_type(vm), j;
     NibType *ty = TY(t);
@@ -908,8 +938,8 @@ static void decl_var(Nib *vm) {
     addr = (uint32_t)alloc(vm, words(vm, t)) * 4; vm->nact = vm->fr;
   }
   if (has) { Ex d = mkex(EK_ST, t, (int32_t)addr); store(vm, &d, &e); }
-  else if ((k == K_I32 || k == K_F32 || k == K_BOOL) && addr < 0x40000) emit(vm, OP_MOV, (int)addr >> 2, kslot(vm, 0), 0);
-  else if (!(big && vm->curfn < 0 && !vm->nblk)) emit(vm, OP_ZERO, kslot(vm, addr), (int)(ty->size & 0xFFFF), (int)(ty->size >> 16));
+  else if (!big && addr < 0x40000 && ty->size <= 64) { int w; for (w = 0; w < words(vm, t); w++) emit(vm, OP_MOV, (int)(addr >> 2) + w, kslot(vm, 0), 0); }
+  else if (!(big && vm->curfn < 0 && !vm->nblk)) emit(vm, OP_ZERO, kaddr(vm, addr, ty->size), (int)(ty->size & 0xFFFF), (int)(ty->size >> 16));
   addsym(vm, ns, nn, S_VAR, t, (int32_t)addr);
 }
 static void stmt_expr(Nib *vm) {
@@ -977,7 +1007,7 @@ static void statement(Nib *vm) {
     } else {
       int top = here(vm);
       e = expr(vm); i = condjump(vm, &e);
-      b = bpush(vm, B_LOOP); b->a = (uint16_t)top; b->brk = (uint16_t)i;
+      b = bpush(vm, B_LOOP); b->a = (uint16_t)top; b->brk = b->cj = (uint16_t)i;
     }
     break;
   case TK_END:
@@ -986,11 +1016,19 @@ static void statement(Nib *vm) {
     next(vm);
     if (b->k == B_PROC) {
       emit(vm, OP_RET, 0, 0, 0); patch(vm, b->a, here(vm));
-      vm->func[b->b].done = 1; vm->curfn = -1;
+      vm->func[b->b].done = 1; vm->func[b->b].end = (uint16_t)vm->pc; vm->func[b->b].fe = (uint16_t)vm->hwm; vm->curfn = -1;
       vm->nsym = b->nsym; vm->nnames = b->nnames; vm->nact = vm->fr = vm->hwm; vm->nblk--;
       break;
     }
-    if (b->k == B_LOOP) { patch(vm, b->cont, b->a); emit(vm, OP_JMP, 0, 0, b->a); }
+    if (b->k == B_LOOP) {
+      int n, cj = b->cj, ok = cj != NONE && vm->code[cj].op != OP_JMP && cj - b->a <= 24;
+      for (n = b->a; ok && n < cj; n++) if (vm->code[n].op >= OP_JMP && vm->code[n].op <= OP_FORI) ok = 0;
+      if (ok) { /* rotate: repeat the condition at the bottom, inverted, jumping back into the body */
+        patch(vm, b->cont, here(vm));
+        for (n = b->a; n <= cj; n++) { NibIns c = vm->code[n]; emit(vm, c.op, c.a, c.b, c.c); vm->code[vm->pc - 1].x = c.x; }
+        invjump(&vm->code[vm->pc - 1]); vm->code[vm->pc - 1].c = (uint16_t)(cj + 1);
+      } else { patch(vm, b->cont, b->a); emit(vm, OP_JMP, 0, 0, b->a); }
+    }
     else if (b->k == B_FOR) { patch(vm, b->cont, here(vm)); emit(vm, OP_FORI, b->i, b->lim, b->a); }
     else patch(vm, b->b, here(vm));
     patch(vm, b->k == B_LOOP || b->k == B_FOR ? b->brk : b->a, here(vm));
@@ -1089,7 +1127,7 @@ static int rterr(Nib *vm, const char *m, uint32_t pc) {
   return -1;
 }
 static int run(Nib *vm, uint32_t pc) {
-  const NibIns *code = vm->code, *ip = code + pc, **cs = vm->cs;
+  const NibIns *code = vm->code, *ip = code + pc, *cs[NIB_MAX_FUNCS + 1];
   uint8_t *M = vm->mem; NibVal *R = (NibVal *)M; int sp = 0;
 #define A ip->a
 #define B ip->b
@@ -1154,11 +1192,31 @@ static int run(Nib *vm, uint32_t pc) {
   CASE(IMAX) I(A) = I(B) > I(C) ? I(B) : I(C); NEXT();
   CASE(FMIN) F(A) = F(B) < F(C) ? F(B) : F(C); NEXT();
   CASE(FMAX) F(A) = F(B) > F(C) ? F(B) : F(C); NEXT();
+  CASE(LDX) {
+    uint32_t i = U(C);
+    if (i >= U(B + 1)) return rterr(vm, "index out of bounds", (uint32_t)(ip - code));
+    R[A] = MV(U(B) + i * SZ(ip[1]) + ip[1].a); ip += 2; DISPATCH();
+  }
+  CASE(LDXB) {
+    uint32_t i = U(C);
+    if (i >= U(B + 1)) return rterr(vm, "index out of bounds", (uint32_t)(ip - code));
+    U(A) = M[U(B) + i * SZ(ip[1]) + ip[1].a]; ip += 2; DISPATCH();
+  }
   CASE(MOV2) { NibVal x = R[B], y = R[B + 1]; R[A] = x; R[A + 1] = y; NEXT(); }
   CASE(LDW2) { int32_t p = I(B) + C; NibVal x = MV(p), y = MV(p + 4); R[A] = x; R[A + 1] = y; NEXT(); }
   CASE(STW) MV(I(A) + C) = R[B]; NEXT();
   CASE(STB) M[I(A) + C] = (uint8_t)U(B); NEXT();
   CASE(STW2) { int32_t p = I(A) + C; MV(p) = R[B]; MV(p + 4) = R[B + 1]; NEXT(); }
+  CASE(STX) {
+    uint32_t i = U(B);
+    if (i >= U(A + 1)) return rterr(vm, "index out of bounds", (uint32_t)(ip - code));
+    MV(U(A) + i * SZ(ip[1]) + ip[1].a) = R[C]; ip += 2; DISPATCH();
+  }
+  CASE(STXB) {
+    uint32_t i = U(B);
+    if (i >= U(A + 1)) return rterr(vm, "index out of bounds", (uint32_t)(ip - code));
+    M[U(A) + i * SZ(ip[1]) + ip[1].a] = (uint8_t)U(C); ip += 2; DISPATCH();
+  }
   CASE(IDX) {
     uint32_t i = U(C);
     if (i >= U(B + 1)) return rterr(vm, "index out of bounds", (uint32_t)(ip - code));
@@ -1179,6 +1237,8 @@ static int run(Nib *vm, uint32_t pc) {
   CASE(JEQ) if (I(A) == I(B)) JUMP(); NEXT();
   CASE(JNE) if (I(A) != I(B)) JUMP(); NEXT();
   CASE(JFLT) if (F(A) < F(B)) JUMP(); NEXT();
+  CASE(JFNLT) if (!(F(A) < F(B))) JUMP(); NEXT();
+  CASE(JFNLE) if (!(F(A) <= F(B))) JUMP(); NEXT();
   CASE(JFLE) if (F(A) <= F(B)) JUMP(); NEXT();
   CASE(JFEQ) if (F(A) == F(B)) JUMP(); NEXT();
   CASE(JFNE) if (F(A) != F(B)) JUMP(); NEXT();

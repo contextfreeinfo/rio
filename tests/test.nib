@@ -205,6 +205,42 @@ bump()
 bump()
 check(counter == 2, "globals from procs")
 
+// ---- locals inside procs (static frames; AOT turns these into C locals)
+scale2 :: proc(v: Vec, k: f32) -> Vec
+  return Vec{v.x * k, v.y * k}
+end
+locals :: proc(n: i32) -> i32
+  arr: [8]i32
+  for i in 0..<len(arr)
+    arr[i] = i + n
+  end
+  view := arr[2:6]
+  t := total(view)
+  v := Vec{1, 2}
+  w := scale2(v, 3)
+  big: [32]Vec
+  big[31] = w
+  q := big[31]
+  b: blob[8]
+  b[7] = 9
+  j := 0
+  for j < 3
+    j += 1
+  end
+  part := Particle{v, w, 5}
+  part.tag[1] = 4
+  return t + i32(q.x + q.y) + b[7] + j + part.life + part.tag[1]
+end
+check(locals(10) == 54 + 9 + 9 + 3 + 5 + 4, "proc locals")
+check(locals(0) == 14 + 30, "proc locals again")
+nanv := sqrt(-1.0)
+check(!(nanv < 1) && !(nanv >= 1) && nanv != nanv, "nan compares")
+lt := 0
+if nanv < 1
+  lt = 1
+end
+check(lt == 0, "nan branch")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")

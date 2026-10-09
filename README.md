@@ -1,13 +1,14 @@
 # nib
 
-A tiny, statically typed, embeddable scripting language. It's written in C99, and the core is about 1,200 lines.
+A tiny, statically typed, embeddable scripting language. It's written in C99; the core is about 1,300 lines, and the optional C backend about 270 more.
 
 - Odin-like syntax, with blocks closed by `end`
 - Static types, inferred from the right-hand side
 - Types: `i32`, `f32`, `bool`, `string`, `blob`, structs, slices (`[]T`), and fixed arrays (`[N]T`, stored as contiguous structs)
 - **No dynamic allocation.** You give it one memory buffer and one code buffer; the compiler and VM never call `malloc`
 - **No recursion**, either in the implementation (the parser uses explicit stacks) or in the language. Because procs can't recurse, each proc gets one static frame, and bytecode operands are absolute slots, so there is no stack and no frame pointer
-- A register VM with typed opcodes and fused compare-and-branch. It uses computed goto on GCC/Clang and `switch` elsewhere
+- A register VM with typed opcodes, fused compare-and-branch, fused index+load/store, and bottom-tested loops. It uses computed goto on GCC/Clang and `switch` elsewhere
+- **Ahead-of-time compilation to C** (`nib -c out.c file.nib`) for scripts known at build time
 - No standard library: only math builtins and `log`. Anything else comes from the host through FFI
 
 ## Build
@@ -20,6 +21,8 @@ build/nib tests/test.nib        # (build/Release/nib.exe with MSVC)
 ```
 
 It needs only a C99 compiler and libm, and works on Linux, macOS and Windows.
+
+On Windows with Visual Studio, CMake uses the ClangCL toolset when it's installed (the "C++ Clang tools for Windows" component in the VS installer), because clang supports the faster computed-goto dispatch. Otherwise it falls back to MSVC with `switch` dispatch. `-T <toolset>` overrides this, `-DNIB_PREFER_CLANGCL=OFF` disables it, and an existing build directory keeps the toolset it was first configured with.
 
 ## Language tour
 
@@ -125,25 +128,40 @@ String or blob FFI arguments take two words (address, length); use `nib_ptr(vm, 
 
 You can change the limits (symbols, procs, constants and so on) with `-DNIB_MAX_...`. See `nib.h`.
 
+## Ahead-of-time compilation to C
+
+```
+nib -c game.c game.nib      # writes a standalone C program
+cc -O2 game.c -lm -o game   # any C99 compiler; MSVC works too
+```
+
+The output is one C file with no dependency on nib. Because nib has no recursion, each proc becomes a plain C function, and its frame slots become C locals unless their address is taken. Constants are written inline, and each bytecode op becomes one C statement. Globals, arrays and strings live in a static memory image identical to the VM's, so behavior is the same, including bounds checks and wrapping integer math. The C compiler then optimizes the result like any other C code.
+
+FFI functions are called as `void nib_ffi_<name>(NibVal *a)`. The CLI includes definitions for its own `clock` and `putc`; for other FFI functions, link your own definitions (and build with `-DNIB_NO_HOST_FFI` to drop the CLI's). ctest runs the full test suite both in the VM and compiled through C.
+
 ## Performance
 
-These are from `bench/`, comparing against Lua 5.5 on the same machine. Times are in seconds.
+These are from `bench/`, comparing against Lua 5.5 on the same Windows machine. Times are in seconds, best of 5.
 
-| benchmark | nib (clang, computed goto) | nib (MSVC, switch) | Lua 5.5 |
-|---|---|---|---|
-| loop: 100M int ops | 0.46 | 0.58 | 1.51 |
-| calls: 30M proc calls | 0.32 | 0.35 | 1.31 |
-| particles: 10k structs × 1000 steps | 0.27 | 0.39 | 0.93 |
-| sieve: 2M, ×10 | 0.61 | 0.59 | 1.44 |
+| benchmark | nib VM (clang, computed goto) | nib VM (MSVC, switch) | nib → C (clang -O2) | Lua 5.5 |
+|---|---|---|---|---|
+| loop: 100M int ops | 0.46 | 0.55–0.64 | 0.006 | 1.5–1.7 |
+| calls: 30M proc calls | 0.36 | 0.34 | 0.010 | 1.3–1.5 |
+| particles: 10k structs × 1000 steps | 0.28 | 0.39 | 0.014 | 0.9–1.0 |
+| sieve: 2M, ×10 | 0.48 | 0.49 | 0.14 | 1.4–1.6 |
 
-These are Windows numbers, where nib came out 2.4–4.2× faster. On Linux with a faster Lua build, particles measured 0.29s vs 0.59s, about 2×, so expect roughly 2–4× depending on the Lua build. The particles sums differ only because nib floats are f32: Lua with f32 rounding emulated gives the identical 43926.92. The speed comes from static types (no tag checks), absolute-slot operands (static frames), constants preloaded in memory, compare-and-branch fusion, a dedicated `for` loop op, and destination retargeting that removes most moves.
+- **VM:** about 3–4× faster than Lua here. On Linux with a faster Lua build, particles measured 0.29s vs 0.59s, about 2×, so expect roughly 2–4× depending on the Lua build. The speed comes from static types (no tag checks), absolute-slot operands (static frames), constants preloaded in memory, compare-and-branch fusion, fused index+load/store, bottom-tested `while` loops, a dedicated `for` loop op, and destination retargeting that removes most moves.
+- **AOT:** sieve is about 3.5× faster than the VM. The other three run in milliseconds because the C compiler can see through those loops entirely (inlining, vectorizing, or folding them), so treat them as an upper bound rather than typical.
+- The particles sums differ from Lua only because nib floats are f32: Lua with f32 rounding emulated gives the identical 43926.92.
+- `switch` dispatch on MSVC is sensitive to memory layout. I measured the same VM source at 0.34s or 0.65s on `calls` depending only on how unrelated code shifted the link layout. Keeping the call stack in `run()`'s locals fixed that case; expect some run-to-run variation on MSVC builds.
 
 ## Layout
 
 ```
 src/nib.h     public API (+ the fixed-size state struct)
 src/nib.c     lexer, single-pass compiler, VM
+src/aot.c     bytecode -> C translator (CLI only; not needed for embedding)
 src/main.c    CLI host (adds ffi: clock, putc)
-tests/        test suite (run by ctest)
+tests/        test suite (run by ctest, in the VM and compiled through C)
 bench/        nib vs lua benchmarks
 ```
