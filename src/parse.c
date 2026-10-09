@@ -637,7 +637,7 @@ static rio_Err parseColon(rio_Parser* parser) {
         }
     }
     // TODO Why do we fail without eating lines here?
-    return rio_eatEndLines(parser);
+    return 0;
 }
 
 rio_Err rio_parseExpression(rio_Parser* parser) {
@@ -655,10 +655,11 @@ rio_Err rio_parse(rio_Parser* parser) {
     // TODO Distinguish out of memory from end of file.
     size_t oldStart = parser->lexer.token.start;
     while (!(err = rio_parseExpression(parser))) {
-        if ((err = rio_parserEnsureAdvance(parser, oldStart))) return err;
-        if ((err = rio_eatEndLines(parser))) return err;
+        if ((err = rio_parserEnsureAdvance(parser, oldStart))) goto done;
+        if ((err = rio_eatEndLines(parser))) goto done;
         oldStart = parser->lexer.token.start;
     }
+    done:
     if (err == rio_Err_eof) {
         // Not really an error at this context.
         err = 0;
