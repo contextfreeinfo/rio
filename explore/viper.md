@@ -66,6 +66,11 @@ tom@raspberrypi:~/projects/rio/explore $ time python count.py
 real	0m49.336s
 user	0m49.102s
 sys	0m0.025s
+tom@raspberrypi:~/projects/rio/explore $ time python count2.py
+
+real	1m30.961s
+user	1m30.615s
+sys	0m0.013s
 tom@raspberrypi:~/projects/rio/explore $ gcc --version
 gcc (Debian 12.2.0-14+deb12u1) 12.2.0
 Copyright (C) 2022 Free Software Foundation, Inc.
