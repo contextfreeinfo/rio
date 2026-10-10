@@ -787,6 +787,37 @@ blocal :: proc() -> Int
 end
 check(blocal() == 22, "builders over locals and lists inside a proc")
 
+// ---- procs that never run at the same time share frame memory; a caller's locals survive its calls
+shA :: proc(x: Int) -> Int
+  t := x * 3
+  return t + 1
+end
+shB :: proc(x: Int) -> Int            // never runs alongside shA: may use the same memory
+  u := x + 100
+  w := u * 2
+  return w - u
+end
+shC :: proc(x: Int) -> Int
+  a := shA(x)
+  b := shB(x)                         // a lives in shC's own frame, above both
+  c := shA(b)
+  return a * 1000000 + b * 1000 + c
+end
+check(shC(2) == 7 * 1000000 + 102 * 1000 + 307, "shared frames keep each caller's locals")
+shV :: proc(v: [2]Float) -> [2]Float
+  t := v * 2.0
+  return t.yx
+end
+shW :: proc() -> Float
+  p: [2]Float
+  p.x = 1
+  p.y = 2
+  q := shV(p)
+  r := shV(q)
+  return p.x + q.x * 10 + r.x * 100
+end
+check(shW() == 1 + 40 + 400, "array values through shared frames")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")

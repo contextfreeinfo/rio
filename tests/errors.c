@@ -99,6 +99,7 @@ static const Case cases[] = {
      through s would forge t's address and length */
   {"s: []Int\nif true\n  a: [2]Int\n  s = a[:]\nend\nif true\n  t: []Int = s\n  s[1] = 2000000000\n  s[0] = 4\n  log(t[100000000])\nend\n", 0, 0, 0, RIO_ERUNTIME, 10, 0, 0, "index out of bounds"},
   {"keep :: proc(v: []Int) -> []Int\n  return v\nend\nf :: proc() -> Int\n  s: []Int\n  if true\n    a: [2]Int\n    s = keep(a[:])\n  end\n  if true\n    t: []Int = s\n    s[1] = 2000000000\n    return t[100000000]\n  end\n  return 0\nend\nlog(f())\n", 0, 0, 0, RIO_ERUNTIME, 13, 0, 0, "index out of bounds"},
+  {"main :: proc()\n  again()\nend\n", 0, 0, 0, RIO_ERUNTIME, 2, 0, 0, "rio is already running"},
   {"main :: proc()\n  log(\"x\")\n  boom()\nend\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "the host said no"},
   /* errors with no source position */
   {"N :: 10\n", "N", "2.5", 0, RIO_ECOMPILE, 0, 0, 0, "-D N: value doesn't fit Int"},
@@ -109,6 +110,15 @@ static const Case cases[] = {
 };
 
 static void boom(Rio *v, RioVal *a) { (void)a; rio_trap(v, "the host said no"); }
+/* calls back into rio, which is refused: procs that never run at the same time share memory */
+static void again(Rio *v, RioVal *a) {
+  char m[128]; const char *e; size_t i;
+  (void)a;
+  if (rio_call(v, rio_func(v, "main")) == -1) {
+    for (e = rio_error(v), i = 0; e[i] && i < sizeof m - 1; i++) m[i] = e[i];
+    m[i] = 0; rio_trap(v, m);
+  }
+}
 
 int main(void) {
   int i, fails = 0, n = (int)(sizeof cases / sizeof cases[0]);
@@ -116,6 +126,7 @@ int main(void) {
     const Case *c = &cases[i]; RioError e; int f;
     rio_init(&vm, mem, c->memsize ? c->memsize : sizeof mem, code, 4096);
     rio_ffi(&vm, "boom", "", boom);
+    rio_ffi(&vm, "again", "", again);
     if (c->def) rio_define(&vm, c->def, c->defval);
     if (!rio_compile(&vm, c->src, (uint32_t)strlen(c->src)) && !rio_run(&vm)) {
       if ((f = rio_func(&vm, "main")) >= 0) rio_call(&vm, f);

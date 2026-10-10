@@ -322,34 +322,29 @@ static uint32_t halloc(Rio *vm, uint32_t n) {
   return vm->hi -= n;
 }
 #define KFIX(i) (vm->c->kfix[(i) >> 3] & (1u << ((i) & 7)))
-static int kslot(Rio *vm, uint32_t v) {
-  RioVal *R = (RioVal *)vm->mem; uint32_t i;
-  for (i = 1; i < vm->nk; i++) if (R[i].u == v && !KFIX(i)) return (int)i;
-  if (vm->nk >= vm->kcap) fail(vm, "too many constants");
-  R[vm->nk].u = v;
-  return (int)vm->nk++;
+#define KADR(i) (vm->c->kadr[(i) >> 3] & (1u << ((i) & 7)))
+/* n consecutive constants; bit j of adr: word j is a slot address (those never match plain numbers) */
+static int kfind(Rio *vm, const uint32_t *v, int n, int adr) {
+  RioVal *R = (RioVal *)vm->mem; uint32_t i; int j;
+  for (i = 1; i + (uint32_t)n <= vm->nk; i++) {
+    for (j = 0; j < n; j++) if (R[i + j].u != v[j] || KFIX(i + j) || !KADR(i + j) != !(adr >> j & 1)) break;
+    if (j == n) return (int)i;
+  }
+  if (vm->nk + (uint32_t)n > vm->kcap) fail(vm, "too many constants");
+  for (j = 0; j < n; j++, vm->nk++) {
+    R[vm->nk].u = v[j];
+    if (adr >> j & 1) vm->c->kadr[vm->nk >> 3] |= (uint8_t)(1u << (vm->nk & 7));
+  }
+  return (int)vm->nk - n;
 }
-static int kslot3(Rio *vm, uint32_t a, uint32_t b, uint32_t c) {
-  RioVal *R = (RioVal *)vm->mem; uint32_t i;
-  for (i = 1; i + 2 < vm->nk; i++) if (R[i].u == a && R[i + 1].u == b && R[i + 2].u == c && !KFIX(i)) return (int)i;
-  if (vm->nk + 3 > vm->kcap) fail(vm, "too many constants");
-  R[vm->nk].u = a; R[vm->nk + 1].u = b; R[vm->nk + 2].u = c; vm->nk += 3;
-  return (int)vm->nk - 3;
-}
-static int kslot2(Rio *vm, uint32_t a, uint32_t b) {
-  RioVal *R = (RioVal *)vm->mem; uint32_t i;
-  for (i = 1; i + 1 < vm->nk; i++) if (R[i].u == a && R[i + 1].u == b && !KFIX(i)) return (int)i;
-  if (vm->nk + 2 > vm->kcap) fail(vm, "too many constants");
-  R[vm->nk].u = a; R[vm->nk + 1].u = b; vm->nk += 2;
-  return (int)vm->nk - 2;
-}
+static int kslot(Rio *vm, uint32_t v) { return kfind(vm, &v, 1, 0); }
 /* constant holding a static address; marks those slots as address-taken (they can't become C locals in AOT) */
 static uint32_t expose(Rio *vm, uint32_t a, uint32_t n) {
   uint32_t w;
   for (w = a / 4; w < vm->c->lim.slots && w * 4 < a + n; w++) vm->c->exposed[w >> 3] |= (uint8_t)(1u << (w & 7));
   return a;
 }
-static int kaddr(Rio *vm, uint32_t a, uint32_t n) { return kslot(vm, expose(vm, a, n)); }
+static int kaddr(Rio *vm, uint32_t a, uint32_t n) { uint32_t v = expose(vm, a, n); return kfind(vm, &v, 1, 1); }
 /* is the last instruction (+data word) an IDX writing temp d? */
 static RioIns *lastidx(Rio *vm, int d) {
   RioIns *x = vm->pc >= 2 ? &vm->code[vm->pc - 2] : 0;
@@ -410,7 +405,7 @@ static int toslot2(Rio *vm, Ex *e) {
   RioType *ty; int d;
   needval(vm, e); ty = TY(e->t);
   if (ty->k == K_ARR) {
-    if (e->k == EK_ST) return kslot2(vm, expose(vm, (uint32_t)e->a, ty->size), ty->n);
+    if (e->k == EK_ST) { uint32_t v[2]; v[0] = expose(vm, (uint32_t)e->a, ty->size); v[1] = ty->n; return kfind(vm, v, 2, 1); }
     d = alloc(vm, 2);
     emit(vm, OP_LEA, d, e->a, e->off); emit(vm, OP_MOV, d + 1, kslot(vm, ty->n), 0);
     return d;
@@ -429,7 +424,7 @@ static int toslot3(Rio *vm, Ex *e) {
   RioType *ty; int d;
   needval(vm, e); ty = TY(e->t);
   if (ty->k == K_LIST) { /* the length word comes first, then the elements */
-    if (e->k == EK_ST) { uint32_t a = expose(vm, (uint32_t)e->a, ty->size); return kslot3(vm, a, a + 4, ty->n); }
+    if (e->k == EK_ST) { uint32_t v[3]; v[0] = expose(vm, (uint32_t)e->a, ty->size); v[1] = v[0] + 4; v[2] = ty->n; return kfind(vm, v, 3, 3); }
     d = alloc(vm, 3);
     emit(vm, OP_LEA, d, e->a, e->off); emit(vm, OP_LEA, d + 1, e->a, e->off + 4); emit(vm, OP_MOV, d + 2, kslot(vm, ty->n), 0);
     return d;
@@ -459,7 +454,13 @@ static void store(Rio *vm, Ex *d, Ex *s) {
   RioType *ty = TY(d->t); int k = ty->k, ss;
   coerce(vm, s, d->t);
   if (k == K_STRUCT || k == K_ARR || k == K_LIST) {
-    int sa = toaddr(vm, s), da = toaddr(vm, d);
+    int sa, da;
+    if (d->k == EK_ST && s->k == EK_ST && d->a < 0x40000 && s->a < 0x40000 && !((d->a | s->a | (int32_t)ty->size) & 3) && ty->size <= SMALLW * 4) {
+      /* both in slots: copy the words, without taking either address */
+      if (d->a != s->a) emit(vm, OP_MOVN, d->a >> 2, s->a >> 2, (int)(ty->size / 4));
+      return;
+    }
+    sa = toaddr(vm, s); da = toaddr(vm, d);
     if (ty->size > 0xFFFF) fail(vm, "value too large to copy");
     emit(vm, OP_COPY, da, sa, (int)ty->size);
     return;
@@ -1337,11 +1338,13 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   next(vm); expect(vm, '(', "'(' expected");
   skip = emit(vm, OP_JMP, 0, 0, NONE);
   fi = vm->nfunc++; f = &vm->c->func[fi];
-  f->p0 = (uint16_t)vm->c->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0; f->big = 0;
+  f->p0 = (uint16_t)vm->c->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0; f->big = 0; f->shared = 0;
   addsym(vm, name, nlen, recv < 0 ? S_FN : S_METH, recv < 0 ? 0 : recv, fi);
   f->selfref = (uint8_t)(recv >= 0 && TY(recv)->k == K_STRUCT);
   b = bpush(vm, B_PROC); b->a = (uint16_t)skip; b->b = (uint16_t)fi;
-  vm->c->fr = vm->c->nact; f->fs = (uint16_t)vm->c->nact;
+  /* a frame starts above every slot used so far, so each slot has one owner (top-level code or one
+     proc): frame sharing moves a proc's slots, and must not move a dead top-level block's with them */
+  vm->c->nact = vm->c->fr = vm->c->hwm; f->fs = (uint16_t)vm->c->nact;
   if (recv >= 0) { /* self: a struct receiver by address, other receivers as a copy */
     int addr = alloc(vm, f->selfref ? 1 : words(vm, recv)) * 4;
     if (vm->c->nparam >= (int)vm->c->lim.params) fail(vm, "too many parameters");
@@ -1899,12 +1902,14 @@ static uint32_t layout(RioC *c, const RioLimits *l) {
   uint32_t vs = carve(&at, l->expr, sizeof(RioEx), 4), os = carve(&at, l->expr, sizeof(RioOp), 8);
   uint32_t mods = carve(&at, l->modules, sizeof(RioMod), 2);
   uint32_t names = carve(&at, l->names, 1, 1), exposed = carve(&at, (l->slots + 7) / 8, 1, 1), kfix = carve(&at, (l->consts + 7) / 8, 1, 1);
+  uint32_t kadr = carve(&at, (l->consts + 7) / 8, 1, 1), smap = carve(&at, l->slots, 2, 2);
   if (c) {
     c->sym = (RioSym *)(void *)(b + sym); c->type = (RioType *)(void *)(b + type); c->field = (RioField *)(void *)(b + field);
     c->func = (RioCFunc *)(void *)(b + func); c->param = (RioParam *)(void *)(b + param); c->blk = (RioBlk *)(void *)(b + blk);
     c->vs = (RioEx *)(void *)(b + vs); c->os = (RioOp *)(void *)(b + os); c->names = (char *)b + names;
-    c->exposed = b + exposed; c->kfix = b + kfix; c->mods = (RioMod *)(void *)(b + mods);
-    memset(c->exposed, 0, kfix + (l->consts + 7) / 8 - exposed);
+    c->exposed = b + exposed; c->kfix = b + kfix; c->kadr = b + kadr; c->smap = (uint16_t *)(void *)(b + smap);
+    c->mods = (RioMod *)(void *)(b + mods);
+    memset(c->exposed, 0, kadr + (l->consts + 7) / 8 - exposed);
   }
   return (at + 15) & ~15u;
 }
@@ -1962,10 +1967,89 @@ static void rtfunc(Rio *vm, RioFunc *rf, int k) {
   rf->pc = f->pc; rf->end = f->end; rf->fs = f->fs; rf->fe = f->fe; rf->pend = (uint16_t)(f->fs + pw);
   rf->ret = (uint16_t)(f->retaddr / 4); rf->retw = (uint8_t)(f->ret ? words(vm, f->ret) : 0);
 }
+/* which operands of an instruction are slots: bit 1 a, 2 b, 4 c (unused ones are 0, which never moves) */
+static int slotops(int op) {
+  switch (op) {
+  case OP_LDW: case OP_LDB: case OP_LEA: case OP_LDW2: case OP_STW: case OP_STB: case OP_STW2: case OP_COPY: case OP_MOVN: return 3;
+  case OP_ZERO: case OP_FFI: return 1;
+  case OP_CALL: return 0;
+  default: return op >= OP_JMP && op <= OP_FORI ? 3 : 7;
+  }
+}
+/* the proc whose code starts at pc: one defined before proc `before` */
+static int funcat(Rio *vm, int pc, int before) {
+  int lo = 0, hi = before - 1, m;
+  while (lo <= hi) { /* procs are compiled in order, so their code is too */
+    m = (lo + hi) / 2;
+    if (vm->c->func[m].pc == pc) return m;
+    if (vm->c->func[m].pc < pc) lo = m + 1; else hi = m - 1;
+  }
+  for (m = 0; m < before && vm->c->func[m].pc != pc; m++) {}
+  if (m == before) fail(vm, "internal error: call to an unknown proc");
+  return m;
+}
+/* Procs that are never running at the same time share memory. No recursion means the call graph is
+   known and has no cycles, and callees are compiled first. A proc's frame moves into the shared area,
+   just above the shared frames of everything it can call, unless a slot of it ever has its address
+   taken: those must keep their memory for good (a view of them may live on). The slots that stay are
+   packed together; every operand, address constant and table that names a slot is renumbered.
+   Returns the longest chain of calls, which sizes the return stack. */
+static uint32_t shareframes(Rio *vm) {
+  RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; uint16_t *map = c->smap;
+  uint32_t lo = vm->kcap, hi = c->hwm, s, keep, top = 0, depth = 0, i; int k, j, pc;
+  for (k = 0; k < vm->nfunc; k++) {
+    RioCFunc *f = &c->func[k]; uint32_t ob = 0, dep = 0;
+    for (pc = f->pc; pc < f->end; pc++) {
+      if (vm->code[pc].op != OP_CALL) continue;
+      j = funcat(vm, vm->code[pc].c, k);
+      if (c->func[j].oe > ob) ob = c->func[j].oe;
+      if (c->func[j].dep > dep) dep = c->func[j].dep;
+    }
+    f->shared = !vm->repl && f->fe > f->fs;
+    for (s = f->fs; f->shared && s < f->fe; s++) if (c->exposed[s >> 3] & (1u << (s & 7))) f->shared = 0;
+    f->ob = (uint16_t)ob; f->oe = (uint16_t)(ob + (f->shared ? f->fe - f->fs : 0)); f->dep = (uint16_t)(dep + 1);
+    if (f->oe > top) top = f->oe;
+    if (f->dep > depth) depth = f->dep;
+  }
+  if (!top) return depth;
+  for (s = lo; s < hi; s++) map[s] = 0;
+  for (k = 0; k < vm->nfunc; k++) for (s = c->func[k].fs; c->func[k].shared && s < c->func[k].fe; s++) map[s] = 1;
+  for (s = lo, keep = lo; s < hi; s++) if (!map[s]) map[s] = (uint16_t)keep++;
+  for (k = 0; k < vm->nfunc; k++) {
+    RioCFunc *f = &c->func[k];
+    for (s = f->fs; f->shared && s < f->fe; s++) map[s] = (uint16_t)(keep + f->ob + (s - f->fs));
+  }
+#define MAPS(x) ((uint32_t)(x) >= lo && (uint32_t)(x) < hi ? map[x] : (x))
+#define MAPA(a) ((uint32_t)(a) / 4 >= lo && (uint32_t)(a) / 4 < hi ? (uint32_t)map[(a) / 4] * 4 + ((a) & 3) : (uint32_t)(a))
+  for (pc = 0; pc < (int)vm->pc; pc++) {
+    RioIns *x = &vm->code[pc]; int m;
+    if (x->op == OP_DATA) { if (pc && vm->code[pc - 1].op == OP_SLICE) x->a = (uint16_t)MAPS(x->a); continue; }
+    m = slotops(x->op);
+    if (m & 1) x->a = (uint16_t)MAPS(x->a);
+    if (m & 2) x->b = (uint16_t)MAPS(x->b);
+    if (m & 4) x->c = (uint16_t)MAPS(x->c);
+  }
+  for (i = 1; i < vm->nk; i++) if (KADR(i)) R[i].u = MAPA(R[i].u);
+  for (s = lo; s < hi; s++) { /* address-taken marks follow their slots, which only move down */
+    int b = c->exposed[s >> 3] >> (s & 7) & 1;
+    c->exposed[s >> 3] &= (uint8_t)~(1u << (s & 7));
+    if (b && map[s] < keep) c->exposed[map[s] >> 3] |= (uint8_t)(1u << (map[s] & 7));
+  }
+  for (k = 0; k < c->nsym; k++) if (c->sym[k].k == S_VAR) c->sym[k].v = (int32_t)MAPA(c->sym[k].v);
+  for (k = 0; k < vm->nfunc; k++) {
+    RioCFunc *f = &c->func[k];
+    if (f->fe > f->fs) { uint32_t n = f->fe - f->fs; f->fs = map[f->fs]; f->fe = (uint16_t)(f->fs + n); }
+    if (f->retaddr) f->retaddr = MAPA(f->retaddr);
+  }
+#undef MAPS
+#undef MAPA
+  c->hwm = c->nact = c->fr = keep + top;
+  return depth;
+}
 static void finalize(Rio *vm) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; RioExport *x;
-  uint32_t i, n = 0, p, ex, lo, fo, sz, base, first = vm->kcap * 4; int k;
-  c->fr = c->hwm; vm->csaddr = (uint32_t)alloc(vm, vm->nfunc + 1) * 4; /* return stack: depth <= #procs */
+  uint32_t i, n = 0, p, ex, lo, fo, sz, base, first = vm->kcap * 4, depth = shareframes(vm); int k;
+  c->fr = c->hwm; vm->csaddr = (uint32_t)alloc(vm, depth + 1) * 4; /* return stack: the longest chain of calls */
   uint32_t mo, mf, nm = (uint32_t)(c->nmod - 2);
   p = c->pool;
   for (k = 0; k < c->nsym; k++) {
@@ -2057,6 +2141,14 @@ int rio_compile_scratch(Rio *vm, const char *src, uint32_t len, void *scratch, u
   return rio_compile_ex(vm, src, len, scratch, size, 0);
 }
 static int run(Rio *vm, uint32_t pc);
+/* frames are shared by procs that can't run at the same time: starting rio again from inside an FFI
+   function would break that, so it isn't allowed */
+static int start(Rio *vm, uint32_t pc) {
+  int r;
+  if (vm->running) { seterr(vm, RIO_ERUNTIME, 0, 0, 0, "rio is already running (called from an FFI function?)"); return -1; }
+  vm->running = 1; r = run(vm, pc); vm->running = 0;
+  return r;
+}
 /* REPL: after each piece compiles, its strings move into mem (below the arrays) and its procs
    get runtime entries; the compiler state stays in scratch */
 static void commit(Rio *vm, uint32_t k0, int f0) {
@@ -2115,7 +2207,7 @@ int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
   emit(vm, OP_HALT, 0, 0, 0);
   commit(vm, nk0, nfunc0);
   vm->brk = 0;
-  return run(vm, pc0) ? -1 : 0;
+  return start(vm, pc0) ? -1 : 0;
 }
 void rio_interrupt(Rio *vm) { vm->brk = 1; }
 const char *rio_error(Rio *vm) { return vm->err; }
@@ -2288,6 +2380,7 @@ static int run(Rio *vm, uint32_t pc) {
     I(A) = I(B) + lo * (int32_t)SZ(ip[1]); I(A + 1) = hi - lo; ip += 2; DISPATCH();
   }
   CASE(COPY) memmove(M + I(A), M + I(B), C); NEXT();
+  CASE(MOVN) memmove(R + A, R + B, C * sizeof(RioVal)); NEXT();
   CASE(ZERO) memset(M + I(A), 0, SZ(*ip)); NEXT();
 /* n numbers d[i] = l[i] op r[i]; x: 16 l is a scalar, 32 r is a scalar (the value itself, read once:
    it steps by 0), else l and r are addresses */
@@ -2382,5 +2475,5 @@ stop:
   vm->brk = 0;
   return rterr(vm, "interrupted", (uint32_t)(ip - code));
 }
-int rio_run(Rio *vm) { vm->ekind = RIO_ENONE; vm->brk = 0; return vm->ok ? run(vm, 0) : -1; }
-int rio_call(Rio *vm, int fn) { vm->ekind = RIO_ENONE; vm->brk = 0; return vm->ok && fn >= 0 && fn < vm->nfunc ? run(vm, vm->func[fn].pc) : -1; }
+int rio_run(Rio *vm) { if (!vm->running) vm->ekind = RIO_ENONE; vm->brk = 0; return vm->ok ? start(vm, 0) : -1; }
+int rio_call(Rio *vm, int fn) { if (!vm->running) vm->ekind = RIO_ENONE; vm->brk = 0; return vm->ok && fn >= 0 && fn < vm->nfunc ? start(vm, vm->func[fn].pc) : -1; }

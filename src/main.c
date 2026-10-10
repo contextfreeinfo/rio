@@ -135,53 +135,51 @@ static const char *procname(int fi) {
   snprintf(b, sizeof b, "proc %d", fi);
   return b;
 }
-static int frameexposed(int fi) {
-  RioFunc *f = &vm.func[fi]; int s, n = 0;
-  for (s = f->fs; s < f->fe; s++) n += (vm.c->exposed[s >> 3] >> (s & 7)) & 1;
-  return n;
-}
 static void memreport(void) {
-  static uint32_t own[65536], chain[65536], open[65536]; static int next[65536], order[65536];
-  RioC *c = vm.c; int nf = vm.nfunc, i, j, pc, best = -1, frames = 0, shown;
-  uint32_t consts = vm.kcap * 4, slots = (c->hwm - vm.kcap) * 4, rstack = (uint32_t)(nf + 1) * 4, table = vm.memsize - vm.hi - c->big;
-  uint32_t pbig = 0, globals, total, sum = 0, sumopen = 0;
+  static uint32_t frame[65536], chain[65536]; static int next[65536], order[65536];
+  RioC *c = vm.c; int nf = vm.nfunc, i, j, pc, best = -1, shown, nshared = 0;
+  uint32_t consts = vm.kcap * 4, slots = (c->hwm - vm.kcap) * 4, table = vm.memsize - vm.hi - c->big;
+  uint32_t pbig = 0, own = 0, area = 0, all = 0, depth = 0, rstack, globals, total;
   for (i = 0; i < nf; i++) {
-    RioFunc *f = &vm.func[i]; uint32_t cb = 0, co = 0;
-    own[i] = (uint32_t)(f->fe - f->fs) * 4 + c->func[i].big; open[i] = (uint32_t)(f->fe - f->fs - frameexposed(i)) * 4;
-    frames += f->fe - f->fs; pbig += c->func[i].big; next[i] = -1;
-    for (pc = f->pc; pc < f->end; pc++) { /* its callees: compiled earlier, so already measured */
+    RioFunc *f = &vm.func[i]; RioCFunc *cf = &c->func[i]; uint32_t cb = 0;
+    frame[i] = (uint32_t)(f->fe - f->fs) * 4; all += frame[i]; pbig += cf->big; next[i] = -1;
+    if (cf->shared) nshared++; else own += frame[i];
+    if (cf->oe * 4u > area) area = cf->oe * 4u;
+    if (cf->dep > depth) depth = cf->dep;
+    for (pc = f->pc; pc < f->end; pc++) /* its callees: compiled earlier, so already measured */
       if (code[pc].op == M_CALL)
-        for (j = 0; j < i; j++) if (vm.func[j].pc == code[pc].c) { if (chain[j] > cb) { cb = chain[j]; next[i] = j; } if (open[j] > co) co = open[j]; break; }
-    }
-    chain[i] = own[i] + cb; sum += own[i]; sumopen += open[i];
+        for (j = 0; j < i; j++) if (vm.func[j].pc == code[pc].c) { if (chain[j] > cb) { cb = chain[j]; next[i] = j; } break; }
+    chain[i] = frame[i] + cf->big + cb;
     if (best < 0 || chain[i] > chain[best]) best = i;
     order[i] = i;
   }
-  globals = slots - (uint32_t)frames * 4 - rstack;
+  rstack = (depth + 1) * 4;
+  globals = slots - own - area - rstack;
   total = consts + slots + c->big + table;
   printf("memory: %u bytes in use (of %u)\n", total, vm.memsize);
   printf("  %-24s %8u   (%u of %u words used: reserved up front, see RioLimits.consts)\n", "constants", consts, vm.nk, vm.kcap);
   printf("  %-24s %8u\n", "globals", globals + (c->big - pbig));
-  printf("  %-24s %8u   (%d procs; %u of it in big locals)\n", "proc frames", (uint32_t)frames * 4 + pbig, nf, pbig);
-  printf("  %-24s %8u\n", "call stack", rstack);
+  printf("  %-24s %8u   (%d procs share it; without sharing their frames would take %u)\n", "shared frames", area, nshared, all - own);
+  printf("  %-24s %8u   (%d procs with an address-taken slot keep their own frame; %u of it in big locals)\n", "own frames", own + pbig, nf - nshared, pbig);
+  printf("  %-24s %8u   (the longest chain of calls: %u)\n", "call stack", rstack, depth);
   printf("  %-24s %8u\n", "tables", table);
   printf("    %-22s %8u   (string literals, exported names, file names)\n", "strings", vm.exports - vm.hi);
   printf("    %-22s %8u   (%u names the host can look up: top-level procs and globals)\n", "exports", vm.lines - vm.exports, vm.nexports);
   printf("    %-22s %8u   (%u entries: pc -> source line, for runtime errors)\n", "line table", vm.nlines * 4, vm.nlines);
   printf("    %-22s %8u   (%d procs)\n", "proc table", (uint32_t)nf * (uint32_t)sizeof(RioFunc), nf);
   printf("  %-24s %8u   (%u instructions, in the code buffer, not memory)\n", "code", vm.pc * (uint32_t)sizeof(RioIns), vm.pc);
-  for (i = 1; i < nf; i++) { int k = order[i]; for (j = i; j > 0 && own[order[j - 1]] < own[k]; j--) order[j] = order[j - 1]; order[j] = k; }
+  for (i = 1; i < nf; i++) { int k = order[i]; for (j = i; j > 0 && frame[order[j - 1]] + c->func[order[j - 1]].big < frame[k] + c->func[k].big; j--) order[j] = order[j - 1]; order[j] = k; }
   shown = nf < 15 ? nf : 15;
-  if (nf) printf("biggest procs (bytes: frame + big locals; open = never has its address taken)\n");
+  if (nf) printf("biggest procs (bytes: frame + big locals)\n");
   for (i = 0; i < shown; i++) {
     int k = order[i];
-    printf("  %-24s %8u   open %u%s\n", procname(k), own[k], open[k], c->func[k].big ? "  big locals" : "");
+    printf("  %-24s %8u   %s%s\n", procname(k), frame[k] + c->func[k].big, c->func[k].shared ? "shared" : "own memory: an address is taken",
+           c->func[k].big ? ", big locals" : "");
   }
   if (nf > shown) printf("  ... %d more\n", nf - shown);
   if (best >= 0) {
-    printf("deepest call chain: %u bytes, vs %u for all procs at once\n  ", chain[best], sum);
+    printf("heaviest call chain: %u bytes of frames\n  ", chain[best]);
     for (i = best; i >= 0; i = next[i]) printf("%s%s", procname(i), next[i] >= 0 ? " -> " : "\n");
-    printf("frames could share memory along the call graph; only the open parts can without more analysis (%u bytes of them)\n", sumopen);
   }
 }
 

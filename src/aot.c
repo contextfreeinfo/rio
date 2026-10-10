@@ -151,6 +151,12 @@ static void ins(int pc) {
             V(c, 'i'), V(d->a, 'i'), V(b + 1, 'i'), V(b, 'i'));
     P("%s = p_ + lo_ * %d; %s = hi_ - lo_; }\n", V(a, 'i'), (int)sz(d), V(a + 1, 'i'));
     break;
+  case A_MOVN: { /* word by word, in the order that's safe when the ranges overlap */
+    int i;
+    if (a > b) for (i = c - 1; i >= 0; i--) P("%s = %s;\n", V(a + i, 'v'), V(b + i, 'v'));
+    else for (i = 0; i < c; i++) P("%s = %s;\n", V(a + i, 'v'), V(b + i, 'v'));
+    break;
+  }
   case A_COPY: P("memmove(M + %s, M + %s, %d);\n", V(a, 'u'), V(b, 'u'), c); break;
   case A_VADD: case A_VSUB: case A_VMUL: case A_VDIV: case A_VMOD: case A_FVADD: case A_FVSUB: case A_FVMUL: case A_FVDIV: {
     /* a loop over the numbers; a scalar side is read once */

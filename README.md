@@ -382,7 +382,9 @@ uint32_t need = rio_limits_size(&lim);       // bytes those tables take (strings
 
 On a Cortex-M33, the core compiles to about 35 KB of flash at `-Os`, plus libm and `memcpy`/`memset`/`setjmp` from your libc. Peak memory comes from compiling; once running, a program needs only its constants, frames, globals, arrays and strings.
 
-`rio -m game.rio` reports where a program's memory goes instead of running it: constants, globals, proc frames, the call stack and the runtime tables (strings, exports, line table, proc table), then the biggest procs and the deepest call chain. Every proc has its own frame for the whole run, so frames add up with the number of procs. The report compares that total with the deepest chain of calls, which is all a program ever uses at once, and shows how much of it is "open": slots whose address is never taken, which could share memory between procs that never run at the same time.
+**Frames are shared.** With no recursion, the compiler knows exactly which procs can be running at the same time: a proc and everything it can call. Procs that never run together share frame memory, so frames cost the heaviest chain of calls rather than the sum over all procs, and the return stack is sized by the longest chain. This happens once, when compiling finishes, and costs nothing at runtime. A proc keeps its own frame if any of its slots ever has its address taken (by `&`, a slice or view of a local array, a for-each over one, and so on): a view of that memory may outlive the call, so it must keep holding the same variable. Copying small structs and arrays between locals doesn't take addresses, so most procs share. Because of this sharing, rio can't be started again while it's running: `rio_run` and `rio_call` from inside an FFI function return an error.
+
+`rio -m game.rio` reports where a program's memory goes instead of running it: constants, globals, the shared frame area and the procs that keep their own frames, the call stack and the runtime tables (strings, exports, line table, proc table), then the biggest procs and the heaviest call chain.
 
 ## Ahead-of-time compilation to C
 

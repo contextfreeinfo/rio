@@ -105,7 +105,7 @@ enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI, RIO_S_
   X(NEG) X(BNOT) X(NOT) X(FADD) X(FSUB) X(FMUL) X(FDIV) X(FNEG) \
   X(EQ) X(NE) X(LT) X(LE) X(FEQ) X(FNE) X(FLT) X(FLE) X(SEQ) X(SNE) \
   X(ITOF) X(FTOI) X(LDW) X(LDB) X(LEA) X(M1) X(M2) X(IABS) X(IMIN) X(IMAX) X(FMIN) X(FMAX) X(LDX) X(LDXB) \
-  X(MOV2) X(LDW2) X(STW) X(STB) X(STW2) X(STX) X(STXB) X(IDX) X(SLICE) X(COPY) X(ZERO) \
+  X(MOV2) X(LDW2) X(STW) X(STB) X(STW2) X(STX) X(STXB) X(IDX) X(SLICE) X(COPY) X(MOVN) X(ZERO) \
   X(VADD) X(VSUB) X(VMUL) X(VDIV) X(VMOD) X(FVADD) X(FVSUB) X(FVMUL) X(FVDIV) \
   X(LIDX) X(PUSHA) X(PUSHS) X(PUSHT) X(POPA) X(LREM) X(LSWAP) X(LVIEW) \
   X(JMP) X(JZ) X(JNZ) X(JEQ) X(JNE) X(JLT) X(JLE) X(JFEQ) X(JFNE) X(JFLT) X(JFLE) X(JFNLT) X(JFNLE) X(EACH) X(FORI) \
@@ -126,7 +126,9 @@ typedef struct { uint16_t key, keylen, dir, dirlen, file, pc0, pc1; uint8_t pkg,
 /* where to resume the file that imported or included another: for an import, its import statement
    runs again (and just binds names); for an include, compiling continues after it */
 typedef struct { const char *src, *se, *ls, *pos; int line, mod, f, inc; } RioImp;
-typedef struct { uint16_t pc, end, ret, p0, np, fs, fe; uint32_t retaddr, big; uint8_t done, selfref; } RioCFunc; /* big: bytes of its locals stored apart (over 16 words) */
+/* big: bytes of its locals stored apart (over 16 words). shared: its frame lives in the shared area at
+   offset ob; oe is where the shared frames of it and everything it calls end; dep: its longest call chain */
+typedef struct { uint16_t pc, end, ret, p0, np, fs, fe, ob, oe, dep; uint32_t retaddr, big; uint8_t done, selfref, shared; } RioCFunc;
 typedef struct { uint16_t t, ref; uint32_t addr; } RioParam; /* ref: a &T param's T (t is then the address word) */
 typedef struct { uint16_t ret, p0, np; } RioCFfi;
 typedef struct { uint8_t k, ro; uint16_t t, t0; int32_t a, off; } RioEx;
@@ -145,6 +147,8 @@ typedef struct RioC {
   char *names; RioBlk *blk; RioEx *vs; RioOp *os;
   uint8_t *exposed;                      /* slots whose address is taken (for AOT) */
   uint8_t *kfix;                         /* constants holding string-pool offsets, relocated at the end */
+  uint8_t *kadr;                         /* constants holding slot addresses, renumbered when frames are shared */
+  uint16_t *smap;                        /* old slot -> new slot, while sharing frames */
   RioCFfi ffi[RIO_MAX_FFI];
   uint8_t *strs;                         /* string pool: the rest of scratch */
 } RioC;
@@ -154,7 +158,7 @@ struct Rio {
   int ekind, eline, ecol, elen, emsg; const char *efile;
   RioLoadFn loader; void *loadud; uint32_t mods, nmods; /* runtime table of module code ranges, in mem */
   RioIns *code; uint32_t codecap, pc;
-  RioLogFn logfn; void *logud; int logn, trap, ok, nfunc, nffi, ndefs, repl;
+  RioLogFn logfn; void *logud; int logn, trap, ok, nfunc, nffi, ndefs, repl, running;
   volatile int brk; /* set by rio_interrupt */
   const char *defs[RIO_MAX_DEFINES][2];
   RioC *c; /* compiler state: only during compile, or after rio_compile_scratch */
