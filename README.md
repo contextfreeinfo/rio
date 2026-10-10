@@ -197,6 +197,22 @@ int *score = rio_global(&vm, "score"); // direct access to globals
 
 You can change the limits (symbols, procs, constants and so on) with `-DRIO_MAX_...`. See `rio.h`.
 
+### Errors
+
+`rio_error(vm)` is a ready-to-print string in compiler style: `"12:7: type mismatch"` for compile errors and `"40: runtime error: index out of bounds"` for runtime errors. The CLI prefixes the file name (`game.rio:12:7: ...`), which terminals and editors can turn into links. For an editor, use the structured form:
+
+```c
+RioError e = rio_error_info(&vm);  // after a failed rio_compile / rio_run / rio_call
+// e.kind: RIO_ECOMPILE or RIO_ERUNTIME
+// e.line, e.col: 1-based (0 = unknown); e.len: width of the offending token, for underlining
+// e.msg: the message without the position, e.g. "undefined name near 'nope'"
+```
+
+- Compile errors point at the token at fault. When an error is only detectable at the end of an expression (a type mismatch, say), they point at the expression's last token.
+- Runtime errors report the line, from a compact pc-to-line table built while compiling: one 4-byte entry per source line that produces code, about 10% of the bytecode size. Columns aren't tracked at runtime. `rio_pc_line(vm, pc)` exposes the same lookup.
+- A message from `rio_trap` in an FFI function becomes a runtime error at the line of the call.
+- Code from `rio -c` reports the same lines: it emits `#line` directives, so each runtime check knows its rio line.
+
 ## Memory and microcontrollers
 
 The library has no static RAM of its own. Everything lives in three buffers you provide: `Rio`, `mem` and `code`.
@@ -257,6 +273,7 @@ src/rio.h     public API (+ the fixed-size state struct)
 src/rio.c     lexer, single-pass compiler, VM
 src/aot.c     bytecode -> C translator (CLI only; not needed for embedding)
 src/main.c    CLI host (adds ffi: clock, putc)
-tests/        test suite (run by ctest, in the VM and compiled through C)
+tests/        test suite (run by ctest, in the VM and compiled through C), plus error tests:
+              errors.c checks kind/line/col/width/message for ~26 failing snippets
 bench/        rio vs lua benchmarks
 ```

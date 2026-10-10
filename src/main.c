@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
   /* the C backend reads compiler tables after compiling, so they get their own buffer; running
      compiles in place, with the compiler's state overlaid on script memory */
   if (cout ? rio_compile_scratch(&vm, src, (uint32_t)n, scratch, sizeof scratch) : rio_compile(&vm, src, (uint32_t)n)) {
-    fprintf(stderr, "%s: %s\n", path, rio_error(&vm));
+    fprintf(stderr, "%s%s%s\n", path, rio_error_info(&vm).line ? ":" : ": ", rio_error(&vm));
     return 1;
   }
   if (cout) {
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
   }
   if (rio_run(&vm) || ((fn = rio_func(&vm, "main")) >= 0 && rio_call(&vm, fn))) {
     fflush(stdout);
-    fprintf(stderr, "%s: %s\n", path, rio_error(&vm));
+    fprintf(stderr, "%s%s%s\n", path, rio_error_info(&vm).line ? ":" : ": ", rio_error(&vm));
     return 1;
   }
   return 0;

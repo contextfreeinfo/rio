@@ -56,6 +56,16 @@ add_test(NAME rio_defines_override COMMAND rio -D N=20 -DSCALE=3 -D NAME=custom 
 set_tests_properties(rio_defines_override PROPERTIES
   PASS_REGULAR_EXPRESSION "verbose on[\r\n]+N 20 len 20 total 190 SCALE 6.0 NAME custom")
 
+# errors: kind, position and message through the API, and as the CLI prints them
+add_executable(rio_errors tests/errors.c)
+target_link_libraries(rio_errors PRIVATE riocore)
+add_test(NAME rio_error_info COMMAND rio_errors)
+set_tests_properties(rio_error_info PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ error tests passed")
+add_test(NAME rio_cli_compile_error COMMAND rio ${CMAKE_SOURCE_DIR}/tests/bad.rio)
+set_tests_properties(rio_cli_compile_error PROPERTIES PASS_REGULAR_EXPRESSION "bad\\.rio:3:10: undefined name near 'nope'")
+add_test(NAME rio_cli_runtime_error COMMAND rio ${CMAKE_SOURCE_DIR}/tests/runtime_error.rio)
+set_tests_properties(rio_cli_runtime_error PROPERTIES PASS_REGULAR_EXPRESSION "runtime_error\\.rio:4: runtime error: index out of bounds")
+
 # the same suite compiled ahead of time to C
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/test_aot.c
   COMMAND rio -c ${CMAKE_BINARY_DIR}/test_aot.c ${CMAKE_SOURCE_DIR}/tests/test.rio
@@ -67,3 +77,14 @@ endif()
 add_test(NAME rio_aot_tests COMMAND test_aot)
 set_tests_properties(rio_aot_tests PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL" PASS_REGULAR_EXPRESSION "all tests passed")
 set_tests_properties(rio_tests PROPERTIES PASS_REGULAR_EXPRESSION "all tests passed")
+
+# generated C reports the same line for a runtime error
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/runtime_error_aot.c
+  COMMAND rio -c ${CMAKE_BINARY_DIR}/runtime_error_aot.c ${CMAKE_SOURCE_DIR}/tests/runtime_error.rio
+  DEPENDS rio ${CMAKE_SOURCE_DIR}/tests/runtime_error.rio)
+add_executable(runtime_error_aot ${CMAKE_BINARY_DIR}/runtime_error_aot.c)
+if(NOT MSVC)
+  target_link_libraries(runtime_error_aot PRIVATE m)
+endif()
+add_test(NAME rio_aot_runtime_error COMMAND runtime_error_aot)
+set_tests_properties(rio_aot_runtime_error PROPERTIES PASS_REGULAR_EXPRESSION "^4: runtime error: index out of bounds")

@@ -17,6 +17,7 @@ static FILE *o;
 static int cur = -1;            /* function being emitted, -1 = top level */
 static uint8_t *label;          /* jump targets */
 static uint8_t used[8192];      /* locals referenced by the current proc */
+static int lastline;             /* last #line emitted */
 
 static RioVal kval(int s) { return ((RioVal *)vm->mem)[s]; }
 static int isret(int s) {
@@ -74,6 +75,7 @@ static void ins(int pc) {
   static const char *m2[] = {"atan2f", "powf", "fmodf"};
   if (x->op == A_DATA) return;
   if (label[pc]) P("L%d:;\n", pc);
+  { int ln = rio_pc_line(vm, (uint32_t)pc); if (ln && ln != lastline) { P("#line %d\n", ln); lastline = ln; } }
   P("  ");
   switch (x->op) {
   case A_MOV: P("%s = %s;\n", V(a, 'v'), V(b, 'v')); break;
@@ -82,7 +84,7 @@ static void ins(int pc) {
   case A_DIV: case A_MOD: {
     const char *op = x->op == A_DIV ? "/" : "%";
     if (c < (int)vm->nk && kval(c).i != 0 && kval(c).i != -1) P("%s = %s %s %s;\n", V(a, 'i'), V(b, 'i'), op, V(c, 'i'));
-    else P("{ int32_t y_ = %s, x_ = %s; if (!y_) rt_err(\"division by zero\"); %s = y_ == -1 ? %s : x_ %s y_; }\n",
+    else P("{ int32_t y_ = %s, x_ = %s; if (!y_) RT_ERR(\"division by zero\"); %s = y_ == -1 ? %s : x_ %s y_; }\n",
                  V(c, 'i'), V(b, 'i'), V(a, 'i'), x->op == A_DIV ? "(int32_t)(0u - (uint32_t)x_)" : "0", op);
     break;
   }
@@ -114,7 +116,7 @@ static void ins(int pc) {
     break;
   }
   case A_LDX: case A_LDXB:
-    P("{ uint32_t i_ = %s; if (i_ >= %s) rt_err(\"index out of bounds\"); ", V(c, 'u'), V(b + 1, 'u'));
+    P("{ uint32_t i_ = %s; if (i_ >= %s) RT_ERR(\"index out of bounds\"); ", V(c, 'u'), V(b + 1, 'u'));
     if (x->op == A_LDX) P("%s = MV(%s + i_ * %uu + %du); }\n", V(a, 'v'), V(b, 'u'), sz(d), d->a);
     else P("%s = M[%s + i_ * %uu + %du]; }\n", V(a, 'u'), V(b, 'u'), sz(d), d->a);
     break;
@@ -124,23 +126,23 @@ static void ins(int pc) {
   case A_STB: P("M[%s + %du] = (uint8_t)%s;\n", V(a, 'u'), c, V(b, 'u')); break;
   case A_STW2: P("{ uint32_t p_ = %s + %du; MV(p_) = %s; MV(p_ + 4) = %s; }\n", V(a, 'u'), c, V(b, 'v'), V(b + 1, 'v')); break;
   case A_STX: case A_STXB:
-    P("{ uint32_t i_ = %s; if (i_ >= %s) rt_err(\"index out of bounds\"); ", V(b, 'u'), V(a + 1, 'u'));
+    P("{ uint32_t i_ = %s; if (i_ >= %s) RT_ERR(\"index out of bounds\"); ", V(b, 'u'), V(a + 1, 'u'));
     if (x->op == A_STX) P("MV(%s + i_ * %uu + %du) = %s; }\n", V(a, 'u'), sz(d), d->a, V(c, 'v'));
     else P("M[%s + i_ * %uu + %du] = (uint8_t)%s; }\n", V(a, 'u'), sz(d), d->a, V(c, 'u'));
     break;
   case A_IDX:
-    P("{ uint32_t i_ = %s; if (i_ >= %s) rt_err(\"index out of bounds\"); %s = %s + i_ * %uu; }\n",
+    P("{ uint32_t i_ = %s; if (i_ >= %s) RT_ERR(\"index out of bounds\"); %s = %s + i_ * %uu; }\n",
             V(c, 'u'), V(b + 1, 'u'), V(a, 'u'), V(b, 'u'), sz(d));
     break;
   case A_SLICE:
-    P("{ int32_t lo_ = %s, hi_ = %s, n_ = %s, p_ = %s; if (lo_ < 0 || hi_ < lo_ || hi_ > n_) rt_err(\"slice out of bounds\"); ",
+    P("{ int32_t lo_ = %s, hi_ = %s, n_ = %s, p_ = %s; if (lo_ < 0 || hi_ < lo_ || hi_ > n_) RT_ERR(\"slice out of bounds\"); ",
             V(c, 'i'), V(d->a, 'i'), V(b + 1, 'i'), V(b, 'i'));
     P("%s = p_ + lo_ * %d; %s = hi_ - lo_; }\n", V(a, 'i'), (int)sz(d), V(a + 1, 'i'));
     break;
   case A_COPY: P("memmove(M + %s, M + %s, %d);\n", V(a, 'u'), V(b, 'u'), c); break;
   case A_ZERO: P("memset(M + %s, 0, %uu);\n", V(a, 'u'), sz(x)); break;
   case A_LIDX:
-    P("{ uint32_t i_ = %s; if (i_ >= rt_llen(%s, %s)) rt_err(\"index out of bounds\"); %s = %s + 4u + i_ * %uu; }\n",
+    P("{ uint32_t i_ = %s; if (i_ >= rt_llen(%s, %s)) RT_ERR(\"index out of bounds\"); %s = %s + 4u + i_ * %uu; }\n",
       V(c, 'u'), V(b, 'u'), V(b + 1, 'u'), V(a, 'u'), V(b, 'u'), sz(d));
     break;
   case A_PUSHA:
@@ -150,11 +152,11 @@ static void ins(int pc) {
   case A_PUSHS: P("%s = rt_pushb(%s, %s, M + %s, %s, %uu);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), V(c, 'u'), V(c + 1, 'u'), sz(d)); break;
   case A_PUSHT: P("%s = rt_pusht(%s, %s, %d, %s);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), x->x, V(c, 'v')); break;
   case A_POPA:
-    P("{ uint32_t b_ = %s, n_ = rt_llen(b_, %s); if (!n_) rt_err(\"pop from empty list\"); MV(b_).u = --n_; %s = b_ + 4u + n_ * %uu; }\n",
+    P("{ uint32_t b_ = %s, n_ = rt_llen(b_, %s); if (!n_) RT_ERR(\"pop from empty list\"); MV(b_).u = --n_; %s = b_ + 4u + n_ * %uu; }\n",
       V(b, 'u'), V(b + 1, 'u'), V(a, 'u'), sz(d));
     break;
   case A_LREM: case A_LSWAP:
-    P("rt_lrem(%s, %s, %s, %uu, %d);\n", V(a, 'u'), V(a + 1, 'u'), V(b, 'u'), sz(d), x->op == A_LSWAP);
+    P("rt_lrem(%s, %s, %s, %uu, %d, __LINE__);\n", V(a, 'u'), V(a + 1, 'u'), V(b, 'u'), sz(d), x->op == A_LSWAP);
     break;
   case A_LVIEW: P("{ uint32_t b_ = %s, n_ = rt_llen(b_, %s); %s = b_ + 4u; %s = n_; }\n", V(b, 'u'), V(b + 1, 'u'), V(a, 'u'), V(a + 1, 'u')); break;
   case A_JMP: P("goto L%d;\n", c); break;
@@ -183,7 +185,7 @@ static void ins(int pc) {
   case A_LOGB: P("log_s(%d, %s ? \"true\" : \"false\", -1);\n", x->x, V(a, 'i')); break;
   case A_LOGS: P("log_s(%d, (const char *)M + %s, %s);\n", x->x, V(a, 'u'), V(a + 1, 'i')); break;
   case A_LOGE: P("log_e();\n"); break;
-  default: P("rt_err(\"bad op\");\n");
+  default: P("RT_ERR(\"bad op\");\n");
   }
 }
 
@@ -194,7 +196,8 @@ static const char *prelude =
   "static union { RioVal v[RIO_MEM / 4]; uint8_t b[RIO_MEM]; } rio_mem;\n"
   "#define M rio_mem.b\n#define R rio_mem.v\n#define MV(p) (*(RioVal *)(M + (uint32_t)(p)))\n"
   "static inline float kf(uint32_t u) { RioVal v; v.u = u; return v.f; }\n"
-  "static inline void rt_err(const char *m) { fflush(stdout); fprintf(stderr, \"runtime error: %s\\n\", m); exit(1); }\n"
+  "static inline void rt_err(const char *m, int line) { fflush(stdout); fprintf(stderr, \"%d: runtime error: %s\\n\", line, m); exit(1); }\n"
+  "#define RT_ERR(m) rt_err(m, __LINE__) /* #line directives make __LINE__ the rio source line */\n"
   "static inline int32_t ftoi(float f) { return f != f ? 0 : f >= 2147483648.f ? 0x7FFFFFFF : f <= -2147483648.f ? (int32_t)0x80000000u : (int32_t)f; }\n"
   "static inline float rt_round(float x) { return x < 0 ? -floorf(-x + 0.5f) : floorf(x + 0.5f); }\n"
   "static inline int seq(int32_t a, int32_t an, int32_t b, int32_t bn) { return an == bn && !memcmp(M + a, M + b, (size_t)an); }\n"
@@ -228,8 +231,8 @@ static const char *prelude =
   "  char b[40]; int k = kind == 1 ? fmt_f(b, v.f) : kind == 2 ? sprintf(b, \"%s\", v.i ? \"true\" : \"false\") : sprintf(b, \"%d\", (int)v.i);\n"
   "  return rt_pushb(a, cap, b, (uint32_t)k, 1);\n"
   "}\n"
-  "static inline void rt_lrem(uint32_t a, uint32_t cap, uint32_t i, uint32_t sz, int swap) {\n"
-  "  uint32_t n = rt_llen(a, cap); if (i >= n) rt_err(\"index out of bounds\");\n"
+  "static inline void rt_lrem(uint32_t a, uint32_t cap, uint32_t i, uint32_t sz, int swap, int line) {\n"
+  "  uint32_t n = rt_llen(a, cap); if (i >= n) rt_err(\"index out of bounds\", line);\n"
   "  if (swap) { if (i != --n) memmove(M + a + 4 + i * sz, M + a + 4 + n * sz, sz); MV(a).u = n; }\n"
   "  else { memmove(M + a + 4 + i * sz, M + a + 4 + (i + 1) * sz, (n - i - 1) * sz); MV(a).u = n - 1; }\n"
   "}\n";
@@ -270,9 +273,9 @@ int rio_aot(Rio *v, FILE *out, const char *host_ffi) {
   for (cur = 0; cur < vm->nfunc; cur++) {
     RioFunc *f = &vm->func[cur];
     memset(used, 0, sizeof used);
-    o = 0; /* dry run: learn which locals the body uses */
+    o = 0; lastline = 0; /* dry run: learn which locals the body uses */
     for (pc = f->pc; pc < f->end; pc++) ins(pc);
-    o = out;
+    o = out; lastline = 0;
     fprintf(o, "\nstatic void p_%s(void) {\n", symname(RIO_S_FN, cur));
     for (s = f->fs; s < f->fe; s++) {
       if (!islocal(s) || !(used[s >> 3] & (1 << (s & 7)))) continue;

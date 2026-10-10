@@ -91,16 +91,27 @@ static int fmtf(char *b, float f) {
 }
 static int cat(char *b, int n, const char *s) { while (*s && n < RIO_ERRBUF - 1) b[n++] = *s++; return n; }
 
+/* "line:col: message" (position parts omitted when unknown); remembers the parts for rio_error_info */
+static int seterr(Rio *vm, int kind, int line, int col, int len, const char *m) {
+  char *b = vm->err; int n = 0;
+  if (line > 0) { n += fmti(b, line); if (col > 0) { b[n++] = ':'; n += fmti(b + n, col); } n = cat(b, n, ": "); }
+  vm->ekind = kind; vm->eline = line; vm->ecol = col; vm->elen = len; vm->emsg = n;
+  if (kind == RIO_ERUNTIME) n = cat(b, n, "runtime error: ");
+  n = cat(b, n, m); b[n] = 0;
+  return n;
+}
+/* compile error at the current token, or at the end of the expression just finished when the
+   current token is already on the next line */
 NORET static void fail(Rio *vm, const char *m) {
-  char *b = vm->err; int n = 0, i;
-  n = cat(b, n, "line "); n += fmti(b + n, TK.nl ? vm->c->pline : TK.line); n = cat(b, n, ": "); n = cat(b, n, m);
-  if (TK.t != TK_EOF && TK.n > 0 && !TK.nl) {
+  RioC *c = vm->c; int prev = TK.nl || TK.t == TK_EOF, i;
+  int n = seterr(vm, RIO_ECOMPILE, prev ? c->pline : TK.line, prev ? c->pcol : TK.col, prev ? c->pw : TK.w, m);
+  if (!prev && TK.n > 0) {
+    char *b = vm->err;
     n = cat(b, n, " near '");
     for (i = 0; i < TK.n && i < 24 && n < RIO_ERRBUF - 2; i++) b[n++] = TK.s[i];
-    n = cat(b, n, "'");
+    n = cat(b, n, "'"); b[n] = 0;
   }
-  b[n] = 0;
-  longjmp(vm->c->jb, 1);
+  longjmp(c->jb, 1);
 }
 /* an error about the current token itself, even when it starts a new line */
 NORET static void failtok(Rio *vm, const char *m) { TK.nl = 0; fail(vm, m); }
@@ -114,20 +125,20 @@ static const short tok2[] = {TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_
   TK_ARROW, -'+', -'-', -'*', -'/', -'%', -'&', -'|', -'^'};
 
 static void lex(Rio *vm, RioTok *t) {
-  const char *p = vm->c->sp, *e = vm->c->se, *s;
+  const char *p = vm->c->sp, *e = vm->c->se, *s, *st;
   int nl = 0, i;
   for (;;) {
-    while (p < e && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')) { if (*p == '\n') { nl = 1; vm->c->line++; } p++; }
+    while (p < e && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')) { if (*p == '\n') { nl = 1; vm->c->line++; vm->c->ls = p + 1; } p++; }
     if (p + 1 < e && p[0] == '/' && p[1] == '/') { while (p < e && *p != '\n') p++; continue; }
     if (p + 1 < e && p[0] == '/' && p[1] == '*') {
-      for (p += 2; p + 1 < e && !(p[0] == '*' && p[1] == '/'); p++) if (*p == '\n') { nl = 1; vm->c->line++; }
+      for (p += 2; p + 1 < e && !(p[0] == '*' && p[1] == '/'); p++) if (*p == '\n') { nl = 1; vm->c->line++; vm->c->ls = p + 1; }
       p = p + 1 < e ? p + 2 : e;
       continue;
     }
     break;
   }
-  t->nl = (uint8_t)nl; t->line = vm->c->line; t->s = s = p; t->op = 0; t->v.i = 0;
-  if (p >= e) { t->t = TK_EOF; t->n = 0; vm->c->sp = e; return; }
+  t->nl = (uint8_t)nl; t->line = vm->c->line; t->col = (int)(p - vm->c->ls) + 1; t->s = s = st = p; t->op = 0; t->v.i = 0;
+  if (p >= e) { t->t = TK_EOF; t->n = t->w = 0; vm->c->sp = e; return; }
   if (isal(*p)) {
     while (p < e && (isal(*p) || isdg(*p))) p++;
     t->t = TK_ID;
@@ -154,9 +165,9 @@ static void lex(Rio *vm, RioTok *t) {
     t->t = isf ? TK_FLT : TK_INT;
     if (isf) t->v.f = (float)d; else t->v.u = v;
   } else if (*p == '"') {
-    for (s = ++p; p < e && *p != '"'; p++) { if (*p == '\\') p++; if (p < e && *p == '\n') vm->c->line++; }
+    for (s = ++p; p < e && *p != '"'; p++) { if (*p == '\\') p++; if (p < e && *p == '\n') { vm->c->line++; vm->c->ls = p + 1; } }
     if (p >= e) { vm->c->sp = e; fail(vm, "unterminated string"); }
-    t->t = TK_STR; t->s = s; t->n = (int)(p - s); vm->c->sp = p + 1;
+    t->t = TK_STR; t->s = s; t->n = (int)(p - s); t->w = (int)(p + 1 - st); vm->c->sp = p + 1;
     return;
   } else if (*p == '\'') {
     int c = p + 1 < e ? p[1] : 0;
@@ -177,9 +188,12 @@ static void lex(Rio *vm, RioTok *t) {
         break;
       }
   }
-  t->n = (int)(p - s); vm->c->sp = p;
+  t->n = t->w = (int)(p - s); vm->c->sp = p;
 }
-static void next(Rio *vm) { vm->c->pline = vm->c->tk.line; vm->c->tk = vm->c->nx; lex(vm, &vm->c->nx); }
+static void next(Rio *vm) {
+  RioC *c = vm->c;
+  c->pline = c->tk.line; c->pcol = c->tk.col; c->pw = c->tk.w; c->tk = c->nx; lex(vm, &c->nx);
+}
 static void expect(Rio *vm, int t, const char *m) { if (TK.t != t) fail(vm, m); next(vm); }
 
 /* ---------------------------------------------------------------- tables */
@@ -236,9 +250,23 @@ static int vt(int t) { return t == TY_BYTE ? TY_I32 : t; }
 static int words(Rio *vm, int t) { return (int)((TY(t)->size + 3) / 4); }
 
 /* ---------------------------------------------------------------- code + storage */
+/* pc->line entries (u16 pc, u16 line) grow down from the top of the string pool */
+static void markline(Rio *vm) {
+  RioC *c = vm->c; uint32_t line = c->lineovr ? c->lineovr : (uint32_t)c->pline; uint16_t e[2];
+  if (line == c->lastline) return;
+  if (c->poolcap - c->pool < 4) fail(vm, "out of compiler memory");
+  c->poolcap -= 4; e[0] = (uint16_t)vm->pc; e[1] = (uint16_t)(line > 0xFFFF ? 0xFFFF : line);
+  memcpy(c->strs + c->poolcap, e, 4); c->nline++; c->lastline = line;
+}
+static uint32_t cline(Rio *vm, uint32_t pc) { /* line of pc while still compiling */
+  RioC *c = vm->c; uint32_t o, line = 0; uint16_t e[2];
+  for (o = c->linetop; o > c->poolcap; o -= 4) { memcpy(e, c->strs + o - 4, 4); if (e[0] > pc) break; line = e[1]; }
+  return line;
+}
 static int emit(Rio *vm, int op, int a, int b, int c) {
   RioIns *i;
   if (vm->pc >= vm->codecap) fail(vm, "code too large");
+  markline(vm);
   i = &vm->code[vm->pc];
   i->op = (uint8_t)op; i->x = 0; i->a = (uint16_t)a; i->b = (uint16_t)b; i->c = (uint16_t)c;
   return (int)vm->pc++;
@@ -594,8 +622,9 @@ static Ex defval(Rio *vm, int di, int t) {
     return mkex(EK_CONST, t, k.v.i);
   }
   {
-    int m = cat(vm->err, 0, "-D "); m = cat(vm->err, m, name); m = cat(vm->err, m, ": value doesn't fit ");
-    m = cat(vm->err, m, t == TY_I32 ? "Int" : t == TY_F32 ? "Float" : "Bool"); vm->err[m] = 0;
+    char b[RIO_ERRBUF]; int m = cat(b, 0, "-D "); m = cat(b, m, name); m = cat(b, m, ": value doesn't fit ");
+    m = cat(b, m, t == TY_I32 ? "Int" : t == TY_F32 ? "Float" : "Bool"); b[m] = 0;
+    seterr(vm, RIO_ECOMPILE, 0, 0, 0, b);
     longjmp(vm->c->jb, 1);
   }
 }
@@ -1152,7 +1181,7 @@ static void statement(Rio *vm) {
     b = bpush(vm, B_IF); b->a = (uint16_t)i;
     break;
   case TK_ELSE:
-    if (!vm->c->nblk || vm->c->blk[vm->c->nblk - 1].k != B_IF) fail(vm, "'else' without 'if'");
+    if (!vm->c->nblk || vm->c->blk[vm->c->nblk - 1].k != B_IF) failtok(vm, "'else' without 'if'");
     b = &vm->c->blk[vm->c->nblk - 1];
     next(vm); bscope(vm, b);
     b->b = (uint16_t)jappend(vm, b->b, emit(vm, OP_JMP, 0, 0, NONE));
@@ -1184,7 +1213,7 @@ static void statement(Rio *vm) {
     }
     break;
   case TK_END:
-    if (!vm->c->nblk) fail(vm, "'end' without block");
+    if (!vm->c->nblk) failtok(vm, "'end' without block");
     b = &vm->c->blk[vm->c->nblk - 1];
     next(vm);
     if (b->k == B_PROC) {
@@ -1198,7 +1227,9 @@ static void statement(Rio *vm) {
       for (n = b->a; ok && n < cj; n++) if (vm->code[n].op >= OP_JMP && vm->code[n].op <= OP_FORI) ok = 0;
       if (ok) { /* rotate: repeat the condition at the bottom, inverted, jumping back into the body */
         patch(vm, b->cont, here(vm));
+        vm->c->lineovr = cline(vm, b->a);
         for (n = b->a; n <= cj; n++) { RioIns c = vm->code[n]; emit(vm, c.op, c.a, c.b, c.c); vm->code[vm->pc - 1].x = c.x; }
+        vm->c->lineovr = 0;
         invjump(&vm->code[vm->pc - 1]); vm->code[vm->pc - 1].c = (uint16_t)(cj + 1);
       } else { patch(vm, b->cont, b->a); emit(vm, OP_JMP, 0, 0, b->a); }
     }
@@ -1209,7 +1240,7 @@ static void statement(Rio *vm) {
     break;
   case TK_RETURN: {
     RioCFunc *f;
-    if (vm->c->curfn < 0) fail(vm, "return outside proc");
+    if (vm->c->curfn < 0) failtok(vm, "return outside proc");
     next(vm); f = &vm->c->func[vm->c->curfn];
     if (f->ret != TY_VOID) { Ex d = mkex(EK_ST, f->ret, (int32_t)f->retaddr); e = expr(vm); store(vm, &d, &e); }
     emit(vm, OP_RET, 0, 0, 0);
@@ -1217,7 +1248,7 @@ static void statement(Rio *vm) {
   }
   case TK_BREAK: case TK_CONTINUE:
     for (i = vm->c->nblk - 1; i >= 0 && vm->c->blk[i].k != B_PROC; i--) if (vm->c->blk[i].k == B_LOOP || vm->c->blk[i].k == B_FOR) break;
-    if (i < 0 || vm->c->blk[i].k == B_PROC) fail(vm, "not inside a loop");
+    if (i < 0 || vm->c->blk[i].k == B_PROC) failtok(vm, "not inside a loop");
     b = &vm->c->blk[i];
     if (t == TK_BREAK) b->brk = (uint16_t)jappend(vm, b->brk, emit(vm, OP_JMP, 0, 0, NONE));
     else b->cont = (uint16_t)jappend(vm, b->cont, emit(vm, OP_JMP, 0, 0, NONE));
@@ -1279,7 +1310,7 @@ static void setup(Rio *vm) {
   for (i = 0; i < vm->ndefs; i++) {
     const char *nm = vm->defs[i][0]; int j, n = (int)strlen(nm); Ex e;
     for (j = 0; j < n; j++) if (!(isal(nm[j]) || (j && isdg(nm[j])))) break;
-    if (!n || j < n) { int m = cat(vm->err, 0, "-D: bad name "); m = cat(vm->err, m, nm); vm->err[m] = 0; longjmp(c->jb, 1); }
+    if (!n || j < n) { char b[RIO_ERRBUF]; int m = cat(b, 0, "-D: bad name "); m = cat(b, m, nm); b[m] = 0; seterr(vm, RIO_ECOMPILE, 0, 0, 0, b); longjmp(c->jb, 1); }
     e = defval(vm, i, -1);
     addsym(vm, nm, n, S_CONST, e.t, e.a);
   }
@@ -1297,8 +1328,12 @@ static void finalize(Rio *vm) {
     if (y->len > c->poolcap - p) fail(vm, "out of compiler memory");
     memcpy(c->strs + p, c->names + y->name, y->len); p += y->len; n++;
   }
-  ex = (p + 3) & ~3u; sz = ex + n * (uint32_t)sizeof(RioExport);
-  if (sz > c->poolcap) fail(vm, "out of compiler memory");
+  { /* the line table was written top-down: reverse it in place so it ascends by pc */
+    uint8_t *lo = c->strs + c->poolcap, *hi = c->strs + c->linetop - 4, t[4];
+    for (; lo < hi; lo += 4, hi -= 4) { memcpy(t, lo, 4); memcpy(lo, hi, 4); memcpy(hi, t, 4); }
+  }
+  ex = (p + 3) & ~3u; sz = ex + n * (uint32_t)sizeof(RioExport) + c->nline * 4;
+  if (sz - c->nline * 4 > c->poolcap) fail(vm, "out of compiler memory");
   if (vm->hi < sz || ((vm->hi - sz) & ~3u) < c->hwm * 4) fail(vm, "out of memory");
   base = (vm->hi - sz) & ~3u;
   x = (RioExport *)(void *)(c->strs + ex); p = c->pool;
@@ -1307,6 +1342,7 @@ static void finalize(Rio *vm) {
     if (y->k != S_FN && y->k != S_VAR) continue;
     x->name = base + p; x->len = y->len; x->k = y->k; x->pad = 0; x->v = y->v; p += y->len; x++;
   }
+  memmove(c->strs + sz - c->nline * 4, c->strs + c->poolcap, c->nline * 4); /* lines go right after the exports */
   for (i = 1; i < vm->nk; i++) if (KFIX(i)) R[i].u = base + (R[i].u & 0x7FFFFFFFu);
   for (k = 0; k < vm->nfunc; k++) {
     RioCFunc *f = &c->func[k]; RioFunc *rf = &vm->func[k]; uint32_t pw = 0; int j;
@@ -1315,6 +1351,7 @@ static void finalize(Rio *vm) {
     rf->ret = (uint16_t)(f->retaddr / 4); rf->retw = (uint8_t)(f->ret ? words(vm, f->ret) : 0);
   }
   vm->exports = base + ex; vm->nexports = n; vm->hi = base;
+  vm->lines = base + sz - c->nline * 4; vm->nlines = c->nline;
   /* nothing in c is read after this: the move and the zeroing may overwrite it */
   memmove(vm->mem + base, c->strs, sz);
   memset(vm->mem + first, 0, base - first);
@@ -1322,18 +1359,18 @@ static void finalize(Rio *vm) {
 }
 static int compile(Rio *vm, const char *src, uint32_t len, uint8_t *scratch, uint32_t size, int inmem) {
   uintptr_t pad = scratch ? (16 - ((uintptr_t)scratch & 15)) & 15 : 0; RioC *c;
-  vm->ok = 0; vm->c = 0;
+  vm->ok = 0; vm->c = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0; vm->nlines = 0;
   if (!scratch || size < pad + rio_scratch_min()) {
-    int n = cat(vm->err, 0, inmem ? "not enough memory for the compiler" : "scratch too small"); vm->err[n] = 0;
+    seterr(vm, RIO_ECOMPILE, 0, 0, 0, inmem ? "not enough memory for the compiler" : "scratch too small");
     return -1;
   }
   c = vm->c = (RioC *)(void *)(scratch + pad);
   memset(c, 0, sizeof *c);
-  c->strs = (uint8_t *)(c + 1); c->poolcap = size - (uint32_t)pad - (uint32_t)sizeof *c;
+  c->strs = (uint8_t *)(c + 1); c->poolcap = c->linetop = (size - (uint32_t)pad - (uint32_t)sizeof *c) & ~3u;
   vm->hi = vm->memsize; vm->nk = 1; vm->pc = 0; vm->nfunc = 0; ((RioVal *)vm->mem)[0].u = 0;
   if (setjmp(c->jb)) { if (inmem) vm->c = 0; return -1; }
   setup(vm);
-  c->sp = src; c->se = src + len; c->line = 1;
+  c->sp = c->ls = src; c->se = src + len; c->line = 1;
   lex(vm, &c->nx); next(vm);
   while (TK.t != TK_EOF) statement(vm);
   if (c->nblk) fail(vm, "missing 'end'");
@@ -1352,6 +1389,19 @@ int rio_compile_scratch(Rio *vm, const char *src, uint32_t len, void *scratch, u
   return compile(vm, src, len, (uint8_t *)scratch, size, 0);
 }
 const char *rio_error(Rio *vm) { return vm->err; }
+RioError rio_error_info(Rio *vm) {
+  RioError e; e.kind = vm->ekind; e.line = vm->eline; e.col = vm->ecol; e.len = vm->elen; e.msg = vm->err + vm->emsg;
+  return e;
+}
+int rio_pc_line(Rio *vm, uint32_t pc) { /* binary search the (pc, line) table */
+  const uint8_t *t = vm->mem + vm->lines; uint32_t lo = 0, hi = vm->nlines; int line = 0; uint16_t e[2];
+  while (lo < hi) {
+    uint32_t mid = (lo + hi) / 2;
+    memcpy(e, t + mid * 4, 4);
+    if (e[0] <= pc) { line = e[1]; lo = mid + 1; } else hi = mid;
+  }
+  return line;
+}
 void rio_trap(Rio *vm, const char *msg) { int n = cat(vm->err, 0, msg); vm->err[n] = 0; vm->trap = 1; }
 static RioExport *findexp(Rio *vm, const char *name, int k) {
   RioExport *x = (RioExport *)(void *)(vm->mem + vm->exports); uint32_t i, n = (uint32_t)strlen(name);
@@ -1371,9 +1421,9 @@ void *rio_ptr(Rio *vm, const RioVal *s) {
 /* ---------------------------------------------------------------- vm */
 static void logput(Rio *vm, const char *s, int n) { while (n-- > 0 && vm->logn < RIO_LOGBUF) vm->logbuf[vm->logn++] = *s++; }
 static int rterr(Rio *vm, const char *m, uint32_t pc) {
-  int n = cat(vm->err, 0, "runtime error: "); n = cat(vm->err, n, m);
-  n = cat(vm->err, n, " (pc "); n += fmti(vm->err + n, (int32_t)pc); n = cat(vm->err, n, ")");
-  vm->err[n] = 0;
+  char b[RIO_ERRBUF];
+  if (m == vm->err) { memcpy(b, m, sizeof b); m = b; } /* a message from rio_trap */
+  seterr(vm, RIO_ERUNTIME, rio_pc_line(vm, pc), 0, 0, m);
   return -1;
 }
 static int run(Rio *vm, uint32_t pc) {
@@ -1538,7 +1588,7 @@ static int run(Rio *vm, uint32_t pc) {
   CASE(FORI) if ((I(A) = (int32_t)(U(A) + 1u)) < I(B)) JUMP(); NEXT();
   CASE(CALL) cs[sp++] = (uint32_t)(ip + 1 - code); JUMP();
   CASE(RET) if (!sp) return 0; ip = code + cs[--sp]; DISPATCH();
-  CASE(FFI) vm->ffi[C].fn(vm, R + A); if (vm->trap) { vm->trap = 0; return -1; } NEXT();
+  CASE(FFI) vm->ffi[C].fn(vm, R + A); if (vm->trap) { vm->trap = 0; return rterr(vm, vm->err, (uint32_t)(ip - code)); } NEXT();
   CASE(LOGI) { char b[16]; if (ip->x) logput(vm, " ", 1); logput(vm, b, fmti(b, I(A))); NEXT(); }
   CASE(LOGF) { char b[32]; if (ip->x) logput(vm, " ", 1); logput(vm, b, fmtf(b, F(A))); NEXT(); }
   CASE(LOGS) { if (ip->x) logput(vm, " ", 1); logput(vm, (const char *)M + I(A), I(A + 1)); NEXT(); }
@@ -1550,5 +1600,5 @@ static int run(Rio *vm, uint32_t pc) {
   }
 #endif
 }
-int rio_run(Rio *vm) { return vm->ok ? run(vm, 0) : -1; }
-int rio_call(Rio *vm, int fn) { return vm->ok && fn >= 0 && fn < vm->nfunc ? run(vm, vm->func[fn].pc) : -1; }
+int rio_run(Rio *vm) { vm->ekind = RIO_ENONE; return vm->ok ? run(vm, 0) : -1; }
+int rio_call(Rio *vm, int fn) { vm->ekind = RIO_ENONE; return vm->ok && fn >= 0 && fn < vm->nfunc ? run(vm, vm->func[fn].pc) : -1; }

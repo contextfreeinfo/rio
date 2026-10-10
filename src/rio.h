@@ -85,7 +85,13 @@ int rio_call(Rio *vm, int fn);
 void *rio_global(Rio *vm, const char *name); /* address of a global variable */
 void *rio_ptr(Rio *vm, const RioVal *slice); /* bytes of a string/blob/slice value */
 void rio_trap(Rio *vm, const char *msg);     /* call from ffi to abort with an error */
-const char *rio_error(Rio *vm);
+const char *rio_error(Rio *vm);           /* "line:col: message", or "line: runtime error: message" */
+/* structured error for editors: line/col are 1-based (0 = unknown); len is the width of the
+   offending token (0 = unknown); msg is the message without the position prefix */
+enum { RIO_ENONE, RIO_ECOMPILE, RIO_ERUNTIME };
+typedef struct { int kind, line, col, len; const char *msg; } RioError;
+RioError rio_error_info(Rio *vm);
+int rio_pc_line(Rio *vm, uint32_t pc);      /* source line of a bytecode position (0 = unknown) */
 
 /* ---- private ---- */
 enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI };
@@ -103,7 +109,7 @@ typedef struct { const char *name, *sig; RioFn fn; uint8_t aw, rw; } RioFfi;
 typedef struct { uint32_t name; uint16_t len; uint8_t k, pad; int32_t v; } RioExport; /* lives in mem */
 
 /* compile-time only (lives in scratch) */
-typedef struct { int t, line, n, op; const char *s; RioVal v; uint8_t nl; } RioTok;
+typedef struct { int t, line, col, w, n, op; const char *s; RioVal v; uint8_t nl; } RioTok;
 typedef struct { uint8_t k, ref; uint16_t elem, f0, nf; uint32_t n, size; } RioType;
 typedef struct { uint16_t name, len, t, off; } RioField;
 typedef struct { uint16_t name, len, t; uint8_t k; int32_t v; } RioSym;
@@ -115,7 +121,8 @@ typedef struct { uint8_t k, prec; int16_t op; int32_t a, b, c, n; uint16_t vb, f
 typedef struct { uint8_t k; uint16_t nsym, nnames, nact, a, b, brk, cont, cj, i, lim; } RioBlk;
 typedef struct RioC {
   jmp_buf jb;
-  const char *sp, *se; int line, pline; RioTok tk, nx;
+  const char *sp, *se, *ls; int line, pline, pcol, pw; RioTok tk, nx;
+  uint32_t linetop, nline, lastline, lineovr; /* pc->line table, growing down from the top of the pool */
   uint32_t fr, nact, hwm, lastlabel, pool, poolcap; int curfn, def0;
   int nsym, ntype, nfield, nparam, nnames, nblk, nvs, nos;
   RioSym sym[RIO_MAX_SYMS]; RioType type[RIO_MAX_TYPES]; RioField field[RIO_MAX_FIELDS];
@@ -127,7 +134,8 @@ typedef struct RioC {
 } RioC;
 
 struct Rio {
-  uint8_t *mem; uint32_t memsize, hi, nk, csaddr, exports, nexports;
+  uint8_t *mem; uint32_t memsize, hi, nk, csaddr, exports, nexports, lines, nlines;
+  int ekind, eline, ecol, elen, emsg;
   RioIns *code; uint32_t codecap, pc;
   RioLogFn logfn; void *logud; int logn, trap, ok, nfunc, nffi, ndefs;
   const char *defs[RIO_MAX_DEFINES][2];
