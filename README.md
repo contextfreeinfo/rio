@@ -134,14 +134,16 @@ e := pop(enemies)
 step(enemies[:])                         // [:] is a []Enemy of the live elements
 clear(enemies)
 
-title: Blob[..32]                        // a Blob list builds text
-push(title, "score: ")                   // a String or Blob appends its bytes
-push(title, 42)                          // an Int, Float or Bool appends it as text
-pushByte(title, '!')                     // one raw byte
+pushAll(enemies, wave[:])                // many at once: a slice, array or list
+
+title: Blob[..32]                        // a Blob list is a text builder
+write(title, "score: ", 42, " x", 1.5)   // values as text; all or nothing
+push(title, '!')                         // push is always one element: here, one byte
 draw(String(title[:]))
 ```
 
-- **Builtins:** `push(list, x) -> Bool`, `pop`, `clear`, `len`, `cap`, `remove(list, i)`, `swapRemove(list, i)` and, for Blob lists, `pushByte`. A push that doesn't fit changes nothing and returns `false`; popping an empty list or removing past the end is a runtime error.
+- **Builtins:** `push(list, x) -> Bool` (one element), `pushAll(list, xs) -> Bool` (every element of a slice, array or list with the same element type; a `String` works for Blob lists), `pop`, `clear`, `len`, `cap`, `remove(list, i)` and `swapRemove(list, i)`. A push that doesn't fit changes nothing and returns `false`; popping an empty list or removing past the end is a runtime error.
+- **Text:** `write(b, ...) -> Bool` appends Strings, Blobs, Ints, Floats and Bools to a Blob list as text, formatted like `log` but without spaces between arguments. If any of it doesn't fit, the list is left as it was. `push(b, x)` on a Blob list adds the single byte `x`, just as on any other list.
 - **Views share the length:** a `[..]T` points at the list's length word, so pushing through any view changes the one real list. Assigning a list with `:=` also makes a view; use `[..N]T` explicitly for a separate copy.
 - **Storage rules match arrays:** `[..N]T` can't be a parameter or result (pass `[..]T`), it can be a struct field (inline), and like slices a `[..]T` can be stored in a struct only if the struct is global.
 - **Layout:** a 4-byte length followed by the N elements, contiguous like everything else.

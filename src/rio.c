@@ -31,7 +31,7 @@ enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN };
 enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
 enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR };
 enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2,
-  BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHBYTE };
+  BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_WRITE };
 #define NONE 0xFFFF
 #define TY(t) (&vm->c->type[t])
 #define TK (vm->c->tk)
@@ -41,7 +41,7 @@ typedef RioOp Op;
 static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue"};
 static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod",
-  "push", "pop", "clear", "cap", "remove", "swapRemove", "pushByte"};
+  "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "write"};
 static float f_sqrt(float x) { return sqrtf(x); }
 static float f_sin(float x) { return sinf(x); }
 static float f_cos(float x) { return cosf(x); }
@@ -102,6 +102,8 @@ NORET static void fail(Rio *vm, const char *m) {
   b[n] = 0;
   longjmp(vm->c->jb, 1);
 }
+/* an error about the current token itself, even when it starts a new line */
+NORET static void failtok(Rio *vm, const char *m) { TK.nl = 0; fail(vm, m); }
 
 /* ---------------------------------------------------------------- lexer */
 static int isal(int c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
@@ -546,7 +548,7 @@ static void reduce1(Rio *vm) {
 }
 static Ex ident(Rio *vm) {
   int i = lookup(vm, TK.s, TK.n); RioSym *y;
-  if (i < 0) fail(vm, "undefined name");
+  if (i < 0) failtok(vm, "undefined name");
   y = &vm->c->sym[i];
   switch (y->k) {
   case S_VAR: return mkex(EK_ST, y->t, y->v);
@@ -673,6 +675,26 @@ static void argdone(Rio *vm, Op *m) {
     vm->c->fr = (uint32_t)(m->fr0 + m->c); d = alloc(vm, w);
     if (s != d && !(w == 1 && retarget(vm, s, d))) emit(vm, w == 2 ? OP_MOV2 : OP_MOV, d, s, 0);
     m->c += w;
+  } else if (m->a == EK_BI && m->b == BI_WRITE) {
+    int k;
+    e = vpop(vm); k = TY(e.t)->k;
+    if (m->n == 0) { /* remember the length so a write that doesn't fit can be undone */
+      int t;
+      if ((k != K_LIST && k != K_BUILD) || TY(e.t)->elem != TY_BYTE) fail(vm, "write needs a Blob list");
+      m->c = toslot2(vm, &e); t = alloc(vm, 2);
+      emit(vm, OP_LDW, t, m->c, 0); emit(vm, OP_MOV, t + 1, kslot(vm, 1), 0);
+      m->set = (uint64_t)t;
+    } else {
+      int ok = (int)m->set + 1, s, d;
+      if ((k == K_SLICE || k == K_ARR) && TY(e.t)->elem == TY_BYTE) {
+        s = toslot2(vm, &e); d = alloc(vm, 1); emit(vm, OP_PUSHS, d, m->c, s); emitw(vm, 0, 1);
+      } else if (k == K_I32 || k == K_F32 || k == K_BOOL || k == K_BYTE) {
+        s = toslot(vm, &e, 1); d = alloc(vm, 1); emit(vm, OP_PUSHT, d, m->c, s);
+        vm->code[vm->pc - 1].x = (uint8_t)(k == K_F32 ? 1 : k == K_BOOL ? 2 : 0);
+      } else fail(vm, "write takes Strings, Blobs and numbers");
+      emit(vm, OP_AND, ok, ok, d);
+      vm->c->fr = e.t0;
+    }
   } else if (m->a == EK_BI && m->b == BI_LOG) {
     int k;
     e = vpop(vm); k = TY(e.t)->k;
@@ -729,7 +751,7 @@ static void minmax(Rio *vm, Op *m) {
   emit(vm, t == TY_I32 ? (mx ? OP_IMAX : OP_IMIN) : (mx ? OP_FMAX : OP_FMIN), d, s1, s2);
   vres(vm, mkex(EK_ST, t, d * 4), m->fr0);
 }
-/* push pop clear cap remove swapRemove pushByte */
+/* push pop clear cap remove swapRemove pushAll */
 static void listop(Rio *vm, Op *m) {
   static const signed char argc[] = {2, 1, 1, 1, 2, 2, 2};
   int id = m->b, k, el, b, d, s, sz, j; Ex *a = &vm->c->vs[m->vb], r = mkex(EK_VOID, TY_VOID, 0);
@@ -753,19 +775,19 @@ static void listop(Rio *vm, Op *m) {
   } else if (id == BI_REMOVE || id == BI_SWAPREMOVE) {
     coerce(vm, a + 1, TY_I32); s = toslot(vm, a + 1, 1);
     emit(vm, id == BI_REMOVE ? OP_LREM : OP_LSWAP, b, s, 0); emitw(vm, 0, (uint32_t)sz);
-  } else {
+  } else if (id == BI_PUSHALL) {
     Ex *x = a + 1; int xk;
     needval(vm, x); xk = TY(x->t)->k;
-    if (id == BI_PUSHBYTE && el != TY_BYTE) fail(vm, "pushByte needs a Blob list");
-    if (el == TY_BYTE && id == BI_PUSH) { /* Blob builders: bytes of a String/Blob, or numbers as text */
-      if ((xk == K_SLICE || xk == K_ARR) && TY(x->t)->elem == TY_BYTE) {
-        s = toslot2(vm, x); vm->c->fr = m->fr0; d = alloc(vm, 1); emit(vm, OP_PUSHS, d, b, s);
-      } else if (xk == K_I32 || xk == K_F32 || xk == K_BOOL || xk == K_BYTE) {
-        s = toslot(vm, x, 1); vm->c->fr = m->fr0; d = alloc(vm, 1); emit(vm, OP_PUSHT, d, b, s);
-        vm->code[vm->pc - 1].x = (uint8_t)(xk == K_F32 ? 1 : xk == K_BOOL ? 2 : 0);
-      } else fail(vm, "can only push a String, Blob or number onto a Blob list");
-      r = mkex(EK_ST, TY_BOOL, d * 4);
-    } else { /* reserve a slot (0 when full), store into it */
+    if (xk == K_LIST || xk == K_BUILD) { int b2 = toslot2(vm, x); s = alloc(vm, 2); emit(vm, OP_LVIEW, s, b2, 0); }
+    else if (xk == K_SLICE || xk == K_ARR) s = toslot2(vm, x);
+    else fail(vm, "pushAll needs a slice, array or list");
+    if (TY(x->t)->elem != el) fail(vm, "type mismatch");
+    vm->c->fr = m->fr0; d = alloc(vm, 1);
+    emit(vm, OP_PUSHS, d, b, s); emitw(vm, 0, (uint32_t)sz);
+    r = mkex(EK_ST, TY_BOOL, d * 4);
+  } else {
+    Ex *x = a + 1;
+    { /* reserve a slot (0 when full), store into it */
       Ex dst; int t = alloc(vm, 1);
       emit(vm, OP_PUSHA, t, b, 0); emitw(vm, 0, (uint32_t)sz);
       j = emit(vm, OP_JZ, t, 0, NONE);
@@ -820,7 +842,14 @@ static void finish_call(Rio *vm, Op *m) {
     if (f->ret == TY_VOID) vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0);
     else vres(vm, mkex(EK_ST, f->ret, alloc(vm, words(vm, f->ret)) * 4), m->fr0);
   } else if (m->a == EK_BI) {
-    if (m->b == BI_MIN || m->b == BI_MAX) minmax(vm, m); else if (m->b >= BI_PUSH) listop(vm, m); else builtin(vm, m);
+    if (m->b == BI_MIN || m->b == BI_MAX) minmax(vm, m);
+    else if (m->b == BI_WRITE) {
+      int t = (int)m->set, j;
+      if (m->n < 1) fail(vm, "write needs a Blob list");
+      j = emit(vm, OP_JNZ, t + 1, 0, NONE); emit(vm, OP_STW, m->c, t, 0); patch(vm, j, here(vm));
+      vm->c->fr = (uint32_t)t + 2; vres(vm, mkex(EK_ST, TY_BOOL, (t + 1) * 4), m->fr0);
+    } else if (m->b >= BI_PUSH) listop(vm, m);
+    else builtin(vm, m);
   } else cast(vm, m);
 }
 static void finish_lit(Rio *vm, Op *m) {
@@ -880,7 +909,7 @@ static Ex expr(Rio *vm) {
       else if ((t == ')' || t == '}') && vm->c->nos > ob && vm->c->os[vm->c->nos - 1].k == (t == ')' ? OK_CALL : OK_LIT) &&
                (t == '}' || vm->c->os[vm->c->nos - 1].n == 0) && vm->c->nvs == vm->c->os[vm->c->nos - 1].vb) {
         closer(vm, t, 0); depth--; next(vm); want = 0; continue;
-      } else fail(vm, "expected expression");
+      } else failtok(vm, "expected expression");
       vres(vm, e, t0); next(vm); want = 0;
       continue;
     }
@@ -961,7 +990,7 @@ static int parse_type(Rio *vm) {
     else pre[np++] = constexpr_i(vm);
     expect(vm, ']', "']' expected");
   }
-  if (TK.t != TK_ID || (i = lookup(vm, TK.s, TK.n)) < 0 || vm->c->sym[i].k != S_TYPE) fail(vm, "type expected");
+  if (TK.t != TK_ID || (i = lookup(vm, TK.s, TK.n)) < 0 || vm->c->sym[i].k != S_TYPE) failtok(vm, "type expected");
   t = vm->c->sym[i].t; next(vm);
   if (t == TY_BLOB && TK.t == '[' && !TK.nl) {
     next(vm);
@@ -1463,9 +1492,9 @@ static int run(Rio *vm, uint32_t pc) {
     ip += 2; DISPATCH();
   }
   CASE(PUSHS) {
-    uint32_t base = U(B), cap = U(B + 1), n = LLEN(B), p = U(C), k = U(C + 1);
-    if (k > cap - n) I(A) = 0; else { memmove(M + base + 4 + n, M + p, k); MV(base).u = n + k; I(A) = 1; }
-    NEXT();
+    uint32_t base = U(B), cap = U(B + 1), n = LLEN(B), p = U(C), k = U(C + 1), sz = SZ(ip[1]);
+    if (k > cap - n) I(A) = 0; else { memmove(M + base + 4 + n * sz, M + p, k * sz); MV(base).u = n + k; I(A) = 1; }
+    ip += 2; DISPATCH();
   }
   CASE(PUSHT) {
     char t[40]; uint32_t base = U(B), cap = U(B + 1), n = LLEN(B), k;

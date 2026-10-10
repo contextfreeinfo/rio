@@ -147,7 +147,7 @@ static void ins(int pc) {
     P("{ uint32_t b_ = %s, c_ = %s, n_ = rt_llen(b_, c_); if (n_ >= c_) %s = 0; else { MV(b_).u = n_ + 1; %s = b_ + 4u + n_ * %uu; } }\n",
       V(b, 'u'), V(b + 1, 'u'), V(a, 'u'), V(a, 'u'), sz(d));
     break;
-  case A_PUSHS: P("%s = rt_pushb(%s, %s, M + %s, %s);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), V(c, 'u'), V(c + 1, 'u')); break;
+  case A_PUSHS: P("%s = rt_pushb(%s, %s, M + %s, %s, %uu);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), V(c, 'u'), V(c + 1, 'u'), sz(d)); break;
   case A_PUSHT: P("%s = rt_pusht(%s, %s, %d, %s);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), x->x, V(c, 'v')); break;
   case A_POPA:
     P("{ uint32_t b_ = %s, n_ = rt_llen(b_, %s); if (!n_) rt_err(\"pop from empty list\"); MV(b_).u = --n_; %s = b_ + 4u + n_ * %uu; }\n",
@@ -220,13 +220,13 @@ static const char *prelude =
   "static inline void log_e(void) { fwrite(lb, 1, (size_t)ln, stdout); fputc('\\n', stdout); ln = 0; }\n"
   /* lists: a length word followed by the elements; views are (address, capacity) */
   "static inline uint32_t rt_llen(uint32_t a, uint32_t cap) { uint32_t n = MV(a).u; return n < cap ? n : cap; }\n"
-  "static inline int32_t rt_pushb(uint32_t a, uint32_t cap, const void *p, uint32_t k) {\n"
+  "static inline int32_t rt_pushb(uint32_t a, uint32_t cap, const void *p, uint32_t k, uint32_t sz) {\n"
   "  uint32_t n = rt_llen(a, cap); if (k > cap - n) return 0;\n"
-  "  memmove(M + a + 4 + n, p, k); MV(a).u = n + k; return 1;\n"
+  "  memmove(M + a + 4 + n * sz, p, k * sz); MV(a).u = n + k; return 1;\n"
   "}\n"
   "static inline int32_t rt_pusht(uint32_t a, uint32_t cap, int kind, RioVal v) {\n"
   "  char b[40]; int k = kind == 1 ? fmt_f(b, v.f) : kind == 2 ? sprintf(b, \"%s\", v.i ? \"true\" : \"false\") : sprintf(b, \"%d\", (int)v.i);\n"
-  "  return rt_pushb(a, cap, b, (uint32_t)k);\n"
+  "  return rt_pushb(a, cap, b, (uint32_t)k, 1);\n"
   "}\n"
   "static inline void rt_lrem(uint32_t a, uint32_t cap, uint32_t i, uint32_t sz, int swap) {\n"
   "  uint32_t n = rt_llen(a, cap); if (i >= n) rt_err(\"index out of bounds\");\n"
