@@ -53,7 +53,7 @@ Flag :: struct
   on: Bool
   n: Int
 end
-fl := Flag{true, 2}
+fl := Flag{on = true, n = 2}
 check(fl.on, "bool field")
 
 // ---- constants
@@ -113,8 +113,8 @@ Particle :: struct
 end
 parts: [100]Particle
 for i in 0..<len(parts)
-  parts[i].pos = Vec{Float(i), 0}
-  parts[i].vel = Vec{1, 2}
+  parts[i].pos = Vec{x = Float(i), y = 0}
+  parts[i].vel = Vec{x = 1, y = 2}
   parts[i].life = i
 end
 step :: proc(ps: []Particle, dt: Float)
@@ -130,20 +130,38 @@ step(parts[50:], 1)
 check(parts[49].life == 48 && parts[50].life == 48, "subslice")
 parts[3].tag[0] = 'Z'
 check(parts[3].tag[0] == 90 && len(parts[3].tag) == 4, "inline blob")
-v := Vec{3, 4}
+v := Vec{x = 3, y = 4}
 w := v
 w.x = 10
 check(v.x == 3 && w.x == 10, "struct copy semantics")
-partial := Particle{Vec{1, 1}}
+partial := Particle{pos = Vec{x = 1, y = 1}}
 check(partial.life == 0 && partial.vel.y == 0, "partial literal zeroes")
+yx := Vec{y = 5, x = 6}
+check(yx.x == 6 && yx.y == 5, "named fields in any order")
+mid := Particle{life = 3, pos = Vec{x = 1, y = 2},}
+check(mid.vel.x == 0 && mid.vel.y == 0 && mid.life == 3 && mid.pos.y == 2, "missing middle field zeroed, trailing comma")
+check(Vec{}.x == 0 && Vec{}.y == 0, "empty literal")
+for k in 0..<2
+  q := Particle{life = k, pos = Vec{x = 1, y = 1}}
+  if k == 0
+    q.vel = Vec{x = 9, y = 9}
+  else
+    check(q.vel.x == 0 && q.vel.y == 0 && q.life == 1, "literal zeroes stale slots")
+  end
+end
+// ordered init is just a helper proc
+vec :: proc(x: Float, y: Float) -> Vec
+  return Vec{x = x, y = y}
+end
+check(vec(7, 8).y == 8, "helper for ordered init")
 
 dot :: proc(a: Vec, b: Vec) -> Float
   return a.x * b.x + a.y * b.y
 end
 add :: proc(a: Vec, b: Vec) -> Vec
-  return Vec{a.x + b.x, a.y + b.y}
+  return Vec{x = a.x + b.x, y = a.y + b.y}
 end
-check(dot(v, Vec{1, 1}) == 7, "struct params")
+check(dot(v, Vec{x = 1, y = 1}) == 7, "struct params")
 r := add(v, add(v, v))
 check(r.x == 9 && r.y == 12, "struct return nested")
 check(add(v, v).y == 8, "field of call")
@@ -178,7 +196,7 @@ Named :: struct
   id: Int
 end
 people: [3]Named
-people[0] = Named{"ann", 1}
+people[0] = Named{name = "ann", id = 1}
 people[1].name = "bob"
 check(people[1].name == "bob" && len(people[0].name) == 3, "strings in global structs")
 
@@ -207,7 +225,7 @@ check(counter == 2, "globals from procs")
 
 // ---- locals inside procs (static frames; AOT turns these into C locals)
 scale2 :: proc(v: Vec, k: Float) -> Vec
-  return Vec{v.x * k, v.y * k}
+  return Vec{x = v.x * k, y = v.y * k}
 end
 locals :: proc(n: Int) -> Int
   arr: [8]Int
@@ -216,7 +234,7 @@ locals :: proc(n: Int) -> Int
   end
   view := arr[2:6]
   t := total(view)
-  v := Vec{1, 2}
+  v := Vec{x = 1, y = 2}
   w := scale2(v, 3)
   big: [32]Vec
   big[31] = w
@@ -227,7 +245,7 @@ locals :: proc(n: Int) -> Int
   for j < 3
     j += 1
   end
-  part := Particle{v, w, 5}
+  part := Particle{pos = v, vel = w, life = 5}
   part.tag[1] = 4
   return t + Int(q.x + q.y) + b[7] + j + part.life + part.tag[1]
 end

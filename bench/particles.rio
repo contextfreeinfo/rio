@@ -5,7 +5,7 @@ N :: 10000
 ps: [N]P
 main :: proc()
   for i in 0..<N
-    ps[i] = P{Float(i), 0, 1, Float(i % 7)}
+    ps[i] = P{x = Float(i), y = 0, vx = 1, vy = Float(i % 7)}
   end
   t := clock()
   for step in 0..<1000

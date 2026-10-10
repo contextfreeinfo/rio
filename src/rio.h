@@ -110,7 +110,7 @@ typedef struct { uint16_t pc, end, ret, p0, np, fs, fe; uint32_t retaddr; uint8_
 typedef struct { uint16_t t; uint32_t addr; } RioParam;
 typedef struct { uint16_t ret, p0, np; } RioCFfi;
 typedef struct { uint8_t k, ro; uint16_t t, t0; int32_t a, off; } RioEx;
-typedef struct { uint8_t k, prec; int16_t op; int32_t a, b, c, n; uint16_t vb, fr0; } RioOp;
+typedef struct { uint8_t k, prec; int16_t op; int32_t a, b, c, n; uint16_t vb, fr0; uint64_t set; } RioOp;
 typedef struct { uint8_t k; uint16_t nsym, nnames, nact, a, b, brk, cont, cj, i, lim; } RioBlk;
 typedef struct RioC {
   jmp_buf jb;
