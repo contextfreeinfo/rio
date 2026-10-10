@@ -39,6 +39,15 @@ static const Case cases[] = {
   {"v := 1\nh :: proc() -> Int\n  return &v\nend\n", 0, 0, 0, RIO_ECOMPILE, 3, -1, -1, "&x only goes to a & parameter"},
   {"v := 1\nw: Int = &v\n", 0, 0, 0, RIO_ECOMPILE, 2, -1, -1, "a reference takes its type from its place"},
   {"v := 1\nr* := &v\n", 0, 0, 0, RIO_ECOMPILE, 2, -1, -1, "a reference can't be exported"},
+  {"a: [3]Float\nb: [3]Float\ns: []Float = a + b\n", 0, 0, 0, RIO_ECOMPILE, 3, -1, -1, "a computed array has no home to view"},
+  {"a: [3]Float\nfor x in a + a\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, -1, -1, "a computed array has no home to view"},
+  {"a: [3]Float\nt := (a + a)[0:2]\n", 0, 0, 0, RIO_ECOMPILE, 2, -1, -1, "a computed array has no home to view"},
+  {"M :: struct\n  x: Float\n  n: Int\nend\nm: M\nm2 := m + m\n", 0, 0, 0, RIO_ECOMPILE, 6, -1, -1, "arrays and structs made of one number type"},
+  {"a: [3]Float\nb: [2]Float\nc := a + b\n", 0, 0, 0, RIO_ECOMPILE, 3, -1, -1, "type mismatch"},
+  {"a: [3]Float\ni := 1\nc := a * i\n", 0, 0, 0, RIO_ECOMPILE, 3, -1, -1, "type mismatch"},
+  {"a: [3]Float\nc := a % a\n", 0, 0, 0, RIO_ECOMPILE, 2, -1, -1, "integer operator on floats"},
+  {"a: [3]Float\nw := a == a\n", 0, 0, 0, RIO_ECOMPILE, 2, -1, -1, "only do + - * / %"},
+  {"a: [20]Float\nc := a + a\n", 0, 0, 0, RIO_ECOMPILE, 2, -1, -1, "too big for a temporary"},
   {"x := 1\nelse\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 4, "'else' without 'if'"},
   {"x := 1\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 3, "'end' without block"},
   {"x := 1\nreturn\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 6, "return outside proc"},
@@ -73,6 +82,7 @@ static const Case cases[] = {
   {"main :: proc()\n  a := 0\n  b := 5\n  log(b / a)\nend\n", 0, 0, 0, RIO_ERUNTIME, 4, 0, 0, "division by zero"},
   {"a: [3]Int\nn := 5\nb := a[1:n]\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "slice out of bounds"},
   {"xs: [2]Int\ni := 0\nfor xs[i] == 0\n  i += 1\nend\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "index out of bounds"}, /* rotated loop condition */
+  {"a: [3]Int\na[0] = 1\na[2] = 4\nb: [3]Int\nb[0] = 1\nb[2] = 1\nc := a / b\n", 0, 0, 0, RIO_ERUNTIME, 7, 0, 0, "division by zero"},
   {"main :: proc()\n  log(\"x\")\n  boom()\nend\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "the host said no"},
   /* errors with no source position */
   {"N :: 10\n", "N", "2.5", 0, RIO_ECOMPILE, 0, 0, 0, "-D N: value doesn't fit Int"},

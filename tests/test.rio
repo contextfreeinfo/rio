@@ -604,6 +604,70 @@ reflocal :: proc() -> Int
 end
 check(reflocal() == 112, "references to locals inside a proc")
 
+// ---- arithmetic on arrays and on structs made of one number type: element by element, scalars spread
+V2 :: struct
+  x, y: Float
+end
+Mover :: struct
+  pos, vel: V2
+end
+va: [3]Float
+vb: [3]Float
+for v, i in va
+  v = i.toFloat()
+  vb[i] = 10
+end
+vc := va + vb
+check(vc[0] == 10 && vc[2] == 12, "array + array")
+vd := (va + vb) * 2.0 - va / 2
+check(vd[0] == 20 && vd[1] == 21.5 && vd[2] == 23, "nested temporaries")
+ve := 1.0 - va
+check(ve[0] == 1 && ve[2] == -1, "scalar on the left")
+vf := -va
+check(vf[1] == -1 && vf[0] == 0, "unary minus")
+check((va + vb)[1] == 11, "indexing a computed array")
+u2 := V2{x = 1, y = 2}
+w2 := V2{x = 3, y = 4}
+s2 := u2 + w2 * 2
+check(s2.x == 7 && s2.y == 10, "structs, Int literal spread as Float")
+s2 -= u2
+s2 *= 0.5
+check(s2.x == 3 && s2.y == 4, "structs in place")
+mv: Mover = {pos = {x = 1, y = 1}, vel = {x = 2, y = 3}}
+mv.pos += mv.vel * 0.5
+check(mv.pos.x == 2 && mv.pos.y == 2.5, "a struct inside a struct")
+ia: [4]Int
+for v, i in ia
+  v = i * 3 - 4
+end
+iq := ia / 2
+ir := ia % 3
+check(iq[0] == -2 && iq[3] == 2 && ir[0] == -1 && ir[3] == 2, "Int / and %")
+ia *= -1
+check(ia[0] == 4 && ia[3] == -5, "Int in place")
+bigf: [100]Float
+bigf += 2.0
+bigf *= bigf
+check(bigf[0] == 4 && bigf[99] == 4, "big arrays in place")
+gr: [2][2]Int
+gr += 5
+check(gr[1][1] == 5 && gr[0][0] == 5, "nested arrays")
+movers: [3]Mover
+for m in movers
+  m.vel = {x = 1, y = 1}
+  m.pos += m.vel * 3
+end
+check(movers[2].pos.y == 3, "through a for-each element")
+vstep :: proc(v: V2, k: Float) -> V2
+  t := v * k + v
+  return -t
+end
+vo := vstep(u2, 2)
+check(vo.x == -3 && vo.y == -6, "inside a proc, and returned")
+vr := &mv.vel
+vr *= 2.0
+check(mv.vel.x == 4, "through a reference")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")

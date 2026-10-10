@@ -356,6 +356,8 @@ static int retarget(Rio *vm, int from, int to) {
 /* ---------------------------------------------------------------- expression values */
 static Ex mkex(int k, int t, int32_t a) { Ex e; e.k = (uint8_t)k; e.ro = 0; e.t = (uint16_t)t; e.t0 = 0; e.a = a; e.off = 0; return e; }
 #define RO_REF 4 /* Ex.ro: an &place, not yet given to a & parameter or name := &place */
+/* a value in the compiler's scratch slots (a call's or an expression's result), not a variable */
+static int istemp(Rio *vm, Ex *e) { return e->k == EK_ST && (uint32_t)e->a >= vm->c->nact * 4 && (uint32_t)e->a < vm->hi; }
 static void needval(Rio *vm, Ex *e) {
   if (e->k > EK_MEM) fail(vm, e->k == EK_VOID ? "no value" : "not a value");
   if (e->ro & RO_REF) fail(vm, "&x only goes to a & parameter or name := &x");
@@ -366,7 +368,7 @@ static void coerce(Rio *vm, Ex *e, int t) {
   et = vt(e->t); t = vt(t);
   if (e->k == EK_CONST && et == TY_I32 && t == TY_F32) { RioVal v; v.f = (float)e->a; e->a = v.i; e->t = TY_F32; return; }
   if (et == t) return;
-  if (TY(et)->k == K_ARR && TY(t)->k == K_SLICE && slice_of(vm, TY(et)->elem) == t) return;
+  if (TY(et)->k == K_ARR && TY(t)->k == K_SLICE && slice_of(vm, TY(et)->elem) == t) { if (istemp(vm, e)) fail(vm, "a computed array has no home to view: store it in a variable first"); return; }
   if (TY(et)->k == K_LIST && TY(t)->k == K_BUILD && TY(t)->elem == TY(et)->elem) return;
   fail(vm, "type mismatch");
 }
@@ -510,9 +512,11 @@ static void fold(Rio *vm, int op, Ex *l, Ex *r, int isf) {
   }
   l->a = c.i;
 }
+static void vecarith(Rio *vm, int op, Ex *l, Ex *r, Ex *into);
 static void binop(Rio *vm, int op, Ex *l, Ex *r) {
   int lt, rt, isf, cmp, o, ls, rs, d, sw = 0;
   needval(vm, l); needval(vm, r);
+  if (TY(l->t)->k == K_ARR || TY(l->t)->k == K_STRUCT || TY(r->t)->k == K_ARR || TY(r->t)->k == K_STRUCT) { vecarith(vm, op, l, r, 0); return; }
   lt = vt(l->t); rt = vt(r->t);
   if (l->k == EK_CONST && lt == TY_I32 && rt == TY_F32) { coerce(vm, l, TY_F32); lt = TY_F32; }
   if (r->k == EK_CONST && rt == TY_I32 && lt == TY_F32) { coerce(vm, r, TY_F32); rt = TY_F32; }
@@ -547,13 +551,66 @@ static void binop(Rio *vm, int op, Ex *l, Ex *r) {
   emit(vm, o, d, ls, rs);
   l->k = EK_ST; l->a = d * 4; l->t = (uint16_t)(cmp ? TY_BOOL : lt); l->ro = 0; l->t0 = (uint16_t)d;
 }
+/* an array or struct made of one number type (Int or Float, any array nesting): that type, and
+   how many numbers in *n; 0 if t is anything else */
+static int vecinfo(Rio *vm, int t, int *n) {
+  RioType *ty = TY(t); uint32_t c = 1; int k, i;
+  if (ty->k != K_ARR && ty->k != K_STRUCT) return 0;
+  while (ty->k == K_ARR) { c *= ty->n; ty = TY(ty->elem); }
+  k = ty->k;
+  if (k == K_STRUCT) {
+    RioField *f = &vm->c->field[ty->f0];
+    if (!ty->nf || ty->size != ty->nf * 4u) return 0;
+    k = TY(f[0].t)->k;
+    for (i = 1; i < ty->nf; i++) if (TY(f[i].t)->k != k) return 0;
+    c *= ty->nf;
+  }
+  if (k != K_I32 && k != K_F32) return 0;
+  *n = (int)c;
+  return k == K_F32 ? TY_F32 : TY_I32;
+}
+/* l op r element by element, either side may be a scalar (used for every element); the result
+   goes into `into` (a op= b), else into a temporary that replaces l */
+static void vecarith(Rio *vm, int op, Ex *l, Ex *r, Ex *into) {
+  int ln = 0, rn = 0, le, re, et, n, x, o, ls, rs, da, d = 0, t;
+  needval(vm, l); needval(vm, r);
+  le = vecinfo(vm, l->t, &ln); re = vecinfo(vm, r->t, &rn);
+  if (!le && !re) fail(vm, "arithmetic needs numbers, or arrays and structs made of one number type");
+  t = le ? l->t : r->t; et = le ? le : re; n = le ? ln : rn;
+  if (le && re) { if (l->t != r->t) fail(vm, "type mismatch"); }
+  else {
+    Ex *s = le ? r : l;
+    if (s->k == EK_CONST && vt(s->t) == TY_I32 && et == TY_F32) coerce(vm, s, TY_F32);
+    if (vt(s->t) != et) fail(vm, "type mismatch");
+  }
+  x = op == '+' ? 0 : op == '-' ? 1 : op == '*' ? 2 : op == '/' ? 3 : op == '%' ? 4 : -1;
+  if (x < 0) fail(vm, "arrays and number structs only do + - * / %");
+  if (x == 4 && et == TY_F32) fail(vm, "integer operator on floats");
+  o = (et == TY_F32 ? OP_FVADD : OP_VADD) + x;
+  x = (le ? 0 : 16) | (re ? 0 : 32);
+  ls = le ? toaddr(vm, l) : toslot(vm, l, 1);
+  rs = re ? toaddr(vm, r) : toslot(vm, r, 1);
+  if (into) da = into == l ? ls : toaddr(vm, into); /* a op= b: l is the target */
+  else { /* at or below every operand's temporaries: safe, since elements are done in order */
+    if (n > 16) fail(vm, "too big for a temporary: change it in place with += -= *= /=");
+    vm->c->fr = l->t0 < r->t0 ? l->t0 : r->t0; d = alloc(vm, n);
+    da = kaddr(vm, (uint32_t)d * 4, (uint32_t)n * 4);
+  }
+  emit(vm, o, da, ls, rs); vm->code[vm->pc - 1].x = (uint8_t)x; emitw(vm, 0, (uint32_t)n);
+  if (!into) { l->k = EK_ST; l->a = d * 4; l->off = 0; l->t = (uint16_t)t; l->ro = 0; l->t0 = (uint16_t)d; }
+}
 static void unop(Rio *vm, int op, Ex *e) {
   int t, s, d;
   needval(vm, e);
   if (op == '&') {
-    if (e->k == EK_CONST || e->ro || (e->k == EK_ST && (e->a < (int32_t)vm->kcap * 4 || ((uint32_t)e->a >= vm->c->nact * 4 && (uint32_t)e->a < vm->hi))))
+    if (e->k == EK_CONST || e->ro || (e->k == EK_ST && (e->a < (int32_t)vm->kcap * 4 || istemp(vm, e))))
       fail(vm, "& needs a variable, field or element that can be changed");
     e->ro = RO_REF;
+    return;
+  }
+  if (op == '-' && (t = vecinfo(vm, e->t, &s)) != 0) { /* -v is 0 - v */
+    Ex z = mkex(EK_CONST, t, 0); z.t0 = e->t0;
+    vecarith(vm, '-', &z, e, 0); *e = z;
     return;
   }
   t = vt(e->t);
@@ -751,6 +808,7 @@ static void doslice(Rio *vm, Ex *o, Ex *lo, Ex *hi) {
     *o = mkex(EK_ST, slice_of(vm, ty->elem), v * 4); o->t0 = (uint16_t)t0; ty = TY(o->t);
   }
   if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "cannot slice this");
+  if (ty->k == K_ARR && istemp(vm, o)) fail(vm, "a computed array has no home to view: store it in a variable first");
   if (vt(lo->t) != TY_I32 || (hi->k != EK_LEN && vt(hi->t) != TY_I32)) fail(vm, "slice bounds must be Int");
   s = toslot2(vm, o); l = toslot(vm, lo, 1); h = hi->k == EK_LEN ? s + 1 : toslot(vm, hi, 1);
   vm->c->fr = o->t0; d = alloc(vm, 2);
@@ -1281,7 +1339,7 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
   int has = pe != 0, k, big; uint32_t addr; RioType *ty; Ex e = has ? *pe : mkex(EK_VOID, TY_VOID, 0);
   if (has) {
     needval(vm, &e);
-    if (t < 0) { t = vt(e.t); if (TY(t)->k == K_ARR) t = slice_of(vm, TY(t)->elem); else if (TY(t)->k == K_LIST) t = build_of(vm, TY(t)->elem); }
+    if (t < 0) { t = vt(e.t); if (TY(t)->k == K_ARR && !istemp(vm, &e)) t = slice_of(vm, TY(t)->elem); else if (TY(t)->k == K_LIST) t = build_of(vm, TY(t)->elem); }
     coerce(vm, &e, t);
   }
   ty = TY(t); k = ty->k;
@@ -1294,7 +1352,7 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
       int s = k == K_SLICE || k == K_BUILD ? toslot2(vm, &e) : toslot(vm, &e, 1);
       e.k = EK_ST; e.a = s * 4; e.t = (uint16_t)t;
     }
-    if (adopt && has && e.k == EK_ST && e.a == (int32_t)vm->c->nact * 4 && !e.ro && k != K_ARR) {
+    if (adopt && has && e.k == EK_ST && e.a == (int32_t)vm->c->nact * 4 && !e.ro) {
       vm->c->nact += (uint32_t)words(vm, t); vm->c->fr = vm->c->nact;
       addsym(vm, ns, nn, S_VAR, t, e.a);
       return;
@@ -1380,7 +1438,9 @@ static void stmt_expr(Rio *vm) {
   if (TK.t == '=') { next(vm); vm->c->target = l.t; r = expr(vm); store(vm, &l, &r); return; }
   {
     int op = TK.op, k = TY(l.t)->k;
-    next(vm); cur = l;
+    next(vm);
+    if (k == K_ARR || k == K_STRUCT) { r = expr(vm); vecarith(vm, op, &l, &r, &l); return; }
+    cur = l;
     if (!(l.k == EK_ST && (k == K_I32 || k == K_F32) && l.a < 0x40000)) {
       int s = toslot(vm, &cur, 0);
       cur = mkex(EK_ST, vt(l.t), s * 4); cur.t0 = (uint16_t)s;
@@ -1595,6 +1655,7 @@ static void statement(Rio *vm) {
           e = mkex(EK_ST, slice_of(vm, ty->elem), v * 4); ty = TY(e.t);
         }
         if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "for needs a range, array, slice or list");
+        if (ty->k == K_ARR && istemp(vm, &e)) fail(vm, "a computed array has no home to view: store it in a variable first");
         sz = (int)TY(ty->elem)->size; ro = e.ro || e.t == TY_STR;
         s = toslot2(vm, &e);
         emit(vm, OP_MOV, iv, s, 0);
@@ -2127,6 +2188,24 @@ static int run(Rio *vm, uint32_t pc) {
   }
   CASE(COPY) memmove(M + I(A), M + I(B), C); NEXT();
   CASE(ZERO) memset(M + I(A), 0, SZ(*ip)); NEXT();
+/* n numbers d[i] = l[i] op r[i]; x: 16 l is a scalar, 32 r is a scalar (the value itself, read once:
+   it steps by 0), else l and r are addresses */
+#define VLOOP(body) { \
+    RioVal lv_ = R[B], rv_ = R[C], *D_ = &MV(U(A)), *L_ = ip->x & 16 ? &lv_ : &MV(lv_.u), *Q_ = ip->x & 32 ? &rv_ : &MV(rv_.u); \
+    uint32_t n_ = SZ(ip[1]), i_, la_ = ip->x & 16 ? 0 : 1, ra_ = ip->x & 32 ? 0 : 1; \
+    for (i_ = 0; i_ < n_; i_++) body; \
+    ip += 2; DISPATCH(); }
+#define VL L_[i_ * la_]
+#define VR Q_[i_ * ra_]
+  CASE(VADD) VLOOP(D_[i_].u = VL.u + VR.u)
+  CASE(VSUB) VLOOP(D_[i_].u = VL.u - VR.u)
+  CASE(VMUL) VLOOP(D_[i_].u = VL.u * VR.u)
+  CASE(VDIV) VLOOP({ int32_t y = VR.i; if (!y) return rterr(vm, "division by zero", (uint32_t)(ip - code)); D_[i_].i = y == -1 ? (int32_t)(0u - VL.u) : VL.i / y; })
+  CASE(VMOD) VLOOP({ int32_t y = VR.i; if (!y) return rterr(vm, "division by zero", (uint32_t)(ip - code)); D_[i_].i = y == -1 ? 0 : VL.i % y; })
+  CASE(FVADD) VLOOP(D_[i_].f = VL.f + VR.f)
+  CASE(FVSUB) VLOOP(D_[i_].f = VL.f - VR.f)
+  CASE(FVMUL) VLOOP(D_[i_].f = VL.f * VR.f)
+  CASE(FVDIV) VLOOP(D_[i_].f = VL.f / VR.f)
 #define LLEN(s) (MV(U(s)).u < U((s) + 1) ? MV(U(s)).u : U((s) + 1)) /* list length, never above capacity */
   CASE(LIDX) {
     uint32_t i = U(C);
