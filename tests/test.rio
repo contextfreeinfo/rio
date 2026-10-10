@@ -707,6 +707,42 @@ swl :: proc() -> Float
 end
 check(swl() == 3, "inside a proc")
 
+// ---- small arrays are values: x := a copies, and up to 16 words they pass and return by value
+flipx :: proc(v: [2]Float) -> [2]Float
+  v.x = -v.x                      // the parameter is a copy
+  return v.yx
+end
+fa: [2]Float
+fa.x = 1
+fa.y = 2
+fb := fa
+fb.x = 9
+check(fa.x == 1 && fb.x == 9, "x := array copies")
+fr := flipx(fa)
+check(fr.x == 2 && fr.y == -1 && fa.x == 1, "arrays pass and return by value")
+fgrid: [3][2]Float
+fgrid[1] = fa
+frow := fgrid[1]
+frow.y = 7
+check(fgrid[1].y == 2 && frow.y == 7, "copying one row")
+fview: []Float = fa
+fview[0] = 5
+check(fa.x == 5, "x: []T = array is a view")
+fbig: [100]Int
+fbig[3] = 4
+fcopy: [100]Int = fbig
+fcopy[3] = 1
+fbv := fbig[:]
+fbv[3] = 6
+check(fbig[3] == 6 && fcopy[3] == 1, "a big array: copy with a written type, view with [:]")
+bump4 :: proc(m: [4][4]Float) -> [4][4]Float
+  m[0][0] += 1
+  return m
+end
+fm: [4][4]Float
+fm2 := bump4(fm)
+check(fm[0][0] == 0 && fm2[0][0] == 1, "16 words is still small")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")

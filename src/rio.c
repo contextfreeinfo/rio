@@ -20,6 +20,10 @@
 #define OPENUM(o) OP_##o,
 enum { OPS(OPENUM) OP_DATA = 255 };
 #define OP_LASTDST OP_FMAX /* ops up to here write one scalar to slot a */
+/* small values: up to this many words, an array or struct lives in slots and is copied without being
+   asked (x := v, by-value params and returns, array arithmetic temporaries); bigger ones need &T, []T or
+   a written type */
+#define SMALLW 16
 
 enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, TK_ELSE, TK_FOR, TK_IN,
   TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_IMPORT, TK_INCLUDE, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND,
@@ -592,7 +596,7 @@ static void vecarith(Rio *vm, int op, Ex *l, Ex *r, Ex *into) {
   rs = re ? toaddr(vm, r) : toslot(vm, r, 1);
   if (into) da = into == l ? ls : toaddr(vm, into); /* a op= b: l is the target */
   else { /* at or below every operand's temporaries: safe, since elements are done in order */
-    if (n > 16) fail(vm, "too big for a temporary: change it in place with += -= *= /=");
+    if (n > SMALLW) fail(vm, "too big for a temporary (over 16 words): change it in place with += -= *= /=");
     vm->c->fr = l->t0 < r->t0 ? l->t0 : r->t0; d = alloc(vm, n);
     da = kaddr(vm, (uint32_t)d * 4, (uint32_t)n * 4);
   }
@@ -1275,7 +1279,7 @@ static int namelist(Rio *vm, const char **ns, int *nl) {
   expect(vm, ':', "':' expected");
   return c;
 }
-static int isbig(RioType *ty) { return (ty->k == K_ARR || ty->k == K_STRUCT || ty->k == K_LIST) && ty->size > 64; }
+static int isbig(RioType *ty) { return (ty->k == K_ARR || ty->k == K_STRUCT || ty->k == K_LIST) && ty->size > SMALLW * 4; }
 static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   RioCFunc *f; RioBlk *b; int fi, skip;
   if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "procs must be top-level");
@@ -1300,8 +1304,9 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
     RioType *ty;
     if (isref) next(vm);
     t = parse_type(vm); ty = TY(t);
-    if (ty->k == K_VOID || (!isref && (ty->k == K_ARR || ty->k == K_LIST || (ty->k == K_STRUCT && ty->ref))))
-      fail(vm, "invalid parameter type (pass arrays as []T or &[N]T, lists as [..]T)");
+    if (ty->k == K_VOID || (!isref && (ty->k == K_LIST || ((ty->k == K_STRUCT || ty->k == K_ARR) && ty->ref))))
+      fail(vm, "invalid parameter type (pass lists as [..]T)");
+    if (!isref && isbig(ty)) fail(vm, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
     for (j = 0; j < c; j++) { /* a & parameter is one word holding the address, read through like self */
       int addr = alloc(vm, isref ? 1 : words(vm, t)) * 4;
       if (vm->c->nparam >= (int)vm->c->lim.params) fail(vm, "too many parameters");
@@ -1316,7 +1321,8 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   if (TK.t == TK_ARROW) {
     RioType *ty;
     next(vm); f->ret = (uint16_t)parse_type(vm); ty = TY(f->ret);
-    if (ty->k == K_ARR || ty->k == K_LIST || (ty->k == K_STRUCT && ty->ref)) fail(vm, "invalid return type");
+    if (ty->k == K_LIST || ((ty->k == K_ARR || ty->k == K_STRUCT) && ty->ref)) fail(vm, "invalid return type");
+    if (isbig(ty)) fail(vm, "a big value (over 16 words) can't be returned: fill in a &T parameter instead");
     f->retaddr = (uint32_t)alloc(vm, words(vm, f->ret)) * 4;
   }
   vm->c->nact = vm->c->fr; vm->c->curfn = fi; f->pc = (uint16_t)here(vm);
@@ -1363,7 +1369,13 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
   int has = pe != 0, k, big; uint32_t addr; RioType *ty; Ex e = has ? *pe : mkex(EK_VOID, TY_VOID, 0);
   if (has) {
     needval(vm, &e);
-    if (t < 0) { t = vt(e.t); if (TY(t)->k == K_ARR && !istemp(vm, &e)) t = slice_of(vm, TY(t)->elem); else if (TY(t)->k == K_LIST) t = build_of(vm, TY(t)->elem); }
+    if (t < 0) {
+      t = vt(e.t);
+      if (TY(t)->k == K_LIST) t = build_of(vm, TY(t)->elem);
+      else if (isbig(TY(t)) && !istemp(vm, &e))
+        fail(vm, TY(t)->k == K_ARR ? "this copies a big array (over 16 words): write its type to copy it (x: [N]T = a), or view it with a[:]"
+                                   : "this copies a big struct (over 16 words): write its type to copy it (x: T = s), or use &s");
+    }
     coerce(vm, &e, t);
   }
   ty = TY(t); k = ty->k;
@@ -1384,7 +1396,7 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
     addr = (uint32_t)alloc(vm, words(vm, t)) * 4;
   }
   if (has) { Ex d = mkex(EK_ST, t, (int32_t)addr); store(vm, &d, &e); }
-  else if (!big && addr < 0x40000 && ty->size <= 64) { int w; for (w = 0; w < words(vm, t); w++) emit(vm, OP_MOV, (int)(addr >> 2) + w, kslot(vm, 0), 0); }
+  else if (!big && addr < 0x40000) { int w; for (w = 0; w < words(vm, t); w++) emit(vm, OP_MOV, (int)(addr >> 2) + w, kslot(vm, 0), 0); }
   else if (!(big && vm->c->curfn < 0 && !vm->c->nblk)) emit(vm, OP_ZERO, kaddr(vm, addr, ty->size), (int)(ty->size & 0xFFFF), (int)(ty->size >> 16));
   if (!big) vm->c->nact = vm->c->fr; /* after the store, so it can still write straight into the variable */
   addsym(vm, ns, nn, S_VAR, t, (int32_t)addr);
