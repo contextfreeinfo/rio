@@ -4,7 +4,7 @@ A tiny, statically typed, embeddable scripting language. It's written in C99; th
 
 - Odin-like syntax, with blocks closed by `end`
 - Static types, inferred from the right-hand side
-- Types: `i32`, `f32`, `bool`, `string`, `blob`, structs, slices (`[]T`), and fixed arrays (`[N]T`, stored as contiguous structs)
+- Types: `Int` (i32), `Float` (f32), `Bool`, `String`, `Blob`, structs, slices (`[]T`), and fixed arrays (`[N]T`, stored as contiguous structs)
 - **No dynamic allocation.** You give it one memory buffer and one code buffer; the compiler and VM never call `malloc`
 - **No recursion**, either in the implementation (the parser uses explicit stacks) or in the language. Because procs can't recurse, each proc gets one static frame, and bytecode operands are absolute slots, so there is no stack and no frame pointer
 - A register VM with typed opcodes, fused compare-and-branch, fused index+load/store, and bottom-tested loops. It uses computed goto on GCC/Clang and `switch` elsewhere
@@ -34,21 +34,21 @@ NAME :: "rio"
 
 // structs: fields are laid out contiguously
 Vec :: struct
-  x, y: f32
+  x, y: Float
 end
 Particle :: struct
   pos, vel: Vec
-  life: i32
-  tag: blob[8]          // inline 8 bytes
+  life: Int
+  tag: Blob[8]          // inline 8 bytes
 end
 
 parts: [N]Particle      // global storage: one contiguous block
-count := 0              // inferred i32
-ready := false          // bool
-scale : f32 = 2         // int literal coerces to f32
+count := 0              // inferred Int
+ready := false          // Bool
+scale : Float = 2       // Int literal coerces to Float
 
 // procs: must be defined before use, so recursion is impossible
-step :: proc(ps: []Particle, dt: f32)
+step :: proc(ps: []Particle, dt: Float)
   for i in 0..<len(ps)
     ps[i].vel.y -= GRAVITY * dt
     ps[i].pos.x += ps[i].vel.x * dt
@@ -56,13 +56,13 @@ step :: proc(ps: []Particle, dt: f32)
   end
 end
 
-length :: proc(v: Vec) -> f32
+length :: proc(v: Vec) -> Float
   return sqrt(v.x * v.x + v.y * v.y)
 end
 
 main :: proc()
   for i in 0..<N
-    parts[i] = Particle{Vec{f32(i), 0}, Vec{1, 0}, 100}
+    parts[i] = Particle{Vec{Float(i), 0}, Vec{1, 0}, 100}
   end
   step(parts, 0.016)              // [N]T converts to []T
   step(parts[10:20], 0.016)       // sub-slice (bounds-checked)
@@ -90,11 +90,11 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 **Rules that keep it small and safe**
 
 - Values are copied: assigning or passing a struct copies it, and slices are views (address, length).
-- Strings are read-only byte views. A `blob` is a writable byte view, and `string(b)` turns a blob into a string.
+- A `String` is a read-only byte view. A `Blob` is a writable byte view, and `String(b)` turns a `Blob` into a `String`.
 - A struct or array that contains slices or strings must be a **global**. It can't be a local, a parameter, or a return value. Slices themselves can be locals and parameters.
 - Every index and slice is bounds-checked at runtime. Integer arithmetic wraps, and integer division by zero is a runtime error.
-- There are no implicit conversions between `i32` and `f32` except for literals. Use `f32(x)` and `i32(x)` (which truncates).
-- `bool` is its own type. Comparisons and `! && ||` produce `bool`, and `if`/`for` conditions must be `bool` (`if n` is an error; write `if n != 0`). `true` and `false` are literals, and `i32(b)` (gives 0 or 1) and `bool(n)` (`n != 0`) convert between the two.
+- There are no implicit conversions between `Int` and `Float` except for literals. Use `Float(x)` and `Int(x)` (which truncates).
+- `Bool` is its own type. Comparisons and `! && ||` produce `Bool`, and `if`/`for` conditions must be `Bool` (`if n` is an error; write `if n != 0`). `true` and `false` are literals, and `Int(b)` (gives 0 or 1) and `Bool(n)` (`n != 0`) convert between the two.
 - Statements end at a newline (`;` also works). Inside brackets, an expression can span several lines.
 
 **Operators:** `+ - * / % & | ^ << >> == != < <= > >= && || ! ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`.
@@ -117,9 +117,9 @@ rio -D N=20 -D SCALE=3 -D NAME=custom -D DEBUG game.rio
 rio -c game.c -D N=20 game.rio          # works for the C backend too
 ```
 
-- The value is parsed as the declared constant's type: `-D SCALE=3` gives `3.0`, `-D N=0x10` works for an `i32`, and a `bool` accepts `true`/`false`/`0`/`1`. A bare `-D DEBUG` means `true`. Strings take the text as-is (surrounding quotes are optional).
-- A define the script never declares is still usable, with its type inferred from the text (`7` → i32, `6.28` → f32, `true` or bare → bool, anything else → string). The script then won't compile without it, just as in C.
-- Only top-level `::` constants are overridden. A value that doesn't fit the declared type is a compile error, e.g. `-D N: value doesn't fit i32`.
+- The value is parsed as the declared constant's type: `-D SCALE=3` gives `3.0`, `-D N=0x10` works for an `Int`, and a `Bool` accepts `true`/`false`/`0`/`1`. A bare `-D DEBUG` means `true`. Strings take the text as-is (surrounding quotes are optional).
+- A define the script never declares is still usable, with its type inferred from the text (`7` → `Int`, `6.28` → `Float`, `true` or bare → `Bool`, anything else → `String`). The script then won't compile without it, just as in C.
+- Only top-level `::` constants are overridden. A value that doesn't fit the declared type is a compile error, e.g. `-D N: value doesn't fit Int`.
 - From C, call `rio_define(vm, "N", "20")` before `rio_compile`.
 
 ## Embedding
@@ -146,7 +146,7 @@ float r = rio_ret(&vm, f)->f;          // if it returns something
 int *score = rio_global(&vm, "score"); // direct access to globals
 ```
 
-String or blob FFI arguments take two words (address, length); use `rio_ptr(vm, &a[i])` to get the bytes. An FFI function can abort the script with `rio_trap(vm, "msg")`. FFI functions must not call back into the VM.
+`String` or `Blob` FFI arguments take two words (address, length); use `rio_ptr(vm, &a[i])` to get the bytes. An FFI function can abort the script with `rio_trap(vm, "msg")`. FFI functions must not call back into the VM.
 
 You can change the limits (symbols, procs, constants and so on) with `-DRIO_MAX_...`. See `rio.h`.
 
@@ -200,7 +200,7 @@ These are from `bench/`, comparing against Lua 5.5 on the same Windows machine. 
 
 - **VM:** about 3–4× faster than Lua here. On Linux with a faster Lua build, particles measured 0.29s vs 0.59s, about 2×, so expect roughly 2–4× depending on the Lua build. The speed comes from static types (no tag checks), absolute-slot operands (static frames), constants preloaded in memory, compare-and-branch fusion, fused index+load/store, bottom-tested `while` loops, a dedicated `for` loop op, and destination retargeting that removes most moves.
 - **AOT:** sieve is about 3.5× faster than the VM. The other three run in milliseconds because the C compiler can see through those loops entirely (inlining, vectorizing, or folding them), so treat them as an upper bound rather than typical.
-- The particles sums differ from Lua only because rio floats are f32: Lua with f32 rounding emulated gives the identical 43926.92.
+- The particles sums differ from Lua only because rio's `Float` is f32: Lua with f32 rounding emulated gives the identical 43926.92.
 - `switch` dispatch on MSVC is sensitive to code layout. The same VM source has measured 0.34s or 0.65s on `calls` depending only on how unrelated code changes shifted the build. The cause hasn't been pinned down, so expect build-to-build variation with MSVC; ClangCL (see Build) avoids it.
 
 ## Layout

@@ -394,7 +394,7 @@ static int invjump(RioIns *i) {
 }
 static int condjump(Rio *vm, Ex *e) {
   needval(vm, e);
-  if (e->t != TY_BOOL) fail(vm, "condition must be bool");
+  if (e->t != TY_BOOL) fail(vm, "condition must be Bool");
   if (e->k == EK_CONST) return e->a ? NONE : emit(vm, OP_JMP, 0, 0, NONE);
   if (e->k == EK_ST && e->a < 0x40000 && (e->a >> 2) >= (int)vm->c->nact && vm->pc && vm->c->lastlabel != vm->pc) {
     RioIns *i = &vm->code[vm->pc - 1];
@@ -522,7 +522,7 @@ static void reduce1(Rio *vm) {
   {
     int s, d = o.b;
     needval(vm, &r);
-    if (r.t != TY_BOOL) fail(vm, "expected bool");
+    if (r.t != TY_BOOL) fail(vm, "expected Bool");
     s = toslot(vm, &r, 1);
     vm->c->fr = (uint32_t)d + 1;
     if (s != d && !retarget(vm, s, d)) emit(vm, OP_MOV, d, s, 0);
@@ -578,7 +578,7 @@ static Ex defval(Rio *vm, int di, int t) {
   }
   {
     int m = cat(vm->err, 0, "-D "); m = cat(vm->err, m, name); m = cat(vm->err, m, ": value doesn't fit ");
-    m = cat(vm->err, m, t == TY_I32 ? "i32" : t == TY_F32 ? "f32" : "bool"); vm->err[m] = 0;
+    m = cat(vm->err, m, t == TY_I32 ? "Int" : t == TY_F32 ? "Float" : "Bool"); vm->err[m] = 0;
     longjmp(vm->c->jb, 1);
   }
 }
@@ -598,7 +598,7 @@ static void doindex(Rio *vm, Ex *o, Ex *i) {
   RioType *ty; int el, sz, s, ix, d, ro;
   needval(vm, o); needval(vm, i); ty = TY(o->t);
   if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "cannot index this");
-  if (vt(i->t) != TY_I32) fail(vm, "index must be i32");
+  if (vt(i->t) != TY_I32) fail(vm, "index must be Int");
   el = ty->elem; sz = (int)TY(el)->size; ro = o->ro || o->t == TY_STR;
   if (ty->k == K_ARR && o->k == EK_ST && i->k == EK_CONST) {
     if ((uint32_t)i->a >= ty->n) fail(vm, "index out of bounds");
@@ -614,7 +614,7 @@ static void doslice(Rio *vm, Ex *o, Ex *lo, Ex *hi) {
   RioType *ty; int s, l, h, d;
   needval(vm, o); ty = TY(o->t);
   if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "cannot slice this");
-  if (vt(lo->t) != TY_I32 || (hi->k != EK_LEN && vt(hi->t) != TY_I32)) fail(vm, "slice bounds must be i32");
+  if (vt(lo->t) != TY_I32 || (hi->k != EK_LEN && vt(hi->t) != TY_I32)) fail(vm, "slice bounds must be Int");
   s = toslot2(vm, o); l = toslot(vm, lo, 1); h = hi->k == EK_LEN ? s + 1 : toslot(vm, hi, 1);
   vm->c->fr = o->t0; d = alloc(vm, 2);
   emit(vm, OP_SLICE, d, s, l); emitw(vm, h, TY(ty->elem)->size);
@@ -831,7 +831,7 @@ static Ex expr(Rio *vm) {
       if (t == TK_AND || t == TK_OR) {
         Ex *l = vtop(vm); int s, d; Op *o;
         needval(vm, l);
-        if (l->t != TY_BOOL) fail(vm, "expected bool");
+        if (l->t != TY_BOOL) fail(vm, "expected Bool");
         s = toslot(vm, l, 1); vm->c->fr = l->t0; d = alloc(vm, 1);
         if (s != d) emit(vm, OP_MOV, d, s, 0);
         o = opush(vm, t == TK_AND ? OK_AND : OK_OR, p, t);
@@ -1120,7 +1120,7 @@ uint32_t rio_scratch_min(void) { return (uint32_t)sizeof(RioC) + 16; }
 static void setup(Rio *vm) {
   static const uint8_t tk[] = {K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_SLICE, K_BOOL};
   static const uint8_t ts[] = {0, 4, 4, 1, 8, 8, 4};
-  static const char *tn[] = {"i32", "f32", "string", "blob", "bool"};
+  static const char *tn[] = {"Int", "Float", "String", "Blob", "Bool"};
   RioC *c = vm->c; int i;
   c->nact = c->fr = c->hwm = RIO_MAX_CONSTS; c->curfn = -1; c->lastlabel = NONE;
   for (i = 0; i < 7; i++) { c->type[i].k = tk[i]; c->type[i].size = ts[i]; c->type[i].elem = TY_BYTE; c->type[i].ref = i == TY_STR || i == TY_BLOB; }

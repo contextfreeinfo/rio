@@ -1,7 +1,7 @@
 // rio test suite: prints "FAIL" on any failed check (ctest watches for it)
 
 fails := 0
-check :: proc(ok: bool, what: string)
+check :: proc(ok: Bool, what: String)
   if !ok
     log("FAIL:", what)
     fails += 1
@@ -19,11 +19,11 @@ check((a << 2) == 28 && (-16 >> 2) == -4, "shifts")
 check((a & 3) == 3 && (a | 8) == 15 && (a ^ 1) == 6, "bitops")
 check(0x7fffffff + 1 == -2147483647 - 1, "wraparound")
 x := 1.5
-y : f32 = 2
+y : Float = 2
 check(x * y == 3.0, "float mul")
 check(x + 1 == 2.5, "const coercion")
-check(f32(a) / 2 == 3.5, "itof")
-check(i32(3.9) == 3 && i32(-3.9) == -3, "ftoi")
+check(Float(a) / 2 == 3.5, "itof")
+check(Int(3.9) == 3 && Int(-3.9) == -3, "ftoi")
 c := 10
 c += 5
 c -= 1
@@ -34,24 +34,24 @@ check(1 < 2 && 2 <= 2 && 3 > 2 && 3 >= 3 && 1 != 2, "compare")
 check(false || true, "or")
 check(!(true && false), "and")
 
-// ---- bool
+// ---- Bool
 done := false
 check(!done && done == false && done != true, "bool basics")
 done = 3 > 2
 check(done, "bool from compare")
-flags: [4]bool
+flags: [4]Bool
 flags[2] = true
 check(!flags[0] && flags[2], "bool array")
-check(i32(true) + i32(false) == 1 && bool(5) && !bool(0), "bool casts")
+check(Int(true) + Int(false) == 1 && Bool(5) && !Bool(0), "bool casts")
 nz := 7
-check(bool(nz) && i32(nz > 3) == 1, "bool casts runtime")
-both :: proc(a: bool, b: bool) -> bool
+check(Bool(nz) && Int(nz > 3) == 1, "bool casts runtime")
+both :: proc(a: Bool, b: Bool) -> Bool
   return a && b
 end
 check(both(true, nz == 7) && !both(true, false), "bool params/return")
 Flag :: struct
-  on: bool
-  n: i32
+  on: Bool
+  n: Int
 end
 fl := Flag{true, 2}
 check(fl.on, "bool field")
@@ -104,20 +104,20 @@ check(g == 2, "else if")
 
 // ---- structs & contiguous arrays
 Vec :: struct
-  x, y: f32
+  x, y: Float
 end
 Particle :: struct
   pos, vel: Vec
-  life: i32
-  tag: blob[4]
+  life: Int
+  tag: Blob[4]
 end
 parts: [100]Particle
 for i in 0..<len(parts)
-  parts[i].pos = Vec{f32(i), 0}
+  parts[i].pos = Vec{Float(i), 0}
   parts[i].vel = Vec{1, 2}
   parts[i].life = i
 end
-step :: proc(ps: []Particle, dt: f32)
+step :: proc(ps: []Particle, dt: Float)
   for i in 0..<len(ps)
     ps[i].pos.x += ps[i].vel.x * dt
     ps[i].pos.y += ps[i].vel.y * dt
@@ -137,7 +137,7 @@ check(v.x == 3 && w.x == 10, "struct copy semantics")
 partial := Particle{Vec{1, 1}}
 check(partial.life == 0 && partial.vel.y == 0, "partial literal zeroes")
 
-dot :: proc(a: Vec, b: Vec) -> f32
+dot :: proc(a: Vec, b: Vec) -> Float
   return a.x * b.x + a.y * b.y
 end
 add :: proc(a: Vec, b: Vec) -> Vec
@@ -149,11 +149,11 @@ check(r.x == 9 && r.y == 12, "struct return nested")
 check(add(v, v).y == 8, "field of call")
 
 // ---- slices, blobs, strings
-data: [8]i32
+data: [8]Int
 for i in 0..<8
   data[i] = i * i
 end
-total :: proc(s: []i32) -> i32
+total :: proc(s: []Int) -> Int
   t := 0
   for i in 0..<len(s)
     t += s[i]
@@ -165,17 +165,17 @@ check(total(data[2:4]) == 13, "slice range")
 check(total(data[:3]) == 5 && total(data[6:]) == 85, "open slices")
 mid := data[1:7]
 check(len(mid) == 6 && mid[0] == 1, "slice var")
-buf: blob[16]
+buf: Blob[16]
 for i in 0..<len(buf)
   buf[i] = 'a' + i
 end
-s := string(buf[0:5])
+s := String(buf[0:5])
 check(s == "abcde", "blob to string")
 check(s[1] == 'b', "string index")
 check(buf[255 & 3] == 'd', "blob index")
 Named :: struct
-  name: string
-  id: i32
+  name: String
+  id: Int
 end
 people: [3]Named
 people[0] = Named{"ann", 1}
@@ -190,10 +190,10 @@ check(abs(sin(0.0)) < 0.0001 && abs(cos(0.0) - 1) < 0.0001, "trig")
 check(pow(2, 10) == 1024 && abs(atan2(1, 1) - PI / 4) < 0.001, "math2")
 
 // ---- procs calling procs (no recursion)
-sq :: proc(v: i32) -> i32
+sq :: proc(v: Int) -> Int
   return v * v
 end
-sumsq :: proc(a: i32, b: i32) -> i32
+sumsq :: proc(a: Int, b: Int) -> Int
   return sq(a) + sq(b)
 end
 check(sumsq(3, 4) == 25 && sq(sq(2)) == 16 && sumsq(sq(1), sumsq(1, 1)) == 5, "nested calls")
@@ -206,11 +206,11 @@ bump()
 check(counter == 2, "globals from procs")
 
 // ---- locals inside procs (static frames; AOT turns these into C locals)
-scale2 :: proc(v: Vec, k: f32) -> Vec
+scale2 :: proc(v: Vec, k: Float) -> Vec
   return Vec{v.x * k, v.y * k}
 end
-locals :: proc(n: i32) -> i32
-  arr: [8]i32
+locals :: proc(n: Int) -> Int
+  arr: [8]Int
   for i in 0..<len(arr)
     arr[i] = i + n
   end
@@ -221,7 +221,7 @@ locals :: proc(n: i32) -> i32
   big: [32]Vec
   big[31] = w
   q := big[31]
-  b: blob[8]
+  b: Blob[8]
   b[7] = 9
   j := 0
   for j < 3
@@ -229,7 +229,7 @@ locals :: proc(n: i32) -> i32
   end
   part := Particle{v, w, 5}
   part.tag[1] = 4
-  return t + i32(q.x + q.y) + b[7] + j + part.life + part.tag[1]
+  return t + Int(q.x + q.y) + b[7] + j + part.life + part.tag[1]
 end
 check(locals(10) == 54 + 9 + 9 + 3 + 5 + 4, "proc locals")
 check(locals(0) == 14 + 30, "proc locals again")

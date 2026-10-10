@@ -1,5 +1,5 @@
 M :: 2000000
-flags: blob[M]
+flags: Blob[M]
 main :: proc()
   t := clock()
   count := 0

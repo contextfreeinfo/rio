@@ -1,4 +1,4 @@
-add3 :: proc(a: i32, b: i32, c: i32) -> i32
+add3 :: proc(a: Int, b: Int, c: Int) -> Int
   return a + b + c
 end
 main :: proc()

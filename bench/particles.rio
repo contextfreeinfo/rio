@@ -1,11 +1,11 @@
 P :: struct
-  x, y, vx, vy: f32
+  x, y, vx, vy: Float
 end
 N :: 10000
 ps: [N]P
 main :: proc()
   for i in 0..<N
-    ps[i] = P{f32(i), 0, 1, f32(i % 7)}
+    ps[i] = P{Float(i), 0, 1, Float(i % 7)}
   end
   t := clock()
   for step in 0..<1000
