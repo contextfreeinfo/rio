@@ -550,7 +550,7 @@ static Op *opush(Rio *vm, int k, int prec, int op) {
   Op *o;
   if (vm->c->nos >= RIO_MAX_EXPR) fail(vm, "expression too complex");
   o = &vm->c->os[vm->c->nos++];
-  o->k = (uint8_t)k; o->prec = (uint8_t)prec; o->op = (int16_t)op; o->a = o->b = o->c = o->n = 0; o->set = 0;
+  o->k = (uint8_t)k; o->prec = (uint8_t)prec; o->op = (int16_t)op; o->a = o->b = o->c = o->n = o->pun = 0; o->set = 0;
   o->vb = (uint16_t)vm->c->nvs; o->fr0 = (uint16_t)vm->c->fr;
   return o;
 }
@@ -712,12 +712,15 @@ static void doslice(Rio *vm, Ex *o, Ex *lo, Ex *hi) {
   o->k = EK_ST; o->a = d * 4; o->off = 0;
   if (ty->k == K_ARR) o->t = (uint16_t)slice_of(vm, ty->elem);
 }
+static void punfield(Rio *vm, Op *m);
 /* one argument of a call / struct literal is complete (on top of the value stack) */
 static void argdone(Rio *vm, Op *m) {
   Ex *a = vtop(vm), e;
   needval(vm, a);
   if (m->k == OK_LIT) {
-    RioType *st = TY(m->b); RioField *f = &vm->c->field[st->f0 + m->a]; Ex d;
+    RioType *st = TY(m->b); RioField *f; Ex d;
+    if (m->a < 0) punfield(vm, m);
+    f = &vm->c->field[st->f0 + m->a];
     e = vpop(vm); d = mkex(EK_ST, f->t, m->c + f->off);
     store(vm, &d, &e);
     vm->c->fr = (uint32_t)(m->c / 4 + words(vm, m->b));
@@ -929,18 +932,30 @@ static void finish_lit(Rio *vm, Op *m) {
   vres(vm, mkex(EK_ST, m->b, m->c), m->fr0);
 }
 /* inside Type{...}: each value must be preceded by `field =` */
-static void litfield(Rio *vm, Op *m) {
-  RioType *st = TY(m->b); int i;
-  if (TK.t == '}') return;
-  if (TK.t != TK_ID || vm->c->nx.t != '=') fail(vm, "struct literal fields must be named: Type{field = value}");
-  for (i = 0; i < st->nf; i++) {
-    RioField *f = &vm->c->field[st->f0 + i];
-    if (f->len == TK.n && !memcmp(vm->c->names + f->name, TK.s, (size_t)TK.n)) break;
-  }
-  if (i == st->nf) fail(vm, "no such field");
+static void setfield(Rio *vm, Op *m, const char *s, int n) {
+  int i = structfield(vm, TY(m->b), s, n);
+  if (i < 0) fail(vm, "no such field");
   if (i < 64 && (m->set >> i & 1)) fail(vm, "field set twice");
   if (i < 64) m->set |= (uint64_t)1 << i;
-  m->a = i; next(vm); next(vm);
+  m->a = i;
+}
+static void litfield(Rio *vm, Op *m) {
+  if (TK.t == '}') return;
+  if (TK.t != TK_ID) fail(vm, "struct literal fields must be named: Type{field = value}");
+  if (vm->c->nx.t == '=') { setfield(vm, m, TK.s, TK.n); next(vm); next(vm); return; }
+  m->a = -1; m->pun = (int32_t)(TK.s - vm->c->src); /* {x} or {a.x}: named after the path's last name */
+}
+/* a punned value must be a name or a dotted path; its last name is the field */
+static void punfield(Rio *vm, Op *m) {
+  const char *p = vm->c->src + m->pun, *e = TK.s, *nm = 0; int nn = 0;
+  while (e > p && (e[-1] == ' ' || e[-1] == '\t' || e[-1] == '\r' || e[-1] == '\n')) e--;
+  while (p < e) {
+    if (isal(*p)) { nm = p; while (p < e && (isal(*p) || isdg(*p))) p++; nn = (int)(p - nm); }
+    else if (*p == '.' || *p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') p++;
+    else if (p + 1 < e && p[0] == '/' && p[1] == '/') { while (p < e && *p != '\n') p++; }
+    else fail(vm, "only a name or a.b path can stand for a field; write field = value");
+  }
+  setfield(vm, m, nm, nn);
 }
 static void closer(Rio *vm, int t, int hasarg) {
   Op *m = &vm->c->os[vm->c->nos - 1], o;
@@ -1450,7 +1465,7 @@ static int compile(Rio *vm, const char *src, uint32_t len, uint8_t *scratch, uin
   vm->hi = vm->memsize; vm->nk = 1; vm->pc = 0; vm->nfunc = 0; ((RioVal *)vm->mem)[0].u = 0;
   if (setjmp(c->jb)) { if (inmem) vm->c = 0; return -1; }
   setup(vm);
-  c->sp = c->ls = src; c->se = src + len; c->line = 1;
+  c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1;
   lex(vm, &c->nx); next(vm);
   while (TK.t != TK_EOF) statement(vm);
   if (c->nblk) fail(vm, "missing 'end'");

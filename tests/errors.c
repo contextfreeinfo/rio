@@ -37,6 +37,9 @@ static const Case cases[] = {
   {"V :: struct\n  x: Float\nend\nv := {x = 1}\n", 0, 0, 0, RIO_ECOMPILE, 4, 6, 1, "can't tell which struct"},
   {"V :: struct\n  x: Float\nend\nlog({x = 1})\n", 0, 0, 0, RIO_ECOMPILE, 4, 5, 1, "can't tell which struct"},
   {"V :: struct\n  x: Float\nend\nn: Int = {x = 1}\n", 0, 0, 0, RIO_ECOMPILE, 4, 10, 1, "can't tell which struct"},
+  {"V :: struct\n  x, y: Int\nend\nxs: [2]Int\nv := V{xs[0]}\n", 0, 0, 0, RIO_ECOMPILE, 5, 13, 1, "only a name or a.b path"},
+  {"V :: struct\n  x, y: Int\nend\nz := 1\nv := V{z}\n", 0, 0, 0, RIO_ECOMPILE, 5, 9, 1, "no such field"},
+  {"V :: struct\n  x, y: Int\nend\nx := 1\nv := V{x, x = 2}\n", 0, 0, 0, RIO_ECOMPILE, 5, 11, 1, "field set twice"},
   /* ...or at the last token of an expression that can only be judged once it's complete */
   {"x := 1\n  y := 2.0 + \"s\"\n", 0, 0, 0, RIO_ECOMPILE, 2, 14, 3, "type mismatch"},
   {"x := (1 + 2\n", 0, 0, 0, RIO_ECOMPILE, 1, 11, 1, "unclosed bracket"},

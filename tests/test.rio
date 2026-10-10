@@ -413,6 +413,27 @@ Ship.aim :: proc(v: Vec) -> Float
 end
 check(fleet[0].aim({x = 1, y = 2}) == 12, "typed by a method parameter")
 
+// ---- field punning: {x} means {x = x}; {a.b.x} means {x = a.b.x}
+pv: Vec = {x, y}
+check(pv.x == 1.5 && pv.y == 2, "punning globals")
+mkv :: proc(x: Float, y: Float) -> Vec
+  return {x, y}
+end
+check(mkv(3, 4).x == 3 && mkv(3, 4).y == 4, "punning parameters")
+src := Particle{pos = {x = 1, y = 2}, vel = {x = 3, y = 4}, life = 7}
+cp := Particle{src.pos, src.life, vel = {y = src.vel.y}}
+check(cp.pos.y == 2 && cp.life == 7 && cp.vel.x == 0 && cp.vel.y == 4, "deep punning uses the last name")
+Ship.at :: proc() -> Vec
+  return {self.x, y = Float(self.hp)}
+end
+check(fleet[0].at().x == 9 && fleet[0].at().y == 4, "punning self fields")
+check(Vec{src.pos.y, x = 0}.y == 2, "deep path, mixed with named fields")
+pv2 := Vec{
+  x,  // a comment between items
+  y   // and before the brace
+}
+check(pv2.x == 1.5 && pv2.y == 2, "punning across lines, with comments")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")
