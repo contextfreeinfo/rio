@@ -18,6 +18,7 @@ cmake -S . -B build
 cmake --build build --config Release
 ctest --test-dir build -C Release
 build/rio tests/test.rio        # (build/Release/rio.exe with MSVC)
+build/rio                       # interactive REPL
 ```
 
 It needs only a C99 compiler and libm, and works on Linux, macOS and Windows.
@@ -231,6 +232,36 @@ int *score = rio_global(&vm, "score"); // direct access to globals
 `String` or `Blob` FFI arguments take two words (address, length); use `rio_ptr(vm, &a[i])` to get the bytes. An FFI function can abort the script with `rio_trap(vm, "msg")`. FFI functions must not call back into the VM.
 
 The compiler's capacities (symbols, procs, constants and so on) are chosen per compile from the memory available; see [Memory and microcontrollers](#memory-and-microcontrollers).
+
+### REPL and break
+
+```
+> x := 6 * 7
+> x
+42
+> sq :: proc(n: Int) -> Int
+..   return n * n
+.. end
+> sq(x)
+1764
+```
+
+Run `rio` with no file for a REPL. Globals, procs, types and methods carry over from one input to the next, and a bare expression prints its value. An unfinished input (an open block, bracket or string) gets a `..` prompt for more; a blank line drops it. A compile error leaves the session exactly as it was. Ctrl-C stops a running program, in the REPL or when running a file. For line editing and history, Windows' console already provides them; on Linux and macOS use `rlwrap rio`.
+
+The same session is available to hosts, for example a console's boot prompt:
+
+```c
+rio_repl_begin(&vm, scratch, sizeof scratch, NULL);    // limits scaled to the scratch buffer
+switch (rio_repl_eval(&vm, text, len)) {               // compiles the text, then runs just that
+case 0: break;                                         // ran
+case RIO_MORE: /* show a continuation prompt; call again with more text appended */ break;
+default: show(rio_error(&vm));                         // compile errors undo themselves
+}
+```
+
+The compiler state stays in `scratch` for the whole session, so this is the one mode where its tables cost RAM permanently: 8 to 16 KB of scratch gives a comfortable REPL (see the limits table below). Each input's strings move into `mem` once it compiles. Runtime errors report lines within the input that defined the code.
+
+`rio_interrupt(vm)` stops a running script at its next loop iteration with the runtime error `interrupted`. It only sets a flag, so it's safe to call from a signal handler, a keyboard interrupt or the other core. The check sits on backward jumps, which every loop iteration takes, and costs nothing measurable. Code produced by `rio -c` isn't interruptible this way.
 
 ### Errors
 

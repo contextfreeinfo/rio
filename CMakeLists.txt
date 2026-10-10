@@ -66,6 +66,12 @@ set_tests_properties(rio_cli_compile_error PROPERTIES PASS_REGULAR_EXPRESSION "b
 add_test(NAME rio_cli_runtime_error COMMAND rio ${CMAKE_SOURCE_DIR}/tests/runtime_error.rio)
 set_tests_properties(rio_cli_runtime_error PROPERTIES PASS_REGULAR_EXPRESSION "runtime_error\\.rio:4: runtime error: index out of bounds")
 
+# REPL sessions and break, through the API
+add_executable(rio_repl_test tests/repl.c)
+target_link_libraries(rio_repl_test PRIVATE riocore)
+add_test(NAME rio_repl COMMAND rio_repl_test)
+set_tests_properties(rio_repl PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ repl tests passed")
+
 # the same suite compiled ahead of time to C
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/test_aot.c
   COMMAND rio -c ${CMAKE_BINARY_DIR}/test_aot.c ${CMAKE_SOURCE_DIR}/tests/test.rio

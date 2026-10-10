@@ -33,6 +33,8 @@ enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR };
 enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2,
   BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_FORMAT };
 #define NONE 0xFFFF
+static const char M_END[] = "missing 'end'", M_BRACKET[] = "unclosed bracket", M_EXPR[] = "expected expression",
+  M_STRING[] = "unterminated string";
 #define TY(t) (&vm->c->type[t])
 #define TK (vm->c->tk)
 typedef RioEx Ex;
@@ -104,6 +106,7 @@ static int seterr(Rio *vm, int kind, int line, int col, int len, const char *m) 
    current token is already on the next line */
 NORET static void fail(Rio *vm, const char *m) {
   RioC *c = vm->c; int prev = TK.nl || TK.t == TK_EOF, i;
+  c->failmsg = m;
   int n = seterr(vm, RIO_ECOMPILE, prev ? c->pline : TK.line, prev ? c->pcol : TK.col, prev ? c->pw : TK.w, m);
   if (!prev && TK.n > 0) {
     char *b = vm->err;
@@ -166,7 +169,7 @@ static void lex(Rio *vm, RioTok *t) {
     if (isf) t->v.f = (float)d; else t->v.u = v;
   } else if (*p == '"') {
     for (s = ++p; p < e && *p != '"'; p++) { if (*p == '\\') p++; if (p < e && *p == '\n') { vm->c->line++; vm->c->ls = p + 1; } }
-    if (p >= e) { vm->c->sp = e; fail(vm, "unterminated string"); }
+    if (p >= e) { vm->c->sp = e; fail(vm, M_STRING); }
     t->t = TK_STR; t->s = s; t->n = (int)(p - s); t->w = (int)(p + 1 - st); vm->c->sp = p + 1;
     return;
   } else if (*p == '\'') {
@@ -1003,7 +1006,7 @@ static Ex expr(Rio *vm) {
         int tt = target(vm, ob, whole);
         if (tt < 0 || TY(tt)->k != K_STRUCT) failtok(vm, "can't tell which struct this is; write Type{...}");
         vres(vm, mkex(EK_TY, tt, 0), t0); want = 0; continue;
-      } else failtok(vm, "expected expression");
+      } else failtok(vm, M_EXPR);
       vres(vm, e, t0); next(vm); want = 0;
       continue;
     }
@@ -1070,7 +1073,7 @@ static Ex expr(Rio *vm) {
     }
   }
   while (vm->c->nos > ob) {
-    if (vm->c->os[vm->c->nos - 1].k >= OK_PAREN) fail(vm, "unclosed bracket");
+    if (vm->c->os[vm->c->nos - 1].k >= OK_PAREN) fail(vm, M_BRACKET);
     reduce1(vm);
   }
   if (vm->c->nvs != vb + 1) fail(vm, "bad expression");
@@ -1276,9 +1279,21 @@ static void destructure(Rio *vm) {
     declare(vm, ls[i], ln[i], -1, &fe, 0);
   }
 }
+static void autoprint(Rio *vm, Ex *e) {
+  int k = TY(e->t)->k;
+  if (k == K_SLICE && TY(e->t)->elem == TY_BYTE) emitx(vm, OP_LOGS, 0, toslot2(vm, e));
+  else if (k == K_F32) emitx(vm, OP_LOGF, 0, toslot(vm, e, 1));
+  else if (k == K_BOOL) emitx(vm, OP_LOGB, 0, toslot(vm, e, 1));
+  else if (k == K_I32 || k == K_BYTE) emitx(vm, OP_LOGI, 0, toslot(vm, e, 1));
+  else return;
+  emit(vm, OP_LOGE, 0, 0, 0);
+}
 static void stmt_expr(Rio *vm) {
   Ex l = expr(vm), r, cur;
-  if (TK.t != '=' && TK.t != TK_OPEQ) return;
+  if (TK.t != '=' && TK.t != TK_OPEQ) {
+    if (vm->repl && vm->c->curfn < 0 && !vm->c->nblk && l.k <= EK_MEM) autoprint(vm, &l);
+    return;
+  }
   if ((l.k != EK_ST && l.k != EK_MEM) || l.ro || (l.k == EK_ST && l.a < (int32_t)vm->kcap * 4)) fail(vm, "cannot assign to this");
   if (TK.t == '=') { next(vm); vm->c->target = l.t; r = expr(vm); store(vm, &l, &r); return; }
   {
@@ -1498,6 +1513,12 @@ static void setup(Rio *vm) {
 }
 /* lay out the final memory: string pool + export table go just below the big arrays, string
    constants get their real addresses, and everything the compiler used is zeroed */
+static void rtfunc(Rio *vm, RioFunc *rf, int k) {
+  RioC *c = vm->c; RioCFunc *f = &c->func[k]; uint32_t pw = 0; int j;
+  for (j = 0; j < f->np; j++) pw += (uint32_t)words(vm, c->param[f->p0 + j].t);
+  rf->pc = f->pc; rf->end = f->end; rf->fs = f->fs; rf->fe = f->fe; rf->pend = (uint16_t)(f->fs + pw);
+  rf->ret = (uint16_t)(f->retaddr / 4); rf->retw = (uint8_t)(f->ret ? words(vm, f->ret) : 0);
+}
 static void finalize(Rio *vm) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; RioExport *x;
   uint32_t i, n = 0, p, ex, lo, fo, sz, base, first = vm->kcap * 4; int k;
@@ -1527,12 +1548,7 @@ static void finalize(Rio *vm) {
   }
   memmove(c->strs + lo, c->strs + c->poolcap, c->nline * 4); /* lines go right after the exports */
   for (i = 1; i < vm->nk; i++) if (KFIX(i)) R[i].u = base + (R[i].u & 0x7FFFFFFFu);
-  for (k = 0; k < vm->nfunc; k++) {
-    RioCFunc *f = &c->func[k]; RioFunc *rf = (RioFunc *)(void *)(c->strs + fo) + k; uint32_t pw = 0; int j;
-    for (j = 0; j < f->np; j++) pw += (uint32_t)words(vm, c->param[f->p0 + j].t);
-    rf->pc = f->pc; rf->end = f->end; rf->fs = f->fs; rf->fe = f->fe; rf->pend = (uint16_t)(f->fs + pw);
-    rf->ret = (uint16_t)(f->retaddr / 4); rf->retw = (uint8_t)(f->ret ? words(vm, f->ret) : 0);
-  }
+  for (k = 0; k < vm->nfunc; k++) rtfunc(vm, (RioFunc *)(void *)(c->strs + fo) + k, k);
   vm->exports = base + ex; vm->nexports = n; vm->hi = base;
   vm->lines = base + lo; vm->nlines = c->nline; vm->func = (RioFunc *)(void *)(vm->mem + base + fo);
   /* nothing in c is read after this: the move and the zeroing may overwrite it */
@@ -1540,9 +1556,10 @@ static void finalize(Rio *vm) {
   memset(vm->mem + first, 0, base - first);
   memset(vm->mem + base + sz, 0, vm->memsize - base - sz);
 }
-int rio_compile_ex(Rio *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const RioLimits *lim) {
+/* set up the compiler's state in scratch, or overlaid on mem when scratch is NULL */
+static int cstart(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim) {
   int inmem = !scratch; uintptr_t pad; RioC *c; RioLimits l; uint32_t used;
-  vm->ok = 0; vm->c = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0; vm->nlines = 0; vm->func = 0;
+  vm->ok = 0; vm->c = 0; vm->repl = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0; vm->nlines = 0; vm->func = 0;
   l = lim ? *lim : rio_limits_for(inmem ? vm->memsize : size);
   if (l.consts < 16) l.consts = 16;
   if (l.slots > 65536) l.slots = 65536;
@@ -1561,12 +1578,18 @@ int rio_compile_ex(Rio *vm, const char *src, uint32_t len, void *scratch, uint32
   c->lim = l; used = layout(c, &l);
   c->strs = (uint8_t *)c + used; c->poolcap = c->linetop = (size - (uint32_t)pad - used) & ~3u;
   vm->kcap = l.consts; vm->hi = vm->memsize; vm->nk = 1; vm->pc = 0; vm->nfunc = 0; ((RioVal *)vm->mem)[0].u = 0;
+  return 0;
+}
+int rio_compile_ex(Rio *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const RioLimits *lim) {
+  int inmem = !scratch; RioC *c;
+  if (cstart(vm, scratch, size, lim)) return -1;
+  c = vm->c;
   if (setjmp(c->jb)) { if (inmem) vm->c = 0; return -1; }
   setup(vm);
   c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1;
   lex(vm, &c->nx); next(vm);
   while (TK.t != TK_EOF) statement(vm);
-  if (c->nblk) fail(vm, "missing 'end'");
+  if (c->nblk) fail(vm, M_END);
   emit(vm, OP_HALT, 0, 0, 0);
   finalize(vm);
   if (inmem) vm->c = 0;
@@ -1578,6 +1601,68 @@ int rio_compile_scratch(Rio *vm, const char *src, uint32_t len, void *scratch, u
   if (!scratch) { seterr(vm, RIO_ECOMPILE, 0, 0, 0, "scratch too small for these limits"); vm->ok = 0; return -1; }
   return rio_compile_ex(vm, src, len, scratch, size, 0);
 }
+static int run(Rio *vm, uint32_t pc);
+/* REPL: after each piece compiles, its strings move into mem (below the arrays) and its procs
+   get runtime entries; the compiler state stays in scratch */
+static void commit(Rio *vm, uint32_t k0, int f0) {
+  RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; uint32_t i; int k;
+  if (c->pool) {
+    uint32_t sz = (c->pool + 3) & ~3u, base;
+    if (vm->hi < sz || vm->hi - sz < c->hwm * 4) fail(vm, "out of memory");
+    base = vm->hi -= sz;
+    memcpy(vm->mem + base, c->strs, c->pool);
+    for (i = k0; i < vm->nk; i++)
+      if (KFIX(i)) { R[i].u = base + (R[i].u & 0x7FFFFFFFu); c->kfix[i >> 3] &= (uint8_t)~(1u << (i & 7)); }
+    c->pool = 0;
+  }
+  for (k = f0; k < vm->nfunc; k++) rtfunc(vm, &vm->func[k], k);
+}
+int rio_repl_begin(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim) {
+  RioC *c; uint32_t fsz;
+  if (!scratch) { seterr(vm, RIO_ECOMPILE, 0, 0, 0, "a REPL needs its own scratch buffer"); return -1; }
+  if (cstart(vm, scratch, size, lim)) return -1;
+  c = vm->c;
+  memset(vm->mem, 0, vm->memsize);
+  if (setjmp(c->jb)) { vm->c = 0; return -1; }
+  setup(vm);
+  /* reserved up front, since later pieces can add procs: their runtime table and the return stack */
+  fsz = (c->lim.procs * (uint32_t)sizeof(RioFunc) + 3) & ~3u;
+  if (vm->hi < fsz + (c->lim.procs + 1) * 4 + c->hwm * 4 + 64) fail(vm, "out of memory");
+  vm->hi -= fsz; vm->func = (RioFunc *)(void *)(vm->mem + vm->hi);
+  vm->hi -= (c->lim.procs + 1) * 4; vm->csaddr = vm->hi;
+  commit(vm, 1, 0); /* string values from -D defines */
+  vm->repl = 1; vm->ok = 1;
+  return 0;
+}
+int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
+  RioC *c = vm->c; uint32_t pc0 = vm->pc, nk0 = vm->nk, hi0 = vm->hi, nact0, hwm0, poolcap0, nline0, lastline0;
+  int nsym0, ntype0, nfield0, nparam0, nnames0, nfunc0 = vm->nfunc;
+  if (!vm->repl || !c) { seterr(vm, RIO_ECOMPILE, 0, 0, 0, "no REPL session"); return -1; }
+  vm->ekind = RIO_ENONE; vm->err[0] = 0;
+  nact0 = c->nact; hwm0 = c->hwm; poolcap0 = c->poolcap; nline0 = c->nline; lastline0 = c->lastline;
+  nsym0 = c->nsym; ntype0 = c->ntype; nfield0 = c->nfield; nparam0 = c->nparam; nnames0 = c->nnames;
+  if (setjmp(c->jb)) { /* undo everything this piece added: all the tables only ever grow */
+    int more = c->sp >= c->se && (c->failmsg == M_END || c->failmsg == M_BRACKET || c->failmsg == M_EXPR || c->failmsg == M_STRING);
+    uint32_t i;
+    for (i = nk0; i < vm->nk; i++) c->kfix[i >> 3] &= (uint8_t)~(1u << (i & 7));
+    vm->pc = pc0; vm->nk = nk0; vm->hi = hi0; vm->nfunc = nfunc0;
+    c->nact = c->fr = nact0; c->hwm = hwm0; c->poolcap = poolcap0; c->nline = nline0; c->lastline = lastline0; c->pool = 0;
+    c->nsym = nsym0; c->ntype = ntype0; c->nfield = nfield0; c->nparam = nparam0; c->nnames = nnames0;
+    c->nblk = c->nvs = c->nos = 0; c->curfn = -1; c->target = -1; c->lineovr = 0;
+    if (more) { vm->ekind = RIO_ENONE; vm->err[0] = 0; return RIO_MORE; }
+    return -1;
+  }
+  c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1; c->pline = c->pcol = c->pw = 0; c->lastline = 0;
+  lex(vm, &c->nx); next(vm);
+  c->lastlabel = vm->pc; /* nothing gets fused with the previous piece's last instruction */
+  while (TK.t != TK_EOF) statement(vm);
+  if (c->nblk) fail(vm, M_END);
+  emit(vm, OP_HALT, 0, 0, 0);
+  commit(vm, nk0, nfunc0);
+  vm->brk = 0;
+  return run(vm, pc0) ? -1 : 0;
+}
+void rio_interrupt(Rio *vm) { vm->brk = 1; }
 const char *rio_error(Rio *vm) { return vm->err; }
 RioError rio_error_info(Rio *vm) {
   RioError e; e.kind = vm->ekind; e.line = vm->eline; e.col = vm->ecol; e.len = vm->elen; e.msg = vm->err + vm->emsg;
@@ -1585,6 +1670,7 @@ RioError rio_error_info(Rio *vm) {
 }
 int rio_pc_line(Rio *vm, uint32_t pc) { /* binary search the (pc, line) table */
   const uint8_t *t = vm->mem + vm->lines; uint32_t lo = 0, hi = vm->nlines; int line = 0; uint16_t e[2];
+  if (vm->repl && vm->c) return (int)cline(vm, pc); /* REPL: the table is still in scratch */
   while (lo < hi) {
     uint32_t mid = (lo + hi) / 2;
     memcpy(e, t + mid * 4, 4);
@@ -1600,8 +1686,20 @@ static RioExport *findexp(Rio *vm, const char *name, int k) {
     if (x[i].k == k && x[i].len == n && !memcmp(vm->mem + x[i].name, name, n)) return &x[i];
   return 0;
 }
-int rio_func(Rio *vm, const char *name) { RioExport *x = findexp(vm, name, S_FN); return x ? x->v : -1; }
-void *rio_global(Rio *vm, const char *name) { RioExport *x = findexp(vm, name, S_VAR); return x ? vm->mem + x->v : 0; }
+static int replsym(Rio *vm, const char *name, int k) { /* REPL: look names up in the live compiler tables */
+  int i = lookup(vm, name, (int)strlen(name));
+  return i >= 0 && vm->c->sym[i].k == k ? vm->c->sym[i].v : -1;
+}
+int rio_func(Rio *vm, const char *name) {
+  RioExport *x;
+  if (vm->repl && vm->c) return replsym(vm, name, S_FN);
+  x = findexp(vm, name, S_FN); return x ? x->v : -1;
+}
+void *rio_global(Rio *vm, const char *name) {
+  RioExport *x; int v;
+  if (vm->repl && vm->c) return (v = replsym(vm, name, S_VAR)) >= 0 ? vm->mem + v : 0;
+  x = findexp(vm, name, S_VAR); return x ? vm->mem + x->v : 0;
+}
 RioVal *rio_args(Rio *vm, int fn) { return (RioVal *)(void *)vm->mem + vm->func[fn].fs; }
 RioVal *rio_ret(Rio *vm, int fn) { return (RioVal *)(void *)vm->mem + vm->func[fn].ret; }
 void *rio_ptr(Rio *vm, const RioVal *s) {
@@ -1641,7 +1739,7 @@ static int run(Rio *vm, uint32_t pc) {
 #define NEXT() { ip++; continue; }
   for (;;) switch (ip->op) {
 #endif
-#define JUMP() { ip = code + C; DISPATCH(); }
+#define JUMP() { if (C <= (uint32_t)(ip - code) && vm->brk) goto stop; ip = code + C; DISPATCH(); }
   CASE(MOV) R[A] = R[B]; NEXT();
   CASE(ADD) U(A) = U(B) + U(C); NEXT();
   CASE(SUB) U(A) = U(B) - U(C); NEXT();
@@ -1789,6 +1887,9 @@ static int run(Rio *vm, uint32_t pc) {
   default: return rterr(vm, "bad opcode", (uint32_t)(ip - code));
   }
 #endif
+stop:
+  vm->brk = 0;
+  return rterr(vm, "interrupted", (uint32_t)(ip - code));
 }
-int rio_run(Rio *vm) { vm->ekind = RIO_ENONE; return vm->ok ? run(vm, 0) : -1; }
-int rio_call(Rio *vm, int fn) { vm->ekind = RIO_ENONE; return vm->ok && fn >= 0 && fn < vm->nfunc ? run(vm, vm->func[fn].pc) : -1; }
+int rio_run(Rio *vm) { vm->ekind = RIO_ENONE; vm->brk = 0; return vm->ok ? run(vm, 0) : -1; }
+int rio_call(Rio *vm, int fn) { vm->ekind = RIO_ENONE; vm->brk = 0; return vm->ok && fn >= 0 && fn < vm->nfunc ? run(vm, vm->func[fn].pc) : -1; }

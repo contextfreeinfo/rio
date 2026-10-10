@@ -64,6 +64,17 @@ int rio_call(Rio *vm, int fn);
 void *rio_global(Rio *vm, const char *name); /* address of a global variable */
 void *rio_ptr(Rio *vm, const RioVal *slice); /* bytes of a string/blob/slice value */
 void rio_trap(Rio *vm, const char *msg);     /* call from ffi to abort with an error */
+/* break: safe from a signal handler, an interrupt or another core. A running script stops at its
+   next loop iteration with the runtime error "interrupted". */
+void rio_interrupt(Rio *vm);
+/* REPL: compile and run code a piece at a time; globals, procs, types and methods carry over.
+   The compiler keeps its state in scratch for the whole session. A bare expression prints its value. */
+enum { RIO_MORE = 1 };
+int rio_repl_begin(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim);
+/* 0: ran. -1: error (see rio_error; a compile error leaves the session unchanged).
+   RIO_MORE: the input is unfinished (an open block, bracket or string): call again with the
+   same text plus more appended. */
+int rio_repl_eval(Rio *vm, const char *src, uint32_t len);
 const char *rio_error(Rio *vm);           /* "line:col: message", or "line: runtime error: message" */
 /* structured error for editors: line/col are 1-based (0 = unknown); len is the width of the
    offending token (0 = unknown); msg is the message without the position prefix */
@@ -102,6 +113,7 @@ typedef struct RioC {
   jmp_buf jb;
   const char *src, *sp, *se, *ls; int line, pline, pcol, pw; RioTok tk, nx;
   uint32_t linetop, nline, lastline, lineovr; /* pc->line table, growing down from the top of the pool */
+  const char *failmsg; /* the last compile error, to tell "unfinished" from "wrong" */
   uint32_t fr, nact, hwm, lastlabel, pool, poolcap; int curfn, def0, target; /* target: type the next expr() should produce, or -1 */
   int nsym, ntype, nfield, nparam, nnames, nblk, nvs, nos;
   RioLimits lim;                         /* capacities of the tables below, all carved from scratch */
@@ -117,7 +129,8 @@ struct Rio {
   uint8_t *mem; uint32_t memsize, hi, nk, kcap, csaddr, exports, nexports, lines, nlines;
   int ekind, eline, ecol, elen, emsg;
   RioIns *code; uint32_t codecap, pc;
-  RioLogFn logfn; void *logud; int logn, trap, ok, nfunc, nffi, ndefs;
+  RioLogFn logfn; void *logud; int logn, trap, ok, nfunc, nffi, ndefs, repl;
+  volatile int brk; /* set by rio_interrupt */
   const char *defs[RIO_MAX_DEFINES][2];
   RioC *c; /* compiler state: only during compile, or after rio_compile_scratch */
   RioFunc *func; /* per proc, in mem next to the strings */
