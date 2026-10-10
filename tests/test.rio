@@ -743,6 +743,50 @@ fm: [4][4]Float
 fm2 := bump4(fm)
 check(fm[0][0] == 0 && fm2[0][0] == 1, "16 words is still small")
 
+// ---- builders over any array or slice: name: [..]T = memory, starting empty
+bbuf: [8]Int
+bb: [..]Int = bbuf
+bb.push(3)
+bb.push(4)
+check(len(bb) == 2 && cap(bb) == 8 && bbuf[1] == 4 && bb[1] == 4, "pushes land in the array")
+bfill :: proc(out: [..]Int, n: Int)
+  for i in 0..<n
+    out.push(i * 10)
+  end
+end
+bfill(bb, 3)
+check(len(bb) == 5 && bb[4] == 20, "passed to a proc, the length is shared")
+bpart: [..]Int = bbuf[5:8]
+bpart.push(7)
+check(bbuf[5] == 7 && len(bpart) == 1 && cap(bpart) == 3 && len(bb) == 5, "over part of an array")
+bsum := 0
+for x in bb
+  bsum += x
+end
+check(bsum == 37, "for-each over a builder")
+check(bb.pop() == 20 && len(bb) == 4, "pop")
+bb.swapRemove(0)
+check(bb[0] == 10 && len(bb) == 3, "swapRemove")
+bc := bb
+bc.push(99)
+check(len(bb) == 4, "copies share the length")
+bscr: Blob[16]
+btxt: Blob[..] = bscr[4:12]
+btxt.format("hi ", 42)
+check(btxt[:].asString() == "hi 42" && bscr[4] == 'h', "a text builder over part of a Blob")
+blocal :: proc() -> Int
+  loc: [4]Float
+  lb: [..]Float = loc
+  lb.push(1.5)
+  lb.push(2.5)
+  xs: [..3]Int
+  xs.push(1)
+  v: [..]Int = xs
+  v.push(2)
+  return len(lb) * 10 + len(xs)
+end
+check(blocal() == 22, "builders over locals and lists inside a proc")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")

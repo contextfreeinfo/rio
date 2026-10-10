@@ -166,23 +166,23 @@ static void ins(int pc) {
   }
   case A_ZERO: P("memset(M + %s, 0, %uu);\n", V(a, 'u'), sz(x)); break;
   case A_LIDX:
-    P("{ uint32_t i_ = %s; if (i_ >= rt_llen(%s, %s)) RT_ERR(\"index out of bounds\"); %s = %s + 4u + i_ * %uu; }\n",
-      V(c, 'u'), V(b, 'u'), V(b + 1, 'u'), V(a, 'u'), V(b, 'u'), sz(d));
+    P("{ uint32_t i_ = %s; if (i_ >= rt_llen(%s, %s)) RT_ERR(\"index out of bounds\"); %s = %s + i_ * %uu; }\n",
+      V(c, 'u'), V(b, 'u'), V(b + 2, 'u'), V(a, 'u'), V(b + 1, 'u'), sz(d));
     break;
   case A_PUSHA:
-    P("{ uint32_t b_ = %s, c_ = %s, n_ = rt_llen(b_, c_); if (n_ >= c_) %s = 0; else { MV(b_).u = n_ + 1; %s = b_ + 4u + n_ * %uu; } }\n",
-      V(b, 'u'), V(b + 1, 'u'), V(a, 'u'), V(a, 'u'), sz(d));
+    P("{ uint32_t b_ = %s, d_ = %s, c_ = %s, n_ = rt_llen(b_, c_); if (n_ >= c_) %s = 0; else { MV(b_).u = n_ + 1; %s = d_ + n_ * %uu; } }\n",
+      V(b, 'u'), V(b + 1, 'u'), V(b + 2, 'u'), V(a, 'u'), V(a, 'u'), sz(d));
     break;
-  case A_PUSHS: P("%s = rt_pushb(%s, %s, M + %s, %s, %uu);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), V(c, 'u'), V(c + 1, 'u'), sz(d)); break;
-  case A_PUSHT: P("%s = rt_pusht(%s, %s, %d, %s);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), x->x, V(c, 'v')); break;
+  case A_PUSHS: P("%s = rt_pushb(%s, %s, %s, M + %s, %s, %uu);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), V(b + 2, 'u'), V(c, 'u'), V(c + 1, 'u'), sz(d)); break;
+  case A_PUSHT: P("%s = rt_pusht(%s, %s, %s, %d, %s);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), V(b + 2, 'u'), x->x, V(c, 'v')); break;
   case A_POPA:
-    P("{ uint32_t b_ = %s, n_ = rt_llen(b_, %s); if (!n_) RT_ERR(\"pop from empty list\"); MV(b_).u = --n_; %s = b_ + 4u + n_ * %uu; }\n",
-      V(b, 'u'), V(b + 1, 'u'), V(a, 'u'), sz(d));
+    P("{ uint32_t b_ = %s, d_ = %s, n_ = rt_llen(b_, %s); if (!n_) RT_ERR(\"pop from empty list\"); MV(b_).u = --n_; %s = d_ + n_ * %uu; }\n",
+      V(b, 'u'), V(b + 1, 'u'), V(b + 2, 'u'), V(a, 'u'), sz(d));
     break;
   case A_LREM: case A_LSWAP:
-    P("rt_lrem(%s, %s, %s, %uu, %d, __LINE__);\n", V(a, 'u'), V(a + 1, 'u'), V(b, 'u'), sz(d), x->op == A_LSWAP);
+    P("rt_lrem(%s, %s, %s, %s, %uu, %d, __LINE__);\n", V(a, 'u'), V(a + 1, 'u'), V(a + 2, 'u'), V(b, 'u'), sz(d), x->op == A_LSWAP);
     break;
-  case A_LVIEW: P("{ uint32_t b_ = %s, n_ = rt_llen(b_, %s); %s = b_ + 4u; %s = n_; }\n", V(b, 'u'), V(b + 1, 'u'), V(a, 'u'), V(a + 1, 'u')); break;
+  case A_LVIEW: P("{ uint32_t d_ = %s, n_ = rt_llen(%s, %s); %s = d_; %s = n_; }\n", V(b + 1, 'u'), V(b, 'u'), V(b + 2, 'u'), V(a, 'u'), V(a + 1, 'u')); break;
   case A_JMP: P("goto L%d;\n", c); break;
   case A_JZ: P("if (!%s) goto L%d;\n", V(a, 'i'), c); break;
   case A_JNZ: P("if (%s) goto L%d;\n", V(a, 'i'), c); break;
@@ -248,18 +248,18 @@ static const char *prelude =
   "static inline void log_e(void) { fwrite(lb, 1, (size_t)ln, stdout); fputc('\\n', stdout); ln = 0; }\n"
   /* lists: a length word followed by the elements; views are (address, capacity) */
   "static inline uint32_t rt_llen(uint32_t a, uint32_t cap) { uint32_t n = MV(a).u; return n < cap ? n : cap; }\n"
-  "static inline int32_t rt_pushb(uint32_t a, uint32_t cap, const void *p, uint32_t k, uint32_t sz) {\n"
+  "static inline int32_t rt_pushb(uint32_t a, uint32_t d, uint32_t cap, const void *p, uint32_t k, uint32_t sz) {\n"
   "  uint32_t n = rt_llen(a, cap); if (k > cap - n) return 0;\n"
-  "  memmove(M + a + 4 + n * sz, p, k * sz); MV(a).u = n + k; return 1;\n"
+  "  memmove(M + d + n * sz, p, k * sz); MV(a).u = n + k; return 1;\n"
   "}\n"
-  "static inline int32_t rt_pusht(uint32_t a, uint32_t cap, int kind, RioVal v) {\n"
+  "static inline int32_t rt_pusht(uint32_t a, uint32_t d, uint32_t cap, int kind, RioVal v) {\n"
   "  char b[40]; int k = kind == 1 ? fmt_f(b, v.f) : kind == 2 ? sprintf(b, \"%s\", v.i ? \"true\" : \"false\") : sprintf(b, \"%d\", (int)v.i);\n"
-  "  return rt_pushb(a, cap, b, (uint32_t)k, 1);\n"
+  "  return rt_pushb(a, d, cap, b, (uint32_t)k, 1);\n"
   "}\n"
-  "static inline void rt_lrem(uint32_t a, uint32_t cap, uint32_t i, uint32_t sz, int swap, int line) {\n"
+  "static inline void rt_lrem(uint32_t a, uint32_t d, uint32_t cap, uint32_t i, uint32_t sz, int swap, int line) {\n"
   "  uint32_t n = rt_llen(a, cap); if (i >= n) rt_err(\"index out of bounds\", line);\n"
-  "  if (swap) { if (i != --n) memmove(M + a + 4 + i * sz, M + a + 4 + n * sz, sz); MV(a).u = n; }\n"
-  "  else { memmove(M + a + 4 + i * sz, M + a + 4 + (i + 1) * sz, (n - i - 1) * sz); MV(a).u = n - 1; }\n"
+  "  if (swap) { if (i != --n) memmove(M + d + i * sz, M + d + n * sz, sz); MV(a).u = n; }\n"
+  "  else { memmove(M + d + i * sz, M + d + (i + 1) * sz, (n - i - 1) * sz); MV(a).u = n - 1; }\n"
   "}\n";
 
 int rio_aot(Rio *v, FILE *out, const char *host_ffi) {

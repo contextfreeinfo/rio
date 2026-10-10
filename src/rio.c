@@ -261,7 +261,8 @@ static int array_of(Rio *vm, int e, uint32_t n) {
   if (es && n > 0x7FFFFFF0u / es) fail(vm, "array too large");
   return newtype(vm, K_ARR, e, n, (es * n + 3) & ~3u);
 }
-/* [..N]T: a length word followed by N elements. [..]T: a view of one (address, capacity). */
+/* [..N]T: a length word followed by N elements. [..]T: a builder, a view of a length word and the memory
+   it counts: (address of the length word, address of the data, capacity) */
 static int list_of(Rio *vm, int e, uint32_t n) {
   int i; uint32_t es = TY(e)->size;
   for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_LIST && vm->c->type[i].elem == e && vm->c->type[i].n == n) return i;
@@ -271,7 +272,7 @@ static int list_of(Rio *vm, int e, uint32_t n) {
 static int build_of(Rio *vm, int e) {
   int i;
   for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_BUILD && vm->c->type[i].elem == e) return i;
-  return newtype(vm, K_BUILD, e, 0, 8);
+  return newtype(vm, K_BUILD, e, 0, 12);
 }
 static int vt(int t) { return t == TY_BYTE ? TY_I32 : t; }
 static int words(Rio *vm, int t) { return (int)((TY(t)->size + 3) / 4); }
@@ -317,6 +318,7 @@ static int alloc(Rio *vm, int n) {
 static uint32_t halloc(Rio *vm, uint32_t n) {
   n = (n + 3) & ~3u;
   if (vm->hi < n || vm->hi - n < vm->c->hwm * 4) fail(vm, "out of memory");
+  vm->c->big += n; if (vm->c->curfn >= 0) vm->c->func[vm->c->curfn].big += n; /* for the memory report */
   return vm->hi -= n;
 }
 #define KFIX(i) (vm->c->kfix[(i) >> 3] & (1u << ((i) & 7)))
@@ -326,6 +328,13 @@ static int kslot(Rio *vm, uint32_t v) {
   if (vm->nk >= vm->kcap) fail(vm, "too many constants");
   R[vm->nk].u = v;
   return (int)vm->nk++;
+}
+static int kslot3(Rio *vm, uint32_t a, uint32_t b, uint32_t c) {
+  RioVal *R = (RioVal *)vm->mem; uint32_t i;
+  for (i = 1; i + 2 < vm->nk; i++) if (R[i].u == a && R[i + 1].u == b && R[i + 2].u == c && !KFIX(i)) return (int)i;
+  if (vm->nk + 3 > vm->kcap) fail(vm, "too many constants");
+  R[vm->nk].u = a; R[vm->nk + 1].u = b; R[vm->nk + 2].u = c; vm->nk += 3;
+  return (int)vm->nk - 3;
 }
 static int kslot2(Rio *vm, uint32_t a, uint32_t b) {
   RioVal *R = (RioVal *)vm->mem; uint32_t i;
@@ -374,6 +383,8 @@ static void coerce(Rio *vm, Ex *e, int t) {
   if (et == t) return;
   if (TY(et)->k == K_ARR && TY(t)->k == K_SLICE && slice_of(vm, TY(et)->elem) == t) { if (istemp(vm, e)) fail(vm, "a computed array has no home to view: store it in a variable first"); return; }
   if (TY(et)->k == K_LIST && TY(t)->k == K_BUILD && TY(t)->elem == TY(et)->elem) return;
+  if ((TY(et)->k == K_ARR || TY(et)->k == K_SLICE) && TY(t)->k == K_BUILD)
+    fail(vm, "a builder needs somewhere to keep its length: declare one first, name: [..]T = array");
   fail(vm, "type mismatch");
 }
 /* scalar value -> slot holding it */
@@ -398,13 +409,13 @@ static int toslot(Rio *vm, Ex *e, int reuse) {
 static int toslot2(Rio *vm, Ex *e) {
   RioType *ty; int d;
   needval(vm, e); ty = TY(e->t);
-  if (ty->k == K_ARR || ty->k == K_LIST) { /* (address, n): for a list that's its builder view */
+  if (ty->k == K_ARR) {
     if (e->k == EK_ST) return kslot2(vm, expose(vm, (uint32_t)e->a, ty->size), ty->n);
     d = alloc(vm, 2);
     emit(vm, OP_LEA, d, e->a, e->off); emit(vm, OP_MOV, d + 1, kslot(vm, ty->n), 0);
     return d;
   }
-  if (ty->k != K_SLICE && ty->k != K_BUILD) fail(vm, "expected a slice");
+  if (ty->k != K_SLICE) fail(vm, "expected a slice");
   if (e->k == EK_ST) {
     if (e->a < 0x3FFFC) return e->a >> 2;
     e->k = EK_MEM; e->a = kaddr(vm, (uint32_t)e->a, 8); e->off = 0;
@@ -413,6 +424,27 @@ static int toslot2(Rio *vm, Ex *e) {
   emit(vm, OP_LDW2, d, e->a, e->off);
   return d;
 }
+/* list or builder -> 3 consecutive slots: (address of the length word, address of the data, capacity) */
+static int toslot3(Rio *vm, Ex *e) {
+  RioType *ty; int d;
+  needval(vm, e); ty = TY(e->t);
+  if (ty->k == K_LIST) { /* the length word comes first, then the elements */
+    if (e->k == EK_ST) { uint32_t a = expose(vm, (uint32_t)e->a, ty->size); return kslot3(vm, a, a + 4, ty->n); }
+    d = alloc(vm, 3);
+    emit(vm, OP_LEA, d, e->a, e->off); emit(vm, OP_LEA, d + 1, e->a, e->off + 4); emit(vm, OP_MOV, d + 2, kslot(vm, ty->n), 0);
+    return d;
+  }
+  if (ty->k != K_BUILD) fail(vm, "expected a list");
+  if (e->k == EK_ST) {
+    if (e->a < 0x3FFF4) return e->a >> 2;
+    e->k = EK_MEM; e->a = kaddr(vm, (uint32_t)e->a, 12); e->off = 0;
+  }
+  d = alloc(vm, 3);
+  emit(vm, OP_LDW2, d, e->a, e->off); emit(vm, OP_LDW, d + 2, e->a, e->off + 8);
+  return d;
+}
+/* the slots holding a slice-like or builder value */
+static int toslotv(Rio *vm, Ex *e) { return TY(e->t)->k == K_BUILD ? toslot3(vm, e) : toslot2(vm, e); }
 /* struct/array -> slot holding its address */
 static int toaddr(Rio *vm, Ex *e) {
   int d;
@@ -432,7 +464,19 @@ static void store(Rio *vm, Ex *d, Ex *s) {
     emit(vm, OP_COPY, da, sa, (int)ty->size);
     return;
   }
-  if (k == K_SLICE || k == K_BUILD) {
+  if (k == K_BUILD) { /* three words; ordered so an overlapping source is read before it's overwritten */
+    ss = toslot3(vm, s);
+    if (d->k == EK_ST && d->a < 0x3FFF4) {
+      int a = d->a >> 2;
+      if (a > ss) { emit(vm, OP_MOV, a + 2, ss + 2, 0); emit(vm, OP_MOV2, a, ss, 0); }
+      else if (a < ss) { emit(vm, OP_MOV2, a, ss, 0); emit(vm, OP_MOV, a + 2, ss + 2, 0); }
+      return;
+    }
+    if (d->k == EK_ST) { d->k = EK_MEM; d->a = kaddr(vm, (uint32_t)d->a, 12); d->off = 0; }
+    emit(vm, OP_STW2, d->a, ss, d->off); emit(vm, OP_STW, d->a, ss + 2, d->off + 8);
+    return;
+  }
+  if (k == K_SLICE) {
     ss = toslot2(vm, s);
     if (d->k == EK_ST && d->a < 0x3FFFC) { if (d->a >> 2 != ss) emit(vm, OP_MOV2, d->a >> 2, ss, 0); return; }
     if (d->k == EK_ST) { d->k = EK_MEM; d->a = kaddr(vm, (uint32_t)d->a, 8); d->off = 0; }
@@ -811,7 +855,7 @@ static void doindex(Rio *vm, Ex *o, Ex *i) {
   if (vt(i->t) != TY_I32) fail(vm, "index must be Int");
   el = ty->elem; sz = (int)TY(el)->size; ro = o->ro || o->t == TY_STR;
   if (ty->k == K_LIST || ty->k == K_BUILD) { /* checked against the current length */
-    s = toslot2(vm, o); ix = toslot(vm, i, 1);
+    s = toslot3(vm, o); ix = toslot(vm, i, 1);
     vm->c->fr = o->t0; d = alloc(vm, 1);
     emit(vm, OP_LIDX, d, s, ix); emitw(vm, 0, (uint32_t)sz);
     o->k = EK_MEM; o->a = d; o->off = 0; o->t = (uint16_t)el; o->ro = 0;
@@ -831,7 +875,7 @@ static void doslice(Rio *vm, Ex *o, Ex *lo, Ex *hi) {
   RioType *ty; int s, l, h, d;
   needval(vm, o); ty = TY(o->t);
   if (ty->k == K_LIST || ty->k == K_BUILD) { /* a slice of the live elements */
-    int b = toslot2(vm, o), v = alloc(vm, 2), t0 = o->t0;
+    int b = toslot3(vm, o), v = alloc(vm, 2), t0 = o->t0;
     emit(vm, OP_LVIEW, v, b, 0);
     *o = mkex(EK_ST, slice_of(vm, ty->elem), v * 4); o->t0 = (uint16_t)t0; ty = TY(o->t);
   }
@@ -868,7 +912,7 @@ static void argdone(Rio *vm, Op *m) {
     int k = TY(a->t)->k;
     if (m->n >= vm->c->func[m->b].np) fail(vm, "too many arguments");
     if (a->k == EK_MEM && k != K_STRUCT && k != K_ARR && k != K_LIST) {
-      int s = k == K_SLICE || k == K_BUILD ? toslot2(vm, a) : toslot(vm, a, 1);
+      int s = k == K_SLICE || k == K_BUILD ? toslotv(vm, a) : toslot(vm, a, 1);
       a->k = EK_ST; a->a = s * 4; a->t = (uint16_t)vt(a->t);
     }
   } else if (m->a == EK_FFI) {
@@ -886,7 +930,7 @@ static void argdone(Rio *vm, Op *m) {
     if (m->n == 0) { /* remember the length so a format that doesn't fit can be undone */
       int t;
       if ((k != K_LIST && k != K_BUILD) || TY(e.t)->elem != TY_BYTE) fail(vm, "format needs a Blob list");
-      m->c = toslot2(vm, &e); t = alloc(vm, 2);
+      m->c = toslot3(vm, &e); t = alloc(vm, 2);
       emit(vm, OP_LDW, t, m->c, 0); emit(vm, OP_MOV, t + 1, kslot(vm, 1), 0);
       m->set = (uint64_t)t;
     } else {
@@ -922,7 +966,7 @@ static void builtin(Rio *vm, Op *m) {
     if (k == K_ARR) r = mkex(EK_CONST, TY_I32, (int32_t)TY(a->t)->n);
     else if (k == K_SLICE) { r = *a; if (r.k == EK_ST) r.a += 4; else r.off += 4; r.t = TY_I32; r.ro = 1; }
     else if (k == K_LIST) { r = *a; r.t = TY_I32; r.ro = 1; } /* the length word comes first */
-    else if (k == K_BUILD) { r = mkex(EK_MEM, TY_I32, toslot2(vm, a)); r.ro = 1; }
+    else if (k == K_BUILD) { r = mkex(EK_MEM, TY_I32, toslot3(vm, a)); r.ro = 1; }
     else fail(vm, "len needs a slice, array or list");
     vm->c->nvs = m->vb; vres(vm, r, m->fr0);
     return;
@@ -964,14 +1008,14 @@ static void listop(Rio *vm, Op *m) {
   needval(vm, a); k = TY(a->t)->k;
   if (id == BI_CAP) {
     if (k == K_LIST || k == K_ARR) r = mkex(EK_CONST, TY_I32, (int32_t)TY(a->t)->n);
-    else if (k == K_BUILD) { r = mkex(EK_ST, TY_I32, (toslot2(vm, a) + 1) * 4); r.ro = 1; }
+    else if (k == K_BUILD) { r = mkex(EK_ST, TY_I32, (toslot3(vm, a) + 2) * 4); r.ro = 1; }
     else if (k == K_SLICE) { r = *a; if (r.k == EK_ST) r.a += 4; else r.off += 4; r.t = TY_I32; r.ro = 1; }
     else fail(vm, "cap needs a list, array or slice");
     vm->c->nvs = m->vb; vres(vm, r, m->fr0);
     return;
   }
   if (k != K_LIST && k != K_BUILD) fail(vm, "expected a list");
-  el = TY(a->t)->elem; sz = (int)TY(el)->size; b = toslot2(vm, a);
+  el = TY(a->t)->elem; sz = (int)TY(el)->size; b = toslot3(vm, a);
   if (id == BI_CLEAR) emit(vm, OP_STW, b, kslot(vm, 0), 0);
   else if (id == BI_POP) {
     vm->c->fr = m->fr0; d = alloc(vm, 1);
@@ -983,7 +1027,7 @@ static void listop(Rio *vm, Op *m) {
   } else if (id == BI_PUSHALL) {
     Ex *x = a + 1; int xk;
     needval(vm, x); xk = TY(x->t)->k;
-    if (xk == K_LIST || xk == K_BUILD) { int b2 = toslot2(vm, x); s = alloc(vm, 2); emit(vm, OP_LVIEW, s, b2, 0); }
+    if (xk == K_LIST || xk == K_BUILD) { int b2 = toslot3(vm, x); s = alloc(vm, 2); emit(vm, OP_LVIEW, s, b2, 0); }
     else if (xk == K_SLICE || xk == K_ARR) s = toslot2(vm, x);
     else fail(vm, "pushAll needs a slice, array or list");
     if (TY(x->t)->elem != el) fail(vm, "type mismatch");
@@ -1287,7 +1331,7 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   next(vm); expect(vm, '(', "'(' expected");
   skip = emit(vm, OP_JMP, 0, 0, NONE);
   fi = vm->nfunc++; f = &vm->c->func[fi];
-  f->p0 = (uint16_t)vm->c->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0;
+  f->p0 = (uint16_t)vm->c->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0; f->big = 0;
   addsym(vm, name, nlen, recv < 0 ? S_FN : S_METH, recv < 0 ? 0 : recv, fi);
   f->selfref = (uint8_t)(recv >= 0 && TY(recv)->k == K_STRUCT);
   b = bpush(vm, B_PROC); b->a = (uint16_t)skip; b->b = (uint16_t)fi;
@@ -1365,10 +1409,25 @@ static void struct_def(Rio *vm, const char *name, int nlen) {
 }
 /* declare a variable of type t (-1: from the value), initialized from *pe or zeroed. adopt: the
    value may already sit in the next free slot and simply become the variable */
+/* name: [..]T = an array or slice: a builder over that memory, starting empty. Its length word is a
+   fourth slot right after the builder's three */
+static void buildover(Rio *vm, const char *ns, int nn, int t, Ex *e) {
+  int s, d;
+  if (TY(e->t)->elem != TY(t)->elem) fail(vm, "type mismatch");
+  if (e->ro || e->t == TY_STR) fail(vm, "can't build on read-only data");
+  if (TY(e->t)->k == K_ARR && istemp(vm, e)) fail(vm, "a computed array has no home to view: store it in a variable first");
+  s = toslot2(vm, e);
+  vm->c->fr = vm->c->nact; d = alloc(vm, 4); vm->c->nact = vm->c->fr;
+  emit(vm, OP_MOV2, d + 1, s, 0); /* first: s may sit where the builder now goes */
+  emit(vm, OP_MOV, d, kaddr(vm, (uint32_t)(d + 3) * 4, 4), 0);
+  emit(vm, OP_MOV, d + 3, kslot(vm, 0), 0);
+  addsym(vm, ns, nn, S_VAR, t, d * 4);
+}
 static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
   int has = pe != 0, k, big; uint32_t addr; RioType *ty; Ex e = has ? *pe : mkex(EK_VOID, TY_VOID, 0);
   if (has) {
     needval(vm, &e);
+    if (t >= 0 && TY(t)->k == K_BUILD && (TY(e.t)->k == K_ARR || TY(e.t)->k == K_SLICE)) { buildover(vm, ns, nn, t, &e); return; }
     if (t < 0) {
       t = vt(e.t);
       if (TY(t)->k == K_LIST) t = build_of(vm, TY(t)->elem);
@@ -1385,7 +1444,7 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
   if (big) addr = halloc(vm, ty->size);
   else {
     if (has && e.k == EK_MEM && (k == K_I32 || k == K_F32 || k == K_BOOL || k == K_SLICE || k == K_BUILD)) {
-      int s = k == K_SLICE || k == K_BUILD ? toslot2(vm, &e) : toslot(vm, &e, 1);
+      int s = k == K_SLICE || k == K_BUILD ? toslotv(vm, &e) : toslot(vm, &e, 1);
       e.k = EK_ST; e.a = s * 4; e.t = (uint16_t)t;
     }
     if (adopt && has && e.k == EK_ST && e.a == (int32_t)vm->c->nact * 4 && !e.ro) {
@@ -1449,7 +1508,7 @@ static void destructure(Rio *vm) {
     if (fe.k == EK_ST) fe.a += f->off; else fe.off += f->off;
     fe.t = f->t; k = TY(f->t)->k;
     if (fe.k == EK_MEM && k != K_STRUCT && k != K_ARR && k != K_LIST) { /* load without disturbing the struct's address */
-      int s = k == K_SLICE || k == K_BUILD ? toslot2(vm, &fe) : toslot(vm, &fe, 0);
+      int s = k == K_SLICE || k == K_BUILD ? toslotv(vm, &fe) : toslot(vm, &fe, 0);
       fe = mkex(EK_ST, vt(f->t), s * 4);
     }
     declare(vm, ls[i], ln[i], -1, &fe, 0);
@@ -1686,7 +1745,7 @@ static void statement(Rio *vm) {
         RioType *ty; int s, sz, ro;
         needval(vm, &e); ty = TY(e.t);
         if (ty->k == K_LIST || ty->k == K_BUILD) { /* the elements there when the loop starts */
-          int lb = toslot2(vm, &e), v = alloc(vm, 2);
+          int lb = toslot3(vm, &e), v = alloc(vm, 2);
           emit(vm, OP_LVIEW, v, lb, 0);
           e = mkex(EK_ST, slice_of(vm, ty->elem), v * 4); ty = TY(e.t);
         }
@@ -2242,48 +2301,49 @@ static int run(Rio *vm, uint32_t pc) {
   CASE(FVSUB) VLOOP(D_[i_].f = VL.f - VR.f)
   CASE(FVMUL) VLOOP(D_[i_].f = VL.f * VR.f)
   CASE(FVDIV) VLOOP(D_[i_].f = VL.f / VR.f)
-#define LLEN(s) (MV(U(s)).u < U((s) + 1) ? MV(U(s)).u : U((s) + 1)) /* list length, never above capacity */
+/* a builder in slots s..s+2: (address of the length word, address of the data, capacity) */
+#define LLEN(s) (MV(U(s)).u < U((s) + 2) ? MV(U(s)).u : U((s) + 2)) /* its length, never above capacity */
   CASE(LIDX) {
     uint32_t i = U(C);
     if (i >= LLEN(B)) return rterr(vm, "index out of bounds", (uint32_t)(ip - code));
-    U(A) = U(B) + 4u + i * SZ(ip[1]); ip += 2; DISPATCH();
+    U(A) = U(B + 1) + i * SZ(ip[1]); ip += 2; DISPATCH();
   }
   CASE(PUSHA) {
-    uint32_t base = U(B), cap = U(B + 1), n = LLEN(B);
-    if (n >= cap) U(A) = 0; else { MV(base).u = n + 1; U(A) = base + 4u + n * SZ(ip[1]); }
+    uint32_t lw = U(B), cap = U(B + 2), n = LLEN(B);
+    if (n >= cap) U(A) = 0; else { MV(lw).u = n + 1; U(A) = U(B + 1) + n * SZ(ip[1]); }
     ip += 2; DISPATCH();
   }
   CASE(PUSHS) {
-    uint32_t base = U(B), cap = U(B + 1), n = LLEN(B), p = U(C), k = U(C + 1), sz = SZ(ip[1]);
-    if (k > cap - n) I(A) = 0; else { memmove(M + base + 4 + n * sz, M + p, k * sz); MV(base).u = n + k; I(A) = 1; }
+    uint32_t lw = U(B), cap = U(B + 2), n = LLEN(B), p = U(C), k = U(C + 1), sz = SZ(ip[1]);
+    if (k > cap - n) I(A) = 0; else { memmove(M + U(B + 1) + n * sz, M + p, k * sz); MV(lw).u = n + k; I(A) = 1; }
     ip += 2; DISPATCH();
   }
   CASE(PUSHT) {
-    char t[40]; uint32_t base = U(B), cap = U(B + 1), n = LLEN(B), k;
+    char t[40]; uint32_t lw = U(B), cap = U(B + 2), n = LLEN(B), k;
     if (ip->x == 1) k = (uint32_t)fmtf(t, F(C));
     else if (ip->x == 2) { k = I(C) ? 4u : 5u; memcpy(t, I(C) ? "true" : "false", k); }
     else k = (uint32_t)fmti(t, I(C));
-    if (k > cap - n) I(A) = 0; else { memcpy(M + base + 4 + n, t, k); MV(base).u = n + k; I(A) = 1; }
+    if (k > cap - n) I(A) = 0; else { memcpy(M + U(B + 1) + n, t, k); MV(lw).u = n + k; I(A) = 1; }
     NEXT();
   }
   CASE(POPA) {
-    uint32_t base = U(B), n = LLEN(B);
+    uint32_t n = LLEN(B);
     if (!n) return rterr(vm, "pop from empty list", (uint32_t)(ip - code));
-    MV(base).u = --n; U(A) = base + 4u + n * SZ(ip[1]); ip += 2; DISPATCH();
+    MV(U(B)).u = --n; U(A) = U(B + 1) + n * SZ(ip[1]); ip += 2; DISPATCH();
   }
   CASE(LREM) {
-    uint32_t base = U(A), n = LLEN(A), i = U(B), sz = SZ(ip[1]);
+    uint32_t data = U(A + 1), n = LLEN(A), i = U(B), sz = SZ(ip[1]);
     if (i >= n) return rterr(vm, "index out of bounds", (uint32_t)(ip - code));
-    memmove(M + base + 4 + i * sz, M + base + 4 + (i + 1) * sz, (n - i - 1) * sz); MV(base).u = n - 1;
+    memmove(M + data + i * sz, M + data + (i + 1) * sz, (n - i - 1) * sz); MV(U(A)).u = n - 1;
     ip += 2; DISPATCH();
   }
   CASE(LSWAP) {
-    uint32_t base = U(A), n = LLEN(A), i = U(B), sz = SZ(ip[1]);
+    uint32_t data = U(A + 1), n = LLEN(A), i = U(B), sz = SZ(ip[1]);
     if (i >= n) return rterr(vm, "index out of bounds", (uint32_t)(ip - code));
-    if (i != --n) memmove(M + base + 4 + i * sz, M + base + 4 + n * sz, sz);
-    MV(base).u = n; ip += 2; DISPATCH();
+    if (i != --n) memmove(M + data + i * sz, M + data + n * sz, sz);
+    MV(U(A)).u = n; ip += 2; DISPATCH();
   }
-  CASE(LVIEW) { uint32_t base = U(B), n = LLEN(B); U(A) = base + 4u; U(A + 1) = n; NEXT(); }
+  CASE(LVIEW) { uint32_t data = U(B + 1), n = LLEN(B); U(A) = data; U(A + 1) = n; NEXT(); }
   CASE(JMP) JUMP();
   CASE(JZ) if (!I(A)) JUMP(); NEXT();
   CASE(JNZ) if (I(A)) JUMP(); NEXT();

@@ -126,7 +126,7 @@ typedef struct { uint16_t key, keylen, dir, dirlen, file, pc0, pc1; uint8_t pkg,
 /* where to resume the file that imported or included another: for an import, its import statement
    runs again (and just binds names); for an include, compiling continues after it */
 typedef struct { const char *src, *se, *ls, *pos; int line, mod, f, inc; } RioImp;
-typedef struct { uint16_t pc, end, ret, p0, np, fs, fe; uint32_t retaddr; uint8_t done, selfref; } RioCFunc;
+typedef struct { uint16_t pc, end, ret, p0, np, fs, fe; uint32_t retaddr, big; uint8_t done, selfref; } RioCFunc; /* big: bytes of its locals stored apart (over 16 words) */
 typedef struct { uint16_t t, ref; uint32_t addr; } RioParam; /* ref: a &T param's T (t is then the address word) */
 typedef struct { uint16_t ret, p0, np; } RioCFfi;
 typedef struct { uint8_t k, ro; uint16_t t, t0; int32_t a, off; } RioEx;
@@ -138,7 +138,7 @@ typedef struct RioC {
   uint32_t linetop, nline, lastline, lineovr; /* pc->line table, growing down from the top of the pool */
   const char *failmsg; /* the last compile error, to tell "unfinished" from "wrong" */
   RioMod *mods; int nmod, curmod, curf, nis, exporting; RioImp is[RIO_MAX_IMPORT_DEPTH]; /* curf: the file being read */
-  uint32_t fr, nact, hwm, lastlabel, pool, poolcap; int curfn, def0, target; /* target: type the next expr() should produce, or -1 */
+  uint32_t fr, nact, hwm, lastlabel, pool, poolcap, big; int curfn, def0, target; /* target: type the next expr() should produce, or -1; big: bytes of all big values */
   int nsym, ntype, nfield, nparam, nnames, nblk, nvs, nos;
   RioLimits lim;                         /* capacities of the tables below, all carved from scratch */
   RioSym *sym; RioType *type; RioField *field; RioCFunc *func; RioParam *param;

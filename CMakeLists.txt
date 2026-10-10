@@ -80,6 +80,10 @@ target_link_libraries(rio_modules_test PRIVATE riocore)
 add_test(NAME rio_modules_api COMMAND rio_modules_test)
 set_tests_properties(rio_modules_api PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ module tests passed")
 
+# memory report
+add_test(NAME rio_memory_report COMMAND rio -m ${CMAKE_SOURCE_DIR}/tests/test.rio)
+set_tests_properties(rio_memory_report PROPERTIES PASS_REGULAR_EXPRESSION "deepest call chain: [0-9]+ bytes")
+
 # the same suite compiled ahead of time to C
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/test_aot.c
   COMMAND rio -c ${CMAKE_BINARY_DIR}/test_aot.c ${CMAKE_SOURCE_DIR}/tests/test.rio
