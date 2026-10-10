@@ -63,7 +63,7 @@ end
 
 main :: proc()
   for i in 0..<N
-    parts[i] = {pos = {x = Float(i), y = 0}, vel = {x = 1, y = 0}, life = 100}
+    parts[i] = {pos = {x = i.toFloat(), y = 0}, vel = {x = 1, y = 0}, life = 100}
   end
   step(parts, 0.016)              // [N]T converts to []T
   step(parts[10:20], 0.016)       // sub-slice (bounds-checked)
@@ -95,11 +95,11 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 - When the struct type is already decided by where the value goes, leave the type off: `v: Vec = {x = 1}`, `p.vel = {y = 2}`, `dot({x = 1}, {y = 1})`, `return {x = x}`, `Particle{pos = {x = 3}}`, `ships.push({hp = 3})`. Where nothing decides it (`v := {x = 1}`), write `Type{...}`.
 - A name or dotted path can stand in for a field of the same name: `{x, y}` means `{x = x, y = y}`, and `{src.pos, self.hp, life = 3}` means `{pos = src.pos, hp = self.hp, life = 3}`, so the last name in the path picks the field. Anything else, such as `xs[i]`, a call or arithmetic, needs `field = value`.
 - Destructuring pulls fields out into new variables: `{q, r} := divmod(17, 5)`, `{x as px, y} := ship.pos`. `as` renames. You can take just the fields you need, in any order, and the value is evaluated once. The new variables are copies, so changing them doesn't change the struct. Patterns are one level deep; for nested fields, destructure again (`{pos} := ship`, then `{x, y} := pos`). Small structs used this way stand in for tuples and multiple return values. (`as` only has this meaning inside a pattern, and is an ordinary name everywhere else.)
-- A `String` is a read-only byte view. A `Blob` is a writable byte view, and `String(b)` turns a `Blob` into a `String`.
+- A `String` is a read-only byte view. A `Blob` is a writable byte view, and `b.asString()` views a `Blob`'s bytes as a `String` (no copy).
 - A struct or array that contains slices or strings must be a **global**. It can't be a local, a parameter, or a return value. Slices themselves can be locals and parameters.
 - Every index and slice is bounds-checked at runtime. Integer arithmetic wraps, and integer division by zero is a runtime error.
-- There are no implicit conversions between `Int` and `Float` except for literals. Use `Float(x)` and `Int(x)` (which truncates).
-- `Bool` is its own type. Comparisons and `! && ||` produce `Bool`, and `if`/`for` conditions must be `Bool` (`if n` is an error; write `if n != 0`). `true` and `false` are literals, and `Int(b)` (gives 0 or 1) and `Bool(n)` (`n != 0`) convert between the two.
+- There are no implicit conversions between `Int` and `Float` except for literals. Convert with `x.toFloat()` and `x.toInt()` (which truncates). Conversions are methods, so they show up with the rest after `x.`; `to` makes a new value, `as` views the same data.
+- `Bool` is its own type. Comparisons and `! && ||` produce `Bool`, and `if`/`for` conditions must be `Bool` (`if n` is an error; write `if n != 0`). `true` and `false` are literals, and `b.toInt()` (gives 0 or 1) and `n.toBool()` (`n != 0`) convert between the two.
 - Statements end at a newline (`;` also works). Inside brackets, an expression can span several lines.
 
 **Operators:** `+ - * / % & | ^ << >> == != < <= > >= && || ! ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`.
@@ -143,7 +143,7 @@ enemies.pushAll(wave[:])                // many at once: a slice, array or list
 title: Blob[..32]                        // a Blob list is a text builder
 title.format("score: ", 42, " x", 1.5)  // appends values as text; all or nothing
 title.push('!')                         // push is always one element: here, one byte
-draw(String(title[:]))
+draw(title[:].asString())
 ```
 
 - **Methods:** `xs.push(x) -> Bool` (one element), `xs.pushAll(ys) -> Bool` (every element of a slice, array or list with the same element type; a `String` works for Blob lists), `xs.pop()`, `xs.clear()`, `xs.remove(i)` and `xs.swapRemove(i)`. `len(xs)` and `cap(xs)` stay functions, since they work on every kind of sequence. A push that doesn't fit changes nothing and returns `false`; popping an empty list or removing past the end is a runtime error.

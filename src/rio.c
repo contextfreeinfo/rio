@@ -31,7 +31,8 @@ enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN };
 enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
 enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR };
 enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2,
-  BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_FORMAT };
+  BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_FORMAT,
+  BI_TOINT, BI_TOFLOAT, BI_TOBOOL, BI_ASSTRING };
 #define NONE 0xFFFF
 static const char M_END[] = "missing 'end'", M_BRACKET[] = "unclosed bracket", M_EXPR[] = "expected expression",
   M_STRING[] = "unterminated string";
@@ -43,7 +44,8 @@ typedef RioOp Op;
 static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue"};
 static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod",
-  "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format"};
+  "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format",
+  "toInt", "toFloat", "toBool", "asString"};
 static float f_sqrt(float x) { return sqrtf(x); }
 static float f_sin(float x) { return sinf(x); }
 static float f_cos(float x) { return cosf(x); }
@@ -658,11 +660,17 @@ static int structfield(Rio *vm, RioType *ty, const char *s, int n) {
   }
   return -1;
 }
+static int convname(const char *s, int n) {
+  int k;
+  for (k = BI_TOINT; k <= BI_ASSTRING; k++) if ((int)strlen(bi[k]) == n && !memcmp(bi[k], s, (size_t)n)) return k;
+  return -1;
+}
 static void member(Rio *vm) {
   Ex *e = vtop(vm), m; RioType *ty; int i, k;
   needval(vm, e); ty = TY(e->t);
   if (structfield(vm, ty, TK.s, TK.n) >= 0) { field(vm, e); return; }
-  if (ty->k == K_LIST || ty->k == K_BUILD) {
+  if (ty->k != K_STRUCT && ty->k != K_LIST && ty->k != K_BUILD && (k = convname(TK.s, TK.n)) >= 0) m = mkex(EK_BI, 0, k);
+  else if (ty->k == K_LIST || ty->k == K_BUILD) {
     for (k = BI_PUSH; k <= BI_FORMAT; k++)
       if (k != BI_CAP && (int)strlen(bi[k]) == TK.n && !memcmp(bi[k], TK.s, (size_t)TK.n)) break;
     if (k > BI_FORMAT) fail(vm, "no such method");
@@ -868,9 +876,11 @@ static void listop(Rio *vm, Op *m) {
   if (r.k == EK_VOID) vm->c->fr = m->fr0;
   vm->c->nvs = m->vb; vres(vm, r, m->fr0);
 }
-static void cast(Rio *vm, Op *m) {
-  Ex *a = &vm->c->vs[m->vb], r; int to = m->b, from, s, d;
-  if (vm->c->nvs - m->vb != 1) fail(vm, "cast takes one value");
+/* x.toInt() x.toFloat() x.toBool() b.asString() */
+static void convert(Rio *vm, Op *m) {
+  Ex *a = &vm->c->vs[m->vb], r; int from, s, d;
+  int to = m->b == BI_TOINT ? TY_I32 : m->b == BI_TOFLOAT ? TY_F32 : m->b == BI_TOBOOL ? TY_BOOL : TY_STR;
+  if (vm->c->nvs - m->vb != 1) fail(vm, "conversions take no arguments");
   needval(vm, a); from = vt(a->t); r = *a;
   if (to == from) { /* no-op */ }
   else if (to == TY_STR && from == TY_BLOB) { r.t = TY_STR; r.ro = 1; }
@@ -882,7 +892,7 @@ static void cast(Rio *vm, Op *m) {
   else if ((to == TY_F32 && from == TY_I32) || (to == TY_I32 && from == TY_F32)) {
     if (a->k == EK_CONST) { RioVal v; v.i = a->a; if (to == TY_F32) v.f = (float)v.i; else v.i = ftoi(v.f); r = mkex(EK_CONST, to, v.i); }
     else { s = toslot(vm, a, 1); vm->c->fr = m->fr0; d = alloc(vm, 1); emit(vm, to == TY_F32 ? OP_ITOF : OP_FTOI, d, s, 0); r = mkex(EK_ST, to, d * 4); }
-  } else fail(vm, "invalid cast");
+  } else fail(vm, "no such conversion");
   vm->c->nvs = m->vb; vres(vm, r, m->fr0);
 }
 static void finish_call(Rio *vm, Op *m) {
@@ -917,9 +927,10 @@ static void finish_call(Rio *vm, Op *m) {
       if (m->n < 1) fail(vm, "format needs a Blob list");
       j = emit(vm, OP_JNZ, t + 1, 0, NONE); emit(vm, OP_STW, m->c, t, 0); patch(vm, j, here(vm));
       vm->c->fr = (uint32_t)t + 2; vres(vm, mkex(EK_ST, TY_BOOL, (t + 1) * 4), m->fr0);
-    } else if (m->b >= BI_PUSH) listop(vm, m);
+    } else if (m->b >= BI_TOINT) convert(vm, m);
+    else if (m->b >= BI_PUSH) listop(vm, m);
     else builtin(vm, m);
-  } else cast(vm, m);
+  }
 }
 static void finish_lit(Rio *vm, Op *m) {
   RioType *st = TY(m->b); RioField *fs = &vm->c->field[st->f0]; int i = 0, j, w, a, b;
@@ -1023,7 +1034,7 @@ static Ex expr(Rio *vm) {
         continue;
       }
       if (c.k < EK_FN || c.k > EK_TY) fail(vm, "not callable");
-      if (c.k == EK_TY && TY(c.t)->k == K_STRUCT) fail(vm, "use Struct{...} to build a struct");
+      if (c.k == EK_TY) fail(vm, TY(c.t)->k == K_STRUCT ? "use Struct{...} to build a struct" : "convert with x.toInt(), x.toFloat(), x.toBool() or b.asString()");
       vm->c->nvs--;
       o = opush(vm, OK_CALL, 0, 0); o->a = c.k; o->b = c.k == EK_TY ? c.t : c.a;
       depth++; next(vm); want = 1;
@@ -1179,6 +1190,7 @@ static void method_def(Rio *vm, int recv) {
   ns = TK.s; nn = TK.n;
   if (structfield(vm, TY(recv), ns, nn) >= 0) failtok(vm, "a method can't have the same name as a field");
   if (lookup_meth(vm, recv, ns, nn) >= 0) failtok(vm, "method already defined");
+  if (TY(recv)->k != K_STRUCT && convname(ns, nn) >= 0) failtok(vm, "that conversion is built in");
   next(vm); expect(vm, TK_DCOLON, "'::' expected");
   if (TK.t != TK_PROC) fail(vm, "'proc' expected");
   proc_def(vm, ns, nn, recv);

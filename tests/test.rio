@@ -22,8 +22,8 @@ x := 1.5
 y : Float = 2
 check(x * y == 3.0, "float mul")
 check(x + 1 == 2.5, "const coercion")
-check(Float(a) / 2 == 3.5, "itof")
-check(Int(3.9) == 3 && Int(-3.9) == -3, "ftoi")
+check(a.toFloat() / 2 == 3.5, "itof")
+check(3.9.toInt() == 3 && (-3.9).toInt() == -3, "ftoi")
 c := 10
 c += 5
 c -= 1
@@ -42,9 +42,9 @@ check(done, "bool from compare")
 flags: [4]Bool
 flags[2] = true
 check(!flags[0] && flags[2], "bool array")
-check(Int(true) + Int(false) == 1 && Bool(5) && !Bool(0), "bool casts")
+check(true.toInt() + false.toInt() == 1 && 5.toBool() && !0.toBool(), "bool casts")
 nz := 7
-check(Bool(nz) && Int(nz > 3) == 1, "bool casts runtime")
+check(nz.toBool() && (nz > 3).toInt() == 1, "bool casts runtime")
 both :: proc(a: Bool, b: Bool) -> Bool
   return a && b
 end
@@ -113,7 +113,7 @@ Particle :: struct
 end
 parts: [100]Particle
 for i in 0..<len(parts)
-  parts[i].pos = Vec{x = Float(i), y = 0}
+  parts[i].pos = Vec{x = i.toFloat(), y = 0}
   parts[i].vel = Vec{x = 1, y = 2}
   parts[i].life = i
 end
@@ -187,7 +187,7 @@ buf: Blob[16]
 for i in 0..<len(buf)
   buf[i] = 'a' + i
 end
-s := String(buf[0:5])
+s := buf[0:5].asString()
 check(s == "abcde", "blob to string")
 check(s[1] == 'b', "string index")
 check(buf[255 & 3] == 'd', "blob index")
@@ -247,7 +247,7 @@ locals :: proc(n: Int) -> Int
   end
   part := Particle{pos = v, vel = w, life = 5}
   part.tag[1] = 4
-  return t + Int(q.x + q.y) + b[7] + j + part.life + part.tag[1]
+  return t + (q.x + q.y).toInt() + b[7] + j + part.life + part.tag[1]
 end
 check(locals(10) == 54 + 9 + 9 + 3 + 5 + 4, "proc locals")
 check(locals(0) == 14 + 30, "proc locals again")
@@ -294,10 +294,10 @@ label :: proc(b: Blob[..], score: Int) -> Bool
   b.clear()
   return b.format("score: ", score, " ", 1.5, " ", true) && b.push('!')
 end
-check(label(title, 42) && String(title[:]) == "score: 42 1.5 true!", "format appends text; push adds one byte")
+check(label(title, 42) && title[:].asString() == "score: 42 1.5 true!", "format appends text; push adds one byte")
 tiny: Blob[..6]
 check(tiny.pushAll("abc") && !tiny.format("de", 12345) && len(tiny) == 3, "format is all or nothing")
-check(tiny.format(12) && tiny.push(65) && String(tiny[:]) == "abc12A" && !tiny.push(66), "push on a Blob list is a byte")
+check(tiny.format(12) && tiny.push(65) && tiny[:].asString() == "abc12A" && !tiny.push(66), "push on a Blob list is a byte")
 check(tiny.format(), "format with nothing to add")
 more: [..8]Int
 check(more.pushAll(nums) && !more.pushAll(nums) && len(more) == 5 && more[4] == 16, "pushAll is all or nothing")
@@ -342,7 +342,7 @@ Ship.step :: proc(dt: Float)
 end
 fleet: [3]Ship
 for i in 0..<3
-  fleet[i] = Ship{x = Float(i), vx = 2, hp = 2}
+  fleet[i] = Ship{x = i.toFloat(), vx = 2, hp = 2}
 end
 fleet[1].step(0.5)
 check(fleet[1].x == 2 && fleet[0].x == 0, "a method updates its receiver in place")
@@ -424,7 +424,7 @@ src := Particle{pos = {x = 1, y = 2}, vel = {x = 3, y = 4}, life = 7}
 cp := Particle{src.pos, src.life, vel = {y = src.vel.y}}
 check(cp.pos.y == 2 && cp.life == 7 && cp.vel.x == 0 && cp.vel.y == 4, "deep punning uses the last name")
 Ship.at :: proc() -> Vec
-  return {self.x, y = Float(self.hp)}
+  return {self.x, y = self.hp.toFloat()}
 end
 check(fleet[0].at().x == 9 && fleet[0].at().y == 4, "punning self fields")
 check(Vec{src.pos.y, x = 0}.y == 2, "deep path, mixed with named fields")
