@@ -1201,13 +1201,12 @@ static void struct_def(Rio *vm, const char *name, int nlen) {
   st->size = (uint32_t)off;
   addsym(vm, name, nlen, S_TYPE, ti, 0);
 }
-static void decl_var(Rio *vm) {
-  const char *ns = TK.s; int nn = TK.n, t = -1, has = 0, k, big; uint32_t addr; RioType *ty; Ex e = mkex(EK_VOID, TY_VOID, 0);
-  next(vm);
-  if (TK.t == ':') { next(vm); t = parse_type(vm); if (TK.t == '=') { next(vm); has = 1; } }
-  else { next(vm); has = 1; }
+/* declare a variable of type t (-1: from the value), initialized from *pe or zeroed. adopt: the
+   value may already sit in the next free slot and simply become the variable */
+static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
+  int has = pe != 0, k, big; uint32_t addr; RioType *ty; Ex e = has ? *pe : mkex(EK_VOID, TY_VOID, 0);
   if (has) {
-    vm->c->target = t; e = expr(vm); needval(vm, &e);
+    needval(vm, &e);
     if (t < 0) { t = vt(e.t); if (TY(t)->k == K_ARR) t = slice_of(vm, TY(t)->elem); else if (TY(t)->k == K_LIST) t = build_of(vm, TY(t)->elem); }
     coerce(vm, &e, t);
   }
@@ -1221,17 +1220,61 @@ static void decl_var(Rio *vm) {
       int s = k == K_SLICE || k == K_BUILD ? toslot2(vm, &e) : toslot(vm, &e, 1);
       e.k = EK_ST; e.a = s * 4; e.t = (uint16_t)t;
     }
-    if (has && e.k == EK_ST && e.a == (int32_t)vm->c->nact * 4 && !e.ro && k != K_ARR) {
+    if (adopt && has && e.k == EK_ST && e.a == (int32_t)vm->c->nact * 4 && !e.ro && k != K_ARR) {
       vm->c->nact += (uint32_t)words(vm, t); vm->c->fr = vm->c->nact;
       addsym(vm, ns, nn, S_VAR, t, e.a);
       return;
     }
-    addr = (uint32_t)alloc(vm, words(vm, t)) * 4; vm->c->nact = vm->c->fr;
+    addr = (uint32_t)alloc(vm, words(vm, t)) * 4;
   }
   if (has) { Ex d = mkex(EK_ST, t, (int32_t)addr); store(vm, &d, &e); }
   else if (!big && addr < 0x40000 && ty->size <= 64) { int w; for (w = 0; w < words(vm, t); w++) emit(vm, OP_MOV, (int)(addr >> 2) + w, kslot(vm, 0), 0); }
   else if (!(big && vm->c->curfn < 0 && !vm->c->nblk)) emit(vm, OP_ZERO, kaddr(vm, addr, ty->size), (int)(ty->size & 0xFFFF), (int)(ty->size >> 16));
+  if (!big) vm->c->nact = vm->c->fr; /* after the store, so it can still write straight into the variable */
   addsym(vm, ns, nn, S_VAR, t, (int32_t)addr);
+}
+static void decl_var(Rio *vm) {
+  const char *ns = TK.s; int nn = TK.n, t = -1, has = 0; Ex e;
+  next(vm);
+  if (TK.t == ':') { next(vm); t = parse_type(vm); if (TK.t == '=') { next(vm); has = 1; } }
+  else { next(vm); has = 1; }
+  if (has) { vm->c->target = t; e = expr(vm); }
+  declare(vm, ns, nn, t, has ? &e : 0, 1);
+}
+/* {a, b as c} := value: new variables holding copies of some of a struct's fields */
+static void destructure(Rio *vm) {
+  const char *fs[32], *ls[32]; int fn[32], ln[32], n = 0, i; Ex e;
+  next(vm);
+  while (TK.t != '}') {
+    if (TK.t != TK_ID) fail(vm, "field name expected");
+    if (n >= 32) fail(vm, "too many names");
+    fs[n] = ls[n] = TK.s; fn[n] = ln[n] = TK.n; next(vm);
+    if (TK.t == TK_ID && TK.n == 2 && !memcmp(TK.s, "as", 2)) { /* 'as' only means something here */
+      next(vm);
+      if (TK.t != TK_ID) fail(vm, "name expected after 'as'");
+      ls[n] = TK.s; ln[n] = TK.n; next(vm);
+    }
+    n++;
+    if (TK.t != ',') break;
+    next(vm);
+  }
+  expect(vm, '}', "'}' expected");
+  if (TK.t != TK_DECL) fail(vm, "':=' expected: destructuring declares new names");
+  next(vm);
+  e = expr(vm); needval(vm, &e);
+  if (TY(e.t)->k != K_STRUCT) fail(vm, "only a struct can be destructured");
+  for (i = 0; i < n; i++) {
+    RioType *st = TY(e.t); Ex fe = e; int fi = structfield(vm, st, fs[i], fn[i]), k; RioField *f;
+    if (fi < 0) fail(vm, "no such field to destructure");
+    f = &vm->c->field[st->f0 + fi];
+    if (fe.k == EK_ST) fe.a += f->off; else fe.off += f->off;
+    fe.t = f->t; k = TY(f->t)->k;
+    if (fe.k == EK_MEM && k != K_STRUCT && k != K_ARR && k != K_LIST) { /* load without disturbing the struct's address */
+      int s = k == K_SLICE || k == K_BUILD ? toslot2(vm, &fe) : toslot(vm, &fe, 0);
+      fe = mkex(EK_ST, vt(f->t), s * 4);
+    }
+    declare(vm, ls[i], ln[i], -1, &fe, 0);
+  }
 }
 static void stmt_expr(Rio *vm) {
   Ex l = expr(vm), r, cur;
@@ -1348,6 +1391,7 @@ static void statement(Rio *vm) {
     else b->cont = (uint16_t)jappend(vm, b->cont, emit(vm, OP_JMP, 0, 0, NONE));
     next(vm);
     break;
+  case '{': destructure(vm); break;
   default: stmt_expr(vm);
   }
   vm->c->fr = vm->c->nact;

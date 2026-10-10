@@ -434,6 +434,38 @@ pv2 := Vec{
 }
 check(pv2.x == 1.5 && pv2.y == 2, "punning across lines, with comments")
 
+// ---- destructuring: {a, b as c} := struct
+QR :: struct
+  q, r: Int
+end
+divmod :: proc(a: Int, b: Int) -> QR
+  return {q = a / b, r = a % b}
+end
+{q, r} := divmod(17, 5)
+check(q == 3 && r == 2, "destructure a call result")
+{r as rem, q as quo,} := divmod(9, 4)
+check(rem == 1 && quo == 2, "rename with as, any order, trailing comma")
+{pos, life} := src
+check(pos.y == 2 && life == 7, "struct and Int fields")
+{x as fx} := fleet[1]
+check(fx == fleet[1].x, "partial, from an array element")
+mover :: proc() -> Float
+  {x as sx, vx} := fleet[1]
+  sx += vx
+  return sx - fleet[1].x
+end
+check(mover() == fleet[1].vx, "the names are copies; works in procs")
+{tag} := parts[3]
+check(tag[0] == 90 && len(tag) == 4, "an inline Blob field becomes a view")
+nested :: proc(ps: []Particle, i: Int) -> Float
+  {pos as p, vel} := ps[i]
+  {x, y as py} := p
+  return x + py + vel.y
+end
+check(nested(parts, 10) == 10.5 + 1 + 2, "through a slice, then shallow again")
+as := 5
+check(as == 5, "as is still an ordinary name elsewhere")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")
