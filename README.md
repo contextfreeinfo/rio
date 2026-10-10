@@ -105,9 +105,9 @@ The top-level code runs first, then the host (or the `nib` CLI) calls `main`.
 
 ```c
 #include "nib.h"
-static uint8_t mem[1 << 20];          // all script data
+static uint8_t mem[1 << 20];          // script data, and the compiler's working memory while compiling
 static NibIns code[16384];            // bytecode (max 65535)
-static Nib vm;                        // compiler + vm state (fixed size)
+static Nib vm;                        // runtime state (~1-12 KB depending on limits)
 
 static void host_print(void *ud, const char *s, int n) { fwrite(s, 1, n, stdout); putchar('\n'); }
 static void host_rand(Nib *vm, NibVal *a) { a[0].i = rand(); }  // args in a[], result to a[0]
@@ -118,7 +118,7 @@ nib_ffi(&vm, "rand", ">i", host_rand);   // sig: i f s b params, '>' result
 if (nib_compile(&vm, src, len) || nib_run(&vm)) puts(nib_error(&vm));
 
 int f = nib_func(&vm, "update");
-nib_arg(&vm, f, 0)->f = 0.016f;
+nib_args(&vm, f)[0].f = 0.016f;        // params are consecutive words (slices 2, structs n)
 nib_call(&vm, f);
 float r = nib_ret(&vm, f)->f;          // if it returns something
 int *score = nib_global(&vm, "score"); // direct access to globals
@@ -127,6 +127,32 @@ int *score = nib_global(&vm, "score"); // direct access to globals
 String or blob FFI arguments take two words (address, length); use `nib_ptr(vm, &a[i])` to get the bytes. An FFI function can abort the script with `nib_trap(vm, "msg")`. FFI functions must not call back into the VM.
 
 You can change the limits (symbols, procs, constants and so on) with `-DNIB_MAX_...`. See `nib.h`.
+
+## Memory and microcontrollers
+
+The library has no static RAM of its own. Everything lives in three buffers you provide: `Nib`, `mem` and `code`.
+
+**The compiler borrows script memory.** While compiling, the compiler writes only two things into `mem`: constants (at the bottom) and string literals. Proc frames, globals and arrays are just address ranges that stay zero until the program runs. So `nib_compile` puts its working state (symbol tables, expression stacks, the string pool) on top of those ranges. When it finishes, it moves the strings and a small export table (for `nib_func`/`nib_global`) to their final place and zeroes the rest. Peak RAM is *max(compiling, running)*, not their sum.
+
+```
+compiling:  [consts][ compiler state + string pool ..................................]
+running:    [consts][ frames/globals | return stack ][ ... ][strings+exports][arrays ]
+```
+
+`nib_compile_scratch` puts the compiler state in a separate buffer instead, which then stays readable after compiling. The C backend needs that.
+
+**MCU limits:** build with `-DNIB_SMALL` for MCU-sized limits (128 symbols, 32 procs, 256 constants, 4K slots, …), or set each `NIB_MAX_*` yourself. Measured with `NIB_SMALL`:
+
+| | 64-bit | 32-bit |
+|---|---|---|
+| `Nib` (runtime state) | 1,248 B | 968 B |
+| compiler state (overlaid on `mem` while compiling) | 8,720 B | 8,504 B |
+| smallest `mem` that compiles and runs a 64-ball physics demo | 9,853 B | 9,629 B |
+| smallest `mem` for the full test suite | 11,021 B | 10,797 B |
+| bytecode | 8 B per instruction (~1 B per source byte) | same |
+| C stack while running | a few hundred bytes (return addresses live in `mem`) | same |
+
+On a Cortex-M4, the core compiles to about 24.6 KB of flash at `-Os` (22.6 KB code, 2.1 KB read-only tables), plus libm and `memcpy`/`memset`/`setjmp` from your libc. Peak memory comes from compiling, dominated by the compiler state. If `mem` is too small, `nib_compile` fails cleanly with "out of compiler memory" or "out of memory".
 
 ## Ahead-of-time compilation to C
 
@@ -153,7 +179,7 @@ These are from `bench/`, comparing against Lua 5.5 on the same Windows machine. 
 - **VM:** about 3–4× faster than Lua here. On Linux with a faster Lua build, particles measured 0.29s vs 0.59s, about 2×, so expect roughly 2–4× depending on the Lua build. The speed comes from static types (no tag checks), absolute-slot operands (static frames), constants preloaded in memory, compare-and-branch fusion, fused index+load/store, bottom-tested `while` loops, a dedicated `for` loop op, and destination retargeting that removes most moves.
 - **AOT:** sieve is about 3.5× faster than the VM. The other three run in milliseconds because the C compiler can see through those loops entirely (inlining, vectorizing, or folding them), so treat them as an upper bound rather than typical.
 - The particles sums differ from Lua only because nib floats are f32: Lua with f32 rounding emulated gives the identical 43926.92.
-- `switch` dispatch on MSVC is sensitive to memory layout. I measured the same VM source at 0.34s or 0.65s on `calls` depending only on how unrelated code shifted the link layout. Keeping the call stack in `run()`'s locals fixed that case; expect some run-to-run variation on MSVC builds.
+- `switch` dispatch on MSVC is sensitive to code layout. The same VM source has measured 0.34s or 0.65s on `calls` depending only on how unrelated code changes shifted the build. The cause hasn't been pinned down, so expect build-to-build variation with MSVC; ClangCL (see Build) avoids it.
 
 ## Layout
 

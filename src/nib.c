@@ -32,8 +32,8 @@ enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
 enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR };
 enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2 };
 #define NONE 0xFFFF
-#define TY(t) (&vm->type[t])
-#define TK (vm->tk)
+#define TY(t) (&vm->c->type[t])
+#define TK (vm->c->tk)
 typedef NibEx Ex;
 typedef NibOp Op;
 
@@ -87,18 +87,18 @@ static int fmtf(char *b, float f) {
   if (e) { b[i++] = 'e'; i += fmti(b + i, e); }
   return i;
 }
-static int cat(char *b, int n, const char *s) { while (*s && n < 180) b[n++] = *s++; return n; }
+static int cat(char *b, int n, const char *s) { while (*s && n < NIB_ERRBUF - 1) b[n++] = *s++; return n; }
 
 NORET static void fail(Nib *vm, const char *m) {
   char *b = vm->err; int n = 0, i;
-  n = cat(b, n, "line "); n += fmti(b + n, TK.nl ? vm->pline : TK.line); n = cat(b, n, ": "); n = cat(b, n, m);
+  n = cat(b, n, "line "); n += fmti(b + n, TK.nl ? vm->c->pline : TK.line); n = cat(b, n, ": "); n = cat(b, n, m);
   if (TK.t != TK_EOF && TK.n > 0 && !TK.nl) {
     n = cat(b, n, " near '");
-    for (i = 0; i < TK.n && i < 24; i++) b[n++] = TK.s[i];
+    for (i = 0; i < TK.n && i < 24 && n < NIB_ERRBUF - 2; i++) b[n++] = TK.s[i];
     n = cat(b, n, "'");
   }
   b[n] = 0;
-  longjmp(vm->jb, 1);
+  longjmp(vm->c->jb, 1);
 }
 
 /* ---------------------------------------------------------------- lexer */
@@ -110,20 +110,20 @@ static const short tok2[] = {TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_
   TK_ARROW, -'+', -'-', -'*', -'/', -'%', -'&', -'|', -'^'};
 
 static void lex(Nib *vm, NibTok *t) {
-  const char *p = vm->sp, *e = vm->se, *s;
+  const char *p = vm->c->sp, *e = vm->c->se, *s;
   int nl = 0, i;
   for (;;) {
-    while (p < e && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')) { if (*p == '\n') { nl = 1; vm->line++; } p++; }
+    while (p < e && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')) { if (*p == '\n') { nl = 1; vm->c->line++; } p++; }
     if (p + 1 < e && p[0] == '/' && p[1] == '/') { while (p < e && *p != '\n') p++; continue; }
     if (p + 1 < e && p[0] == '/' && p[1] == '*') {
-      for (p += 2; p + 1 < e && !(p[0] == '*' && p[1] == '/'); p++) if (*p == '\n') { nl = 1; vm->line++; }
+      for (p += 2; p + 1 < e && !(p[0] == '*' && p[1] == '/'); p++) if (*p == '\n') { nl = 1; vm->c->line++; }
       p = p + 1 < e ? p + 2 : e;
       continue;
     }
     break;
   }
-  t->nl = (uint8_t)nl; t->line = vm->line; t->s = s = p; t->op = 0; t->v.i = 0;
-  if (p >= e) { t->t = TK_EOF; t->n = 0; vm->sp = e; return; }
+  t->nl = (uint8_t)nl; t->line = vm->c->line; t->s = s = p; t->op = 0; t->v.i = 0;
+  if (p >= e) { t->t = TK_EOF; t->n = 0; vm->c->sp = e; return; }
   if (isal(*p)) {
     while (p < e && (isal(*p) || isdg(*p))) p++;
     t->t = TK_ID;
@@ -150,9 +150,9 @@ static void lex(Nib *vm, NibTok *t) {
     t->t = isf ? TK_FLT : TK_INT;
     if (isf) t->v.f = (float)d; else t->v.u = v;
   } else if (*p == '"') {
-    for (s = ++p; p < e && *p != '"'; p++) { if (*p == '\\') p++; if (p < e && *p == '\n') vm->line++; }
-    if (p >= e) { vm->sp = e; fail(vm, "unterminated string"); }
-    t->t = TK_STR; t->s = s; t->n = (int)(p - s); vm->sp = p + 1;
+    for (s = ++p; p < e && *p != '"'; p++) { if (*p == '\\') p++; if (p < e && *p == '\n') vm->c->line++; }
+    if (p >= e) { vm->c->sp = e; fail(vm, "unterminated string"); }
+    t->t = TK_STR; t->s = s; t->n = (int)(p - s); vm->c->sp = p + 1;
     return;
   } else if (*p == '\'') {
     int c = p + 1 < e ? p[1] : 0;
@@ -173,46 +173,46 @@ static void lex(Nib *vm, NibTok *t) {
         break;
       }
   }
-  t->n = (int)(p - s); vm->sp = p;
+  t->n = (int)(p - s); vm->c->sp = p;
 }
-static void next(Nib *vm) { vm->pline = vm->tk.line; vm->tk = vm->nx; lex(vm, &vm->nx); }
+static void next(Nib *vm) { vm->c->pline = vm->c->tk.line; vm->c->tk = vm->c->nx; lex(vm, &vm->c->nx); }
 static void expect(Nib *vm, int t, const char *m) { if (TK.t != t) fail(vm, m); next(vm); }
 
 /* ---------------------------------------------------------------- tables */
 static int addname(Nib *vm, const char *s, int n) {
-  if (vm->nnames + n > NIB_NAMES) fail(vm, "out of name space");
-  memcpy(vm->names + vm->nnames, s, (size_t)n); vm->nnames += n;
-  return vm->nnames - n;
+  if (vm->c->nnames + n > NIB_NAMES) fail(vm, "out of name space");
+  memcpy(vm->c->names + vm->c->nnames, s, (size_t)n); vm->c->nnames += n;
+  return vm->c->nnames - n;
 }
 static void addsym(Nib *vm, const char *s, int n, int k, int t, int32_t v) {
   NibSym *y;
-  if (vm->nsym >= NIB_MAX_SYMS) fail(vm, "too many symbols");
-  y = &vm->sym[vm->nsym++];
+  if (vm->c->nsym >= NIB_MAX_SYMS) fail(vm, "too many symbols");
+  y = &vm->c->sym[vm->c->nsym++];
   y->name = (uint16_t)addname(vm, s, n); y->len = (uint16_t)n; y->k = (uint8_t)k; y->t = (uint16_t)t; y->v = v;
 }
 static int lookup(Nib *vm, const char *s, int n) {
   int i;
-  for (i = vm->nsym - 1; i >= 0; i--)
-    if (vm->sym[i].len == n && !memcmp(vm->names + vm->sym[i].name, s, (size_t)n)) return i;
+  for (i = vm->c->nsym - 1; i >= 0; i--)
+    if (vm->c->sym[i].len == n && !memcmp(vm->c->names + vm->c->sym[i].name, s, (size_t)n)) return i;
   return -1;
 }
 static int newtype(Nib *vm, int k, int elem, uint32_t n, uint32_t size) {
   NibType *y;
-  if (vm->ntype >= NIB_MAX_TYPES) fail(vm, "too many types");
-  y = &vm->type[vm->ntype];
+  if (vm->c->ntype >= NIB_MAX_TYPES) fail(vm, "too many types");
+  y = &vm->c->type[vm->c->ntype];
   y->k = (uint8_t)k; y->elem = (uint16_t)elem; y->n = n; y->size = size; y->f0 = y->nf = 0;
-  y->ref = (uint8_t)(k == K_SLICE || (k == K_ARR && vm->type[elem].ref));
-  return vm->ntype++;
+  y->ref = (uint8_t)(k == K_SLICE || (k == K_ARR && vm->c->type[elem].ref));
+  return vm->c->ntype++;
 }
 static int slice_of(Nib *vm, int e) {
   int i;
   if (e == TY_BYTE) return TY_BLOB;
-  for (i = TY_BLOB + 1; i < vm->ntype; i++) if (vm->type[i].k == K_SLICE && vm->type[i].elem == e) return i;
+  for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_SLICE && vm->c->type[i].elem == e) return i;
   return newtype(vm, K_SLICE, e, 0, 8);
 }
 static int array_of(Nib *vm, int e, uint32_t n) {
   int i; uint32_t es = TY(e)->size;
-  for (i = TY_BLOB + 1; i < vm->ntype; i++) if (vm->type[i].k == K_ARR && vm->type[i].elem == e && vm->type[i].n == n) return i;
+  for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_ARR && vm->c->type[i].elem == e && vm->c->type[i].n == n) return i;
   if (es && n > 0x7FFFFFF0u / es) fail(vm, "array too large");
   return newtype(vm, K_ARR, e, n, (es * n + 3) & ~3u);
 }
@@ -229,35 +229,36 @@ static int emit(Nib *vm, int op, int a, int b, int c) {
 }
 static void emitx(Nib *vm, int op, int x, int a) { emit(vm, op, a, 0, 0); vm->code[vm->pc - 1].x = (uint8_t)x; }
 static void emitw(Nib *vm, int a, uint32_t w) { emit(vm, OP_DATA, a, (int)(w & 0xFFFF), (int)(w >> 16)); }
-static int here(Nib *vm) { return (int)(vm->lastlabel = vm->pc); }
+static int here(Nib *vm) { return (int)(vm->c->lastlabel = vm->pc); }
 static int jappend(Nib *vm, int list, int j) { if (j == NONE) return list; vm->code[j].c = (uint16_t)list; return j; }
 static void patch(Nib *vm, int list, int to) {
   while (list != NONE) { int n = vm->code[list].c; vm->code[list].c = (uint16_t)to; list = n; }
 }
 static int alloc(Nib *vm, int n) {
-  int r = (int)vm->fr;
-  vm->fr += (uint32_t)n;
-  if (vm->fr > vm->hwm) {
-    vm->hwm = vm->fr;
-    if (vm->hwm > 0xFFFF || vm->hwm * 4 > vm->hi) fail(vm, "out of slots");
+  int r = (int)vm->c->fr;
+  vm->c->fr += (uint32_t)n;
+  if (vm->c->fr > vm->c->hwm) {
+    vm->c->hwm = vm->c->fr;
+    if (vm->c->hwm > NIB_MAX_SLOTS || vm->c->hwm * 4 > vm->hi) fail(vm, "out of slots");
   }
   return r;
 }
 static uint32_t halloc(Nib *vm, uint32_t n) {
   n = (n + 3) & ~3u;
-  if (vm->hi < n || vm->hi - n < vm->hwm * 4) fail(vm, "out of memory");
+  if (vm->hi < n || vm->hi - n < vm->c->hwm * 4) fail(vm, "out of memory");
   return vm->hi -= n;
 }
+#define KFIX(i) (vm->c->kfix[(i) >> 3] & (1u << ((i) & 7)))
 static int kslot(Nib *vm, uint32_t v) {
   NibVal *R = (NibVal *)vm->mem; uint32_t i;
-  for (i = 1; i < vm->nk; i++) if (R[i].u == v) return (int)i;
+  for (i = 1; i < vm->nk; i++) if (R[i].u == v && !KFIX(i)) return (int)i;
   if (vm->nk >= NIB_MAX_CONSTS) fail(vm, "too many constants");
   R[vm->nk].u = v;
   return (int)vm->nk++;
 }
 static int kslot2(Nib *vm, uint32_t a, uint32_t b) {
   NibVal *R = (NibVal *)vm->mem; uint32_t i;
-  for (i = 1; i + 1 < vm->nk; i++) if (R[i].u == a && R[i + 1].u == b) return (int)i;
+  for (i = 1; i + 1 < vm->nk; i++) if (R[i].u == a && R[i + 1].u == b && !KFIX(i)) return (int)i;
   if (vm->nk + 2 > NIB_MAX_CONSTS) fail(vm, "too many constants");
   R[vm->nk].u = a; R[vm->nk + 1].u = b; vm->nk += 2;
   return (int)vm->nk - 2;
@@ -265,19 +266,19 @@ static int kslot2(Nib *vm, uint32_t a, uint32_t b) {
 /* constant holding a static address; marks those slots as address-taken (they can't become C locals in AOT) */
 static uint32_t expose(Nib *vm, uint32_t a, uint32_t n) {
   uint32_t w;
-  for (w = a / 4; w < 0x10000 && w * 4 < a + n; w++) vm->exposed[w >> 3] |= (uint8_t)(1u << (w & 7));
+  for (w = a / 4; w < NIB_MAX_SLOTS && w * 4 < a + n; w++) vm->c->exposed[w >> 3] |= (uint8_t)(1u << (w & 7));
   return a;
 }
 static int kaddr(Nib *vm, uint32_t a, uint32_t n) { return kslot(vm, expose(vm, a, n)); }
 /* is the last instruction (+data word) an IDX writing temp d? */
 static NibIns *lastidx(Nib *vm, int d) {
   NibIns *x = vm->pc >= 2 ? &vm->code[vm->pc - 2] : 0;
-  return x && d >= (int)vm->nact && vm->lastlabel != vm->pc && x->op == OP_IDX && x->a == d ? x : 0;
+  return x && d >= (int)vm->c->nact && vm->c->lastlabel != vm->pc && x->op == OP_IDX && x->a == d ? x : 0;
 }
 /* if the last instruction wrote temp `from`, make it write `to` instead */
 static int retarget(Nib *vm, int from, int to) {
   NibIns *i;
-  if (!vm->pc || vm->lastlabel == vm->pc || from < (int)vm->nact) return 0;
+  if (!vm->pc || vm->c->lastlabel == vm->pc || from < (int)vm->c->nact) return 0;
   i = &vm->code[vm->pc - 1];
   if (i->op == OP_DATA && vm->pc >= 2 && (i[-1].op == OP_LDX || i[-1].op == OP_LDXB)) i--;
   if ((i->op > OP_LASTDST && i->op != OP_LDX && i->op != OP_LDXB) || i->a != from) return 0;
@@ -311,7 +312,7 @@ static int toslot(Nib *vm, Ex *e, int reuse) {
     vm->code[vm->pc - 2].op = k == K_BYTE ? OP_LDXB : OP_LDX; vm->code[vm->pc - 1].a = (uint16_t)e->off;
     return e->a;
   }
-  d = reuse && e->a >= (int)vm->nact ? e->a : alloc(vm, 1);
+  d = reuse && e->a >= (int)vm->c->nact ? e->a : alloc(vm, 1);
   emit(vm, k == K_BYTE ? OP_LDB : OP_LDW, d, e->a, e->off);
   return d;
 }
@@ -395,7 +396,7 @@ static int condjump(Nib *vm, Ex *e) {
   needval(vm, e);
   if (e->t != TY_BOOL) fail(vm, "condition must be bool");
   if (e->k == EK_CONST) return e->a ? NONE : emit(vm, OP_JMP, 0, 0, NONE);
-  if (e->k == EK_ST && e->a < 0x40000 && (e->a >> 2) >= (int)vm->nact && vm->pc && vm->lastlabel != vm->pc) {
+  if (e->k == EK_ST && e->a < 0x40000 && (e->a >> 2) >= (int)vm->c->nact && vm->pc && vm->c->lastlabel != vm->pc) {
     NibIns *i = &vm->code[vm->pc - 1];
     if (i->a == e->a >> 2 && i->op >= OP_EQ && i->op <= OP_FLE) {
       i->op = (uint8_t)(OP_JEQ + (i->op - OP_EQ)); i->a = i->b; i->b = i->c; i->c = NONE;
@@ -469,7 +470,7 @@ static void binop(Nib *vm, int op, Ex *l, Ex *r) {
     ls = toslot(vm, l, 1); rs = toslot(vm, r, 1);
     if (sw) { d = ls; ls = rs; rs = d; }
   }
-  vm->fr = l->t0 < r->t0 ? l->t0 : r->t0;
+  vm->c->fr = l->t0 < r->t0 ? l->t0 : r->t0;
   d = alloc(vm, 1);
   emit(vm, o, d, ls, rs);
   l->k = EK_ST; l->a = d * 4; l->t = (uint16_t)(cmp ? TY_BOOL : lt); l->ro = 0; l->t0 = (uint16_t)d;
@@ -485,21 +486,21 @@ static void unop(Nib *vm, int op, Ex *e) {
     return;
   }
   s = toslot(vm, e, 1);
-  vm->fr = e->t0; d = alloc(vm, 1);
+  vm->c->fr = e->t0; d = alloc(vm, 1);
   emit(vm, op == '-' ? (t == TY_F32 ? OP_FNEG : OP_NEG) : op == '!' ? OP_NOT : OP_BNOT, d, s, 0);
   e->k = EK_ST; e->a = d * 4; e->t = (uint16_t)t; e->ro = 0;
 }
 
 /* ---------------------------------------------------------------- expression parser (shunting-yard) */
-static Ex *vtop(Nib *vm) { return &vm->vs[vm->nvs - 1]; }
-static Ex vpop(Nib *vm) { return vm->vs[--vm->nvs]; }
-static void vpush(Nib *vm, Ex e) { if (vm->nvs >= NIB_MAX_EXPR) fail(vm, "expression too complex"); vm->vs[vm->nvs++] = e; }
+static Ex *vtop(Nib *vm) { return &vm->c->vs[vm->c->nvs - 1]; }
+static Ex vpop(Nib *vm) { return vm->c->vs[--vm->c->nvs]; }
+static void vpush(Nib *vm, Ex e) { if (vm->c->nvs >= NIB_MAX_EXPR) fail(vm, "expression too complex"); vm->c->vs[vm->c->nvs++] = e; }
 static Op *opush(Nib *vm, int k, int prec, int op) {
   Op *o;
-  if (vm->nos >= NIB_MAX_EXPR) fail(vm, "expression too complex");
-  o = &vm->os[vm->nos++];
+  if (vm->c->nos >= NIB_MAX_EXPR) fail(vm, "expression too complex");
+  o = &vm->c->os[vm->c->nos++];
   o->k = (uint8_t)k; o->prec = (uint8_t)prec; o->op = (int16_t)op; o->a = o->b = o->c = o->n = 0;
-  o->vb = (uint16_t)vm->nvs; o->fr0 = (uint16_t)vm->fr;
+  o->vb = (uint16_t)vm->c->nvs; o->fr0 = (uint16_t)vm->c->fr;
   return o;
 }
 static void vres(Nib *vm, Ex e, int t0) { e.t0 = (uint16_t)t0; vpush(vm, e); }
@@ -514,7 +515,7 @@ static int binprec(int t) {
   return 0;
 }
 static void reduce1(Nib *vm) {
-  Op o = vm->os[--vm->nos]; Ex r;
+  Op o = vm->c->os[--vm->c->nos]; Ex r;
   if (o.k == OK_UN) { unop(vm, o.op, vtop(vm)); return; }
   r = vpop(vm);
   if (o.k == OK_BIN) { binop(vm, o.op, vtop(vm), &r); return; }
@@ -523,7 +524,7 @@ static void reduce1(Nib *vm) {
     needval(vm, &r);
     if (r.t != TY_BOOL) fail(vm, "expected bool");
     s = toslot(vm, &r, 1);
-    vm->fr = (uint32_t)d + 1;
+    vm->c->fr = (uint32_t)d + 1;
     if (s != d && !retarget(vm, s, d)) emit(vm, OP_MOV, d, s, 0);
     patch(vm, o.a, here(vm));
   }
@@ -531,21 +532,24 @@ static void reduce1(Nib *vm) {
 static Ex ident(Nib *vm) {
   int i = lookup(vm, TK.s, TK.n); NibSym *y;
   if (i < 0) fail(vm, "undefined name");
-  y = &vm->sym[i];
+  y = &vm->c->sym[i];
   switch (y->k) {
   case S_VAR: return mkex(EK_ST, y->t, y->v);
   case S_CONST: { Ex e = mkex(TY(y->t)->k <= K_F32 || TY(y->t)->k == K_BOOL ? EK_CONST : EK_ST, y->t, y->v); e.ro = 1; return e; }
-  case S_FN: if (!vm->func[y->v].done) fail(vm, "recursion is not allowed"); return mkex(EK_FN, 0, y->v);
+  case S_FN: if (!vm->c->func[y->v].done) fail(vm, "recursion is not allowed"); return mkex(EK_FN, 0, y->v);
   case S_FFI: return mkex(EK_FFI, 0, y->v);
   case S_BI: return mkex(EK_BI, 0, y->v);
   default: return mkex(EK_TY, y->t, 0);
   }
 }
 static Ex strlit(Nib *vm) {
-  int i, j = 0; uint32_t a = halloc(vm, (uint32_t)TK.n + 1);
-  uint8_t *d = vm->mem + a; Ex e;
+  NibC *c = vm->c; NibVal *R = (NibVal *)vm->mem; uint8_t *d = c->strs + c->pool; uint32_t k = vm->nk; int i, j = 0; Ex e;
+  if ((uint32_t)TK.n > c->poolcap - c->pool) fail(vm, "out of compiler memory");
+  if (k + 2 > NIB_MAX_CONSTS) fail(vm, "too many constants");
   for (i = 0; i < TK.n; i++) d[j++] = (uint8_t)(TK.s[i] == '\\' && i + 1 < TK.n ? esc(TK.s[++i]) : TK.s[i]);
-  e = mkex(EK_ST, TY_STR, kslot2(vm, a, (uint32_t)j) * 4); e.ro = 1;
+  R[k].u = 0x80000000u | c->pool; R[k + 1].u = (uint32_t)j; c->kfix[k >> 3] |= (uint8_t)(1u << (k & 7));
+  vm->nk += 2; c->pool += (uint32_t)j;
+  e = mkex(EK_ST, TY_STR, (int32_t)k * 4); e.ro = 1;
   return e;
 }
 static void field(Nib *vm, Ex *e) {
@@ -553,8 +557,8 @@ static void field(Nib *vm, Ex *e) {
   needval(vm, e); st = TY(e->t);
   if (st->k != K_STRUCT) fail(vm, "not a struct");
   for (i = 0; i < st->nf; i++) {
-    f = &vm->field[st->f0 + i];
-    if (f->len == TK.n && !memcmp(vm->names + f->name, TK.s, (size_t)TK.n)) break;
+    f = &vm->c->field[st->f0 + i];
+    if (f->len == TK.n && !memcmp(vm->c->names + f->name, TK.s, (size_t)TK.n)) break;
   }
   if (i == st->nf) fail(vm, "no such field");
   if (e->k == EK_ST) e->a += f->off; else e->off += f->off;
@@ -572,7 +576,7 @@ static void doindex(Nib *vm, Ex *o, Ex *i) {
     return;
   }
   s = toslot2(vm, o); ix = toslot(vm, i, 1);
-  vm->fr = o->t0; d = alloc(vm, 1);
+  vm->c->fr = o->t0; d = alloc(vm, 1);
   emit(vm, OP_IDX, d, s, ix); emitw(vm, 0, (uint32_t)sz);
   o->k = EK_MEM; o->a = d; o->off = 0; o->t = (uint16_t)el; o->ro = (uint8_t)ro;
 }
@@ -582,7 +586,7 @@ static void doslice(Nib *vm, Ex *o, Ex *lo, Ex *hi) {
   if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "cannot slice this");
   if (vt(lo->t) != TY_I32 || (hi->k != EK_LEN && vt(hi->t) != TY_I32)) fail(vm, "slice bounds must be i32");
   s = toslot2(vm, o); l = toslot(vm, lo, 1); h = hi->k == EK_LEN ? s + 1 : toslot(vm, hi, 1);
-  vm->fr = o->t0; d = alloc(vm, 2);
+  vm->c->fr = o->t0; d = alloc(vm, 2);
   emit(vm, OP_SLICE, d, s, l); emitw(vm, h, TY(ty->elem)->size);
   o->k = EK_ST; o->a = d * 4; o->off = 0;
   if (ty->k == K_ARR) o->t = (uint16_t)slice_of(vm, ty->elem);
@@ -594,24 +598,24 @@ static void argdone(Nib *vm, Op *m) {
   if (m->k == OK_LIT) {
     NibType *st = TY(m->b); NibField *f; Ex d;
     if (m->n >= st->nf) fail(vm, "too many fields");
-    f = &vm->field[st->f0 + m->n];
+    f = &vm->c->field[st->f0 + m->n];
     e = vpop(vm); d = mkex(EK_ST, f->t, m->c + f->off);
     store(vm, &d, &e);
-    vm->fr = (uint32_t)(m->c / 4 + words(vm, m->b));
+    vm->c->fr = (uint32_t)(m->c / 4 + words(vm, m->b));
   } else if (m->a == EK_FN) {
     int k = TY(a->t)->k;
-    if (m->n >= vm->func[m->b].np) fail(vm, "too many arguments");
+    if (m->n >= vm->c->func[m->b].np) fail(vm, "too many arguments");
     if (a->k == EK_MEM && k != K_STRUCT && k != K_ARR) {
       int s = k == K_SLICE ? toslot2(vm, a) : toslot(vm, a, 1);
       a->k = EK_ST; a->a = s * 4; a->t = (uint16_t)vt(a->t);
     }
   } else if (m->a == EK_FFI) {
-    NibFfi *f = &vm->ffi[m->b]; int pt, w, s, d;
+    NibCFfi *f = &vm->c->ffi[m->b]; int pt, w, s, d;
     if (m->n >= f->np) fail(vm, "too many arguments");
-    e = vpop(vm); pt = vm->param[f->p0 + m->n].t;
+    e = vpop(vm); pt = vm->c->param[f->p0 + m->n].t;
     coerce(vm, &e, pt); w = words(vm, pt);
     s = w == 2 ? toslot2(vm, &e) : toslot(vm, &e, 1);
-    vm->fr = (uint32_t)(m->fr0 + m->c); d = alloc(vm, w);
+    vm->c->fr = (uint32_t)(m->fr0 + m->c); d = alloc(vm, w);
     if (s != d && !(w == 1 && retarget(vm, s, d))) emit(vm, w == 2 ? OP_MOV2 : OP_MOV, d, s, 0);
     m->c += w;
   } else if (m->a == EK_BI && m->b == BI_LOG) {
@@ -622,80 +626,80 @@ static void argdone(Nib *vm, Op *m) {
     else if (k == K_F32) emitx(vm, OP_LOGF, m->n > 0, toslot(vm, &e, 1));
     else if (k == K_I32 || k == K_BYTE) emitx(vm, OP_LOGI, m->n > 0, toslot(vm, &e, 1));
     else fail(vm, "cannot log this type");
-    vm->fr = e.t0;
+    vm->c->fr = e.t0;
   }
   m->n++;
 }
 static void builtin(Nib *vm, Op *m) {
-  int id = m->b, n = vm->nvs - m->vb, t, o = 0, x = 0, s1, s2 = 0, d;
-  Ex *a = &vm->vs[m->vb], r;
-  if (id == BI_LOG) { emit(vm, OP_LOGE, 0, 0, 0); vm->fr = m->fr0; vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0); return; }
+  int id = m->b, n = vm->c->nvs - m->vb, t, o = 0, x = 0, s1, s2 = 0, d;
+  Ex *a = &vm->c->vs[m->vb], r;
+  if (id == BI_LOG) { emit(vm, OP_LOGE, 0, 0, 0); vm->c->fr = m->fr0; vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0); return; }
   if (n != (id >= BI_ATAN2 ? 2 : 1)) fail(vm, "wrong number of arguments");
   if (id == BI_LEN) {
     int k = TY(a->t)->k;
     if (k == K_ARR) r = mkex(EK_CONST, TY_I32, (int32_t)TY(a->t)->n);
     else if (k == K_SLICE) { r = *a; if (r.k == EK_ST) r.a += 4; else r.off += 4; r.t = TY_I32; r.ro = 1; }
     else fail(vm, "len needs a slice or array");
-    vm->nvs = m->vb; vres(vm, r, m->fr0);
+    vm->c->nvs = m->vb; vres(vm, r, m->fr0);
     return;
   }
   t = vt(a->t);
   if (id == BI_ABS && t == TY_I32) {
-    if (a->k == EK_CONST) { r = *a; r.a = a->a < 0 ? (int32_t)(0u - (uint32_t)a->a) : a->a; vm->nvs = m->vb; vres(vm, r, m->fr0); return; }
+    if (a->k == EK_CONST) { r = *a; r.a = a->a < 0 ? (int32_t)(0u - (uint32_t)a->a) : a->a; vm->c->nvs = m->vb; vres(vm, r, m->fr0); return; }
     o = OP_IABS;
   } else if (id == BI_ABS || (id >= BI_SQRT && id <= BI_ROUND)) {
     coerce(vm, a, TY_F32); o = OP_M1; x = id == BI_ABS ? 12 : id - BI_SQRT;
-    if (a->k == EK_CONST) { NibVal v; v.i = a->a; v.f = mf1[x](v.f); r = mkex(EK_CONST, TY_F32, v.i); vm->nvs = m->vb; vres(vm, r, m->fr0); return; }
+    if (a->k == EK_CONST) { NibVal v; v.i = a->a; v.f = mf1[x](v.f); r = mkex(EK_CONST, TY_F32, v.i); vm->c->nvs = m->vb; vres(vm, r, m->fr0); return; }
   } else {
     coerce(vm, a, TY_F32); coerce(vm, a + 1, TY_F32); o = OP_M2; x = id - BI_ATAN2;
     s2 = toslot(vm, a + 1, 1);
   }
   s1 = toslot(vm, a, 1);
-  vm->nvs = m->vb; vm->fr = m->fr0; d = alloc(vm, 1);
+  vm->c->nvs = m->vb; vm->c->fr = m->fr0; d = alloc(vm, 1);
   emit(vm, o, d, s1, s2); vm->code[vm->pc - 1].x = (uint8_t)x;
   vres(vm, mkex(EK_ST, o == OP_IABS ? TY_I32 : TY_F32, d * 4), m->fr0);
 }
 static void minmax(Nib *vm, Op *m) {
-  Ex *a = &vm->vs[m->vb]; int t, s1, s2, d, mx = m->b == BI_MAX;
-  if (vm->nvs - m->vb != 2) fail(vm, "wrong number of arguments");
+  Ex *a = &vm->c->vs[m->vb]; int t, s1, s2, d, mx = m->b == BI_MAX;
+  if (vm->c->nvs - m->vb != 2) fail(vm, "wrong number of arguments");
   needval(vm, a); needval(vm, a + 1);
   if (a[0].k == EK_CONST && vt(a[1].t) == TY_F32) coerce(vm, a, TY_F32);
   if (a[1].k == EK_CONST && vt(a[0].t) == TY_F32) coerce(vm, a + 1, TY_F32);
   t = vt(a->t);
   if (t != vt(a[1].t) || (t != TY_I32 && t != TY_F32)) fail(vm, "type mismatch");
   s1 = toslot(vm, a, 1); s2 = toslot(vm, a + 1, 1);
-  vm->nvs = m->vb; vm->fr = m->fr0; d = alloc(vm, 1);
+  vm->c->nvs = m->vb; vm->c->fr = m->fr0; d = alloc(vm, 1);
   emit(vm, t == TY_I32 ? (mx ? OP_IMAX : OP_IMIN) : (mx ? OP_FMAX : OP_FMIN), d, s1, s2);
   vres(vm, mkex(EK_ST, t, d * 4), m->fr0);
 }
 static void cast(Nib *vm, Op *m) {
-  Ex *a = &vm->vs[m->vb], r; int to = m->b, from, s, d;
-  if (vm->nvs - m->vb != 1) fail(vm, "cast takes one value");
+  Ex *a = &vm->c->vs[m->vb], r; int to = m->b, from, s, d;
+  if (vm->c->nvs - m->vb != 1) fail(vm, "cast takes one value");
   needval(vm, a); from = vt(a->t); r = *a;
   if (to == from) { /* no-op */ }
   else if (to == TY_STR && from == TY_BLOB) { r.t = TY_STR; r.ro = 1; }
   else if (to == TY_I32 && from == TY_BOOL) r.t = TY_I32;
   else if (to == TY_BOOL && from == TY_I32) {
     if (a->k == EK_CONST) r = mkex(EK_CONST, TY_BOOL, a->a != 0);
-    else { s = toslot(vm, a, 1); vm->fr = m->fr0; d = alloc(vm, 1); emit(vm, OP_NE, d, s, kslot(vm, 0)); r = mkex(EK_ST, TY_BOOL, d * 4); }
+    else { s = toslot(vm, a, 1); vm->c->fr = m->fr0; d = alloc(vm, 1); emit(vm, OP_NE, d, s, kslot(vm, 0)); r = mkex(EK_ST, TY_BOOL, d * 4); }
   }
   else if ((to == TY_F32 && from == TY_I32) || (to == TY_I32 && from == TY_F32)) {
     if (a->k == EK_CONST) { NibVal v; v.i = a->a; if (to == TY_F32) v.f = (float)v.i; else v.i = ftoi(v.f); r = mkex(EK_CONST, to, v.i); }
-    else { s = toslot(vm, a, 1); vm->fr = m->fr0; d = alloc(vm, 1); emit(vm, to == TY_F32 ? OP_ITOF : OP_FTOI, d, s, 0); r = mkex(EK_ST, to, d * 4); }
+    else { s = toslot(vm, a, 1); vm->c->fr = m->fr0; d = alloc(vm, 1); emit(vm, to == TY_F32 ? OP_ITOF : OP_FTOI, d, s, 0); r = mkex(EK_ST, to, d * 4); }
   } else fail(vm, "invalid cast");
-  vm->nvs = m->vb; vres(vm, r, m->fr0);
+  vm->c->nvs = m->vb; vres(vm, r, m->fr0);
 }
 static void finish_call(Nib *vm, Op *m) {
   if (m->a == EK_FN) {
-    NibFunc *f = &vm->func[m->b]; int i, d;
+    NibCFunc *f = &vm->c->func[m->b]; int i, d;
     if (m->n != f->np) fail(vm, "wrong number of arguments");
     for (i = 0; i < f->np; i++) {
-      Ex p = mkex(EK_ST, vm->param[f->p0 + i].t, (int32_t)vm->param[f->p0 + i].addr);
-      store(vm, &p, &vm->vs[m->vb + i]);
+      Ex p = mkex(EK_ST, vm->c->param[f->p0 + i].t, (int32_t)vm->c->param[f->p0 + i].addr);
+      store(vm, &p, &vm->c->vs[m->vb + i]);
     }
-    vm->nvs = m->vb;
+    vm->c->nvs = m->vb;
     emit(vm, OP_CALL, 0, 0, f->pc);
-    vm->fr = m->fr0;
+    vm->c->fr = m->fr0;
     if (f->ret == TY_VOID) { vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0); return; }
     {
       Ex src = mkex(EK_ST, f->ret, (int32_t)f->retaddr), dst;
@@ -703,10 +707,10 @@ static void finish_call(Nib *vm, Op *m) {
       store(vm, &dst, &src); vres(vm, dst, m->fr0);
     }
   } else if (m->a == EK_FFI) {
-    NibFfi *f = &vm->ffi[m->b];
+    NibCFfi *f = &vm->c->ffi[m->b];
     if (m->n != f->np) fail(vm, "wrong number of arguments");
     emit(vm, OP_FFI, m->fr0, 0, m->b);
-    vm->fr = m->fr0;
+    vm->c->fr = m->fr0;
     if (f->ret == TY_VOID) vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0);
     else vres(vm, mkex(EK_ST, f->ret, alloc(vm, words(vm, f->ret)) * 4), m->fr0);
   } else if (m->a == EK_BI) {
@@ -716,42 +720,42 @@ static void finish_call(Nib *vm, Op *m) {
 static void finish_lit(Nib *vm, Op *m) {
   NibType *st = TY(m->b);
   if (m->n < st->nf) {
-    int off = vm->field[st->f0 + m->n].off, w;
+    int off = vm->c->field[st->f0 + m->n].off, w;
     if (st->size - off <= 64) for (w = off / 4; w < (int)st->size / 4; w++) emit(vm, OP_MOV, m->c / 4 + w, kslot(vm, 0), 0);
     else emit(vm, OP_ZERO, kaddr(vm, (uint32_t)(m->c + off), st->size - off), (int)st->size - off, 0);
   }
-  vm->fr = (uint32_t)(m->c / 4 + words(vm, m->b));
+  vm->c->fr = (uint32_t)(m->c / 4 + words(vm, m->b));
   vres(vm, mkex(EK_ST, m->b, m->c), m->fr0);
 }
 static void closer(Nib *vm, int t, int hasarg) {
-  Op *m = &vm->os[vm->nos - 1], o;
-  if (t == ')' && m->k == OK_PAREN) { vm->nos--; return; }
+  Op *m = &vm->c->os[vm->c->nos - 1], o;
+  if (t == ')' && m->k == OK_PAREN) { vm->c->nos--; return; }
   if (t == ']') {
     Ex i, hi;
     if (m->k != OK_IDX) fail(vm, "unexpected ']'");
-    o = vm->os[--vm->nos];
+    o = vm->c->os[--vm->c->nos];
     if (o.a) { hi = vpop(vm); i = vpop(vm); doslice(vm, vtop(vm), &i, &hi); }
     else { i = vpop(vm); doindex(vm, vtop(vm), &i); }
     return;
   }
   if (m->k != (t == ')' ? OK_CALL : OK_LIT)) fail(vm, t == ')' ? "unexpected ')'" : "unexpected '}'");
   if (hasarg) argdone(vm, m);
-  o = vm->os[--vm->nos];
+  o = vm->c->os[--vm->c->nos];
   if (t == ')') finish_call(vm, &o); else finish_lit(vm, &o);
 }
 static Ex expr(Nib *vm) {
-  int ob = vm->nos, vb = vm->nvs, want = 1, depth = 0, t, p;
+  int ob = vm->c->nos, vb = vm->c->nvs, want = 1, depth = 0, t, p;
   for (;;) {
     t = TK.t;
     if (want) {
-      Ex e; int t0 = (int)vm->fr;
+      Ex e; int t0 = (int)vm->c->fr;
       if (t == TK_INT || t == TK_FLT) e = mkex(EK_CONST, t == TK_INT ? TY_I32 : TY_F32, TK.v.i);
       else if (t == TK_STR) e = strlit(vm);
       else if (t == TK_ID) e = ident(vm);
       else if (t == '(') { opush(vm, OK_PAREN, 0, 0); depth++; next(vm); continue; }
       else if (t == '-' || t == '!' || t == '~') { opush(vm, OK_UN, 6, t); next(vm); continue; }
-      else if ((t == ')' || t == '}') && vm->nos > ob && vm->os[vm->nos - 1].n == 0 &&
-               vm->os[vm->nos - 1].k == (t == ')' ? OK_CALL : OK_LIT) && vm->nvs == vm->os[vm->nos - 1].vb) {
+      else if ((t == ')' || t == '}') && vm->c->nos > ob && vm->c->os[vm->c->nos - 1].n == 0 &&
+               vm->c->os[vm->c->nos - 1].k == (t == ')' ? OK_CALL : OK_LIT) && vm->c->nvs == vm->c->os[vm->c->nos - 1].vb) {
         closer(vm, t, 0); depth--; next(vm); want = 0; continue;
       } else fail(vm, "expected expression");
       vres(vm, e, t0); next(vm); want = 0;
@@ -762,12 +766,12 @@ static Ex expr(Nib *vm) {
       Ex c = *vtop(vm); Op *o;
       if (c.k < EK_FN || c.k > EK_TY) fail(vm, "not callable");
       if (c.k == EK_TY && TY(c.t)->k == K_STRUCT) fail(vm, "use Struct{...} to build a struct");
-      vm->nvs--;
+      vm->c->nvs--;
       o = opush(vm, OK_CALL, 0, 0); o->a = c.k; o->b = c.k == EK_TY ? c.t : c.a;
       depth++; next(vm); want = 1;
     } else if (t == '[') {
       opush(vm, OK_IDX, 0, 0); depth++; next(vm);
-      if (TK.t == ':') { vres(vm, mkex(EK_CONST, TY_I32, 0), (int)vm->fr); want = 0; } else want = 1;
+      if (TK.t == ':') { vres(vm, mkex(EK_CONST, TY_I32, 0), (int)vm->c->fr); want = 0; } else want = 1;
     } else if (t == '.') {
       next(vm);
       if (TK.t != TK_ID) fail(vm, "field name expected");
@@ -775,30 +779,30 @@ static Ex expr(Nib *vm) {
     } else if (t == '{') {
       Ex c = *vtop(vm); Op *o;
       if (c.k != EK_TY || TY(c.t)->k != K_STRUCT) break;
-      vm->nvs--;
+      vm->c->nvs--;
       o = opush(vm, OK_LIT, 0, 0); o->b = c.t; o->c = alloc(vm, words(vm, c.t)) * 4;
       depth++; next(vm); want = 1;
     } else if (t == ',' || t == ')' || t == ']' || t == '}' || t == ':') {
       Op *m;
       if (!depth) break;
-      while (vm->os[vm->nos - 1].k < OK_PAREN) reduce1(vm);
-      m = &vm->os[vm->nos - 1];
+      while (vm->c->os[vm->c->nos - 1].k < OK_PAREN) reduce1(vm);
+      m = &vm->c->os[vm->c->nos - 1];
       if (t == ',') {
         if (m->k != OK_CALL && m->k != OK_LIT) fail(vm, "unexpected ','");
         argdone(vm, m); next(vm); want = 1;
       } else if (t == ':') {
         if (m->k != OK_IDX || m->a) fail(vm, "unexpected ':'");
         m->a = 1; next(vm);
-        if (TK.t == ']') { vres(vm, mkex(EK_LEN, TY_I32, 0), (int)vm->fr); want = 0; } else want = 1;
+        if (TK.t == ']') { vres(vm, mkex(EK_LEN, TY_I32, 0), (int)vm->c->fr); want = 0; } else want = 1;
       } else { closer(vm, t, 1); depth--; next(vm); }
     } else {
       if (!(p = binprec(t))) break;
-      while (vm->nos > ob && vm->os[vm->nos - 1].k < OK_PAREN && vm->os[vm->nos - 1].prec >= p) reduce1(vm);
+      while (vm->c->nos > ob && vm->c->os[vm->c->nos - 1].k < OK_PAREN && vm->c->os[vm->c->nos - 1].prec >= p) reduce1(vm);
       if (t == TK_AND || t == TK_OR) {
         Ex *l = vtop(vm); int s, d; Op *o;
         needval(vm, l);
         if (l->t != TY_BOOL) fail(vm, "expected bool");
-        s = toslot(vm, l, 1); vm->fr = l->t0; d = alloc(vm, 1);
+        s = toslot(vm, l, 1); vm->c->fr = l->t0; d = alloc(vm, 1);
         if (s != d) emit(vm, OP_MOV, d, s, 0);
         o = opush(vm, t == TK_AND ? OK_AND : OK_OR, p, t);
         o->a = emit(vm, t == TK_AND ? OP_JZ : OP_JNZ, d, 0, NONE); o->b = d;
@@ -807,11 +811,11 @@ static Ex expr(Nib *vm) {
       next(vm); want = 1;
     }
   }
-  while (vm->nos > ob) {
-    if (vm->os[vm->nos - 1].k >= OK_PAREN) fail(vm, "unclosed bracket");
+  while (vm->c->nos > ob) {
+    if (vm->c->os[vm->c->nos - 1].k >= OK_PAREN) fail(vm, "unclosed bracket");
     reduce1(vm);
   }
-  if (vm->nvs != vb + 1) fail(vm, "bad expression");
+  if (vm->c->nvs != vb + 1) fail(vm, "bad expression");
   return vpop(vm);
 }
 static int32_t constexpr_i(Nib *vm) {
@@ -829,21 +833,21 @@ static int parse_type(Nib *vm) {
     if (TK.t == ']') pre[np++] = -1; else pre[np++] = constexpr_i(vm);
     expect(vm, ']', "']' expected");
   }
-  if (TK.t != TK_ID || (i = lookup(vm, TK.s, TK.n)) < 0 || vm->sym[i].k != S_TYPE) fail(vm, "type expected");
-  t = vm->sym[i].t; next(vm);
+  if (TK.t != TK_ID || (i = lookup(vm, TK.s, TK.n)) < 0 || vm->c->sym[i].k != S_TYPE) fail(vm, "type expected");
+  t = vm->c->sym[i].t; next(vm);
   if (t == TY_BLOB && TK.t == '[' && !TK.nl) { next(vm); t = array_of(vm, TY_BYTE, (uint32_t)constexpr_i(vm)); expect(vm, ']', "']' expected"); }
   while (np) { int32_t n = pre[--np]; t = n < 0 ? slice_of(vm, t) : array_of(vm, t, (uint32_t)n); }
   return t;
 }
 static NibBlk *bpush(Nib *vm, int k) {
   NibBlk *b;
-  if (vm->nblk >= NIB_MAX_BLOCKS) fail(vm, "blocks nested too deep");
-  b = &vm->blk[vm->nblk++];
-  b->k = (uint8_t)k; b->nsym = (uint16_t)vm->nsym; b->nnames = (uint16_t)vm->nnames; b->nact = (uint16_t)vm->nact;
+  if (vm->c->nblk >= NIB_MAX_BLOCKS) fail(vm, "blocks nested too deep");
+  b = &vm->c->blk[vm->c->nblk++];
+  b->k = (uint8_t)k; b->nsym = (uint16_t)vm->c->nsym; b->nnames = (uint16_t)vm->c->nnames; b->nact = (uint16_t)vm->c->nact;
   b->a = b->b = b->brk = b->cont = b->cj = NONE;
   return b;
 }
-static void bscope(Nib *vm, NibBlk *b) { vm->nsym = b->nsym; vm->nnames = b->nnames; vm->nact = vm->fr = b->nact; }
+static void bscope(Nib *vm, NibBlk *b) { vm->c->nsym = b->nsym; vm->c->nnames = b->nnames; vm->c->nact = vm->c->fr = b->nact; }
 static int namelist(Nib *vm, const char **ns, int *nl) {
   int c = 0;
   for (;;) {
@@ -857,24 +861,24 @@ static int namelist(Nib *vm, const char **ns, int *nl) {
 }
 static int isbig(NibType *ty) { return (ty->k == K_ARR || ty->k == K_STRUCT) && ty->size > 64; }
 static void proc_def(Nib *vm, const char *name, int nlen) {
-  NibFunc *f; NibBlk *b; int fi, skip;
-  if (vm->nblk || vm->curfn >= 0) fail(vm, "procs must be top-level");
+  NibCFunc *f; NibBlk *b; int fi, skip;
+  if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "procs must be top-level");
   if (vm->nfunc >= NIB_MAX_FUNCS) fail(vm, "too many procs");
   next(vm); expect(vm, '(', "'(' expected");
   skip = emit(vm, OP_JMP, 0, 0, NONE);
-  fi = vm->nfunc++; f = &vm->func[fi];
-  f->p0 = (uint16_t)vm->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0;
+  fi = vm->nfunc++; f = &vm->c->func[fi];
+  f->p0 = (uint16_t)vm->c->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0;
   addsym(vm, name, nlen, S_FN, 0, fi);
   b = bpush(vm, B_PROC); b->a = (uint16_t)skip; b->b = (uint16_t)fi;
-  vm->fr = vm->nact; f->fs = (uint16_t)vm->nact;
+  vm->c->fr = vm->c->nact; f->fs = (uint16_t)vm->c->nact;
   while (TK.t != ')') {
     const char *ns[16]; int nl[16], c = namelist(vm, ns, nl), t = parse_type(vm), j;
     NibType *ty = TY(t);
     if (ty->k == K_VOID || ty->k == K_ARR || (ty->k == K_STRUCT && ty->ref)) fail(vm, "invalid parameter type (use a slice for arrays)");
     for (j = 0; j < c; j++) {
       int addr = alloc(vm, words(vm, t)) * 4;
-      if (vm->nparam >= NIB_MAX_PARAMS) fail(vm, "too many parameters");
-      vm->param[vm->nparam].t = (uint16_t)t; vm->param[vm->nparam++].addr = (uint32_t)addr;
+      if (vm->c->nparam >= NIB_MAX_PARAMS) fail(vm, "too many parameters");
+      vm->c->param[vm->c->nparam].t = (uint16_t)t; vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
       addsym(vm, ns[j], nl[j], S_VAR, t, addr); f->np++;
     }
     if (TK.t != ',') break;
@@ -887,20 +891,20 @@ static void proc_def(Nib *vm, const char *name, int nlen) {
     if (ty->k == K_ARR || (ty->k == K_STRUCT && ty->ref)) fail(vm, "invalid return type");
     f->retaddr = (uint32_t)alloc(vm, words(vm, f->ret)) * 4;
   }
-  vm->nact = vm->fr; vm->curfn = fi; f->pc = (uint16_t)here(vm);
+  vm->c->nact = vm->c->fr; vm->c->curfn = fi; f->pc = (uint16_t)here(vm);
 }
 static void struct_def(Nib *vm, const char *name, int nlen) {
   int ti, off = 0; NibType *st;
-  if (vm->nblk || vm->curfn >= 0) fail(vm, "structs must be top-level");
+  if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "structs must be top-level");
   next(vm);
-  ti = newtype(vm, K_STRUCT, 0, 0, 0); st = TY(ti); st->f0 = (uint16_t)vm->nfield;
+  ti = newtype(vm, K_STRUCT, 0, 0, 0); st = TY(ti); st->f0 = (uint16_t)vm->c->nfield;
   while (TK.t != TK_END) {
     const char *ns[16]; int nl[16], c = namelist(vm, ns, nl), t = parse_type(vm), j;
     if (TY(t)->k == K_VOID) fail(vm, "invalid field type");
     for (j = 0; j < c; j++) {
       NibField *f;
-      if (vm->nfield >= NIB_MAX_FIELDS) fail(vm, "too many fields");
-      f = &vm->field[vm->nfield++];
+      if (vm->c->nfield >= NIB_MAX_FIELDS) fail(vm, "too many fields");
+      f = &vm->c->field[vm->c->nfield++];
       f->name = (uint16_t)addname(vm, ns[j], nl[j]); f->len = (uint16_t)nl[j]; f->t = (uint16_t)t; f->off = (uint16_t)off;
       off += (int)TY(t)->size; st->nf++; st->ref |= TY(t)->ref;
       if (off > 0xFFFF) fail(vm, "struct too large");
@@ -922,7 +926,7 @@ static void decl_var(Nib *vm) {
   }
   ty = TY(t); k = ty->k;
   if (k == K_VOID) fail(vm, "variable has no type");
-  if (vm->curfn >= 0 && (k == K_STRUCT || k == K_ARR) && ty->ref) fail(vm, "structs/arrays holding slices or strings must be global");
+  if (vm->c->curfn >= 0 && (k == K_STRUCT || k == K_ARR) && ty->ref) fail(vm, "structs/arrays holding slices or strings must be global");
   big = isbig(ty);
   if (big) addr = halloc(vm, ty->size);
   else {
@@ -930,16 +934,16 @@ static void decl_var(Nib *vm) {
       int s = k == K_SLICE ? toslot2(vm, &e) : toslot(vm, &e, 1);
       e.k = EK_ST; e.a = s * 4; e.t = (uint16_t)t;
     }
-    if (has && e.k == EK_ST && e.a == (int32_t)vm->nact * 4 && !e.ro && k != K_ARR) {
-      vm->nact += (uint32_t)words(vm, t); vm->fr = vm->nact;
+    if (has && e.k == EK_ST && e.a == (int32_t)vm->c->nact * 4 && !e.ro && k != K_ARR) {
+      vm->c->nact += (uint32_t)words(vm, t); vm->c->fr = vm->c->nact;
       addsym(vm, ns, nn, S_VAR, t, e.a);
       return;
     }
-    addr = (uint32_t)alloc(vm, words(vm, t)) * 4; vm->nact = vm->fr;
+    addr = (uint32_t)alloc(vm, words(vm, t)) * 4; vm->c->nact = vm->c->fr;
   }
   if (has) { Ex d = mkex(EK_ST, t, (int32_t)addr); store(vm, &d, &e); }
   else if (!big && addr < 0x40000 && ty->size <= 64) { int w; for (w = 0; w < words(vm, t); w++) emit(vm, OP_MOV, (int)(addr >> 2) + w, kslot(vm, 0), 0); }
-  else if (!(big && vm->curfn < 0 && !vm->nblk)) emit(vm, OP_ZERO, kaddr(vm, addr, ty->size), (int)(ty->size & 0xFFFF), (int)(ty->size >> 16));
+  else if (!(big && vm->c->curfn < 0 && !vm->c->nblk)) emit(vm, OP_ZERO, kaddr(vm, addr, ty->size), (int)(ty->size & 0xFFFF), (int)(ty->size >> 16));
   addsym(vm, ns, nn, S_VAR, t, (int32_t)addr);
 }
 static void stmt_expr(Nib *vm) {
@@ -959,9 +963,9 @@ static void stmt_expr(Nib *vm) {
 }
 static void statement(Nib *vm) {
   int t = TK.t, i; NibBlk *b; Ex e;
-  vm->fr = vm->nact;
+  vm->c->fr = vm->c->nact;
   if (t == ';') { next(vm); return; }
-  if (t == TK_ID && vm->nx.t == TK_DCOLON) {
+  if (t == TK_ID && vm->c->nx.t == TK_DCOLON) {
     const char *ns = TK.s; int nn = TK.n;
     next(vm); next(vm);
     if (TK.t == TK_PROC) proc_def(vm, ns, nn);
@@ -972,15 +976,15 @@ static void statement(Nib *vm) {
       else if (e.k == EK_ST && e.ro && e.t == TY_STR) addsym(vm, ns, nn, S_CONST, TY_STR, e.a);
       else fail(vm, "constant expression expected");
     }
-  } else if (t == TK_ID && (vm->nx.t == ':' || vm->nx.t == TK_DECL)) decl_var(vm);
+  } else if (t == TK_ID && (vm->c->nx.t == ':' || vm->c->nx.t == TK_DECL)) decl_var(vm);
   else switch (t) {
   case TK_IF:
     next(vm); e = expr(vm); i = condjump(vm, &e);
     b = bpush(vm, B_IF); b->a = (uint16_t)i;
     break;
   case TK_ELSE:
-    if (!vm->nblk || vm->blk[vm->nblk - 1].k != B_IF) fail(vm, "'else' without 'if'");
-    b = &vm->blk[vm->nblk - 1];
+    if (!vm->c->nblk || vm->c->blk[vm->c->nblk - 1].k != B_IF) fail(vm, "'else' without 'if'");
+    b = &vm->c->blk[vm->c->nblk - 1];
     next(vm); bscope(vm, b);
     b->b = (uint16_t)jappend(vm, b->b, emit(vm, OP_JMP, 0, 0, NONE));
     patch(vm, b->a, here(vm));
@@ -990,17 +994,17 @@ static void statement(Nib *vm) {
   case TK_FOR:
     next(vm);
     if (TK.nl || TK.t == TK_END) { b = bpush(vm, B_LOOP); b->a = (uint16_t)here(vm); }
-    else if (TK.t == TK_ID && vm->nx.t == TK_IN) {
+    else if (TK.t == TK_ID && vm->c->nx.t == TK_IN) {
       const char *ns = TK.s; int nn = TK.n, iv, lim, incl; Ex d;
       next(vm); next(vm);
       b = bpush(vm, B_FOR);
-      vm->fr = vm->nact; iv = alloc(vm, 1); lim = alloc(vm, 1); vm->nact = vm->fr;
-      e = expr(vm); d = mkex(EK_ST, TY_I32, iv * 4); store(vm, &d, &e); vm->fr = vm->nact;
+      vm->c->fr = vm->c->nact; iv = alloc(vm, 1); lim = alloc(vm, 1); vm->c->nact = vm->c->fr;
+      e = expr(vm); d = mkex(EK_ST, TY_I32, iv * 4); store(vm, &d, &e); vm->c->fr = vm->c->nact;
       if (TK.t != TK_RLT && TK.t != TK_RLE) fail(vm, "'..<' or '..=' expected");
       incl = TK.t == TK_RLE; next(vm);
       e = expr(vm);
-      if (incl) { Ex one = mkex(EK_CONST, TY_I32, 1); one.t0 = (uint16_t)vm->fr; binop(vm, '+', &e, &one); }
-      d = mkex(EK_ST, TY_I32, lim * 4); store(vm, &d, &e); vm->fr = vm->nact;
+      if (incl) { Ex one = mkex(EK_CONST, TY_I32, 1); one.t0 = (uint16_t)vm->c->fr; binop(vm, '+', &e, &one); }
+      d = mkex(EK_ST, TY_I32, lim * 4); store(vm, &d, &e); vm->c->fr = vm->c->nact;
       addsym(vm, ns, nn, S_VAR, TY_I32, iv * 4);
       b->i = (uint16_t)iv; b->lim = (uint16_t)lim;
       b->brk = (uint16_t)emit(vm, OP_JLE, lim, iv, NONE); b->a = (uint16_t)here(vm);
@@ -1011,13 +1015,13 @@ static void statement(Nib *vm) {
     }
     break;
   case TK_END:
-    if (!vm->nblk) fail(vm, "'end' without block");
-    b = &vm->blk[vm->nblk - 1];
+    if (!vm->c->nblk) fail(vm, "'end' without block");
+    b = &vm->c->blk[vm->c->nblk - 1];
     next(vm);
     if (b->k == B_PROC) {
       emit(vm, OP_RET, 0, 0, 0); patch(vm, b->a, here(vm));
-      vm->func[b->b].done = 1; vm->func[b->b].end = (uint16_t)vm->pc; vm->func[b->b].fe = (uint16_t)vm->hwm; vm->curfn = -1;
-      vm->nsym = b->nsym; vm->nnames = b->nnames; vm->nact = vm->fr = vm->hwm; vm->nblk--;
+      vm->c->func[b->b].done = 1; vm->c->func[b->b].end = (uint16_t)vm->pc; vm->c->func[b->b].fe = (uint16_t)vm->c->hwm; vm->c->curfn = -1;
+      vm->c->nsym = b->nsym; vm->c->nnames = b->nnames; vm->c->nact = vm->c->fr = vm->c->hwm; vm->c->nblk--;
       break;
     }
     if (b->k == B_LOOP) {
@@ -1032,88 +1036,152 @@ static void statement(Nib *vm) {
     else if (b->k == B_FOR) { patch(vm, b->cont, here(vm)); emit(vm, OP_FORI, b->i, b->lim, b->a); }
     else patch(vm, b->b, here(vm));
     patch(vm, b->k == B_LOOP || b->k == B_FOR ? b->brk : b->a, here(vm));
-    bscope(vm, b); vm->nblk--;
+    bscope(vm, b); vm->c->nblk--;
     break;
   case TK_RETURN: {
-    NibFunc *f;
-    if (vm->curfn < 0) fail(vm, "return outside proc");
-    next(vm); f = &vm->func[vm->curfn];
+    NibCFunc *f;
+    if (vm->c->curfn < 0) fail(vm, "return outside proc");
+    next(vm); f = &vm->c->func[vm->c->curfn];
     if (f->ret != TY_VOID) { Ex d = mkex(EK_ST, f->ret, (int32_t)f->retaddr); e = expr(vm); store(vm, &d, &e); }
     emit(vm, OP_RET, 0, 0, 0);
     break;
   }
   case TK_BREAK: case TK_CONTINUE:
-    for (i = vm->nblk - 1; i >= 0 && vm->blk[i].k != B_PROC; i--) if (vm->blk[i].k == B_LOOP || vm->blk[i].k == B_FOR) break;
-    if (i < 0 || vm->blk[i].k == B_PROC) fail(vm, "not inside a loop");
-    b = &vm->blk[i];
+    for (i = vm->c->nblk - 1; i >= 0 && vm->c->blk[i].k != B_PROC; i--) if (vm->c->blk[i].k == B_LOOP || vm->c->blk[i].k == B_FOR) break;
+    if (i < 0 || vm->c->blk[i].k == B_PROC) fail(vm, "not inside a loop");
+    b = &vm->c->blk[i];
     if (t == TK_BREAK) b->brk = (uint16_t)jappend(vm, b->brk, emit(vm, OP_JMP, 0, 0, NONE));
     else b->cont = (uint16_t)jappend(vm, b->cont, emit(vm, OP_JMP, 0, 0, NONE));
     next(vm);
     break;
   default: stmt_expr(vm);
   }
-  vm->fr = vm->nact;
+  vm->c->fr = vm->c->nact;
   if (TK.t != TK_EOF && TK.t != ';' && !TK.nl) fail(vm, "expected end of statement");
 }
 
 /* ---------------------------------------------------------------- api */
 int nib_init(Nib *vm, void *mem, uint32_t memsize, NibIns *code, uint32_t codecap) {
-  static const uint8_t tk[] = {K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_SLICE, K_BOOL};
-  static const uint8_t ts[] = {0, 4, 4, 1, 8, 8, 4};
-  static const char *tn[] = {"i32", "f32", "string", "blob", "bool"};
-  int i; uintptr_t pad = (4 - ((uintptr_t)mem & 3)) & 3;
+  uintptr_t pad = (16 - ((uintptr_t)mem & 15)) & 15;
   memset(vm, 0, sizeof *vm);
-  if (memsize < pad + NIB_MAX_CONSTS * 4 + 4096 || !code || codecap < 16) return -1;
-  vm->mem = (uint8_t *)mem + pad; vm->memsize = vm->hi = (uint32_t)(memsize - pad) & ~3u;
-  memset(vm->mem, 0, vm->memsize);
+  if (!mem || memsize < pad + NIB_MAX_CONSTS * 4 + 256 || !code || codecap < 16) return -1;
+  vm->mem = (uint8_t *)mem + pad; vm->memsize = (uint32_t)(memsize - pad) & ~15u;
   vm->code = code; vm->codecap = codecap > 65535 ? 65535 : codecap;
-  vm->nk = 1; vm->nact = vm->fr = vm->hwm = NIB_MAX_CONSTS; vm->curfn = -1; vm->lastlabel = NONE;
-  for (i = 0; i < 7; i++) { vm->type[i].k = tk[i]; vm->type[i].size = ts[i]; vm->type[i].elem = TY_BYTE; vm->type[i].ref = i == TY_STR || i == TY_BLOB; }
-  vm->ntype = 7;
-  if (setjmp(vm->jb)) return -1;
-  for (i = 0; i < 5; i++) addsym(vm, tn[i], (int)strlen(tn[i]), S_TYPE, i < 2 ? TY_I32 + i : TY_STR + i - 2, 0);
-  addsym(vm, "true", 4, S_CONST, TY_BOOL, 1); addsym(vm, "false", 5, S_CONST, TY_BOOL, 0);
-  for (i = 0; i < (int)(sizeof bi / sizeof bi[0]); i++) addsym(vm, bi[i], (int)strlen(bi[i]), S_BI, 0, i);
   return 0;
 }
 void nib_set_log(Nib *vm, NibLogFn fn, void *ud) { vm->logfn = fn; vm->logud = ud; }
 int nib_ffi(Nib *vm, const char *name, const char *sig, NibFn fn) {
   NibFfi *f;
-  if (setjmp(vm->jb)) return -1;
-  if (vm->nffi >= NIB_MAX_FFI) fail(vm, "too many ffi functions");
-  f = &vm->ffi[vm->nffi]; f->fn = fn; f->p0 = (uint16_t)vm->nparam; f->np = 0; f->ret = TY_VOID;
-  for (; *sig; sig++) {
-    int ret = *sig == '>', c = ret ? sig[1] : *sig;
-    int t = c == 'i' ? TY_I32 : c == 'f' ? TY_F32 : c == 's' ? TY_STR : c == 'b' ? TY_BLOB : -1;
-    if (t < 0 || vm->nparam >= NIB_MAX_PARAMS) fail(vm, "bad ffi signature");
-    if (ret) { f->ret = (uint16_t)t; break; }
-    vm->param[vm->nparam++].t = (uint16_t)t; f->np++;
-  }
-  addsym(vm, name, (int)strlen(name), S_FFI, 0, vm->nffi++);
+  if (vm->nffi >= NIB_MAX_FFI) return -1;
+  f = &vm->ffi[vm->nffi++]; f->name = name; f->sig = sig; f->fn = fn; f->aw = f->rw = 0;
   return 0;
 }
-int nib_compile(Nib *vm, const char *src, uint32_t len) {
-  if (setjmp(vm->jb)) return -1;
-  vm->sp = src; vm->se = src + len; vm->line = 1;
-  lex(vm, &vm->nx); next(vm);
+uint32_t nib_scratch_min(void) { return (uint32_t)sizeof(NibC) + 16; }
+/* builtin types and names, and the host's ffi functions */
+static void setup(Nib *vm) {
+  static const uint8_t tk[] = {K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_SLICE, K_BOOL};
+  static const uint8_t ts[] = {0, 4, 4, 1, 8, 8, 4};
+  static const char *tn[] = {"i32", "f32", "string", "blob", "bool"};
+  NibC *c = vm->c; int i;
+  c->nact = c->fr = c->hwm = NIB_MAX_CONSTS; c->curfn = -1; c->lastlabel = NONE;
+  for (i = 0; i < 7; i++) { c->type[i].k = tk[i]; c->type[i].size = ts[i]; c->type[i].elem = TY_BYTE; c->type[i].ref = i == TY_STR || i == TY_BLOB; }
+  c->ntype = 7;
+  for (i = 0; i < 5; i++) addsym(vm, tn[i], (int)strlen(tn[i]), S_TYPE, i < 2 ? TY_I32 + i : TY_STR + i - 2, 0);
+  addsym(vm, "true", 4, S_CONST, TY_BOOL, 1); addsym(vm, "false", 5, S_CONST, TY_BOOL, 0);
+  for (i = 0; i < (int)(sizeof bi / sizeof bi[0]); i++) addsym(vm, bi[i], (int)strlen(bi[i]), S_BI, 0, i);
+  for (i = 0; i < vm->nffi; i++) {
+    NibFfi *f = &vm->ffi[i]; NibCFfi *cf = &c->ffi[i]; const char *g;
+    cf->p0 = (uint16_t)c->nparam; cf->np = 0; cf->ret = TY_VOID; f->aw = f->rw = 0;
+    for (g = f->sig; *g; g++) {
+      int ret = *g == '>', ch = ret ? g[1] : *g;
+      int t = ch == 'i' ? TY_I32 : ch == 'f' ? TY_F32 : ch == 's' ? TY_STR : ch == 'b' ? TY_BLOB : -1;
+      if (t < 0 || c->nparam >= NIB_MAX_PARAMS) fail(vm, "bad ffi signature");
+      if (ret) { cf->ret = (uint16_t)t; f->rw = (uint8_t)words(vm, t); break; }
+      c->param[c->nparam++].t = (uint16_t)t; cf->np++; f->aw = (uint8_t)(f->aw + words(vm, t));
+    }
+    addsym(vm, f->name, (int)strlen(f->name), S_FFI, 0, i);
+  }
+}
+/* lay out the final memory: string pool + export table go just below the big arrays, string
+   constants get their real addresses, and everything the compiler used is zeroed */
+static void finalize(Nib *vm) {
+  NibC *c = vm->c; NibVal *R = (NibVal *)vm->mem; NibExport *x;
+  uint32_t i, n = 0, p, ex, sz, base, first = NIB_MAX_CONSTS * 4; int k;
+  c->fr = c->hwm; vm->csaddr = (uint32_t)alloc(vm, vm->nfunc + 1) * 4; /* return stack: depth <= #procs */
+  p = c->pool;
+  for (k = 0; k < c->nsym; k++) {
+    NibSym *y = &c->sym[k];
+    if (y->k != S_FN && y->k != S_VAR) continue;
+    if (y->len > c->poolcap - p) fail(vm, "out of compiler memory");
+    memcpy(c->strs + p, c->names + y->name, y->len); p += y->len; n++;
+  }
+  ex = (p + 3) & ~3u; sz = ex + n * (uint32_t)sizeof(NibExport);
+  if (sz > c->poolcap) fail(vm, "out of compiler memory");
+  if (vm->hi < sz || ((vm->hi - sz) & ~3u) < c->hwm * 4) fail(vm, "out of memory");
+  base = (vm->hi - sz) & ~3u;
+  x = (NibExport *)(void *)(c->strs + ex); p = c->pool;
+  for (k = 0; k < c->nsym; k++) {
+    NibSym *y = &c->sym[k];
+    if (y->k != S_FN && y->k != S_VAR) continue;
+    x->name = base + p; x->len = y->len; x->k = y->k; x->pad = 0; x->v = y->v; p += y->len; x++;
+  }
+  for (i = 1; i < vm->nk; i++) if (KFIX(i)) R[i].u = base + (R[i].u & 0x7FFFFFFFu);
+  for (k = 0; k < vm->nfunc; k++) {
+    NibCFunc *f = &c->func[k]; NibFunc *rf = &vm->func[k]; uint32_t pw = 0; int j;
+    for (j = 0; j < f->np; j++) pw += (uint32_t)words(vm, c->param[f->p0 + j].t);
+    rf->pc = f->pc; rf->end = f->end; rf->fs = f->fs; rf->fe = f->fe; rf->pend = (uint16_t)(f->fs + pw);
+    rf->ret = (uint16_t)(f->retaddr / 4); rf->retw = (uint8_t)(f->ret ? words(vm, f->ret) : 0);
+  }
+  vm->exports = base + ex; vm->nexports = n; vm->hi = base;
+  /* nothing in c is read after this: the move and the zeroing may overwrite it */
+  memmove(vm->mem + base, c->strs, sz);
+  memset(vm->mem + first, 0, base - first);
+  memset(vm->mem + base + sz, 0, vm->memsize - base - sz);
+}
+static int compile(Nib *vm, const char *src, uint32_t len, uint8_t *scratch, uint32_t size, int inmem) {
+  uintptr_t pad = scratch ? (16 - ((uintptr_t)scratch & 15)) & 15 : 0; NibC *c;
+  vm->ok = 0; vm->c = 0;
+  if (!scratch || size < pad + nib_scratch_min()) {
+    int n = cat(vm->err, 0, inmem ? "not enough memory for the compiler" : "scratch too small"); vm->err[n] = 0;
+    return -1;
+  }
+  c = vm->c = (NibC *)(void *)(scratch + pad);
+  memset(c, 0, sizeof *c);
+  c->strs = (uint8_t *)(c + 1); c->poolcap = size - (uint32_t)pad - (uint32_t)sizeof *c;
+  vm->hi = vm->memsize; vm->nk = 1; vm->pc = 0; vm->nfunc = 0; ((NibVal *)vm->mem)[0].u = 0;
+  if (setjmp(c->jb)) { if (inmem) vm->c = 0; return -1; }
+  setup(vm);
+  c->sp = src; c->se = src + len; c->line = 1;
+  lex(vm, &c->nx); next(vm);
   while (TK.t != TK_EOF) statement(vm);
-  if (vm->nblk) fail(vm, "missing 'end'");
+  if (c->nblk) fail(vm, "missing 'end'");
   emit(vm, OP_HALT, 0, 0, 0);
+  finalize(vm);
+  if (inmem) vm->c = 0;
   vm->ok = 1;
   return 0;
 }
+/* the compiler's state is overlaid on the part of mem that stays zero until the program runs */
+int nib_compile(Nib *vm, const char *src, uint32_t len) {
+  uint32_t k = NIB_MAX_CONSTS * 4;
+  return compile(vm, src, len, vm->mem + k, vm->memsize - k, 1);
+}
+int nib_compile_scratch(Nib *vm, const char *src, uint32_t len, void *scratch, uint32_t size) {
+  return compile(vm, src, len, (uint8_t *)scratch, size, 0);
+}
 const char *nib_error(Nib *vm) { return vm->err; }
 void nib_trap(Nib *vm, const char *msg) { int n = cat(vm->err, 0, msg); vm->err[n] = 0; vm->trap = 1; }
-int nib_func(Nib *vm, const char *name) {
-  int i = lookup(vm, name, (int)strlen(name));
-  return i >= 0 && vm->sym[i].k == S_FN ? vm->sym[i].v : -1;
+static NibExport *findexp(Nib *vm, const char *name, int k) {
+  NibExport *x = (NibExport *)(void *)(vm->mem + vm->exports); uint32_t i, n = (uint32_t)strlen(name);
+  if (!vm->ok) return 0;
+  for (i = vm->nexports; i-- > 0;)
+    if (x[i].k == k && x[i].len == n && !memcmp(vm->mem + x[i].name, name, n)) return &x[i];
+  return 0;
 }
-void *nib_global(Nib *vm, const char *name) {
-  int i = lookup(vm, name, (int)strlen(name));
-  return i >= 0 && vm->sym[i].k == S_VAR ? vm->mem + vm->sym[i].v : 0;
-}
-NibVal *nib_arg(Nib *vm, int fn, int i) { return (NibVal *)(vm->mem + vm->param[vm->func[fn].p0 + i].addr); }
-NibVal *nib_ret(Nib *vm, int fn) { return (NibVal *)(vm->mem + vm->func[fn].retaddr); }
+int nib_func(Nib *vm, const char *name) { NibExport *x = findexp(vm, name, S_FN); return x ? x->v : -1; }
+void *nib_global(Nib *vm, const char *name) { NibExport *x = findexp(vm, name, S_VAR); return x ? vm->mem + x->v : 0; }
+NibVal *nib_args(Nib *vm, int fn) { return (NibVal *)(void *)vm->mem + vm->func[fn].fs; }
+NibVal *nib_ret(Nib *vm, int fn) { return (NibVal *)(void *)vm->mem + vm->func[fn].ret; }
 void *nib_ptr(Nib *vm, const NibVal *s) {
   return (uint32_t)s[0].i <= vm->memsize && (uint32_t)s[1].i <= vm->memsize - (uint32_t)s[0].i ? vm->mem + s[0].i : 0;
 }
@@ -1127,7 +1195,8 @@ static int rterr(Nib *vm, const char *m, uint32_t pc) {
   return -1;
 }
 static int run(Nib *vm, uint32_t pc) {
-  const NibIns *code = vm->code, *ip = code + pc, *cs[NIB_MAX_FUNCS + 1];
+  const NibIns *code = vm->code, *ip = code + pc;
+  uint32_t *cs = (uint32_t *)(void *)(vm->mem + vm->csaddr);
   uint8_t *M = vm->mem; NibVal *R = (NibVal *)M; int sp = 0;
 #define A ip->a
 #define B ip->b
@@ -1243,8 +1312,8 @@ static int run(Nib *vm, uint32_t pc) {
   CASE(JFEQ) if (F(A) == F(B)) JUMP(); NEXT();
   CASE(JFNE) if (F(A) != F(B)) JUMP(); NEXT();
   CASE(FORI) if ((I(A) = (int32_t)(U(A) + 1u)) < I(B)) JUMP(); NEXT();
-  CASE(CALL) cs[sp++] = ip + 1; JUMP();
-  CASE(RET) if (!sp) return 0; ip = cs[--sp]; DISPATCH();
+  CASE(CALL) cs[sp++] = (uint32_t)(ip + 1 - code); JUMP();
+  CASE(RET) if (!sp) return 0; ip = code + cs[--sp]; DISPATCH();
   CASE(FFI) vm->ffi[C].fn(vm, R + A); if (vm->trap) { vm->trap = 0; return -1; } NEXT();
   CASE(LOGI) { char b[16]; if (ip->x) logput(vm, " ", 1); logput(vm, b, fmti(b, I(A))); NEXT(); }
   CASE(LOGF) { char b[32]; if (ip->x) logput(vm, " ", 1); logput(vm, b, fmtf(b, F(A))); NEXT(); }

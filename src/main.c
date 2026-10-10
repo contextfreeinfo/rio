@@ -11,6 +11,7 @@
 static uint8_t mem[8 << 20];
 static NibIns code[65535];
 static char src[1 << 20];
+static uint8_t scratch[2 << 20];
 static Nib vm;
 
 static void out(void *ud, const char *s, int n) { (void)ud; fwrite(s, 1, (size_t)n, stdout); fputc('\n', stdout); }
@@ -33,7 +34,12 @@ int main(int argc, char **argv) {
   nib_set_log(&vm, out, 0);
   nib_ffi(&vm, "clock", ">f", ffi_clock);
   nib_ffi(&vm, "putc", "i", ffi_putc);
-  if (nib_compile(&vm, src, (uint32_t)n)) { fprintf(stderr, "%s: %s\n", path, nib_error(&vm)); return 1; }
+  /* the C backend reads compiler tables after compiling, so they get their own buffer; running
+     compiles in place, with the compiler's state overlaid on script memory */
+  if (cout ? nib_compile_scratch(&vm, src, (uint32_t)n, scratch, sizeof scratch) : nib_compile(&vm, src, (uint32_t)n)) {
+    fprintf(stderr, "%s: %s\n", path, nib_error(&vm));
+    return 1;
+  }
   if (cout) {
     int err;
     if (!(f = fopen(cout, "w"))) { fprintf(stderr, "cannot write %s\n", cout); return 2; }

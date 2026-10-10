@@ -21,13 +21,13 @@ static uint8_t used[8192];      /* locals referenced by the current proc */
 static NibVal kval(int s) { return ((NibVal *)vm->mem)[s]; }
 static int isret(int s) {
   NibFunc *f = &vm->func[cur];
-  return f->ret && s >= (int)(f->retaddr / 4) && s < (int)((f->retaddr + vm->type[f->ret].size + 3) / 4);
+  return s >= f->ret && s < f->ret + f->retw;
 }
 static int islocal(int s) {
   NibFunc *f;
   if (cur < 0) return 0;
   f = &vm->func[cur];
-  return s >= f->fs && s < f->fe && !(vm->exposed[s >> 3] & (1 << (s & 7))) && !isret(s);
+  return s >= f->fs && s < f->fe && !(vm->c->exposed[s >> 3] & (1 << (s & 7))) && !isret(s);
 }
 /* operand text for slot s viewed as t: i(nt) u(nsigned) f(loat) v(whole value) */
 static const char *V(int s, int t) {
@@ -52,10 +52,10 @@ static const char *V(int s, int t) {
 static uint32_t sz(const NibIns *d) { return (uint32_t)d->b | (uint32_t)d->c << 16; }
 static const char *symname(int kind, int idx) {
   static char b[64]; int i;
-  for (i = 0; i < vm->nsym; i++)
-    if (vm->sym[i].k == kind && vm->sym[i].v == idx) {
-      int n = vm->sym[i].len < 60 ? vm->sym[i].len : 60;
-      memcpy(b, vm->names + vm->sym[i].name, (size_t)n); b[n] = 0;
+  for (i = 0; i < vm->c->nsym; i++)
+    if (vm->c->sym[i].k == kind && vm->c->sym[i].v == idx) {
+      int n = vm->c->sym[i].len < 60 ? vm->c->sym[i].len : 60;
+      memcpy(b, vm->c->names + vm->c->sym[i].name, (size_t)n); b[n] = 0;
       return b;
     }
   sprintf(b, "anon%d", idx);
@@ -152,8 +152,7 @@ static void ins(int pc) {
   case A_CALL: P("p_%s();\n", symname(NIB_S_FN, fnat(c))); break;
   case A_RET: case A_HALT: P("return;\n"); break;
   case A_FFI: {
-    NibFfi *f = &vm->ffi[c]; int n = 0, i, rw = f->ret ? (int)(vm->type[f->ret].size + 3) / 4 : 0;
-    for (i = 0; i < f->np; i++) n += (int)(vm->type[vm->param[f->p0 + i].t].size + 3) / 4;
+    NibFfi *f = &vm->ffi[c]; int n = f->aw, i, rw = f->rw;
     P("{ NibVal a_[%d];", (n > rw ? n : rw) + 1);
     for (i = 0; i < n; i++) P(" a_[%d] = %s;", i, V(a + i, 'v'));
     P(" nib_ffi_%s(a_);", symname(NIB_S_FFI, c));
@@ -206,6 +205,7 @@ int nib_aot(Nib *v, FILE *out, const char *host_ffi) {
   int pc, i, s, fmain;
   uint8_t *mem;
   vm = v; o = out; label = lab; cur = -1;
+  if (!vm->ok || !vm->c) return -1; /* needs the compiler tables: compile with nib_compile_scratch */
   memset(lab, 0, sizeof lab);
   for (pc = 0; pc < (int)vm->pc; pc++) {
     int op = vm->code[pc].op;
@@ -242,11 +242,7 @@ int nib_aot(Nib *v, FILE *out, const char *host_ffi) {
     fprintf(o, "\nstatic void p_%s(void) {\n", symname(NIB_S_FN, cur));
     for (s = f->fs; s < f->fe; s++) {
       if (!islocal(s) || !(used[s >> 3] & (1 << (s & 7)))) continue;
-      for (i = 0; i < f->np; i++) {
-        NibParam *p = &vm->param[f->p0 + i];
-        if (s >= (int)(p->addr / 4) && s < (int)((p->addr + vm->type[p->t].size + 3) / 4)) break;
-      }
-      if (i < f->np) fprintf(o, "  NibVal r%d = R[%d];\n", s, s); else fprintf(o, "  NibVal r%d = {0};\n", s);
+      if (s < f->pend) fprintf(o, "  NibVal r%d = R[%d];\n", s, s); else fprintf(o, "  NibVal r%d = {0};\n", s);
     }
     for (pc = f->pc; pc < f->end; pc++) ins(pc);
     fprintf(o, "}\n");
