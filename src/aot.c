@@ -64,6 +64,18 @@ static const char *symname(int kind, int idx) {
 }
 /* print to the output, or only evaluate the operands (marking used locals) during the dry run */
 static void P(const char *fmt, ...) { va_list ap; va_start(ap, fmt); if (o) vfprintf(o, fmt, ap); va_end(ap); }
+/* C name for proc/method i: p<i>_<name>, unique even when methods of different types share a name */
+static const char *fname(int idx) {
+  static char b[80]; int i;
+  for (i = 0; i < vm->c->nsym; i++)
+    if ((vm->c->sym[i].k == RIO_S_FN || vm->c->sym[i].k == RIO_S_METH) && vm->c->sym[i].v == idx) {
+      int n = vm->c->sym[i].len < 60 ? vm->c->sym[i].len : 60;
+      sprintf(b, "p%d_%.*s", idx, n, vm->c->names + vm->c->sym[i].name);
+      return b;
+    }
+  sprintf(b, "p%d", idx);
+  return b;
+}
 static int fnat(int pc) { int i; for (i = 0; i < vm->nfunc; i++) if (vm->func[i].pc == pc) return i; return -1; }
 
 static void ins(int pc) {
@@ -169,7 +181,7 @@ static void ins(int pc) {
   case A_JFNLT: case A_JFNLE:
     P("if (!(%s %s %s)) goto L%d;\n", V(a, 'f'), x->op == A_JFNLT ? "<" : "<=", V(b, 'f'), c); break;
   case A_FORI: P("if ((%s = (int32_t)(%s + 1u)) < %s) goto L%d;\n", V(a, 'i'), V(a, 'u'), V(b, 'i'), c); break;
-  case A_CALL: P("p_%s();\n", symname(RIO_S_FN, fnat(c))); break;
+  case A_CALL: P("%s();\n", fname(fnat(c))); break;
   case A_RET: case A_HALT: P("return;\n"); break;
   case A_FFI: {
     RioFfi *f = &vm->ffi[c]; int n = f->aw, i, rw = f->rw;
@@ -276,7 +288,7 @@ int rio_aot(Rio *v, FILE *out, const char *host_ffi) {
     o = 0; lastline = 0; /* dry run: learn which locals the body uses */
     for (pc = f->pc; pc < f->end; pc++) ins(pc);
     o = out; lastline = 0;
-    fprintf(o, "\nstatic void p_%s(void) {\n", symname(RIO_S_FN, cur));
+    fprintf(o, "\nstatic void %s(void) {\n", fname(cur));
     for (s = f->fs; s < f->fe; s++) {
       if (!islocal(s) || !(used[s >> 3] & (1 << (s & 7)))) continue;
       if (s < f->pend) fprintf(o, "  RioVal r%d = R[%d];\n", s, s); else fprintf(o, "  RioVal r%d = {0};\n", s);
@@ -291,7 +303,7 @@ int rio_aot(Rio *v, FILE *out, const char *host_ffi) {
     if (pc < (int)vm->pc) ins(pc);
   }
   fprintf(o, "}\n\nint main(void) {\n  rio_load();\n  rio_top();\n");
-  if ((fmain = rio_func(vm, "main")) >= 0) fprintf(o, "  p_%s();\n", symname(RIO_S_FN, fmain));
+  if ((fmain = rio_func(vm, "main")) >= 0) fprintf(o, "  %s();\n", fname(fmain));
   fprintf(o, "  return 0;\n}\n");
   return ferror(o) ? -1 : 0;
 }

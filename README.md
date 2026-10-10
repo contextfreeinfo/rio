@@ -119,7 +119,7 @@ end
 enemies: [..64]Enemy                     // up to 64; starts empty
 
 spawn :: proc(list: [..]Enemy, x: Int) -> Bool
-  return push(list, Enemy{x = x, hp = 3})   // false when full
+  return list.push(Enemy{x = x, hp = 3})   // false when full
 end
 for i in 0..<3
   spawn(enemies, i * 10)                 // the view appends to the caller's list
@@ -128,25 +128,57 @@ end
 for i in 0..<len(enemies)                // indexing is checked against the current length
   enemies[i].hp -= 1
 end
-swapRemove(enemies, 0)                   // O(1): the last element takes its place
-remove(enemies, 0)                       // keeps order, O(n)
-e := pop(enemies)
+enemies.swapRemove(0)                   // O(1): the last element takes its place
+enemies.remove(0)                       // keeps order, O(n)
+e := enemies.pop()
 step(enemies[:])                         // [:] is a []Enemy of the live elements
-clear(enemies)
+enemies.clear()
 
-pushAll(enemies, wave[:])                // many at once: a slice, array or list
+enemies.pushAll(wave[:])                // many at once: a slice, array or list
 
 title: Blob[..32]                        // a Blob list is a text builder
-format(title, "score: ", 42, " x", 1.5)  // appends values as text; all or nothing
-push(title, '!')                         // push is always one element: here, one byte
+title.format("score: ", 42, " x", 1.5)  // appends values as text; all or nothing
+title.push('!')                         // push is always one element: here, one byte
 draw(String(title[:]))
 ```
 
-- **Builtins:** `push(list, x) -> Bool` (one element), `pushAll(list, xs) -> Bool` (every element of a slice, array or list with the same element type; a `String` works for Blob lists), `pop`, `clear`, `len`, `cap`, `remove(list, i)` and `swapRemove(list, i)`. A push that doesn't fit changes nothing and returns `false`; popping an empty list or removing past the end is a runtime error.
-- **Text:** `format(b, ...) -> Bool` appends Strings, Blobs, Ints, Floats and Bools to the end of a Blob list as text, formatted like `log` but without spaces between arguments. There is no template string: the arguments are the pieces, in order. If any of it doesn't fit, the list is left as it was. `push(b, x)` on a Blob list adds the single byte `x`, just as on any other list.
+- **Methods:** `xs.push(x) -> Bool` (one element), `xs.pushAll(ys) -> Bool` (every element of a slice, array or list with the same element type; a `String` works for Blob lists), `xs.pop()`, `xs.clear()`, `xs.remove(i)` and `xs.swapRemove(i)`. `len(xs)` and `cap(xs)` stay functions, since they work on every kind of sequence. A push that doesn't fit changes nothing and returns `false`; popping an empty list or removing past the end is a runtime error.
+- **Text:** `b.format(...) -> Bool` appends Strings, Blobs, Ints, Floats and Bools to the end of a Blob list as text, formatted like `log` but without spaces between arguments. There is no template string: the arguments are the pieces, in order. If any of it doesn't fit, the list is left as it was. `b.push(x)` on a Blob list adds the single byte `x`, just as on any other list.
 - **Views share the length:** a `[..]T` points at the list's length word, so pushing through any view changes the one real list. Assigning a list with `:=` also makes a view; use `[..N]T` explicitly for a separate copy.
 - **Storage rules match arrays:** `[..N]T` can't be a parameter or result (pass `[..]T`), it can be a struct field (inline), and like slices a `[..]T` can be stored in a struct only if the struct is global.
 - **Layout:** a 4-byte length followed by the N elements, contiguous like everything else.
+
+## Methods
+
+A method is a proc declared on a type with `Type.name`. Inside it, `self` is the value it was called on:
+
+```odin
+Ship :: struct
+  x, vx: Float
+  hp: Int
+end
+Ship.move :: proc(dt: Float)
+  self.x += self.vx * dt
+end
+Ship.hurt :: proc(n: Int) -> Bool
+  self.hp -= n
+  return self.hp <= 0
+end
+
+fleet[i].move(dt)                // updates fleet[i] itself
+if boss.hurt(3)
+  log("boss down")
+end
+Int.double :: proc() -> Int      // methods work on Int, Float, Bool, String and Blob too
+  return self * 2
+end
+```
+
+- **Struct receivers are passed by reference,** so `self.hp -= n` changes the real ship. `self = Ship{...}` replaces it. For `Int`, `Float`, `Bool`, `String` and `Blob` receivers, `self` is a copy.
+- **Names are per type:** `Ship.update`, `Bullet.update` and a plain `update` proc can all coexist. There's no other overloading.
+- **One way to call:** `x.name(...)`, with the parentheses required. Fields are always `self.x`; a bare `x` inside a method is never the field, so globals stay unambiguous.
+- **Rules:** like procs, methods are declared before use and can't recurse. A method can't share its name with one of its type's fields.
+- **List methods:** list operations use the same syntax: `xs.push(e)`, `xs.pop()`, `b.format(...)`.
 
 ## Compile-time defines (`-D`)
 

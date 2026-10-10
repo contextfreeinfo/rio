@@ -266,48 +266,48 @@ end
 enemies: [..4]Enemy
 check(len(enemies) == 0 && cap(enemies) == 4, "empty list")
 spawnE :: proc(list: [..]Enemy, x: Int) -> Bool
-  return push(list, Enemy{x = x, hp = 3})
+  return list.push(Enemy{x = x, hp = 3})
 end
 for i in 0..<6
   spawnE(enemies, i * 10)
 end
 check(len(enemies) == 4 && enemies[3].x == 30, "push through a view; full list drops")
-check(!push(enemies, Enemy{x = 99}), "push when full is false")
+check(!enemies.push(Enemy{x = 99}), "push when full is false")
 enemies[1].hp -= 1
-swapRemove(enemies, 0)
+enemies.swapRemove(0)
 check(len(enemies) == 3 && enemies[0].x == 30 && enemies[1].hp == 2, "swapRemove")
-remove(enemies, 0)
+enemies.remove(0)
 check(len(enemies) == 2 && enemies[0].x == 10 && enemies[1].x == 20, "remove keeps order")
-last := pop(enemies)
+last := enemies.pop()
 check(last.x == 20 && len(enemies) == 1, "pop")
 live := enemies[:]
 check(len(live) == 1 && live[0].x == 10, "list [:] is a slice of live elements")
-clear(enemies)
+enemies.clear()
 check(len(enemies) == 0, "clear")
 nums: [..8]Int
 for i in 0..<5
-  push(nums, i * i)
+  nums.push(i * i)
 end
 check(nums[4] == 16 && total(nums[:]) == 30 && total(nums[1:3]) == 5, "Int list and sub-slices")
 title: Blob[..32]
 label :: proc(b: Blob[..], score: Int) -> Bool
-  clear(b)
-  return format(b, "score: ", score, " ", 1.5, " ", true) && push(b, '!')
+  b.clear()
+  return b.format("score: ", score, " ", 1.5, " ", true) && b.push('!')
 end
 check(label(title, 42) && String(title[:]) == "score: 42 1.5 true!", "format appends text; push adds one byte")
 tiny: Blob[..6]
-check(pushAll(tiny, "abc") && !format(tiny, "de", 12345) && len(tiny) == 3, "format is all or nothing")
-check(format(tiny, 12) && push(tiny, 65) && String(tiny[:]) == "abc12A" && !push(tiny, 66), "push on a Blob list is a byte")
-check(format(tiny), "format with nothing to add")
+check(tiny.pushAll("abc") && !tiny.format("de", 12345) && len(tiny) == 3, "format is all or nothing")
+check(tiny.format(12) && tiny.push(65) && String(tiny[:]) == "abc12A" && !tiny.push(66), "push on a Blob list is a byte")
+check(tiny.format(), "format with nothing to add")
 more: [..8]Int
-check(pushAll(more, nums) && !pushAll(more, nums) && len(more) == 5 && more[4] == 16, "pushAll is all or nothing")
-check(pushAll(more, nums[3:]) && len(more) == 7 && more[6] == 16, "pushAll from a slice")
+check(more.pushAll(nums) && !more.pushAll(nums) && len(more) == 5 && more[4] == 16, "pushAll is all or nothing")
+check(more.pushAll(nums[3:]) && len(more) == 7 && more[6] == 16, "pushAll from a slice")
 localList :: proc() -> Int
   xs: [..3]Int
-  push(xs, 5)
-  push(xs, 6)
+  xs.push(5)
+  xs.push(6)
   v := xs
-  push(v, 7)
+  v.push(7)
   return len(xs) * 100 + xs[2] + cap(v)
 end
 check(localList() == 310 && localList() == 310, "local list resets per call; := makes a view")
@@ -316,8 +316,79 @@ Inv :: struct
   gold: Int
 end
 bags: [2]Inv
-push(bags[1].items, 9)
+bags[1].items.push(9)
 check(len(bags[1].items) == 1 && bags[1].items[0] == 9 && len(bags[0].items) == 0, "list inside a struct inside an array")
+
+// ---- methods: Type.name :: proc, with an implicit self
+Ship :: struct
+  x, vx: Float
+  hp: Int
+end
+Ship.move :: proc(dt: Float)
+  self.x += self.vx * dt
+end
+Ship.hurt :: proc(n: Int) -> Bool
+  self.hp -= n
+  return self.hp <= 0
+end
+Ship.reset :: proc()
+  self = Ship{hp = 3}
+end
+Ship.pos :: proc() -> Float
+  return self.x
+end
+Ship.step :: proc(dt: Float)
+  self.move(dt)
+end
+fleet: [3]Ship
+for i in 0..<3
+  fleet[i] = Ship{x = Float(i), vx = 2, hp = 2}
+end
+fleet[1].step(0.5)
+check(fleet[1].x == 2 && fleet[0].x == 0, "a method updates its receiver in place")
+check(!fleet[2].hurt(1) && fleet[2].hurt(1) && fleet[2].hp == 0, "method results and receiver updates")
+solo := Ship{x = 5, vx = 1, hp = 1}
+solo.reset()
+check(solo.hp == 3 && solo.x == 0, "assigning self replaces the receiver")
+twin := solo
+twin.vx = 1
+twin.move(10)
+check(solo.x == 0 && twin.x == 10, "methods act on the variable they're called on")
+check(Ship{x = 7}.pos() == 7, "method on a temporary")
+moveAll :: proc(ships: []Ship, dt: Float)
+  for i in 0..<len(ships)
+    ships[i].move(dt)
+  end
+end
+moveAll(fleet[:2], 1)
+check(fleet[0].x == 2 && fleet[1].x == 4 && fleet[2].x == 2, "methods through a slice")
+Int.double :: proc() -> Int
+  return self * 2
+end
+Int.bump :: proc()
+  self += 1
+end
+k := 21
+k.bump()
+check(k.double() == 42 && k == 21 && (k + 1).double() == 44, "Int methods get a copy of self")
+String.first :: proc() -> Int
+  return self[0]
+end
+check("hey".first() == 'h', "String methods")
+update :: proc() -> Int
+  return 7
+end
+Ship.update :: proc() -> Int
+  return self.hp
+end
+Bullet :: struct
+  hp: Int
+end
+Bullet.update :: proc() -> Int
+  return self.hp + 100
+end
+b1 := Bullet{hp = 1}
+check(update() == 7 && solo.update() == 3 && b1.update() == 101, "procs and each type's methods have separate names")
 
 // ---- ffi
 t0 := clock()

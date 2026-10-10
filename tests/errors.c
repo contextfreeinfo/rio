@@ -27,7 +27,13 @@ static const Case cases[] = {
   {"x := 1\nelse\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 4, "'else' without 'if'"},
   {"x := 1\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 3, "'end' without block"},
   {"x := 1\nreturn\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 6, "return outside proc"},
-  {"xs: [..2]Int\nformat(xs, 1)\n",0, 0, 0, RIO_ECOMPILE, 2, 10, 1, "format needs a Blob list"},
+  {"xs: [..2]Int\nxs.format(1)\n",0, 0, 0, RIO_ECOMPILE, 2, 10, 1, "format needs a Blob list"},
+  {"S :: struct\n  x: Int\nend\nS.f :: proc()\n  self.f()\nend\n", 0, 0, 0, RIO_ECOMPILE, 5, 8, 1, "recursion is not allowed"},
+  {"S :: struct\n  x: Int\nend\nS.x :: proc()\nend\n", 0, 0, 0, RIO_ECOMPILE, 4, 3, 1, "same name as a field"},
+  {"S :: struct\n  x: Int\nend\nS.f :: proc()\nend\nS.f :: proc()\nend\n", 0, 0, 0, RIO_ECOMPILE, 6, 3, 1, "method already defined"},
+  {"S :: struct\n  x: Int\nend\nS.f :: proc()\nend\ns: S\ng := s.f\n", 0, 0, 0, RIO_ECOMPILE, 7, 8, 1, "method calls need ()"},
+  {"S :: struct\n  x: Int\nend\ns: S\ns.nope()\n", 0, 0, 0, RIO_ECOMPILE, 5, 3, 4, "no such field or method"},
+  {"xs: [..2]Int\npush(xs, 1)\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 4, "undefined name"},
   /* ...or at the last token of an expression that can only be judged once it's complete */
   {"x := 1\n  y := 2.0 + \"s\"\n", 0, 0, 0, RIO_ECOMPILE, 2, 14, 3, "type mismatch"},
   {"x := (1 + 2\n", 0, 0, 0, RIO_ECOMPILE, 1, 11, 1, "unclosed bracket"},
@@ -35,7 +41,7 @@ static const Case cases[] = {
   {"s := \"abc\n", 0, 0, 0, RIO_ECOMPILE, -1, -1, -1, "unterminated string"},
   /* runtime errors report the line */
   {"xs: [4]Int\ni := 2\nf :: proc(n: Int) -> Int\n  return xs[n * 3]\nend\nlog(f(i))\n", 0, 0, 0, RIO_ERUNTIME, 4, 0, 0, "index out of bounds"},
-  {"xs: [..2]Int\nfor j in 0..<3\n  push(xs, j)\nend\nlog(pop(xs), pop(xs), pop(xs))\n", 0, 0, 0, RIO_ERUNTIME, 5, 0, 0, "pop from empty list"},
+  {"xs: [..2]Int\nfor j in 0..<3\n  xs.push(j)\nend\nlog(xs.pop(), xs.pop(), xs.pop())\n", 0, 0, 0, RIO_ERUNTIME, 5, 0, 0, "pop from empty list"},
   {"main :: proc()\n  a := 0\n  b := 5\n  log(b / a)\nend\n", 0, 0, 0, RIO_ERUNTIME, 4, 0, 0, "division by zero"},
   {"a: [3]Int\nn := 5\nb := a[1:n]\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "slice out of bounds"},
   {"xs: [2]Int\ni := 0\nfor xs[i] == 0\n  i += 1\nend\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "index out of bounds"}, /* rotated loop condition */

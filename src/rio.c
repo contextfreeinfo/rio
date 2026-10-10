@@ -26,7 +26,7 @@ enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, T
   TK_OR, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
 enum { TY_VOID, TY_I32, TY_F32, TY_BYTE, TY_STR, TY_BLOB, TY_BOOL };
 enum { K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD };
-enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI };
+enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF };
 enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN };
 enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
 enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR };
@@ -211,7 +211,13 @@ static void addsym(Rio *vm, const char *s, int n, int k, int t, int32_t v) {
 static int lookup(Rio *vm, const char *s, int n) {
   int i;
   for (i = vm->c->nsym - 1; i >= 0; i--)
-    if (vm->c->sym[i].len == n && !memcmp(vm->c->names + vm->c->sym[i].name, s, (size_t)n)) return i;
+    if (vm->c->sym[i].k != S_METH && vm->c->sym[i].len == n && !memcmp(vm->c->names + vm->c->sym[i].name, s, (size_t)n)) return i;
+  return -1;
+}
+static int lookup_meth(Rio *vm, int t, const char *s, int n) {
+  int i;
+  for (i = vm->c->nsym - 1; i >= 0; i--)
+    if (vm->c->sym[i].k == S_METH && vm->c->sym[i].t == t && vm->c->sym[i].len == n && !memcmp(vm->c->names + vm->c->sym[i].name, s, (size_t)n)) return i;
   return -1;
 }
 static int newtype(Rio *vm, int k, int elem, uint32_t n, uint32_t size) {
@@ -582,6 +588,7 @@ static Ex ident(Rio *vm) {
   case S_VAR: return mkex(EK_ST, y->t, y->v);
   case S_CONST: { Ex e = mkex(TY(y->t)->k <= K_F32 || TY(y->t)->k == K_BOOL ? EK_CONST : EK_ST, y->t, y->v); e.ro = 1; return e; }
   case S_FN: if (!vm->c->func[y->v].done) fail(vm, "recursion is not allowed"); return mkex(EK_FN, 0, y->v);
+  case S_SELF: return mkex(EK_MEM, y->t, y->v); /* v: the slot holding the receiver's address */
   case S_FFI: return mkex(EK_FFI, 0, y->v);
   case S_BI: return mkex(EK_BI, 0, y->v);
   default: return mkex(EK_TY, y->t, 0);
@@ -639,6 +646,32 @@ static void field(Rio *vm, Ex *e) {
   if (i == st->nf) fail(vm, "no such field");
   if (e->k == EK_ST) e->a += f->off; else e->off += f->off;
   e->t = f->t;
+}
+static int structfield(Rio *vm, RioType *ty, const char *s, int n) {
+  int i;
+  for (i = 0; ty->k == K_STRUCT && i < ty->nf; i++) {
+    RioField *f = &vm->c->field[ty->f0 + i];
+    if (f->len == n && !memcmp(vm->c->names + f->name, s, (size_t)n)) return i;
+  }
+  return -1;
+}
+static void member(Rio *vm) {
+  Ex *e = vtop(vm), m; RioType *ty; int i, k;
+  needval(vm, e); ty = TY(e->t);
+  if (structfield(vm, ty, TK.s, TK.n) >= 0) { field(vm, e); return; }
+  if (ty->k == K_LIST || ty->k == K_BUILD) {
+    for (k = BI_PUSH; k <= BI_FORMAT; k++)
+      if (k != BI_CAP && (int)strlen(bi[k]) == TK.n && !memcmp(bi[k], TK.s, (size_t)TK.n)) break;
+    if (k > BI_FORMAT) fail(vm, "no such method");
+    m = mkex(EK_BI, 0, k);
+  } else {
+    if ((i = lookup_meth(vm, vt(e->t), TK.s, TK.n)) < 0) fail(vm, ty->k == K_STRUCT ? "no such field or method" : "no such method");
+    if (!vm->c->func[vm->c->sym[i].v].done) fail(vm, "recursion is not allowed");
+    m = mkex(EK_FN, 0, vm->c->sym[i].v);
+  }
+  if (vm->c->nx.t != '(') fail(vm, "method calls need ()");
+  m.ro = 2; /* bound: the receiver is just below on the stack */
+  vpush(vm, m);
 }
 static void doindex(Rio *vm, Ex *o, Ex *i) {
   RioType *ty; int el, sz, s, ix, d, ro;
@@ -852,6 +885,7 @@ static void finish_call(Rio *vm, Op *m) {
     if (m->n != f->np) fail(vm, "wrong number of arguments");
     for (i = 0; i < f->np; i++) {
       Ex p = mkex(EK_ST, vm->c->param[f->p0 + i].t, (int32_t)vm->c->param[f->p0 + i].addr);
+      if (!i && f->selfref) { emit(vm, OP_MOV, (int)(p.a / 4), toaddr(vm, &vm->c->vs[m->vb]), 0); continue; }
       store(vm, &p, &vm->c->vs[m->vb + i]);
     }
     vm->c->nvs = m->vb;
@@ -945,6 +979,15 @@ static Ex expr(Rio *vm) {
     if (TK.nl && !depth) break;
     if (t == '(') {
       Ex c = *vtop(vm); Op *o;
+      if (c.ro == 2 && (c.k == EK_FN || c.k == EK_BI)) { /* receiver.method( */
+        vm->c->nvs--;
+        o = opush(vm, OK_CALL, 0, 0); o->a = c.k; o->b = c.a;
+        o->vb = (uint16_t)(vm->c->nvs - 1); o->fr0 = vtop(vm)->t0;
+        if (c.k == EK_BI && c.a == BI_FORMAT) argdone(vm, o); else o->n = 1;
+        depth++; next(vm);
+        if (TK.t == ')') { closer(vm, ')', 0); depth--; next(vm); want = 0; } else want = 1;
+        continue;
+      }
       if (c.k < EK_FN || c.k > EK_TY) fail(vm, "not callable");
       if (c.k == EK_TY && TY(c.t)->k == K_STRUCT) fail(vm, "use Struct{...} to build a struct");
       vm->c->nvs--;
@@ -956,7 +999,7 @@ static Ex expr(Rio *vm) {
     } else if (t == '.') {
       next(vm);
       if (TK.t != TK_ID) fail(vm, "field name expected");
-      field(vm, vtop(vm)); next(vm);
+      member(vm); next(vm);
     } else if (t == '{') {
       Ex c = *vtop(vm); Op *o;
       if (c.k != EK_TY || TY(c.t)->k != K_STRUCT) break;
@@ -1054,7 +1097,7 @@ static int namelist(Rio *vm, const char **ns, int *nl) {
   return c;
 }
 static int isbig(RioType *ty) { return (ty->k == K_ARR || ty->k == K_STRUCT || ty->k == K_LIST) && ty->size > 64; }
-static void proc_def(Rio *vm, const char *name, int nlen) {
+static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   RioCFunc *f; RioBlk *b; int fi, skip;
   if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "procs must be top-level");
   if (vm->nfunc >= RIO_MAX_FUNCS) fail(vm, "too many procs");
@@ -1062,9 +1105,16 @@ static void proc_def(Rio *vm, const char *name, int nlen) {
   skip = emit(vm, OP_JMP, 0, 0, NONE);
   fi = vm->nfunc++; f = &vm->c->func[fi];
   f->p0 = (uint16_t)vm->c->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0;
-  addsym(vm, name, nlen, S_FN, 0, fi);
+  addsym(vm, name, nlen, recv < 0 ? S_FN : S_METH, recv < 0 ? 0 : recv, fi);
+  f->selfref = (uint8_t)(recv >= 0 && TY(recv)->k == K_STRUCT);
   b = bpush(vm, B_PROC); b->a = (uint16_t)skip; b->b = (uint16_t)fi;
   vm->c->fr = vm->c->nact; f->fs = (uint16_t)vm->c->nact;
+  if (recv >= 0) { /* self: a struct receiver by address, other receivers as a copy */
+    int addr = alloc(vm, f->selfref ? 1 : words(vm, recv)) * 4;
+    if (vm->c->nparam >= RIO_MAX_PARAMS) fail(vm, "too many parameters");
+    vm->c->param[vm->c->nparam].t = (uint16_t)(f->selfref ? TY_I32 : recv); vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
+    addsym(vm, "self", 4, f->selfref ? S_SELF : S_VAR, recv, f->selfref ? addr / 4 : addr); f->np++;
+  }
   while (TK.t != ')') {
     const char *ns[16]; int nl[16], c = namelist(vm, ns, nl), t = parse_type(vm), j;
     RioType *ty = TY(t);
@@ -1086,6 +1136,18 @@ static void proc_def(Rio *vm, const char *name, int nlen) {
     f->retaddr = (uint32_t)alloc(vm, words(vm, f->ret)) * 4;
   }
   vm->c->nact = vm->c->fr; vm->c->curfn = fi; f->pc = (uint16_t)here(vm);
+}
+/* Type.name :: proc(...) */
+static void method_def(Rio *vm, int recv) {
+  const char *ns; int nn;
+  next(vm); next(vm);
+  if (TK.t != TK_ID) fail(vm, "method name expected");
+  ns = TK.s; nn = TK.n;
+  if (structfield(vm, TY(recv), ns, nn) >= 0) failtok(vm, "a method can't have the same name as a field");
+  if (lookup_meth(vm, recv, ns, nn) >= 0) failtok(vm, "method already defined");
+  next(vm); expect(vm, TK_DCOLON, "'::' expected");
+  if (TK.t != TK_PROC) fail(vm, "'proc' expected");
+  proc_def(vm, ns, nn, recv);
 }
 static void struct_def(Rio *vm, const char *name, int nlen) {
   int ti, off = 0; RioType *st;
@@ -1159,10 +1221,11 @@ static void statement(Rio *vm) {
   int t = TK.t, i; RioBlk *b; Ex e;
   vm->c->fr = vm->c->nact;
   if (t == ';') { next(vm); return; }
-  if (t == TK_ID && vm->c->nx.t == TK_DCOLON) {
+  if (t == TK_ID && vm->c->nx.t == '.' && (i = lookup(vm, TK.s, TK.n)) >= 0 && vm->c->sym[i].k == S_TYPE) method_def(vm, vm->c->sym[i].t);
+  else if (t == TK_ID && vm->c->nx.t == TK_DCOLON) {
     const char *ns = TK.s; int nn = TK.n;
     next(vm); next(vm);
-    if (TK.t == TK_PROC) proc_def(vm, ns, nn);
+    if (TK.t == TK_PROC) proc_def(vm, ns, nn, -1);
     else if (TK.t == TK_STRUCT) struct_def(vm, ns, nn);
     else {
       e = expr(vm);
@@ -1293,7 +1356,8 @@ static void setup(Rio *vm) {
   c->ntype = 7;
   for (i = 0; i < 5; i++) addsym(vm, tn[i], (int)strlen(tn[i]), S_TYPE, i < 2 ? TY_I32 + i : TY_STR + i - 2, 0);
   addsym(vm, "true", 4, S_CONST, TY_BOOL, 1); addsym(vm, "false", 5, S_CONST, TY_BOOL, 0);
-  for (i = 0; i < (int)(sizeof bi / sizeof bi[0]); i++) addsym(vm, bi[i], (int)strlen(bi[i]), S_BI, 0, i);
+  for (i = 0; i < (int)(sizeof bi / sizeof bi[0]); i++)
+    if (i < BI_PUSH || i == BI_CAP) addsym(vm, bi[i], (int)strlen(bi[i]), S_BI, 0, i); /* the rest are list methods */
   for (i = 0; i < vm->nffi; i++) {
     RioFfi *f = &vm->ffi[i]; RioCFfi *cf = &c->ffi[i]; const char *g;
     cf->p0 = (uint16_t)c->nparam; cf->np = 0; cf->ret = TY_VOID; f->aw = f->rw = 0;

@@ -94,7 +94,7 @@ RioError rio_error_info(Rio *vm);
 int rio_pc_line(Rio *vm, uint32_t pc);      /* source line of a bytecode position (0 = unknown) */
 
 /* ---- private ---- */
-enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI };
+enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI, RIO_S_METH, RIO_S_SELF };
 #define RIO_OPS(X) X(MOV) X(ADD) X(SUB) X(MUL) X(DIV) X(MOD) X(AND) X(OR) X(XOR) X(SHL) X(SHR) \
   X(NEG) X(BNOT) X(NOT) X(FADD) X(FSUB) X(FMUL) X(FDIV) X(FNEG) \
   X(EQ) X(NE) X(LT) X(LE) X(FEQ) X(FNE) X(FLT) X(FLE) X(SEQ) X(SNE) \
@@ -113,7 +113,7 @@ typedef struct { int t, line, col, w, n, op; const char *s; RioVal v; uint8_t nl
 typedef struct { uint8_t k, ref; uint16_t elem, f0, nf; uint32_t n, size; } RioType;
 typedef struct { uint16_t name, len, t, off; } RioField;
 typedef struct { uint16_t name, len, t; uint8_t k; int32_t v; } RioSym;
-typedef struct { uint16_t pc, end, ret, p0, np, fs, fe; uint32_t retaddr; uint8_t done; } RioCFunc;
+typedef struct { uint16_t pc, end, ret, p0, np, fs, fe; uint32_t retaddr; uint8_t done, selfref; } RioCFunc;
 typedef struct { uint16_t t; uint32_t addr; } RioParam;
 typedef struct { uint16_t ret, p0, np; } RioCFfi;
 typedef struct { uint8_t k, ro; uint16_t t, t0; int32_t a, off; } RioEx;
