@@ -26,10 +26,10 @@ enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, T
   TK_OR, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
 enum { TY_VOID, TY_I32, TY_F32, TY_BYTE, TY_STR, TY_BLOB, TY_BOOL };
 enum { K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD };
-enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF, S_MOD };
+enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF, S_MOD, S_ROREF }; /* S_ROREF: a read-only S_SELF */
 enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN, EK_MOD };
 enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
-enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR };
+enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR, B_EACH };
 enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2,
   BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_FORMAT,
   BI_TOINT, BI_TOFLOAT, BI_TOBOOL, BI_ASSTRING };
@@ -604,7 +604,9 @@ static Ex symex(Rio *vm, int i) {
   case S_VAR: return mkex(EK_ST, y->t, y->v);
   case S_CONST: { Ex e = mkex(TY(y->t)->k <= K_F32 || TY(y->t)->k == K_BOOL ? EK_CONST : EK_ST, y->t, y->v); e.ro = 1; return e; }
   case S_FN: if (!vm->c->func[y->v].done) fail(vm, "recursion is not allowed"); return mkex(EK_FN, 0, y->v);
-  case S_SELF: return mkex(EK_MEM, y->t, y->v); /* v: the slot holding the receiver's address */
+  case S_SELF: case S_ROREF: { /* v: the slot holding the receiver's (or loop element's) address */
+    Ex e = mkex(EK_MEM, y->t, y->v); e.ro = y->k == S_ROREF; return e;
+  }
   case S_FFI: return mkex(EK_FFI, 0, y->v);
   case S_BI: return mkex(EK_BI, 0, y->v);
   default: return mkex(EK_TY, y->t, 0);
@@ -1540,13 +1542,40 @@ static void statement(Rio *vm) {
   case TK_FOR:
     next(vm);
     if (TK.nl || TK.t == TK_END) { b = bpush(vm, B_LOOP); b->a = (uint16_t)here(vm); }
-    else if (TK.t == TK_ID && vm->c->nx.t == TK_IN) {
-      const char *ns = TK.s; int nn = TK.n, iv, lim, incl; Ex d;
-      next(vm); next(vm);
+    else if (TK.t == TK_ID && (vm->c->nx.t == TK_IN || vm->c->nx.t == ',')) {
+      const char *ns = TK.s, *is = 0; int nn = TK.n, in = 0, iv, lim, ix = NONE, incl; Ex d;
+      next(vm);
+      if (TK.t == ',') { next(vm); if (TK.t != TK_ID) failtok(vm, "index name expected"); is = TK.s; in = TK.n; next(vm); }
+      if (TK.t != TK_IN) failtok(vm, "'in' expected");
+      next(vm);
       b = bpush(vm, B_FOR);
-      vm->c->fr = vm->c->nact; iv = alloc(vm, 1); lim = alloc(vm, 1); vm->c->nact = vm->c->fr;
-      e = expr(vm); d = mkex(EK_ST, TY_I32, iv * 4); store(vm, &d, &e); vm->c->fr = vm->c->nact;
-      if (TK.t != TK_RLT && TK.t != TK_RLE) fail(vm, "'..<' or '..=' expected");
+      vm->c->fr = vm->c->nact; iv = alloc(vm, 1); lim = alloc(vm, 2); if (is) ix = alloc(vm, 1); vm->c->nact = vm->c->fr;
+      e = expr(vm);
+      if (TK.t != TK_RLT && TK.t != TK_RLE) { /* for x in xs: walk an element pointer iv up to lim, by lim+1 bytes */
+        RioType *ty; int s, sz, ro;
+        needval(vm, &e); ty = TY(e.t);
+        if (ty->k == K_LIST || ty->k == K_BUILD) { /* the elements there when the loop starts */
+          int lb = toslot2(vm, &e), v = alloc(vm, 2);
+          emit(vm, OP_LVIEW, v, lb, 0);
+          e = mkex(EK_ST, slice_of(vm, ty->elem), v * 4); ty = TY(e.t);
+        }
+        if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "for needs a range, array, slice or list");
+        sz = (int)TY(ty->elem)->size; ro = e.ro || e.t == TY_STR;
+        s = toslot2(vm, &e);
+        emit(vm, OP_MOV, iv, s, 0);
+        if (sz != 1) { emit(vm, OP_MUL, lim, s + 1, kslot(vm, sz)); emit(vm, OP_ADD, lim, s, lim); }
+        else emit(vm, OP_ADD, lim, s, s + 1);
+        emit(vm, OP_MOV, lim + 1, kslot(vm, sz), 0);
+        if (is) emit(vm, OP_MOV, ix, kslot(vm, 0), 0);
+        vm->c->fr = vm->c->nact;
+        addsym(vm, ns, nn, ro ? S_ROREF : S_SELF, ty->elem, iv);
+        if (is) addsym(vm, is, in, S_VAR, TY_I32, ix * 4);
+        b->k = B_EACH; b->i = (uint16_t)iv; b->lim = (uint16_t)lim; b->b = (uint16_t)ix;
+        b->brk = (uint16_t)emit(vm, OP_JLE, lim, iv, NONE); b->a = (uint16_t)here(vm);
+        break;
+      }
+      if (is) fail(vm, "a range loop has no index: its variable is the index");
+      d = mkex(EK_ST, TY_I32, iv * 4); store(vm, &d, &e); vm->c->fr = vm->c->nact;
       incl = TK.t == TK_RLE; next(vm);
       e = expr(vm);
       if (incl) { Ex one = mkex(EK_CONST, TY_I32, 1); one.t0 = (uint16_t)vm->c->fr; binop(vm, '+', &e, &one); }
@@ -1582,8 +1611,13 @@ static void statement(Rio *vm) {
       } else { patch(vm, b->cont, b->a); emit(vm, OP_JMP, 0, 0, b->a); }
     }
     else if (b->k == B_FOR) { patch(vm, b->cont, here(vm)); emit(vm, OP_FORI, b->i, b->lim, b->a); }
+    else if (b->k == B_EACH) {
+      patch(vm, b->cont, here(vm));
+      if (b->b != NONE) emit(vm, OP_ADD, b->b, b->b, kslot(vm, 1));
+      emit(vm, OP_EACH, b->i, b->lim, b->a);
+    }
     else patch(vm, b->b, here(vm));
-    patch(vm, b->k == B_LOOP || b->k == B_FOR ? b->brk : b->a, here(vm));
+    patch(vm, b->k >= B_LOOP ? b->brk : b->a, here(vm));
     bscope(vm, b); vm->c->nblk--;
     break;
   case TK_RETURN: {
@@ -1595,7 +1629,7 @@ static void statement(Rio *vm) {
     break;
   }
   case TK_BREAK: case TK_CONTINUE:
-    for (i = vm->c->nblk - 1; i >= 0 && vm->c->blk[i].k != B_PROC; i--) if (vm->c->blk[i].k == B_LOOP || vm->c->blk[i].k == B_FOR) break;
+    for (i = vm->c->nblk - 1; i >= 0 && vm->c->blk[i].k != B_PROC; i--) if (vm->c->blk[i].k >= B_LOOP) break;
     if (i < 0 || vm->c->blk[i].k == B_PROC) failtok(vm, "not inside a loop");
     b = &vm->c->blk[i];
     if (t == TK_BREAK) b->brk = (uint16_t)jappend(vm, b->brk, emit(vm, OP_JMP, 0, 0, NONE));
@@ -2113,6 +2147,7 @@ static int run(Rio *vm, uint32_t pc) {
   CASE(JFLE) if (F(A) <= F(B)) JUMP(); NEXT();
   CASE(JFEQ) if (F(A) == F(B)) JUMP(); NEXT();
   CASE(JFNE) if (F(A) != F(B)) JUMP(); NEXT();
+  CASE(EACH) if ((U(A) += U(B + 1)) < U(B)) JUMP(); NEXT();
   CASE(FORI) if ((I(A) = (int32_t)(U(A) + 1u)) < I(B)) JUMP(); NEXT();
   CASE(CALL) cs[sp++] = (uint32_t)(ip + 1 - code); JUMP();
   CASE(RET) if (!sp) return 0; ip = code + cs[--sp]; DISPATCH();

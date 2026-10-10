@@ -180,6 +180,7 @@ static void ins(int pc) {
     P("if (%s %s %s) goto L%d;\n", V(a, 'f'), cmp[x->op - A_JFEQ], V(b, 'f'), c); break;
   case A_JFNLT: case A_JFNLE:
     P("if (!(%s %s %s)) goto L%d;\n", V(a, 'f'), x->op == A_JFNLT ? "<" : "<=", V(b, 'f'), c); break;
+  case A_EACH: P("if ((%s += %s) < %s) goto L%d;\n", V(a, 'u'), V(b + 1, 'u'), V(b, 'u'), c); break;
   case A_FORI: P("if ((%s = (int32_t)(%s + 1u)) < %s) goto L%d;\n", V(a, 'i'), V(a, 'u'), V(b, 'i'), c); break;
   case A_CALL: P("%s();\n", fname(fnat(c))); break;
   case A_RET: case A_HALT: P("return;\n"); break;

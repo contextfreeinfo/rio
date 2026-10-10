@@ -51,10 +51,10 @@ scale : Float = 2       // Int literal coerces to Float
 
 // procs: must be defined before use, so recursion is impossible
 step :: proc(ps: []Particle, dt: Float)
-  for i in 0..<len(ps)
-    ps[i].vel.y -= GRAVITY * dt
-    ps[i].pos.x += ps[i].vel.x * dt
-    ps[i].pos.y += ps[i].vel.y * dt
+  for p in ps                     // p is the element itself: changes stick
+    p.vel.y -= GRAVITY * dt
+    p.pos.x += p.vel.x * dt
+    p.pos.y += p.vel.y * dt
   end
 end
 
@@ -73,6 +73,9 @@ main :: proc()
   i := 0
   for i < 10                      // while
     i += 3
+  end
+  for p, k in parts[:3]           // with an index
+    log(k, p.life)
   end
   for                             // infinite loop
     break
@@ -98,6 +101,7 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 - Destructuring pulls fields out into new variables: `{q, r} := divmod(17, 5)`, `{x as px, y} := ship.pos`. `as` renames. You can take just the fields you need, in any order, and the value is evaluated once. The new variables are copies, so changing them doesn't change the struct. Patterns are one level deep; for nested fields, destructure again (`{pos} := ship`, then `{x, y} := pos`). Small structs used this way stand in for tuples and multiple return values. (`as` only has this meaning inside a pattern, and is an ordinary name everywhere else.)
 - A `String` is a read-only byte view. A `Blob` is a writable byte view, and `b.asString()` views a `Blob`'s bytes as a `String` (no copy).
 - A struct or array that contains slices or strings must be a **global**. It can't be a local, a parameter, or a return value. Slices themselves can be locals and parameters.
+- `for x in xs` loops over an array, slice, list, `String` or `Blob`, and `for x, i in xs` adds the index. `x` is the element itself, not a copy (like `self` in a method), so `x.hp -= 1` changes the element, and nothing is bounds-checked inside the loop. It's read-only when `xs` is (a `String`). A list loops over the elements it had when the loop started; to remove while looping, count down with an index.
 - Every index and slice is bounds-checked at runtime. Integer arithmetic wraps, and integer division by zero is a runtime error.
 - There are no implicit conversions between `Int` and `Float` except for literals. Convert with `x.toFloat()` and `x.toInt()` (which truncates). Conversions are methods, so they show up with the rest after `x.`; `to` makes a new value, `as` views the same data.
 - `Bool` is its own type. Comparisons and `! && ||` produce `Bool`, and `if`/`for` conditions must be `Bool` (`if n` is an error; write `if n != 0`). `true` and `false` are literals, and `b.toInt()` (gives 0 or 1) and `n.toBool()` (`n != 0`) convert between the two.
@@ -130,9 +134,10 @@ for i in 0..<3
   spawn(enemies, i * 10)                 // the view appends to the caller's list
 end
 
-for i in 0..<len(enemies)                // indexing is checked against the current length
-  enemies[i].hp -= 1
+for e in enemies                         // the live elements
+  e.hp -= 1
 end
+enemies[0].hp = 5                        // indexing is checked against the current length
 enemies.swapRemove(0)                   // O(1): the last element takes its place
 enemies.remove(0)                       // keeps order, O(n)
 e := enemies.pop()
