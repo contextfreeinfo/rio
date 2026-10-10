@@ -4,44 +4,15 @@
 #include <stdint.h>
 #include <setjmp.h>
 
-/* compile-time limits; override with -D. RIO_SMALL picks MCU-sized defaults. */
+/* fixed caps for things the host registers before compiling; override with -D.
+   RIO_SMALL picks MCU-sized values. Compiler table sizes are chosen per compile: see RioLimits. */
 #ifdef RIO_SMALL
 #define RIO_DEF(big, small) small
 #else
 #define RIO_DEF(big, small) big
 #endif
-#ifndef RIO_MAX_SYMS
-#define RIO_MAX_SYMS RIO_DEF(1024, 128)
-#endif
-#ifndef RIO_MAX_TYPES
-#define RIO_MAX_TYPES RIO_DEF(256, 32)
-#endif
-#ifndef RIO_MAX_FIELDS
-#define RIO_MAX_FIELDS RIO_DEF(1024, 64)
-#endif
-#ifndef RIO_MAX_FUNCS
-#define RIO_MAX_FUNCS RIO_DEF(512, 32)
-#endif
-#ifndef RIO_MAX_PARAMS
-#define RIO_MAX_PARAMS RIO_DEF(2048, 128)
-#endif
 #ifndef RIO_MAX_FFI
 #define RIO_MAX_FFI RIO_DEF(128, 16)
-#endif
-#ifndef RIO_MAX_CONSTS /* words reserved at the bottom of memory for constants */
-#define RIO_MAX_CONSTS RIO_DEF(4096, 256)
-#endif
-#ifndef RIO_MAX_SLOTS /* register-addressable words (frames, globals, small arrays); at most 65536 */
-#define RIO_MAX_SLOTS RIO_DEF(65536, 4096)
-#endif
-#ifndef RIO_NAMES
-#define RIO_NAMES RIO_DEF(16384, 1024)
-#endif
-#ifndef RIO_MAX_BLOCKS
-#define RIO_MAX_BLOCKS RIO_DEF(64, 16)
-#endif
-#ifndef RIO_MAX_EXPR
-#define RIO_MAX_EXPR RIO_DEF(256, 48)
 #endif
 #ifndef RIO_MAX_DEFINES
 #define RIO_MAX_DEFINES RIO_DEF(64, 8)
@@ -72,11 +43,19 @@ int rio_ffi(Rio *vm, const char *name, const char *sig, RioFn fn);
    doesn't declare it. value is parsed as the declared constant's type (i32, f32, bool or string);
    NULL means true. name and value must stay valid until rio_compile returns. */
 int rio_define(Rio *vm, const char *name, const char *value);
+/* compiler capacities. consts is also how many words of mem are kept for constants, and slots
+   (at most 65536, counting the constants) caps the register-addressable part of mem. */
+typedef struct { uint32_t syms, names, types, fields, procs, params, consts, slots, blocks, expr; } RioLimits;
+RioLimits rio_limits_for(uint32_t bytes);     /* limits whose tables fill about 60% of `bytes` */
+uint32_t rio_limits_size(const RioLimits *l); /* scratch bytes those tables take; strings need more */
+/* compile with the compiler's working memory overlaid on the part of mem that stays zero until
+   the program runs; limits are scaled to mem */
 int rio_compile(Rio *vm, const char *src, uint32_t len);
 /* same, with the compiler's working memory in a separate buffer that stays valid afterwards
-   (needed by rio_aot). Returns -1 with "scratch too small" if it can't hold rio_scratch_min(). */
+   (rio_aot needs it); limits are scaled to the buffer */
 int rio_compile_scratch(Rio *vm, const char *src, uint32_t len, void *scratch, uint32_t size);
-uint32_t rio_scratch_min(void);
+/* either of the above with explicit limits: scratch NULL overlays mem; lim NULL scales */
+int rio_compile_ex(Rio *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const RioLimits *lim);
 int rio_run(Rio *vm);                       /* runs top-level code */
 int rio_func(Rio *vm, const char *name);    /* -1 if missing */
 RioVal *rio_args(Rio *vm, int fn);          /* params, consecutive words in declaration order */
@@ -125,22 +104,24 @@ typedef struct RioC {
   uint32_t linetop, nline, lastline, lineovr; /* pc->line table, growing down from the top of the pool */
   uint32_t fr, nact, hwm, lastlabel, pool, poolcap; int curfn, def0, target; /* target: type the next expr() should produce, or -1 */
   int nsym, ntype, nfield, nparam, nnames, nblk, nvs, nos;
-  RioSym sym[RIO_MAX_SYMS]; RioType type[RIO_MAX_TYPES]; RioField field[RIO_MAX_FIELDS];
-  RioCFunc func[RIO_MAX_FUNCS]; RioParam param[RIO_MAX_PARAMS]; RioCFfi ffi[RIO_MAX_FFI];
-  char names[RIO_NAMES]; RioBlk blk[RIO_MAX_BLOCKS]; RioEx vs[RIO_MAX_EXPR]; RioOp os[RIO_MAX_EXPR];
-  uint8_t exposed[RIO_MAX_SLOTS / 8];    /* slots whose address is taken (for AOT) */
-  uint8_t kfix[RIO_MAX_CONSTS / 8];      /* constants holding string-pool offsets, relocated at the end */
-  uint8_t *strs;                         /* string pool, right after this struct */
+  RioLimits lim;                         /* capacities of the tables below, all carved from scratch */
+  RioSym *sym; RioType *type; RioField *field; RioCFunc *func; RioParam *param;
+  char *names; RioBlk *blk; RioEx *vs; RioOp *os;
+  uint8_t *exposed;                      /* slots whose address is taken (for AOT) */
+  uint8_t *kfix;                         /* constants holding string-pool offsets, relocated at the end */
+  RioCFfi ffi[RIO_MAX_FFI];
+  uint8_t *strs;                         /* string pool: the rest of scratch */
 } RioC;
 
 struct Rio {
-  uint8_t *mem; uint32_t memsize, hi, nk, csaddr, exports, nexports, lines, nlines;
+  uint8_t *mem; uint32_t memsize, hi, nk, kcap, csaddr, exports, nexports, lines, nlines;
   int ekind, eline, ecol, elen, emsg;
   RioIns *code; uint32_t codecap, pc;
   RioLogFn logfn; void *logud; int logn, trap, ok, nfunc, nffi, ndefs;
   const char *defs[RIO_MAX_DEFINES][2];
   RioC *c; /* compiler state: only during compile, or after rio_compile_scratch */
-  RioFunc func[RIO_MAX_FUNCS]; RioFfi ffi[RIO_MAX_FFI];
+  RioFunc *func; /* per proc, in mem next to the strings */
+  RioFfi ffi[RIO_MAX_FFI];
   char logbuf[RIO_LOGBUF], err[RIO_ERRBUF];
 };
 #endif

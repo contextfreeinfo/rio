@@ -59,7 +59,7 @@ static const Case cases[] = {
   /* errors with no source position */
   {"N :: 10\n", "N", "2.5", 0, RIO_ECOMPILE, 0, 0, 0, "-D N: value doesn't fit Int"},
   {"N :: 10\n", "9x", "1", 0, RIO_ECOMPILE, 0, 0, 0, "-D: bad name 9x"},
-  {"x := 1\n", 0, 0, RIO_MAX_CONSTS * 4 + 1024, RIO_ECOMPILE, 0, 0, 0, "not enough memory for the compiler"},
+  {"x := 1\n", 0, 0, 4096, RIO_ECOMPILE, 0, 0, 0, "not enough memory for the compiler"},
   /* success clears the previous error */
   {"x := 1\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
 };
@@ -83,6 +83,24 @@ int main(void) {
              i, e.kind, e.line, e.col, e.len, e.msg, c->kind, c->line, c->col, c->len, c->msg);
       fails++;
     }
+  }
+  { /* explicit limits: tiny tables fail cleanly, and a scratch buffer too small for them is refused */
+    static unsigned char scratch[1 << 16];
+    static const char *many = "a := 1\nb := 2\nc := 3\nd := 4\ne := 5\nf := 6\ng := 7\nh := 8\n";
+    RioLimits l = rio_limits_for(sizeof scratch);
+    RioError e;
+    l.syms = 33; /* the builtins take 28, so the 6th global is one too many */
+    rio_init(&vm, mem, sizeof mem, code, 4096);
+    if (!rio_compile_ex(&vm, many, (uint32_t)strlen(many), scratch, sizeof scratch, &l) ||
+        !strstr((e = rio_error_info(&vm)).msg, "too many symbols") || e.line != 6) {
+      printf("FAIL explicit limits: \"%s\"\n", rio_error(&vm)); fails++; n++;
+    } else n++;
+    l = rio_limits_for(1 << 20);
+    rio_init(&vm, mem, sizeof mem, code, 4096);
+    if (!rio_compile_ex(&vm, many, (uint32_t)strlen(many), scratch, sizeof scratch, &l) ||
+        !strstr(rio_error(&vm), "scratch too small for these limits")) {
+      printf("FAIL limits bigger than scratch: \"%s\"\n", rio_error(&vm)); fails++; n++;
+    } else n++;
   }
   if (!fails) printf("all %d error tests passed\n", n);
   return fails != 0;

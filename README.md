@@ -230,7 +230,7 @@ int *score = rio_global(&vm, "score"); // direct access to globals
 
 `String` or `Blob` FFI arguments take two words (address, length); use `rio_ptr(vm, &a[i])` to get the bytes. An FFI function can abort the script with `rio_trap(vm, "msg")`. FFI functions must not call back into the VM.
 
-You can change the limits (symbols, procs, constants and so on) with `-DRIO_MAX_...`. See `rio.h`.
+The compiler's capacities (symbols, procs, constants and so on) are chosen per compile from the memory available; see [Memory and microcontrollers](#memory-and-microcontrollers).
 
 ### Errors
 
@@ -261,18 +261,35 @@ running:    [consts][ frames/globals | return stack ][ ... ][strings+exports][ar
 
 `rio_compile_scratch` puts the compiler state in a separate buffer instead, which then stays readable after compiling. The C backend needs that.
 
-**MCU limits:** build with `-DRIO_SMALL` for MCU-sized limits (128 symbols, 32 procs, 256 constants, 4K slots, …), or set each `RIO_MAX_*` yourself. Measured with `RIO_SMALL`:
+**Limits are chosen per compile.** The compiler's tables (symbols, names, types, fields, procs, params, constants, nesting depth) are carved out of its working memory at the start of each compile, not fixed when rio is built. By default they're scaled to the space available: `rio_compile` scales to `mem`, which it borrows anyway, so a cart compile gets generous limits for free; `rio_compile_scratch` scales to the buffer you give it. For exact numbers, fill in a `RioLimits` yourself:
+
+```c
+RioLimits lim = rio_limits_for(16 << 10);   // a starting point, scaled to 16 KB
+lim.procs = 64;                              // adjust what you need
+rio_compile_ex(&vm, src, len, scratch, sizeof scratch, &lim);   // scratch NULL: overlay mem instead
+uint32_t need = rio_limits_size(&lim);       // bytes those tables take (strings need some on top)
+```
+
+`rio_limits_for(n)` sizes the tables to about 60% of `n` and leaves the rest for string literals. Running out of anything is a clean compile error ("too many symbols", "scratch too small for these limits", "not enough memory for the compiler").
+
+| budget | symbols | procs | constants | tables |
+|---|---|---|---|---|
+| 8 KB | 64 | 16 | 128 | 5.6 KB |
+| 16 KB | 144 | 36 | 288 | 8.7 KB |
+| 64 KB | 698 | 174 | 1,396 | 33.9 KB |
+| 512 KB | 6,044 | 1,511 | 12,088 | 261 KB |
+
+**Measured** (the only build-time caps left are for things the host registers: `RIO_MAX_FFI`, `RIO_MAX_DEFINES`, and the log and error buffers; `-DRIO_SMALL` shrinks those):
 
 | | 64-bit | 32-bit |
 |---|---|---|
-| `Rio` (runtime state) | 1,248 B | 968 B |
-| compiler state (overlaid on `mem` while compiling) | 8,720 B | 8,504 B |
-| smallest `mem` that compiles and runs a 64-ball physics demo | 9,853 B | 9,629 B |
-| smallest `mem` for the full test suite | 11,021 B | 10,797 B |
-| bytecode | 8 B per instruction (~1 B per source byte) | same |
+| `Rio` (runtime state, `RIO_SMALL`) | 968 B | 624 B |
+| smallest `mem` that compiles and runs a 64-ball physics demo | 6,570 B | 6,314 B |
+| smallest `mem` for the full test suite (~430 lines, automatic limits) | 30.6 KB | 30.2 KB |
+| bytecode | 8 B per instruction | same |
 | C stack while running | a few hundred bytes (return addresses live in `mem`) | same |
 
-On a Cortex-M4, the core compiles to about 24.6 KB of flash at `-Os` (22.6 KB code, 2.1 KB read-only tables), plus libm and `memcpy`/`memset`/`setjmp` from your libc. Peak memory comes from compiling, dominated by the compiler state. If `mem` is too small, `rio_compile` fails cleanly with "out of compiler memory" or "out of memory".
+On a Cortex-M33, the core compiles to about 35 KB of flash at `-Os`, plus libm and `memcpy`/`memset`/`setjmp` from your libc. Peak memory comes from compiling; once running, a program needs only its constants, frames, globals, arrays and strings.
 
 ## Ahead-of-time compilation to C
 

@@ -198,13 +198,13 @@ static void expect(Rio *vm, int t, const char *m) { if (TK.t != t) fail(vm, m); 
 
 /* ---------------------------------------------------------------- tables */
 static int addname(Rio *vm, const char *s, int n) {
-  if (vm->c->nnames + n > RIO_NAMES) fail(vm, "out of name space");
+  if (vm->c->nnames + n > (int)vm->c->lim.names) fail(vm, "out of name space");
   memcpy(vm->c->names + vm->c->nnames, s, (size_t)n); vm->c->nnames += n;
   return vm->c->nnames - n;
 }
 static void addsym(Rio *vm, const char *s, int n, int k, int t, int32_t v) {
   RioSym *y;
-  if (vm->c->nsym >= RIO_MAX_SYMS) fail(vm, "too many symbols");
+  if (vm->c->nsym >= (int)vm->c->lim.syms) fail(vm, "too many symbols");
   y = &vm->c->sym[vm->c->nsym++];
   y->name = (uint16_t)addname(vm, s, n); y->len = (uint16_t)n; y->k = (uint8_t)k; y->t = (uint16_t)t; y->v = v;
 }
@@ -222,7 +222,7 @@ static int lookup_meth(Rio *vm, int t, const char *s, int n) {
 }
 static int newtype(Rio *vm, int k, int elem, uint32_t n, uint32_t size) {
   RioType *y;
-  if (vm->c->ntype >= RIO_MAX_TYPES) fail(vm, "too many types");
+  if (vm->c->ntype >= (int)vm->c->lim.types) fail(vm, "too many types");
   y = &vm->c->type[vm->c->ntype];
   y->k = (uint8_t)k; y->elem = (uint16_t)elem; y->n = n; y->size = size; y->f0 = y->nf = 0;
   y->ref = (uint8_t)(k == K_SLICE || k == K_BUILD || ((k == K_ARR || k == K_LIST) && vm->c->type[elem].ref));
@@ -289,7 +289,7 @@ static int alloc(Rio *vm, int n) {
   vm->c->fr += (uint32_t)n;
   if (vm->c->fr > vm->c->hwm) {
     vm->c->hwm = vm->c->fr;
-    if (vm->c->hwm > RIO_MAX_SLOTS || vm->c->hwm * 4 > vm->hi) fail(vm, "out of slots");
+    if (vm->c->hwm > vm->c->lim.slots || vm->c->hwm * 4 > vm->hi) fail(vm, "out of slots");
   }
   return r;
 }
@@ -302,21 +302,21 @@ static uint32_t halloc(Rio *vm, uint32_t n) {
 static int kslot(Rio *vm, uint32_t v) {
   RioVal *R = (RioVal *)vm->mem; uint32_t i;
   for (i = 1; i < vm->nk; i++) if (R[i].u == v && !KFIX(i)) return (int)i;
-  if (vm->nk >= RIO_MAX_CONSTS) fail(vm, "too many constants");
+  if (vm->nk >= vm->kcap) fail(vm, "too many constants");
   R[vm->nk].u = v;
   return (int)vm->nk++;
 }
 static int kslot2(Rio *vm, uint32_t a, uint32_t b) {
   RioVal *R = (RioVal *)vm->mem; uint32_t i;
   for (i = 1; i + 1 < vm->nk; i++) if (R[i].u == a && R[i + 1].u == b && !KFIX(i)) return (int)i;
-  if (vm->nk + 2 > RIO_MAX_CONSTS) fail(vm, "too many constants");
+  if (vm->nk + 2 > vm->kcap) fail(vm, "too many constants");
   R[vm->nk].u = a; R[vm->nk + 1].u = b; vm->nk += 2;
   return (int)vm->nk - 2;
 }
 /* constant holding a static address; marks those slots as address-taken (they can't become C locals in AOT) */
 static uint32_t expose(Rio *vm, uint32_t a, uint32_t n) {
   uint32_t w;
-  for (w = a / 4; w < RIO_MAX_SLOTS && w * 4 < a + n; w++) vm->c->exposed[w >> 3] |= (uint8_t)(1u << (w & 7));
+  for (w = a / 4; w < vm->c->lim.slots && w * 4 < a + n; w++) vm->c->exposed[w >> 3] |= (uint8_t)(1u << (w & 7));
   return a;
 }
 static int kaddr(Rio *vm, uint32_t a, uint32_t n) { return kslot(vm, expose(vm, a, n)); }
@@ -545,10 +545,10 @@ static void unop(Rio *vm, int op, Ex *e) {
 /* ---------------------------------------------------------------- expression parser (shunting-yard) */
 static Ex *vtop(Rio *vm) { return &vm->c->vs[vm->c->nvs - 1]; }
 static Ex vpop(Rio *vm) { return vm->c->vs[--vm->c->nvs]; }
-static void vpush(Rio *vm, Ex e) { if (vm->c->nvs >= RIO_MAX_EXPR) fail(vm, "expression too complex"); vm->c->vs[vm->c->nvs++] = e; }
+static void vpush(Rio *vm, Ex e) { if (vm->c->nvs >= (int)vm->c->lim.expr) fail(vm, "expression too complex"); vm->c->vs[vm->c->nvs++] = e; }
 static Op *opush(Rio *vm, int k, int prec, int op) {
   Op *o;
-  if (vm->c->nos >= RIO_MAX_EXPR) fail(vm, "expression too complex");
+  if (vm->c->nos >= (int)vm->c->lim.expr) fail(vm, "expression too complex");
   o = &vm->c->os[vm->c->nos++];
   o->k = (uint8_t)k; o->prec = (uint8_t)prec; o->op = (int16_t)op; o->a = o->b = o->c = o->n = o->pun = 0; o->set = 0;
   o->vb = (uint16_t)vm->c->nvs; o->fr0 = (uint16_t)vm->c->fr;
@@ -597,7 +597,7 @@ static Ex ident(Rio *vm) {
 static Ex strconst(Rio *vm, const char *s, int n) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; uint8_t *d = c->strs + c->pool; uint32_t k = vm->nk; int i, j = 0; Ex e;
   if ((uint32_t)n > c->poolcap - c->pool) fail(vm, "out of compiler memory");
-  if (k + 2 > RIO_MAX_CONSTS) fail(vm, "too many constants");
+  if (k + 2 > vm->kcap) fail(vm, "too many constants");
   for (i = 0; i < n; i++) d[j++] = (uint8_t)(s[i] == '\\' && i + 1 < n ? esc(s[++i]) : s[i]);
   R[k].u = 0x80000000u | c->pool; R[k + 1].u = (uint32_t)j; c->kfix[k >> 3] |= (uint8_t)(1u << (k & 7));
   vm->nk += 2; c->pool += (uint32_t)j;
@@ -1109,7 +1109,7 @@ static int parse_type(Rio *vm) {
 }
 static RioBlk *bpush(Rio *vm, int k) {
   RioBlk *b;
-  if (vm->c->nblk >= RIO_MAX_BLOCKS) fail(vm, "blocks nested too deep");
+  if (vm->c->nblk >= (int)vm->c->lim.blocks) fail(vm, "blocks nested too deep");
   b = &vm->c->blk[vm->c->nblk++];
   b->k = (uint8_t)k; b->nsym = (uint16_t)vm->c->nsym; b->nnames = (uint16_t)vm->c->nnames; b->nact = (uint16_t)vm->c->nact;
   b->a = b->b = b->brk = b->cont = b->cj = NONE;
@@ -1131,7 +1131,7 @@ static int isbig(RioType *ty) { return (ty->k == K_ARR || ty->k == K_STRUCT || t
 static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   RioCFunc *f; RioBlk *b; int fi, skip;
   if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "procs must be top-level");
-  if (vm->nfunc >= RIO_MAX_FUNCS) fail(vm, "too many procs");
+  if (vm->nfunc >= (int)vm->c->lim.procs) fail(vm, "too many procs");
   next(vm); expect(vm, '(', "'(' expected");
   skip = emit(vm, OP_JMP, 0, 0, NONE);
   fi = vm->nfunc++; f = &vm->c->func[fi];
@@ -1142,7 +1142,7 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   vm->c->fr = vm->c->nact; f->fs = (uint16_t)vm->c->nact;
   if (recv >= 0) { /* self: a struct receiver by address, other receivers as a copy */
     int addr = alloc(vm, f->selfref ? 1 : words(vm, recv)) * 4;
-    if (vm->c->nparam >= RIO_MAX_PARAMS) fail(vm, "too many parameters");
+    if (vm->c->nparam >= (int)vm->c->lim.params) fail(vm, "too many parameters");
     vm->c->param[vm->c->nparam].t = (uint16_t)(f->selfref ? TY_I32 : recv); vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
     addsym(vm, "self", 4, f->selfref ? S_SELF : S_VAR, recv, f->selfref ? addr / 4 : addr); f->np++;
   }
@@ -1152,7 +1152,7 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
     if (ty->k == K_VOID || ty->k == K_ARR || ty->k == K_LIST || (ty->k == K_STRUCT && ty->ref)) fail(vm, "invalid parameter type (pass arrays as []T, lists as [..]T)");
     for (j = 0; j < c; j++) {
       int addr = alloc(vm, words(vm, t)) * 4;
-      if (vm->c->nparam >= RIO_MAX_PARAMS) fail(vm, "too many parameters");
+      if (vm->c->nparam >= (int)vm->c->lim.params) fail(vm, "too many parameters");
       vm->c->param[vm->c->nparam].t = (uint16_t)t; vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
       addsym(vm, ns[j], nl[j], S_VAR, t, addr); f->np++;
     }
@@ -1190,7 +1190,7 @@ static void struct_def(Rio *vm, const char *name, int nlen) {
     if (TY(t)->k == K_VOID) fail(vm, "invalid field type");
     for (j = 0; j < c; j++) {
       RioField *f;
-      if (vm->c->nfield >= RIO_MAX_FIELDS) fail(vm, "too many fields");
+      if (vm->c->nfield >= (int)vm->c->lim.fields) fail(vm, "too many fields");
       f = &vm->c->field[vm->c->nfield++];
       f->name = (uint16_t)addname(vm, ns[j], nl[j]); f->len = (uint16_t)nl[j]; f->t = (uint16_t)t; f->off = (uint16_t)off;
       off += (int)TY(t)->size; st->nf++; st->ref |= TY(t)->ref;
@@ -1279,7 +1279,7 @@ static void destructure(Rio *vm) {
 static void stmt_expr(Rio *vm) {
   Ex l = expr(vm), r, cur;
   if (TK.t != '=' && TK.t != TK_OPEQ) return;
-  if ((l.k != EK_ST && l.k != EK_MEM) || l.ro || (l.k == EK_ST && l.a < RIO_MAX_CONSTS * 4)) fail(vm, "cannot assign to this");
+  if ((l.k != EK_ST && l.k != EK_MEM) || l.ro || (l.k == EK_ST && l.a < (int32_t)vm->kcap * 4)) fail(vm, "cannot assign to this");
   if (TK.t == '=') { next(vm); vm->c->target = l.t; r = expr(vm); store(vm, &l, &r); return; }
   {
     int op = TK.op, k = TY(l.t)->k;
@@ -1402,7 +1402,7 @@ static void statement(Rio *vm) {
 int rio_init(Rio *vm, void *mem, uint32_t memsize, RioIns *code, uint32_t codecap) {
   uintptr_t pad = (16 - ((uintptr_t)mem & 15)) & 15;
   memset(vm, 0, sizeof *vm);
-  if (!mem || memsize < pad + RIO_MAX_CONSTS * 4 + 256 || !code || codecap < 16) return -1;
+  if (!mem || memsize < pad + 1024 || !code || codecap < 16) return -1;
   vm->mem = (uint8_t *)mem + pad; vm->memsize = (uint32_t)(memsize - pad) & ~15u;
   vm->code = code; vm->codecap = codecap > 65535 ? 65535 : codecap;
   return 0;
@@ -1419,14 +1419,56 @@ int rio_define(Rio *vm, const char *name, const char *value) {
   vm->defs[vm->ndefs][0] = name; vm->defs[vm->ndefs++][1] = value;
   return 0;
 }
-uint32_t rio_scratch_min(void) { return (uint32_t)sizeof(RioC) + 16; }
+static uint32_t clampu(uint32_t v, uint32_t lo, uint32_t hi) { return v < lo ? lo : v > hi ? hi : v; }
+RioLimits rio_limits_for(uint32_t bytes) {
+  RioLimits l; uint32_t fixed, per, budget = bytes / 5 * 3;
+  l.expr = clampu(bytes / 1024, 32, 256);
+  l.blocks = clampu(bytes / 2048, 16, 64);
+  l.slots = clampu(bytes / 8, 2048, 65536);
+  fixed = (uint32_t)sizeof(RioC) + l.expr * (uint32_t)(sizeof(RioEx) + sizeof(RioOp)) + l.blocks * (uint32_t)sizeof(RioBlk) + l.slots / 8 + 64;
+  /* per symbol: its entry, ~12 bytes of name, a share of fields, types, procs and params, and
+     two constant words (programs use about two constants per symbol) */
+  per = (uint32_t)(sizeof(RioSym) + 12 + sizeof(RioField) / 2 + sizeof(RioType) / 8 + sizeof(RioCFunc) / 4 + sizeof(RioParam) / 2 + 8);
+  l.syms = clampu(budget > fixed ? (budget - fixed) / per : 0, 64, 65535);
+  l.consts = clampu(l.syms * 2, 128, 16384);
+  if (l.slots < l.consts + 1024) l.slots = clampu(l.consts + 1024, 2048, 65536);
+  l.names = clampu(l.syms * 12, 512, 65535);
+  l.fields = clampu(l.syms / 2, 16, 65535);
+  l.types = clampu(l.syms / 8, 16, 65535);
+  l.procs = clampu(l.syms / 4, 8, 65535);
+  l.params = clampu(l.syms / 2, 16, 65535);
+  return l;
+}
+static uint32_t carve(uint32_t *at, uint32_t n, uint32_t size, uint32_t align) {
+  uint32_t p = (*at + align - 1) & ~(align - 1);
+  *at = p + n * size;
+  return p;
+}
+/* lay the tables out after the RioC header; returns the end offset (the string pool starts there) */
+static uint32_t layout(RioC *c, const RioLimits *l) {
+  uint32_t at = (uint32_t)sizeof(RioC); uint8_t *b = (uint8_t *)c;
+  uint32_t sym = carve(&at, l->syms, sizeof(RioSym), 4), type = carve(&at, l->types, sizeof(RioType), 4);
+  uint32_t field = carve(&at, l->fields, sizeof(RioField), 2), func = carve(&at, l->procs, sizeof(RioCFunc), 4);
+  uint32_t param = carve(&at, l->params, sizeof(RioParam), 4), blk = carve(&at, l->blocks, sizeof(RioBlk), 2);
+  uint32_t vs = carve(&at, l->expr, sizeof(RioEx), 4), os = carve(&at, l->expr, sizeof(RioOp), 8);
+  uint32_t names = carve(&at, l->names, 1, 1), exposed = carve(&at, (l->slots + 7) / 8, 1, 1), kfix = carve(&at, (l->consts + 7) / 8, 1, 1);
+  if (c) {
+    c->sym = (RioSym *)(void *)(b + sym); c->type = (RioType *)(void *)(b + type); c->field = (RioField *)(void *)(b + field);
+    c->func = (RioCFunc *)(void *)(b + func); c->param = (RioParam *)(void *)(b + param); c->blk = (RioBlk *)(void *)(b + blk);
+    c->vs = (RioEx *)(void *)(b + vs); c->os = (RioOp *)(void *)(b + os); c->names = (char *)b + names;
+    c->exposed = b + exposed; c->kfix = b + kfix;
+    memset(c->exposed, 0, kfix + (l->consts + 7) / 8 - exposed);
+  }
+  return (at + 15) & ~15u;
+}
+uint32_t rio_limits_size(const RioLimits *l) { return layout(0, l) + 16; }
 /* builtin types and names, and the host's ffi functions */
 static void setup(Rio *vm) {
   static const uint8_t tk[] = {K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_SLICE, K_BOOL};
   static const uint8_t ts[] = {0, 4, 4, 1, 8, 8, 4};
   static const char *tn[] = {"Int", "Float", "String", "Blob", "Bool"};
   RioC *c = vm->c; int i;
-  c->nact = c->fr = c->hwm = RIO_MAX_CONSTS; c->curfn = -1; c->lastlabel = NONE; c->target = -1;
+  c->nact = c->fr = c->hwm = vm->kcap; c->curfn = -1; c->lastlabel = NONE; c->target = -1;
   for (i = 0; i < 7; i++) { c->type[i].k = tk[i]; c->type[i].size = ts[i]; c->type[i].elem = TY_BYTE; c->type[i].ref = i == TY_STR || i == TY_BLOB; }
   c->ntype = 7;
   for (i = 0; i < 5; i++) addsym(vm, tn[i], (int)strlen(tn[i]), S_TYPE, i < 2 ? TY_I32 + i : TY_STR + i - 2, 0);
@@ -1439,7 +1481,7 @@ static void setup(Rio *vm) {
     for (g = f->sig; *g; g++) {
       int ret = *g == '>', ch = ret ? g[1] : *g;
       int t = ch == 'i' ? TY_I32 : ch == 'f' ? TY_F32 : ch == 's' ? TY_STR : ch == 'b' ? TY_BLOB : -1;
-      if (t < 0 || c->nparam >= RIO_MAX_PARAMS) fail(vm, "bad ffi signature");
+      if (t < 0 || c->nparam >= (int)c->lim.params) fail(vm, "bad ffi signature");
       if (ret) { cf->ret = (uint16_t)t; f->rw = (uint8_t)words(vm, t); break; }
       c->param[c->nparam++].t = (uint16_t)t; cf->np++; f->aw = (uint8_t)(f->aw + words(vm, t));
     }
@@ -1458,7 +1500,7 @@ static void setup(Rio *vm) {
    constants get their real addresses, and everything the compiler used is zeroed */
 static void finalize(Rio *vm) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; RioExport *x;
-  uint32_t i, n = 0, p, ex, sz, base, first = RIO_MAX_CONSTS * 4; int k;
+  uint32_t i, n = 0, p, ex, lo, fo, sz, base, first = vm->kcap * 4; int k;
   c->fr = c->hwm; vm->csaddr = (uint32_t)alloc(vm, vm->nfunc + 1) * 4; /* return stack: depth <= #procs */
   p = c->pool;
   for (k = 0; k < c->nsym; k++) {
@@ -1468,11 +1510,13 @@ static void finalize(Rio *vm) {
     memcpy(c->strs + p, c->names + y->name, y->len); p += y->len; n++;
   }
   { /* the line table was written top-down: reverse it in place so it ascends by pc */
-    uint8_t *lo = c->strs + c->poolcap, *hi = c->strs + c->linetop - 4, t[4];
-    for (; lo < hi; lo += 4, hi -= 4) { memcpy(t, lo, 4); memcpy(lo, hi, 4); memcpy(hi, t, 4); }
+    uint8_t *a = c->strs + c->poolcap, *z = c->strs + c->linetop - 4, t[4];
+    for (; a < z; a += 4, z -= 4) { memcpy(t, a, 4); memcpy(a, z, 4); memcpy(z, t, 4); }
   }
-  ex = (p + 3) & ~3u; sz = ex + n * (uint32_t)sizeof(RioExport) + c->nline * 4;
-  if (sz - c->nline * 4 > c->poolcap) fail(vm, "out of compiler memory");
+  /* block layout: strings and names | exports | pc->line table | per-proc table */
+  ex = (p + 3) & ~3u; lo = ex + n * (uint32_t)sizeof(RioExport); fo = lo + c->nline * 4;
+  sz = (fo + (uint32_t)vm->nfunc * (uint32_t)sizeof(RioFunc) + 3) & ~3u;
+  if (lo > c->poolcap || sz > c->linetop) fail(vm, "out of compiler memory");
   if (vm->hi < sz || ((vm->hi - sz) & ~3u) < c->hwm * 4) fail(vm, "out of memory");
   base = (vm->hi - sz) & ~3u;
   x = (RioExport *)(void *)(c->strs + ex); p = c->pool;
@@ -1481,32 +1525,42 @@ static void finalize(Rio *vm) {
     if (y->k != S_FN && y->k != S_VAR) continue;
     x->name = base + p; x->len = y->len; x->k = y->k; x->pad = 0; x->v = y->v; p += y->len; x++;
   }
-  memmove(c->strs + sz - c->nline * 4, c->strs + c->poolcap, c->nline * 4); /* lines go right after the exports */
+  memmove(c->strs + lo, c->strs + c->poolcap, c->nline * 4); /* lines go right after the exports */
   for (i = 1; i < vm->nk; i++) if (KFIX(i)) R[i].u = base + (R[i].u & 0x7FFFFFFFu);
   for (k = 0; k < vm->nfunc; k++) {
-    RioCFunc *f = &c->func[k]; RioFunc *rf = &vm->func[k]; uint32_t pw = 0; int j;
+    RioCFunc *f = &c->func[k]; RioFunc *rf = (RioFunc *)(void *)(c->strs + fo) + k; uint32_t pw = 0; int j;
     for (j = 0; j < f->np; j++) pw += (uint32_t)words(vm, c->param[f->p0 + j].t);
     rf->pc = f->pc; rf->end = f->end; rf->fs = f->fs; rf->fe = f->fe; rf->pend = (uint16_t)(f->fs + pw);
     rf->ret = (uint16_t)(f->retaddr / 4); rf->retw = (uint8_t)(f->ret ? words(vm, f->ret) : 0);
   }
   vm->exports = base + ex; vm->nexports = n; vm->hi = base;
-  vm->lines = base + sz - c->nline * 4; vm->nlines = c->nline;
+  vm->lines = base + lo; vm->nlines = c->nline; vm->func = (RioFunc *)(void *)(vm->mem + base + fo);
   /* nothing in c is read after this: the move and the zeroing may overwrite it */
   memmove(vm->mem + base, c->strs, sz);
   memset(vm->mem + first, 0, base - first);
   memset(vm->mem + base + sz, 0, vm->memsize - base - sz);
 }
-static int compile(Rio *vm, const char *src, uint32_t len, uint8_t *scratch, uint32_t size, int inmem) {
-  uintptr_t pad = scratch ? (16 - ((uintptr_t)scratch & 15)) & 15 : 0; RioC *c;
-  vm->ok = 0; vm->c = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0; vm->nlines = 0;
-  if (!scratch || size < pad + rio_scratch_min()) {
-    seterr(vm, RIO_ECOMPILE, 0, 0, 0, inmem ? "not enough memory for the compiler" : "scratch too small");
+int rio_compile_ex(Rio *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const RioLimits *lim) {
+  int inmem = !scratch; uintptr_t pad; RioC *c; RioLimits l; uint32_t used;
+  vm->ok = 0; vm->c = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0; vm->nlines = 0; vm->func = 0;
+  l = lim ? *lim : rio_limits_for(inmem ? vm->memsize : size);
+  if (l.consts < 16) l.consts = 16;
+  if (l.slots > 65536) l.slots = 65536;
+  if (inmem) { /* overlay: everything above the constants is free until the program runs */
+    if (l.consts * 4 + 1024 > vm->memsize) { seterr(vm, RIO_ECOMPILE, 0, 0, 0, "not enough memory for the compiler"); return -1; }
+    scratch = vm->mem + l.consts * 4; size = vm->memsize - l.consts * 4;
+  }
+  pad = (16 - ((uintptr_t)scratch & 15)) & 15;
+  used = rio_limits_size(&l);
+  if (l.slots < l.consts + 64 || l.consts * 4 + 256 > vm->memsize || size < pad + used + 64) {
+    seterr(vm, RIO_ECOMPILE, 0, 0, 0, inmem ? "not enough memory for the compiler" : "scratch too small for these limits");
     return -1;
   }
-  c = vm->c = (RioC *)(void *)(scratch + pad);
+  c = vm->c = (RioC *)(void *)((uint8_t *)scratch + pad);
   memset(c, 0, sizeof *c);
-  c->strs = (uint8_t *)(c + 1); c->poolcap = c->linetop = (size - (uint32_t)pad - (uint32_t)sizeof *c) & ~3u;
-  vm->hi = vm->memsize; vm->nk = 1; vm->pc = 0; vm->nfunc = 0; ((RioVal *)vm->mem)[0].u = 0;
+  c->lim = l; used = layout(c, &l);
+  c->strs = (uint8_t *)c + used; c->poolcap = c->linetop = (size - (uint32_t)pad - used) & ~3u;
+  vm->kcap = l.consts; vm->hi = vm->memsize; vm->nk = 1; vm->pc = 0; vm->nfunc = 0; ((RioVal *)vm->mem)[0].u = 0;
   if (setjmp(c->jb)) { if (inmem) vm->c = 0; return -1; }
   setup(vm);
   c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1;
@@ -1519,13 +1573,10 @@ static int compile(Rio *vm, const char *src, uint32_t len, uint8_t *scratch, uin
   vm->ok = 1;
   return 0;
 }
-/* the compiler's state is overlaid on the part of mem that stays zero until the program runs */
-int rio_compile(Rio *vm, const char *src, uint32_t len) {
-  uint32_t k = RIO_MAX_CONSTS * 4;
-  return compile(vm, src, len, vm->mem + k, vm->memsize - k, 1);
-}
+int rio_compile(Rio *vm, const char *src, uint32_t len) { return rio_compile_ex(vm, src, len, 0, 0, 0); }
 int rio_compile_scratch(Rio *vm, const char *src, uint32_t len, void *scratch, uint32_t size) {
-  return compile(vm, src, len, (uint8_t *)scratch, size, 0);
+  if (!scratch) { seterr(vm, RIO_ECOMPILE, 0, 0, 0, "scratch too small for these limits"); vm->ok = 0; return -1; }
+  return rio_compile_ex(vm, src, len, scratch, size, 0);
 }
 const char *rio_error(Rio *vm) { return vm->err; }
 RioError rio_error_info(Rio *vm) {
