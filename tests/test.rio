@@ -390,6 +390,29 @@ end
 b1 := Bullet{hp = 1}
 check(update() == 7 && solo.update() == 3 && b1.update() == 101, "procs and each type's methods have separate names")
 
+// ---- struct literals typed by where they're going: {field = ...}
+tv: Vec = {x = 1, y = 2}
+check(tv.x == 1 && tv.y == 2, "typed by a declaration")
+tv = {y = 9}
+check(tv.x == 0 && tv.y == 9, "typed by an assignment")
+check(dot({x = 1, y = 1}, {x = 2, y = 3}) == 5, "typed by parameters")
+mk :: proc(x: Float) -> Vec
+  return {x = x, y = -x}
+end
+check(mk(2).y == -2, "typed by a return type")
+pp := Particle{pos = {x = 3, y = 4}, life = 1}
+check(pp.pos.y == 4 && pp.life == 1, "typed by a field")
+pp.vel = {x = 5}
+check(pp.vel.x == 5, "typed by a field assignment")
+shipq: [..2]Ship
+check(shipq.push({hp = 5}) && shipq[0].hp == 5, "typed by push")
+fleet[0] = {x = 9, hp = 4}
+check(fleet[0].x == 9 && fleet[0].vx == 0, "typed by an element assignment")
+Ship.aim :: proc(v: Vec) -> Float
+  return v.x + v.y + self.x
+end
+check(fleet[0].aim({x = 1, y = 2}) == 12, "typed by a method parameter")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")

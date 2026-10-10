@@ -123,7 +123,7 @@ typedef struct RioC {
   jmp_buf jb;
   const char *sp, *se, *ls; int line, pline, pcol, pw; RioTok tk, nx;
   uint32_t linetop, nline, lastline, lineovr; /* pc->line table, growing down from the top of the pool */
-  uint32_t fr, nact, hwm, lastlabel, pool, poolcap; int curfn, def0;
+  uint32_t fr, nact, hwm, lastlabel, pool, poolcap; int curfn, def0, target; /* target: type the next expr() should produce, or -1 */
   int nsym, ntype, nfield, nparam, nnames, nblk, nvs, nos;
   RioSym sym[RIO_MAX_SYMS]; RioType type[RIO_MAX_TYPES]; RioField field[RIO_MAX_FIELDS];
   RioCFunc func[RIO_MAX_FUNCS]; RioParam param[RIO_MAX_PARAMS]; RioCFfi ffi[RIO_MAX_FFI];

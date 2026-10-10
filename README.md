@@ -62,7 +62,7 @@ end
 
 main :: proc()
   for i in 0..<N
-    parts[i] = Particle{pos = Vec{x = Float(i), y = 0}, vel = Vec{x = 1, y = 0}, life = 100}
+    parts[i] = {pos = {x = Float(i), y = 0}, vel = {x = 1, y = 0}, life = 100}
   end
   step(parts, 0.016)              // [N]T converts to []T
   step(parts[10:20], 0.016)       // sub-slice (bounds-checked)
@@ -91,6 +91,7 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 
 - Values are copied: assigning or passing a struct copies it, and slices are views (address, length).
 - Struct literals name their fields: `Vec{x = 1, y = 2}`. Order doesn't matter, fields you leave out are zero (`Vec{}` is all zeros), and a trailing comma is fine. There is no positional form; write a small proc like `vec :: proc(x: Float, y: Float) -> Vec` if you want one.
+- When the struct type is already decided by where the value goes, leave the type off: `v: Vec = {x = 1}`, `p.vel = {y = 2}`, `dot({x = 1}, {y = 1})`, `return {x = x}`, `Particle{pos = {x = 3}}`, `ships.push({hp = 3})`. Where nothing decides it (`v := {x = 1}`), write `Type{...}`.
 - A `String` is a read-only byte view. A `Blob` is a writable byte view, and `String(b)` turns a `Blob` into a `String`.
 - A struct or array that contains slices or strings must be a **global**. It can't be a local, a parameter, or a return value. Slices themselves can be locals and parameters.
 - Every index and slice is bounds-checked at runtime. Integer arithmetic wraps, and integer division by zero is a runtime error.
@@ -119,7 +120,7 @@ end
 enemies: [..64]Enemy                     // up to 64; starts empty
 
 spawn :: proc(list: [..]Enemy, x: Int) -> Bool
-  return list.push(Enemy{x = x, hp = 3})   // false when full
+  return list.push({x = x, hp = 3})        // false when full
 end
 for i in 0..<3
   spawn(enemies, i * 10)                 // the view appends to the caller's list

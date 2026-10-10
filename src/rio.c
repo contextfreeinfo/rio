@@ -958,8 +958,20 @@ static void closer(Rio *vm, int t, int hasarg) {
   o = vm->c->os[--vm->c->nos];
   if (t == ')') finish_call(vm, &o); else finish_lit(vm, &o);
 }
+/* the type a value is headed for right now, or -1: what the whole expression is for, or the
+   argument / field being filled in by the innermost call or struct literal */
+static int target(Rio *vm, int ob, int whole) {
+  Op *m;
+  if (vm->c->nos == ob) return whole;
+  m = &vm->c->os[vm->c->nos - 1];
+  if (m->k == OK_LIT) return vm->c->field[TY(m->b)->f0 + m->a].t;
+  if (m->k == OK_CALL && m->a == EK_FN && m->n < vm->c->func[m->b].np) return vm->c->param[vm->c->func[m->b].p0 + m->n].t;
+  if (m->k == OK_CALL && m->a == EK_BI && m->b == BI_PUSH && m->n == 1) return TY(vm->c->vs[m->vb].t)->elem;
+  return -1;
+}
 static Ex expr(Rio *vm) {
-  int ob = vm->c->nos, vb = vm->c->nvs, want = 1, depth = 0, t, p;
+  int ob = vm->c->nos, vb = vm->c->nvs, want = 1, depth = 0, t, p, whole = vm->c->target;
+  vm->c->target = -1;
   for (;;) {
     t = TK.t;
     if (want) {
@@ -972,6 +984,10 @@ static Ex expr(Rio *vm) {
       else if ((t == ')' || t == '}') && vm->c->nos > ob && vm->c->os[vm->c->nos - 1].k == (t == ')' ? OK_CALL : OK_LIT) &&
                (t == '}' || vm->c->os[vm->c->nos - 1].n == 0) && vm->c->nvs == vm->c->os[vm->c->nos - 1].vb) {
         closer(vm, t, 0); depth--; next(vm); want = 0; continue;
+      } else if (t == '{') { /* {field = ...} takes its struct type from where the value is going */
+        int tt = target(vm, ob, whole);
+        if (tt < 0 || TY(tt)->k != K_STRUCT) failtok(vm, "can't tell which struct this is; write Type{...}");
+        vres(vm, mkex(EK_TY, tt, 0), t0); want = 0; continue;
       } else failtok(vm, "expected expression");
       vres(vm, e, t0); next(vm); want = 0;
       continue;
@@ -1176,7 +1192,7 @@ static void decl_var(Rio *vm) {
   if (TK.t == ':') { next(vm); t = parse_type(vm); if (TK.t == '=') { next(vm); has = 1; } }
   else { next(vm); has = 1; }
   if (has) {
-    e = expr(vm); needval(vm, &e);
+    vm->c->target = t; e = expr(vm); needval(vm, &e);
     if (t < 0) { t = vt(e.t); if (TY(t)->k == K_ARR) t = slice_of(vm, TY(t)->elem); else if (TY(t)->k == K_LIST) t = build_of(vm, TY(t)->elem); }
     coerce(vm, &e, t);
   }
@@ -1206,7 +1222,7 @@ static void stmt_expr(Rio *vm) {
   Ex l = expr(vm), r, cur;
   if (TK.t != '=' && TK.t != TK_OPEQ) return;
   if ((l.k != EK_ST && l.k != EK_MEM) || l.ro || (l.k == EK_ST && l.a < RIO_MAX_CONSTS * 4)) fail(vm, "cannot assign to this");
-  if (TK.t == '=') { next(vm); r = expr(vm); store(vm, &l, &r); return; }
+  if (TK.t == '=') { next(vm); vm->c->target = l.t; r = expr(vm); store(vm, &l, &r); return; }
   {
     int op = TK.op, k = TY(l.t)->k;
     next(vm); cur = l;
@@ -1305,7 +1321,7 @@ static void statement(Rio *vm) {
     RioCFunc *f;
     if (vm->c->curfn < 0) failtok(vm, "return outside proc");
     next(vm); f = &vm->c->func[vm->c->curfn];
-    if (f->ret != TY_VOID) { Ex d = mkex(EK_ST, f->ret, (int32_t)f->retaddr); e = expr(vm); store(vm, &d, &e); }
+    if (f->ret != TY_VOID) { Ex d = mkex(EK_ST, f->ret, (int32_t)f->retaddr); vm->c->target = f->ret; e = expr(vm); store(vm, &d, &e); }
     emit(vm, OP_RET, 0, 0, 0);
     break;
   }
@@ -1351,7 +1367,7 @@ static void setup(Rio *vm) {
   static const uint8_t ts[] = {0, 4, 4, 1, 8, 8, 4};
   static const char *tn[] = {"Int", "Float", "String", "Blob", "Bool"};
   RioC *c = vm->c; int i;
-  c->nact = c->fr = c->hwm = RIO_MAX_CONSTS; c->curfn = -1; c->lastlabel = NONE;
+  c->nact = c->fr = c->hwm = RIO_MAX_CONSTS; c->curfn = -1; c->lastlabel = NONE; c->target = -1;
   for (i = 0; i < 7; i++) { c->type[i].k = tk[i]; c->type[i].size = ts[i]; c->type[i].elem = TY_BYTE; c->type[i].ref = i == TY_STR || i == TY_BLOB; }
   c->ntype = 7;
   for (i = 0; i < 5; i++) addsym(vm, tn[i], (int)strlen(tn[i]), S_TYPE, i < 2 ? TY_I32 + i : TY_STR + i - 2, 0);
