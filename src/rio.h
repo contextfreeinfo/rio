@@ -130,10 +130,10 @@ typedef struct { uint16_t key, keylen, dir, dirlen, file, pc0, pc1; uint8_t pkg,
 typedef struct { const char *src, *se, *ls, *pos; int line, mod, f, inc; } RioImp;
 /* big: bytes of its locals stored apart (over 16 words). shared: its frame lives in the shared area at
    offset ob; oe is where the shared frames of it and everything it calls end; dep: its longest call chain */
-typedef struct { uint16_t pc, end, ret, p0, np, fs, fe, ob, oe, dep; uint32_t retaddr, big; uint8_t done, selfref, shared; } RioCFunc;
+typedef struct { uint16_t pc, end, ret, p0, np, fs, fe, ob, oe, dep; uint32_t retaddr, big, hi0; uint8_t done, selfref, shared; } RioCFunc; /* hi0: its big locals are below this */
 typedef struct { uint16_t t, ref; uint32_t addr; } RioParam; /* ref: a &T param's T (t is then the address word) */
 typedef struct { uint16_t ret, p0, np; } RioCFfi;
-typedef struct { uint8_t k, ro; uint16_t t, t0; int32_t a, off; } RioEx;
+typedef struct { uint8_t k, ro; uint16_t t, t0; uint8_t lv; int32_t a, off; } RioEx; /* lv: a view of the current proc's own memory */
 typedef struct { uint8_t k, prec; int16_t op; int32_t a, b, c, n, pun; uint16_t vb, fr0; uint64_t set; } RioOp;
 typedef struct { uint8_t k; uint16_t nsym, nnames, nact, a, b, brk, cont, cj, i, lim; } RioBlk;
 typedef struct RioC {
@@ -150,6 +150,8 @@ typedef struct RioC {
   uint8_t *exposed;                      /* slots whose address is taken (for AOT) */
   uint8_t *kfix;                         /* constants holding string-pool offsets, relocated at the end */
   uint8_t *kadr;                         /* constants holding slot addresses, renumbered when frames are shared */
+  uint8_t *lvs;                          /* local slots that hold a view of their proc's own memory */
+  int argstore;                          /* storing call arguments: views may go to a callee */
   uint16_t *smap;                        /* old slot -> new slot, while sharing frames */
   RioCFfi ffi[RIO_MAX_FFI];
   uint8_t *strs;                         /* string pool: the rest of scratch */

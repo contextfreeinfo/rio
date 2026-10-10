@@ -362,7 +362,32 @@ static int retarget(Rio *vm, int from, int to) {
 }
 
 /* ---------------------------------------------------------------- expression values */
-static Ex mkex(int k, int t, int32_t a) { Ex e; e.k = (uint8_t)k; e.ro = 0; e.t = (uint16_t)t; e.t0 = 0; e.a = a; e.off = 0; return e; }
+static Ex mkex(int k, int t, int32_t a) { Ex e; e.k = (uint8_t)k; e.ro = 0; e.lv = 0; e.t = (uint16_t)t; e.t0 = 0; e.a = a; e.off = 0; return e; }
+/* Views that outlive their memory's owner. A proc's own memory keeps its type for good, so a view of it
+   is always memory-safe, but the next call rewrites it: returning one, or storing one where it outlives
+   the call, is almost always a bug. This catches the direct cases; views that come in as parameters
+   aren't tracked. */
+static int localmem(Rio *vm, const Ex *e) { /* e is storage of the proc being compiled */
+  RioCFunc *f; uint32_t a;
+  if (vm->c->curfn < 0 || e->k != EK_ST) return 0;
+  f = &vm->c->func[vm->c->curfn]; a = (uint32_t)e->a;
+  return (a / 4 >= f->fs && a < vm->hi) || (a >= vm->hi && a < f->hi0);
+}
+static int localview(Rio *vm, const Ex *e) { int k = TY(e->t)->k; return e->lv || ((k == K_ARR || k == K_LIST) && localmem(vm, e)); }
+static void setlv(Rio *vm, uint32_t a, int n, int on) { /* mark the local view slots at address a */
+  uint32_t s = a / 4;
+  for (; n-- > 0; s++) {
+    if (on) vm->c->lvs[s >> 3] |= (uint8_t)(1u << (s & 7)); else vm->c->lvs[s >> 3] &= (uint8_t)~(1u << (s & 7));
+  }
+}
+/* a view stored into d: into a local of this proc, that local now holds (or no longer holds) a view of
+   the proc's own memory; anywhere else, it mustn't be one */
+static void viewstore(Rio *vm, const Ex *d, const Ex *s) {
+  int lv = localview(vm, s);
+  if (vm->c->curfn < 0 || vm->c->argstore) return;
+  if (d->k == EK_ST && localmem(vm, d) && (uint32_t)d->a < vm->hi) setlv(vm, (uint32_t)d->a, words(vm, d->t), lv);
+  else if (lv) fail(vm, "this view of the proc's own memory would outlive the call: make that memory global, or have the caller pass it in");
+}
 #define RO_REF 4 /* Ex.ro: an &place, not yet given to a & parameter or name := &place */
 /* a value in the compiler's scratch slots (a call's or an expression's result), not a variable */
 static int istemp(Rio *vm, Ex *e) { return e->k == EK_ST && (uint32_t)e->a >= vm->c->nact * 4 && (uint32_t)e->a < vm->hi; }
@@ -452,6 +477,7 @@ static int toaddr(Rio *vm, Ex *e) {
 }
 static void store(Rio *vm, Ex *d, Ex *s) {
   RioType *ty = TY(d->t); int k = ty->k, ss;
+  if (k == K_SLICE || k == K_BUILD) viewstore(vm, d, s);
   coerce(vm, s, d->t);
   if (k == K_STRUCT || k == K_ARR || k == K_LIST) {
     int sa, da;
@@ -718,7 +744,11 @@ static Ex symex(Rio *vm, int i) {
   RioSym *y = &vm->c->sym[i];
   switch (y->k) {
   case S_MOD: return mkex(EK_MOD, 0, y->v);
-  case S_VAR: return mkex(EK_ST, y->t, y->v);
+  case S_VAR: {
+    Ex e = mkex(EK_ST, y->t, y->v);
+    if (localmem(vm, &e) && (uint32_t)e.a < vm->hi) e.lv = (uint8_t)(vm->c->lvs[e.a / 4 >> 3] >> (e.a / 4 & 7) & 1);
+    return e;
+  }
   case S_CONST: { Ex e = mkex(TY(y->t)->k <= K_F32 || TY(y->t)->k == K_BOOL ? EK_CONST : EK_ST, y->t, y->v); e.ro = 1; return e; }
   case S_FN: if (!vm->c->func[y->v].done) fail(vm, "recursion is not allowed"); return mkex(EK_FN, 0, y->v);
   case S_SELF: case S_ROREF: { /* v: the slot holding the receiver's (or loop element's) address */
@@ -852,6 +882,7 @@ static void member(Rio *vm) {
 static void doindex(Rio *vm, Ex *o, Ex *i) {
   RioType *ty; int el, sz, s, ix, d, ro;
   needval(vm, o); needval(vm, i); ty = TY(o->t);
+  o->lv = (uint8_t)localview(vm, o);
   if (ty->k != K_ARR && ty->k != K_SLICE && ty->k != K_LIST && ty->k != K_BUILD) fail(vm, "cannot index this");
   if (vt(i->t) != TY_I32) fail(vm, "index must be Int");
   el = ty->elem; sz = (int)TY(el)->size; ro = o->ro || o->t == TY_STR;
@@ -873,8 +904,8 @@ static void doindex(Rio *vm, Ex *o, Ex *i) {
   o->k = EK_MEM; o->a = d; o->off = 0; o->t = (uint16_t)el; o->ro = (uint8_t)ro;
 }
 static void doslice(Rio *vm, Ex *o, Ex *lo, Ex *hi) {
-  RioType *ty; int s, l, h, d;
-  needval(vm, o); ty = TY(o->t);
+  RioType *ty; int s, l, h, d, lv;
+  needval(vm, o); ty = TY(o->t); lv = localview(vm, o);
   if (ty->k == K_LIST || ty->k == K_BUILD) { /* a slice of the live elements */
     int b = toslot3(vm, o), v = alloc(vm, 2), t0 = o->t0;
     emit(vm, OP_LVIEW, v, b, 0);
@@ -886,7 +917,7 @@ static void doslice(Rio *vm, Ex *o, Ex *lo, Ex *hi) {
   s = toslot2(vm, o); l = toslot(vm, lo, 1); h = hi->k == EK_LEN ? s + 1 : toslot(vm, hi, 1);
   vm->c->fr = o->t0; d = alloc(vm, 2);
   emit(vm, OP_SLICE, d, s, l); emitw(vm, h, TY(ty->elem)->size);
-  o->k = EK_ST; o->a = d * 4; o->off = 0;
+  o->k = EK_ST; o->a = d * 4; o->off = 0; o->lv = (uint8_t)lv;
   if (ty->k == K_ARR) o->t = (uint16_t)slice_of(vm, ty->elem);
 }
 static void punfield(Rio *vm, Op *m);
@@ -1076,7 +1107,7 @@ static void finish_call(Rio *vm, Op *m) {
     for (i = 0; i < f->np; i++) {
       Ex p = mkex(EK_ST, vm->c->param[f->p0 + i].t, (int32_t)vm->c->param[f->p0 + i].addr);
       if ((!i && f->selfref) || vm->c->param[f->p0 + i].ref) { emit(vm, OP_MOV, (int)(p.a / 4), toaddr(vm, &vm->c->vs[m->vb + i]), 0); continue; }
-      store(vm, &p, &vm->c->vs[m->vb + i]);
+      vm->c->argstore = 1; store(vm, &p, &vm->c->vs[m->vb + i]); vm->c->argstore = 0;
     }
     vm->c->nvs = m->vb;
     emit(vm, OP_CALL, 0, 0, f->pc);
@@ -1338,7 +1369,7 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   next(vm); expect(vm, '(', "'(' expected");
   skip = emit(vm, OP_JMP, 0, 0, NONE);
   fi = vm->nfunc++; f = &vm->c->func[fi];
-  f->p0 = (uint16_t)vm->c->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0; f->big = 0; f->shared = 0;
+  f->p0 = (uint16_t)vm->c->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0; f->big = 0; f->shared = 0; f->hi0 = vm->hi;
   addsym(vm, name, nlen, recv < 0 ? S_FN : S_METH, recv < 0 ? 0 : recv, fi);
   f->selfref = (uint8_t)(recv >= 0 && TY(recv)->k == K_STRUCT);
   b = bpush(vm, B_PROC); b->a = (uint16_t)skip; b->b = (uint16_t)fi;
@@ -1430,12 +1461,13 @@ static void buildover(Rio *vm, const char *ns, int nn, int t, Ex *e) {
   emit(vm, OP_MOV2, d + 1, s, 0); /* first: s may sit where the builder now goes */
   emit(vm, OP_MOV, d, kaddr(vm, (uint32_t)(d + 3) * 4, 4), 0);
   emit(vm, OP_MOV, d + 3, kslot(vm, 0), 0);
+  if (vm->c->curfn >= 0) setlv(vm, (uint32_t)d * 4, 3, 1); /* its length word is in this frame */
   addsym(vm, ns, nn, S_VAR, t, d * 4);
 }
 static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
-  int has = pe != 0, k, big; uint32_t addr; RioType *ty; Ex e = has ? *pe : mkex(EK_VOID, TY_VOID, 0);
+  int has = pe != 0, k, big, lv = 0; uint32_t addr; RioType *ty; Ex e = has ? *pe : mkex(EK_VOID, TY_VOID, 0);
   if (has) {
-    needval(vm, &e);
+    needval(vm, &e); lv = localview(vm, &e);
     if (t >= 0 && TY(t)->k == K_BUILD && (TY(e.t)->k == K_ARR || TY(e.t)->k == K_SLICE)) { buildover(vm, ns, nn, t, &e); return; }
     if (t < 0) {
       t = vt(e.t);
@@ -1458,6 +1490,7 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
     }
     if (adopt && has && e.k == EK_ST && e.a == (int32_t)vm->c->nact * 4 && !e.ro) {
       vm->c->nact += (uint32_t)words(vm, t); vm->c->fr = vm->c->nact;
+      if ((k == K_SLICE || k == K_BUILD) && vm->c->curfn >= 0) setlv(vm, (uint32_t)e.a, words(vm, t), lv);
       addsym(vm, ns, nn, S_VAR, t, e.a);
       return;
     }
@@ -1467,6 +1500,7 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
   else if (!big && addr < 0x40000) { int w; for (w = 0; w < words(vm, t); w++) emit(vm, OP_MOV, (int)(addr >> 2) + w, kslot(vm, 0), 0); }
   else if (!(big && vm->c->curfn < 0 && !vm->c->nblk)) emit(vm, OP_ZERO, kaddr(vm, addr, ty->size), (int)(ty->size & 0xFFFF), (int)(ty->size >> 16));
   if (!big) vm->c->nact = vm->c->fr; /* after the store, so it can still write straight into the variable */
+  if ((k == K_SLICE || k == K_BUILD) && vm->c->curfn >= 0 && !big) setlv(vm, addr, words(vm, t), lv);
   addsym(vm, ns, nn, S_VAR, t, (int32_t)addr);
 }
 static void decl_var(Rio *vm) {
@@ -1824,7 +1858,12 @@ static void statement(Rio *vm) {
     RioCFunc *f;
     if (vm->c->curfn < 0) failtok(vm, "return outside proc");
     next(vm); f = &vm->c->func[vm->c->curfn];
-    if (f->ret != TY_VOID) { Ex d = mkex(EK_ST, f->ret, (int32_t)f->retaddr); vm->c->target = f->ret; e = expr(vm); store(vm, &d, &e); }
+    if (f->ret != TY_VOID) {
+      Ex d = mkex(EK_ST, f->ret, (int32_t)f->retaddr); vm->c->target = f->ret; e = expr(vm);
+      if ((TY(f->ret)->k == K_SLICE || TY(f->ret)->k == K_BUILD) && localview(vm, &e))
+        fail(vm, "this returns a view of the proc's own memory, which the next call rewrites: make that memory global, or have the caller pass it in");
+      store(vm, &d, &e);
+    }
     emit(vm, OP_RET, 0, 0, 0);
     break;
   }
@@ -1902,14 +1941,14 @@ static uint32_t layout(RioC *c, const RioLimits *l) {
   uint32_t vs = carve(&at, l->expr, sizeof(RioEx), 4), os = carve(&at, l->expr, sizeof(RioOp), 8);
   uint32_t mods = carve(&at, l->modules, sizeof(RioMod), 2);
   uint32_t names = carve(&at, l->names, 1, 1), exposed = carve(&at, (l->slots + 7) / 8, 1, 1), kfix = carve(&at, (l->consts + 7) / 8, 1, 1);
-  uint32_t kadr = carve(&at, (l->consts + 7) / 8, 1, 1), smap = carve(&at, l->slots, 2, 2);
+  uint32_t kadr = carve(&at, (l->consts + 7) / 8, 1, 1), lvs = carve(&at, (l->slots + 7) / 8, 1, 1), smap = carve(&at, l->slots, 2, 2);
   if (c) {
     c->sym = (RioSym *)(void *)(b + sym); c->type = (RioType *)(void *)(b + type); c->field = (RioField *)(void *)(b + field);
     c->func = (RioCFunc *)(void *)(b + func); c->param = (RioParam *)(void *)(b + param); c->blk = (RioBlk *)(void *)(b + blk);
     c->vs = (RioEx *)(void *)(b + vs); c->os = (RioOp *)(void *)(b + os); c->names = (char *)b + names;
-    c->exposed = b + exposed; c->kfix = b + kfix; c->kadr = b + kadr; c->smap = (uint16_t *)(void *)(b + smap);
+    c->exposed = b + exposed; c->kfix = b + kfix; c->kadr = b + kadr; c->lvs = b + lvs; c->smap = (uint16_t *)(void *)(b + smap);
     c->mods = (RioMod *)(void *)(b + mods);
-    memset(c->exposed, 0, kadr + (l->consts + 7) / 8 - exposed);
+    memset(c->exposed, 0, lvs + (l->slots + 7) / 8 - exposed);
   }
   return (at + 15) & ~15u;
 }
