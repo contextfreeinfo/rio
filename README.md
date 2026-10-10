@@ -203,6 +203,64 @@ end
 - **Rules:** like procs, methods are declared before use and can't recurse. A method can't share its name with one of its type's fields.
 - **List methods:** list operations use the same syntax: `xs.push(e)`, `xs.pop()`, `b.format(...)`.
 
+## Enums, unions and switch
+
+An enum is its own type, stored as an Int. A union is a named list of types, and holds a value of one of them. `switch` picks a case by value or by type.
+
+```ruby
+Dir :: enum
+  north, east, south, west
+end
+Tile :: enum
+  nil                              # nil first: the zero means "nothing chosen"
+  wall = 3                         # explicit values are fine; the next is one more
+  water
+end
+
+d: Dir                             # .north: a new variable is the first value listed
+d = .south                         # .value where the type is known (also Dir.south)
+n := d.toInt()                     # 2
+d = Dir.fromInt(n)                 # checked: a runtime error if n isn't one of Dir's values
+if Dir.has(n) ...                  # the check on its own
+log(d)                             # prints south
+
+Circle :: struct
+  r: Float
+end
+Rect :: struct
+  w, h: Float
+end
+Shape :: union
+  nil                              # optional: an empty union, and the zero value
+  Circle, Rect
+end
+
+s: Shape = Circle{r = 2}           # a value of one of its types goes straight in
+if s is Rect
+  log(s.w)                         # inside, s is the Rect
+end
+switch s
+case Circle
+  log(s.r)                         # inside a one-type case, s is that type
+case Rect
+  s = Circle{r = s.w}              # assigning replaces the whole union (s is the union again)
+case nil
+end
+
+switch n % 3
+case 0
+  log("zero")
+case 1, 2
+  log("other")
+end
+```
+
+- **Enums** compare with `==` and `!=`. Their values are written `.camelCase`; `Dir.north` works anywhere and `.north` wherever the enum is known (a declaration, assignment, argument, field, return, comparison or `case`). Some value must be 0, since that's what new variables and array elements start as; listing `nil` first gives an explicit "nothing". Values may have gaps but not duplicates.
+- **Unions** hold a tag (which type) plus room for the biggest type, so every value takes the size of the largest. Types that differ in size by more than 64 bytes are an error, since an array of the union would waste the difference in every element: keep the big data elsewhere (say, a global array, holding its index in the union), or mark the union `union @diverse` if you mean it. Unions holding slices or Strings must be global, like structs.
+- **Reaching a union's value:** only where its type is known, as a copy taken there: in a `case` naming one type, or inside `if s is T` (the whole condition). The copy can't be changed (that would quietly change nothing); assign the whole union instead, after which the name means the union again for the rest of the block. For something other than a plain variable, name it: `switch c := e.shape`.
+- **`switch`** works on Ints, enums and unions. Each `case` lists one or more constant values (or types), there's no fallthrough, and `else` handles everything else. Without an `else`, a switch on an enum or union must cover every value or type (including `nil`), which is checked when compiling. `break` and `continue` belong to loops, not switches.
+- **Enums and unions** are declared in block form, at the top level, and can be exported (`Dir* :: enum`) and used from other modules (`m.Dir.north`, or `.north` where the type is known).
+
 ## Modules
 
 Every file is a module. Nothing is visible outside it unless its name ends in `*`:

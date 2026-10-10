@@ -107,11 +107,11 @@ enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI, RIO_S_
   X(NEG) X(BNOT) X(NOT) X(FADD) X(FSUB) X(FMUL) X(FDIV) X(FNEG) \
   X(EQ) X(NE) X(LT) X(LE) X(FEQ) X(FNE) X(FLT) X(FLE) X(SEQ) X(SNE) \
   X(ITOF) X(FTOI) X(LDW) X(LDB) X(LEA) X(M1) X(M2) X(IABS) X(IMIN) X(IMAX) X(FMIN) X(FMAX) X(LDX) X(LDXB) \
-  X(MOV2) X(LDW2) X(STW) X(STB) X(STW2) X(STX) X(STXB) X(IDX) X(SLICE) X(COPY) X(MOVN) X(ZERO) \
+  X(MOV2) X(LDW2) X(STW) X(STB) X(STW2) X(STX) X(STXB) X(IDX) X(SLICE) X(COPY) X(MOVN) X(ZERO) X(ENUMCK) \
   X(VADD) X(VSUB) X(VMUL) X(VDIV) X(VMOD) X(FVADD) X(FVSUB) X(FVMUL) X(FVDIV) \
   X(LIDX) X(PUSHA) X(PUSHS) X(PUSHT) X(POPA) X(LREM) X(LSWAP) X(LVIEW) \
   X(JMP) X(JZ) X(JNZ) X(JEQ) X(JNE) X(JLT) X(JLE) X(JFEQ) X(JFNE) X(JFLT) X(JFLE) X(JFNLT) X(JFNLE) X(EACH) X(FORI) \
-  X(CALL) X(RET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGE) X(HALT)
+  X(CALL) X(RET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGN) X(LOGE) X(HALT)
 /* runtime: per proc entry pc, code end, frame slots [fs, fe), params in [fs, pend), result slot(s) */
 typedef struct { uint16_t pc, end, fs, fe, pend, ret; uint8_t retw; } RioFunc;
 typedef struct { const char *name, *sig; RioFn fn; uint8_t aw, rw; } RioFfi;
@@ -135,7 +135,8 @@ typedef struct { uint16_t t, ref; uint32_t addr; } RioParam; /* ref: a &T param'
 typedef struct { uint16_t ret, p0, np; } RioCFfi;
 typedef struct { uint8_t k, ro; uint16_t t, t0; uint8_t lv; int32_t a, off; } RioEx; /* lv: a view of the current proc's own memory */
 typedef struct { uint8_t k, prec; int16_t op; int32_t a, b, c, n, pun; uint16_t vb, fr0; uint64_t set; } RioOp;
-typedef struct { uint8_t k; uint16_t nsym, nnames, nact, a, b, brk, cont, cj, i, lim; } RioBlk;
+/* a switch also keeps the scope each case starts from (csym, cnames, cact) and its coverage row (sw) */
+typedef struct { uint8_t k; uint16_t nsym, nnames, nact, a, b, brk, cont, cj, i, lim, csym, cnames, cact, sw; } RioBlk;
 typedef struct RioC {
   jmp_buf jb;
   const char *src, *sp, *se, *ls; int line, pline, pcol, pw; RioTok tk, nx;
@@ -152,6 +153,8 @@ typedef struct RioC {
   uint8_t *kadr;                         /* constants holding slot addresses, renumbered when frames are shared */
   uint8_t *lvs;                          /* local slots that hold a view of their proc's own memory */
   int argstore;                          /* storing call arguments: views may go to a callee */
+  uint64_t swm[16][4]; int nsw;          /* per open switch: which enum values (or union types) have a case */
+  int32_t isres, isvar; int ismem;       /* the last `x is T`: its result, the variable tested, the type */
   uint16_t *smap;                        /* old slot -> new slot, while sharing frames */
   RioCFfi ffi[RIO_MAX_FFI];
   uint8_t *strs;                         /* string pool: the rest of scratch */

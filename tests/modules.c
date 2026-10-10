@@ -44,6 +44,7 @@ static const char *files[][2] = {
          "mk* :: proc(x: Int) -> P\n  return {x, y = N}\nend\n"
          "total* :: proc(ps: []P) -> Int\n  t := 0\n  for i in 0..<len(ps)\n    t += ps[i].sum()\n  end\n  return t\nend\n"},
   {"rf", "R* :: struct\n  n: Int\nend\ninc* :: proc(r: &R, by: Int)\n  r.n += by\nend\n"},
+  {"kinds", "Dir* :: enum\n  north, east\nend\nP* :: struct\n  x: Int\nend\nQ* :: struct\n  y: Float\nend\nPQ* :: union\n  nil\n  P, Q\nend\nflip* :: proc(d: Dir) -> Dir\n  switch d\n  case .north\n    return .east\n  case .east\n    return .north\n  end\n  return d\nend\n"},
   {"@two", "t* := 2\n"},
 };
 static int loader(void *ud, const char *path, int kind, RioSource *o) {
@@ -146,6 +147,7 @@ int main(void) {
   t("import .k\nv: k.mk\n", 0, RIO_ECOMPILE, 0, 2, "type expected");             /* exported, but not a type */
   t("import .k.{Hid}\n", 0, RIO_ECOMPILE, 0, 1, "not exported by that module");
   t("import .rf\nv: rf.R\nrf.inc(&v, 2)\nw := &v\nrf.inc(&w, 3)\nlog(v.n)\n", "5\n", RIO_ENONE, 0, 0, 0); /* & across modules */
+  t("import .kinds\nd: kinds.Dir = .east\nlog(kinds.flip(d), kinds.Dir.north.toInt())\nu: kinds.PQ = kinds.P{x = 4}\nif u is kinds.P\n  log(u.x)\nend\n", "north 0\n4\n", RIO_ENONE, 0, 0, 0); /* enums and unions across modules */
   t("import .k\nv: k.P = 1\n", 0, RIO_ECOMPILE, 0, 2, "type");
   t("f :: proc()\n  x* := 1\nend\n", 0, RIO_ECOMPILE, 0, 2, "only top-level names can be exported");
   t("f :: proc()\n  import .a\nend\n", 0, RIO_ECOMPILE, 0, 2, "imports must be at the top level");

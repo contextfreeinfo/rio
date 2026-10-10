@@ -822,6 +822,163 @@ check(shW() == 1 + 40 + 400, "array values through shared frames")
 hstr := "a # b"
 check(len(hstr) == 5 && hstr[2] == '#' && '#' == 35, "# in a string or char literal") # a comment here too
 
+# ---- enums: their own type, stored as an Int; .value where the type is known
+Dir :: enum
+  north, east, south, west
+end
+Tile :: enum
+  nil
+  wall = 3
+  water
+end
+turn :: proc(d: Dir) -> Dir
+  return Dir.fromInt((d.toInt() + 1) % 4)
+end
+ed: Dir
+check(ed == .north && ed == Dir.north, "the first value is the zero")
+ed = .south
+check(ed.toInt() == 2 && turn(ed) == .west && turn(turn(ed)) == .north, "toInt and fromInt")
+et: Tile
+check(et == nil && Tile.water.toInt() == 4 && Tile.has(3) && !Tile.has(1) && Tile.has(0), "nil first, explicit values and gaps")
+EMob :: struct
+  facing: Dir
+  hp: Int
+end
+emob := EMob{facing = .west, hp = 3}
+check(emob.facing == .west, "a target-typed value in a struct literal")
+eds: [4]Dir
+for x, i in eds
+  x = Dir.fromInt(i)
+end
+check(eds[3] == .west && eds[0] != .east, "an array of enums")
+
+# ---- switch: case values (several per case), else, and every enum value covered
+compass :: proc(d: Dir) -> Int
+  switch d
+  case .north
+    return 1
+  case .east, .west
+    return 2
+  case .south
+    return 3
+  end
+  return 0
+end
+check(compass(.north) == 1 && compass(.west) == 2 && compass(.south) == 3, "switch on an enum")
+bucket :: proc(n: Int) -> Int
+  r := 0
+  switch n % 5
+  case 0
+    r = 10
+  case 1, 2
+    t := n * 2
+    r = t
+  else
+    r = -1
+  end
+  return r
+end
+check(bucket(5) == 10 && bucket(6) == 12 && bucket(7) == 14 && bucket(8) == -1, "switch on an Int with else")
+sseen := 0
+for i in 0..<4
+  switch i
+  case 1
+    continue                          # break and continue are for loops
+  end
+  sseen += i
+end
+check(sseen == 0 + 2 + 3, "continue from inside a switch")
+switch sq := Dir.fromInt(2)
+case .south
+  check(sq == .south, "switch name := value")
+else
+  check(false, "switch name := value")
+end
+
+# ---- unions: a named list of types; is tests, and inside a case or an if the variable is that type
+Circle :: struct
+  r: Float
+end
+Box :: struct
+  w, h: Float
+end
+Shape :: union
+  nil
+  Circle, Box
+end
+uarea :: proc(s: Shape) -> Float
+  switch s
+  case Circle
+    return 3.0 * s.r * s.r
+  case Box
+    return s.w * s.h
+  case nil
+    return -1
+  end
+  return 0
+end
+ua: Shape
+check(ua is nil && uarea(ua) == -1, "nil first is the zero")
+ua = Circle{r = 2}
+check(ua is Circle && !(ua is Box) && uarea(ua) == 12, "a value of one of its types")
+ub: Shape = Box{w = 3, h = 4}
+ubw := 0.0
+if ub is Box
+  ubw = ub.w                          # narrowed by the if
+end
+check(ubw == 3 && uarea(ub) == 12, "narrowed in an if")
+if ub is Box
+  ub = Circle{r = ub.w}               # the new value is read while ub is still the Box
+end
+check(ub is Circle && uarea(ub) == 27, "replacing a narrowed union from its own value")
+ushapes: [3]Shape
+ushapes[1] = Circle{r = 1}
+ushapes[2] = Box{w = 1, h = 2}
+utotal := 0.0
+for s in ushapes
+  utotal += uarea(s)
+end
+check(utotal == -1 + 3 + 2, "an array of unions")
+UIdle :: struct
+  t: Int
+end
+UWalk :: struct
+  speed: Float
+end
+Pose :: union
+  UIdle, UWalk
+end
+pose: Pose
+ulog := 0
+for i in 0..<3
+  switch pose
+  case UIdle
+    if pose.t == 0
+      pose = UWalk{speed = 1.5}       # replaces the union: pose is the union again from here
+      check(pose is UWalk, "assigning inside a case")
+      ulog += 1
+    end
+  case UWalk
+    ulog += 10
+    pose = UIdle{t = 9}
+  end
+end
+check(ulog == 11 && pose is UIdle, "a state machine")
+Num :: union
+  Int, Float
+end
+unum: Num = 3
+check(unum is Int, "a union of Int and Float")
+unum = 2.5
+uf := 0.0
+switch unum
+case Int
+  uf = unum.toFloat()
+case Float
+  uf = unum
+end
+check(uf == 2.5, "narrowed to Float")
+
 # ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")

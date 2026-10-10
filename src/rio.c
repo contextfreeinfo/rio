@@ -29,17 +29,18 @@ enum { OPS(OPENUM) OP_DATA = 255 };
 #define SMALLW 16
 
 enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, TK_ELSE, TK_FOR, TK_IN,
-  TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_IMPORT, TK_INCLUDE, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND,
+  TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_IMPORT, TK_INCLUDE, TK_ENUM, TK_UNION, TK_SWITCH, TK_CASE, TK_IS, TK_NIL, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND,
   TK_OR, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
 enum { TY_VOID, TY_I32, TY_F32, TY_BYTE, TY_STR, TY_BLOB, TY_BOOL };
-enum { K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD };
-enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF, S_MOD, S_ROREF }; /* S_ROREF: a read-only S_SELF */
+enum { K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD, K_ENUM, K_UNION };
+enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF, S_MOD, S_ROREF, S_NARROW }; /* S_ROREF: a read-only S_SELF.
+   S_NARROW: a union variable narrowed to one of its types: a read-only copy (mod: the union's symbol) */
 enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN, EK_MOD };
 enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
-enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR, B_EACH };
+enum { B_PROC, B_IF, B_ELSE, B_SWITCH, B_LOOP, B_FOR, B_EACH }; /* loops last: break and continue look for >= B_LOOP */
 enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2,
   BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_FORMAT,
-  BI_TOINT, BI_TOFLOAT, BI_TOBOOL, BI_ASSTRING };
+  BI_TOINT, BI_TOFLOAT, BI_TOBOOL, BI_ASSTRING, BI_FROMINT, BI_HAS };
 #define NONE 0xFFFF
 static const char M_END[] = "missing 'end'", M_BRACKET[] = "unclosed bracket", M_EXPR[] = "expected expression",
   M_STRING[] = "unterminated string";
@@ -48,11 +49,12 @@ static const char M_END[] = "missing 'end'", M_BRACKET[] = "unclosed bracket", M
 typedef RioEx Ex;
 typedef RioOp Op;
 
-static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue", "import", "include"};
+static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue", "import", "include",
+  "enum", "union", "switch", "case", "is", "nil"};
 static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod",
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format",
-  "toInt", "toFloat", "toBool", "asString"};
+  "toInt", "toFloat", "toBool", "asString", "fromInt", "has"};
 static float f_sqrt(float x) { return sqrtf(x); }
 static float f_sin(float x) { return sinf(x); }
 static float f_cos(float x) { return cosf(x); }
@@ -156,7 +158,7 @@ static void lex(Rio *vm, RioTok *t) {
   if (isal(*p)) {
     while (p < e && (isal(*p) || isdg(*p))) p++;
     t->t = TK_ID;
-    for (i = 0; i < 12; i++) if ((int)strlen(kw[i]) == p - s && !memcmp(kw[i], s, p - s)) t->t = TK_PROC + i;
+    for (i = 0; i < (int)(sizeof kw / sizeof kw[0]); i++) if ((int)strlen(kw[i]) == p - s && !memcmp(kw[i], s, p - s)) t->t = TK_PROC + i;
   } else if (isdg(*p)) {
     uint32_t v = 0; double d = 0, sc = 1; int isf = 0;
     if (*p == '0' && p + 1 < e && (p[1] == 'x' || p[1] == 'X')) {
@@ -393,6 +395,7 @@ static void viewstore(Rio *vm, const Ex *d, const Ex *s) {
   else if (lv) fail(vm, "this view of the proc's own memory would outlive the call: make that memory global, or have the caller pass it in");
 }
 #define RO_REF 4 /* Ex.ro: an &place, not yet given to a & parameter or name := &place */
+#define RO_NARROW 8 /* Ex.ro: a narrowed union's copy */
 /* a value in the compiler's scratch slots (a call's or an expression's result), not a variable */
 static int istemp(Rio *vm, Ex *e) { return e->k == EK_ST && (uint32_t)e->a >= vm->c->nact * 4 && (uint32_t)e->a < vm->hi; }
 static void needval(Rio *vm, Ex *e) {
@@ -415,7 +418,7 @@ static void coerce(Rio *vm, Ex *e, int t) {
 static int toslot(Rio *vm, Ex *e, int reuse) {
   int k, d;
   needval(vm, e); k = TY(e->t)->k;
-  if (k != K_I32 && k != K_F32 && k != K_BYTE && k != K_BOOL) fail(vm, "expected a number");
+  if (k != K_I32 && k != K_F32 && k != K_BYTE && k != K_BOOL && k != K_ENUM) fail(vm, "expected a number");
   if (e->k == EK_CONST) return kslot(vm, (uint32_t)e->a);
   if (e->k == EK_ST) {
     if (k != K_BYTE && e->a < 0x40000) return e->a >> 2;
@@ -479,11 +482,14 @@ static int toaddr(Rio *vm, Ex *e) {
   emit(vm, OP_LEA, d, e->a, e->off);
   return d;
 }
+static int isbig(RioType *ty) { return (ty->k == K_ARR || ty->k == K_STRUCT || ty->k == K_LIST || ty->k == K_UNION) && ty->size > SMALLW * 4; }
+static int unionwrap(Rio *vm, Ex *d, Ex *s);
 static void store(Rio *vm, Ex *d, Ex *s) {
   RioType *ty = TY(d->t); int k = ty->k, ss;
   if (k == K_SLICE || k == K_BUILD) viewstore(vm, d, s);
+  if (k == K_UNION && unionwrap(vm, d, s)) return; /* a value of one of its types: wrap it */
   coerce(vm, s, d->t);
-  if (k == K_STRUCT || k == K_ARR || k == K_LIST) {
+  if (k == K_STRUCT || k == K_ARR || k == K_LIST || k == K_UNION) {
     int sa, da;
     if (d->k == EK_ST && s->k == EK_ST && d->a < 0x40000 && s->a < 0x40000 && !((d->a | s->a | (int32_t)ty->size) & 3) && ty->size <= SMALLW * 4) {
       /* both in slots: copy the words, without taking either address */
@@ -592,8 +598,62 @@ static void fold(Rio *vm, int op, Ex *l, Ex *r, int isf) {
   l->a = c.i;
 }
 static void vecarith(Rio *vm, int op, Ex *l, Ex *r, Ex *into);
+/* unions: a tag word (the index of the type held, in the order listed) and room for the biggest type.
+   Each listed type is a field: t is the type (TY_VOID for nil), off 4 where its value starts */
+static int unionmember(Rio *vm, int ut, const Ex *e) { /* which of ut's types e is (nil: a constant of ut), or -1 */
+  RioType *u = TY(ut); int i;
+  if (e->k == EK_CONST && e->t == ut) return e->a;
+  for (i = 0; i < u->nf; i++) if (vm->c->field[u->f0 + i].t != TY_VOID && vm->c->field[u->f0 + i].t == vt(e->t)) return i;
+  return -1;
+}
+static int unionwrap(Rio *vm, Ex *d, Ex *s) { /* store a value of one of d's types (or nil) into union d */
+  int j = unionmember(vm, d->t, s); Ex tag = *d, c; RioField *f;
+  if (j < 0 || (s->t == d->t && s->k != EK_CONST)) return 0;
+  f = &vm->c->field[TY(d->t)->f0 + j];
+  if (f->t != TY_VOID) { Ex pay = *d; pay.t = f->t; if (pay.k == EK_ST) pay.a += 4; else pay.off += 4; store(vm, &pay, s); }
+  c = mkex(EK_CONST, TY_I32, j); tag.t = TY_I32; tag.ro = 0;
+  store(vm, &tag, &c);
+  return 1;
+}
+static void binop(Rio *vm, int op, Ex *l, Ex *r);
+static void isop(Rio *vm, Ex *l, Ex *r) { /* u is T, u is nil: compare the tag */
+  int j; Ex tag, c;
+  needval(vm, l);
+  if (TY(l->t)->k != K_UNION) fail(vm, "is tests which type a union holds");
+  if (r->k == EK_TY || (r->k == EK_CONST && r->t == l->t)) j = unionmember(vm, l->t, r); else fail(vm, "is needs a type (or nil)");
+  if (j < 0) fail(vm, "not one of this union's types");
+  vm->c->isvar = l->k == EK_ST && !l->ro && l->a < 0x40000 ? l->a : -1; vm->c->ismem = j;
+  tag = *l; tag.t = TY_I32; tag.ro = 0;
+  c = mkex(EK_CONST, TY_I32, j); c.t0 = r->t0;
+  binop(vm, TK_EQ, &tag, &c);
+  *l = tag; vm->c->isres = l->k == EK_ST ? l->a : -1;
+}
+/* inside a block that knows the union variable at address var holds its type j: the name now reads
+   as that type, from a copy taken here (so it stays the right type whatever happens to the union) */
+static void narrow(Rio *vm, int32_t var, int j) {
+  int k; RioSym *y = 0; RioField *f; Ex src, dst; uint32_t at;
+  for (k = vm->c->nsym - 1; k >= 0; k--) {
+    y = &vm->c->sym[k];
+    if (y->k == S_VAR && y->v == var && TY(y->t)->k == K_UNION) break;
+  }
+  if (k < 0) return;
+  f = &vm->c->field[TY(y->t)->f0 + j];
+  if (f->t == TY_VOID) return;
+  if (isbig(TY(f->t))) at = halloc(vm, TY(f->t)->size);
+  else { vm->c->fr = vm->c->nact; at = (uint32_t)alloc(vm, words(vm, f->t)) * 4; vm->c->nact = vm->c->fr; }
+  src = mkex(EK_ST, f->t, var + 4); dst = mkex(EK_ST, f->t, (int32_t)at); store(vm, &dst, &src);
+  addsym(vm, vm->c->names + vm->c->sym[k].name, vm->c->sym[k].len, S_NARROW, f->t, (int32_t)at);
+}
+/* the narrowed symbol l was read from, if l is exactly the narrowed name (not a field of it) */
+static int narrowsym(Rio *vm, const Ex *l) {
+  int k;
+  for (k = vm->c->nsym - 1; k >= 0; k--)
+    if (vm->c->sym[k].k == S_NARROW && vm->c->sym[k].len && vm->c->sym[k].v == l->a && vm->c->sym[k].t == l->t) return k;
+  return -1;
+}
 static void binop(Rio *vm, int op, Ex *l, Ex *r) {
   int lt, rt, isf, cmp, o, ls, rs, d, sw = 0;
+  if (op == TK_IS) { isop(vm, l, r); return; }
   needval(vm, l); needval(vm, r);
   if (TY(l->t)->k == K_ARR || TY(l->t)->k == K_STRUCT || TY(r->t)->k == K_ARR || TY(r->t)->k == K_STRUCT) { vecarith(vm, op, l, r, 0); return; }
   lt = vt(l->t); rt = vt(r->t);
@@ -605,7 +665,8 @@ static void binop(Rio *vm, int op, Ex *l, Ex *r) {
     ls = toslot2(vm, l); rs = toslot2(vm, r); o = op == TK_EQ ? OP_SEQ : OP_SNE;
   } else {
     isf = lt == TY_F32;
-    if (!isf && lt != TY_I32 && !(lt == TY_BOOL && (op == TK_EQ || op == TK_NE))) fail(vm, "bad operand types");
+    if (TY(lt)->k == K_ENUM && op != TK_EQ && op != TK_NE) fail(vm, "enums compare only with == and != (use .toInt() for order)");
+    if (!isf && lt != TY_I32 && !((lt == TY_BOOL || TY(lt)->k == K_ENUM) && (op == TK_EQ || op == TK_NE))) fail(vm, "bad operand types");
     if (l->k == EK_CONST && r->k == EK_CONST) { fold(vm, op, l, r, isf); l->t = (uint16_t)(cmp ? TY_BOOL : lt); l->ro = 0; return; }
     switch (op) {
     case '+': o = isf ? OP_FADD : OP_ADD; break;
@@ -726,6 +787,7 @@ static int binprec(int t) {
   case TK_EQ: case TK_NE: case '<': case '>': case TK_LE: case TK_GE: return 3;
   case '+': case '-': case '|': case '^': return 4;
   case '*': case '/': case '%': case '&': case TK_SHL: case TK_SHR: return 5;
+  case TK_IS: return 3;
   }
   return 0;
 }
@@ -753,8 +815,9 @@ static Ex symex(Rio *vm, int i) {
     if (localmem(vm, &e) && (uint32_t)e.a < vm->hi) e.lv = (uint8_t)(vm->c->lvs[e.a / 4 >> 3] >> (e.a / 4 & 7) & 1);
     return e;
   }
-  case S_CONST: { Ex e = mkex(TY(y->t)->k <= K_F32 || TY(y->t)->k == K_BOOL ? EK_CONST : EK_ST, y->t, y->v); e.ro = 1; return e; }
+  case S_CONST: { Ex e = mkex(TY(y->t)->k <= K_F32 || TY(y->t)->k == K_BOOL || TY(y->t)->k == K_ENUM ? EK_CONST : EK_ST, y->t, y->v); e.ro = 1; return e; }
   case S_FN: if (!vm->c->func[y->v].done) fail(vm, "recursion is not allowed"); return mkex(EK_FN, 0, y->v);
+  case S_NARROW: { Ex e = mkex(EK_ST, y->t, y->v); e.ro = RO_NARROW; return e; }
   case S_SELF: case S_ROREF: { /* v: the slot holding the receiver's (or loop element's) address */
     Ex e = mkex(EK_MEM, y->t, y->v); e.ro = y->k == S_ROREF; return e;
   }
@@ -856,6 +919,22 @@ static int swizzle(Rio *vm, Ex *e) {
   e->k = EK_ST; e->a = d * 4; e->off = 0; e->t = (uint16_t)array_of(vm, el, (uint32_t)n); e->ro = 1;
   return 1;
 }
+/* enums: each value is a field whose 32-bit value is split over t (high) and off (low). The type keeps a
+   table of its values (n: first constant slot) and of their names (elem: first of the (address, length)
+   string pairs), so fromInt can check and log can print a name */
+static int32_t enumval(const RioField *f) { return (int32_t)((uint32_t)f->t << 16 | f->off); }
+static int enumvalue(Rio *vm, int t, const char *s, int n, int32_t *v) {
+  RioType *et = TY(t); int i;
+  for (i = 0; i < et->nf; i++) {
+    RioField *f = &vm->c->field[et->f0 + i];
+    if (f->len == n && !memcmp(vm->c->names + f->name, s, (size_t)n)) { *v = enumval(f); return 1; }
+  }
+  return 0;
+}
+static void logname(Rio *vm, Ex *e, int space) { /* log an enum by name */
+  RioType *et = TY(e->t);
+  emit(vm, OP_LOGN, toslot(vm, e, 1), (int)et->n, et->elem); vm->code[vm->pc - 1].x = (uint8_t)space; emitw(vm, 0, et->nf);
+}
 static void member(Rio *vm) {
   Ex *e = vtop(vm), m; RioType *ty; int i, k;
   if (e->k == EK_MOD) { /* mod.name: one of the module's exported names */
@@ -864,7 +943,19 @@ static void member(Rio *vm) {
     *e = symex(vm, i); e->t0 = t0;
     return;
   }
+  if (e->k == EK_TY && TY(e->t)->k == K_ENUM) { /* Enum.value, Enum.fromInt, Enum.has */
+    int32_t v; uint16_t t0 = e->t0;
+    if (enumvalue(vm, e->t, TK.s, TK.n, &v)) { *e = mkex(EK_CONST, e->t, v); e->t0 = t0; return; }
+    if ((TK.n == 7 && !memcmp(TK.s, "fromInt", 7)) || (TK.n == 3 && !memcmp(TK.s, "has", 3))) {
+      if (vm->c->nx.t != '(') fail(vm, "call it: Enum.fromInt(n), Enum.has(n)");
+      *e = mkex(EK_BI, e->t, TK.n == 3 ? BI_HAS : BI_FROMINT); e->t0 = t0;
+      return;
+    }
+    failtok(vm, "not a value of this enum");
+  }
   needval(vm, e); ty = TY(e->t);
+  if (ty->k == K_UNION && lookup_meth(vm, e->t, TK.s, TK.n) < 0)
+    failtok(vm, "a union's value is reachable inside switch u / case T, or if u is T");
   if (structfield(vm, ty, TK.s, TK.n) >= 0) { field(vm, e); return; }
   if (ty->k == K_ARR && swizzle(vm, e)) return;
   if (ty->k != K_STRUCT && ty->k != K_LIST && ty->k != K_BUILD && (k = convname(TK.s, TK.n)) >= 0) m = mkex(EK_BI, 0, k);
@@ -947,7 +1038,7 @@ static void argdone(Rio *vm, Op *m) {
   } else if (m->a == EK_FN) {
     int k = TY(a->t)->k;
     if (m->n >= vm->c->func[m->b].np) fail(vm, "too many arguments");
-    if (a->k == EK_MEM && k != K_STRUCT && k != K_ARR && k != K_LIST) {
+    if (a->k == EK_MEM && k != K_STRUCT && k != K_ARR && k != K_LIST && k != K_UNION) {
       int s = k == K_SLICE || k == K_BUILD ? toslotv(vm, a) : toslot(vm, a, 1);
       a->k = EK_ST; a->a = s * 4; a->t = (uint16_t)vt(a->t);
     }
@@ -985,6 +1076,7 @@ static void argdone(Rio *vm, Op *m) {
     e = vpop(vm); k = TY(e.t)->k;
     if (k == K_SLICE && TY(e.t)->elem == TY_BYTE) emitx(vm, OP_LOGS, m->n > 0, toslot2(vm, &e));
     else if (k == K_BOOL) emitx(vm, OP_LOGB, m->n > 0, toslot(vm, &e, 1));
+    else if (k == K_ENUM) logname(vm, &e, m->n > 0);
     else if (k == K_F32) emitx(vm, OP_LOGF, m->n > 0, toslot(vm, &e, 1));
     else if (k == K_I32 || k == K_BYTE) emitx(vm, OP_LOGI, m->n > 0, toslot(vm, &e, 1));
     else fail(vm, "cannot log this type");
@@ -1086,6 +1178,27 @@ static void listop(Rio *vm, Op *m) {
   vm->c->nvs = m->vb; vres(vm, r, m->fr0);
 }
 /* x.toInt() x.toFloat() x.toBool() b.asString() */
+static void enumop(Rio *vm, Op *m) { /* Enum.fromInt(n): checked; Enum.has(n) -> Bool */
+  Ex *a = &vm->c->vs[m->vb]; RioType *et = TY(m->c); int s, d, i, found = 0;
+  if (vm->c->nvs - m->vb != 1) fail(vm, "wrong number of arguments");
+  coerce(vm, a, TY_I32);
+  if (a->k == EK_CONST) { /* known now: check now */
+    for (i = 0; i < et->nf; i++) if (enumval(&vm->c->field[et->f0 + i]) == a->a) found = 1;
+    if (m->b == BI_FROMINT && !found) fail(vm, "not a value of this enum");
+    vm->c->nvs = m->vb; vres(vm, m->b == BI_FROMINT ? mkex(EK_CONST, m->c, a->a) : mkex(EK_CONST, TY_BOOL, found), m->fr0);
+    return;
+  }
+  s = toslot(vm, a, 1);
+  vm->c->nvs = m->vb; vm->c->fr = m->fr0; d = alloc(vm, 1);
+  if (m->b == BI_FROMINT) {
+    emit(vm, OP_MOV, d, s, 0);
+    emit(vm, OP_ENUMCK, 0, d, (int)et->n); vm->code[vm->pc - 1].x = 1; emitw(vm, 0, et->nf);
+    vres(vm, mkex(EK_ST, m->c, d * 4), m->fr0);
+  } else {
+    emit(vm, OP_ENUMCK, d, s, (int)et->n); emitw(vm, 0, et->nf);
+    vres(vm, mkex(EK_ST, TY_BOOL, d * 4), m->fr0);
+  }
+}
 static void convert(Rio *vm, Op *m) {
   Ex *a = &vm->c->vs[m->vb], r; int from, s, d;
   int to = m->b == BI_TOINT ? TY_I32 : m->b == BI_TOFLOAT ? TY_F32 : m->b == BI_TOBOOL ? TY_BOOL : TY_STR;
@@ -1098,6 +1211,7 @@ static void convert(Rio *vm, Op *m) {
     if (a->k == EK_CONST) r = mkex(EK_CONST, TY_BOOL, a->a != 0);
     else { s = toslot(vm, a, 1); vm->c->fr = m->fr0; d = alloc(vm, 1); emit(vm, OP_NE, d, s, kslot(vm, 0)); r = mkex(EK_ST, TY_BOOL, d * 4); }
   }
+  else if (to == TY_I32 && TY(from)->k == K_ENUM) r.t = TY_I32; /* an enum is its Int */
   else if ((to == TY_F32 && from == TY_I32) || (to == TY_I32 && from == TY_F32)) {
     if (a->k == EK_CONST) { RioVal v; v.i = a->a; if (to == TY_F32) v.f = (float)v.i; else v.i = ftoi(v.f); r = mkex(EK_CONST, to, v.i); }
     else { s = toslot(vm, a, 1); vm->c->fr = m->fr0; d = alloc(vm, 1); emit(vm, to == TY_F32 ? OP_ITOF : OP_FTOI, d, s, 0); r = mkex(EK_ST, to, d * 4); }
@@ -1136,7 +1250,8 @@ static void finish_call(Rio *vm, Op *m) {
       if (m->n < 1) fail(vm, "format needs a Blob list");
       j = emit(vm, OP_JNZ, t + 1, 0, NONE); emit(vm, OP_STW, m->c, t, 0); patch(vm, j, here(vm));
       vm->c->fr = (uint32_t)t + 2; vres(vm, mkex(EK_ST, TY_BOOL, (t + 1) * 4), m->fr0);
-    } else if (m->b >= BI_TOINT) convert(vm, m);
+    } else if (m->b >= BI_FROMINT) enumop(vm, m);
+    else if (m->b >= BI_TOINT) convert(vm, m);
     else if (m->b >= BI_PUSH) listop(vm, m);
     else builtin(vm, m);
   }
@@ -1222,6 +1337,23 @@ static Ex expr(Rio *vm) {
       else if ((t == ')' || t == '}') && vm->c->nos > ob && vm->c->os[vm->c->nos - 1].k == (t == ')' ? OK_CALL : OK_LIT) &&
                (t == '}' || vm->c->os[vm->c->nos - 1].n == 0) && vm->c->nvs == vm->c->os[vm->c->nos - 1].vb) {
         closer(vm, t, 0); depth--; next(vm); want = 0; continue;
+      } else if ((t == '.' && vm->c->nx.t == TK_ID) || t == TK_NIL) { /* .value or nil: the enum it's going to */
+        int tt = target(vm, ob, whole); int32_t v;
+        if (tt < 0 && vm->c->nos > ob && vm->c->os[vm->c->nos - 1].k == OK_BIN && vm->c->nvs > vb) { /* x == .value */
+          int op = vm->c->os[vm->c->nos - 1].op;
+          if (op == TK_EQ || op == TK_NE || op == '<' || op == '>' || op == TK_LE || op == TK_GE || op == TK_IS) tt = vtop(vm)->t;
+        }
+        if (t == '.') next(vm);
+        if (t == TK_NIL && tt >= 0 && TY(tt)->k == K_UNION) { /* a union's nil: its tag, as a constant */
+          int j; RioType *ut = TY(tt);
+          for (j = 0; j < ut->nf && vm->c->field[ut->f0 + j].t != TY_VOID; j++) {}
+          if (j == ut->nf) failtok(vm, "this union doesn't list nil");
+          vres(vm, mkex(EK_CONST, tt, j), t0); next(vm); want = 0;
+          continue;
+        }
+        if (tt < 0 || TY(tt)->k != K_ENUM) failtok(vm, t == TK_NIL ? "nil needs an enum or union that lists nil first" : "can't tell which enum this is; write Enum.value");
+        if (!enumvalue(vm, tt, TK.s, TK.n, &v)) failtok(vm, t == TK_NIL ? "this enum doesn't list nil" : "not a value of this enum");
+        e = mkex(EK_CONST, tt, v);
       } else if (t == '{') { /* {field = ...} takes its struct type from where the value is going */
         int tt = target(vm, ob, whole);
         if (tt < 0 || TY(tt)->k != K_STRUCT) failtok(vm, "can't tell which struct this is; write Type{...}");
@@ -1246,13 +1378,14 @@ static Ex expr(Rio *vm) {
       if (c.k == EK_TY) fail(vm, TY(c.t)->k == K_STRUCT ? "use Struct{...} to build a struct" : "convert with x.toInt(), x.toFloat(), x.toBool() or b.asString()");
       vm->c->nvs--;
       o = opush(vm, OK_CALL, 0, 0); o->a = c.k; o->b = c.k == EK_TY ? c.t : c.a;
+      if (c.k == EK_BI && c.a >= BI_FROMINT) o->c = c.t; /* Enum.fromInt(...): which enum */
       depth++; next(vm); want = 1;
     } else if (t == '[') {
       opush(vm, OK_IDX, 0, 0); depth++; next(vm);
       if (TK.t == ':') { vres(vm, mkex(EK_CONST, TY_I32, 0), (int)vm->c->fr); want = 0; } else want = 1;
     } else if (t == '.') {
       next(vm);
-      if (TK.t != TK_ID) fail(vm, "field name expected");
+      if (TK.t != TK_ID && TK.t != TK_NIL) fail(vm, "field name expected");
       member(vm); next(vm);
     } else if (t == '{') {
       Ex c = *vtop(vm); Op *o;
@@ -1365,7 +1498,6 @@ static int namelist(Rio *vm, const char **ns, int *nl) {
   expect(vm, ':', "':' expected");
   return c;
 }
-static int isbig(RioType *ty) { return (ty->k == K_ARR || ty->k == K_STRUCT || ty->k == K_LIST) && ty->size > SMALLW * 4; }
 static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   RioCFunc *f; RioBlk *b; int fi, skip;
   if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "procs must be top-level");
@@ -1392,7 +1524,7 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
     RioType *ty;
     if (isref) next(vm);
     t = parse_type(vm); ty = TY(t);
-    if (ty->k == K_VOID || (!isref && (ty->k == K_LIST || ((ty->k == K_STRUCT || ty->k == K_ARR) && ty->ref))))
+    if (ty->k == K_VOID || (!isref && (ty->k == K_LIST || ((ty->k == K_STRUCT || ty->k == K_ARR || ty->k == K_UNION) && ty->ref))))
       fail(vm, "invalid parameter type (pass lists as [..]T)");
     if (!isref && isbig(ty)) fail(vm, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
     for (j = 0; j < c; j++) { /* a & parameter is one word holding the address, read through like self */
@@ -1409,7 +1541,7 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   if (TK.t == TK_ARROW) {
     RioType *ty;
     next(vm); f->ret = (uint16_t)parse_type(vm); ty = TY(f->ret);
-    if (ty->k == K_LIST || ((ty->k == K_ARR || ty->k == K_STRUCT) && ty->ref)) fail(vm, "invalid return type");
+    if (ty->k == K_LIST || ((ty->k == K_ARR || ty->k == K_STRUCT || ty->k == K_UNION) && ty->ref)) fail(vm, "invalid return type");
     if (isbig(ty)) fail(vm, "a big value (over 16 words) can't be returned: fill in a &T parameter instead");
     f->retaddr = (uint32_t)alloc(vm, words(vm, f->ret)) * 4;
   }
@@ -1451,6 +1583,89 @@ static void struct_def(Rio *vm, const char *name, int nlen) {
   st->size = (uint32_t)off;
   addsym(vm, name, nlen, S_TYPE, ti, 0);
 }
+/* Name :: union [@diverse], then its types one per line or comma-separated (nil may come first), then
+   end. The first listed is what a new variable holds. Types more than 64 bytes apart in size waste space
+   in every value (arrays of the union most of all), so that's an error unless marked @diverse */
+static void union_def(Rio *vm, const char *name, int nlen) {
+  int ti, n = 0, j, diverse = 0; uint32_t mx = 0, mn = 0xFFFFFFFFu; RioType *ut;
+  if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "unions must be top-level");
+  next(vm);
+  if (TK.t == '@') {
+    next(vm);
+    if (TK.t != TK_ID || TK.n != 7 || memcmp(TK.s, "diverse", 7)) failtok(vm, "unknown note for a union (@diverse allows types of very different sizes)");
+    diverse = 1; next(vm);
+  }
+  if (!TK.nl) failtok(vm, "list a union's types on the lines below it, then end");
+  ti = newtype(vm, K_UNION, 0, 0, 4); ut = TY(ti); ut->f0 = (uint16_t)vm->c->nfield;
+  while (TK.t != TK_END) {
+    const char *s = TK.s; int sl = TK.n, t; RioField *f;
+    if (TK.t == TK_EOF) fail(vm, M_END);
+    if (TK.t == TK_NIL) { if (n) failtok(vm, "nil can only come first"); next(vm); t = TY_VOID; }
+    else { t = parse_type(vm); if (TY(t)->k == K_VOID) fail(vm, "invalid type in a union"); }
+    for (j = 0; j < n; j++) if (vm->c->field[ut->f0 + j].t == t) fail(vm, "type listed twice");
+    if (vm->c->nfield >= (int)vm->c->lim.fields) fail(vm, "too many fields");
+    f = &vm->c->field[vm->c->nfield++];
+    f->name = (uint16_t)addname(vm, s, sl); f->len = (uint16_t)sl; f->t = (uint16_t)t; f->off = 4;
+    if (t != TY_VOID) {
+      uint32_t sz = TY(t)->size;
+      if (sz > mx) mx = sz;
+      if (sz < mn) mn = sz;
+      ut = TY(ti); ut->ref |= TY(t)->ref;
+    }
+    n++;
+    if (TK.t == ',') next(vm);
+  }
+  next(vm);
+  ut = TY(ti);
+  if (!n) fail(vm, "a union lists at least one type");
+  if (n > 256) fail(vm, "too many types in one union");
+  if (!diverse && mx > mn && mx - mn > SMALLW * 4)
+    fail(vm, "these types differ in size by more than 64 bytes, so every value takes the biggest size: keep the big data elsewhere, or mark the union @diverse");
+  ut->nf = (uint16_t)n; ut->size = 4 + ((mx + 3) & ~3u);
+  if (ut->size > 0xFFFF) fail(vm, "union too large");
+  addsym(vm, name, nlen, S_TYPE, ti, 0);
+}
+/* Name :: enum, then values one per line or comma-separated, then end. A value is name or name = n
+   (otherwise one more than the last); nil may come first. Some value must be 0: new variables start
+   there, so the first listed (or the one = 0) is what zero means */
+static void enum_def(Rio *vm, const char *name, int nlen) {
+  int ti, n = 0, zero = 0, j; int32_t v = 0; RioType *et; RioVal *R = (RioVal *)vm->mem;
+  if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "enums must be top-level");
+  next(vm);
+  if (!TK.nl) failtok(vm, "list an enum's values on the lines below it, then end");
+  ti = newtype(vm, K_ENUM, 0, 0, 4); et = TY(ti); et->f0 = (uint16_t)vm->c->nfield;
+  while (TK.t != TK_END) {
+    const char *s = TK.s; int sl = TK.n; RioField *f;
+    if (TK.t == TK_EOF) fail(vm, M_END);
+    if (TK.t == TK_NIL) { if (n) failtok(vm, "nil can only come first"); next(vm); v = 0; }
+    else {
+      if (TK.t != TK_ID) failtok(vm, "value name expected");
+      next(vm);
+      if (TK.t == '=') { Ex c; next(vm); c = expr(vm); if (c.k != EK_CONST || c.t != TY_I32) fail(vm, "an enum value is an Int constant"); v = c.a; }
+    }
+    for (j = 0; j < n; j++) {
+      RioField *g = &vm->c->field[et->f0 + j];
+      if (g->len == sl && !memcmp(vm->c->names + g->name, s, (size_t)sl)) fail(vm, "value named twice");
+      if (enumval(g) == v) fail(vm, "two values with the same number");
+    }
+    if (vm->c->nfield >= (int)vm->c->lim.fields) fail(vm, "too many fields");
+    f = &vm->c->field[vm->c->nfield++];
+    f->name = (uint16_t)addname(vm, s, sl); f->len = (uint16_t)sl; f->t = (uint16_t)((uint32_t)v >> 16); f->off = (uint16_t)v;
+    zero |= v == 0; n++; v++;
+    if (TK.t == ',') next(vm);
+  }
+  next(vm);
+  if (!n) fail(vm, "an enum needs at least one value");
+  if (!zero) fail(vm, "an enum needs a value that's 0: new variables start there (list nil first for an empty one)");
+  et->nf = (uint16_t)n;
+  /* the tables for fromInt, has and log: values, then (address, length) name strings */
+  if (vm->nk + (uint32_t)n > vm->kcap) fail(vm, "too many constants");
+  et->n = vm->nk;
+  for (j = 0; j < n; j++) R[vm->nk++].u = (uint32_t)enumval(&vm->c->field[et->f0 + j]);
+  et->elem = (uint16_t)vm->nk;
+  for (j = 0; j < n; j++) { RioField *g = &vm->c->field[et->f0 + j]; strconst(vm, vm->c->names + g->name, g->len); }
+  addsym(vm, name, nlen, S_TYPE, ti, 0);
+}
 /* declare a variable of type t (-1: from the value), initialized from *pe or zeroed. adopt: the
    value may already sit in the next free slot and simply become the variable */
 /* name: [..]T = an array or slice: a builder over that memory, starting empty. Its length word is a
@@ -1472,6 +1687,15 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
   int has = pe != 0, k, big, lv = 0; uint32_t addr; RioType *ty; Ex e = has ? *pe : mkex(EK_VOID, TY_VOID, 0);
   if (has) {
     needval(vm, &e); lv = localview(vm, &e);
+    if (t >= 0 && TY(t)->k == K_UNION && e.t != t) { /* a value of one of its types (or nil): store wraps it */
+      uint32_t at;
+      if (unionmember(vm, t, &e) < 0) fail(vm, "type mismatch");
+      at = isbig(TY(t)) ? halloc(vm, TY(t)->size) : (uint32_t)alloc(vm, words(vm, t)) * 4;
+      { Ex d = mkex(EK_ST, t, (int32_t)at); store(vm, &d, &e); }
+      if (!isbig(TY(t))) vm->c->nact = vm->c->fr;
+      addsym(vm, ns, nn, S_VAR, t, (int32_t)at);
+      return;
+    }
     if (t >= 0 && TY(t)->k == K_BUILD && (TY(e.t)->k == K_ARR || TY(e.t)->k == K_SLICE)) { buildover(vm, ns, nn, t, &e); return; }
     if (t < 0) {
       t = vt(e.t);
@@ -1484,11 +1708,11 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
   }
   ty = TY(t); k = ty->k;
   if (k == K_VOID) fail(vm, "variable has no type");
-  if (vm->c->curfn >= 0 && (k == K_STRUCT || k == K_ARR || k == K_LIST) && ty->ref) fail(vm, "structs/arrays/lists holding slices or strings must be global");
+  if (vm->c->curfn >= 0 && (k == K_STRUCT || k == K_ARR || k == K_LIST || k == K_UNION) && ty->ref) fail(vm, "structs/arrays/lists/unions holding slices or strings must be global");
   big = isbig(ty);
   if (big) addr = halloc(vm, ty->size);
   else {
-    if (has && e.k == EK_MEM && (k == K_I32 || k == K_F32 || k == K_BOOL || k == K_SLICE || k == K_BUILD)) {
+    if (has && e.k == EK_MEM && (k == K_I32 || k == K_F32 || k == K_BOOL || k == K_ENUM || k == K_SLICE || k == K_BUILD)) {
       int s = k == K_SLICE || k == K_BUILD ? toslotv(vm, &e) : toslot(vm, &e, 1);
       e.k = EK_ST; e.a = s * 4; e.t = (uint16_t)t;
     }
@@ -1554,7 +1778,7 @@ static void destructure(Rio *vm) {
     f = &vm->c->field[st->f0 + fi];
     if (fe.k == EK_ST) fe.a += f->off; else fe.off += f->off;
     fe.t = f->t; k = TY(f->t)->k;
-    if (fe.k == EK_MEM && k != K_STRUCT && k != K_ARR && k != K_LIST) { /* load without disturbing the struct's address */
+    if (fe.k == EK_MEM && k != K_STRUCT && k != K_ARR && k != K_LIST && k != K_UNION) { /* load without disturbing the struct's address */
       int s = k == K_SLICE || k == K_BUILD ? toslotv(vm, &fe) : toslot(vm, &fe, 0);
       fe = mkex(EK_ST, vt(f->t), s * 4);
     }
@@ -1566,6 +1790,7 @@ static void autoprint(Rio *vm, Ex *e) {
   if (k == K_SLICE && TY(e->t)->elem == TY_BYTE) emitx(vm, OP_LOGS, 0, toslot2(vm, e));
   else if (k == K_F32) emitx(vm, OP_LOGF, 0, toslot(vm, e, 1));
   else if (k == K_BOOL) emitx(vm, OP_LOGB, 0, toslot(vm, e, 1));
+  else if (k == K_ENUM) logname(vm, e, 0);
   else if (k == K_I32 || k == K_BYTE) emitx(vm, OP_LOGI, 0, toslot(vm, e, 1));
   else return;
   emit(vm, OP_LOGE, 0, 0, 0);
@@ -1575,6 +1800,19 @@ static void stmt_expr(Rio *vm) {
   if (TK.t != '=' && TK.t != TK_OPEQ) {
     if (vm->repl && vm->c->curfn < 0 && !vm->c->nblk && l.k <= EK_MEM) autoprint(vm, &l);
     return;
+  }
+  if (l.ro & RO_NARROW) { /* x = ... on a narrowed x assigns the whole union, and x is the union again */
+    int k = TK.t == '=' ? narrowsym(vm, &l) : -1, i;
+    if (k < 0) fail(vm, "this is a copy of what the union holds: assign the whole union to change it");
+    { /* the value is read with x still narrowed (x = Circle{r = x.w} works); x is the union from here on */
+      int n = vm->c->sym[k].len;
+      vm->c->sym[k].len = 0; i = lookup(vm, vm->c->names + vm->c->sym[k].name, n); vm->c->sym[k].len = (uint16_t)n;
+      if (i < 0) fail(vm, "undefined name");
+      l = symex(vm, i);
+      next(vm); vm->c->target = l.t; r = expr(vm); store(vm, &l, &r);
+      vm->c->sym[k].len = 0; /* hidden: the name finds the union again */
+      return;
+    }
   }
   if ((l.k != EK_ST && l.k != EK_MEM) || l.ro || (l.k == EK_ST && l.a < (int32_t)vm->kcap * 4)) fail(vm, "cannot assign to this");
   if (TK.t == '=') { next(vm); vm->c->target = l.t; r = expr(vm); store(vm, &l, &r); return; }
@@ -1728,9 +1966,94 @@ static void include_stmt(Rio *vm) {
   pos = c->nx.t == TK_STR ? c->nx.s - 1 : c->nx.s; /* resume at the token after the path */
   openfile(vm, cf->pkg, 1, key, klen, pos, pos - (c->nx.col - 1), c->nx.line);
 }
+/* the next case (or else) of a switch starts from the scope right after the subject */
+static void casescope(Rio *vm, RioBlk *b) {
+  RioBlk s = *b;
+  s.nsym = b->csym; s.nnames = b->cnames; s.nact = b->cact; bscope(vm, &s);
+  b->cact = (uint16_t)vm->c->nact; /* (lifted above any slot whose address was taken) */
+}
+static int enumindex(Rio *vm, int t, int32_t v) {
+  RioType *et = TY(t); int i;
+  for (i = 0; i < et->nf; i++) if (enumval(&vm->c->field[et->f0 + i]) == v) return i;
+  return -1;
+}
+static void switch_stmt(Rio *vm) { /* switch x / switch name := x */
+  RioBlk *b; Ex e; int t, k, s, ss, var;
+  next(vm);
+  b = bpush(vm, B_SWITCH);
+  if (TK.t == TK_ID && vm->c->nx.t == TK_DECL) { decl_var(vm); e = symex(vm, vm->c->nsym - 1); } /* the name lives in the switch */
+  else e = expr(vm);
+  needval(vm, &e); t = vt(e.t); k = TY(t)->k;
+  if (k != K_I32 && k != K_ENUM && k != K_UNION) fail(vm, "switch needs an Int, an enum or a union");
+  var = k == K_UNION && e.k == EK_ST && !e.ro && e.a < 0x40000 ? e.a / 4 : NONE; /* a variable: cases can narrow it */
+  if (k == K_UNION) { Ex tag = e; tag.t = TY_I32; tag.ro = 0; ss = toslot(vm, &tag, 1); }
+  else ss = toslot(vm, &e, 1);
+  vm->c->fr = vm->c->nact; s = alloc(vm, 1); vm->c->nact = vm->c->fr;
+  if (s != ss) emit(vm, OP_MOV, s, ss, 0);
+  if (vm->c->nsw >= 16) fail(vm, "switches nested too deep");
+  b = &vm->c->blk[vm->c->nblk - 1];
+  b->i = (uint16_t)s; b->lim = (uint16_t)t; b->cj = b->brk = NONE; b->b = 0; b->a = (uint16_t)var;
+  b->csym = (uint16_t)vm->c->nsym; b->cnames = (uint16_t)vm->c->nnames; b->cact = (uint16_t)vm->c->nact;
+  b->sw = (uint16_t)vm->c->nsw++; memset(vm->c->swm[b->sw], 0, sizeof vm->c->swm[0]);
+}
+static void case_stmt(Rio *vm) { /* case v, v...: one jump per value; the last one skips to the next case */
+  RioBlk *b = vm->c->nblk ? &vm->c->blk[vm->c->nblk - 1] : 0; int body = NONE;
+  if (!b || b->k != B_SWITCH) failtok(vm, "'case' outside a switch");
+  if (b->b & 2) failtok(vm, "the else of a switch comes last");
+  next(vm);
+  if (b->b & 1) b->brk = (uint16_t)jappend(vm, b->brk, emit(vm, OP_JMP, 0, 0, NONE));
+  patch(vm, b->cj, here(vm)); b->cj = NONE;
+  casescope(vm, b);
+  for (;;) {
+    Ex v; int vs, isu = TY(b->lim)->k == K_UNION;
+    vm->c->target = b->lim; v = expr(vm);
+    if (isu) { /* case T: the index of the type */
+      int j = v.k == EK_TY || (v.k == EK_CONST && v.t == b->lim) ? unionmember(vm, b->lim, &v) : -1;
+      if (j < 0) fail(vm, "not one of this union's types");
+      v = mkex(EK_CONST, b->lim, j);
+    } else coerce(vm, &v, b->lim);
+    if (v.k != EK_CONST) fail(vm, "case values are constants");
+    if (TY(b->lim)->k == K_ENUM || isu) {
+      int j = isu ? v.a : enumindex(vm, b->lim, v.a);
+      if (j < 256) {
+        uint64_t *m = &vm->c->swm[b->sw][j >> 6];
+        if (*m >> (j & 63) & 1) fail(vm, "this value already has a case");
+        *m |= (uint64_t)1 << (j & 63);
+      }
+    }
+    vs = kslot(vm, (uint32_t)v.a);
+    if (TK.t != ',') {
+      b->cj = (uint16_t)emit(vm, OP_JNE, b->i, vs, NONE);
+      if (isu && body == NONE && b->a != NONE) { patch(vm, body, here(vm)); b->b |= 1; narrow(vm, (int32_t)b->a * 4, v.a); return; }
+      break;
+    }
+    body = jappend(vm, body, emit(vm, OP_JEQ, b->i, vs, NONE));
+    next(vm);
+  }
+  patch(vm, body, here(vm));
+  b->b |= 1;
+}
+static void switch_end(Rio *vm, RioBlk *b) { /* no case matched: fall out; with no else, every enum value needs a case */
+  int i;
+  patch(vm, b->cj, here(vm)); patch(vm, b->brk, here(vm));
+  if (!(b->b & 2) && (TY(b->lim)->k == K_ENUM || TY(b->lim)->k == K_UNION)) {
+    RioType *et = TY(b->lim);
+    if (et->nf > 256) fail(vm, "a switch on an enum this big needs an else");
+    for (i = 0; i < et->nf; i++)
+      if (!(vm->c->swm[b->sw][i >> 6] >> (i & 63) & 1)) {
+        RioField *f = &vm->c->field[et->f0 + i]; char m[RIO_ERRBUF]; int n = cat(m, 0, et->k == K_UNION ? "this switch has no case for " : "this switch has no case for ."), j;
+        for (j = 0; j < f->len && n < 80; j++) m[n++] = vm->c->names[f->name + j];
+        n = cat(m, n, " (add one, or an else)"); m[n] = 0;
+        fail(vm, m);
+      }
+  }
+  vm->c->nsw--;
+}
 static void statement(Rio *vm) {
   int t = TK.t, i; RioBlk *b; Ex e;
   vm->c->fr = vm->c->nact;
+  if (vm->c->nblk && vm->c->blk[vm->c->nblk - 1].k == B_SWITCH && !(vm->c->blk[vm->c->nblk - 1].b & 3) && t != TK_CASE && t != TK_ELSE && t != TK_END)
+    failtok(vm, "a switch's body starts with case");
   if (t == ';') { next(vm); return; }
   if (t == TK_IMPORT) { import_stmt(vm); goto done; }
   if (t == TK_INCLUDE) { include_stmt(vm); goto done; }
@@ -1748,6 +2071,8 @@ static void statement(Rio *vm) {
     next(vm); next(vm);
     if (TK.t == TK_PROC) proc_def(vm, ns, nn, -1);
     else if (TK.t == TK_STRUCT) struct_def(vm, ns, nn);
+    else if (TK.t == TK_ENUM) enum_def(vm, ns, nn);
+    else if (TK.t == TK_UNION) union_def(vm, ns, nn);
     else {
       e = expr(vm);
       if (vm->c->curfn < 0 && !vm->c->nblk && (e.k == EK_CONST || e.t == TY_STR)) {
@@ -1763,17 +2088,39 @@ static void statement(Rio *vm) {
     }
   } else if (t == TK_ID && (vm->c->nx.t == ':' || vm->c->nx.t == TK_DECL)) decl_var(vm);
   else switch (t) {
-  case TK_IF:
-    next(vm); e = expr(vm); i = condjump(vm, &e);
+  case TK_SWITCH: switch_stmt(vm); break;
+  case TK_CASE: case_stmt(vm); break;
+  case TK_IF: {
+    int nv;
+    next(vm); vm->c->isres = -1; e = expr(vm);
+    nv = e.k == EK_ST && e.a == vm->c->isres && vm->c->isvar >= 0; /* the whole condition is x is T */
+    i = condjump(vm, &e);
     b = bpush(vm, B_IF); b->a = (uint16_t)i;
+    if (nv) narrow(vm, vm->c->isvar, vm->c->ismem);
     break;
+  }
   case TK_ELSE:
+    if (vm->c->nblk && vm->c->blk[vm->c->nblk - 1].k == B_SWITCH) { /* a switch's else: no case matched */
+      b = &vm->c->blk[vm->c->nblk - 1];
+      if (b->b & 2) failtok(vm, "a switch has one else");
+      next(vm);
+      if (b->b & 1) b->brk = (uint16_t)jappend(vm, b->brk, emit(vm, OP_JMP, 0, 0, NONE));
+      patch(vm, b->cj, here(vm)); b->cj = NONE;
+      casescope(vm, b); b->b |= 3;
+      break;
+    }
     if (!vm->c->nblk || vm->c->blk[vm->c->nblk - 1].k != B_IF) failtok(vm, "'else' without 'if'");
     b = &vm->c->blk[vm->c->nblk - 1];
     next(vm); bscope(vm, b);
     b->b = (uint16_t)jappend(vm, b->b, emit(vm, OP_JMP, 0, 0, NONE));
     patch(vm, b->a, here(vm));
-    if (TK.t == TK_IF) { next(vm); e = expr(vm); b->a = (uint16_t)condjump(vm, &e); }
+    if (TK.t == TK_IF) {
+      int nv;
+      next(vm); vm->c->isres = -1; e = expr(vm);
+      nv = e.k == EK_ST && e.a == vm->c->isres && vm->c->isvar >= 0;
+      b->a = (uint16_t)condjump(vm, &e);
+      if (nv) narrow(vm, vm->c->isvar, vm->c->ismem);
+    }
     else { b->k = B_ELSE; b->a = NONE; }
     break;
   case TK_FOR:
@@ -1831,6 +2178,7 @@ static void statement(Rio *vm) {
     if (!vm->c->nblk) failtok(vm, "'end' without block");
     b = &vm->c->blk[vm->c->nblk - 1];
     next(vm);
+    if (b->k == B_SWITCH) { switch_end(vm, b); bscope(vm, b); vm->c->nblk--; break; }
     if (b->k == B_PROC) {
       emit(vm, OP_RET, 0, 0, 0); patch(vm, b->a, here(vm));
       vm->c->func[b->b].done = 1; vm->c->func[b->b].end = (uint16_t)vm->pc; vm->c->func[b->b].fe = (uint16_t)vm->c->hwm; vm->c->curfn = -1;
@@ -1963,7 +2311,7 @@ static void setup(Rio *vm) {
   static const uint8_t ts[] = {0, 4, 4, 1, 8, 8, 4};
   static const char *tn[] = {"Int", "Float", "String", "Blob", "Bool"};
   RioC *c = vm->c; int i;
-  c->nact = c->fr = c->hwm = vm->kcap; c->curfn = -1; c->lastlabel = NONE; c->target = -1;
+  c->nact = c->fr = c->hwm = vm->kcap; c->curfn = -1; c->lastlabel = NONE; c->target = -1; c->nsw = 0;
   c->curmod = 0; c->nmod = 2; memset(c->mods, 0, 2 * sizeof(RioMod));
   for (i = 0; i < 7; i++) { c->type[i].k = tk[i]; c->type[i].size = ts[i]; c->type[i].elem = TY_BYTE; c->type[i].ref = i == TY_STR || i == TY_BLOB; }
   c->ntype = 7;
@@ -2267,7 +2615,7 @@ static NOINLINE int rollback(Rio *vm, const Snap *s) {
   vm->pc = s->pc; vm->nk = s->nk; vm->hi = s->hi; vm->nfunc = s->nfunc;
   c->nact = c->fr = s->nact; c->hwm = s->hwm; c->poolcap = s->poolcap; c->nline = s->nline; c->lastline = s->lastline; c->pool = 0;
   c->nsym = s->nsym; c->ntype = s->ntype; c->nfield = s->nfield; c->nparam = s->nparam; c->nnames = s->nnames;
-  c->nblk = c->nvs = c->nos = 0; c->curfn = -1; c->target = -1; c->lineovr = 0;
+  c->nblk = c->nvs = c->nos = c->nsw = 0; c->curfn = -1; c->target = -1; c->lineovr = 0;
   c->nmod = s->nmod; c->nis = 0; c->curmod = c->curf = 1; c->exporting = 0;
   if (more) { vm->ekind = RIO_ENONE; vm->err[0] = 0; return RIO_MORE; }
   return -1;
@@ -2466,6 +2814,13 @@ static int run(Rio *vm, uint32_t pc) {
   }
   CASE(COPY) memmove(M + I(A), M + I(B), C); NEXT();
   CASE(MOVN) memmove(R + A, R + B, C * sizeof(RioVal)); NEXT();
+  CASE(ENUMCK) { /* is b one of the n values at c? x: a runtime error if not, else a = the answer */
+    uint32_t n = SZ(ip[1]), i; int32_t v = I(B);
+    for (i = 0; i < n && I(C + i) != v; i++) {}
+    if (ip->x) { if (i == n) return rterr(vm, "not a value of that enum", (uint32_t)(ip - code)); }
+    else I(A) = i < n;
+    ip += 2; DISPATCH();
+  }
   CASE(ZERO) memset(M + I(A), 0, SZ(*ip)); NEXT();
 /* n numbers d[i] = l[i] op r[i]; x: 16 l is a scalar, 32 r is a scalar (the value itself, read once:
    it steps by 0), else l and r are addresses */
@@ -2550,6 +2905,13 @@ static int run(Rio *vm, uint32_t pc) {
   CASE(LOGF) { char b[32]; if (ip->x) logput(vm, " ", 1); logput(vm, b, fmtf(b, F(A))); NEXT(); }
   CASE(LOGS) { if (ip->x) logput(vm, " ", 1); logput(vm, (const char *)M + I(A), I(A + 1)); NEXT(); }
   CASE(LOGB) if (ip->x) logput(vm, " ", 1); if (I(A)) logput(vm, "true", 4); else logput(vm, "false", 5); NEXT();
+  CASE(LOGN) { /* an enum value by name: b..b+n values, c..c+2n their (address, length) names */
+    uint32_t n = SZ(ip[1]), i; int32_t v = I(A); char b[16];
+    if (ip->x) logput(vm, " ", 1);
+    for (i = 0; i < n && I(B + i) != v; i++) {}
+    if (i < n) logput(vm, (const char *)M + I(C + 2 * i), I(C + 2 * i + 1)); else logput(vm, b, fmti(b, v));
+    ip += 2; DISPATCH();
+  }
   CASE(LOGE) if (vm->logfn) vm->logfn(vm->logud, vm->logbuf, vm->logn); vm->logn = 0; NEXT();
   CASE(HALT) return 0;
 #ifndef RIO_CGOTO
