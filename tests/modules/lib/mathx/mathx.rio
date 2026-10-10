@@ -1,0 +1,5 @@
+// a package (found through -L); its own local imports stay inside it
+import .inner.{cube*}             // re-export one name from a submodule
+sq* :: proc(x: Int) -> Int
+  return x * x
+end

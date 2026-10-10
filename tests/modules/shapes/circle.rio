@@ -1,0 +1,7 @@
+PI :: 3.14159
+Circle* :: struct
+  r: Float
+end
+area* :: proc(c: Circle) -> Float
+  return PI * c.r * c.r
+end

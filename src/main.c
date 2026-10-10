@@ -3,6 +3,7 @@
    rio file.rio            run top-level code, then main() if present
    rio -c out.c file.rio   compile to a standalone C program instead
    -D NAME[=value]         override a top-level constant (or define it), like gcc -D
+   -L dir                  look for packages (import name) in dir: each dir/name or dir/name.rio
    Ctrl-C stops a running program. */
 #define _CRT_SECURE_NO_WARNINGS
 #include <signal.h>
@@ -14,7 +15,11 @@
 
 static uint8_t mem[8 << 20];
 static RioIns code[65535];
-static char src[1 << 20];
+static char src[4 << 20]; /* the main file and every module, kept until compiling ends */
+static size_t srcn;
+static char libs[16][512], base[512], names[1 << 16];
+static int nlibs;
+static size_t namesn;
 static uint8_t scratch[2 << 20];
 static Rio vm;
 static volatile sig_atomic_t gotint;
@@ -27,18 +32,56 @@ static const char *ffi_src =
   "void rio_ffi_clock(RioVal *a) { a[0].f = (float)clock() / CLOCKS_PER_SEC; }\n"
   "void rio_ffi_putc(RioVal *a) { fputc(a[0].i, stdout); }\n";
 
+/* read a whole file into the source arena; -1 if missing */
+static long readfile(const char *path) {
+  FILE *f = fopen(path, "rb"); size_t n;
+  if (!f) return -1;
+  n = fread(src + srcn, 1, sizeof src - srcn - 1, f);
+  fclose(f);
+  srcn += n;
+  return (long)n;
+}
+static int exists(const char *path) { FILE *f = fopen(path, "rb"); if (f) fclose(f); return f != 0; }
+/* path.rio, or the directory path/ with its entry file path/<last>.rio */
+static int resolve(const char *dir, const char *path, char *out, size_t cap, int *isdir) {
+  const char *last = strrchr(path, '/');
+  last = last ? last + 1 : path;
+  snprintf(out, cap, "%s%s.rio", dir, path);
+  if (exists(out)) { *isdir = 0; return 1; }
+  snprintf(out, cap, "%s%s/%s.rio", dir, path, last);
+  if (exists(out)) { *isdir = 1; return 1; }
+  return 0;
+}
+static int loader(void *ud, const char *path, int pkg, RioSource *o) {
+  char found[1024], tryp[1024], *name; int isdir = 0, n = 0, i, d; long len;
+  (void)ud;
+  if (!pkg) n = resolve(base, path, found, sizeof found, &isdir);
+  else
+    for (i = 0; i < nlibs; i++)
+      if (resolve(libs[i], path, tryp, sizeof tryp, &d)) { if (n++) return 2; memcpy(found, tryp, sizeof found); isdir = d; }
+  if (!n) return 1;
+  o->src = src + srcn;
+  if ((len = readfile(found)) < 0) return 1;
+  o->len = (uint32_t)len; o->isdir = isdir;
+  name = names + namesn; namesn += (size_t)snprintf(name, sizeof names - namesn, "%s", found) + 1;
+  o->name = name;
+  return 0;
+}
+
 static void onint(int sig) { (void)sig; gotint = 1; rio_interrupt(&vm); signal(SIGINT, onint); }
 
 static int usage(void) {
-  fprintf(stderr, "usage: rio [-D NAME[=value]]...                REPL\n"
-                  "       rio [-D NAME[=value]]... file.rio       run\n"
-                  "       rio -c out.c [-D NAME[=value]]... file.rio\n");
+  fprintf(stderr, "usage: rio [-D NAME[=value]]... [-L dir]...                REPL\n"
+                  "       rio [-D NAME[=value]]... [-L dir]... file.rio       run\n"
+                  "       rio -c out.c [-D NAME[=value]]... [-L dir]... file.rio\n");
   return 2;
 }
 
 static void report(const char *where) {
+  RioError e = rio_error_info(&vm);
   fflush(stdout);
-  if (where) fprintf(stderr, "%s%s", where, rio_error_info(&vm).line ? ":" : ": ");
+  if (e.file) where = e.file; /* the error is in a module */
+  if (where) fprintf(stderr, "%s%s", where, e.line ? ":" : ": ");
   fprintf(stderr, "%s\n", rio_error(&vm));
 }
 
@@ -77,6 +120,13 @@ int main(int argc, char **argv) {
   for (i = 1; i < argc; i++) {
     char *a = argv[i], *eq;
     if (!strcmp(a, "-c") && i + 1 < argc) cout = argv[++i];
+    else if (!strncmp(a, "-L", 2)) {
+      const char *d = a[2] ? a + 2 : i + 1 < argc ? argv[++i] : 0;
+      size_t dl;
+      if (!d || nlibs >= 16) return usage();
+      dl = strlen(d);
+      snprintf(libs[nlibs++], sizeof libs[0], "%s%s", d, dl && d[dl - 1] != '/' && d[dl - 1] != '\\' ? "/" : "");
+    }
     else if (!strncmp(a, "-D", 2)) {
       char *d = a[2] ? a + 2 : i + 1 < argc ? argv[++i] : 0;
       if (!d) return usage();
@@ -88,11 +138,17 @@ int main(int argc, char **argv) {
   rio_set_log(&vm, out, 0);
   rio_ffi(&vm, "clock", ">f", ffi_clock);
   rio_ffi(&vm, "putc", "i", ffi_putc);
+  rio_set_loader(&vm, loader, 0);
   signal(SIGINT, onint);
   if (!path) return cout ? usage() : repl();
-  if (!(f = fopen(path, "rb"))) { fprintf(stderr, "cannot open %s\n", path); return 2; }
-  n = fread(src, 1, sizeof src, f);
-  fclose(f);
+  { /* local imports are relative to the main file's directory */
+    const char *sl = strrchr(path, '/'), *bs = strrchr(path, '\\');
+    size_t bl = (size_t)((sl > bs ? sl : bs) ? (sl > bs ? sl : bs) - path + 1 : 0);
+    memcpy(base, path, bl < sizeof base ? bl : 0); base[bl < sizeof base ? bl : 0] = 0;
+  }
+  if (readfile(path) < 0) { fprintf(stderr, "cannot open %s\n", path); return 2; }
+  n = srcn;
+  (void)f;
   /* the C backend reads compiler tables after compiling, so they get their own buffer; running
      compiles in place, with the compiler's state overlaid on script memory */
   if (cout ? rio_compile_scratch(&vm, src, (uint32_t)n, scratch, sizeof scratch) : rio_compile(&vm, src, (uint32_t)n)) {

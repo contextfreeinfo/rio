@@ -19,6 +19,7 @@ cmake --build build --config Release
 ctest --test-dir build -C Release
 build/rio tests/test.rio        # (build/Release/rio.exe with MSVC)
 build/rio                       # interactive REPL
+build/rio -L libs game.rio      # with packages from libs/
 ```
 
 It needs only a C99 compiler and libm, and works on Linux, macOS and Windows.
@@ -183,6 +184,46 @@ end
 - **One way to call:** `x.name(...)`, with the parentheses required. Fields are always `self.x`; a bare `x` inside a method is never the field, so globals stay unambiguous.
 - **Rules:** like procs, methods are declared before use and can't recurse. A method can't share its name with one of its type's fields.
 - **List methods:** list operations use the same syntax: `xs.push(e)`, `xs.pop()`, `b.format(...)`.
+
+## Modules
+
+Every file is a module. Nothing is visible outside it unless its name ends in `*`:
+
+```odin
+// geo.rio
+Vec* :: struct              // exported
+  x, y: Float
+end
+Vec.len2* :: proc() -> Float
+  return sq(self.x) + sq(self.y)
+end
+sq :: proc(v: Float) -> Float   // private to geo.rio
+  return v * v
+end
+count* := 0
+```
+
+```odin
+// game.rio
+import .geo                       // local: geo.rio next to this file
+import .ui.button as btn          // ui/button.rio, renamed
+import tween                      // a package, from the library paths (-L)
+import tween.{ease, lerp as mix}  // or bring in just some names
+import .geo.{Vec}
+
+v := geo.Vec{x = 3, y = 4}
+v.len2()                          // exported methods come along with their type
+w: Vec = {y = 1}
+geo.count += 1
+```
+
+- **Local or package:** a leading `.` means local, relative to the importing file and only downward, so every directory is a relocatable package and git submodules just work. A plain name is a package from the library paths: `rio -L libs` makes each `libs/name.rio` or `libs/name/` importable as `name`. If a name exists in two library paths, that's an error rather than a silent pick.
+- **Directories:** a directory is a module through its entry file: `import .shapes` loads `shapes/shapes.rio`, and that file's own `import .circle` means `shapes/circle.rio`.
+- **Using names:** at use sites names are always plain (`geo.Vec`, `btn.press()`), working in expressions, struct literals and type positions. Methods aren't imported by name; exported ones travel with their type.
+- **Re-exporting:** `*` marks what to re-export, on the name being bound. `import .circle*` re-exports a local module whole (`shapes.circle.area`). `import .inner.{cube*}` or `import .x as y*` re-exports single names. `Sprite* :: gfx.Sprite` also works. Whole re-exports are only allowed for local modules, so a package's API can't silently grow with someone else's library.
+- **Compilation and init order:** each module is compiled once, at its first `import`, and its top-level code runs then, so modules initialize in import order. Their globals are shared by everyone who imports them. Importing a file that's still being compiled is an `import cycle` error. Imports go at the top level.
+- **Errors:** they name the module's file (`rio_error_info(vm).file`, `NULL` for the main source), and the CLI prints `geo.rio:3:5: ...`.
+- **Hosts supply the files:** `rio_set_loader(vm, fn, ud)` gets `("ui/button", local)` or `("tween/easing", package)` and returns the source text, so the core never touches a filesystem. On a console it can read the SD card; in tests, a table of strings.
 
 ## Compile-time defines (`-D`)
 
@@ -355,7 +396,7 @@ These are from `bench/`, comparing against Lua 5.5 on the same Windows machine. 
 src/rio.h     public API (+ the fixed-size state struct)
 src/rio.c     lexer, single-pass compiler, VM
 src/aot.c     bytecode -> C translator (CLI only; not needed for embedding)
-src/main.c    CLI host (adds ffi: clock, putc)
+src/main.c    CLI host (adds ffi: clock, putc; loads modules from files and -L paths)
 tests/        test suite (run by ctest, in the VM and compiled through C), plus error tests:
               errors.c checks kind/line/col/width/message for ~26 failing snippets
 bench/        rio vs lua benchmarks

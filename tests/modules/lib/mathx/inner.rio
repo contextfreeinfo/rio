@@ -1,0 +1,3 @@
+cube* :: proc(x: Int) -> Int
+  return x * x * x
+end

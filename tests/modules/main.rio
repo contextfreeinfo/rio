@@ -1,0 +1,33 @@
+// module test: rio -L tests/modules/lib tests/modules/main.rio
+import .geo
+import .geo.{Vec, add as plus, UNIT}
+import .shapes
+import mathx
+import mathx.{cube}
+
+fails := 0
+check :: proc(ok: Bool, what: String)
+  if !ok
+    log("FAIL:", what)
+    fails += 1
+  end
+end
+
+v := geo.Vec{x = 3, y = 4}
+check(v.len2() == 25, "an exported method travels with its type")
+w: Vec = {x = 1, y = 1}
+check(plus(v, w).x == 4, "selective import, renamed with as")
+check(geo.add(v, w).y == 5, "qualified call")
+check(UNIT == 1 && geo.UNIT == 1, "exported constant")
+check(geo.ready, "the module's top-level code ran before ours")
+geo.count += 2
+check(geo.count == 3 && geo.bump() == 4, "module globals are shared")
+c := shapes.circle.Circle{r = 2}
+check(shapes.circle.area(c) > 12.56 && shapes.circle.area(c) < 12.57, "whole re-export of a local submodule")
+check(shapes.unit().r == 1, "a directory module's own names")
+check(mathx.sq(5) == 25 && cube(2) == 8 && mathx.cube(3) == 27, "package with a re-exported name")
+p: geo.Vec = {y = 2}
+check(p.len2() == 4, "qualified type in a declaration")
+if fails == 0
+  log("all module tests passed")
+end

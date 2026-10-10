@@ -1,0 +1,5 @@
+// a directory module: shapes/shapes.rio is what `import .shapes` loads
+import .circle*                   // re-export a local submodule whole: shapes.circle
+unit* :: proc() -> circle.Circle
+  return {r = 1}
+end

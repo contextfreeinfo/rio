@@ -22,12 +22,12 @@ enum { OPS(OPENUM) OP_DATA = 255 };
 #define OP_LASTDST OP_FMAX /* ops up to here write one scalar to slot a */
 
 enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, TK_ELSE, TK_FOR, TK_IN,
-  TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND,
+  TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_IMPORT, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND,
   TK_OR, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
 enum { TY_VOID, TY_I32, TY_F32, TY_BYTE, TY_STR, TY_BLOB, TY_BOOL };
 enum { K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD };
-enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF };
-enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN };
+enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF, S_MOD };
+enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN, EK_MOD };
 enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
 enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR };
 enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2,
@@ -41,7 +41,7 @@ static const char M_END[] = "missing 'end'", M_BRACKET[] = "unclosed bracket", M
 typedef RioEx Ex;
 typedef RioOp Op;
 
-static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue"};
+static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue", "import"};
 static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod",
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format",
@@ -99,7 +99,7 @@ static int cat(char *b, int n, const char *s) { while (*s && n < RIO_ERRBUF - 1)
 static int seterr(Rio *vm, int kind, int line, int col, int len, const char *m) {
   char *b = vm->err; int n = 0;
   if (line > 0) { n += fmti(b, line); if (col > 0) { b[n++] = ':'; n += fmti(b + n, col); } n = cat(b, n, ": "); }
-  vm->ekind = kind; vm->eline = line; vm->ecol = col; vm->elen = len; vm->emsg = n;
+  vm->ekind = kind; vm->eline = line; vm->ecol = col; vm->elen = len; vm->emsg = n; vm->efile = 0;
   if (kind == RIO_ERUNTIME) n = cat(b, n, "runtime error: ");
   n = cat(b, n, m); b[n] = 0;
   return n;
@@ -116,6 +116,7 @@ NORET static void fail(Rio *vm, const char *m) {
     for (i = 0; i < TK.n && i < 24 && n < RIO_ERRBUF - 2; i++) b[n++] = TK.s[i];
     n = cat(b, n, "'"); b[n] = 0;
   }
+  if (c->curmod >= 2) vm->efile = c->names + c->mods[c->curmod].file;
   longjmp(c->jb, 1);
 }
 /* an error about the current token itself, even when it starts a new line */
@@ -147,7 +148,7 @@ static void lex(Rio *vm, RioTok *t) {
   if (isal(*p)) {
     while (p < e && (isal(*p) || isdg(*p))) p++;
     t->t = TK_ID;
-    for (i = 0; i < 10; i++) if ((int)strlen(kw[i]) == p - s && !memcmp(kw[i], s, p - s)) t->t = TK_PROC + i;
+    for (i = 0; i < 11; i++) if ((int)strlen(kw[i]) == p - s && !memcmp(kw[i], s, p - s)) t->t = TK_PROC + i;
   } else if (isdg(*p)) {
     uint32_t v = 0; double d = 0, sc = 1; int isf = 0;
     if (*p == '0' && p + 1 < e && (p[1] == 'x' || p[1] == 'X')) {
@@ -212,17 +213,28 @@ static void addsym(Rio *vm, const char *s, int n, int k, int t, int32_t v) {
   if (vm->c->nsym >= (int)vm->c->lim.syms) fail(vm, "too many symbols");
   y = &vm->c->sym[vm->c->nsym++];
   y->name = (uint16_t)addname(vm, s, n); y->len = (uint16_t)n; y->k = (uint8_t)k; y->t = (uint16_t)t; y->v = v;
+  y->mod = (uint16_t)vm->c->curmod; y->ex = 0;
+  if (vm->c->exporting && !vm->c->nblk && vm->c->curfn < 0) { y->ex = 1; vm->c->exporting = 0; } /* name* :: ... */
 }
 static int lookup(Rio *vm, const char *s, int n) {
   int i;
   for (i = vm->c->nsym - 1; i >= 0; i--)
-    if (vm->c->sym[i].k != S_METH && vm->c->sym[i].len == n && !memcmp(vm->c->names + vm->c->sym[i].name, s, (size_t)n)) return i;
+    if (vm->c->sym[i].k != S_METH && (vm->c->sym[i].mod == vm->c->curmod || !vm->c->sym[i].mod) &&
+        vm->c->sym[i].len == n && !memcmp(vm->c->names + vm->c->sym[i].name, s, (size_t)n)) return i;
+  return -1;
+}
+/* an exported name of module m */
+static int modsym(Rio *vm, int m, const char *s, int n) {
+  int i;
+  for (i = vm->c->nsym - 1; i >= 0; i--)
+    if (vm->c->sym[i].mod == m && vm->c->sym[i].ex && vm->c->sym[i].k != S_METH &&
+        vm->c->sym[i].len == n && !memcmp(vm->c->names + vm->c->sym[i].name, s, (size_t)n)) return i;
   return -1;
 }
 static int lookup_meth(Rio *vm, int t, const char *s, int n) {
   int i;
   for (i = vm->c->nsym - 1; i >= 0; i--)
-    if (vm->c->sym[i].k == S_METH && vm->c->sym[i].t == t && vm->c->sym[i].len == n && !memcmp(vm->c->names + vm->c->sym[i].name, s, (size_t)n)) return i;
+    if (vm->c->sym[i].k == S_METH && vm->c->sym[i].t == t && (vm->c->sym[i].mod == vm->c->curmod || vm->c->sym[i].ex) && vm->c->sym[i].len == n && !memcmp(vm->c->names + vm->c->sym[i].name, s, (size_t)n)) return i;
   return -1;
 }
 static int newtype(Rio *vm, int k, int elem, uint32_t n, uint32_t size) {
@@ -585,11 +597,10 @@ static void reduce1(Rio *vm) {
     patch(vm, o.a, here(vm));
   }
 }
-static Ex ident(Rio *vm) {
-  int i = lookup(vm, TK.s, TK.n); RioSym *y;
-  if (i < 0) failtok(vm, "undefined name");
-  y = &vm->c->sym[i];
+static Ex symex(Rio *vm, int i) {
+  RioSym *y = &vm->c->sym[i];
   switch (y->k) {
+  case S_MOD: return mkex(EK_MOD, 0, y->v);
   case S_VAR: return mkex(EK_ST, y->t, y->v);
   case S_CONST: { Ex e = mkex(TY(y->t)->k <= K_F32 || TY(y->t)->k == K_BOOL ? EK_CONST : EK_ST, y->t, y->v); e.ro = 1; return e; }
   case S_FN: if (!vm->c->func[y->v].done) fail(vm, "recursion is not allowed"); return mkex(EK_FN, 0, y->v);
@@ -598,6 +609,11 @@ static Ex ident(Rio *vm) {
   case S_BI: return mkex(EK_BI, 0, y->v);
   default: return mkex(EK_TY, y->t, 0);
   }
+}
+static Ex ident(Rio *vm) {
+  int i = lookup(vm, TK.s, TK.n);
+  if (i < 0) failtok(vm, "undefined name");
+  return symex(vm, i);
 }
 static Ex strconst(Rio *vm, const char *s, int n) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; uint8_t *d = c->strs + c->pool; uint32_t k = vm->nk; int i, j = 0; Ex e;
@@ -667,6 +683,12 @@ static int convname(const char *s, int n) {
 }
 static void member(Rio *vm) {
   Ex *e = vtop(vm), m; RioType *ty; int i, k;
+  if (e->k == EK_MOD) { /* mod.name: one of the module's exported names */
+    uint16_t t0 = e->t0;
+    if ((i = modsym(vm, e->a, TK.s, TK.n)) < 0) fail(vm, "not exported by that module");
+    *e = symex(vm, i); e->t0 = t0;
+    return;
+  }
   needval(vm, e); ty = TY(e->t);
   if (structfield(vm, ty, TK.s, TK.n) >= 0) { field(vm, e); return; }
   if (ty->k != K_STRUCT && ty->k != K_LIST && ty->k != K_BUILD && (k = convname(TK.s, TK.n)) >= 0) m = mkex(EK_BI, 0, k);
@@ -1107,7 +1129,15 @@ static int parse_type(Rio *vm) {
     else pre[np++] = constexpr_i(vm);
     expect(vm, ']', "']' expected");
   }
-  if (TK.t != TK_ID || (i = lookup(vm, TK.s, TK.n)) < 0 || vm->c->sym[i].k != S_TYPE) failtok(vm, "type expected");
+  if (TK.t != TK_ID || (i = lookup(vm, TK.s, TK.n)) < 0) failtok(vm, "type expected");
+  while (vm->c->sym[i].k == S_MOD) { /* mod.Type */
+    int m = vm->c->sym[i].v;
+    next(vm);
+    if (TK.t != '.') fail(vm, "'.' expected");
+    next(vm);
+    if (TK.t != TK_ID || (i = modsym(vm, m, TK.s, TK.n)) < 0) failtok(vm, "type expected");
+  }
+  if (vm->c->sym[i].k != S_TYPE) failtok(vm, "type expected");
   t = vm->c->sym[i].t; next(vm);
   if (t == TY_BLOB && TK.t == '[' && !TK.nl) {
     next(vm);
@@ -1191,7 +1221,9 @@ static void method_def(Rio *vm, int recv) {
   if (structfield(vm, TY(recv), ns, nn) >= 0) failtok(vm, "a method can't have the same name as a field");
   if (lookup_meth(vm, recv, ns, nn) >= 0) failtok(vm, "method already defined");
   if (TY(recv)->k != K_STRUCT && convname(ns, nn) >= 0) failtok(vm, "that conversion is built in");
-  next(vm); expect(vm, TK_DCOLON, "'::' expected");
+  next(vm);
+  if (TK.t == '*') { vm->c->exporting = 1; next(vm); }
+  expect(vm, TK_DCOLON, "'::' expected");
   if (TK.t != TK_PROC) fail(vm, "'proc' expected");
   proc_def(vm, ns, nn, recv);
 }
@@ -1318,10 +1350,118 @@ static void stmt_expr(Rio *vm) {
     r = expr(vm); binop(vm, op, &cur, &r); store(vm, &l, &cur);
   }
 }
+/* the token after the lookahead, without consuming anything */
+static int peek3(Rio *vm) {
+  RioC *c = vm->c; const char *sp = c->sp, *ls = c->ls; int line = c->line; RioTok t;
+  lex(vm, &t);
+  c->sp = sp; c->ls = ls; c->line = line;
+  return t.t;
+}
+static int findmod(Rio *vm, int pkg, const char *key, int n) {
+  int k;
+  for (k = 2; k < vm->c->nmod; k++)
+    if (vm->c->mods[k].pkg == pkg && vm->c->mods[k].keylen == n && !memcmp(vm->c->names + vm->c->mods[k].key, key, (size_t)n)) return k;
+  return -1;
+}
+/* start compiling a module: remember where the importing file's import statement began, so it
+   can be run again (and just bind names) once the module is done. No recursion: the driver loop
+   in compile_all switches files. */
+static void loadmod(Rio *vm, int pkg, char *key, int klen, const char *start, const char *startls, int startline) {
+  RioC *c = vm->c; RioSource s; RioMod *m; RioImp *f; int r, dl; char b[300];
+  if (c->nis >= RIO_MAX_IMPORT_DEPTH) fail(vm, "imports nested too deep");
+  if (c->nmod >= (int)c->lim.modules) fail(vm, "too many modules");
+  key[klen] = 0;
+  memset(&s, 0, sizeof s);
+  r = vm->loader ? vm->loader(vm->loadud, key, pkg, &s) : 1;
+  if (r) {
+    int n = cat(b, 0, r == 2 ? "module found in more than one library path: " : "module not found: ");
+    n = cat(b, n, key); b[n] = 0;
+    fail(vm, b);
+  }
+  m = &c->mods[c->nmod];
+  m->key = (uint16_t)addname(vm, key, klen); m->keylen = (uint16_t)klen; m->pkg = (uint8_t)pkg; m->state = 1;
+  if (s.isdir) { memcpy(b, key, (size_t)klen); b[klen] = '/'; dl = klen + 1; }
+  else for (dl = klen; dl > 0 && key[dl - 1] != '/'; dl--) {} /* a file's directory: up to its last '/' */
+  m->dir = (uint16_t)addname(vm, s.isdir ? b : key, dl); m->dirlen = (uint16_t)dl;
+  { /* a name for error messages */
+    int n = s.name ? cat(b, 0, s.name) : (cat(b, cat(b, 0, key), ".rio"));
+    b[n] = 0; m->file = (uint16_t)addname(vm, b, n + 1);
+  }
+  m->pc0 = (uint16_t)vm->pc;
+  f = &c->is[c->nis++];
+  f->src = c->src; f->se = c->se; f->ls = startls; f->pos = start; f->line = startline; f->mod = c->curmod;
+  c->curmod = c->nmod++;
+  c->src = c->sp = c->ls = s.src; c->se = s.src + s.len; c->line = 1; c->pline = 0;
+  lex(vm, &c->nx); next(vm);
+  TK.nl = 1; /* the module's first token starts a statement */
+}
+/* end of a module's source: back to the import statement that asked for it */
+static void endmodule(Rio *vm) {
+  RioC *c = vm->c; RioImp *f = &c->is[--c->nis];
+  c->mods[c->curmod].pc1 = (uint16_t)vm->pc; c->mods[c->curmod].state = 2;
+  c->src = f->src; c->se = f->se; c->ls = f->ls; c->sp = f->pos; c->line = f->line; c->curmod = f->mod;
+  lex(vm, &c->nx); next(vm);
+  c->lastlabel = vm->pc;
+}
+static int isas(Rio *vm) { return TK.t == TK_ID && TK.n == 2 && !memcmp(TK.s, "as", 2); }
+/* import .local.path / import package.path, then [as name][*] or .{a, b as c*, ...} */
+static void import_stmt(Rio *vm) {
+  RioC *c = vm->c; RioMod *im = &c->mods[c->curmod];
+  const char *start = TK.s, *startls = TK.s - (TK.col - 1), *seg = 0; char key[256];
+  int startline = TK.line, local, pkg, klen = 0, nseg = 0, sl = 0, m;
+  next(vm);
+  if (c->curfn >= 0 || c->nblk) fail(vm, "imports must be at the top level");
+  local = TK.t == '.';
+  if (local) next(vm);
+  pkg = local ? im->pkg : 1;
+  if (local) { memcpy(key, c->names + im->dir, im->dirlen); klen = im->dirlen; }
+  for (;;) {
+    if (TK.t != TK_ID) fail(vm, "module name expected");
+    if (klen + TK.n + 2 > (int)sizeof key) fail(vm, "module path too long");
+    if (nseg++) key[klen++] = '/';
+    memcpy(key + klen, TK.s, (size_t)TK.n); klen += TK.n; seg = TK.s; sl = TK.n;
+    next(vm);
+    if (TK.t == '.' && c->nx.t == TK_ID) { next(vm); continue; }
+    break;
+  }
+  if ((m = findmod(vm, pkg, key, klen)) < 0) { loadmod(vm, pkg, key, klen, start, startls, startline); return; }
+  if (c->mods[m].state != 2) fail(vm, "import cycle");
+  if (TK.t == '.' && c->nx.t == '{') { /* .{a, b as c, d*} */
+    next(vm); next(vm);
+    while (TK.t != '}') {
+      const char *as; int an, i;
+      if (TK.t != TK_ID) fail(vm, "name expected");
+      if ((i = modsym(vm, m, TK.s, TK.n)) < 0) failtok(vm, "not exported by that module");
+      as = TK.s; an = TK.n; next(vm);
+      if (isas(vm)) { next(vm); if (TK.t != TK_ID) fail(vm, "name expected after 'as'"); as = TK.s; an = TK.n; next(vm); }
+      { RioSym y = c->sym[i]; addsym(vm, as, an, y.k, y.t, y.v); }
+      if (TK.t == '*') { c->sym[c->nsym - 1].ex = 1; next(vm); }
+      if (TK.t != ',') break;
+      next(vm);
+    }
+    expect(vm, '}', "'}' expected");
+  } else {
+    if (isas(vm)) { next(vm); if (TK.t != TK_ID) fail(vm, "name expected after 'as'"); seg = TK.s; sl = TK.n; next(vm); }
+    addsym(vm, seg, sl, S_MOD, 0, m);
+    if (TK.t == '*') {
+      if (!local) fail(vm, "only local modules (import .name) can be re-exported whole");
+      c->sym[c->nsym - 1].ex = 1; next(vm);
+    }
+  }
+}
 static void statement(Rio *vm) {
   int t = TK.t, i; RioBlk *b; Ex e;
   vm->c->fr = vm->c->nact;
   if (t == ';') { next(vm); return; }
+  if (t == TK_IMPORT) { import_stmt(vm); goto done; }
+  if (t == TK_ID && vm->c->nx.t == '*') { /* name* :: / name* := / name*: exports the name */
+    int t3 = peek3(vm);
+    if (t3 == TK_DCOLON || t3 == TK_DECL || t3 == ':') {
+      RioTok nm = TK;
+      if (vm->c->curfn >= 0 || vm->c->nblk) failtok(vm, "only top-level names can be exported");
+      next(vm); vm->c->tk = nm; vm->c->exporting = 1;
+    }
+  }
   if (t == TK_ID && vm->c->nx.t == '.' && (i = lookup(vm, TK.s, TK.n)) >= 0 && vm->c->sym[i].k == S_TYPE) method_def(vm, vm->c->sym[i].t);
   else if (t == TK_ID && vm->c->nx.t == TK_DCOLON) {
     const char *ns = TK.s; int nn = TK.n;
@@ -1421,6 +1561,8 @@ static void statement(Rio *vm) {
   case '{': destructure(vm); break;
   default: stmt_expr(vm);
   }
+done:
+  if (vm->c->exporting) { vm->c->exporting = 0; fail(vm, "nothing here to export"); }
   vm->c->fr = vm->c->nact;
   if (TK.t != TK_EOF && TK.t != ';' && !TK.nl) fail(vm, "expected end of statement");
 }
@@ -1435,6 +1577,7 @@ int rio_init(Rio *vm, void *mem, uint32_t memsize, RioIns *code, uint32_t codeca
   return 0;
 }
 void rio_set_log(Rio *vm, RioLogFn fn, void *ud) { vm->logfn = fn; vm->logud = ud; }
+void rio_set_loader(Rio *vm, RioLoadFn fn, void *ud) { vm->loader = fn; vm->loadud = ud; }
 int rio_ffi(Rio *vm, const char *name, const char *sig, RioFn fn) {
   RioFfi *f;
   if (vm->nffi >= RIO_MAX_FFI) return -1;
@@ -1464,6 +1607,7 @@ RioLimits rio_limits_for(uint32_t bytes) {
   l.types = clampu(l.syms / 8, 16, 65535);
   l.procs = clampu(l.syms / 4, 8, 65535);
   l.params = clampu(l.syms / 2, 16, 65535);
+  l.modules = clampu(l.syms / 32, 8, 1024);
   return l;
 }
 static uint32_t carve(uint32_t *at, uint32_t n, uint32_t size, uint32_t align) {
@@ -1478,12 +1622,13 @@ static uint32_t layout(RioC *c, const RioLimits *l) {
   uint32_t field = carve(&at, l->fields, sizeof(RioField), 2), func = carve(&at, l->procs, sizeof(RioCFunc), 4);
   uint32_t param = carve(&at, l->params, sizeof(RioParam), 4), blk = carve(&at, l->blocks, sizeof(RioBlk), 2);
   uint32_t vs = carve(&at, l->expr, sizeof(RioEx), 4), os = carve(&at, l->expr, sizeof(RioOp), 8);
+  uint32_t mods = carve(&at, l->modules, sizeof(RioMod), 2);
   uint32_t names = carve(&at, l->names, 1, 1), exposed = carve(&at, (l->slots + 7) / 8, 1, 1), kfix = carve(&at, (l->consts + 7) / 8, 1, 1);
   if (c) {
     c->sym = (RioSym *)(void *)(b + sym); c->type = (RioType *)(void *)(b + type); c->field = (RioField *)(void *)(b + field);
     c->func = (RioCFunc *)(void *)(b + func); c->param = (RioParam *)(void *)(b + param); c->blk = (RioBlk *)(void *)(b + blk);
     c->vs = (RioEx *)(void *)(b + vs); c->os = (RioOp *)(void *)(b + os); c->names = (char *)b + names;
-    c->exposed = b + exposed; c->kfix = b + kfix;
+    c->exposed = b + exposed; c->kfix = b + kfix; c->mods = (RioMod *)(void *)(b + mods);
     memset(c->exposed, 0, kfix + (l->consts + 7) / 8 - exposed);
   }
   return (at + 15) & ~15u;
@@ -1496,6 +1641,7 @@ static void setup(Rio *vm) {
   static const char *tn[] = {"Int", "Float", "String", "Blob", "Bool"};
   RioC *c = vm->c; int i;
   c->nact = c->fr = c->hwm = vm->kcap; c->curfn = -1; c->lastlabel = NONE; c->target = -1;
+  c->curmod = 0; c->nmod = 2; memset(c->mods, 0, 2 * sizeof(RioMod));
   for (i = 0; i < 7; i++) { c->type[i].k = tk[i]; c->type[i].size = ts[i]; c->type[i].elem = TY_BYTE; c->type[i].ref = i == TY_STR || i == TY_BLOB; }
   c->ntype = 7;
   for (i = 0; i < 5; i++) addsym(vm, tn[i], (int)strlen(tn[i]), S_TYPE, i < 2 ? TY_I32 + i : TY_STR + i - 2, 0);
@@ -1522,6 +1668,16 @@ static void setup(Rio *vm) {
     e = defval(vm, i, -1);
     addsym(vm, nm, n, S_CONST, e.t, e.a);
   }
+  c->curmod = 1; c->mods[1].state = 1; /* the main source */
+}
+static void compile_all(Rio *vm) {
+  RioC *c = vm->c;
+  for (;;) {
+    if (TK.t != TK_EOF) { statement(vm); continue; }
+    if (c->nblk) fail(vm, M_END);
+    if (!c->nis) break;
+    endmodule(vm);
+  }
 }
 /* lay out the final memory: string pool + export table go just below the big arrays, string
    constants get their real addresses, and everything the compiler used is zeroed */
@@ -1535,12 +1691,19 @@ static void finalize(Rio *vm) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; RioExport *x;
   uint32_t i, n = 0, p, ex, lo, fo, sz, base, first = vm->kcap * 4; int k;
   c->fr = c->hwm; vm->csaddr = (uint32_t)alloc(vm, vm->nfunc + 1) * 4; /* return stack: depth <= #procs */
+  uint32_t mo, mf, nm = (uint32_t)(c->nmod - 2);
   p = c->pool;
   for (k = 0; k < c->nsym; k++) {
     RioSym *y = &c->sym[k];
-    if (y->k != S_FN && y->k != S_VAR) continue;
+    if ((y->k != S_FN && y->k != S_VAR) || y->mod != 1) continue;
     if (y->len > c->poolcap - p) fail(vm, "out of compiler memory");
     memcpy(c->strs + p, c->names + y->name, y->len); p += y->len; n++;
+  }
+  mf = p; /* module file names, for runtime errors */
+  for (k = 2; k < c->nmod; k++) {
+    uint32_t fl = (uint32_t)strlen(c->names + c->mods[k].file) + 1;
+    if (fl > c->poolcap - p) fail(vm, "out of compiler memory");
+    memcpy(c->strs + p, c->names + c->mods[k].file, fl); p += fl;
   }
   { /* the line table was written top-down: reverse it in place so it ascends by pc */
     uint8_t *a = c->strs + c->poolcap, *z = c->strs + c->linetop - 4, t[4];
@@ -1548,19 +1711,25 @@ static void finalize(Rio *vm) {
   }
   /* block layout: strings and names | exports | pc->line table | per-proc table */
   ex = (p + 3) & ~3u; lo = ex + n * (uint32_t)sizeof(RioExport); fo = lo + c->nline * 4;
-  sz = (fo + (uint32_t)vm->nfunc * (uint32_t)sizeof(RioFunc) + 3) & ~3u;
+  mo = (fo + (uint32_t)vm->nfunc * (uint32_t)sizeof(RioFunc) + 3) & ~3u;
+  sz = mo + nm * (uint32_t)sizeof(RioModRt);
   if (lo > c->poolcap || sz > c->linetop) fail(vm, "out of compiler memory");
   if (vm->hi < sz || ((vm->hi - sz) & ~3u) < c->hwm * 4) fail(vm, "out of memory");
   base = (vm->hi - sz) & ~3u;
   x = (RioExport *)(void *)(c->strs + ex); p = c->pool;
   for (k = 0; k < c->nsym; k++) {
     RioSym *y = &c->sym[k];
-    if (y->k != S_FN && y->k != S_VAR) continue;
+    if ((y->k != S_FN && y->k != S_VAR) || y->mod != 1) continue;
     x->name = base + p; x->len = y->len; x->k = y->k; x->pad = 0; x->v = y->v; p += y->len; x++;
   }
   memmove(c->strs + lo, c->strs + c->poolcap, c->nline * 4); /* lines go right after the exports */
   for (i = 1; i < vm->nk; i++) if (KFIX(i)) R[i].u = base + (R[i].u & 0x7FFFFFFFu);
   for (k = 0; k < vm->nfunc; k++) rtfunc(vm, (RioFunc *)(void *)(c->strs + fo) + k, k);
+  for (k = 2, p = mf; k < c->nmod; k++) {
+    RioModRt *r = (RioModRt *)(void *)(c->strs + mo) + (k - 2);
+    r->pc0 = c->mods[k].pc0; r->pc1 = c->mods[k].pc1; r->file = base + p; p += (uint32_t)strlen(c->names + c->mods[k].file) + 1;
+  }
+  vm->mods = base + mo; vm->nmods = nm;
   vm->exports = base + ex; vm->nexports = n; vm->hi = base;
   vm->lines = base + lo; vm->nlines = c->nline; vm->func = (RioFunc *)(void *)(vm->mem + base + fo);
   /* nothing in c is read after this: the move and the zeroing may overwrite it */
@@ -1600,8 +1769,7 @@ int rio_compile_ex(Rio *vm, const char *src, uint32_t len, void *scratch, uint32
   setup(vm);
   c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1;
   lex(vm, &c->nx); next(vm);
-  while (TK.t != TK_EOF) statement(vm);
-  if (c->nblk) fail(vm, M_END);
+  compile_all(vm);
   emit(vm, OP_HALT, 0, 0, 0);
   finalize(vm);
   if (inmem) vm->c = 0;
@@ -1648,7 +1816,7 @@ int rio_repl_begin(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim) 
 }
 int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
   RioC *c = vm->c; uint32_t pc0 = vm->pc, nk0 = vm->nk, hi0 = vm->hi, nact0, hwm0, poolcap0, nline0, lastline0;
-  int nsym0, ntype0, nfield0, nparam0, nnames0, nfunc0 = vm->nfunc;
+  int nsym0, ntype0, nfield0, nparam0, nnames0, nfunc0 = vm->nfunc, nmod0 = c ? c->nmod : 0;
   if (!vm->repl || !c) { seterr(vm, RIO_ECOMPILE, 0, 0, 0, "no REPL session"); return -1; }
   vm->ekind = RIO_ENONE; vm->err[0] = 0;
   nact0 = c->nact; hwm0 = c->hwm; poolcap0 = c->poolcap; nline0 = c->nline; lastline0 = c->lastline;
@@ -1661,14 +1829,14 @@ int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
     c->nact = c->fr = nact0; c->hwm = hwm0; c->poolcap = poolcap0; c->nline = nline0; c->lastline = lastline0; c->pool = 0;
     c->nsym = nsym0; c->ntype = ntype0; c->nfield = nfield0; c->nparam = nparam0; c->nnames = nnames0;
     c->nblk = c->nvs = c->nos = 0; c->curfn = -1; c->target = -1; c->lineovr = 0;
+    c->nmod = nmod0; c->nis = 0; c->curmod = 1; c->exporting = 0;
     if (more) { vm->ekind = RIO_ENONE; vm->err[0] = 0; return RIO_MORE; }
     return -1;
   }
   c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1; c->pline = c->pcol = c->pw = 0; c->lastline = 0;
   lex(vm, &c->nx); next(vm);
   c->lastlabel = vm->pc; /* nothing gets fused with the previous piece's last instruction */
-  while (TK.t != TK_EOF) statement(vm);
-  if (c->nblk) fail(vm, M_END);
+  compile_all(vm);
   emit(vm, OP_HALT, 0, 0, 0);
   commit(vm, nk0, nfunc0);
   vm->brk = 0;
@@ -1677,7 +1845,7 @@ int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
 void rio_interrupt(Rio *vm) { vm->brk = 1; }
 const char *rio_error(Rio *vm) { return vm->err; }
 RioError rio_error_info(Rio *vm) {
-  RioError e; e.kind = vm->ekind; e.line = vm->eline; e.col = vm->ecol; e.len = vm->elen; e.msg = vm->err + vm->emsg;
+  RioError e; e.kind = vm->ekind; e.line = vm->eline; e.col = vm->ecol; e.len = vm->elen; e.msg = vm->err + vm->emsg; e.file = vm->efile;
   return e;
 }
 int rio_pc_line(Rio *vm, uint32_t pc) { /* binary search the (pc, line) table */
@@ -1720,10 +1888,26 @@ void *rio_ptr(Rio *vm, const RioVal *s) {
 
 /* ---------------------------------------------------------------- vm */
 static void logput(Rio *vm, const char *s, int n) { while (n-- > 0 && vm->logn < RIO_LOGBUF) vm->logbuf[vm->logn++] = *s++; }
+static const char *pcfile(Rio *vm, uint32_t pc) {
+  const char *f = 0; uint32_t best = 0x10000, k;
+  if (vm->repl && vm->c) {
+    for (k = 2; k < (uint32_t)vm->c->nmod; k++) {
+      RioMod *m = &vm->c->mods[k];
+      if (pc >= m->pc0 && pc < m->pc1 && (uint32_t)(m->pc1 - m->pc0) < best) { best = m->pc1 - m->pc0; f = vm->c->names + m->file; }
+    }
+    return f;
+  }
+  for (k = 0; k < vm->nmods; k++) {
+    RioModRt *m = (RioModRt *)(void *)(vm->mem + vm->mods) + k;
+    if (pc >= m->pc0 && pc < m->pc1 && (uint32_t)(m->pc1 - m->pc0) < best) { best = m->pc1 - m->pc0; f = (const char *)vm->mem + m->file; }
+  }
+  return f;
+}
 static int rterr(Rio *vm, const char *m, uint32_t pc) {
   char b[RIO_ERRBUF];
   if (m == vm->err) { memcpy(b, m, sizeof b); m = b; } /* a message from rio_trap */
   seterr(vm, RIO_ERUNTIME, rio_pc_line(vm, pc), 0, 0, m);
+  vm->efile = pcfile(vm, pc);
   return -1;
 }
 static int run(Rio *vm, uint32_t pc) {

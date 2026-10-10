@@ -72,6 +72,14 @@ target_link_libraries(rio_repl_test PRIVATE riocore)
 add_test(NAME rio_repl COMMAND rio_repl_test)
 set_tests_properties(rio_repl PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ repl tests passed")
 
+# modules: real files through the CLI loader, and edge cases through the API
+add_test(NAME rio_modules COMMAND rio -L ${CMAKE_SOURCE_DIR}/tests/modules/lib ${CMAKE_SOURCE_DIR}/tests/modules/main.rio)
+set_tests_properties(rio_modules PROPERTIES PASS_REGULAR_EXPRESSION "all module tests passed" FAIL_REGULAR_EXPRESSION "FAIL")
+add_executable(rio_modules_test tests/modules.c)
+target_link_libraries(rio_modules_test PRIVATE riocore)
+add_test(NAME rio_modules_api COMMAND rio_modules_test)
+set_tests_properties(rio_modules_api PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ module tests passed")
+
 # the same suite compiled ahead of time to C
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/test_aot.c
   COMMAND rio -c ${CMAKE_BINARY_DIR}/test_aot.c ${CMAKE_SOURCE_DIR}/tests/test.rio

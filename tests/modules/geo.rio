@@ -1,0 +1,20 @@
+// a local module: exported names end in *
+Vec* :: struct
+  x, y: Float
+end
+sq :: proc(v: Float) -> Float     // private to this file
+  return v * v
+end
+Vec.len2* :: proc() -> Float
+  return sq(self.x) + sq(self.y)
+end
+add* :: proc(a: Vec, b: Vec) -> Vec
+  return {x = a.x + b.x, y = a.y + b.y}
+end
+UNIT* :: 1
+count* := 1
+ready* := true
+bump* :: proc() -> Int
+  count += 1
+  return count
+end
