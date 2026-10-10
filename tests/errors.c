@@ -27,7 +27,7 @@ static const Case cases[] = {
   {"x := 1\nelse\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 4, "'else' without 'if'"},
   {"x := 1\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 3, "'end' without block"},
   {"x := 1\nreturn\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 6, "return outside proc"},
-  {"xs: [..2]Int\nwrite(xs, 1)\n",0, 0, 0, RIO_ECOMPILE, 2, 9, 1, "write needs a Blob list"},
+  {"xs: [..2]Int\nformat(xs, 1)\n",0, 0, 0, RIO_ECOMPILE, 2, 10, 1, "format needs a Blob list"},
   /* ...or at the last token of an expression that can only be judged once it's complete */
   {"x := 1\n  y := 2.0 + \"s\"\n", 0, 0, 0, RIO_ECOMPILE, 2, 14, 3, "type mismatch"},
   {"x := (1 + 2\n", 0, 0, 0, RIO_ECOMPILE, 1, 11, 1, "unclosed bracket"},

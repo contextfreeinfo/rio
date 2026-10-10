@@ -31,7 +31,7 @@ enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN };
 enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
 enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR };
 enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2,
-  BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_WRITE };
+  BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_FORMAT };
 #define NONE 0xFFFF
 #define TY(t) (&vm->c->type[t])
 #define TK (vm->c->tk)
@@ -41,7 +41,7 @@ typedef RioOp Op;
 static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue"};
 static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod",
-  "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "write"};
+  "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format"};
 static float f_sqrt(float x) { return sqrtf(x); }
 static float f_sin(float x) { return sinf(x); }
 static float f_cos(float x) { return cosf(x); }
@@ -704,12 +704,12 @@ static void argdone(Rio *vm, Op *m) {
     vm->c->fr = (uint32_t)(m->fr0 + m->c); d = alloc(vm, w);
     if (s != d && !(w == 1 && retarget(vm, s, d))) emit(vm, w == 2 ? OP_MOV2 : OP_MOV, d, s, 0);
     m->c += w;
-  } else if (m->a == EK_BI && m->b == BI_WRITE) {
+  } else if (m->a == EK_BI && m->b == BI_FORMAT) {
     int k;
     e = vpop(vm); k = TY(e.t)->k;
-    if (m->n == 0) { /* remember the length so a write that doesn't fit can be undone */
+    if (m->n == 0) { /* remember the length so a format that doesn't fit can be undone */
       int t;
-      if ((k != K_LIST && k != K_BUILD) || TY(e.t)->elem != TY_BYTE) fail(vm, "write needs a Blob list");
+      if ((k != K_LIST && k != K_BUILD) || TY(e.t)->elem != TY_BYTE) fail(vm, "format needs a Blob list");
       m->c = toslot2(vm, &e); t = alloc(vm, 2);
       emit(vm, OP_LDW, t, m->c, 0); emit(vm, OP_MOV, t + 1, kslot(vm, 1), 0);
       m->set = (uint64_t)t;
@@ -720,7 +720,7 @@ static void argdone(Rio *vm, Op *m) {
       } else if (k == K_I32 || k == K_F32 || k == K_BOOL || k == K_BYTE) {
         s = toslot(vm, &e, 1); d = alloc(vm, 1); emit(vm, OP_PUSHT, d, m->c, s);
         vm->code[vm->pc - 1].x = (uint8_t)(k == K_F32 ? 1 : k == K_BOOL ? 2 : 0);
-      } else fail(vm, "write takes Strings, Blobs and numbers");
+      } else fail(vm, "format takes Strings, Blobs and numbers");
       emit(vm, OP_AND, ok, ok, d);
       vm->c->fr = e.t0;
     }
@@ -872,9 +872,9 @@ static void finish_call(Rio *vm, Op *m) {
     else vres(vm, mkex(EK_ST, f->ret, alloc(vm, words(vm, f->ret)) * 4), m->fr0);
   } else if (m->a == EK_BI) {
     if (m->b == BI_MIN || m->b == BI_MAX) minmax(vm, m);
-    else if (m->b == BI_WRITE) {
+    else if (m->b == BI_FORMAT) {
       int t = (int)m->set, j;
-      if (m->n < 1) fail(vm, "write needs a Blob list");
+      if (m->n < 1) fail(vm, "format needs a Blob list");
       j = emit(vm, OP_JNZ, t + 1, 0, NONE); emit(vm, OP_STW, m->c, t, 0); patch(vm, j, here(vm));
       vm->c->fr = (uint32_t)t + 2; vres(vm, mkex(EK_ST, TY_BOOL, (t + 1) * 4), m->fr0);
     } else if (m->b >= BI_PUSH) listop(vm, m);
