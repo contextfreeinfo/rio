@@ -72,6 +72,10 @@ static const Case cases[] = {
   {"f :: proc(out: &[]Int)\n  a: [4]Int\n  out = a[:]\nend\n", 0, 0, 0, RIO_ECOMPILE, 3, -1, -1, "this view of the proc's own memory would outlive the call"},
   /* views of globals and parameters, and local views passed down or replaced, are fine */
   {"g: []Int\nga: [4]Int\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[:]\n  n := len(s)\n  s = ga[:]\n  g = s\n  return v[1:]\nend\nsum :: proc(v: []Int) -> Int\n  return len(v)\nend\nh :: proc() -> Int\n  a: [4]Int\n  return sum(a[:])\nend\nlog(len(f(ga)), h())\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
+  /* comments start with #: a C-style comment is an error that points at itself */
+  {"x := 1 // note\n", 0, 0, 0, RIO_ECOMPILE, 1, 8, 2, "comments start with #"},
+  {"/* note */\nx := 1\n", 0, 0, 0, RIO_ECOMPILE, 1, 1, 2, "comments start with #"},
+  {"#!/usr/bin/env rio\n# a script\nx := 1 # note\nlog(x, \"a # b\", '#') #\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
   {"x := 1\nelse\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 4, "'else' without 'if'"},
   {"x := 1\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 3, "'end' without block"},
   {"x := 1\nreturn\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 6, "return outside proc"},

@@ -142,11 +142,12 @@ static void lex(Rio *vm, RioTok *t) {
   int nl = 0, i;
   for (;;) {
     while (p < e && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')) { if (*p == '\n') { nl = 1; vm->c->line++; vm->c->ls = p + 1; } p++; }
-    if (p + 1 < e && p[0] == '/' && p[1] == '/') { while (p < e && *p != '\n') p++; continue; }
-    if (p + 1 < e && p[0] == '/' && p[1] == '*') {
-      for (p += 2; p + 1 < e && !(p[0] == '*' && p[1] == '/'); p++) if (*p == '\n') { nl = 1; vm->c->line++; vm->c->ls = p + 1; }
-      p = p + 1 < e ? p + 2 : e;
-      continue;
+    if (p < e && *p == '#') { while (p < e && *p != '\n') p++; continue; } /* comments run to the end of the line */
+    if (p + 1 < e && p[0] == '/' && (p[1] == '/' || p[1] == '*')) { /* a habit from other languages */
+      vm->c->failmsg = "comments start with #";
+      seterr(vm, RIO_ECOMPILE, vm->c->line, (int)(p - vm->c->ls) + 1, 2, "comments start with #");
+      if (vm->c->curf >= 2) vm->efile = vm->c->names + vm->c->mods[vm->c->curf].file;
+      longjmp(vm->c->jb, 1);
     }
     break;
   }
@@ -1174,7 +1175,7 @@ static void punfield(Rio *vm, Op *m) {
   while (p < e) {
     if (isal(*p)) { nm = p; while (p < e && (isal(*p) || isdg(*p))) p++; nn = (int)(p - nm); }
     else if (*p == '.' || *p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') p++;
-    else if (p + 1 < e && p[0] == '/' && p[1] == '/') { while (p < e && *p != '\n') p++; }
+    else if (*p == '#') { while (p < e && *p != '\n') p++; }
     else fail(vm, "only a name or a.b path can stand for a field; write field = value");
   }
   setfield(vm, m, nm, nn);

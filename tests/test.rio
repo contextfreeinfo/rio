@@ -1,4 +1,4 @@
-// rio test suite: prints "FAIL" on any failed check (ctest watches for it)
+# rio test suite: prints "FAIL" on any failed check (ctest watches for it)
 
 fails := 0
 check :: proc(ok: Bool, what: String)
@@ -8,7 +8,7 @@ check :: proc(ok: Bool, what: String)
   end
 end
 
-// ---- arithmetic & inference
+# ---- arithmetic & inference
 a := 7
 b := 3
 check(a + b == 10, "add")
@@ -34,7 +34,7 @@ check(1 < 2 && 2 <= 2 && 3 > 2 && 3 >= 3 && 1 != 2, "compare")
 check(false || true, "or")
 check(!(true && false), "and")
 
-// ---- Bool
+# ---- Bool
 done := false
 check(!done && done == false && done != true, "bool basics")
 done = 3 > 2
@@ -56,7 +56,7 @@ end
 fl := Flag{on = true, n = 2}
 check(fl.on, "bool field")
 
-// ---- constants
+# ---- constants
 N :: 16
 HALF :: N / 2
 PI :: 3.14159
@@ -64,7 +64,7 @@ GREETING :: "hello"
 check(HALF == 8, "const fold")
 check(GREETING == "hello" && len(GREETING) == 5, "string const")
 
-// ---- control flow
+# ---- control flow
 sum := 0
 for i in 0..<10
   sum += i
@@ -102,7 +102,7 @@ else
 end
 check(g == 2, "else if")
 
-// ---- structs & contiguous arrays
+# ---- structs & contiguous arrays
 Vec :: struct
   x, y: Float
 end
@@ -149,7 +149,7 @@ for k in 0..<2
     check(q.vel.x == 0 && q.vel.y == 0 && q.life == 1, "literal zeroes stale slots")
   end
 end
-// ordered init is just a helper proc
+# ordered init is just a helper proc
 vec :: proc(x: Float, y: Float) -> Vec
   return Vec{x = x, y = y}
 end
@@ -166,7 +166,7 @@ r := add(v, add(v, v))
 check(r.x == 9 && r.y == 12, "struct return nested")
 check(add(v, v).y == 8, "field of call")
 
-// ---- slices, blobs, strings
+# ---- slices, blobs, strings
 data: [8]Int
 for i in 0..<8
   data[i] = i * i
@@ -200,14 +200,14 @@ people[0] = Named{name = "ann", id = 1}
 people[1].name = "bob"
 check(people[1].name == "bob" && len(people[0].name) == 3, "strings in global structs")
 
-// ---- math builtins
+# ---- math builtins
 check(abs(-3) == 3 && abs(-2.5) == 2.5, "abs")
 check(min(3, 4) == 3 && max(2.0, 5) == 5.0, "min max")
 check(sqrt(16) == 4 && floor(2.7) == 2 && ceil(2.1) == 3 && round(2.5) == 3, "math")
 check(abs(sin(0.0)) < 0.0001 && abs(cos(0.0) - 1) < 0.0001, "trig")
 check(pow(2, 10) == 1024 && abs(atan2(1, 1) - PI / 4) < 0.001, "math2")
 
-// ---- procs calling procs (no recursion)
+# ---- procs calling procs (no recursion)
 sq :: proc(v: Int) -> Int
   return v * v
 end
@@ -223,7 +223,7 @@ bump()
 bump()
 check(counter == 2, "globals from procs")
 
-// ---- locals inside procs (static frames; AOT turns these into C locals)
+# ---- locals inside procs (static frames; AOT turns these into C locals)
 scale2 :: proc(v: Vec, k: Float) -> Vec
   return Vec{x = v.x * k, y = v.y * k}
 end
@@ -259,7 +259,7 @@ if nanv < 1
 end
 check(lt == 0, "nan branch")
 
-// ---- lists ([..N]T storage) and builders ([..]T views)
+# ---- lists ([..N]T storage) and builders ([..]T views)
 Enemy :: struct
   x, hp: Int
 end
@@ -319,7 +319,7 @@ bags: [2]Inv
 bags[1].items.push(9)
 check(len(bags[1].items) == 1 && bags[1].items[0] == 9 && len(bags[0].items) == 0, "list inside a struct inside an array")
 
-// ---- methods: Type.name :: proc, with an implicit self
+# ---- methods: Type.name :: proc, with an implicit self
 Ship :: struct
   x, vx: Float
   hp: Int
@@ -390,7 +390,7 @@ end
 b1 := Bullet{hp = 1}
 check(update() == 7 && solo.update() == 3 && b1.update() == 101, "procs and each type's methods have separate names")
 
-// ---- struct literals typed by where they're going: {field = ...}
+# ---- struct literals typed by where they're going: {field = ...}
 tv: Vec = {x = 1, y = 2}
 check(tv.x == 1 && tv.y == 2, "typed by a declaration")
 tv = {y = 9}
@@ -413,7 +413,7 @@ Ship.aim :: proc(v: Vec) -> Float
 end
 check(fleet[0].aim({x = 1, y = 2}) == 12, "typed by a method parameter")
 
-// ---- field punning: {x} means {x = x}; {a.b.x} means {x = a.b.x}
+# ---- field punning: {x} means {x = x}; {a.b.x} means {x = a.b.x}
 pv: Vec = {x, y}
 check(pv.x == 1.5 && pv.y == 2, "punning globals")
 mkv :: proc(x: Float, y: Float) -> Vec
@@ -429,12 +429,12 @@ end
 check(fleet[0].at().x == 9 && fleet[0].at().y == 4, "punning self fields")
 check(Vec{src.pos.y, x = 0}.y == 2, "deep path, mixed with named fields")
 pv2 := Vec{
-  x,  // a comment between items
-  y   // and before the brace
+  x,  # a comment between items
+  y   # and before the brace
 }
 check(pv2.x == 1.5 && pv2.y == 2, "punning across lines, with comments")
 
-// ---- destructuring: {a, b as c} := struct
+# ---- destructuring: {a, b as c} := struct
 QR :: struct
   q, r: Int
 end
@@ -466,7 +466,7 @@ check(nested(parts, 10) == 10.5 + 1 + 2, "through a slice, then shallow again")
 as := 5
 check(as == 5, "as is still an ordinary name elsewhere")
 
-// ---- for x in xs: x is the element itself (no copy, no bounds checks), with an optional index
+# ---- for x in xs: x is the element itself (no copy, no bounds checks), with an optional index
 squad: [4]Ship
 for s, i in squad
   s = {x = i.toFloat(), vx = 1, hp = i}
@@ -535,12 +535,12 @@ sumhp :: proc(ss: []Ship) -> Int
 end
 check(sumhp(squad[:]) == 10 + 11 + 12 + 13, "inside a proc, over a slice parameter")
 
-// ---- references: &T parameters and name := &place (never stored, returned or re-pointed)
+# ---- references: &T parameters and name := &place (never stored, returned or re-pointed)
 swapvx :: proc(a: &Ship, b: &Ship)
   t := a.vx
   a.vx = b.vx
   b.vx = t
-  a.hurt(1)                       // methods and fields work through a reference
+  a.hurt(1)                       # methods and fields work through a reference
 end
 addto :: proc(n: &Int, by: Int)
   n += by
@@ -559,8 +559,8 @@ rename :: proc(s: &String)
   s = "renamed"
 end
 passon :: proc(s: &Ship)
-  addto(&s.hp, 100)               // a reference passes on as &, or to a field
-  swapvx(&s, &s)                  // the same place twice is allowed
+  addto(&s.hp, 100)               # a reference passes on as &, or to a field
+  swapvx(&s, &s)                  # the same place twice is allowed
 end
 crew: [4]Ship
 for s, i in crew
@@ -604,7 +604,7 @@ reflocal :: proc() -> Int
 end
 check(reflocal() == 112, "references to locals inside a proc")
 
-// ---- arithmetic on arrays and on structs made of one number type: element by element, scalars spread
+# ---- arithmetic on arrays and on structs made of one number type: element by element, scalars spread
 V2 :: struct
   x, y: Float
 end
@@ -668,7 +668,7 @@ vr := &mv.vel
 vr *= 2.0
 check(mv.vel.x == 4, "through a reference")
 
-// ---- swizzles: .x .y .z .w / .r .g .b .a on arrays of 1-4 numbers or Bools
+# ---- swizzles: .x .y .z .w / .r .g .b .a on arrays of 1-4 numbers or Bools
 sv: [3]Float
 sv.x = 1
 sv.y = 2
@@ -707,9 +707,9 @@ swl :: proc() -> Float
 end
 check(swl() == 3, "inside a proc")
 
-// ---- small arrays are values: x := a copies, and up to 16 words they pass and return by value
+# ---- small arrays are values: x := a copies, and up to 16 words they pass and return by value
 flipx :: proc(v: [2]Float) -> [2]Float
-  v.x = -v.x                      // the parameter is a copy
+  v.x = -v.x                      # the parameter is a copy
   return v.yx
 end
 fa: [2]Float
@@ -743,7 +743,7 @@ fm: [4][4]Float
 fm2 := bump4(fm)
 check(fm[0][0] == 0 && fm2[0][0] == 1, "16 words is still small")
 
-// ---- builders over any array or slice: name: [..]T = memory, starting empty
+# ---- builders over any array or slice: name: [..]T = memory, starting empty
 bbuf: [8]Int
 bb: [..]Int = bbuf
 bb.push(3)
@@ -787,19 +787,19 @@ blocal :: proc() -> Int
 end
 check(blocal() == 22, "builders over locals and lists inside a proc")
 
-// ---- procs that never run at the same time share frame memory; a caller's locals survive its calls
+# ---- procs that never run at the same time share frame memory; a caller's locals survive its calls
 shA :: proc(x: Int) -> Int
   t := x * 3
   return t + 1
 end
-shB :: proc(x: Int) -> Int            // never runs alongside shA: may use the same memory
+shB :: proc(x: Int) -> Int            # never runs alongside shA: may use the same memory
   u := x + 100
   w := u * 2
   return w - u
 end
 shC :: proc(x: Int) -> Int
   a := shA(x)
-  b := shB(x)                         // a lives in shC's own frame, above both
+  b := shB(x)                         # a lives in shC's own frame, above both
   c := shA(b)
   return a * 1000000 + b * 1000 + c
 end
@@ -818,7 +818,11 @@ shW :: proc() -> Float
 end
 check(shW() == 1 + 40 + 400, "array values through shared frames")
 
-// ---- ffi
+# ---- comments start with #; inside strings and char literals it's just a character
+hstr := "a # b"
+check(len(hstr) == 5 && hstr[2] == '#' && '#' == 35, "# in a string or char literal") # a comment here too
+
+# ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")
 

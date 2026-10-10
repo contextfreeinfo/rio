@@ -1,10 +1,10 @@
-// top-level constants that `rio -D NAME=value` can override; ctest runs this with and without -D
+# top-level constants that `rio -D NAME=value` can override; ctest runs this with and without -D
 N :: 10
 SCALE :: 1.5
 NAME :: "default"
 VERBOSE :: false
 
-// the constants work everywhere a constant can: array sizes, folding, procs
+# the constants work everywhere a constant can: array sizes, folding, procs
 data: [N]Int
 total :: proc() -> Int
   t := 0

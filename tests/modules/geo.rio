@@ -1,8 +1,8 @@
-// a local module: exported names end in *
+# a local module: exported names end in *
 Vec* :: struct
   x, y: Float
 end
-sq :: proc(v: Float) -> Float     // private to this file
+sq :: proc(v: Float) -> Float     # private to this file
   return v * v
 end
 Vec.len2* :: proc() -> Float

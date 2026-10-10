@@ -1,11 +1,11 @@
-// module test: rio -L tests/modules/lib tests/modules/main.rio
+# module test: rio -L tests/modules/lib tests/modules/main.rio
 import .geo
 import .geo.{Vec, add as plus, UNIT}
 import .shapes
 import mathx
 import mathx.{cube}
-import mathx.extra                // a submodule mathx publishes
-include "parts/util.rio"          // part of this file's module
+import mathx.extra                # a submodule mathx publishes
+include "parts/util.rio"          # part of this file's module
 
 fails := 0
 check :: proc(ok: Bool, what: String)

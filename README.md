@@ -28,30 +28,30 @@ On Windows with Visual Studio, CMake uses the ClangCL toolset when it's installe
 
 ## Language tour
 
-```odin
-// constants (folded at compile time)
+```ruby
+# constants (folded at compile time)
 N :: 1000
 GRAVITY :: 9.8
 NAME :: "rio"
 
-// structs: fields are laid out contiguously
+# structs: fields are laid out contiguously
 Vec :: struct
   x, y: Float
 end
 Particle :: struct
   pos, vel: Vec
   life: Int
-  tag: Blob[8]          // inline 8 bytes
+  tag: Blob[8]          # inline 8 bytes
 end
 
-parts: [N]Particle      // global storage: one contiguous block
-count := 0              // inferred Int
-ready := false          // Bool
-scale : Float = 2       // Int literal coerces to Float
+parts: [N]Particle      # global storage: one contiguous block
+count := 0              # inferred Int
+ready := false          # Bool
+scale : Float = 2       # Int literal coerces to Float
 
-// procs: must be defined before use, so recursion is impossible
+# procs: must be defined before use, so recursion is impossible
 step :: proc(ps: []Particle, dt: Float)
-  for p in ps                     // p is the element itself: changes stick
+  for p in ps                     # p is the element itself: changes stick
     p.vel.y -= GRAVITY * dt
     p.pos.x += p.vel.x * dt
     p.pos.y += p.vel.y * dt
@@ -66,18 +66,18 @@ main :: proc()
   for i in 0..<N
     parts[i] = {pos = {x = i.toFloat(), y = 0}, vel = {x = 1, y = 0}, life = 100}
   end
-  step(parts, 0.016)              // [N]T converts to []T
-  step(parts[10:20], 0.016)       // sub-slice (bounds-checked)
+  step(parts, 0.016)              # [N]T converts to []T
+  step(parts[10:20], 0.016)       # sub-slice (bounds-checked)
   log("speed", length(parts[0].vel), "name", NAME)
 
   i := 0
-  for i < 10                      // while
+  for i < 10                      # while
     i += 3
   end
-  for p, k in parts[:3]           // with an index
+  for p, k in parts[:3]           # with an index
     log(k, p.life)
   end
-  for                             // infinite loop
+  for                             # infinite loop
     break
   end
   if i > 10 && count == 0
@@ -110,6 +110,7 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 - Every index and slice is bounds-checked at runtime. Integer arithmetic wraps, and integer division by zero is a runtime error.
 - There are no implicit conversions between `Int` and `Float` except for literals. Convert with `x.toFloat()` and `x.toInt()` (which truncates). Conversions are methods, so they show up with the rest after `x.`; `to` makes a new value, `as` views the same data.
 - `Bool` is its own type. Comparisons and `! && ||` produce `Bool`, and `if`/`for` conditions must be `Bool` (`if n` is an error; write `if n != 0`). `true` and `false` are literals, and `b.toInt()` (gives 0 or 1) and `n.toBool()` (`n != 0`) convert between the two.
+- Comments start with `#` and run to the end of the line, so a `#!` line at the top of a file works too. `@` is kept for metadata on declarations later.
 - Statements end at a newline (`;` also works). Inside brackets, an expression can span several lines.
 
 **Operators:** `+ - * / % & | ^ << >> == != < <= > >= && || ! ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`.
@@ -126,40 +127,40 @@ A list has a fixed capacity and a current length, with no allocation. `[..N]T` i
 | growable up to a limit | `[..N]T` | `[..]T` |
 | bytes | `Blob[N]` / `Blob[..N]` | `Blob` / `Blob[..]` |
 
-```odin
+```ruby
 Enemy :: struct
   x, hp: Int
 end
-enemies: [..64]Enemy                     // up to 64; starts empty
+enemies: [..64]Enemy                     # up to 64; starts empty
 
 spawn :: proc(list: [..]Enemy, x: Int) -> Bool
-  return list.push({x = x, hp = 3})        // false when full
+  return list.push({x = x, hp = 3})        # false when full
 end
 for i in 0..<3
-  spawn(enemies, i * 10)                 // the view appends to the caller's list
+  spawn(enemies, i * 10)                 # the view appends to the caller's list
 end
 
-for e in enemies                         // the live elements
+for e in enemies                         # the live elements
   e.hp -= 1
 end
-enemies[0].hp = 5                        // indexing is checked against the current length
-enemies.swapRemove(0)                   // O(1): the last element takes its place
-enemies.remove(0)                       // keeps order, O(n)
+enemies[0].hp = 5                        # indexing is checked against the current length
+enemies.swapRemove(0)                   # O(1): the last element takes its place
+enemies.remove(0)                       # keeps order, O(n)
 e := enemies.pop()
-step(enemies[:])                         // [:] is a []Enemy of the live elements
+step(enemies[:])                         # [:] is a []Enemy of the live elements
 enemies.clear()
 
-enemies.pushAll(wave[:])                // many at once: a slice, array or list
+enemies.pushAll(wave[:])                # many at once: a slice, array or list
 
-title: Blob[..32]                        // a Blob list is a text builder
-title.format("score: ", 42, " x", 1.5)  // appends values as text; all or nothing
-title.push('!')                         // push is always one element: here, one byte
+title: Blob[..32]                        # a Blob list is a text builder
+title.format("score: ", 42, " x", 1.5)  # appends values as text; all or nothing
+title.push('!')                         # push is always one element: here, one byte
 draw(title[:].asString())
 
 hits: [16]Int
-found: [..]Int = hits                    // a builder over an array: starts empty, fills hits
+found: [..]Int = hits                    # a builder over an array: starts empty, fills hits
 found.push(7)
-line: Blob[..] = screen[row * 40:(row + 1) * 40]   // or over part of a bigger buffer
+line: Blob[..] = screen[row * 40:(row + 1) * 40]   # or over part of a bigger buffer
 line.format("hp ", hp)
 ```
 
@@ -174,7 +175,7 @@ line.format("hp ", hp)
 
 A method is a proc declared on a type with `Type.name`. Inside it, `self` is the value it was called on:
 
-```odin
+```ruby
 Ship :: struct
   x, vx: Float
   hp: Int
@@ -187,11 +188,11 @@ Ship.hurt :: proc(n: Int) -> Bool
   return self.hp <= 0
 end
 
-fleet[i].move(dt)                // updates fleet[i] itself
+fleet[i].move(dt)                # updates fleet[i] itself
 if boss.hurt(3)
   log("boss down")
 end
-Int.double :: proc() -> Int      // methods work on Int, Float, Bool, String and Blob too
+Int.double :: proc() -> Int      # methods work on Int, Float, Bool, String and Blob too
   return self * 2
 end
 ```
@@ -206,31 +207,31 @@ end
 
 Every file is a module. Nothing is visible outside it unless its name ends in `*`:
 
-```odin
-// geo.rio
-Vec* :: struct              // exported
+```ruby
+# geo.rio
+Vec* :: struct              # exported
   x, y: Float
 end
 Vec.len2* :: proc() -> Float
   return sq(self.x) + sq(self.y)
 end
-sq :: proc(v: Float) -> Float   // private to geo.rio
+sq :: proc(v: Float) -> Float   # private to geo.rio
   return v * v
 end
 count* := 0
 ```
 
-```odin
-// game.rio
-import .geo                       // local: geo.rio next to this file
-import .ui.button as btn          // ui/button.rio, renamed
-import tween                      // a package, from the library paths (-L)
-import tween.{ease, lerp as mix}  // or bring in just some names
+```ruby
+# game.rio
+import .geo                       # local: geo.rio next to this file
+import .ui.button as btn          # ui/button.rio, renamed
+import tween                      # a package, from the library paths (-L)
+import tween.{ease, lerp as mix}  # or bring in just some names
 import .geo.{Vec}
-include "parts/hud.rio"          // a file that's part of this module
+include "parts/hud.rio"          # a file that's part of this module
 
 v := geo.Vec{x = 3, y = 4}
-v.len2()                          // exported methods come along with their type
+v.len2()                          # exported methods come along with their type
 w: Vec = {y = 1}
 geo.count += 1
 ```
@@ -249,8 +250,8 @@ geo.count += 1
 
 Like `gcc -D`, you can set top-level constants from outside the script:
 
-```odin
-N :: 1000          // defaults, used when nothing is passed
+```ruby
+N :: 1000          # defaults, used when nothing is passed
 SCALE :: 1.5
 NAME :: "rio"
 DEBUG :: false

@@ -34,6 +34,8 @@ int main(void) {
 
   eval("x := 40\n", 0, "", 0);
   eval("x + 2\n", 0, "42\n", 0);                                   /* bare expressions print */
+  eval("# just a comment\n", 0, "", 0);
+  eval("x + 1 # with a comment\n", 0, "41\n", 0);
   eval("x.toFloat() / 8.0 == 5\n", 0, "true\n", 0);
   eval("f :: proc(n: Int) -> Int\n", RIO_MORE, "", 0);             /* unfinished: ask for more */
   eval("f :: proc(n: Int) -> Int\n  return n * x\n", RIO_MORE, "", 0);

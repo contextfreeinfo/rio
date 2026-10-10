@@ -1,5 +1,5 @@
-// a runtime error late in a line that becomes several statements: the VM and generated C must both
-// report line 6, not a line further on
+# a runtime error late in a line that becomes several statements: the VM and generated C must both
+# report line 6, not a line further on
 xs: [3]Int
 k := 5
 a := 1

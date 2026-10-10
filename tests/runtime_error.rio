@@ -1,4 +1,4 @@
-// a runtime error, for the VM and generated-C error-line tests
+# a runtime error, for the VM and generated-C error-line tests
 xs: [3]Int
 k := 5
 log(xs[k])
