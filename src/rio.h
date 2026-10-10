@@ -46,13 +46,18 @@ int rio_ffi(Rio *vm, const char *name, const char *sig, RioFn fn);
    doesn't declare it. value is parsed as the declared constant's type (i32, f32, bool or string);
    NULL means true. name and value must stay valid until rio_compile returns. */
 int rio_define(Rio *vm, const char *name, const char *value);
-/* modules: `import .ui.button` asks for local path "ui/button" (relative to the importing file,
-   pkg 0); `import tween.easing` asks for "tween/easing" from the library paths (pkg 1). Return 0
-   and fill *out (src must stay valid until compiling ends; isdir: the path named a directory
-   whose entry file was used, so its own local imports are relative to that directory; name:
-   optional text for error messages), 1 if not found, 2 if found in more than one place. */
+/* modules and includes come from the host. kind is a combination of:
+     RIO_LOAD_PKG   the path is in the library paths (otherwise relative to the main file's directory)
+     RIO_LOAD_FILE  the path names an exact file, from `include "x.rio"`; without it, the path names
+                    a module: try "path.rio", then the directory's entry file "path/<last>.rio"
+   `import .ui.button` asks for module "ui/button"; `import tween` for package module "tween";
+   `include "parts/a.rio"` inside shapes/shapes.rio for file "shapes/parts/a.rio".
+   Return 0 and fill *out (src must stay valid until compiling ends; isdir: a module path named a
+   directory and its entry file was used; name: optional text for error messages), 1 if not
+   found, 2 if found in more than one place. */
+enum { RIO_LOAD_PKG = 1, RIO_LOAD_FILE = 2 };
 typedef struct { const char *src; uint32_t len; int isdir; const char *name; } RioSource;
-typedef int (*RioLoadFn)(void *ud, const char *path, int pkg, RioSource *out);
+typedef int (*RioLoadFn)(void *ud, const char *path, int kind, RioSource *out);
 void rio_set_loader(Rio *vm, RioLoadFn fn, void *ud);
 /* compiler capacities. consts is also how many words of mem are kept for constants, and slots
    (at most 65536, counting the constants) caps the register-addressable part of mem. */
@@ -115,8 +120,11 @@ typedef struct { int t, line, col, w, n, op; const char *s; RioVal v; uint8_t nl
 typedef struct { uint8_t k, ref; uint16_t elem, f0, nf; uint32_t n, size; } RioType;
 typedef struct { uint16_t name, len, t, off; } RioField;
 typedef struct { uint16_t name, len, t, mod; uint8_t k, ex; int32_t v; } RioSym; /* mod: defining module; ex: exported */
-typedef struct { uint16_t key, keylen, dir, dirlen, file, pc0, pc1; uint8_t pkg, state; } RioMod; /* state 1 compiling, 2 done */
-typedef struct { const char *src, *se, *ls, *pos; int line, mod; } RioImp; /* where to resume an importing file */
+/* a source file: a module, or a part included into one. state 1 compiling, 2 done */
+typedef struct { uint16_t key, keylen, dir, dirlen, file, pc0, pc1; uint8_t pkg, state, inc; } RioMod;
+/* where to resume the file that imported or included another: for an import, its import statement
+   runs again (and just binds names); for an include, compiling continues after it */
+typedef struct { const char *src, *se, *ls, *pos; int line, mod, f, inc; } RioImp;
 typedef struct { uint16_t pc, end, ret, p0, np, fs, fe; uint32_t retaddr; uint8_t done, selfref; } RioCFunc;
 typedef struct { uint16_t t; uint32_t addr; } RioParam;
 typedef struct { uint16_t ret, p0, np; } RioCFfi;
@@ -128,7 +136,7 @@ typedef struct RioC {
   const char *src, *sp, *se, *ls; int line, pline, pcol, pw; RioTok tk, nx;
   uint32_t linetop, nline, lastline, lineovr; /* pc->line table, growing down from the top of the pool */
   const char *failmsg; /* the last compile error, to tell "unfinished" from "wrong" */
-  RioMod *mods; int nmod, curmod, nis, exporting; RioImp is[RIO_MAX_IMPORT_DEPTH];
+  RioMod *mods; int nmod, curmod, curf, nis, exporting; RioImp is[RIO_MAX_IMPORT_DEPTH]; /* curf: the file being read */
   uint32_t fr, nact, hwm, lastlabel, pool, poolcap; int curfn, def0, target; /* target: type the next expr() should produce, or -1 */
   int nsym, ntype, nfield, nparam, nnames, nblk, nvs, nos;
   RioLimits lim;                         /* capacities of the tables below, all carved from scratch */

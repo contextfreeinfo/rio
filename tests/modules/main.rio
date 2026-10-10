@@ -4,6 +4,8 @@ import .geo.{Vec, add as plus, UNIT}
 import .shapes
 import mathx
 import mathx.{cube}
+import mathx.extra                // a submodule mathx publishes
+include "parts/util.rio"          // part of this file's module
 
 fails := 0
 check :: proc(ok: Bool, what: String)
@@ -25,7 +27,10 @@ check(geo.count == 3 && geo.bump() == 4, "module globals are shared")
 c := shapes.circle.Circle{r = 2}
 check(shapes.circle.area(c) > 12.56 && shapes.circle.area(c) < 12.57, "whole re-export of a local submodule")
 check(shapes.unit().r == 1, "a directory module's own names")
-check(mathx.sq(5) == 25 && cube(2) == 8 && mathx.cube(3) == 27, "package with a re-exported name")
+check(mathx.sq(5) == 25 && cube(2) == 8 && mathx.cube(3) == 27, "package with an aliased export")
+check(extra.answer == 42 && mathx.extra.answer == 42, "a published submodule, by path and through its package")
+check(mathx.double(4) == 8, "a package's included part")
+check(triple(3) == 9, "our own included part")
 p: geo.Vec = {y = 2}
 check(p.len2() == 4, "qualified type in a declaration")
 if fails == 0

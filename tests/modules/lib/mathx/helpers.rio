@@ -1,0 +1,3 @@
+twice :: proc(x: Int) -> Int
+  return x + x
+end

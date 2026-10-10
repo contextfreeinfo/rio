@@ -22,7 +22,7 @@ enum { OPS(OPENUM) OP_DATA = 255 };
 #define OP_LASTDST OP_FMAX /* ops up to here write one scalar to slot a */
 
 enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, TK_ELSE, TK_FOR, TK_IN,
-  TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_IMPORT, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND,
+  TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_IMPORT, TK_INCLUDE, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND,
   TK_OR, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
 enum { TY_VOID, TY_I32, TY_F32, TY_BYTE, TY_STR, TY_BLOB, TY_BOOL };
 enum { K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD };
@@ -41,7 +41,7 @@ static const char M_END[] = "missing 'end'", M_BRACKET[] = "unclosed bracket", M
 typedef RioEx Ex;
 typedef RioOp Op;
 
-static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue", "import"};
+static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue", "import", "include"};
 static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod",
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format",
@@ -116,7 +116,7 @@ NORET static void fail(Rio *vm, const char *m) {
     for (i = 0; i < TK.n && i < 24 && n < RIO_ERRBUF - 2; i++) b[n++] = TK.s[i];
     n = cat(b, n, "'"); b[n] = 0;
   }
-  if (c->curmod >= 2) vm->efile = c->names + c->mods[c->curmod].file;
+  if (c->curf >= 2) vm->efile = c->names + c->mods[c->curf].file;
   longjmp(c->jb, 1);
 }
 /* an error about the current token itself, even when it starts a new line */
@@ -148,7 +148,7 @@ static void lex(Rio *vm, RioTok *t) {
   if (isal(*p)) {
     while (p < e && (isal(*p) || isdg(*p))) p++;
     t->t = TK_ID;
-    for (i = 0; i < 11; i++) if ((int)strlen(kw[i]) == p - s && !memcmp(kw[i], s, p - s)) t->t = TK_PROC + i;
+    for (i = 0; i < 12; i++) if ((int)strlen(kw[i]) == p - s && !memcmp(kw[i], s, p - s)) t->t = TK_PROC + i;
   } else if (isdg(*p)) {
     uint32_t v = 0; double d = 0, sc = 1; int isf = 0;
     if (*p == '0' && p + 1 < e && (p[1] == 'x' || p[1] == 'X')) {
@@ -1135,7 +1135,8 @@ static int parse_type(Rio *vm) {
     next(vm);
     if (TK.t != '.') fail(vm, "'.' expected");
     next(vm);
-    if (TK.t != TK_ID || (i = modsym(vm, m, TK.s, TK.n)) < 0) failtok(vm, "type expected");
+    if (TK.t != TK_ID) failtok(vm, "type expected");
+    if ((i = modsym(vm, m, TK.s, TK.n)) < 0) failtok(vm, "not exported by that module");
   }
   if (vm->c->sym[i].k != S_TYPE) failtok(vm, "type expected");
   t = vm->c->sym[i].t; next(vm);
@@ -1357,76 +1358,94 @@ static int peek3(Rio *vm) {
   c->sp = sp; c->ls = ls; c->line = line;
   return t.t;
 }
-static int findmod(Rio *vm, int pkg, const char *key, int n) {
+static int findfile(Rio *vm, int pkg, int inc, const char *key, int n) {
   int k;
-  for (k = 2; k < vm->c->nmod; k++)
-    if (vm->c->mods[k].pkg == pkg && vm->c->mods[k].keylen == n && !memcmp(vm->c->names + vm->c->mods[k].key, key, (size_t)n)) return k;
+  for (k = 2; k < vm->c->nmod; k++) {
+    RioMod *m = &vm->c->mods[k];
+    if (m->pkg == pkg && m->inc == inc && m->keylen == n && !memcmp(vm->c->names + m->key, key, (size_t)n)) return k;
+  }
   return -1;
 }
-/* start compiling a module: remember where the importing file's import statement began, so it
-   can be run again (and just bind names) once the module is done. No recursion: the driver loop
-   in compile_all switches files. */
-static void loadmod(Rio *vm, int pkg, char *key, int klen, const char *start, const char *startls, int startline) {
+/* start reading another file (a module to import, or a part to include) after saving where to
+   resume. No recursion: compile_all's loop switches files. */
+static void openfile(Rio *vm, int pkg, int inc, char *key, int klen, const char *pos, const char *ls, int line) {
   RioC *c = vm->c; RioSource s; RioMod *m; RioImp *f; int r, dl; char b[300];
-  if (c->nis >= RIO_MAX_IMPORT_DEPTH) fail(vm, "imports nested too deep");
+  if (c->nis >= RIO_MAX_IMPORT_DEPTH) fail(vm, "imports and includes nested too deep");
   if (c->nmod >= (int)c->lim.modules) fail(vm, "too many modules");
   key[klen] = 0;
   memset(&s, 0, sizeof s);
-  r = vm->loader ? vm->loader(vm->loadud, key, pkg, &s) : 1;
+  r = vm->loader ? vm->loader(vm->loadud, key, (pkg ? RIO_LOAD_PKG : 0) | (inc ? RIO_LOAD_FILE : 0), &s) : 1;
   if (r) {
-    int n = cat(b, 0, r == 2 ? "module found in more than one library path: " : "module not found: ");
+    int n = cat(b, 0, r == 2 ? "found in more than one library path: " : inc ? "file not found: " : "module not found: ");
     n = cat(b, n, key); b[n] = 0;
     fail(vm, b);
   }
   m = &c->mods[c->nmod];
-  m->key = (uint16_t)addname(vm, key, klen); m->keylen = (uint16_t)klen; m->pkg = (uint8_t)pkg; m->state = 1;
-  if (s.isdir) { memcpy(b, key, (size_t)klen); b[klen] = '/'; dl = klen + 1; }
+  m->key = (uint16_t)addname(vm, key, klen); m->keylen = (uint16_t)klen;
+  m->pkg = (uint8_t)pkg; m->inc = (uint8_t)inc; m->state = 1;
+  if (s.isdir && !inc) { memcpy(b, key, (size_t)klen); b[klen] = '/'; dl = klen + 1; }
   else for (dl = klen; dl > 0 && key[dl - 1] != '/'; dl--) {} /* a file's directory: up to its last '/' */
-  m->dir = (uint16_t)addname(vm, s.isdir ? b : key, dl); m->dirlen = (uint16_t)dl;
+  m->dir = (uint16_t)addname(vm, s.isdir && !inc ? b : key, dl); m->dirlen = (uint16_t)dl;
   { /* a name for error messages */
-    int n = s.name ? cat(b, 0, s.name) : (cat(b, cat(b, 0, key), ".rio"));
+    int n = s.name ? cat(b, 0, s.name) : inc ? cat(b, 0, key) : cat(b, cat(b, 0, key), ".rio");
     b[n] = 0; m->file = (uint16_t)addname(vm, b, n + 1);
   }
   m->pc0 = (uint16_t)vm->pc;
   f = &c->is[c->nis++];
-  f->src = c->src; f->se = c->se; f->ls = startls; f->pos = start; f->line = startline; f->mod = c->curmod;
-  c->curmod = c->nmod++;
+  f->src = c->src; f->se = c->se; f->ls = ls; f->pos = pos; f->line = line; f->mod = c->curmod; f->f = c->curf; f->inc = inc;
+  c->curf = c->nmod++;
+  if (!inc) c->curmod = c->curf; /* a module gets its own names; an included part shares them */
   c->src = c->sp = c->ls = s.src; c->se = s.src + s.len; c->line = 1; c->pline = 0;
   lex(vm, &c->nx); next(vm);
-  TK.nl = 1; /* the module's first token starts a statement */
+  TK.nl = 1; /* the file's first token starts a statement */
 }
-/* end of a module's source: back to the import statement that asked for it */
-static void endmodule(Rio *vm) {
+/* end of a file: back to whoever imported or included it */
+static void endfile(Rio *vm) {
   RioC *c = vm->c; RioImp *f = &c->is[--c->nis];
-  c->mods[c->curmod].pc1 = (uint16_t)vm->pc; c->mods[c->curmod].state = 2;
-  c->src = f->src; c->se = f->se; c->ls = f->ls; c->sp = f->pos; c->line = f->line; c->curmod = f->mod;
+  c->mods[c->curf].pc1 = (uint16_t)vm->pc; c->mods[c->curf].state = 2;
+  c->src = f->src; c->se = f->se; c->ls = f->ls; c->sp = f->pos; c->line = f->line; c->curmod = f->mod; c->curf = f->f;
   lex(vm, &c->nx); next(vm);
+  if (f->inc) TK.nl = 1; /* carry on after the include statement */
   c->lastlabel = vm->pc;
 }
 static int isas(Rio *vm) { return TK.t == TK_ID && TK.n == 2 && !memcmp(TK.s, "as", 2); }
-/* import .local.path / import package.path, then [as name][*] or .{a, b as c*, ...} */
+/* import .local.path or import package.path, then [as name][*] or .{a, b as c, ...}.
+   A package import reaches its root only; deeper names go through what the root publishes. */
 static void import_stmt(Rio *vm) {
-  RioC *c = vm->c; RioMod *im = &c->mods[c->curmod];
-  const char *start = TK.s, *startls = TK.s - (TK.col - 1), *seg = 0; char key[256];
-  int startline = TK.line, local, pkg, klen = 0, nseg = 0, sl = 0, m;
+  RioC *c = vm->c; RioMod *cf = &c->mods[c->curf];
+  const char *start = TK.s, *startls = TK.s - (TK.col - 1), *seg[8]; char key[256];
+  int startline = TK.line, local, pkg, klen = 0, nseg = 0, segn[8], m, k;
   next(vm);
   if (c->curfn >= 0 || c->nblk) fail(vm, "imports must be at the top level");
   local = TK.t == '.';
   if (local) next(vm);
-  pkg = local ? im->pkg : 1;
-  if (local) { memcpy(key, c->names + im->dir, im->dirlen); klen = im->dirlen; }
+  pkg = local ? cf->pkg : 1;
+  if (local) { memcpy(key, c->names + cf->dir, cf->dirlen); klen = cf->dirlen; }
   for (;;) {
     if (TK.t != TK_ID) fail(vm, "module name expected");
-    if (klen + TK.n + 2 > (int)sizeof key) fail(vm, "module path too long");
-    if (nseg++) key[klen++] = '/';
-    memcpy(key + klen, TK.s, (size_t)TK.n); klen += TK.n; seg = TK.s; sl = TK.n;
-    next(vm);
+    if (nseg >= 8) fail(vm, "module path too long");
+    seg[nseg] = TK.s; segn[nseg] = TK.n;
+    if (local || !nseg) { /* a package import names just its root */
+      if (klen + TK.n + 2 > (int)sizeof key) fail(vm, "module path too long");
+      if (local && nseg) key[klen++] = '/';
+      memcpy(key + klen, TK.s, (size_t)TK.n); klen += TK.n;
+    }
+    nseg++; next(vm);
     if (TK.t == '.' && c->nx.t == TK_ID) { next(vm); continue; }
     break;
   }
-  if ((m = findmod(vm, pkg, key, klen)) < 0) { loadmod(vm, pkg, key, klen, start, startls, startline); return; }
+  if ((m = findfile(vm, pkg, 0, key, klen)) < 0) { openfile(vm, pkg, 0, key, klen, start, startls, startline); return; }
   if (c->mods[m].state != 2) fail(vm, "import cycle");
-  if (TK.t == '.' && c->nx.t == '{') { /* .{a, b as c, d*} */
+  for (k = 1; !local && k < nseg; k++) { /* tween.easing: only if tween publishes easing */
+    int i = modsym(vm, m, seg[k], segn[k]);
+    if (i < 0 || c->sym[i].k != S_MOD) {
+      char b[200]; int n = cat(b, 0, "that package doesn't publish ");
+      memcpy(b + n, seg[k], (size_t)(segn[k] < 64 ? segn[k] : 64)); b[n + (segn[k] < 64 ? segn[k] : 64)] = 0;
+      fail(vm, b);
+    }
+    m = c->sym[i].v;
+  }
+  if (TK.t == '.' && c->nx.t == '{') { /* .{a, b as c} */
     next(vm); next(vm);
     while (TK.t != '}') {
       const char *as; int an, i;
@@ -1434,26 +1453,48 @@ static void import_stmt(Rio *vm) {
       if ((i = modsym(vm, m, TK.s, TK.n)) < 0) failtok(vm, "not exported by that module");
       as = TK.s; an = TK.n; next(vm);
       if (isas(vm)) { next(vm); if (TK.t != TK_ID) fail(vm, "name expected after 'as'"); as = TK.s; an = TK.n; next(vm); }
+      if (TK.t == '*') failtok(vm, "to export an imported name, write Name* :: mod.Name");
       { RioSym y = c->sym[i]; addsym(vm, as, an, y.k, y.t, y.v); }
-      if (TK.t == '*') { c->sym[c->nsym - 1].ex = 1; next(vm); }
       if (TK.t != ',') break;
       next(vm);
     }
     expect(vm, '}', "'}' expected");
   } else {
-    if (isas(vm)) { next(vm); if (TK.t != TK_ID) fail(vm, "name expected after 'as'"); seg = TK.s; sl = TK.n; next(vm); }
-    addsym(vm, seg, sl, S_MOD, 0, m);
-    if (TK.t == '*') {
-      if (!local) fail(vm, "only local modules (import .name) can be re-exported whole");
+    const char *bn = seg[nseg - 1]; int bl = segn[nseg - 1];
+    if (isas(vm)) { next(vm); if (TK.t != TK_ID) fail(vm, "name expected after 'as'"); bn = TK.s; bl = TK.n; next(vm); }
+    addsym(vm, bn, bl, S_MOD, 0, m);
+    if (TK.t == '*') { /* publish your own submodule */
+      if (!local) failtok(vm, "only your own submodules can be published (import .name*)");
       c->sym[c->nsym - 1].ex = 1; next(vm);
     }
   }
+}
+/* include "parts/a.rio": that file becomes part of this module (same names, private ones too).
+   Always relative to this file and downward; each file once. */
+static void include_stmt(Rio *vm) {
+  RioC *c = vm->c; RioMod *cf = &c->mods[c->curf]; char key[256]; int klen, i; const char *pos;
+  next(vm);
+  if (c->curfn >= 0 || c->nblk) fail(vm, "includes must be at the top level");
+  if (TK.t != TK_STR) fail(vm, "include needs a file path in quotes");
+  if (TK.n < 5 || memcmp(TK.s + TK.n - 4, ".rio", 4)) failtok(vm, "include paths name a .rio file");
+  for (i = 0; i < TK.n; i++) { /* plain names separated by '/': no "", ".", "..", absolute or drive paths */
+    int seg = !i || TK.s[i - 1] == '/', end = i + 1 == TK.n || TK.s[i + 1] == '/';
+    if (TK.s[i] == '\\' || TK.s[i] == ':' || (TK.s[i] == '/' && seg) || (TK.s[i] == '.' && seg && (end || TK.s[i + 1] == '.')))
+      failtok(vm, "include paths stay inside this file's directory");
+  }
+  if (cf->dirlen + TK.n + 1 > (int)sizeof key) failtok(vm, "include path too long");
+  memcpy(key, c->names + cf->dir, cf->dirlen); memcpy(key + cf->dirlen, TK.s, (size_t)TK.n); klen = cf->dirlen + TK.n;
+  if (findfile(vm, cf->pkg, 1, key, klen) >= 0) failtok(vm, "file already included");
+  if (!c->nx.nl && c->nx.t != TK_EOF && c->nx.t != ';') { next(vm); fail(vm, "expected end of statement"); }
+  pos = c->nx.t == TK_STR ? c->nx.s - 1 : c->nx.s; /* resume at the token after the path */
+  openfile(vm, cf->pkg, 1, key, klen, pos, pos - (c->nx.col - 1), c->nx.line);
 }
 static void statement(Rio *vm) {
   int t = TK.t, i; RioBlk *b; Ex e;
   vm->c->fr = vm->c->nact;
   if (t == ';') { next(vm); return; }
   if (t == TK_IMPORT) { import_stmt(vm); goto done; }
+  if (t == TK_INCLUDE) { include_stmt(vm); goto done; }
   if (t == TK_ID && vm->c->nx.t == '*') { /* name* :: / name* := / name*: exports the name */
     int t3 = peek3(vm);
     if (t3 == TK_DCOLON || t3 == TK_DECL || t3 == ':') {
@@ -1474,7 +1515,10 @@ static void statement(Rio *vm) {
         int d = lookup(vm, ns, nn) - vm->c->def0;
         if (d >= 0 && d < vm->ndefs) e = defval(vm, d, e.t);
       }
-      if (e.k == EK_CONST) addsym(vm, ns, nn, S_CONST, e.t, e.a);
+      if (e.k == EK_TY) addsym(vm, ns, nn, S_TYPE, e.t, 0);
+      else if (e.k == EK_FN) addsym(vm, ns, nn, S_FN, 0, e.a);
+      else if (e.k == EK_MOD) addsym(vm, ns, nn, S_MOD, 0, e.a);
+      else if (e.k == EK_CONST) addsym(vm, ns, nn, S_CONST, e.t, e.a);
       else if (e.k == EK_ST && e.ro && e.t == TY_STR) addsym(vm, ns, nn, S_CONST, TY_STR, e.a);
       else fail(vm, "constant expression expected");
     }
@@ -1668,7 +1712,7 @@ static void setup(Rio *vm) {
     e = defval(vm, i, -1);
     addsym(vm, nm, n, S_CONST, e.t, e.a);
   }
-  c->curmod = 1; c->mods[1].state = 1; /* the main source */
+  c->curmod = c->curf = 1; c->mods[1].state = 1; /* the main source */
 }
 static void compile_all(Rio *vm) {
   RioC *c = vm->c;
@@ -1676,7 +1720,7 @@ static void compile_all(Rio *vm) {
     if (TK.t != TK_EOF) { statement(vm); continue; }
     if (c->nblk) fail(vm, M_END);
     if (!c->nis) break;
-    endmodule(vm);
+    endfile(vm);
   }
 }
 /* lay out the final memory: string pool + export table go just below the big arrays, string
@@ -1829,7 +1873,7 @@ int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
     c->nact = c->fr = nact0; c->hwm = hwm0; c->poolcap = poolcap0; c->nline = nline0; c->lastline = lastline0; c->pool = 0;
     c->nsym = nsym0; c->ntype = ntype0; c->nfield = nfield0; c->nparam = nparam0; c->nnames = nnames0;
     c->nblk = c->nvs = c->nos = 0; c->curfn = -1; c->target = -1; c->lineovr = 0;
-    c->nmod = nmod0; c->nis = 0; c->curmod = 1; c->exporting = 0;
+    c->nmod = nmod0; c->nis = 0; c->curmod = c->curf = 1; c->exporting = 0;
     if (more) { vm->ekind = RIO_ENONE; vm->err[0] = 0; return RIO_MORE; }
     return -1;
   }

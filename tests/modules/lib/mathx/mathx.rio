@@ -1,5 +1,11 @@
-// a package (found through -L); its own local imports stay inside it
-import .inner.{cube*}             // re-export one name from a submodule
+// a package (found through -L): its root file decides what outsiders see
+import .inner                     // private submodule: only mathx can use it
+import .extra*                    // published: outsiders can import mathx.extra
+include "helpers.rio"             // part of mathx itself: shares its names
+cube* :: inner.cube               // exporting an imported name is a deliberate alias
 sq* :: proc(x: Int) -> Int
   return x * x
+end
+double* :: proc(x: Int) -> Int
+  return twice(x)                 // twice is private, from helpers.rio
 end

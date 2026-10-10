@@ -43,22 +43,23 @@ static long readfile(const char *path) {
 }
 static int exists(const char *path) { FILE *f = fopen(path, "rb"); if (f) fclose(f); return f != 0; }
 /* path.rio, or the directory path/ with its entry file path/<last>.rio */
-static int resolve(const char *dir, const char *path, char *out, size_t cap, int *isdir) {
+static int resolve(const char *dir, const char *path, int file, char *out, size_t cap, int *isdir) {
   const char *last = strrchr(path, '/');
   last = last ? last + 1 : path;
+  if (file) { snprintf(out, cap, "%s%s", dir, path); *isdir = 0; return exists(out); } /* include "x.rio" */
   snprintf(out, cap, "%s%s.rio", dir, path);
   if (exists(out)) { *isdir = 0; return 1; }
   snprintf(out, cap, "%s%s/%s.rio", dir, path, last);
   if (exists(out)) { *isdir = 1; return 1; }
   return 0;
 }
-static int loader(void *ud, const char *path, int pkg, RioSource *o) {
-  char found[1024], tryp[1024], *name; int isdir = 0, n = 0, i, d; long len;
+static int loader(void *ud, const char *path, int kind, RioSource *o) {
+  char found[1024], tryp[1024], *name; int isdir = 0, n = 0, i, d, file = kind & RIO_LOAD_FILE; long len;
   (void)ud;
-  if (!pkg) n = resolve(base, path, found, sizeof found, &isdir);
+  if (!(kind & RIO_LOAD_PKG)) n = resolve(base, path, file, found, sizeof found, &isdir);
   else
     for (i = 0; i < nlibs; i++)
-      if (resolve(libs[i], path, tryp, sizeof tryp, &d)) { if (n++) return 2; memcpy(found, tryp, sizeof found); isdir = d; }
+      if (resolve(libs[i], path, file, tryp, sizeof tryp, &d)) { if (n++) return 2; memcpy(found, tryp, sizeof found); isdir = d; }
   if (!n) return 1;
   o->src = src + srcn;
   if ((len = readfile(found)) < 0) return 1;

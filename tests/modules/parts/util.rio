@@ -1,0 +1,4 @@
+// included into main.rio: same names, so this can use main's private names and vice versa
+triple :: proc(x: Int) -> Int
+  return x * 3
+end

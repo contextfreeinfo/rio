@@ -24,15 +24,38 @@ static const char *files[][2] = {
   {"rt", "xs: [2]Int\nboom* :: proc(i: Int) -> Int\n  return xs[i]\nend\n"},
   {"m", "V* :: struct\n  a: Int\nend\nV.pub* :: proc() -> Int\n  return 1\nend\nV.priv :: proc() -> Int\n  return 2\nend\n"},
   {"@pkg", "p* := 7\n"},
+  {"@lib", "import .pub*\nimport .priv\ninclude \"part.rio\"\nv* := pub.x + priv.y + w\n"},
+  {"@lib/pub", "x* := 1\n"},
+  {"@lib/priv", "y* := 2\n"},
+  {"@lib/part.rio", "w := 10\n"},
+  {"t", "T* :: struct\n  q: Int\nend\n"},
+  {"al", "import .t\nTT* :: t.T\nf* :: proc() -> Int\n  return 4\nend\ng* :: f\n"},
+  {"part.rio", "helper :: proc(x: Int) -> Int\n  return x * secret\nend\n"},
+  {"dir/inner.rio", "y := 3\n"},
+  {"dir/m", "include \"inner.rio\"\nz* := y + 1\n"},
+  {"bad.rio", "q := 1\nr := nope\n"},
+  {"rtpart.rio", "xs: [2]Int\nget :: proc(i: Int) -> Int\n  return xs[i]\nend\n"},
+  {"cyca.rio", "a := 1\ninclude \"cycb.rio\"\n"},
+  {"cycb.rio", "include \"cyca.rio\"\n"},
+  {"sub/.hidden.rio", "h := 1\n"},
+  {"k", "N* :: 4\nHALF* :: 0.5\nNAME* :: \"rio\"\nON* :: true\nSECRET :: 9\n"
+         "P* :: struct\n  x, y: Int\nend\nHid :: struct\n  a: Int\nend\n"
+         "P.sum* :: proc() -> Int\n  return self.x + self.y\nend\n"
+         "mk* :: proc(x: Int) -> P\n  return {x, y = N}\nend\n"
+         "total* :: proc(ps: []P) -> Int\n  t := 0\n  for i in 0..<len(ps)\n    t += ps[i].sum()\n  end\n  return t\nend\n"},
   {"@two", "t* := 2\n"},
 };
-static int loader(void *ud, const char *path, int pkg, RioSource *o) {
-  size_t i; (void)ud;
-  if (pkg && !strcmp(path, "two")) return 2; /* pretend it's in two library paths */
+static int loader(void *ud, const char *path, int kind, RioSource *o) {
+  size_t i; char want[128]; (void)ud;
+  if ((kind & RIO_LOAD_PKG) && !strcmp(path, "two")) return 2; /* pretend it's in two library paths */
+  snprintf(want, sizeof want, "%s%s", kind & RIO_LOAD_PKG ? "@" : "", path); /* includes ask for "x.rio" itself */
   for (i = 0; i < sizeof files / sizeof files[0]; i++) {
     const char *k = files[i][0];
-    if ((k[0] == '@') == pkg && !strcmp(k + (k[0] == '@'), path)) {
+    if (!strcmp(k, want)) {
+      size_t j, wl = strlen(want);
       o->src = files[i][1]; o->len = (uint32_t)strlen(files[i][1]); o->isdir = 0; o->name = 0;
+      for (j = 0; j < sizeof files / sizeof files[0]; j++) /* a module with files under it is a directory */
+        if (!strncmp(files[j][0], want, wl) && files[j][0][wl] == '/') o->isdir = 1;
       return 0;
     }
   }
@@ -65,13 +88,63 @@ int main(void) {
   t("import .a\nlog(a.hidden)\n", 0, RIO_ECOMPILE, 0, 2, "not exported by that module");
   t("import .a.{hidden}\n", 0, RIO_ECOMPILE, 0, 1, "not exported by that module");
   t("import .nope\n", 0, RIO_ECOMPILE, 0, 1, "module not found: nope");
-  t("import two\n", 0, RIO_ECOMPILE, 0, 1, "module found in more than one library path: two");
+  t("import two\n", 0, RIO_ECOMPILE, 0, 1, "found in more than one library path: two");
   t("import .cyc1\n", 0, RIO_ECOMPILE, "cyc2.rio", 1, "import cycle");
   t("import .me\n", 0, RIO_ECOMPILE, "me.rio", 2, "import cycle");                 /* importing yourself */
   t("import .r1\n", 0, RIO_ECOMPILE, "r3.rio", 2, "import cycle");                 /* a longer loop */
   t("import .err\n", 0, RIO_ECOMPILE, "err.rio", 2, "undefined name");
   t("x := 1\nimport .rt\nlog(rt.boom(5))\n", 0, RIO_ERUNTIME, "rt.rio", 3, "index out of bounds");
-  t("import pkg*\n", 0, RIO_ECOMPILE, 0, 1, "only local modules");
+  t("import pkg*\n", 0, RIO_ECOMPILE, 0, 1, "only your own submodules can be published");
+  /* packages: only what the root publishes is reachable from outside */
+  t("import lib.pub\nlog(pub.x)\n", "1\n", RIO_ENONE, 0, 0, 0);
+  t("import lib\nlog(lib.v, lib.pub.x)\n", "13 1\n", RIO_ENONE, 0, 0, 0);
+  t("import lib.priv\n", 0, RIO_ECOMPILE, 0, 1, "that package doesn't publish priv");
+  t("import lib\nlog(lib.priv)\n", 0, RIO_ECOMPILE, 0, 2, "not exported by that module");
+  /* exporting an imported name is an explicit alias, not part of import */
+  t("import .a.{x*}\n", 0, RIO_ECOMPILE, 0, 1, "to export an imported name");
+  t("import .al\nv: al.TT\nv.q = 5\nlog(al.g(), v.q)\n", "4 5\n", RIO_ENONE, 0, 0, 0);
+  /* include: a file becomes part of this module */
+  t("secret := 5\ninclude \"part.rio\"\nlog(helper(2))\n", "10\n", RIO_ENONE, 0, 0, 0);
+  t("import .dir.m\nlog(m.z)\n", "4\n", RIO_ENONE, 0, 0, 0);                         /* relative to the including file */
+  t("secret := 1\ninclude \"part.rio\"\ninclude \"part.rio\"\n", 0, RIO_ECOMPILE, 0, 3, "file already included");
+  t("include \"../x.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
+  t("include \"part\"\n", 0, RIO_ECOMPILE, 0, 1, "include paths name a .rio file");
+  t("include \"nope.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "file not found: nope.rio");
+  t("include \"bad.rio\"\n", 0, RIO_ECOMPILE, "bad.rio", 2, "undefined name");
+  t("include \"rtpart.rio\"\nlog(get(9))\n", 0, RIO_ERUNTIME, "rtpart.rio", 3, "index out of bounds");
+  t("f :: proc()\n  include \"part.rio\"\nend\n", 0, RIO_ECOMPILE, 0, 2, "includes must be at the top level");
+  /* bad include paths: one spelling per file, always inside this file's directory */
+  t("include \"/part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
+  t("include \"a\\\\part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
+  t("include \"c:part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
+  t("include \"./part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
+  t("include \"sub//part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
+  t("include \"sub/../part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
+  t("include \"sub/./part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
+  t("include \"sub/.hidden.rio\"\n", "", RIO_ENONE, 0, 0, 0);                      /* dot files are just names */
+  t("include part.rio\n", 0, RIO_ECOMPILE, 0, 1, "include needs a file path in quotes");
+  t("secret := 1\ninclude \"part.rio\" log(1)\n", 0, RIO_ECOMPILE, 0, 2, "expected end of statement");
+  t("include \"cyca.rio\"\n", 0, RIO_ECOMPILE, "cycb.rio", 1, "file already included"); /* a cycle of includes */
+  /* imported constants: usable wherever a constant is needed */
+  t("import .k\nxs: [k.N]Int\nlog(len(xs))\n", "4\n", RIO_ENONE, 0, 0, 0);
+  t("import .k.{N}\nM :: N * 2\nys: [M]Int\nlog(M, len(ys))\n", "8 8\n", RIO_ENONE, 0, 0, 0);
+  t("import .k\nlog(k.HALF * 2.0, k.NAME, k.ON)\n", "1.0 rio true\n", RIO_ENONE, 0, 0, 0);
+  t("import .k.{NAME as nm}\nlog(nm)\n", "rio\n", RIO_ENONE, 0, 0, 0);
+  t("N :: 4\nN = 5\n", 0, RIO_ECOMPILE, 0, 2, "cannot assign to this");          /* same as a local constant */
+  t("import .k\nk.N = 5\n", 0, RIO_ECOMPILE, 0, 2, "cannot assign to this");
+  t("import .k.{N}\nN = 5\n", 0, RIO_ECOMPILE, 0, 2, "cannot assign to this");
+  t("import .k\nlog(k.SECRET)\n", 0, RIO_ECOMPILE, 0, 2, "not exported by that module");
+  /* imported types: in fields, arrays, lists, slices, literals, params and returns */
+  t("import .k\nQ :: struct\n  p: k.P\n  ps: [2]k.P\nend\nq: Q\nq.p = {x = 1, y = 2}\nq.ps[1].x = 7\nlog(q.p.sum(), q.ps[1].sum())\n", "3 7\n", RIO_ENONE, 0, 0, 0);
+  t("import .k\nps: [..4]k.P\nps.push({x = 1, y = 1})\nps.push(k.mk(2))\nlog(k.total(ps[:]), len(ps))\n", "8 2\n", RIO_ENONE, 0, 0, 0);
+  t("import .k.{P, mk}\n{x, y as b} := mk(3)\nlog(x, b)\n", "3 4\n", RIO_ENONE, 0, 0, 0);
+  t("import .k.{P}\nf :: proc(p: P) -> P\n  return {x = p.y, y = p.x}\nend\nlog(f({x = 1, y = 2}).x)\n", "2\n", RIO_ENONE, 0, 0, 0);
+  t("import .k\nv := k.P{x = 1, y = 2}\nlog(v.sum())\n", "3\n", RIO_ENONE, 0, 0, 0);
+  t("import .k\nv: k.P\nv.z = 1\n", 0, RIO_ECOMPILE, 0, 3, "no such field");
+  t("import .k\nv: k.Hid\n", 0, RIO_ECOMPILE, 0, 2, "not exported by that module");
+  t("import .k\nv: k.mk\n", 0, RIO_ECOMPILE, 0, 2, "type expected");             /* exported, but not a type */
+  t("import .k.{Hid}\n", 0, RIO_ECOMPILE, 0, 1, "not exported by that module");
+  t("import .k\nv: k.P = 1\n", 0, RIO_ECOMPILE, 0, 2, "type");
   t("f :: proc()\n  x* := 1\nend\n", 0, RIO_ECOMPILE, 0, 2, "only top-level names can be exported");
   t("f :: proc()\n  import .a\nend\n", 0, RIO_ECOMPILE, 0, 2, "imports must be at the top level");
   t("import .m\nv: m.V\nlog(v.pub())\n", "1\n", RIO_ENONE, 0, 0, 0);

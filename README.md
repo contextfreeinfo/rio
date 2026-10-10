@@ -210,6 +210,7 @@ import .ui.button as btn          // ui/button.rio, renamed
 import tween                      // a package, from the library paths (-L)
 import tween.{ease, lerp as mix}  // or bring in just some names
 import .geo.{Vec}
+include "parts/hud.rio"          // a file that's part of this module
 
 v := geo.Vec{x = 3, y = 4}
 v.len2()                          // exported methods come along with their type
@@ -217,13 +218,15 @@ w: Vec = {y = 1}
 geo.count += 1
 ```
 
-- **Local or package:** a leading `.` means local, relative to the importing file and only downward, so every directory is a relocatable package and git submodules just work. A plain name is a package from the library paths: `rio -L libs` makes each `libs/name.rio` or `libs/name/` importable as `name`. If a name exists in two library paths, that's an error rather than a silent pick.
+- **Local or package:** a leading `.` means local, relative to the importing file and only downward, so every directory is a relocatable package and git submodules just work. A plain name is a package from the library paths: with `rio -L libs`, everything directly under `libs/` is a package root (`libs/name.rio`, or `libs/name/` with entry file `libs/name/name.rio`). If a name exists in two library paths, that's an error rather than a silent pick.
 - **Directories:** a directory is a module through its entry file: `import .shapes` loads `shapes/shapes.rio`, and that file's own `import .circle` means `shapes/circle.rio`.
 - **Using names:** at use sites names are always plain (`geo.Vec`, `btn.press()`), working in expressions, struct literals and type positions. Methods aren't imported by name; exported ones travel with their type.
-- **Re-exporting:** `*` marks what to re-export, on the name being bound. `import .circle*` re-exports a local module whole (`shapes.circle.area`). `import .inner.{cube*}` or `import .x as y*` re-exports single names. `Sprite* :: gfx.Sprite` also works. Whole re-exports are only allowed for local modules, so a package's API can't silently grow with someone else's library.
+- **A package's root decides what outsiders see.** Its submodules are private unless the root publishes them with `import .easing*`. Then `import tween.easing` works, and `import tween.curves` gives "that package doesn't publish curves". Inside your own code, local imports can reach anything downward.
+- **Exporting someone else's name is an explicit alias:** `Sprite* :: gfx.Sprite`. The same `::` aliases types, procs and modules privately too (`Btn :: ui.button.Button`). There's no bulk re-export: each exported name has one home, so a library's API can't silently grow with someone else's.
+- **`include "file.rio"` makes another file part of the current module:** same names, private ones included, with no `*` needed between the parts. It's always relative to the including file and downward, and each file can be included once. Use it to split a big module or to assemble a package from parts. Parts are compiled in include order, so declare-before-use still applies across them.
 - **Compilation and init order:** each module is compiled once, at its first `import`, and its top-level code runs then, so modules initialize in import order. Their globals are shared by everyone who imports them. Importing a file that's still being compiled is an `import cycle` error. Imports go at the top level.
 - **Errors:** they name the module's file (`rio_error_info(vm).file`, `NULL` for the main source), and the CLI prints `geo.rio:3:5: ...`.
-- **Hosts supply the files:** `rio_set_loader(vm, fn, ud)` gets `("ui/button", local)` or `("tween/easing", package)` and returns the source text, so the core never touches a filesystem. On a console it can read the SD card; in tests, a table of strings.
+- **Hosts supply the files:** `rio_set_loader(vm, fn, ud)` gets a module path like `"ui/button"` or an include like `"parts/hud.rio"`, flagged as local or package, and returns the source text, so the core never touches a filesystem. On a console it can read the SD card; in tests, a table of strings.
 
 ## Compile-time defines (`-D`)
 
