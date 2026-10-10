@@ -1311,7 +1311,13 @@ static RioBlk *bpush(Rio *vm, int k) {
   b->a = b->b = b->brk = b->cont = b->cj = NONE;
   return b;
 }
-static void bscope(Rio *vm, RioBlk *b) { vm->c->nsym = b->nsym; vm->c->nnames = b->nnames; vm->c->nact = vm->c->fr = b->nact; }
+/* a block's names end and its slots get reused, except any whose address was taken: a view of them
+   may outlive the block, so they keep their memory (and their one type) for good */
+static void bscope(Rio *vm, RioBlk *b) {
+  uint32_t s, top = b->nact;
+  for (s = b->nact; s < vm->c->nact; s++) if (vm->c->exposed[s >> 3] & (1u << (s & 7))) top = s + 1;
+  vm->c->nsym = b->nsym; vm->c->nnames = b->nnames; vm->c->nact = vm->c->fr = top;
+}
 static int namelist(Rio *vm, const char **ns, int *nl) {
   int c = 0;
   for (;;) {

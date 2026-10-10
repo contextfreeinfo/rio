@@ -95,6 +95,10 @@ static const Case cases[] = {
   {"a: [3]Int\nn := 5\nb := a[1:n]\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "slice out of bounds"},
   {"xs: [2]Int\ni := 0\nfor xs[i] == 0\n  i += 1\nend\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "index out of bounds"}, /* rotated loop condition */
   {"a: [3]Int\na[0] = 1\na[2] = 4\nb: [3]Int\nb[0] = 1\nb[2] = 1\nc := a / b\n", 0, 0, 0, RIO_ERUNTIME, 7, 0, 0, "division by zero"},
+  /* a view of a block's array outlives the block: those slots must not be reused for t, or writing
+     through s would forge t's address and length */
+  {"s: []Int\nif true\n  a: [2]Int\n  s = a[:]\nend\nif true\n  t: []Int = s\n  s[1] = 2000000000\n  s[0] = 4\n  log(t[100000000])\nend\n", 0, 0, 0, RIO_ERUNTIME, 10, 0, 0, "index out of bounds"},
+  {"keep :: proc(v: []Int) -> []Int\n  return v\nend\nf :: proc() -> Int\n  s: []Int\n  if true\n    a: [2]Int\n    s = keep(a[:])\n  end\n  if true\n    t: []Int = s\n    s[1] = 2000000000\n    return t[100000000]\n  end\n  return 0\nend\nlog(f())\n", 0, 0, 0, RIO_ERUNTIME, 13, 0, 0, "index out of bounds"},
   {"main :: proc()\n  log(\"x\")\n  boom()\nend\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "the host said no"},
   /* errors with no source position */
   {"N :: 10\n", "N", "2.5", 0, RIO_ECOMPILE, 0, 0, 0, "-D N: value doesn't fit Int"},
