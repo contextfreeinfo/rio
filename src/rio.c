@@ -1992,11 +1992,12 @@ static int funcat(Rio *vm, int pc, int before) {
    known and has no cycles, and callees are compiled first. A proc's frame moves into the shared area,
    just above the shared frames of everything it can call, unless a slot of it ever has its address
    taken: those must keep their memory for good (a view of them may live on). The slots that stay are
-   packed together; every operand, address constant and table that names a slot is renumbered.
-   Returns the longest chain of calls, which sizes the return stack. */
+   packed together, starting right after the constants actually used (the room reserved for constants is
+   only needed while compiling); every operand, address constant and table that names a slot is
+   renumbered. Returns the longest chain of calls, which sizes the return stack. */
 static uint32_t shareframes(Rio *vm) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; uint16_t *map = c->smap;
-  uint32_t lo = vm->kcap, hi = c->hwm, s, keep, top = 0, depth = 0, i; int k, j, pc;
+  uint32_t lo = vm->kcap, hi = c->hwm, s, keep, top = 0, depth = 0, i, start = vm->repl ? lo : vm->nk; int k, j, pc;
   for (k = 0; k < vm->nfunc; k++) {
     RioCFunc *f = &c->func[k]; uint32_t ob = 0, dep = 0;
     for (pc = f->pc; pc < f->end; pc++) {
@@ -2011,10 +2012,10 @@ static uint32_t shareframes(Rio *vm) {
     if (f->oe > top) top = f->oe;
     if (f->dep > depth) depth = f->dep;
   }
-  if (!top) return depth;
+  if (!top && start == lo) return depth;
   for (s = lo; s < hi; s++) map[s] = 0;
   for (k = 0; k < vm->nfunc; k++) for (s = c->func[k].fs; c->func[k].shared && s < c->func[k].fe; s++) map[s] = 1;
-  for (s = lo, keep = lo; s < hi; s++) if (!map[s]) map[s] = (uint16_t)keep++;
+  for (s = lo, keep = start; s < hi; s++) if (!map[s]) map[s] = (uint16_t)keep++;
   for (k = 0; k < vm->nfunc; k++) {
     RioCFunc *f = &c->func[k];
     for (s = f->fs; f->shared && s < f->fe; s++) map[s] = (uint16_t)(keep + f->ob + (s - f->fs));
@@ -2030,6 +2031,7 @@ static uint32_t shareframes(Rio *vm) {
     if (m & 4) x->c = (uint16_t)MAPS(x->c);
   }
   for (i = 1; i < vm->nk; i++) if (KADR(i)) R[i].u = MAPA(R[i].u);
+  for (s = start; s < lo; s++) c->exposed[s >> 3] &= (uint8_t)~(1u << (s & 7)); /* unused constant room */
   for (s = lo; s < hi; s++) { /* address-taken marks follow their slots, which only move down */
     int b = c->exposed[s >> 3] >> (s & 7) & 1;
     c->exposed[s >> 3] &= (uint8_t)~(1u << (s & 7));
@@ -2044,17 +2046,30 @@ static uint32_t shareframes(Rio *vm) {
 #undef MAPS
 #undef MAPA
   c->hwm = c->nact = c->fr = keep + top;
+  vm->kcap = start;
   return depth;
+}
+/* the names the host can look up (rio_func, rio_global): main and the main file's names marked name*,
+   or when built with RIO_EXPORTS_ALL every top-level proc and global of the main file */
+static int hostname(RioC *c, RioSym *y) {
+  if ((y->k != S_FN && y->k != S_VAR) || y->mod != 1) return 0;
+#ifdef RIO_EXPORTS_ALL
+  (void)c;
+  return 1;
+#else
+  return y->ex || (y->len == 4 && !memcmp(c->names + y->name, "main", 4));
+#endif
 }
 static void finalize(Rio *vm) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; RioExport *x;
-  uint32_t i, n = 0, p, ex, lo, fo, sz, base, first = vm->kcap * 4, depth = shareframes(vm); int k;
+  uint32_t i, n = 0, p, ex, lo, fo, sz, base, first, depth = shareframes(vm); int k;
+  first = vm->kcap * 4; /* after sharing: the slots now start right after the constants */
   c->fr = c->hwm; vm->csaddr = (uint32_t)alloc(vm, depth + 1) * 4; /* return stack: the longest chain of calls */
   uint32_t mo, mf, nm = (uint32_t)(c->nmod - 2);
   p = c->pool;
   for (k = 0; k < c->nsym; k++) {
     RioSym *y = &c->sym[k];
-    if ((y->k != S_FN && y->k != S_VAR) || y->mod != 1) continue;
+    if (!hostname(c, y)) continue;
     if (y->len > c->poolcap - p) fail(vm, "out of compiler memory");
     memcpy(c->strs + p, c->names + y->name, y->len); p += y->len; n++;
   }
@@ -2078,7 +2093,7 @@ static void finalize(Rio *vm) {
   x = (RioExport *)(void *)(c->strs + ex); p = c->pool;
   for (k = 0; k < c->nsym; k++) {
     RioSym *y = &c->sym[k];
-    if ((y->k != S_FN && y->k != S_VAR) || y->mod != 1) continue;
+    if (!hostname(c, y)) continue;
     x->name = base + p; x->len = y->len; x->k = y->k; x->pad = 0; x->v = y->v; p += y->len; x++;
   }
   memmove(c->strs + lo, c->strs + c->poolcap, c->nline * 4); /* lines go right after the exports */

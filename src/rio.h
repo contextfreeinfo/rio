@@ -5,7 +5,9 @@
 #include <setjmp.h>
 
 /* fixed caps for things the host registers before compiling; override with -D.
-   RIO_SMALL picks MCU-sized values. Compiler table sizes are chosen per compile: see RioLimits. */
+   RIO_SMALL picks MCU-sized values. Compiler table sizes are chosen per compile: see RioLimits.
+   The host can look up (rio_func, rio_global) main and the main file's names marked name*; build with
+   RIO_EXPORTS_ALL to make every top-level proc and global findable (a 12-byte entry plus the name each). */
 #ifdef RIO_SMALL
 #define RIO_DEF(big, small) small
 #else

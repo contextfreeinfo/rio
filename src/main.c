@@ -157,14 +157,18 @@ static void memreport(void) {
   globals = slots - own - area - rstack;
   total = consts + slots + c->big + table;
   printf("memory: %u bytes in use (of %u)\n", total, vm.memsize);
-  printf("  %-24s %8u   (%u of %u words used: reserved up front, see RioLimits.consts)\n", "constants", consts, vm.nk, vm.kcap);
+  printf("  %-24s %8u   (%u words; RioLimits.consts is only room while compiling)\n", "constants", consts, vm.nk);
   printf("  %-24s %8u\n", "globals", globals + (c->big - pbig));
   printf("  %-24s %8u   (%d procs share it; without sharing their frames would take %u)\n", "shared frames", area, nshared, all - own);
   printf("  %-24s %8u   (%d procs with an address-taken slot keep their own frame; %u of it in big locals)\n", "own frames", own + pbig, nf - nshared, pbig);
   printf("  %-24s %8u   (the longest chain of calls: %u)\n", "call stack", rstack, depth);
   printf("  %-24s %8u\n", "tables", table);
   printf("    %-22s %8u   (string literals, exported names, file names)\n", "strings", vm.exports - vm.hi);
-  printf("    %-22s %8u   (%u names the host can look up: top-level procs and globals)\n", "exports", vm.lines - vm.exports, vm.nexports);
+#ifdef RIO_EXPORTS_ALL
+  printf("    %-22s %8u   (%u names the host can look up: every top-level proc and global, from RIO_EXPORTS_ALL)\n", "exports", vm.lines - vm.exports, vm.nexports);
+#else
+  printf("    %-22s %8u   (%u names the host can look up: main and names marked name*)\n", "exports", vm.lines - vm.exports, vm.nexports);
+#endif
   printf("    %-22s %8u   (%u entries: pc -> source line, for runtime errors)\n", "line table", vm.nlines * 4, vm.nlines);
   printf("    %-22s %8u   (%d procs)\n", "proc table", (uint32_t)nf * (uint32_t)sizeof(RioFunc), nf);
   printf("  %-24s %8u   (%u instructions, in the code buffer, not memory)\n", "code", vm.pc * (uint32_t)sizeof(RioIns), vm.pc);

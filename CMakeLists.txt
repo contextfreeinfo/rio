@@ -30,9 +30,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+option(RIO_EXPORTS_ALL "The host can look up every top-level proc and global, not just main and name*" OFF)
+
 # the embeddable core: compiler + vm, no allocation, no stdio
 add_library(riocore STATIC src/rio.c)
 target_include_directories(riocore PUBLIC src)
+if(RIO_EXPORTS_ALL)
+  target_compile_definitions(riocore PUBLIC RIO_EXPORTS_ALL)
+endif()
 if(MSVC)
   target_compile_options(riocore PRIVATE /W4 /O2 /wd4324)
 else()
@@ -79,6 +84,20 @@ add_executable(rio_modules_test tests/modules.c)
 target_link_libraries(rio_modules_test PRIVATE riocore)
 add_test(NAME rio_modules_api COMMAND rio_modules_test)
 set_tests_properties(rio_modules_api PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ module tests passed")
+
+# host lookups by name: main and name* by default, every top-level name with RIO_EXPORTS_ALL
+add_executable(rio_exports_test tests/exports.c)
+target_link_libraries(rio_exports_test PRIVATE riocore)
+add_test(NAME rio_exports COMMAND rio_exports_test)
+set_tests_properties(rio_exports PROPERTIES PASS_REGULAR_EXPRESSION "all export tests passed")
+add_executable(rio_exports_all_test tests/exports.c src/rio.c)
+target_include_directories(rio_exports_all_test PRIVATE src)
+target_compile_definitions(rio_exports_all_test PRIVATE RIO_EXPORTS_ALL)
+if(NOT MSVC)
+  target_link_libraries(rio_exports_all_test PRIVATE m)
+endif()
+add_test(NAME rio_exports_all COMMAND rio_exports_all_test)
+set_tests_properties(rio_exports_all PROPERTIES PASS_REGULAR_EXPRESSION "all export tests passed .every name.")
 
 # memory report
 add_test(NAME rio_memory_report COMMAND rio -m ${CMAKE_SOURCE_DIR}/tests/test.rio)

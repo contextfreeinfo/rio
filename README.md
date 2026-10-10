@@ -282,11 +282,11 @@ rio_ffi(&vm, "rand", ">i", host_rand);   // sig: i f s b params, '>' result
 rio_define(&vm, "LEVEL", "3");           // optional: like -D LEVEL=3
 if (rio_compile(&vm, src, len) || rio_run(&vm)) puts(rio_error(&vm));
 
-int f = rio_func(&vm, "update");
+int f = rio_func(&vm, "update");          // procs and globals the host uses are marked: update* :: proc(dt: Float)
 rio_args(&vm, f)[0].f = 0.016f;        // params are consecutive words (slices 2, structs n)
 rio_call(&vm, f);
 float r = rio_ret(&vm, f)->f;          // if it returns something
-int *score = rio_global(&vm, "score"); // direct access to globals
+int *score = rio_global(&vm, "score"); // direct access to globals (score* := 0)
 ```
 
 `String` or `Blob` FFI arguments take two words (address, length); use `rio_ptr(vm, &a[i])` to get the bytes. An FFI function can abort the script with `rio_trap(vm, "msg")`. FFI functions must not call back into the VM.
@@ -343,7 +343,7 @@ RioError e = rio_error_info(&vm);  // after a failed rio_compile / rio_run / rio
 
 The library has no static RAM of its own. Everything lives in three buffers you provide: `Rio`, `mem` and `code`.
 
-**The compiler borrows script memory.** While compiling, the compiler writes only two things into `mem`: constants (at the bottom) and string literals. Proc frames, globals and arrays are just address ranges that stay zero until the program runs. So `rio_compile` puts its working state (symbol tables, expression stacks, the string pool) on top of those ranges. When it finishes, it moves the strings and a small export table (for `rio_func`/`rio_global`) to their final place and zeroes the rest. Peak RAM is *max(compiling, running)*, not their sum.
+**The compiler borrows script memory.** While compiling, the compiler writes only two things into `mem`: constants (at the bottom) and string literals. Proc frames, globals and arrays are just address ranges that stay zero until the program runs. So `rio_compile` puts its working state (symbol tables, expression stacks, the string pool) on top of those ranges. When it finishes, it packs frames and globals down to start right after the constants actually used (the room set aside for constants is only needed while compiling), lets procs that never run at the same time share frame memory, moves the strings and a small export table (for `rio_func`/`rio_global`) to their final place, and zeroes the rest. Peak RAM is *max(compiling, running)*, not their sum.
 
 ```
 compiling:  [consts][ compiler state + string pool ..................................]
@@ -361,7 +361,9 @@ rio_compile_ex(&vm, src, len, scratch, sizeof scratch, &lim);   // scratch NULL:
 uint32_t need = rio_limits_size(&lim);       // bytes those tables take (strings need some on top)
 ```
 
-`rio_limits_for(n)` sizes the tables to about 60% of `n` and leaves the rest for string literals. Running out of anything is a clean compile error ("too many symbols", "scratch too small for these limits", "not enough memory for the compiler").
+`rio_limits_for(n)` sizes the tables to about 60% of `n` and leaves the rest for string literals. Running out of anything is a clean compile error ("too many symbols", "scratch too small for these limits", "not enough memory for the compiler"). The constants limit is only room while compiling: a running program keeps just the constants it uses.
+
+**The host finds only what's marked.** `rio_func` and `rio_global` can look up `main` and the main file's names marked with `*`, as in `update* :: proc()` or `score* := 0`, the same mark modules use for their exports. Each findable name costs a 12-byte entry plus the name, so leaving the rest out keeps the table small. Build with `-DRIO_EXPORTS_ALL` (CMake: `-DRIO_EXPORTS_ALL=ON`) to make every top-level proc and global findable instead, for example in a debugger or tooling host.
 
 | budget | symbols | procs | constants | tables |
 |---|---|---|---|---|
