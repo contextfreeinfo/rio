@@ -856,6 +856,22 @@ for d, i in Dir                         # an enum's values, in the order listed
   enames.format(d, i, " ")
 end
 check(enames[:].asString() == "north0 east1 south2 west3 ", "for d in Dir, and format prints names")
+ecounts: [Dir]Int                       # one element per value, indexed by the enum
+ecounts[.east] = 3
+ecounts[Dir.west] += 2
+ed = .east
+ecounts[ed] += 1
+check(ecounts[.east] == 4 && ecounts[.west] == 2 && ecounts[.north] == 0 && len(ecounts) == 4, "an enum-indexed array")
+ewhich := 0
+for c, dd in ecounts                    # the index is the enum
+  if dd == .west
+    ewhich = c
+  end
+end
+check(ewhich == 2, "for over an enum-indexed array")
+check(ecounts[Dir.fromInt(Dir.east.toInt())] == 4, "d.toInt() is d's element")
+epart := ecounts[.east:.west]           # bounds are values; like any slice, the end isn't included
+check(len(epart) == 2 && epart[0] == 4 && len(ecounts[.south:]) == 2 && len(ecounts[:.east]) == 1, "slicing with enum values")
 
 # ---- switch: case values (several per case), else, and every enum value covered
 compass :: proc(d: Dir) -> Int

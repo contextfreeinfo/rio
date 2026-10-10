@@ -263,9 +263,26 @@ static int slice_of(Rio *vm, int e) {
 }
 static int array_of(Rio *vm, int e, uint32_t n) {
   int i; uint32_t es = TY(e)->size;
-  for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_ARR && vm->c->type[i].elem == e && vm->c->type[i].n == n) return i;
+  for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_ARR && vm->c->type[i].elem == e && vm->c->type[i].n == n && !vm->c->type[i].f0) return i;
   if (es && n > 0x7FFFFFF0u / es) fail(vm, "array too large");
   return newtype(vm, K_ARR, e, n, (es * n + 3) & ~3u);
+}
+/* [Enum]T: one element per value of the enum, indexed by it (f0: the enum). The values must be exactly
+   0, 1, 2...: then d.toInt() is d's element, and no element is wasted */
+static int32_t enummin(Rio *vm, int et) {
+  RioType *e = TY(et); int i; int32_t mn = 0;
+  for (i = 0; i < e->nf; i++) { int32_t v = (int32_t)((uint32_t)vm->c->field[e->f0 + i].t << 16 | vm->c->field[e->f0 + i].off); if (!i || v < mn) mn = v; }
+  return mn;
+}
+static int enumarray_of(Rio *vm, int el, int et) {
+  RioType *e = TY(et); int i; int32_t mn = enummin(vm, et), mx = mn; uint32_t es = TY(el)->size;
+  for (i = 0; i < e->nf; i++) { int32_t v = (int32_t)((uint32_t)vm->c->field[e->f0 + i].t << 16 | vm->c->field[e->f0 + i].off); if (v > mx) mx = v; }
+  if (mn != 0 || (int64_t)mx + 1 != e->nf) fail(vm, "an enum used as an index needs the values 0, 1, 2...: use one like that, or a switch");
+  for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_ARR && vm->c->type[i].elem == el && vm->c->type[i].f0 == et) return i;
+  if (es && e->nf > 0x7FFFFFF0u / es) fail(vm, "array too large");
+  i = newtype(vm, K_ARR, el, e->nf, (es * e->nf + 3) & ~3u);
+  vm->c->type[i].f0 = (uint16_t)et;
+  return i;
 }
 /* [..N]T: a length word followed by N elements. [..]T: a builder, a view of a length word and the memory
    it counts: (address of the length word, address of the data, capacity) */
@@ -923,7 +940,7 @@ static int convname(const char *s, int n) {
    assigned), more build a new read-only array of those elements. 0: the name isn't a swizzle */
 static int swizzle(Rio *vm, Ex *e) {
   RioType *ty = TY(e->t); int ix[4], j, n = TK.n, el = ty->elem, ek = TY(el)->k, d, mix = 0;
-  if (ty->k != K_ARR || ty->n > 4 || (ek != K_I32 && ek != K_F32 && ek != K_BOOL) || n > 4) return 0;
+  if (ty->k != K_ARR || ty->f0 || ty->n > 4 || (ek != K_I32 && ek != K_F32 && ek != K_BOOL) || n > 4) return 0;
   for (j = 0; j < n; j++) {
     const char *p = memchr("xyzwrgba", TK.s[j], 8);
     if (!p) return 0;
@@ -1001,6 +1018,10 @@ static void doindex(Rio *vm, Ex *o, Ex *i) {
   needval(vm, o); needval(vm, i); ty = TY(o->t);
   o->lv = (uint8_t)localview(vm, o);
   if (ty->k != K_ARR && ty->k != K_SLICE && ty->k != K_LIST && ty->k != K_BUILD) fail(vm, "cannot index this");
+  if (ty->k == K_ARR && ty->f0) { /* [Enum]T: the enum's value is the element */
+    if (vt(i->t) != ty->f0) fail(vm, "index this array with its enum");
+    i->t = TY_I32;
+  }
   if (vt(i->t) != TY_I32) fail(vm, "index must be Int");
   el = ty->elem; sz = (int)TY(el)->size; ro = o->ro || o->t == TY_STR;
   if (ty->k == K_LIST || ty->k == K_BUILD) { /* checked against the current length */
@@ -1030,6 +1051,11 @@ static void doslice(Rio *vm, Ex *o, Ex *lo, Ex *hi) {
   }
   if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "cannot slice this");
   if (ty->k == K_ARR && istemp(vm, o)) fail(vm, "a computed array has no home to view: store it in a variable first");
+  if (ty->k == K_ARR && ty->f0) { /* counts[.east:.west]: bounds are the enum's values, which are the positions */
+    int lomit = lo->k == EK_CONST && lo->t == TY_I32 && lo->off == 1;
+    if ((!lomit && vt(lo->t) != ty->f0) || (hi->k != EK_LEN && vt(hi->t) != ty->f0)) fail(vm, "slice this array with its enum's values");
+    lo->t = TY_I32; if (hi->k != EK_LEN) hi->t = TY_I32;
+  }
   if (vt(lo->t) != TY_I32 || (hi->k != EK_LEN && vt(hi->t) != TY_I32)) fail(vm, "slice bounds must be Int");
   s = toslot2(vm, o); l = toslot(vm, lo, 1); h = hi->k == EK_LEN ? s + 1 : toslot(vm, hi, 1);
   vm->c->fr = o->t0; d = alloc(vm, 2);
@@ -1345,6 +1371,10 @@ static int target(Rio *vm, int ob, int whole) {
   if (vm->c->nos == ob) return whole;
   m = &vm->c->os[vm->c->nos - 1];
   if (m->k == OK_LIT) return vm->c->field[TY(m->b)->f0 + m->a].t;
+  if (m->k == OK_IDX && m->vb > 0 && vm->c->nvs <= m->vb + 1) { /* counts[.east], counts[.a:.b]: an [Enum]T takes its enum */
+    RioType *at = TY(vm->c->vs[m->vb - 1].t);
+    if (at->k == K_ARR && at->f0) return at->f0;
+  }
   if (m->k == OK_CALL && m->a == EK_FN && m->n < vm->c->func[m->b].np) return vm->c->param[vm->c->func[m->b].p0 + m->n].t;
   if (m->k == OK_CALL && m->a == EK_BI && m->b == BI_PUSH && m->n == 1) return TY(vm->c->vs[m->vb].t)->elem;
   return -1;
@@ -1409,7 +1439,7 @@ static Ex expr(Rio *vm) {
       depth++; next(vm); want = 1;
     } else if (t == '[') {
       opush(vm, OK_IDX, 0, 0); depth++; next(vm);
-      if (TK.t == ':') { vres(vm, mkex(EK_CONST, TY_I32, 0), (int)vm->c->fr); want = 0; } else want = 1;
+      if (TK.t == ':') { Ex z = mkex(EK_CONST, TY_I32, 0); z.off = 1; vres(vm, z, (int)vm->c->fr); want = 0; } else want = 1; /* off 1: the start was left out */
     } else if (t == '.') {
       next(vm);
       if (TK.t != TK_ID && TK.t != TK_NIL) fail(vm, "field name expected");
@@ -1468,11 +1498,24 @@ static int32_t constexpr_i(Rio *vm) {
 
 /* ---------------------------------------------------------------- statements */
 static int parse_type(Rio *vm) {
-  int32_t pre[16]; int np = 0, t, i;
+  int32_t pre[16]; int np = 0, t, i, pen[16];
   while (TK.t == '[') {
     if (np >= 16) fail(vm, "type too deep");
-    next(vm);
-    if (TK.t == ']') pre[np++] = -1;
+    next(vm); pen[np] = 0;
+    if (TK.t == TK_ID && (i = lookup(vm, TK.s, TK.n)) >= 0 &&
+        ((vm->c->sym[i].k == S_TYPE && TY(vm->c->sym[i].t)->k == K_ENUM) || vm->c->sym[i].k == S_MOD)) { /* [Enum]T, [m.Enum]T, [m.N]T */
+      while (vm->c->sym[i].k == S_MOD) {
+        int m = vm->c->sym[i].v;
+        next(vm);
+        if (TK.t != '.') fail(vm, "'.' expected");
+        next(vm);
+        if (TK.t != TK_ID || (i = modsym(vm, m, TK.s, TK.n)) < 0) failtok(vm, "not exported by that module");
+      }
+      if (vm->c->sym[i].k == S_TYPE && TY(vm->c->sym[i].t)->k == K_ENUM) { pen[np] = vm->c->sym[i].t; pre[np++] = 0; next(vm); }
+      else if (vm->c->sym[i].k == S_CONST && vm->c->sym[i].t == TY_I32 && vm->c->sym[i].v > 0) { pre[np++] = vm->c->sym[i].v; next(vm); }
+      else failtok(vm, "an array size is a positive Int constant or an enum");
+    }
+    else if (TK.t == ']') pre[np++] = -1;
     else if (TK.t == '.' && vm->c->nx.t == '.') { next(vm); next(vm); pre[np++] = TK.t == ']' ? -2 : -3 - constexpr_i(vm); }
     else pre[np++] = constexpr_i(vm);
     expect(vm, ']', "']' expected");
@@ -1496,7 +1539,7 @@ static int parse_type(Rio *vm) {
   }
   while (np) {
     int32_t n = pre[--np];
-    t = n == -1 ? slice_of(vm, t) : n == -2 ? build_of(vm, t) : n < -2 ? list_of(vm, t, (uint32_t)(-3 - n)) : array_of(vm, t, (uint32_t)n);
+    t = pen[np] ? enumarray_of(vm, t, pen[np]) : n == -1 ? slice_of(vm, t) : n == -2 ? build_of(vm, t) : n < -2 ? list_of(vm, t, (uint32_t)(-3 - n)) : array_of(vm, t, (uint32_t)n);
   }
   return t;
 }
@@ -1654,8 +1697,9 @@ static void union_def(Rio *vm, const char *name, int nlen) {
   addsym(vm, name, nlen, S_TYPE, ti, 0);
 }
 /* Name :: enum, then values one per line or comma-separated, then end. A value is name or name = n
-   (otherwise one more than the last); nil may come first. Some value must be 0: new variables start
-   there, so the first listed (or the one = 0) is what zero means */
+   (otherwise one more than the last); nil may come first. Values increase down the list, so the order
+   listed is the order of the values (and of arrays indexed by the enum). Some value must be 0: new
+   variables start there */
 static void enum_def(Rio *vm, const char *name, int nlen) {
   int ti, n = 0, zero = 0, j; int32_t v = 0; RioType *et; RioVal *R = (RioVal *)vm->mem;
   if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "enums must be top-level");
@@ -1674,8 +1718,8 @@ static void enum_def(Rio *vm, const char *name, int nlen) {
     for (j = 0; j < n; j++) {
       RioField *g = &vm->c->field[et->f0 + j];
       if (g->len == sl && !memcmp(vm->c->names + g->name, s, (size_t)sl)) fail(vm, "value named twice");
-      if (enumval(g) == v) fail(vm, "two values with the same number");
     }
+    if (n && v <= enumval(&vm->c->field[et->f0 + n - 1])) fail(vm, "values increase down the list: this one isn't bigger than the one before");
     if (vm->c->nfield >= (int)vm->c->lim.fields) fail(vm, "too many fields");
     f = &vm->c->field[vm->c->nfield++];
     f->name = (uint16_t)addname(vm, s, sl); f->len = (uint16_t)sl; f->t = (uint16_t)((uint32_t)v >> 16); f->off = (uint16_t)v;
@@ -2166,7 +2210,7 @@ static void statement(Rio *vm) {
         e = mkex(EK_ST, array_of(vm, el, (uint32_t)n), at); e.ro = 1;
       }
       if (TK.t != TK_RLT && TK.t != TK_RLE) { /* for x in xs: walk an element pointer iv up to lim, by lim+1 bytes */
-        RioType *ty; int s, sz, ro;
+        RioType *ty; int s, sz, ro, ixt = TY_I32;
         needval(vm, &e); ty = TY(e.t);
         if (ty->k == K_LIST || ty->k == K_BUILD) { /* the elements there when the loop starts */
           int lb = toslot3(vm, &e), v = alloc(vm, 2);
@@ -2176,6 +2220,7 @@ static void statement(Rio *vm) {
         if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "for needs a range, array, slice or list");
         if (ty->k == K_ARR && istemp(vm, &e)) fail(vm, "a computed array has no home to view: store it in a variable first");
         sz = (int)TY(ty->elem)->size; ro = e.ro || e.t == TY_STR;
+        if (ty->k == K_ARR && ty->f0) ixt = ty->f0; /* for v, d in counts: d is the enum */
         s = toslot2(vm, &e);
         emit(vm, OP_MOV, iv, s, 0);
         if (sz != 1) { emit(vm, OP_MUL, lim, s + 1, kslot(vm, sz)); emit(vm, OP_ADD, lim, s, lim); }
@@ -2184,7 +2229,7 @@ static void statement(Rio *vm) {
         if (is) emit(vm, OP_MOV, ix, kslot(vm, 0), 0);
         vm->c->fr = vm->c->nact;
         addsym(vm, ns, nn, ro ? S_ROREF : S_SELF, ty->elem, iv);
-        if (is) addsym(vm, is, in, S_VAR, TY_I32, ix * 4);
+        if (is) addsym(vm, is, in, S_VAR, ixt, ix * 4);
         b->k = B_EACH; b->i = (uint16_t)iv; b->lim = (uint16_t)lim; b->b = (uint16_t)ix;
         b->brk = (uint16_t)emit(vm, OP_JLE, lim, iv, NONE); b->a = (uint16_t)here(vm);
         break;
