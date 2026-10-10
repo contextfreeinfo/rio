@@ -668,6 +668,45 @@ vr := &mv.vel
 vr *= 2.0
 check(mv.vel.x == 4, "through a reference")
 
+// ---- swizzles: .x .y .z .w / .r .g .b .a on arrays of 1-4 numbers or Bools
+sv: [3]Float
+sv.x = 1
+sv.y = 2
+sv.z = 3
+check(sv.x == 1 && sv.z == 3 && sv[2] == 3, "one letter is the element")
+sw := sv.zyx
+check(sw.x == 3 && sw.z == 1, "several letters build a new array")
+sc := sv.xx + sv.yz * 2.0
+check(sc.x == 5 && sc.y == 7, "swizzles in arithmetic")
+rgba: [4]Int
+rgba.r = 255
+rgba.a = 9
+rgba.g += 7
+sq := rgba.bgra
+check(rgba.g == 7 && sq.r == 0 && sq.a == 9, "rgba")
+Spr :: struct
+  pos: [2]Float
+end
+sprs: [3]Spr
+for p, i in sprs
+  p.pos.y = i.toFloat()
+  p.pos += p.pos.yx
+end
+check(sprs[2].pos.x == 2 && sprs[2].pos.y == 2, "a swizzle of the target, in place")
+sz := &sv.z
+sz = 10
+check(sv.z == 10, "a reference to a swizzled element")
+sflags: [2]Bool
+sflags.y = true
+check(sflags.yx.x, "Bools")
+swl :: proc() -> Float
+  a: [2]Float
+  a.x = 3
+  b := a.yxxy
+  return b.z + b.w
+end
+check(swl() == 3, "inside a proc")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")

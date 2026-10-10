@@ -751,6 +751,28 @@ static int convname(const char *s, int n) {
   for (k = BI_TOINT; k <= BI_ASSTRING; k++) if ((int)strlen(bi[k]) == n && !memcmp(bi[k], s, (size_t)n)) return k;
   return -1;
 }
+/* v.x, v.zy, v.rgba on an array of 1-4 Ints, Floats or Bools: one letter is that element (it can be
+   assigned), more build a new read-only array of those elements. 0: the name isn't a swizzle */
+static int swizzle(Rio *vm, Ex *e) {
+  RioType *ty = TY(e->t); int ix[4], j, n = TK.n, el = ty->elem, ek = TY(el)->k, d, mix = 0;
+  if (ty->k != K_ARR || ty->n > 4 || (ek != K_I32 && ek != K_F32 && ek != K_BOOL) || n > 4) return 0;
+  for (j = 0; j < n; j++) {
+    const char *p = memchr("xyzwrgba", TK.s[j], 8);
+    if (!p) return 0;
+    ix[j] = (int)(p - "xyzwrgba"); mix |= ix[j] < 4 ? 1 : 2; ix[j] &= 3;
+  }
+  if (mix == 3) failtok(vm, "use xyzw or rgba, not both");
+  for (j = 0; j < n; j++) if ((uint32_t)ix[j] >= ty->n) failtok(vm, "no such element: the array is shorter");
+  if (n == 1) { if (e->k == EK_ST) e->a += ix[0] * 4; else e->off += ix[0] * 4; e->t = (uint16_t)el; return 1; }
+  d = alloc(vm, n);
+  for (j = 0; j < n; j++) {
+    Ex s = *e, dd = mkex(EK_ST, el, (d + j) * 4);
+    if (s.k == EK_ST) s.a += ix[j] * 4; else s.off += ix[j] * 4;
+    s.t = (uint16_t)el; store(vm, &dd, &s);
+  }
+  e->k = EK_ST; e->a = d * 4; e->off = 0; e->t = (uint16_t)array_of(vm, el, (uint32_t)n); e->ro = 1;
+  return 1;
+}
 static void member(Rio *vm) {
   Ex *e = vtop(vm), m; RioType *ty; int i, k;
   if (e->k == EK_MOD) { /* mod.name: one of the module's exported names */
@@ -761,6 +783,7 @@ static void member(Rio *vm) {
   }
   needval(vm, e); ty = TY(e->t);
   if (structfield(vm, ty, TK.s, TK.n) >= 0) { field(vm, e); return; }
+  if (ty->k == K_ARR && swizzle(vm, e)) return;
   if (ty->k != K_STRUCT && ty->k != K_LIST && ty->k != K_BUILD && (k = convname(TK.s, TK.n)) >= 0) m = mkex(EK_BI, 0, k);
   else if (ty->k == K_LIST || ty->k == K_BUILD) {
     for (k = BI_PUSH; k <= BI_FORMAT; k++)
@@ -768,7 +791,8 @@ static void member(Rio *vm) {
     if (k > BI_FORMAT) fail(vm, "no such method");
     m = mkex(EK_BI, 0, k);
   } else {
-    if ((i = lookup_meth(vm, vt(e->t), TK.s, TK.n)) < 0) fail(vm, ty->k == K_STRUCT ? "no such field or method" : "no such method");
+    if ((i = lookup_meth(vm, vt(e->t), TK.s, TK.n)) < 0)
+      fail(vm, ty->k == K_STRUCT ? "no such field or method" : ty->k == K_ARR ? "no such method (swizzles like .x .zy .rgba need 1-4 letters, on arrays of 1-4 numbers)" : "no such method");
     if (!vm->c->func[vm->c->sym[i].v].done) fail(vm, "recursion is not allowed");
     m = mkex(EK_FN, 0, vm->c->sym[i].v);
   }
