@@ -10,10 +10,13 @@
 #define RIO_CGOTO 1
 #endif
 #define NORET __attribute__((noreturn))
+#define NOINLINE __attribute__((noinline))
 #elif defined(_MSC_VER)
 #define NORET __declspec(noreturn)
+#define NOINLINE __declspec(noinline)
 #else
 #define NORET
+#define NOINLINE
 #endif
 
 #define OPS RIO_OPS
@@ -2253,33 +2256,37 @@ int rio_repl_begin(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim) 
   vm->repl = 1; vm->ok = 1;
   return 0;
 }
+/* where a REPL piece started, so a failed one can be undone: all the tables only ever grow */
+typedef struct { uint32_t pc, nk, hi, nact, hwm, poolcap, nline, lastline; int nsym, ntype, nfield, nparam, nnames, nfunc, nmod; } Snap;
+/* kept out of line: inlined, its locals would sit in rio_repl_eval next to the setjmp */
+static NOINLINE int rollback(Rio *vm, const Snap *s) {
+  RioC *c = vm->c; uint32_t i;
+  int more = c->sp >= c->se && (c->failmsg == M_END || c->failmsg == M_BRACKET || c->failmsg == M_EXPR || c->failmsg == M_STRING);
+  for (i = s->nk; i < vm->nk; i++) c->kfix[i >> 3] &= (uint8_t)~(1u << (i & 7));
+  vm->pc = s->pc; vm->nk = s->nk; vm->hi = s->hi; vm->nfunc = s->nfunc;
+  c->nact = c->fr = s->nact; c->hwm = s->hwm; c->poolcap = s->poolcap; c->nline = s->nline; c->lastline = s->lastline; c->pool = 0;
+  c->nsym = s->nsym; c->ntype = s->ntype; c->nfield = s->nfield; c->nparam = s->nparam; c->nnames = s->nnames;
+  c->nblk = c->nvs = c->nos = 0; c->curfn = -1; c->target = -1; c->lineovr = 0;
+  c->nmod = s->nmod; c->nis = 0; c->curmod = c->curf = 1; c->exporting = 0;
+  if (more) { vm->ekind = RIO_ENONE; vm->err[0] = 0; return RIO_MORE; }
+  return -1;
+}
 int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
-  RioC *c = vm->c; uint32_t pc0 = vm->pc, nk0 = vm->nk, hi0 = vm->hi, nact0, hwm0, poolcap0, nline0, lastline0;
-  int nsym0, ntype0, nfield0, nparam0, nnames0, nfunc0 = vm->nfunc, nmod0 = c ? c->nmod : 0;
+  RioC *c = vm->c; Snap s; /* in memory, its address taken: longjmp can't leave it stale */
   if (!vm->repl || !c) { seterr(vm, RIO_ECOMPILE, 0, 0, 0, "no REPL session"); return -1; }
   vm->ekind = RIO_ENONE; vm->err[0] = 0;
-  nact0 = c->nact; hwm0 = c->hwm; poolcap0 = c->poolcap; nline0 = c->nline; lastline0 = c->lastline;
-  nsym0 = c->nsym; ntype0 = c->ntype; nfield0 = c->nfield; nparam0 = c->nparam; nnames0 = c->nnames;
-  if (setjmp(c->jb)) { /* undo everything this piece added: all the tables only ever grow */
-    int more = c->sp >= c->se && (c->failmsg == M_END || c->failmsg == M_BRACKET || c->failmsg == M_EXPR || c->failmsg == M_STRING);
-    uint32_t i;
-    for (i = nk0; i < vm->nk; i++) c->kfix[i >> 3] &= (uint8_t)~(1u << (i & 7));
-    vm->pc = pc0; vm->nk = nk0; vm->hi = hi0; vm->nfunc = nfunc0;
-    c->nact = c->fr = nact0; c->hwm = hwm0; c->poolcap = poolcap0; c->nline = nline0; c->lastline = lastline0; c->pool = 0;
-    c->nsym = nsym0; c->ntype = ntype0; c->nfield = nfield0; c->nparam = nparam0; c->nnames = nnames0;
-    c->nblk = c->nvs = c->nos = 0; c->curfn = -1; c->target = -1; c->lineovr = 0;
-    c->nmod = nmod0; c->nis = 0; c->curmod = c->curf = 1; c->exporting = 0;
-    if (more) { vm->ekind = RIO_ENONE; vm->err[0] = 0; return RIO_MORE; }
-    return -1;
-  }
+  s.pc = vm->pc; s.nk = vm->nk; s.hi = vm->hi; s.nfunc = vm->nfunc; s.nmod = c->nmod;
+  s.nact = c->nact; s.hwm = c->hwm; s.poolcap = c->poolcap; s.nline = c->nline; s.lastline = c->lastline;
+  s.nsym = c->nsym; s.ntype = c->ntype; s.nfield = c->nfield; s.nparam = c->nparam; s.nnames = c->nnames;
+  if (setjmp(c->jb)) return rollback(vm, &s);
   c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1; c->pline = c->pcol = c->pw = 0; c->lastline = c->lastlinepc = 0;
   lex(vm, &c->nx); next(vm);
   c->lastlabel = vm->pc; /* nothing gets fused with the previous piece's last instruction */
   compile_all(vm);
   emit(vm, OP_HALT, 0, 0, 0);
-  commit(vm, nk0, nfunc0);
+  commit(vm, s.nk, s.nfunc);
   vm->brk = 0;
-  return start(vm, pc0) ? -1 : 0;
+  return start(vm, s.pc) ? -1 : 0;
 }
 void rio_interrupt(Rio *vm) { vm->brk = 1; }
 const char *rio_error(Rio *vm) { return vm->err; }

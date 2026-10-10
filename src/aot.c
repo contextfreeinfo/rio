@@ -63,6 +63,9 @@ static const char *symname(int kind, int idx) {
   return b;
 }
 /* print to the output, or only evaluate the operands (marking used locals) during the dry run */
+#if defined(__GNUC__) || defined(__clang__)
+static void P(const char *fmt, ...) __attribute__((format(printf, 1, 2))); /* lets the compiler check every call */
+#endif
 static void P(const char *fmt, ...) {
   static char b[4096]; va_list ap; int n, i;
   if (!o) return;

@@ -43,15 +43,19 @@ static long readfile(const char *path) {
   return (long)n;
 }
 static int exists(const char *path) { FILE *f = fopen(path, "rb"); if (f) fclose(f); return f != 0; }
+/* a + b + c + d into out; 0 if it doesn't fit (a cut-off path could name some other file) */
+static int join(char *out, size_t cap, const char *a, const char *b, const char *c, const char *d) {
+  int n = snprintf(out, cap, "%s%s%s%s", a, b, c, d);
+  return n >= 0 && (size_t)n < cap;
+}
 /* path.rio, or the directory path/ with its entry file path/<last>.rio */
 static int resolve(const char *dir, const char *path, int file, char *out, size_t cap, int *isdir) {
   const char *last = strrchr(path, '/');
   last = last ? last + 1 : path;
-  if (file) { snprintf(out, cap, "%s%s", dir, path); *isdir = 0; return exists(out); } /* include "x.rio" */
-  snprintf(out, cap, "%s%s.rio", dir, path);
-  if (exists(out)) { *isdir = 0; return 1; }
-  snprintf(out, cap, "%s%s/%s.rio", dir, path, last);
-  if (exists(out)) { *isdir = 1; return 1; }
+  *isdir = 0;
+  if (file) return join(out, cap, dir, path, "", "") && exists(out); /* include "x.rio" */
+  if (join(out, cap, dir, path, ".rio", "") && exists(out)) return 1;
+  if (join(out, cap, dir, path, "/", last) && strlen(out) + 4 < cap && (strcat(out, ".rio"), exists(out))) { *isdir = 1; return 1; }
   return 0;
 }
 static int loader(void *ud, const char *path, int kind, RioSource *o) {
@@ -65,7 +69,11 @@ static int loader(void *ud, const char *path, int kind, RioSource *o) {
   o->src = src + srcn;
   if ((len = readfile(found)) < 0) return 1;
   o->len = (uint32_t)len; o->isdir = isdir;
-  name = names + namesn; namesn += (size_t)snprintf(name, sizeof names - namesn, "%s", found) + 1;
+  { /* keep the file name for error messages */
+    size_t fl = strlen(found) + 1;
+    if (fl > sizeof names - namesn) return 1;
+    name = names + namesn; memcpy(name, found, fl); namesn += fl;
+  }
   o->name = name;
   return 0;
 }
