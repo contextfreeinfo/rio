@@ -851,6 +851,11 @@ for x, i in eds
   x = Dir.fromInt(i)
 end
 check(eds[3] == .west && eds[0] != .east, "an array of enums")
+enames: Blob[..64]
+for d, i in Dir                         # an enum's values, in the order listed
+  enames.format(d, i, " ")
+end
+check(enames[:].asString() == "north0 east1 south2 west3 ", "for d in Dir, and format prints names")
 
 # ---- switch: case values (several per case), else, and every enum value covered
 compass :: proc(d: Dir) -> Int
@@ -931,6 +936,12 @@ if ub is Box
   ub = Circle{r = ub.w}               # the new value is read while ub is still the Box
 end
 check(ub is Circle && uarea(ub) == 27, "replacing a narrowed union from its own value")
+uhit := true
+uboth := 0.0
+if uhit && ua is Circle && ub is Circle
+  uboth = ua.r + ub.r                 # every x is T joined by && narrows
+end
+check(uboth == 5, "narrowed by && parts of a condition")
 ushapes: [3]Shape
 ushapes[1] = Circle{r = 1}
 ushapes[2] = Box{w = 1, h = 2}

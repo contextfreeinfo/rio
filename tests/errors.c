@@ -104,6 +104,11 @@ static const Case cases[] = {
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nswitch u\ncase A\n  u.x = 3\ncase B\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "assign the whole union to change it"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nswitch u\ncase A\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "this switch has no case for B"},
   {"S :: union\n  String, Int\nend\nf :: proc()\n  s: S\nend\n", 0, 0, 0, RIO_ECOMPILE, 5, -1, -1, "unions holding slices or strings must be global"},
+  /* only x is T parts joined by && narrow: not under ||, !, or a comparison */
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif t || u is A\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif !(u is B)\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif (u is A) == true\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif (u is A && t) || t\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
   {"x := 1\nelse\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 4, "'else' without 'if'"},
   {"x := 1\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 3, "'end' without block"},
   {"x := 1\nreturn\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 6, "return outside proc"},

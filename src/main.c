@@ -189,6 +189,17 @@ static void memreport(void) {
            c->func[k].big ? ", big locals" : "");
   }
   if (nf > shown) printf("  ... %d more\n", nf - shown);
+  { /* unions: every value takes the size of the biggest type */
+    int k, any = 0;
+    for (k = 0; k < c->nsym; k++) {
+      RioSym *y = &c->sym[k]; RioType *u; uint32_t mn = 0xFFFFFFFFu; int f;
+      if (y->k != RIO_S_TYPE || c->type[y->t].k != RIO_K_UNION) continue;
+      u = &c->type[y->t];
+      for (f = 0; f < u->nf; f++) { RioField *fl = &c->field[u->f0 + f]; if (fl->t && c->type[fl->t].size < mn) mn = c->type[fl->t].size; }
+      if (!any++) printf("unions (bytes per value: a 4-byte tag and the biggest type)\n");
+      printf("  %-24.*s %8u   (smallest type %u bytes)\n", (int)y->len, c->names + y->name, u->size, mn == 0xFFFFFFFFu ? 0 : mn);
+    }
+  }
   if (best >= 0) {
     printf("heaviest call chain: %u bytes of frames\n  ", chain[best]);
     for (i = best; i >= 0; i = next[i]) printf("%s%s", procname(i), next[i] >= 0 ? " -> " : "\n");

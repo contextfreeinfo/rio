@@ -103,11 +103,14 @@ int rio_pc_line(Rio *vm, uint32_t pc);      /* source line of a bytecode positio
 
 /* ---- private ---- */
 enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI, RIO_S_METH, RIO_S_SELF, RIO_S_MOD };
+/* kinds of types (RioType.k), for tools that read the compiler's tables */
+enum { RIO_K_VOID, RIO_K_I32, RIO_K_F32, RIO_K_BYTE, RIO_K_SLICE, RIO_K_ARR, RIO_K_STRUCT, RIO_K_BOOL, RIO_K_LIST, RIO_K_BUILD,
+  RIO_K_ENUM, RIO_K_UNION };
 #define RIO_OPS(X) X(MOV) X(ADD) X(SUB) X(MUL) X(DIV) X(MOD) X(AND) X(OR) X(XOR) X(SHL) X(SHR) \
   X(NEG) X(BNOT) X(NOT) X(FADD) X(FSUB) X(FMUL) X(FDIV) X(FNEG) \
   X(EQ) X(NE) X(LT) X(LE) X(FEQ) X(FNE) X(FLT) X(FLE) X(SEQ) X(SNE) \
   X(ITOF) X(FTOI) X(LDW) X(LDB) X(LEA) X(M1) X(M2) X(IABS) X(IMIN) X(IMAX) X(FMIN) X(FMAX) X(LDX) X(LDXB) \
-  X(MOV2) X(LDW2) X(STW) X(STB) X(STW2) X(STX) X(STXB) X(IDX) X(SLICE) X(COPY) X(MOVN) X(ZERO) X(ENUMCK) \
+  X(MOV2) X(LDW2) X(STW) X(STB) X(STW2) X(STX) X(STXB) X(IDX) X(SLICE) X(COPY) X(MOVN) X(ZERO) X(ENUMCK) X(ENUMNAME) \
   X(VADD) X(VSUB) X(VMUL) X(VDIV) X(VMOD) X(FVADD) X(FVSUB) X(FVMUL) X(FVDIV) \
   X(LIDX) X(PUSHA) X(PUSHS) X(PUSHT) X(POPA) X(LREM) X(LSWAP) X(LVIEW) \
   X(JMP) X(JZ) X(JNZ) X(JEQ) X(JNE) X(JLT) X(JLE) X(JFEQ) X(JFNE) X(JFLT) X(JFLE) X(JFNLT) X(JFNLE) X(EACH) X(FORI) \
@@ -154,7 +157,8 @@ typedef struct RioC {
   uint8_t *lvs;                          /* local slots that hold a view of their proc's own memory */
   int argstore;                          /* storing call arguments: views may go to a callee */
   uint64_t swm[16][4]; int nsw;          /* per open switch: which enum values (or union types) have a case */
-  int32_t isres, isvar; int ismem;       /* the last `x is T`: its result, the variable tested, the type */
+  struct { int32_t at, var; int mem; } isc[8]; int nisc; /* `x is T`s in a condition: the slot carrying each
+                                                        result (-1 once used by anything but &&), x, T */
   uint16_t *smap;                        /* old slot -> new slot, while sharing frames */
   RioCFfi ffi[RIO_MAX_FFI];
   uint8_t *strs;                         /* string pool: the rest of scratch */

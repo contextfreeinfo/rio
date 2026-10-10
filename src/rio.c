@@ -32,7 +32,7 @@ enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, T
   TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_IMPORT, TK_INCLUDE, TK_ENUM, TK_UNION, TK_SWITCH, TK_CASE, TK_IS, TK_NIL, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND,
   TK_OR, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
 enum { TY_VOID, TY_I32, TY_F32, TY_BYTE, TY_STR, TY_BLOB, TY_BOOL };
-enum { K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD, K_ENUM, K_UNION };
+enum { K_VOID = RIO_K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD, K_ENUM, K_UNION };
 enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF, S_MOD, S_ROREF, S_NARROW }; /* S_ROREF: a read-only S_SELF.
    S_NARROW: a union variable narrowed to one of its types: a read-only copy (mod: the union's symbol) */
 enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN, EK_MOD };
@@ -616,17 +616,36 @@ static int unionwrap(Rio *vm, Ex *d, Ex *s) { /* store a value of one of d's typ
   return 1;
 }
 static void binop(Rio *vm, int op, Ex *l, Ex *r);
+/* narrowing in if: an `x is T` holds inside the block if it's one of the &&-ed parts of the condition.
+   Each one's result is followed: && carries it on to its own result, anything else using it drops it */
+static void isused(Rio *vm, const Ex *e, int carry) {
+  int i;
+  if (e->k != EK_ST) return;
+  for (i = 0; i < vm->c->nisc; i++) if (vm->c->isc[i].at == e->a) vm->c->isc[i].at = carry;
+}
 static void isop(Rio *vm, Ex *l, Ex *r) { /* u is T, u is nil: compare the tag */
   int j; Ex tag, c;
   needval(vm, l);
   if (TY(l->t)->k != K_UNION) fail(vm, "is tests which type a union holds");
   if (r->k == EK_TY || (r->k == EK_CONST && r->t == l->t)) j = unionmember(vm, l->t, r); else fail(vm, "is needs a type (or nil)");
   if (j < 0) fail(vm, "not one of this union's types");
-  vm->c->isvar = l->k == EK_ST && !l->ro && l->a < 0x40000 ? l->a : -1; vm->c->ismem = j;
-  tag = *l; tag.t = TY_I32; tag.ro = 0;
-  c = mkex(EK_CONST, TY_I32, j); c.t0 = r->t0;
-  binop(vm, TK_EQ, &tag, &c);
-  *l = tag; vm->c->isres = l->k == EK_ST ? l->a : -1;
+  {
+    int32_t var = l->k == EK_ST && !l->ro && l->a < 0x40000 ? l->a : -1;
+    tag = *l; tag.t = TY_I32; tag.ro = 0;
+    c = mkex(EK_CONST, TY_I32, j); c.t0 = r->t0;
+    binop(vm, TK_EQ, &tag, &c);
+    *l = tag;
+    if (var >= 0 && l->k == EK_ST && vm->c->nisc < 8) {
+      vm->c->isc[vm->c->nisc].at = l->a; vm->c->isc[vm->c->nisc].var = var; vm->c->isc[vm->c->nisc].mem = j; vm->c->nisc++;
+    }
+  }
+}
+static void narrow(Rio *vm, int32_t var, int j);
+/* after the condition e of an if: narrow each x is T still carried by e */
+static void narrowall(Rio *vm, const Ex *e) {
+  int i;
+  for (i = 0; i < vm->c->nisc; i++) if (e->k == EK_ST && vm->c->isc[i].at == e->a) narrow(vm, vm->c->isc[i].var, vm->c->isc[i].mem);
+  vm->c->nisc = 0;
 }
 /* inside a block that knows the union variable at address var holds its type j: the name now reads
    as that type, from a copy taken here (so it stays the right type whatever happens to the union) */
@@ -654,6 +673,7 @@ static int narrowsym(Rio *vm, const Ex *l) {
 static void binop(Rio *vm, int op, Ex *l, Ex *r) {
   int lt, rt, isf, cmp, o, ls, rs, d, sw = 0;
   if (op == TK_IS) { isop(vm, l, r); return; }
+  isused(vm, l, -1); isused(vm, r, -1);
   needval(vm, l); needval(vm, r);
   if (TY(l->t)->k == K_ARR || TY(l->t)->k == K_STRUCT || TY(r->t)->k == K_ARR || TY(r->t)->k == K_STRUCT) { vecarith(vm, op, l, r, 0); return; }
   lt = vt(l->t); rt = vt(r->t);
@@ -741,6 +761,7 @@ static void vecarith(Rio *vm, int op, Ex *l, Ex *r, Ex *into) {
 }
 static void unop(Rio *vm, int op, Ex *e) {
   int t, s, d;
+  isused(vm, e, -1);
   needval(vm, e);
   if (op == '&') {
     if (e->k == EK_CONST || e->ro || (e->k == EK_ST && (e->a < (int32_t)vm->kcap * 4 || istemp(vm, e))))
@@ -798,6 +819,7 @@ static void reduce1(Rio *vm) {
   if (o.k == OK_BIN) { binop(vm, o.op, vtop(vm), &r); return; }
   {
     int s, d = o.b;
+    isused(vm, &r, o.k == OK_AND ? d * 4 : -1);
     needval(vm, &r);
     if (r.t != TY_BOOL) fail(vm, "expected Bool");
     s = toslot(vm, &r, 1);
@@ -1019,6 +1041,7 @@ static void punfield(Rio *vm, Op *m);
 /* one argument of a call / struct literal is complete (on top of the value stack) */
 static void argdone(Rio *vm, Op *m) {
   Ex *a = vtop(vm), e; RioParam *pp = 0;
+  isused(vm, a, -1);
   if (m->k == OK_CALL && m->a == EK_FN && m->n < vm->c->func[m->b].np) pp = &vm->c->param[vm->c->func[m->b].p0 + m->n];
   if (pp && pp->ref) {
     if (!(a->ro & RO_REF)) fail(vm, "this parameter is a reference: pass &x");
@@ -1064,10 +1087,14 @@ static void argdone(Rio *vm, Op *m) {
       int ok = (int)m->set + 1, s, d;
       if ((k == K_SLICE || k == K_ARR) && TY(e.t)->elem == TY_BYTE) {
         s = toslot2(vm, &e); d = alloc(vm, 1); emit(vm, OP_PUSHS, d, m->c, s); emitw(vm, 0, 1);
+      } else if (k == K_ENUM) { /* its name */
+        RioType *et = TY(e.t); int v = toslot(vm, &e, 1), nm = alloc(vm, 2);
+        emit(vm, OP_ENUMNAME, nm, v, (int)et->n); emitw(vm, et->elem, et->nf);
+        d = alloc(vm, 1); emit(vm, OP_PUSHS, d, m->c, nm); emitw(vm, 0, 1);
       } else if (k == K_I32 || k == K_F32 || k == K_BOOL || k == K_BYTE) {
         s = toslot(vm, &e, 1); d = alloc(vm, 1); emit(vm, OP_PUSHT, d, m->c, s);
         vm->code[vm->pc - 1].x = (uint8_t)(k == K_F32 ? 1 : k == K_BOOL ? 2 : 0);
-      } else fail(vm, "format takes Strings, Blobs and numbers");
+      } else fail(vm, "format takes Strings, Blobs, numbers and enums");
       emit(vm, OP_AND, ok, ok, d);
       vm->c->fr = e.t0;
     }
@@ -1418,6 +1445,7 @@ static Ex expr(Rio *vm) {
         if (l->t != TY_BOOL) fail(vm, "expected Bool");
         s = toslot(vm, l, 1); vm->c->fr = l->t0; d = alloc(vm, 1);
         if (s != d) emit(vm, OP_MOV, d, s, 0);
+        isused(vm, l, t == TK_AND ? d * 4 : -1);
         o = opush(vm, t == TK_AND ? OK_AND : OK_OR, p, t);
         o->a = emit(vm, t == TK_AND ? OP_JZ : OP_JNZ, d, 0, NONE); o->b = d;
         l->k = EK_ST; l->a = d * 4; l->t = TY_BOOL; l->ro = 0;
@@ -2091,12 +2119,11 @@ static void statement(Rio *vm) {
   case TK_SWITCH: switch_stmt(vm); break;
   case TK_CASE: case_stmt(vm); break;
   case TK_IF: {
-    int nv;
-    next(vm); vm->c->isres = -1; e = expr(vm);
-    nv = e.k == EK_ST && e.a == vm->c->isres && vm->c->isvar >= 0; /* the whole condition is x is T */
+    Ex c;
+    next(vm); vm->c->nisc = 0; e = expr(vm); c = e;
     i = condjump(vm, &e);
     b = bpush(vm, B_IF); b->a = (uint16_t)i;
-    if (nv) narrow(vm, vm->c->isvar, vm->c->ismem);
+    narrowall(vm, &c);
     break;
   }
   case TK_ELSE:
@@ -2115,11 +2142,10 @@ static void statement(Rio *vm) {
     b->b = (uint16_t)jappend(vm, b->b, emit(vm, OP_JMP, 0, 0, NONE));
     patch(vm, b->a, here(vm));
     if (TK.t == TK_IF) {
-      int nv;
-      next(vm); vm->c->isres = -1; e = expr(vm);
-      nv = e.k == EK_ST && e.a == vm->c->isres && vm->c->isvar >= 0;
+      Ex c;
+      next(vm); vm->c->nisc = 0; e = expr(vm); c = e;
       b->a = (uint16_t)condjump(vm, &e);
-      if (nv) narrow(vm, vm->c->isvar, vm->c->ismem);
+      narrowall(vm, &c);
     }
     else { b->k = B_ELSE; b->a = NONE; }
     break;
@@ -2135,6 +2161,10 @@ static void statement(Rio *vm) {
       b = bpush(vm, B_FOR);
       vm->c->fr = vm->c->nact; iv = alloc(vm, 1); lim = alloc(vm, 2); if (is) ix = alloc(vm, 1); vm->c->nact = vm->c->fr;
       e = expr(vm);
+      if (e.k == EK_TY && TY(e.t)->k == K_ENUM) { /* for d in Enum: its values, in the order listed */
+        RioType *et = TY(e.t); int at = (int)et->n * 4, n = et->nf, el = e.t;
+        e = mkex(EK_ST, array_of(vm, el, (uint32_t)n), at); e.ro = 1;
+      }
       if (TK.t != TK_RLT && TK.t != TK_RLE) { /* for x in xs: walk an element pointer iv up to lim, by lim+1 bytes */
         RioType *ty; int s, sz, ro;
         needval(vm, &e); ty = TY(e.t);
@@ -2814,6 +2844,12 @@ static int run(Rio *vm, uint32_t pc) {
   }
   CASE(COPY) memmove(M + I(A), M + I(B), C); NEXT();
   CASE(MOVN) memmove(R + A, R + B, C * sizeof(RioVal)); NEXT();
+  CASE(ENUMNAME) { /* a..a+1 = the name of value b: c..c+n values, then the (address, length) names at data a */
+    uint32_t n = SZ(ip[1]), i, nm = ip[1].a; int32_t v = I(B);
+    for (i = 0; i < n && I(C + i) != v; i++) {}
+    if (i < n) { R[A] = R[nm + 2 * i]; R[A + 1] = R[nm + 2 * i + 1]; } else { U(A) = 0; U(A + 1) = 0; }
+    ip += 2; DISPATCH();
+  }
   CASE(ENUMCK) { /* is b one of the n values at c? x: a runtime error if not, else a = the answer */
     uint32_t n = SZ(ip[1]), i; int32_t v = I(B);
     for (i = 0; i < n && I(C + i) != v; i++) {}
