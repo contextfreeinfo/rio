@@ -94,6 +94,7 @@ enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI };
   X(EQ) X(NE) X(LT) X(LE) X(FEQ) X(FNE) X(FLT) X(FLE) X(SEQ) X(SNE) \
   X(ITOF) X(FTOI) X(LDW) X(LDB) X(LEA) X(M1) X(M2) X(IABS) X(IMIN) X(IMAX) X(FMIN) X(FMAX) X(LDX) X(LDXB) \
   X(MOV2) X(LDW2) X(STW) X(STB) X(STW2) X(STX) X(STXB) X(IDX) X(SLICE) X(COPY) X(ZERO) \
+  X(LIDX) X(PUSHA) X(PUSHS) X(PUSHT) X(POPA) X(LREM) X(LSWAP) X(LVIEW) \
   X(JMP) X(JZ) X(JNZ) X(JEQ) X(JNE) X(JLT) X(JLE) X(JFEQ) X(JFNE) X(JFLT) X(JFLE) X(JFNLT) X(JFNLE) X(FORI) \
   X(CALL) X(RET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGE) X(HALT)
 /* runtime: per proc entry pc, code end, frame slots [fs, fe), params in [fs, pend), result slot(s) */

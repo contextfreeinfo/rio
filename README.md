@@ -4,7 +4,7 @@ A tiny, statically typed, embeddable scripting language. It's written in C99; th
 
 - Odin-like syntax, with blocks closed by `end`
 - Static types, inferred from the right-hand side
-- Types: `Int` (i32), `Float` (f32), `Bool`, `String`, `Blob`, structs, slices (`[]T`), and fixed arrays (`[N]T`, stored as contiguous structs)
+- Types: `Int` (i32), `Float` (f32), `Bool`, `String`, `Blob`, structs, slices (`[]T`), fixed arrays (`[N]T`, stored as contiguous structs), and fixed-capacity lists (`[..N]T`)
 - **No dynamic allocation.** You give it one memory buffer and one code buffer; the compiler and VM never call `malloc`
 - **No recursion**, either in the implementation (the parser uses explicit stacks) or in the language. Because procs can't recurse, each proc gets one static frame, and bytecode operands are absolute slots, so there is no stack and no frame pointer
 - A register VM with typed opcodes, fused compare-and-branch, fused index+load/store, and bottom-tested loops. It uses computed goto on GCC/Clang and `switch` elsewhere
@@ -100,7 +100,51 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 
 **Operators:** `+ - * / % & | ^ << >> == != < <= > >= && || ! ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`.
 
-**Builtins:** `log(...)`, `len(x)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`.
+**Builtins:** `log(...)`, `len(x)`, `cap(x)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`, plus the list builtins below.
+
+## Lists and text builders
+
+A list has a fixed capacity and a current length, with no allocation. `[..N]T` is the storage, and `[..]T` is a view of one, the way `[N]T` relates to `[]T`:
+
+| | storage (owns memory) | view (what procs take) |
+|---|---|---|
+| fixed length | `[N]T` | `[]T` |
+| growable up to a limit | `[..N]T` | `[..]T` |
+| bytes | `Blob[N]` / `Blob[..N]` | `Blob` / `Blob[..]` |
+
+```odin
+Enemy :: struct
+  x, hp: Int
+end
+enemies: [..64]Enemy                     // up to 64; starts empty
+
+spawn :: proc(list: [..]Enemy, x: Int) -> Bool
+  return push(list, Enemy{x = x, hp = 3})   // false when full
+end
+for i in 0..<3
+  spawn(enemies, i * 10)                 // the view appends to the caller's list
+end
+
+for i in 0..<len(enemies)                // indexing is checked against the current length
+  enemies[i].hp -= 1
+end
+swapRemove(enemies, 0)                   // O(1): the last element takes its place
+remove(enemies, 0)                       // keeps order, O(n)
+e := pop(enemies)
+step(enemies[:])                         // [:] is a []Enemy of the live elements
+clear(enemies)
+
+title: Blob[..32]                        // a Blob list builds text
+push(title, "score: ")                   // a String or Blob appends its bytes
+push(title, 42)                          // an Int, Float or Bool appends it as text
+pushByte(title, '!')                     // one raw byte
+draw(String(title[:]))
+```
+
+- **Builtins:** `push(list, x) -> Bool`, `pop`, `clear`, `len`, `cap`, `remove(list, i)`, `swapRemove(list, i)` and, for Blob lists, `pushByte`. A push that doesn't fit changes nothing and returns `false`; popping an empty list or removing past the end is a runtime error.
+- **Views share the length:** a `[..]T` points at the list's length word, so pushing through any view changes the one real list. Assigning a list with `:=` also makes a view; use `[..N]T` explicitly for a separate copy.
+- **Storage rules match arrays:** `[..N]T` can't be a parameter or result (pass `[..]T`), it can be a struct field (inline), and like slices a `[..]T` can be stored in a struct only if the struct is global.
+- **Layout:** a 4-byte length followed by the N elements, contiguous like everything else.
 
 ## Compile-time defines (`-D`)
 

@@ -259,6 +259,68 @@ if nanv < 1
 end
 check(lt == 0, "nan branch")
 
+// ---- lists ([..N]T storage) and builders ([..]T views)
+Enemy :: struct
+  x, hp: Int
+end
+enemies: [..4]Enemy
+check(len(enemies) == 0 && cap(enemies) == 4, "empty list")
+spawnE :: proc(list: [..]Enemy, x: Int) -> Bool
+  return push(list, Enemy{x = x, hp = 3})
+end
+for i in 0..<6
+  spawnE(enemies, i * 10)
+end
+check(len(enemies) == 4 && enemies[3].x == 30, "push through a view; full list drops")
+check(!push(enemies, Enemy{x = 99}), "push when full is false")
+enemies[1].hp -= 1
+swapRemove(enemies, 0)
+check(len(enemies) == 3 && enemies[0].x == 30 && enemies[1].hp == 2, "swapRemove")
+remove(enemies, 0)
+check(len(enemies) == 2 && enemies[0].x == 10 && enemies[1].x == 20, "remove keeps order")
+last := pop(enemies)
+check(last.x == 20 && len(enemies) == 1, "pop")
+live := enemies[:]
+check(len(live) == 1 && live[0].x == 10, "list [:] is a slice of live elements")
+clear(enemies)
+check(len(enemies) == 0, "clear")
+nums: [..8]Int
+for i in 0..<5
+  push(nums, i * i)
+end
+check(nums[4] == 16 && total(nums[:]) == 30 && total(nums[1:3]) == 5, "Int list and sub-slices")
+title: Blob[..32]
+label :: proc(b: Blob[..], score: Int)
+  clear(b)
+  push(b, "score: ")
+  push(b, score)
+  push(b, " ")
+  push(b, 1.5)
+  push(b, " ")
+  push(b, true)
+  pushByte(b, '!')
+end
+label(title, 42)
+check(String(title[:]) == "score: 42 1.5 true!", "Blob builder")
+tiny: Blob[..4]
+check(push(tiny, "abcd") && !push(tiny, "e") && !push(tiny, 12345) && len(tiny) == 4, "full builder rejects whole pushes")
+localList :: proc() -> Int
+  xs: [..3]Int
+  push(xs, 5)
+  push(xs, 6)
+  v := xs
+  push(v, 7)
+  return len(xs) * 100 + xs[2] + cap(v)
+end
+check(localList() == 310 && localList() == 310, "local list resets per call; := makes a view")
+Inv :: struct
+  items: [..3]Int
+  gold: Int
+end
+bags: [2]Inv
+push(bags[1].items, 9)
+check(len(bags[1].items) == 1 && bags[1].items[0] == 9 && len(bags[0].items) == 0, "list inside a struct inside an array")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")
