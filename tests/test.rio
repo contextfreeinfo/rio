@@ -535,6 +535,75 @@ sumhp :: proc(ss: []Ship) -> Int
 end
 check(sumhp(squad[:]) == 10 + 11 + 12 + 13, "inside a proc, over a slice parameter")
 
+// ---- references: &T parameters and name := &place (never stored, returned or re-pointed)
+swapvx :: proc(a: &Ship, b: &Ship)
+  t := a.vx
+  a.vx = b.vx
+  b.vx = t
+  a.hurt(1)                       // methods and fields work through a reference
+end
+addto :: proc(n: &Int, by: Int)
+  n += by
+end
+mixref :: proc(a: &Ship, k: Int, b: &Ship) -> Int
+  a.hp += k
+  b.hp -= k
+  return a.hp * 100 + b.hp
+end
+fill3 :: proc(g: &[3]Int, v: Int)
+  for x in g
+    x = v
+  end
+end
+rename :: proc(s: &String)
+  s = "renamed"
+end
+passon :: proc(s: &Ship)
+  addto(&s.hp, 100)               // a reference passes on as &, or to a field
+  swapvx(&s, &s)                  // the same place twice is allowed
+end
+crew: [4]Ship
+for s, i in crew
+  s = {vx = i.toFloat(), hp = 10}
+end
+swapvx(&crew[1], &crew[2])
+check(crew[1].vx == 2 && crew[2].vx == 1 && crew[1].hp == 9, "& parameters change the caller's structs")
+ci := 1
+cj := 2
+check(mixref(&crew[ci + 1], ci * 3, &crew[cj + 1]) == 1307 && crew[3].hp == 7, "& and value arguments mixed")
+cnt := 1
+addto(&cnt, 2)
+check(cnt == 3, "& to an Int")
+trio: [3]Int
+fill3(&trio, 7)
+check(trio[0] == 7 && trio[2] == 7, "& to an array")
+label := "old"
+rename(&label)
+check(label == "renamed", "& to a String variable")
+passon(&crew[0])
+check(crew[0].hp == 109, "passing a reference on")
+cr := &crew[3]
+cr.hp -= 2
+cr.x += 1
+check(crew[3].hp == 5 && crew[3].x == 1, "a local reference is the element itself")
+cr = {hp = 42}
+check(crew[3].hp == 42 && crew[3].x == 0, "assigning through it writes the element")
+cc := cr
+cc.hp = 0
+check(crew[3].hp == 42, "a plain := copies")
+fhp := &crew[3].hp
+fhp += 1
+check(crew[3].hp == 43, "a reference to a field")
+reflocal :: proc() -> Int
+  sh: Ship = {hp = 1}
+  r := &sh
+  r.hp += 1
+  addto(&r.hp, 10)
+  addto(&sh.hp, 100)
+  return sh.hp
+end
+check(reflocal() == 112, "references to locals inside a proc")
+
 // ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")

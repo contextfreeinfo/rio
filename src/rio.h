@@ -126,7 +126,7 @@ typedef struct { uint16_t key, keylen, dir, dirlen, file, pc0, pc1; uint8_t pkg,
    runs again (and just binds names); for an include, compiling continues after it */
 typedef struct { const char *src, *se, *ls, *pos; int line, mod, f, inc; } RioImp;
 typedef struct { uint16_t pc, end, ret, p0, np, fs, fe; uint32_t retaddr; uint8_t done, selfref; } RioCFunc;
-typedef struct { uint16_t t; uint32_t addr; } RioParam;
+typedef struct { uint16_t t, ref; uint32_t addr; } RioParam; /* ref: a &T param's T (t is then the address word) */
 typedef struct { uint16_t ret, p0, np; } RioCFfi;
 typedef struct { uint8_t k, ro; uint16_t t, t0; int32_t a, off; } RioEx;
 typedef struct { uint8_t k, prec; int16_t op; int32_t a, b, c, n, pun; uint16_t vb, fr0; uint64_t set; } RioOp;

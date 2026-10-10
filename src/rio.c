@@ -355,7 +355,11 @@ static int retarget(Rio *vm, int from, int to) {
 
 /* ---------------------------------------------------------------- expression values */
 static Ex mkex(int k, int t, int32_t a) { Ex e; e.k = (uint8_t)k; e.ro = 0; e.t = (uint16_t)t; e.t0 = 0; e.a = a; e.off = 0; return e; }
-static void needval(Rio *vm, Ex *e) { if (e->k > EK_MEM) fail(vm, e->k == EK_VOID ? "no value" : "not a value"); }
+#define RO_REF 4 /* Ex.ro: an &place, not yet given to a & parameter or name := &place */
+static void needval(Rio *vm, Ex *e) {
+  if (e->k > EK_MEM) fail(vm, e->k == EK_VOID ? "no value" : "not a value");
+  if (e->ro & RO_REF) fail(vm, "&x only goes to a & parameter or name := &x");
+}
 static void coerce(Rio *vm, Ex *e, int t) {
   int et;
   needval(vm, e);
@@ -545,7 +549,14 @@ static void binop(Rio *vm, int op, Ex *l, Ex *r) {
 }
 static void unop(Rio *vm, int op, Ex *e) {
   int t, s, d;
-  needval(vm, e); t = vt(e->t);
+  needval(vm, e);
+  if (op == '&') {
+    if (e->k == EK_CONST || e->ro || (e->k == EK_ST && (e->a < (int32_t)vm->kcap * 4 || ((uint32_t)e->a >= vm->c->nact * 4 && (uint32_t)e->a < vm->hi))))
+      fail(vm, "& needs a variable, field or element that can be changed");
+    e->ro = RO_REF;
+    return;
+  }
+  t = vt(e->t);
   if (op == '!' ? t != TY_BOOL : t != TY_I32 && !(t == TY_F32 && op == '-')) fail(vm, "bad operand for unary operator");
   if (e->k == EK_CONST) {
     RioVal v; v.i = e->a;
@@ -750,7 +761,15 @@ static void doslice(Rio *vm, Ex *o, Ex *lo, Ex *hi) {
 static void punfield(Rio *vm, Op *m);
 /* one argument of a call / struct literal is complete (on top of the value stack) */
 static void argdone(Rio *vm, Op *m) {
-  Ex *a = vtop(vm), e;
+  Ex *a = vtop(vm), e; RioParam *pp = 0;
+  if (m->k == OK_CALL && m->a == EK_FN && m->n < vm->c->func[m->b].np) pp = &vm->c->param[vm->c->func[m->b].p0 + m->n];
+  if (pp && pp->ref) {
+    if (!(a->ro & RO_REF)) fail(vm, "this parameter is a reference: pass &x");
+    a->ro = 0;
+    if (a->t != pp->ref) fail(vm, "type mismatch");
+    m->n++;
+    return;
+  }
   needval(vm, a);
   if (m->k == OK_LIT) {
     RioType *st = TY(m->b); RioField *f; Ex d;
@@ -925,7 +944,7 @@ static void finish_call(Rio *vm, Op *m) {
     if (m->n != f->np) fail(vm, "wrong number of arguments");
     for (i = 0; i < f->np; i++) {
       Ex p = mkex(EK_ST, vm->c->param[f->p0 + i].t, (int32_t)vm->c->param[f->p0 + i].addr);
-      if (!i && f->selfref) { emit(vm, OP_MOV, (int)(p.a / 4), toaddr(vm, &vm->c->vs[m->vb]), 0); continue; }
+      if ((!i && f->selfref) || vm->c->param[f->p0 + i].ref) { emit(vm, OP_MOV, (int)(p.a / 4), toaddr(vm, &vm->c->vs[m->vb + i]), 0); continue; }
       store(vm, &p, &vm->c->vs[m->vb + i]);
     }
     vm->c->nvs = m->vb;
@@ -1033,7 +1052,7 @@ static Ex expr(Rio *vm) {
       else if (t == TK_STR) e = strlit(vm);
       else if (t == TK_ID) e = ident(vm);
       else if (t == '(') { opush(vm, OK_PAREN, 0, 0); depth++; next(vm); continue; }
-      else if (t == '-' || t == '!' || t == '~') { opush(vm, OK_UN, 6, t); next(vm); continue; }
+      else if (t == '-' || t == '!' || t == '~' || t == '&') { opush(vm, OK_UN, 6, t); next(vm); continue; }
       else if ((t == ')' || t == '}') && vm->c->nos > ob && vm->c->os[vm->c->nos - 1].k == (t == ')' ? OK_CALL : OK_LIT) &&
                (t == '}' || vm->c->os[vm->c->nos - 1].n == 0) && vm->c->nvs == vm->c->os[vm->c->nos - 1].vb) {
         closer(vm, t, 0); depth--; next(vm); want = 0; continue;
@@ -1190,18 +1209,23 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   if (recv >= 0) { /* self: a struct receiver by address, other receivers as a copy */
     int addr = alloc(vm, f->selfref ? 1 : words(vm, recv)) * 4;
     if (vm->c->nparam >= (int)vm->c->lim.params) fail(vm, "too many parameters");
-    vm->c->param[vm->c->nparam].t = (uint16_t)(f->selfref ? TY_I32 : recv); vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
+    vm->c->param[vm->c->nparam].t = (uint16_t)(f->selfref ? TY_I32 : recv); vm->c->param[vm->c->nparam].ref = 0;
+    vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
     addsym(vm, "self", 4, f->selfref ? S_SELF : S_VAR, recv, f->selfref ? addr / 4 : addr); f->np++;
   }
   while (TK.t != ')') {
-    const char *ns[16]; int nl[16], c = namelist(vm, ns, nl), t = parse_type(vm), j;
-    RioType *ty = TY(t);
-    if (ty->k == K_VOID || ty->k == K_ARR || ty->k == K_LIST || (ty->k == K_STRUCT && ty->ref)) fail(vm, "invalid parameter type (pass arrays as []T, lists as [..]T)");
-    for (j = 0; j < c; j++) {
-      int addr = alloc(vm, words(vm, t)) * 4;
+    const char *ns[16]; int nl[16], c = namelist(vm, ns, nl), isref = TK.t == '&', t, j;
+    RioType *ty;
+    if (isref) next(vm);
+    t = parse_type(vm); ty = TY(t);
+    if (ty->k == K_VOID || (!isref && (ty->k == K_ARR || ty->k == K_LIST || (ty->k == K_STRUCT && ty->ref))))
+      fail(vm, "invalid parameter type (pass arrays as []T or &[N]T, lists as [..]T)");
+    for (j = 0; j < c; j++) { /* a & parameter is one word holding the address, read through like self */
+      int addr = alloc(vm, isref ? 1 : words(vm, t)) * 4;
       if (vm->c->nparam >= (int)vm->c->lim.params) fail(vm, "too many parameters");
-      vm->c->param[vm->c->nparam].t = (uint16_t)t; vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
-      addsym(vm, ns[j], nl[j], S_VAR, t, addr); f->np++;
+      vm->c->param[vm->c->nparam].t = (uint16_t)(isref ? TY_I32 : t); vm->c->param[vm->c->nparam].ref = (uint16_t)(isref ? t : 0);
+      vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
+      addsym(vm, ns[j], nl[j], isref ? S_SELF : S_VAR, t, isref ? addr / 4 : addr); f->np++;
     }
     if (TK.t != ',') break;
     next(vm);
@@ -1288,8 +1312,19 @@ static void decl_var(Rio *vm) {
   next(vm);
   if (TK.t == ':') { next(vm); t = parse_type(vm); if (TK.t == '=') { next(vm); has = 1; } }
   else { next(vm); has = 1; }
-  if (has) { vm->c->target = t; e = expr(vm); }
-  declare(vm, ns, nn, t, has ? &e : 0, 1);
+  if (!has) { declare(vm, ns, nn, t, 0, 1); return; }
+  vm->c->target = t; e = expr(vm);
+  if (e.ro & RO_REF) { /* name := &place: bound once to that place, like a for-each element */
+    int s, d;
+    if (t >= 0) fail(vm, "a reference takes its type from its place: write name := &x");
+    if (vm->c->exporting) fail(vm, "a reference can't be exported");
+    e.ro = 0; s = toaddr(vm, &e);
+    vm->c->fr = vm->c->nact; d = alloc(vm, 1); vm->c->nact = vm->c->fr;
+    if (s != d) emit(vm, OP_MOV, d, s, 0);
+    addsym(vm, ns, nn, S_SELF, e.t, d);
+    return;
+  }
+  declare(vm, ns, nn, t, &e, 1);
 }
 /* {a, b as c} := value: new variables holding copies of some of a struct's fields */
 static void destructure(Rio *vm) {
@@ -1734,7 +1769,7 @@ static void setup(Rio *vm) {
       int t = ch == 'i' ? TY_I32 : ch == 'f' ? TY_F32 : ch == 's' ? TY_STR : ch == 'b' ? TY_BLOB : -1;
       if (t < 0 || c->nparam >= (int)c->lim.params) fail(vm, "bad ffi signature");
       if (ret) { cf->ret = (uint16_t)t; f->rw = (uint8_t)words(vm, t); break; }
-      c->param[c->nparam++].t = (uint16_t)t; cf->np++; f->aw = (uint8_t)(f->aw + words(vm, t));
+      c->param[c->nparam].ref = 0; c->param[c->nparam++].t = (uint16_t)t; cf->np++; f->aw = (uint8_t)(f->aw + words(vm, t));
     }
     addsym(vm, f->name, (int)strlen(f->name), S_FFI, 0, i);
   }
