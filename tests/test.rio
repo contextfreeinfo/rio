@@ -1,4 +1,4 @@
-// nib test suite: prints "FAIL" on any failed check (ctest watches for it)
+// rio test suite: prints "FAIL" on any failed check (ctest watches for it)
 
 fails := 0
 check :: proc(ok: bool, what: string)

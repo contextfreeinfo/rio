@@ -1,13 +1,13 @@
-/* nib.c - compiler + vm. Single pass, no recursion, no allocation: everything lives in Nib and the
+/* rio.c - compiler + vm. Single pass, no recursion, no allocation: everything lives in Rio and the
    caller's buffers. All locals are statically allocated (no recursion => one frame per proc), so
    bytecode operands are absolute word slots into the memory buffer. */
-#include "nib.h"
+#include "rio.h"
 #include <math.h>
 #include <string.h>
 
 #if defined(__GNUC__) || defined(__clang__)
-#ifndef NIB_NO_CGOTO
-#define NIB_CGOTO 1
+#ifndef RIO_NO_CGOTO
+#define RIO_CGOTO 1
 #endif
 #define NORET __attribute__((noreturn))
 #elif defined(_MSC_VER)
@@ -16,7 +16,7 @@
 #define NORET
 #endif
 
-#define OPS NIB_OPS
+#define OPS RIO_OPS
 #define OPENUM(o) OP_##o,
 enum { OPS(OPENUM) OP_DATA = 255 };
 #define OP_LASTDST OP_FMAX /* ops up to here write one scalar to slot a */
@@ -26,7 +26,7 @@ enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, T
   TK_OR, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
 enum { TY_VOID, TY_I32, TY_F32, TY_BYTE, TY_STR, TY_BLOB, TY_BOOL };
 enum { K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL };
-enum { S_VAR = NIB_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI };
+enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI };
 enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN };
 enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
 enum { B_PROC, B_IF, B_ELSE, B_LOOP, B_FOR };
@@ -34,8 +34,8 @@ enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11,
 #define NONE 0xFFFF
 #define TY(t) (&vm->c->type[t])
 #define TK (vm->c->tk)
-typedef NibEx Ex;
-typedef NibOp Op;
+typedef RioEx Ex;
+typedef RioOp Op;
 
 static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue"};
 static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
@@ -87,14 +87,14 @@ static int fmtf(char *b, float f) {
   if (e) { b[i++] = 'e'; i += fmti(b + i, e); }
   return i;
 }
-static int cat(char *b, int n, const char *s) { while (*s && n < NIB_ERRBUF - 1) b[n++] = *s++; return n; }
+static int cat(char *b, int n, const char *s) { while (*s && n < RIO_ERRBUF - 1) b[n++] = *s++; return n; }
 
-NORET static void fail(Nib *vm, const char *m) {
+NORET static void fail(Rio *vm, const char *m) {
   char *b = vm->err; int n = 0, i;
   n = cat(b, n, "line "); n += fmti(b + n, TK.nl ? vm->c->pline : TK.line); n = cat(b, n, ": "); n = cat(b, n, m);
   if (TK.t != TK_EOF && TK.n > 0 && !TK.nl) {
     n = cat(b, n, " near '");
-    for (i = 0; i < TK.n && i < 24 && n < NIB_ERRBUF - 2; i++) b[n++] = TK.s[i];
+    for (i = 0; i < TK.n && i < 24 && n < RIO_ERRBUF - 2; i++) b[n++] = TK.s[i];
     n = cat(b, n, "'");
   }
   b[n] = 0;
@@ -109,7 +109,7 @@ static const char ops2[] = "::" ":=" "==" "!=" "<=" ">=" "&&" "||" "<<" ">>" "->
 static const short tok2[] = {TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND, TK_OR, TK_SHL, TK_SHR,
   TK_ARROW, -'+', -'-', -'*', -'/', -'%', -'&', -'|', -'^'};
 
-static void lex(Nib *vm, NibTok *t) {
+static void lex(Rio *vm, RioTok *t) {
   const char *p = vm->c->sp, *e = vm->c->se, *s;
   int nl = 0, i;
   for (;;) {
@@ -175,109 +175,109 @@ static void lex(Nib *vm, NibTok *t) {
   }
   t->n = (int)(p - s); vm->c->sp = p;
 }
-static void next(Nib *vm) { vm->c->pline = vm->c->tk.line; vm->c->tk = vm->c->nx; lex(vm, &vm->c->nx); }
-static void expect(Nib *vm, int t, const char *m) { if (TK.t != t) fail(vm, m); next(vm); }
+static void next(Rio *vm) { vm->c->pline = vm->c->tk.line; vm->c->tk = vm->c->nx; lex(vm, &vm->c->nx); }
+static void expect(Rio *vm, int t, const char *m) { if (TK.t != t) fail(vm, m); next(vm); }
 
 /* ---------------------------------------------------------------- tables */
-static int addname(Nib *vm, const char *s, int n) {
-  if (vm->c->nnames + n > NIB_NAMES) fail(vm, "out of name space");
+static int addname(Rio *vm, const char *s, int n) {
+  if (vm->c->nnames + n > RIO_NAMES) fail(vm, "out of name space");
   memcpy(vm->c->names + vm->c->nnames, s, (size_t)n); vm->c->nnames += n;
   return vm->c->nnames - n;
 }
-static void addsym(Nib *vm, const char *s, int n, int k, int t, int32_t v) {
-  NibSym *y;
-  if (vm->c->nsym >= NIB_MAX_SYMS) fail(vm, "too many symbols");
+static void addsym(Rio *vm, const char *s, int n, int k, int t, int32_t v) {
+  RioSym *y;
+  if (vm->c->nsym >= RIO_MAX_SYMS) fail(vm, "too many symbols");
   y = &vm->c->sym[vm->c->nsym++];
   y->name = (uint16_t)addname(vm, s, n); y->len = (uint16_t)n; y->k = (uint8_t)k; y->t = (uint16_t)t; y->v = v;
 }
-static int lookup(Nib *vm, const char *s, int n) {
+static int lookup(Rio *vm, const char *s, int n) {
   int i;
   for (i = vm->c->nsym - 1; i >= 0; i--)
     if (vm->c->sym[i].len == n && !memcmp(vm->c->names + vm->c->sym[i].name, s, (size_t)n)) return i;
   return -1;
 }
-static int newtype(Nib *vm, int k, int elem, uint32_t n, uint32_t size) {
-  NibType *y;
-  if (vm->c->ntype >= NIB_MAX_TYPES) fail(vm, "too many types");
+static int newtype(Rio *vm, int k, int elem, uint32_t n, uint32_t size) {
+  RioType *y;
+  if (vm->c->ntype >= RIO_MAX_TYPES) fail(vm, "too many types");
   y = &vm->c->type[vm->c->ntype];
   y->k = (uint8_t)k; y->elem = (uint16_t)elem; y->n = n; y->size = size; y->f0 = y->nf = 0;
   y->ref = (uint8_t)(k == K_SLICE || (k == K_ARR && vm->c->type[elem].ref));
   return vm->c->ntype++;
 }
-static int slice_of(Nib *vm, int e) {
+static int slice_of(Rio *vm, int e) {
   int i;
   if (e == TY_BYTE) return TY_BLOB;
   for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_SLICE && vm->c->type[i].elem == e) return i;
   return newtype(vm, K_SLICE, e, 0, 8);
 }
-static int array_of(Nib *vm, int e, uint32_t n) {
+static int array_of(Rio *vm, int e, uint32_t n) {
   int i; uint32_t es = TY(e)->size;
   for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_ARR && vm->c->type[i].elem == e && vm->c->type[i].n == n) return i;
   if (es && n > 0x7FFFFFF0u / es) fail(vm, "array too large");
   return newtype(vm, K_ARR, e, n, (es * n + 3) & ~3u);
 }
 static int vt(int t) { return t == TY_BYTE ? TY_I32 : t; }
-static int words(Nib *vm, int t) { return (int)((TY(t)->size + 3) / 4); }
+static int words(Rio *vm, int t) { return (int)((TY(t)->size + 3) / 4); }
 
 /* ---------------------------------------------------------------- code + storage */
-static int emit(Nib *vm, int op, int a, int b, int c) {
-  NibIns *i;
+static int emit(Rio *vm, int op, int a, int b, int c) {
+  RioIns *i;
   if (vm->pc >= vm->codecap) fail(vm, "code too large");
   i = &vm->code[vm->pc];
   i->op = (uint8_t)op; i->x = 0; i->a = (uint16_t)a; i->b = (uint16_t)b; i->c = (uint16_t)c;
   return (int)vm->pc++;
 }
-static void emitx(Nib *vm, int op, int x, int a) { emit(vm, op, a, 0, 0); vm->code[vm->pc - 1].x = (uint8_t)x; }
-static void emitw(Nib *vm, int a, uint32_t w) { emit(vm, OP_DATA, a, (int)(w & 0xFFFF), (int)(w >> 16)); }
-static int here(Nib *vm) { return (int)(vm->c->lastlabel = vm->pc); }
-static int jappend(Nib *vm, int list, int j) { if (j == NONE) return list; vm->code[j].c = (uint16_t)list; return j; }
-static void patch(Nib *vm, int list, int to) {
+static void emitx(Rio *vm, int op, int x, int a) { emit(vm, op, a, 0, 0); vm->code[vm->pc - 1].x = (uint8_t)x; }
+static void emitw(Rio *vm, int a, uint32_t w) { emit(vm, OP_DATA, a, (int)(w & 0xFFFF), (int)(w >> 16)); }
+static int here(Rio *vm) { return (int)(vm->c->lastlabel = vm->pc); }
+static int jappend(Rio *vm, int list, int j) { if (j == NONE) return list; vm->code[j].c = (uint16_t)list; return j; }
+static void patch(Rio *vm, int list, int to) {
   while (list != NONE) { int n = vm->code[list].c; vm->code[list].c = (uint16_t)to; list = n; }
 }
-static int alloc(Nib *vm, int n) {
+static int alloc(Rio *vm, int n) {
   int r = (int)vm->c->fr;
   vm->c->fr += (uint32_t)n;
   if (vm->c->fr > vm->c->hwm) {
     vm->c->hwm = vm->c->fr;
-    if (vm->c->hwm > NIB_MAX_SLOTS || vm->c->hwm * 4 > vm->hi) fail(vm, "out of slots");
+    if (vm->c->hwm > RIO_MAX_SLOTS || vm->c->hwm * 4 > vm->hi) fail(vm, "out of slots");
   }
   return r;
 }
-static uint32_t halloc(Nib *vm, uint32_t n) {
+static uint32_t halloc(Rio *vm, uint32_t n) {
   n = (n + 3) & ~3u;
   if (vm->hi < n || vm->hi - n < vm->c->hwm * 4) fail(vm, "out of memory");
   return vm->hi -= n;
 }
 #define KFIX(i) (vm->c->kfix[(i) >> 3] & (1u << ((i) & 7)))
-static int kslot(Nib *vm, uint32_t v) {
-  NibVal *R = (NibVal *)vm->mem; uint32_t i;
+static int kslot(Rio *vm, uint32_t v) {
+  RioVal *R = (RioVal *)vm->mem; uint32_t i;
   for (i = 1; i < vm->nk; i++) if (R[i].u == v && !KFIX(i)) return (int)i;
-  if (vm->nk >= NIB_MAX_CONSTS) fail(vm, "too many constants");
+  if (vm->nk >= RIO_MAX_CONSTS) fail(vm, "too many constants");
   R[vm->nk].u = v;
   return (int)vm->nk++;
 }
-static int kslot2(Nib *vm, uint32_t a, uint32_t b) {
-  NibVal *R = (NibVal *)vm->mem; uint32_t i;
+static int kslot2(Rio *vm, uint32_t a, uint32_t b) {
+  RioVal *R = (RioVal *)vm->mem; uint32_t i;
   for (i = 1; i + 1 < vm->nk; i++) if (R[i].u == a && R[i + 1].u == b && !KFIX(i)) return (int)i;
-  if (vm->nk + 2 > NIB_MAX_CONSTS) fail(vm, "too many constants");
+  if (vm->nk + 2 > RIO_MAX_CONSTS) fail(vm, "too many constants");
   R[vm->nk].u = a; R[vm->nk + 1].u = b; vm->nk += 2;
   return (int)vm->nk - 2;
 }
 /* constant holding a static address; marks those slots as address-taken (they can't become C locals in AOT) */
-static uint32_t expose(Nib *vm, uint32_t a, uint32_t n) {
+static uint32_t expose(Rio *vm, uint32_t a, uint32_t n) {
   uint32_t w;
-  for (w = a / 4; w < NIB_MAX_SLOTS && w * 4 < a + n; w++) vm->c->exposed[w >> 3] |= (uint8_t)(1u << (w & 7));
+  for (w = a / 4; w < RIO_MAX_SLOTS && w * 4 < a + n; w++) vm->c->exposed[w >> 3] |= (uint8_t)(1u << (w & 7));
   return a;
 }
-static int kaddr(Nib *vm, uint32_t a, uint32_t n) { return kslot(vm, expose(vm, a, n)); }
+static int kaddr(Rio *vm, uint32_t a, uint32_t n) { return kslot(vm, expose(vm, a, n)); }
 /* is the last instruction (+data word) an IDX writing temp d? */
-static NibIns *lastidx(Nib *vm, int d) {
-  NibIns *x = vm->pc >= 2 ? &vm->code[vm->pc - 2] : 0;
+static RioIns *lastidx(Rio *vm, int d) {
+  RioIns *x = vm->pc >= 2 ? &vm->code[vm->pc - 2] : 0;
   return x && d >= (int)vm->c->nact && vm->c->lastlabel != vm->pc && x->op == OP_IDX && x->a == d ? x : 0;
 }
 /* if the last instruction wrote temp `from`, make it write `to` instead */
-static int retarget(Nib *vm, int from, int to) {
-  NibIns *i;
+static int retarget(Rio *vm, int from, int to) {
+  RioIns *i;
   if (!vm->pc || vm->c->lastlabel == vm->pc || from < (int)vm->c->nact) return 0;
   i = &vm->code[vm->pc - 1];
   if (i->op == OP_DATA && vm->pc >= 2 && (i[-1].op == OP_LDX || i[-1].op == OP_LDXB)) i--;
@@ -288,18 +288,18 @@ static int retarget(Nib *vm, int from, int to) {
 
 /* ---------------------------------------------------------------- expression values */
 static Ex mkex(int k, int t, int32_t a) { Ex e; e.k = (uint8_t)k; e.ro = 0; e.t = (uint16_t)t; e.t0 = 0; e.a = a; e.off = 0; return e; }
-static void needval(Nib *vm, Ex *e) { if (e->k > EK_MEM) fail(vm, e->k == EK_VOID ? "no value" : "not a value"); }
-static void coerce(Nib *vm, Ex *e, int t) {
+static void needval(Rio *vm, Ex *e) { if (e->k > EK_MEM) fail(vm, e->k == EK_VOID ? "no value" : "not a value"); }
+static void coerce(Rio *vm, Ex *e, int t) {
   int et;
   needval(vm, e);
   et = vt(e->t); t = vt(t);
-  if (e->k == EK_CONST && et == TY_I32 && t == TY_F32) { NibVal v; v.f = (float)e->a; e->a = v.i; e->t = TY_F32; return; }
+  if (e->k == EK_CONST && et == TY_I32 && t == TY_F32) { RioVal v; v.f = (float)e->a; e->a = v.i; e->t = TY_F32; return; }
   if (et == t) return;
   if (TY(et)->k == K_ARR && TY(t)->k == K_SLICE && slice_of(vm, TY(et)->elem) == t) return;
   fail(vm, "type mismatch");
 }
 /* scalar value -> slot holding it */
-static int toslot(Nib *vm, Ex *e, int reuse) {
+static int toslot(Rio *vm, Ex *e, int reuse) {
   int k, d;
   needval(vm, e); k = TY(e->t)->k;
   if (k != K_I32 && k != K_F32 && k != K_BYTE && k != K_BOOL) fail(vm, "expected a number");
@@ -317,8 +317,8 @@ static int toslot(Nib *vm, Ex *e, int reuse) {
   return d;
 }
 /* slice/string/blob/array value -> 2 consecutive slots (addr, len) */
-static int toslot2(Nib *vm, Ex *e) {
-  NibType *ty; int d;
+static int toslot2(Rio *vm, Ex *e) {
+  RioType *ty; int d;
   needval(vm, e); ty = TY(e->t);
   if (ty->k == K_ARR) {
     if (e->k == EK_ST) return kslot2(vm, expose(vm, (uint32_t)e->a, ty->size), ty->n);
@@ -336,7 +336,7 @@ static int toslot2(Nib *vm, Ex *e) {
   return d;
 }
 /* struct/array -> slot holding its address */
-static int toaddr(Nib *vm, Ex *e) {
+static int toaddr(Rio *vm, Ex *e) {
   int d;
   needval(vm, e);
   if (e->k == EK_ST) return kaddr(vm, (uint32_t)e->a, TY(e->t)->size);
@@ -345,8 +345,8 @@ static int toaddr(Nib *vm, Ex *e) {
   emit(vm, OP_LEA, d, e->a, e->off);
   return d;
 }
-static void store(Nib *vm, Ex *d, Ex *s) {
-  NibType *ty = TY(d->t); int k = ty->k, ss;
+static void store(Rio *vm, Ex *d, Ex *s) {
+  RioType *ty = TY(d->t); int k = ty->k, ss;
   coerce(vm, s, d->t);
   if (k == K_STRUCT || k == K_ARR) {
     int sa = toaddr(vm, s), da = toaddr(vm, d);
@@ -370,7 +370,7 @@ static void store(Nib *vm, Ex *d, Ex *s) {
   }
   ss = toslot(vm, s, 1);
   if (d->k == EK_MEM && lastidx(vm, d->a)) { /* fuse index + store */
-    NibIns *x = &vm->code[vm->pc - 2];
+    RioIns *x = &vm->code[vm->pc - 2];
     x->op = k == K_BYTE ? OP_STXB : OP_STX; x->a = x->b; x->b = x->c; x->c = (uint16_t)ss;
     vm->code[vm->pc - 1].a = (uint16_t)d->off;
     return;
@@ -379,7 +379,7 @@ static void store(Nib *vm, Ex *d, Ex *s) {
   emit(vm, k == K_BYTE ? OP_STB : OP_STW, d->a, ss, d->off);
 }
 /* emit a jump taken when e is false; fuses a preceding compare into a compare-and-branch */
-static int invjump(NibIns *i) {
+static int invjump(RioIns *i) {
   uint16_t t;
   switch (i->op) {
   case OP_JZ: i->op = OP_JNZ; break; case OP_JNZ: i->op = OP_JZ; break;
@@ -392,12 +392,12 @@ static int invjump(NibIns *i) {
   }
   return 1;
 }
-static int condjump(Nib *vm, Ex *e) {
+static int condjump(Rio *vm, Ex *e) {
   needval(vm, e);
   if (e->t != TY_BOOL) fail(vm, "condition must be bool");
   if (e->k == EK_CONST) return e->a ? NONE : emit(vm, OP_JMP, 0, 0, NONE);
   if (e->k == EK_ST && e->a < 0x40000 && (e->a >> 2) >= (int)vm->c->nact && vm->pc && vm->c->lastlabel != vm->pc) {
-    NibIns *i = &vm->code[vm->pc - 1];
+    RioIns *i = &vm->code[vm->pc - 1];
     if (i->a == e->a >> 2 && i->op >= OP_EQ && i->op <= OP_FLE) {
       i->op = (uint8_t)(OP_JEQ + (i->op - OP_EQ)); i->a = i->b; i->b = i->c; i->c = NONE;
       invjump(i);
@@ -414,8 +414,8 @@ static int32_t ftoi(float f) {
   if (f <= -2147483648.f) return (int32_t)0x80000000u;
   return (int32_t)f;
 }
-static void fold(Nib *vm, int op, Ex *l, Ex *r, int isf) {
-  NibVal a, b, c; int32_t x, y;
+static void fold(Rio *vm, int op, Ex *l, Ex *r, int isf) {
+  RioVal a, b, c; int32_t x, y;
   a.i = l->a; b.i = r->a; x = a.i; y = b.i;
   if (isf) switch (op) {
     case '+': c.f = a.f + b.f; break; case '-': c.f = a.f - b.f; break;
@@ -438,7 +438,7 @@ static void fold(Nib *vm, int op, Ex *l, Ex *r, int isf) {
   }
   l->a = c.i;
 }
-static void binop(Nib *vm, int op, Ex *l, Ex *r) {
+static void binop(Rio *vm, int op, Ex *l, Ex *r) {
   int lt, rt, isf, cmp, o, ls, rs, d, sw = 0;
   needval(vm, l); needval(vm, r);
   lt = vt(l->t); rt = vt(r->t);
@@ -475,12 +475,12 @@ static void binop(Nib *vm, int op, Ex *l, Ex *r) {
   emit(vm, o, d, ls, rs);
   l->k = EK_ST; l->a = d * 4; l->t = (uint16_t)(cmp ? TY_BOOL : lt); l->ro = 0; l->t0 = (uint16_t)d;
 }
-static void unop(Nib *vm, int op, Ex *e) {
+static void unop(Rio *vm, int op, Ex *e) {
   int t, s, d;
   needval(vm, e); t = vt(e->t);
   if (op == '!' ? t != TY_BOOL : t != TY_I32 && !(t == TY_F32 && op == '-')) fail(vm, "bad operand for unary operator");
   if (e->k == EK_CONST) {
-    NibVal v; v.i = e->a;
+    RioVal v; v.i = e->a;
     if (t == TY_F32) v.f = -v.f; else v.i = op == '-' ? (int32_t)(0u - v.u) : op == '!' ? !v.i : ~v.i;
     e->a = v.i; e->ro = 0;
     return;
@@ -492,18 +492,18 @@ static void unop(Nib *vm, int op, Ex *e) {
 }
 
 /* ---------------------------------------------------------------- expression parser (shunting-yard) */
-static Ex *vtop(Nib *vm) { return &vm->c->vs[vm->c->nvs - 1]; }
-static Ex vpop(Nib *vm) { return vm->c->vs[--vm->c->nvs]; }
-static void vpush(Nib *vm, Ex e) { if (vm->c->nvs >= NIB_MAX_EXPR) fail(vm, "expression too complex"); vm->c->vs[vm->c->nvs++] = e; }
-static Op *opush(Nib *vm, int k, int prec, int op) {
+static Ex *vtop(Rio *vm) { return &vm->c->vs[vm->c->nvs - 1]; }
+static Ex vpop(Rio *vm) { return vm->c->vs[--vm->c->nvs]; }
+static void vpush(Rio *vm, Ex e) { if (vm->c->nvs >= RIO_MAX_EXPR) fail(vm, "expression too complex"); vm->c->vs[vm->c->nvs++] = e; }
+static Op *opush(Rio *vm, int k, int prec, int op) {
   Op *o;
-  if (vm->c->nos >= NIB_MAX_EXPR) fail(vm, "expression too complex");
+  if (vm->c->nos >= RIO_MAX_EXPR) fail(vm, "expression too complex");
   o = &vm->c->os[vm->c->nos++];
   o->k = (uint8_t)k; o->prec = (uint8_t)prec; o->op = (int16_t)op; o->a = o->b = o->c = o->n = 0;
   o->vb = (uint16_t)vm->c->nvs; o->fr0 = (uint16_t)vm->c->fr;
   return o;
 }
-static void vres(Nib *vm, Ex e, int t0) { e.t0 = (uint16_t)t0; vpush(vm, e); }
+static void vres(Rio *vm, Ex e, int t0) { e.t0 = (uint16_t)t0; vpush(vm, e); }
 static int binprec(int t) {
   switch (t) {
   case TK_OR: return 1;
@@ -514,7 +514,7 @@ static int binprec(int t) {
   }
   return 0;
 }
-static void reduce1(Nib *vm) {
+static void reduce1(Rio *vm) {
   Op o = vm->c->os[--vm->c->nos]; Ex r;
   if (o.k == OK_UN) { unop(vm, o.op, vtop(vm)); return; }
   r = vpop(vm);
@@ -529,8 +529,8 @@ static void reduce1(Nib *vm) {
     patch(vm, o.a, here(vm));
   }
 }
-static Ex ident(Nib *vm) {
-  int i = lookup(vm, TK.s, TK.n); NibSym *y;
+static Ex ident(Rio *vm) {
+  int i = lookup(vm, TK.s, TK.n); RioSym *y;
   if (i < 0) fail(vm, "undefined name");
   y = &vm->c->sym[i];
   switch (y->k) {
@@ -542,20 +542,20 @@ static Ex ident(Nib *vm) {
   default: return mkex(EK_TY, y->t, 0);
   }
 }
-static Ex strconst(Nib *vm, const char *s, int n) {
-  NibC *c = vm->c; NibVal *R = (NibVal *)vm->mem; uint8_t *d = c->strs + c->pool; uint32_t k = vm->nk; int i, j = 0; Ex e;
+static Ex strconst(Rio *vm, const char *s, int n) {
+  RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; uint8_t *d = c->strs + c->pool; uint32_t k = vm->nk; int i, j = 0; Ex e;
   if ((uint32_t)n > c->poolcap - c->pool) fail(vm, "out of compiler memory");
-  if (k + 2 > NIB_MAX_CONSTS) fail(vm, "too many constants");
+  if (k + 2 > RIO_MAX_CONSTS) fail(vm, "too many constants");
   for (i = 0; i < n; i++) d[j++] = (uint8_t)(s[i] == '\\' && i + 1 < n ? esc(s[++i]) : s[i]);
   R[k].u = 0x80000000u | c->pool; R[k + 1].u = (uint32_t)j; c->kfix[k >> 3] |= (uint8_t)(1u << (k & 7));
   vm->nk += 2; c->pool += (uint32_t)j;
   e = mkex(EK_ST, TY_STR, (int32_t)k * 4); e.ro = 1;
   return e;
 }
-static Ex strlit(Nib *vm) { return strconst(vm, TK.s, TK.n); }
+static Ex strlit(Rio *vm) { return strconst(vm, TK.s, TK.n); }
 /* parse a -D value as a (signed) number literal using the lexer */
-static int defnum(Nib *vm, const char *v, NibTok *t) {
-  NibC *c = vm->c; const char *sp = c->sp, *se = c->se; int line = c->line, neg = *v == '-', ok;
+static int defnum(Rio *vm, const char *v, RioTok *t) {
+  RioC *c = vm->c; const char *sp = c->sp, *se = c->se; int line = c->line, neg = *v == '-', ok;
   c->sp = v + neg; c->se = v + strlen(v);
   lex(vm, t);
   ok = (t->t == TK_INT || t->t == TK_FLT) && c->sp == c->se;
@@ -564,8 +564,8 @@ static int defnum(Nib *vm, const char *v, NibTok *t) {
   return ok;
 }
 /* constant for define di as type t (t < 0: infer from the text) */
-static Ex defval(Nib *vm, int di, int t) {
-  const char *name = vm->defs[di][0], *v = vm->defs[di][1] ? vm->defs[di][1] : ""; int n = (int)strlen(v); NibTok k;
+static Ex defval(Rio *vm, int di, int t) {
+  const char *name = vm->defs[di][0], *v = vm->defs[di][1] ? vm->defs[di][1] : ""; int n = (int)strlen(v); RioTok k;
   if (t < 0) t = !n || !strcmp(v, "true") || !strcmp(v, "false") ? TY_BOOL : !defnum(vm, v, &k) ? TY_STR : k.t == TK_INT ? TY_I32 : TY_F32;
   if (t == TY_STR) return n >= 2 && v[0] == '"' && v[n - 1] == '"' ? strconst(vm, v + 1, n - 2) : strconst(vm, v, n);
   if (t == TY_BOOL) {
@@ -582,8 +582,8 @@ static Ex defval(Nib *vm, int di, int t) {
     longjmp(vm->c->jb, 1);
   }
 }
-static void field(Nib *vm, Ex *e) {
-  NibType *st; NibField *f = 0; int i;
+static void field(Rio *vm, Ex *e) {
+  RioType *st; RioField *f = 0; int i;
   needval(vm, e); st = TY(e->t);
   if (st->k != K_STRUCT) fail(vm, "not a struct");
   for (i = 0; i < st->nf; i++) {
@@ -594,8 +594,8 @@ static void field(Nib *vm, Ex *e) {
   if (e->k == EK_ST) e->a += f->off; else e->off += f->off;
   e->t = f->t;
 }
-static void doindex(Nib *vm, Ex *o, Ex *i) {
-  NibType *ty; int el, sz, s, ix, d, ro;
+static void doindex(Rio *vm, Ex *o, Ex *i) {
+  RioType *ty; int el, sz, s, ix, d, ro;
   needval(vm, o); needval(vm, i); ty = TY(o->t);
   if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "cannot index this");
   if (vt(i->t) != TY_I32) fail(vm, "index must be i32");
@@ -610,8 +610,8 @@ static void doindex(Nib *vm, Ex *o, Ex *i) {
   emit(vm, OP_IDX, d, s, ix); emitw(vm, 0, (uint32_t)sz);
   o->k = EK_MEM; o->a = d; o->off = 0; o->t = (uint16_t)el; o->ro = (uint8_t)ro;
 }
-static void doslice(Nib *vm, Ex *o, Ex *lo, Ex *hi) {
-  NibType *ty; int s, l, h, d;
+static void doslice(Rio *vm, Ex *o, Ex *lo, Ex *hi) {
+  RioType *ty; int s, l, h, d;
   needval(vm, o); ty = TY(o->t);
   if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "cannot slice this");
   if (vt(lo->t) != TY_I32 || (hi->k != EK_LEN && vt(hi->t) != TY_I32)) fail(vm, "slice bounds must be i32");
@@ -622,11 +622,11 @@ static void doslice(Nib *vm, Ex *o, Ex *lo, Ex *hi) {
   if (ty->k == K_ARR) o->t = (uint16_t)slice_of(vm, ty->elem);
 }
 /* one argument of a call / struct literal is complete (on top of the value stack) */
-static void argdone(Nib *vm, Op *m) {
+static void argdone(Rio *vm, Op *m) {
   Ex *a = vtop(vm), e;
   needval(vm, a);
   if (m->k == OK_LIT) {
-    NibType *st = TY(m->b); NibField *f; Ex d;
+    RioType *st = TY(m->b); RioField *f; Ex d;
     if (m->n >= st->nf) fail(vm, "too many fields");
     f = &vm->c->field[st->f0 + m->n];
     e = vpop(vm); d = mkex(EK_ST, f->t, m->c + f->off);
@@ -640,7 +640,7 @@ static void argdone(Nib *vm, Op *m) {
       a->k = EK_ST; a->a = s * 4; a->t = (uint16_t)vt(a->t);
     }
   } else if (m->a == EK_FFI) {
-    NibCFfi *f = &vm->c->ffi[m->b]; int pt, w, s, d;
+    RioCFfi *f = &vm->c->ffi[m->b]; int pt, w, s, d;
     if (m->n >= f->np) fail(vm, "too many arguments");
     e = vpop(vm); pt = vm->c->param[f->p0 + m->n].t;
     coerce(vm, &e, pt); w = words(vm, pt);
@@ -660,7 +660,7 @@ static void argdone(Nib *vm, Op *m) {
   }
   m->n++;
 }
-static void builtin(Nib *vm, Op *m) {
+static void builtin(Rio *vm, Op *m) {
   int id = m->b, n = vm->c->nvs - m->vb, t, o = 0, x = 0, s1, s2 = 0, d;
   Ex *a = &vm->c->vs[m->vb], r;
   if (id == BI_LOG) { emit(vm, OP_LOGE, 0, 0, 0); vm->c->fr = m->fr0; vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0); return; }
@@ -679,7 +679,7 @@ static void builtin(Nib *vm, Op *m) {
     o = OP_IABS;
   } else if (id == BI_ABS || (id >= BI_SQRT && id <= BI_ROUND)) {
     coerce(vm, a, TY_F32); o = OP_M1; x = id == BI_ABS ? 12 : id - BI_SQRT;
-    if (a->k == EK_CONST) { NibVal v; v.i = a->a; v.f = mf1[x](v.f); r = mkex(EK_CONST, TY_F32, v.i); vm->c->nvs = m->vb; vres(vm, r, m->fr0); return; }
+    if (a->k == EK_CONST) { RioVal v; v.i = a->a; v.f = mf1[x](v.f); r = mkex(EK_CONST, TY_F32, v.i); vm->c->nvs = m->vb; vres(vm, r, m->fr0); return; }
   } else {
     coerce(vm, a, TY_F32); coerce(vm, a + 1, TY_F32); o = OP_M2; x = id - BI_ATAN2;
     s2 = toslot(vm, a + 1, 1);
@@ -689,7 +689,7 @@ static void builtin(Nib *vm, Op *m) {
   emit(vm, o, d, s1, s2); vm->code[vm->pc - 1].x = (uint8_t)x;
   vres(vm, mkex(EK_ST, o == OP_IABS ? TY_I32 : TY_F32, d * 4), m->fr0);
 }
-static void minmax(Nib *vm, Op *m) {
+static void minmax(Rio *vm, Op *m) {
   Ex *a = &vm->c->vs[m->vb]; int t, s1, s2, d, mx = m->b == BI_MAX;
   if (vm->c->nvs - m->vb != 2) fail(vm, "wrong number of arguments");
   needval(vm, a); needval(vm, a + 1);
@@ -702,7 +702,7 @@ static void minmax(Nib *vm, Op *m) {
   emit(vm, t == TY_I32 ? (mx ? OP_IMAX : OP_IMIN) : (mx ? OP_FMAX : OP_FMIN), d, s1, s2);
   vres(vm, mkex(EK_ST, t, d * 4), m->fr0);
 }
-static void cast(Nib *vm, Op *m) {
+static void cast(Rio *vm, Op *m) {
   Ex *a = &vm->c->vs[m->vb], r; int to = m->b, from, s, d;
   if (vm->c->nvs - m->vb != 1) fail(vm, "cast takes one value");
   needval(vm, a); from = vt(a->t); r = *a;
@@ -714,14 +714,14 @@ static void cast(Nib *vm, Op *m) {
     else { s = toslot(vm, a, 1); vm->c->fr = m->fr0; d = alloc(vm, 1); emit(vm, OP_NE, d, s, kslot(vm, 0)); r = mkex(EK_ST, TY_BOOL, d * 4); }
   }
   else if ((to == TY_F32 && from == TY_I32) || (to == TY_I32 && from == TY_F32)) {
-    if (a->k == EK_CONST) { NibVal v; v.i = a->a; if (to == TY_F32) v.f = (float)v.i; else v.i = ftoi(v.f); r = mkex(EK_CONST, to, v.i); }
+    if (a->k == EK_CONST) { RioVal v; v.i = a->a; if (to == TY_F32) v.f = (float)v.i; else v.i = ftoi(v.f); r = mkex(EK_CONST, to, v.i); }
     else { s = toslot(vm, a, 1); vm->c->fr = m->fr0; d = alloc(vm, 1); emit(vm, to == TY_F32 ? OP_ITOF : OP_FTOI, d, s, 0); r = mkex(EK_ST, to, d * 4); }
   } else fail(vm, "invalid cast");
   vm->c->nvs = m->vb; vres(vm, r, m->fr0);
 }
-static void finish_call(Nib *vm, Op *m) {
+static void finish_call(Rio *vm, Op *m) {
   if (m->a == EK_FN) {
-    NibCFunc *f = &vm->c->func[m->b]; int i, d;
+    RioCFunc *f = &vm->c->func[m->b]; int i, d;
     if (m->n != f->np) fail(vm, "wrong number of arguments");
     for (i = 0; i < f->np; i++) {
       Ex p = mkex(EK_ST, vm->c->param[f->p0 + i].t, (int32_t)vm->c->param[f->p0 + i].addr);
@@ -737,7 +737,7 @@ static void finish_call(Nib *vm, Op *m) {
       store(vm, &dst, &src); vres(vm, dst, m->fr0);
     }
   } else if (m->a == EK_FFI) {
-    NibCFfi *f = &vm->c->ffi[m->b];
+    RioCFfi *f = &vm->c->ffi[m->b];
     if (m->n != f->np) fail(vm, "wrong number of arguments");
     emit(vm, OP_FFI, m->fr0, 0, m->b);
     vm->c->fr = m->fr0;
@@ -747,8 +747,8 @@ static void finish_call(Nib *vm, Op *m) {
     if (m->b == BI_MIN || m->b == BI_MAX) minmax(vm, m); else builtin(vm, m);
   } else cast(vm, m);
 }
-static void finish_lit(Nib *vm, Op *m) {
-  NibType *st = TY(m->b);
+static void finish_lit(Rio *vm, Op *m) {
+  RioType *st = TY(m->b);
   if (m->n < st->nf) {
     int off = vm->c->field[st->f0 + m->n].off, w;
     if (st->size - off <= 64) for (w = off / 4; w < (int)st->size / 4; w++) emit(vm, OP_MOV, m->c / 4 + w, kslot(vm, 0), 0);
@@ -757,7 +757,7 @@ static void finish_lit(Nib *vm, Op *m) {
   vm->c->fr = (uint32_t)(m->c / 4 + words(vm, m->b));
   vres(vm, mkex(EK_ST, m->b, m->c), m->fr0);
 }
-static void closer(Nib *vm, int t, int hasarg) {
+static void closer(Rio *vm, int t, int hasarg) {
   Op *m = &vm->c->os[vm->c->nos - 1], o;
   if (t == ')' && m->k == OK_PAREN) { vm->c->nos--; return; }
   if (t == ']') {
@@ -773,7 +773,7 @@ static void closer(Nib *vm, int t, int hasarg) {
   o = vm->c->os[--vm->c->nos];
   if (t == ')') finish_call(vm, &o); else finish_lit(vm, &o);
 }
-static Ex expr(Nib *vm) {
+static Ex expr(Rio *vm) {
   int ob = vm->c->nos, vb = vm->c->nvs, want = 1, depth = 0, t, p;
   for (;;) {
     t = TK.t;
@@ -848,14 +848,14 @@ static Ex expr(Nib *vm) {
   if (vm->c->nvs != vb + 1) fail(vm, "bad expression");
   return vpop(vm);
 }
-static int32_t constexpr_i(Nib *vm) {
+static int32_t constexpr_i(Rio *vm) {
   Ex e = expr(vm);
   if (e.k != EK_CONST || e.t != TY_I32 || e.a <= 0) fail(vm, "positive integer constant expected");
   return e.a;
 }
 
 /* ---------------------------------------------------------------- statements */
-static int parse_type(Nib *vm) {
+static int parse_type(Rio *vm) {
   int32_t pre[16]; int np = 0, t, i;
   while (TK.t == '[') {
     if (np >= 16) fail(vm, "type too deep");
@@ -869,16 +869,16 @@ static int parse_type(Nib *vm) {
   while (np) { int32_t n = pre[--np]; t = n < 0 ? slice_of(vm, t) : array_of(vm, t, (uint32_t)n); }
   return t;
 }
-static NibBlk *bpush(Nib *vm, int k) {
-  NibBlk *b;
-  if (vm->c->nblk >= NIB_MAX_BLOCKS) fail(vm, "blocks nested too deep");
+static RioBlk *bpush(Rio *vm, int k) {
+  RioBlk *b;
+  if (vm->c->nblk >= RIO_MAX_BLOCKS) fail(vm, "blocks nested too deep");
   b = &vm->c->blk[vm->c->nblk++];
   b->k = (uint8_t)k; b->nsym = (uint16_t)vm->c->nsym; b->nnames = (uint16_t)vm->c->nnames; b->nact = (uint16_t)vm->c->nact;
   b->a = b->b = b->brk = b->cont = b->cj = NONE;
   return b;
 }
-static void bscope(Nib *vm, NibBlk *b) { vm->c->nsym = b->nsym; vm->c->nnames = b->nnames; vm->c->nact = vm->c->fr = b->nact; }
-static int namelist(Nib *vm, const char **ns, int *nl) {
+static void bscope(Rio *vm, RioBlk *b) { vm->c->nsym = b->nsym; vm->c->nnames = b->nnames; vm->c->nact = vm->c->fr = b->nact; }
+static int namelist(Rio *vm, const char **ns, int *nl) {
   int c = 0;
   for (;;) {
     if (TK.t != TK_ID || c >= 16) fail(vm, "name expected");
@@ -889,11 +889,11 @@ static int namelist(Nib *vm, const char **ns, int *nl) {
   expect(vm, ':', "':' expected");
   return c;
 }
-static int isbig(NibType *ty) { return (ty->k == K_ARR || ty->k == K_STRUCT) && ty->size > 64; }
-static void proc_def(Nib *vm, const char *name, int nlen) {
-  NibCFunc *f; NibBlk *b; int fi, skip;
+static int isbig(RioType *ty) { return (ty->k == K_ARR || ty->k == K_STRUCT) && ty->size > 64; }
+static void proc_def(Rio *vm, const char *name, int nlen) {
+  RioCFunc *f; RioBlk *b; int fi, skip;
   if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "procs must be top-level");
-  if (vm->nfunc >= NIB_MAX_FUNCS) fail(vm, "too many procs");
+  if (vm->nfunc >= RIO_MAX_FUNCS) fail(vm, "too many procs");
   next(vm); expect(vm, '(', "'(' expected");
   skip = emit(vm, OP_JMP, 0, 0, NONE);
   fi = vm->nfunc++; f = &vm->c->func[fi];
@@ -903,11 +903,11 @@ static void proc_def(Nib *vm, const char *name, int nlen) {
   vm->c->fr = vm->c->nact; f->fs = (uint16_t)vm->c->nact;
   while (TK.t != ')') {
     const char *ns[16]; int nl[16], c = namelist(vm, ns, nl), t = parse_type(vm), j;
-    NibType *ty = TY(t);
+    RioType *ty = TY(t);
     if (ty->k == K_VOID || ty->k == K_ARR || (ty->k == K_STRUCT && ty->ref)) fail(vm, "invalid parameter type (use a slice for arrays)");
     for (j = 0; j < c; j++) {
       int addr = alloc(vm, words(vm, t)) * 4;
-      if (vm->c->nparam >= NIB_MAX_PARAMS) fail(vm, "too many parameters");
+      if (vm->c->nparam >= RIO_MAX_PARAMS) fail(vm, "too many parameters");
       vm->c->param[vm->c->nparam].t = (uint16_t)t; vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
       addsym(vm, ns[j], nl[j], S_VAR, t, addr); f->np++;
     }
@@ -916,15 +916,15 @@ static void proc_def(Nib *vm, const char *name, int nlen) {
   }
   expect(vm, ')', "')' expected");
   if (TK.t == TK_ARROW) {
-    NibType *ty;
+    RioType *ty;
     next(vm); f->ret = (uint16_t)parse_type(vm); ty = TY(f->ret);
     if (ty->k == K_ARR || (ty->k == K_STRUCT && ty->ref)) fail(vm, "invalid return type");
     f->retaddr = (uint32_t)alloc(vm, words(vm, f->ret)) * 4;
   }
   vm->c->nact = vm->c->fr; vm->c->curfn = fi; f->pc = (uint16_t)here(vm);
 }
-static void struct_def(Nib *vm, const char *name, int nlen) {
-  int ti, off = 0; NibType *st;
+static void struct_def(Rio *vm, const char *name, int nlen) {
+  int ti, off = 0; RioType *st;
   if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "structs must be top-level");
   next(vm);
   ti = newtype(vm, K_STRUCT, 0, 0, 0); st = TY(ti); st->f0 = (uint16_t)vm->c->nfield;
@@ -932,8 +932,8 @@ static void struct_def(Nib *vm, const char *name, int nlen) {
     const char *ns[16]; int nl[16], c = namelist(vm, ns, nl), t = parse_type(vm), j;
     if (TY(t)->k == K_VOID) fail(vm, "invalid field type");
     for (j = 0; j < c; j++) {
-      NibField *f;
-      if (vm->c->nfield >= NIB_MAX_FIELDS) fail(vm, "too many fields");
+      RioField *f;
+      if (vm->c->nfield >= RIO_MAX_FIELDS) fail(vm, "too many fields");
       f = &vm->c->field[vm->c->nfield++];
       f->name = (uint16_t)addname(vm, ns[j], nl[j]); f->len = (uint16_t)nl[j]; f->t = (uint16_t)t; f->off = (uint16_t)off;
       off += (int)TY(t)->size; st->nf++; st->ref |= TY(t)->ref;
@@ -944,8 +944,8 @@ static void struct_def(Nib *vm, const char *name, int nlen) {
   st->size = (uint32_t)off;
   addsym(vm, name, nlen, S_TYPE, ti, 0);
 }
-static void decl_var(Nib *vm) {
-  const char *ns = TK.s; int nn = TK.n, t = -1, has = 0, k, big; uint32_t addr; NibType *ty; Ex e = mkex(EK_VOID, TY_VOID, 0);
+static void decl_var(Rio *vm) {
+  const char *ns = TK.s; int nn = TK.n, t = -1, has = 0, k, big; uint32_t addr; RioType *ty; Ex e = mkex(EK_VOID, TY_VOID, 0);
   next(vm);
   if (TK.t == ':') { next(vm); t = parse_type(vm); if (TK.t == '=') { next(vm); has = 1; } }
   else { next(vm); has = 1; }
@@ -976,10 +976,10 @@ static void decl_var(Nib *vm) {
   else if (!(big && vm->c->curfn < 0 && !vm->c->nblk)) emit(vm, OP_ZERO, kaddr(vm, addr, ty->size), (int)(ty->size & 0xFFFF), (int)(ty->size >> 16));
   addsym(vm, ns, nn, S_VAR, t, (int32_t)addr);
 }
-static void stmt_expr(Nib *vm) {
+static void stmt_expr(Rio *vm) {
   Ex l = expr(vm), r, cur;
   if (TK.t != '=' && TK.t != TK_OPEQ) return;
-  if ((l.k != EK_ST && l.k != EK_MEM) || l.ro || (l.k == EK_ST && l.a < NIB_MAX_CONSTS * 4)) fail(vm, "cannot assign to this");
+  if ((l.k != EK_ST && l.k != EK_MEM) || l.ro || (l.k == EK_ST && l.a < RIO_MAX_CONSTS * 4)) fail(vm, "cannot assign to this");
   if (TK.t == '=') { next(vm); r = expr(vm); store(vm, &l, &r); return; }
   {
     int op = TK.op, k = TY(l.t)->k;
@@ -991,8 +991,8 @@ static void stmt_expr(Nib *vm) {
     r = expr(vm); binop(vm, op, &cur, &r); store(vm, &l, &cur);
   }
 }
-static void statement(Nib *vm) {
-  int t = TK.t, i; NibBlk *b; Ex e;
+static void statement(Rio *vm) {
+  int t = TK.t, i; RioBlk *b; Ex e;
   vm->c->fr = vm->c->nact;
   if (t == ';') { next(vm); return; }
   if (t == TK_ID && vm->c->nx.t == TK_DCOLON) {
@@ -1063,7 +1063,7 @@ static void statement(Nib *vm) {
       for (n = b->a; ok && n < cj; n++) if (vm->code[n].op >= OP_JMP && vm->code[n].op <= OP_FORI) ok = 0;
       if (ok) { /* rotate: repeat the condition at the bottom, inverted, jumping back into the body */
         patch(vm, b->cont, here(vm));
-        for (n = b->a; n <= cj; n++) { NibIns c = vm->code[n]; emit(vm, c.op, c.a, c.b, c.c); vm->code[vm->pc - 1].x = c.x; }
+        for (n = b->a; n <= cj; n++) { RioIns c = vm->code[n]; emit(vm, c.op, c.a, c.b, c.c); vm->code[vm->pc - 1].x = c.x; }
         invjump(&vm->code[vm->pc - 1]); vm->code[vm->pc - 1].c = (uint16_t)(cj + 1);
       } else { patch(vm, b->cont, b->a); emit(vm, OP_JMP, 0, 0, b->a); }
     }
@@ -1073,7 +1073,7 @@ static void statement(Nib *vm) {
     bscope(vm, b); vm->c->nblk--;
     break;
   case TK_RETURN: {
-    NibCFunc *f;
+    RioCFunc *f;
     if (vm->c->curfn < 0) fail(vm, "return outside proc");
     next(vm); f = &vm->c->func[vm->c->curfn];
     if (f->ret != TY_VOID) { Ex d = mkex(EK_ST, f->ret, (int32_t)f->retaddr); e = expr(vm); store(vm, &d, &e); }
@@ -1095,46 +1095,46 @@ static void statement(Nib *vm) {
 }
 
 /* ---------------------------------------------------------------- api */
-int nib_init(Nib *vm, void *mem, uint32_t memsize, NibIns *code, uint32_t codecap) {
+int rio_init(Rio *vm, void *mem, uint32_t memsize, RioIns *code, uint32_t codecap) {
   uintptr_t pad = (16 - ((uintptr_t)mem & 15)) & 15;
   memset(vm, 0, sizeof *vm);
-  if (!mem || memsize < pad + NIB_MAX_CONSTS * 4 + 256 || !code || codecap < 16) return -1;
+  if (!mem || memsize < pad + RIO_MAX_CONSTS * 4 + 256 || !code || codecap < 16) return -1;
   vm->mem = (uint8_t *)mem + pad; vm->memsize = (uint32_t)(memsize - pad) & ~15u;
   vm->code = code; vm->codecap = codecap > 65535 ? 65535 : codecap;
   return 0;
 }
-void nib_set_log(Nib *vm, NibLogFn fn, void *ud) { vm->logfn = fn; vm->logud = ud; }
-int nib_ffi(Nib *vm, const char *name, const char *sig, NibFn fn) {
-  NibFfi *f;
-  if (vm->nffi >= NIB_MAX_FFI) return -1;
+void rio_set_log(Rio *vm, RioLogFn fn, void *ud) { vm->logfn = fn; vm->logud = ud; }
+int rio_ffi(Rio *vm, const char *name, const char *sig, RioFn fn) {
+  RioFfi *f;
+  if (vm->nffi >= RIO_MAX_FFI) return -1;
   f = &vm->ffi[vm->nffi++]; f->name = name; f->sig = sig; f->fn = fn; f->aw = f->rw = 0;
   return 0;
 }
-int nib_define(Nib *vm, const char *name, const char *value) {
-  if (vm->ndefs >= NIB_MAX_DEFINES || !name) return -1;
+int rio_define(Rio *vm, const char *name, const char *value) {
+  if (vm->ndefs >= RIO_MAX_DEFINES || !name) return -1;
   vm->defs[vm->ndefs][0] = name; vm->defs[vm->ndefs++][1] = value;
   return 0;
 }
-uint32_t nib_scratch_min(void) { return (uint32_t)sizeof(NibC) + 16; }
+uint32_t rio_scratch_min(void) { return (uint32_t)sizeof(RioC) + 16; }
 /* builtin types and names, and the host's ffi functions */
-static void setup(Nib *vm) {
+static void setup(Rio *vm) {
   static const uint8_t tk[] = {K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_SLICE, K_BOOL};
   static const uint8_t ts[] = {0, 4, 4, 1, 8, 8, 4};
   static const char *tn[] = {"i32", "f32", "string", "blob", "bool"};
-  NibC *c = vm->c; int i;
-  c->nact = c->fr = c->hwm = NIB_MAX_CONSTS; c->curfn = -1; c->lastlabel = NONE;
+  RioC *c = vm->c; int i;
+  c->nact = c->fr = c->hwm = RIO_MAX_CONSTS; c->curfn = -1; c->lastlabel = NONE;
   for (i = 0; i < 7; i++) { c->type[i].k = tk[i]; c->type[i].size = ts[i]; c->type[i].elem = TY_BYTE; c->type[i].ref = i == TY_STR || i == TY_BLOB; }
   c->ntype = 7;
   for (i = 0; i < 5; i++) addsym(vm, tn[i], (int)strlen(tn[i]), S_TYPE, i < 2 ? TY_I32 + i : TY_STR + i - 2, 0);
   addsym(vm, "true", 4, S_CONST, TY_BOOL, 1); addsym(vm, "false", 5, S_CONST, TY_BOOL, 0);
   for (i = 0; i < (int)(sizeof bi / sizeof bi[0]); i++) addsym(vm, bi[i], (int)strlen(bi[i]), S_BI, 0, i);
   for (i = 0; i < vm->nffi; i++) {
-    NibFfi *f = &vm->ffi[i]; NibCFfi *cf = &c->ffi[i]; const char *g;
+    RioFfi *f = &vm->ffi[i]; RioCFfi *cf = &c->ffi[i]; const char *g;
     cf->p0 = (uint16_t)c->nparam; cf->np = 0; cf->ret = TY_VOID; f->aw = f->rw = 0;
     for (g = f->sig; *g; g++) {
       int ret = *g == '>', ch = ret ? g[1] : *g;
       int t = ch == 'i' ? TY_I32 : ch == 'f' ? TY_F32 : ch == 's' ? TY_STR : ch == 'b' ? TY_BLOB : -1;
-      if (t < 0 || c->nparam >= NIB_MAX_PARAMS) fail(vm, "bad ffi signature");
+      if (t < 0 || c->nparam >= RIO_MAX_PARAMS) fail(vm, "bad ffi signature");
       if (ret) { cf->ret = (uint16_t)t; f->rw = (uint8_t)words(vm, t); break; }
       c->param[c->nparam++].t = (uint16_t)t; cf->np++; f->aw = (uint8_t)(f->aw + words(vm, t));
     }
@@ -1151,30 +1151,30 @@ static void setup(Nib *vm) {
 }
 /* lay out the final memory: string pool + export table go just below the big arrays, string
    constants get their real addresses, and everything the compiler used is zeroed */
-static void finalize(Nib *vm) {
-  NibC *c = vm->c; NibVal *R = (NibVal *)vm->mem; NibExport *x;
-  uint32_t i, n = 0, p, ex, sz, base, first = NIB_MAX_CONSTS * 4; int k;
+static void finalize(Rio *vm) {
+  RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; RioExport *x;
+  uint32_t i, n = 0, p, ex, sz, base, first = RIO_MAX_CONSTS * 4; int k;
   c->fr = c->hwm; vm->csaddr = (uint32_t)alloc(vm, vm->nfunc + 1) * 4; /* return stack: depth <= #procs */
   p = c->pool;
   for (k = 0; k < c->nsym; k++) {
-    NibSym *y = &c->sym[k];
+    RioSym *y = &c->sym[k];
     if (y->k != S_FN && y->k != S_VAR) continue;
     if (y->len > c->poolcap - p) fail(vm, "out of compiler memory");
     memcpy(c->strs + p, c->names + y->name, y->len); p += y->len; n++;
   }
-  ex = (p + 3) & ~3u; sz = ex + n * (uint32_t)sizeof(NibExport);
+  ex = (p + 3) & ~3u; sz = ex + n * (uint32_t)sizeof(RioExport);
   if (sz > c->poolcap) fail(vm, "out of compiler memory");
   if (vm->hi < sz || ((vm->hi - sz) & ~3u) < c->hwm * 4) fail(vm, "out of memory");
   base = (vm->hi - sz) & ~3u;
-  x = (NibExport *)(void *)(c->strs + ex); p = c->pool;
+  x = (RioExport *)(void *)(c->strs + ex); p = c->pool;
   for (k = 0; k < c->nsym; k++) {
-    NibSym *y = &c->sym[k];
+    RioSym *y = &c->sym[k];
     if (y->k != S_FN && y->k != S_VAR) continue;
     x->name = base + p; x->len = y->len; x->k = y->k; x->pad = 0; x->v = y->v; p += y->len; x++;
   }
   for (i = 1; i < vm->nk; i++) if (KFIX(i)) R[i].u = base + (R[i].u & 0x7FFFFFFFu);
   for (k = 0; k < vm->nfunc; k++) {
-    NibCFunc *f = &c->func[k]; NibFunc *rf = &vm->func[k]; uint32_t pw = 0; int j;
+    RioCFunc *f = &c->func[k]; RioFunc *rf = &vm->func[k]; uint32_t pw = 0; int j;
     for (j = 0; j < f->np; j++) pw += (uint32_t)words(vm, c->param[f->p0 + j].t);
     rf->pc = f->pc; rf->end = f->end; rf->fs = f->fs; rf->fe = f->fe; rf->pend = (uint16_t)(f->fs + pw);
     rf->ret = (uint16_t)(f->retaddr / 4); rf->retw = (uint8_t)(f->ret ? words(vm, f->ret) : 0);
@@ -1185,17 +1185,17 @@ static void finalize(Nib *vm) {
   memset(vm->mem + first, 0, base - first);
   memset(vm->mem + base + sz, 0, vm->memsize - base - sz);
 }
-static int compile(Nib *vm, const char *src, uint32_t len, uint8_t *scratch, uint32_t size, int inmem) {
-  uintptr_t pad = scratch ? (16 - ((uintptr_t)scratch & 15)) & 15 : 0; NibC *c;
+static int compile(Rio *vm, const char *src, uint32_t len, uint8_t *scratch, uint32_t size, int inmem) {
+  uintptr_t pad = scratch ? (16 - ((uintptr_t)scratch & 15)) & 15 : 0; RioC *c;
   vm->ok = 0; vm->c = 0;
-  if (!scratch || size < pad + nib_scratch_min()) {
+  if (!scratch || size < pad + rio_scratch_min()) {
     int n = cat(vm->err, 0, inmem ? "not enough memory for the compiler" : "scratch too small"); vm->err[n] = 0;
     return -1;
   }
-  c = vm->c = (NibC *)(void *)(scratch + pad);
+  c = vm->c = (RioC *)(void *)(scratch + pad);
   memset(c, 0, sizeof *c);
   c->strs = (uint8_t *)(c + 1); c->poolcap = size - (uint32_t)pad - (uint32_t)sizeof *c;
-  vm->hi = vm->memsize; vm->nk = 1; vm->pc = 0; vm->nfunc = 0; ((NibVal *)vm->mem)[0].u = 0;
+  vm->hi = vm->memsize; vm->nk = 1; vm->pc = 0; vm->nfunc = 0; ((RioVal *)vm->mem)[0].u = 0;
   if (setjmp(c->jb)) { if (inmem) vm->c = 0; return -1; }
   setup(vm);
   c->sp = src; c->se = src + len; c->line = 1;
@@ -1209,51 +1209,51 @@ static int compile(Nib *vm, const char *src, uint32_t len, uint8_t *scratch, uin
   return 0;
 }
 /* the compiler's state is overlaid on the part of mem that stays zero until the program runs */
-int nib_compile(Nib *vm, const char *src, uint32_t len) {
-  uint32_t k = NIB_MAX_CONSTS * 4;
+int rio_compile(Rio *vm, const char *src, uint32_t len) {
+  uint32_t k = RIO_MAX_CONSTS * 4;
   return compile(vm, src, len, vm->mem + k, vm->memsize - k, 1);
 }
-int nib_compile_scratch(Nib *vm, const char *src, uint32_t len, void *scratch, uint32_t size) {
+int rio_compile_scratch(Rio *vm, const char *src, uint32_t len, void *scratch, uint32_t size) {
   return compile(vm, src, len, (uint8_t *)scratch, size, 0);
 }
-const char *nib_error(Nib *vm) { return vm->err; }
-void nib_trap(Nib *vm, const char *msg) { int n = cat(vm->err, 0, msg); vm->err[n] = 0; vm->trap = 1; }
-static NibExport *findexp(Nib *vm, const char *name, int k) {
-  NibExport *x = (NibExport *)(void *)(vm->mem + vm->exports); uint32_t i, n = (uint32_t)strlen(name);
+const char *rio_error(Rio *vm) { return vm->err; }
+void rio_trap(Rio *vm, const char *msg) { int n = cat(vm->err, 0, msg); vm->err[n] = 0; vm->trap = 1; }
+static RioExport *findexp(Rio *vm, const char *name, int k) {
+  RioExport *x = (RioExport *)(void *)(vm->mem + vm->exports); uint32_t i, n = (uint32_t)strlen(name);
   if (!vm->ok) return 0;
   for (i = vm->nexports; i-- > 0;)
     if (x[i].k == k && x[i].len == n && !memcmp(vm->mem + x[i].name, name, n)) return &x[i];
   return 0;
 }
-int nib_func(Nib *vm, const char *name) { NibExport *x = findexp(vm, name, S_FN); return x ? x->v : -1; }
-void *nib_global(Nib *vm, const char *name) { NibExport *x = findexp(vm, name, S_VAR); return x ? vm->mem + x->v : 0; }
-NibVal *nib_args(Nib *vm, int fn) { return (NibVal *)(void *)vm->mem + vm->func[fn].fs; }
-NibVal *nib_ret(Nib *vm, int fn) { return (NibVal *)(void *)vm->mem + vm->func[fn].ret; }
-void *nib_ptr(Nib *vm, const NibVal *s) {
+int rio_func(Rio *vm, const char *name) { RioExport *x = findexp(vm, name, S_FN); return x ? x->v : -1; }
+void *rio_global(Rio *vm, const char *name) { RioExport *x = findexp(vm, name, S_VAR); return x ? vm->mem + x->v : 0; }
+RioVal *rio_args(Rio *vm, int fn) { return (RioVal *)(void *)vm->mem + vm->func[fn].fs; }
+RioVal *rio_ret(Rio *vm, int fn) { return (RioVal *)(void *)vm->mem + vm->func[fn].ret; }
+void *rio_ptr(Rio *vm, const RioVal *s) {
   return (uint32_t)s[0].i <= vm->memsize && (uint32_t)s[1].i <= vm->memsize - (uint32_t)s[0].i ? vm->mem + s[0].i : 0;
 }
 
 /* ---------------------------------------------------------------- vm */
-static void logput(Nib *vm, const char *s, int n) { while (n-- > 0 && vm->logn < NIB_LOGBUF) vm->logbuf[vm->logn++] = *s++; }
-static int rterr(Nib *vm, const char *m, uint32_t pc) {
+static void logput(Rio *vm, const char *s, int n) { while (n-- > 0 && vm->logn < RIO_LOGBUF) vm->logbuf[vm->logn++] = *s++; }
+static int rterr(Rio *vm, const char *m, uint32_t pc) {
   int n = cat(vm->err, 0, "runtime error: "); n = cat(vm->err, n, m);
   n = cat(vm->err, n, " (pc "); n += fmti(vm->err + n, (int32_t)pc); n = cat(vm->err, n, ")");
   vm->err[n] = 0;
   return -1;
 }
-static int run(Nib *vm, uint32_t pc) {
-  const NibIns *code = vm->code, *ip = code + pc;
+static int run(Rio *vm, uint32_t pc) {
+  const RioIns *code = vm->code, *ip = code + pc;
   uint32_t *cs = (uint32_t *)(void *)(vm->mem + vm->csaddr);
-  uint8_t *M = vm->mem; NibVal *R = (NibVal *)M; int sp = 0;
+  uint8_t *M = vm->mem; RioVal *R = (RioVal *)M; int sp = 0;
 #define A ip->a
 #define B ip->b
 #define C ip->c
 #define I(x) R[x].i
 #define U(x) R[x].u
 #define F(x) R[x].f
-#define MV(p) (*(NibVal *)(M + (p)))
+#define MV(p) (*(RioVal *)(M + (p)))
 #define SZ(w) ((uint32_t)(w).b | (uint32_t)(w).c << 16)
-#ifdef NIB_CGOTO
+#ifdef RIO_CGOTO
 #define LBL(o) &&L_##o,
   static const void *const L[] = {OPS(LBL)};
 #define CASE(o) L_##o:
@@ -1318,8 +1318,8 @@ static int run(Nib *vm, uint32_t pc) {
     if (i >= U(B + 1)) return rterr(vm, "index out of bounds", (uint32_t)(ip - code));
     U(A) = M[U(B) + i * SZ(ip[1]) + ip[1].a]; ip += 2; DISPATCH();
   }
-  CASE(MOV2) { NibVal x = R[B], y = R[B + 1]; R[A] = x; R[A + 1] = y; NEXT(); }
-  CASE(LDW2) { int32_t p = I(B) + C; NibVal x = MV(p), y = MV(p + 4); R[A] = x; R[A + 1] = y; NEXT(); }
+  CASE(MOV2) { RioVal x = R[B], y = R[B + 1]; R[A] = x; R[A + 1] = y; NEXT(); }
+  CASE(LDW2) { int32_t p = I(B) + C; RioVal x = MV(p), y = MV(p + 4); R[A] = x; R[A + 1] = y; NEXT(); }
   CASE(STW) MV(I(A) + C) = R[B]; NEXT();
   CASE(STB) M[I(A) + C] = (uint8_t)U(B); NEXT();
   CASE(STW2) { int32_t p = I(A) + C; MV(p) = R[B]; MV(p + 4) = R[B + 1]; NEXT(); }
@@ -1368,10 +1368,10 @@ static int run(Nib *vm, uint32_t pc) {
   CASE(LOGB) if (ip->x) logput(vm, " ", 1); if (I(A)) logput(vm, "true", 4); else logput(vm, "false", 5); NEXT();
   CASE(LOGE) if (vm->logfn) vm->logfn(vm->logud, vm->logbuf, vm->logn); vm->logn = 0; NEXT();
   CASE(HALT) return 0;
-#ifndef NIB_CGOTO
+#ifndef RIO_CGOTO
   default: return rterr(vm, "bad opcode", (uint32_t)(ip - code));
   }
 #endif
 }
-int nib_run(Nib *vm) { return vm->ok ? run(vm, 0) : -1; }
-int nib_call(Nib *vm, int fn) { return vm->ok && fn >= 0 && fn < vm->nfunc ? run(vm, vm->func[fn].pc) : -1; }
+int rio_run(Rio *vm) { return vm->ok ? run(vm, 0) : -1; }
+int rio_call(Rio *vm, int fn) { return vm->ok && fn >= 0 && fn < vm->nfunc ? run(vm, vm->func[fn].pc) : -1; }

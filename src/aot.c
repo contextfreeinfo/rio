@@ -1,4 +1,4 @@
-/* aot.c - translate compiled nib bytecode to a standalone C program.
+/* aot.c - translate compiled rio bytecode to a standalone C program.
    No recursion => every proc becomes a plain C function, and its frame slots become C locals
    (unless their address is taken). Constants are emitted inline. */
 #define _CRT_SECURE_NO_WARNINGS
@@ -6,25 +6,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "nib.h"
+#include "rio.h"
 #include "aot.h"
 
 #define OPENUM(o) A_##o,
-enum { NIB_OPS(OPENUM) A_DATA = 255 };
+enum { RIO_OPS(OPENUM) A_DATA = 255 };
 
-static Nib *vm;
+static Rio *vm;
 static FILE *o;
 static int cur = -1;            /* function being emitted, -1 = top level */
 static uint8_t *label;          /* jump targets */
 static uint8_t used[8192];      /* locals referenced by the current proc */
 
-static NibVal kval(int s) { return ((NibVal *)vm->mem)[s]; }
+static RioVal kval(int s) { return ((RioVal *)vm->mem)[s]; }
 static int isret(int s) {
-  NibFunc *f = &vm->func[cur];
+  RioFunc *f = &vm->func[cur];
   return s >= f->ret && s < f->ret + f->retw;
 }
 static int islocal(int s) {
-  NibFunc *f;
+  RioFunc *f;
   if (cur < 0) return 0;
   f = &vm->func[cur];
   return s >= f->fs && s < f->fe && !(vm->c->exposed[s >> 3] & (1 << (s & 7))) && !isret(s);
@@ -34,7 +34,7 @@ static const char *V(int s, int t) {
   static char buf[16][48]; static int n;
   char *b = buf[n++ & 15];
   if (s < (int)vm->nk) {
-    NibVal k = kval(s);
+    RioVal k = kval(s);
     if (t == 'i') { if (k.i == (int32_t)0x80000000u) strcpy(b, "(-2147483647-1)"); else sprintf(b, k.i < 0 ? "(%d)" : "%d", k.i); }
     else if (t == 'u') sprintf(b, "%uu", k.u);
     else if (t == 'f') {
@@ -42,14 +42,14 @@ static const char *V(int s, int t) {
       sprintf(b, "%.9g", k.f); back = strtof(b, &q);
       if (k.f != k.f || back != k.f || k.f - k.f != 0) sprintf(b, "kf(%uu)", k.u);
       else { if (!strpbrk(b, ".e")) strcat(b, ".0"); strcat(b, "f"); if (k.f < 0) { memmove(b + 1, b, strlen(b) + 1); b[0] = '('; strcat(b, ")"); } }
-    } else sprintf(b, "((NibVal){.u = %uu})", k.u);
+    } else sprintf(b, "((RioVal){.u = %uu})", k.u);
   } else if (islocal(s)) {
     used[s >> 3] |= (uint8_t)(1 << (s & 7));
     if (t == 'v') sprintf(b, "r%d", s); else sprintf(b, "r%d.%c", s, t); }
   else { if (t == 'v') sprintf(b, "R[%d]", s); else sprintf(b, "R[%d].%c", s, t); }
   return b;
 }
-static uint32_t sz(const NibIns *d) { return (uint32_t)d->b | (uint32_t)d->c << 16; }
+static uint32_t sz(const RioIns *d) { return (uint32_t)d->b | (uint32_t)d->c << 16; }
 static const char *symname(int kind, int idx) {
   static char b[64]; int i;
   for (i = 0; i < vm->c->nsym; i++)
@@ -66,7 +66,7 @@ static void P(const char *fmt, ...) { va_list ap; va_start(ap, fmt); if (o) vfpr
 static int fnat(int pc) { int i; for (i = 0; i < vm->nfunc; i++) if (vm->func[i].pc == pc) return i; return -1; }
 
 static void ins(int pc) {
-  const NibIns *x = &vm->code[pc], *d = x + 1;
+  const RioIns *x = &vm->code[pc], *d = x + 1;
   int a = x->a, b = x->b, c = x->c;
   static const char *bin[] = {"+", "-", "*", 0, 0, "&", "|", "^"};
   static const char *cmp[] = {"==", "!=", "<", "<="};
@@ -118,8 +118,8 @@ static void ins(int pc) {
     if (x->op == A_LDX) P("%s = MV(%s + i_ * %uu + %du); }\n", V(a, 'v'), V(b, 'u'), sz(d), d->a);
     else P("%s = M[%s + i_ * %uu + %du]; }\n", V(a, 'u'), V(b, 'u'), sz(d), d->a);
     break;
-  case A_MOV2: P("{ NibVal x_ = %s, y_ = %s; %s = x_; %s = y_; }\n", V(b, 'v'), V(b + 1, 'v'), V(a, 'v'), V(a + 1, 'v')); break;
-  case A_LDW2: P("{ uint32_t p_ = %s + %du; NibVal x_ = MV(p_), y_ = MV(p_ + 4); %s = x_; %s = y_; }\n", V(b, 'u'), c, V(a, 'v'), V(a + 1, 'v')); break;
+  case A_MOV2: P("{ RioVal x_ = %s, y_ = %s; %s = x_; %s = y_; }\n", V(b, 'v'), V(b + 1, 'v'), V(a, 'v'), V(a + 1, 'v')); break;
+  case A_LDW2: P("{ uint32_t p_ = %s + %du; RioVal x_ = MV(p_), y_ = MV(p_ + 4); %s = x_; %s = y_; }\n", V(b, 'u'), c, V(a, 'v'), V(a + 1, 'v')); break;
   case A_STW: P("MV(%s + %du) = %s;\n", V(a, 'u'), c, V(b, 'v')); break;
   case A_STB: P("M[%s + %du] = (uint8_t)%s;\n", V(a, 'u'), c, V(b, 'u')); break;
   case A_STW2: P("{ uint32_t p_ = %s + %du; MV(p_) = %s; MV(p_ + 4) = %s; }\n", V(a, 'u'), c, V(b, 'v'), V(b + 1, 'v')); break;
@@ -149,13 +149,13 @@ static void ins(int pc) {
   case A_JFNLT: case A_JFNLE:
     P("if (!(%s %s %s)) goto L%d;\n", V(a, 'f'), x->op == A_JFNLT ? "<" : "<=", V(b, 'f'), c); break;
   case A_FORI: P("if ((%s = (int32_t)(%s + 1u)) < %s) goto L%d;\n", V(a, 'i'), V(a, 'u'), V(b, 'i'), c); break;
-  case A_CALL: P("p_%s();\n", symname(NIB_S_FN, fnat(c))); break;
+  case A_CALL: P("p_%s();\n", symname(RIO_S_FN, fnat(c))); break;
   case A_RET: case A_HALT: P("return;\n"); break;
   case A_FFI: {
-    NibFfi *f = &vm->ffi[c]; int n = f->aw, i, rw = f->rw;
-    P("{ NibVal a_[%d];", (n > rw ? n : rw) + 1);
+    RioFfi *f = &vm->ffi[c]; int n = f->aw, i, rw = f->rw;
+    P("{ RioVal a_[%d];", (n > rw ? n : rw) + 1);
     for (i = 0; i < n; i++) P(" a_[%d] = %s;", i, V(a + i, 'v'));
-    P(" nib_ffi_%s(a_);", symname(NIB_S_FFI, c));
+    P(" rio_ffi_%s(a_);", symname(RIO_S_FFI, c));
     for (i = 0; i < rw; i++) P(" %s = a_[%d];", V(a + i, 'v'), i);
     P(" }\n");
     break;
@@ -172,10 +172,10 @@ static void ins(int pc) {
 static const char *prelude =
   "#define _CRT_SECURE_NO_WARNINGS\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <math.h>\n#include <time.h>\n"
   "#ifdef __GNUC__\n#pragma GCC diagnostic ignored \"-Wunused\"\n#endif\n"
-  "typedef union { int32_t i; float f; uint32_t u; } NibVal;\n"
-  "static union { NibVal v[NIB_MEM / 4]; uint8_t b[NIB_MEM]; } nib_mem;\n"
-  "#define M nib_mem.b\n#define R nib_mem.v\n#define MV(p) (*(NibVal *)(M + (uint32_t)(p)))\n"
-  "static inline float kf(uint32_t u) { NibVal v; v.u = u; return v.f; }\n"
+  "typedef union { int32_t i; float f; uint32_t u; } RioVal;\n"
+  "static union { RioVal v[RIO_MEM / 4]; uint8_t b[RIO_MEM]; } rio_mem;\n"
+  "#define M rio_mem.b\n#define R rio_mem.v\n#define MV(p) (*(RioVal *)(M + (uint32_t)(p)))\n"
+  "static inline float kf(uint32_t u) { RioVal v; v.u = u; return v.f; }\n"
   "static inline void rt_err(const char *m) { fflush(stdout); fprintf(stderr, \"runtime error: %s\\n\", m); exit(1); }\n"
   "static inline int32_t ftoi(float f) { return f != f ? 0 : f >= 2147483648.f ? 0x7FFFFFFF : f <= -2147483648.f ? (int32_t)0x80000000u : (int32_t)f; }\n"
   "static inline float rt_round(float x) { return x < 0 ? -floorf(-x + 0.5f) : floorf(x + 0.5f); }\n"
@@ -200,24 +200,24 @@ static const char *prelude =
   "}\n"
   "static inline void log_e(void) { fwrite(lb, 1, (size_t)ln, stdout); fputc('\\n', stdout); ln = 0; }\n";
 
-int nib_aot(Nib *v, FILE *out, const char *host_ffi) {
+int rio_aot(Rio *v, FILE *out, const char *host_ffi) {
   static uint8_t lab[65536];
   int pc, i, s, fmain;
   uint8_t *mem;
   vm = v; o = out; label = lab; cur = -1;
-  if (!vm->ok || !vm->c) return -1; /* needs the compiler tables: compile with nib_compile_scratch */
+  if (!vm->ok || !vm->c) return -1; /* needs the compiler tables: compile with rio_compile_scratch */
   memset(lab, 0, sizeof lab);
   for (pc = 0; pc < (int)vm->pc; pc++) {
     int op = vm->code[pc].op;
     if (op >= A_JMP && op <= A_FORI) lab[vm->code[pc].c] = 1;
     if (op == A_IDX || op == A_SLICE || op == A_LDX || op == A_LDXB || op == A_STX || op == A_STXB) pc++;
   }
-  fprintf(o, "/* generated by nib -c */\n#define NIB_MEM %uu\n%s", vm->memsize, prelude);
+  fprintf(o, "/* generated by rio -c */\n#define RIO_MEM %uu\n%s", vm->memsize, prelude);
   /* memory image: constants + string literals */
   mem = vm->mem;
-  fprintf(o, "static const uint32_t nib_k[%u] = {", vm->nk);
-  for (i = 0; i < (int)vm->nk; i++) fprintf(o, "%s%uu", i ? (i % 12 ? ", " : ",\n  ") : "\n  ",((NibVal *)mem)[i].u);
-  fprintf(o, "\n};\nstatic void nib_load(void) {\n  memcpy(R, nib_k, sizeof nib_k);\n");
+  fprintf(o, "static const uint32_t rio_k[%u] = {", vm->nk);
+  for (i = 0; i < (int)vm->nk; i++) fprintf(o, "%s%uu", i ? (i % 12 ? ", " : ",\n  ") : "\n  ",((RioVal *)mem)[i].u);
+  fprintf(o, "\n};\nstatic void rio_load(void) {\n  memcpy(R, rio_k, sizeof rio_k);\n");
   for (i = (int)vm->hi; i < (int)vm->memsize; i++) {
     int e = i, z = 0, st = i;
     if (!mem[i]) continue;
@@ -230,31 +230,31 @@ int nib_aot(Nib *v, FILE *out, const char *host_ffi) {
   }
   fprintf(o, "}\n");
   /* ffi */
-  for (i = 0; i < vm->nffi; i++) fprintf(o, "void nib_ffi_%s(NibVal *a);\n", symname(NIB_S_FFI, i));
-  if (host_ffi) fprintf(o, "#ifndef NIB_NO_HOST_FFI\n%s#endif\n", host_ffi);
+  for (i = 0; i < vm->nffi; i++) fprintf(o, "void rio_ffi_%s(RioVal *a);\n", symname(RIO_S_FFI, i));
+  if (host_ffi) fprintf(o, "#ifndef RIO_NO_HOST_FFI\n%s#endif\n", host_ffi);
   /* procs: defined in order, and calls only go backwards, so no prototypes are needed */
   for (cur = 0; cur < vm->nfunc; cur++) {
-    NibFunc *f = &vm->func[cur];
+    RioFunc *f = &vm->func[cur];
     memset(used, 0, sizeof used);
     o = 0; /* dry run: learn which locals the body uses */
     for (pc = f->pc; pc < f->end; pc++) ins(pc);
     o = out;
-    fprintf(o, "\nstatic void p_%s(void) {\n", symname(NIB_S_FN, cur));
+    fprintf(o, "\nstatic void p_%s(void) {\n", symname(RIO_S_FN, cur));
     for (s = f->fs; s < f->fe; s++) {
       if (!islocal(s) || !(used[s >> 3] & (1 << (s & 7)))) continue;
-      if (s < f->pend) fprintf(o, "  NibVal r%d = R[%d];\n", s, s); else fprintf(o, "  NibVal r%d = {0};\n", s);
+      if (s < f->pend) fprintf(o, "  RioVal r%d = R[%d];\n", s, s); else fprintf(o, "  RioVal r%d = {0};\n", s);
     }
     for (pc = f->pc; pc < f->end; pc++) ins(pc);
     fprintf(o, "}\n");
   }
   cur = -1;
-  fprintf(o, "\nstatic void nib_top(void) {\n");
+  fprintf(o, "\nstatic void rio_top(void) {\n");
   for (pc = 0; pc < (int)vm->pc; pc++) {
     for (i = 0; i < vm->nfunc; i++) if (pc == vm->func[i].pc) { pc = vm->func[i].end; break; }
     if (pc < (int)vm->pc) ins(pc);
   }
-  fprintf(o, "}\n\nint main(void) {\n  nib_load();\n  nib_top();\n");
-  if ((fmain = nib_func(vm, "main")) >= 0) fprintf(o, "  p_%s();\n", symname(NIB_S_FN, fmain));
+  fprintf(o, "}\n\nint main(void) {\n  rio_load();\n  rio_top();\n");
+  if ((fmain = rio_func(vm, "main")) >= 0) fprintf(o, "  p_%s();\n", symname(RIO_S_FN, fmain));
   fprintf(o, "  return 0;\n}\n");
   return ferror(o) ? -1 : 0;
 }

@@ -1,4 +1,4 @@
-# nib
+# rio
 
 A tiny, statically typed, embeddable scripting language. It's written in C99; the core is about 1,300 lines, and the optional C backend about 270 more.
 
@@ -8,7 +8,7 @@ A tiny, statically typed, embeddable scripting language. It's written in C99; th
 - **No dynamic allocation.** You give it one memory buffer and one code buffer; the compiler and VM never call `malloc`
 - **No recursion**, either in the implementation (the parser uses explicit stacks) or in the language. Because procs can't recurse, each proc gets one static frame, and bytecode operands are absolute slots, so there is no stack and no frame pointer
 - A register VM with typed opcodes, fused compare-and-branch, fused index+load/store, and bottom-tested loops. It uses computed goto on GCC/Clang and `switch` elsewhere
-- **Ahead-of-time compilation to C** (`nib -c out.c file.nib`) for scripts known at build time
+- **Ahead-of-time compilation to C** (`rio -c out.c file.rio`) for scripts known at build time
 - No standard library: only math builtins and `log`. Anything else comes from the host through FFI
 
 ## Build
@@ -17,12 +17,12 @@ A tiny, statically typed, embeddable scripting language. It's written in C99; th
 cmake -S . -B build
 cmake --build build --config Release
 ctest --test-dir build -C Release
-build/nib tests/test.nib        # (build/Release/nib.exe with MSVC)
+build/rio tests/test.rio        # (build/Release/rio.exe with MSVC)
 ```
 
 It needs only a C99 compiler and libm, and works on Linux, macOS and Windows.
 
-On Windows with Visual Studio, CMake uses the ClangCL toolset when it's installed (the "C++ Clang tools for Windows" component in the VS installer), because clang supports the faster computed-goto dispatch. Otherwise it falls back to MSVC with `switch` dispatch. `-T <toolset>` overrides this, `-DNIB_PREFER_CLANGCL=OFF` disables it, and an existing build directory keeps the toolset it was first configured with.
+On Windows with Visual Studio, CMake uses the ClangCL toolset when it's installed (the "C++ Clang tools for Windows" component in the VS installer), because clang supports the faster computed-goto dispatch. Otherwise it falls back to MSVC with `switch` dispatch. `-T <toolset>` overrides this, `-DRIO_PREFER_CLANGCL=OFF` disables it, and an existing build directory keeps the toolset it was first configured with.
 
 ## Language tour
 
@@ -30,7 +30,7 @@ On Windows with Visual Studio, CMake uses the ClangCL toolset when it's installe
 // constants (folded at compile time)
 N :: 1000
 GRAVITY :: 9.8
-NAME :: "nib"
+NAME :: "rio"
 
 // structs: fields are laid out contiguously
 Vec :: struct
@@ -85,7 +85,7 @@ main :: proc()
 end
 ```
 
-The top-level code runs first, then the host (or the `nib` CLI) calls `main`.
+The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 
 **Rules that keep it small and safe**
 
@@ -108,90 +108,90 @@ Like `gcc -D`, you can set top-level constants from outside the script:
 ```odin
 N :: 1000          // defaults, used when nothing is passed
 SCALE :: 1.5
-NAME :: "nib"
+NAME :: "rio"
 DEBUG :: false
 ```
 
 ```
-nib -D N=20 -D SCALE=3 -D NAME=custom -D DEBUG game.nib
-nib -c game.c -D N=20 game.nib          # works for the C backend too
+rio -D N=20 -D SCALE=3 -D NAME=custom -D DEBUG game.rio
+rio -c game.c -D N=20 game.rio          # works for the C backend too
 ```
 
 - The value is parsed as the declared constant's type: `-D SCALE=3` gives `3.0`, `-D N=0x10` works for an `i32`, and a `bool` accepts `true`/`false`/`0`/`1`. A bare `-D DEBUG` means `true`. Strings take the text as-is (surrounding quotes are optional).
 - A define the script never declares is still usable, with its type inferred from the text (`7` → i32, `6.28` → f32, `true` or bare → bool, anything else → string). The script then won't compile without it, just as in C.
 - Only top-level `::` constants are overridden. A value that doesn't fit the declared type is a compile error, e.g. `-D N: value doesn't fit i32`.
-- From C, call `nib_define(vm, "N", "20")` before `nib_compile`.
+- From C, call `rio_define(vm, "N", "20")` before `rio_compile`.
 
 ## Embedding
 
 ```c
-#include "nib.h"
+#include "rio.h"
 static uint8_t mem[1 << 20];          // script data, and the compiler's working memory while compiling
-static NibIns code[16384];            // bytecode (max 65535)
-static Nib vm;                        // runtime state (~1-12 KB depending on limits)
+static RioIns code[16384];            // bytecode (max 65535)
+static Rio vm;                        // runtime state (~1-12 KB depending on limits)
 
 static void host_print(void *ud, const char *s, int n) { fwrite(s, 1, n, stdout); putchar('\n'); }
-static void host_rand(Nib *vm, NibVal *a) { a[0].i = rand(); }  // args in a[], result to a[0]
+static void host_rand(Rio *vm, RioVal *a) { a[0].i = rand(); }  // args in a[], result to a[0]
 
-nib_init(&vm, mem, sizeof mem, code, 16384);
-nib_set_log(&vm, host_print, NULL);
-nib_ffi(&vm, "rand", ">i", host_rand);   // sig: i f s b params, '>' result
-nib_define(&vm, "LEVEL", "3");           // optional: like -D LEVEL=3
-if (nib_compile(&vm, src, len) || nib_run(&vm)) puts(nib_error(&vm));
+rio_init(&vm, mem, sizeof mem, code, 16384);
+rio_set_log(&vm, host_print, NULL);
+rio_ffi(&vm, "rand", ">i", host_rand);   // sig: i f s b params, '>' result
+rio_define(&vm, "LEVEL", "3");           // optional: like -D LEVEL=3
+if (rio_compile(&vm, src, len) || rio_run(&vm)) puts(rio_error(&vm));
 
-int f = nib_func(&vm, "update");
-nib_args(&vm, f)[0].f = 0.016f;        // params are consecutive words (slices 2, structs n)
-nib_call(&vm, f);
-float r = nib_ret(&vm, f)->f;          // if it returns something
-int *score = nib_global(&vm, "score"); // direct access to globals
+int f = rio_func(&vm, "update");
+rio_args(&vm, f)[0].f = 0.016f;        // params are consecutive words (slices 2, structs n)
+rio_call(&vm, f);
+float r = rio_ret(&vm, f)->f;          // if it returns something
+int *score = rio_global(&vm, "score"); // direct access to globals
 ```
 
-String or blob FFI arguments take two words (address, length); use `nib_ptr(vm, &a[i])` to get the bytes. An FFI function can abort the script with `nib_trap(vm, "msg")`. FFI functions must not call back into the VM.
+String or blob FFI arguments take two words (address, length); use `rio_ptr(vm, &a[i])` to get the bytes. An FFI function can abort the script with `rio_trap(vm, "msg")`. FFI functions must not call back into the VM.
 
-You can change the limits (symbols, procs, constants and so on) with `-DNIB_MAX_...`. See `nib.h`.
+You can change the limits (symbols, procs, constants and so on) with `-DRIO_MAX_...`. See `rio.h`.
 
 ## Memory and microcontrollers
 
-The library has no static RAM of its own. Everything lives in three buffers you provide: `Nib`, `mem` and `code`.
+The library has no static RAM of its own. Everything lives in three buffers you provide: `Rio`, `mem` and `code`.
 
-**The compiler borrows script memory.** While compiling, the compiler writes only two things into `mem`: constants (at the bottom) and string literals. Proc frames, globals and arrays are just address ranges that stay zero until the program runs. So `nib_compile` puts its working state (symbol tables, expression stacks, the string pool) on top of those ranges. When it finishes, it moves the strings and a small export table (for `nib_func`/`nib_global`) to their final place and zeroes the rest. Peak RAM is *max(compiling, running)*, not their sum.
+**The compiler borrows script memory.** While compiling, the compiler writes only two things into `mem`: constants (at the bottom) and string literals. Proc frames, globals and arrays are just address ranges that stay zero until the program runs. So `rio_compile` puts its working state (symbol tables, expression stacks, the string pool) on top of those ranges. When it finishes, it moves the strings and a small export table (for `rio_func`/`rio_global`) to their final place and zeroes the rest. Peak RAM is *max(compiling, running)*, not their sum.
 
 ```
 compiling:  [consts][ compiler state + string pool ..................................]
 running:    [consts][ frames/globals | return stack ][ ... ][strings+exports][arrays ]
 ```
 
-`nib_compile_scratch` puts the compiler state in a separate buffer instead, which then stays readable after compiling. The C backend needs that.
+`rio_compile_scratch` puts the compiler state in a separate buffer instead, which then stays readable after compiling. The C backend needs that.
 
-**MCU limits:** build with `-DNIB_SMALL` for MCU-sized limits (128 symbols, 32 procs, 256 constants, 4K slots, …), or set each `NIB_MAX_*` yourself. Measured with `NIB_SMALL`:
+**MCU limits:** build with `-DRIO_SMALL` for MCU-sized limits (128 symbols, 32 procs, 256 constants, 4K slots, …), or set each `RIO_MAX_*` yourself. Measured with `RIO_SMALL`:
 
 | | 64-bit | 32-bit |
 |---|---|---|
-| `Nib` (runtime state) | 1,248 B | 968 B |
+| `Rio` (runtime state) | 1,248 B | 968 B |
 | compiler state (overlaid on `mem` while compiling) | 8,720 B | 8,504 B |
 | smallest `mem` that compiles and runs a 64-ball physics demo | 9,853 B | 9,629 B |
 | smallest `mem` for the full test suite | 11,021 B | 10,797 B |
 | bytecode | 8 B per instruction (~1 B per source byte) | same |
 | C stack while running | a few hundred bytes (return addresses live in `mem`) | same |
 
-On a Cortex-M4, the core compiles to about 24.6 KB of flash at `-Os` (22.6 KB code, 2.1 KB read-only tables), plus libm and `memcpy`/`memset`/`setjmp` from your libc. Peak memory comes from compiling, dominated by the compiler state. If `mem` is too small, `nib_compile` fails cleanly with "out of compiler memory" or "out of memory".
+On a Cortex-M4, the core compiles to about 24.6 KB of flash at `-Os` (22.6 KB code, 2.1 KB read-only tables), plus libm and `memcpy`/`memset`/`setjmp` from your libc. Peak memory comes from compiling, dominated by the compiler state. If `mem` is too small, `rio_compile` fails cleanly with "out of compiler memory" or "out of memory".
 
 ## Ahead-of-time compilation to C
 
 ```
-nib -c game.c game.nib      # writes a standalone C program
+rio -c game.c game.rio      # writes a standalone C program
 cc -O2 game.c -lm -o game   # any C99 compiler; MSVC works too
 ```
 
-The output is one C file with no dependency on nib. Because nib has no recursion, each proc becomes a plain C function, and its frame slots become C locals unless their address is taken. Constants are written inline, and each bytecode op becomes one C statement. Globals, arrays and strings live in a static memory image identical to the VM's, so behavior is the same, including bounds checks and wrapping integer math. The C compiler then optimizes the result like any other C code.
+The output is one C file with no dependency on rio. Because rio has no recursion, each proc becomes a plain C function, and its frame slots become C locals unless their address is taken. Constants are written inline, and each bytecode op becomes one C statement. Globals, arrays and strings live in a static memory image identical to the VM's, so behavior is the same, including bounds checks and wrapping integer math. The C compiler then optimizes the result like any other C code.
 
-FFI functions are called as `void nib_ffi_<name>(NibVal *a)`. The CLI includes definitions for its own `clock` and `putc`; for other FFI functions, link your own definitions (and build with `-DNIB_NO_HOST_FFI` to drop the CLI's). ctest runs the full test suite both in the VM and compiled through C.
+FFI functions are called as `void rio_ffi_<name>(RioVal *a)`. The CLI includes definitions for its own `clock` and `putc`; for other FFI functions, link your own definitions (and build with `-DRIO_NO_HOST_FFI` to drop the CLI's). ctest runs the full test suite both in the VM and compiled through C.
 
 ## Performance
 
 These are from `bench/`, comparing against Lua 5.5 on the same Windows machine. Times are in seconds, best of 5.
 
-| benchmark | nib VM (clang, computed goto) | nib VM (MSVC, switch) | nib → C (clang -O2) | Lua 5.5 |
+| benchmark | rio VM (clang, computed goto) | rio VM (MSVC, switch) | rio → C (clang -O2) | Lua 5.5 |
 |---|---|---|---|---|
 | loop: 100M int ops | 0.46 | 0.55–0.64 | 0.006 | 1.5–1.7 |
 | calls: 30M proc calls | 0.36 | 0.34 | 0.010 | 1.3–1.5 |
@@ -200,16 +200,16 @@ These are from `bench/`, comparing against Lua 5.5 on the same Windows machine. 
 
 - **VM:** about 3–4× faster than Lua here. On Linux with a faster Lua build, particles measured 0.29s vs 0.59s, about 2×, so expect roughly 2–4× depending on the Lua build. The speed comes from static types (no tag checks), absolute-slot operands (static frames), constants preloaded in memory, compare-and-branch fusion, fused index+load/store, bottom-tested `while` loops, a dedicated `for` loop op, and destination retargeting that removes most moves.
 - **AOT:** sieve is about 3.5× faster than the VM. The other three run in milliseconds because the C compiler can see through those loops entirely (inlining, vectorizing, or folding them), so treat them as an upper bound rather than typical.
-- The particles sums differ from Lua only because nib floats are f32: Lua with f32 rounding emulated gives the identical 43926.92.
+- The particles sums differ from Lua only because rio floats are f32: Lua with f32 rounding emulated gives the identical 43926.92.
 - `switch` dispatch on MSVC is sensitive to code layout. The same VM source has measured 0.34s or 0.65s on `calls` depending only on how unrelated code changes shifted the build. The cause hasn't been pinned down, so expect build-to-build variation with MSVC; ClangCL (see Build) avoids it.
 
 ## Layout
 
 ```
-src/nib.h     public API (+ the fixed-size state struct)
-src/nib.c     lexer, single-pass compiler, VM
+src/rio.h     public API (+ the fixed-size state struct)
+src/rio.c     lexer, single-pass compiler, VM
 src/aot.c     bytecode -> C translator (CLI only; not needed for embedding)
 src/main.c    CLI host (adds ffi: clock, putc)
 tests/        test suite (run by ctest, in the VM and compiled through C)
-bench/        nib vs lua benchmarks
+bench/        rio vs lua benchmarks
 ```

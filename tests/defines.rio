@@ -1,4 +1,4 @@
-// top-level constants that `nib -D NAME=value` can override; ctest runs this with and without -D
+// top-level constants that `rio -D NAME=value` can override; ctest runs this with and without -D
 N :: 10
 SCALE :: 1.5
 NAME :: "default"
