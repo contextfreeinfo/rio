@@ -43,6 +43,9 @@
 #ifndef NIB_MAX_EXPR
 #define NIB_MAX_EXPR NIB_DEF(256, 48)
 #endif
+#ifndef NIB_MAX_DEFINES
+#define NIB_MAX_DEFINES NIB_DEF(64, 8)
+#endif
 #ifndef NIB_LOGBUF
 #define NIB_LOGBUF NIB_DEF(256, 96)
 #endif
@@ -65,6 +68,10 @@ void nib_set_log(Nib *vm, NibLogFn fn, void *ud);
 /* sig: params then optional '>' and result. i=i32 f=f32 s=string b=blob. e.g. "ff>f".
    name and sig must stay valid until nib_compile returns. */
 int nib_ffi(Nib *vm, const char *name, const char *sig, NibFn fn);
+/* like gcc -D: overrides a top-level constant `NAME :: default`, or defines NAME if the script
+   doesn't declare it. value is parsed as the declared constant's type (i32, f32, bool or string);
+   NULL means true. name and value must stay valid until nib_compile returns. */
+int nib_define(Nib *vm, const char *name, const char *value);
 int nib_compile(Nib *vm, const char *src, uint32_t len);
 /* same, with the compiler's working memory in a separate buffer that stays valid afterwards
    (needed by nib_aot). Returns -1 with "scratch too small" if it can't hold nib_scratch_min(). */
@@ -108,7 +115,7 @@ typedef struct { uint8_t k; uint16_t nsym, nnames, nact, a, b, brk, cont, cj, i,
 typedef struct NibC {
   jmp_buf jb;
   const char *sp, *se; int line, pline; NibTok tk, nx;
-  uint32_t fr, nact, hwm, lastlabel, pool, poolcap; int curfn;
+  uint32_t fr, nact, hwm, lastlabel, pool, poolcap; int curfn, def0;
   int nsym, ntype, nfield, nparam, nnames, nblk, nvs, nos;
   NibSym sym[NIB_MAX_SYMS]; NibType type[NIB_MAX_TYPES]; NibField field[NIB_MAX_FIELDS];
   NibCFunc func[NIB_MAX_FUNCS]; NibParam param[NIB_MAX_PARAMS]; NibCFfi ffi[NIB_MAX_FFI];
@@ -121,7 +128,8 @@ typedef struct NibC {
 struct Nib {
   uint8_t *mem; uint32_t memsize, hi, nk, csaddr, exports, nexports;
   NibIns *code; uint32_t codecap, pc;
-  NibLogFn logfn; void *logud; int logn, trap, ok, nfunc, nffi;
+  NibLogFn logfn; void *logud; int logn, trap, ok, nfunc, nffi, ndefs;
+  const char *defs[NIB_MAX_DEFINES][2];
   NibC *c; /* compiler state: only during compile, or after nib_compile_scratch */
   NibFunc func[NIB_MAX_FUNCS]; NibFfi ffi[NIB_MAX_FFI];
   char logbuf[NIB_LOGBUF], err[NIB_ERRBUF];

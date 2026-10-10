@@ -1,6 +1,7 @@
 /* nib command line host.
    nib file.nib            run top-level code, then main() if present
-   nib -c out.c file.nib   compile to a standalone C program instead */
+   nib -c out.c file.nib   compile to a standalone C program instead
+   -D NAME[=value]         override a top-level constant (or define it), like gcc -D */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <string.h>
@@ -22,15 +23,30 @@ static const char *ffi_src =
   "void nib_ffi_clock(NibVal *a) { a[0].f = (float)clock() / CLOCKS_PER_SEC; }\n"
   "void nib_ffi_putc(NibVal *a) { fputc(a[0].i, stdout); }\n";
 
+static int usage(void) {
+  fprintf(stderr, "usage: nib [-D NAME[=value]]... file.nib\n       nib -c out.c [-D NAME[=value]]... file.nib\n");
+  return 2;
+}
+
 int main(int argc, char **argv) {
-  FILE *f; size_t n; int fn;
-  const char *cout = 0, *path = argv[argc - 1];
-  if (argc == 4 && !strcmp(argv[1], "-c")) cout = argv[2];
-  else if (argc != 2) { fprintf(stderr, "usage: nib file.nib\n       nib -c out.c file.nib\n"); return 2; }
+  FILE *f; size_t n; int fn, i;
+  const char *cout = 0, *path = 0;
+  if (nib_init(&vm, mem, sizeof mem, code, 65535)) { fprintf(stderr, "init failed\n"); return 1; }
+  for (i = 1; i < argc; i++) {
+    char *a = argv[i], *eq;
+    if (!strcmp(a, "-c") && i + 1 < argc) cout = argv[++i];
+    else if (!strncmp(a, "-D", 2)) {
+      char *d = a[2] ? a + 2 : i + 1 < argc ? argv[++i] : 0;
+      if (!d) return usage();
+      if ((eq = strchr(d, '='))) *eq++ = 0;
+      if (nib_define(&vm, d, eq)) { fprintf(stderr, "too many -D defines\n"); return 2; }
+    } else if (a[0] == '-' || path) return usage();
+    else path = a;
+  }
+  if (!path) return usage();
   if (!(f = fopen(path, "rb"))) { fprintf(stderr, "cannot open %s\n", path); return 2; }
   n = fread(src, 1, sizeof src, f);
   fclose(f);
-  if (nib_init(&vm, mem, sizeof mem, code, 65535)) { fprintf(stderr, "init failed\n"); return 1; }
   nib_set_log(&vm, out, 0);
   nib_ffi(&vm, "clock", ">f", ffi_clock);
   nib_ffi(&vm, "putc", "i", ffi_putc);

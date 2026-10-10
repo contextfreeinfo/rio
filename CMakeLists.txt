@@ -48,6 +48,14 @@ enable_testing()
 add_test(NAME nib_tests COMMAND nib ${CMAKE_SOURCE_DIR}/tests/test.nib)
 set_tests_properties(nib_tests PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL")
 
+# -D overrides of top-level constants
+add_test(NAME nib_defines_default COMMAND nib ${CMAKE_SOURCE_DIR}/tests/defines.nib)
+set_tests_properties(nib_defines_default PROPERTIES
+  PASS_REGULAR_EXPRESSION "^N 10 len 10 total 45 SCALE 3.0 NAME default")
+add_test(NAME nib_defines_override COMMAND nib -D N=20 -DSCALE=3 -D NAME=custom -D VERBOSE ${CMAKE_SOURCE_DIR}/tests/defines.nib)
+set_tests_properties(nib_defines_override PROPERTIES
+  PASS_REGULAR_EXPRESSION "verbose on[\r\n]+N 20 len 20 total 190 SCALE 6.0 NAME custom")
+
 # the same suite compiled ahead of time to C
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/test_aot.c
   COMMAND nib -c ${CMAKE_BINARY_DIR}/test_aot.c ${CMAKE_SOURCE_DIR}/tests/test.nib

@@ -101,6 +101,27 @@ The top-level code runs first, then the host (or the `nib` CLI) calls `main`.
 
 **Builtins:** `log(...)`, `len(x)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`.
 
+## Compile-time defines (`-D`)
+
+Like `gcc -D`, you can set top-level constants from outside the script:
+
+```odin
+N :: 1000          // defaults, used when nothing is passed
+SCALE :: 1.5
+NAME :: "nib"
+DEBUG :: false
+```
+
+```
+nib -D N=20 -D SCALE=3 -D NAME=custom -D DEBUG game.nib
+nib -c game.c -D N=20 game.nib          # works for the C backend too
+```
+
+- The value is parsed as the declared constant's type: `-D SCALE=3` gives `3.0`, `-D N=0x10` works for an `i32`, and a `bool` accepts `true`/`false`/`0`/`1`. A bare `-D DEBUG` means `true`. Strings take the text as-is (surrounding quotes are optional).
+- A define the script never declares is still usable, with its type inferred from the text (`7` → i32, `6.28` → f32, `true` or bare → bool, anything else → string). The script then won't compile without it, just as in C.
+- Only top-level `::` constants are overridden. A value that doesn't fit the declared type is a compile error, e.g. `-D N: value doesn't fit i32`.
+- From C, call `nib_define(vm, "N", "20")` before `nib_compile`.
+
 ## Embedding
 
 ```c
@@ -115,6 +136,7 @@ static void host_rand(Nib *vm, NibVal *a) { a[0].i = rand(); }  // args in a[], 
 nib_init(&vm, mem, sizeof mem, code, 16384);
 nib_set_log(&vm, host_print, NULL);
 nib_ffi(&vm, "rand", ">i", host_rand);   // sig: i f s b params, '>' result
+nib_define(&vm, "LEVEL", "3");           // optional: like -D LEVEL=3
 if (nib_compile(&vm, src, len) || nib_run(&vm)) puts(nib_error(&vm));
 
 int f = nib_func(&vm, "update");

@@ -542,15 +542,45 @@ static Ex ident(Nib *vm) {
   default: return mkex(EK_TY, y->t, 0);
   }
 }
-static Ex strlit(Nib *vm) {
+static Ex strconst(Nib *vm, const char *s, int n) {
   NibC *c = vm->c; NibVal *R = (NibVal *)vm->mem; uint8_t *d = c->strs + c->pool; uint32_t k = vm->nk; int i, j = 0; Ex e;
-  if ((uint32_t)TK.n > c->poolcap - c->pool) fail(vm, "out of compiler memory");
+  if ((uint32_t)n > c->poolcap - c->pool) fail(vm, "out of compiler memory");
   if (k + 2 > NIB_MAX_CONSTS) fail(vm, "too many constants");
-  for (i = 0; i < TK.n; i++) d[j++] = (uint8_t)(TK.s[i] == '\\' && i + 1 < TK.n ? esc(TK.s[++i]) : TK.s[i]);
+  for (i = 0; i < n; i++) d[j++] = (uint8_t)(s[i] == '\\' && i + 1 < n ? esc(s[++i]) : s[i]);
   R[k].u = 0x80000000u | c->pool; R[k + 1].u = (uint32_t)j; c->kfix[k >> 3] |= (uint8_t)(1u << (k & 7));
   vm->nk += 2; c->pool += (uint32_t)j;
   e = mkex(EK_ST, TY_STR, (int32_t)k * 4); e.ro = 1;
   return e;
+}
+static Ex strlit(Nib *vm) { return strconst(vm, TK.s, TK.n); }
+/* parse a -D value as a (signed) number literal using the lexer */
+static int defnum(Nib *vm, const char *v, NibTok *t) {
+  NibC *c = vm->c; const char *sp = c->sp, *se = c->se; int line = c->line, neg = *v == '-', ok;
+  c->sp = v + neg; c->se = v + strlen(v);
+  lex(vm, t);
+  ok = (t->t == TK_INT || t->t == TK_FLT) && c->sp == c->se;
+  c->sp = sp; c->se = se; c->line = line;
+  if (ok && neg) { if (t->t == TK_INT) t->v.u = 0u - t->v.u; else t->v.f = -t->v.f; }
+  return ok;
+}
+/* constant for define di as type t (t < 0: infer from the text) */
+static Ex defval(Nib *vm, int di, int t) {
+  const char *name = vm->defs[di][0], *v = vm->defs[di][1] ? vm->defs[di][1] : ""; int n = (int)strlen(v); NibTok k;
+  if (t < 0) t = !n || !strcmp(v, "true") || !strcmp(v, "false") ? TY_BOOL : !defnum(vm, v, &k) ? TY_STR : k.t == TK_INT ? TY_I32 : TY_F32;
+  if (t == TY_STR) return n >= 2 && v[0] == '"' && v[n - 1] == '"' ? strconst(vm, v + 1, n - 2) : strconst(vm, v, n);
+  if (t == TY_BOOL) {
+    if (!n || !strcmp(v, "true")) return mkex(EK_CONST, TY_BOOL, 1);
+    if (!strcmp(v, "false")) return mkex(EK_CONST, TY_BOOL, 0);
+    if (defnum(vm, v, &k) && k.t == TK_INT) return mkex(EK_CONST, TY_BOOL, k.v.i != 0);
+  } else if (defnum(vm, v, &k) && (t == TY_F32 || k.t == TK_INT)) {
+    if (t == TY_F32 && k.t == TK_INT) k.v.f = (float)k.v.i;
+    return mkex(EK_CONST, t, k.v.i);
+  }
+  {
+    int m = cat(vm->err, 0, "-D "); m = cat(vm->err, m, name); m = cat(vm->err, m, ": value doesn't fit ");
+    m = cat(vm->err, m, t == TY_I32 ? "i32" : t == TY_F32 ? "f32" : "bool"); vm->err[m] = 0;
+    longjmp(vm->c->jb, 1);
+  }
 }
 static void field(Nib *vm, Ex *e) {
   NibType *st; NibField *f = 0; int i;
@@ -972,6 +1002,10 @@ static void statement(Nib *vm) {
     else if (TK.t == TK_STRUCT) struct_def(vm, ns, nn);
     else {
       e = expr(vm);
+      if (vm->c->curfn < 0 && !vm->c->nblk && (e.k == EK_CONST || e.t == TY_STR)) {
+        int d = lookup(vm, ns, nn) - vm->c->def0;
+        if (d >= 0 && d < vm->ndefs) e = defval(vm, d, e.t);
+      }
       if (e.k == EK_CONST) addsym(vm, ns, nn, S_CONST, e.t, e.a);
       else if (e.k == EK_ST && e.ro && e.t == TY_STR) addsym(vm, ns, nn, S_CONST, TY_STR, e.a);
       else fail(vm, "constant expression expected");
@@ -1076,6 +1110,11 @@ int nib_ffi(Nib *vm, const char *name, const char *sig, NibFn fn) {
   f = &vm->ffi[vm->nffi++]; f->name = name; f->sig = sig; f->fn = fn; f->aw = f->rw = 0;
   return 0;
 }
+int nib_define(Nib *vm, const char *name, const char *value) {
+  if (vm->ndefs >= NIB_MAX_DEFINES || !name) return -1;
+  vm->defs[vm->ndefs][0] = name; vm->defs[vm->ndefs++][1] = value;
+  return 0;
+}
 uint32_t nib_scratch_min(void) { return (uint32_t)sizeof(NibC) + 16; }
 /* builtin types and names, and the host's ffi functions */
 static void setup(Nib *vm) {
@@ -1100,6 +1139,14 @@ static void setup(Nib *vm) {
       c->param[c->nparam++].t = (uint16_t)t; cf->np++; f->aw = (uint8_t)(f->aw + words(vm, t));
     }
     addsym(vm, f->name, (int)strlen(f->name), S_FFI, 0, i);
+  }
+  c->def0 = c->nsym;
+  for (i = 0; i < vm->ndefs; i++) {
+    const char *nm = vm->defs[i][0]; int j, n = (int)strlen(nm); Ex e;
+    for (j = 0; j < n; j++) if (!(isal(nm[j]) || (j && isdg(nm[j])))) break;
+    if (!n || j < n) { int m = cat(vm->err, 0, "-D: bad name "); m = cat(vm->err, m, nm); vm->err[m] = 0; longjmp(c->jb, 1); }
+    e = defval(vm, i, -1);
+    addsym(vm, nm, n, S_CONST, e.t, e.a);
   }
 }
 /* lay out the final memory: string pool + export table go just below the big arrays, string

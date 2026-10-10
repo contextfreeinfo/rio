@@ -1,0 +1,21 @@
+// top-level constants that `nib -D NAME=value` can override; ctest runs this with and without -D
+N :: 10
+SCALE :: 1.5
+NAME :: "default"
+VERBOSE :: false
+
+// the constants work everywhere a constant can: array sizes, folding, procs
+data: [N]i32
+total :: proc() -> i32
+  t := 0
+  for i in 0..<len(data)
+    data[i] = i
+    t += i
+  end
+  return t
+end
+
+if VERBOSE
+  log("verbose on")
+end
+log("N", N, "len", len(data), "total", total(), "SCALE", SCALE * 2, "NAME", NAME)
