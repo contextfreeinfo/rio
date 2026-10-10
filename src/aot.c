@@ -17,7 +17,7 @@ static FILE *o;
 static int cur = -1;            /* function being emitted, -1 = top level */
 static uint8_t *label;          /* jump targets */
 static uint8_t used[8192];      /* locals referenced by the current proc */
-static int lastline;             /* last #line emitted */
+static int lastline;             /* what __LINE__ is on the next output line; 0: unknown */
 
 static RioVal kval(int s) { return ((RioVal *)vm->mem)[s]; }
 static int isret(int s) {
@@ -63,7 +63,15 @@ static const char *symname(int kind, int idx) {
   return b;
 }
 /* print to the output, or only evaluate the operands (marking used locals) during the dry run */
-static void P(const char *fmt, ...) { va_list ap; va_start(ap, fmt); if (o) vfprintf(o, fmt, ap); va_end(ap); }
+static void P(const char *fmt, ...) {
+  static char b[4096]; va_list ap; int n, i;
+  if (!o) return;
+  va_start(ap, fmt); n = vsnprintf(b, sizeof b, fmt, ap); va_end(ap);
+  if (n < 0) return;
+  if (n >= (int)sizeof b) { va_start(ap, fmt); vfprintf(o, fmt, ap); va_end(ap); n = (int)sizeof b - 1; }
+  else fputs(b, o);
+  for (i = 0; i < n && lastline; i++) lastline += b[i] == '\n'; /* every line written moves __LINE__ on */
+}
 /* C name for proc/method i: p<i>_<name>, unique even when methods of different types share a name */
 static const char *fname(int idx) {
   static char b[80]; int i;
@@ -87,7 +95,10 @@ static void ins(int pc) {
   static const char *m2[] = {"atan2f", "powf", "fmodf"};
   if (x->op == A_DATA) return;
   if (label[pc]) P("L%d:;\n", pc);
-  { int ln = rio_pc_line(vm, (uint32_t)pc); if (ln && ln != lastline) { P("#line %d\n", ln); lastline = ln; } }
+  if (o) { /* keep __LINE__ on the rio line, however many C lines a line becomes (not needed in the dry run) */
+    int ln = rio_pc_line(vm, (uint32_t)pc);
+    if (ln && ln != lastline) { P("#line %d\n", ln); lastline = ln; }
+  }
   P("  ");
   switch (x->op) {
   case A_MOV: P("%s = %s;\n", V(a, 'v'), V(b, 'v')); break;
@@ -315,7 +326,7 @@ int rio_aot(Rio *v, FILE *out, const char *host_ffi) {
     for (pc = f->pc; pc < f->end; pc++) ins(pc);
     fprintf(o, "}\n");
   }
-  cur = -1;
+  cur = -1; lastline = 0;
   fprintf(o, "\nstatic void rio_top(void) {\n");
   for (pc = 0; pc < (int)vm->pc; pc++) {
     for (i = 0; i < vm->nfunc; i++) if (pc == vm->func[i].pc) { pc = vm->func[i].end; break; }

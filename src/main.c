@@ -169,7 +169,7 @@ static void memreport(void) {
 #else
   printf("    %-22s %8u   (%u names the host can look up: main and names marked name*)\n", "exports", vm.lines - vm.exports, vm.nexports);
 #endif
-  printf("    %-22s %8u   (%u entries: pc -> source line, for runtime errors)\n", "line table", vm.nlines * 4, vm.nlines);
+  printf("    %-22s %8u   (pc -> source line, packed: read only for runtime errors)\n", "line table", vm.nlines);
   printf("    %-22s %8u   (%d procs)\n", "proc table", (uint32_t)nf * (uint32_t)sizeof(RioFunc), nf);
   printf("  %-24s %8u   (%u instructions, in the code buffer, not memory)\n", "code", vm.pc * (uint32_t)sizeof(RioIns), vm.pc);
   for (i = 1; i < nf; i++) { int k = order[i]; for (j = i; j > 0 && frame[order[j - 1]] + c->func[order[j - 1]].big < frame[k] + c->func[k].big; j--) order[j] = order[j - 1]; order[j] = k; }

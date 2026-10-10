@@ -139,7 +139,7 @@ typedef struct { uint8_t k; uint16_t nsym, nnames, nact, a, b, brk, cont, cj, i,
 typedef struct RioC {
   jmp_buf jb;
   const char *src, *sp, *se, *ls; int line, pline, pcol, pw; RioTok tk, nx;
-  uint32_t linetop, nline, lastline, lineovr; /* pc->line table, growing down from the top of the pool */
+  uint32_t linetop, nline, lastline, lastlinepc, lineovr; /* pc->line table, growing down from the top of the pool */
   const char *failmsg; /* the last compile error, to tell "unfinished" from "wrong" */
   RioMod *mods; int nmod, curmod, curf, nis, exporting; RioImp is[RIO_MAX_IMPORT_DEPTH]; /* curf: the file being read */
   uint32_t fr, nact, hwm, lastlabel, pool, poolcap, big; int curfn, def0, target; /* target: type the next expr() should produce, or -1; big: bytes of all big values */
@@ -156,7 +156,8 @@ typedef struct RioC {
 } RioC;
 
 struct Rio {
-  uint8_t *mem; uint32_t memsize, hi, nk, kcap, csaddr, exports, nexports, lines, nlines;
+  uint8_t *mem; uint32_t memsize, hi, nk, kcap, csaddr, exports, nexports, lines, nlines; /* nlines: bytes of the packed table */
+  uint32_t lcpos, lcpc, lcline; /* where the last line lookup stopped, so lookups in pc order are one pass */
   int ekind, eline, ecol, elen, emsg; const char *efile;
   RioLoadFn loader; void *loadud; uint32_t mods, nmods; /* runtime table of module code ranges, in mem */
   RioIns *code; uint32_t codecap, pc;

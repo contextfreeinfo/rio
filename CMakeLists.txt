@@ -124,4 +124,16 @@ if(NOT MSVC)
   target_link_libraries(runtime_error_aot PRIVATE m)
 endif()
 add_test(NAME rio_aot_runtime_error COMMAND runtime_error_aot)
+# an error late in a line that becomes many statements still reports that line
+add_test(NAME rio_cli_runtime_error_late COMMAND rio ${CMAKE_SOURCE_DIR}/tests/runtime_error_late.rio)
+set_tests_properties(rio_cli_runtime_error_late PROPERTIES PASS_REGULAR_EXPRESSION "runtime_error_late\\.rio:6: runtime error: index out of bounds")
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/runtime_error_late_aot.c
+  COMMAND rio -c ${CMAKE_BINARY_DIR}/runtime_error_late_aot.c ${CMAKE_SOURCE_DIR}/tests/runtime_error_late.rio
+  DEPENDS rio ${CMAKE_SOURCE_DIR}/tests/runtime_error_late.rio)
+add_executable(runtime_error_late_aot ${CMAKE_BINARY_DIR}/runtime_error_late_aot.c)
+if(NOT MSVC)
+  target_link_libraries(runtime_error_late_aot PRIVATE m)
+endif()
+add_test(NAME rio_aot_runtime_error_late COMMAND runtime_error_late_aot)
+set_tests_properties(rio_aot_runtime_error_late PROPERTIES PASS_REGULAR_EXPRESSION "^6: runtime error: index out of bounds")
 set_tests_properties(rio_aot_runtime_error PROPERTIES PASS_REGULAR_EXPRESSION "^4: runtime error: index out of bounds")

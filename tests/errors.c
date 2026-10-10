@@ -1,4 +1,5 @@
 /* error reporting tests: each snippet must fail with exactly this kind, position and message */
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <string.h>
 #include "rio.h"
@@ -137,6 +138,19 @@ int main(void) {
       printf("FAIL case %d: got kind %d %d:%d len %d \"%s\"; want kind %d %d:%d len %d \"%s\"\n",
              i, e.kind, e.line, e.col, e.len, e.msg, c->kind, c->line, c->col, c->len, c->msg);
       fails++;
+    }
+  }
+  { /* a line of over 4096 instructions: the packed line table takes long steps; the error is on line 4 */
+    static char big[40000]; static RioIns bigcode[8192]; int k, len = sprintf(big, "xs: [2]Int\nx := 1\ni := 5\ny := x");
+    RioError e;
+    for (k = 0; k < 5000; k++) len += sprintf(big + len, " + x");
+    len += sprintf(big + len, " + xs[i]\n");
+    rio_init(&vm, mem, sizeof mem, bigcode, 8192);
+    n++;
+    if (rio_compile(&vm, big, (uint32_t)len)) { printf("FAIL long line: %s\n", rio_error(&vm)); fails++; }
+    else {
+      rio_run(&vm); e = rio_error_info(&vm);
+      if (e.kind != RIO_ERUNTIME || e.line != 4) { printf("FAIL long line: kind %d line %d \"%s\"\n", e.kind, e.line, e.msg); fails++; }
     }
   }
   { /* explicit limits: tiny tables fail cleanly, and a scratch buffer too small for them is refused */

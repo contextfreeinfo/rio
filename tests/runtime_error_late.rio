@@ -1,0 +1,6 @@
+// a runtime error late in a line that becomes several statements: the VM and generated C must both
+// report line 6, not a line further on
+xs: [3]Int
+k := 5
+a := 1
+y := a + a * 2 + (a - 3) * a + (a * a - 1) * 7 + xs[k]

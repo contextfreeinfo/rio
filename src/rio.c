@@ -281,10 +281,10 @@ static int words(Rio *vm, int t) { return (int)((TY(t)->size + 3) / 4); }
 /* pc->line entries (u16 pc, u16 line) grow down from the top of the string pool */
 static void markline(Rio *vm) {
   RioC *c = vm->c; uint32_t line = c->lineovr ? c->lineovr : (uint32_t)c->pline; uint16_t e[2];
-  if (line == c->lastline) return;
+  if (line == c->lastline && vm->pc - c->lastlinepc < 4096) return; /* (steps stay under 4096: see packlines) */
   if (c->poolcap - c->pool < 4) fail(vm, "out of compiler memory");
   c->poolcap -= 4; e[0] = (uint16_t)vm->pc; e[1] = (uint16_t)(line > 0xFFFF ? 0xFFFF : line);
-  memcpy(c->strs + c->poolcap, e, 4); c->nline++; c->lastline = line;
+  memcpy(c->strs + c->poolcap, e, 4); c->nline++; c->lastline = line; c->lastlinepc = vm->pc;
 }
 static uint32_t cline(Rio *vm, uint32_t pc) { /* line of pc while still compiling */
   RioC *c = vm->c; uint32_t o, line = 0; uint16_t e[2];
@@ -2049,6 +2049,23 @@ static uint32_t shareframes(Rio *vm) {
   vm->kcap = start;
   return depth;
 }
+/* Pack the pc->line table in place, from the 4-byte (pc, line) entries written while compiling. It's
+   read only for runtime errors (and by the C backend), so it trades lookup speed for size: one byte for
+   a step of 0-14 instructions and -4..+11 lines, which is nearly every entry, else four bytes:
+   0xF0 | step >> 8, step & 255, then the line (low byte first). markline keeps steps under 4096, and no
+   entry grows, so packing in place never overtakes what's still to be read. Returns the size. */
+static uint32_t packlines(RioC *c) {
+  uint8_t *t = c->strs + c->poolcap; uint32_t i, w = 0, pc = 0; int line = 0, dl; uint16_t e[2];
+  for (i = 0; i < c->nline; i++) {
+    uint32_t step;
+    memcpy(e, t + i * 4, 4);
+    step = e[0] - pc; dl = (int)e[1] - line;
+    if (step <= 14 && dl >= -4 && dl <= 11) t[w++] = (uint8_t)(step << 4 | (uint32_t)(dl + 4));
+    else { t[w++] = (uint8_t)(0xF0 | step >> 8); t[w++] = (uint8_t)step; t[w++] = (uint8_t)e[1]; t[w++] = (uint8_t)(e[1] >> 8); }
+    pc = e[0]; line = e[1];
+  }
+  return w;
+}
 /* the names the host can look up (rio_func, rio_global): main and the main file's names marked name*,
    or when built with RIO_EXPORTS_ALL every top-level proc and global of the main file */
 static int hostname(RioC *c, RioSym *y) {
@@ -2062,7 +2079,7 @@ static int hostname(RioC *c, RioSym *y) {
 }
 static void finalize(Rio *vm) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; RioExport *x;
-  uint32_t i, n = 0, p, ex, lo, fo, sz, base, first, depth = shareframes(vm); int k;
+  uint32_t i, n = 0, p, ex, lo, fo, sz, base, first, depth = shareframes(vm), lsz; int k;
   first = vm->kcap * 4; /* after sharing: the slots now start right after the constants */
   c->fr = c->hwm; vm->csaddr = (uint32_t)alloc(vm, depth + 1) * 4; /* return stack: the longest chain of calls */
   uint32_t mo, mf, nm = (uint32_t)(c->nmod - 2);
@@ -2083,8 +2100,9 @@ static void finalize(Rio *vm) {
     uint8_t *a = c->strs + c->poolcap, *z = c->strs + c->linetop - 4, t[4];
     for (; a < z; a += 4, z -= 4) { memcpy(t, a, 4); memcpy(a, z, 4); memcpy(z, t, 4); }
   }
+  lsz = packlines(c);
   /* block layout: strings and names | exports | pc->line table | per-proc table */
-  ex = (p + 3) & ~3u; lo = ex + n * (uint32_t)sizeof(RioExport); fo = lo + c->nline * 4;
+  ex = (p + 3) & ~3u; lo = ex + n * (uint32_t)sizeof(RioExport); fo = (lo + lsz + 3) & ~3u;
   mo = (fo + (uint32_t)vm->nfunc * (uint32_t)sizeof(RioFunc) + 3) & ~3u;
   sz = mo + nm * (uint32_t)sizeof(RioModRt);
   if (lo > c->poolcap || sz > c->linetop) fail(vm, "out of compiler memory");
@@ -2096,7 +2114,7 @@ static void finalize(Rio *vm) {
     if (!hostname(c, y)) continue;
     x->name = base + p; x->len = y->len; x->k = y->k; x->pad = 0; x->v = y->v; p += y->len; x++;
   }
-  memmove(c->strs + lo, c->strs + c->poolcap, c->nline * 4); /* lines go right after the exports */
+  memmove(c->strs + lo, c->strs + c->poolcap, lsz); /* lines go right after the exports */
   for (i = 1; i < vm->nk; i++) if (KFIX(i)) R[i].u = base + (R[i].u & 0x7FFFFFFFu);
   for (k = 0; k < vm->nfunc; k++) rtfunc(vm, (RioFunc *)(void *)(c->strs + fo) + k, k);
   for (k = 2, p = mf; k < c->nmod; k++) {
@@ -2105,7 +2123,7 @@ static void finalize(Rio *vm) {
   }
   vm->mods = base + mo; vm->nmods = nm;
   vm->exports = base + ex; vm->nexports = n; vm->hi = base;
-  vm->lines = base + lo; vm->nlines = c->nline; vm->func = (RioFunc *)(void *)(vm->mem + base + fo);
+  vm->lines = base + lo; vm->nlines = lsz; vm->lcpos = vm->lcpc = vm->lcline = 0; vm->func = (RioFunc *)(void *)(vm->mem + base + fo);
   /* nothing in c is read after this: the move and the zeroing may overwrite it */
   memmove(vm->mem + base, c->strs, sz);
   memset(vm->mem + first, 0, base - first);
@@ -2215,7 +2233,7 @@ int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
     if (more) { vm->ekind = RIO_ENONE; vm->err[0] = 0; return RIO_MORE; }
     return -1;
   }
-  c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1; c->pline = c->pcol = c->pw = 0; c->lastline = 0;
+  c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1; c->pline = c->pcol = c->pw = 0; c->lastline = c->lastlinepc = 0;
   lex(vm, &c->nx); next(vm);
   c->lastlabel = vm->pc; /* nothing gets fused with the previous piece's last instruction */
   compile_all(vm);
@@ -2230,15 +2248,20 @@ RioError rio_error_info(Rio *vm) {
   RioError e; e.kind = vm->ekind; e.line = vm->eline; e.col = vm->ecol; e.len = vm->elen; e.msg = vm->err + vm->emsg; e.file = vm->efile;
   return e;
 }
-int rio_pc_line(Rio *vm, uint32_t pc) { /* binary search the (pc, line) table */
-  const uint8_t *t = vm->mem + vm->lines; uint32_t lo = 0, hi = vm->nlines; int line = 0; uint16_t e[2];
+int rio_pc_line(Rio *vm, uint32_t pc) { /* decode the packed table (see packlines) up to pc */
+  const uint8_t *t = vm->mem + vm->lines; uint32_t i, at, line;
   if (vm->repl && vm->c) return (int)cline(vm, pc); /* REPL: the table is still in scratch */
-  while (lo < hi) {
-    uint32_t mid = (lo + hi) / 2;
-    memcpy(e, t + mid * 4, 4);
-    if (e[0] <= pc) { line = e[1]; lo = mid + 1; } else hi = mid;
+  if (pc < vm->lcpc) vm->lcpos = vm->lcpc = vm->lcline = 0; /* behind the last lookup: start over */
+  i = vm->lcpos; at = vm->lcpc; line = vm->lcline;
+  while (i < vm->nlines) {
+    uint32_t b = t[i], step, nl, n;
+    if (b < 0xF0) { step = b >> 4; nl = line + (b & 15) - 4; n = 1; }
+    else { step = (b & 15) << 8 | t[i + 1]; nl = (uint32_t)t[i + 2] | (uint32_t)t[i + 3] << 8; n = 4; }
+    if (at + step > pc) break;
+    at += step; line = nl; i += n;
   }
-  return line;
+  vm->lcpos = i; vm->lcpc = at; vm->lcline = line;
+  return (int)line;
 }
 void rio_trap(Rio *vm, const char *msg) { int n = cat(vm->err, 0, msg); vm->err[n] = 0; vm->trap = 1; }
 static RioExport *findexp(Rio *vm, const char *name, int k) {
