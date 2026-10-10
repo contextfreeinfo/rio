@@ -121,6 +121,9 @@ static const Case cases[] = {
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\ns := c[0:]\n", 0, 0, 0, RIO_ECOMPILE, 9, -1, -1, "slice this array with its enum's values"},
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\ns := c[.north:.east]\nlog(len(s))\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\ns := c[:]\nlog(len(s))\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
+  {"x := 3\nassert(x == 3)\nassert(x < 2, \"x too big\")\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "assertion failed: x too big"},
+  {"assert(1 == 2)\n", 0, 0, 0, RIO_ERUNTIME, 1, 0, 0, "assertion failed"},
+  {"assert(1)\n", 0, 0, 0, RIO_ECOMPILE, 1, -1, -1, "condition must be Bool"},
   {"x := 1\nelse\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 4, "'else' without 'if'"},
   {"x := 1\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 3, "'end' without block"},
   {"x := 1\nreturn\n", 0, 0, 0, RIO_ECOMPILE, 2, 1, 6, "return outside proc"},
@@ -218,7 +221,7 @@ int main(void) {
     static const char *many = "a := 1\nb := 2\nc := 3\nd := 4\ne := 5\nf := 6\ng := 7\nh := 8\n";
     RioLimits l = rio_limits_for(sizeof scratch);
     RioError e;
-    l.syms = 33; /* the builtins take 28, so the 6th global is one too many */
+    l.syms = 34; /* the builtins take 29, so the 6th global is one too many */
     rio_init(&vm, mem, sizeof mem, code, 4096);
     if (!rio_compile_ex(&vm, many, (uint32_t)strlen(many), scratch, sizeof scratch, &l) ||
         !strstr((e = rio_error_info(&vm)).msg, "too many symbols") || e.line != 6) {

@@ -38,7 +38,7 @@ enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF, S_
 enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN, EK_MOD };
 enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
 enum { B_PROC, B_IF, B_ELSE, B_SWITCH, B_LOOP, B_FOR, B_EACH }; /* loops last: break and continue look for >= B_LOOP */
-enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2,
+enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2, BI_ASSERT,
   BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_FORMAT,
   BI_TOINT, BI_TOFLOAT, BI_TOBOOL, BI_ASSTRING, BI_FROMINT, BI_HAS };
 #define NONE 0xFFFF
@@ -52,7 +52,7 @@ typedef RioOp Op;
 static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue", "import", "include",
   "enum", "union", "switch", "case", "is", "nil"};
 static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
-  "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod",
+  "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod", "assert",
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format",
   "toInt", "toFloat", "toBool", "asString", "fromInt", "has"};
 static float f_sqrt(float x) { return sqrtf(x); }
@@ -1168,6 +1168,18 @@ static void builtin(Rio *vm, Op *m) {
   emit(vm, o, d, s1, s2); vm->code[vm->pc - 1].x = (uint8_t)x;
   vres(vm, mkex(EK_ST, o == OP_IABS ? TY_I32 : TY_F32, d * 4), m->fr0);
 }
+/* assert(cond) or assert(cond, why): a runtime error at this line when cond is false */
+static void assertop(Rio *vm, Op *m) {
+  int n = vm->c->nvs - m->vb, msg = 0, j, k; Ex *a = &vm->c->vs[m->vb];
+  if (n < 1 || n > 2) fail(vm, "assert takes a condition, and optionally a message");
+  if (n == 2) { if (a[1].t != TY_STR) fail(vm, "assert's message is a String"); msg = toslot2(vm, a + 1); }
+  j = condjump(vm, a);                         /* false: to the failure */
+  k = emit(vm, OP_JMP, 0, 0, NONE);            /* true: past it */
+  patch(vm, j, here(vm));
+  emit(vm, OP_FAIL, msg, 0, 0);
+  patch(vm, k, here(vm));
+  vm->c->nvs = m->vb; vm->c->fr = m->fr0; vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0);
+}
 static void minmax(Rio *vm, Op *m) {
   Ex *a = &vm->c->vs[m->vb]; int t, s1, s2, d, mx = m->b == BI_MAX;
   if (vm->c->nvs - m->vb != 2) fail(vm, "wrong number of arguments");
@@ -1298,6 +1310,7 @@ static void finish_call(Rio *vm, Op *m) {
     else vres(vm, mkex(EK_ST, f->ret, alloc(vm, words(vm, f->ret)) * 4), m->fr0);
   } else if (m->a == EK_BI) {
     if (m->b == BI_MIN || m->b == BI_MAX) minmax(vm, m);
+    else if (m->b == BI_ASSERT) assertop(vm, m);
     else if (m->b == BI_FORMAT) {
       int t = (int)m->set, j;
       if (m->n < 1) fail(vm, "format needs a Blob list");
@@ -2785,6 +2798,18 @@ static int rterr(Rio *vm, const char *m, uint32_t pc) {
   vm->efile = pcfile(vm, pc);
   return -1;
 }
+/* out of run(): this is rare, and building the message there tripped an LLVM 20 optimizer crash */
+static NOINLINE int assertfail(Rio *vm, uint32_t a, uint32_t pc) {
+  char b[RIO_ERRBUF]; int n = cat(b, 0, "assertion failed");
+  if (a) {
+    RioVal *R = (RioVal *)vm->mem; uint32_t len = R[a + 1].u;
+    n = cat(b, n, ": ");
+    if (len > (uint32_t)(RIO_ERRBUF - 1 - n)) len = (uint32_t)(RIO_ERRBUF - 1 - n);
+    memcpy(b + n, vm->mem + R[a].u, len); n += (int)len;
+  }
+  b[n] = 0;
+  return rterr(vm, b, pc);
+}
 static int run(Rio *vm, uint32_t pc) {
   const RioIns *code = vm->code, *ip = code + pc;
   uint32_t *cs = (uint32_t *)(void *)(vm->mem + vm->csaddr);
@@ -2994,6 +3019,7 @@ static int run(Rio *vm, uint32_t pc) {
     ip += 2; DISPATCH();
   }
   CASE(LOGE) if (vm->logfn) vm->logfn(vm->logud, vm->logbuf, vm->logn); vm->logn = 0; NEXT();
+  CASE(FAIL) return assertfail(vm, A, (uint32_t)(ip - code)); /* a failed assert: a = its message (0: none) */
   CASE(HALT) return 0;
 #ifndef RIO_CGOTO
   default: return rterr(vm, "bad opcode", (uint32_t)(ip - code));

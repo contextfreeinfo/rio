@@ -115,7 +115,7 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 
 **Operators:** `+ - * / % & | ^ << >> == != < <= > >= && || ! ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`.
 
-**Builtins:** `log(...)`, `len(x)`, `cap(x)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`, plus the list builtins below.
+**Builtins:** `log(...)`, `len(x)`, `cap(x)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`, `assert(cond)` or `assert(cond, "why")` (a runtime error at that line when `cond` is false), plus the list builtins below.
 
 ## Lists and text builders
 

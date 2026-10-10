@@ -1006,6 +1006,10 @@ case Float
 end
 check(uf == 2.5, "narrowed to Float")
 
+# ---- assert: a runtime error at that line when the condition is false
+assert(1 + 1 == 2)
+assert(len(eds) == 4, "four directions")
+
 # ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")

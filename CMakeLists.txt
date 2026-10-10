@@ -31,6 +31,12 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(RIO_EXPORTS_ALL "The host can look up every top-level proc and global, not just main and name*" OFF)
+option(RIO_SANITIZE "Build everything with AddressSanitizer and UndefinedBehaviorSanitizer (GCC/clang)" OFF)
+if(RIO_SANITIZE AND NOT MSVC)
+  # any finding aborts the test that hit it, so ctest fails
+  add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all -g)
+  add_link_options(-fsanitize=address,undefined)
+endif()
 
 # the embeddable core: compiler + vm, no allocation, no stdio
 add_library(riocore STATIC src/rio.c)

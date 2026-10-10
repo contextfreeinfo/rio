@@ -114,7 +114,7 @@ enum { RIO_K_VOID, RIO_K_I32, RIO_K_F32, RIO_K_BYTE, RIO_K_SLICE, RIO_K_ARR, RIO
   X(VADD) X(VSUB) X(VMUL) X(VDIV) X(VMOD) X(FVADD) X(FVSUB) X(FVMUL) X(FVDIV) \
   X(LIDX) X(PUSHA) X(PUSHS) X(PUSHT) X(POPA) X(LREM) X(LSWAP) X(LVIEW) \
   X(JMP) X(JZ) X(JNZ) X(JEQ) X(JNE) X(JLT) X(JLE) X(JFEQ) X(JFNE) X(JFLT) X(JFLE) X(JFNLT) X(JFNLE) X(EACH) X(FORI) \
-  X(CALL) X(RET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGN) X(LOGE) X(HALT)
+  X(CALL) X(RET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGN) X(LOGE) X(FAIL) X(HALT)
 /* runtime: per proc entry pc, code end, frame slots [fs, fe), params in [fs, pend), result slot(s) */
 typedef struct { uint16_t pc, end, fs, fe, pend, ret; uint8_t retw; } RioFunc;
 typedef struct { const char *name, *sig; RioFn fn; uint8_t aw, rw; } RioFfi;

@@ -241,6 +241,9 @@ static void ins(int pc) {
     P("{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && R[%d + i_].i != v_; i_++) {} if (i_ < %uu) log_s(%d, (const char *)M + R[%d + 2 * i_].u, R[%d + 2 * i_ + 1].i); else log_i(%d, v_); }\n",
       V(a, 'i'), sz(d), b, sz(d), x->x, c, c, x->x);
     break;
+  case A_FAIL:
+    if (a) P("rt_assert((const char *)M + %s, %s, __LINE__);\n", V(a, 'u'), V(a + 1, 'i')); else P("rt_assert(\"\", -1, __LINE__);\n");
+    break;
   case A_LOGE: P("log_e();\n"); break;
   default: P("RT_ERR(\"bad op\");\n");
   }
@@ -255,6 +258,7 @@ static const char *prelude =
   "static inline float kf(uint32_t u) { RioVal v; v.u = u; return v.f; }\n"
   "static inline void rt_err(const char *m, int line) { fflush(stdout); fprintf(stderr, \"%d: runtime error: %s\\n\", line, m); exit(1); }\n"
   "#define RT_ERR(m) rt_err(m, __LINE__) /* #line directives make __LINE__ the rio source line */\n"
+  "static void rt_assert(const char *s, int n, int line) { fflush(stdout); fprintf(stderr, \"%d: runtime error: assertion failed%s%.*s\\n\", line, n < 0 ? \"\" : \": \", n < 0 ? 0 : n, s); exit(1); }\n"
   "static inline int32_t ftoi(float f) { return f != f ? 0 : f >= 2147483648.f ? 0x7FFFFFFF : f <= -2147483648.f ? (int32_t)0x80000000u : (int32_t)f; }\n"
   "static inline float rt_round(float x) { return x < 0 ? -floorf(-x + 0.5f) : floorf(x + 0.5f); }\n"
   "static inline int seq(int32_t a, int32_t an, int32_t b, int32_t bn) { return an == bn && !memcmp(M + a, M + b, (size_t)an); }\n"
