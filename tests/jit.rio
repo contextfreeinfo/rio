@@ -1,0 +1,179 @@
+# loops the JIT compiles (only integer math, compares and branches inside): the same answers either way.
+# ctest runs it in the VM; on ARM, rio -j runs it as native code.
+fails := 0
+check :: proc(ok: Bool, what: String)
+  if not ok
+    log("FAIL:", what)
+    fails += 1
+  end
+end
+
+# arithmetic, with wraparound
+s := 0
+p := 1
+for i in 0..<1000
+  s += i * 3 - 7
+  p = p * 31 + i
+end
+check(s == 1491500 and p == 133786869, "add, sub, mul and wraparound")
+
+# division and modulo: truncating, signs, and INT_MIN / -1 wraps
+q := 0
+r := 0
+lo := -2147483648
+m1 := -1
+d := 0
+for i in -20..<21
+  if i != 0
+    q += 1000 / i + (-1000) / i
+    r += 1000 % i + (-7) % i
+  end
+end
+w := 0
+z := 1
+for i in 0..<3
+  w = lo / m1
+  z = lo % m1
+end
+check(q == 0 and r == -2 and w == lo and z == 0, "div and mod")
+
+# shifts mask their count to 0-31; >> keeps the sign
+sh := 0
+for i in 0..<70
+  sh = sh ^ (1 << i) ^ (-256 >> i)
+end
+check(sh == 151, "shifts")
+
+# bitwise, negation, not, abs, min, max
+b := 0
+mn := 1000
+mx := -1000
+ab := 0
+for i in -50..<50
+  b = b ^ (~i & 0x0F0F) | (-i & 0x30)
+  mn = min(mn, i * 7 % 13)
+  mx = max(mx, i * 5 % 17)
+  ab += abs(i)
+end
+check(b == 48 and mn == -12 and mx == 16 and ab == 2500, "bit ops, min, max, abs")
+ab2 := abs(lo)
+check(ab2 == lo, "abs of INT_MIN wraps")
+
+# comparisons as values, and conditions
+lt := 0
+eq := 0
+for i in 0..<100
+  a := i < 50
+  e := i == 42
+  if a and not e
+    lt += 1
+  end
+  if e or i == 99
+    eq += 1
+  end
+end
+check(lt == 49 and eq == 2, "compares and conditions")
+
+# while-style, nested, labeled break and continue
+n := 0
+cnt := 0
+outer: for n < 100000
+  n += 1
+  for k in 0..<5
+    if k == 3
+      continue outer
+    end
+    if n == 5000
+      break outer
+    end
+    cnt += 1
+  end
+end
+check(n == 5000 and cnt == 4999 * 3, "nested loops with labels")
+
+# big constants need two halves
+big := 0
+for i in 0..<10
+  big += 123456789
+end
+check(big == 1234567890, "32-bit constants")
+
+# many slots: the loop's variables sit past the first 1024 slots
+pad0: [16]Int
+pad1: [16]Int
+pad2: [16]Int
+pad3: [16]Int
+pad4: [16]Int
+pad5: [16]Int
+pad6: [16]Int
+pad7: [16]Int
+pad8: [16]Int
+pad9: [16]Int
+padA: [16]Int
+padB: [16]Int
+padC: [16]Int
+padD: [16]Int
+padE: [16]Int
+padF: [16]Int
+padG: [16]Int
+padH: [16]Int
+padI: [16]Int
+padJ: [16]Int
+padK: [16]Int
+padL: [16]Int
+padM: [16]Int
+padN: [16]Int
+padO: [16]Int
+padP: [16]Int
+padQ: [16]Int
+padR: [16]Int
+padS: [16]Int
+padT: [16]Int
+padU: [16]Int
+padV: [16]Int
+padW: [16]Int
+padX: [16]Int
+padY: [16]Int
+padZ: [16]Int
+pada: [16]Int
+padb: [16]Int
+padc: [16]Int
+padd: [16]Int
+pade: [16]Int
+padf: [16]Int
+padg: [16]Int
+padh: [16]Int
+padi: [16]Int
+padj: [16]Int
+padk: [16]Int
+padl: [16]Int
+padm: [16]Int
+padn: [16]Int
+pado: [16]Int
+padp: [16]Int
+padq: [16]Int
+padr: [16]Int
+pads: [16]Int
+padt: [16]Int
+padu: [16]Int
+padv: [16]Int
+padw: [16]Int
+padx: [16]Int
+pady: [16]Int
+padz: [16]Int
+far := 0
+for i in 0..<500
+  far += i
+end
+check(far == 124750, "loop variables in far slots")
+
+if fails == 0
+  log("all jit tests passed")
+end
+
+# a runtime error inside a compiled loop reports its own line
+zero := 0
+acc := 0
+for i in 0..<10
+  acc += 100 / (zero + i - 5)
+end

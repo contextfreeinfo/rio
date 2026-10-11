@@ -5,6 +5,7 @@
    rio -m file.rio         report where the program's memory goes, instead of running it
    rio -i out.img file.rio compile to an image (see rio_image_load) instead of running it
    rio file.img            run an image
+   -j                      compile simple loops to native code first (ARM with Thumb-2 only)
    -M size                 the memory the program gets (default 8M; K and M suffixes). An image
                            needs at least the memory it was compiled with to run
    -D NAME[=value]         override a top-level constant (or define it), like gcc -D
@@ -16,6 +17,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#if defined(__linux__) || defined(__APPLE__)
+#include <sys/mman.h>
+#endif
 #include "rio.h"
 #include "aot.h"
 
@@ -215,7 +219,7 @@ static void memreport(void) {
 
 int main(int argc, char **argv) {
   FILE *f; size_t n; int fn, i;
-  const char *cout = 0, *iout = 0, *path = 0; int mrep = 0; unsigned long msize = sizeof mem;
+  const char *cout = 0, *iout = 0, *path = 0; int mrep = 0, jit = 0; unsigned long msize = sizeof mem;
   for (i = 1; i < argc; i++) /* -M first: rio_init comes before -D */
     if (!strcmp(argv[i], "-M") && i + 1 < argc) {
       char *e; msize = strtoul(argv[++i], &e, 0);
@@ -227,6 +231,7 @@ int main(int argc, char **argv) {
     char *a = argv[i], *eq;
     if (!strcmp(a, "-c") && i + 1 < argc) cout = argv[++i];
     else if (!strcmp(a, "-i") && i + 1 < argc) iout = argv[++i];
+    else if (!strcmp(a, "-j")) jit = 1;
     else if (!strcmp(a, "-M") && i + 1 < argc) i++;
     else if (!strcmp(a, "-m")) mrep = 1;
     else if (!strncmp(a, "-L", 2)) {
@@ -285,6 +290,14 @@ int main(int argc, char **argv) {
     return 0;
   }
 run:
+  if (jit) { /* native loops need executable memory */
+    void *buf = 0; uint32_t size = 1 << 20;
+#if defined(__linux__) || defined(__APPLE__)
+    buf = mmap(0, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (buf == MAP_FAILED) buf = 0;
+#endif
+    if (!buf || rio_jit(&vm, buf, size) < 0) { fprintf(stderr, "rio: -j: no native code here\n"); return 2; }
+  }
   if (rio_run(&vm) || ((fn = rio_func(&vm, "main")) >= 0 && rio_call(&vm, fn))) {
     report(path);
     return 1;

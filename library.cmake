@@ -3,7 +3,7 @@
 #   target_link_libraries(myapp PRIVATE riocore)
 # Optional, before linking: target_compile_definitions(riocore PUBLIC RIO_SMALL) for MCU-sized fixed caps.
 if(NOT TARGET riocore)
-  add_library(riocore STATIC ${CMAKE_CURRENT_LIST_DIR}/src/rio.c)
+  add_library(riocore STATIC ${CMAKE_CURRENT_LIST_DIR}/src/rio.c ${CMAKE_CURRENT_LIST_DIR}/src/jit.c) # jit.c: native loops, on ARM only
   target_include_directories(riocore PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
   if(NOT MSVC)
     target_link_libraries(riocore PUBLIC m)

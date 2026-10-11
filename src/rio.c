@@ -2817,7 +2817,7 @@ static void finalize(Rio *vm) {
 /* set up the compiler's state in scratch, or overlaid on mem when scratch is NULL */
 static int cstart(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim, int repl) {
   int inmem = !scratch, codein = !vm->codebuf && !repl; uintptr_t pad; RioC *c; RioLimits l; uint32_t used;
-  vm->ok = 0; vm->c = 0; vm->repl = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0; vm->nlines = 0; vm->func = 0;
+  vm->ok = 0; vm->c = 0; vm->repl = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0; vm->nlines = 0; vm->func = 0; vm->jit = 0; vm->jitused = vm->njit = 0;
   if (lim) l = *lim;
   else { /* the code (when it's compiled into scratch) gets a quarter, the tables scale to the rest */
     uint32_t n = inmem ? vm->memsize : size;
@@ -2857,6 +2857,7 @@ int rio_compile_ex(Rio *vm, const char *src, uint32_t len, void *scratch, uint32
   if (DEAD) { if (inmem) vm->c = 0; return -1; }
   if (inmem) vm->c = 0;
   vm->ok = 1;
+  if (vm->jitter) vm->jitter(vm);
   return 0;
 }
 int rio_compile(Rio *vm, const char *src, uint32_t len) { return rio_compile_ex(vm, src, len, 0, 0, 0); }
@@ -2942,6 +2943,7 @@ int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
   if (!DEAD) emit(vm, OP_HALT, 0, 0, 0);
   if (!DEAD) commit(vm, s.nk, s.nfunc);
   if (DEAD) return rollback(vm, &s);
+  if (vm->jitter) vm->jitter(vm);
   vm->brk = 0;
   return start(vm, s.pc) ? -1 : 0;
 }
@@ -3271,6 +3273,10 @@ HOT static int run(Rio *vm, uint32_t pc) {
   CASE(LOGE) if (vm->logfn) vm->logfn(vm->logud, vm->logbuf, vm->logn); vm->logn = 0; NEXT();
   CASE(FAIL) return assertfail(vm, A, (uint32_t)(ip - code)); /* a failed assert: a = its message (0: none) */
   CASE(HALT) return 0;
+  CASE(JIT) { /* a loop compiled to native code: it says where to carry on */
+    if (vm->brk) goto stop;
+    ip = code + vm->jit[A](R, &vm->brk); DISPATCH();
+  }
 #ifndef RIO_CGOTO
   default: return rterr(vm, "bad opcode", (uint32_t)(ip - code));
   }
@@ -3300,7 +3306,7 @@ static uint32_t codeaddr(Rio *vm) { /* where the code is in mem, or 0: in the ho
 }
 uint32_t rio_image_save(Rio *vm, void *out, uint32_t cap) {
   uint32_t h[IMG_WORDS], n = IMG_WORDS * 4, i, end = blockend(vm), ca = codeaddr(vm), cn = ca ? 0 : vm->pc; uint8_t *o = (uint8_t *)out;
-  if (!vm->ok || vm->repl || vm->running || !littleendian()) return 0;
+  if (!vm->ok || vm->repl || vm->running || vm->jit || !littleendian()) return 0; /* (jit: the code has native parts) */
   for (i = vm->kcap * 4; i < vm->hi; i++) if (vm->mem[i]) return 0; /* it has run: memory isn't fresh */
   for (i = 0; i < (uint32_t)vm->nffi; i++) n += (uint32_t)(strlen(vm->ffi[i].name) + strlen(vm->ffi[i].sig) + 2);
   n = (n + 3) & ~3u;
@@ -3331,7 +3337,7 @@ static int imgerr(Rio *vm, const char *m) {
 int rio_image_load(Rio *vm, const void *img, uint32_t len) {
   const uint8_t *p = (const uint8_t *)img, *q, *e = p + len; uint32_t h[IMG_WORDS], i, j, ms, bsz, cn; const RioIns *code;
   RioFfi f[RIO_MAX_FFI];
-  vm->ok = 0; vm->repl = 0; vm->c = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0;
+  vm->ok = 0; vm->repl = 0; vm->c = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0; vm->jit = 0; vm->jitused = vm->njit = 0;
   if (vm->running) return imgerr(vm, "rio is running");
   if (!littleendian()) return imgerr(vm, "needs a little-endian host");
   if (len < sizeof h) return imgerr(vm, "too short");
@@ -3385,5 +3391,6 @@ int rio_image_load(Rio *vm, const void *img, uint32_t len) {
   vm->mods = h[IMG_MODS]; vm->nmods = h[IMG_NMODS]; vm->nfunc = (int)h[IMG_NFUNC]; vm->func = (RioFunc *)(void *)(vm->mem + h[IMG_FUNC]);
   vm->lcpos = vm->lcpc = vm->lcline = 0; vm->logn = 0; vm->trap = 0;
   vm->ok = 1;
+  if (vm->jitter) vm->jitter(vm);
   return 0;
 }

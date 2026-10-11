@@ -117,6 +117,14 @@ enum { RIO_ENONE, RIO_ECOMPILE, RIO_ERUNTIME };
 typedef struct { int kind, line, col, len; const char *msg, *file; } RioError; /* file: NULL for the main source */
 RioError rio_error_info(Rio *vm);
 int rio_pc_line(Rio *vm, uint32_t pc);      /* source line of a bytecode position (0 = unknown) */
+/* native code for simple loops (jit.c), on ARM with Thumb-2 (the RP2350's Cortex-M33): from now on,
+   whatever compiles (rio_compile, each REPL piece) or loads (rio_image_load) also has its loops made
+   only of integer math, compares and branches compiled to machine code in buf, before it runs. buf
+   must be executable (SRAM on the RP2350) and stay valid. Returns how many loops it compiled right
+   away (for a program already compiled), or -1 where there's no native code (any other machine).
+   Errors and rio_interrupt work as in the VM. */
+typedef uint32_t (*RioJitFn)(RioVal *slots, volatile int *brk);
+int rio_jit(Rio *vm, void *buf, uint32_t size);
 
 /* ---- private ---- */
 enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI, RIO_S_METH, RIO_S_SELF, RIO_S_MOD };
@@ -131,7 +139,7 @@ enum { RIO_K_VOID, RIO_K_I32, RIO_K_F32, RIO_K_BYTE, RIO_K_SLICE, RIO_K_ARR, RIO
   X(VADD) X(VSUB) X(VMUL) X(VDIV) X(VMOD) X(FVADD) X(FVSUB) X(FVMUL) X(FVDIV) \
   X(LIDX) X(PUSHA) X(PUSHS) X(PUSHT) X(POPA) X(LREM) X(LSWAP) X(LVIEW) \
   X(JMP) X(JZ) X(JNZ) X(JEQ) X(JNE) X(JLT) X(JLE) X(JFEQ) X(JFNE) X(JFLT) X(JFLE) X(JFNLT) X(JFNLE) X(EACH) X(FORI) \
-  X(CALL) X(RET) X(CALLI) X(GETRET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGN) X(LOGE) X(FAIL) X(HALT)
+  X(CALL) X(RET) X(CALLI) X(GETRET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGN) X(LOGE) X(FAIL) X(HALT) X(JIT)
 /* runtime: per proc entry pc, code end, frame slots [fs, fe), params in [fs, pend), result slot(s) */
 typedef struct { uint16_t pc, end, fs, fe, pend, ret; uint8_t retw; } RioFunc;
 typedef struct { const char *name, *sig; RioFn fn; uint8_t aw, rw; } RioFfi;
@@ -200,6 +208,8 @@ struct Rio {
   const char *defs[RIO_MAX_DEFINES][2];
   struct RioC *c; /* compiler state: only during compile, or after rio_compile_scratch */
   RioFunc *func; /* per proc, in mem next to the strings */
+  RioJitFn *jit; /* native loops, from rio_jit (OP_JIT a: which) */
+  int (*jitter)(Rio *vm); void *jitbuf; uint32_t jitsize, jitused, njit; /* set by rio_jit */
   RioFfi ffi[RIO_MAX_FFI];
   char logbuf[RIO_LOGBUF], err[RIO_ERRBUF];
 };

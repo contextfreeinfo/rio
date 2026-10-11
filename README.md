@@ -529,6 +529,15 @@ if (rio_image_load(&vm2, buf, n) || rio_run(&vm2)) puts(rio_error(&vm2));
 
 Runtime errors from an image report lines and module file names as usual; the main file has no name in the image, so a host names it.
 
+## Native loops on ARM
+
+On ARM with Thumb-2, such as the RP2350's Cortex-M33, `rio_jit(vm, buf, size)` turns on a small ahead-of-time compiler: from then on, everything that compiles or loads (whole programs, REPL pieces and images) also has its simple loops compiled to machine code in `buf` before running. `buf` must be memory the CPU can run code from (any SRAM on the RP2350).
+
+- **Which loops:** ones made only of integer math, compares and branches (including nested loops, `break`, `continue` and labels). Others stay bytecode. Arrays, floats and calls are next.
+- **Same behavior:** values stay in the VM's memory, so the interpreter and native code mix freely. A runtime error inside a native loop (dividing by zero) hands that one instruction back to the interpreter, which reports it with its line as usual, and `rio_interrupt` stops native loops too.
+- **Measured** on the Fruit Jam at 252 MHz: `for n < 10_000_000 / n += 1` takes 0.56 s native vs 1.75 s in the VM.
+- Elsewhere `rio_jit` returns -1 and nothing changes. `rio -j` uses it on ARM Linux, which is how it's tested (under `qemu-arm`: the test suite, `tests/jit.rio` and the VM-vs-C differential tester all agree).
+
 ## Performance
 
 These are from `bench/`, comparing against Lua 5.5 on the same Windows machine. Times are in seconds, best of 5.

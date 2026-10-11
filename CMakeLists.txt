@@ -121,6 +121,11 @@ add_custom_target(test_img ALL DEPENDS ${CMAKE_BINARY_DIR}/test.img)
 add_test(NAME rio_vm_image COMMAND rio_vm ${CMAKE_BINARY_DIR}/test.img)
 set_tests_properties(rio_vm_image PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL" PASS_REGULAR_EXPRESSION "all tests passed")
 
+# loops the JIT compiles on ARM (rio -j); here, the same program in the VM, and a runtime error's line
+add_test(NAME rio_jit_loops COMMAND rio ${CMAKE_SOURCE_DIR}/tests/jit.rio)
+set_tests_properties(rio_jit_loops PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL"
+  PASS_REGULAR_EXPRESSION "all jit tests passed[\r\n]+.*jit\\.rio:178: runtime error: division by zero")
+
 # memory report
 add_test(NAME rio_memory_report COMMAND rio -m ${CMAKE_SOURCE_DIR}/tests/test.rio)
 set_tests_properties(rio_memory_report PROPERTIES PASS_REGULAR_EXPRESSION "heaviest call chain: [0-9]+ bytes")
