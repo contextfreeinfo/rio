@@ -1,0 +1,6 @@
+# an index out of bounds inside a loop the JIT compiles: reported by the VM at its line
+xs: [8]Int
+t := 0
+for i in 0..<20
+  t += xs[i]
+end

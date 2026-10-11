@@ -124,7 +124,9 @@ set_tests_properties(rio_vm_image PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL" PASS
 # loops the JIT compiles on ARM (rio -j); here, the same program in the VM, and a runtime error's line
 add_test(NAME rio_jit_loops COMMAND rio ${CMAKE_SOURCE_DIR}/tests/jit.rio)
 set_tests_properties(rio_jit_loops PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL"
-  PASS_REGULAR_EXPRESSION "all jit tests passed[\r\n]+.*jit\\.rio:178: runtime error: division by zero")
+  PASS_REGULAR_EXPRESSION "all jit tests passed[\r\n]+.*jit\\.rio:259: runtime error: division by zero")
+add_test(NAME rio_jit_bounds COMMAND rio ${CMAKE_SOURCE_DIR}/tests/jit_bounds.rio)
+set_tests_properties(rio_jit_bounds PROPERTIES PASS_REGULAR_EXPRESSION "jit_bounds\\.rio:5: runtime error: index out of bounds")
 
 # memory report
 add_test(NAME rio_memory_report COMMAND rio -m ${CMAKE_SOURCE_DIR}/tests/test.rio)

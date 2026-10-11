@@ -123,7 +123,7 @@ int rio_pc_line(Rio *vm, uint32_t pc);      /* source line of a bytecode positio
    must be executable (SRAM on the RP2350) and stay valid. Returns how many loops it compiled right
    away (for a program already compiled), or -1 where there's no native code (any other machine).
    Errors and rio_interrupt work as in the VM. */
-typedef uint32_t (*RioJitFn)(RioVal *slots, volatile int *brk);
+typedef uint32_t (*RioJitFn)(RioVal *slots, Rio *vm);
 int rio_jit(Rio *vm, void *buf, uint32_t size);
 
 /* ---- private ---- */

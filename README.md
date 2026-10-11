@@ -533,10 +533,11 @@ Runtime errors from an image report lines and module file names as usual; the ma
 
 On ARM with Thumb-2, such as the RP2350's Cortex-M33, `rio_jit(vm, buf, size)` turns on a small ahead-of-time compiler: from then on, everything that compiles or loads (whole programs, REPL pieces and images) also has its simple loops compiled to machine code in `buf` before running. `buf` must be memory the CPU can run code from (any SRAM on the RP2350).
 
-- **Which loops:** ones made only of integer math, compares and branches (including nested loops, `break`, `continue` and labels). Others stay bytecode. Arrays, floats and calls are next.
-- **Same behavior:** values stay in the VM's memory, so the interpreter and native code mix freely. A runtime error inside a native loop (dividing by zero) hands that one instruction back to the interpreter, which reports it with its line as usual, and `rio_interrupt` stops native loops too.
-- **Measured** on the Fruit Jam at 252 MHz: `for n < 10_000_000 / n += 1` takes 0.56 s native vs 1.75 s in the VM.
-- Elsewhere `rio_jit` returns -1 and nothing changes. `rio -j` uses it on ARM Linux, which is how it's tested (under `qemu-arm`: the test suite, `tests/jit.rio` and the VM-vs-C differential tester all agree).
+- **Which loops:** ones made of integer and float math, compares, branches (including nested loops, `break`, `continue` and labels, and `for` over arrays), array and field reads and writes, and calls to host (FFI) functions. Others stay bytecode; calls to rio procs are next.
+- **Same behavior:** values stay in the VM's memory (a loop's busiest values and constants sit in registers while it runs), so the interpreter and native code mix freely. A runtime error inside a native loop (dividing by zero, an index out of bounds, an FFI function calling `rio_trap`) is reported by the VM with its line, as if the VM had run it, and `rio_interrupt` stops native loops too.
+- **Measured** on the Fruit Jam at 252 MHz, native vs the VM: `for n < 10_000_000 / n += 1` 0.33 s vs 1.75 s; a million `n += i % 7` 0.09 s vs 0.28 s; 500 particles (structs of floats) for 100 steps 0.020 s vs 0.042 s; filling the screen with `pset` 0.023 s vs 0.040 s.
+- **Size:** native code is about 3.7 times the bytecode it replaces, but only loops get it (the 1,100-line test suite: 1.2 KB). When `buf` runs out, the rest stays bytecode.
+- Elsewhere `rio_jit` returns -1 and nothing changes. `rio -j` uses it on ARM Linux, which is how it's tested (under `qemu-arm`: the test suite, `tests/jit.rio`, `tests/jit_bounds.rio` and the VM-vs-C differential tester all agree).
 
 ## Performance
 

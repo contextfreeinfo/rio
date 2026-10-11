@@ -167,6 +167,87 @@ for i in 0..<500
 end
 check(far == 124750, "loop variables in far slots")
 
+# arrays: reads, writes, bounds checks (that pass), and a for-each over structs
+xs: [64]Int
+ys: [64]Int
+for i in 0..<64
+  xs[i] = i * i - 50
+end
+asum := 0
+neg := 0
+for i in 0..<64
+  asum += xs[i]
+  ys[63 - i] = xs[i]
+  if xs[i] < 0
+    neg += 1
+  end
+end
+dot := 0
+for i in 0..<64
+  dot += xs[i] * ys[i]
+end
+check(asum == 82144 and dot == 24706816 and neg == 8, "array reads and writes")
+
+Pt :: struct
+  x, y: Float
+end
+pts: [10]Pt
+for p, i in pts
+  p.x = i.toFloat() * 0.5
+  p.y = 1.5
+end
+for step in 0..<20
+  for p in pts
+    p.x += p.y * 0.25
+  end
+end
+pacc := 0.0
+for p in pts
+  pacc += p.x
+end
+check(pacc == 97.5, "for-each over structs, with floats")
+
+bb: Blob[32]
+for i in 0..<32
+  bb[i] = i * 37 & 255
+end
+bsum := 0
+for i in 0..<32
+  bsum += bb[i]
+end
+check(bsum == 3504, "bytes")
+
+# floats: arithmetic, conversions both ways, NaN in compares, saturating toInt, min and max
+fs := 0.0
+for i in 0..<1000
+  fs += i.toFloat() / 3.0
+end
+check(fs == 166500.0 and fs.toInt() == 166500, "float sums")
+zf := 0.0
+nan := zf / zf
+nlt := 0
+neq := 0
+nne := 0
+sat := 0
+fm := 0.0
+for i in 0..<4
+  if nan < 1.0
+    nlt += 1
+  end
+  if nan == nan
+    neq += 1
+  end
+  if nan != nan
+    nne += 1
+  end
+  big := 1e10 * (i - 1).toFloat()
+  sat = sat ^ big.toInt()
+  fm = max(fm, min(i.toFloat() * 2.5, 6.0))
+end
+check(nlt == 0 and neq == 0 and nne == 4, "NaN compares false, except !=")
+check(sat == (-2147483648 ^ 0 ^ 2147483647 ^ 2147483647), "toInt saturates")
+check(fm == 6.0 and nan.toInt() == 0, "float min, max; NaN toInt is 0")
+
 if fails == 0
   log("all jit tests passed")
 end

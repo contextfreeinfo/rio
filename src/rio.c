@@ -3273,9 +3273,13 @@ HOT static int run(Rio *vm, uint32_t pc) {
   CASE(LOGE) if (vm->logfn) vm->logfn(vm->logud, vm->logbuf, vm->logn); vm->logn = 0; NEXT();
   CASE(FAIL) return assertfail(vm, A, (uint32_t)(ip - code)); /* a failed assert: a = its message (0: none) */
   CASE(HALT) return 0;
-  CASE(JIT) { /* a loop compiled to native code: it says where to carry on */
+  CASE(JIT) { /* a loop compiled to native code: it says where to carry on, or what failed where */
+    uint32_t to;
     if (vm->brk) goto stop;
-    ip = code + vm->jit[A](R, &vm->brk); DISPATCH();
+    to = vm->jit[A](R, vm);
+    if (to >> 16 == 3) { vm->trap = 0; return rterr(vm, vm->err, to & 0xFFFF); } /* an ffi function called rio_trap */
+    if (to >> 16) return rterr(vm, to >> 16 == 1 ? "division by zero" : "index out of bounds", to & 0xFFFF);
+    ip = code + to; DISPATCH();
   }
 #ifndef RIO_CGOTO
   default: return rterr(vm, "bad opcode", (uint32_t)(ip - code));
