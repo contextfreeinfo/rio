@@ -39,8 +39,7 @@ if(RIO_SANITIZE AND NOT MSVC)
 endif()
 
 # the embeddable core: compiler + vm, no allocation, no stdio
-add_library(riocore STATIC src/rio.c)
-target_include_directories(riocore PUBLIC src)
+include(${CMAKE_CURRENT_SOURCE_DIR}/library.cmake) # (also how other projects use rio)
 if(RIO_EXPORTS_ALL)
   target_compile_definitions(riocore PUBLIC RIO_EXPORTS_ALL)
 endif()
@@ -48,7 +47,6 @@ if(MSVC)
   target_compile_options(riocore PRIVATE /W4 /O2 /wd4324)
 else()
   target_compile_options(riocore PRIVATE -Wall -Wextra -O2)
-  target_link_libraries(riocore PUBLIC m)
 endif()
 
 # cli: run scripts, or translate them to C with -c
