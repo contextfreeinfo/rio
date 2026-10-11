@@ -25,6 +25,9 @@ static const Case cases[] = {
   {"V :: struct\n  x: Float\nend\nv := V{1}\n", 0, 0, 0, RIO_ECOMPILE, 4, 8, 1, "must be named"},
   {"V :: struct\n  x: Float\nend\nv := V{x = 1, x = 2}\n", 0, 0, 0, RIO_ECOMPILE, 4, 15, 1, "field set twice"},
   {"for i in 0..<3\n  break\nend\nbreak\n", 0, 0, 0, RIO_ECOMPILE, 4, 1, 5, "not inside a loop"},
+  {"a: for i in 0..<3\n  for j in 0..<3\n    break b\n  end\nend\n", 0, 0, 0, RIO_ECOMPILE, 3, 11, 1, "no loop with this label"},
+  {"a: for i in 0..<3\n  a: for j in 0..<3\n  end\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, 3, 1, "a loop with this label is already open"},
+  {"a: for i in 0..<3\nend\nf :: proc()\n  for\n    break a\n  end\nend\n", 0, 0, 0, RIO_ECOMPILE, 5, 11, 1, "no loop with this label"},
   {"for c in \"abc\"\n  c = 1\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, 5, 1, "cannot assign"},
   {"for x, i in 0..<3\nend\n", 0, 0, 0, RIO_ECOMPILE, 1, -1, -1, "a range loop has no index"},
   {"n := 3\nfor x in n\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, -1, -1, "for needs a range, array, slice or list"},
@@ -72,6 +75,18 @@ static const Case cases[] = {
   {"f :: proc(out: &[]Int)\n  a: [4]Int\n  out = a[:]\nend\n", 0, 0, 0, RIO_ECOMPILE, 3, -1, -1, "this view of the proc's own memory would outlive the call"},
   /* views of globals and parameters, and local views passed down or replaced, are fine */
   {"g: []Int\nga: [4]Int\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[:]\n  n := s.len()\n  s = ga[:]\n  g = s\n  return v[1:]\nend\nsum :: proc(v: []Int) -> Int\n  return v.len()\nend\nh :: proc() -> Int\n  a: [4]Int\n  return sum(a[:])\nend\nlog(f(ga).len(), h())\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
+  /* number literals: the error points at the whole number */
+  {"x := 1_000_\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 6, "_ goes between digits"},
+  {"x := 1__0\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 4, "_ goes between digits"},
+  {"x := 0x\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 2, "hex digits expected after 0x"},
+  {"x := 0b102\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 5, "binary digits are 0 and 1"},
+  {"x := 0xFG\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 4, "bad number"},
+  {"x := 12px\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 4, "bad number"},
+  {"x := 2e\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 2, "exponent digits expected"},
+  {"x := 99_999_999_999\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 14, "number too big for Int"},
+  {"x := 0x1_0000_0000\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 13, "number too big for Int"},
+  {"x := 2147483648\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 10, "the most is 2147483647"},
+  {"x := 4_294_967_295\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 13, "the most is 2147483647"},
   /* comments start with #: a C-style comment is an error that points at itself */
   {"x := 1 // note\n", 0, 0, 0, RIO_ECOMPILE, 1, 8, 2, "comments start with #"},
   {"/* note */\nx := 1\n", 0, 0, 0, RIO_ECOMPILE, 1, 1, 2, "comments start with #"},

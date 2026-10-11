@@ -18,6 +18,10 @@ check(-a == -7 && ~0 == -1 && !false, "unary")
 check((a << 2) == 28 && (-16 >> 2) == -4, "shifts")
 check((a & 3) == 3 && (a | 8) == 15 && (a ^ 1) == 6, "bitops")
 check(0x7fffffff + 1 == -2147483647 - 1, "wraparound")
+check(0b1010 == 10 && 0B11 == 3 && 0xff == 255 && 0Xab == 171, "hex and binary")
+check(1_000_000 == 1000000 && 0xFFFF_FFFF == -1 && 0b1111_0000 == 240, "digit separators")
+check(-2147483648 == 0x8000_0000 && 2147483647 == 0x7FFF_FFFF, "Int range literals")
+check(1_000.25 == 1000.25 && 1.000_5 == 1.0005 && 2e1_0 == 2e10, "separators in floats")
 x := 1.5
 y : Float = 2
 check(x * y == 3.0, "float mul")
@@ -1074,6 +1078,50 @@ assert(eds.len() == 4, "four directions")
 # ---- ffi
 t0 := clock()
 check(t0 >= 0, "ffi clock")
+
+# ---- labeled loops: break and continue the loop named
+lab := 0
+outer: for y in 0..<10
+  for x in 0..<10
+    if x == 3
+      continue outer
+    end
+    if y == 5
+      break outer
+    end
+    lab += 1
+  end
+end
+check(lab == 15, "labeled continue and break")
+labxs: [4]Int
+labxs[2] = 7
+labat := -1
+search: for v, i in labxs
+  for k in 0..<3
+    if v == 7 && k == 1
+      labat = i
+      break search
+    end
+  end
+end
+check(labat == 2, "break out of a for-each by label")
+labm := 0
+rows: for
+  labm += 1
+  cols: for c in 0..<5
+    if labm == 3
+      break rows
+    end
+    continue cols
+  end
+end
+check(labm == 3, "labels on plain loops")
+inner: for i in 0..<2
+end
+inner: for i in 0..<2
+  break inner
+end
+check(true, "a label can be reused after its loop ends")
 
 log("bool", true, false, "int", 42, "float", 1.25, "neg", -0.5, "big", 123456789.0, "str", GREETING)
 if fails == 0

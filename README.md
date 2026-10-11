@@ -12,6 +12,7 @@ A tiny, statically typed, embeddable scripting language. It's written in C99; th
 - **No recursion**, either in the implementation (the parser uses explicit stacks) or in the language. Because procs can't recurse, each proc gets one static frame, and bytecode operands are absolute slots, so there is no stack and no frame pointer
 - A register VM with typed opcodes, fused compare-and-branch, fused index+load/store, and bottom-tested loops. It uses computed goto on GCC/Clang and `switch` elsewhere
 - **Ahead-of-time compilation to C** (`rio -c out.c file.rio`) for scripts known at build time
+- **Images**: compiled programs saved as bytes and run by a VM-only build (about 11 KB on Cortex-M33, 13 KB of gzipped wasm)
 - No standard library: only math builtins and `log`. Anything else comes from the host through FFI
 
 ## Build
@@ -51,6 +52,7 @@ parts: [N]Particle      # global storage: one contiguous block
 count := 0              # inferred Int
 ready := false          # Bool
 scale : Float = 2       # Int literal coerces to Float
+mask := 0xFF_00         # hex and binary (0b1010), with _ between digits anywhere: 1_000_000
 
 # procs: must be defined before use, so recursion is impossible
 step :: proc(ps: []Particle, dt: Float)
@@ -82,6 +84,13 @@ main :: proc()
   end
   for                             # infinite loop
     break
+  end
+  rows: for y in 0..<8            # a label: break rows / continue rows reach this loop
+    for x in 0..<8
+      if x > y
+        continue rows
+      end
+    end
   end
   if i > 10 && count == 0
     log("big")
@@ -476,7 +485,7 @@ uint32_t need = rio_limits_size(&lim);       // bytes those tables take (strings
 | bytecode | 8 B per instruction | same |
 | C stack while running | a few hundred bytes (return addresses live in `mem`) | same |
 
-On a Cortex-M33, the core compiles to about 35 KB of flash at `-Os`, plus libm and `memcpy`/`memset`/`setjmp` from your libc. Peak memory comes from compiling; once running, a program needs only its constants, frames, globals, arrays and strings.
+On a Cortex-M33, the core compiles to about 68 KB of flash at `-Os` (clang), plus libm and `memcpy`/`memset` from your libc; the VM alone (see Images) is about 11 KB. The compiler doesn't use `setjmp`: an error makes the rest of the source read as its end, so it unwinds by returning, and the whole thing builds for plain wasm (compiler and VM: 112 KB, 46 KB gzipped). Peak memory comes from compiling; once running, a program needs only its constants, frames, globals, arrays and strings.
 
 **Frames are shared.** With no recursion, the compiler knows exactly which procs can be running at the same time: a proc and everything it can call. Procs that never run together share frame memory, so frames cost the heaviest chain of calls rather than the sum over all procs, and the return stack is sized by the longest chain. This happens once, when compiling finishes, and costs nothing at runtime. A proc keeps its own frame if any of its slots ever has its address taken (by `&`, a slice or view of a local array, a for-each over one, and so on): a view of that memory may outlive the call, so it must keep holding the same variable. Copying small structs and arrays between locals doesn't take addresses, so most procs share. Because of this sharing, rio can't be started again while it's running: `rio_run` and `rio_call` from inside an FFI function return an error.
 
@@ -492,6 +501,32 @@ cc -O2 game.c -lm -o game   # any C99 compiler; MSVC works too
 The output is one C file with no dependency on rio. Because rio has no recursion, each proc becomes a plain C function, and its frame slots become C locals unless their address is taken. Constants are written inline, and each bytecode op becomes one C statement. Globals, arrays and strings live in a static memory image identical to the VM's, so behavior is the same, including bounds checks and wrapping integer math. The C compiler then optimizes the result like any other C code.
 
 FFI functions are called as `void rio_ffi_<name>(RioVal *a)`. The CLI includes definitions for its own `clock` and `putc`; for other FFI functions, link your own definitions (and build with `-DRIO_NO_HOST_FFI` to drop the CLI's). ctest runs the full test suite both in the VM and compiled through C.
+
+## Images
+
+An image is a compiled program as bytes, ready to run: the bytecode, the constants, and the strings and tables that sit at the top of `mem` (everything else in memory starts as zero). A host can load one without the compiler, so it doesn't need the compiler's code, and loading is just copying.
+
+```
+rio -M 256K -i game.img game.rio   # compile for a vm with 256 KB of mem, save the image
+rio game.img                       # run an image (the CLI tells images from source by their first bytes)
+```
+
+```c
+uint32_t n = rio_image_save(&vm, NULL, 0);   // after compiling, before running: the size
+rio_image_save(&vm, buf, n);                 // returns n, or 0 if it doesn't fit
+
+rio_init(&vm2, mem, sizeof mem, code, codecap);
+rio_ffi(&vm2, "clock", ">f", host_clock);    // the same ffi functions, in any order
+if (rio_image_load(&vm2, buf, n) || rio_run(&vm2)) puts(rio_error(&vm2));
+```
+
+- **Memory addresses are absolute,** so compile for the memory the program will run in (`-M`, default 8 MB in the CLI) and load into at least that much. The loader also needs room for the code.
+- **FFI functions are bound by name** at load, and their sigs must match. One the image names but the host lacks is fine unless the code calls it.
+- **Build with `-DRIO_NO_COMPILER`** for a VM that only loads images: everything that compiles (and the REPL) is left out. On a Cortex-M33 at `-Os` that's about 11 KB of flash instead of 68 KB. As wasm (`zig cc -target wasm32-wasi -mexec-model=reactor -Os`), a minimal browser host comes to 28 KB, 13 KB gzipped, importing only a log function. `tests/vm.c` is such a host; ctest runs the test suite through it.
+- **Images are trusted like code:** the loader checks the header and sizes, but the VM doesn't check bytecode, so load only images you (or your compiler) made.
+- **The format isn't stable yet.** Images carry a version number, and a vm refuses other versions; for now, rebuild images along with rio. Little-endian hosts only.
+
+Runtime errors from an image report lines and module file names as usual; the main file has no name in the image, so a host names it.
 
 ## Performance
 

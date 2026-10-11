@@ -103,6 +103,24 @@ endif()
 add_test(NAME rio_exports_all COMMAND rio_exports_all_test)
 set_tests_properties(rio_exports_all PROPERTIES PASS_REGULAR_EXPRESSION "all export tests passed .every name.")
 
+# images: through the API, and test.rio run by a vm built without the compiler
+add_executable(rio_image_test tests/image.c)
+target_link_libraries(rio_image_test PRIVATE riocore)
+add_test(NAME rio_image COMMAND rio_image_test)
+set_tests_properties(rio_image PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ image tests passed")
+add_executable(rio_vm tests/vm.c src/rio.c)
+target_include_directories(rio_vm PRIVATE src)
+target_compile_definitions(rio_vm PRIVATE RIO_NO_COMPILER)
+if(NOT MSVC)
+  target_link_libraries(rio_vm PRIVATE m)
+endif()
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/test.img
+  COMMAND rio -i ${CMAKE_BINARY_DIR}/test.img ${CMAKE_SOURCE_DIR}/tests/test.rio
+  DEPENDS rio ${CMAKE_SOURCE_DIR}/tests/test.rio)
+add_custom_target(test_img ALL DEPENDS ${CMAKE_BINARY_DIR}/test.img)
+add_test(NAME rio_vm_image COMMAND rio_vm ${CMAKE_BINARY_DIR}/test.img)
+set_tests_properties(rio_vm_image PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL" PASS_REGULAR_EXPRESSION "all tests passed")
+
 # memory report
 add_test(NAME rio_memory_report COMMAND rio -m ${CMAKE_SOURCE_DIR}/tests/test.rio)
 set_tests_properties(rio_memory_report PROPERTIES PASS_REGULAR_EXPRESSION "heaviest call chain: [0-9]+ bytes")

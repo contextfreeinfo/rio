@@ -3,19 +3,23 @@
    rio file.rio            run top-level code, then main() if present
    rio -c out.c file.rio   compile to a standalone C program instead
    rio -m file.rio         report where the program's memory goes, instead of running it
+   rio -i out.img file.rio compile to an image (see rio_image_load) instead of running it
+   rio file.img            run an image
+   -M size                 the memory the program gets (default 8M; K and M suffixes). An image
+                           needs at least the memory it was compiled with to run
    -D NAME[=value]         override a top-level constant (or define it), like gcc -D
    -L dir                  look for packages (import name) in dir: each dir/name or dir/name.rio
    Ctrl-C stops a running program. */
 #define _CRT_SECURE_NO_WARNINGS
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include "rio.h"
 #include "aot.h"
 
-static uint8_t mem[8 << 20];
-static RioIns code[65535];
+static uint8_t mem[8 << 20]; /* everything, the code included */
 static char src[4 << 20]; /* the main file and every module, kept until compiling ends */
 static size_t srcn;
 static char libs[16][512], base[512], names[1 << 16];
@@ -84,7 +88,9 @@ static int usage(void) {
   fprintf(stderr, "usage: rio [-D NAME[=value]]... [-L dir]...                REPL\n"
                   "       rio [-D NAME[=value]]... [-L dir]... file.rio       run\n"
                   "       rio -c out.c [-D NAME[=value]]... [-L dir]... file.rio\n"
-                  "       rio -m [-D NAME[=value]]... [-L dir]... file.rio    memory report\n");
+                  "       rio -m [-D NAME[=value]]... [-L dir]... file.rio    memory report\n"
+                  "       rio -i out.img [-D NAME[=value]]... [-L dir]... file.rio\n"
+                  "  -M size (like 256K): memory for the program\n");
   return 2;
 }
 
@@ -146,7 +152,8 @@ static const char *procname(int fi) {
 static void memreport(void) {
   static uint32_t frame[65536], chain[65536]; static int next[65536], order[65536];
   RioC *c = vm.c; int nf = vm.nfunc, i, j, pc, best = -1, shown, nshared = 0;
-  uint32_t consts = vm.kcap * 4, slots = (c->hwm - vm.kcap) * 4, table = vm.memsize - vm.hi - c->big;
+  uint32_t consts = vm.kcap * 4, slots = (c->hwm - vm.kcap) * 4, csz = vm.pc * (uint32_t)sizeof(RioIns);
+  uint32_t table = vm.memsize - vm.hi - c->big - csz; /* (the code sits just below the tables) */
   uint32_t pbig = 0, own = 0, area = 0, all = 0, depth = 0, rstack, globals, total;
   for (i = 0; i < nf; i++) {
     RioFunc *f = &vm.func[i]; RioCFunc *cf = &c->func[i]; uint32_t cb = 0;
@@ -155,15 +162,15 @@ static void memreport(void) {
     if (cf->oe * 4u > area) area = cf->oe * 4u;
     if (cf->dep > depth) depth = cf->dep;
     for (pc = f->pc; pc < f->end; pc++) /* its callees: compiled earlier, so already measured */
-      if (code[pc].op == M_CALL)
-        for (j = 0; j < i; j++) if (vm.func[j].pc == code[pc].c) { if (chain[j] > cb) { cb = chain[j]; next[i] = j; } break; }
+      if (vm.code[pc].op == M_CALL)
+        for (j = 0; j < i; j++) if (vm.func[j].pc == vm.code[pc].c) { if (chain[j] > cb) { cb = chain[j]; next[i] = j; } break; }
     chain[i] = frame[i] + cf->big + cb;
     if (best < 0 || chain[i] > chain[best]) best = i;
     order[i] = i;
   }
   rstack = (depth + 1) * 4;
   globals = slots - own - area - rstack;
-  total = consts + slots + c->big + table;
+  total = consts + slots + c->big + table + csz;
   printf("memory: %u bytes in use (of %u)\n", total, vm.memsize);
   printf("  %-24s %8u   (%u words; RioLimits.consts is only room while compiling)\n", "constants", consts, vm.nk);
   printf("  %-24s %8u\n", "globals", globals + (c->big - pbig));
@@ -171,7 +178,7 @@ static void memreport(void) {
   printf("  %-24s %8u   (%d procs with an address-taken slot keep their own frame; %u of it in big locals)\n", "own frames", own + pbig, nf - nshared, pbig);
   printf("  %-24s %8u   (the longest chain of calls: %u)\n", "call stack", rstack, depth);
   printf("  %-24s %8u\n", "tables", table);
-  printf("    %-22s %8u   (string literals, exported names, file names)\n", "strings", vm.exports - vm.hi);
+  printf("    %-22s %8u   (string literals, exported names, file names)\n", "strings", vm.exports - vm.hi - csz);
 #ifdef RIO_EXPORTS_ALL
   printf("    %-22s %8u   (%u names the host can look up: every top-level proc and global, from RIO_EXPORTS_ALL)\n", "exports", vm.lines - vm.exports, vm.nexports);
 #else
@@ -179,7 +186,7 @@ static void memreport(void) {
 #endif
   printf("    %-22s %8u   (pc -> source line, packed: read only for runtime errors)\n", "line table", vm.nlines);
   printf("    %-22s %8u   (%d procs)\n", "proc table", (uint32_t)nf * (uint32_t)sizeof(RioFunc), nf);
-  printf("  %-24s %8u   (%u instructions, in the code buffer, not memory)\n", "code", vm.pc * (uint32_t)sizeof(RioIns), vm.pc);
+  printf("  %-24s %8u   (%u instructions, 8 bytes each)\n", "code", csz, vm.pc);
   for (i = 1; i < nf; i++) { int k = order[i]; for (j = i; j > 0 && frame[order[j - 1]] + c->func[order[j - 1]].big < frame[k] + c->func[k].big; j--) order[j] = order[j - 1]; order[j] = k; }
   shown = nf < 15 ? nf : 15;
   if (nf) printf("biggest procs (bytes: frame + big locals)\n");
@@ -208,11 +215,19 @@ static void memreport(void) {
 
 int main(int argc, char **argv) {
   FILE *f; size_t n; int fn, i;
-  const char *cout = 0, *path = 0; int mrep = 0;
-  if (rio_init(&vm, mem, sizeof mem, code, 65535)) { fprintf(stderr, "init failed\n"); return 1; }
+  const char *cout = 0, *iout = 0, *path = 0; int mrep = 0; unsigned long msize = sizeof mem;
+  for (i = 1; i < argc; i++) /* -M first: rio_init comes before -D */
+    if (!strcmp(argv[i], "-M") && i + 1 < argc) {
+      char *e; msize = strtoul(argv[++i], &e, 0);
+      if (*e == 'K' || *e == 'k') msize <<= 10, e++; else if (*e == 'M' || *e == 'm') msize <<= 20, e++;
+      if (*e || msize < 4096 || msize > sizeof mem) { fprintf(stderr, "-M: 4K to %uM\n", (unsigned)(sizeof mem >> 20)); return 2; }
+    }
+  if (rio_init(&vm, mem, (uint32_t)msize, 0, 0)) { fprintf(stderr, "init failed\n"); return 1; }
   for (i = 1; i < argc; i++) {
     char *a = argv[i], *eq;
     if (!strcmp(a, "-c") && i + 1 < argc) cout = argv[++i];
+    else if (!strcmp(a, "-i") && i + 1 < argc) iout = argv[++i];
+    else if (!strcmp(a, "-M") && i + 1 < argc) i++;
     else if (!strcmp(a, "-m")) mrep = 1;
     else if (!strncmp(a, "-L", 2)) {
       const char *d = a[2] ? a + 2 : i + 1 < argc ? argv[++i] : 0;
@@ -234,7 +249,7 @@ int main(int argc, char **argv) {
   rio_ffi(&vm, "putc", "i", ffi_putc);
   rio_set_loader(&vm, loader, 0);
   signal(SIGINT, onint);
-  if (!path) return cout || mrep ? usage() : repl();
+  if (!path) return cout || mrep || iout ? usage() : repl();
   { /* local imports are relative to the main file's directory */
     const char *sl = strrchr(path, '/'), *bs = strrchr(path, '\\');
     size_t bl = (size_t)((sl > bs ? sl : bs) ? (sl > bs ? sl : bs) - path + 1 : 0);
@@ -243,6 +258,11 @@ int main(int argc, char **argv) {
   if (readfile(path) < 0) { fprintf(stderr, "cannot open %s\n", path); return 2; }
   n = srcn;
   (void)f;
+  if (n >= 4 && !memcmp(src, "RIOI", 4)) { /* an image: just run it */
+    if (cout || mrep || iout) return usage();
+    if (rio_image_load(&vm, src, (uint32_t)n)) { report(path); return 1; }
+    goto run;
+  }
   /* the C backend reads compiler tables after compiling, so they get their own buffer; running
      compiles in place, with the compiler's state overlaid on script memory */
   if (cout || mrep ? rio_compile_scratch(&vm, src, (uint32_t)n, scratch, sizeof scratch) : rio_compile(&vm, src, (uint32_t)n)) {
@@ -257,6 +277,14 @@ int main(int argc, char **argv) {
     if (fclose(f) || err) { fprintf(stderr, "error writing %s\n", cout); return 1; }
     return 0;
   }
+  if (iout) { /* the image goes in the scratch buffer, which compiling in place left unused */
+    uint32_t sz = rio_image_save(&vm, scratch, sizeof scratch);
+    if (!sz) { fprintf(stderr, "image too large\n"); return 1; }
+    if (!(f = fopen(iout, "wb"))) { fprintf(stderr, "cannot write %s\n", iout); return 2; }
+    if (fwrite(scratch, 1, sz, f) != sz || fclose(f)) { fprintf(stderr, "error writing %s\n", iout); return 1; }
+    return 0;
+  }
+run:
   if (rio_run(&vm) || ((fn = rio_func(&vm, "main")) >= 0 && rio_call(&vm, fn))) {
     report(path);
     return 1;

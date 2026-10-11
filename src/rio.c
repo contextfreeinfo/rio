@@ -1,6 +1,7 @@
 /* rio.c - compiler + vm. Single pass, no recursion, no allocation: everything lives in Rio and the
    caller's buffers. All locals are statically allocated (no recursion => one frame per proc), so
-   bytecode operands are absolute word slots into the memory buffer. */
+   bytecode operands are absolute word slots into the memory buffer.
+   RIO_NO_COMPILER builds only the vm, which runs images (see rio_image_load). */
 #include "rio.h"
 #include <math.h>
 #include <string.h>
@@ -9,14 +10,20 @@
 #ifndef RIO_NO_CGOTO
 #define RIO_CGOTO 1
 #endif
-#define NORET __attribute__((noreturn))
 #define NOINLINE __attribute__((noinline))
 #elif defined(_MSC_VER)
-#define NORET __declspec(noreturn)
 #define NOINLINE __declspec(noinline)
 #else
-#define NORET
 #define NOINLINE
+#endif
+/* RIO_HOT_SECTION: a linker section for the interpreter loop, so a host can place it in fast memory
+   (with the Pico SDK, ".time_critical.rio" puts it in SRAM instead of flash) */
+#if defined(RIO_HOT_SECTION) && (defined(__GNUC__) || defined(__clang__))
+#define HOT __attribute__((section(RIO_HOT_SECTION)))
+#define HOTDATA __attribute__((section(RIO_HOT_SECTION "_data")))
+#else
+#define HOT
+#define HOTDATA
 #endif
 
 #define OPS RIO_OPS
@@ -42,6 +49,7 @@ enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11,
   BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_FORMAT,
   BI_TOINT, BI_TOFLOAT, BI_TOBOOL, BI_ASSTRING, BI_FROMINT, BI_HAS };
 #define NONE 0xFFFF
+#ifndef RIO_NO_COMPILER
 static const char M_END[] = "missing 'end'", M_BRACKET[] = "unclosed bracket", M_EXPR[] = "expected expression",
   M_STRING[] = "unterminated string";
 #define TY(t) (&vm->c->type[t])
@@ -55,6 +63,7 @@ static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "co
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod", "assert",
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format",
   "toInt", "toFloat", "toBool", "asString", "fromInt", "has"};
+#endif
 static float f_sqrt(float x) { return sqrtf(x); }
 static float f_sin(float x) { return sinf(x); }
 static float f_cos(float x) { return cosf(x); }
@@ -103,6 +112,12 @@ static int fmtf(char *b, float f) {
   return i;
 }
 static int cat(char *b, int n, const char *s) { while (*s && n < RIO_ERRBUF - 1) b[n++] = *s++; return n; }
+static int32_t ftoi(float f) {
+  if (f != f) return 0;
+  if (f >= 2147483648.f) return 0x7FFFFFFF;
+  if (f <= -2147483648.f) return (int32_t)0x80000000u;
+  return (int32_t)f;
+}
 
 /* "line:col: message" (position parts omitted when unknown); remembers the parts for rio_error_info */
 static int seterr(Rio *vm, int kind, int line, int col, int len, const char *m) {
@@ -113,10 +128,29 @@ static int seterr(Rio *vm, int kind, int line, int col, int len, const char *m) 
   n = cat(b, n, m); b[n] = 0;
   return n;
 }
+#ifndef RIO_NO_COMPILER
+/* Compile errors don't jump: fail records the first error and makes the rest of the source read as
+   its end, so every loop that reads tokens finishes. FAIL returns from the function at once with a
+   harmless value; callers carry on with it, and anything they still do is thrown away. */
+static void stop(Rio *vm) { RioC *c = vm->c; c->dead = 1; TK.t = c->nx.t = TK_EOF; TK.n = c->nx.n = 0; }
+#define DEAD (vm->c->dead)
+#define FAIL(r, m) do { fail(vm, m); return r; } while (0)
+#define FAILTOK(r, m) do { failtok(vm, m); return r; } while (0)
+static const Ex NOEX = {EK_VOID, 0, TY_VOID, 0, 0, 0, 0};
+/* an error with a position of its own (line 0: none) */
+static void failat(Rio *vm, int line, int col, int w, const char *m) {
+  RioC *c = vm->c;
+  if (c->dead) return;
+  c->failmsg = m;
+  seterr(vm, RIO_ECOMPILE, line, col, w, m);
+  if (c->curf >= 2) vm->efile = c->names + c->mods[c->curf].file;
+  stop(vm);
+}
 /* compile error at the current token, or at the end of the expression just finished when the
    current token is already on the next line */
-NORET static void fail(Rio *vm, const char *m) {
+static void fail(Rio *vm, const char *m) {
   RioC *c = vm->c; int prev = TK.nl || TK.t == TK_EOF, i;
+  if (c->dead) return; /* only the first error counts */
   c->failmsg = m;
   int n = seterr(vm, RIO_ECOMPILE, prev ? c->pline : TK.line, prev ? c->pcol : TK.col, prev ? c->pw : TK.w, m);
   if (!prev && TK.n > 0) {
@@ -126,30 +160,35 @@ NORET static void fail(Rio *vm, const char *m) {
     n = cat(b, n, "'"); b[n] = 0;
   }
   if (c->curf >= 2) vm->efile = c->names + c->mods[c->curf].file;
-  longjmp(c->jb, 1);
+  stop(vm);
 }
 /* an error about the current token itself, even when it starts a new line */
-NORET static void failtok(Rio *vm, const char *m) { TK.nl = 0; fail(vm, m); }
+static void failtok(Rio *vm, const char *m) { TK.nl = 0; fail(vm, m); }
 
 /* ---------------------------------------------------------------- lexer */
 static int isal(int c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
 static int isdg(int c) { return c >= '0' && c <= '9'; }
+static int digitval(int c, int base) { /* -1: not a digit of this base */
+  int v = isdg(c) ? c - '0' : (c | 32) >= 'a' && (c | 32) <= 'f' ? (c | 32) - 'a' + 10 : -1;
+  return v < base ? v : -1;
+}
 static int esc(int c) { return c == 'n' ? '\n' : c == 't' ? '\t' : c == 'r' ? '\r' : c == '0' ? 0 : c; }
 static const char ops2[] = "::" ":=" "==" "!=" "<=" ">=" "&&" "||" "<<" ">>" "->" "+=" "-=" "*=" "/=" "%=" "&=" "|=" "^=";
 static const short tok2[] = {TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND, TK_OR, TK_SHL, TK_SHR,
   TK_ARROW, -'+', -'-', -'*', -'/', -'%', -'&', -'|', -'^'};
 
+#define LEXFAIL(m) do { fail(vm, m); t->t = TK_EOF; t->n = 0; return; } while (0)
+#define NUMFAIL(m) do { failat(vm, t->line, t->col, (int)(p - st), m); t->t = TK_EOF; t->n = 0; return; } while (0) /* at the number */
 static void lex(Rio *vm, RioTok *t) {
   const char *p = vm->c->sp, *e = vm->c->se, *s, *st;
   int nl = 0, i;
+  if (DEAD) { t->t = TK_EOF; t->n = 0; t->nl = 0; return; }
   for (;;) {
     while (p < e && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')) { if (*p == '\n') { nl = 1; vm->c->line++; vm->c->ls = p + 1; } p++; }
     if (p < e && *p == '#') { while (p < e && *p != '\n') p++; continue; } /* comments run to the end of the line */
     if (p + 1 < e && p[0] == '/' && (p[1] == '/' || p[1] == '*')) { /* a habit from other languages */
-      vm->c->failmsg = "comments start with #";
-      seterr(vm, RIO_ECOMPILE, vm->c->line, (int)(p - vm->c->ls) + 1, 2, "comments start with #");
-      if (vm->c->curf >= 2) vm->efile = vm->c->names + vm->c->mods[vm->c->curf].file;
-      longjmp(vm->c->jb, 1);
+      failat(vm, vm->c->line, (int)(p - vm->c->ls) + 1, 2, "comments start with #");
+      t->t = TK_EOF; t->n = 0; return;
     }
     break;
   }
@@ -159,37 +198,53 @@ static void lex(Rio *vm, RioTok *t) {
     while (p < e && (isal(*p) || isdg(*p))) p++;
     t->t = TK_ID;
     for (i = 0; i < (int)(sizeof kw / sizeof kw[0]); i++) if ((int)strlen(kw[i]) == p - s && !memcmp(kw[i], s, p - s)) t->t = TK_PROC + i;
-  } else if (isdg(*p)) {
-    uint32_t v = 0; double d = 0, sc = 1; int isf = 0;
-    if (*p == '0' && p + 1 < e && (p[1] == 'x' || p[1] == 'X')) {
-      for (p += 2; p < e; p++) {
-        int c = *p, h = isdg(c) ? c - '0' : (c | 32) >= 'a' && (c | 32) <= 'f' ? (c | 32) - 'a' + 10 : -1;
-        if (h < 0) break;
-        v = v * 16 + (uint32_t)h;
-      }
-    } else {
-      for (; p < e && isdg(*p); p++) { v = v * 10 + (uint32_t)(*p - '0'); d = d * 10 + (*p - '0'); }
-      if (p + 1 < e && *p == '.' && isdg(p[1])) for (isf = 1, p++; p < e && isdg(*p); p++) d += (*p - '0') * (sc /= 10);
+  } else if (isdg(*p)) { /* 123, 1_000, 0xFF, 0b1010, 1.5, 2e-3: an _ may go between any two digits */
+    uint32_t v = 0; double d = 0, sc = 1; int isf = 0, base = 10, n = 0, big = 0, k;
+    if (*p == '0' && p + 1 < e && ((p[1] | 32) == 'x' || (p[1] | 32) == 'b')) { base = (p[1] | 32) == 'x' ? 16 : 2; p += 2; }
+    while (p < e && (k = digitval(*p, base)) >= 0) {
+      if ((uint64_t)v * (uint32_t)base + (uint32_t)k > 0xFFFFFFFFu) big = 1;
+      v = v * (uint32_t)base + (uint32_t)k; d = d * 10 + k; n++; p++;
+      if (p + 1 < e && *p == '_' && digitval(p[1], base) >= 0) p++;
+    }
+    if (!n) NUMFAIL(base == 16 ? "hex digits expected after 0x" : "binary digits expected after 0b");
+    if (base == 10) {
+      if (p + 1 < e && *p == '.' && isdg(p[1]))
+        for (isf = 1, p++; p < e && isdg(*p); p++) {
+          d += (*p - '0') * (sc /= 10);
+          if (p + 2 < e && p[1] == '_' && isdg(p[2])) p++;
+        }
       if (p < e && (*p == 'e' || *p == 'E')) {
         int neg = 0, x = 0;
         p++; if (p < e && (*p == '-' || *p == '+')) neg = *p++ == '-';
-        while (p < e && isdg(*p)) { if (x < 1000) x = x * 10 + (*p - '0'); p++; } /* past 1000 it's inf or 0 anyway */
+        if (p >= e || !isdg(*p)) NUMFAIL("exponent digits expected");
+        while (p < e && isdg(*p)) { /* past 1000 it's inf or 0 anyway */
+          if (x < 1000) x = x * 10 + (*p - '0');
+          p++; if (p + 1 < e && *p == '_' && isdg(p[1])) p++;
+        }
         while (x--) d = neg ? d / 10 : d * 10;
         isf = 1;
       }
     }
+    if (p < e && (isal(*p) || isdg(*p))) { /* 1__0, 1_, 0b102, 0xFG, 12px */
+      const char *q = p; int us = 0;
+      while (p < e && (isal(*p) || isdg(*p))) us |= *p++ == '_';
+      NUMFAIL(us ? "_ goes between digits" : base == 2 && isdg(*q) ? "binary digits are 0 and 1" : "bad number");
+    }
+    if (big && !isf) NUMFAIL("number too big for Int (32 bits)");
+    if (base == 10 && !isf && v > 0x7FFFFFFFu && !(v == 0x80000000u && (vm->c->negnum || (t == &vm->c->nx && vm->c->tk.t == '-'))))
+      NUMFAIL("number too big for Int (the most is 2147483647; hex and binary can give any 32 bits)");
     t->t = isf ? TK_FLT : TK_INT;
     if (isf) t->v.f = (float)d; else t->v.u = v;
   } else if (*p == '"') {
     for (s = ++p; p < e && *p != '"'; p++) { if (*p == '\\') p++; if (p < e && *p == '\n') { vm->c->line++; vm->c->ls = p + 1; } }
-    if (p >= e) { vm->c->sp = e; fail(vm, M_STRING); }
+    if (p >= e) { vm->c->sp = e; LEXFAIL(M_STRING); }
     t->t = TK_STR; t->s = s; t->n = (int)(p - s); t->w = (int)(p + 1 - st); vm->c->sp = p + 1;
     return;
   } else if (*p == '\'') {
     int c = p + 1 < e ? p[1] : 0;
     p += 2;
     if (c == '\\' && p < e) c = esc(*p++);
-    if (p >= e || *p != '\'') fail(vm, "bad char literal");
+    if (p >= e || *p != '\'') LEXFAIL("bad char literal");
     p++; t->t = TK_INT; t->v.i = c;
   } else if (p + 2 < e && p[0] == '.' && p[1] == '.' && (p[2] == '<' || p[2] == '=')) {
     t->t = p[2] == '<' ? TK_RLT : TK_RLE; p += 3;
@@ -210,17 +265,17 @@ static void next(Rio *vm) {
   RioC *c = vm->c;
   c->pline = c->tk.line; c->pcol = c->tk.col; c->pw = c->tk.w; c->tk = c->nx; lex(vm, &c->nx);
 }
-static void expect(Rio *vm, int t, const char *m) { if (TK.t != t) fail(vm, m); next(vm); }
+static void expect(Rio *vm, int t, const char *m) { if (TK.t != t) FAIL(, m); next(vm); }
 
 /* ---------------------------------------------------------------- tables */
 static int addname(Rio *vm, const char *s, int n) {
-  if (vm->c->nnames + n > (int)vm->c->lim.names) fail(vm, "out of name space");
+  if (vm->c->nnames + n > (int)vm->c->lim.names) FAIL(0, "out of name space");
   memcpy(vm->c->names + vm->c->nnames, s, (size_t)n); vm->c->nnames += n;
   return vm->c->nnames - n;
 }
 static void addsym(Rio *vm, const char *s, int n, int k, int t, int32_t v) {
   RioSym *y;
-  if (vm->c->nsym >= (int)vm->c->lim.syms) fail(vm, "too many symbols");
+  if (vm->c->nsym >= (int)vm->c->lim.syms) FAIL(, "too many symbols");
   y = &vm->c->sym[vm->c->nsym++];
   y->name = (uint16_t)addname(vm, s, n); y->len = (uint16_t)n; y->k = (uint8_t)k; y->t = (uint16_t)t; y->v = v;
   y->mod = (uint16_t)vm->c->curmod; y->ex = 0;
@@ -249,7 +304,7 @@ static int lookup_meth(Rio *vm, int t, const char *s, int n) {
 }
 static int newtype(Rio *vm, int k, int elem, uint32_t n, uint32_t size) {
   RioType *y;
-  if (vm->c->ntype >= (int)vm->c->lim.types) fail(vm, "too many types");
+  if (vm->c->ntype >= (int)vm->c->lim.types) FAIL(0, "too many types");
   y = &vm->c->type[vm->c->ntype];
   y->k = (uint8_t)k; y->elem = (uint16_t)elem; y->n = n; y->size = size; y->f0 = y->nf = 0;
   y->ref = (uint8_t)(k == K_SLICE || k == K_BUILD || ((k == K_ARR || k == K_LIST) && vm->c->type[elem].ref));
@@ -264,7 +319,7 @@ static int slice_of(Rio *vm, int e) {
 static int array_of(Rio *vm, int e, uint32_t n) {
   int i; uint32_t es = TY(e)->size;
   for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_ARR && vm->c->type[i].elem == e && vm->c->type[i].n == n && !vm->c->type[i].f0) return i;
-  if (es && n > 0x7FFFFFF0u / es) fail(vm, "array too large");
+  if (es && n > 0x7FFFFFF0u / es) FAIL(0, "array too large");
   return newtype(vm, K_ARR, e, n, (es * n + 3) & ~3u);
 }
 /* [Enum]T: one element per value of the enum, indexed by it (f0: the enum). The values must be exactly
@@ -277,9 +332,9 @@ static int32_t enummin(Rio *vm, int et) {
 static int enumarray_of(Rio *vm, int el, int et) {
   RioType *e = TY(et); int i; int32_t mn = enummin(vm, et), mx = mn; uint32_t es = TY(el)->size;
   for (i = 0; i < e->nf; i++) { int32_t v = (int32_t)((uint32_t)vm->c->field[e->f0 + i].t << 16 | vm->c->field[e->f0 + i].off); if (v > mx) mx = v; }
-  if (mn != 0 || (int64_t)mx + 1 != e->nf) fail(vm, "an enum used as an index needs the values 0, 1, 2...: use one like that, or a switch");
+  if (mn != 0 || (int64_t)mx + 1 != e->nf) FAIL(0, "an enum used as an index needs the values 0, 1, 2...: use one like that, or a switch");
   for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_ARR && vm->c->type[i].elem == el && vm->c->type[i].f0 == et) return i;
-  if (es && e->nf > 0x7FFFFFF0u / es) fail(vm, "array too large");
+  if (es && e->nf > 0x7FFFFFF0u / es) FAIL(0, "array too large");
   i = newtype(vm, K_ARR, el, e->nf, (es * e->nf + 3) & ~3u);
   vm->c->type[i].f0 = (uint16_t)et;
   return i;
@@ -299,7 +354,7 @@ static int proc_of(Rio *vm, const int *ps, int n, int ret) {
   vm->c->type[i].f0 = (uint16_t)vm->c->nfield;
   for (j = 0; j < n; j++) {
     RioField *f;
-    if (vm->c->nfield >= (int)vm->c->lim.fields) fail(vm, "too many fields");
+    if (vm->c->nfield >= (int)vm->c->lim.fields) FAIL(0, "too many fields");
     f = &vm->c->field[vm->c->nfield++]; f->name = 0; f->len = 0; f->t = (uint16_t)ps[j]; f->off = 0;
   }
   vm->c->type[i].nf = (uint16_t)n;
@@ -309,14 +364,14 @@ static int proc_of(Rio *vm, const int *ps, int n, int ret) {
    Only a proc that never calls through a proc value can be one, so calls through values can't recurse */
 static void procvalue(Rio *vm, Ex *e, int t) {
   RioCFunc *f = &vm->c->func[e->a]; int ps[16], i;
-  if (f->np > 16) fail(vm, "too many parameters for a proc value");
+  if (f->np > 16) FAIL(, "too many parameters for a proc value");
   for (i = 0; i < f->np; i++) {
-    if (vm->c->param[f->p0 + i].ref) fail(vm, "a proc with & parameters can't be a value");
+    if (vm->c->param[f->p0 + i].ref) FAIL(, "a proc with & parameters can't be a value");
     ps[i] = vm->c->param[f->p0 + i].t;
   }
   i = proc_of(vm, ps, f->np, f->ret);
-  if (t >= 0 && i != t) fail(vm, "this proc's parameters or result don't match");
-  if (f->ho) fail(vm, "this proc calls procs through values, so it can't be a value itself (that could recurse)");
+  if (t >= 0 && i != t) FAIL(, "this proc's parameters or result don't match");
+  if (f->ho) FAIL(, "this proc calls procs through values, so it can't be a value itself (that could recurse)");
   f->val = 1;
   *e = mkex(EK_CONST, i, e->a + 1);
 }
@@ -325,7 +380,7 @@ static void procvalue(Rio *vm, Ex *e, int t) {
 static int list_of(Rio *vm, int e, uint32_t n) {
   int i; uint32_t es = TY(e)->size;
   for (i = TY_BLOB + 1; i < vm->c->ntype; i++) if (vm->c->type[i].k == K_LIST && vm->c->type[i].elem == e && vm->c->type[i].n == n) return i;
-  if (es && n > 0x7FFFFFF0u / es) fail(vm, "list too large");
+  if (es && n > 0x7FFFFFF0u / es) FAIL(0, "list too large");
   return newtype(vm, K_LIST, e, n, (4 + es * n + 3) & ~3u);
 }
 static int build_of(Rio *vm, int e) {
@@ -341,7 +396,7 @@ static int words(Rio *vm, int t) { return (int)((TY(t)->size + 3) / 4); }
 static void markline(Rio *vm) {
   RioC *c = vm->c; uint32_t line = c->lineovr ? c->lineovr : (uint32_t)c->pline; uint16_t e[2];
   if (line == c->lastline && vm->pc - c->lastlinepc < 4096) return; /* (steps stay under 4096: see packlines) */
-  if (c->poolcap - c->pool < 4) fail(vm, "out of compiler memory");
+  if (c->poolcap - c->pool < 4) FAIL(, "out of compiler memory");
   c->poolcap -= 4; e[0] = (uint16_t)vm->pc; e[1] = (uint16_t)(line > 0xFFFF ? 0xFFFF : line);
   memcpy(c->strs + c->poolcap, e, 4); c->nline++; c->lastline = line; c->lastlinepc = vm->pc;
 }
@@ -352,7 +407,7 @@ static uint32_t cline(Rio *vm, uint32_t pc) { /* line of pc while still compilin
 }
 static int emit(Rio *vm, int op, int a, int b, int c) {
   RioIns *i;
-  if (vm->pc >= vm->codecap) fail(vm, "code too large");
+  if (vm->pc >= vm->codecap) FAIL(0, "code too large");
   markline(vm);
   i = &vm->code[vm->pc];
   i->op = (uint8_t)op; i->x = 0; i->a = (uint16_t)a; i->b = (uint16_t)b; i->c = (uint16_t)c;
@@ -361,22 +416,22 @@ static int emit(Rio *vm, int op, int a, int b, int c) {
 static void emitx(Rio *vm, int op, int x, int a) { emit(vm, op, a, 0, 0); vm->code[vm->pc - 1].x = (uint8_t)x; }
 static void emitw(Rio *vm, int a, uint32_t w) { emit(vm, OP_DATA, a, (int)(w & 0xFFFF), (int)(w >> 16)); }
 static int here(Rio *vm) { return (int)(vm->c->lastlabel = vm->pc); }
-static int jappend(Rio *vm, int list, int j) { if (j == NONE) return list; vm->code[j].c = (uint16_t)list; return j; }
+static int jappend(Rio *vm, int list, int j) { if (j == NONE || DEAD) return list; /* (after an error, jump lists are unreliable) */ vm->code[j].c = (uint16_t)list; return j; }
 static void patch(Rio *vm, int list, int to) {
-  while (list != NONE) { int n = vm->code[list].c; vm->code[list].c = (uint16_t)to; list = n; }
+  while (list != NONE && !DEAD) { int n = vm->code[list].c; vm->code[list].c = (uint16_t)to; list = n; }
 }
 static int alloc(Rio *vm, int n) {
   int r = (int)vm->c->fr;
   vm->c->fr += (uint32_t)n;
   if (vm->c->fr > vm->c->hwm) {
     vm->c->hwm = vm->c->fr;
-    if (vm->c->hwm > vm->c->lim.slots || vm->c->hwm * 4 > vm->hi) fail(vm, "out of slots");
+    if (vm->c->hwm > vm->c->lim.slots || vm->c->hwm * 4 > vm->hi) FAIL(0, "out of slots");
   }
   return r;
 }
 static uint32_t halloc(Rio *vm, uint32_t n) {
   n = (n + 3) & ~3u;
-  if (vm->hi < n || vm->hi - n < vm->c->hwm * 4) fail(vm, "out of memory");
+  if (vm->hi < n || vm->hi - n < vm->c->hwm * 4) FAIL(0, "out of memory");
   vm->c->big += n; if (vm->c->curfn >= 0) vm->c->func[vm->c->curfn].big += n; /* for the memory report */
   return vm->hi -= n;
 }
@@ -389,7 +444,7 @@ static int kfind(Rio *vm, const uint32_t *v, int n, int adr) {
     for (j = 0; j < n; j++) if (R[i + j].u != v[j] || KFIX(i + j) || !KADR(i + j) != !(adr >> j & 1)) break;
     if (j == n) return (int)i;
   }
-  if (vm->nk + (uint32_t)n > vm->kcap) fail(vm, "too many constants");
+  if (vm->nk + (uint32_t)n > vm->kcap) FAIL(0, "too many constants");
   for (j = 0; j < n; j++, vm->nk++) {
     R[vm->nk].u = v[j];
     if (adr >> j & 1) vm->c->kadr[vm->nk >> 3] |= (uint8_t)(1u << (vm->nk & 7));
@@ -445,7 +500,7 @@ static void viewstore(Rio *vm, const Ex *d, const Ex *s) {
   int lv = localview(vm, s);
   if (vm->c->curfn < 0 || vm->c->argstore) return;
   if (d->k == EK_ST && localmem(vm, d) && (uint32_t)d->a < vm->hi) setlv(vm, (uint32_t)d->a, words(vm, d->t), lv);
-  else if (lv) fail(vm, "this view of the proc's own memory would outlive the call: make that memory global, or have the caller pass it in");
+  else if (lv) FAIL(, "this view of the proc's own memory would outlive the call: make that memory global, or have the caller pass it in");
 }
 #define RO_REF 4 /* Ex.ro: an &place, not yet given to a & parameter or name := &place */
 #define RO_NARROW 8 /* Ex.ro: a narrowed union's copy */
@@ -453,8 +508,8 @@ static void viewstore(Rio *vm, const Ex *d, const Ex *s) {
 static int istemp(Rio *vm, Ex *e) { return e->k == EK_ST && (uint32_t)e->a >= vm->c->nact * 4 && (uint32_t)e->a < vm->hi; }
 static void procvalue(Rio *vm, Ex *e, int t);
 static void needval(Rio *vm, Ex *e) {
-  if (e->k > EK_MEM) fail(vm, e->k == EK_VOID ? "no value" : "not a value");
-  if (e->ro & RO_REF) fail(vm, "&x only goes to a & parameter or name := &x");
+  if (e->k > EK_MEM) FAIL(, e->k == EK_VOID ? "no value" : "not a value");
+  if (e->ro & RO_REF) FAIL(, "&x only goes to a & parameter or name := &x");
 }
 static void coerce(Rio *vm, Ex *e, int t) {
   int et;
@@ -463,17 +518,17 @@ static void coerce(Rio *vm, Ex *e, int t) {
   et = vt(e->t); t = vt(t);
   if (e->k == EK_CONST && et == TY_I32 && t == TY_F32) { RioVal v; v.f = (float)e->a; e->a = v.i; e->t = TY_F32; return; }
   if (et == t) return;
-  if (TY(et)->k == K_ARR && TY(t)->k == K_SLICE && slice_of(vm, TY(et)->elem) == t) { if (istemp(vm, e)) fail(vm, "a computed array has no home to view: store it in a variable first"); return; }
+  if (TY(et)->k == K_ARR && TY(t)->k == K_SLICE && slice_of(vm, TY(et)->elem) == t) { if (istemp(vm, e)) FAIL(, "a computed array has no home to view: store it in a variable first"); return; }
   if (TY(et)->k == K_LIST && TY(t)->k == K_BUILD && TY(t)->elem == TY(et)->elem) return;
   if ((TY(et)->k == K_ARR || TY(et)->k == K_SLICE) && TY(t)->k == K_BUILD)
-    fail(vm, "a builder needs somewhere to keep its length: declare one first, name: [..]T = array");
-  fail(vm, "type mismatch");
+    FAIL(, "a builder needs somewhere to keep its length: declare one first, name: [..]T = array");
+  FAIL(, "type mismatch");
 }
 /* scalar value -> slot holding it */
 static int toslot(Rio *vm, Ex *e, int reuse) {
   int k, d;
   needval(vm, e); k = TY(e->t)->k;
-  if (k != K_I32 && k != K_F32 && k != K_BYTE && k != K_BOOL && k != K_ENUM && k != K_PROC) fail(vm, "expected a number");
+  if (k != K_I32 && k != K_F32 && k != K_BYTE && k != K_BOOL && k != K_ENUM && k != K_PROC) FAIL(0, "expected a number");
   if (e->k == EK_CONST) return kslot(vm, (uint32_t)e->a);
   if (e->k == EK_ST) {
     if (k != K_BYTE && e->a < 0x40000) return e->a >> 2;
@@ -497,7 +552,7 @@ static int toslot2(Rio *vm, Ex *e) {
     emit(vm, OP_LEA, d, e->a, e->off); emit(vm, OP_MOV, d + 1, kslot(vm, ty->n), 0);
     return d;
   }
-  if (ty->k != K_SLICE) fail(vm, "expected a slice");
+  if (ty->k != K_SLICE) FAIL(0, "expected a slice");
   if (e->k == EK_ST) {
     if (e->a < 0x3FFFC) return e->a >> 2;
     e->k = EK_MEM; e->a = kaddr(vm, (uint32_t)e->a, 8); e->off = 0;
@@ -516,7 +571,7 @@ static int toslot3(Rio *vm, Ex *e) {
     emit(vm, OP_LEA, d, e->a, e->off); emit(vm, OP_LEA, d + 1, e->a, e->off + 4); emit(vm, OP_MOV, d + 2, kslot(vm, ty->n), 0);
     return d;
   }
-  if (ty->k != K_BUILD) fail(vm, "expected a list");
+  if (ty->k != K_BUILD) FAIL(0, "expected a list");
   if (e->k == EK_ST) {
     if (e->a < 0x3FFF4) return e->a >> 2;
     e->k = EK_MEM; e->a = kaddr(vm, (uint32_t)e->a, 12); e->off = 0;
@@ -552,7 +607,7 @@ static void store(Rio *vm, Ex *d, Ex *s) {
       return;
     }
     sa = toaddr(vm, s); da = toaddr(vm, d);
-    if (ty->size > 0xFFFF) fail(vm, "value too large to copy");
+    if (ty->size > 0xFFFF) FAIL(, "value too large to copy");
     emit(vm, OP_COPY, da, sa, (int)ty->size);
     return;
   }
@@ -608,7 +663,7 @@ static int invjump(RioIns *i) {
 }
 static int condjump(Rio *vm, Ex *e) {
   needval(vm, e);
-  if (e->t != TY_BOOL) fail(vm, "condition must be Bool");
+  if (e->t != TY_BOOL) FAIL(0, "condition must be Bool");
   if (e->k == EK_CONST) return e->a ? NONE : emit(vm, OP_JMP, 0, 0, NONE);
   if (e->k == EK_ST && e->a < 0x40000 && (e->a >> 2) >= (int)vm->c->nact && vm->pc && vm->c->lastlabel != vm->pc) {
     RioIns *i = &vm->code[vm->pc - 1];
@@ -622,12 +677,6 @@ static int condjump(Rio *vm, Ex *e) {
 }
 
 /* ---------------------------------------------------------------- operators */
-static int32_t ftoi(float f) {
-  if (f != f) return 0;
-  if (f >= 2147483648.f) return 0x7FFFFFFF;
-  if (f <= -2147483648.f) return (int32_t)0x80000000u;
-  return (int32_t)f;
-}
 static void fold(Rio *vm, int op, Ex *l, Ex *r, int isf) {
   RioVal a, b, c; int32_t x, y;
   a.i = l->a; b.i = r->a; x = a.i; y = b.i;
@@ -637,12 +686,12 @@ static void fold(Rio *vm, int op, Ex *l, Ex *r, int isf) {
     case TK_EQ: c.i = a.f == b.f; break; case TK_NE: c.i = a.f != b.f; break;
     case '<': c.i = a.f < b.f; break; case '>': c.i = a.f > b.f; break;
     case TK_LE: c.i = a.f <= b.f; break; case TK_GE: c.i = a.f >= b.f; break;
-    default: fail(vm, "integer operator on floats");
+    default: FAIL(, "integer operator on floats");
   }
   else switch (op) {
     case '+': c.u = a.u + b.u; break; case '-': c.u = a.u - b.u; break; case '*': c.u = a.u * b.u; break;
     case '/': case '%':
-      if (!y) fail(vm, "division by zero");
+      if (!y) FAIL(, "division by zero");
       c.i = y == -1 ? (op == '/' ? (int32_t)(0u - a.u) : 0) : op == '/' ? x / y : x % y; break;
     case '&': c.u = a.u & b.u; break; case '|': c.u = a.u | b.u; break; case '^': c.u = a.u ^ b.u; break;
     case TK_SHL: c.u = a.u << (b.u & 31); break; case TK_SHR: c.i = x >> (b.u & 31); break;
@@ -681,9 +730,9 @@ static void isused(Rio *vm, const Ex *e, int carry) {
 static void isop(Rio *vm, Ex *l, Ex *r) { /* u is T, u is nil: compare the tag */
   int j; Ex tag, c;
   needval(vm, l);
-  if (TY(l->t)->k != K_UNION) fail(vm, "is tests which type a union holds");
-  if (r->k == EK_TY || (r->k == EK_CONST && r->t == l->t)) j = unionmember(vm, l->t, r); else fail(vm, "is needs a type (or nil)");
-  if (j < 0) fail(vm, "not one of this union's types");
+  if (TY(l->t)->k != K_UNION) FAIL(, "is tests which type a union holds");
+  if (r->k == EK_TY || (r->k == EK_CONST && r->t == l->t)) j = unionmember(vm, l->t, r); else FAIL(, "is needs a type (or nil)");
+  if (j < 0) FAIL(, "not one of this union's types");
   {
     int32_t var = l->k == EK_ST && !l->ro && l->a < 0x40000 ? l->a : -1;
     tag = *l; tag.t = TY_I32; tag.ro = 0;
@@ -734,14 +783,14 @@ static void binop(Rio *vm, int op, Ex *l, Ex *r) {
   lt = vt(l->t); rt = vt(r->t);
   if (l->k == EK_CONST && lt == TY_I32 && rt == TY_F32) { coerce(vm, l, TY_F32); lt = TY_F32; }
   if (r->k == EK_CONST && rt == TY_I32 && lt == TY_F32) { coerce(vm, r, TY_F32); rt = TY_F32; }
-  if (lt != rt) fail(vm, "type mismatch");
+  if (lt != rt) FAIL(, "type mismatch");
   cmp = op == TK_EQ || op == TK_NE || op == '<' || op == '>' || op == TK_LE || op == TK_GE;
   if ((lt == TY_STR || lt == TY_BLOB) && (op == TK_EQ || op == TK_NE)) {
     ls = toslot2(vm, l); rs = toslot2(vm, r); o = op == TK_EQ ? OP_SEQ : OP_SNE;
   } else {
     isf = lt == TY_F32;
-    if (TY(lt)->k == K_ENUM && op != TK_EQ && op != TK_NE) fail(vm, "enums compare only with == and != (use .toInt() for order)");
-    if (!isf && lt != TY_I32 && !((lt == TY_BOOL || TY(lt)->k == K_ENUM) && (op == TK_EQ || op == TK_NE))) fail(vm, "bad operand types");
+    if (TY(lt)->k == K_ENUM && op != TK_EQ && op != TK_NE) FAIL(, "enums compare only with == and != (use .toInt() for order)");
+    if (!isf && lt != TY_I32 && !((lt == TY_BOOL || TY(lt)->k == K_ENUM) && (op == TK_EQ || op == TK_NE))) FAIL(, "bad operand types");
     if (l->k == EK_CONST && r->k == EK_CONST) { fold(vm, op, l, r, isf); l->t = (uint16_t)(cmp ? TY_BOOL : lt); l->ro = 0; return; }
     switch (op) {
     case '+': o = isf ? OP_FADD : OP_ADD; break;
@@ -755,7 +804,7 @@ static void binop(Rio *vm, int op, Ex *l, Ex *r) {
     case TK_GE: sw = 1; /* fallthrough */
     case TK_LE: o = isf ? OP_FLE : OP_LE; break;
     default:
-      if (isf) fail(vm, "integer operator on floats");
+      if (isf) FAIL(, "integer operator on floats");
       o = op == '%' ? OP_MOD : op == '&' ? OP_AND : op == '|' ? OP_OR : op == '^' ? OP_XOR : op == TK_SHL ? OP_SHL : OP_SHR;
     }
     ls = toslot(vm, l, 1); rs = toslot(vm, r, 1);
@@ -790,24 +839,24 @@ static void vecarith(Rio *vm, int op, Ex *l, Ex *r, Ex *into) {
   int ln = 0, rn = 0, le, re, et, n, x, o, ls, rs, da, d = 0, t;
   needval(vm, l); needval(vm, r);
   le = vecinfo(vm, l->t, &ln); re = vecinfo(vm, r->t, &rn);
-  if (!le && !re) fail(vm, "arithmetic needs numbers, or arrays and structs made of one number type");
+  if (!le && !re) FAIL(, "arithmetic needs numbers, or arrays and structs made of one number type");
   t = le ? l->t : r->t; et = le ? le : re; n = le ? ln : rn;
-  if (le && re) { if (l->t != r->t) fail(vm, "type mismatch"); }
+  if (le && re) { if (l->t != r->t) FAIL(, "type mismatch"); }
   else {
     Ex *s = le ? r : l;
     if (s->k == EK_CONST && vt(s->t) == TY_I32 && et == TY_F32) coerce(vm, s, TY_F32);
-    if (vt(s->t) != et) fail(vm, "type mismatch");
+    if (vt(s->t) != et) FAIL(, "type mismatch");
   }
   x = op == '+' ? 0 : op == '-' ? 1 : op == '*' ? 2 : op == '/' ? 3 : op == '%' ? 4 : -1;
-  if (x < 0) fail(vm, "arrays and number structs only do + - * / %");
-  if (x == 4 && et == TY_F32) fail(vm, "integer operator on floats");
+  if (x < 0) FAIL(, "arrays and number structs only do + - * / %");
+  if (x == 4 && et == TY_F32) FAIL(, "integer operator on floats");
   o = (et == TY_F32 ? OP_FVADD : OP_VADD) + x;
   x = (le ? 0 : 16) | (re ? 0 : 32);
   ls = le ? toaddr(vm, l) : toslot(vm, l, 1);
   rs = re ? toaddr(vm, r) : toslot(vm, r, 1);
   if (into) da = into == l ? ls : toaddr(vm, into); /* a op= b: l is the target */
   else { /* at or below every operand's temporaries: safe, since elements are done in order */
-    if (n > SMALLW) fail(vm, "too big for a temporary (over 16 words): change it in place with += -= *= /=");
+    if (n > SMALLW) FAIL(, "too big for a temporary (over 16 words): change it in place with += -= *= /=");
     vm->c->fr = l->t0 < r->t0 ? l->t0 : r->t0; d = alloc(vm, n);
     da = kaddr(vm, (uint32_t)d * 4, (uint32_t)n * 4);
   }
@@ -820,7 +869,7 @@ static void unop(Rio *vm, int op, Ex *e) {
   needval(vm, e);
   if (op == '&') {
     if (e->k == EK_CONST || e->ro || (e->k == EK_ST && (e->a < (int32_t)vm->kcap * 4 || istemp(vm, e))))
-      fail(vm, "& needs a variable, field or element that can be changed");
+      FAIL(, "& needs a variable, field or element that can be changed");
     e->ro = RO_REF;
     return;
   }
@@ -830,7 +879,7 @@ static void unop(Rio *vm, int op, Ex *e) {
     return;
   }
   t = vt(e->t);
-  if (op == '!' ? t != TY_BOOL : t != TY_I32 && !(t == TY_F32 && op == '-')) fail(vm, "bad operand for unary operator");
+  if (op == '!' ? t != TY_BOOL : t != TY_I32 && !(t == TY_F32 && op == '-')) FAIL(, "bad operand for unary operator");
   if (e->k == EK_CONST) {
     RioVal v; v.i = e->a;
     if (t == TY_F32) v.f = -v.f; else v.i = op == '-' ? (int32_t)(0u - v.u) : op == '!' ? !v.i : ~v.i;
@@ -844,12 +893,13 @@ static void unop(Rio *vm, int op, Ex *e) {
 }
 
 /* ---------------------------------------------------------------- expression parser (shunting-yard) */
-static Ex *vtop(Rio *vm) { return &vm->c->vs[vm->c->nvs - 1]; }
-static Ex vpop(Rio *vm) { return vm->c->vs[--vm->c->nvs]; }
-static void vpush(Rio *vm, Ex e) { if (vm->c->nvs >= (int)vm->c->lim.expr) fail(vm, "expression too complex"); vm->c->vs[vm->c->nvs++] = e; }
+/* after an error the stacks can come up short: the empty cases only happen then, and give harmless values */
+static Ex *vtop(Rio *vm) { return &vm->c->vs[vm->c->nvs > 0 ? vm->c->nvs - 1 : 0]; }
+static Ex vpop(Rio *vm) { return vm->c->nvs > 0 ? vm->c->vs[--vm->c->nvs] : NOEX; }
+static void vpush(Rio *vm, Ex e) { if (vm->c->nvs >= (int)vm->c->lim.expr) FAIL(, "expression too complex"); vm->c->vs[vm->c->nvs++] = e; }
 static Op *opush(Rio *vm, int k, int prec, int op) {
   Op *o;
-  if (vm->c->nos >= (int)vm->c->lim.expr) fail(vm, "expression too complex");
+  if (vm->c->nos >= (int)vm->c->lim.expr) FAIL(&vm->c->os[0], "expression too complex"); /* (somewhere harmless to write) */
   o = &vm->c->os[vm->c->nos++];
   o->k = (uint8_t)k; o->prec = (uint8_t)prec; o->op = (int16_t)op; o->a = o->b = o->c = o->n = o->pun = 0; o->set = 0;
   o->vb = (uint16_t)vm->c->nvs; o->fr0 = (uint16_t)vm->c->fr;
@@ -868,7 +918,9 @@ static int binprec(int t) {
   return 0;
 }
 static void reduce1(Rio *vm) {
-  Op o = vm->c->os[--vm->c->nos]; Ex r;
+  Op o; Ex r;
+  if (vm->c->nos <= 0) return;
+  o = vm->c->os[--vm->c->nos];
   if (o.k == OK_UN) { unop(vm, o.op, vtop(vm)); return; }
   r = vpop(vm);
   if (o.k == OK_BIN) { binop(vm, o.op, vtop(vm), &r); return; }
@@ -876,7 +928,7 @@ static void reduce1(Rio *vm) {
     int s, d = o.b;
     isused(vm, &r, o.k == OK_AND ? d * 4 : -1);
     needval(vm, &r);
-    if (r.t != TY_BOOL) fail(vm, "expected Bool");
+    if (r.t != TY_BOOL) FAIL(, "expected Bool");
     s = toslot(vm, &r, 1);
     vm->c->fr = (uint32_t)d + 1;
     if (s != d && !retarget(vm, s, d)) emit(vm, OP_MOV, d, s, 0);
@@ -893,27 +945,27 @@ static Ex symex(Rio *vm, int i) {
     return e;
   }
   case S_CONST: { Ex e = mkex(TY(y->t)->k <= K_F32 || TY(y->t)->k == K_BOOL || TY(y->t)->k == K_ENUM ? EK_CONST : EK_ST, y->t, y->v); e.ro = 1; return e; }
-  case S_FN: if (!vm->c->func[y->v].done) fail(vm, "recursion is not allowed"); return mkex(EK_FN, 0, y->v);
+  case S_FN: if (!vm->c->func[y->v].done) FAIL(NOEX, "recursion is not allowed"); return mkex(EK_FN, 0, y->v);
   case S_NARROW: { Ex e = mkex(EK_ST, y->t, y->v); e.ro = RO_NARROW; return e; }
   case S_SELF: case S_ROREF: { /* v: the slot holding the receiver's (or loop element's) address */
     Ex e = mkex(EK_MEM, y->t, y->v); e.ro = y->k == S_ROREF; return e;
   }
   case S_FFI: return mkex(EK_FFI, 0, y->v);
   case S_BI:
-    if (y->v == BI_LEN || y->v == BI_CAP) fail(vm, y->v == BI_LEN ? "len is a method: write x.len()" : "cap is a method: write x.cap()");
+    if (y->v == BI_LEN || y->v == BI_CAP) FAIL(NOEX, y->v == BI_LEN ? "len is a method: write x.len()" : "cap is a method: write x.cap()");
     return mkex(EK_BI, 0, y->v);
   default: return mkex(EK_TY, y->t, 0);
   }
 }
 static Ex ident(Rio *vm) {
   int i = lookup(vm, TK.s, TK.n);
-  if (i < 0) failtok(vm, "undefined name");
+  if (i < 0) FAILTOK(NOEX, "undefined name");
   return symex(vm, i);
 }
 static Ex strconst(Rio *vm, const char *s, int n) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; uint8_t *d = c->strs + c->pool; uint32_t k = vm->nk; int i, j = 0; Ex e;
-  if ((uint32_t)n > c->poolcap - c->pool) fail(vm, "out of compiler memory");
-  if (k + 2 > vm->kcap) fail(vm, "too many constants");
+  if ((uint32_t)n > c->poolcap - c->pool) FAIL(NOEX, "out of compiler memory");
+  if (k + 2 > vm->kcap) FAIL(NOEX, "too many constants");
   for (i = 0; i < n; i++) d[j++] = (uint8_t)(s[i] == '\\' && i + 1 < n ? esc(s[++i]) : s[i]);
   R[k].u = 0x80000000u | c->pool; R[k + 1].u = (uint32_t)j; c->kfix[k >> 3] |= (uint8_t)(1u << (k & 7));
   vm->nk += 2; c->pool += (uint32_t)j;
@@ -923,11 +975,18 @@ static Ex strconst(Rio *vm, const char *s, int n) {
 static Ex strlit(Rio *vm) { return strconst(vm, TK.s, TK.n); }
 /* parse a -D value as a (signed) number literal using the lexer */
 static int defnum(Rio *vm, const char *v, RioTok *t) {
-  RioC *c = vm->c; const char *sp = c->sp, *se = c->se; int line = c->line, neg = *v == '-', ok;
-  c->sp = v + neg; c->se = v + strlen(v);
+  RioC *c = vm->c; const char *sp = c->sp, *se = c->se, *ls = c->ls; int line = c->line, neg = *v == '-', ok;
+  RioTok tk = c->tk, nx = c->nx; int ekind = vm->ekind; char err[RIO_ERRBUF]; const char *fm = c->failmsg, *ef = vm->efile;
+  if (c->dead) return 0;
+  memcpy(err, vm->err, sizeof err);
+  c->sp = v + neg; c->se = v + strlen(v); c->negnum = neg;
   lex(vm, t);
-  ok = (t->t == TK_INT || t->t == TK_FLT) && c->sp == c->se;
-  c->sp = sp; c->se = se; c->line = line;
+  c->negnum = 0;
+  ok = !c->dead && (t->t == TK_INT || t->t == TK_FLT) && c->sp == c->se;
+  if (c->dead) { /* not a number after all (12px, 1_): undo the error */
+    c->dead = 0; c->tk = tk; c->nx = nx; vm->ekind = ekind; memcpy(vm->err, err, sizeof err); c->failmsg = fm; vm->efile = ef;
+  }
+  c->sp = sp; c->se = se; c->line = line; c->ls = ls;
   if (ok && neg) { if (t->t == TK_INT) t->v.u = 0u - t->v.u; else t->v.f = -t->v.f; }
   return ok;
 }
@@ -947,19 +1006,19 @@ static Ex defval(Rio *vm, int di, int t) {
   {
     char b[RIO_ERRBUF]; int m = cat(b, 0, "-D "); m = cat(b, m, name); m = cat(b, m, ": value doesn't fit ");
     m = cat(b, m, t == TY_I32 ? "Int" : t == TY_F32 ? "Float" : "Bool"); b[m] = 0;
-    seterr(vm, RIO_ECOMPILE, 0, 0, 0, b);
-    longjmp(vm->c->jb, 1);
+    failat(vm, 0, 0, 0, b); vm->c->failmsg = 0;
+    return NOEX;
   }
 }
 static void field(Rio *vm, Ex *e) {
   RioType *st; RioField *f = 0; int i;
   needval(vm, e); st = TY(e->t);
-  if (st->k != K_STRUCT) fail(vm, "not a struct");
+  if (st->k != K_STRUCT) FAIL(, "not a struct");
   for (i = 0; i < st->nf; i++) {
     f = &vm->c->field[st->f0 + i];
     if (f->len == TK.n && !memcmp(vm->c->names + f->name, TK.s, (size_t)TK.n)) break;
   }
-  if (i == st->nf) fail(vm, "no such field");
+  if (i == st->nf) FAIL(, "no such field");
   if (e->k == EK_ST) e->a += f->off; else e->off += f->off;
   e->t = f->t;
 }
@@ -986,8 +1045,8 @@ static int swizzle(Rio *vm, Ex *e) {
     if (!p) return 0;
     ix[j] = (int)(p - "xyzwrgba"); mix |= ix[j] < 4 ? 1 : 2; ix[j] &= 3;
   }
-  if (mix == 3) failtok(vm, "use xyzw or rgba, not both");
-  for (j = 0; j < n; j++) if ((uint32_t)ix[j] >= ty->n) failtok(vm, "no such element: the array is shorter");
+  if (mix == 3) FAILTOK(0, "use xyzw or rgba, not both");
+  for (j = 0; j < n; j++) if ((uint32_t)ix[j] >= ty->n) FAILTOK(0, "no such element: the array is shorter");
   if (n == 1) { if (e->k == EK_ST) e->a += ix[0] * 4; else e->off += ix[0] * 4; e->t = (uint16_t)el; return 1; }
   d = alloc(vm, n);
   for (j = 0; j < n; j++) {
@@ -1018,7 +1077,7 @@ static void member(Rio *vm) {
   Ex *e = vtop(vm), m; RioType *ty; int i, k;
   if (e->k == EK_MOD) { /* mod.name: one of the module's exported names */
     uint16_t t0 = e->t0;
-    if ((i = modsym(vm, e->a, TK.s, TK.n)) < 0) fail(vm, "not exported by that module");
+    if ((i = modsym(vm, e->a, TK.s, TK.n)) < 0) FAIL(, "not exported by that module");
     *e = symex(vm, i); e->t0 = t0;
     return;
   }
@@ -1026,15 +1085,15 @@ static void member(Rio *vm) {
     int32_t v; uint16_t t0 = e->t0;
     if (enumvalue(vm, e->t, TK.s, TK.n, &v)) { *e = mkex(EK_CONST, e->t, v); e->t0 = t0; return; }
     if ((TK.n == 7 && !memcmp(TK.s, "fromInt", 7)) || (TK.n == 3 && !memcmp(TK.s, "has", 3))) {
-      if (vm->c->nx.t != '(') fail(vm, "call it: Enum.fromInt(n), Enum.has(n)");
+      if (vm->c->nx.t != '(') FAIL(, "call it: Enum.fromInt(n), Enum.has(n)");
       *e = mkex(EK_BI, e->t, TK.n == 3 ? BI_HAS : BI_FROMINT); e->t0 = t0;
       return;
     }
-    failtok(vm, "not a value of this enum");
+    FAILTOK(, "not a value of this enum");
   }
   needval(vm, e); ty = TY(e->t);
   if (ty->k == K_UNION && lookup_meth(vm, e->t, TK.s, TK.n) < 0)
-    failtok(vm, "a union's value is reachable inside switch u / case T, or if u is T");
+    FAILTOK(, "a union's value is reachable inside switch u / case T, or if u is T");
   if (structfield(vm, ty, TK.s, TK.n) >= 0) { field(vm, e); return; }
   if (ty->k == K_ARR && swizzle(vm, e)) return;
   if ((ty->k == K_ARR || ty->k == K_SLICE || ty->k == K_LIST || ty->k == K_BUILD) && TK.n == 3 &&
@@ -1043,15 +1102,15 @@ static void member(Rio *vm) {
   else if (ty->k == K_LIST || ty->k == K_BUILD) {
     for (k = BI_PUSH; k <= BI_FORMAT; k++)
       if (k != BI_CAP && (int)strlen(bi[k]) == TK.n && !memcmp(bi[k], TK.s, (size_t)TK.n)) break;
-    if (k > BI_FORMAT) fail(vm, "no such method");
+    if (k > BI_FORMAT) FAIL(, "no such method");
     m = mkex(EK_BI, 0, k);
   } else {
     if ((i = lookup_meth(vm, vt(e->t), TK.s, TK.n)) < 0)
-      fail(vm, ty->k == K_STRUCT ? "no such field or method" : ty->k == K_ARR ? "no such method (swizzles like .x .zy .rgba need 1-4 letters, on arrays of 1-4 numbers)" : "no such method");
-    if (!vm->c->func[vm->c->sym[i].v].done) fail(vm, "recursion is not allowed");
+      FAIL(, ty->k == K_STRUCT ? "no such field or method" : ty->k == K_ARR ? "no such method (swizzles like .x .zy .rgba need 1-4 letters, on arrays of 1-4 numbers)" : "no such method");
+    if (!vm->c->func[vm->c->sym[i].v].done) FAIL(, "recursion is not allowed");
     m = mkex(EK_FN, 0, vm->c->sym[i].v);
   }
-  if (vm->c->nx.t != '(') fail(vm, "method calls need ()");
+  if (vm->c->nx.t != '(') FAIL(, "method calls need ()");
   m.ro = 2; /* bound: the receiver is just below on the stack */
   vpush(vm, m);
 }
@@ -1059,12 +1118,12 @@ static void doindex(Rio *vm, Ex *o, Ex *i) {
   RioType *ty; int el, sz, s, ix, d, ro;
   needval(vm, o); needval(vm, i); ty = TY(o->t);
   o->lv = (uint8_t)localview(vm, o);
-  if (ty->k != K_ARR && ty->k != K_SLICE && ty->k != K_LIST && ty->k != K_BUILD) fail(vm, "cannot index this");
+  if (ty->k != K_ARR && ty->k != K_SLICE && ty->k != K_LIST && ty->k != K_BUILD) FAIL(, "cannot index this");
   if (ty->k == K_ARR && ty->f0) { /* [Enum]T: the enum's value is the element */
-    if (vt(i->t) != ty->f0) fail(vm, "index this array with its enum");
+    if (vt(i->t) != ty->f0) FAIL(, "index this array with its enum");
     i->t = TY_I32;
   }
-  if (vt(i->t) != TY_I32) fail(vm, "index must be Int");
+  if (vt(i->t) != TY_I32) FAIL(, "index must be Int");
   el = ty->elem; sz = (int)TY(el)->size; ro = o->ro || o->t == TY_STR;
   if (ty->k == K_LIST || ty->k == K_BUILD) { /* checked against the current length */
     s = toslot3(vm, o); ix = toslot(vm, i, 1);
@@ -1074,7 +1133,7 @@ static void doindex(Rio *vm, Ex *o, Ex *i) {
     return;
   }
   if (ty->k == K_ARR && o->k == EK_ST && i->k == EK_CONST) {
-    if ((uint32_t)i->a >= ty->n) fail(vm, "index out of bounds");
+    if ((uint32_t)i->a >= ty->n) FAIL(, "index out of bounds");
     o->a += i->a * sz; o->t = (uint16_t)el;
     return;
   }
@@ -1091,14 +1150,14 @@ static void doslice(Rio *vm, Ex *o, Ex *lo, Ex *hi) {
     emit(vm, OP_LVIEW, v, b, 0);
     *o = mkex(EK_ST, slice_of(vm, ty->elem), v * 4); o->t0 = (uint16_t)t0; ty = TY(o->t);
   }
-  if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "cannot slice this");
-  if (ty->k == K_ARR && istemp(vm, o)) fail(vm, "a computed array has no home to view: store it in a variable first");
+  if (ty->k != K_ARR && ty->k != K_SLICE) FAIL(, "cannot slice this");
+  if (ty->k == K_ARR && istemp(vm, o)) FAIL(, "a computed array has no home to view: store it in a variable first");
   if (ty->k == K_ARR && ty->f0) { /* counts[.east:.west]: bounds are the enum's values, which are the positions */
     int lomit = lo->k == EK_CONST && lo->t == TY_I32 && lo->off == 1;
-    if ((!lomit && vt(lo->t) != ty->f0) || (hi->k != EK_LEN && vt(hi->t) != ty->f0)) fail(vm, "slice this array with its enum's values");
+    if ((!lomit && vt(lo->t) != ty->f0) || (hi->k != EK_LEN && vt(hi->t) != ty->f0)) FAIL(, "slice this array with its enum's values");
     lo->t = TY_I32; if (hi->k != EK_LEN) hi->t = TY_I32;
   }
-  if (vt(lo->t) != TY_I32 || (hi->k != EK_LEN && vt(hi->t) != TY_I32)) fail(vm, "slice bounds must be Int");
+  if (vt(lo->t) != TY_I32 || (hi->k != EK_LEN && vt(hi->t) != TY_I32)) FAIL(, "slice bounds must be Int");
   s = toslot2(vm, o); l = toslot(vm, lo, 1); h = hi->k == EK_LEN ? s + 1 : toslot(vm, hi, 1);
   vm->c->fr = o->t0; d = alloc(vm, 2);
   emit(vm, OP_SLICE, d, s, l); emitw(vm, h, TY(ty->elem)->size);
@@ -1117,9 +1176,9 @@ static void argdone(Rio *vm, Op *m) {
     if (pt >= 0 && TY(pt)->k == K_PROC) procvalue(vm, a, pt);
   }
   if (pp && pp->ref) {
-    if (!(a->ro & RO_REF)) fail(vm, "this parameter is a reference: pass &x");
+    if (!(a->ro & RO_REF)) FAIL(, "this parameter is a reference: pass &x");
     a->ro = 0;
-    if (a->t != pp->ref) fail(vm, "type mismatch");
+    if (a->t != pp->ref) FAIL(, "type mismatch");
     m->n++;
     return;
   }
@@ -1133,14 +1192,14 @@ static void argdone(Rio *vm, Op *m) {
     vm->c->fr = (uint32_t)(m->c / 4 + words(vm, m->b));
   } else if (m->a == EK_FN || m->a == EK_ST) {
     int k = TY(a->t)->k;
-    if (m->n >= (m->a == EK_FN ? vm->c->func[m->b].np : TY(m->c)->nf)) fail(vm, "too many arguments");
+    if (m->n >= (m->a == EK_FN ? vm->c->func[m->b].np : TY(m->c)->nf)) FAIL(, "too many arguments");
     if (a->k == EK_MEM && k != K_STRUCT && k != K_ARR && k != K_LIST && k != K_UNION) {
       int s = k == K_SLICE || k == K_BUILD ? toslotv(vm, a) : toslot(vm, a, 1);
       a->k = EK_ST; a->a = s * 4; a->t = (uint16_t)vt(a->t);
     }
   } else if (m->a == EK_FFI) {
     RioCFfi *f = &vm->c->ffi[m->b]; int pt, w, s, d;
-    if (m->n >= f->np) fail(vm, "too many arguments");
+    if (m->n >= f->np) FAIL(, "too many arguments");
     e = vpop(vm); pt = vm->c->param[f->p0 + m->n].t;
     coerce(vm, &e, pt); w = words(vm, pt);
     s = w == 2 ? toslot2(vm, &e) : toslot(vm, &e, 1);
@@ -1152,7 +1211,7 @@ static void argdone(Rio *vm, Op *m) {
     e = vpop(vm); k = TY(e.t)->k;
     if (m->n == 0) { /* remember the length so a format that doesn't fit can be undone */
       int t;
-      if ((k != K_LIST && k != K_BUILD) || TY(e.t)->elem != TY_BYTE) fail(vm, "format needs a Blob list");
+      if ((k != K_LIST && k != K_BUILD) || TY(e.t)->elem != TY_BYTE) FAIL(, "format needs a Blob list");
       m->c = toslot3(vm, &e); t = alloc(vm, 2);
       emit(vm, OP_LDW, t, m->c, 0); emit(vm, OP_MOV, t + 1, kslot(vm, 1), 0);
       m->set = (uint64_t)t;
@@ -1167,7 +1226,7 @@ static void argdone(Rio *vm, Op *m) {
       } else if (k == K_I32 || k == K_F32 || k == K_BOOL || k == K_BYTE) {
         s = toslot(vm, &e, 1); d = alloc(vm, 1); emit(vm, OP_PUSHT, d, m->c, s);
         vm->code[vm->pc - 1].x = (uint8_t)(k == K_F32 ? 1 : k == K_BOOL ? 2 : 0);
-      } else fail(vm, "format takes Strings, Blobs, numbers and enums");
+      } else FAIL(, "format takes Strings, Blobs, numbers and enums");
       emit(vm, OP_AND, ok, ok, d);
       vm->c->fr = e.t0;
     }
@@ -1179,7 +1238,7 @@ static void argdone(Rio *vm, Op *m) {
     else if (k == K_ENUM) logname(vm, &e, m->n > 0);
     else if (k == K_F32) emitx(vm, OP_LOGF, m->n > 0, toslot(vm, &e, 1));
     else if (k == K_I32 || k == K_BYTE) emitx(vm, OP_LOGI, m->n > 0, toslot(vm, &e, 1));
-    else fail(vm, "cannot log this type");
+    else FAIL(, "cannot log this type");
     vm->c->fr = e.t0;
   }
   m->n++;
@@ -1188,14 +1247,14 @@ static void builtin(Rio *vm, Op *m) {
   int id = m->b, n = vm->c->nvs - m->vb, t, o = 0, x = 0, s1, s2 = 0, d;
   Ex *a = &vm->c->vs[m->vb], r;
   if (id == BI_LOG) { emit(vm, OP_LOGE, 0, 0, 0); vm->c->fr = m->fr0; vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0); return; }
-  if (n != (id >= BI_ATAN2 ? 2 : 1)) fail(vm, "wrong number of arguments");
+  if (n != (id >= BI_ATAN2 ? 2 : 1)) FAIL(, "wrong number of arguments");
   if (id == BI_LEN) {
     int k = TY(a->t)->k;
     if (k == K_ARR) r = mkex(EK_CONST, TY_I32, (int32_t)TY(a->t)->n);
     else if (k == K_SLICE) { r = *a; if (r.k == EK_ST) r.a += 4; else r.off += 4; r.t = TY_I32; r.ro = 1; }
     else if (k == K_LIST) { r = *a; r.t = TY_I32; r.ro = 1; } /* the length word comes first */
     else if (k == K_BUILD) { r = mkex(EK_MEM, TY_I32, toslot3(vm, a)); r.ro = 1; }
-    else fail(vm, "len() is for arrays, slices, lists and strings");
+    else FAIL(, "len() is for arrays, slices, lists and strings");
     vm->c->nvs = m->vb; vres(vm, r, m->fr0);
     return;
   }
@@ -1218,8 +1277,8 @@ static void builtin(Rio *vm, Op *m) {
 /* assert(cond) or assert(cond, why): a runtime error at this line when cond is false */
 static void assertop(Rio *vm, Op *m) {
   int n = vm->c->nvs - m->vb, msg = 0, j, k; Ex *a = &vm->c->vs[m->vb];
-  if (n < 1 || n > 2) fail(vm, "assert takes a condition, and optionally a message");
-  if (n == 2) { if (a[1].t != TY_STR) fail(vm, "assert's message is a String"); msg = toslot2(vm, a + 1); }
+  if (n < 1 || n > 2) FAIL(, "assert takes a condition, and optionally a message");
+  if (n == 2) { if (a[1].t != TY_STR) FAIL(, "assert's message is a String"); msg = toslot2(vm, a + 1); }
   j = condjump(vm, a);                         /* false: to the failure */
   k = emit(vm, OP_JMP, 0, 0, NONE);            /* true: past it */
   patch(vm, j, here(vm));
@@ -1229,12 +1288,12 @@ static void assertop(Rio *vm, Op *m) {
 }
 static void minmax(Rio *vm, Op *m) {
   Ex *a = &vm->c->vs[m->vb]; int t, s1, s2, d, mx = m->b == BI_MAX;
-  if (vm->c->nvs - m->vb != 2) fail(vm, "wrong number of arguments");
+  if (vm->c->nvs - m->vb != 2) FAIL(, "wrong number of arguments");
   needval(vm, a); needval(vm, a + 1);
   if (a[0].k == EK_CONST && vt(a[1].t) == TY_F32) coerce(vm, a, TY_F32);
   if (a[1].k == EK_CONST && vt(a[0].t) == TY_F32) coerce(vm, a + 1, TY_F32);
   t = vt(a->t);
-  if (t != vt(a[1].t) || (t != TY_I32 && t != TY_F32)) fail(vm, "type mismatch");
+  if (t != vt(a[1].t) || (t != TY_I32 && t != TY_F32)) FAIL(, "type mismatch");
   s1 = toslot(vm, a, 1); s2 = toslot(vm, a + 1, 1);
   vm->c->nvs = m->vb; vm->c->fr = m->fr0; d = alloc(vm, 1);
   emit(vm, t == TY_I32 ? (mx ? OP_IMAX : OP_IMIN) : (mx ? OP_FMAX : OP_FMIN), d, s1, s2);
@@ -1244,17 +1303,17 @@ static void minmax(Rio *vm, Op *m) {
 static void listop(Rio *vm, Op *m) {
   static const signed char argc[] = {2, 1, 1, 1, 2, 2, 2};
   int id = m->b, k, el, b, d, s, sz, j; Ex *a = &vm->c->vs[m->vb], r = mkex(EK_VOID, TY_VOID, 0);
-  if (vm->c->nvs - m->vb != argc[id - BI_PUSH]) fail(vm, "wrong number of arguments");
+  if (vm->c->nvs - m->vb != argc[id - BI_PUSH]) FAIL(, "wrong number of arguments");
   needval(vm, a); k = TY(a->t)->k;
   if (id == BI_CAP) {
     if (k == K_LIST || k == K_ARR) r = mkex(EK_CONST, TY_I32, (int32_t)TY(a->t)->n);
     else if (k == K_BUILD) { r = mkex(EK_ST, TY_I32, (toslot3(vm, a) + 2) * 4); r.ro = 1; }
     else if (k == K_SLICE) { r = *a; if (r.k == EK_ST) r.a += 4; else r.off += 4; r.t = TY_I32; r.ro = 1; }
-    else fail(vm, "cap() is for lists, arrays and slices");
+    else FAIL(, "cap() is for lists, arrays and slices");
     vm->c->nvs = m->vb; vres(vm, r, m->fr0);
     return;
   }
-  if (k != K_LIST && k != K_BUILD) fail(vm, "expected a list");
+  if (k != K_LIST && k != K_BUILD) FAIL(, "expected a list");
   el = TY(a->t)->elem; sz = (int)TY(el)->size; b = toslot3(vm, a);
   if (id == BI_CLEAR) emit(vm, OP_STW, b, kslot(vm, 0), 0);
   else if (id == BI_POP) {
@@ -1269,8 +1328,8 @@ static void listop(Rio *vm, Op *m) {
     needval(vm, x); xk = TY(x->t)->k;
     if (xk == K_LIST || xk == K_BUILD) { int b2 = toslot3(vm, x); s = alloc(vm, 2); emit(vm, OP_LVIEW, s, b2, 0); }
     else if (xk == K_SLICE || xk == K_ARR) s = toslot2(vm, x);
-    else fail(vm, "pushAll needs a slice, array or list");
-    if (TY(x->t)->elem != el) fail(vm, "type mismatch");
+    else FAIL(, "pushAll needs a slice, array or list");
+    if (TY(x->t)->elem != el) FAIL(, "type mismatch");
     vm->c->fr = m->fr0; d = alloc(vm, 1);
     emit(vm, OP_PUSHS, d, b, s); emitw(vm, 0, (uint32_t)sz);
     r = mkex(EK_ST, TY_BOOL, d * 4);
@@ -1292,11 +1351,11 @@ static void listop(Rio *vm, Op *m) {
 /* x.toInt() x.toFloat() x.toBool() b.asString() */
 static void enumop(Rio *vm, Op *m) { /* Enum.fromInt(n): checked; Enum.has(n) -> Bool */
   Ex *a = &vm->c->vs[m->vb]; RioType *et = TY(m->c); int s, d, i, found = 0;
-  if (vm->c->nvs - m->vb != 1) fail(vm, "wrong number of arguments");
+  if (vm->c->nvs - m->vb != 1) FAIL(, "wrong number of arguments");
   coerce(vm, a, TY_I32);
   if (a->k == EK_CONST) { /* known now: check now */
     for (i = 0; i < et->nf; i++) if (enumval(&vm->c->field[et->f0 + i]) == a->a) found = 1;
-    if (m->b == BI_FROMINT && !found) fail(vm, "not a value of this enum");
+    if (m->b == BI_FROMINT && !found) FAIL(, "not a value of this enum");
     vm->c->nvs = m->vb; vres(vm, m->b == BI_FROMINT ? mkex(EK_CONST, m->c, a->a) : mkex(EK_CONST, TY_BOOL, found), m->fr0);
     return;
   }
@@ -1314,7 +1373,7 @@ static void enumop(Rio *vm, Op *m) { /* Enum.fromInt(n): checked; Enum.has(n) ->
 static void convert(Rio *vm, Op *m) {
   Ex *a = &vm->c->vs[m->vb], r; int from, s, d;
   int to = m->b == BI_TOINT ? TY_I32 : m->b == BI_TOFLOAT ? TY_F32 : m->b == BI_TOBOOL ? TY_BOOL : TY_STR;
-  if (vm->c->nvs - m->vb != 1) fail(vm, "conversions take no arguments");
+  if (vm->c->nvs - m->vb != 1) FAIL(, "conversions take no arguments");
   needval(vm, a); from = vt(a->t); r = *a;
   if (to == from) { /* no-op */ }
   else if (to == TY_STR && from == TY_BLOB) { r.t = TY_STR; r.ro = 1; }
@@ -1327,13 +1386,13 @@ static void convert(Rio *vm, Op *m) {
   else if ((to == TY_F32 && from == TY_I32) || (to == TY_I32 && from == TY_F32)) {
     if (a->k == EK_CONST) { RioVal v; v.i = a->a; if (to == TY_F32) v.f = (float)v.i; else v.i = ftoi(v.f); r = mkex(EK_CONST, to, v.i); }
     else { s = toslot(vm, a, 1); vm->c->fr = m->fr0; d = alloc(vm, 1); emit(vm, to == TY_F32 ? OP_ITOF : OP_FTOI, d, s, 0); r = mkex(EK_ST, to, d * 4); }
-  } else fail(vm, "no such conversion");
+  } else FAIL(, "no such conversion");
   vm->c->nvs = m->vb; vres(vm, r, m->fr0);
 }
 static void finish_call(Rio *vm, Op *m) {
   if (m->a == EK_FN) {
     RioCFunc *f = &vm->c->func[m->b]; int i, d;
-    if (m->n != f->np) fail(vm, "wrong number of arguments");
+    if (m->n != f->np) FAIL(, "wrong number of arguments");
     for (i = 0; i < f->np; i++) {
       Ex p = mkex(EK_ST, vm->c->param[f->p0 + i].t, (int32_t)vm->c->param[f->p0 + i].addr);
       if ((!i && f->selfref) || vm->c->param[f->p0 + i].ref) { emit(vm, OP_MOV, (int)(p.a / 4), toaddr(vm, &vm->c->vs[m->vb + i]), 0); continue; }
@@ -1351,7 +1410,7 @@ static void finish_call(Rio *vm, Op *m) {
     }
   } else if (m->a == EK_ST) { /* through a proc value: the arguments go to a scratch area, the call copies them over */
     RioType *pt = TY(m->c); int i, w = 0, base, d, off = 0;
-    if (m->n != pt->nf) fail(vm, "wrong number of arguments");
+    if (m->n != pt->nf) FAIL(, "wrong number of arguments");
     for (i = 0; i < pt->nf; i++) w += words(vm, vm->c->field[pt->f0 + i].t);
     base = alloc(vm, w ? w : 1);
     for (i = 0; i < pt->nf; i++) {
@@ -1369,7 +1428,7 @@ static void finish_call(Rio *vm, Op *m) {
     vres(vm, mkex(EK_ST, pt->elem, d * 4), m->fr0);
   } else if (m->a == EK_FFI) {
     RioCFfi *f = &vm->c->ffi[m->b];
-    if (m->n != f->np) fail(vm, "wrong number of arguments");
+    if (m->n != f->np) FAIL(, "wrong number of arguments");
     emit(vm, OP_FFI, m->fr0, 0, m->b);
     vm->c->fr = m->fr0;
     if (f->ret == TY_VOID) vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0);
@@ -1379,7 +1438,7 @@ static void finish_call(Rio *vm, Op *m) {
     else if (m->b == BI_ASSERT) assertop(vm, m);
     else if (m->b == BI_FORMAT) {
       int t = (int)m->set, j;
-      if (m->n < 1) fail(vm, "format needs a Blob list");
+      if (m->n < 1) FAIL(, "format needs a Blob list");
       j = emit(vm, OP_JNZ, t + 1, 0, NONE); emit(vm, OP_STW, m->c, t, 0); patch(vm, j, here(vm));
       vm->c->fr = (uint32_t)t + 2; vres(vm, mkex(EK_ST, TY_BOOL, (t + 1) * 4), m->fr0);
     } else if (m->b >= BI_FROMINT) enumop(vm, m);
@@ -1404,14 +1463,14 @@ static void finish_lit(Rio *vm, Op *m) {
 /* inside Type{...}: each value must be preceded by `field =` */
 static void setfield(Rio *vm, Op *m, const char *s, int n) {
   int i = structfield(vm, TY(m->b), s, n);
-  if (i < 0) fail(vm, "no such field");
-  if (i < 64 && (m->set >> i & 1)) fail(vm, "field set twice");
+  if (i < 0) FAIL(, "no such field");
+  if (i < 64 && (m->set >> i & 1)) FAIL(, "field set twice");
   if (i < 64) m->set |= (uint64_t)1 << i;
   m->a = i;
 }
 static void litfield(Rio *vm, Op *m) {
   if (TK.t == '}') return;
-  if (TK.t != TK_ID) fail(vm, "struct literal fields must be named: Type{field = value}");
+  if (TK.t != TK_ID) FAIL(, "struct literal fields must be named: Type{field = value}");
   if (vm->c->nx.t == '=') { setfield(vm, m, TK.s, TK.n); next(vm); next(vm); return; }
   m->a = -1; m->pun = (int32_t)(TK.s - vm->c->src); /* {x} or {a.x}: named after the path's last name */
 }
@@ -1423,7 +1482,7 @@ static void punfield(Rio *vm, Op *m) {
     if (isal(*p)) { nm = p; while (p < e && (isal(*p) || isdg(*p))) p++; nn = (int)(p - nm); }
     else if (*p == '.' || *p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') p++;
     else if (*p == '#') { while (p < e && *p != '\n') p++; }
-    else fail(vm, "only a name or a.b path can stand for a field; write field = value");
+    else FAIL(, "only a name or a.b path can stand for a field; write field = value");
   }
   setfield(vm, m, nm, nn);
 }
@@ -1432,13 +1491,13 @@ static void closer(Rio *vm, int t, int hasarg) {
   if (t == ')' && m->k == OK_PAREN) { vm->c->nos--; return; }
   if (t == ']') {
     Ex i, hi;
-    if (m->k != OK_IDX) fail(vm, "unexpected ']'");
+    if (m->k != OK_IDX) FAIL(, "unexpected ']'");
     o = vm->c->os[--vm->c->nos];
     if (o.a) { hi = vpop(vm); i = vpop(vm); doslice(vm, vtop(vm), &i, &hi); }
     else { i = vpop(vm); doindex(vm, vtop(vm), &i); }
     return;
   }
-  if (m->k != (t == ')' ? OK_CALL : OK_LIT)) fail(vm, t == ')' ? "unexpected ')'" : "unexpected '}'");
+  if (m->k != (t == ')' ? OK_CALL : OK_LIT)) FAIL(, t == ')' ? "unexpected ')'" : "unexpected '}'");
   if (hasarg) argdone(vm, m);
   o = vm->c->os[--vm->c->nos];
   if (t == ')') finish_call(vm, &o); else finish_lit(vm, &o);
@@ -1484,18 +1543,18 @@ static Ex expr(Rio *vm) {
         if (t == TK_NIL && tt >= 0 && TY(tt)->k == K_UNION) { /* a union's nil: its tag, as a constant */
           int j; RioType *ut = TY(tt);
           for (j = 0; j < ut->nf && vm->c->field[ut->f0 + j].t != TY_VOID; j++) {}
-          if (j == ut->nf) failtok(vm, "this union doesn't list nil");
+          if (j == ut->nf) FAILTOK(NOEX, "this union doesn't list nil");
           vres(vm, mkex(EK_CONST, tt, j), t0); next(vm); want = 0;
           continue;
         }
-        if (tt < 0 || TY(tt)->k != K_ENUM) failtok(vm, t == TK_NIL ? "nil needs an enum or union that lists nil first" : "can't tell which enum this is; write Enum.value");
-        if (!enumvalue(vm, tt, TK.s, TK.n, &v)) failtok(vm, t == TK_NIL ? "this enum doesn't list nil" : "not a value of this enum");
+        if (tt < 0 || TY(tt)->k != K_ENUM) FAILTOK(NOEX, t == TK_NIL ? "nil needs an enum or union that lists nil first" : "can't tell which enum this is; write Enum.value");
+        if (!enumvalue(vm, tt, TK.s, TK.n, &v)) FAILTOK(NOEX, t == TK_NIL ? "this enum doesn't list nil" : "not a value of this enum");
         e = mkex(EK_CONST, tt, v);
       } else if (t == '{') { /* {field = ...} takes its struct type from where the value is going */
         int tt = target(vm, ob, whole);
-        if (tt < 0 || TY(tt)->k != K_STRUCT) failtok(vm, "can't tell which struct this is; write Type{...}");
+        if (tt < 0 || TY(tt)->k != K_STRUCT) FAILTOK(NOEX, "can't tell which struct this is; write Type{...}");
         vres(vm, mkex(EK_TY, tt, 0), t0); want = 0; continue;
-      } else failtok(vm, M_EXPR);
+      } else FAILTOK(NOEX, M_EXPR);
       vres(vm, e, t0); next(vm); want = 0;
       continue;
     }
@@ -1518,8 +1577,8 @@ static Ex expr(Rio *vm) {
         depth++; next(vm); want = 1;
         continue;
       }
-      if (c.k < EK_FN || c.k > EK_TY) fail(vm, "not callable");
-      if (c.k == EK_TY) fail(vm, TY(c.t)->k == K_STRUCT ? "use Struct{...} to build a struct" : "convert with x.toInt(), x.toFloat(), x.toBool() or b.asString()");
+      if (c.k < EK_FN || c.k > EK_TY) FAIL(NOEX, "not callable");
+      if (c.k == EK_TY) FAIL(NOEX, TY(c.t)->k == K_STRUCT ? "use Struct{...} to build a struct" : "convert with x.toInt(), x.toFloat(), x.toBool() or b.asString()");
       vm->c->nvs--;
       o = opush(vm, OK_CALL, 0, 0); o->a = c.k; o->b = c.k == EK_TY ? c.t : c.a;
       if (c.k == EK_BI && c.a >= BI_FROMINT) o->c = c.t; /* Enum.fromInt(...): which enum */
@@ -1529,7 +1588,7 @@ static Ex expr(Rio *vm) {
       if (TK.t == ':') { Ex z = mkex(EK_CONST, TY_I32, 0); z.off = 1; vres(vm, z, (int)vm->c->fr); want = 0; } else want = 1; /* off 1: the start was left out */
     } else if (t == '.') {
       next(vm);
-      if (TK.t != TK_ID && TK.t != TK_NIL) fail(vm, "field name expected");
+      if (TK.t != TK_ID && TK.t != TK_NIL) FAIL(NOEX, "field name expected");
       member(vm); next(vm);
     } else if (t == '{') {
       Ex c = *vtop(vm); Op *o;
@@ -1541,15 +1600,15 @@ static Ex expr(Rio *vm) {
     } else if (t == ',' || t == ')' || t == ']' || t == '}' || t == ':') {
       Op *m;
       if (!depth) break;
-      while (vm->c->os[vm->c->nos - 1].k < OK_PAREN) reduce1(vm);
+      while (vm->c->nos > 0 && vm->c->os[vm->c->nos - 1].k < OK_PAREN) reduce1(vm);
       m = &vm->c->os[vm->c->nos - 1];
       if (t == ',') {
-        if (m->k != OK_CALL && m->k != OK_LIT) fail(vm, "unexpected ','");
+        if (m->k != OK_CALL && m->k != OK_LIT) FAIL(NOEX, "unexpected ','");
         argdone(vm, m); next(vm);
         if (m->k == OK_LIT) litfield(vm, m);
         want = 1;
       } else if (t == ':') {
-        if (m->k != OK_IDX || m->a) fail(vm, "unexpected ':'");
+        if (m->k != OK_IDX || m->a) FAIL(NOEX, "unexpected ':'");
         m->a = 1; next(vm);
         if (TK.t == ']') { vres(vm, mkex(EK_LEN, TY_I32, 0), (int)vm->c->fr); want = 0; } else want = 1;
       } else { closer(vm, t, 1); depth--; next(vm); }
@@ -1559,7 +1618,7 @@ static Ex expr(Rio *vm) {
       if (t == TK_AND || t == TK_OR) {
         Ex *l = vtop(vm); int s, d; Op *o;
         needval(vm, l);
-        if (l->t != TY_BOOL) fail(vm, "expected Bool");
+        if (l->t != TY_BOOL) FAIL(NOEX, "expected Bool");
         s = toslot(vm, l, 1); vm->c->fr = l->t0; d = alloc(vm, 1);
         if (s != d) emit(vm, OP_MOV, d, s, 0);
         isused(vm, l, t == TK_AND ? d * 4 : -1);
@@ -1571,15 +1630,15 @@ static Ex expr(Rio *vm) {
     }
   }
   while (vm->c->nos > ob) {
-    if (vm->c->os[vm->c->nos - 1].k >= OK_PAREN) fail(vm, M_BRACKET);
+    if (vm->c->os[vm->c->nos - 1].k >= OK_PAREN) FAIL(NOEX, M_BRACKET);
     reduce1(vm);
   }
-  if (vm->c->nvs != vb + 1) fail(vm, "bad expression");
+  if (vm->c->nvs != vb + 1) FAIL(NOEX, "bad expression");
   return vpop(vm);
 }
 static int32_t constexpr_i(Rio *vm) {
   Ex e = expr(vm);
-  if (e.k != EK_CONST || e.t != TY_I32 || e.a <= 0) fail(vm, "positive integer constant expected");
+  if (e.k != EK_CONST || e.t != TY_I32 || e.a <= 0) FAIL(0, "positive integer constant expected");
   return e.a;
 }
 
@@ -1589,11 +1648,11 @@ static int parse_type(Rio *vm) { /* proc(T, U) -> R, or any other type */
   int ps[16], n = 0, ret = TY_VOID;
   if (TK.t != TK_PROC) return ptype(vm);
   next(vm); expect(vm, '(', "'(' expected");
-  while (TK.t != ')') {
-    if (n >= 16) fail(vm, "too many parameters");
+  while (TK.t != ')' && !DEAD) {
+    if (n >= 16) FAIL(0, "too many parameters");
     if (TK.t == TK_ID && vm->c->nx.t == ':') { next(vm); next(vm); } /* a name is allowed, for reading */
-    if (TK.t == '&') failtok(vm, "proc values can't take & parameters");
-    if (TK.t == TK_PROC) failtok(vm, "a proc type can't take or return procs");
+    if (TK.t == '&') FAILTOK(0, "proc values can't take & parameters");
+    if (TK.t == TK_PROC) FAILTOK(0, "a proc type can't take or return procs");
     ps[n++] = ptype(vm);
     if (TK.t != ',') break;
     next(vm);
@@ -1601,7 +1660,7 @@ static int parse_type(Rio *vm) { /* proc(T, U) -> R, or any other type */
   expect(vm, ')', "')' expected");
   if (TK.t == TK_ARROW) {
     next(vm);
-    if (TK.t == TK_PROC) failtok(vm, "a proc type can't take or return procs");
+    if (TK.t == TK_PROC) FAILTOK(0, "a proc type can't take or return procs");
     ret = ptype(vm);
   }
   return proc_of(vm, ps, n, ret);
@@ -1609,36 +1668,36 @@ static int parse_type(Rio *vm) { /* proc(T, U) -> R, or any other type */
 static int ptype(Rio *vm) {
   int32_t pre[16]; int np = 0, t, i, pen[16];
   while (TK.t == '[') {
-    if (np >= 16) fail(vm, "type too deep");
+    if (np >= 16) FAIL(0, "type too deep");
     next(vm); pen[np] = 0;
     if (TK.t == TK_ID && (i = lookup(vm, TK.s, TK.n)) >= 0 &&
         ((vm->c->sym[i].k == S_TYPE && TY(vm->c->sym[i].t)->k == K_ENUM) || vm->c->sym[i].k == S_MOD)) { /* [Enum]T, [m.Enum]T, [m.N]T */
       while (vm->c->sym[i].k == S_MOD) {
         int m = vm->c->sym[i].v;
         next(vm);
-        if (TK.t != '.') fail(vm, "'.' expected");
+        if (TK.t != '.') FAIL(0, "'.' expected");
         next(vm);
-        if (TK.t != TK_ID || (i = modsym(vm, m, TK.s, TK.n)) < 0) failtok(vm, "not exported by that module");
+        if (TK.t != TK_ID || (i = modsym(vm, m, TK.s, TK.n)) < 0) FAILTOK(0, "not exported by that module");
       }
       if (vm->c->sym[i].k == S_TYPE && TY(vm->c->sym[i].t)->k == K_ENUM) { pen[np] = vm->c->sym[i].t; pre[np++] = 0; next(vm); }
       else if (vm->c->sym[i].k == S_CONST && vm->c->sym[i].t == TY_I32 && vm->c->sym[i].v > 0) { pre[np++] = vm->c->sym[i].v; next(vm); }
-      else failtok(vm, "an array size is a positive Int constant or an enum");
+      else FAILTOK(0, "an array size is a positive Int constant or an enum");
     }
     else if (TK.t == ']') pre[np++] = -1;
     else if (TK.t == '.' && vm->c->nx.t == '.') { next(vm); next(vm); pre[np++] = TK.t == ']' ? -2 : -3 - constexpr_i(vm); }
     else pre[np++] = constexpr_i(vm);
     expect(vm, ']', "']' expected");
   }
-  if (TK.t != TK_ID || (i = lookup(vm, TK.s, TK.n)) < 0) failtok(vm, "type expected");
+  if (TK.t != TK_ID || (i = lookup(vm, TK.s, TK.n)) < 0) FAILTOK(0, "type expected");
   while (vm->c->sym[i].k == S_MOD) { /* mod.Type */
     int m = vm->c->sym[i].v;
     next(vm);
-    if (TK.t != '.') fail(vm, "'.' expected");
+    if (TK.t != '.') FAIL(0, "'.' expected");
     next(vm);
-    if (TK.t != TK_ID) failtok(vm, "type expected");
-    if ((i = modsym(vm, m, TK.s, TK.n)) < 0) failtok(vm, "not exported by that module");
+    if (TK.t != TK_ID) FAILTOK(0, "type expected");
+    if ((i = modsym(vm, m, TK.s, TK.n)) < 0) FAILTOK(0, "not exported by that module");
   }
-  if (vm->c->sym[i].k != S_TYPE) failtok(vm, "type expected");
+  if (vm->c->sym[i].k != S_TYPE) FAILTOK(0, "type expected");
   t = vm->c->sym[i].t; next(vm);
   if (t == TY_BLOB && TK.t == '[' && !TK.nl) {
     next(vm);
@@ -1654,10 +1713,10 @@ static int ptype(Rio *vm) {
 }
 static RioBlk *bpush(Rio *vm, int k) {
   RioBlk *b;
-  if (vm->c->nblk >= (int)vm->c->lim.blocks) fail(vm, "blocks nested too deep");
+  if (vm->c->nblk >= (int)vm->c->lim.blocks) FAIL(&vm->c->blk[0], "blocks nested too deep");
   b = &vm->c->blk[vm->c->nblk++];
   b->k = (uint8_t)k; b->nsym = (uint16_t)vm->c->nsym; b->nnames = (uint16_t)vm->c->nnames; b->nact = (uint16_t)vm->c->nact;
-  b->a = b->b = b->brk = b->cont = b->cj = NONE;
+  b->a = b->b = b->brk = b->cont = b->cj = NONE; b->labn = 0; b->lab = 0;
   return b;
 }
 /* a block's names end and its slots get reused, except any whose address was taken: a view of them
@@ -1670,7 +1729,7 @@ static void bscope(Rio *vm, RioBlk *b) {
 static int namelist(Rio *vm, const char **ns, int *nl) {
   int c = 0;
   for (;;) {
-    if (TK.t != TK_ID || c >= 16) fail(vm, "name expected");
+    if (TK.t != TK_ID || c >= 16) FAIL(0, "name expected");
     ns[c] = TK.s; nl[c++] = TK.n; next(vm);
     if (TK.t != ',') break;
     next(vm);
@@ -1680,8 +1739,8 @@ static int namelist(Rio *vm, const char **ns, int *nl) {
 }
 static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   RioCFunc *f; RioBlk *b; int fi, skip;
-  if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "procs must be top-level");
-  if (vm->nfunc >= (int)vm->c->lim.procs) fail(vm, "too many procs");
+  if (vm->c->nblk || vm->c->curfn >= 0) FAIL(, "procs must be top-level");
+  if (vm->nfunc >= (int)vm->c->lim.procs) FAIL(, "too many procs");
   next(vm); expect(vm, '(', "'(' expected");
   skip = emit(vm, OP_JMP, 0, 0, NONE);
   fi = vm->nfunc++; f = &vm->c->func[fi];
@@ -1695,22 +1754,22 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   vm->c->nact = vm->c->fr = vm->c->hwm; f->fs = (uint16_t)vm->c->nact;
   if (recv >= 0) { /* self: a struct receiver by address, other receivers as a copy */
     int addr = alloc(vm, f->selfref ? 1 : words(vm, recv)) * 4;
-    if (vm->c->nparam >= (int)vm->c->lim.params) fail(vm, "too many parameters");
+    if (vm->c->nparam >= (int)vm->c->lim.params) FAIL(, "too many parameters");
     vm->c->param[vm->c->nparam].t = (uint16_t)(f->selfref ? TY_I32 : recv); vm->c->param[vm->c->nparam].ref = 0;
     vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
     addsym(vm, "self", 4, f->selfref ? S_SELF : S_VAR, recv, f->selfref ? addr / 4 : addr); f->np++;
   }
-  while (TK.t != ')') {
+  while (TK.t != ')' && !DEAD) {
     const char *ns[16]; int nl[16], c = namelist(vm, ns, nl), isref = TK.t == '&', t, j;
     RioType *ty;
     if (isref) next(vm);
     t = parse_type(vm); ty = TY(t);
     if (ty->k == K_VOID || (!isref && (ty->k == K_LIST || ((ty->k == K_STRUCT || ty->k == K_ARR || ty->k == K_UNION) && ty->ref))))
-      fail(vm, "invalid parameter type (pass lists as [..]T)");
-    if (!isref && isbig(ty)) fail(vm, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
+      FAIL(, "invalid parameter type (pass lists as [..]T)");
+    if (!isref && isbig(ty)) FAIL(, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
     for (j = 0; j < c; j++) { /* a & parameter is one word holding the address, read through like self */
       int addr = alloc(vm, isref ? 1 : words(vm, t)) * 4;
-      if (vm->c->nparam >= (int)vm->c->lim.params) fail(vm, "too many parameters");
+      if (vm->c->nparam >= (int)vm->c->lim.params) FAIL(, "too many parameters");
       vm->c->param[vm->c->nparam].t = (uint16_t)(isref ? TY_I32 : t); vm->c->param[vm->c->nparam].ref = (uint16_t)(isref ? t : 0);
       vm->c->param[vm->c->nparam++].addr = (uint32_t)addr;
       addsym(vm, ns[j], nl[j], isref ? S_SELF : S_VAR, t, isref ? addr / 4 : addr); f->np++;
@@ -1722,8 +1781,8 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   if (TK.t == TK_ARROW) {
     RioType *ty;
     next(vm); f->ret = (uint16_t)parse_type(vm); ty = TY(f->ret);
-    if (ty->k == K_LIST || ((ty->k == K_ARR || ty->k == K_STRUCT || ty->k == K_UNION) && ty->ref)) fail(vm, "invalid return type");
-    if (isbig(ty)) fail(vm, "a big value (over 16 words) can't be returned: fill in a &T parameter instead");
+    if (ty->k == K_LIST || ((ty->k == K_ARR || ty->k == K_STRUCT || ty->k == K_UNION) && ty->ref)) FAIL(, "invalid return type");
+    if (isbig(ty)) FAIL(, "a big value (over 16 words) can't be returned: fill in a &T parameter instead");
     f->retaddr = (uint32_t)alloc(vm, words(vm, f->ret)) * 4;
   }
   vm->c->nact = vm->c->fr; vm->c->curfn = fi; f->pc = (uint16_t)here(vm);
@@ -1732,32 +1791,34 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
 static void method_def(Rio *vm, int recv) {
   const char *ns; int nn;
   next(vm); next(vm);
-  if (TK.t != TK_ID) fail(vm, "method name expected");
+  if (TK.t != TK_ID) FAIL(, "method name expected");
   ns = TK.s; nn = TK.n;
-  if (structfield(vm, TY(recv), ns, nn) >= 0) failtok(vm, "a method can't have the same name as a field");
-  if (lookup_meth(vm, recv, ns, nn) >= 0) failtok(vm, "method already defined");
-  if (TY(recv)->k != K_STRUCT && convname(ns, nn) >= 0) failtok(vm, "that conversion is built in");
+  if (structfield(vm, TY(recv), ns, nn) >= 0) FAILTOK(, "a method can't have the same name as a field");
+  if (lookup_meth(vm, recv, ns, nn) >= 0) FAILTOK(, "method already defined");
+  if (TY(recv)->k != K_STRUCT && convname(ns, nn) >= 0) FAILTOK(, "that conversion is built in");
   next(vm);
   if (TK.t == '*') { vm->c->exporting = 1; next(vm); }
   expect(vm, TK_DCOLON, "'::' expected");
-  if (TK.t != TK_PROC) fail(vm, "'proc' expected");
+  if (TK.t != TK_PROC) FAIL(, "'proc' expected");
   proc_def(vm, ns, nn, recv);
 }
 static void struct_def(Rio *vm, const char *name, int nlen) {
   int ti, off = 0; RioType *st;
-  if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "structs must be top-level");
+  if (vm->c->nblk || vm->c->curfn >= 0) FAIL(, "structs must be top-level");
   next(vm);
   ti = newtype(vm, K_STRUCT, 0, 0, 0); st = TY(ti); st->f0 = (uint16_t)vm->c->nfield;
-  while (TK.t != TK_END) {
-    const char *ns[16]; int nl[16], c = namelist(vm, ns, nl), t = parse_type(vm), j;
-    if (TY(t)->k == K_VOID) fail(vm, "invalid field type");
+  while (TK.t != TK_END && !DEAD) {
+    const char *ns[16]; int nl[16], c, t, j;
+    if (TK.t == TK_EOF) FAIL(, M_END);
+    c = namelist(vm, ns, nl); t = parse_type(vm);
+    if (TY(t)->k == K_VOID) FAIL(, "invalid field type");
     for (j = 0; j < c; j++) {
       RioField *f;
-      if (vm->c->nfield >= (int)vm->c->lim.fields) fail(vm, "too many fields");
+      if (vm->c->nfield >= (int)vm->c->lim.fields) FAIL(, "too many fields");
       f = &vm->c->field[vm->c->nfield++];
       f->name = (uint16_t)addname(vm, ns[j], nl[j]); f->len = (uint16_t)nl[j]; f->t = (uint16_t)t; f->off = (uint16_t)off;
       off += (int)TY(t)->size; st->nf++; st->ref |= TY(t)->ref;
-      if (off > 0xFFFF) fail(vm, "struct too large");
+      if (off > 0xFFFF) FAIL(, "struct too large");
     }
   }
   next(vm);
@@ -1769,22 +1830,22 @@ static void struct_def(Rio *vm, const char *name, int nlen) {
    in every value (arrays of the union most of all), so that's an error unless marked @diverse */
 static void union_def(Rio *vm, const char *name, int nlen) {
   int ti, n = 0, j, diverse = 0; uint32_t mx = 0, mn = 0xFFFFFFFFu; RioType *ut;
-  if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "unions must be top-level");
+  if (vm->c->nblk || vm->c->curfn >= 0) FAIL(, "unions must be top-level");
   next(vm);
   if (TK.t == '@') {
     next(vm);
-    if (TK.t != TK_ID || TK.n != 7 || memcmp(TK.s, "diverse", 7)) failtok(vm, "unknown note for a union (@diverse allows types of very different sizes)");
+    if (TK.t != TK_ID || TK.n != 7 || memcmp(TK.s, "diverse", 7)) FAILTOK(, "unknown note for a union (@diverse allows types of very different sizes)");
     diverse = 1; next(vm);
   }
-  if (!TK.nl) failtok(vm, "list a union's types on the lines below it, then end");
+  if (!TK.nl) FAILTOK(, "list a union's types on the lines below it, then end");
   ti = newtype(vm, K_UNION, 0, 0, 4); ut = TY(ti); ut->f0 = (uint16_t)vm->c->nfield;
-  while (TK.t != TK_END) {
+  while (TK.t != TK_END && !DEAD) {
     const char *s = TK.s; int sl = TK.n, t; RioField *f;
-    if (TK.t == TK_EOF) fail(vm, M_END);
-    if (TK.t == TK_NIL) { if (n) failtok(vm, "nil can only come first"); next(vm); t = TY_VOID; }
-    else { t = parse_type(vm); if (TY(t)->k == K_VOID) fail(vm, "invalid type in a union"); }
-    for (j = 0; j < n; j++) if (vm->c->field[ut->f0 + j].t == t) fail(vm, "type listed twice");
-    if (vm->c->nfield >= (int)vm->c->lim.fields) fail(vm, "too many fields");
+    if (TK.t == TK_EOF) FAIL(, M_END);
+    if (TK.t == TK_NIL) { if (n) FAILTOK(, "nil can only come first"); next(vm); t = TY_VOID; }
+    else { t = parse_type(vm); if (TY(t)->k == K_VOID) FAIL(, "invalid type in a union"); }
+    for (j = 0; j < n; j++) if (vm->c->field[ut->f0 + j].t == t) FAIL(, "type listed twice");
+    if (vm->c->nfield >= (int)vm->c->lim.fields) FAIL(, "too many fields");
     f = &vm->c->field[vm->c->nfield++];
     f->name = (uint16_t)addname(vm, s, sl); f->len = (uint16_t)sl; f->t = (uint16_t)t; f->off = 4;
     if (t != TY_VOID) {
@@ -1798,12 +1859,12 @@ static void union_def(Rio *vm, const char *name, int nlen) {
   }
   next(vm);
   ut = TY(ti);
-  if (!n) fail(vm, "a union lists at least one type");
-  if (n > 256) fail(vm, "too many types in one union");
+  if (!n) FAIL(, "a union lists at least one type");
+  if (n > 256) FAIL(, "too many types in one union");
   if (!diverse && mx > mn && mx - mn > SMALLW * 4)
-    fail(vm, "these types differ in size by more than 64 bytes, so every value takes the biggest size: keep the big data elsewhere, or mark the union @diverse");
+    FAIL(, "these types differ in size by more than 64 bytes, so every value takes the biggest size: keep the big data elsewhere, or mark the union @diverse");
   ut->nf = (uint16_t)n; ut->size = 4 + ((mx + 3) & ~3u);
-  if (ut->size > 0xFFFF) fail(vm, "union too large");
+  if (ut->size > 0xFFFF) FAIL(, "union too large");
   addsym(vm, name, nlen, S_TYPE, ti, 0);
 }
 /* Name :: enum, then values one per line or comma-separated, then end. A value is name or name = n
@@ -1812,36 +1873,36 @@ static void union_def(Rio *vm, const char *name, int nlen) {
    variables start there */
 static void enum_def(Rio *vm, const char *name, int nlen) {
   int ti, n = 0, zero = 0, j; int32_t v = 0; RioType *et; RioVal *R = (RioVal *)vm->mem;
-  if (vm->c->nblk || vm->c->curfn >= 0) fail(vm, "enums must be top-level");
+  if (vm->c->nblk || vm->c->curfn >= 0) FAIL(, "enums must be top-level");
   next(vm);
-  if (!TK.nl) failtok(vm, "list an enum's values on the lines below it, then end");
+  if (!TK.nl) FAILTOK(, "list an enum's values on the lines below it, then end");
   ti = newtype(vm, K_ENUM, 0, 0, 4); et = TY(ti); et->f0 = (uint16_t)vm->c->nfield;
-  while (TK.t != TK_END) {
+  while (TK.t != TK_END && !DEAD) {
     const char *s = TK.s; int sl = TK.n; RioField *f;
-    if (TK.t == TK_EOF) fail(vm, M_END);
-    if (TK.t == TK_NIL) { if (n) failtok(vm, "nil can only come first"); next(vm); v = 0; }
+    if (TK.t == TK_EOF) FAIL(, M_END);
+    if (TK.t == TK_NIL) { if (n) FAILTOK(, "nil can only come first"); next(vm); v = 0; }
     else {
-      if (TK.t != TK_ID) failtok(vm, "value name expected");
+      if (TK.t != TK_ID) FAILTOK(, "value name expected");
       next(vm);
-      if (TK.t == '=') { Ex c; next(vm); c = expr(vm); if (c.k != EK_CONST || c.t != TY_I32) fail(vm, "an enum value is an Int constant"); v = c.a; }
+      if (TK.t == '=') { Ex c; next(vm); c = expr(vm); if (c.k != EK_CONST || c.t != TY_I32) FAIL(, "an enum value is an Int constant"); v = c.a; }
     }
     for (j = 0; j < n; j++) {
       RioField *g = &vm->c->field[et->f0 + j];
-      if (g->len == sl && !memcmp(vm->c->names + g->name, s, (size_t)sl)) fail(vm, "value named twice");
+      if (g->len == sl && !memcmp(vm->c->names + g->name, s, (size_t)sl)) FAIL(, "value named twice");
     }
-    if (n && v <= enumval(&vm->c->field[et->f0 + n - 1])) fail(vm, "values increase down the list: this one isn't bigger than the one before");
-    if (vm->c->nfield >= (int)vm->c->lim.fields) fail(vm, "too many fields");
+    if (n && v <= enumval(&vm->c->field[et->f0 + n - 1])) FAIL(, "values increase down the list: this one isn't bigger than the one before");
+    if (vm->c->nfield >= (int)vm->c->lim.fields) FAIL(, "too many fields");
     f = &vm->c->field[vm->c->nfield++];
     f->name = (uint16_t)addname(vm, s, sl); f->len = (uint16_t)sl; f->t = (uint16_t)((uint32_t)v >> 16); f->off = (uint16_t)v;
     zero |= v == 0; n++; v++;
     if (TK.t == ',') next(vm);
   }
   next(vm);
-  if (!n) fail(vm, "an enum needs at least one value");
-  if (!zero) fail(vm, "an enum needs a value that's 0: new variables start there (list nil first for an empty one)");
+  if (!n) FAIL(, "an enum needs at least one value");
+  if (!zero) FAIL(, "an enum needs a value that's 0: new variables start there (list nil first for an empty one)");
   et->nf = (uint16_t)n;
   /* the tables for fromInt, has and log: values, then (address, length) name strings */
-  if (vm->nk + (uint32_t)n > vm->kcap) fail(vm, "too many constants");
+  if (vm->nk + (uint32_t)n > vm->kcap) FAIL(, "too many constants");
   et->n = vm->nk;
   for (j = 0; j < n; j++) R[vm->nk++].u = (uint32_t)enumval(&vm->c->field[et->f0 + j]);
   et->elem = (uint16_t)vm->nk;
@@ -1854,9 +1915,9 @@ static void enum_def(Rio *vm, const char *name, int nlen) {
    fourth slot right after the builder's three */
 static void buildover(Rio *vm, const char *ns, int nn, int t, Ex *e) {
   int s, d;
-  if (TY(e->t)->elem != TY(t)->elem) fail(vm, "type mismatch");
-  if (e->ro || e->t == TY_STR) fail(vm, "can't build on read-only data");
-  if (TY(e->t)->k == K_ARR && istemp(vm, e)) fail(vm, "a computed array has no home to view: store it in a variable first");
+  if (TY(e->t)->elem != TY(t)->elem) FAIL(, "type mismatch");
+  if (e->ro || e->t == TY_STR) FAIL(, "can't build on read-only data");
+  if (TY(e->t)->k == K_ARR && istemp(vm, e)) FAIL(, "a computed array has no home to view: store it in a variable first");
   s = toslot2(vm, e);
   vm->c->fr = vm->c->nact; d = alloc(vm, 4); vm->c->nact = vm->c->fr;
   emit(vm, OP_MOV2, d + 1, s, 0); /* first: s may sit where the builder now goes */
@@ -1872,7 +1933,7 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
     needval(vm, &e); lv = localview(vm, &e);
     if (t >= 0 && TY(t)->k == K_UNION && e.t != t) { /* a value of one of its types (or nil): store wraps it */
       uint32_t at;
-      if (unionmember(vm, t, &e) < 0) fail(vm, "type mismatch");
+      if (unionmember(vm, t, &e) < 0) FAIL(, "type mismatch");
       at = isbig(TY(t)) ? halloc(vm, TY(t)->size) : (uint32_t)alloc(vm, words(vm, t)) * 4;
       { Ex d = mkex(EK_ST, t, (int32_t)at); store(vm, &d, &e); }
       if (!isbig(TY(t))) vm->c->nact = vm->c->fr;
@@ -1884,14 +1945,14 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
       t = vt(e.t);
       if (TY(t)->k == K_LIST) t = build_of(vm, TY(t)->elem);
       else if (isbig(TY(t)) && !istemp(vm, &e))
-        fail(vm, TY(t)->k == K_ARR ? "this copies a big array (over 16 words): write its type to copy it (x: [N]T = a), or view it with a[:]"
+        FAIL(, TY(t)->k == K_ARR ? "this copies a big array (over 16 words): write its type to copy it (x: [N]T = a), or view it with a[:]"
                                    : "this copies a big struct (over 16 words): write its type to copy it (x: T = s), or use &s");
     }
     coerce(vm, &e, t);
   }
   ty = TY(t); k = ty->k;
-  if (k == K_VOID) fail(vm, "variable has no type");
-  if (vm->c->curfn >= 0 && (k == K_STRUCT || k == K_ARR || k == K_LIST || k == K_UNION) && ty->ref) fail(vm, "structs/arrays/lists/unions holding slices or strings must be global");
+  if (k == K_VOID) FAIL(, "variable has no type");
+  if (vm->c->curfn >= 0 && (k == K_STRUCT || k == K_ARR || k == K_LIST || k == K_UNION) && ty->ref) FAIL(, "structs/arrays/lists/unions holding slices or strings must be global");
   big = isbig(ty);
   if (big) addr = halloc(vm, ty->size);
   else {
@@ -1923,8 +1984,8 @@ static void decl_var(Rio *vm) {
   vm->c->target = t; e = expr(vm);
   if (e.ro & RO_REF) { /* name := &place: bound once to that place, like a for-each element */
     int s, d;
-    if (t >= 0) fail(vm, "a reference takes its type from its place: write name := &x");
-    if (vm->c->exporting) fail(vm, "a reference can't be exported");
+    if (t >= 0) FAIL(, "a reference takes its type from its place: write name := &x");
+    if (vm->c->exporting) FAIL(, "a reference can't be exported");
     e.ro = 0; s = toaddr(vm, &e);
     vm->c->fr = vm->c->nact; d = alloc(vm, 1); vm->c->nact = vm->c->fr;
     if (s != d) emit(vm, OP_MOV, d, s, 0);
@@ -1937,13 +1998,13 @@ static void decl_var(Rio *vm) {
 static void destructure(Rio *vm) {
   const char *fs[32], *ls[32]; int fn[32], ln[32], n = 0, i; Ex e;
   next(vm);
-  while (TK.t != '}') {
-    if (TK.t != TK_ID) fail(vm, "field name expected");
-    if (n >= 32) fail(vm, "too many names");
+  while (TK.t != '}' && !DEAD) {
+    if (TK.t != TK_ID) FAIL(, "field name expected");
+    if (n >= 32) FAIL(, "too many names");
     fs[n] = ls[n] = TK.s; fn[n] = ln[n] = TK.n; next(vm);
     if (TK.t == TK_ID && TK.n == 2 && !memcmp(TK.s, "as", 2)) { /* 'as' only means something here */
       next(vm);
-      if (TK.t != TK_ID) fail(vm, "name expected after 'as'");
+      if (TK.t != TK_ID) FAIL(, "name expected after 'as'");
       ls[n] = TK.s; ln[n] = TK.n; next(vm);
     }
     n++;
@@ -1951,13 +2012,13 @@ static void destructure(Rio *vm) {
     next(vm);
   }
   expect(vm, '}', "'}' expected");
-  if (TK.t != TK_DECL) fail(vm, "':=' expected: destructuring declares new names");
+  if (TK.t != TK_DECL) FAIL(, "':=' expected: destructuring declares new names");
   next(vm);
   e = expr(vm); needval(vm, &e);
-  if (TY(e.t)->k != K_STRUCT) fail(vm, "only a struct can be destructured");
+  if (TY(e.t)->k != K_STRUCT) FAIL(, "only a struct can be destructured");
   for (i = 0; i < n; i++) {
     RioType *st = TY(e.t); Ex fe = e; int fi = structfield(vm, st, fs[i], fn[i]), k; RioField *f;
-    if (fi < 0) fail(vm, "no such field to destructure");
+    if (fi < 0) FAIL(, "no such field to destructure");
     f = &vm->c->field[st->f0 + fi];
     if (fe.k == EK_ST) fe.a += f->off; else fe.off += f->off;
     fe.t = f->t; k = TY(f->t)->k;
@@ -1986,18 +2047,18 @@ static void stmt_expr(Rio *vm) {
   }
   if (l.ro & RO_NARROW) { /* x = ... on a narrowed x assigns the whole union, and x is the union again */
     int k = TK.t == '=' ? narrowsym(vm, &l) : -1, i;
-    if (k < 0) fail(vm, "this is a copy of what the union holds: assign the whole union to change it");
+    if (k < 0) FAIL(, "this is a copy of what the union holds: assign the whole union to change it");
     { /* the value is read with x still narrowed (x = Circle{r = x.w} works); x is the union from here on */
       int n = vm->c->sym[k].len;
       vm->c->sym[k].len = 0; i = lookup(vm, vm->c->names + vm->c->sym[k].name, n); vm->c->sym[k].len = (uint16_t)n;
-      if (i < 0) fail(vm, "undefined name");
+      if (i < 0) FAIL(, "undefined name");
       l = symex(vm, i);
       next(vm); vm->c->target = l.t; r = expr(vm); store(vm, &l, &r);
       vm->c->sym[k].len = 0; /* hidden: the name finds the union again */
       return;
     }
   }
-  if ((l.k != EK_ST && l.k != EK_MEM) || l.ro || (l.k == EK_ST && l.a < (int32_t)vm->kcap * 4)) fail(vm, "cannot assign to this");
+  if ((l.k != EK_ST && l.k != EK_MEM) || l.ro || (l.k == EK_ST && l.a < (int32_t)vm->kcap * 4)) FAIL(, "cannot assign to this");
   if (TK.t == '=') { next(vm); vm->c->target = l.t; r = expr(vm); store(vm, &l, &r); return; }
   {
     int op = TK.op, k = TY(l.t)->k;
@@ -2030,15 +2091,15 @@ static int findfile(Rio *vm, int pkg, int inc, const char *key, int n) {
    resume. No recursion: compile_all's loop switches files. */
 static void openfile(Rio *vm, int pkg, int inc, char *key, int klen, const char *pos, const char *ls, int line) {
   RioC *c = vm->c; RioSource s; RioMod *m; RioImp *f; int r, dl; char b[300];
-  if (c->nis >= RIO_MAX_IMPORT_DEPTH) fail(vm, "imports and includes nested too deep");
-  if (c->nmod >= (int)c->lim.modules) fail(vm, "too many modules");
+  if (c->nis >= RIO_MAX_IMPORT_DEPTH) FAIL(, "imports and includes nested too deep");
+  if (c->nmod >= (int)c->lim.modules) FAIL(, "too many modules");
   key[klen] = 0;
   memset(&s, 0, sizeof s);
   r = vm->loader ? vm->loader(vm->loadud, key, (pkg ? RIO_LOAD_PKG : 0) | (inc ? RIO_LOAD_FILE : 0), &s) : 1;
   if (r) {
     int n = cat(b, 0, r == 2 ? "found in more than one library path: " : inc ? "file not found: " : "module not found: ");
     n = cat(b, n, key); b[n] = 0;
-    fail(vm, b);
+    FAIL(, b);
   }
   m = &c->mods[c->nmod];
   m->key = (uint16_t)addname(vm, key, klen); m->keylen = (uint16_t)klen;
@@ -2076,17 +2137,17 @@ static void import_stmt(Rio *vm) {
   const char *start = TK.s, *startls = TK.s - (TK.col - 1), *seg[8]; char key[256];
   int startline = TK.line, local, pkg, klen = 0, nseg = 0, segn[8], m, k;
   next(vm);
-  if (c->curfn >= 0 || c->nblk) fail(vm, "imports must be at the top level");
+  if (c->curfn >= 0 || c->nblk) FAIL(, "imports must be at the top level");
   local = TK.t == '.';
   if (local) next(vm);
   pkg = local ? cf->pkg : 1;
   if (local) { memcpy(key, c->names + cf->dir, cf->dirlen); klen = cf->dirlen; }
   for (;;) {
-    if (TK.t != TK_ID) fail(vm, "module name expected");
-    if (nseg >= 8) fail(vm, "module path too long");
+    if (TK.t != TK_ID) FAIL(, "module name expected");
+    if (nseg >= 8) FAIL(, "module path too long");
     seg[nseg] = TK.s; segn[nseg] = TK.n;
     if (local || !nseg) { /* a package import names just its root */
-      if (klen + TK.n + 2 > (int)sizeof key) fail(vm, "module path too long");
+      if (klen + TK.n + 2 > (int)sizeof key) FAIL(, "module path too long");
       if (local && nseg) key[klen++] = '/';
       memcpy(key + klen, TK.s, (size_t)TK.n); klen += TK.n;
     }
@@ -2095,25 +2156,25 @@ static void import_stmt(Rio *vm) {
     break;
   }
   if ((m = findfile(vm, pkg, 0, key, klen)) < 0) { openfile(vm, pkg, 0, key, klen, start, startls, startline); return; }
-  if (c->mods[m].state != 2) fail(vm, "import cycle");
+  if (c->mods[m].state != 2) FAIL(, "import cycle");
   for (k = 1; !local && k < nseg; k++) { /* tween.easing: only if tween publishes easing */
     int i = modsym(vm, m, seg[k], segn[k]);
     if (i < 0 || c->sym[i].k != S_MOD) {
       char b[200]; int n = cat(b, 0, "that package doesn't publish ");
       memcpy(b + n, seg[k], (size_t)(segn[k] < 64 ? segn[k] : 64)); b[n + (segn[k] < 64 ? segn[k] : 64)] = 0;
-      fail(vm, b);
+      FAIL(, b);
     }
     m = c->sym[i].v;
   }
   if (TK.t == '.' && c->nx.t == '{') { /* .{a, b as c} */
     next(vm); next(vm);
-    while (TK.t != '}') {
+    while (TK.t != '}' && !DEAD) {
       const char *as; int an, i;
-      if (TK.t != TK_ID) fail(vm, "name expected");
-      if ((i = modsym(vm, m, TK.s, TK.n)) < 0) failtok(vm, "not exported by that module");
+      if (TK.t != TK_ID) FAIL(, "name expected");
+      if ((i = modsym(vm, m, TK.s, TK.n)) < 0) FAILTOK(, "not exported by that module");
       as = TK.s; an = TK.n; next(vm);
-      if (isas(vm)) { next(vm); if (TK.t != TK_ID) fail(vm, "name expected after 'as'"); as = TK.s; an = TK.n; next(vm); }
-      if (TK.t == '*') failtok(vm, "to export an imported name, write Name* :: mod.Name");
+      if (isas(vm)) { next(vm); if (TK.t != TK_ID) FAIL(, "name expected after 'as'"); as = TK.s; an = TK.n; next(vm); }
+      if (TK.t == '*') FAILTOK(, "to export an imported name, write Name* :: mod.Name");
       { RioSym y = c->sym[i]; addsym(vm, as, an, y.k, y.t, y.v); }
       if (TK.t != ',') break;
       next(vm);
@@ -2121,10 +2182,10 @@ static void import_stmt(Rio *vm) {
     expect(vm, '}', "'}' expected");
   } else {
     const char *bn = seg[nseg - 1]; int bl = segn[nseg - 1];
-    if (isas(vm)) { next(vm); if (TK.t != TK_ID) fail(vm, "name expected after 'as'"); bn = TK.s; bl = TK.n; next(vm); }
+    if (isas(vm)) { next(vm); if (TK.t != TK_ID) FAIL(, "name expected after 'as'"); bn = TK.s; bl = TK.n; next(vm); }
     addsym(vm, bn, bl, S_MOD, 0, m);
     if (TK.t == '*') { /* publish your own submodule */
-      if (!local) failtok(vm, "only your own submodules can be published (import .name*)");
+      if (!local) FAILTOK(, "only your own submodules can be published (import .name*)");
       c->sym[c->nsym - 1].ex = 1; next(vm);
     }
   }
@@ -2134,18 +2195,18 @@ static void import_stmt(Rio *vm) {
 static void include_stmt(Rio *vm) {
   RioC *c = vm->c; RioMod *cf = &c->mods[c->curf]; char key[256]; int klen, i; const char *pos;
   next(vm);
-  if (c->curfn >= 0 || c->nblk) fail(vm, "includes must be at the top level");
-  if (TK.t != TK_STR) fail(vm, "include needs a file path in quotes");
-  if (TK.n < 5 || memcmp(TK.s + TK.n - 4, ".rio", 4)) failtok(vm, "include paths name a .rio file");
+  if (c->curfn >= 0 || c->nblk) FAIL(, "includes must be at the top level");
+  if (TK.t != TK_STR) FAIL(, "include needs a file path in quotes");
+  if (TK.n < 5 || memcmp(TK.s + TK.n - 4, ".rio", 4)) FAILTOK(, "include paths name a .rio file");
   for (i = 0; i < TK.n; i++) { /* plain names separated by '/': no "", ".", "..", absolute or drive paths */
     int seg = !i || TK.s[i - 1] == '/', end = i + 1 == TK.n || TK.s[i + 1] == '/';
     if (TK.s[i] == '\\' || TK.s[i] == ':' || (TK.s[i] == '/' && seg) || (TK.s[i] == '.' && seg && (end || TK.s[i + 1] == '.')))
-      failtok(vm, "include paths stay inside this file's directory");
+      FAILTOK(, "include paths stay inside this file's directory");
   }
-  if (cf->dirlen + TK.n + 1 > (int)sizeof key) failtok(vm, "include path too long");
+  if (cf->dirlen + TK.n + 1 > (int)sizeof key) FAILTOK(, "include path too long");
   memcpy(key, c->names + cf->dir, cf->dirlen); memcpy(key + cf->dirlen, TK.s, (size_t)TK.n); klen = cf->dirlen + TK.n;
-  if (findfile(vm, cf->pkg, 1, key, klen) >= 0) failtok(vm, "file already included");
-  if (!c->nx.nl && c->nx.t != TK_EOF && c->nx.t != ';') { next(vm); fail(vm, "expected end of statement"); }
+  if (findfile(vm, cf->pkg, 1, key, klen) >= 0) FAILTOK(, "file already included");
+  if (!c->nx.nl && c->nx.t != TK_EOF && c->nx.t != ';') { next(vm); FAIL(, "expected end of statement"); }
   pos = c->nx.t == TK_STR ? c->nx.s - 1 : c->nx.s; /* resume at the token after the path */
   openfile(vm, cf->pkg, 1, key, klen, pos, pos - (c->nx.col - 1), c->nx.line);
 }
@@ -2167,13 +2228,13 @@ static void switch_stmt(Rio *vm) { /* switch x / switch name := x */
   if (TK.t == TK_ID && vm->c->nx.t == TK_DECL) { decl_var(vm); e = symex(vm, vm->c->nsym - 1); } /* the name lives in the switch */
   else e = expr(vm);
   needval(vm, &e); t = vt(e.t); k = TY(t)->k;
-  if (k != K_I32 && k != K_ENUM && k != K_UNION) fail(vm, "switch needs an Int, an enum or a union");
+  if (k != K_I32 && k != K_ENUM && k != K_UNION) FAIL(, "switch needs an Int, an enum or a union");
   var = k == K_UNION && e.k == EK_ST && !e.ro && e.a < 0x40000 ? e.a / 4 : NONE; /* a variable: cases can narrow it */
   if (k == K_UNION) { Ex tag = e; tag.t = TY_I32; tag.ro = 0; ss = toslot(vm, &tag, 1); }
   else ss = toslot(vm, &e, 1);
   vm->c->fr = vm->c->nact; s = alloc(vm, 1); vm->c->nact = vm->c->fr;
   if (s != ss) emit(vm, OP_MOV, s, ss, 0);
-  if (vm->c->nsw >= 16) fail(vm, "switches nested too deep");
+  if (vm->c->nsw >= 16) FAIL(, "switches nested too deep");
   b = &vm->c->blk[vm->c->nblk - 1];
   b->i = (uint16_t)s; b->lim = (uint16_t)t; b->cj = b->brk = NONE; b->b = 0; b->a = (uint16_t)var;
   b->csym = (uint16_t)vm->c->nsym; b->cnames = (uint16_t)vm->c->nnames; b->cact = (uint16_t)vm->c->nact;
@@ -2181,26 +2242,27 @@ static void switch_stmt(Rio *vm) { /* switch x / switch name := x */
 }
 static void case_stmt(Rio *vm) { /* case v, v...: one jump per value; the last one skips to the next case */
   RioBlk *b = vm->c->nblk ? &vm->c->blk[vm->c->nblk - 1] : 0; int body = NONE;
-  if (!b || b->k != B_SWITCH) failtok(vm, "'case' outside a switch");
-  if (b->b & 2) failtok(vm, "the else of a switch comes last");
+  if (!b || b->k != B_SWITCH) FAILTOK(, "'case' outside a switch");
+  if (b->b & 2) FAILTOK(, "the else of a switch comes last");
   next(vm);
   if (b->b & 1) b->brk = (uint16_t)jappend(vm, b->brk, emit(vm, OP_JMP, 0, 0, NONE));
   patch(vm, b->cj, here(vm)); b->cj = NONE;
   casescope(vm, b);
-  for (;;) {
+  while (!DEAD) {
     Ex v; int vs, isu = TY(b->lim)->k == K_UNION;
     vm->c->target = b->lim; v = expr(vm);
     if (isu) { /* case T: the index of the type */
       int j = v.k == EK_TY || (v.k == EK_CONST && v.t == b->lim) ? unionmember(vm, b->lim, &v) : -1;
-      if (j < 0) fail(vm, "not one of this union's types");
+      if (j < 0) FAIL(, "not one of this union's types");
       v = mkex(EK_CONST, b->lim, j);
     } else coerce(vm, &v, b->lim);
-    if (v.k != EK_CONST) fail(vm, "case values are constants");
+    if (DEAD) return;
+    if (v.k != EK_CONST) FAIL(, "case values are constants");
     if (TY(b->lim)->k == K_ENUM || isu) {
       int j = isu ? v.a : enumindex(vm, b->lim, v.a);
-      if (j < 256) {
+      if (j >= 0 && j < 256) {
         uint64_t *m = &vm->c->swm[b->sw][j >> 6];
-        if (*m >> (j & 63) & 1) fail(vm, "this value already has a case");
+        if (*m >> (j & 63) & 1) FAIL(, "this value already has a case");
         *m |= (uint64_t)1 << (j & 63);
       }
     }
@@ -2221,22 +2283,33 @@ static void switch_end(Rio *vm, RioBlk *b) { /* no case matched: fall out; with 
   patch(vm, b->cj, here(vm)); patch(vm, b->brk, here(vm));
   if (!(b->b & 2) && (TY(b->lim)->k == K_ENUM || TY(b->lim)->k == K_UNION)) {
     RioType *et = TY(b->lim);
-    if (et->nf > 256) fail(vm, "a switch on an enum this big needs an else");
+    if (et->nf > 256) FAIL(, "a switch on an enum this big needs an else");
     for (i = 0; i < et->nf; i++)
       if (!(vm->c->swm[b->sw][i >> 6] >> (i & 63) & 1)) {
         RioField *f = &vm->c->field[et->f0 + i]; char m[RIO_ERRBUF]; int n = cat(m, 0, et->k == K_UNION ? "this switch has no case for " : "this switch has no case for ."), j;
         for (j = 0; j < f->len && n < 80; j++) m[n++] = vm->c->names[f->name + j];
         n = cat(m, n, " (add one, or an else)"); m[n] = 0;
-        fail(vm, m);
+        FAIL(, m);
       }
   }
   vm->c->nsw--;
 }
+/* the open loop labeled name, innermost first, within this proc; -1 if none */
+static int findlabel(Rio *vm, const char *name, int n) {
+  int i;
+  for (i = vm->c->nblk - 1; i >= 0 && vm->c->blk[i].k != B_PROC; i--)
+    if (vm->c->blk[i].k >= B_LOOP && vm->c->blk[i].labn == n && !memcmp(vm->c->blk[i].lab, name, (size_t)n)) return i;
+  return -1;
+}
 static void statement(Rio *vm) {
-  int t = TK.t, i; RioBlk *b; Ex e;
+  int t = TK.t, i, nb0 = vm->c->nblk, labn = 0; RioBlk *b; Ex e; const char *lab = 0;
   vm->c->fr = vm->c->nact;
+  if (t == TK_ID && vm->c->nx.t == ':' && !vm->c->nx.nl && peek3(vm) == TK_FOR) { /* outer: for ... */
+    if (findlabel(vm, TK.s, TK.n) >= 0) FAILTOK(, "a loop with this label is already open here");
+    lab = TK.s; labn = TK.n; next(vm); next(vm); t = TK.t;
+  }
   if (vm->c->nblk && vm->c->blk[vm->c->nblk - 1].k == B_SWITCH && !(vm->c->blk[vm->c->nblk - 1].b & 3) && t != TK_CASE && t != TK_ELSE && t != TK_END)
-    failtok(vm, "a switch's body starts with case");
+    FAILTOK(, "a switch's body starts with case");
   if (t == ';') { next(vm); return; }
   if (t == TK_IMPORT) { import_stmt(vm); goto done; }
   if (t == TK_INCLUDE) { include_stmt(vm); goto done; }
@@ -2244,7 +2317,7 @@ static void statement(Rio *vm) {
     int t3 = peek3(vm);
     if (t3 == TK_DCOLON || t3 == TK_DECL || t3 == ':') {
       RioTok nm = TK;
-      if (vm->c->curfn >= 0 || vm->c->nblk) failtok(vm, "only top-level names can be exported");
+      if (vm->c->curfn >= 0 || vm->c->nblk) FAILTOK(, "only top-level names can be exported");
       next(vm); vm->c->tk = nm; vm->c->exporting = 1;
     }
   }
@@ -2267,7 +2340,7 @@ static void statement(Rio *vm) {
       else if (e.k == EK_MOD) addsym(vm, ns, nn, S_MOD, 0, e.a);
       else if (e.k == EK_CONST) addsym(vm, ns, nn, S_CONST, e.t, e.a);
       else if (e.k == EK_ST && e.ro && e.t == TY_STR) addsym(vm, ns, nn, S_CONST, TY_STR, e.a);
-      else fail(vm, "constant expression expected");
+      else FAIL(, "constant expression expected");
     }
   } else if (t == TK_ID && (vm->c->nx.t == ':' || vm->c->nx.t == TK_DECL)) decl_var(vm);
   else switch (t) {
@@ -2284,14 +2357,14 @@ static void statement(Rio *vm) {
   case TK_ELSE:
     if (vm->c->nblk && vm->c->blk[vm->c->nblk - 1].k == B_SWITCH) { /* a switch's else: no case matched */
       b = &vm->c->blk[vm->c->nblk - 1];
-      if (b->b & 2) failtok(vm, "a switch has one else");
+      if (b->b & 2) FAILTOK(, "a switch has one else");
       next(vm);
       if (b->b & 1) b->brk = (uint16_t)jappend(vm, b->brk, emit(vm, OP_JMP, 0, 0, NONE));
       patch(vm, b->cj, here(vm)); b->cj = NONE;
       casescope(vm, b); b->b |= 3;
       break;
     }
-    if (!vm->c->nblk || vm->c->blk[vm->c->nblk - 1].k != B_IF) failtok(vm, "'else' without 'if'");
+    if (!vm->c->nblk || vm->c->blk[vm->c->nblk - 1].k != B_IF) FAILTOK(, "'else' without 'if'");
     b = &vm->c->blk[vm->c->nblk - 1];
     next(vm); bscope(vm, b);
     b->b = (uint16_t)jappend(vm, b->b, emit(vm, OP_JMP, 0, 0, NONE));
@@ -2310,8 +2383,8 @@ static void statement(Rio *vm) {
     else if (TK.t == TK_ID && (vm->c->nx.t == TK_IN || vm->c->nx.t == ',')) {
       const char *ns = TK.s, *is = 0; int nn = TK.n, in = 0, iv, lim, ix = NONE, incl; Ex d;
       next(vm);
-      if (TK.t == ',') { next(vm); if (TK.t != TK_ID) failtok(vm, "index name expected"); is = TK.s; in = TK.n; next(vm); }
-      if (TK.t != TK_IN) failtok(vm, "'in' expected");
+      if (TK.t == ',') { next(vm); if (TK.t != TK_ID) FAILTOK(, "index name expected"); is = TK.s; in = TK.n; next(vm); }
+      if (TK.t != TK_IN) FAILTOK(, "'in' expected");
       next(vm);
       b = bpush(vm, B_FOR);
       vm->c->fr = vm->c->nact; iv = alloc(vm, 1); lim = alloc(vm, 2); if (is) ix = alloc(vm, 1); vm->c->nact = vm->c->fr;
@@ -2328,8 +2401,8 @@ static void statement(Rio *vm) {
           emit(vm, OP_LVIEW, v, lb, 0);
           e = mkex(EK_ST, slice_of(vm, ty->elem), v * 4); ty = TY(e.t);
         }
-        if (ty->k != K_ARR && ty->k != K_SLICE) fail(vm, "for needs a range, array, slice or list");
-        if (ty->k == K_ARR && istemp(vm, &e)) fail(vm, "a computed array has no home to view: store it in a variable first");
+        if (ty->k != K_ARR && ty->k != K_SLICE) FAIL(, "for needs a range, array, slice or list");
+        if (ty->k == K_ARR && istemp(vm, &e)) FAIL(, "a computed array has no home to view: store it in a variable first");
         sz = (int)TY(ty->elem)->size; ro = e.ro || e.t == TY_STR;
         if (ty->k == K_ARR && ty->f0) ixt = ty->f0; /* for v, d in counts: d is the enum */
         s = toslot2(vm, &e);
@@ -2345,7 +2418,7 @@ static void statement(Rio *vm) {
         b->brk = (uint16_t)emit(vm, OP_JLE, lim, iv, NONE); b->a = (uint16_t)here(vm);
         break;
       }
-      if (is) fail(vm, "a range loop has no index: its variable is the index");
+      if (is) FAIL(, "a range loop has no index: its variable is the index");
       d = mkex(EK_ST, TY_I32, iv * 4); store(vm, &d, &e); vm->c->fr = vm->c->nact;
       incl = TK.t == TK_RLE; next(vm);
       e = expr(vm);
@@ -2361,7 +2434,7 @@ static void statement(Rio *vm) {
     }
     break;
   case TK_END:
-    if (!vm->c->nblk) failtok(vm, "'end' without block");
+    if (!vm->c->nblk) FAILTOK(, "'end' without block");
     b = &vm->c->blk[vm->c->nblk - 1];
     next(vm);
     if (b->k == B_SWITCH) { switch_end(vm, b); bscope(vm, b); vm->c->nblk--; break; }
@@ -2394,41 +2467,48 @@ static void statement(Rio *vm) {
     break;
   case TK_RETURN: {
     RioCFunc *f;
-    if (vm->c->curfn < 0) failtok(vm, "return outside proc");
+    if (vm->c->curfn < 0) FAILTOK(, "return outside proc");
     next(vm); f = &vm->c->func[vm->c->curfn];
     if (f->ret != TY_VOID) {
       Ex d = mkex(EK_ST, f->ret, (int32_t)f->retaddr); vm->c->target = f->ret; e = expr(vm);
       if ((TY(f->ret)->k == K_SLICE || TY(f->ret)->k == K_BUILD) && localview(vm, &e))
-        fail(vm, "this returns a view of the proc's own memory, which the next call rewrites: make that memory global, or have the caller pass it in");
+        FAIL(, "this returns a view of the proc's own memory, which the next call rewrites: make that memory global, or have the caller pass it in");
       store(vm, &d, &e);
     }
     emit(vm, OP_RET, 0, 0, 0);
     break;
   }
-  case TK_BREAK: case TK_CONTINUE:
+  case TK_BREAK: case TK_CONTINUE: /* break / break outer: the innermost loop, or the one labeled outer */
     for (i = vm->c->nblk - 1; i >= 0 && vm->c->blk[i].k != B_PROC; i--) if (vm->c->blk[i].k >= B_LOOP) break;
-    if (i < 0 || vm->c->blk[i].k == B_PROC) failtok(vm, "not inside a loop");
+    if (i < 0 || vm->c->blk[i].k == B_PROC) FAILTOK(, "not inside a loop");
+    next(vm);
+    if (TK.t == TK_ID && !TK.nl) {
+      if ((i = findlabel(vm, TK.s, TK.n)) < 0) FAILTOK(, "no loop with this label around here");
+      next(vm);
+    }
     b = &vm->c->blk[i];
     if (t == TK_BREAK) b->brk = (uint16_t)jappend(vm, b->brk, emit(vm, OP_JMP, 0, 0, NONE));
     else b->cont = (uint16_t)jappend(vm, b->cont, emit(vm, OP_JMP, 0, 0, NONE));
-    next(vm);
     break;
   case '{': destructure(vm); break;
   default: stmt_expr(vm);
   }
+  if (lab && vm->c->nblk > nb0) { vm->c->blk[vm->c->nblk - 1].lab = lab; vm->c->blk[vm->c->nblk - 1].labn = (uint16_t)labn; }
 done:
-  if (vm->c->exporting) { vm->c->exporting = 0; fail(vm, "nothing here to export"); }
+  if (vm->c->exporting) { vm->c->exporting = 0; FAIL(, "nothing here to export"); }
   vm->c->fr = vm->c->nact;
-  if (TK.t != TK_EOF && TK.t != ';' && !TK.nl) fail(vm, "expected end of statement");
+  if (TK.t != TK_EOF && TK.t != ';' && !TK.nl) FAIL(, "expected end of statement");
 }
+
+#endif /* RIO_NO_COMPILER */
 
 /* ---------------------------------------------------------------- api */
 int rio_init(Rio *vm, void *mem, uint32_t memsize, RioIns *code, uint32_t codecap) {
   uintptr_t pad = (16 - ((uintptr_t)mem & 15)) & 15;
   memset(vm, 0, sizeof *vm);
-  if (!mem || memsize < pad + 1024 || !code || codecap < 16) return -1;
+  if (!mem || memsize < pad + 1024 || (code && codecap < 16)) return -1;
   vm->mem = (uint8_t *)mem + pad; vm->memsize = (uint32_t)(memsize - pad) & ~15u;
-  vm->code = code; vm->codecap = codecap > 65535 ? 65535 : codecap;
+  vm->codebuf = vm->code = code; vm->codebufcap = vm->codecap = !code ? 0 : codecap > 65535 ? 65535 : codecap;
   return 0;
 }
 void rio_set_log(Rio *vm, RioLogFn fn, void *ud) { vm->logfn = fn; vm->logud = ud; }
@@ -2439,6 +2519,7 @@ int rio_ffi(Rio *vm, const char *name, const char *sig, RioFn fn) {
   f = &vm->ffi[vm->nffi++]; f->name = name; f->sig = sig; f->fn = fn; f->aw = f->rw = 0;
   return 0;
 }
+#ifndef RIO_NO_COMPILER
 int rio_define(Rio *vm, const char *name, const char *value) {
   if (vm->ndefs >= RIO_MAX_DEFINES || !name) return -1;
   vm->defs[vm->ndefs][0] = name; vm->defs[vm->ndefs++][1] = value;
@@ -2463,6 +2544,7 @@ RioLimits rio_limits_for(uint32_t bytes) {
   l.procs = clampu(l.syms / 4, 8, 65535);
   l.params = clampu(l.syms / 2, 16, 65535);
   l.modules = clampu(l.syms / 32, 8, 1024);
+  l.code = clampu(bytes / 32, 256, 65535); /* a quarter of the bytes, when the code lives in mem */
   return l;
 }
 static uint32_t carve(uint32_t *at, uint32_t n, uint32_t size, uint32_t align) {
@@ -2480,12 +2562,13 @@ static uint32_t layout(RioC *c, const RioLimits *l) {
   uint32_t mods = carve(&at, l->modules, sizeof(RioMod), 2);
   uint32_t names = carve(&at, l->names, 1, 1), exposed = carve(&at, (l->slots + 7) / 8, 1, 1), kfix = carve(&at, (l->consts + 7) / 8, 1, 1);
   uint32_t kadr = carve(&at, (l->consts + 7) / 8, 1, 1), lvs = carve(&at, (l->slots + 7) / 8, 1, 1), smap = carve(&at, l->slots, 2, 2);
+  uint32_t code = carve(&at, l->code, sizeof(RioIns), 8);
   if (c) {
     c->sym = (RioSym *)(void *)(b + sym); c->type = (RioType *)(void *)(b + type); c->field = (RioField *)(void *)(b + field);
     c->func = (RioCFunc *)(void *)(b + func); c->param = (RioParam *)(void *)(b + param); c->blk = (RioBlk *)(void *)(b + blk);
     c->vs = (RioEx *)(void *)(b + vs); c->os = (RioOp *)(void *)(b + os); c->names = (char *)b + names;
     c->exposed = b + exposed; c->kfix = b + kfix; c->kadr = b + kadr; c->lvs = b + lvs; c->smap = (uint16_t *)(void *)(b + smap);
-    c->mods = (RioMod *)(void *)(b + mods);
+    c->mods = (RioMod *)(void *)(b + mods); c->code0 = (RioIns *)(void *)(b + code);
     memset(c->exposed, 0, lvs + (l->slots + 7) / 8 - exposed);
   }
   return (at + 15) & ~15u;
@@ -2511,7 +2594,7 @@ static void setup(Rio *vm) {
     for (g = f->sig; *g; g++) {
       int ret = *g == '>', ch = ret ? g[1] : *g;
       int t = ch == 'i' ? TY_I32 : ch == 'f' ? TY_F32 : ch == 's' ? TY_STR : ch == 'b' ? TY_BLOB : -1;
-      if (t < 0 || c->nparam >= (int)c->lim.params) fail(vm, "bad ffi signature");
+      if (t < 0 || c->nparam >= (int)c->lim.params) FAIL(, "bad ffi signature");
       if (ret) { cf->ret = (uint16_t)t; f->rw = (uint8_t)words(vm, t); break; }
       c->param[c->nparam].ref = 0; c->param[c->nparam++].t = (uint16_t)t; cf->np++; f->aw = (uint8_t)(f->aw + words(vm, t));
     }
@@ -2521,7 +2604,7 @@ static void setup(Rio *vm) {
   for (i = 0; i < vm->ndefs; i++) {
     const char *nm = vm->defs[i][0]; int j, n = (int)strlen(nm); Ex e;
     for (j = 0; j < n; j++) if (!(isal(nm[j]) || (j && isdg(nm[j])))) break;
-    if (!n || j < n) { char b[RIO_ERRBUF]; int m = cat(b, 0, "-D: bad name "); m = cat(b, m, nm); b[m] = 0; seterr(vm, RIO_ECOMPILE, 0, 0, 0, b); longjmp(c->jb, 1); }
+    if (!n || j < n) { char b[RIO_ERRBUF]; int m = cat(b, 0, "-D: bad name "); m = cat(b, m, nm); b[m] = 0; failat(vm, 0, 0, 0, b); c->failmsg = 0; return; }
     e = defval(vm, i, -1);
     addsym(vm, nm, n, S_CONST, e.t, e.a);
   }
@@ -2529,9 +2612,9 @@ static void setup(Rio *vm) {
 }
 static void compile_all(Rio *vm) {
   RioC *c = vm->c;
-  for (;;) {
+  while (!DEAD) {
     if (TK.t != TK_EOF) { statement(vm); continue; }
-    if (c->nblk) fail(vm, M_END);
+    if (c->nblk) FAIL(, M_END);
     if (!c->nis) break;
     endfile(vm);
   }
@@ -2563,7 +2646,7 @@ static int funcat(Rio *vm, int pc, int before) {
     if (vm->c->func[m].pc < pc) lo = m + 1; else hi = m - 1;
   }
   for (m = 0; m < before && vm->c->func[m].pc != pc; m++) {}
-  if (m == before) fail(vm, "internal error: call to an unknown proc");
+  if (m == before) FAIL(0, "internal error: call to an unknown proc");
   return m;
 }
 /* Procs that are never running at the same time share memory. No recursion means the call graph is
@@ -2666,7 +2749,7 @@ static int hostname(RioC *c, RioSym *y) {
 }
 static void finalize(Rio *vm) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; RioExport *x;
-  uint32_t i, n = 0, p, ex, lo, fo, sz, base, first, depth = shareframes(vm), lsz; int k;
+  uint32_t i, n = 0, p, ex, lo, fo, sz, base, first, depth = shareframes(vm), lsz, csz = 0, caddr = 0; int k;
   first = vm->kcap * 4; /* after sharing: the slots now start right after the constants */
   c->fr = c->hwm; vm->csaddr = (uint32_t)alloc(vm, depth + 1) * 4; /* return stack: the longest chain of calls */
   uint32_t mo, mf, nm = (uint32_t)(c->nmod - 2);
@@ -2674,13 +2757,13 @@ static void finalize(Rio *vm) {
   for (k = 0; k < c->nsym; k++) {
     RioSym *y = &c->sym[k];
     if (!hostname(c, y)) continue;
-    if (y->len > c->poolcap - p) fail(vm, "out of compiler memory");
+    if (y->len > c->poolcap - p) FAIL(, "out of compiler memory");
     memcpy(c->strs + p, c->names + y->name, y->len); p += y->len; n++;
   }
   mf = p; /* module file names, for runtime errors */
   for (k = 2; k < c->nmod; k++) {
     uint32_t fl = (uint32_t)strlen(c->names + c->mods[k].file) + 1;
-    if (fl > c->poolcap - p) fail(vm, "out of compiler memory");
+    if (fl > c->poolcap - p) FAIL(, "out of compiler memory");
     memcpy(c->strs + p, c->names + c->mods[k].file, fl); p += fl;
   }
   { /* the line table was written top-down: reverse it in place so it ascends by pc */
@@ -2692,9 +2775,14 @@ static void finalize(Rio *vm) {
   ex = (p + 3) & ~3u; lo = ex + n * (uint32_t)sizeof(RioExport); fo = (lo + lsz + 3) & ~3u;
   mo = (fo + (uint32_t)vm->nfunc * (uint32_t)sizeof(RioFunc) + 3) & ~3u;
   sz = mo + nm * (uint32_t)sizeof(RioModRt);
-  if (lo > c->poolcap || sz > c->linetop) fail(vm, "out of compiler memory");
-  if (vm->hi < sz || ((vm->hi - sz) & ~3u) < c->hwm * 4) fail(vm, "out of memory");
+  if (lo > c->poolcap || sz > c->linetop) FAIL(, "out of compiler memory");
+  if (vm->hi < sz || ((vm->hi - sz) & ~3u) < c->hwm * 4) FAIL(, "out of memory");
   base = (vm->hi - sz) & ~3u;
+  if (vm->code == c->code0) { /* the code lives in mem: just below the block */
+    csz = vm->pc * (uint32_t)sizeof(RioIns);
+    if (base < csz || ((base - csz) & ~7u) < c->hwm * 4) FAIL(, "out of memory");
+    caddr = (base - csz) & ~7u;
+  }
   x = (RioExport *)(void *)(c->strs + ex); p = c->pool;
   for (k = 0; k < c->nsym; k++) {
     RioSym *y = &c->sym[k];
@@ -2711,16 +2799,29 @@ static void finalize(Rio *vm) {
   vm->mods = base + mo; vm->nmods = nm;
   vm->exports = base + ex; vm->nexports = n; vm->hi = base;
   vm->lines = base + lo; vm->nlines = lsz; vm->lcpos = vm->lcpc = vm->lcline = 0; vm->func = (RioFunc *)(void *)(vm->mem + base + fo);
-  /* nothing in c is read after this: the move and the zeroing may overwrite it */
-  memmove(vm->mem + base, c->strs, sz);
-  memset(vm->mem + first, 0, base - first);
+  /* nothing in c is read after this: the moves and the zeroing may overwrite it. Both regions move
+     within mem when scratch is overlaid on it: the one moving up goes first if the code moves up */
+  if (caddr) {
+    uint8_t *cs = (uint8_t *)c->code0, *cd = vm->mem + caddr;
+    if (cd >= cs) { memmove(vm->mem + base, c->strs, sz); memmove(cd, cs, csz); }
+    else { memmove(cd, cs, csz); memmove(vm->mem + base, c->strs, sz); }
+    vm->code = (RioIns *)(void *)cd; vm->codecap = vm->pc; vm->hi = caddr;
+  } else memmove(vm->mem + base, c->strs, sz);
+  memset(vm->mem + first, 0, (caddr ? caddr : base) - first);
+  if (caddr) memset(vm->mem + caddr + csz, 0, base - caddr - csz);
   memset(vm->mem + base + sz, 0, vm->memsize - base - sz);
 }
 /* set up the compiler's state in scratch, or overlaid on mem when scratch is NULL */
-static int cstart(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim) {
-  int inmem = !scratch; uintptr_t pad; RioC *c; RioLimits l; uint32_t used;
+static int cstart(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim, int repl) {
+  int inmem = !scratch, codein = !vm->codebuf && !repl; uintptr_t pad; RioC *c; RioLimits l; uint32_t used;
   vm->ok = 0; vm->c = 0; vm->repl = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0; vm->nlines = 0; vm->func = 0;
-  l = lim ? *lim : rio_limits_for(inmem ? vm->memsize : size);
+  if (lim) l = *lim;
+  else { /* the code (when it's compiled into scratch) gets a quarter, the tables scale to the rest */
+    uint32_t n = inmem ? vm->memsize : size;
+    l = rio_limits_for(codein ? n - n / 4 : n); l.code = rio_limits_for(n).code;
+  }
+  if (!codein) l.code = 0;
+  if (l.code > 65535) l.code = 65535;
   if (l.consts < 16) l.consts = 16;
   if (l.slots > 65536) l.slots = 65536;
   if (inmem) { /* overlay: everything above the constants is free until the program runs */
@@ -2738,19 +2839,19 @@ static int cstart(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim) {
   c->lim = l; used = layout(c, &l);
   c->strs = (uint8_t *)c + used; c->poolcap = c->linetop = (size - (uint32_t)pad - used) & ~3u;
   vm->kcap = l.consts; vm->hi = vm->memsize; vm->nk = 1; vm->pc = 0; vm->nfunc = 0; ((RioVal *)vm->mem)[0].u = 0;
+  if (codein) { vm->code = c->code0; vm->codecap = l.code; } else if (vm->codebuf) { vm->code = vm->codebuf; vm->codecap = vm->codebufcap; }
   return 0;
 }
 int rio_compile_ex(Rio *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const RioLimits *lim) {
   int inmem = !scratch; RioC *c;
-  if (cstart(vm, scratch, size, lim)) return -1;
+  if (cstart(vm, scratch, size, lim, 0)) return -1;
   c = vm->c;
-  if (setjmp(c->jb)) { if (inmem) vm->c = 0; return -1; }
   setup(vm);
   c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1;
-  lex(vm, &c->nx); next(vm);
-  compile_all(vm);
-  emit(vm, OP_HALT, 0, 0, 0);
-  finalize(vm);
+  if (!DEAD) { lex(vm, &c->nx); next(vm); compile_all(vm); }
+  if (!DEAD) emit(vm, OP_HALT, 0, 0, 0);
+  if (!DEAD) finalize(vm);
+  if (DEAD) { if (inmem) vm->c = 0; return -1; }
   if (inmem) vm->c = 0;
   vm->ok = 1;
   return 0;
@@ -2760,6 +2861,7 @@ int rio_compile_scratch(Rio *vm, const char *src, uint32_t len, void *scratch, u
   if (!scratch) { seterr(vm, RIO_ECOMPILE, 0, 0, 0, "scratch too small for these limits"); vm->ok = 0; return -1; }
   return rio_compile_ex(vm, src, len, scratch, size, 0);
 }
+#endif /* RIO_NO_COMPILER */
 static int run(Rio *vm, uint32_t pc);
 /* frames are shared by procs that can't run at the same time: starting rio again from inside an FFI
    function would break that, so it isn't allowed */
@@ -2769,13 +2871,14 @@ static int start(Rio *vm, uint32_t pc) {
   vm->running = 1; r = run(vm, pc); vm->running = 0;
   return r;
 }
+#ifndef RIO_NO_COMPILER
 /* REPL: after each piece compiles, its strings move into mem (below the arrays) and its procs
    get runtime entries; the compiler state stays in scratch */
 static void commit(Rio *vm, uint32_t k0, int f0) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; uint32_t i; int k;
   if (c->pool) {
     uint32_t sz = (c->pool + 3) & ~3u, base;
-    if (vm->hi < sz || vm->hi - sz < c->hwm * 4) fail(vm, "out of memory");
+    if (vm->hi < sz || vm->hi - sz < c->hwm * 4) FAIL(, "out of memory");
     base = vm->hi -= sz;
     memcpy(vm->mem + base, c->strs, c->pool);
     for (i = k0; i < vm->nk; i++)
@@ -2787,24 +2890,30 @@ static void commit(Rio *vm, uint32_t k0, int f0) {
 int rio_repl_begin(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim) {
   RioC *c; uint32_t fsz;
   if (!scratch) { seterr(vm, RIO_ECOMPILE, 0, 0, 0, "a REPL needs its own scratch buffer"); return -1; }
-  if (cstart(vm, scratch, size, lim)) return -1;
+  if (cstart(vm, scratch, size, lim, 1)) return -1;
   c = vm->c;
   memset(vm->mem, 0, vm->memsize);
-  if (setjmp(c->jb)) { vm->c = 0; return -1; }
   setup(vm);
-  /* reserved up front, since later pieces can add procs: their runtime table and the return stack */
+  /* reserved up front, since later pieces can add procs and code: their runtime table, the return
+     stack, and (when the code lives in mem) room for the code */
   fsz = (c->lim.procs * (uint32_t)sizeof(RioFunc) + 3) & ~3u;
-  if (vm->hi < fsz + (c->lim.procs + 1) * 4 + c->hwm * 4 + 64) fail(vm, "out of memory");
+  if (!vm->codebuf) {
+    uint32_t n = lim && lim->code ? lim->code : rio_limits_for(vm->memsize).code, csz = (n > 65535 ? 65535 : n) * (uint32_t)sizeof(RioIns);
+    if (!DEAD && vm->hi < csz + fsz + (c->lim.procs + 1) * 4 + c->hwm * 4 + 64) fail(vm, "out of memory");
+    if (!DEAD) { vm->hi -= csz; vm->code = (RioIns *)(void *)(vm->mem + vm->hi); vm->codecap = csz / (uint32_t)sizeof(RioIns); }
+  }
+  if (!DEAD && vm->hi < fsz + (c->lim.procs + 1) * 4 + c->hwm * 4 + 64) fail(vm, "out of memory");
+  if (DEAD) { vm->c = 0; return -1; }
   vm->hi -= fsz; vm->func = (RioFunc *)(void *)(vm->mem + vm->hi);
   vm->hi -= (c->lim.procs + 1) * 4; vm->csaddr = vm->hi;
   commit(vm, 1, 0); /* string values from -D defines */
+  if (DEAD) { vm->c = 0; return -1; }
   vm->repl = 1; vm->ok = 1;
   return 0;
 }
 /* where a REPL piece started, so a failed one can be undone: all the tables only ever grow */
 typedef struct { uint32_t pc, nk, hi, nact, hwm, poolcap, nline, lastline; int nsym, ntype, nfield, nparam, nnames, nfunc, nmod; } Snap;
-/* kept out of line: inlined, its locals would sit in rio_repl_eval next to the setjmp */
-static NOINLINE int rollback(Rio *vm, const Snap *s) {
+static int rollback(Rio *vm, const Snap *s) {
   RioC *c = vm->c; uint32_t i;
   int more = c->sp >= c->se && (c->failmsg == M_END || c->failmsg == M_BRACKET || c->failmsg == M_EXPR || c->failmsg == M_STRING);
   for (i = s->nk; i < vm->nk; i++) c->kfix[i >> 3] &= (uint8_t)~(1u << (i & 7));
@@ -2812,27 +2921,28 @@ static NOINLINE int rollback(Rio *vm, const Snap *s) {
   c->nact = c->fr = s->nact; c->hwm = s->hwm; c->poolcap = s->poolcap; c->nline = s->nline; c->lastline = s->lastline; c->pool = 0;
   c->nsym = s->nsym; c->ntype = s->ntype; c->nfield = s->nfield; c->nparam = s->nparam; c->nnames = s->nnames;
   c->nblk = c->nvs = c->nos = c->nsw = 0; c->curfn = -1; c->target = -1; c->lineovr = 0;
-  c->nmod = s->nmod; c->nis = 0; c->curmod = c->curf = 1; c->exporting = 0;
+  c->nmod = s->nmod; c->nis = 0; c->curmod = c->curf = 1; c->exporting = 0; c->dead = 0;
   if (more) { vm->ekind = RIO_ENONE; vm->err[0] = 0; return RIO_MORE; }
   return -1;
 }
 int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
-  RioC *c = vm->c; Snap s; /* in memory, its address taken: longjmp can't leave it stale */
+  RioC *c = vm->c; Snap s;
   if (!vm->repl || !c) { seterr(vm, RIO_ECOMPILE, 0, 0, 0, "no REPL session"); return -1; }
   vm->ekind = RIO_ENONE; vm->err[0] = 0;
   s.pc = vm->pc; s.nk = vm->nk; s.hi = vm->hi; s.nfunc = vm->nfunc; s.nmod = c->nmod;
   s.nact = c->nact; s.hwm = c->hwm; s.poolcap = c->poolcap; s.nline = c->nline; s.lastline = c->lastline;
   s.nsym = c->nsym; s.ntype = c->ntype; s.nfield = c->nfield; s.nparam = c->nparam; s.nnames = c->nnames;
-  if (setjmp(c->jb)) return rollback(vm, &s);
   c->src = c->sp = c->ls = src; c->se = src + len; c->line = 1; c->pline = c->pcol = c->pw = 0; c->lastline = c->lastlinepc = 0;
   lex(vm, &c->nx); next(vm);
   c->lastlabel = vm->pc; /* nothing gets fused with the previous piece's last instruction */
   compile_all(vm);
-  emit(vm, OP_HALT, 0, 0, 0);
-  commit(vm, s.nk, s.nfunc);
+  if (!DEAD) emit(vm, OP_HALT, 0, 0, 0);
+  if (!DEAD) commit(vm, s.nk, s.nfunc);
+  if (DEAD) return rollback(vm, &s);
   vm->brk = 0;
   return start(vm, s.pc) ? -1 : 0;
 }
+#endif /* RIO_NO_COMPILER */
 void rio_interrupt(Rio *vm) { vm->brk = 1; }
 const char *rio_error(Rio *vm) { return vm->err; }
 RioError rio_error_info(Rio *vm) {
@@ -2841,7 +2951,9 @@ RioError rio_error_info(Rio *vm) {
 }
 int rio_pc_line(Rio *vm, uint32_t pc) { /* decode the packed table (see packlines) up to pc */
   const uint8_t *t = vm->mem + vm->lines; uint32_t i, at, line;
+#ifndef RIO_NO_COMPILER
   if (vm->repl && vm->c) return (int)cline(vm, pc); /* REPL: the table is still in scratch */
+#endif
   if (pc < vm->lcpc) vm->lcpos = vm->lcpc = vm->lcline = 0; /* behind the last lookup: start over */
   i = vm->lcpos; at = vm->lcpc; line = vm->lcline;
   while (i < vm->nlines) {
@@ -2862,18 +2974,25 @@ static RioExport *findexp(Rio *vm, const char *name, int k) {
     if (x[i].k == k && x[i].len == n && !memcmp(vm->mem + x[i].name, name, n)) return &x[i];
   return 0;
 }
+#ifndef RIO_NO_COMPILER
 static int replsym(Rio *vm, const char *name, int k) { /* REPL: look names up in the live compiler tables */
   int i = lookup(vm, name, (int)strlen(name));
   return i >= 0 && vm->c->sym[i].k == k ? vm->c->sym[i].v : -1;
 }
+#endif
 int rio_func(Rio *vm, const char *name) {
   RioExport *x;
+#ifndef RIO_NO_COMPILER
   if (vm->repl && vm->c) return replsym(vm, name, S_FN);
+#endif
   x = findexp(vm, name, S_FN); return x ? x->v : -1;
 }
 void *rio_global(Rio *vm, const char *name) {
-  RioExport *x; int v;
+  RioExport *x;
+#ifndef RIO_NO_COMPILER
+  int v;
   if (vm->repl && vm->c) return (v = replsym(vm, name, S_VAR)) >= 0 ? vm->mem + v : 0;
+#endif
   x = findexp(vm, name, S_VAR); return x ? vm->mem + x->v : 0;
 }
 RioVal *rio_args(Rio *vm, int fn) { return (RioVal *)(void *)vm->mem + vm->func[fn].fs; }
@@ -2886,6 +3005,7 @@ void *rio_ptr(Rio *vm, const RioVal *s) {
 static void logput(Rio *vm, const char *s, int n) { while (n-- > 0 && vm->logn < RIO_LOGBUF) vm->logbuf[vm->logn++] = *s++; }
 static const char *pcfile(Rio *vm, uint32_t pc) {
   const char *f = 0; uint32_t best = 0x10000, k;
+#ifndef RIO_NO_COMPILER
   if (vm->repl && vm->c) {
     for (k = 2; k < (uint32_t)vm->c->nmod; k++) {
       RioMod *m = &vm->c->mods[k];
@@ -2893,6 +3013,7 @@ static const char *pcfile(Rio *vm, uint32_t pc) {
     }
     return f;
   }
+#endif
   for (k = 0; k < vm->nmods; k++) {
     RioModRt *m = (RioModRt *)(void *)(vm->mem + vm->mods) + k;
     if (pc >= m->pc0 && pc < m->pc1 && (uint32_t)(m->pc1 - m->pc0) < best) { best = m->pc1 - m->pc0; f = (const char *)vm->mem + m->file; }
@@ -2918,7 +3039,7 @@ static NOINLINE int assertfail(Rio *vm, uint32_t a, uint32_t pc) {
   b[n] = 0;
   return rterr(vm, b, pc);
 }
-static int run(Rio *vm, uint32_t pc) {
+HOT static int run(Rio *vm, uint32_t pc) {
   const RioIns *code = vm->code, *ip = code + pc;
   uint32_t *cs = (uint32_t *)(void *)(vm->mem + vm->csaddr);
   uint8_t *M = vm->mem; RioVal *R = (RioVal *)M; int sp = 0;
@@ -2932,6 +3053,9 @@ static int run(Rio *vm, uint32_t pc) {
 #define SZ(w) ((uint32_t)(w).b | (uint32_t)(w).c << 16)
 #ifdef RIO_CGOTO
 #define LBL(o) &&L_##o,
+#ifdef RIO_HOT_SECTION
+  HOTDATA /* the table too: a dispatch reads it every instruction */
+#endif
   static const void *const L[] = {OPS(LBL)};
 #define CASE(o) L_##o:
 #define DISPATCH() goto *L[ip->op]
@@ -2944,6 +3068,13 @@ static int run(Rio *vm, uint32_t pc) {
   for (;;) switch (ip->op) {
 #endif
 #define JUMP() { if (C <= (uint32_t)(ip - code) && vm->brk) goto stop; ip = code + C; DISPATCH(); }
+/* a loop's bottom always jumps back, so it can skip JUMP's direction test. Measured: 5-12% faster on
+   the RP2350 (Cortex-M33), but 25% slower on x86 with clang (code layout), so only on ARM */
+#if defined(__arm__) || defined(__thumb__)
+#define LOOP() { if (vm->brk) goto stop; ip = code + C; DISPATCH(); }
+#else
+#define LOOP() JUMP()
+#endif
   CASE(MOV) R[A] = R[B]; NEXT();
   CASE(ADD) U(A) = U(B) + U(C); NEXT();
   CASE(SUB) U(A) = U(B) - U(C); NEXT();
@@ -3110,8 +3241,8 @@ static int run(Rio *vm, uint32_t pc) {
   CASE(JFLE) if (F(A) <= F(B)) JUMP(); NEXT();
   CASE(JFEQ) if (F(A) == F(B)) JUMP(); NEXT();
   CASE(JFNE) if (F(A) != F(B)) JUMP(); NEXT();
-  CASE(EACH) if ((U(A) += U(B + 1)) < U(B)) JUMP(); NEXT();
-  CASE(FORI) if ((I(A) = (int32_t)(U(A) + 1u)) < I(B)) JUMP(); NEXT();
+  CASE(EACH) if ((U(A) += U(B + 1)) < U(B)) LOOP(); NEXT();
+  CASE(FORI) if ((I(A) = (int32_t)(U(A) + 1u)) < I(B)) LOOP(); NEXT();
   CASE(CALL) cs[sp++] = (uint32_t)(ip + 1 - code); JUMP();
   CASE(RET) if (!sp) return 0; ip = code + cs[--sp]; DISPATCH();
   CASE(CALLI) { /* call proc value a: its c argument words, at b, go to its parameters */
@@ -3147,3 +3278,109 @@ stop:
 }
 int rio_run(Rio *vm) { if (!vm->running) vm->ekind = RIO_ENONE; vm->brk = 0; return vm->ok ? start(vm, 0) : -1; }
 int rio_call(Rio *vm, int fn) { if (!vm->running) vm->ekind = RIO_ENONE; vm->brk = 0; return vm->ok && fn >= 0 && fn < vm->nfunc ? start(vm, vm->func[fn].pc) : -1; }
+
+/* ---------------------------------------------------------------- images */
+/* A compiled program as bytes: a header of 32-bit words (IMG_* below), then each ffi function's name
+   and sig (0-terminated), padding to 4, the code (unless it lives in mem), the constants, and the
+   finalized block [hi, end): the code when it lives in mem (IMG_CODE: its address), strings, exports,
+   lines, procs, modules. All other memory starts as zero. Little-endian, as in mem. */
+enum { IMG_MAGIC, IMG_VERSION, IMG_MEMSIZE, IMG_PC, IMG_NK, IMG_KCAP, IMG_CSADDR, IMG_HI, IMG_END, IMG_EXPORTS, IMG_NEXPORTS,
+  IMG_LINES, IMG_NLINES, IMG_MODS, IMG_NMODS, IMG_NFUNC, IMG_FUNC, IMG_NFFI, IMG_CODE, IMG_WORDS };
+#define IMG_VERSIONW 2
+#define IMG_MAGICW 0x494F4952u /* "RIOI" */
+static int littleendian(void) { uint32_t one = 1; return *(uint8_t *)&one == 1; }
+#ifndef RIO_NO_COMPILER
+static uint32_t blockend(Rio *vm) { return vm->mods + vm->nmods * (uint32_t)sizeof(RioModRt); }
+static uint32_t codeaddr(Rio *vm) { /* where the code is in mem, or 0: in the host's buffer */
+  uint8_t *p = (uint8_t *)vm->code;
+  return p >= vm->mem && p < vm->mem + vm->memsize ? (uint32_t)(p - vm->mem) : 0;
+}
+uint32_t rio_image_save(Rio *vm, void *out, uint32_t cap) {
+  uint32_t h[IMG_WORDS], n = IMG_WORDS * 4, i, end = blockend(vm), ca = codeaddr(vm), cn = ca ? 0 : vm->pc; uint8_t *o = (uint8_t *)out;
+  if (!vm->ok || vm->repl || vm->running || !littleendian()) return 0;
+  for (i = vm->kcap * 4; i < vm->hi; i++) if (vm->mem[i]) return 0; /* it has run: memory isn't fresh */
+  for (i = 0; i < (uint32_t)vm->nffi; i++) n += (uint32_t)(strlen(vm->ffi[i].name) + strlen(vm->ffi[i].sig) + 2);
+  n = (n + 3) & ~3u;
+  n += cn * (uint32_t)sizeof(RioIns) + vm->kcap * 4 + (end - vm->hi);
+  if (!out) return n;
+  if (cap < n) return 0;
+  h[IMG_MAGIC] = IMG_MAGICW; h[IMG_VERSION] = IMG_VERSIONW; h[IMG_CODE] = ca; h[IMG_MEMSIZE] = vm->memsize; h[IMG_PC] = vm->pc; h[IMG_NK] = vm->nk;
+  h[IMG_KCAP] = vm->kcap; h[IMG_CSADDR] = vm->csaddr; h[IMG_HI] = vm->hi; h[IMG_END] = end; h[IMG_EXPORTS] = vm->exports;
+  h[IMG_NEXPORTS] = vm->nexports; h[IMG_LINES] = vm->lines; h[IMG_NLINES] = vm->nlines; h[IMG_MODS] = vm->mods;
+  h[IMG_NMODS] = vm->nmods; h[IMG_NFUNC] = (uint32_t)vm->nfunc; h[IMG_FUNC] = (uint32_t)((uint8_t *)vm->func - vm->mem);
+  h[IMG_NFFI] = (uint32_t)vm->nffi;
+  memcpy(o, h, sizeof h); o += sizeof h;
+  for (i = 0; i < (uint32_t)vm->nffi; i++) {
+    size_t a = strlen(vm->ffi[i].name) + 1, b = strlen(vm->ffi[i].sig) + 1;
+    memcpy(o, vm->ffi[i].name, a); o += a; memcpy(o, vm->ffi[i].sig, b); o += b;
+  }
+  while ((o - (uint8_t *)out) & 3) *o++ = 0;
+  memcpy(o, vm->code, cn * sizeof(RioIns)); o += cn * sizeof(RioIns);
+  memcpy(o, vm->mem, vm->kcap * 4); o += vm->kcap * 4;
+  memcpy(o, vm->mem + vm->hi, end - vm->hi);
+  return n;
+}
+#endif
+static int imgerr(Rio *vm, const char *m) {
+  char b[RIO_ERRBUF]; int n = cat(b, 0, "image: "); n = cat(b, n, m); b[n] = 0;
+  seterr(vm, RIO_ECOMPILE, 0, 0, 0, b); return -1;
+}
+int rio_image_load(Rio *vm, const void *img, uint32_t len) {
+  const uint8_t *p = (const uint8_t *)img, *q, *e = p + len; uint32_t h[IMG_WORDS], i, j, ms, bsz, cn; const RioIns *code;
+  RioFfi f[RIO_MAX_FFI];
+  vm->ok = 0; vm->repl = 0; vm->c = 0; vm->ekind = RIO_ENONE; vm->err[0] = 0;
+  if (vm->running) return imgerr(vm, "rio is running");
+  if (!littleendian()) return imgerr(vm, "needs a little-endian host");
+  if (len < sizeof h) return imgerr(vm, "too short");
+  memcpy(h, p, sizeof h); q = p + sizeof h;
+  if (h[IMG_MAGIC] != IMG_MAGICW) return imgerr(vm, "not a rio image");
+  if (h[IMG_VERSION] != IMG_VERSIONW) return imgerr(vm, "unsupported version");
+  ms = h[IMG_MEMSIZE];
+  if (ms > vm->memsize) return imgerr(vm, "needs more memory");
+  if (!h[IMG_CODE] && h[IMG_PC] > vm->codebufcap) return imgerr(vm, vm->codebuf ? "code too large" : "its code goes in a separate buffer, and this vm has none");
+  if (h[IMG_NFFI] > RIO_MAX_FFI) return imgerr(vm, "too many ffi functions");
+  if (h[IMG_KCAP] > ms / 4 || h[IMG_NK] > h[IMG_KCAP] || h[IMG_HI] < h[IMG_KCAP] * 4 || h[IMG_END] < h[IMG_HI] || h[IMG_END] > ms ||
+      h[IMG_CSADDR] > h[IMG_HI] || h[IMG_NFUNC] > 65535 || h[IMG_NMODS] > 65535 || h[IMG_NEXPORTS] > ms / sizeof(RioExport) ||
+      h[IMG_FUNC] < h[IMG_HI] || h[IMG_FUNC] + h[IMG_NFUNC] * sizeof(RioFunc) > h[IMG_END] ||
+      h[IMG_MODS] < h[IMG_HI] || h[IMG_MODS] + h[IMG_NMODS] * sizeof(RioModRt) != h[IMG_END] ||
+      h[IMG_EXPORTS] < h[IMG_HI] || h[IMG_EXPORTS] + h[IMG_NEXPORTS] * sizeof(RioExport) > h[IMG_END] ||
+      h[IMG_LINES] < h[IMG_HI] || h[IMG_LINES] + h[IMG_NLINES] > h[IMG_END] || (h[IMG_FUNC] & 1) ||
+      (h[IMG_CODE] && (h[IMG_CODE] < h[IMG_HI] || (h[IMG_CODE] & 7) || h[IMG_CODE] + h[IMG_PC] * sizeof(RioIns) > h[IMG_END])))
+    return imgerr(vm, "bad header");
+  for (i = 0; i < h[IMG_NFFI]; i++) { /* bind by name, in the image's order */
+    const char *name = (const char *)q, *sig; size_t a;
+    for (a = 0; q + a < e && q[a]; a++) {}
+    if (q + a + 1 >= e) return imgerr(vm, "bad ffi table");
+    sig = name + a + 1; q += a + 1;
+    for (a = 0; q + a < e && q[a]; a++) {}
+    if (q + a >= e) return imgerr(vm, "bad ffi table");
+    q += a + 1;
+    for (j = 0; j < (uint32_t)vm->nffi && strcmp(vm->ffi[j].name, name); j++) {}
+    if (j < (uint32_t)vm->nffi) {
+      if (strcmp(vm->ffi[j].sig, sig)) return imgerr(vm, "an ffi function's sig differs from the image's");
+      f[i] = vm->ffi[j];
+    } else { f[i].name = ""; f[i].sig = ""; f[i].fn = 0; f[i].aw = f[i].rw = 0; } /* fine, unless the code calls it */
+  }
+  q = p + ((q - p + 3) & ~(uintptr_t)3);
+  bsz = h[IMG_END] - h[IMG_HI];
+  cn = h[IMG_CODE] ? 0 : h[IMG_PC];
+  if (q > e || (uint32_t)(e - q) != cn * sizeof(RioIns) + h[IMG_KCAP] * 4 + bsz) return imgerr(vm, "wrong size");
+  code = h[IMG_CODE] ? (const RioIns *)(const void *)(q + cn * sizeof(RioIns) + h[IMG_KCAP] * 4 + (h[IMG_CODE] - h[IMG_HI])) : (const RioIns *)(const void *)q;
+  for (i = 0; i < h[IMG_PC]; i++) { /* before anything is copied: a failed load leaves the vm as it was */
+    RioIns in; memcpy(&in, code + i, sizeof in);
+    if (in.op == OP_FFI && (in.c >= h[IMG_NFFI] || !f[in.c].fn)) return imgerr(vm, "the program calls an ffi function the host didn't register");
+  }
+  if (cn) { memcpy(vm->codebuf, q, cn * sizeof(RioIns)); q += cn * sizeof(RioIns); }
+  memcpy(vm->mem, q, h[IMG_KCAP] * 4); q += h[IMG_KCAP] * 4;
+  memset(vm->mem + h[IMG_KCAP] * 4, 0, h[IMG_HI] - h[IMG_KCAP] * 4);
+  memcpy(vm->mem + h[IMG_HI], q, bsz);
+  memset(vm->mem + h[IMG_END], 0, vm->memsize - h[IMG_END]);
+  memcpy(vm->ffi, f, h[IMG_NFFI] * sizeof *f); vm->nffi = (int)h[IMG_NFFI];
+  vm->memsize = ms; vm->pc = h[IMG_PC]; vm->nk = h[IMG_NK]; vm->kcap = h[IMG_KCAP]; vm->csaddr = h[IMG_CSADDR]; vm->hi = h[IMG_HI];
+  vm->exports = h[IMG_EXPORTS]; vm->nexports = h[IMG_NEXPORTS]; vm->lines = h[IMG_LINES]; vm->nlines = h[IMG_NLINES];
+  vm->code = h[IMG_CODE] ? (RioIns *)(void *)(vm->mem + h[IMG_CODE]) : vm->codebuf; vm->codecap = h[IMG_PC];
+  vm->mods = h[IMG_MODS]; vm->nmods = h[IMG_NMODS]; vm->nfunc = (int)h[IMG_NFUNC]; vm->func = (RioFunc *)(void *)(vm->mem + h[IMG_FUNC]);
+  vm->lcpos = vm->lcpc = vm->lcline = 0; vm->logn = 0; vm->trap = 0;
+  vm->ok = 1;
+  return 0;
+}

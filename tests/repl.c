@@ -48,6 +48,12 @@ int main(void) {
   eval("v := (1 + 2\n", RIO_MORE, "", 0);
   eval("log(\"open\n", RIO_MORE, "", 0);
   eval("if x > 0\n", RIO_MORE, "", 0);
+  eval("Pt :: struct\n", RIO_MORE, "", 0);                        /* type blocks too */
+  eval("Pt :: struct\n  x: Int\n", RIO_MORE, "", 0);
+  eval("Pt :: struct\n  x: Int\nend\n", 0, "", 0);
+  eval("Pt{x = 5}.x\n", 0, "5\n", 0);
+  eval("Ab :: enum\n  a\n", RIO_MORE, "", 0);
+  eval("Un :: union\n  Int\n", RIO_MORE, "", 0);
   eval("z := nope\n", -1, "", "undefined name");                  /* a compile error... */
   eval("z\n", -1, "", "undefined name");                           /* ...declares nothing */
   eval("if x\nend\n", -1, "", "condition must be Bool");           /* wrong, not unfinished */
