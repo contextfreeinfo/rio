@@ -8,7 +8,7 @@ A tiny, statically typed, embeddable scripting language. It's written in C99; th
 - Odin-like syntax, with blocks closed by `end`
 - Static types, inferred from the right-hand side
 - Types: `Int` (i32), `Float` (f32), `Bool`, `String`, `Blob`, structs, slices (`[]T`), fixed arrays (`[N]T`, stored as contiguous structs), and fixed-capacity lists (`[..N]T`)
-- **No dynamic allocation.** You give it one memory buffer and one code buffer; the compiler and VM never call `malloc`
+- **No dynamic allocation.** You give it one memory buffer (code and data share it, or the code can have its own); the compiler and VM never call `malloc`
 - **No recursion**, either in the implementation (the parser uses explicit stacks) or in the language. Because procs can't recurse, each proc gets one static frame, and bytecode operands are absolute slots, so there is no stack and no frame pointer
 - A register VM with typed opcodes, fused compare-and-branch, fused index+load/store, and bottom-tested loops. It uses computed goto on GCC/Clang and `switch` elsewhere
 - **Ahead-of-time compilation to C** (`rio -c out.c file.rio`) for scripts known at build time
@@ -372,14 +372,13 @@ rio -c game.c -D N=20 game.rio          # works for the C backend too
 
 ```c
 #include "rio.h"
-static uint8_t mem[1 << 20];          // script data, and the compiler's working memory while compiling
-static RioIns code[16384];            // bytecode (max 65535)
+static uint8_t mem[1 << 20];          // the program's code and data, and the compiler's working memory while compiling
 static Rio vm;                        // runtime state (~1-12 KB depending on limits)
 
 static void host_print(void *ud, const char *s, int n) { fwrite(s, 1, n, stdout); putchar('\n'); }
 static void host_rand(Rio *vm, RioVal *a) { a[0].i = rand(); }  // args in a[], result to a[0]
 
-rio_init(&vm, mem, sizeof mem, code, 16384);
+rio_init(&vm, mem, sizeof mem, NULL, 0); // or a separate code buffer: code, its capacity (max 65535)
 rio_set_log(&vm, host_print, NULL);
 rio_ffi(&vm, "rand", ">i", host_rand);   // sig: i f s b params, '>' result
 rio_define(&vm, "LEVEL", "3");           // optional: like -D LEVEL=3
@@ -395,6 +394,8 @@ int *score = rio_global(&vm, "score"); // direct access to globals (score* := 0)
 `String` or `Blob` FFI arguments take two words (address, length); use `rio_ptr(vm, &a[i])` to get the bytes. An FFI function can abort the script with `rio_trap(vm, "msg")`. FFI functions must not call back into the VM.
 
 The compiler's capacities (symbols, procs, constants and so on) are chosen per compile from the memory available; see [Memory and microcontrollers](#memory-and-microcontrollers).
+
+**Code lives in `mem` too,** unless you pass a code buffer. While compiling, it grows in the compiler's working memory (a quarter of it by default, `RioLimits.code`), and when compiling ends it moves to just below the strings and tables at the top of memory, taking exactly its own size (8 bytes an instruction). So one buffer is the whole budget, split between code and data however each program needs. A separate buffer suits a host that wants the code elsewhere, such as in other memory. A REPL with the code in `mem` keeps a quarter of it for code for the whole session.
 
 ### REPL and break
 
@@ -515,12 +516,12 @@ rio game.img                       # run an image (the CLI tells images from sou
 uint32_t n = rio_image_save(&vm, NULL, 0);   // after compiling, before running: the size
 rio_image_save(&vm, buf, n);                 // returns n, or 0 if it doesn't fit
 
-rio_init(&vm2, mem, sizeof mem, code, codecap);
+rio_init(&vm2, mem, sizeof mem, NULL, 0);
 rio_ffi(&vm2, "clock", ">f", host_clock);    // the same ffi functions, in any order
 if (rio_image_load(&vm2, buf, n) || rio_run(&vm2)) puts(rio_error(&vm2));
 ```
 
-- **Memory addresses are absolute,** so compile for the memory the program will run in (`-M`, default 8 MB in the CLI) and load into at least that much. The loader also needs room for the code.
+- **Memory addresses are absolute,** so compile for the memory the program will run in (`-M`, default 8 MB in the CLI) and load into at least that much. Code compiled into `mem` loads right back there; code compiled into a separate buffer needs a loading vm with one too.
 - **FFI functions are bound by name** at load, and their sigs must match. One the image names but the host lacks is fine unless the code calls it.
 - **Build with `-DRIO_NO_COMPILER`** for a VM that only loads images: everything that compiles (and the REPL) is left out. On a Cortex-M33 at `-Os` that's about 11 KB of flash instead of 68 KB. As wasm (`zig cc -target wasm32-wasi -mexec-model=reactor -Os`), a minimal browser host comes to 28 KB, 13 KB gzipped, importing only a log function. `tests/vm.c` is such a host; ctest runs the test suite through it.
 - **Images are trusted like code:** the loader checks the header and sizes, but the VM doesn't check bytecode, so load only images you (or your compiler) made.

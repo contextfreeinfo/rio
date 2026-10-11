@@ -78,6 +78,32 @@ int main(void) {
   check(rio_image_load(&vm, img, n) == -1 && strstr(rio_error(&vm), "bad header"), "inconsistent header", &vm);
   img[52]--;
   check(rio_image_load(&vm, img, n) == 0 && rio_run(&vm) == 0, "restored image loads", &vm);
+  /* code in mem: no code buffer when compiling, loading, or either */
+  {
+    Rio a; static unsigned char ma[1 << 18]; uint32_t m;
+    rio_init(&a, ma, sizeof ma, 0, 0);
+    rio_ffi(&a, "add", "ii>i", f_add); rio_ffi(&a, "half", "f>f", f_half);
+    check(rio_compile(&a, src, (uint32_t)strlen(src)) == 0, "compile with the code in mem", &a);
+    m = rio_image_save(&a, img, sizeof img);
+    check(m > 0 && m < n, "an image with the code in mem (the code is part of the block)", &a);
+    logged[0] = 0;
+    rio_init(&vm, mem2, sizeof mem2, 0, 0);
+    rio_set_log(&vm, out, 0); rio_ffi(&vm, "add", "ii>i", f_add); rio_ffi(&vm, "half", "f>f", f_half);
+    check(rio_image_load(&vm, img, m) == 0 && rio_run(&vm) == 0 && rio_call(&vm, rio_func(&vm, "main")) == 0 &&
+          !strcmp(logged, "hi 40 1.5|0|"), "load and run with the code in mem", &vm);
+    logged[0] = 0;
+    rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+    rio_set_log(&vm, out, 0); rio_ffi(&vm, "add", "ii>i", f_add); rio_ffi(&vm, "half", "f>f", f_half);
+    check(rio_image_load(&vm, img, m) == 0 && rio_run(&vm) == 0 && rio_call(&vm, rio_func(&vm, "main")) == 0 && !strcmp(logged, "hi 40 1.5|0|"),
+          "a vm with a code buffer runs an image whose code is in mem", &vm);
+    n = save(src, sizeof mem); /* code buffer */
+    rio_init(&vm, mem2, sizeof mem2, 0, 0);
+    rio_ffi(&vm, "add", "ii>i", f_add); rio_ffi(&vm, "half", "f>f", f_half);
+    check(rio_image_load(&vm, img, n) == -1 && strstr(rio_error(&vm), "separate buffer"), "an image with its code apart needs a code buffer", &vm);
+    rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+    rio_ffi(&vm, "add", "ii>i", f_add); rio_ffi(&vm, "half", "f>f", f_half);
+    check(rio_image_load(&vm, img, n) == 0 && rio_run(&vm) == 0, "back to a code buffer", &vm);
+  }
   /* saving */
   check(rio_image_save(&vm, img, sizeof img) == 0, "no saving after running", &vm);
   n = save("x := 1\n", sizeof mem);

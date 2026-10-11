@@ -209,10 +209,11 @@ static void again(Rio *v, RioVal *a) {
 }
 
 int main(void) {
-  int i, fails = 0, n = (int)(sizeof cases / sizeof cases[0]);
+  int i, fails = 0, n = (int)(sizeof cases / sizeof cases[0]), pass;
+  for (pass = 0; pass < 2; pass++) /* with a code buffer, then with the code in mem */
   for (i = 0; i < n; i++) {
     const Case *c = &cases[i]; RioError e; int f;
-    rio_init(&vm, mem, c->memsize ? c->memsize : sizeof mem, code, 4096);
+    rio_init(&vm, mem, c->memsize ? c->memsize : sizeof mem, pass ? 0 : code, 4096);
     rio_ffi(&vm, "boom", "", boom);
     rio_ffi(&vm, "again", "", again);
     if (c->def) rio_define(&vm, c->def, c->defval);
@@ -222,11 +223,12 @@ int main(void) {
     e = rio_error_info(&vm);
     if (e.kind != c->kind || (c->line >= 0 && e.line != c->line) || (c->col >= 0 && e.col != c->col) ||
         (c->len >= 0 && e.len != c->len) || !strstr(e.msg, c->msg)) {
-      printf("FAIL case %d: got kind %d %d:%d len %d \"%s\"; want kind %d %d:%d len %d \"%s\"\n",
-             i, e.kind, e.line, e.col, e.len, e.msg, c->kind, c->line, c->col, c->len, c->msg);
+      printf("FAIL case %d%s: got kind %d %d:%d len %d \"%s\"; want kind %d %d:%d len %d \"%s\"\n",
+             i, pass ? " (code in mem)" : "", e.kind, e.line, e.col, e.len, e.msg, c->kind, c->line, c->col, c->len, c->msg);
       fails++;
     }
   }
+  n *= 2;
   { /* a line of over 4096 instructions: the packed line table takes long steps; the error is on line 4 */
     static char big[40000]; static RioIns bigcode[8192]; int k, len = sprintf(big, "xs: [2]Int\nx := 1\ni := 5\ny := x");
     RioError e;
