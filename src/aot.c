@@ -223,6 +223,20 @@ static void ins(int pc) {
   case A_EACH: P("if ((%s += %s) < %s) goto L%d;\n", V(a, 'u'), V(b + 1, 'u'), V(b, 'u'), c); break;
   case A_FORI: P("if ((%s = (int32_t)(%s + 1u)) < %s) goto L%d;\n", V(a, 'i'), V(a, 'u'), V(b, 'i'), c); break;
   case A_CALL: P("%s();\n", fname(fnat(c))); break;
+  case A_CALLI: { /* through a proc value: the tables say where its parameters go */
+    int i;
+    P("{ uint32_t f_ = %s - 1u; if (f_ >= %du) RT_ERR(\"this proc value isn't set\"); ", V(a, 'u'), vm->nfunc);
+    for (i = 0; i < c; i++) P("R[rio_fs[f_] + %d] = %s; ", i, V(b + i, 'v'));
+    P("rio_fn[f_](); }\n");
+    break;
+  }
+  case A_GETRET: {
+    int i;
+    P("{ uint32_t f_ = %s - 1u; ", V(b, 'u'));
+    for (i = 0; i < c; i++) P("%s = R[rio_ret[f_] + %d]; ", V(a + i, 'v'), i);
+    P("}\n");
+    break;
+  }
   case A_RET: case A_HALT: P("return;\n"); break;
   case A_FFI: {
     RioFfi *f = &vm->ffi[c]; int n = f->aw, i, rw = f->rw;
@@ -330,7 +344,18 @@ int rio_aot(Rio *v, FILE *out, const char *host_ffi) {
   /* ffi */
   for (i = 0; i < vm->nffi; i++) fprintf(o, "void rio_ffi_%s(RioVal *a);\n", symname(RIO_S_FFI, i));
   if (host_ffi) fprintf(o, "#ifndef RIO_NO_HOST_FFI\n%s#endif\n", host_ffi);
-  /* procs: defined in order, and calls only go backwards, so no prototypes are needed */
+  /* procs: defined in order, and direct calls only go backwards; calls through proc values use a table
+     of every proc, its parameter slots and its result slot */
+  if (vm->nfunc) {
+    for (i = 0; i < vm->nfunc; i++) fprintf(o, "static void %s(void);\n", fname(i));
+    fprintf(o, "static void (*const rio_fn[%d])(void) = {", vm->nfunc);
+    for (i = 0; i < vm->nfunc; i++) fprintf(o, "%s%s", i ? ", " : "", fname(i));
+    fprintf(o, "};\nstatic const uint32_t rio_fs[%d] = {", vm->nfunc);
+    for (i = 0; i < vm->nfunc; i++) fprintf(o, "%s%u", i ? ", " : "", vm->func[i].fs);
+    fprintf(o, "};\nstatic const uint32_t rio_ret[%d] = {", vm->nfunc);
+    for (i = 0; i < vm->nfunc; i++) fprintf(o, "%s%u", i ? ", " : "", vm->func[i].ret);
+    fprintf(o, "};\n");
+  }
   for (cur = 0; cur < vm->nfunc; cur++) {
     RioFunc *f = &vm->func[cur];
     memset(used, 0, sizeof used);

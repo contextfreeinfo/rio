@@ -105,7 +105,7 @@ int rio_pc_line(Rio *vm, uint32_t pc);      /* source line of a bytecode positio
 enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI, RIO_S_METH, RIO_S_SELF, RIO_S_MOD };
 /* kinds of types (RioType.k), for tools that read the compiler's tables */
 enum { RIO_K_VOID, RIO_K_I32, RIO_K_F32, RIO_K_BYTE, RIO_K_SLICE, RIO_K_ARR, RIO_K_STRUCT, RIO_K_BOOL, RIO_K_LIST, RIO_K_BUILD,
-  RIO_K_ENUM, RIO_K_UNION };
+  RIO_K_ENUM, RIO_K_UNION, RIO_K_PROC };
 #define RIO_OPS(X) X(MOV) X(ADD) X(SUB) X(MUL) X(DIV) X(MOD) X(AND) X(OR) X(XOR) X(SHL) X(SHR) \
   X(NEG) X(BNOT) X(NOT) X(FADD) X(FSUB) X(FMUL) X(FDIV) X(FNEG) \
   X(EQ) X(NE) X(LT) X(LE) X(FEQ) X(FNE) X(FLT) X(FLE) X(SEQ) X(SNE) \
@@ -114,7 +114,7 @@ enum { RIO_K_VOID, RIO_K_I32, RIO_K_F32, RIO_K_BYTE, RIO_K_SLICE, RIO_K_ARR, RIO
   X(VADD) X(VSUB) X(VMUL) X(VDIV) X(VMOD) X(FVADD) X(FVSUB) X(FVMUL) X(FVDIV) \
   X(LIDX) X(PUSHA) X(PUSHS) X(PUSHT) X(POPA) X(LREM) X(LSWAP) X(LVIEW) \
   X(JMP) X(JZ) X(JNZ) X(JEQ) X(JNE) X(JLT) X(JLE) X(JFEQ) X(JFNE) X(JFLT) X(JFLE) X(JFNLT) X(JFNLE) X(EACH) X(FORI) \
-  X(CALL) X(RET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGN) X(LOGE) X(FAIL) X(HALT)
+  X(CALL) X(RET) X(CALLI) X(GETRET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGN) X(LOGE) X(FAIL) X(HALT)
 /* runtime: per proc entry pc, code end, frame slots [fs, fe), params in [fs, pend), result slot(s) */
 typedef struct { uint16_t pc, end, fs, fe, pend, ret; uint8_t retw; } RioFunc;
 typedef struct { const char *name, *sig; RioFn fn; uint8_t aw, rw; } RioFfi;
@@ -133,7 +133,9 @@ typedef struct { uint16_t key, keylen, dir, dirlen, file, pc0, pc1; uint8_t pkg,
 typedef struct { const char *src, *se, *ls, *pos; int line, mod, f, inc; } RioImp;
 /* big: bytes of its locals stored apart (over 16 words). shared: its frame lives in the shared area at
    offset ob; oe is where the shared frames of it and everything it calls end; dep: its longest call chain */
-typedef struct { uint16_t pc, end, ret, p0, np, fs, fe, ob, oe, dep; uint32_t retaddr, big, hi0; uint8_t done, selfref, shared; } RioCFunc; /* hi0: its big locals are below this */
+/* ho: it calls through a proc value, itself or through procs it calls (so it can't be a value: that
+   could recurse). val: it's used as a proc value somewhere */
+typedef struct { uint16_t pc, end, ret, p0, np, fs, fe, ob, oe, dep; uint32_t retaddr, big, hi0; uint8_t done, selfref, shared, ho, val; } RioCFunc; /* hi0: its big locals are below this */
 typedef struct { uint16_t t, ref; uint32_t addr; } RioParam; /* ref: a &T param's T (t is then the address word) */
 typedef struct { uint16_t ret, p0, np; } RioCFfi;
 typedef struct { uint8_t k, ro; uint16_t t, t0; uint8_t lv; int32_t a, off; } RioEx; /* lv: a view of the current proc's own memory */

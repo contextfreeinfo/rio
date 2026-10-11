@@ -32,7 +32,7 @@ enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, T
   TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_IMPORT, TK_INCLUDE, TK_ENUM, TK_UNION, TK_SWITCH, TK_CASE, TK_IS, TK_NIL, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND,
   TK_OR, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
 enum { TY_VOID, TY_I32, TY_F32, TY_BYTE, TY_STR, TY_BLOB, TY_BOOL };
-enum { K_VOID = RIO_K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD, K_ENUM, K_UNION };
+enum { K_VOID = RIO_K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD, K_ENUM, K_UNION, K_PROC };
 enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF, S_MOD, S_ROREF, S_NARROW }; /* S_ROREF: a read-only S_SELF.
    S_NARROW: a union variable narrowed to one of its types: a read-only copy (mod: the union's symbol) */
 enum { EK_CONST, EK_ST, EK_MEM, EK_VOID, EK_FN, EK_FFI, EK_BI, EK_TY, EK_LEN, EK_MOD };
@@ -284,6 +284,42 @@ static int enumarray_of(Rio *vm, int el, int et) {
   vm->c->type[i].f0 = (uint16_t)et;
   return i;
 }
+static Ex mkex(int k, int t, int32_t a);
+/* proc types: proc(T, U) -> R. Each parameter type is a field (t); elem is the result (TY_VOID: none).
+   A proc value is the proc's index + 1, so a value never set (0) is caught when called */
+static int proc_of(Rio *vm, const int *ps, int n, int ret) {
+  int i, j;
+  for (i = TY_BLOB + 1; i < vm->c->ntype; i++) {
+    RioType *y = &vm->c->type[i];
+    if (y->k != K_PROC || y->nf != n || y->elem != ret) continue;
+    for (j = 0; j < n && vm->c->field[y->f0 + j].t == ps[j]; j++) {}
+    if (j == n) return i;
+  }
+  i = newtype(vm, K_PROC, ret, 0, 4);
+  vm->c->type[i].f0 = (uint16_t)vm->c->nfield;
+  for (j = 0; j < n; j++) {
+    RioField *f;
+    if (vm->c->nfield >= (int)vm->c->lim.fields) fail(vm, "too many fields");
+    f = &vm->c->field[vm->c->nfield++]; f->name = 0; f->len = 0; f->t = (uint16_t)ps[j]; f->off = 0;
+  }
+  vm->c->type[i].nf = (uint16_t)n;
+  return i;
+}
+/* proc f, used where a proc value goes (of type t, or its own signature when t < 0): becomes the value.
+   Only a proc that never calls through a proc value can be one, so calls through values can't recurse */
+static void procvalue(Rio *vm, Ex *e, int t) {
+  RioCFunc *f = &vm->c->func[e->a]; int ps[16], i;
+  if (f->np > 16) fail(vm, "too many parameters for a proc value");
+  for (i = 0; i < f->np; i++) {
+    if (vm->c->param[f->p0 + i].ref) fail(vm, "a proc with & parameters can't be a value");
+    ps[i] = vm->c->param[f->p0 + i].t;
+  }
+  i = proc_of(vm, ps, f->np, f->ret);
+  if (t >= 0 && i != t) fail(vm, "this proc's parameters or result don't match");
+  if (f->ho) fail(vm, "this proc calls procs through values, so it can't be a value itself (that could recurse)");
+  f->val = 1;
+  *e = mkex(EK_CONST, i, e->a + 1);
+}
 /* [..N]T: a length word followed by N elements. [..]T: a builder, a view of a length word and the memory
    it counts: (address of the length word, address of the data, capacity) */
 static int list_of(Rio *vm, int e, uint32_t n) {
@@ -415,12 +451,14 @@ static void viewstore(Rio *vm, const Ex *d, const Ex *s) {
 #define RO_NARROW 8 /* Ex.ro: a narrowed union's copy */
 /* a value in the compiler's scratch slots (a call's or an expression's result), not a variable */
 static int istemp(Rio *vm, Ex *e) { return e->k == EK_ST && (uint32_t)e->a >= vm->c->nact * 4 && (uint32_t)e->a < vm->hi; }
+static void procvalue(Rio *vm, Ex *e, int t);
 static void needval(Rio *vm, Ex *e) {
   if (e->k > EK_MEM) fail(vm, e->k == EK_VOID ? "no value" : "not a value");
   if (e->ro & RO_REF) fail(vm, "&x only goes to a & parameter or name := &x");
 }
 static void coerce(Rio *vm, Ex *e, int t) {
   int et;
+  if (e->k == EK_FN && TY(t)->k == K_PROC) { procvalue(vm, e, t); return; } /* a proc where a proc value goes */
   needval(vm, e);
   et = vt(e->t); t = vt(t);
   if (e->k == EK_CONST && et == TY_I32 && t == TY_F32) { RioVal v; v.f = (float)e->a; e->a = v.i; e->t = TY_F32; return; }
@@ -435,7 +473,7 @@ static void coerce(Rio *vm, Ex *e, int t) {
 static int toslot(Rio *vm, Ex *e, int reuse) {
   int k, d;
   needval(vm, e); k = TY(e->t)->k;
-  if (k != K_I32 && k != K_F32 && k != K_BYTE && k != K_BOOL && k != K_ENUM) fail(vm, "expected a number");
+  if (k != K_I32 && k != K_F32 && k != K_BYTE && k != K_BOOL && k != K_ENUM && k != K_PROC) fail(vm, "expected a number");
   if (e->k == EK_CONST) return kslot(vm, (uint32_t)e->a);
   if (e->k == EK_ST) {
     if (k != K_BYTE && e->a < 0x40000) return e->a >> 2;
@@ -1073,6 +1111,11 @@ static void argdone(Rio *vm, Op *m) {
   Ex *a = vtop(vm), e; RioParam *pp = 0;
   isused(vm, a, -1);
   if (m->k == OK_CALL && m->a == EK_FN && m->n < vm->c->func[m->b].np) pp = &vm->c->param[vm->c->func[m->b].p0 + m->n];
+  if (a->k == EK_FN) { /* a proc passed where a proc value goes */
+    int pt = pp ? pp->t : m->k == OK_CALL && m->a == EK_ST && m->n < TY(m->c)->nf ? vm->c->field[TY(m->c)->f0 + m->n].t :
+             m->k == OK_LIT && m->a >= 0 ? vm->c->field[TY(m->b)->f0 + m->a].t : -1;
+    if (pt >= 0 && TY(pt)->k == K_PROC) procvalue(vm, a, pt);
+  }
   if (pp && pp->ref) {
     if (!(a->ro & RO_REF)) fail(vm, "this parameter is a reference: pass &x");
     a->ro = 0;
@@ -1088,9 +1131,9 @@ static void argdone(Rio *vm, Op *m) {
     e = vpop(vm); d = mkex(EK_ST, f->t, m->c + f->off);
     store(vm, &d, &e);
     vm->c->fr = (uint32_t)(m->c / 4 + words(vm, m->b));
-  } else if (m->a == EK_FN) {
+  } else if (m->a == EK_FN || m->a == EK_ST) {
     int k = TY(a->t)->k;
-    if (m->n >= vm->c->func[m->b].np) fail(vm, "too many arguments");
+    if (m->n >= (m->a == EK_FN ? vm->c->func[m->b].np : TY(m->c)->nf)) fail(vm, "too many arguments");
     if (a->k == EK_MEM && k != K_STRUCT && k != K_ARR && k != K_LIST && k != K_UNION) {
       int s = k == K_SLICE || k == K_BUILD ? toslotv(vm, a) : toslot(vm, a, 1);
       a->k = EK_ST; a->a = s * 4; a->t = (uint16_t)vt(a->t);
@@ -1298,6 +1341,7 @@ static void finish_call(Rio *vm, Op *m) {
     }
     vm->c->nvs = m->vb;
     emit(vm, OP_CALL, 0, 0, f->pc);
+    if (f->ho && vm->c->curfn >= 0) vm->c->func[vm->c->curfn].ho = 1;
     vm->c->fr = m->fr0;
     if (f->ret == TY_VOID) { vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0); return; }
     {
@@ -1305,6 +1349,24 @@ static void finish_call(Rio *vm, Op *m) {
       d = alloc(vm, words(vm, f->ret)); dst = mkex(EK_ST, f->ret, d * 4);
       store(vm, &dst, &src); vres(vm, dst, m->fr0);
     }
+  } else if (m->a == EK_ST) { /* through a proc value: the arguments go to a scratch area, the call copies them over */
+    RioType *pt = TY(m->c); int i, w = 0, base, d, off = 0;
+    if (m->n != pt->nf) fail(vm, "wrong number of arguments");
+    for (i = 0; i < pt->nf; i++) w += words(vm, vm->c->field[pt->f0 + i].t);
+    base = alloc(vm, w ? w : 1);
+    for (i = 0; i < pt->nf; i++) {
+      int ft = vm->c->field[pt->f0 + i].t; Ex p = mkex(EK_ST, ft, (base + off) * 4);
+      vm->c->argstore = 1; store(vm, &p, &vm->c->vs[m->vb + i]); vm->c->argstore = 0;
+      off += words(vm, ft);
+    }
+    vm->c->nvs = m->vb;
+    emit(vm, OP_CALLI, m->b, base, w);
+    if (vm->c->curfn >= 0) vm->c->func[vm->c->curfn].ho = 1;
+    vm->c->fr = m->fr0;
+    if (pt->elem == TY_VOID) { vres(vm, mkex(EK_VOID, TY_VOID, 0), m->fr0); return; }
+    d = alloc(vm, words(vm, pt->elem));
+    emit(vm, OP_GETRET, d, m->b, words(vm, pt->elem));
+    vres(vm, mkex(EK_ST, pt->elem, d * 4), m->fr0);
   } else if (m->a == EK_FFI) {
     RioCFfi *f = &vm->c->ffi[m->b];
     if (m->n != f->np) fail(vm, "wrong number of arguments");
@@ -1393,6 +1455,7 @@ static int target(Rio *vm, int ob, int whole) {
     if (at->k == K_ARR && at->f0) return at->f0;
   }
   if (m->k == OK_CALL && m->a == EK_FN && m->n < vm->c->func[m->b].np) return vm->c->param[vm->c->func[m->b].p0 + m->n].t;
+  if (m->k == OK_CALL && m->a == EK_ST && m->n < TY(m->c)->nf) return vm->c->field[TY(m->c)->f0 + m->n].t;
   if (m->k == OK_CALL && m->a == EK_BI && m->b == BI_PUSH && m->n == 1) return TY(vm->c->vs[m->vb].t)->elem;
   return -1;
 }
@@ -1446,6 +1509,13 @@ static Ex expr(Rio *vm) {
         if (c.k == EK_BI && c.a == BI_FORMAT) argdone(vm, o); else o->n = 1;
         depth++; next(vm);
         if (TK.t == ')') { closer(vm, ')', 0); depth--; next(vm); want = 0; } else want = 1;
+        continue;
+      }
+      if ((c.k == EK_ST || c.k == EK_MEM || c.k == EK_CONST) && TY(c.t)->k == K_PROC) { /* f(...) through a proc value */
+        int s = toslot(vm, &c, 1);
+        vm->c->nvs--;
+        o = opush(vm, OK_CALL, 0, 0); o->a = EK_ST; o->b = s; o->c = c.t;
+        depth++; next(vm); want = 1;
         continue;
       }
       if (c.k < EK_FN || c.k > EK_TY) fail(vm, "not callable");
@@ -1514,7 +1584,29 @@ static int32_t constexpr_i(Rio *vm) {
 }
 
 /* ---------------------------------------------------------------- statements */
-static int parse_type(Rio *vm) {
+static int ptype(Rio *vm);
+static int parse_type(Rio *vm) { /* proc(T, U) -> R, or any other type */
+  int ps[16], n = 0, ret = TY_VOID;
+  if (TK.t != TK_PROC) return ptype(vm);
+  next(vm); expect(vm, '(', "'(' expected");
+  while (TK.t != ')') {
+    if (n >= 16) fail(vm, "too many parameters");
+    if (TK.t == TK_ID && vm->c->nx.t == ':') { next(vm); next(vm); } /* a name is allowed, for reading */
+    if (TK.t == '&') failtok(vm, "proc values can't take & parameters");
+    if (TK.t == TK_PROC) failtok(vm, "a proc type can't take or return procs");
+    ps[n++] = ptype(vm);
+    if (TK.t != ',') break;
+    next(vm);
+  }
+  expect(vm, ')', "')' expected");
+  if (TK.t == TK_ARROW) {
+    next(vm);
+    if (TK.t == TK_PROC) failtok(vm, "a proc type can't take or return procs");
+    ret = ptype(vm);
+  }
+  return proc_of(vm, ps, n, ret);
+}
+static int ptype(Rio *vm) {
   int32_t pre[16]; int np = 0, t, i, pen[16];
   while (TK.t == '[') {
     if (np >= 16) fail(vm, "type too deep");
@@ -1594,6 +1686,7 @@ static void proc_def(Rio *vm, const char *name, int nlen, int recv) {
   skip = emit(vm, OP_JMP, 0, 0, NONE);
   fi = vm->nfunc++; f = &vm->c->func[fi];
   f->p0 = (uint16_t)vm->c->nparam; f->np = 0; f->done = 0; f->ret = TY_VOID; f->retaddr = 0; f->big = 0; f->shared = 0; f->hi0 = vm->hi;
+  f->ho = f->val = 0;
   addsym(vm, name, nlen, recv < 0 ? S_FN : S_METH, recv < 0 ? 0 : recv, fi);
   f->selfref = (uint8_t)(recv >= 0 && TY(recv)->k == K_STRUCT);
   b = bpush(vm, B_PROC); b->a = (uint16_t)skip; b->b = (uint16_t)fi;
@@ -1775,6 +1868,7 @@ static void buildover(Rio *vm, const char *ns, int nn, int t, Ex *e) {
 static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
   int has = pe != 0, k, big, lv = 0; uint32_t addr; RioType *ty; Ex e = has ? *pe : mkex(EK_VOID, TY_VOID, 0);
   if (has) {
+    if (e.k == EK_FN) procvalue(vm, &e, t >= 0 && TY(t)->k == K_PROC ? t : -1); /* f := byScore */
     needval(vm, &e); lv = localview(vm, &e);
     if (t >= 0 && TY(t)->k == K_UNION && e.t != t) { /* a value of one of its types (or nil): store wraps it */
       uint32_t at;
@@ -1801,7 +1895,7 @@ static void declare(Rio *vm, const char *ns, int nn, int t, Ex *pe, int adopt) {
   big = isbig(ty);
   if (big) addr = halloc(vm, ty->size);
   else {
-    if (has && e.k == EK_MEM && (k == K_I32 || k == K_F32 || k == K_BOOL || k == K_ENUM || k == K_SLICE || k == K_BUILD)) {
+    if (has && e.k == EK_MEM && (k == K_I32 || k == K_F32 || k == K_BOOL || k == K_ENUM || k == K_PROC || k == K_SLICE || k == K_BUILD)) {
       int s = k == K_SLICE || k == K_BUILD ? toslotv(vm, &e) : toslot(vm, &e, 1);
       e.k = EK_ST; e.a = s * 4; e.t = (uint16_t)t;
     }
@@ -2456,6 +2550,7 @@ static int slotops(int op) {
   case OP_LDW: case OP_LDB: case OP_LEA: case OP_LDW2: case OP_STW: case OP_STB: case OP_STW2: case OP_COPY: case OP_MOVN: return 3;
   case OP_ZERO: case OP_FFI: return 1;
   case OP_CALL: return 0;
+  case OP_CALLI: case OP_GETRET: return 3;
   default: return op >= OP_JMP && op <= OP_FORI ? 3 : 7;
   }
 }
@@ -2481,9 +2576,18 @@ static int funcat(Rio *vm, int pc, int before) {
 static uint32_t shareframes(Rio *vm) {
   RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; uint16_t *map = c->smap;
   uint32_t lo = vm->kcap, hi = c->hwm, s, keep, top = 0, depth = 0, i, start = vm->repl ? lo : vm->nk; int k, j, pc;
-  for (k = 0; k < vm->nfunc; k++) {
-    RioCFunc *f = &c->func[k]; uint32_t ob = 0, dep = 0;
+  /* two passes: procs that never call through a proc value first (every proc used as a value is one),
+     then the rest, which may call any proc used as a value */
+  for (i = 0; i < 2 * (uint32_t)vm->nfunc; i++) {
+    RioCFunc *f; uint32_t ob = 0, dep = 0;
+    k = (int)(i % (uint32_t)vm->nfunc); f = &c->func[k];
+    if ((i < (uint32_t)vm->nfunc) == (f->ho != 0)) continue;
     for (pc = f->pc; pc < f->end; pc++) {
+      if (vm->code[pc].op == OP_CALLI) {
+        for (j = 0; j < vm->nfunc; j++)
+          if (c->func[j].val) { if (c->func[j].oe > ob) ob = c->func[j].oe; if (c->func[j].dep > dep) dep = c->func[j].dep; }
+        continue;
+      }
       if (vm->code[pc].op != OP_CALL) continue;
       j = funcat(vm, vm->code[pc].c, k);
       if (c->func[j].oe > ob) ob = c->func[j].oe;
@@ -3010,6 +3114,14 @@ static int run(Rio *vm, uint32_t pc) {
   CASE(FORI) if ((I(A) = (int32_t)(U(A) + 1u)) < I(B)) JUMP(); NEXT();
   CASE(CALL) cs[sp++] = (uint32_t)(ip + 1 - code); JUMP();
   CASE(RET) if (!sp) return 0; ip = code + cs[--sp]; DISPATCH();
+  CASE(CALLI) { /* call proc value a: its c argument words, at b, go to its parameters */
+    uint32_t f = U(A) - 1u;
+    if (f >= (uint32_t)vm->nfunc) return rterr(vm, "this proc value isn't set", (uint32_t)(ip - code));
+    if (C) memmove(R + vm->func[f].fs, R + B, C * sizeof(RioVal));
+    if (vm->brk) goto stop;
+    cs[sp++] = (uint32_t)(ip + 1 - code); ip = code + vm->func[f].pc; DISPATCH();
+  }
+  CASE(GETRET) memmove(R + A, R + vm->func[U(B) - 1u].ret, C * sizeof(RioVal)); NEXT(); /* proc value b's result */
   CASE(FFI) vm->ffi[C].fn(vm, R + A); if (vm->trap) { vm->trap = 0; return rterr(vm, vm->err, (uint32_t)(ip - code)); } NEXT();
   CASE(LOGI) { char b[16]; if (ip->x) logput(vm, " ", 1); logput(vm, b, fmti(b, I(A))); NEXT(); }
   CASE(LOGF) { char b[32]; if (ip->x) logput(vm, " ", 1); logput(vm, b, fmtf(b, F(A))); NEXT(); }

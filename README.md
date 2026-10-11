@@ -265,6 +265,36 @@ end
 - **`switch`** works on Ints, enums and unions. Each `case` lists one or more constant values (or types), there's no fallthrough, and `else` handles everything else. Without an `else`, a switch on an enum or union must cover every value or type (including `nil`), which is checked when compiling. `break` and `continue` belong to loops, not switches.
 - **Enums and unions** are declared in block form, at the top level, and can be exported (`Dir* :: enum`) and used from other modules (`m.Dir.north`, or `.north` where the type is known).
 
+## Proc values
+
+A proc can be passed to a proc, stored in a variable or a struct field, and called through it:
+
+```ruby
+Mob :: struct
+  name, score: Int
+end
+byScore :: proc(a: Mob, b: Mob) -> Bool
+  return a.score < b.score
+end
+sortMobs :: proc(xs: []Mob, less: proc(Mob, Mob) -> Bool)
+  for i in 1..<xs.len()            # a stable insertion sort
+    x := xs[i]
+    j := i
+    for j > 0 && less(x, xs[j - 1])
+      xs[j] = xs[j - 1]
+      j -= 1
+    end
+    xs[j] = x
+  end
+end
+sortMobs(mobs[:], byScore)
+f := byScore                       # f: proc(Mob, Mob) -> Bool
+```
+
+- **Types** are written `proc(T, U) -> R` (or without `-> R`); parameter names are allowed for reading, `proc(a: Mob, b: Mob) -> Bool`. A proc name becomes a value wherever a proc type is expected, and its parameters and result must match exactly.
+- **Still no recursion.** A proc that calls through a proc value (itself, or through procs it calls) can't be a value, so a call through a value can never come back around. Sorting, callbacks and event handlers fit: the comparison or handler is an ordinary proc. A proc value can't capture variables (there's nowhere to keep them), and procs with `&` parameters can't be values.
+- **Calling a proc value that was never set** is a runtime error. Proc types can't take or return procs, and there are no arrays of them yet.
+
 ## Modules
 
 Every file is a module. Nothing is visible outside it unless its name ends in `*`:

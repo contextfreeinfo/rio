@@ -1019,6 +1019,54 @@ end
 check(nest == 21, "if on the line after else")
 check(1e99999999999 > 1e30 && 1e-99999999999 == 0.0, "huge exponents (found by fuzzing: overflowed and hung)")
 
+# ---- proc values: proc(T, U) -> R; a proc used as a value can't call through proc values itself
+PMob :: struct
+  name, score: Int
+end
+pByScore :: proc(a: PMob, b: PMob) -> Bool
+  return a.score < b.score
+end
+pByName :: proc(a: PMob, b: PMob) -> Bool
+  return a.name < b.name
+end
+psort :: proc(xs: []PMob, less: proc(PMob, PMob) -> Bool) # stable insertion sort, any order
+  for i in 1..<xs.len()
+    x := xs[i]
+    j := i
+    for j > 0 && less(x, xs[j - 1])
+      xs[j] = xs[j - 1]
+      j -= 1
+    end
+    xs[j] = x
+  end
+end
+pmobs: [5]PMob
+for m, i in pmobs
+  m = {name = 5 - i, score = (i * 7) % 3}
+end
+psort(pmobs[:], pByScore)
+check(pmobs[0].name == 5 && pmobs[1].name == 2 && pmobs[2].name == 4 && pmobs[4].score == 2, "sorted by a proc value, stably")
+psort(pmobs[:], pByName)
+check(pmobs[0].name == 1 && pmobs[4].name == 5, "another order")
+ptwice :: proc(n: Int) -> Int
+  return n * 2
+end
+pinc :: proc(n: Int) -> Int
+  return n + 1
+end
+papply :: proc(f: proc(Int) -> Int, n: Int) -> Int
+  return f(f(n))
+end
+check(papply(ptwice, 3) == 12 && papply(pinc, 3) == 5, "a proc passed to a proc")
+pg := ptwice
+ph: proc(Int) -> Int
+ph = pinc
+POps :: struct
+  op: proc(Int) -> Int
+end
+pops := POps{op = ptwice}
+check(pg(21) == 42 && ph(1) == 2 && pops.op(5) == 10, "proc values in variables and fields")
+
 # ---- assert: a runtime error at that line when the condition is false
 assert(1 + 1 == 2)
 assert(eds.len() == 4, "four directions")
