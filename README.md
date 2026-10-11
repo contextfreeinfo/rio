@@ -92,7 +92,7 @@ main :: proc()
       end
     end
   end
-  if i > 10 && count == 0
+  if i > 10 and count == 0
     log("big")
   else if i == 10
     log("ten")
@@ -121,11 +121,11 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 - Arrays of 1 to 4 numbers or Bools have swizzles: `.x .y .z .w` or `.r .g .b .a`. One letter is that element, so `v.x = 1` and `c.a += 8` work. Two to four letters make a new read-only array from those elements: `v.yx`, `c.bgra`, `v.xxyy`, `p.pos += p.vel.yx * 2.0`. Structs don't swizzle, since their fields already have names.
 - Every index and slice is bounds-checked at runtime. Integer arithmetic wraps, and integer division by zero is a runtime error.
 - There are no implicit conversions between `Int` and `Float` except for literals. Convert with `x.toFloat()` and `x.toInt()` (which truncates). Conversions are methods, so they show up with the rest after `x.`; `to` makes a new value, `as` views the same data.
-- `Bool` is its own type. Comparisons and `! && ||` produce `Bool`, and `if`/`for` conditions must be `Bool` (`if n` is an error; write `if n != 0`). `true` and `false` are literals, and `b.toInt()` (gives 0 or 1) and `n.toBool()` (`n != 0`) convert between the two.
+- `Bool` is its own type. Comparisons and `not and or` produce `Bool`, and `if`/`for` conditions must be `Bool` (`if n` is an error; write `if n != 0`). `true` and `false` are literals, and `b.toInt()` (gives 0 or 1) and `n.toBool()` (`n != 0`) convert between the two.
 - Comments start with `#` and run to the end of the line, so a `#!` line at the top of a file works too. `@` is kept for metadata on declarations later.
 - Statements end at a newline (`;` also works). Inside brackets, an expression can span several lines.
 
-**Operators:** `+ - * / % & | ^ << >> == != < <= > >= && || ! ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`.
+**Operators:** `+ - * / % & | ^ << >> == != < <= > >= and or not ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`. The logical ones are words, as in Python, and bind like Python's: `or` loosest, then `and`, then `not`, then comparisons, so `not a == b` means `not (a == b)`. `&&`, `||` and `!` are errors that say which word to write; `!=` stays.
 
 **Builtins:** `log(...)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`, `assert(cond)` or `assert(cond, "why")` (a runtime error at that line when `cond` is false), plus the list methods below. Every sequence (array, slice, list, String, Blob) has `x.len()` and `x.cap()`.
 
@@ -270,7 +270,7 @@ end
 - **Enums** compare with `==` and `!=`. `for d in Dir` visits the values in the order listed (`for d, i in Dir` adds the index), and `log` and `b.format(...)` write the value's name. Their values are written `.camelCase`; `Dir.north` works anywhere and `.north` wherever the enum is known (a declaration, assignment, argument, field, return, comparison or `case`). Some value must be 0, since that's what new variables and array elements start as; listing `nil` first gives an explicit "nothing". Values may have gaps, and they increase down the list, so the order you list them is the order of their values.
 - **Arrays indexed by an enum:** `counts: [Dir]Int` has one element per value, indexed by the enum itself: `counts[.east] += 1`, and `for n, d in counts` gives each value `d`. The enum's values must be exactly 0, 1, 2� (the default numbering), so `d.toInt()` is `d`'s element and none are wasted. An enum with gaps or other values can't index an array: use one numbered from 0, or a `switch`. Slices of it take the enum's values as bounds, with the end not included like any slice: `counts[.east:]`, `counts[:.west]`, `counts[:]`. The result is a plain `[]Int` counted from 0, say to pass to a proc taking `[]Int`.
 - **Unions** hold a tag (which type) plus room for the biggest type, so every value takes the size of the largest. Types that differ in size by more than 64 bytes are an error, since an array of the union would waste the difference in every element: keep the big data elsewhere (say, a global array, holding its index in the union), or mark the union `union @diverse` if you mean it. Unions holding slices or Strings must be global, like structs.
-- **Reaching a union's value:** only where its type is known, as a copy taken there: in a `case` naming one type, or inside an `if` whose condition has `s is T` as one of its `&&`-joined parts (`if hit && s is Rect`; not under `||` or `!`). The copy can't be changed (that would quietly change nothing); assign the whole union instead, after which the name means the union again for the rest of the block. For something other than a plain variable, name it: `switch c := e.shape`.
+- **Reaching a union's value:** only where its type is known, as a copy taken there: in a `case` naming one type, or inside an `if` whose condition has `s is T` as one of its `and`-joined parts (`if hit and s is Rect`; not under `or` or `not`). The copy can't be changed (that would quietly change nothing); assign the whole union instead, after which the name means the union again for the rest of the block. For something other than a plain variable, name it: `switch c := e.shape`.
 - **`switch`** works on Ints, enums and unions. Each `case` lists one or more constant values (or types), there's no fallthrough, and `else` handles everything else. Without an `else`, a switch on an enum or union must cover every value or type (including `nil`), which is checked when compiling. `break` and `continue` belong to loops, not switches.
 - **Enums and unions** are declared in block form, at the top level, and can be exported (`Dir* :: enum`) and used from other modules (`m.Dir.north`, or `.north` where the type is known).
 
@@ -289,7 +289,7 @@ sortMobs :: proc(xs: []Mob, less: proc(Mob, Mob) -> Bool)
   for i in 1..<xs.len()            # a stable insertion sort
     x := xs[i]
     j := i
-    for j > 0 && less(x, xs[j - 1])
+    for j > 0 and less(x, xs[j - 1])
       xs[j] = xs[j - 1]
       j -= 1
     end

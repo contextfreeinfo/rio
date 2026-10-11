@@ -66,8 +66,8 @@ class Gen:
     k = self.r.randrange(5)
     if d > 2 or k < 2: return f"({self.iexpr(d + 1)} {self.r.choice(['<', '<=', '==', '!=', '>', '>='])} {self.iexpr(d + 1)})"
     if k == 2: return f"({self.fexpr(d + 1)} < {self.fexpr(d + 1)})"
-    if k == 3: return f"({self.bexpr(d + 1)} {self.r.choice(['&&', '||'])} {self.bexpr(d + 1)})"
-    return f"!{self.bexpr(d + 1)}"
+    if k == 3: return f"({self.bexpr(d + 1)} {self.r.choice(['and', 'or'])} {self.bexpr(d + 1)})"
+    return f"not {self.bexpr(d + 1)}"
 
   def stmt(self, budget):
     k = self.r.randrange(12)

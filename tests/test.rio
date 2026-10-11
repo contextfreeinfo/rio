@@ -2,7 +2,7 @@
 
 fails := 0
 check :: proc(ok: Bool, what: String)
-  if !ok
+  if not ok
     log("FAIL:", what)
     fails += 1
   end
@@ -13,46 +13,52 @@ a := 7
 b := 3
 check(a + b == 10, "add")
 check(a - b * 2 == 1, "precedence")
-check(a / b == 2 && a % b == 1, "div mod")
-check(-a == -7 && ~0 == -1 && !false, "unary")
-check((a << 2) == 28 && (-16 >> 2) == -4, "shifts")
-check((a & 3) == 3 && (a | 8) == 15 && (a ^ 1) == 6, "bitops")
+check(a / b == 2 and a % b == 1, "div mod")
+check(-a == -7 and ~0 == -1 and not false, "unary")
+check((a << 2) == 28 and (-16 >> 2) == -4, "shifts")
+check((a & 3) == 3 and (a | 8) == 15 and (a ^ 1) == 6, "bitops")
 check(0x7fffffff + 1 == -2147483647 - 1, "wraparound")
-check(0b1010 == 10 && 0B11 == 3 && 0xff == 255 && 0Xab == 171, "hex and binary")
-check(1_000_000 == 1000000 && 0xFFFF_FFFF == -1 && 0b1111_0000 == 240, "digit separators")
-check(-2147483648 == 0x8000_0000 && 2147483647 == 0x7FFF_FFFF, "Int range literals")
-check(1_000.25 == 1000.25 && 1.000_5 == 1.0005 && 2e1_0 == 2e10, "separators in floats")
+check(0b1010 == 10 and 0B11 == 3 and 0xff == 255 and 0Xab == 171, "hex and binary")
+check(1_000_000 == 1000000 and 0xFFFF_FFFF == -1 and 0b1111_0000 == 240, "digit separators")
+check(-2147483648 == 0x8000_0000 and 2147483647 == 0x7FFF_FFFF, "Int range literals")
+check(1_000.25 == 1000.25 and 1.000_5 == 1.0005 and 2e1_0 == 2e10, "separators in floats")
 x := 1.5
 y : Float = 2
 check(x * y == 3.0, "float mul")
 check(x + 1 == 2.5, "const coercion")
 check(a.toFloat() / 2 == 3.5, "itof")
-check(3.9.toInt() == 3 && (-3.9).toInt() == -3, "ftoi")
+check(3.9.toInt() == 3 and (-3.9).toInt() == -3, "ftoi")
 c := 10
 c += 5
 c -= 1
 c *= 2
 c /= 4
 check(c == 7, "compound assign")
-check(1 < 2 && 2 <= 2 && 3 > 2 && 3 >= 3 && 1 != 2, "compare")
-check(false || true, "or")
-check(!(true && false), "and")
+check(1 < 2 and 2 <= 2 and 3 > 2 and 3 >= 3 and 1 != 2, "compare")
+pa := true
+pb := false
+px := 5
+check(not px == 4 and not (px == 4), "not binds looser than ==: not x == 4 is not (x == 4)")
+check((not pa and pb) == false and (pa or pb and false) == true, "or < and < not, like Python")
+check(not not pa and not (pa and pb), "not stacks and takes parentheses")
+check(false or true, "or")
+check(not (true and false), "and")
 
 # ---- Bool
 done := false
-check(!done && done == false && done != true, "bool basics")
+check(not done and done == false and done != true, "bool basics")
 done = 3 > 2
 check(done, "bool from compare")
 flags: [4]Bool
 flags[2] = true
-check(!flags[0] && flags[2], "bool array")
-check(true.toInt() + false.toInt() == 1 && 5.toBool() && !0.toBool(), "bool casts")
+check(not flags[0] and flags[2], "bool array")
+check(true.toInt() + false.toInt() == 1 and 5.toBool() and not 0.toBool(), "bool casts")
 nz := 7
-check(nz.toBool() && (nz > 3).toInt() == 1, "bool casts runtime")
+check(nz.toBool() and (nz > 3).toInt() == 1, "bool casts runtime")
 both :: proc(a: Bool, b: Bool) -> Bool
-  return a && b
+  return a and b
 end
-check(both(true, nz == 7) && !both(true, false), "bool params/return")
+check(both(true, nz == 7) and not both(true, false), "bool params/return")
 Flag :: struct
   on: Bool
   n: Int
@@ -66,7 +72,7 @@ HALF :: N / 2
 PI :: 3.14159
 GREETING :: "hello"
 check(HALF == 8, "const fold")
-check(GREETING == "hello" && GREETING.len() == 5, "string const")
+check(GREETING == "hello" and GREETING.len() == 5, "string const")
 
 # ---- control flow
 sum := 0
@@ -129,28 +135,28 @@ step :: proc(ps: []Particle, dt: Float)
   end
 end
 step(parts, 0.5)
-check(parts[10].pos.x == 10.5 && parts[10].pos.y == 1 && parts[10].life == 9, "struct array update")
+check(parts[10].pos.x == 10.5 and parts[10].pos.y == 1 and parts[10].life == 9, "struct array update")
 step(parts[50:], 1)
-check(parts[49].life == 48 && parts[50].life == 48, "subslice")
+check(parts[49].life == 48 and parts[50].life == 48, "subslice")
 parts[3].tag[0] = 'Z'
-check(parts[3].tag[0] == 90 && parts[3].tag.len() == 4, "inline blob")
+check(parts[3].tag[0] == 90 and parts[3].tag.len() == 4, "inline blob")
 v := Vec{x = 3, y = 4}
 w := v
 w.x = 10
-check(v.x == 3 && w.x == 10, "struct copy semantics")
+check(v.x == 3 and w.x == 10, "struct copy semantics")
 partial := Particle{pos = Vec{x = 1, y = 1}}
-check(partial.life == 0 && partial.vel.y == 0, "partial literal zeroes")
+check(partial.life == 0 and partial.vel.y == 0, "partial literal zeroes")
 yx := Vec{y = 5, x = 6}
-check(yx.x == 6 && yx.y == 5, "named fields in any order")
+check(yx.x == 6 and yx.y == 5, "named fields in any order")
 mid := Particle{life = 3, pos = Vec{x = 1, y = 2},}
-check(mid.vel.x == 0 && mid.vel.y == 0 && mid.life == 3 && mid.pos.y == 2, "missing middle field zeroed, trailing comma")
-check(Vec{}.x == 0 && Vec{}.y == 0, "empty literal")
+check(mid.vel.x == 0 and mid.vel.y == 0 and mid.life == 3 and mid.pos.y == 2, "missing middle field zeroed, trailing comma")
+check(Vec{}.x == 0 and Vec{}.y == 0, "empty literal")
 for k in 0..<2
   q := Particle{life = k, pos = Vec{x = 1, y = 1}}
   if k == 0
     q.vel = Vec{x = 9, y = 9}
   else
-    check(q.vel.x == 0 && q.vel.y == 0 && q.life == 1, "literal zeroes stale slots")
+    check(q.vel.x == 0 and q.vel.y == 0 and q.life == 1, "literal zeroes stale slots")
   end
 end
 # ordered init is just a helper proc
@@ -167,7 +173,7 @@ add :: proc(a: Vec, b: Vec) -> Vec
 end
 check(dot(v, Vec{x = 1, y = 1}) == 7, "struct params")
 r := add(v, add(v, v))
-check(r.x == 9 && r.y == 12, "struct return nested")
+check(r.x == 9 and r.y == 12, "struct return nested")
 check(add(v, v).y == 8, "field of call")
 
 # ---- slices, blobs, strings
@@ -184,9 +190,9 @@ total :: proc(s: []Int) -> Int
 end
 check(total(data) == 140, "array to slice")
 check(total(data[2:4]) == 13, "slice range")
-check(total(data[:3]) == 5 && total(data[6:]) == 85, "open slices")
+check(total(data[:3]) == 5 and total(data[6:]) == 85, "open slices")
 mid := data[1:7]
-check(mid.len() == 6 && mid[0] == 1, "slice var")
+check(mid.len() == 6 and mid[0] == 1, "slice var")
 buf: Blob[16]
 for i in 0..<buf.len()
   buf[i] = 'a' + i
@@ -202,14 +208,14 @@ end
 people: [3]Named
 people[0] = Named{name = "ann", id = 1}
 people[1].name = "bob"
-check(people[1].name == "bob" && people[0].name.len() == 3, "strings in global structs")
+check(people[1].name == "bob" and people[0].name.len() == 3, "strings in global structs")
 
 # ---- math builtins
-check(abs(-3) == 3 && abs(-2.5) == 2.5, "abs")
-check(min(3, 4) == 3 && max(2.0, 5) == 5.0, "min max")
-check(sqrt(16) == 4 && floor(2.7) == 2 && ceil(2.1) == 3 && round(2.5) == 3, "math")
-check(abs(sin(0.0)) < 0.0001 && abs(cos(0.0) - 1) < 0.0001, "trig")
-check(pow(2, 10) == 1024 && abs(atan2(1, 1) - PI / 4) < 0.001, "math2")
+check(abs(-3) == 3 and abs(-2.5) == 2.5, "abs")
+check(min(3, 4) == 3 and max(2.0, 5) == 5.0, "min max")
+check(sqrt(16) == 4 and floor(2.7) == 2 and ceil(2.1) == 3 and round(2.5) == 3, "math")
+check(abs(sin(0.0)) < 0.0001 and abs(cos(0.0) - 1) < 0.0001, "trig")
+check(pow(2, 10) == 1024 and abs(atan2(1, 1) - PI / 4) < 0.001, "math2")
 
 # ---- procs calling procs (no recursion)
 sq :: proc(v: Int) -> Int
@@ -218,7 +224,7 @@ end
 sumsq :: proc(a: Int, b: Int) -> Int
   return sq(a) + sq(b)
 end
-check(sumsq(3, 4) == 25 && sq(sq(2)) == 16 && sumsq(sq(1), sumsq(1, 1)) == 5, "nested calls")
+check(sumsq(3, 4) == 25 and sq(sq(2)) == 16 and sumsq(sq(1), sumsq(1, 1)) == 5, "nested calls")
 counter := 0
 bump :: proc()
   counter += 1
@@ -256,7 +262,7 @@ end
 check(locals(10) == 54 + 9 + 9 + 3 + 5 + 4, "proc locals")
 check(locals(0) == 14 + 30, "proc locals again")
 nanv := sqrt(-1.0)
-check(!(nanv < 1) && !(nanv >= 1) && nanv != nanv, "nan compares")
+check(not (nanv < 1) and not (nanv >= 1) and nanv != nanv, "nan compares")
 lt := 0
 if nanv < 1
   lt = 1
@@ -268,44 +274,44 @@ Enemy :: struct
   x, hp: Int
 end
 enemies: [..4]Enemy
-check(enemies.len() == 0 && enemies.cap() == 4, "empty list")
+check(enemies.len() == 0 and enemies.cap() == 4, "empty list")
 spawnE :: proc(list: [..]Enemy, x: Int) -> Bool
   return list.push(Enemy{x = x, hp = 3})
 end
 for i in 0..<6
   spawnE(enemies, i * 10)
 end
-check(enemies.len() == 4 && enemies[3].x == 30, "push through a view; full list drops")
-check(!enemies.push(Enemy{x = 99}), "push when full is false")
+check(enemies.len() == 4 and enemies[3].x == 30, "push through a view; full list drops")
+check(not enemies.push(Enemy{x = 99}), "push when full is false")
 enemies[1].hp -= 1
 enemies.swapRemove(0)
-check(enemies.len() == 3 && enemies[0].x == 30 && enemies[1].hp == 2, "swapRemove")
+check(enemies.len() == 3 and enemies[0].x == 30 and enemies[1].hp == 2, "swapRemove")
 enemies.remove(0)
-check(enemies.len() == 2 && enemies[0].x == 10 && enemies[1].x == 20, "remove keeps order")
+check(enemies.len() == 2 and enemies[0].x == 10 and enemies[1].x == 20, "remove keeps order")
 last := enemies.pop()
-check(last.x == 20 && enemies.len() == 1, "pop")
+check(last.x == 20 and enemies.len() == 1, "pop")
 live := enemies[:]
-check(live.len() == 1 && live[0].x == 10, "list [:] is a slice of live elements")
+check(live.len() == 1 and live[0].x == 10, "list [:] is a slice of live elements")
 enemies.clear()
 check(enemies.len() == 0, "clear")
 nums: [..8]Int
 for i in 0..<5
   nums.push(i * i)
 end
-check(nums[4] == 16 && total(nums[:]) == 30 && total(nums[1:3]) == 5, "Int list and sub-slices")
+check(nums[4] == 16 and total(nums[:]) == 30 and total(nums[1:3]) == 5, "Int list and sub-slices")
 title: Blob[..32]
 label :: proc(b: Blob[..], score: Int) -> Bool
   b.clear()
-  return b.format("score: ", score, " ", 1.5, " ", true) && b.push('!')
+  return b.format("score: ", score, " ", 1.5, " ", true) and b.push('!')
 end
-check(label(title, 42) && title[:].asString() == "score: 42 1.5 true!", "format appends text; push adds one byte")
+check(label(title, 42) and title[:].asString() == "score: 42 1.5 true!", "format appends text; push adds one byte")
 tiny: Blob[..6]
-check(tiny.pushAll("abc") && !tiny.format("de", 12345) && tiny.len() == 3, "format is all or nothing")
-check(tiny.format(12) && tiny.push(65) && tiny[:].asString() == "abc12A" && !tiny.push(66), "push on a Blob list is a byte")
+check(tiny.pushAll("abc") and not tiny.format("de", 12345) and tiny.len() == 3, "format is all or nothing")
+check(tiny.format(12) and tiny.push(65) and tiny[:].asString() == "abc12A" and not tiny.push(66), "push on a Blob list is a byte")
 check(tiny.format(), "format with nothing to add")
 more: [..8]Int
-check(more.pushAll(nums) && !more.pushAll(nums) && more.len() == 5 && more[4] == 16, "pushAll is all or nothing")
-check(more.pushAll(nums[3:]) && more.len() == 7 && more[6] == 16, "pushAll from a slice")
+check(more.pushAll(nums) and not more.pushAll(nums) and more.len() == 5 and more[4] == 16, "pushAll is all or nothing")
+check(more.pushAll(nums[3:]) and more.len() == 7 and more[6] == 16, "pushAll from a slice")
 localList :: proc() -> Int
   xs: [..3]Int
   xs.push(5)
@@ -314,14 +320,14 @@ localList :: proc() -> Int
   v.push(7)
   return xs.len() * 100 + xs[2] + v.cap()
 end
-check(localList() == 310 && localList() == 310, "local list resets per call; := makes a view")
+check(localList() == 310 and localList() == 310, "local list resets per call; := makes a view")
 Inv :: struct
   items: [..3]Int
   gold: Int
 end
 bags: [2]Inv
 bags[1].items.push(9)
-check(bags[1].items.len() == 1 && bags[1].items[0] == 9 && bags[0].items.len() == 0, "list inside a struct inside an array")
+check(bags[1].items.len() == 1 and bags[1].items[0] == 9 and bags[0].items.len() == 0, "list inside a struct inside an array")
 
 # ---- methods: Type.name :: proc, with an implicit self
 Ship :: struct
@@ -349,15 +355,15 @@ for i in 0..<3
   fleet[i] = Ship{x = i.toFloat(), vx = 2, hp = 2}
 end
 fleet[1].step(0.5)
-check(fleet[1].x == 2 && fleet[0].x == 0, "a method updates its receiver in place")
-check(!fleet[2].hurt(1) && fleet[2].hurt(1) && fleet[2].hp == 0, "method results and receiver updates")
+check(fleet[1].x == 2 and fleet[0].x == 0, "a method updates its receiver in place")
+check(not fleet[2].hurt(1) and fleet[2].hurt(1) and fleet[2].hp == 0, "method results and receiver updates")
 solo := Ship{x = 5, vx = 1, hp = 1}
 solo.reset()
-check(solo.hp == 3 && solo.x == 0, "assigning self replaces the receiver")
+check(solo.hp == 3 and solo.x == 0, "assigning self replaces the receiver")
 twin := solo
 twin.vx = 1
 twin.move(10)
-check(solo.x == 0 && twin.x == 10, "methods act on the variable they're called on")
+check(solo.x == 0 and twin.x == 10, "methods act on the variable they're called on")
 check(Ship{x = 7}.pos() == 7, "method on a temporary")
 moveAll :: proc(ships: []Ship, dt: Float)
   for i in 0..<ships.len()
@@ -365,7 +371,7 @@ moveAll :: proc(ships: []Ship, dt: Float)
   end
 end
 moveAll(fleet[:2], 1)
-check(fleet[0].x == 2 && fleet[1].x == 4 && fleet[2].x == 2, "methods through a slice")
+check(fleet[0].x == 2 and fleet[1].x == 4 and fleet[2].x == 2, "methods through a slice")
 Int.double :: proc() -> Int
   return self * 2
 end
@@ -374,7 +380,7 @@ Int.bump :: proc()
 end
 k := 21
 k.bump()
-check(k.double() == 42 && k == 21 && (k + 1).double() == 44, "Int methods get a copy of self")
+check(k.double() == 42 and k == 21 and (k + 1).double() == 44, "Int methods get a copy of self")
 String.first :: proc() -> Int
   return self[0]
 end
@@ -392,26 +398,26 @@ Bullet.update :: proc() -> Int
   return self.hp + 100
 end
 b1 := Bullet{hp = 1}
-check(update() == 7 && solo.update() == 3 && b1.update() == 101, "procs and each type's methods have separate names")
+check(update() == 7 and solo.update() == 3 and b1.update() == 101, "procs and each type's methods have separate names")
 
 # ---- struct literals typed by where they're going: {field = ...}
 tv: Vec = {x = 1, y = 2}
-check(tv.x == 1 && tv.y == 2, "typed by a declaration")
+check(tv.x == 1 and tv.y == 2, "typed by a declaration")
 tv = {y = 9}
-check(tv.x == 0 && tv.y == 9, "typed by an assignment")
+check(tv.x == 0 and tv.y == 9, "typed by an assignment")
 check(dot({x = 1, y = 1}, {x = 2, y = 3}) == 5, "typed by parameters")
 mk :: proc(x: Float) -> Vec
   return {x = x, y = -x}
 end
 check(mk(2).y == -2, "typed by a return type")
 pp := Particle{pos = {x = 3, y = 4}, life = 1}
-check(pp.pos.y == 4 && pp.life == 1, "typed by a field")
+check(pp.pos.y == 4 and pp.life == 1, "typed by a field")
 pp.vel = {x = 5}
 check(pp.vel.x == 5, "typed by a field assignment")
 shipq: [..2]Ship
-check(shipq.push({hp = 5}) && shipq[0].hp == 5, "typed by push")
+check(shipq.push({hp = 5}) and shipq[0].hp == 5, "typed by push")
 fleet[0] = {x = 9, hp = 4}
-check(fleet[0].x == 9 && fleet[0].vx == 0, "typed by an element assignment")
+check(fleet[0].x == 9 and fleet[0].vx == 0, "typed by an element assignment")
 Ship.aim :: proc(v: Vec) -> Float
   return v.x + v.y + self.x
 end
@@ -419,24 +425,24 @@ check(fleet[0].aim({x = 1, y = 2}) == 12, "typed by a method parameter")
 
 # ---- field punning: {x} means {x = x}; {a.b.x} means {x = a.b.x}
 pv: Vec = {x, y}
-check(pv.x == 1.5 && pv.y == 2, "punning globals")
+check(pv.x == 1.5 and pv.y == 2, "punning globals")
 mkv :: proc(x: Float, y: Float) -> Vec
   return {x, y}
 end
-check(mkv(3, 4).x == 3 && mkv(3, 4).y == 4, "punning parameters")
+check(mkv(3, 4).x == 3 and mkv(3, 4).y == 4, "punning parameters")
 src := Particle{pos = {x = 1, y = 2}, vel = {x = 3, y = 4}, life = 7}
 cp := Particle{src.pos, src.life, vel = {y = src.vel.y}}
-check(cp.pos.y == 2 && cp.life == 7 && cp.vel.x == 0 && cp.vel.y == 4, "deep punning uses the last name")
+check(cp.pos.y == 2 and cp.life == 7 and cp.vel.x == 0 and cp.vel.y == 4, "deep punning uses the last name")
 Ship.at :: proc() -> Vec
   return {self.x, y = self.hp.toFloat()}
 end
-check(fleet[0].at().x == 9 && fleet[0].at().y == 4, "punning self fields")
+check(fleet[0].at().x == 9 and fleet[0].at().y == 4, "punning self fields")
 check(Vec{src.pos.y, x = 0}.y == 2, "deep path, mixed with named fields")
 pv2 := Vec{
   x,  # a comment between items
   y   # and before the brace
 }
-check(pv2.x == 1.5 && pv2.y == 2, "punning across lines, with comments")
+check(pv2.x == 1.5 and pv2.y == 2, "punning across lines, with comments")
 
 # ---- destructuring: {a, b as c} := struct
 QR :: struct
@@ -446,11 +452,11 @@ divmod :: proc(a: Int, b: Int) -> QR
   return {q = a / b, r = a % b}
 end
 {q, r} := divmod(17, 5)
-check(q == 3 && r == 2, "destructure a call result")
+check(q == 3 and r == 2, "destructure a call result")
 {r as rem, q as quo,} := divmod(9, 4)
-check(rem == 1 && quo == 2, "rename with as, any order, trailing comma")
+check(rem == 1 and quo == 2, "rename with as, any order, trailing comma")
 {pos, life} := src
-check(pos.y == 2 && life == 7, "struct and Int fields")
+check(pos.y == 2 and life == 7, "struct and Int fields")
 {x as fx} := fleet[1]
 check(fx == fleet[1].x, "partial, from an array element")
 mover :: proc() -> Float
@@ -460,7 +466,7 @@ mover :: proc() -> Float
 end
 check(mover() == fleet[1].vx, "the names are copies; works in procs")
 {tag} := parts[3]
-check(tag[0] == 90 && tag.len() == 4, "an inline Blob field becomes a view")
+check(tag[0] == 90 and tag.len() == 4, "an inline Blob field becomes a view")
 nested :: proc(ps: []Particle, i: Int) -> Float
   {pos as p, vel} := ps[i]
   {x, y as py} := p
@@ -479,7 +485,7 @@ for s in squad
   s.move(2)
   s.hp += 10
 end
-check(squad[3].x == 5 && squad[0].hp == 10 && squad[3].hp == 13, "elements are written in place")
+check(squad[3].x == 5 and squad[0].hp == 10 and squad[3].hp == 13, "elements are written in place")
 seen := 0
 for s, i in squad[1:3]
   seen += s.hp * 10 + i
@@ -496,13 +502,13 @@ for h in hits
     hits.push(9)
   end
 end
-check(hsum == 9 && hits[0] == 1 && hits[1] == 1 && hits.len() == 4, "a list: the elements there when the loop starts")
+check(hsum == 9 and hits[0] == 1 and hits[1] == 1 and hits.len() == 4, "a list: the elements there when the loop starts")
 empty: [..2]Int
 ran := false
 for x in empty
   ran = true
 end
-check(!ran, "an empty list runs no iterations")
+check(not ran, "an empty list runs no iterations")
 word := 0
 for c, i in "rio"
   word = word * 256 + c
@@ -520,7 +526,7 @@ for row, r in grid
     v = r * 10 + c
   end
 end
-check(grid[1][2] == 12 && grid[0][1] == 1, "nested arrays")
+check(grid[1][2] == 12 and grid[0][1] == 1, "nested arrays")
 firsthurt := -1
 for s, i in squad
   if s.hp < 12
@@ -571,16 +577,16 @@ for s, i in crew
   s = {vx = i.toFloat(), hp = 10}
 end
 swapvx(&crew[1], &crew[2])
-check(crew[1].vx == 2 && crew[2].vx == 1 && crew[1].hp == 9, "& parameters change the caller's structs")
+check(crew[1].vx == 2 and crew[2].vx == 1 and crew[1].hp == 9, "& parameters change the caller's structs")
 ci := 1
 cj := 2
-check(mixref(&crew[ci + 1], ci * 3, &crew[cj + 1]) == 1307 && crew[3].hp == 7, "& and value arguments mixed")
+check(mixref(&crew[ci + 1], ci * 3, &crew[cj + 1]) == 1307 and crew[3].hp == 7, "& and value arguments mixed")
 cnt := 1
 addto(&cnt, 2)
 check(cnt == 3, "& to an Int")
 trio: [3]Int
 fill3(&trio, 7)
-check(trio[0] == 7 && trio[2] == 7, "& to an array")
+check(trio[0] == 7 and trio[2] == 7, "& to an array")
 label := "old"
 rename(&label)
 check(label == "renamed", "& to a String variable")
@@ -589,9 +595,9 @@ check(crew[0].hp == 109, "passing a reference on")
 cr := &crew[3]
 cr.hp -= 2
 cr.x += 1
-check(crew[3].hp == 5 && crew[3].x == 1, "a local reference is the element itself")
+check(crew[3].hp == 5 and crew[3].x == 1, "a local reference is the element itself")
 cr = {hp = 42}
-check(crew[3].hp == 42 && crew[3].x == 0, "assigning through it writes the element")
+check(crew[3].hp == 42 and crew[3].x == 0, "assigning through it writes the element")
 cc := cr
 cc.hp = 0
 check(crew[3].hp == 42, "a plain := copies")
@@ -622,40 +628,40 @@ for v, i in va
   vb[i] = 10
 end
 vc := va + vb
-check(vc[0] == 10 && vc[2] == 12, "array + array")
+check(vc[0] == 10 and vc[2] == 12, "array + array")
 vd := (va + vb) * 2.0 - va / 2
-check(vd[0] == 20 && vd[1] == 21.5 && vd[2] == 23, "nested temporaries")
+check(vd[0] == 20 and vd[1] == 21.5 and vd[2] == 23, "nested temporaries")
 ve := 1.0 - va
-check(ve[0] == 1 && ve[2] == -1, "scalar on the left")
+check(ve[0] == 1 and ve[2] == -1, "scalar on the left")
 vf := -va
-check(vf[1] == -1 && vf[0] == 0, "unary minus")
+check(vf[1] == -1 and vf[0] == 0, "unary minus")
 check((va + vb)[1] == 11, "indexing a computed array")
 u2 := V2{x = 1, y = 2}
 w2 := V2{x = 3, y = 4}
 s2 := u2 + w2 * 2
-check(s2.x == 7 && s2.y == 10, "structs, Int literal spread as Float")
+check(s2.x == 7 and s2.y == 10, "structs, Int literal spread as Float")
 s2 -= u2
 s2 *= 0.5
-check(s2.x == 3 && s2.y == 4, "structs in place")
+check(s2.x == 3 and s2.y == 4, "structs in place")
 mv: Mover = {pos = {x = 1, y = 1}, vel = {x = 2, y = 3}}
 mv.pos += mv.vel * 0.5
-check(mv.pos.x == 2 && mv.pos.y == 2.5, "a struct inside a struct")
+check(mv.pos.x == 2 and mv.pos.y == 2.5, "a struct inside a struct")
 ia: [4]Int
 for v, i in ia
   v = i * 3 - 4
 end
 iq := ia / 2
 ir := ia % 3
-check(iq[0] == -2 && iq[3] == 2 && ir[0] == -1 && ir[3] == 2, "Int / and %")
+check(iq[0] == -2 and iq[3] == 2 and ir[0] == -1 and ir[3] == 2, "Int / and %")
 ia *= -1
-check(ia[0] == 4 && ia[3] == -5, "Int in place")
+check(ia[0] == 4 and ia[3] == -5, "Int in place")
 bigf: [100]Float
 bigf += 2.0
 bigf *= bigf
-check(bigf[0] == 4 && bigf[99] == 4, "big arrays in place")
+check(bigf[0] == 4 and bigf[99] == 4, "big arrays in place")
 gr: [2][2]Int
 gr += 5
-check(gr[1][1] == 5 && gr[0][0] == 5, "nested arrays")
+check(gr[1][1] == 5 and gr[0][0] == 5, "nested arrays")
 movers: [3]Mover
 for m in movers
   m.vel = {x = 1, y = 1}
@@ -667,7 +673,7 @@ vstep :: proc(v: V2, k: Float) -> V2
   return -t
 end
 vo := vstep(u2, 2)
-check(vo.x == -3 && vo.y == -6, "inside a proc, and returned")
+check(vo.x == -3 and vo.y == -6, "inside a proc, and returned")
 vr := &mv.vel
 vr *= 2.0
 check(mv.vel.x == 4, "through a reference")
@@ -677,17 +683,17 @@ sv: [3]Float
 sv.x = 1
 sv.y = 2
 sv.z = 3
-check(sv.x == 1 && sv.z == 3 && sv[2] == 3, "one letter is the element")
+check(sv.x == 1 and sv.z == 3 and sv[2] == 3, "one letter is the element")
 sw := sv.zyx
-check(sw.x == 3 && sw.z == 1, "several letters build a new array")
+check(sw.x == 3 and sw.z == 1, "several letters build a new array")
 sc := sv.xx + sv.yz * 2.0
-check(sc.x == 5 && sc.y == 7, "swizzles in arithmetic")
+check(sc.x == 5 and sc.y == 7, "swizzles in arithmetic")
 rgba: [4]Int
 rgba.r = 255
 rgba.a = 9
 rgba.g += 7
 sq := rgba.bgra
-check(rgba.g == 7 && sq.r == 0 && sq.a == 9, "rgba")
+check(rgba.g == 7 and sq.r == 0 and sq.a == 9, "rgba")
 Spr :: struct
   pos: [2]Float
 end
@@ -696,7 +702,7 @@ for p, i in sprs
   p.pos.y = i.toFloat()
   p.pos += p.pos.yx
 end
-check(sprs[2].pos.x == 2 && sprs[2].pos.y == 2, "a swizzle of the target, in place")
+check(sprs[2].pos.x == 2 and sprs[2].pos.y == 2, "a swizzle of the target, in place")
 sz := &sv.z
 sz = 10
 check(sv.z == 10, "a reference to a swizzled element")
@@ -721,14 +727,14 @@ fa.x = 1
 fa.y = 2
 fb := fa
 fb.x = 9
-check(fa.x == 1 && fb.x == 9, "x := array copies")
+check(fa.x == 1 and fb.x == 9, "x := array copies")
 fr := flipx(fa)
-check(fr.x == 2 && fr.y == -1 && fa.x == 1, "arrays pass and return by value")
+check(fr.x == 2 and fr.y == -1 and fa.x == 1, "arrays pass and return by value")
 fgrid: [3][2]Float
 fgrid[1] = fa
 frow := fgrid[1]
 frow.y = 7
-check(fgrid[1].y == 2 && frow.y == 7, "copying one row")
+check(fgrid[1].y == 2 and frow.y == 7, "copying one row")
 fview: []Float = fa
 fview[0] = 5
 check(fa.x == 5, "x: []T = array is a view")
@@ -738,46 +744,46 @@ fcopy: [100]Int = fbig
 fcopy[3] = 1
 fbv := fbig[:]
 fbv[3] = 6
-check(fbig[3] == 6 && fcopy[3] == 1, "a big array: copy with a written type, view with [:]")
+check(fbig[3] == 6 and fcopy[3] == 1, "a big array: copy with a written type, view with [:]")
 bump4 :: proc(m: [4][4]Float) -> [4][4]Float
   m[0][0] += 1
   return m
 end
 fm: [4][4]Float
 fm2 := bump4(fm)
-check(fm[0][0] == 0 && fm2[0][0] == 1, "16 words is still small")
+check(fm[0][0] == 0 and fm2[0][0] == 1, "16 words is still small")
 
 # ---- builders over any array or slice: name: [..]T = memory, starting empty
 bbuf: [8]Int
 bb: [..]Int = bbuf
 bb.push(3)
 bb.push(4)
-check(bb.len() == 2 && bb.cap() == 8 && bbuf[1] == 4 && bb[1] == 4, "pushes land in the array")
+check(bb.len() == 2 and bb.cap() == 8 and bbuf[1] == 4 and bb[1] == 4, "pushes land in the array")
 bfill :: proc(out: [..]Int, n: Int)
   for i in 0..<n
     out.push(i * 10)
   end
 end
 bfill(bb, 3)
-check(bb.len() == 5 && bb[4] == 20, "passed to a proc, the length is shared")
+check(bb.len() == 5 and bb[4] == 20, "passed to a proc, the length is shared")
 bpart: [..]Int = bbuf[5:8]
 bpart.push(7)
-check(bbuf[5] == 7 && bpart.len() == 1 && bpart.cap() == 3 && bb.len() == 5, "over part of an array")
+check(bbuf[5] == 7 and bpart.len() == 1 and bpart.cap() == 3 and bb.len() == 5, "over part of an array")
 bsum := 0
 for x in bb
   bsum += x
 end
 check(bsum == 37, "for-each over a builder")
-check(bb.pop() == 20 && bb.len() == 4, "pop")
+check(bb.pop() == 20 and bb.len() == 4, "pop")
 bb.swapRemove(0)
-check(bb[0] == 10 && bb.len() == 3, "swapRemove")
+check(bb[0] == 10 and bb.len() == 3, "swapRemove")
 bc := bb
 bc.push(99)
 check(bb.len() == 4, "copies share the length")
 bscr: Blob[16]
 btxt: Blob[..] = bscr[4:12]
 btxt.format("hi ", 42)
-check(btxt[:].asString() == "hi 42" && bscr[4] == 'h', "a text builder over part of a Blob")
+check(btxt[:].asString() == "hi 42" and bscr[4] == 'h', "a text builder over part of a Blob")
 blocal :: proc() -> Int
   loc: [4]Float
   lb: [..]Float = loc
@@ -824,7 +830,7 @@ check(shW() == 1 + 40 + 400, "array values through shared frames")
 
 # ---- comments start with #; inside strings and char literals it's just a character
 hstr := "a # b"
-check(hstr.len() == 5 && hstr[2] == '#' && '#' == 35, "# in a string or char literal") # a comment here too
+check(hstr.len() == 5 and hstr[2] == '#' and '#' == 35, "# in a string or char literal") # a comment here too
 
 # ---- enums: their own type, stored as an Int; .value where the type is known
 Dir :: enum
@@ -839,11 +845,11 @@ turn :: proc(d: Dir) -> Dir
   return Dir.fromInt((d.toInt() + 1) % 4)
 end
 ed: Dir
-check(ed == .north && ed == Dir.north, "the first value is the zero")
+check(ed == .north and ed == Dir.north, "the first value is the zero")
 ed = .south
-check(ed.toInt() == 2 && turn(ed) == .west && turn(turn(ed)) == .north, "toInt and fromInt")
+check(ed.toInt() == 2 and turn(ed) == .west and turn(turn(ed)) == .north, "toInt and fromInt")
 et: Tile
-check(et == nil && Tile.water.toInt() == 4 && Tile.has(3) && !Tile.has(1) && Tile.has(0), "nil first, explicit values and gaps")
+check(et == nil and Tile.water.toInt() == 4 and Tile.has(3) and not Tile.has(1) and Tile.has(0), "nil first, explicit values and gaps")
 EMob :: struct
   facing: Dir
   hp: Int
@@ -854,7 +860,7 @@ eds: [4]Dir
 for x, i in eds
   x = Dir.fromInt(i)
 end
-check(eds[3] == .west && eds[0] != .east, "an array of enums")
+check(eds[3] == .west and eds[0] != .east, "an array of enums")
 enames: Blob[..64]
 for d, i in Dir                         # an enum's values, in the order listed
   enames.format(d, i, " ")
@@ -865,7 +871,7 @@ ecounts[.east] = 3
 ecounts[Dir.west] += 2
 ed = .east
 ecounts[ed] += 1
-check(ecounts[.east] == 4 && ecounts[.west] == 2 && ecounts[.north] == 0 && ecounts.len() == 4, "an enum-indexed array")
+check(ecounts[.east] == 4 and ecounts[.west] == 2 and ecounts[.north] == 0 and ecounts.len() == 4, "an enum-indexed array")
 ewhich := 0
 for c, dd in ecounts                    # the index is the enum
   if dd == .west
@@ -875,7 +881,7 @@ end
 check(ewhich == 2, "for over an enum-indexed array")
 check(ecounts[Dir.fromInt(Dir.east.toInt())] == 4, "d.toInt() is d's element")
 epart := ecounts[.east:.west]           # bounds are values; like any slice, the end isn't included
-check(epart.len() == 2 && epart[0] == 4 && ecounts[.south:].len() == 2 && ecounts[:.east].len() == 1, "slicing with enum values")
+check(epart.len() == 2 and epart[0] == 4 and ecounts[.south:].len() == 2 and ecounts[:.east].len() == 1, "slicing with enum values")
 
 # ---- switch: case values (several per case), else, and every enum value covered
 compass :: proc(d: Dir) -> Int
@@ -889,7 +895,7 @@ compass :: proc(d: Dir) -> Int
   end
   return 0
 end
-check(compass(.north) == 1 && compass(.west) == 2 && compass(.south) == 3, "switch on an enum")
+check(compass(.north) == 1 and compass(.west) == 2 and compass(.south) == 3, "switch on an enum")
 bucket :: proc(n: Int) -> Int
   r := 0
   switch n % 5
@@ -903,7 +909,7 @@ bucket :: proc(n: Int) -> Int
   end
   return r
 end
-check(bucket(5) == 10 && bucket(6) == 12 && bucket(7) == 14 && bucket(8) == -1, "switch on an Int with else")
+check(bucket(5) == 10 and bucket(6) == 12 and bucket(7) == 14 and bucket(8) == -1, "switch on an Int with else")
 sseen := 0
 for i in 0..<4
   switch i
@@ -943,22 +949,22 @@ uarea :: proc(s: Shape) -> Float
   return 0
 end
 ua: Shape
-check(ua is nil && uarea(ua) == -1, "nil first is the zero")
+check(ua is nil and uarea(ua) == -1, "nil first is the zero")
 ua = Circle{r = 2}
-check(ua is Circle && !(ua is Box) && uarea(ua) == 12, "a value of one of its types")
+check(ua is Circle and not (ua is Box) and uarea(ua) == 12, "a value of one of its types")
 ub: Shape = Box{w = 3, h = 4}
 ubw := 0.0
 if ub is Box
   ubw = ub.w                          # narrowed by the if
 end
-check(ubw == 3 && uarea(ub) == 12, "narrowed in an if")
+check(ubw == 3 and uarea(ub) == 12, "narrowed in an if")
 if ub is Box
   ub = Circle{r = ub.w}               # the new value is read while ub is still the Box
 end
-check(ub is Circle && uarea(ub) == 27, "replacing a narrowed union from its own value")
+check(ub is Circle and uarea(ub) == 27, "replacing a narrowed union from its own value")
 uhit := true
 uboth := 0.0
-if uhit && ua is Circle && ub is Circle
+if uhit and ua is Circle and ub is Circle
   uboth = ua.r + ub.r                 # every x is T joined by && narrows
 end
 check(uboth == 5, "narrowed by && parts of a condition")
@@ -994,7 +1000,7 @@ for i in 0..<3
     pose = UIdle{t = 9}
   end
 end
-check(ulog == 11 && pose is UIdle, "a state machine")
+check(ulog == 11 and pose is UIdle, "a state machine")
 Num :: union
   Int, Float
 end
@@ -1021,7 +1027,7 @@ else
   nest += 1
 end
 check(nest == 21, "if on the line after else")
-check(1e99999999999 > 1e30 && 1e-99999999999 == 0.0, "huge exponents (found by fuzzing: overflowed and hung)")
+check(1e99999999999 > 1e30 and 1e-99999999999 == 0.0, "huge exponents (found by fuzzing: overflowed and hung)")
 
 # ---- proc values: proc(T, U) -> R; a proc used as a value can't call through proc values itself
 PMob :: struct
@@ -1037,7 +1043,7 @@ psort :: proc(xs: []PMob, less: proc(PMob, PMob) -> Bool) # stable insertion sor
   for i in 1..<xs.len()
     x := xs[i]
     j := i
-    for j > 0 && less(x, xs[j - 1])
+    for j > 0 and less(x, xs[j - 1])
       xs[j] = xs[j - 1]
       j -= 1
     end
@@ -1049,9 +1055,9 @@ for m, i in pmobs
   m = {name = 5 - i, score = (i * 7) % 3}
 end
 psort(pmobs[:], pByScore)
-check(pmobs[0].name == 5 && pmobs[1].name == 2 && pmobs[2].name == 4 && pmobs[4].score == 2, "sorted by a proc value, stably")
+check(pmobs[0].name == 5 and pmobs[1].name == 2 and pmobs[2].name == 4 and pmobs[4].score == 2, "sorted by a proc value, stably")
 psort(pmobs[:], pByName)
-check(pmobs[0].name == 1 && pmobs[4].name == 5, "another order")
+check(pmobs[0].name == 1 and pmobs[4].name == 5, "another order")
 ptwice :: proc(n: Int) -> Int
   return n * 2
 end
@@ -1061,7 +1067,7 @@ end
 papply :: proc(f: proc(Int) -> Int, n: Int) -> Int
   return f(f(n))
 end
-check(papply(ptwice, 3) == 12 && papply(pinc, 3) == 5, "a proc passed to a proc")
+check(papply(ptwice, 3) == 12 and papply(pinc, 3) == 5, "a proc passed to a proc")
 pg := ptwice
 ph: proc(Int) -> Int
 ph = pinc
@@ -1069,7 +1075,7 @@ POps :: struct
   op: proc(Int) -> Int
 end
 pops := POps{op = ptwice}
-check(pg(21) == 42 && ph(1) == 2 && pops.op(5) == 10, "proc values in variables and fields")
+check(pg(21) == 42 and ph(1) == 2 and pops.op(5) == 10, "proc values in variables and fields")
 
 # ---- assert: a runtime error at that line when the condition is false
 assert(1 + 1 == 2)
@@ -1098,7 +1104,7 @@ labxs[2] = 7
 labat := -1
 search: for v, i in labxs
   for k in 0..<3
-    if v == 7 && k == 1
+    if v == 7 and k == 1
       labat = i
       break search
     end

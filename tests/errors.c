@@ -75,6 +75,11 @@ static const Case cases[] = {
   {"f :: proc(out: &[]Int)\n  a: [4]Int\n  out = a[:]\nend\n", 0, 0, 0, RIO_ECOMPILE, 3, -1, -1, "this view of the proc's own memory would outlive the call"},
   /* views of globals and parameters, and local views passed down or replaced, are fine */
   {"g: []Int\nga: [4]Int\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[:]\n  n := s.len()\n  s = ga[:]\n  g = s\n  return v[1:]\nend\nsum :: proc(v: []Int) -> Int\n  return v.len()\nend\nh :: proc() -> Int\n  a: [4]Int\n  return sum(a[:])\nend\nlog(f(ga).len(), h())\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
+  /* the logical operators are words: the C forms point at themselves */
+  {"a := true\nb := a && false\n", 0, 0, 0, RIO_ECOMPILE, 2, 8, 2, "write and instead of &&"},
+  {"a := true\nb := a || false\n", 0, 0, 0, RIO_ECOMPILE, 2, 8, 2, "write or instead of ||"},
+  {"a := true\nb := !a\n", 0, 0, 0, RIO_ECOMPILE, 2, 6, 1, "write not instead of !"},
+  {"x := 3\nb := not x\n", 0, 0, 0, RIO_ECOMPILE, 2, -1, -1, "bad operand"},
   /* number literals: the error points at the whole number */
   {"x := 1_000_\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 6, "_ goes between digits"},
   {"x := 1__0\n", 0, 0, 0, RIO_ECOMPILE, 1, 6, 4, "_ goes between digits"},
@@ -122,10 +127,10 @@ static const Case cases[] = {
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nswitch u\ncase A\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "this switch has no case for B"},
   {"S :: union\n  String, Int\nend\nf :: proc()\n  s: S\nend\n", 0, 0, 0, RIO_ECOMPILE, 5, -1, -1, "unions holding slices or strings must be global"},
   /* only x is T parts joined by && narrow: not under ||, !, or a comparison */
-  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif t || u is A\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
-  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif !(u is B)\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif t or u is A\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif not (u is B)\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif (u is A) == true\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
-  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif (u is A && t) || t\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif (u is A and t) or t\n  log(u.x)\nend\n", 0, 0, 0, RIO_ECOMPILE, 13, -1, -1, "a union's value is reachable"},
   /* [Enum]T */
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\nt: [Tile]Int\n", 0, 0, 0, RIO_ECOMPILE, 9, -1, -1, "an enum used as an index needs the values 0, 1, 2"},
   {"L :: enum\n  a = -1, b, c\nend\nx: [L]Int\n", 0, 0, 0, RIO_ECOMPILE, 4, -1, -1, "an enum used as an index needs the values 0, 1, 2"},

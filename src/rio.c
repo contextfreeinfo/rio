@@ -36,8 +36,8 @@ enum { OPS(OPENUM) OP_DATA = 255 };
 #define SMALLW 16
 
 enum { TK_EOF = 256, TK_ID, TK_INT, TK_FLT, TK_STR, TK_PROC, TK_STRUCT, TK_IF, TK_ELSE, TK_FOR, TK_IN,
-  TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_IMPORT, TK_INCLUDE, TK_ENUM, TK_UNION, TK_SWITCH, TK_CASE, TK_IS, TK_NIL, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_AND,
-  TK_OR, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
+  TK_END, TK_RETURN, TK_BREAK, TK_CONTINUE, TK_IMPORT, TK_INCLUDE, TK_ENUM, TK_UNION, TK_SWITCH, TK_CASE, TK_IS, TK_NIL, TK_AND, TK_OR,
+  TK_NOT, TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_SHL, TK_SHR, TK_ARROW, TK_RLT, TK_RLE, TK_OPEQ };
 enum { TY_VOID, TY_I32, TY_F32, TY_BYTE, TY_STR, TY_BLOB, TY_BOOL };
 enum { K_VOID = RIO_K_VOID, K_I32, K_F32, K_BYTE, K_SLICE, K_ARR, K_STRUCT, K_BOOL, K_LIST, K_BUILD, K_ENUM, K_UNION, K_PROC };
 enum { S_VAR = RIO_S_VAR, S_CONST, S_TYPE, S_FN, S_FFI, S_BI, S_METH, S_SELF, S_MOD, S_ROREF, S_NARROW }; /* S_ROREF: a read-only S_SELF.
@@ -58,7 +58,7 @@ typedef RioEx Ex;
 typedef RioOp Op;
 
 static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue", "import", "include",
-  "enum", "union", "switch", "case", "is", "nil"};
+  "enum", "union", "switch", "case", "is", "nil", "and", "or", "not"};
 static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod", "assert",
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format",
@@ -178,7 +178,7 @@ static const short tok2[] = {TK_DCOLON, TK_DECL, TK_EQ, TK_NE, TK_LE, TK_GE, TK_
   TK_ARROW, -'+', -'-', -'*', -'/', -'%', -'&', -'|', -'^'};
 
 #define LEXFAIL(m) do { fail(vm, m); t->t = TK_EOF; t->n = 0; return; } while (0)
-#define NUMFAIL(m) do { failat(vm, t->line, t->col, (int)(p - st), m); t->t = TK_EOF; t->n = 0; return; } while (0) /* at the number */
+#define TOKFAIL(m) do { failat(vm, t->line, t->col, (int)(p - st), m); t->t = TK_EOF; t->n = 0; return; } while (0) /* at the token */
 static void lex(Rio *vm, RioTok *t) {
   const char *p = vm->c->sp, *e = vm->c->se, *s, *st;
   int nl = 0, i;
@@ -206,7 +206,7 @@ static void lex(Rio *vm, RioTok *t) {
       v = v * (uint32_t)base + (uint32_t)k; d = d * 10 + k; n++; p++;
       if (p + 1 < e && *p == '_' && digitval(p[1], base) >= 0) p++;
     }
-    if (!n) NUMFAIL(base == 16 ? "hex digits expected after 0x" : "binary digits expected after 0b");
+    if (!n) TOKFAIL(base == 16 ? "hex digits expected after 0x" : "binary digits expected after 0b");
     if (base == 10) {
       if (p + 1 < e && *p == '.' && isdg(p[1]))
         for (isf = 1, p++; p < e && isdg(*p); p++) {
@@ -216,7 +216,7 @@ static void lex(Rio *vm, RioTok *t) {
       if (p < e && (*p == 'e' || *p == 'E')) {
         int neg = 0, x = 0;
         p++; if (p < e && (*p == '-' || *p == '+')) neg = *p++ == '-';
-        if (p >= e || !isdg(*p)) NUMFAIL("exponent digits expected");
+        if (p >= e || !isdg(*p)) TOKFAIL("exponent digits expected");
         while (p < e && isdg(*p)) { /* past 1000 it's inf or 0 anyway */
           if (x < 1000) x = x * 10 + (*p - '0');
           p++; if (p + 1 < e && *p == '_' && isdg(p[1])) p++;
@@ -228,11 +228,11 @@ static void lex(Rio *vm, RioTok *t) {
     if (p < e && (isal(*p) || isdg(*p))) { /* 1__0, 1_, 0b102, 0xFG, 12px */
       const char *q = p; int us = 0;
       while (p < e && (isal(*p) || isdg(*p))) us |= *p++ == '_';
-      NUMFAIL(us ? "_ goes between digits" : base == 2 && isdg(*q) ? "binary digits are 0 and 1" : "bad number");
+      TOKFAIL(us ? "_ goes between digits" : base == 2 && isdg(*q) ? "binary digits are 0 and 1" : "bad number");
     }
-    if (big && !isf) NUMFAIL("number too big for Int (32 bits)");
+    if (big && !isf) TOKFAIL("number too big for Int (32 bits)");
     if (base == 10 && !isf && v > 0x7FFFFFFFu && !(v == 0x80000000u && (vm->c->negnum || (t == &vm->c->nx && vm->c->tk.t == '-'))))
-      NUMFAIL("number too big for Int (the most is 2147483647; hex and binary can give any 32 bits)");
+      TOKFAIL("number too big for Int (the most is 2147483647; hex and binary can give any 32 bits)");
     t->t = isf ? TK_FLT : TK_INT;
     if (isf) t->v.f = (float)d; else t->v.u = v;
   } else if (*p == '"') {
@@ -258,6 +258,8 @@ static void lex(Rio *vm, RioTok *t) {
         if (tok2[i] < 0) { t->t = TK_OPEQ; t->op = -tok2[i]; } else t->t = tok2[i];
         break;
       }
+    if (t->t == TK_AND || t->t == TK_OR) TOKFAIL(t->t == TK_AND ? "write and instead of &&" : "write or instead of ||");
+    if (t->t == '!') TOKFAIL("write not instead of !");
   }
   t->n = t->w = (int)(p - s); vm->c->sp = p;
 }
@@ -909,11 +911,11 @@ static void vres(Rio *vm, Ex e, int t0) { e.t0 = (uint16_t)t0; vpush(vm, e); }
 static int binprec(int t) {
   switch (t) {
   case TK_OR: return 1;
-  case TK_AND: return 2;
-  case TK_EQ: case TK_NE: case '<': case '>': case TK_LE: case TK_GE: return 3;
-  case '+': case '-': case '|': case '^': return 4;
-  case '*': case '/': case '%': case '&': case TK_SHL: case TK_SHR: return 5;
-  case TK_IS: return 3;
+  case TK_AND: return 2; /* (3: not, so not a == b is not (a == b), and not a and b is (not a) and b) */
+  case TK_EQ: case TK_NE: case '<': case '>': case TK_LE: case TK_GE: return 4;
+  case '+': case '-': case '|': case '^': return 5;
+  case '*': case '/': case '%': case '&': case TK_SHL: case TK_SHR: return 6;
+  case TK_IS: return 4;
   }
   return 0;
 }
@@ -1529,7 +1531,8 @@ static Ex expr(Rio *vm) {
       else if (t == TK_STR) e = strlit(vm);
       else if (t == TK_ID) e = ident(vm);
       else if (t == '(') { opush(vm, OK_PAREN, 0, 0); depth++; next(vm); continue; }
-      else if (t == '-' || t == '!' || t == '~' || t == '&') { opush(vm, OK_UN, 6, t); next(vm); continue; }
+      else if (t == '-' || t == '~' || t == '&') { opush(vm, OK_UN, 7, t); next(vm); continue; }
+      else if (t == TK_NOT) { opush(vm, OK_UN, 3, '!'); next(vm); continue; }
       else if ((t == ')' || t == '}') && vm->c->nos > ob && vm->c->os[vm->c->nos - 1].k == (t == ')' ? OK_CALL : OK_LIT) &&
                (t == '}' || vm->c->os[vm->c->nos - 1].n == 0) && vm->c->nvs == vm->c->os[vm->c->nos - 1].vb) {
         closer(vm, t, 0); depth--; next(vm); want = 0; continue;
