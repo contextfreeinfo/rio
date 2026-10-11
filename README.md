@@ -1,5 +1,8 @@
 # rio
 
+Disclaimer: Claude Code produced almost every line of code so far, under my
+direction.
+
 A tiny, statically typed, embeddable scripting language. It's written in C99; the core is about 1,300 lines, and the optional C backend about 270 more.
 
 - Odin-like syntax, with blocks closed by `end`
@@ -115,7 +118,7 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 
 **Operators:** `+ - * / % & | ^ << >> == != < <= > >= && || ! ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`.
 
-**Builtins:** `log(...)`, `len(x)`, `cap(x)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`, `assert(cond)` or `assert(cond, "why")` (a runtime error at that line when `cond` is false), plus the list builtins below.
+**Builtins:** `log(...)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`, `assert(cond)` or `assert(cond, "why")` (a runtime error at that line when `cond` is false), plus the list methods below. Every sequence (array, slice, list, String, Blob) has `x.len()` and `x.cap()`.
 
 ## Lists and text builders
 
@@ -164,7 +167,7 @@ line: Blob[..] = screen[row * 40:(row + 1) * 40]   # or over part of a bigger bu
 line.format("hp ", hp)
 ```
 
-- **Methods:** `xs.push(x) -> Bool` (one element), `xs.pushAll(ys) -> Bool` (every element of a slice, array or list with the same element type; a `String` works for Blob lists), `xs.pop()`, `xs.clear()`, `xs.remove(i)` and `xs.swapRemove(i)`. `len(xs)` and `cap(xs)` stay functions, since they work on every kind of sequence. A push that doesn't fit changes nothing and returns `false`; popping an empty list or removing past the end is a runtime error.
+- **Methods:** `xs.push(x) -> Bool` (one element), `xs.pushAll(ys) -> Bool` (every element of a slice, array or list with the same element type; a `String` works for Blob lists), `xs.pop()`, `xs.clear()`, `xs.remove(i)` and `xs.swapRemove(i)`. `xs.len()` and `xs.cap()` work on every kind of sequence: arrays, slices, lists, Strings and Blobs. A push that doesn't fit changes nothing and returns `false`; popping an empty list or removing past the end is a runtime error.
 - **Text:** `b.format(...) -> Bool` appends Strings, Blobs, Ints, Floats and Bools to the end of a Blob list as text, formatted like `log` but without spaces between arguments. There is no template string: the arguments are the pieces, in order. If any of it doesn't fit, the list is left as it was. `b.push(x)` on a Blob list adds the single byte `x`, just as on any other list.
 - **Builders share the length:** a `[..]T` is a view of a length word and the memory it counts (three words: where the length lives, where the data starts, the capacity). For a list, that's the list's own length word, so pushing through any view changes the one real list. Assigning a list or builder with `:=` also makes a view; use `[..N]T` explicitly for a separate copy.
 - **A builder over any array or slice:** `b: [..]T = arr` (or `= arr[a:b]`, or a Blob for `Blob[..]`) builds into that memory, starting empty, up to its length. Its length lives in a hidden word right after `b`, so copies of `b` and procs it's passed to share it. Only a declaration can do this, because the length needs a home: passing an array straight to a `[..]T` parameter is an error. A builder can't be made over read-only data such as a `String`.
@@ -256,7 +259,7 @@ end
 ```
 
 - **Enums** compare with `==` and `!=`. `for d in Dir` visits the values in the order listed (`for d, i in Dir` adds the index), and `log` and `b.format(...)` write the value's name. Their values are written `.camelCase`; `Dir.north` works anywhere and `.north` wherever the enum is known (a declaration, assignment, argument, field, return, comparison or `case`). Some value must be 0, since that's what new variables and array elements start as; listing `nil` first gives an explicit "nothing". Values may have gaps, and they increase down the list, so the order you list them is the order of their values.
-- **Arrays indexed by an enum:** `counts: [Dir]Int` has one element per value, indexed by the enum itself: `counts[.east] += 1`, and `for n, d in counts` gives each value `d`. The enum's values must be exactly 0, 1, 2… (the default numbering), so `d.toInt()` is `d`'s element and none are wasted. An enum with gaps or other values can't index an array: use one numbered from 0, or a `switch`. Slices of it take the enum's values as bounds, with the end not included like any slice: `counts[.east:]`, `counts[:.west]`, `counts[:]`. The result is a plain `[]Int` counted from 0, say to pass to a proc taking `[]Int`.
+- **Arrays indexed by an enum:** `counts: [Dir]Int` has one element per value, indexed by the enum itself: `counts[.east] += 1`, and `for n, d in counts` gives each value `d`. The enum's values must be exactly 0, 1, 2ï¿½ (the default numbering), so `d.toInt()` is `d`'s element and none are wasted. An enum with gaps or other values can't index an array: use one numbered from 0, or a `switch`. Slices of it take the enum's values as bounds, with the end not included like any slice: `counts[.east:]`, `counts[:.west]`, `counts[:]`. The result is a plain `[]Int` counted from 0, say to pass to a proc taking `[]Int`.
 - **Unions** hold a tag (which type) plus room for the biggest type, so every value takes the size of the largest. Types that differ in size by more than 64 bytes are an error, since an array of the union would waste the difference in every element: keep the big data elsewhere (say, a global array, holding its index in the union), or mark the union `union @diverse` if you mean it. Unions holding slices or Strings must be global, like structs.
 - **Reaching a union's value:** only where its type is known, as a copy taken there: in a `case` naming one type, or inside an `if` whose condition has `s is T` as one of its `&&`-joined parts (`if hit && s is Rect`; not under `||` or `!`). The copy can't be changed (that would quietly change nothing); assign the whole union instead, after which the name means the union again for the rest of the block. For something other than a plain variable, name it: `switch c := e.shape`.
 - **`switch`** works on Ints, enums and unions. Each `case` lists one or more constant values (or types), there's no fallthrough, and `else` handles everything else. Without an `else`, a switch on an enum or union must cover every value or type (including `nil`), which is checked when compiling. `break` and `continue` belong to loops, not switches.

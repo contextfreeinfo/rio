@@ -8,7 +8,7 @@ VERBOSE :: false
 data: [N]Int
 total :: proc() -> Int
   t := 0
-  for i in 0..<len(data)
+  for i in 0..<data.len()
     data[i] = i
     t += i
   end
@@ -18,4 +18,4 @@ end
 if VERBOSE
   log("verbose on")
 end
-log("N", N, "len", len(data), "total", total(), "SCALE", SCALE * 2, "NAME", NAME)
+log("N", N, "len", data.len(), "total", total(), "SCALE", SCALE * 2, "NAME", NAME)

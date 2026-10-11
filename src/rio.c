@@ -173,7 +173,7 @@ static void lex(Rio *vm, RioTok *t) {
       if (p < e && (*p == 'e' || *p == 'E')) {
         int neg = 0, x = 0;
         p++; if (p < e && (*p == '-' || *p == '+')) neg = *p++ == '-';
-        while (p < e && isdg(*p)) x = x * 10 + (*p++ - '0');
+        while (p < e && isdg(*p)) { if (x < 1000) x = x * 10 + (*p - '0'); p++; } /* past 1000 it's inf or 0 anyway */
         while (x--) d = neg ? d / 10 : d * 10;
         isf = 1;
       }
@@ -861,7 +861,9 @@ static Ex symex(Rio *vm, int i) {
     Ex e = mkex(EK_MEM, y->t, y->v); e.ro = y->k == S_ROREF; return e;
   }
   case S_FFI: return mkex(EK_FFI, 0, y->v);
-  case S_BI: return mkex(EK_BI, 0, y->v);
+  case S_BI:
+    if (y->v == BI_LEN || y->v == BI_CAP) fail(vm, y->v == BI_LEN ? "len is a method: write x.len()" : "cap is a method: write x.cap()");
+    return mkex(EK_BI, 0, y->v);
   default: return mkex(EK_TY, y->t, 0);
   }
 }
@@ -997,7 +999,9 @@ static void member(Rio *vm) {
     failtok(vm, "a union's value is reachable inside switch u / case T, or if u is T");
   if (structfield(vm, ty, TK.s, TK.n) >= 0) { field(vm, e); return; }
   if (ty->k == K_ARR && swizzle(vm, e)) return;
-  if (ty->k != K_STRUCT && ty->k != K_LIST && ty->k != K_BUILD && (k = convname(TK.s, TK.n)) >= 0) m = mkex(EK_BI, 0, k);
+  if ((ty->k == K_ARR || ty->k == K_SLICE || ty->k == K_LIST || ty->k == K_BUILD) && TK.n == 3 &&
+      (!memcmp(TK.s, "len", 3) || !memcmp(TK.s, "cap", 3))) m = mkex(EK_BI, 0, TK.s[0] == 'l' ? BI_LEN : BI_CAP); /* x.len(), x.cap() */
+  else if (ty->k != K_STRUCT && ty->k != K_LIST && ty->k != K_BUILD && (k = convname(TK.s, TK.n)) >= 0) m = mkex(EK_BI, 0, k);
   else if (ty->k == K_LIST || ty->k == K_BUILD) {
     for (k = BI_PUSH; k <= BI_FORMAT; k++)
       if (k != BI_CAP && (int)strlen(bi[k]) == TK.n && !memcmp(bi[k], TK.s, (size_t)TK.n)) break;
@@ -1148,7 +1152,7 @@ static void builtin(Rio *vm, Op *m) {
     else if (k == K_SLICE) { r = *a; if (r.k == EK_ST) r.a += 4; else r.off += 4; r.t = TY_I32; r.ro = 1; }
     else if (k == K_LIST) { r = *a; r.t = TY_I32; r.ro = 1; } /* the length word comes first */
     else if (k == K_BUILD) { r = mkex(EK_MEM, TY_I32, toslot3(vm, a)); r.ro = 1; }
-    else fail(vm, "len needs a slice, array or list");
+    else fail(vm, "len() is for arrays, slices, lists and strings");
     vm->c->nvs = m->vb; vres(vm, r, m->fr0);
     return;
   }
@@ -1203,7 +1207,7 @@ static void listop(Rio *vm, Op *m) {
     if (k == K_LIST || k == K_ARR) r = mkex(EK_CONST, TY_I32, (int32_t)TY(a->t)->n);
     else if (k == K_BUILD) { r = mkex(EK_ST, TY_I32, (toslot3(vm, a) + 2) * 4); r.ro = 1; }
     else if (k == K_SLICE) { r = *a; if (r.k == EK_ST) r.a += 4; else r.off += 4; r.t = TY_I32; r.ro = 1; }
-    else fail(vm, "cap needs a list, array or slice");
+    else fail(vm, "cap() is for lists, arrays and slices");
     vm->c->nvs = m->vb; vres(vm, r, m->fr0);
     return;
   }
@@ -2198,7 +2202,7 @@ static void statement(Rio *vm) {
     next(vm); bscope(vm, b);
     b->b = (uint16_t)jappend(vm, b->b, emit(vm, OP_JMP, 0, 0, NONE));
     patch(vm, b->a, here(vm));
-    if (TK.t == TK_IF) {
+    if (TK.t == TK_IF && !TK.nl) { /* else if, on one line; an if on the next line starts the else block */
       Ex c;
       next(vm); vm->c->nisc = 0; e = expr(vm); c = e;
       b->a = (uint16_t)condjump(vm, &e);

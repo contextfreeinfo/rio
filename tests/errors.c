@@ -71,7 +71,7 @@ static const Case cases[] = {
   {"g: []Int\nf :: proc()\n  a: [4]Int\n  s := a[1:3]\n  t := s\n  g = t\nend\n", 0, 0, 0, RIO_ECOMPILE, 6, -1, -1, "this view of the proc's own memory would outlive the call"},
   {"f :: proc(out: &[]Int)\n  a: [4]Int\n  out = a[:]\nend\n", 0, 0, 0, RIO_ECOMPILE, 3, -1, -1, "this view of the proc's own memory would outlive the call"},
   /* views of globals and parameters, and local views passed down or replaced, are fine */
-  {"g: []Int\nga: [4]Int\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[:]\n  n := len(s)\n  s = ga[:]\n  g = s\n  return v[1:]\nend\nsum :: proc(v: []Int) -> Int\n  return len(v)\nend\nh :: proc() -> Int\n  a: [4]Int\n  return sum(a[:])\nend\nlog(len(f(ga)), h())\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
+  {"g: []Int\nga: [4]Int\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[:]\n  n := s.len()\n  s = ga[:]\n  g = s\n  return v[1:]\nend\nsum :: proc(v: []Int) -> Int\n  return v.len()\nend\nh :: proc() -> Int\n  a: [4]Int\n  return sum(a[:])\nend\nlog(f(ga).len(), h())\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
   /* comments start with #: a C-style comment is an error that points at itself */
   {"x := 1 // note\n", 0, 0, 0, RIO_ECOMPILE, 1, 8, 2, "comments start with #"},
   {"/* note */\nx := 1\n", 0, 0, 0, RIO_ECOMPILE, 1, 1, 2, "comments start with #"},
@@ -119,8 +119,8 @@ static const Case cases[] = {
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\np: [2]Int\np = c\n", 0, 0, 0, RIO_ECOMPILE, 10, -1, -1, "type mismatch"},
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\ns := c[1:2]\n", 0, 0, 0, RIO_ECOMPILE, 9, -1, -1, "slice this array with its enum's values"},
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\ns := c[0:]\n", 0, 0, 0, RIO_ECOMPILE, 9, -1, -1, "slice this array with its enum's values"},
-  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\ns := c[.north:.east]\nlog(len(s))\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
-  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\ns := c[:]\nlog(len(s))\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
+  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\ns := c[.north:.east]\nlog(s.len())\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
+  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall = 3\nend\nc: [Dir]Int\ns := c[:]\nlog(s.len())\n", 0, 0, 0, RIO_ENONE, 0, 0, 0, ""},
   {"x := 3\nassert(x == 3)\nassert(x < 2, \"x too big\")\n", 0, 0, 0, RIO_ERUNTIME, 3, 0, 0, "assertion failed: x too big"},
   {"assert(1 == 2)\n", 0, 0, 0, RIO_ERUNTIME, 1, 0, 0, "assertion failed"},
   {"assert(1)\n", 0, 0, 0, RIO_ECOMPILE, 1, -1, -1, "condition must be Bool"},

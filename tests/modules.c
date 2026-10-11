@@ -42,7 +42,7 @@ static const char *files[][2] = {
          "P* :: struct\n  x, y: Int\nend\nHid :: struct\n  a: Int\nend\n"
          "P.sum* :: proc() -> Int\n  return self.x + self.y\nend\n"
          "mk* :: proc(x: Int) -> P\n  return {x, y = N}\nend\n"
-         "total* :: proc(ps: []P) -> Int\n  t := 0\n  for i in 0..<len(ps)\n    t += ps[i].sum()\n  end\n  return t\nend\n"},
+         "total* :: proc(ps: []P) -> Int\n  t := 0\n  for i in 0..<ps.len()\n    t += ps[i].sum()\n  end\n  return t\nend\n"},
   {"rf", "R* :: struct\n  n: Int\nend\ninc* :: proc(r: &R, by: Int)\n  r.n += by\nend\n"},
   {"kinds", "Dir* :: enum\n  north, east\nend\nP* :: struct\n  x: Int\nend\nQ* :: struct\n  y: Float\nend\nPQ* :: union\n  nil\n  P, Q\nend\nflip* :: proc(d: Dir) -> Dir\n  switch d\n  case .north\n    return .east\n  case .east\n    return .north\n  end\n  return d\nend\n"},
   {"@two", "t* := 2\n"},
@@ -128,8 +128,8 @@ int main(void) {
   t("secret := 1\ninclude \"part.rio\" log(1)\n", 0, RIO_ECOMPILE, 0, 2, "expected end of statement");
   t("include \"cyca.rio\"\n", 0, RIO_ECOMPILE, "cycb.rio", 1, "file already included"); /* a cycle of includes */
   /* imported constants: usable wherever a constant is needed */
-  t("import .k\nxs: [k.N]Int\nlog(len(xs))\n", "4\n", RIO_ENONE, 0, 0, 0);
-  t("import .k.{N}\nM :: N * 2\nys: [M]Int\nlog(M, len(ys))\n", "8 8\n", RIO_ENONE, 0, 0, 0);
+  t("import .k\nxs: [k.N]Int\nlog(xs.len())\n", "4\n", RIO_ENONE, 0, 0, 0);
+  t("import .k.{N}\nM :: N * 2\nys: [M]Int\nlog(M, ys.len())\n", "8 8\n", RIO_ENONE, 0, 0, 0);
   t("import .k\nlog(k.HALF * 2.0, k.NAME, k.ON)\n", "1.0 rio true\n", RIO_ENONE, 0, 0, 0);
   t("import .k.{NAME as nm}\nlog(nm)\n", "rio\n", RIO_ENONE, 0, 0, 0);
   t("N :: 4\nN = 5\n", 0, RIO_ECOMPILE, 0, 2, "cannot assign to this");          /* same as a local constant */
@@ -138,7 +138,7 @@ int main(void) {
   t("import .k\nlog(k.SECRET)\n", 0, RIO_ECOMPILE, 0, 2, "not exported by that module");
   /* imported types: in fields, arrays, lists, slices, literals, params and returns */
   t("import .k\nQ :: struct\n  p: k.P\n  ps: [2]k.P\nend\nq: Q\nq.p = {x = 1, y = 2}\nq.ps[1].x = 7\nlog(q.p.sum(), q.ps[1].sum())\n", "3 7\n", RIO_ENONE, 0, 0, 0);
-  t("import .k\nps: [..4]k.P\nps.push({x = 1, y = 1})\nps.push(k.mk(2))\nlog(k.total(ps[:]), len(ps))\n", "8 2\n", RIO_ENONE, 0, 0, 0);
+  t("import .k\nps: [..4]k.P\nps.push({x = 1, y = 1})\nps.push(k.mk(2))\nlog(k.total(ps[:]), ps.len())\n", "8 2\n", RIO_ENONE, 0, 0, 0);
   t("import .k.{P, mk}\n{x, y as b} := mk(3)\nlog(x, b)\n", "3 4\n", RIO_ENONE, 0, 0, 0);
   t("import .k.{P}\nf :: proc(p: P) -> P\n  return {x = p.y, y = p.x}\nend\nlog(f({x = 1, y = 2}).x)\n", "2\n", RIO_ENONE, 0, 0, 0);
   t("import .k\nv := k.P{x = 1, y = 2}\nlog(v.sum())\n", "3\n", RIO_ENONE, 0, 0, 0);

@@ -62,7 +62,7 @@ HALF :: N / 2
 PI :: 3.14159
 GREETING :: "hello"
 check(HALF == 8, "const fold")
-check(GREETING == "hello" && len(GREETING) == 5, "string const")
+check(GREETING == "hello" && GREETING.len() == 5, "string const")
 
 # ---- control flow
 sum := 0
@@ -112,13 +112,13 @@ Particle :: struct
   tag: Blob[4]
 end
 parts: [100]Particle
-for i in 0..<len(parts)
+for i in 0..<parts.len()
   parts[i].pos = Vec{x = i.toFloat(), y = 0}
   parts[i].vel = Vec{x = 1, y = 2}
   parts[i].life = i
 end
 step :: proc(ps: []Particle, dt: Float)
-  for i in 0..<len(ps)
+  for i in 0..<ps.len()
     ps[i].pos.x += ps[i].vel.x * dt
     ps[i].pos.y += ps[i].vel.y * dt
     ps[i].life -= 1
@@ -129,7 +129,7 @@ check(parts[10].pos.x == 10.5 && parts[10].pos.y == 1 && parts[10].life == 9, "s
 step(parts[50:], 1)
 check(parts[49].life == 48 && parts[50].life == 48, "subslice")
 parts[3].tag[0] = 'Z'
-check(parts[3].tag[0] == 90 && len(parts[3].tag) == 4, "inline blob")
+check(parts[3].tag[0] == 90 && parts[3].tag.len() == 4, "inline blob")
 v := Vec{x = 3, y = 4}
 w := v
 w.x = 10
@@ -173,7 +173,7 @@ for i in 0..<8
 end
 total :: proc(s: []Int) -> Int
   t := 0
-  for i in 0..<len(s)
+  for i in 0..<s.len()
     t += s[i]
   end
   return t
@@ -182,9 +182,9 @@ check(total(data) == 140, "array to slice")
 check(total(data[2:4]) == 13, "slice range")
 check(total(data[:3]) == 5 && total(data[6:]) == 85, "open slices")
 mid := data[1:7]
-check(len(mid) == 6 && mid[0] == 1, "slice var")
+check(mid.len() == 6 && mid[0] == 1, "slice var")
 buf: Blob[16]
-for i in 0..<len(buf)
+for i in 0..<buf.len()
   buf[i] = 'a' + i
 end
 s := buf[0:5].asString()
@@ -198,7 +198,7 @@ end
 people: [3]Named
 people[0] = Named{name = "ann", id = 1}
 people[1].name = "bob"
-check(people[1].name == "bob" && len(people[0].name) == 3, "strings in global structs")
+check(people[1].name == "bob" && people[0].name.len() == 3, "strings in global structs")
 
 # ---- math builtins
 check(abs(-3) == 3 && abs(-2.5) == 2.5, "abs")
@@ -229,7 +229,7 @@ scale2 :: proc(v: Vec, k: Float) -> Vec
 end
 locals :: proc(n: Int) -> Int
   arr: [8]Int
-  for i in 0..<len(arr)
+  for i in 0..<arr.len()
     arr[i] = i + n
   end
   view := arr[2:6]
@@ -264,26 +264,26 @@ Enemy :: struct
   x, hp: Int
 end
 enemies: [..4]Enemy
-check(len(enemies) == 0 && cap(enemies) == 4, "empty list")
+check(enemies.len() == 0 && enemies.cap() == 4, "empty list")
 spawnE :: proc(list: [..]Enemy, x: Int) -> Bool
   return list.push(Enemy{x = x, hp = 3})
 end
 for i in 0..<6
   spawnE(enemies, i * 10)
 end
-check(len(enemies) == 4 && enemies[3].x == 30, "push through a view; full list drops")
+check(enemies.len() == 4 && enemies[3].x == 30, "push through a view; full list drops")
 check(!enemies.push(Enemy{x = 99}), "push when full is false")
 enemies[1].hp -= 1
 enemies.swapRemove(0)
-check(len(enemies) == 3 && enemies[0].x == 30 && enemies[1].hp == 2, "swapRemove")
+check(enemies.len() == 3 && enemies[0].x == 30 && enemies[1].hp == 2, "swapRemove")
 enemies.remove(0)
-check(len(enemies) == 2 && enemies[0].x == 10 && enemies[1].x == 20, "remove keeps order")
+check(enemies.len() == 2 && enemies[0].x == 10 && enemies[1].x == 20, "remove keeps order")
 last := enemies.pop()
-check(last.x == 20 && len(enemies) == 1, "pop")
+check(last.x == 20 && enemies.len() == 1, "pop")
 live := enemies[:]
-check(len(live) == 1 && live[0].x == 10, "list [:] is a slice of live elements")
+check(live.len() == 1 && live[0].x == 10, "list [:] is a slice of live elements")
 enemies.clear()
-check(len(enemies) == 0, "clear")
+check(enemies.len() == 0, "clear")
 nums: [..8]Int
 for i in 0..<5
   nums.push(i * i)
@@ -296,19 +296,19 @@ label :: proc(b: Blob[..], score: Int) -> Bool
 end
 check(label(title, 42) && title[:].asString() == "score: 42 1.5 true!", "format appends text; push adds one byte")
 tiny: Blob[..6]
-check(tiny.pushAll("abc") && !tiny.format("de", 12345) && len(tiny) == 3, "format is all or nothing")
+check(tiny.pushAll("abc") && !tiny.format("de", 12345) && tiny.len() == 3, "format is all or nothing")
 check(tiny.format(12) && tiny.push(65) && tiny[:].asString() == "abc12A" && !tiny.push(66), "push on a Blob list is a byte")
 check(tiny.format(), "format with nothing to add")
 more: [..8]Int
-check(more.pushAll(nums) && !more.pushAll(nums) && len(more) == 5 && more[4] == 16, "pushAll is all or nothing")
-check(more.pushAll(nums[3:]) && len(more) == 7 && more[6] == 16, "pushAll from a slice")
+check(more.pushAll(nums) && !more.pushAll(nums) && more.len() == 5 && more[4] == 16, "pushAll is all or nothing")
+check(more.pushAll(nums[3:]) && more.len() == 7 && more[6] == 16, "pushAll from a slice")
 localList :: proc() -> Int
   xs: [..3]Int
   xs.push(5)
   xs.push(6)
   v := xs
   v.push(7)
-  return len(xs) * 100 + xs[2] + cap(v)
+  return xs.len() * 100 + xs[2] + v.cap()
 end
 check(localList() == 310 && localList() == 310, "local list resets per call; := makes a view")
 Inv :: struct
@@ -317,7 +317,7 @@ Inv :: struct
 end
 bags: [2]Inv
 bags[1].items.push(9)
-check(len(bags[1].items) == 1 && bags[1].items[0] == 9 && len(bags[0].items) == 0, "list inside a struct inside an array")
+check(bags[1].items.len() == 1 && bags[1].items[0] == 9 && bags[0].items.len() == 0, "list inside a struct inside an array")
 
 # ---- methods: Type.name :: proc, with an implicit self
 Ship :: struct
@@ -356,7 +356,7 @@ twin.move(10)
 check(solo.x == 0 && twin.x == 10, "methods act on the variable they're called on")
 check(Ship{x = 7}.pos() == 7, "method on a temporary")
 moveAll :: proc(ships: []Ship, dt: Float)
-  for i in 0..<len(ships)
+  for i in 0..<ships.len()
     ships[i].move(dt)
   end
 end
@@ -456,7 +456,7 @@ mover :: proc() -> Float
 end
 check(mover() == fleet[1].vx, "the names are copies; works in procs")
 {tag} := parts[3]
-check(tag[0] == 90 && len(tag) == 4, "an inline Blob field becomes a view")
+check(tag[0] == 90 && tag.len() == 4, "an inline Blob field becomes a view")
 nested :: proc(ps: []Particle, i: Int) -> Float
   {pos as p, vel} := ps[i]
   {x, y as py} := p
@@ -492,7 +492,7 @@ for h in hits
     hits.push(9)
   end
 end
-check(hsum == 9 && hits[0] == 1 && hits[1] == 1 && len(hits) == 4, "a list: the elements there when the loop starts")
+check(hsum == 9 && hits[0] == 1 && hits[1] == 1 && hits.len() == 4, "a list: the elements there when the loop starts")
 empty: [..2]Int
 ran := false
 for x in empty
@@ -748,28 +748,28 @@ bbuf: [8]Int
 bb: [..]Int = bbuf
 bb.push(3)
 bb.push(4)
-check(len(bb) == 2 && cap(bb) == 8 && bbuf[1] == 4 && bb[1] == 4, "pushes land in the array")
+check(bb.len() == 2 && bb.cap() == 8 && bbuf[1] == 4 && bb[1] == 4, "pushes land in the array")
 bfill :: proc(out: [..]Int, n: Int)
   for i in 0..<n
     out.push(i * 10)
   end
 end
 bfill(bb, 3)
-check(len(bb) == 5 && bb[4] == 20, "passed to a proc, the length is shared")
+check(bb.len() == 5 && bb[4] == 20, "passed to a proc, the length is shared")
 bpart: [..]Int = bbuf[5:8]
 bpart.push(7)
-check(bbuf[5] == 7 && len(bpart) == 1 && cap(bpart) == 3 && len(bb) == 5, "over part of an array")
+check(bbuf[5] == 7 && bpart.len() == 1 && bpart.cap() == 3 && bb.len() == 5, "over part of an array")
 bsum := 0
 for x in bb
   bsum += x
 end
 check(bsum == 37, "for-each over a builder")
-check(bb.pop() == 20 && len(bb) == 4, "pop")
+check(bb.pop() == 20 && bb.len() == 4, "pop")
 bb.swapRemove(0)
-check(bb[0] == 10 && len(bb) == 3, "swapRemove")
+check(bb[0] == 10 && bb.len() == 3, "swapRemove")
 bc := bb
 bc.push(99)
-check(len(bb) == 4, "copies share the length")
+check(bb.len() == 4, "copies share the length")
 bscr: Blob[16]
 btxt: Blob[..] = bscr[4:12]
 btxt.format("hi ", 42)
@@ -783,7 +783,7 @@ blocal :: proc() -> Int
   xs.push(1)
   v: [..]Int = xs
   v.push(2)
-  return len(lb) * 10 + len(xs)
+  return lb.len() * 10 + xs.len()
 end
 check(blocal() == 22, "builders over locals and lists inside a proc")
 
@@ -820,7 +820,7 @@ check(shW() == 1 + 40 + 400, "array values through shared frames")
 
 # ---- comments start with #; inside strings and char literals it's just a character
 hstr := "a # b"
-check(len(hstr) == 5 && hstr[2] == '#' && '#' == 35, "# in a string or char literal") # a comment here too
+check(hstr.len() == 5 && hstr[2] == '#' && '#' == 35, "# in a string or char literal") # a comment here too
 
 # ---- enums: their own type, stored as an Int; .value where the type is known
 Dir :: enum
@@ -861,7 +861,7 @@ ecounts[.east] = 3
 ecounts[Dir.west] += 2
 ed = .east
 ecounts[ed] += 1
-check(ecounts[.east] == 4 && ecounts[.west] == 2 && ecounts[.north] == 0 && len(ecounts) == 4, "an enum-indexed array")
+check(ecounts[.east] == 4 && ecounts[.west] == 2 && ecounts[.north] == 0 && ecounts.len() == 4, "an enum-indexed array")
 ewhich := 0
 for c, dd in ecounts                    # the index is the enum
   if dd == .west
@@ -871,7 +871,7 @@ end
 check(ewhich == 2, "for over an enum-indexed array")
 check(ecounts[Dir.fromInt(Dir.east.toInt())] == 4, "d.toInt() is d's element")
 epart := ecounts[.east:.west]           # bounds are values; like any slice, the end isn't included
-check(len(epart) == 2 && epart[0] == 4 && len(ecounts[.south:]) == 2 && len(ecounts[:.east]) == 1, "slicing with enum values")
+check(epart.len() == 2 && epart[0] == 4 && ecounts[.south:].len() == 2 && ecounts[:.east].len() == 1, "slicing with enum values")
 
 # ---- switch: case values (several per case), else, and every enum value covered
 compass :: proc(d: Dir) -> Int
@@ -1006,9 +1006,22 @@ case Float
 end
 check(uf == 2.5, "narrowed to Float")
 
+# ---- an if starting an else block is nested, not an else if (found by tests/difftest.py)
+nest := 0
+if nest == 1
+  nest = 10
+else
+  if nest == 0
+    nest = 20
+  end
+  nest += 1
+end
+check(nest == 21, "if on the line after else")
+check(1e99999999999 > 1e30 && 1e-99999999999 == 0.0, "huge exponents (found by fuzzing: overflowed and hung)")
+
 # ---- assert: a runtime error at that line when the condition is false
 assert(1 + 1 == 2)
-assert(len(eds) == 4, "four directions")
+assert(eds.len() == 4, "four directions")
 
 # ---- ffi
 t0 := clock()
