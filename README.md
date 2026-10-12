@@ -127,7 +127,9 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 
 **Operators:** `+ - * / % & | ^ << >> == != < <= > >= and or not ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`. The logical ones are words, as in Python, and bind like Python's: `or` loosest, then `and`, then `not`, then comparisons, so `not a == b` means `not (a == b)`. `&&`, `||` and `!` are errors that say which word to write; `!=` stays.
 
-**Builtins:** `log(...)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`, `assert(cond)` or `assert(cond, "why")` (a runtime error at that line when `cond` is false), plus the list methods below. Every sequence (array, slice, list, String, Blob) has `x.len()` and `x.cap()`.
+**Builtins:** `log(...)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`, `assert(cond)` or `assert(cond, "why")` (a runtime error at that line when `cond` is false), `hexBlob("...")` (below), plus the list methods below. Every sequence (array, slice, list, String, Blob) has `x.len()` and `x.cap()`.
+
+**Binary data:** `hexBlob("00 7f 80 ff")` is the bytes those hex digits spell, decoded while compiling, as a writable `Blob` (spaces and line breaks between the digits are fine; anything else, or an odd number of digits, is a compile error). It takes only a literal, and the bytes are stored once, where the program's strings go: a call gives the same bytes each time it runs, like a global.
 
 ## Lists and text builders
 
@@ -404,13 +406,13 @@ The compiler's capacities (symbols, procs, constants and so on) are chosen per c
 > x
 42
 > sq :: proc(n: Int) -> Int
-..   return n * n
-.. end
+.   return n * n
+. end
 > sq(x)
 1764
 ```
 
-Run `rio` with no file for a REPL. Globals, procs, types and methods carry over from one input to the next, and a bare expression prints its value. An unfinished input (an open block, bracket or string) gets a `..` prompt for more; a blank line drops it. A compile error leaves the session exactly as it was. Ctrl-C stops a running program, in the REPL or when running a file. For line editing and history, Windows' console already provides them; on Linux and macOS use `rlwrap rio`.
+Run `rio` with no file for a REPL. Globals, procs, types and methods carry over from one input to the next, and a bare expression prints its value. An unfinished input (an open block, bracket or string) gets a `.` prompt for more, as wide as `>` so the lines line up; a blank line drops it. Hosts that echo what's typed themselves can indent each next line for you: `rio_repl_indent` says how far (a step for each open block or bracket), and `rio_repl_outdent` which first words (`end`, `else`, `case`) go a step back out (Rim's REPL does both). A compile error leaves the session exactly as it was. Ctrl-C stops a running program, in the REPL or when running a file. For line editing and history, Windows' console already provides them; on Linux and macOS use `rlwrap rio`.
 
 The same session is available to hosts, for example a console's boot prompt:
 

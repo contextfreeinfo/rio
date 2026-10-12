@@ -109,6 +109,11 @@ int rio_repl_begin(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim);
    RIO_MORE: the input is unfinished (an open block, bracket or string): call again with the
    same text plus more appended. */
 int rio_repl_eval(Rio *vm, const char *src, uint32_t len);
+/* for typing an unfinished input: the steps to indent its next line (each a block or bracket still
+   open), -1 inside a string; and whether a line starting with this word belongs a step out (end,
+   else, case) */
+int rio_repl_indent(const char *src, uint32_t len);
+int rio_repl_outdent(const char *word, uint32_t len);
 #endif
 const char *rio_error(Rio *vm);           /* "line:col: message", or "line: runtime error: message" */
 /* structured error for editors: line/col are 1-based (0 = unknown); len is the width of the

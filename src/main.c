@@ -114,7 +114,7 @@ static int repl(void) {
   if (rio_repl_begin(&vm, scratch, sizeof scratch, 0)) { report(0); return 1; }
   printf("rio REPL. Ctrl-C stops a running program; Ctrl-D (Ctrl-Z Enter on Windows) quits.\n");
   for (;;) {
-    fputs(n ? ".. " : "> ", stdout);
+    fputs(n ? ". " : "> ", stdout); /* (as wide: lines line up) */
     fflush(stdout);
     gotint = 0;
     if (!fgets(line, sizeof line, stdin)) {

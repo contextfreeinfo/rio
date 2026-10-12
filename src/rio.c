@@ -47,7 +47,7 @@ enum { OK_BIN, OK_UN, OK_AND, OK_OR, OK_PAREN, OK_CALL, OK_IDX, OK_LIT };
 enum { B_PROC, B_IF, B_ELSE, B_SWITCH, B_LOOP, B_FOR, B_EACH }; /* loops last: break and continue look for >= B_LOOP */
 enum { BI_LOG, BI_LEN, BI_MIN, BI_MAX, BI_ABS, BI_SQRT, BI_ROUND = BI_SQRT + 11, BI_ATAN2, BI_FMOD = BI_ATAN2 + 2, BI_ASSERT,
   BI_PUSH, BI_POP, BI_CLEAR, BI_CAP, BI_REMOVE, BI_SWAPREMOVE, BI_PUSHALL, BI_FORMAT,
-  BI_TOINT, BI_TOFLOAT, BI_TOBOOL, BI_ASSTRING, BI_FROMINT, BI_HAS };
+  BI_TOINT, BI_TOFLOAT, BI_TOBOOL, BI_ASSTRING, BI_FROMINT, BI_HAS, BI_HEXBLOB };
 #define NONE 0xFFFF
 #ifndef RIO_NO_COMPILER
 static const char M_END[] = "missing 'end'", M_BRACKET[] = "unclosed bracket", M_EXPR[] = "expected expression",
@@ -62,7 +62,7 @@ static const char *kw[] = {"proc", "struct", "if", "else", "for", "in", "end", "
 static const char *bi[] = {"log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod", "assert",
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format",
-  "toInt", "toFloat", "toBool", "asString", "fromInt", "has"};
+  "toInt", "toFloat", "toBool", "asString", "fromInt", "has", "hexBlob"};
 #endif
 static float f_sqrt(float x) { return sqrtf(x); }
 static float f_sin(float x) { return sinf(x); }
@@ -1351,6 +1351,28 @@ static void listop(Rio *vm, Op *m) {
   vm->c->nvs = m->vb; vres(vm, r, m->fr0);
 }
 /* x.toInt() x.toFloat() x.toBool() b.asString() */
+/* hexBlob("0a 1b ..."): the bytes those hex digits spell, decoded while compiling, as a Blob of their
+   own (writable: a call gives the same bytes each time it runs, like a global). Only a literal: the
+   string's bytes are decoded in place, then the Blob takes over its constant */
+static int hexval(int c) { return c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1; }
+static void hexblob(Rio *vm, Op *m) {
+  RioC *c = vm->c; RioVal *R = (RioVal *)vm->mem; Ex *a = &c->vs[m->vb], r; uint32_t k, at, n, i, j = 0; int hi = -1;
+  if (m->n != 1) FAIL(, "hexBlob takes one string literal");
+  k = (uint32_t)a->a / 4;
+  if (a->k != EK_ST || a->t != TY_STR || !a->ro || k + 1 >= vm->nk || !KFIX(k))
+    FAIL(, "hexBlob takes a string literal (it's decoded while compiling)");
+  at = R[k].u & 0x7FFFFFFFu; n = R[k + 1].u;
+  for (i = 0; i < n; i++) {
+    int ch = c->strs[at + i], d = hexval(ch);
+    if (d < 0) { if (ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t') continue; FAIL(, "hexBlob: only hex digits and spaces"); }
+    if (hi < 0) hi = d; else { c->strs[at + j++] = (uint8_t)(hi << 4 | d); hi = -1; }
+  }
+  if (hi >= 0) FAIL(, "hexBlob: an odd number of hex digits");
+  R[k + 1].u = j;
+  if (c->pool == at + n) c->pool = at + j; /* (the literal was the last thing pooled: give back what's left) */
+  r = *a; r.t = TY_BLOB; r.ro = 0;
+  c->nvs = m->vb; c->fr = m->fr0; vres(vm, r, m->fr0);
+}
 static void enumop(Rio *vm, Op *m) { /* Enum.fromInt(n): checked; Enum.has(n) -> Bool */
   Ex *a = &vm->c->vs[m->vb]; RioType *et = TY(m->c); int s, d, i, found = 0;
   if (vm->c->nvs - m->vb != 1) FAIL(, "wrong number of arguments");
@@ -1443,7 +1465,8 @@ static void finish_call(Rio *vm, Op *m) {
       if (m->n < 1) FAIL(, "format needs a Blob list");
       j = emit(vm, OP_JNZ, t + 1, 0, NONE); emit(vm, OP_STW, m->c, t, 0); patch(vm, j, here(vm));
       vm->c->fr = (uint32_t)t + 2; vres(vm, mkex(EK_ST, TY_BOOL, (t + 1) * 4), m->fr0);
-    } else if (m->b >= BI_FROMINT) enumop(vm, m);
+    } else if (m->b == BI_HEXBLOB) hexblob(vm, m);
+    else if (m->b >= BI_FROMINT) enumop(vm, m);
     else if (m->b >= BI_TOINT) convert(vm, m);
     else if (m->b >= BI_PUSH) listop(vm, m);
     else builtin(vm, m);
@@ -2590,7 +2613,7 @@ static void setup(Rio *vm) {
   for (i = 0; i < 5; i++) addsym(vm, tn[i], (int)strlen(tn[i]), S_TYPE, i < 2 ? TY_I32 + i : TY_STR + i - 2, 0);
   addsym(vm, "true", 4, S_CONST, TY_BOOL, 1); addsym(vm, "false", 5, S_CONST, TY_BOOL, 0);
   for (i = 0; i < (int)(sizeof bi / sizeof bi[0]); i++)
-    if (i < BI_PUSH || i == BI_CAP) addsym(vm, bi[i], (int)strlen(bi[i]), S_BI, 0, i); /* the rest are list methods */
+    if (i < BI_PUSH || i == BI_CAP || i == BI_HEXBLOB) addsym(vm, bi[i], (int)strlen(bi[i]), S_BI, 0, i); /* the rest are methods */
   for (i = 0; i < vm->nffi; i++) {
     RioFfi *f = &vm->ffi[i]; RioCFfi *cf = &c->ffi[i]; const char *g;
     cf->p0 = (uint16_t)c->nparam; cf->np = 0; cf->ret = TY_VOID; f->aw = f->rw = 0;
@@ -2928,6 +2951,47 @@ static int rollback(Rio *vm, const Snap *s) {
   c->nmod = s->nmod; c->nis = 0; c->curmod = c->curf = 1; c->exporting = 0; c->dead = 0;
   if (more) { vm->ekind = RIO_ENONE; vm->err[0] = 0; return RIO_MORE; }
   return -1;
+}
+/* how far to indent the next line of an unfinished input: a step for each open block (proc, struct,
+   enum, union, if, for, switch, less each end) and each open bracket; -1 inside an open string,
+   whose next line shouldn't get spaces it didn't type. Just the text, not a compile: a guide for
+   typing, with else and case a step out from their block's insides (see rio_repl_outdent) */
+static int isword(int c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'; }
+static int wordis(const char *p, const char *e, const char *w) { size_t n = strlen(w); return (size_t)(e - p) >= n && !memcmp(p, w, n) && (p + n == e || !isword(p[n])); }
+int rio_repl_indent(const char *src, uint32_t len) {
+  const char *p = src, *e = src + len; int depth = 0, str = 0;
+  while (p < e) { /* a line at a time */
+    const char *q;
+    if (!str) {
+      while (p < e && (*p == ' ' || *p == '\t')) p++;
+      for (q = p; q < e && isword(*q); q++) {}
+      if (q < e && *q == ':' && (q + 1 >= e || q[1] != ':') && q > p) { /* a label: the loop after it */
+        p = q + 1; while (p < e && (*p == ' ' || *p == '\t')) p++;
+      }
+      if (wordis(p, e, "end")) depth--;
+      else if (wordis(p, e, "if") || wordis(p, e, "for") || wordis(p, e, "switch")) depth++;
+    }
+    for (; p < e && *p != '\n'; p++) {
+      if (str) { if (*p == '\\' && p + 1 < e) p++; else if (*p == '"') str = 0; continue; }
+      if (*p == '"') str = 1;
+      else if (*p == '#') { while (p < e && *p != '\n') p++; break; }
+      else if (*p == '(' || *p == '[' || *p == '{') depth++;
+      else if (*p == ')' || *p == ']' || *p == '}') depth--;
+      else if (*p == ':' && p + 1 < e && p[1] == ':') { /* name :: proc / struct / enum / union */
+        const char *w = p + 2;
+        while (w < e && (*w == ' ' || *w == '\t')) w++;
+        if (wordis(w, e, "proc") || wordis(w, e, "struct") || wordis(w, e, "enum") || wordis(w, e, "union")) depth++;
+        p++;
+      }
+    }
+    if (p < e) p++; /* (the line break) */
+  }
+  return str ? -1 : depth < 0 ? 0 : depth;
+}
+/* whether a line that starts (after its indent) with these len characters, followed by a space or
+   its end, goes a step out from where rio_repl_indent put it: end, else, case */
+int rio_repl_outdent(const char *word, uint32_t len) {
+  return (len == 3 && !memcmp(word, "end", 3)) || (len == 4 && (!memcmp(word, "else", 4) || !memcmp(word, "case", 4)));
 }
 int rio_repl_eval(Rio *vm, const char *src, uint32_t len) {
   RioC *c = vm->c; Snap s;

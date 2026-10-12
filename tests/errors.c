@@ -22,6 +22,9 @@ static const Case cases[] = {
   {"v := 3\nif v\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, 4, 1, "condition must be Bool"},
   {"s := \"abc\"\ns[0] = 1\n", 0, 0, 0, RIO_ECOMPILE, 2, 6, 1, "cannot assign"},
   {"f :: proc(n: Int) -> Int\n  return f(n)\nend\n", 0, 0, 0, RIO_ECOMPILE, 2, 10, 1, "recursion is not allowed"},
+  {"b := hexBlob(\"abc\")\n", 0, 0, 0, RIO_ECOMPILE, 1, -1, -1, "odd number of hex digits"},
+  {"b := hexBlob(\"0g\")\n", 0, 0, 0, RIO_ECOMPILE, 1, -1, -1, "only hex digits"},
+  {"s := \"ab\"\nb := hexBlob(s)\n", 0, 0, 0, RIO_ECOMPILE, 2, -1, -1, "string literal"},
   {"V :: struct\n  x: Float\nend\nv := V{1}\n", 0, 0, 0, RIO_ECOMPILE, 4, 8, 1, "must be named"},
   {"V :: struct\n  x: Float\nend\nv := V{x = 1, x = 2}\n", 0, 0, 0, RIO_ECOMPILE, 4, 15, 1, "field set twice"},
   {"for i in 0..<3\n  break\nend\nbreak\n", 0, 0, 0, RIO_ECOMPILE, 4, 1, 5, "not inside a loop"},
@@ -252,7 +255,7 @@ int main(void) {
     static const char *many = "a := 1\nb := 2\nc := 3\nd := 4\ne := 5\nf := 6\ng := 7\nh := 8\n";
     RioLimits l = rio_limits_for(sizeof scratch);
     RioError e;
-    l.syms = 34; /* the builtins take 29, so the 6th global is one too many */
+    l.syms = 35; /* the builtins take 30, so the 6th global is one too many */
     rio_init(&vm, mem, sizeof mem, code, 4096);
     if (!rio_compile_ex(&vm, many, (uint32_t)strlen(many), scratch, sizeof scratch, &l) ||
         !strstr((e = rio_error_info(&vm)).msg, "too many symbols") || e.line != 6) {
@@ -264,6 +267,22 @@ int main(void) {
         !strstr(rio_error(&vm), "scratch too small for these limits")) {
       printf("FAIL limits bigger than scratch: \"%s\"\n", rio_error(&vm)); fails++; n++;
     } else n++;
+  }
+  { /* REPL indenting: open blocks and brackets, minus ends; none inside a string */
+    static const struct { const char *src; int want; } ind[] = {
+      {"f :: proc()\n", 1}, {"f :: proc()\n  if x\n", 2}, {"f :: proc()\n  if x\n  end\n", 1},
+      {"V :: struct\n  x: Int\n", 1}, {"switch s\ncase A\n", 1}, {"if a\nelse\n", 1},
+      {"x := f(1,\n", 1}, {"s := \"abc\n", -1}, {"s := \"a)b(\"\nif (x\n", 2}, {"# if x\nif y # (\n", 1},
+      {"outer: for i in 0..<3\n", 1}, {"for x in xs\n  for y in ys\n", 2}, {"T.m :: proc()\n", 1}, {"end\n", 0}};
+    size_t i;
+    for (i = 0; i < sizeof ind / sizeof ind[0]; i++, n++) {
+      int got = rio_repl_indent(ind[i].src, (uint32_t)strlen(ind[i].src));
+      if (got != ind[i].want) { printf("FAIL indent %d (want %d): %s\n", got, ind[i].want, ind[i].src); fails++; }
+    }
+    n++;
+    if (!rio_repl_outdent("end", 3) || !rio_repl_outdent("else", 4) || !rio_repl_outdent("case", 4) || rio_repl_outdent("if", 2)) {
+      printf("FAIL outdent\n"); fails++;
+    }
   }
   if (!fails) printf("all %d error tests passed\n", n);
   return fails != 0;

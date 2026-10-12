@@ -1129,6 +1129,20 @@ inner: for i in 0..<2
 end
 check(true, "a label can be reused after its loop ends")
 
+# hexBlob: bytes from hex digits, decoded while compiling; spaces and line breaks between them are fine
+hb := hexBlob("00 01 7f
+  80 ff 0A0b")
+check(hb.len() == 7 and hb[0] == 0 and hb[2] == 127 and hb[3] == 128 and hb[4] == 255 and hb[5] == 10 and hb[6] == 11, "hexBlob decodes")
+hb[0] = 42
+check(hb[0] == 42, "hexBlob is writable")
+hexAt :: proc() -> Blob
+  return hexBlob("cafe")
+end
+hx := hexAt()
+hx[0] = 1
+check(hexAt()[0] == 1 and hexAt().len() == 2, "hexBlob: a call gives the same bytes each time, like a global")
+check(hexBlob("").len() == 0, "hexBlob of nothing")
+
 log("bool", true, false, "int", 42, "float", 1.25, "neg", -0.5, "big", 123456789.0, "str", GREETING)
 if fails == 0
   log("all tests passed")
