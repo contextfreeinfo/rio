@@ -68,9 +68,31 @@ jobs:
             timeout-*
             oom-*
 
+  jit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install an ARM cross compiler and qemu
+        run: sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabihf qemu-user
+      - name: Native code does what the VM does (ARMv7 and ARMv8, under qemu)
+        run: |
+          for cpu in "armv7 -march=armv7-a -mfpu=vfpv3-d16" "armv8 -mcpu=cortex-a53 -mfpu=neon-fp-armv8"; do
+            set -- $cpu; name=$1; shift
+            arm-linux-gnueabihf-gcc -O2 -mthumb -static "$@" -Isrc -o rio-$name src/main.c src/rio.c src/aot.c src/jit.c -lm
+            for t in tests/jit.rio tests/jit_bounds.rio tests/jit_procs.rio tests/test.rio; do
+              qemu-arm -cpu max ./rio-$name $t > vm.txt 2>&1 || true
+              qemu-arm -cpu max ./rio-$name -j $t > jit.txt 2>&1 || true
+              diff vm.txt jit.txt || { echo "$name: $t differs with -j"; exit 1; }
+            done
+          done
+      - name: VM and generated C agree on random programs, with native code
+        run: |
+          printf '#!/bin/sh\nexec qemu-arm -cpu max %s/rio-armv8 -j "$@"\n' "$PWD" > rio-j && chmod +x rio-j
+          python3 tests/difftest.py "$PWD/rio-j" gcc 300 ${{ github.run_number }}
+
   build-release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [test, sanitize, fuzz]
+    needs: [test, sanitize, fuzz, jit]
     strategy:
       matrix:
         include:
