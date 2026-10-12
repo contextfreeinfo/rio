@@ -566,3 +566,7 @@ tests/        test suite (run by ctest, in the VM and compiled through C), plus 
               errors.c checks kind/line/col/width/message for ~26 failing snippets
 bench/        rio vs lua benchmarks
 ```
+
+## License
+
+CC0 1.0: dedicated to the public domain (see LICENSE). Use it for anything, with no need to credit; it comes with no warranty.
