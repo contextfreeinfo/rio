@@ -127,6 +127,8 @@ set_tests_properties(rio_jit_loops PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL"
   PASS_REGULAR_EXPRESSION "all jit tests passed[\r\n]+.*jit\\.rio:259: runtime error: division by zero")
 add_test(NAME rio_jit_bounds COMMAND rio ${CMAKE_SOURCE_DIR}/tests/jit_bounds.rio)
 set_tests_properties(rio_jit_bounds PROPERTIES PASS_REGULAR_EXPRESSION "jit_bounds\\.rio:5: runtime error: index out of bounds")
+add_test(NAME rio_jit_procs COMMAND rio ${CMAKE_SOURCE_DIR}/tests/jit_procs.rio)
+set_tests_properties(rio_jit_procs PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL" PASS_REGULAR_EXPRESSION "show 3 1\\.5 true[\r\n]+all jit proc tests passed")
 
 # memory report
 add_test(NAME rio_memory_report COMMAND rio -m ${CMAKE_SOURCE_DIR}/tests/test.rio)

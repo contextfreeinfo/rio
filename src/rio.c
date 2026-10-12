@@ -3044,6 +3044,30 @@ static NOINLINE int assertfail(Rio *vm, uint32_t a, uint32_t pc) {
   b[n] = 0;
   return rterr(vm, b, pc);
 }
+/* a log instruction (log and the JIT share it) */
+static void logop(Rio *vm, const RioVal *R, const RioIns *ip) {
+  const uint8_t *M = vm->mem; char b[32];
+  if (ip->op != OP_LOGE && ip->x) logput(vm, " ", 1);
+  switch (ip->op) {
+  case OP_LOGI: logput(vm, b, fmti(b, R[ip->a].i)); break;
+  case OP_LOGF: logput(vm, b, fmtf(b, R[ip->a].f)); break;
+  case OP_LOGS: logput(vm, (const char *)M + R[ip->a].i, R[ip->a + 1].i); break;
+  case OP_LOGB: if (R[ip->a].i) logput(vm, "true", 4); else logput(vm, "false", 5); break;
+  case OP_LOGN: { /* an enum value by name: b..b+n values, c..c+2n their (address, length) names */
+    uint32_t n = (uint32_t)ip[1].b | (uint32_t)ip[1].c << 16, i; int32_t v = R[ip->a].i;
+    for (i = 0; i < n && R[ip->b + i].i != v; i++) {}
+    if (i < n) logput(vm, (const char *)M + R[ip->c + 2 * i].i, R[ip->c + 2 * i + 1].i); else logput(vm, b, fmti(b, v));
+    break;
+  }
+  case OP_LOGE: if (vm->logfn) vm->logfn(vm->logud, vm->logbuf, vm->logn); vm->logn = 0; break;
+  }
+}
+/* for native code (jit.c): an instruction it leaves to C (log, and most math) */
+void rio_jit_op(RioVal *R, Rio *vm, const RioIns *ip) {
+  if (ip->op == OP_M1) R[ip->a].f = mf1[ip->x](R[ip->b].f);
+  else if (ip->op == OP_M2) R[ip->a].f = mf2[ip->x](R[ip->b].f, R[ip->c].f);
+  else logop(vm, R, ip);
+}
 HOT static int run(Rio *vm, uint32_t pc) {
   const RioIns *code = vm->code, *ip = code + pc;
   uint32_t *cs = (uint32_t *)(void *)(vm->mem + vm->csaddr);
@@ -3259,18 +3283,8 @@ HOT static int run(Rio *vm, uint32_t pc) {
   }
   CASE(GETRET) memmove(R + A, R + vm->func[U(B) - 1u].ret, C * sizeof(RioVal)); NEXT(); /* proc value b's result */
   CASE(FFI) vm->ffi[C].fn(vm, R + A); if (vm->trap) { vm->trap = 0; return rterr(vm, vm->err, (uint32_t)(ip - code)); } NEXT();
-  CASE(LOGI) { char b[16]; if (ip->x) logput(vm, " ", 1); logput(vm, b, fmti(b, I(A))); NEXT(); }
-  CASE(LOGF) { char b[32]; if (ip->x) logput(vm, " ", 1); logput(vm, b, fmtf(b, F(A))); NEXT(); }
-  CASE(LOGS) { if (ip->x) logput(vm, " ", 1); logput(vm, (const char *)M + I(A), I(A + 1)); NEXT(); }
-  CASE(LOGB) if (ip->x) logput(vm, " ", 1); if (I(A)) logput(vm, "true", 4); else logput(vm, "false", 5); NEXT();
-  CASE(LOGN) { /* an enum value by name: b..b+n values, c..c+2n their (address, length) names */
-    uint32_t n = SZ(ip[1]), i; int32_t v = I(A); char b[16];
-    if (ip->x) logput(vm, " ", 1);
-    for (i = 0; i < n && I(B + i) != v; i++) {}
-    if (i < n) logput(vm, (const char *)M + I(C + 2 * i), I(C + 2 * i + 1)); else logput(vm, b, fmti(b, v));
-    ip += 2; DISPATCH();
-  }
-  CASE(LOGE) if (vm->logfn) vm->logfn(vm->logud, vm->logbuf, vm->logn); vm->logn = 0; NEXT();
+  CASE(LOGI) CASE(LOGF) CASE(LOGS) CASE(LOGB) CASE(LOGE) logop(vm, R, ip); NEXT();
+  CASE(LOGN) logop(vm, R, ip); ip += 2; DISPATCH();
   CASE(FAIL) return assertfail(vm, A, (uint32_t)(ip - code)); /* a failed assert: a = its message (0: none) */
   CASE(HALT) return 0;
   CASE(JIT) { /* a loop compiled to native code: it says where to carry on, or what failed where */
@@ -3278,6 +3292,7 @@ HOT static int run(Rio *vm, uint32_t pc) {
     if (vm->brk) goto stop;
     to = vm->jit[A](R, vm);
     if (to >> 16 == 3) { vm->trap = 0; return rterr(vm, vm->err, to & 0xFFFF); } /* an ffi function called rio_trap */
+    if (to >> 16 == 4) { vm->brk = 0; return rterr(vm, "interrupted", to & 0xFFFF); } /* (in a native proc) */
     if (to >> 16) return rterr(vm, to >> 16 == 1 ? "division by zero" : "index out of bounds", to & 0xFFFF);
     ip = code + to; DISPATCH();
   }

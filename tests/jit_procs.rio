@@ -1,0 +1,91 @@
+# procs, math and log the JIT compiles: the same answers either way.
+# ctest runs it in the VM; on ARM, rio -j runs the procs and loops as native code.
+fails := 0
+check :: proc(ok: Bool, what: String)
+  if not ok
+    log("FAIL:", what)
+    fails += 1
+  end
+end
+
+# a proc with a loop, called from a loop; globals it changes stay right around the calls
+total := 0
+calls := 0
+sum_to :: proc(n: Int) -> Int
+  s := 0
+  for i in 0..<n
+    s += i
+  end
+  calls += 1
+  return s
+end
+for i in 0..<100
+  total += sum_to(i)
+end
+check(total == 161700 and calls == 100, "a proc called from a loop")
+
+# early returns, and procs calling procs
+sign :: proc(x: Int) -> Int
+  if x < 0
+    return -1
+  end
+  if x > 0
+    return 1
+  end
+  return 0
+end
+clamp :: proc(x: Int, lo: Int, hi: Int) -> Int
+  if x < lo
+    return lo
+  end
+  return min(x, hi)
+end
+score :: proc(x: Int) -> Int
+  return sign(x) * 100 + clamp(x, -5, 5)
+end
+t := 0
+for i in -10..<11
+  t += score(i)
+end
+check(t == 0, "early returns and nested calls")
+t = 0
+for i in -10..<11
+  t += score(i) * i
+end
+check(t == 11510, "nested calls, weighted")
+
+# floats and math: in place (sqrt, abs, floor, ceil) and through C (the rest)
+len2 :: proc(x: Float, y: Float) -> Float
+  return sqrt(x * x + y * y)
+end
+f := 0.0
+for i in 0..<10
+  f += len2(3.0 * i.toFloat(), 4.0 * i.toFloat())
+end
+check(f == 225.0, "sqrt")
+g := 0.0
+for i in -5..<6
+  x := i.toFloat() * 0.75
+  g += floor(x) + ceil(x) + abs(x) + round(x)
+end
+check(g == 22.5, "floor, ceil, abs, round")
+check(floor(-0.5) == -1.0 and ceil(-0.5) == 0.0 and round(-2.5) == -3.0 and round(0.49999997) == 1.0, "rounding edges")
+h := 0.0
+for i in 0..<8
+  a := i.toFloat() * 0.5
+  h += sin(a) * sin(a) + cos(a) * cos(a) + atan2(a, 1.0) - atan(a) + pow(2.0, a * 2.0) - exp(a * 2.0 * ln(2.0))
+end
+check(abs(h - 8.0) < 0.001, "sin, cos, atan2, atan, pow, exp, ln")
+
+# log inside native loops and procs
+show :: proc(i: Int, x: Float)
+  log("show", i, x, i > 2)
+end
+for i in 0..<4
+  show(i, i.toFloat() * 0.5)
+end
+
+check(fails == 0, "nothing failed")
+if fails == 0
+  log("all jit proc tests passed")
+end

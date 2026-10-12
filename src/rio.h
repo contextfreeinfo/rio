@@ -118,13 +118,15 @@ typedef struct { int kind, line, col, len; const char *msg, *file; } RioError; /
 RioError rio_error_info(Rio *vm);
 int rio_pc_line(Rio *vm, uint32_t pc);      /* source line of a bytecode position (0 = unknown) */
 /* native code for simple loops (jit.c), on ARM with Thumb-2 (the RP2350's Cortex-M33): from now on,
-   whatever compiles (rio_compile, each REPL piece) or loads (rio_image_load) also has its loops made
-   only of integer math, compares and branches compiled to machine code in buf, before it runs. buf
+   whatever compiles (rio_compile, each REPL piece) or loads (rio_image_load) also has its simple loops
+   and procs (math, compares, branches, arrays and fields, calls, log) compiled to machine code in buf,
+   before it runs. buf
    must be executable (SRAM on the RP2350) and stay valid. Returns how many loops it compiled right
-   away (for a program already compiled), or -1 where there's no native code (any other machine).
+   away (for a program already compiled; loops and procs), or -1 where there's no native code (any other machine).
    Errors and rio_interrupt work as in the VM. */
 typedef uint32_t (*RioJitFn)(RioVal *slots, Rio *vm);
 int rio_jit(Rio *vm, void *buf, uint32_t size);
+void rio_jit_op(RioVal *slots, Rio *vm, const RioIns *ip); /* (for the native code) */
 
 /* ---- private ---- */
 enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI, RIO_S_METH, RIO_S_SELF, RIO_S_MOD };
