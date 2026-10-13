@@ -26,6 +26,10 @@ build/rio                       # interactive REPL
 build/rio -L libs game.rio      # with packages from libs/
 ```
 
+Prebuilt binaries for Linux, macOS and Windows: the
+[nightly](https://github.com/contextfreeinfo/rio/releases/tag/nightly) prerelease, rebuilt each night
+`main` changes (and on demand: Actions > ci > Run workflow), and releases for tags like `v0.1.0`.
+
 It needs only a C99 compiler and libm, and works on Linux, macOS and Windows.
 
 On Windows with Visual Studio, CMake uses the ClangCL toolset when it's installed (the "C++ Clang tools for Windows" component in the VS installer), because clang supports the faster computed-goto dispatch. Otherwise it falls back to MSVC with `switch` dispatch. `-T <toolset>` overrides this, `-DRIO_PREFER_CLANGCL=OFF` disables it, and an existing build directory keeps the toolset it was first configured with.

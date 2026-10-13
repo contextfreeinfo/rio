@@ -1,5 +1,6 @@
 # Tests on every push and pull request; a tag like v0.1.0 also builds release binaries and publishes
-# them as a GitHub release.
+# them as a GitHub release. Each night (if main changed since the last one), and whenever it's run by
+# hand (Actions > ci > Run workflow), the same binaries go to the rolling "nightly" prerelease.
 name: ci
 
 on:
@@ -7,12 +8,34 @@ on:
     branches: ["**"]
     tags: ["v*"]
   pull_request:
+  schedule:
+    - cron: "17 8 * * *" # (daily; GitHub runs schedules on the default branch)
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  # whether to go on: a scheduled run skips everything when main hasn't changed since the last nightly
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          go=true
+          if [ "$GITHUB_EVENT_NAME" = schedule ]; then
+            last=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/nightly" --jq .object.sha 2>/dev/null || true)
+            [ "$last" = "$GITHUB_SHA" ] && go=false
+          fi
+          echo "go=$go" >> "$GITHUB_OUTPUT"
+
   test:
+    needs: check
+    if: needs.check.outputs.go == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +51,8 @@ jobs:
         run: ctest --test-dir build -C Release --output-on-failure
 
   sanitize:
+    needs: check
+    if: needs.check.outputs.go == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -43,6 +68,8 @@ jobs:
         run: ctest --test-dir build --output-on-failure
 
   fuzz:
+    needs: check
+    if: needs.check.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -69,6 +96,8 @@ jobs:
             oom-*
 
   jit:
+    needs: check
+    if: needs.check.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -91,7 +120,7 @@ jobs:
           python3 tests/difftest.py "$PWD/rio-j" gcc 300 ${{ github.run_number }}
 
   build-release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: [test, sanitize, fuzz, jit]
     strategy:
       matrix:
@@ -116,7 +145,8 @@ jobs:
       - name: Package
         shell: bash
         run: |
-          dir="rio-${GITHUB_REF_NAME}-${{ matrix.name }}"
+          version=$([ "$GITHUB_REF_TYPE" = tag ] && echo "$GITHUB_REF_NAME" || echo nightly)
+          dir="rio-$version-${{ matrix.name }}"
           mkdir -p "$dir"
           if [ -f build/Release/rio.exe ]; then cp build/Release/rio.exe "$dir/"; else cp build/rio "$dir/"; fi
           cp LICENSE README.md "$dir/"
@@ -137,6 +167,15 @@ jobs:
           path: dist
           merge-multiple: true
       - name: Publish the release
+        if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+      - name: Replace the nightly
+        if: github.ref_type != 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete nightly --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create nightly dist/* --repo "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" --title "Nightly" \
+            --notes "Built from ${GITHUB_SHA::7} on $(date -u +%Y-%m-%d). Replaced each night main changes, and when the ci workflow is run by hand."
