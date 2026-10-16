@@ -4,20 +4,20 @@
 #include "rio.h"
 
 static unsigned char mem[1 << 20], scratch[256 << 10];
-static RioIns code[8192];
-static Rio vm;
+static rio_Instr code[8192];
+static rio_Vm vm;
 static char out[4096];
 static size_t outn;
 static int fails, n;
 
 static void logfn(void *ud, const char *s, int len) { (void)ud; memcpy(out + outn, s, (size_t)len); outn += (size_t)len; out[outn++] = '\n'; out[outn] = 0; }
-static void stop(Rio *v, RioVal *a) { (void)a; rio_interrupt(v); }
+static void stop(rio_Vm *v, rio_Val *a) { (void)a; rio_interrupt(v); }
 
 /* eval src; expect result r, printed output (NULL = don't check) and error substring (NULL = none) */
 static void eval(const char *src, int r, const char *printed, const char *err) {
   int got;
   outn = 0; out[0] = 0;
-  got = rio_repl_eval(&vm, src, (uint32_t)strlen(src));
+  got = rio_replEval(&vm, src, (uint32_t)strlen(src));
   n++;
   if (got != r || (printed && strcmp(out, printed)) || (err ? !strstr(rio_error(&vm), err) : got < 0)) {
     printf("FAIL %d: eval \"%s\" -> %d, printed \"%s\", error \"%s\"\n", n, src, got, out, rio_error(&vm));
@@ -26,11 +26,11 @@ static void eval(const char *src, int r, const char *printed, const char *err) {
 }
 
 int main(void) {
-  RioVal *a; int f;
+  rio_Val *a; int f;
   rio_init(&vm, mem, sizeof mem, code, 8192);
-  rio_set_log(&vm, logfn, 0);
-  rio_ffi(&vm, "stop", "", stop);
-  if (rio_repl_begin(&vm, scratch, sizeof scratch, 0)) { printf("FAIL begin: %s\n", rio_error(&vm)); return 1; }
+  rio_setLog(&vm, logfn, 0);
+  rio_addFfi(&vm, "stop", "", stop);
+  if (rio_replBegin(&vm, scratch, sizeof scratch, 0)) { printf("FAIL begin: %s\n", rio_error(&vm)); return 1; }
 
   eval("x := 40\n", 0, "", 0);
   eval("x + 2\n", 0, "42\n", 0);                                   /* bare expressions print */
@@ -40,20 +40,20 @@ int main(void) {
   eval("lt\n", 0, "on\n", 0);                                   /* enums print by name */
   eval("x + 1 # with a comment\n", 0, "41\n", 0);
   eval("x.toFloat() / 8.0 == 5\n", 0, "true\n", 0);
-  eval("f :: proc(n: Int) -> Int\n", RIO_MORE, "", 0);             /* unfinished: ask for more */
-  eval("f :: proc(n: Int) -> Int\n  return n * x\n", RIO_MORE, "", 0);
+  eval("f :: proc(n: Int) -> Int\n", rio_ReplResult_more, "", 0);             /* unfinished: ask for more */
+  eval("f :: proc(n: Int) -> Int\n  return n * x\n", rio_ReplResult_more, "", 0);
   eval("f :: proc(n: Int) -> Int\n  return n * x\nend\n", 0, "", 0);
   eval("f(2)\n", 0, "80\n", 0);
-  eval("x := 1 +\n", RIO_MORE, "", 0);
-  eval("v := (1 + 2\n", RIO_MORE, "", 0);
-  eval("log(\"open\n", RIO_MORE, "", 0);
-  eval("if x > 0\n", RIO_MORE, "", 0);
-  eval("Pt :: struct\n", RIO_MORE, "", 0);                        /* type blocks too */
-  eval("Pt :: struct\n  x: Int\n", RIO_MORE, "", 0);
+  eval("x := 1 +\n", rio_ReplResult_more, "", 0);
+  eval("v := (1 + 2\n", rio_ReplResult_more, "", 0);
+  eval("log(\"open\n", rio_ReplResult_more, "", 0);
+  eval("if x > 0\n", rio_ReplResult_more, "", 0);
+  eval("Pt :: struct\n", rio_ReplResult_more, "", 0);                        /* type blocks too */
+  eval("Pt :: struct\n  x: Int\n", rio_ReplResult_more, "", 0);
   eval("Pt :: struct\n  x: Int\nend\n", 0, "", 0);
   eval("Pt{x = 5}.x\n", 0, "5\n", 0);
-  eval("Ab :: enum\n  a\n", RIO_MORE, "", 0);
-  eval("Un :: union\n  Int\n", RIO_MORE, "", 0);
+  eval("Ab :: enum\n  a\n", rio_ReplResult_more, "", 0);
+  eval("Un :: union\n  Int\n", rio_ReplResult_more, "", 0);
   eval("z := nope\n", -1, "", "undefined name");                  /* a compile error... */
   eval("z\n", -1, "", "undefined name");                           /* ...declares nothing */
   eval("if x\nend\n", -1, "", "condition must be Bool");           /* wrong, not unfinished */
@@ -71,20 +71,20 @@ int main(void) {
 
   /* the host can see and call what the session defined */
   n++;
-  if ((f = rio_func(&vm, "f")) < 0) { printf("FAIL: rio_func\n"); fails++; }
+  if ((f = rio_findProc(&vm, "f")) < 0) { printf("FAIL: rio_findProc\n"); fails++; }
   else {
-    a = rio_args(&vm, f); a[0].i = 5;
-    if (rio_call(&vm, f) || rio_ret(&vm, f)->i != 200) { printf("FAIL: rio_call -> %d\n", rio_ret(&vm, f)->i); fails++; }
+    a = rio_procArgs(&vm, f); a[0].i = 5;
+    if (rio_call(&vm, f) || rio_procResult(&vm, f)->i != 200) { printf("FAIL: rio_call -> %d\n", rio_procResult(&vm, f)->i); fails++; }
   }
   n++;
-  if (!rio_global(&vm, "x") || *(int *)rio_global(&vm, "x") != 40) { printf("FAIL: rio_global\n"); fails++; }
+  if (!rio_findGlobal(&vm, "x") || *(int *)rio_findGlobal(&vm, "x") != 40) { printf("FAIL: rio_findGlobal\n"); fails++; }
 
   /* break outside a REPL too */
   {
     const char *src = "i := 0\nfor\n  i += 1\n  if i == 1000\n    stop()\n  end\nend\n";
     n++;
     rio_init(&vm, mem, sizeof mem, code, 8192);
-    rio_ffi(&vm, "stop", "", stop);
+    rio_addFfi(&vm, "stop", "", stop);
     if (rio_compile(&vm, src, (uint32_t)strlen(src)) || !rio_run(&vm) || !strstr(rio_error(&vm), "interrupted")) {
       printf("FAIL: interrupt a compiled program: \"%s\"\n", rio_error(&vm)); fails++;
     }

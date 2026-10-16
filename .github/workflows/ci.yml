@@ -75,7 +75,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fuzz the compiler for a minute
         run: |
-          clang -g -O1 -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all -Isrc src/rio.c src/aot.c tests/fuzz.c -o fuzz
+          clang -g -O1 -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all -Isrc $(ls src/*.c | grep -v -e main.c -e jit.c) tests/fuzz.c -o fuzz
           mkdir -p corpus seed
           cp tests/*.rio bench/*.rio $(find tests/modules -name '*.rio') seed/
           ./fuzz -dict=tests/fuzz.dict -max_total_time=60 -max_len=4096 corpus seed
@@ -107,7 +107,7 @@ jobs:
         run: |
           for cpu in "armv7 -march=armv7-a -mfpu=vfpv3-d16" "armv8 -mcpu=cortex-a53 -mfpu=neon-fp-armv8"; do
             set -- $cpu; name=$1; shift
-            arm-linux-gnueabihf-gcc -O2 -mthumb -static "$@" -Isrc -o rio-$name src/main.c src/rio.c src/aot.c src/jit.c -lm
+            arm-linux-gnueabihf-gcc -O2 -mthumb -static "$@" -Isrc -o rio-$name src/*.c -lm
             for t in tests/jit.rio tests/jit_bounds.rio tests/jit_procs.rio tests/test.rio; do
               qemu-arm -cpu max ./rio-$name $t > vm.txt 2>&1 || true
               qemu-arm -cpu max ./rio-$name -j $t > jit.txt 2>&1 || true

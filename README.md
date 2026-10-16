@@ -3,7 +3,7 @@
 Disclaimer: Claude Code produced almost every line of code so far, under my
 direction.
 
-A tiny, statically typed, embeddable scripting language. It's written in C99; the core is about 1,300 lines, and the optional C backend about 270 more.
+A tiny, statically typed, embeddable scripting language. It's written in C99: a VM, a single-pass compiler, and an optional C backend (see [Layout](#layout)).
 
 - Odin-like syntax, with blocks closed by `end`
 - Static types, inferred from the right-hand side
@@ -350,8 +350,8 @@ geo.count += 1
 - **Exporting someone else's name is an explicit alias:** `Sprite* :: gfx.Sprite`. The same `::` aliases types, procs and modules privately too (`Btn :: ui.button.Button`). There's no bulk re-export: each exported name has one home, so a library's API can't silently grow with someone else's.
 - **`include "file.rio"` makes another file part of the current module:** same names, private ones included, with no `*` needed between the parts. It's always relative to the including file and downward, and each file can be included once. Use it to split a big module or to assemble a package from parts. Parts are compiled in include order, so declare-before-use still applies across them.
 - **Compilation and init order:** each module is compiled once, at its first `import`, and its top-level code runs then, so modules initialize in import order. Their globals are shared by everyone who imports them. Importing a file that's still being compiled is an `import cycle` error. Imports go at the top level.
-- **Errors:** they name the module's file (`rio_error_info(vm).file`, `NULL` for the main source), and the CLI prints `geo.rio:3:5: ...`.
-- **Hosts supply the files:** `rio_set_loader(vm, fn, ud)` gets a module path like `"ui/button"` or an include like `"parts/hud.rio"`, flagged as local or package, and returns the source text, so the core never touches a filesystem. On a console it can read the SD card; in tests, a table of strings.
+- **Errors:** they name the module's file (`rio_errorInfo(vm).file`, `NULL` for the main source), and the CLI prints `geo.rio:3:5: ...`.
+- **Hosts supply the files:** `rio_setLoader(vm, fn, ud)` gets a module path like `"ui/button"` or an include like `"parts/hud.rio"`, flagged as local or package, and returns the source text, so the core never touches a filesystem. On a console it can read the SD card; in tests, a table of strings.
 
 ## Compile-time defines (`-D`)
 
@@ -379,29 +379,29 @@ rio -c game.c -D N=20 game.rio          # works for the C backend too
 ```c
 #include "rio.h"
 static uint8_t mem[1 << 20];          // the program's code and data, and the compiler's working memory while compiling
-static Rio vm;                        // runtime state (~1-12 KB depending on limits)
+static rio_Vm vm;                     // runtime state (~1-12 KB depending on limits)
 
 static void host_print(void *ud, const char *s, int n) { fwrite(s, 1, n, stdout); putchar('\n'); }
-static void host_rand(Rio *vm, RioVal *a) { a[0].i = rand(); }  // args in a[], result to a[0]
+static void host_rand(rio_Vm *vm, rio_Val *a) { a[0].i = rand(); }  // args in a[], result to a[0]
 
-rio_init(&vm, mem, sizeof mem, NULL, 0); // or a separate code buffer: code, its capacity (max 65535)
-rio_set_log(&vm, host_print, NULL);
-rio_ffi(&vm, "rand", ">i", host_rand);   // sig: i f s b params, '>' result
-rio_define(&vm, "LEVEL", "3");           // optional: like -D LEVEL=3
+rio_init(&vm, mem, sizeof mem, NULL, 0);   // or a separate code buffer: code, its capacity (max 65535)
+rio_setLog(&vm, host_print, NULL);
+rio_addFfi(&vm, "rand", ">i", host_rand); // sig: i f s b params, '>' result
+rio_define(&vm, "LEVEL", "3");             // optional: like -D LEVEL=3
 if (rio_compile(&vm, src, len) || rio_run(&vm)) puts(rio_error(&vm));
 
-int f = rio_func(&vm, "update");          // procs and globals the host uses are marked: update* :: proc(dt: Float)
-rio_args(&vm, f)[0].f = 0.016f;        // params are consecutive words (slices 2, structs n)
+int f = rio_findProc(&vm, "update");       // procs and globals the host uses are marked: update* :: proc(dt: Float)
+rio_procArgs(&vm, f)[0].f = 0.016f;        // params are consecutive words (slices 2, structs n)
 rio_call(&vm, f);
-float r = rio_ret(&vm, f)->f;          // if it returns something
-int *score = rio_global(&vm, "score"); // direct access to globals (score* := 0)
+float r = rio_procResult(&vm, f)->f;       // if it returns something
+int *score = rio_findGlobal(&vm, "score"); // direct access to globals (score* := 0)
 ```
 
-`String` or `Blob` FFI arguments take two words (address, length); use `rio_ptr(vm, &a[i])` to get the bytes. An FFI function can abort the script with `rio_trap(vm, "msg")`. FFI functions must not call back into the VM.
+`String` or `Blob` FFI arguments take two words (address, length); use `rio_sliceBytes(vm, &a[i])` to get the bytes. An FFI function can abort the script with `rio_trap(vm, "msg")`. FFI functions must not call back into the VM.
 
 The compiler's capacities (symbols, procs, constants and so on) are chosen per compile from the memory available; see [Memory and microcontrollers](#memory-and-microcontrollers).
 
-**Code lives in `mem` too,** unless you pass a code buffer. While compiling, it grows in the compiler's working memory (a quarter of it by default, `RioLimits.code`), and when compiling ends it moves to just below the strings and tables at the top of memory, taking exactly its own size (8 bytes an instruction). So one buffer is the whole budget, split between code and data however each program needs. A separate buffer suits a host that wants the code elsewhere, such as in other memory. A REPL with the code in `mem` keeps a quarter of it for code for the whole session.
+**Code lives in `mem` too,** unless you pass a code buffer. While compiling, it grows in the compiler's working memory (a quarter of it by default, `rio_Limits.code`), and when compiling ends it moves to just below the strings and tables at the top of memory, taking exactly its own size (8 bytes an instruction). So one buffer is the whole budget, split between code and data however each program needs. A separate buffer suits a host that wants the code elsewhere, such as in other memory. A REPL with the code in `mem` keeps a quarter of it for code for the whole session.
 
 ### REPL and break
 
@@ -416,16 +416,16 @@ The compiler's capacities (symbols, procs, constants and so on) are chosen per c
 1764
 ```
 
-Run `rio` with no file for a REPL. Globals, procs, types and methods carry over from one input to the next, and a bare expression prints its value. An unfinished input (an open block, bracket or string) gets a `.` prompt for more, as wide as `>` so the lines line up; a blank line drops it. Hosts that echo what's typed themselves can indent each next line for you: `rio_repl_indent` says how far (a step for each open block or bracket), and `rio_repl_outdent` which first words (`end`, `else`, `case`) go a step back out (Rim's REPL does both). A compile error leaves the session exactly as it was. Ctrl-C stops a running program, in the REPL or when running a file. For line editing and history, Windows' console already provides them; on Linux and macOS use `rlwrap rio`.
+Run `rio` with no file for a REPL. Globals, procs, types and methods carry over from one input to the next, and a bare expression prints its value. An unfinished input (an open block, bracket or string) gets a `.` prompt for more, as wide as `>` so the lines line up; a blank line drops it. Hosts that echo what's typed themselves can indent each next line for you: `rio_replIndent` says how far (a step for each open block or bracket), and `rio_replOutdent` which first words (`end`, `else`, `case`) go a step back out (Rim's REPL does both). A compile error leaves the session exactly as it was. Ctrl-C stops a running program, in the REPL or when running a file. For line editing and history, Windows' console already provides them; on Linux and macOS use `rlwrap rio`.
 
 The same session is available to hosts, for example a console's boot prompt:
 
 ```c
-rio_repl_begin(&vm, scratch, sizeof scratch, NULL);    // limits scaled to the scratch buffer
-switch (rio_repl_eval(&vm, text, len)) {               // compiles the text, then runs just that
-case 0: break;                                         // ran
-case RIO_MORE: /* show a continuation prompt; call again with more text appended */ break;
-default: show(rio_error(&vm));                         // compile errors undo themselves
+rio_replBegin(&vm, scratch, sizeof scratch, NULL); // limits scaled to the scratch buffer
+switch (rio_replEval(&vm, text, len)) {            // compiles the text, then runs just that
+case rio_ReplResult_ok: break;                     // ran
+case rio_ReplResult_more: /* show a continuation prompt; call again with more text appended */ break;
+default: show(rio_error(&vm));                     // rio_ReplResult_error: compile errors undo themselves
 }
 ```
 
@@ -438,42 +438,42 @@ The compiler state stays in `scratch` for the whole session, so this is the one 
 `rio_error(vm)` is a ready-to-print string in compiler style: `"12:7: type mismatch"` for compile errors and `"40: runtime error: index out of bounds"` for runtime errors. The CLI prefixes the file name (`game.rio:12:7: ...`), which terminals and editors can turn into links. For an editor, use the structured form:
 
 ```c
-RioError e = rio_error_info(&vm);  // after a failed rio_compile / rio_run / rio_call
-// e.kind: RIO_ECOMPILE or RIO_ERUNTIME
+rio_Error e = rio_errorInfo(&vm); // after a failed rio_compile / rio_run / rio_call
+// e.kind: rio_ErrorKind_compile or rio_ErrorKind_runtime
 // e.line, e.col: 1-based (0 = unknown); e.len: width of the offending token, for underlining
 // e.msg: the message without the position, e.g. "undefined name near 'nope'"
 ```
 
 - Compile errors point at the token at fault. When an error is only detectable at the end of an expression (a type mismatch, say), they point at the expression's last token.
-- Runtime errors report the line, from a compact pc-to-line table built while compiling: one 4-byte entry per source line that produces code, about 10% of the bytecode size. Columns aren't tracked at runtime. `rio_pc_line(vm, pc)` exposes the same lookup.
+- Runtime errors report the line, from a compact pc-to-line table built while compiling: one 4-byte entry per source line that produces code, about 10% of the bytecode size. Columns aren't tracked at runtime. `rio_pcLine(vm, pc)` exposes the same lookup.
 - A message from `rio_trap` in an FFI function becomes a runtime error at the line of the call.
 - Code from `rio -c` reports the same lines: it emits `#line` directives, so each runtime check knows its rio line.
 
 ## Memory and microcontrollers
 
-The library has no static RAM of its own. Everything lives in three buffers you provide: `Rio`, `mem` and `code`.
+The library has no static RAM of its own. Everything lives in three buffers you provide: `rio_Vm`, `mem` and `code`.
 
-**The compiler borrows script memory.** While compiling, the compiler writes only two things into `mem`: constants (at the bottom) and string literals. Proc frames, globals and arrays are just address ranges that stay zero until the program runs. So `rio_compile` puts its working state (symbol tables, expression stacks, the string pool) on top of those ranges. When it finishes, it packs frames and globals down to start right after the constants actually used (the room set aside for constants is only needed while compiling), lets procs that never run at the same time share frame memory, moves the strings, a small export table (for `rio_func`/`rio_global`) and the line table (packed to about a byte per line, read only when a runtime error needs a line number) to their final place, and zeroes the rest. Peak RAM is *max(compiling, running)*, not their sum.
+**The compiler borrows script memory.** While compiling, the compiler writes only two things into `mem`: constants (at the bottom) and string literals. Proc frames, globals and arrays are just address ranges that stay zero until the program runs. So `rio_compile` puts its working state (symbol tables, expression stacks, the string pool) on top of those ranges. When it finishes, it packs frames and globals down to start right after the constants actually used (the room set aside for constants is only needed while compiling), lets procs that never run at the same time share frame memory, moves the strings, a small export table (for `rio_findProc`/`rio_findGlobal`) and the line table (packed to about a byte per line, read only when a runtime error needs a line number) to their final place, and zeroes the rest. Peak RAM is *max(compiling, running)*, not their sum.
 
 ```
 compiling:  [consts][ compiler state + string pool ..................................]
 running:    [consts][ frames/globals | return stack ][ ... ][strings+exports][arrays ]
 ```
 
-`rio_compile_scratch` puts the compiler state in a separate buffer instead, which then stays readable after compiling. The C backend needs that.
+`rio_compileScratch` puts the compiler state in a separate buffer instead, which then stays readable after compiling. The C backend needs that.
 
-**Limits are chosen per compile.** The compiler's tables (symbols, names, types, fields, procs, params, constants, nesting depth) are carved out of its working memory at the start of each compile, not fixed when rio is built. By default they're scaled to the space available: `rio_compile` scales to `mem`, which it borrows anyway, so a cart compile gets generous limits for free; `rio_compile_scratch` scales to the buffer you give it. For exact numbers, fill in a `RioLimits` yourself:
+**Limits are chosen per compile.** The compiler's tables (symbols, names, types, fields, procs, params, constants, nesting depth) are carved out of its working memory at the start of each compile, not fixed when rio is built. By default they're scaled to the space available: `rio_compile` scales to `mem`, which it borrows anyway, so a cart compile gets generous limits for free; `rio_compileScratch` scales to the buffer you give it. For exact numbers, fill in a `rio_Limits` yourself:
 
 ```c
-RioLimits lim = rio_limits_for(16 << 10);   // a starting point, scaled to 16 KB
-lim.procs = 64;                              // adjust what you need
-rio_compile_ex(&vm, src, len, scratch, sizeof scratch, &lim);   // scratch NULL: overlay mem instead
-uint32_t need = rio_limits_size(&lim);       // bytes those tables take (strings need some on top)
+rio_Limits lim = rio_limitsFor(16 << 10);   // a starting point, scaled to 16 KB
+lim.procs = 64;                             // adjust what you need
+rio_compileWith(&vm, src, len, scratch, sizeof scratch, &lim);   // scratch NULL: overlay mem instead
+uint32_t need = rio_limitsSize(&lim);       // bytes those tables take (strings need some on top)
 ```
 
-`rio_limits_for(n)` sizes the tables to about 60% of `n` and leaves the rest for string literals. Running out of anything is a clean compile error ("too many symbols", "scratch too small for these limits", "not enough memory for the compiler"). The constants limit is only room while compiling: a running program keeps just the constants it uses.
+`rio_limitsFor(n)` sizes the tables to about 60% of `n` and leaves the rest for string literals. Running out of anything is a clean compile error ("too many symbols", "scratch too small for these limits", "not enough memory for the compiler"). The constants limit is only room while compiling: a running program keeps just the constants it uses.
 
-**The host finds only what's marked.** `rio_func` and `rio_global` can look up `main` and the main file's names marked with `*`, as in `update* :: proc()` or `score* := 0`, the same mark modules use for their exports. Each findable name costs a 12-byte entry plus the name, so leaving the rest out keeps the table small. Build with `-DRIO_EXPORTS_ALL` (CMake: `-DRIO_EXPORTS_ALL=ON`) to make every top-level proc and global findable instead, for example in a debugger or tooling host.
+**The host finds only what's marked.** `rio_findProc` and `rio_findGlobal` can look up `main` and the main file's names marked with `*`, as in `update* :: proc()` or `score* := 0`, the same mark modules use for their exports. Each findable name costs a 12-byte entry plus the name, so leaving the rest out keeps the table small. Build with `-Drio_EXPORTS_ALL` (CMake: `-DRIO_EXPORTS_ALL=ON`) to make every top-level proc and global findable instead, for example in a debugger or tooling host.
 
 | budget | symbols | procs | constants | tables |
 |---|---|---|---|---|
@@ -482,11 +482,11 @@ uint32_t need = rio_limits_size(&lim);       // bytes those tables take (strings
 | 64 KB | 698 | 174 | 1,396 | 33.9 KB |
 | 512 KB | 6,044 | 1,511 | 12,088 | 261 KB |
 
-**Measured** (the only build-time caps left are for things the host registers: `RIO_MAX_FFI`, `RIO_MAX_DEFINES`, and the log and error buffers; `-DRIO_SMALL` shrinks those):
+**Measured** (the only build-time caps left are for things the host registers: `rio_MAX_FFI`, `rio_MAX_DEFINES`, and the log and error buffers; `-Drio_SMALL` shrinks those):
 
 | | 64-bit | 32-bit |
 |---|---|---|
-| `Rio` (runtime state, `RIO_SMALL`) | 968 B | 624 B |
+| `rio_Vm` (runtime state, `rio_SMALL`) | 968 B | 624 B |
 | smallest `mem` that compiles and runs a 64-ball physics demo | 6,570 B | 6,314 B |
 | smallest `mem` for the full test suite (~430 lines, automatic limits) | 30.6 KB | 30.2 KB |
 | bytecode | 8 B per instruction | same |
@@ -507,7 +507,7 @@ cc -O2 game.c -lm -o game   # any C99 compiler; MSVC works too
 
 The output is one C file with no dependency on rio. Because rio has no recursion, each proc becomes a plain C function, and its frame slots become C locals unless their address is taken. Constants are written inline, and each bytecode op becomes one C statement. Globals, arrays and strings live in a static memory image identical to the VM's, so behavior is the same, including bounds checks and wrapping integer math. The C compiler then optimizes the result like any other C code.
 
-FFI functions are called as `void rio_ffi_<name>(RioVal *a)`. The CLI includes definitions for its own `clock` and `putc`; for other FFI functions, link your own definitions (and build with `-DRIO_NO_HOST_FFI` to drop the CLI's). ctest runs the full test suite both in the VM and compiled through C.
+FFI functions are called as `void rio_ffi_<name>(rio_Val *a)`. The CLI includes definitions for its own `clock` and `putc`; for other FFI functions, link your own definitions (and build with `-Drio_NO_HOST_FFI` to drop the CLI's). ctest runs the full test suite both in the VM and compiled through C.
 
 ## Images
 
@@ -519,17 +519,17 @@ rio game.img                       # run an image (the CLI tells images from sou
 ```
 
 ```c
-uint32_t n = rio_image_save(&vm, NULL, 0);   // after compiling, before running: the size
-rio_image_save(&vm, buf, n);                 // returns n, or 0 if it doesn't fit
+uint32_t n = rio_saveImage(&vm, NULL, 0);    // after compiling, before running: the size
+rio_saveImage(&vm, buf, n);                  // returns n, or 0 if it doesn't fit
 
 rio_init(&vm2, mem, sizeof mem, NULL, 0);
-rio_ffi(&vm2, "clock", ">f", host_clock);    // the same ffi functions, in any order
-if (rio_image_load(&vm2, buf, n) || rio_run(&vm2)) puts(rio_error(&vm2));
+rio_addFfi(&vm2, "clock", ">f", host_clock); // the same ffi functions, in any order
+if (rio_loadImage(&vm2, buf, n) || rio_run(&vm2)) puts(rio_error(&vm2));
 ```
 
 - **Memory addresses are absolute,** so compile for the memory the program will run in (`-M`, default 8 MB in the CLI) and load into at least that much. Code compiled into `mem` loads right back there; code compiled into a separate buffer needs a loading vm with one too.
 - **FFI functions are bound by name** at load, and their sigs must match. One the image names but the host lacks is fine unless the code calls it.
-- **Build with `-DRIO_NO_COMPILER`** for a VM that only loads images: everything that compiles (and the REPL) is left out. On a Cortex-M33 at `-Os` that's about 11 KB of flash instead of 68 KB. As wasm (`zig cc -target wasm32-wasi -mexec-model=reactor -Os`), a minimal browser host comes to 28 KB, 13 KB gzipped, importing only a log function. `tests/vm.c` is such a host; ctest runs the test suite through it.
+- **Build with `-Drio_NO_COMPILER`** for a VM that only loads images: everything that compiles (and the REPL) is left out. On a Cortex-M33 at `-Os` that's about 11 KB of flash instead of 68 KB. As wasm (`zig cc -target wasm32-wasi -mexec-model=reactor -Os`), a minimal browser host comes to 28 KB, 13 KB gzipped, importing only a log function. `tests/vm.c` is such a host; ctest runs the test suite through it.
 - **Images are trusted like code:** the loader checks the header and sizes, but the VM doesn't check bytecode, so load only images you (or your compiler) made.
 - **The format isn't stable yet.** Images carry a version number, and a vm refuses other versions; for now, rebuild images along with rio. Little-endian hosts only.
 
@@ -565,14 +565,37 @@ These are from `bench/`, comparing against Lua 5.5 on the same Windows machine. 
 ## Layout
 
 ```
-src/rio.h     public API (+ the fixed-size state struct)
-src/rio.c     lexer, single-pass compiler, VM
-src/aot.c     bytecode -> C translator (CLI only; not needed for embedding)
-src/main.c    CLI host (adds ffi: clock, putc; loads modules from files and -L paths)
-tests/        test suite (run by ctest, in the VM and compiled through C), plus error tests:
-              errors.c checks kind/line/col/width/message for ~26 failing snippets
-bench/        rio vs lua benchmarks
+src/rio.h          public API (+ the fixed-size state struct)
+src/internal.h     what rio's files share: the instruction set, symbol and type kinds, runtime tables
+the VM (all a host needs to run images):
+  src/vm.c         the interpreter
+  src/runtime.c    setting up a vm, finding procs and globals, errors, the line table
+  src/image.c      saving and loading images
+  src/common.c     number formatting, error messages, math builtins
+the compiler (single pass, no recursion; left out with rio_NO_COMPILER):
+  src/compiler.h   its state and tables, and what its files share
+  src/lexer.c      tokens, and reporting compile errors
+  src/tables.c     names, symbols, types and fields
+  src/codegen.c    emitting code; slots, constants and memory; moving values; peepholes
+  src/operators.c  unary and binary operators, element-by-element arithmetic, unions' `is`
+  src/expr.c       the expression parser (shunting-yard): calls, indexing, members, literals
+  src/builtins.c   log, math, assert, and the methods of sequences, lists, enums and numbers
+  src/decls.c      types as written; procs, methods, structs, unions, enums and variables
+  src/statements.c statements and their blocks: if, loops, switch, return, assignment
+  src/modules.c    import and include
+  src/compile.c    limits, setup, and finishing: frame sharing, the line table, final layout
+  src/repl.c       REPL sessions
+src/jit.c          native loops on ARM Thumb-2 (elsewhere, rio_jit does nothing)
+src/aot.c          bytecode -> C translator (CLI only; not needed for embedding)
+src/main.c         CLI host (adds ffi: clock, putc; loads modules from files and -L paths)
+tests/             test suite (run by ctest, in the VM and compiled through C), plus error tests:
+                   errors.c checks kind/line/col/width/message for ~26 failing snippets
+bench/             rio vs lua benchmarks
 ```
+
+Everything rio defines starts with `rio_`: functions are `rio_camelCase`, types `rio_PascalCase`, enum
+values `rio_EnumType_value`, and macros `rio_UPPER_CASE` (the CMake options keep CMake's `RIO_` style).
+`library.cmake` lists the sources (`RIO_VM_SOURCES`, `RIO_COMPILER_SOURCES`) for builds that pick them.
 
 ## License
 

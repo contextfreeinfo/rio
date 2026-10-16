@@ -4,8 +4,8 @@
 #include "rio.h"
 
 static unsigned char mem[1 << 20], scratch[256 << 10];
-static RioIns code[8192];
-static Rio vm;
+static rio_Instr code[8192];
+static rio_Vm vm;
 static char out[1024];
 static size_t outn;
 static int fails, n;
@@ -47,17 +47,17 @@ static const char *files[][2] = {
   {"kinds", "Dir* :: enum\n  north, east\nend\nP* :: struct\n  x: Int\nend\nQ* :: struct\n  y: Float\nend\nPQ* :: union\n  nil\n  P, Q\nend\nflip* :: proc(d: Dir) -> Dir\n  switch d\n  case .north\n    return .east\n  case .east\n    return .north\n  end\n  return d\nend\n"},
   {"@two", "t* := 2\n"},
 };
-static int loader(void *ud, const char *path, int kind, RioSource *o) {
+static int loader(void *ud, const char *path, int kind, rio_Source *o) {
   size_t i; char want[128]; (void)ud;
-  if ((kind & RIO_LOAD_PKG) && !strcmp(path, "two")) return 2; /* pretend it's in two library paths */
-  snprintf(want, sizeof want, "%s%s", kind & RIO_LOAD_PKG ? "@" : "", path); /* includes ask for "x.rio" itself */
+  if ((kind & rio_LoadKind_package) && !strcmp(path, "two")) return 2; /* pretend it's in two library paths */
+  snprintf(want, sizeof want, "%s%s", kind & rio_LoadKind_package ? "@" : "", path); /* includes ask for "x.rio" itself */
   for (i = 0; i < sizeof files / sizeof files[0]; i++) {
     const char *k = files[i][0];
     if (!strcmp(k, want)) {
       size_t j, wl = strlen(want);
-      o->src = files[i][1]; o->len = (uint32_t)strlen(files[i][1]); o->isdir = 0; o->name = 0;
+      o->src = files[i][1]; o->len = (uint32_t)strlen(files[i][1]); o->isDir = 0; o->name = 0;
       for (j = 0; j < sizeof files / sizeof files[0]; j++) /* a module with files under it is a directory */
-        if (!strncmp(files[j][0], want, wl) && files[j][0][wl] == '/') o->isdir = 1;
+        if (!strncmp(files[j][0], want, wl) && files[j][0][wl] == '/') o->isDir = 1;
       return 0;
     }
   }
@@ -67,15 +67,15 @@ static void logfn(void *ud, const char *s, int len) { (void)ud; memcpy(out + out
 
 /* compile and run src; expect output (NULL: don't check), or an error: kind, file (NULL = main), line, message */
 static void t(const char *src, const char *printed, int kind, const char *file, int line, const char *msg) {
-  RioError e; int f;
+  rio_Error e; int f;
   n++; outn = 0; out[0] = 0;
   rio_init(&vm, mem, sizeof mem, code, 8192);
-  rio_set_log(&vm, logfn, 0);
-  rio_set_loader(&vm, loader, 0);
+  rio_setLog(&vm, logfn, 0);
+  rio_setLoader(&vm, loader, 0);
   if (!rio_compile(&vm, src, (uint32_t)strlen(src)) && !rio_run(&vm)) {
-    if ((f = rio_func(&vm, "main")) >= 0) rio_call(&vm, f);
+    if ((f = rio_findProc(&vm, "main")) >= 0) rio_call(&vm, f);
   }
-  e = rio_error_info(&vm);
+  e = rio_errorInfo(&vm);
   if (e.kind != kind || (printed && strcmp(out, printed)) || (kind && (e.line != line || !strstr(e.msg, msg) ||
       (file ? !e.file || strcmp(e.file, file) : e.file != 0)))) {
     printf("FAIL %d: \"%s\": got kind %d file %s line %d \"%s\" printed \"%s\"\n", n, src, e.kind, e.file ? e.file : "(main)", e.line, e.msg, out);
@@ -84,96 +84,96 @@ static void t(const char *src, const char *printed, int kind, const char *file, 
 }
 
 int main(void) {
-  t("import .a\nlog(a.x)\n", "1\n", RIO_ENONE, 0, 0, 0);
-  t("import .b\nimport .a\nlog(b.y, a.x)\n", "2 1\n", RIO_ENONE, 0, 0, 0);           /* a is compiled once */
-  t("import pkg.{p as q}\nlog(q)\n", "7\n", RIO_ENONE, 0, 0, 0);
-  t("import .a\nlog(a.hidden)\n", 0, RIO_ECOMPILE, 0, 2, "not exported by that module");
-  t("import .a.{hidden}\n", 0, RIO_ECOMPILE, 0, 1, "not exported by that module");
-  t("import .nope\n", 0, RIO_ECOMPILE, 0, 1, "module not found: nope");
-  t("import two\n", 0, RIO_ECOMPILE, 0, 1, "found in more than one library path: two");
-  t("import .cyc1\n", 0, RIO_ECOMPILE, "cyc2.rio", 1, "import cycle");
-  t("import .me\n", 0, RIO_ECOMPILE, "me.rio", 2, "import cycle");                 /* importing yourself */
-  t("import .r1\n", 0, RIO_ECOMPILE, "r3.rio", 2, "import cycle");                 /* a longer loop */
-  t("import .err\n", 0, RIO_ECOMPILE, "err.rio", 2, "undefined name");
-  t("x := 1\nimport .rt\nlog(rt.boom(5))\n", 0, RIO_ERUNTIME, "rt.rio", 3, "index out of bounds");
-  t("import pkg*\n", 0, RIO_ECOMPILE, 0, 1, "only your own submodules can be published");
+  t("import .a\nlog(a.x)\n", "1\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .b\nimport .a\nlog(b.y, a.x)\n", "2 1\n", rio_ErrorKind_none, 0, 0, 0);           /* a is compiled once */
+  t("import pkg.{p as q}\nlog(q)\n", "7\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .a\nlog(a.hidden)\n", 0, rio_ErrorKind_compile, 0, 2, "not exported by that module");
+  t("import .a.{hidden}\n", 0, rio_ErrorKind_compile, 0, 1, "not exported by that module");
+  t("import .nope\n", 0, rio_ErrorKind_compile, 0, 1, "module not found: nope");
+  t("import two\n", 0, rio_ErrorKind_compile, 0, 1, "found in more than one library path: two");
+  t("import .cyc1\n", 0, rio_ErrorKind_compile, "cyc2.rio", 1, "import cycle");
+  t("import .me\n", 0, rio_ErrorKind_compile, "me.rio", 2, "import cycle");                 /* importing yourself */
+  t("import .r1\n", 0, rio_ErrorKind_compile, "r3.rio", 2, "import cycle");                 /* a longer loop */
+  t("import .err\n", 0, rio_ErrorKind_compile, "err.rio", 2, "undefined name");
+  t("x := 1\nimport .rt\nlog(rt.boom(5))\n", 0, rio_ErrorKind_runtime, "rt.rio", 3, "index out of bounds");
+  t("import pkg*\n", 0, rio_ErrorKind_compile, 0, 1, "only your own submodules can be published");
   /* packages: only what the root publishes is reachable from outside */
-  t("import lib.pub\nlog(pub.x)\n", "1\n", RIO_ENONE, 0, 0, 0);
-  t("import lib\nlog(lib.v, lib.pub.x)\n", "13 1\n", RIO_ENONE, 0, 0, 0);
-  t("import lib.priv\n", 0, RIO_ECOMPILE, 0, 1, "that package doesn't publish priv");
-  t("import lib\nlog(lib.priv)\n", 0, RIO_ECOMPILE, 0, 2, "not exported by that module");
+  t("import lib.pub\nlog(pub.x)\n", "1\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import lib\nlog(lib.v, lib.pub.x)\n", "13 1\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import lib.priv\n", 0, rio_ErrorKind_compile, 0, 1, "that package doesn't publish priv");
+  t("import lib\nlog(lib.priv)\n", 0, rio_ErrorKind_compile, 0, 2, "not exported by that module");
   /* exporting an imported name is an explicit alias, not part of import */
-  t("import .a.{x*}\n", 0, RIO_ECOMPILE, 0, 1, "to export an imported name");
-  t("import .al\nv: al.TT\nv.q = 5\nlog(al.g(), v.q)\n", "4 5\n", RIO_ENONE, 0, 0, 0);
+  t("import .a.{x*}\n", 0, rio_ErrorKind_compile, 0, 1, "to export an imported name");
+  t("import .al\nv: al.TT\nv.q = 5\nlog(al.g(), v.q)\n", "4 5\n", rio_ErrorKind_none, 0, 0, 0);
   /* include: a file becomes part of this module */
-  t("secret := 5\ninclude \"part.rio\"\nlog(helper(2))\n", "10\n", RIO_ENONE, 0, 0, 0);
-  t("import .dir.m\nlog(m.z)\n", "4\n", RIO_ENONE, 0, 0, 0);                         /* relative to the including file */
-  t("secret := 1\ninclude \"part.rio\"\ninclude \"part.rio\"\n", 0, RIO_ECOMPILE, 0, 3, "file already included");
-  t("include \"../x.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
-  t("include \"part\"\n", 0, RIO_ECOMPILE, 0, 1, "include paths name a .rio file");
-  t("include \"nope.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "file not found: nope.rio");
-  t("include \"bad.rio\"\n", 0, RIO_ECOMPILE, "bad.rio", 2, "undefined name");
-  t("include \"rtpart.rio\"\nlog(get(9))\n", 0, RIO_ERUNTIME, "rtpart.rio", 3, "index out of bounds");
-  t("f :: proc()\n  include \"part.rio\"\nend\n", 0, RIO_ECOMPILE, 0, 2, "includes must be at the top level");
+  t("secret := 5\ninclude \"part.rio\"\nlog(helper(2))\n", "10\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .dir.m\nlog(m.z)\n", "4\n", rio_ErrorKind_none, 0, 0, 0);                         /* relative to the including file */
+  t("secret := 1\ninclude \"part.rio\"\ninclude \"part.rio\"\n", 0, rio_ErrorKind_compile, 0, 3, "file already included");
+  t("include \"../x.rio\"\n", 0, rio_ErrorKind_compile, 0, 1, "stay inside this file's directory");
+  t("include \"part\"\n", 0, rio_ErrorKind_compile, 0, 1, "include paths name a .rio file");
+  t("include \"nope.rio\"\n", 0, rio_ErrorKind_compile, 0, 1, "file not found: nope.rio");
+  t("include \"bad.rio\"\n", 0, rio_ErrorKind_compile, "bad.rio", 2, "undefined name");
+  t("include \"rtpart.rio\"\nlog(get(9))\n", 0, rio_ErrorKind_runtime, "rtpart.rio", 3, "index out of bounds");
+  t("f :: proc()\n  include \"part.rio\"\nend\n", 0, rio_ErrorKind_compile, 0, 2, "includes must be at the top level");
   /* bad include paths: one spelling per file, always inside this file's directory */
-  t("include \"/part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
-  t("include \"a\\\\part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
-  t("include \"c:part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
-  t("include \"./part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
-  t("include \"sub//part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
-  t("include \"sub/../part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
-  t("include \"sub/./part.rio\"\n", 0, RIO_ECOMPILE, 0, 1, "stay inside this file's directory");
-  t("include \"sub/.hidden.rio\"\n", "", RIO_ENONE, 0, 0, 0);                      /* dot files are just names */
-  t("include part.rio\n", 0, RIO_ECOMPILE, 0, 1, "include needs a file path in quotes");
-  t("secret := 1\ninclude \"part.rio\" log(1)\n", 0, RIO_ECOMPILE, 0, 2, "expected end of statement");
-  t("include \"cyca.rio\"\n", 0, RIO_ECOMPILE, "cycb.rio", 1, "file already included"); /* a cycle of includes */
+  t("include \"/part.rio\"\n", 0, rio_ErrorKind_compile, 0, 1, "stay inside this file's directory");
+  t("include \"a\\\\part.rio\"\n", 0, rio_ErrorKind_compile, 0, 1, "stay inside this file's directory");
+  t("include \"c:part.rio\"\n", 0, rio_ErrorKind_compile, 0, 1, "stay inside this file's directory");
+  t("include \"./part.rio\"\n", 0, rio_ErrorKind_compile, 0, 1, "stay inside this file's directory");
+  t("include \"sub//part.rio\"\n", 0, rio_ErrorKind_compile, 0, 1, "stay inside this file's directory");
+  t("include \"sub/../part.rio\"\n", 0, rio_ErrorKind_compile, 0, 1, "stay inside this file's directory");
+  t("include \"sub/./part.rio\"\n", 0, rio_ErrorKind_compile, 0, 1, "stay inside this file's directory");
+  t("include \"sub/.hidden.rio\"\n", "", rio_ErrorKind_none, 0, 0, 0);                      /* dot files are just names */
+  t("include part.rio\n", 0, rio_ErrorKind_compile, 0, 1, "include needs a file path in quotes");
+  t("secret := 1\ninclude \"part.rio\" log(1)\n", 0, rio_ErrorKind_compile, 0, 2, "expected end of statement");
+  t("include \"cyca.rio\"\n", 0, rio_ErrorKind_compile, "cycb.rio", 1, "file already included"); /* a cycle of includes */
   /* imported constants: usable wherever a constant is needed */
-  t("import .k\nxs: [k.N]Int\nlog(xs.len())\n", "4\n", RIO_ENONE, 0, 0, 0);
-  t("import .k.{N}\nM :: N * 2\nys: [M]Int\nlog(M, ys.len())\n", "8 8\n", RIO_ENONE, 0, 0, 0);
-  t("import .k\nlog(k.HALF * 2.0, k.NAME, k.ON)\n", "1.0 rio true\n", RIO_ENONE, 0, 0, 0);
-  t("import .k.{NAME as nm}\nlog(nm)\n", "rio\n", RIO_ENONE, 0, 0, 0);
-  t("N :: 4\nN = 5\n", 0, RIO_ECOMPILE, 0, 2, "cannot assign to this");          /* same as a local constant */
-  t("import .k\nk.N = 5\n", 0, RIO_ECOMPILE, 0, 2, "cannot assign to this");
-  t("import .k.{N}\nN = 5\n", 0, RIO_ECOMPILE, 0, 2, "cannot assign to this");
-  t("import .k\nlog(k.SECRET)\n", 0, RIO_ECOMPILE, 0, 2, "not exported by that module");
+  t("import .k\nxs: [k.N]Int\nlog(xs.len())\n", "4\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .k.{N}\nM :: N * 2\nys: [M]Int\nlog(M, ys.len())\n", "8 8\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .k\nlog(k.HALF * 2.0, k.NAME, k.ON)\n", "1.0 rio true\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .k.{NAME as nm}\nlog(nm)\n", "rio\n", rio_ErrorKind_none, 0, 0, 0);
+  t("N :: 4\nN = 5\n", 0, rio_ErrorKind_compile, 0, 2, "cannot assign to this");          /* same as a local constant */
+  t("import .k\nk.N = 5\n", 0, rio_ErrorKind_compile, 0, 2, "cannot assign to this");
+  t("import .k.{N}\nN = 5\n", 0, rio_ErrorKind_compile, 0, 2, "cannot assign to this");
+  t("import .k\nlog(k.SECRET)\n", 0, rio_ErrorKind_compile, 0, 2, "not exported by that module");
   /* imported types: in fields, arrays, lists, slices, literals, params and returns */
-  t("import .k\nQ :: struct\n  p: k.P\n  ps: [2]k.P\nend\nq: Q\nq.p = {x = 1, y = 2}\nq.ps[1].x = 7\nlog(q.p.sum(), q.ps[1].sum())\n", "3 7\n", RIO_ENONE, 0, 0, 0);
-  t("import .k\nps: [..4]k.P\nps.push({x = 1, y = 1})\nps.push(k.mk(2))\nlog(k.total(ps[:]), ps.len())\n", "8 2\n", RIO_ENONE, 0, 0, 0);
-  t("import .k.{P, mk}\n{x, y as b} := mk(3)\nlog(x, b)\n", "3 4\n", RIO_ENONE, 0, 0, 0);
-  t("import .k.{P}\nf :: proc(p: P) -> P\n  return {x = p.y, y = p.x}\nend\nlog(f({x = 1, y = 2}).x)\n", "2\n", RIO_ENONE, 0, 0, 0);
-  t("import .k\nv := k.P{x = 1, y = 2}\nlog(v.sum())\n", "3\n", RIO_ENONE, 0, 0, 0);
-  t("import .k\nv: k.P\nv.z = 1\n", 0, RIO_ECOMPILE, 0, 3, "no such field");
-  t("import .k\nv: k.Hid\n", 0, RIO_ECOMPILE, 0, 2, "not exported by that module");
-  t("import .k\nv: k.mk\n", 0, RIO_ECOMPILE, 0, 2, "type expected");             /* exported, but not a type */
-  t("import .k.{Hid}\n", 0, RIO_ECOMPILE, 0, 1, "not exported by that module");
-  t("import .rf\nv: rf.R\nrf.inc(&v, 2)\nw := &v\nrf.inc(&w, 3)\nlog(v.n)\n", "5\n", RIO_ENONE, 0, 0, 0); /* & across modules */
-  t("import .kinds\nd: kinds.Dir = .east\nlog(kinds.flip(d), kinds.Dir.north.toInt())\nu: kinds.PQ = kinds.P{x = 4}\nif u is kinds.P\n  log(u.x)\nend\n", "north 0\n4\n", RIO_ENONE, 0, 0, 0); /* enums and unions across modules */
-  t("import .k\nv: k.P = 1\n", 0, RIO_ECOMPILE, 0, 2, "type");
-  t("f :: proc()\n  x* := 1\nend\n", 0, RIO_ECOMPILE, 0, 2, "only top-level names can be exported");
-  t("f :: proc()\n  import .a\nend\n", 0, RIO_ECOMPILE, 0, 2, "imports must be at the top level");
-  t("import .m\nv: m.V\nlog(v.pub())\n", "1\n", RIO_ENONE, 0, 0, 0);
-  t("import .m\nv: m.V\nlog(v.priv())\n", 0, RIO_ECOMPILE, 0, 3, "no such field or method");
-  t("x :: 1\nlog(x)\n", "1\n", RIO_ENONE, 0, 0, 0);
-  t("import .a\nlog(x)\n", 0, RIO_ECOMPILE, 0, 2, "undefined name");                  /* only through a. */
+  t("import .k\nQ :: struct\n  p: k.P\n  ps: [2]k.P\nend\nq: Q\nq.p = {x = 1, y = 2}\nq.ps[1].x = 7\nlog(q.p.sum(), q.ps[1].sum())\n", "3 7\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .k\nps: [..4]k.P\nps.push({x = 1, y = 1})\nps.push(k.mk(2))\nlog(k.total(ps[:]), ps.len())\n", "8 2\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .k.{P, mk}\n{x, y as b} := mk(3)\nlog(x, b)\n", "3 4\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .k.{P}\nf :: proc(p: P) -> P\n  return {x = p.y, y = p.x}\nend\nlog(f({x = 1, y = 2}).x)\n", "2\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .k\nv := k.P{x = 1, y = 2}\nlog(v.sum())\n", "3\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .k\nv: k.P\nv.z = 1\n", 0, rio_ErrorKind_compile, 0, 3, "no such field");
+  t("import .k\nv: k.Hid\n", 0, rio_ErrorKind_compile, 0, 2, "not exported by that module");
+  t("import .k\nv: k.mk\n", 0, rio_ErrorKind_compile, 0, 2, "type expected");             /* exported, but not a type */
+  t("import .k.{Hid}\n", 0, rio_ErrorKind_compile, 0, 1, "not exported by that module");
+  t("import .rf\nv: rf.R\nrf.inc(&v, 2)\nw := &v\nrf.inc(&w, 3)\nlog(v.n)\n", "5\n", rio_ErrorKind_none, 0, 0, 0); /* & across modules */
+  t("import .kinds\nd: kinds.Dir = .east\nlog(kinds.flip(d), kinds.Dir.north.toInt())\nu: kinds.PQ = kinds.P{x = 4}\nif u is kinds.P\n  log(u.x)\nend\n", "north 0\n4\n", rio_ErrorKind_none, 0, 0, 0); /* enums and unions across modules */
+  t("import .k\nv: k.P = 1\n", 0, rio_ErrorKind_compile, 0, 2, "type");
+  t("f :: proc()\n  x* := 1\nend\n", 0, rio_ErrorKind_compile, 0, 2, "only top-level names can be exported");
+  t("f :: proc()\n  import .a\nend\n", 0, rio_ErrorKind_compile, 0, 2, "imports must be at the top level");
+  t("import .m\nv: m.V\nlog(v.pub())\n", "1\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .m\nv: m.V\nlog(v.priv())\n", 0, rio_ErrorKind_compile, 0, 3, "no such field or method");
+  t("x :: 1\nlog(x)\n", "1\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .a\nlog(x)\n", 0, rio_ErrorKind_compile, 0, 2, "undefined name");                  /* only through a. */
 
   { /* modules in a REPL session */
     const char *steps[] = {"import .a\n", "a.x + 1\n", "import .a.{x as ax}\n", "ax\n"};
     const char *want[] = {"", "2\n", "", "1\n"};
     int i;
     rio_init(&vm, mem, sizeof mem, code, 8192);
-    rio_set_log(&vm, logfn, 0);
-    rio_set_loader(&vm, loader, 0);
-    rio_repl_begin(&vm, scratch, sizeof scratch, 0);
+    rio_setLog(&vm, logfn, 0);
+    rio_setLoader(&vm, loader, 0);
+    rio_replBegin(&vm, scratch, sizeof scratch, 0);
     for (i = 0; i < 4; i++) {
       n++; outn = 0; out[0] = 0;
-      if (rio_repl_eval(&vm, steps[i], (uint32_t)strlen(steps[i])) || strcmp(out, want[i])) {
+      if (rio_replEval(&vm, steps[i], (uint32_t)strlen(steps[i])) || strcmp(out, want[i])) {
         printf("FAIL repl step %d: \"%s\" printed \"%s\" error \"%s\"\n", i, steps[i], out, rio_error(&vm)); fails++;
       }
     }
     n++;
-    if (rio_repl_eval(&vm, "import .err\n", 12) != -1 || !rio_error_info(&vm).file) { printf("FAIL repl bad import\n"); fails++; }
+    if (rio_replEval(&vm, "import .err\n", 12) != -1 || !rio_errorInfo(&vm).file) { printf("FAIL repl bad import\n"); fails++; }
     n++; outn = 0; out[0] = 0;
-    if (rio_repl_eval(&vm, "a.x\n", 4) || strcmp(out, "1\n")) { printf("FAIL repl after bad import: %s\n", rio_error(&vm)); fails++; }
+    if (rio_replEval(&vm, "a.x\n", 4) || strcmp(out, "1\n")) { printf("FAIL repl after bad import: %s\n", rio_error(&vm)); fails++; }
   }
   if (!fails) printf("all %d module tests passed\n", n);
   return fails != 0;
