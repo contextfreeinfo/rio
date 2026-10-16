@@ -38,6 +38,12 @@ int rio_addFfi(rio_Vm *vm, const char *name, const char *sig, rio_FfiFn fn) {
   return 0;
 }
 
+int rio_autoImport(rio_Vm *vm, const char *module) {
+  if (vm->autoImportCount >= rio_MAX_AUTO_IMPORTS || !module) return -1;
+  vm->autoImports[vm->autoImportCount++] = module;
+  return 0;
+}
+
 void rio_interrupt(rio_Vm *vm) { vm->interrupted = 1; }
 
 void rio_trap(rio_Vm *vm, const char *message) {

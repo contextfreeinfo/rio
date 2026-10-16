@@ -1,0 +1,87 @@
+# core.rio: the builtins, declared. Programs don't import this: the builtins are always there. It's
+# what they are, written in rio, and tests/host.c compiles it, so each declaration is checked against
+# the builtin (its parameters and result), and every builtin is declared here or in the comments below.
+
+# ---------------------------------------------------------------- types
+
+Int* :: @host struct      # 32 bits, signed; arithmetic wraps
+Float* :: @host struct    # 32 bits (IEEE single)
+Bool* :: @host struct     # true or false, stored as an Int (0 or 1)
+String* :: @host struct   # a read-only view of bytes: (address, length)
+Blob* :: @host struct     # a writable view of bytes: (address, length)
+
+# ---------------------------------------------------------------- math
+
+abs* :: @host proc(x: Int) -> Int
+abs* :: @host proc(x: Float) -> Float
+min* :: @host proc(a, b: Int) -> Int
+min* :: @host proc(a, b: Float) -> Float
+max* :: @host proc(a, b: Int) -> Int
+max* :: @host proc(a, b: Float) -> Float
+
+sqrt* :: @host proc(x: Float) -> Float
+sin* :: @host proc(x: Float) -> Float
+cos* :: @host proc(x: Float) -> Float
+tan* :: @host proc(x: Float) -> Float
+asin* :: @host proc(x: Float) -> Float
+acos* :: @host proc(x: Float) -> Float
+atan* :: @host proc(x: Float) -> Float
+atan2* :: @host proc(y, x: Float) -> Float
+exp* :: @host proc(x: Float) -> Float
+ln* :: @host proc(x: Float) -> Float      # the natural log
+pow* :: @host proc(x, y: Float) -> Float
+fmod* :: @host proc(x, y: Float) -> Float
+floor* :: @host proc(x: Float) -> Float
+ceil* :: @host proc(x: Float) -> Float
+round* :: @host proc(x: Float) -> Float   # halves away from zero
+
+# ---------------------------------------------------------------- checks and data
+
+assert* :: @host proc(condition: Bool)                # a runtime error at this line when false
+assert* :: @host proc(condition: Bool, why: String)
+hexBlob* :: @host proc(digits: String) -> Blob        # a literal only: decoded while compiling
+
+# ---------------------------------------------------------------- conversions
+
+Int.toFloat* :: @host proc() -> Float
+Int.toBool* :: @host proc() -> Bool       # n != 0
+Float.toInt* :: @host proc() -> Int       # toward zero; saturates; NaN is 0
+Bool.toInt* :: @host proc() -> Int        # 0 or 1
+Blob.asString* :: @host proc() -> String  # the same bytes, read-only
+
+# ---------------------------------------------------------------- bytes
+
+String.len* :: @host proc() -> Int
+String.cap* :: @host proc() -> Int
+Blob.len* :: @host proc() -> Int
+Blob.cap* :: @host proc() -> Int
+
+# Blob[..] is a text builder: a list of bytes
+(Blob[..]).len* :: @host proc() -> Int
+(Blob[..]).cap* :: @host proc() -> Int
+(Blob[..]).push* :: @host proc(byte: Int) -> Bool          # false when full
+(Blob[..]).pushAll* :: @host proc(text: String) -> Bool    # all or nothing
+(Blob[..]).pop* :: @host proc() -> Int                     # a runtime error when empty
+(Blob[..]).clear* :: @host proc()
+(Blob[..]).remove* :: @host proc(i: Int)                   # keeps the order
+(Blob[..]).swapRemove* :: @host proc(i: Int)               # the last element takes its place
+
+# ---------------------------------------------------------------- generic, once rio has generics
+#
+# These take any element type T, any enum E, or any number of values, so they can't be declared yet.
+# Written in a pretend syntax: [T] after a name makes it generic, and ..T is any number of Ts.
+#
+#   log*[T: Loggable] :: @host proc(values: ..T)      # Int, Float, Bool, String, Blob or an enum; one
+#                                                     # line, spaces between
+#   ([]T).len*[T] :: @host proc() -> Int              # also on [N]T, [..N]T and [..]T
+#   ([..]T).cap*[T] :: @host proc() -> Int            # also on [N]T and []T
+#   ([..]T).push*[T] :: @host proc(value: T) -> Bool
+#   ([..]T).pushAll*[T] :: @host proc(values: []T) -> Bool
+#   ([..]T).pop*[T] :: @host proc() -> T
+#   ([..]T).clear*[T] :: @host proc()
+#   ([..]T).remove*[T] :: @host proc(i: Int)
+#   ([..]T).swapRemove*[T] :: @host proc(i: Int)
+#   (Blob[..]).format*[T: Loggable] :: @host proc(values: ..T) -> Bool   # as text, all or nothing
+#   E.fromInt*[E: enum] :: @host proc(n: Int) -> E    # a runtime error if n isn't one of E's values
+#   E.has*[E: enum] :: @host proc(n: Int) -> Bool
+#   (E).toInt*[E: enum] :: @host proc() -> Int

@@ -16,24 +16,27 @@ static int rio_findFile(rio_Vm *vm, int isPackage, int isInclude, const char *ke
 }
 
 /* Starts reading another file (a module to import, or a part to include), after saving where to resume:
-   at cursor (whose line starts at lineStart). key: the path for the loader. */
-static void rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int keyLen, const char *cursor, const char *lineStart, int line) {
+   at cursor (whose line starts at lineStart). key: the path for the loader. Returns 0, or 1 if the
+   loader doesn't have it and quietIfMissing (the caller has another way). */
+static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int keyLen, const char *cursor, const char *lineStart,
+                        int line, int quietIfMissing) {
   rio_Compiler *c = vm->compiler;
   rio_Source s;
   rio_Module *m;
   rio_Resume *resume;
   int found, dirLen, n;
   char text[300];
-  if (c->resumeCount >= rio_MAX_IMPORT_DEPTH) rio_FAIL(, "imports and includes nested too deep");
-  if (c->moduleCount >= (int)c->limits.modules) rio_FAIL(, "too many modules");
+  if (c->resumeCount >= rio_MAX_IMPORT_DEPTH) rio_FAIL(0, "imports and includes nested too deep");
+  if (c->moduleCount >= (int)c->limits.modules) rio_FAIL(0, "too many modules");
   key[keyLen] = 0;
   memset(&s, 0, sizeof s);
   found = vm->loader ? vm->loader(vm->loaderData, key, (isPackage ? rio_LoadKind_package : 0) | (isInclude ? rio_LoadKind_file : 0), &s) : 1;
+  if (found == 1 && quietIfMissing) return 1;
   if (found) {
     n = rio_appendText(text, 0, found == 2 ? "found in more than one library path: " : isInclude ? "file not found: " : "module not found: ");
     n = rio_appendText(text, n, key);
     text[n] = 0;
-    rio_FAIL(, text);
+    rio_FAIL(0, text);
   }
   m = &c->modules[c->moduleCount];
   m->key = (uint16_t)rio_addName(vm, key, keyLen);
@@ -75,12 +78,16 @@ static void rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, in
   rio_lex(vm, &c->peek);
   rio_next(vm);
   c->tok.newline = 1; /* the file's first token starts a statement */
+  return 0;
 }
 
 /* the end of a file: back to whoever imported or included it */
 void rio_endFile(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  rio_Resume *resume = &c->resume[--c->resumeCount];
+  rio_Resume *resume;
+  if (!c->modules[c->curFile].isInclude) rio_checkHostModule(vm, c->curFile); /* (it declares its host procs) */
+  if (rio_failed(vm)) return;
+  resume = &c->resume[--c->resumeCount];
   c->modules[c->curFile].codeEnd = (uint16_t)vm->codeLen;
   c->modules[c->curFile].state = rio_ModuleState_done;
   c->src = resume->src;
@@ -147,8 +154,11 @@ void rio_importStatement(rio_Vm *vm) {
     break;
   }
   if ((m = rio_findFile(vm, isPackage, 0, key, keyLen)) < 0) { /* compile it first, then come back here */
-    rio_openFile(vm, isPackage, 0, key, keyLen, start, startLineStart, startLine);
-    return;
+    /* (a package the loader doesn't have may be a host module, made from the host procs registered
+       under its name) */
+    int hostProcs = !local && rio_hasHostProcs(vm, key, keyLen);
+    if (!rio_openFile(vm, isPackage, 0, key, keyLen, start, startLineStart, startLine, hostProcs) || rio_failed(vm)) return;
+    if ((m = rio_hostModule(vm, key, keyLen)) < 0) return;
   }
   if (c->modules[m].state != rio_ModuleState_done) rio_FAIL(, "import cycle");
   for (k = 1; !local && k < n; k++) { /* tween.easing: only if tween publishes easing */
@@ -230,7 +240,7 @@ void rio_includeStatement(rio_Vm *vm) {
     rio_FAIL(, "expected end of statement");
   }
   resumeAt = c->peek.kind == rio_Tok_string ? c->peek.text - 1 : c->peek.text; /* the token after the path */
-  rio_openFile(vm, from->isPackage, 1, key, keyLen, resumeAt, resumeAt - (c->peek.col - 1), c->peek.line);
+  rio_openFile(vm, from->isPackage, 1, key, keyLen, resumeAt, resumeAt - (c->peek.col - 1), c->peek.line, 0);
 }
 
 #endif

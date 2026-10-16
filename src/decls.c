@@ -8,6 +8,27 @@
 static int rio_parseValueType(rio_Vm *vm);
 
 /* proc(T, U) -> R, or any other type */
+/* At a proc type's parameter: how many names come before its type, as in a proc's own parameters (a,
+   b: Int), or 0 for none (Int, Float: just types). Names are for reading; procs take arguments by
+   position. */
+static int rio_paramNames(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  const char *p = c->tok.text, *e = c->srcEnd;
+  int count = 0;
+  if (c->tok.kind != rio_Tok_id) return 0;
+  for (;;) {
+    if (p >= e || !rio_isAlpha(*p)) return 0;
+    while (p < e && (rio_isAlpha(*p) || rio_isDigit(*p))) p++;
+    count++;
+    while (p < e && rio_isSpace(*p)) p++;
+    if (p < e && *p == ',') {
+      for (p++; p < e && rio_isSpace(*p); p++) {}
+      continue;
+    }
+    return p + 1 < e && p[0] == ':' && p[1] != ':' && p[1] != '=' ? count : 0;
+  }
+}
+
 int rio_parseType(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   int params[16], n = 0, result = rio_TypeId_void;
@@ -15,14 +36,16 @@ int rio_parseType(rio_Vm *vm) {
   rio_next(vm);
   rio_expect(vm, '(', "'(' expected");
   while (c->tok.kind != ')' && !rio_failed(vm)) {
+    int names = rio_paramNames(vm), t, j; /* a, b: T, or just T */
     if (n >= 16) rio_FAIL(0, "too many parameters");
-    if (c->tok.kind == rio_Tok_id && c->peek.kind == ':') { /* a name is allowed, for reading */
-      rio_next(vm);
-      rio_next(vm);
-    }
+    for (j = 0; j < names * 2; j++) rio_next(vm); /* (each name, and the , or : after it) */
     if (c->tok.kind == '&') rio_FAIL_AT_TOKEN(0, "proc values can't take & parameters");
     if (c->tok.kind == rio_Tok_proc) rio_FAIL_AT_TOKEN(0, "a proc type can't take or return procs");
-    params[n++] = rio_parseValueType(vm);
+    t = rio_parseValueType(vm);
+    for (j = 0; j < (names ? names : 1); j++) {
+      if (n >= 16) rio_FAIL(0, "too many parameters");
+      params[n++] = t;
+    }
     if (c->tok.kind != ',') break;
     rio_next(vm);
   }
@@ -106,7 +129,7 @@ static int rio_parseValueType(rio_Vm *vm) {
 }
 
 /* `a, b, c:`, the names before a field's or parameter's type; returns how many */
-static int rio_parseNames(rio_Vm *vm, const char **names, int *lens) {
+int rio_parseNames(rio_Vm *vm, const char **names, int *lens) {
   rio_Compiler *c = vm->compiler;
   int n = 0;
   for (;;) {
@@ -133,18 +156,13 @@ static void rio_addParam(rio_Vm *vm, int type, int refType, int addr) {
   param->addr = (uint32_t)addr;
 }
 
-/* name :: proc(params) -> result, after the name and ::; receiver: a method's type, or -1. The body
-   follows as statements, until its end (in rio_statement). */
-void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver) {
+/* The start of a proc (receiver: a method's type, or -1): a jump for top-level code to go around it, its
+   entry, and its frame, with self first for a method. Returns the proc, or -1. */
+int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver) {
   rio_Compiler *c = vm->compiler;
   rio_ProcDef *p;
   rio_Block *b;
-  int index, skip;
-  if (c->blockCount || c->curProc >= 0) rio_FAIL(, "procs must be top-level");
-  if (vm->procCount >= (int)c->limits.procs) rio_FAIL(, "too many procs");
-  rio_next(vm);
-  rio_expect(vm, '(', "'(' expected");
-  skip = rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE); /* top-level code goes around it */
+  int index, skip = rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE); /* top-level code goes around it */
   index = vm->procCount++;
   p = &c->procDefs[index];
   p->firstParam = (uint16_t)c->paramCount;
@@ -167,70 +185,110 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver) {
   p->frameStart = (uint16_t)c->liveSlots;
   if (receiver >= 0) { /* self: a struct receiver by address, other receivers as a copy */
     int addr = rio_allocSlots(vm, p->selfByRef ? 1 : rio_typeWords(vm, receiver)) * 4;
-    if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
+    if (c->paramCount >= (int)c->limits.params) rio_FAIL(-1, "too many parameters");
     rio_addParam(vm, p->selfByRef ? rio_TypeId_int : receiver, 0, addr);
     rio_addSymbol(vm, "self", 4, p->selfByRef ? rio_SymKind_ref : rio_SymKind_var, receiver, p->selfByRef ? addr / 4 : addr);
     p->paramCount++;
   }
+  return index;
+}
+
+/* a parameter of the proc being begun: name: type, or name: &type (isRef) */
+void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type, int isRef) {
+  rio_Compiler *c = vm->compiler;
+  rio_Type *ty = rio_type(vm, type);
+  int addr;
+  if (ty->kind == rio_TypeKind_void ||
+      (!isRef && (ty->kind == rio_TypeKind_list ||
+                  ((ty->kind == rio_TypeKind_struct || ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_union) && ty->hasRefs))))
+    rio_FAIL(, "invalid parameter type (pass lists as [..]T)");
+  if (!isRef && rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
+  addr = rio_allocSlots(vm, isRef ? 1 : rio_typeWords(vm, type)) * 4; /* a & parameter is one word holding the address,
+                                                                     read through like self */
+  if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
+  rio_addParam(vm, isRef ? rio_TypeId_int : type, isRef ? type : 0, addr);
+  rio_addSymbol(vm, name, nameLen, isRef ? rio_SymKind_ref : rio_SymKind_var, type, isRef ? addr / 4 : addr);
+  c->procDefs[proc].paramCount++;
+}
+
+/* the result of the proc being begun */
+void rio_setProcResult(rio_Vm *vm, int proc, int type) {
+  rio_ProcDef *p = &vm->compiler->procDefs[proc];
+  rio_Type *ty = rio_type(vm, type);
+  p->resultType = (uint16_t)type;
+  if (ty->kind == rio_TypeKind_list ||
+      ((ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_struct || ty->kind == rio_TypeKind_union) && ty->hasRefs))
+    rio_FAIL(, "invalid return type");
+  if (rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) can't be returned: fill in a &T parameter instead");
+  p->resultAt = (uint32_t)rio_allocSlots(vm, rio_typeWords(vm, type)) * 4;
+}
+
+/* after its parameters and result: the body starts here */
+void rio_beginBody(rio_Vm *vm, int proc) {
+  rio_Compiler *c = vm->compiler;
+  c->liveSlots = c->freeSlot;
+  c->curProc = proc;
+  c->procDefs[proc].entry = (uint16_t)rio_label(vm);
+}
+
+/* name :: proc(params) -> result, after the name and ::; receiver: a method's type, or -1. The body
+   follows as statements, until its end (in rio_statement). */
+void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver) {
+  rio_Compiler *c = vm->compiler;
+  int index;
+  if (c->blockCount || c->curProc >= 0) rio_FAIL(, "procs must be top-level");
+  if (vm->procCount >= (int)c->limits.procs) rio_FAIL(, "too many procs");
+  rio_next(vm);
+  rio_expect(vm, '(', "'(' expected");
+  if ((index = rio_beginProc(vm, name, nameLen, receiver)) < 0) return;
   while (c->tok.kind != ')' && !rio_failed(vm)) { /* a, b: T  or  a: &T */
     const char *names[16];
     int lens[16], n = rio_parseNames(vm, names, lens), isRef = c->tok.kind == '&', t, j;
-    rio_Type *ty;
     if (isRef) rio_next(vm);
     t = rio_parseType(vm);
-    ty = rio_type(vm, t);
-    if (ty->kind == rio_TypeKind_void ||
-        (!isRef && (ty->kind == rio_TypeKind_list ||
-                    ((ty->kind == rio_TypeKind_struct || ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_union) && ty->hasRefs))))
-      rio_FAIL(, "invalid parameter type (pass lists as [..]T)");
-    if (!isRef && rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
-    for (j = 0; j < n; j++) { /* a & parameter is one word holding the address, read through like self */
-      int addr = rio_allocSlots(vm, isRef ? 1 : rio_typeWords(vm, t)) * 4;
-      if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
-      rio_addParam(vm, isRef ? rio_TypeId_int : t, isRef ? t : 0, addr);
-      rio_addSymbol(vm, names[j], lens[j], isRef ? rio_SymKind_ref : rio_SymKind_var, t, isRef ? addr / 4 : addr);
-      p->paramCount++;
-    }
+    for (j = 0; j < n && !rio_failed(vm); j++) rio_procParam(vm, index, names[j], lens[j], t, isRef);
+    if (rio_failed(vm)) return;
     if (c->tok.kind != ',') break;
     rio_next(vm);
   }
   rio_expect(vm, ')', "')' expected");
   if (c->tok.kind == rio_Tok_arrow) {
-    rio_Type *ty;
     rio_next(vm);
-    p->resultType = (uint16_t)rio_parseType(vm);
-    ty = rio_type(vm, p->resultType);
-    if (ty->kind == rio_TypeKind_list ||
-        ((ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_struct || ty->kind == rio_TypeKind_union) && ty->hasRefs))
-      rio_FAIL(, "invalid return type");
-    if (rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) can't be returned: fill in a &T parameter instead");
-    p->resultAt = (uint32_t)rio_allocSlots(vm, rio_typeWords(vm, p->resultType)) * 4;
+    rio_setProcResult(vm, index, rio_parseType(vm));
+    if (rio_failed(vm)) return;
   }
-  c->liveSlots = c->freeSlot;
-  c->curProc = index;
-  p->entry = (uint16_t)rio_label(vm);
+  rio_beginBody(vm, index);
 }
 
 /* Type.name :: proc(...) */
 void rio_methodDef(rio_Vm *vm, int receiver) {
   rio_Compiler *c = vm->compiler;
   const char *name;
-  int nameLen;
+  int nameLen, line, col, width;
   rio_next(vm);
   rio_next(vm);
   if (c->tok.kind != rio_Tok_id) rio_FAIL(, "method name expected");
   name = c->tok.text;
   nameLen = c->tok.len;
+  line = c->tok.line;
+  col = c->tok.col;
+  width = c->tok.width;
   if (rio_findField(vm, rio_type(vm, receiver), name, nameLen) >= 0) rio_FAIL_AT_TOKEN(, "a method can't have the same name as a field");
   if (rio_lookupMethod(vm, receiver, name, nameLen) >= 0) rio_FAIL_AT_TOKEN(, "method already defined");
-  if (rio_type(vm, receiver)->kind != rio_TypeKind_struct && rio_builtinNamed(name, nameLen, rio_Builtin_toInt, rio_Builtin_asString) >= 0)
-    rio_FAIL_AT_TOKEN(, "that conversion is built in");
   rio_next(vm);
   if (c->tok.kind == '*') {
     c->exporting = 1;
     rio_next(vm);
   }
   rio_expect(vm, rio_Tok_colonColon, "'::' expected");
+  if (c->tok.kind == '@') { /* Int.toFloat :: @host proc() -> Float: a builtin method, declared */
+    rio_hostDecl(vm, name, nameLen, receiver, line, col);
+    return;
+  }
+  if (rio_type(vm, receiver)->kind != rio_TypeKind_struct && rio_builtinNamed(name, nameLen, rio_Builtin_toInt, rio_Builtin_asString) >= 0) {
+    rio_failAt(vm, line, col, width, "that conversion is built in");
+    return;
+  }
   if (c->tok.kind != rio_Tok_proc) rio_FAIL(, "'proc' expected");
   rio_procDef(vm, name, nameLen, receiver);
 }

@@ -153,7 +153,7 @@ int rio_loadImage(rio_Vm *vm, const void *image, uint32_t len) {
       ffi[i].name = "";
       ffi[i].sig = "";
       ffi[i].fn = 0;
-      ffi[i].argWords = ffi[i].resultWords = 0;
+      ffi[i].argWords = ffi[i].resultWords = ffi[i].declared = 0;
     }
   }
   q = p + ((q - p + 3) & ~(uintptr_t)3);

@@ -89,6 +89,12 @@ target_link_libraries(rio_modules_test PRIVATE riocore)
 add_test(NAME rio_modules_api COMMAND rio_modules_test)
 set_tests_properties(rio_modules_api PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ module tests passed")
 
+# @host: host procs in modules, auto-imports, declarations checked; core.rio declares every builtin
+add_executable(rio_host_test tests/host.c)
+target_link_libraries(rio_host_test PRIVATE riocore)
+add_test(NAME rio_host COMMAND rio_host_test ${CMAKE_SOURCE_DIR}/src/core.rio)
+set_tests_properties(rio_host PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ host tests passed")
+
 # host lookups by name: main and name* by default, every top-level name with rio_EXPORTS_ALL
 add_executable(rio_exports_test tests/exports.c)
 target_link_libraries(rio_exports_test PRIVATE riocore)
