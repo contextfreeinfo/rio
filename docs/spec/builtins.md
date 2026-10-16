@@ -1,6 +1,6 @@
 # Builtins
 
-The builtins are there in every module without an import. [`src/core.rio`](../../src/core.rio)
+The builtins are there in every module without an import. [`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio)
 declares each one with its types, and the tests check those declarations against the compiler. The
 ones that would need generics are written there in comments for now.
 

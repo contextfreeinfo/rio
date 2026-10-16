@@ -73,7 +73,7 @@ clock :: @host proc() -> Int  # error: doesn't match the host's clock: proc() ->
   (`cls` in `pc.rio` is `pc.cls`), else a global one. When the host has a source for a module of host
   procs, that source is the module, and it must declare every one of the module's host procs.
 - **Builtins:** declared the same way, and checked as calls with those types:
-  `sqrt* :: @host proc(x: Float) -> Float`. [`src/core.rio`](../../src/core.rio) declares them all.
+  `sqrt* :: @host proc(x: Float) -> Float`. [`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio) declares them all.
 - **Builtin types:** `Int* :: @host struct`.
 - **Methods:** on a named type, `Int.toFloat* :: @host proc() -> Float`; on any other type, in
   parentheses: `(Blob[..]).push* :: @host proc(byte: Int) -> Bool`.

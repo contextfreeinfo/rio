@@ -1,6 +1,6 @@
 # The C API
 
-Everything is in [`src/rio.h`](../../src/rio.h). The [tutorial](../tutorial/embedding.md) shows the
+Everything is in [`src/rio.h`](https://github.com/contextfreeinfo/rio/blob/main/src/rio.h). The [tutorial](../tutorial/embedding.md) shows the
 shape of it; this is the rest.
 
 ```c
