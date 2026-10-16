@@ -1,0 +1,85 @@
+# Memory and limits
+
+The library has no static RAM of its own. Everything lives in three buffers the host provides:
+`rio_Vm`, `mem` and `code`.
+
+## Code and data share one buffer
+
+Unless the host passes a code buffer, the code lives in `mem` too. While compiling, it grows in the
+compiler's working memory (a quarter of it by default, `rio_Limits.code`), and when compiling ends it
+moves to just below the strings and tables at the top of memory, taking exactly its own size (8 bytes an
+instruction). So one buffer is the whole budget, split between code and data however each program needs.
+A REPL with the code in `mem` keeps a quarter of it for code for the whole session.
+
+## The compiler borrows the program's memory
+
+While compiling, the compiler writes only constants (at the bottom of `mem`) and string literals into
+`mem`. Frames, globals and arrays are just address ranges that stay zero until the program runs, so the
+compiler keeps its working state (symbol tables, expression stacks, the string pool) on top of them.
+When it finishes, it packs frames and globals down right after the constants actually used, lets procs
+that never run at the same time share frame memory, moves the strings, the export table and the line
+table to their final place, and zeroes the rest. Peak RAM is *max(compiling, running)*, not their sum.
+
+```
+compiling:  [consts][ compiler state + string pool ..................................]
+running:    [consts][ frames/globals | return stack ][ ... ][strings+exports][arrays ]
+```
+
+`rio_compileScratch` keeps the compiler state in a separate buffer instead, which stays readable after
+compiling. The C backend needs that.
+
+## Limits are chosen per compile
+
+The compiler's tables (symbols, names, types, fields, procs, params, constants, nesting depth) are carved
+out of its working memory at the start of each compile, scaled to the space available: `rio_compile`
+scales to `mem`, and `rio_compileScratch` to the buffer given. For exact numbers, fill in a `rio_Limits`:
+
+```c
+rio_Limits lim = rio_limitsFor(16 << 10);   // a starting point, scaled to 16 KB
+lim.procs = 64;                             // adjust what you need
+rio_compileWith(&vm, src, len, scratch, sizeof scratch, &lim);   // scratch NULL: overlay mem instead
+uint32_t need = rio_limitsSize(&lim);       // bytes those tables take (strings need some on top)
+```
+
+`rio_limitsFor(n)` sizes the tables to about 60% of `n` and leaves the rest for string literals.
+Running out of anything is a clean compile error ("too many symbols", "scratch too small for these
+limits", "not enough memory for the compiler").
+
+| budget | symbols | procs | constants | tables |
+|---|---|---|---|---|
+| 8 KB | 64 | 16 | 128 | 5.6 KB |
+| 16 KB | 144 | 36 | 288 | 8.7 KB |
+| 64 KB | 698 | 174 | 1,396 | 33.9 KB |
+| 512 KB | 6,044 | 1,511 | 12,088 | 261 KB |
+
+The only build-time caps are for what the host registers: `rio_MAX_FFI`, `rio_MAX_DEFINES`,
+`rio_MAX_AUTO_IMPORTS`, and the log and error buffers. `-Drio_SMALL` shrinks those.
+
+## Measured
+
+| | 64-bit | 32-bit |
+|---|---|---|
+| `rio_Vm` (runtime state, `rio_SMALL`) | 968 B | 624 B |
+| smallest `mem` that compiles and runs a 64-ball physics demo | 6,570 B | 6,314 B |
+| smallest `mem` for the full test suite (automatic limits) | 30.6 KB | 30.2 KB |
+| bytecode | 8 B per instruction | same |
+| C stack while running | a few hundred bytes (return addresses live in `mem`) | same |
+
+On a Cortex-M33, the library compiles to about 68 KB of flash at `-Os` (clang), plus libm and
+`memcpy`/`memset`; the VM alone (see [images](images.md)) is about 11 KB. The compiler doesn't use
+`setjmp`: an error makes the rest of the source read as its end, so it unwinds by returning, and the
+whole thing builds for plain wasm (compiler and VM: 112 KB, 46 KB gzipped).
+
+## Shared frames
+
+With no recursion, the compiler knows exactly which procs can be running at once: a proc and
+everything it can call. Procs that never run together share frame memory, so frames cost the heaviest
+chain of calls rather than the sum of all procs, and the return stack is sized by the longest chain.
+A proc keeps its own frame if any of its slots has its address taken (by `&`, a view of a local array,
+a `for` over one, and so on), since a view of that memory may outlive the call. Because of the
+sharing, a program can't be started again while it runs: `rio_run` and `rio_call` from inside a host
+proc return an error.
+
+`rio -m game.rio` reports where a program's memory goes: constants, globals, the shared frame area and
+the procs with their own frames, the call stack and the runtime tables, then the biggest procs and the
+heaviest call chain.

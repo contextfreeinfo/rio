@@ -98,6 +98,12 @@ static const Case cases[] = {
   /* comments start with #: a C-style comment is an error that points at itself */
   {"x := 1 // note\n", 0, 0, 0, rio_ErrorKind_compile, 1, 8, 2, "comments start with #"},
   {"/* note */\nx := 1\n", 0, 0, 0, rio_ErrorKind_compile, 1, 1, 2, "comments start with #"},
+  /* escapes: only \n \t \r \0 \\ \" \' (the backslash and its letter are the error) */
+  {"s := \"ok\\n\"\nt := \"a\\qb\"\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 2, "unknown escape"},
+  {"c := '\\x'\n", 0, 0, 0, rio_ErrorKind_compile, 1, 6, -1, "unknown escape"},
+  /* a proc with a result returns on every path: the error is at its end */
+  {"f :: proc(n: Int) -> Int\n  if n > 0\n    return 1\n  end\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, 1, 3, "missing return"},
+  {"f :: proc() -> Int\n  for\n    break\n  end\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, 1, 3, "missing return"},
   {"#!/usr/bin/env rio\n# a script\nx := 1 # note\nlog(x, \"a # b\", '#') #\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   /* enums */
   {"E :: enum north, east\n", 0, 0, 0, rio_ErrorKind_compile, 1, 11, -1, "list an enum's values on the lines below it"},

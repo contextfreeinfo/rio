@@ -1,5 +1,6 @@
 /* operators.c - unary and binary operators: constant folding, typed instructions, element-by-element
-   arithmetic on arrays and structs of numbers, and unions' `is` with the narrowing it allows. */
+   arithmetic on arrays and structs of numbers, and unions' `is` with the narrowing it allows (see
+   docs/spec/expressions.md). */
 #include "compiler.h"
 #ifndef rio_NO_COMPILER
 

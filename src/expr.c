@@ -1,6 +1,7 @@
 /* expr.c - the expression parser: shunting-yard, with a value stack (rio_Expr) and an operator stack
    (rio_PendingOp) that also holds open brackets: calls, struct literals and indexing. Code is emitted
-   as operators reduce, so values are usually already in slots by the time they're used. */
+   as operators reduce, so values are usually already in slots by the time they're used. What they
+   mean: docs/spec/expressions.md. */
 #include "compiler.h"
 #ifndef rio_NO_COMPILER
 

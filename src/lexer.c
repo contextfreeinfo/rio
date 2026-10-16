@@ -1,4 +1,5 @@
-/* lexer.c - turning source text into tokens, and reporting compile errors. */
+/* lexer.c - turning source text into tokens, and reporting compile errors. The rules for tokens:
+   docs/spec/lexical.md. */
 #include "compiler.h"
 #ifndef rio_NO_COMPILER
 
@@ -81,6 +82,9 @@ static int rio_digitValue(int c, int base) { /* -1: not a digit of this base */
   return v < base ? v : -1;
 }
 
+/* the escapes (docs/spec/lexical.md): \n \t \r \0, and \\ \" \' for the character itself */
+static const char rio_msgUnknownEscape[] = "unknown escape (these work: \\n \\t \\r \\0 \\\\ \\\" \\')";
+static int rio_isEscape(int c) { return c && strchr("ntr0\\\"'", c) != 0; }
 int rio_escapeChar(int c) { return c == 'n' ? '\n' : c == 't' ? '\t' : c == 'r' ? '\r' : c == '0' ? 0 : c; }
 
 /* an error in the token being lexed: there, and the token reads as the end */
@@ -214,7 +218,12 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
     return;
   } else if (*p == '"') { /* the text is between the quotes, escapes and all */
     for (s = ++p; p < e && *p != '"'; p++) {
-      if (*p == '\\') p++;
+      if (*p == '\\' && ++p < e && !rio_isEscape(*p)) {
+        rio_failAt(vm, c->line, (int)(p - 1 - c->lineStart) + 1, 2, rio_msgUnknownEscape);
+        t->kind = rio_Tok_eof;
+        t->len = 0;
+        return;
+      }
       if (p < e && *p == '\n') {
         c->line++;
         c->lineStart = p + 1;
@@ -233,7 +242,10 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
   } else if (*p == '\'') { /* a character: its code, as an Int */
     int ch = p + 1 < e ? p[1] : 0;
     p += 2;
-    if (ch == '\\' && p < e) ch = rio_escapeChar(*p++);
+    if (ch == '\\' && p < e) {
+      if (!rio_isEscape(*p)) rio_TOKEN_FAIL(rio_msgUnknownEscape);
+      ch = rio_escapeChar(*p++);
+    }
     if (p >= e || *p != '\'') rio_LEX_FAIL("bad char literal");
     p++;
     t->kind = rio_Tok_int;

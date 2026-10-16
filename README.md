@@ -1,621 +1,70 @@
-# rio
+# Rio
 
-Disclaimer: Claude Code produced almost every line of code so far, under my
-direction.
+Disclaimer: Claude Code produced almost every line of code so far, under my direction.
 
-A tiny, statically typed, embeddable scripting language. It's written in C99: a VM, a single-pass compiler, and an optional C backend (see [Layout](#layout)).
+Rio is a small, statically typed scripting language for embedding, from desktop apps down to
+microcontrollers. It's one C99 library, a compiler and a VM, that runs in a single block of memory you
+hand it, and never allocates any more.
 
-- Odin-like syntax, with blocks closed by `end`
-- Static types, inferred from the right-hand side
-- Types: `Int` (i32), `Float` (f32), `Bool`, `String`, `Blob`, structs, slices (`[]T`), fixed arrays (`[N]T`, stored as contiguous structs), and fixed-capacity lists (`[..N]T`)
-- **No dynamic allocation.** You give it one memory buffer (code and data share it, or the code can have its own); the compiler and VM never call `malloc`
-- **No recursion**, either in the implementation (the parser uses explicit stacks) or in the language. Because procs can't recurse, each proc gets one static frame, and bytecode operands are absolute slots, so there is no stack and no frame pointer
-- A register VM with typed opcodes, fused compare-and-branch, fused index+load/store, and bottom-tested loops. It uses computed goto on GCC/Clang and `switch` elsewhere
-- **Ahead-of-time compilation to C** (`rio -c out.c file.rio`) for scripts known at build time
-- **Images**: compiled programs saved as bytes and run by a VM-only build (about 11 KB on Cortex-M33, 13 KB of gzipped wasm)
-- No standard library: only math builtins and `log`. Anything else comes from the host through FFI
-
-## Build
-
-```
-cmake -S . -B build
-cmake --build build --config Release
-ctest --test-dir build -C Release
-build/rio tests/test.rio        # (build/Release/rio.exe with MSVC)
-build/rio                       # interactive REPL
-build/rio -L libs game.rio      # with packages from libs/
-```
-
-Prebuilt binaries for Linux, macOS and Windows: the
-[nightly](https://github.com/contextfreeinfo/rio/releases/tag/nightly) prerelease, rebuilt each night
-`main` changes (and on demand: Actions > ci > Run workflow), and releases for tags like `v0.1.0`.
-
-It needs only a C99 compiler and libm, and works on Linux, macOS and Windows.
-
-On Windows with Visual Studio, CMake uses the ClangCL toolset when it's installed (the "C++ Clang tools for Windows" component in the VS installer), because clang supports the faster computed-goto dispatch. Otherwise it falls back to MSVC with `switch` dispatch. `-T <toolset>` overrides this, `-DRIO_PREFER_CLANGCL=OFF` disables it, and an existing build directory keeps the toolset it was first configured with.
-
-## Language tour
-
-```ruby
-# constants (folded at compile time)
-N :: 1000
-GRAVITY :: 9.8
-NAME :: "rio"
-
-# structs: fields are laid out contiguously
-Vec :: struct
-  x, y: Float
+```rio
+Ball :: struct
+  x, y, vy: Float
 end
-Particle :: struct
-  pos, vel: Vec
-  life: Int
-  tag: Blob[8]          # inline 8 bytes
+balls: [..64]Ball
+
+drop :: proc(x: Float)
+  balls.push({x, y = 0})
 end
 
-parts: [N]Particle      # global storage: one contiguous block
-count := 0              # inferred Int
-ready := false          # Bool
-scale : Float = 2       # Int literal coerces to Float
-mask := 0xFF_00         # hex and binary (0b1010), with _ between digits anywhere: 1_000_000
-
-# procs: must be defined before use, so recursion is impossible
-step :: proc(ps: []Particle, dt: Float)
-  for p in ps                     # p is the element itself: changes stick
-    p.vel.y -= GRAVITY * dt
-    p.pos.x += p.vel.x * dt
-    p.pos.y += p.vel.y * dt
+update* :: proc(dt: Float)
+  for b in balls              # b is the element itself
+    b.vy += 10 * dt
+    b.y += b.vy * dt
   end
 end
 
-length :: proc(v: Vec) -> Float
-  return sqrt(v.x * v.x + v.y * v.y)
+drop(1)
+drop(2)
+for i in 0..<4
+  update(0.5)
 end
-
-main :: proc()
-  for i in 0..<N
-    parts[i] = {pos = {x = i.toFloat(), y = 0}, vel = {x = 1, y = 0}, life = 100}
-  end
-  step(parts, 0.016)              # [N]T converts to []T
-  step(parts[10:20], 0.016)       # sub-slice (bounds-checked)
-  log("speed", length(parts[0].vel), "name", NAME)
-
-  i := 0
-  for i < 10                      # while
-    i += 3
-  end
-  for p, k in parts[:3]           # with an index
-    log(k, p.life)
-  end
-  for                             # infinite loop
-    break
-  end
-  rows: for y in 0..<8            # a label: break rows / continue rows reach this loop
-    for x in 0..<8
-      if x > y
-        continue rows
-      end
-    end
-  end
-  if i > 10 and count == 0
-    log("big")
-  else if i == 10
-    log("ten")
-  else
-    log("small")
-  end
-end
+log("fell", balls[0].y, "with", balls.len(), "balls")
 ```
 
-The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
-
-**Rules that keep it small and safe**
-
-- Values are copied: assigning, passing or returning a struct or a fixed-size array copies it, and `x := v` makes a copy. Slices are views (address, length). `[]T` makes a view of an array, written as `x: []T = arr` or `arr[:]`, or done for you when you pass an array to a `[]T` parameter.
-- Copies you don't spell out are limited to 16 words (64 bytes), which covers vectors, colors, 4x4 matrices and most structs. For a bigger value, `x := big` is an error: write the type to copy it on purpose (`x: [100]Int = big`), or take a view (`big[:]`) or a reference (`&big`). Big values are passed as `&T` or `[]T` and can't be returned; fill in a `&T` parameter instead. Plain assignment `b = a` copies at any size. Building a new value is always fine: `b := Big{}`.
-- A proc can't return a view (slice, `String`, `Blob` or builder) of its own local memory, or store one where it outlives the call (in a global or through a `&` parameter): the next call rewrites that memory, so the view would silently change. That's a compile error; make the memory global, or have the caller pass it in (`label :: proc(out: Blob[..], id: Int)`). Views of globals and parameters are fine, and so is passing a local view down to another proc. Views that arrive as parameters aren't tracked, so this catches the direct mistakes rather than every one. It's never a memory-safety issue: a local array or buffer keeps its memory for good once something views it.
-- To let a proc change the caller's value, give it a `&` parameter and pass `&place`: `collide :: proc(a: &Body, b: &Body)`, called as `collide(&bs[i], &bs[j])`. A place is a variable, field or element that can be changed (not a constant, a `String`'s bytes or a call's result). The parameter *is* that place, the way `self` is in a method. `e := &enemies[k]` binds a local name to a place the same way: one bounds check, then `e.hp -= 1` changes the enemy, and `e = {...}` writes it. A reference is bound once and can't be stored, returned or put in a struct, so it can never outlive what it points at; `c := e` copies the value. `&` is about changing things, not speed: in the VM each field read through a reference is an extra load, so small structs are cheaper to pass by value.
-- Struct literals name their fields: `Vec{x = 1, y = 2}`. Order doesn't matter, fields you leave out are zero (`Vec{}` is all zeros), and a trailing comma is fine. There is no positional form; write a small proc like `vec :: proc(x: Float, y: Float) -> Vec` if you want one.
-- When the struct type is already decided by where the value goes, leave the type off: `v: Vec = {x = 1}`, `p.vel = {y = 2}`, `dot({x = 1}, {y = 1})`, `return {x = x}`, `Particle{pos = {x = 3}}`, `ships.push({hp = 3})`. Where nothing decides it (`v := {x = 1}`), write `Type{...}`.
-- A name or dotted path can stand in for a field of the same name: `{x, y}` means `{x = x, y = y}`, and `{src.pos, self.hp, life = 3}` means `{pos = src.pos, hp = self.hp, life = 3}`, so the last name in the path picks the field. Anything else, such as `xs[i]`, a call or arithmetic, needs `field = value`.
-- Destructuring pulls fields out into new variables: `{q, r} := divmod(17, 5)`, `{x as px, y} := ship.pos`. `as` renames. You can take just the fields you need, in any order, and the value is evaluated once. The new variables are copies, so changing them doesn't change the struct. Patterns are one level deep; for nested fields, destructure again (`{pos} := ship`, then `{x, y} := pos`). Small structs used this way stand in for tuples and multiple return values. (`as` only has this meaning inside a pattern, and is an ordinary name everywhere else.)
-- A `String` is a read-only byte view. A `Blob` is a writable byte view, and `b.asString()` views a `Blob`'s bytes as a `String` (no copy).
-- A struct or array that contains slices or strings must be a **global**. It can't be a local, a parameter, or a return value. Slices themselves can be locals and parameters.
-- `for x in xs` loops over an array, slice, list, `String` or `Blob`, and `for x, i in xs` adds the index. `x` is the element itself, not a copy (like `self` in a method), so `x.hp -= 1` changes the element, and nothing is bounds-checked inside the loop. It's read-only when `xs` is (a `String`). A list loops over the elements it had when the loop started; to remove while looping, count down with an index.
-- Arrays of `Int` or `Float`, and structs whose fields are all one of those (like `Vec :: struct` with `x, y: Float`), do arithmetic element by element: `a + b`, `v * 2.0`, `1.0 - v`, `-v`, and `%` for Int. Both sides must be the same type, or one side a plain number, which is used for every element. Nesting counts: `[3][3]Float`, `[4]Vec` and a struct of `Vec`s work too. `p.pos += p.vel * dt` changes `p.pos` in place, and that works at any size. A result that needs a temporary (`c := a + b`) is limited to 16 numbers, so update bigger arrays in place. A computed array has no home, so to slice it or loop over it, store it in a variable first. Each operation is one VM instruction over all the numbers.
-- Arrays of 1 to 4 numbers or Bools have swizzles: `.x .y .z .w` or `.r .g .b .a`. One letter is that element, so `v.x = 1` and `c.a += 8` work. Two to four letters make a new read-only array from those elements: `v.yx`, `c.bgra`, `v.xxyy`, `p.pos += p.vel.yx * 2.0`. Structs don't swizzle, since their fields already have names.
-- Every index and slice is bounds-checked at runtime. Integer arithmetic wraps, and integer division by zero is a runtime error.
-- There are no implicit conversions between `Int` and `Float` except for literals. Convert with `x.toFloat()` and `x.toInt()` (which truncates). Conversions are methods, so they show up with the rest after `x.`; `to` makes a new value, `as` views the same data.
-- `Bool` is its own type. Comparisons and `not and or` produce `Bool`, and `if`/`for` conditions must be `Bool` (`if n` is an error; write `if n != 0`). `true` and `false` are literals, and `b.toInt()` (gives 0 or 1) and `n.toBool()` (`n != 0`) convert between the two.
-- Comments start with `#` and run to the end of the line, so a `#!` line at the top of a file works too. `@` starts annotations on declarations: for now only `@host` ([below](#host-procs-and-host)).
-- Statements end at a newline (`;` also works). Inside brackets, an expression can span several lines.
-
-**Operators:** `+ - * / % & | ^ << >> == != < <= > >= and or not ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`. The logical ones are words, as in Python, and bind like Python's: `or` loosest, then `and`, then `not`, then comparisons, so `not a == b` means `not (a == b)`. `&&`, `||` and `!` are errors that say which word to write; `!=` stays.
-
-**Builtins:** `log(...)`, `min`, `max`, `abs`, `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `pow`, `fmod`, `floor`, `ceil` and `round`, `assert(cond)` or `assert(cond, "why")` (a runtime error at that line when `cond` is false), `hexBlob("...")` (below), plus the list methods below. Every sequence (array, slice, list, String, Blob) has `x.len()` and `x.cap()`.
-
-**Binary data:** `hexBlob("00 7f 80 ff")` is the bytes those hex digits spell, decoded while compiling, as a writable `Blob` (spaces and line breaks between the digits are fine; anything else, or an odd number of digits, is a compile error). It takes only a literal, and the bytes are stored once, where the program's strings go: a call gives the same bytes each time it runs, like a global.
-
-## Lists and text builders
-
-A list has a fixed capacity and a current length, with no allocation. `[..N]T` is the storage, and `[..]T` is a view of one, the way `[N]T` relates to `[]T`:
-
-| | storage (owns memory) | view (what procs take) |
-|---|---|---|
-| fixed length | `[N]T` | `[]T` |
-| growable up to a limit | `[..N]T` | `[..]T` |
-| bytes | `Blob[N]` / `Blob[..N]` | `Blob` / `Blob[..]` |
-
-```ruby
-Enemy :: struct
-  x, hp: Int
-end
-enemies: [..64]Enemy                     # up to 64; starts empty
-
-spawn :: proc(list: [..]Enemy, x: Int) -> Bool
-  return list.push({x = x, hp = 3})        # false when full
-end
-for i in 0..<3
-  spawn(enemies, i * 10)                 # the view appends to the caller's list
-end
-
-for e in enemies                         # the live elements
-  e.hp -= 1
-end
-enemies[0].hp = 5                        # indexing is checked against the current length
-enemies.swapRemove(0)                   # O(1): the last element takes its place
-enemies.remove(0)                       # keeps order, O(n)
-e := enemies.pop()
-step(enemies[:])                         # [:] is a []Enemy of the live elements
-enemies.clear()
-
-enemies.pushAll(wave[:])                # many at once: a slice, array or list
-
-title: Blob[..32]                        # a Blob list is a text builder
-title.format("score: ", 42, " x", 1.5)  # appends values as text; all or nothing
-title.push('!')                         # push is always one element: here, one byte
-draw(title[:].asString())
-
-hits: [16]Int
-found: [..]Int = hits                    # a builder over an array: starts empty, fills hits
-found.push(7)
-line: Blob[..] = screen[row * 40:(row + 1) * 40]   # or over part of a bigger buffer
-line.format("hp ", hp)
+```output
+fell 25.0 with 2 balls
 ```
 
-- **Methods:** `xs.push(x) -> Bool` (one element), `xs.pushAll(ys) -> Bool` (every element of a slice, array or list with the same element type; a `String` works for Blob lists), `xs.pop()`, `xs.clear()`, `xs.remove(i)` and `xs.swapRemove(i)`. `xs.len()` and `xs.cap()` work on every kind of sequence: arrays, slices, lists, Strings and Blobs. A push that doesn't fit changes nothing and returns `false`; popping an empty list or removing past the end is a runtime error.
-- **Text:** `b.format(...) -> Bool` appends Strings, Blobs, Ints, Floats and Bools to the end of a Blob list as text, formatted like `log` but without spaces between arguments. There is no template string: the arguments are the pieces, in order. If any of it doesn't fit, the list is left as it was. `b.push(x)` on a Blob list adds the single byte `x`, just as on any other list.
-- **Builders share the length:** a `[..]T` is a view of a length word and the memory it counts (three words: where the length lives, where the data starts, the capacity). For a list, that's the list's own length word, so pushing through any view changes the one real list. Assigning a list or builder with `:=` also makes a view; use `[..N]T` explicitly for a separate copy.
-- **A builder over any array or slice:** `b: [..]T = arr` (or `= arr[a:b]`, or a Blob for `Blob[..]`) builds into that memory, starting empty, up to its length. Its length lives in a hidden word right after `b`, so copies of `b` and procs it's passed to share it. Only a declaration can do this, because the length needs a home: passing an array straight to a `[..]T` parameter is an error. A builder can't be made over read-only data such as a `String`.
-- **Storage rules match arrays:** `[..N]T` can't be a parameter or result (pass `[..]T`), it can be a struct field (inline), and like slices a `[..]T` can be stored in a struct only if the struct is global.
-- **Layout:** a 4-byte length followed by the N elements, contiguous like everything else.
+- **Fast and small.** A register VM with typed instructions, about 2–4× faster than Lua. The VM alone
+  is about 11 KB of ARM code; with the compiler, 68 KB.
+- **Predictable.** No garbage collector, no allocation, and no recursion, so every proc has one fixed
+  frame and a program's memory is known before it runs. Indexes are checked and integers wrap, so
+  errors stop with a line number, never with undefined behavior.
+- **Made for hosts.** The host provides drawing, sound or files as host procs, declared in Rio with
+  `@host` and checked by the compiler. Compiled programs can be saved as images, or turned into C.
+- **Friendly to read.** Types are inferred, blocks end with `end`, and structs, lists and text builders
+  are plain values with no pointers to manage.
 
-## Methods
+## Try it
 
-A method is a proc declared on a type with `Type.name`. Inside it, `self` is the value it was called on:
-
-```ruby
-Ship :: struct
-  x, vx: Float
-  hp: Int
-end
-Ship.move :: proc(dt: Float)
-  self.x += self.vx * dt
-end
-Ship.hurt :: proc(n: Int) -> Bool
-  self.hp -= n
-  return self.hp <= 0
-end
-
-fleet[i].move(dt)                # updates fleet[i] itself
-if boss.hurt(3)
-  log("boss down")
-end
-Int.double :: proc() -> Int      # methods work on Int, Float, Bool, String and Blob too
-  return self * 2
-end
+```sh
+cmake -S . -B build && cmake --build build --config Release
+build/rio game.rio       # run a file (build/Release/rio.exe with MSVC)
+build/rio                # or a REPL
 ```
 
-- **Struct receivers are passed by reference,** so `self.hp -= n` changes the real ship. `self = Ship{...}` replaces it. For `Int`, `Float`, `Bool`, `String` and `Blob` receivers, `self` is a copy.
-- **Names are per type:** `Ship.update`, `Bullet.update` and a plain `update` proc can all coexist. There's no other overloading.
-- **One way to call:** `x.name(...)`, with the parentheses required. Fields are always `self.x`; a bare `x` inside a method is never the field, so globals stay unambiguous.
-- **Rules:** like procs, methods are declared before use and can't recurse. A method can't share its name with one of its type's fields.
-- **List methods:** list operations use the same syntax: `xs.push(e)`, `xs.pop()`, `b.format(...)`.
+Or get a build from the [nightly release](https://github.com/contextfreeinfo/rio/releases/tag/nightly).
 
-## Enums, unions and switch
+## Learn more
 
-An enum is its own type, stored as an Int. A union is a named list of types, and holds a value of one of them. `switch` picks a case by value or by type.
+- [Tutorial](docs/tutorial/README.md): Rio by example, a page at a time.
+- [Spec](docs/spec/README.md): what Rio programs mean, mostly as examples, which the tests run.
+- [Guide](docs/guide/README.md): the C library and CLI: embedding, memory, images, C output, ARM, and
+  performance.
 
-```ruby
-Dir :: enum
-  north, east, south, west
-end
-Tile :: enum
-  nil                              # nil first: the zero means "nothing chosen"
-  wall = 3                         # explicit values are fine; the next is one more
-  water
-end
-
-d: Dir                             # .north: a new variable is the first value listed
-d = .south                         # .value where the type is known (also Dir.south)
-n := d.toInt()                     # 2
-d = Dir.fromInt(n)                 # checked: a runtime error if n isn't one of Dir's values
-if Dir.has(n) ...                  # the check on its own
-log(d)                             # prints south
-
-Circle :: struct
-  r: Float
-end
-Rect :: struct
-  w, h: Float
-end
-Shape :: union
-  nil                              # optional: an empty union, and the zero value
-  Circle, Rect
-end
-
-s: Shape = Circle{r = 2}           # a value of one of its types goes straight in
-if s is Rect
-  log(s.w)                         # inside, s is the Rect
-end
-switch s
-case Circle
-  log(s.r)                         # inside a one-type case, s is that type
-case Rect
-  s = Circle{r = s.w}              # assigning replaces the whole union (s is the union again)
-case nil
-end
-
-switch n % 3
-case 0
-  log("zero")
-case 1, 2
-  log("other")
-end
-```
-
-- **Enums** compare with `==` and `!=`. `for d in Dir` visits the values in the order listed (`for d, i in Dir` adds the index), and `log` and `b.format(...)` write the value's name. Their values are written `.camelCase`; `Dir.north` works anywhere and `.north` wherever the enum is known (a declaration, assignment, argument, field, return, comparison or `case`). Some value must be 0, since that's what new variables and array elements start as; listing `nil` first gives an explicit "nothing". Values may have gaps, and they increase down the list, so the order you list them is the order of their values.
-- **Arrays indexed by an enum:** `counts: [Dir]Int` has one element per value, indexed by the enum itself: `counts[.east] += 1`, and `for n, d in counts` gives each value `d`. The enum's values must be exactly 0, 1, 2� (the default numbering), so `d.toInt()` is `d`'s element and none are wasted. An enum with gaps or other values can't index an array: use one numbered from 0, or a `switch`. Slices of it take the enum's values as bounds, with the end not included like any slice: `counts[.east:]`, `counts[:.west]`, `counts[:]`. The result is a plain `[]Int` counted from 0, say to pass to a proc taking `[]Int`.
-- **Unions** hold a tag (which type) plus room for the biggest type, so every value takes the size of the largest. Types that differ in size by more than 64 bytes are an error, since an array of the union would waste the difference in every element: keep the big data elsewhere (say, a global array, holding its index in the union), or mark the union `union @diverse` if you mean it. Unions holding slices or Strings must be global, like structs.
-- **Reaching a union's value:** only where its type is known, as a copy taken there: in a `case` naming one type, or inside an `if` whose condition has `s is T` as one of its `and`-joined parts (`if hit and s is Rect`; not under `or` or `not`). The copy can't be changed (that would quietly change nothing); assign the whole union instead, after which the name means the union again for the rest of the block. For something other than a plain variable, name it: `switch c := e.shape`.
-- **`switch`** works on Ints, enums and unions. Each `case` lists one or more constant values (or types), there's no fallthrough, and `else` handles everything else. Without an `else`, a switch on an enum or union must cover every value or type (including `nil`), which is checked when compiling. `break` and `continue` belong to loops, not switches.
-- **Enums and unions** are declared in block form, at the top level, and can be exported (`Dir* :: enum`) and used from other modules (`m.Dir.north`, or `.north` where the type is known).
-
-## Proc values
-
-A proc can be passed to a proc, stored in a variable or a struct field, and called through it:
-
-```ruby
-Mob :: struct
-  name, score: Int
-end
-byScore :: proc(a: Mob, b: Mob) -> Bool
-  return a.score < b.score
-end
-sortMobs :: proc(xs: []Mob, less: proc(Mob, Mob) -> Bool)
-  for i in 1..<xs.len()            # a stable insertion sort
-    x := xs[i]
-    j := i
-    for j > 0 and less(x, xs[j - 1])
-      xs[j] = xs[j - 1]
-      j -= 1
-    end
-    xs[j] = x
-  end
-end
-sortMobs(mobs[:], byScore)
-f := byScore                       # f: proc(Mob, Mob) -> Bool
-```
-
-- **Types** are written `proc(T, U) -> R` (or without `-> R`); parameter names are allowed for reading, `proc(a: Mob, b: Mob) -> Bool`. A proc name becomes a value wherever a proc type is expected, and its parameters and result must match exactly.
-- **Still no recursion.** A proc that calls through a proc value (itself, or through procs it calls) can't be a value, so a call through a value can never come back around. Sorting, callbacks and event handlers fit: the comparison or handler is an ordinary proc. A proc value can't capture variables (there's nowhere to keep them), and procs with `&` parameters can't be values.
-- **Calling a proc value that was never set** is a runtime error. Proc types can't take or return procs, and there are no arrays of them yet.
-
-## Modules
-
-Every file is a module. Nothing is visible outside it unless its name ends in `*`:
-
-```ruby
-# geo.rio
-Vec* :: struct              # exported
-  x, y: Float
-end
-Vec.len2* :: proc() -> Float
-  return sq(self.x) + sq(self.y)
-end
-sq :: proc(v: Float) -> Float   # private to geo.rio
-  return v * v
-end
-count* := 0
-```
-
-```ruby
-# game.rio
-import .geo                       # local: geo.rio next to this file
-import .ui.button as btn          # ui/button.rio, renamed
-import tween                      # a package, from the library paths (-L)
-import tween.{ease, lerp as mix}  # or bring in just some names
-import .geo.{Vec}
-include "parts/hud.rio"          # a file that's part of this module
-
-v := geo.Vec{x = 3, y = 4}
-v.len2()                          # exported methods come along with their type
-w: Vec = {y = 1}
-geo.count += 1
-```
-
-- **Local or package:** a leading `.` means local, relative to the importing file and only downward, so every directory is a relocatable package and git submodules just work. A plain name is a package from the library paths: with `rio -L libs`, everything directly under `libs/` is a package root (`libs/name.rio`, or `libs/name/` with entry file `libs/name/name.rio`). If a name exists in two library paths, that's an error rather than a silent pick.
-- **Directories:** a directory is a module through its entry file: `import .shapes` loads `shapes/shapes.rio`, and that file's own `import .circle` means `shapes/circle.rio`.
-- **Using names:** at use sites names are always plain (`geo.Vec`, `btn.press()`), working in expressions, struct literals and type positions. Methods aren't imported by name; exported ones travel with their type.
-- **A package's root decides what outsiders see.** Its submodules are private unless the root publishes them with `import .easing*`. Then `import tween.easing` works, and `import tween.curves` gives "that package doesn't publish curves". Inside your own code, local imports can reach anything downward.
-- **Exporting someone else's name is an explicit alias:** `Sprite* :: gfx.Sprite`. The same `::` aliases types, procs and modules privately too (`Btn :: ui.button.Button`). There's no bulk re-export: each exported name has one home, so a library's API can't silently grow with someone else's.
-- **`include "file.rio"` makes another file part of the current module:** same names, private ones included, with no `*` needed between the parts. It's always relative to the including file and downward, and each file can be included once. Use it to split a big module or to assemble a package from parts. Parts are compiled in include order, so declare-before-use still applies across them.
-- **Compilation and init order:** each module is compiled once, at its first `import`, and its top-level code runs then, so modules initialize in import order. Their globals are shared by everyone who imports them. Importing a file that's still being compiled is an `import cycle` error. Imports go at the top level.
-- **Errors:** they name the module's file (`rio_errorInfo(vm).file`, `NULL` for the main source), and the CLI prints `geo.rio:3:5: ...`.
-- **Hosts supply the files:** `rio_setLoader(vm, fn, ud)` gets a module path like `"ui/button"` or an include like `"parts/hud.rio"`, flagged as local or package, and returns the source text, so the core never touches a filesystem. On a console it can read the SD card; in tests, a table of strings.
-
-## Host procs and `@host`
-
-What the host provides can be declared in rio with `@host`, and each declaration is checked against the real thing:
-
-```ruby
-# pc.rio: the host's procs, written out
-cls* :: @host proc(color: Int)
-pset* :: @host proc(x, y, color: Int)
-btn* :: @host proc(b: Int) -> Bool
-```
-
-- **Host procs in modules:** `rio_addFfi(vm, "pc.cls", "i", fn)` puts `cls` in module `pc` instead of among the global names, so `import pc` gives `pc.cls(0)` (and `import pc.{cls}` works too). If the loader has a source for `pc`, that's the module: each `@host proc` there must have exactly the registered types, and every `pc.*` proc must be declared, so the file is a checked definition of the host's API. If the loader has no `pc`, the module is made straight from the registrations, with nothing to parse, so a host can keep its `.rio` definition for docs and tests without shipping it.
-- **Auto-imports:** `rio_autoImport(vm, "pc")` makes `pc` visible everywhere, as if every module imported it. It's always made from the registrations (so it's ready at the start of a REPL too); a test checks the source by compiling `import pc` without the auto-import. A plain name (`rio_addFfi(vm, "rand", ...)`) is still global, and a module can declare it too.
-- **Declarations** are proc types, as for proc values (parameter names are for reading, and group as in definitions: `proc(x, y: Int)`), so `@host` doesn't change how anything else parses. `Name* :: @host struct` declares a builtin type. Methods go on a named type (`Int.toFloat* :: @host proc() -> Float`) or, for types without a name, in parentheses: `(Blob[..]).push* :: @host proc(byte: Int) -> Bool`. Declarations go at the top level, and `*` exports them as usual.
-- **Builtins** are declared the same way, checked by compiling a call with the declared types: `sqrt* :: @host proc(x: Float) -> Float`. [`src/core.rio`](src/core.rio) declares all of them. Programs never import it, since the builtins are always there, but the tests compile it, so it can't drift from the compiler. Builtins that need generics (`log`, `format`, and the list and enum methods for any element type) are written there in comments, in a pretend syntax, until rio has generics.
-- **Annotations:** `@host` is the only one for now; any other is an error.
-
-## Compile-time defines (`-D`)
-
-Like `gcc -D`, you can set top-level constants from outside the script:
-
-```ruby
-N :: 1000          # defaults, used when nothing is passed
-SCALE :: 1.5
-NAME :: "rio"
-DEBUG :: false
-```
-
-```
-rio -D N=20 -D SCALE=3 -D NAME=custom -D DEBUG game.rio
-rio -c game.c -D N=20 game.rio          # works for the C backend too
-```
-
-- The value is parsed as the declared constant's type: `-D SCALE=3` gives `3.0`, `-D N=0x10` works for an `Int`, and a `Bool` accepts `true`/`false`/`0`/`1`. A bare `-D DEBUG` means `true`. Strings take the text as-is (surrounding quotes are optional).
-- A define the script never declares is still usable, with its type inferred from the text (`7` → `Int`, `6.28` → `Float`, `true` or bare → `Bool`, anything else → `String`). The script then won't compile without it, just as in C.
-- Only top-level `::` constants are overridden. A value that doesn't fit the declared type is a compile error, e.g. `-D N: value doesn't fit Int`.
-- From C, call `rio_define(vm, "N", "20")` before `rio_compile`.
-
-## Embedding
-
-```c
-#include "rio.h"
-static uint8_t mem[1 << 20];          // the program's code and data, and the compiler's working memory while compiling
-static rio_Vm vm;                     // runtime state (~1-12 KB depending on limits)
-
-static void host_print(void *ud, const char *s, int n) { fwrite(s, 1, n, stdout); putchar('\n'); }
-static void host_rand(rio_Vm *vm, rio_Val *a) { a[0].i = rand(); }  // args in a[], result to a[0]
-
-rio_init(&vm, mem, sizeof mem, NULL, 0);   // or a separate code buffer: code, its capacity (max 65535)
-rio_setLog(&vm, host_print, NULL);
-rio_addFfi(&vm, "rand", ">i", host_rand); // sig: i f s b params, '>' result
-rio_define(&vm, "LEVEL", "3");             // optional: like -D LEVEL=3
-if (rio_compile(&vm, src, len) || rio_run(&vm)) puts(rio_error(&vm));
-
-int f = rio_findProc(&vm, "update");       // procs and globals the host uses are marked: update* :: proc(dt: Float)
-rio_procArgs(&vm, f)[0].f = 0.016f;        // params are consecutive words (slices 2, structs n)
-rio_call(&vm, f);
-float r = rio_procResult(&vm, f)->f;       // if it returns something
-int *score = rio_findGlobal(&vm, "score"); // direct access to globals (score* := 0)
-```
-
-`String` or `Blob` FFI arguments take two words (address, length); use `rio_sliceBytes(vm, &a[i])` to get the bytes. An FFI function can abort the script with `rio_trap(vm, "msg")`. FFI functions must not call back into the VM.
-
-The compiler's capacities (symbols, procs, constants and so on) are chosen per compile from the memory available; see [Memory and microcontrollers](#memory-and-microcontrollers).
-
-**Code lives in `mem` too,** unless you pass a code buffer. While compiling, it grows in the compiler's working memory (a quarter of it by default, `rio_Limits.code`), and when compiling ends it moves to just below the strings and tables at the top of memory, taking exactly its own size (8 bytes an instruction). So one buffer is the whole budget, split between code and data however each program needs. A separate buffer suits a host that wants the code elsewhere, such as in other memory. A REPL with the code in `mem` keeps a quarter of it for code for the whole session.
-
-### REPL and break
-
-```
-> x := 6 * 7
-> x
-42
-> sq :: proc(n: Int) -> Int
-.   return n * n
-. end
-> sq(x)
-1764
-```
-
-Run `rio` with no file for a REPL. Globals, procs, types and methods carry over from one input to the next, and a bare expression prints its value. An unfinished input (an open block, bracket or string) gets a `.` prompt for more, as wide as `>` so the lines line up; a blank line drops it. Hosts that echo what's typed themselves can indent each next line for you: `rio_replIndent` says how far (a step for each open block or bracket), and `rio_replOutdent` which first words (`end`, `else`, `case`) go a step back out (Rim's REPL does both). A compile error leaves the session exactly as it was. Ctrl-C stops a running program, in the REPL or when running a file. For line editing and history, Windows' console already provides them; on Linux and macOS use `rlwrap rio`.
-
-The same session is available to hosts, for example a console's boot prompt:
-
-```c
-rio_replBegin(&vm, scratch, sizeof scratch, NULL); // limits scaled to the scratch buffer
-switch (rio_replEval(&vm, text, len)) {            // compiles the text, then runs just that
-case rio_ReplResult_ok: break;                     // ran
-case rio_ReplResult_more: /* show a continuation prompt; call again with more text appended */ break;
-default: show(rio_error(&vm));                     // rio_ReplResult_error: compile errors undo themselves
-}
-```
-
-The compiler state stays in `scratch` for the whole session, so this is the one mode where its tables cost RAM permanently: 8 to 16 KB of scratch gives a comfortable REPL (see the limits table below). Each input's strings move into `mem` once it compiles. Runtime errors report lines within the input that defined the code.
-
-`rio_interrupt(vm)` stops a running script at its next loop iteration with the runtime error `interrupted`. It only sets a flag, so it's safe to call from a signal handler, a keyboard interrupt or the other core. The check sits on backward jumps, which every loop iteration takes, and costs nothing measurable. Code produced by `rio -c` isn't interruptible this way.
-
-### Errors
-
-`rio_error(vm)` is a ready-to-print string in compiler style: `"12:7: type mismatch"` for compile errors and `"40: runtime error: index out of bounds"` for runtime errors. The CLI prefixes the file name (`game.rio:12:7: ...`), which terminals and editors can turn into links. For an editor, use the structured form:
-
-```c
-rio_Error e = rio_errorInfo(&vm); // after a failed rio_compile / rio_run / rio_call
-// e.kind: rio_ErrorKind_compile or rio_ErrorKind_runtime
-// e.line, e.col: 1-based (0 = unknown); e.len: width of the offending token, for underlining
-// e.msg: the message without the position, e.g. "undefined name near 'nope'"
-```
-
-- Compile errors point at the token at fault. When an error is only detectable at the end of an expression (a type mismatch, say), they point at the expression's last token.
-- Runtime errors report the line, from a compact pc-to-line table built while compiling: one 4-byte entry per source line that produces code, about 10% of the bytecode size. Columns aren't tracked at runtime. `rio_pcLine(vm, pc)` exposes the same lookup.
-- A message from `rio_trap` in an FFI function becomes a runtime error at the line of the call.
-- Code from `rio -c` reports the same lines: it emits `#line` directives, so each runtime check knows its rio line.
-
-## Memory and microcontrollers
-
-The library has no static RAM of its own. Everything lives in three buffers you provide: `rio_Vm`, `mem` and `code`.
-
-**The compiler borrows script memory.** While compiling, the compiler writes only two things into `mem`: constants (at the bottom) and string literals. Proc frames, globals and arrays are just address ranges that stay zero until the program runs. So `rio_compile` puts its working state (symbol tables, expression stacks, the string pool) on top of those ranges. When it finishes, it packs frames and globals down to start right after the constants actually used (the room set aside for constants is only needed while compiling), lets procs that never run at the same time share frame memory, moves the strings, a small export table (for `rio_findProc`/`rio_findGlobal`) and the line table (packed to about a byte per line, read only when a runtime error needs a line number) to their final place, and zeroes the rest. Peak RAM is *max(compiling, running)*, not their sum.
-
-```
-compiling:  [consts][ compiler state + string pool ..................................]
-running:    [consts][ frames/globals | return stack ][ ... ][strings+exports][arrays ]
-```
-
-`rio_compileScratch` puts the compiler state in a separate buffer instead, which then stays readable after compiling. The C backend needs that.
-
-**Limits are chosen per compile.** The compiler's tables (symbols, names, types, fields, procs, params, constants, nesting depth) are carved out of its working memory at the start of each compile, not fixed when rio is built. By default they're scaled to the space available: `rio_compile` scales to `mem`, which it borrows anyway, so a cart compile gets generous limits for free; `rio_compileScratch` scales to the buffer you give it. For exact numbers, fill in a `rio_Limits` yourself:
-
-```c
-rio_Limits lim = rio_limitsFor(16 << 10);   // a starting point, scaled to 16 KB
-lim.procs = 64;                             // adjust what you need
-rio_compileWith(&vm, src, len, scratch, sizeof scratch, &lim);   // scratch NULL: overlay mem instead
-uint32_t need = rio_limitsSize(&lim);       // bytes those tables take (strings need some on top)
-```
-
-`rio_limitsFor(n)` sizes the tables to about 60% of `n` and leaves the rest for string literals. Running out of anything is a clean compile error ("too many symbols", "scratch too small for these limits", "not enough memory for the compiler"). The constants limit is only room while compiling: a running program keeps just the constants it uses.
-
-**The host finds only what's marked.** `rio_findProc` and `rio_findGlobal` can look up `main` and the main file's names marked with `*`, as in `update* :: proc()` or `score* := 0`, the same mark modules use for their exports. Each findable name costs a 12-byte entry plus the name, so leaving the rest out keeps the table small. Build with `-Drio_EXPORTS_ALL` (CMake: `-DRIO_EXPORTS_ALL=ON`) to make every top-level proc and global findable instead, for example in a debugger or tooling host.
-
-| budget | symbols | procs | constants | tables |
-|---|---|---|---|---|
-| 8 KB | 64 | 16 | 128 | 5.6 KB |
-| 16 KB | 144 | 36 | 288 | 8.7 KB |
-| 64 KB | 698 | 174 | 1,396 | 33.9 KB |
-| 512 KB | 6,044 | 1,511 | 12,088 | 261 KB |
-
-**Measured** (the only build-time caps left are for things the host registers: `rio_MAX_FFI`, `rio_MAX_DEFINES`, and the log and error buffers; `-Drio_SMALL` shrinks those):
-
-| | 64-bit | 32-bit |
-|---|---|---|
-| `rio_Vm` (runtime state, `rio_SMALL`) | 968 B | 624 B |
-| smallest `mem` that compiles and runs a 64-ball physics demo | 6,570 B | 6,314 B |
-| smallest `mem` for the full test suite (~430 lines, automatic limits) | 30.6 KB | 30.2 KB |
-| bytecode | 8 B per instruction | same |
-| C stack while running | a few hundred bytes (return addresses live in `mem`) | same |
-
-On a Cortex-M33, the core compiles to about 68 KB of flash at `-Os` (clang), plus libm and `memcpy`/`memset` from your libc; the VM alone (see Images) is about 11 KB. The compiler doesn't use `setjmp`: an error makes the rest of the source read as its end, so it unwinds by returning, and the whole thing builds for plain wasm (compiler and VM: 112 KB, 46 KB gzipped). Peak memory comes from compiling; once running, a program needs only its constants, frames, globals, arrays and strings.
-
-**Frames are shared.** With no recursion, the compiler knows exactly which procs can be running at the same time: a proc and everything it can call. Procs that never run together share frame memory, so frames cost the heaviest chain of calls rather than the sum over all procs, and the return stack is sized by the longest chain. This happens once, when compiling finishes, and costs nothing at runtime. A proc keeps its own frame if any of its slots ever has its address taken (by `&`, a slice or view of a local array, a for-each over one, and so on): a view of that memory may outlive the call, so it must keep holding the same variable. Copying small structs and arrays between locals doesn't take addresses, so most procs share. Because of this sharing, rio can't be started again while it's running: `rio_run` and `rio_call` from inside an FFI function return an error.
-
-`rio -m game.rio` reports where a program's memory goes instead of running it: constants, globals, the shared frame area and the procs that keep their own frames, the call stack and the runtime tables (strings, exports, line table, proc table), then the biggest procs and the heaviest call chain.
-
-## Ahead-of-time compilation to C
-
-```
-rio -c game.c game.rio      # writes a standalone C program
-cc -O2 game.c -lm -o game   # any C99 compiler; MSVC works too
-```
-
-The output is one C file with no dependency on rio. Because rio has no recursion, each proc becomes a plain C function, and its frame slots become C locals unless their address is taken. Constants are written inline, and each bytecode op becomes one C statement. Globals, arrays and strings live in a static memory image identical to the VM's, so behavior is the same, including bounds checks and wrapping integer math. The C compiler then optimizes the result like any other C code.
-
-FFI functions are called as `void rio_ffi_<name>(rio_Val *a)` (a dotted name's dots become `_`: `rio_ffi_pc_cls`). The CLI includes definitions for its own `clock` and `putc`; for other FFI functions, link your own definitions (and build with `-Drio_NO_HOST_FFI` to drop the CLI's). ctest runs the full test suite both in the VM and compiled through C.
-
-## Images
-
-An image is a compiled program as bytes, ready to run: the bytecode, the constants, and the strings and tables that sit at the top of `mem` (everything else in memory starts as zero). A host can load one without the compiler, so it doesn't need the compiler's code, and loading is just copying.
-
-```
-rio -M 256K -i game.img game.rio   # compile for a vm with 256 KB of mem, save the image
-rio game.img                       # run an image (the CLI tells images from source by their first bytes)
-```
-
-```c
-uint32_t n = rio_saveImage(&vm, NULL, 0);    // after compiling, before running: the size
-rio_saveImage(&vm, buf, n);                  // returns n, or 0 if it doesn't fit
-
-rio_init(&vm2, mem, sizeof mem, NULL, 0);
-rio_addFfi(&vm2, "clock", ">f", host_clock); // the same ffi functions, in any order
-if (rio_loadImage(&vm2, buf, n) || rio_run(&vm2)) puts(rio_error(&vm2));
-```
-
-- **Memory addresses are absolute,** so compile for the memory the program will run in (`-M`, default 8 MB in the CLI) and load into at least that much. Code compiled into `mem` loads right back there; code compiled into a separate buffer needs a loading vm with one too.
-- **FFI functions are bound by name** at load, and their sigs must match. One the image names but the host lacks is fine unless the code calls it.
-- **Build with `-Drio_NO_COMPILER`** for a VM that only loads images: everything that compiles (and the REPL) is left out. On a Cortex-M33 at `-Os` that's about 11 KB of flash instead of 68 KB. As wasm (`zig cc -target wasm32-wasi -mexec-model=reactor -Os`), a minimal browser host comes to 28 KB, 13 KB gzipped, importing only a log function. `tests/vm.c` is such a host; ctest runs the test suite through it.
-- **Images are trusted like code:** the loader checks the header and sizes, but the VM doesn't check bytecode, so load only images you (or your compiler) made.
-- **The format isn't stable yet.** Images carry a version number, and a vm refuses other versions; for now, rebuild images along with rio. Little-endian hosts only.
-
-Runtime errors from an image report lines and module file names as usual; the main file has no name in the image, so a host names it.
-
-## Native loops on ARM
-
-On ARM with Thumb-2, such as the RP2350's Cortex-M33, `rio_jit(vm, buf, size)` turns on a small ahead-of-time compiler: from then on, everything that compiles or loads (whole programs, REPL pieces and images) also has its simple loops and procs compiled to machine code in `buf` before running. `buf` must be memory the CPU can run code from (any SRAM on the RP2350).
-
-- **Which loops:** ones made of integer and float math (including the math builtins), compares, branches (including nested loops, `break`, `continue` and labels, and `for` over arrays), array and field reads and writes, `log`, and calls to host (FFI) functions and to native procs. Others stay bytecode (calls through proc values, for one).
-- **Which procs:** whole procs made of the same things, except memory reads and writes (a proc that has them does better with only its loops compiled, as those keep values in registers). Native code calls a native proc directly; since rio has no recursion, each proc has one frame, so a call is just a branch. `sqrt`, `abs`, `floor` and `ceil` are single instructions (`floor` and `ceil` on ARMv8, such as the M33); the other math builtins and `log` call into C.
-- **Same behavior:** values stay in the VM's memory (a loop's busiest values and constants sit in registers while it runs), so the interpreter and native code mix freely. A runtime error inside a native loop (dividing by zero, an index out of bounds, an FFI function calling `rio_trap`) is reported by the VM with its line, as if the VM had run it, and `rio_interrupt` stops native loops and procs too.
-- **Measured** on the Fruit Jam at 252 MHz, native vs the VM: `for n < 10_000_000 / n += 1` 0.33 s vs 1.75 s; a million `n += i % 7` 0.09 s vs 0.28 s; 300,000 calls to a small proc 0.087 s vs 0.168 s; 500 particles (structs of floats) for 100 steps 0.015 s vs 0.042 s; filling the screen with `pset` 0.019 s vs 0.040 s; 100,000 `sin` calls 0.078 s vs 0.090 s (mostly `sin` itself).
-- **Size:** native code is about 4.3 times the bytecode it replaces, but only loops and qualifying procs get it (the 1,100-line test suite: 9.5 KB for 47 loops and procs). When `buf` runs out, the rest stays bytecode.
-- Elsewhere `rio_jit` returns -1 and nothing changes. `rio -j` uses it on ARM Linux, which is how it's tested (under `qemu-arm`, as ARMv7 and ARMv8: the test suite, `tests/jit.rio`, `tests/jit_bounds.rio`, `tests/jit_procs.rio` and the VM-vs-C differential tester all agree).
-
-## Performance
-
-These are from `bench/`, comparing against Lua 5.5 on the same Windows machine. Times are in seconds, best of 5.
-
-| benchmark | rio VM (clang, computed goto) | rio VM (MSVC, switch) | rio → C (clang -O2) | Lua 5.5 |
-|---|---|---|---|---|
-| loop: 100M int ops | 0.46 | 0.55–0.64 | 0.006 | 1.5–1.7 |
-| calls: 30M proc calls | 0.36 | 0.34 | 0.010 | 1.3–1.5 |
-| particles: 10k structs × 1000 steps | 0.28 | 0.39 | 0.014 | 0.9–1.0 |
-| sieve: 2M, ×10 | 0.48 | 0.49 | 0.14 | 1.4–1.6 |
-
-- **VM:** about 3–4× faster than Lua here. On Linux with a faster Lua build, particles measured 0.29s vs 0.59s, about 2×, so expect roughly 2–4× depending on the Lua build. The speed comes from static types (no tag checks), absolute-slot operands (static frames), constants preloaded in memory, compare-and-branch fusion, fused index+load/store, bottom-tested `while` loops, a dedicated `for` loop op, and destination retargeting that removes most moves.
-- **AOT:** sieve is about 3.5× faster than the VM. The other three run in milliseconds because the C compiler can see through those loops entirely (inlining, vectorizing, or folding them), so treat them as an upper bound rather than typical.
-- The particles sums differ from Lua only because rio's `Float` is f32: Lua with f32 rounding emulated gives the identical 43926.92.
-- `switch` dispatch on MSVC is sensitive to code layout. The same VM source has measured 0.34s or 0.65s on `calls` depending only on how unrelated code changes shifted the build. The cause hasn't been pinned down, so expect build-to-build variation with MSVC; ClangCL (see Build) avoids it.
-
-## Layout
-
-```
-src/rio.h          public API (+ the fixed-size state struct)
-src/internal.h     what rio's files share: the instruction set, symbol and type kinds, runtime tables
-the VM (all a host needs to run images):
-  src/vm.c         the interpreter
-  src/runtime.c    setting up a vm, finding procs and globals, errors, the line table
-  src/image.c      saving and loading images
-  src/common.c     number formatting, error messages, math builtins
-the compiler (single pass, no recursion; left out with rio_NO_COMPILER):
-  src/compiler.h   its state and tables, and what its files share
-  src/lexer.c      tokens, and reporting compile errors
-  src/tables.c     names, symbols, types and fields
-  src/codegen.c    emitting code; slots, constants and memory; moving values; peepholes
-  src/operators.c  unary and binary operators, element-by-element arithmetic, unions' `is`
-  src/expr.c       the expression parser (shunting-yard): calls, indexing, members, literals
-  src/builtins.c   log, math, assert, and the methods of sequences, lists, enums and numbers
-  src/decls.c      types as written; procs, methods, structs, unions, enums and variables
-  src/statements.c statements and their blocks: if, loops, switch, return, assignment
-  src/modules.c    import and include
-  src/host.c       @host declarations, checked; modules of host procs
-  src/compile.c    limits, setup, and finishing: frame sharing, the line table, final layout
-  src/repl.c       REPL sessions
-src/jit.c          native loops on ARM Thumb-2 (elsewhere, rio_jit does nothing)
-src/core.rio       the builtins, declared with @host (compiled by the tests, not by programs)
-src/aot.c          bytecode -> C translator (CLI only; not needed for embedding)
-src/main.c         CLI host (adds ffi: clock, putc; loads modules from files and -L paths)
-tests/             test suite (run by ctest, in the VM and compiled through C), plus error tests:
-                   errors.c checks kind/line/col/width/message for ~26 failing snippets
-bench/             rio vs lua benchmarks
-```
-
-Everything rio defines starts with `rio_`: functions are `rio_camelCase`, types `rio_PascalCase`, enum
-values `rio_EnumType_value`, and macros `rio_UPPER_CASE` (the CMake options keep CMake's `RIO_` style).
-`library.cmake` lists the sources (`RIO_VM_SOURCES`, `RIO_COMPILER_SOURCES`) for builds that pick them.
+The docs build into a web site with `mdbook build docs`.
 
 ## License
 
-CC0 1.0: dedicated to the public domain (see LICENSE). Use it for anything, with no need to credit; it comes with no warranty.
+CC0 1.0: dedicated to the public domain (see LICENSE). Use it for anything, with no need to credit; it
+comes with no warranty.

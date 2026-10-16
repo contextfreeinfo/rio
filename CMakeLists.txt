@@ -89,6 +89,14 @@ target_link_libraries(rio_modules_test PRIVATE riocore)
 add_test(NAME rio_modules_api COMMAND rio_modules_test)
 set_tests_properties(rio_modules_api PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ module tests passed")
 
+# every example in the docs (docs/spec, docs/tutorial, README.md) runs as a test
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_FOUND)
+  add_test(NAME rio_docs COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/docs.py $<TARGET_FILE:rio>
+    ${CMAKE_SOURCE_DIR}/docs ${CMAKE_SOURCE_DIR}/README.md)
+  set_tests_properties(rio_docs PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ doc examples passed")
+endif()
+
 # @host: host procs in modules, auto-imports, declarations checked; core.rio declares every builtin
 add_executable(rio_host_test tests/host.c)
 target_link_libraries(rio_host_test PRIVATE riocore)

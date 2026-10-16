@@ -1,6 +1,7 @@
 /* modules.c - import and include. Another file is read without recursion: where to resume the current
    one goes on a stack (rio_Resume), the new file's tokens take over, and its end pops back. A module is
-   compiled once, at its first import; the import statement then runs again, and finds it done. */
+   compiled once, at its first import; the import statement then runs again, and finds it done. The
+   rules: docs/spec/modules.md. */
 #include "compiler.h"
 #ifndef rio_NO_COMPILER
 

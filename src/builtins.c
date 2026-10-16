@@ -1,6 +1,6 @@
 /* builtins.c - calls to the builtins: log, math, assert, and the methods every sequence, list, enum and
    number has. Each takes the call's arguments from the value stack (from call->valueBase) and pushes its
-   result. */
+   result. What they do: docs/spec/builtins.md. */
 #include "compiler.h"
 #ifndef rio_NO_COMPILER
 

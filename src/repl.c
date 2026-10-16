@@ -116,7 +116,7 @@ static int rio_rollback(rio_Vm *vm, const rio_ReplMark *m) {
   c->fieldCount = m->fieldCount;
   c->paramCount = m->paramCount;
   c->nameBytes = m->nameBytes;
-  c->blockCount = c->valueCount = c->opCount = c->switchCount = 0;
+  c->blockCount = c->valueCount = c->opCount = c->switchCount = c->unreachable = 0;
   c->curProc = -1;
   c->targetType = -1;
   c->lineOverride = 0;
