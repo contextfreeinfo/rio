@@ -1,4 +1,6 @@
-"""Runs the examples in the docs as tests: python tests/docs.py path/to/rio docs README.md
+"""Runs the examples in the docs as tests: python tests/docs.py path/to/rio docs README.md [-- args]
+
+Arguments after -- go after each example's file: a host such as rinc runs examples with -frames 2.
 
 Each ```rio block in a Markdown file is a whole program, run with the rio CLI:
   ```rio                  must run without errors; an ```output block right after it is its exact output
@@ -33,7 +35,7 @@ def blocks(path):
     return out, lines
 
 
-def run(rio, md):
+def run(rio, md, extra):
     found, lines = blocks(md)
     files, fails, count = {}, [], 0
     for k, (info, start, text, end) in enumerate(found):
@@ -59,9 +61,10 @@ def run(rio, md):
                 p = os.path.join(tmp, name)
                 os.makedirs(os.path.dirname(p), exist_ok=True)
                 open(p, 'w', encoding='utf-8', newline='\n').write(src)
-            args = [rio] + (['-L', os.path.join(tmp, 'lib')] if os.path.isdir(os.path.join(tmp, 'lib')) else []) + [os.path.join(tmp, 'main.rio')]
-            r = subprocess.run(args, capture_output=True, text=True, timeout=30, cwd=tmp)
-            got = (r.stdout + r.stderr).replace('\r\n', '\n').replace(tmp + os.sep, '').replace(tmp + '/', '')
+            args = [rio] + (['-L', os.path.join(tmp, 'lib')] if os.path.isdir(os.path.join(tmp, 'lib')) else []) + [os.path.join(tmp, 'main.rio')] + extra
+            r = subprocess.run(args, capture_output=True, timeout=30, cwd=tmp)
+            got = (r.stdout + r.stderr).decode('utf-8', 'replace')  # (lines may end \n, \r\n, or \r\r\n: a host's \r\n through Windows' text mode)
+            got = got.replace('\r\n', '\n').replace('\r', '').replace(tmp + os.sep, '').replace(tmp + '/', '')
         files = {}
         where = '%s:%d' % (md, start)
         if want:
@@ -79,14 +82,17 @@ def run(rio, md):
 
 
 def main():
-    rio, total, fails, mds = os.path.abspath(sys.argv[1]), 0, [], []
-    for root in sys.argv[2:]:  # Markdown files, and directories of them
+    argv = sys.argv[1:]
+    extra = argv[argv.index('--') + 1:] if '--' in argv else []
+    argv = argv[:argv.index('--')] if '--' in argv else argv
+    rio, total, fails, mds = os.path.abspath(argv[0]), 0, [], []
+    for root in argv[1:]:  # Markdown files, and directories of them
         if os.path.isfile(root):
             mds.append(root)
         for d, _, names in sorted(os.walk(root)):
             mds += [os.path.join(d, name) for name in sorted(names) if name.endswith('.md')]
     for md in mds:
-        n, f = run(rio, md)
+        n, f = run(rio, md, extra)
         total += n
         fails += f
     for f in fails:
