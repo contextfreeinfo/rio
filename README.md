@@ -126,7 +126,7 @@ The top-level code runs first, then the host (or the `rio` CLI) calls `main`.
 - Every index and slice is bounds-checked at runtime. Integer arithmetic wraps, and integer division by zero is a runtime error.
 - There are no implicit conversions between `Int` and `Float` except for literals. Convert with `x.toFloat()` and `x.toInt()` (which truncates). Conversions are methods, so they show up with the rest after `x.`; `to` makes a new value, `as` views the same data.
 - `Bool` is its own type. Comparisons and `not and or` produce `Bool`, and `if`/`for` conditions must be `Bool` (`if n` is an error; write `if n != 0`). `true` and `false` are literals, and `b.toInt()` (gives 0 or 1) and `n.toBool()` (`n != 0`) convert between the two.
-- Comments start with `#` and run to the end of the line, so a `#!` line at the top of a file works too. `@` is kept for metadata on declarations later.
+- Comments start with `#` and run to the end of the line, so a `#!` line at the top of a file works too. `@` starts annotations on declarations: for now only `@host` ([below](#host-procs-and-host)).
 - Statements end at a newline (`;` also works). Inside brackets, an expression can span several lines.
 
 **Operators:** `+ - * / % & | ^ << >> == != < <= > >= and or not ~ - =` and `+= -= *= /= %= &= |= ^= <<= >>=`. The logical ones are words, as in Python, and bind like Python's: `or` loosest, then `and`, then `not`, then comparisons, so `not a == b` means `not (a == b)`. `&&`, `||` and `!` are errors that say which word to write; `!=` stays.
@@ -353,6 +353,23 @@ geo.count += 1
 - **Errors:** they name the module's file (`rio_errorInfo(vm).file`, `NULL` for the main source), and the CLI prints `geo.rio:3:5: ...`.
 - **Hosts supply the files:** `rio_setLoader(vm, fn, ud)` gets a module path like `"ui/button"` or an include like `"parts/hud.rio"`, flagged as local or package, and returns the source text, so the core never touches a filesystem. On a console it can read the SD card; in tests, a table of strings.
 
+## Host procs and `@host`
+
+What the host provides can be declared in rio with `@host`, and each declaration is checked against the real thing:
+
+```ruby
+# pc.rio: the host's procs, written out
+cls* :: @host proc(color: Int)
+pset* :: @host proc(x, y, color: Int)
+btn* :: @host proc(b: Int) -> Bool
+```
+
+- **Host procs in modules:** `rio_addFfi(vm, "pc.cls", "i", fn)` puts `cls` in module `pc` instead of among the global names, so `import pc` gives `pc.cls(0)` (and `import pc.{cls}` works too). If the loader has a source for `pc`, that's the module: each `@host proc` there must have exactly the registered types, and every `pc.*` proc must be declared, so the file is a checked definition of the host's API. If the loader has no `pc`, the module is made straight from the registrations, with nothing to parse, so a host can keep its `.rio` definition for docs and tests without shipping it.
+- **Auto-imports:** `rio_autoImport(vm, "pc")` makes `pc` visible everywhere, as if every module imported it. It's always made from the registrations (so it's ready at the start of a REPL too); a test checks the source by compiling `import pc` without the auto-import. A plain name (`rio_addFfi(vm, "rand", ...)`) is still global, and a module can declare it too.
+- **Declarations** are proc types, as for proc values (parameter names are for reading, and group as in definitions: `proc(x, y: Int)`), so `@host` doesn't change how anything else parses. `Name* :: @host struct` declares a builtin type. Methods go on a named type (`Int.toFloat* :: @host proc() -> Float`) or, for types without a name, in parentheses: `(Blob[..]).push* :: @host proc(byte: Int) -> Bool`. Declarations go at the top level, and `*` exports them as usual.
+- **Builtins** are declared the same way, checked by compiling a call with the declared types: `sqrt* :: @host proc(x: Float) -> Float`. [`src/core.rio`](src/core.rio) declares all of them. Programs never import it, since the builtins are always there, but the tests compile it, so it can't drift from the compiler. Builtins that need generics (`log`, `format`, and the list and enum methods for any element type) are written there in comments, in a pretend syntax, until rio has generics.
+- **Annotations:** `@host` is the only one for now; any other is an error.
+
 ## Compile-time defines (`-D`)
 
 Like `gcc -D`, you can set top-level constants from outside the script:
@@ -507,7 +524,7 @@ cc -O2 game.c -lm -o game   # any C99 compiler; MSVC works too
 
 The output is one C file with no dependency on rio. Because rio has no recursion, each proc becomes a plain C function, and its frame slots become C locals unless their address is taken. Constants are written inline, and each bytecode op becomes one C statement. Globals, arrays and strings live in a static memory image identical to the VM's, so behavior is the same, including bounds checks and wrapping integer math. The C compiler then optimizes the result like any other C code.
 
-FFI functions are called as `void rio_ffi_<name>(rio_Val *a)`. The CLI includes definitions for its own `clock` and `putc`; for other FFI functions, link your own definitions (and build with `-Drio_NO_HOST_FFI` to drop the CLI's). ctest runs the full test suite both in the VM and compiled through C.
+FFI functions are called as `void rio_ffi_<name>(rio_Val *a)` (a dotted name's dots become `_`: `rio_ffi_pc_cls`). The CLI includes definitions for its own `clock` and `putc`; for other FFI functions, link your own definitions (and build with `-Drio_NO_HOST_FFI` to drop the CLI's). ctest runs the full test suite both in the VM and compiled through C.
 
 ## Images
 
@@ -583,9 +600,11 @@ the compiler (single pass, no recursion; left out with rio_NO_COMPILER):
   src/decls.c      types as written; procs, methods, structs, unions, enums and variables
   src/statements.c statements and their blocks: if, loops, switch, return, assignment
   src/modules.c    import and include
+  src/host.c       @host declarations, checked; modules of host procs
   src/compile.c    limits, setup, and finishing: frame sharing, the line table, final layout
   src/repl.c       REPL sessions
 src/jit.c          native loops on ARM Thumb-2 (elsewhere, rio_jit does nothing)
+src/core.rio       the builtins, declared with @host (compiled by the tests, not by programs)
 src/aot.c          bytecode -> C translator (CLI only; not needed for embedding)
 src/main.c         CLI host (adds ffi: clock, putc; loads modules from files and -L paths)
 tests/             test suite (run by ctest, in the VM and compiled through C), plus error tests:

@@ -31,6 +31,9 @@
 #ifndef rio_LOG_BUF_SIZE
 #define rio_LOG_BUF_SIZE rio_PICK(256, 96)
 #endif
+#ifndef rio_MAX_AUTO_IMPORTS
+#define rio_MAX_AUTO_IMPORTS rio_PICK(8, 2)
+#endif
 #ifndef rio_ERROR_BUF_SIZE
 #define rio_ERROR_BUF_SIZE rio_PICK(192, 96)
 #endif
@@ -66,9 +69,17 @@ typedef void (*rio_LogFn)(void *userData, const char *text, int len);
 int rio_init(rio_Vm *vm, void *mem, uint32_t memSize, rio_Instr *code, uint32_t codeCap);
 void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData);
 
-/* sig: params then optional '>' and result. i=i32 f=f32 s=string b=blob. e.g. "ff>f".
-   name and sig must stay valid until rio_compile (or rio_loadImage) returns. */
+/* A host proc. sig: params then optional '>' and result. i=i32 f=f32 s=string b=blob. e.g. "ff>f".
+   name and sig must stay valid until rio_compile (or rio_loadImage) returns.
+   A plain name is global. A dotted one, "pc.cls", is in module pc instead: `import pc` (or
+   rio_autoImport) gives pc.cls. If the loader has a source for pc, that's the module, and it must
+   declare each of pc's procs: `cls* :: @host proc(c: Int)`, checked against the sig. Otherwise the
+   module is made from the registrations, with nothing to parse. */
 int rio_addFfi(rio_Vm *vm, const char *name, const char *sig, rio_FfiFn fn);
+/* makes a module of host procs (see rio_addFfi) visible everywhere without an import, as `name.proc`.
+   It's always made from the registrations, never from the loader's source: to check a source for it,
+   compile `import name` in a vm with the same procs registered but no auto-import */
+int rio_autoImport(rio_Vm *vm, const char *module);
 
 /* ------------------------------------------------------------------ images */
 
@@ -200,11 +211,12 @@ typedef struct {
   uint8_t resultWords;
 } rio_Proc;
 
-/* a registered ffi function; argWords and resultWords come from its sig */
+/* a registered host proc; argWords and resultWords come from its sig. declared: while compiling, a
+   @host declaration (or a host module made from the registrations) has bound it */
 typedef struct {
   const char *name, *sig;
   rio_FfiFn fn;
-  uint8_t argWords, resultWords;
+  uint8_t argWords, resultWords, declared;
 } rio_Ffi;
 
 typedef struct {
@@ -238,6 +250,8 @@ struct rio_Vm {
   int logLen, trapped, ready, procCount, ffiCount, defineCount, inRepl, running;
   volatile int interrupted; /* set by rio_interrupt */
   rio_Define defines[rio_MAX_DEFINES];
+  const char *autoImports[rio_MAX_AUTO_IMPORTS];
+  int autoImportCount;
   struct rio_Compiler *compiler; /* only while compiling, or after rio_compileScratch and in a REPL */
   rio_Proc *procs;         /* per proc, in mem next to the strings */
   rio_JitFn *jitFns;       /* native loops (rio_Op_jit a: which) */

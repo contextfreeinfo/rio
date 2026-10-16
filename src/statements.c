@@ -260,6 +260,9 @@ static void rio_endProc(rio_Vm *vm, rio_Block *b) {
   c->blockCount--;
 }
 
+/* the end of the proc being compiled, which host.c's checks make without an `end` */
+void rio_finishProc(rio_Vm *vm) { rio_endProc(vm, rio_topBlock(vm)); }
+
 static void rio_endSwitch(rio_Vm *vm, rio_Block *b);
 
 static void rio_endStatement(rio_Vm *vm) {
@@ -547,11 +550,12 @@ static void rio_expressionStatement(rio_Vm *vm) {
 static void rio_constantDecl(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   const char *name = c->tok.text;
-  int nameLen = c->tok.len;
+  int nameLen = c->tok.len, line = c->tok.line, col = c->tok.col;
   rio_Expr e;
   rio_next(vm);
   rio_next(vm);
   switch (c->tok.kind) {
+  case '@': rio_hostDecl(vm, name, nameLen, -1, line, col); return;
   case rio_Tok_proc: rio_procDef(vm, name, nameLen, -1); return;
   case rio_Tok_struct: rio_structDef(vm, name, nameLen); return;
   case rio_Tok_enum: rio_enumDef(vm, name, nameLen); return;
@@ -590,6 +594,10 @@ static void rio_statementAfterLabel(rio_Vm *vm, int t) {
   rio_Compiler *c = vm->compiler;
   int i;
   if (t == rio_Tok_id && c->peek.kind == '*') rio_exportMark(vm);
+  if (t == '(' && rio_atTypeMethod(vm)) {
+    rio_typeMethodDecl(vm);
+    return;
+  }
   if (t == rio_Tok_id && c->peek.kind == '.' && (i = rio_lookup(vm, c->tok.text, c->tok.len)) >= 0 && c->syms[i].kind == rio_SymKind_type)
     rio_methodDef(vm, c->syms[i].type);
   else if (t == rio_Tok_id && c->peek.kind == rio_Tok_colonColon) rio_constantDecl(vm);

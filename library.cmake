@@ -14,6 +14,7 @@ set(RIO_COMPILER_SOURCES # what compiles them
   ${CMAKE_CURRENT_LIST_DIR}/src/compile.c
   ${CMAKE_CURRENT_LIST_DIR}/src/decls.c
   ${CMAKE_CURRENT_LIST_DIR}/src/expr.c
+  ${CMAKE_CURRENT_LIST_DIR}/src/host.c
   ${CMAKE_CURRENT_LIST_DIR}/src/lexer.c
   ${CMAKE_CURRENT_LIST_DIR}/src/modules.c
   ${CMAKE_CURRENT_LIST_DIR}/src/operators.c

@@ -440,11 +440,16 @@ void rio_finishBuiltinCall(rio_Vm *vm, rio_PendingOp *call);
 
 int rio_parseType(rio_Vm *vm);
 void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver);
+int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver);
+void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type, int isRef);
+void rio_setProcResult(rio_Vm *vm, int proc, int type);
+void rio_beginBody(rio_Vm *vm, int proc);
 void rio_methodDef(rio_Vm *vm, int receiver);
 void rio_structDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_unionDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_enumDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_declareVar(rio_Vm *vm);
+int rio_parseNames(rio_Vm *vm, const char **names, int *lens);
 void rio_destructure(rio_Vm *vm);
 
 /* ------------------------------------------------------------------ statements.c */
@@ -452,12 +457,22 @@ void rio_destructure(rio_Vm *vm);
 rio_Block *rio_pushBlock(rio_Vm *vm, int kind);
 void rio_endScope(rio_Vm *vm, const rio_Block *b);
 void rio_statement(rio_Vm *vm);
+void rio_finishProc(rio_Vm *vm);
 
 /* ------------------------------------------------------------------ modules.c */
 
 void rio_importStatement(rio_Vm *vm);
 void rio_includeStatement(rio_Vm *vm);
 void rio_endFile(rio_Vm *vm);
+
+/* ------------------------------------------------------------------ host.c */
+
+void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int line, int col);
+int rio_atTypeMethod(rio_Vm *vm);
+void rio_typeMethodDecl(rio_Vm *vm);
+int rio_hasHostProcs(rio_Vm *vm, const char *key, int keyLen);
+int rio_hostModule(rio_Vm *vm, const char *key, int keyLen);
+void rio_checkHostModule(rio_Vm *vm, int module);
 
 /* ------------------------------------------------------------------ compile.c and repl.c */
 

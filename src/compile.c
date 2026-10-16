@@ -194,7 +194,7 @@ void rio_setupCompiler(rio_Vm *vm) {
     def->firstParam = (uint16_t)c->paramCount;
     def->paramCount = 0;
     def->resultType = rio_TypeId_void;
-    f->argWords = f->resultWords = 0;
+    f->argWords = f->resultWords = f->declared = 0;
     for (g = f->sig; *g; g++) {
       int isResult = *g == '>', ch = isResult ? g[1] : *g;
       int t = ch == 'i' ? rio_TypeId_int : ch == 'f' ? rio_TypeId_float : ch == 's' ? rio_TypeId_string : ch == 'b' ? rio_TypeId_blob : -1;
@@ -209,7 +209,23 @@ void rio_setupCompiler(rio_Vm *vm) {
       def->paramCount++;
       f->argWords = (uint8_t)(f->argWords + rio_typeWords(vm, t));
     }
-    rio_addSymbol(vm, f->name, (int)strlen(f->name), rio_SymKind_ffi, 0, i);
+    if (!strchr(f->name, '.')) rio_addSymbol(vm, f->name, (int)strlen(f->name), rio_SymKind_ffi, 0, i); /* (pc.cls: in module pc) */
+  }
+  for (i = 0; i < vm->autoImportCount; i++) { /* host modules visible everywhere, as if imported */
+    const char *name = vm->autoImports[i];
+    int n = (int)strlen(name), m = rio_hostModule(vm, name, n);
+    if (rio_failed(vm)) return;
+    if (m < 0) {
+      char text[rio_ERROR_BUF_SIZE];
+      int len = rio_appendText(text, 0, "auto-import ");
+      len = rio_appendText(text, len, name);
+      len = rio_appendText(text, len, ": the host registered no procs under that name");
+      text[len] = 0;
+      rio_failAt(vm, 0, 0, 0, text);
+      c->failMessage = 0;
+      return;
+    }
+    rio_addSymbol(vm, name, n, rio_SymKind_module, 0, m);
   }
   c->firstDefine = c->symCount;
   for (i = 0; i < vm->defineCount; i++) {

@@ -66,3 +66,8 @@
 "outer: for"
 "break outer"
 "continue outer"
+"@host"
+" :: @host proc("
+" :: @host struct"
+"(Blob[..])."
+"proc(a, b: Int)"
