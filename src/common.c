@@ -42,8 +42,8 @@ int rio_formatInt(char *out, int32_t v) {
   return len;
 }
 
-/* About 7 significant digits, with trailing zeros dropped (but at least one decimal): 1.5, 0.333333,
-   1234567.0. Outside 1e-4 to 1e9, scientific: 1.5e12. */
+/* Floats as text (docs/spec/builtins.md#log): about 7 significant digits, with trailing zeros dropped
+   (but at least one decimal): 1.5, 0.333333, 1234567.0. Outside 1e-4 to 1e9, scientific: 1.5e12. */
 int rio_formatFloat(char *out, float f) {
   int len = 0, exponent = 0, intDigits = 1, decimals, k;
   double d = f;
@@ -80,6 +80,10 @@ int rio_formatFloat(char *out, float f) {
   if (fracPart >= scale) { /* rounded up to the next integer */
     intPart++;
     fracPart -= scale;
+    if (exponent && intPart == 10) { /* 9.9999996e-6 is 1.0e-5, not 10.0e-6 */
+      intPart = 1;
+      exponent++;
+    }
   }
   len += rio_formatInt(out + len, (int32_t)intPart);
   out[len++] = '.';

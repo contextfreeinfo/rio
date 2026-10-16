@@ -198,8 +198,15 @@ typedef enum {
      loops    a: the pc of the top; each with an index: b is the index's slot (else rio_NONE)
      switch   a: the slot of the union variable cases narrow (or rio_NONE); b: 1 once a case is seen,
               2 once the else is */
+/* what a block knows about reaching its end, for missing returns (docs/spec/declarations.md#procs) */
+enum {
+  rio_Flow_startUnreachable = 1, /* the code before the block couldn't run */
+  rio_Flow_branchesEnd = 2,      /* every branch so far ended where the code can't run */
+  rio_Flow_complete = 4,         /* if: it has an else; switch: one of its branches always runs */
+  rio_Flow_broken = 8            /* a loop: something breaks out of it */
+};
 typedef struct {
-  uint8_t kind;
+  uint8_t kind, flow;
   uint16_t symCount, nameBytes, liveSlots; /* the scope to return to at its end */
   uint16_t a, b;
   uint16_t breaks, continues; /* jump lists, to the end and to the next iteration */
@@ -259,7 +266,8 @@ typedef struct rio_Compiler {
     int32_t resultAt; /* the slot carrying its result (-1 once used by anything but and) */
     int32_t varAt, member; /* x is T: x's address and T's index in the union */
   } isTests[8];           /* the `x is T`s in an if's condition */
-  int isTestCount;
+  int16_t isTestCount;
+  int16_t unreachable;    /* the code here can't run: after a return, break or continue (rio_Flow) */
   uint16_t *slotMap;      /* old slot -> new slot, while sharing frames */
   rio_Instr *scratchCode; /* the code while compiling, when it ends up in mem */
   rio_FfiDef ffi[rio_MAX_FFI];

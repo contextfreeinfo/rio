@@ -1,5 +1,5 @@
 /* decls.c - types as written, and declarations: procs and methods, structs, unions and enums, and
-   variables (with destructuring). */
+   variables (with destructuring). The rules: docs/spec/declarations.md and docs/spec/types.md. */
 #include "compiler.h"
 #ifndef rio_NO_COMPILER
 
@@ -228,6 +228,7 @@ void rio_beginBody(rio_Vm *vm, int proc) {
   rio_Compiler *c = vm->compiler;
   c->liveSlots = c->freeSlot;
   c->curProc = proc;
+  c->unreachable = 0;
   c->procDefs[proc].entry = (uint16_t)rio_label(vm);
 }
 

@@ -381,7 +381,7 @@ static const char *const rio_prelude =
   "  if (d != 0 && (d >= 1e9 || d < 1e-4)) { while (d >= 10) { d /= 10; e++; } while (d < 1) { d *= 10; e--; } }\n"
   "  ip = (uint32_t)d; for (t = ip; t >= 10; t /= 10) nd++;\n"
   "  dec = 7 - nd; if (dec < 1) dec = 1; if (dec > 6) dec = 6; for (k = 0; k < dec; k++) sc *= 10;\n"
-  "  fp = (uint32_t)((d - ip) * sc + 0.5); if (fp >= sc) { ip++; fp -= sc; }\n"
+  "  fp = (uint32_t)((d - ip) * sc + 0.5); if (fp >= sc) { ip++; fp -= sc; if (e && ip == 10) { ip = 1; e++; } }\n"
   "  i += sprintf(b + i, \"%u.\", (unsigned)ip);\n"
   "  for (k = dec - 1; k >= 0; k--) { b[i + k] = (char)('0' + fp % 10); fp /= 10; }\n"
   "  while (dec > 1 && b[i + dec - 1] == '0') dec--; i += dec;\n"

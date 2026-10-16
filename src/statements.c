@@ -1,5 +1,6 @@
 /* statements.c - statements, and the blocks they open: procs, if/else, loops and switches, each closed
-   by its end. Blocks live on a stack (rio_Block) instead of in recursive calls. */
+   by its end. Blocks live on a stack (rio_Block) instead of in recursive calls. The rules:
+   docs/spec/statements.md, and for procs, docs/spec/declarations.md. */
 #include "compiler.h"
 #ifndef rio_NO_COMPILER
 
@@ -11,6 +12,7 @@ rio_Block *rio_pushBlock(rio_Vm *vm, int kind) {
   if (c->blockCount >= (int)c->limits.blocks) rio_FAIL(&c->blocks[0], "blocks nested too deep");
   b = &c->blocks[c->blockCount++];
   b->kind = (uint8_t)kind;
+  b->flow = (uint8_t)((c->unreachable ? rio_Flow_startUnreachable : 0) | rio_Flow_branchesEnd);
   b->symCount = (uint16_t)c->symCount;
   b->nameBytes = (uint16_t)c->nameBytes;
   b->liveSlots = (uint16_t)c->liveSlots;
@@ -35,6 +37,20 @@ void rio_endScope(rio_Vm *vm, const rio_Block *b) {
   c->symCount = b->symCount;
   c->nameBytes = b->nameBytes;
   c->liveSlots = c->freeSlot = top;
+}
+
+/* Reaching ends, for missing returns: the end of a branch (if, else, case), after which the next one
+   starts as the block did */
+static void rio_endBranch(rio_Compiler *c, rio_Block *b) {
+  if (!c->unreachable) b->flow &= (uint8_t)~rio_Flow_branchesEnd;
+  c->unreachable = (int16_t)(b->flow & rio_Flow_startUnreachable);
+}
+
+/* after a block with branches: its end can't be reached if one of them always runs and none gets to
+   its end */
+static void rio_endBranches(rio_Compiler *c, rio_Block *b) {
+  rio_endBranch(c, b);
+  if ((b->flow & rio_Flow_complete) && (b->flow & rio_Flow_branchesEnd)) c->unreachable = 1;
 }
 
 /* the open loop labeled name, innermost first, within this proc; -1 if none */
@@ -80,6 +96,7 @@ static void rio_elseStatement(rio_Vm *vm) {
   if (!b || b->kind != rio_Block_if) rio_FAIL_AT_TOKEN(, "'else' without 'if'");
   rio_next(vm);
   rio_endScope(vm, b);
+  rio_endBranch(c, b);
   b->b = (uint16_t)rio_jumpListAdd(vm, b->b, rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE)); /* the branch before ends here */
   rio_patchJumps(vm, b->a, rio_label(vm));
   if (c->tok.kind == rio_Tok_if && !c->tok.newline) {
@@ -92,6 +109,7 @@ static void rio_elseStatement(rio_Vm *vm) {
     rio_narrowIsTests(vm, &cond);
   } else {
     b->kind = rio_Block_else;
+    b->flow |= rio_Flow_complete;
     b->a = rio_NONE;
   }
 }
@@ -248,6 +266,7 @@ static void rio_endLoop(rio_Vm *vm, rio_Block *b) {
 static void rio_endProc(rio_Vm *vm, rio_Block *b) {
   rio_Compiler *c = vm->compiler;
   rio_ProcDef *p = &c->procDefs[b->b];
+  c->unreachable = 0;
   rio_emit(vm, rio_Op_ret, 0, 0, 0);
   rio_patchJumps(vm, b->a, rio_label(vm));
   p->defined = 1;
@@ -268,6 +287,7 @@ static void rio_endSwitch(rio_Vm *vm, rio_Block *b);
 static void rio_endStatement(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Block *b = rio_topBlock(vm);
+  int line = c->tok.line, col = c->tok.col;
   if (!b) rio_FAIL_AT_TOKEN(, "'end' without block");
   rio_next(vm);
   if (b->kind == rio_Block_switch) {
@@ -277,6 +297,10 @@ static void rio_endStatement(rio_Vm *vm) {
     return;
   }
   if (b->kind == rio_Block_proc) {
+    if (c->procDefs[b->b].resultType != rio_TypeId_void && !c->unreachable) {
+      rio_failAt(vm, line, col, 3, "missing return: a proc with a result returns on every path");
+      return;
+    }
     rio_endProc(vm, b);
     return;
   }
@@ -290,6 +314,9 @@ static void rio_endStatement(rio_Vm *vm) {
     rio_emit(vm, rio_Op_each, b->counter, b->limit, b->a);
   } else rio_patchJumps(vm, b->b, rio_label(vm)); /* if/else: the earlier branches' jumps to the end */
   rio_patchJumps(vm, b->kind >= rio_Block_loop ? b->breaks : b->a, rio_label(vm));
+  if (b->kind < rio_Block_loop) rio_endBranches(c, b);
+  else c->unreachable = (int16_t)((b->flow & rio_Flow_startUnreachable) || /* (a loop with no condition, never broken) */
+                        (b->kind == rio_Block_loop && b->condJump == rio_NONE && !(b->flow & rio_Flow_broken)));
   rio_endScope(vm, b);
   c->blockCount--;
 }
@@ -308,6 +335,8 @@ static void rio_breakStatement(rio_Vm *vm, int isBreak) {
     rio_next(vm);
   }
   b = &c->blocks[i];
+  c->unreachable = 1;
+  if (isBreak) b->flow |= rio_Flow_broken;
   if (isBreak) b->breaks = (uint16_t)rio_jumpListAdd(vm, b->breaks, rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE));
   else b->continues = (uint16_t)rio_jumpListAdd(vm, b->continues, rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE));
 }
@@ -328,6 +357,7 @@ static void rio_returnStatement(rio_Vm *vm) {
     rio_store(vm, &d, &e);
   }
   rio_emit(vm, rio_Op_ret, 0, 0, 0);
+  c->unreachable = 1;
 }
 
 /* ------------------------------------------------------------------ switch */
@@ -378,6 +408,7 @@ static void rio_switchStatement(rio_Vm *vm) {
    before it jumps to the end, and the previous case's failed test lands here */
 static void rio_nextCase(rio_Vm *vm, rio_Block *b) {
   rio_Block scope;
+  if (b->b & 1) rio_endBranch(vm->compiler, b);
   if (b->b & 1) b->breaks = (uint16_t)rio_jumpListAdd(vm, b->breaks, rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE));
   rio_patchJumps(vm, b->condJump, rio_label(vm));
   b->condJump = rio_NONE;
@@ -441,6 +472,7 @@ static void rio_switchElse(rio_Vm *vm, rio_Block *b) {
   rio_next(vm);
   rio_nextCase(vm, b);
   b->b |= 3;
+  b->flow |= rio_Flow_complete;
 }
 
 /* no case matched: fall out; with no else, every enum value (or union type) needs a case */
@@ -462,7 +494,9 @@ static void rio_endSwitch(rio_Vm *vm, rio_Block *b) {
         text[n] = 0;
         rio_FAIL(, text);
       }
+    b->flow |= rio_Flow_complete; /* (every value has a case) */
   }
+  if (b->b & 1) rio_endBranches(c, b);
   c->switchCount--;
 }
 
@@ -550,7 +584,7 @@ static void rio_expressionStatement(rio_Vm *vm) {
 static void rio_constantDecl(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   const char *name = c->tok.text;
-  int nameLen = c->tok.len, line = c->tok.line, col = c->tok.col;
+  int nameLen = c->tok.len, line = c->tok.line, col = c->tok.col, k;
   rio_Expr e;
   rio_next(vm);
   rio_next(vm);
@@ -560,6 +594,12 @@ static void rio_constantDecl(rio_Vm *vm) {
   case rio_Tok_struct: rio_structDef(vm, name, nameLen); return;
   case rio_Tok_enum: rio_enumDef(vm, name, nameLen); return;
   case rio_Tok_union: rio_unionDef(vm, name, nameLen); return;
+  }
+  if (c->tok.kind == '[' || (c->tok.kind == rio_Tok_id && c->peek.kind == '[' && (k = rio_lookup(vm, c->tok.text, c->tok.len)) >= 0 &&
+                             c->syms[k].kind == rio_SymKind_type)) { /* another name for a type written out: [2]Float, Blob[64] */
+    k = rio_parseType(vm);
+    if (!rio_failed(vm)) rio_addSymbol(vm, name, nameLen, rio_SymKind_type, k, 0);
+    return;
   }
   e = rio_parseExpr(vm);
   if (c->curProc < 0 && !c->blockCount && (e.kind == rio_ExprKind_const || e.type == rio_TypeId_string)) {

@@ -1,0 +1,12 @@
+# The docs as a web site: mdbook build docs (into docs/book). SUMMARY.md sets the order.
+[book]
+title = "rio"
+src = "."
+language = "en"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[output.html]
+git-repository-url = "https://github.com/contextfreeinfo/rio"

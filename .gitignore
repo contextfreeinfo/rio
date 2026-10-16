@@ -2,3 +2,4 @@ build*/
 ignore/
 *.exe
 *.pyc
+docs/book/

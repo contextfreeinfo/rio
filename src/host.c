@@ -1,4 +1,5 @@
-/* host.c - what the host provides, declared in rio with @host, and checked against it:
+/* host.c - what the host provides, declared in Rio with @host, and checked against it (the rules:
+   docs/spec/host.md):
 
      name* :: @host proc(a: Int, b: Float) -> Int   a host proc (rio_addFfi), or a builtin proc
      Type.name* :: @host proc(x: Int) -> Bool       a builtin method, on a named type

@@ -119,6 +119,40 @@ jobs:
           printf '#!/bin/sh\nexec qemu-arm -cpu max %s/rio-armv8 -j "$@"\n' "$PWD" > rio-j && chmod +x rio-j
           python3 tests/difftest.py "$PWD/rio-j" gcc 300 ${{ github.run_number }}
 
+  # the docs as a web site (mdbook; docs/SUMMARY.md sets the order): built on every push, so a broken
+  # page fails here, and published to GitHub Pages from main (its examples run in the test job)
+  docs:
+    needs: check
+    if: needs.check.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the site
+        run: |
+          v=0.4.40
+          curl -sSL "https://github.com/rust-lang/mdBook/releases/download/v$v/mdbook-v$v-x86_64-unknown-linux-gnu.tar.gz" | tar -xz
+          ./mdbook build docs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/book
+
+  docs-publish:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [docs, test]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
   build-release:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: [test, sanitize, fuzz, jit]
