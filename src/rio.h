@@ -1,223 +1,252 @@
-/* rio - a tiny statically typed scripting language. C99, no allocation, no recursion. */
-#ifndef RIO_H
-#define RIO_H
+/* rio - a tiny statically typed scripting language. C99, no allocation, no recursion.
+
+   Naming: everything rio defines starts with rio_. Functions are rio_camelCase, types rio_PascalCase,
+   enum values rio_EnumType_value, and macros rio_UPPER_CASE. */
+#ifndef rio_H
+#define rio_H
 #include <stdint.h>
 
-/* fixed caps for things the host registers before compiling; override with -D.
-   RIO_SMALL picks MCU-sized values. Compiler table sizes are chosen per compile: see RioLimits.
-   The host can look up (rio_func, rio_global) main and the main file's names marked name*; build with
-   RIO_EXPORTS_ALL to make every top-level proc and global findable (a 12-byte entry plus the name each). */
-#ifdef RIO_SMALL
-#define RIO_DEF(big, small) small
+/* ------------------------------------------------------------------ build-time configuration */
+
+/* Fixed caps for things the host registers before compiling; override any of them with -D.
+   rio_SMALL picks MCU-sized values. Compiler table sizes are chosen per compile instead: see
+   rio_Limits.
+   The host can look up (rio_findProc, rio_findGlobal) main and the main file's names marked name*.
+   Build with rio_EXPORTS_ALL to make every top-level proc and global findable (each costs a 12-byte
+   entry plus its name). */
+#ifdef rio_SMALL
+#define rio_PICK(big, small) small
 #else
-#define RIO_DEF(big, small) big
+#define rio_PICK(big, small) big
 #endif
-#ifndef RIO_MAX_FFI
-#define RIO_MAX_FFI RIO_DEF(128, 16)
+#ifndef rio_MAX_FFI
+#define rio_MAX_FFI rio_PICK(128, 16)
 #endif
-#ifndef RIO_MAX_DEFINES
-#define RIO_MAX_DEFINES RIO_DEF(64, 8)
+#ifndef rio_MAX_DEFINES
+#define rio_MAX_DEFINES rio_PICK(64, 8)
 #endif
-#ifndef RIO_MAX_IMPORT_DEPTH
-#define RIO_MAX_IMPORT_DEPTH 16
+#ifndef rio_MAX_IMPORT_DEPTH
+#define rio_MAX_IMPORT_DEPTH 16
 #endif
-#ifndef RIO_LOGBUF
-#define RIO_LOGBUF RIO_DEF(256, 96)
+#ifndef rio_LOG_BUF_SIZE
+#define rio_LOG_BUF_SIZE rio_PICK(256, 96)
 #endif
-#ifndef RIO_ERRBUF
-#define RIO_ERRBUF RIO_DEF(192, 96)
+#ifndef rio_ERROR_BUF_SIZE
+#define rio_ERROR_BUF_SIZE rio_PICK(192, 96)
 #endif
 
-typedef union { int32_t i; float f; uint32_t u; } RioVal;
-typedef struct { uint8_t op, x; uint16_t a, b, c; } RioIns;
-typedef struct Rio Rio;
-/* ffi: args[0..] hold the arguments (strings/blobs take 2 words: addr, len); write the result to args[0] */
-typedef void (*RioFn)(Rio *vm, RioVal *args);
-typedef void (*RioLogFn)(void *ud, const char *s, int len);
+/* ------------------------------------------------------------------ basic types */
+
+/* one word of script memory */
+typedef union {
+  int32_t i;
+  float f;
+  uint32_t u;
+} rio_Val;
+
+/* one bytecode instruction: an opcode, a small extra operand, and three 16-bit operands */
+typedef struct {
+  uint8_t op, x;
+  uint16_t a, b, c;
+} rio_Instr;
+
+typedef struct rio_Vm rio_Vm;
+
+/* ffi: args[0..] hold the arguments (strings and blobs take 2 words: address, length); write the
+   result to args[0] */
+typedef void (*rio_FfiFn)(rio_Vm *vm, rio_Val *args);
+typedef void (*rio_LogFn)(void *userData, const char *text, int len);
+
+/* ------------------------------------------------------------------ setup */
 
 /* mem: all script data (globals, frames, arrays, strings), and by default also the compiler's
    working memory, which is overlaid on space that stays zero until the program runs.
-   code: bytecode buffer (max 65535 instructions), or NULL to keep the code in mem too: then it
-   takes just its own size there, below the strings (codecap is ignored; see RioLimits.code). */
-int rio_init(Rio *vm, void *mem, uint32_t memsize, RioIns *code, uint32_t codecap);
-void rio_set_log(Rio *vm, RioLogFn fn, void *ud);
+   code: bytecode buffer (max 65535 instructions), or NULL to keep the code in mem too: then it takes
+   just its own size there, below the strings (codeCap is ignored; see rio_Limits.code). */
+int rio_init(rio_Vm *vm, void *mem, uint32_t memSize, rio_Instr *code, uint32_t codeCap);
+void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData);
+
 /* sig: params then optional '>' and result. i=i32 f=f32 s=string b=blob. e.g. "ff>f".
-   name and sig must stay valid until rio_compile (or rio_image_load) returns. */
-int rio_ffi(Rio *vm, const char *name, const char *sig, RioFn fn);
-/* images: a compiled program, ready to run, for loading into a vm (even one built with
-   RIO_NO_COMPILER, which leaves the compiler out). Save right after compiling, before running.
+   name and sig must stay valid until rio_compile (or rio_loadImage) returns. */
+int rio_addFfi(rio_Vm *vm, const char *name, const char *sig, rio_FfiFn fn);
+
+/* ------------------------------------------------------------------ images */
+
+/* A compiled program, ready to run, for loading into a vm (even one built with rio_NO_COMPILER,
+   which leaves the compiler out). Save right after compiling, before running.
    The image holds absolute addresses, so the loading vm needs at least the memory it was compiled
    with (and room for its code); register the same ffi functions (by name and sig, in any order)
-   before loading. Little-endian hosts only. rio_image_save returns the image's size (out NULL:
-   just the size), or 0 if it doesn't fit or there's nothing to save. */
-#ifndef RIO_NO_COMPILER
-uint32_t rio_image_save(Rio *vm, void *out, uint32_t cap);
+   before loading. Little-endian hosts only. rio_saveImage returns the image's size (out NULL: just
+   the size), or 0 if it doesn't fit or there's nothing to save. */
+#ifndef rio_NO_COMPILER
+uint32_t rio_saveImage(rio_Vm *vm, void *out, uint32_t cap);
 #endif
-int rio_image_load(Rio *vm, const void *img, uint32_t len);
-#ifndef RIO_NO_COMPILER
+int rio_loadImage(rio_Vm *vm, const void *image, uint32_t len);
+
+/* ------------------------------------------------------------------ compiling */
+
+#ifndef rio_NO_COMPILER
 /* like gcc -D: overrides a top-level constant `NAME :: default`, or defines NAME if the script
    doesn't declare it. value is parsed as the declared constant's type (i32, f32, bool or string);
    NULL means true. name and value must stay valid until rio_compile returns. */
-int rio_define(Rio *vm, const char *name, const char *value);
+int rio_define(rio_Vm *vm, const char *name, const char *value);
 #endif
-/* modules and includes come from the host. kind is a combination of:
-     RIO_LOAD_PKG   the path is in the library paths (otherwise relative to the main file's directory)
-     RIO_LOAD_FILE  the path names an exact file, from `include "x.rio"`; without it, the path names
-                    a module: try "path.rio", then the directory's entry file "path/<last>.rio"
+
+/* Modules and includes come from the host. kind is a combination of rio_LoadKind flags:
+     package  the path is in the library paths (otherwise relative to the main file's directory)
+     file     the path names an exact file, from `include "x.rio"`; without it, the path names a
+              module: try "path.rio", then the directory's entry file "path/<last>.rio"
    `import .ui.button` asks for module "ui/button"; `import tween` for package module "tween";
    `include "parts/a.rio"` inside shapes/shapes.rio for file "shapes/parts/a.rio".
-   Return 0 and fill *out (src must stay valid until compiling ends; isdir: a module path named a
-   directory and its entry file was used; name: optional text for error messages), 1 if not
-   found, 2 if found in more than one place. */
-enum { RIO_LOAD_PKG = 1, RIO_LOAD_FILE = 2 };
-typedef struct { const char *src; uint32_t len; int isdir; const char *name; } RioSource;
-typedef int (*RioLoadFn)(void *ud, const char *path, int kind, RioSource *out);
-void rio_set_loader(Rio *vm, RioLoadFn fn, void *ud);
-/* compiler capacities. consts is also how many words of mem are kept for constants, and slots
-   (at most 65536, counting the constants) caps the register-addressable part of mem. code: room
-   for instructions while compiling, when the code lives in mem (a REPL keeps that much for good) */
-typedef struct { uint32_t syms, names, types, fields, procs, params, consts, slots, blocks, expr, modules, code; } RioLimits;
-#ifndef RIO_NO_COMPILER
-RioLimits rio_limits_for(uint32_t bytes);     /* limits whose tables fill about 60% of `bytes` */
-uint32_t rio_limits_size(const RioLimits *l); /* scratch bytes those tables take; strings need more */
-/* compile with the compiler's working memory overlaid on the part of mem that stays zero until
-   the program runs; limits are scaled to mem */
-int rio_compile(Rio *vm, const char *src, uint32_t len);
-/* same, with the compiler's working memory in a separate buffer that stays valid afterwards
-   (rio_aot needs it); limits are scaled to the buffer */
-int rio_compile_scratch(Rio *vm, const char *src, uint32_t len, void *scratch, uint32_t size);
+   Return 0 and fill *out (src must stay valid until compiling ends; isDir: a module path named a
+   directory and its entry file was used; name: optional text for error messages), 1 if not found,
+   2 if found in more than one place. */
+enum { rio_LoadKind_package = 1, rio_LoadKind_file = 2 };
+typedef struct {
+  const char *src;
+  uint32_t len;
+  int isDir;
+  const char *name;
+} rio_Source;
+typedef int (*rio_LoadFn)(void *userData, const char *path, int kind, rio_Source *out);
+void rio_setLoader(rio_Vm *vm, rio_LoadFn fn, void *userData);
+
+/* Compiler capacities. consts is also how many words of mem are kept for constants, and slots (at
+   most 65536, counting the constants) caps the register-addressable part of mem. code: room for
+   instructions while compiling, when the code lives in mem (a REPL keeps that much for good). */
+typedef struct {
+  uint32_t symbols, nameBytes, types, fields, procs, params, consts, slots, blocks, exprDepth, modules, code;
+} rio_Limits;
+
+#ifndef rio_NO_COMPILER
+rio_Limits rio_limitsFor(uint32_t bytes);      /* limits whose tables fill about 60% of `bytes` */
+uint32_t rio_limitsSize(const rio_Limits *lim); /* scratch bytes those tables take; strings need more */
+/* compile with the compiler's working memory overlaid on the part of mem that stays zero until the
+   program runs; limits are scaled to mem */
+int rio_compile(rio_Vm *vm, const char *src, uint32_t len);
+/* same, with the compiler's working memory in a separate buffer that stays valid afterwards (rio_aot
+   needs it); limits are scaled to the buffer */
+int rio_compileScratch(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size);
 /* either of the above with explicit limits: scratch NULL overlays mem; lim NULL scales */
-int rio_compile_ex(Rio *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const RioLimits *lim);
+int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const rio_Limits *lim);
 #endif
-int rio_run(Rio *vm);                       /* runs top-level code */
-int rio_func(Rio *vm, const char *name);    /* -1 if missing */
-RioVal *rio_args(Rio *vm, int fn);          /* params, consecutive words in declaration order */
-RioVal *rio_ret(Rio *vm, int fn);
-int rio_call(Rio *vm, int fn);
-void *rio_global(Rio *vm, const char *name); /* address of a global variable */
-void *rio_ptr(Rio *vm, const RioVal *slice); /* bytes of a string/blob/slice value */
-void rio_trap(Rio *vm, const char *msg);     /* call from ffi to abort with an error */
-/* break: safe from a signal handler, an interrupt or another core. A running script stops at its
-   next loop iteration with the runtime error "interrupted". */
-void rio_interrupt(Rio *vm);
-#ifndef RIO_NO_COMPILER
-/* REPL: compile and run code a piece at a time; globals, procs, types and methods carry over.
-   The compiler keeps its state in scratch for the whole session. A bare expression prints its value. */
-enum { RIO_MORE = 1 };
-int rio_repl_begin(Rio *vm, void *scratch, uint32_t size, const RioLimits *lim);
-/* 0: ran. -1: error (see rio_error; a compile error leaves the session unchanged).
-   RIO_MORE: the input is unfinished (an open block, bracket or string): call again with the
-   same text plus more appended. */
-int rio_repl_eval(Rio *vm, const char *src, uint32_t len);
+
+/* ------------------------------------------------------------------ running */
+
+int rio_run(rio_Vm *vm);                          /* runs top-level code */
+int rio_findProc(rio_Vm *vm, const char *name);   /* -1 if missing */
+rio_Val *rio_procArgs(rio_Vm *vm, int proc);      /* params, consecutive words in declaration order */
+rio_Val *rio_procResult(rio_Vm *vm, int proc);
+int rio_call(rio_Vm *vm, int proc);
+void *rio_findGlobal(rio_Vm *vm, const char *name); /* address of a global variable, or NULL */
+void *rio_sliceBytes(rio_Vm *vm, const rio_Val *slice); /* bytes of a string/blob/slice value */
+void rio_trap(rio_Vm *vm, const char *message);   /* call from ffi to abort with an error */
+/* break: safe from a signal handler, an interrupt or another core. A running script stops at its next
+   loop iteration with the runtime error "interrupted". */
+void rio_interrupt(rio_Vm *vm);
+
+/* ------------------------------------------------------------------ REPL */
+
+#ifndef rio_NO_COMPILER
+/* compile and run code a piece at a time; globals, procs, types and methods carry over. The compiler
+   keeps its state in scratch for the whole session. A bare expression prints its value. */
+enum { rio_ReplResult_error = -1, rio_ReplResult_ok = 0, rio_ReplResult_more = 1 };
+int rio_replBegin(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *lim);
+/* ok: ran. error: see rio_error (a compile error leaves the session unchanged). more: the input is
+   unfinished (an open block, bracket or string): call again with the same text plus more appended. */
+int rio_replEval(rio_Vm *vm, const char *src, uint32_t len);
 /* for typing an unfinished input: the steps to indent its next line (each a block or bracket still
    open), -1 inside a string; and whether a line starting with this word belongs a step out (end,
    else, case) */
-int rio_repl_indent(const char *src, uint32_t len);
-int rio_repl_outdent(const char *word, uint32_t len);
-#endif
-const char *rio_error(Rio *vm);           /* "line:col: message", or "line: runtime error: message" */
-/* structured error for editors: line/col are 1-based (0 = unknown); len is the width of the
-   offending token (0 = unknown); msg is the message without the position prefix */
-enum { RIO_ENONE, RIO_ECOMPILE, RIO_ERUNTIME };
-typedef struct { int kind, line, col, len; const char *msg, *file; } RioError; /* file: NULL for the main source */
-RioError rio_error_info(Rio *vm);
-int rio_pc_line(Rio *vm, uint32_t pc);      /* source line of a bytecode position (0 = unknown) */
-/* native code for simple loops (jit.c), on ARM with Thumb-2 (the RP2350's Cortex-M33): from now on,
-   whatever compiles (rio_compile, each REPL piece) or loads (rio_image_load) also has its simple loops
-   and procs (math, compares, branches, arrays and fields, calls, log) compiled to machine code in buf,
-   before it runs. buf
-   must be executable (SRAM on the RP2350) and stay valid. Returns how many loops it compiled right
-   away (for a program already compiled; loops and procs), or -1 where there's no native code (any other machine).
-   Errors and rio_interrupt work as in the VM. */
-typedef uint32_t (*RioJitFn)(RioVal *slots, Rio *vm);
-int rio_jit(Rio *vm, void *buf, uint32_t size);
-void rio_jit_op(RioVal *slots, Rio *vm, const RioIns *ip); /* (for the native code) */
-
-/* ---- private ---- */
-enum { RIO_S_VAR, RIO_S_CONST, RIO_S_TYPE, RIO_S_FN, RIO_S_FFI, RIO_S_BI, RIO_S_METH, RIO_S_SELF, RIO_S_MOD };
-/* kinds of types (RioType.k), for tools that read the compiler's tables */
-enum { RIO_K_VOID, RIO_K_I32, RIO_K_F32, RIO_K_BYTE, RIO_K_SLICE, RIO_K_ARR, RIO_K_STRUCT, RIO_K_BOOL, RIO_K_LIST, RIO_K_BUILD,
-  RIO_K_ENUM, RIO_K_UNION, RIO_K_PROC };
-#define RIO_OPS(X) X(MOV) X(ADD) X(SUB) X(MUL) X(DIV) X(MOD) X(AND) X(OR) X(XOR) X(SHL) X(SHR) \
-  X(NEG) X(BNOT) X(NOT) X(FADD) X(FSUB) X(FMUL) X(FDIV) X(FNEG) \
-  X(EQ) X(NE) X(LT) X(LE) X(FEQ) X(FNE) X(FLT) X(FLE) X(SEQ) X(SNE) \
-  X(ITOF) X(FTOI) X(LDW) X(LDB) X(LEA) X(M1) X(M2) X(IABS) X(IMIN) X(IMAX) X(FMIN) X(FMAX) X(LDX) X(LDXB) \
-  X(MOV2) X(LDW2) X(STW) X(STB) X(STW2) X(STX) X(STXB) X(IDX) X(SLICE) X(COPY) X(MOVN) X(ZERO) X(ENUMCK) X(ENUMNAME) \
-  X(VADD) X(VSUB) X(VMUL) X(VDIV) X(VMOD) X(FVADD) X(FVSUB) X(FVMUL) X(FVDIV) \
-  X(LIDX) X(PUSHA) X(PUSHS) X(PUSHT) X(POPA) X(LREM) X(LSWAP) X(LVIEW) \
-  X(JMP) X(JZ) X(JNZ) X(JEQ) X(JNE) X(JLT) X(JLE) X(JFEQ) X(JFNE) X(JFLT) X(JFLE) X(JFNLT) X(JFNLE) X(EACH) X(FORI) \
-  X(CALL) X(RET) X(CALLI) X(GETRET) X(FFI) X(LOGI) X(LOGF) X(LOGS) X(LOGB) X(LOGN) X(LOGE) X(FAIL) X(HALT) X(JIT)
-/* runtime: per proc entry pc, code end, frame slots [fs, fe), params in [fs, pend), result slot(s) */
-typedef struct { uint16_t pc, end, fs, fe, pend, ret; uint8_t retw; } RioFunc;
-typedef struct { const char *name, *sig; RioFn fn; uint8_t aw, rw; } RioFfi;
-typedef struct { uint32_t name; uint16_t len; uint8_t k, pad; int32_t v; } RioExport; /* lives in mem */
-typedef struct { uint16_t pc0, pc1; uint32_t file; } RioModRt; /* lives in mem: code range of a module */
-
-#ifndef RIO_NO_COMPILER
-/* compile-time only (lives in scratch) */
-typedef struct { int t, line, col, w, n, op; const char *s; RioVal v; uint8_t nl; } RioTok;
-typedef struct { uint8_t k, ref; uint16_t elem, f0, nf; uint32_t n, size; } RioType;
-typedef struct { uint16_t name, len, t, off; } RioField;
-typedef struct { uint16_t name, len, t, mod; uint8_t k, ex; int32_t v; } RioSym; /* mod: defining module; ex: exported */
-/* a source file: a module, or a part included into one. state 1 compiling, 2 done */
-typedef struct { uint16_t key, keylen, dir, dirlen, file, pc0, pc1; uint8_t pkg, state, inc; } RioMod;
-/* where to resume the file that imported or included another: for an import, its import statement
-   runs again (and just binds names); for an include, compiling continues after it */
-typedef struct { const char *src, *se, *ls, *pos; int line, mod, f, inc; } RioImp;
-/* big: bytes of its locals stored apart (over 16 words). shared: its frame lives in the shared area at
-   offset ob; oe is where the shared frames of it and everything it calls end; dep: its longest call chain */
-/* ho: it calls through a proc value, itself or through procs it calls (so it can't be a value: that
-   could recurse). val: it's used as a proc value somewhere */
-typedef struct { uint16_t pc, end, ret, p0, np, fs, fe, ob, oe, dep; uint32_t retaddr, big, hi0; uint8_t done, selfref, shared, ho, val; } RioCFunc; /* hi0: its big locals are below this */
-typedef struct { uint16_t t, ref; uint32_t addr; } RioParam; /* ref: a &T param's T (t is then the address word) */
-typedef struct { uint16_t ret, p0, np; } RioCFfi;
-typedef struct { uint8_t k, ro; uint16_t t, t0; uint8_t lv; int32_t a, off; } RioEx; /* lv: a view of the current proc's own memory */
-typedef struct { uint8_t k, prec; int16_t op; int32_t a, b, c, n, pun; uint16_t vb, fr0; uint64_t set; } RioOp;
-/* a switch also keeps the scope each case starts from (csym, cnames, cact) and its coverage row (sw) */
-/* lab: a loop's label (outer: for ...), in the source text, labn long (0: none) */
-typedef struct { uint8_t k; uint16_t nsym, nnames, nact, a, b, brk, cont, cj, i, lim, csym, cnames, cact, sw, labn; const char *lab; } RioBlk;
-typedef struct RioC {
-  int dead; /* a compile error happened: the rest of the source reads as its end */
-  int negnum; /* lexing a -D value that had a minus sign */
-  const char *src, *sp, *se, *ls; int line, pline, pcol, pw; RioTok tk, nx;
-  uint32_t linetop, nline, lastline, lastlinepc, lineovr; /* pc->line table, growing down from the top of the pool */
-  const char *failmsg; /* the last compile error, to tell "unfinished" from "wrong" */
-  RioMod *mods; int nmod, curmod, curf, nis, exporting; RioImp is[RIO_MAX_IMPORT_DEPTH]; /* curf: the file being read */
-  uint32_t fr, nact, hwm, lastlabel, pool, poolcap, big; int curfn, def0, target; /* target: type the next expr() should produce, or -1; big: bytes of all big values */
-  int nsym, ntype, nfield, nparam, nnames, nblk, nvs, nos;
-  RioLimits lim;                         /* capacities of the tables below, all carved from scratch */
-  RioSym *sym; RioType *type; RioField *field; RioCFunc *func; RioParam *param;
-  char *names; RioBlk *blk; RioEx *vs; RioOp *os;
-  uint8_t *exposed;                      /* slots whose address is taken (for AOT) */
-  uint8_t *kfix;                         /* constants holding string-pool offsets, relocated at the end */
-  uint8_t *kadr;                         /* constants holding slot addresses, renumbered when frames are shared */
-  uint8_t *lvs;                          /* local slots that hold a view of their proc's own memory */
-  int argstore;                          /* storing call arguments: views may go to a callee */
-  uint64_t swm[16][4]; int nsw;          /* per open switch: which enum values (or union types) have a case */
-  struct { int32_t at, var; int mem; } isc[8]; int nisc; /* `x is T`s in a condition: the slot carrying each
-                                                        result (-1 once used by anything but &&), x, T */
-  uint16_t *smap;                        /* old slot -> new slot, while sharing frames */
-  RioIns *code0;                         /* code while compiling, when it ends up in mem */
-  RioCFfi ffi[RIO_MAX_FFI];
-  uint8_t *strs;                         /* string pool: the rest of scratch */
-} RioC;
+int rio_replIndent(const char *src, uint32_t len);
+int rio_replOutdent(const char *word, uint32_t len);
 #endif
 
-struct Rio {
-  uint8_t *mem; uint32_t memsize, hi, nk, kcap, csaddr, exports, nexports, lines, nlines; /* nlines: bytes of the packed table */
-  uint32_t lcpos, lcpc, lcline; /* where the last line lookup stopped, so lookups in pc order are one pass */
-  int ekind, eline, ecol, elen, emsg; const char *efile;
-  RioLoadFn loader; void *loadud; uint32_t mods, nmods; /* runtime table of module code ranges, in mem */
-  RioIns *code; uint32_t codecap, pc; /* where the code is now (in mem, or the host's buffer) */
-  RioIns *codebuf; uint32_t codebufcap;  /* the host's code buffer, or NULL: the code lives in mem */
-  RioLogFn logfn; void *logud; int logn, trap, ok, nfunc, nffi, ndefs, repl, running;
-  volatile int brk; /* set by rio_interrupt */
-  const char *defs[RIO_MAX_DEFINES][2];
-  struct RioC *c; /* compiler state: only during compile, or after rio_compile_scratch */
-  RioFunc *func; /* per proc, in mem next to the strings */
-  RioJitFn *jit; /* native loops, from rio_jit (OP_JIT a: which) */
-  int (*jitter)(Rio *vm); void *jitbuf; uint32_t jitsize, jitused, njit; /* set by rio_jit */
-  RioFfi ffi[RIO_MAX_FFI];
-  char logbuf[RIO_LOGBUF], err[RIO_ERRBUF];
+/* ------------------------------------------------------------------ errors */
+
+const char *rio_error(rio_Vm *vm); /* "line:col: message", or "line: runtime error: message" */
+/* structured error for editors: line and col are 1-based (0 = unknown); len is the width of the
+   offending token (0 = unknown); msg is the message without the position prefix; file is NULL for
+   the main source */
+enum { rio_ErrorKind_none, rio_ErrorKind_compile, rio_ErrorKind_runtime };
+typedef struct {
+  int kind, line, col, len;
+  const char *msg, *file;
+} rio_Error;
+rio_Error rio_errorInfo(rio_Vm *vm);
+int rio_pcLine(rio_Vm *vm, uint32_t pc); /* source line of a bytecode position (0 = unknown) */
+
+/* ------------------------------------------------------------------ native code */
+
+/* Native code for simple loops (jit.c), on ARM with Thumb-2 (the RP2350's Cortex-M33): from now on,
+   whatever compiles (rio_compile, each REPL piece) or loads (rio_loadImage) also has its simple loops
+   and procs (math, compares, branches, arrays and fields, calls, log) compiled to machine code in
+   buf, before it runs. buf must be executable (SRAM on the RP2350) and stay valid. Returns how many
+   loops it compiled right away (for a program already compiled; loops and procs), or -1 where there's
+   no native code (any other machine). Errors and rio_interrupt work as in the VM. */
+typedef uint32_t (*rio_JitFn)(rio_Val *slots, rio_Vm *vm);
+int rio_jit(rio_Vm *vm, void *buf, uint32_t size);
+void rio_jitOp(rio_Val *slots, rio_Vm *vm, const rio_Instr *ip); /* (for the native code) */
+
+/* ------------------------------------------------------------------ private: the vm's layout */
+
+/* Hosts allocate rio_Vm themselves, so its layout is here, but nothing in it is part of the API.
+   Fields named ...At are byte offsets into mem. */
+
+/* a proc at runtime: entry pc and code end, frame slots [frameStart, frameEnd), params in
+   [frameStart, paramsEnd), result slot(s) */
+typedef struct {
+  uint16_t entry, end, frameStart, frameEnd, paramsEnd, result;
+  uint8_t resultWords;
+} rio_Proc;
+
+/* a registered ffi function; argWords and resultWords come from its sig */
+typedef struct {
+  const char *name, *sig;
+  rio_FfiFn fn;
+  uint8_t argWords, resultWords;
+} rio_Ffi;
+
+typedef struct {
+  const char *name, *value;
+} rio_Define;
+
+struct rio_Compiler;
+
+struct rio_Vm {
+  uint8_t *mem;
+  uint32_t memSize;
+  uint32_t top;            /* tables, strings and big arrays fill [top, memSize), growing down */
+  uint32_t constCount;     /* constants used, in words from 0 (word 0 is always 0) */
+  uint32_t constCap;       /* words reserved for constants; slots start here */
+  uint32_t callStackAt;    /* the return stack */
+  uint32_t exportsAt, exportCount; /* names the host can look up */
+  uint32_t linesAt, linesSize;     /* the packed pc -> line table */
+  uint32_t lineCachePos, lineCachePc, lineCacheLine; /* where the last line lookup stopped, so
+                                                        lookups in pc order are one pass */
+  int errorKind, errorLine, errorCol, errorLen, errorMsgAt; /* errorMsgAt: in errorText */
+  const char *errorFile;
+  rio_LoadFn loader;
+  void *loaderData;
+  uint32_t modulesAt, moduleCount; /* code ranges of modules, for naming files in errors */
+  rio_Instr *code;         /* where the code is now: in mem, or the host's buffer */
+  uint32_t codeCap, codeLen;
+  rio_Instr *hostCode;     /* the host's code buffer, or NULL: the code lives in mem */
+  uint32_t hostCodeCap;
+  rio_LogFn logFn;
+  void *logData;
+  int logLen, trapped, ready, procCount, ffiCount, defineCount, inRepl, running;
+  volatile int interrupted; /* set by rio_interrupt */
+  rio_Define defines[rio_MAX_DEFINES];
+  struct rio_Compiler *compiler; /* only while compiling, or after rio_compileScratch and in a REPL */
+  rio_Proc *procs;         /* per proc, in mem next to the strings */
+  rio_JitFn *jitFns;       /* native loops (rio_Op_jit a: which) */
+  int (*jitHook)(rio_Vm *vm); /* set by rio_jit: compiles what was just compiled or loaded */
+  void *jitBuf;
+  uint32_t jitSize, jitUsed, jitCount;
+  rio_Ffi ffi[rio_MAX_FFI];
+  char logBuf[rio_LOG_BUF_SIZE];
+  char errorText[rio_ERROR_BUF_SIZE];
 };
+
 #endif

@@ -1,285 +1,385 @@
-/* aot.c - translate compiled rio bytecode to a standalone C program.
-   No recursion => every proc becomes a plain C function, and its frame slots become C locals
-   (unless their address is taken). Constants are emitted inline. */
+/* aot.c - translates compiled rio bytecode to a standalone C program. No recursion: every proc becomes a
+   plain C function, and its frame slots become C locals (unless their address is taken). Constants are
+   written inline, and each instruction becomes one C statement. Memory is a static image identical to
+   the vm's, so behavior is the same, bounds checks, wrapping and all. #line directives keep __LINE__ on
+   the rio line, which runtime errors report. */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include "rio.h"
+#include "compiler.h"
 #include "aot.h"
 
-#define OPENUM(o) A_##o,
-enum { RIO_OPS(OPENUM) A_DATA = 255 };
+typedef struct {
+  rio_Vm *vm;
+  FILE *out;            /* NULL during a dry run, which only notes the locals a proc uses */
+  int proc;             /* the proc being written, or -1 for top-level code */
+  uint8_t isLabel[65536]; /* jump targets */
+  uint8_t used[8192];   /* the current proc's locals that the code reads or writes */
+  int lastLine;         /* what __LINE__ is on the next output line; 0: unknown */
+} rio_Aot;
 
-static Rio *vm;
-static FILE *o;
-static int cur = -1;            /* function being emitted, -1 = top level */
-static uint8_t *label;          /* jump targets */
-static uint8_t used[8192];      /* locals referenced by the current proc */
-static int lastline;             /* what __LINE__ is on the next output line; 0: unknown */
+static rio_Val rio_constant(rio_Aot *a, int s) { return ((rio_Val *)a->vm->mem)[s]; }
 
-static RioVal kval(int s) { return ((RioVal *)vm->mem)[s]; }
-static int isret(int s) {
-  RioFunc *f = &vm->func[cur];
-  return s >= f->ret && s < f->ret + f->retw;
+static int rio_isResultSlot(rio_Aot *a, int s) {
+  rio_Proc *p = &a->vm->procs[a->proc];
+  return s >= p->result && s < p->result + p->resultWords;
 }
-static int islocal(int s) {
-  RioFunc *f;
-  if (cur < 0) return 0;
-  f = &vm->func[cur];
-  return s >= f->fs && s < f->fe && !(vm->c->exposed[s >> 3] & (1 << (s & 7))) && !isret(s);
+
+/* a slot of the current proc's frame that can be a C local: its address is never taken, and it isn't the
+   result (which callers read) */
+static int rio_isLocal(rio_Aot *a, int s) {
+  rio_Proc *p;
+  if (a->proc < 0) return 0;
+  p = &a->vm->procs[a->proc];
+  return s >= p->frameStart && s < p->frameEnd && !rio_bitGet(a->vm->compiler->exposed, (uint32_t)s) && !rio_isResultSlot(a, s);
 }
-/* operand text for slot s viewed as t: i(nt) u(nsigned) f(loat) v(whole value) */
-static const char *V(int s, int t) {
-  static char buf[16][48]; static int n;
-  char *b = buf[n++ & 15];
-  if (s < (int)vm->nk) {
-    RioVal k = kval(s);
-    if (t == 'i') { if (k.i == (int32_t)0x80000000u) strcpy(b, "(-2147483647-1)"); else sprintf(b, k.i < 0 ? "(%d)" : "%d", k.i); }
-    else if (t == 'u') sprintf(b, "%uu", k.u);
-    else if (t == 'f') {
-      char *q; float back;
-      sprintf(b, "%.9g", k.f); back = strtof(b, &q);
-      if (k.f != k.f || back != k.f || k.f - k.f != 0) sprintf(b, "kf(%uu)", k.u);
-      else { if (!strpbrk(b, ".e")) strcat(b, ".0"); strcat(b, "f"); if (k.f < 0) { memmove(b + 1, b, strlen(b) + 1); b[0] = '('; strcat(b, ")"); } }
-    } else sprintf(b, "((RioVal){.u = %uu})", k.u);
-  } else if (islocal(s)) {
-    used[s >> 3] |= (uint8_t)(1 << (s & 7));
-    if (t == 'v') sprintf(b, "r%d", s); else sprintf(b, "r%d.%c", s, t); }
-  else { if (t == 'v') sprintf(b, "R[%d]", s); else sprintf(b, "R[%d].%c", s, t); }
+
+/* The C text for slot s viewed as view: i(nt) u(nsigned) f(loat) v(whole value). Constants are written
+   as literals. (Returns one of 16 buffers in turn: enough for any one statement.) */
+static const char *rio_operand(rio_Aot *a, int s, int view) {
+  static char buffers[16][48];
+  static int next;
+  char *b = buffers[next++ & 15];
+  if (s < (int)a->vm->constCount) {
+    rio_Val k = rio_constant(a, s);
+    if (view == 'i') {
+      if (k.i == (int32_t)0x80000000u) strcpy(b, "(-2147483647-1)");
+      else sprintf(b, k.i < 0 ? "(%d)" : "%d", k.i);
+    } else if (view == 'u') sprintf(b, "%uu", k.u);
+    else if (view == 'f') { /* exactly, or as bits when no literal reads back the same */
+      char *end;
+      float back;
+      sprintf(b, "%.9g", k.f);
+      back = strtof(b, &end);
+      if (k.f != k.f || back != k.f || k.f - k.f != 0) sprintf(b, "rio_floatBits(%uu)", k.u);
+      else {
+        if (!strpbrk(b, ".e")) strcat(b, ".0");
+        strcat(b, "f");
+        if (k.f < 0) {
+          memmove(b + 1, b, strlen(b) + 1);
+          b[0] = '(';
+          strcat(b, ")");
+        }
+      }
+    } else sprintf(b, "((rio_Val){.u = %uu})", k.u);
+  } else if (rio_isLocal(a, s)) {
+    rio_bitSet(a->used, (uint32_t)s);
+    if (view == 'v') sprintf(b, "r%d", s);
+    else sprintf(b, "r%d.%c", s, view);
+  } else {
+    if (view == 'v') sprintf(b, "rio_R[%d]", s);
+    else sprintf(b, "rio_R[%d].%c", s, view);
+  }
   return b;
 }
-static uint32_t sz(const RioIns *d) { return (uint32_t)d->b | (uint32_t)d->c << 16; }
-static const char *symname(int kind, int idx) {
-  static char b[64]; int i;
-  for (i = 0; i < vm->c->nsym; i++)
-    if (vm->c->sym[i].k == kind && vm->c->sym[i].v == idx) {
-      int n = vm->c->sym[i].len < 60 ? vm->c->sym[i].len : 60;
-      memcpy(b, vm->c->names + vm->c->sym[i].name, (size_t)n); b[n] = 0;
+
+/* the name of the symbol of this kind and value, or anon<value> */
+static const char *rio_symbolName(rio_Aot *a, int kind, int value) {
+  static char b[64];
+  rio_Compiler *c = a->vm->compiler;
+  int i;
+  for (i = 0; i < c->symCount; i++)
+    if (c->syms[i].kind == kind && c->syms[i].value == value) {
+      int n = c->syms[i].nameLen < 60 ? c->syms[i].nameLen : 60;
+      memcpy(b, c->names + c->syms[i].name, (size_t)n);
+      b[n] = 0;
       return b;
     }
-  sprintf(b, "anon%d", idx);
+  sprintf(b, "anon%d", value);
   return b;
 }
-/* print to the output, or only evaluate the operands (marking used locals) during the dry run */
+
+/* prints to the output, or only evaluates the operands (noting the locals used) during the dry run */
 #if defined(__GNUC__) || defined(__clang__)
-static void P(const char *fmt, ...) __attribute__((format(printf, 1, 2))); /* lets the compiler check every call */
+static void rio_print(rio_Aot *a, const char *fmt, ...) __attribute__((format(printf, 2, 3))); /* lets the compiler check every call */
 #endif
-static void P(const char *fmt, ...) {
-  static char b[4096]; va_list ap; int n, i;
-  if (!o) return;
-  va_start(ap, fmt); n = vsnprintf(b, sizeof b, fmt, ap); va_end(ap);
+static void rio_print(rio_Aot *a, const char *fmt, ...) {
+  static char b[4096];
+  va_list ap;
+  int n, i;
+  if (!a->out) return;
+  va_start(ap, fmt);
+  n = vsnprintf(b, sizeof b, fmt, ap);
+  va_end(ap);
   if (n < 0) return;
-  if (n >= (int)sizeof b) { va_start(ap, fmt); vfprintf(o, fmt, ap); va_end(ap); n = (int)sizeof b - 1; }
-  else fputs(b, o);
-  for (i = 0; i < n && lastline; i++) lastline += b[i] == '\n'; /* every line written moves __LINE__ on */
+  if (n >= (int)sizeof b) {
+    va_start(ap, fmt);
+    vfprintf(a->out, fmt, ap);
+    va_end(ap);
+    n = (int)sizeof b - 1;
+  } else fputs(b, a->out);
+  for (i = 0; i < n && a->lastLine; i++) a->lastLine += b[i] == '\n'; /* every line written moves __LINE__ on */
 }
-/* C name for proc/method i: p<i>_<name>, unique even when methods of different types share a name */
-static const char *fname(int idx) {
-  static char b[80]; int i;
-  for (i = 0; i < vm->c->nsym; i++)
-    if ((vm->c->sym[i].k == RIO_S_FN || vm->c->sym[i].k == RIO_S_METH) && vm->c->sym[i].v == idx) {
-      int n = vm->c->sym[i].len < 60 ? vm->c->sym[i].len : 60;
-      sprintf(b, "p%d_%.*s", idx, n, vm->c->names + vm->c->sym[i].name);
+
+/* the C name for proc or method i: rio_p<i>_<name>, unique even when methods of different types share a name */
+static const char *rio_procName(rio_Aot *a, int proc) {
+  static char b[80];
+  rio_Compiler *c = a->vm->compiler;
+  int i;
+  for (i = 0; i < c->symCount; i++)
+    if ((c->syms[i].kind == rio_SymKind_proc || c->syms[i].kind == rio_SymKind_method) && c->syms[i].value == proc) {
+      int n = c->syms[i].nameLen < 60 ? c->syms[i].nameLen : 60;
+      sprintf(b, "rio_p%d_%.*s", proc, n, c->names + c->syms[i].name);
       return b;
     }
-  sprintf(b, "p%d", idx);
+  sprintf(b, "rio_p%d", proc);
   return b;
 }
-static int fnat(int pc) { int i; for (i = 0; i < vm->nfunc; i++) if (vm->func[i].pc == pc) return i; return -1; }
 
-static void ins(int pc) {
-  const RioIns *x = &vm->code[pc], *d = x + 1;
-  int a = x->a, b = x->b, c = x->c;
-  static const char *bin[] = {"+", "-", "*", 0, 0, "&", "|", "^"};
-  static const char *cmp[] = {"==", "!=", "<", "<="};
-  static const char *m1[] = {"sqrtf", "sinf", "cosf", "tanf", "asinf", "acosf", "atanf", "expf", "logf", "floorf", "ceilf", "rt_round", "fabsf"};
-  static const char *m2[] = {"atan2f", "powf", "fmodf"};
-  if (x->op == A_DATA) return;
-  if (label[pc]) P("L%d:;\n", pc);
-  if (o) { /* keep __LINE__ on the rio line, however many C lines a line becomes (not needed in the dry run) */
-    int ln = rio_pc_line(vm, (uint32_t)pc);
-    if (ln && ln != lastline) { P("#line %d\n", ln); lastline = ln; }
+static int rio_procAtPc(rio_Aot *a, int pc) {
+  int i;
+  for (i = 0; i < a->vm->procCount; i++)
+    if (a->vm->procs[i].entry == pc) return i;
+  return -1;
+}
+
+/* ------------------------------------------------------------------ instructions */
+
+#define rio_V(s, view) rio_operand(a, s, view)
+
+/* the statement for the instruction at pc */
+static void rio_instruction(rio_Aot *a, int pc) {
+  static const char *const binary[] = {"+", "-", "*", 0, 0, "&", "|", "^"};
+  static const char *const compare[] = {"==", "!=", "<", "<="};
+  static const char *const math1[] = {"sqrtf", "sinf", "cosf", "tanf", "asinf", "acosf", "atanf", "expf", "logf",
+                                      "floorf", "ceilf", "rio_round", "fabsf"};
+  static const char *const math2[] = {"atan2f", "powf", "fmodf"};
+  rio_Vm *vm = a->vm;
+  const rio_Instr *in = &vm->code[pc], *data = in + 1;
+  int A = in->a, B = in->b, C = in->c;
+  if (in->op == rio_Op_data) return;
+  if (a->isLabel[pc]) rio_print(a, "L%d:;\n", pc);
+  if (a->out) { /* keep __LINE__ on the rio line, however many C lines a line becomes (not needed in the dry run) */
+    int line = rio_pcLine(vm, (uint32_t)pc);
+    if (line && line != a->lastLine) {
+      rio_print(a, "#line %d\n", line);
+      a->lastLine = line;
+    }
   }
-  P("  ");
-  switch (x->op) {
-  case A_MOV: P("%s = %s;\n", V(a, 'v'), V(b, 'v')); break;
-  case A_ADD: case A_SUB: case A_MUL: case A_AND: case A_OR: case A_XOR:
-    P("%s = %s %s %s;\n", V(a, 'u'), V(b, 'u'), bin[x->op - A_ADD], V(c, 'u')); break;
-  case A_DIV: case A_MOD: {
-    const char *op = x->op == A_DIV ? "/" : "%";
-    if (c < (int)vm->nk && kval(c).i != 0 && kval(c).i != -1) P("%s = %s %s %s;\n", V(a, 'i'), V(b, 'i'), op, V(c, 'i'));
-    else P("{ int32_t y_ = %s, x_ = %s; if (!y_) RT_ERR(\"division by zero\"); %s = y_ == -1 ? %s : x_ %s y_; }\n",
-                 V(c, 'i'), V(b, 'i'), V(a, 'i'), x->op == A_DIV ? "(int32_t)(0u - (uint32_t)x_)" : "0", op);
+  rio_print(a, "  ");
+  switch (in->op) {
+  case rio_Op_mov: rio_print(a, "%s = %s;\n", rio_V(A, 'v'), rio_V(B, 'v')); break;
+  case rio_Op_add: case rio_Op_sub: case rio_Op_mul: case rio_Op_and: case rio_Op_or: case rio_Op_xor:
+    rio_print(a, "%s = %s %s %s;\n", rio_V(A, 'u'), rio_V(B, 'u'), binary[in->op - rio_Op_add], rio_V(C, 'u'));
     break;
-  }
-  case A_SHL: P("%s = %s << (%s & 31);\n", V(a, 'u'), V(b, 'u'), V(c, 'u')); break;
-  case A_SHR: P("%s = %s >> (%s & 31);\n", V(a, 'i'), V(b, 'i'), V(c, 'u')); break;
-  case A_NEG: P("%s = 0u - %s;\n", V(a, 'u'), V(b, 'u')); break;
-  case A_BNOT: P("%s = ~%s;\n", V(a, 'u'), V(b, 'u')); break;
-  case A_NOT: P("%s = !%s;\n", V(a, 'i'), V(b, 'i')); break;
-  case A_FADD: case A_FSUB: case A_FMUL: case A_FDIV:
-    P("%s = %s %c %s;\n", V(a, 'f'), V(b, 'f'), "+-*/"[x->op - A_FADD], V(c, 'f')); break;
-  case A_FNEG: P("%s = -%s;\n", V(a, 'f'), V(b, 'f')); break;
-  case A_EQ: case A_NE: case A_LT: case A_LE:
-    P("%s = %s %s %s;\n", V(a, 'i'), V(b, 'i'), cmp[x->op - A_EQ], V(c, 'i')); break;
-  case A_FEQ: case A_FNE: case A_FLT: case A_FLE:
-    P("%s = %s %s %s;\n", V(a, 'i'), V(b, 'f'), cmp[x->op - A_FEQ], V(c, 'f')); break;
-  case A_SEQ: case A_SNE:
-    P("%s = %sseq(%s, %s, %s, %s);\n", V(a, 'i'), x->op == A_SNE ? "!" : "", V(b, 'i'), V(b + 1, 'i'), V(c, 'i'), V(c + 1, 'i')); break;
-  case A_ITOF: P("%s = (float)%s;\n", V(a, 'f'), V(b, 'i')); break;
-  case A_FTOI: P("%s = ftoi(%s);\n", V(a, 'i'), V(b, 'f')); break;
-  case A_LDW: P("%s = MV(%s + %du);\n", V(a, 'v'), V(b, 'u'), c); break;
-  case A_LDB: P("%s = M[%s + %du];\n", V(a, 'u'), V(b, 'u'), c); break;
-  case A_LEA: P("%s = %s + %du;\n", V(a, 'u'), V(b, 'u'), c); break;
-  case A_M1: P("%s = %s(%s);\n", V(a, 'f'), m1[x->x], V(b, 'f')); break;
-  case A_M2: P("%s = %s(%s, %s);\n", V(a, 'f'), m2[x->x], V(b, 'f'), V(c, 'f')); break;
-  case A_IABS: P("%s = %s < 0 ? 0u - %s : %s;\n", V(a, 'u'), V(b, 'i'), V(b, 'u'), V(b, 'u')); break;
-  case A_IMIN: case A_IMAX: case A_FMIN: case A_FMAX: {
-    int t = x->op <= A_IMAX ? 'i' : 'f';
-    P("%s = %s %c %s ? %s : %s;\n", V(a, t), V(b, t), x->op == A_IMIN || x->op == A_FMIN ? '<' : '>', V(c, t), V(b, t), V(c, t));
+  case rio_Op_div: case rio_Op_mod: {
+    const char *op = in->op == rio_Op_div ? "/" : "%";
+    if (C < (int)vm->constCount && rio_constant(a, C).i != 0 && rio_constant(a, C).i != -1) /* a safe constant divisor */
+      rio_print(a, "%s = %s %s %s;\n", rio_V(A, 'i'), rio_V(B, 'i'), op, rio_V(C, 'i'));
+    else
+      rio_print(a, "{ int32_t y_ = %s, x_ = %s; if (!y_) rio_RT_ERROR(\"division by zero\"); %s = y_ == -1 ? %s : x_ %s y_; }\n",
+                rio_V(C, 'i'), rio_V(B, 'i'), rio_V(A, 'i'), in->op == rio_Op_div ? "(int32_t)(0u - (uint32_t)x_)" : "0", op);
     break;
   }
-  case A_LDX: case A_LDXB:
-    P("{ uint32_t i_ = %s; if (i_ >= %s) RT_ERR(\"index out of bounds\"); ", V(c, 'u'), V(b + 1, 'u'));
-    if (x->op == A_LDX) P("%s = MV(%s + i_ * %uu + %du); }\n", V(a, 'v'), V(b, 'u'), sz(d), d->a);
-    else P("%s = M[%s + i_ * %uu + %du]; }\n", V(a, 'u'), V(b, 'u'), sz(d), d->a);
+  case rio_Op_shl: rio_print(a, "%s = %s << (%s & 31);\n", rio_V(A, 'u'), rio_V(B, 'u'), rio_V(C, 'u')); break;
+  case rio_Op_shr: rio_print(a, "%s = %s >> (%s & 31);\n", rio_V(A, 'i'), rio_V(B, 'i'), rio_V(C, 'u')); break;
+  case rio_Op_neg: rio_print(a, "%s = 0u - %s;\n", rio_V(A, 'u'), rio_V(B, 'u')); break;
+  case rio_Op_bnot: rio_print(a, "%s = ~%s;\n", rio_V(A, 'u'), rio_V(B, 'u')); break;
+  case rio_Op_not: rio_print(a, "%s = !%s;\n", rio_V(A, 'i'), rio_V(B, 'i')); break;
+  case rio_Op_fadd: case rio_Op_fsub: case rio_Op_fmul: case rio_Op_fdiv:
+    rio_print(a, "%s = %s %c %s;\n", rio_V(A, 'f'), rio_V(B, 'f'), "+-*/"[in->op - rio_Op_fadd], rio_V(C, 'f'));
     break;
-  case A_MOV2: P("{ RioVal x_ = %s, y_ = %s; %s = x_; %s = y_; }\n", V(b, 'v'), V(b + 1, 'v'), V(a, 'v'), V(a + 1, 'v')); break;
-  case A_LDW2: P("{ uint32_t p_ = %s + %du; RioVal x_ = MV(p_), y_ = MV(p_ + 4); %s = x_; %s = y_; }\n", V(b, 'u'), c, V(a, 'v'), V(a + 1, 'v')); break;
-  case A_STW: P("MV(%s + %du) = %s;\n", V(a, 'u'), c, V(b, 'v')); break;
-  case A_STB: P("M[%s + %du] = (uint8_t)%s;\n", V(a, 'u'), c, V(b, 'u')); break;
-  case A_STW2: P("{ uint32_t p_ = %s + %du; MV(p_) = %s; MV(p_ + 4) = %s; }\n", V(a, 'u'), c, V(b, 'v'), V(b + 1, 'v')); break;
-  case A_STX: case A_STXB:
-    P("{ uint32_t i_ = %s; if (i_ >= %s) RT_ERR(\"index out of bounds\"); ", V(b, 'u'), V(a + 1, 'u'));
-    if (x->op == A_STX) P("MV(%s + i_ * %uu + %du) = %s; }\n", V(a, 'u'), sz(d), d->a, V(c, 'v'));
-    else P("M[%s + i_ * %uu + %du] = (uint8_t)%s; }\n", V(a, 'u'), sz(d), d->a, V(c, 'u'));
+  case rio_Op_fneg: rio_print(a, "%s = -%s;\n", rio_V(A, 'f'), rio_V(B, 'f')); break;
+  case rio_Op_eq: case rio_Op_ne: case rio_Op_lt: case rio_Op_le:
+    rio_print(a, "%s = %s %s %s;\n", rio_V(A, 'i'), rio_V(B, 'i'), compare[in->op - rio_Op_eq], rio_V(C, 'i'));
     break;
-  case A_IDX:
-    P("{ uint32_t i_ = %s; if (i_ >= %s) RT_ERR(\"index out of bounds\"); %s = %s + i_ * %uu; }\n",
-            V(c, 'u'), V(b + 1, 'u'), V(a, 'u'), V(b, 'u'), sz(d));
+  case rio_Op_feq: case rio_Op_fne: case rio_Op_flt: case rio_Op_fle:
+    rio_print(a, "%s = %s %s %s;\n", rio_V(A, 'i'), rio_V(B, 'f'), compare[in->op - rio_Op_feq], rio_V(C, 'f'));
     break;
-  case A_SLICE:
-    P("{ int32_t lo_ = %s, hi_ = %s, n_ = %s, p_ = %s; if (lo_ < 0 || hi_ < lo_ || hi_ > n_) RT_ERR(\"slice out of bounds\"); ",
-            V(c, 'i'), V(d->a, 'i'), V(b + 1, 'i'), V(b, 'i'));
-    P("%s = p_ + lo_ * %d; %s = hi_ - lo_; }\n", V(a, 'i'), (int)sz(d), V(a + 1, 'i'));
+  case rio_Op_seq: case rio_Op_sne:
+    rio_print(a, "%s = %srio_stringEq(%s, %s, %s, %s);\n", rio_V(A, 'i'), in->op == rio_Op_sne ? "!" : "", rio_V(B, 'i'),
+              rio_V(B + 1, 'i'), rio_V(C, 'i'), rio_V(C + 1, 'i'));
     break;
-  case A_MOVN: { /* word by word, in the order that's safe when the ranges overlap */
+  case rio_Op_itof: rio_print(a, "%s = (float)%s;\n", rio_V(A, 'f'), rio_V(B, 'i')); break;
+  case rio_Op_ftoi: rio_print(a, "%s = rio_floatToInt(%s);\n", rio_V(A, 'i'), rio_V(B, 'f')); break;
+  case rio_Op_ldw: rio_print(a, "%s = rio_WORD(%s + %du);\n", rio_V(A, 'v'), rio_V(B, 'u'), C); break;
+  case rio_Op_ldb: rio_print(a, "%s = rio_M[%s + %du];\n", rio_V(A, 'u'), rio_V(B, 'u'), C); break;
+  case rio_Op_lea: rio_print(a, "%s = %s + %du;\n", rio_V(A, 'u'), rio_V(B, 'u'), C); break;
+  case rio_Op_m1: rio_print(a, "%s = %s(%s);\n", rio_V(A, 'f'), math1[in->x], rio_V(B, 'f')); break;
+  case rio_Op_m2: rio_print(a, "%s = %s(%s, %s);\n", rio_V(A, 'f'), math2[in->x], rio_V(B, 'f'), rio_V(C, 'f')); break;
+  case rio_Op_iabs: rio_print(a, "%s = %s < 0 ? 0u - %s : %s;\n", rio_V(A, 'u'), rio_V(B, 'i'), rio_V(B, 'u'), rio_V(B, 'u')); break;
+  case rio_Op_imin: case rio_Op_imax: case rio_Op_fmin: case rio_Op_fmax: {
+    int view = in->op <= rio_Op_imax ? 'i' : 'f';
+    rio_print(a, "%s = %s %c %s ? %s : %s;\n", rio_V(A, view), rio_V(B, view), in->op == rio_Op_imin || in->op == rio_Op_fmin ? '<' : '>',
+              rio_V(C, view), rio_V(B, view), rio_V(C, view));
+    break;
+  }
+  case rio_Op_ldx: case rio_Op_ldxb:
+    rio_print(a, "{ uint32_t i_ = %s; if (i_ >= %s) rio_RT_ERROR(\"index out of bounds\"); ", rio_V(C, 'u'), rio_V(B + 1, 'u'));
+    if (in->op == rio_Op_ldx) rio_print(a, "%s = rio_WORD(%s + i_ * %uu + %du); }\n", rio_V(A, 'v'), rio_V(B, 'u'), rio_dataSize(data), data->a);
+    else rio_print(a, "%s = rio_M[%s + i_ * %uu + %du]; }\n", rio_V(A, 'u'), rio_V(B, 'u'), rio_dataSize(data), data->a);
+    break;
+  case rio_Op_mov2:
+    rio_print(a, "{ rio_Val x_ = %s, y_ = %s; %s = x_; %s = y_; }\n", rio_V(B, 'v'), rio_V(B + 1, 'v'), rio_V(A, 'v'), rio_V(A + 1, 'v'));
+    break;
+  case rio_Op_ldw2:
+    rio_print(a, "{ uint32_t p_ = %s + %du; rio_Val x_ = rio_WORD(p_), y_ = rio_WORD(p_ + 4); %s = x_; %s = y_; }\n", rio_V(B, 'u'), C,
+              rio_V(A, 'v'), rio_V(A + 1, 'v'));
+    break;
+  case rio_Op_stw: rio_print(a, "rio_WORD(%s + %du) = %s;\n", rio_V(A, 'u'), C, rio_V(B, 'v')); break;
+  case rio_Op_stb: rio_print(a, "rio_M[%s + %du] = (uint8_t)%s;\n", rio_V(A, 'u'), C, rio_V(B, 'u')); break;
+  case rio_Op_stw2:
+    rio_print(a, "{ uint32_t p_ = %s + %du; rio_WORD(p_) = %s; rio_WORD(p_ + 4) = %s; }\n", rio_V(A, 'u'), C, rio_V(B, 'v'), rio_V(B + 1, 'v'));
+    break;
+  case rio_Op_stx: case rio_Op_stxb:
+    rio_print(a, "{ uint32_t i_ = %s; if (i_ >= %s) rio_RT_ERROR(\"index out of bounds\"); ", rio_V(B, 'u'), rio_V(A + 1, 'u'));
+    if (in->op == rio_Op_stx) rio_print(a, "rio_WORD(%s + i_ * %uu + %du) = %s; }\n", rio_V(A, 'u'), rio_dataSize(data), data->a, rio_V(C, 'v'));
+    else rio_print(a, "rio_M[%s + i_ * %uu + %du] = (uint8_t)%s; }\n", rio_V(A, 'u'), rio_dataSize(data), data->a, rio_V(C, 'u'));
+    break;
+  case rio_Op_idx:
+    rio_print(a, "{ uint32_t i_ = %s; if (i_ >= %s) rio_RT_ERROR(\"index out of bounds\"); %s = %s + i_ * %uu; }\n", rio_V(C, 'u'),
+              rio_V(B + 1, 'u'), rio_V(A, 'u'), rio_V(B, 'u'), rio_dataSize(data));
+    break;
+  case rio_Op_slice:
+    rio_print(a, "{ int32_t lo_ = %s, hi_ = %s, n_ = %s, p_ = %s; if (lo_ < 0 || hi_ < lo_ || hi_ > n_) rio_RT_ERROR(\"slice out of bounds\"); ",
+              rio_V(C, 'i'), rio_V(data->a, 'i'), rio_V(B + 1, 'i'), rio_V(B, 'i'));
+    rio_print(a, "%s = p_ + lo_ * %d; %s = hi_ - lo_; }\n", rio_V(A, 'i'), (int)rio_dataSize(data), rio_V(A + 1, 'i'));
+    break;
+  case rio_Op_movn: { /* word by word, in the order that's safe when the ranges overlap */
     int i;
-    if (a > b) for (i = c - 1; i >= 0; i--) P("%s = %s;\n", V(a + i, 'v'), V(b + i, 'v'));
-    else for (i = 0; i < c; i++) P("%s = %s;\n", V(a + i, 'v'), V(b + i, 'v'));
+    if (A > B)
+      for (i = C - 1; i >= 0; i--) rio_print(a, "%s = %s;\n", rio_V(A + i, 'v'), rio_V(B + i, 'v'));
+    else
+      for (i = 0; i < C; i++) rio_print(a, "%s = %s;\n", rio_V(A + i, 'v'), rio_V(B + i, 'v'));
     break;
   }
-  case A_ENUMNAME:
-    P("{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && R[%d + i_].i != v_; i_++) {} if (i_ < %uu) { %s = R[%d + 2 * i_]; %s = R[%d + 2 * i_ + 1]; } else { %s.u = 0; %s.u = 0; } }\n",
-      V(b, 'i'), sz(d), c, sz(d), V(a, 'v'), d->a, V(a + 1, 'v'), d->a, V(a, 'v'), V(a + 1, 'v'));
+  case rio_Op_enumname:
+    rio_print(a, "{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && rio_R[%d + i_].i != v_; i_++) {} if (i_ < %uu) { %s = rio_R[%d + 2 * i_]; %s = rio_R[%d + 2 * i_ + 1]; } else { %s.u = 0; %s.u = 0; } }\n",
+              rio_V(B, 'i'), rio_dataSize(data), C, rio_dataSize(data), rio_V(A, 'v'), data->a, rio_V(A + 1, 'v'), data->a, rio_V(A, 'v'),
+              rio_V(A + 1, 'v'));
     break;
-  case A_ENUMCK:
-    P("{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && R[%d + i_].i != v_; i_++) {} ", V(b, 'i'), sz(d), c);
-    if (x->x) P("if (i_ == %uu) RT_ERR(\"not a value of that enum\"); }\n", sz(d)); else P("%s = (int32_t)(i_ < %uu); }\n", V(a, 'i'), sz(d));
+  case rio_Op_enumck:
+    rio_print(a, "{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && rio_R[%d + i_].i != v_; i_++) {} ", rio_V(B, 'i'), rio_dataSize(data), C);
+    if (in->x) rio_print(a, "if (i_ == %uu) rio_RT_ERROR(\"not a value of that enum\"); }\n", rio_dataSize(data));
+    else rio_print(a, "%s = (int32_t)(i_ < %uu); }\n", rio_V(A, 'i'), rio_dataSize(data));
     break;
-  case A_COPY: P("memmove(M + %s, M + %s, %d);\n", V(a, 'u'), V(b, 'u'), c); break;
-  case A_VADD: case A_VSUB: case A_VMUL: case A_VDIV: case A_VMOD: case A_FVADD: case A_FVSUB: case A_FVMUL: case A_FVDIV: {
-    /* a loop over the numbers; a scalar side is read once */
-    int m = x->x | (x->op >= A_FVADD ? 8 : 0), k = x->op >= A_FVADD ? x->op - A_FVADD : x->op - A_VADD; const char *L = m & 16 ? "l_" : "MV(l_ + 4u * i_)", *Q = m & 32 ? "r_" : "MV(r_ + 4u * i_)";
-    P("{ uint32_t d_ = %s, i_; ", V(a, 'u'));
-    if (m & 16) P("RioVal l_ = %s; ", V(b, 'v')); else P("uint32_t l_ = %s; ", V(b, 'u'));
-    if (m & 32) P("RioVal r_ = %s; ", V(c, 'v')); else P("uint32_t r_ = %s; ", V(c, 'u'));
-    P("for (i_ = 0; i_ < %uu; i_++) ", sz(d));
-    if (k <= 2 || (m & 8)) P("MV(d_ + 4u * i_).%c = %s.%c %c %s.%c; }\n", m & 8 ? 'f' : 'u', L, m & 8 ? 'f' : 'u', "+-*/"[k], Q, m & 8 ? 'f' : 'u');
-    else P("{ int32_t y_ = %s.i, v_ = %s.i; if (!y_) RT_ERR(\"division by zero\"); MV(d_ + 4u * i_).i = y_ == -1 ? %s : v_ %c y_; } }\n",
-           Q, L, k == 3 ? "(int32_t)(0u - (uint32_t)v_)" : "0", k == 3 ? '/' : '%');
+  case rio_Op_copy: rio_print(a, "memmove(rio_M + %s, rio_M + %s, %d);\n", rio_V(A, 'u'), rio_V(B, 'u'), C); break;
+  case rio_Op_vadd: case rio_Op_vsub: case rio_Op_vmul: case rio_Op_vdiv: case rio_Op_vmod:
+  case rio_Op_fvadd: case rio_Op_fvsub: case rio_Op_fvmul: case rio_Op_fvdiv: { /* a loop over the numbers; a scalar side is read once */
+    int isFloat = in->op >= rio_Op_fvadd, which = isFloat ? in->op - rio_Op_fvadd : in->op - rio_Op_vadd, view = isFloat ? 'f' : 'u';
+    int lScalar = in->x & 16, rScalar = in->x & 32;
+    const char *l = lScalar ? "l_" : "rio_WORD(l_ + 4u * i_)", *r = rScalar ? "r_" : "rio_WORD(r_ + 4u * i_)";
+    rio_print(a, "{ uint32_t d_ = %s, i_; ", rio_V(A, 'u'));
+    if (lScalar) rio_print(a, "rio_Val l_ = %s; ", rio_V(B, 'v'));
+    else rio_print(a, "uint32_t l_ = %s; ", rio_V(B, 'u'));
+    if (rScalar) rio_print(a, "rio_Val r_ = %s; ", rio_V(C, 'v'));
+    else rio_print(a, "uint32_t r_ = %s; ", rio_V(C, 'u'));
+    rio_print(a, "for (i_ = 0; i_ < %uu; i_++) ", rio_dataSize(data));
+    if (which <= 2 || isFloat) rio_print(a, "rio_WORD(d_ + 4u * i_).%c = %s.%c %c %s.%c; }\n", view, l, view, "+-*/"[which], r, view);
+    else
+      rio_print(a, "{ int32_t y_ = %s.i, v_ = %s.i; if (!y_) rio_RT_ERROR(\"division by zero\"); rio_WORD(d_ + 4u * i_).i = y_ == -1 ? %s : v_ %c y_; } }\n",
+                r, l, which == 3 ? "(int32_t)(0u - (uint32_t)v_)" : "0", which == 3 ? '/' : '%');
     break;
   }
-  case A_ZERO: P("memset(M + %s, 0, %uu);\n", V(a, 'u'), sz(x)); break;
-  case A_LIDX:
-    P("{ uint32_t i_ = %s; if (i_ >= rt_llen(%s, %s)) RT_ERR(\"index out of bounds\"); %s = %s + i_ * %uu; }\n",
-      V(c, 'u'), V(b, 'u'), V(b + 2, 'u'), V(a, 'u'), V(b + 1, 'u'), sz(d));
+  case rio_Op_zero: rio_print(a, "memset(rio_M + %s, 0, %uu);\n", rio_V(A, 'u'), rio_dataSize(in)); break;
+  case rio_Op_lidx:
+    rio_print(a, "{ uint32_t i_ = %s; if (i_ >= rio_listLen(%s, %s)) rio_RT_ERROR(\"index out of bounds\"); %s = %s + i_ * %uu; }\n",
+              rio_V(C, 'u'), rio_V(B, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_V(B + 1, 'u'), rio_dataSize(data));
     break;
-  case A_PUSHA:
-    P("{ uint32_t b_ = %s, d_ = %s, c_ = %s, n_ = rt_llen(b_, c_); if (n_ >= c_) %s = 0; else { MV(b_).u = n_ + 1; %s = d_ + n_ * %uu; } }\n",
-      V(b, 'u'), V(b + 1, 'u'), V(b + 2, 'u'), V(a, 'u'), V(a, 'u'), sz(d));
+  case rio_Op_pusha:
+    rio_print(a, "{ uint32_t b_ = %s, d_ = %s, c_ = %s, n_ = rio_listLen(b_, c_); if (n_ >= c_) %s = 0; else { rio_WORD(b_).u = n_ + 1; %s = d_ + n_ * %uu; } }\n",
+              rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_V(A, 'u'), rio_dataSize(data));
     break;
-  case A_PUSHS: P("%s = rt_pushb(%s, %s, %s, M + %s, %s, %uu);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), V(b + 2, 'u'), V(c, 'u'), V(c + 1, 'u'), sz(d)); break;
-  case A_PUSHT: P("%s = rt_pusht(%s, %s, %s, %d, %s);\n", V(a, 'i'), V(b, 'u'), V(b + 1, 'u'), V(b + 2, 'u'), x->x, V(c, 'v')); break;
-  case A_POPA:
-    P("{ uint32_t b_ = %s, d_ = %s, n_ = rt_llen(b_, %s); if (!n_) RT_ERR(\"pop from empty list\"); MV(b_).u = --n_; %s = d_ + n_ * %uu; }\n",
-      V(b, 'u'), V(b + 1, 'u'), V(b + 2, 'u'), V(a, 'u'), sz(d));
+  case rio_Op_pushs:
+    rio_print(a, "%s = rio_listPush(%s, %s, %s, rio_M + %s, %s, %uu);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'),
+              rio_V(C, 'u'), rio_V(C + 1, 'u'), rio_dataSize(data));
     break;
-  case A_LREM: case A_LSWAP:
-    P("rt_lrem(%s, %s, %s, %s, %uu, %d, __LINE__);\n", V(a, 'u'), V(a + 1, 'u'), V(a + 2, 'u'), V(b, 'u'), sz(d), x->op == A_LSWAP);
+  case rio_Op_pusht:
+    rio_print(a, "%s = rio_listPushText(%s, %s, %s, %d, %s);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), in->x,
+              rio_V(C, 'v'));
     break;
-  case A_LVIEW: P("{ uint32_t d_ = %s, n_ = rt_llen(%s, %s); %s = d_; %s = n_; }\n", V(b + 1, 'u'), V(b, 'u'), V(b + 2, 'u'), V(a, 'u'), V(a + 1, 'u')); break;
-  case A_JMP: P("goto L%d;\n", c); break;
-  case A_JZ: P("if (!%s) goto L%d;\n", V(a, 'i'), c); break;
-  case A_JNZ: P("if (%s) goto L%d;\n", V(a, 'i'), c); break;
-  case A_JEQ: case A_JNE: case A_JLT: case A_JLE:
-    P("if (%s %s %s) goto L%d;\n", V(a, 'i'), cmp[x->op - A_JEQ], V(b, 'i'), c); break;
-  case A_JFEQ: case A_JFNE: case A_JFLT: case A_JFLE:
-    P("if (%s %s %s) goto L%d;\n", V(a, 'f'), cmp[x->op - A_JFEQ], V(b, 'f'), c); break;
-  case A_JFNLT: case A_JFNLE:
-    P("if (!(%s %s %s)) goto L%d;\n", V(a, 'f'), x->op == A_JFNLT ? "<" : "<=", V(b, 'f'), c); break;
-  case A_EACH: P("if ((%s += %s) < %s) goto L%d;\n", V(a, 'u'), V(b + 1, 'u'), V(b, 'u'), c); break;
-  case A_FORI: P("if ((%s = (int32_t)(%s + 1u)) < %s) goto L%d;\n", V(a, 'i'), V(a, 'u'), V(b, 'i'), c); break;
-  case A_CALL: P("%s();\n", fname(fnat(c))); break;
-  case A_CALLI: { /* through a proc value: the tables say where its parameters go */
+  case rio_Op_popa:
+    rio_print(a, "{ uint32_t b_ = %s, d_ = %s, n_ = rio_listLen(b_, %s); if (!n_) rio_RT_ERROR(\"pop from empty list\"); rio_WORD(b_).u = --n_; %s = d_ + n_ * %uu; }\n",
+              rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_dataSize(data));
+    break;
+  case rio_Op_lrem: case rio_Op_lswap:
+    rio_print(a, "rio_listRemove(%s, %s, %s, %s, %uu, %d, __LINE__);\n", rio_V(A, 'u'), rio_V(A + 1, 'u'), rio_V(A + 2, 'u'), rio_V(B, 'u'),
+              rio_dataSize(data), in->op == rio_Op_lswap);
+    break;
+  case rio_Op_lview:
+    rio_print(a, "{ uint32_t d_ = %s, n_ = rio_listLen(%s, %s); %s = d_; %s = n_; }\n", rio_V(B + 1, 'u'), rio_V(B, 'u'), rio_V(B + 2, 'u'),
+              rio_V(A, 'u'), rio_V(A + 1, 'u'));
+    break;
+  case rio_Op_jmp: rio_print(a, "goto L%d;\n", C); break;
+  case rio_Op_jz: rio_print(a, "if (!%s) goto L%d;\n", rio_V(A, 'i'), C); break;
+  case rio_Op_jnz: rio_print(a, "if (%s) goto L%d;\n", rio_V(A, 'i'), C); break;
+  case rio_Op_jeq: case rio_Op_jne: case rio_Op_jlt: case rio_Op_jle:
+    rio_print(a, "if (%s %s %s) goto L%d;\n", rio_V(A, 'i'), compare[in->op - rio_Op_jeq], rio_V(B, 'i'), C);
+    break;
+  case rio_Op_jfeq: case rio_Op_jfne: case rio_Op_jflt: case rio_Op_jfle:
+    rio_print(a, "if (%s %s %s) goto L%d;\n", rio_V(A, 'f'), compare[in->op - rio_Op_jfeq], rio_V(B, 'f'), C);
+    break;
+  case rio_Op_jfnlt: case rio_Op_jfnle:
+    rio_print(a, "if (!(%s %s %s)) goto L%d;\n", rio_V(A, 'f'), in->op == rio_Op_jfnlt ? "<" : "<=", rio_V(B, 'f'), C);
+    break;
+  case rio_Op_each: rio_print(a, "if ((%s += %s) < %s) goto L%d;\n", rio_V(A, 'u'), rio_V(B + 1, 'u'), rio_V(B, 'u'), C); break;
+  case rio_Op_fori: rio_print(a, "if ((%s = (int32_t)(%s + 1u)) < %s) goto L%d;\n", rio_V(A, 'i'), rio_V(A, 'u'), rio_V(B, 'i'), C); break;
+  case rio_Op_call: rio_print(a, "%s();\n", rio_procName(a, rio_procAtPc(a, C))); break;
+  case rio_Op_calli: { /* through a proc value: the tables say where its parameters go */
     int i;
-    P("{ uint32_t f_ = %s - 1u; if (f_ >= %du) RT_ERR(\"this proc value isn't set\"); ", V(a, 'u'), vm->nfunc);
-    for (i = 0; i < c; i++) P("R[rio_fs[f_] + %d] = %s; ", i, V(b + i, 'v'));
-    P("rio_fn[f_](); }\n");
+    rio_print(a, "{ uint32_t f_ = %s - 1u; if (f_ >= %du) rio_RT_ERROR(\"this proc value isn't set\"); ", rio_V(A, 'u'), vm->procCount);
+    for (i = 0; i < C; i++) rio_print(a, "rio_R[rio_fs[f_] + %d] = %s; ", i, rio_V(B + i, 'v'));
+    rio_print(a, "rio_fn[f_](); }\n");
     break;
   }
-  case A_GETRET: {
+  case rio_Op_getret: {
     int i;
-    P("{ uint32_t f_ = %s - 1u; ", V(b, 'u'));
-    for (i = 0; i < c; i++) P("%s = R[rio_ret[f_] + %d]; ", V(a + i, 'v'), i);
-    P("}\n");
+    rio_print(a, "{ uint32_t f_ = %s - 1u; ", rio_V(B, 'u'));
+    for (i = 0; i < C; i++) rio_print(a, "%s = rio_R[rio_ret[f_] + %d]; ", rio_V(A + i, 'v'), i);
+    rio_print(a, "}\n");
     break;
   }
-  case A_RET: case A_HALT: P("return;\n"); break;
-  case A_FFI: {
-    RioFfi *f = &vm->ffi[c]; int n = f->aw, i, rw = f->rw;
-    P("{ RioVal a_[%d];", (n > rw ? n : rw) + 1);
-    for (i = 0; i < n; i++) P(" a_[%d] = %s;", i, V(a + i, 'v'));
-    P(" rio_ffi_%s(a_);", symname(RIO_S_FFI, c));
-    for (i = 0; i < rw; i++) P(" %s = a_[%d];", V(a + i, 'v'), i);
-    P(" }\n");
+  case rio_Op_ret: case rio_Op_halt: rio_print(a, "return;\n"); break;
+  case rio_Op_ffi: { /* through a copy of the argument words; the result comes back in the first */
+    rio_Ffi *f = &vm->ffi[C];
+    int argWords = f->argWords, resultWords = f->resultWords, i;
+    rio_print(a, "{ rio_Val a_[%d];", (argWords > resultWords ? argWords : resultWords) + 1);
+    for (i = 0; i < argWords; i++) rio_print(a, " a_[%d] = %s;", i, rio_V(A + i, 'v'));
+    rio_print(a, " rio_ffi_%s(a_);", rio_symbolName(a, rio_SymKind_ffi, C));
+    for (i = 0; i < resultWords; i++) rio_print(a, " %s = a_[%d];", rio_V(A + i, 'v'), i);
+    rio_print(a, " }\n");
     break;
   }
-  case A_LOGI: P("log_i(%d, %s);\n", x->x, V(a, 'i')); break;
-  case A_LOGF: P("log_f(%d, %s);\n", x->x, V(a, 'f')); break;
-  case A_LOGB: P("log_s(%d, %s ? \"true\" : \"false\", -1);\n", x->x, V(a, 'i')); break;
-  case A_LOGS: P("log_s(%d, (const char *)M + %s, %s);\n", x->x, V(a, 'u'), V(a + 1, 'i')); break;
-  case A_LOGN:
-    P("{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && R[%d + i_].i != v_; i_++) {} if (i_ < %uu) log_s(%d, (const char *)M + R[%d + 2 * i_].u, R[%d + 2 * i_ + 1].i); else log_i(%d, v_); }\n",
-      V(a, 'i'), sz(d), b, sz(d), x->x, c, c, x->x);
+  case rio_Op_logi: rio_print(a, "rio_logInt(%d, %s);\n", in->x, rio_V(A, 'i')); break;
+  case rio_Op_logf: rio_print(a, "rio_logFloat(%d, %s);\n", in->x, rio_V(A, 'f')); break;
+  case rio_Op_logb: rio_print(a, "rio_logText(%d, %s ? \"true\" : \"false\", -1);\n", in->x, rio_V(A, 'i')); break;
+  case rio_Op_logs: rio_print(a, "rio_logText(%d, (const char *)rio_M + %s, %s);\n", in->x, rio_V(A, 'u'), rio_V(A + 1, 'i')); break;
+  case rio_Op_logn:
+    rio_print(a, "{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && rio_R[%d + i_].i != v_; i_++) {} if (i_ < %uu) rio_logText(%d, (const char *)rio_M + rio_R[%d + 2 * i_].u, rio_R[%d + 2 * i_ + 1].i); else rio_logInt(%d, v_); }\n",
+              rio_V(A, 'i'), rio_dataSize(data), B, rio_dataSize(data), in->x, C, C, in->x);
     break;
-  case A_FAIL:
-    if (a) P("rt_assert((const char *)M + %s, %s, __LINE__);\n", V(a, 'u'), V(a + 1, 'i')); else P("rt_assert(\"\", -1, __LINE__);\n");
+  case rio_Op_fail:
+    if (A) rio_print(a, "rio_rtAssert((const char *)rio_M + %s, %s, __LINE__);\n", rio_V(A, 'u'), rio_V(A + 1, 'i'));
+    else rio_print(a, "rio_rtAssert(\"\", -1, __LINE__);\n");
     break;
-  case A_LOGE: P("log_e();\n"); break;
-  default: P("RT_ERR(\"bad op\");\n");
+  case rio_Op_loge: rio_print(a, "rio_logEnd();\n"); break;
+  default: rio_print(a, "rio_RT_ERROR(\"bad op\");\n");
   }
 }
 
-static const char *prelude =
+#undef rio_V
+
+/* ------------------------------------------------------------------ the program */
+
+/* the runtime the generated code needs: memory, errors, log, lists */
+static const char *const rio_prelude =
   "#define _CRT_SECURE_NO_WARNINGS\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <math.h>\n#include <time.h>\n"
   "#ifdef __GNUC__\n#pragma GCC diagnostic ignored \"-Wunused\"\n#endif\n"
-  "typedef union { int32_t i; float f; uint32_t u; } RioVal;\n"
-  "static union { RioVal v[RIO_MEM / 4]; uint8_t b[RIO_MEM]; } rio_mem;\n"
-  "#define M rio_mem.b\n#define R rio_mem.v\n#define MV(p) (*(RioVal *)(M + (uint32_t)(p)))\n"
-  "static inline float kf(uint32_t u) { RioVal v; v.u = u; return v.f; }\n"
-  "static inline void rt_err(const char *m, int line) { fflush(stdout); fprintf(stderr, \"%d: runtime error: %s\\n\", line, m); exit(1); }\n"
-  "#define RT_ERR(m) rt_err(m, __LINE__) /* #line directives make __LINE__ the rio source line */\n"
-  "static void rt_assert(const char *s, int n, int line) { fflush(stdout); fprintf(stderr, \"%d: runtime error: assertion failed%s%.*s\\n\", line, n < 0 ? \"\" : \": \", n < 0 ? 0 : n, s); exit(1); }\n"
-  "static inline int32_t ftoi(float f) { return f != f ? 0 : f >= 2147483648.f ? 0x7FFFFFFF : f <= -2147483648.f ? (int32_t)0x80000000u : (int32_t)f; }\n"
-  "static inline float rt_round(float x) { return x < 0 ? -floorf(-x + 0.5f) : floorf(x + 0.5f); }\n"
-  "static inline int seq(int32_t a, int32_t an, int32_t b, int32_t bn) { return an == bn && !memcmp(M + a, M + b, (size_t)an); }\n"
-  "static char lb[256]; static int ln;\n"
-  "static inline void log_s(int sp, const char *s, int n) { if (n < 0) n = (int)strlen(s); if (sp && ln < 256) lb[ln++] = ' '; while (n-- > 0 && ln < 256) lb[ln++] = *s++; }\n"
-  "static inline void log_i(int sp, int32_t v) { char b[16]; sprintf(b, \"%d\", (int)v); log_s(sp, b, -1); }\n"
-  "static inline int fmt_f(char *b, float f) {\n"
+  "typedef union { int32_t i; float f; uint32_t u; } rio_Val;\n"
+  "static union { rio_Val v[rio_MEM_SIZE / 4]; uint8_t b[rio_MEM_SIZE]; } rio_mem;\n"
+  "#define rio_M rio_mem.b\n#define rio_R rio_mem.v\n#define rio_WORD(p) (*(rio_Val *)(rio_M + (uint32_t)(p)))\n"
+  "static inline float rio_floatBits(uint32_t u) { rio_Val v; v.u = u; return v.f; }\n"
+  "static inline void rio_rtError(const char *m, int line) { fflush(stdout); fprintf(stderr, \"%d: runtime error: %s\\n\", line, m); exit(1); }\n"
+  "#define rio_RT_ERROR(m) rio_rtError(m, __LINE__) /* #line directives make __LINE__ the rio source line */\n"
+  "static void rio_rtAssert(const char *s, int n, int line) { fflush(stdout); fprintf(stderr, \"%d: runtime error: assertion failed%s%.*s\\n\", line, n < 0 ? \"\" : \": \", n < 0 ? 0 : n, s); exit(1); }\n"
+  "static inline int32_t rio_floatToInt(float f) { return f != f ? 0 : f >= 2147483648.f ? 0x7FFFFFFF : f <= -2147483648.f ? (int32_t)0x80000000u : (int32_t)f; }\n"
+  "static inline float rio_round(float x) { return x < 0 ? -floorf(-x + 0.5f) : floorf(x + 0.5f); }\n"
+  "static inline int rio_stringEq(int32_t a, int32_t an, int32_t b, int32_t bn) { return an == bn && !memcmp(rio_M + a, rio_M + b, (size_t)an); }\n"
+  "static char rio_logBuf[256]; static int rio_logLen;\n"
+  "static inline void rio_logText(int sp, const char *s, int n) { if (n < 0) n = (int)strlen(s); if (sp && rio_logLen < 256) rio_logBuf[rio_logLen++] = ' '; while (n-- > 0 && rio_logLen < 256) rio_logBuf[rio_logLen++] = *s++; }\n"
+  "static inline void rio_logInt(int sp, int32_t v) { char b[16]; sprintf(b, \"%d\", (int)v); rio_logText(sp, b, -1); }\n"
+  "static inline int rio_formatFloat(char *b, float f) {\n"
   "  int i = 0, e = 0, nd = 1, dec, k; double d = f; uint32_t ip, fp, sc = 1, t;\n"
   "  if (f != f) { memcpy(b, \"nan\", 4); return 3; }\n"
   "  if (d < 0) { b[i++] = '-'; d = -d; }\n"
@@ -294,90 +394,114 @@ static const char *prelude =
   "  if (e) i += sprintf(b + i, \"e%d\", e);\n"
   "  b[i] = 0; return i;\n"
   "}\n"
-  "static inline void log_f(int sp, float f) { char b[40]; log_s(sp, b, fmt_f(b, f)); }\n"
-  "static inline void log_e(void) { fwrite(lb, 1, (size_t)ln, stdout); fputc('\\n', stdout); ln = 0; }\n"
+  "static inline void rio_logFloat(int sp, float f) { char b[40]; rio_logText(sp, b, rio_formatFloat(b, f)); }\n"
+  "static inline void rio_logEnd(void) { fwrite(rio_logBuf, 1, (size_t)rio_logLen, stdout); fputc('\\n', stdout); rio_logLen = 0; }\n"
   /* lists: a length word followed by the elements; views are (address, capacity) */
-  "static inline uint32_t rt_llen(uint32_t a, uint32_t cap) { uint32_t n = MV(a).u; return n < cap ? n : cap; }\n"
-  "static inline int32_t rt_pushb(uint32_t a, uint32_t d, uint32_t cap, const void *p, uint32_t k, uint32_t sz) {\n"
-  "  uint32_t n = rt_llen(a, cap); if (k > cap - n) return 0;\n"
-  "  memmove(M + d + n * sz, p, k * sz); MV(a).u = n + k; return 1;\n"
+  "static inline uint32_t rio_listLen(uint32_t a, uint32_t cap) { uint32_t n = rio_WORD(a).u; return n < cap ? n : cap; }\n"
+  "static inline int32_t rio_listPush(uint32_t a, uint32_t d, uint32_t cap, const void *p, uint32_t k, uint32_t sz) {\n"
+  "  uint32_t n = rio_listLen(a, cap); if (k > cap - n) return 0;\n"
+  "  memmove(rio_M + d + n * sz, p, k * sz); rio_WORD(a).u = n + k; return 1;\n"
   "}\n"
-  "static inline int32_t rt_pusht(uint32_t a, uint32_t d, uint32_t cap, int kind, RioVal v) {\n"
-  "  char b[40]; int k = kind == 1 ? fmt_f(b, v.f) : kind == 2 ? sprintf(b, \"%s\", v.i ? \"true\" : \"false\") : sprintf(b, \"%d\", (int)v.i);\n"
-  "  return rt_pushb(a, d, cap, b, (uint32_t)k, 1);\n"
+  "static inline int32_t rio_listPushText(uint32_t a, uint32_t d, uint32_t cap, int kind, rio_Val v) {\n"
+  "  char b[40]; int k = kind == 1 ? rio_formatFloat(b, v.f) : kind == 2 ? sprintf(b, \"%s\", v.i ? \"true\" : \"false\") : sprintf(b, \"%d\", (int)v.i);\n"
+  "  return rio_listPush(a, d, cap, b, (uint32_t)k, 1);\n"
   "}\n"
-  "static inline void rt_lrem(uint32_t a, uint32_t d, uint32_t cap, uint32_t i, uint32_t sz, int swap, int line) {\n"
-  "  uint32_t n = rt_llen(a, cap); if (i >= n) rt_err(\"index out of bounds\", line);\n"
-  "  if (swap) { if (i != --n) memmove(M + d + i * sz, M + d + n * sz, sz); MV(a).u = n; }\n"
-  "  else { memmove(M + d + i * sz, M + d + (i + 1) * sz, (n - i - 1) * sz); MV(a).u = n - 1; }\n"
+  "static inline void rio_listRemove(uint32_t a, uint32_t d, uint32_t cap, uint32_t i, uint32_t sz, int swap, int line) {\n"
+  "  uint32_t n = rio_listLen(a, cap); if (i >= n) rio_rtError(\"index out of bounds\", line);\n"
+  "  if (swap) { if (i != --n) memmove(rio_M + d + i * sz, rio_M + d + n * sz, sz); rio_WORD(a).u = n; }\n"
+  "  else { memmove(rio_M + d + i * sz, rio_M + d + (i + 1) * sz, (n - i - 1) * sz); rio_WORD(a).u = n - 1; }\n"
   "}\n";
 
-int rio_aot(Rio *v, FILE *out, const char *host_ffi) {
-  static uint8_t lab[65536];
-  int pc, i, s, fmain;
-  uint8_t *mem;
-  vm = v; o = out; label = lab; cur = -1;
-  if (!vm->ok || !vm->c) return -1; /* needs the compiler tables: compile with rio_compile_scratch */
-  memset(lab, 0, sizeof lab);
-  for (pc = 0; pc < (int)vm->pc; pc++) {
-    int op = vm->code[pc].op;
-    if (op >= A_JMP && op <= A_FORI) lab[vm->code[pc].c] = 1;
-    if (op == A_IDX || op == A_ENUMCK || op == A_ENUMNAME || op == A_LOGN || (op >= A_VADD && op <= A_FVDIV) || op == A_SLICE || op == A_LDX || op == A_LDXB || op == A_STX || op == A_STXB) pc++;
-  }
-  fprintf(o, "/* generated by rio -c */\n#define RIO_MEM %uu\n%s", vm->memsize, prelude);
-  /* memory image: constants + string literals */
-  mem = vm->mem;
-  fprintf(o, "static const uint32_t rio_k[%u] = {", vm->nk);
-  for (i = 0; i < (int)vm->nk; i++) fprintf(o, "%s%uu", i ? (i % 12 ? ", " : ",\n  ") : "\n  ",((RioVal *)mem)[i].u);
-  fprintf(o, "\n};\nstatic void rio_load(void) {\n  memcpy(R, rio_k, sizeof rio_k);\n");
-  for (i = (int)vm->hi; i < (int)vm->memsize; i++) {
-    int e = i, z = 0, st = i;
+/* constants, and the nonzero bytes above top (strings and tables), as the program's start */
+static void rio_writeMemory(rio_Aot *a) {
+  rio_Vm *vm = a->vm;
+  uint8_t *mem = vm->mem;
+  int i;
+  fprintf(a->out, "static const uint32_t rio_k[%u] = {", vm->constCount);
+  for (i = 0; i < (int)vm->constCount; i++) fprintf(a->out, "%s%uu", i ? (i % 12 ? ", " : ",\n  ") : "\n  ", ((rio_Val *)mem)[i].u);
+  fprintf(a->out, "\n};\nstatic void rio_load(void) {\n  memcpy(rio_R, rio_k, sizeof rio_k);\n");
+  for (i = (int)vm->top; i < (int)vm->memSize; i++) { /* runs of bytes, broken at 8 zeros */
+    int end = i, zeros = 0, start = i;
     if (!mem[i]) continue;
-    while (e < (int)vm->memsize && z < 8) { z = mem[e] ? 0 : z + 1; e++; }
-    e -= z;
-    fprintf(o, "  memcpy(M + %d, \"", i);
-    for (; i < e; i++) fprintf(o, "\\%03o", mem[i]);
-    fprintf(o, "\", %d);\n", e - st);
+    while (end < (int)vm->memSize && zeros < 8) {
+      zeros = mem[end] ? 0 : zeros + 1;
+      end++;
+    }
+    end -= zeros;
+    fprintf(a->out, "  memcpy(rio_M + %d, \"", i);
+    for (; i < end; i++) fprintf(a->out, "\\%03o", mem[i]);
+    fprintf(a->out, "\", %d);\n", end - start);
     i--;
   }
-  fprintf(o, "}\n");
-  /* ffi */
-  for (i = 0; i < vm->nffi; i++) fprintf(o, "void rio_ffi_%s(RioVal *a);\n", symname(RIO_S_FFI, i));
-  if (host_ffi) fprintf(o, "#ifndef RIO_NO_HOST_FFI\n%s#endif\n", host_ffi);
+  fprintf(a->out, "}\n");
+}
+
+/* a proc as a C function: a dry run first, to learn which locals the body uses */
+static void rio_writeProc(rio_Aot *a, FILE *out) {
+  rio_Proc *p = &a->vm->procs[a->proc];
+  int pc, s;
+  memset(a->used, 0, sizeof a->used);
+  a->out = 0;
+  a->lastLine = 0;
+  for (pc = p->entry; pc < p->end; pc++) rio_instruction(a, pc);
+  a->out = out;
+  a->lastLine = 0;
+  fprintf(out, "\nstatic void %s(void) {\n", rio_procName(a, a->proc));
+  for (s = p->frameStart; s < p->frameEnd; s++) {
+    if (!rio_isLocal(a, s) || !rio_bitGet(a->used, (uint32_t)s)) continue;
+    if (s < p->paramsEnd) fprintf(out, "  rio_Val r%d = rio_R[%d];\n", s, s); /* parameters come in through memory */
+    else fprintf(out, "  rio_Val r%d = {0};\n", s);
+  }
+  for (pc = p->entry; pc < p->end; pc++) rio_instruction(a, pc);
+  fprintf(out, "}\n");
+}
+
+int rio_aot(rio_Vm *vm, FILE *out, const char *hostFfi) {
+  static rio_Aot aot; /* (big tables: not on the stack) */
+  rio_Aot *a = &aot;
+  int pc, i, mainProc;
+  if (!vm->ready || !vm->compiler) return -1; /* needs the compiler tables: compile with rio_compileScratch */
+  a->vm = vm;
+  a->out = out;
+  a->proc = -1;
+  memset(a->isLabel, 0, sizeof a->isLabel);
+  for (pc = 0; pc < (int)vm->codeLen; pc++) {
+    int op = vm->code[pc].op;
+    if (rio_isJump(op)) a->isLabel[vm->code[pc].c] = 1;
+    if (op == rio_Op_idx || op == rio_Op_enumck || op == rio_Op_enumname || op == rio_Op_logn || (op >= rio_Op_vadd && op <= rio_Op_fvdiv) ||
+        op == rio_Op_slice || op == rio_Op_ldx || op == rio_Op_ldxb || op == rio_Op_stx || op == rio_Op_stxb)
+      pc++; /* (its data word) */
+  }
+  fprintf(out, "/* generated by rio -c */\n#define rio_MEM_SIZE %uu\n%s", vm->memSize, rio_prelude);
+  rio_writeMemory(a);
+  for (i = 0; i < vm->ffiCount; i++) fprintf(out, "void rio_ffi_%s(rio_Val *a);\n", rio_symbolName(a, rio_SymKind_ffi, i));
+  if (hostFfi) fprintf(out, "#ifndef rio_NO_HOST_FFI\n%s#endif\n", hostFfi);
   /* procs: defined in order, and direct calls only go backwards; calls through proc values use a table
      of every proc, its parameter slots and its result slot */
-  if (vm->nfunc) {
-    for (i = 0; i < vm->nfunc; i++) fprintf(o, "static void %s(void);\n", fname(i));
-    fprintf(o, "static void (*const rio_fn[%d])(void) = {", vm->nfunc);
-    for (i = 0; i < vm->nfunc; i++) fprintf(o, "%s%s", i ? ", " : "", fname(i));
-    fprintf(o, "};\nstatic const uint32_t rio_fs[%d] = {", vm->nfunc);
-    for (i = 0; i < vm->nfunc; i++) fprintf(o, "%s%u", i ? ", " : "", vm->func[i].fs);
-    fprintf(o, "};\nstatic const uint32_t rio_ret[%d] = {", vm->nfunc);
-    for (i = 0; i < vm->nfunc; i++) fprintf(o, "%s%u", i ? ", " : "", vm->func[i].ret);
-    fprintf(o, "};\n");
+  if (vm->procCount) {
+    for (i = 0; i < vm->procCount; i++) fprintf(out, "static void %s(void);\n", rio_procName(a, i));
+    fprintf(out, "static void (*const rio_fn[%d])(void) = {", vm->procCount);
+    for (i = 0; i < vm->procCount; i++) fprintf(out, "%s%s", i ? ", " : "", rio_procName(a, i));
+    fprintf(out, "};\nstatic const uint32_t rio_fs[%d] = {", vm->procCount);
+    for (i = 0; i < vm->procCount; i++) fprintf(out, "%s%u", i ? ", " : "", vm->procs[i].frameStart);
+    fprintf(out, "};\nstatic const uint32_t rio_ret[%d] = {", vm->procCount);
+    for (i = 0; i < vm->procCount; i++) fprintf(out, "%s%u", i ? ", " : "", vm->procs[i].result);
+    fprintf(out, "};\n");
   }
-  for (cur = 0; cur < vm->nfunc; cur++) {
-    RioFunc *f = &vm->func[cur];
-    memset(used, 0, sizeof used);
-    o = 0; lastline = 0; /* dry run: learn which locals the body uses */
-    for (pc = f->pc; pc < f->end; pc++) ins(pc);
-    o = out; lastline = 0;
-    fprintf(o, "\nstatic void %s(void) {\n", fname(cur));
-    for (s = f->fs; s < f->fe; s++) {
-      if (!islocal(s) || !(used[s >> 3] & (1 << (s & 7)))) continue;
-      if (s < f->pend) fprintf(o, "  RioVal r%d = R[%d];\n", s, s); else fprintf(o, "  RioVal r%d = {0};\n", s);
-    }
-    for (pc = f->pc; pc < f->end; pc++) ins(pc);
-    fprintf(o, "}\n");
+  for (a->proc = 0; a->proc < vm->procCount; a->proc++) rio_writeProc(a, out);
+  a->proc = -1; /* top-level code: everything outside the procs */
+  a->lastLine = 0;
+  fprintf(out, "\nstatic void rio_top(void) {\n");
+  for (pc = 0; pc < (int)vm->codeLen; pc++) {
+    for (i = 0; i < vm->procCount; i++)
+      if (pc == vm->procs[i].entry) {
+        pc = vm->procs[i].end;
+        break;
+      }
+    if (pc < (int)vm->codeLen) rio_instruction(a, pc);
   }
-  cur = -1; lastline = 0;
-  fprintf(o, "\nstatic void rio_top(void) {\n");
-  for (pc = 0; pc < (int)vm->pc; pc++) {
-    for (i = 0; i < vm->nfunc; i++) if (pc == vm->func[i].pc) { pc = vm->func[i].end; break; }
-    if (pc < (int)vm->pc) ins(pc);
-  }
-  fprintf(o, "}\n\nint main(void) {\n  rio_load();\n  rio_top();\n");
-  if ((fmain = rio_func(vm, "main")) >= 0) fprintf(o, "  %s();\n", fname(fmain));
-  fprintf(o, "  return 0;\n}\n");
-  return ferror(o) ? -1 : 0;
+  fprintf(out, "}\n\nint main(void) {\n  rio_load();\n  rio_top();\n");
+  if ((mainProc = rio_findProc(vm, "main")) >= 0) fprintf(out, "  %s();\n", rio_procName(a, mainProc));
+  fprintf(out, "  return 0;\n}\n");
+  return ferror(out) ? -1 : 0;
 }
