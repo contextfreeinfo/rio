@@ -274,6 +274,33 @@ log(next(), next())
 a: [2]Int = {1, 2, 3}  # error: more values than the array holds
 ```
 
+An array indexed by an enum can name its elements instead, as `.value = x`, in any order; the rest are
+zero. Its values are all named or none are, each once, and a name can't stand for its value as a
+struct's can (`{.north}` is an array holding `.north`):
+
+```rio
+Dir :: enum
+  north, east, south, west
+end
+Vec :: struct
+  x, y: Int
+end
+steps := [Dir]Int{.south = 16, .west = -1, .north = -16}
+moves: [Dir]Vec = {.east = {x = 1}, .north = {y = -1}}
+log(steps[.north], steps[.east], moves[.east].x, moves[.west].x)
+```
+
+```output
+-16 0 1 0
+```
+
+```rio
+Dir :: enum
+  north, east
+end
+steps := [Dir]Int{.north = 1, 2}  # error: name each value
+```
+
 ## Arithmetic on arrays and structs
 
 Arrays of numbers, and structs whose fields are all `Int`s or all `Float`s, do arithmetic element by

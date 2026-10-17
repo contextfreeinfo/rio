@@ -414,10 +414,40 @@ static void rio_setField(rio_Vm *vm, rio_PendingOp *lit, const char *name, int n
   lit->a = i;
 }
 
+/* at the start of an array literal's next value: `.name =` (an element of an [Enum]T), or else the next
+   in order. lit->punAt: 1 once values come in order, 2 once they're named; lit->a: the named one */
+static void rio_arrayElement(rio_Vm *vm, rio_PendingOp *lit) {
+  rio_Compiler *c = vm->compiler;
+  rio_Type *at = rio_type(vm, lit->b);
+  int32_t v;
+  int named = c->tok.kind == '.' && c->peek.kind == rio_Tok_id && rio_peekAfterNext(vm) == '=';
+  if (!named) {
+    if (lit->punAt == 2) rio_FAIL_AT_TOKEN(, "name each value (.name = value), or none");
+    lit->punAt = 1;
+    return;
+  }
+  if (at->kind != rio_TypeKind_array || !at->firstField) rio_FAIL_AT_TOKEN(, "only an array indexed by an enum takes .name = value");
+  if (lit->punAt == 1) rio_FAIL_AT_TOKEN(, "name each value (.name = value), or none");
+  if (!lit->punAt) /* (named values come in any order: the rest start as zero) */
+    rio_emit(vm, rio_Op_zero, rio_addrConst(vm, (uint32_t)lit->c, at->size), (int)at->size, 0);
+  lit->punAt = 2;
+  rio_next(vm);
+  if (!rio_findEnumValue(vm, at->firstField, c->tok.text, c->tok.len, &v)) rio_FAIL_AT_TOKEN(, "not a value of this enum");
+  if (v < 64 && (lit->fieldsSet >> v & 1)) rio_FAIL_AT_TOKEN(, "element set twice");
+  if (v < 64) lit->fieldsSet |= (uint64_t)1 << v;
+  lit->a = v; /* (an [Enum]T's enum is 0, 1, 2 and so on: its value is the element) */
+  rio_next(vm);
+  rio_next(vm);
+}
+
 /* at the start of a literal's next value: `field =`, or a value standing for its field ({x}, {a.x}) */
 static void rio_literalField(rio_Vm *vm, rio_PendingOp *lit) {
   rio_Compiler *c = vm->compiler;
-  if (c->tok.kind == '}' || lit->op) return; /* (an array's values just come in order) */
+  if (c->tok.kind == '}') return;
+  if (lit->op) {
+    rio_arrayElement(vm, lit);
+    return;
+  }
   if (c->tok.kind != rio_Tok_id) rio_FAIL(, "struct literal fields must be named: Type{field = value}");
   if (c->peek.kind == '=') {
     rio_setField(vm, lit, c->tok.text, c->tok.len);
@@ -461,7 +491,7 @@ static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
     if (base) rio_emit(vm, rio_Op_mov, lit->c / 4, rio_constSlot(vm, (uint32_t)lit->argCount), 0); /* the list's length */
     from = base + lit->argCount * size;
     to = (int)st->size;
-    if (size % 4) from = to; /* (bytes: zeroed up front) */
+    if (size % 4 || lit->punAt == 2) from = to; /* (bytes and named elements: zeroed up front) */
     if (to - from <= 64)
       for (w = from / 4; w < to / 4; w++) rio_emit(vm, rio_Op_mov, lit->c / 4 + w, rio_constSlot(vm, 0), 0);
     else rio_emit(vm, rio_Op_zero, rio_addrConst(vm, (uint32_t)(lit->c + from), (uint32_t)(to - from)), to - from, 0);
@@ -516,10 +546,11 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
   if (m->kind == rio_Pending_literal && m->op) { /* stored into the array at once, in order */
     int size, base;
     rio_Type *at = rio_literalArray(vm, m, &size, &base);
+    int i = m->punAt == 2 ? m->a : m->argCount;
     rio_Expr dst;
-    if ((uint32_t)m->argCount >= at->count) rio_FAIL(, at->kind == rio_TypeKind_list ? "more values than the list holds" : "more values than the array holds");
+    if ((uint32_t)i >= at->count) rio_FAIL(, at->kind == rio_TypeKind_list ? "more values than the list holds" : "more values than the array holds");
     e = rio_popValue(vm);
-    dst = rio_exprOf(rio_ExprKind_static, at->elem, m->c + base + m->argCount * size);
+    dst = rio_exprOf(rio_ExprKind_static, at->elem, m->c + base + i * size);
     rio_store(vm, &dst, &e);
     c->freeSlot = (uint32_t)(m->c / 4 + rio_typeWords(vm, m->b));
   } else if (m->kind == rio_Pending_literal) { /* stored into the struct at once */
