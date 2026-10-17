@@ -1,6 +1,6 @@
 # Rio
 
-Disclaimer: Claude Code produced almost every line of code so far, under my direction.
+Disclaimer: Claude Code produced almost every line of code so far.
 
 Rio is a small, statically typed scripting language for embedding, from desktop apps down to
 microcontrollers. It's one C99 library, a compiler and a VM, that runs in a single block of memory you
