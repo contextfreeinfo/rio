@@ -57,6 +57,8 @@ memory goes when running. A compile that fails reports as far as it got, which s
 ```
 
 The tables are sized to fill the compiler's room, so whichever comes nearest 100% would run out first.
+When a big value (an array or struct over 16 words) is what didn't fit, the report ends with it: its
+size (`big value`), and the room there was for it (`room for it`).
 `rio -m` starts its report with this, from compiling in place as running would.
 
 ## Limits are chosen per compile

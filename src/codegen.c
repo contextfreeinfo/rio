@@ -99,7 +99,11 @@ int rio_allocSlots(rio_Vm *vm, int n) {
 uint32_t rio_allocHigh(rio_Vm *vm, uint32_t bytes) {
   rio_Compiler *c = vm->compiler;
   bytes = rio_align4(bytes);
-  if (vm->top < bytes || vm->top - bytes < c->slotHigh * 4) rio_FAIL(0, "out of memory");
+  if (vm->top < bytes || vm->top - bytes < c->slotHigh * 4) {
+    c->bigWanted = bytes;
+    c->bigLeft = vm->top > c->slotHigh * 4 ? vm->top - c->slotHigh * 4 : 0;
+    rio_FAIL(0, "out of memory");
+  }
   c->bigBytes += bytes;
   if (c->curProc >= 0) c->procDefs[c->curProc].bigBytes += bytes; /* (for the memory report) */
   return vm->top -= bytes;

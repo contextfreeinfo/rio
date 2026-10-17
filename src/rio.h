@@ -141,6 +141,8 @@ typedef struct {
   /* running, adding up to mem: constants; globals, frames, the call stack and arrays; code (when in
      mem); strings and the runtime tables; left over */
   uint32_t mem, consts, data, code, tables, free;
+  uint32_t wanted, left; /* compiling ran out of memory for a big value (an array or struct, over 16
+                            words): its bytes, and the room there was for it (else 0) */
 } rio_Usage;
 
 #ifndef rio_NO_COMPILER

@@ -487,6 +487,8 @@ static void rio_noteCompile(rio_Vm *vm) {
   u->strings = c->poolUsed + (c->lineTableTop - c->poolCap); /* (the strings, and the line table growing down from the top) */
   u->stringCap = c->lineTableTop;
   u->mem = vm->memSize;
+  u->wanted = c->bigWanted;
+  u->left = c->bigLeft;
 }
 
 static void rio_finish(rio_Vm *vm) {
@@ -684,6 +686,10 @@ int rio_usageText(const rio_Usage *u, char *out, int cap) {
   n = rio_usageLine(out, n, cap, "modules", u->used.modules, u->cap.modules);
   if (u->cap.code) n = rio_usageLine(out, n, cap, "instructions", u->used.code, u->cap.code);
   n = rio_usageLine(out, n, cap, "string pool", u->strings, u->stringCap);
+  if (u->wanted) { /* (what didn't fit) */
+    n = rio_usageBytes(out, n, cap, "big value", u->wanted);
+    n = rio_usageBytes(out, n, cap, "room for it", u->left);
+  }
   if (u->tables) { /* (compiled: where the memory goes, running) */
     n = rio_usageBytes(out, n, cap, "constants", u->consts);
     n = rio_usageBytes(out, n, cap, "data", u->data);

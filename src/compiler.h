@@ -243,6 +243,7 @@ typedef struct rio_Compiler {
   uint32_t lastLabel; /* the pc of the last jump target: no fusing instructions across it */
   uint32_t poolUsed, poolCap; /* the string pool */
   uint32_t bigBytes;  /* bytes of all big values */
+  uint32_t bigWanted, bigLeft; /* a big value that didn't fit: its bytes, and the room there was (rio_Usage) */
   int curProc;        /* the proc being compiled, or -1 */
   int firstDefine;    /* the symbol of the first -D define */
   int targetType;     /* the type the next rio_parseExpr should produce, or -1 */
