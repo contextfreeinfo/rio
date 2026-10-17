@@ -246,6 +246,8 @@ typedef struct rio_Compiler {
   int targetType;     /* the type the next rio_parseExpr should produce, or -1 */
   int symCount, typeCount, fieldCount, paramCount, nameBytes, blockCount, valueCount, opCount;
   rio_Limits limits;  /* capacities of the tables below, all carved from scratch */
+  rio_Limits high;    /* the most of the shrinking ones used: symbols, nameBytes, blocks, exprDepth (rio_Usage) */
+  uint32_t room, source; /* the compiler's room, and the source's bytes when it's in mem (rio_Usage) */
   rio_Symbol *syms;
   rio_Type *types;
   rio_Field *fields;
@@ -484,7 +486,7 @@ void rio_checkHostModule(rio_Vm *vm, int module);
 
 /* ------------------------------------------------------------------ compile.c and repl.c */
 
-int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *lim, int repl);
+int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *lim, int repl, uint32_t below);
 void rio_setupCompiler(rio_Vm *vm);
 void rio_compileAll(rio_Vm *vm);
 void rio_fillRuntimeProc(rio_Vm *vm, rio_Proc *out, int proc);

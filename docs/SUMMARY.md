@@ -6,7 +6,7 @@
 
 # Tutorial
 
-- [Getting started](tutorial/README.md)
+- [Getting started](tutorial/start.md)
 - [Values and procs](tutorial/basics.md)
 - [Data](tutorial/data.md)
 - [Lists and text](tutorial/lists.md)
@@ -16,7 +16,7 @@
 
 # Spec
 
-- [The language](spec/README.md)
+- [The language](spec/language.md)
 - [Source text](spec/lexical.md)
 - [Types](spec/types.md)
 - [Declarations](spec/declarations.md)
@@ -28,7 +28,7 @@
 
 # Guide to Rio in C
 
-- [Building and the CLI](guide/README.md)
+- [Building and the CLI](guide/building.md)
 - [The C API](guide/embedding.md)
 - [Memory and limits](guide/memory.md)
 - [Images](guide/images.md)

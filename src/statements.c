@@ -11,6 +11,7 @@ rio_Block *rio_pushBlock(rio_Vm *vm, int kind) {
   rio_Block *b;
   if (c->blockCount >= (int)c->limits.blocks) rio_FAIL(&c->blocks[0], "blocks nested too deep");
   b = &c->blocks[c->blockCount++];
+  if ((uint32_t)c->blockCount > c->high.blocks) c->high.blocks = (uint32_t)c->blockCount;
   b->kind = (uint8_t)kind;
   b->flow = (uint8_t)((c->unreachable ? rio_Flow_startUnreachable : 0) | rio_Flow_branchesEnd);
   b->symCount = (uint16_t)c->symCount;

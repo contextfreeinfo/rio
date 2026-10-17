@@ -10,6 +10,7 @@ int rio_addName(rio_Vm *vm, const char *s, int n) {
   if (c->nameBytes + n > (int)c->limits.nameBytes) rio_FAIL(0, "out of name space");
   memcpy(c->names + c->nameBytes, s, (size_t)n);
   c->nameBytes += n;
+  if ((uint32_t)c->nameBytes > c->high.nameBytes) c->high.nameBytes = (uint32_t)c->nameBytes;
   return c->nameBytes - n;
 }
 
@@ -18,6 +19,7 @@ void rio_addSymbol(rio_Vm *vm, const char *s, int n, int kind, int type, int32_t
   rio_Symbol *y;
   if (c->symCount >= (int)c->limits.symbols) rio_FAIL(, "too many symbols");
   y = &c->syms[c->symCount++];
+  if ((uint32_t)c->symCount > c->high.symbols) c->high.symbols = (uint32_t)c->symCount;
   y->name = (uint16_t)rio_addName(vm, s, n);
   y->nameLen = (uint16_t)n;
   y->kind = (uint8_t)kind;

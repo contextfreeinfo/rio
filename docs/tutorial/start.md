@@ -1,7 +1,7 @@
 # Getting started
 
 This tutorial shows Rio by example, a page at a time. Each example is a whole program you can run.
-For the exact rules, see the [spec](../spec/README.md).
+For the exact rules, see the [spec](../spec/language.md).
 
 ## Get Rio
 
