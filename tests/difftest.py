@@ -97,7 +97,7 @@ class Gen:
     elif k == 9:
       self.emit(f"u = {self.iexpr()}" if self.r.random() < 0.5 else f"u = Pt{{x = {self.iexpr()}, y = {self.fexpr()}}}")
       self.emit("if u is Pt"); self.depth += 1; self.emit("log(\"pt\", u.x, u.y)"); self.depth -= 1
-      self.emit("else if u is Int"); self.depth += 1; self.emit("log(\"int\", u)"); self.depth -= 1; self.emit("end")
+      self.emit("case u is Int"); self.depth += 1; self.emit("log(\"int\", u)"); self.depth -= 1; self.emit("end")
     else:
       vals = [self.iexpr(), self.fexpr(), self.bexpr()]
       self.emit("log(" + ", ".join(self.r.sample(vals, self.r.randrange(1, 4))) + ")")

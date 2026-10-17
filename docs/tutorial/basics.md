@@ -74,11 +74,11 @@ to overflow.
 for n in 1..=15
   if n % 15 == 0
     log("fizzbuzz")
-  else if n % 3 == 0
+  case n % 3 == 0
     log("fizz")
-  else if n % 5 == 0
+  case n % 5 == 0
     log("buzz")
-  else if n > 12
+  case n > 12
     log(n)
   end
 end

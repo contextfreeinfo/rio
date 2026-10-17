@@ -123,7 +123,11 @@ static const Case cases[] = {
   {"Dir :: enum\n  north, east\nend\nd: Dir\nswitch d\nlog(1)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "a switch's body starts with case"},
   {"n := 1\nswitch n\ncase n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "case values are constants"},
   {"n := 1\nswitch n\nelse\ncase 1\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "the else of a switch comes last"},
-  {"case 1\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "'case' outside a switch"},
+  {"case 1\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "'case' outside an if or a switch"},
+  {"n := 1\nif n == 1\nelse if n == 2\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "write case for another condition"},
+  {"n := 1\nif n == 1\nelse\ncase n == 2\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "the else comes last"},
+  {"switch\nn := 1\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a switch's body starts with case"},
+  {"n := 1\nswitch\ncase n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "condition must be Bool"},
   /* unions */
   {"A :: struct\n  x: Int\nend\nV :: union\n  A\n  A\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "type listed twice"},
   {"A :: struct\n  x: Int\nend\nBig :: struct\n  d: [20]Int\nend\nV :: union\n  A, Big\nend\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "differ in size by more than 64 bytes"},
