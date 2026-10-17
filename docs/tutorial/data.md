@@ -65,6 +65,19 @@ log(total(scores), total(scores[1:3]), scores.len())
 
 Every index is checked, so a bad one stops the program instead of reading the wrong memory.
 
+An array literal gives the values in order, and the rest are zero. As with structs, the type can be
+left off where it's known:
+
+```rio
+primes := [6]Int{2, 3, 5, 7}
+corners: [4][2]Int = {{0, 0}, {1, 0}, {1, 1}}
+log(primes[3], primes[5], corners[2][1], corners[3][0])
+```
+
+```output
+7 0 1 0
+```
+
 ## Changing the caller's things
 
 Parameters are copies. To let a proc change something of yours, give it a `&` parameter, and pass

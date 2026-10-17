@@ -394,7 +394,16 @@ static void rio_slice(rio_Vm *vm, rio_Expr *o, rio_Expr *lo, rio_Expr *hi) {
   if (ty->kind == rio_TypeKind_array) o->type = (uint16_t)rio_sliceOf(vm, ty->elem);
 }
 
-/* ------------------------------------------------------------------ struct literals */
+/* ------------------------------------------------------------------ struct and array literals */
+
+/* an array or list literal's type (lit->op is 1 for them, 0 for a struct's), its element's size, and
+   where its elements start (after a list's length word) */
+static rio_Type *rio_literalArray(rio_Vm *vm, const rio_PendingOp *lit, int *size, int *base) {
+  rio_Type *at = rio_type(vm, lit->b);
+  *size = (int)rio_type(vm, at->elem)->size;
+  *base = at->kind == rio_TypeKind_list ? 4 : 0;
+  return at;
+}
 
 /* inside Type{...}: the value that follows is for field `name` */
 static void rio_setField(rio_Vm *vm, rio_PendingOp *lit, const char *name, int n) {
@@ -405,10 +414,40 @@ static void rio_setField(rio_Vm *vm, rio_PendingOp *lit, const char *name, int n
   lit->a = i;
 }
 
+/* at the start of an array literal's next value: `.name =` (an element of an [Enum]T), or else the next
+   in order. lit->punAt: 1 once values come in order, 2 once they're named; lit->a: the named one */
+static void rio_arrayElement(rio_Vm *vm, rio_PendingOp *lit) {
+  rio_Compiler *c = vm->compiler;
+  rio_Type *at = rio_type(vm, lit->b);
+  int32_t v;
+  int named = c->tok.kind == '.' && c->peek.kind == rio_Tok_id && rio_peekAfterNext(vm) == '=';
+  if (!named) {
+    if (lit->punAt == 2) rio_FAIL_AT_TOKEN(, "name each value (.name = value), or none");
+    lit->punAt = 1;
+    return;
+  }
+  if (at->kind != rio_TypeKind_array || !at->firstField) rio_FAIL_AT_TOKEN(, "only an array indexed by an enum takes .name = value");
+  if (lit->punAt == 1) rio_FAIL_AT_TOKEN(, "name each value (.name = value), or none");
+  if (!lit->punAt) /* (named values come in any order: the rest start as zero) */
+    rio_emit(vm, rio_Op_zero, rio_addrConst(vm, (uint32_t)lit->c, at->size), (int)at->size, 0);
+  lit->punAt = 2;
+  rio_next(vm);
+  if (!rio_findEnumValue(vm, at->firstField, c->tok.text, c->tok.len, &v)) rio_FAIL_AT_TOKEN(, "not a value of this enum");
+  if (v < 64 && (lit->fieldsSet >> v & 1)) rio_FAIL_AT_TOKEN(, "element set twice");
+  if (v < 64) lit->fieldsSet |= (uint64_t)1 << v;
+  lit->a = v; /* (an [Enum]T's enum is 0, 1, 2 and so on: its value is the element) */
+  rio_next(vm);
+  rio_next(vm);
+}
+
 /* at the start of a literal's next value: `field =`, or a value standing for its field ({x}, {a.x}) */
 static void rio_literalField(rio_Vm *vm, rio_PendingOp *lit) {
   rio_Compiler *c = vm->compiler;
   if (c->tok.kind == '}') return;
+  if (lit->op) {
+    rio_arrayElement(vm, lit);
+    return;
+  }
   if (c->tok.kind != rio_Tok_id) rio_FAIL(, "struct literal fields must be named: Type{field = value}");
   if (c->peek.kind == '=') {
     rio_setField(vm, lit, c->tok.text, c->tok.len);
@@ -439,12 +478,27 @@ static void rio_punField(rio_Vm *vm, rio_PendingOp *lit) {
   rio_setField(vm, lit, name, nameLen);
 }
 
-/* the zeroing for fields a literal left out, then the struct as the result */
+/* the zeroing for fields a literal left out (an array: the elements after its values; a list: its
+   length too), then the struct or array as the result */
 static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
   rio_Compiler *c = vm->compiler;
   rio_Type *st = rio_type(vm, lit->b);
   rio_Field *fields = rio_field(vm, st->firstField);
   int i = 0, j, w, from, to;
+  if (lit->op) {
+    int size, base;
+    rio_literalArray(vm, lit, &size, &base);
+    if (base) rio_emit(vm, rio_Op_mov, lit->c / 4, rio_constSlot(vm, (uint32_t)lit->argCount), 0); /* the list's length */
+    from = base + lit->argCount * size;
+    to = (int)st->size;
+    if (size % 4 || lit->punAt == 2) from = to; /* (bytes and named elements: zeroed up front) */
+    if (to - from <= 64)
+      for (w = from / 4; w < to / 4; w++) rio_emit(vm, rio_Op_mov, lit->c / 4 + w, rio_constSlot(vm, 0), 0);
+    else rio_emit(vm, rio_Op_zero, rio_addrConst(vm, (uint32_t)(lit->c + from), (uint32_t)(to - from)), to - from, 0);
+    c->freeSlot = (uint32_t)(lit->c / 4 + rio_typeWords(vm, lit->b));
+    rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, lit->b, lit->c), lit->freeAtStart);
+    return;
+  }
   while (st->fieldCount <= 64 && i < st->fieldCount) { /* (structs with more fields were zeroed up front) */
     if (lit->fieldsSet >> i & 1) {
       i++;
@@ -477,6 +531,7 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     if (param) type = param->type;
     else if (m->kind == rio_Pending_call && m->a == rio_ExprKind_static && m->argCount < rio_type(vm, m->c)->fieldCount)
       type = rio_field(vm, rio_type(vm, m->c)->firstField + m->argCount)->type;
+    else if (m->kind == rio_Pending_literal && m->op) type = rio_type(vm, m->b)->elem;
     else if (m->kind == rio_Pending_literal && m->a >= 0) type = rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
     if (type >= 0 && rio_type(vm, type)->kind == rio_TypeKind_proc) rio_toProcValue(vm, arg, type);
   }
@@ -488,7 +543,17 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     return;
   }
   rio_needValue(vm, arg);
-  if (m->kind == rio_Pending_literal) { /* stored into the struct at once */
+  if (m->kind == rio_Pending_literal && m->op) { /* stored into the array at once, in order */
+    int size, base;
+    rio_Type *at = rio_literalArray(vm, m, &size, &base);
+    int i = m->punAt == 2 ? m->a : m->argCount;
+    rio_Expr dst;
+    if ((uint32_t)i >= at->count) rio_FAIL(, at->kind == rio_TypeKind_list ? "more values than the list holds" : "more values than the array holds");
+    e = rio_popValue(vm);
+    dst = rio_exprOf(rio_ExprKind_static, at->elem, m->c + base + i * size);
+    rio_store(vm, &dst, &e);
+    c->freeSlot = (uint32_t)(m->c / 4 + rio_typeWords(vm, m->b));
+  } else if (m->kind == rio_Pending_literal) { /* stored into the struct at once */
     rio_Type *st = rio_type(vm, m->b);
     rio_Field *f;
     rio_Expr dst;
@@ -641,7 +706,7 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
   rio_PendingOp *m;
   if (c->opCount == x->opBase) return x->whole;
   m = rio_opTop(vm);
-  if (m->kind == rio_Pending_literal) return rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
+  if (m->kind == rio_Pending_literal) return m->op ? rio_type(vm, m->b)->elem : rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
   if (m->kind == rio_Pending_index && m->valueBase > 0 && c->valueCount <= m->valueBase + 1) { /* counts[.east], counts[.a:.b]: an [Enum]T takes its enum */
     rio_Type *array = rio_type(vm, c->values[m->valueBase - 1].type);
     if (array->kind == rio_TypeKind_array && array->firstField) return array->firstField;
@@ -714,12 +779,19 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
     return rio_Expect_operator;
   } else if ((t == '.' && c->peek.kind == rio_Tok_id) || t == rio_Tok_nil) {
     return rio_impliedValue(vm, x, tempStart);
-  } else if (t == '{') { /* {field = ...} takes its struct type from where the value is going */
-    int type = rio_targetType(vm, x);
-    if (type < 0 || rio_type(vm, type)->kind != rio_TypeKind_struct)
-      rio_FAIL_AT_TOKEN(rio_Expect_failed, "can't tell which struct this is; write Type{...}");
+  } else if (t == '{') { /* {field = ...} or {a, b} takes its struct or array type from where the value is going */
+    int type = rio_targetType(vm, x), k = type < 0 ? -1 : rio_type(vm, type)->kind;
+    if (k != rio_TypeKind_struct && k != rio_TypeKind_array && k != rio_TypeKind_list)
+      rio_FAIL_AT_TOKEN(rio_Expect_failed, "can't tell which struct or array this is; write Type{...} or [N]T{...}");
     rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
     return rio_Expect_operator; /* the '{' is next: the literal itself */
+  } else if (t == '[') { /* [N]T{...}, [..N]T{...} */
+    int type = rio_parseType(vm), k = rio_type(vm, type)->kind;
+    if (rio_failed(vm)) return rio_Expect_failed;
+    if (c->tok.kind != '{' || (k != rio_TypeKind_array && k != rio_TypeKind_list))
+      rio_FAIL_AT_TOKEN(rio_Expect_failed, "only arrays and lists have literals here: [N]T{a, b} or [..N]T{a, b}");
+    rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
+    return rio_Expect_operator;
   } else rio_FAIL_AT_TOKEN(rio_Expect_failed, rio_msgExpectedExpr);
   rio_pushResult(vm, e, tempStart);
   rio_next(vm);
@@ -858,15 +930,17 @@ static int rio_parseOperator(rio_Vm *vm, rio_ExprState *x) {
     rio_next(vm);
     return rio_Expect_operator;
   }
-  if (t == '{') { /* Type{...} */
+  if (t == '{') { /* Type{...}, [N]T{...} */
     rio_Expr type = *rio_valueTop(vm);
     rio_PendingOp *o;
-    if (type.kind != rio_ExprKind_type || rio_type(vm, type.type)->kind != rio_TypeKind_struct) return rio_Expect_done;
+    int k = rio_type(vm, type.type)->kind, isArray = k == rio_TypeKind_array || k == rio_TypeKind_list;
+    if (type.kind != rio_ExprKind_type || (k != rio_TypeKind_struct && !isArray)) return rio_Expect_done;
     c->valueCount--;
-    o = rio_pushOp(vm, rio_Pending_literal, 0, 0);
+    o = rio_pushOp(vm, rio_Pending_literal, 0, isArray);
     o->b = type.type;
     o->c = rio_allocSlots(vm, rio_typeWords(vm, type.type)) * 4;
-    if (rio_type(vm, type.type)->fieldCount > 64) /* (finishing tracks only 64 fields: zero all of it now) */
+    if (isArray ? rio_type(vm, rio_type(vm, type.type)->elem)->size % 4 != 0 : rio_type(vm, type.type)->fieldCount > 64)
+      /* (bytes don't fill whole words, and finishing tracks only 64 fields: zero all of it now) */
       rio_emit(vm, rio_Op_zero, rio_addrConst(vm, (uint32_t)o->c, rio_type(vm, type.type)->size), (int)rio_type(vm, type.type)->size, 0);
     x->depth++;
     rio_next(vm);

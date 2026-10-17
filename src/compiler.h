@@ -172,13 +172,15 @@ typedef enum {
                c: a proc value's type; ffi: argument words placed so far; fromInt and has: the enum;
                format: the builder's slots
      literal   a: the field being filled in (-1: punned, decided by its value); b: the struct type;
-               c: the struct's address */
+               c: the struct's address. op 1: an array or list literal instead (b: its type; its
+               values go in order, argCount so far, or by name: punAt 2, a the element named) */
 typedef struct {
   uint8_t kind, prec;
   int16_t op;           /* binary, unary: the operator token */
   int32_t a, b, c;
   int32_t argCount;     /* call, literal: the arguments done so far */
-  int32_t punAt;        /* literal: where a value standing for its field starts, in the source ({x}) */
+  int32_t punAt;        /* literal: where a value standing for its field starts, in the source ({x});
+                           an array's: 1 its values in order, 2 named (.name = value) */
   uint16_t valueBase;   /* the value stack's height when pushed: a call's arguments start there */
   uint16_t freeAtStart; /* the first free slot when pushed */
   uint64_t fieldsSet;   /* literal: which of its first 64 fields have values; format: the slot of the
