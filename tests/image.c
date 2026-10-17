@@ -104,6 +104,38 @@ int main(void) {
     rio_addFfi(&vm, "add", "ii>i", f_add); rio_addFfi(&vm, "half", "f>f", f_half);
     check(rio_loadImage(&vm, img, n) == 0 && rio_run(&vm) == 0, "back to a code buffer", &vm);
   }
+  { /* the source in mem itself, at its top (where a host with no other room reads a file): the same image
+       as from a source elsewhere, and room for the program's memory too, down to the source's last byte */
+    static unsigned char img2[1 << 16];
+    static const char big[] = "a: [16000]Int\na[15999] = 7\nlog(a[15999])\n"; /* (64 KB of the 128: over the source too) */
+    uint32_t len = (uint32_t)strlen(src), k, n2;
+    char *at;
+    rio_init(&vm, mem2, 1 << 17, 0, 0);
+    rio_addFfi(&vm, "add", "ii>i", f_add); rio_addFfi(&vm, "half", "f>f", f_half);
+    check(rio_compile(&vm, src, len) == 0, "compile from outside mem", &vm);
+    n = rio_saveImage(&vm, img2, sizeof img2);
+    memset(mem2, 0, sizeof mem2);
+    rio_init(&vm, mem2, 1 << 17, 0, 0);
+    rio_addFfi(&vm, "add", "ii>i", f_add); rio_addFfi(&vm, "half", "f>f", f_half);
+    at = (char *)mem2 + (1 << 17) - len;
+    memcpy(at, src, len);
+    check(rio_compile(&vm, at, len) == 0, "compile from the top of mem", &vm);
+    n2 = rio_saveImage(&vm, img, sizeof img);
+    check(n2 == n && !memcmp(img, img2, n), "the same image", &vm);
+    logged[0] = 0;
+    rio_setLog(&vm, out, 0);
+    check(rio_run(&vm) == 0 && rio_call(&vm, rio_findProc(&vm, "main")) == 0 && !strcmp(logged, "hi 40 1.5|0|"), "and it runs", &vm);
+    k = (uint32_t)strlen(big);
+    rio_init(&vm, mem2, 1 << 17, 0, 0);
+    at = (char *)mem2 + (1 << 17) - k;
+    memcpy(at, big, k);
+    logged[0] = 0;
+    rio_setLog(&vm, out, 0);
+    check(rio_compile(&vm, at, k) == 0 && rio_run(&vm) == 0 && !strcmp(logged, "7|"), "a program's memory over where its source was", &vm);
+    memcpy(mem2, big, k); /* (at the bottom: no room below it) */
+    rio_init(&vm, mem2, 1 << 17, 0, 0);
+    check(rio_compile(&vm, (char *)mem2 + 16, k) != 0 && strstr(rio_error(&vm), "not enough memory"), "a source at the bottom of mem", &vm);
+  }
   /* saving */
   check(rio_saveImage(&vm, img, sizeof img) == 0, "no saving after running", &vm);
   n = save("x := 1\n", sizeof mem);

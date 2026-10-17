@@ -28,6 +28,37 @@ running:    [consts][ frames/globals | return stack ][ ... ][strings+exports][ar
 `rio_compileScratch` keeps the compiler state in a separate buffer instead, which stays readable after
 compiling. The C backend needs that.
 
+**The source can be in `mem` too.** A host with no room to spare, like a microcontroller reading a file,
+can put the source at the top of `mem` and call `rio_compile` on it there. That memory is the program's
+globals and arrays, still zero, so the compiler keeps its state below the source, and the program's final
+layout takes it all back once compiling is done. Compiling then needs the source, the compiler's tables,
+the constants and the strings to fit in `mem` together.
+
+## How near the limits
+
+With overlapping like this, what fits isn't obvious, so Rio reports it. `rio_trackUsage(vm, &usage)`
+(after `rio_init`) has each compile fill in a `rio_Usage`: how full each of the compiler's tables got
+against its capacity, the string pool and the source, and, for a program that compiled, where its
+memory goes when running. A compile that fails reports as far as it got, which shows what ran out.
+`rio_usageText` makes it readable:
+
+```
+  compiler room     234496 bytes
+  source in mem     14336 bytes
+  symbols           78 of 1664: 4%
+  names             422 of 19968: 2%
+  ...
+  string pool       11131 of 22964: 48%
+  constants         336 bytes
+  data              82872 bytes
+  code              2112 bytes
+  strings, tables   11620 bytes
+  free              165204 bytes
+```
+
+The tables are sized to fill the compiler's room, so whichever comes nearest 100% would run out first.
+`rio -m` starts its report with this, from compiling in place as running would.
+
 ## Limits are chosen per compile
 
 The compiler's tables (symbols, names, types, fields, procs, params, constants, nesting depth) are carved

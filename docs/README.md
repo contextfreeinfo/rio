@@ -18,9 +18,9 @@ log("at", pos.x, pos.y)
 at 2.5 4.0
 ```
 
-- The [tutorial](tutorial/README.md) shows Rio by example.
-- The [spec](spec/README.md) says what Rio programs mean, mostly with examples, which the tests run.
-- The [guide](guide/README.md) covers the C library and the `rio` command: embedding, memory, images,
+- The [tutorial](tutorial/start.md) shows Rio by example.
+- The [spec](spec/language.md) says what Rio programs mean, mostly with examples, which the tests run.
+- The [guide](guide/building.md) covers the C library and the `rio` command: embedding, memory, images,
   C output and native code on ARM.
 
 Source: [github.com/contextfreeinfo/rio](https://github.com/contextfreeinfo/rio).

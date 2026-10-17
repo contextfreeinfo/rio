@@ -22,6 +22,7 @@ static void rio_pushValue(rio_Vm *vm, rio_Expr e) {
   rio_Compiler *c = vm->compiler;
   if (c->valueCount >= (int)c->limits.exprDepth) rio_FAIL(, "expression too complex");
   c->values[c->valueCount++] = e;
+  if ((uint32_t)c->valueCount > c->high.exprDepth) c->high.exprDepth = (uint32_t)c->valueCount;
 }
 
 /* pushes a result whose temporaries start at slot tempStart */
@@ -35,6 +36,7 @@ static rio_PendingOp *rio_pushOp(rio_Vm *vm, int kind, int prec, int op) {
   rio_PendingOp *o;
   if (c->opCount >= (int)c->limits.exprDepth) rio_FAIL(&c->ops[0], "expression too complex"); /* (somewhere harmless to write) */
   o = &c->ops[c->opCount++];
+  if ((uint32_t)c->opCount > c->high.exprDepth) c->high.exprDepth = (uint32_t)c->opCount;
   o->kind = (uint8_t)kind;
   o->prec = (uint8_t)prec;
   o->op = (int16_t)op;

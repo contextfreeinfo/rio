@@ -6,8 +6,9 @@
    rio -i out.img file.rio compile to an image (see rio_loadImage) instead of running it
    rio file.img            run an image
    -j                      compile simple loops to native code first (ARM with Thumb-2 only)
-   -M size                 the memory the program gets (default 8M; K and M suffixes). An image
-                           needs at least the memory it was compiled with to run
+   -M size                 the memory the program gets (default 8M, up to 1G; K, M and G suffixes),
+                           allocated once at the start. An image needs at least the memory it was
+                           compiled with to run
    -D NAME[=value]         override a top-level constant (or define it), like gcc -D
    -L dir                  look for packages (import name) in dir: each dir/name or dir/name.rio
    Ctrl-C stops a running program. */
@@ -23,7 +24,10 @@
 #include "compiler.h" /* (for the memory report) */
 #include "aot.h"
 
-static uint8_t rio_mem[8 << 20];  /* everything, the code included */
+#define rio_MEM_DEFAULT (8ul << 20) /* -M: the program's memory, unless it's given */
+#define rio_MEM_MAX (1ul << 30)
+static uint8_t *rio_mem;           /* everything, the code included: allocated once, at the start (rio
+                                      itself never allocates, compiling or running) */
 static char rio_src[4 << 20];     /* the main file and every module, kept until compiling ends */
 static size_t rio_srcLen;
 static char rio_libs[16][512], rio_baseDir[512], rio_fileNames[1 << 16];
@@ -316,14 +320,18 @@ static void rio_memoryReport(void) {
 
 /* ------------------------------------------------------------------ main */
 
-/* -M size: 4K to all of rio_mem, with K and M suffixes; 0 if it's wrong */
+/* -M size: 4K to 1G, with K, M and G suffixes; 0 if it's wrong */
 static unsigned long rio_parseMemSize(const char *text) {
   char *end;
   unsigned long size = strtoul(text, &end, 0);
+  if (size > rio_MEM_MAX) return 0;
   if (*end == 'K' || *end == 'k') size <<= 10, end++;
   else if (*end == 'M' || *end == 'm') size <<= 20, end++;
-  return *end || size < 4096 || size > sizeof rio_mem ? 0 : size;
+  else if (*end == 'G' || *end == 'g') size <<= 30, end++;
+  return *end || size < 4096 || size > rio_MEM_MAX ? 0 : size;
 }
+
+static void rio_freeMem(void) { free(rio_mem); }
 
 /* local imports are relative to the main file's directory */
 static void rio_setBaseDir(const char *path) {
@@ -340,15 +348,20 @@ int main(int argc, char **argv) {
   size_t n;
   int proc, i, memReport = 0, jit = 0;
   const char *cOut = 0, *imageOut = 0, *path = 0;
-  unsigned long memSize = sizeof rio_mem;
+  unsigned long memSize = rio_MEM_DEFAULT;
   for (i = 1; i < argc; i++) /* -M first: rio_init comes before -D */
     if (!strcmp(argv[i], "-M") && i + 1 < argc) {
       memSize = rio_parseMemSize(argv[++i]);
       if (!memSize) {
-        fprintf(stderr, "-M: 4K to %uM\n", (unsigned)(sizeof rio_mem >> 20));
+        fprintf(stderr, "-M: 4K to 1G\n");
         return 2;
       }
     }
+  if (!(rio_mem = (uint8_t *)calloc(1, memSize))) {
+    fprintf(stderr, "can't get %lu bytes for -M\n", memSize);
+    return 1;
+  }
+  atexit(rio_freeMem);
   if (rio_init(&rio_vm, rio_mem, (uint32_t)memSize, 0, 0)) {
     fprintf(stderr, "init failed\n");
     return 1;
@@ -398,7 +411,20 @@ int main(int argc, char **argv) {
   } else {
     /* the C backend and the memory report read compiler tables after compiling, so they get their own
        buffer; running compiles in place, with the compiler's state overlaid on script memory */
-    int failed = cOut || memReport ? rio_compileScratch(&rio_vm, rio_src, (uint32_t)n, rio_scratch, sizeof rio_scratch)
+    int failed;
+    if (memReport) { /* first, compiled in place, as for running: how near its limits it came */
+      static rio_Vm probe;
+      static char text[2048];
+      rio_Usage u;
+      size_t loaded = rio_srcLen;
+      probe = rio_vm; /* (set up, not compiled yet) */
+      rio_trackUsage(&probe, &u);
+      failed = rio_compile(&probe, rio_src, (uint32_t)n);
+      rio_srcLen = loaded;
+      rio_usageText(&u, text, sizeof text);
+      printf("compiled in place (%s):\n%s\n", failed ? rio_error(&probe) : "fits", text);
+    }
+    failed = cOut || memReport ? rio_compileScratch(&rio_vm, rio_src, (uint32_t)n, rio_scratch, sizeof rio_scratch)
                                    : rio_compile(&rio_vm, rio_src, (uint32_t)n);
     if (failed) {
       rio_report(path);

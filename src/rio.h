@@ -129,12 +129,34 @@ typedef struct {
   uint32_t symbols, nameBytes, types, fields, procs, params, consts, slots, blocks, exprDepth, modules, code;
 } rio_Limits;
 
+/* How full compiling got, and where the program's memory goes (rio_trackUsage), for showing how close a
+   program is to its limits. In bytes, except the limits. The compiler's tables are sized to fill its
+   room, so what runs out first is whichever `used` comes nearest its `cap` */
+typedef struct {
+  rio_Limits cap, used; /* the compiler's tables: their capacities, and the most of each used */
+  uint32_t room;        /* the compiler's room: its tables and the string pool (in mem: above the constants,
+                           below any source) */
+  uint32_t source;      /* the source, when it sat in mem while compiling (else 0) */
+  uint32_t strings, stringCap; /* the string pool: strings, names for the host, the line table */
+  /* running, adding up to mem: constants; globals, frames, the call stack and arrays; code (when in
+     mem); strings and the runtime tables; left over */
+  uint32_t mem, consts, data, code, tables, free;
+} rio_Usage;
+
 #ifndef rio_NO_COMPILER
 rio_Limits rio_limitsFor(uint32_t bytes);      /* limits whose tables fill about 60% of `bytes` */
 uint32_t rio_limitsSize(const rio_Limits *lim); /* scratch bytes those tables take; strings need more */
 /* compile with the compiler's working memory overlaid on the part of mem that stays zero until the
-   program runs; limits are scaled to mem */
+   program runs; limits are scaled to mem. The source can be in mem too, at its top (where a host with no
+   other room can read a file): the compiler's memory then ends below it, and compiling needs the source,
+   the compiler's tables, the constants and the strings to fit in mem together. The source's memory is
+   the program's once compiling is done */
 int rio_compile(rio_Vm *vm, const char *src, uint32_t len);
+/* each compile from now on fills in *usage (one that fails, as far as it got: the running part is then
+   0). After rio_init, which forgets it */
+void rio_trackUsage(rio_Vm *vm, rio_Usage *usage);
+/* usage as lines of text for people, into out (cap bytes, 0-terminated): its length */
+int rio_usageText(const rio_Usage *u, char *out, int cap);
 /* same, with the compiler's working memory in a separate buffer that stays valid afterwards (rio_aot
    needs it); limits are scaled to the buffer */
 int rio_compileScratch(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size);
@@ -253,6 +275,7 @@ struct rio_Vm {
   const char *autoImports[rio_MAX_AUTO_IMPORTS];
   int autoImportCount;
   struct rio_Compiler *compiler; /* only while compiling, or after rio_compileScratch and in a REPL */
+  rio_Usage *usage;        /* rio_trackUsage */
   rio_Proc *procs;         /* per proc, in mem next to the strings */
   rio_JitFn *jitFns;       /* native loops (rio_Op_jit a: which) */
   int (*jitHook)(rio_Vm *vm); /* set by rio_jit: compiles what was just compiled or loaded */

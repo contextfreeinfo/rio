@@ -32,7 +32,7 @@ int rio_replBegin(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *li
     rio_setError(vm, rio_ErrorKind_compile, 0, 0, 0, "a REPL needs its own scratch buffer");
     return -1;
   }
-  if (rio_startCompiler(vm, scratch, size, lim, 1)) return -1;
+  if (rio_startCompiler(vm, scratch, size, lim, 1, 0)) return -1;
   c = vm->compiler;
   memset(vm->mem, 0, vm->memSize);
   rio_setupCompiler(vm);

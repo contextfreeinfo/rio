@@ -57,9 +57,9 @@ Or get a build from the [nightly release](https://github.com/contextfreeinfo/rio
 
 ## Learn more
 
-- [Tutorial](docs/tutorial/README.md): Rio by example, a page at a time.
-- [Spec](docs/spec/README.md): what Rio programs mean, mostly as examples, which the tests run.
-- [Guide](docs/guide/README.md): the C library and CLI: embedding, memory, images, C output, ARM, and
+- [Tutorial](docs/tutorial/start.md): Rio by example, a page at a time.
+- [Spec](docs/spec/language.md): what Rio programs mean, mostly as examples, which the tests run.
+- [Guide](docs/guide/building.md): the C library and CLI: embedding, memory, images, C output, ARM, and
   performance.
 
 The docs build into a web site with `mdbook build docs`.

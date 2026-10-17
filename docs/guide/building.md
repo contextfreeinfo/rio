@@ -1,7 +1,7 @@
 # Building and the CLI
 
 This guide is about the Rio in this repository: a C99 library (compiler and VM) and the `rio` command
-line tool. For the language itself, see the [spec](../spec/README.md).
+line tool. For the language itself, see the [spec](../spec/language.md).
 
 ## Building
 
@@ -34,8 +34,8 @@ rio -L libs game.rio     with packages from libs/ (each libs/name.rio or libs/na
 rio -D N=20 game.rio     set a top-level constant (or define one), like gcc -D
 rio -c game.c game.rio   compile to a standalone C program instead (see C output)
 rio -i game.img game.rio compile to an image instead (see Images); rio game.img runs one
-rio -m game.rio          report where the program's memory goes, instead of running it
-rio -M 256K ...          the memory the program gets (default 8M)
+rio -m game.rio          how near its limits it comes, and where its memory goes, instead of running it
+rio -M 256K ...          the memory the program gets (default 8M, up to 1G), allocated once at the start
 rio -j game.rio          compile simple loops to native code first (ARM with Thumb-2 only)
 ```
 

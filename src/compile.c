@@ -96,7 +96,8 @@ uint32_t rio_limitsSize(const rio_Limits *l) { return rio_layout(0, l) + 16; }
 
 /* Sets up the compiler's state in scratch, or overlaid on mem when scratch is NULL. repl: for a REPL
    session (the code goes elsewhere). */
-int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *lim, int repl) {
+/* below: with the compiler in mem, where its room ends (0: the end of mem), as when the source is up there */
+int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *lim, int repl, uint32_t below) {
   int inMem = !scratch, codeInScratch = !vm->hostCode && !repl;
   uintptr_t pad;
   rio_Compiler *c;
@@ -111,9 +112,10 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   vm->procs = 0;
   vm->jitFns = 0;
   vm->jitUsed = vm->jitCount = 0;
+  if (!below || below > vm->memSize) below = vm->memSize;
   if (lim) l = *lim;
   else { /* the code (when it's compiled into scratch) gets a quarter, the tables scale to the rest */
-    uint32_t n = inMem ? vm->memSize : size;
+    uint32_t n = inMem ? below : size;
     l = rio_limitsFor(codeInScratch ? n - n / 4 : n);
     l.code = rio_limitsFor(n).code;
   }
@@ -122,12 +124,12 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   if (l.consts < 16) l.consts = 16;
   if (l.slots > 65536) l.slots = 65536;
   if (inMem) { /* overlay: everything above the constants is free until the program runs */
-    if (l.consts * 4 + 1024 > vm->memSize) {
+    if (l.consts * 4 + 1024 > below) {
       rio_setError(vm, rio_ErrorKind_compile, 0, 0, 0, "not enough memory for the compiler");
       return -1;
     }
     scratch = vm->mem + l.consts * 4;
-    size = vm->memSize - l.consts * 4;
+    size = below - l.consts * 4;
   }
   pad = (16 - ((uintptr_t)scratch & 15)) & 15;
   used = rio_limitsSize(&l);
@@ -138,6 +140,8 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   c = vm->compiler = (rio_Compiler *)(void *)((uint8_t *)scratch + pad);
   memset(c, 0, sizeof *c);
   c->limits = l;
+  c->room = size - (uint32_t)pad;
+  c->source = inMem ? vm->memSize - below : 0;
   used = rio_layout(c, &l);
   c->pool = (uint8_t *)c + used;
   c->poolCap = c->lineTableTop = (size - (uint32_t)pad - used) & ~3u;
@@ -198,7 +202,8 @@ void rio_setupCompiler(rio_Vm *vm) {
     for (g = f->sig; *g; g++) {
       int isResult = *g == '>', ch = isResult ? g[1] : *g;
       int t = ch == 'i' ? rio_TypeId_int : ch == 'f' ? rio_TypeId_float : ch == 's' ? rio_TypeId_string : ch == 'b' ? rio_TypeId_blob : -1;
-      if (t < 0 || c->paramCount >= (int)c->limits.params) rio_FAIL(, "bad ffi signature");
+      if (t < 0) rio_FAIL(, "bad ffi signature");
+      if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
       if (isResult) {
         def->resultType = (uint16_t)t;
         f->resultWords = (uint8_t)rio_typeWords(vm, t);
@@ -461,6 +466,29 @@ static int rio_isHostName(rio_Compiler *c, rio_Symbol *y) {
    real addresses; everything the compiler used is zeroed.
      compiling:  [consts][ compiler state + string pool ........................................]
      running:    [consts][ frames/globals | return stack ][ ... ][code][strings+tables][arrays ] */
+/* how full compiling got (rio_Usage), while the compiler's tables are still there */
+static void rio_noteCompile(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  rio_Usage *u = vm->usage;
+  if (!u || !c) return;
+  memset(u, 0, sizeof *u);
+  u->cap = c->limits;
+  u->used = c->high;
+  u->used.types = (uint32_t)c->typeCount;
+  u->used.fields = (uint32_t)c->fieldCount;
+  u->used.procs = (uint32_t)vm->procCount;
+  u->used.params = (uint32_t)c->paramCount;
+  u->used.consts = vm->constCount;
+  u->used.slots = c->slotHigh;
+  u->used.modules = (uint32_t)c->moduleCount;
+  u->used.code = vm->code == c->scratchCode ? vm->codeLen : 0;
+  u->room = c->room;
+  u->source = c->source;
+  u->strings = c->poolUsed + (c->poolCap - c->lineTableTop);
+  u->stringCap = c->poolCap;
+  u->mem = vm->memSize;
+}
+
 static void rio_finish(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Val *R = (rio_Val *)vm->mem;
@@ -469,6 +497,7 @@ static void rio_finish(rio_Vm *vm) {
   uint32_t i, n = 0, p, exportsAt, linesAt, procsAt, modulesAt, size, base, lineSize, codeSize = 0, codeAt = 0;
   uint32_t moduleCount = (uint32_t)(c->moduleCount - 2), fileNamesAt;
   int k;
+  rio_noteCompile(vm);
   c->freeSlot = c->slotHigh;
   vm->callStackAt = (uint32_t)rio_allocSlots(vm, depth + 1) * 4; /* the return stack: the longest chain of calls */
   /* the block, built in the pool after the strings: exported names, then module file names */
@@ -544,6 +573,14 @@ static void rio_finish(rio_Vm *vm) {
   vm->linesSize = lineSize;
   vm->lineCachePos = vm->lineCachePc = vm->lineCacheLine = 0;
   vm->procs = (rio_Proc *)(void *)(vm->mem + base + procsAt);
+  if (vm->usage) { /* where the memory goes, running */
+    rio_Usage *u = vm->usage;
+    u->consts = vm->constCap * 4;
+    u->code = codeSize;
+    u->tables = size;
+    u->free = (codeAt ? codeAt : base) - c->slotHigh * 4;
+    u->data = vm->memSize - u->consts - u->code - u->tables - u->free;
+  }
   /* Nothing in c is read after this: the moves and the zeroing may overwrite it. Both regions move within
      mem when scratch is overlaid on it: the one moving up goes first if the code moves up. */
   if (codeAt) {
@@ -569,7 +606,12 @@ static void rio_finish(rio_Vm *vm) {
 int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const rio_Limits *lim) {
   int inMem = !scratch;
   rio_Compiler *c;
-  if (rio_startCompiler(vm, scratch, size, lim, 0)) return -1;
+  /* a source in mem itself: up in what stays zero until the program runs, with the compiler's room ending
+     below it (the program's layout takes that memory back once compiling is done) */
+  uint32_t below = 0;
+  if (inMem && src >= (const char *)vm->mem && src < (const char *)vm->mem + vm->memSize && !(below = (uint32_t)(src - (const char *)vm->mem) & ~15u))
+    below = 16; /* (no room at all: an error, below) */
+  if (rio_startCompiler(vm, scratch, size, lim, 0, below)) return -1;
   c = vm->compiler;
   rio_setupCompiler(vm);
   c->src = c->cursor = c->lineStart = src;
@@ -583,6 +625,7 @@ int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, ui
   if (!rio_failed(vm)) rio_emit(vm, rio_Op_halt, 0, 0, 0);
   if (!rio_failed(vm)) rio_finish(vm);
   if (rio_failed(vm)) {
+    rio_noteCompile(vm); /* (how far it got: the compiler's tables are still there) */
     if (inMem) vm->compiler = 0;
     return -1;
   }
@@ -590,6 +633,66 @@ int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, ui
   vm->ready = 1;
   if (vm->jitHook) vm->jitHook(vm);
   return 0;
+}
+
+void rio_trackUsage(rio_Vm *vm, rio_Usage *usage) { vm->usage = usage; }
+
+/* a line of the usage text: name, used of cap, and the percent */
+static int rio_usageLine(char *out, int n, int cap, const char *name, uint32_t used, uint32_t of) {
+  char line[96];
+  int k = rio_appendText(line, 0, "  ");
+  k = rio_appendText(line, k, name);
+  while (k < 18) line[k++] = ' ';
+  k += rio_formatInt(line + k, (int32_t)used);
+  k = rio_appendText(line, k, " of ");
+  k += rio_formatInt(line + k, (int32_t)of);
+  k = rio_appendText(line, k, ": ");
+  k += rio_formatInt(line + k, of ? (int32_t)((uint64_t)used * 100 / of) : 0);
+  k = rio_appendText(line, k, "%\n");
+  if (n + k >= cap) return n;
+  memcpy(out + n, line, (size_t)k);
+  return n + k;
+}
+
+static int rio_usageBytes(char *out, int n, int cap, const char *name, uint32_t bytes) {
+  char line[96];
+  int k = rio_appendText(line, 0, "  ");
+  k = rio_appendText(line, k, name);
+  while (k < 18) line[k++] = ' ';
+  k += rio_formatInt(line + k, (int32_t)bytes);
+  k = rio_appendText(line, k, " bytes\n");
+  if (n + k >= cap) return n;
+  memcpy(out + n, line, (size_t)k);
+  return n + k;
+}
+
+int rio_usageText(const rio_Usage *u, char *out, int cap) {
+  int n = 0;
+  if (cap < 1) return 0;
+  n = rio_usageBytes(out, n, cap, "compiler room", u->room);
+  if (u->source) n = rio_usageBytes(out, n, cap, "source in mem", u->source);
+  n = rio_usageLine(out, n, cap, "symbols", u->used.symbols, u->cap.symbols);
+  n = rio_usageLine(out, n, cap, "names", u->used.nameBytes, u->cap.nameBytes);
+  n = rio_usageLine(out, n, cap, "types", u->used.types, u->cap.types);
+  n = rio_usageLine(out, n, cap, "fields", u->used.fields, u->cap.fields);
+  n = rio_usageLine(out, n, cap, "procs", u->used.procs, u->cap.procs);
+  n = rio_usageLine(out, n, cap, "params", u->used.params, u->cap.params);
+  n = rio_usageLine(out, n, cap, "constants", u->used.consts, u->cap.consts);
+  n = rio_usageLine(out, n, cap, "slots", u->used.slots, u->cap.slots);
+  n = rio_usageLine(out, n, cap, "nesting", u->used.blocks, u->cap.blocks);
+  n = rio_usageLine(out, n, cap, "expression", u->used.exprDepth, u->cap.exprDepth);
+  n = rio_usageLine(out, n, cap, "modules", u->used.modules, u->cap.modules);
+  if (u->cap.code) n = rio_usageLine(out, n, cap, "instructions", u->used.code, u->cap.code);
+  n = rio_usageLine(out, n, cap, "string pool", u->strings, u->stringCap);
+  if (u->tables) { /* (compiled: where the memory goes, running) */
+    n = rio_usageBytes(out, n, cap, "constants", u->consts);
+    n = rio_usageBytes(out, n, cap, "data", u->data);
+    if (u->code) n = rio_usageBytes(out, n, cap, "code", u->code);
+    n = rio_usageBytes(out, n, cap, "strings, tables", u->tables);
+    n = rio_usageBytes(out, n, cap, "free", u->free);
+  }
+  out[n] = 0;
+  return n;
 }
 
 int rio_compile(rio_Vm *vm, const char *src, uint32_t len) { return rio_compileWith(vm, src, len, 0, 0, 0); }
