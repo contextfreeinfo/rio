@@ -105,12 +105,12 @@ grade := 75
 g := 0
 if grade >= 90
   g = 1
-else if grade >= 70
+case grade >= 70
   g = 2
 else
   g = 3
 end
-check(g == 2, "else if")
+check(g == 2, "case")
 
 # ---- structs & contiguous arrays
 Vec :: struct
@@ -968,6 +968,13 @@ if uhit and ua is Circle and ub is Circle
   uboth = ua.r + ub.r                 # every x is T joined by && narrows
 end
 check(uboth == 5, "narrowed by && parts of a condition")
+ucase := 0.0
+if ua is Box
+  ucase = ua.w
+case ua is Circle
+  ucase = ua.r                        # a case's condition narrows inside it too
+end
+check(ucase == 2, "narrowed in a case")
 ushapes: [3]Shape
 ushapes[1] = Circle{r = 1}
 ushapes[2] = Box{w = 1, h = 2}
@@ -1016,7 +1023,35 @@ case Float
 end
 check(uf == 2.5, "narrowed to Float")
 
-# ---- an if starting an else block is nested, not an else if (found by tests/difftest.py)
+# ---- a switch on conditions: the first true case runs, as in an if
+swc := 0
+swx := 7
+switch
+case swx > 10
+  swc = 1
+case swx > 5
+  swc = 2
+else
+  swc = 3
+end
+check(swc == 2, "switch on conditions")
+switch
+case swx < 0
+  swc = 9
+end
+check(swc == 2, "switch on conditions, none true")
+sign :: proc(n: Int) -> Int
+  if n > 0
+    return 1
+  case n < 0
+    return -1
+  else
+    return 0
+  end
+end
+check(sign(5) + sign(-5) + sign(0) == 0, "every case returns")
+
+# ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1
   nest = 10

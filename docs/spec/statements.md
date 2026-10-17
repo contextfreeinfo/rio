@@ -60,7 +60,7 @@ log(q, r, rest)
 n := 7
 if n > 10
   log("big")
-else if n > 5
+case n > 5
   log("medium")
 else
   log("small")
@@ -71,8 +71,32 @@ end
 medium
 ```
 
-The condition is a `Bool`. `else if` is on one line; an `if` on the line after `else` starts a block
-inside the `else`.
+The condition is a `Bool`. `if a` is short for `switch` and then `case a`: a switch with nothing after
+it tests each case's condition in turn and runs the first that's true, or else its `else`, so a chain of
+conditions reads the same either way:
+
+```rio
+n := 7
+switch
+case n > 10
+  log("big")
+case n > 5
+  log("medium")
+end
+```
+
+```output
+medium
+```
+
+```rio
+n := 7
+if n > 10
+  log("big")
+else if n > 5  # error: write case
+  log("medium")
+end
+```
 
 ```rio
 n := 1

@@ -65,28 +65,59 @@ static int rio_findLabel(rio_Vm *vm, const char *name, int n) {
   return -1;
 }
 
-/* ------------------------------------------------------------------ if and else */
+/* ------------------------------------------------------------------ if, case and else */
 
-/* if cond: a jump past the block when it's false, and any `is` narrowing for inside it */
-static void rio_ifStatement(rio_Vm *vm) {
+/* `if a` is short for a switch on conditions, `switch` then `case a`: the block is one (an if block,
+   whose counter is 1 until its first case), and each case is tested in turn, the first true one run */
+
+/* a condition's test: a jump past the case when it's false, and any `is` narrowing for inside it */
+static void rio_condition(rio_Vm *vm, rio_Block *b) {
   rio_Compiler *c = vm->compiler;
   rio_Expr e, cond;
-  int jump;
-  rio_Block *b;
-  rio_next(vm);
   c->isTestCount = 0;
   e = rio_parseExpr(vm);
   cond = e;
-  jump = rio_jumpIfFalse(vm, &e);
-  b = rio_pushBlock(vm, rio_Block_if);
-  b->a = (uint16_t)jump;
+  b->a = (uint16_t)rio_jumpIfFalse(vm, &e);
   rio_narrowIsTests(vm, &cond);
+}
+
+/* the branch before ends: a jump from it to the end, and its failed test lands here */
+static void rio_nextBranch(rio_Vm *vm, rio_Block *b) {
+  rio_Compiler *c = vm->compiler;
+  rio_next(vm);
+  rio_endScope(vm, b);
+  rio_endBranch(c, b);
+  b->b = (uint16_t)rio_jumpListAdd(vm, b->b, rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE));
+  rio_patchJumps(vm, b->a, rio_label(vm));
+}
+
+static void rio_ifStatement(rio_Vm *vm) {
+  rio_Block *b;
+  rio_next(vm);
+  b = rio_pushBlock(vm, rio_Block_if);
+  b->counter = 0;
+  rio_condition(vm, b);
+}
+
+/* switch with nothing after it: its cases are conditions */
+static void rio_conditionSwitch(rio_Vm *vm) {
+  rio_Block *b = rio_pushBlock(vm, rio_Block_if);
+  b->counter = 1;
+}
+
+/* case cond, in an if or a switch on conditions: tested when the cases before weren't true */
+static void rio_conditionCase(rio_Vm *vm, rio_Block *b) {
+  if (b->counter == 1) { /* (the first: nothing before it) */
+    rio_next(vm);
+    b->counter = 0;
+  } else rio_nextBranch(vm, b);
+  rio_condition(vm, b);
 }
 
 /* a switch's else: what no case matched */
 static void rio_switchElse(rio_Vm *vm, rio_Block *b);
 
-/* else, or else if on the same line (an if on the next line starts the else block) */
+/* else: what no condition before was true for */
 static void rio_elseStatement(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Block *b = rio_topBlock(vm);
@@ -94,25 +125,14 @@ static void rio_elseStatement(rio_Vm *vm) {
     rio_switchElse(vm, b);
     return;
   }
+  if (b && b->kind == rio_Block_else) rio_FAIL_AT_TOKEN(, "an if has one else, which comes last");
   if (!b || b->kind != rio_Block_if) rio_FAIL_AT_TOKEN(, "'else' without 'if'");
-  rio_next(vm);
-  rio_endScope(vm, b);
-  rio_endBranch(c, b);
-  b->b = (uint16_t)rio_jumpListAdd(vm, b->b, rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE)); /* the branch before ends here */
-  rio_patchJumps(vm, b->a, rio_label(vm));
-  if (c->tok.kind == rio_Tok_if && !c->tok.newline) {
-    rio_Expr e, cond;
-    rio_next(vm);
-    c->isTestCount = 0;
-    e = rio_parseExpr(vm);
-    cond = e;
-    b->a = (uint16_t)rio_jumpIfFalse(vm, &e);
-    rio_narrowIsTests(vm, &cond);
-  } else {
-    b->kind = rio_Block_else;
-    b->flow |= rio_Flow_complete;
-    b->a = rio_NONE;
-  }
+  if (b->counter == 1) rio_FAIL_AT_TOKEN(, "a switch's body starts with case");
+  if (c->peek.kind == rio_Tok_if && !c->peek.newline) rio_FAIL_AT_TOKEN(, "write case for another condition: if a ... case b ... else ... end");
+  rio_nextBranch(vm, b);
+  b->kind = rio_Block_else;
+  b->flow |= rio_Flow_complete;
+  b->a = rio_NONE;
 }
 
 /* ------------------------------------------------------------------ loops */
@@ -370,6 +390,10 @@ static void rio_switchStatement(rio_Vm *vm) {
   rio_Expr e;
   int type, k, s, subject, narrowable;
   rio_next(vm);
+  if (c->tok.newline || c->tok.kind == rio_Tok_eof || c->tok.kind == ';') {
+    rio_conditionSwitch(vm);
+    return;
+  }
   rio_pushBlock(vm, rio_Block_switch);
   if (c->tok.kind == rio_Tok_id && c->peek.kind == rio_Tok_colonEq) { /* the name lives in the switch */
     rio_declareVar(vm);
@@ -426,7 +450,12 @@ static void rio_caseStatement(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Block *b = rio_topBlock(vm);
   int body = rio_NONE;
-  if (!b || b->kind != rio_Block_switch) rio_FAIL_AT_TOKEN(, "'case' outside a switch");
+  if (b && b->kind == rio_Block_if) {
+    rio_conditionCase(vm, b);
+    return;
+  }
+  if (b && b->kind == rio_Block_else) rio_FAIL_AT_TOKEN(, "the else comes last");
+  if (!b || b->kind != rio_Block_switch) rio_FAIL_AT_TOKEN(, "'case' outside an if or a switch");
   if (b->b & 2) rio_FAIL_AT_TOKEN(, "the else of a switch comes last");
   rio_next(vm);
   rio_nextCase(vm, b);
@@ -672,7 +701,8 @@ void rio_statement(rio_Vm *vm) {
     rio_next(vm);
     t = c->tok.kind;
   }
-  if (top && top->kind == rio_Block_switch && !(top->b & 3) && t != rio_Tok_case && t != rio_Tok_else && t != rio_Tok_end)
+  if (top && ((top->kind == rio_Block_switch && !(top->b & 3)) || (top->kind == rio_Block_if && top->counter == 1)) &&
+      t != rio_Tok_case && t != rio_Tok_else && t != rio_Tok_end)
     rio_FAIL_AT_TOKEN(, "a switch's body starts with case");
   if (t == ';') {
     rio_next(vm);
