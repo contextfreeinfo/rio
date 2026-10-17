@@ -11,6 +11,7 @@
                            compiled with to run
    -D NAME[=value]         override a top-level constant (or define it), like gcc -D
    -L dir                  look for packages (import name) in dir: each dir/name or dir/name.rio
+   -help, -license         this, and rio's license (a release is the one program, so it carries them)
    Ctrl-C stops a running program. */
 #define _CRT_SECURE_NO_WARNINGS
 #include <signal.h>
@@ -138,9 +139,36 @@ static int rio_usage(void) {
                   "       rio -c out.c [-D NAME[=value]]... [-L dir]... file.rio\n"
                   "       rio -m [-D NAME[=value]]... [-L dir]... file.rio    memory report\n"
                   "       rio -i out.img [-D NAME[=value]]... [-L dir]... file.rio\n"
-                  "  -M size (like 256K): memory for the program\n");
+                  "  -M size (like 256K): memory for the program\n"
+                  "       rio -help | -license\n");
   return 2;
 }
+static const char rio_help[] =
+  "rio: the Rio language (https://github.com/contextfreeinfo/rio)\n"
+  "\n"
+  "  rio                     an interactive REPL\n"
+  "  rio file.rio            run top-level code, then main() if present\n"
+  "  rio -c out.c file.rio   compile to a standalone C program instead\n"
+  "  rio -m file.rio         report where the program's memory goes, instead of running it\n"
+  "  rio -i out.img file.rio compile to an image instead of running it\n"
+  "  rio file.img            run an image\n"
+  "  -j                      compile simple loops to native code first (ARM with Thumb-2 only)\n"
+  "  -M size                 the memory the program gets (default 8M, up to 1G; K, M and G\n"
+  "                          suffixes). An image needs at least the memory it was compiled with\n"
+  "  -D NAME[=value]         override a top-level constant (or define it), like gcc -D\n"
+  "  -L dir                  look for packages (import name) in dir: each dir/name or dir/name.rio\n"
+  "  -help                   this\n"
+  "  -license                rio's license\n"
+  "\n"
+  "Ctrl-C stops a running program.\n";
+static const char rio_license[] =
+  "rio\n"
+  "\n"
+  "To the extent possible under law, Thomas J. Palmer has waived all copyright and related or\n"
+  "neighboring rights to rio. This work is published from: United States.\n"
+  "\n"
+  "That's CC0 1.0 Universal, a public domain dedication:\n"
+  "https://creativecommons.org/publicdomain/zero/1.0/legalcode\n";
 
 /* the error, after the file it's in */
 static void rio_report(const char *where) {
@@ -349,6 +377,10 @@ int main(int argc, char **argv) {
   int proc, i, memReport = 0, jit = 0;
   const char *cOut = 0, *imageOut = 0, *path = 0;
   unsigned long memSize = rio_MEM_DEFAULT;
+  for (i = 1; i < argc; i++) { /* (these on their own) */
+    if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) return fputs(rio_help, stdout) < 0;
+    if (!strcmp(argv[i], "-license") || !strcmp(argv[i], "--license")) return fputs(rio_license, stdout) < 0;
+  }
   for (i = 1; i < argc; i++) /* -M first: rio_init comes before -D */
     if (!strcmp(argv[i], "-M") && i + 1 < argc) {
       memSize = rio_parseMemSize(argv[++i]);
