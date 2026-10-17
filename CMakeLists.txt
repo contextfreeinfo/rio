@@ -147,6 +147,9 @@ set_tests_properties(rio_jit_procs PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL" PAS
 # memory report
 add_test(NAME rio_memory_report COMMAND rio -m ${CMAKE_SOURCE_DIR}/tests/test.rio)
 set_tests_properties(rio_memory_report PROPERTIES PASS_REGULAR_EXPRESSION "heaviest call chain: [0-9]+ bytes")
+# a big value that doesn't fit: the report says how big, and what room there was
+add_test(NAME rio_memory_report_too_big COMMAND rio -M 256K -m ${CMAKE_SOURCE_DIR}/tests/too_big.rio)
+set_tests_properties(rio_memory_report_too_big PROPERTIES PASS_REGULAR_EXPRESSION "big value +300004 bytes[\r\n]+  room for it +[0-9]+ bytes")
 
 # the same suite compiled ahead of time to C
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/test_aot.c

@@ -1,0 +1,6 @@
+# too big to fit in 256 KB: the memory report says how big, and what room there was
+Ball :: struct
+  x, y, dx, dy: Float
+  c: Int
+end
+balls: [..15000]Ball
