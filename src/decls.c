@@ -515,9 +515,10 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
       rio_declareBuilderOver(vm, name, nameLen, type, &e);
       return;
     }
-    if (type < 0) { /* the value's type: a list's is a builder, a view of it */
+    if (type < 0) { /* the value's type: a list's is a builder, a view of it (but a new list, as from a
+                       literal, is itself) */
       type = rio_valueType(e.type);
-      if (rio_type(vm, type)->kind == rio_TypeKind_list) type = rio_builderOf(vm, rio_type(vm, type)->elem);
+      if (rio_type(vm, type)->kind == rio_TypeKind_list && !rio_isTemp(vm, &e)) type = rio_builderOf(vm, rio_type(vm, type)->elem);
       else if (rio_isBig(rio_type(vm, type)) && !rio_isTemp(vm, &e))
         rio_FAIL(, rio_type(vm, type)->kind == rio_TypeKind_array
                        ? "this copies a big array (over 16 words): write its type to copy it (x: [N]T = a), or view it with a[:]"

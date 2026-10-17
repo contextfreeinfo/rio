@@ -172,7 +172,8 @@ typedef enum {
                c: a proc value's type; ffi: argument words placed so far; fromInt and has: the enum;
                format: the builder's slots
      literal   a: the field being filled in (-1: punned, decided by its value); b: the struct type;
-               c: the struct's address */
+               c: the struct's address. op 1: an array or list literal instead (b: its type; its
+               values go in order, argCount so far) */
 typedef struct {
   uint8_t kind, prec;
   int16_t op;           /* binary, unary: the operator token */

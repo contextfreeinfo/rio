@@ -484,8 +484,8 @@ static void rio_noteCompile(rio_Vm *vm) {
   u->used.code = vm->code == c->scratchCode ? vm->codeLen : 0;
   u->room = c->room;
   u->source = c->source;
-  u->strings = c->poolUsed + (c->poolCap - c->lineTableTop);
-  u->stringCap = c->poolCap;
+  u->strings = c->poolUsed + (c->lineTableTop - c->poolCap); /* (the strings, and the line table growing down from the top) */
+  u->stringCap = c->lineTableTop;
   u->mem = vm->memSize;
 }
 

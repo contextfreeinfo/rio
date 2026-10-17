@@ -226,6 +226,54 @@ log(a.x, b.x, b.y, s.pos.y, s.hp)
 
 `v := {x = 1}` is an error: nothing says which struct it is.
 
+## Array literals
+
+`[N]T{a, b, ...}` makes an array: its values in order, and zero for the elements after them. More
+values than the array holds is an error. `[..N]T{a, b, ...}` makes a list holding those values. As
+with structs, where the type is already decided the type can be left off, so `{...}` is a struct or
+an array by where it's going: a struct's fields are always named, and an array's values never are.
+Literals nest:
+
+```rio
+Vec :: struct
+  x, y: Float
+end
+Dir :: enum
+  north, east, south, west
+end
+xs := [5]Int{1, 2, 3}
+grid := [2][2]Int{{1, 2}, {3, 4}}
+pts: [3]Vec = {{x = 1}, {y = 2}}
+steps := [Dir]Int{-16, 1, 16, -1}  # in the enum's order
+todo := [..8]Int{4, 5}
+todo.push(6)
+log(xs[2], xs[4], grid[1][0], pts[1].y, steps[.south], todo.len())
+```
+
+```output
+3 0 3 2.0 16 3
+```
+
+A literal is built each time it runs, so a local one starts over on every call, and changing it
+changes only that copy:
+
+```rio
+next :: proc() -> Int
+  counts := [2]Int{10}
+  counts[0] += 1
+  return counts[0]
+end
+log(next(), next())
+```
+
+```output
+11 11
+```
+
+```rio
+a: [2]Int = {1, 2, 3}  # error: more values than the array holds
+```
+
 ## Arithmetic on arrays and structs
 
 Arrays of numbers, and structs whose fields are all `Int`s or all `Float`s, do arithmetic element by

@@ -42,7 +42,7 @@ log(b[0], b[1], "hi"[1])
 - An **array** `[N]T` is N elements, one after another. It's a value: assigning it copies it.
 - A **slice** `[]T` views some elements of an array (2 words: where they start, how many).
 - A **list** `[..N]T` holds up to N elements, and knows how many it has (a length word, then N
-  elements). New lists are empty.
+  elements). New lists are empty, unless made from a literal.
 - A **builder** `[..]T` views a list, or any array, as a list (3 words: where the length lives,
   where the elements start, the capacity). Pushing through a builder changes the length it views.
 - `Blob[N]` is N bytes, padded to whole words; `Blob[..N]` is a list of bytes, a text builder.
