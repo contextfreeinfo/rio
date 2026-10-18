@@ -36,7 +36,8 @@ log(b[0], b[1], "hi"[1])
 | grows up to a capacity | `[..N]T` (a list) | `[..]T` (a builder) |
 | bytes | `Blob[N]`, `Blob[..N]` | `Blob`, `Blob[..]` |
 
-`N` is a positive `Int` constant. An array indexed by an enum, `[E]T`, has one element per value of
+`N` is a positive `Int` constant: a number, a constant's name, or arithmetic on those (`[W * H]T`,
+`[geo.SIZE + 1]T`), worked out while compiling. An array indexed by an enum, `[E]T`, has one element per value of
 `E` (see [enums](#enums)). Arrays nest: `[4][4]Float` is 4 rows of 4.
 
 - An **array** `[N]T` is N elements, one after another. It's a value: assigning it copies it.

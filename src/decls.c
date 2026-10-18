@@ -69,31 +69,19 @@ static int rio_parseValueType(rio_Vm *vm) {
     if (count >= 16) rio_FAIL(0, "type too deep");
     rio_next(vm);
     enumOf[count] = 0;
-    if (c->tok.kind == rio_Tok_id && (i = rio_lookup(vm, c->tok.text, c->tok.len)) >= 0 &&
-        ((c->syms[i].kind == rio_SymKind_type && rio_type(vm, c->syms[i].type)->kind == rio_TypeKind_enum) ||
-         c->syms[i].kind == rio_SymKind_module)) { /* [Enum]T, [m.Enum]T, [m.N]T */
-      while (c->syms[i].kind == rio_SymKind_module) {
-        int module = c->syms[i].value;
-        rio_next(vm);
-        if (c->tok.kind != '.') rio_FAIL(0, "'.' expected");
-        rio_next(vm);
-        if (c->tok.kind != rio_Tok_id || (i = rio_lookupExport(vm, module, c->tok.text, c->tok.len)) < 0)
-          rio_FAIL_AT_TOKEN(0, "not exported by that module");
-      }
-      if (c->syms[i].kind == rio_SymKind_type && rio_type(vm, c->syms[i].type)->kind == rio_TypeKind_enum) {
-        enumOf[count] = c->syms[i].type;
-        prefix[count++] = 0;
-        rio_next(vm);
-      } else if (c->syms[i].kind == rio_SymKind_const && c->syms[i].type == rio_TypeId_int && c->syms[i].value > 0) {
-        prefix[count++] = c->syms[i].value;
-        rio_next(vm);
-      } else rio_FAIL_AT_TOKEN(0, "an array size is a positive Int constant or an enum");
-    } else if (c->tok.kind == ']') prefix[count++] = -1;
+    if (c->tok.kind == ']') prefix[count++] = -1;
     else if (c->tok.kind == '.' && c->peek.kind == '.') {
       rio_next(vm);
       rio_next(vm);
       prefix[count++] = c->tok.kind == ']' ? -2 : -3 - rio_parsePositiveConst(vm);
-    } else prefix[count++] = rio_parsePositiveConst(vm);
+    } else { /* [N]T, [N * 2]T, [m.N + 1]T (constant Int arithmetic folds), or [Enum]T, [m.Enum]T */
+      rio_Expr e = rio_parseExpr(vm);
+      if (e.kind == rio_ExprKind_type && rio_type(vm, e.type)->kind == rio_TypeKind_enum) {
+        enumOf[count] = e.type;
+        prefix[count++] = 0;
+      } else if (e.kind == rio_ExprKind_const && e.type == rio_TypeId_int && e.value > 0) prefix[count++] = e.value;
+      else rio_FAIL(0, "an array size is a positive Int constant or an enum");
+    }
     rio_expect(vm, ']', "']' expected");
   }
   if (c->tok.kind != rio_Tok_id || (i = rio_lookup(vm, c->tok.text, c->tok.len)) < 0) rio_FAIL_AT_TOKEN(0, "type expected");

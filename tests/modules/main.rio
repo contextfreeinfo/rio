@@ -21,6 +21,8 @@ w: Vec = {x = 1, y = 1}
 check(plus(v, w).x == 4, "selective import, renamed with as")
 check(geo.add(v, w).y == 5, "qualified call")
 check(UNIT == 1 and geo.UNIT == 1, "exported constant")
+sized: [geo.UNIT * 4 + 1][UNIT + 1]Int
+check(sized.len() == 5 and sized[0].len() == 2, "an array sized by arithmetic on another module's constants")
 check(geo.ready, "the module's top-level code ran before ours")
 geo.count += 2
 check(geo.count == 3 and geo.bump() == 4, "module globals are shared")
