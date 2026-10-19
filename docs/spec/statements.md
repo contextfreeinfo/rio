@@ -195,8 +195,8 @@ A label can be used again once its loop has ended.
 ## switch
 
 `switch` picks the first `case` that lists the value, with no fallthrough. It works on `Int`s,
-enums and unions. Case values are constants (or, for a union, its types). `else` comes last, and takes
-what no case did:
+enums, unions and `String`s. Case values are constants (or, for a union, its types). `else` comes last,
+and takes what no case did:
 
 ```rio
 kind :: proc(n: Int) -> String
@@ -213,6 +213,26 @@ log(kind(3), kind(4))
 
 ```output
 zero other
+```
+
+On a `String`, cases are string constants, compared as `==` compares them:
+
+```rio
+command :: proc(s: String) -> Int
+  switch s
+  case "ls", "list"
+    return 1
+  case "home"
+    return 2
+  else
+    return 0
+  end
+end
+log(command("list"), command("home"), command("hom"))
+```
+
+```output
+1 2 0
 ```
 
 Without an `else`, a switch on an enum or union must have a case for every value (or type, `nil`

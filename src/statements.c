@@ -402,7 +402,8 @@ static void rio_switchStatement(rio_Vm *vm) {
   rio_needValue(vm, &e);
   type = rio_valueType(e.type);
   k = rio_type(vm, type)->kind;
-  if (k != rio_TypeKind_int && k != rio_TypeKind_enum && k != rio_TypeKind_union) rio_FAIL(, "switch needs an Int, an enum or a union");
+  if (k != rio_TypeKind_int && k != rio_TypeKind_enum && k != rio_TypeKind_union && type != rio_TypeId_string)
+    rio_FAIL(, "switch needs an Int, an enum, a union or a String");
   /* a union variable: cases can narrow it */
   narrowable = k == rio_TypeKind_union && e.kind == rio_ExprKind_static && !e.access && e.value < rio_SLOTS_END ? e.value / 4 : rio_NONE;
   if (k == rio_TypeKind_union) { /* its tag */
@@ -410,11 +411,13 @@ static void rio_switchStatement(rio_Vm *vm) {
     tag.type = rio_TypeId_int;
     tag.access = 0;
     subject = rio_toSlot(vm, &tag, 1);
-  } else subject = rio_toSlot(vm, &e, 1);
+  } else if (type == rio_TypeId_string) subject = rio_toSlot2(vm, &e); /* (a String: where it is, and its length) */
+  else subject = rio_toSlot(vm, &e, 1);
   c->freeSlot = c->liveSlots;
-  s = rio_allocSlots(vm, 1);
+  s = rio_allocSlots(vm, type == rio_TypeId_string ? 2 : 1);
   c->liveSlots = c->freeSlot;
   if (s != subject) rio_emit(vm, rio_Op_mov, s, subject, 0);
+  if (type == rio_TypeId_string && s != subject) rio_emit(vm, rio_Op_mov, s + 1, subject + 1, 0);
   if (c->switchCount >= 16) rio_FAIL(, "switches nested too deep");
   b = rio_topBlock(vm);
   b->counter = (uint16_t)s;
@@ -470,7 +473,7 @@ static void rio_caseStatement(rio_Vm *vm) {
       v = rio_exprOf(rio_ExprKind_const, b->limit, j);
     } else rio_coerce(vm, &v, b->limit);
     if (rio_failed(vm)) return;
-    if (v.kind != rio_ExprKind_const) rio_FAIL(, "case values are constants");
+    if (v.kind != rio_ExprKind_const && b->limit != rio_TypeId_string) rio_FAIL(, "case values are constants");
     if (rio_type(vm, b->limit)->kind == rio_TypeKind_enum || isUnion) { /* coverage: each value once */
       int j = isUnion ? v.value : rio_enumIndex(vm, b->limit, v.value);
       if (j >= 0 && j < 256) {
@@ -478,6 +481,21 @@ static void rio_caseStatement(rio_Vm *vm) {
         if (*row >> (j & 63) & 1) rio_FAIL(, "this value already has a case");
         *row |= (uint64_t)1 << (j & 63);
       }
+    }
+    if (b->limit == rio_TypeId_string) { /* a String: compared, the result in a slot of its own */
+      int d;
+      if (!(v.kind == rio_ExprKind_static && (uint32_t)v.value / 4 < vm->constCount && rio_bitGet(c->constIsString, (uint32_t)v.value / 4)))
+        rio_FAIL(, "case values are constants");
+      c->freeSlot = c->liveSlots;
+      d = rio_allocSlots(vm, 1);
+      rio_emit(vm, rio_Op_seq, d, b->counter, v.value / 4);
+      if (c->tok.kind != ',') {
+        b->condJump = (uint16_t)rio_emit(vm, rio_Op_jz, d, 0, rio_NONE);
+        break;
+      }
+      body = rio_jumpListAdd(vm, body, rio_emit(vm, rio_Op_jnz, d, 0, rio_NONE));
+      rio_next(vm);
+      continue;
     }
     valueSlot = rio_constSlot(vm, (uint32_t)v.value);
     if (c->tok.kind != ',') { /* the last value: not it, to the next case */
