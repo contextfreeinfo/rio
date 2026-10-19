@@ -145,6 +145,15 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   used = rio_layout(c, &l);
   c->pool = (uint8_t *)c + used;
   c->poolCap = c->lineTableTop = (size - (uint32_t)pad - used) & ~3u;
+  { /* the window a text read a part at a time is read into: at the top */
+    uint32_t w = vm->sourceWindow ? (vm->sourceWindow + 3) & ~3u : 2048;
+    if (w < 64) w = 64;
+    if (c->poolCap > w * 2) {
+      c->poolCap = c->lineTableTop = c->poolCap - w;
+      c->window = (char *)c->pool + c->poolCap;
+      c->windowSize = w;
+    }
+  }
   vm->constCap = l.consts;
   vm->top = vm->memSize;
   vm->constCount = 1; /* word 0 stays 0 */
@@ -269,6 +278,7 @@ void rio_compileAll(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   while (!rio_failed(vm)) {
     if (c->tok.kind != rio_Tok_eof) {
+      c->keepUsed = 0; /* (names kept through the statement before: done with) */
       rio_statement(vm);
       continue;
     }
@@ -614,7 +624,8 @@ static void rio_finish(rio_Vm *vm) {
 
 /* ------------------------------------------------------------------ compiling */
 
-int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const rio_Limits *lim) {
+static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_SourceFn read, void *readData, void *scratch, uint32_t size,
+                           const rio_Limits *lim) {
   int inMem = !scratch;
   rio_Compiler *c;
   /* a source in mem itself: up in what stays zero until the program runs, with the compiler's room ending
@@ -625,9 +636,11 @@ int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, ui
   if (rio_startCompiler(vm, scratch, size, lim, 0, below)) return -1;
   c = vm->compiler;
   rio_setupCompiler(vm, 1);
-  c->src = c->cursor = c->lineStart = src;
-  c->srcEnd = src + len;
-  c->line = 1;
+  c->text.src = src;
+  c->text.len = len;
+  c->text.read = read;
+  c->text.readData = readData;
+  rio_readFrom(vm, 0, 0, 1);
   if (!rio_failed(vm)) {
     if (c->autoSourceCount) rio_openAutoImports(vm); /* (each compiled before the main source starts) */
     else {
@@ -713,7 +726,22 @@ int rio_usageText(const rio_Usage *u, char *out, int cap) {
   return n;
 }
 
+int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const rio_Limits *lim) {
+  return rio_compileText(vm, src, len, 0, 0, scratch, size, lim);
+}
+
 int rio_compile(rio_Vm *vm, const char *src, uint32_t len) { return rio_compileWith(vm, src, len, 0, 0, 0); }
+
+int rio_compileStream(rio_Vm *vm, rio_SourceFn read, void *userData) {
+  if (!read) {
+    rio_setError(vm, rio_ErrorKind_compile, 0, 0, 0, "no source to read");
+    vm->ready = 0;
+    return -1;
+  }
+  return rio_compileText(vm, 0, 0, read, userData, 0, 0, 0);
+}
+
+void rio_setSourceWindow(rio_Vm *vm, uint32_t bytes) { vm->sourceWindow = bytes; }
 
 int rio_compileScratch(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size) {
   if (!scratch) {

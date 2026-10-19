@@ -51,8 +51,8 @@ x := 1  // one  # error: comments start with #
 
 ## Names
 
-A name is a letter or `_`, then letters, digits and `_`: `x`, `hp2`, `_tmp`, `fromHex`. Case
-matters. By convention, types are `PascalCase` and everything else, enum values included, is
+A name is a letter or `_`, then letters, digits and `_`: `x`, `hp2`, `_tmp`, `fromHex`, up to 255
+characters long. Case matters. By convention, types are `PascalCase` and everything else, enum values included, is
 `camelCase`; constants are often `UPPER_CASE`.
 
 Keywords can't be names:

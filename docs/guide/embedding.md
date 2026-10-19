@@ -48,7 +48,11 @@ mode, say); without a source, the module is made from the registrations.
 
 `rio_setLoader(vm, fn, ud)` supplies module sources: it gets a path like `"ui/button"` or an include
 like `"parts/hud.rio"`, flagged as local or package, and returns the source text. The core never
-touches a filesystem: a console can read an SD card, and tests can use a table of strings.
+touches a filesystem: a console can read an SD card, and tests can use a table of strings. Instead of
+the text, a loader can leave `src` `NULL` and set `read` and `readData` in its `rio_Source`, and then
+the compiler reads it a part at a time, as `rio_compileStream` does (see
+[memory](memory.md#the-compiler-borrows-the-programs-memory)). `readData` has to stay valid until
+compiling ends.
 
 ## Errors
 

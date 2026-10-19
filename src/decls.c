@@ -13,9 +13,11 @@ static int rio_parseValueType(rio_Vm *vm);
    position. */
 static int rio_paramNames(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  const char *p = c->tok.text, *e = c->srcEnd;
+  const char *p, *e;
   int count = 0;
   if (c->tok.kind != rio_Tok_id) return 0;
+  p = rio_lookAhead(vm);
+  e = c->srcEnd;
   for (;;) {
     if (p >= e || !rio_isAlpha(*p)) return 0;
     while (p < e && (rio_isAlpha(*p) || rio_isDigit(*p))) p++;
@@ -122,7 +124,7 @@ int rio_parseNames(rio_Vm *vm, const char **names, int *lens) {
   int n = 0;
   for (;;) {
     if (c->tok.kind != rio_Tok_id || n >= 16) rio_FAIL(0, "name expected");
-    names[n] = c->tok.text;
+    names[n] = rio_keep(vm, c->tok.text, c->tok.len);
     lens[n++] = c->tok.len;
     rio_next(vm);
     if (c->tok.kind != ',') break;
@@ -257,7 +259,7 @@ void rio_methodDef(rio_Vm *vm, int receiver) {
   rio_next(vm);
   rio_next(vm);
   if (c->tok.kind != rio_Tok_id) rio_FAIL(, "method name expected");
-  name = c->tok.text;
+  name = rio_keep(vm, c->tok.text, c->tok.len);
   nameLen = c->tok.len;
   line = c->tok.line;
   col = c->tok.col;
@@ -348,7 +350,7 @@ void rio_unionDef(rio_Vm *vm, const char *name, int nameLen) {
   u = rio_type(vm, index);
   u->firstField = (uint16_t)c->fieldCount;
   while (c->tok.kind != rio_Tok_end && !rio_failed(vm)) {
-    const char *typeName = c->tok.text;
+    const char *typeName = rio_keep(vm, c->tok.text, c->tok.len);
     int typeNameLen = c->tok.len, t;
     if (c->tok.kind == rio_Tok_eof) rio_FAIL(, rio_msgMissingEnd);
     if (c->tok.kind == rio_Tok_nil) {
@@ -399,7 +401,7 @@ void rio_enumDef(rio_Vm *vm, const char *name, int nameLen) {
   et = rio_type(vm, index);
   et->firstField = (uint16_t)c->fieldCount;
   while (c->tok.kind != rio_Tok_end && !rio_failed(vm)) {
-    const char *valueName = c->tok.text;
+    const char *valueName = rio_keep(vm, c->tok.text, c->tok.len);
     int valueNameLen = c->tok.len;
     rio_Field *f;
     if (c->tok.kind == rio_Tok_eof) rio_FAIL(, rio_msgMissingEnd);
@@ -556,7 +558,7 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
 /* name := value, name: T = value, name: T, and name := &place */
 void rio_declareVar(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  const char *name = c->tok.text;
+  const char *name = rio_keep(vm, c->tok.text, c->tok.len);
   int nameLen = c->tok.len, type = -1, has = 0;
   rio_Expr e;
   rio_next(vm);
@@ -603,13 +605,13 @@ void rio_destructure(rio_Vm *vm) {
   while (c->tok.kind != '}' && !rio_failed(vm)) {
     if (c->tok.kind != rio_Tok_id) rio_FAIL(, "field name expected");
     if (n >= 32) rio_FAIL(, "too many names");
-    fields[n] = names[n] = c->tok.text;
+    fields[n] = names[n] = rio_keep(vm, c->tok.text, c->tok.len);
     fieldLens[n] = nameLens[n] = c->tok.len;
     rio_next(vm);
     if (rio_tokIs(vm, "as", 2)) { /* 'as' only means something here */
       rio_next(vm);
       if (c->tok.kind != rio_Tok_id) rio_FAIL(, "name expected after 'as'");
-      names[n] = c->tok.text;
+      names[n] = rio_keep(vm, c->tok.text, c->tok.len);
       nameLens[n] = c->tok.len;
       rio_next(vm);
     }

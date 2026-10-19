@@ -19,7 +19,7 @@ static int rio_findFile(rio_Vm *vm, int isPackage, int isInclude, const char *ke
 /* Starts reading another file (a module to import, or a part to include), after saving where to resume:
    at cursor (whose line starts at lineStart). key: the path for the loader. Returns 0, or 1 if the
    loader doesn't have it and quietIfMissing (the caller has another way). */
-static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int keyLen, const char *cursor, const char *lineStart,
+static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int keyLen, uint32_t at, uint32_t lineAt,
                         int line, int quietIfMissing) {
   rio_Compiler *c = vm->compiler;
   rio_Source s;
@@ -62,10 +62,9 @@ static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int
   m->file = (uint16_t)rio_addName(vm, text, n + 1);
   m->codeStart = (uint16_t)vm->codeLen;
   resume = &c->resume[c->resumeCount++];
-  resume->src = c->src;
-  resume->srcEnd = c->srcEnd;
-  resume->lineStart = lineStart;
-  resume->cursor = cursor;
+  resume->text = c->text;
+  resume->at = at;
+  resume->lineAt = lineAt;
   resume->line = line;
   resume->module = c->curModule;
   resume->file = c->curFile;
@@ -73,9 +72,11 @@ static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int
   resume->autoImport = 0;
   c->curFile = c->moduleCount++;
   if (!isInclude) c->curModule = c->curFile; /* a module gets its own names; an included part shares them */
-  c->src = c->cursor = c->lineStart = s.src;
-  c->srcEnd = s.src + s.len;
-  c->line = 1;
+  c->text.src = s.src;
+  c->text.len = s.len;
+  c->text.read = s.src ? 0 : s.read;
+  c->text.readData = s.readData;
+  rio_readFrom(vm, 0, 0, 1);
   c->prevLine = 0;
   rio_lex(vm, &c->peek);
   rio_next(vm);
@@ -94,7 +95,7 @@ void rio_openAutoImports(rio_Vm *vm) {
     int n = (int)strlen(name);
     if (n >= (int)sizeof key) rio_FAIL(, "auto-import name too long");
     memcpy(key, name, (size_t)n + 1);
-    if (rio_openFile(vm, 1, 0, key, n, c->src, c->src, 1, 0)) return;
+    if (rio_openFile(vm, 1, 0, key, n, 0, 0, 1, 0)) return;
     c->resume[c->resumeCount - 1].autoImport = 1 + c->autoSources[k];
   }
 }
@@ -109,11 +110,8 @@ void rio_endFile(rio_Vm *vm) {
   resume = &c->resume[--c->resumeCount];
   c->modules[c->curFile].codeEnd = (uint16_t)vm->codeLen;
   c->modules[c->curFile].state = rio_ModuleState_done;
-  c->src = resume->src;
-  c->srcEnd = resume->srcEnd;
-  c->lineStart = resume->lineStart;
-  c->cursor = resume->cursor;
-  c->line = resume->line;
+  c->text = resume->text;
+  rio_readFrom(vm, resume->at, resume->lineAt, resume->line);
   c->curModule = resume->module;
   c->curFile = resume->file;
   rio_lex(vm, &c->peek);
@@ -137,7 +135,7 @@ static void rio_parseAs(rio_Vm *vm, const char **name, int *len) {
   if (!rio_atAs(vm)) return;
   rio_next(vm);
   if (c->tok.kind != rio_Tok_id) rio_FAIL(, "name expected after 'as'");
-  *name = c->tok.text;
+  *name = rio_keep(vm, c->tok.text, c->tok.len);
   *len = c->tok.len;
   rio_next(vm);
 }
@@ -147,7 +145,8 @@ static void rio_parseAs(rio_Vm *vm, const char **name, int *len) {
 void rio_importStatement(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Module *from = &c->modules[c->curFile];
-  const char *start = c->tok.text, *startLineStart = c->tok.text - (c->tok.col - 1), *segments[8];
+  uint32_t start = c->tok.at, startLineAt = c->tok.at - (uint32_t)(c->tok.col - 1);
+  const char *segments[8];
   char key[256];
   int startLine = c->tok.line, local, isPackage, keyLen = 0, n = 0, segmentLens[8], m, k;
   rio_next(vm);
@@ -162,7 +161,7 @@ void rio_importStatement(rio_Vm *vm) {
   for (;;) { /* the path: a.b.c */
     if (c->tok.kind != rio_Tok_id) rio_FAIL(, "module name expected");
     if (n >= 8) rio_FAIL(, "module path too long");
-    segments[n] = c->tok.text;
+    segments[n] = rio_keep(vm, c->tok.text, c->tok.len);
     segmentLens[n] = c->tok.len;
     if (local || !n) { /* a package import names just its root */
       if (keyLen + c->tok.len + 2 > (int)sizeof key) rio_FAIL(, "module path too long");
@@ -182,7 +181,7 @@ void rio_importStatement(rio_Vm *vm) {
     /* (a package the loader doesn't have may be a host module, made from the host procs registered
        under its name) */
     int hostProcs = !local && rio_hasHostProcs(vm, key, keyLen);
-    if (!rio_openFile(vm, isPackage, 0, key, keyLen, start, startLineStart, startLine, hostProcs) || rio_failed(vm)) return;
+    if (!rio_openFile(vm, isPackage, 0, key, keyLen, start, startLineAt, startLine, hostProcs) || rio_failed(vm)) return;
     if ((m = rio_hostModule(vm, key, keyLen)) < 0) return;
   }
   if (c->modules[m].state != rio_ModuleState_done) rio_FAIL(, "import cycle");
@@ -206,7 +205,7 @@ void rio_importStatement(rio_Vm *vm) {
       rio_Symbol y;
       if (c->tok.kind != rio_Tok_id) rio_FAIL(, "name expected");
       if ((i = rio_lookupExport(vm, m, c->tok.text, c->tok.len)) < 0) rio_FAIL_AT_TOKEN(, "not exported by that module");
-      as = c->tok.text;
+      as = rio_keep(vm, c->tok.text, c->tok.len);
       asLen = c->tok.len;
       rio_next(vm);
       if (rio_atAs(vm)) {
@@ -244,7 +243,6 @@ void rio_includeStatement(rio_Vm *vm) {
   rio_Token *t = &c->tok;
   char key[256];
   int keyLen, i;
-  const char *resumeAt;
   rio_next(vm);
   if (c->curProc >= 0 || c->blockCount) rio_FAIL(, "includes must be at the top level");
   if (t->kind != rio_Tok_string) rio_FAIL(, "include needs a file path in quotes");
@@ -264,8 +262,7 @@ void rio_includeStatement(rio_Vm *vm) {
     rio_next(vm);
     rio_FAIL(, "expected end of statement");
   }
-  resumeAt = c->peek.kind == rio_Tok_string ? c->peek.text - 1 : c->peek.text; /* the token after the path */
-  rio_openFile(vm, from->isPackage, 1, key, keyLen, resumeAt, resumeAt - (c->peek.col - 1), c->peek.line, 0);
+  rio_openFile(vm, from->isPackage, 1, key, keyLen, c->peek.at, c->peek.at - (uint32_t)(c->peek.col - 1), c->peek.line, 0); /* (back at the token after the path) */
 }
 
 #endif

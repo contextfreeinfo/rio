@@ -34,6 +34,28 @@ globals and arrays, still zero, so the compiler keeps its state below the source
 layout takes it all back once compiling is done. Compiling then needs the source, the compiler's tables,
 the constants and the strings to fit in `mem` together.
 
+**Or the source can stay in its file.** `rio_compileStream(vm, read, ud)` reads the source a part at a
+time, through a window the compiler keeps at the top of its own memory (2 KB by default;
+`rio_setSourceWindow` sets another size before compiling). `read(ud, buf, at, n)` fills `buf` with up to
+`n` bytes from byte `at` and returns how many it read, `0` at the end, or `-1` if it can't. It's
+positional, so the compiler can go back a little, which it needs to look ahead now and then. String
+literals go into the string pool as they're read, so only the window and the strings take room, not the
+whole source. A loader can hand back its sources the same way (see [embedding](embedding.md#modules)).
+
+```c
+static int readFile(void *ud, char *buf, uint32_t at, uint32_t n) {
+  FILE *f = ud;
+  if (fseek(f, at, SEEK_SET)) return -1;
+  return (int)fread(buf, 1, n, f);
+}
+
+rio_compileStream(&vm, readFile, file);
+```
+
+Half the window bounds what has to be read at once: a name or number (at most 255 characters
+anyway), or one line of a type method's declaration. Something longer is an error that names
+`rio_setSourceWindow`.
+
 ## How near the limits
 
 With overlapping like this, what fits isn't obvious, so Rio reports it. `rio_trackUsage(vm, &usage)`

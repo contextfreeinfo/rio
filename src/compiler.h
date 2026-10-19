@@ -42,7 +42,8 @@ typedef struct {
   int width;   /* in the source, quotes included */
   int len;     /* of text */
   int op;      /* rio_Tok_opAssign: the operator ('+', rio_Tok_shiftLeft, ...) */
-  const char *text;
+  uint32_t at; /* where it starts in its file (a byte offset) */
+  const char *text; /* (a string's: its bytes, escapes done, in the pool, at val.u) */
   rio_Val val; /* a number's value */
   uint8_t newline; /* the first token on its line */
 } rio_Token;
@@ -91,10 +92,19 @@ typedef struct {
   uint8_t isPackage, state, isInclude;
 } rio_Module;
 
+/* a file's text, to read: all of it, in memory (src), or a part at a time (read, into the window) */
+typedef struct {
+  const char *src;
+  uint32_t len;
+  rio_SourceFn read;
+  void *readData;
+} rio_Text;
+
 /* Where to resume the file that imported or included another: for an import, its import statement runs
    again (and just binds names); for an include, compiling continues after it. */
 typedef struct {
-  const char *src, *srcEnd, *lineStart, *cursor;
+  rio_Text text;
+  uint32_t at, lineAt; /* where in it, and where that line starts (byte offsets) */
   int line, module, file, isInclude;
   int autoImport; /* 1 + which of vm->autoImports this file is (from the loader's source), else 0 */
 } rio_Resume;
@@ -218,8 +228,8 @@ typedef struct {
                               subject's slot and type */
   uint16_t caseSymCount, caseNameBytes, caseLiveSlots; /* switch: the scope each case starts from */
   uint16_t switchIndex; /* switch: its row in switchCases */
-  uint16_t labelLen;    /* a loop's label (outer: for ...), in the source text (0: none) */
-  const char *label;
+  uint16_t labelLen;    /* a loop's label (outer: for ...): its length (0: none) */
+  char label[24];
 } rio_Block;
 
 /* ------------------------------------------------------------------ the compiler */
@@ -227,10 +237,24 @@ typedef struct {
 typedef struct rio_Compiler {
   int failed;         /* a compile error happened: the rest of the source reads as its end */
   int lexingNegative; /* lexing a -D value that had a minus sign */
-  /* reading: the current file, the token and the one after it, and where the token before ended */
-  const char *src, *cursor, *srcEnd, *lineStart;
+  /* reading: the current file's text (src to srcEnd, which starts at srcAt in the file), where the
+     next token's read from, and where its line starts; the token and the one after it, and where the
+     token before ended */
+  rio_Text text;
+  const char *src, *cursor, *srcEnd;
+  uint32_t srcAt, lineAt;
+  char *window;          /* where a text read a part at a time is read into */
+  uint32_t windowSize;
+  int textDone;          /* the text's end has been read */
+  char tokenCopy[2][256]; /* the tokens read (tok, and peek after it), when the window moves on */
   int line, prevLine, prevCol, prevWidth;
   rio_Token tok, peek;
+  /* names kept through a statement (rio_keep: copies, since the text they're in moves on), and for a
+     value standing for its field ({a.x}): the last name read, and how many tokens read weren't a path's */
+  char keep[1024];
+  uint32_t keepUsed;
+  char lastName[48];
+  int lastNameLen, pathBreaks;
   /* the pc -> line table: (pc, line) entries growing down from lineTableTop at the top of the pool */
   uint32_t lineTableTop, lineCount, lastLine, lastLinePc, lineOverride;
   const char *failMessage; /* the last compile error, to tell "unfinished" from "wrong" */
@@ -342,6 +366,15 @@ void rio_failAt(rio_Vm *vm, int line, int col, int width, const char *message);
 
 void rio_lex(rio_Vm *vm, rio_Token *t);
 void rio_next(rio_Vm *vm);
+/* reading text from at (where its line starts at lineAt, and it's line line) */
+void rio_readFrom(rio_Vm *vm, uint32_t at, uint32_t lineAt, int line);
+/* the text from the current token's start, with enough after it to look ahead by hand (half the
+   window, if it's read a part at a time): where it is (end: c->srcEnd) */
+const char *rio_lookAhead(rio_Vm *vm);
+/* where p, in the text being read, is in its file */
+static inline uint32_t rio_at(const rio_Compiler *c, const char *p) { return c->srcAt + (uint32_t)(p - c->src); }
+/* a name from a token, kept through the rest of the statement (the token's own text moves on) */
+const char *rio_keep(rio_Vm *vm, const char *s, int n);
 void rio_expect(rio_Vm *vm, int kind, const char *message);
 int rio_peekAfterNext(rio_Vm *vm);
 int rio_escapeChar(int c);
@@ -420,6 +453,7 @@ rio_Expr rio_popValue(rio_Vm *vm);
 void rio_pushResult(rio_Vm *vm, rio_Expr e, int tempStart);
 rio_Expr rio_symbolExpr(rio_Vm *vm, int sym);
 rio_Expr rio_stringConst(rio_Vm *vm, const char *s, int n);
+rio_Expr rio_stringInPool(rio_Vm *vm, uint32_t at, int n);
 rio_Expr rio_defineValue(rio_Vm *vm, int define, int type);
 rio_Expr rio_parseExpr(rio_Vm *vm);
 int32_t rio_parsePositiveConst(rio_Vm *vm);

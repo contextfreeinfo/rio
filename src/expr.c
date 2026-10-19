@@ -160,6 +160,22 @@ rio_Expr rio_stringConst(rio_Vm *vm, const char *s, int n) {
   return e;
 }
 
+/* a string constant whose bytes the lexer put in the pool already (a string literal's) */
+rio_Expr rio_stringInPool(rio_Vm *vm, uint32_t at, int n) {
+  rio_Compiler *c = vm->compiler;
+  rio_Val *R = (rio_Val *)vm->mem;
+  uint32_t k = vm->constCount;
+  rio_Expr e;
+  if (k + 2 > vm->constCap) rio_FAIL(rio_voidExpr(), "too many constants");
+  R[k].u = 0x80000000u | at;
+  R[k + 1].u = (uint32_t)n;
+  rio_bitSet(c->constIsString, k);
+  vm->constCount += 2;
+  e = rio_exprOf(rio_ExprKind_static, rio_TypeId_string, (int32_t)k * 4);
+  e.access = rio_Access_readOnly;
+  return e;
+}
+
 /* the constant for -D define `define` as type `type` (type < 0: inferred from the text) */
 rio_Expr rio_defineValue(rio_Vm *vm, int define, int type) {
   const char *name = vm->defines[define].name, *v = vm->defines[define].value ? vm->defines[define].value : "";
@@ -456,26 +472,15 @@ static void rio_literalField(rio_Vm *vm, rio_PendingOp *lit) {
     return;
   }
   lit->a = -1; /* named after the path's last name, once the value is read */
-  lit->punAt = (int32_t)(c->tok.text - c->src);
+  lit->punAt = c->pathBreaks; /* (none more by then: just names and dots) */
+  c->lastNameLen = 0;
 }
 
 /* a value standing for its field must be a name or a dotted path; its last name is the field */
 static void rio_punField(rio_Vm *vm, rio_PendingOp *lit) {
   rio_Compiler *c = vm->compiler;
-  const char *p = c->src + lit->punAt, *e = c->tok.text, *name = 0;
-  int nameLen = 0;
-  while (e > p && rio_isSpace(e[-1])) e--;
-  while (p < e) {
-    if (rio_isAlpha(*p)) {
-      name = p;
-      while (p < e && (rio_isAlpha(*p) || rio_isDigit(*p))) p++;
-      nameLen = (int)(p - name);
-    } else if (*p == '.' || rio_isSpace(*p)) p++;
-    else if (*p == '#') {
-      while (p < e && *p != '\n') p++;
-    } else rio_FAIL(, "only a name or a.b path can stand for a field; write field = value");
-  }
-  rio_setField(vm, lit, name, nameLen);
+  if (c->pathBreaks != lit->punAt || c->lastNameLen <= 0) rio_FAIL(, "only a name or a.b path can stand for a field; write field = value");
+  rio_setField(vm, lit, c->lastName, c->lastNameLen);
 }
 
 /* the zeroing for fields a literal left out (an array: the elements after its values; a list: its
@@ -755,7 +760,7 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
   int t = c->tok.kind, tempStart = (int)c->freeSlot;
   rio_Expr e;
   if (t == rio_Tok_int || t == rio_Tok_float) e = rio_exprOf(rio_ExprKind_const, t == rio_Tok_int ? rio_TypeId_int : rio_TypeId_float, c->tok.val.i);
-  else if (t == rio_Tok_string) e = rio_stringConst(vm, c->tok.text, c->tok.len);
+  else if (t == rio_Tok_string) e = rio_stringInPool(vm, c->tok.val.u, c->tok.len);
   else if (t == rio_Tok_id) e = rio_identifier(vm);
   else if (t == '(') {
     rio_pushOp(vm, rio_Pending_paren, 0, 0);

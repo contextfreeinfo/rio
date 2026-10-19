@@ -149,8 +149,9 @@ int rio_replEval(rio_Vm *vm, const char *src, uint32_t len) {
   vm->errorKind = rio_ErrorKind_none;
   vm->errorText[0] = 0;
   rio_replMark(vm, &mark);
-  c->src = c->cursor = c->lineStart = src;
-  c->srcEnd = src + len;
+  c->text.src = src;
+  c->text.len = len;
+  rio_readFrom(vm, 0, 0, c->line);
   c->line = 1;
   c->prevLine = c->prevCol = c->prevWidth = 0;
   c->lastLine = c->lastLinePc = 0;

@@ -123,13 +123,18 @@ int rio_define(rio_Vm *vm, const char *name, const char *value);
    `include "parts/a.rio"` inside shapes/shapes.rio for file "shapes/parts/a.rio".
    Return 0 and fill *out (src must stay valid until compiling ends; isDir: a module path named a
    directory and its entry file was used; name: optional text for error messages), 1 if not found,
-   2 if found in more than one place. */
+   2 if found in more than one place. A source can be read a part at a time instead (src NULL): read,
+   with readData, as for rio_compileStream; whatever readData points to must stay valid till then. */
 enum { rio_LoadKind_package = 1, rio_LoadKind_file = 2 };
+/* reads up to n bytes of a source, from byte at, into buf: how many (0: its end), or -1 if it can't */
+typedef int (*rio_SourceFn)(void *userData, char *buf, uint32_t at, uint32_t n);
 typedef struct {
   const char *src;
   uint32_t len;
   int isDir;
   const char *name;
+  rio_SourceFn read;
+  void *readData;
 } rio_Source;
 typedef int (*rio_LoadFn)(void *userData, const char *path, int kind, rio_Source *out);
 void rio_setLoader(rio_Vm *vm, rio_LoadFn fn, void *userData);
@@ -176,6 +181,12 @@ int rio_usageText(const rio_Usage *u, char *out, int cap);
 int rio_compileScratch(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size);
 /* either of the above with explicit limits: scratch NULL overlays mem; lim NULL scales */
 int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size, const rio_Limits *lim);
+/* as rio_compile, the main source read a part at a time (from a file, say), through read: it needn't be
+   in memory whole, nor any source a loader gives so (rio_Source). The compiler reads through a window
+   of its own, rio_setSourceWindow's bytes (2048 by default; set before compiling): a name, a number
+   or one line of a type method's declaration has to fit in half of it */
+int rio_compileStream(rio_Vm *vm, rio_SourceFn read, void *userData);
+void rio_setSourceWindow(rio_Vm *vm, uint32_t bytes);
 #endif
 
 /* ------------------------------------------------------------------ running */
@@ -276,6 +287,7 @@ struct rio_Vm {
   const char *errorFile;
   rio_LoadFn loader;
   void *loaderData;
+  uint32_t sourceWindow;   /* rio_setSourceWindow's bytes (0: the default) */
   uint32_t modulesAt, moduleCount; /* code ranges of modules, for naming files in errors */
   rio_Instr *code;         /* where the code is now: in mem, or the host's buffer */
   uint32_t codeCap, codeLen;

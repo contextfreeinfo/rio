@@ -95,6 +95,20 @@ static int rio_resolve(const char *dir, const char *path, int isFile, char *out,
   return 0;
 }
 
+/* -window: sources read a part at a time, through a window of this many bytes (as a host reading
+   files would), to try that way of compiling; the texts are in memory all the same */
+static int rio_window;
+typedef struct { const char *src; uint32_t len; } rio_MemText;
+static rio_MemText rio_texts[64];
+static int rio_textCount;
+static int rio_readText(void *userData, char *buf, uint32_t at, uint32_t n) {
+  const rio_MemText *t = (const rio_MemText *)userData;
+  if (at >= t->len) return 0;
+  if (n > t->len - at) n = t->len - at;
+  memcpy(buf, t->src + at, n);
+  return (int)n;
+}
+
 static int rio_loadFile(void *userData, const char *path, int kind, rio_Source *out) {
   char found[1024], attempt[1024], *name;
   int isDir = 0, count = 0, i, dir, isFile = kind & rio_LoadKind_file;
@@ -113,6 +127,13 @@ static int rio_loadFile(void *userData, const char *path, int kind, rio_Source *
   if ((len = rio_readFile(found)) < 0) return 1;
   out->len = (uint32_t)len;
   out->isDir = isDir;
+  if (rio_window && rio_textCount < 64) { /* (read a part at a time) */
+    rio_texts[rio_textCount].src = out->src;
+    rio_texts[rio_textCount].len = out->len;
+    out->read = rio_readText;
+    out->readData = &rio_texts[rio_textCount++];
+    out->src = 0;
+  }
   { /* keep the file name for error messages */
     size_t size = strlen(found) + 1;
     if (size > sizeof rio_fileNames - rio_fileNamesLen) return 1;
@@ -157,6 +178,8 @@ static const char rio_help[] =
   "                          suffixes). An image needs at least the memory it was compiled with\n"
   "  -D NAME[=value]         override a top-level constant (or define it), like gcc -D\n"
   "  -L dir                  look for packages (import name) in dir: each dir/name or dir/name.rio\n"
+  "  -window n               compile reading the sources n bytes at a time, as a host reading files\n"
+  "                          may (to try that way: they're in memory all the same)\n"
   "  -help                   this\n"
   "  -license                rio's license\n"
   "\n"
@@ -405,6 +428,7 @@ int main(int argc, char **argv) {
     else if (!strcmp(arg, "-j")) jit = 1;
     else if (!strcmp(arg, "-M") && i + 1 < argc) i++;
     else if (!strcmp(arg, "-m")) memReport = 1;
+    else if (!strcmp(arg, "-window") && i + 1 < argc) rio_window = atoi(argv[++i]);
     else if (!strncmp(arg, "-L", 2)) {
       const char *dir = arg[2] ? arg + 2 : i + 1 < argc ? argv[++i] : 0;
       size_t len;
@@ -426,6 +450,7 @@ int main(int argc, char **argv) {
   rio_addFfi(&rio_vm, "clock", ">f", rio_ffiClock);
   rio_addFfi(&rio_vm, "putc", "i", rio_ffiPutc);
   rio_setLoader(&rio_vm, rio_loadFile, 0);
+  if (rio_window) rio_setSourceWindow(&rio_vm, (uint32_t)rio_window);
   signal(SIGINT, rio_onInterrupt);
   if (!path) return cOut || memReport || imageOut ? rio_usage() : rio_repl();
   rio_setBaseDir(path);
@@ -456,8 +481,13 @@ int main(int argc, char **argv) {
       rio_usageText(&u, text, sizeof text);
       printf("compiled in place (%s):\n%s\n", failed ? rio_error(&probe) : "fits", text);
     }
-    failed = cOut || memReport ? rio_compileScratch(&rio_vm, rio_src, (uint32_t)n, rio_scratch, sizeof rio_scratch)
-                                   : rio_compile(&rio_vm, rio_src, (uint32_t)n);
+    if (cOut || memReport) failed = rio_compileScratch(&rio_vm, rio_src, (uint32_t)n, rio_scratch, sizeof rio_scratch);
+    else if (rio_window) { /* (read a part at a time) */
+      static rio_MemText main;
+      main.src = rio_src;
+      main.len = (uint32_t)n;
+      failed = rio_compileStream(&rio_vm, rio_readText, &main);
+    } else failed = rio_compile(&rio_vm, rio_src, (uint32_t)n);
     if (failed) {
       rio_report(path);
       return 1;

@@ -165,21 +165,28 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
 /* parses an expression from text, as if it were at the given line of the current file */
 static rio_Expr rio_parseExprFrom(rio_Vm *vm, const char *text, int len, int line) {
   rio_Compiler *c = vm->compiler;
-  const char *src = c->src, *cursor = c->cursor, *srcEnd = c->srcEnd, *lineStart = c->lineStart;
+  const char *src = c->src, *cursor = c->cursor, *srcEnd = c->srcEnd;
+  uint32_t srcAt = c->srcAt, lineAt = c->lineAt;
   int savedLine = c->line, prevLine = c->prevLine, prevCol = c->prevCol, prevWidth = c->prevWidth;
+  rio_Text saved = c->text;
   rio_Token tok = c->tok, peek = c->peek;
+  int textDone = c->textDone;
   rio_Expr e;
-  c->src = c->cursor = c->lineStart = text;
-  c->srcEnd = text + len;
-  c->line = line;
+  c->text.src = text; /* (in memory, whatever the file's read as) */
+  c->text.len = (uint32_t)len;
+  c->text.read = 0;
+  rio_readFrom(vm, 0, 0, line);
   rio_lex(vm, &c->peek);
   rio_next(vm);
   e = rio_parseExpr(vm);
   if (!rio_failed(vm) && c->tok.kind != rio_Tok_eof) rio_fail(vm, "internal error: the check didn't read all of its call");
+  c->text = saved; /* (its own text read: what it was reading, as it was) */
+  c->textDone = textDone;
   c->src = src;
   c->cursor = cursor;
   c->srcEnd = srcEnd;
-  c->lineStart = lineStart;
+  c->srcAt = srcAt;
+  c->lineAt = lineAt;
   c->line = savedLine;
   c->prevLine = prevLine;
   c->prevCol = prevCol;
@@ -300,9 +307,11 @@ void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int l
 /* does the current token start `(type).name ::`? (a method on a type without a name: @host only) */
 int rio_atTypeMethod(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  const char *p = c->tok.text, *e = c->srcEnd;
+  const char *p, *e;
   int depth = 0;
   if (c->tok.kind != '(') return 0;
+  p = rio_lookAhead(vm);
+  e = c->srcEnd;
   for (; p < e; p++) { /* (types have no strings or comments) */
     if (*p == '(' || *p == '[') depth++;
     else if (*p == ')' || *p == ']') {
@@ -330,7 +339,7 @@ void rio_typeMethodDecl(rio_Vm *vm) {
   rio_expect(vm, ')', "')' expected");
   rio_expect(vm, '.', "'.' expected");
   if (c->tok.kind != rio_Tok_id) rio_FAIL(, "method name expected");
-  name = c->tok.text;
+  name = rio_keep(vm, c->tok.text, c->tok.len);
   nameLen = c->tok.len;
   line = c->tok.line;
   col = c->tok.col;

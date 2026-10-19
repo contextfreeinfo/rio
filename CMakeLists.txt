@@ -56,6 +56,8 @@ target_link_libraries(rio PRIVATE riocore)
 enable_testing()
 add_test(NAME rio_tests COMMAND rio ${CMAKE_SOURCE_DIR}/tests/test.rio)
 set_tests_properties(rio_tests PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL")
+add_test(NAME rio_tests_streamed COMMAND rio -window 128 ${CMAKE_SOURCE_DIR}/tests/test.rio) # (read through a tiny window)
+set_tests_properties(rio_tests_streamed PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL")
 
 # -D overrides of top-level constants
 add_test(NAME rio_defines_default COMMAND rio ${CMAKE_SOURCE_DIR}/tests/defines.rio)
@@ -84,6 +86,8 @@ set_tests_properties(rio_repl PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ rep
 # modules: real files through the CLI loader, and edge cases through the API
 add_test(NAME rio_modules COMMAND rio -L ${CMAKE_SOURCE_DIR}/tests/modules/lib ${CMAKE_SOURCE_DIR}/tests/modules/main.rio)
 set_tests_properties(rio_modules PROPERTIES PASS_REGULAR_EXPRESSION "all module tests passed" FAIL_REGULAR_EXPRESSION "FAIL")
+add_test(NAME rio_modules_streamed COMMAND rio -window 128 -L ${CMAKE_SOURCE_DIR}/tests/modules/lib ${CMAKE_SOURCE_DIR}/tests/modules/main.rio)
+set_tests_properties(rio_modules_streamed PROPERTIES PASS_REGULAR_EXPRESSION "all module tests passed" FAIL_REGULAR_EXPRESSION "FAIL")
 add_executable(rio_modules_test tests/modules.c)
 target_link_libraries(rio_modules_test PRIVATE riocore)
 add_test(NAME rio_modules_api COMMAND rio_modules_test)
@@ -95,6 +99,11 @@ if(Python3_FOUND)
   add_test(NAME rio_docs COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/docs.py $<TARGET_FILE:rio>
     ${CMAKE_SOURCE_DIR}/docs ${CMAKE_SOURCE_DIR}/README.md)
   set_tests_properties(rio_docs PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ doc examples passed")
+  # and again, each read through a tiny window (as a host reading files a part at a time would), so the
+  # text moves under the lexer all the time
+  add_test(NAME rio_docs_streamed COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tests/docs.py $<TARGET_FILE:rio>
+    ${CMAKE_SOURCE_DIR}/docs ${CMAKE_SOURCE_DIR}/README.md -- -window 128)
+  set_tests_properties(rio_docs_streamed PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ doc examples passed")
 endif()
 
 # @host: host procs in modules, auto-imports, declarations checked; core.rio declares every builtin

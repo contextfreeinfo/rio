@@ -1,6 +1,7 @@
 /* lexer.c - turning source text into tokens, and reporting compile errors. The rules for tokens:
    docs/spec/lexical.md. */
 #include "compiler.h"
+#include <stddef.h>
 #ifndef rio_NO_COMPILER
 
 const char rio_msgMissingEnd[] = "missing 'end'";
@@ -152,6 +153,7 @@ static void rio_lexNumberAt(rio_Vm *vm, rio_Token *t, const char *p, const char 
                    : base == 2 && rio_isDigit(*bad) ? "binary digits are 0 and 1"
                                                      : "bad number");
   }
+  if ((p >= e && c->text.read && !c->textDone) || p - start >= (ptrdiff_t)sizeof c->tokenCopy[0]) rio_TOKEN_FAIL("number too long");
   if (tooBig && !isFloat) rio_TOKEN_FAIL("number too big for Int (32 bits)");
   /* 2147483648 fits only after a minus sign (in a -D value, or right after a '-' token) */
   if (base == 10 && !isFloat && v > 0x7FFFFFFFu &&
@@ -164,41 +166,149 @@ static void rio_lexNumberAt(rio_Vm *vm, rio_Token *t, const char *p, const char 
   c->cursor = p;
 }
 
+/* ------------------------------------------------------------------ reading a part at a time */
+
+/* whether p is in the window (where a text read a part at a time is) */
+static int rio_inWindow(const rio_Compiler *c, const char *p) {
+  return c->text.read && p && p >= c->window && p <= c->window + c->windowSize;
+}
+
+/* bytes a token needs to have ahead of it: half the window (a name, a number, an operator) */
+static uint32_t rio_aheadBytes(const rio_Compiler *c) { return c->windowSize / 2 < 256 ? c->windowSize / 2 : 256; }
+
+/* More of a text read a part at a time, into its window: what's from keep on stays (and the tokens read,
+   from where they start: they may still be wanted), moved down to the window's start, and more is read
+   after it. How far it moved (each pointer into the window moves down by that), or -1 if no more can
+   come (its end, or no room for it) */
+static ptrdiff_t rio_refill(rio_Vm *vm, const char *keep) {
+  rio_Compiler *c = vm->compiler;
+  char *w = c->window;
+  ptrdiff_t shift;
+  uint32_t have;
+  int n;
+  if (!c->text.read || c->textDone || c->failed) return -1;
+  if (rio_inWindow(c, c->tok.text) && c->tok.text < keep) keep = c->tok.text;
+  if (rio_inWindow(c, c->peek.text) && c->peek.text < keep) keep = c->peek.text;
+  shift = keep - w;
+  have = (uint32_t)(c->srcEnd - keep);
+  if (shift) {
+    memmove(w, keep, have);
+    c->srcAt += (uint32_t)shift;
+    c->srcEnd -= shift;
+    if (rio_inWindow(c, c->cursor)) c->cursor -= shift;
+    if (rio_inWindow(c, c->tok.text)) c->tok.text -= shift;
+    if (rio_inWindow(c, c->peek.text)) c->peek.text -= shift;
+  }
+  if (have >= c->windowSize) { /* (all of it wanted still: no room) */
+    rio_failAt(vm, c->line, 0, 0, "source window too small (rio_setSourceWindow)");
+    return -1;
+  }
+  n = c->text.read(c->text.readData, w + have, c->srcAt + have, c->windowSize - have);
+  if (n < 0) {
+    rio_failAt(vm, c->line, 0, 0, "can't read the source");
+    c->textDone = 1;
+    return -1;
+  }
+  if (n == 0) c->textDone = 1;
+  c->srcEnd = w + have + n;
+  return shift;
+}
+
+/* a token's text, out of the window (which moves on), into a copy of its own: one the other token
+   isn't using */
+static void rio_rescue(rio_Compiler *c, rio_Token *t, const rio_Token *other) {
+  char *to = other->text == c->tokenCopy[0] ? c->tokenCopy[1] : c->tokenCopy[0];
+  if (!rio_inWindow(c, t->text) || t->kind == rio_Tok_string) return;
+  memcpy(to, t->text, (size_t)(t->len < (int)sizeof c->tokenCopy[0] ? t->len : (int)sizeof c->tokenCopy[0]));
+  t->text = to;
+}
+
+/* more after p, moving p, s, start and e with the text: whether there's any */
+static int rio_more(rio_Vm *vm, const char **p, const char **s, const char **start, const char **e, const char *keep) {
+  ptrdiff_t d = rio_refill(vm, keep);
+  if (d < 0) return 0;
+  *p -= d;
+  *s -= d;
+  *start -= d;
+  *e = vm->compiler->srcEnd;
+  return *p < *e;
+}
+
+/* whether more of the text could come (it's read a part at a time, and its end hasn't been) */
+static int rio_moreToCome(const rio_Compiler *c) { return c->text.read && !c->textDone; }
+
+/* the window, read again from at, the cursor at cursorAt (at or after at) */
+static void rio_reread(rio_Vm *vm, uint32_t at, uint32_t cursorAt) {
+  rio_Compiler *c = vm->compiler;
+  int n;
+  rio_rescue(c, &c->tok, &c->peek); /* (the tokens read: copied out first, the window's text changing) */
+  rio_rescue(c, &c->peek, &c->tok);
+  n = c->text.read(c->text.readData, c->window, at, c->windowSize);
+  if (n < 0) {
+    rio_failAt(vm, c->line, 0, 0, "can't read the source");
+    n = 0;
+  }
+  c->src = c->window;
+  c->srcAt = at;
+  c->srcEnd = c->window + n;
+  c->textDone = 0;
+  c->cursor = c->src + (cursorAt - at < (uint32_t)n ? cursorAt - at : (uint32_t)n);
+}
+
+const char *rio_lookAhead(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  uint32_t at = c->tok.at;
+  if (!c->text.read) return c->src + (at - c->srcAt);
+  if (at >= c->srcAt && at <= rio_at(c, c->srcEnd) && (c->textDone || (uint32_t)(rio_at(c, c->srcEnd) - at) >= rio_aheadBytes(c)))
+    return c->src + (at - c->srcAt); /* (there, and enough after it) */
+  rio_reread(vm, at, rio_at(c, c->cursor)); /* (else read again from there: the cursor's near after it) */
+  return c->src;
+}
+
 /* the token at the cursor, into t */
 void rio_lex(rio_Vm *vm, rio_Token *t) {
   rio_Compiler *c = vm->compiler;
-  const char *p = c->cursor, *e = c->srcEnd, *s, *start;
+  const char *p = c->cursor, *e = c->srcEnd, *s = p, *start = p;
   int newline = 0, i;
+#define rio_MORE() (p < e || rio_more(vm, &p, &s, &start, &e, p))
   if (c->failed) {
     t->kind = rio_Tok_eof;
     t->len = 0;
     t->newline = 0;
     return;
   }
+  if (c->text.read) { /* (the tokens read: copied out, so the window can move on) */
+    rio_rescue(c, &c->tok, &c->peek);
+    if (t != &c->peek) rio_rescue(c, &c->peek, &c->tok);
+    t->text = ""; /* (what t was: done with, the token before, rio_next's to keep) */
+  }
   for (;;) { /* space and comments */
-    while (p < e && rio_isSpace(*p)) {
+    while (rio_MORE() && rio_isSpace(*p)) {
       if (*p == '\n') {
         newline = 1;
         c->line++;
-        c->lineStart = p + 1;
+        c->lineAt = rio_at(c, p + 1);
       }
       p++;
     }
     if (p < e && *p == '#') { /* comments run to the end of the line */
-      while (p < e && *p != '\n') p++;
+      while (rio_MORE() && *p != '\n') p++;
       continue;
     }
+    if (rio_moreToCome(c) && (uint32_t)(e - p) < rio_aheadBytes(c)) rio_more(vm, &p, &s, &start, &e, p); /* (a token's worth ahead) */
     if (p + 1 < e && p[0] == '/' && (p[1] == '/' || p[1] == '*')) { /* a habit from other languages */
-      rio_failAt(vm, c->line, (int)(p - c->lineStart) + 1, 2, "comments start with #");
+      rio_failAt(vm, c->line, (int)(rio_at(c, p) - c->lineAt) + 1, 2, "comments start with #");
       t->kind = rio_Tok_eof;
       t->len = 0;
       return;
     }
+    if (p < e && (*p == '#' || rio_isSpace(*p))) continue; /* (more of them, read now) */
     break;
   }
   t->newline = (uint8_t)newline;
   t->line = c->line;
-  t->col = (int)(p - c->lineStart) + 1;
+  t->col = (int)(rio_at(c, p) - c->lineAt) + 1;
+  t->at = rio_at(c, p);
   t->text = s = start = p;
   t->op = 0;
   t->val.i = 0;
@@ -210,33 +320,50 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
   }
   if (rio_isAlpha(*p)) { /* a name or keyword */
     while (p < e && (rio_isAlpha(*p) || rio_isDigit(*p))) p++;
+    if ((p >= e && rio_moreToCome(c)) || p - s >= (ptrdiff_t)sizeof c->tokenCopy[0]) rio_TOKEN_FAIL("name too long (255 characters at most)");
     t->kind = rio_Tok_id;
     for (i = 0; i < (int)(sizeof rio_keywords / sizeof rio_keywords[0]); i++)
       if ((int)strlen(rio_keywords[i]) == p - s && !memcmp(rio_keywords[i], s, p - s)) t->kind = rio_Tok_proc + i;
   } else if (rio_isDigit(*p)) {
     rio_lexNumberAt(vm, t, p, start);
     return;
-  } else if (*p == '"') { /* the text is between the quotes, escapes and all */
-    for (s = ++p; p < e && *p != '"'; p++) {
-      if (*p == '\\' && ++p < e && !rio_isEscape(*p)) {
-        rio_failAt(vm, c->line, (int)(p - 1 - c->lineStart) + 1, 2, rio_msgUnknownEscape);
+  } else if (*p == '"') { /* the bytes between the quotes, escapes done, straight into the pool (as they're read) */
+    uint8_t *out = c->pool + c->poolUsed;
+    uint32_t room = c->poolCap - c->poolUsed, n = 0;
+    for (p++; rio_MORE() && *p != '"'; p++) {
+      int ch = (uint8_t)*p;
+      if (ch == '\\') {
+        p++;
+        if (!rio_MORE()) break;
+        if (!rio_isEscape(*p)) {
+          rio_failAt(vm, c->line, (int)(rio_at(c, p - 1) - c->lineAt) + 1, 2, rio_msgUnknownEscape);
+          t->kind = rio_Tok_eof;
+          t->len = 0;
+          return;
+        }
+        ch = rio_escapeChar(*p);
+      } else if (ch == '\n') {
+        c->line++;
+        c->lineAt = rio_at(c, p + 1);
+      }
+      if (n >= room) {
+        rio_failAt(vm, t->line, t->col, 1, "out of compiler memory");
         t->kind = rio_Tok_eof;
         t->len = 0;
         return;
       }
-      if (p < e && *p == '\n') {
-        c->line++;
-        c->lineStart = p + 1;
-      }
+      out[n++] = (uint8_t)ch;
     }
     if (p >= e) {
       c->cursor = e;
       rio_LEX_FAIL(rio_msgUnterminatedString);
     }
     t->kind = rio_Tok_string;
-    t->text = s;
-    t->len = (int)(p - s);
-    t->width = (int)(p + 1 - start);
+    t->text = (const char *)out;
+    t->len = (int)n;
+    t->val.u = c->poolUsed;
+    c->poolUsed += n;
+    t->width = (int)(rio_at(c, p + 1) - t->at);
     c->cursor = p + 1;
     return;
   } else if (*p == '\'') { /* a character: its code, as an Int */
@@ -275,11 +402,16 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
   }
   t->len = t->width = (int)(p - s);
   c->cursor = p;
+#undef rio_MORE
 }
 
-/* move on a token */
+/* move on a token (noting, for a value standing for its field, the last name read: rio_punField) */
 void rio_next(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
+  if (c->tok.kind == rio_Tok_id) {
+    c->lastNameLen = c->tok.len < (int)sizeof c->lastName ? c->tok.len : -1;
+    if (c->lastNameLen > 0) memcpy(c->lastName, c->tok.text, (size_t)c->lastNameLen);
+  } else if (c->tok.kind != '.') c->pathBreaks++;
   c->prevLine = c->tok.line;
   c->prevCol = c->tok.col;
   c->prevWidth = c->tok.width;
@@ -295,28 +427,70 @@ void rio_expect(rio_Vm *vm, int kind, const char *message) {
 /* the token after the lookahead, without consuming anything */
 int rio_peekAfterNext(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  const char *cursor = c->cursor, *lineStart = c->lineStart;
+  uint32_t cursorAt = rio_at(c, c->cursor), lineAt = c->lineAt, poolUsed = c->poolUsed;
   int line = c->line;
   rio_Token t;
   rio_lex(vm, &t);
-  c->cursor = cursor;
-  c->lineStart = lineStart;
+  if (cursorAt >= c->srcAt) c->cursor = c->src + (cursorAt - c->srcAt); /* (where it was: the text may have moved in its window) */
+  else rio_reread(vm, cursorAt, cursorAt); /* (or moved on past it: read again from there) */
+  c->lineAt = lineAt;
   c->line = line;
+  c->poolUsed = poolUsed; /* (a string's bytes: lexed again, when it's read) */
   return t.kind;
+}
+
+/* reading the current text from at */
+void rio_readFrom(rio_Vm *vm, uint32_t at, uint32_t lineAt, int line) {
+  rio_Compiler *c = vm->compiler;
+  c->lineAt = lineAt;
+  c->line = line;
+  if (c->text.read) { /* a part at a time: the window, from there */
+    if (!c->window) {
+      rio_failAt(vm, 0, 0, 0, "no room for a window to read the source through");
+      return;
+    }
+    if (rio_inWindow(c, c->tok.text)) c->tok.text = ""; /* (what's in the window now is the text before: done with) */
+    if (rio_inWindow(c, c->peek.text)) c->peek.text = "";
+    c->src = c->cursor = c->srcEnd = c->window;
+    c->srcAt = at;
+    c->textDone = 0;
+    rio_refill(vm, c->window);
+    return;
+  }
+  c->src = c->text.src;
+  c->srcEnd = c->src + c->text.len;
+  c->srcAt = 0;
+  c->cursor = c->src + (at < c->text.len ? at : c->text.len);
+}
+
+const char *rio_keep(rio_Vm *vm, const char *s, int n) {
+  rio_Compiler *c = vm->compiler;
+  char *at = c->keep + c->keepUsed;
+  if (n < 0 || n > (int)(sizeof c->keep - c->keepUsed)) {
+    rio_fail(vm, "too many names in one statement");
+    return c->keep;
+  }
+  memcpy(at, s, (size_t)n);
+  c->keepUsed += (uint32_t)n;
+  return at;
 }
 
 /* Lexes text (a -D value, after any minus sign) as a number, into t. Returns whether all of it is one
    number; when it isn't, any error that made is undone, and nothing else changes. */
 int rio_lexNumber(rio_Vm *vm, const char *text, rio_Token *t) {
   rio_Compiler *c = vm->compiler;
-  const char *cursor = c->cursor, *srcEnd = c->srcEnd, *lineStart = c->lineStart, *failMessage = c->failMessage;
+  const char *src = c->src, *cursor = c->cursor, *srcEnd = c->srcEnd, *failMessage = c->failMessage;
+  uint32_t srcAt = c->srcAt, lineAt = c->lineAt;
   const char *errorFile = vm->errorFile;
   int line = c->line, negative = *text == '-', errorKind = vm->errorKind, ok;
   rio_Token tok = c->tok, peek = c->peek;
+  rio_SourceFn read = c->text.read;
   char errorText[rio_ERROR_BUF_SIZE];
   if (c->failed) return 0;
+  c->text.read = 0; /* (text in memory, whatever the file's read as) */
   memcpy(errorText, vm->errorText, sizeof errorText);
-  c->cursor = text + negative;
+  c->src = c->cursor = text + negative;
+  c->srcAt = 0;
   c->srcEnd = text + strlen(text);
   c->lexingNegative = negative;
   rio_lex(vm, t);
@@ -331,10 +505,13 @@ int rio_lexNumber(rio_Vm *vm, const char *text, rio_Token *t) {
     c->failMessage = failMessage;
     vm->errorFile = errorFile;
   }
+  c->text.read = read;
+  c->src = src;
   c->cursor = cursor;
   c->srcEnd = srcEnd;
+  c->srcAt = srcAt;
   c->line = line;
-  c->lineStart = lineStart;
+  c->lineAt = lineAt;
   if (ok && negative) {
     if (t->kind == rio_Tok_int) t->val.u = 0u - t->val.u;
     else t->val.f = -t->val.f;

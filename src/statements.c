@@ -19,7 +19,6 @@ rio_Block *rio_pushBlock(rio_Vm *vm, int kind) {
   b->liveSlots = (uint16_t)c->liveSlots;
   b->a = b->b = b->breaks = b->continues = b->condJump = rio_NONE;
   b->labelLen = 0;
-  b->label = 0;
   return b;
 }
 
@@ -203,7 +202,7 @@ static void rio_forRange(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name
 /* for x in ..., for x, i in ...: a range, or the elements of a sequence (or an enum's values) */
 static void rio_forIn(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  const char *name = c->tok.text, *indexName = 0;
+  const char *name = rio_keep(vm, c->tok.text, c->tok.len), *indexName = 0;
   int nameLen = c->tok.len, indexLen = 0, counter, limit, index = rio_NONE;
   rio_Block *b;
   rio_Expr e;
@@ -211,7 +210,7 @@ static void rio_forIn(rio_Vm *vm) {
   if (c->tok.kind == ',') {
     rio_next(vm);
     if (c->tok.kind != rio_Tok_id) rio_FAIL_AT_TOKEN(, "index name expected");
-    indexName = c->tok.text;
+    indexName = rio_keep(vm, c->tok.text, c->tok.len);
     indexLen = c->tok.len;
     rio_next(vm);
   }
@@ -631,7 +630,7 @@ static void rio_expressionStatement(rio_Vm *vm) {
    alias). A top-level constant a -D define names takes the define's value. */
 static void rio_constantDecl(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  const char *name = c->tok.text;
+  const char *name = rio_keep(vm, c->tok.text, c->tok.len);
   int nameLen = c->tok.len, line = c->tok.line, col = c->tok.col, k;
   rio_Expr e;
   rio_next(vm);
@@ -713,7 +712,8 @@ void rio_statement(rio_Vm *vm) {
   c->freeSlot = c->liveSlots;
   if (t == rio_Tok_id && c->peek.kind == ':' && !c->peek.newline && rio_peekAfterNext(vm) == rio_Tok_for) { /* outer: for ... */
     if (rio_findLabel(vm, c->tok.text, c->tok.len) >= 0) rio_FAIL_AT_TOKEN(, "a loop with this label is already open here");
-    label = c->tok.text;
+    if (c->tok.len > (int)sizeof c->blocks[0].label) rio_FAIL_AT_TOKEN(, "label too long");
+    label = rio_keep(vm, c->tok.text, c->tok.len);
     labelLen = c->tok.len;
     rio_next(vm);
     rio_next(vm);
@@ -732,7 +732,7 @@ void rio_statement(rio_Vm *vm) {
     rio_statementAfterLabel(vm, t);
     if (label && c->blockCount > blocksBefore) {
       rio_Block *loop = rio_topBlock(vm);
-      loop->label = label;
+      memcpy(loop->label, label, (size_t)labelLen); /* (its own copy: it's needed through the loop) */
       loop->labelLen = (uint16_t)labelLen;
     }
   }
