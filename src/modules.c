@@ -70,6 +70,7 @@ static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int
   resume->module = c->curModule;
   resume->file = c->curFile;
   resume->isInclude = isInclude;
+  resume->autoImport = 0;
   c->curFile = c->moduleCount++;
   if (!isInclude) c->curModule = c->curFile; /* a module gets its own names; an included part shares them */
   c->src = c->cursor = c->lineStart = s.src;
@@ -82,10 +83,27 @@ static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int
   return 0;
 }
 
+/* the auto-imports the loader has sources for, each opened at the start of the file before it (the last
+   opened is compiled first, then the one before, then the main source): bound everywhere as they end */
+void rio_openAutoImports(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  char key[256];
+  int k;
+  for (k = 0; k < c->autoSourceCount && !rio_failed(vm); k++) {
+    const char *name = vm->autoImports[c->autoSources[k]];
+    int n = (int)strlen(name);
+    if (n >= (int)sizeof key) rio_FAIL(, "auto-import name too long");
+    memcpy(key, name, (size_t)n + 1);
+    if (rio_openFile(vm, 1, 0, key, n, c->src, c->src, 1, 0)) return;
+    c->resume[c->resumeCount - 1].autoImport = 1 + c->autoSources[k];
+  }
+}
+
 /* the end of a file: back to whoever imported or included it */
 void rio_endFile(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Resume *resume;
+  int ended = c->curFile;
   if (!c->modules[c->curFile].isInclude) rio_checkHostModule(vm, c->curFile); /* (it declares its host procs) */
   if (rio_failed(vm)) return;
   resume = &c->resume[--c->resumeCount];
@@ -100,7 +118,13 @@ void rio_endFile(rio_Vm *vm) {
   c->curFile = resume->file;
   rio_lex(vm, &c->peek);
   rio_next(vm);
-  if (resume->isInclude) c->tok.newline = 1; /* carry on after the include statement */
+  if (resume->isInclude || resume->autoImport) c->tok.newline = 1; /* carry on after the include statement, or start */
+  if (resume->autoImport) { /* an auto-import: visible everywhere, as the host's modules are */
+    const char *name = vm->autoImports[resume->autoImport - 1];
+    rio_addSymbol(vm, name, (int)strlen(name), rio_SymKind_module, 0, ended);
+    if (rio_failed(vm)) return;
+    c->syms[c->symCount - 1].module = 0;
+  }
   c->lastLabel = vm->codeLen;
 }
 

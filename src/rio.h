@@ -77,8 +77,9 @@ void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData);
    module is made from the registrations, with nothing to parse. */
 int rio_addFfi(rio_Vm *vm, const char *name, const char *sig, rio_FfiFn fn);
 /* makes a module of host procs (see rio_addFfi) visible everywhere without an import, as `name.proc`.
-   It's always made from the registrations, never from the loader's source: to check a source for it,
-   compile `import name` in a vm with the same procs registered but no auto-import */
+   If the loader has a source for it (a package, `name`), rio_compile compiles that first, so it can
+   hold types and constants too (an enum may stand for an Int in its host procs), and a REPL's
+   rio_replBegin compiles it before any input; otherwise it's made from the registrations */
 int rio_autoImport(rio_Vm *vm, const char *module);
 
 /* ------------------------------------------------------------------ images */

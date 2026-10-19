@@ -161,8 +161,9 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   return 0;
 }
 
-/* the built-in types and names, the host's ffi functions, and the -D defines */
-void rio_setupCompiler(rio_Vm *vm) {
+/* the built-in types and names, the host's ffi functions, and the -D defines. sources: auto-imports may
+   come from the loader's sources (rio_openAutoImports), else they're made from the host procs */
+void rio_setupCompiler(rio_Vm *vm, int sources) {
   static const uint8_t kinds[] = {rio_TypeKind_void, rio_TypeKind_int, rio_TypeKind_float, rio_TypeKind_byte,
                                   rio_TypeKind_slice, rio_TypeKind_slice, rio_TypeKind_bool};
   static const uint8_t sizes[] = {0, 4, 4, 1, 8, 8, 4};
@@ -216,9 +217,17 @@ void rio_setupCompiler(rio_Vm *vm) {
     }
     if (!strchr(f->name, '.')) rio_addSymbol(vm, f->name, (int)strlen(f->name), rio_SymKind_ffi, 0, i); /* (pc.cls: in module pc) */
   }
+  c->autoSourceCount = 0;
   for (i = 0; i < vm->autoImportCount; i++) { /* host modules visible everywhere, as if imported */
     const char *name = vm->autoImports[i];
-    int n = (int)strlen(name), m = rio_hostModule(vm, name, n);
+    int n = (int)strlen(name), m;
+    rio_Source s;
+    memset(&s, 0, sizeof s);
+    if (sources && vm->loader && !vm->loader(vm->loaderData, name, rio_LoadKind_package, &s)) { /* (compiled first, from its source) */
+      c->autoSources[c->autoSourceCount++] = i;
+      continue;
+    }
+    m = rio_hostModule(vm, name, n);
     if (rio_failed(vm)) return;
     if (m < 0) {
       char text[rio_ERROR_BUF_SIZE];
@@ -615,14 +624,17 @@ int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, ui
     below = 16; /* (no room at all: an error, below) */
   if (rio_startCompiler(vm, scratch, size, lim, 0, below)) return -1;
   c = vm->compiler;
-  rio_setupCompiler(vm);
+  rio_setupCompiler(vm, 1);
   c->src = c->cursor = c->lineStart = src;
   c->srcEnd = src + len;
   c->line = 1;
   if (!rio_failed(vm)) {
-    rio_lex(vm, &c->peek);
-    rio_next(vm);
-    rio_compileAll(vm);
+    if (c->autoSourceCount) rio_openAutoImports(vm); /* (each compiled before the main source starts) */
+    else {
+      rio_lex(vm, &c->peek);
+      rio_next(vm);
+    }
+    if (!rio_failed(vm)) rio_compileAll(vm);
   }
   if (!rio_failed(vm)) rio_emit(vm, rio_Op_halt, 0, 0, 0);
   if (!rio_failed(vm)) rio_finish(vm);

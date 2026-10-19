@@ -6,7 +6,7 @@
      ([..]Int).name* :: @host proc() -> Int         ... on any type
      Name* :: @host struct                          a builtin type
 
-   A host proc's declared types must be exactly its sig's. In a module, `name` is the host proc registered
+   A host proc's declared types must be exactly its sig's (an enum may stand for an Int). In a module, `name` is the host proc registered
    as module.name (a module's key, with / as .), else the global one of that name. A module with host
    procs registered under its name must declare every one of them.
 
@@ -17,7 +17,8 @@
 
    Host modules: a package import of a name the loader doesn't have, but that host procs are registered
    under (pc.cls, pc.pset), is made from those registrations: its procs, all exported. rio_autoImport
-   makes such a module visible everywhere, without an import. */
+   makes a module visible everywhere, without an import: from the loader's source if it has one
+   (compiled first: rio_openAutoImports), else from the registrations. */
 #include "compiler.h"
 #ifndef rio_NO_COMPILER
 
@@ -121,13 +122,20 @@ static const char *rio_typeName(int type) {
   }
 }
 
-/* name :: @host proc(...) (procType, as written), for host proc i: the types must be its sig's */
+/* a declared type for a host proc's sig type: the same, or an enum where the sig has an Int (i), which
+   it is underneath */
+static int rio_hostTypeOk(rio_Vm *vm, int declared, int sig) {
+  return declared == sig || (sig == rio_TypeId_int && rio_type(vm, declared)->kind == rio_TypeKind_enum);
+}
+
+/* name :: @host proc(...) (procType, as written), for host proc i: the types must be its sig's (an enum
+   may stand for an Int), and calls then take the declared ones */
 static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i, int procType, int exporting) {
   rio_Compiler *c = vm->compiler;
   rio_FfiDef *def = &c->ffi[i];
   rio_Type *ty = rio_type(vm, procType);
-  int same = ty->fieldCount == def->paramCount && ty->elem == def->resultType, j;
-  for (j = 0; same && j < def->paramCount; j++) same = rio_field(vm, ty->firstField + j)->type == c->params[def->firstParam + j].type;
+  int same = ty->fieldCount == def->paramCount && rio_hostTypeOk(vm, ty->elem, def->resultType), j;
+  for (j = 0; same && j < def->paramCount; j++) same = rio_hostTypeOk(vm, rio_field(vm, ty->firstField + j)->type, c->params[def->firstParam + j].type);
   if (!same) { /* say what the host has */
     char text[rio_ERROR_BUF_SIZE];
     int len = rio_appendText(text, 0, "doesn't match the host's ");
@@ -145,6 +153,8 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
     text[len] = 0;
     rio_FAIL(, text);
   }
+  for (j = 0; j < def->paramCount; j++) c->params[def->firstParam + j].type = rio_field(vm, ty->firstField + j)->type; /* (calls: as declared) */
+  def->resultType = (uint16_t)ty->elem;
   vm->ffi[i].declared = 1;
   c->exporting = exporting;
   rio_addSymbol(vm, name, nameLen, rio_SymKind_ffi, 0, i);

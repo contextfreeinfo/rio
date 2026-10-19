@@ -96,6 +96,7 @@ typedef struct {
 typedef struct {
   const char *src, *srcEnd, *lineStart, *cursor;
   int line, module, file, isInclude;
+  int autoImport; /* 1 + which of vm->autoImports this file is (from the loader's source), else 0 */
 } rio_Resume;
 
 /* A proc while compiling. Frames: its slots are [frameStart, frameEnd). shared: the frame lives in the
@@ -237,6 +238,7 @@ typedef struct rio_Compiler {
      included part shares its module's) */
   rio_Module *modules;
   int moduleCount, curModule, curFile, resumeCount, exporting;
+  int autoSources[rio_MAX_AUTO_IMPORTS], autoSourceCount; /* auto-imports the loader has sources for */
   rio_Resume resume[rio_MAX_IMPORT_DEPTH];
   /* slots: liveSlots hold variables, temporaries start at freeSlot; slotHigh is the most used */
   uint32_t freeSlot, liveSlots, slotHigh;
@@ -490,7 +492,8 @@ void rio_checkHostModule(rio_Vm *vm, int module);
 /* ------------------------------------------------------------------ compile.c and repl.c */
 
 int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *lim, int repl, uint32_t below);
-void rio_setupCompiler(rio_Vm *vm);
+void rio_setupCompiler(rio_Vm *vm, int sources);
+void rio_openAutoImports(rio_Vm *vm);
 void rio_compileAll(rio_Vm *vm);
 void rio_fillRuntimeProc(rio_Vm *vm, rio_Proc *out, int proc);
 int rio_replLookup(rio_Vm *vm, const char *name, int kind);

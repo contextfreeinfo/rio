@@ -39,9 +39,10 @@ int *score = rio_findGlobal(&vm, "score"); // direct access to globals (score* :
 global names, so programs `import pc` and call `pc.cls(0)`. If the loader has a source for `pc`, that
 source is the module, checked against the registrations (see [declaring host
 procs](../spec/host.md#declaring-host-procs)). Otherwise the module is made from the registrations,
-with nothing to parse. `rio_autoImport(vm, "pc")` makes `pc` visible everywhere without an import; an
-auto-imported module is always made from the registrations (so it's ready in a REPL too), and a test
-checks a source for it by compiling `import pc` in a vm without the auto-import.
+with nothing to parse. `rio_autoImport(vm, "pc")` makes `pc` visible everywhere without an import.
+When the loader has a source for an auto-imported module, it's compiled before the program (in a REPL,
+before the first input), so the module can hold types and constants for its procs (an enum for a
+mode, say); without a source, the module is made from the registrations.
 
 ## Modules
 

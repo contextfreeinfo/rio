@@ -69,9 +69,18 @@ clock :: @host proc() -> Int  # error: doesn't match the host's clock: proc() ->
 ```
 
 - **Host procs:** `name :: @host proc(...) -> R`, a proc type, as for proc values: its parameter and
-  result types must be exactly the host's. In a module, `name` is the host proc of the module's name
-  (`cls` in `pc.rio` is `pc.cls`), else a global one. When the host has a source for a module of host
-  procs, that source is the module, and it must declare every one of the module's host procs.
+  result types must be exactly the host's, except that an enum may stand for an `Int`, which it is
+  underneath; calls then take the declared types. In a module, `name` is the host proc of the module's
+  name (`cls` in `pc.rio` is `pc.cls`), else a global one. When the host has a source for a module of
+  host procs, that source is the module (auto-imported ones too), and it must declare every one of
+  the module's host procs. So a module can give its host procs types of its own:
+
+  ```rio fragment
+  Pointer* :: enum            # in pc.rio
+    game, ui, none
+  end
+  pointer* :: @host proc(mode: Pointer)   # the host's pc.pointer takes an Int
+  ```
 - **Builtins:** declared the same way, and checked as calls with those types:
   `sqrt* :: @host proc(x: Float) -> Float`. [`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio) declares them all.
 - **Builtin types:** `Int* :: @host struct`.

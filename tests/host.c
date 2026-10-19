@@ -22,7 +22,10 @@ static const char *files[][2] = {
   {"hpriv", "add :: @host proc(a, b: Int) -> Int\ncls* :: @host proc(color: Int)\n"},
   {"hnest", "f :: proc()\n  add :: @host proc(a, b: Int) -> Int\nend\n"},
   {"user", "import pc\ntwiceSum* :: proc(x: Int) -> Int\n  return pc.add(x, x)\nend\n"},
-  {"mathy", "sqrt* :: @host proc(x: Float) -> Float\nInt* :: @host struct\nhalf* :: proc(x: Int) -> Int\n  return x / 2\nend\n"},
+  {"hsrc", "Color* :: enum\n  black, red\nend\nTWO* :: 2\nadd* :: @host proc(a, b: Int) -> Int\ncls* :: @host proc(color: Color)\n"},
+  {"hsbad", "add* :: @host proc(a, b: Int) -> Int\ncls* :: @host proc(color: Float)\n"},
+  {"user2", "double* :: proc(x: Int) -> Int\n  return hsrc.add(x, hsrc.TWO) + x - hsrc.TWO\nend\n"},
+  {"mathy","sqrt* :: @host proc(x: Float) -> Float\nInt* :: @host struct\nhalf* :: proc(x: Int) -> Int\n  return x / 2\nend\n"},
 };
 static int loader(void *ud, const char *path, int kind, rio_Source *o) {
   size_t i; (void)ud;
@@ -42,7 +45,7 @@ static void scale(rio_Vm *v, rio_Val *a) { (void)v; a[0].f = a[0].f * (float)a[1
 /* compile and run src (auto: a module to auto-import, or NULL); expect output (NULL: don't check), or
    an error: kind, file (NULL = main), line, message */
 static void t(const char *auto_, const char *src, const char *printed, int kind, const char *file, int line, const char *msg) {
-  static const char *const hostModules[] = {"pc", "hm", "hbad", "hres", "hmiss", "hpriv", "hnest"};
+  static const char *const hostModules[] = {"pc", "hm", "hbad", "hres", "hmiss", "hpriv", "hnest", "hsrc", "hsbad"};
   rio_Error e;
   size_t i;
   n++; outn = 0; out[0] = 0; cleared = -1;
@@ -95,6 +98,33 @@ static void repl(void) {
   }
 }
 
+/* a REPL session with hsrc auto-imported from its source: its enum and constant there in every input */
+static void replSource(void) {
+  static unsigned char scratch[256 << 10];
+  static const char *const inputs[][2] = {
+    {"c := hsrc.Color.red\n", ""}, {"hsrc.cls(c)\n", ""}, {"log(c, hsrc.add(hsrc.TWO, 2))\n", "red 4\n"},
+    {"f :: proc() -> hsrc.Color\n  return hsrc.Color.black\nend\n", ""}, {"log(f())\n", "black\n"},
+  };
+  size_t i;
+  rio_init(&vm, mem, sizeof mem, code, 8192);
+  rio_setLog(&vm, logfn, 0);
+  rio_setLoader(&vm, loader, 0);
+  rio_addFfi(&vm, "hsrc.add", "ii>i", add);
+  rio_addFfi(&vm, "hsrc.cls", "i", cls);
+  rio_autoImport(&vm, "hsrc");
+  n++;
+  if (rio_replBegin(&vm, scratch, sizeof scratch, 0)) { printf("FAIL: repl from source: %s\n", rio_error(&vm)); fails++; return; }
+  for (i = 0; i < sizeof inputs / sizeof inputs[0]; i++) {
+    outn = 0; out[0] = 0; cleared = -1;
+    n++;
+    if (rio_replEval(&vm, inputs[i][0], (uint32_t)strlen(inputs[i][0])) || strcmp(out, inputs[i][1])) {
+      printf("FAIL: repl \"%s\": printed \"%s\" (%s)\n", inputs[i][0], out, rio_error(&vm));
+      fails++;
+    }
+    if (i == 1 && cleared != 1) { printf("FAIL: repl from source: hsrc.cls wasn't called with red\n"); fails++; }
+  }
+}
+
 /* core.rio compiles, and names every builtin: as `name*` or `.name*` (some only in its comments) */
 static void core(const char *path) {
   FILE *f = fopen(path, "rb");
@@ -134,6 +164,14 @@ int main(int argc, char **argv) {
   t("pc", "log(pc.add(1, 2))\n", "3\n", rio_ErrorKind_none, 0, 0, 0);
   t("pc", "import user\nlog(user.twiceSum(2))\n", "4\n", rio_ErrorKind_none, 0, 0, 0);
   t("nope", "log(1)\n", 0, rio_ErrorKind_compile, 0, 0, "auto-import nope: the host registered no procs under that name");
+  /* an auto-import the loader has a source for: compiled from it first (its enums, constants, and its host
+     procs as declared, an enum for an Int), then everywhere */
+  t("hsrc", "c := hsrc.Color.red\nhsrc.cls(c)\nlog(c, hsrc.add(hsrc.TWO, 1))\n", "red 3\n", rio_ErrorKind_none, 0, 0, 0);
+  if (cleared != 1) { printf("FAIL: hsrc.cls got %d\n", cleared); fails++; }
+  t("hsrc", "import user2\nlog(user2.double(4))\n", "8\n", rio_ErrorKind_none, 0, 0, 0);
+  t("hsrc", "log(1)\nnope()\n", 0, rio_ErrorKind_compile, 0, 2, "undefined name");
+  t("hsrc", "hsrc.cls(1)\n", 0, rio_ErrorKind_compile, 0, 1, "");
+  t("hsbad", "log(1)\n", 0, rio_ErrorKind_compile, "hsbad.rio", 2, "doesn't match the host's hsbad.cls: proc(Int)");
   /* a module source for host procs: its declarations are checked against what's registered */
   OK("import hm\nlog(hm.add(20, 22))\nhm.cls(3)\n", "42\n");
   BAD("import hbad\n", "hbad.rio", 1, "doesn't match the host's hbad.add: proc(Int, Int) -> Int");
@@ -171,6 +209,7 @@ int main(int argc, char **argv) {
   /* proc types name their parameters, grouped as in proc definitions (names are for reading) */
   OK("sum :: proc(a, b: Int, c: Float) -> Int\n  return a + b + c.toInt()\nend\nf: proc(x, y: Int, z: Float) -> Int = sum\nlog(f(1, 2, 3.5))\n", "6\n");
   repl();
+  replSource();
   if (argc > 1) core(argv[1]);
   else { printf("FAIL: no core.rio given\n"); fails++; }
   if (fails) printf("%d of %d host tests failed\n", fails, n);

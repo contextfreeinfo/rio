@@ -35,7 +35,7 @@ int rio_replBegin(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *li
   if (rio_startCompiler(vm, scratch, size, lim, 1, 0)) return -1;
   c = vm->compiler;
   memset(vm->mem, 0, vm->memSize);
-  rio_setupCompiler(vm);
+  rio_setupCompiler(vm, 1); /* (auto-imports from the loader's sources: compiled below, before any input) */
   /* reserved up front, since later pieces can add procs and code: their runtime table, the return stack,
      and (when the code lives in mem) room for the code */
   procsSize = rio_align4(c->limits.procs * (uint32_t)sizeof(rio_Proc));
@@ -66,6 +66,12 @@ int rio_replBegin(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *li
   }
   vm->inRepl = 1;
   vm->ready = 1;
+  if (c->autoSourceCount && rio_replEval(vm, "", 0) != rio_ReplResult_ok) { /* (the auto-imports' sources, as a piece of their own) */
+    vm->inRepl = 0;
+    vm->ready = 0;
+    vm->compiler = 0;
+    return -1;
+  }
   return 0;
 }
 
@@ -148,8 +154,13 @@ int rio_replEval(rio_Vm *vm, const char *src, uint32_t len) {
   c->line = 1;
   c->prevLine = c->prevCol = c->prevWidth = 0;
   c->lastLine = c->lastLinePc = 0;
-  rio_lex(vm, &c->peek);
-  rio_next(vm);
+  if (c->autoSourceCount) { /* (the first piece: the auto-imports' sources, compiled first) */
+    rio_openAutoImports(vm);
+    c->autoSourceCount = 0;
+  } else {
+    rio_lex(vm, &c->peek);
+    rio_next(vm);
+  }
   c->lastLabel = vm->codeLen; /* nothing gets fused with the previous piece's last instruction */
   rio_compileAll(vm);
   if (!rio_failed(vm)) rio_emit(vm, rio_Op_halt, 0, 0, 0);
