@@ -153,7 +153,7 @@ static void rio_lexNumberAt(rio_Vm *vm, rio_Token *t, const char *p, const char 
                    : base == 2 && rio_isDigit(*bad) ? "binary digits are 0 and 1"
                                                      : "bad number");
   }
-  if ((p >= e && c->text.read && !c->textDone) || p - start >= (ptrdiff_t)sizeof c->tokenCopy[0]) rio_TOKEN_FAIL("number too long");
+  if ((p >= e && c->text.read && !c->textDone) || p - start >= rio_TOKEN_MOST) rio_TOKEN_FAIL("number too long");
   if (tooBig && !isFloat) rio_TOKEN_FAIL("number too big for Int (32 bits)");
   /* 2147483648 fits only after a minus sign (in a -D value, or right after a '-' token) */
   if (base == 10 && !isFloat && v > 0x7FFFFFFFu &&
@@ -219,7 +219,7 @@ static ptrdiff_t rio_refill(rio_Vm *vm, const char *keep) {
 static void rio_rescue(rio_Compiler *c, rio_Token *t, const rio_Token *other) {
   char *to = other->text == c->tokenCopy[0] ? c->tokenCopy[1] : c->tokenCopy[0];
   if (!rio_inWindow(c, t->text) || t->kind == rio_Tok_string) return;
-  memcpy(to, t->text, (size_t)(t->len < (int)sizeof c->tokenCopy[0] ? t->len : (int)sizeof c->tokenCopy[0]));
+  memcpy(to, t->text, (size_t)(t->len < rio_TOKEN_MOST ? t->len : rio_TOKEN_MOST));
   t->text = to;
 }
 
@@ -281,6 +281,7 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
     rio_rescue(c, &c->tok, &c->peek);
     if (t != &c->peek) rio_rescue(c, &c->peek, &c->tok);
     t->text = ""; /* (what t was: done with, the token before, rio_next's to keep) */
+    t->len = 0;
   }
   for (;;) { /* space and comments */
     while (rio_MORE() && rio_isSpace(*p)) {
@@ -320,7 +321,7 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
   }
   if (rio_isAlpha(*p)) { /* a name or keyword */
     while (p < e && (rio_isAlpha(*p) || rio_isDigit(*p))) p++;
-    if ((p >= e && rio_moreToCome(c)) || p - s >= (ptrdiff_t)sizeof c->tokenCopy[0]) rio_TOKEN_FAIL("name too long (255 characters at most)");
+    if ((p >= e && rio_moreToCome(c)) || p - s >= rio_TOKEN_MOST) rio_TOKEN_FAIL("name too long (255 characters at most)");
     t->kind = rio_Tok_id;
     for (i = 0; i < (int)(sizeof rio_keywords / sizeof rio_keywords[0]); i++)
       if ((int)strlen(rio_keywords[i]) == p - s && !memcmp(rio_keywords[i], s, p - s)) t->kind = rio_Tok_proc + i;
@@ -330,6 +331,8 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
   } else if (*p == '"') { /* the bytes between the quotes, escapes done, straight into the pool (as they're read) */
     uint8_t *out = c->pool + c->poolUsed;
     uint32_t room = c->poolCap - c->poolUsed, n = 0;
+    t->text = ""; /* (its bytes: in the pool, so the window needn't keep it) */
+    t->len = 0;
     for (p++; rio_MORE() && *p != '"'; p++) {
       int ch = (uint8_t)*p;
       if (ch == '\\') {
@@ -465,8 +468,10 @@ void rio_readFrom(rio_Vm *vm, uint32_t at, uint32_t lineAt, int line) {
 
 const char *rio_keep(rio_Vm *vm, const char *s, int n) {
   rio_Compiler *c = vm->compiler;
-  char *at = c->keep + c->keepUsed;
-  if (n < 0 || n > (int)(sizeof c->keep - c->keepUsed)) {
+  char *at;
+  if (!c->window || s < c->tokenCopy[0] || (s >= c->keep && s < c->window) || s > c->window + c->windowSize) return s; /* (text that stays where it is: no copy) */
+  at = c->keep + c->keepUsed;
+  if (n < 0 || n > (int)(rio_KEEP_BYTES - c->keepUsed)) {
     rio_fail(vm, "too many names in one statement");
     return c->keep;
   }

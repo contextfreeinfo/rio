@@ -243,15 +243,16 @@ typedef struct rio_Compiler {
   rio_Text text;
   const char *src, *cursor, *srcEnd;
   uint32_t srcAt, lineAt;
-  char *window;          /* where a text read a part at a time is read into */
-  uint32_t windowSize;
+  /* a text read a part at a time: read into the window; the tokens read (tok, and peek after it) copied
+     out of it when it moves on; names kept through a statement (rio_keep) too. All three at the top of
+     the pool, only when compiling reads a text so (rio_carveWindow) */
+  char *window, *tokenCopy[2], *keep;
+  uint32_t windowSize, carved;
   int textDone;          /* the text's end has been read */
-  char tokenCopy[2][256]; /* the tokens read (tok, and peek after it), when the window moves on */
   int line, prevLine, prevCol, prevWidth;
   rio_Token tok, peek;
-  /* names kept through a statement (rio_keep: copies, since the text they're in moves on), and for a
-     value standing for its field ({a.x}): the last name read, and how many tokens read weren't a path's */
-  char keep[1024];
+  /* names kept through a statement (rio_keep: copies, from a window, since its text moves on), and for
+     a value standing for its field ({a.x}): the last name read, and how many tokens read weren't a path's */
   uint32_t keepUsed;
   char lastName[48];
   int lastNameLen, pathBreaks;
@@ -375,6 +376,12 @@ const char *rio_lookAhead(rio_Vm *vm);
 static inline uint32_t rio_at(const rio_Compiler *c, const char *p) { return c->srcAt + (uint32_t)(p - c->src); }
 /* a name from a token, kept through the rest of the statement (the token's own text moves on) */
 const char *rio_keep(rio_Vm *vm, const char *s, int n);
+/* a token's text, at most (a name's or a number's, everywhere alike), and room for names kept */
+#define rio_TOKEN_MOST 256
+#define rio_KEEP_BYTES 1024
+/* room for reading a text a part at a time (the window, and what goes with it), at the top of the
+   pool: before anything's in it */
+void rio_carveWindow(rio_Vm *vm);
 void rio_expect(rio_Vm *vm, int kind, const char *message);
 int rio_peekAfterNext(rio_Vm *vm);
 int rio_escapeChar(int c);

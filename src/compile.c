@@ -145,15 +145,6 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   used = rio_layout(c, &l);
   c->pool = (uint8_t *)c + used;
   c->poolCap = c->lineTableTop = (size - (uint32_t)pad - used) & ~3u;
-  { /* the window a text read a part at a time is read into: at the top */
-    uint32_t w = vm->sourceWindow ? (vm->sourceWindow + 3) & ~3u : 2048;
-    if (w < 64) w = 64;
-    if (c->poolCap > w * 2) {
-      c->poolCap = c->lineTableTop = c->poolCap - w;
-      c->window = (char *)c->pool + c->poolCap;
-      c->windowSize = w;
-    }
-  }
   vm->constCap = l.consts;
   vm->top = vm->memSize;
   vm->constCount = 1; /* word 0 stays 0 */
@@ -503,6 +494,7 @@ static void rio_noteCompile(rio_Vm *vm) {
   u->used.code = vm->code == c->scratchCode ? vm->codeLen : 0;
   u->room = c->room;
   u->source = c->source;
+  u->window = c->carved;
   u->strings = c->poolUsed + (c->lineTableTop - c->poolCap); /* (the strings, and the line table growing down from the top) */
   u->stringCap = c->lineTableTop;
   u->mem = vm->memSize;
@@ -635,6 +627,7 @@ static int rio_compileText(rio_Vm *vm, const char *src, uint32_t len, rio_Source
     below = 16; /* (no room at all: an error, below) */
   if (rio_startCompiler(vm, scratch, size, lim, 0, below)) return -1;
   c = vm->compiler;
+  if (read || vm->sourceWindow) rio_carveWindow(vm); /* (a text read a part at a time: this one, or a loader's) */
   rio_setupCompiler(vm, 1);
   c->text.src = src;
   c->text.len = len;
@@ -698,6 +691,7 @@ int rio_usageText(const rio_Usage *u, char *out, int cap) {
   if (cap < 1) return 0;
   n = rio_usageBytes(out, n, cap, "compiler room", u->room);
   if (u->source) n = rio_usageBytes(out, n, cap, "source in mem", u->source);
+  if (u->window) n = rio_usageBytes(out, n, cap, "source window", u->window);
   n = rio_usageLine(out, n, cap, "symbols", u->used.symbols, u->cap.symbols);
   n = rio_usageLine(out, n, cap, "names", u->used.nameBytes, u->cap.nameBytes);
   n = rio_usageLine(out, n, cap, "types", u->used.types, u->cap.types);
@@ -742,6 +736,21 @@ int rio_compileStream(rio_Vm *vm, rio_SourceFn read, void *userData) {
 }
 
 void rio_setSourceWindow(rio_Vm *vm, uint32_t bytes) { vm->sourceWindow = bytes; }
+
+void rio_carveWindow(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  uint32_t w = vm->sourceWindow ? (vm->sourceWindow + 3) & ~3u : 2048, all;
+  if (w < 64) w = 64;
+  all = w + 2 * rio_TOKEN_MOST + rio_KEEP_BYTES;
+  if (c->window || c->poolCap <= all * 2) return; /* (no room: reading one says so) */
+  c->poolCap = c->lineTableTop = c->poolCap - all;
+  c->tokenCopy[0] = (char *)c->pool + c->poolCap; /* (below the window: a pointer to its end is still in it) */
+  c->tokenCopy[1] = c->tokenCopy[0] + rio_TOKEN_MOST;
+  c->keep = c->tokenCopy[1] + rio_TOKEN_MOST;
+  c->window = c->keep + rio_KEEP_BYTES;
+  c->windowSize = w;
+  c->carved = all;
+}
 
 int rio_compileScratch(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t size) {
   if (!scratch) {

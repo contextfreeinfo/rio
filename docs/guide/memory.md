@@ -41,6 +41,9 @@ time, through a window the compiler keeps at the top of its own memory (2 KB by 
 positional, so the compiler can go back a little, which it needs to look ahead now and then. String
 literals go into the string pool as they're read, so only the window and the strings take room, not the
 whole source. A loader can hand back its sources the same way (see [embedding](embedding.md#modules)).
+The window, and 1.5 KB more for copies of the tokens read and the names a statement keeps, comes out of
+the string pool, only when compiling reads this way (`rio_compileStream`, or `rio_setSourceWindow` set,
+for a loader's sources). The usage report shows it as `source window`.
 
 ```c
 static int readFile(void *ud, char *buf, uint32_t at, uint32_t n) {

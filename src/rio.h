@@ -154,6 +154,7 @@ typedef struct {
   uint32_t room;        /* the compiler's room: its tables and the string pool (in mem: above the constants,
                            below any source) */
   uint32_t source;      /* the source, when it sat in mem while compiling (else 0) */
+  uint32_t window;      /* the room for reading sources a part at a time, out of the string pool (else 0) */
   uint32_t strings, stringCap; /* the string pool: strings, names for the host, the line table */
   /* running, adding up to mem: constants; globals, frames, the call stack and arrays; code (when in
      mem); strings and the runtime tables; left over */
@@ -184,7 +185,9 @@ int rio_compileWith(rio_Vm *vm, const char *src, uint32_t len, void *scratch, ui
 /* as rio_compile, the main source read a part at a time (from a file, say), through read: it needn't be
    in memory whole, nor any source a loader gives so (rio_Source). The compiler reads through a window
    of its own, rio_setSourceWindow's bytes (2048 by default; set before compiling): a name, a number
-   or one line of a type method's declaration has to fit in half of it */
+   or one line of a type method's declaration has to fit in half of it. The window comes out of the
+   string pool, only when compiling reads this way: rio_compileStream, or (for a loader's sources read
+   so, the main one in memory) rio_setSourceWindow set */
 int rio_compileStream(rio_Vm *vm, rio_SourceFn read, void *userData);
 void rio_setSourceWindow(rio_Vm *vm, uint32_t bytes);
 #endif
