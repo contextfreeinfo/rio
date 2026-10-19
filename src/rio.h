@@ -93,6 +93,17 @@ int rio_autoImport(rio_Vm *vm, const char *module);
 uint32_t rio_saveImage(rio_Vm *vm, void *out, uint32_t cap);
 #endif
 int rio_loadImage(rio_Vm *vm, const void *image, uint32_t len);
+/* The same, a part at a time, for a host without room for a whole image beside the vm (such as one
+   saving to a file and loading from it): rio_writeImage hands write the image's bytes in order (each
+   write returns 0, or nonzero to stop), and returns its size, or 0. rio_readImage asks read for an
+   image of len bytes in order (exactly n each time: 0, or nonzero if it can't), and puts each part
+   straight in place. A failed rio_readImage leaves the vm with nothing loaded. */
+typedef int (*rio_WriteFn)(void *userData, const void *bytes, uint32_t n);
+typedef int (*rio_ReadFn)(void *userData, void *bytes, uint32_t n);
+#ifndef rio_NO_COMPILER
+uint32_t rio_writeImage(rio_Vm *vm, rio_WriteFn write, void *userData);
+#endif
+int rio_readImage(rio_Vm *vm, rio_ReadFn read, void *userData, uint32_t len);
 
 /* ------------------------------------------------------------------ compiling */
 

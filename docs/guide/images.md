@@ -18,6 +18,17 @@ rio_addFfi(&vm2, "clock", ">f", host_clock); // the same host procs, in any orde
 if (rio_loadImage(&vm2, buf, n) || rio_run(&vm2)) puts(rio_error(&vm2));
 ```
 
+A host without room for a whole image beside the vm, such as one saving to a file, can write and read
+it a part at a time, straight from and into the vm's memory:
+
+```c
+static int put(void *f, const void *b, uint32_t n) { return fwrite(b, 1, n, f) != n; } // 0: written
+static int get(void *f, void *b, uint32_t n) { return fread(b, 1, n, f) != n; }        // 0: all n read
+
+uint32_t n = rio_writeImage(&vm, put, file);  // after compiling, before running: the size, or 0
+if (rio_readImage(&vm2, get, file, n) || rio_run(&vm2)) puts(rio_error(&vm2));
+```
+
 - **Addresses are absolute,** so compile for the memory the program will run in (`-M`, default 8 MB in
   the CLI) and load into at least that much. Code compiled into `mem` loads back there; code compiled
   into a separate buffer needs a loading vm with one too.
