@@ -4,7 +4,9 @@
 #include <time.h>
 #include "rio.h"
 
-static unsigned char mem[8 << 20], img[4 << 20];
+/* (the 8 MB rio -i compiles with, its default: and 16 bytes more, as this may not start on a 16-byte
+   boundary, where rio_init starts it) */
+static unsigned char mem[(8 << 20) + 16], img[4 << 20];
 static rio_Instr code[65535];
 static rio_Vm vm;
 

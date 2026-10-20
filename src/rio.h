@@ -65,7 +65,9 @@ typedef void (*rio_LogFn)(void *userData, const char *text, int len);
 /* mem: all script data (globals, frames, arrays, strings), and by default also the compiler's
    working memory, which is overlaid on space that stays zero until the program runs.
    code: bytecode buffer (max 65535 instructions), or NULL to keep the code in mem too: then it takes
-   just its own size there, below the strings (codeCap is ignored; see rio_Limits.code). */
+   just its own size there, below the strings (codeCap is ignored; see rio_Limits.code). mem is used from
+   its first 16-byte boundary, in whole 16 bytes: a buffer that isn't aligned loses up to 15 bytes, so to
+   load an image made with as much memory, give it 16 bytes more (or align it). */
 int rio_init(rio_Vm *vm, void *mem, uint32_t memSize, rio_Instr *code, uint32_t codeCap);
 void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData);
 
