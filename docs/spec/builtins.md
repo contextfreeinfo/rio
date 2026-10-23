@@ -69,13 +69,15 @@ assert(2 + 2 == 5, "math")  # runtime error: assertion failed: math
 ## hexBlob
 
 `hexBlob("...")` is the bytes the hex digits spell, as a writable `Blob`, decoded while compiling.
-Spaces and line breaks can go between pairs of digits; anything else, or an odd number of digits, is a
-compile error. It takes only a literal. The bytes are stored once, like a global, so each time the same
+Spaces and line breaks can go between pairs of digits (a string over more lines gives it line breaks);
+anything else, or an odd number of digits, is a compile error. It takes only a literal. The bytes are stored once, like a global, so each time the same
 call runs it gives the same bytes:
 
 ```rio
-b := hexBlob("48 69
-  21")
+b := hexBlob(
+  "48 69
+  "21"
+)
 log(b.len(), b[0], b)
 ```
 

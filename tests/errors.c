@@ -193,7 +193,7 @@ static const Case cases[] = {
   {"x := 1\n  y := 2.0 + \"s\"\n", 0, 0, 0, rio_ErrorKind_compile, 2, 14, 3, "type mismatch"},
   {"x := (1 + 2\n", 0, 0, 0, rio_ErrorKind_compile, 1, 11, 1, "unclosed bracket"},
   {"if true\n  x := 1\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 1, "missing 'end'"},
-  {"s := \"abc\n", 0, 0, 0, rio_ErrorKind_compile, -1, -1, -1, "unterminated string"},
+  {"log(\"abc)\n", 0, 0, 0, rio_ErrorKind_compile, -1, -1, -1, "unclosed bracket"}, /* (a closing quote left out: the string ends with its line) */
   /* runtime errors report the line */
   {"xs: [4]Int\ni := 2\nf :: proc(n: Int) -> Int\n  return xs[n * 3]\nend\nlog(f(i))\n", 0, 0, 0, rio_ErrorKind_runtime, 4, 0, 0, "index out of bounds"},
   {"xs: [..2]Int\nfor j in 0..<3\n  xs.push(j)\nend\nlog(xs.pop(), xs.pop(), xs.pop())\n", 0, 0, 0, rio_ErrorKind_runtime, 5, 0, 0, "pop from empty list"},
@@ -278,11 +278,11 @@ int main(void) {
       printf("FAIL limits bigger than scratch: \"%s\"\n", rio_error(&vm)); fails++; n++;
     } else n++;
   }
-  { /* REPL indenting: open blocks and brackets, minus ends; none inside a string */
+  { /* REPL indenting: open blocks and brackets, minus ends (a string ends with its line) */
     static const struct { const char *src; int want; } ind[] = {
       {"f :: proc()\n", 1}, {"f :: proc()\n  if x\n", 2}, {"f :: proc()\n  if x\n  end\n", 1},
       {"V :: struct\n  x: Int\n", 1}, {"switch s\ncase A\n", 1}, {"if a\nelse\n", 1},
-      {"x := f(1,\n", 1}, {"s := \"abc\n", -1}, {"s := \"a)b(\"\nif (x\n", 2}, {"# if x\nif y # (\n", 1},
+      {"x := f(1,\n", 1}, {"s := (\"a(bc\n", 1}, {"s := \"a)b(\"\nif (x\n", 2}, {"# if x\nif y # (\n", 1},
       {"outer: for i in 0..<3\n", 1}, {"for x in xs\n  for y in ys\n", 2}, {"T.m :: proc()\n", 1}, {"end\n", 0}};
     size_t i;
     for (i = 0; i < sizeof ind / sizeof ind[0]; i++, n++) {

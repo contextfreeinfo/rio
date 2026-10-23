@@ -105,7 +105,7 @@ static int rio_rollback(rio_Vm *vm, const rio_ReplMark *m) {
   rio_Compiler *c = vm->compiler;
   uint32_t i;
   int more = c->cursor >= c->srcEnd && (c->failMessage == rio_msgMissingEnd || c->failMessage == rio_msgUnclosedBracket ||
-                                        c->failMessage == rio_msgExpectedExpr || c->failMessage == rio_msgUnterminatedString);
+                                        c->failMessage == rio_msgExpectedExpr);
   for (i = m->constCount; i < vm->constCount; i++) rio_bitClear(c->constIsString, i);
   vm->codeLen = m->codeLen;
   vm->constCount = m->constCount;
@@ -196,9 +196,8 @@ const char *rio_replFileOfPc(rio_Vm *vm, uint32_t pc) {
 /* ------------------------------------------------------------------ typing help */
 
 /* How far to indent the next line of an unfinished input: a step for each open block (proc, struct, enum,
-   union, if, for, switch, less each end) and each open bracket; -1 inside an open string, whose next line
-   shouldn't get spaces it didn't type. Just the text, not a compile: a guide for typing, with else and
-   case a step out from their block's insides (see rio_replOutdent). */
+   union, if, for, switch, less each end) and each open bracket. Just the text, not a compile: a guide for
+   typing, with else and case a step out from their block's insides (see rio_replOutdent). */
 static int rio_isWordChar(int c) { return rio_isAlpha(c) || rio_isDigit(c); }
 
 /* is [p, e) the word w, followed by a non-word character or the end? */
@@ -211,19 +210,18 @@ static int rio_isSpaceOrTab(int c) { return c == ' ' || c == '\t'; }
 
 int rio_replIndent(const char *src, uint32_t len) {
   const char *p = src, *e = src + len;
-  int depth = 0, inString = 0;
-  while (p < e) { /* a line at a time */
+  int depth = 0;
+  while (p < e) { /* a line at a time (a string ends with its line, at the latest) */
     const char *q;
-    if (!inString) { /* its first word */
+    int inString = 0;
+    while (p < e && rio_isSpaceOrTab(*p)) p++; /* its first word */
+    for (q = p; q < e && rio_isWordChar(*q); q++) {}
+    if (q < e && *q == ':' && (q + 1 >= e || q[1] != ':') && q > p) { /* a label: the loop after it */
+      p = q + 1;
       while (p < e && rio_isSpaceOrTab(*p)) p++;
-      for (q = p; q < e && rio_isWordChar(*q); q++) {}
-      if (q < e && *q == ':' && (q + 1 >= e || q[1] != ':') && q > p) { /* a label: the loop after it */
-        p = q + 1;
-        while (p < e && rio_isSpaceOrTab(*p)) p++;
-      }
-      if (rio_wordAt(p, e, "end")) depth--;
-      else if (rio_wordAt(p, e, "if") || rio_wordAt(p, e, "for") || rio_wordAt(p, e, "switch")) depth++;
     }
+    if (rio_wordAt(p, e, "end")) depth--;
+    else if (rio_wordAt(p, e, "if") || rio_wordAt(p, e, "for") || rio_wordAt(p, e, "switch")) depth++;
     for (; p < e && *p != '\n'; p++) {
       if (inString) {
         if (*p == '\\' && p + 1 < e) p++;
@@ -245,7 +243,7 @@ int rio_replIndent(const char *src, uint32_t len) {
     }
     if (p < e) p++; /* (the line break) */
   }
-  return inString ? -1 : depth < 0 ? 0 : depth;
+  return depth < 0 ? 0 : depth;
 }
 
 /* whether a line that starts (after its indent) with these len characters, followed by a space or its

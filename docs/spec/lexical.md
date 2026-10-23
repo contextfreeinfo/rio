@@ -99,8 +99,8 @@ log(1.5, 2e3, 1_000.25, 123456789.0)
 
 ## Characters and strings
 
-A character literal is one byte, as an `Int`: `'a'` is 97. A string literal is `"..."`, and can span
-lines. Both take these escapes, and any other backslash is an error:
+A character literal is one byte, as an `Int`: `'a'` is 97. A string literal is `"..."`. Both take
+these escapes, and any other backslash is an error:
 
 | escape | byte |
 |---|---|
@@ -108,17 +108,73 @@ lines. Both take these escapes, and any other backslash is an error:
 | `\\` `\"` `\'` | the character itself |
 
 ```rio
-log('a', '\n', "say \"hi\"", "two
-lines")
+log('a', '\n', "say \"hi\"")
 ```
 
 ```output
-97 10 say "hi" two
-lines
+97 10 say "hi"
 ```
 
 ```rio
 log("\q")  # error: unknown escape
+```
+
+### Strings over more lines
+
+A line with no closing quote ends its string with a line break, and the string goes on if the next line
+starts with a quote. Each line's indent comes before its quote, so it isn't part of the string, and
+neither are the spaces and tabs at the end of an open line. Close the last line for no line break at
+the end:
+
+```rio
+keys :=
+  "Keys:
+  "  arrows  move
+  "  Z       jump"
+log(keys)
+```
+
+```output
+Keys:
+  arrows  move
+  Z       jump
+```
+
+Left open, the last line keeps its line break too, and a line of just a quote is an empty one. A string
+ends with its line unless the next one starts with a quote, so a quote left open by mistake goes no
+further:
+
+```rio
+s :=
+  "one
+  "
+  "three
+log(s.len(), s == "one\n\nthree\n")
+```
+
+```output
+11 true
+```
+
+### Strings side by side
+
+Strings side by side are one string: on one line, and over more lines inside brackets. That splits a
+long line without breaking it, and keeps spaces at the end of a line:
+
+```rio
+log("abc" "def")
+long := (
+  "a long line, "
+  "split in two"
+)
+log(long)
+log("two spaces:  " "|")
+```
+
+```output
+abcdef
+a long line, split in two
+two spaces:  |
 ```
 
 ## Operators and punctuation

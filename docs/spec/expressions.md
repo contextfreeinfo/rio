@@ -132,6 +132,26 @@ Arguments are evaluated left to right, then the call runs. They must have the pa
 except that number literals adapt. A `&T` parameter takes `&place`. See [procs](declarations.md#procs)
 and [builtins](builtins.md).
 
+A comma can end the arguments, as it can any list in brackets, so a call over more lines can put one
+argument on each line:
+
+```rio
+area :: proc(w: Int, h: Int) -> Int
+  return w * h
+end
+log(
+  area(3, 4),
+  area(
+    5,
+    6,
+  ),
+)
+```
+
+```output
+12 30
+```
+
 ## Indexing and slicing
 
 `a[i]` is element `i` of an array, slice, list, `String` or `Blob`, counting from 0. An index outside

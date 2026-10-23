@@ -49,7 +49,7 @@ typedef struct {
 } rio_Token;
 
 /* messages that mean "unfinished" to the REPL, when the source ends */
-extern const char rio_msgMissingEnd[], rio_msgUnclosedBracket[], rio_msgExpectedExpr[], rio_msgUnterminatedString[];
+extern const char rio_msgMissingEnd[], rio_msgUnclosedBracket[], rio_msgExpectedExpr[];
 
 /* ------------------------------------------------------------------ tables */
 

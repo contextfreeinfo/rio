@@ -7,7 +7,6 @@
 const char rio_msgMissingEnd[] = "missing 'end'";
 const char rio_msgUnclosedBracket[] = "unclosed bracket";
 const char rio_msgExpectedExpr[] = "expected expression";
-const char rio_msgUnterminatedString[] = "unterminated string";
 
 /* ------------------------------------------------------------------ errors */
 
@@ -328,26 +327,33 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
   } else if (rio_isDigit(*p)) {
     rio_lexNumberAt(vm, t, p, start);
     return;
-  } else if (*p == '"') { /* the bytes between the quotes, escapes done, straight into the pool (as they're read) */
+  } else if (*p == '"') {
+    /* the bytes between the quotes, escapes done, straight into the pool (as they're read). A line with no
+       closing quote ends the string with a line break (the spaces and tabs before it left out), and the
+       string goes on if the next line starts with a quote, after its indent */
     uint8_t *out = c->pool + c->poolUsed;
-    uint32_t room = c->poolCap - c->poolUsed, n = 0;
+    uint32_t room = c->poolCap - c->poolUsed, n = 0, kept = 0;
+    int width = -1;
     t->text = ""; /* (its bytes: in the pool, so the window needn't keep it) */
     t->len = 0;
-    for (p++; rio_MORE() && *p != '"'; p++) {
-      int ch = (uint8_t)*p;
-      if (ch == '\\') {
-        p++;
-        if (!rio_MORE()) break;
-        if (!rio_isEscape(*p)) {
-          rio_failAt(vm, c->line, (int)(rio_at(c, p - 1) - c->lineAt) + 1, 2, rio_msgUnknownEscape);
-          t->kind = rio_Tok_eof;
-          t->len = 0;
-          return;
+    for (;;) { /* a line's part */
+      const char *q;
+      for (p++; rio_MORE() && *p != '"' && *p != '\n'; p++) {
+        int ch = (uint8_t)*p, escaped = ch == '\\';
+        if (escaped) {
+          p++;
+          if (!rio_MORE()) break;
+          if (!rio_isEscape(*p)) {
+            rio_failAt(vm, c->line, (int)(rio_at(c, p - 1) - c->lineAt) + 1, 2, rio_msgUnknownEscape);
+            t->kind = rio_Tok_eof;
+            t->len = 0;
+            return;
+          }
+          ch = rio_escapeChar(*p);
         }
-        ch = rio_escapeChar(*p);
-      } else if (ch == '\n') {
-        c->line++;
-        c->lineAt = rio_at(c, p + 1);
+        if (n >= room) break;
+        out[n++] = (uint8_t)ch;
+        if (escaped || (ch != ' ' && ch != '\t' && ch != '\r')) kept = n; /* (what an open line keeps) */
       }
       if (n >= room) {
         rio_failAt(vm, t->line, t->col, 1, "out of compiler memory");
@@ -355,19 +361,30 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
         t->len = 0;
         return;
       }
-      out[n++] = (uint8_t)ch;
-    }
-    if (p >= e) {
-      c->cursor = e;
-      rio_LEX_FAIL(rio_msgUnterminatedString);
+      if (p < e && *p == '"') { /* closed */
+        p++;
+        if (width < 0) width = (int)(rio_at(c, p) - t->at);
+        break;
+      }
+      if (width < 0) width = (int)(rio_at(c, p) - t->at);
+      n = kept; /* open: its line break, and the next line's part, if it starts with a quote */
+      out[n++] = '\n';
+      kept = n;
+      if (p >= e) break;
+      q = p + 1;
+      while ((q < e || rio_more(vm, &q, &p, &start, &e, p)) && (*q == ' ' || *q == '\t')) q++;
+      if (q >= e || *q != '"') break; /* (else the line break stays, ending the statement) */
+      c->line++;
+      c->lineAt = rio_at(c, p + 1);
+      p = q;
     }
     t->kind = rio_Tok_string;
     t->text = (const char *)out;
     t->len = (int)n;
     t->val.u = c->poolUsed;
     c->poolUsed += n;
-    t->width = (int)(rio_at(c, p + 1) - t->at);
-    c->cursor = p + 1;
+    t->width = width;
+    c->cursor = p;
     return;
   } else if (*p == '\'') { /* a character: its code, as an Int */
     int ch = p + 1 < e ? p[1] : 0;

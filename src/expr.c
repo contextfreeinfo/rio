@@ -754,13 +754,33 @@ static int rio_impliedValue(rio_Vm *vm, rio_ExprState *x, int tempStart) {
   return rio_Expect_operator;
 }
 
+/* a string literal and any right after it, as one string: on its line, or on the lines after, inside
+   brackets ("a" "b", or ("a" then "b" on the next line) */
+static rio_Expr rio_stringLiterals(rio_Vm *vm, const rio_ExprState *x) {
+  rio_Compiler *c = vm->compiler;
+  uint32_t at = c->tok.val.u, n = (uint32_t)c->tok.len;
+  while (c->peek.kind == rio_Tok_string && (!c->peek.newline || x->depth)) {
+    uint32_t m = (uint32_t)c->peek.len;
+    if (c->peek.val.u != at + n) { /* (not right after it in the pool: both again, at its end) */
+      if (n + m > c->poolCap - c->poolUsed) rio_FAIL(rio_voidExpr(), "out of compiler memory");
+      memcpy(c->pool + c->poolUsed, c->pool + at, n);
+      memmove(c->pool + c->poolUsed + n, c->pool + c->peek.val.u, m);
+      at = c->poolUsed;
+      c->poolUsed += n + m;
+    }
+    n += m;
+    rio_next(vm);
+  }
+  return rio_stringInPool(vm, at, (int)n);
+}
+
 /* where an operand goes: a value, a prefix operator, an opening bracket, or an empty call's ')' */
 static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
   rio_Compiler *c = vm->compiler;
   int t = c->tok.kind, tempStart = (int)c->freeSlot;
   rio_Expr e;
   if (t == rio_Tok_int || t == rio_Tok_float) e = rio_exprOf(rio_ExprKind_const, t == rio_Tok_int ? rio_TypeId_int : rio_TypeId_float, c->tok.val.i);
-  else if (t == rio_Tok_string) e = rio_stringInPool(vm, c->tok.val.u, c->tok.len);
+  else if (t == rio_Tok_string) e = rio_stringLiterals(vm, x);
   else if (t == rio_Tok_id) e = rio_identifier(vm);
   else if (t == '(') {
     rio_pushOp(vm, rio_Pending_paren, 0, 0);
@@ -865,6 +885,12 @@ static int rio_separator(rio_Vm *vm, rio_ExprState *x, int t) {
     if (m->kind != rio_Pending_call && m->kind != rio_Pending_literal) rio_FAIL(rio_Expect_failed, "unexpected ','");
     rio_argDone(vm, m);
     rio_next(vm);
+    if (m->kind == rio_Pending_call && c->tok.kind == ')') { /* f(a, b,): a trailing comma */
+      rio_closeBracket(vm, ')', 0);
+      x->depth--;
+      rio_next(vm);
+      return rio_Expect_operator;
+    }
     if (m->kind == rio_Pending_literal) rio_literalField(vm, m);
     return rio_Expect_operand;
   }

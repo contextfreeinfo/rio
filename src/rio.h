@@ -216,10 +216,10 @@ void rio_interrupt(rio_Vm *vm);
 enum { rio_ReplResult_error = -1, rio_ReplResult_ok = 0, rio_ReplResult_more = 1 };
 int rio_replBegin(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits *lim);
 /* ok: ran. error: see rio_error (a compile error leaves the session unchanged). more: the input is
-   unfinished (an open block, bracket or string): call again with the same text plus more appended. */
+   unfinished (an open block or bracket): call again with the same text plus more appended. */
 int rio_replEval(rio_Vm *vm, const char *src, uint32_t len);
 /* for typing an unfinished input: the steps to indent its next line (each a block or bracket still
-   open), -1 inside a string; and whether a line starting with this word belongs a step out (end,
+   open); and whether a line starting with this word belongs a step out (end,
    else, case) */
 int rio_replIndent(const char *src, uint32_t len);
 int rio_replOutdent(const char *word, uint32_t len);
