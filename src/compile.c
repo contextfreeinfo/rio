@@ -24,14 +24,14 @@ rio_Limits rio_limitsFor(uint32_t bytes) {
           l.blocks * (uint32_t)sizeof(rio_Block) + l.slots / 8 + 64;
   /* per symbol: its entry, ~12 bytes of name, a share of fields, types, procs and params, and two
      constant words (programs use about two constants per symbol) */
-  perSymbol = (uint32_t)(sizeof(rio_Symbol) + 12 + sizeof(rio_Field) / 2 + sizeof(rio_Type) / 8 + sizeof(rio_ProcDef) / 4 +
+  perSymbol = (uint32_t)(sizeof(rio_Symbol) + 12 + sizeof(rio_Field) / 2 + sizeof(rio_Type) / 4 + sizeof(rio_ProcDef) / 4 +
                          sizeof(rio_Param) / 2 + 8);
   l.symbols = rio_clamp(budget > fixed ? (budget - fixed) / perSymbol : 0, 64, 65535);
   l.consts = rio_clamp(l.symbols * 2, 128, 16384);
   if (l.slots < l.consts + 1024) l.slots = rio_clamp(l.consts + 1024, 2048, 65536);
   l.nameBytes = rio_clamp(l.symbols * 12, 512, 65535);
   l.fields = rio_clamp(l.symbols / 2, 16, 65535);
-  l.types = rio_clamp(l.symbols / 8, 16, 65535);
+  l.types = rio_clamp(l.symbols / 4, 16, 65535); /* (a host module of enums and structs, as Rinc's pc, takes a good share in a small session) */
   l.procs = rio_clamp(l.symbols / 4, 8, 65535);
   l.params = rio_clamp(l.symbols / 2, 16, 65535);
   l.modules = rio_clamp(l.symbols / 32, 8, 1024);
