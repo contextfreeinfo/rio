@@ -36,6 +36,106 @@ static int rio_argCount(rio_Vm *vm, const rio_PendingOp *call) { return vm->comp
 
 /* ------------------------------------------------------------------ log and format */
 
+/* printing by descriptor (print.h): structs, arrays, slices, lists, builders and unions */
+
+/* a word at the constants' end, for a descriptor */
+static void rio_descPush(rio_Vm *vm, uint32_t v) {
+  if (vm->constCount >= vm->constCap) rio_FAIL(, "too many constants");
+  ((rio_Val *)vm->mem)[vm->constCount++].u = v;
+}
+
+/* a struct's name, from its symbol, as a string constant: its slot */
+static int rio_typeNameConst(rio_Vm *vm, int type) {
+  rio_Compiler *c = vm->compiler;
+  int i;
+  for (i = c->symCount - 1; i >= 0; i--)
+    if (c->syms[i].kind == rio_SymKind_type && c->syms[i].type == type)
+      return rio_stringConst(vm, c->names + c->syms[i].name, c->syms[i].nameLen).value / 4;
+  return rio_stringConst(vm, "", 0).value / 4;
+}
+
+/* the descriptor of a type, for printing: its first constant (print.h says what's in one). Made the
+   first time a type is printed, and kept: what a struct's or union's holds comes first, then, for a
+   struct, its name's and its fields' names' strings, one after another, then its own words */
+int rio_descriptor(rio_Vm *vm, int type) {
+  rio_Compiler *c = vm->compiler;
+  rio_Type *ty = rio_type(vm, type);
+  int k = ty->kind, i, slot, names = 0, n = ty->fieldCount;
+  uint32_t v[4], text;
+  for (i = 0; i < c->descCount; i++)
+    if (c->descType[i] == type) return c->descSlot[i];
+  switch (k) {
+  case rio_TypeKind_int: case rio_TypeKind_byte: case rio_TypeKind_float: case rio_TypeKind_bool: case rio_TypeKind_proc:
+    v[0] = k == rio_TypeKind_int ? rio_Print_int : k == rio_TypeKind_byte ? rio_Print_byte : k == rio_TypeKind_float ? rio_Print_float
+         : k == rio_TypeKind_bool ? rio_Print_bool : rio_Print_proc;
+    return rio_findConsts(vm, v, 1, 0);
+  case rio_TypeKind_enum:
+    v[0] = rio_Print_enum; v[1] = ty->count; v[2] = ty->elem; v[3] = ty->fieldCount;
+    return rio_findConsts(vm, v, 4, 0);
+  case rio_TypeKind_array: case rio_TypeKind_slice: case rio_TypeKind_list: case rio_TypeKind_builder: {
+    int e = rio_descriptor(vm, ty->elem), w = 0;
+    text = ty->elem == rio_TypeId_byte ? rio_Print_text : 0;
+    if (k == rio_TypeKind_array) { v[w++] = rio_Print_array | text; v[w++] = ty->count; }
+    else v[w++] = (k == rio_TypeKind_slice ? rio_Print_slice : k == rio_TypeKind_list ? rio_Print_list : rio_Print_builder) | text;
+    v[w++] = rio_type(vm, ty->elem)->size;
+    v[w++] = (uint32_t)e;
+    if (k == rio_TypeKind_list) v[w++] = ty->count;
+    return rio_failed(vm) ? 0 : rio_findConsts(vm, v, w, 0);
+  }
+  case rio_TypeKind_struct: case rio_TypeKind_union:
+    break;
+  default:
+    rio_FAIL(0, "cannot print this type");
+  }
+  for (i = 0; i < n; i++) { /* (what it holds, first) */
+    int t = rio_field(vm, ty->firstField + i)->type;
+    if (t != rio_TypeId_void) rio_descriptor(vm, t);
+  }
+  if (k == rio_TypeKind_struct) {
+    names = rio_typeNameConst(vm, type);
+    for (i = 0; i < n; i++) {
+      rio_Field *f = rio_field(vm, ty->firstField + i);
+      rio_stringConst(vm, c->names + f->name, f->nameLen); /* (at names + 2 + 2 * i) */
+    }
+  }
+  if (rio_failed(vm)) return 0;
+  slot = (int)vm->constCount;
+  rio_descPush(vm, k == rio_TypeKind_struct ? rio_Print_struct : rio_Print_union);
+  if (k == rio_TypeKind_struct) rio_descPush(vm, (uint32_t)names);
+  rio_descPush(vm, (uint32_t)n);
+  for (i = 0; i < n; i++) {
+    rio_Field *f = rio_field(vm, ty->firstField + i);
+    int d = f->type == rio_TypeId_void ? 0 : rio_descriptor(vm, f->type);
+    if (k == rio_TypeKind_struct) {
+      rio_descPush(vm, (uint32_t)(names + 2 + 2 * i));
+      rio_descPush(vm, f->offset);
+    }
+    rio_descPush(vm, (uint32_t)d);
+  }
+  if (rio_failed(vm)) return 0;
+  if (c->descCount < 32) {
+    c->descType[c->descCount] = (uint16_t)type;
+    c->descSlot[c->descCount++] = (uint16_t)slot;
+  }
+  return slot;
+}
+
+/* a value printed by descriptor, as logv and pushv take it: a slice's or builder's slots, else a slot
+   holding its address (a proc value's: none, it prints as proc) */
+int rio_printOperand(rio_Vm *vm, rio_Expr *e) {
+  rio_Type *ty;
+  int d;
+  rio_needValue(vm, e);
+  ty = rio_type(vm, e->type);
+  if (ty->kind == rio_TypeKind_slice) return rio_toSlot2(vm, e);
+  if (ty->kind == rio_TypeKind_builder) return rio_toSlot3(vm, e);
+  if (ty->kind == rio_TypeKind_proc) return rio_constSlot(vm, 0);
+  if (e->kind == rio_ExprKind_static) return rio_addrConst(vm, (uint32_t)e->value, ty->size);
+  d = rio_allocSlots(vm, 1);
+  rio_emit(vm, rio_Op_lea, d, e->value, e->offset);
+  return d;
+}
+
 /* logs an enum by name */
 void rio_logEnumName(rio_Vm *vm, rio_Expr *e, int space) {
   rio_Type *et = rio_type(vm, e->type);
@@ -54,7 +154,12 @@ void rio_logArg(rio_Vm *vm, rio_PendingOp *call) {
   else if (ty->kind == rio_TypeKind_enum) rio_logEnumName(vm, &e, space);
   else if (ty->kind == rio_TypeKind_float) rio_emitX(vm, rio_Op_logf, space, rio_toSlot(vm, &e, 1));
   else if (ty->kind == rio_TypeKind_int || ty->kind == rio_TypeKind_byte) rio_emitX(vm, rio_Op_logi, space, rio_toSlot(vm, &e, 1));
-  else rio_FAIL(, "cannot log this type");
+  else { /* the rest, by descriptor */
+    int s = rio_printOperand(vm, &e), d = rio_descriptor(vm, e.type);
+    if (rio_failed(vm)) return;
+    rio_emit(vm, rio_Op_logv, s, d, 0);
+    vm->code[vm->codeLen - 1].x = (uint8_t)space;
+  }
   vm->compiler->freeSlot = e.tempStart;
 }
 
@@ -91,7 +196,15 @@ void rio_formatArg(rio_Vm *vm, rio_PendingOp *call) {
       d = rio_allocSlots(vm, 1);
       rio_emit(vm, rio_Op_pusht, d, call->c, s);
       vm->code[vm->codeLen - 1].x = (uint8_t)(k == rio_TypeKind_float ? 1 : k == rio_TypeKind_bool ? 2 : 0);
-    } else rio_FAIL(, "format takes Strings, Blobs, numbers and enums");
+    } else { /* the rest, by descriptor */
+      int desc;
+      s = rio_printOperand(vm, &e);
+      desc = rio_descriptor(vm, e.type);
+      if (rio_failed(vm)) return;
+      d = rio_allocSlots(vm, 1);
+      rio_emit(vm, rio_Op_pushv, d, call->c, s);
+      rio_emitData(vm, 0, (uint32_t)desc);
+    }
     rio_emit(vm, rio_Op_and, ok, ok, d);
     vm->compiler->freeSlot = e.tempStart;
   }

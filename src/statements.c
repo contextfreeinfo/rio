@@ -558,7 +558,12 @@ static void rio_autoPrint(rio_Vm *vm, rio_Expr *e) {
   else if (k == rio_TypeKind_bool) rio_emitX(vm, rio_Op_logb, 0, rio_toSlot(vm, e, 1));
   else if (k == rio_TypeKind_enum) rio_logEnumName(vm, e, 0);
   else if (k == rio_TypeKind_int || k == rio_TypeKind_byte) rio_emitX(vm, rio_Op_logi, 0, rio_toSlot(vm, e, 1));
-  else return;
+  else if (k == rio_TypeKind_struct || k == rio_TypeKind_array || k == rio_TypeKind_slice || k == rio_TypeKind_list ||
+           k == rio_TypeKind_builder || k == rio_TypeKind_union) { /* by descriptor */
+    int s = rio_printOperand(vm, e), d = rio_descriptor(vm, e->type);
+    if (rio_failed(vm)) return;
+    rio_emit(vm, rio_Op_logv, s, d, 0);
+  } else return;
   rio_emit(vm, rio_Op_loge, 0, 0, 0);
 }
 

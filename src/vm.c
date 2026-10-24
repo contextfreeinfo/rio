@@ -53,6 +53,9 @@ static rio_NOINLINE int rio_assertFailed(rio_Vm *vm, uint32_t messageSlot, uint3
   return rio_runtimeError(vm, text, pc);
 }
 
+/* values by their descriptors (print.h), for logv and pushv */
+rio_PRINTER(rio_PRINT_CODE)
+
 static void rio_logPut(rio_Vm *vm, const char *s, int n) {
   while (n-- > 0 && vm->logLen < rio_LOG_BUF_SIZE) vm->logBuf[vm->logLen++] = *s++;
 }
@@ -75,6 +78,13 @@ void rio_logOp(rio_Vm *vm, const rio_Val *R, const rio_Instr *ip) {
     for (i = 0; i < n && R[ip->b + i].i != v; i++) {}
     if (i < n) rio_logPut(vm, (const char *)M + R[ip->c + 2 * i].i, R[ip->c + 2 * i + 1].i);
     else rio_logPut(vm, text, rio_formatInt(text, v));
+    break;
+  }
+  case rio_Op_logv: { /* a struct, array, list, union, ...: by its descriptor, as much as the line holds */
+    rio_Out o;
+    o.out = (uint8_t *)vm->logBuf; o.len = (uint32_t)vm->logLen; o.cap = rio_LOG_BUF_SIZE; o.capped = 1; o.full = 0;
+    rio_printValue(M, &o, ip->b, R[ip->a].u, R[ip->a + 1].u, R[ip->a + 2].u);
+    vm->logLen = (int)o.len;
     break;
   }
   case rio_Op_loge:
@@ -362,6 +372,18 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     }
     rio_NEXT2();
   }
+  rio_CASE(pushv) { /* by its descriptor (data), all of it or nothing */
+    rio_Out o;
+    uint32_t lenAt = R[ip->b].u, n = rio_LIST_LEN(ip->b);
+    o.out = M + R[ip->b + 1].u; o.len = n; o.cap = R[ip->b + 2].u; o.capped = 0; o.full = 0;
+    rio_printValue(M, &o, rio_dataSize(ip + 1), R[ip->c].u, R[ip->c + 1].u, R[ip->c + 2].u);
+    if (o.full) R[ip->a].i = 0;
+    else {
+      rio_WORD(lenAt).u = o.len;
+      R[ip->a].i = 1;
+    }
+    rio_NEXT2();
+  }
   rio_CASE(pusht) {
     char text[40];
     uint32_t lenAt = R[ip->b].u, cap = R[ip->b + 2].u, n = rio_LIST_LEN(ip->b), k;
@@ -449,7 +471,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     }
     rio_NEXT();
   }
-  rio_CASE(logi) rio_CASE(logf) rio_CASE(logs) rio_CASE(logb) rio_CASE(loge) rio_logOp(vm, R, ip); rio_NEXT();
+  rio_CASE(logi) rio_CASE(logf) rio_CASE(logs) rio_CASE(logb) rio_CASE(logv) rio_CASE(loge) rio_logOp(vm, R, ip); rio_NEXT();
   rio_CASE(logn) rio_logOp(vm, R, ip); rio_NEXT2();
   rio_CASE(fail) return rio_assertFailed(vm, ip->a, rio_PC);
   rio_CASE(halt) return 0;

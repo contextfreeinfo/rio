@@ -294,6 +294,8 @@ typedef struct rio_Compiler {
   int storingArgs;        /* storing call arguments: views may go to a callee */
   uint64_t switchCases[16][4]; /* per open switch: which enum values (or union types) have a case */
   int switchCount;
+  uint16_t descType[32], descSlot[32]; /* types printed by descriptor (print.h), and where theirs are */
+  int descCount;
   struct {
     int32_t resultAt; /* the slot carrying its result (-1 once used by anything but and) */
     int32_t varAt, member; /* x is T: x's address and T's index in the union */
@@ -429,6 +431,8 @@ int rio_isLocalView(rio_Vm *vm, const rio_Expr *e);
 int rio_isLocalMemory(rio_Vm *vm, const rio_Expr *e);
 void rio_markLocalView(rio_Vm *vm, uint32_t addr, int words, int on);
 void rio_needValue(rio_Vm *vm, rio_Expr *e);
+int rio_descriptor(rio_Vm *vm, int type);
+int rio_printOperand(rio_Vm *vm, rio_Expr *e);
 void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type);
 void rio_coerce(rio_Vm *vm, rio_Expr *e, int type);
 int rio_toSlot(rio_Vm *vm, rio_Expr *e, int reuse);

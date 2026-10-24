@@ -7,7 +7,8 @@ ones that would need generics are written there in comments for now.
 ## log
 
 `log(a, b, ...)` writes its arguments as text on one line, with spaces between, to the host's log (the
-CLI prints it). It takes `Int`, `Float`, `Bool`, `String`, `Blob` and enum values:
+CLI prints it). It takes any value: numbers, `Bool`s, `String`s, `Blob`s, enums, and structs, arrays,
+slices, lists and unions:
 
 ```rio
 Dir :: enum
@@ -24,11 +25,44 @@ n 42 1.5 true east
 -0.25 100.0 1.0e9 0.333333 1.0e-5 123456792.0
 ```
 
+Structs, arrays, slices, lists and unions are written as Rio writes them, with text inside them quoted:
+
+```rio
+Point :: struct
+  x, y: Int
+end
+Shape :: union
+  nil
+  Point
+end
+s: Shape
+log(Point{x = 1, y = 2}, s)
+s = Point{x = 3, y = 4}
+names := [2]String{"Ann", "Bo"}
+log(s, names, names[1:2])
+big: [40]Int
+log(big)
+```
+
+```output
+Point{x = 1, y = 2} nil
+Point{x = 3, y = 4} ["Ann", "Bo"] ["Bo"]
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... 30 more]
+```
+
+A log line keeps it short: a long array, slice or list shows its first 10 elements and how many more,
+text inside a value its first 40 bytes, and a value nested more than 8 deep `...`. A line is cut at the
+host's log size too (256 bytes on most hosts). `format` writes all of a value, or none of it when it
+doesn't fit.
+
 How values become text, in `log` and `format`:
 
 - `Int`: decimal, with `-` when negative.
 - `Bool`: `true` or `false`. Enums: the value's name.
-- `String` and `Blob`: their bytes as they are.
+- `String` and `Blob`: their bytes as they are. Inside another value, quoted, with `"`, `\`, line
+  breaks, tabs and zeros escaped as in Rio's strings.
+- Structs: `Point{x = 1, y = 2}`. Arrays, slices and lists: `[1, 2, 3]` (of bytes: as text). Unions: the
+  value they hold, or `nil`. Proc values: `proc`.
 - `Float`: `nan`, `inf` or `-inf`, or else digits with one decimal point. Values from `1e-4` up to
   (not including) `1e9` are written plainly; others as a number from 1 to 10 and `e` with a power of
   ten, like `1.5e12`. Either way: about 7 significant digits, at most 6 after the point, rounded, with

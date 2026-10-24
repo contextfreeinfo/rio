@@ -312,6 +312,56 @@ tiny: Blob[..6]
 check(tiny.pushAll("abc") and not tiny.format("de", 12345) and tiny.len() == 3, "format is all or nothing")
 check(tiny.format(12) and tiny.push(65) and tiny[:].asString() == "abc12A" and not tiny.push(66), "push on a Blob list is a byte")
 check(tiny.format(), "format with nothing to add")
+
+# printing any value: structs, arrays, slices, lists and unions, by their types' descriptors
+PrDir :: enum
+  north, east
+end
+PrPoint :: struct
+  x, y: Int
+end
+PrBox :: struct
+  w, h: Float
+end
+PrShape :: union
+  nil
+  PrPoint, PrBox
+end
+PrThing :: struct
+  name: String
+  at: PrPoint
+  dir: PrDir
+  tags: [3]Int
+  ok: Bool
+  label: Blob[2]
+end
+prOut: Blob[..400]
+prSays :: proc(want: String) -> Bool
+  got := prOut[:].asString() == want
+  prOut.clear()
+  return got
+end
+prP := PrPoint{x = 1, y = -2}
+check(prOut.format(prP) and prSays("PrPoint{x = 1, y = -2}"), "format a struct")
+prXs := [4]Int{1, 2, 3, 4}
+check(prOut.format(prXs, " ", prXs[1:3]) and prSays("[1, 2, 3, 4] [2, 3]"), "format an array and a slice")
+prS: PrShape
+check(prOut.format(prS) and prSays("nil"), "format a union holding nil")
+prS = PrBox{w = 2.5, h = 3}
+check(prOut.format(prS) and prSays("PrBox{w = 2.5, h = 3.0}"), "format a union by what it holds")
+prT := PrThing{name = "say \"hi\"\n", at = prP, dir = PrDir.east, tags = {7, 8, 9}, ok = true}
+prT.label[0] = 65
+check(prOut.format(prT) and prSays("PrThing{name = \"say \\\"hi\\\"\\n\", at = PrPoint{x = 1, y = -2}, dir = east, tags = [7, 8, 9], ok = true, label = \"A\\0\"}"),
+      "format a struct of structs, enums, arrays and text (quoted inside a value)")
+prNs: [..8]Int
+check(prNs.push(10) and prNs.push(20) and prOut.format(prNs, " ", prNs[:]) and prSays("[10, 20] [10, 20]"), "format a list, and its view")
+prBig: [50]Int
+check(prOut.format(prBig) and prOut.len() == 150, "format writes all of a long array (no cut, unlike log)")
+prOut.clear()
+prTiny: Blob[..12]
+check(not prTiny.format("ab", prP) and prTiny.len() == 0, "format of a value that doesn't fit: none of it")
+prWs := [2]String{"one", "two"}
+check(prOut.format(prWs) and prSays("[\"one\", \"two\"]"), "strings inside an array are quoted")
 more: [..8]Int
 check(more.pushAll(nums) and not more.pushAll(nums) and more.len() == 5 and more[4] == 16, "pushAll is all or nothing")
 check(more.pushAll(nums[3:]) and more.len() == 7 and more[6] == 16, "pushAll from a slice")

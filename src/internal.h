@@ -4,6 +4,8 @@
 #define rio_INTERNAL_H
 #include <string.h>
 #include "rio.h"
+#include "print.h"
+rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with one) */
 
 #if defined(__GNUC__) || defined(__clang__)
 #ifndef rio_NO_CGOTO
@@ -68,6 +70,9 @@
      pusha                  a = address of a new last element of builder b, or 0 if full
      pushs                  a = append slice c to builder b (0 if it doesn't fit)
      pusht                  a = append the text of c to Blob builder b; x: 0 Int, 1 Float, 2 Bool
+     pushv                  a = append the text of value c to Blob builder b, by the descriptor in
+                            constant data a (print.h: c is a slice's or builder's slots, else holds an
+                            address)
      popa                   a = address of the removed last element of builder b
      lrem lswap             remove element b of builder a, keeping order / moving the last into it
      lview                  a, a+1 = slice of builder b's live elements
@@ -85,6 +90,7 @@
      ffi                    call ffi function c with its arguments at slot a
      logi logf logs logb    add a value to the log line (x: a space first)
      logn                   add enum value a by name (values at b, names at c)
+     logv                   add value a by the descriptor in constant b (print.h; a as pushv's c)
      loge                   end the log line
      fail                   a failed assert: a = its message (0: none)
      halt                   stop
@@ -98,11 +104,11 @@
   X(mov2) X(ldw2) X(stw) X(stb) X(stw2) X(stx) X(stxb) X(idx) X(slice) X(copy) X(movn) X(zero)       \
   X(enumck) X(enumname)                                                                              \
   X(vadd) X(vsub) X(vmul) X(vdiv) X(vmod) X(fvadd) X(fvsub) X(fvmul) X(fvdiv)                        \
-  X(lidx) X(pusha) X(pushs) X(pusht) X(popa) X(lrem) X(lswap) X(lview)                               \
+  X(lidx) X(pusha) X(pushs) X(pusht) X(pushv) X(popa) X(lrem) X(lswap) X(lview)                      \
   X(jmp) X(jz) X(jnz) X(jeq) X(jne) X(jlt) X(jle) X(jfeq) X(jfne) X(jflt) X(jfle) X(jfnlt) X(jfnle)  \
   X(each) X(fori)                                                                                    \
-  X(call) X(ret) X(calli) X(getret) X(ffi) X(logi) X(logf) X(logs) X(logb) X(logn) X(loge) X(fail)   \
-  X(halt) X(jit)
+  X(call) X(ret) X(calli) X(getret) X(ffi) X(logi) X(logf) X(logs) X(logb) X(logn) X(logv) X(loge)   \
+  X(fail) X(halt) X(jit)
 
 #define rio_OP_ENUM(o) rio_Op_##o,
 typedef enum {

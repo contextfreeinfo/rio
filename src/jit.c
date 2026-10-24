@@ -590,7 +590,7 @@ static int rio_compileRegion(rio_Jit *g, const rio_Instr *code, uint32_t first, 
       if (rio_regOf(A) >= 0) rio_loadSlot(g, rio_regOf(A), A);
       rio_forgetRegs(g);
       break;
-    case rio_Op_logi: case rio_Op_logf: case rio_Op_logs: case rio_Op_logb: case rio_Op_logn: case rio_Op_loge:
+    case rio_Op_logi: case rio_Op_logf: case rio_Op_logs: case rio_Op_logb: case rio_Op_logn: case rio_Op_logv: case rio_Op_loge:
       rio_spillRegs(g);
       rio_callJitOp(g, code, pc, first);
       if (in->op == rio_Op_logn) {

@@ -122,6 +122,8 @@ static int rio_rollback(rio_Vm *vm, const rio_ReplMark *m) {
   c->fieldCount = m->fieldCount;
   c->paramCount = m->paramCount;
   c->nameBytes = m->nameBytes;
+  for (i = 0; i < (uint32_t)c->descCount && c->descSlot[i] < m->constCount; i++) {} /* (descriptors only grow: the piece's go) */
+  c->descCount = (int)i;
   c->blockCount = c->valueCount = c->opCount = c->switchCount = c->unreachable = 0;
   c->curProc = -1;
   c->targetType = -1;
