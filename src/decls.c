@@ -188,10 +188,10 @@ void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type
   rio_Compiler *c = vm->compiler;
   rio_Type *ty = rio_type(vm, type);
   int addr;
-  if (ty->kind == rio_TypeKind_void ||
-      (!isRef && (ty->kind == rio_TypeKind_list ||
-                  ((ty->kind == rio_TypeKind_struct || ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_union) && ty->hasRefs))))
-    rio_FAIL(, "invalid parameter type (pass lists as [..]T)");
+  if (ty->kind == rio_TypeKind_void) rio_FAIL(, "invalid parameter type");
+  if (!isRef && ty->kind == rio_TypeKind_list) rio_FAIL(, "invalid parameter type (pass lists as [..]T)");
+  if (!isRef && (ty->kind == rio_TypeKind_struct || ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_union) && ty->hasRefs)
+    rio_FAIL(, "a struct, array or union holding slices or strings goes by reference: use &T");
   if (!isRef && rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
   addr = rio_allocSlots(vm, isRef ? 1 : rio_typeWords(vm, type)) * 4; /* a & parameter is one word holding the address,
                                                                      read through like self */

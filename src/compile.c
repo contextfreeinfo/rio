@@ -112,6 +112,7 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   vm->procs = 0;
   vm->jitFns = 0;
   vm->jitUsed = vm->jitCount = 0;
+  vm->freeAt = 0;
   if (!below || below > vm->memSize) below = vm->memSize;
   if (lim) l = *lim;
   else { /* the code (when it's compiled into scratch) gets a quarter, the tables scale to the rest */
@@ -513,6 +514,7 @@ static void rio_finish(rio_Vm *vm) {
   rio_noteCompile(vm);
   c->freeSlot = c->slotHigh;
   vm->callStackAt = (uint32_t)rio_allocSlots(vm, depth + 1) * 4; /* the return stack: the longest chain of calls */
+  vm->freeAt = c->slotHigh * 4;
   /* the block, built in the pool after the strings: exported names, then module file names */
   p = c->poolUsed;
   for (k = 0; k < c->symCount; k++) {

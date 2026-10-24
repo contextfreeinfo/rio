@@ -242,11 +242,13 @@ int rio_pcLine(rio_Vm *vm, uint32_t pc); /* source line of a bytecode position (
 /* ------------------------------------------------------------------ native code */
 
 /* Native code for simple loops (jit.c), on ARM with Thumb-2 (the RP2350's Cortex-M33): from now on,
-   whatever compiles (rio_compile, each REPL piece) or loads (rio_loadImage) also has its simple loops
-   and procs (math, compares, branches, arrays and fields, calls, log) compiled to machine code in
-   buf, before it runs. buf must be executable (SRAM on the RP2350) and stay valid. Returns how many
-   loops it compiled right away (for a program already compiled; loops and procs), or -1 where there's
-   no native code (any other machine). Errors and rio_interrupt work as in the VM. */
+   whatever compiles (rio_compile) or loads (rio_loadImage) also has its simple loops and procs (math,
+   compares, branches, arrays and fields, calls, log) compiled to machine code, before it runs. The code
+   goes in buf, which must be executable and stay valid; or, with buf NULL, in the vm's own memory, where
+   the program left it free (so mem must be executable: SRAM on the RP2350). Not for a REPL's pieces.
+   Compiling needs about 8 KB of room for a while, beyond what the code takes. Returns how many loops it
+   compiled right away (for a program already compiled; loops and procs), or -1 where there's no native
+   code (any other machine). Errors and rio_interrupt work as in the VM. */
 typedef uint32_t (*rio_JitFn)(rio_Val *slots, rio_Vm *vm);
 int rio_jit(rio_Vm *vm, void *buf, uint32_t size);
 void rio_jitOp(rio_Val *slots, rio_Vm *vm, const rio_Instr *ip); /* (for the native code) */
@@ -284,6 +286,8 @@ struct rio_Vm {
   uint32_t constCount;     /* constants used, in words from 0 (word 0 is always 0) */
   uint32_t constCap;       /* words reserved for constants; slots start here */
   uint32_t callStackAt;    /* the return stack */
+  uint32_t freeAt;         /* memory nothing uses runs from here to top (past the slots, and native code);
+                              0: unknown (a REPL's) */
   uint32_t exportsAt, exportCount; /* names the host can look up */
   uint32_t linesAt, linesSize;     /* the packed pc -> line table */
   uint32_t lineCachePos, lineCachePc, lineCacheLine; /* where the last line lookup stopped, so
@@ -310,7 +314,7 @@ struct rio_Vm {
   rio_Proc *procs;         /* per proc, in mem next to the strings */
   rio_JitFn *jitFns;       /* native loops (rio_Op_jit a: which) */
   int (*jitHook)(rio_Vm *vm); /* set by rio_jit: compiles what was just compiled or loaded */
-  void *jitBuf;
+  void *jitBuf;            /* the host's buffer for native code, or NULL: it goes at freeAt */
   uint32_t jitSize, jitUsed, jitCount;
   rio_Ffi ffi[rio_MAX_FFI];
   char logBuf[rio_LOG_BUF_SIZE];

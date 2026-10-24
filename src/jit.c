@@ -38,6 +38,12 @@ typedef struct {
   int held[16];            /* register -> the slot it holds, or -1 */
   const rio_Val *consts;   /* constant slots: below constCap, values known */
   uint32_t constCap;
+  rio_JitFn *fns;          /* the entry points so far, and each one's bytecode range [first, last] */
+  uint16_t (*ranges)[2];
+  uint16_t *labels;        /* scratch for one region: where each instruction's code starts (halfwords), */
+  uint8_t *isTarget;       /* which are jump targets, its branches and its exits */
+  struct rio_JitFix *fixes;
+  uint32_t *exitPcs, *exitAts;
 } rio_Jit;
 
 /* where the native code finds things in rio_Vm (r1 holds the vm) */
@@ -109,7 +115,7 @@ static void rio_cmpZero(rio_Jit *g, int rn) { rio_put32(g, 0xF1B0 | (uint32_t)rn
 
 /* branches are patched once targets are known: each records where it is, and where it goes (to >= 0: a
    bytecode pc; with the high bit, one inside the code being compiled) */
-typedef struct {
+typedef struct rio_JitFix {
   uint32_t at;
   int cond, to;
 } rio_JitFix;
@@ -165,20 +171,12 @@ static int rio_isInlineMath(int which) {
   return which == rio_Math1_sqrt || which == rio_Math1_abs || (rio_JIT_HAS_VRINT && (which == rio_Math1_floor || which == rio_Math1_ceil));
 }
 
-/* The buffer: a table of rio_JIT_MAX_NATIVE entry points, then each one's bytecode range [first, last],
-   then the code. */
-static uint16_t (*rio_nativeRanges(rio_Vm *vm))[2] {
-  return (uint16_t(*)[2])(void *)((uint8_t *)vm->jitBuf + rio_JIT_MAX_NATIVE * sizeof(rio_JitFn));
-}
-
 /* the proc starting at pc, if it's native code: its entry; else 0 */
 static uintptr_t rio_nativeProc(rio_Jit *g, uint32_t pc) {
   rio_Vm *vm = g->vm;
   const rio_Instr *in = &vm->code[pc];
-  uint16_t(*ranges)[2];
   if (in->op != rio_Op_jit) return 0;
-  ranges = rio_nativeRanges(vm);
-  return ranges[in->a][0] == pc && vm->code[ranges[in->a][1]].op == rio_Op_ret ? (uintptr_t)vm->jitFns[in->a] : 0;
+  return g->ranges[in->a][0] == pc && vm->code[g->ranges[in->a][1]].op == rio_Op_ret ? (uintptr_t)g->fns[in->a] : 0;
 }
 
 static int rio_touchesMemory(int op) { /* (an ffi function may write through the pointers it's given) */
@@ -225,6 +223,11 @@ static int rio_jitCompilable(rio_Jit *g, const rio_Instr *code, uint32_t first, 
 
 #define rio_JIT_MAX_FIXES 128 /* branches in one loop */
 #define rio_JIT_MAX_LEN 1024  /* longest loop compiled, in instructions */
+#define rio_JIT_MAX_EXITS 64  /* places one loop exits to */
+/* scratch, at the far end of the room while compiling (nothing static: on an MCU, RAM is the app's) */
+#define rio_JIT_SCRATCH \
+  (rio_JIT_MAX_NATIVE * ((uint32_t)sizeof(rio_JitFn) + 4) + rio_JIT_MAX_FIXES * (uint32_t)sizeof(rio_JitFix) + rio_JIT_MAX_EXITS * 8 + \
+   rio_JIT_MAX_LEN * 3)
 #define rio_JIT_REGS 8        /* r4-r11 hold the loop's busiest slots and constants */
 #define rio_JIT_PASS 0x7FFFFFFF /* (an exit that returns r12: a called proc's failure) */
 
@@ -410,11 +413,11 @@ static void rio_callJitOp(rio_Jit *g, const rio_Instr *code, uint32_t pc, uint32
 /* Native code for bytecode [first, last] (isProc: a whole proc's body); returns 0, or -1 if it doesn't
    fit. */
 static int rio_compileRegion(rio_Jit *g, const rio_Instr *code, uint32_t first, uint32_t last, int isProc) {
-  /* static, not on the stack: an MCU's main stack can be just 2 KB (the RP2350's default) */
-  static uint16_t labels[rio_JIT_MAX_LEN]; /* (halfwords, up to 128 KB of code) */
-  static uint32_t exitPcs[64], exitAts[64];
-  static uint8_t isTarget[rio_JIT_MAX_LEN];
-  static rio_JitFix fixes[rio_JIT_MAX_FIXES];
+  /* in the scratch, not on the stack: an MCU's main stack can be just 2 KB (the RP2350's default) */
+  uint16_t *labels = g->labels; /* (halfwords, up to 128 KB of code) */
+  uint32_t *exitPcs = g->exitPcs, *exitAts = g->exitAts;
+  uint8_t *isTarget = g->isTarget;
+  rio_JitFix *fixes = g->fixes;
   int fixCount = 0, i, memory;
   uint32_t pc, exitCount = 0, head = first;
   if (last - first + 1 > rio_JIT_MAX_LEN || !rio_jitCompilable(g, code, first, last, &memory)) return -1;
@@ -799,7 +802,7 @@ static int rio_compileRegion(rio_Jit *g, const rio_Instr *code, uint32_t first, 
       for (j = 0; j < exitCount && exitPcs[j] != to; j++) {}
       if (j == exitCount) {
         int k;
-        if (exitCount >= 64) return -1;
+        if (exitCount >= rio_JIT_MAX_EXITS) return -1;
         exitPcs[exitCount] = to;
         exitAts[exitCount++] = g->len;
         for (k = 0; k < rio_regCount; k++)
@@ -840,30 +843,56 @@ static int rio_addNative(rio_Jit *g, uint32_t first, uint32_t last, int isProc) 
     g->len = start;
     return -1;
   }
-  vm->jitFns[vm->jitCount] = (rio_JitFn)(uintptr_t)((uintptr_t)(g->out + start) | 1); /* (| 1: Thumb) */
-  rio_nativeRanges(vm)[vm->jitCount][0] = (uint16_t)first;
-  rio_nativeRanges(vm)[vm->jitCount][1] = (uint16_t)last;
+  g->fns[vm->jitCount] = (rio_JitFn)(uintptr_t)((uintptr_t)(g->out + start) | 1); /* (| 1: Thumb) */
+  g->ranges[vm->jitCount][0] = (uint16_t)first;
+  g->ranges[vm->jitCount][1] = (uint16_t)last;
   vm->code[first].op = rio_Op_jit;
   vm->code[first].a = (uint16_t)vm->jitCount++;
   return 0;
 }
 
-/* compiles what qualifies in the code, from where earlier compiles stopped; returns how many */
+/* Compiles what qualifies in the code, once it's compiled or loaded; returns how many. The room: the
+   host's buffer, else the vm's free memory (vm->freeAt up to vm->top, which nothing else uses once the
+   program's laid out). The code goes at its start, the scratch at its end; then the entry points move
+   to just after the code, the scratch is zeroed again, and (in the vm's memory) freeAt moves past them. */
 static int rio_jitAll(rio_Vm *vm) {
   rio_Instr *code = vm->code;
-  uint8_t *base = (uint8_t *)vm->jitBuf;
-  uint16_t(*ranges)[2] = rio_nativeRanges(vm);
-  uint32_t head = rio_JIT_MAX_NATIVE * (uint32_t)sizeof(rio_JitFn) + rio_JIT_MAX_NATIVE * 4, pc, k, first, last;
+  uint8_t *room, *scratch, *s;
+  uint32_t at = 0, size, used, pc, k, first, last;
+  rio_JitFn *fns;
   rio_Jit g;
   int count = 0;
-  g.out = (uint16_t *)(void *)(base + head);
-  g.cap = (vm->jitSize - head) / 2;
-  g.len = vm->jitUsed;
+  if (vm->inRepl) return 0; /* (a REPL's pieces take memory as they come) */
+  if (vm->jitBuf) {
+    room = (uint8_t *)vm->jitBuf;
+    size = vm->jitSize;
+  } else {
+    at = (vm->freeAt + 7) & ~7u;
+    if (!vm->freeAt || at >= vm->top) return 0;
+    room = vm->mem + at;
+    size = vm->top - at;
+  }
+  if (size < rio_JIT_SCRATCH + 256) return 0;
+  scratch = s = (uint8_t *)((uintptr_t)(room + size - rio_JIT_SCRATCH) & ~(uintptr_t)7);
+  g.fns = (rio_JitFn *)(void *)s;
+  s += rio_JIT_MAX_NATIVE * sizeof(rio_JitFn);
+  g.ranges = (uint16_t(*)[2])(void *)s;
+  s += rio_JIT_MAX_NATIVE * 4;
+  g.fixes = (rio_JitFix *)(void *)s;
+  s += rio_JIT_MAX_FIXES * sizeof(rio_JitFix);
+  g.exitPcs = (uint32_t *)(void *)s;
+  g.exitAts = g.exitPcs + rio_JIT_MAX_EXITS;
+  s += rio_JIT_MAX_EXITS * 8;
+  g.labels = (uint16_t *)(void *)s;
+  g.isTarget = s + rio_JIT_MAX_LEN * 2;
+  g.out = (uint16_t *)(void *)room;
+  g.cap = (uint32_t)(scratch - room) / 2;
+  g.len = 0;
   if (g.cap > 65535) g.cap = 65535; /* (labels are 16-bit) */
   g.consts = (const rio_Val *)(const void *)vm->mem;
   g.constCap = vm->constCap;
   g.vm = vm;
-  vm->jitFns = (rio_JitFn *)(void *)base;
+  vm->jitCount = 0;
   /* procs, callees first (they're defined before use, but a pass may leave one for the next) */
   for (;;) {
     int more = 0, i;
@@ -872,7 +901,7 @@ static int rio_jitAll(rio_Vm *vm) {
       first = vm->procs[i].entry;
       last = (uint32_t)vm->procs[i].end - 1u;
       if (vm->procs[i].end <= first || code[last].op != rio_Op_ret || last - first + 1 > rio_JIT_MAX_LEN) continue;
-      for (k = 0; k < vm->jitCount && !(first <= ranges[k][1] && last >= ranges[k][0]); k++) {} /* overlaps one done? */
+      for (k = 0; k < vm->jitCount && !(first <= g.ranges[k][1] && last >= g.ranges[k][0]); k++) {} /* overlaps one done? */
       if (k < vm->jitCount || !rio_jitCompilable(&g, code, first, last, &memory) || memory)
         continue; /* (memory ops would keep all its slots out of registers: its loops do better alone) */
       if (rio_addNative(&g, first, last, 1)) continue;
@@ -890,7 +919,7 @@ static int rio_jitAll(rio_Vm *vm) {
       first = code[pc].c;
       last = pc;
       if (last - first + 1 <= best || last - first + 1 > rio_JIT_MAX_LEN) continue;
-      for (k = 0; k < vm->jitCount && !(first >= ranges[k][0] && last <= ranges[k][1]); k++) {} /* inside one done? */
+      for (k = 0; k < vm->jitCount && !(first >= g.ranges[k][0] && last <= g.ranges[k][1]); k++) {} /* inside one done? */
       if (k < vm->jitCount) continue;
       if (!rio_jitCompilable(&g, code, first, last, &memory)) continue;
       bestFirst = first;
@@ -901,29 +930,35 @@ static int rio_jitAll(rio_Vm *vm) {
     if (rio_addNative(&g, bestFirst, bestLast, 0)) break; /* out of room: the rest stays bytecode */
     count++;
   }
-  if (g.len > vm->jitUsed) {
+  used = (g.len * 2 + 3) & ~3u;
+  fns = (rio_JitFn *)(void *)(room + used);
+  memmove(fns, g.fns, vm->jitCount * sizeof(rio_JitFn));
+  used += vm->jitCount * (uint32_t)sizeof(rio_JitFn);
+  memset(room + used, 0, (uint32_t)(scratch - room) + rio_JIT_SCRATCH - used);
+  vm->jitFns = vm->jitCount ? fns : 0;
+  if (g.len) {
 #if defined(__linux__) || defined(__APPLE__)
-    __builtin___clear_cache((char *)(g.out + vm->jitUsed), (char *)(g.out + g.len));
+    __builtin___clear_cache((char *)room, (char *)(room + g.len * 2));
 #else
     __asm volatile("dsb 0xF\n isb 0xF" ::: "memory");
 #endif
-    vm->jitUsed = g.len;
   }
+  vm->jitUsed = used;
+  if (!vm->jitBuf) vm->freeAt = at + used;
   return count;
 }
 
 int rio_jit(rio_Vm *vm, void *buf, uint32_t size) {
   uint8_t *b = (uint8_t *)(((uintptr_t)buf + 7) & ~(uintptr_t)7);
   uint32_t pad = (uint32_t)(b - (uint8_t *)buf);
-  if (!buf || size < pad + rio_JIT_MAX_NATIVE * (sizeof(rio_JitFn) + 4) + 256 || rio_OFFSET_INTERRUPTED >= 4096 ||
-      rio_OFFSET_TRAPPED >= 4096)
-    return -1;
-  vm->jitBuf = b;
-  vm->jitSize = size - pad;
+  if ((buf && size < pad + rio_JIT_SCRATCH + 256) || rio_OFFSET_INTERRUPTED >= 4096 || rio_OFFSET_TRAPPED >= 4096) return -1;
+  vm->jitBuf = buf ? b : 0;
+  vm->jitSize = buf ? size - pad : 0;
+  vm->jitHook = rio_jitAll;
+  if (vm->jitFns) return 0; /* (it's native already) */
   vm->jitUsed = 0;
   vm->jitCount = 0;
-  vm->jitHook = rio_jitAll;
-  return vm->ready && !vm->inRepl ? rio_jitAll(vm) : 0;
+  return vm->ready ? rio_jitAll(vm) : 0;
 }
 
 #else

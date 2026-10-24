@@ -37,6 +37,7 @@ static const Case cases[] = {
   {"xs: [2]Int\nfor x, in xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 2, "index name expected"},
   {"xs: [2]Int\nfor x, i on xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 10, 2, "'in' expected"},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(v)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 4, 1, "this parameter is a reference: pass &x"},
+  {"L :: struct\n  t: String\nend\nf :: proc(l: L)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 15, 1, "holding slices or strings goes by reference: use &T"},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(&v.h)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 7, 1, "type mismatch"},
   {"g :: proc() -> Int\n  return 1\nend\nr := &g()\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "& needs a variable, field or element that can be changed"},
   {"s := \"abc\"\nr := &s[0]\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "& needs a variable, field or element that can be changed"},

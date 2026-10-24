@@ -10,10 +10,10 @@ typedef enum {
   rio_Image_magic, rio_Image_version, rio_Image_memSize, rio_Image_codeLen, rio_Image_constCount,
   rio_Image_constCap, rio_Image_callStackAt, rio_Image_top, rio_Image_end, rio_Image_exportsAt,
   rio_Image_exportCount, rio_Image_linesAt, rio_Image_linesSize, rio_Image_modulesAt, rio_Image_moduleCount,
-  rio_Image_procCount, rio_Image_procsAt, rio_Image_ffiCount, rio_Image_codeAt,
+  rio_Image_procCount, rio_Image_procsAt, rio_Image_ffiCount, rio_Image_codeAt, rio_Image_freeAt,
   rio_Image_headerWords
 } rio_ImageHeader;
-#define rio_IMAGE_VERSION 3 /* (3: logv and pushv, numbered among the others) */
+#define rio_IMAGE_VERSION 4 /* (3: logv and pushv, numbered among the others; 4: freeAt) */
 #define rio_IMAGE_MAGIC 0x494F4952u /* "RIOI" */
 
 static int rio_littleEndian(void) {
@@ -50,6 +50,7 @@ static uint32_t rio_imageHeader(rio_Vm *vm, uint32_t *h) {
   h[rio_Image_constCount] = vm->constCount;
   h[rio_Image_constCap] = vm->constCap;
   h[rio_Image_callStackAt] = vm->callStackAt;
+  h[rio_Image_freeAt] = vm->freeAt;
   h[rio_Image_top] = vm->top;
   h[rio_Image_end] = end;
   h[rio_Image_exportsAt] = vm->exportsAt;
@@ -117,7 +118,7 @@ static int rio_headerOk(const uint32_t *h) {
   uint32_t procs = h[rio_Image_procsAt], modules = h[rio_Image_modulesAt], exports = h[rio_Image_exportsAt];
   uint32_t lines = h[rio_Image_linesAt], code = h[rio_Image_codeAt];
   return !(h[rio_Image_constCap] > mem / 4 || h[rio_Image_constCount] > h[rio_Image_constCap] ||
-           top < h[rio_Image_constCap] * 4 || end < top || end > mem || h[rio_Image_callStackAt] > top ||
+           top < h[rio_Image_constCap] * 4 || end < top || end > mem || h[rio_Image_callStackAt] > top || h[rio_Image_freeAt] > top ||
            h[rio_Image_procCount] > 65535 || h[rio_Image_moduleCount] > 65535 ||
            h[rio_Image_exportCount] > mem / sizeof(rio_Export) ||
            procs < top || procs + h[rio_Image_procCount] * sizeof(rio_Proc) > end ||
@@ -201,6 +202,7 @@ static int rio_loadEnd(rio_Vm *vm, const uint32_t *h, const rio_Ffi *ffi) {
   vm->constCount = h[rio_Image_constCount];
   vm->constCap = h[rio_Image_constCap];
   vm->callStackAt = h[rio_Image_callStackAt];
+  vm->freeAt = h[rio_Image_freeAt];
   vm->top = h[rio_Image_top];
   vm->exportsAt = h[rio_Image_exportsAt];
   vm->exportCount = h[rio_Image_exportCount];
