@@ -69,6 +69,7 @@ int rio_unionMember(rio_Vm *vm, int unionType, const rio_Expr *e) {
     int t = rio_field(vm, u->firstField + i)->type;
     if (t != rio_TypeId_void && t == rio_valueType(e->type)) return i;
   }
+  if (u->elem == rio_TypeId_float && e->kind == rio_ExprKind_const && e->type == rio_TypeId_int) return 1; /* (?Float = 1: as Float = 1) */
   return -1;
 }
 
@@ -79,6 +80,9 @@ int rio_storeIntoUnion(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
   rio_Expr tag = *dst, tagValue;
   rio_Field *f;
   if (member < 0 || (src->type == dst->type && src->kind != rio_ExprKind_const)) return 0;
+  /* two stores through dst's address: the first mustn't fuse with the instruction that computed it
+     (xs[i]'s idx), or the second finds no address */
+  if (dst->kind == rio_ExprKind_indirect) rio_label(vm);
   f = rio_field(vm, rio_type(vm, dst->type)->firstField + member);
   if (f->type != rio_TypeId_void) {
     rio_Expr payload = *dst;
@@ -115,7 +119,7 @@ static void rio_isOp(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
   if (r->kind == rio_ExprKind_type || (r->kind == rio_ExprKind_const && r->type == l->type)) member = rio_unionMember(vm, l->type, r);
   else rio_FAIL(, "is needs a type (or nil)");
   if (member < 0) rio_FAIL(, "not one of this union's types");
-  varAt = l->kind == rio_ExprKind_static && !l->access && l->value < rio_SLOTS_END ? l->value : -1;
+  varAt = rio_narrowableAt(vm, l);
   tag = *l;
   tag.type = rio_TypeId_int;
   tag.access = 0;
@@ -141,18 +145,36 @@ void rio_narrowIsTests(rio_Vm *vm, const rio_Expr *cond) {
   c->isTestCount = 0;
 }
 
-/* Inside a block that knows the union variable at varAt holds its type `member`: the name now reads as
-   that type, from a copy taken here (so it stays the right type whatever happens to the union). */
+/* a union e that `is` or a switch can narrow, as rio_narrow knows it: a variable's address, or a
+   reference's slot (a loop's element, a & parameter) with rio_REF_AT; or -1 */
+int32_t rio_narrowableAt(rio_Vm *vm, const rio_Expr *e) {
+  rio_Compiler *c = vm->compiler;
+  int k;
+  if (rio_type(vm, e->type)->kind != rio_TypeKind_union) return -1;
+  if (e->kind == rio_ExprKind_static && !e->access && e->value < rio_SLOTS_END) return e->value;
+  if (e->kind == rio_ExprKind_indirect && !e->offset && !(e->access & ~rio_Access_readOnly))
+    for (k = c->symCount - 1; k >= 0; k--)
+      if ((c->syms[k].kind == rio_SymKind_ref || c->syms[k].kind == rio_SymKind_readOnlyRef) && c->syms[k].value == e->value &&
+          c->syms[k].type == e->type)
+        return rio_REF_AT | e->value;
+  return -1;
+}
+
+/* Inside a block that knows the union variable at varAt (or through the reference, with rio_REF_AT)
+   holds its type `member`: the name now reads as that type, from a copy taken here (so it stays the
+   right type whatever happens to the union). */
 void rio_narrow(rio_Vm *vm, int32_t varAt, int member) {
   rio_Compiler *c = vm->compiler;
   rio_Symbol *y = 0;
   rio_Field *f;
   rio_Expr src, dst;
   uint32_t at;
-  int k;
+  int k, ref = (varAt & rio_REF_AT) != 0;
   for (k = c->symCount - 1; k >= 0; k--) {
     y = &c->syms[k];
-    if (y->kind == rio_SymKind_var && y->value == varAt && rio_type(vm, y->type)->kind == rio_TypeKind_union) break;
+    if (ref ? (y->kind == rio_SymKind_ref || y->kind == rio_SymKind_readOnlyRef) && y->value == (varAt & ~rio_REF_AT)
+            : y->kind == rio_SymKind_var && y->value == varAt)
+      if (rio_type(vm, y->type)->kind == rio_TypeKind_union) break;
   }
   if (k < 0) return;
   f = rio_field(vm, rio_type(vm, y->type)->firstField + member);
@@ -163,7 +185,10 @@ void rio_narrow(rio_Vm *vm, int32_t varAt, int member) {
     at = (uint32_t)rio_allocSlots(vm, rio_typeWords(vm, f->type)) * 4;
     c->liveSlots = c->freeSlot;
   }
-  src = rio_exprOf(rio_ExprKind_static, f->type, varAt + 4);
+  if (ref) {
+    src = rio_exprOf(rio_ExprKind_indirect, f->type, varAt & ~rio_REF_AT);
+    rio_offsetPlace(&src, 4);
+  } else src = rio_exprOf(rio_ExprKind_static, f->type, varAt + 4);
   dst = rio_exprOf(rio_ExprKind_static, f->type, (int32_t)at);
   rio_store(vm, &dst, &src);
   rio_addSymbol(vm, c->names + c->syms[k].name, c->syms[k].nameLen, rio_SymKind_narrowed, f->type, (int32_t)at);
@@ -236,6 +261,9 @@ void rio_binaryOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
     rio_coerce(vm, r, rio_TypeId_float);
     rt = rio_TypeId_float;
   }
+  if (lt != rt && (rio_type(vm, lt)->elem == rt || rio_type(vm, rt)->elem == lt) &&
+      (rio_type(vm, lt)->kind == rio_TypeKind_union || rio_type(vm, rt)->kind == rio_TypeKind_union))
+    rio_FAIL(, "this may be nil: check first (if x is T, then x is a T there)");
   if (lt != rt) rio_FAIL(, "type mismatch");
   isCompare = rio_isCompare(op);
   if ((lt == rio_TypeId_string || lt == rio_TypeId_blob) && (op == rio_Tok_eqEq || op == rio_Tok_notEq)) {

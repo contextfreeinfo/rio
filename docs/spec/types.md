@@ -138,6 +138,69 @@ true
 Types in a union that differ in size by more than 16 words are an error, since every value takes the
 biggest size. `union @diverse` allows it on purpose.
 
+## Maybes
+
+`?T` is a maybe: nil, or a `T`. It's a union of `nil` and `T` (a tag word, then the `T`), so it starts
+as nil and works as unions do: a `T` or `nil` can be stored in it, `is` tests it and narrows it, and a
+`switch` takes `case nil` and `case T`. It can be written anywhere a type can, and every `?T` is the
+same type, wherever it's written:
+
+```rio
+Point :: struct
+  x, y: Int
+end
+Enemy :: struct
+  hp: Int
+  target: ?Point   # (nothing to chase, to start)
+end
+find :: proc(xs: []Int, want: Int) -> ?Int
+  for x, i in xs
+    if x == want
+      return i
+    end
+  end
+  return nil
+end
+nums := [3]Int{5, 7, 9}
+at := find(nums[:], 9)
+if at is Int
+  log("at", at)  # here, at is the Int
+end
+log(find(nums[:], 4))
+e: Enemy
+log(e)
+e.target = Point{x = 3, y = 4}
+log(e.target)
+grid: [3]?Int
+grid[1] = 5
+log(grid)
+```
+
+```output
+at 2
+nil
+Enemy{hp = 0, target = nil}
+Point{x = 3, y = 4}
+[nil, 5, nil]
+```
+
+Prefixes nest, innermost last: `?[]?Int` is a maybe slice of maybe `Int`s. A `?T` can't be used as a
+`T` until it's checked:
+
+```rio
+x: ?Int = 2
+log(x + 1)  # error: this may be nil
+```
+
+A union that lists `nil` already, or a maybe, takes no `?`:
+
+```rio
+y: ??Int  # error: this can already be nil
+```
+
+A `?T` that holds views (`?String`, `?[]Int`) must be a global, as other unions holding them must
+(see [where views can live](#where-views-can-live)).
+
 ## Procs
 
 A proc type is written `proc(T, U) -> R`, or without `-> R` when there's no result. Parameter names

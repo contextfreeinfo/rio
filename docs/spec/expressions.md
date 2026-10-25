@@ -424,10 +424,11 @@ west true
 
 ## Unions and `is`
 
-A value of one of a union's types can be used as the union. `u is T` tests which type it holds. To
+A value of one of a union's types can be used as the union. `u is T` tests which type it holds (any
+type can be written there, `u is [3]Int` too, as in a `case`). To
 reach the value inside, narrow it: in the body of an `if` whose condition has `u is T` as one of
-its `and`-joined parts, or in a `case` naming one type, a union variable `u` means its `T` value (a read-only
-copy). Assigning to `u` there replaces the whole union, and from then on `u` is the union again:
+its `and`-joined parts, or in a `case` naming one type, a union variable `u` (or a loop's element, or a
+`&` parameter) means its `T` value (a read-only copy). Assigning to `u` there replaces the whole union, and from then on `u` is the union again:
 
 ```rio
 Circle :: struct

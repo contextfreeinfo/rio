@@ -404,7 +404,7 @@ static void rio_switchStatement(rio_Vm *vm) {
   if (k != rio_TypeKind_int && k != rio_TypeKind_enum && k != rio_TypeKind_union && type != rio_TypeId_string)
     rio_FAIL(, "switch needs an Int, an enum, a union or a String");
   /* a union variable: cases can narrow it */
-  narrowable = k == rio_TypeKind_union && e.kind == rio_ExprKind_static && !e.access && e.value < rio_SLOTS_END ? e.value / 4 : rio_NONE;
+  narrowable = rio_narrowableAt(vm, &e);
   if (k == rio_TypeKind_union) { /* its tag */
     rio_Expr tag = e;
     tag.type = rio_TypeId_int;
@@ -422,8 +422,8 @@ static void rio_switchStatement(rio_Vm *vm) {
   b->counter = (uint16_t)s;
   b->limit = (uint16_t)type;
   b->condJump = b->breaks = rio_NONE;
-  b->b = 0;
-  b->a = (uint16_t)narrowable;
+  b->b = narrowable >= 0 && (narrowable & rio_REF_AT) ? 4 : 0; /* (4: a is a reference's slot) */
+  b->a = (uint16_t)(narrowable < 0 ? rio_NONE : narrowable & rio_REF_AT ? narrowable & ~rio_REF_AT : narrowable / 4);
   b->caseSymCount = (uint16_t)c->symCount;
   b->caseNameBytes = (uint16_t)c->nameBytes;
   b->caseLiveSlots = (uint16_t)c->liveSlots;
@@ -465,7 +465,8 @@ static void rio_caseStatement(rio_Vm *vm) {
     rio_Expr v;
     int valueSlot, isUnion = rio_type(vm, b->limit)->kind == rio_TypeKind_union;
     c->targetType = b->limit;
-    v = rio_parseExpr(vm);
+    if (isUnion && c->tok.kind == '[') v = rio_exprOf(rio_ExprKind_type, rio_parseType(vm), 0); /* (case []Int) */
+    else v = rio_parseExpr(vm);
     if (isUnion) { /* case T: the index of the type */
       int j = v.kind == rio_ExprKind_type || (v.kind == rio_ExprKind_const && v.type == b->limit) ? rio_unionMember(vm, b->limit, &v) : -1;
       if (j < 0) rio_FAIL(, "not one of this union's types");
@@ -502,7 +503,7 @@ static void rio_caseStatement(rio_Vm *vm) {
       if (isUnion && body == rio_NONE && b->a != rio_NONE) { /* one type: the variable is that type inside */
         rio_patchJumps(vm, body, rio_label(vm));
         b->b |= 1;
-        rio_narrow(vm, (int32_t)b->a * 4, v.value);
+        rio_narrow(vm, b->b & 4 ? rio_REF_AT | (int32_t)b->a : (int32_t)b->a * 4, v.value);
         return;
       }
       break;

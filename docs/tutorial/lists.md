@@ -60,4 +60,4 @@ hp: 7/10!
 
 If it doesn't all fit, `format` changes nothing and gives `false`.
 
-Next: [methods, enums and unions](types.md).
+Next: [methods, enums, unions and maybes](types.md).

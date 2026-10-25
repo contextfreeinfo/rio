@@ -60,17 +60,25 @@ int rio_parseType(rio_Vm *vm) {
   return rio_procTypeOf(vm, params, n, result);
 }
 
-/* Any type but a proc type: prefixes ([N] [] [..N] [..] [Enum]), then a name, maybe through modules
-   (and Blob[N], Blob[..N], Blob[..]). The prefixes apply innermost last: [2][3]T is 2 of [3]T. */
+/* Any type but a proc type: prefixes ([N] [] [..N] [..] [Enum] ?), then a name, maybe through modules
+   (and Blob[N], Blob[..N], Blob[..]). The prefixes apply innermost last: [2][3]T is 2 of [3]T, and
+   ?[]?Int a maybe slice of maybe Ints. */
 static int rio_parseValueType(rio_Vm *vm) {
-  /* per prefix: n > 0 an array of n; -1 a slice; -2 a builder; -3 - n a list of n; and an enum, if any */
+  /* per prefix: n > 0 an array of n; -1 a slice; -2 a builder; -3 - n a list of n; and an enum, if any;
+     or a maybe */
   rio_Compiler *c = vm->compiler;
   int32_t prefix[16];
   int count = 0, t, i, enumOf[16];
-  while (c->tok.kind == '[') {
+  uint8_t maybe[16];
+  while (c->tok.kind == '[' || c->tok.kind == '?') {
     if (count >= 16) rio_FAIL(0, "type too deep");
-    rio_next(vm);
+    maybe[count] = c->tok.kind == '?';
     enumOf[count] = 0;
+    rio_next(vm);
+    if (maybe[count]) {
+      prefix[count++] = 0;
+      continue;
+    }
     if (c->tok.kind == ']') prefix[count++] = -1;
     else if (c->tok.kind == '.' && c->peek.kind == '.') {
       rio_next(vm);
@@ -109,7 +117,8 @@ static int rio_parseValueType(rio_Vm *vm) {
   }
   while (count) {
     int32_t n = prefix[--count];
-    if (enumOf[count]) t = rio_enumArrayOf(vm, t, enumOf[count]);
+    if (maybe[count]) t = rio_maybeOf(vm, t);
+    else if (enumOf[count]) t = rio_enumArrayOf(vm, t, enumOf[count]);
     else if (n == -1) t = rio_sliceOf(vm, t);
     else if (n == -2) t = rio_builderOf(vm, t);
     else if (n < -2) t = rio_listOf(vm, t, (uint32_t)(-3 - n));
@@ -301,6 +310,50 @@ static rio_Field *rio_addField(rio_Vm *vm, const char *name, int nameLen, int ty
   return f;
 }
 
+/* A type's fields so far (count of them, from its firstField), moved to the end of the table if making
+   the type of its next field (a proc type, a maybe) added fields of that type's own after them, so its
+   own stay together. */
+static void rio_keepFieldsTogether(rio_Vm *vm, rio_Type *t, int count) {
+  rio_Compiler *c = vm->compiler;
+  int i, first = c->fieldCount;
+  if (t->firstField + count == c->fieldCount) return;
+  for (i = 0; i < count; i++) {
+    int f = rio_newField(vm);
+    if (f < 0) return;
+    *rio_field(vm, f) = *rio_field(vm, t->firstField + i);
+  }
+  t->firstField = (uint16_t)first;
+}
+
+/* ?T: a union of nil and T, made once for each T. Not of a union that can already be nil, or a maybe */
+int rio_maybeOf(rio_Vm *vm, int t) {
+  rio_Compiler *c = vm->compiler;
+  rio_Type *y = rio_type(vm, t), *m;
+  const char *name = "value";
+  int i, nameLen = 5;
+  if (y->kind == rio_TypeKind_void) rio_FAIL(0, "invalid type");
+  if (y->kind == rio_TypeKind_union && y->fieldCount && rio_field(vm, y->firstField)->type == rio_TypeId_void)
+    rio_FAIL(0, "this can already be nil: no ? needed");
+  for (i = rio_TypeId_builtinCount; i < c->typeCount; i++) {
+    m = rio_type(vm, i);
+    if (m->kind == rio_TypeKind_union && m->elem == t) return i;
+  }
+  for (i = c->symCount - 1; i >= 0; i--) /* (T's name, for messages: this switch has no case for T) */
+    if (c->syms[i].kind == rio_SymKind_type && c->syms[i].type == t) {
+      name = c->names + c->syms[i].name;
+      nameLen = c->syms[i].nameLen;
+      break;
+    }
+  i = rio_newType(vm, rio_TypeKind_union, t, 0, 4 + rio_align4(y->size));
+  m = rio_type(vm, i);
+  m->firstField = (uint16_t)c->fieldCount;
+  m->hasRefs = y->hasRefs;
+  if (!rio_addField(vm, "nil", 3, rio_TypeId_void, 4) || !rio_addField(vm, name, nameLen, t, 4)) return 0;
+  m->fieldCount = 2;
+  if (m->size > 0xFFFF) rio_FAIL(0, "too large");
+  return i;
+}
+
 /* Name :: struct, then fields (a, b: T) one per line, then end. Fields are laid out in order. */
 void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
   rio_Compiler *c = vm->compiler;
@@ -318,6 +371,7 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
     n = rio_parseNames(vm, names, lens);
     t = rio_parseType(vm);
     if (rio_type(vm, t)->kind == rio_TypeKind_void) rio_FAIL(, "invalid field type");
+    rio_keepFieldsTogether(vm, st, st->fieldCount);
     for (j = 0; j < n; j++) {
       if (!rio_addField(vm, names[j], lens[j], t, offset)) return;
       offset += (int)rio_type(vm, t)->size;
@@ -362,6 +416,7 @@ void rio_unionDef(rio_Vm *vm, const char *name, int nameLen) {
     } else {
       t = rio_parseType(vm);
       if (rio_type(vm, t)->kind == rio_TypeKind_void) rio_FAIL(, "invalid type in a union");
+      rio_keepFieldsTogether(vm, u, n);
     }
     for (j = 0; j < n; j++)
       if (rio_field(vm, u->firstField + j)->type == t) rio_FAIL(, "type listed twice");

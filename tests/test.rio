@@ -1301,6 +1301,104 @@ viewsPassed :: proc()
 end
 viewsPassed()
 
+# ---- maybes: ?T, nil or a T
+MaybePoint :: struct
+  x, y: Int
+end
+Chaser :: struct
+  hp: Int
+  target: ?MaybePoint
+  speed: ?Float
+  after: Int        # (a field after maybes: the struct's fields stay together)
+end
+findAt :: proc(xs: []Int, want: Int) -> ?Int
+  for x, i in xs
+    if x == want
+      return i
+    end
+  end
+  return nil
+end
+doubled :: proc(n: ?Int) -> Int
+  if n is Int
+    return n * 2
+  end
+  return -1
+end
+maybeNums := [4]Int{5, 7, 9, 7}
+foundAt := findAt(maybeNums[:], 9)
+check(foundAt is Int, "a maybe returned, holding a value")
+if foundAt is Int
+  check(foundAt == 2, "narrowed to its Int")
+end
+check(findAt(maybeNums[:], 4) is nil, "a maybe returned, nil")
+chaser: Chaser
+check(chaser.target is nil and chaser.speed is nil and chaser.after == 0, "maybe fields start nil")
+chaser.target = MaybePoint{x = 3, y = 4}
+chaser.speed = 2
+chaser.after = 9
+chasing := chaser.target
+if chasing is MaybePoint
+  check(chasing.x + chasing.y == 7, "a maybe struct, narrowed")
+end
+check(chaser.after == 9, "the field after the maybes")
+speedSaid := 0
+switch chaser.speed
+case nil
+  speedSaid = 1
+case Float
+  speedSaid = 2
+end
+check(speedSaid == 2, "a switch on a maybe (an Int constant made a ?Float's Float)")
+maybeGrid: [3]?Int
+maybeGrid[1] = 5
+check(maybeGrid[0] is nil and maybeGrid[1] is Int, "an array of maybes")
+check(doubled(4) == 8 and doubled(nil) == -1, "maybe parameters: a value, nil")
+nestedMaybe: ?[]?Int
+check(nestedMaybe is nil, "?[]?Int: a maybe slice of maybes")
+nestedMaybe = maybeGrid[:]
+if nestedMaybe is []?Int
+  check(nestedMaybe.len() == 3 and nestedMaybe[1] is Int, "is with a written-out type, narrowed")
+end
+# a union stored into an array at an index only known running (its value and its tag both land)
+storedAt: [4]?Int
+for i in 0..<4
+  storedAt[i] = i * 10
+end
+whereAt := 2
+storedAt[whereAt] = 7
+check(storedAt[0] is Int and storedAt[3] is Int, "unions stored at running indexes")
+seen := 0
+seenSum := 0
+for m in storedAt # (a loop's element narrows, by if and by case)
+  if m is Int
+    seen += 1
+    seenSum += m
+  end
+  switch m
+  case nil
+    seen -= 100
+  case Int
+    seenSum += m
+  end
+end
+check(seen == 4 and seenSum == 2 * (0 + 10 + 7 + 30), "loop elements narrowed")
+plusOne :: proc(n: &?Int) -> Int # (a & parameter narrows too)
+  if n is Int
+    return n + 1
+  end
+  return 0
+end
+check(plusOne(&storedAt[2]) == 8, "a & parameter narrowed")
+# a struct with a proc type field not made before: its later fields stay its own
+Handler :: struct
+  id: Int
+  run: proc(Int, Float, Bool) -> Int
+  weight: Float
+end
+handler := Handler{id = 1, weight = 2.5}
+check(handler.id == 1 and handler.weight == 2.5, "fields after a new proc type")
+
 log("bool", true, false, "int", 42, "float", 1.25, "neg", -0.5, "big", 123456789.0, "str", GREETING)
 if fails == 0
   log("all tests passed")

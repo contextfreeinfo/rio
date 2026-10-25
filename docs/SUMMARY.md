@@ -10,7 +10,7 @@
 - [Values and procs](tutorial/basics.md)
 - [Data](tutorial/data.md)
 - [Lists and text](tutorial/lists.md)
-- [Methods, enums and unions](tutorial/types.md)
+- [Methods, enums, unions and maybes](tutorial/types.md)
 - [Modules](tutorial/modules.md)
 - [Embedding Rio in C](tutorial/embedding.md)
 

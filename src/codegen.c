@@ -289,6 +289,7 @@ void rio_coerce(rio_Vm *vm, rio_Expr *e, int type) {
     return;
   if ((fromKind == rio_TypeKind_array || fromKind == rio_TypeKind_slice) && toKind == rio_TypeKind_builder)
     rio_FAIL(, "a builder needs somewhere to keep its length: declare one first, name: [..]T = array");
+  if (fromKind == rio_TypeKind_union && rio_type(vm, from)->elem == type) rio_FAIL(, "this may be nil: check first (if x is T, then x is a T there)");
   rio_FAIL(, "type mismatch");
 }
 

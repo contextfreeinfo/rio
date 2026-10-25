@@ -57,7 +57,8 @@ extern const char rio_msgMissingEnd[], rio_msgUnclosedBracket[], rio_msgExpected
      array: an [Enum]T array keeps its enum in firstField
      enum: its values are fields (rio_enumValue); count is the first constant of a table of the values,
            and elem the first of their names' (address, length) string pairs, for fromInt, has and log
-     union: each type it lists is a field (type: rio_TypeId_void for nil, offset 4)
+     union: each type it lists is a field (type: rio_TypeId_void for nil, offset 4); a maybe, ?T, is a
+            union of nil and T, with T in elem (0 for the others)
      proc: the parameter types are fields; elem is the result (rio_TypeId_void: none) */
 typedef struct {
   uint8_t kind;    /* rio_TypeKind */
@@ -406,6 +407,7 @@ int rio_arrayOf(rio_Vm *vm, int elem, uint32_t count);
 int rio_enumArrayOf(rio_Vm *vm, int elem, int enumType);
 int rio_procTypeOf(rio_Vm *vm, const int *params, int n, int result);
 int rio_listOf(rio_Vm *vm, int elem, uint32_t count);
+int rio_maybeOf(rio_Vm *vm, int t);
 int rio_builderOf(rio_Vm *vm, int elem);
 int rio_findField(rio_Vm *vm, const rio_Type *type, const char *s, int n);
 int rio_findEnumValue(rio_Vm *vm, int type, const char *s, int n, int32_t *value);
@@ -459,6 +461,8 @@ int rio_storeIntoUnion(rio_Vm *vm, rio_Expr *dst, rio_Expr *src);
 void rio_isTestUsed(rio_Vm *vm, const rio_Expr *e, int carry);
 void rio_narrowIsTests(rio_Vm *vm, const rio_Expr *cond);
 void rio_narrow(rio_Vm *vm, int32_t varAt, int member);
+#define rio_REF_AT 0x40000000 /* (in a varAt: a reference's slot, such as a loop's element, not a variable's address) */
+int32_t rio_narrowableAt(rio_Vm *vm, const rio_Expr *e);
 int rio_narrowedSymbol(rio_Vm *vm, const rio_Expr *e);
 
 /* ------------------------------------------------------------------ expr.c */

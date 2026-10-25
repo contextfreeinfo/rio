@@ -1,4 +1,4 @@
-# Methods, enums and unions
+# Methods, enums, unions and maybes
 
 ## Methods
 
@@ -89,6 +89,59 @@ end
 ```
 
 `if s is Box` works too, and inside that `if`, `s` is the `Box`.
+
+## Maybes
+
+Some things may not be there: a search that finds nothing, an enemy with no target yet. `?T` is either
+nil or a `T`, and it starts as nil:
+
+```rio
+Item :: struct
+  name: String
+  price: Int
+  sale: ?Int     # a sale price, if there is one
+end
+items: [3]Item
+items[0] = Item{name = "lamp", price = 30}
+items[1] = Item{name = "rug", price = 80, sale = 60}
+items[2] = Item{name = "vase", price = 45}
+cost :: proc(it: &Item) -> Int
+  sale := it.sale
+  if sale is Int
+    return sale    # here, sale is the Int
+  end
+  return it.price
+end
+cheapest :: proc() -> ?Int # which item costs least under 50, if any does
+  best: ?Int
+  bestCost := 50
+  for i in 0..<3
+    if cost(&items[i]) < bestCost
+      best = i
+      bestCost = cost(&items[i])
+    end
+  end
+  return best
+end
+log(cost(&items[0]), cost(&items[1]))
+pick := cheapest()
+switch pick
+case nil
+  log("nothing under 50")
+case Int
+  log(items[pick].name)
+end
+log(items[1].sale, items[2].sale)
+```
+
+```output
+30 60
+lamp
+60 nil
+```
+
+Rio won't let a `?Int` be used as an `Int` until it's checked, so a missing value can't slip through
+as a 0 by mistake.
 
 ## Proc values
 

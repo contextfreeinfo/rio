@@ -38,6 +38,13 @@ static const Case cases[] = {
   {"xs: [2]Int\nfor x, i on xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 10, 2, "'in' expected"},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(v)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 4, 1, "this parameter is a reference: pass &x"},
   {"L :: struct\n  t: String\nend\nf :: proc(l: L)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 15, 1, "holding slices or strings goes by reference: use &T"},
+  /* maybes: ?T */
+  {"x: ??Int\n", 0, 0, 0, rio_ErrorKind_compile, 1, 6, -1, "this can already be nil"},
+  {"U :: union\n  nil\n  Int\nend\nx: ?U\n", 0, 0, 0, rio_ErrorKind_compile, 5, 5, -1, "this can already be nil"},
+  {"x: ?Int = 2\nlog(x + 1)\n", 0, 0, 0, rio_ErrorKind_compile, 2, 10, -1, "this may be nil: check first"},
+  {"f :: proc(n: Int) -> Int\n  return n\nend\nx: ?Int = 2\nlog(f(x))\n", 0, 0, 0, rio_ErrorKind_compile, 5, 8, -1, "this may be nil: check first"},
+  {"x: ?Int\nswitch x\ncase nil\n  log(1)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, 1, -1, "this switch has no case for Int"},
+  {"x: ?Int = 3.5\n", 0, 0, 0, rio_ErrorKind_compile, 1, 11, -1, "type mismatch"},
   /* views passed in are borrowed: kept past the call, they'd maybe view the caller's own memory; a call's result views what went in */
   {"g := \"\"\nkeep :: proc(s: String)\n  g = s\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, 7, -1, "came in as a parameter"},
   {"g := \"\"\nkeep :: proc(s: String)\n  t := s\n  g = t\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 7, -1, "came in as a parameter"},

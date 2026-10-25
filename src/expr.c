@@ -830,9 +830,13 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
       rio_FAIL_AT_TOKEN(rio_Expect_failed, "can't tell which struct or array this is; write Type{...} or [N]T{...}");
     rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
     return rio_Expect_operator; /* the '{' is next: the literal itself */
-  } else if (t == '[') { /* [N]T{...}, [..N]T{...} */
+  } else if (t == '[') { /* [N]T{...}, [..N]T{...}; or after is, any type: x is []Int */
     int type = rio_parseType(vm), k = rio_type(vm, type)->kind;
     if (rio_failed(vm)) return rio_Expect_failed;
+    if (c->opCount > x->opBase && rio_opTop(vm)->kind == rio_Pending_binary && rio_opTop(vm)->op == rio_Tok_is && c->tok.kind != '{') {
+      rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
+      return rio_Expect_operator;
+    }
     if (c->tok.kind != '{' || (k != rio_TypeKind_array && k != rio_TypeKind_list))
       rio_FAIL_AT_TOKEN(rio_Expect_failed, "only arrays and lists have literals here: [N]T{a, b} or [..N]T{a, b}");
     rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
