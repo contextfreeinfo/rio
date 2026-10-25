@@ -149,6 +149,25 @@ static void core(const char *path) {
     }
     if (!found) { printf("FAIL: core.rio doesn't declare the builtin %s\n", name); fails++; }
   }
+  /* its built-in structs, declared as plain ones: the same fields, in order, of the same types, as a
+     zeroed one of each prints them (0, 0.0, false, ...) */
+  {
+    static const char use[] = "\nlog(Format{})\n";
+    char builtin[256];
+    n++;
+    outn = 0; out[0] = 0;
+    rio_init(&vm, mem, sizeof mem, code, 8192);
+    rio_setLog(&vm, logfn, 0);
+    if (rio_compile(&vm, use, (uint32_t)strlen(use)) || rio_run(&vm)) { printf("FAIL: the builtin Format: %s\n", rio_error(&vm)); fails++; return; }
+    snprintf(builtin, sizeof builtin, "%s", out);
+    if (len + sizeof use > sizeof src) { printf("FAIL: core.rio is too long to check\n"); fails++; return; }
+    memcpy(src + len, use, sizeof use);
+    outn = 0; out[0] = 0;
+    rio_init(&vm, mem, sizeof mem, code, 8192);
+    rio_setLog(&vm, logfn, 0);
+    if (rio_compile(&vm, src, (uint32_t)strlen(src)) || rio_run(&vm)) { printf("FAIL: core.rio's Format: %s\n", rio_error(&vm)); fails++; return; }
+    if (strcmp(out, builtin)) { printf("FAIL: core.rio's Format isn't the builtin's: %s vs %s", out, builtin); fails++; }
+  }
 }
 
 int main(int argc, char **argv) {
@@ -201,12 +220,6 @@ int main(int argc, char **argv) {
   BAD("Nope :: @host struct\n", 0, 1, "the host has no type by this name");
   BAD("P :: struct\n  x: Int\nend\nQ :: @host struct\n", 0, 4, "the host has no type by this name");
   BAD("Int.x :: @host struct\n", 0, 1, "'proc' expected");
-  /* a builtin struct's fields, declared, must be its own */
-  OK("Format :: @host struct\n  width, digits: Int\n  places: Int\n  base, textWidth: Int\nend\nb: Blob[..8]\nok := b.format(Format{base = 16}, 255)\nlog(b[:].asString())\n", "ff\n");
-  BAD("Format :: @host struct\n  width, digits: Int\nend\n", 0, 3, "doesn't match the builtin: it has more fields");
-  BAD("Format :: @host struct\n  width, digits, place: Int\nend\n", 0, 2, "doesn't match the builtin: its next field is another");
-  BAD("Format :: @host struct\n  width: Float\nend\n", 0, 2, "doesn't match the builtin: the field's type is another");
-  BAD("Format :: @host struct\n  width, digits, places, base, textWidth, more: Int\nend\n", 0, 2, "doesn't match the builtin: it has no more fields");
   /* only @host, and only where declarations go */
   BAD("Int :: @nope struct\n", 0, 1, "unknown annotation (@host declares what the host provides)");
   BAD("f :: @host\n", 0, 1, "'proc' or 'struct' expected after @host");

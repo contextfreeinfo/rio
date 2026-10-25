@@ -11,8 +11,9 @@ Bool* :: @host struct     # true or false, stored as an Int (0 or 1)
 String* :: @host struct   # a read-only view of bytes: (address, length)
 Blob* :: @host struct     # a writable view of bytes: (address, length)
 
-# how format writes values (b.format(settings, ...)); each field's 0 is as print writes it
-Format* :: @host struct
+# how format writes values (b.format(settings, ...)); each field's 0 is as print writes it. Built in,
+# as declared here (tests/host.c checks it's the same)
+Format* :: struct
   width: Int              # numbers: at least this many bytes, padded with spaces (negative: on the right)
   digits: Int             # numbers: at least this many digits before the point, padded with zeros
   places: Int             # Floats: exactly this many digits after the point, rounded
