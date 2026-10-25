@@ -164,6 +164,30 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
   return 0;
 }
 
+/* Format, b.format's settings, as if declared (docs/spec/builtins.md#format):
+     Format :: struct
+       width, digits, places, base, textWidth: Int
+     end */
+static void rio_formatType(rio_Vm *vm) {
+  static const char *const names[] = {"width", "digits", "places", "base", "textWidth"};
+  rio_Compiler *c = vm->compiler;
+  int t = rio_newType(vm, rio_TypeKind_struct, 0, 0, 20), i;
+  rio_Type *st = rio_type(vm, t);
+  st->firstField = (uint16_t)c->fieldCount;
+  for (i = 0; i < 5; i++) {
+    int f = rio_newField(vm);
+    rio_Field *fd;
+    if (f < 0) return;
+    fd = rio_field(vm, f);
+    fd->name = (uint16_t)rio_addName(vm, names[i], (int)strlen(names[i]));
+    fd->nameLen = (uint16_t)strlen(names[i]);
+    fd->type = rio_TypeId_int;
+    fd->offset = (uint16_t)(4 * i);
+    st->fieldCount++;
+  }
+  rio_addSymbol(vm, "Format", 6, rio_SymKind_type, t, 0);
+}
+
 /* the built-in types and names, the host's ffi functions, and the -D defines. sources: auto-imports may
    come from the loader's sources (rio_openAutoImports), else they're made from the host procs */
 void rio_setupCompiler(rio_Vm *vm, int sources) {
@@ -190,6 +214,7 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
   }
   c->typeCount = rio_TypeId_builtinCount;
   for (i = 0; i < 5; i++) rio_addSymbol(vm, typeNames[i], (int)strlen(typeNames[i]), rio_SymKind_type, typeIds[i], 0);
+  rio_formatType(vm);
   rio_addSymbol(vm, "true", 4, rio_SymKind_const, rio_TypeId_bool, 1);
   rio_addSymbol(vm, "false", 5, rio_SymKind_const, rio_TypeId_bool, 0);
   for (i = 0; i < rio_Builtin_count; i++)

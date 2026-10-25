@@ -7,7 +7,7 @@
 const char *const rio_builtinNames[rio_Builtin_count] = {
   "log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod", "assert",
-  "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format",
+  "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format", "print",
   "toInt", "toFloat", "toBool", "asString", "fromInt", "has", "hexBlob",
 };
 
@@ -163,33 +163,60 @@ void rio_logArg(rio_Vm *vm, rio_PendingOp *call) {
   vm->compiler->freeSlot = e.tempStart;
 }
 
-/* b.format(...): the first argument is the builder, whose length is kept so a format that doesn't fit
-   can be undone, with an ok flag after it; each other argument is appended, and anded into the flag */
+/* b.print(...) and b.format(settings, ...): the first argument is the builder, whose length is kept so
+   text that doesn't fit can be undone, with an ok flag after it; each other argument is appended, and
+   anded into the flag. format's second is its settings (a Format), kept in its slots to the end, whose
+   address the rest are appended by (pushf) */
 void rio_formatArg(rio_Vm *vm, rio_PendingOp *call) {
   rio_Expr e = rio_popValue(vm);
   rio_Type *ty = rio_type(vm, e.type);
-  int k = ty->kind;
+  int k = ty->kind, spec = (int)(call->fieldsSet >> 32), isFormat = call->b == rio_Builtin_format;
   if (call->argCount == 0) { /* the builder */
     int t;
-    if ((k != rio_TypeKind_list && k != rio_TypeKind_builder) || ty->elem != rio_TypeId_byte) rio_FAIL(, "format needs a Blob list");
+    if ((k != rio_TypeKind_list && k != rio_TypeKind_builder) || ty->elem != rio_TypeId_byte)
+      rio_FAIL(, isFormat ? "format needs a Blob list" : "print needs a Blob list");
     call->c = rio_toSlot3(vm, &e);
     t = rio_allocSlots(vm, 2);
     rio_emit(vm, rio_Op_ldw, t, call->c, 0);
     rio_emit(vm, rio_Op_mov, t + 1, rio_constSlot(vm, 1), 0);
     call->fieldsSet = (uint64_t)t;
+  } else if (isFormat && call->argCount == 1) { /* its settings: their address, kept */
+    if (e.type != rio_TypeId_format) rio_FAIL(, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)");
+    spec = rio_printOperand(vm, &e);
+    call->fieldsSet |= (uint64_t)(uint32_t)spec << 32;
   } else {
-    int ok = (int)call->fieldsSet + 1, s, d;
-    if ((k == rio_TypeKind_slice || k == rio_TypeKind_array) && ty->elem == rio_TypeId_byte) {
-      s = rio_toSlot2(vm, &e);
+    int ok = (int)(uint32_t)call->fieldsSet + 1, s, d;
+    int text = (k == rio_TypeKind_slice || k == rio_TypeKind_array) && ty->elem == rio_TypeId_byte;
+    if (k == rio_TypeKind_enum) { /* its name */
+      int v = rio_toSlot(vm, &e, 1);
+      s = rio_allocSlots(vm, 2);
+      rio_emit(vm, rio_Op_enumname, s, v, (int)ty->count);
+      rio_emitData(vm, ty->elem, ty->fieldCount);
+      text = 1;
+    } else if (text) s = rio_toSlot2(vm, &e);
+    else s = -1;
+    if (isFormat) {
+      int kind = text ? 3 : k == rio_TypeKind_float ? 1 : k == rio_TypeKind_bool ? 2 : 0;
+      if (!text && k != rio_TypeKind_int && k != rio_TypeKind_float && k != rio_TypeKind_bool && k != rio_TypeKind_byte) { /* by descriptor */
+        int desc;
+        s = rio_printOperand(vm, &e);
+        desc = rio_descriptor(vm, e.type);
+        if (rio_failed(vm)) return;
+        d = rio_allocSlots(vm, 1);
+        rio_emit(vm, rio_Op_pushv, d, call->c, s);
+        rio_emitData(vm, spec, (uint32_t)desc);
+        rio_emit(vm, rio_Op_and, ok, ok, d);
+        vm->compiler->freeSlot = e.tempStart;
+        return;
+      }
+      if (s < 0) s = rio_toSlot(vm, &e, 1);
+      d = rio_allocSlots(vm, 1);
+      rio_emit(vm, rio_Op_pushf, d, call->c, s);
+      vm->code[vm->codeLen - 1].x = (uint8_t)kind;
+      rio_emitData(vm, 0, (uint32_t)spec);
+    } else if (text) {
       d = rio_allocSlots(vm, 1);
       rio_emit(vm, rio_Op_pushs, d, call->c, s);
-      rio_emitData(vm, 0, 1);
-    } else if (k == rio_TypeKind_enum) { /* its name */
-      int v = rio_toSlot(vm, &e, 1), name = rio_allocSlots(vm, 2);
-      rio_emit(vm, rio_Op_enumname, name, v, (int)ty->count);
-      rio_emitData(vm, ty->elem, ty->fieldCount);
-      d = rio_allocSlots(vm, 1);
-      rio_emit(vm, rio_Op_pushs, d, call->c, name);
       rio_emitData(vm, 0, 1);
     } else if (k == rio_TypeKind_int || k == rio_TypeKind_float || k == rio_TypeKind_bool || k == rio_TypeKind_byte) {
       s = rio_toSlot(vm, &e, 1);
@@ -212,8 +239,9 @@ void rio_formatArg(rio_Vm *vm, rio_PendingOp *call) {
 
 /* the end of format: if anything didn't fit, the old length goes back; the ok flag is the result */
 static void rio_finishFormat(rio_Vm *vm, rio_PendingOp *call) {
-  int t = (int)call->fieldsSet, j;
-  if (call->argCount < 1) rio_FAIL(, "format needs a Blob list");
+  int t = (int)(uint32_t)call->fieldsSet, j;
+  if (call->argCount < 1) rio_FAIL(, call->b == rio_Builtin_format ? "format needs a Blob list" : "print needs a Blob list");
+  if (call->b == rio_Builtin_format && call->argCount < 2) rio_FAIL(, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)");
   j = rio_emit(vm, rio_Op_jnz, t + 1, 0, rio_NONE);
   rio_emit(vm, rio_Op_stw, call->c, t, 0);
   rio_patchJumps(vm, j, rio_label(vm));
@@ -531,7 +559,7 @@ void rio_finishBuiltinCall(rio_Vm *vm, rio_PendingOp *call) {
   int id = call->b;
   if (id == rio_Builtin_min || id == rio_Builtin_max) rio_minMaxCall(vm, call);
   else if (id == rio_Builtin_assert) rio_assertCall(vm, call);
-  else if (id == rio_Builtin_format) rio_finishFormat(vm, call);
+  else if (id == rio_Builtin_format || id == rio_Builtin_print) rio_finishFormat(vm, call);
   else if (id == rio_Builtin_hexBlob) rio_hexBlobCall(vm, call);
   else if (id >= rio_Builtin_fromInt) rio_enumCall(vm, call);
   else if (id >= rio_Builtin_toInt) rio_convertCall(vm, call);

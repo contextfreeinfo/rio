@@ -82,7 +82,7 @@ void rio_logOp(rio_Vm *vm, const rio_Val *R, const rio_Instr *ip) {
   }
   case rio_Op_logv: { /* a struct, array, list, union, ...: by its descriptor, as much as the line holds */
     rio_Out o;
-    o.out = (uint8_t *)vm->logBuf; o.len = (uint32_t)vm->logLen; o.cap = rio_LOG_BUF_SIZE; o.capped = 1; o.full = 0;
+    o.out = (uint8_t *)vm->logBuf; o.len = (uint32_t)vm->logLen; o.cap = rio_LOG_BUF_SIZE; o.capped = 1; o.full = 0; o.spec = 0; o.spec = 0;
     rio_printValue(M, &o, ip->b, R[ip->a].u, R[ip->a + 1].u, R[ip->a + 2].u);
     vm->logLen = (int)o.len;
     break;
@@ -376,7 +376,20 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     rio_Out o;
     uint32_t lenAt = R[ip->b].u, n = rio_LIST_LEN(ip->b);
     o.out = M + R[ip->b + 1].u; o.len = n; o.cap = R[ip->b + 2].u; o.capped = 0; o.full = 0;
+    o.spec = ip[1].a ? R[ip[1].a].u : 0;
     rio_printValue(M, &o, rio_dataSize(ip + 1), R[ip->c].u, R[ip->c + 1].u, R[ip->c + 2].u);
+    if (o.full) R[ip->a].i = 0;
+    else {
+      rio_WORD(lenAt).u = o.len;
+      R[ip->a].i = 1;
+    }
+    rio_NEXT2();
+  }
+  rio_CASE(pushf) { /* as its settings say (data: the slot of their address), all of it or nothing */
+    rio_Out o;
+    uint32_t lenAt = R[ip->b].u, n = rio_LIST_LEN(ip->b);
+    o.out = M + R[ip->b + 1].u; o.len = n; o.cap = R[ip->b + 2].u; o.capped = 0; o.full = 0; o.spec = 0;
+    rio_outFormatted(M, &o, R[rio_dataSize(ip + 1)].u, ip->x, R[ip->c].u, ip->x == 3 ? R[ip->c + 1].u : 0);
     if (o.full) R[ip->a].i = 0;
     else {
       rio_WORD(lenAt).u = o.len;

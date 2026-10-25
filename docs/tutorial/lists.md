@@ -43,13 +43,13 @@ log(xs.len(), xs[4])
 
 ## Building text
 
-A list of bytes, `Blob[..N]`, builds text. `format` appends values as `log` would show them, but
+A list of bytes, `Blob[..N]`, builds text. `print` appends values as `log` would show them, but
 without spaces:
 
 ```rio
 line: Blob[..32]
 hp := 7
-line.format("hp: ", hp, "/", 10)
+line.print("hp: ", hp, "/", 10)
 line.push('!')
 log(line[:])
 ```
@@ -58,6 +58,17 @@ log(line[:])
 hp: 7/10!
 ```
 
-If it doesn't all fit, `format` changes nothing and gives `false`.
+If it doesn't all fit, `print` changes nothing and gives `false`. `format` does the same, with
+settings for widths, digits and bases first (see [format](../spec/builtins.md#format)):
+
+```rio
+row: Blob[..32]
+row.format({width = 3}, 7, 42, 100)
+log(row[:])
+```
+
+```output
+  7 42100
+```
 
 Next: [methods, enums, unions and maybes](types.md).

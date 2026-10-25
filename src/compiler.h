@@ -196,8 +196,9 @@ typedef struct {
                            an array's: 1 its values in order, 2 named (.name = value) */
   uint16_t valueBase;   /* the value stack's height when pushed: a call's arguments start there */
   uint16_t freeAtStart; /* the first free slot when pushed */
-  uint64_t fieldsSet;   /* literal: which of its first 64 fields have values; format: the slot of the
-                           builder's old length (and the ok flag after it) */
+  uint64_t fieldsSet;   /* literal: which of its first 64 fields have values; format and print: the
+                           slot of the builder's old length (and the ok flag after it), and for format,
+                           shifted up 32, the slot holding its settings' address */
 } rio_PendingOp;
 
 /* ------------------------------------------------------------------ blocks */
@@ -488,7 +489,7 @@ typedef enum {
   rio_Builtin_assert,
   /* list methods */
   rio_Builtin_push, rio_Builtin_pop, rio_Builtin_clear, rio_Builtin_cap, rio_Builtin_remove,
-  rio_Builtin_swapRemove, rio_Builtin_pushAll, rio_Builtin_format,
+  rio_Builtin_swapRemove, rio_Builtin_pushAll, rio_Builtin_format, rio_Builtin_print,
   /* conversion methods */
   rio_Builtin_toInt, rio_Builtin_toFloat, rio_Builtin_toBool, rio_Builtin_asString,
   /* Enum.fromInt and Enum.has */
@@ -497,6 +498,8 @@ typedef enum {
   rio_Builtin_count
 } rio_Builtin;
 extern const char *const rio_builtinNames[rio_Builtin_count];
+/* the built-in struct Format (b.format's settings): the first type after the built-in kinds */
+#define rio_TypeId_format rio_TypeId_builtinCount
 
 int rio_builtinNamed(const char *s, int n, int first, int last);
 void rio_logEnumName(rio_Vm *vm, rio_Expr *e, int space);

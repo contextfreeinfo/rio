@@ -283,6 +283,10 @@ static void rio_instruction(rio_Aot *a, int pc) {
     rio_print(a, "%s = rio_listPushText(%s, %s, %s, %d, %s);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), in->x,
               rio_V(C, 'v'));
     break;
+  case rio_Op_pushf:
+    rio_print(a, "%s = rio_pushFormatted(%s, %s, %s, %s, %d, %s, %s);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'),
+              rio_V((int)rio_dataSize(data), 'u'), in->x, rio_V(C, 'u'), in->x == 3 ? rio_V(C + 1, 'u') : "0u");
+    break;
   case rio_Op_popa:
     rio_print(a, "{ uint32_t b_ = %s, d_ = %s, n_ = rio_listLen(b_, %s); if (!n_) rio_RT_ERROR(\"pop from empty list\"); rio_WORD(b_).u = --n_; %s = d_ + n_ * %uu; }\n",
               rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_dataSize(data));
@@ -355,8 +359,8 @@ static void rio_instruction(rio_Aot *a, int pc) {
     for (j = 0; j < 3; j++) strcpy(w[j], j < (int)words ? rio_V(v + j, 'u') : "0u");
     if (in->op == rio_Op_logv) rio_print(a, "rio_logValue(%d, %du, %s, %s, %s);\n", in->x, d, w[0], w[1], w[2]);
     else
-      rio_print(a, "%s = rio_pushValue(%s, %s, %s, %du, %s, %s, %s);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), d,
-                w[0], w[1], w[2]);
+      rio_print(a, "%s = rio_pushValue(%s, %s, %s, %s, %du, %s, %s, %s);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'),
+                data->a ? rio_V(data->a, 'u') : "0u", d, w[0], w[1], w[2]);
     break;
   }
   case rio_Op_loge: rio_print(a, "rio_logEnd();\n"); break;
@@ -416,12 +420,16 @@ static const char *const rio_prelude =
   rio_PRINT_STRING(rio_PRINT_KINDS) "\n" rio_PRINTER(rio_PRINT_TEXT) "\n"
   "static inline void rio_logValue(int sp, uint32_t d, uint32_t w0, uint32_t w1, uint32_t w2) {\n"
   "  rio_Out o; if (sp && rio_logLen < 256) rio_logBuf[rio_logLen++] = ' ';\n"
-  "  o.out = (uint8_t *)rio_logBuf; o.len = (uint32_t)rio_logLen; o.cap = 256; o.capped = 1; o.full = 0;\n"
+  "  o.out = (uint8_t *)rio_logBuf; o.len = (uint32_t)rio_logLen; o.cap = 256; o.capped = 1; o.full = 0; o.spec = 0;\n"
   "  rio_printValue(rio_M, &o, d, w0, w1, w2); rio_logLen = (int)o.len;\n"
   "}\n"
-  "static inline int32_t rio_pushValue(uint32_t a, uint32_t dd, uint32_t cap, uint32_t d, uint32_t w0, uint32_t w1, uint32_t w2) {\n"
-  "  rio_Out o; o.out = rio_M + dd; o.len = rio_listLen(a, cap); o.cap = cap; o.capped = 0; o.full = 0;\n"
+  "static inline int32_t rio_pushValue(uint32_t a, uint32_t dd, uint32_t cap, uint32_t spec, uint32_t d, uint32_t w0, uint32_t w1, uint32_t w2) {\n"
+  "  rio_Out o; o.out = rio_M + dd; o.len = rio_listLen(a, cap); o.cap = cap; o.capped = 0; o.full = 0; o.spec = spec;\n"
   "  rio_printValue(rio_M, &o, d, w0, w1, w2); if (o.full) return 0; rio_WORD(a).u = o.len; return 1;\n"
+  "}\n"
+  "static inline int32_t rio_pushFormatted(uint32_t a, uint32_t dd, uint32_t cap, uint32_t spec, int kind, uint32_t w0, uint32_t w1) {\n"
+  "  rio_Out o; o.out = rio_M + dd; o.len = rio_listLen(a, cap); o.cap = cap; o.capped = 0; o.full = 0; o.spec = 0;\n"
+  "  rio_outFormatted(rio_M, &o, spec, kind, w0, w1); if (o.full) return 0; rio_WORD(a).u = o.len; return 1;\n"
   "}\n"
   "static inline void rio_listRemove(uint32_t a, uint32_t d, uint32_t cap, uint32_t i, uint32_t sz, int swap, int line) {\n"
   "  uint32_t n = rio_listLen(a, cap); if (i >= n) rio_rtError(\"index out of bounds\", line);\n"
@@ -485,7 +493,7 @@ int rio_aot(rio_Vm *vm, FILE *out, const char *hostFfi) {
   for (pc = 0; pc < (int)vm->codeLen; pc++) {
     int op = vm->code[pc].op;
     if (rio_isJump(op)) a->isLabel[vm->code[pc].c] = 1;
-    if (op == rio_Op_idx || op == rio_Op_enumck || op == rio_Op_enumname || op == rio_Op_logn || op == rio_Op_pushv || (op >= rio_Op_vadd && op <= rio_Op_fvdiv) ||
+    if (op == rio_Op_idx || op == rio_Op_enumck || op == rio_Op_enumname || op == rio_Op_logn || op == rio_Op_pushv || op == rio_Op_pushf || (op >= rio_Op_vadd && op <= rio_Op_fvdiv) ||
         op == rio_Op_slice || op == rio_Op_ldx || op == rio_Op_ldxb || op == rio_Op_stx || op == rio_Op_stxb)
       pc++; /* (its data word) */
   }

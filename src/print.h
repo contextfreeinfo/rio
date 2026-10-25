@@ -27,11 +27,11 @@
 
 /* rio_Out: where the text goes (out, from len, up to cap); capped: a log line's, so long sequences show
    their first rio_Print_shown elements and long nested text its first rio_Print_textShown bytes; full:
-   it ran out of room (the rest is dropped). The value is at an address in M (structs, arrays, lists,
+   it ran out of room (the rest is dropped); spec: format's settings' address, or 0. The value is at an address in M (structs, arrays, lists,
    unions), or is the words w0, w1, w2 themselves (a slice: address, length; a builder: the address of
    its length, of its data, its capacity) */
 #define rio_PRINTER(X) X(                                                                                \
-typedef struct { uint8_t *out; uint32_t len, cap; int capped, full; } rio_Out;                           \
+typedef struct { uint8_t *out; uint32_t len, cap, spec; int capped, full; } rio_Out;                           \
 static uint32_t rio_printWord(const uint8_t *M, uint32_t p) { uint32_t v; memcpy(&v, M + p, 4); return v; } \
 static void rio_outBytes(rio_Out *o, const void *s, uint32_t n) {                                         \
   if (n > o->cap - o->len) { n = o->cap - o->len; o->full = 1; }                                         \
@@ -58,12 +58,14 @@ static void rio_outQuoted(rio_Out *o, const uint8_t *s, uint32_t n) {           
   rio_outBytes(o, "\"", 1);                                                                              \
 }                                                                                                        \
 static void rio_printAt(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t p, int depth);                \
+static void rio_outFormatted(const uint8_t *M, rio_Out *o, uint32_t spec, int kind, uint32_t w0, uint32_t w1); \
 /* n elements of descriptor d's element type from address at: text, or [a, b, ...] */                    \
 static void rio_printElements(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t at, uint32_t n, int depth) { \
   uint32_t k = rio_printWord(M, d * 4), array = (k & 255) == rio_Print_array, i, shown;                  \
   uint32_t size = rio_printWord(M, (d + 1 + array) * 4), e = rio_printWord(M, (d + 2 + array) * 4);       \
   if (k & rio_Print_text) {                                                                              \
     if (depth) rio_outQuoted(o, M + at, n);                                                              \
+    else if (o->spec) rio_outFormatted(M, o, o->spec, 3, at, n);                    \
     else rio_outBytes(o, M + at, n);                                                                     \
     return;                                                                                              \
   }                                                                                                      \
@@ -82,22 +84,24 @@ static void rio_printAt(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t p, in
   if (o->full) return;                                                                                   \
   if (depth > rio_Print_depth) { rio_outBytes(o, "...", 3); return; }                                    \
   switch (k & 255) {                                                                                     \
-  case rio_Print_int: rio_outInt(o, (int32_t)rio_printWord(M, p)); return;                               \
-  case rio_Print_byte: rio_outInt(o, M[p]); return;                                                      \
+  case rio_Print_int: if (o->spec) rio_outFormatted(M, o, o->spec, 0, rio_printWord(M, p), 0); else rio_outInt(o, (int32_t)rio_printWord(M, p)); return;                               \
+  case rio_Print_byte: if (o->spec) rio_outFormatted(M, o, o->spec, 0, M[p], 0); else rio_outInt(o, M[p]); return;                                                      \
   case rio_Print_float: {                                                                                \
     char b[40]; float f; uint32_t w = rio_printWord(M, p);                                               \
+    if (o->spec) { rio_outFormatted(M, o, o->spec, 1, w, 0); return; }                \
     memcpy(&f, &w, 4);                                                                                   \
     rio_outBytes(o, b, (uint32_t)rio_formatFloat(b, f));                                                 \
     return;                                                                                              \
   }                                                                                                      \
-  case rio_Print_bool: if (rio_printWord(M, p)) rio_outBytes(o, "true", 4); else rio_outBytes(o, "false", 5); return; \
+  case rio_Print_bool: if (o->spec) rio_outFormatted(M, o, o->spec, 2, rio_printWord(M, p), 0); else if (rio_printWord(M, p)) rio_outBytes(o, "true", 4); else rio_outBytes(o, "false", 5); return; \
   case rio_Print_proc: rio_outBytes(o, "proc", 4); return;                                               \
   case rio_Print_enum: {                                                                                 \
     int32_t v = (int32_t)rio_printWord(M, p);                                                            \
     uint32_t values = rio_printWord(M, (d + 1) * 4), names = rio_printWord(M, (d + 2) * 4);              \
     n = rio_printWord(M, (d + 3) * 4);                                                                   \
     for (i = 0; i < n && (int32_t)rio_printWord(M, (values + i) * 4) != v; i++) {}                       \
-    if (i < n) rio_outBytes(o, M + rio_printWord(M, (names + 2 * i) * 4), rio_printWord(M, (names + 2 * i + 1) * 4)); \
+    if (i < n && o->spec) rio_outFormatted(M, o, o->spec, 3, rio_printWord(M, (names + 2 * i) * 4), rio_printWord(M, (names + 2 * i + 1) * 4)); \
+    else if (i < n) rio_outBytes(o, M + rio_printWord(M, (names + 2 * i) * 4), rio_printWord(M, (names + 2 * i + 1) * 4)); \
     else rio_outInt(o, v);                                                                               \
     return;                                                                                              \
   }                                                                                                      \
@@ -146,7 +150,60 @@ static void rio_printValue(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t w0
   if (k == rio_Print_slice) rio_printElements(M, o, d, w0, w1, 0);                                        \
   else if (k == rio_Print_builder) { n = rio_printWord(M, w0); rio_printElements(M, o, d, w1, n < w2 ? n : w2, 0); } \
   else rio_printAt(M, o, d, w0, 0);                                                                      \
-})
+}                                                                                                         \
+/* a value as format's settings say (pushf; docs/spec/builtins.md#format), at the address spec: width,    \
+   digits, places, base and textWidth, each 0 for as print does it (width for numbers, textWidth for      \
+   the rest). kind: 0 Int (w0), 1 Float (its bits, w0),                                                   \
+   2 Bool (w0), 3 text (address w0, length w1) */                                                         \
+static void rio_outPad(rio_Out *o, int32_t n) { while (n-- > 0 && !o->full) rio_outBytes(o, " ", 1); }    \
+static void rio_outFormatted(const uint8_t *M, rio_Out *o, uint32_t spec, int kind, uint32_t w0, uint32_t w1) { \
+  int32_t width = (int32_t)rio_printWord(M, spec), digits = (int32_t)rio_printWord(M, spec + 4);          \
+  int32_t places = (int32_t)rio_printWord(M, spec + 8), base = (int32_t)rio_printWord(M, spec + 12), n = 0, k = 0, at; \
+  char b[96], t[72]; const uint8_t *s = (const uint8_t *)b; uint32_t len, u;                              \
+  if (kind >= 2) width = (int32_t)rio_printWord(M, spec + 16); /* (text, Bools and enums: textWidth) */   \
+  if (digits > 64) digits = 64;                                                                           \
+  if (kind == 3) { s = M + w0; len = w1; }                                                                \
+  else if (kind == 2) { len = w0 ? 4u : 5u; memcpy(b, w0 ? "true" : "false", len); }                      \
+  else if (kind == 0) {                                                                                   \
+    if (base < 2 || base > 16) base = 10;                                                                 \
+    u = base == 10 && (int32_t)w0 < 0 ? 0u - w0 : w0;                                                     \
+    if (base == 10 && (int32_t)w0 < 0) b[n++] = '-';                                                      \
+    do { t[k++] = "0123456789abcdef"[u % (uint32_t)base]; u /= (uint32_t)base; } while (u);               \
+    while (k < digits) t[k++] = '0';                                                                      \
+    while (k) b[n++] = t[--k];                                                                            \
+    len = (uint32_t)n;                                                                                    \
+  } else {                                                                                                \
+    float f; double v, scale = 1; memcpy(&f, &w0, 4); v = f < 0 ? -(double)f : (double)f;                 \
+    if (places > 9) places = 9;                                                                           \
+    for (k = 0; k < places; k++) scale *= 10;                                                             \
+    if (places > 0 && f == f && v * scale < 1e18) {                                                       \
+      uint64_t q = (uint64_t)(v * scale + 0.5), whole = q / (uint64_t)scale, part = q % (uint64_t)scale;  \
+      if (f < 0 && q) b[n++] = '-';                                                                       \
+      k = 0;                                                                                              \
+      do { t[k++] = (char)('0' + whole % 10); whole /= 10; } while (whole);                               \
+      while (k < digits) t[k++] = '0';                                                                    \
+      while (k) b[n++] = t[--k];                                                                          \
+      b[n++] = '.';                                                                                       \
+      for (k = places - 1; k >= 0; k--) { b[n + k] = (char)('0' + part % 10); part /= 10; }               \
+      n += places;                                                                                        \
+    } else {                                                                                              \
+      n = rio_formatFloat(b, f);                                                                          \
+      at = b[0] == '-';                                                                                   \
+      for (k = at; k < n && b[k] >= '0' && b[k] <= '9'; k++) {}                                           \
+      if (k > at && k - at < digits) { /* (zeros before its whole part) */                                \
+        int32_t more = digits - (k - at);                                                                 \
+        memmove(b + at + more, b + at, (size_t)(n - at));                                                 \
+        memset(b + at, '0', (size_t)more);                                                                \
+        n += more;                                                                                        \
+      }                                                                                                   \
+    }                                                                                                     \
+    len = (uint32_t)n;                                                                                    \
+  }                                                                                                       \
+  if (width > 0) rio_outPad(o, width - (int32_t)len);                                                     \
+  rio_outBytes(o, s, len);                                                                                \
+  if (width < 0) rio_outPad(o, -width - (int32_t)len);                                                    \
+}                                                                                                         \
+)
 
 #define rio_PRINT_CODE(...) __VA_ARGS__
 #define rio_PRINT_TEXT(...) #__VA_ARGS__

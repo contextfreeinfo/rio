@@ -303,7 +303,7 @@ static void rio_member(rio_Vm *vm) {
              (k = rio_builtinNamed(t->text, t->len, rio_Builtin_toInt, rio_Builtin_asString)) >= 0) {
     method = rio_exprOf(rio_ExprKind_builtin, 0, k); /* conversions */
   } else if (ty->kind == rio_TypeKind_list || ty->kind == rio_TypeKind_builder) {
-    if ((k = rio_builtinNamed(t->text, t->len, rio_Builtin_push, rio_Builtin_format)) < 0) rio_FAIL(, "no such method");
+    if ((k = rio_builtinNamed(t->text, t->len, rio_Builtin_push, rio_Builtin_print)) < 0) rio_FAIL(, "no such method");
     method = rio_exprOf(rio_ExprKind_builtin, 0, k);
   } else {
     if ((i = rio_lookupMethod(vm, rio_valueType(e->type), t->text, t->len)) < 0)
@@ -596,7 +596,7 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     d = rio_allocSlots(vm, words);
     if (s != d && !(words == 1 && rio_retarget(vm, s, d))) rio_emit(vm, words == 2 ? rio_Op_mov2 : rio_Op_mov, d, s, 0);
     m->c += words;
-  } else if (m->a == rio_ExprKind_builtin && m->b == rio_Builtin_format) rio_formatArg(vm, m);
+  } else if (m->a == rio_ExprKind_builtin && (m->b == rio_Builtin_format || m->b == rio_Builtin_print)) rio_formatArg(vm, m);
   else if (m->a == rio_ExprKind_builtin && m->b == rio_Builtin_log) rio_logArg(vm, m);
   m->argCount++;
 }
@@ -742,6 +742,8 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
     return rio_field(vm, rio_type(vm, m->c)->firstField + m->argCount)->type;
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b == rio_Builtin_push && m->argCount == 1)
     return rio_type(vm, c->values[m->valueBase].type)->elem;
+  if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b == rio_Builtin_format && m->argCount == 1)
+    return rio_TypeId_format; /* b.format({width = 4}, ...) */
   return -1;
 }
 
@@ -860,7 +862,7 @@ static int rio_openCall(rio_Vm *vm, rio_ExprState *x) {
     o->b = callee.value;
     o->valueBase = (uint16_t)(c->valueCount - 1);
     o->freeAtStart = rio_valueTop(vm)->tempStart;
-    if (callee.kind == rio_ExprKind_builtin && callee.value == rio_Builtin_format) rio_argDone(vm, o);
+    if (callee.kind == rio_ExprKind_builtin && (callee.value == rio_Builtin_format || callee.value == rio_Builtin_print)) rio_argDone(vm, o);
     else o->argCount = 1;
     x->depth++;
     rio_next(vm);

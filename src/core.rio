@@ -11,6 +11,15 @@ Bool* :: @host struct     # true or false, stored as an Int (0 or 1)
 String* :: @host struct   # a read-only view of bytes: (address, length)
 Blob* :: @host struct     # a writable view of bytes: (address, length)
 
+# how format writes values (b.format(settings, ...)); each field's 0 is as print writes it
+Format* :: @host struct
+  width: Int              # numbers: at least this many bytes, padded with spaces (negative: on the right)
+  digits: Int             # numbers: at least this many digits before the point, padded with zeros
+  places: Int             # Floats: exactly this many digits after the point, rounded
+  base: Int               # Ints: 2 to 16, of the bits (-1 is ffffffff in base 16)
+  textWidth: Int          # text, Bools and enums' names: as width does for numbers
+end
+
 # ---------------------------------------------------------------- math
 
 abs* :: @host proc(x: Int) -> Int
@@ -72,8 +81,8 @@ Blob.cap* :: @host proc() -> Int
 # These take any element type T, any enum E, or any number of values, so they can't be declared yet.
 # Written in a pretend syntax: [T] after a name makes it generic, and ..T is any number of Ts.
 #
-#   log*[T: Loggable] :: @host proc(values: ..T)      # Int, Float, Bool, String, Blob or an enum; one
-#                                                     # line, spaces between
+#   log*[T: Printable] :: @host proc(values: ..T)     # any values; one line, spaces
+#                                                     # between
 #   ([]T).len*[T] :: @host proc() -> Int              # also on [N]T, [..N]T and [..]T
 #   ([..]T).cap*[T] :: @host proc() -> Int            # also on [N]T and []T
 #   ([..]T).push*[T] :: @host proc(value: T) -> Bool
@@ -82,7 +91,9 @@ Blob.cap* :: @host proc() -> Int
 #   ([..]T).clear*[T] :: @host proc()
 #   ([..]T).remove*[T] :: @host proc(i: Int)
 #   ([..]T).swapRemove*[T] :: @host proc(i: Int)
-#   (Blob[..]).format*[T: Loggable] :: @host proc(values: ..T) -> Bool   # as text, all or nothing
+#   (Blob[..]).print*[T: Printable] :: @host proc(values: ..T) -> Bool   # as text, all or nothing
+#   (Blob[..]).format*[T: Printable] :: @host proc(settings: Format, values: ..T) -> Bool
+#                                                     # as print, as settings say, inside values too
 #   E.fromInt*[E: enum] :: @host proc(n: Int) -> E    # a runtime error if n isn't one of E's values
 #   E.has*[E: enum] :: @host proc(n: Int) -> Bool
 #   (E).toInt*[E: enum] :: @host proc() -> Int

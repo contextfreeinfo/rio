@@ -52,10 +52,10 @@ Point{x = 3, y = 4} ["Ann", "Bo"] ["Bo"]
 
 A log line keeps it short: a long array, slice or list shows its first 10 elements and how many more,
 text inside a value its first 40 bytes, and a value nested more than 8 deep `...`. A line is cut at the
-host's log size too (256 bytes on most hosts). `format` writes all of a value, or none of it when it
-doesn't fit.
+host's log size too (256 bytes on most hosts). `print` and `format` write all of a value, or none of
+it when it doesn't fit.
 
-How values become text, in `log` and `format`:
+How values become text, in `log`, `print` and `format` (unless format's settings say otherwise):
 
 - `Int`: decimal, with `-` when negative.
 - `Bool`: `true` or `false`. Enums: the value's name.
@@ -138,7 +138,8 @@ These change a list `[..N]T` or a builder `[..]T` (`Blob[..N]` and `Blob[..]` to
 | `xs.clear()` | removes them all |
 | `xs.remove(i)` | removes element `i`, keeping the order of the rest |
 | `xs.swapRemove(i)` | removes element `i`, moving the last one into its place |
-| `b.format(...) -> Bool` | for byte lists: appends its arguments as text, as `log` would but without spaces; all or none |
+| `b.print(...) -> Bool` | for byte lists: appends its arguments as text, as `log` would but without spaces; all or none |
+| `b.format(settings, ...) -> Bool` | as `print`, as its settings say (see [format](#format)) |
 
 `remove` and `swapRemove` with `i` outside the list are runtime errors.
 
@@ -151,7 +152,7 @@ xs.remove(0)                 # 10 20 30
 xs.swapRemove(0)             # 30 20
 last := xs.pop()             # 20; leaves 30
 title: Blob[..16]
-title.format("hp ", 7, " ", 2.5)
+title.print("hp ", 7, " ", 2.5)
 log(xs.len(), xs[0], last, title[:])
 ```
 
@@ -163,6 +164,48 @@ log(xs.len(), xs[0], last, title[:])
 xs: [..2]Int
 log(xs.pop())  # runtime error: pop from empty list
 ```
+
+## format
+
+`b.format(settings, ...)` appends its values as `print` does, but as its first argument, a `Format`,
+says. A struct literal there needs no type name:
+
+```rio
+Format :: struct    # (built in)
+  width: Int        # numbers: at least this many bytes, padded with spaces (negative: on the right)
+  digits: Int       # numbers: at least this many digits before the point, padded with zeros
+  places: Int       # Floats: exactly this many digits after the point, rounded
+  base: Int         # Ints: 2 to 16, of the bits
+  textWidth: Int    # text, Bools and enums' names: as width does for numbers
+end
+```
+
+Each field's 0 is as `print` writes it. The settings apply to every value after them, and to every
+number and name inside a struct, array, slice, list or union (text inside a value stays quoted, and
+isn't padded). A `Format` after the first argument is just a value. For different settings, use
+another call:
+
+```rio
+b: Blob[..120]
+b.format({width = 4}, 7, ":", 42, " ")
+b.format({textWidth = -6}, "hp", true)
+b.format({digits = 2, places = 1}, 3.14159, " ", -0.25, " ")
+b.format({base = 16, digits = 4}, 48879, " ", 10, " ", -1)
+log(b[:])
+b.clear()
+b.format({digits = 3}, [3]Int{1, 20, 300})
+hex := Format{base = 16}
+b.format(hex, hex)
+log(b[:])
+```
+
+```output
+   7:  42 hp    true  03.1 -00.3 beef 000a ffffffff
+[001, 020, 300]Format{width = 0, digits = 0, places = 0, base = 10, textWidth = 0}
+```
+
+`base` writes an `Int`'s 32 bits, so a negative one has no `-` (`-1` is `ffffffff`). It's ignored for
+`Float`s, as `places` is for `Int`s.
 
 A builder `b: [..]T = array` (or a slice of one) builds into that memory, starting empty. Its length
 lives in a hidden word next to `b`, which every copy of `b` shares:

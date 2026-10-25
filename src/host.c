@@ -269,6 +269,29 @@ static void rio_declareBuiltin(rio_Vm *vm, const char *name, int nameLen, int re
 
 /* ------------------------------------------------------------------ declarations */
 
+/* a builtin struct's fields, as declared (Format :: @host struct, then them, then end): each must be
+   the builtin's, in its order, of its type */
+static void rio_hostFields(rio_Vm *vm, int type) {
+  rio_Compiler *c = vm->compiler;
+  rio_Type *ty = rio_type(vm, type);
+  int k = 0;
+  while (c->tok.kind != rio_Tok_end && !rio_failed(vm)) {
+    const char *names[16];
+    int lens[16], n, t, j, line = c->tok.line, col = c->tok.col;
+    if (c->tok.kind == rio_Tok_eof) rio_FAIL(, rio_msgMissingEnd);
+    n = rio_parseNames(vm, names, lens);
+    t = rio_parseType(vm);
+    for (j = 0; j < n && !rio_failed(vm); j++, k++) {
+      rio_Field *f = k < ty->fieldCount ? rio_field(vm, ty->firstField + k) : 0;
+      if (!f || f->nameLen != lens[j] || memcmp(c->names + f->name, names[j], (size_t)lens[j]))
+        rio_failAt(vm, line, col, lens[j], f ? "doesn't match the builtin: its next field is another" : "doesn't match the builtin: it has no more fields");
+      else if (f->type != t) rio_failAt(vm, line, col, lens[j], "doesn't match the builtin: the field's type is another");
+    }
+  }
+  if (!rio_failed(vm) && k < ty->fieldCount) rio_FAIL_AT_TOKEN(, "doesn't match the builtin: it has more fields");
+  rio_next(vm);
+}
+
 /* at the @ of `name :: @host ...` (receiver: a method's type, or -1); the name's * was seen if
    c->exporting is set. line and col: the name's */
 void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int line, int col) {
@@ -287,6 +310,7 @@ void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int l
       return;
     }
     rio_next(vm);
+    if (rio_type(vm, c->syms[sym].type)->kind == rio_TypeKind_struct) rio_hostFields(vm, c->syms[sym].type);
     c->exporting = exporting;
     rio_addSymbol(vm, name, nameLen, rio_SymKind_type, c->syms[sym].type, 0);
     return;

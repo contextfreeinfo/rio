@@ -201,6 +201,12 @@ int main(int argc, char **argv) {
   BAD("Nope :: @host struct\n", 0, 1, "the host has no type by this name");
   BAD("P :: struct\n  x: Int\nend\nQ :: @host struct\n", 0, 4, "the host has no type by this name");
   BAD("Int.x :: @host struct\n", 0, 1, "'proc' expected");
+  /* a builtin struct's fields, declared, must be its own */
+  OK("Format :: @host struct\n  width, digits: Int\n  places: Int\n  base, textWidth: Int\nend\nb: Blob[..8]\nok := b.format(Format{base = 16}, 255)\nlog(b[:].asString())\n", "ff\n");
+  BAD("Format :: @host struct\n  width, digits: Int\nend\n", 0, 3, "doesn't match the builtin: it has more fields");
+  BAD("Format :: @host struct\n  width, digits, place: Int\nend\n", 0, 2, "doesn't match the builtin: its next field is another");
+  BAD("Format :: @host struct\n  width: Float\nend\n", 0, 2, "doesn't match the builtin: the field's type is another");
+  BAD("Format :: @host struct\n  width, digits, places, base, textWidth, more: Int\nend\n", 0, 2, "doesn't match the builtin: it has no more fields");
   /* only @host, and only where declarations go */
   BAD("Int :: @nope struct\n", 0, 1, "unknown annotation (@host declares what the host provides)");
   BAD("f :: @host\n", 0, 1, "'proc' or 'struct' expected after @host");

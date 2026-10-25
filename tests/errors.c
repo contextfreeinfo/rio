@@ -84,7 +84,7 @@ static const Case cases[] = {
   /* views of a proc's own memory: the next call rewrites it, so they can't be returned or kept */
   {"f :: proc() -> []Int\n  a: [4]Int\n  return a[:]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this returns a view of the proc's own memory"},
   {"f :: proc() -> []Int\n  a: [4]Int\n  return a\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this returns a view of the proc's own memory"},
-  {"f :: proc(id: Int) -> String\n  buf: Blob[16]\n  b: Blob[..] = buf\n  b.format(\"p \", id)\n  return b[:].asString()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this returns a view of the proc's own memory"},
+  {"f :: proc(id: Int) -> String\n  buf: Blob[16]\n  b: Blob[..] = buf\n  b.print(\"p \", id)\n  return b[:].asString()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this returns a view of the proc's own memory"},
   {"f :: proc() -> [..]Int\n  xs: [..4]Int\n  return xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this returns a view of the proc's own memory"},
   {"ga: [4]Int\nf :: proc() -> [..]Int\n  b: [..]Int = ga\n  return b\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "this returns a view of the proc's own memory"}, /* its length lives here */
   {"g: []Int\nf :: proc()\n  a: [4]Int\n  g = a[:]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "this view of the proc's own memory would outlive the call"},
@@ -183,7 +183,10 @@ static const Case cases[] = {
   {"x := 1\nelse\n", 0, 0, 0, rio_ErrorKind_compile, 2, 1, 4, "'else' without 'if'"},
   {"x := 1\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 1, 3, "'end' without block"},
   {"x := 1\nreturn\n", 0, 0, 0, rio_ErrorKind_compile, 2, 1, 6, "return outside proc"},
-  {"xs: [..2]Int\nxs.format(1)\n",0, 0, 0, rio_ErrorKind_compile, 2, 10, 1, "format needs a Blob list"},
+  {"xs: [..2]Int\nxs.print(1)\n",0, 0, 0, rio_ErrorKind_compile, 2, 9, 1, "print needs a Blob list"},
+  {"b: Blob[..8]\nok := b.format(1, 2)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)"},
+  {"b: Blob[..8]\nok := b.format()\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)"},
+  {"b: Blob[..8]\nok := b.format({wide = 4}, 2)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "no such field"},
   {"S :: struct\n  x: Int\nend\nS.f :: proc()\n  self.f()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, 8, 1, "recursion is not allowed"},
   {"S :: struct\n  x: Int\nend\nS.x :: proc()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 3, 1, "same name as a field"},
   {"S :: struct\n  x: Int\nend\nS.f :: proc()\nend\nS.f :: proc()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, 3, 1, "method already defined"},
@@ -279,7 +282,7 @@ int main(void) {
     static const char *many = "a := 1\nb := 2\nc := 3\nd := 4\ne := 5\nf := 6\ng := 7\nh := 8\n";
     rio_Limits l = rio_limitsFor(sizeof scratch);
     rio_Error e;
-    l.symbols = 35; /* the builtins take 30, so the 6th global is one too many */
+    l.symbols = 36; /* the builtins take 31, so the 6th global is one too many */
     rio_init(&vm, mem, sizeof mem, code, 4096);
     if (!rio_compileWith(&vm, many, (uint32_t)strlen(many), scratch, sizeof scratch, &l) ||
         !strstr((e = rio_errorInfo(&vm)).msg, "too many symbols") || e.line != 6) {
