@@ -1272,6 +1272,35 @@ hx[0] = 1
 check(hexAt()[0] == 1 and hexAt().len() == 2, "hexBlob: a call gives the same bytes each time, like a global")
 check(hexBlob("").len() == 0, "hexBlob of nothing")
 
+# ---- views passed in are borrowed: copied to be kept; a call's result may view what went in
+keptName: Blob[..16]
+rename :: proc(s: String)
+  keptName.clear()
+  ok := keptName.pushAll(s)
+end
+viewLen :: proc(s: String) -> Int
+  return s.len()
+end
+viewRest :: proc(s: String) -> String
+  return s[1:]
+end
+keptRest := ""
+viewsPassed :: proc()
+  b: Blob[8]
+  b[0] = 'h'
+  b[1] = 'i'
+  rename(b[0:2].asString())
+  check(keptName[:].asString() == "hi", "a view passed in, copied to be kept")
+  check(viewLen(b[:].asString()) == 8, "a view of a local, passed in")
+  rest := viewRest(b[:].asString())
+  check(rest.len() == 7, "a view returned of a local's view, kept locally")
+  keptRest = viewRest("literal")
+  check(keptRest == "iteral", "a view returned of a constant, kept")
+  lenOf := viewLen
+  check(lenOf(b[:].asString()) == 8, "through a proc value")
+end
+viewsPassed()
+
 log("bool", true, false, "int", 42, "float", 1.25, "neg", -0.5, "big", 123456789.0, "str", GREETING)
 if fails == 0
   log("all tests passed")

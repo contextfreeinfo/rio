@@ -197,6 +197,8 @@ void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type
                                                                      read through like self */
   if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
   rio_addParam(vm, isRef ? rio_TypeId_int : type, isRef ? type : 0, addr);
+  if (!isRef && (ty->kind == rio_TypeKind_slice || ty->kind == rio_TypeKind_builder)) /* (a view from the caller: tracked) */
+    rio_markParamView(vm, (uint32_t)addr, rio_typeWords(vm, type), 1);
   rio_addSymbol(vm, name, nameLen, isRef ? rio_SymKind_ref : rio_SymKind_var, type, isRef ? addr / 4 : addr);
   c->procDefs[proc].paramCount++;
 }
@@ -536,7 +538,10 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
       /* the value is already in the next slots: they become the variable */
       c->liveSlots += (uint32_t)rio_typeWords(vm, type);
       c->freeSlot = c->liveSlots;
-      if (isView && c->curProc >= 0) rio_markLocalView(vm, (uint32_t)e.value, rio_typeWords(vm, type), localView);
+      if (isView && c->curProc >= 0) {
+        rio_markLocalView(vm, (uint32_t)e.value, rio_typeWords(vm, type), localView);
+        rio_markParamView(vm, (uint32_t)e.value, rio_typeWords(vm, type), e.fromParam);
+      }
       rio_addSymbol(vm, name, nameLen, rio_SymKind_var, type, e.value);
       return;
     }
@@ -551,7 +556,10 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
   } else if (!(big && c->curProc < 0 && !c->blockCount)) /* (a big top-level global starts zeroed) */
     rio_emit(vm, rio_Op_zero, rio_addrConst(vm, addr, ty->size), (int)(ty->size & 0xFFFF), (int)(ty->size >> 16));
   if (!big) c->liveSlots = c->freeSlot; /* after the store, so it can still write straight into the variable */
-  if ((k == rio_TypeKind_slice || k == rio_TypeKind_builder) && c->curProc >= 0 && !big) rio_markLocalView(vm, addr, rio_typeWords(vm, type), localView);
+  if ((k == rio_TypeKind_slice || k == rio_TypeKind_builder) && c->curProc >= 0 && !big) {
+    rio_markLocalView(vm, addr, rio_typeWords(vm, type), localView);
+    rio_markParamView(vm, addr, rio_typeWords(vm, type), has ? e.fromParam : 0);
+  }
   rio_addSymbol(vm, name, nameLen, rio_SymKind_var, type, (int32_t)addr);
 }
 

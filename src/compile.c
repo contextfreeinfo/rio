@@ -61,11 +61,12 @@ static uint32_t rio_layout(rio_Compiler *c, const rio_Limits *l) {
   uint32_t ops = rio_carve(&at, l->exprDepth, sizeof(rio_PendingOp), 8);
   uint32_t modules = rio_carve(&at, l->modules, sizeof(rio_Module), 2);
   uint32_t names = rio_carve(&at, l->nameBytes, 1, 1);
-  /* the bit sets, from exposed to localViews, are zeroed together */
+  /* the bit sets, from exposed to paramViews, are zeroed together */
   uint32_t exposed = rio_carve(&at, (l->slots + 7) / 8, 1, 1);
   uint32_t constIsString = rio_carve(&at, (l->consts + 7) / 8, 1, 1);
   uint32_t constIsAddr = rio_carve(&at, (l->consts + 7) / 8, 1, 1);
   uint32_t localViews = rio_carve(&at, (l->slots + 7) / 8, 1, 1);
+  uint32_t paramViews = rio_carve(&at, (l->slots + 7) / 8, 1, 1);
   uint32_t slotMap = rio_carve(&at, l->slots, 2, 2);
   uint32_t code = rio_carve(&at, l->code, sizeof(rio_Instr), 8);
   if (c) {
@@ -82,10 +83,11 @@ static uint32_t rio_layout(rio_Compiler *c, const rio_Limits *l) {
     c->constIsString = base + constIsString;
     c->constIsAddr = base + constIsAddr;
     c->localViews = base + localViews;
+    c->paramViews = base + paramViews;
     c->slotMap = (uint16_t *)(void *)(base + slotMap);
     c->modules = (rio_Module *)(void *)(base + modules);
     c->scratchCode = (rio_Instr *)(void *)(base + code);
-    memset(c->exposed, 0, localViews + (l->slots + 7) / 8 - exposed);
+    memset(c->exposed, 0, paramViews + (l->slots + 7) / 8 - exposed);
   }
   return (at + 15) & ~15u;
 }

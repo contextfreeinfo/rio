@@ -165,6 +165,7 @@ typedef struct {
   uint16_t type;
   uint16_t tempStart; /* the first free slot before its temporaries: freeing them goes back there */
   uint8_t localView;  /* a view of the current proc's own memory */
+  uint8_t fromParam;  /* a view that came in through a parameter of the current proc (its caller's) */
   int32_t value;      /* by kind: see rio_ExprKind */
   int32_t offset;     /* indirect: bytes past the address. (A const 0 with offset 1: xs[:b]'s left-out start) */
 } rio_Expr;
@@ -291,6 +292,7 @@ typedef struct rio_Compiler {
   uint8_t *constIsString; /* constants holding string pool offsets, relocated at the end */
   uint8_t *constIsAddr;   /* constants holding slot addresses, renumbered when frames are shared */
   uint8_t *localViews;    /* local slots that hold a view of their proc's own memory */
+  uint8_t *paramViews;    /* local slots that hold a view that came in through a parameter */
   int storingArgs;        /* storing call arguments: views may go to a callee */
   uint64_t switchCases[16][4]; /* per open switch: which enum values (or union types) have a case */
   int switchCount;
@@ -333,6 +335,7 @@ static inline rio_Expr rio_exprOf(int kind, int type, int32_t value) {
   e.kind = (uint8_t)kind;
   e.access = 0;
   e.localView = 0;
+  e.fromParam = 0;
   e.type = (uint16_t)type;
   e.tempStart = 0;
   e.value = value;
@@ -430,6 +433,7 @@ int rio_isTemp(rio_Vm *vm, const rio_Expr *e);
 int rio_isLocalView(rio_Vm *vm, const rio_Expr *e);
 int rio_isLocalMemory(rio_Vm *vm, const rio_Expr *e);
 void rio_markLocalView(rio_Vm *vm, uint32_t addr, int words, int on);
+void rio_markParamView(rio_Vm *vm, uint32_t addr, int words, int fromParam);
 void rio_needValue(rio_Vm *vm, rio_Expr *e);
 int rio_descriptor(rio_Vm *vm, int type);
 int rio_printOperand(rio_Vm *vm, rio_Expr *e);

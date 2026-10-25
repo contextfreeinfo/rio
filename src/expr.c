@@ -101,7 +101,10 @@ rio_Expr rio_symbolExpr(rio_Vm *vm, int sym) {
   case rio_SymKind_module: return rio_exprOf(rio_ExprKind_module, 0, y->value);
   case rio_SymKind_var:
     e = rio_exprOf(rio_ExprKind_static, y->type, y->value);
-    if (rio_isLocalMemory(vm, &e) && (uint32_t)e.value < vm->top) e.localView = (uint8_t)rio_bitGet(c->localViews, (uint32_t)e.value / 4);
+    if (rio_isLocalMemory(vm, &e) && (uint32_t)e.value < vm->top) {
+      e.localView = (uint8_t)rio_bitGet(c->localViews, (uint32_t)e.value / 4);
+      e.fromParam = (uint8_t)rio_bitGet(c->paramViews, (uint32_t)e.value / 4);
+    }
     return e;
   case rio_SymKind_const: { /* scalars are the value itself; a String, its constant */
     int k = rio_type(vm, y->type)->kind;
@@ -373,10 +376,11 @@ static void rio_index(rio_Vm *vm, rio_Expr *o, rio_Expr *i) {
 static void rio_slice(rio_Vm *vm, rio_Expr *o, rio_Expr *lo, rio_Expr *hi) {
   rio_Compiler *c = vm->compiler;
   rio_Type *ty;
-  int s, l, h, d, localView;
+  int s, l, h, d, localView, fromParam;
   rio_needValue(vm, o);
   ty = rio_type(vm, o->type);
   localView = rio_isLocalView(vm, o);
+  fromParam = o->fromParam;
   if (ty->kind == rio_TypeKind_list || ty->kind == rio_TypeKind_builder) { /* a slice of the live elements */
     int builder = rio_toSlot3(vm, o), view = rio_allocSlots(vm, 2), tempStart = o->tempStart;
     rio_emit(vm, rio_Op_lview, view, builder, 0);
@@ -407,6 +411,7 @@ static void rio_slice(rio_Vm *vm, rio_Expr *o, rio_Expr *lo, rio_Expr *hi) {
   o->value = d * 4;
   o->offset = 0;
   o->localView = (uint8_t)localView;
+  o->fromParam = (uint8_t)fromParam;
   if (ty->kind == rio_TypeKind_array) o->type = (uint16_t)rio_sliceOf(vm, ty->elem);
 }
 
@@ -602,14 +607,17 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
   int i, d;
   if (m->a == rio_ExprKind_proc) { /* arguments into the proc's parameters, then call */
     rio_ProcDef *p = &c->procDefs[m->b];
+    int resultLocal = 0, resultFrom = 0;
     if (m->argCount != p->paramCount) rio_FAIL(, "wrong number of arguments");
     for (i = 0; i < p->paramCount; i++) {
       rio_Param *param = &c->params[p->firstParam + i];
-      rio_Expr dst = rio_exprOf(rio_ExprKind_static, param->type, (int32_t)param->addr);
+      rio_Expr dst = rio_exprOf(rio_ExprKind_static, param->type, (int32_t)param->addr), *arg = &c->values[m->valueBase + i];
       if ((!i && p->selfByRef) || param->refType) { /* the place's address */
-        rio_emit(vm, rio_Op_mov, (int)(dst.value / 4), rio_toAddrSlot(vm, &c->values[m->valueBase + i]), 0);
+        rio_emit(vm, rio_Op_mov, (int)(dst.value / 4), rio_toAddrSlot(vm, arg), 0);
         continue;
       }
+      resultLocal |= rio_isLocalView(vm, arg); /* (a view it returns may view what went in) */
+      resultFrom |= arg->fromParam;
       c->storingArgs = 1;
       rio_store(vm, &dst, &c->values[m->valueBase + i]);
       c->storingArgs = 0;
@@ -623,10 +631,13 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
       return;
     }
     { /* the result is copied out: the next call of the proc would overwrite it */
+      int view = rio_type(vm, p->resultType)->kind == rio_TypeKind_slice || rio_type(vm, p->resultType)->kind == rio_TypeKind_builder;
       rio_Expr src = rio_exprOf(rio_ExprKind_static, p->resultType, (int32_t)p->resultAt), dst;
       d = rio_allocSlots(vm, rio_typeWords(vm, p->resultType));
       dst = rio_exprOf(rio_ExprKind_static, p->resultType, d * 4);
       rio_store(vm, &dst, &src);
+      dst.localView = (uint8_t)(view && resultLocal); /* (a view of what was passed in, maybe: as that was) */
+      dst.fromParam = (uint8_t)(view && resultFrom);
       rio_pushResult(vm, dst, m->freeAtStart);
     }
   } else if (m->a == rio_ExprKind_static) { /* through a proc value: the arguments go to a scratch area, the call copies them over */
@@ -635,9 +646,12 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
     if (m->argCount != type->fieldCount) rio_FAIL(, "wrong number of arguments");
     for (i = 0; i < type->fieldCount; i++) words += rio_typeWords(vm, rio_field(vm, type->firstField + i)->type);
     base = rio_allocSlots(vm, words ? words : 1);
+    int resultLocal = 0, resultFrom = 0;
     for (i = 0; i < type->fieldCount; i++) {
       int paramType = rio_field(vm, type->firstField + i)->type;
       rio_Expr dst = rio_exprOf(rio_ExprKind_static, paramType, (base + at) * 4);
+      resultLocal |= rio_isLocalView(vm, &c->values[m->valueBase + i]); /* (what it returns may view what went in) */
+      resultFrom |= c->values[m->valueBase + i].fromParam;
       c->storingArgs = 1;
       rio_store(vm, &dst, &c->values[m->valueBase + i]);
       c->storingArgs = 0;
@@ -653,7 +667,13 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
     }
     d = rio_allocSlots(vm, rio_typeWords(vm, type->elem));
     rio_emit(vm, rio_Op_getret, d, m->b, rio_typeWords(vm, type->elem));
-    rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, type->elem, d * 4), m->freeAtStart);
+    {
+      rio_Expr r = rio_exprOf(rio_ExprKind_static, type->elem, d * 4);
+      int view = rio_type(vm, type->elem)->kind == rio_TypeKind_slice || rio_type(vm, type->elem)->kind == rio_TypeKind_builder;
+      r.localView = (uint8_t)(view && resultLocal);
+      r.fromParam = (uint8_t)(view && resultFrom);
+      rio_pushResult(vm, r, m->freeAtStart);
+    }
   } else if (m->a == rio_ExprKind_ffi) { /* the arguments are in place; the result comes back in the first slot */
     rio_FfiDef *f = &c->ffi[m->b];
     if (m->argCount != f->paramCount) rio_FAIL(, "wrong number of arguments");

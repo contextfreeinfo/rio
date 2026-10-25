@@ -174,8 +174,11 @@ int rio_retarget(rio_Vm *vm, int from, int to) {
 /* ------------------------------------------------------------------ views of local memory */
 
 /* A proc's own memory keeps its type for good, so a view of it is always memory-safe, but the next call
-   rewrites it: returning one, or storing one where it outlives the call, is almost always a bug. This
-   catches the direct cases; views that come in as parameters aren't tracked. */
+   rewrites it: returning one, or storing one where it outlives the call, is almost always a bug. A view
+   that comes in as a parameter may be one of the caller's, so it's only borrowed: it can't be stored
+   where it outlives the call either (its bytes can be copied). And a call's result, if it's a view, may
+   view what was passed in, so it's taken as a view of the caller's own memory when any argument was. So
+   every rule is about one proc's own code: no proc's body changes what its callers may do. */
 
 /* e is storage of the proc being compiled */
 int rio_isLocalMemory(rio_Vm *vm, const rio_Expr *e) {
@@ -201,15 +204,28 @@ void rio_markLocalView(rio_Vm *vm, uint32_t addr, int words, int on) {
   }
 }
 
+/* marks (or unmarks) the slots at addr as holding a view that came in through a parameter */
+void rio_markParamView(rio_Vm *vm, uint32_t addr, int words, int fromParam) {
+  uint32_t s = addr / 4;
+  for (; words-- > 0; s++) {
+    if (fromParam) rio_bitSet(vm->compiler->paramViews, s);
+    else rio_bitClear(vm->compiler->paramViews, s);
+  }
+}
+
 /* A view stored into dst: into a local of this proc, that local now holds (or no longer holds) a view of
-   the proc's own memory; anywhere else, it mustn't be one. */
+   the proc's own memory, or one that came in through a parameter; anywhere else, it mustn't be either. */
 static void rio_storeView(rio_Vm *vm, const rio_Expr *dst, const rio_Expr *src) {
+  rio_Compiler *c = vm->compiler;
   int isLocal = rio_isLocalView(vm, src);
-  if (vm->compiler->curProc < 0 || vm->compiler->storingArgs) return;
-  if (dst->kind == rio_ExprKind_static && rio_isLocalMemory(vm, dst) && (uint32_t)dst->value < vm->top)
+  if (c->curProc < 0 || c->storingArgs) return;
+  if (dst->kind == rio_ExprKind_static && rio_isLocalMemory(vm, dst) && (uint32_t)dst->value < vm->top) {
     rio_markLocalView(vm, (uint32_t)dst->value, rio_typeWords(vm, dst->type), isLocal);
-  else if (isLocal)
+    rio_markParamView(vm, (uint32_t)dst->value, rio_typeWords(vm, dst->type), src->fromParam);
+  } else if (isLocal)
     rio_FAIL(, "this view of the proc's own memory would outlive the call: make that memory global, or have the caller pass it in");
+  else if (src->fromParam)
+    rio_FAIL(, "this view came in as a parameter, so it may view the caller's own memory: copy its bytes (a Blob builder's pushAll) to keep them past the call");
 }
 
 /* ------------------------------------------------------------------ values */

@@ -38,6 +38,12 @@ static const Case cases[] = {
   {"xs: [2]Int\nfor x, i on xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 10, 2, "'in' expected"},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(v)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 4, 1, "this parameter is a reference: pass &x"},
   {"L :: struct\n  t: String\nend\nf :: proc(l: L)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 15, 1, "holding slices or strings goes by reference: use &T"},
+  /* views passed in are borrowed: kept past the call, they'd maybe view the caller's own memory; a call's result views what went in */
+  {"g := \"\"\nkeep :: proc(s: String)\n  g = s\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, 7, -1, "came in as a parameter"},
+  {"g := \"\"\nkeep :: proc(s: String)\n  t := s\n  g = t\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 7, -1, "came in as a parameter"},
+  {"g := \"\"\nid :: proc(s: String) -> String\n  return s[1:]\nend\nf :: proc()\n  b: Blob[8]\n  g = id(b[:].asString())\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, 25, -1, "view of the proc's own memory would outlive the call"},
+  {"g := \"\"\nid :: proc(s: String) -> String\n  return s[1:]\nend\nf :: proc(s: String)\n  g = id(s)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, 11, -1, "came in as a parameter"},
+  {"g: []Int\nkeep :: proc(xs: []Int)\n  g = xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, 7, -1, "came in as a parameter"},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(&v.h)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 7, 1, "type mismatch"},
   {"g :: proc() -> Int\n  return 1\nend\nr := &g()\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "& needs a variable, field or element that can be changed"},
   {"s := \"abc\"\nr := &s[0]\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "& needs a variable, field or element that can be changed"},

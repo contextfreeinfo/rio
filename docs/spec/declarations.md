@@ -130,6 +130,39 @@ f :: proc() -> []Int
 end
 ```
 
+A view that comes in as a parameter may be one of the caller's own, so it's only borrowed: it can't
+be stored where it outlives the call either. To keep what it views, copy the bytes:
+
+```rio
+name := ""
+rename :: proc(s: String)
+  name = s  # error: this view came in as a parameter
+end
+```
+
+```rio
+name: Blob[..32]
+rename :: proc(s: String)
+  name.clear()
+  ok := name.pushAll(s)
+end
+f :: proc()
+  typed: Blob[8]
+  typed[0] = 'A'
+  rename(typed[0:1].asString())
+end
+f()
+log(name[:].asString())
+```
+
+```output
+A
+```
+
+And a call's result, when it's a view, may view what went in, so it's a view of the caller's own
+memory if any argument was. Each rule is about one proc's own code, so changing a proc's body never
+changes what its callers may do.
+
 ## Methods
 
 `Type.name :: proc` declares a method on a type. Inside, `self` is the value it was called on: for
