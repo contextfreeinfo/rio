@@ -183,7 +183,8 @@ typedef enum {
 } rio_PendingKind;
 
 /* a, b and c by kind:
-     and, or   a: the jump over the right side; b: the result's slot
+     and, or   a: the jump over the right side; b: the result's slot; and: c, argCount: the symbols and
+               name bytes before the left side's `x is T`s narrowed x for the right side
      index     a: 1 once a ':' made it a slice
      call      a: the callee's rio_ExprKind (proc, static for a proc value, ffi, builtin);
                b: which (proc, slot holding the proc value, ffi function, rio_Builtin);
@@ -476,7 +477,8 @@ int rio_unionMember(rio_Vm *vm, int unionType, const rio_Expr *e);
 int rio_storeIntoUnion(rio_Vm *vm, rio_Expr *dst, rio_Expr *src);
 void rio_isTestUsed(rio_Vm *vm, const rio_Expr *e, int carry);
 void rio_narrowIsTests(rio_Vm *vm, const rio_Expr *cond);
-void rio_narrow(rio_Vm *vm, int32_t varAt, int member);
+void rio_narrow(rio_Vm *vm, int32_t varAt, int member, int temp);
+void rio_narrowRight(rio_Vm *vm, int resultAt);
 #define rio_REF_AT 0x40000000 /* (in a varAt: a reference's slot, such as a loop's element, not a variable's address) */
 int32_t rio_narrowableAt(rio_Vm *vm, const rio_Expr *e);
 int rio_narrowedSymbol(rio_Vm *vm, const rio_Expr *e);

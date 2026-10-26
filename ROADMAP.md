@@ -68,8 +68,6 @@ already written, such as Rinc's and Studio's apps, so they come first.
 
 ## Next
 
-- **Narrowing through `and`:** in `if x is Int and x > 2`, x is an Int after the `and` and inside the
-  if. Today neither narrows, so maybes need nested ifs or a helper (tests/map.rio's `getOr`).
 - **Unicode escapes:** `\u{1F600}` in strings, written out as UTF-8. Numbers past 10FFFF and
   surrogates are errors.
 - **`end` in index brackets:** the last index, as in `xs[end]` and `xs[end - 2..=end]`. It works only
@@ -159,6 +157,8 @@ already written, such as Rinc's and Studio's apps, so they come first.
 
 ## Done recently
 
+- **Narrowing through `and`:** in `if x is Int and x > 2`, x is an Int after the `and`, not just in
+  the if's body.
 - **Packing:** `pack`, `unpack`, `getInt` and `setInt`.
 - **Hex escapes,** with logs escaping control bytes.
 - **Bitfields:** `Int(n)` and `Int(-n)`.

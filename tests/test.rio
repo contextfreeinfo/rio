@@ -1046,6 +1046,14 @@ if uhit and ua is Circle and ub is Circle
   uboth = ua.r + ub.r                 # every x is T joined by && narrows
 end
 check(uboth == 5, "narrowed by && parts of a condition")
+check(ua is Circle and ua.r == 2 and ub is Circle and ua.r + ub.r == 5, "narrowed on the right of and")
+check(ua is Circle and ua is Circle and not (ua is Box), "is on a narrowed name: known while compiling")
+umaybe: ?Int
+check(not (umaybe is Int and umaybe > 0), "and skips its right side when its left is false")
+umaybe = 3
+uright := 0
+if umaybe is Int and umaybe > 2 do uright = umaybe
+check(uright == 3, "narrowed on the right of and, then in the if")
 ucase := 0.0
 if ua is Box
   ucase = ua.w

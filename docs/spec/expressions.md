@@ -491,7 +491,10 @@ A value of one of a union's types can be used as the union. `u is T` tests which
 type can be written there, `u is [3]Int` too, as in a `case`). To
 reach the value inside, narrow it: in the body of an `if` whose condition has `u is T` as one of
 its `and`-joined parts, or in a `case` naming one type, a union variable `u` (or a loop's element, or a
-`&` parameter) means its `T` value (a read-only copy). Assigning to `u` there replaces the whole union, and from then on `u` is the union again:
+`&` parameter) means its `T` value (a read-only copy). The right side of an `and` is narrowed the
+same way by its left side, since it runs only when that's true, so `if n is Int and n > 2` works.
+Testing a narrowed `u` with `is` again is known while compiling. Assigning to `u` there replaces the
+whole union, and from then on `u` is the union again:
 
 ```rio
 Circle :: struct
@@ -510,9 +513,12 @@ if s is Box
   s = Circle{r = s.w}
 end
 log(s is Circle)
+n: ?Int = 4
+log(n is Int and n > 2)
 ```
 
 ```output
 6.0
+true
 true
 ```

@@ -617,7 +617,7 @@ static void rio_caseStatement(rio_Vm *vm) {
       if (isUnion && body == rio_NONE && b->a != rio_NONE) { /* one type: the variable is that type inside */
         rio_patchJumps(vm, body, rio_label(vm));
         b->b |= 1;
-        rio_narrow(vm, b->b & 4 ? rio_REF_AT | (int32_t)b->a : (int32_t)b->a * 4, v.value);
+        rio_narrow(vm, b->b & 4 ? rio_REF_AT | (int32_t)b->a : (int32_t)b->a * 4, v.value, 0);
         return;
       }
       break;

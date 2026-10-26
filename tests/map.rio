@@ -63,7 +63,7 @@ get :: proc(key: String) -> ?Int
   return values[i]
 end
 
-# the value, or else the default (a maybe can't yet be narrowed by `x is Int and ...`)
+# the value, or else the default
 getOr :: proc(key: String, default: Int) -> Int
   v := get(key)
   if v is Int do return v

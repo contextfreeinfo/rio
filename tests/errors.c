@@ -173,6 +173,10 @@ static const Case cases[] = {
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif not (u is B)\n  log(u.x)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "a union's value is reachable"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif (u is A) == true\n  log(u.x)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "a union's value is reachable"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif (u is A and t) or t\n  log(u.x)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "a union's value is reachable"},
+  /* the right side of an and is narrowed by the left side's x is T, but not an or's, and not past the and */
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := u is A or u.x > 0\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "a union's value is reachable"},
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := u is A and u.x > 0\nlog(u.x)\n", 0, 0, 0, rio_ErrorKind_compile, 12, -1, -1, "a union's value is reachable"},
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := u is A and (u.x > 0 or true) and u is Int\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "not one of this union's types"},
   /* [Enum]T */
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\nlog(c[0])\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "index this array with its enum"},
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\nlog(c[Tile.wall])\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "index this array with its enum"},

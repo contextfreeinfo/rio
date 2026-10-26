@@ -108,6 +108,29 @@ void rio_isTestUsed(rio_Vm *vm, const rio_Expr *e, int carry) {
     if (c->isTests[i].resultAt == e->value) c->isTests[i].resultAt = carry;
 }
 
+/* x is T where x is narrowed already (if x is A and x is B): known while compiling, from the union it
+   was narrowed from */
+static int rio_isNarrowedOp(rio_Vm *vm, rio_Expr *l, const rio_Expr *r) {
+  rio_Compiler *c = vm->compiler;
+  rio_Symbol *y;
+  int k = rio_narrowedSymbol(vm, l), u, member, tempStart = l->tempStart;
+  if (k < 0) return 0;
+  for (u = k - 1; u >= 0; u--) {
+    y = &c->syms[u];
+    if (y->kind != rio_SymKind_narrowed && y->nameLen == c->syms[k].nameLen &&
+        !memcmp(c->names + y->name, c->names + c->syms[k].name, y->nameLen) && rio_type(vm, y->type)->kind == rio_TypeKind_union)
+      break;
+  }
+  if (u < 0) return 0;
+  u = c->syms[u].type;
+  if (r->kind == rio_ExprKind_type || (r->kind == rio_ExprKind_const && r->type == u)) member = rio_unionMember(vm, u, r);
+  else rio_FAIL(1, "is needs a type (or nil)");
+  if (member < 0) rio_FAIL(1, "not one of this union's types");
+  *l = rio_exprOf(rio_ExprKind_const, rio_TypeId_bool, rio_field(vm, rio_type(vm, u)->firstField + member)->type == l->type);
+  l->tempStart = (uint16_t)tempStart;
+  return 1;
+}
+
 /* u is T, u is nil: compare the tag */
 static void rio_isOp(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
   rio_Compiler *c = vm->compiler;
@@ -115,6 +138,7 @@ static void rio_isOp(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
   int32_t varAt;
   rio_Expr tag, tagValue;
   rio_needValue(vm, l);
+  if (rio_isNarrowedOp(vm, l, r)) return;
   if (rio_type(vm, l->type)->kind != rio_TypeKind_union) rio_FAIL(, "is tests which type a union holds");
   if (r->kind == rio_ExprKind_type || (r->kind == rio_ExprKind_const && r->type == l->type)) member = rio_unionMember(vm, l->type, r);
   else rio_FAIL(, "is needs a type (or nil)");
@@ -141,8 +165,17 @@ void rio_narrowIsTests(rio_Vm *vm, const rio_Expr *cond) {
   int i;
   for (i = 0; i < c->isTestCount; i++)
     if (cond->kind == rio_ExprKind_static && c->isTests[i].resultAt == cond->value)
-      rio_narrow(vm, c->isTests[i].varAt, c->isTests[i].member);
+      rio_narrow(vm, c->isTests[i].varAt, c->isTests[i].member, 0);
   c->isTestCount = 0;
+}
+
+/* the right side of an and, which runs only when the left side (its result at resultAt) is true: each
+   x is T the left side carries narrows x there, from a temporary copy (the and's end drops the names) */
+void rio_narrowRight(rio_Vm *vm, int resultAt) {
+  rio_Compiler *c = vm->compiler;
+  int i;
+  for (i = 0; i < c->isTestCount; i++)
+    if (c->isTests[i].resultAt == resultAt) rio_narrow(vm, c->isTests[i].varAt, c->isTests[i].member, 1);
 }
 
 /* a union e that `is` or a switch can narrow, as rio_narrow knows it: a variable's address, or a
@@ -162,8 +195,8 @@ int32_t rio_narrowableAt(rio_Vm *vm, const rio_Expr *e) {
 
 /* Inside a block that knows the union variable at varAt (or through the reference, with rio_REF_AT)
    holds its type `member`: the name now reads as that type, from a copy taken here (so it stays the
-   right type whatever happens to the union). */
-void rio_narrow(rio_Vm *vm, int32_t varAt, int member) {
+   right type whatever happens to the union). temp: in an expression, the copy in a temporary slot. */
+void rio_narrow(rio_Vm *vm, int32_t varAt, int member, int temp) {
   rio_Compiler *c = vm->compiler;
   rio_Symbol *y = 0;
   rio_Field *f;
@@ -180,6 +213,7 @@ void rio_narrow(rio_Vm *vm, int32_t varAt, int member) {
   f = rio_field(vm, rio_type(vm, y->type)->firstField + member);
   if (f->type == rio_TypeId_void) return;
   if (rio_isBig(rio_type(vm, f->type))) at = rio_allocHigh(vm, rio_type(vm, f->type)->size);
+  else if (temp) at = (uint32_t)rio_allocSlots(vm, rio_typeWords(vm, f->type)) * 4;
   else {
     c->freeSlot = c->liveSlots;
     at = (uint32_t)rio_allocSlots(vm, rio_typeWords(vm, f->type)) * 4;

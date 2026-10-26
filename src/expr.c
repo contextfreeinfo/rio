@@ -83,6 +83,8 @@ static void rio_reduceOne(rio_Vm *vm) {
   }
   /* and / or: the right side goes into the result slot too, where the left side's jump lands */
   d = o.b;
+  c->symCount = o.c; /* (the right side's narrowing ends) */
+  c->nameBytes = (uint32_t)o.argCount;
   rio_isTestUsed(vm, &r, o.kind == rio_Pending_and ? d * 4 : -1);
   rio_needValue(vm, &r);
   if (r.type != rio_TypeId_bool) rio_FAIL(, "expected Bool");
@@ -295,7 +297,7 @@ static void rio_member(rio_Vm *vm) {
   rio_needValue(vm, e);
   ty = rio_type(vm, e->type);
   if (ty->kind == rio_TypeKind_union && rio_lookupMethod(vm, e->type, t->text, t->len) < 0)
-    rio_FAIL_AT_TOKEN(, "a union's value is reachable inside switch u / case T, or if u is T");
+    rio_FAIL_AT_TOKEN(, "a union's value is reachable inside switch u / case T, or if u is T (and after u is T and)");
   if (e->type == rio_TypeId_range && t->len == 3 && (!memcmp(t->text, "len", 3) || !memcmp(t->text, "has", 3))) {
     if (c->peek.kind != '(') rio_FAIL(, "method calls need ()");
     method = rio_exprOf(rio_ExprKind_builtin, 0, t->text[0] == 'l' ? rio_Builtin_rangeLen : rio_Builtin_rangeHas); /* r.len(), r.has(i) */
@@ -1020,6 +1022,9 @@ static int rio_binaryOperator(rio_Vm *vm, int t, int prec) {
     o = rio_pushOp(vm, t == rio_Tok_and ? rio_Pending_and : rio_Pending_or, prec, t);
     o->a = rio_emit(vm, t == rio_Tok_and ? rio_Op_jz : rio_Op_jnz, d, 0, rio_NONE);
     o->b = d;
+    o->c = c->symCount;
+    o->argCount = (int32_t)c->nameBytes;
+    if (t == rio_Tok_and) rio_narrowRight(vm, d * 4);
     l->kind = rio_ExprKind_static;
     l->value = d * 4;
     l->type = rio_TypeId_bool;
