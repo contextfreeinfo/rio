@@ -44,16 +44,40 @@ static void rio_outInt(rio_Out *o, int32_t v) {                                 
   if (v < 0) b[11 - n++] = '-';                                                                          \
   rio_outBytes(o, b + 12 - n, (uint32_t)n);                                                              \
 }                                                                                                        \
-/* text inside a value: quoted, its quotes, backslashes and line breaks escaped as Rio writes them */    \
-static void rio_outQuoted(rio_Out *o, const uint8_t *s, uint32_t n) {                                    \
-  uint32_t i, most = o->capped && n > rio_Print_textShown ? rio_Print_textShown : n;                      \
-  rio_outBytes(o, "\"", 1);                                                                              \
-  for (i = 0; i < most && !o->full; i++) {                                                               \
-    char e[2]; uint8_t c = s[i];                                                                         \
-    e[0] = 92; e[1] = c == 10 ? 'n' : c == 9 ? 't' : c == 13 ? 'r' : c == 0 ? '0' : (char)c;             \
-    if (c == 10 || c == 9 || c == 13 || c == 0 || c == 34 || c == 92) rio_outBytes(o, e, 2);             \
-    else rio_outBytes(o, &c, 1);                                                                         \
+/* how many bytes the UTF-8 character at s is (n left), or 0 if they don't make one */                   \
+static uint32_t rio_utf8Len(const uint8_t *s, uint32_t n) {                                              \
+  uint32_t k, i; uint8_t c = s[0], lo = 0x80, hi = 0xBF;                                                 \
+  if (c < 0x80) return 1;                                                                                \
+  k = c >= 0xC2 && c <= 0xDF ? 2 : c >= 0xE0 && c <= 0xEF ? 3 : c >= 0xF0 && c <= 0xF4 ? 4 : 0;          \
+  if (!k || k > n) return 0;                                                                             \
+  if (c == 0xE0) lo = 0xA0; else if (c == 0xED) hi = 0x9F; else if (c == 0xF0) lo = 0x90; else if (c == 0xF4) hi = 0x8F; \
+  if (s[1] < lo || s[1] > hi) return 0;                                                                  \
+  for (i = 2; i < k; i++) if (s[i] < 0x80 || s[i] > 0xBF) return 0;                                      \
+  return k;                                                                                              \
+}                                                                                                        \
+/* text as shown, not as bytes: control bytes, 127 and bytes that aren't UTF-8 as \xHH (and in quoted    \
+   text, as Rio writes it: \n \t \r \0 \" \\; else line breaks, tabs and \r stay as they are) */          \
+static void rio_outShown(rio_Out *o, const uint8_t *s, uint32_t n, int quoted) {                         \
+  uint32_t i = 0, k;                                                                                     \
+  while (i < n && !o->full) {                                                                            \
+    char e[4]; uint8_t c = s[i];                                                                         \
+    e[0] = 92;                                                                                           \
+    if (quoted && (c == 10 || c == 9 || c == 13 || c == 0 || c == 34 || c == 92)) {                      \
+      e[1] = c == 10 ? 'n' : c == 9 ? 't' : c == 13 ? 'r' : c == 0 ? '0' : (char)c;                      \
+      rio_outBytes(o, e, 2); i++;                                                                        \
+    } else if (c == 10 || c == 9 || c == 13 || (c >= 32 && c < 127)) { rio_outBytes(o, &c, 1); i++; }    \
+    else if (c >= 0x80 && (k = rio_utf8Len(s + i, n - i)) != 0) { rio_outBytes(o, s + i, k); i += k; }   \
+    else {                                                                                               \
+      e[1] = 'x'; e[2] = "0123456789abcdef"[c >> 4]; e[3] = "0123456789abcdef"[c & 15];                  \
+      rio_outBytes(o, e, 4); i++;                                                                        \
+    }                                                                                                    \
   }                                                                                                      \
+}                                                                                                        \
+/* text inside a value: quoted, escaped as Rio writes it */                                              \
+static void rio_outQuoted(rio_Out *o, const uint8_t *s, uint32_t n) {                                    \
+  uint32_t most = o->capped && n > rio_Print_textShown ? rio_Print_textShown : n;                         \
+  rio_outBytes(o, "\"", 1);                                                                              \
+  rio_outShown(o, s, most, 1);                                                                           \
   if (most < n) rio_outBytes(o, "...", 3);                                                               \
   rio_outBytes(o, "\"", 1);                                                                              \
 }                                                                                                        \

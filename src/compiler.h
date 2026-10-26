@@ -391,7 +391,7 @@ const char *rio_keep(rio_Vm *vm, const char *s, int n);
 void rio_carveWindow(rio_Vm *vm);
 void rio_expect(rio_Vm *vm, int kind, const char *message);
 int rio_peekAfterNext(rio_Vm *vm);
-int rio_escapeChar(int c);
+int rio_escapeAt(const char *p, const char *e, int *used);
 int rio_lexNumber(rio_Vm *vm, const char *text, rio_Token *t);
 
 /* ------------------------------------------------------------------ tables.c */

@@ -67,7 +67,13 @@ void rio_logOp(rio_Vm *vm, const rio_Val *R, const rio_Instr *ip) {
   switch (ip->op) {
   case rio_Op_logi: rio_logPut(vm, text, rio_formatInt(text, R[ip->a].i)); break;
   case rio_Op_logf: rio_logPut(vm, text, rio_formatFloat(text, R[ip->a].f)); break;
-  case rio_Op_logs: rio_logPut(vm, (const char *)M + R[ip->a].i, R[ip->a + 1].i); break;
+  case rio_Op_logs: { /* text, as shown (print.h): control bytes and non-UTF-8 as \xHH */
+    rio_Out o;
+    o.out = (uint8_t *)vm->logBuf; o.len = (uint32_t)vm->logLen; o.cap = rio_LOG_BUF_SIZE; o.capped = 1; o.full = 0; o.spec = 0;
+    rio_outShown(&o, M + R[ip->a].u, R[ip->a + 1].u, 0);
+    vm->logLen = (int)o.len;
+    break;
+  }
   case rio_Op_logb:
     if (R[ip->a].i) rio_logPut(vm, "true", 4);
     else rio_logPut(vm, "false", 5);

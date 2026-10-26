@@ -106,17 +106,22 @@ these escapes, and any other backslash is an error:
 |---|---|
 | `\n` `\t` `\r` `\0` | newline, tab, carriage return, zero |
 | `\\` `\"` `\'` | the character itself |
+| `\xHH` | the byte of those two hex digits (`\x1b` is 27) |
 
 ```rio
-log('a', '\n', "say \"hi\"")
+log('a', '\n', "say \"hi\"", '\xff', "\x48\x69".len())
 ```
 
 ```output
-97 10 say "hi"
+97 10 say "hi" 255 2
 ```
 
 ```rio
 log("\q")  # error: unknown escape
+```
+
+```rio
+log("\x4")  # error: \x takes two hex digits
 ```
 
 ### Strings over more lines

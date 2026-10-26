@@ -362,7 +362,7 @@ static void rio_instruction(rio_Aot *a, int pc) {
   case rio_Op_logi: rio_print(a, "rio_logInt(%d, %s);\n", in->x, rio_V(A, 'i')); break;
   case rio_Op_logf: rio_print(a, "rio_logFloat(%d, %s);\n", in->x, rio_V(A, 'f')); break;
   case rio_Op_logb: rio_print(a, "rio_logText(%d, %s ? \"true\" : \"false\", -1);\n", in->x, rio_V(A, 'i')); break;
-  case rio_Op_logs: rio_print(a, "rio_logText(%d, (const char *)rio_M + %s, %s);\n", in->x, rio_V(A, 'u'), rio_V(A + 1, 'i')); break;
+  case rio_Op_logs: rio_print(a, "rio_logShown(%d, %s, %s);\n", in->x, rio_V(A, 'u'), rio_V(A + 1, 'u')); break;
   case rio_Op_logn:
     rio_print(a, "{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && rio_R[%d + i_].i != v_; i_++) {} if (i_ < %uu) rio_logText(%d, (const char *)rio_M + rio_R[%d + 2 * i_].u, rio_R[%d + 2 * i_ + 1].i); else rio_logInt(%d, v_); }\n",
               rio_V(A, 'i'), rio_dataSize(data), B, rio_dataSize(data), in->x, C, C, in->x);
@@ -442,6 +442,11 @@ static const char *const rio_prelude =
   "  rio_Out o; if (sp && rio_logLen < 256) rio_logBuf[rio_logLen++] = ' ';\n"
   "  o.out = (uint8_t *)rio_logBuf; o.len = (uint32_t)rio_logLen; o.cap = 256; o.capped = 1; o.full = 0; o.spec = 0;\n"
   "  rio_printValue(rio_M, &o, d, w0, w1, w2); rio_logLen = (int)o.len;\n"
+  "}\n"
+  "static inline void rio_logShown(int sp, uint32_t at, uint32_t n) {\n"
+  "  rio_Out o; if (sp && rio_logLen < 256) rio_logBuf[rio_logLen++] = ' ';\n"
+  "  o.out = (uint8_t *)rio_logBuf; o.len = (uint32_t)rio_logLen; o.cap = 256; o.capped = 1; o.full = 0; o.spec = 0;\n"
+  "  rio_outShown(&o, rio_M + at, n, 0); rio_logLen = (int)o.len;\n"
   "}\n"
   "static inline int32_t rio_pushValue(uint32_t a, uint32_t dd, uint32_t cap, uint32_t spec, uint32_t d, uint32_t w0, uint32_t w1, uint32_t w2) {\n"
   "  rio_Out o; o.out = rio_M + dd; o.len = rio_listLen(a, cap); o.cap = cap; o.capped = 0; o.full = 0; o.spec = spec;\n"

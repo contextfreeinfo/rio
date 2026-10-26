@@ -50,6 +50,24 @@ Point{x = 3, y = 4} ["Ann", "Bo"] ["Bo"]
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... 30 more]
 ```
 
+Bytes that aren't printable text show as escapes in a log (but `print` keeps them as they are):
+
+```rio
+Tag :: struct
+  name: String
+end
+raw := hexBlob("1b 5b 32 4a ff 48 69")
+log(raw, "caf\xc3\xa9", Tag{name = "a\tb\x01"})
+b: Blob[..8]
+b.print(raw)
+log(b.len(), b[0])
+```
+
+```output
+\x1b[2J\xffHi café Tag{name = "a\tb\x01"}
+7 27
+```
+
 A log line keeps it short: a long array, slice or list shows its first 10 elements and how many more,
 text inside a value its first 40 bytes, and a value nested more than 8 deep `...`. A line is cut at the
 host's log size too (256 bytes on most hosts). `print` and `format` write all of a value, or none of
@@ -59,8 +77,10 @@ How values become text, in `log`, `print` and `format` (unless format's settings
 
 - `Int`: decimal, with `-` when negative.
 - `Bool`: `true` or `false`. Enums: the value's name.
-- `String` and `Blob`: their bytes as they are. Inside another value, quoted, with `"`, `\`, line
-  breaks, tabs and zeros escaped as in Rio's strings.
+- `String` and `Blob`: in `print` and `format`, their bytes as they are. In `log`, as shown: other
+  control bytes (but line breaks, tabs and `\r`), byte 127 and bytes that aren't UTF-8 as `\xHH`, so
+  binary data can't upset a console; UTF-8 text shows as itself. Inside another value, quoted, with `"`,
+  `\`, line breaks, tabs, `\r` and zeros escaped as in Rio's strings, and the rest as `log` shows them.
 - Structs: `Point{x = 1, y = 2}`. Arrays, slices and lists: `[1, 2, 3]` (of bytes: as text). Unions: the
   value they hold, or `nil`. Proc values: `proc`.
 - `Float`: `nan`, `inf` or `-inf`, or else digits with one decimal point. Values from `1e-4` up to

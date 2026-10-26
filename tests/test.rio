@@ -1419,6 +1419,11 @@ end
 handler := Handler{id = 1, weight = 2.5}
 check(handler.id == 1 and handler.weight == 2.5, "fields after a new proc type")
 
+# ---- hex escapes
+hexText := "A\x42\x7f\x00z"
+check(hexText.len() == 5 and hexText[1] == 66 and hexText[2] == 127 and hexText[3] == 0 and hexText[4] == 122, "\\x in strings")
+check('\xff' == 255 and '\x1B' == 27 and '\x0a' == '\n', "\\x in chars")
+
 # ---- packing: values' bytes into and out of Blobs, and ints of a few bytes
 PackHead :: struct
   tag: Blob[4]

@@ -152,7 +152,13 @@ rio_Expr rio_stringConst(rio_Vm *vm, const char *s, int n) {
   rio_Expr e;
   if ((uint32_t)n > c->poolCap - c->poolUsed) rio_FAIL(rio_voidExpr(), "out of compiler memory");
   if (k + 2 > vm->constCap) rio_FAIL(rio_voidExpr(), "too many constants");
-  for (i = 0; i < n; i++) out[len++] = (uint8_t)(s[i] == '\\' && i + 1 < n ? rio_escapeChar(s[++i]) : s[i]);
+  for (i = 0; i < n; i++) {
+    int used, ch;
+    if (s[i] == '\\' && i + 1 < n && (ch = rio_escapeAt(s + i + 1, s + n, &used)) >= 0) {
+      out[len++] = (uint8_t)ch;
+      i += used;
+    } else out[len++] = (uint8_t)s[i];
+  }
   R[k].u = 0x80000000u | c->poolUsed;
   R[k + 1].u = (uint32_t)len;
   rio_bitSet(c->constIsString, k);
