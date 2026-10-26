@@ -89,8 +89,8 @@ int rio_newType(rio_Vm *vm, int kind, int elem, uint32_t count, uint32_t size) {
   y->count = count;
   y->size = size;
   y->firstField = y->fieldCount = 0;
-  y->hasRefs = (uint8_t)(kind == rio_TypeKind_slice || kind == rio_TypeKind_builder ||
-                         ((kind == rio_TypeKind_array || kind == rio_TypeKind_list) && c->types[elem].hasRefs));
+  y->hasRefs = (uint8_t)(kind == rio_TypeKind_slice || kind == rio_TypeKind_builderView ||
+                         ((kind == rio_TypeKind_array || kind == rio_TypeKind_builder) && c->types[elem].hasRefs));
   return c->typeCount++;
 }
 
@@ -163,26 +163,26 @@ int rio_procTypeOf(rio_Vm *vm, const int *params, int n, int result) {
 }
 
 /* [..N]T: a length word followed by N elements */
-int rio_listOf(rio_Vm *vm, int elem, uint32_t count) {
+int rio_builderOf(rio_Vm *vm, int elem, uint32_t count) {
   uint32_t elemSize = rio_type(vm, elem)->size;
   int i;
   rio_FOR_MADE_TYPES(i) {
     rio_Type *y = rio_type(vm, i);
-    if (y->kind == rio_TypeKind_list && y->elem == elem && y->count == count) return i;
+    if (y->kind == rio_TypeKind_builder && y->elem == elem && y->count == count) return i;
   }
-  if (elemSize && count > 0x7FFFFFF0u / elemSize) rio_FAIL(0, "list too large");
-  return rio_newType(vm, rio_TypeKind_list, elem, count, rio_align4(4 + elemSize * count));
+  if (elemSize && count > 0x7FFFFFF0u / elemSize) rio_FAIL(0, "builder too large");
+  return rio_newType(vm, rio_TypeKind_builder, elem, count, rio_align4(4 + elemSize * count));
 }
 
-/* [..]T: a builder, a view of a length word and the memory it counts: (address of the length word,
+/* [..]T: a builder view, a view of a length word and the memory it counts: (address of the length word,
    address of the data, capacity) */
-int rio_builderOf(rio_Vm *vm, int elem) {
+int rio_builderViewOf(rio_Vm *vm, int elem) {
   int i;
   rio_FOR_MADE_TYPES(i) {
     rio_Type *y = rio_type(vm, i);
-    if (y->kind == rio_TypeKind_builder && y->elem == elem) return i;
+    if (y->kind == rio_TypeKind_builderView && y->elem == elem) return i;
   }
-  return rio_newType(vm, rio_TypeKind_builder, elem, 0, 12);
+  return rio_newType(vm, rio_TypeKind_builderView, elem, 0, 12);
 }
 
 #undef rio_FOR_MADE_TYPES
@@ -220,9 +220,9 @@ int rio_enumIndex(rio_Vm *vm, int type, int32_t value) {
   return -1;
 }
 
-/* arrays, structs, lists and unions: values stored as a block of memory */
+/* arrays, structs, builders and unions: values stored as a block of memory */
 int rio_isAggregate(int kind) {
-  return kind == rio_TypeKind_array || kind == rio_TypeKind_struct || kind == rio_TypeKind_list || kind == rio_TypeKind_union;
+  return kind == rio_TypeKind_array || kind == rio_TypeKind_struct || kind == rio_TypeKind_builder || kind == rio_TypeKind_union;
 }
 
 /* an aggregate too big to copy without being asked */

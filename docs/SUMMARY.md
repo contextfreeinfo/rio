@@ -9,7 +9,7 @@
 - [Getting started](tutorial/start.md)
 - [Values and procs](tutorial/basics.md)
 - [Data](tutorial/data.md)
-- [Lists and text](tutorial/lists.md)
+- [Builders and text](tutorial/builders.md)
 - [Methods, enums, unions and maybes](tutorial/types.md)
 - [Modules](tutorial/modules.md)
 - [Embedding Rio in C](tutorial/embedding.md)

@@ -28,12 +28,12 @@ log(b[0], b[1], "hi"[1])
 44 255 105
 ```
 
-## Arrays, slices, lists
+## Arrays, slices, builders
 
 | | owns its memory | a view of it (what procs take) |
 |---|---|---|
 | fixed length | `[N]T` | `[]T` |
-| grows up to a capacity | `[..N]T` (a list) | `[..]T` (a builder) |
+| grows up to a capacity | `[..N]T` (a builder) | `[..]T` (a builder view) |
 | bytes | `Blob[N]`, `Blob[..N]` | `Blob`, `Blob[..]` |
 
 `N` is a positive `Int` constant: a number, a constant's name, or arithmetic on those (`[W * H]T`,
@@ -42,11 +42,12 @@ log(b[0], b[1], "hi"[1])
 
 - An **array** `[N]T` is N elements, one after another. It's a value: assigning it copies it.
 - A **slice** `[]T` views some elements of an array (2 words: where they start, how many).
-- A **list** `[..N]T` holds up to N elements, and knows how many it has (a length word, then N
-  elements). New lists are empty, unless made from a literal.
-- A **builder** `[..]T` views a list, or any array, as a list (3 words: where the length lives,
-  where the elements start, the capacity). Pushing through a builder changes the length it views.
-- `Blob[N]` is N bytes, padded to whole words; `Blob[..N]` is a list of bytes, a text builder.
+- A **builder** `[..N]T` holds up to N elements, and knows how many it has (a length word, then N
+  elements). New builders are empty, unless made from a literal.
+- A **builder view** `[..]T` views a builder, or any array, as a builder (3 words: where the length
+  lives, where the elements start, the capacity). Pushing through a builder view changes the length it
+  views.
+- `Blob[N]` is N bytes, padded to whole words; `Blob[..N]` is a builder of bytes, for text.
 
 ```rio
 xs: [4]Int               # 4 Ints, all 0
@@ -248,7 +249,7 @@ A `?T` that holds views (`?String`, `?[]Int`) must be a global, as other unions 
 
 A proc type is written `proc(T, U) -> R`, or without `-> R` when there's no result. Parameter names
 are allowed, for reading: `proc(x, y: Int) -> Int`. See [proc values](expressions.md#proc-values).
-Proc values can be elements too, of arrays, slices, lists and `[E]T`, with the proc type after the
+Proc values can be elements too, of arrays, slices, builders and `[E]T`, with the proc type after the
 brackets (but not a maybe: a proc value is unset until given a proc):
 
 ```rio
@@ -284,7 +285,7 @@ parameters and local names, and can't be stored, returned or put in a struct. Se
 
 ## Zero values
 
-Every variable starts as zero: `0`, `0.0`, `false`, empty strings, slices and lists, an enum's 0
+Every variable starts as zero: `0`, `0.0`, `false`, empty strings, slices and builders, an enum's 0
 value, a union's first type, and structs and arrays of zeros.
 
 ## Small and big values
@@ -295,7 +296,7 @@ can't be copied without saying so, passed by value or returned. See
 
 ## Where views can live
 
-A struct, array, list or union that holds views (slices, `String`, `Blob`, builders) must be a global,
+A struct, array, builder or union that holds views (slices, `String`, `Blob`, builder views) must be a global,
 so the view can't outlive what it views:
 
 ```rio

@@ -272,19 +272,19 @@ if nanv < 1
 end
 check(lt == 0, "nan branch")
 
-# ---- lists ([..N]T storage) and builders ([..]T views)
+# ---- builders ([..N]T storage) and builder views ([..]T)
 Enemy :: struct
   x, hp: Int
 end
 enemies: [..4]Enemy
-check(enemies.len() == 0 and enemies.cap() == 4, "empty list")
-spawnE :: proc(list: [..]Enemy, x: Int) -> Bool
-  return list.push(Enemy{x = x, hp = 3})
+check(enemies.len() == 0 and enemies.cap() == 4, "empty builder")
+spawnE :: proc(out: [..]Enemy, x: Int) -> Bool
+  return out.push(Enemy{x = x, hp = 3})
 end
 for i in 0..<6
   spawnE(enemies, i * 10)
 end
-check(enemies.len() == 4 and enemies[3].x == 30, "push through a view; full list drops")
+check(enemies.len() == 4 and enemies[3].x == 30, "push through a view; full builder drops")
 check(not enemies.push(Enemy{x = 99}), "push when full is false")
 enemies[1].hp -= 1
 enemies.swapRemove(0)
@@ -294,14 +294,14 @@ check(enemies.len() == 2 and enemies[0].x == 10 and enemies[1].x == 20, "remove 
 last := enemies.pop()
 check(last.x == 20 and enemies.len() == 1, "pop")
 live := enemies[]
-check(live.len() == 1 and live[0].x == 10, "list [:] is a slice of live elements")
+check(live.len() == 1 and live[0].x == 10, "builder [] is a slice of live elements")
 enemies.clear()
 check(enemies.len() == 0, "clear")
 nums: [..8]Int
 for i in 0..<5
   nums.push(i * i)
 end
-check(nums[4] == 16 and total(nums[]) == 30 and total(nums[1..<3]) == 5, "Int list and sub-slices")
+check(nums[4] == 16 and total(nums[]) == 30 and total(nums[1..<3]) == 5, "Int builder and sub-slices")
 title: Blob[..32]
 label :: proc(b: Blob[..], score: Int) -> Bool
   b.clear()
@@ -310,10 +310,10 @@ end
 check(label(title, 42) and title[].asString() == "score: 42 1.5 true!", "print appends text; push adds one byte")
 tiny: Blob[..6]
 check(tiny.pushAll("abc") and not tiny.print("de", 12345) and tiny.len() == 3, "print is all or nothing")
-check(tiny.print(12) and tiny.push(65) and tiny[].asString() == "abc12A" and not tiny.push(66), "push on a Blob list is a byte")
+check(tiny.print(12) and tiny.push(65) and tiny[].asString() == "abc12A" and not tiny.push(66), "push on a Blob builder is a byte")
 check(tiny.print(), "print with nothing to add")
 
-# printing any value: structs, arrays, slices, lists and unions, by their types' descriptors
+# printing any value: structs, arrays, slices, builders and unions, by their types' descriptors
 PrDir :: enum
   north, east
 end
@@ -354,7 +354,7 @@ prT.label[0] = 65
 check(prOut.print(prT) and prSays("PrThing{name = \"say \\\"hi\\\"\\n\", at = PrPoint{x = 1, y = -2}, dir = east, tags = [7, 8, 9], ok = true, label = \"A\\0\"}"),
       "print a struct of structs, enums, arrays and text (quoted inside a value)")
 prNs: [..8]Int
-check(prNs.push(10) and prNs.push(20) and prOut.print(prNs, " ", prNs[]) and prSays("[10, 20] [10, 20]"), "print a list, and its view")
+check(prNs.push(10) and prNs.push(20) and prOut.print(prNs, " ", prNs[]) and prSays("[10, 20] [10, 20]"), "print a builder, and its view")
 prBig: [50]Int
 check(prOut.print(prBig) and prOut.len() == 150, "print writes all of a long array (no cut, unlike log)")
 prOut.clear()
@@ -385,7 +385,7 @@ check(prOut.format({width = fmtWide + 1}, 9) and prSays("   9"), "format: settin
 more: [..8]Int
 check(more.pushAll(nums) and not more.pushAll(nums) and more.len() == 5 and more[4] == 16, "pushAll is all or nothing")
 check(more.pushAll(nums[3..]) and more.len() == 7 and more[6] == 16, "pushAll from a slice")
-localList :: proc() -> Int
+localBuilder :: proc() -> Int
   xs: [..3]Int
   xs.push(5)
   xs.push(6)
@@ -393,14 +393,14 @@ localList :: proc() -> Int
   v.push(7)
   return xs.len() * 100 + xs[2] + v.cap()
 end
-check(localList() == 310 and localList() == 310, "local list resets per call; := makes a view")
+check(localBuilder() == 310 and localBuilder() == 310, "local builder resets per call; := makes a view")
 Inv :: struct
   items: [..3]Int
   gold: Int
 end
 bags: [2]Inv
 bags[1].items.push(9)
-check(bags[1].items.len() == 1 and bags[1].items[0] == 9 and bags[0].items.len() == 0, "list inside a struct inside an array")
+check(bags[1].items.len() == 1 and bags[1].items[0] == 9 and bags[0].items.len() == 0, "builder inside a struct inside an array")
 
 # ---- methods: Type.name :: proc, with an implicit self
 Ship :: struct
@@ -575,13 +575,13 @@ for h in hits
     hits.push(9)
   end
 end
-check(hsum == 9 and hits[0] == 1 and hits[1] == 1 and hits.len() == 4, "a list: the elements there when the loop starts")
+check(hsum == 9 and hits[0] == 1 and hits[1] == 1 and hits.len() == 4, "a builder: the elements there when the loop starts")
 empty: [..2]Int
 ran := false
 for x in empty
   ran = true
 end
-check(not ran, "an empty list runs no iterations")
+check(not ran, "an empty builder runs no iterations")
 word := 0
 for c, i in "rio"
   word = word * 256 + c
@@ -826,7 +826,7 @@ fm: [4][4]Float
 fm2 := bump4(fm)
 check(fm[0][0] == 0 and fm2[0][0] == 1, "16 words is still small")
 
-# ---- builders over any array or slice: name: [..]T = memory, starting empty
+# ---- builder views over any array or slice: name: [..]T = memory, starting empty
 bbuf: [8]Int
 bb: [..]Int = bbuf
 bb.push(3)
@@ -846,7 +846,7 @@ bsum := 0
 for x in bb
   bsum += x
 end
-check(bsum == 37, "for-each over a builder")
+check(bsum == 37, "for-each over a builder view")
 check(bb.pop() == 20 and bb.len() == 4, "pop")
 bb.swapRemove(0)
 check(bb[0] == 10 and bb.len() == 3, "swapRemove")
@@ -856,7 +856,7 @@ check(bb.len() == 4, "copies share the length")
 bscr: Blob[16]
 btxt: Blob[..] = bscr[4..<12]
 btxt.print("hi ", 42)
-check(btxt[].asString() == "hi 42" and bscr[4] == 'h', "a text builder over part of a Blob")
+check(btxt[].asString() == "hi 42" and bscr[4] == 'h', "a byte builder view over part of a Blob")
 blocal :: proc() -> Int
   loc: [4]Float
   lb: [..]Float = loc
@@ -868,7 +868,7 @@ blocal :: proc() -> Int
   v.push(2)
   return lb.len() * 10 + xs.len()
 end
-check(blocal() == 22, "builders over locals and lists inside a proc")
+check(blocal() == 22, "builder views over locals and builders inside a proc")
 
 # ---- procs that never run at the same time share frame memory; a caller's locals survive its calls
 shA :: proc(x: Int) -> Int
@@ -1482,7 +1482,7 @@ rangeText: Blob[..20]
 rangeText.print(rangeA, " ", rangeE)
 check(rangeText[].asString() == "2..=4 7..=6", "ranges printed")
 
-# ---- proc values as elements: arrays, slices, lists, [Enum]T, fields
+# ---- proc values as elements: arrays, slices, builders, [Enum]T, fields
 procDouble :: proc(n: Int) -> Int
   return n * 2
 end
@@ -1507,7 +1507,7 @@ procByDir[.east] = procDouble
 procMore: [..4]proc(Int) -> Int
 procMore.push(procDouble)
 procMore.push(procInc)
-check(procByDir[.east](4) == 8 and procMore.len() == 2 and procMore[1](7) == 8 and procSum(procMore[], 1) == 4, "by enum, and a list")
+check(procByDir[.east](4) == 8 and procMore.len() == 2 and procMore[1](7) == 8 and procSum(procMore[], 1) == 4, "by enum, and a builder")
 ProcMachine :: struct
   steps: [2]proc(Int) -> Int
   n: Int

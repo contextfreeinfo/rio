@@ -267,11 +267,11 @@ static void rio_instruction(rio_Aot *a, int pc) {
   }
   case rio_Op_zero: rio_print(a, "memset(rio_M + %s, 0, %uu);\n", rio_V(A, 'u'), rio_dataSize(in)); break;
   case rio_Op_lidx:
-    rio_print(a, "{ uint32_t i_ = %s; if (i_ >= rio_listLen(%s, %s)) rio_RT_ERROR(\"index out of bounds\"); %s = %s + i_ * %uu; }\n",
+    rio_print(a, "{ uint32_t i_ = %s; if (i_ >= rio_builderLen(%s, %s)) rio_RT_ERROR(\"index out of bounds\"); %s = %s + i_ * %uu; }\n",
               rio_V(C, 'u'), rio_V(B, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_V(B + 1, 'u'), rio_dataSize(data));
     break;
   case rio_Op_pusha:
-    rio_print(a, "{ uint32_t b_ = %s, d_ = %s, c_ = %s, n_ = rio_listLen(b_, c_); if (n_ >= c_) %s = 0; else { rio_WORD(b_).u = n_ + 1; %s = d_ + n_ * %uu; } }\n",
+    rio_print(a, "{ uint32_t b_ = %s, d_ = %s, c_ = %s, n_ = rio_builderLen(b_, c_); if (n_ >= c_) %s = 0; else { rio_WORD(b_).u = n_ + 1; %s = d_ + n_ * %uu; } }\n",
               rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_V(A, 'u'), rio_dataSize(data));
     break;
   case rio_Op_pushs:
@@ -287,7 +287,7 @@ static void rio_instruction(rio_Aot *a, int pc) {
               rio_V((int)rio_dataSize(data), 'u'), in->x, rio_V(C, 'u'), in->x == 3 ? rio_V(C + 1, 'u') : "0u");
     break;
   case rio_Op_popa:
-    rio_print(a, "{ uint32_t b_ = %s, d_ = %s, n_ = rio_listLen(b_, %s); if (!n_) rio_RT_ERROR(\"pop from empty list\"); rio_WORD(b_).u = --n_; %s = d_ + n_ * %uu; }\n",
+    rio_print(a, "{ uint32_t b_ = %s, d_ = %s, n_ = rio_builderLen(b_, %s); if (!n_) rio_RT_ERROR(\"pop from empty builder\"); rio_WORD(b_).u = --n_; %s = d_ + n_ * %uu; }\n",
               rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(B + 2, 'u'), rio_V(A, 'u'), rio_dataSize(data));
     break;
   case rio_Op_lrem: case rio_Op_lswap:
@@ -295,7 +295,7 @@ static void rio_instruction(rio_Aot *a, int pc) {
               rio_dataSize(data), in->op == rio_Op_lswap);
     break;
   case rio_Op_lview:
-    rio_print(a, "{ uint32_t d_ = %s, n_ = rio_listLen(%s, %s); %s = d_; %s = n_; }\n", rio_V(B + 1, 'u'), rio_V(B, 'u'), rio_V(B + 2, 'u'),
+    rio_print(a, "{ uint32_t d_ = %s, n_ = rio_builderLen(%s, %s); %s = d_; %s = n_; }\n", rio_V(B + 1, 'u'), rio_V(B, 'u'), rio_V(B + 2, 'u'),
               rio_V(A, 'u'), rio_V(A + 1, 'u'));
     break;
   case rio_Op_bpack:
@@ -376,9 +376,9 @@ static void rio_instruction(rio_Aot *a, int pc) {
     else if (A) rio_print(a, "rio_rtAssert((const char *)rio_M + %s, %s, __LINE__);\n", rio_V(A, 'u'), rio_V(A + 1, 'i'));
     else rio_print(a, "rio_rtAssert(\"\", -1, __LINE__);\n");
     break;
-  case rio_Op_logv: case rio_Op_pushv: { /* a slice's or builder's words, else the value's address */
+  case rio_Op_logv: case rio_Op_pushv: { /* a slice's or builder view's words, else the value's address */
     int d = in->op == rio_Op_logv ? B : (int)rio_dataSize(data), v = in->op == rio_Op_logv ? A : C;
-    uint32_t k = rio_constant(a, d).u & 255, words = k == rio_Print_slice ? 2 : k == rio_Print_builder ? 3 : 1;
+    uint32_t k = rio_constant(a, d).u & 255, words = k == rio_Print_slice ? 2 : k == rio_Print_builderView ? 3 : 1;
     char w[3][48];
     int j;
     for (j = 0; j < 3; j++) strcpy(w[j], j < (int)words ? rio_V(v + j, 'u') : "0u");
@@ -397,7 +397,7 @@ static void rio_instruction(rio_Aot *a, int pc) {
 
 /* ------------------------------------------------------------------ the program */
 
-/* the runtime the generated code needs: memory, errors, log, lists */
+/* the runtime the generated code needs: memory, errors, log, builders */
 static const char *const rio_prelude =
   "#define _CRT_SECURE_NO_WARNINGS\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <math.h>\n#include <time.h>\n"
   "#ifdef __GNUC__\n#pragma GCC diagnostic ignored \"-Wunused\"\n#endif\n"
@@ -431,10 +431,10 @@ static const char *const rio_prelude =
   "}\n"
   "static inline void rio_logFloat(int sp, float f) { char b[40]; rio_logText(sp, b, rio_formatFloat(b, f)); }\n"
   "static inline void rio_logEnd(void) { fwrite(rio_logBuf, 1, (size_t)rio_logLen, stdout); fputc('\\n', stdout); rio_logLen = 0; }\n"
-  /* lists: a length word followed by the elements; views are (address, capacity) */
-  "static inline uint32_t rio_listLen(uint32_t a, uint32_t cap) { uint32_t n = rio_WORD(a).u; return n < cap ? n : cap; }\n"
+  /* builders: a length word followed by the elements; views are (address, capacity) */
+  "static inline uint32_t rio_builderLen(uint32_t a, uint32_t cap) { uint32_t n = rio_WORD(a).u; return n < cap ? n : cap; }\n"
   "static inline int32_t rio_listPush(uint32_t a, uint32_t d, uint32_t cap, const void *p, uint32_t k, uint32_t sz) {\n"
-  "  uint32_t n = rio_listLen(a, cap); if (k > cap - n) return 0;\n"
+  "  uint32_t n = rio_builderLen(a, cap); if (k > cap - n) return 0;\n"
   "  memmove(rio_M + d + n * sz, p, k * sz); rio_WORD(a).u = n + k; return 1;\n"
   "}\n"
   "static inline int32_t rio_listPushText(uint32_t a, uint32_t d, uint32_t cap, int kind, rio_Val v) {\n"
@@ -454,15 +454,15 @@ static const char *const rio_prelude =
   "  rio_outShown(&o, rio_M + at, n, 0); rio_logLen = (int)o.len;\n"
   "}\n"
   "static inline int32_t rio_pushValue(uint32_t a, uint32_t dd, uint32_t cap, uint32_t spec, uint32_t d, uint32_t w0, uint32_t w1, uint32_t w2) {\n"
-  "  rio_Out o; o.out = rio_M + dd; o.len = rio_listLen(a, cap); o.cap = cap; o.capped = 0; o.full = 0; o.spec = spec;\n"
+  "  rio_Out o; o.out = rio_M + dd; o.len = rio_builderLen(a, cap); o.cap = cap; o.capped = 0; o.full = 0; o.spec = spec;\n"
   "  rio_printValue(rio_M, &o, d, w0, w1, w2); if (o.full) return 0; rio_WORD(a).u = o.len; return 1;\n"
   "}\n"
   "static inline int32_t rio_pushFormatted(uint32_t a, uint32_t dd, uint32_t cap, uint32_t spec, int kind, uint32_t w0, uint32_t w1) {\n"
-  "  rio_Out o; o.out = rio_M + dd; o.len = rio_listLen(a, cap); o.cap = cap; o.capped = 0; o.full = 0; o.spec = 0;\n"
+  "  rio_Out o; o.out = rio_M + dd; o.len = rio_builderLen(a, cap); o.cap = cap; o.capped = 0; o.full = 0; o.spec = 0;\n"
   "  rio_outFormatted(rio_M, &o, spec, kind, w0, w1); if (o.full) return 0; rio_WORD(a).u = o.len; return 1;\n"
   "}\n"
   "static inline void rio_listRemove(uint32_t a, uint32_t d, uint32_t cap, uint32_t i, uint32_t sz, int swap, int line) {\n"
-  "  uint32_t n = rio_listLen(a, cap); if (i >= n) rio_rtError(\"index out of bounds\", line);\n"
+  "  uint32_t n = rio_builderLen(a, cap); if (i >= n) rio_rtError(\"index out of bounds\", line);\n"
   "  if (swap) { if (i != --n) memmove(rio_M + d + i * sz, rio_M + d + n * sz, sz); rio_WORD(a).u = n; }\n"
   "  else { memmove(rio_M + d + i * sz, rio_M + d + (i + 1) * sz, (n - i - 1) * sz); rio_WORD(a).u = n - 1; }\n"
   "}\n";

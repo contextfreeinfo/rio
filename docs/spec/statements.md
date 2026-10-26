@@ -137,9 +137,9 @@ through 2
 - **Ranges:** `for i in a..<b` sets `i` to `a`, and runs while `i < b`, adding 1 after each time.
   `b` is evaluated once, before the loop. `a..=b` is `a..<b + 1`. `i` is a new `Int` variable; changing
   it changes the next value.
-- **Sequences:** `for x in xs` visits each element of an array, slice, list, `String` or `Blob`, and
+- **Sequences:** `for x in xs` visits each element of an array, slice, builder, `String` or `Blob`, and
   `for x, i in xs` adds the index. `x` is the element itself, not a copy, so changing it changes `xs`
-  (unless `xs` is a `String`, which is read-only). Over a list, the loop visits the elements it had when
+  (unless `xs` is a `String`, which is read-only). Over a builder, the loop visits the elements it had when
   it started.
 - **Enums:** `for d in E` visits the enum's values in the order listed (`for d, i in E` adds the
   index). Over an `[E]T` array, the index is the enum value.

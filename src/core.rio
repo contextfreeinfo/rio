@@ -76,7 +76,7 @@ String.cap* :: @host proc() -> Int
 Blob.len* :: @host proc() -> Int
 Blob.cap* :: @host proc() -> Int
 
-# Blob[..] is a text builder: a list of bytes
+# Blob[..] is a byte builder view, for text
 (Blob[..]).len* :: @host proc() -> Int
 (Blob[..]).cap* :: @host proc() -> Int
 (Blob[..]).push* :: @host proc(byte: Int) -> Bool          # false when full
@@ -87,7 +87,7 @@ Blob.cap* :: @host proc() -> Int
 (Blob[..]).swapRemove* :: @host proc(i: Int)               # the last element takes its place
 
 # an int of bits (a constant: 8, 16, 24 or 32; negative: signed) at byte at, little-endian; a runtime
-# error past the end (a byte list's: its length)
+# error past the end (a byte builder's: its length)
 String.getInt* :: @host proc(at: Int, bits: Int) -> Int
 Blob.getInt* :: @host proc(at: Int, bits: Int) -> Int
 Blob.setInt* :: @host proc(at: Int, bits: Int, value: Int)   # its low bits

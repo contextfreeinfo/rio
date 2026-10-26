@@ -65,19 +65,19 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      enumname               a, a+1 = name of enum value b (values at c, names at data a)
      vadd vsub vmul vdiv vmod       element by element: address a = b op c, data-size numbers;
      fvadd fvsub fvmul fvdiv        x & 16: b is a scalar, x & 32: c is a scalar
-   Lists: a builder is 3 slots (address of the length word, address of the data, capacity).
-     lidx                   a = address of element c of builder b (checked against its length)
-     pusha                  a = address of a new last element of builder b, or 0 if full
-     pushs                  a = append slice c to builder b (0 if it doesn't fit)
-     pusht                  a = append the text of c to Blob builder b; x: 0 Int, 1 Float, 2 Bool
-     pushv                  a = append the text of value c to Blob builder b, by the descriptor in
-                            constant data size (print.h: c is a slice's or builder's slots, else holds
+   Builders: a builder view is 3 slots (address of the length word, address of the data, capacity).
+     lidx                   a = address of element c of builder view b (checked against its length)
+     pusha                  a = address of a new last element of builder view b, or 0 if full
+     pushs                  a = append slice c to builder view b (0 if it doesn't fit)
+     pusht                  a = append the text of c to Blob builder view b; x: 0 Int, 1 Float, 2 Bool
+     pushv                  a = append the text of value c to Blob builder view b, by the descriptor in
+                            constant data size (print.h: c is a slice's or builder view's slots, else holds
                             an address), as the Format at the address in slot data a says (0: none)
-     pushf                  a = append the text of c to Blob builder b, as the Format at the address in
+     pushf                  a = append the text of c to Blob builder view b, as the Format at the address in
                             slot data a says; x: 0 Int, 1 Float, 2 Bool, 3 text (c, c+1: a slice)
-     popa                   a = address of the removed last element of builder b
-     lrem lswap             remove element b of builder a, keeping order / moving the last into it
-     lview                  a, a+1 = slice of builder b's live elements
+     popa                   a = address of the removed last element of builder view b
+     lrem lswap             remove element b of builder view a, keeping order / moving the last into it
+     lview                  a, a+1 = slice of builder view b's live elements
    Bytes: a Blob is 2 slots (address, length), as a slice; at is a byte offset in it (bounds-checked).
      bpack                  x 0: copy bytes c (address, how many) into Blob a at b; x 1: from it
      geti                   a = the int in Blob b at c, of c+1 bits (8, 16, 24 or 32; negative: signed),
@@ -162,7 +162,7 @@ typedef enum {
 /* kinds of types (rio_Type.kind) */
 typedef enum {
   rio_TypeKind_void, rio_TypeKind_int, rio_TypeKind_float, rio_TypeKind_byte, rio_TypeKind_slice,
-  rio_TypeKind_array, rio_TypeKind_struct, rio_TypeKind_bool, rio_TypeKind_list, rio_TypeKind_builder,
+  rio_TypeKind_array, rio_TypeKind_struct, rio_TypeKind_bool, rio_TypeKind_builder, rio_TypeKind_builderView,
   rio_TypeKind_enum, rio_TypeKind_union, rio_TypeKind_proc
 } rio_TypeKind;
 

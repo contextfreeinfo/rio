@@ -15,7 +15,7 @@ the compiler (single pass, no recursion; left out with rio_NO_COMPILER):
   src/codegen.c    emitting code; slots, constants and memory; moving values; peepholes
   src/operators.c  unary and binary operators, element-by-element arithmetic, unions' `is`
   src/expr.c       the expression parser (shunting-yard): calls, indexing, members, literals
-  src/builtins.c   log, math, assert, and the methods of sequences, lists, enums and numbers
+  src/builtins.c   log, math, assert, and the methods of sequences, builders, enums and numbers
   src/decls.c      types as written; procs, methods, structs, unions, enums and variables
   src/statements.c statements and their blocks: if, loops, switch, return, assignment
   src/modules.c    import and include

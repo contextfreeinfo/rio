@@ -82,7 +82,7 @@ static int rio_parseTypeName(rio_Vm *vm) {
     if (c->tok.kind == '.' && c->peek.kind == '.') {
       rio_next(vm);
       rio_next(vm);
-      t = c->tok.kind == ']' ? rio_builderOf(vm, rio_TypeId_byte) : rio_listOf(vm, rio_TypeId_byte, (uint32_t)rio_parsePositiveConst(vm));
+      t = c->tok.kind == ']' ? rio_builderViewOf(vm, rio_TypeId_byte) : rio_builderOf(vm, rio_TypeId_byte, (uint32_t)rio_parsePositiveConst(vm));
     } else t = rio_arrayOf(vm, rio_TypeId_byte, (uint32_t)rio_parsePositiveConst(vm));
     rio_expect(vm, ']', "']' expected");
   }
@@ -94,7 +94,7 @@ static int rio_parseTypeName(rio_Vm *vm) {
    prefixes apply innermost last: [2][3]T is 2 of [3]T, and
    ?[]?Int a maybe slice of maybe Ints. */
 static int rio_parseValueType(rio_Vm *vm) {
-  /* per prefix: n > 0 an array of n; -1 a slice; -2 a builder; -3 - n a list of n; and an enum, if any;
+  /* per prefix: n > 0 an array of n; -1 a slice; -2 a builder view; -3 - n a builder of n; and an enum, if any;
      or a maybe */
   rio_Compiler *c = vm->compiler;
   int32_t prefix[16];
@@ -131,8 +131,8 @@ static int rio_parseValueType(rio_Vm *vm) {
     if (maybe[count]) t = rio_maybeOf(vm, t);
     else if (enumOf[count]) t = rio_enumArrayOf(vm, t, enumOf[count]);
     else if (n == -1) t = rio_sliceOf(vm, t);
-    else if (n == -2) t = rio_builderOf(vm, t);
-    else if (n < -2) t = rio_listOf(vm, t, (uint32_t)(-3 - n));
+    else if (n == -2) t = rio_builderViewOf(vm, t);
+    else if (n < -2) t = rio_builderOf(vm, t, (uint32_t)(-3 - n));
     else t = rio_arrayOf(vm, t, (uint32_t)n);
   }
   return t;
@@ -209,7 +209,7 @@ void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type
   rio_Type *ty = rio_type(vm, type);
   int addr;
   if (ty->kind == rio_TypeKind_void) rio_FAIL(, "invalid parameter type");
-  if (!isRef && ty->kind == rio_TypeKind_list) rio_FAIL(, "invalid parameter type (pass lists as [..]T)");
+  if (!isRef && ty->kind == rio_TypeKind_builder) rio_FAIL(, "invalid parameter type (pass builders as [..]T)");
   if (!isRef && (ty->kind == rio_TypeKind_struct || ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_union) && ty->hasRefs)
     rio_FAIL(, "a struct, array or union holding slices or strings goes by reference: use &T");
   if (!isRef && rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
@@ -217,7 +217,7 @@ void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type
                                                                      read through like self */
   if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
   rio_addParam(vm, isRef ? rio_TypeId_int : type, isRef ? type : 0, addr);
-  if (!isRef && (ty->kind == rio_TypeKind_slice || ty->kind == rio_TypeKind_builder)) /* (a view from the caller: tracked) */
+  if (!isRef && (ty->kind == rio_TypeKind_slice || ty->kind == rio_TypeKind_builderView)) /* (a view from the caller: tracked) */
     rio_markParamView(vm, (uint32_t)addr, rio_typeWords(vm, type), 1);
   rio_addSymbol(vm, name, nameLen, isRef ? rio_SymKind_ref : rio_SymKind_var, type, isRef ? addr / 4 : addr);
   c->procDefs[proc].paramCount++;
@@ -228,7 +228,7 @@ void rio_setProcResult(rio_Vm *vm, int proc, int type) {
   rio_ProcDef *p = &vm->compiler->procDefs[proc];
   rio_Type *ty = rio_type(vm, type);
   p->resultType = (uint16_t)type;
-  if (ty->kind == rio_TypeKind_list ||
+  if (ty->kind == rio_TypeKind_builder ||
       ((ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_struct || ty->kind == rio_TypeKind_union) && ty->hasRefs))
     rio_FAIL(, "invalid return type");
   if (rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) can't be returned: fill in a &T parameter instead");
@@ -533,8 +533,8 @@ void rio_enumDef(rio_Vm *vm, const char *name, int nameLen) {
 
 /* ------------------------------------------------------------------ variables */
 
-/* name: [..]T = an array or slice: a builder over that memory, starting empty. Its length word is a
-   fourth slot right after the builder's three. */
+/* name: [..]T = an array or slice: a builder view over that memory, starting empty. Its length word is a
+   fourth slot right after the builder view's three. */
 static void rio_declareBuilderOver(rio_Vm *vm, const char *name, int nameLen, int type, rio_Expr *e) {
   rio_Compiler *c = vm->compiler;
   int s, d;
@@ -546,7 +546,7 @@ static void rio_declareBuilderOver(rio_Vm *vm, const char *name, int nameLen, in
   c->freeSlot = c->liveSlots;
   d = rio_allocSlots(vm, 4);
   c->liveSlots = c->freeSlot;
-  rio_emit(vm, rio_Op_mov2, d + 1, s, 0); /* first: s may sit where the builder now goes */
+  rio_emit(vm, rio_Op_mov2, d + 1, s, 0); /* first: s may sit where the builder view now goes */
   rio_emit(vm, rio_Op_mov, d, rio_addrConst(vm, (uint32_t)(d + 3) * 4, 4), 0);
   rio_emit(vm, rio_Op_mov, d + 3, rio_constSlot(vm, 0), 0);
   if (c->curProc >= 0) rio_markLocalView(vm, (uint32_t)d * 4, 3, 1); /* its length word is in this frame */
@@ -583,15 +583,15 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
       rio_declareUnion(vm, name, nameLen, type, &e);
       return;
     }
-    if (type >= 0 && rio_type(vm, type)->kind == rio_TypeKind_builder &&
+    if (type >= 0 && rio_type(vm, type)->kind == rio_TypeKind_builderView &&
         (rio_type(vm, e.type)->kind == rio_TypeKind_array || rio_type(vm, e.type)->kind == rio_TypeKind_slice)) {
       rio_declareBuilderOver(vm, name, nameLen, type, &e);
       return;
     }
-    if (type < 0) { /* the value's type: a list's is a builder, a view of it (but a new list, as from a
+    if (type < 0) { /* the value's type: a builder's is a builder view of it (but a new builder, as from a
                        literal, is itself) */
       type = rio_valueType(e.type);
-      if (rio_type(vm, type)->kind == rio_TypeKind_list && !rio_isTemp(vm, &e)) type = rio_builderOf(vm, rio_type(vm, type)->elem);
+      if (rio_type(vm, type)->kind == rio_TypeKind_builder && !rio_isTemp(vm, &e)) type = rio_builderViewOf(vm, rio_type(vm, type)->elem);
       else if (rio_isBig(rio_type(vm, type)) && !rio_isTemp(vm, &e))
         rio_FAIL(, rio_type(vm, type)->kind == rio_TypeKind_array
                        ? "this copies a big array (over 16 words): write its type to copy it (x: [N]T = a), or view it with a[]"
@@ -603,11 +603,11 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
   k = ty->kind;
   if (k == rio_TypeKind_void) rio_FAIL(, "variable has no type");
   if (c->curProc >= 0 && rio_isAggregate(k) && ty->hasRefs)
-    rio_FAIL(, "structs/arrays/lists/unions holding slices or strings must be global");
+    rio_FAIL(, "structs/arrays/builders/unions holding slices or strings must be global");
   big = rio_isBig(ty);
   if (big) addr = rio_allocHigh(vm, ty->size);
   else {
-    int isView = k == rio_TypeKind_slice || k == rio_TypeKind_builder;
+    int isView = k == rio_TypeKind_slice || k == rio_TypeKind_builderView;
     if (has && e.kind == rio_ExprKind_indirect &&
         (k == rio_TypeKind_int || k == rio_TypeKind_float || k == rio_TypeKind_bool || k == rio_TypeKind_enum || k == rio_TypeKind_proc || isView)) {
       int s = isView ? rio_toViewSlots(vm, &e) : rio_toSlot(vm, &e, 1); /* loaded into slots */
@@ -637,7 +637,7 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
   } else if (!(big && c->curProc < 0 && !c->blockCount)) /* (a big top-level global starts zeroed) */
     rio_emit(vm, rio_Op_zero, rio_addrConst(vm, addr, ty->size), (int)(ty->size & 0xFFFF), (int)(ty->size >> 16));
   if (!big) c->liveSlots = c->freeSlot; /* after the store, so it can still write straight into the variable */
-  if ((k == rio_TypeKind_slice || k == rio_TypeKind_builder) && c->curProc >= 0 && !big) {
+  if ((k == rio_TypeKind_slice || k == rio_TypeKind_builderView) && c->curProc >= 0 && !big) {
     rio_markLocalView(vm, addr, rio_typeWords(vm, type), localView);
     rio_markParamView(vm, addr, rio_typeWords(vm, type), has ? e.fromParam : 0);
   }
@@ -725,7 +725,7 @@ void rio_destructure(rio_Vm *vm) {
     fe.type = f->type;
     k = rio_type(vm, f->type)->kind;
     if (fe.kind == rio_ExprKind_indirect && !rio_isAggregate(k)) { /* load without disturbing the struct's address */
-      int s = k == rio_TypeKind_slice || k == rio_TypeKind_builder ? rio_toViewSlots(vm, &fe) : rio_toSlot(vm, &fe, 0);
+      int s = k == rio_TypeKind_slice || k == rio_TypeKind_builderView ? rio_toViewSlots(vm, &fe) : rio_toSlot(vm, &fe, 0);
       fe = rio_exprOf(rio_ExprKind_static, rio_valueType(f->type), s * 4);
     }
     rio_declare(vm, names[i], nameLens[i], -1, &fe, 0);

@@ -42,7 +42,7 @@ fell 25.0 with 2 balls
   errors stop with a line number, never with undefined behavior.
 - **Made for hosts.** The host provides drawing, sound or files as host procs, declared in Rio with
   `@host` and checked by the compiler. Compiled programs can be saved as images, or turned into C.
-- **Friendly to read.** Types are inferred, blocks end with `end`, and structs, lists and text builders
+- **Friendly to read.** Types are inferred, blocks end with `end`, and structs, builders and text
   are plain values with no pointers to manage.
 
 ## Try it
@@ -63,6 +63,7 @@ Raspberry Pi 4 or 5 with 64-bit Raspberry Pi OS). `rio -help` lists what it does
 - [Spec](docs/spec/language.md): what Rio programs mean, mostly as examples, which the tests run.
 - [Guide](docs/guide/building.md): the C library and CLI: embedding, memory, images, C output, ARM, and
   performance.
+- [Roadmap](ROADMAP.md): what's still being considered on the way to a Rio 1.0 that stays put.
 
 The docs build into a web site with `mdbook build docs`.
 

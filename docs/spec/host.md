@@ -14,7 +14,7 @@ and decides when the program's procs run. How a host does that in C is in the
    `update` and `draw` each frame. Globals keep their values between calls.
 
 A runtime error stops what's running and reports its line (and file, outside the main file). The
-errors are: an index or slice out of bounds, division by zero, `pop` from an empty list, a value
+errors are: an index or slice out of bounds, division by zero, `pop` from an empty builder, a value
 that isn't one of an enum's, calling an unset proc value, a failed `assert`, an error from a host proc,
 and being stopped by the host.
 

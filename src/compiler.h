@@ -64,7 +64,7 @@ typedef struct {
   uint8_t kind;    /* rio_TypeKind */
   uint8_t hasRefs; /* holds slices or strings somewhere (so it must be global) */
   uint16_t elem, firstField, fieldCount;
-  uint32_t count;  /* arrays and lists: the number of elements */
+  uint32_t count;  /* arrays and builders: the number of elements */
   uint32_t size;   /* bytes */
 } rio_Type;
 
@@ -188,9 +188,9 @@ typedef enum {
      call      a: the callee's rio_ExprKind (proc, static for a proc value, ffi, builtin);
                b: which (proc, slot holding the proc value, ffi function, rio_Builtin);
                c: a proc value's type; ffi: argument words placed so far; fromInt and has: the enum;
-               format: the builder's slots
+               format: the byte builder's slots
      literal   a: the field being filled in (-1: punned, decided by its value); b: the struct type;
-               c: the struct's address. op 1: an array or list literal instead (b: its type; its
+               c: the struct's address. op 1: an array or builder literal instead (b: its type; its
                values go in order, argCount so far, or by name: punAt 2, a the element named) */
 typedef struct {
   uint8_t kind, prec;
@@ -202,7 +202,7 @@ typedef struct {
   uint16_t valueBase;   /* the value stack's height when pushed: a call's arguments start there */
   uint16_t freeAtStart; /* the first free slot when pushed */
   uint64_t fieldsSet;   /* literal: which of its first 64 fields have values; format and print: the
-                           slot of the builder's old length (and the ok flag after it), and for format,
+                           slot of the byte builder's old length (and the ok flag after it), and for format,
                            shifted up 32, the slot holding its settings' address */
 } rio_PendingOp;
 
@@ -416,9 +416,9 @@ int rio_sliceOf(rio_Vm *vm, int elem);
 int rio_arrayOf(rio_Vm *vm, int elem, uint32_t count);
 int rio_enumArrayOf(rio_Vm *vm, int elem, int enumType);
 int rio_procTypeOf(rio_Vm *vm, const int *params, int n, int result);
-int rio_listOf(rio_Vm *vm, int elem, uint32_t count);
+int rio_builderOf(rio_Vm *vm, int elem, uint32_t count);
 int rio_maybeOf(rio_Vm *vm, int t);
-int rio_builderOf(rio_Vm *vm, int elem);
+int rio_builderViewOf(rio_Vm *vm, int elem);
 int rio_findField(rio_Vm *vm, const rio_Type *type, const char *s, int n);
 int rio_findEnumValue(rio_Vm *vm, int type, const char *s, int n, int32_t *value);
 int rio_enumIndex(rio_Vm *vm, int type, int32_t value);
@@ -496,10 +496,10 @@ typedef enum {
   rio_Builtin_atan, rio_Builtin_exp, rio_Builtin_ln, rio_Builtin_floor, rio_Builtin_ceil, rio_Builtin_round,
   rio_Builtin_atan2, rio_Builtin_pow, rio_Builtin_fmod, /* (from here on, two arguments) */
   rio_Builtin_assert,
-  /* list methods */
+  /* builder methods */
   rio_Builtin_push, rio_Builtin_pop, rio_Builtin_clear, rio_Builtin_cap, rio_Builtin_remove,
   rio_Builtin_swapRemove, rio_Builtin_pushAll, rio_Builtin_format, rio_Builtin_print,
-  /* byte methods (Blobs, byte lists) */
+  /* byte methods (Blobs, byte builders) */
   rio_Builtin_pack, rio_Builtin_unpack, rio_Builtin_getInt, rio_Builtin_setInt,
   /* conversion methods */
   rio_Builtin_toInt, rio_Builtin_toFloat, rio_Builtin_toBool, rio_Builtin_asString,

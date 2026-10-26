@@ -33,7 +33,7 @@ static const Case cases[] = {
   {"a: for i in 0..<3\nend\nf :: proc()\n  for\n    break a\n  end\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, 11, 1, "no loop with this label"},
   {"for c in \"abc\"\n  c = 1\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 5, 1, "cannot assign"},
   {"for x, i in 0..<3\nend\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a range loop has no index"},
-  {"n := 3\nfor x in n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "for needs a range, array, slice or list"},
+  {"n := 3\nfor x in n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "for needs a range, array, slice or builder"},
   {"xs: [2]Int\nfor x, in xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 2, "index name expected"},
   {"xs: [2]Int\nfor x, i on xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 10, 2, "'in' expected"},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(v)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 4, 1, "this parameter is a reference: pass &x"},
@@ -77,7 +77,7 @@ static const Case cases[] = {
   {"B :: struct\n  xs: [20]Int\nend\nb: B\nc := b\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this copies a big struct (over 16 words)"},
   {"f :: proc(g: [17]Int)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a big value (over 16 words) goes by reference"},
   {"f :: proc() -> [17]Int\nend\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a big value (over 16 words) can't be returned"},
-  {"buf: [4]Int\nf :: proc(o: [..]Int)\nend\nf(buf)\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "a builder needs somewhere to keep its length"},
+  {"buf: [4]Int\nf :: proc(o: [..]Int)\nend\nf(buf)\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "a builder view needs somewhere to keep its length"},
   {"t: Blob[..] = \"abc\"\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "can't build on read-only data"},
   {"fs: [4]Float\nb: [..]Int = fs\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "type mismatch"},
   {"buf: [4]Int\nb: [..]Int = buf\nlog(b[0])\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "index out of bounds"},
@@ -184,7 +184,7 @@ static const Case cases[] = {
   {"x := 1\nelse\n", 0, 0, 0, rio_ErrorKind_compile, 2, 1, 4, "'else' without 'if'"},
   {"x := 1\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 1, 3, "'end' without block"},
   {"x := 1\nreturn\n", 0, 0, 0, rio_ErrorKind_compile, 2, 1, 6, "return outside proc"},
-  {"xs: [..2]Int\nxs.print(1)\n",0, 0, 0, rio_ErrorKind_compile, 2, 9, 1, "print needs a Blob list"},
+  {"xs: [..2]Int\nxs.print(1)\n",0, 0, 0, rio_ErrorKind_compile, 2, 9, 1, "print needs a Blob builder"},
   {"b: Blob[..8]\nok := b.format(1, 2)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)"},
   {"b: Blob[..8]\nok := b.format()\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)"},
   /* ranges */
@@ -215,7 +215,7 @@ static const Case cases[] = {
   {"b: Blob[8]\nn := 0\nb.unpack(0, n)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "unpack changes what it's given: pass &x (or a slice, whose elements it fills)"},
   {"S :: struct\n  name: String\nend\ns: S\nb: Blob[16]\nb.pack(0, s)\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "only plain data packs: no views or proc values in it"},
   {"b: Blob[8]\nn := b.getInt(0, 12)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "the bits are 8, 16, 24 or 32 (negative: signed)"},
-  {"b: Blob[8]\nb.pack(1)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "pack(value) appends to a byte list: a Blob takes pack(at, value)"},
+  {"b: Blob[8]\nb.pack(1)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "pack(value) appends to a byte builder: a Blob takes pack(at, value)"},
   {"\"abcd\".setInt(0, 8, 1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a String is read-only: pack and setInt need a Blob"},
   {"xs: [4]Int\nn := xs.getInt(0, 8)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "no such method"},
   {"b: Blob[8]\nn := 5\nb.pack(n, n)\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "pack out of bounds"},
@@ -249,7 +249,7 @@ static const Case cases[] = {
   {"log(\"abc)\n", 0, 0, 0, rio_ErrorKind_compile, -1, -1, -1, "unclosed bracket"}, /* (a closing quote left out: the string ends with its line) */
   /* runtime errors report the line */
   {"xs: [4]Int\ni := 2\nf :: proc(n: Int) -> Int\n  return xs[n * 3]\nend\nlog(f(i))\n", 0, 0, 0, rio_ErrorKind_runtime, 4, 0, 0, "index out of bounds"},
-  {"xs: [..2]Int\nfor j in 0..<3\n  xs.push(j)\nend\nlog(xs.pop(), xs.pop(), xs.pop())\n", 0, 0, 0, rio_ErrorKind_runtime, 5, 0, 0, "pop from empty list"},
+  {"xs: [..2]Int\nfor j in 0..<3\n  xs.push(j)\nend\nlog(xs.pop(), xs.pop(), xs.pop())\n", 0, 0, 0, rio_ErrorKind_runtime, 5, 0, 0, "pop from empty builder"},
   {"main :: proc()\n  a := 0\n  b := 5\n  log(b / a)\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 4, 0, 0, "division by zero"},
   {"a: [3]Int\nn := 5\nb := a[1..<n]\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "slice out of bounds"},
   {"xs: [2]Int\ni := 0\nfor xs[i] == 0\n  i += 1\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "index out of bounds"}, /* rotated loop condition */

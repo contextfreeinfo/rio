@@ -1,4 +1,4 @@
-/* builtins.c - calls to the builtins: log, math, assert, and the methods every sequence, list, enum and
+/* builtins.c - calls to the builtins: log, math, assert, and the methods every sequence, builder, enum and
    number has. Each takes the call's arguments from the value stack (from call->valueBase) and pushes its
    result. What they do: docs/spec/builtins.md. */
 #include "compiler.h"
@@ -38,7 +38,7 @@ static int rio_argCount(rio_Vm *vm, const rio_PendingOp *call) { return vm->comp
 
 /* ------------------------------------------------------------------ log and format */
 
-/* printing by descriptor (print.h): structs, arrays, slices, lists, builders and unions */
+/* printing by descriptor (print.h): structs, arrays, slices, builders, builder views and unions */
 
 /* a word at the constants' end, for a descriptor */
 static void rio_descPush(rio_Vm *vm, uint32_t v) {
@@ -78,14 +78,14 @@ int rio_descriptor(rio_Vm *vm, int type) {
   case rio_TypeKind_enum:
     v[0] = rio_Print_enum; v[1] = ty->elem; v[2] = ty->fieldCount;
     return rio_findConsts(vm, v, 3, 0);
-  case rio_TypeKind_array: case rio_TypeKind_slice: case rio_TypeKind_list: case rio_TypeKind_builder: {
+  case rio_TypeKind_array: case rio_TypeKind_slice: case rio_TypeKind_builder: case rio_TypeKind_builderView: {
     int e = rio_descriptor(vm, ty->elem), w = 0;
     text = ty->elem == rio_TypeId_byte ? rio_Print_text : 0;
     if (k == rio_TypeKind_array) { v[w++] = rio_Print_array | text; v[w++] = ty->count; }
-    else v[w++] = (k == rio_TypeKind_slice ? rio_Print_slice : k == rio_TypeKind_list ? rio_Print_list : rio_Print_builder) | text;
+    else v[w++] = (k == rio_TypeKind_slice ? rio_Print_slice : k == rio_TypeKind_builder ? rio_Print_builder : rio_Print_builderView) | text;
     v[w++] = rio_type(vm, ty->elem)->size;
     v[w++] = (uint32_t)e;
-    if (k == rio_TypeKind_list) v[w++] = ty->count;
+    if (k == rio_TypeKind_builder) v[w++] = ty->count;
     return rio_failed(vm) ? 0 : rio_findConsts(vm, v, w, 0);
   }
   case rio_TypeKind_struct: case rio_TypeKind_union:
@@ -133,7 +133,7 @@ int rio_descriptor(rio_Vm *vm, int type) {
   return slot;
 }
 
-/* a value printed by descriptor, as logv and pushv take it: a slice's or builder's slots, else a slot
+/* a value printed by descriptor, as logv and pushv take it: a slice's or builder view's slots, else a slot
    holding its address (a proc value's: none, it prints as proc) */
 int rio_printOperand(rio_Vm *vm, rio_Expr *e) {
   rio_Type *ty;
@@ -141,7 +141,7 @@ int rio_printOperand(rio_Vm *vm, rio_Expr *e) {
   rio_needValue(vm, e);
   ty = rio_type(vm, e->type);
   if (ty->kind == rio_TypeKind_slice) return rio_toSlot2(vm, e);
-  if (ty->kind == rio_TypeKind_builder) return rio_toSlot3(vm, e);
+  if (ty->kind == rio_TypeKind_builderView) return rio_toSlot3(vm, e);
   if (ty->kind == rio_TypeKind_proc) return rio_constSlot(vm, 0);
   if (e->kind == rio_ExprKind_static) return rio_addrConst(vm, (uint32_t)e->value, ty->size);
   d = rio_allocSlots(vm, 1);
@@ -176,7 +176,7 @@ void rio_logArg(rio_Vm *vm, rio_PendingOp *call) {
   vm->compiler->freeSlot = e.tempStart;
 }
 
-/* b.print(...) and b.format(settings, ...): the first argument is the builder, whose length is kept so
+/* b.print(...) and b.format(settings, ...): the first argument is the byte builder, whose length is kept so
    text that doesn't fit can be undone, with an ok flag after it; each other argument is appended, and
    anded into the flag. format's second is its settings (a Format), kept in its slots to the end, whose
    address the rest are appended by (pushf) */
@@ -186,8 +186,8 @@ void rio_formatArg(rio_Vm *vm, rio_PendingOp *call) {
   int k = ty->kind, spec = (int)(call->fieldsSet >> 32), isFormat = call->b == rio_Builtin_format;
   if (call->argCount == 0) { /* the builder */
     int t;
-    if ((k != rio_TypeKind_list && k != rio_TypeKind_builder) || ty->elem != rio_TypeId_byte)
-      rio_FAIL(, isFormat ? "format needs a Blob list" : "print needs a Blob list");
+    if ((k != rio_TypeKind_builder && k != rio_TypeKind_builderView) || ty->elem != rio_TypeId_byte)
+      rio_FAIL(, isFormat ? "format needs a Blob builder" : "print needs a Blob builder");
     call->c = rio_toSlot3(vm, &e);
     t = rio_allocSlots(vm, 2);
     rio_emit(vm, rio_Op_ldw, t, call->c, 0);
@@ -253,7 +253,7 @@ void rio_formatArg(rio_Vm *vm, rio_PendingOp *call) {
 /* the end of format: if anything didn't fit, the old length goes back; the ok flag is the result */
 static void rio_finishFormat(rio_Vm *vm, rio_PendingOp *call) {
   int t = (int)(uint32_t)call->fieldsSet, j;
-  if (call->argCount < 1) rio_FAIL(, call->b == rio_Builtin_format ? "format needs a Blob list" : "print needs a Blob list");
+  if (call->argCount < 1) rio_FAIL(, call->b == rio_Builtin_format ? "format needs a Blob builder" : "print needs a Blob builder");
   if (call->b == rio_Builtin_format && call->argCount < 2) rio_FAIL(, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)");
   j = rio_emit(vm, rio_Op_jnz, t + 1, 0, rio_NONE);
   rio_emit(vm, rio_Op_stw, call->c, t, 0);
@@ -284,14 +284,14 @@ static void rio_mathCall(rio_Vm *vm, rio_PendingOp *call) {
       rio_offsetPlace(&r, 4);
       r.type = rio_TypeId_int;
       r.access = rio_Access_readOnly;
-    } else if (k == rio_TypeKind_list) { /* the length word comes first */
+    } else if (k == rio_TypeKind_builder) { /* the length word comes first */
       r = *a;
       r.type = rio_TypeId_int;
       r.access = rio_Access_readOnly;
-    } else if (k == rio_TypeKind_builder) {
+    } else if (k == rio_TypeKind_builderView) {
       r = rio_exprOf(rio_ExprKind_indirect, rio_TypeId_int, rio_toSlot3(vm, a));
       r.access = rio_Access_readOnly;
-    } else rio_FAIL(, "len() is for arrays, slices, lists and strings");
+    } else rio_FAIL(, "len() is for arrays, slices, builders and strings");
     rio_callResult(vm, call, r);
     return;
   }
@@ -368,7 +368,7 @@ static void rio_minMaxCall(rio_Vm *vm, rio_PendingOp *call) {
   rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, t, d * 4), call->freeAtStart);
 }
 
-/* ------------------------------------------------------------------ list methods */
+/* ------------------------------------------------------------------ builder methods */
 
 /* xs.push(x): reserve an element (address 0 when full), and store into it */
 static rio_Expr rio_pushCall(rio_Vm *vm, rio_PendingOp *call, rio_Expr *x, int builder, int elem, int size) {
@@ -388,7 +388,7 @@ static rio_Expr rio_pushCall(rio_Vm *vm, rio_PendingOp *call, rio_Expr *x, int b
 
 /* push pop clear cap remove swapRemove pushAll */
 static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
-  static const signed char args[] = {2, 1, 1, 1, 2, 2, 2}; /* counting the list itself */
+  static const signed char args[] = {2, 1, 1, 1, 2, 2, 2}; /* counting the builder itself */
   rio_Compiler *c = vm->compiler;
   int id = call->b, k, elem, builder, d, s, size;
   rio_Expr *a = &c->values[call->valueBase], r = rio_voidExpr();
@@ -396,8 +396,8 @@ static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
   rio_needValue(vm, a);
   k = rio_type(vm, a->type)->kind;
   if (id == rio_Builtin_cap) {
-    if (k == rio_TypeKind_list || k == rio_TypeKind_array) r = rio_exprOf(rio_ExprKind_const, rio_TypeId_int, (int32_t)rio_type(vm, a->type)->count);
-    else if (k == rio_TypeKind_builder) {
+    if (k == rio_TypeKind_builder || k == rio_TypeKind_array) r = rio_exprOf(rio_ExprKind_const, rio_TypeId_int, (int32_t)rio_type(vm, a->type)->count);
+    else if (k == rio_TypeKind_builderView) {
       r = rio_exprOf(rio_ExprKind_static, rio_TypeId_int, (rio_toSlot3(vm, a) + 2) * 4);
       r.access = rio_Access_readOnly;
     } else if (k == rio_TypeKind_slice) {
@@ -405,11 +405,11 @@ static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
       rio_offsetPlace(&r, 4);
       r.type = rio_TypeId_int;
       r.access = rio_Access_readOnly;
-    } else rio_FAIL(, "cap() is for lists, arrays and slices");
+    } else rio_FAIL(, "cap() is for builders, arrays and slices");
     rio_callResult(vm, call, r);
     return;
   }
-  if (k != rio_TypeKind_list && k != rio_TypeKind_builder) rio_FAIL(, "expected a list");
+  if (k != rio_TypeKind_builder && k != rio_TypeKind_builderView) rio_FAIL(, "expected a builder");
   elem = rio_type(vm, a->type)->elem;
   size = (int)rio_type(vm, elem)->size;
   builder = rio_toSlot3(vm, a);
@@ -430,12 +430,12 @@ static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
     int xk;
     rio_needValue(vm, x);
     xk = rio_type(vm, x->type)->kind;
-    if (xk == rio_TypeKind_list || xk == rio_TypeKind_builder) { /* its live elements */
+    if (xk == rio_TypeKind_builder || xk == rio_TypeKind_builderView) { /* its live elements */
       int other = rio_toSlot3(vm, x);
       s = rio_allocSlots(vm, 2);
       rio_emit(vm, rio_Op_lview, s, other, 0);
     } else if (xk == rio_TypeKind_slice || xk == rio_TypeKind_array) s = rio_toSlot2(vm, x);
-    else rio_FAIL(, "pushAll needs a slice, array or list");
+    else rio_FAIL(, "pushAll needs a slice, array or builder");
     if (rio_type(vm, x->type)->elem != elem) rio_FAIL(, "type mismatch");
     c->freeSlot = call->freeAtStart;
     d = rio_allocSlots(vm, 1);
@@ -449,14 +449,14 @@ static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
 
 /* ------------------------------------------------------------------ pack unpack getInt setInt */
 
-/* can a value of type t be packed: plain data, with no views (slices, String, Blob, builders) or proc
+/* can a value of type t be packed: plain data, with no views (slices, String, Blob, builder views) or proc
    values anywhere in it, as those hold addresses */
 static int rio_packable(rio_Vm *vm, int t) {
   const rio_Type *ty = rio_type(vm, t);
   int i;
   switch (ty->kind) {
-  case rio_TypeKind_slice: case rio_TypeKind_builder: case rio_TypeKind_proc: case rio_TypeKind_void: return 0;
-  case rio_TypeKind_array: case rio_TypeKind_list: return rio_packable(vm, ty->elem);
+  case rio_TypeKind_slice: case rio_TypeKind_builderView: case rio_TypeKind_proc: case rio_TypeKind_void: return 0;
+  case rio_TypeKind_array: case rio_TypeKind_builder: return rio_packable(vm, ty->elem);
   case rio_TypeKind_struct: case rio_TypeKind_union:
     for (i = 0; i < ty->fieldCount; i++) {
       int f = rio_field(vm, ty->firstField + i)->type;
@@ -467,15 +467,15 @@ static int rio_packable(rio_Vm *vm, int t) {
   }
 }
 
-/* the bytes of x, as 2 slots (address, how many): a view's elements (a builder's live ones), else the
+/* the bytes of x, as 2 slots (address, how many): a view's elements (a builder view's live ones), else the
    value's own memory (into: it's being written, so it must be a place, or a view of one) */
 static int rio_bytesOf(rio_Vm *vm, rio_Expr *x, int into) {
   int k = rio_type(vm, x->type)->kind, s, d, size;
-  if (k == rio_TypeKind_slice || k == rio_TypeKind_builder) {
+  if (k == rio_TypeKind_slice || k == rio_TypeKind_builderView) {
     int elem = rio_type(vm, x->type)->elem;
     if (!rio_packable(vm, elem)) rio_FAIL(0, "only plain data packs: no views or proc values in it");
     if (into && (x->type == rio_TypeId_string || (x->access & rio_Access_readOnly))) rio_FAIL(0, "can't unpack into this: it's read-only");
-    if (k == rio_TypeKind_builder) {
+    if (k == rio_TypeKind_builderView) {
       int b = rio_toSlot3(vm, x);
       s = rio_allocSlots(vm, 2);
       rio_emit(vm, rio_Op_lview, s, b, 0);
@@ -502,7 +502,7 @@ static int rio_bytesOf(rio_Vm *vm, rio_Expr *x, int into) {
 
 /* b.pack(at, x), b.pack(x) (appended), b.unpack(at, &x), b.getInt(at, bits), b.setInt(at, bits, n) */
 static void rio_bytesCall(rio_Vm *vm, rio_PendingOp *call) {
-  static const char *const usage[] = {"pack takes (at, value), or (value) to append to a byte list", "unpack takes (at, &place), or (at, view)",
+  static const char *const usage[] = {"pack takes (at, value), or (value) to append to a byte builder", "unpack takes (at, &place), or (at, view)",
                                       "getInt takes (at, bits)", "setInt takes (at, bits, value)"};
   rio_Compiler *c = vm->compiler;
   int id = call->b, n = rio_argCount(vm, call), k, blob, at, r, d, bits, bytes;
@@ -514,8 +514,8 @@ static void rio_bytesCall(rio_Vm *vm, rio_PendingOp *call) {
     rio_FAIL(, "pack, unpack, getInt and setInt are for Blobs");
   if ((id == rio_Builtin_pack || id == rio_Builtin_setInt) && (a->type == rio_TypeId_string || (a->access & rio_Access_readOnly)))
     rio_FAIL(, "a String is read-only: pack and setInt need a Blob");
-  if (n == 2) { /* b.pack(x): appended to a byte list, all or nothing */
-    if (k != rio_TypeKind_list && k != rio_TypeKind_builder) rio_FAIL(, "pack(value) appends to a byte list: a Blob takes pack(at, value)");
+  if (n == 2) { /* b.pack(x): appended to a byte builder, all or nothing */
+    if (k != rio_TypeKind_builder && k != rio_TypeKind_builderView) rio_FAIL(, "pack(value) appends to a byte builder: a Blob takes pack(at, value)");
     rio_needValue(vm, a + 1);
     blob = rio_toSlot3(vm, a);
     r = rio_bytesOf(vm, a + 1, 0);
@@ -526,7 +526,7 @@ static void rio_bytesCall(rio_Vm *vm, rio_PendingOp *call) {
     rio_callResult(vm, call, rio_exprOf(rio_ExprKind_static, rio_TypeId_bool, d * 4));
     return;
   }
-  if (k == rio_TypeKind_list || k == rio_TypeKind_builder) { /* (its live bytes) */
+  if (k == rio_TypeKind_builder || k == rio_TypeKind_builderView) { /* (its live bytes) */
     int b = rio_toSlot3(vm, a);
     blob = rio_allocSlots(vm, 2);
     rio_emit(vm, rio_Op_lview, blob, b, 0);
@@ -567,7 +567,7 @@ static void rio_bytesCall(rio_Vm *vm, rio_PendingOp *call) {
     rio_Expr *x = a + 2;
     int xk = rio_type(vm, x->type)->kind;
     if (x->access & rio_Access_ref) x->access = 0;
-    else if (xk != rio_TypeKind_slice && xk != rio_TypeKind_builder) rio_FAIL(, "unpack changes what it's given: pass &x (or a slice, whose elements it fills)");
+    else if (xk != rio_TypeKind_slice && xk != rio_TypeKind_builderView) rio_FAIL(, "unpack changes what it's given: pass &x (or a slice, whose elements it fills)");
     else rio_needValue(vm, x);
     r = rio_bytesOf(vm, x, 1);
     if (rio_failed(vm)) return;

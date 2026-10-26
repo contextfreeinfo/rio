@@ -1,5 +1,5 @@
 /* print.h - values as text, by their types' descriptors: log and format for structs, arrays, slices,
-   lists, builders and unions (docs/spec/builtins.md#log). The compiler writes a descriptor of each type
+   builders, builder views and unions (docs/spec/builtins.md#log). The compiler writes a descriptor of each type
    printed into the constants, the first time it's printed (rio_descriptor, builtins.c), and one
    instruction prints a value through it (logv, pushv), so a struct takes one instruction, not one a
    field. The printer is written once, here, as a macro: vm.c compiles it, and aot.c puts its text in
@@ -13,8 +13,8 @@
      struct                         its name (a string constant: address, length), its field count, then
                                     each field's name, offset and descriptor
      array                          its length, the element size and descriptor
-     slice, builder                 the element size and descriptor
-     list                           the element size and descriptor, and its capacity
+     slice, builder view            the element size and descriptor
+     builder                        the element size and descriptor, and its capacity
      union                          how many types it lists, then each one's descriptor (0: nil)
      bits                           a struct's bitfield: its first bit in the word, its bits (negative:
                                     signed)
@@ -25,13 +25,13 @@
 
 #define rio_PRINT_KINDS                                                                                  \
   enum { rio_Print_int = 1, rio_Print_byte, rio_Print_float, rio_Print_bool, rio_Print_proc, rio_Print_enum, \
-         rio_Print_struct, rio_Print_array, rio_Print_slice, rio_Print_list, rio_Print_builder, rio_Print_union, rio_Print_bits, rio_Print_range, \
+         rio_Print_struct, rio_Print_array, rio_Print_slice, rio_Print_builder, rio_Print_builderView, rio_Print_union, rio_Print_bits, rio_Print_range, \
          rio_Print_text = 256, rio_Print_shown = 10, rio_Print_textShown = 40, rio_Print_depth = 8 };
 
 /* rio_Out: where the text goes (out, from len, up to cap); capped: a log line's, so long sequences show
    their first rio_Print_shown elements and long nested text its first rio_Print_textShown bytes; full:
-   it ran out of room (the rest is dropped); spec: format's settings' address, or 0. The value is at an address in M (structs, arrays, lists,
-   unions), or is the words w0, w1, w2 themselves (a slice: address, length; a builder: the address of
+   it ran out of room (the rest is dropped); spec: format's settings' address, or 0. The value is at an address in M (structs, arrays, builders,
+   unions), or is the words w0, w1, w2 themselves (a slice: address, length; a builder view: the address of
    its length, of its data, its capacity) */
 #define rio_PRINTER(X) X(                                                                                \
 typedef struct { uint8_t *out; uint32_t len, cap, spec; int capped, full; } rio_Out;                           \
@@ -172,13 +172,13 @@ static void rio_printAt(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t p, in
   }                                                                                                      \
   case rio_Print_array: rio_printElements(M, o, d, p, rio_printWord(M, (d + 1) * 4), depth); return;     \
   case rio_Print_slice: rio_printElements(M, o, d, rio_printWord(M, p), rio_printWord(M, p + 4), depth); return; \
-  case rio_Print_list: {                                                                                 \
+  case rio_Print_builder: {                                                                                 \
     uint32_t cap = rio_printWord(M, (d + 3) * 4);                                                        \
     n = rio_printWord(M, p);                                                                             \
     rio_printElements(M, o, d, p + 4, n < cap ? n : cap, depth);                                         \
     return;                                                                                              \
   }                                                                                                      \
-  case rio_Print_builder: {                                                                              \
+  case rio_Print_builderView: {                                                                              \
     uint32_t cap = rio_printWord(M, p + 8);                                                              \
     n = rio_printWord(M, rio_printWord(M, p));                                                           \
     rio_printElements(M, o, d, rio_printWord(M, p + 4), n < cap ? n : cap, depth);                       \
@@ -186,11 +186,11 @@ static void rio_printAt(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t p, in
   }                                                                                                      \
   }                                                                                                      \
 }                                                                                                        \
-/* a value, as logv and pushv have it: a slice's or builder's words themselves, else its address */      \
+/* a value, as logv and pushv have it: a slice's or builder view's words themselves, else its address */      \
 static void rio_printValue(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t w0, uint32_t w1, uint32_t w2) { \
   uint32_t k = rio_printWord(M, d * 4) & 255, n;                                                         \
   if (k == rio_Print_slice) rio_printElements(M, o, d, w0, w1, 0);                                        \
-  else if (k == rio_Print_builder) { n = rio_printWord(M, w0); rio_printElements(M, o, d, w1, n < w2 ? n : w2, 0); } \
+  else if (k == rio_Print_builderView) { n = rio_printWord(M, w0); rio_printElements(M, o, d, w1, n < w2 ? n : w2, 0); } \
   else rio_printAt(M, o, d, w0, 0);                                                                      \
 }                                                                                                         \
 /* a value as format's settings say (pushf; docs/spec/builtins.md#format), at the address spec: width,    \

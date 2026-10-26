@@ -192,7 +192,7 @@ int rio_isLocalMemory(rio_Vm *vm, const rio_Expr *e) {
 
 int rio_isLocalView(rio_Vm *vm, const rio_Expr *e) {
   int k = rio_type(vm, e->type)->kind;
-  return e->localView || ((k == rio_TypeKind_array || k == rio_TypeKind_list) && rio_isLocalMemory(vm, e));
+  return e->localView || ((k == rio_TypeKind_array || k == rio_TypeKind_builder) && rio_isLocalMemory(vm, e));
 }
 
 /* marks (or unmarks) the slots at addr as holding a local view */
@@ -260,8 +260,8 @@ void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
   *e = rio_exprOf(rio_ExprKind_const, i, e->value + 1);
 }
 
-/* makes e a value of type `type`, or fails: Int constants become Floats, arrays view as slices, lists as
-   builders, and procs become proc values */
+/* makes e a value of type `type`, or fails: Int constants become Floats, arrays view as slices, builders as
+   builder views, and procs become proc values */
 void rio_coerce(rio_Vm *vm, rio_Expr *e, int type) {
   int from, fromKind, toKind;
   if (e->kind == rio_ExprKind_proc && rio_type(vm, type)->kind == rio_TypeKind_proc) { /* a proc where a proc value goes */
@@ -285,10 +285,10 @@ void rio_coerce(rio_Vm *vm, rio_Expr *e, int type) {
     if (rio_isTemp(vm, e)) rio_FAIL(, "a computed array has no home to view: store it in a variable first");
     return;
   }
-  if (fromKind == rio_TypeKind_list && toKind == rio_TypeKind_builder && rio_type(vm, type)->elem == rio_type(vm, from)->elem)
+  if (fromKind == rio_TypeKind_builder && toKind == rio_TypeKind_builderView && rio_type(vm, type)->elem == rio_type(vm, from)->elem)
     return;
-  if ((fromKind == rio_TypeKind_array || fromKind == rio_TypeKind_slice) && toKind == rio_TypeKind_builder)
-    rio_FAIL(, "a builder needs somewhere to keep its length: declare one first, name: [..]T = array");
+  if ((fromKind == rio_TypeKind_array || fromKind == rio_TypeKind_slice) && toKind == rio_TypeKind_builderView)
+    rio_FAIL(, "a builder view needs somewhere to keep its length: declare one first, name: [..]T = array");
   if (fromKind == rio_TypeKind_union && rio_type(vm, from)->elem == type) rio_FAIL(, "this may be nil: check first (if x is T, then x is a T there)");
   rio_FAIL(, "type mismatch");
 }
@@ -401,13 +401,13 @@ int rio_toSlot2(rio_Vm *vm, rio_Expr *e) {
   return d;
 }
 
-/* a list or builder: 3 consecutive slots (address of the length word, address of the data, capacity) */
+/* a builder or builder view: 3 consecutive slots (address of the length word, address of the data, capacity) */
 int rio_toSlot3(rio_Vm *vm, rio_Expr *e) {
   rio_Type *ty;
   int d;
   rio_needValue(vm, e);
   ty = rio_type(vm, e->type);
-  if (ty->kind == rio_TypeKind_list) { /* the length word comes first, then the elements */
+  if (ty->kind == rio_TypeKind_builder) { /* the length word comes first, then the elements */
     if (e->kind == rio_ExprKind_static) {
       uint32_t v[3];
       v[0] = rio_expose(vm, (uint32_t)e->value, ty->size);
@@ -421,7 +421,7 @@ int rio_toSlot3(rio_Vm *vm, rio_Expr *e) {
     rio_emit(vm, rio_Op_mov, d + 2, rio_constSlot(vm, ty->count), 0);
     return d;
   }
-  if (ty->kind != rio_TypeKind_builder) rio_FAIL(0, "expected a list");
+  if (ty->kind != rio_TypeKind_builderView) rio_FAIL(0, "expected a builder");
   if (e->kind == rio_ExprKind_static) {
     if (e->value < rio_SLOTS_END - 12) return e->value >> 2; /* all three words are slots */
     rio_indirectViaConst(vm, e, 12);
@@ -432,9 +432,9 @@ int rio_toSlot3(rio_Vm *vm, rio_Expr *e) {
   return d;
 }
 
-/* the slots holding a slice-like or builder value */
+/* the slots holding a slice-like or builder view value */
 int rio_toViewSlots(rio_Vm *vm, rio_Expr *e) {
-  return rio_type(vm, e->type)->kind == rio_TypeKind_builder ? rio_toSlot3(vm, e) : rio_toSlot2(vm, e);
+  return rio_type(vm, e->type)->kind == rio_TypeKind_builderView ? rio_toSlot3(vm, e) : rio_toSlot2(vm, e);
 }
 
 /* a struct or array: a slot holding its address */
@@ -524,12 +524,12 @@ static void rio_storeScalar(rio_Vm *vm, rio_Expr *dst, rio_Expr *src, int kind) 
 void rio_store(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
   rio_Type *ty = rio_type(vm, dst->type);
   int k = ty->kind;
-  if (k == rio_TypeKind_slice || k == rio_TypeKind_builder) rio_storeView(vm, dst, src);
+  if (k == rio_TypeKind_slice || k == rio_TypeKind_builderView) rio_storeView(vm, dst, src);
   if (k == rio_TypeKind_union && rio_storeIntoUnion(vm, dst, src)) return; /* a value of one of its types: wrapped */
   rio_coerce(vm, src, dst->type);
   if (dst->bits) rio_storeBits(vm, dst, src);
   else if (rio_isAggregate(k)) rio_storeAggregate(vm, dst, src, ty);
-  else if (k == rio_TypeKind_builder) rio_storeBuilder(vm, dst, src);
+  else if (k == rio_TypeKind_builderView) rio_storeBuilder(vm, dst, src);
   else if (k == rio_TypeKind_slice) rio_storeSlice(vm, dst, src);
   else rio_storeScalar(vm, dst, src, k);
 }

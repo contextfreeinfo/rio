@@ -144,13 +144,13 @@ static void rio_forEach(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
   int s, size, readOnly, indexType = rio_TypeId_int;
   rio_needValue(vm, e);
   ty = rio_type(vm, e->type);
-  if (ty->kind == rio_TypeKind_list || ty->kind == rio_TypeKind_builder) { /* the elements there when the loop starts */
+  if (ty->kind == rio_TypeKind_builder || ty->kind == rio_TypeKind_builderView) { /* the elements there when the loop starts */
     int builder = rio_toSlot3(vm, e), view = rio_allocSlots(vm, 2);
     rio_emit(vm, rio_Op_lview, view, builder, 0);
     *e = rio_exprOf(rio_ExprKind_static, rio_sliceOf(vm, ty->elem), view * 4);
     ty = rio_type(vm, e->type);
   }
-  if (ty->kind != rio_TypeKind_array && ty->kind != rio_TypeKind_slice) rio_FAIL(, "for needs a range, array, slice or list");
+  if (ty->kind != rio_TypeKind_array && ty->kind != rio_TypeKind_slice) rio_FAIL(, "for needs a range, array, slice or builder");
   if (ty->kind == rio_TypeKind_array && rio_isTemp(vm, e)) rio_FAIL(, "a computed array has no home to view: store it in a variable first");
   size = (int)rio_type(vm, ty->elem)->size;
   readOnly = e->access || e->type == rio_TypeId_string;
@@ -470,7 +470,7 @@ static void rio_returnStatement(rio_Vm *vm) {
     int k = rio_type(vm, p->resultType)->kind;
     c->targetType = p->resultType;
     e = rio_parseExpr(vm);
-    if ((k == rio_TypeKind_slice || k == rio_TypeKind_builder) && rio_isLocalView(vm, &e))
+    if ((k == rio_TypeKind_slice || k == rio_TypeKind_builderView) && rio_isLocalView(vm, &e))
       rio_FAIL(, "this returns a view of the proc's own memory, which the next call rewrites: make that memory global, or have the caller pass it in");
     rio_store(vm, &d, &e);
   }
@@ -657,8 +657,8 @@ static void rio_autoPrint(rio_Vm *vm, rio_Expr *e) {
   else if (k == rio_TypeKind_bool) rio_emitX(vm, rio_Op_logb, 0, rio_toSlot(vm, e, 1));
   else if (k == rio_TypeKind_enum) rio_logEnumName(vm, e, 0);
   else if (k == rio_TypeKind_int || k == rio_TypeKind_byte) rio_emitX(vm, rio_Op_logi, 0, rio_toSlot(vm, e, 1));
-  else if (k == rio_TypeKind_struct || k == rio_TypeKind_array || k == rio_TypeKind_slice || k == rio_TypeKind_list ||
-           k == rio_TypeKind_builder || k == rio_TypeKind_union) { /* by descriptor */
+  else if (k == rio_TypeKind_struct || k == rio_TypeKind_array || k == rio_TypeKind_slice || k == rio_TypeKind_builder ||
+           k == rio_TypeKind_builderView || k == rio_TypeKind_union) { /* by descriptor */
     int s = rio_printOperand(vm, e), d = rio_descriptor(vm, e->type);
     if (rio_failed(vm)) return;
     rio_emit(vm, rio_Op_logv, s, d, 0);

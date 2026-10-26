@@ -154,13 +154,13 @@ log(
 
 ## Indexing and slicing
 
-`a[i]` is element `i` of an array, slice, list, `String` or `Blob`, counting from 0. An index outside
+`a[i]` is element `i` of an array, slice, builder, `String` or `Blob`, counting from 0. An index outside
 `0 <= i < a.len()` is a runtime error (or a compile error, when it's a constant).
 
 `a[i..<j]` is a view of elements `i` up to but not including `j`, and `a[i..=j]` up to and including `j`.
 `a[i..]` runs to the end, `a[..<j]` and `a[..=j]` start at 0, and `a[]` is all of it. A [range](#ranges)
 value works too: `a[r]` is `r.first` to `r.last`. It's a runtime error unless the slice is inside `a`
-(`0 <= i <= j <= a.len()`, with `j` one past the last). Slicing an array or list gives a `[]T`, a
+(`0 <= i <= j <= a.len()`, with `j` one past the last). Slicing an array or builder gives a `[]T`, a
 `String` a `String`, and a `Blob` a `Blob`:
 
 ```rio
@@ -312,7 +312,7 @@ log(a.x, b.x, b.y, s.pos.y, s.hp)
 ## Array literals
 
 `[N]T{a, b, ...}` makes an array: its values in order, and zero for the elements after them. More
-values than the array holds is an error. `[..N]T{a, b, ...}` makes a list holding those values. As
+values than the array holds is an error. `[..N]T{a, b, ...}` makes a builder holding those values. As
 with structs, where the type is already decided the type can be left off, so `{...}` is a struct or
 an array by where it's going: a struct's fields are always named, and an array's values never are.
 Literals nest:

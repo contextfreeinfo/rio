@@ -85,7 +85,7 @@ void rio_logOp(rio_Vm *vm, const rio_Val *R, const rio_Instr *ip) {
     else rio_logPut(vm, text, rio_formatInt(text, v));
     break;
   }
-  case rio_Op_logv: { /* a struct, array, list, union, ...: by its descriptor, as much as the line holds */
+  case rio_Op_logv: { /* a struct, array, builder, union, ...: by its descriptor, as much as the line holds */
     rio_Out o;
     o.out = (uint8_t *)vm->logBuf; o.len = (uint32_t)vm->logLen; o.cap = rio_LOG_BUF_SIZE; o.capped = 1; o.full = 0; o.spec = 0; o.spec = 0;
     rio_printValue(M, &o, ip->b, R[ip->a].u, R[ip->a + 1].u, R[ip->a + 2].u);
@@ -344,7 +344,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
   rio_CASE(fvmul) rio_ELEMENTWISE(d_[i_].f = rio_L.f * rio_R.f)
   rio_CASE(fvdiv) rio_ELEMENTWISE(d_[i_].f = rio_L.f / rio_R.f)
 
-/* a builder in slots s..s+2: (address of the length word, address of the data, capacity); its length,
+/* a builder view in slots s..s+2: (address of the length word, address of the data, capacity); its length,
    never above its capacity */
 #define rio_LIST_LEN(s) (rio_WORD(R[s].u).u < R[(s) + 2].u ? rio_WORD(R[s].u).u : R[(s) + 2].u)
   rio_CASE(lidx) {
@@ -416,7 +416,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
   }
   rio_CASE(popa) {
     uint32_t n = rio_LIST_LEN(ip->b);
-    if (!n) return rio_runtimeError(vm, "pop from empty list", rio_PC);
+    if (!n) return rio_runtimeError(vm, "pop from empty builder", rio_PC);
     rio_WORD(R[ip->b].u).u = --n;
     R[ip->a].u = R[ip->b + 1].u + n * rio_dataSize(ip + 1);
     rio_NEXT2();

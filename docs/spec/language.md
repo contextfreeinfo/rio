@@ -9,11 +9,11 @@ repository.
 
 - **Static types,** mostly inferred: `x := 1` is an `Int`.
 - **No hidden allocation.** A program's memory is known when it compiles: globals, one frame per
-  proc, and fixed-size arrays and lists.
+  proc, and fixed-size arrays and builders.
 - **No recursion.** Everything is declared before it's used, so a proc can't call itself, directly or
   through others. That's what lets each proc have one fixed frame.
 - **Values are copied, views are explicit.** Structs and arrays are values, copied when assigned.
-  Slices, `String`s, `Blob`s and builders are views of memory, with types that say so. `&` lets a
+  Slices, `String`s, `Blob`s and builder views are views of memory, with types that say so. `&` lets a
   proc change the caller's things.
 - **Safe at runtime.** Indexes are checked, integers wrap, and errors stop the program with a line
   number, never with undefined behavior.
@@ -55,7 +55,7 @@ the same places, not the same words.
 - **Compile error:** the program is rejected before any of it runs.
 - **Runtime error:** the program stops, reporting the line. Nothing after it runs.
 - **Word:** 4 bytes, the size of an `Int`.
-- **View:** a value that refers to memory it doesn't own: a slice, `String`, `Blob` or builder.
+- **View:** a value that refers to memory it doesn't own: a slice, `String`, `Blob` or builder view.
 
 ## Not yet in Rio
 

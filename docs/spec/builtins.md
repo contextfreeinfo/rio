@@ -8,7 +8,7 @@ ones that would need generics are written there in comments for now.
 
 `log(a, b, ...)` writes its arguments as text on one line, with spaces between, to the host's log (the
 CLI prints it). It takes any value: numbers, `Bool`s, `String`s, `Blob`s, enums, and structs, arrays,
-slices, lists and unions:
+slices, builders and unions:
 
 ```rio
 Dir :: enum
@@ -25,7 +25,7 @@ n 42 1.5 true east
 -0.25 100.0 1.0e9 0.333333 1.0e-5 123456792.0
 ```
 
-Structs, arrays, slices, lists and unions are written as Rio writes them, with text inside them quoted:
+Structs, arrays, slices, builders and unions are written as Rio writes them, with text inside them quoted:
 
 ```rio
 Point :: struct
@@ -68,7 +68,7 @@ log(b.len(), b[0])
 7 27
 ```
 
-A log line keeps it short: a long array, slice or list shows its first 10 elements and how many more,
+A log line keeps it short: a long array, slice or builder shows its first 10 elements and how many more,
 text inside a value its first 40 bytes, and a value nested more than 8 deep `...`. A line is cut at the
 host's log size too (256 bytes on most hosts). `print` and `format` write all of a value, or none of
 it when it doesn't fit.
@@ -81,7 +81,7 @@ How values become text, in `log`, `print` and `format` (unless format's settings
   control bytes (but line breaks, tabs and `\r`), byte 127 and bytes that aren't UTF-8 as `\xHH`, so
   binary data can't upset a console; UTF-8 text shows as itself. Inside another value, quoted, with `"`,
   `\`, line breaks, tabs, `\r` and zeros escaped as in Rio's strings, and the rest as `log` shows them.
-- Structs: `Point{x = 1, y = 2}`. Arrays, slices and lists: `[1, 2, 3]` (of bytes: as text). Unions: the
+- Structs: `Point{x = 1, y = 2}`. Arrays, slices and builders: `[1, 2, 3]` (of bytes: as text). Unions: the
   value they hold, or `nil`. Proc values: `proc`.
 - `Float`: `nan`, `inf` or `-inf`, or else digits with one decimal point. Values from `1e-4` up to
   (not including) `1e9` are written plainly; others as a number from 1 to 10 and `e` with a power of
@@ -141,27 +141,27 @@ log(b.len(), b[0], b)
 
 ## Sequences
 
-Every array, slice, list, builder, `String` and `Blob` has:
+Every array, slice, builder, builder view, `String` and `Blob` has:
 
-- `xs.len()`: how many elements (for a list or builder, how many it has now).
+- `xs.len()`: how many elements (for a builder or builder view, how many it has now).
 - `xs.cap()`: how many it can hold (the same as `len` for the fixed-length kinds).
 
-## Lists and builders
+## Builders
 
-These change a list `[..N]T` or a builder `[..]T` (`Blob[..N]` and `Blob[..]` too):
+These change a builder `[..N]T` or a builder view `[..]T` (`Blob[..N]` and `Blob[..]` too):
 
 | | |
 |---|---|
 | `xs.push(x) -> Bool` | adds one element at the end; `false`, and no change, when full |
-| `xs.pushAll(ys) -> Bool` | adds every element of an array, slice or list of the same type (a `String` for byte lists): all or none |
+| `xs.pushAll(ys) -> Bool` | adds every element of an array, slice or builder of the same type (a `String` for byte builders): all or none |
 | `xs.pop() -> T` | removes the last element and gives it; a runtime error when empty |
 | `xs.clear()` | removes them all |
 | `xs.remove(i)` | removes element `i`, keeping the order of the rest |
 | `xs.swapRemove(i)` | removes element `i`, moving the last one into its place |
-| `b.print(...) -> Bool` | for byte lists: appends its arguments as text, as `log` would but without spaces; all or none |
+| `b.print(...) -> Bool` | for byte builders: appends its arguments as text, as `log` would but without spaces; all or none |
 | `b.format(settings, ...) -> Bool` | as `print`, as its settings say (see [format](#format)) |
 
-`remove` and `swapRemove` with `i` outside the list are runtime errors.
+`remove` and `swapRemove` with `i` outside the builder are runtime errors.
 
 ```rio
 xs: [..4]Int
@@ -182,7 +182,7 @@ log(xs.len(), xs[0], last, title[])
 
 ```rio
 xs: [..2]Int
-log(xs.pop())  # runtime error: pop from empty list
+log(xs.pop())  # runtime error: pop from empty builder
 ```
 
 ## format
@@ -201,7 +201,7 @@ end
 ```
 
 Each field's 0 is as `print` writes it. The settings apply to every value after them, and to every
-number and name inside a struct, array, slice, list or union (text inside a value stays quoted, and
+number and name inside a struct, array, slice, builder or union (text inside a value stays quoted, and
 isn't padded). A `Format` after the first argument is just a value. For different settings, use
 another call:
 
@@ -227,7 +227,7 @@ log(b[])
 `base` writes an `Int`'s 32 bits, so a negative one has no `-` (`-1` is `ffffffff`). It's ignored for
 `Float`s, as `places` is for `Int`s.
 
-A builder `b: [..]T = array` (or a slice of one) builds into that memory, starting empty. Its length
+A builder view `b: [..]T = array` (or a slice of one) builds into that memory, starting empty. Its length
 lives in a hidden word next to `b`, which every copy of `b` shares:
 
 ```rio
@@ -245,8 +245,8 @@ log(b.len(), mem[0], mem[1])
 2 7 8
 ```
 
-A builder needs a declaration to hold its length, so passing an array straight to a `[..]T`
-parameter is an error. A builder can't be made over read-only bytes, such as a `String`.
+A builder view needs a declaration to hold its length, so passing an array straight to a `[..]T`
+parameter is an error. A builder view can't be made over read-only bytes, such as a `String`.
 
 ## Packing
 
@@ -258,7 +258,7 @@ words:
 | | |
 |---|---|
 | `b.pack(at, x)` | `x`'s bytes into Blob `b`, from byte `at` |
-| `b.pack(x) -> Bool` | for byte lists: appends them; `false`, and no change, when they don't fit |
+| `b.pack(x) -> Bool` | for byte builders: appends them; `false`, and no change, when they don't fit |
 | `b.unpack(at, &x)` | the bytes at `at` into `x` (it changes `x`, so it takes `&x`) |
 | `b.getInt(at, bits) -> Int` | an int of 8, 16, 24 or 32 bits at `at`; negative `bits`: signed |
 | `b.setInt(at, bits, n)` | `n`'s low bits at `at` |
@@ -285,10 +285,10 @@ log(file.getInt(0, 16), file.getInt(0, -16), file.getInt(0, 8))
 65534 -2 254
 ```
 
-Only plain data packs: nothing holding a view (a slice, `String`, `Blob` or builder) or a proc value,
+Only plain data packs: nothing holding a view (a slice, `String`, `Blob` or builder view) or a proc value,
 which are addresses. A view's own elements do pack, though: `b.pack(at, xs[2..<5])` writes three
 elements, and `b.unpack(at, xs[])` fills `xs`'s elements (without `&`, as a view already lets its
-elements change). For a byte list, `at` counts within its length.
+elements change). For a byte builder, `at` counts within its length.
 
 ```rio
 xs := [3]Int{5, 300, 70000}

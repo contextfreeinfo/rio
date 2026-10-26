@@ -1,6 +1,6 @@
-# Lists and text
+# Builders and text
 
-Rio never allocates memory while running, so lists have a fixed capacity, and a length that changes.
+Rio never allocates memory while running, so builders have a fixed capacity, and a length that changes.
 `[..N]T` holds up to N:
 
 ```rio
@@ -22,13 +22,13 @@ log(enemies.len(), enemies[0].x, enemies.cap())
 2 20 64
 ```
 
-`push` gives `false` when the list is full, and changes nothing. A proc that adds to a list takes a
-`[..]T`, a view that pushes into the caller's list:
+`push` gives `false` when the builder is full, and changes nothing. A proc that adds to a builder
+takes a builder view, `[..]T`, that pushes into the caller's builder:
 
 ```rio
-spawn :: proc(list: [..]Int, n: Int)
+spawn :: proc(out: [..]Int, n: Int)
   for i in 0..<n
-    list.push(i)
+    out.push(i)
   end
 end
 xs: [..8]Int
@@ -43,7 +43,7 @@ log(xs.len(), xs[4])
 
 ## Building text
 
-A list of bytes, `Blob[..N]`, builds text. `print` appends values as `log` would show them, but
+A builder of bytes, `Blob[..N]`, builds text. `print` appends values as `log` would show them, but
 without spaces:
 
 ```rio
