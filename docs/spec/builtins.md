@@ -57,15 +57,16 @@ Tag :: struct
   name: String
 end
 raw := hexBlob("1b 5b 32 4a ff 48 69")
-log(raw, "caf\xc3\xa9", Tag{name = "a\tb\x01"})
+zeros: Blob[2]
+log(raw, "caf\xc3\xa9", Tag{name = "a\tb\x01"}, zeros)
 b: Blob[..8]
 b.print(raw)
-log(b.len(), b[0])
+log(b.len(), b[0], b)
 ```
 
 ```output
-\x1b[2J\xffHi café Tag{name = "a\tb\x01"}
-7 27
+\x1b[2J\xffHi café Tag{name = "a\tb\x01"} \x00\x00
+7 27 \x1b[2J\xffHi
 ```
 
 A log line keeps it short: a long array, slice or builder shows its first 10 elements and how many more,

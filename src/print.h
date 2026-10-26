@@ -93,6 +93,7 @@ static void rio_printElements(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t
   if (k & rio_Print_text) {                                                                              \
     if (depth) rio_outQuoted(o, M + at, n);                                                              \
     else if (o->spec) rio_outFormatted(M, o, o->spec, 3, at, n);                    \
+    else if (o->capped) rio_outShown(o, M + at, n, 0); /* a log: as shown */                             \
     else rio_outBytes(o, M + at, n);                                                                     \
     return;                                                                                              \
   }                                                                                                      \

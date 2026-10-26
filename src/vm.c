@@ -87,7 +87,7 @@ void rio_logOp(rio_Vm *vm, const rio_Val *R, const rio_Instr *ip) {
   }
   case rio_Op_logv: { /* a struct, array, builder, union, ...: by its descriptor, as much as the line holds */
     rio_Out o;
-    o.out = (uint8_t *)vm->logBuf; o.len = (uint32_t)vm->logLen; o.cap = rio_LOG_BUF_SIZE; o.capped = 1; o.full = 0; o.spec = 0; o.spec = 0;
+    o.out = (uint8_t *)vm->logBuf; o.len = (uint32_t)vm->logLen; o.cap = rio_LOG_BUF_SIZE; o.capped = 1; o.full = 0; o.spec = 0;
     rio_printValue(M, &o, ip->b, R[ip->a].u, R[ip->a + 1].u, R[ip->a + 2].u);
     vm->logLen = (int)o.len;
     break;

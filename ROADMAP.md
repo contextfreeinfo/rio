@@ -6,7 +6,8 @@ improvements, with no 1.1, so each item below is decided as now or never. Releas
 1.0 beta, until Rio has more users.
 
 This is the list of everything still being considered. Each item says where it stands and which way
-it leans. Rio means to stay small, so some of these will end up as no.
+it leans. Rio means to stay small, so some of these will end up as no. Ideas already turned down,
+with the reasons, are in [REJECTED.md](REJECTED.md).
 
 ## Decide first: changes that would break existing source
 
@@ -22,18 +23,24 @@ already written, such as Rinc's and Studio's apps, so they come first.
   spelling, so there's nothing for a formatter to standardize. If a second one ever comes in, fmt
   rewrites it to `a[i..]`.
 - **Named arguments:** for long argument lists. A proc's parameters would be positional first, then
-  named-only, never mixed. Proc types, and so proc values, would have positional parameters only.
-  - **Struct arguments** (`text("hi", 3, 4, {color = 8})`) need structs holding views allowed as
-    parameters. Today such a struct must be a global, so options that include a `String` can't be
-    passed this way.
-  - **Named-only parameters with constant defaults:** `text :: proc(s: String, x, y: Int,
-    color := 7, scale := 1)`, called `text("hi", 3, 4, scale = 2)`. These avoid that problem: each one
-    is an ordinary parameter, and a view in one is borrowed like any other. A parameter with a default
-    is named-only, and a default must be a constant, so the caller fills it in and the callee sees
-    plain arguments. Host procs could take them with no change to how hosts receive arguments.
-  - Leaning: named-only parameters, as above. Allowing struct parameters that hold views would only
-    loosen a rule, so it could still come later. Settle this before Rinc's API freezes, since long
-    `pc` calls would be reshaped to use it.
+  named-only, never mixed, with a marker between them. Named-only parameters start as zero or nil when
+  a call leaves them out, as variables do; a `?T` one tells "not given" apart from zero. Proc types, and
+  so proc values, have positional parameters only. The marker could be `;`, or a `?` in the place of a
+  parameter, as Python uses `*`:
+  ```
+  text :: proc(s: String, x, y: Int; color: Int, scale: ?Int)
+  text :: proc(s: String, x, y: Int, ?, color: Int, scale: ?Int)
+  text("hi", 3, 4, scale = 2)
+  ```
+  - **Why not struct arguments** (`text("hi", 3, 4, {color = 8})`): a struct holding views must be a
+    global today, so options that include a `String` can't be passed that way. A named parameter is an
+    ordinary parameter, and a view in one is borrowed like any other.
+  - **Calls stay plain:** the caller fills in what's left out, so the callee, host procs included,
+    sees ordinary arguments. Hosts need no change.
+  - **Later:** allowing struct parameters that hold views would only loosen a rule, so it can still
+    come after 1.0.
+  - Leaning: yes, with `;` as the marker, since it's one character and already a token. Settle this
+    before Rinc's API freezes, since long `pc` calls would be reshaped to use it.
 - **Formatters as values:** if `hex(n)` and `pad(s, 8)` cover what `b.format(settings, ...)` does,
   `format` could go, which changes every call to it. No Rinc or Studio app calls it yet, so the change
   is cheap now and costly later. Leaning: decide whether `format` stays before building the formatters.
@@ -117,23 +124,6 @@ already written, such as Rinc's and Studio's apps, so they come first.
 - **A foreign-call table supplied by the host:** a fixed array of host procs that programs can call
   without a `host proc` declaration for each.
 
-## Decided no
-
-- **`**`:** `pow` covers Floats.
-- **Coroutines:** each needs a saved frame, which costs memory and is hard to specify.
-- **Traits and constraints on generics.**
-- **Annotations, `@`:** programs don't define their own, since one the compiler checks would need a
-  language for what to check, and one it doesn't check is a comment a typo can break. Tools that want
-  markers can read comments.
-- **JIT requests in the language:** native code is an implementation's choice. A host short on code
-  space picks which loops get it, by how often they run and how big they are.
-- **Host procs with no marker:** a proc with no body would read exactly like a proc type alias, so
-  `host` says the body is elsewhere.
-- **A builtin Map or Dict:** without generic types it would be a special case, and Rio never
-  allocates, so a map's capacity and layout are the program's business. Programs write tables for
-  their own keys: `[E]T` by enum, a sorted array, or a hash table over arrays.
-- **Truthiness:** conditions stay Bool.
-
 ## Before 1.0
 
 - **Memory spec:** what a program can see of memory, so that two implementations agree. Cached images
@@ -144,11 +134,15 @@ already written, such as Rinc's and Studio's apps, so they come first.
   messages or highlighting. Declaration words, which only follow `::` (`struct`, `enum`, `union`), are
   the easy ones. Control words at the start of a statement (`if`, `for`, `return`) are riskier, since
   `return (x)` and a call `return(x)` would look alike.
-- **Printing every value:** everything that is a value prints today, with these gaps:
-  - a proc's name as an argument, `log(f)`, is "not a value", though `g: proc(x: Int) -> Int = f`
-    works;
-  - a proc value prints only `proc`, not which proc. Its name would mean keeping proc names in
-    images, as enum names are kept.
+- **Better printing of everything:** every value should print, and print usefully, in `log`,
+  `print` and `format` alike. Known gaps:
+  - **Procs:** a proc's name as an argument, `log(f)`, is "not a value", though
+    `g: proc(x: Int) -> Int = f` works. A proc value prints only `proc`, not which proc; its name would
+    mean keeping proc names in images, as enum names are kept.
+  - **Floats:** printed to about 7 significant digits, so `1.0 / 3.0` prints `0.333333` and doesn't read
+    back as the same Float. The shortest digits that read back exactly would print `0.33333334`.
+  - **Types:** `log(Int)` is "not a value". A type's name could print, which would help in generic
+    procs if they come.
 
 ## Done recently
 

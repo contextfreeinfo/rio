@@ -63,7 +63,8 @@ Raspberry Pi 4 or 5 with 64-bit Raspberry Pi OS). `rio -help` lists what it does
 - [Spec](docs/spec/language.md): what Rio programs mean, mostly as examples, which the tests run.
 - [Guide](docs/guide/building.md): the C library and CLI: embedding, memory, images, C output, ARM, and
   performance.
-- [Roadmap](ROADMAP.md): what's still being considered on the way to a Rio 1.0 that stays put.
+- [Roadmap](ROADMAP.md): what's still being considered on the way to a Rio 1.0 that stays put, and
+  [what's been turned down](REJECTED.md).
 
 The docs build into a web site with `mdbook build docs`.
 
