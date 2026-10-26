@@ -215,7 +215,7 @@ int rio_replIndent(const char *src, uint32_t len) {
   int depth = 0;
   while (p < e) { /* a line at a time (a string ends with its line, at the latest) */
     const char *q;
-    int inString = 0;
+    int inString = 0, opens = 0, oneLine = 0; /* (a do after a block's header: the block ends with the line) */
     while (p < e && rio_isSpaceOrTab(*p)) p++; /* its first word */
     for (q = p; q < e && rio_isWordChar(*q); q++) {}
     if (q < e && *q == ':' && (q + 1 >= e || q[1] != ':') && q > p) { /* a label: the loop after it */
@@ -223,7 +223,8 @@ int rio_replIndent(const char *src, uint32_t len) {
       while (p < e && rio_isSpaceOrTab(*p)) p++;
     }
     if (rio_wordAt(p, e, "end")) depth--;
-    else if (rio_wordAt(p, e, "if") || rio_wordAt(p, e, "for") || rio_wordAt(p, e, "switch")) depth++;
+    else if (rio_wordAt(p, e, "if") || rio_wordAt(p, e, "for") || rio_wordAt(p, e, "switch") || rio_wordAt(p, e, "do")) opens++;
+    if (rio_wordAt(p, e, "do")) p += 2;
     for (; p < e && *p != '\n'; p++) {
       if (inString) {
         if (*p == '\\' && p + 1 < e) p++;
@@ -234,15 +235,17 @@ int rio_replIndent(const char *src, uint32_t len) {
       else if (*p == '#') {
         while (p < e && *p != '\n') p++;
         break;
-      } else if (*p == '(' || *p == '[' || *p == '{') depth++;
+      } else if (rio_wordAt(p, e, "do") && !rio_isWordChar(p[-1])) oneLine = 1;
+      else if (*p == '(' || *p == '[' || *p == '{') depth++;
       else if (*p == ')' || *p == ']' || *p == '}') depth--;
       else if (*p == ':' && p + 1 < e && p[1] == ':') { /* name :: proc / struct / enum / union */
         const char *w = p + 2;
         while (w < e && rio_isSpaceOrTab(*w)) w++;
-        if (rio_wordAt(w, e, "proc") || rio_wordAt(w, e, "struct") || rio_wordAt(w, e, "enum") || rio_wordAt(w, e, "union")) depth++;
+        if (rio_wordAt(w, e, "proc") || rio_wordAt(w, e, "struct") || rio_wordAt(w, e, "enum") || rio_wordAt(w, e, "union")) opens++;
         p++;
       }
     }
+    if (!oneLine) depth += opens;
     if (p < e) p++; /* (the line break) */
   }
   return depth < 0 ? 0 : depth;

@@ -118,6 +118,23 @@ log(n, steps)
 243 4
 ```
 
+A block of one statement can go on its line, after `do`, with no `end`:
+
+```rio
+steps := 0
+for
+  steps += 1
+  if steps == 4 do break
+end
+for i in 0..<3 do log(i * steps)
+```
+
+```output
+0
+4
+8
+```
+
 ## When things go wrong
 
 Mistakes the compiler can see stop the program before it runs, with a line and column. Mistakes it

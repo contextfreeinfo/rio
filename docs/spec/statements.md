@@ -280,6 +280,62 @@ log(area(Box{w = 2, h = 3}), area(Circle{r = 1}))
 
 `break` and `continue` in a switch are about the loop around it.
 
+## One-line blocks
+
+`do` puts a block's one statement on the line that starts it, and the block ends with the line. It
+works after `if`, `for` and a proc's header, and after `case` and `else`:
+
+```rio
+double :: proc(n: Int) -> Int do return n * 2
+total := 0
+for i in 1..=4 do total += i
+if total > 5 do log("big", double(total))
+light := 1
+switch light
+case 0 do log("stop")
+case 1 do log("go")
+else do log("wait")
+end
+```
+
+```output
+big 20
+go
+```
+
+A one-line `case` or `else` is just its line, so `case`, `else` or `end` comes next. A one-line `if`
+has no `case` or `else`: one with branches is written out, with its end. The statement after `do`
+can't open a block, one-line or not, so they don't nest:
+
+```rio
+xs := [3]Int{1, 2, 3}
+for x in xs do if x > 1 do log(x)  # error: one-line blocks don't nest
+```
+
+```rio
+n := 1
+if n > 0 do log(n); log(2)  # error: a one-line block holds one statement
+```
+
+## do blocks
+
+`do` on a line of its own starts a block that only holds names: those declared inside end with it.
+
+```rio
+do
+  total := 0
+  for x in 1..=3 do total += x
+  log(total)
+end
+total := "free again"
+log(total)
+```
+
+```output
+6
+free again
+```
+
 ## return
 
 `return` leaves the proc, with a value when the proc has a result. See

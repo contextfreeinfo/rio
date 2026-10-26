@@ -36,6 +36,18 @@ static const Case cases[] = {
   {"n := 3\nfor x in n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "for needs a range, array, slice or builder"},
   {"xs: [2]Int\nfor x, in xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 2, "index name expected"},
   {"xs: [2]Int\nfor x, i on xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 10, 2, "'in' expected"},
+  /* do: one-line blocks, and blocks for names */
+  {"if true do if true do log(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 12, -1, "one-line blocks don't nest"},
+  {"for i in 0..<3 do if i == 1 do break\n", 0, 0, 0, rio_ErrorKind_compile, 1, 19, -1, "one-line blocks don't nest"},
+  {"if true do\n", 0, 0, 0, rio_ErrorKind_compile, 1, 9, -1, "a statement follows do"},
+  {"x := 1 do log(x)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 8, -1, "do follows if, for, proc, case or else"},
+  {"do log(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 4, -1, "a do block starts on a line of its own"},
+  {"switch 1 do\n", 0, 0, 0, rio_ErrorKind_compile, 1, 10, -1, "a switch's cases start lines of their own"},
+  {"switch 1\ncase 1 do log(1)\nlog(2)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, 1, -1, "a one-line case or else has just its line"},
+  {"if true do log(1)\nelse\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 1, -1, "a one-line if has no case or else"},
+  {"if true do log(1); log(2)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 18, -1, "a one-line block holds one statement"},
+  {"f :: proc() -> Int do log(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 20, -1, "missing return"},
+  {"do\n  x := 1\nend\nlog(x)\n", 0, 0, 0, rio_ErrorKind_compile, 4, 5, -1, "undefined name"},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(v)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 4, 1, "this parameter is a reference: pass &x"},
   {"L :: struct\n  t: String\nend\nf :: proc(l: L)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 15, 1, "holding slices or strings goes by reference: use &T"},
   /* maybes: ?T */
@@ -336,7 +348,8 @@ int main(void) {
       {"f :: proc()\n", 1}, {"f :: proc()\n  if x\n", 2}, {"f :: proc()\n  if x\n  end\n", 1},
       {"V :: struct\n  x: Int\n", 1}, {"switch s\ncase A\n", 1}, {"if a\nelse\n", 1},
       {"x := f(1,\n", 1}, {"s := (\"a(bc\n", 1}, {"s := \"a)b(\"\nif (x\n", 2}, {"# if x\nif y # (\n", 1},
-      {"outer: for i in 0..<3\n", 1}, {"for x in xs\n  for y in ys\n", 2}, {"T.m :: proc()\n", 1}, {"end\n", 0}};
+      {"outer: for i in 0..<3\n", 1}, {"for x in xs\n  for y in ys\n", 2}, {"T.m :: proc()\n", 1}, {"end\n", 0},
+      {"if a do log(1)\n", 0}, {"f :: proc() do g()\n", 0}, {"do\n", 1}, {"for x in xs do\n", 0}, {"undo := 1\nif undo\n", 1}};
     size_t i;
     for (i = 0; i < sizeof ind / sizeof ind[0]; i++, n++) {
       int got = rio_replIndent(ind[i].src, (uint32_t)strlen(ind[i].src));

@@ -66,7 +66,7 @@ void rio_failAtToken(rio_Vm *vm, const char *message) {
 /* in the order of rio_Tok_proc on */
 static const char *const rio_keywords[] = {
   "proc", "struct", "if", "else", "for", "in", "end", "return", "break", "continue", "import", "include",
-  "enum", "union", "switch", "case", "is", "nil", "and", "or", "not",
+  "enum", "union", "switch", "case", "is", "nil", "and", "or", "not", "do",
 };
 
 /* two-character operators: the pairs, and their tokens (negative: c= assignment for operator c) */

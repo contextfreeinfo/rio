@@ -22,33 +22,54 @@ already written, such as Rinc's and Studio's apps, so they come first.
   Both would mean the same thing, since nothing past the end is ever taken. Leaning: keep one
   spelling, so there's nothing for a formatter to standardize. If a second one ever comes in, fmt
   rewrites it to `a[i..]`.
-- **Named arguments:** for long argument lists. A proc's parameters would be positional first, then
-  named-only, never mixed, with a marker between them. Named-only parameters start as zero or nil when
-  a call leaves them out, as variables do; a `?T` one tells "not given" apart from zero. Proc types, and
-  so proc values, have positional parameters only. The marker could be `;`, or a `?` in the place of a
-  parameter, as Python uses `*`:
-  ```
-  text :: proc(s: String, x, y: Int; color: Int, scale: ?Int)
-  text :: proc(s: String, x, y: Int, ?, color: Int, scale: ?Int)
-  text("hi", 3, 4, scale = 2)
-  ```
-  - **Why not struct arguments** (`text("hi", 3, 4, {color = 8})`): a struct holding views must be a
-    global today, so options that include a `String` can't be passed that way. A named parameter is an
-    ordinary parameter, and a view in one is borrowed like any other.
-  - **Calls stay plain:** the caller fills in what's left out, so the callee, host procs included,
-    sees ordinary arguments. Hosts need no change.
-  - **Later:** allowing struct parameters that hold views would only loosen a rule, so it can still
-    come after 1.0.
-  - Leaning: yes, with `;` as the marker, since it's one character and already a token. Settle this
-    before Rinc's API freezes, since long `pc` calls would be reshaped to use it.
+- **Long argument lists:** two routes, still being weighed. Either way, what a call leaves out starts
+  as zero or nil, as variables do, and a `?T` tells "not given" apart from zero.
+  - **A. Struct arguments:** `text("hi", 3, 4, {color = 8, scale = 2})`. This already works for structs
+    without views, through proc values too. What's missing is structs holding views (a `String`
+    field) as locals and by-value parameters. Today they must be globals, or passed by `&`. That would
+    need no new syntax for "limited scope", since parameters already are: a struct parameter's views
+    would be borrowed like a `String` parameter's. A local would be checked, as a whole, as a view of
+    whatever its views view.
+    - For: options are values, so a style can be kept in a global, reused and forwarded. Proc
+      values work unchanged, and there's no new parameter syntax. Locals holding strings are worth
+      having anyway.
+    - Against: a type to declare for each set of options, which readers look up away from the proc.
+      Host procs can't take structs yet, so the host interface would need them too, perhaps as the
+      struct's words in field order. Braces at every call, unless calls may drop them when the last
+      parameter is a struct (`text("hi", 3, 4, scale = 2)`). A proc can't keep a struct parameter's
+      views without copying their bytes. A local is checked as a whole, so one local view in it makes
+      every field count as local.
+    - **References:** today, reading a view through a `&T` parameter or a method's `self` counts as
+      global, since such structs are always globals (`g = p.name` works). Methods take `self` by
+      reference, so keeping `&` to globals would leave locals without methods. Instead, views read
+      through `&T` and `self` would count as borrowed, like a `String` parameter's, so storing one in
+      a global takes a copy. That breaks code like `g = p.name`. Rinc and Studio have one struct
+      method and no `&` struct parameters, so it's likely to break nothing there, but compiling every
+      app against the change would tell for sure.
+    - **Also:** locals that are arrays, builders or unions holding views, checked the same way. A
+      `for x in xs` element and `r := &place` are references too, and follow the same rule.
+  - **B. Named-only parameters,** after the positional ones, with a marker between them:
+    ```
+    text :: proc(s: String, x, y: Int; color: Int, scale: ?Int)
+    text("hi", 3, 4, scale = 2)
+    ```
+    - For: the options are in the signature. Each one is an ordinary parameter, so views need
+      nothing new. Hosts receive plain arguments.
+    - Against: new syntax in parameters and calls. Proc types would have positional parameters only,
+      so a proc with named ones can't fully be a proc value. Options can't be bundled or forwarded.
+    - **The marker:** `;` is short but easy to miss. Plainer: a `?` in a parameter's place (as
+      Python uses `*`), or `|`.
+  - Leaning: A. Its missing piece (structs holding strings as locals) is a gap either way, and the
+    call shorthand without braces would give A the look of B. If struct arguments work out, B is
+    dropped. Settle this before Rinc's API freezes, since long `pc` calls would be reshaped either way.
 - **Formatters as values:** if `hex(n)` and `pad(s, 8)` cover what `b.format(settings, ...)` does,
   `format` could go, which changes every call to it. No Rinc or Studio app calls it yet, so the change
   is cheap now and costly later. Leaning: decide whether `format` stays before building the formatters.
-- **`do` as a keyword:** this would break any program that uses `do` as a name. No current app does,
-  so it costs nothing now.
 
 ## Next
 
+- **A map in Rio, as a test:** a hash table written in user code today, to show what's doable without a
+  builtin one, then rewritten with generic procs if they come, to see whether they help.
 - **Unicode escapes:** `\u{1F600}` in strings, written out as UTF-8. Numbers past 10FFFF and
   surrogates are errors.
 - **`end` in index brackets:** the last index, as in `xs[end]` and `xs[end - 2..=end]`. It works only
@@ -65,25 +86,10 @@ already written, such as Rinc's and Studio's apps, so they come first.
 
 ## Leaning yes
 
-- **One-line blocks with `do`:** `if done do return`, `for i in 0..<n do total += xs[i]`,
-  `double :: proc(n: Int) -> Int do return n * 2`. They'd work on proc, for, switch and if headers, and
-  on case and else lines, so a switch can put each case on one line:
-  ```
-  switch light
-  case .red do stop()
-  case .green do go()
-  end
-  ```
-  The body is a single statement, never another `do` header, so one-line blocks don't nest. A one-line
-  if has no `else`, so a branch with an else gets written out in full.
-- **Scope blocks, `do ... end`:** a `do` on a line of its own starts a block whose names end with it:
-  ```
-  do
-    total := 0
-    for x in xs do total += x
-    log(total)
-  end
-  ```
+- **Static procs on types:** `P.make :: static proc(x: Int) -> P`, called as `P.make(3)`, as the
+  builtin `E.fromInt(n)` already is. Today that call is "not a value". Methods stay as they are, with an
+  implicit `self`, since they're the common case: the marker goes on the rare kind. Deciding from
+  whether a body uses `self` would let a body change what callers may do.
 - **Generic procs, Odin style:** `swap :: proc(a, b: &$T)`, `find :: proc(xs: []$T, x: T) -> Int`.
   - **One compiled copy each,** never a copy per type. Each call passes T's size and layout as hidden
     arguments.
@@ -118,6 +124,11 @@ already written, such as Rinc's and Studio's apps, so they come first.
   end
   ```
   It never puts a block inside an expression.
+- **A very limited lifetime marker on `&` parameters:** one marker, nothing more, saying a `&T`
+  parameter may point at the caller's locals, so views read through it count as borrowed. Unmarked
+  `&T` keeps today's meaning (views read through it are global), so nothing breaks. It would let `&`
+  reach locals holding views (Strings, slices, builder views, structs) without changing every `&T`.
+  A method's `self` would need the same choice.
 - **Compile-time `when`:** today, `if CONST` still type-checks a body it never runs. Only if
   differences between hosts need it.
 - **Converting values to Int:** Bool's `toInt`, as enums already have. No truthiness.
@@ -153,5 +164,7 @@ already written, such as Rinc's and Studio's apps, so they come first.
 - **Proc values as elements.**
 - **Ranges as values,** with range slicing instead of `:`.
 - **Names:** `[..N]T` is a builder and `[..]T` a builder view.
+- **`do`:** one-line blocks (`if done do return`, `case .red do stop()`), and `do ... end` blocks
+  for names.
 - **No `@`:** `cls* :: host proc(c: Int)` and `Shape :: diverse union`. Both words are ordinary names
   anywhere else.

@@ -340,7 +340,7 @@ static void rio_forStatement(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Block *b;
   rio_next(vm);
-  if (c->tok.newline || c->tok.kind == rio_Tok_end) {
+  if (c->tok.newline || c->tok.kind == rio_Tok_end || c->tok.kind == rio_Tok_do) {
     b = rio_pushBlock(vm, rio_Block_loop);
     b->a = (uint16_t)rio_label(vm);
   } else if (c->tok.kind == rio_Tok_id && (c->peek.kind == rio_Tok_in || c->peek.kind == ',')) rio_forIn(vm);
@@ -402,12 +402,11 @@ void rio_finishProc(rio_Vm *vm) { rio_endProc(vm, rio_topBlock(vm)); }
 
 static void rio_endSwitch(rio_Vm *vm, rio_Block *b);
 
-static void rio_endStatement(rio_Vm *vm) {
+/* the end of the innermost block, at its end (or, for a one-line block, where its end would be: line
+   and col, for a missing return) */
+static void rio_endBlock(rio_Vm *vm, int line, int col) {
   rio_Compiler *c = vm->compiler;
   rio_Block *b = rio_topBlock(vm);
-  int line = c->tok.line, col = c->tok.col;
-  if (!b) rio_FAIL_AT_TOKEN(, "'end' without block");
-  rio_next(vm);
   if (b->kind == rio_Block_switch) {
     rio_endSwitch(vm, b);
     rio_endScope(vm, b);
@@ -437,6 +436,23 @@ static void rio_endStatement(rio_Vm *vm) {
                         (b->kind == rio_Block_loop && b->condJump == rio_NONE && !(b->flow & rio_Flow_broken)));
   rio_endScope(vm, b);
   c->blockCount--;
+}
+
+static void rio_endStatement(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  int line = c->tok.line, col = c->tok.col;
+  if (!rio_topBlock(vm)) rio_FAIL_AT_TOKEN(, "'end' without block");
+  rio_next(vm);
+  rio_endBlock(vm, line, col);
+}
+
+/* do, on a line of its own: a block for names, until its end */
+static void rio_doStatement(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  rio_next(vm);
+  if (!c->tok.newline && c->tok.kind != rio_Tok_eof && c->tok.kind != ';')
+    rio_FAIL_AT_TOKEN(, "a do block starts on a line of its own (a one-line do follows if, for, proc, case or else)");
+  rio_pushBlock(vm, rio_Block_do)->flow |= rio_Flow_complete; /* (its one branch always runs) */
 }
 
 /* break / break outer, continue / continue outer: the innermost loop, or the one labeled outer */
@@ -808,6 +824,7 @@ static void rio_statementAfterLabel(rio_Vm *vm, int t) {
     case rio_Tok_else: rio_elseStatement(vm); break;
     case rio_Tok_for: rio_forStatement(vm); break;
     case rio_Tok_end: rio_endStatement(vm); break;
+    case rio_Tok_do: rio_doStatement(vm); break;
     case rio_Tok_return: rio_returnStatement(vm); break;
     case rio_Tok_break: rio_breakStatement(vm, 1); break;
     case rio_Tok_continue: rio_breakStatement(vm, 0); break;
@@ -816,10 +833,33 @@ static void rio_statementAfterLabel(rio_Vm *vm, int t) {
   }
 }
 
+/* `header do statement`: after if, for or a proc's header, a block of one statement that ends with its
+   line; after case or else, a branch of one statement, with case, else or end next. The statement
+   doesn't open a block of its own, so one-line blocks don't nest. */
+static void rio_oneLine(rio_Vm *vm, int t, int blocksBefore) {
+  rio_Compiler *c = vm->compiler;
+  int opened = c->blockCount > blocksBefore, line = c->tok.line, col = c->tok.col, kind;
+  if (!opened && t != rio_Tok_case && t != rio_Tok_else) rio_FAIL_AT_TOKEN(, "do follows if, for, proc, case or else");
+  if (opened && rio_topBlock(vm)->kind == rio_Block_switch) rio_FAIL_AT_TOKEN(, "a switch's cases start lines of their own: case .a do ...");
+  rio_next(vm);
+  t = c->tok.kind;
+  if (c->tok.newline || t == rio_Tok_eof || t == ';') rio_FAIL_AT_TOKEN(, "a statement follows do, on the same line (or leave out do, for a block)");
+  if (t == rio_Tok_if || t == rio_Tok_for || t == rio_Tok_switch || t == rio_Tok_do || t == rio_Tok_case || t == rio_Tok_else || t == rio_Tok_end)
+    rio_FAIL_AT_TOKEN(, "one-line blocks don't nest: write the outer block out, with its end");
+  kind = rio_topBlock(vm)->kind;
+  c->freeSlot = c->liveSlots;
+  rio_statementAfterLabel(vm, t);
+  if (rio_failed(vm)) return;
+  if (c->blockCount != blocksBefore + opened) rio_FAIL(, "one-line blocks don't nest: write the outer block out, with its end");
+  if (c->tok.kind == ';') rio_FAIL_AT_TOKEN(, "a one-line block holds one statement: for more, leave out do and end the block");
+  if (opened) rio_endBlock(vm, line, col);
+  c->afterOneLine = !opened ? 1 : kind == rio_Block_if ? 2 : 0;
+}
+
 void rio_statement(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   rio_Block *top = rio_topBlock(vm);
-  int t = c->tok.kind, blocksBefore = c->blockCount, labelLen = 0;
+  int t = c->tok.kind, blocksBefore = c->blockCount, labelLen = 0, afterOneLine;
   const char *label = 0;
   c->freeSlot = c->liveSlots;
   if (t == rio_Tok_id && c->peek.kind == ':' && !c->peek.newline && rio_peekAfterNext(vm) == rio_Tok_for) { /* outer: for ... */
@@ -838,6 +878,12 @@ void rio_statement(rio_Vm *vm) {
     rio_next(vm);
     return;
   }
+  afterOneLine = c->afterOneLine;
+  c->afterOneLine = 0;
+  if (afterOneLine == 1 && t != rio_Tok_case && t != rio_Tok_else && t != rio_Tok_end)
+    rio_FAIL_AT_TOKEN(, "a one-line case or else has just its line: case, else or end comes next");
+  if (afterOneLine == 2 && (t == rio_Tok_case || t == rio_Tok_else) && (!top || (top->kind != rio_Block_if && top->kind != rio_Block_switch)))
+    rio_FAIL_AT_TOKEN(, "a one-line if has no case or else: leave out do, and end the if after them");
   if (t == rio_Tok_import) rio_importStatement(vm);
   else if (t == rio_Tok_include) rio_includeStatement(vm);
   else {
@@ -847,6 +893,7 @@ void rio_statement(rio_Vm *vm) {
       memcpy(loop->label, label, (size_t)labelLen); /* (its own copy: it's needed through the loop) */
       loop->labelLen = (uint16_t)labelLen;
     }
+    if (c->tok.kind == rio_Tok_do && !c->tok.newline && !rio_failed(vm)) rio_oneLine(vm, t, blocksBefore);
   }
   if (c->exporting) {
     c->exporting = 0;

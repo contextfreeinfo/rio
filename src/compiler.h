@@ -20,7 +20,7 @@ typedef enum {
   /* keywords, in the order of the lexer's table */
   rio_Tok_proc, rio_Tok_struct, rio_Tok_if, rio_Tok_else, rio_Tok_for, rio_Tok_in, rio_Tok_end, rio_Tok_return,
   rio_Tok_break, rio_Tok_continue, rio_Tok_import, rio_Tok_include, rio_Tok_enum, rio_Tok_union, rio_Tok_switch,
-  rio_Tok_case, rio_Tok_is, rio_Tok_nil, rio_Tok_and, rio_Tok_or, rio_Tok_not,
+  rio_Tok_case, rio_Tok_is, rio_Tok_nil, rio_Tok_and, rio_Tok_or, rio_Tok_not, rio_Tok_do,
   /* operators of more than one character (one character: the character itself) */
   rio_Tok_colonColon,  /* :: */
   rio_Tok_colonEq,     /* := */
@@ -210,7 +210,7 @@ typedef struct {
 
 /* loops last: break and continue look for kind >= rio_Block_loop */
 typedef enum {
-  rio_Block_proc, rio_Block_if, rio_Block_else, rio_Block_switch, rio_Block_loop, rio_Block_for, rio_Block_each
+  rio_Block_proc, rio_Block_if, rio_Block_else, rio_Block_switch, rio_Block_do, rio_Block_loop, rio_Block_for, rio_Block_each
 } rio_BlockKind;
 
 /* a and b by kind:
@@ -271,6 +271,7 @@ typedef struct rio_Compiler {
      included part shares its module's) */
   rio_Module *modules;
   int moduleCount, curModule, curFile, resumeCount, exporting;
+  int afterOneLine; /* the statement before was a one-line case or else: case, else or end comes next */
   int autoSources[rio_MAX_AUTO_IMPORTS], autoSourceCount; /* auto-imports the loader has sources for */
   rio_Resume resume[rio_MAX_IMPORT_DEPTH];
   /* slots: liveSlots hold variables, temporaries start at freeSlot; slotHigh is the most used */

@@ -58,7 +58,7 @@ characters long. Case matters. By convention, types are `PascalCase` and everyth
 Keywords can't be names:
 
 ```
-and break case continue else end enum for if import in include is nil not or proc
+and break case continue do else end enum for if import in include is nil not or proc
 return struct switch union
 ```
 
