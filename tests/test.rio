@@ -1419,6 +1419,79 @@ end
 handler := Handler{id = 1, weight = 2.5}
 check(handler.id == 1 and handler.weight == 2.5, "fields after a new proc type")
 
+# ---- bitfields: Int(n) fields sharing words
+BitHead :: struct
+  kind: Int(4)
+  level: Int(-4)
+  flags: Int(8)
+  size: Int(16)
+  count: Int
+  a, b: Int(3)
+  wide: Int(31)
+  low: Int(-31)
+end
+BitOuter :: struct
+  tag: Int
+  head: BitHead
+end
+bitHead: BitHead
+bitHead.kind = 3
+bitHead.level = -2
+bitHead.flags = 255
+bitHead.size = 70000
+bitHead.count = 9
+bitHead.a = 5
+bitHead.b = 9
+check(bitHead.kind == 3 and bitHead.level == -2 and bitHead.flags == 255 and bitHead.size == 4464, "bitfields keep their low bits")
+check(bitHead.count == 9 and bitHead.a == 5 and bitHead.b == 1, "a field after bitfields, and two of a width")
+bitHead.level -= 7
+bitHead.kind += 1
+check(bitHead.level == 7 and bitHead.kind == 4 and bitHead.flags == 255, "compound assignment to bitfields")
+bitHead.wide = 0x7fffffff
+bitHead.low = -0x40000000
+check(bitHead.wide == 0x7fffffff and bitHead.low == -0x40000000 and bitHead.size + 1 == 4465, "31 bits")
+bitBytes: Blob[24]
+bitBytes.pack(0, bitHead)
+check(bitBytes[0] == 0x74 and bitBytes[1] == 255 and bitBytes.getInt(2, 16) == 4464 and bitBytes.getInt(4, 32) == 9, "bitfields pack as laid out")
+bitBytes.pack(20, bitHead.level)
+check(bitBytes.getInt(20, 32) == 7, "a bitfield's value packs as an Int")
+bitIn := hexBlob("f9 80 34 12 05 00 00 00 2e 00 00 00 ff ff ff 7f 00 00 00 40")
+bitFrom: BitHead
+bitIn.unpack(0, &bitFrom)
+check(bitFrom.kind == 9 and bitFrom.level == -1 and bitFrom.flags == 0x80 and bitFrom.size == 0x1234 and bitFrom.count == 5, "bitfields unpacked from bytes")
+check(bitFrom.a == 6 and bitFrom.b == 5 and bitFrom.wide == 0x7fffffff and bitFrom.low == -0x40000000, "the rest unpacked")
+bitFrom.level = 3
+bitIn.pack(0, bitFrom)
+check(bitIn[0] == 0x39 and bitIn[1] == 0x80 and bitIn.getInt(2, 16) == 0x1234, "and packed back, the rest of the word kept")
+bitLit := BitHead{kind = 15, size = 1, b = 2}
+check(bitLit.kind == 15 and bitLit.level == 0 and bitLit.size == 1 and bitLit.a == 0 and bitLit.b == 2, "bitfields in a literal")
+bitOuter: BitOuter
+bitOuter.head.level = -8
+bitOuters: [2]BitOuter
+bitAt := 1
+bitOuters[bitAt].head.flags = 7
+bitOuters[bitAt].head.flags += 1
+check(bitOuter.head.level == -8 and bitOuters[1].head.flags == 8 and bitOuters[0].head.flags == 0, "nested, and through an index")
+bitsLocal :: proc(n: Int) -> Int
+  h: BitHead
+  h.level = n
+  h.level -= 1
+  h.kind = n * 2
+  return h.level * 100 + h.kind
+end
+check(bitsLocal(3) == 206 and bitsLocal(-8) == 700 + 0, "bitfields of a local struct")
+bitsOf :: proc(h: BitHead) -> Int
+  return h.size
+end
+check(bitsOf(bitHead) == 4464, "a struct with bitfields passed")
+bitText: Blob[..200]
+bitText.print(bitLit)
+check(bitText[:].asString() == "BitHead{kind = 15, level = 0, flags = 0, size = 1, count = 0, a = 0, b = 2, wide = 0, low = 0}", "bitfields printed")
+bitText.clear()
+bitLit.level = -1
+bitText.format({base = 16}, bitLit.level, " ", bitLit)
+check(bitText.len() > 12 and bitText[0] == 'f', "bitfields formatted")
+
 # ---- hex escapes
 hexText := "A\x42\x7f\x00z"
 check(hexText.len() == 5 and hexText[1] == 66 and hexText[2] == 127 and hexText[3] == 0 and hexText[4] == 122, "\\x in strings")

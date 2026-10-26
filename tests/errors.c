@@ -189,6 +189,13 @@ static const Case cases[] = {
   {"xs: [..2]Int\nxs.print(1)\n",0, 0, 0, rio_ErrorKind_compile, 2, 9, 1, "print needs a Blob list"},
   {"b: Blob[..8]\nok := b.format(1, 2)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)"},
   {"b: Blob[..8]\nok := b.format()\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)"},
+  /* bitfields */
+  {"x: Int(3)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a bitfield, Int(n), is only a struct's field"},
+  {"S :: struct\n  a: [4]Int(3)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a bitfield, Int(n), is only a struct's field"},
+  {"S :: struct\n  a: Int(0)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a bitfield is Int(n), n 1 to 31 bits (negative: signed)"},
+  {"S :: struct\n  a: Int(32)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a bitfield is Int(n), n 1 to 31 bits (negative: signed)"},
+  {"S :: struct\n  a: Int(4)\nend\ns: S\nr := &s.a\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "a bitfield has no address of its own"},
+  {"S :: struct\n  a: Int(4)\nend\nf :: proc(n: &Int)\n  n = 1\nend\ns: S\nf(&s.a)\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "a bitfield has no address of its own"},
   /* packing */
   {"b: Blob[8]\nn := 0\nb.unpack(0, n)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "unpack changes what it's given: pass &x (or a slice, whose elements it fills)"},
   {"S :: struct\n  name: String\nend\ns: S\nb: Blob[16]\nb.pack(0, s)\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "only plain data packs: no views or proc values in it"},

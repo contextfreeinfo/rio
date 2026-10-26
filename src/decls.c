@@ -106,6 +106,7 @@ static int rio_parseValueType(rio_Vm *vm) {
   if (c->syms[i].kind != rio_SymKind_type) rio_FAIL_AT_TOKEN(0, "type expected");
   t = c->syms[i].type;
   rio_next(vm);
+  if (t == rio_TypeId_int && c->tok.kind == '(' && !c->tok.newline) rio_FAIL(0, "a bitfield, Int(n), is only a struct's field");
   if (t == rio_TypeId_blob && c->tok.kind == '[' && !c->tok.newline) { /* Blob[N], Blob[..N], Blob[..] */
     rio_next(vm);
     if (c->tok.kind == '.' && c->peek.kind == '.') {
@@ -307,6 +308,8 @@ static rio_Field *rio_addField(rio_Vm *vm, const char *name, int nameLen, int ty
   f->nameLen = (uint16_t)nameLen;
   f->type = (uint16_t)type;
   f->offset = (uint16_t)offset;
+  f->bitAt = 0;
+  f->bits = 0;
   return f;
 }
 
@@ -354,10 +357,13 @@ int rio_maybeOf(rio_Vm *vm, int t) {
   return i;
 }
 
-/* Name :: struct, then fields (a, b: T) one per line, then end. Fields are laid out in order. */
+/* Name :: struct, then fields (a, b: T) one per line, then end. Fields are laid out in order. A bitfield,
+   Int(n) (unsigned) or Int(-n) (signed), n 1 to 31, takes the next n bits of the word the bitfields
+   before it started, from its low bits, or a word of its own when they don't fit (never crossing words);
+   any other field starts a new word. */
 void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
   rio_Compiler *c = vm->compiler;
-  int index, offset = 0;
+  int index, offset = 0, bitWord = 0, bitUsed = 32; /* (the word bitfields are filling, and its bits taken) */
   rio_Type *st;
   if (c->blockCount || c->curProc >= 0) rio_FAIL(, "structs must be top-level");
   rio_next(vm);
@@ -366,13 +372,42 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
   st->firstField = (uint16_t)c->fieldCount;
   while (c->tok.kind != rio_Tok_end && !rio_failed(vm)) {
     const char *names[16];
-    int lens[16], n, t, j;
+    int lens[16], n, t, j, bits = 0, i;
     if (c->tok.kind == rio_Tok_eof) rio_FAIL(, rio_msgMissingEnd);
     n = rio_parseNames(vm, names, lens);
-    t = rio_parseType(vm);
+    if (c->tok.kind == rio_Tok_id && c->peek.kind == '(' && (i = rio_lookup(vm, c->tok.text, c->tok.len)) >= 0 &&
+        c->syms[i].kind == rio_SymKind_type && c->syms[i].type == rio_TypeId_int) { /* Int(n): a bitfield */
+      rio_Expr e;
+      rio_next(vm);
+      rio_next(vm);
+      e = rio_parseExpr(vm);
+      if (rio_failed(vm)) return;
+      if (e.kind != rio_ExprKind_const || e.type != rio_TypeId_int || e.value == 0 || e.value > 31 || e.value < -31)
+        rio_FAIL(, "a bitfield is Int(n), n 1 to 31 bits (negative: signed)");
+      bits = e.value;
+      rio_expect(vm, ')', "')' expected");
+      t = rio_TypeId_int;
+    } else t = rio_parseType(vm);
     if (rio_type(vm, t)->kind == rio_TypeKind_void) rio_FAIL(, "invalid field type");
     rio_keepFieldsTogether(vm, st, st->fieldCount);
     for (j = 0; j < n; j++) {
+      rio_Field *f;
+      if (bits) {
+        int width = bits < 0 ? -bits : bits;
+        if (bitUsed + width > 32) { /* (a new word) */
+          bitWord = offset;
+          bitUsed = 0;
+          offset += 4;
+        }
+        if (!(f = rio_addField(vm, names[j], lens[j], t, bitWord))) return;
+        f->bitAt = (uint8_t)bitUsed;
+        f->bits = (int8_t)bits;
+        bitUsed += width;
+        st->fieldCount++;
+        if (offset > 0xFFFF) rio_FAIL(, "struct too large");
+        continue;
+      }
+      bitUsed = 32;
       if (!rio_addField(vm, names[j], lens[j], t, offset)) return;
       offset += (int)rio_type(vm, t)->size;
       st->fieldCount++;

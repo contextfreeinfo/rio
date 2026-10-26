@@ -318,8 +318,8 @@ int rio_numberArrayInfo(rio_Vm *vm, int type, int *count) {
     rio_Field *f = rio_field(vm, ty->firstField);
     if (!ty->fieldCount || ty->size != ty->fieldCount * 4u) return 0;
     k = rio_type(vm, f[0].type)->kind;
-    for (i = 1; i < ty->fieldCount; i++)
-      if (rio_type(vm, f[i].type)->kind != k) return 0;
+    for (i = 0; i < ty->fieldCount; i++)
+      if (rio_type(vm, f[i].type)->kind != k || f[i].bits) return 0; /* (bitfields: not a vector of numbers) */
     n *= ty->fieldCount;
   }
   if (k != rio_TypeKind_int && k != rio_TypeKind_float) return 0;
@@ -382,6 +382,7 @@ void rio_unaryOp(rio_Vm *vm, int op, rio_Expr *e) {
   rio_isTestUsed(vm, e, -1);
   rio_needValue(vm, e);
   if (op == '&') { /* a reference to a place, for a & parameter or name := &place */
+    if (e->bits) rio_FAIL(, "a bitfield has no address of its own: & can't take it");
     if (e->kind == rio_ExprKind_const || e->access ||
         (e->kind == rio_ExprKind_static && (e->value < (int32_t)vm->constCap * 4 || rio_isTemp(vm, e))))
       rio_FAIL(, "& needs a variable, field or element that can be changed");

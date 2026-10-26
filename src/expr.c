@@ -299,6 +299,11 @@ static void rio_member(rio_Vm *vm) {
     rio_Field *f = rio_field(vm, ty->firstField + i);
     rio_offsetPlace(e, f->offset);
     e->type = f->type;
+    if (f->bits) { /* (a bitfield: its bits of the word there) */
+      e->bitAt = f->bitAt;
+      e->bits = (uint16_t)(f->bits < 0 ? -f->bits : f->bits);
+      e->bitSigned = f->bits < 0;
+    }
     return;
   }
   if (ty->kind == rio_TypeKind_array && rio_swizzle(vm, e)) return;
@@ -497,6 +502,15 @@ static void rio_punField(rio_Vm *vm, rio_PendingOp *lit) {
   rio_setField(vm, lit, c->lastName, c->lastNameLen);
 }
 
+/* has struct type t bitfields (which share words, so a literal zeroes all of it first) */
+static int rio_hasBitfields(rio_Vm *vm, int t) {
+  const rio_Type *ty = rio_type(vm, t);
+  int i;
+  for (i = 0; ty->kind == rio_TypeKind_struct && i < ty->fieldCount; i++)
+    if (rio_field(vm, ty->firstField + i)->bits) return 1;
+  return 0;
+}
+
 /* the zeroing for fields a literal left out (an array: the elements after its values; a list: its
    length too), then the struct or array as the result */
 static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
@@ -518,7 +532,7 @@ static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
     rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, lit->b, lit->c), lit->freeAtStart);
     return;
   }
-  while (st->fieldCount <= 64 && i < st->fieldCount) { /* (structs with more fields were zeroed up front) */
+  while (st->fieldCount <= 64 && !rio_hasBitfields(vm, lit->b) && i < st->fieldCount) { /* (structs with more fields, or bitfields, were zeroed up front) */
     if (lit->fieldsSet >> i & 1) {
       i++;
       continue;
@@ -584,6 +598,11 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     f = rio_field(vm, st->firstField + m->a);
     e = rio_popValue(vm);
     dst = rio_exprOf(rio_ExprKind_static, f->type, m->c + f->offset);
+    if (f->bits) {
+      dst.bitAt = f->bitAt;
+      dst.bits = (uint16_t)(f->bits < 0 ? -f->bits : f->bits);
+      dst.bitSigned = f->bits < 0;
+    }
     rio_store(vm, &dst, &e);
     c->freeSlot = (uint32_t)(m->c / 4 + rio_typeWords(vm, m->b));
   } else if (m->a == rio_ExprKind_proc || m->a == rio_ExprKind_static) { /* kept on the stack until the call */
@@ -1009,8 +1028,9 @@ static int rio_parseOperator(rio_Vm *vm, rio_ExprState *x) {
     o = rio_pushOp(vm, rio_Pending_literal, 0, isArray);
     o->b = type.type;
     o->c = rio_allocSlots(vm, rio_typeWords(vm, type.type)) * 4;
-    if (isArray ? rio_type(vm, rio_type(vm, type.type)->elem)->size % 4 != 0 : rio_type(vm, type.type)->fieldCount > 64)
-      /* (bytes don't fill whole words, and finishing tracks only 64 fields: zero all of it now) */
+    if (isArray ? rio_type(vm, rio_type(vm, type.type)->elem)->size % 4 != 0 : (rio_type(vm, type.type)->fieldCount > 64 || rio_hasBitfields(vm, type.type)))
+      /* (bytes don't fill whole words, finishing tracks only 64 fields, and bitfields share words: zero all
+         of it now) */
       rio_emit(vm, rio_Op_zero, rio_addrConst(vm, (uint32_t)o->c, rio_type(vm, type.type)->size), (int)rio_type(vm, type.type)->size, 0);
     x->depth++;
     rio_next(vm);

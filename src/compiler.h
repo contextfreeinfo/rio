@@ -71,6 +71,8 @@ typedef struct {
 typedef struct {
   uint16_t name, nameLen; /* name: offset in the compiler's names */
   uint16_t type, offset;  /* an enum value's 32 bits are split over these: high, low */
+  uint8_t bitAt;          /* a bitfield (bits not 0): Int(bits), from bit bitAt of the word at offset */
+  int8_t bits;
 } rio_Field;
 
 typedef struct {
@@ -165,8 +167,11 @@ typedef struct {
   uint8_t access;
   uint16_t type;
   uint16_t tempStart; /* the first free slot before its temporaries: freeing them goes back there */
-  uint8_t localView;  /* a view of the current proc's own memory */
-  uint8_t fromParam;  /* a view that came in through a parameter of the current proc (its caller's) */
+  uint16_t localView : 1; /* a view of the current proc's own memory */
+  uint16_t fromParam : 1; /* a view that came in through a parameter of the current proc (its caller's) */
+  uint16_t bitAt : 5;     /* a bitfield (bits not 0): bits wide, from bit bitAt of the word here */
+  uint16_t bits : 5;
+  uint16_t bitSigned : 1;
   int32_t value;      /* by kind: see rio_ExprKind */
   int32_t offset;     /* indirect: bytes past the address. (A const 0 with offset 1: xs[:b]'s left-out start) */
 } rio_Expr;
@@ -338,6 +343,9 @@ static inline rio_Expr rio_exprOf(int kind, int type, int32_t value) {
   e.access = 0;
   e.localView = 0;
   e.fromParam = 0;
+  e.bitAt = 0;
+  e.bits = 0;
+  e.bitSigned = 0;
   e.type = (uint16_t)type;
   e.tempStart = 0;
   e.value = value;

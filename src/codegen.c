@@ -301,11 +301,59 @@ static void rio_indirectViaConst(rio_Vm *vm, rio_Expr *e, uint32_t bytes) {
   e->offset = 0;
 }
 
+/* a bitfield place's word, as a plain Int place */
+static rio_Expr rio_bitsWord(const rio_Expr *e) {
+  rio_Expr w = *e;
+  w.bitAt = 0;
+  w.bits = 0;
+  w.bitSigned = 0;
+  return w;
+}
+
+/* a bitfield's value: its word, shifted down to its bits (a signed one's top bit spread over the rest) */
+static int rio_loadBits(rio_Vm *vm, rio_Expr *e) {
+  rio_Expr w = rio_bitsWord(e);
+  int at = e->bitAt, n = e->bits, s = rio_toSlot(vm, &w, 0), d = rio_allocSlots(vm, 1);
+  if (e->bitSigned) {
+    if (32 - at - n) {
+      rio_emit(vm, rio_Op_shl, d, s, rio_constSlot(vm, (uint32_t)(32 - at - n)));
+      s = d;
+    }
+    rio_emit(vm, rio_Op_shr, d, s, rio_constSlot(vm, (uint32_t)(32 - n)));
+  } else {
+    if (at) {
+      rio_emit(vm, rio_Op_shr, d, s, rio_constSlot(vm, (uint32_t)at));
+      s = d;
+    }
+    rio_emit(vm, rio_Op_and, d, s, rio_constSlot(vm, (1u << n) - 1));
+  }
+  return d;
+}
+
+/* dst's bits = src's low bits; the rest of its word stays */
+static void rio_storeBits(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
+  rio_Expr w = rio_bitsWord(dst), out;
+  uint32_t mask = ((1u << dst->bits) - 1) << dst->bitAt;
+  int v = rio_toSlot(vm, src, 0), old = rio_toSlot(vm, &w, 0), d = rio_allocSlots(vm, 1), e = rio_allocSlots(vm, 1);
+  if (dst->bitAt) rio_emit(vm, rio_Op_shl, e, v, rio_constSlot(vm, dst->bitAt));
+  else rio_emit(vm, rio_Op_mov, e, v, 0);
+  rio_emit(vm, rio_Op_and, e, e, rio_constSlot(vm, mask));
+  rio_emit(vm, rio_Op_and, d, old, rio_constSlot(vm, ~mask));
+  rio_emit(vm, rio_Op_or, d, d, e);
+  out = rio_exprOf(rio_ExprKind_static, rio_TypeId_int, d * 4);
+  rio_store(vm, &w, &out);
+}
+
 /* A scalar value: the slot holding it. reuse: e's own temporary slot may be written (fusing an index
    with its load). */
 int rio_toSlot(rio_Vm *vm, rio_Expr *e, int reuse) {
   int k, d;
   rio_needValue(vm, e);
+  if (e->bits) { /* (loaded: it's the value now, not the place, as its holder goes on to be) */
+    d = rio_loadBits(vm, e);
+    *e = rio_bitsWord(e);
+    return d;
+  }
   k = rio_type(vm, e->type)->kind;
   if (k != rio_TypeKind_int && k != rio_TypeKind_float && k != rio_TypeKind_byte && k != rio_TypeKind_bool &&
       k != rio_TypeKind_enum && k != rio_TypeKind_proc)
@@ -393,6 +441,7 @@ int rio_toViewSlots(rio_Vm *vm, rio_Expr *e) {
 int rio_toAddrSlot(rio_Vm *vm, rio_Expr *e) {
   int d;
   rio_needValue(vm, e);
+  if (e->bits) rio_FAIL(0, "a bitfield has no address of its own");
   if (e->kind == rio_ExprKind_static) return rio_addrConst(vm, (uint32_t)e->value, rio_type(vm, e->type)->size);
   if (!e->offset) return e->value;
   d = rio_allocSlots(vm, 1);
@@ -478,7 +527,8 @@ void rio_store(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
   if (k == rio_TypeKind_slice || k == rio_TypeKind_builder) rio_storeView(vm, dst, src);
   if (k == rio_TypeKind_union && rio_storeIntoUnion(vm, dst, src)) return; /* a value of one of its types: wrapped */
   rio_coerce(vm, src, dst->type);
-  if (rio_isAggregate(k)) rio_storeAggregate(vm, dst, src, ty);
+  if (dst->bits) rio_storeBits(vm, dst, src);
+  else if (rio_isAggregate(k)) rio_storeAggregate(vm, dst, src, ty);
   else if (k == rio_TypeKind_builder) rio_storeBuilder(vm, dst, src);
   else if (k == rio_TypeKind_slice) rio_storeSlice(vm, dst, src);
   else rio_storeScalar(vm, dst, src, k);

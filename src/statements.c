@@ -620,7 +620,7 @@ static void rio_expressionStatement(rio_Vm *vm) {
     return;
   }
   current = l;
-  if (!(l.kind == rio_ExprKind_static && (k == rio_TypeKind_int || k == rio_TypeKind_float) && l.value < rio_SLOTS_END)) {
+  if (!(l.kind == rio_ExprKind_static && (k == rio_TypeKind_int || k == rio_TypeKind_float) && l.value < rio_SLOTS_END && !l.bits)) {
     int s = rio_toSlot(vm, &current, 0); /* read it once (an element: its address stays put) */
     current = rio_exprOf(rio_ExprKind_static, rio_valueType(l.type), s * 4);
     current.tempStart = (uint16_t)s;

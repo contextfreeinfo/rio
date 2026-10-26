@@ -33,7 +33,7 @@ class Gen:
     r = self.r.random()
     if d > 3 or r < 0.25:
       return self.r.choice(self.ints) if self.ints and self.r.random() < 0.7 else self.ival()
-    k = self.r.randrange(10)
+    k = self.r.randrange(12)
     a, b = self.iexpr(d + 1), self.iexpr(d + 1)
     if k == 0: return f"({a} {self.r.choice(['+', '-', '*', '&', '|', '^'])} {b})"
     if k == 1: return f"({a} {self.r.choice(['/', '%'])} ({b} | 1))"
@@ -43,10 +43,15 @@ class Gen:
     if k == 5: return f"abs({a})"
     if k == 6: return f"({self.fexpr(d + 1)}).toInt()"
     if k == 7: return f"arr[abs({a}) % 8]" if self.r.random() < 0.85 else f"arr[({a}) % 8]"  # mostly in range
+    if k == 9: return f"bits.{self.r.choice(['k', 's', 'w', 'n'])}"
+    if k == 10: return f"buf.getInt({self.offset(4)}, {self.r.choice([8, -8, 16, -16, 24, -24, 32])})"
     if k == 8 and self.procs:
       pn, ps = self.r.choice(self.procs)
       return f"{pn}(" + ", ".join(self.iexpr(d + 1) if t == "Int" else self.fexpr(d + 1) for t in ps) + ")"
     return f"rec.x + {a}"
+
+  def offset(self, size):  # a byte offset in buf (16 bytes) for size bytes: mostly in range
+    return f"abs({self.iexpr(3)}) % {17 - size}" if self.r.random() < 0.9 else f"({self.iexpr(3)}) % 17"
 
   def fexpr(self, d=0):
     r = self.r.random()
@@ -70,7 +75,7 @@ class Gen:
     return f"not {self.bexpr(d + 1)}"
 
   def stmt(self, budget):
-    k = self.r.randrange(12)
+    k = self.r.randrange(15)
     if k <= 1:
       v = self.name("v"); self.emit(f"{v} := {self.iexpr()}"); self.ints.append(v)
     elif k == 2:
@@ -98,6 +103,15 @@ class Gen:
       self.emit(f"u = {self.iexpr()}" if self.r.random() < 0.5 else f"u = Pt{{x = {self.iexpr()}, y = {self.fexpr()}}}")
       self.emit("if u is Pt"); self.depth += 1; self.emit("log(\"pt\", u.x, u.y)"); self.depth -= 1
       self.emit("case u is Int"); self.depth += 1; self.emit("log(\"int\", u)"); self.depth -= 1; self.emit("end")
+    elif k == 12:
+      self.emit(f"bits.{self.r.choice(['k', 's', 'w', 'n'])} {self.r.choice(['=', '+=', '-=', '*='])} {self.iexpr()}")
+    elif k == 13:
+      self.emit(f"buf.setInt({self.offset(4)}, {self.r.choice([8, -8, 16, -16, 24, 32])}, {self.iexpr()})")
+    elif k == 14:
+      what = self.r.choice(["bits", "rec", "arr[1:3]"])
+      size = {"bits": 8, "rec": 8, "arr[1:3]": 8}[what]
+      if self.r.random() < 0.5: self.emit(f"buf.pack({self.offset(size)}, {what})")
+      else: self.emit(f"buf.unpack({self.offset(size)}, {'&' + what if what != 'arr[1:3]' else what})")
     else:
       vals = [self.iexpr(), self.fexpr(), self.bexpr()]
       self.emit("log(" + ", ".join(self.r.sample(vals, self.r.randrange(1, 4))) + ")")
@@ -113,7 +127,8 @@ class Gen:
     self.emit("Dir :: enum"); self.emit("  north, east, south"); self.emit("end")
     self.emit("Pt :: struct"); self.emit("  x: Int"); self.emit("  y: Float"); self.emit("end")
     self.emit("PU :: union"); self.emit("  nil"); self.emit("  Pt, Int"); self.emit("end")
-    self.emit("arr: [8]Int"); self.emit("rec: Pt"); self.emit("u: PU")
+    self.emit("Bits :: struct"); self.emit("  k: Int(5)"); self.emit("  s: Int(-7)"); self.emit("  w: Int(16)"); self.emit("  n: Int"); self.emit("end")
+    self.emit("arr: [8]Int"); self.emit("rec: Pt"); self.emit("u: PU"); self.emit("bits: Bits"); self.emit("buf: Blob[16]")
     for _ in range(self.r.randrange(4)):
       pn = self.name("p"); ps = [self.r.choice(["Int", "Float"]) for _ in range(self.r.randrange(3))]
       args = [self.name("a") for _ in ps]
@@ -124,7 +139,7 @@ class Gen:
       self.ints, self.floats = outer_i, outer_f
       self.emit("end"); self.procs.append((pn, ps))
     for _ in range(self.r.randrange(4, 14)): self.stmt(6)
-    self.emit("log(arr[0], arr[7], rec.x, rec.y)")
+    self.emit("log(arr[0], arr[7], rec.x, rec.y, bits, buf.getInt(0, 32), buf.getInt(12, -32))")
     return "\n".join(self.lines) + "\n"
 
 def run(cmd):

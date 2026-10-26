@@ -88,9 +88,12 @@ int rio_descriptor(rio_Vm *vm, int type) {
   default:
     rio_FAIL(0, "cannot print this type");
   }
-  for (i = 0; i < n; i++) { /* (what it holds, first) */
-    int t = rio_field(vm, ty->firstField + i)->type;
-    if (t != rio_TypeId_void) rio_descriptor(vm, t);
+  for (i = 0; i < n; i++) { /* (what it holds, first: a bitfield's, its bits of the word at its offset) */
+    rio_Field *f = rio_field(vm, ty->firstField + i);
+    if (f->bits) {
+      v[0] = rio_Print_bits; v[1] = f->bitAt; v[2] = (uint32_t)(int32_t)f->bits;
+      rio_findConsts(vm, v, 3, 0);
+    } else if (f->type != rio_TypeId_void) rio_descriptor(vm, f->type);
   }
   if (k == rio_TypeKind_struct) {
     names = rio_typeNameConst(vm, type);
@@ -107,6 +110,10 @@ int rio_descriptor(rio_Vm *vm, int type) {
   for (i = 0; i < n; i++) {
     rio_Field *f = rio_field(vm, ty->firstField + i);
     int d = f->type == rio_TypeId_void ? 0 : rio_descriptor(vm, f->type);
+    if (f->bits) { /* (made above: found again) */
+      v[0] = rio_Print_bits; v[1] = f->bitAt; v[2] = (uint32_t)(int32_t)f->bits;
+      d = rio_findConsts(vm, v, 3, 0);
+    }
     if (k == rio_TypeKind_struct) {
       rio_descPush(vm, (uint32_t)(names + 2 + 2 * i));
       rio_descPush(vm, f->offset);
@@ -476,7 +483,7 @@ static int rio_bytesOf(rio_Vm *vm, rio_Expr *x, int into) {
     return d;
   }
   if (!rio_packable(vm, x->type)) rio_FAIL(0, "only plain data packs: no views or proc values in it");
-  if (x->kind == rio_ExprKind_const || x->type == rio_TypeId_byte) { /* (a number, or a byte read from a Blob, which is an Int: into a slot, which has an address) */
+  if (x->kind == rio_ExprKind_const || x->type == rio_TypeId_byte || x->bits) { /* (a number, a byte read from a Blob, or a bitfield, each an Int: into a slot, which has an address) */
     s = rio_toSlot(vm, x, 0);
     *x = rio_exprOf(rio_ExprKind_static, rio_valueType(x->type), s * 4);
   }

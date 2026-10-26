@@ -82,6 +82,40 @@ log(s.pos.x, s.hp, s.tag.len())
 0.0 0 4
 ```
 
+### Bitfields
+
+A struct's field can be `Int(n)`, n bits of a word, for n from 1 to 31: unsigned, or signed with
+`Int(-n)`. It reads as an `Int` (a signed one's top bit spread over the rest, so `Int(-1)` holds 0 or
+-1), and storing keeps the value's low n bits, as storing a byte does. Bitfields fill a word from its
+low bits, in order; one that doesn't fit in what's left starts a new word (none crosses words), and any
+other field after them starts a new word too:
+
+```rio
+Header :: struct
+  kind: Int(4)     # bits 0-3
+  level: Int(-4)   # bits 4-7
+  flags: Int(8)    # bits 8-15
+  size: Int(16)    # bits 16-31: the same word
+  count: Int       # the next word
+end
+h := Header{kind = 3, size = 70000}
+h.level -= 3
+log(h, h.size + 1)
+raw: Blob[8]
+raw.pack(0, h)
+log(raw[0], raw.getInt(2, 16))
+```
+
+```output
+Header{kind = 3, level = -3, flags = 0, size = 4464, count = 0} 4465
+211 4464
+```
+
+Since a word is little-endian, `Int(8)`, `Int(8)`, `Int(16)` are its bytes 0, 1 and 2 to 3, so a struct
+can lay out a binary format byte for byte, for `pack` and `unpack`
+([packing](builtins.md#packing)). A bitfield has no address of its own: `&h.kind` is an error, as is
+`Int(n)` anywhere but a struct's field.
+
 ## Enums
 
 An enum is a named set of `Int` values, its own type. Values count up from 0 unless given, each one

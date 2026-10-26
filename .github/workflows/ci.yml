@@ -73,12 +73,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fuzz the compiler for a minute
+      - name: Fuzz the compiler (a minute; nightly, ten)
         run: |
           clang -g -O1 -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all -Isrc $(ls src/*.c | grep -v -e main.c -e jit.c) tests/fuzz.c -o fuzz
           mkdir -p corpus seed
           cp tests/*.rio bench/*.rio $(find tests/modules -name '*.rio') seed/
-          ./fuzz -dict=tests/fuzz.dict -max_total_time=60 -max_len=4096 corpus seed
+          ./fuzz -dict=tests/fuzz.dict -max_total_time=${{ github.event_name == 'schedule' && 600 || 60 }} -max_len=4096 corpus seed
       - name: VM and generated C agree on random programs
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target rio
