@@ -9,7 +9,7 @@
    A descriptor is constant words, starting with its kind (a rio_Print_ value, + rio_Print_text when its
    elements are bytes, printed as text), then by kind:
      int, byte, float, bool, proc   nothing more
-     enum                           its values' first constant, its names' first, how many
+     enum                           its names' first constant (values are 0 to n - 1), how many
      struct                         its name (a string constant: address, length), its field count, then
                                     each field's name, offset and descriptor
      array                          its length, the element size and descriptor
@@ -131,9 +131,9 @@ static void rio_printAt(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t p, in
   case rio_Print_proc: rio_outBytes(o, "proc", 4); return;                                               \
   case rio_Print_enum: {                                                                                 \
     int32_t v = (int32_t)rio_printWord(M, p);                                                            \
-    uint32_t values = rio_printWord(M, (d + 1) * 4), names = rio_printWord(M, (d + 2) * 4);              \
-    n = rio_printWord(M, (d + 3) * 4);                                                                   \
-    for (i = 0; i < n && (int32_t)rio_printWord(M, (values + i) * 4) != v; i++) {}                       \
+    uint32_t names = rio_printWord(M, (d + 1) * 4);                                                      \
+    n = rio_printWord(M, (d + 2) * 4);                                                                   \
+    i = (uint32_t)v; /* (values are 0 to n - 1) */                                                       \
     if (i < n && o->spec) rio_outFormatted(M, o, o->spec, 3, rio_printWord(M, (names + 2 * i) * 4), rio_printWord(M, (names + 2 * i + 1) * 4)); \
     else if (i < n) rio_outBytes(o, M + rio_printWord(M, (names + 2 * i) * 4), rio_printWord(M, (names + 2 * i + 1) * 4)); \
     else rio_outInt(o, v);                                                                               \

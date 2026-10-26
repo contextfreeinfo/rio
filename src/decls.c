@@ -476,15 +476,12 @@ void rio_unionDef(rio_Vm *vm, const char *name, int nameLen) {
   rio_addSymbol(vm, name, nameLen, rio_SymKind_type, index, 0);
 }
 
-/* Name :: enum, then values one per line or comma-separated, then end. A value is name or name = n
-   (otherwise one more than the last); nil may come first. Values increase down the list, so the order
-   listed is the order of the values (and of arrays indexed by the enum). Some value must be 0: new
-   variables start there. */
+/* Name :: enum, then values one per line or comma-separated, then end; nil may come first. The values
+   are 0, 1, 2 ... in the order listed (so new variables start at the first, and [Enum]T has one element
+   for each). */
 void rio_enumDef(rio_Vm *vm, const char *name, int nameLen) {
   rio_Compiler *c = vm->compiler;
-  rio_Val *R = (rio_Val *)vm->mem;
-  int index, n = 0, hasZero = 0, j;
-  int32_t v = 0;
+  int index, n = 0, j;
   rio_Type *et;
   if (c->blockCount || c->curProc >= 0) rio_FAIL(, "enums must be top-level");
   rio_next(vm);
@@ -500,39 +497,23 @@ void rio_enumDef(rio_Vm *vm, const char *name, int nameLen) {
     if (c->tok.kind == rio_Tok_nil) {
       if (n) rio_FAIL_AT_TOKEN(, "nil can only come first");
       rio_next(vm);
-      v = 0;
     } else {
       if (c->tok.kind != rio_Tok_id) rio_FAIL_AT_TOKEN(, "value name expected");
       rio_next(vm);
-      if (c->tok.kind == '=') {
-        rio_Expr e;
-        rio_next(vm);
-        e = rio_parseExpr(vm);
-        if (e.kind != rio_ExprKind_const || e.type != rio_TypeId_int) rio_FAIL(, "an enum value is an Int constant");
-        v = e.value;
-      }
+      if (c->tok.kind == '=') rio_FAIL_AT_TOKEN(, "an enum's values are 0, 1, 2 ... as listed: give other numbers as constants (WALL :: 3)");
     }
     for (j = 0; j < n; j++) {
       rio_Field *g = rio_field(vm, et->firstField + j);
       if (rio_nameIs(vm, g->name, g->nameLen, valueName, valueNameLen)) rio_FAIL(, "value named twice");
     }
-    if (n && v <= rio_enumValue(rio_field(vm, et->firstField + n - 1)))
-      rio_FAIL(, "values increase down the list: this one isn't bigger than the one before");
-    if (!(f = rio_addField(vm, valueName, valueNameLen, (uint16_t)((uint32_t)v >> 16), (uint16_t)v))) return;
-    hasZero |= v == 0;
+    if (!(f = rio_addField(vm, valueName, valueNameLen, 0, (uint16_t)n))) return;
     n++;
-    v++;
     if (c->tok.kind == ',') rio_next(vm);
   }
   rio_next(vm);
   if (!n) rio_FAIL(, "an enum needs at least one value");
-  if (!hasZero) rio_FAIL(, "an enum needs a value that's 0: new variables start there (list nil first for an empty one)");
   et->fieldCount = (uint16_t)n;
-  /* the tables for fromInt, has and log: the values, then their names as (address, length) strings */
-  if (vm->constCount + (uint32_t)n > vm->constCap) rio_FAIL(, "too many constants");
-  et->count = vm->constCount;
-  for (j = 0; j < n; j++) R[vm->constCount++].u = (uint32_t)rio_enumValue(rio_field(vm, et->firstField + j));
-  et->elem = (uint16_t)vm->constCount;
+  et->elem = (uint16_t)vm->constCount; /* (its names, for log and print: (address, length) strings) */
   for (j = 0; j < n; j++) {
     rio_Field *g = rio_field(vm, et->firstField + j);
     rio_stringConst(vm, c->names + g->name, g->nameLen);

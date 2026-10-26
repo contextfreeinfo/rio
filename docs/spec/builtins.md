@@ -316,14 +316,14 @@ number:
 ```rio
 Tile :: enum
   nil
-  wall = 3
+  wall
 end
-n := 3
+n := 1
 log(Tile.fromInt(n), Tile.has(2), Tile.wall.toInt())
 ```
 
 ```output
-wall false 3
+wall false 1
 ```
 
 ## Conversions

@@ -119,24 +119,12 @@ int rio_arrayOf(rio_Vm *vm, int elem, uint32_t count) {
   return rio_newType(vm, rio_TypeKind_array, elem, count, rio_align4(elemSize * count));
 }
 
-/* [Enum]T: one element per value of the enum, indexed by it (firstField: the enum). The values must be
-   exactly 0, 1, 2...: then d.toInt() is d's element, and no element is wasted */
+/* [Enum]T: one element per value of the enum, indexed by it (firstField: the enum). An enum's values
+   are 0, 1, 2...: d.toInt() is d's element */
 int rio_enumArrayOf(rio_Vm *vm, int elem, int enumType) {
   rio_Type *e = rio_type(vm, enumType);
   uint32_t elemSize = rio_type(vm, elem)->size;
-  int32_t lo = 0, hi = 0;
   int i;
-  for (i = 0; i < e->fieldCount; i++) {
-    int32_t v = rio_enumValue(rio_field(vm, e->firstField + i));
-    if (!i || v < lo) lo = v;
-  }
-  hi = lo;
-  for (i = 0; i < e->fieldCount; i++) {
-    int32_t v = rio_enumValue(rio_field(vm, e->firstField + i));
-    if (v > hi) hi = v;
-  }
-  if (lo != 0 || (int64_t)hi + 1 != e->fieldCount)
-    rio_FAIL(0, "an enum used as an index needs the values 0, 1, 2...: use one like that, or a switch");
   rio_FOR_MADE_TYPES(i) {
     rio_Type *y = rio_type(vm, i);
     if (y->kind == rio_TypeKind_array && y->elem == elem && y->firstField == enumType) return i;

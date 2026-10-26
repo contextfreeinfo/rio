@@ -55,8 +55,8 @@ extern const char rio_msgMissingEnd[], rio_msgUnclosedBracket[], rio_msgExpected
 
 /* A type. Some fields mean more than their names, by kind:
      array: an [Enum]T array keeps its enum in firstField
-     enum: its values are fields (rio_enumValue); count is the first constant of a table of the values,
-           and elem the first of their names' (address, length) string pairs, for fromInt, has and log
+     enum: its values are fields (rio_enumValue: 0, 1, 2 ... as listed); elem is the first constant of
+           their names' (address, length) string pairs, for log and print
      union: each type it lists is a field (type: rio_TypeId_void for nil, offset 4); a maybe, ?T, is a
             union of nil and T, with T in elem (0 for the others)
      proc: the parameter types are fields; elem is the result (rio_TypeId_void: none) */

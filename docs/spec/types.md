@@ -118,9 +118,9 @@ can lay out a binary format byte for byte, for `pack` and `unpack`
 
 ## Enums
 
-An enum is a named set of `Int` values, its own type. Values count up from 0 unless given, each one
-more than the last. One value must be 0, since that's what new variables start as; listing `nil`
-first makes the zero mean "nothing":
+An enum is a named set of values, its own type, stored as an `Int`. Its values are 0, 1, 2 and so on,
+in the order listed, so new variables start as the first; listing `nil` first makes that zero mean
+"nothing":
 
 ```rio
 Dir :: enum
@@ -128,19 +128,28 @@ Dir :: enum
 end
 Tile :: enum
   nil
-  wall = 3
-  water          # 4
+  wall
+  water          # 2
 end
 d: Dir
 t: Tile
 log(d, t, Tile.water.toInt())
+for dir, i in Dir
+  log(i, dir)
+end
 ```
 
 ```output
-north nil 4
+north nil 2
+0 north
+1 east
+2 south
+3 west
 ```
 
-Values increase down the list. `[E]T` needs `E`'s values to be exactly 0, 1, 2 and so on.
+A value can't be given a number of its own: other numbers, such as a file format's codes, are
+constants (`WALL :: 3`), or an array `[E]Int` of them. `[E]T` has one element for each value, in
+order, and `for x in E` (with an index, `for x, i in E`) goes through them.
 
 ## Unions
 

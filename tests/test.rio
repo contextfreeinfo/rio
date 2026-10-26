@@ -911,7 +911,7 @@ Dir :: enum
 end
 Tile :: enum
   nil
-  wall = 3
+  wall
   water
 end
 turn :: proc(d: Dir) -> Dir
@@ -922,7 +922,12 @@ check(ed == .north and ed == Dir.north, "the first value is the zero")
 ed = .south
 check(ed.toInt() == 2 and turn(ed) == .west and turn(turn(ed)) == .north, "toInt and fromInt")
 et: Tile
-check(et == nil and Tile.water.toInt() == 4 and Tile.has(3) and not Tile.has(1) and Tile.has(0), "nil first, explicit values and gaps")
+check(et == nil and Tile.water.toInt() == 2 and Tile.has(2) and not Tile.has(3) and not Tile.has(-1) and Tile.has(0), "nil first, and values 0 to n - 1")
+enumSeen := 0
+for tile, at in Tile
+  enumSeen = enumSeen * 10 + tile.toInt() + at
+end
+check(enumSeen == 24, "for over an enum, with an index")
 EMob :: struct
   facing: Dir
   hp: Int

@@ -78,10 +78,9 @@ void rio_logOp(rio_Vm *vm, const rio_Val *R, const rio_Instr *ip) {
     if (R[ip->a].i) rio_logPut(vm, "true", 4);
     else rio_logPut(vm, "false", 5);
     break;
-  case rio_Op_logn: { /* an enum value by name: b.. its n values, c.. their (address, length) names */
-    uint32_t n = rio_dataSize(ip + 1), i;
+  case rio_Op_logn: { /* an enum value by name (values 0 to n - 1): c.. their (address, length) names */
+    uint32_t n = rio_dataSize(ip + 1), i = R[ip->a].u;
     int32_t v = R[ip->a].i;
-    for (i = 0; i < n && R[ip->b + i].i != v; i++) {}
     if (i < n) rio_logPut(vm, (const char *)M + R[ip->c + 2 * i].i, R[ip->c + 2 * i + 1].i);
     else rio_logPut(vm, text, rio_formatInt(text, v));
     break;
@@ -294,10 +293,8 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
   }
   rio_CASE(copy) memmove(M + R[ip->a].i, M + R[ip->b].i, ip->c); rio_NEXT();
   rio_CASE(movn) memmove(R + ip->a, R + ip->b, ip->c * sizeof(rio_Val)); rio_NEXT();
-  rio_CASE(enumname) { /* a, a+1 = the name of value b: c.. the n values, then their names at data a */
-    uint32_t n = rio_dataSize(ip + 1), i, names = ip[1].a;
-    int32_t v = R[ip->b].i;
-    for (i = 0; i < n && R[ip->c + i].i != v; i++) {}
+  rio_CASE(enumname) { /* a, a+1 = the name of value b (values 0 to n - 1): their names at data a */
+    uint32_t n = rio_dataSize(ip + 1), i = R[ip->b].u, names = ip[1].a;
     if (i < n) {
       R[ip->a] = R[names + 2 * i];
       R[ip->a + 1] = R[names + 2 * i + 1];
@@ -307,12 +304,10 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     }
     rio_NEXT2();
   }
-  rio_CASE(enumck) { /* is b one of the n values at c? x: a runtime error if not, else a = the answer */
-    uint32_t n = rio_dataSize(ip + 1), i;
-    int32_t v = R[ip->b].i;
-    for (i = 0; i < n && R[ip->c + i].i != v; i++) {}
+  rio_CASE(enumck) { /* is b one of the values 0 to n - 1? x: a runtime error if not, else a = the answer */
+    uint32_t n = rio_dataSize(ip + 1), i = R[ip->b].u;
     if (ip->x) {
-      if (i == n) return rio_runtimeError(vm, "not a value of that enum", rio_PC);
+      if (i >= n) return rio_runtimeError(vm, "not a value of that enum", rio_PC);
     } else R[ip->a].i = i < n;
     rio_NEXT2();
   }

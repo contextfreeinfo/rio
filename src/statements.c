@@ -174,6 +174,25 @@ static void rio_forEach(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
   b->a = (uint16_t)rio_label(vm);
 }
 
+/* the loop over [counter, limit), both stored already: name is the counter, of type (an Int, or an enum) */
+static void rio_countUp(rio_Vm *vm, rio_Block *b, const char *name, int nameLen, int type, int counter, int limit) {
+  rio_addSymbol(vm, name, nameLen, rio_SymKind_var, type, counter * 4);
+  b->counter = (uint16_t)counter;
+  b->limit = (uint16_t)limit;
+  b->breaks = (uint16_t)rio_emit(vm, rio_Op_jle, limit, counter, rio_NONE);
+  b->a = (uint16_t)rio_label(vm);
+}
+
+/* for d in Enum, for d, i in Enum: its values, 0 to n - 1, in order (i: the same, as an Int) */
+static void rio_forEnum(rio_Vm *vm, rio_Block *b, int type, const char *name, int nameLen, const char *indexName, int indexLen,
+                        int counter, int limit) {
+  rio_emit(vm, rio_Op_mov, counter, rio_constSlot(vm, 0), 0);
+  rio_emit(vm, rio_Op_mov, limit, rio_constSlot(vm, rio_type(vm, type)->fieldCount), 0);
+  vm->compiler->freeSlot = vm->compiler->liveSlots;
+  if (indexName) rio_addSymbol(vm, indexName, indexLen, rio_SymKind_var, rio_TypeId_int, counter * 4);
+  rio_countUp(vm, b, name, nameLen, type, counter, limit);
+}
+
 /* for x in a..<b, for x in a..=b */
 static void rio_forRange(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name, int nameLen, int counter, int limit) {
   rio_Compiler *c = vm->compiler;
@@ -192,13 +211,8 @@ static void rio_forRange(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name
   d = rio_exprOf(rio_ExprKind_static, rio_TypeId_int, limit * 4);
   rio_store(vm, &d, e);
   c->freeSlot = c->liveSlots;
-  rio_addSymbol(vm, name, nameLen, rio_SymKind_var, rio_TypeId_int, counter * 4);
-  b->counter = (uint16_t)counter;
-  b->limit = (uint16_t)limit;
-  b->breaks = (uint16_t)rio_emit(vm, rio_Op_jle, limit, counter, rio_NONE);
-  b->a = (uint16_t)rio_label(vm);
+  rio_countUp(vm, b, name, nameLen, rio_TypeId_int, counter, limit);
 }
-
 /* for x in ..., for x, i in ...: a range, or the elements of a sequence (or an enum's values) */
 static void rio_forIn(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
@@ -223,11 +237,9 @@ static void rio_forIn(rio_Vm *vm) {
   if (indexName) index = rio_allocSlots(vm, 1);
   c->liveSlots = c->freeSlot;
   e = rio_parseExpr(vm);
-  if (e.kind == rio_ExprKind_type && rio_type(vm, e.type)->kind == rio_TypeKind_enum) { /* for d in Enum: its values, in the order listed */
-    rio_Type *et = rio_type(vm, e.type);
-    int at = (int)et->count * 4, n = et->fieldCount, elem = e.type;
-    e = rio_exprOf(rio_ExprKind_static, rio_arrayOf(vm, elem, (uint32_t)n), at);
-    e.access = rio_Access_readOnly;
+  if (e.kind == rio_ExprKind_type && rio_type(vm, e.type)->kind == rio_TypeKind_enum) { /* for d in Enum: its values, in order */
+    rio_forEnum(vm, b, e.type, name, nameLen, indexName, indexLen, counter, limit);
+    return;
   }
   if (c->tok.kind != rio_Tok_rangeExcl && c->tok.kind != rio_Tok_rangeIncl) {
     rio_forEach(vm, b, &e, name, nameLen, indexName, indexLen, counter, limit, index);

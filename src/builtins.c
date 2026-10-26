@@ -71,8 +71,8 @@ int rio_descriptor(rio_Vm *vm, int type) {
          : k == rio_TypeKind_bool ? rio_Print_bool : rio_Print_proc;
     return rio_findConsts(vm, v, 1, 0);
   case rio_TypeKind_enum:
-    v[0] = rio_Print_enum; v[1] = ty->count; v[2] = ty->elem; v[3] = ty->fieldCount;
-    return rio_findConsts(vm, v, 4, 0);
+    v[0] = rio_Print_enum; v[1] = ty->elem; v[2] = ty->fieldCount;
+    return rio_findConsts(vm, v, 3, 0);
   case rio_TypeKind_array: case rio_TypeKind_slice: case rio_TypeKind_list: case rio_TypeKind_builder: {
     int e = rio_descriptor(vm, ty->elem), w = 0;
     text = ty->elem == rio_TypeId_byte ? rio_Print_text : 0;
@@ -147,7 +147,7 @@ int rio_printOperand(rio_Vm *vm, rio_Expr *e) {
 /* logs an enum by name */
 void rio_logEnumName(rio_Vm *vm, rio_Expr *e, int space) {
   rio_Type *et = rio_type(vm, e->type);
-  rio_emit(vm, rio_Op_logn, rio_toSlot(vm, e, 1), (int)et->count, et->elem);
+  rio_emit(vm, rio_Op_logn, rio_toSlot(vm, e, 1), 0, et->elem);
   vm->code[vm->codeLen - 1].x = (uint8_t)space;
   rio_emitData(vm, 0, et->fieldCount);
 }
@@ -198,7 +198,7 @@ void rio_formatArg(rio_Vm *vm, rio_PendingOp *call) {
     if (k == rio_TypeKind_enum) { /* its name */
       int v = rio_toSlot(vm, &e, 1);
       s = rio_allocSlots(vm, 2);
-      rio_emit(vm, rio_Op_enumname, s, v, (int)ty->count);
+      rio_emit(vm, rio_Op_enumname, s, v, 0);
       rio_emitData(vm, ty->elem, ty->fieldCount);
       text = 1;
     } else if (text) s = rio_toSlot2(vm, &e);
@@ -637,12 +637,12 @@ static void rio_enumCall(rio_Vm *vm, rio_PendingOp *call) {
   d = rio_resultSlot(vm, call);
   if (call->b == rio_Builtin_fromInt) {
     rio_emit(vm, rio_Op_mov, d, s, 0);
-    rio_emit(vm, rio_Op_enumck, 0, d, (int)et->count);
+    rio_emit(vm, rio_Op_enumck, 0, d, 0);
     vm->code[vm->codeLen - 1].x = 1;
     rio_emitData(vm, 0, et->fieldCount);
     rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, call->c, d * 4), call->freeAtStart);
   } else {
-    rio_emit(vm, rio_Op_enumck, d, s, (int)et->count);
+    rio_emit(vm, rio_Op_enumck, d, s, 0);
     rio_emitData(vm, 0, et->fieldCount);
     rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, rio_TypeId_bool, d * 4), call->freeAtStart);
   }

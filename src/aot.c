@@ -239,13 +239,12 @@ static void rio_instruction(rio_Aot *a, int pc) {
     break;
   }
   case rio_Op_enumname:
-    rio_print(a, "{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && rio_R[%d + i_].i != v_; i_++) {} if (i_ < %uu) { %s = rio_R[%d + 2 * i_]; %s = rio_R[%d + 2 * i_ + 1]; } else { %s.u = 0; %s.u = 0; } }\n",
-              rio_V(B, 'i'), rio_dataSize(data), C, rio_dataSize(data), rio_V(A, 'v'), data->a, rio_V(A + 1, 'v'), data->a, rio_V(A, 'v'),
-              rio_V(A + 1, 'v'));
+    rio_print(a, "{ uint32_t i_ = %s; if (i_ < %uu) { %s = rio_R[%d + 2 * i_]; %s = rio_R[%d + 2 * i_ + 1]; } else { %s.u = 0; %s.u = 0; } }\n",
+              rio_V(B, 'u'), rio_dataSize(data), rio_V(A, 'v'), data->a, rio_V(A + 1, 'v'), data->a, rio_V(A, 'v'), rio_V(A + 1, 'v'));
     break;
   case rio_Op_enumck:
-    rio_print(a, "{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && rio_R[%d + i_].i != v_; i_++) {} ", rio_V(B, 'i'), rio_dataSize(data), C);
-    if (in->x) rio_print(a, "if (i_ == %uu) rio_RT_ERROR(\"not a value of that enum\"); }\n", rio_dataSize(data));
+    rio_print(a, "{ uint32_t i_ = %s; ", rio_V(B, 'u'));
+    if (in->x) rio_print(a, "if (i_ >= %uu) rio_RT_ERROR(\"not a value of that enum\"); }\n", rio_dataSize(data));
     else rio_print(a, "%s = (int32_t)(i_ < %uu); }\n", rio_V(A, 'i'), rio_dataSize(data));
     break;
   case rio_Op_copy: rio_print(a, "memmove(rio_M + %s, rio_M + %s, %d);\n", rio_V(A, 'u'), rio_V(B, 'u'), C); break;
@@ -364,8 +363,8 @@ static void rio_instruction(rio_Aot *a, int pc) {
   case rio_Op_logb: rio_print(a, "rio_logText(%d, %s ? \"true\" : \"false\", -1);\n", in->x, rio_V(A, 'i')); break;
   case rio_Op_logs: rio_print(a, "rio_logShown(%d, %s, %s);\n", in->x, rio_V(A, 'u'), rio_V(A + 1, 'u')); break;
   case rio_Op_logn:
-    rio_print(a, "{ int32_t v_ = %s; uint32_t i_; for (i_ = 0; i_ < %uu && rio_R[%d + i_].i != v_; i_++) {} if (i_ < %uu) rio_logText(%d, (const char *)rio_M + rio_R[%d + 2 * i_].u, rio_R[%d + 2 * i_ + 1].i); else rio_logInt(%d, v_); }\n",
-              rio_V(A, 'i'), rio_dataSize(data), B, rio_dataSize(data), in->x, C, C, in->x);
+    rio_print(a, "{ int32_t v_ = %s; uint32_t i_ = (uint32_t)v_; if (i_ < %uu) rio_logText(%d, (const char *)rio_M + rio_R[%d + 2 * i_].u, rio_R[%d + 2 * i_ + 1].i); else rio_logInt(%d, v_); }\n",
+              rio_V(A, 'i'), rio_dataSize(data), in->x, C, C, in->x);
     break;
   case rio_Op_fail:
     if (A) rio_print(a, "rio_rtAssert((const char *)rio_M + %s, %s, __LINE__);\n", rio_V(A, 'u'), rio_V(A + 1, 'i'));
