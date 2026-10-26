@@ -49,10 +49,11 @@ static rio_PendingOp *rio_pushOp(rio_Vm *vm, int kind, int prec, int op) {
 
 static rio_PendingOp *rio_opTop(rio_Vm *vm) { return &vm->compiler->ops[vm->compiler->opCount - 1]; }
 
-/* Binding strength, like Python's: or loosest, then and, then not (3: not a == b is not (a == b), and
-   not a and b is (not a) and b), then comparisons and is. 0: not a binary operator. */
+/* Binding strength, like Python's: ranges (a..<b, a..=b) and or loosest, then and, then not (3: not a == b
+   is not (a == b), and not a and b is (not a) and b), then comparisons and is. 0: not a binary operator. */
 static int rio_binaryPrecedence(int tok) {
   switch (tok) {
+  case rio_Tok_rangeExcl: case rio_Tok_rangeIncl: return 1;
   case rio_Tok_or: return 1;
   case rio_Tok_and: return 2;
   case rio_Tok_eqEq: case rio_Tok_notEq: case '<': case '>': case rio_Tok_lessEq: case rio_Tok_greaterEq: return 4;
@@ -295,6 +296,13 @@ static void rio_member(rio_Vm *vm) {
   ty = rio_type(vm, e->type);
   if (ty->kind == rio_TypeKind_union && rio_lookupMethod(vm, e->type, t->text, t->len) < 0)
     rio_FAIL_AT_TOKEN(, "a union's value is reachable inside switch u / case T, or if u is T");
+  if (e->type == rio_TypeId_range && t->len == 3 && (!memcmp(t->text, "len", 3) || !memcmp(t->text, "has", 3))) {
+    if (c->peek.kind != '(') rio_FAIL(, "method calls need ()");
+    method = rio_exprOf(rio_ExprKind_builtin, 0, t->text[0] == 'l' ? rio_Builtin_rangeLen : rio_Builtin_rangeHas); /* r.len(), r.has(i) */
+    method.access = rio_Access_boundMethod;
+    rio_pushValue(vm, method);
+    return;
+  }
   if ((i = rio_findField(vm, ty, t->text, t->len)) >= 0) {
     rio_Field *f = rio_field(vm, ty->firstField + i);
     rio_offsetPlace(e, f->offset);
@@ -386,8 +394,17 @@ static void rio_index(rio_Vm *vm, rio_Expr *o, rio_Expr *i) {
   o->access = (uint8_t)readOnly;
 }
 
-/* o[lo:hi]: o becomes the slice (hi of kind sliceEnd: left out) */
-static void rio_slice(rio_Vm *vm, rio_Expr *o, rio_Expr *lo, rio_Expr *hi) {
+/* is the innermost bracket an index not yet a slice (where a range is its bounds)? */
+static int rio_inIndex(rio_Vm *vm, int opBase) {
+  rio_Compiler *c = vm->compiler;
+  int k;
+  for (k = c->opCount - 1; k >= opBase; k--)
+    if (c->ops[k].kind >= rio_Pending_paren) return c->ops[k].kind == rio_Pending_index && !c->ops[k].a;
+  return 0;
+}
+
+/* o[lo..<hi], o[lo..=hi] (inclusive): o becomes the slice (hi of kind sliceEnd: left out, the rest) */
+static void rio_slice(rio_Vm *vm, rio_Expr *o, rio_Expr *lo, rio_Expr *hi, int inclusive) {
   rio_Compiler *c = vm->compiler;
   rio_Type *ty;
   int s, l, h, d, localView, fromParam;
@@ -404,7 +421,7 @@ static void rio_slice(rio_Vm *vm, rio_Expr *o, rio_Expr *lo, rio_Expr *hi) {
   }
   if (ty->kind != rio_TypeKind_array && ty->kind != rio_TypeKind_slice) rio_FAIL(, "cannot slice this");
   if (ty->kind == rio_TypeKind_array && rio_isTemp(vm, o)) rio_FAIL(, "a computed array has no home to view: store it in a variable first");
-  if (ty->kind == rio_TypeKind_array && ty->firstField) { /* counts[.east:.west]: bounds are the enum's values, which are the positions */
+  if (ty->kind == rio_TypeKind_array && ty->firstField) { /* counts[.east..<.west]: bounds are the enum's values, which are the positions */
     int loLeftOut = lo->kind == rio_ExprKind_const && lo->type == rio_TypeId_int && lo->offset == 1;
     if ((!loLeftOut && rio_valueType(lo->type) != ty->firstField) ||
         (hi->kind != rio_ExprKind_sliceEnd && rio_valueType(hi->type) != ty->firstField))
@@ -417,6 +434,11 @@ static void rio_slice(rio_Vm *vm, rio_Expr *o, rio_Expr *lo, rio_Expr *hi) {
   s = rio_toSlot2(vm, o);
   l = rio_toSlot(vm, lo, 1);
   h = hi->kind == rio_ExprKind_sliceEnd ? s + 1 : rio_toSlot(vm, hi, 1);
+  if (inclusive && hi->kind != rio_ExprKind_sliceEnd) { /* (its end is one more than its last) */
+    int k = rio_allocSlots(vm, 1);
+    rio_emit(vm, rio_Op_add, k, h, rio_constSlot(vm, 1));
+    h = k;
+  }
   c->freeSlot = o->tempStart;
   d = rio_allocSlots(vm, 2);
   rio_emit(vm, rio_Op_slice, d, s, l);
@@ -733,10 +755,17 @@ static void rio_closeBracket(rio_Vm *vm, int t, int hasArg) {
     if (o.a) {
       hi = rio_popValue(vm);
       i = rio_popValue(vm);
-      rio_slice(vm, rio_valueTop(vm), &i, &hi);
+      rio_slice(vm, rio_valueTop(vm), &i, &hi, o.a == 2);
     } else {
       i = rio_popValue(vm);
-      rio_index(vm, rio_valueTop(vm), &i);
+      rio_needValue(vm, &i);
+      if (i.type == rio_TypeId_range) { /* a[r]: its first to its last */
+        hi = i;
+        rio_offsetPlace(&hi, 4);
+        hi.type = rio_TypeId_int;
+        i.type = rio_TypeId_int;
+        rio_slice(vm, rio_valueTop(vm), &i, &hi, 1);
+      } else rio_index(vm, rio_valueTop(vm), &i);
     }
     return;
   }
@@ -766,7 +795,7 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
   if (c->opCount == x->opBase) return x->whole;
   m = rio_opTop(vm);
   if (m->kind == rio_Pending_literal) return m->op ? rio_type(vm, m->b)->elem : rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
-  if (m->kind == rio_Pending_index && m->valueBase > 0 && c->valueCount <= m->valueBase + 1) { /* counts[.east], counts[.a:.b]: an [Enum]T takes its enum */
+  if (m->kind == rio_Pending_index && m->valueBase > 0 && c->valueCount <= m->valueBase + 1) { /* counts[.east], counts[.a..<.b]: an [Enum]T takes its enum */
     rio_Type *array = rio_type(vm, c->values[m->valueBase - 1].type);
     if (array->kind == rio_TypeKind_array && array->firstField) return array->firstField;
   }
@@ -954,14 +983,18 @@ static int rio_separator(rio_Vm *vm, rio_ExprState *x, int t) {
     if (m->kind == rio_Pending_literal) rio_literalField(vm, m);
     return rio_Expect_operand;
   }
-  if (t == ':') { /* xs[a:b] */
-    if (m->kind != rio_Pending_index || m->a) rio_FAIL(rio_Expect_failed, "unexpected ':'");
-    m->a = 1;
+  if (t == ':') rio_FAIL(rio_Expect_failed, "slices take ranges: a[i..<j], a[i..=j], a[i..], a[..<j], a[]");
+  if (t == rio_Tok_rangeExcl || t == rio_Tok_rangeIncl || t == '.') { /* xs[a..<b], xs[a..=b], xs[a..] */
+    if (m->kind != rio_Pending_index || m->a) rio_FAIL(rio_Expect_failed, "unexpected range");
+    m->a = t == rio_Tok_rangeIncl ? 2 : 1;
     rio_next(vm);
-    if (c->tok.kind == ']') { /* the end left out */
+    if (t == '.') { /* the end left out: the rest */
+      rio_next(vm);
+      if (c->tok.kind != ']') rio_FAIL(rio_Expect_failed, "a[i..] is the rest: an end goes after ..< or ..=");
       rio_pushResult(vm, rio_exprOf(rio_ExprKind_sliceEnd, rio_TypeId_int, 0), (int)c->freeSlot);
       return rio_Expect_operator;
     }
+    if (c->tok.kind == ']') rio_FAIL(rio_Expect_failed, "a range needs its end: a[i..<j], or a[i..] for the rest");
     return rio_Expect_operand;
   }
   rio_closeBracket(vm, t, 1);
@@ -1006,13 +1039,24 @@ static int rio_parseOperator(rio_Vm *vm, rio_ExprState *x) {
     rio_pushOp(vm, rio_Pending_index, 0, 0);
     x->depth++;
     rio_next(vm);
-    if (c->tok.kind == ':') { /* the start left out: 0, marked so an [Enum]T accepts it */
+    if (c->tok.kind == ':') rio_FAIL(rio_Expect_failed, "slices take ranges: a[i..<j], a[i..=j], a[i..], a[..<j], a[]");
+    if (c->tok.kind == ']' || c->tok.kind == rio_Tok_rangeExcl || c->tok.kind == rio_Tok_rangeIncl) {
+      /* a[], a[..<j]: the start left out, 0 (marked, so an [Enum]T takes it) */
       rio_Expr zero = rio_exprOf(rio_ExprKind_const, rio_TypeId_int, 0);
       zero.offset = 1;
       rio_pushResult(vm, zero, (int)c->freeSlot);
+      if (c->tok.kind == ']') { /* and the end: all of it */
+        rio_opTop(vm)->a = 1;
+        rio_pushResult(vm, rio_exprOf(rio_ExprKind_sliceEnd, rio_TypeId_int, 0), (int)c->freeSlot);
+      }
       return rio_Expect_operator;
     }
     return rio_Expect_operand;
+  }
+  if (t == rio_Tok_rangeExcl || t == rio_Tok_rangeIncl || (t == '.' && c->peek.kind == '.')) {
+    if (!x->depth && c->rangeStops) return rio_Expect_done; /* (for x in a..<b: the loop's) */
+    if (rio_inIndex(vm, x->opBase)) return rio_separator(vm, x, t);
+    if (t == '.') rio_FAIL(rio_Expect_failed, "a range's end is left out only in a slice: a[i..]");
   }
   if (t == '.') {
     rio_next(vm);

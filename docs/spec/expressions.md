@@ -6,14 +6,14 @@ From tightest to loosest. Operators on one line group left to right:
 
 | operators | |
 |---|---|
-| `f(x)` `a[i]` `a[i:j]` `a.b` `T{...}` | calls, indexing, slicing, members, literals |
+| `f(x)` `a[i]` `a[i..<j]` `a.b` `T{...}` | calls, indexing, slicing, members, literals |
 | `-` `~` | negation, bitwise not |
 | `*` `/` `%` `&` `<<` `>>` | |
 | `+` `-` `\|` `^` | |
 | `==` `!=` `<` `<=` `>` `>=` `is` | comparisons don't chain |
 | `not` | |
 | `and` | |
-| `or` | |
+| `or` `..<` `..=` | ranges: see [ranges](#ranges) |
 
 ```rio
 log(2 + 3 * 4, 1 << 2 + 1, 7 & 3 + 1, -2 * 3)
@@ -157,27 +157,33 @@ log(
 `a[i]` is element `i` of an array, slice, list, `String` or `Blob`, counting from 0. An index outside
 `0 <= i < a.len()` is a runtime error (or a compile error, when it's a constant).
 
-`a[i:j]` is a view of elements `i` up to but not including `j`. Leaving out `i` means 0, and `j` means
-the length. It's a runtime error unless `0 <= i <= j <= a.len()`. Slicing an array or list gives a
-`[]T`, a `String` a `String`, and a `Blob` a `Blob`:
+`a[i..<j]` is a view of elements `i` up to but not including `j`, and `a[i..=j]` up to and including `j`.
+`a[i..]` runs to the end, `a[..<j]` and `a[..=j]` start at 0, and `a[]` is all of it. A [range](#ranges)
+value works too: `a[r]` is `r.first` to `r.last`. It's a runtime error unless the slice is inside `a`
+(`0 <= i <= j <= a.len()`, with `j` one past the last). Slicing an array or list gives a `[]T`, a
+`String` a `String`, and a `Blob` a `Blob`:
 
 ```rio
 xs: [5]Int
 for x, i in xs
   x = i * 10
 end
-mid := xs[1:4]
+mid := xs[1..<4]
 s := "hello"
-log(mid.len(), mid[0], s[1:3], s[3:], xs[:].len())
+r := 1..=2
+log(mid.len(), mid[0], s[1..<3], s[3..], s[..=1], s[r], xs[].len())
+n := 2
+log(xs[n - 1..<n + 1], xs[n..])
 ```
 
 ```output
-3 10 el lo 5
+3 10 el lo he el 5
+[10, 20] [20, 30, 40]
 ```
 
 ```rio
 xs: [3]Int
-log(xs[2:1].len())  # runtime error: slice out of bounds
+log(xs[2..<1].len())  # runtime error: slice out of bounds
 ```
 
 An array indexed by an enum takes the enum's values as indexes, and as slice bounds:
@@ -188,11 +194,68 @@ Dir :: enum
 end
 counts: [Dir]Int
 counts[.east] += 2
-log(counts[.east], counts[.east:].len(), counts.len())
+log(counts[.east], counts[.east..].len(), counts.len())
 ```
 
 ```output
 2 3 4
+```
+
+## Ranges
+
+`a..<b` is the `Int`s from `a` up to but not including `b`, and `a..=b` up to and including `b`. Either
+is a `Range`, a built-in struct of its first and last values (inclusive, so it reaches every `Int`), and
+it binds looser than anything but `or`, so `0..<n + 1` is `0..<(n + 1)`:
+
+```rio
+Range :: struct    # (built in)
+  first: Int
+  last: Int        # empty when last < first
+end
+```
+
+`r.len()` is how many values it has (0 when empty) and `r.has(i)` whether `i` is one of them. It's
+written `first..=last` (an empty one made by `a..<a` is `a..=a - 1`):
+
+```rio
+r := 2..<5
+log(r, r.first, r.last, r.len(), r.has(4), r.has(5), (3..<3).len())
+```
+
+```output
+2..=4 2 4 3 true false 0
+```
+
+A range is a slice's bounds (see [slicing](#indexing-and-slicing)), and a loop's: `for i in r` counts
+from `r.first` to `r.last`. `by` steps it: a positive step counts up from `first`, a negative one down
+from `last`, and neither goes past the other end (or wraps, at the ends of `Int`). The step can be any
+`Int` expression; a step of 0 is a compile error when it's a constant, else a runtime error when the
+loop starts. `by` means this only after a `for`'s range: elsewhere it's a name like any other.
+
+```rio
+out: Blob[..80]
+for i in 0..<10 by 3
+  out.print(i, " ")
+end
+for i in 0..<5 by -1           # 4 down to 0
+  out.print(i, " ")
+end
+r := 2..=8
+step := -3
+for i in r by step             # from r.last down
+  out.print(i, " ")
+end
+log(out[])
+```
+
+```output
+0 3 6 9 4 3 2 1 0 8 5 2 
+```
+
+```rio
+step := 0
+for i in 0..<3 by step  # runtime error: a loop's step is 0
+end
 ```
 
 ## Members

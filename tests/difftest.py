@@ -75,7 +75,7 @@ class Gen:
     return f"not {self.bexpr(d + 1)}"
 
   def stmt(self, budget):
-    k = self.r.randrange(15)
+    k = self.r.randrange(17)
     if k <= 1:
       v = self.name("v"); self.emit(f"{v} := {self.iexpr()}"); self.ints.append(v)
     elif k == 2:
@@ -107,11 +107,22 @@ class Gen:
       self.emit(f"bits.{self.r.choice(['k', 's', 'w', 'n'])} {self.r.choice(['=', '+=', '-=', '*='])} {self.iexpr()}")
     elif k == 13:
       self.emit(f"buf.setInt({self.offset(4)}, {self.r.choice([8, -8, 16, -16, 24, 32])}, {self.iexpr()})")
+    elif k == 15 and budget > 1 and self.depth < 3:  # a stepped loop over a small range (constant or variable step)
+      i = self.name("i")
+      lo, hi = f"abs({self.iexpr(3)}) % 7", f"abs({self.iexpr(3)}) % 9"
+      step = self.r.choice(["1", "2", "3", "-1", "-2", f"(abs({self.iexpr(3)}) % 3 + 1)", f"-(abs({self.iexpr(3)}) % 3 + 1)"])
+      self.emit(f"for {i} in {lo}{self.r.choice(['..<', '..='])}{hi} by {step}"); self.ints.append(i); self.loops.append(i)
+      self.block(budget // 2); self.ints.remove(i); self.loops.remove(i); self.emit("end")
+    elif k == 16:  # a range slice of arr, mostly in bounds
+      lo = f"abs({self.iexpr(3)}) % 4"
+      form = self.r.choice([f"{lo}..<{lo} + 2", f"{lo}..={lo} + 1", f"{lo}..", "..<3", "..=2", ""])
+      v = self.name("s"); self.emit(f"{v} := arr[{form}]")
+      self.emit(f"log({v}.len(), {v})")
     elif k == 14:
-      what = self.r.choice(["bits", "rec", "arr[1:3]"])
-      size = {"bits": 8, "rec": 8, "arr[1:3]": 8}[what]
+      what = self.r.choice(["bits", "rec", "arr[1..<3]"])
+      size = {"bits": 8, "rec": 8, "arr[1..<3]": 8}[what]
       if self.r.random() < 0.5: self.emit(f"buf.pack({self.offset(size)}, {what})")
-      else: self.emit(f"buf.unpack({self.offset(size)}, {'&' + what if what != 'arr[1:3]' else what})")
+      else: self.emit(f"buf.unpack({self.offset(size)}, {'&' + what if what != 'arr[1..<3]' else what})")
     else:
       vals = [self.iexpr(), self.fexpr(), self.bexpr()]
       self.emit("log(" + ", ".join(self.r.sample(vals, self.r.randrange(1, 4))) + ")")

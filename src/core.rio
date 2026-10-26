@@ -21,6 +21,15 @@ Format* :: struct
   textWidth: Int          # text, Bools and enums' names: as width does for numbers
 end
 
+# a..<b and a..=b: the Ints from first to last (inclusive: empty when last < first). Printed first..=last.
+# Built in, as declared here (tests/host.c checks it's the same), with these methods:
+#   Range.len* :: @host proc() -> Int            # how many values: last - first + 1, or 0
+#   Range.has* :: @host proc(i: Int) -> Bool     # first <= i <= last
+Range* :: struct
+  first: Int
+  last: Int
+end
+
 # ---------------------------------------------------------------- math
 
 abs* :: @host proc(x: Int) -> Int

@@ -332,6 +332,10 @@ static void rio_instruction(rio_Aot *a, int pc) {
     break;
   case rio_Op_each: rio_print(a, "if ((%s += %s) < %s) goto L%d;\n", rio_V(A, 'u'), rio_V(B + 1, 'u'), rio_V(B, 'u'), C); break;
   case rio_Op_fori: rio_print(a, "if ((%s = (int32_t)(%s + 1u)) < %s) goto L%d;\n", rio_V(A, 'i'), rio_V(A, 'u'), rio_V(B, 'i'), C); break;
+  case rio_Op_forby:
+    rio_print(a, "{ uint32_t v_ = %s, e_ = %s, k_ = %s; if ((int32_t)k_ > 0 ? e_ - v_ >= k_ : v_ - e_ >= 0u - k_) { %s = v_ + k_; goto L%d; } }\n",
+              rio_V(A, 'u'), rio_V(B, 'u'), rio_V(B + 1, 'u'), rio_V(A, 'u'), C);
+    break;
   case rio_Op_call: rio_print(a, "%s();\n", rio_procName(a, rio_procAtPc(a, C))); break;
   case rio_Op_calli: { /* through a proc value: the tables say where its parameters go */
     int i;
@@ -367,7 +371,9 @@ static void rio_instruction(rio_Aot *a, int pc) {
               rio_V(A, 'i'), rio_dataSize(data), in->x, C, C, in->x);
     break;
   case rio_Op_fail:
-    if (A) rio_print(a, "rio_rtAssert((const char *)rio_M + %s, %s, __LINE__);\n", rio_V(A, 'u'), rio_V(A + 1, 'i'));
+    if (in->x) rio_print(a, "{ fflush(stdout); fprintf(stderr, \"%%d: runtime error: %%.*s\\n\", __LINE__, %s, (const char *)rio_M + %s); exit(1); }\n",
+                         rio_V(A + 1, 'i'), rio_V(A, 'u'));
+    else if (A) rio_print(a, "rio_rtAssert((const char *)rio_M + %s, %s, __LINE__);\n", rio_V(A, 'u'), rio_V(A + 1, 'i'));
     else rio_print(a, "rio_rtAssert(\"\", -1, __LINE__);\n");
     break;
   case rio_Op_logv: case rio_Op_pushv: { /* a slice's or builder's words, else the value's address */

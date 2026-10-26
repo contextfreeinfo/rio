@@ -150,7 +150,7 @@ typedef enum {
   rio_ExprKind_ffi,
   rio_ExprKind_builtin,
   rio_ExprKind_type,
-  rio_ExprKind_sliceEnd, /* the left-out end of xs[a:] */
+  rio_ExprKind_sliceEnd, /* the left-out end of xs[a..] (and xs[]) */
   rio_ExprKind_module,
 } rio_ExprKind;
 
@@ -173,7 +173,7 @@ typedef struct {
   uint16_t bits : 5;
   uint16_t bitSigned : 1;
   int32_t value;      /* by kind: see rio_ExprKind */
-  int32_t offset;     /* indirect: bytes past the address. (A const 0 with offset 1: xs[:b]'s left-out start) */
+  int32_t offset;     /* indirect: bytes past the address. (A const 0 with offset 1: xs[..<b]'s left-out start) */
 } rio_Expr;
 
 /* the operator stack: operators waiting for their right side, and open brackets */
@@ -301,6 +301,7 @@ typedef struct rio_Compiler {
   uint8_t *localViews;    /* local slots that hold a view of their proc's own memory */
   uint8_t *paramViews;    /* local slots that hold a view that came in through a parameter */
   int storingArgs;        /* storing call arguments: views may go to a callee */
+  int rangeStops;         /* a for header's range: ..< and ..= end its first expression (the loop reads them) */
   uint64_t switchCases[16][4]; /* per open switch: which enum values (or union types) have a case */
   int switchCount;
   uint16_t descType[32], descSlot[32]; /* types printed by descriptor (print.h), and where theirs are */
@@ -505,11 +506,14 @@ typedef enum {
   /* Enum.fromInt and Enum.has */
   rio_Builtin_fromInt, rio_Builtin_has,
   rio_Builtin_hexBlob,
+  /* a Range's methods */
+  rio_Builtin_rangeLen, rio_Builtin_rangeHas,
   rio_Builtin_count
 } rio_Builtin;
 extern const char *const rio_builtinNames[rio_Builtin_count];
 /* the built-in struct Format (b.format's settings): the first type after the built-in kinds */
 #define rio_TypeId_format rio_TypeId_builtinCount
+#define rio_TypeId_range (rio_TypeId_builtinCount + 1) /* Range{first, last}: a..<b, a..=b */
 
 int rio_builtinNamed(const char *s, int n, int first, int last);
 void rio_logEnumName(rio_Vm *vm, rio_Expr *e, int space);

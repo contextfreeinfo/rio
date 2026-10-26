@@ -51,7 +51,7 @@ line: Blob[..32]
 hp := 7
 line.print("hp: ", hp, "/", 10)
 line.push('!')
-log(line[:])
+log(line[])
 ```
 
 ```output
@@ -64,7 +64,7 @@ settings for widths, digits and bases first (see [format](../spec/builtins.md#fo
 ```rio
 row: Blob[..32]
 row.format({width = 3}, 7, 42, 100)
-log(row[:])
+log(row[])
 ```
 
 ```output

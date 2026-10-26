@@ -56,7 +56,7 @@ scores: [5]Int
 for s, i in scores
   s = i * 10                # s is the element itself
 end
-log(total(scores), total(scores[1:3]), scores.len())
+log(total(scores), total(scores[1..<3]), scores.len())
 ```
 
 ```output
@@ -105,7 +105,7 @@ log(fleet[0].hp, fleet[1].hp)
 ## Strings and bytes
 
 A `String` is read-only text, and a `Blob` is bytes you can change. Indexing either gives a byte as an
-`Int`. `b[:]` views a `Blob[N]` as a `Blob`:
+`Int`. `b[]` views a `Blob[N]` as a `Blob`:
 
 ```rio
 s := "rio"
@@ -113,7 +113,7 @@ b: Blob[3]
 for c, i in s
   b[i] = c - 32             # to uppercase
 end
-log(s[0], b[:].asString(), s == "rio")
+log(s[0], b[].asString(), s == "rio")
 ```
 
 ```output

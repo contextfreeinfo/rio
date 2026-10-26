@@ -38,13 +38,13 @@ static int rio_runtimeError(rio_Vm *vm, const char *message, uint32_t pc) {
 
 /* out of the interpreter loop: this is rare, and building the message there tripped an LLVM 20
    optimizer crash */
-static rio_NOINLINE int rio_assertFailed(rio_Vm *vm, uint32_t messageSlot, uint32_t pc) {
+static rio_NOINLINE int rio_assertFailed(rio_Vm *vm, uint32_t messageSlot, int plain, uint32_t pc) {
   char text[rio_ERROR_BUF_SIZE];
-  int n = rio_appendText(text, 0, "assertion failed");
+  int n = plain ? 0 : rio_appendText(text, 0, "assertion failed");
   if (messageSlot) {
     rio_Val *R = (rio_Val *)vm->mem;
     uint32_t len = R[messageSlot + 1].u;
-    n = rio_appendText(text, n, ": ");
+    if (!plain) n = rio_appendText(text, n, ": ");
     if (len > (uint32_t)(rio_ERROR_BUF_SIZE - 1 - n)) len = (uint32_t)(rio_ERROR_BUF_SIZE - 1 - n);
     memcpy(text + n, vm->mem + R[messageSlot].u, len);
     n += (int)len;
@@ -492,6 +492,14 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
   rio_CASE(jfne) if (R[ip->a].f != R[ip->b].f) rio_JUMP(); rio_NEXT();
   rio_CASE(each) if ((R[ip->a].u += R[ip->b + 1].u) < R[ip->b].u) rio_LOOP(); rio_NEXT();
   rio_CASE(fori) if ((R[ip->a].i = (int32_t)(R[ip->a].u + 1u)) < R[ip->b].i) rio_LOOP(); rio_NEXT();
+  rio_CASE(forby) { /* (unsigned distances: the counter is between first and last) */
+    uint32_t v = R[ip->a].u, end = R[ip->b].u, k = R[ip->b + 1].u;
+    if ((int32_t)k > 0 ? end - v >= k : v - end >= 0u - k) {
+      R[ip->a].u = v + k;
+      rio_LOOP();
+    }
+    rio_NEXT();
+  }
 
   rio_CASE(call) callStack[depth++] = (uint32_t)(ip + 1 - code); rio_JUMP();
   rio_CASE(ret) {
@@ -522,7 +530,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
   }
   rio_CASE(logi) rio_CASE(logf) rio_CASE(logs) rio_CASE(logb) rio_CASE(logv) rio_CASE(loge) rio_logOp(vm, R, ip); rio_NEXT();
   rio_CASE(logn) rio_logOp(vm, R, ip); rio_NEXT2();
-  rio_CASE(fail) return rio_assertFailed(vm, ip->a, rio_PC);
+  rio_CASE(fail) return rio_assertFailed(vm, ip->a, ip->x, rio_PC);
   rio_CASE(halt) return 0;
   rio_CASE(jit) { /* a loop compiled to native code: it says where to carry on, or what failed where */
     uint32_t to;

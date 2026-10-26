@@ -138,7 +138,7 @@ int main(void) {
   t("import .k\nlog(k.SECRET)\n", 0, rio_ErrorKind_compile, 0, 2, "not exported by that module");
   /* imported types: in fields, arrays, lists, slices, literals, params and returns */
   t("import .k\nQ :: struct\n  p: k.P\n  ps: [2]k.P\nend\nq: Q\nq.p = {x = 1, y = 2}\nq.ps[1].x = 7\nlog(q.p.sum(), q.ps[1].sum())\n", "3 7\n", rio_ErrorKind_none, 0, 0, 0);
-  t("import .k\nps: [..4]k.P\nps.push({x = 1, y = 1})\nps.push(k.mk(2))\nlog(k.total(ps[:]), ps.len())\n", "8 2\n", rio_ErrorKind_none, 0, 0, 0);
+  t("import .k\nps: [..4]k.P\nps.push({x = 1, y = 1})\nps.push(k.mk(2))\nlog(k.total(ps[]), ps.len())\n", "8 2\n", rio_ErrorKind_none, 0, 0, 0);
   t("import .k.{P, mk}\n{x, y as b} := mk(3)\nlog(x, b)\n", "3 4\n", rio_ErrorKind_none, 0, 0, 0);
   t("import .k.{P}\nf :: proc(p: P) -> P\n  return {x = p.y, y = p.x}\nend\nlog(f({x = 1, y = 2}).x)\n", "2\n", rio_ErrorKind_none, 0, 0, 0);
   t("import .k\nv := k.P{x = 1, y = 2}\nlog(v.sum())\n", "3\n", rio_ErrorKind_none, 0, 0, 0);

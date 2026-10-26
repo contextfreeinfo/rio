@@ -90,6 +90,8 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      jfnlt jfnle            if not (a < b) / not (a <= b) (Float: differs from >= on NaN)
      each                   a += b+1 (an element size); loop while a < b
      fori                   a += 1; loop while a < b
+     forby                  a += b+1 (the step), and loop, unless that passes b (the end; a stepped
+                            loop's counter stays between its first and last, so this never wraps)
      call                   call the proc at pc c
      ret                    return (from top-level code: stop)
      calli                  call proc value a, copying its c argument words from slot b
@@ -99,7 +101,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      logn                   add enum value a by name (values at b, names at c)
      logv                   add value a by the descriptor in constant b (print.h; a as pushv's c)
      loge                   end the log line
-     fail                   a failed assert: a = its message (0: none)
+     fail                   a failed assert: a = its message (0: none); x 1: a runtime error, a its message
      halt                   stop
      jit                    run native loop a (rio_jit), then carry on where it says */
 #define rio_OPS(X)                                                                                   \
@@ -113,7 +115,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
   X(vadd) X(vsub) X(vmul) X(vdiv) X(vmod) X(fvadd) X(fvsub) X(fvmul) X(fvdiv)                        \
   X(lidx) X(pusha) X(pushs) X(pusht) X(pushv) X(pushf) X(popa) X(lrem) X(lswap) X(lview) X(bpack) X(geti) X(seti) \
   X(jmp) X(jz) X(jnz) X(jeq) X(jne) X(jlt) X(jle) X(jfeq) X(jfne) X(jflt) X(jfle) X(jfnlt) X(jfnle)  \
-  X(each) X(fori)                                                                                    \
+  X(each) X(fori) X(forby)                                                                                    \
   X(call) X(ret) X(calli) X(getret) X(ffi) X(logi) X(logf) X(logs) X(logb) X(logn) X(logv) X(loge)   \
   X(fail) X(halt) X(jit)
 
@@ -128,7 +130,7 @@ typedef enum {
 /* the size in an instruction's b and c (a data word's, or zero's own) */
 static inline uint32_t rio_dataSize(const rio_Instr *in) { return (uint32_t)in->b | (uint32_t)in->c << 16; }
 
-static inline int rio_isJump(int op) { return op >= rio_Op_jmp && op <= rio_Op_fori; }
+static inline int rio_isJump(int op) { return op >= rio_Op_jmp && op <= rio_Op_forby; }
 
 /* math builtins, by the index in rio_Op_m1 / rio_Op_m2's x */
 typedef enum {

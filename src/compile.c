@@ -168,13 +168,13 @@ int rio_startCompiler(rio_Vm *vm, void *scratch, uint32_t size, const rio_Limits
      Format :: struct
        width, digits, places, base, textWidth: Int
      end */
-static void rio_formatType(rio_Vm *vm) {
-  static const char *const names[] = {"width", "digits", "places", "base", "textWidth"};
+/* a built-in struct of Int fields (Format, Range: rio_TypeId_format, rio_TypeId_range, made in that order) */
+static void rio_builtinStruct(rio_Vm *vm, const char *name, const char *const *names, int n) {
   rio_Compiler *c = vm->compiler;
-  int t = rio_newType(vm, rio_TypeKind_struct, 0, 0, 20), i;
+  int t = rio_newType(vm, rio_TypeKind_struct, 0, 0, (uint32_t)(4 * n)), i;
   rio_Type *st = rio_type(vm, t);
   st->firstField = (uint16_t)c->fieldCount;
-  for (i = 0; i < 5; i++) {
+  for (i = 0; i < n; i++) {
     int f = rio_newField(vm);
     rio_Field *fd;
     if (f < 0) return;
@@ -185,7 +185,12 @@ static void rio_formatType(rio_Vm *vm) {
     fd->offset = (uint16_t)(4 * i);
     st->fieldCount++;
   }
-  rio_addSymbol(vm, "Format", 6, rio_SymKind_type, t, 0);
+  rio_addSymbol(vm, name, (int)strlen(name), rio_SymKind_type, t, 0);
+}
+static void rio_formatType(rio_Vm *vm) {
+  static const char *const format[] = {"width", "digits", "places", "base", "textWidth"}, *const range[] = {"first", "last"};
+  rio_builtinStruct(vm, "Format", format, 5);
+  rio_builtinStruct(vm, "Range", range, 2);
 }
 
 /* the built-in types and names, the host's ffi functions, and the -D defines. sources: auto-imports may

@@ -10,6 +10,7 @@ const char *const rio_builtinNames[rio_Builtin_count] = {
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format", "print",
   "pack", "unpack", "getInt", "setInt",
   "toInt", "toFloat", "toBool", "asString", "fromInt", "has", "hexBlob",
+  "len", "has",
 };
 
 /* the builtin in [first, last] with this name, or -1 */
@@ -65,6 +66,10 @@ int rio_descriptor(rio_Vm *vm, int type) {
   uint32_t v[4], text;
   for (i = 0; i < c->descCount; i++)
     if (c->descType[i] == type) return c->descSlot[i];
+  if (type == rio_TypeId_range) { /* first..=last */
+    v[0] = rio_Print_range;
+    return rio_findConsts(vm, v, 1, 0);
+  }
   switch (k) {
   case rio_TypeKind_int: case rio_TypeKind_byte: case rio_TypeKind_float: case rio_TypeKind_bool: case rio_TypeKind_proc:
     v[0] = k == rio_TypeKind_int ? rio_Print_int : k == rio_TypeKind_byte ? rio_Print_byte : k == rio_TypeKind_float ? rio_Print_float
@@ -694,9 +699,43 @@ static void rio_convertCall(rio_Vm *vm, rio_PendingOp *call) {
   rio_callResult(vm, call, r);
 }
 
+/* r.len(): how many values (last - first + 1, or 0 when empty); r.has(i): is first <= i <= last */
+static void rio_rangeCall(rio_Vm *vm, rio_PendingOp *call) {
+  rio_Compiler *c = vm->compiler;
+  rio_Expr *a = &c->values[call->valueBase], lo, hi;
+  int f, l, d, has = call->b == rio_Builtin_rangeHas;
+  if (rio_argCount(vm, call) != (has ? 2 : 1)) rio_FAIL(, has ? "has takes one Int" : "len takes nothing");
+  rio_needValue(vm, a);
+  lo = hi = *a;
+  rio_offsetPlace(&hi, 4);
+  lo.type = hi.type = rio_TypeId_int;
+  f = rio_toSlot(vm, &lo, 0);
+  l = rio_toSlot(vm, &hi, 0);
+  if (has) {
+    int i, t;
+    rio_needValue(vm, a + 1);
+    rio_coerce(vm, a + 1, rio_TypeId_int);
+    if (rio_valueType(a[1].type) != rio_TypeId_int) rio_FAIL(, "has takes one Int");
+    i = rio_toSlot(vm, a + 1, 1);
+    t = rio_allocSlots(vm, 1);
+    d = rio_allocSlots(vm, 1);
+    rio_emit(vm, rio_Op_le, t, f, i);
+    rio_emit(vm, rio_Op_le, d, i, l);
+    rio_emit(vm, rio_Op_and, d, d, t);
+    rio_callResult(vm, call, rio_exprOf(rio_ExprKind_static, rio_TypeId_bool, d * 4));
+    return;
+  }
+  d = rio_allocSlots(vm, 1);
+  rio_emit(vm, rio_Op_sub, d, l, f);
+  rio_emit(vm, rio_Op_add, d, d, rio_constSlot(vm, 1));
+  rio_emit(vm, rio_Op_imax, d, d, rio_constSlot(vm, 0));
+  rio_callResult(vm, call, rio_exprOf(rio_ExprKind_static, rio_TypeId_int, d * 4));
+}
+
 void rio_finishBuiltinCall(rio_Vm *vm, rio_PendingOp *call) {
   int id = call->b;
-  if (id == rio_Builtin_min || id == rio_Builtin_max) rio_minMaxCall(vm, call);
+  if (id == rio_Builtin_rangeLen || id == rio_Builtin_rangeHas) rio_rangeCall(vm, call);
+  else if (id == rio_Builtin_min || id == rio_Builtin_max) rio_minMaxCall(vm, call);
   else if (id == rio_Builtin_assert) rio_assertCall(vm, call);
   else if (id == rio_Builtin_format || id == rio_Builtin_print) rio_finishFormat(vm, call);
   else if (id == rio_Builtin_hexBlob) rio_hexBlobCall(vm, call);

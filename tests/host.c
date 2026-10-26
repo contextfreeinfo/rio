@@ -150,9 +150,10 @@ static void core(const char *path) {
     if (!found) { printf("FAIL: core.rio doesn't declare the builtin %s\n", name); fails++; }
   }
   /* its built-in structs, declared as plain ones: the same fields, in order, of the same types, as a
-     zeroed one of each prints them (0, 0.0, false, ...) */
+     zeroed Format prints them (0, 0.0, false, ...), and a Range packs (it prints as first..=last) */
   {
-    static const char use[] = "\nlog(Format{})\n";
+    static const char use[] = "\nlog(Format{})\nrangeBytes: Blob[8]\nrangeBytes.pack(0, Range{first = 3, last = 9})\n"
+                              "log(rangeBytes.getInt(0, 32), rangeBytes.getInt(4, 32))\n";
     char builtin[256];
     n++;
     outn = 0; out[0] = 0;

@@ -193,7 +193,65 @@ static void rio_forEnum(rio_Vm *vm, rio_Block *b, int type, const char *name, in
   rio_countUp(vm, b, name, nameLen, type, counter, limit);
 }
 
-/* for x in a..<b, for x in a..=b */
+/* is the next word by (for x in r by 2: a contextual keyword, only there) */
+static int rio_isBy(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  return c->tok.kind == rio_Tok_id && !c->tok.newline && c->tok.len == 2 && !memcmp(c->tok.text, "by", 2);
+}
+
+/* for x in r, for x in r by step (r: first and last, in slots f and l): up from first by a positive step,
+   down from last by a negative one, never past the other end. A constant step is checked now; another,
+   once as the loop starts (0 is a runtime error). The counter's in counter, the end and step in limit */
+static void rio_forStepped(rio_Vm *vm, rio_Block *b, const char *name, int nameLen, int f, int l, int counter, int limit) {
+  rio_Compiler *c = vm->compiler;
+  int k = 1, s = 0, skip, empty;
+  if (rio_isBy(vm)) {
+    rio_Expr step;
+    rio_next(vm);
+    step = rio_parseExpr(vm);
+    rio_needValue(vm, &step);
+    rio_coerce(vm, &step, rio_TypeId_int);
+    if (rio_valueType(step.type) != rio_TypeId_int) rio_FAIL(, "a loop's step is an Int");
+    if (step.kind == rio_ExprKind_const) {
+      k = step.value;
+      if (!k) rio_FAIL(, "a loop's step can't be 0");
+    } else {
+      k = 0;
+      s = rio_toSlot(vm, &step, 1);
+    }
+  }
+  empty = rio_emit(vm, rio_Op_jlt, l, f, rio_NONE); /* (last before first: nothing) */
+  if (k) { /* (the end first: the counter's slot may hold first) */
+    rio_emit(vm, rio_Op_mov, limit, k > 0 ? l : f, 0);
+    rio_emit(vm, rio_Op_mov, counter, k > 0 ? f : l, 0);
+    rio_emit(vm, rio_Op_mov, limit + 1, rio_constSlot(vm, (uint32_t)k), 0);
+  } else {
+    rio_Expr why = rio_stringConst(vm, "a loop's step is 0", 18);
+    int t;
+    rio_emit(vm, rio_Op_mov, limit + 1, s, 0);
+    skip = rio_emit(vm, rio_Op_jnz, limit + 1, 0, rio_NONE);
+    rio_emit(vm, rio_Op_fail, rio_toSlot2(vm, &why), 0, 0);
+    vm->code[vm->codeLen - 1].x = 1;
+    rio_patchJumps(vm, skip, rio_label(vm));
+    rio_emit(vm, rio_Op_mov, limit, l, 0);
+    rio_emit(vm, rio_Op_mov, counter, f, 0);
+    skip = rio_emit(vm, rio_Op_jle, rio_constSlot(vm, 0), limit + 1, rio_NONE); /* (a negative step: from last) */
+    t = rio_allocSlots(vm, 1);
+    rio_emit(vm, rio_Op_mov, t, counter, 0);
+    rio_emit(vm, rio_Op_mov, counter, limit, 0);
+    rio_emit(vm, rio_Op_mov, limit, t, 0);
+    rio_patchJumps(vm, skip, rio_label(vm));
+  }
+  c->freeSlot = c->liveSlots;
+  rio_addSymbol(vm, name, nameLen, rio_SymKind_var, rio_TypeId_int, counter * 4);
+  b->counter = (uint16_t)counter;
+  b->limit = (uint16_t)limit;
+  b->b = 1; /* (stepped: it ends with forby) */
+  b->breaks = (uint16_t)empty;
+  b->a = (uint16_t)rio_label(vm);
+}
+
+/* for x in a..<b, for x in a..=b (and by: stepped) */
 static void rio_forRange(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name, int nameLen, int counter, int limit) {
   rio_Compiler *c = vm->compiler;
   rio_Expr d = rio_exprOf(rio_ExprKind_static, rio_TypeId_int, counter * 4);
@@ -203,6 +261,16 @@ static void rio_forRange(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name
   inclusive = c->tok.kind == rio_Tok_rangeIncl;
   rio_next(vm);
   *e = rio_parseExpr(vm);
+  if (rio_isBy(vm)) { /* stepped: its last, then the step */
+    if (!inclusive) {
+      rio_Expr one = rio_exprOf(rio_ExprKind_const, rio_TypeId_int, 1);
+      one.tempStart = (uint16_t)c->freeSlot;
+      rio_binaryOp(vm, '-', e, &one);
+    }
+    if (rio_valueType(e->type) != rio_TypeId_int) rio_FAIL(, "a range is of Ints");
+    rio_forStepped(vm, b, name, nameLen, counter, rio_toSlot(vm, e, 1), counter, limit);
+    return;
+  }
   if (inclusive) { /* a..=b is a..<b + 1 */
     rio_Expr one = rio_exprOf(rio_ExprKind_const, rio_TypeId_int, 1);
     one.tempStart = (uint16_t)c->freeSlot;
@@ -236,7 +304,25 @@ static void rio_forIn(rio_Vm *vm) {
   limit = rio_allocSlots(vm, 2);
   if (indexName) index = rio_allocSlots(vm, 1);
   c->liveSlots = c->freeSlot;
-  e = rio_parseExpr(vm);
+  {
+    int stops = c->rangeStops;
+    c->rangeStops = 1; /* (a..<b here is the loop's: read below) */
+    e = rio_parseExpr(vm);
+    c->rangeStops = stops;
+  }
+  if (e.type == rio_TypeId_range && c->tok.kind != rio_Tok_rangeExcl && c->tok.kind != rio_Tok_rangeIncl) { /* for x in r */
+    rio_Expr hi = e;
+    int f;
+    if (indexName) rio_FAIL(, "a range loop has no index: its variable is the index");
+    rio_needValue(vm, &e);
+    hi = e;
+    rio_offsetPlace(&hi, 4);
+    e.type = hi.type = rio_TypeId_int;
+    f = rio_toSlot(vm, &e, 0);
+    rio_forStepped(vm, b, name, nameLen, f, rio_toSlot(vm, &hi, 0), counter, limit);
+    return;
+  }
+  if (rio_isBy(vm)) rio_FAIL_AT_TOKEN(, "by steps a range: for i in a..<b by 2");
   if (e.kind == rio_ExprKind_type && rio_type(vm, e.type)->kind == rio_TypeKind_enum) { /* for d in Enum: its values, in order */
     rio_forEnum(vm, b, e.type, name, nameLen, indexName, indexLen, counter, limit);
     return;
@@ -339,7 +425,7 @@ static void rio_endStatement(rio_Vm *vm) {
   if (b->kind == rio_Block_loop) rio_endLoop(vm, b);
   else if (b->kind == rio_Block_for) {
     rio_patchJumps(vm, b->continues, rio_label(vm));
-    rio_emit(vm, rio_Op_fori, b->counter, b->limit, b->a);
+    rio_emit(vm, b->b == 1 ? rio_Op_forby : rio_Op_fori, b->counter, b->limit, b->a);
   } else if (b->kind == rio_Block_each) {
     rio_patchJumps(vm, b->continues, rio_label(vm));
     if (b->b != rio_NONE) rio_emit(vm, rio_Op_add, b->b, b->b, rio_constSlot(vm, 1)); /* the index */

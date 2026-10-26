@@ -75,7 +75,7 @@ one
 
 Assigning, passing and returning copy values. To keep copies cheap and visible, a copy that isn't
 written out is limited to 16 words: a bigger `x := big` is an error. Write the type to copy on
-purpose, or take a view (`big[:]`) or a reference (`&big`). Parameters and results are limited to 16
+purpose, or take a view (`big[]`) or a reference (`&big`). Parameters and results are limited to 16
 words; pass bigger values as `&T` or `[]T`, and fill in a `&T` parameter instead of returning one.
 Plain assignment, `b = a`, copies any size.
 
@@ -126,7 +126,7 @@ through a `&` parameter): the next call reuses that memory.
 ```rio
 f :: proc() -> []Int
   xs: [3]Int
-  return xs[:]  # error: this returns a view of the proc's own memory
+  return xs[]  # error: this returns a view of the proc's own memory
 end
 ```
 
@@ -149,10 +149,10 @@ end
 f :: proc()
   typed: Blob[8]
   typed[0] = 'A'
-  rename(typed[0:1].asString())
+  rename(typed[0..<1].asString())
 end
 f()
-log(name[:].asString())
+log(name[].asString())
 ```
 
 ```output

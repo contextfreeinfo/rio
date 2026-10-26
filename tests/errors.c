@@ -48,8 +48,8 @@ static const Case cases[] = {
   /* views passed in are borrowed: kept past the call, they'd maybe view the caller's own memory; a call's result views what went in */
   {"g := \"\"\nkeep :: proc(s: String)\n  g = s\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, 7, -1, "came in as a parameter"},
   {"g := \"\"\nkeep :: proc(s: String)\n  t := s\n  g = t\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 7, -1, "came in as a parameter"},
-  {"g := \"\"\nid :: proc(s: String) -> String\n  return s[1:]\nend\nf :: proc()\n  b: Blob[8]\n  g = id(b[:].asString())\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, 25, -1, "view of the proc's own memory would outlive the call"},
-  {"g := \"\"\nid :: proc(s: String) -> String\n  return s[1:]\nend\nf :: proc(s: String)\n  g = id(s)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, 11, -1, "came in as a parameter"},
+  {"g := \"\"\nid :: proc(s: String) -> String\n  return s[1..]\nend\nf :: proc()\n  b: Blob[8]\n  g = id(b[].asString())\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, 24, -1, "view of the proc's own memory would outlive the call"},
+  {"g := \"\"\nid :: proc(s: String) -> String\n  return s[1..]\nend\nf :: proc(s: String)\n  g = id(s)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, 11, -1, "came in as a parameter"},
   {"g: []Int\nkeep :: proc(xs: []Int)\n  g = xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, 7, -1, "came in as a parameter"},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(&v.h)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 7, 1, "type mismatch"},
   {"g :: proc() -> Int\n  return 1\nend\nr := &g()\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "& needs a variable, field or element that can be changed"},
@@ -62,7 +62,7 @@ static const Case cases[] = {
   {"v := 1\nr* := &v\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a reference can't be exported"},
   {"a: [3]Float\nb: [3]Float\ns: []Float = a + b\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "a computed array has no home to view"},
   {"a: [3]Float\nfor x in a + a\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a computed array has no home to view"},
-  {"a: [3]Float\nt := (a + a)[0:2]\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a computed array has no home to view"},
+  {"a: [3]Float\nt := (a + a)[0..<2]\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a computed array has no home to view"},
   {"M :: struct\n  x: Float\n  n: Int\nend\nm: M\nm2 := m + m\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "arrays and structs made of one number type"},
   {"a: [3]Float\nb: [2]Float\nc := a + b\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "type mismatch"},
   {"a: [3]Float\ni := 1\nc := a * i\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "type mismatch"},
@@ -82,16 +82,16 @@ static const Case cases[] = {
   {"fs: [4]Float\nb: [..]Int = fs\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "type mismatch"},
   {"buf: [4]Int\nb: [..]Int = buf\nlog(b[0])\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "index out of bounds"},
   /* views of a proc's own memory: the next call rewrites it, so they can't be returned or kept */
-  {"f :: proc() -> []Int\n  a: [4]Int\n  return a[:]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this returns a view of the proc's own memory"},
+  {"f :: proc() -> []Int\n  a: [4]Int\n  return a[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this returns a view of the proc's own memory"},
   {"f :: proc() -> []Int\n  a: [4]Int\n  return a\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this returns a view of the proc's own memory"},
-  {"f :: proc(id: Int) -> String\n  buf: Blob[16]\n  b: Blob[..] = buf\n  b.print(\"p \", id)\n  return b[:].asString()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this returns a view of the proc's own memory"},
+  {"f :: proc(id: Int) -> String\n  buf: Blob[16]\n  b: Blob[..] = buf\n  b.print(\"p \", id)\n  return b[].asString()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this returns a view of the proc's own memory"},
   {"f :: proc() -> [..]Int\n  xs: [..4]Int\n  return xs\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this returns a view of the proc's own memory"},
   {"ga: [4]Int\nf :: proc() -> [..]Int\n  b: [..]Int = ga\n  return b\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "this returns a view of the proc's own memory"}, /* its length lives here */
-  {"g: []Int\nf :: proc()\n  a: [4]Int\n  g = a[:]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "this view of the proc's own memory would outlive the call"},
-  {"g: []Int\nf :: proc()\n  a: [4]Int\n  s := a[1:3]\n  t := s\n  g = t\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this view of the proc's own memory would outlive the call"},
-  {"f :: proc(out: &[]Int)\n  a: [4]Int\n  out = a[:]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"g: []Int\nf :: proc()\n  a: [4]Int\n  g = a[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"g: []Int\nf :: proc()\n  a: [4]Int\n  s := a[1..<3]\n  t := s\n  g = t\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"f :: proc(out: &[]Int)\n  a: [4]Int\n  out = a[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this view of the proc's own memory would outlive the call"},
   /* views of globals and parameters, and local views passed down or replaced, are fine */
-  {"g: []Int\nga: [4]Int\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[:]\n  n := s.len()\n  s = ga[:]\n  g = s\n  return v[1:]\nend\nsum :: proc(v: []Int) -> Int\n  return v.len()\nend\nh :: proc() -> Int\n  a: [4]Int\n  return sum(a[:])\nend\nlog(f(ga).len(), h())\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"g: []Int\nga: [4]Int\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[]\n  n := s.len()\n  s = ga[]\n  g = s\n  return v[1..]\nend\nsum :: proc(v: []Int) -> Int\n  return v.len()\nend\nh :: proc() -> Int\n  a: [4]Int\n  return sum(a[])\nend\nlog(f(ga).len(), h())\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   /* the logical operators are words: the C forms point at themselves */
   {"a := true\nb := a && false\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 2, "write and instead of &&"},
   {"a := true\nb := a || false\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 2, "write or instead of ||"},
@@ -165,10 +165,10 @@ static const Case cases[] = {
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\nlog(c[0])\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "index this array with its enum"},
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\nlog(c[Tile.wall])\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "index this array with its enum"},
   {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\np: [2]Int\np = c\n", 0, 0, 0, rio_ErrorKind_compile, 10, -1, -1, "type mismatch"},
-  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\ns := c[1:2]\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "slice this array with its enum's values"},
-  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\ns := c[0:]\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "slice this array with its enum's values"},
-  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\ns := c[.north:.east]\nlog(s.len())\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
-  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\ns := c[:]\nlog(s.len())\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\ns := c[1..<2]\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "slice this array with its enum's values"},
+  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\ns := c[0..]\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "slice this array with its enum's values"},
+  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\ns := c[.north..<.east]\nlog(s.len())\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"Dir :: enum\n  north, east\nend\nTile :: enum\n  nil\n  wall\nend\nc: [Dir]Int\ns := c[]\nlog(s.len())\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"x := 3\nassert(x == 3)\nassert(x < 2, \"x too big\")\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "assertion failed: x too big"},
   {"assert(1 == 2)\n", 0, 0, 0, rio_ErrorKind_runtime, 1, 0, 0, "assertion failed"},
   {"assert(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "condition must be Bool"},
@@ -187,6 +187,17 @@ static const Case cases[] = {
   {"xs: [..2]Int\nxs.print(1)\n",0, 0, 0, rio_ErrorKind_compile, 2, 9, 1, "print needs a Blob list"},
   {"b: Blob[..8]\nok := b.format(1, 2)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)"},
   {"b: Blob[..8]\nok := b.format()\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)"},
+  /* ranges */
+  {"xs: [4]Int\ns := xs[1:3]\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "slices take ranges: a[i..<j], a[i..=j], a[i..], a[..<j], a[]"},
+  {"xs: [4]Int\ns := xs[:]\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "slices take ranges"},
+  {"xs: [4]Int\ns := xs[1..<]\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a range needs its end"},
+  {"r := 2..\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a range's end is left out only in a slice"},
+  {"r := 1.5..<3\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a range is of Ints"},
+  {"for i in 0..<3 by 0\nend\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a loop's step can't be 0"},
+  {"xs: [3]Int\nfor x in xs by 2\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "by steps a range"},
+  {"z := 0\nfor i in 0..<3 by z\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 2, 0, 0, "a loop's step is 0"},
+  {"r := 0..<3\nr.len\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "method calls need ()"},
+  {"by := 3\nf :: proc(by: Int) -> Int\n  return by * 2\nend\nlog(f(by))\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   /* proc values as elements */
   {"inc :: proc(n: Int) -> Int\n  return n + 1\nend\nops: [2]proc(Int) -> Int\nfirst :: proc(n: Int) -> Int\n  return ops[0](n)\nend\nops[1] = first\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "this proc calls procs through values"},
   {"inc :: proc(n: Int) -> Int\n  return n + 1\nend\nops: [2]proc(Int) -> Int\nfirst :: proc(n: Int) -> Int\n  return ops[0](n)\nend\nlit := [2]proc(Int) -> Int{inc, first}\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "this proc calls procs through values"},
@@ -240,13 +251,13 @@ static const Case cases[] = {
   {"xs: [4]Int\ni := 2\nf :: proc(n: Int) -> Int\n  return xs[n * 3]\nend\nlog(f(i))\n", 0, 0, 0, rio_ErrorKind_runtime, 4, 0, 0, "index out of bounds"},
   {"xs: [..2]Int\nfor j in 0..<3\n  xs.push(j)\nend\nlog(xs.pop(), xs.pop(), xs.pop())\n", 0, 0, 0, rio_ErrorKind_runtime, 5, 0, 0, "pop from empty list"},
   {"main :: proc()\n  a := 0\n  b := 5\n  log(b / a)\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 4, 0, 0, "division by zero"},
-  {"a: [3]Int\nn := 5\nb := a[1:n]\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "slice out of bounds"},
+  {"a: [3]Int\nn := 5\nb := a[1..<n]\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "slice out of bounds"},
   {"xs: [2]Int\ni := 0\nfor xs[i] == 0\n  i += 1\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "index out of bounds"}, /* rotated loop condition */
   {"a: [3]Int\na[0] = 1\na[2] = 4\nb: [3]Int\nb[0] = 1\nb[2] = 1\nc := a / b\n", 0, 0, 0, rio_ErrorKind_runtime, 7, 0, 0, "division by zero"},
   /* a view of a block's array outlives the block: those slots must not be reused for t, or writing
      through s would forge t's address and length */
-  {"s: []Int\nif true\n  a: [2]Int\n  s = a[:]\nend\nif true\n  t: []Int = s\n  s[1] = 2000000000\n  s[0] = 4\n  log(t[100000000])\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 10, 0, 0, "index out of bounds"},
-  {"keep :: proc(v: []Int) -> []Int\n  return v\nend\nf :: proc() -> Int\n  s: []Int\n  if true\n    a: [2]Int\n    s = keep(a[:])\n  end\n  if true\n    t: []Int = s\n    s[1] = 2000000000\n    return t[100000000]\n  end\n  return 0\nend\nlog(f())\n", 0, 0, 0, rio_ErrorKind_runtime, 13, 0, 0, "index out of bounds"},
+  {"s: []Int\nif true\n  a: [2]Int\n  s = a[]\nend\nif true\n  t: []Int = s\n  s[1] = 2000000000\n  s[0] = 4\n  log(t[100000000])\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 10, 0, 0, "index out of bounds"},
+  {"keep :: proc(v: []Int) -> []Int\n  return v\nend\nf :: proc() -> Int\n  s: []Int\n  if true\n    a: [2]Int\n    s = keep(a[])\n  end\n  if true\n    t: []Int = s\n    s[1] = 2000000000\n    return t[100000000]\n  end\n  return 0\nend\nlog(f())\n", 0, 0, 0, rio_ErrorKind_runtime, 13, 0, 0, "index out of bounds"},
   {"main :: proc()\n  again()\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 2, 0, 0, "rio is already running"},
   {"main :: proc()\n  log(\"x\")\n  boom()\nend\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "the host said no"},
   /* errors with no source position */
@@ -307,7 +318,7 @@ int main(void) {
     static const char *many = "a := 1\nb := 2\nc := 3\nd := 4\ne := 5\nf := 6\ng := 7\nh := 8\n";
     rio_Limits l = rio_limitsFor(sizeof scratch);
     rio_Error e;
-    l.symbols = 36; /* the builtins take 31, so the 6th global is one too many */
+    l.symbols = 37; /* the builtins take 32, so the 6th global is one too many */
     rio_init(&vm, mem, sizeof mem, code, 4096);
     if (!rio_compileWith(&vm, many, (uint32_t)strlen(many), scratch, sizeof scratch, &l) ||
         !strstr((e = rio_errorInfo(&vm)).msg, "too many symbols") || e.line != 6) {

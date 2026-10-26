@@ -139,7 +139,7 @@ step :: proc(ps: []Particle, dt: Float)
 end
 step(parts, 0.5)
 check(parts[10].pos.x == 10.5 and parts[10].pos.y == 1 and parts[10].life == 9, "struct array update")
-step(parts[50:], 1)
+step(parts[50..], 1)
 check(parts[49].life == 48 and parts[50].life == 48, "subslice")
 parts[3].tag[0] = 'Z'
 check(parts[3].tag[0] == 90 and parts[3].tag.len() == 4, "inline blob")
@@ -192,15 +192,15 @@ total :: proc(s: []Int) -> Int
   return t
 end
 check(total(data) == 140, "array to slice")
-check(total(data[2:4]) == 13, "slice range")
-check(total(data[:3]) == 5 and total(data[6:]) == 85, "open slices")
-mid := data[1:7]
+check(total(data[2..<4]) == 13, "slice range")
+check(total(data[..<3]) == 5 and total(data[6..]) == 85, "open slices")
+mid := data[1..<7]
 check(mid.len() == 6 and mid[0] == 1, "slice var")
 buf: Blob[16]
 for i in 0..<buf.len()
   buf[i] = 'a' + i
 end
-s := buf[0:5].asString()
+s := buf[0..<5].asString()
 check(s == "abcde", "blob to string")
 check(s[1] == 'b', "string index")
 check(buf[255 & 3] == 'd', "blob index")
@@ -245,7 +245,7 @@ locals :: proc(n: Int) -> Int
   for i in 0..<arr.len()
     arr[i] = i + n
   end
-  view := arr[2:6]
+  view := arr[2..<6]
   t := total(view)
   v := Vec{x = 1, y = 2}
   w := scale2(v, 3)
@@ -293,7 +293,7 @@ enemies.remove(0)
 check(enemies.len() == 2 and enemies[0].x == 10 and enemies[1].x == 20, "remove keeps order")
 last := enemies.pop()
 check(last.x == 20 and enemies.len() == 1, "pop")
-live := enemies[:]
+live := enemies[]
 check(live.len() == 1 and live[0].x == 10, "list [:] is a slice of live elements")
 enemies.clear()
 check(enemies.len() == 0, "clear")
@@ -301,16 +301,16 @@ nums: [..8]Int
 for i in 0..<5
   nums.push(i * i)
 end
-check(nums[4] == 16 and total(nums[:]) == 30 and total(nums[1:3]) == 5, "Int list and sub-slices")
+check(nums[4] == 16 and total(nums[]) == 30 and total(nums[1..<3]) == 5, "Int list and sub-slices")
 title: Blob[..32]
 label :: proc(b: Blob[..], score: Int) -> Bool
   b.clear()
   return b.print("score: ", score, " ", 1.5, " ", true) and b.push('!')
 end
-check(label(title, 42) and title[:].asString() == "score: 42 1.5 true!", "print appends text; push adds one byte")
+check(label(title, 42) and title[].asString() == "score: 42 1.5 true!", "print appends text; push adds one byte")
 tiny: Blob[..6]
 check(tiny.pushAll("abc") and not tiny.print("de", 12345) and tiny.len() == 3, "print is all or nothing")
-check(tiny.print(12) and tiny.push(65) and tiny[:].asString() == "abc12A" and not tiny.push(66), "push on a Blob list is a byte")
+check(tiny.print(12) and tiny.push(65) and tiny[].asString() == "abc12A" and not tiny.push(66), "push on a Blob list is a byte")
 check(tiny.print(), "print with nothing to add")
 
 # printing any value: structs, arrays, slices, lists and unions, by their types' descriptors
@@ -337,14 +337,14 @@ PrThing :: struct
 end
 prOut: Blob[..400]
 prSays :: proc(want: String) -> Bool
-  got := prOut[:].asString() == want
+  got := prOut[].asString() == want
   prOut.clear()
   return got
 end
 prP := PrPoint{x = 1, y = -2}
 check(prOut.print(prP) and prSays("PrPoint{x = 1, y = -2}"), "print a struct")
 prXs := [4]Int{1, 2, 3, 4}
-check(prOut.print(prXs, " ", prXs[1:3]) and prSays("[1, 2, 3, 4] [2, 3]"), "print an array and a slice")
+check(prOut.print(prXs, " ", prXs[1..<3]) and prSays("[1, 2, 3, 4] [2, 3]"), "print an array and a slice")
 prS: PrShape
 check(prOut.print(prS) and prSays("nil"), "print a union holding nil")
 prS = PrBox{w = 2.5, h = 3}
@@ -354,7 +354,7 @@ prT.label[0] = 65
 check(prOut.print(prT) and prSays("PrThing{name = \"say \\\"hi\\\"\\n\", at = PrPoint{x = 1, y = -2}, dir = east, tags = [7, 8, 9], ok = true, label = \"A\\0\"}"),
       "print a struct of structs, enums, arrays and text (quoted inside a value)")
 prNs: [..8]Int
-check(prNs.push(10) and prNs.push(20) and prOut.print(prNs, " ", prNs[:]) and prSays("[10, 20] [10, 20]"), "print a list, and its view")
+check(prNs.push(10) and prNs.push(20) and prOut.print(prNs, " ", prNs[]) and prSays("[10, 20] [10, 20]"), "print a list, and its view")
 prBig: [50]Int
 check(prOut.print(prBig) and prOut.len() == 150, "print writes all of a long array (no cut, unlike log)")
 prOut.clear()
@@ -373,7 +373,7 @@ check(prOut.format({places = 2}, 3.14159, " ", -0.5, " ", 2.0) and prSays("3.14 
 check(prOut.format({places = 1, digits = 2, width = 6}, 1.25) and prSays("  01.3"), "format: places, digits and width together")
 check(prOut.format({digits = 3}, 1.5) and prSays("001.5"), "format: digits without places")
 check(prOut.format({textWidth = 6}, PrDir.east) and prSays("  east"), "format: an enum's name is text")
-check(prOut.format({digits = 2}, prP, " ", prXs[0:2]) and prSays("PrPoint{x = 01, y = -02} [01, 02]"), "format: inside structs and slices too")
+check(prOut.format({digits = 2}, prP, " ", prXs[0..<2]) and prSays("PrPoint{x = 01, y = -02} [01, 02]"), "format: inside structs and slices too")
 fmtHex := Format{width = 4, digits = 4, base = 16}
 check(prOut.format(fmtHex, 48879, 10) and prSays("beef000a"), "format: settings in a variable")
 check(prOut.format(fmtHex, fmtHex) and prSays("Format{width = 0004, digits = 0004, places = 0000, base = 0010, textWidth = 0000}"),
@@ -384,7 +384,7 @@ fmtWide := 3
 check(prOut.format({width = fmtWide + 1}, 9) and prSays("   9"), "format: settings computed at runtime")
 more: [..8]Int
 check(more.pushAll(nums) and not more.pushAll(nums) and more.len() == 5 and more[4] == 16, "pushAll is all or nothing")
-check(more.pushAll(nums[3:]) and more.len() == 7 and more[6] == 16, "pushAll from a slice")
+check(more.pushAll(nums[3..]) and more.len() == 7 and more[6] == 16, "pushAll from a slice")
 localList :: proc() -> Int
   xs: [..3]Int
   xs.push(5)
@@ -443,7 +443,7 @@ moveAll :: proc(ships: []Ship, dt: Float)
     ships[i].move(dt)
   end
 end
-moveAll(fleet[:2], 1)
+moveAll(fleet[..<2], 1)
 check(fleet[0].x == 2 and fleet[1].x == 4 and fleet[2].x == 2, "methods through a slice")
 Int.double :: proc() -> Int
   return self * 2
@@ -560,7 +560,7 @@ for s in squad
 end
 check(squad[3].x == 5 and squad[0].hp == 10 and squad[3].hp == 13, "elements are written in place")
 seen := 0
-for s, i in squad[1:3]
+for s, i in squad[1..<3]
   seen += s.hp * 10 + i
 end
 check(seen == 110 + 120 + 1, "a slice, with its own index")
@@ -616,7 +616,7 @@ sumhp :: proc(ss: []Ship) -> Int
   end
   return n
 end
-check(sumhp(squad[:]) == 10 + 11 + 12 + 13, "inside a proc, over a slice parameter")
+check(sumhp(squad[]) == 10 + 11 + 12 + 13, "inside a proc, over a slice parameter")
 
 # ---- references: &T parameters and name := &place (never stored, returned or re-pointed)
 swapvx :: proc(a: &Ship, b: &Ship)
@@ -815,7 +815,7 @@ fbig: [100]Int
 fbig[3] = 4
 fcopy: [100]Int = fbig
 fcopy[3] = 1
-fbv := fbig[:]
+fbv := fbig[]
 fbv[3] = 6
 check(fbig[3] == 6 and fcopy[3] == 1, "a big array: copy with a written type, view with [:]")
 bump4 :: proc(m: [4][4]Float) -> [4][4]Float
@@ -839,7 +839,7 @@ bfill :: proc(out: [..]Int, n: Int)
 end
 bfill(bb, 3)
 check(bb.len() == 5 and bb[4] == 20, "passed to a proc, the length is shared")
-bpart: [..]Int = bbuf[5:8]
+bpart: [..]Int = bbuf[5..<8]
 bpart.push(7)
 check(bbuf[5] == 7 and bpart.len() == 1 and bpart.cap() == 3 and bb.len() == 5, "over part of an array")
 bsum := 0
@@ -854,9 +854,9 @@ bc := bb
 bc.push(99)
 check(bb.len() == 4, "copies share the length")
 bscr: Blob[16]
-btxt: Blob[..] = bscr[4:12]
+btxt: Blob[..] = bscr[4..<12]
 btxt.print("hi ", 42)
-check(btxt[:].asString() == "hi 42" and bscr[4] == 'h', "a text builder over part of a Blob")
+check(btxt[].asString() == "hi 42" and bscr[4] == 'h', "a text builder over part of a Blob")
 blocal :: proc() -> Int
   loc: [4]Float
   lb: [..]Float = loc
@@ -943,7 +943,7 @@ enames: Blob[..64]
 for d, i in Dir                         # an enum's values, in the order listed
   enames.print(d, i, " ")
 end
-check(enames[:].asString() == "north0 east1 south2 west3 ", "for d in Dir, and print prints names")
+check(enames[].asString() == "north0 east1 south2 west3 ", "for d in Dir, and print prints names")
 ecounts: [Dir]Int                       # one element per value, indexed by the enum
 ecounts[.east] = 3
 ecounts[Dir.west] += 2
@@ -958,8 +958,8 @@ for c, dd in ecounts                    # the index is the enum
 end
 check(ewhich == 2, "for over an enum-indexed array")
 check(ecounts[Dir.fromInt(Dir.east.toInt())] == 4, "d.toInt() is d's element")
-epart := ecounts[.east:.west]           # bounds are values; like any slice, the end isn't included
-check(epart.len() == 2 and epart[0] == 4 and ecounts[.south:].len() == 2 and ecounts[:.east].len() == 1, "slicing with enum values")
+epart := ecounts[.east..<.west]           # bounds are values; like any slice, the end isn't included
+check(epart.len() == 2 and epart[0] == 4 and ecounts[.south..].len() == 2 and ecounts[..<.east].len() == 1, "slicing with enum values")
 
 # ---- switch: case values (several per case), else, and every enum value covered
 compass :: proc(d: Dir) -> Int
@@ -1167,9 +1167,9 @@ pmobs: [5]PMob
 for m, i in pmobs
   m = {name = 5 - i, score = (i * 7) % 3}
 end
-psort(pmobs[:], pByScore)
+psort(pmobs[], pByScore)
 check(pmobs[0].name == 5 and pmobs[1].name == 2 and pmobs[2].name == 4 and pmobs[4].score == 2, "sorted by a proc value, stably")
-psort(pmobs[:], pByName)
+psort(pmobs[], pByName)
 check(pmobs[0].name == 1 and pmobs[4].name == 5, "another order")
 ptwice :: proc(n: Int) -> Int
   return n * 2
@@ -1307,22 +1307,22 @@ viewLen :: proc(s: String) -> Int
   return s.len()
 end
 viewRest :: proc(s: String) -> String
-  return s[1:]
+  return s[1..]
 end
 keptRest := ""
 viewsPassed :: proc()
   b: Blob[8]
   b[0] = 'h'
   b[1] = 'i'
-  rename(b[0:2].asString())
-  check(keptName[:].asString() == "hi", "a view passed in, copied to be kept")
-  check(viewLen(b[:].asString()) == 8, "a view of a local, passed in")
-  rest := viewRest(b[:].asString())
+  rename(b[0..<2].asString())
+  check(keptName[].asString() == "hi", "a view passed in, copied to be kept")
+  check(viewLen(b[].asString()) == 8, "a view of a local, passed in")
+  rest := viewRest(b[].asString())
   check(rest.len() == 7, "a view returned of a local's view, kept locally")
   keptRest = viewRest("literal")
   check(keptRest == "iteral", "a view returned of a constant, kept")
   lenOf := viewLen
-  check(lenOf(b[:].asString()) == 8, "through a proc value")
+  check(lenOf(b[].asString()) == 8, "through a proc value")
 end
 viewsPassed()
 
@@ -1351,12 +1351,12 @@ doubled :: proc(n: ?Int) -> Int
   return -1
 end
 maybeNums := [4]Int{5, 7, 9, 7}
-foundAt := findAt(maybeNums[:], 9)
+foundAt := findAt(maybeNums[], 9)
 check(foundAt is Int, "a maybe returned, holding a value")
 if foundAt is Int
   check(foundAt == 2, "narrowed to its Int")
 end
-check(findAt(maybeNums[:], 4) is nil, "a maybe returned, nil")
+check(findAt(maybeNums[], 4) is nil, "a maybe returned, nil")
 chaser: Chaser
 check(chaser.target is nil and chaser.speed is nil and chaser.after == 0, "maybe fields start nil")
 chaser.target = MaybePoint{x = 3, y = 4}
@@ -1381,7 +1381,7 @@ check(maybeGrid[0] is nil and maybeGrid[1] is Int, "an array of maybes")
 check(doubled(4) == 8 and doubled(nil) == -1, "maybe parameters: a value, nil")
 nestedMaybe: ?[]?Int
 check(nestedMaybe is nil, "?[]?Int: a maybe slice of maybes")
-nestedMaybe = maybeGrid[:]
+nestedMaybe = maybeGrid[]
 if nestedMaybe is []?Int
   check(nestedMaybe.len() == 3 and nestedMaybe[1] is Int, "is with a written-out type, narrowed")
 end
@@ -1424,6 +1424,64 @@ end
 handler := Handler{id = 1, weight = 2.5}
 check(handler.id == 1 and handler.weight == 2.5, "fields after a new proc type")
 
+# ---- ranges: values, slices, loops and steps
+rangeA := 2..<5
+rangeB := 3..=3
+rangeE := 7..<7
+check(rangeA.first == 2 and rangeA.last == 4 and rangeA.len() == 3 and rangeB.len() == 1 and rangeE.len() == 0, "range values")
+check(rangeA.has(2) and rangeA.has(4) and not rangeA.has(5) and not rangeE.has(7) and (5..=1).len() == 0, "has, and empty ranges")
+rangeXs := [6]Int{10, 11, 12, 13, 14, 15}
+rangeN := 2
+check(rangeXs[1..<3].len() == 2 and rangeXs[1..=3].len() == 3 and rangeXs[4..][0] == 14 and rangeXs[..<2][1] == 11, "slice forms")
+check(rangeXs[..=1].len() == 2 and rangeXs[].len() == 6 and rangeXs[rangeA][0] == 12 and rangeXs[rangeA].len() == 3, "more slice forms")
+check(rangeXs[rangeN - 1..<rangeN + 1][1] == 12 and rangeXs[rangeN..=rangeN][0] == 12 and "hello"[1..=2].len() == 2, "computed bounds")
+rangeOut := 0
+for i in 0..<10 by 3
+  rangeOut = rangeOut * 10 + i
+end
+check(rangeOut == 369, "stepping up")
+rangeOut = 0
+for i in 1..=4 by -1
+  rangeOut = rangeOut * 10 + i
+end
+check(rangeOut == 4321, "stepping down from the last")
+rangeOut = 0
+rangeStep := -2
+for i in rangeA by rangeStep
+  rangeOut = rangeOut * 10 + i
+end
+check(rangeOut == 42, "a range value, by a step in a variable")
+rangeOut = 0
+for i in rangeA
+  rangeOut += i
+end
+for i in rangeE by 2
+  rangeOut += 100
+end
+check(rangeOut == 9, "a range value counts, an empty one doesn't")
+rangeCount := 0
+for i in 2147483640..=2147483647 by 4
+  rangeCount += 1
+end
+for i in -2147483648..<-2147483640 by -5
+  rangeCount += 10
+end
+check(rangeCount == 22, "steps stop at the ends of Int, never wrapping")
+rangeOut = 0
+for i in 0..<20 by 4
+  if i == 8
+    continue
+  end
+  if i == 16
+    break
+  end
+  rangeOut += i
+end
+check(rangeOut == 16, "continue and break in a stepped loop")
+rangeText: Blob[..20]
+rangeText.print(rangeA, " ", rangeE)
+check(rangeText[].asString() == "2..=4 7..=6", "ranges printed")
+
 # ---- proc values as elements: arrays, slices, lists, [Enum]T, fields
 procDouble :: proc(n: Int) -> Int
   return n * 2
@@ -1439,7 +1497,7 @@ procSum :: proc(fs: []proc(Int) -> Int, n: Int) -> Int
   return total
 end
 procOps := [2]proc(Int) -> Int{procDouble, procInc}
-check(procOps[1](2) == 3 and procSum(procOps[:], 10) == 31, "an array of procs, called and passed as a slice")
+check(procOps[1](2) == 3 and procSum(procOps[], 10) == 31, "an array of procs, called and passed as a slice")
 procPick := 0
 procOps[procPick] = procInc
 procOne := procOps[procPick]
@@ -1449,7 +1507,7 @@ procByDir[.east] = procDouble
 procMore: [..4]proc(Int) -> Int
 procMore.push(procDouble)
 procMore.push(procInc)
-check(procByDir[.east](4) == 8 and procMore.len() == 2 and procMore[1](7) == 8 and procSum(procMore[:], 1) == 4, "by enum, and a list")
+check(procByDir[.east](4) == 8 and procMore.len() == 2 and procMore[1](7) == 8 and procSum(procMore[], 1) == 4, "by enum, and a list")
 ProcMachine :: struct
   steps: [2]proc(Int) -> Int
   n: Int
@@ -1526,7 +1584,7 @@ end
 check(bitsOf(bitHead) == 4464, "a struct with bitfields passed")
 bitText: Blob[..200]
 bitText.print(bitLit)
-check(bitText[:].asString() == "BitHead{kind = 15, level = 0, flags = 0, size = 1, count = 0, a = 0, b = 2, wide = 0, low = 0}", "bitfields printed")
+check(bitText[].asString() == "BitHead{kind = 15, level = 0, flags = 0, size = 1, count = 0, a = 0, b = 2, wide = 0, low = 0}", "bitfields printed")
 bitText.clear()
 bitLit.level = -1
 bitText.format({base = 16}, bitLit.level, " ", bitLit)
@@ -1565,9 +1623,9 @@ packBits := 16
 check(packFile.getInt(20, packBits) == 65533, "bits from a variable")
 packInts: [3]Int
 packInts[1] = 300
-packFile.pack(8, packInts[1:3])
+packFile.pack(8, packInts[1..<3])
 packTwo: [2]Int
-packFile.unpack(8, packTwo[:])
+packFile.unpack(8, packTwo[])
 check(packTwo[0] == 300 and packTwo[1] == 0, "a slice's elements, out and in")
 packOut: Blob[..12]
 check(packOut.pack(7) and packOut.pack(packHead.size) and packOut.len() == 8 and packOut.getInt(4, 16) == 1000, "appended")

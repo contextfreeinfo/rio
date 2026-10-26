@@ -13,7 +13,7 @@ typedef enum {
   rio_Image_procCount, rio_Image_procsAt, rio_Image_ffiCount, rio_Image_codeAt, rio_Image_freeAt,
   rio_Image_headerWords
 } rio_ImageHeader;
-#define rio_IMAGE_VERSION 8 /* (3: logv and pushv, numbered among the others; 4: freeAt; 5: pushf; 6: bpack, geti, seti; 7: bitfields in descriptors; 8: enums 0 to n - 1) */
+#define rio_IMAGE_VERSION 9 /* (3: logv and pushv, numbered among the others; 4: freeAt; 5: pushf; 6: bpack, geti, seti; 7: bitfields in descriptors; 8: enums 0 to n - 1; 9: forby, ranges printed) */
 #define rio_IMAGE_MAGIC 0x494F4952u /* "RIOI" */
 
 static int rio_littleEndian(void) {

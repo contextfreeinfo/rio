@@ -90,7 +90,8 @@ static int rio_parseTypeName(rio_Vm *vm) {
 }
 
 /* Any type but a bare proc type: prefixes ([N] [] [..N] [..] [Enum] ?), then a name, maybe through modules
-   (and Blob[N], Blob[..N], Blob[..]), or after prefixes a proc type: [4]proc(Float) -> Float. The prefixes apply innermost last: [2][3]T is 2 of [3]T, and
+   (and Blob[N], Blob[..N], Blob[..]), or after prefixes a proc type: [4]proc(Float) -> Float. The
+   prefixes apply innermost last: [2][3]T is 2 of [3]T, and
    ?[]?Int a maybe slice of maybe Ints. */
 static int rio_parseValueType(rio_Vm *vm) {
   /* per prefix: n > 0 an array of n; -1 a slice; -2 a builder; -3 - n a list of n; and an enum, if any;
@@ -593,7 +594,7 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
       if (rio_type(vm, type)->kind == rio_TypeKind_list && !rio_isTemp(vm, &e)) type = rio_builderOf(vm, rio_type(vm, type)->elem);
       else if (rio_isBig(rio_type(vm, type)) && !rio_isTemp(vm, &e))
         rio_FAIL(, rio_type(vm, type)->kind == rio_TypeKind_array
-                       ? "this copies a big array (over 16 words): write its type to copy it (x: [N]T = a), or view it with a[:]"
+                       ? "this copies a big array (over 16 words): write its type to copy it (x: [N]T = a), or view it with a[]"
                        : "this copies a big struct (over 16 words): write its type to copy it (x: T = s), or use &s");
     }
     rio_coerce(vm, &e, type);

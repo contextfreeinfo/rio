@@ -18,13 +18,14 @@
      union                          how many types it lists, then each one's descriptor (0: nil)
      bits                           a struct's bitfield: its first bit in the word, its bits (negative:
                                     signed)
+     range                          nothing more (a Range: first..=last)
    Constants are slots: a descriptor names its strings and other descriptors by slot number. */
 #ifndef rio_PRINT_H
 #define rio_PRINT_H
 
 #define rio_PRINT_KINDS                                                                                  \
   enum { rio_Print_int = 1, rio_Print_byte, rio_Print_float, rio_Print_bool, rio_Print_proc, rio_Print_enum, \
-         rio_Print_struct, rio_Print_array, rio_Print_slice, rio_Print_list, rio_Print_builder, rio_Print_union, rio_Print_bits, \
+         rio_Print_struct, rio_Print_array, rio_Print_slice, rio_Print_list, rio_Print_builder, rio_Print_union, rio_Print_bits, rio_Print_range, \
          rio_Print_text = 256, rio_Print_shown = 10, rio_Print_textShown = 40, rio_Print_depth = 8 };
 
 /* rio_Out: where the text goes (out, from len, up to cap); capped: a log line's, so long sequences show
@@ -112,6 +113,13 @@ static void rio_printAt(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t p, in
   switch (k & 255) {                                                                                     \
   case rio_Print_int: if (o->spec) rio_outFormatted(M, o, o->spec, 0, rio_printWord(M, p), 0); else rio_outInt(o, (int32_t)rio_printWord(M, p)); return;                               \
   case rio_Print_byte: if (o->spec) rio_outFormatted(M, o, o->spec, 0, M[p], 0); else rio_outInt(o, M[p]); return;                                                      \
+  case rio_Print_range: { /* first..=last */                                                             \
+    uint32_t first = rio_printWord(M, p), last = rio_printWord(M, p + 4);                                \
+    if (o->spec) rio_outFormatted(M, o, o->spec, 0, first, 0); else rio_outInt(o, (int32_t)first);       \
+    rio_outBytes(o, "..=", 3);                                                                           \
+    if (o->spec) rio_outFormatted(M, o, o->spec, 0, last, 0); else rio_outInt(o, (int32_t)last);         \
+    return;                                                                                              \
+  }                                                                                                      \
   case rio_Print_bits: { /* (its bits, shifted down: a signed one's top bit spread) */                   \
     uint32_t at = rio_printWord(M, d * 4 + 4), w = rio_printWord(M, p);                                  \
     int32_t bits = (int32_t)rio_printWord(M, d * 4 + 8), width = bits < 0 ? -bits : bits;                \

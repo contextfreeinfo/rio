@@ -233,6 +233,21 @@ static int rio_binaryInstr(rio_Vm *vm, int op, int isFloat, int *swap) {
 }
 
 /* l = l op r */
+/* l..<r, l..=r: a Range, its first and last (inclusive: l..<r ends at r - 1), in new slots (either side's
+   value may be in the first of them) */
+static void rio_rangeOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
+  int ls, rs, d, tempStart = l->tempStart < r->tempStart ? l->tempStart : r->tempStart;
+  if (rio_valueType(l->type) != rio_TypeId_int || rio_valueType(r->type) != rio_TypeId_int) rio_FAIL(, "a range is of Ints: a..<b, a..=b");
+  ls = rio_toSlot(vm, l, 1);
+  rs = rio_toSlot(vm, r, 1);
+  d = rio_allocSlots(vm, 2);
+  rio_emit(vm, rio_Op_mov, d, ls, 0);
+  if (op == rio_Tok_rangeExcl) rio_emit(vm, rio_Op_sub, d + 1, rs, rio_constSlot(vm, 1));
+  else rio_emit(vm, rio_Op_mov, d + 1, rs, 0);
+  *l = rio_exprOf(rio_ExprKind_static, rio_TypeId_range, d * 4);
+  l->tempStart = (uint16_t)tempStart;
+}
+
 void rio_binaryOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
   rio_Compiler *c = vm->compiler;
   int lt, rt, isCompare, instr, ls, rs, d;
@@ -244,6 +259,10 @@ void rio_binaryOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
   rio_isTestUsed(vm, r, -1);
   rio_needValue(vm, l);
   rio_needValue(vm, r);
+  if (op == rio_Tok_rangeExcl || op == rio_Tok_rangeIncl) {
+    rio_rangeOp(vm, op, l, r);
+    return;
+  }
   {
     int lk = rio_type(vm, l->type)->kind, rk = rio_type(vm, r->type)->kind;
     if (lk == rio_TypeKind_array || lk == rio_TypeKind_struct || rk == rio_TypeKind_array || rk == rio_TypeKind_struct) {

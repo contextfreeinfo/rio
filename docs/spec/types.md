@@ -50,7 +50,7 @@ log(b[0], b[1], "hi"[1])
 
 ```rio
 xs: [4]Int               # 4 Ints, all 0
-part := xs[1:3]          # a []Int of 2, viewing xs
+part := xs[1..<3]          # a []Int of 2, viewing xs
 part[0] = 7
 names: [..8]String       # up to 8; empty for now
 names.push("ann")
@@ -205,11 +205,11 @@ find :: proc(xs: []Int, want: Int) -> ?Int
   return nil
 end
 nums := [3]Int{5, 7, 9}
-at := find(nums[:], 9)
+at := find(nums[], 9)
 if at is Int
   log("at", at)  # here, at is the Int
 end
-log(find(nums[:], 4))
+log(find(nums[], 4))
 e: Enemy
 log(e)
 e.target = Point{x = 3, y = 4}

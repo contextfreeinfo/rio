@@ -39,7 +39,7 @@ s: Shape
 log(Point{x = 1, y = 2}, s)
 s = Point{x = 3, y = 4}
 names := [2]String{"Ann", "Bo"}
-log(s, names, names[1:2])
+log(s, names, names[1..<2])
 big: [40]Int
 log(big)
 ```
@@ -173,7 +173,7 @@ xs.swapRemove(0)             # 30 20
 last := xs.pop()             # 20; leaves 30
 title: Blob[..16]
 title.print("hp ", 7, " ", 2.5)
-log(xs.len(), xs[0], last, title[:])
+log(xs.len(), xs[0], last, title[])
 ```
 
 ```output
@@ -211,12 +211,12 @@ b.format({width = 4}, 7, ":", 42, " ")
 b.format({textWidth = -6}, "hp", true)
 b.format({digits = 2, places = 1}, 3.14159, " ", -0.25, " ")
 b.format({base = 16, digits = 4}, 48879, " ", 10, " ", -1)
-log(b[:])
+log(b[])
 b.clear()
 b.format({digits = 3}, [3]Int{1, 20, 300})
 hex := Format{base = 16}
 b.format(hex, hex)
-log(b[:])
+log(b[])
 ```
 
 ```output
@@ -286,17 +286,17 @@ log(file.getInt(0, 16), file.getInt(0, -16), file.getInt(0, 8))
 ```
 
 Only plain data packs: nothing holding a view (a slice, `String`, `Blob` or builder) or a proc value,
-which are addresses. A view's own elements do pack, though: `b.pack(at, xs[2:5])` writes three
-elements, and `b.unpack(at, xs[:])` fills `xs`'s elements (without `&`, as a view already lets its
+which are addresses. A view's own elements do pack, though: `b.pack(at, xs[2..<5])` writes three
+elements, and `b.unpack(at, xs[])` fills `xs`'s elements (without `&`, as a view already lets its
 elements change). For a byte list, `at` counts within its length.
 
 ```rio
 xs := [3]Int{5, 300, 70000}
 out: Blob[..16]
-out.pack(xs[1:3])
+out.pack(xs[1..<3])
 ys: [2]Int
-out.unpack(0, ys[:])
-log(out.len(), ys[0], ys[1], out.pack(xs[:]), out.len())
+out.unpack(0, ys[])
+log(out.len(), ys[0], ys[1], out.pack(xs[]), out.len())
 ```
 
 ```output
