@@ -19,11 +19,11 @@ the compiler (single pass, no recursion; left out with rio_NO_COMPILER):
   src/decls.c      types as written; procs, methods, structs, unions, enums and variables
   src/statements.c statements and their blocks: if, loops, switch, return, assignment
   src/modules.c    import and include
-  src/host.c       @host declarations, checked; modules of host procs
+  src/host.c       host declarations, checked; modules of host procs
   src/compile.c    limits, setup, and finishing: frame sharing, the line table, final layout
   src/repl.c       REPL sessions
 src/jit.c          native loops on ARM Thumb-2 (elsewhere, rio_jit does nothing)
-src/core.rio       the builtins, declared with @host (compiled by the tests, not by programs)
+src/core.rio       the builtins, declared with host (compiled by the tests, not by programs)
 src/aot.c          bytecode to C (CLI only; not needed for embedding)
 src/main.c         the CLI host (host procs clock and putc; loads modules from files and -L paths)
 tests/             ctest runs these, in the VM and through C:

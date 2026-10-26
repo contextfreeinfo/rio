@@ -1,4 +1,4 @@
-/* @host: host procs in modules, auto-imports, and declarations checked against the host and the
+/* host: host procs in modules, auto-imports, and declarations checked against the host and the
    builtins. argv[1]: core.rio, which must compile and declare every builtin */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
@@ -15,17 +15,17 @@ static int fails, n, cleared;
 
 /* package modules the loader has: host modules written out, and ones that use them */
 static const char *files[][2] = {
-  {"hm", "add* :: @host proc(a, b: Int) -> Int\ncls* :: @host proc(color: Int)\n"},
-  {"hbad", "add* :: @host proc(a: Int, b: Float) -> Int\ncls* :: @host proc(color: Int)\n"},
-  {"hres", "add* :: @host proc(a, b: Int)\ncls* :: @host proc(color: Int)\n"},
-  {"hmiss", "add* :: @host proc(a, b: Int) -> Int\n"},
-  {"hpriv", "add :: @host proc(a, b: Int) -> Int\ncls* :: @host proc(color: Int)\n"},
-  {"hnest", "f :: proc()\n  add :: @host proc(a, b: Int) -> Int\nend\n"},
+  {"hm", "add* :: host proc(a, b: Int) -> Int\ncls* :: host proc(color: Int)\n"},
+  {"hbad", "add* :: host proc(a: Int, b: Float) -> Int\ncls* :: host proc(color: Int)\n"},
+  {"hres", "add* :: host proc(a, b: Int)\ncls* :: host proc(color: Int)\n"},
+  {"hmiss", "add* :: host proc(a, b: Int) -> Int\n"},
+  {"hpriv", "add :: host proc(a, b: Int) -> Int\ncls* :: host proc(color: Int)\n"},
+  {"hnest", "f :: proc()\n  add :: host proc(a, b: Int) -> Int\nend\n"},
   {"user", "import pc\ntwiceSum* :: proc(x: Int) -> Int\n  return pc.add(x, x)\nend\n"},
-  {"hsrc", "Color* :: enum\n  black, red\nend\nTWO* :: 2\nadd* :: @host proc(a, b: Int) -> Int\ncls* :: @host proc(color: Color)\n"},
-  {"hsbad", "add* :: @host proc(a, b: Int) -> Int\ncls* :: @host proc(color: Float)\n"},
+  {"hsrc", "Color* :: enum\n  black, red\nend\nTWO* :: 2\nadd* :: host proc(a, b: Int) -> Int\ncls* :: host proc(color: Color)\n"},
+  {"hsbad", "add* :: host proc(a, b: Int) -> Int\ncls* :: host proc(color: Float)\n"},
   {"user2", "double* :: proc(x: Int) -> Int\n  return hsrc.add(x, hsrc.TWO) + x - hsrc.TWO\nend\n"},
-  {"mathy","sqrt* :: @host proc(x: Float) -> Float\nInt* :: @host struct\nhalf* :: proc(x: Int) -> Int\n  return x / 2\nend\n"},
+  {"mathy","sqrt* :: host proc(x: Float) -> Float\nInt* :: host struct\nhalf* :: proc(x: Int) -> Int\n  return x / 2\nend\n"},
 };
 static int loader(void *ud, const char *path, int kind, rio_Source *o) {
   size_t i; (void)ud;
@@ -198,33 +198,33 @@ int main(int argc, char **argv) {
   BAD("import hres\n", "hres.rio", 1, "doesn't match the host's hres.add: proc(Int, Int) -> Int");
   BAD("import hmiss\n", "hmiss.rio", 1, "this module doesn't declare the host proc hmiss.cls");
   BAD("import hpriv\nlog(hpriv.add(1, 2))\n", 0, 2, "not exported by that module");
-  BAD("import hnest\n", "hnest.rio", 2, "@host declarations go at the top level");
+  BAD("import hnest\n", "hnest.rio", 2, "host declarations go at the top level");
   /* a global host proc, declared in the main module */
-  OK("scale* :: @host proc(x: Float, times: Int) -> Float\nlog(scale(1.5, 4))\n", "6.0\n");
-  BAD("scale :: @host proc(x: Float) -> Float\n", 0, 1, "doesn't match the host's scale: proc(Float, Int) -> Float");
+  OK("scale* :: host proc(x: Float, times: Int) -> Float\nlog(scale(1.5, 4))\n", "6.0\n");
+  BAD("scale :: host proc(x: Float) -> Float\n", 0, 1, "doesn't match the host's scale: proc(Float, Int) -> Float");
   /* builtins: declared with their parameters and results */
-  OK("abs* :: @host proc(x: Int) -> Int\nmin :: @host proc(a, b: Float) -> Float\nlog(abs(-3), min(1.5, 2.5))\n", "3 1.5\n");
-  OK("assert* :: @host proc(condition: Bool, why: String)\nhexBlob :: @host proc(d: String) -> Blob\n", "");
-  OK("Int.toFloat* :: @host proc() -> Float\n(Blob[..]).push :: @host proc(byte: Int) -> Bool\n(Blob[..]).clear :: @host proc()\nlog(3.toFloat())\n", "3.0\n");
+  OK("abs* :: host proc(x: Int) -> Int\nmin :: host proc(a, b: Float) -> Float\nlog(abs(-3), min(1.5, 2.5))\n", "3 1.5\n");
+  OK("assert* :: host proc(condition: Bool, why: String)\nhexBlob :: host proc(d: String) -> Blob\n", "");
+  OK("Int.toFloat* :: host proc() -> Float\n(Blob[..]).push :: host proc(byte: Int) -> Bool\n(Blob[..]).clear :: host proc()\nlog(3.toFloat())\n", "3.0\n");
   OK("import mathy\nlog(mathy.sqrt(16.0), mathy.half(9))\nx: mathy.Int = 4\nlog(x)\n", "4.0 4\n4\n"); /* re-exported */
-  BAD("abs :: @host proc(x: String) -> Int\n", 0, 1, "doesn't match the builtin: type mismatch");
-  BAD("abs :: @host proc(x: Int) -> Float\n", 0, 1, "doesn't match the builtin: it gives Int");
-  BAD("sqrt :: @host proc(x: Float)\n", 0, 1, "doesn't match the builtin: it gives Float");
-  BAD("min :: @host proc(a, b, c: Int) -> Int\n", 0, 1, "doesn't match the builtin: wrong number of arguments");
-  BAD("nope :: @host proc(x: Int)\n", 0, 1, "the host has no proc by this name, and no builtin has it");
-  BAD("Int.toFloat :: @host proc() -> Int\n", 0, 1, "doesn't match the builtin: it gives Float");
-  BAD("Int.nope :: @host proc() -> Int\n", 0, 1, "doesn't match the builtin: no such method");
-  BAD("(Blob[..]).push :: @host proc(s: String) -> Bool\n", 0, 1, "doesn't match the builtin: type mismatch");
-  BAD("x := 1\nf :: proc()\n  abs :: @host proc(x: Int) -> Int\nend\n", 0, 3, "@host declarations go at the top level");
+  BAD("abs :: host proc(x: String) -> Int\n", 0, 1, "doesn't match the builtin: type mismatch");
+  BAD("abs :: host proc(x: Int) -> Float\n", 0, 1, "doesn't match the builtin: it gives Int");
+  BAD("sqrt :: host proc(x: Float)\n", 0, 1, "doesn't match the builtin: it gives Float");
+  BAD("min :: host proc(a, b, c: Int) -> Int\n", 0, 1, "doesn't match the builtin: wrong number of arguments");
+  BAD("nope :: host proc(x: Int)\n", 0, 1, "the host has no proc by this name, and no builtin has it");
+  BAD("Int.toFloat :: host proc() -> Int\n", 0, 1, "doesn't match the builtin: it gives Float");
+  BAD("Int.nope :: host proc() -> Int\n", 0, 1, "doesn't match the builtin: no such method");
+  BAD("(Blob[..]).push :: host proc(s: String) -> Bool\n", 0, 1, "doesn't match the builtin: type mismatch");
+  BAD("x := 1\nf :: proc()\n  abs :: host proc(x: Int) -> Int\nend\n", 0, 3, "host declarations go at the top level");
   /* builtin types */
-  OK("Int* :: @host struct\nFloat* :: @host struct\nx: Int = 2\nlog(x)\n", "2\n");
-  BAD("Nope :: @host struct\n", 0, 1, "the host has no type by this name");
-  BAD("P :: struct\n  x: Int\nend\nQ :: @host struct\n", 0, 4, "the host has no type by this name");
-  BAD("Int.x :: @host struct\n", 0, 1, "'proc' expected");
-  /* only @host, and only where declarations go */
-  BAD("Int :: @nope struct\n", 0, 1, "unknown annotation (@host declares what the host provides)");
-  BAD("f :: @host\n", 0, 1, "'proc' or 'struct' expected after @host");
-  BAD("x := 1 + @host\n", 0, 1, "expected expression");
+  OK("Int* :: host struct\nFloat* :: host struct\nx: Int = 2\nlog(x)\n", "2\n");
+  BAD("Nope :: host struct\n", 0, 1, "the host has no type by this name");
+  BAD("P :: struct\n  x: Int\nend\nQ :: host struct\n", 0, 4, "the host has no type by this name");
+  BAD("Int.x :: host struct\n", 0, 1, "'proc' expected");
+  /* host and diverse mean something only before proc or struct, and union: elsewhere they're names */
+  OK("host := 1\ndiverse := 2\nlog(host + diverse)\n", "3\n");
+  BAD("f :: @host proc()\n", 0, 1, "expected expression");
+  BAD("x := 1 + host proc()\n", 0, 1, "undefined name");
   BAD("(Int).f :: proc()\nend\n", 0, 1, "a method on a type without a name is a builtin");
   /* proc types name their parameters, grouped as in proc definitions (names are for reading) */
   OK("sum :: proc(a, b: Int, c: Float) -> Int\n  return a + b + c.toInt()\nend\nf: proc(x, y: Int, z: Float) -> Int = sum\nlog(f(1, 2, 3.5))\n", "6\n");

@@ -75,7 +75,7 @@ void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData);
    name and sig must stay valid until rio_compile (or rio_loadImage) returns.
    A plain name is global. A dotted one, "pc.cls", is in module pc instead: `import pc` (or
    rio_autoImport) gives pc.cls. If the loader has a source for pc, that's the module, and it must
-   declare each of pc's procs: `cls* :: @host proc(c: Int)`, checked against the sig. Otherwise the
+   declare each of pc's procs: `cls* :: host proc(c: Int)`, checked against the sig. Otherwise the
    module is made from the registrations, with nothing to parse. */
 int rio_addFfi(rio_Vm *vm, const char *name, const char *sig, rio_FfiFn fn);
 /* makes a module of host procs (see rio_addFfi) visible everywhere without an import, as `name.proc`.
@@ -266,7 +266,7 @@ typedef struct {
 } rio_Proc;
 
 /* a registered host proc; argWords and resultWords come from its sig. declared: while compiling, a
-   @host declaration (or a host module made from the registrations) has bound it */
+   host declaration (or a host module made from the registrations) has bound it */
 typedef struct {
   const char *name, *sig;
   rio_FfiFn fn;

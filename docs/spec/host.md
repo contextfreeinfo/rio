@@ -51,11 +51,11 @@ error.
 
 ## Declaring host procs
 
-`@host` declares what the host provides, and the compiler checks the declaration against it. Such
+`host` declares what the host provides, and the compiler checks the declaration against it. Such
 declarations document a host's API in Rio, and since they're checked, they can't drift:
 
 ```rio
-clock* :: @host proc() -> Float     # the CLI's clock: checked against it
+clock* :: host proc() -> Float     # the CLI's clock: checked against it
 start := clock()
 log(start >= 0)
 ```
@@ -65,10 +65,10 @@ true
 ```
 
 ```rio
-clock :: @host proc() -> Int  # error: doesn't match the host's clock: proc() -> Float
+clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> Float
 ```
 
-- **Host procs:** `name :: @host proc(...) -> R`, a proc type, as for proc values: its parameter and
+- **Host procs:** `name :: host proc(...) -> R`, a proc type, as for proc values: its parameter and
   result types must be exactly the host's, except that an enum may stand for an `Int`, which it is
   underneath; calls then take the declared types. In a module, `name` is the host proc of the module's
   name (`cls` in `pc.rio` is `pc.cls`), else a global one. When the host has a source for a module of
@@ -79,19 +79,19 @@ clock :: @host proc() -> Int  # error: doesn't match the host's clock: proc() ->
   Pointer* :: enum            # in pc.rio
     game, ui, none
   end
-  pointer* :: @host proc(mode: Pointer)   # the host's pc.pointer takes an Int
+  pointer* :: host proc(mode: Pointer)   # the host's pc.pointer takes an Int
   ```
 - **Builtins:** declared the same way, and checked as calls with those types:
-  `sqrt* :: @host proc(x: Float) -> Float`. [`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio) declares them all.
-- **Builtin types:** `Int* :: @host struct`.
-- **Methods:** on a named type, `Int.toFloat* :: @host proc() -> Float`; on any other type, in
-  parentheses: `(Blob[..]).push* :: @host proc(byte: Int) -> Bool`.
+  `sqrt* :: host proc(x: Float) -> Float`. [`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio) declares them all.
+- **Builtin types:** `Int* :: host struct`.
+- **Methods:** on a named type, `Int.toFloat* :: host proc() -> Float`; on any other type, in
+  parentheses: `(Blob[..]).push* :: host proc(byte: Int) -> Bool`.
 
-`@host` declarations go at the top level; `*` exports them, as for other declarations. A name that's
+`host` declarations go at the top level; `*` exports them, as for other declarations. A name that's
 neither a host proc nor a builtin is an error:
 
 ```rio
-nope :: @host proc(x: Int)  # error: the host has no proc by this name
+nope :: host proc(x: Int)  # error: the host has no proc by this name
 ```
 
 A host can ship such a module only as documentation, and still make its module straight from its host

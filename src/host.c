@@ -1,10 +1,10 @@
-/* host.c - what the host provides, declared in Rio with @host, and checked against it (the rules:
+/* host.c - what the host provides, declared in Rio with host, and checked against it (the rules:
    docs/spec/host.md):
 
-     name* :: @host proc(a: Int, b: Float) -> Int   a host proc (rio_addFfi), or a builtin proc
-     Type.name* :: @host proc(x: Int) -> Bool       a builtin method, on a named type
-     ([..]Int).name* :: @host proc() -> Int         ... on any type
-     Name* :: @host struct                          a builtin type
+     name* :: host proc(a: Int, b: Float) -> Int   a host proc (rio_addFfi), or a builtin proc
+     Type.name* :: host proc(x: Int) -> Bool       a builtin method, on a named type
+     ([..]Int).name* :: host proc() -> Int         ... on any type
+     Name* :: host struct                          a builtin type
 
    A host proc's declared types must be exactly its sig's (an enum may stand for an Int). In a module, `name` is the host proc registered
    as module.name (a module's key, with / as .), else the global one of that name. A module with host
@@ -128,7 +128,7 @@ static int rio_hostTypeOk(rio_Vm *vm, int declared, int sig) {
   return declared == sig || (sig == rio_TypeId_int && rio_type(vm, declared)->kind == rio_TypeKind_enum);
 }
 
-/* name :: @host proc(...) (procType, as written), for host proc i: the types must be its sig's (an enum
+/* name :: host proc(...) (procType, as written), for host proc i: the types must be its sig's (an enum
    may stand for an Int), and calls then take the declared ones */
 static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i, int procType, int exporting) {
   rio_Compiler *c = vm->compiler;
@@ -200,7 +200,7 @@ static rio_Expr rio_parseExprFrom(rio_Vm *vm, const char *text, int len, int lin
   return e;
 }
 
-/* name :: @host proc(...) (procType), for a builtin (receiver: a method's type, or -1): a call with
+/* name :: host proc(...) (procType), for a builtin (receiver: a method's type, or -1): a call with
    arguments of the declared types, in a proc that's never called, must compile and give the declared
    result. The proc's parameters are a0, a1...; a String argument is a literal instead */
 static void rio_declareBuiltin(rio_Vm *vm, const char *name, int nameLen, int receiver, int procType, int exporting, int line, int col) {
@@ -269,16 +269,14 @@ static void rio_declareBuiltin(rio_Vm *vm, const char *name, int nameLen, int re
 
 /* ------------------------------------------------------------------ declarations */
 
-/* at the @ of `name :: @host ...` (receiver: a method's type, or -1); the name's * was seen if
+/* at the host of `name :: host ...` (receiver: a method's type, or -1); the name's * was seen if
    c->exporting is set. line and col: the name's */
 void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int line, int col) {
   rio_Compiler *c = vm->compiler;
   int exporting = c->exporting, i = -1, procType;
   c->exporting = 0;
   rio_next(vm);
-  if (!rio_tokIs(vm, "host", 4)) rio_FAIL_AT_TOKEN(, "unknown annotation (@host declares what the host provides)");
-  rio_next(vm);
-  if (c->curProc >= 0 || c->blockCount) rio_FAIL(, "@host declarations go at the top level");
+  if (c->curProc >= 0 || c->blockCount) rio_FAIL(, "host declarations go at the top level");
   if (c->tok.kind == rio_Tok_struct) { /* a builtin type (the host can't add types yet) */
     int sym = rio_lookup(vm, name, nameLen);
     if (receiver >= 0) rio_FAIL(, "'proc' expected");
@@ -291,7 +289,7 @@ void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int l
     rio_addSymbol(vm, name, nameLen, rio_SymKind_type, c->syms[sym].type, 0);
     return;
   }
-  if (c->tok.kind != rio_Tok_proc) rio_FAIL(, "'proc' or 'struct' expected after @host");
+  if (c->tok.kind != rio_Tok_proc) rio_FAIL(, "'proc' or 'struct' expected after host");
   procType = rio_parseType(vm); /* a proc type, as for proc values: proc(x: Int) -> Int */
   if (rio_failed(vm)) return;
   if (receiver < 0) { /* this module's host proc, a global one, or a builtin */
@@ -304,7 +302,7 @@ void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int l
   else rio_declareBuiltin(vm, name, nameLen, receiver, procType, exporting, line, col);
 }
 
-/* does the current token start `(type).name ::`? (a method on a type without a name: @host only) */
+/* does the current token start `(type).name ::`? (a method on a type without a name: host only) */
 int rio_atTypeMethod(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   const char *p, *e;
@@ -328,12 +326,12 @@ int rio_atTypeMethod(rio_Vm *vm) {
   return p + 1 < e && p[0] == ':' && p[1] == ':'; /* (no expression goes on with ::) */
 }
 
-/* (type).name* :: @host proc(...) */
+/* (type).name* :: host proc(...) */
 void rio_typeMethodDecl(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   const char *name;
   int receiver, nameLen, line, col;
-  if (c->curProc >= 0 || c->blockCount) rio_FAIL(, "@host declarations go at the top level");
+  if (c->curProc >= 0 || c->blockCount) rio_FAIL(, "host declarations go at the top level");
   rio_next(vm);
   receiver = rio_parseType(vm);
   rio_expect(vm, ')', "')' expected");
@@ -349,7 +347,7 @@ void rio_typeMethodDecl(rio_Vm *vm) {
     rio_next(vm);
   }
   rio_expect(vm, rio_Tok_colonColon, "'::' expected");
-  if (c->tok.kind != '@') rio_FAIL(, "a method on a type without a name is a builtin: write @host proc(...)");
+  if (!rio_atHost(vm)) rio_FAIL(, "a method on a type without a name is a builtin: write host proc(...)");
   rio_hostDecl(vm, name, nameLen, receiver, line, col);
 }
 

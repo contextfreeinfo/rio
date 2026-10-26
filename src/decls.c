@@ -294,7 +294,7 @@ void rio_methodDef(rio_Vm *vm, int receiver) {
     rio_next(vm);
   }
   rio_expect(vm, rio_Tok_colonColon, "'::' expected");
-  if (c->tok.kind == '@') { /* Int.toFloat :: @host proc() -> Float: a builtin method, declared */
+  if (rio_atHost(vm)) { /* Int.toFloat :: host proc() -> Float: a builtin method, declared */
     rio_hostDecl(vm, name, nameLen, receiver, line, col);
     return;
   }
@@ -430,22 +430,16 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
   rio_addSymbol(vm, name, nameLen, rio_SymKind_type, index, 0);
 }
 
-/* Name :: union [@diverse], then its types one per line or comma-separated (nil may come first), then
+/* Name :: [diverse] union, then its types one per line or comma-separated (nil may come first), then
    end. The first listed is what a new variable holds. Types more than 64 bytes apart in size waste space
-   in every value (arrays of the union most of all), so that's an error unless marked @diverse. */
-void rio_unionDef(rio_Vm *vm, const char *name, int nameLen) {
+   in every value (arrays of the union most of all), so that's an error unless it's a diverse union. */
+void rio_unionDef(rio_Vm *vm, const char *name, int nameLen, int diverse) {
   rio_Compiler *c = vm->compiler;
-  int index, n = 0, j, diverse = 0;
+  int index, n = 0, j;
   uint32_t biggest = 0, smallest = 0xFFFFFFFFu;
   rio_Type *u;
   if (c->blockCount || c->curProc >= 0) rio_FAIL(, "unions must be top-level");
   rio_next(vm);
-  if (c->tok.kind == '@') {
-    rio_next(vm);
-    if (!rio_tokIs(vm, "diverse", 7)) rio_FAIL_AT_TOKEN(, "unknown note for a union (@diverse allows types of very different sizes)");
-    diverse = 1;
-    rio_next(vm);
-  }
   if (!c->tok.newline) rio_FAIL_AT_TOKEN(, "list a union's types on the lines below it, then end");
   index = rio_newType(vm, rio_TypeKind_union, 0, 0, 4);
   u = rio_type(vm, index);
@@ -479,7 +473,7 @@ void rio_unionDef(rio_Vm *vm, const char *name, int nameLen) {
   if (!n) rio_FAIL(, "a union lists at least one type");
   if (n > 256) rio_FAIL(, "too many types in one union");
   if (!diverse && biggest > smallest && biggest - smallest > rio_SMALL_WORDS * 4)
-    rio_FAIL(, "these types differ in size by more than 64 bytes, so every value takes the biggest size: keep the big data elsewhere, or mark the union @diverse");
+    rio_FAIL(, "these types differ in size by more than 64 bytes, so every value takes the biggest size: keep the big data elsewhere, or make it a diverse union");
   u->fieldCount = (uint16_t)n;
   u->size = 4 + rio_align4(biggest);
   if (u->size > 0xFFFF) rio_FAIL(, "union too large");

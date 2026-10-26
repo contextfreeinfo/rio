@@ -34,11 +34,11 @@ int main(void) {
   the result: `"ff>f"` takes two `Float`s and gives one.
 - Names ending in `*` in the main file are what the host can find and call.
 
-To publish a host's API in Rio, write the host procs out with `@host`, and the compiler checks them
+To publish a host's API in Rio, write the host procs out with `host`, and the compiler checks them
 against the real ones:
 
 ```rio fragment
-beep* :: @host proc(pitch: Int)
+beep* :: host proc(pitch: Int)
 ```
 
 The [C API guide](../guide/embedding.md) has the rest: modules of host procs, errors, the REPL,

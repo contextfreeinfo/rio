@@ -244,11 +244,12 @@ update* :: proc()
 end
 ```
 
-## Annotations
+## Host procs and diverse unions
 
-`@` marks a declaration as special. Rio has two:
+Two names change what a declaration means, right before what they apply to:
 
-- `@host` declares something the host provides: see [host procs](host.md#declaring-host-procs).
-- `union @diverse` allows types of very different sizes in a union.
+- `host proc` and `host struct` declare something the host provides: see
+  [host procs](host.md#declaring-host-procs).
+- `diverse union` allows types of very different sizes in a union: see [unions](types.md#unions).
 
-Any other annotation is an error.
+Elsewhere, `host` and `diverse` are ordinary names.

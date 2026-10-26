@@ -334,6 +334,11 @@ static inline int rio_tokIs(rio_Vm *vm, const char *word, int len) {
   const rio_Token *t = &vm->compiler->tok;
   return t->kind == rio_Tok_id && t->len == len && !memcmp(t->text, word, (size_t)len);
 }
+/* at `host proc` or `host struct`, after a declaration's :: (host is a name anywhere else) */
+static inline int rio_atHost(rio_Vm *vm) {
+  int next = vm->compiler->peek.kind;
+  return rio_tokIs(vm, "host", 4) && (next == rio_Tok_proc || next == rio_Tok_struct);
+}
 static inline int rio_nameIs(rio_Vm *vm, uint16_t name, uint16_t nameLen, const char *s, int len) {
   return nameLen == len && !memcmp(vm->compiler->names + name, s, (size_t)len);
 }
@@ -531,7 +536,7 @@ void rio_setProcResult(rio_Vm *vm, int proc, int type);
 void rio_beginBody(rio_Vm *vm, int proc);
 void rio_methodDef(rio_Vm *vm, int receiver);
 void rio_structDef(rio_Vm *vm, const char *name, int nameLen);
-void rio_unionDef(rio_Vm *vm, const char *name, int nameLen);
+void rio_unionDef(rio_Vm *vm, const char *name, int nameLen, int diverse);
 void rio_enumDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_declareVar(rio_Vm *vm);
 int rio_parseNames(rio_Vm *vm, const char **names, int *lens);

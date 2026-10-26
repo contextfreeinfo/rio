@@ -63,7 +63,8 @@ return struct switch union
 ```
 
 A few names mean something only in one place, and are ordinary names elsewhere: `self` in methods,
-`as` in imports and destructuring, and annotation names after `@`. The builtin names (`Int`,
+`as` in imports and destructuring, `by` in for loops, `host` before `proc` or `struct` in a
+declaration, and `diverse` before `union`. The builtin names (`Int`,
 `true`, `sqrt`, ...) are declared outside every module, so a declaration with the same name hides
 them.
 
@@ -188,7 +189,7 @@ two spaces:  |
 +  -  *  /  %  &  |  ^  ~  <<  >>        arithmetic and bits
 == != <  <= >  >=  and  or  not  is      comparison and logic
 =  :=  :  ::  +=  -=  *=  /=  %=  &=  |=  ^=  <<=  >>=
-( ) [ ] { } , . ; ..< ..= ->  &  *  @
+( ) [ ] { } , . ; ..< ..= ->  &  *
 ```
 
 `&&`, `||` and `!` are errors that name the word to use instead (`and`, `or`, `not`).

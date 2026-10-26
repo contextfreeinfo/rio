@@ -41,7 +41,7 @@ fell 25.0 with 2 balls
   frame and a program's memory is known before it runs. Indexes are checked and integers wrap, so
   errors stop with a line number, never with undefined behavior.
 - **Made for hosts.** The host provides drawing, sound or files as host procs, declared in Rio with
-  `@host` and checked by the compiler. Compiled programs can be saved as images, or turned into C.
+  `host proc` and checked by the compiler. Compiled programs can be saved as images, or turned into C.
 - **Friendly to read.** Types are inferred, blocks end with `end`, and structs, builders and text
   are plain values with no pointers to manage.
 

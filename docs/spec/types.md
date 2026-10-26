@@ -180,7 +180,25 @@ true
 ```
 
 Types in a union that differ in size by more than 16 words are an error, since every value takes the
-biggest size. `union @diverse` allows it on purpose.
+biggest size. A `diverse union` allows it on purpose:
+
+```rio
+Small :: struct
+  x: Int
+end
+Big :: struct
+  d: [20]Int
+end
+Shape :: diverse union
+  Small, Big
+end
+s: Shape
+log(s is Small)
+```
+
+```output
+true
+```
 
 ## Maybes
 

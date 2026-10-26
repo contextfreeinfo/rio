@@ -148,7 +148,7 @@ static const Case cases[] = {
   /* unions */
   {"A :: struct\n  x: Int\nend\nV :: union\n  A\n  A\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "type listed twice"},
   {"A :: struct\n  x: Int\nend\nBig :: struct\n  d: [20]Int\nend\nV :: union\n  A, Big\nend\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "differ in size by more than 64 bytes"},
-  {"A :: struct\n  x: Int\nend\nBig :: struct\n  d: [20]Int\nend\nV :: union @diverse\n  A, Big\nend\nv: V\nlog(v is A)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"A :: struct\n  x: Int\nend\nBig :: struct\n  d: [20]Int\nend\nV :: diverse union\n  A, Big\nend\nv: V\nlog(v is A)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nu = 5\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "type mismatch"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nu = nil\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "this union doesn't list nil"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nlog(u is Int)\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "not one of this union's types"},

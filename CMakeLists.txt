@@ -106,7 +106,7 @@ if(Python3_FOUND)
   set_tests_properties(rio_docs_streamed PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ doc examples passed")
 endif()
 
-# @host: host procs in modules, auto-imports, declarations checked; core.rio declares every builtin
+# host: host procs in modules, auto-imports, declarations checked; core.rio declares every builtin
 add_executable(rio_host_test tests/host.c)
 target_link_libraries(rio_host_test PRIVATE riocore)
 add_test(NAME rio_host COMMAND rio_host_test ${CMAKE_SOURCE_DIR}/src/core.rio)
