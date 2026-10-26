@@ -8,6 +8,7 @@ const char *const rio_builtinNames[rio_Builtin_count] = {
   "log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod", "assert",
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format", "print",
+  "pack", "unpack", "getInt", "setInt",
   "toInt", "toFloat", "toBool", "asString", "fromInt", "has", "hexBlob",
 };
 
@@ -434,6 +435,137 @@ static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
   rio_callResult(vm, call, r);
 }
 
+/* ------------------------------------------------------------------ pack unpack getInt setInt */
+
+/* can a value of type t be packed: plain data, with no views (slices, String, Blob, builders) or proc
+   values anywhere in it, as those hold addresses */
+static int rio_packable(rio_Vm *vm, int t) {
+  const rio_Type *ty = rio_type(vm, t);
+  int i;
+  switch (ty->kind) {
+  case rio_TypeKind_slice: case rio_TypeKind_builder: case rio_TypeKind_proc: case rio_TypeKind_void: return 0;
+  case rio_TypeKind_array: case rio_TypeKind_list: return rio_packable(vm, ty->elem);
+  case rio_TypeKind_struct: case rio_TypeKind_union:
+    for (i = 0; i < ty->fieldCount; i++) {
+      int f = rio_field(vm, ty->firstField + i)->type;
+      if (f != rio_TypeId_void && !rio_packable(vm, f)) return 0;
+    }
+    return 1;
+  default: return 1;
+  }
+}
+
+/* the bytes of x, as 2 slots (address, how many): a view's elements (a builder's live ones), else the
+   value's own memory (into: it's being written, so it must be a place, or a view of one) */
+static int rio_bytesOf(rio_Vm *vm, rio_Expr *x, int into) {
+  int k = rio_type(vm, x->type)->kind, s, d, size;
+  if (k == rio_TypeKind_slice || k == rio_TypeKind_builder) {
+    int elem = rio_type(vm, x->type)->elem;
+    if (!rio_packable(vm, elem)) rio_FAIL(0, "only plain data packs: no views or proc values in it");
+    if (into && (x->type == rio_TypeId_string || (x->access & rio_Access_readOnly))) rio_FAIL(0, "can't unpack into this: it's read-only");
+    if (k == rio_TypeKind_builder) {
+      int b = rio_toSlot3(vm, x);
+      s = rio_allocSlots(vm, 2);
+      rio_emit(vm, rio_Op_lview, s, b, 0);
+    } else s = rio_toSlot2(vm, x);
+    size = (int)rio_type(vm, elem)->size;
+    if (size == 1) return s;
+    d = rio_allocSlots(vm, 2);
+    rio_emit(vm, rio_Op_mov, d, s, 0);
+    rio_emit(vm, rio_Op_mul, d + 1, s + 1, rio_constSlot(vm, size));
+    return d;
+  }
+  if (!rio_packable(vm, x->type)) rio_FAIL(0, "only plain data packs: no views or proc values in it");
+  if (x->kind == rio_ExprKind_const || x->type == rio_TypeId_byte) { /* (a number, or a byte read from a Blob, which is an Int: into a slot, which has an address) */
+    s = rio_toSlot(vm, x, 0);
+    *x = rio_exprOf(rio_ExprKind_static, rio_valueType(x->type), s * 4);
+  }
+  size = (int)rio_type(vm, x->type)->size;
+  s = rio_toAddrSlot(vm, x);
+  d = rio_allocSlots(vm, 2);
+  rio_emit(vm, rio_Op_mov, d, s, 0);
+  rio_emit(vm, rio_Op_mov, d + 1, rio_constSlot(vm, size), 0);
+  return d;
+}
+
+/* b.pack(at, x), b.pack(x) (appended), b.unpack(at, &x), b.getInt(at, bits), b.setInt(at, bits, n) */
+static void rio_bytesCall(rio_Vm *vm, rio_PendingOp *call) {
+  static const char *const usage[] = {"pack takes (at, value), or (value) to append to a byte list", "unpack takes (at, &place), or (at, view)",
+                                      "getInt takes (at, bits)", "setInt takes (at, bits, value)"};
+  rio_Compiler *c = vm->compiler;
+  int id = call->b, n = rio_argCount(vm, call), k, blob, at, r, d, bits, bytes;
+  rio_Expr *a = &c->values[call->valueBase], result = rio_voidExpr();
+  if (n != (id == rio_Builtin_setInt ? 4 : 3) && !(id == rio_Builtin_pack && n == 2)) rio_FAIL(, usage[id - rio_Builtin_pack]);
+  rio_needValue(vm, a);
+  k = rio_type(vm, a->type)->kind;
+  if (rio_type(vm, a->type)->elem != rio_TypeId_byte || k == rio_TypeKind_enum || k == rio_TypeKind_union || k == rio_TypeKind_struct)
+    rio_FAIL(, "pack, unpack, getInt and setInt are for Blobs");
+  if ((id == rio_Builtin_pack || id == rio_Builtin_setInt) && (a->type == rio_TypeId_string || (a->access & rio_Access_readOnly)))
+    rio_FAIL(, "a String is read-only: pack and setInt need a Blob");
+  if (n == 2) { /* b.pack(x): appended to a byte list, all or nothing */
+    if (k != rio_TypeKind_list && k != rio_TypeKind_builder) rio_FAIL(, "pack(value) appends to a byte list: a Blob takes pack(at, value)");
+    rio_needValue(vm, a + 1);
+    blob = rio_toSlot3(vm, a);
+    r = rio_bytesOf(vm, a + 1, 0);
+    if (rio_failed(vm)) return;
+    d = rio_allocSlots(vm, 1);
+    rio_emit(vm, rio_Op_pushs, d, blob, r);
+    rio_emitData(vm, 0, 1);
+    rio_callResult(vm, call, rio_exprOf(rio_ExprKind_static, rio_TypeId_bool, d * 4));
+    return;
+  }
+  if (k == rio_TypeKind_list || k == rio_TypeKind_builder) { /* (its live bytes) */
+    int b = rio_toSlot3(vm, a);
+    blob = rio_allocSlots(vm, 2);
+    rio_emit(vm, rio_Op_lview, blob, b, 0);
+  } else blob = rio_toSlot2(vm, a);
+  rio_needValue(vm, a + 1);
+  rio_coerce(vm, a + 1, rio_TypeId_int);
+  at = rio_toSlot(vm, a + 1, 1);
+  if (id == rio_Builtin_getInt || id == rio_Builtin_setInt) { /* (at and the bits: a slot pair) */
+    int where, b;
+    rio_needValue(vm, a + 2);
+    rio_coerce(vm, a + 2, rio_TypeId_int);
+    if (a[2].kind == rio_ExprKind_const) { /* (else checked when it runs) */
+      bits = a[2].value;
+      bytes = (bits < 0 ? -bits : bits) / 8;
+      if (bits % 8 || bytes < 1 || bytes > 4) rio_FAIL(, "the bits are 8, 16, 24 or 32 (negative: signed)");
+    }
+    b = rio_toSlot(vm, a + 2, 1);
+    where = rio_allocSlots(vm, 2);
+    rio_emit(vm, rio_Op_mov, where, at, 0);
+    rio_emit(vm, rio_Op_mov, where + 1, b, 0);
+    if (id == rio_Builtin_getInt) {
+      d = rio_allocSlots(vm, 1);
+      rio_emit(vm, rio_Op_geti, d, blob, where);
+      result = rio_exprOf(rio_ExprKind_static, rio_TypeId_int, d * 4);
+    } else {
+      int v;
+      rio_needValue(vm, a + 3);
+      rio_coerce(vm, a + 3, rio_TypeId_int);
+      v = rio_toSlot(vm, a + 3, 1);
+      rio_emit(vm, rio_Op_seti, blob, v, where);
+    }
+  } else if (id == rio_Builtin_pack) {
+    rio_needValue(vm, a + 2);
+    r = rio_bytesOf(vm, a + 2, 0);
+    if (rio_failed(vm)) return;
+    rio_emit(vm, rio_Op_bpack, blob, at, r);
+  } else { /* unpack: into &place, or a view's elements */
+    rio_Expr *x = a + 2;
+    int xk = rio_type(vm, x->type)->kind;
+    if (x->access & rio_Access_ref) x->access = 0;
+    else if (xk != rio_TypeKind_slice && xk != rio_TypeKind_builder) rio_FAIL(, "unpack changes what it's given: pass &x (or a slice, whose elements it fills)");
+    else rio_needValue(vm, x);
+    r = rio_bytesOf(vm, x, 1);
+    if (rio_failed(vm)) return;
+    rio_emit(vm, rio_Op_bpack, blob, at, r);
+    vm->code[vm->codeLen - 1].x = 1;
+  }
+  if (result.kind == rio_ExprKind_void) c->freeSlot = call->freeAtStart;
+  rio_callResult(vm, call, result);
+}
+
 /* ------------------------------------------------------------------ hexBlob, enums, conversions */
 
 static int rio_hexDigit(int c) {
@@ -563,6 +695,7 @@ void rio_finishBuiltinCall(rio_Vm *vm, rio_PendingOp *call) {
   else if (id == rio_Builtin_hexBlob) rio_hexBlobCall(vm, call);
   else if (id >= rio_Builtin_fromInt) rio_enumCall(vm, call);
   else if (id >= rio_Builtin_toInt) rio_convertCall(vm, call);
+  else if (id >= rio_Builtin_pack) rio_bytesCall(vm, call);
   else if (id >= rio_Builtin_push) rio_listCall(vm, call);
   else rio_mathCall(vm, call);
 }

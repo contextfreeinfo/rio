@@ -77,6 +77,14 @@ Blob.cap* :: @host proc() -> Int
 (Blob[..]).remove* :: @host proc(i: Int)                   # keeps the order
 (Blob[..]).swapRemove* :: @host proc(i: Int)               # the last element takes its place
 
+# an int of bits (a constant: 8, 16, 24 or 32; negative: signed) at byte at, little-endian; a runtime
+# error past the end (a byte list's: its length)
+String.getInt* :: @host proc(at: Int, bits: Int) -> Int
+Blob.getInt* :: @host proc(at: Int, bits: Int) -> Int
+Blob.setInt* :: @host proc(at: Int, bits: Int, value: Int)   # its low bits
+(Blob[..]).getInt* :: @host proc(at: Int, bits: Int) -> Int
+(Blob[..]).setInt* :: @host proc(at: Int, bits: Int, value: Int)
+
 # ---------------------------------------------------------------- generic, once rio has generics
 #
 # These take any element type T, any enum E, or any number of values, so they can't be declared yet.
@@ -95,6 +103,12 @@ Blob.cap* :: @host proc() -> Int
 #   (Blob[..]).print*[T: Printable] :: @host proc(values: ..T) -> Bool   # as text, all or nothing
 #   (Blob[..]).format*[T: Printable] :: @host proc(settings: Format, values: ..T) -> Bool
 #                                                     # as print, as settings say, inside values too
+#   Blob.pack*[T: Packable] :: @host proc(at: Int, value: T)   # its bytes at byte at, as in memory
+#   (Blob[..]).pack*[T: Packable] :: @host proc(value: T) -> Bool   # appended, all or nothing
+#   String.unpack*[T: Packable] :: @host proc(at: Int, into: &T)    # also Blob's, (Blob[..])'s;
+#                                                     # into a []T or [..]T too (its elements), no &
+#                                                     # Packable: no views or proc values inside;
+#                                                     # a []T or [..]T packs its elements
 #   E.fromInt*[E: enum] :: @host proc(n: Int) -> E    # a runtime error if n isn't one of E's values
 #   E.has*[E: enum] :: @host proc(n: Int) -> Bool
 #   (E).toInt*[E: enum] :: @host proc() -> Int

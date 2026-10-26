@@ -441,6 +441,41 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     rio_NEXT();
   }
 
+/* bytes n at byte at of the Blob in slots s, s+1: fail if they're not all in it */
+#define rio_BYTES_IN(s, at, n, what) \
+  if ((at) < 0 || (uint32_t)(n) > R[(s) + 1].u || (uint32_t)(at) > R[(s) + 1].u - (uint32_t)(n)) return rio_runtimeError(vm, what, rio_PC)
+  rio_CASE(bpack) {
+    int32_t at = R[ip->b].i;
+    uint32_t from = R[ip->c].u, n = R[ip->c + 1].u, to;
+    rio_BYTES_IN(ip->a, at, n, ip->x ? "unpack out of bounds" : "pack out of bounds");
+    to = R[ip->a].u + (uint32_t)at;
+    if (ip->x) memmove(M + from, M + to, n);
+    else memmove(M + to, M + from, n);
+    rio_NEXT();
+  }
+  rio_CASE(geti) {
+    int32_t at = R[ip->c].i, bits = R[ip->c + 1].i;
+    uint32_t n = (uint32_t)(bits < 0 ? -bits : bits) / 8, v = 0, i;
+    const uint8_t *p;
+    if (n < 1 || n > 4 || bits % 8) return rio_runtimeError(vm, "getInt takes 8, 16, 24 or 32 bits", rio_PC);
+    rio_BYTES_IN(ip->b, at, n, "getInt out of bounds");
+    p = M + R[ip->b].u + (uint32_t)at;
+    for (i = 0; i < n; i++) v |= (uint32_t)p[i] << (8 * i);
+    if (bits < 0 && n < 4 && (v >> (8 * n - 1) & 1)) v |= ~0u << (8 * n); /* (signed: the top bit spread) */
+    R[ip->a].u = v;
+    rio_NEXT();
+  }
+  rio_CASE(seti) {
+    int32_t at = R[ip->c].i, bits = R[ip->c + 1].i;
+    uint32_t n = (uint32_t)(bits < 0 ? -bits : bits) / 8, v = R[ip->b].u, i;
+    uint8_t *p;
+    if (n < 1 || n > 4 || bits % 8) return rio_runtimeError(vm, "setInt takes 8, 16, 24 or 32 bits", rio_PC);
+    rio_BYTES_IN(ip->a, at, n, "setInt out of bounds");
+    p = M + R[ip->a].u + (uint32_t)at;
+    for (i = 0; i < n; i++) p[i] = (uint8_t)(v >> (8 * i));
+    rio_NEXT();
+  }
+
   rio_CASE(jmp) rio_JUMP();
   rio_CASE(jz) if (!R[ip->a].i) rio_JUMP(); rio_NEXT();
   rio_CASE(jnz) if (R[ip->a].i) rio_JUMP(); rio_NEXT();

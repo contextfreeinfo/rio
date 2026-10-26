@@ -228,6 +228,65 @@ log(b.len(), mem[0], mem[1])
 A builder needs a declaration to hold its length, so passing an array straight to a `[..]T`
 parameter is an error. A builder can't be made over read-only bytes, such as a `String`.
 
+## Packing
+
+Values go into and out of bytes as they are in memory, for files and other binary data. Each of
+`Int`, `Float` and `Bool` is 4 bytes, little-endian (a `Bool` is 0 or 1); a struct or array is its
+fields or elements in order, nested ones inline, and a `Blob[N]` field is its bytes, padded to whole
+words:
+
+| | |
+|---|---|
+| `b.pack(at, x)` | `x`'s bytes into Blob `b`, from byte `at` |
+| `b.pack(x) -> Bool` | for byte lists: appends them; `false`, and no change, when they don't fit |
+| `b.unpack(at, &x)` | the bytes at `at` into `x` (it changes `x`, so it takes `&x`) |
+| `b.getInt(at, bits) -> Int` | an int of 8, 16, 24 or 32 bits at `at`; negative `bits`: signed |
+| `b.setInt(at, bits, n)` | `n`'s low bits at `at` |
+
+```rio
+Header :: struct
+  tag: Blob[4]
+  count: Int
+  scale: Float
+end
+h := Header{count = 1000, scale = 0.5}
+h.tag[0] = 82
+file: Blob[16]
+file.pack(2, h)
+back: Header
+file.unpack(2, &back)
+log(file[2], file[6], file[7], back.count, back.scale)
+file.setInt(0, 16, -2)
+log(file.getInt(0, 16), file.getInt(0, -16), file.getInt(0, 8))
+```
+
+```output
+82 232 3 1000 0.5
+65534 -2 254
+```
+
+Only plain data packs: nothing holding a view (a slice, `String`, `Blob` or builder) or a proc value,
+which are addresses. A view's own elements do pack, though: `b.pack(at, xs[2:5])` writes three
+elements, and `b.unpack(at, xs[:])` fills `xs`'s elements (without `&`, as a view already lets its
+elements change). For a byte list, `at` counts within its length.
+
+```rio
+xs := [3]Int{5, 300, 70000}
+out: Blob[..16]
+out.pack(xs[1:3])
+ys: [2]Int
+out.unpack(0, ys[:])
+log(out.len(), ys[0], ys[1], out.pack(xs[:]), out.len())
+```
+
+```output
+8 300 70000 false 8
+```
+
+`unpack` and `getInt` read a `String` too; `pack` and `setInt` need a `Blob`. Bytes outside `b` are
+a runtime error, as are `bits` other than those (and, when it's a constant, a compile error). Unpacked
+bytes aren't checked: a `Bool` or enum from other bytes may hold values it otherwise couldn't.
+
 ## Enums
 
 For an enum `E`, `E.fromInt(n)` is the value `n` (a runtime error if `E` has no such value, or a

@@ -78,6 +78,11 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      popa                   a = address of the removed last element of builder b
      lrem lswap             remove element b of builder a, keeping order / moving the last into it
      lview                  a, a+1 = slice of builder b's live elements
+   Bytes: a Blob is 2 slots (address, length), as a slice; at is a byte offset in it (bounds-checked).
+     bpack                  x 0: copy bytes c (address, how many) into Blob a at b; x 1: from it
+     geti                   a = the int in Blob b at c, of c+1 bits (8, 16, 24 or 32; negative: signed),
+                            little-endian
+     seti                   the low c+1 bits of b into Blob a at c, little-endian
    Jumps go to pc c.
      jmp jz jnz             always / if a == 0 / if a != 0
      jeq jne jlt jle        if a op b (Int)
@@ -106,7 +111,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
   X(mov2) X(ldw2) X(stw) X(stb) X(stw2) X(stx) X(stxb) X(idx) X(slice) X(copy) X(movn) X(zero)       \
   X(enumck) X(enumname)                                                                              \
   X(vadd) X(vsub) X(vmul) X(vdiv) X(vmod) X(fvadd) X(fvsub) X(fvmul) X(fvdiv)                        \
-  X(lidx) X(pusha) X(pushs) X(pusht) X(pushv) X(pushf) X(popa) X(lrem) X(lswap) X(lview)                      \
+  X(lidx) X(pusha) X(pushs) X(pusht) X(pushv) X(pushf) X(popa) X(lrem) X(lswap) X(lview) X(bpack) X(geti) X(seti) \
   X(jmp) X(jz) X(jnz) X(jeq) X(jne) X(jlt) X(jle) X(jfeq) X(jfne) X(jflt) X(jfle) X(jfnlt) X(jfnle)  \
   X(each) X(fori)                                                                                    \
   X(call) X(ret) X(calli) X(getret) X(ffi) X(logi) X(logf) X(logs) X(logb) X(logn) X(logv) X(loge)   \

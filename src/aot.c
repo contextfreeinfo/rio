@@ -299,6 +299,26 @@ static void rio_instruction(rio_Aot *a, int pc) {
     rio_print(a, "{ uint32_t d_ = %s, n_ = rio_listLen(%s, %s); %s = d_; %s = n_; }\n", rio_V(B + 1, 'u'), rio_V(B, 'u'), rio_V(B + 2, 'u'),
               rio_V(A, 'u'), rio_V(A + 1, 'u'));
     break;
+  case rio_Op_bpack:
+    rio_print(a, "{ int32_t at_ = %s; uint32_t f_ = %s, n_ = %s, len_ = %s; if (at_ < 0 || n_ > len_ || (uint32_t)at_ > len_ - n_) rio_RT_ERROR(\"%s out of bounds\"); ",
+              rio_V(B, 'i'), rio_V(C, 'u'), rio_V(C + 1, 'u'), rio_V(A + 1, 'u'), in->x ? "unpack" : "pack");
+    if (in->x) rio_print(a, "memmove(rio_M + f_, rio_M + %s + (uint32_t)at_, n_); }\n", rio_V(A, 'u'));
+    else rio_print(a, "memmove(rio_M + %s + (uint32_t)at_, rio_M + f_, n_); }\n", rio_V(A, 'u'));
+    break;
+  case rio_Op_geti: case rio_Op_seti: { /* (the blob's slots: geti's b, seti's a) */
+    int get = in->op == rio_Op_geti, blob = get ? B : A;
+    const char *name = get ? "getInt" : "setInt";
+    rio_print(a, "{ int32_t at_ = %s, bits_ = %s; uint32_t len_ = %s, n_ = (uint32_t)(bits_ < 0 ? -bits_ : bits_) / 8, i_, v_ = %s; uint8_t *p_; ",
+              rio_V(C, 'i'), rio_V(C + 1, 'i'), rio_V(blob + 1, 'u'), get ? "0u" : rio_V(B, 'u'));
+    rio_print(a, "if (n_ < 1 || n_ > 4 || bits_ %% 8) rio_RT_ERROR(\"%s takes 8, 16, 24 or 32 bits\"); ", name);
+    rio_print(a, "if (at_ < 0 || n_ > len_ || (uint32_t)at_ > len_ - n_) rio_RT_ERROR(\"%s out of bounds\"); p_ = rio_M + %s + (uint32_t)at_; ", name,
+              rio_V(blob, 'u'));
+    if (get)
+      rio_print(a, "for (i_ = 0; i_ < n_; i_++) v_ |= (uint32_t)p_[i_] << (8 * i_); if (bits_ < 0 && n_ < 4 && (v_ >> (8 * n_ - 1) & 1)) v_ |= ~0u << (8 * n_); %s = v_; }\n",
+                rio_V(A, 'u'));
+    else rio_print(a, "for (i_ = 0; i_ < n_; i_++) p_[i_] = (uint8_t)(v_ >> (8 * i_)); }\n");
+    break;
+  }
   case rio_Op_jmp: rio_print(a, "goto L%d;\n", C); break;
   case rio_Op_jz: rio_print(a, "if (!%s) goto L%d;\n", rio_V(A, 'i'), C); break;
   case rio_Op_jnz: rio_print(a, "if (%s) goto L%d;\n", rio_V(A, 'i'), C); break;

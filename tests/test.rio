@@ -1419,6 +1419,47 @@ end
 handler := Handler{id = 1, weight = 2.5}
 check(handler.id == 1 and handler.weight == 2.5, "fields after a new proc type")
 
+# ---- packing: values' bytes into and out of Blobs, and ints of a few bytes
+PackHead :: struct
+  tag: Blob[4]
+  size: Int
+  scale: Float
+  ok: Bool
+end
+packHead: PackHead
+packHead.tag[0] = 82
+packHead.size = 1000
+packHead.scale = 2.5
+packHead.ok = true
+packFile: Blob[40]
+packFile.pack(2, packHead)
+check(packFile[2] == 82 and packFile[6] == 232 and packFile[7] == 3, "pack a struct at an odd offset")
+packBack: PackHead
+packFile.unpack(2, &packBack)
+check(packBack.tag[0] == 82 and packBack.size == 1000 and packBack.scale == 2.5 and packBack.ok, "unpack it")
+packFile.pack(20, -3)
+check(packFile.getInt(20, 16) == 65533 and packFile.getInt(20, -16) == -3 and packFile.getInt(20, 32) == -3, "getInt widths")
+packFile.setInt(28, 24, 0x123456)
+check(packFile[28] == 0x56 and packFile[30] == 0x12 and packFile[31] == 0 and packFile.getInt(28, 24) == 0x123456, "setInt")
+packFile.setInt(28, 8, 200)
+check(packFile.getInt(28, -8) == -56 and packFile.getInt(28, 8) == 200, "a signed byte")
+packBits := 16
+check(packFile.getInt(20, packBits) == 65533, "bits from a variable")
+packInts: [3]Int
+packInts[1] = 300
+packFile.pack(8, packInts[1:3])
+packTwo: [2]Int
+packFile.unpack(8, packTwo[:])
+check(packTwo[0] == 300 and packTwo[1] == 0, "a slice's elements, out and in")
+packOut: Blob[..12]
+check(packOut.pack(7) and packOut.pack(packHead.size) and packOut.len() == 8 and packOut.getInt(4, 16) == 1000, "appended")
+check(not packOut.pack(packHead) and packOut.len() == 8, "appended all or nothing")
+check("hi".getInt(0, 16) == 0x6968, "getInt from a String")
+packF: Float
+packFile.pack(36, 0.5)
+packFile.unpack(36, &packF)
+check(packF == 0.5, "a Float")
+
 log("bool", true, false, "int", 42, "float", 1.25, "neg", -0.5, "big", 123456789.0, "str", GREETING)
 if fails == 0
   log("all tests passed")

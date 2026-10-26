@@ -490,6 +490,8 @@ typedef enum {
   /* list methods */
   rio_Builtin_push, rio_Builtin_pop, rio_Builtin_clear, rio_Builtin_cap, rio_Builtin_remove,
   rio_Builtin_swapRemove, rio_Builtin_pushAll, rio_Builtin_format, rio_Builtin_print,
+  /* byte methods (Blobs, byte lists) */
+  rio_Builtin_pack, rio_Builtin_unpack, rio_Builtin_getInt, rio_Builtin_setInt,
   /* conversion methods */
   rio_Builtin_toInt, rio_Builtin_toFloat, rio_Builtin_toBool, rio_Builtin_asString,
   /* Enum.fromInt and Enum.has */

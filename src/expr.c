@@ -303,8 +303,11 @@ static void rio_member(rio_Vm *vm) {
              (k = rio_builtinNamed(t->text, t->len, rio_Builtin_toInt, rio_Builtin_asString)) >= 0) {
     method = rio_exprOf(rio_ExprKind_builtin, 0, k); /* conversions */
   } else if (ty->kind == rio_TypeKind_list || ty->kind == rio_TypeKind_builder) {
-    if ((k = rio_builtinNamed(t->text, t->len, rio_Builtin_push, rio_Builtin_print)) < 0) rio_FAIL(, "no such method");
+    if ((k = rio_builtinNamed(t->text, t->len, rio_Builtin_push, rio_Builtin_setInt)) < 0) rio_FAIL(, "no such method");
     method = rio_exprOf(rio_ExprKind_builtin, 0, k);
+  } else if ((ty->kind == rio_TypeKind_slice || ty->kind == rio_TypeKind_array) && ty->elem == rio_TypeId_byte &&
+             (k = rio_builtinNamed(t->text, t->len, rio_Builtin_pack, rio_Builtin_setInt)) >= 0) {
+    method = rio_exprOf(rio_ExprKind_builtin, 0, k); /* a Blob's (or String's) b.pack(at, x) ... */
   } else {
     if ((i = rio_lookupMethod(vm, rio_valueType(e->type), t->text, t->len)) < 0)
       rio_FAIL(, ty->kind == rio_TypeKind_struct ? "no such field or method"
@@ -550,6 +553,10 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     arg->access = 0;
     if (arg->type != param->refType) rio_FAIL(, "type mismatch");
     m->argCount++;
+    return;
+  }
+  if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b == rio_Builtin_unpack && m->argCount == 2 && (arg->access & rio_Access_ref)) {
+    m->argCount++; /* b.unpack(at, &x): x's address taken when the call is made */
     return;
   }
   rio_needValue(vm, arg);
