@@ -60,15 +60,44 @@ int rio_parseType(rio_Vm *vm) {
   return rio_procTypeOf(vm, params, n, result);
 }
 
-/* Any type but a proc type: prefixes ([N] [] [..N] [..] [Enum] ?), then a name, maybe through modules
-   (and Blob[N], Blob[..N], Blob[..]). The prefixes apply innermost last: [2][3]T is 2 of [3]T, and
+/* a type by its name, maybe through modules (mod.Type), and Blob[N], Blob[..N], Blob[..] */
+static int rio_parseTypeName(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  int i, t;
+  if (c->tok.kind != rio_Tok_id || (i = rio_lookup(vm, c->tok.text, c->tok.len)) < 0) rio_FAIL_AT_TOKEN(0, "type expected");
+  while (c->syms[i].kind == rio_SymKind_module) { /* mod.Type */
+    int module = c->syms[i].value;
+    rio_next(vm);
+    if (c->tok.kind != '.') rio_FAIL(0, "'.' expected");
+    rio_next(vm);
+    if (c->tok.kind != rio_Tok_id) rio_FAIL_AT_TOKEN(0, "type expected");
+    if ((i = rio_lookupExport(vm, module, c->tok.text, c->tok.len)) < 0) rio_FAIL_AT_TOKEN(0, "not exported by that module");
+  }
+  if (c->syms[i].kind != rio_SymKind_type) rio_FAIL_AT_TOKEN(0, "type expected");
+  t = c->syms[i].type;
+  rio_next(vm);
+  if (t == rio_TypeId_int && c->tok.kind == '(' && !c->tok.newline) rio_FAIL(0, "a bitfield, Int(n), is only a struct's field");
+  if (t == rio_TypeId_blob && c->tok.kind == '[' && !c->tok.newline) { /* Blob[N], Blob[..N], Blob[..] */
+    rio_next(vm);
+    if (c->tok.kind == '.' && c->peek.kind == '.') {
+      rio_next(vm);
+      rio_next(vm);
+      t = c->tok.kind == ']' ? rio_builderOf(vm, rio_TypeId_byte) : rio_listOf(vm, rio_TypeId_byte, (uint32_t)rio_parsePositiveConst(vm));
+    } else t = rio_arrayOf(vm, rio_TypeId_byte, (uint32_t)rio_parsePositiveConst(vm));
+    rio_expect(vm, ']', "']' expected");
+  }
+  return t;
+}
+
+/* Any type but a bare proc type: prefixes ([N] [] [..N] [..] [Enum] ?), then a name, maybe through modules
+   (and Blob[N], Blob[..N], Blob[..]), or after prefixes a proc type: [4]proc(Float) -> Float. The prefixes apply innermost last: [2][3]T is 2 of [3]T, and
    ?[]?Int a maybe slice of maybe Ints. */
 static int rio_parseValueType(rio_Vm *vm) {
   /* per prefix: n > 0 an array of n; -1 a slice; -2 a builder; -3 - n a list of n; and an enum, if any;
      or a maybe */
   rio_Compiler *c = vm->compiler;
   int32_t prefix[16];
-  int count = 0, t, i, enumOf[16];
+  int count = 0, t, enumOf[16];
   uint8_t maybe[16];
   while (c->tok.kind == '[' || c->tok.kind == '?') {
     if (count >= 16) rio_FAIL(0, "type too deep");
@@ -94,28 +123,8 @@ static int rio_parseValueType(rio_Vm *vm) {
     }
     rio_expect(vm, ']', "']' expected");
   }
-  if (c->tok.kind != rio_Tok_id || (i = rio_lookup(vm, c->tok.text, c->tok.len)) < 0) rio_FAIL_AT_TOKEN(0, "type expected");
-  while (c->syms[i].kind == rio_SymKind_module) { /* mod.Type */
-    int module = c->syms[i].value;
-    rio_next(vm);
-    if (c->tok.kind != '.') rio_FAIL(0, "'.' expected");
-    rio_next(vm);
-    if (c->tok.kind != rio_Tok_id) rio_FAIL_AT_TOKEN(0, "type expected");
-    if ((i = rio_lookupExport(vm, module, c->tok.text, c->tok.len)) < 0) rio_FAIL_AT_TOKEN(0, "not exported by that module");
-  }
-  if (c->syms[i].kind != rio_SymKind_type) rio_FAIL_AT_TOKEN(0, "type expected");
-  t = c->syms[i].type;
-  rio_next(vm);
-  if (t == rio_TypeId_int && c->tok.kind == '(' && !c->tok.newline) rio_FAIL(0, "a bitfield, Int(n), is only a struct's field");
-  if (t == rio_TypeId_blob && c->tok.kind == '[' && !c->tok.newline) { /* Blob[N], Blob[..N], Blob[..] */
-    rio_next(vm);
-    if (c->tok.kind == '.' && c->peek.kind == '.') {
-      rio_next(vm);
-      rio_next(vm);
-      t = c->tok.kind == ']' ? rio_builderOf(vm, rio_TypeId_byte) : rio_listOf(vm, rio_TypeId_byte, (uint32_t)rio_parsePositiveConst(vm));
-    } else t = rio_arrayOf(vm, rio_TypeId_byte, (uint32_t)rio_parsePositiveConst(vm));
-    rio_expect(vm, ']', "']' expected");
-  }
+  if (c->tok.kind == rio_Tok_proc && count && maybe[count - 1]) rio_FAIL_AT_TOKEN(0, "a proc value can't be a maybe: it's unset until given a proc");
+  t = c->tok.kind == rio_Tok_proc && count ? rio_parseType(vm) : rio_parseTypeName(vm); /* ([4]proc(Float) -> Float: proc values as elements) */
   while (count) {
     int32_t n = prefix[--count];
     if (maybe[count]) t = rio_maybeOf(vm, t);

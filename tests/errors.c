@@ -187,6 +187,12 @@ static const Case cases[] = {
   {"xs: [..2]Int\nxs.print(1)\n",0, 0, 0, rio_ErrorKind_compile, 2, 9, 1, "print needs a Blob list"},
   {"b: Blob[..8]\nok := b.format(1, 2)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)"},
   {"b: Blob[..8]\nok := b.format()\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "format needs its settings first: b.format({width = 4}, ...), or b.print(...)"},
+  /* proc values as elements */
+  {"inc :: proc(n: Int) -> Int\n  return n + 1\nend\nops: [2]proc(Int) -> Int\nfirst :: proc(n: Int) -> Int\n  return ops[0](n)\nend\nops[1] = first\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "this proc calls procs through values"},
+  {"inc :: proc(n: Int) -> Int\n  return n + 1\nend\nops: [2]proc(Int) -> Int\nfirst :: proc(n: Int) -> Int\n  return ops[0](n)\nend\nlit := [2]proc(Int) -> Int{inc, first}\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "this proc calls procs through values"},
+  {"ops: [2]proc(Int) -> Int\ni := 1\nlog(ops[i](3))\n", 0, 0, 0, rio_ErrorKind_runtime, 3, 0, 0, "this proc value isn't set"},
+  {"m: ?proc(Int) -> Int\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a proc value can't be a maybe"},
+  {"m: [2]proc(Int) -> proc(Int)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a proc type can't take or return procs"},
   /* bitfields */
   {"x: Int(3)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a bitfield, Int(n), is only a struct's field"},
   {"S :: struct\n  a: [4]Int(3)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a bitfield, Int(n), is only a struct's field"},

@@ -566,6 +566,8 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
       type = rio_field(vm, rio_type(vm, m->c)->firstField + m->argCount)->type;
     else if (m->kind == rio_Pending_literal && m->op) type = rio_type(vm, m->b)->elem;
     else if (m->kind == rio_Pending_literal && m->a >= 0) type = rio_field(vm, rio_type(vm, m->b)->firstField + m->a)->type;
+    else if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b == rio_Builtin_push && m->argCount == 1)
+      type = rio_type(vm, c->values[m->valueBase].type)->elem; /* (xs.push(f): a list of proc values) */
     if (type >= 0 && rio_type(vm, type)->kind == rio_TypeKind_proc) rio_toProcValue(vm, arg, type);
   }
   if (param && param->refType) { /* &place: checked here, its address taken when the call is made */

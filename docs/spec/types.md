@@ -248,6 +248,33 @@ A `?T` that holds views (`?String`, `?[]Int`) must be a global, as other unions 
 
 A proc type is written `proc(T, U) -> R`, or without `-> R` when there's no result. Parameter names
 are allowed, for reading: `proc(x, y: Int) -> Int`. See [proc values](expressions.md#proc-values).
+Proc values can be elements too, of arrays, slices, lists and `[E]T`, with the proc type after the
+brackets (but not a maybe: a proc value is unset until given a proc):
+
+```rio
+sine :: proc(t: Float) -> Float
+  return sin(t * 6.2831853)
+end
+square :: proc(t: Float) -> Float
+  if t < 0.5
+    return 1.0
+  end
+  return -1.0
+end
+shapes := [2]proc(Float) -> Float{sine, square}
+for shape in shapes
+  log(shape(0.25))
+end
+voices: [..4]proc(Float) -> Float
+voices.push(square)
+log(voices[0](0.75))
+```
+
+```output
+1.0
+1.0
+-1.0
+```
 
 ## References
 

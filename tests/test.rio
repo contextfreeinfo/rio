@@ -1424,6 +1424,41 @@ end
 handler := Handler{id = 1, weight = 2.5}
 check(handler.id == 1 and handler.weight == 2.5, "fields after a new proc type")
 
+# ---- proc values as elements: arrays, slices, lists, [Enum]T, fields
+procDouble :: proc(n: Int) -> Int
+  return n * 2
+end
+procInc :: proc(n: Int) -> Int
+  return n + 1
+end
+procSum :: proc(fs: []proc(Int) -> Int, n: Int) -> Int
+  total := 0
+  for f in fs
+    total += f(n)
+  end
+  return total
+end
+procOps := [2]proc(Int) -> Int{procDouble, procInc}
+check(procOps[1](2) == 3 and procSum(procOps[:], 10) == 31, "an array of procs, called and passed as a slice")
+procPick := 0
+procOps[procPick] = procInc
+procOne := procOps[procPick]
+check(procOps[0](5) == 6 and procOne(1) == 2, "an element set at a running index, and taken out")
+procByDir: [Dir]proc(Int) -> Int
+procByDir[.east] = procDouble
+procMore: [..4]proc(Int) -> Int
+procMore.push(procDouble)
+procMore.push(procInc)
+check(procByDir[.east](4) == 8 and procMore.len() == 2 and procMore[1](7) == 8 and procSum(procMore[:], 1) == 4, "by enum, and a list")
+ProcMachine :: struct
+  steps: [2]proc(Int) -> Int
+  n: Int
+end
+procMachine := ProcMachine{steps = procOps, n = 5}
+procGrid: [2][2]proc(Int) -> Int
+procGrid[1][0] = procDouble
+check(procMachine.steps[1](procMachine.n) == 6 and procGrid[1][0](21) == 42, "in a struct, and nested arrays")
+
 # ---- bitfields: Int(n) fields sharing words
 BitHead :: struct
   kind: Int(4)
