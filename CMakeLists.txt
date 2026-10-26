@@ -59,6 +59,10 @@ set_tests_properties(rio_tests PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL")
 add_test(NAME rio_tests_streamed COMMAND rio -window 128 ${CMAKE_SOURCE_DIR}/tests/test.rio) # (read through a tiny window)
 set_tests_properties(rio_tests_streamed PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL")
 
+# a hash map in plain Rio, as user code would write one
+add_test(NAME rio_map COMMAND rio ${CMAKE_SOURCE_DIR}/tests/map.rio)
+set_tests_properties(rio_map PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL" PASS_REGULAR_EXPRESSION "all map tests passed")
+
 # -D overrides of top-level constants
 add_test(NAME rio_defines_default COMMAND rio ${CMAKE_SOURCE_DIR}/tests/defines.rio)
 set_tests_properties(rio_defines_default PROPERTIES

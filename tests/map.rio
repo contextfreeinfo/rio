@@ -1,0 +1,173 @@
+# A hash map written in Rio, to show what user code can do without a builtin one: String keys to Int
+# values, then Int keys to struct values. Open addressing with linear probing, and deletion by moving
+# later entries back (no tombstones). Views passed in are borrowed, so the map copies each key's bytes
+# into a global arena of its own. Revisit with generic procs, if they come, to see whether they help.
+fails := 0
+check :: proc(ok: Bool, what: String)
+  if not ok
+    log("FAIL:", what)
+    fails += 1
+  end
+end
+
+# FNV-1a, 32 bits (Ints wrap)
+hash :: proc(s: String) -> Int
+  h := -2128831035 # (2166136261)
+  for c in s
+    h = (h ^ c) * 16777619
+  end
+  return h
+end
+
+# ------------------------------------------------------------------ String -> Int
+
+CAP :: 64 # slots: a power of 2, kept at most 3/4 full
+keyBytes: Blob[..2048] # every key's bytes, end to end (deleted keys' bytes aren't reclaimed)
+keyAt: [CAP]Int # where a slot's key starts in keyBytes
+keyLen: [CAP]Int # its length, or -1 for an empty slot
+values: [CAP]Int
+count := 0
+for i in 0..<CAP do keyLen[i] = -1
+
+keyOf :: proc(i: Int) -> String
+  return keyBytes[keyAt[i]..<keyAt[i] + keyLen[i]].asString()
+end
+
+# the slot holding key, or else the empty slot where it would go
+slotOf :: proc(key: String) -> Int
+  i := hash(key) & (CAP - 1)
+  for keyLen[i] >= 0 and keyOf(i) != key
+    i = (i + 1) & (CAP - 1)
+  end
+  return i
+end
+
+# false when the map or the arena is full
+put :: proc(key: String, value: Int) -> Bool
+  i := slotOf(key)
+  if keyLen[i] < 0
+    if (count + 1) * 4 > CAP * 3 do return false
+    at := keyBytes.len()
+    if not keyBytes.pushAll(key) do return false
+    keyAt[i] = at
+    keyLen[i] = key.len()
+    count += 1
+  end
+  values[i] = value
+  return true
+end
+
+get :: proc(key: String) -> ?Int
+  i := slotOf(key)
+  if keyLen[i] < 0 do return nil
+  return values[i]
+end
+
+# the value, or else the default (a maybe can't yet be narrowed by `x is Int and ...`)
+getOr :: proc(key: String, default: Int) -> Int
+  v := get(key)
+  if v is Int do return v
+  return default
+end
+
+# Removes key, then moves back any entry after it in the same run that its probe would reach sooner
+remove :: proc(key: String) -> Bool
+  i := slotOf(key)
+  if keyLen[i] < 0 do return false
+  keyLen[i] = -1
+  count -= 1
+  j := (i + 1) & (CAP - 1)
+  for keyLen[j] >= 0
+    home := hash(keyOf(j)) & (CAP - 1)
+    if ((j - home) & (CAP - 1)) >= ((j - i) & (CAP - 1)) # home is at or before the hole: move it there
+      keyAt[i] = keyAt[j]
+      keyLen[i] = keyLen[j]
+      values[i] = values[j]
+      keyLen[j] = -1
+      i = j
+    end
+    j = (j + 1) & (CAP - 1)
+  end
+  return true
+end
+
+# counting words, with keys from a buffer that changes under them (the map keeps its own copies)
+text :: "the cat and the dog and the bird saw the cat " # (a space after each word)
+word: Blob[..16]
+for c in text
+  if c != 32
+    word.push(c)
+    continue
+  end
+  check(put(word[].asString(), getOr(word[].asString(), 0) + 1), "put a word")
+  word.clear()
+end
+check(getOr("the", 0) == 4 and getOr("cat", 0) == 2, "the: 4, cat: 2")
+check(get("bird") is Int and get("fish") is nil, "bird yes, fish no")
+check(count == 6, "6 different words")
+
+# many keys, colliding often, then half removed: the rest still found
+key: Blob[..8]
+for i in 0..<40
+  key.clear()
+  ok := key.print("k", i)
+  check(put(key[].asString(), i * 10), "put k")
+end
+check(count == 46 and put("k40", 400) and put("k41", 410) and not put("one too many", 1), "full at 3/4: 48")
+for i in 0..<40 by 2
+  key.clear()
+  ok := key.print("k", i)
+  check(remove(key[].asString()), "remove k")
+end
+found := 0
+for i in 0..<40
+  key.clear()
+  ok := key.print("k", i)
+  v := getOr(key[].asString(), -1)
+  if v >= 0
+    check(i % 2 == 1 and v == i * 10, "the odd ones, with their values")
+    found += 1
+  end
+end
+check(found == 20, "20 left")
+check(not remove("k0"), "removed already")
+check(remove("the") and get("the") is nil and get("cat") is Int, "remove a word")
+
+# ------------------------------------------------------------------ Int -> struct
+
+# The same table again for other types: without generic procs, each map is its own copy.
+Point :: struct
+  x, y: Int
+end
+PCAP :: 16
+pointUsed: [PCAP]Bool
+pointKey: [PCAP]Int
+points: [PCAP]Point
+
+pointSlot :: proc(key: Int) -> Int
+  i := (key * -1640531535) >> 28 & (PCAP - 1) # (Fibonacci hashing: the top bits)
+  for pointUsed[i] and pointKey[i] != key
+    i = (i + 1) & (PCAP - 1)
+  end
+  return i
+end
+
+putPoint :: proc(key: Int, p: Point)
+  i := pointSlot(key)
+  pointUsed[i] = true
+  pointKey[i] = key
+  points[i] = p
+end
+
+getPoint :: proc(key: Int) -> ?Point
+  i := pointSlot(key)
+  if not pointUsed[i] do return nil
+  return points[i]
+end
+
+for k in 0..<10 do putPoint(k * 1000, {x = k, y = k * k})
+p := getPoint(7000)
+if p is Point do check(p.y == 49, "point 7000")
+check(p is Point and getPoint(7001) is nil, "no point 7001")
+
+if fails == 0 do log("all map tests passed")

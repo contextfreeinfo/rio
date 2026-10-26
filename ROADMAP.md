@@ -68,8 +68,8 @@ already written, such as Rinc's and Studio's apps, so they come first.
 
 ## Next
 
-- **A map in Rio, as a test:** a hash table written in user code today, to show what's doable without a
-  builtin one, then rewritten with generic procs if they come, to see whether they help.
+- **Narrowing through `and`:** in `if x is Int and x > 2`, x is an Int after the `and` and inside the
+  if. Today neither narrows, so maybes need nested ifs or a helper (tests/map.rio's `getOr`).
 - **Unicode escapes:** `\u{1F600}` in strings, written out as UTF-8. Numbers past 10FFFF and
   surrogates are errors.
 - **`end` in index brackets:** the last index, as in `xs[end]` and `xs[end - 2..=end]`. It works only
@@ -129,6 +129,8 @@ already written, such as Rinc's and Studio's apps, so they come first.
   `&T` keeps today's meaning (views read through it are global), so nothing breaks. It would let `&`
   reach locals holding views (Strings, slices, builder views, structs) without changing every `&T`.
   A method's `self` would need the same choice.
+- **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
+  both are errors, and `x is nil` is the way to test for nil.
 - **Compile-time `when`:** today, `if CONST` still type-checks a body it never runs. Only if
   differences between hosts need it.
 - **Converting values to Int:** Bool's `toInt`, as enums already have. No truthiness.
@@ -164,6 +166,9 @@ already written, such as Rinc's and Studio's apps, so they come first.
 - **Proc values as elements.**
 - **Ranges as values,** with range slicing instead of `:`.
 - **Names:** `[..N]T` is a builder and `[..]T` a builder view.
+- **A map in Rio:** tests/map.rio, a hash table in user code, String to Int and Int to a struct. Keys
+  are copied into an arena of the map's own, since views passed in are borrowed. Each key and value
+  type needs its own copy of the code until generic procs, which it's to be tried again with.
 - **`do`:** one-line blocks (`if done do return`, `case .red do stop()`), and `do ... end` blocks
   for names.
 - **No `@`:** `cls* :: host proc(c: Int)` and `Shape :: diverse union`. Both words are ordinary names
