@@ -306,8 +306,10 @@ log(out.len(), ys[0], ys[1], out.pack(xs[]), out.len())
 ```
 
 `unpack` and `getInt` read a `String` too; `pack` and `setInt` need a `Blob`. Bytes outside `b` are
-a runtime error, as are `bits` other than those (and, when it's a constant, a compile error). Unpacked
-bytes aren't checked: a `Bool` or enum from other bytes may hold values it otherwise couldn't.
+a runtime error, as are `bits` other than those (and, when it's a constant, a compile error). So is
+unpacking a value its type doesn't have, as with `E.fromInt`: an enum that isn't one of its values
+(a bitfield's too), a `Bool` other than 0 or 1, or a union's tag past its types. Whatever `unpack`
+leaves in `x`, then, is a value of `x`'s type.
 
 ## Enums
 

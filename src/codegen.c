@@ -414,6 +414,7 @@ static int rio_loadBits(rio_Vm *vm, rio_Expr *e) {
 /* dst's bits = src's low bits; the rest of its word stays */
 static void rio_storeBits(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
   rio_Expr w = rio_bitsWord(dst), out;
+  w.type = rio_TypeId_int; /* (an enum's or a Bool's bitfield: its word's an Int) */
   uint32_t mask = ((1u << dst->bits) - 1) << dst->bitAt;
   int v = rio_toSlot(vm, src, 0), old = rio_toSlot(vm, &w, 0), d = rio_allocSlots(vm, 1), e = rio_allocSlots(vm, 1);
   if (dst->bitAt) rio_emit(vm, rio_Op_shl, e, v, rio_constSlot(vm, dst->bitAt));

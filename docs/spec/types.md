@@ -114,8 +114,34 @@ Header{kind = 3, level = -3, flags = 0, size = 4464, count = 0} 4465
 
 Since a word is little-endian, `Int(8)`, `Int(8)`, `Int(16)` are its bytes 0, 1 and 2 to 3, so a struct
 can lay out a binary format byte for byte, for `pack` and `unpack`
-([packing](builtins.md#packing)). A bitfield has no address of its own: `&h.kind` is an error, as is
-`Int(n)` anywhere but a struct's field.
+([packing](builtins.md#packing)).
+
+A bitfield can also be a `Bool(1)`, or an enum's `E(n)`, n bits with room for every one of E's values,
+so adding a value an enum's bits can't hold is a compile error, not a broken layout. Each reads,
+stores and prints as its own type:
+
+```rio
+Shape :: enum
+  circle, box, tri
+end
+Tile :: struct
+  kind: Shape(2)   # bits 0-1: room for 4 values, and Shape has 3
+  solid: Bool(1)   # bit 2
+  height: Int(5)   # bits 3-7
+end
+t := Tile{kind = .tri, solid = true, height = 9}
+t.kind = .box
+raw: Blob[4]
+raw.pack(0, t)
+log(t, t.kind == .box, raw[0])
+```
+
+```output
+Tile{kind = box, solid = true, height = 9} true 77
+```
+
+A bitfield has no address of its own: `&h.kind` is an error, as is a bitfield type (`Int(n)`,
+`Bool(1)`, `E(n)`) anywhere but a struct's field.
 
 ## Enums
 

@@ -454,6 +454,12 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     else memmove(M + to, M + from, n);
     rio_NEXT();
   }
+  rio_CASE(bchk) {
+    uint32_t at = R[ip->a].u, n = R[ip->a + 1].u, size = R[ip->c].u, i;
+    for (i = 0; size && i + size <= n; i += size)
+      if (!rio_holdsOk(M, ip->b, at + i)) return rio_runtimeError(vm, "unpacked a value its type doesn't have", rio_PC);
+    rio_NEXT();
+  }
   rio_CASE(geti) {
     int32_t at = R[ip->c].i, bits = R[ip->c + 1].i;
     uint32_t n = (uint32_t)(bits < 0 ? -bits : bits) / 8, v = 0, i;

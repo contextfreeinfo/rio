@@ -76,7 +76,8 @@ static int rio_parseTypeName(rio_Vm *vm) {
   if (c->syms[i].kind != rio_SymKind_type) rio_FAIL_AT_TOKEN(0, "type expected");
   t = c->syms[i].type;
   rio_next(vm);
-  if (t == rio_TypeId_int && c->tok.kind == '(' && !c->tok.newline) rio_FAIL(0, "a bitfield, Int(n), is only a struct's field");
+  if ((t == rio_TypeId_int || t == rio_TypeId_bool || rio_type(vm, t)->kind == rio_TypeKind_enum) && c->tok.kind == '(' && !c->tok.newline)
+    rio_FAIL(0, "a bitfield (Int(n), Bool(1), or an enum's E(n)) is only a struct's field");
   if (t == rio_TypeId_blob && c->tok.kind == '[' && !c->tok.newline) { /* Blob[N], Blob[..N], Blob[..] */
     rio_next(vm);
     if (c->tok.kind == '.' && c->peek.kind == '.') {
@@ -368,9 +369,9 @@ int rio_maybeOf(rio_Vm *vm, int t) {
 }
 
 /* Name :: struct, then fields (a, b: T) one per line, then end. Fields are laid out in order. A bitfield,
-   Int(n) (unsigned) or Int(-n) (signed), n 1 to 31, takes the next n bits of the word the bitfields
-   before it started, from its low bits, or a word of its own when they don't fit (never crossing words);
-   any other field starts a new word. */
+   Int(n) (unsigned) or Int(-n) (signed), n 1 to 31, Bool(1), or an enum's E(n) (n bits enough for all its
+   values), takes the next n bits of the word the bitfields before it started, from its low bits, or a
+   word of its own when they don't fit (never crossing words); any other field starts a new word. */
 void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
   rio_Compiler *c = vm->compiler;
   int index, offset = 0, bitWord = 0, bitUsed = 32; /* (the word bitfields are filling, and its bits taken) */
@@ -386,8 +387,10 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
     if (c->tok.kind == rio_Tok_eof) rio_FAIL(, rio_msgMissingEnd);
     n = rio_parseNames(vm, names, lens);
     if (c->tok.kind == rio_Tok_id && c->peek.kind == '(' && (i = rio_lookup(vm, c->tok.text, c->tok.len)) >= 0 &&
-        c->syms[i].kind == rio_SymKind_type && c->syms[i].type == rio_TypeId_int) { /* Int(n): a bitfield */
+        c->syms[i].kind == rio_SymKind_type && (c->syms[i].type == rio_TypeId_int || c->syms[i].type == rio_TypeId_bool ||
+                                                rio_type(vm, c->syms[i].type)->kind == rio_TypeKind_enum)) { /* Int(n), Bool(1), E(n): a bitfield */
       rio_Expr e;
+      t = c->syms[i].type;
       rio_next(vm);
       rio_next(vm);
       e = rio_parseExpr(vm);
@@ -395,8 +398,13 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
       if (e.kind != rio_ExprKind_const || e.type != rio_TypeId_int || e.value == 0 || e.value > 31 || e.value < -31)
         rio_FAIL(, "a bitfield is Int(n), n 1 to 31 bits (negative: signed)");
       bits = e.value;
+      if (t == rio_TypeId_bool && bits != 1) rio_FAIL(, "a Bool bitfield is Bool(1)");
+      if (t != rio_TypeId_int && t != rio_TypeId_bool) { /* (an enum's: unsigned, with room for every value) */
+        uint32_t values = rio_type(vm, t)->fieldCount;
+        if (bits < 0) rio_FAIL(, "an enum's bitfield is unsigned: E(n), n 1 to 31 bits");
+        if (bits < 31 && values > 1u << bits) rio_FAIL(, "too few bits for every value of this enum");
+      }
       rio_expect(vm, ')', "')' expected");
-      t = rio_TypeId_int;
     } else t = rio_parseType(vm);
     if (rio_type(vm, t)->kind == rio_TypeKind_void) rio_FAIL(, "invalid field type");
     rio_keepFieldsTogether(vm, st, st->fieldCount);

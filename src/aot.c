@@ -304,6 +304,10 @@ static void rio_instruction(rio_Aot *a, int pc) {
     if (in->x) rio_print(a, "memmove(rio_M + f_, rio_M + %s + (uint32_t)at_, n_); }\n", rio_V(A, 'u'));
     else rio_print(a, "memmove(rio_M + %s + (uint32_t)at_, rio_M + f_, n_); }\n", rio_V(A, 'u'));
     break;
+  case rio_Op_bchk:
+    rio_print(a, "{ uint32_t at_ = %s, n_ = %s, size_ = %s, i_; for (i_ = 0; size_ && i_ + size_ <= n_; i_ += size_) if (!rio_holdsOk(rio_M, %du, at_ + i_)) rio_RT_ERROR(\"unpacked a value its type doesn't have\"); }\n",
+              rio_V(A, 'u'), rio_V(A + 1, 'u'), rio_V(C, 'u'), B);
+    break;
   case rio_Op_geti: case rio_Op_seti: { /* (the blob's slots: geti's b, seti's a) */
     int get = in->op == rio_Op_geti, blob = get ? B : A;
     const char *name = get ? "getInt" : "setInt";

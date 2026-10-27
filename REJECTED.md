@@ -6,6 +6,8 @@ other languages have and people may expect. What's still open is in [ROADMAP.md]
 - **`**`:** `pow` covers Floats.
 - **Coroutines:** each needs a saved frame, which costs memory and is hard to specify.
 - **Traits and constraints on generics.**
+- **Odin's `$T` for generics:** a parameter's first `$T` would quietly declare T. `proc[T]` lists
+  them up front.
 - **Annotations, `@`:** programs don't define their own, since one the compiler checks would need a
   language for what to check, and one it doesn't check is a comment a typo can break. Tools that want
   markers can read comments.

@@ -83,6 +83,9 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      geti                   a = the int in Blob b at c, of c+1 bits (8, 16, 24 or 32; negative: signed),
                             little-endian
      seti                   the low c+1 bits of b into Blob a at c, little-endian
+     bchk                   fail unless each value at a (address, bytes: c bytes each) holds only what
+                            its type can, by the descriptor in constant b (print.h: enums, Bools,
+                            union tags), as unpack leaves them
    Jumps go to pc c.
      jmp jz jnz             always / if a == 0 / if a != 0
      jeq jne jlt jle        if a op b (Int)
@@ -113,7 +116,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
   X(mov2) X(ldw2) X(stw) X(stb) X(stw2) X(stx) X(stxb) X(idx) X(slice) X(copy) X(movn) X(zero)       \
   X(enumck) X(enumname)                                                                              \
   X(vadd) X(vsub) X(vmul) X(vdiv) X(vmod) X(fvadd) X(fvsub) X(fvmul) X(fvdiv)                        \
-  X(lidx) X(pusha) X(pushs) X(pusht) X(pushv) X(pushf) X(popa) X(lrem) X(lswap) X(lview) X(bpack) X(geti) X(seti) \
+  X(lidx) X(pusha) X(pushs) X(pusht) X(pushv) X(pushf) X(popa) X(lrem) X(lswap) X(lview) X(bpack) X(geti) X(seti) X(bchk) \
   X(jmp) X(jz) X(jnz) X(jeq) X(jne) X(jlt) X(jle) X(jfeq) X(jfne) X(jflt) X(jfle) X(jfnlt) X(jfnle)  \
   X(each) X(fori) X(forby)                                                                                    \
   X(call) X(ret) X(calli) X(getret) X(ffi) X(logi) X(logf) X(logs) X(logb) X(logn) X(logv) X(loge)   \

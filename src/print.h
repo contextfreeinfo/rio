@@ -17,7 +17,7 @@
      builder                        the element size and descriptor, and its capacity
      union                          how many types it lists, then each one's descriptor (0: nil)
      bits                           a struct's bitfield: its first bit in the word, its bits (negative:
-                                    signed)
+                                    signed), and its value's descriptor (an enum's or a Bool's; 0: Int)
      range                          nothing more (a Range: first..=last)
    Constants are slots: a descriptor names its strings and other descriptors by slot number. */
 #ifndef rio_PRINT_H
@@ -86,6 +86,54 @@ static void rio_outQuoted(rio_Out *o, const uint8_t *s, uint32_t n) {           
 }                                                                                                        \
 static void rio_printAt(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t p, int depth);                \
 static void rio_outFormatted(const uint8_t *M, rio_Out *o, uint32_t spec, int kind, uint32_t w0, uint32_t w1); \
+/* enum value v, of descriptor d: its name, or its number if it has none */                            \
+static void rio_printEnum(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t v) {                       \
+  uint32_t names = rio_printWord(M, (d + 1) * 4), n = rio_printWord(M, (d + 2) * 4);                     \
+  if (v < n && o->spec) rio_outFormatted(M, o, o->spec, 3, rio_printWord(M, (names + 2 * v) * 4), rio_printWord(M, (names + 2 * v + 1) * 4)); \
+  else if (v < n) rio_outBytes(o, M + rio_printWord(M, (names + 2 * v) * 4), rio_printWord(M, (names + 2 * v + 1) * 4)); \
+  else rio_outInt(o, (int32_t)v);                                                                        \
+}                                                                                                        \
+static void rio_printBool(const uint8_t *M, rio_Out *o, uint32_t v) {                                    \
+  if (o->spec) rio_outFormatted(M, o, o->spec, 2, v, 0); else if (v) rio_outBytes(o, "true", 4); else rio_outBytes(o, "false", 5); \
+}                                                                                                        \
+/* a bitfield's value, of descriptor d, from the word at p */                                            \
+static uint32_t rio_bitsValue(const uint8_t *M, uint32_t d, uint32_t p) {                                \
+  uint32_t at = rio_printWord(M, d * 4 + 4), w = rio_printWord(M, p);                                    \
+  int32_t bits = (int32_t)rio_printWord(M, d * 4 + 8), width = bits < 0 ? -bits : bits;                  \
+  w = (w >> at) & ((1u << width) - 1);                                                                   \
+  if (bits < 0 && (w >> (width - 1) & 1)) w |= ~0u << width;                                             \
+  return w;                                                                                              \
+}                                                                                                        \
+/* does the value at p, of descriptor d, hold only what its type can: enums one of their values, Bools   \
+   0 or 1, unions one of their tags? (unpack's check: bytes could hold anything) */                      \
+static int rio_holdsOk(const uint8_t *M, uint32_t d, uint32_t p) {                                      \
+  uint32_t k = d ? rio_printWord(M, d * 4) & 255 : 0, n, i, e, size;                                     \
+  switch (k) {                                                                                           \
+  case rio_Print_bool: return rio_printWord(M, p) <= 1;                                                  \
+  case rio_Print_enum: return rio_printWord(M, p) < rio_printWord(M, (d + 2) * 4);                       \
+  case rio_Print_bits:                                                                                   \
+    e = rio_printWord(M, d * 4 + 12);                                                                    \
+    if (!e || (rio_printWord(M, e * 4) & 255) != rio_Print_enum) return 1;                               \
+    return rio_bitsValue(M, d, p) < rio_printWord(M, (e + 2) * 4);                                       \
+  case rio_Print_struct:                                                                                 \
+    n = rio_printWord(M, (d + 2) * 4);                                                                   \
+    for (i = 0; i < n; i++) {                                                                            \
+      uint32_t f = d + 3 + 3 * i;                                                                        \
+      if (!rio_holdsOk(M, rio_printWord(M, (f + 2) * 4), p + rio_printWord(M, (f + 1) * 4))) return 0;   \
+    }                                                                                                    \
+    return 1;                                                                                            \
+  case rio_Print_union:                                                                                  \
+    i = rio_printWord(M, p);                                                                             \
+    if (i >= rio_printWord(M, (d + 1) * 4)) return 0;                                                    \
+    e = rio_printWord(M, (d + 2 + i) * 4);                                                               \
+    return !e || rio_holdsOk(M, e, p + 4);                                                               \
+  case rio_Print_array:                                                                                  \
+    n = rio_printWord(M, (d + 1) * 4); size = rio_printWord(M, (d + 2) * 4); e = rio_printWord(M, (d + 3) * 4); \
+    for (i = 0; i < n; i++) if (!rio_holdsOk(M, e, p + i * size)) return 0;                              \
+    return 1;                                                                                            \
+  default: return 1;                                                                                     \
+  }                                                                                                      \
+}                                                                                                        \
 /* n elements of descriptor d's element type from address at: text, or [a, b, ...] */                    \
 static void rio_printElements(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t at, uint32_t n, int depth) { \
   uint32_t k = rio_printWord(M, d * 4), array = (k & 255) == rio_Print_array, i, shown;                  \
@@ -121,12 +169,11 @@ static void rio_printAt(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t p, in
     if (o->spec) rio_outFormatted(M, o, o->spec, 0, last, 0); else rio_outInt(o, (int32_t)last);         \
     return;                                                                                              \
   }                                                                                                      \
-  case rio_Print_bits: { /* (its bits, shifted down: a signed one's top bit spread) */                   \
-    uint32_t at = rio_printWord(M, d * 4 + 4), w = rio_printWord(M, p);                                  \
-    int32_t bits = (int32_t)rio_printWord(M, d * 4 + 8), width = bits < 0 ? -bits : bits;                \
-    w = (w >> at) & ((1u << width) - 1);                                                                 \
-    if (bits < 0 && (w >> (width - 1) & 1)) w |= ~0u << width;                                           \
-    if (o->spec) rio_outFormatted(M, o, o->spec, 0, w, 0); else rio_outInt(o, (int32_t)w);              \
+  case rio_Print_bits: { /* (its bits, shifted down: a signed one's top bit spread; an enum's by name) */ \
+    uint32_t w = rio_bitsValue(M, d, p), e = rio_printWord(M, d * 4 + 12), ek = e ? rio_printWord(M, e * 4) & 255 : 0; \
+    if (ek == rio_Print_enum) rio_printEnum(M, o, e, w);                                                 \
+    else if (ek == rio_Print_bool) rio_printBool(M, o, w);                                               \
+    else if (o->spec) rio_outFormatted(M, o, o->spec, 0, w, 0); else rio_outInt(o, (int32_t)w);         \
     return;                                                                                              \
   }                                                                                                      \
   case rio_Print_float: {                                                                                \
@@ -136,18 +183,9 @@ static void rio_printAt(const uint8_t *M, rio_Out *o, uint32_t d, uint32_t p, in
     rio_outBytes(o, b, (uint32_t)rio_formatFloat(b, f));                                                 \
     return;                                                                                              \
   }                                                                                                      \
-  case rio_Print_bool: if (o->spec) rio_outFormatted(M, o, o->spec, 2, rio_printWord(M, p), 0); else if (rio_printWord(M, p)) rio_outBytes(o, "true", 4); else rio_outBytes(o, "false", 5); return; \
+  case rio_Print_bool: rio_printBool(M, o, rio_printWord(M, p)); return;                                 \
   case rio_Print_proc: rio_outBytes(o, "proc", 4); return;                                               \
-  case rio_Print_enum: {                                                                                 \
-    int32_t v = (int32_t)rio_printWord(M, p);                                                            \
-    uint32_t names = rio_printWord(M, (d + 1) * 4);                                                      \
-    n = rio_printWord(M, (d + 2) * 4);                                                                   \
-    i = (uint32_t)v; /* (values are 0 to n - 1) */                                                       \
-    if (i < n && o->spec) rio_outFormatted(M, o, o->spec, 3, rio_printWord(M, (names + 2 * i) * 4), rio_printWord(M, (names + 2 * i + 1) * 4)); \
-    else if (i < n) rio_outBytes(o, M + rio_printWord(M, (names + 2 * i) * 4), rio_printWord(M, (names + 2 * i + 1) * 4)); \
-    else rio_outInt(o, v);                                                                               \
-    return;                                                                                              \
-  }                                                                                                      \
+  case rio_Print_enum: rio_printEnum(M, o, d, rio_printWord(M, p)); return; /* (values are 0 to n - 1) */ \
   case rio_Print_struct: {                                                                               \
     uint32_t name = rio_printWord(M, (d + 1) * 4);                                                       \
     n = rio_printWord(M, (d + 2) * 4);                                                                   \

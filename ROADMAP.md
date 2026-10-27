@@ -69,9 +69,6 @@ already written, such as Rinc's and Studio's apps, so they come first.
   inside the brackets of the thing being indexed.
 - **Proc type aliases:** `Less :: proc(a, b: Int) -> Bool`, just as constants already alias other types
   (`Vec3 :: [3]Float`).
-- **Enums and Bools in bitfields:** `on: Bool(1)`, and `kind: Shape(2)` with a compile-time check that
-  2 bits hold every Shape, so adding a value to an enum can't silently break a packed layout.
-  Unpacking a value that isn't a Shape is a runtime error, as with `E.fromInt`.
 - **Number parsing from text:** String to Int in any base from 2 to 36, and String to Float, with bad
   input reported. Without it, no program can read numbers safely.
 - **`>>>`:** an unsigned right shift. Unsigned compare, divide and remainder would be builtins rather
@@ -83,15 +80,21 @@ already written, such as Rinc's and Studio's apps, so they come first.
   builtin `E.fromInt(n)` already is. Today that call is "not a value". Methods stay as they are, with an
   implicit `self`, since they're the common case: the marker goes on the rare kind. Deciding from
   whether a body uses `self` would let a body change what callers may do.
-- **Generic procs, Odin style:** `swap :: proc(a, b: &$T)`, `find :: proc(xs: []$T, x: T) -> Int`.
-  - **One compiled copy each,** never a copy per type. Each call passes T's size and layout as hidden
-    arguments.
+- **Generic procs:** `swap :: proc[T](a, b: &T)`, `find :: proc[T](xs: []T, x: T) -> Int`. The type
+  parameters are listed in brackets after `proc`, where nothing else can go.
+  - **Inferred at every call:** `find(xs[], 3)`. There's no `find[Int](...)`, which would read like
+    indexing.
+  - **One compiled copy each,** never a copy per type (no monomorphization). Each call passes T's
+    descriptor as a hidden argument: the same descriptors that print structs now, kept in the image.
   - **What the body can do:** in the body, a T value can only be passed, stored, copied, compared
-    with `==`, and indexed in `[]T` and `[..]T`.
+    with `==`, and indexed in `[]T` and `[..]T`. Builtins that read the descriptor work on it too:
+    `log` and `format` print it, `==` compares Strings by their text, `pack` and `unpack` take it (a
+    T that can't be packed is a compile error at the call, where T is known), and a hash builtin would
+    serve a generic map.
   - **No constraints and no traits:** anything type-specific, like `<`, comes in as a proc argument:
     `sort(xs[], less)`.
   - **Builtins declared for real:** this would let core.rio declare its generic builtins as
-    `([]$T).len` and `([..]$T).push`. Their rules, like what can be packed or printed, stay in comments.
+    `([]T).len` and `([..]T).push`. Their rules, like what can be packed or printed, stay in comments.
   - **Sort and find:** these could then be written in Rio. Without generics, they'd be host builtins
     taking a less proc.
 - **Constant tables:** `[N]T` constants built while compiling and kept in the read-only image, so a
@@ -101,8 +104,24 @@ already written, such as Rinc's and Studio's apps, so they come first.
 
 ## Maybe
 
-- **Generic types,** also Odin style (`Pair :: struct($T: typeid)`), only if they stay simple. They're
-  what generic maps would need. Unsure for now.
+- **Generic types,** in brackets as generic procs are: `Pair :: struct[T]`, used as `Pair[Int]`, only if
+  they stay simple. They're what generic maps would need. Some of a type's parameters may be constant
+  Ints rather than types, as the builtins' already are (`Blob[16]`, `[..N]T`). Unsure for now.
+- **Reflection, through generics:** not now, but designed so generic procs leave room for it. A generic
+  proc's hidden descriptor is all reflection needs, so it works on any value at any call, locals
+  included, with no stored `Any`: the caller knows the type, as with any generic call.
+  - **No recursion:** Rio has none, so a nested value isn't walked by a proc calling itself. A builtin
+    `for` walks it instead, a leaf at a time, depth first: `for leaf in leaves(x)`, each leaf a
+    builtin union of what can be one (`Int`, `Float`, `Bool`, `String`, an enum as its number and
+    name, `nil` for an empty union), with its field's name and depth.
+  - **What it would give:** printing and text serialization written in Rio (a writer of JSON, say),
+    equality and hashing of whole values, and reading values back from text, field by field.
+  - **Writing back** through `&x`, only leaf by leaf, from a leaf of the same kind: a view only from a
+    view, an enum checked as `E.fromInt` is, so bytes never become an address.
+  - **Costs:** descriptors kept for every type passed as a T, field names too (bytes in the image); a
+    slower walk than code written for one type; and a reflection API frozen in the 1.0 spec, which
+    every implementation must build. So it waits for a real use, such as a serializer, and builtins
+    on descriptors (printing, `==`, pack, hashing) may cover most of what it would.
 - **Iterator structs** instead of generators: `for x in it` would take any struct with a
   `next(&self) -> ?T` method, so a lazy sequence costs one small struct and no saved frames. This would
   only come after generic procs.
@@ -151,6 +170,10 @@ already written, such as Rinc's and Studio's apps, so they come first.
     procs if they come.
 
 ## Done recently
+
+- **Enums and Bools in bitfields:** `on: Bool(1)`, and `kind: Shape(2)`, with a compile-time check
+  that 2 bits hold every Shape. They print by name. Unpacking a value its type doesn't have (an enum,
+  a Bool or a union's tag, bitfield or not) is a runtime error, as with `E.fromInt`.
 
 - **Narrowing through `and`:** in `if x is Int and x > 2`, x is an Int after the `and`, not just in
   the if's body.

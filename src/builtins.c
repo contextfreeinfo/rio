@@ -97,7 +97,8 @@ int rio_descriptor(rio_Vm *vm, int type) {
     rio_Field *f = rio_field(vm, ty->firstField + i);
     if (f->bits) {
       v[0] = rio_Print_bits; v[1] = f->bitAt; v[2] = (uint32_t)(int32_t)f->bits;
-      rio_findConsts(vm, v, 3, 0);
+      v[3] = f->type == rio_TypeId_int ? 0 : (uint32_t)rio_descriptor(vm, f->type);
+      rio_findConsts(vm, v, 4, 0);
     } else if (f->type != rio_TypeId_void) rio_descriptor(vm, f->type);
   }
   if (k == rio_TypeKind_struct) {
@@ -117,7 +118,8 @@ int rio_descriptor(rio_Vm *vm, int type) {
     int d = f->type == rio_TypeId_void ? 0 : rio_descriptor(vm, f->type);
     if (f->bits) { /* (made above: found again) */
       v[0] = rio_Print_bits; v[1] = f->bitAt; v[2] = (uint32_t)(int32_t)f->bits;
-      d = rio_findConsts(vm, v, 3, 0);
+      v[3] = f->type == rio_TypeId_int ? 0 : (uint32_t)d;
+      d = rio_findConsts(vm, v, 4, 0);
     }
     if (k == rio_TypeKind_struct) {
       rio_descPush(vm, (uint32_t)(names + 2 + 2 * i));
@@ -473,6 +475,22 @@ static int rio_packable(rio_Vm *vm, int t) {
   default: return 1;
   }
 }
+/* does a value of type t hold enums, Bools or unions (whose values bytes could make ones they can't be)? */
+static int rio_holdsChecked(rio_Vm *vm, int t) {
+  const rio_Type *ty = rio_type(vm, t);
+  int i;
+  switch (ty->kind) {
+  case rio_TypeKind_enum: case rio_TypeKind_bool: case rio_TypeKind_union: return 1;
+  case rio_TypeKind_array: return rio_holdsChecked(vm, ty->elem);
+  case rio_TypeKind_struct:
+    for (i = 0; i < ty->fieldCount; i++) {
+      const rio_Field *f = rio_field(vm, ty->firstField + i);
+      if (f->type != rio_TypeId_void && !(f->bits && f->type == rio_TypeId_bool) && rio_holdsChecked(vm, f->type)) return 1;
+    }
+    return 0;
+  default: return 0;
+  }
+}
 static const char rio_msgPacksAddress[] = "only plain data packs: no views or proc values in it";
 static const char rio_msgPacksBuilder[] = "a builder's length can't come from bytes: pack and unpack its elements, xs[]";
 
@@ -578,10 +596,16 @@ static void rio_bytesCall(rio_Vm *vm, rio_PendingOp *call) {
     if (x->access & rio_Access_ref) x->access = 0;
     else if (xk != rio_TypeKind_slice && xk != rio_TypeKind_builderView) rio_FAIL(, "unpack changes what it's given: pass &x (or a slice, whose elements it fills)");
     else rio_needValue(vm, x);
+    int elem = xk == rio_TypeKind_slice || xk == rio_TypeKind_builderView ? rio_type(vm, x->type)->elem : x->type;
     r = rio_bytesOf(vm, x, 1);
     if (rio_failed(vm)) return;
     rio_emit(vm, rio_Op_bpack, blob, at, r);
     vm->code[vm->codeLen - 1].x = 1;
+    if (rio_holdsChecked(vm, elem)) { /* (each value unpacked: one its type has, else a runtime error) */
+      d = rio_descriptor(vm, elem);
+      if (rio_failed(vm)) return;
+      rio_emit(vm, rio_Op_bchk, r, d, rio_constSlot(vm, rio_type(vm, elem)->size));
+    }
   }
   if (result.kind == rio_ExprKind_void) c->freeSlot = call->freeAtStart;
   rio_callResult(vm, call, result);
