@@ -311,6 +311,42 @@ unpacking a value its type doesn't have, as with `E.fromInt`: an enum that isn't
 (a bitfield's too), a `Bool` other than 0 or 1, or a union's tag past its types. Whatever `unpack`
 leaves in `x`, then, is a value of `x`'s type.
 
+### Sizes and offsets
+
+`sizeOf(T)` is how many bytes a `T` takes, which is what `pack` writes for one. It takes a value
+too, `sizeOf(x)` for `x`'s type, but not a view's, whose bytes are its elements: `s.len() *
+sizeOf(T)`. `offsetOf(S, .field)` is the byte in struct `S` where a field starts, through nested
+structs too (`offsetOf(S, .a.b)`), and `bitOffsetOf(S, .field)`, the bit, 8 to a byte. A bitfield's
+`offsetOf` is the byte holding its lowest bit, and `bitOffsetOf(S, .f) % 8` is where in that byte
+it starts. Each is a constant, so it can size a `Blob` or a `::` constant, and it lets code read or
+change one field of a packed record without unpacking all of it:
+
+```rio
+Shape :: enum
+  circle, box, tri
+end
+Rec :: struct
+  kind: Shape(2)
+  solid: Bool(1)
+  height: Int(5)
+  count: Int
+  name: Blob[6]
+end
+SIZE :: sizeOf(Rec)
+file: Blob[SIZE * 2]
+file.pack(SIZE, Rec{kind = .tri, height = 9, count = 40})
+file.setInt(SIZE + offsetOf(Rec, .count), 32, 41)
+r: Rec
+file.unpack(SIZE, &r)
+log(SIZE, sizeOf(Blob[6]), offsetOf(Rec, .name), bitOffsetOf(Rec, .height), r.count)
+log(file.getInt(SIZE + offsetOf(Rec, .height), 8) >> (bitOffsetOf(Rec, .height) % 8))
+```
+
+```output
+16 8 8 3 41
+9
+```
+
 ## Enums
 
 For an enum `E`, `E.fromInt(n)` is the value `n` (a runtime error if `E` has no such value, or a

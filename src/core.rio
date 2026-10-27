@@ -118,6 +118,11 @@ Blob.setInt* :: host proc(at: Int, bits: Int, value: Int)   # its low bits
 #                                                     # into a []T or [..]T too (its elements), no &
 #                                                     # Packable: no views or proc values inside;
 #                                                     # a []T or [..]T packs its elements
+#   sizeOf*[T] :: host proc(t: T) -> Int          # T's bytes, a constant: sizeOf(T) or sizeOf(x)
+#                                                     # (not a view's; a struct's is what pack writes)
+#   offsetOf*[S: struct] :: host proc(s: S, path) -> Int   # offsetOf(S, .a.b): the byte where the
+#                                                     # field starts (a bitfield's: its lowest bit's)
+#   bitOffsetOf*[S: struct] :: host proc(s: S, path) -> Int   # the same, in bits
 #   E.fromInt*[E: enum] :: host proc(n: Int) -> E    # a runtime error if n isn't one of E's values
 #   E.has*[E: enum] :: host proc(n: Int) -> Bool
 #   (E).toInt*[E: enum] :: host proc() -> Int

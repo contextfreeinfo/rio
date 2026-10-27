@@ -223,7 +223,7 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
   rio_addSymbol(vm, "true", 4, rio_SymKind_const, rio_TypeId_bool, 1);
   rio_addSymbol(vm, "false", 5, rio_SymKind_const, rio_TypeId_bool, 0);
   for (i = 0; i < rio_Builtin_count; i++)
-    if (i < rio_Builtin_push || i == rio_Builtin_cap || i == rio_Builtin_hexBlob) /* the rest are methods */
+    if (i < rio_Builtin_push || i == rio_Builtin_cap || (i >= rio_Builtin_hexBlob && i <= rio_Builtin_bitOffsetOf)) /* the rest are methods */
       rio_addSymbol(vm, rio_builtinNames[i], (int)strlen(rio_builtinNames[i]), rio_SymKind_builtin, 0, i);
   for (i = 0; i < vm->ffiCount; i++) { /* the ffi functions' sigs: param types, then > and the result's */
     rio_Ffi *f = &vm->ffi[i];

@@ -276,6 +276,16 @@ static const Case cases[] = {
   {"E :: enum\n  a, b, c\nend\nb: Blob[12]\nb[8] = 5\nes: [3]E\nb.unpack(0, es[])\n", 0, 0, 0, rio_ErrorKind_runtime, 7, 0, 0, "unpacked a value its type doesn't have"},
   {"E :: enum\n  a, b, c\nend\nS :: struct\n  n: Int\n  es: [2]E\nend\nb: Blob[12]\nb[8] = 9\ns: S\nb.unpack(0, &s)\n", 0, 0, 0, rio_ErrorKind_runtime, 11, 0, 0, "unpacked a value its type doesn't have"},
   {"E :: enum\n  a, b, c\nend\nU :: union\n  nil\n  E\nend\nb: Blob[12]\nb[0] = 1\nb[4] = 2\nu: U\nb.unpack(0, &u)\nassert(u is E)\nok := false\nif u is E do ok = u == .c\nassert(ok)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  /* sizeOf, offsetOf, bitOffsetOf */
+  {"T :: struct\n  x: Float\n  y: Int(8)\n  z: Int(8)\nend\nS :: struct\n  a: Int(3)\n  b: Int(5)\n  c: Blob[6]\n  d: T\nend\nN :: sizeOf(S)\nb: Blob[N]\ns: S\nassert(N == 20 and b.len() == 20 and sizeOf(s) == 20 and sizeOf(s.d) == 8 and sizeOf(Blob[3]) == 4 and sizeOf([3]T) == 24)\nassert(offsetOf(S, .b) == 0 and bitOffsetOf(S, .b) == 3 and offsetOf(S, .c) == 4 and offsetOf(s, .d.z) == 17 and bitOffsetOf(S, .d.z) == 136)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"T :: struct\n  x: Float\n  y: Int(8)\n  z: Int(8)\nend\nlog(offsetOf(T, .w))\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "no such field"},
+  {"T :: struct\n  x: Float\n  y: Int(8)\n  z: Int(8)\nend\nlog(offsetOf(T, .x.y))\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "only a struct has fields"},
+  {"log(offsetOf(Int, .a))\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "only a struct has fields"},
+  {"T :: struct\n  x: Float\n  y: Int(8)\n  z: Int(8)\nend\nlog(offsetOf(T, 4))\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "offsetOf takes a struct and a field: offsetOf(S, .field)"},
+  {"T :: struct\n  x: Float\n  y: Int(8)\n  z: Int(8)\nend\nlog(bitOffsetOf(T))\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "offsetOf takes a struct and a field: offsetOf(S, .field)"},
+  {"xs: []Int\nlog(sizeOf(xs))\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a view's bytes are its elements': s.len() * sizeOf(T)"},
+  {"log(sizeOf(String))\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a view's bytes are its elements': s.len() * sizeOf(T)"},
+  {"log(sizeOf(Int, 2))\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "sizeOf takes a type or a value"},
   /* packing */
   {"b: Blob[8]\nn := 0\nb.unpack(0, n)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "unpack changes what it's given: pass &x (or a slice, whose elements it fills)"},
   {"S :: struct\n  name: String\nend\ns: S\nb: Blob[16]\nb.pack(0, s)\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "only plain data packs: no views or proc values in it"},
@@ -400,7 +410,7 @@ int main(void) {
     static const char *many = "a := 1\nb := 2\nc := 3\nd := 4\ne := 5\nf := 6\ng := 7\nh := 8\n";
     rio_Limits l = rio_limitsFor(sizeof scratch);
     rio_Error e;
-    l.symbols = 37; /* the builtins take 32, so the 6th global is one too many */
+    l.symbols = 40; /* the builtins take 35, so the 6th global is one too many */
     rio_init(&vm, mem, sizeof mem, code, 4096);
     if (!rio_compileWith(&vm, many, (uint32_t)strlen(many), scratch, sizeof scratch, &l) ||
         !strstr((e = rio_errorInfo(&vm)).msg, "too many symbols") || e.line != 6) {

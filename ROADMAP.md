@@ -171,6 +171,9 @@ already written, such as Rinc's and Studio's apps, so they come first.
 
 ## Done recently
 
+- **`sizeOf(T)`, `offsetOf(S, .field)` and `bitOffsetOf(S, .field)`:** constants, for packed records
+  and binary formats.
+
 - **Enums and Bools in bitfields:** `on: Bool(1)`, and `kind: Shape(2)`, with a compile-time check
   that 2 bits hold every Shape. They print by name. Unpacking a value its type doesn't have (an enum,
   a Bool or a union's tag, bitfield or not) is a runtime error, as with `E.fromInt`.

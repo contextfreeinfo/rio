@@ -9,7 +9,7 @@ const char *const rio_builtinNames[rio_Builtin_count] = {
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod", "assert",
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format", "print",
   "pack", "unpack", "getInt", "setInt",
-  "toInt", "toFloat", "toBool", "asString", "fromInt", "has", "hexBlob",
+  "toInt", "toFloat", "toBool", "asString", "fromInt", "has", "hexBlob", "sizeOf", "offsetOf", "bitOffsetOf",
   "len", "has",
 };
 
@@ -656,6 +656,34 @@ static void rio_hexBlobCall(rio_Vm *vm, rio_PendingOp *call) {
   rio_pushResult(vm, r, call->freeAtStart);
 }
 
+/* sizeOf(T), sizeOf(x): the bytes a T (or x's type) takes, which is what pack writes for one, as a
+   constant. Not a view's: its bytes are its elements', however many it has */
+static void rio_sizeOfCall(rio_Vm *vm, rio_PendingOp *call) {
+  rio_Compiler *c = vm->compiler;
+  rio_Expr *a = &c->values[call->valueBase];
+  int k;
+  if (rio_argCount(vm, call) != 1) rio_FAIL(, "sizeOf takes a type or a value");
+  if (a->kind != rio_ExprKind_type) rio_needValue(vm, a);
+  k = rio_type(vm, a->type)->kind;
+  if (rio_failed(vm)) return;
+  if (k == rio_TypeKind_slice || k == rio_TypeKind_builderView || k == rio_TypeKind_void)
+    rio_FAIL(, k == rio_TypeKind_void ? "no value, so no size" : "a view's bytes are its elements': s.len() * sizeOf(T)");
+  rio_callResult(vm, call, rio_exprOf(rio_ExprKind_const, rio_TypeId_int, (int32_t)rio_type(vm, a->type)->size));
+}
+
+/* offsetOf(S, .a.b): the byte in S where field a's field b starts (a bitfield's: the byte holding its
+   lowest bit); bitOffsetOf, the bit (a byte's 8). Constants: the path's offset is worked out as it's
+   read (rio_fieldPath), and the call's c is it + 1 */
+static void rio_offsetOfCall(rio_Vm *vm, rio_PendingOp *call) {
+  rio_Compiler *c = vm->compiler;
+  rio_Expr *a = &c->values[call->valueBase];
+  int32_t bit = (int32_t)call->c - 1;
+  if (rio_argCount(vm, call) != 2 || !call->c) rio_FAIL(, "offsetOf takes a struct and a field: offsetOf(S, .field)");
+  if (a->kind != rio_ExprKind_type) rio_needValue(vm, a);
+  if (rio_failed(vm)) return;
+  rio_callResult(vm, call, rio_exprOf(rio_ExprKind_const, rio_TypeId_int, call->b == rio_Builtin_offsetOf ? bit / 8 : bit));
+}
+
 /* Enum.fromInt(n): checked; Enum.has(n) -> Bool */
 static void rio_enumCall(rio_Vm *vm, rio_PendingOp *call) {
   rio_Compiler *c = vm->compiler;
@@ -772,6 +800,8 @@ void rio_finishBuiltinCall(rio_Vm *vm, rio_PendingOp *call) {
   else if (id == rio_Builtin_assert) rio_assertCall(vm, call);
   else if (id == rio_Builtin_format || id == rio_Builtin_print) rio_finishFormat(vm, call);
   else if (id == rio_Builtin_hexBlob) rio_hexBlobCall(vm, call);
+  else if (id == rio_Builtin_sizeOf) rio_sizeOfCall(vm, call);
+  else if (id == rio_Builtin_offsetOf || id == rio_Builtin_bitOffsetOf) rio_offsetOfCall(vm, call);
   else if (id >= rio_Builtin_fromInt) rio_enumCall(vm, call);
   else if (id >= rio_Builtin_toInt) rio_convertCall(vm, call);
   else if (id >= rio_Builtin_pack) rio_bytesCall(vm, call);

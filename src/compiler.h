@@ -191,7 +191,7 @@ typedef enum {
      call      a: the callee's rio_ExprKind (proc, static for a proc value, ffi, builtin);
                b: which (proc, slot holding the proc value, ffi function, rio_Builtin);
                c: a proc value's type; ffi: argument words placed so far; fromInt and has: the enum;
-               format: the byte builder's slots
+               format: the byte builder's slots; offsetOf and bitOffsetOf: the field path's bit offset + 1
      literal   a: the field being filled in (-1: punned, decided by its value); b: the struct type;
                c: the struct's address. op 1: an array or builder literal instead (b: its type; its
                values go in order, argCount so far, or by name: punAt 2, a the element named) */
@@ -520,6 +520,8 @@ typedef enum {
   /* Enum.fromInt and Enum.has */
   rio_Builtin_fromInt, rio_Builtin_has,
   rio_Builtin_hexBlob,
+  /* a type's layout: sizeOf(T), offsetOf(S, .f), bitOffsetOf(S, .f) */
+  rio_Builtin_sizeOf, rio_Builtin_offsetOf, rio_Builtin_bitOffsetOf,
   /* a Range's methods */
   rio_Builtin_rangeLen, rio_Builtin_rangeHas,
   rio_Builtin_count

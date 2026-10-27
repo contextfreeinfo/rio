@@ -611,6 +611,11 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     m->argCount++; /* b.unpack(at, &x): x's address taken when the call is made */
     return;
   }
+  if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b >= rio_Builtin_sizeOf && m->b <= rio_Builtin_bitOffsetOf &&
+      m->argCount == 0 && arg->kind == rio_ExprKind_type) {
+    m->argCount++; /* sizeOf(T), offsetOf(S, .f): a type */
+    return;
+  }
   rio_needValue(vm, arg);
   if (m->kind == rio_Pending_literal && m->op) { /* stored into the array at once, in order */
     int size, base;
@@ -823,6 +828,31 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
 }
 
 /* .value or nil, whose type is where it's going: an enum value, or a union's nil */
+/* offsetOf(S, .a.b)'s second argument: the path's bit offset in S's type (or its value's), as an Int
+   constant, and on the call (its c: the offset + 1, so the call knows it was a path) */
+static int rio_fieldPath(rio_Vm *vm, int tempStart) {
+  rio_Compiler *c = vm->compiler;
+  rio_PendingOp *m = rio_opTop(vm);
+  int type = c->values[m->valueBase].type;
+  int32_t bit = 0;
+  while (c->tok.kind == '.') {
+    rio_Type *ty = rio_type(vm, type);
+    rio_Field *f;
+    int i;
+    rio_next(vm);
+    if (c->tok.kind != rio_Tok_id) rio_FAIL_AT_TOKEN(rio_Expect_failed, "expected a field's name");
+    if ((i = rio_findField(vm, ty, c->tok.text, c->tok.len)) < 0)
+      rio_FAIL_AT_TOKEN(rio_Expect_failed, ty->kind == rio_TypeKind_struct ? "no such field" : "only a struct has fields");
+    f = rio_field(vm, ty->firstField + i);
+    bit += (int32_t)f->offset * 8 + (f->bits ? (int32_t)f->bitAt : 0);
+    type = f->type;
+    rio_next(vm);
+  }
+  m->c = bit + 1;
+  rio_pushResult(vm, rio_exprOf(rio_ExprKind_const, rio_TypeId_int, bit), tempStart);
+  return rio_Expect_operator;
+}
+
 static int rio_impliedValue(rio_Vm *vm, rio_ExprState *x, int tempStart) {
   rio_Compiler *c = vm->compiler;
   int t = c->tok.kind, type = rio_targetType(vm, x);
@@ -876,6 +906,16 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
   rio_Compiler *c = vm->compiler;
   int t = c->tok.kind, tempStart = (int)c->freeSlot;
   rio_Expr e;
+  if (t == rio_Tok_id && c->opCount > x->opBase && rio_opTop(vm)->kind == rio_Pending_call && rio_opTop(vm)->a == rio_ExprKind_builtin &&
+      rio_opTop(vm)->b == rio_Builtin_sizeOf && rio_opTop(vm)->argCount == 0) { /* sizeOf(Blob[4]): a whole type */
+    int i = rio_lookup(vm, c->tok.text, c->tok.len);
+    if (i >= 0 && c->syms[i].kind == rio_SymKind_type) {
+      int type = rio_parseType(vm);
+      if (rio_failed(vm)) return rio_Expect_failed;
+      rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
+      return rio_Expect_operator;
+    }
+  }
   if (t == rio_Tok_int || t == rio_Tok_float) e = rio_exprOf(rio_ExprKind_const, t == rio_Tok_int ? rio_TypeId_int : rio_TypeId_float, c->tok.val.i);
   else if (t == rio_Tok_string) e = rio_stringLiterals(vm, x);
   else if (t == rio_Tok_id) e = rio_identifier(vm);
@@ -900,6 +940,10 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
     rio_next(vm);
     return rio_Expect_operator;
   } else if ((t == '.' && c->peek.kind == rio_Tok_id) || t == rio_Tok_nil) {
+    rio_PendingOp *o = c->opCount > x->opBase ? rio_opTop(vm) : 0;
+    if (t == '.' && o && o->kind == rio_Pending_call && o->a == rio_ExprKind_builtin && o->argCount == 1 &&
+        (o->b == rio_Builtin_offsetOf || o->b == rio_Builtin_bitOffsetOf))
+      return rio_fieldPath(vm, tempStart); /* offsetOf(S, .field) */
     return rio_impliedValue(vm, x, tempStart);
   } else if (t == '{') { /* {field = ...} or {a, b} takes its struct or array type from where the value is going */
     int type = rio_targetType(vm, x), k = type < 0 ? -1 : rio_type(vm, type)->kind;
@@ -910,7 +954,9 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
   } else if (t == '[') { /* [N]T{...}, [..N]T{...}; or after is, any type: x is []Int */
     int type = rio_parseType(vm), k = rio_type(vm, type)->kind;
     if (rio_failed(vm)) return rio_Expect_failed;
-    if (c->opCount > x->opBase && rio_opTop(vm)->kind == rio_Pending_binary && rio_opTop(vm)->op == rio_Tok_is && c->tok.kind != '{') {
+    if (c->opCount > x->opBase && c->tok.kind != '{' &&
+        ((rio_opTop(vm)->kind == rio_Pending_binary && rio_opTop(vm)->op == rio_Tok_is) ||
+         (rio_opTop(vm)->kind == rio_Pending_call && rio_opTop(vm)->a == rio_ExprKind_builtin && rio_opTop(vm)->b == rio_Builtin_sizeOf))) {
       rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
       return rio_Expect_operator;
     }
