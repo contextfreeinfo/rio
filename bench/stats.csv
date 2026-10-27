@@ -1,0 +1,2 @@
+date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,calls_vm,calls_c,loop_vm,loop_c,particles_vm,particles_c,sieve_vm,sieve_c,note
+2026-10-26,078efae,puddle,26784,141054,11807,234496,24.7,62144,0.532,0.005,0.505,0.004,0.35,0.008,0.534,0.133,"baseline: stats begin"
