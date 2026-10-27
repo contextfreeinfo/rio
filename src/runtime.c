@@ -34,7 +34,7 @@ int rio_addFfi(rio_Vm *vm, const char *name, const char *sig, rio_FfiFn fn) {
   f->name = name;
   f->sig = sig;
   f->fn = fn;
-  f->argWords = f->resultWords = 0; /* (the compiler reads the sig) */
+  f->argWords = f->resultWords = f->pad = 0; /* (the compiler reads the sig) */
   return 0;
 }
 
@@ -142,4 +142,13 @@ rio_Val *rio_procResult(rio_Vm *vm, int proc) { return (rio_Val *)(void *)vm->me
 void *rio_sliceBytes(rio_Vm *vm, const rio_Val *slice) {
   uint32_t at = (uint32_t)slice[0].i, len = (uint32_t)slice[1].i;
   return at <= vm->memSize && len <= vm->memSize - at ? vm->mem + slice[0].i : 0;
+}
+
+void *rio_viewBytes(rio_Vm *vm, rio_View v) { return v.at <= vm->memSize && v.len <= vm->memSize - v.at ? vm->mem + v.at : 0; }
+
+void rio_getStruct(rio_Vm *vm, const rio_Val *arg, void *out, uint32_t size) {
+  uint32_t at = arg[0].u, n = arg[1].u < size ? arg[1].u : size;
+  if (at > vm->memSize || n > vm->memSize - at) n = 0; /* (not Rio's memory: nothing of it) */
+  memcpy(out, vm->mem + at, n);
+  memset((uint8_t *)out + n, 0, size - n);
 }

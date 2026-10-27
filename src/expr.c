@@ -130,7 +130,9 @@ rio_Expr rio_symbolExpr(rio_Vm *vm, int sym) {
       e.fromParam = (uint8_t)rio_bitGet(c->paramViews, (uint32_t)y->value);
     }
     return e;
-  case rio_SymKind_ffi: return rio_exprOf(rio_ExprKind_ffi, 0, y->value);
+  case rio_SymKind_ffi:
+    if (y->value < 0) rio_FAIL(rio_voidExpr(), "the host doesn't have this proc (it's declared for rio_hostHeader)");
+    return rio_exprOf(rio_ExprKind_ffi, 0, y->value);
   case rio_SymKind_builtin:
     if (y->value == rio_Builtin_len || y->value == rio_Builtin_cap)
       rio_FAIL(rio_voidExpr(), y->value == rio_Builtin_len ? "len is a method: write x.len()" : "cap is a method: write x.cap()");
@@ -582,6 +584,40 @@ static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
 /* ------------------------------------------------------------------ calls */
 
 /* one argument of a call or struct literal is complete (on top of the value stack) */
+/* a struct argument to a host proc, by address: where it is and its size, in the call's next 2 slots.
+   It stays where it is until the call: in a variable, or in temporaries above the arguments, which
+   the call keeps (rio_ffiRoom) */
+static void rio_ffiStructArg(rio_Vm *vm, rio_PendingOp *m, rio_Expr *e, int type) {
+  rio_Compiler *c = vm->compiler;
+  int d = m->freeAtStart + m->c, size = (int)rio_type(vm, type)->size;
+  rio_needValue(vm, e);
+  if (rio_failed(vm)) return;
+  if (rio_isTemp(vm, e) && e->value / 4 + rio_typeWords(vm, type) > m->punAt) m->punAt = e->value / 4 + rio_typeWords(vm, type);
+  if (e->kind == rio_ExprKind_static) {
+    uint32_t v[2];
+    v[0] = rio_expose(vm, (uint32_t)e->value, (uint32_t)size);
+    v[1] = (uint32_t)size;
+    rio_emit(vm, rio_Op_mov2, d, rio_findConsts(vm, v, 2, 1), 0);
+  } else {
+    rio_emit(vm, rio_Op_lea, d, e->value, e->offset);
+    rio_emit(vm, rio_Op_mov, d + 1, rio_constSlot(vm, (uint32_t)size), 0);
+  }
+  m->c += 2;
+  c->freeSlot = (uint32_t)m->punAt;
+}
+
+/* a host proc call taking a struct: the arguments' slots are kept from the start, and what's computed
+   for them goes above (punAt: the first slot past both) */
+static void rio_ffiRoom(rio_Vm *vm, rio_PendingOp *o, int ffi) {
+  rio_Compiler *c = vm->compiler;
+  rio_FfiDef *f = &c->ffi[ffi];
+  int i, structs = 0;
+  for (i = 0; i < f->paramCount; i++) structs |= rio_type(vm, c->params[f->firstParam + i].type)->kind == rio_TypeKind_struct;
+  if (!structs) return;
+  o->punAt = o->freeAtStart + vm->ffi[ffi].argWords;
+  if ((int)c->freeSlot < o->punAt) rio_allocSlots(vm, o->punAt - (int)c->freeSlot);
+}
+
 static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
   rio_Compiler *c = vm->compiler;
   rio_Expr *arg = rio_valueTop(vm), e;
@@ -658,13 +694,21 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     if (m->argCount >= f->paramCount) rio_FAIL(, "too many arguments");
     e = rio_popValue(vm);
     type = c->params[f->firstParam + m->argCount].type;
+    if (type == rio_TypeId_void) rio_FAIL(, "this host proc takes a struct: declare it, in its module's source, to say which");
     rio_coerce(vm, &e, type);
+    if (rio_type(vm, type)->kind == rio_TypeKind_struct) {
+      if (e.type != type) rio_FAIL(, "type mismatch");
+      rio_ffiStructArg(vm, m, &e, type);
+      m->argCount++;
+      return;
+    }
     words = rio_typeWords(vm, type);
     s = words == 2 ? rio_toSlot2(vm, &e) : rio_toSlot(vm, &e, 1);
     c->freeSlot = (uint32_t)(m->freeAtStart + m->c);
     d = rio_allocSlots(vm, words);
     if (s != d && !(words == 1 && rio_retarget(vm, s, d))) rio_emit(vm, words == 2 ? rio_Op_mov2 : rio_Op_mov, d, s, 0);
     m->c += words;
+    if (c->freeSlot < (uint32_t)m->punAt) c->freeSlot = (uint32_t)m->punAt; /* (structs' temporaries kept: rio_ffiRoom) */
   } else if (m->a == rio_ExprKind_builtin && (m->b == rio_Builtin_format || m->b == rio_Builtin_print)) rio_formatArg(vm, m);
   else if (m->a == rio_ExprKind_builtin && m->b == rio_Builtin_log) rio_logArg(vm, m);
   m->argCount++;
@@ -818,6 +862,8 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
   }
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_proc && m->argCount < c->procDefs[m->b].paramCount)
     return c->params[c->procDefs[m->b].firstParam + m->argCount].type;
+  if (m->kind == rio_Pending_call && m->a == rio_ExprKind_ffi && m->argCount < c->ffi[m->b].paramCount) /* pc.text("hi", {...}), pc.pointer(.ui) */
+    return c->params[c->ffi[m->b].firstParam + m->argCount].type;
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_static && m->argCount < rio_type(vm, m->c)->fieldCount)
     return rio_field(vm, rio_type(vm, m->c)->firstField + m->argCount)->type;
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b == rio_Builtin_push && m->argCount == 1)
@@ -827,7 +873,6 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
   return -1;
 }
 
-/* .value or nil, whose type is where it's going: an enum value, or a union's nil */
 /* offsetOf(S, .a.b)'s second argument: the path's bit offset in S's type (or its value's), as an Int
    constant, and on the call (its c: the offset + 1, so the call knows it was a path) */
 static int rio_fieldPath(rio_Vm *vm, int tempStart) {
@@ -853,6 +898,7 @@ static int rio_fieldPath(rio_Vm *vm, int tempStart) {
   return rio_Expect_operator;
 }
 
+/* .value or nil, whose type is where it's going: an enum value, or a union's nil */
 static int rio_impliedValue(rio_Vm *vm, rio_ExprState *x, int tempStart) {
   rio_Compiler *c = vm->compiler;
   int t = c->tok.kind, type = rio_targetType(vm, x);
@@ -1017,6 +1063,7 @@ static int rio_openCall(rio_Vm *vm, rio_ExprState *x) {
   o->a = callee.kind;
   o->b = callee.kind == rio_ExprKind_type ? callee.type : callee.value;
   if (callee.kind == rio_ExprKind_builtin && callee.value >= rio_Builtin_fromInt) o->c = callee.type; /* Enum.fromInt(...): which enum */
+  if (callee.kind == rio_ExprKind_ffi) rio_ffiRoom(vm, o, callee.value);
   x->depth++;
   rio_next(vm);
   return rio_Expect_operand;

@@ -4,6 +4,7 @@
    rio -c out.c file.rio   compile to a standalone C program instead
    rio -m file.rio         report where the program's memory goes, instead of running it
    rio -i out.img file.rio compile to an image (see rio_loadImage) instead of running it
+   rio -H out.h file.rio   write C for a host implementing the host procs file.rio declares (rio_hostHeader)
    rio file.img            run an image
    -j                      compile simple loops to native code first (ARM with Thumb-2 only)
    -M size                 the memory the program gets (default 8M, up to 1G; K, M and G suffixes),
@@ -398,7 +399,7 @@ int main(int argc, char **argv) {
   FILE *f;
   size_t n;
   int proc, i, memReport = 0, jit = 0;
-  const char *cOut = 0, *imageOut = 0, *path = 0;
+  const char *cOut = 0, *imageOut = 0, *headerOut = 0, *path = 0;
   unsigned long memSize = rio_MEM_DEFAULT;
   for (i = 1; i < argc; i++) { /* (these on their own) */
     if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) return fputs(rio_help, stdout) < 0;
@@ -425,6 +426,7 @@ int main(int argc, char **argv) {
     char *arg = argv[i], *eq;
     if (!strcmp(arg, "-c") && i + 1 < argc) cOut = argv[++i];
     else if (!strcmp(arg, "-i") && i + 1 < argc) imageOut = argv[++i];
+    else if (!strcmp(arg, "-H") && i + 1 < argc) headerOut = argv[++i];
     else if (!strcmp(arg, "-j")) jit = 1;
     else if (!strcmp(arg, "-M") && i + 1 < argc) i++;
     else if (!strcmp(arg, "-m")) memReport = 1;
@@ -452,13 +454,30 @@ int main(int argc, char **argv) {
   rio_setLoader(&rio_vm, rio_loadFile, 0);
   if (rio_window) rio_setSourceWindow(&rio_vm, (uint32_t)rio_window);
   signal(SIGINT, rio_onInterrupt);
-  if (!path) return cOut || memReport || imageOut ? rio_usage() : rio_repl();
+  if (!path) return cOut || memReport || imageOut || headerOut ? rio_usage() : rio_repl();
   rio_setBaseDir(path);
   if (rio_readFile(path) < 0) {
     fprintf(stderr, "cannot open %s\n", path);
     return 2;
   }
   n = rio_srcLen;
+  if (headerOut) { /* the C header, named for the file: pc.rio's pc_Text, pc_text_SIG */
+    static char header[1 << 20], prefix[64];
+    const char *base = path + strlen(path);
+    uint32_t size;
+    size_t k = 0;
+    while (base > path && base[-1] != '/' && base[-1] != '\\') base--;
+    while (base[k] && base[k] != '.' && k < sizeof prefix - 1) prefix[k] = base[k], k++;
+    if (!(size = rio_hostHeader(&rio_vm, rio_src, (uint32_t)n, rio_scratch, sizeof rio_scratch, prefix, header, sizeof header))) {
+      rio_report(path);
+      return 1;
+    }
+    if (!(f = fopen(headerOut, "wb")) || fwrite(header, 1, size, f) != size || fclose(f)) {
+      fprintf(stderr, "cannot write %s\n", headerOut);
+      return 2;
+    }
+    return 0;
+  }
   if (n >= 4 && !memcmp(rio_src, "RIOI", 4)) { /* an image: just run it */
     if (cOut || memReport || imageOut) return rio_usage();
     if (rio_loadImage(&rio_vm, rio_src, (uint32_t)n)) {

@@ -232,9 +232,25 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
     def->firstParam = (uint16_t)c->paramCount;
     def->paramCount = 0;
     def->resultType = rio_TypeId_void;
-    f->argWords = f->resultWords = f->declared = 0;
+    f->argWords = f->resultWords = f->declared = f->pad = 0;
     for (g = f->sig; *g; g++) {
       int isResult = *g == '>', ch = isResult ? g[1] : *g;
+      if (*g == '{') { /* a struct, by address: its layout, checked against the declaration's (rio_declareHostProc) */
+        int depth = 0;
+        if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
+        c->params[c->paramCount].refType = 0;
+        c->params[c->paramCount].addr = (uint32_t)(g - f->sig);
+        c->params[c->paramCount++].type = rio_TypeId_void; /* (until it's declared) */
+        def->paramCount++;
+        f->argWords = (uint8_t)(f->argWords + 2);
+        for (; *g; g++) {
+          depth += *g == '{';
+          depth -= *g == '}';
+          if (!depth) break;
+        }
+        if (!*g) rio_FAIL(, "bad ffi signature");
+        continue;
+      }
       int t = ch == 'i' ? rio_TypeId_int : ch == 'f' ? rio_TypeId_float : ch == 's' ? rio_TypeId_string : ch == 'b' ? rio_TypeId_blob : -1;
       if (t < 0) rio_FAIL(, "bad ffi signature");
       if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many params: the host procs' don't fit the compiler's tables (give it more room)");

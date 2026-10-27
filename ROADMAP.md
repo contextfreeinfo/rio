@@ -22,41 +22,6 @@ already written, such as Rinc's and Studio's apps, so they come first.
   Both would mean the same thing, since nothing past the end is ever taken. Leaning: keep one
   spelling, so there's nothing for a formatter to standardize. If a second one ever comes in, fmt
   rewrites it to `a[i..]`.
-- **Long argument lists:** two routes, still being weighed. Either way, what a call leaves out starts
-  as zero or nil, as variables do, and a `?T` tells "not given" apart from zero.
-  - **A. Struct arguments:** `text("hi", 3, 4, {color = 8, scale = 2})`. This works for any small struct
-    now, through proc values too: structs holding views (a `String` field) can be locals and by-value
-    parameters, with no new syntax for "limited scope". A struct parameter's views are borrowed like a
-    `String` parameter's, and a local counts as a view of whatever its views view (a field named on
-    its own, of what was stored there). tests/viewtest.py checks these rules with random programs.
-    - For: options are values, so a style can be kept in a global, reused and forwarded. Proc
-      values work unchanged, and there's no new parameter syntax. Locals holding strings are worth
-      having anyway.
-    - Against: a type to declare for each set of options, which readers look up away from the proc.
-      Host procs can't take structs yet, so the host interface would need them too, perhaps as the
-      struct's words in field order. Braces at every call, unless calls may drop them when the last
-      parameter is a struct (`text("hi", 3, 4, scale = 2)`). A proc can't keep a struct parameter's
-      views without copying their bytes.
-    - **References:** done. A view read through a `&T` parameter, `self`, a `for x in xs` element or
-      `r := &place` counts as borrowed (or as the proc's own memory, when the place is), like a
-      `String` parameter's, so `g = p.name` takes a copy. That also closed a hole (a call returning a
-      view of a local passed by `&`), and broke no Rinc or Studio app.
-    - **Also:** done for arrays and unions holding views. Builders holding views, and big values
-      holding them, must still be globals.
-  - **B. Named-only parameters,** after the positional ones, with a marker between them:
-    ```
-    text :: proc(s: String, x, y: Int; color: Int, scale: ?Int)
-    text("hi", 3, 4, scale = 2)
-    ```
-    - For: the options are in the signature. Each one is an ordinary parameter, so views need
-      nothing new. Hosts receive plain arguments.
-    - Against: new syntax in parameters and calls. Proc types would have positional parameters only,
-      so a proc with named ones can't fully be a proc value. Options can't be bundled or forwarded.
-    - **The marker:** `;` is short but easy to miss. Plainer: a `?` in a parameter's place (as
-      Python uses `*`), or `|`.
-  - Leaning: A. Its missing piece (structs holding strings as locals) is a gap either way, and the
-    call shorthand without braces would give A the look of B. If struct arguments work out, B is
-    dropped. Settle this before Rinc's API freezes, since long `pc` calls would be reshaped either way.
 - **Formatters as values:** if `hex(n)` and `pad(s, 8)` cover what `b.format(settings, ...)` does,
   `format` could go, which changes every call to it. No Rinc or Studio app calls it yet, so the change
   is cheap now and costly later. Leaning: decide whether `format` stays before building the formatters.
@@ -170,6 +135,13 @@ already written, such as Rinc's and Studio's apps, so they come first.
     procs if they come.
 
 ## Done recently
+
+- **Long argument lists, as struct arguments:** `text("hi", 3, 4, {color = 8, scale = 2})`, what's
+  left out zero, as for variables. Structs holding views (a `String` field) can be locals and by-value
+  parameters, borrowed like a `String` parameter's (tests/viewtest.py checks the rules with random
+  programs), and host procs take structs, by address, with their layouts in the sig; `rio -H` writes
+  the matching C from the module's source. Images bind only the host procs they call, and a host proc
+  may gain parameters at its end, or a struct fields at its end, which older images give as zeros.
 
 - **`sizeOf(T)`, `offsetOf(S, .field)` and `bitOffsetOf(S, .field)`:** constants, for packed records
   and binary formats.

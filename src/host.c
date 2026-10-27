@@ -6,7 +6,8 @@
      ([..]Int).name* :: host proc() -> Int         ... on any type
      Name* :: host struct                          a builtin type
 
-   A host proc's declared types must be exactly its sig's (an enum may stand for an Int). In a module, `name` is the host proc registered
+   A host proc's declared types must be exactly its sig's (an enum or a Bool may stand for an Int), and
+   a struct parameter's layout its sig's {...} (rio_layout). In a module, `name` is the host proc registered
    as module.name (a module's key, with / as .), else the global one of that name. A module with host
    procs registered under its name must declare every one of them.
 
@@ -122,28 +123,125 @@ static const char *rio_typeName(int type) {
   }
 }
 
-/* a declared type for a host proc's sig type: the same, or an enum where the sig has an Int (i), which
-   it is underneath */
+/* a declared type for a host proc's sig type: the same, or an enum or Bool where the sig has an Int (i),
+   which it is underneath */
 static int rio_hostTypeOk(rio_Vm *vm, int declared, int sig) {
-  return declared == sig || (sig == rio_TypeId_int && rio_type(vm, declared)->kind == rio_TypeKind_enum);
+  int k = rio_type(vm, declared)->kind;
+  return declared == sig || (sig == rio_TypeId_int && (k == rio_TypeKind_enum || k == rio_TypeKind_bool));
+}
+
+/* ------------------------------------------------------------------ structs, as hosts see them */
+
+void rio_hostPut(rio_HostText *o, const char *s, int len) {
+  if (len < 0) len = (int)strlen(s);
+  if (o->want) o->differs |= o->n + (uint32_t)len > o->cap || memcmp(o->want + o->n, s, (size_t)len);
+  else if (o->n + (uint32_t)len < o->cap) memcpy(o->out + o->n, s, (size_t)len);
+  o->n += (uint32_t)len;
+}
+void rio_hostPutInt(rio_HostText *o, int32_t v) {
+  char b[16];
+  rio_hostPut(o, b, rio_formatInt(b, v));
+}
+
+/* A type's layout, as a host sees it: what each word is, by name. A struct's is {name:T,...}, with T as
+   C reads it: Int (an enum's and a Bool's too), Int(n) for a bitfield (negative n: signed), Float,
+   String, Blob, []T, [..]T, [N]T, Blob[N], [..N]T, a struct's own layout, Proc, Union{T|...}. A host
+   proc's sig has a struct parameter's in braces: a host reads it by its address with this layout, and
+   an image made when it had fewer fields at its end still fits (rio_ffiFits). */
+void rio_layoutOf(rio_Vm *vm, int type, int bits, rio_HostText *o) {
+  rio_Compiler *c = vm->compiler;
+  rio_Type *ty = rio_type(vm, type);
+  int i, byte = ty->elem == rio_TypeId_byte && ty->kind != rio_TypeKind_struct && ty->kind != rio_TypeKind_union;
+  if (bits) {
+    rio_hostPut(o, "Int(", 4);
+    rio_hostPutInt(o, bits);
+    rio_hostPut(o, ")", 1);
+    return;
+  }
+  switch (ty->kind) {
+  case rio_TypeKind_float: rio_hostPut(o, "Float", 5); return;
+  case rio_TypeKind_proc: rio_hostPut(o, "Proc", 4); return;
+  case rio_TypeKind_void: rio_hostPut(o, "nil", 3); return;
+  case rio_TypeKind_slice:
+    if (type == rio_TypeId_string || type == rio_TypeId_blob) rio_hostPut(o, type == rio_TypeId_string ? "String" : "Blob", -1);
+    else rio_hostPut(o, "[]", 2);
+    break;
+  case rio_TypeKind_builderView: rio_hostPut(o, byte ? "Blob[..]" : "[..]", -1); break;
+  case rio_TypeKind_array: case rio_TypeKind_builder:
+    rio_hostPut(o, byte ? "Blob[" : "[", -1);
+    if (ty->kind == rio_TypeKind_builder) rio_hostPut(o, "..", 2);
+    rio_hostPutInt(o, (int32_t)ty->count);
+    rio_hostPut(o, "]", 1);
+    break;
+  case rio_TypeKind_struct: case rio_TypeKind_union:
+    rio_hostPut(o, ty->kind == rio_TypeKind_union ? "Union{" : "{", -1);
+    for (i = 0; i < ty->fieldCount; i++) {
+      rio_Field *f = rio_field(vm, ty->firstField + i);
+      if (i) rio_hostPut(o, ty->kind == rio_TypeKind_union ? "|" : ",", 1);
+      if (ty->kind == rio_TypeKind_struct) {
+        rio_hostPut(o, c->names + f->name, f->nameLen);
+        rio_hostPut(o, ":", 1);
+      }
+      rio_layoutOf(vm, f->type, ty->kind == rio_TypeKind_struct ? f->bits : 0, o);
+    }
+    rio_hostPut(o, "}", 1);
+    return;
+  default: rio_hostPut(o, "Int", 3); return; /* (Int, Bool, an enum, a byte) */
+  }
+  if (!byte && ty->kind != rio_TypeKind_slice) rio_layoutOf(vm, ty->elem, 0, o);
+  else if (ty->kind == rio_TypeKind_slice && type != rio_TypeId_string && type != rio_TypeId_blob) rio_layoutOf(vm, ty->elem, 0, o);
+}
+
+/* the length of a sig's {...} at g */
+static int rio_groupLen(const char *g) {
+  int depth = 0, n = 0;
+  do {
+    depth += g[n] == '{';
+    depth -= g[n] == '}';
+    n++;
+  } while (g[n] && depth);
+  return n;
+}
+
+/* is struct type's layout the sig's {...} at g? */
+static int rio_layoutIs(rio_Vm *vm, int type, const char *g) {
+  rio_HostText o;
+  memset(&o, 0, sizeof o);
+  o.want = g;
+  o.cap = (uint32_t)rio_groupLen(g);
+  rio_layoutOf(vm, type, 0, &o);
+  return !o.differs && o.n == o.cap;
 }
 
 /* name :: host proc(...) (procType, as written), for host proc i: the types must be its sig's (an enum
-   may stand for an Int), and calls then take the declared ones */
+   or Bool may stand for an Int, and a struct's layout must be the sig's {...}), and calls then take the
+   declared ones */
 static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i, int procType, int exporting) {
   rio_Compiler *c = vm->compiler;
   rio_FfiDef *def = &c->ffi[i];
   rio_Type *ty = rio_type(vm, procType);
   int same = ty->fieldCount == def->paramCount && rio_hostTypeOk(vm, ty->elem, def->resultType), j;
-  for (j = 0; same && j < def->paramCount; j++) same = rio_hostTypeOk(vm, rio_field(vm, ty->firstField + j)->type, c->params[def->firstParam + j].type);
+  for (j = 0; same && j < def->paramCount; j++) {
+    rio_Param *p = &c->params[def->firstParam + j];
+    int type = rio_field(vm, ty->firstField + j)->type;
+    if (p->type == rio_TypeId_void) same = rio_type(vm, type)->kind == rio_TypeKind_struct && rio_layoutIs(vm, type, vm->ffi[i].sig + p->addr);
+    else same = rio_hostTypeOk(vm, type, p->type);
+  }
   if (!same) { /* say what the host has */
     char text[rio_ERROR_BUF_SIZE];
     int len = rio_appendText(text, 0, "doesn't match the host's ");
     len = rio_appendText(text, len, vm->ffi[i].name);
     len = rio_appendText(text, len, ": proc(");
     for (j = 0; j < def->paramCount; j++) {
+      rio_Param *p = &c->params[def->firstParam + j];
       if (j) len = rio_appendText(text, len, ", ");
-      len = rio_appendText(text, len, rio_typeName(c->params[def->firstParam + j].type));
+      if (p->type == rio_TypeId_void) { /* (a struct: its layout, or as much as fits) */
+        const char *g = vm->ffi[i].sig + p->addr;
+        int n = rio_groupLen(g), room = (int)sizeof text - len - 24;
+        if (n > room) n = room > 0 ? room : 0;
+        memcpy(text + len, g, (size_t)n);
+        len += n;
+      } else len = rio_appendText(text, len, rio_typeName(p->type));
     }
     len = rio_appendText(text, len, ")");
     if (def->resultType) {
@@ -157,7 +255,7 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
   def->resultType = (uint16_t)ty->elem;
   vm->ffi[i].declared = 1;
   c->exporting = exporting;
-  rio_addSymbol(vm, name, nameLen, rio_SymKind_ffi, 0, i);
+  rio_addSymbol(vm, name, nameLen, rio_SymKind_ffi, procType, i); /* (its type: as declared, for rio_hostHeader) */
 }
 
 /* ------------------------------------------------------------------ builtins */
@@ -299,7 +397,10 @@ void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int l
     if (i < 0) i = rio_findFfi(vm, 0, 0, name, nameLen);
   }
   if (i >= 0) rio_declareHostProc(vm, name, nameLen, i, procType, exporting);
-  else rio_declareBuiltin(vm, name, nameLen, receiver, procType, exporting, line, col);
+  else if (vm->hostHeader && receiver < 0 && ((i = rio_lookup(vm, name, nameLen)) < 0 || c->syms[i].kind != rio_SymKind_builtin)) {
+    c->exporting = exporting; /* (rio_hostHeader: recorded, for its header; calls can't be made) */
+    rio_addSymbol(vm, name, nameLen, rio_SymKind_ffi, procType, -1);
+  } else rio_declareBuiltin(vm, name, nameLen, receiver, procType, exporting, line, col);
 }
 
 /* does the current token start `(type).name ::`? (a method on a type without a name: host only) */
