@@ -54,7 +54,7 @@ build/rio                # or a REPL
 ```
 
 Or get a build from the [nightly release](https://github.com/contextfreeinfo/rio/releases/tag/nightly):
-just the one program, zipped on Windows and a `.tar.gz` on macOS and Linux (x86-64, and arm64 for a
+just the one program, zipped on Windows and a `.tar.gz` on macOS (Apple silicon) and Linux (x86-64, and arm64 for a
 Raspberry Pi 4 or 5 with 64-bit Raspberry Pi OS). `rio -help` lists what it does, and `rio -license` gives its license.
 
 ## Learn more
