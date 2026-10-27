@@ -102,8 +102,22 @@ static const Case cases[] = {
   {"g: []Int\nf :: proc()\n  a: [4]Int\n  g = a[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "this view of the proc's own memory would outlive the call"},
   {"g: []Int\nf :: proc()\n  a: [4]Int\n  s := a[1..<3]\n  t := s\n  g = t\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this view of the proc's own memory would outlive the call"},
   {"f :: proc(out: &[]Int)\n  a: [4]Int\n  out = a[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this view of the proc's own memory would outlive the call"},
+  /* ...through a & argument's place, which a result may view; and a store that may not run (in an if), or one
+     a loop's earlier code runs after, doesn't take back what a local held (tests/viewtest.py found these) */
+  {"S :: struct\n  buf: [4]Int\nend\nf :: proc(s: &S) -> []Int do return s.buf[]\ng: []Int\nh :: proc()\n  s: S\n  g = f(&s)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"S :: struct\n  buf: [4]Int\nend\nf :: proc(s: &S) -> []Int do return s.buf[]\ng: []Int\nh :: proc()\n  s: S\n  r := &s\n  g = f(&r)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"g: []Int\nga: [4]Int\nh :: proc(c: Bool)\n  a: [4]Int\n  s := a[]\n  if c\n    s = ga[]\n  end\n  g = s\nend\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"g: []Int\nga: [4]Int\nh :: proc()\n  a: [4]Int\n  s := ga[]\n  for i in 0..<2\n    g = s\n    s = a[]\n  end\nend\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "a view of the proc's own memory, in a loop, into a variable from before it that held none"},
+  {"g: []Int\nh :: proc(v: []Int)\n  s: []Int\n  for i in 0..<2\n    s = v\n  end\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "a view that came in as a parameter, in a loop, into a variable from before it that held none"},
+  /* what's read through a & parameter, self or a for element over a borrowed slice is the caller's: borrowed */
+  {"S :: struct\n  buf: [4]Int\nend\ng: []Int\nf :: proc(s: &S)\n  g = s.buf[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this view came in as a parameter"},
+  {"S :: struct\n  buf: [4]Int\nend\ng: []Int\nS.keep :: proc()\n  g = self.buf[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this view came in as a parameter"},
+  {"g := \"\"\nf :: proc(names: []String)\n  for n in names do g = n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this view came in as a parameter"},
   /* views of globals and parameters, and local views passed down or replaced, are fine */
   {"g: []Int\nga: [4]Int\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[]\n  n := s.len()\n  s = ga[]\n  g = s\n  return v[1..]\nend\nsum :: proc(v: []Int) -> Int\n  return v.len()\nend\nh :: proc() -> Int\n  a: [4]Int\n  return sum(a[])\nend\nlog(f(ga).len(), h())\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  /* ...as are a loop's own locals, stores in a loop of what a local already holds, views returned through a &
+     parameter of a global's place, and one of the caller's returned to it */
+  {"S :: struct\n  buf: [4]Int\nend\ngs: S\ng: []Int\nfront :: proc(s: &S) -> []Int do return s.buf[0..<2]\nga :: proc() -> []Int do return gs.buf[]\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[]\n  for i in 0..<2\n    t := a[]\n    s = t\n    s = ga()\n  end\n  g = front(&gs)\n  r := &gs\n  g = front(&r)\n  return v\nend\nlog(f(gs.buf[]).len(), g.len())\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   /* the logical operators are words: the C forms point at themselves */
   {"a := true\nb := a && false\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 2, "write and instead of &&"},
   {"a := true\nb := a || false\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 2, "write or instead of ||"},

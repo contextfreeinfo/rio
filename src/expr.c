@@ -127,6 +127,10 @@ rio_Expr rio_symbolExpr(rio_Vm *vm, int sym) {
   case rio_SymKind_readOnlyRef: /* value: the slot holding the receiver's (or loop element's) address */
     e = rio_exprOf(rio_ExprKind_indirect, y->type, y->value);
     e.access = y->kind == rio_SymKind_readOnlyRef;
+    if (c->curProc >= 0) { /* (its slot's marks: what its place may view, and whether it's the proc's own memory) */
+      e.localView = (uint8_t)rio_bitGet(c->localViews, (uint32_t)y->value);
+      e.fromParam = (uint8_t)rio_bitGet(c->paramViews, (uint32_t)y->value);
+    }
     return e;
   case rio_SymKind_ffi: return rio_exprOf(rio_ExprKind_ffi, 0, y->value);
   case rio_SymKind_builtin:
@@ -670,7 +674,9 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
     for (i = 0; i < p->paramCount; i++) {
       rio_Param *param = &c->params[p->firstParam + i];
       rio_Expr dst = rio_exprOf(rio_ExprKind_static, param->type, (int32_t)param->addr), *arg = &c->values[m->valueBase + i];
-      if ((!i && p->selfByRef) || param->refType) { /* the place's address */
+      if ((!i && p->selfByRef) || param->refType) { /* the place's address (a view it returns may view that place) */
+        resultLocal |= rio_isLocalMemory(vm, arg) || rio_isLocalView(vm, arg);
+        resultFrom |= arg->fromParam;
         rio_emit(vm, rio_Op_mov, (int)(dst.value / 4), rio_toAddrSlot(vm, arg), 0);
         continue;
       }

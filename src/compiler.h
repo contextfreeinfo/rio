@@ -167,8 +167,10 @@ typedef struct {
   uint8_t access;
   uint16_t type;
   uint16_t tempStart; /* the first free slot before its temporaries: freeing them goes back there */
-  uint16_t localView : 1; /* a view of the current proc's own memory */
-  uint16_t fromParam : 1; /* a view that came in through a parameter of the current proc (its caller's) */
+  uint16_t localView : 1; /* a view of the current proc's own memory (read through a reference: its place
+                             is that memory, or may hold such views) */
+  uint16_t fromParam : 1; /* a view that came in through a parameter of the current proc (its caller's;
+                             read through a reference: its place came in so) */
   uint16_t bitAt : 5;     /* a bitfield (bits not 0): bits wide, from bit bitAt of the word here */
   uint16_t bits : 5;
   uint16_t bitSigned : 1;

@@ -39,15 +39,11 @@ already written, such as Rinc's and Studio's apps, so they come first.
       parameter is a struct (`text("hi", 3, 4, scale = 2)`). A proc can't keep a struct parameter's
       views without copying their bytes. A local is checked as a whole, so one local view in it makes
       every field count as local.
-    - **References:** today, reading a view through a `&T` parameter or a method's `self` counts as
-      global, since such structs are always globals (`g = p.name` works). Methods take `self` by
-      reference, so keeping `&` to globals would leave locals without methods. Instead, views read
-      through `&T` and `self` would count as borrowed, like a `String` parameter's, so storing one in
-      a global takes a copy. That breaks code like `g = p.name`. Rinc and Studio have one struct
-      method and no `&` struct parameters, so it's likely to break nothing there, but compiling every
-      app against the change would tell for sure.
-    - **Also:** locals that are arrays, builders or unions holding views, checked the same way. A
-      `for x in xs` element and `r := &place` are references too, and follow the same rule.
+    - **References:** done. A view read through a `&T` parameter, `self`, a `for x in xs` element or
+      `r := &place` counts as borrowed (or as the proc's own memory, when the place is), like a
+      `String` parameter's, so `g = p.name` takes a copy. That also closed a hole (a call returning a
+      view of a local passed by `&`), and broke no Rinc or Studio app.
+    - **Also:** locals that are arrays, builders or unions holding views, checked the same way.
   - **B. Named-only parameters,** after the positional ones, with a marker between them:
     ```
     text :: proc(s: String, x, y: Int; color: Int, scale: ?Int)

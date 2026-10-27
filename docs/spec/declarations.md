@@ -159,6 +159,58 @@ log(name[].asString())
 A
 ```
 
+What's read through a `&` parameter or `self` is the caller's too, so a view read there is only
+borrowed in the same way. A call's result, when it's a view, may view what went in, the places of `&`
+arguments included, so it counts as a view of whatever those were:
+
+```rio
+Box :: struct
+  xs: [4]Int
+end
+front :: proc(b: &Box) -> []Int
+  return b.xs[0..<2]
+end
+kept: []Int
+f :: proc()
+  b: Box
+  kept = front(&b)  # error: this view of the proc's own memory would outlive the call
+end
+```
+
+Which locals hold such views is worked out in the order the code is written. A store in a local's own
+block (the one it's declared in) replaces what it held. A store in an `if` or a loop inside that block
+only adds to it, since it may not run. And in a loop, the code before a store runs after it too, so a
+local from before the loop can't start holding such a view there:
+
+```rio
+kept: []Int
+g: [4]Int
+f :: proc(c: Bool)
+  xs: [4]Int
+  v := xs[]
+  v = g[]  # its own block: v views only g now
+  kept = v
+  w := xs[]
+  if c
+    w = g[]
+  end
+  kept = w  # error: this view of the proc's own memory would outlive the call
+end
+```
+
+```rio
+kept: []Int
+g: [4]Int
+f :: proc()
+  xs: [4]Int
+  v := g[]
+  for i in 0..<2
+    kept = v
+    v = xs[]  # error: in a loop, into a variable from before it that held none
+  end
+end
+```
+
 And a call's result, when it's a view, may view what went in, so it's a view of the caller's own
 memory if any argument was. Each rule is about one proc's own code, so changing a proc's body never
 changes what its callers may do.

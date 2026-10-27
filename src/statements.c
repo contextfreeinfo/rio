@@ -141,9 +141,11 @@ static void rio_forEach(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
                         int pointer, int end, int index) {
   rio_Compiler *c = vm->compiler;
   rio_Type *ty;
-  int s, size, readOnly, indexType = rio_TypeId_int;
+  int s, size, readOnly, indexType = rio_TypeId_int, local, fromParam;
   rio_needValue(vm, e);
   ty = rio_type(vm, e->type);
+  local = rio_isLocalView(vm, e); /* (what reading through the element may view) */
+  fromParam = e->fromParam;
   if (ty->kind == rio_TypeKind_builder || ty->kind == rio_TypeKind_builderView) { /* the elements there when the loop starts */
     int builder = rio_toSlot3(vm, e), view = rio_allocSlots(vm, 2);
     rio_emit(vm, rio_Op_lview, view, builder, 0);
@@ -164,6 +166,10 @@ static void rio_forEach(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
   rio_emit(vm, rio_Op_mov, end + 1, rio_constSlot(vm, size), 0);
   if (indexName) rio_emit(vm, rio_Op_mov, index, rio_constSlot(vm, 0), 0);
   c->freeSlot = c->liveSlots;
+  if (c->curProc >= 0) {
+    rio_markLocalView(vm, (uint32_t)pointer * 4, 1, local);
+    rio_markParamView(vm, (uint32_t)pointer * 4, 1, fromParam);
+  }
   rio_addSymbol(vm, name, nameLen, readOnly ? rio_SymKind_readOnlyRef : rio_SymKind_ref, ty->elem, pointer);
   if (indexName) rio_addSymbol(vm, indexName, indexLen, rio_SymKind_var, indexType, index * 4);
   b->kind = rio_Block_each;

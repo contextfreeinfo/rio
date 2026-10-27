@@ -197,6 +197,7 @@ int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver) {
     int addr = rio_allocSlots(vm, p->selfByRef ? 1 : rio_typeWords(vm, receiver)) * 4;
     if (c->paramCount >= (int)c->limits.params) rio_FAIL(-1, "too many parameters");
     rio_addParam(vm, p->selfByRef ? rio_TypeId_int : receiver, 0, addr);
+    if (p->selfByRef) rio_markParamView(vm, (uint32_t)addr, 1, 1); /* (the caller's place: what it views, borrowed) */
     rio_addSymbol(vm, "self", 4, p->selfByRef ? rio_SymKind_ref : rio_SymKind_var, receiver, p->selfByRef ? addr / 4 : addr);
     p->paramCount++;
   }
@@ -217,8 +218,9 @@ void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type
                                                                      read through like self */
   if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
   rio_addParam(vm, isRef ? rio_TypeId_int : type, isRef ? type : 0, addr);
-  if (!isRef && (ty->kind == rio_TypeKind_slice || ty->kind == rio_TypeKind_builderView)) /* (a view from the caller: tracked) */
-    rio_markParamView(vm, (uint32_t)addr, rio_typeWords(vm, type), 1);
+  if (isRef || ty->kind == rio_TypeKind_slice || ty->kind == rio_TypeKind_builderView) /* (a view from the caller, or the
+                                                                              caller's place: what it views, borrowed) */
+    rio_markParamView(vm, (uint32_t)addr, isRef ? 1 : rio_typeWords(vm, type), 1);
   rio_addSymbol(vm, name, nameLen, isRef ? rio_SymKind_ref : rio_SymKind_var, type, isRef ? addr / 4 : addr);
   c->procDefs[proc].paramCount++;
 }
@@ -663,15 +665,21 @@ void rio_declareVar(rio_Vm *vm) {
   c->targetType = type;
   e = rio_parseExpr(vm);
   if (e.access & rio_Access_ref) { /* name := &place: bound once to that place, like a for-each element */
-    int s, d;
+    int s, d, local, fromParam;
     if (type >= 0) rio_FAIL(, "a reference takes its type from its place: write name := &x");
     if (c->exporting) rio_FAIL(, "a reference can't be exported");
     e.access = 0;
+    local = rio_isLocalMemory(vm, &e) || rio_isLocalView(vm, &e);
+    fromParam = e.fromParam;
     s = rio_toAddrSlot(vm, &e);
     c->freeSlot = c->liveSlots;
     d = rio_allocSlots(vm, 1);
     c->liveSlots = c->freeSlot;
     if (s != d) rio_emit(vm, rio_Op_mov, d, s, 0);
+    if (c->curProc >= 0) { /* (its slot's marks: what reading through it may view) */
+      rio_markLocalView(vm, (uint32_t)d * 4, 1, local);
+      rio_markParamView(vm, (uint32_t)d * 4, 1, fromParam);
+    }
     rio_addSymbol(vm, name, nameLen, rio_SymKind_ref, e.type, d);
     return;
   }

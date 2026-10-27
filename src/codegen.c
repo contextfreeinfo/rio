@@ -86,11 +86,15 @@ void rio_patchJumps(rio_Vm *vm, int list, int to) {
 /* n slots from the first free one */
 int rio_allocSlots(rio_Vm *vm, int n) {
   rio_Compiler *c = vm->compiler;
-  int first = (int)c->freeSlot;
+  int first = (int)c->freeSlot, s;
   c->freeSlot += (uint32_t)n;
   if (c->freeSlot > c->slotHigh) {
     c->slotHigh = c->freeSlot;
     if (c->slotHigh > c->limits.slots || c->slotHigh * 4 > vm->top) rio_FAIL(0, "out of slots");
+  }
+  for (s = first; s < (int)c->freeSlot; s++) { /* (fresh: they view nothing yet) */
+    rio_bitClear(c->localViews, (uint32_t)s);
+    rio_bitClear(c->paramViews, (uint32_t)s);
   }
   return first;
 }
@@ -213,15 +217,38 @@ void rio_markParamView(rio_Vm *vm, uint32_t addr, int words, int fromParam) {
   }
 }
 
-/* A view stored into dst: into a local of this proc, that local now holds (or no longer holds) a view of
-   the proc's own memory, or one that came in through a parameter; anywhere else, it mustn't be either. */
+/* do the slots at addr already all hold a view of the kind in bits? */
+static int rio_allMarked(const uint8_t *bits, uint32_t addr, int words) {
+  uint32_t s = addr / 4;
+  for (; words-- > 0; s++)
+    if (!rio_bitGet(bits, s)) return 0;
+  return 1;
+}
+
+/* A view stored into dst: into a local of this proc, that local now holds a view of the proc's own memory,
+   or one that came in through a parameter, or no longer does; anywhere else, it mustn't be either. Only a
+   store in the local's own block surely runs before the code after it, so only there does the local stop
+   holding what it held (a store in an if that may not run can't hide it). And in a loop, code before the
+   store runs after it too, so a local from before the loop can't start holding such a view there. */
 static void rio_storeView(rio_Vm *vm, const rio_Expr *dst, const rio_Expr *src) {
   rio_Compiler *c = vm->compiler;
   int isLocal = rio_isLocalView(vm, src);
   if (c->curProc < 0 || c->storingArgs) return;
   if (dst->kind == rio_ExprKind_static && rio_isLocalMemory(vm, dst) && (uint32_t)dst->value < vm->top) {
-    rio_markLocalView(vm, (uint32_t)dst->value, rio_typeWords(vm, dst->type), isLocal);
-    rio_markParamView(vm, (uint32_t)dst->value, rio_typeWords(vm, dst->type), src->fromParam);
+    uint32_t at = (uint32_t)dst->value;
+    int words = rio_typeWords(vm, dst->type), b = c->blockCount - 1;
+    if (c->blocks[b].kind == rio_Block_proc || at / 4 >= c->blocks[b].liveSlots) { /* (in its own block) */
+      rio_markLocalView(vm, at, words, isLocal);
+      rio_markParamView(vm, at, words, src->fromParam);
+      return;
+    }
+    if ((isLocal && !rio_allMarked(c->localViews, at, words)) || (src->fromParam && !rio_allMarked(c->paramViews, at, words)))
+      for (b = c->blockCount - 1; b >= 0 && c->blocks[b].kind != rio_Block_proc; b--)
+        if (c->blocks[b].kind >= rio_Block_loop && at / 4 < c->blocks[b].liveSlots)
+          rio_FAIL(, isLocal ? "a view of the proc's own memory, in a loop, into a variable from before it that held none: give it one where it's declared, or declare it in the loop"
+                             : "a view that came in as a parameter, in a loop, into a variable from before it that held none: give it one where it's declared, or declare it in the loop");
+    if (isLocal) rio_markLocalView(vm, at, words, 1);
+    if (src->fromParam) rio_markParamView(vm, at, words, 1);
   } else if (isLocal)
     rio_FAIL(, "this view of the proc's own memory would outlive the call: make that memory global, or have the caller pass it in");
   else if (src->fromParam)
