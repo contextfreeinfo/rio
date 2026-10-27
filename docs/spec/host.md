@@ -69,8 +69,9 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
 ```
 
 - **Host procs:** `name :: host proc(...) -> R`, a proc type, as for proc values: its parameter and
-  result types must be exactly the host's, except that an enum may stand for an `Int`, which it is
-  underneath; calls then take the declared types. In a module, `name` is the host proc of the module's
+  result types must be exactly the host's, except that an enum or a `Bool` may stand for an `Int`,
+  which it is underneath, and a struct parameter for its fields (below); calls then take the declared
+  types. In a module, `name` is the host proc of the module's
   name (`cls` in `pc.rio` is `pc.cls`), else a global one. When the host has a source for a module of
   host procs, that source is the module (auto-imported ones too), and it must declare every one of
   the module's host procs. So a module can give its host procs types of its own:
@@ -81,6 +82,28 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
   end
   pointer* :: host proc(mode: Pointer)   # the host's pc.pointer takes an Int
   ```
+- **Struct parameters:** a struct goes to the host as its fields, one after another, as though each
+  were a parameter of its own: an `Int`, `Bool` or enum (a bitfield's too, its value) as an `Int`, a
+  `Float` as a `Float`, a `String` or `Blob` as itself, a `Blob[N]` as a `Blob` of its bytes, and a
+  nested struct's or an array's fields in turn. It holds nothing else (no union, proc value, builder or other
+  view), and its fields are at most 64 words. Like other arguments, the host only borrows its views
+  during the call:
+
+  ```rio fragment
+  Pos* :: struct              # in pc.rio
+    x, y: Int
+  end
+  Text* :: struct
+    at: Pos
+    color: Int(8)
+    big: Bool(1)
+  end
+  text* :: host proc(s: String, t: Text)   # the host's pc.text takes (s, x, y, color, big): "siiii"
+  pc.text("hi", {at = {x = 3, y = 4}, big = true})   # color 0
+  ```
+
+  A field left out of a literal is zero, so a host proc's options can grow without breaking calls
+  written before: add fields at the end, and make zero mean what calls did before.
 - **Builtins:** declared the same way, and checked as calls with those types:
   `sqrt* :: host proc(x: Float) -> Float`. [`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio) declares them all.
 - **Builtin types:** `Int* :: host struct`.

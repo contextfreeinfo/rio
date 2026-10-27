@@ -34,7 +34,7 @@ int rio_addFfi(rio_Vm *vm, const char *name, const char *sig, rio_FfiFn fn) {
   f->name = name;
   f->sig = sig;
   f->fn = fn;
-  f->argWords = f->resultWords = 0; /* (the compiler reads the sig) */
+  f->argWords = f->resultWords = f->pad = 0; /* (the compiler reads the sig) */
   return 0;
 }
 

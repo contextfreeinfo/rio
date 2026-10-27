@@ -582,6 +582,62 @@ static void rio_finishLiteral(rio_Vm *vm, rio_PendingOp *lit) {
 /* ------------------------------------------------------------------ calls */
 
 /* one argument of a call or struct literal is complete (on top of the value stack) */
+/* a struct's leaves (rio_hostLeaves), from place e, into consecutive slots from d: the slot after them */
+static int rio_ffiLeaves(rio_Vm *vm, const rio_Expr *e, int type, int d) {
+  rio_Type *ty = rio_type(vm, type);
+  int i, s, words;
+  if (ty->kind == rio_TypeKind_struct || (ty->kind == rio_TypeKind_array && ty->elem != rio_TypeId_byte)) {
+    int count = ty->kind == rio_TypeKind_struct ? ty->fieldCount : (int)ty->count;
+    for (i = 0; i < count && !rio_failed(vm); i++) {
+      rio_Field *f = ty->kind == rio_TypeKind_struct ? rio_field(vm, ty->firstField + i) : 0;
+      rio_Expr fe = *e;
+      rio_offsetPlace(&fe, f ? f->offset : i * (int32_t)rio_type(vm, ty->elem)->size);
+      fe.type = (uint16_t)(f ? f->type : ty->elem);
+      if (f && f->bits) {
+        fe.bitAt = f->bitAt;
+        fe.bits = (uint16_t)(f->bits < 0 ? -f->bits : f->bits);
+        fe.bitSigned = f->bits < 0;
+      }
+      d = rio_ffiLeaves(vm, &fe, fe.type, d);
+    }
+    return d;
+  }
+  { /* (a leaf: a word, or a view's two; a Blob[N] as a Blob) */
+    rio_Expr le = *e;
+    words = ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_slice ? 2 : 1;
+    s = words == 2 ? rio_toSlot2(vm, &le) : rio_toSlot(vm, &le, 0);
+    if (s != d) rio_emit(vm, words == 2 ? rio_Op_mov2 : rio_Op_mov, d, s, 0);
+    return d + words;
+  }
+}
+
+/* a struct argument to a host proc: its fields' words (rio_hostLeaves) in the call's next slots. What
+   they're read from mustn't be there: a temporary struct whose words differ from them (packed) is
+   copied out of the way first, and an address there is moved */
+static void rio_ffiStructArg(rio_Vm *vm, rio_PendingOp *m, rio_Expr *e, int type) {
+  rio_Compiler *c = vm->compiler;
+  int packed = 0, words = rio_hostLeaves(vm, type, 0, 0, &packed), d = m->freeAtStart + m->c;
+  int structWords = rio_typeWords(vm, type);
+  uint32_t top = c->freeSlot;
+  rio_needValue(vm, e);
+  if (rio_failed(vm)) return;
+  c->freeSlot = (uint32_t)d;
+  rio_allocSlots(vm, words);
+  if (c->freeSlot < top) c->freeSlot = top; /* (loads go above both) */
+  if (e->kind == rio_ExprKind_static && packed && e->value / 4 < d + words && e->value / 4 + structWords > d) {
+    rio_Expr copy = rio_exprOf(rio_ExprKind_static, type, rio_allocSlots(vm, structWords) * 4);
+    rio_store(vm, &copy, e);
+    *e = copy;
+  } else if (e->kind == rio_ExprKind_indirect && e->value >= d && e->value < d + words) {
+    int s = rio_allocSlots(vm, 1);
+    rio_emit(vm, rio_Op_mov, s, e->value, 0);
+    e->value = s;
+  }
+  rio_ffiLeaves(vm, e, type, d);
+  c->freeSlot = (uint32_t)(d + words);
+  m->c += words;
+}
+
 static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
   rio_Compiler *c = vm->compiler;
   rio_Expr *arg = rio_valueTop(vm), e;
@@ -659,6 +715,12 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     e = rio_popValue(vm);
     type = c->params[f->firstParam + m->argCount].type;
     rio_coerce(vm, &e, type);
+    if (rio_type(vm, type)->kind == rio_TypeKind_struct) {
+      if (e.type != type) rio_FAIL(, "type mismatch");
+      rio_ffiStructArg(vm, m, &e, type);
+      m->argCount++;
+      return;
+    }
     words = rio_typeWords(vm, type);
     s = words == 2 ? rio_toSlot2(vm, &e) : rio_toSlot(vm, &e, 1);
     c->freeSlot = (uint32_t)(m->freeAtStart + m->c);
@@ -818,6 +880,8 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
   }
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_proc && m->argCount < c->procDefs[m->b].paramCount)
     return c->params[c->procDefs[m->b].firstParam + m->argCount].type;
+  if (m->kind == rio_Pending_call && m->a == rio_ExprKind_ffi && m->argCount < c->ffi[m->b].paramCount) /* pc.text("hi", {...}), pc.pointer(.ui) */
+    return c->params[c->ffi[m->b].firstParam + m->argCount].type;
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_static && m->argCount < rio_type(vm, m->c)->fieldCount)
     return rio_field(vm, rio_type(vm, m->c)->firstField + m->argCount)->type;
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b == rio_Builtin_push && m->argCount == 1)
@@ -827,7 +891,6 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
   return -1;
 }
 
-/* .value or nil, whose type is where it's going: an enum value, or a union's nil */
 /* offsetOf(S, .a.b)'s second argument: the path's bit offset in S's type (or its value's), as an Int
    constant, and on the call (its c: the offset + 1, so the call knows it was a path) */
 static int rio_fieldPath(rio_Vm *vm, int tempStart) {
@@ -853,6 +916,7 @@ static int rio_fieldPath(rio_Vm *vm, int tempStart) {
   return rio_Expect_operator;
 }
 
+/* .value or nil, whose type is where it's going: an enum value, or a union's nil */
 static int rio_impliedValue(rio_Vm *vm, rio_ExprState *x, int tempStart) {
   rio_Compiler *c = vm->compiler;
   int t = c->tok.kind, type = rio_targetType(vm, x);

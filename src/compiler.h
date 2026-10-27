@@ -429,6 +429,7 @@ int rio_builderOf(rio_Vm *vm, int elem, uint32_t count);
 int rio_maybeOf(rio_Vm *vm, int t);
 int rio_builderViewOf(rio_Vm *vm, int elem);
 int rio_findField(rio_Vm *vm, const rio_Type *type, const char *s, int n);
+int rio_hostLeaves(rio_Vm *vm, int type, int *types, int max, int *packed);
 int rio_findEnumValue(rio_Vm *vm, int type, const char *s, int n, int32_t *value);
 int rio_enumIndex(rio_Vm *vm, int type, int32_t value);
 int rio_isBig(const rio_Type *type);

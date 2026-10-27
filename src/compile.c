@@ -232,7 +232,7 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
     def->firstParam = (uint16_t)c->paramCount;
     def->paramCount = 0;
     def->resultType = rio_TypeId_void;
-    f->argWords = f->resultWords = f->declared = 0;
+    f->argWords = f->resultWords = f->declared = f->pad = 0;
     for (g = f->sig; *g; g++) {
       int isResult = *g == '>', ch = isResult ? g[1] : *g;
       int t = ch == 'i' ? rio_TypeId_int : ch == 'f' ? rio_TypeId_float : ch == 's' ? rio_TypeId_string : ch == 'b' ? rio_TypeId_blob : -1;

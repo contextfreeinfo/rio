@@ -13,6 +13,11 @@ other languages have and people may expect. What's still open is in [ROADMAP.md]
   markers can read comments.
 - **JIT requests in the language:** native code is an implementation's choice. A host short on code
   space picks which loops get it, by how often they run and how big they are.
+- **Named-only parameters** (`text(s: String; color: Int)`, called `text("hi", color = 8)`): struct
+  arguments do the job with no new syntax, and keep options values, to keep, reuse and forward. Proc
+  types would have needed them too.
+- **Struct arguments without braces** (`text("hi", 3, 4, scale = 2)` for a last struct parameter):
+  the braces show where the options are.
 - **Host procs with no marker:** a proc with no body would read exactly like a proc type alias, so
   `host` says the body is elsewhere.
 - **A builtin Map or Dict:** without generic types it would be a special case, and Rio never

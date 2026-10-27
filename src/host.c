@@ -6,7 +6,8 @@
      ([..]Int).name* :: host proc() -> Int         ... on any type
      Name* :: host struct                          a builtin type
 
-   A host proc's declared types must be exactly its sig's (an enum may stand for an Int). In a module, `name` is the host proc registered
+   A host proc's declared types must be exactly its sig's (an enum or a Bool may stand for an Int, and a
+   struct for its fields' words, in order: rio_hostLeaves). In a module, `name` is the host proc registered
    as module.name (a module's key, with / as .), else the global one of that name. A module with host
    procs registered under its name must declare every one of them.
 
@@ -122,20 +123,57 @@ static const char *rio_typeName(int type) {
   }
 }
 
-/* a declared type for a host proc's sig type: the same, or an enum where the sig has an Int (i), which
-   it is underneath */
+/* a declared type for a host proc's sig type: the same, or an enum or Bool where the sig has an Int (i),
+   which it is underneath */
 static int rio_hostTypeOk(rio_Vm *vm, int declared, int sig) {
-  return declared == sig || (sig == rio_TypeId_int && rio_type(vm, declared)->kind == rio_TypeKind_enum);
+  int k = rio_type(vm, declared)->kind;
+  return declared == sig || (sig == rio_TypeId_int && (k == rio_TypeKind_enum || k == rio_TypeKind_bool));
+}
+
+/* A struct going to a host proc goes as the words of its fields, in order: an Int, Float, Bool or enum
+   (a bitfield's too, its value) a word each, a String or Blob two, a Blob[N] two as a Blob of its bytes,
+   and a nested struct's or an array's in turn. Each one's type into types (up to max; NULL: just
+   count), and how many there are; -1 if a field can't go (a union, a proc value, a builder, another
+   view). *packed: whether they differ from the struct's own words (a bitfield, a Blob[N]) */
+int rio_hostLeaves(rio_Vm *vm, int type, int *types, int max, int *packed) {
+  rio_Type *ty = rio_type(vm, type);
+  int k = ty->kind, n = 0, i, m;
+  if (k == rio_TypeKind_struct || (k == rio_TypeKind_array && ty->elem != rio_TypeId_byte)) {
+    int count = k == rio_TypeKind_struct ? ty->fieldCount : (int)ty->count;
+    for (i = 0; i < count; i++) {
+      rio_Field *f = k == rio_TypeKind_struct ? rio_field(vm, ty->firstField + i) : 0;
+      if (f && f->bits) *packed = 1;
+      m = rio_hostLeaves(vm, f ? f->type : ty->elem, types ? types + n : 0, max - n, packed);
+      if (m < 0) return -1;
+      n += m;
+    }
+    return n;
+  }
+  if (k == rio_TypeKind_array) *packed = 1; /* (a Blob[N]: a Blob of its bytes) */
+  type = k == rio_TypeKind_array ? rio_TypeId_blob : k == rio_TypeKind_enum || k == rio_TypeKind_bool || k == rio_TypeKind_byte ? rio_TypeId_int : type;
+  if (type != rio_TypeId_int && type != rio_TypeId_float && type != rio_TypeId_string && type != rio_TypeId_blob) return -1;
+  if (types && max > 0) types[0] = type;
+  return 1;
 }
 
 /* name :: host proc(...) (procType, as written), for host proc i: the types must be its sig's (an enum
-   may stand for an Int), and calls then take the declared ones */
+   or Bool may stand for an Int, a struct for its fields' words), and calls then take the declared ones */
 static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i, int procType, int exporting) {
   rio_Compiler *c = vm->compiler;
   rio_FfiDef *def = &c->ffi[i];
   rio_Type *ty = rio_type(vm, procType);
-  int same = ty->fieldCount == def->paramCount && rio_hostTypeOk(vm, ty->elem, def->resultType), j;
-  for (j = 0; same && j < def->paramCount; j++) same = rio_hostTypeOk(vm, rio_field(vm, ty->firstField + j)->type, c->params[def->firstParam + j].type);
+  int same = rio_hostTypeOk(vm, ty->elem, def->resultType), j, at = 0;
+  for (j = 0; same && j < ty->fieldCount; j++) { /* (each declared parameter: the sig's next type, or a struct's next ones) */
+    int type = rio_field(vm, ty->firstField + j)->type, leaves[64], n = 1, packed = 0, l;
+    leaves[0] = type;
+    if (rio_type(vm, type)->kind == rio_TypeKind_struct) {
+      n = rio_hostLeaves(vm, type, leaves, 64, &packed);
+      if (n < 0) rio_FAIL(, "a struct going to a host proc holds only Ints, Floats, Bools, enums, Strings, Blobs, and structs and arrays of them");
+      if (n == 0 || n > 64) rio_FAIL(, n ? "a struct going to a host proc is at most 64 words" : "a struct going to a host proc needs a field");
+    }
+    for (l = 0; same && l < n; l++, at++) same = at < def->paramCount && rio_hostTypeOk(vm, leaves[l], c->params[def->firstParam + at].type);
+  }
+  same = same && at == def->paramCount;
   if (!same) { /* say what the host has */
     char text[rio_ERROR_BUF_SIZE];
     int len = rio_appendText(text, 0, "doesn't match the host's ");
@@ -153,7 +191,8 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
     text[len] = 0;
     rio_FAIL(, text);
   }
-  for (j = 0; j < def->paramCount; j++) c->params[def->firstParam + j].type = rio_field(vm, ty->firstField + j)->type; /* (calls: as declared) */
+  for (j = 0; j < ty->fieldCount; j++) c->params[def->firstParam + j].type = rio_field(vm, ty->firstField + j)->type; /* (calls: as declared) */
+  def->paramCount = (uint16_t)ty->fieldCount; /* (no more than the sig's: a struct stands for one or more) */
   def->resultType = (uint16_t)ty->elem;
   vm->ffi[i].declared = 1;
   c->exporting = exporting;

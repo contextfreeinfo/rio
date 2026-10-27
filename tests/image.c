@@ -13,6 +13,7 @@ static void out(void *ud, const char *s, int n) { (void)ud; if (strlen(logged) +
 static void f_add(rio_Vm *v, rio_Val *a) { (void)v; a[0].i = a[0].i + a[1].i; }
 static void f_half(rio_Vm *v, rio_Val *a) { (void)v; a[0].f = a[0].f / 2; }
 static void f_other(rio_Vm *v, rio_Val *a) { (void)v; (void)a; }
+static void f_add3(rio_Vm *v, rio_Val *a) { (void)v; a[0].i = a[0].i + a[1].i + a[2].i * 100 + a[3].i * 1000 + a[4].i * 10000; } /* (add, gaining a String and an Int) */
 
 /* an image going to and from img2 a part at a time: a write fails at stopAt (0: none); a read gets at
    most "most" bytes a call (it asks again for the rest), and fails past len */
@@ -75,13 +76,25 @@ int main(void) {
   check(rio_call(&vm, rio_findProc(&vm, "main")) != 0 && !strcmp(rio_error(&vm), "13: runtime error: index out of bounds"), "runtime error line", &vm);
   /* a fresh vm reloads the same image again from scratch */
   check(rio_loadImage(&vm, img, n) == 0 && rio_call(&vm, rio_findProc(&vm, "main")) == 0, "reload resets memory", &vm);
-  /* ffi binding */
+  /* ffi binding: only what the code calls must be there, as it was or with more parameters at its end */
   rio_init(&vm, mem2, sizeof mem2, code2, 4096);
   rio_addFfi(&vm, "add", "ii>i", f_add);
-  check(rio_loadImage(&vm, img, n) == -1 && strstr(rio_error(&vm), "didn't register"), "a called ffi function is missing", &vm);
+  check(rio_loadImage(&vm, img, n) == -1 && strstr(rio_error(&vm), "calls half, which the host didn't register"), "a called ffi function is missing", &vm);
   rio_init(&vm, mem2, sizeof mem2, code2, 4096);
   rio_addFfi(&vm, "add", "ii>i", f_add); rio_addFfi(&vm, "half", "i>f", f_half);
-  check(rio_loadImage(&vm, img, n) == -1 && strstr(rio_error(&vm), "sig differs"), "an ffi sig differs", &vm);
+  check(rio_loadImage(&vm, img, n) == -1 && strstr(rio_error(&vm), "calls half, whose sig on this host doesn't fit the image's"), "an ffi sig differs", &vm);
+  rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+  rio_addFfi(&vm, "add", "ii", f_add); rio_addFfi(&vm, "half", "f>f", f_half);
+  check(rio_loadImage(&vm, img, n) == -1 && strstr(rio_error(&vm), "calls add, whose sig"), "an ffi result differs", &vm);
+  rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+  rio_addFfi(&vm, "add", "i>i", f_add); rio_addFfi(&vm, "half", "f>f", f_half);
+  check(rio_loadImage(&vm, img, n) == -1 && strstr(rio_error(&vm), "calls add, whose sig"), "an ffi proc with fewer parameters", &vm);
+  logged[0] = 0;
+  rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+  rio_setLog(&vm, out, 0);
+  rio_addFfi(&vm, "other", "ff>s", f_other); rio_addFfi(&vm, "add", "iisi>i", f_add3); rio_addFfi(&vm, "half", "f>f", f_half);
+  check(rio_loadImage(&vm, img, n) == 0 && rio_run(&vm) == 0 && rio_call(&vm, rio_findProc(&vm, "main")) == 0 && !strcmp(logged, "hi 40 1.5|0|"),
+        "an uncalled ffi function's sig may differ, and a called one gain parameters, passed as zeros", &vm);
   /* memory and code room */
   rio_init(&vm, mem2, sizeof mem / 2, code2, 4096);
   rio_addFfi(&vm, "add", "ii>i", f_add); rio_addFfi(&vm, "half", "f>f", f_half);

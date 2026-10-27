@@ -32,8 +32,11 @@ if (rio_readImage(&vm2, get, file, n) || rio_run(&vm2)) puts(rio_error(&vm2));
 - **Addresses are absolute,** so compile for the memory the program will run in (`-M`, default 8 MB in
   the CLI) and load into at least that much. Code compiled into `mem` loads back there; code compiled
   into a separate buffer needs a loading vm with one too.
-- **Host procs are bound by name** when loading, and their signatures must match. One the image names
-  but the host lacks is fine unless the code calls it.
+- **Host procs are bound by name** when loading, only the ones the code calls, each to a host proc
+  with the same sig, or one with more parameters at its end and the same result: the image passes
+  zeros for those, so a host proc can gain parameters (a struct parameter, fields at its end) without
+  breaking older images, as long as zero means what they meant before. One that's missing or doesn't
+  fit is an error naming it.
 - **`-Drio_NO_COMPILER`** builds a VM that only loads images, leaving out the compiler and the REPL: on
   a Cortex-M33 at `-Os`, about 11 KB of flash instead of 68 KB. As wasm
   (`zig cc -target wasm32-wasi -mexec-model=reactor -Os`), a minimal browser host is 28 KB, 13 KB

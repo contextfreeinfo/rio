@@ -26,6 +26,14 @@ static const char *files[][2] = {
   {"hsbad", "add* :: host proc(a, b: Int) -> Int\ncls* :: host proc(color: Float)\n"},
   {"user2", "double* :: proc(x: Int) -> Int\n  return hsrc.add(x, hsrc.TWO) + x - hsrc.TWO\nend\n"},
   {"mathy","sqrt* :: host proc(x: Float) -> Float\nInt* :: host struct\nhalf* :: proc(x: Int) -> Int\n  return x / 2\nend\n"},
+  /* structs going to host procs: their fields' words, in order */
+  {"hst", "Shape* :: enum\n  dot, box\nend\nPos* :: struct\n  x, y: Int\nend\n"
+          "Opts* :: struct\n  at: Pos\n  scale: Float\n  kind: Shape(2)\n  flip: Bool(1)\n  tag: Blob[4]\n  name: String\nend\n"
+          "Two* :: struct\n  ps: [2]Pos\nend\ndraw* :: host proc(id: Int, o: Opts) -> Int\nmark* :: host proc(ps: Two, n: Int)\n"},
+  {"hsx", "P* :: struct\n  a, b: Int\nend\nadd* :: host proc(p: P) -> Int\ncls* :: host proc(on: Bool)\n"},
+  {"hsy", "P* :: struct\n  a: Int\n  b: Float\nend\nadd* :: host proc(p: P) -> Int\ncls* :: host proc(color: Int)\n"},
+  {"hsz", "P* :: struct\n  a: Int\nend\nadd* :: host proc(p: P) -> Int\ncls* :: host proc(color: Int)\n"},
+  {"hsu", "U :: union\n  Int\n  Float\nend\nP* :: struct\n  a: Int\n  u: U\nend\nadd* :: host proc(p: P) -> Int\ncls* :: host proc(color: Int)\n"},
 };
 static int loader(void *ud, const char *path, int kind, rio_Source *o) {
   size_t i; (void)ud;
@@ -41,11 +49,18 @@ static void logfn(void *ud, const char *s, int len) { (void)ud; memcpy(out + out
 static void add(rio_Vm *v, rio_Val *a) { (void)v; a[0].i = a[0].i + a[1].i; }
 static void cls(rio_Vm *v, rio_Val *a) { (void)v; cleared = a[0].i; }
 static void scale(rio_Vm *v, rio_Val *a) { (void)v; a[0].f = a[0].f * (float)a[1].i; }
+static void draw(rio_Vm *v, rio_Val *a) { /* (id, at.x, at.y, scale, kind, flip, tag, name): logged */
+  const unsigned char *tag = (const unsigned char *)rio_sliceBytes(v, a + 6);
+  const char *name = a[9].i ? (const char *)rio_sliceBytes(v, a + 8) : "";
+  outn += (size_t)sprintf(out + outn, "%d: %d %d %g %d %d %d:%d %.*s\n", a[0].i, a[1].i, a[2].i, a[3].f, a[4].i, a[5].i, a[7].i, tag[0], a[9].i, name);
+  a[0].i = a[0].i * 10;
+}
+static void mark(rio_Vm *v, rio_Val *a) { (void)v; outn += (size_t)sprintf(out + outn, "mark %d %d %d %d %d\n", a[0].i, a[1].i, a[2].i, a[3].i, a[4].i); }
 
 /* compile and run src (auto: a module to auto-import, or NULL); expect output (NULL: don't check), or
    an error: kind, file (NULL = main), line, message */
 static void t(const char *auto_, const char *src, const char *printed, int kind, const char *file, int line, const char *msg) {
-  static const char *const hostModules[] = {"pc", "hm", "hbad", "hres", "hmiss", "hpriv", "hnest", "hsrc", "hsbad"};
+  static const char *const hostModules[] = {"pc", "hm", "hbad", "hres", "hmiss", "hpriv", "hnest", "hsrc", "hsbad", "hsx", "hsy", "hsz", "hsu"};
   rio_Error e;
   size_t i;
   n++; outn = 0; out[0] = 0; cleared = -1;
@@ -60,6 +75,8 @@ static void t(const char *auto_, const char *src, const char *printed, int kind,
     rio_addFfi(&vm, names[i][1], "i", cls);
   }
   rio_addFfi(&vm, "scale", "fi>f", scale); /* a global one */
+  rio_addFfi(&vm, "hst.draw", "iiifiibs>i", draw);
+  rio_addFfi(&vm, "hst.mark", "iiiii", mark);
   if (auto_) rio_autoImport(&vm, auto_);
   if (!rio_compile(&vm, src, (uint32_t)strlen(src))) rio_run(&vm);
   e = rio_errorInfo(&vm);
@@ -202,6 +219,23 @@ int main(int argc, char **argv) {
   /* a global host proc, declared in the main module */
   OK("scale* :: host proc(x: Float, times: Int) -> Float\nlog(scale(1.5, 4))\n", "6.0\n");
   BAD("scale :: host proc(x: Float) -> Float\n", 0, 1, "doesn't match the host's scale: proc(Float, Int) -> Float");
+  /* structs going to host procs: as their fields' words, in order (a bitfield's value, a Blob[N] as a
+     Blob), from a variable, a literal (packed: copied out of the way), an element, a parameter */
+  OK("import hst\no := hst.Opts{at = {x = 1, y = 2}, scale = 1.5, kind = .box, flip = true, name = \"hi\"}\no.tag[0] = 65\nlog(hst.draw(7, o))\n",
+     "7: 1 2 1.5 1 1 4:65 hi\n70\n");
+  OK("import hst\nlog(hst.draw(1, hst.Opts{kind = .box, scale = 2.0, at = {y = -3}}))\n", "1: 0 -3 2 1 0 4:0 \n10\n");
+  OK("import hst\nos: [3]hst.Opts\nos[2].at.x = 5\nos[2].flip = true\ni := 2\nn := hst.draw(i, os[i]) + hst.draw(i - 1, os[i - 1])\nlog(n)\n",
+     "2: 5 0 0 0 1 4:0 \n1: 0 0 0 0 0 4:0 \n30\n");
+  OK("import hst\nf :: proc(o: hst.Opts, k: Int) -> Int\n  return hst.draw(k, o)\nend\nlog(f(hst.Opts{name = \"x\"}, 3))\n", "3: 0 0 0 0 0 4:0 x\n30\n");
+  OK("import hst\nt := hst.Two{ps = {{x = 1, y = 2}, {x = 3, y = 4}}}\nhst.mark(t, 5)\nhst.mark(hst.Two{}, t.ps[1].y)\n", "mark 1 2 3 4 5\nmark 0 0 0 0 4\n");
+  OK("import hsx\nlog(hsx.add(hsx.P{a = 2, b = 3}))\nhsx.cls(true)\n", "5\n"); /* (and a Bool for an Int) */
+  OK("import hst\nlog(hst.draw(4, {kind = .box, name = \"implied\"}))\n", "4: 0 0 0 1 0 4:0 implied\n40\n"); /* (a literal's type from the parameter) */
+  t("hsrc", "hsrc.cls(.red)\n", "", rio_ErrorKind_none, 0, 0, 0); /* (an enum value's too) */
+  if (cleared != 1) { printf("FAIL: hsrc.cls(.red) got %d\n", cleared); fails++; }
+  BAD("import hsy\n", "hsy.rio", 5, "doesn't match the host's hsy.add: proc(Int, Int) -> Int");
+  BAD("import hsz\n", "hsz.rio", 4, "doesn't match the host's hsz.add: proc(Int, Int) -> Int");
+  BAD("import hsu\n", "hsu.rio", 9, "a struct going to a host proc holds only");
+  BAD("import hst\nlog(hst.draw(1, hst.Pos{}))\n", 0, 2, "type mismatch");
   /* builtins: declared with their parameters and results */
   OK("abs* :: host proc(x: Int) -> Int\nmin :: host proc(a, b: Float) -> Float\nlog(abs(-3), min(1.5, 2.5))\n", "3 1.5\n");
   OK("assert* :: host proc(condition: Bool, why: String)\nhexBlob :: host proc(d: String) -> Blob\n", "");

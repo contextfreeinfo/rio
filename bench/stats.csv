@@ -3,3 +3,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-10-26,95d6e7c+,puddle,26784,141170,11816,234496,25.8,62144,0.52,0.007,0.516,0.006,0.344,0.01,0.544,0.124,"No builders in pack/unpack; tests for no addresses"
 2026-10-27,d8e3904+,puddle,28124,141722,11900,238080,23.8,62324,0.601,0.004,0.54,0.004,0.392,0.008,0.569,0.112,"Enum and Bool bitfields; unpack checks enums, Bools, union tags"
 2026-10-27,c0264ec+,puddle,28124,142938,11978,239616,37.9,62324,1.026,0.006,0.794,0.008,0.606,0.011,0.829,0.152,"sizeOf, offsetOf, bitOffsetOf"
+2026-10-27,f434996+,puddle,28540,149362,12130,243712,24.9,62324,0.535,0.007,0.521,0.005,0.349,0.013,0.616,0.129,"host procs take structs; images bind called host procs, zeros for gained params"

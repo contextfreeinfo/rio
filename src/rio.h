@@ -89,8 +89,9 @@ int rio_autoImport(rio_Vm *vm, const char *module);
 /* A compiled program, ready to run, for loading into a vm (even one built with rio_NO_COMPILER,
    which leaves the compiler out). Save right after compiling, before running.
    The image holds absolute addresses, so the loading vm needs at least the memory it was compiled
-   with (and room for its code); register the same ffi functions (by name and sig, in any order)
-   before loading. Little-endian hosts only. rio_saveImage returns the image's size (out NULL: just
+   with (and room for its code); register the ffi functions it calls (by name, in any order) before
+   loading, each with the sig it had, or one with more parameters at its end (an image passes zeros for
+   those) and the same result. Little-endian hosts only. rio_saveImage returns the image's size (out NULL: just
    the size), or 0 if it doesn't fit or there's nothing to save. */
 #ifndef rio_NO_COMPILER
 uint32_t rio_saveImage(rio_Vm *vm, void *out, uint32_t cap);
@@ -266,11 +267,12 @@ typedef struct {
 } rio_Proc;
 
 /* a registered host proc; argWords and resultWords come from its sig. declared: while compiling, a
-   host declaration (or a host module made from the registrations) has bound it */
+   host declaration (or a host module made from the registrations) has bound it. pad: in a loaded
+   image made when the proc had fewer parameters, how many words more it takes now (passed as zeros) */
 typedef struct {
   const char *name, *sig;
   rio_FfiFn fn;
-  uint8_t argWords, resultWords, declared;
+  uint8_t argWords, resultWords, declared, pad;
 } rio_Ffi;
 
 typedef struct {
