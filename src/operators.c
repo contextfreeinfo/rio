@@ -219,10 +219,16 @@ void rio_narrow(rio_Vm *vm, int32_t varAt, int member, int temp) {
     at = (uint32_t)rio_allocSlots(vm, rio_typeWords(vm, f->type)) * 4;
     c->liveSlots = c->freeSlot;
   }
-  if (ref) {
-    src = rio_exprOf(rio_ExprKind_indirect, f->type, varAt & ~rio_REF_AT);
+  if (ref) { /* (with the union's marks: what it holds) */
+    src = rio_symbolExpr(vm, k);
+    src.type = (uint16_t)f->type;
     rio_offsetPlace(&src, 4);
-  } else src = rio_exprOf(rio_ExprKind_static, f->type, varAt + 4);
+  } else {
+    src = rio_exprOf(rio_ExprKind_static, y->type, varAt);
+    rio_slotMarks(vm, &src);
+    src.type = (uint16_t)f->type;
+    src.value += 4;
+  }
   dst = rio_exprOf(rio_ExprKind_static, f->type, (int32_t)at);
   rio_store(vm, &dst, &src);
   rio_addSymbol(vm, c->names + c->syms[k].name, c->syms[k].nameLen, rio_SymKind_narrowed, f->type, (int32_t)at);

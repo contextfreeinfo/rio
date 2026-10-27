@@ -314,20 +314,45 @@ can't be copied without saying so, passed by value or returned. See
 
 ## Where views can live
 
-A struct, array, builder or union that holds views (slices, `String`, `Blob`, builder views) must be a global,
-so the view can't outlive what it views:
+Views (slices, `String`, `Blob`, builder views) can be locals and parameters, and so can structs,
+arrays and unions that hold them, by the rules for views (see [procs](declarations.md#procs)). One
+holding a view of the proc's own memory anywhere in it counts as such a view, as a whole, so it can't
+be kept past the call either. A field, or an element at a constant index, goes by what was stored
+there (or in the whole).
 
 ```rio
 Named :: struct
   name: String
+  id: Int
 end
-people: [3]Named           # fine: global
+label :: proc(n: Named) -> String do return n.name
 f :: proc()
-  n: Named  # error: holding slices or strings must be global
+  typed: Blob[4]
+  typed[0] = 'B'
+  n := Named{name = typed[0..<1].asString(), id = 2}
+  log(label(n), n.id)
+end
+f()
+```
+
+```output
+B 2
+```
+
+```rio
+Named :: struct
+  name: String
+  id: Int
+end
+kept: Named
+f :: proc()
+  typed: Blob[4]
+  kept = Named{name = "ada", id = 1}  # fine: it views a constant
+  kept = Named{name = typed[].asString(), id = 2}  # error: holds a view of the proc's own memory
 end
 ```
 
-Views themselves can be locals and parameters.
+A builder holding views, or a big value (over 16 words) holding them, must be a global.
 
 ## Type identity
 

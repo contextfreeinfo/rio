@@ -6,30 +6,38 @@ that keep a view of a proc's own memory (or its caller's) from outliving the cal
 
 Every array holds values that say whose memory it is: globals 1000 and up, a proc's own 2000 and up, and
 nothing writes to them through a view. After each top-level statement, and each store into a global view,
-the program logs the global views' elements. Two kinds of programs:
+the program logs the global views' elements. Views go into locals that are views, structs holding one
+(V), arrays of them and unions of one, passed by value and by &, and through methods. Two kinds of
+programs:
 
   unsafe  as safe, but one view, somewhere, goes anywhere: rio may reject them, but if it doesn't, no
           global view may read a value under 1000 or of 2000 and up (it would be viewing a proc's memory)
   safe    views only go where rio's rules let them, so rio must accept them (and they must log only
           global values too): a local holds the kinds of view it was last given in its own block (the
-          one it's declared in), and in blocks inside that, only those kinds; a global holds only views
-          of global memory, and a return those or a parameter's; and a call's result views what its
-          arguments do (the memory of & arguments too)
+          one it's declared in), and in blocks inside that, only those kinds (a struct's field and an
+          array's element named by a constant each their own); a global holds only views of global memory, and a
+          return those or a parameter's; and a call's result views what its arguments do (the memory of
+          & arguments and method receivers too)
 
 A program that fails is saved as viewtest-fail-<n>.rio."""
 import os, random, re, subprocess, sys, tempfile
 
 G, P, L = 1, 2, 4  # a view's kinds of memory: global, a parameter's (the caller's), the proc's own
+ALL = G | P | L
+
+def held(var):
+  """the kinds of view a local holds, read as a whole"""
+  return var["kinds"][0] | var["kinds"][1] if var["type"] == "A" else var["kinds"]
 
 class Gen:
   def __init__(self, rnd, safe):
     self.r = rnd
     self.safe = safe
     self.lines = []
-    self.procs = []  # (name, params as [(name, 'view' | 'ref' | 'bool')], returns a view)
+    self.procs = []  # (name, params as [(name, 'view' | 'ref' | 'V' | 'bool')], returns a view)
     self.depth = 0
     self.sinks = 0  # (places a view was stored or returned so far: an unsafe program's goes anywhere at one)
-    self.leakAt = rnd.randrange(12)
+    self.leakAt = rnd.randrange(16)
 
   def emit(self, s):
     self.lines.append("  " * self.depth + s)
@@ -40,21 +48,40 @@ class Gen:
   def sink(self, want):
     """the kinds of view a store or return may take: in an unsafe program, at one of them, any"""
     self.sinks += 1
-    return G | P | L if not self.safe and self.sinks == self.leakAt else want
+    return ALL if not self.safe and self.sinks == self.leakAt else want
 
   def view(self, scope, want):
-    """a view expression and its kinds, within want (all kinds in unsafe programs)"""
-    options = [(f"ga{k}[]", G) for k in range(3)] + [("ga0[1..]", G), ("gB.buf[]", G)] + [(f"gv{k}", G) for k in range(3)]
+    """a view expression and its kinds, within want"""
+    options = [(f"ga{k}[]", G) for k in range(3)] + [("ga0[1..]", G), ("gB.buf[]", G), ("gV.v", G), ("gV.get()", G)]
+    options += [(f"gv{k}", G) for k in range(3)]
     if scope:
       options += [("la[]", L), ("la[1..]", L), ("lb.buf[]", L)]
-      options += [(p, P) for p, t in scope["params"] if t == "view"]
-      options += [(f"{p}.buf[]", P) for p, t in scope["params"] if t == "ref"]
-      options += [(v, k) for v, k in scope["vars"]] * 4  # (locals most: views flow through them)
+      for p, t in scope["params"]:
+        if t == "view": options.append((p, P))
+        elif t == "ref": options.append((f"{p}.buf[]", P))
+        elif t == "V": options += [(f"{p}.v", P), (f"{p}.get()", L | P)]  # (a method's receiver: the copy here, and what it holds)
+      for var in scope["vars"] * 4:  # (locals most: views flow through them)
+        v, t = var["name"], var["type"]
+        if t == "view": options.append((v, held(var)))
+        elif t == "V": options += [(f"{v}.v", held(var)), (f"{v}.get()", L | held(var))]
+        elif t == "A": options += [(f"{v}[0]", var["kinds"][0]), (f"{v}[1]", var["kinds"][1])]
     options = [o for o in options if o[1] & ~want == 0]
     calls = [p for p in self.procs if p[2]]
     if calls and self.chance(0.25):
       got = self.call(self.r.choice(calls), scope, want)
       if got: return got
+    return self.r.choice(options)
+
+  def struct(self, scope, want):
+    """a V expression and its kinds, within want; None if there's no way"""
+    options = [("gV", G)]
+    if scope:
+      options += [(p, P) for p, t in scope["params"] if t == "V"]
+      options += [(var["name"], held(var)) for var in scope["vars"] if var["type"] == "V"]
+    options = [o for o in options if o[1] & ~want == 0]
+    if not options or self.chance(0.4):
+      e, k = self.view(scope, want)
+      return f"V{{v = {e}, n = 1}}", k
     return self.r.choice(options)
 
   def call(self, proc, scope, want):
@@ -64,6 +91,8 @@ class Gen:
     for p, t in params:
       if t == "view":
         e, k = self.view(scope, want)
+      elif t == "V":
+        e, k = self.struct(scope, want)
       elif t == "ref":
         refs = [("&gB", G)] + ([("&lb", L)] if scope else [])
         refs = [x for x in refs if x[1] & ~want == 0]
@@ -76,29 +105,62 @@ class Gen:
     if kinds & ~want: return None
     return f"{name}({', '.join(args)})", kinds
 
+  def store(self, scope):
+    """a store into a local: in its own block, it now holds what it's given; inside that, only what it held"""
+    var = self.r.choice(scope["vars"])
+    v, t, own = var["name"], var["type"], self.depth == 1
+    if t == "A":
+      i = self.r.randrange(2)
+      e, got = self.view(scope, self.sink(ALL if own else var["kinds"][i] | G))
+      self.emit(f"{v}[{i}] = {e}")
+      if own: var["kinds"][i] = got or G
+      return
+    want = self.sink(ALL if own else var["kinds"] | G)
+    if t == "V" and self.chance(0.5):
+      e, got = self.struct(scope, want)
+      self.emit(f"{v} = {e}")
+    elif t == "U" and self.chance(0.3):
+      e, got = "7", G
+      self.emit(f"{v} = 7")
+    else:
+      e, got = self.view(scope, want)
+      self.emit(f"{v}{'.v' if t == 'V' else ''} = {e}")
+    if own: var["kinds"] = got or G
+
+  def logGlobal(self, g):
+    self.emit(f"for x in {g} do log(x)")  # (a global may never view a proc's memory, even while it runs)
+
   def stmt(self, scope, budget):
     roll = self.r.random()
     if scope["vars"] and roll < 0.35:
-      i = self.r.randrange(len(scope["vars"]))
-      v, k = scope["vars"][i]
-      own = self.depth == 1  # (in its own block, where it was declared: it now holds what it's given)
-      e, got = self.view(scope, self.sink(G | P | L if own else k))
-      self.emit(f"{v} = {e}")
-      if own: scope["vars"][i] = (v, got or G)
-    elif roll < 0.55:
+      self.store(scope)
+    elif roll < 0.5:
       e, _ = self.view(scope, self.sink(G))
-      k = self.r.randrange(3)
-      self.emit(f"gv{k} = {e}")
-      self.emit(f"for x in gv{k} do log(x)")  # (a global may never view a proc's memory, even while it runs)
-    elif roll < 0.7 and budget > 1:
+      g = self.r.choice(["gv0", "gv1", "gv2", "gV.v"])
+      self.emit(f"{g} = {e}")
+      self.logGlobal(g)
+    elif roll < 0.55:
+      e, _ = self.struct(scope, self.sink(G))
+      self.emit(f"gV = {e}")
+      self.logGlobal("gV.v")
+    elif roll < 0.6 and any(var["type"] == "U" for var in scope["vars"]):
+      u = self.r.choice([var for var in scope["vars"] if var["type"] == "U"])
+      if held(u) & ~self.sink(G) == 0:
+        self.emit(f"if {u['name']} is []Int")
+        self.emit(f"  gv0 = {u['name']}")
+        self.depth += 1
+        self.logGlobal("gv0")
+        self.depth -= 1
+        self.emit("end")
+    elif roll < 0.72 and budget > 1:
       conds = ["gc"] + [p for p, t in scope["params"] if t == "bool"]
       self.emit(f"if {self.r.choice(conds)}")
       self.block(scope, budget - 1)
-    elif roll < 0.82 and budget > 1:
+    elif roll < 0.84 and budget > 1:
       self.emit("for i in 0..<2")
       self.block(scope, budget - 1)
     elif self.procs:
-      got = self.call(self.r.choice(self.procs), scope, G | P | L)
+      got = self.call(self.r.choice(self.procs), scope, ALL)
       if got: self.emit(got[0])
     else:
       self.emit("gc = not gc")
@@ -109,11 +171,32 @@ class Gen:
     self.depth -= 1
     self.emit("end")
 
+  def declare(self, scope, i):
+    """a local, holding the kinds of view it starts with"""
+    t = self.r.choice(["view", "view", "V", "A", "U"])
+    v = {"view": "v", "V": "s", "A": "arr", "U": "u"}[t] + str(i)
+    if t == "A":
+      self.emit(f"{v}: [2][]Int")
+      kinds = []
+      for k in range(2):
+        e, got = self.view(scope, ALL)
+        self.emit(f"{v}[{k}] = {e}")
+        kinds.append(got or G)
+    elif t == "V":
+      e, got = self.struct(scope, ALL)
+      self.emit(f"{v}: V = {e}")
+      kinds = got or G
+    else:
+      e, got = self.view(scope, ALL)
+      self.emit(f"{v} := {e}" if t == "view" else f"{v}: U = {e}")
+      kinds = got or G
+    scope["vars"].append({"name": v, "type": t, "kinds": kinds})
+
   def proc(self):
     name = f"p{len(self.procs)}"
-    params = [(f"a{i}", self.r.choice(["view", "view", "ref", "bool"])) for i in range(self.r.randrange(0, 4))]
+    params = [(f"a{i}", self.r.choice(["view", "view", "ref", "V", "bool"])) for i in range(self.r.randrange(0, 4))]
     returns = self.chance(0.7)
-    types = {"view": "[]Int", "ref": "&B", "bool": "Bool"}
+    types = {"view": "[]Int", "ref": "&B", "V": "V", "bool": "Bool"}
     self.emit(f"{name} :: proc(" + ", ".join(f"{p}: {types[t]}" for p, t in params) + ")" + (" -> []Int" if returns else ""))
     self.depth += 1
     self.emit("la: [4]Int")
@@ -121,12 +204,7 @@ class Gen:
     self.emit("lb: B")
     self.emit(f"for i in 0..<4 do lb.buf[i] = {2500 + 10 * len(self.procs)} + i")
     scope = {"params": params, "vars": []}
-    for i in range(self.r.randrange(1, 4)):  # locals, each holding the kinds of view it starts with
-      e, k = self.view(scope, G | P | L)
-      if not k: k = G
-      v = f"v{i}"
-      self.emit(f"{v} := {e}")
-      scope["vars"].append((v, k))
+    for i in range(self.r.randrange(1, 5)): self.declare(scope, i)
     for _ in range(self.r.randrange(1, 6)): self.stmt(scope, 3)
     if returns: self.emit(f"return {self.view(scope, self.sink(G | P))[0]}")
     self.depth -= 1
@@ -134,16 +212,16 @@ class Gen:
     self.procs.append((name, params, returns))
 
   def program(self):
-    self.emit("B :: struct")
-    self.emit("  buf: [4]Int")
-    self.emit("end")
-    self.emit("gc := false")
+    for line in ["B :: struct", "  buf: [4]Int", "end", "V :: struct", "  v: []Int", "  n: Int", "end",
+                 "V.get :: proc() -> []Int do return self.v", "U :: union", "  []Int", "  Int", "end", "gc := false"]:
+      self.emit(line)
     for k in range(3):
       self.emit(f"ga{k}: [4]Int")
       self.emit(f"for i in 0..<4 do ga{k}[i] = {1000 + 10 * k} + i")
     self.emit("gB: B")
     self.emit("for i in 0..<4 do gB.buf[i] = 1900 + i")
     for k in range(3): self.emit(f"gv{k} := ga{k}[]")
+    self.emit("gV := V{v = ga1[], n = 0}")
     for _ in range(self.r.randrange(1, 6)): self.proc()
     for _ in range(self.r.randrange(2, 7)):
       roll = self.r.random()
@@ -155,7 +233,7 @@ class Gen:
         self.emit("gc = not gc")
       got = self.call(self.r.choice(self.procs), None, G)
       if got: self.emit(got[0])
-      for k in range(3): self.emit(f"for x in gv{k} do log(x)")
+      for g in ["gv0", "gv1", "gv2", "gV.v"]: self.logGlobal(g)
     return "\n".join(self.lines) + "\n"
 
 def run(cmd):

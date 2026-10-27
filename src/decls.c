@@ -197,7 +197,8 @@ int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver) {
     int addr = rio_allocSlots(vm, p->selfByRef ? 1 : rio_typeWords(vm, receiver)) * 4;
     if (c->paramCount >= (int)c->limits.params) rio_FAIL(-1, "too many parameters");
     rio_addParam(vm, p->selfByRef ? rio_TypeId_int : receiver, 0, addr);
-    if (p->selfByRef) rio_markParamView(vm, (uint32_t)addr, 1, 1); /* (the caller's place: what it views, borrowed) */
+    if (p->selfByRef) rio_markParamView(vm, (uint32_t)addr, 1, 1); /* (the caller's place, or views from it: borrowed) */
+    else rio_markHeld(vm, receiver, (uint32_t)addr, 0, 1);
     rio_addSymbol(vm, "self", 4, p->selfByRef ? rio_SymKind_ref : rio_SymKind_var, receiver, p->selfByRef ? addr / 4 : addr);
     p->paramCount++;
   }
@@ -211,16 +212,13 @@ void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type
   int addr;
   if (ty->kind == rio_TypeKind_void) rio_FAIL(, "invalid parameter type");
   if (!isRef && ty->kind == rio_TypeKind_builder) rio_FAIL(, "invalid parameter type (pass builders as [..]T)");
-  if (!isRef && (ty->kind == rio_TypeKind_struct || ty->kind == rio_TypeKind_array || ty->kind == rio_TypeKind_union) && ty->hasRefs)
-    rio_FAIL(, "a struct, array or union holding slices or strings goes by reference: use &T");
   if (!isRef && rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
   addr = rio_allocSlots(vm, isRef ? 1 : rio_typeWords(vm, type)) * 4; /* a & parameter is one word holding the address,
                                                                      read through like self */
   if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
   rio_addParam(vm, isRef ? rio_TypeId_int : type, isRef ? type : 0, addr);
-  if (isRef || ty->kind == rio_TypeKind_slice || ty->kind == rio_TypeKind_builderView) /* (a view from the caller, or the
-                                                                              caller's place: what it views, borrowed) */
-    rio_markParamView(vm, (uint32_t)addr, isRef ? 1 : rio_typeWords(vm, type), 1);
+  if (isRef) rio_markParamView(vm, (uint32_t)addr, 1, 1); /* (the caller's place, or views from the caller: borrowed) */
+  else rio_markHeld(vm, type, (uint32_t)addr, 0, 1);
   rio_addSymbol(vm, name, nameLen, isRef ? rio_SymKind_ref : rio_SymKind_var, type, isRef ? addr / 4 : addr);
   c->procDefs[proc].paramCount++;
 }
@@ -555,6 +553,8 @@ static void rio_declareUnion(rio_Vm *vm, const char *name, int nameLen, int type
   uint32_t at;
   rio_Expr d;
   if (rio_unionMember(vm, type, e) < 0) rio_FAIL(, "type mismatch");
+  if (c->curProc >= 0 && rio_type(vm, type)->hasRefs && rio_isBig(rio_type(vm, type)))
+    rio_FAIL(, "a big union (over 16 words) holding slices or strings must be global");
   at = rio_isBig(rio_type(vm, type)) ? rio_allocHigh(vm, rio_type(vm, type)->size) : (uint32_t)rio_allocSlots(vm, rio_typeWords(vm, type)) * 4;
   d = rio_exprOf(rio_ExprKind_static, type, (int32_t)at);
   rio_store(vm, &d, e);
@@ -598,8 +598,9 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
   ty = rio_type(vm, type);
   k = ty->kind;
   if (k == rio_TypeKind_void) rio_FAIL(, "variable has no type");
-  if (c->curProc >= 0 && rio_isAggregate(k) && ty->hasRefs)
-    rio_FAIL(, "structs/arrays/builders/unions holding slices or strings must be global");
+  if (c->curProc >= 0 && rio_isAggregate(k) && ty->hasRefs && (k == rio_TypeKind_builder || rio_isBig(ty)))
+    rio_FAIL(, k == rio_TypeKind_builder ? "a builder holding slices or strings must be global"
+                                         : "a big struct, array or union (over 16 words) holding slices or strings must be global");
   big = rio_isBig(ty);
   if (big) addr = rio_allocHigh(vm, ty->size);
   else {

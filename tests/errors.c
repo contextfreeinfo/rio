@@ -49,7 +49,7 @@ static const Case cases[] = {
   {"f :: proc() -> Int do log(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 20, -1, "missing return"},
   {"do\n  x := 1\nend\nlog(x)\n", 0, 0, 0, rio_ErrorKind_compile, 4, 5, -1, "undefined name"},
   {"B :: struct\n  h: Int\nend\nf :: proc(b: &B)\nend\nv: B\nf(v)\n", 0, 0, 0, rio_ErrorKind_compile, 7, 4, 1, "this parameter is a reference: pass &x"},
-  {"L :: struct\n  t: String\nend\nf :: proc(l: L)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 15, 1, "holding slices or strings goes by reference: use &T"},
+  {"L :: struct\n  t: [9]String\nend\nf :: proc(l: L)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 15, 1, "a big value (over 16 words) goes by reference"},
   /* maybes: ?T */
   {"x: ??Int\n", 0, 0, 0, rio_ErrorKind_compile, 1, 6, -1, "this can already be nil"},
   {"U :: union\n  nil\n  Int\nend\nx: ?U\n", 0, 0, 0, rio_ErrorKind_compile, 5, 5, -1, "this can already be nil"},
@@ -113,11 +113,28 @@ static const Case cases[] = {
   {"S :: struct\n  buf: [4]Int\nend\ng: []Int\nf :: proc(s: &S)\n  g = s.buf[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this view came in as a parameter"},
   {"S :: struct\n  buf: [4]Int\nend\ng: []Int\nS.keep :: proc()\n  g = self.buf[]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this view came in as a parameter"},
   {"g := \"\"\nf :: proc(names: []String)\n  for n in names do g = n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "this view came in as a parameter"},
+  /* locals and parameters holding views: checked as a whole, by what any part of them views */
+  {"N :: struct\n  name: String\n  id: Int\nend\ng: N\nf :: proc()\n  b: Blob[4]\n  n := N{name = b[].asString(), id = 1}\n  g = n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "this holds a view of the proc's own memory, which would outlive the call"},
+  {"N :: struct\n  name: String\n  id: Int\nend\ng: N\nf :: proc()\n  b: Blob[4]\n  n: N\n  n.name = b[].asString()\n  g = n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 10, -1, -1, "this holds a view of the proc's own memory"},
+  {"N :: struct\n  name: String\n  id: Int\nend\ng := \"\"\nf :: proc()\n  b: Blob[4]\n  n: N\n  n.name = b[].asString()\n  g = n.name\nend\n", 0, 0, 0, rio_ErrorKind_compile, 10, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"N :: struct\n  name: String\n  id: Int\nend\ng := \"\"\nf :: proc()\n  b: Blob[4]\n  n: N\n  n.name = b[].asString()\n  m := n\n  g = m.name\nend\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"N :: struct\n  name: String\n  id: Int\nend\ng: N\nf :: proc(n: N)\n  g = n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, -1, -1, "this holds a view that came in as a parameter"},
+  {"N :: struct\n  name: String\n  id: Int\nend\ng := \"\"\nf :: proc(n: N)\n  g = n.name\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, -1, -1, "this view came in as a parameter"},
+  {"N :: struct\n  name: String\n  id: Int\nend\ng := \"\"\nN.keep :: proc()\n  g = self.name\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, -1, -1, "this view came in as a parameter"},
+  {"g := \"\"\nf :: proc()\n  b: Blob[4]\n  names: [2]String\n  names[1] = b[].asString()\n  g = names[1]\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"g := \"\"\nf :: proc()\n  b: Blob[4]\n  names: [2]String\n  names[1] = b[].asString()\n  for n in names do g = n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"N :: struct\n  name: String\n  id: Int\nend\ng := \"\"\nf :: proc()\n  b: Blob[4]\n  n: N\n  for i in 0..<2\n    g = n.name\n    n.name = b[].asString()\n  end\nend\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "a view of the proc's own memory, in a loop, into a variable from before it that held none"},
+  {"N :: struct\n  name: String\n  id: Int\nend\nfirst :: proc(n: N) -> String do return n.name\ng := \"\"\nf :: proc()\n  b: Blob[4]\n  g = first(N{name = b[].asString(), id = 1})\nend\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "this view of the proc's own memory would outlive the call"},
+  /* a union's narrowed copy holds what the union does */
+  {"U :: union\n  []Int\n  Int\nend\ng: []Int\nh :: proc()\n  a: [4]Int\n  u: U = a[]\n  if u is []Int do g = u\nend\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "this view of the proc's own memory would outlive the call"},
+  {"U :: union\n  []Int\n  Int\nend\ng: []Int\nh :: proc()\n  a: [4]Int\n  u: U = 1\n  u = a[]\n  switch u\n  case []Int\n    g = u\n  end\nend\n", 0, 0, 0, rio_ErrorKind_compile, 12, -1, -1, "this view of the proc's own memory would outlive the call"},
   /* views of globals and parameters, and local views passed down or replaced, are fine */
   {"g: []Int\nga: [4]Int\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[]\n  n := s.len()\n  s = ga[]\n  g = s\n  return v[1..]\nend\nsum :: proc(v: []Int) -> Int\n  return v.len()\nend\nh :: proc() -> Int\n  a: [4]Int\n  return sum(a[])\nend\nlog(f(ga).len(), h())\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   /* ...as are a loop's own locals, stores in a loop of what a local already holds, views returned through a &
      parameter of a global's place, and one of the caller's returned to it */
   {"S :: struct\n  buf: [4]Int\nend\ngs: S\ng: []Int\nfront :: proc(s: &S) -> []Int do return s.buf[0..<2]\nga :: proc() -> []Int do return gs.buf[]\nf :: proc(v: []Int) -> []Int\n  a: [4]Int\n  s := a[]\n  for i in 0..<2\n    t := a[]\n    s = t\n    s = ga()\n  end\n  g = front(&gs)\n  r := &gs\n  g = front(&r)\n  return v\nend\nlog(f(gs.buf[]).len(), g.len())\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  /* ...and locals and parameters holding views of global memory, or passed down */
+  {"N :: struct\n  name: String\n  id: Int\nend\nU :: union\n  String\n  Int\nend\ng: N\ngs := \"\"\nlabel :: proc(n: N) -> String do return n.name\nf :: proc(n: N) -> String\n  b: Blob[4]\n  mine := N{name = b[].asString(), id = 1}\n  log(label(mine).len())\n  k := N{name = \"ada\", id = 2}\n  g = k\n  names: [2]String\n  names[0] = \"x\"\n  names[1] = \"z\"\n  gs = names[0]\n  u: U = \"y\"\n  if u is String do gs = u\n  return label(n)\nend\nlog(f(N{name = \"bo\", id = 3}), g.name, gs)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   /* the logical operators are words: the C forms point at themselves */
   {"a := true\nb := a && false\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 2, "write and instead of &&"},
   {"a := true\nb := a || false\n", 0, 0, 0, rio_ErrorKind_compile, 2, 8, 2, "write or instead of ||"},
@@ -181,7 +198,9 @@ static const Case cases[] = {
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nlog(u.x)\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "a union's value is reachable inside switch"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nswitch u\ncase A\n  u.x = 3\ncase B\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "assign the whole union to change it"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nswitch u\ncase A\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "this switch has no case for B"},
-  {"S :: union\n  String, Int\nend\nf :: proc()\n  s: S\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "unions holding slices or strings must be global"},
+  {"S :: union\n  [9]String, [8]String\nend\nf :: proc()\n  s: S\nend\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "a big struct, array or union (over 16 words) holding slices or strings must be global"},
+  {"S :: union\n  [9]String, [8]String\nend\nf :: proc()\n  x: [8]String\n  s: S = x\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "a big union (over 16 words) holding slices or strings must be global"},
+  {"f :: proc()\n  b: [..4]String\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a builder holding slices or strings must be global"},
   /* only x is T parts joined by && narrow: not under ||, !, or a comparison */
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif t or u is A\n  log(u.x)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "a union's value is reachable"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif not (u is B)\n  log(u.x)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "a union's value is reachable"},

@@ -104,10 +104,7 @@ rio_Expr rio_symbolExpr(rio_Vm *vm, int sym) {
   case rio_SymKind_module: return rio_exprOf(rio_ExprKind_module, 0, y->value);
   case rio_SymKind_var:
     e = rio_exprOf(rio_ExprKind_static, y->type, y->value);
-    if (rio_isLocalMemory(vm, &e) && (uint32_t)e.value < vm->top) {
-      e.localView = (uint8_t)rio_bitGet(c->localViews, (uint32_t)e.value / 4);
-      e.fromParam = (uint8_t)rio_bitGet(c->paramViews, (uint32_t)e.value / 4);
-    }
+    rio_slotMarks(vm, &e);
     return e;
   case rio_SymKind_const: { /* scalars are the value itself; a String, its constant */
     int k = rio_type(vm, y->type)->kind;
@@ -122,6 +119,7 @@ rio_Expr rio_symbolExpr(rio_Vm *vm, int sym) {
   case rio_SymKind_narrowed:
     e = rio_exprOf(rio_ExprKind_static, y->type, y->value);
     e.access = rio_Access_narrowed;
+    rio_slotMarks(vm, &e);
     return e;
   case rio_SymKind_ref:
   case rio_SymKind_readOnlyRef: /* value: the slot holding the receiver's (or loop element's) address */
@@ -313,6 +311,7 @@ static void rio_member(rio_Vm *vm) {
     rio_Field *f = rio_field(vm, ty->firstField + i);
     rio_offsetPlace(e, f->offset);
     e->type = f->type;
+    if (e->kind == rio_ExprKind_static) rio_partMarks(vm, e);
     if (f->bits) { /* (a bitfield: its bits of the word there) */
       e->bitAt = f->bitAt;
       e->bits = (uint16_t)(f->bits < 0 ? -f->bits : f->bits);
@@ -356,7 +355,9 @@ static void rio_index(rio_Vm *vm, rio_Expr *o, rio_Expr *i) {
   rio_needValue(vm, o);
   rio_needValue(vm, i);
   ty = rio_type(vm, o->type);
-  o->localView = (uint8_t)rio_isLocalView(vm, o);
+  if (!(ty->kind == rio_TypeKind_array && rio_isViewKind(rio_type(vm, ty->elem)->kind))) /* (an array of views: its
+                                                                                       elements view what they were given) */
+    o->localView = (uint8_t)rio_isLocalView(vm, o);
   if (ty->kind != rio_TypeKind_array && ty->kind != rio_TypeKind_slice && ty->kind != rio_TypeKind_builder && ty->kind != rio_TypeKind_builderView)
     rio_FAIL(, "cannot index this");
   if (ty->kind == rio_TypeKind_array && ty->firstField) { /* [Enum]T: the enum's value is the element */
@@ -385,6 +386,7 @@ static void rio_index(rio_Vm *vm, rio_Expr *o, rio_Expr *i) {
     if ((uint32_t)i->value >= ty->count) rio_FAIL(, "index out of bounds");
     o->value += i->value * size;
     o->type = (uint16_t)elem;
+    rio_partMarks(vm, o);
     return;
   }
   s = rio_toSlot2(vm, o);
@@ -680,6 +682,7 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
         rio_emit(vm, rio_Op_mov, (int)(dst.value / 4), rio_toAddrSlot(vm, arg), 0);
         continue;
       }
+      rio_slotMarks(vm, arg);
       resultLocal |= rio_isLocalView(vm, arg); /* (a view it returns may view what went in) */
       resultFrom |= arg->fromParam;
       c->storingArgs = 1;
@@ -714,6 +717,7 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
     for (i = 0; i < type->fieldCount; i++) {
       int paramType = rio_field(vm, type->firstField + i)->type;
       rio_Expr dst = rio_exprOf(rio_ExprKind_static, paramType, (base + at) * 4);
+      rio_slotMarks(vm, &c->values[m->valueBase + i]);
       resultLocal |= rio_isLocalView(vm, &c->values[m->valueBase + i]); /* (what it returns may view what went in) */
       resultFrom |= c->values[m->valueBase + i].fromParam;
       c->storingArgs = 1;

@@ -24,12 +24,11 @@ already written, such as Rinc's and Studio's apps, so they come first.
   rewrites it to `a[i..]`.
 - **Long argument lists:** two routes, still being weighed. Either way, what a call leaves out starts
   as zero or nil, as variables do, and a `?T` tells "not given" apart from zero.
-  - **A. Struct arguments:** `text("hi", 3, 4, {color = 8, scale = 2})`. This already works for structs
-    without views, through proc values too. What's missing is structs holding views (a `String`
-    field) as locals and by-value parameters. Today they must be globals, or passed by `&`. That would
-    need no new syntax for "limited scope", since parameters already are: a struct parameter's views
-    would be borrowed like a `String` parameter's. A local would be checked, as a whole, as a view of
-    whatever its views view.
+  - **A. Struct arguments:** `text("hi", 3, 4, {color = 8, scale = 2})`. This works for any small struct
+    now, through proc values too: structs holding views (a `String` field) can be locals and by-value
+    parameters, with no new syntax for "limited scope". A struct parameter's views are borrowed like a
+    `String` parameter's, and a local counts as a view of whatever its views view (a field named on
+    its own, of what was stored there). tests/viewtest.py checks these rules with random programs.
     - For: options are values, so a style can be kept in a global, reused and forwarded. Proc
       values work unchanged, and there's no new parameter syntax. Locals holding strings are worth
       having anyway.
@@ -37,13 +36,13 @@ already written, such as Rinc's and Studio's apps, so they come first.
       Host procs can't take structs yet, so the host interface would need them too, perhaps as the
       struct's words in field order. Braces at every call, unless calls may drop them when the last
       parameter is a struct (`text("hi", 3, 4, scale = 2)`). A proc can't keep a struct parameter's
-      views without copying their bytes. A local is checked as a whole, so one local view in it makes
-      every field count as local.
+      views without copying their bytes.
     - **References:** done. A view read through a `&T` parameter, `self`, a `for x in xs` element or
       `r := &place` counts as borrowed (or as the proc's own memory, when the place is), like a
       `String` parameter's, so `g = p.name` takes a copy. That also closed a hole (a call returning a
       view of a local passed by `&`), and broke no Rinc or Studio app.
-    - **Also:** locals that are arrays, builders or unions holding views, checked the same way.
+    - **Also:** done for arrays and unions holding views. Builders holding views, and big values
+      holding them, must still be globals.
   - **B. Named-only parameters,** after the positional ones, with a marker between them:
     ```
     text :: proc(s: String, x, y: Int; color: Int, scale: ?Int)

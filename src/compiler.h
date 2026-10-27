@@ -433,6 +433,7 @@ int rio_findEnumValue(rio_Vm *vm, int type, const char *s, int n, int32_t *value
 int rio_enumIndex(rio_Vm *vm, int type, int32_t value);
 int rio_isBig(const rio_Type *type);
 int rio_isAggregate(int kind);
+int rio_isViewKind(int kind);
 
 /* ------------------------------------------------------------------ codegen.c */
 
@@ -452,6 +453,9 @@ int rio_addrConst(rio_Vm *vm, uint32_t addr, uint32_t bytes);
 int rio_retarget(rio_Vm *vm, int from, int to);
 int rio_isTemp(rio_Vm *vm, const rio_Expr *e);
 int rio_isLocalView(rio_Vm *vm, const rio_Expr *e);
+void rio_slotMarks(rio_Vm *vm, rio_Expr *e);
+void rio_partMarks(rio_Vm *vm, rio_Expr *e);
+void rio_markHeld(rio_Vm *vm, int type, uint32_t addr, int local, int param);
 int rio_isLocalMemory(rio_Vm *vm, const rio_Expr *e);
 void rio_markLocalView(rio_Vm *vm, uint32_t addr, int words, int on);
 void rio_markParamView(rio_Vm *vm, uint32_t addr, int words, int fromParam);

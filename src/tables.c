@@ -221,6 +221,8 @@ int rio_enumIndex(rio_Vm *vm, int type, int32_t value) {
 }
 
 /* arrays, structs, builders and unions: values stored as a block of memory */
+int rio_isViewKind(int kind) { return kind == rio_TypeKind_slice || kind == rio_TypeKind_builderView; }
+
 int rio_isAggregate(int kind) {
   return kind == rio_TypeKind_array || kind == rio_TypeKind_struct || kind == rio_TypeKind_builder || kind == rio_TypeKind_union;
 }

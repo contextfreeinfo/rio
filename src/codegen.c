@@ -199,6 +199,27 @@ int rio_isLocalView(rio_Vm *vm, const rio_Expr *e) {
   return e->localView || ((k == rio_TypeKind_array || k == rio_TypeKind_builder) && rio_isLocalMemory(vm, e));
 }
 
+/* e's marks from its slots as well: a value in this proc's slots holds a view of the proc's own memory, or
+   one that came in through a parameter, when any of its words does (a struct, array or union as a whole) */
+void rio_slotMarks(rio_Vm *vm, rio_Expr *e) {
+  rio_Compiler *c = vm->compiler;
+  uint32_t s, end;
+  if (c->curProc < 0 || e->kind != rio_ExprKind_static || !rio_isLocalMemory(vm, e) || (uint32_t)e->value >= vm->top) return;
+  for (s = (uint32_t)e->value / 4, end = s + (uint32_t)rio_typeWords(vm, e->type); s < end; s++) {
+    if (rio_bitGet(c->localViews, s)) e->localView = 1;
+    if (rio_bitGet(c->paramViews, s)) e->fromParam = 1;
+  }
+}
+
+/* e, a field or element named exactly in this proc's slots, holds what its own words do (a store of the
+   whole marked them all) */
+void rio_partMarks(rio_Vm *vm, rio_Expr *e) {
+  if (vm->compiler->curProc < 0 || !rio_isLocalMemory(vm, e) || (uint32_t)e->value >= vm->top) return;
+  e->localView = 0;
+  e->fromParam = 0;
+  rio_slotMarks(vm, e);
+}
+
 /* marks (or unmarks) the slots at addr as holding a local view */
 void rio_markLocalView(rio_Vm *vm, uint32_t addr, int words, int on) {
   uint32_t s = addr / 4;
@@ -217,42 +238,75 @@ void rio_markParamView(rio_Vm *vm, uint32_t addr, int words, int fromParam) {
   }
 }
 
-/* do the slots at addr already all hold a view of the kind in bits? */
-static int rio_allMarked(const uint8_t *bits, uint32_t addr, int words) {
-  uint32_t s = addr / 4;
-  for (; words-- > 0; s++)
-    if (!rio_bitGet(bits, s)) return 0;
+/* The words of a value of type at addr that hold views: all of a view's (or a union's, whichever type it
+   holds), and those in structs and arrays. on: marks them in bits (as holding views of its kind); else
+   whether they're all already marked */
+static int rio_heldWords(rio_Vm *vm, int type, uint32_t addr, uint8_t *bits, int on) {
+  rio_Type *ty = rio_type(vm, type);
+  uint32_t i, s, end;
+  if (!ty->hasRefs) return 1;
+  if (ty->kind == rio_TypeKind_struct) {
+    for (i = 0; i < ty->fieldCount; i++) {
+      rio_Field *f = rio_field(vm, ty->firstField + i);
+      if (!f->bits && !rio_heldWords(vm, f->type, addr + f->offset, bits, on)) return 0;
+    }
+    return 1;
+  }
+  if (ty->kind == rio_TypeKind_array) {
+    for (i = 0; i < ty->count; i++)
+      if (!rio_heldWords(vm, ty->elem, addr + i * rio_type(vm, ty->elem)->size, bits, on)) return 0;
+    return 1;
+  }
+  for (s = addr / 4, end = s + (uint32_t)rio_typeWords(vm, type); s < end; s++) {
+    if (on) rio_bitSet(bits, s);
+    else if (!rio_bitGet(bits, s)) return 0;
+  }
   return 1;
+}
+
+/* marks the words of a value of type at addr that hold views: as holding views of the proc's own memory
+   (local), or ones that came in through a parameter (param), if so */
+void rio_markHeld(rio_Vm *vm, int type, uint32_t addr, int local, int param) {
+  if (local) rio_heldWords(vm, type, addr, vm->compiler->localViews, 1);
+  if (param) rio_heldWords(vm, type, addr, vm->compiler->paramViews, 1);
 }
 
 /* A view stored into dst: into a local of this proc, that local now holds a view of the proc's own memory,
    or one that came in through a parameter, or no longer does; anywhere else, it mustn't be either. Only a
    store in the local's own block surely runs before the code after it, so only there does the local stop
    holding what it held (a store in an if that may not run can't hide it). And in a loop, code before the
-   store runs after it too, so a local from before the loop can't start holding such a view there. */
+   store runs after it too, so a local from before the loop can't start holding such a view there. A
+   struct, array or union holding views goes by what it holds (it's copied, so where it is doesn't matter). */
 static void rio_storeView(rio_Vm *vm, const rio_Expr *dst, const rio_Expr *src) {
   rio_Compiler *c = vm->compiler;
-  int isLocal = rio_isLocalView(vm, src);
+  rio_Expr held = *src;
+  int holds = rio_isAggregate(rio_type(vm, dst->type)->kind), isLocal, newLocal;
   if (c->curProc < 0 || c->storingArgs) return;
+  if (holds) rio_slotMarks(vm, &held);
+  isLocal = holds ? held.localView : rio_isLocalView(vm, src);
+  src = &held;
   if (dst->kind == rio_ExprKind_static && rio_isLocalMemory(vm, dst) && (uint32_t)dst->value < vm->top) {
     uint32_t at = (uint32_t)dst->value;
     int words = rio_typeWords(vm, dst->type), b = c->blockCount - 1;
     if (c->blocks[b].kind == rio_Block_proc || at / 4 >= c->blocks[b].liveSlots) { /* (in its own block) */
-      rio_markLocalView(vm, at, words, isLocal);
-      rio_markParamView(vm, at, words, src->fromParam);
+      rio_markLocalView(vm, at, words, 0);
+      rio_markParamView(vm, at, words, 0);
+      rio_markHeld(vm, dst->type, at, isLocal, src->fromParam);
       return;
     }
-    if ((isLocal && !rio_allMarked(c->localViews, at, words)) || (src->fromParam && !rio_allMarked(c->paramViews, at, words)))
+    newLocal = isLocal && !rio_heldWords(vm, dst->type, at, c->localViews, 0); /* (what it starts holding here) */
+    if (newLocal || (src->fromParam && !rio_heldWords(vm, dst->type, at, c->paramViews, 0)))
       for (b = c->blockCount - 1; b >= 0 && c->blocks[b].kind != rio_Block_proc; b--)
         if (c->blocks[b].kind >= rio_Block_loop && at / 4 < c->blocks[b].liveSlots)
-          rio_FAIL(, isLocal ? "a view of the proc's own memory, in a loop, into a variable from before it that held none: give it one where it's declared, or declare it in the loop"
-                             : "a view that came in as a parameter, in a loop, into a variable from before it that held none: give it one where it's declared, or declare it in the loop");
-    if (isLocal) rio_markLocalView(vm, at, words, 1);
-    if (src->fromParam) rio_markParamView(vm, at, words, 1);
+          rio_FAIL(, newLocal ? "a view of the proc's own memory, in a loop, into a variable from before it that held none: give it one where it's declared, or declare it in the loop"
+                              : "a view that came in as a parameter, in a loop, into a variable from before it that held none: give it one where it's declared, or declare it in the loop");
+    rio_markHeld(vm, dst->type, at, isLocal, src->fromParam);
   } else if (isLocal)
-    rio_FAIL(, "this view of the proc's own memory would outlive the call: make that memory global, or have the caller pass it in");
+    rio_FAIL(, holds ? "this holds a view of the proc's own memory, which would outlive the call: make that memory global, or have the caller pass it in"
+                     : "this view of the proc's own memory would outlive the call: make that memory global, or have the caller pass it in");
   else if (src->fromParam)
-    rio_FAIL(, "this view came in as a parameter, so it may view the caller's own memory: copy its bytes (a Blob builder's pushAll) to keep them past the call");
+    rio_FAIL(, holds ? "this holds a view that came in as a parameter, so it may view the caller's own memory: copy its bytes to keep them past the call"
+                     : "this view came in as a parameter, so it may view the caller's own memory: copy its bytes (a Blob builder's pushAll) to keep them past the call");
 }
 
 /* ------------------------------------------------------------------ values */
@@ -551,7 +605,7 @@ static void rio_storeScalar(rio_Vm *vm, rio_Expr *dst, rio_Expr *src, int kind) 
 void rio_store(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
   rio_Type *ty = rio_type(vm, dst->type);
   int k = ty->kind;
-  if (k == rio_TypeKind_slice || k == rio_TypeKind_builderView) rio_storeView(vm, dst, src);
+  if (k == rio_TypeKind_slice || k == rio_TypeKind_builderView || (rio_isAggregate(k) && ty->hasRefs)) rio_storeView(vm, dst, src);
   if (k == rio_TypeKind_union && rio_storeIntoUnion(vm, dst, src)) return; /* a value of one of its types: wrapped */
   rio_coerce(vm, src, dst->type);
   if (dst->bits) rio_storeBits(vm, dst, src);

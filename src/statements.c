@@ -144,7 +144,8 @@ static void rio_forEach(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
   int s, size, readOnly, indexType = rio_TypeId_int, local, fromParam;
   rio_needValue(vm, e);
   ty = rio_type(vm, e->type);
-  local = rio_isLocalView(vm, e); /* (what reading through the element may view) */
+  local = ty->kind == rio_TypeKind_array && rio_isViewKind(rio_type(vm, ty->elem)->kind) /* (what reading through */
+              ? e->localView : rio_isLocalView(vm, e);                                   /* the element may view) */
   fromParam = e->fromParam;
   if (ty->kind == rio_TypeKind_builder || ty->kind == rio_TypeKind_builderView) { /* the elements there when the loop starts */
     int builder = rio_toSlot3(vm, e), view = rio_allocSlots(vm, 2);
