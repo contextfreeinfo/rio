@@ -27,8 +27,9 @@ int *score = rio_findGlobal(&vm, "score"); // direct access to globals (score* :
 ## Host procs
 
 `rio_addFfi(vm, name, sig, fn)` registers a host proc. `sig` is the parameter types, then optionally
-`>` and the result's: `i` Int, `f` Float, `s` String, `b` Blob. `name` and `sig` must stay valid until
-`rio_compile` (or `rio_loadImage`) returns.
+`>` and the result's: `i` Int, `f` Float, `s` String, `b` Blob, and a struct parameter as its layout
+in braces (see [structs](#structs)). `name` and `sig` must stay valid until `rio_compile` (or
+`rio_loadImage`) returns.
 
 - Arguments arrive in `a[]` as words, in order (see [memory](../spec/host.md#memory)); the result goes
   in `a[0]`. A `String` or `Blob` takes two words; `rio_sliceBytes(vm, &a[i])` gives its bytes.
@@ -43,6 +44,34 @@ with nothing to parse. `rio_autoImport(vm, "pc")` makes `pc` visible everywhere 
 When the loader has a source for an auto-imported module, it's compiled before the program (in a REPL,
 before the first input), so the module can hold types and constants for its procs (an enum for a
 mode, say); without a source, the module is made from the registrations.
+
+## Structs
+
+A struct parameter arrives as two words, where it is and its size, and `rio_getStruct` copies it into
+a C struct of the same layout. `rio -H pc.h pc.rio` writes those C structs from the Rio module that
+declares the host procs, so its source is what both sides follow: for each struct a host proc takes, a
+`typedef`, accessors for its bitfields (`pc_Text_big(&t)`, `pc_Text_set_big(&t, 1)`), a check that its
+size is Rio's, and its layout, `pc_Text_LAYOUT`; and for each host proc, its sig, `pc_text_SIG`:
+
+```c
+#include "pc.h"   // made by rio -H pc.h pc.rio
+
+static void text(rio_Vm *vm, rio_Val *a) {
+  pc_Text t;
+  rio_getStruct(vm, a + 2, &t, sizeof t);   // (a[0] and a[1]: the String)
+  draw(rio_sliceBytes(vm, a), a[1].i, t.at.x, t.at.y, pc_Text_color(&t), pc_Text_big(&t));
+}
+...
+rio_addFfi(&vm, "pc.text", pc_text_SIG, text);
+```
+
+A `String` or `Blob` inside is a `rio_View`, whose bytes `rio_viewBytes(vm, v)` gives. Compiling checks
+each declaration against the sig, so a header older than the module is an error, not a misread. An
+image made when a struct had fewer fields at its end still loads, and `rio_getStruct` fills the rest
+with zeros; a struct changed any other way is an error naming the host proc.
+
+`rio_hostHeader` does what `rio -H` does, for a host that makes its own: the module may declare host
+procs the vm doesn't have.
 
 ## Modules
 

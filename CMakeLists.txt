@@ -50,7 +50,7 @@ else()
 endif()
 
 # cli: run scripts, or translate them to C with -c
-add_executable(rio src/main.c src/aot.c)
+add_executable(rio src/main.c src/aot.c src/header.c)
 target_link_libraries(rio PRIVATE riocore)
 
 enable_testing()
@@ -114,9 +114,13 @@ if(Python3_FOUND)
 endif()
 
 # host: host procs in modules, auto-imports, declarations checked; core.rio declares every builtin
-add_executable(rio_host_test tests/host.c)
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/hst.h # (the C header for tests/hst.rio's host procs, which it uses)
+  COMMAND rio -H ${CMAKE_BINARY_DIR}/hst.h ${CMAKE_SOURCE_DIR}/tests/hst.rio
+  DEPENDS rio ${CMAKE_SOURCE_DIR}/tests/hst.rio)
+add_executable(rio_host_test tests/host.c src/header.c ${CMAKE_BINARY_DIR}/hst.h)
+target_include_directories(rio_host_test PRIVATE ${CMAKE_BINARY_DIR})
 target_link_libraries(rio_host_test PRIVATE riocore)
-add_test(NAME rio_host COMMAND rio_host_test ${CMAKE_SOURCE_DIR}/src/core.rio)
+add_test(NAME rio_host COMMAND rio_host_test ${CMAKE_SOURCE_DIR}/src/core.rio ${CMAKE_SOURCE_DIR}/tests/hst.rio)
 set_tests_properties(rio_host PROPERTIES PASS_REGULAR_EXPRESSION "all [0-9]+ host tests passed")
 
 # host lookups by name: main and name* by default, every top-level name with rio_EXPORTS_ALL

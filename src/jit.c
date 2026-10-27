@@ -214,7 +214,7 @@ static int rio_jitCompilable(rio_Jit *g, const rio_Instr *code, uint32_t first, 
       if (pc + 1 > last || (rio_isIndexed(op) && code[pc + 1].a >= 4096)) return 0;
       pc++;
     }
-    if (op == rio_Op_ffi && rio_OFFSET_FFI_FN(code[pc].c) >= 4096) return 0;
+    if (op == rio_Op_ffi && (rio_OFFSET_FFI_FN(code[pc].c) >= 4096 || g->vm->ffi[code[pc].c].pad)) return 0; /* (padded: the vm's) */
   }
   return pc == last + 1;
 }

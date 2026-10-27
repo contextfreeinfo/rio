@@ -28,6 +28,8 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
 #define rio_HOT_DATA
 #endif
 
+#define rio_FFI_PAD_WORDS 64 /* a host proc called with zeros for parameters it gained (rio_Ffi pad) takes at most this many words */
+
 /* ------------------------------------------------------------------ the instruction set */
 
 /* Operands a, b and c are slots (word indexes into mem) unless noted; constants are slots too, below

@@ -1,0 +1,19 @@
+# hst.rio: host procs taking structs, for tests/host.c, which includes the C header rio -H makes of it
+Shape* :: enum
+  dot, box
+end
+Pos* :: struct
+  x, y: Int
+end
+Opts* :: struct
+  at: Pos
+  scale: Float
+  kind: Shape(2)
+  flip: Bool(1)
+  lean: Int(-5)
+  tag: Blob[6]
+  name: String
+  ps: [2]Pos
+end
+draw* :: host proc(id: Int, o: Opts) -> Int
+mark* :: host proc(p: Pos, n: Int)

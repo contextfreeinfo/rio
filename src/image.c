@@ -14,6 +14,7 @@ typedef enum {
   rio_Image_headerWords
 } rio_ImageHeader;
 #define rio_IMAGE_VERSION 10 /* (3: logv and pushv, numbered among the others; 4: freeAt; 5: pushf; 6: bpack, geti, seti; 7: bitfields in descriptors; 8: enums 0 to n - 1; 9: forby, ranges printed; 10: bchk, bitfields' value descriptors) */
+
 #define rio_IMAGE_MAGIC 0x494F4952u /* "RIOI" */
 
 static int rio_littleEndian(void) {
@@ -152,8 +153,53 @@ static int rio_headerChecks(rio_Vm *vm, const uint32_t *h) {
   if (!rio_headerOk(h)) return rio_imageError(vm, "bad header");
   return 0;
 }
-/* the ffi table, [q, e) (its padding at the end): each bound by name, in the image's order, into ffi;
-   0, or -1 */
+/* past the sig's part at s: a letter, or a struct's {...} */
+static const char *rio_sigPart(const char *s) {
+  int depth = 0;
+  if (*s != '{') return s + 1;
+  do {
+    depth += *s == '{';
+    depth -= *s == '}';
+    s++;
+  } while (*s && depth);
+  return s;
+}
+
+/* the words a sig's parameters take, and its result ("" if none) */
+static int rio_sigWords(const char *sig, const char **result) {
+  int n = 0;
+  for (; *sig && *sig != '>'; sig = rio_sigPart(sig)) n += *sig == 's' || *sig == 'b' || *sig == '{' ? 2 : 1;
+  *result = *sig ? sig + 1 : sig;
+  return n;
+}
+
+/* does an image's sig part [a, ae) fit the host's [h, he): the same, or a struct with fields more at its
+   end (which the host reads as zeros: rio_getStruct) */
+static int rio_partFits(const char *a, const char *ae, const char *h, const char *he) {
+  size_t n = (size_t)(ae - a), m = (size_t)(he - h);
+  if (n == m && !memcmp(a, h, n)) return 1;
+  return *a == '{' && m > n && n > 2 && !memcmp(a, h, n - 1) && h[n - 1] == ',';
+}
+
+/* host proc j for an image's, of sig sig: 0 if it won't do; else into *f, with pad set (the host's sig
+   may have more parameters at its end: the image passes zeros for them; and a struct's layout more
+   fields at its end) */
+static int rio_ffiFits(rio_Vm *vm, int j, const char *sig, rio_Ffi *f) {
+  const char *host = vm->ffi[j].sig, *hostResult, *result, *a = sig, *h = host;
+  int hostWords = rio_sigWords(host, &hostResult), words = rio_sigWords(sig, &result);
+  for (; *a && *a != '>'; a = rio_sigPart(a), h = rio_sigPart(h)) /* (each of the image's parameters fits the host's) */
+    if (!*h || *h == '>' || !rio_partFits(a, rio_sigPart(a), h, rio_sigPart(h))) return 0;
+  if (strcmp(hostResult, result) || (*h && *h != '>' && hostWords > rio_FFI_PAD_WORDS)) return 0;
+  *f = vm->ffi[j];
+  f->argWords = (uint8_t)hostWords;
+  f->resultWords = (uint8_t)(*result == 's' || *result == 'b' ? 2 : *result ? 1 : 0);
+  f->pad = (uint8_t)(hostWords - words);
+  return 1;
+}
+
+/* the ffi table, [q, e) (its padding at the end): each bound by name, in the image's order, into ffi.
+   One the host doesn't have, or whose sig doesn't fit, is fine unless the code calls it: its fn is 0,
+   its name the image's (for rio_callsOk to name it), its sig "" if it's missing. 0, or -1 */
 static int rio_bindFfi(rio_Vm *vm, const uint32_t *h, const uint8_t *q, const uint8_t *e, rio_Ffi *ffi) {
   uint32_t i, j;
   if ((e - q) & 3) return rio_imageError(vm, "wrong size"); /* (padded to whole words) */
@@ -168,28 +214,35 @@ static int rio_bindFfi(rio_Vm *vm, const uint32_t *h, const uint8_t *q, const ui
     if (q + n >= e) return rio_imageError(vm, "bad ffi table");
     q += n + 1;
     for (j = 0; j < (uint32_t)vm->ffiCount && strcmp(vm->ffi[j].name, name); j++) {}
-    if (j < (uint32_t)vm->ffiCount) {
-      if (strcmp(vm->ffi[j].sig, sig)) return rio_imageError(vm, "an ffi function's sig differs from the image's");
-      ffi[i] = vm->ffi[j];
-    } else { /* fine, unless the code calls it */
-      ffi[i].name = "";
-      ffi[i].sig = "";
+    if (j >= (uint32_t)vm->ffiCount || !rio_ffiFits(vm, (int)j, sig, &ffi[i])) { /* fine, unless the code calls it */
+      ffi[i].name = name;
+      ffi[i].sig = j < (uint32_t)vm->ffiCount ? "x" : "";
       ffi[i].fn = 0;
-      ffi[i].argWords = ffi[i].resultWords = ffi[i].declared = 0;
+      ffi[i].argWords = ffi[i].resultWords = ffi[i].declared = ffi[i].pad = 0;
     }
   }
   if (e - q > 3) return rio_imageError(vm, "wrong size");
   return 0;
 }
-/* does the code call only ffi functions the host registered? */
-static int rio_callsOk(rio_Vm *vm, const uint32_t *h, const rio_Instr *code, const rio_Ffi *ffi) {
+/* does the code call only ffi functions the host registered, with sigs that fit? The ones it doesn't
+   call lose the image's names (which don't outlive the load) */
+static int rio_callsOk(rio_Vm *vm, const uint32_t *h, const rio_Instr *code, rio_Ffi *ffi) {
   uint32_t i;
   for (i = 0; i < h[rio_Image_codeLen]; i++) {
     rio_Instr in;
     memcpy(&in, code + i, sizeof in);
-    if (in.op == rio_Op_ffi && (in.c >= h[rio_Image_ffiCount] || !ffi[in.c].fn))
-      return rio_imageError(vm, "the program calls an ffi function the host didn't register");
+    if (in.op == rio_Op_ffi && (in.c >= h[rio_Image_ffiCount] || !ffi[in.c].fn)) {
+      char text[rio_ERROR_BUF_SIZE];
+      int n = rio_appendText(text, 0, "the program calls ");
+      if (in.c >= h[rio_Image_ffiCount]) return rio_imageError(vm, "the program calls an ffi function it doesn't list");
+      n = rio_appendText(text, n, ffi[in.c].name);
+      n = rio_appendText(text, n, *ffi[in.c].sig ? ", whose sig on this host doesn't fit the image's" : ", which the host didn't register");
+      text[n] = 0;
+      return rio_imageError(vm, text);
+    }
   }
+  for (i = 0; i < h[rio_Image_ffiCount]; i++)
+    if (!ffi[i].fn) ffi[i].name = ffi[i].sig = "";
   return 0;
 }
 /* the end of a load, with memory in place: the vm set up to run it */

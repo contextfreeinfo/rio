@@ -71,7 +71,8 @@ typedef void (*rio_LogFn)(void *userData, const char *text, int len);
 int rio_init(rio_Vm *vm, void *mem, uint32_t memSize, rio_Instr *code, uint32_t codeCap);
 void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData);
 
-/* A host proc. sig: params then optional '>' and result. i=i32 f=f32 s=string b=blob. e.g. "ff>f".
+/* A host proc. sig: params then optional '>' and result. i=i32 f=f32 s=string b=blob, and a struct
+   parameter as its layout in braces, {x:Int,y:Int} (rio_hostHeader writes them); e.g. "ff>f".
    name and sig must stay valid until rio_compile (or rio_loadImage) returns.
    A plain name is global. A dotted one, "pc.cls", is in module pc instead: `import pc` (or
    rio_autoImport) gives pc.cls. If the loader has a source for pc, that's the module, and it must
@@ -89,11 +90,20 @@ int rio_autoImport(rio_Vm *vm, const char *module);
 /* A compiled program, ready to run, for loading into a vm (even one built with rio_NO_COMPILER,
    which leaves the compiler out). Save right after compiling, before running.
    The image holds absolute addresses, so the loading vm needs at least the memory it was compiled
-   with (and room for its code); register the same ffi functions (by name and sig, in any order)
-   before loading. Little-endian hosts only. rio_saveImage returns the image's size (out NULL: just
+   with (and room for its code); register the ffi functions it calls (by name, in any order) before
+   loading, each with the sig it had, or one with more parameters at its end (an image passes zeros for
+   those) and the same result. Little-endian hosts only. rio_saveImage returns the image's size (out NULL: just
    the size), or 0 if it doesn't fit or there's nothing to save. */
 #ifndef rio_NO_COMPILER
 uint32_t rio_saveImage(rio_Vm *vm, void *out, uint32_t cap);
+/* C for a host to write its host procs against (src/header.c, which the rio CLI has): compiles src, a module that declares them (host procs
+   this vm lacks are fine here), with the compiler in scratch, and writes into out (cap bytes): for each
+   struct a host proc takes, and each inside one, a C struct of the same layout, accessors for its
+   bitfields and name_LAYOUT; and for each host proc, name_SIG, its sig. Each name starts with prefix
+   (pc: pc_Text, pc_text_SIG). Returns the length written (0-terminated), or 0: an error (rio_error), or
+   too little room. */
+uint32_t rio_hostHeader(rio_Vm *vm, const char *src, uint32_t len, void *scratch, uint32_t scratchSize, const char *prefix,
+                        char *out, uint32_t cap);
 #endif
 int rio_loadImage(rio_Vm *vm, const void *image, uint32_t len);
 /* The same, a part at a time, for a host without room for a whole image beside the vm (such as one
@@ -203,6 +213,13 @@ rio_Val *rio_procResult(rio_Vm *vm, int proc);
 int rio_call(rio_Vm *vm, int proc);
 void *rio_findGlobal(rio_Vm *vm, const char *name); /* address of a global variable, or NULL */
 void *rio_sliceBytes(rio_Vm *vm, const rio_Val *slice); /* bytes of a string/blob/slice value */
+/* A struct argument to a host proc (a sig's {...}: its layout) is 2 words: where it is, and its size.
+   rio_getStruct copies it into out, a C struct of size bytes (as rio_hostHeader writes them), with
+   zeros past the struct it's given (from an image made when it had fewer fields at its end). A String
+   or Blob in it is a rio_View, and rio_viewBytes gives its bytes. */
+typedef struct { uint32_t at, len; } rio_View;
+void rio_getStruct(rio_Vm *vm, const rio_Val *arg, void *out, uint32_t size);
+void *rio_viewBytes(rio_Vm *vm, rio_View v);
 void rio_trap(rio_Vm *vm, const char *message);   /* call from ffi to abort with an error */
 /* break: safe from a signal handler, an interrupt or another core. A running script stops at its next
    loop iteration with the runtime error "interrupted". */
@@ -266,11 +283,12 @@ typedef struct {
 } rio_Proc;
 
 /* a registered host proc; argWords and resultWords come from its sig. declared: while compiling, a
-   host declaration (or a host module made from the registrations) has bound it */
+   host declaration (or a host module made from the registrations) has bound it. pad: in a loaded
+   image made when the proc had fewer parameters, how many words more it takes now (passed as zeros) */
 typedef struct {
   const char *name, *sig;
   rio_FfiFn fn;
-  uint8_t argWords, resultWords, declared;
+  uint8_t argWords, resultWords, declared, pad;
 } rio_Ffi;
 
 typedef struct {
@@ -309,6 +327,7 @@ struct rio_Vm {
   rio_Define defines[rio_MAX_DEFINES];
   const char *autoImports[rio_MAX_AUTO_IMPORTS];
   int autoImportCount;
+  int hostHeader;          /* compiling for rio_hostHeader: a host proc the host lacks is only recorded */
   struct rio_Compiler *compiler; /* only while compiling, or after rio_compileScratch and in a REPL */
   rio_Usage *usage;        /* rio_trackUsage */
   rio_Proc *procs;         /* per proc, in mem next to the strings */

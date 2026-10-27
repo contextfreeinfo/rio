@@ -33,7 +33,7 @@ end
 ## Host procs
 
 A host proc is a proc the host provides, written in the host's language. Its parameters and result
-can be `Int`, `Float`, `String` and `Blob`. A host proc has a plain name, global like a builtin, or a
+can be `Int`, `Float`, `String` and `Blob`, and its parameters structs. A host proc has a plain name, global like a builtin, or a
 module name and a name, such as `pc.cls`. Host procs in a module are used through that module: with
 `import pc`, or everywhere if the host auto-imports `pc`. If the host has no source for the module,
 the module is just its host procs, all exported.
@@ -69,8 +69,9 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
 ```
 
 - **Host procs:** `name :: host proc(...) -> R`, a proc type, as for proc values: its parameter and
-  result types must be exactly the host's, except that an enum may stand for an `Int`, which it is
-  underneath; calls then take the declared types. In a module, `name` is the host proc of the module's
+  result types must be exactly the host's, except that an enum or a `Bool` may stand for an `Int`,
+  which it is underneath, and a struct parameter for its fields (below); calls then take the declared
+  types. In a module, `name` is the host proc of the module's
   name (`cls` in `pc.rio` is `pc.cls`), else a global one. When the host has a source for a module of
   host procs, that source is the module (auto-imported ones too), and it must declare every one of
   the module's host procs. So a module can give its host procs types of its own:
@@ -81,6 +82,29 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
   end
   pointer* :: host proc(mode: Pointer)   # the host's pc.pointer takes an Int
   ```
+- **Struct parameters:** a struct goes to the host by address, and the host reads it in place, so it
+  can hold anything a struct can, and be any size. The host's sig gives its layout: each field's name
+  and what it is to C (an enum or a `Bool` is an `Int`), which the declaration's must be. The host
+  only borrows it, as it does views, for the call; it reads it as it is when the call is made:
+
+  ```rio fragment
+  Pos* :: struct              # in pc.rio
+    x, y: Int
+  end
+  Text* :: struct
+    at: Pos
+    color: Int(8)
+    big: Bool(1)
+  end
+  text* :: host proc(s: String, t: Text)   # the host's sig: "s{at:{x:Int,y:Int},color:Int(8),big:Int(1)}"
+  pc.text("hi", {at = {x = 3, y = 4}, big = true})   # color 0
+  ```
+
+  A field left out of a literal is zero, so a host proc's options can grow without breaking calls
+  written before: add fields at the end, and make zero mean what calls did before. Images made before
+  then still load: the host reads zeros for the fields they lack. A host writes its side from the
+  module's source, which makes C structs and sigs to match: see the
+  [embedding guide](../guide/embedding.md#structs).
 - **Builtins:** declared the same way, and checked as calls with those types:
   `sqrt* :: host proc(x: Float) -> Float`. [`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio) declares them all.
 - **Builtin types:** `Int* :: host struct`.

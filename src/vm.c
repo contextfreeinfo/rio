@@ -25,6 +25,17 @@ static const char *rio_fileOfPc(rio_Vm *vm, uint32_t pc) {
   return file;
 }
 
+/* a host proc called by an image made when it had fewer parameters: the words it had, then zeros, in a
+   copy; its result back */
+static rio_NOINLINE void rio_ffiPadded(rio_Vm *vm, const rio_Ffi *f, rio_Val *a) {
+  rio_Val w[rio_FFI_PAD_WORDS];
+  int given = f->argWords - f->pad, i;
+  for (i = 0; i < given; i++) w[i] = a[i];
+  for (; i < f->argWords; i++) w[i].u = 0;
+  f->fn(vm, w);
+  for (i = 0; i < f->resultWords; i++) a[i] = w[i];
+}
+
 static int rio_runtimeError(rio_Vm *vm, const char *message, uint32_t pc) {
   char copy[rio_ERROR_BUF_SIZE];
   if (message == vm->errorText) { /* a message from rio_trap: rio_setError rewrites errorText */
@@ -527,7 +538,8 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     rio_NEXT();
   }
   rio_CASE(ffi) {
-    vm->ffi[ip->c].fn(vm, R + ip->a);
+    if (vm->ffi[ip->c].pad) rio_ffiPadded(vm, &vm->ffi[ip->c], R + ip->a);
+    else vm->ffi[ip->c].fn(vm, R + ip->a);
     if (vm->trapped) {
       vm->trapped = 0;
       return rio_runtimeError(vm, vm->errorText, rio_PC);

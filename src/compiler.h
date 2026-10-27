@@ -190,7 +190,8 @@ typedef enum {
      index     a: 1 once a ':' made it a slice
      call      a: the callee's rio_ExprKind (proc, static for a proc value, ffi, builtin);
                b: which (proc, slot holding the proc value, ffi function, rio_Builtin);
-               c: a proc value's type; ffi: argument words placed so far; fromInt and has: the enum;
+               c: a proc value's type; ffi: argument words placed so far (punAt: past the slots kept, with
+               a struct argument: rio_ffiRoom); fromInt and has: the enum;
                format: the byte builder's slots; offsetOf and bitOffsetOf: the field path's bit offset + 1
      literal   a: the field being filled in (-1: punned, decided by its value); b: the struct type;
                c: the struct's address. op 1: an array or builder literal instead (b: its type; its
@@ -429,6 +430,16 @@ int rio_builderOf(rio_Vm *vm, int elem, uint32_t count);
 int rio_maybeOf(rio_Vm *vm, int t);
 int rio_builderViewOf(rio_Vm *vm, int elem);
 int rio_findField(rio_Vm *vm, const rio_Type *type, const char *s, int n);
+/* text written out (out: into it, up to cap), or compared (want: with it, cap bytes) */
+typedef struct {
+  char *out;
+  const char *want;
+  uint32_t n, cap;
+  int differs;
+} rio_HostText;
+void rio_hostPut(rio_HostText *o, const char *s, int len);
+void rio_hostPutInt(rio_HostText *o, int32_t v);
+void rio_layoutOf(rio_Vm *vm, int type, int bits, rio_HostText *o);
 int rio_findEnumValue(rio_Vm *vm, int type, const char *s, int n, int32_t *value);
 int rio_enumIndex(rio_Vm *vm, int type, int32_t value);
 int rio_isBig(const rio_Type *type);
