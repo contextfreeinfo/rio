@@ -451,29 +451,38 @@ static void rio_listCall(rio_Vm *vm, rio_PendingOp *call) {
 
 /* can a value of type t be packed: plain data, with no views (slices, String, Blob, builder views) or proc
    values anywhere in it, as those hold addresses */
+/* does a value of type t pack (go into bytes and come out of them)? 1 if so; 0 if it holds an address (a
+   view or a proc value); -1 if it holds a builder, whose length (how much of it is there) can't come
+   from bytes, though its elements can (through a view of them) */
 static int rio_packable(rio_Vm *vm, int t) {
   const rio_Type *ty = rio_type(vm, t);
-  int i;
+  int i, all = 1, k;
   switch (ty->kind) {
   case rio_TypeKind_slice: case rio_TypeKind_builderView: case rio_TypeKind_proc: case rio_TypeKind_void: return 0;
-  case rio_TypeKind_array: case rio_TypeKind_builder: return rio_packable(vm, ty->elem);
+  case rio_TypeKind_array: return rio_packable(vm, ty->elem);
+  case rio_TypeKind_builder: return rio_packable(vm, ty->elem) ? -1 : 0;
   case rio_TypeKind_struct: case rio_TypeKind_union:
     for (i = 0; i < ty->fieldCount; i++) {
       int f = rio_field(vm, ty->firstField + i)->type;
-      if (f != rio_TypeId_void && !rio_packable(vm, f)) return 0;
+      if (f != rio_TypeId_void && (k = rio_packable(vm, f)) < 1) {
+        if (!k) return 0;
+        all = -1;
+      }
     }
-    return 1;
+    return all;
   default: return 1;
   }
 }
+static const char rio_msgPacksAddress[] = "only plain data packs: no views or proc values in it";
+static const char rio_msgPacksBuilder[] = "a builder's length can't come from bytes: pack and unpack its elements, xs[]";
 
 /* the bytes of x, as 2 slots (address, how many): a view's elements (a builder view's live ones), else the
    value's own memory (into: it's being written, so it must be a place, or a view of one) */
 static int rio_bytesOf(rio_Vm *vm, rio_Expr *x, int into) {
-  int k = rio_type(vm, x->type)->kind, s, d, size;
+  int k = rio_type(vm, x->type)->kind, s, d, size, ok;
   if (k == rio_TypeKind_slice || k == rio_TypeKind_builderView) {
     int elem = rio_type(vm, x->type)->elem;
-    if (!rio_packable(vm, elem)) rio_FAIL(0, "only plain data packs: no views or proc values in it");
+    if ((ok = rio_packable(vm, elem)) < 1) rio_FAIL(0, ok ? rio_msgPacksBuilder : rio_msgPacksAddress);
     if (into && (x->type == rio_TypeId_string || (x->access & rio_Access_readOnly))) rio_FAIL(0, "can't unpack into this: it's read-only");
     if (k == rio_TypeKind_builderView) {
       int b = rio_toSlot3(vm, x);
@@ -487,7 +496,7 @@ static int rio_bytesOf(rio_Vm *vm, rio_Expr *x, int into) {
     rio_emit(vm, rio_Op_mul, d + 1, s + 1, rio_constSlot(vm, size));
     return d;
   }
-  if (!rio_packable(vm, x->type)) rio_FAIL(0, "only plain data packs: no views or proc values in it");
+  if ((ok = rio_packable(vm, x->type)) < 1) rio_FAIL(0, ok ? rio_msgPacksBuilder : rio_msgPacksAddress);
   if (x->kind == rio_ExprKind_const || x->type == rio_TypeId_byte || x->bits) { /* (a number, a byte read from a Blob, or a bitfield, each an Int: into a slot, which has an address) */
     s = rio_toSlot(vm, x, 0);
     *x = rio_exprOf(rio_ExprKind_static, rio_valueType(x->type), s * 4);

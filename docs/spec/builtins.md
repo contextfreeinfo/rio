@@ -287,7 +287,8 @@ log(file.getInt(0, 16), file.getInt(0, -16), file.getInt(0, 8))
 ```
 
 Only plain data packs: nothing holding a view (a slice, `String`, `Blob` or builder view) or a proc value,
-which are addresses. A view's own elements do pack, though: `b.pack(at, xs[2..<5])` writes three
+which are addresses, or a builder, whose length (how much of it is there) mustn't come from bytes. A
+view's own elements do pack, though, a builder's too: `b.pack(at, xs[2..<5])` writes three
 elements, and `b.unpack(at, xs[])` fills `xs`'s elements (without `&`, as a view already lets its
 elements change). For a byte builder, `at` counts within its length.
 

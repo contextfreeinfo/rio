@@ -263,6 +263,23 @@ static const Case cases[] = {
   /* packing */
   {"b: Blob[8]\nn := 0\nb.unpack(0, n)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "unpack changes what it's given: pass &x (or a slice, whose elements it fills)"},
   {"S :: struct\n  name: String\nend\ns: S\nb: Blob[16]\nb.pack(0, s)\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "only plain data packs: no views or proc values in it"},
+  /* ...nothing holding an address goes into bytes or comes out of them, however it's held */
+  {"S :: struct\n  name: String\nend\ns: S\nb: Blob[16]\nb.unpack(0, &s)\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "only plain data packs: no views or proc values in it"},
+  {"S :: struct\n  name: String\nend\ns: S\nb: Blob[..16]\nb.pack(s)\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "only plain data packs: no views or proc values in it"},
+  {"U :: union\n  String\n  Int\nend\nu: U = 1\nb: Blob[16]\nb.pack(0, u)\n", 0, 0, 0, rio_ErrorKind_compile, 7, -1, -1, "only plain data packs: no views or proc values in it"},
+  {"m: ?[]Int\nb: Blob[16]\nb.unpack(0, &m)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "only plain data packs: no views or proc values in it"},
+  {"f :: proc() do log(1)\nps: [2]proc()\nb: Blob[16]\nb.pack(0, ps)\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "only plain data packs: no views or proc values in it"},
+  {"g: proc()\nb: Blob[16]\nb.unpack(0, &g)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "only plain data packs: no views or proc values in it"},
+  {"xs: [4]Int\nS :: struct\n  v: [..]Int\nend\ns: S\nb: Blob[16]\nb.pack(0, s)\n", 0, 0, 0, rio_ErrorKind_compile, 7, -1, -1, "only plain data packs: no views or proc values in it"},
+  {"xs: [..4]String\nb: Blob[64]\nb.unpack(0, &xs)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "only plain data packs: no views or proc values in it"},
+  {"ss: [2]String\nb: Blob[64]\nb.unpack(0, ss[])\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "only plain data packs: no views or proc values in it"},
+  {"ss: [2][]Int\nb: Blob[64]\nb.pack(0, ss[0..<1])\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "only plain data packs: no views or proc values in it"},
+  /* ...nor a builder whole: its length would come from bytes (its elements pack, through a view) */
+  {"xs: [..4]Int\nb: Blob[64]\nb.unpack(0, &xs)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "a builder's length can't come from bytes: pack and unpack its elements, xs[]"},
+  {"xs: [..4]Int\nb: Blob[64]\nb.pack(0, xs)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "a builder's length can't come from bytes"},
+  {"S :: struct\n  n: Int\n  xs: [..4]Int\nend\ns: S\nb: Blob[64]\nb.unpack(0, &s)\n", 0, 0, 0, rio_ErrorKind_compile, 7, -1, -1, "a builder's length can't come from bytes"},
+  {"xs: [2][..4]Int\nb: Blob[64]\nb.unpack(0, xs[])\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "a builder's length can't come from bytes"},
+  {"xs: [..4]Int\nfine := xs.push(1)\nfine = xs.push(2)\nb: Blob[64]\nb.setInt(0, 32, 7)\nb.unpack(0, xs[])\nlog(xs.len(), xs[0], xs[1])\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"b: Blob[8]\nn := b.getInt(0, 12)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "the bits are 8, 16, 24 or 32 (negative: signed)"},
   {"b: Blob[8]\nb.pack(1)\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "pack(value) appends to a byte builder: a Blob takes pack(at, value)"},
   {"\"abcd\".setInt(0, 8, 1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a String is read-only: pack and setInt need a Blob"},
