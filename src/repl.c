@@ -111,6 +111,8 @@ static int rio_rollback(rio_Vm *vm, const rio_ReplMark *m) {
   vm->constCount = m->constCount;
   vm->top = m->top;
   vm->procCount = m->procCount;
+  while (c->thunkCount && c->thunks[c->thunkCount - 1].proc >= m->procCount) c->thunkCount--; /* (its host procs' procs) */
+  if (c->thunksMade > c->thunkCount) c->thunksMade = c->thunkCount;
   c->liveSlots = c->freeSlot = m->liveSlots;
   c->slotHigh = m->slotHigh;
   c->poolCap = m->poolCap;

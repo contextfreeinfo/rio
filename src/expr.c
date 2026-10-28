@@ -626,7 +626,7 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
   rio_isTestUsed(vm, arg, -1);
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_proc && m->argCount < c->procDefs[m->b].paramCount)
     param = &c->params[c->procDefs[m->b].firstParam + m->argCount];
-  if (arg->kind == rio_ExprKind_proc) { /* a proc passed where a proc value goes */
+  if (arg->kind == rio_ExprKind_proc || arg->kind == rio_ExprKind_ffi) { /* a proc passed where a proc value goes */
     int type = -1;
     if (param) type = param->type;
     else if (m->kind == rio_Pending_call && m->a == rio_ExprKind_static && m->argCount < rio_type(vm, m->c)->fieldCount)

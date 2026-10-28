@@ -346,7 +346,10 @@ void rio_compileAll(rio_Vm *vm) {
       continue;
     }
     if (c->blockCount) rio_FAIL(, rio_msgMissingEnd);
-    if (!c->resumeCount) break;
+    if (!c->resumeCount) {
+      rio_makeThunks(vm); /* (host procs used as proc values: each one's proc, now nothing else is open) */
+      break;
+    }
     rio_endFile(vm);
   }
 }

@@ -279,6 +279,81 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
   rio_addSymbol(vm, name, nameLen, rio_SymKind_ffi, procType, i); /* (its type: as declared, for rio_hostHeader) */
 }
 
+/* ------------------------------------------------------------------ host procs as proc values */
+
+static rio_Expr rio_parseExprFrom(rio_Vm *vm, const char *text, int len, int line);
+
+/* host proc e, as a proc value of type `type` (or its own, when type < 0): the value of a proc that calls
+   it, kept for it now and made at the end of compiling (rio_makeThunks), one for each host proc. A host
+   proc can't call back into the program, so the proc never calls through a value and may be one */
+void rio_ffiProcValue(rio_Vm *vm, rio_Expr *e, int type) {
+  rio_Compiler *c = vm->compiler;
+  rio_FfiDef *def = &c->ffi[e->value];
+  int params[16], i, t, proc = -1;
+  if (def->paramCount > 16) rio_FAIL(, "too many parameters for a proc value");
+  for (i = 0; i < def->paramCount; i++) {
+    rio_Param *p = &c->params[def->firstParam + i];
+    if (p->refType) rio_FAIL(, "a proc with & parameters can't be a value");
+    if (p->type == rio_TypeId_void) rio_FAIL(, "this host proc takes a struct: declare it, in its module's source, to say which");
+    params[i] = p->type;
+  }
+  if (def->resultLayout && def->resultType == rio_TypeId_void) rio_FAIL(, "this host proc returns a struct: declare it, in its module's source, to say which");
+  t = rio_procTypeOf(vm, params, def->paramCount, def->resultType, def->optional, 0);
+  if (rio_failed(vm)) return;
+  if (type >= 0 && t != type) rio_FAIL(, "this proc's parameters or result don't match");
+  for (i = 0; i < c->thunkCount; i++)
+    if (c->thunks[i].ffi == e->value) proc = c->thunks[i].proc;
+  if (proc < 0) { /* (kept: its code comes at the end) */
+    if (c->thunkCount >= (int)(sizeof c->thunks / sizeof c->thunks[0])) rio_FAIL(, "too many host procs used as proc values (16)");
+    if (vm->procCount >= (int)c->limits.procs) rio_FAIL(, "too many procs");
+    proc = vm->procCount++;
+    memset(&c->procDefs[proc], 0, sizeof c->procDefs[proc]);
+    c->procDefs[proc].defined = 1;
+    c->procDefs[proc].usedAsValue = 1;
+    c->thunks[c->thunkCount].proc = (uint16_t)proc;
+    c->thunks[c->thunkCount++].ffi = (uint16_t)e->value;
+  }
+  *e = rio_exprOf(rio_ExprKind_const, t, proc + 1);
+}
+
+/* each host proc used as a value: its proc, (a0, a1, ...) -> host(a0, a1, ...), the host call as any other */
+void rio_makeThunks(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  for (; c->thunksMade < c->thunkCount && !rio_failed(vm); c->thunksMade++) {
+    int proc = c->thunks[c->thunksMade].proc, ffi = c->thunks[c->thunksMade].ffi, i, n;
+    rio_FfiDef *def = &c->ffi[ffi];
+    char call[256];
+    rio_Expr e;
+    c->exporting = 0;
+    if (rio_beginProcAt(vm, proc, "", 0, -1) < 0) return;
+    for (i = 0; i < def->paramCount && !rio_failed(vm); i++) {
+      char param[16];
+      int len = rio_appendText(param, 0, "a");
+      len += rio_formatInt(param + len, i);
+      rio_procParam(vm, proc, param, len, c->params[def->firstParam + i].type, 0);
+    }
+    if (def->resultType != rio_TypeId_void && !rio_failed(vm)) rio_setProcResult(vm, proc, def->resultType);
+    if (rio_failed(vm)) return;
+    rio_beginBody(vm, proc);
+    rio_addSymbol(vm, "host", 4, rio_SymKind_ffi, 0, ffi); /* (in its own scope only) */
+    n = rio_appendText(call, 0, "host(");
+    for (i = 0; i < def->paramCount; i++) {
+      if (i) n = rio_appendText(call, n, ", ");
+      call[n++] = 'a';
+      n += rio_formatInt(call + n, i);
+    }
+    call[n++] = ')';
+    e = rio_parseExprFrom(vm, call, n, c->line);
+    if (rio_failed(vm)) return;
+    if (def->resultType != rio_TypeId_void) {
+      rio_Expr d = rio_exprOf(rio_ExprKind_static, def->resultType, (int32_t)c->procDefs[proc].resultAt);
+      rio_store(vm, &d, &e);
+    }
+    rio_finishProc(vm);
+    c->procDefs[proc].usedAsValue = 1;
+  }
+}
+
 /* ------------------------------------------------------------------ builtins */
 
 /* parses an expression from text, as if it were at the given line of the current file */

@@ -328,6 +328,10 @@ void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
   rio_Compiler *c = vm->compiler;
   rio_ProcDef *p = &c->procDefs[e->value];
   int params[16], i;
+  if (e->kind == rio_ExprKind_ffi) { /* (a host proc: through a proc of its own) */
+    rio_ffiProcValue(vm, e, type);
+    return;
+  }
   if (p->paramCount > 16) rio_FAIL(, "too many parameters for a proc value");
   for (i = 0; i < p->paramCount; i++) {
     rio_Param *param = &c->params[p->firstParam + i];
@@ -345,7 +349,7 @@ void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
    builder views, and procs become proc values */
 void rio_coerce(rio_Vm *vm, rio_Expr *e, int type) {
   int from, fromKind, toKind;
-  if (e->kind == rio_ExprKind_proc && rio_type(vm, type)->kind == rio_TypeKind_proc) { /* a proc where a proc value goes */
+  if ((e->kind == rio_ExprKind_proc || e->kind == rio_ExprKind_ffi) && rio_type(vm, type)->kind == rio_TypeKind_proc) { /* a proc where a proc value goes */
     rio_toProcValue(vm, e, type);
     return;
   }

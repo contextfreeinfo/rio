@@ -1644,6 +1644,12 @@ packFile.pack(36, 0.5)
 packFile.unpack(36, &packF)
 check(packF == 0.5, "a Float")
 
+# a host proc as a proc value (through a proc of its own: the VM, an image and the C output alike)
+clocks: [2]proc() -> Float
+clocks[0] = clock
+tick := clock
+check(tick() >= 0.0 and clocks[0]() >= 0.0, "a host proc as a proc value")
+
 log("bool", true, false, "int", 42, "float", 1.25, "neg", -0.5, "big", 123456789.0, "str", GREETING)
 if fails == 0
   log("all tests passed")

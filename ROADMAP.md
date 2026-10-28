@@ -28,6 +28,10 @@ already written, such as Rinc's and Studio's apps, so they come first.
 
 ## Next
 
+- **No more `diverse union`** (decided): any union is allowed, whatever its types' sizes, with no
+  keyword. Each value takes its biggest type's room, a cost in memory like a big array's, which Rio
+  doesn't gate with a keyword either; `rio -m` shows where memory goes. Nothing uses `diverse` yet,
+  and `diverse` goes back to being an ordinary name.
 - **Unicode escapes:** `\u{1F600}` in strings, written out as UTF-8. Numbers past 10FFFF and
   surrogates are errors.
 - **`end` in index brackets:** the last index, as in `xs[end]` and `xs[end - 2..=end]`. It works only
@@ -157,15 +161,23 @@ already written, such as Rinc's and Studio's apps, so they come first.
   both are errors, and `x is nil` is the way to test for nil.
 - **Compile-time `when`:** today, `if CONST` still type-checks a body it never runs. Only if
   differences between hosts need it.
+- **A `sys` module for scripting,** in the Rio repo but not standard Rio: a separate `rio` build whose
+  host module has files, directories, running programs, the environment and arguments, so scripts
+  (tools such as `tools/stats.py`) can be Rio. Built on hosts registering their modules' sources.
 - **A foreign-call table supplied by the host:** a fixed array of host procs that programs can call
   without a `host proc` declaration for each.
-- **One calling convention for host procs and Rio procs:** then a host proc could be a proc value
-  (`f: proc(c: Int) = pc.cls`), and a proc could move between Rio and C without its callers or images
-  changing. The catch is structs: a Rio proc gets a small one as its words, while a host proc gets its
-  address and size, so that a struct grown at its end still fits an older image. Passing the words to
-  hosts too would lose that (a grown struct would move every argument after it). Passing the address
-  to Rio procs too would keep it, but a struct passed by value mustn't change under the callee, and it
-  could (through a global, a `&` parameter, or a call), so most callees would copy it anyway.
+- **Host procs calling back into Rio while they run:** a sort with a comparison, a parser handing back
+  each element, a physics step calling back on each collision. Today a host proc is a leaf: it can't
+  call into the program while it runs. What allowing it would take:
+  - **No recursion still:** a host proc marked as calling back counts as calling through a proc value
+    for its callers, so they can't be proc values, and no callback can come back around to them (each
+    proc's one frame stays safe), by the rule proc values already follow.
+  - **The VM entered again** from inside a host proc, nested on the C stack (a cap on how deep, for
+    boards with a small stack), with a runtime error in a callback coming back out through the host,
+    and the JIT's loops and the C output handling it too.
+  - **What it's worth:** mock up the parser and physics cases first, against what already works for
+    them: results as data (an array of events), iterator structs, sort in Rio once generics come, and
+    proc values the host keeps and calls between runs (`rio_callValue`).
 
 ## Before 1.0
 
@@ -188,6 +200,12 @@ already written, such as Rinc's and Studio's apps, so they come first.
     procs if they come.
 
 ## Done recently
+
+- **Host procs as proc values:** `f := pc.cls`, and as an argument or element. Each one used as a value
+  gets a small proc of its own that calls it, made at the end of compiling, so calls through values
+  stay as they are and the host call does the converting (structs by address, results placed). A host
+  proc can't call back into the program, so it can always be a value. With this, what one kind of proc
+  can do, the other can.
 
 - **Host procs returning structs and maybes** (`>{...}`, `>Union{nil|Int}` in a sig): the call passes
   where the result goes first, and the host writes it with `rio_putStruct`, so a struct result may

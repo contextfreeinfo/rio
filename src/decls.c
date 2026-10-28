@@ -189,12 +189,15 @@ static void rio_addParam(rio_Vm *vm, int type, int refType, int addr) {
 
 /* The start of a proc (receiver: a method's type, or -1): a jump for top-level code to go around it, its
    entry, and its frame, with self first for a method. Returns the proc, or -1. */
-int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver) {
+int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver) { return rio_beginProcAt(vm, -1, name, nameLen, receiver); }
+
+/* the same, at index at, kept for it already (a host proc's, used as a value: rio_ffiProcValue), or -1 */
+int rio_beginProcAt(rio_Vm *vm, int at, const char *name, int nameLen, int receiver) {
   rio_Compiler *c = vm->compiler;
   rio_ProcDef *p;
   rio_Block *b;
   int index, skip = rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE); /* top-level code goes around it */
-  index = vm->procCount++;
+  index = at >= 0 ? at : vm->procCount++;
   p = &c->procDefs[index];
   p->firstParam = (uint16_t)c->paramCount;
   p->paramCount = 0;
@@ -605,7 +608,7 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
   rio_Type *ty;
   rio_Expr e = has ? *init : rio_voidExpr();
   if (has) {
-    if (e.kind == rio_ExprKind_proc) /* f := byScore */
+    if (e.kind == rio_ExprKind_proc || e.kind == rio_ExprKind_ffi) /* f := byScore, f := pc.cls */
       rio_toProcValue(vm, &e, type >= 0 && rio_type(vm, type)->kind == rio_TypeKind_proc ? type : -1);
     rio_needValue(vm, &e);
     localView = rio_isLocalView(vm, &e);

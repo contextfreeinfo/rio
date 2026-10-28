@@ -314,6 +314,10 @@ typedef struct rio_Compiler {
   uint8_t *paramViews;    /* local slots that hold a view that came in through a parameter */
   int storingArgs;        /* storing call arguments: views may go to a callee */
   int hostProcType;       /* parsing a host proc's declaration: its proc type may take &T parameters */
+  struct {
+    uint16_t proc, ffi;
+  } thunks[16];           /* host procs used as proc values: the proc that calls each (rio_makeThunks) */
+  int thunkCount, thunksMade; /* thunksMade: how many have their code (the rest: at the end of compiling) */
   int rangeStops;         /* a for header's range: ..< and ..= end its first expression (the loop reads them) */
   uint64_t switchCases[16][4]; /* per open switch: which enum values (or union types) have a case */
   int switchCount;
@@ -562,6 +566,9 @@ int rio_parseType(rio_Vm *vm);
 void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver);
 int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver);
 void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type, int how);
+int rio_beginProcAt(rio_Vm *vm, int at, const char *name, int nameLen, int receiver);
+void rio_ffiProcValue(rio_Vm *vm, rio_Expr *e, int type);
+void rio_makeThunks(rio_Vm *vm);
 void rio_setProcResult(rio_Vm *vm, int proc, int type);
 void rio_beginBody(rio_Vm *vm, int proc);
 void rio_methodDef(rio_Vm *vm, int receiver);

@@ -47,7 +47,8 @@ The CLI has two global host procs: `clock() -> Float`, seconds of processor time
 one byte to its output.
 
 A host proc can't call back into the program while it runs. It can stop the program with a runtime
-error.
+error. Since it can't call back, a host proc can always be a [proc value](expressions.md#proc-values),
+as a proc that calls through no values can: `tick := clock`, or `each("ok", putc)`.
 
 ## Declaring host procs
 

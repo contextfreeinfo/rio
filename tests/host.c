@@ -344,6 +344,15 @@ int main(int argc, char **argv) {
      "912\n");
   BAD("import hsq\n", "hsq.rio", 4, "doesn't match the host's hsq.f: proc(Int) -> {a:Int}");
   BAD("import hsv2\n", "hsv2.rio", 4, "a host proc returns what a proc may: no views in it, and at most 16 words");
+  /* host procs as proc values: a struct passed, a struct or maybe returned, an optional left out, as when
+     called by name; one proc each, however many times they're used */
+  OK("import hst\ndrawing: proc(id: Int, o?: hst.Opts) -> Int = hst.draw\nw := hst.where\nf: proc(i: Int) -> ?Int = hst.find\n"
+     "g := hst.where\nlog(drawing(2, {scale = 1.5}), drawing(3), w(4).y, w(4, 1).y, f(5), f(0), g(1))\n",
+     "2: 0 0 1.5 0 0 0 0  0 0\n3: 0 0 0 0 0 0 0  0 0\n20 30 8 9 15 nil Pos{x = 1, y = 2}\n");
+  OK("import hst\neach :: proc(f: proc(i: Int, k?: Int) -> hst.Pos) -> Int\n  return f(2).y + f(2, 10).y\nend\nlog(each(hst.where))\n", "18\n");
+  BAD("import hst\nc := hst.count\n", 0, 2, "a proc with & parameters can't be a value");
+  BAD("import hst\nf: proc(i: Int) -> Int = hst.find\n", 0, 2, "this proc's parameters or result don't match");
+  BAD("import hsv\nf := hsv.f\n", 0, 2, "this host proc takes a struct: declare it");
   t("hsrc", "hsrc.cls(.red)\n", "", rio_ErrorKind_none, 0, 0, 0); /* (an enum value's type from the parameter) */
   if (cleared != 1) { printf("FAIL: hsrc.cls(.red) got %d\n", cleared); fails++; }
   header();
