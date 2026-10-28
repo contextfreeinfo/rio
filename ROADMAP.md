@@ -96,18 +96,10 @@ already written, such as Rinc's and Studio's apps, so they come first.
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
-- **`core`, a module, and hosts giving their modules' sources:** the builtins become module `core`,
-  whose contents are imported everywhere unqualified (`core.len` still reaches one a program has
-  shadowed), as Rinc's `pc` is imported everywhere qualified. `src/core.rio` becomes that module, not
-  a document the tests check. A host registers each of its modules' source with its host procs, so
-  declarations ship with the code they declare and can't drift (Rinc builds `pc.rio` in already). The
-  sources can then be shown on demand, by help or an editor, or as read-only files: copies written out
-  to edit would change nothing, which would mislead. `rio -H` would scaffold the rest of a host: with
-  the C structs and sigs it writes now, the module's source as a C string, and a table of its procs to
-  fill in, registered (source too) with one call. A hash of each module's source, kept in images made
-  with it, would make a quick check and a name for what an image was made with ("pc 3f2a..."), but
-  not the gate: any change to the module, even one that adds a proc, would change it, and images are
-  meant to survive what only adds. When the hash differs, each host proc it calls is checked, as now.
+- **`core`, a module:** the builtins become module `core`, whose contents are imported everywhere
+  unqualified (`core.len` still reaches one a program has shadowed), as Rinc's `pc` is imported
+  everywhere qualified. `src/core.rio` becomes that module's source, registered as a host module's is,
+  not a document the tests check.
 - **Enums by name in layouts:** an enum parameter or field is `Int` in a sig's layout now, so an image
   made before a host module's enum had its values reordered would load and pass the wrong ones.
   Written as its values' names (`Pointer{game,ui,none}`), a reorder doesn't fit, and values added at
@@ -200,6 +192,13 @@ already written, such as Rinc's and Studio's apps, so they come first.
     procs if they come.
 
 ## Done recently
+
+- **Hosts giving their modules' sources:** `rio_addSource(vm, "pc", src, len)`, taken before the
+  loader, so declarations go with the code they declare, and given back by `rio_hostSource` for help
+  or an editor. `rio -H` writes the source (`pc_SOURCE`, `pc_HASH`) and the host procs as an X macro,
+  `pc_HOST_PROCS(X)`, beside the structs and sigs. Images keep each source's name and hash, named in
+  the message when a host proc doesn't fit: a name for what an image was made with, not a gate, since
+  images are meant to survive what only adds. Images are version 11.
 
 - **Host procs as proc values:** `f := pc.cls`, and as an argument or element. Each one used as a value
   gets a small proc of its own that calls it, made at the end of compiling, so calls through values

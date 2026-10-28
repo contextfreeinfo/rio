@@ -19,6 +19,23 @@ static int rio_findFile(rio_Vm *vm, int isPackage, int isInclude, const char *ke
 /* Starts reading another file (a module to import, or a part to include), after saving where to resume:
    at cursor (whose line starts at lineStart). key: the path for the loader. Returns 0, or 1 if the
    loader doesn't have it and quietIfMissing (the caller has another way). */
+/* a module's source: a host module's, registered (rio_addSource), else the loader's; 0, 1 (none), 2 (more
+   than one) */
+int rio_load(rio_Vm *vm, const char *key, int kind, rio_Source *s) {
+  int i;
+  if (kind & rio_LoadKind_package)
+    for (i = 0; i < vm->sourceCount; i++)
+      if (!strcmp(vm->sources[i].name, key)) {
+        s->src = vm->sources[i].src;
+        s->len = vm->sources[i].len;
+        s->isDir = 0;
+        s->name = 0;
+        vm->sourcesUsed |= 1u << i;
+        return 0;
+      }
+  return vm->loader ? vm->loader(vm->loaderData, key, kind, s) : 1;
+}
+
 static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int keyLen, uint32_t at, uint32_t lineAt,
                         int line, int quietIfMissing) {
   rio_Compiler *c = vm->compiler;
@@ -31,7 +48,7 @@ static int rio_openFile(rio_Vm *vm, int isPackage, int isInclude, char *key, int
   if (c->moduleCount >= (int)c->limits.modules) rio_FAIL(0, "too many modules");
   key[keyLen] = 0;
   memset(&s, 0, sizeof s);
-  found = vm->loader ? vm->loader(vm->loaderData, key, (isPackage ? rio_LoadKind_package : 0) | (isInclude ? rio_LoadKind_file : 0), &s) : 1;
+  found = rio_load(vm, key, (isPackage ? rio_LoadKind_package : 0) | (isInclude ? rio_LoadKind_file : 0), &s);
   if (found == 1 && quietIfMissing) return 1;
   if (found) {
     n = rio_appendText(text, 0, found == 2 ? "found in more than one library path: " : isInclude ? "file not found: " : "module not found: ");

@@ -163,6 +163,31 @@ int main(void) {
     rio_addFfi(&vm, "f", "i>{b:Int}", f_res);
     check(rio_loadImage(&vm, si, m) == -1 && strstr(rio_error(&vm), "calls f, whose sig"), "a struct result whose fields differ", &vm);
   }
+  { /* a host module's source, registered: images keep its hash, and a host proc that doesn't fit says so */
+    static const char *msrc = "import m\nlog(m.f(2))\n";
+    static const char *mod1 = "f* :: host proc(n: Int) -> Int\n", *mod2 = "f* :: host proc(n: Float) -> Int\n";
+    rio_Vm a;
+    static unsigned char ma[1 << 18], si[1 << 16];
+    uint32_t m;
+    char want[64];
+    rio_init(&a, ma, sizeof ma, code, 4096);
+    rio_addFfi(&a, "m.f", "i>i", f_add);
+    rio_addSource(&a, "m", mod1, (uint32_t)strlen(mod1));
+    check(rio_compile(&a, msrc, (uint32_t)strlen(msrc)) == 0 && (m = rio_saveImage(&a, si, sizeof si)) > 0, "compile with a registered module source", &a);
+    logged[0] = 0;
+    rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+    rio_setLog(&vm, out, 0);
+    rio_addFfi(&vm, "m.f", "i>i", f_add);
+    rio_addSource(&vm, "m", mod1, (uint32_t)strlen(mod1));
+    check(rio_loadImage(&vm, si, m) == 0 && rio_run(&vm) == 0 && !strcmp(logged, "2|"), "the same source: it loads", &vm);
+    rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+    rio_addFfi(&vm, "m.f", "f>i", f_add);
+    rio_addSource(&vm, "m", mod2, (uint32_t)strlen(mod2));
+    snprintf(want, sizeof want, "(made with m %08x, this host's is %08x)", (unsigned)rio_hashText(mod1, (uint32_t)strlen(mod1)),
+             (unsigned)rio_hashText(mod2, (uint32_t)strlen(mod2)));
+    check(rio_loadImage(&vm, si, m) == -1 && strstr(rio_error(&vm), "calls m.f, whose sig") && strstr(rio_error(&vm), want),
+          "another source: the host proc that doesn't fit, and both sources' hashes", &vm);
+  }
   /* memory and code room */
   rio_init(&vm, mem2, sizeof mem / 2, code2, 4096);
   rio_addFfi(&vm, "add", "ii>i", f_add); rio_addFfi(&vm, "half", "f>f", f_half);

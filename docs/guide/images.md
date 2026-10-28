@@ -36,7 +36,9 @@ if (rio_readImage(&vm2, get, file, n) || rio_run(&vm2)) puts(rio_error(&vm2));
   with the same sig, or one with more parameters at its end and the same result: the image passes
   zeros for those, and a struct parameter's layout may have more fields at its end (the host reads
   zeros for them), so host procs can grow without breaking older images, as long as zero means what
-  it meant before. One that's missing or doesn't fit is an error naming it.
+  it meant before. One that's missing or doesn't fit is an error naming it, and, when its module's
+  source was registered (`rio_addSource`), both sources' hashes: the image keeps the name and hash of
+  each one it was made with.
 - **`-Drio_NO_COMPILER`** builds a VM that only loads images, leaving out the compiler and the REPL: on
   a Cortex-M33 at `-Os`, about 11 KB of flash instead of 68 KB. As wasm
   (`zig cc -target wasm32-wasi -mexec-model=reactor -Os`), a minimal browser host is 28 KB, 13 KB

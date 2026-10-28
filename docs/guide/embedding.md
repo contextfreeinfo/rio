@@ -37,10 +37,12 @@ in braces (see [structs](#structs)). `name` and `sig` must stay valid until `rio
 - Host procs must not call back into the VM.
 
 **Modules of host procs.** A dotted name, `"pc.cls"`, puts the proc in module `pc` instead of the
-global names, so programs `import pc` and call `pc.cls(0)`. If the loader has a source for `pc`, that
-source is the module, checked against the registrations (see [declaring host
-procs](../spec/host.md#declaring-host-procs)). Otherwise the module is made from the registrations,
-with nothing to parse. `rio_autoImport(vm, "pc")` makes `pc` visible everywhere without an import.
+global names, so programs `import pc` and call `pc.cls(0)`. A host gives the module's source with
+its procs, `rio_addSource(vm, "pc", src, len)`, so the declarations go with the code they declare:
+that source is the module, checked against the registrations (see [declaring host
+procs](../spec/host.md#declaring-host-procs)), and `rio_hostSource(vm, "pc", &len)` gives it back, for
+help or an editor to show. (A loader's source for `pc` works too, when none is registered.) With no
+source, the module is made from the registrations, with nothing to parse. `rio_autoImport(vm, "pc")` makes `pc` visible everywhere without an import.
 When the loader has a source for an auto-imported module, it's compiled before the program (in a REPL,
 before the first input), so the module can hold types and constants for its procs (an enum for a
 mode, say); without a source, the module is made from the registrations.
@@ -75,6 +77,16 @@ A `String` or `Blob` inside is a `rio_View`, whose bytes `rio_viewBytes(vm, v)` 
 each declaration against the sig, so a header older than the module is an error, not a misread. An
 image made when a struct had fewer fields at its end still loads, and `rio_getStruct` fills the rest
 with zeros; a struct changed any other way is an error naming the host proc.
+
+The header also has what registering takes: the module's source, `pc_SOURCE` (and its hash,
+`pc_HASH`), and its host procs in an X macro, `pc_HOST_PROCS(X)`, each `X(name, sig)`, for a host that
+names its procs to match:
+
+```c
+#define PC(name, sig) rio_addFfi(vm, "pc." #name, sig, pc_##name);
+pc_HOST_PROCS(PC)
+rio_addSource(vm, "pc", pc_SOURCE, sizeof pc_SOURCE - 1);
+```
 
 `rio_hostHeader` does what `rio -H` does, for a host that makes its own: the module may declare host
 procs the vm doesn't have.

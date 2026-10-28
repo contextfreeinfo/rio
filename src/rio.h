@@ -31,6 +31,9 @@
 #ifndef rio_LOG_BUF_SIZE
 #define rio_LOG_BUF_SIZE rio_PICK(256, 96)
 #endif
+#ifndef rio_MAX_SOURCES
+#define rio_MAX_SOURCES rio_PICK(8, 4)
+#endif
 #ifndef rio_MAX_AUTO_IMPORTS
 #define rio_MAX_AUTO_IMPORTS rio_PICK(8, 2)
 #endif
@@ -80,6 +83,13 @@ void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData);
    declare each of pc's procs: `cls* :: host proc(c: Int)`, checked against the sig. Otherwise the
    module is made from the registrations, with nothing to parse. */
 int rio_addFfi(rio_Vm *vm, const char *name, const char *sig, rio_FfiFn fn);
+/* the source of host module `module` (its host procs declared, its types and constants): compiling
+   takes it in place of asking the loader, so declarations go with the host they declare. src must stay
+   valid as long as the vm. Images keep its name and hash (FNV-1a), for messages when one doesn't fit.
+   rio_hostSource gives a registered source back (for help or an editor), or NULL; *len its length */
+int rio_addSource(rio_Vm *vm, const char *module, const char *src, uint32_t len);
+const char *rio_hostSource(rio_Vm *vm, const char *module, uint32_t *len);
+uint32_t rio_hashText(const char *s, uint32_t n);
 /* makes a module of host procs (see rio_addFfi) visible everywhere without an import, as `name.proc`.
    If the loader has a source for it (a package, `name`), rio_compile compiles that first, so it can
    hold types and constants too (an enum may stand for an Int in its host procs), and a REPL's
@@ -330,6 +340,12 @@ struct rio_Vm {
   rio_Define defines[rio_MAX_DEFINES];
   const char *autoImports[rio_MAX_AUTO_IMPORTS];
   int autoImportCount;
+  struct {
+    const char *name, *src;
+    uint32_t len, hash;
+  } sources[rio_MAX_SOURCES]; /* rio_addSource's */
+  int sourceCount;
+  uint32_t sourcesUsed;    /* while compiling: which of them the program took (bits) */
   int hostHeader;          /* compiling for rio_hostHeader: a host proc the host lacks is only recorded */
   struct rio_Compiler *compiler; /* only while compiling, or after rio_compileScratch and in a REPL */
   rio_Usage *usage;        /* rio_trackUsage */

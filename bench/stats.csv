@@ -9,3 +9,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-10-28,89a6e55+,puddle,29224,147646,12642,253440,21.0,62324,0.578,0.005,0.527,0.004,0.412,0.011,0.64,0.135,"host procs take &T (&i, &f, &{...}), rio_putStruct"
 2026-10-28,4316612+,puddle,29360,148686,12721,255488,24.8,62324,0.592,0.004,0.531,0.004,0.39,0.008,0.575,0.114,"host procs return structs and maybes (>{...}, >Union{...}), rio_putStruct"
 2026-10-28,abc802e+,puddle,29360,151226,12815,257024,25.3,62520,0.55,0.004,0.522,0.004,0.382,0.008,0.56,0.113,"host procs as proc values (a proc of their own each)"
+2026-10-28,f922081+,puddle,30352,150898,12993,259072,25.7,62524,0.55,0.006,0.542,0.004,0.364,0.009,0.596,0.113,"hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)"

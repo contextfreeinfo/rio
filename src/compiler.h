@@ -442,6 +442,7 @@ int rio_builderOf(rio_Vm *vm, int elem, uint32_t count);
 int rio_maybeOf(rio_Vm *vm, int t);
 int rio_builderViewOf(rio_Vm *vm, int elem);
 int rio_findField(rio_Vm *vm, const rio_Type *type, const char *s, int n);
+int rio_load(rio_Vm *vm, const char *key, int kind, rio_Source *s);
 /* text written out (out: into it, up to cap), or compared (want: with it, cap bytes) */
 typedef struct {
   char *out;

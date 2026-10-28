@@ -268,7 +268,9 @@ uint32_t rio_hostHeader(rio_Vm *vm, const char *src, uint32_t len, void *scratch
   o.out = out;
   o.cap = cap;
   rio_hostPut(&o, "/* Made by rio_hostHeader (rio -H) from the Rio module that declares these host procs: don't edit.\n"
-              "   A struct parameter comes as 2 words: rio_getStruct(vm, a + i, &s, sizeof s) copies it into s. */\n"
+              "   A struct parameter comes as 2 words: rio_getStruct(vm, a + i, &s, sizeof s) copies it into s.\n"
+              "   Register the module's source with its procs (_SOURCE, below: rio_addSource), and each proc with\n"
+              "   its _SIG (_HOST_PROCS lists them all). */\n"
               "#include <stdint.h>\n#include \"rio.h\"\n\n", -1);
   for (i = 0; i < c->symCount; i++) { /* the structs the host procs take and return */
     rio_Symbol *y = &c->syms[i];
@@ -289,6 +291,51 @@ uint32_t rio_hostHeader(rio_Vm *vm, const char *src, uint32_t len, void *scratch
     rio_hostPut(&o, "_SIG ", -1);
     rio_cSig(vm, &o, prefix, y->type);
     rio_hostPut(&o, "\n", 1);
+  }
+  rio_hostPut(&o, "\n#define ", -1); /* the host procs, for registering: X(name, sig) each */
+  rio_hostPut(&o, prefix, -1);
+  rio_hostPut(&o, "_HOST_PROCS(X)", -1);
+  for (i = 0; i < c->symCount; i++) {
+    rio_Symbol *y = &c->syms[i];
+    if (y->kind != rio_SymKind_ffi || !y->type) continue;
+    rio_hostPut(&o, " \\\n  X(", -1);
+    rio_hostPut(&o, c->names + y->name, y->nameLen);
+    rio_hostPut(&o, ", ", 2);
+    rio_hostPut(&o, prefix, -1);
+    rio_hostPut(&o, "_", 1);
+    rio_hostPut(&o, c->names + y->name, y->nameLen);
+    rio_hostPut(&o, "_SIG)", -1);
+  }
+  { /* the module's source, for rio_addSource(vm, "pc", pc_SOURCE, sizeof pc_SOURCE - 1), and its hash */
+    uint32_t k, h = rio_hashText(src, len);
+    char hex[11];
+    rio_hostPut(&o, "\n\n#define ", -1);
+    rio_hostPut(&o, prefix, -1);
+    rio_hostPut(&o, "_HASH 0x", -1);
+    for (k = 0; k < 8; k++) hex[k] = "0123456789abcdef"[h >> (28 - 4 * k) & 15];
+    rio_hostPut(&o, hex, 8);
+    rio_hostPut(&o, "u /* (rio_hashText of the source) */\n#define ", -1);
+    rio_hostPut(&o, prefix, -1);
+    rio_hostPut(&o, "_SOURCE \\\n  \"", -1);
+    for (k = 0; k < len; k++) {
+      unsigned char ch = (unsigned char)src[k];
+      if (ch == '\n') rio_hostPut(&o, k + 1 < len ? "\\n\" \\\n  \"" : "\\n", -1);
+      else if (ch == '\\' || ch == '"') {
+        char e[2];
+        e[0] = '\\';
+        e[1] = (char)ch;
+        rio_hostPut(&o, e, 2);
+      } else if (ch == '\t') rio_hostPut(&o, "\\t", 2);
+      else if (ch < 32 || ch >= 127) { /* (as octal: never run into a digit after it, as hex would) */
+        char e[4];
+        e[0] = '\\';
+        e[1] = (char)('0' + (ch >> 6));
+        e[2] = (char)('0' + (ch >> 3 & 7));
+        e[3] = (char)('0' + (ch & 7));
+        rio_hostPut(&o, e, 4);
+      } else if (ch != '\r') rio_hostPut(&o, (const char *)&src[k], 1);
+    }
+    rio_hostPut(&o, "\"\n", -1);
   }
   if (o.n >= cap) {
     rio_setError(vm, rio_ErrorKind_compile, 0, 0, 0, "rio_hostHeader: too little room for the header");

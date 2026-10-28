@@ -1,7 +1,8 @@
 /* image.c - a compiled program as bytes, and loading one into a vm (which needs no compiler).
 
    The layout: a header of 32-bit words (rio_ImageHeader below), then each ffi function's name and sig
-   (0-terminated), padding to 4, the code (unless it lives in mem), the constants, and the finalized
+   (0-terminated), each registered host module source it was made with (rio_addSource): its name and its
+   hash, 8 hex digits (0-terminated), padding to 4, the code (unless it lives in mem), the constants, and the finalized
    block [top, end): the code when it lives in mem (header word code: its address), strings, exports,
    lines, procs, modules. All other memory starts as zero. Little-endian, as in mem. */
 #include "internal.h"
@@ -11,11 +12,18 @@ typedef enum {
   rio_Image_constCap, rio_Image_callStackAt, rio_Image_top, rio_Image_end, rio_Image_exportsAt,
   rio_Image_exportCount, rio_Image_linesAt, rio_Image_linesSize, rio_Image_modulesAt, rio_Image_moduleCount,
   rio_Image_procCount, rio_Image_procsAt, rio_Image_ffiCount, rio_Image_codeAt, rio_Image_freeAt,
-  rio_Image_headerWords
+  rio_Image_sourceCount, rio_Image_headerWords
 } rio_ImageHeader;
-#define rio_IMAGE_VERSION 10 /* (3: logv and pushv, numbered among the others; 4: freeAt; 5: pushf; 6: bpack, geti, seti; 7: bitfields in descriptors; 8: enums 0 to n - 1; 9: forby, ranges printed; 10: bchk, bitfields' value descriptors) */
+#define rio_IMAGE_VERSION 11 /* (3: logv and pushv, numbered among the others; 4: freeAt; 5: pushf; 6: bpack, geti, seti; 7: bitfields in descriptors; 8: enums 0 to n - 1; 9: forby, ranges printed; 10: bchk, bitfields' value descriptors; 11: host module sources' hashes) */
 
 #define rio_IMAGE_MAGIC 0x494F4952u /* "RIOI" */
+
+/* a hash as 8 hex digits, 0-terminated, into out (9 bytes) */
+static rio_NOINLINE void rio_hex8(char *out, uint32_t h) {
+  int k;
+  for (k = 0; k < 8; k++) out[k] = "0123456789abcdef"[h >> (28 - 4 * k) & 15];
+  out[8] = 0;
+}
 
 static int rio_littleEndian(void) {
   uint32_t one = 1;
@@ -34,13 +42,19 @@ static uint32_t rio_codeAt(rio_Vm *vm) {
 }
 
 /* the header, and the image's whole size; 0 if there's nothing to save */
-static uint32_t rio_imageHeader(rio_Vm *vm, uint32_t *h) {
+static rio_NOINLINE uint32_t rio_imageHeader(rio_Vm *vm, uint32_t *h) {
   uint32_t size = rio_Image_headerWords * 4, i;
   uint32_t end = rio_blockEnd(vm), codeAt = rio_codeAt(vm), codeLen = codeAt ? 0 : vm->codeLen; /* codeLen: apart */
   if (!vm->ready || vm->inRepl || vm->running || vm->jitFns || !rio_littleEndian()) return 0; /* (jit: native parts) */
   for (i = vm->constCap * 4; i < vm->top; i++)
     if (vm->mem[i]) return 0; /* it has run: memory isn't fresh */
   for (i = 0; i < (uint32_t)vm->ffiCount; i++) size += (uint32_t)(strlen(vm->ffi[i].name) + strlen(vm->ffi[i].sig) + 2);
+  h[rio_Image_sourceCount] = 0;
+  for (i = 0; i < (uint32_t)vm->sourceCount; i++)
+    if (vm->sourcesUsed >> i & 1) {
+      size += (uint32_t)strlen(vm->sources[i].name) + 1 + 9;
+      h[rio_Image_sourceCount]++;
+    }
   size = rio_align4(size);
   size += codeLen * (uint32_t)sizeof(rio_Instr) + vm->constCap * 4 + (end - vm->top);
   h[rio_Image_magic] = rio_IMAGE_MAGIC;
@@ -67,7 +81,7 @@ static uint32_t rio_imageHeader(rio_Vm *vm, uint32_t *h) {
 }
 
 /* the image, in its parts, straight from the vm: no copy of it all at once */
-uint32_t rio_writeImage(rio_Vm *vm, rio_WriteFn write, void *userData) {
+rio_NOINLINE uint32_t rio_writeImage(rio_Vm *vm, rio_WriteFn write, void *userData) { /* (kept apart: rio_saveImage calls it) */
   uint32_t h[rio_Image_headerWords], size = rio_imageHeader(vm, h), at = sizeof h, i;
   static const uint8_t zeros[4] = {0};
   if (!size || write(userData, h, sizeof h)) return 0;
@@ -75,6 +89,14 @@ uint32_t rio_writeImage(rio_Vm *vm, rio_WriteFn write, void *userData) {
     uint32_t nameSize = (uint32_t)strlen(vm->ffi[i].name) + 1, sigSize = (uint32_t)strlen(vm->ffi[i].sig) + 1;
     if (write(userData, vm->ffi[i].name, nameSize) || write(userData, vm->ffi[i].sig, sigSize)) return 0;
     at += nameSize + sigSize;
+  }
+  for (i = 0; i < (uint32_t)vm->sourceCount; i++) { /* (the sources it was made with: name, hash) */
+    char hex[9];
+    uint32_t nameSize = (uint32_t)strlen(vm->sources[i].name) + 1;
+    if (!(vm->sourcesUsed >> i & 1)) continue;
+    rio_hex8(hex, vm->sources[i].hash);
+    if (write(userData, vm->sources[i].name, nameSize) || write(userData, hex, 9)) return 0;
+    at += nameSize + 9;
   }
   if ((at & 3) && write(userData, zeros, 4 - (at & 3))) return 0;
   if (!h[rio_Image_codeAt] && write(userData, vm->code, vm->codeLen * (uint32_t)sizeof(rio_Instr))) return 0;
@@ -150,6 +172,7 @@ static int rio_headerChecks(rio_Vm *vm, const uint32_t *h) {
   if (!h[rio_Image_codeAt] && h[rio_Image_codeLen] > vm->hostCodeCap)
     return rio_imageError(vm, vm->hostCode ? "code too large" : "its code goes in a separate buffer, and this vm has none");
   if (h[rio_Image_ffiCount] > rio_MAX_FFI) return rio_imageError(vm, "too many ffi functions");
+  if (h[rio_Image_sourceCount] > 16) return rio_imageError(vm, "bad header");
   if (!rio_headerOk(h)) return rio_imageError(vm, "bad header");
   return 0;
 }
@@ -205,10 +228,17 @@ static int rio_ffiFits(rio_Vm *vm, int j, const char *sig, rio_Ffi *f) {
   return 1;
 }
 
+/* the host module sources an image was made with: names and hashes (8 hex digits), in its table */
+typedef struct {
+  const char *name[16], *hash[16];
+  int n;
+} rio_ImageSources;
+
 /* the ffi table, [q, e) (its padding at the end): each bound by name, in the image's order, into ffi.
    One the host doesn't have, or whose sig doesn't fit, is fine unless the code calls it: its fn is 0,
-   its name the image's (for rio_callsOk to name it), its sig "" if it's missing. 0, or -1 */
-static int rio_bindFfi(rio_Vm *vm, const uint32_t *h, const uint8_t *q, const uint8_t *e, rio_Ffi *ffi) {
+   its name the image's (for rio_callsOk to name it), its sig "" if it's missing. Then the sources it
+   was made with, into *src. 0, or -1 */
+static rio_NOINLINE int rio_bindFfi(rio_Vm *vm, const uint32_t *h, const uint8_t *q, const uint8_t *e, rio_Ffi *ffi, rio_ImageSources *src) {
   uint32_t i, j;
   if ((e - q) & 3) return rio_imageError(vm, "wrong size"); /* (padded to whole words) */
   for (i = 0; i < h[rio_Image_ffiCount]; i++) {
@@ -229,12 +259,44 @@ static int rio_bindFfi(rio_Vm *vm, const uint32_t *h, const uint8_t *q, const ui
       ffi[i].argWords = ffi[i].resultWords = ffi[i].declared = ffi[i].pad = 0;
     }
   }
+  for (src->n = 0; src->n < (int)h[rio_Image_sourceCount]; src->n++) {
+    size_t n;
+    src->name[src->n] = (const char *)q;
+    for (n = 0; q + n < e && q[n]; n++) {}
+    if (q + n + 10 > e || q[n + 9]) return rio_imageError(vm, "bad ffi table");
+    src->hash[src->n] = (const char *)q + n + 1;
+    q += n + 10;
+  }
   if (e - q > 3) return rio_imageError(vm, "wrong size");
   return 0;
 }
+/* after text (n long): which source proc's module was made from, when its source was registered, and
+   this host's: " (made with pc 1a2b3c4d, this host's is 5e6f7a8b)" */
+static rio_NOINLINE int rio_sourceNote(rio_Vm *vm, char *text, int n, const char *proc, const rio_ImageSources *src) {
+  const char *dot = strchr(proc, '.');
+  size_t len = dot ? (size_t)(dot - proc) : 0;
+  char hex[9];
+  int k, j;
+  for (k = 0; dot && k < src->n; k++) {
+    if (strlen(src->name[k]) != len || memcmp(src->name[k], proc, len)) continue;
+    n = rio_appendText(text, n, " (made with ");
+    n = rio_appendText(text, n, src->name[k]);
+    n = rio_appendText(text, n, " ");
+    n = rio_appendText(text, n, src->hash[k]);
+    for (j = 0; j < vm->sourceCount && strcmp(vm->sources[j].name, src->name[k]); j++) {}
+    if (j < vm->sourceCount) {
+      rio_hex8(hex, vm->sources[j].hash);
+      n = rio_appendText(text, n, ", this host's is ");
+      n = rio_appendText(text, n, hex);
+    }
+    n = rio_appendText(text, n, ")");
+  }
+  return n;
+}
+
 /* does the code call only ffi functions the host registered, with sigs that fit? The ones it doesn't
    call lose the image's names (which don't outlive the load) */
-static int rio_callsOk(rio_Vm *vm, const uint32_t *h, const rio_Instr *code, rio_Ffi *ffi) {
+static rio_NOINLINE int rio_callsOk(rio_Vm *vm, const uint32_t *h, const rio_Instr *code, rio_Ffi *ffi, const rio_ImageSources *src) {
   uint32_t i;
   for (i = 0; i < h[rio_Image_codeLen]; i++) {
     rio_Instr in;
@@ -245,6 +307,7 @@ static int rio_callsOk(rio_Vm *vm, const uint32_t *h, const rio_Instr *code, rio
       if (in.c >= h[rio_Image_ffiCount]) return rio_imageError(vm, "the program calls an ffi function it doesn't list");
       n = rio_appendText(text, n, ffi[in.c].name);
       n = rio_appendText(text, n, *ffi[in.c].sig ? ", whose sig on this host doesn't fit the image's" : ", which the host didn't register");
+      n = rio_sourceNote(vm, text, n, ffi[in.c].name, src);
       text[n] = 0;
       return rio_imageError(vm, text);
     }
@@ -293,18 +356,19 @@ int rio_loadImage(rio_Vm *vm, const void *image, uint32_t len) {
   uint32_t h[rio_Image_headerWords], blockSize, codeLen;
   const rio_Instr *code;
   rio_Ffi ffi[rio_MAX_FFI];
+  rio_ImageSources src;
   if (rio_loadStart(vm, len)) return -1;
   memcpy(h, p, sizeof h);
   if (rio_headerChecks(vm, h)) return -1;
   if (rio_restSize(h) > len - sizeof h) return rio_imageError(vm, "wrong size");
   q = p + len - rio_restSize(h);
-  if (rio_bindFfi(vm, h, p + sizeof h, q, ffi)) return -1;
+  if (rio_bindFfi(vm, h, p + sizeof h, q, ffi, &src)) return -1;
   blockSize = h[rio_Image_end] - h[rio_Image_top];
   codeLen = h[rio_Image_codeAt] ? 0 : h[rio_Image_codeLen]; /* the code apart from the block */
   if (h[rio_Image_codeAt])
     code = (const rio_Instr *)(const void *)(q + h[rio_Image_constCap] * 4 + (h[rio_Image_codeAt] - h[rio_Image_top]));
   else code = (const rio_Instr *)(const void *)q;
-  if (rio_callsOk(vm, h, code, ffi)) return -1; /* (before anything is copied: a failed load leaves the vm as it was) */
+  if (rio_callsOk(vm, h, code, ffi, &src)) return -1; /* (before anything is copied: a failed load leaves the vm as it was) */
   if (codeLen) {
     memcpy(vm->hostCode, q, codeLen * sizeof(rio_Instr));
     q += codeLen * sizeof(rio_Instr);
@@ -323,6 +387,7 @@ int rio_readImage(rio_Vm *vm, rio_ReadFn read, void *userData, uint32_t len) {
   uint32_t h[rio_Image_headerWords], codeLen, table;
   uint8_t *at;
   rio_Ffi ffi[rio_MAX_FFI];
+  rio_ImageSources src;
   if (rio_loadStart(vm, len)) return -1;
   if (read(userData, h, sizeof h)) return rio_imageError(vm, "can't read it");
   if (rio_headerChecks(vm, h)) return -1;
@@ -332,13 +397,13 @@ int rio_readImage(rio_Vm *vm, rio_ReadFn read, void *userData, uint32_t len) {
   else if (table <= vm->memSize - h[rio_Image_end]) at = vm->mem + h[rio_Image_end];
   else return rio_imageError(vm, "needs more memory");
   if (read(userData, at, table)) return rio_imageError(vm, "can't read it");
-  if (rio_bindFfi(vm, h, at, at + table, ffi)) return -1;
+  if (rio_bindFfi(vm, h, at, at + table, ffi, &src)) return -1;
   codeLen = h[rio_Image_codeAt] ? 0 : h[rio_Image_codeLen];
   if (codeLen && read(userData, vm->hostCode, codeLen * (uint32_t)sizeof(rio_Instr))) return rio_imageError(vm, "can't read it");
   if (read(userData, vm->mem, h[rio_Image_constCap] * 4)) return rio_imageError(vm, "can't read it");
   memset(vm->mem + h[rio_Image_constCap] * 4, 0, h[rio_Image_top] - h[rio_Image_constCap] * 4);
   if (read(userData, vm->mem + h[rio_Image_top], h[rio_Image_end] - h[rio_Image_top])) return rio_imageError(vm, "can't read it");
-  if (rio_callsOk(vm, h, h[rio_Image_codeAt] ? (const rio_Instr *)(const void *)(vm->mem + h[rio_Image_codeAt]) : vm->hostCode, ffi))
+  if (rio_callsOk(vm, h, h[rio_Image_codeAt] ? (const rio_Instr *)(const void *)(vm->mem + h[rio_Image_codeAt]) : vm->hostCode, ffi, &src))
     return -1;
   return rio_loadEnd(vm, h, ffi);
 }

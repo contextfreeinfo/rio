@@ -290,12 +290,13 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
     if (!strchr(f->name, '.')) rio_addSymbol(vm, f->name, (int)strlen(f->name), rio_SymKind_ffi, 0, i); /* (pc.cls: in module pc) */
   }
   c->autoSourceCount = 0;
+  if (sources) vm->sourcesUsed = 0; /* (the registered sources this program takes: for its image) */
   for (i = 0; i < vm->autoImportCount; i++) { /* host modules visible everywhere, as if imported */
     const char *name = vm->autoImports[i];
     int n = (int)strlen(name), m;
     rio_Source s;
     memset(&s, 0, sizeof s);
-    if (sources && vm->loader && !vm->loader(vm->loaderData, name, rio_LoadKind_package, &s)) { /* (compiled first, from its source) */
+    if (sources && !rio_load(vm, name, rio_LoadKind_package, &s)) { /* (compiled first, from its source) */
       c->autoSources[c->autoSourceCount++] = i;
       continue;
     }

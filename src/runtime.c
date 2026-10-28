@@ -38,6 +38,31 @@ int rio_addFfi(rio_Vm *vm, const char *name, const char *sig, rio_FfiFn fn) {
   return 0;
 }
 
+int rio_addSource(rio_Vm *vm, const char *module, const char *src, uint32_t len) {
+  int i;
+  if (!module || !src) return -1;
+  for (i = 0; i < vm->sourceCount && strcmp(vm->sources[i].name, module); i++) {}
+  if (i == vm->sourceCount) {
+    if (vm->sourceCount >= rio_MAX_SOURCES) return -1;
+    vm->sourceCount++;
+  }
+  vm->sources[i].name = module;
+  vm->sources[i].src = src;
+  vm->sources[i].len = len;
+  vm->sources[i].hash = rio_hashText(src, len);
+  return 0;
+}
+
+const char *rio_hostSource(rio_Vm *vm, const char *module, uint32_t *len) {
+  int i;
+  for (i = 0; i < vm->sourceCount; i++)
+    if (!strcmp(vm->sources[i].name, module)) {
+      if (len) *len = vm->sources[i].len;
+      return vm->sources[i].src;
+    }
+  return 0;
+}
+
 int rio_autoImport(rio_Vm *vm, const char *module) {
   if (vm->autoImportCount >= rio_MAX_AUTO_IMPORTS || !module) return -1;
   vm->autoImports[vm->autoImportCount++] = module;

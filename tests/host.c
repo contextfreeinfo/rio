@@ -1,6 +1,6 @@
 /* host: host procs in modules, auto-imports, and declarations checked against the host and the
-   builtins. argv[1]: core.rio, which must compile and declare every builtin; argv[2]: hst.rio, whose
-   host procs take structs (hst.h, its C header, from rio -H) */
+   builtins. argv[1]: core.rio, which must compile and declare every builtin. hst's host procs take and
+   return structs: registered from hst.h, the C header rio -H made of tests/hst.rio (its source too) */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +29,6 @@ static const char *files[][2] = {
   {"user2", "double* :: proc(x: Int) -> Int\n  return hsrc.add(x, hsrc.TWO) + x - hsrc.TWO\nend\n"},
   {"mathy","sqrt* :: host proc(x: Float) -> Float\nInt* :: host struct\nhalf* :: proc(x: Int) -> Int\n  return x / 2\nend\n"},
   /* structs going to host procs, by address */
-  {"hst", 0}, /* (tests/hst.rio, read in main) */
   {"hsb", "add* :: host proc(a, b: Int) -> Int\ncls* :: host proc(on: Bool)\n"},
   {"hopt", "add* :: host proc(a: Int, b?: Int) -> Int\ncls* :: host proc(color?: Int)\n"},
   {"hsx", "P* :: struct\n  a, b: Int\nend\nadd* :: host proc(p: P) -> Int\ncls* :: host proc(color: Int)\n"},
@@ -110,12 +109,10 @@ static void t(const char *auto_, const char *src, const char *printed, int kind,
     rio_addFfi(&vm, names[i][1], "i", cls);
   }
   rio_addFfi(&vm, "scale", "fi>f", scale); /* a global one */
-  rio_addFfi(&vm, "hst.draw", hst_draw_SIG, draw); /* (as hst.h has them) */
-  rio_addFfi(&vm, "hst.mark", hst_mark_SIG, mark);
-  rio_addFfi(&vm, "hst.fill", hst_fill_SIG, fill);
-  rio_addFfi(&vm, "hst.count", hst_count_SIG, count);
-  rio_addFfi(&vm, "hst.where", hst_where_SIG, where);
-  rio_addFfi(&vm, "hst.find", hst_find_SIG, find);
+#define HST(name, sig) rio_addFfi(&vm, "hst." #name, sig, name);
+  hst_HOST_PROCS(HST) /* (each as hst.h has it, and its source with them) */
+#undef HST
+  rio_addSource(&vm, "hst", hst_SOURCE, sizeof hst_SOURCE - 1);
   rio_addFfi(&vm, "hsq.f", "i>{a:Int}", nothing);
   rio_addFfi(&vm, "hsv2.f", "i>{s:String}", nothing);
   rio_addFfi(&vm, "hsr.f", "&i", nothing);
@@ -261,24 +258,7 @@ static void header(void) {
   }
 }
 
-/* a file's text, or exit */
-static const char *readAll(const char *path) {
-  static char buf[1 << 14];
-  FILE *f = fopen(path, "rb");
-  size_t k;
-  if (!f) { printf("FAIL: can't read %s\n", path); exit(1); }
-  k = fread(buf, 1, sizeof buf - 1, f);
-  fclose(f);
-  buf[k] = 0;
-  return buf;
-}
-
 int main(int argc, char **argv) {
-  {
-    size_t i;
-    for (i = 0; i < sizeof files / sizeof files[0]; i++)
-      if (!strcmp(files[i][0], "hst")) files[i][1] = readAll(argc > 2 ? argv[2] : "tests/hst.rio");
-  }
   /* host procs registered under a module name: a module made from them, with nothing to parse */
   OK("import pc\nlog(pc.add(2, 3))\npc.cls(7)\nlog(pc.add(pc.add(1, 1), 0))\n", "5\n2\n");
   OK("import pc.{add, cls as clear}\nclear(add(4, 5))\n", "");
@@ -331,6 +311,16 @@ int main(int argc, char **argv) {
   OK("import hopt\nlog(hopt.add(5), hopt.add(5, 2))\nhopt.cls()\n", "5 7\n"); /* optional, as declared: left out, zero */
   if (cleared != 0) { printf("FAIL: hopt.cls() got %d\n", cleared); fails++; }
   OK("import hst\nlog(hst.draw(9))\n", "9: 0 0 0 0 0 0 0  0 0\n90\n"); /* (a struct left out: zeros) */
+  { /* a registered source comes back as it went in; one never registered, NULL */
+    uint32_t len = 0;
+    const char *s = rio_hostSource(&vm, "hst", &len);
+    n++;
+    if (!s || len != sizeof hst_SOURCE - 1 || memcmp(s, hst_SOURCE, len) || rio_hostSource(&vm, "nope", &len) ||
+        rio_hashText(s, len) != hst_HASH) {
+      printf("FAIL: rio_hostSource\n");
+      fails++;
+    }
+  }
   /* &T: the host changes the caller's place (rio_putStruct): a local, a global, an element, a field, an Int */
   OK("import hst\np := hst.Pos{x = 1, y = 2}\nhst.fill(&p, 10)\nlog(p)\n", "Pos{x = 11, y = 22}\n");
   OK("import hst\nf :: proc() -> Int\n  ps: [3]hst.Pos\n  o: hst.Opts\n  i := 2\n  hst.fill(&ps[i], 1)\n  hst.fill(&o.at, 3)\n  n := 5\n"
