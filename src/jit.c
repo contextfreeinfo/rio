@@ -187,7 +187,7 @@ static int rio_touchesMemory(int op) { /* (an ffi function may write through the
 static int rio_jitSupports(int op) {
   switch (op) {
   case rio_Op_mov: case rio_Op_add: case rio_Op_sub: case rio_Op_mul: case rio_Op_div: case rio_Op_mod: case rio_Op_and:
-  case rio_Op_or: case rio_Op_xor: case rio_Op_shl: case rio_Op_shr: case rio_Op_neg: case rio_Op_bnot: case rio_Op_not:
+  case rio_Op_or: case rio_Op_xor: case rio_Op_shl: case rio_Op_shr: case rio_Op_ushr: case rio_Op_neg: case rio_Op_bnot: case rio_Op_not:
   case rio_Op_eq: case rio_Op_ne: case rio_Op_lt: case rio_Op_le: case rio_Op_iabs: case rio_Op_imin: case rio_Op_imax:
   case rio_Op_lea: case rio_Op_mov2: case rio_Op_fadd: case rio_Op_fsub: case rio_Op_fmul: case rio_Op_fdiv: case rio_Op_fneg:
   case rio_Op_feq: case rio_Op_fne: case rio_Op_flt: case rio_Op_fle: case rio_Op_itof: case rio_Op_ftoi: case rio_Op_fmin:
@@ -474,13 +474,13 @@ static int rio_compileRegion(rio_Jit *g, const rio_Instr *code, uint32_t first, 
       else rio_movReg(g, rd, rio_Reg_r12);
       rio_finishResult(g, A, rd);
       break;
-    case rio_Op_shl: case rio_Op_shr:
+    case rio_Op_shl: case rio_Op_shr: case rio_Op_ushr:
       rb = rio_srcReg(g, B, rio_Reg_r2);
       rc = rio_srcReg(g, C, rio_Reg_r3);
       rio_put32(g, 0xF000 | (uint32_t)rc, rio_Reg_r3 << 8 | 0x1F); /* and.w r3, rc, #31 */
       g->held[rio_Reg_r3] = -1;
       rd = rio_dstReg(A);
-      rio_put32(g, (in->op == rio_Op_shl ? 0xFA00 : 0xFA40) | (uint32_t)rb, 0xF000 | (uint32_t)rd << 8 | rio_Reg_r3);
+      rio_put32(g, (in->op == rio_Op_shl ? 0xFA00 : in->op == rio_Op_ushr ? 0xFA20 : 0xFA40) | (uint32_t)rb, 0xF000 | (uint32_t)rd << 8 | rio_Reg_r3); /* lsl.w, lsr.w, asr.w */
       rio_finishResult(g, A, rd);
       break;
     case rio_Op_neg: /* rsb.w rd, rb, #0 */

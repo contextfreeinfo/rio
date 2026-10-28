@@ -168,6 +168,7 @@ static void rio_instruction(rio_Aot *a, int pc) {
   }
   case rio_Op_shl: rio_print(a, "%s = %s << (%s & 31);\n", rio_V(A, 'u'), rio_V(B, 'u'), rio_V(C, 'u')); break;
   case rio_Op_shr: rio_print(a, "%s = %s >> (%s & 31);\n", rio_V(A, 'i'), rio_V(B, 'i'), rio_V(C, 'u')); break;
+  case rio_Op_ushr: rio_print(a, "%s = %s >> (%s & 31);\n", rio_V(A, 'u'), rio_V(B, 'u'), rio_V(C, 'u')); break;
   case rio_Op_neg: rio_print(a, "%s = 0u - %s;\n", rio_V(A, 'u'), rio_V(B, 'u')); break;
   case rio_Op_bnot: rio_print(a, "%s = ~%s;\n", rio_V(A, 'u'), rio_V(B, 'u')); break;
   case rio_Op_not: rio_print(a, "%s = !%s;\n", rio_V(A, 'i'), rio_V(B, 'i')); break;

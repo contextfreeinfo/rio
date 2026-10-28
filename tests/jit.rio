@@ -248,6 +248,14 @@ check(nlt == 0 and neq == 0 and nne == 4, "NaN compares false, except !=")
 check(sat == (-2147483648 ^ 0 ^ 2147483647 ^ 2147483647), "toInt saturates")
 check(fm == 6.0 and nan.toInt() == 0, "float min, max; NaN toInt is 0")
 
+ushr := 0 # >>>, in a compiled loop: zeros in from the top, as >> brings the sign
+ashr := 0
+for i in 0..<4
+  ushr += -16 >>> (i + 28)
+  ashr += -16 >> i
+end
+check(ushr == 15 + 7 + 3 + 1 and ashr == -16 - 8 - 4 - 2, ">>> in a loop")
+
 if fails == 0
   log("all jit tests passed")
 end

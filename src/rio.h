@@ -85,7 +85,8 @@ void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData);
 int rio_addFfi(rio_Vm *vm, const char *name, const char *sig, rio_FfiFn fn);
 /* the source of host module `module` (its host procs declared, its types and constants): compiling
    takes it in place of asking the loader, so declarations go with the host they declare. src must stay
-   valid as long as the vm. Images keep its name and hash (FNV-1a), for messages when one doesn't fit.
+   valid as long as the vm. Images keep its name and hash (rio_hashText: FNV-1a, with \r skipped, so
+   line ends don't change it), for messages when one doesn't fit.
    rio_hostSource gives a registered source back (for help or an editor), or NULL; *len its length */
 int rio_addSource(rio_Vm *vm, const char *module, const char *src, uint32_t len);
 const char *rio_hostSource(rio_Vm *vm, const char *module, uint32_t *len);

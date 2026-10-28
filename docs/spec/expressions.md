@@ -8,7 +8,7 @@ From tightest to loosest. Operators on one line group left to right:
 |---|---|
 | `f(x)` `a[i]` `a[i..<j]` `a.b` `T{...}` | calls, indexing, slicing, members, literals |
 | `-` `~` | negation, bitwise not |
-| `*` `/` `%` `&` `<<` `>>` | |
+| `*` `/` `%` `&` `<<` `>>` `>>>` | |
 | `+` `-` `\|` `^` | |
 | `==` `!=` `<` `<=` `>` `>=` `is` | comparisons don't chain |
 | `not` | |
@@ -31,17 +31,18 @@ true true
 
 `Int` math wraps around at 32 bits. `/` rounds toward zero, and `%` takes the sign of the left side.
 Dividing by zero is a runtime error; `-2147483648 / -1` wraps to itself, and `% -1` is 0. Shift counts
-use their low 5 bits, and `>>` keeps the sign:
+use their low 5 bits, `>>` keeps the sign, and `>>>` shifts in zeros, as for the bits of an unsigned
+number:
 
 ```rio
 big := 2147483647
 log(big + 1, 7 / 2, -7 / 2, -7 % 3, 7 % -3)
-log(1 << 33, -16 >> 2, 6 & 3, 6 | 3, 6 ^ 3, ~0)
+log(1 << 33, -16 >> 2, -16 >>> 28, 6 & 3, 6 | 3, 6 ^ 3, ~0)
 ```
 
 ```output
 -2147483648 3 -3 -1 1
-2 -4 2 7 5 -1
+2 -4 15 2 7 5 -1
 ```
 
 ```rio
@@ -186,6 +187,20 @@ xs: [3]Int
 log(xs[2..<1].len())  # runtime error: slice out of bounds
 ```
 
+Inside an index's brackets, `end` is the last index of what's indexed, `a.len() - 1`: `a[end]` is the
+last element, and `a[end - 2..=end]` the last three. The brackets must be the innermost around it, so
+in `ys[xs[end]]` it's `xs`'s, and it means nothing elsewhere:
+
+```rio
+xs := [5]Int{10, 20, 30, 40, 50}
+s := "hello"
+log(xs[end], xs[end - 2..=end], s[end], s[..<end])
+```
+
+```output
+50 [30, 40, 50] 111 hell
+```
+
 An array indexed by an enum takes the enum's values as indexes, and as slice bounds:
 
 ```rio
@@ -194,12 +209,15 @@ Dir :: enum
 end
 counts: [Dir]Int
 counts[.east] += 2
-log(counts[.east], counts[.east..].len(), counts.len())
+counts[end] = 1
+log(counts[.east], counts[.east..].len(), counts.len(), counts[.west])
 ```
 
 ```output
-2 3 4
+2 3 4 1
 ```
+
+(There, `end` is the last of the enum's values.)
 
 ## Ranges
 

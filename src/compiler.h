@@ -30,6 +30,7 @@ typedef enum {
   rio_Tok_greaterEq,   /* >= */
   rio_Tok_shiftLeft,   /* << */
   rio_Tok_shiftRight,  /* >> */
+  rio_Tok_shiftRightU, /* >>> (unsigned) */
   rio_Tok_arrow,       /* -> */
   rio_Tok_rangeExcl,   /* ..< */
   rio_Tok_rangeIncl,   /* ..= */
@@ -424,6 +425,7 @@ void rio_carveWindow(rio_Vm *vm);
 void rio_expect(rio_Vm *vm, int kind, const char *message);
 int rio_peekAfterNext(rio_Vm *vm);
 int rio_escapeAt(const char *p, const char *e, int *used);
+int rio_utf8(uint8_t *out, int32_t cp);
 int rio_lexNumber(rio_Vm *vm, const char *text, rio_Token *t);
 
 /* ------------------------------------------------------------------ tables.c */
@@ -575,7 +577,7 @@ void rio_setProcResult(rio_Vm *vm, int proc, int type);
 void rio_beginBody(rio_Vm *vm, int proc);
 void rio_methodDef(rio_Vm *vm, int receiver);
 void rio_structDef(rio_Vm *vm, const char *name, int nameLen);
-void rio_unionDef(rio_Vm *vm, const char *name, int nameLen, int diverse);
+void rio_unionDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_enumDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_declareVar(rio_Vm *vm);
 int rio_parseNames(rio_Vm *vm, const char **names, int *lens, int *optional);

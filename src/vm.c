@@ -203,6 +203,7 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
   rio_CASE(xor) R[ip->a].u = R[ip->b].u ^ R[ip->c].u; rio_NEXT();
   rio_CASE(shl) R[ip->a].u = R[ip->b].u << (R[ip->c].u & 31); rio_NEXT();
   rio_CASE(shr) R[ip->a].i = R[ip->b].i >> (R[ip->c].u & 31); rio_NEXT();
+  rio_CASE(ushr) R[ip->a].u = R[ip->b].u >> (R[ip->c].u & 31); rio_NEXT();
   rio_CASE(neg) R[ip->a].u = 0u - R[ip->b].u; rio_NEXT();
   rio_CASE(bnot) R[ip->a].u = ~R[ip->b].u; rio_NEXT();
   rio_CASE(not) R[ip->a].i = !R[ip->b].i; rio_NEXT();

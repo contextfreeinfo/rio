@@ -63,8 +63,8 @@ return struct switch union
 ```
 
 A few names mean something only in one place, and are ordinary names elsewhere: `self` in methods,
-`as` in imports and destructuring, `by` in for loops, `host` before `proc` or `struct` in a
-declaration, and `diverse` before `union`. The builtin names (`Int`,
+`as` in imports and destructuring, `by` in for loops, and `host` before `proc` or `struct` in a
+declaration. The builtin names (`Int`,
 `true`, `sqrt`, ...) are declared outside every module, so a declaration with the same name hides
 them.
 
@@ -108,13 +108,22 @@ these escapes, and any other backslash is an error:
 | `\n` `\t` `\r` `\0` | newline, tab, carriage return, zero |
 | `\\` `\"` `\'` | the character itself |
 | `\xHH` | the byte of those two hex digits (`\x1b` is 27) |
+| `\u{1F600}` | a code point, by its 1 to 6 hex digits: in a string, its bytes in UTF-8; as a character, the code point itself (`'\u{E9}'` is 233) |
 
 ```rio
 log('a', '\n', "say \"hi\"", '\xff', "\x48\x69".len())
+log("caf\u{E9}", "caf\u{E9}".len(), "\u{1F600}".len(), '\u{E9}')
 ```
 
 ```output
 97 10 say "hi" 255 2
+café 5 4 233
+```
+
+A code point past 10FFFF, or a surrogate (D800 to DFFF, which UTF-8 doesn't have), is an error:
+
+```rio
+log("\u{D800}")  # error: \u{...} takes 1 to 6 hex digits, a code point up to 10FFFF and not a surrogate
 ```
 
 ```rio

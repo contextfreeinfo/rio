@@ -190,8 +190,8 @@ static const Case cases[] = {
   {"n := 1\nswitch\ncase n\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "condition must be Bool"},
   /* unions */
   {"A :: struct\n  x: Int\nend\nV :: union\n  A\n  A\nend\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "type listed twice"},
-  {"A :: struct\n  x: Int\nend\nBig :: struct\n  d: [20]Int\nend\nV :: union\n  A, Big\nend\n", 0, 0, 0, rio_ErrorKind_compile, 9, -1, -1, "differ in size by more than 64 bytes"},
-  {"A :: struct\n  x: Int\nend\nBig :: struct\n  d: [20]Int\nend\nV :: diverse union\n  A, Big\nend\nv: V\nlog(v is A)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"A :: struct\n  x: Int\nend\nBig :: struct\n  d: [20]Int\nend\nV :: union\n  A, Big\nend\nv: V\nlog(v is A)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""}, /* (any sizes: each value takes the biggest's room) */
+  {"A :: struct\n  x: Int\nend\nV :: diverse union\n  A\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "undefined name"}, /* (diverse: just a name now) */
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nu = 5\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "type mismatch"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nu = nil\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "this union doesn't list nil"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nlog(u is Int)\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "not one of this union's types"},
@@ -276,6 +276,27 @@ static const Case cases[] = {
   {"E :: enum\n  a, b, c\nend\nb: Blob[12]\nb[8] = 5\nes: [3]E\nb.unpack(0, es[])\n", 0, 0, 0, rio_ErrorKind_runtime, 7, 0, 0, "unpacked a value its type doesn't have"},
   {"E :: enum\n  a, b, c\nend\nS :: struct\n  n: Int\n  es: [2]E\nend\nb: Blob[12]\nb[8] = 9\ns: S\nb.unpack(0, &s)\n", 0, 0, 0, rio_ErrorKind_runtime, 11, 0, 0, "unpacked a value its type doesn't have"},
   {"E :: enum\n  a, b, c\nend\nU :: union\n  nil\n  E\nend\nb: Blob[12]\nb[0] = 1\nb[4] = 2\nu: U\nb.unpack(0, &u)\nassert(u is E)\nok := false\nif u is E do ok = u == .c\nassert(ok)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  /* >>>: zeros in from the top */
+  {"x := -8\nn := 1\nassert(x >>> n == 2147483644 and -8 >>> 1 == 2147483644 and x >>> 0 == -8 and 16 >>> 2 == 4)\nx >>>= 29\nassert(x == 7)\nassert(-1 >>> 31 == 1 and 1 + 8 >>> 1 == 5)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"f := 1.0 >>> 1\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "integer operator on floats"},
+  /* proc type aliases, in parentheses */
+  {"Less :: (proc(a, b: Int) -> Bool)\nEach* :: (proc(i: Int, k?: Int))\nlt :: proc(a, b: Int) -> Bool\n  return a < b\nend\nshow :: proc(i: Int, k?: Int)\nend\nf: Less = lt\nfs: [2]Less\nfs[1] = lt\ne: Each = show\ne(4)\nuse :: proc(l: Less) -> Bool\n  return l(1, 2)\nend\nassert(f(1, 2) and not fs[1](2, 1) and use(lt))\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"f :: proc(a, b: Int) -> Bool\n  return a < b\nend\nL :: (proc(a: Int) -> Bool)\ng: L = f\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this proc's parameters or result don't match"},
+  {"L :: (proc(a: &Int))\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "proc values can't take & parameters"},
+  /* end in index brackets: the last index */
+  {"xs := [5]Int{1, 2, 3, 4, 5}\ns := xs[1..<4]\nb: [..8]Int\nok := b.push(7) and b.push(9)\nv: [..]Int = b\nassert(xs[end] == 5 and xs[end - 2..=end][0] == 3 and s[end] == 4 and \"hey\"[end] == 121 and xs[..<end].len() == 4 and b[end] == 9 and v[end] == 9)\nD :: enum\n  n, e, s, w\nend\nc: [D]Int\nc[end] = 4\nys := [3]Int{0, 1, 2}\nassert(c[.w] == 4 and ys[xs[end] - 3] == 2)\nf :: proc(a: []Int) -> Int\n  return a[end] + a[0]\nend\nassert(f(xs[]) == 6)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"log(end)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "end means the last index only right inside an index's brackets: xs[end]"},
+  {"g :: proc(n: Int) -> Int\n  return n\nend\nx := [2]Int{}\nlog(x[g(end)])\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "end means the last index only right inside an index's brackets: xs[end]"},
+  {"x := 3\nlog(x[end])\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "end is the last index of an array, slice, String, Blob or builder"},
+  {"e: []Int\nlog(e[end])\n", 0, 0, 0, rio_ErrorKind_runtime, 2, 0, 0, "index out of bounds"},
+  /* the u{...} escape: a code point, UTF-8 in a string */
+  {"s := \"a\\u{E9}\\u{1F600}\\u{41}\"\nassert(s.len() == 8 and s[1] == 0xC3 and s[2] == 0xA9 and s[3] == 0xF0 and s[4] == 0x9F and s[5] == 0x98 and s[6] == 0x80 and s[7] == 65)\nassert(\'\\u{E9}\' == 233 and \'\\u{10FFFF}\' == 0x10FFFF and \"\\u{7FF}\\u{800}\\u{FFFF}\\u{10000}\".len() == 2 + 3 + 3 + 4)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"x := \"\\u{110000}\"\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "\\u{...} takes 1 to 6 hex digits"},
+  {"x := \"\\u{DFFF}\"\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "\\u{...} takes 1 to 6 hex digits"},
+  {"x := \"\\u{}\"\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "\\u{...} takes 1 to 6 hex digits"},
+  {"x := \"\\u41\"\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "\\u{...} takes 1 to 6 hex digits"},
+  {"x := \"\\u{1234567}\"\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "\\u{...} takes 1 to 6 hex digits"},
+  {"x := \'\\u{D800}\'\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "\\u{...} takes 1 to 6 hex digits"},
   /* module core: the builtins, as core.name too (even hidden by a name of the program's) */
   {"abs :: proc(x: Int) -> Int\n  return 99\nend\nassert(abs(-3) == 99 and core.abs(-3) == 3)\nn: core.Int = 4\nassert(core.true and n == 4 and core.sizeOf(core.Int) == 4)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"import core.{max as biggest}\nimport core as c\nassert(biggest(2, 5) == 5 and c.min(2, 5) == 2)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},

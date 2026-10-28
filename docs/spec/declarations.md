@@ -313,6 +313,28 @@ log(plus(1, 2), p.len())
 3 2
 ```
 
+A proc type takes parentheses, since `Less :: proc(a, b: Int) -> Bool` alone would start a proc of
+that name:
+
+```rio
+Less :: (proc(a, b: Int) -> Bool)
+lt :: proc(a, b: Int) -> Bool
+  return a < b
+end
+sorted :: proc(xs: []Int, less: Less) -> Bool
+  for i in 1..<xs.len()
+    if less(xs[i], xs[i - 1]) do return false
+  end
+  return true
+end
+xs := [3]Int{1, 2, 3}
+log(sorted(xs[], lt))
+```
+
+```output
+true
+```
+
 ## Exports
 
 A `*` after a top-level name exports it: other modules can use it, and the host can find it (see
@@ -327,12 +349,7 @@ update* :: proc()
 end
 ```
 
-## Host procs and diverse unions
+## Host procs
 
-Two names change what a declaration means, right before what they apply to:
-
-- `host proc` and `host struct` declare something the host provides: see
-  [host procs](host.md#declaring-host-procs).
-- `diverse union` allows types of very different sizes in a union: see [unions](types.md#unions).
-
-Elsewhere, `host` and `diverse` are ordinary names.
+`host proc` and `host struct` declare something the host provides: see
+[host procs](host.md#declaring-host-procs). Elsewhere, `host` is an ordinary name.

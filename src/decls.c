@@ -467,13 +467,12 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
   rio_addSymbol(vm, name, nameLen, rio_SymKind_type, index, 0);
 }
 
-/* Name :: [diverse] union, then its types one per line or comma-separated (nil may come first), then
-   end. The first listed is what a new variable holds. Types more than 64 bytes apart in size waste space
-   in every value (arrays of the union most of all), so that's an error unless it's a diverse union. */
-void rio_unionDef(rio_Vm *vm, const char *name, int nameLen, int diverse) {
+/* Name :: union, then its types one per line or comma-separated (nil may come first), then end. The
+   first listed is what a new variable holds. Every value takes the biggest type's room. */
+void rio_unionDef(rio_Vm *vm, const char *name, int nameLen) {
   rio_Compiler *c = vm->compiler;
   int index, n = 0, j;
-  uint32_t biggest = 0, smallest = 0xFFFFFFFFu;
+  uint32_t biggest = 0;
   rio_Type *u;
   if (c->blockCount || c->curProc >= 0) rio_FAIL(, "unions must be top-level");
   rio_next(vm);
@@ -500,7 +499,6 @@ void rio_unionDef(rio_Vm *vm, const char *name, int nameLen, int diverse) {
     if (t != rio_TypeId_void) {
       uint32_t size = rio_type(vm, t)->size;
       if (size > biggest) biggest = size;
-      if (size < smallest) smallest = size;
       u->hasRefs |= rio_type(vm, t)->hasRefs;
     }
     n++;
@@ -509,8 +507,6 @@ void rio_unionDef(rio_Vm *vm, const char *name, int nameLen, int diverse) {
   rio_next(vm);
   if (!n) rio_FAIL(, "a union lists at least one type");
   if (n > 256) rio_FAIL(, "too many types in one union");
-  if (!diverse && biggest > smallest && biggest - smallest > rio_SMALL_WORDS * 4)
-    rio_FAIL(, "these types differ in size by more than 64 bytes, so every value takes the biggest size: keep the big data elsewhere, or make it a diverse union");
   u->fieldCount = (uint16_t)n;
   u->size = 4 + rio_align4(biggest);
   if (u->size > 0xFFFF) rio_FAIL(, "union too large");
