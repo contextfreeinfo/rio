@@ -59,8 +59,9 @@ extern const char rio_msgMissingEnd[], rio_msgUnclosedBracket[], rio_msgExpected
            their names' (address, length) string pairs, for log and print
      union: each type it lists is a field (type: rio_TypeId_void for nil, offset 4); a maybe, ?T, is a
             union of nil and T, with T in elem (0 for the others)
-     proc: the parameter types are fields; elem is the result (rio_TypeId_void: none); count, how many of
-           the last parameters are optional (name?: T) */
+     proc: the parameter types are fields (offset 1: a &T parameter, which only a host proc's declaration
+           has); elem is the result (rio_TypeId_void: none); count, how many of the last parameters are
+           optional (name?: T) */
 typedef struct {
   uint8_t kind;    /* rio_TypeKind */
   uint8_t hasRefs; /* holds slices or strings somewhere (so it must be global) */
@@ -132,9 +133,11 @@ typedef struct {
 
 typedef struct {
   uint16_t type;
-  uint16_t refType; /* a &T param's T (type is then the address word) */
+  uint16_t refType; /* a &T param's T (type is then the address word); a host proc's &{...} before it's
+                       declared: rio_REF_LAYOUT */
   uint32_t addr;
 } rio_Param;
+#define rio_REF_LAYOUT 0xFFFFu
 
 typedef struct {
   uint16_t resultType, firstParam, paramCount, optional; /* optional: as declared (name?: T), the last ones */
@@ -308,6 +311,7 @@ typedef struct rio_Compiler {
   uint8_t *localViews;    /* local slots that hold a view of their proc's own memory */
   uint8_t *paramViews;    /* local slots that hold a view that came in through a parameter */
   int storingArgs;        /* storing call arguments: views may go to a callee */
+  int hostProcType;       /* parsing a host proc's declaration: its proc type may take &T parameters */
   int rangeStops;         /* a for header's range: ..< and ..= end its first expression (the loop reads them) */
   uint64_t switchCases[16][4]; /* per open switch: which enum values (or union types) have a case */
   int switchCount;
@@ -427,7 +431,7 @@ int rio_newType(rio_Vm *vm, int kind, int elem, uint32_t count, uint32_t size);
 int rio_sliceOf(rio_Vm *vm, int elem);
 int rio_arrayOf(rio_Vm *vm, int elem, uint32_t count);
 int rio_enumArrayOf(rio_Vm *vm, int elem, int enumType);
-int rio_procTypeOf(rio_Vm *vm, const int *params, int n, int result, int optional);
+int rio_procTypeOf(rio_Vm *vm, const int *params, int n, int result, int optional, int refs);
 int rio_builderOf(rio_Vm *vm, int elem, uint32_t count);
 int rio_maybeOf(rio_Vm *vm, int t);
 int rio_builderViewOf(rio_Vm *vm, int elem);

@@ -107,6 +107,19 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
   then still load: the host reads zeros for the fields they lack. A host writes its side from the
   module's source, which makes C structs and sigs to match: see the
   [embedding guide](../guide/embedding.md#structs).
+- **`&T` parameters:** as for a proc, a host proc may take a place, `&T`, and change it: an `Int`, a
+  `Float` or a struct (`&i`, `&f`, `&{...}` in its sig). Calls pass `&x`. The host writes no more than
+  the place holds, so a struct an older image made with fewer fields stays as it was past them:
+
+  ```rio fragment
+  Mouse* :: struct            # in pc.rio
+    x, y: Int
+    down: Bool
+  end
+  mouse* :: host proc(m: &Mouse)   # the host fills it in
+  m: pc.Mouse
+  pc.mouse(&m)
+  ```
 - **Builtins:** declared the same way, and checked as calls with those types:
   `sqrt* :: host proc(x: Float) -> Float`. [`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio) declares them all.
 - **Builtin types:** `Int* :: host struct`.

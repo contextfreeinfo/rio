@@ -186,6 +186,9 @@ already written, such as Rinc's and Studio's apps, so they come first.
 
 ## Done recently
 
+- **Host procs taking `&T`:** an `Int`, a `Float` or a struct the host may change (`&i`, `&f`,
+  `&{...}` in its sig), written back with `rio_putStruct`, no more than the place holds.
+
 - **Optional trailing parameters:** `style?: Style`, left out of a call, is zero, as a variable is: in
   procs, methods, proc values and host procs alike. Only zero, the rule images already follow for host
   procs that gained parameters at their end, so a host proc can gain options once its API is frozen

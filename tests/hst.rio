@@ -17,3 +17,5 @@ Opts* :: struct
 end
 draw* :: host proc(id: Int, o?: Opts) -> Int
 mark* :: host proc(p: Pos, n: Int)
+fill* :: host proc(p: &Pos, by: Int)   # p's x by more, its y by twice that
+count* :: host proc(n: &Int)           # n, one more

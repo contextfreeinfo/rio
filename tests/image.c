@@ -18,6 +18,12 @@ static void f_ab(rio_Vm *v, rio_Val *a) { /* (s: {a, b}): a * 10 + b, b zero if 
   rio_getStruct(v, a, &s, sizeof s);
   a[0].i = s.a * 10 + s.b;
 }
+static void f_put(rio_Vm *v, rio_Val *a) { /* (s: &{a, b}): a 5, b 9, as much as the image's struct holds */
+  struct { int32_t a, b; } s;
+  s.a = 5;
+  s.b = 9;
+  rio_putStruct(v, a, &s, sizeof s);
+}
 static void f_add3(rio_Vm *v, rio_Val *a) { (void)v; a[0].i = a[0].i + a[1].i + a[2].i * 100 + a[3].i * 1000 + a[4].i * 10000; } /* (add, gaining a String and an Int) */
 
 /* an image going to and from img2 a part at a time: a write fails at stopAt (0: none); a read gets at
@@ -119,6 +125,20 @@ int main(void) {
     rio_init(&vm, mem2, sizeof mem2, code2, 4096);
     rio_addFfi(&vm, "f", "{a:Float}>i", f_ab);
     check(rio_loadImage(&vm, si, m) == -1 && strstr(rio_error(&vm), "calls f, whose sig"), "a struct's field's type differs", &vm);
+  }
+  { /* &T: an image made when the struct had fewer fields: the host writes only what it holds */
+    static const char *rsrc = "S :: struct\n  a: Int\nend\ns: S\nafter := 77\nf :: host proc(s: &S)\nf(&s)\nlog(s.a, after)\n";
+    rio_Vm a;
+    static unsigned char ma[1 << 18], si[1 << 16];
+    uint32_t m;
+    rio_init(&a, ma, sizeof ma, code, 4096);
+    rio_addFfi(&a, "f", "&{a:Int}", f_put);
+    check(rio_compile(&a, rsrc, (uint32_t)strlen(rsrc)) == 0 && (m = rio_saveImage(&a, si, sizeof si)) > 0, "compile with a &T host proc", &a);
+    logged[0] = 0;
+    rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+    rio_setLog(&vm, out, 0);
+    rio_addFfi(&vm, "f", "&{a:Int,b:Int}", f_put);
+    check(rio_loadImage(&vm, si, m) == 0 && rio_run(&vm) == 0 && !strcmp(logged, "5 77|"), "a &struct with a field more on the host: only what's there written", &vm);
   }
   /* memory and code room */
   rio_init(&vm, mem2, sizeof mem / 2, code2, 4096);

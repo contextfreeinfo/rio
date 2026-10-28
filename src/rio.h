@@ -71,8 +71,9 @@ typedef void (*rio_LogFn)(void *userData, const char *text, int len);
 int rio_init(rio_Vm *vm, void *mem, uint32_t memSize, rio_Instr *code, uint32_t codeCap);
 void rio_setLog(rio_Vm *vm, rio_LogFn fn, void *userData);
 
-/* A host proc. sig: params then optional '>' and result. i=i32 f=f32 s=string b=blob, and a struct
-   parameter as its layout in braces, {x:Int,y:Int} (rio_hostHeader writes them); e.g. "ff>f".
+/* A host proc. sig: params then optional '>' and result. i=i32 f=f32 s=string b=blob, a struct
+   parameter as its layout in braces, {x:Int,y:Int} (rio_hostHeader writes them), and & before i, f or
+   a struct for a place the host may change; e.g. "ff>f".
    name and sig must stay valid until rio_compile (or rio_loadImage) returns.
    A plain name is global. A dotted one, "pc.cls", is in module pc instead: `import pc` (or
    rio_autoImport) gives pc.cls. If the loader has a source for pc, that's the module, and it must
@@ -216,9 +217,11 @@ void *rio_sliceBytes(rio_Vm *vm, const rio_Val *slice); /* bytes of a string/blo
 /* A struct argument to a host proc (a sig's {...}: its layout) is 2 words: where it is, and its size.
    rio_getStruct copies it into out, a C struct of size bytes (as rio_hostHeader writes them), with
    zeros past the struct it's given (from an image made when it had fewer fields at its end). A String
-   or Blob in it is a rio_View, and rio_viewBytes gives its bytes. */
+   or Blob in it is a rio_View, and rio_viewBytes gives its bytes. A &T parameter (&i, &f, &{...}) is
+   the same 2 words, of the caller's place: rio_putStruct writes it, no more of in than it holds. */
 typedef struct { uint32_t at, len; } rio_View;
 void rio_getStruct(rio_Vm *vm, const rio_Val *arg, void *out, uint32_t size);
+void rio_putStruct(rio_Vm *vm, const rio_Val *arg, const void *in, uint32_t size);
 void *rio_viewBytes(rio_Vm *vm, rio_View v);
 void rio_trap(rio_Vm *vm, const char *message);   /* call from ffi to abort with an error */
 /* break: safe from a signal handler, an interrupt or another core. A running script stops at its next

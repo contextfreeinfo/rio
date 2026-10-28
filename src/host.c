@@ -223,9 +223,11 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
   int same = ty->fieldCount == def->paramCount && rio_hostTypeOk(vm, ty->elem, def->resultType), j;
   for (j = 0; same && j < def->paramCount; j++) {
     rio_Param *p = &c->params[def->firstParam + j];
-    int type = rio_field(vm, ty->firstField + j)->type;
-    if (p->type == rio_TypeId_void) same = rio_type(vm, type)->kind == rio_TypeKind_struct && rio_layoutIs(vm, type, vm->ffi[i].sig + p->addr);
-    else same = rio_hostTypeOk(vm, type, p->type);
+    int type = rio_field(vm, ty->firstField + j)->type, ref = rio_field(vm, ty->firstField + j)->offset;
+    if (ref != (p->refType != 0)) same = 0; /* (a &T for a &T only) */
+    else if (p->type == rio_TypeId_void || p->refType == rio_REF_LAYOUT)
+      same = rio_type(vm, type)->kind == rio_TypeKind_struct && rio_layoutIs(vm, type, vm->ffi[i].sig + p->addr);
+    else same = rio_hostTypeOk(vm, type, ref ? p->refType : p->type);
   }
   if (!same) { /* say what the host has */
     char text[rio_ERROR_BUF_SIZE];
@@ -235,13 +237,14 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
     for (j = 0; j < def->paramCount; j++) {
       rio_Param *p = &c->params[def->firstParam + j];
       if (j) len = rio_appendText(text, len, ", ");
-      if (p->type == rio_TypeId_void) { /* (a struct: its layout, or as much as fits) */
+      if (p->refType) len = rio_appendText(text, len, "&");
+      if (p->type == rio_TypeId_void || p->refType == rio_REF_LAYOUT) { /* (a struct: its layout, or as much as fits) */
         const char *g = vm->ffi[i].sig + p->addr;
         int n = rio_groupLen(g), room = (int)sizeof text - len - 24;
         if (n > room) n = room > 0 ? room : 0;
         memcpy(text + len, g, (size_t)n);
         len += n;
-      } else len = rio_appendText(text, len, rio_typeName(p->type));
+      } else len = rio_appendText(text, len, rio_typeName(p->refType ? p->refType : p->type));
     }
     len = rio_appendText(text, len, ")");
     if (def->resultType) {
@@ -251,7 +254,11 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
     text[len] = 0;
     rio_FAIL(, text);
   }
-  for (j = 0; j < def->paramCount; j++) c->params[def->firstParam + j].type = rio_field(vm, ty->firstField + j)->type; /* (calls: as declared) */
+  for (j = 0; j < def->paramCount; j++) { /* (calls: as declared) */
+    rio_Param *p = &c->params[def->firstParam + j];
+    if (p->refType) p->refType = rio_field(vm, ty->firstField + j)->type; /* (and type stays the address word) */
+    else p->type = rio_field(vm, ty->firstField + j)->type;
+  }
   def->resultType = (uint16_t)ty->elem;
   def->optional = (uint16_t)ty->count; /* (its last ones, as declared: name?: T) */
   vm->ffi[i].declared = 1;
@@ -389,7 +396,9 @@ void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int l
     return;
   }
   if (c->tok.kind != rio_Tok_proc) rio_FAIL(, "'proc' or 'struct' expected after host");
-  procType = rio_parseType(vm); /* a proc type, as for proc values: proc(x: Int) -> Int */
+  c->hostProcType = 1;
+  procType = rio_parseType(vm); /* a proc type, as for proc values: proc(x: Int) -> Int (and &T parameters) */
+  c->hostProcType = 0;
   if (rio_failed(vm)) return;
   if (receiver < 0) { /* this module's host proc, a global one, or a builtin */
     char prefix[256];

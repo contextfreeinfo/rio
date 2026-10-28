@@ -34,6 +34,7 @@ static const char *files[][2] = {
   {"hopt", "add* :: host proc(a: Int, b?: Int) -> Int\ncls* :: host proc(color?: Int)\n"},
   {"hsx", "P* :: struct\n  a, b: Int\nend\nadd* :: host proc(p: P) -> Int\ncls* :: host proc(color: Int)\n"},
   {"hsw", "P* :: struct\n  a: Int\n  b: Float\nend\nf* :: host proc(p: P)\n"},
+  {"hsr", "f* :: host proc(n: Int)\n"},
 };
 static int loader(void *ud, const char *path, int kind, rio_Source *o) {
   size_t i; (void)ud;
@@ -63,6 +64,19 @@ static void mark(rio_Vm *v, rio_Val *a) { /* (p: hst.Pos, n) */
   outn += (size_t)sprintf(out + outn, "mark %d %d %d\n", p.x, p.y, a[2].i);
 }
 static void nothing(rio_Vm *v, rio_Val *a) { (void)v; (void)a; }
+static void fill(rio_Vm *v, rio_Val *a) { /* (p: &hst.Pos, by) */
+  hst_Pos p;
+  rio_getStruct(v, a, &p, sizeof p);
+  p.x += a[2].i;
+  p.y += a[2].i * 2;
+  rio_putStruct(v, a, &p, sizeof p);
+}
+static void count(rio_Vm *v, rio_Val *a) { /* (n: &Int) */
+  int32_t k;
+  rio_getStruct(v, a, &k, sizeof k);
+  k++;
+  rio_putStruct(v, a, &k, sizeof k);
+}
 
 /* compile and run src (auto: a module to auto-import, or NULL); expect output (NULL: don't check), or
    an error: kind, file (NULL = main), line, message */
@@ -84,6 +98,9 @@ static void t(const char *auto_, const char *src, const char *printed, int kind,
   rio_addFfi(&vm, "scale", "fi>f", scale); /* a global one */
   rio_addFfi(&vm, "hst.draw", hst_draw_SIG, draw); /* (as hst.h has them) */
   rio_addFfi(&vm, "hst.mark", hst_mark_SIG, mark);
+  rio_addFfi(&vm, "hst.fill", hst_fill_SIG, fill);
+  rio_addFfi(&vm, "hst.count", hst_count_SIG, count);
+  rio_addFfi(&vm, "hsr.f", "&i", nothing);
   rio_addFfi(&vm, "hsw.f", "{a:Int,b:Int}", nothing);
   rio_addFfi(&vm, "hsv.f", "{a:Int}", nothing); /* (no source: a module made from it can't say which struct) */
   if (auto_) rio_autoImport(&vm, auto_);
@@ -296,6 +313,13 @@ int main(int argc, char **argv) {
   OK("import hopt\nlog(hopt.add(5), hopt.add(5, 2))\nhopt.cls()\n", "5 7\n"); /* optional, as declared: left out, zero */
   if (cleared != 0) { printf("FAIL: hopt.cls() got %d\n", cleared); fails++; }
   OK("import hst\nlog(hst.draw(9))\n", "9: 0 0 0 0 0 0 0  0 0\n90\n"); /* (a struct left out: zeros) */
+  /* &T: the host changes the caller's place (rio_putStruct): a local, a global, an element, a field, an Int */
+  OK("import hst\np := hst.Pos{x = 1, y = 2}\nhst.fill(&p, 10)\nlog(p)\n", "Pos{x = 11, y = 22}\n");
+  OK("import hst\nf :: proc() -> Int\n  ps: [3]hst.Pos\n  o: hst.Opts\n  i := 2\n  hst.fill(&ps[i], 1)\n  hst.fill(&o.at, 3)\n  n := 5\n"
+     "  hst.count(&n)\n  hst.count(&n)\n  return ps[2].y * 1000 + o.at.y * 10 + n\nend\nlog(f())\n", "2067\n");
+  BAD("import hst\np: hst.Pos\nhst.fill(p, 1)\n", 0, 3, "this parameter is a reference: pass &x");
+  BAD("import hst\nn := 1\nhst.fill(&n, 1)\n", 0, 3, "type mismatch");
+  BAD("import hsr\n", "hsr.rio", 1, "doesn't match the host's hsr.f: proc(&Int)");
   t("hsrc", "hsrc.cls(.red)\n", "", rio_ErrorKind_none, 0, 0, 0); /* (an enum value's type from the parameter) */
   if (cleared != 1) { printf("FAIL: hsrc.cls(.red) got %d\n", cleared); fails++; }
   header();

@@ -156,6 +156,7 @@ static int rio_headerChecks(rio_Vm *vm, const uint32_t *h) {
 /* past the sig's part at s: a letter, or a struct's {...} */
 static const char *rio_sigPart(const char *s) {
   int depth = 0;
+  if (*s == '&') s++; /* (&i, &f, &{...}) */
   if (*s != '{') return s + 1;
   do {
     depth += *s == '{';
@@ -168,7 +169,7 @@ static const char *rio_sigPart(const char *s) {
 /* the words a sig's parameters take, and its result ("" if none) */
 static int rio_sigWords(const char *sig, const char **result) {
   int n = 0;
-  for (; *sig && *sig != '>'; sig = rio_sigPart(sig)) n += *sig == 's' || *sig == 'b' || *sig == '{' ? 2 : 1;
+  for (; *sig && *sig != '>'; sig = rio_sigPart(sig)) n += *sig == 's' || *sig == 'b' || *sig == '{' || *sig == '&' ? 2 : 1;
   *result = *sig ? sig + 1 : sig;
   return n;
 }
@@ -178,6 +179,7 @@ static int rio_sigWords(const char *sig, const char **result) {
 static int rio_partFits(const char *a, const char *ae, const char *h, const char *he) {
   size_t n = (size_t)(ae - a), m = (size_t)(he - h);
   if (n == m && !memcmp(a, h, n)) return 1;
+  if (*a == '&' && *h == '&') return rio_partFits(a + 1, ae, h + 1, he); /* (a place's struct may grow too: the host writes as much as it's given) */
   return *a == '{' && m > n && n > 2 && !memcmp(a, h, n - 1) && h[n - 1] == ',';
 }
 

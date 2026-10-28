@@ -197,6 +197,13 @@ static void rio_cSig(rio_Vm *vm, rio_HostText *o, const char *prefix, int procTy
       open = any = 1;
     }
     if (i == ty->fieldCount) rio_hostPut(o, ">", 1);
+    if (i < ty->fieldCount && rio_field(vm, ty->firstField + i)->offset) { /* (a &T: &, then T as it'd be) */
+      if (!open) {
+        rio_hostPut(o, any ? " \"" : "\"", -1);
+        open = any = 1;
+      }
+      rio_hostPut(o, "&", 1);
+    }
     if (k == rio_TypeKind_struct) { /* " prefix_Name_LAYOUT */
       int n;
       const char *s = rio_structName(vm, type, &n);

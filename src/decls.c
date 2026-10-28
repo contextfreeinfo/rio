@@ -35,7 +35,7 @@ static int rio_paramNames(rio_Vm *vm) {
 
 int rio_parseType(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  int params[16], n = 0, result = rio_TypeId_void, optional = 0;
+  int params[16], n = 0, result = rio_TypeId_void, optional = 0, refs = 0, ref;
   if (c->tok.kind != rio_Tok_proc) return rio_parseValueType(vm);
   rio_next(vm);
   rio_expect(vm, '(', "'(' expected");
@@ -50,11 +50,14 @@ int rio_parseType(rio_Vm *vm) {
       }
       rio_next(vm);
     }
-    if (c->tok.kind == '&') rio_FAIL_AT_TOKEN(0, "proc values can't take & parameters");
+    if ((ref = c->tok.kind == '&') && !c->hostProcType) rio_FAIL_AT_TOKEN(0, "proc values can't take & parameters");
+    if (ref) rio_next(vm); /* (a host proc's &T) */
     if (c->tok.kind == rio_Tok_proc) rio_FAIL_AT_TOKEN(0, "a proc type can't take or return procs");
     t = rio_parseValueType(vm);
     for (j = 0; j < (names ? names : 1); j++) {
       if (n >= 16) rio_FAIL(0, "too many parameters");
+      if (ref && (opt >> j & 1)) rio_FAIL(0, "a & parameter can't be optional: it needs a place");
+      refs |= ref << n;
       if (opt >> j & 1) optional++;
       else if (optional) rio_FAIL(0, rio_msgOptionalLast);
       params[n++] = t;
@@ -68,7 +71,7 @@ int rio_parseType(rio_Vm *vm) {
     if (c->tok.kind == rio_Tok_proc) rio_FAIL_AT_TOKEN(0, "a proc type can't take or return procs");
     result = rio_parseValueType(vm);
   }
-  return rio_procTypeOf(vm, params, n, result, optional);
+  return rio_procTypeOf(vm, params, n, result, optional, refs);
 }
 
 /* a type by its name, maybe through modules (mod.Type), and Blob[N], Blob[..N], Blob[..] */

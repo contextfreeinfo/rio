@@ -65,6 +65,9 @@ static void text(rio_Vm *vm, rio_Val *a) {
 rio_addFfi(&vm, "pc.text", pc_text_SIG, text);
 ```
 
+A `&T` parameter (`&i`, `&f`, or a struct's `&{...}`) comes the same way, the caller's place and its
+size, and `rio_putStruct(vm, a + i, &t, sizeof t)` writes it back, no more than the place holds.
+
 A `String` or `Blob` inside is a `rio_View`, whose bytes `rio_viewBytes(vm, v)` gives. Compiling checks
 each declaration against the sig, so a header older than the module is an error, not a misread. An
 image made when a struct had fewer fields at its end still loads, and `rio_getStruct` fills the rest

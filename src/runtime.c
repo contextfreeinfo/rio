@@ -146,6 +146,12 @@ void *rio_sliceBytes(rio_Vm *vm, const rio_Val *slice) {
 
 void *rio_viewBytes(rio_Vm *vm, rio_View v) { return v.at <= vm->memSize && v.len <= vm->memSize - v.at ? vm->mem + v.at : 0; }
 
+void rio_putStruct(rio_Vm *vm, const rio_Val *arg, const void *in, uint32_t size) {
+  uint32_t at = arg[0].u, n = arg[1].u < size ? arg[1].u : size;
+  if (at > vm->memSize || n > vm->memSize - at) return; /* (not Rio's memory) */
+  memcpy(vm->mem + at, in, n);
+}
+
 void rio_getStruct(rio_Vm *vm, const rio_Val *arg, void *out, uint32_t size) {
   uint32_t at = arg[0].u, n = arg[1].u < size ? arg[1].u : size;
   if (at > vm->memSize || n > vm->memSize - at) n = 0; /* (not Rio's memory: nothing of it) */

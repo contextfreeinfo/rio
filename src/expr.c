@@ -643,6 +643,25 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     m->argCount++;
     return;
   }
+  if (m->kind == rio_Pending_call && m->a == rio_ExprKind_ffi && m->argCount < c->ffi[m->b].paramCount &&
+      c->params[c->ffi[m->b].firstParam + m->argCount].refType) { /* &place, to a host proc: its address and size */
+    rio_Param *p = &c->params[c->ffi[m->b].firstParam + m->argCount];
+    int s, d;
+    if (!(arg->access & rio_Access_ref)) rio_FAIL(, "this parameter is a reference: pass &x");
+    if (p->refType == rio_REF_LAYOUT) rio_FAIL(, "this host proc takes a struct: declare it, in its module's source, to say which");
+    arg->access = 0;
+    if (arg->type != p->refType) rio_FAIL(, "type mismatch");
+    e = rio_popValue(vm);
+    s = rio_toAddrSlot(vm, &e);
+    c->freeSlot = (uint32_t)(m->freeAtStart + m->c);
+    d = rio_allocSlots(vm, 2);
+    if (s != d) rio_emit(vm, rio_Op_mov, d, s, 0);
+    rio_emit(vm, rio_Op_mov, d + 1, rio_constSlot(vm, rio_type(vm, p->refType)->size), 0);
+    if (c->freeSlot < (uint32_t)m->punAt) c->freeSlot = (uint32_t)m->punAt;
+    m->c += 2;
+    m->argCount++;
+    return;
+  }
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b == rio_Builtin_unpack && m->argCount == 2 && (arg->access & rio_Access_ref)) {
     m->argCount++; /* b.unpack(at, &x): x's address taken when the call is made */
     return;
