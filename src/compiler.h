@@ -141,6 +141,8 @@ typedef struct {
 
 typedef struct {
   uint16_t resultType, firstParam, paramCount, optional; /* optional: as declared (name?: T), the last ones */
+  uint16_t resultLayout; /* a struct or union result (a sig's >{...}, >Union{...}): where its layout starts in the
+                            sig, + 1 (0: none); the call passes where it goes first, in 2 words */
 } rio_FfiDef;
 
 /* ------------------------------------------------------------------ expressions */

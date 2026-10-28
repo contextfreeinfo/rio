@@ -83,8 +83,8 @@ already written, such as Rinc's and Studio's apps, so they come first.
     `([]T).len` and `([..]T).push`. Their rules, like what can be packed or printed, stay in comments.
   - **Sort and find:** these could then be written in Rio. Without generics, they'd be host builtins
     taking a less proc.
-- **Returning any value:** today a proc returns a value of up to 16 words with no views in it. Each of
-  these would lift a limit, and they'd come when something needs them:
+- **Returning any value:** today a proc returns a value of up to 16 words with no views in it, host
+  procs too. Each of these would lift a limit, for both, and they'd come when something needs them:
   - **Values holding views** (a struct with a `String` field, a union of strings): returned as a
     `String` is now. A view of the proc's own memory is still an error, and the caller's copy counts as
     viewing what the arguments viewed, as a by-value struct parameter's does.
@@ -92,10 +92,6 @@ already written, such as Rinc's and Studio's apps, so they come first.
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
-  - **Host procs returning structs:** `>{layout}` ending a sig. The caller passes where the struct goes
-    and its size, and the host fills it with `rio_putStruct` (beside `rio_getStruct`), only as much as
-    it's given, so an image made when it had fewer fields still works: `pc.mouse()` returning a
-    record, where today host procs return at most one word or view.
 - **`core`, a module, and hosts giving their modules' sources:** the builtins become module `core`,
   whose contents are imported everywhere unqualified (`core.len` still reaches one a program has
   shadowed), as Rinc's `pc` is imported everywhere qualified. `src/core.rio` becomes that module, not
@@ -104,7 +100,14 @@ already written, such as Rinc's and Studio's apps, so they come first.
   sources can then be shown on demand, by help or an editor, or as read-only files: copies written out
   to edit would change nothing, which would mislead. `rio -H` would scaffold the rest of a host: with
   the C structs and sigs it writes now, the module's source as a C string, and a table of its procs to
-  fill in, registered (source too) with one call.
+  fill in, registered (source too) with one call. A hash of each module's source, kept in images made
+  with it, would make a quick check and a name for what an image was made with ("pc 3f2a..."), but
+  not the gate: any change to the module, even one that adds a proc, would change it, and images are
+  meant to survive what only adds. When the hash differs, each host proc it calls is checked, as now.
+- **Enums by name in layouts:** an enum parameter or field is `Int` in a sig's layout now, so an image
+  made before a host module's enum had its values reordered would load and pass the wrong ones.
+  Written as its values' names (`Pointer{game,ui,none}`), a reorder doesn't fit, and values added at
+  the end still do, as fields added at a struct's end do.
 - **Constant tables:** `[N]T` constants built while compiling and kept in the read-only image, so a
   lookup table costs no RAM on small boards.
 - **Formatters as values:** `hex(n)`, `pad(s, 8)` and the like, returning `Fmt` values that work
@@ -185,6 +188,10 @@ already written, such as Rinc's and Studio's apps, so they come first.
     procs if they come.
 
 ## Done recently
+
+- **Host procs returning structs and maybes** (`>{...}`, `>Union{nil|Int}` in a sig): the call passes
+  where the result goes first, and the host writes it with `rio_putStruct`, so a struct result may
+  gain fields at its end and older images still get what they hold.
 
 - **Host procs taking `&T`:** an `Int`, a `Float` or a struct the host may change (`&i`, `&f`,
   `&{...}` in its sig), written back with `rio_putStruct`, no more than the place holds.

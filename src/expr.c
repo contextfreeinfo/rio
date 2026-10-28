@@ -612,6 +612,7 @@ static void rio_ffiRoom(rio_Vm *vm, rio_PendingOp *o, int ffi) {
   rio_Compiler *c = vm->compiler;
   rio_FfiDef *f = &c->ffi[ffi];
   int i, structs = 0;
+  if (f->resultLayout) o->c = 2; /* (where a struct or union result goes comes first: rio_finishCall) */
   for (i = 0; i < f->paramCount; i++) structs |= rio_type(vm, c->params[f->firstParam + i].type)->kind == rio_TypeKind_struct;
   if (!structs) return;
   o->punAt = o->freeAtStart + vm->ffi[ffi].argWords;
@@ -834,6 +835,20 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
     if (m->c < vm->ffi[m->b].argWords) { /* (the ones left out: zero) */
       c->freeSlot = (uint32_t)(m->freeAtStart + m->c);
       rio_zeroSlots(vm, rio_allocSlots(vm, vm->ffi[m->b].argWords - m->c), vm->ffi[m->b].argWords - m->c);
+    }
+    if (f->resultLayout) { /* a struct or union, zeroed above the arguments, and where it is first: the host writes it */
+      int words = rio_typeWords(vm, f->resultType), size = (int)rio_type(vm, f->resultType)->size, dest;
+      uint32_t v[2];
+      c->freeSlot = (uint32_t)(m->freeAtStart + vm->ffi[m->b].argWords);
+      if (c->freeSlot < (uint32_t)m->punAt) c->freeSlot = (uint32_t)m->punAt;
+      dest = rio_allocSlots(vm, words);
+      rio_zeroSlots(vm, dest, words);
+      v[0] = rio_expose(vm, (uint32_t)dest * 4, (uint32_t)size);
+      v[1] = (uint32_t)size;
+      rio_emit(vm, rio_Op_mov2, m->freeAtStart, rio_findConsts(vm, v, 2, 1), 0);
+      rio_emit(vm, rio_Op_ffi, m->freeAtStart, 0, m->b);
+      rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, f->resultType, dest * 4), m->freeAtStart);
+      return;
     }
     rio_emit(vm, rio_Op_ffi, m->freeAtStart, 0, m->b);
     c->freeSlot = m->freeAtStart;

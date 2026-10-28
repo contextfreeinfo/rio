@@ -66,7 +66,10 @@ rio_addFfi(&vm, "pc.text", pc_text_SIG, text);
 ```
 
 A `&T` parameter (`&i`, `&f`, or a struct's `&{...}`) comes the same way, the caller's place and its
-size, and `rio_putStruct(vm, a + i, &t, sizeof t)` writes it back, no more than the place holds.
+size, and `rio_putStruct(vm, a + i, &t, sizeof t)` writes it back, no more than the place holds. A
+struct, union or maybe result (`>{...}`, `>Union{...}`) does too: where it goes is `a[0]` and `a[1]`,
+before the parameters, which start at `a[2]`, and the host writes it there with `rio_putStruct`. For a
+union or maybe, the header has a C struct for it, `pc_name_Result` (a maybe's `has` and `value`).
 
 A `String` or `Blob` inside is a `rio_View`, whose bytes `rio_viewBytes(vm, v)` gives. Compiling checks
 each declaration against the sig, so a header older than the module is an error, not a misread. An

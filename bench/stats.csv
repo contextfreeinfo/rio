@@ -7,3 +7,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-10-27,f434996+,puddle,29136,146386,12523,251392,24.1,62324,0.552,0.004,0.528,0.004,0.386,0.008,0.564,0.112,"host procs take structs by address, layouts in sigs, rio -H (src/header.c); images bind called host procs, zeros for gained params and fields"
 2026-10-28,7edfdee+,puddle,29136,146710,12573,251904,23.6,62324,0.551,0.004,0.527,0.004,0.384,0.008,0.565,0.116,"optional trailing parameters (name?: T)"
 2026-10-28,89a6e55+,puddle,29224,147646,12642,253440,21.0,62324,0.578,0.005,0.527,0.004,0.412,0.011,0.64,0.135,"host procs take &T (&i, &f, &{...}), rio_putStruct"
+2026-10-28,4316612+,puddle,29360,148686,12721,255488,24.8,62324,0.592,0.004,0.531,0.004,0.39,0.008,0.575,0.114,"host procs return structs and maybes (>{...}, >Union{...}), rio_putStruct"

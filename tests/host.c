@@ -35,6 +35,8 @@ static const char *files[][2] = {
   {"hsx", "P* :: struct\n  a, b: Int\nend\nadd* :: host proc(p: P) -> Int\ncls* :: host proc(color: Int)\n"},
   {"hsw", "P* :: struct\n  a: Int\n  b: Float\nend\nf* :: host proc(p: P)\n"},
   {"hsr", "f* :: host proc(n: Int)\n"},
+  {"hsq", "P* :: struct\n  b: Int\nend\nf* :: host proc(n: Int) -> P\n"},
+  {"hsv2", "P* :: struct\n  s: String\nend\nf* :: host proc(n: Int) -> P\n"},
 };
 static int loader(void *ud, const char *path, int kind, rio_Source *o) {
   size_t i; (void)ud;
@@ -71,6 +73,18 @@ static void fill(rio_Vm *v, rio_Val *a) { /* (p: &hst.Pos, by) */
   p.y += a[2].i * 2;
   rio_putStruct(v, a, &p, sizeof p);
 }
+static void where(rio_Vm *v, rio_Val *a) { /* (-> hst.Pos: where it goes in a[0], a[1]; i, k after) */
+  hst_Pos p;
+  p.x = a[2].i;
+  p.y = a[2].i * 2 + a[3].i;
+  rio_putStruct(v, a, &p, sizeof p);
+}
+static void find(rio_Vm *v, rio_Val *a) { /* (i -> ?Int) */
+  hst_find_Result r;
+  r.has = a[2].i > 0;
+  r.value = a[2].i * 3;
+  rio_putStruct(v, a, &r, sizeof r);
+}
 static void count(rio_Vm *v, rio_Val *a) { /* (n: &Int) */
   int32_t k;
   rio_getStruct(v, a, &k, sizeof k);
@@ -100,6 +114,10 @@ static void t(const char *auto_, const char *src, const char *printed, int kind,
   rio_addFfi(&vm, "hst.mark", hst_mark_SIG, mark);
   rio_addFfi(&vm, "hst.fill", hst_fill_SIG, fill);
   rio_addFfi(&vm, "hst.count", hst_count_SIG, count);
+  rio_addFfi(&vm, "hst.where", hst_where_SIG, where);
+  rio_addFfi(&vm, "hst.find", hst_find_SIG, find);
+  rio_addFfi(&vm, "hsq.f", "i>{a:Int}", nothing);
+  rio_addFfi(&vm, "hsv2.f", "i>{s:String}", nothing);
   rio_addFfi(&vm, "hsr.f", "&i", nothing);
   rio_addFfi(&vm, "hsw.f", "{a:Int,b:Int}", nothing);
   rio_addFfi(&vm, "hsv.f", "{a:Int}", nothing); /* (no source: a module made from it can't say which struct) */
@@ -320,6 +338,12 @@ int main(int argc, char **argv) {
   BAD("import hst\np: hst.Pos\nhst.fill(p, 1)\n", 0, 3, "this parameter is a reference: pass &x");
   BAD("import hst\nn := 1\nhst.fill(&n, 1)\n", 0, 3, "type mismatch");
   BAD("import hsr\n", "hsr.rio", 1, "doesn't match the host's hsr.f: proc(&Int)");
+  /* results that are structs or maybes: written where the call says, before its arguments */
+  OK("import hst\nlog(hst.where(3), hst.where(3, 1).y, hst.find(2), hst.find(0))\n", "Pos{x = 3, y = 6} 7 6 nil\n");
+  OK("import hst\nf :: proc(n: Int) -> Int\n  s := 0\n  for i in 0..<n\n    p := hst.where(i, hst.where(1).y)\n    s += p.y\n    v := hst.find(i)\n    if v is Int\n      s += v * 100\n    end\n  end\n  return s\nend\nlog(f(3))\n",
+     "912\n");
+  BAD("import hsq\n", "hsq.rio", 4, "doesn't match the host's hsq.f: proc(Int) -> {a:Int}");
+  BAD("import hsv2\n", "hsv2.rio", 4, "a host proc returns what a proc may: no views in it, and at most 16 words");
   t("hsrc", "hsrc.cls(.red)\n", "", rio_ErrorKind_none, 0, 0, 0); /* (an enum value's type from the parameter) */
   if (cleared != 1) { printf("FAIL: hsrc.cls(.red) got %d\n", cleared); fails++; }
   header();

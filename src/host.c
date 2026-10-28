@@ -192,9 +192,10 @@ void rio_layoutOf(rio_Vm *vm, int type, int bits, rio_HostText *o) {
   else if (ty->kind == rio_TypeKind_slice && type != rio_TypeId_string && type != rio_TypeId_blob) rio_layoutOf(vm, ty->elem, 0, o);
 }
 
-/* the length of a sig's {...} at g */
+/* the length of a sig's {...} (or Union{...}) at g */
 static int rio_groupLen(const char *g) {
   int depth = 0, n = 0;
+  while (g[n] && g[n] != '{') n++;
   do {
     depth += g[n] == '{';
     depth -= g[n] == '}';
@@ -220,7 +221,12 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
   rio_Compiler *c = vm->compiler;
   rio_FfiDef *def = &c->ffi[i];
   rio_Type *ty = rio_type(vm, procType);
-  int same = ty->fieldCount == def->paramCount && rio_hostTypeOk(vm, ty->elem, def->resultType), j;
+  int same = ty->fieldCount == def->paramCount, j, rk = rio_type(vm, ty->elem)->kind;
+  if (def->resultLayout) { /* (a struct or union, as a Rio proc may return: no views, at most 16 words) */
+    same = same && (rk == rio_TypeKind_struct || rk == rio_TypeKind_union) && rio_layoutIs(vm, ty->elem, vm->ffi[i].sig + def->resultLayout - 1);
+    if (same && (rio_type(vm, ty->elem)->hasRefs || rio_isBig(rio_type(vm, ty->elem))))
+      rio_FAIL(, "a host proc returns what a proc may: no views in it, and at most 16 words");
+  } else same = same && rio_hostTypeOk(vm, ty->elem, def->resultType);
   for (j = 0; same && j < def->paramCount; j++) {
     rio_Param *p = &c->params[def->firstParam + j];
     int type = rio_field(vm, ty->firstField + j)->type, ref = rio_field(vm, ty->firstField + j)->offset;
@@ -247,7 +253,14 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
       } else len = rio_appendText(text, len, rio_typeName(p->refType ? p->refType : p->type));
     }
     len = rio_appendText(text, len, ")");
-    if (def->resultType) {
+    if (def->resultLayout) { /* (its layout, or as much as fits) */
+      const char *g = vm->ffi[i].sig + def->resultLayout - 1;
+      int n = rio_groupLen(g), room = (int)sizeof text - len - 8;
+      if (n > room) n = room > 0 ? room : 0;
+      len = rio_appendText(text, len, " -> ");
+      memcpy(text + len, g, (size_t)n);
+      len += n;
+    } else if (def->resultType) {
       len = rio_appendText(text, len, " -> ");
       len = rio_appendText(text, len, rio_typeName(def->resultType));
     }

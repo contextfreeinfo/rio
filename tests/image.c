@@ -18,6 +18,12 @@ static void f_ab(rio_Vm *v, rio_Val *a) { /* (s: {a, b}): a * 10 + b, b zero if 
   rio_getStruct(v, a, &s, sizeof s);
   a[0].i = s.a * 10 + s.b;
 }
+static void f_res(rio_Vm *v, rio_Val *a) { /* (n -> {a, b}): a n, b 9, as much as the image's struct holds */
+  struct { int32_t a, b; } s;
+  s.a = a[2].i;
+  s.b = 9;
+  rio_putStruct(v, a, &s, sizeof s);
+}
 static void f_put(rio_Vm *v, rio_Val *a) { /* (s: &{a, b}): a 5, b 9, as much as the image's struct holds */
   struct { int32_t a, b; } s;
   s.a = 5;
@@ -139,6 +145,23 @@ int main(void) {
     rio_setLog(&vm, out, 0);
     rio_addFfi(&vm, "f", "&{a:Int,b:Int}", f_put);
     check(rio_loadImage(&vm, si, m) == 0 && rio_run(&vm) == 0 && !strcmp(logged, "5 77|"), "a &struct with a field more on the host: only what's there written", &vm);
+  }
+  { /* a struct result: an image made when it had fewer fields gets what it holds; a union's must match */
+    static const char *rsrc = "S :: struct\n  a: Int\nend\nf :: host proc(n: Int) -> S\ns := f(4)\nlog(s.a)\n";
+    rio_Vm a;
+    static unsigned char ma[1 << 18], si[1 << 16];
+    uint32_t m;
+    rio_init(&a, ma, sizeof ma, code, 4096);
+    rio_addFfi(&a, "f", "i>{a:Int}", f_res);
+    check(rio_compile(&a, rsrc, (uint32_t)strlen(rsrc)) == 0 && (m = rio_saveImage(&a, si, sizeof si)) > 0, "compile with a struct result", &a);
+    logged[0] = 0;
+    rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+    rio_setLog(&vm, out, 0);
+    rio_addFfi(&vm, "f", "i>{a:Int,b:Int}", f_res);
+    check(rio_loadImage(&vm, si, m) == 0 && rio_run(&vm) == 0 && !strcmp(logged, "4|"), "a struct result with a field more on the host", &vm);
+    rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+    rio_addFfi(&vm, "f", "i>{b:Int}", f_res);
+    check(rio_loadImage(&vm, si, m) == -1 && strstr(rio_error(&vm), "calls f, whose sig"), "a struct result whose fields differ", &vm);
   }
   /* memory and code room */
   rio_init(&vm, mem2, sizeof mem / 2, code2, 4096);

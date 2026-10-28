@@ -120,6 +120,14 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
   m: pc.Mouse
   pc.mouse(&m)
   ```
+- **Results:** a host proc returns what a proc may: an `Int`, `Float`, `String` or `Blob`, or a struct,
+  union or maybe of up to 16 words with no views in it (`>{...}`, `>Union{...}` in its sig). A struct
+  result may gain fields at its end, as a parameter may: an older image gets the fields it holds.
+
+  ```rio fragment
+  mouse* :: host proc() -> Mouse          # in pc.rio: rather than taking &Mouse
+  keyDown* :: host proc(k: Int) -> ?Int   # nil, or how long it's been down
+  ```
 - **Builtins:** declared the same way, and checked as calls with those types:
   `sqrt* :: host proc(x: Float) -> Float`. [`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio) declares them all.
 - **Builtin types:** `Int* :: host struct`.

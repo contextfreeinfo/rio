@@ -189,12 +189,18 @@ static int rio_partFits(const char *a, const char *ae, const char *h, const char
 static int rio_ffiFits(rio_Vm *vm, int j, const char *sig, rio_Ffi *f) {
   const char *host = vm->ffi[j].sig, *hostResult, *result, *a = sig, *h = host;
   int hostWords = rio_sigWords(host, &hostResult), words = rio_sigWords(sig, &result);
+  int placed = *result == '{' || *result == 'U'; /* (a struct or union result: where it goes, first, 2 words) */
   for (; *a && *a != '>'; a = rio_sigPart(a), h = rio_sigPart(h)) /* (each of the image's parameters fits the host's) */
     if (!*h || *h == '>' || !rio_partFits(a, rio_sigPart(a), h, rio_sigPart(h))) return 0;
-  if (strcmp(hostResult, result) || (*h && *h != '>' && hostWords > rio_FFI_PAD_WORDS)) return 0;
+  if (placed ? !(*hostResult == *result && rio_partFits(result, result + strlen(result), hostResult, hostResult + strlen(hostResult)))
+             : strcmp(hostResult, result) != 0) /* (a struct result may have fields more on the host: it writes what fits) */
+    return 0;
+  hostWords += placed * 2;
+  words += placed * 2;
+  if (*h && *h != '>' && hostWords > rio_FFI_PAD_WORDS) return 0;
   *f = vm->ffi[j];
   f->argWords = (uint8_t)hostWords;
-  f->resultWords = (uint8_t)(*result == 's' || *result == 'b' ? 2 : *result ? 1 : 0);
+  f->resultWords = (uint8_t)(placed ? 0 : *result == 's' || *result == 'b' ? 2 : *result ? 1 : 0);
   f->pad = (uint8_t)(hostWords - words);
   return 1;
 }

@@ -185,6 +185,34 @@ static void rio_cStruct(rio_Vm *vm, rio_HostText *o, const char *prefix, int typ
   rio_hostPut(o, "\"\n\n", -1);
 }
 
+/* a union or maybe result's C, prefix_proc_Result: a maybe's has (1: there, 0: nil) and value; another
+   union's tag (which of its types, as listed) and words */
+static void rio_cResult(rio_Vm *vm, rio_HostText *o, const char *prefix, const rio_Symbol *y, int type) {
+  rio_Compiler *c = vm->compiler;
+  rio_Type *ty = rio_type(vm, type);
+  int maybe = ty->fieldCount == 2 && rio_field(vm, ty->firstField)->type == rio_TypeId_void && ty->elem, k;
+  rio_hostPut(o, maybe ? "typedef struct {\n  int32_t has; /* 1: value is there, 0: nil */\n  " : "typedef struct {\n  int32_t tag; /* which of its types, as listed */\n  ", -1);
+  if (maybe) rio_cDecl(vm, o, prefix, ty->elem, "value", 5, "");
+  else {
+    rio_hostPut(o, "uint32_t words[", -1);
+    rio_hostPutInt(o, (int32_t)(ty->size > 4 ? (ty->size - 4) / 4 : 1));
+    rio_hostPut(o, "]", 1);
+  }
+  rio_hostPut(o, ";\n} ", -1);
+  for (k = 0; k < 2; k++) {
+    rio_hostPut(o, prefix, -1);
+    rio_hostPut(o, "_", 1);
+    rio_hostPut(o, c->names + y->name, y->nameLen);
+    rio_hostPut(o, k ? "_Result_size[sizeof(" : "_Result;\ntypedef char ", -1);
+  }
+  rio_hostPut(o, prefix, -1);
+  rio_hostPut(o, "_", 1);
+  rio_hostPut(o, c->names + y->name, y->nameLen);
+  rio_hostPut(o, "_Result) == ", -1);
+  rio_hostPutInt(o, (int32_t)ty->size);
+  rio_hostPut(o, " ? 1 : -1]; /* (Rio's size) */\n\n", -1);
+}
+
 /* a host proc's sig, from its declared types, as C: string literals, with a struct's name_LAYOUT */
 static void rio_cSig(rio_Vm *vm, rio_HostText *o, const char *prefix, int procType) {
   rio_Type *ty = rio_type(vm, procType);
@@ -192,6 +220,12 @@ static void rio_cSig(rio_Vm *vm, rio_HostText *o, const char *prefix, int procTy
   for (i = 0; i <= ty->fieldCount; i++) {
     int type = i < ty->fieldCount ? rio_field(vm, ty->firstField + i)->type : ty->elem, k = rio_type(vm, type)->kind;
     if (i == ty->fieldCount && type == rio_TypeId_void) break;
+    if (i == ty->fieldCount && k == rio_TypeKind_union) { /* (a union's or maybe's layout, written out) */
+      rio_hostPut(o, open ? ">" : any ? " \">" : "\">", -1);
+      rio_layoutOf(vm, type, 0, o);
+      rio_hostPut(o, "\"", 1);
+      return;
+    }
     if (!open && (i == ty->fieldCount || k != rio_TypeKind_struct)) {
       rio_hostPut(o, any ? " \"" : "\"", -1);
       open = any = 1;
@@ -236,12 +270,14 @@ uint32_t rio_hostHeader(rio_Vm *vm, const char *src, uint32_t len, void *scratch
   rio_hostPut(&o, "/* Made by rio_hostHeader (rio -H) from the Rio module that declares these host procs: don't edit.\n"
               "   A struct parameter comes as 2 words: rio_getStruct(vm, a + i, &s, sizeof s) copies it into s. */\n"
               "#include <stdint.h>\n#include \"rio.h\"\n\n", -1);
-  for (i = 0; i < c->symCount; i++) { /* the structs the host procs take */
+  for (i = 0; i < c->symCount; i++) { /* the structs the host procs take and return */
     rio_Symbol *y = &c->syms[i];
     rio_Type *ty;
     if (y->kind != rio_SymKind_ffi || !y->type) continue;
     ty = rio_type(vm, y->type);
     for (j = 0; j < ty->fieldCount; j++) rio_cStruct(vm, &o, prefix, rio_field(vm, ty->firstField + j)->type, done, &doneCount);
+    rio_cStruct(vm, &o, prefix, ty->elem, done, &doneCount);
+    if (rio_type(vm, ty->elem)->kind == rio_TypeKind_union) rio_cResult(vm, &o, prefix, y, ty->elem);
   }
   for (i = 0; i < c->symCount; i++) { /* their sigs */
     rio_Symbol *y = &c->syms[i];

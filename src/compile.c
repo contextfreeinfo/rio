@@ -230,11 +230,18 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
     rio_FfiDef *def = &c->ffi[i];
     const char *g;
     def->firstParam = (uint16_t)c->paramCount;
-    def->paramCount = def->optional = 0;
+    def->paramCount = def->optional = def->resultLayout = 0;
     def->resultType = rio_TypeId_void;
     f->argWords = f->resultWords = f->declared = f->pad = 0;
     for (g = f->sig; *g; g++) {
       int isResult = *g == '>', ch = isResult ? g[1] : *g, ref = *g == '&';
+      if (isResult && (g[1] == '{' || g[1] == 'U')) { /* a struct or union result: written where the call says, first */
+        def->resultLayout = (uint16_t)(g + 1 - f->sig + 1);
+        def->resultType = rio_TypeId_void; /* (until it's declared) */
+        f->argWords = (uint8_t)(f->argWords + 2);
+        f->resultWords = 0;
+        break;
+      }
       if (ref) { /* &i, &f, &{...}: a place, by its address and size (rio_putStruct writes it) */
         int t;
         if (g[1] == '{') g++; /* (as a struct, below) */
