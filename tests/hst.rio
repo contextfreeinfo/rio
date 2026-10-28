@@ -15,5 +15,5 @@ Opts* :: struct
   name: String
   ps: [2]Pos
 end
-draw* :: host proc(id: Int, o: Opts) -> Int
+draw* :: host proc(id: Int, o?: Opts) -> Int
 mark* :: host proc(p: Pos, n: Int)

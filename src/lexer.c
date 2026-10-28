@@ -5,6 +5,7 @@
 #ifndef rio_NO_COMPILER
 
 const char rio_msgMissingEnd[] = "missing 'end'";
+const char rio_msgOptionalLast[] = "after an optional parameter (name?: T), the rest are optional too";
 const char rio_msgUnclosedBracket[] = "unclosed bracket";
 const char rio_msgExpectedExpr[] = "expected expression";
 

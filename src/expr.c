@@ -714,6 +714,15 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
   m->argCount++;
 }
 
+/* zeros into slots [at, at + words): optional parameters a call left out */
+static void rio_zeroSlots(rio_Vm *vm, int at, int words) {
+  int z = rio_constSlot(vm, 0), w;
+  for (w = 0; w < words; w++) rio_emit(vm, rio_Op_mov, at + w, z, 0);
+}
+
+/* the arguments a call has: all of its parameters', or all but some of the optional ones at the end */
+static int rio_argsOk(const rio_PendingOp *m, int params, int optional) { return m->argCount <= params && m->argCount >= params - optional; }
+
 /* a call's arguments are all there: make it, and push its result */
 static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
   rio_Compiler *c = vm->compiler;
@@ -721,10 +730,14 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
   if (m->a == rio_ExprKind_proc) { /* arguments into the proc's parameters, then call */
     rio_ProcDef *p = &c->procDefs[m->b];
     int resultLocal = 0, resultFrom = 0;
-    if (m->argCount != p->paramCount) rio_FAIL(, "wrong number of arguments");
+    if (!rio_argsOk(m, p->paramCount, p->optional)) rio_FAIL(, "wrong number of arguments");
     for (i = 0; i < p->paramCount; i++) {
       rio_Param *param = &c->params[p->firstParam + i];
       rio_Expr dst = rio_exprOf(rio_ExprKind_static, param->type, (int32_t)param->addr), *arg = &c->values[m->valueBase + i];
+      if (i >= m->argCount) { /* (left out: zero) */
+        rio_zeroSlots(vm, (int)(param->addr / 4), rio_typeWords(vm, param->type));
+        continue;
+      }
       if ((!i && p->selfByRef) || param->refType) { /* the place's address (a view it returns may view that place) */
         resultLocal |= rio_isLocalMemory(vm, arg) || rio_isLocalView(vm, arg);
         resultFrom |= arg->fromParam;
@@ -759,13 +772,18 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
   } else if (m->a == rio_ExprKind_static) { /* through a proc value: the arguments go to a scratch area, the call copies them over */
     rio_Type *type = rio_type(vm, m->c);
     int words = 0, base, at = 0;
-    if (m->argCount != type->fieldCount) rio_FAIL(, "wrong number of arguments");
+    if (!rio_argsOk(m, type->fieldCount, (int)type->count)) rio_FAIL(, "wrong number of arguments");
     for (i = 0; i < type->fieldCount; i++) words += rio_typeWords(vm, rio_field(vm, type->firstField + i)->type);
     base = rio_allocSlots(vm, words ? words : 1);
     int resultLocal = 0, resultFrom = 0;
     for (i = 0; i < type->fieldCount; i++) {
       int paramType = rio_field(vm, type->firstField + i)->type;
       rio_Expr dst = rio_exprOf(rio_ExprKind_static, paramType, (base + at) * 4);
+      if (i >= m->argCount) { /* (left out: zero) */
+        rio_zeroSlots(vm, base + at, rio_typeWords(vm, paramType));
+        at += rio_typeWords(vm, paramType);
+        continue;
+      }
       rio_slotMarks(vm, &c->values[m->valueBase + i]);
       resultLocal |= rio_isLocalView(vm, &c->values[m->valueBase + i]); /* (what it returns may view what went in) */
       resultFrom |= c->values[m->valueBase + i].fromParam;
@@ -793,7 +811,11 @@ static void rio_finishCall(rio_Vm *vm, rio_PendingOp *m) {
     }
   } else if (m->a == rio_ExprKind_ffi) { /* the arguments are in place; the result comes back in the first slot */
     rio_FfiDef *f = &c->ffi[m->b];
-    if (m->argCount != f->paramCount) rio_FAIL(, "wrong number of arguments");
+    if (!rio_argsOk(m, f->paramCount, f->optional)) rio_FAIL(, "wrong number of arguments");
+    if (m->c < vm->ffi[m->b].argWords) { /* (the ones left out: zero) */
+      c->freeSlot = (uint32_t)(m->freeAtStart + m->c);
+      rio_zeroSlots(vm, rio_allocSlots(vm, vm->ffi[m->b].argWords - m->c), vm->ffi[m->b].argWords - m->c);
+    }
     rio_emit(vm, rio_Op_ffi, m->freeAtStart, 0, m->b);
     c->freeSlot = m->freeAtStart;
     if (f->resultType == rio_TypeId_void) rio_pushResult(vm, rio_voidExpr(), m->freeAtStart);

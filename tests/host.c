@@ -31,6 +31,7 @@ static const char *files[][2] = {
   /* structs going to host procs, by address */
   {"hst", 0}, /* (tests/hst.rio, read in main) */
   {"hsb", "add* :: host proc(a, b: Int) -> Int\ncls* :: host proc(on: Bool)\n"},
+  {"hopt", "add* :: host proc(a: Int, b?: Int) -> Int\ncls* :: host proc(color?: Int)\n"},
   {"hsx", "P* :: struct\n  a, b: Int\nend\nadd* :: host proc(p: P) -> Int\ncls* :: host proc(color: Int)\n"},
   {"hsw", "P* :: struct\n  a: Int\n  b: Float\nend\nf* :: host proc(p: P)\n"},
 };
@@ -66,7 +67,7 @@ static void nothing(rio_Vm *v, rio_Val *a) { (void)v; (void)a; }
 /* compile and run src (auto: a module to auto-import, or NULL); expect output (NULL: don't check), or
    an error: kind, file (NULL = main), line, message */
 static void t(const char *auto_, const char *src, const char *printed, int kind, const char *file, int line, const char *msg) {
-  static const char *const hostModules[] = {"pc", "hm", "hbad", "hres", "hmiss", "hpriv", "hnest", "hsrc", "hsbad", "hsb", "hsx"};
+  static const char *const hostModules[] = {"pc", "hm", "hbad", "hres", "hmiss", "hpriv", "hnest", "hsrc", "hsbad", "hsb", "hsx", "hopt"};
   rio_Error e;
   size_t i;
   n++; outn = 0; out[0] = 0; cleared = -1;
@@ -292,6 +293,9 @@ int main(int argc, char **argv) {
   BAD("import hsv\nhsv.f(1)\n", 0, 2, "this host proc takes a struct: declare it");
   OK("import hsb\nhsb.cls(true)\n", ""); /* (a Bool for an Int) */
   if (cleared != 1) { printf("FAIL: hsb.cls(true) got %d\n", cleared); fails++; }
+  OK("import hopt\nlog(hopt.add(5), hopt.add(5, 2))\nhopt.cls()\n", "5 7\n"); /* optional, as declared: left out, zero */
+  if (cleared != 0) { printf("FAIL: hopt.cls() got %d\n", cleared); fails++; }
+  OK("import hst\nlog(hst.draw(9))\n", "9: 0 0 0 0 0 0 0  0 0\n90\n"); /* (a struct left out: zeros) */
   t("hsrc", "hsrc.cls(.red)\n", "", rio_ErrorKind_none, 0, 0, 0); /* (an enum value's type from the parameter) */
   if (cleared != 1) { printf("FAIL: hsrc.cls(.red) got %d\n", cleared); fails++; }
   header();

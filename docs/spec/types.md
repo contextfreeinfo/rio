@@ -292,7 +292,8 @@ A `?T` that holds views (`?String`, `?[]Int`) must be a global, as other unions 
 ## Procs
 
 A proc type is written `proc(T, U) -> R`, or without `-> R` when there's no result. Parameter names
-are allowed, for reading: `proc(x, y: Int) -> Int`. See [proc values](expressions.md#proc-values).
+are allowed, for reading: `proc(x, y: Int) -> Int`, and needed for an optional one, `proc(x: Int,
+y?: Int)` (see [procs](declarations.md#procs)). See [proc values](expressions.md#proc-values).
 Proc values can be elements too, of arrays, slices, builders and `[E]T`, with the proc type after the
 brackets (but not a maybe: a proc value is unset until given a proc):
 

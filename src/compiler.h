@@ -49,7 +49,7 @@ typedef struct {
 } rio_Token;
 
 /* messages that mean "unfinished" to the REPL, when the source ends */
-extern const char rio_msgMissingEnd[], rio_msgUnclosedBracket[], rio_msgExpectedExpr[];
+extern const char rio_msgMissingEnd[], rio_msgUnclosedBracket[], rio_msgExpectedExpr[], rio_msgOptionalLast[];
 
 /* ------------------------------------------------------------------ tables */
 
@@ -59,7 +59,8 @@ extern const char rio_msgMissingEnd[], rio_msgUnclosedBracket[], rio_msgExpected
            their names' (address, length) string pairs, for log and print
      union: each type it lists is a field (type: rio_TypeId_void for nil, offset 4); a maybe, ?T, is a
             union of nil and T, with T in elem (0 for the others)
-     proc: the parameter types are fields; elem is the result (rio_TypeId_void: none) */
+     proc: the parameter types are fields; elem is the result (rio_TypeId_void: none); count, how many of
+           the last parameters are optional (name?: T) */
 typedef struct {
   uint8_t kind;    /* rio_TypeKind */
   uint8_t hasRefs; /* holds slices or strings somewhere (so it must be global) */
@@ -126,6 +127,7 @@ typedef struct {
   uint8_t callsValues; /* it calls through a proc value, itself or through procs it calls (so it can't
                           be a value: that could recurse) */
   uint8_t usedAsValue;
+  uint16_t optional;   /* how many of its last parameters are optional (name?: T): left out, they're zero */
 } rio_ProcDef;
 
 typedef struct {
@@ -135,7 +137,7 @@ typedef struct {
 } rio_Param;
 
 typedef struct {
-  uint16_t resultType, firstParam, paramCount;
+  uint16_t resultType, firstParam, paramCount, optional; /* optional: as declared (name?: T), the last ones */
 } rio_FfiDef;
 
 /* ------------------------------------------------------------------ expressions */
@@ -425,7 +427,7 @@ int rio_newType(rio_Vm *vm, int kind, int elem, uint32_t count, uint32_t size);
 int rio_sliceOf(rio_Vm *vm, int elem);
 int rio_arrayOf(rio_Vm *vm, int elem, uint32_t count);
 int rio_enumArrayOf(rio_Vm *vm, int elem, int enumType);
-int rio_procTypeOf(rio_Vm *vm, const int *params, int n, int result);
+int rio_procTypeOf(rio_Vm *vm, const int *params, int n, int result, int optional);
 int rio_builderOf(rio_Vm *vm, int elem, uint32_t count);
 int rio_maybeOf(rio_Vm *vm, int t);
 int rio_builderViewOf(rio_Vm *vm, int elem);
@@ -553,7 +555,7 @@ void rio_finishBuiltinCall(rio_Vm *vm, rio_PendingOp *call);
 int rio_parseType(rio_Vm *vm);
 void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver);
 int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver);
-void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type, int isRef);
+void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type, int how);
 void rio_setProcResult(rio_Vm *vm, int proc, int type);
 void rio_beginBody(rio_Vm *vm, int proc);
 void rio_methodDef(rio_Vm *vm, int receiver);
@@ -561,7 +563,7 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_unionDef(rio_Vm *vm, const char *name, int nameLen, int diverse);
 void rio_enumDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_declareVar(rio_Vm *vm);
-int rio_parseNames(rio_Vm *vm, const char **names, int *lens);
+int rio_parseNames(rio_Vm *vm, const char **names, int *lens, int *optional);
 void rio_destructure(rio_Vm *vm);
 
 /* ------------------------------------------------------------------ statements.c */

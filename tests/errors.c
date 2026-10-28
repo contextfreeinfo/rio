@@ -276,6 +276,16 @@ static const Case cases[] = {
   {"E :: enum\n  a, b, c\nend\nb: Blob[12]\nb[8] = 5\nes: [3]E\nb.unpack(0, es[])\n", 0, 0, 0, rio_ErrorKind_runtime, 7, 0, 0, "unpacked a value its type doesn't have"},
   {"E :: enum\n  a, b, c\nend\nS :: struct\n  n: Int\n  es: [2]E\nend\nb: Blob[12]\nb[8] = 9\ns: S\nb.unpack(0, &s)\n", 0, 0, 0, rio_ErrorKind_runtime, 11, 0, 0, "unpacked a value its type doesn't have"},
   {"E :: enum\n  a, b, c\nend\nU :: union\n  nil\n  E\nend\nb: Blob[12]\nb[0] = 1\nb[4] = 2\nu: U\nb.unpack(0, &u)\nassert(u is E)\nok := false\nif u is E do ok = u == .c\nassert(ok)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  /* optional trailing parameters: name?: T */
+  {"S :: struct\n  a: Int\nend\nf :: proc(x: Int, n?: Int, s?: S, m?: ?Int, t?: String, b?: Bool, g?: Float) -> Int\n  assert(n == 0 and s.a == 0 and m is nil and t.len() == 0 and not b and g == 0.0)\n  return x\nend\nassert(f(7) == 7)\nP :: struct\n  x: Int\nend\nP.add :: proc(by?: Int) -> Int\n  return self.x + by\nend\np := P{x = 2}\nassert(p.add() == 2 and p.add(3) == 5)\nh :: proc(a: Int, b?: Int) -> Int\n  return a * 10 + b\nend\nv: proc(a: Int, b?: Int) -> Int = h\nassert(v(3) == 30 and v(3, 4) == 34 and h(1, 2) == 12)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"f :: proc(a?: Int, b: Int)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "after an optional parameter (name?: T), the rest are optional too"},
+  {"v: proc(a?: Int, b: Int)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "after an optional parameter (name?: T), the rest are optional too"},
+  {"f :: proc(a?: &Int)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a & parameter can't be optional: it needs a place"},
+  {"f :: proc(a: Int, b?: Int)\nend\nf()\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "wrong number of arguments"},
+  {"f :: proc(a: Int, b?: Int)\nend\nf(1, 2, 3)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "too many arguments"},
+  {"S :: struct\n  a?: Int\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "only a parameter can be optional (name?: T)"},
+  {"f :: proc(a: Int, b?: Int) -> Int\n  return a\nend\ng: proc(a, b: Int) -> Int = f\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "this proc's parameters or result don't match"},
+  {"f :: proc(a: Int, b?: Int)\nend\nv: proc(a: Int, b?: Int) = f\nv()\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "wrong number of arguments"},
   /* sizeOf, offsetOf, bitOffsetOf */
   {"T :: struct\n  x: Float\n  y: Int(8)\n  z: Int(8)\nend\nS :: struct\n  a: Int(3)\n  b: Int(5)\n  c: Blob[6]\n  d: T\nend\nN :: sizeOf(S)\nb: Blob[N]\ns: S\nassert(N == 20 and b.len() == 20 and sizeOf(s) == 20 and sizeOf(s.d) == 8 and sizeOf(Blob[3]) == 4 and sizeOf([3]T) == 24)\nassert(offsetOf(S, .b) == 0 and bitOffsetOf(S, .b) == 3 and offsetOf(S, .c) == 4 and offsetOf(s, .d.z) == 17 and bitOffsetOf(S, .d.z) == 136)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"T :: struct\n  x: Float\n  y: Int(8)\n  z: Int(8)\nend\nlog(offsetOf(T, .w))\n", 0, 0, 0, rio_ErrorKind_compile, 6, -1, -1, "no such field"},

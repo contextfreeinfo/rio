@@ -135,18 +135,19 @@ int rio_enumArrayOf(rio_Vm *vm, int elem, int enumType) {
   return i;
 }
 
-/* proc types: proc(T, U) -> R. Each parameter type is a field; elem is the result (void: none). A proc
-   value is the proc's index + 1, so a value never set (0) is caught when called */
-int rio_procTypeOf(rio_Vm *vm, const int *params, int n, int result) {
+/* proc types: proc(T, U) -> R. Each parameter type is a field; elem is the result (void: none); count,
+   how many of the last parameters are optional. A proc value is the proc's index + 1, so a value never
+   set (0) is caught when called */
+int rio_procTypeOf(rio_Vm *vm, const int *params, int n, int result, int optional) {
   rio_Compiler *c = vm->compiler;
   int i, j;
   rio_FOR_MADE_TYPES(i) {
     rio_Type *y = rio_type(vm, i);
-    if (y->kind != rio_TypeKind_proc || y->fieldCount != n || y->elem != result) continue;
+    if (y->kind != rio_TypeKind_proc || y->fieldCount != n || y->elem != result || y->count != (uint32_t)optional) continue;
     for (j = 0; j < n && rio_field(vm, y->firstField + j)->type == params[j]; j++) {}
     if (j == n) return i;
   }
-  i = rio_newType(vm, rio_TypeKind_proc, result, 0, 4);
+  i = rio_newType(vm, rio_TypeKind_proc, result, (uint32_t)optional, 4);
   rio_type(vm, i)->firstField = (uint16_t)c->fieldCount;
   for (j = 0; j < n; j++) {
     int f = rio_newField(vm);

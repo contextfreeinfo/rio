@@ -230,7 +230,7 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
     rio_FfiDef *def = &c->ffi[i];
     const char *g;
     def->firstParam = (uint16_t)c->paramCount;
-    def->paramCount = 0;
+    def->paramCount = def->optional = 0;
     def->resultType = rio_TypeId_void;
     f->argWords = f->resultWords = f->declared = f->pad = 0;
     for (g = f->sig; *g; g++) {

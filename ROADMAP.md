@@ -38,13 +38,34 @@ already written, such as Rinc's and Studio's apps, so they come first.
   input reported. Without it, no program can read numbers safely.
 - **`>>>`:** an unsigned right shift. Unsigned compare, divide and remainder would be builtins rather
   than operators.
+- **Iterator structs,** instead of generators: `for x in it` takes any struct with a `next` method
+  returning `?T`, and runs until it returns nil. A lazy sequence costs one small struct and no saved
+  frames. It needs no generics: each loop knows its struct's type, so `next` and T are known there, as
+  for a call written out. Generics would only add procs that take any iterator, such as `map` and
+  `filter`.
+  ```
+  Words :: struct
+    text: String
+    at: Int
+  end
+  Words.next :: proc() -> ?String   # the next word, or nil
+  for w in Words{text = line}
+    log(w)
+  end
+  ```
+  - **The struct:** a variable is stepped in place, so after a `break` it carries on where it stopped
+    (for a parser, say); any other value, such as a literal or a call's result, is kept for the loop.
+  - **Views:** a `next` that returns a view of the struct's text follows the usual rules for what a
+    method returns, so nothing new.
+  - **An index too:** whether `for i, x in it` counts from 0, as it does for slices.
 
 ## Leaning yes
 
 - **Static procs on types:** `P.make :: static proc(x: Int) -> P`, called as `P.make(3)`, as the
   builtin `E.fromInt(n)` already is. Today that call is "not a value". Methods stay as they are, with an
   implicit `self`, since they're the common case: the marker goes on the rare kind. Deciding from
-  whether a body uses `self` would let a body change what callers may do.
+  whether a body uses `self` would let a body change what callers may do. (Builtins about a type are
+  procs taking it, `sizeOf(T)`, which leaves `T.name` for these.)
 - **Generic procs:** `swap :: proc[T](a, b: &T)`, `find :: proc[T](xs: []T, x: T) -> Int`. The type
   parameters are listed in brackets after `proc`, where nothing else can go.
   - **Inferred at every call:** `find(xs[], 3)`. There's no `find[Int](...)`, which would read like
@@ -62,6 +83,28 @@ already written, such as Rinc's and Studio's apps, so they come first.
     `([]T).len` and `([..]T).push`. Their rules, like what can be packed or printed, stay in comments.
   - **Sort and find:** these could then be written in Rio. Without generics, they'd be host builtins
     taking a less proc.
+- **Returning any value:** today a proc returns a value of up to 16 words with no views in it. Each of
+  these would lift a limit, and they'd come when something needs them:
+  - **Values holding views** (a struct with a `String` field, a union of strings): returned as a
+    `String` is now. A view of the proc's own memory is still an error, and the caller's copy counts as
+    viewing what the arguments viewed, as a by-value struct parameter's does.
+  - **Big values** (over 16 words): the caller passes an address for the proc to fill in, and `return`
+    writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
+    be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
+    for each such call.
+  - **Host procs returning structs:** `>{layout}` ending a sig. The caller passes where the struct goes
+    and its size, and the host fills it with `rio_putStruct` (beside `rio_getStruct`), only as much as
+    it's given, so an image made when it had fewer fields still works: `pc.mouse()` returning a
+    record, where today host procs return at most one word or view.
+- **`core`, a module, and hosts giving their modules' sources:** the builtins become module `core`,
+  whose contents are imported everywhere unqualified (`core.len` still reaches one a program has
+  shadowed), as Rinc's `pc` is imported everywhere qualified. `src/core.rio` becomes that module, not
+  a document the tests check. A host registers each of its modules' source with its host procs, so
+  declarations ship with the code they declare and can't drift (Rinc builds `pc.rio` in already). The
+  sources can then be shown on demand, by help or an editor, or as read-only files: copies written out
+  to edit would change nothing, which would mislead. `rio -H` would scaffold the rest of a host: with
+  the C structs and sigs it writes now, the module's source as a C string, and a table of its procs to
+  fill in, registered (source too) with one call.
 - **Constant tables:** `[N]T` constants built while compiling and kept in the read-only image, so a
   lookup table costs no RAM on small boards.
 - **Formatters as values:** `hex(n)`, `pad(s, 8)` and the like, returning `Fmt` values that work
@@ -87,9 +130,6 @@ already written, such as Rinc's and Studio's apps, so they come first.
     slower walk than code written for one type; and a reflection API frozen in the 1.0 spec, which
     every implementation must build. So it waits for a real use, such as a serializer, and builtins
     on descriptors (printing, `==`, pack, hashing) may cover most of what it would.
-- **Iterator structs** instead of generators: `for x in it` would take any struct with a
-  `next(&self) -> ?T` method, so a lazy sequence costs one small struct and no saved frames. This would
-  only come after generic procs.
 - **if and switch as values, only to set a variable:** this form works only right after `:=`, `=` or
   `return`. The value of each branch is its last line, and an `else` is required:
   ```
@@ -106,13 +146,23 @@ already written, such as Rinc's and Studio's apps, so they come first.
   `&T` keeps today's meaning (views read through it are global), so nothing breaks. It would let `&`
   reach locals holding views (Strings, slices, builder views, structs) without changing every `&T`.
   A method's `self` would need the same choice.
+- **Layout checks for packed data:** `layoutOf(T)`, a constant hash of a struct's layout (each field's
+  name and what it is, as host procs' sigs give it), to keep in a file's header, so reading records
+  saved by another version of a program is an error, not misread fields. `sizeOf(T)` in the header
+  covers only a change of size.
 - **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
   both are errors, and `x is nil` is the way to test for nil.
 - **Compile-time `when`:** today, `if CONST` still type-checks a body it never runs. Only if
   differences between hosts need it.
-- **Converting values to Int:** Bool's `toInt`, as enums already have. No truthiness.
 - **A foreign-call table supplied by the host:** a fixed array of host procs that programs can call
   without a `host proc` declaration for each.
+- **One calling convention for host procs and Rio procs:** then a host proc could be a proc value
+  (`f: proc(c: Int) = pc.cls`), and a proc could move between Rio and C without its callers or images
+  changing. The catch is structs: a Rio proc gets a small one as its words, while a host proc gets its
+  address and size, so that a struct grown at its end still fits an older image. Passing the words to
+  hosts too would lose that (a grown struct would move every argument after it). Passing the address
+  to Rio procs too would keep it, but a struct passed by value mustn't change under the callee, and it
+  could (through a global, a `&` parameter, or a call), so most callees would copy it anyway.
 
 ## Before 1.0
 
@@ -135,6 +185,11 @@ already written, such as Rinc's and Studio's apps, so they come first.
     procs if they come.
 
 ## Done recently
+
+- **Optional trailing parameters:** `style?: Style`, left out of a call, is zero, as a variable is: in
+  procs, methods, proc values and host procs alike. Only zero, the rule images already follow for host
+  procs that gained parameters at their end, so a host proc can gain options once its API is frozen
+  (Rinc's `pc`) without breaking programs, in source or compiled.
 
 - **Long argument lists, as struct arguments:** `text("hi", 3, 4, {color = 8, scale = 2})`, what's
   left out zero, as for variables. Structs holding views (a `String` field) can be locals and by-value

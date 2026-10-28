@@ -71,7 +71,9 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
 - **Host procs:** `name :: host proc(...) -> R`, a proc type, as for proc values: its parameter and
   result types must be exactly the host's, except that an enum or a `Bool` may stand for an `Int`,
   which it is underneath, and a struct parameter for its fields (below); calls then take the declared
-  types. In a module, `name` is the host proc of the module's
+  types. Its last parameters may be optional (`t?: Text`), and the host gets zeros for those a call
+  leaves out, just as an image made before a host proc gained parameters at its end passes zeros for
+  them. So a host proc can gain options without breaking programs, compiled or not. In a module, `name` is the host proc of the module's
   name (`cls` in `pc.rio` is `pc.cls`), else a global one. When the host has a source for a module of
   host procs, that source is the module (auto-imported ones too), and it must declare every one of
   the module's host procs. So a module can give its host procs types of its own:

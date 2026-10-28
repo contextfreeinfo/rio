@@ -108,6 +108,37 @@ hi ann
 5
 ```
 
+A parameter marked with `?`, as in `scale?: Int`, is optional: a call may leave it out, and then it's
+zero, as a variable is (`nil` for a maybe, empty for a `String`, a struct's fields all zero). Only the
+last parameters can be optional, so arguments still go by position, and forgetting any other one is
+still an error. A struct last makes a proc's options easy to leave out or give a few of:
+
+```rio
+Style :: struct
+  scale: Int
+  shadow: Bool
+end
+label :: proc(text: String, x: Int, style?: Style)
+  log(text, x, style.scale, style.shadow)
+end
+label("hi", 4)
+label("hi", 4, {scale = 2})
+```
+
+```output
+hi 4 0 false
+hi 4 2 false
+```
+
+```rio
+f :: proc(a?: Int, b: Int)  # error: after an optional parameter (name?: T), the rest are optional too
+end
+```
+
+A `&` parameter can't be optional, since it needs a place. A proc type says which parameters are
+optional the same way, `proc(a: Int, b?: Int)`, and it's part of the type: a proc goes where a proc
+value does only if the two agree.
+
 Procs are declared at the top level. Parameters are values the proc can change without affecting the
 caller, except `&T` parameters (see [references](expressions.md#references)). A proc with a result must
 end with `return` on every path:

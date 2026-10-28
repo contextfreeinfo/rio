@@ -9,8 +9,8 @@ static int rio_parseValueType(rio_Vm *vm);
 
 /* proc(T, U) -> R, or any other type */
 /* At a proc type's parameter: how many names come before its type, as in a proc's own parameters (a,
-   b: Int), or 0 for none (Int, Float: just types). Names are for reading; procs take arguments by
-   position. */
+   b: Int, or c?: Int, optional), or 0 for none (Int, Float: just types). Names are for reading; procs
+   take arguments by position. */
 static int rio_paramNames(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   const char *p, *e;
@@ -23,6 +23,8 @@ static int rio_paramNames(rio_Vm *vm) {
     while (p < e && (rio_isAlpha(*p) || rio_isDigit(*p))) p++;
     count++;
     while (p < e && rio_isSpace(*p)) p++;
+    if (p < e && *p == '?') /* (optional) */
+      for (p++; p < e && rio_isSpace(*p); p++) {}
     if (p < e && *p == ',') {
       for (p++; p < e && rio_isSpace(*p); p++) {}
       continue;
@@ -33,19 +35,28 @@ static int rio_paramNames(rio_Vm *vm) {
 
 int rio_parseType(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  int params[16], n = 0, result = rio_TypeId_void;
+  int params[16], n = 0, result = rio_TypeId_void, optional = 0;
   if (c->tok.kind != rio_Tok_proc) return rio_parseValueType(vm);
   rio_next(vm);
   rio_expect(vm, '(', "'(' expected");
   while (c->tok.kind != ')' && !rio_failed(vm)) {
-    int names = rio_paramNames(vm), t, j; /* a, b: T, or just T */
+    int names = rio_paramNames(vm), t, j, opt = 0; /* a, b: T, c?: T, or just T */
     if (n >= 16) rio_FAIL(0, "too many parameters");
-    for (j = 0; j < names * 2; j++) rio_next(vm); /* (each name, and the , or : after it) */
+    for (j = 0; j < names; j++) { /* (each name, a ? if it's optional, and the , or : after it) */
+      rio_next(vm);
+      if (c->tok.kind == '?') {
+        opt |= 1 << j;
+        rio_next(vm);
+      }
+      rio_next(vm);
+    }
     if (c->tok.kind == '&') rio_FAIL_AT_TOKEN(0, "proc values can't take & parameters");
     if (c->tok.kind == rio_Tok_proc) rio_FAIL_AT_TOKEN(0, "a proc type can't take or return procs");
     t = rio_parseValueType(vm);
     for (j = 0; j < (names ? names : 1); j++) {
       if (n >= 16) rio_FAIL(0, "too many parameters");
+      if (opt >> j & 1) optional++;
+      else if (optional) rio_FAIL(0, rio_msgOptionalLast);
       params[n++] = t;
     }
     if (c->tok.kind != ',') break;
@@ -57,7 +68,7 @@ int rio_parseType(rio_Vm *vm) {
     if (c->tok.kind == rio_Tok_proc) rio_FAIL_AT_TOKEN(0, "a proc type can't take or return procs");
     result = rio_parseValueType(vm);
   }
-  return rio_procTypeOf(vm, params, n, result);
+  return rio_procTypeOf(vm, params, n, result, optional);
 }
 
 /* a type by its name, maybe through modules (mod.Type), and Blob[N], Blob[..N], Blob[..] */
@@ -140,14 +151,20 @@ static int rio_parseValueType(rio_Vm *vm) {
 }
 
 /* `a, b, c:`, the names before a field's or parameter's type; returns how many */
-int rio_parseNames(rio_Vm *vm, const char **names, int *lens) {
+int rio_parseNames(rio_Vm *vm, const char **names, int *lens, int *optional) {
   rio_Compiler *c = vm->compiler;
   int n = 0;
+  if (optional) *optional = 0;
   for (;;) {
     if (c->tok.kind != rio_Tok_id || n >= 16) rio_FAIL(0, "name expected");
     names[n] = rio_keep(vm, c->tok.text, c->tok.len);
     lens[n++] = c->tok.len;
     rio_next(vm);
+    if (c->tok.kind == '?') { /* name?: optional (a parameter's) */
+      if (!optional) rio_FAIL_AT_TOKEN(0, "only a parameter can be optional (name?: T)");
+      *optional |= 1 << (n - 1);
+      rio_next(vm);
+    }
     if (c->tok.kind != ',') break;
     rio_next(vm);
   }
@@ -185,6 +202,7 @@ int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver) {
   p->shared = 0;
   p->bigTop = vm->top;
   p->callsValues = p->usedAsValue = 0;
+  p->optional = 0;
   rio_addSymbol(vm, name, nameLen, receiver < 0 ? rio_SymKind_proc : rio_SymKind_method, receiver < 0 ? 0 : receiver, index);
   p->selfByRef = (uint8_t)(receiver >= 0 && rio_type(vm, receiver)->kind == rio_TypeKind_struct);
   b = rio_pushBlock(vm, rio_Block_proc);
@@ -206,11 +224,16 @@ int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver) {
   return index;
 }
 
-/* a parameter of the proc being begun: name: type, or name: &type (isRef) */
-void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type, int isRef) {
+/* a parameter of the proc being begun: name: type, or name: &type (how & 1), or name?: type (how & 2:
+   optional, so a call may leave it out, and then it's zero; only the last ones) */
+void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type, int how) {
   rio_Compiler *c = vm->compiler;
   rio_Type *ty = rio_type(vm, type);
-  int addr;
+  int addr, isRef = how & 1;
+  if (how & 2) {
+    if (isRef) rio_FAIL(, "a & parameter can't be optional: it needs a place");
+    c->procDefs[proc].optional++;
+  } else if (c->procDefs[proc].optional) rio_FAIL(, rio_msgOptionalLast);
   if (ty->kind == rio_TypeKind_void) rio_FAIL(, "invalid parameter type");
   if (!isRef && ty->kind == rio_TypeKind_builder) rio_FAIL(, "invalid parameter type (pass builders as [..]T)");
   if (!isRef && rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
@@ -257,10 +280,10 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver) {
   if ((index = rio_beginProc(vm, name, nameLen, receiver)) < 0) return;
   while (c->tok.kind != ')' && !rio_failed(vm)) { /* a, b: T  or  a: &T */
     const char *names[16];
-    int lens[16], n = rio_parseNames(vm, names, lens), isRef = c->tok.kind == '&', t, j;
+    int lens[16], opt, n = rio_parseNames(vm, names, lens, &opt), isRef = c->tok.kind == '&', t, j;
     if (isRef) rio_next(vm);
     t = rio_parseType(vm);
-    for (j = 0; j < n && !rio_failed(vm); j++) rio_procParam(vm, index, names[j], lens[j], t, isRef);
+    for (j = 0; j < n && !rio_failed(vm); j++) rio_procParam(vm, index, names[j], lens[j], t, isRef | (opt >> j & 1) << 1);
     if (rio_failed(vm)) return;
     if (c->tok.kind != ',') break;
     rio_next(vm);
@@ -385,7 +408,7 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen) {
     const char *names[16];
     int lens[16], n, t, j, bits = 0, i;
     if (c->tok.kind == rio_Tok_eof) rio_FAIL(, rio_msgMissingEnd);
-    n = rio_parseNames(vm, names, lens);
+    n = rio_parseNames(vm, names, lens, 0);
     if (c->tok.kind == rio_Tok_id && c->peek.kind == '(' && (i = rio_lookup(vm, c->tok.text, c->tok.len)) >= 0 &&
         c->syms[i].kind == rio_SymKind_type && (c->syms[i].type == rio_TypeId_int || c->syms[i].type == rio_TypeId_bool ||
                                                 rio_type(vm, c->syms[i].type)->kind == rio_TypeKind_enum)) { /* Int(n), Bool(1), E(n): a bitfield */

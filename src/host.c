@@ -253,6 +253,7 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
   }
   for (j = 0; j < def->paramCount; j++) c->params[def->firstParam + j].type = rio_field(vm, ty->firstField + j)->type; /* (calls: as declared) */
   def->resultType = (uint16_t)ty->elem;
+  def->optional = (uint16_t)ty->count; /* (its last ones, as declared: name?: T) */
   vm->ffi[i].declared = 1;
   c->exporting = exporting;
   rio_addSymbol(vm, name, nameLen, rio_SymKind_ffi, procType, i); /* (its type: as declared, for rio_hostHeader) */

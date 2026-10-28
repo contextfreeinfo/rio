@@ -334,7 +334,7 @@ void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
     if (param->refType) rio_FAIL(, "a proc with & parameters can't be a value");
     params[i] = param->type;
   }
-  i = rio_procTypeOf(vm, params, p->paramCount, p->resultType);
+  i = rio_procTypeOf(vm, params, p->paramCount, p->resultType, p->optional);
   if (type >= 0 && i != type) rio_FAIL(, "this proc's parameters or result don't match");
   if (p->callsValues) rio_FAIL(, "this proc calls procs through values, so it can't be a value itself (that could recurse)");
   p->usedAsValue = 1;
