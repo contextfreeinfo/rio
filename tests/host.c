@@ -34,6 +34,7 @@ static const char *files[][2] = {
   {"hsx", "P* :: struct\n  a, b: Int\nend\nadd* :: host proc(p: P) -> Int\ncls* :: host proc(color: Int)\n"},
   {"hsw", "P* :: struct\n  a: Int\n  b: Float\nend\nf* :: host proc(p: P)\n"},
   {"hsr", "f* :: host proc(n: Int)\n"},
+  {"hse", "E* :: enum\n  b, a\nend\nf* :: host proc(e: E)\n"},
   {"hsq", "P* :: struct\n  b: Int\nend\nf* :: host proc(n: Int) -> P\n"},
   {"hsv2", "P* :: struct\n  s: String\nend\nf* :: host proc(n: Int) -> P\n"},
 };
@@ -84,6 +85,7 @@ static void find(rio_Vm *v, rio_Val *a) { /* (i -> ?Int) */
   r.value = a[2].i * 3;
   rio_putStruct(v, a, &r, sizeof r);
 }
+static void paint(rio_Vm *v, rio_Val *a) { (void)v; a[0].i *= 10; } /* (s: hst.Shape, a word, as Enum{dot,box} names it) */
 static void count(rio_Vm *v, rio_Val *a) { /* (n: &Int) */
   int32_t k;
   rio_getStruct(v, a, &k, sizeof k);
@@ -116,6 +118,7 @@ static void t(const char *auto_, const char *src, const char *printed, int kind,
   rio_addFfi(&vm, "hsq.f", "i>{a:Int}", nothing);
   rio_addFfi(&vm, "hsv2.f", "i>{s:String}", nothing);
   rio_addFfi(&vm, "hsr.f", "&i", nothing);
+  rio_addFfi(&vm, "hse.f", "Enum{a,b}", nothing);
   rio_addFfi(&vm, "hsw.f", "{a:Int,b:Int}", nothing);
   rio_addFfi(&vm, "hsv.f", "{a:Int}", nothing); /* (no source: a module made from it can't say which struct) */
   if (auto_) rio_autoImport(&vm, auto_);
@@ -328,6 +331,9 @@ int main(int argc, char **argv) {
   BAD("import hst\np: hst.Pos\nhst.fill(p, 1)\n", 0, 3, "this parameter is a reference: pass &x");
   BAD("import hst\nn := 1\nhst.fill(&n, 1)\n", 0, 3, "type mismatch");
   BAD("import hsr\n", "hsr.rio", 1, "doesn't match the host's hsr.f: proc(&Int)");
+  /* an enum by its values' names (Enum{...}): one, or a struct's field, in another order doesn't match */
+  OK("import hst\nlog(hst.paint(.box), hst.paint(hst.Shape.dot))\n", "10 0\n");
+  BAD("import hse\n", "hse.rio", 4, "doesn't match the host's hse.f: proc(Enum{a,b})");
   /* results that are structs or maybes: written where the call says, before its arguments */
   OK("import hst\nlog(hst.where(3), hst.where(3, 1).y, hst.find(2), hst.find(0))\n", "Pos{x = 3, y = 6} 7 6 nil\n");
   OK("import hst\nf :: proc(n: Int) -> Int\n  s := 0\n  for i in 0..<n\n    p := hst.where(i, hst.where(1).y)\n    s += p.y\n    v := hst.find(i)\n    if v is Int\n      s += v * 100\n    end\n  end\n  return s\nend\nlog(f(3))\n",

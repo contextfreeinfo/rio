@@ -225,6 +225,8 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
   for (i = 0; i < rio_Builtin_count; i++)
     if (i < rio_Builtin_push || i == rio_Builtin_cap || (i >= rio_Builtin_hexBlob && i <= rio_Builtin_bitOffsetOf)) /* the rest are methods */
       rio_addSymbol(vm, rio_builtinNames[i], (int)strlen(rio_builtinNames[i]), rio_SymKind_builtin, 0, i);
+  c->coreSymCount = c->symCount; /* (the builtins, so far: module core, reached as core.name too) */
+  rio_addSymbol(vm, "core", 4, rio_SymKind_module, 0, 0);
   for (i = 0; i < vm->ffiCount; i++) { /* the ffi functions' sigs: param types, then > and the result's */
     rio_Ffi *f = &vm->ffi[i];
     rio_FfiDef *def = &c->ffi[i];
@@ -258,14 +260,18 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
           continue;
         }
       }
-      if (*g == '{') { /* a struct, by address: its layout, checked against the declaration's (rio_declareHostProc) */
-        int depth = 0;
+      if (*g == '{' || (*g == 'E' && !isResult)) { /* a struct, by address, or an enum, a word: its layout, checked against the
+                                                     declaration's (rio_declareHostProc) */
+        int depth = 0, isEnum = *g == 'E';
+        const char *at = g;
         if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many params: the host procs' don't fit the compiler's tables (give it more room)");
+        if (isEnum && ref) rio_FAIL(, "bad ffi signature: & takes i, f or {...}");
         c->params[c->paramCount].refType = ref ? rio_REF_LAYOUT : 0;
-        c->params[c->paramCount].addr = (uint32_t)(g - f->sig);
+        c->params[c->paramCount].addr = (uint32_t)(at - f->sig);
         c->params[c->paramCount++].type = rio_TypeId_void; /* (until it's declared) */
         def->paramCount++;
-        f->argWords = (uint8_t)(f->argWords + 2);
+        f->argWords = (uint8_t)(f->argWords + (isEnum ? 1 : 2));
+        while (*g && *g != '{') g++; /* (Enum{: to its brace) */
         for (; *g; g++) {
           depth += *g == '{';
           depth -= *g == '}';

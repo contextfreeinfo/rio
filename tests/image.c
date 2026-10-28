@@ -18,6 +18,7 @@ static void f_ab(rio_Vm *v, rio_Val *a) { /* (s: {a, b}): a * 10 + b, b zero if 
   rio_getStruct(v, a, &s, sizeof s);
   a[0].i = s.a * 10 + s.b;
 }
+static void f_ident(rio_Vm *v, rio_Val *a) { (void)v; (void)a; } /* (n -> n) */
 static void f_res(rio_Vm *v, rio_Val *a) { /* (n -> {a, b}): a n, b 9, as much as the image's struct holds */
   struct { int32_t a, b; } s;
   s.a = a[2].i;
@@ -187,6 +188,23 @@ int main(void) {
              (unsigned)rio_hashText(mod2, (uint32_t)strlen(mod2)));
     check(rio_loadImage(&vm, si, m) == -1 && strstr(rio_error(&vm), "calls m.f, whose sig") && strstr(rio_error(&vm), want),
           "another source: the host proc that doesn't fit, and both sources' hashes", &vm);
+  }
+  { /* an enum parameter by name: values added at its end fit (an older image never passes them), another order doesn't */
+    static const char *esrc = "E :: enum\n  a, b\nend\nf :: host proc(e: E) -> Int\nlog(f(.b))\n";
+    rio_Vm a;
+    static unsigned char ma[1 << 18], si[1 << 16];
+    uint32_t m;
+    rio_init(&a, ma, sizeof ma, code, 4096);
+    rio_addFfi(&a, "f", "Enum{a,b}>i", f_half);
+    check(rio_compile(&a, esrc, (uint32_t)strlen(esrc)) == 0 && (m = rio_saveImage(&a, si, sizeof si)) > 0, "compile with an enum parameter by name", &a);
+    logged[0] = 0;
+    rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+    rio_setLog(&vm, out, 0);
+    rio_addFfi(&vm, "f", "Enum{a,b,c}>i", f_ident);
+    check(rio_loadImage(&vm, si, m) == 0 && rio_run(&vm) == 0 && !strcmp(logged, "1|"), "an enum with a value more on the host", &vm);
+    rio_init(&vm, mem2, sizeof mem2, code2, 4096);
+    rio_addFfi(&vm, "f", "Enum{b,a}>i", f_ident);
+    check(rio_loadImage(&vm, si, m) == -1 && strstr(rio_error(&vm), "calls f, whose sig"), "an enum in another order", &vm);
   }
   /* memory and code room */
   rio_init(&vm, mem2, sizeof mem / 2, code2, 4096);

@@ -194,14 +194,15 @@ void rio_importStatement(rio_Vm *vm) {
     }
     break;
   }
-  if ((m = rio_findFile(vm, isPackage, 0, key, keyLen)) < 0) { /* compile it first, then come back here */
+  if (!local && keyLen == 4 && !memcmp(key, "core", 4)) m = 0; /* (the builtins: always there) */
+  else if ((m = rio_findFile(vm, isPackage, 0, key, keyLen)) < 0) { /* compile it first, then come back here */
     /* (a package the loader doesn't have may be a host module, made from the host procs registered
        under its name) */
     int hostProcs = !local && rio_hasHostProcs(vm, key, keyLen);
     if (!rio_openFile(vm, isPackage, 0, key, keyLen, start, startLineAt, startLine, hostProcs) || rio_failed(vm)) return;
     if ((m = rio_hostModule(vm, key, keyLen)) < 0) return;
   }
-  if (c->modules[m].state != rio_ModuleState_done) rio_FAIL(, "import cycle");
+  if (m && c->modules[m].state != rio_ModuleState_done) rio_FAIL(, "import cycle"); /* (core, module 0: always done) */
   for (k = 1; !local && k < n; k++) { /* tween.easing: only if tween publishes easing */
     int i = rio_lookupExport(vm, m, segments[k], segmentLens[k]);
     if (i < 0 || c->syms[i].kind != rio_SymKind_module) {

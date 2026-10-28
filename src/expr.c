@@ -714,7 +714,9 @@ static void rio_argDone(rio_Vm *vm, rio_PendingOp *m) {
     if (m->argCount >= f->paramCount) rio_FAIL(, "too many arguments");
     e = rio_popValue(vm);
     type = c->params[f->firstParam + m->argCount].type;
-    if (type == rio_TypeId_void) rio_FAIL(, "this host proc takes a struct: declare it, in its module's source, to say which");
+    if (type == rio_TypeId_void)
+      rio_FAIL(, vm->ffi[m->b].sig[c->params[f->firstParam + m->argCount].addr] == 'E' ? "this host proc takes an enum: declare it, in its module's source, to say which"
+                                                                                   : "this host proc takes a struct: declare it, in its module's source, to say which");
     rio_coerce(vm, &e, type);
     if (rio_type(vm, type)->kind == rio_TypeKind_struct) {
       if (e.type != type) rio_FAIL(, "type mismatch");

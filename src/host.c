@@ -144,7 +144,8 @@ void rio_hostPutInt(rio_HostText *o, int32_t v) {
 }
 
 /* A type's layout, as a host sees it: what each word is, by name. A struct's is {name:T,...}, with T as
-   C reads it: Int (an enum's and a Bool's too), Int(n) for a bitfield (negative n: signed), Float,
+   C reads it: Int (a Bool's too), Enum{a,b,c} for an enum (its values' names, in order: Enum(n){...} for
+   a bitfield), Int(n) for a bitfield (negative n: signed), Float,
    String, Blob, []T, [..]T, [N]T, Blob[N], [..N]T, a struct's own layout, Proc, Union{T|...}. A host
    proc's sig has a struct parameter's in braces: a host reads it by its address with this layout, and
    an image made when it had fewer fields at its end still fits (rio_ffiFits). */
@@ -152,6 +153,20 @@ void rio_layoutOf(rio_Vm *vm, int type, int bits, rio_HostText *o) {
   rio_Compiler *c = vm->compiler;
   rio_Type *ty = rio_type(vm, type);
   int i, byte = ty->elem == rio_TypeId_byte && ty->kind != rio_TypeKind_struct && ty->kind != rio_TypeKind_union;
+  if (ty->kind == rio_TypeKind_enum) { /* its values' names, so a reorder doesn't fit */
+    rio_hostPut(o, bits ? "Enum(" : "Enum{", -1);
+    if (bits) {
+      rio_hostPutInt(o, bits);
+      rio_hostPut(o, "){", 2);
+    }
+    for (i = 0; i < ty->fieldCount; i++) {
+      rio_Field *f = rio_field(vm, ty->firstField + i);
+      if (i) rio_hostPut(o, ",", 1);
+      rio_hostPut(o, c->names + f->name, f->nameLen);
+    }
+    rio_hostPut(o, "}", 1);
+    return;
+  }
   if (bits) {
     rio_hostPut(o, "Int(", 4);
     rio_hostPutInt(o, bits);
@@ -231,8 +246,8 @@ static void rio_declareHostProc(rio_Vm *vm, const char *name, int nameLen, int i
     rio_Param *p = &c->params[def->firstParam + j];
     int type = rio_field(vm, ty->firstField + j)->type, ref = rio_field(vm, ty->firstField + j)->offset;
     if (ref != (p->refType != 0)) same = 0; /* (a &T for a &T only) */
-    else if (p->type == rio_TypeId_void || p->refType == rio_REF_LAYOUT)
-      same = rio_type(vm, type)->kind == rio_TypeKind_struct && rio_layoutIs(vm, type, vm->ffi[i].sig + p->addr);
+    else if (p->type == rio_TypeId_void || p->refType == rio_REF_LAYOUT) /* (a struct's {...} or an enum's Enum{...}) */
+      same = rio_layoutIs(vm, type, vm->ffi[i].sig + p->addr);
     else same = rio_hostTypeOk(vm, type, ref ? p->refType : p->type);
   }
   if (!same) { /* say what the host has */

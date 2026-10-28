@@ -96,14 +96,6 @@ already written, such as Rinc's and Studio's apps, so they come first.
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
-- **`core`, a module:** the builtins become module `core`, whose contents are imported everywhere
-  unqualified (`core.len` still reaches one a program has shadowed), as Rinc's `pc` is imported
-  everywhere qualified. `src/core.rio` becomes that module's source, registered as a host module's is,
-  not a document the tests check.
-- **Enums by name in layouts:** an enum parameter or field is `Int` in a sig's layout now, so an image
-  made before a host module's enum had its values reordered would load and pass the wrong ones.
-  Written as its values' names (`Pointer{game,ui,none}`), a reorder doesn't fit, and values added at
-  the end still do, as fields added at a struct's end do.
 - **Constant tables:** `[N]T` constants built while compiling and kept in the read-only image, so a
   lookup table costs no RAM on small boards.
 - **Formatters as values:** `hex(n)`, `pad(s, 8)` and the like, returning `Fmt` values that work
@@ -192,6 +184,15 @@ already written, such as Rinc's and Studio's apps, so they come first.
     procs if they come.
 
 ## Done recently
+
+- **Enums by name in layouts:** `Enum{game,ui,none}` (a bitfield's `Enum(2){...}`), as a struct's field
+  and as a host proc's parameter in its sig, so an image made before an enum's values were reordered
+  doesn't fit, while a parameter's values added at its end do. A plain `i` for an enum still works.
+
+- **`core`, a module:** the builtins are module `core`, there everywhere unqualified as before, and as
+  `core.name`, which reaches a builtin a program's own name hides. (`src/core.rio` stays its
+  declarations, checked by the tests, not a source compiled into programs: that would cost every
+  compile.)
 
 - **Hosts giving their modules' sources:** `rio_addSource(vm, "pc", src, len)`, taken before the
   loader, so declarations go with the code they declare, and given back by `rio_hostSource` for help

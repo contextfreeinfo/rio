@@ -318,6 +318,7 @@ typedef struct rio_Compiler {
     uint16_t proc, ffi;
   } thunks[16];           /* host procs used as proc values: the proc that calls each (rio_makeThunks) */
   int thunkCount, thunksMade; /* thunksMade: how many have their code (the rest: at the end of compiling) */
+  int coreSymCount;       /* the builtins' symbols (module core's: module 0's first ones) */
   int rangeStops;         /* a for header's range: ..< and ..= end its first expression (the loop reads them) */
   uint64_t switchCases[16][4]; /* per open switch: which enum values (or union types) have a case */
   int switchCount;

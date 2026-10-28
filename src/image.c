@@ -180,6 +180,8 @@ static int rio_headerChecks(rio_Vm *vm, const uint32_t *h) {
 static const char *rio_sigPart(const char *s) {
   int depth = 0;
   if (*s == '&') s++; /* (&i, &f, &{...}) */
+  if (*s == 'E') /* (Enum{...}) */
+    while (*s && *s != '{') s++;
   if (*s != '{') return s + 1;
   do {
     depth += *s == '{';
@@ -198,12 +200,13 @@ static int rio_sigWords(const char *sig, const char **result) {
 }
 
 /* does an image's sig part [a, ae) fit the host's [h, he): the same, or a struct with fields more at its
-   end (which the host reads as zeros: rio_getStruct) */
+   end (which the host reads as zeros: rio_getStruct), or an enum parameter with values more at its end
+   (which the image never passes) */
 static int rio_partFits(const char *a, const char *ae, const char *h, const char *he) {
   size_t n = (size_t)(ae - a), m = (size_t)(he - h);
   if (n == m && !memcmp(a, h, n)) return 1;
   if (*a == '&' && *h == '&') return rio_partFits(a + 1, ae, h + 1, he); /* (a place's struct may grow too: the host writes as much as it's given) */
-  return *a == '{' && m > n && n > 2 && !memcmp(a, h, n - 1) && h[n - 1] == ',';
+  return (*a == '{' || *a == 'E') && m > n && n > 2 && !memcmp(a, h, n - 1) && h[n - 1] == ',';
 }
 
 /* host proc j for an image's, of sig sig: 0 if it won't do; else into *f, with pad set (the host's sig

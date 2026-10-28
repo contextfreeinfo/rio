@@ -276,6 +276,11 @@ static const Case cases[] = {
   {"E :: enum\n  a, b, c\nend\nb: Blob[12]\nb[8] = 5\nes: [3]E\nb.unpack(0, es[])\n", 0, 0, 0, rio_ErrorKind_runtime, 7, 0, 0, "unpacked a value its type doesn't have"},
   {"E :: enum\n  a, b, c\nend\nS :: struct\n  n: Int\n  es: [2]E\nend\nb: Blob[12]\nb[8] = 9\ns: S\nb.unpack(0, &s)\n", 0, 0, 0, rio_ErrorKind_runtime, 11, 0, 0, "unpacked a value its type doesn't have"},
   {"E :: enum\n  a, b, c\nend\nU :: union\n  nil\n  E\nend\nb: Blob[12]\nb[0] = 1\nb[4] = 2\nu: U\nb.unpack(0, &u)\nassert(u is E)\nok := false\nif u is E do ok = u == .c\nassert(ok)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  /* module core: the builtins, as core.name too (even hidden by a name of the program's) */
+  {"abs :: proc(x: Int) -> Int\n  return 99\nend\nassert(abs(-3) == 99 and core.abs(-3) == 3)\nn: core.Int = 4\nassert(core.true and n == 4 and core.sizeOf(core.Int) == 4)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"import core.{max as biggest}\nimport core as c\nassert(biggest(2, 5) == 5 and c.min(2, 5) == 2)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"log(core.nope)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "not exported by that module"},
+  {"import core.{nope}\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "not exported by that module"},
   /* optional trailing parameters: name?: T */
   {"S :: struct\n  a: Int\nend\nf :: proc(x: Int, n?: Int, s?: S, m?: ?Int, t?: String, b?: Bool, g?: Float) -> Int\n  assert(n == 0 and s.a == 0 and m is nil and t.len() == 0 and not b and g == 0.0)\n  return x\nend\nassert(f(7) == 7)\nP :: struct\n  x: Int\nend\nP.add :: proc(by?: Int) -> Int\n  return self.x + by\nend\np := P{x = 2}\nassert(p.add() == 2 and p.add(3) == 5)\nh :: proc(a: Int, b?: Int) -> Int\n  return a * 10 + b\nend\nv: proc(a: Int, b?: Int) -> Int = h\nassert(v(3) == 30 and v(3, 4) == 34 and h(1, 2) == 12)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"f :: proc(a?: Int, b: Int)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "after an optional parameter (name?: T), the rest are optional too"},
@@ -420,7 +425,7 @@ int main(void) {
     static const char *many = "a := 1\nb := 2\nc := 3\nd := 4\ne := 5\nf := 6\ng := 7\nh := 8\n";
     rio_Limits l = rio_limitsFor(sizeof scratch);
     rio_Error e;
-    l.symbols = 40; /* the builtins take 35, so the 6th global is one too many */
+    l.symbols = 41; /* the builtins take 36 (core too), so the 6th global is one too many */
     rio_init(&vm, mem, sizeof mem, code, 4096);
     if (!rio_compileWith(&vm, many, (uint32_t)strlen(many), scratch, sizeof scratch, &l) ||
         !strstr((e = rio_errorInfo(&vm)).msg, "too many symbols") || e.line != 6) {

@@ -1,8 +1,23 @@
 # Builtins
 
-The builtins are there in every module without an import. [`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio)
-declares each one with its types, and the tests check those declarations against the compiler. The
-ones that would need generics are written there in comments for now.
+The builtins are module `core`, there in every module without an import, and reachable as `core.name`
+too, which still finds a builtin when a program's own name hides it (`import core.{max as biggest}`
+works as for any module):
+
+```rio
+abs :: proc(x: Int) -> Int  # this program's own abs
+  return x
+end
+log(abs(-3), core.abs(-3))
+```
+
+```output
+-3 3
+```
+
+[`src/core.rio`](https://github.com/contextfreeinfo/rio/blob/main/src/core.rio) declares each one with
+its types, and the tests check those declarations against the compiler. The ones that would need
+generics are written there in comments for now.
 
 ## log
 

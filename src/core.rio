@@ -1,5 +1,5 @@
-# core.rio: the builtins, declared (docs/spec/builtins.md says what they do). Programs don't import
-# this: the builtins are always there. It's what they are, written in Rio, and tests/host.c compiles
+# core.rio: the builtins, module core, declared (docs/spec/builtins.md says what they do). Programs
+# don't import it: the builtins are always there, and as core.name too. It's what they are, written in Rio, and tests/host.c compiles
 # it, so each declaration is checked against the builtin (its parameters and result), and every
 # builtin is declared here or in the comments below.
 

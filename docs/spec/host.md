@@ -103,6 +103,10 @@ clock :: host proc() -> Int  # error: doesn't match the host's clock: proc() -> 
   pc.text("hi", {at = {x = 3, y = 4}, big = true})   # color 0
   ```
 
+  An enum, in a layout or as a parameter, is named by its values (`Enum{game,ui,none}`, a word), so
+  one reordered doesn't fit an image made before, while an enum parameter's values added at its end
+  do. (A plain `i` for an enum parameter works too, unchecked.)
+
   A field left out of a literal is zero, so a host proc's options can grow without breaking calls
   written before: add fields at the end, and make zero mean what calls did before. Images made before
   then still load: the host reads zeros for the fields they lack. A host writes its side from the

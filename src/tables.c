@@ -49,6 +49,11 @@ int rio_lookup(rio_Vm *vm, const char *s, int n) {
 int rio_lookupExport(rio_Vm *vm, int module, const char *s, int n) {
   rio_Compiler *c = vm->compiler;
   int i;
+  if (!module) { /* core.name: a builtin, even one a program's own name hides */
+    for (i = c->coreSymCount - 1; i >= 0; i--)
+      if (c->syms[i].kind != rio_SymKind_method && rio_nameIs(vm, c->syms[i].name, c->syms[i].nameLen, s, n)) return i;
+    return -1;
+  }
   for (i = c->symCount - 1; i >= 0; i--) {
     rio_Symbol *y = &c->syms[i];
     if (y->module == module && y->exported && y->kind != rio_SymKind_method && rio_nameIs(vm, y->name, y->nameLen, s, n))

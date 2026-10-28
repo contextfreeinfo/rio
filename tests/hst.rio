@@ -21,3 +21,4 @@ fill* :: host proc(p: &Pos, by: Int)   # p's x by more, its y by twice that
 count* :: host proc(n: &Int)           # n, one more
 where* :: host proc(i: Int, k?: Int) -> Pos   # {x = i, y = i * 2 + k}
 find* :: host proc(i: Int) -> ?Int     # i * 3, or nil for 0 or less
+paint* :: host proc(s: Shape) -> Int   # s's number, times 10
