@@ -284,11 +284,12 @@ static const Case cases[] = {
   {"f :: proc(a, b: Int) -> Bool\n  return a < b\nend\nL :: (proc(a: Int) -> Bool)\ng: L = f\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this proc's parameters or result don't match"},
   {"L :: (proc(a: &Int))\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "proc values can't take & parameters"},
   /* end in index brackets: the last index */
-  {"xs := [5]Int{1, 2, 3, 4, 5}\ns := xs[1..<4]\nb: [..8]Int\nok := b.push(7) and b.push(9)\nv: [..]Int = b\nassert(xs[end] == 5 and xs[end - 2..=end][0] == 3 and s[end] == 4 and \"hey\"[end] == 121 and xs[..<end].len() == 4 and b[end] == 9 and v[end] == 9)\nD :: enum\n  n, e, s, w\nend\nc: [D]Int\nc[end] = 4\nys := [3]Int{0, 1, 2}\nassert(c[.w] == 4 and ys[xs[end] - 3] == 2)\nf :: proc(a: []Int) -> Int\n  return a[end] + a[0]\nend\nassert(f(xs[]) == 6)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
+  {"xs := [5]Int{1, 2, 3, 4, 5}\ns := xs[1..<4]\nb: [..8]Int\nok := b.push(7) and b.push(9)\nv: [..]Int = b\nassert(xs[end] == 5 and xs[end - 2..=end][0] == 3 and s[end] == 4 and \"hey\"[end] == 121 and xs[..<end].len() == 4 and b[end] == 9 and v[end] == 9)\nys := [3]Int{0, 1, 2}\nassert(ys[xs[end] - 3] == 2)\nf :: proc(a: []Int) -> Int\n  return a[end] + a[0]\nend\nassert(f(xs[]) == 6)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"log(end)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "end means the last index only right inside an index's brackets: xs[end]"},
   {"g :: proc(n: Int) -> Int\n  return n\nend\nx := [2]Int{}\nlog(x[g(end)])\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "end means the last index only right inside an index's brackets: xs[end]"},
   {"x := 3\nlog(x[end])\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "end is the last index of an array, slice, String, Blob or builder"},
   {"e: []Int\nlog(e[end])\n", 0, 0, 0, rio_ErrorKind_runtime, 2, 0, 0, "index out of bounds"},
+  {"D :: enum\n  n, e\nend\nc: [D]Int\nc[end] = 4\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "end is for an array indexed by Int: name the enum's value"},
   /* the u{...} escape: a code point, UTF-8 in a string */
   {"s := \"a\\u{E9}\\u{1F600}\\u{41}\"\nassert(s.len() == 8 and s[1] == 0xC3 and s[2] == 0xA9 and s[3] == 0xF0 and s[4] == 0x9F and s[5] == 0x98 and s[6] == 0x80 and s[7] == 65)\nassert(\'\\u{E9}\' == 233 and \'\\u{10FFFF}\' == 0x10FFFF and \"\\u{7FF}\\u{800}\\u{FFFF}\\u{10000}\".len() == 2 + 3 + 3 + 4)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"x := \"\\u{110000}\"\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "\\u{...} takes 1 to 6 hex digits"},

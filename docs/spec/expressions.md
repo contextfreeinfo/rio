@@ -209,15 +209,15 @@ Dir :: enum
 end
 counts: [Dir]Int
 counts[.east] += 2
-counts[end] = 1
-log(counts[.east], counts[.east..].len(), counts.len(), counts[.west])
+log(counts[.east], counts[.east..].len(), counts.len())
 ```
 
 ```output
-2 3 4 1
+2 3 4
 ```
 
-(There, `end` is the last of the enum's values.)
+Its indexes are the enum's values, by name: not a number, and not `end` (which would move to a new
+value added at the enum's end).
 
 ## Ranges
 

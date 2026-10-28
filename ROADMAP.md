@@ -22,6 +22,14 @@ already written, such as Rinc's and Studio's apps, so they come first.
   Both would mean the same thing, since nothing past the end is ever taken. Leaning: keep one
   spelling, so there's nothing for a formatter to standardize. If a second one ever comes in, fmt
   rewrites it to `a[i..]`.
+- **How `end` in index brackets is spelled:** `xs[end]` is the last index now, as in Julia and MATLAB,
+  but they count from 1, where the last index is the length; with indexes from 0, some will read
+  `end` as one past the last, as C++'s `end()` and Swift's `endIndex` are. `end` also already closes
+  blocks. The other way is C#'s: `xs[^1]` the last, `xs[^0]` past it, `xs[^3..]` the last three, with
+  no question which is which. Against it: `^` is xor in Rio too (C# lives with that, mostly called
+  cryptic at first), `^0` surprises, and it counts from the end, so a loop's `xs[end - i]` becomes
+  `xs[^(i + 1)]`. Leaning: keep `end`. A wrong guess is a bounds error, not a misread, and a change
+  later is mechanical while few programs use it.
 - **Formatters as values:** if `hex(n)` and `pad(s, 8)` cover what `b.format(settings, ...)` does,
   `format` could go, which changes every call to it. No Rinc or Studio app calls it yet, so the change
   is cheap now and costly later. Leaning: decide whether `format` stays before building the formatters.
@@ -84,6 +92,11 @@ already written, such as Rinc's and Studio's apps, so they come first.
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
+- **Stats as charts:** `tools/stats.py --svg` drawing `bench/stats.csv` as SVGs (the VM's and the
+  compiler's size, compile time, each bench's speed, over the rows), checked in beside it and shown in
+  the README, so how each batch moved things is a glance, not a table. CI could make them again and
+  fail when the checked-in ones are stale, as Rinc's `pc_declared` does for `pc_host.h`. (Stats from
+  different machines aren't comparable: the charts would mark which machine each row came from.)
 - **Constant tables:** `[N]T` constants built while compiling and kept in the read-only image, so a
   lookup table costs no RAM on small boards.
 - **Formatters as values:** `hex(n)`, `pad(s, 8)` and the like, returning `Fmt` values that work
@@ -180,7 +193,7 @@ already written, such as Rinc's and Studio's apps, so they come first.
   after `::` starts a proc.
 
 - **`end` in index brackets:** the last index of what's indexed, `xs[end]`, `xs[end - 2..=end]`: a
-  constant for an array (an `[E]T`'s last E), the length less 1 for the rest.
+  constant for an array, the length less 1 for the rest; not for an `[E]T`, whose indexes are named.
 
 - **Unicode escapes:** `\u{1F600}`, its code point's bytes in UTF-8 in a string, and the code point
   itself in a character literal; past 10FFFF and surrogates are errors.

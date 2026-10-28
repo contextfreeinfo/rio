@@ -1007,8 +1007,9 @@ static rio_Expr rio_stringLiterals(rio_Vm *vm, const rio_ExprState *x) {
 }
 
 /* end, inside index brackets: the last index of what they index (the innermost brackets must be theirs:
-   xs[end], xs[end - 2..=end], ys[xs[end]]). An array's is a constant (an [E]T's, its last E); a slice's,
-   a String's, a builder's or a builder view's, its length less 1 */
+   xs[end], xs[end - 2..=end], ys[xs[end]]). An array's is a constant; a slice's, a String's, a builder's
+   or a builder view's, its length less 1. Not an [E]T's: its values are named, and a new one would move
+   what end means */
 static rio_Expr rio_endIndex(rio_Vm *vm, const rio_ExprState *x) {
   rio_Compiler *c = vm->compiler;
   rio_PendingOp *m = 0;
@@ -1024,8 +1025,9 @@ static rio_Expr rio_endIndex(rio_Vm *vm, const rio_ExprState *x) {
   if (rio_failed(vm)) return rio_voidExpr();
   ty = rio_type(vm, t.type);
   if (ty->kind == rio_TypeKind_array) {
+    if (ty->firstField) rio_FAIL_AT_TOKEN(rio_voidExpr(), "end is for an array indexed by Int: name the enum's value");
     if (!ty->count) rio_FAIL_AT_TOKEN(rio_voidExpr(), "an empty array has no last index");
-    return rio_exprOf(rio_ExprKind_const, ty->firstField ? ty->firstField : rio_TypeId_int, (int32_t)ty->count - 1);
+    return rio_exprOf(rio_ExprKind_const, rio_TypeId_int, (int32_t)ty->count - 1);
   }
   len = t; /* (its length word: a slice's second, a builder's first, through a builder view's first) */
   len.bits = 0;
