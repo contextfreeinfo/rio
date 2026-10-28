@@ -39,6 +39,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      mov                    a = b
      add sub mul div mod    a = b op c (Int; div and mod fail on 0, and wrap on -1)
      and or xor shl shr     a = b op c (Int)
+     ushr                   a = b >>> c: b's bits shifted right, zeros in from the top
      neg bnot not           a = op b
      fadd fsub fmul fdiv    a = b op c (Float)
      fneg                   a = -b
@@ -110,7 +111,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      halt                   stop
      jit                    run native loop a (rio_jit), then carry on where it says */
 #define rio_OPS(X)                                                                                   \
-  X(mov) X(add) X(sub) X(mul) X(div) X(mod) X(and) X(or) X(xor) X(shl) X(shr)                        \
+  X(mov) X(add) X(sub) X(mul) X(div) X(mod) X(and) X(or) X(xor) X(shl) X(shr) X(ushr)               \
   X(neg) X(bnot) X(not) X(fadd) X(fsub) X(fmul) X(fdiv) X(fneg)                                      \
   X(eq) X(ne) X(lt) X(le) X(feq) X(fne) X(flt) X(fle) X(seq) X(sne)                                  \
   X(itof) X(ftoi) X(ldw) X(ldb) X(lea) X(m1) X(m2) X(iabs) X(imin) X(imax) X(fmin) X(fmax)           \

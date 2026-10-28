@@ -30,9 +30,10 @@ float (*const rio_math2[rio_Math2_count])(float, float) = {rio_atan2, rio_pow, r
 
 /* ------------------------------------------------------------------ text */
 
-uint32_t rio_hashText(const char *s, uint32_t n) { /* (FNV-1a, 32 bits) */
+uint32_t rio_hashText(const char *s, uint32_t n) { /* (FNV-1a, 32 bits; \r skipped, so line ends don't count) */
   uint32_t h = 2166136261u, i;
-  for (i = 0; i < n; i++) h = (h ^ (uint8_t)s[i]) * 16777619u;
+  for (i = 0; i < n; i++)
+    if (s[i] != '\r') h = (h ^ (uint8_t)s[i]) * 16777619u;
   return h;
 }
 

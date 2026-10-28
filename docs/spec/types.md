@@ -205,8 +205,9 @@ true
 true
 ```
 
-Types in a union that differ in size by more than 16 words are an error, since every value takes the
-biggest size. A `diverse union` allows it on purpose:
+Every value of a union takes its biggest type's room, whatever it holds, so a union of a small type
+and a big one costs the big one's size for each value (in an array of them, for each element), as a
+big array would: `rio -m` shows where memory goes.
 
 ```rio
 Small :: struct
@@ -215,15 +216,15 @@ end
 Big :: struct
   d: [20]Int
 end
-Shape :: diverse union
+Shape :: union
   Small, Big
 end
 s: Shape
-log(s is Small)
+log(s is Small, sizeOf(Shape))
 ```
 
 ```output
-true
+true 84
 ```
 
 ## Maybes
@@ -291,7 +292,8 @@ A `?T` that holds views (`?String`, `?[]Int`) must be a global, as other unions 
 
 ## Procs
 
-A proc type is written `proc(T, U) -> R`, or without `-> R` when there's no result. Parameter names
+A proc type is written `proc(T, U) -> R`, or without `-> R` when there's no result (another name
+for one, in parentheses: `Less :: (proc(a, b: Int) -> Bool)`). Parameter names
 are allowed, for reading: `proc(x, y: Int) -> Int`, and needed for an optional one, `proc(x: Int,
 y?: Int)` (see [procs](declarations.md#procs)). See [proc values](expressions.md#proc-values).
 Proc values can be elements too, of arrays, slices, builders and `[E]T`, with the proc type after the

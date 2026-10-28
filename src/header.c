@@ -307,7 +307,8 @@ uint32_t rio_hostHeader(rio_Vm *vm, const char *src, uint32_t len, void *scratch
     rio_hostPut(&o, c->names + y->name, y->nameLen);
     rio_hostPut(&o, "_SIG)", -1);
   }
-  { /* the module's source, for rio_addSource(vm, "pc", pc_SOURCE, sizeof pc_SOURCE - 1), and its hash */
+  { /* the module's source, for rio_addSource(vm, "pc", pc_SOURCE, sizeof pc_SOURCE - 1) (written without \r),
+       and its hash (rio_hashText's, which skips \r: the same either way) */
     uint32_t k, h = rio_hashText(src, len);
     char hex[11];
     rio_hostPut(&o, "\n\n#define ", -1);

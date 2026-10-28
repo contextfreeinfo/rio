@@ -83,12 +83,15 @@ static int rio_digitValue(int c, int base) { /* -1: not a digit of this base */
   return v < base ? v : -1;
 }
 
-/* the escapes (docs/spec/lexical.md): \n \t \r \0, \\ \" \' for the character itself, and \xHH, a byte by
-   its two hex digits */
-static const char rio_msgUnknownEscape[] = "unknown escape (these work: \\n \\t \\r \\0 \\\\ \\\" \\' \\xHH)";
+/* the escapes (docs/spec/lexical.md): \n \t \r \0, \\ \" \' for the character itself, \xHH, a byte by
+   its two hex digits, and \u{1F600}, a code point by its hex digits (in a string, as UTF-8) */
+static const char rio_msgUnknownEscape[] = "unknown escape (these work: \\n \\t \\r \\0 \\\\ \\\" \\' \\xHH \\u{HHHH})";
 static const char rio_msgHexEscape[] = "\\x takes two hex digits: \\x1b";
-/* the escape after a backslash, at p (before e): its byte, and in *used how many characters it took; or
-   -1 if it's none */
+static const char rio_msgUnicodeEscape[] = "\\u{...} takes 1 to 6 hex digits, a code point up to 10FFFF and not a surrogate (D800 to DFFF): \\u{1F600}";
+/* the message for a bad escape at p */
+static const char *rio_escapeMessage(const char *p) { return *p == 'x' ? rio_msgHexEscape : *p == 'u' ? rio_msgUnicodeEscape : rio_msgUnknownEscape; }
+/* the escape after a backslash, at p (before e): its byte (or \u{...}'s code point, which may be more than
+   255), and in *used how many characters it took; or -1 if it's none */
 int rio_escapeAt(const char *p, const char *e, int *used) {
   int hi, lo;
   *used = 1;
@@ -98,8 +101,41 @@ int rio_escapeAt(const char *p, const char *e, int *used) {
     *used = 3;
     return hi << 4 | lo;
   }
+  if (*p == 'u') { /* \u{1F600} */
+    int32_t cp = 0;
+    int n = 0, d;
+    if (e - p < 4 || p[1] != '{') return -1;
+    for (; n < 7 && p + 2 + n < e && (d = rio_digitValue(p[2 + n], 16)) >= 0; n++) cp = cp << 4 | d;
+    if (!n || n > 6 || p + 2 + n >= e || p[2 + n] != '}' || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) return -1;
+    *used = 3 + n;
+    return cp;
+  }
   if (!*p || !strchr("ntr0\\\"'", *p)) return -1;
   return *p == 'n' ? '\n' : *p == 't' ? '\t' : *p == 'r' ? '\r' : *p == '0' ? 0 : (uint8_t)*p;
+}
+
+/* code point cp (up to 10FFFF) as UTF-8, into out: how many bytes, 1 to 4 */
+int rio_utf8(uint8_t *out, int32_t cp) {
+  if (cp < 0x80) {
+    out[0] = (uint8_t)cp;
+    return 1;
+  }
+  if (cp < 0x800) {
+    out[0] = (uint8_t)(0xC0 | cp >> 6);
+    out[1] = (uint8_t)(0x80 | (cp & 63));
+    return 2;
+  }
+  if (cp < 0x10000) {
+    out[0] = (uint8_t)(0xE0 | cp >> 12);
+    out[1] = (uint8_t)(0x80 | (cp >> 6 & 63));
+    out[2] = (uint8_t)(0x80 | (cp & 63));
+    return 3;
+  }
+  out[0] = (uint8_t)(0xF0 | cp >> 18);
+  out[1] = (uint8_t)(0x80 | (cp >> 12 & 63));
+  out[2] = (uint8_t)(0x80 | (cp >> 6 & 63));
+  out[3] = (uint8_t)(0x80 | (cp & 63));
+  return 4;
 }
 
 /* an error in the token being lexed: there, and the token reads as the end */
@@ -359,12 +395,22 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
           int used;
           p++;
           if (!rio_MORE()) break;
-          if (*p == 'x' && e - p < 3) rio_more(vm, &p, &s, &start, &e, p); /* (its digits too) */
+          if ((*p == 'x' && e - p < 3) || (*p == 'u' && e - p < 10)) rio_more(vm, &p, &s, &start, &e, p); /* (its digits too) */
           if ((ch = rio_escapeAt(p, e, &used)) < 0) {
-            rio_failAt(vm, c->line, (int)(rio_at(c, p - 1) - c->lineAt) + 1, *p == 'x' ? 4 : 2, *p == 'x' ? rio_msgHexEscape : rio_msgUnknownEscape);
+            rio_failAt(vm, c->line, (int)(rio_at(c, p - 1) - c->lineAt) + 1, *p == 'x' ? 4 : 2, rio_escapeMessage(p));
             t->kind = rio_Tok_eof;
             t->len = 0;
             return;
+          }
+          if (*p == 'u') { /* (a code point: its UTF-8 bytes) */
+            p += used - 1;
+            if (n + 4 > room) {
+              n = room;
+              break;
+            }
+            n += (uint32_t)rio_utf8(out + n, ch);
+            kept = n;
+            continue;
           }
           p += used - 1;
         }
@@ -408,7 +454,7 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
     p += 2;
     if (ch == '\\' && p < e) {
       int used;
-      if ((ch = rio_escapeAt(p, e, &used)) < 0) rio_TOKEN_FAIL(*p == 'x' ? rio_msgHexEscape : rio_msgUnknownEscape);
+      if ((ch = rio_escapeAt(p, e, &used)) < 0) rio_TOKEN_FAIL(rio_escapeMessage(p)); /* (\u{...}: its code point) */
       p += used;
     }
     if (p >= e || *p != '\'') rio_LEX_FAIL("bad char literal");
@@ -418,6 +464,15 @@ void rio_lex(rio_Vm *vm, rio_Token *t) {
   } else if (p + 2 < e && p[0] == '.' && p[1] == '.' && (p[2] == '<' || p[2] == '=')) {
     t->kind = p[2] == '<' ? rio_Tok_rangeExcl : rio_Tok_rangeIncl;
     p += 3;
+  } else if (p + 2 < e && p[0] == '>' && p[1] == '>' && p[2] == '>') { /* >>> >>>= */
+    if (p + 3 < e && p[3] == '=') {
+      t->kind = rio_Tok_opAssign;
+      t->op = rio_Tok_shiftRightU;
+      p += 4;
+    } else {
+      t->kind = rio_Tok_shiftRightU;
+      p += 3;
+    }
   } else if (p + 2 < e && (p[0] == '<' || p[0] == '>') && p[1] == p[0] && p[2] == '=') { /* <<= >>= */
     t->kind = rio_Tok_opAssign;
     t->op = p[0] == '<' ? rio_Tok_shiftLeft : rio_Tok_shiftRight;

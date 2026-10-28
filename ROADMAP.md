@@ -22,26 +22,22 @@ already written, such as Rinc's and Studio's apps, so they come first.
   Both would mean the same thing, since nothing past the end is ever taken. Leaning: keep one
   spelling, so there's nothing for a formatter to standardize. If a second one ever comes in, fmt
   rewrites it to `a[i..]`.
+- **How `end` in index brackets is spelled:** `xs[end]` is the last index now, as in Julia and MATLAB,
+  but they count from 1, where the last index is the length; with indexes from 0, some will read
+  `end` as one past the last, as C++'s `end()` and Swift's `endIndex` are. `end` also already closes
+  blocks. The other way is C#'s: `xs[^1]` the last, `xs[^0]` past it, `xs[^3..]` the last three, with
+  no question which is which. Against it: `^` is xor in Rio too (C# lives with that, mostly called
+  cryptic at first), `^0` surprises, and it counts from the end, so a loop's `xs[end - i]` becomes
+  `xs[^(i + 1)]`. Leaning: keep `end`. A wrong guess is a bounds error, not a misread, and a change
+  later is mechanical while few programs use it.
 - **Formatters as values:** if `hex(n)` and `pad(s, 8)` cover what `b.format(settings, ...)` does,
   `format` could go, which changes every call to it. No Rinc or Studio app calls it yet, so the change
   is cheap now and costly later. Leaning: decide whether `format` stays before building the formatters.
 
 ## Next
 
-- **No more `diverse union`** (decided): any union is allowed, whatever its types' sizes, with no
-  keyword. Each value takes its biggest type's room, a cost in memory like a big array's, which Rio
-  doesn't gate with a keyword either; `rio -m` shows where memory goes. Nothing uses `diverse` yet,
-  and `diverse` goes back to being an ordinary name.
-- **Unicode escapes:** `\u{1F600}` in strings, written out as UTF-8. Numbers past 10FFFF and
-  surrogates are errors.
-- **`end` in index brackets:** the last index, as in `xs[end]` and `xs[end - 2..=end]`. It works only
-  inside the brackets of the thing being indexed.
-- **Proc type aliases:** `Less :: proc(a, b: Int) -> Bool`, just as constants already alias other types
-  (`Vec3 :: [3]Float`).
 - **Number parsing from text:** String to Int in any base from 2 to 36, and String to Float, with bad
   input reported. Without it, no program can read numbers safely.
-- **`>>>`:** an unsigned right shift. Unsigned compare, divide and remainder would be builtins rather
-  than operators.
 - **Iterator structs,** instead of generators: `for x in it` takes any struct with a `next` method
   returning `?T`, and runs until it returns nil. A lazy sequence costs one small struct and no saved
   frames. It needs no generics: each loop knows its struct's type, so `next` and T are known there, as
@@ -96,6 +92,11 @@ already written, such as Rinc's and Studio's apps, so they come first.
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
+- **Stats as charts:** `tools/stats.py --svg` drawing `bench/stats.csv` as SVGs (the VM's and the
+  compiler's size, compile time, each bench's speed, over the rows), checked in beside it and shown in
+  the README, so how each batch moved things is a glance, not a table. CI could make them again and
+  fail when the checked-in ones are stale, as Rinc's `pc_declared` does for `pc_host.h`. (Stats from
+  different machines aren't comparable: the charts would mark which machine each row came from.)
 - **Constant tables:** `[N]T` constants built while compiling and kept in the read-only image, so a
   lookup table costs no RAM on small boards.
 - **Formatters as values:** `hex(n)`, `pad(s, 8)` and the like, returning `Fmt` values that work
@@ -185,6 +186,22 @@ already written, such as Rinc's and Studio's apps, so they come first.
 
 ## Done recently
 
+- **`>>>`:** an unsigned right shift, and `>>>=` (images are version 12). Unsigned compare, divide and
+  remainder, if they come, would be builtins rather than operators.
+
+- **Proc type aliases:** `Less :: (proc(a, b: Int) -> Bool)`, in parentheses, since a proc type alone
+  after `::` starts a proc.
+
+- **`end` in index brackets:** the last index of what's indexed, `xs[end]`, `xs[end - 2..=end]`: a
+  constant for an array, the length less 1 for the rest; not for an `[E]T`, whose indexes are named.
+
+- **Unicode escapes:** `\u{1F600}`, its code point's bytes in UTF-8 in a string, and the code point
+  itself in a character literal; past 10FFFF and surrogates are errors.
+
+- **No more `diverse union`:** any union is allowed, whatever its types' sizes; each value takes its
+  biggest type's room, a cost in memory like a big array's (`rio -m` shows it). `diverse` is an
+  ordinary name again.
+
 - **Enums by name in layouts:** `Enum{game,ui,none}` (a bitfield's `Enum(2){...}`), as a struct's field
   and as a host proc's parameter in its sig, so an image made before an enum's values were reordered
   doesn't fit, while a parameter's values added at its end do. A plain `i` for an enum still works.
@@ -247,5 +264,4 @@ already written, such as Rinc's and Studio's apps, so they come first.
   type needs its own copy of the code until generic procs, which it's to be tried again with.
 - **`do`:** one-line blocks (`if done do return`, `case .red do stop()`), and `do ... end` blocks
   for names.
-- **No `@`:** `cls* :: host proc(c: Int)` and `Shape :: diverse union`. Both words are ordinary names
-  anywhere else.
+- **No `@`:** `cls* :: host proc(c: Int)`. `host` is an ordinary name anywhere else.

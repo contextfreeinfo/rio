@@ -46,6 +46,7 @@ static void rio_fold(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r, int isFloat) 
     case '^': result.u = a.u ^ b.u; break;
     case rio_Tok_shiftLeft: result.u = a.u << (b.u & 31); break;
     case rio_Tok_shiftRight: result.i = x >> (b.u & 31); break;
+    case rio_Tok_shiftRightU: result.u = a.u >> (b.u & 31); break;
     case rio_Tok_eqEq: result.i = x == y; break;
     case rio_Tok_notEq: result.i = x != y; break;
     case '<': result.i = x < y; break;
@@ -267,6 +268,7 @@ static int rio_binaryInstr(rio_Vm *vm, int op, int isFloat, int *swap) {
   case '|': if (!isFloat) return rio_Op_or; break;
   case '^': if (!isFloat) return rio_Op_xor; break;
   case rio_Tok_shiftLeft: if (!isFloat) return rio_Op_shl; break;
+  case rio_Tok_shiftRightU: if (!isFloat) return rio_Op_ushr; break;
   default: if (!isFloat) return rio_Op_shr; break;
   }
   rio_FAIL(-1, "integer operator on floats");

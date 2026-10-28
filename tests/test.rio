@@ -1644,6 +1644,13 @@ packFile.pack(36, 0.5)
 packFile.unpack(36, &packF)
 check(packF == 0.5, "a Float")
 
+# >>>: an unsigned right shift (and >>>=), known now or not
+ush := -8
+ushn := 1
+check(ush >>> ushn == 2147483644 and -8 >>> 1 == 2147483644 and ush >> ushn == -4 and 1 >>> 33 == 0, ">>>")
+ush >>>= 28
+check(ush == 15, ">>>=")
+
 # a host proc as a proc value (through a proc of its own: the VM, an image and the C output alike)
 clocks: [2]proc() -> Float
 clocks[0] = clock

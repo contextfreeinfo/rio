@@ -58,7 +58,7 @@ static int rio_binaryPrecedence(int tok) {
   case rio_Tok_and: return 2;
   case rio_Tok_eqEq: case rio_Tok_notEq: case '<': case '>': case rio_Tok_lessEq: case rio_Tok_greaterEq: return 4;
   case '+': case '-': case '|': case '^': return 5;
-  case '*': case '/': case '%': case '&': case rio_Tok_shiftLeft: case rio_Tok_shiftRight: return 6;
+  case '*': case '/': case '%': case '&': case rio_Tok_shiftLeft: case rio_Tok_shiftRight: case rio_Tok_shiftRightU: return 6;
   case rio_Tok_is: return 4;
   }
   return 0;
@@ -162,7 +162,8 @@ rio_Expr rio_stringConst(rio_Vm *vm, const char *s, int n) {
   for (i = 0; i < n; i++) {
     int used, ch;
     if (s[i] == '\\' && i + 1 < n && (ch = rio_escapeAt(s + i + 1, s + n, &used)) >= 0) {
-      out[len++] = (uint8_t)ch;
+      if (s[i + 1] == 'u') len += rio_utf8(out + len, ch); /* (never longer than the escape) */
+      else out[len++] = (uint8_t)ch;
       i += used;
     } else out[len++] = (uint8_t)s[i];
   }
@@ -1005,6 +1006,43 @@ static rio_Expr rio_stringLiterals(rio_Vm *vm, const rio_ExprState *x) {
   return rio_stringInPool(vm, at, (int)n);
 }
 
+/* end, inside index brackets: the last index of what they index (the innermost brackets must be theirs:
+   xs[end], xs[end - 2..=end], ys[xs[end]]). An array's is a constant; a slice's, a String's, a builder's
+   or a builder view's, its length less 1. Not an [E]T's: its values are named, and a new one would move
+   what end means */
+static rio_Expr rio_endIndex(rio_Vm *vm, const rio_ExprState *x) {
+  rio_Compiler *c = vm->compiler;
+  rio_PendingOp *m = 0;
+  rio_Expr t, len;
+  rio_Type *ty;
+  int i, d;
+  for (i = c->opCount - 1; i >= x->opBase && !m; i--)
+    if (c->ops[i].kind >= rio_Pending_paren) m = &c->ops[i];
+  if (!m || m->kind != rio_Pending_index || !m->valueBase)
+    rio_FAIL_AT_TOKEN(rio_voidExpr(), "end means the last index only right inside an index's brackets: xs[end]");
+  t = c->values[m->valueBase - 1];
+  rio_needValue(vm, &t);
+  if (rio_failed(vm)) return rio_voidExpr();
+  ty = rio_type(vm, t.type);
+  if (ty->kind == rio_TypeKind_array) {
+    if (ty->firstField) rio_FAIL_AT_TOKEN(rio_voidExpr(), "end is for an array indexed by Int: name the enum's value");
+    if (!ty->count) rio_FAIL_AT_TOKEN(rio_voidExpr(), "an empty array has no last index");
+    return rio_exprOf(rio_ExprKind_const, rio_TypeId_int, (int32_t)ty->count - 1);
+  }
+  len = t; /* (its length word: a slice's second, a builder's first, through a builder view's first) */
+  len.bits = 0;
+  if (ty->kind == rio_TypeKind_slice) rio_offsetPlace(&len, 4);
+  else if (ty->kind == rio_TypeKind_builderView) {
+    len.type = rio_TypeId_int;
+    len = rio_exprOf(rio_ExprKind_indirect, rio_TypeId_int, rio_toSlot(vm, &len, 0));
+  } else if (ty->kind != rio_TypeKind_builder) rio_FAIL_AT_TOKEN(rio_voidExpr(), "end is the last index of an array, slice, String, Blob or builder");
+  len.type = rio_TypeId_int;
+  len.access = 0;
+  d = rio_allocSlots(vm, 1);
+  rio_emit(vm, rio_Op_sub, d, rio_toSlot(vm, &len, 0), rio_constSlot(vm, 1));
+  return rio_exprOf(rio_ExprKind_static, rio_TypeId_int, d * 4);
+}
+
 /* where an operand goes: a value, a prefix operator, an opening bracket, or an empty call's ')' */
 static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
   rio_Compiler *c = vm->compiler;
@@ -1023,6 +1061,13 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
   if (t == rio_Tok_int || t == rio_Tok_float) e = rio_exprOf(rio_ExprKind_const, t == rio_Tok_int ? rio_TypeId_int : rio_TypeId_float, c->tok.val.i);
   else if (t == rio_Tok_string) e = rio_stringLiterals(vm, x);
   else if (t == rio_Tok_id) e = rio_identifier(vm);
+  else if (t == rio_Tok_end) e = rio_endIndex(vm, x); /* (xs[end]) */
+  else if (t == rio_Tok_proc) { /* a proc type, as a value: Less :: (proc(a, b: Int) -> Bool), an alias */
+    int type = rio_parseType(vm);
+    if (rio_failed(vm)) return rio_Expect_failed;
+    rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
+    return rio_Expect_operator;
+  }
   else if (t == '(') {
     rio_pushOp(vm, rio_Pending_paren, 0, 0);
     x->depth++;

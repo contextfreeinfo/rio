@@ -371,7 +371,7 @@ int main(int argc, char **argv) {
   BAD("Nope :: host struct\n", 0, 1, "the host has no type by this name");
   BAD("P :: struct\n  x: Int\nend\nQ :: host struct\n", 0, 4, "the host has no type by this name");
   BAD("Int.x :: host struct\n", 0, 1, "'proc' expected");
-  /* host and diverse mean something only before proc or struct, and union: elsewhere they're names */
+  /* host means something only before proc or struct: elsewhere it's a name, as diverse is anywhere */
   OK("host := 1\ndiverse := 2\nlog(host + diverse)\n", "3\n");
   BAD("f :: @host proc()\n", 0, 1, "expected expression");
   BAD("x := 1 + host proc()\n", 0, 1, "undefined name");

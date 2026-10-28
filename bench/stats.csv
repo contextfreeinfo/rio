@@ -11,3 +11,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-10-28,abc802e+,puddle,29360,151226,12815,257024,25.3,62520,0.55,0.004,0.522,0.004,0.382,0.008,0.56,0.113,"host procs as proc values (a proc of their own each)"
 2026-10-28,f922081+,puddle,30352,150898,12993,259072,25.7,62524,0.55,0.006,0.542,0.004,0.364,0.009,0.596,0.113,"hosts register modules' sources (rio_addSource), rio -H writes source/hash/proc list, images keep source hashes (v11)"
 2026-10-28,c069967+,puddle,30488,152270,13027,259584,25.0,62524,0.552,0.007,0.533,0.005,0.388,0.013,0.606,0.131,"module core (core.name); enums by name in layouts and host proc sigs (Enum{...})"
+2026-10-28,e8bb195+,puddle,30536,154018,13126,262144,23.3,62704,0.664,0.005,0.583,0.004,0.513,0.009,0.652,0.115,"no diverse union; \u{} escapes; xs[end]; proc type aliases; >>> (image 12); rio_hashText skips \r"

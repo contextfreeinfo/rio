@@ -766,16 +766,11 @@ static void rio_constantDecl(rio_Vm *vm) {
     rio_hostDecl(vm, name, nameLen, -1, line, col);
     return;
   }
-  if (rio_tokIs(vm, "diverse", 7) && c->peek.kind == rio_Tok_union) {
-    rio_next(vm);
-    rio_unionDef(vm, name, nameLen, 1);
-    return;
-  }
   switch (c->tok.kind) {
   case rio_Tok_proc: rio_procDef(vm, name, nameLen, -1); return;
   case rio_Tok_struct: rio_structDef(vm, name, nameLen); return;
   case rio_Tok_enum: rio_enumDef(vm, name, nameLen); return;
-  case rio_Tok_union: rio_unionDef(vm, name, nameLen, 0); return;
+  case rio_Tok_union: rio_unionDef(vm, name, nameLen); return;
   }
   if (c->tok.kind == '[' || (c->tok.kind == rio_Tok_id && c->peek.kind == '[' && (k = rio_lookup(vm, c->tok.text, c->tok.len)) >= 0 &&
                              c->syms[k].kind == rio_SymKind_type)) { /* another name for a type written out: [2]Float, Blob[64] */
