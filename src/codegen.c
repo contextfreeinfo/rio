@@ -652,7 +652,8 @@ int rio_invertJump(rio_Instr *in) {
    compare-and-branch. Returns the jump, to patch. */
 int rio_jumpIfFalse(rio_Vm *vm, rio_Expr *e) {
   rio_needValue(vm, e);
-  if (e->type != rio_TypeId_bool) rio_FAIL(0, "condition must be Bool");
+  if (rio_isMaybe(vm, e->type)) rio_maybeTest(vm, e, 0); /* (a maybe: false when nil) */
+  if (e->type != rio_TypeId_bool) rio_FAIL(0, "condition must be Bool (or a maybe)");
   if (e->kind == rio_ExprKind_const) return e->value ? rio_NONE : rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE);
   if (e->kind == rio_ExprKind_static && e->value < rio_SLOTS_END && (e->value >> 2) >= (int)vm->compiler->liveSlots &&
       vm->codeLen && rio_canFuse(vm)) {

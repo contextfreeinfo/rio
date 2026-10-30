@@ -1337,6 +1337,59 @@ for vi in 0..<4
 end
 check(vtotal == 5 + 1 + 2 + 3, "in a loop")
 
+# ---- maybes as Bools are: if x, not x, x and e, x or y
+bmN := "42".toInt() or 0
+bmBad := "4x".toInt() or -1
+check(bmN == 42 and bmBad == -1, "x or y: x's value, else y")
+bmM := "7".toInt()
+bmSeen := 0
+if bmM
+  bmSeen = bmM + 1
+end
+check(bmSeen == 8, "if x: x its value inside")
+check(not "z".toInt() and not not bmM, "not x")
+check(bmM and bmM > 5, "x and a Bool: a Bool")
+check(not (bmM and bmM > 50), "x and a Bool: false")
+bmTwice := bmM and bmM * 2
+check((bmTwice or 0) == 14, "x and a value: a maybe of it")
+bmNone: ?Int
+bmNil := bmNone and bmNone * 2
+check(bmNil is nil and (bmNone or 9) == 9, "nil and e: nil")
+bmF := true and 3
+bmG := false and 3
+check(bmF is Int and bmG is nil, "a Bool and a value: a maybe, false nil")
+bmB: ?Bool = false
+check(not (bmB or false) and bmB is Bool, "a ?Bool: x or false its truth, is whether it's there")
+bmP: ?[2]Float
+bmQ := bmP or {1, 2}
+check(bmQ.y == 2, "or with a literal of the value's type")
+bmFirst: ?Int
+bmEither := bmFirst or "5".toInt()
+check((bmEither or 0) == 5, "a maybe or a maybe: a maybe")
+bmK := 0
+for bmM and bmK < 3
+  bmK += 1
+end
+check(bmK == 3, "a maybe in a loop's condition")
+BmS :: struct
+  size: Int
+end
+bmS: ?BmS = BmS{size = 4}
+check(bmS and bmS.size > 3, "a struct's field, narrowed on the right of and")
+check((bmS and bmS.size or 0) == 4, "and then or, on a struct's field")
+bmCalls := 0
+bmSide :: proc() -> Int
+  bmCalls += 1
+  return 1
+end
+bmZ := "1".toInt() or bmSide()
+bmZ2 := bmNone or bmSide()
+check(bmZ == 1 and bmZ2 == 1 and bmCalls == 1, "or runs y only when x is nil")
+bmDouble :: proc(k: ?Int) -> Int
+  return k and k * 2 or -1
+end
+check(bmDouble(bmM) == 14 and bmDouble(nil) == -1, "and then or, inside a proc")
+
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1

@@ -63,36 +63,18 @@ Nothing open: see Leaning yes.
   lookup table costs no RAM on small boards.
 - **Formatters as values:** `hex(n)`, `pad(s, 8)` and the like, returning `Fmt` values that work
   anywhere a value can print, beside `b.format(settings, ...)`, which stays.
-- **Bool as a maybe of nothing:** `true` a value of a type with nothing in it, `false` nil. Then the
-  boolean operators are what maybes need, as Rust's `and_then` and `unwrap_or` are, with no new
-  operators (as Kotlin's `?:` or C#'s `??` would be):
-
-  | | for Bools | for maybes | as in Rust |
-  |---|---|---|---|
-  | `x or y` | true if either | x's value if it's there, else y | `unwrap_or`, `or_else` |
-  | `x and e` | e if x, else false | e if x is there (x its value inside e), else nil | `and_then`, `map` |
-  | `not x` | the other | true when nil | `is_none` |
-  | `if x` | when true | when x is there, x its value in the body | `if let Some(x)` |
-
-  - **Types:** a `?T` `or` a `T` is a `T` (so `n := x or 0` needs no `is` after it); `or` another `?T`,
-    a `?T`. A `?T` `and` a `U` or a `?U` is a `?U`. A Bool mixes in as a maybe: `flag and x` is a
-    `?Int`, false becoming nil.
-  - **Narrowing does the work:** `x and x.size` sees x's value on the right, as `x is T and ...` does
-    now.
-  - **Only Bools and maybes:** an Int, a String or anything else is still no condition, so `if count`
-    stays an error (no zero as false).
-  - **`??T` too, for uniformity:** a maybe of a maybe, as `?Bool` (a maybe of a maybe of nothing)
-    already would be. `if x` for a `?Bool` tests whether it's there, as for any maybe, and `x or false`
-    its truth. Open: how a program writes the inner nil (the outer is plain `nil`), and how `is` and
-    printing tell the two apart.
-  - **The cost:** `and` and `or` giving something other than a Bool surprises people from C, Java or
-    Rust (not those from Python, Lua or JavaScript), though typed, a surprise is a compile error,
-    not a wrong value.
+- **Narrowing after a check that leaves, and in else:** after `if not n do return` (or `if n is nil`,
+  with a block that always returns, breaks or continues), n is its value for the rest of the block, as
+  Swift's `guard let`; and in the `else` of `if not n`, `if n is nil`. For maybes and `is` alike.
 - **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
   both are errors, and `x is nil` is the way to test for nil.
 
 ## Maybe
 
+- **Void as a unit type,** with generics: a zero-sized value, so a Bool is a `?Void`, `proc() -> Void`
+  a proc with no result, and a branch with no value a `Void` (as JavaScript's `undefined` or Python's
+  `None`). With it, `??T`: a program writing the inner nil, and `is` and printing telling the two
+  apart. Until then, an empty struct names a second nothing in a union.
 - **Generic types,** in brackets as generic procs are: `Pair :: struct[T]`, used as `Pair[Int]`, only if
   they stay simple. They're what generic maps would need. Some of a type's parameters may be constant
   Ints rather than types, as the builtins' already are (`Blob[16]`, `[..N]T`). Unsure for now.
@@ -159,6 +141,11 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **Bool as a maybe of nothing:** maybes work where Bools do: `if x` (x its value inside), `not x`, `x and e`
+  (e if x is there, x its value in e; a maybe of e, unless e is a Bool: `t and t.x`), and `x or y` (x's
+  value, else y: `n := s.toInt() or 0`). A `?Bool` isn't a condition
+  (there, or true?). Only Bools and maybes are conditions.
 
 - **if and switch as values:** right after `:=`, `=` or `return`, each branch's last line its value;
   an `else` required, except in a switch with a case for every value of an enum or type of a union.

@@ -81,6 +81,7 @@ static void rio_condition(rio_Vm *vm, rio_Block *b) {
   rio_Expr e, cond;
   c->isTestCount = 0;
   e = rio_parseExpr(vm);
+  rio_maybeTest(vm, &e, 1); /* (if x, for a maybe x: x is its value inside) */
   cond = e;
   b->a = (uint16_t)rio_jumpIfFalse(vm, &e);
   rio_narrowIsTests(vm, &cond);
@@ -1078,6 +1079,7 @@ void rio_statement(rio_Vm *vm) {
   int t = c->tok.kind, blocksBefore = c->blockCount, labelLen = 0, afterOneLine;
   const char *label = 0;
   c->freeSlot = c->liveSlots;
+  c->isTestCount = 0; /* (x is T tests narrow within their statement: none from before) */
   if (t == rio_Tok_id && c->peek.kind == ':' && !c->peek.newline && rio_peekAfterNext(vm) == rio_Tok_for) { /* outer: for ... */
     if (rio_findLabel(vm, c->tok.text, c->tok.len) >= 0) rio_FAIL_AT_TOKEN(, "a loop with this label is already open here");
     if (c->tok.len > (int)sizeof c->blocks[0].label) rio_FAIL_AT_TOKEN(, "label too long");

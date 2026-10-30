@@ -160,6 +160,36 @@ static void rio_isOp(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
   }
 }
 
+/* ------------------------------------------------------------------ maybes as conditions */
+
+/* is type a maybe (?T: a union of nil and T)? */
+int rio_isMaybe(rio_Vm *vm, int type) {
+  rio_Type *ty = rio_type(vm, type);
+  return ty->kind == rio_TypeKind_union && ty->elem != 0;
+}
+
+/* a maybe used as a condition (if x, not x, x and ...): true when it holds a value. narrow: as x is T,
+   so an if's body or an and's right side sees x's value, if x is a variable; else just its tag */
+void rio_maybeTest(rio_Vm *vm, rio_Expr *e, int narrow) {
+  rio_Expr t;
+  rio_needValue(vm, e);
+  if (!rio_isMaybe(vm, e->type)) return;
+  if (rio_type(vm, e->type)->elem == rio_TypeId_bool) /* (whether it's there, or whether it's true? neither, unsaid) */
+    rio_FAIL(, "a ?Bool isn't a condition: x or false is whether it's true, x is Bool whether it's there");
+  if (narrow) {
+    t = rio_exprOf(rio_ExprKind_type, rio_type(vm, e->type)->elem, 0);
+    t.tempStart = e->tempStart;
+    rio_isOp(vm, e, &t);
+    return;
+  }
+  rio_isTestUsed(vm, e, -1);
+  t = rio_exprOf(rio_ExprKind_const, rio_TypeId_int, 0);
+  t.tempStart = e->tempStart;
+  e->type = rio_TypeId_int;
+  e->access = 0;
+  rio_binaryOp(vm, rio_Tok_notEq, e, &t);
+}
+
 /* after the condition of an if: narrows each x is T its result still carries */
 void rio_narrowIsTests(rio_Vm *vm, const rio_Expr *cond) {
   rio_Compiler *c = vm->compiler;
@@ -497,6 +527,7 @@ void rio_unaryOp(rio_Vm *vm, int op, rio_Expr *e) {
     *e = zero;
     return;
   }
+  if (op == '!' && rio_isMaybe(vm, e->type)) rio_maybeTest(vm, e, 0); /* not x: true when x is nil */
   t = rio_valueType(e->type);
   if (op == '!' ? t != rio_TypeId_bool : t != rio_TypeId_int && !(t == rio_TypeId_float && op == '-'))
     rio_FAIL(, "bad operand for unary operator");

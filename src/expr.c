@@ -64,6 +64,47 @@ static int rio_binaryPrecedence(int tok) {
   return 0;
 }
 
+/* The end of an and or or that gives a maybe, or a maybe's value, rather than a Bool, into a new place:
+     x or y, x a ?T: x's value (kept whole at o->b), else y: a T, or with y a ?T, a ?T
+     x and e, e not a Bool: e if x is true or there, else nil: a ?U (e's own type, if it's a maybe)
+   The right side's value goes in and jumps to the end; the left side's jump lands on the other case. */
+static void rio_maybeOpEnd(rio_Vm *vm, const rio_PendingOp *o, rio_Expr *r) {
+  rio_Expr *l = rio_valueTop(vm), dst, from, z;
+  int type, done, kept = o->b, tempStart = l->tempStart;
+  rio_isTestUsed(vm, r, -1);
+  rio_isTestUsed(vm, l, -1); /* (the result isn't the left side's Bool any more) */
+  if (o->kind == rio_Pending_or) {
+    int elem = rio_type(vm, o->punAt)->elem;
+    if (rio_valueType(r->type) == o->punAt) type = o->punAt;
+    else {
+      if (rio_valueType(r->type) != elem && r->kind != rio_ExprKind_const) r->type = rio_TypeId_void; /* (no conversion: the message below) */
+      else rio_coerce(vm, r, elem);
+      if (rio_valueType(r->type) != elem) rio_FAIL(, "x or y gives x's value if it's there, else y: y is of x's value's type, or a maybe of it");
+      type = elem;
+    }
+  } else {
+    type = rio_valueType(r->type);
+    if (type == rio_TypeId_void) rio_FAIL(, "expected a value");
+    if (!rio_isMaybe(vm, type)) type = rio_maybeOf(vm, type);
+  }
+  if (rio_failed(vm)) return;
+  dst = rio_exprOf(rio_ExprKind_static, type, rio_allocSlots(vm, rio_typeWords(vm, type)) * 4);
+  rio_store(vm, &dst, r);
+  done = rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE);
+  rio_patchJumps(vm, o->a, rio_label(vm));
+  if (o->kind == rio_Pending_or) { /* x was there: its value (or all of it) */
+    from = rio_exprOf(rio_ExprKind_static, type, (kept + (type == o->punAt ? 0 : 1)) * 4);
+    rio_store(vm, &dst, &from);
+  } else { /* x was false or nil: nil */
+    z = rio_exprOf(rio_ExprKind_static, rio_TypeId_int, dst.value);
+    from = rio_exprOf(rio_ExprKind_const, rio_TypeId_int, 0);
+    rio_store(vm, &z, &from);
+  }
+  rio_patchJumps(vm, done, rio_label(vm));
+  dst.tempStart = (uint16_t)tempStart;
+  *l = dst;
+}
+
 /* applies the operator on top of the stack */
 static void rio_reduceOne(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
@@ -85,9 +126,13 @@ static void rio_reduceOne(rio_Vm *vm) {
   d = o.b;
   c->symCount = o.c; /* (the right side's narrowing ends) */
   c->nameBytes = (uint32_t)o.argCount;
-  rio_isTestUsed(vm, &r, o.kind == rio_Pending_and ? d * 4 : -1);
   rio_needValue(vm, &r);
-  if (r.type != rio_TypeId_bool) rio_FAIL(, "expected Bool");
+  if (o.punAt || (o.kind == rio_Pending_and && r.type != rio_TypeId_bool)) {
+    rio_maybeOpEnd(vm, &o, &r);
+    return;
+  }
+  rio_isTestUsed(vm, &r, o.kind == rio_Pending_and ? d * 4 : -1);
+  if (r.type != rio_TypeId_bool) rio_FAIL(, "expected Bool (or, after and, any value)");
   s = rio_toSlot(vm, &r, 1);
   c->freeSlot = (uint32_t)d + 1;
   if (s != d && !rio_retarget(vm, s, d)) rio_emit(vm, rio_Op_mov, d, s, 0);
@@ -936,6 +981,7 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
   if (m->kind == rio_Pending_binary && (m->op == '+' || m->op == '-' || m->op == '*' || m->op == '/' || m->op == '%') &&
       c->valueCount > x->valueBase && rio_type(vm, c->values[c->valueCount - 1].type)->kind == rio_TypeKind_array)
     return c->values[c->valueCount - 1].type; /* p + {1, 0}: an array's partner, of its type */
+  if (m->kind == rio_Pending_or && m->punAt) return rio_type(vm, m->punAt)->elem; /* x or {1, 0}: of x's value's type */
   return -1;
 }
 
@@ -1229,7 +1275,27 @@ static int rio_binaryOperator(rio_Vm *vm, int t, int prec) {
     rio_PendingOp *o;
     int s, d;
     rio_needValue(vm, l);
-    if (l->type != rio_TypeId_bool) rio_FAIL(rio_Expect_failed, "expected Bool");
+    if (t == rio_Tok_or && rio_isMaybe(vm, l->type)) { /* x or y: x's value if it's there (kept, whole), else y */
+      rio_Expr kept;
+      rio_isTestUsed(vm, l, -1);
+      c->freeSlot = l->tempStart;
+      kept = rio_exprOf(rio_ExprKind_static, l->type, rio_allocSlots(vm, rio_typeWords(vm, l->type)) * 4);
+      rio_store(vm, &kept, l);
+      o = rio_pushOp(vm, rio_Pending_or, prec, t);
+      o->a = rio_emit(vm, rio_Op_jnz, kept.value / 4, 0, rio_NONE);
+      o->b = kept.value / 4;
+      o->c = c->symCount;
+      o->argCount = (int32_t)c->nameBytes;
+      o->punAt = l->type;
+      kept.tempStart = l->tempStart;
+      *l = kept;
+      rio_next(vm);
+      return rio_Expect_operand;
+    }
+    if (rio_isMaybe(vm, l->type)) rio_maybeTest(vm, l, t == rio_Tok_and); /* x and ...: whether x is there (x its value on the right) */
+    if (l->type != rio_TypeId_bool)
+      rio_FAIL(rio_Expect_failed, rio_narrowedSymbol(vm, l) >= 0 ? "this maybe is known to hold its value here (it was checked before): use it as one"
+                                                                 : "expected Bool, or a maybe");
     s = rio_toSlot(vm, l, 1);
     c->freeSlot = l->tempStart;
     d = rio_allocSlots(vm, 1);
@@ -1240,6 +1306,7 @@ static int rio_binaryOperator(rio_Vm *vm, int t, int prec) {
     o->b = d;
     o->c = c->symCount;
     o->argCount = (int32_t)c->nameBytes;
+    o->punAt = 0;
     if (t == rio_Tok_and) rio_narrowRight(vm, d * 4);
     l->kind = rio_ExprKind_static;
     l->value = d * 4;

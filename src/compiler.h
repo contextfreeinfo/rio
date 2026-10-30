@@ -527,6 +527,8 @@ void rio_isTestUsed(rio_Vm *vm, const rio_Expr *e, int carry);
 void rio_narrowIsTests(rio_Vm *vm, const rio_Expr *cond);
 void rio_narrow(rio_Vm *vm, int32_t varAt, int member, int temp);
 void rio_narrowRight(rio_Vm *vm, int resultAt);
+int rio_isMaybe(rio_Vm *vm, int type);
+void rio_maybeTest(rio_Vm *vm, rio_Expr *e, int narrow);
 #define rio_REF_AT 0x40000000 /* (in a varAt: a reference's slot, such as a loop's element, not a variable's address) */
 int32_t rio_narrowableAt(rio_Vm *vm, const rio_Expr *e);
 int rio_narrowedSymbol(rio_Vm *vm, const rio_Expr *e);

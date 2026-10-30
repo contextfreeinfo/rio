@@ -287,8 +287,76 @@ A union that lists `nil` already, or a maybe, takes no `?`:
 y: ??Int  # error: this can already be nil
 ```
 
+To tell two kinds of nothing apart, a union can name one with an empty struct, which takes no room:
+
+```rio
+Missing :: struct
+end
+Lookup :: union
+  nil
+  Missing, Int
+end
+x: Lookup = Missing{}
+log(x is Missing, sizeOf(Missing), x)
+```
+
+```output
+true 0 Missing{}
+```
+
 A `?T` that holds views (`?String`, `?[]Int`) must be a global, as other unions holding them must
 (see [where views can live](#where-views-can-live)).
+
+### Maybes with if, not, and and or
+
+A maybe works where a `Bool` does, as if a `Bool` were a maybe of nothing (`true` there, `false` nil):
+
+| | for Bools | for maybes |
+|---|---|---|
+| `if x` | when true | when x holds a value, x that value inside (if it's a variable) |
+| `not x` | the other | true when x is nil |
+| `x and e` | e if x, else false | e if x holds a value (x that value inside e), else nil |
+| `x or y` | true if either | x's value if it holds one, else y (y runs only then) |
+
+`x or y`, for a `?T` x, is a `T` when y is a `T` (so it takes no checking after it), and a `?T` when y
+is one too; y can't be of another type, since `or` joins its two sides into one value. `and` doesn't
+join them, so they needn't agree: reading a `Bool` as a maybe of nothing, `x and e` is of e's type when
+e can already be nothing (a `Bool`, or a maybe), and else a maybe of e's type, nil when x was false or
+nil:
+
+| | gives |
+|---|---|
+| `a and b`, for `Bool`s | a `Bool` |
+| `m and m > 5`, m a `?Int` | a `Bool` |
+| `n and n.next`, n's next a `?Node` | a `?Node` (as `n?.next` would elsewhere) |
+| `t and t.size`, t's size an `Int` | a `?Int` |
+| `flag and 3`, flag a `Bool` | a `?Int` |
+
+So `flag and a or b` chooses a or b only when a is neither a `Bool` nor a maybe (a false or nil a gives
+b too): an `if` value says a choice plainly.
+Only `Bool`s and maybes are conditions: an `Int` isn't, so `if count` is still an error:
+
+```rio
+n := "42".toInt() or 0
+m := "7".toInt()
+if m
+  log("got", m + 1)
+end
+if not "x".toInt() do log("not a number")
+double :: proc(k: ?Int) -> Int
+  return k and k * 2 or -1
+end
+log(n, m and m > 5, double(m), double(nil), true and 3, false and 3)
+```
+
+```output
+got 8
+not a number
+42 true 14 -1 3 nil
+```
+
+A `?Bool` isn't a condition, since `if x` could ask whether it holds a value or whether that value is
+true: `x or false` is the second, `x is Bool` the first.
 
 ## Procs
 
