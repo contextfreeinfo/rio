@@ -77,9 +77,10 @@ static void rio_maybeOpEnd(rio_Vm *vm, const rio_PendingOp *o, rio_Expr *r) {
     int elem = rio_type(vm, o->punAt)->elem;
     if (rio_valueType(r->type) == o->punAt) type = o->punAt;
     else {
-      if (rio_valueType(r->type) != elem && r->kind != rio_ExprKind_const) r->type = rio_TypeId_void; /* (no conversion: the message below) */
+      if (rio_valueType(r->type) != elem && !(r->kind == rio_ExprKind_const && r->type == rio_TypeId_int && elem == rio_TypeId_float))
+        r->type = rio_TypeId_void; /* (no conversion but a number literal's: the message below) */
       else rio_coerce(vm, r, elem);
-      if (rio_valueType(r->type) != elem) rio_FAIL(, "x or y gives x's value if it's there, else y: y is of x's value's type, or a maybe of it");
+      if (rio_valueType(r->type) != elem) rio_FAIL(, "type mismatch: or on a maybe takes its value type, or the same maybe");
       type = elem;
     }
   } else {
