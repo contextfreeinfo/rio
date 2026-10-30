@@ -249,8 +249,21 @@ typedef struct {
   uint16_t caseSymCount, caseNameBytes, caseLiveSlots; /* switch: the scope each case starts from */
   uint16_t switchIndex; /* switch: its row in switchCases */
   uint16_t labelLen;    /* a loop's label (outer: for ...): its length (0: none) */
+  uint8_t value;        /* an if or switch as a value (x := if ...): its row in valueBlocks + 1 (0: none) */
   char label[24];
 } rio_Block;
+
+/* an if or switch as a value (x := if ..., x = switch ..., return if ...): where each branch's value,
+   its last line, goes (dst; a declaration's type is its first value's, if not written: dst.type is
+   rio_TypeId_void until then), and what's known of the branches so far */
+typedef struct {
+  rio_Expr dst;
+  int sym, nameLen; /* a declaration's symbol, hidden (its nameLen 0) until the end, and its name's length */
+  uint8_t how;      /* rio_Value_* */
+  uint8_t given;    /* the branch being compiled has its value */
+  uint8_t local, fromParam; /* a view: what any value viewed */
+} rio_ValueBlock;
+enum { rio_Value_place = 1, rio_Value_declare, rio_Value_return };
 
 /* ------------------------------------------------------------------ the compiler */
 
@@ -323,6 +336,8 @@ typedef struct rio_Compiler {
   int rangeStops;         /* a for header's range: ..< and ..= end its first expression (the loop reads them) */
   uint64_t switchCases[16][4]; /* per open switch: which enum values (or union types) have a case */
   int switchCount;
+  rio_ValueBlock valueBlocks[8]; /* the open ifs and switches that are values, innermost last */
+  int valueBlockCount;
   uint16_t descType[32], descSlot[32]; /* types printed by descriptor (print.h), and where theirs are */
   int descCount;
   struct {
@@ -580,6 +595,7 @@ void rio_structDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_unionDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_enumDef(rio_Vm *vm, const char *name, int nameLen);
 void rio_declareVar(rio_Vm *vm);
+void rio_valueBlock(rio_Vm *vm, int how, const rio_Expr *dst, int type, const char *name, int nameLen);
 int rio_parseNames(rio_Vm *vm, const char **names, int *lens, int *optional);
 void rio_destructure(rio_Vm *vm);
 

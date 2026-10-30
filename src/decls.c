@@ -696,6 +696,10 @@ void rio_declareVar(rio_Vm *vm) {
     rio_declare(vm, name, nameLen, type, 0, 1);
     return;
   }
+  if (c->tok.kind == rio_Tok_if || c->tok.kind == rio_Tok_switch) { /* x := if ...: each branch's value */
+    rio_valueBlock(vm, rio_Value_declare, 0, type, name, nameLen);
+    return;
+  }
   c->targetType = type;
   e = rio_parseExpr(vm);
   if (e.access & rio_Access_ref) { /* name := &place: bound once to that place, like a for-each element */

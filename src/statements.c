@@ -19,6 +19,7 @@ rio_Block *rio_pushBlock(rio_Vm *vm, int kind) {
   b->liveSlots = (uint16_t)c->liveSlots;
   b->a = b->b = b->breaks = b->continues = b->condJump = rio_NONE;
   b->labelLen = 0;
+  b->value = 0;
   return b;
 }
 
@@ -63,6 +64,11 @@ static int rio_findLabel(rio_Vm *vm, const char *name, int n) {
   }
   return -1;
 }
+
+/* an if or switch as a value (below) */
+static void rio_branchEnds(rio_Vm *vm, rio_Block *b);
+static void rio_valueEnds(rio_Vm *vm, rio_Block *b);
+static void rio_valueDone(rio_Vm *vm, int index);
 
 /* ------------------------------------------------------------------ if, case and else */
 
@@ -109,7 +115,10 @@ static void rio_conditionCase(rio_Vm *vm, rio_Block *b) {
   if (b->counter == 1) { /* (the first: nothing before it) */
     rio_next(vm);
     b->counter = 0;
-  } else rio_nextBranch(vm, b);
+  } else {
+    rio_branchEnds(vm, b);
+    rio_nextBranch(vm, b);
+  }
   rio_condition(vm, b);
 }
 
@@ -128,6 +137,7 @@ static void rio_elseStatement(rio_Vm *vm) {
   if (!b || b->kind != rio_Block_if) rio_FAIL_AT_TOKEN(, "'else' without 'if'");
   if (b->counter == 1) rio_FAIL_AT_TOKEN(, "a switch's body starts with case");
   if (c->peek.kind == rio_Tok_if && !c->peek.newline) rio_FAIL_AT_TOKEN(, "write case for another condition: if a ... case b ... else ... end");
+  rio_branchEnds(vm, b);
   rio_nextBranch(vm, b);
   b->kind = rio_Block_else;
   b->flow |= rio_Flow_complete;
@@ -463,10 +473,13 @@ static void rio_endSwitch(rio_Vm *vm, rio_Block *b);
 static void rio_endBlock(rio_Vm *vm, int line, int col) {
   rio_Compiler *c = vm->compiler;
   rio_Block *b = rio_topBlock(vm);
+  int value = b->value;
+  if (value) rio_valueEnds(vm, b);
   if (b->kind == rio_Block_switch) {
     rio_endSwitch(vm, b);
     rio_endScope(vm, b);
     c->blockCount--;
+    if (value) rio_valueDone(vm, value - 1);
     return;
   }
   if (b->kind == rio_Block_proc) {
@@ -496,6 +509,7 @@ static void rio_endBlock(rio_Vm *vm, int line, int col) {
                         (b->kind == rio_Block_loop && b->condJump == rio_NONE && !(b->flow & rio_Flow_broken)));
   rio_endScope(vm, b);
   c->blockCount--;
+  if (value) rio_valueDone(vm, value - 1);
 }
 
 static void rio_endStatement(rio_Vm *vm) {
@@ -544,6 +558,10 @@ static void rio_returnStatement(rio_Vm *vm) {
   if (p->resultType != rio_TypeId_void) {
     rio_Expr d = rio_exprOf(rio_ExprKind_static, p->resultType, (int32_t)p->resultAt), e;
     int k = rio_type(vm, p->resultType)->kind;
+    if (c->tok.kind == rio_Tok_if || c->tok.kind == rio_Tok_switch) { /* return if ...: each branch's value, returned */
+      rio_valueBlock(vm, rio_Value_return, &d, -1, 0, 0);
+      return;
+    }
     c->targetType = p->resultType;
     e = rio_parseExpr(vm);
     if ((k == rio_TypeKind_slice || k == rio_TypeKind_builderView) && rio_isLocalView(vm, &e))
@@ -633,6 +651,7 @@ static void rio_caseStatement(rio_Vm *vm) {
   if (b && b->kind == rio_Block_else) rio_FAIL_AT_TOKEN(, "the else comes last");
   if (!b || b->kind != rio_Block_switch) rio_FAIL_AT_TOKEN(, "'case' outside an if or a switch");
   if (b->b & 2) rio_FAIL_AT_TOKEN(, "the else of a switch comes last");
+  if (b->b & 1) rio_branchEnds(vm, b);
   rio_next(vm);
   rio_nextCase(vm, b);
   while (!rio_failed(vm)) {
@@ -691,6 +710,7 @@ static void rio_caseStatement(rio_Vm *vm) {
 
 static void rio_switchElse(rio_Vm *vm, rio_Block *b) {
   if (b->b & 2) rio_FAIL_AT_TOKEN(, "a switch has one else");
+  if (b->b & 1) rio_branchEnds(vm, b);
   rio_next(vm);
   rio_nextCase(vm, b);
   b->b |= 3;
@@ -720,6 +740,130 @@ static void rio_endSwitch(rio_Vm *vm, rio_Block *b) {
   }
   if (b->b & 1) rio_endBranches(c, b);
   c->switchCount--;
+}
+
+/* ------------------------------------------------------------------ if and switch as values */
+
+/* x := if ..., x = switch ..., return if ... (docs/spec/statements.md#if-and-switch-as-values): the block
+   opens as the statement would, and each branch ends with its value, its last line, stored where it
+   goes. type: a declaration's, if written (else -1: its first value's) */
+void rio_valueBlock(rio_Vm *vm, int how, const rio_Expr *dst, int type, const char *name, int nameLen) {
+  rio_Compiler *c = vm->compiler;
+  rio_ValueBlock *v;
+  int k = c->valueBlockCount;
+  if (k >= 8) rio_FAIL_AT_TOKEN(, "ifs and switches as values nested too deep");
+  v = &c->valueBlocks[k];
+  memset(v, 0, sizeof *v);
+  v->how = (uint8_t)how;
+  v->dst = rio_exprOf(rio_ExprKind_static, rio_TypeId_void, 0);
+  if (how == rio_Value_declare) { /* its name, now (it's exported now, if marked), but hidden until the end */
+    v->sym = c->symCount;
+    v->nameLen = nameLen;
+    rio_addSymbol(vm, name, nameLen, rio_SymKind_var, rio_TypeId_void, 0);
+    if (rio_failed(vm)) return;
+    c->syms[v->sym].nameLen = 0;
+  }
+  if (dst && dst->kind == rio_ExprKind_indirect) { /* its address, kept through the branches */
+    int a, s;
+    if (dst->bits) rio_FAIL(, "a bitfield can't take an if's or switch's value: give it a variable's");
+    v->dst = *dst;
+    a = rio_toAddrSlot(vm, &v->dst);
+    c->freeSlot = c->liveSlots;
+    s = rio_allocSlots(vm, 1);
+    c->liveSlots = c->freeSlot;
+    if (s != a) rio_emit(vm, rio_Op_mov, s, a, 0);
+    v->dst = rio_exprOf(rio_ExprKind_indirect, dst->type, s);
+  } else if (dst) v->dst = *dst;
+  else if (type >= 0) { /* a declaration's variable, written out: before the branches, so they don't use its slots */
+    rio_Type *ty = rio_type(vm, type);
+    if (ty->kind == rio_TypeKind_builder || ty->kind == rio_TypeKind_builderView)
+      rio_FAIL(, "a builder takes no if's or switch's value: declare it, then fill it in each branch");
+    if (rio_isBig(ty)) v->dst = rio_exprOf(rio_ExprKind_static, type, (int32_t)rio_allocHigh(vm, ty->size));
+    else {
+      c->freeSlot = c->liveSlots;
+      v->dst = rio_exprOf(rio_ExprKind_static, type, rio_allocSlots(vm, rio_typeWords(vm, type)) * 4);
+      c->liveSlots = c->freeSlot;
+    }
+  }
+  c->valueBlockCount++;
+  if (c->tok.kind == rio_Tok_if) rio_ifStatement(vm);
+  else rio_switchStatement(vm);
+  if (!rio_failed(vm)) rio_topBlock(vm)->value = (uint8_t)(k + 1);
+}
+
+/* a value block's branch, at its last line: its value, stored */
+static void rio_branchValue(rio_Vm *vm, rio_Block *b, rio_Expr *e) {
+  rio_Compiler *c = vm->compiler;
+  rio_ValueBlock *v = &c->valueBlocks[b->value - 1];
+  int k;
+  if (e->kind == rio_ExprKind_proc || e->kind == rio_ExprKind_ffi) /* (if ... do byScore else byName) */
+    rio_toProcValue(vm, e, v->dst.type != rio_TypeId_void && rio_type(vm, v->dst.type)->kind == rio_TypeKind_proc ? v->dst.type : -1);
+  if (e->type == rio_TypeId_void) rio_FAIL(, "this line has no value: a branch's last line is its value");
+  rio_needValue(vm, e);
+  if (rio_failed(vm)) return;
+  if (v->dst.type == rio_TypeId_void) { /* a declaration's first value: its type, and its variable, above this branch's slots */
+    int type = rio_valueType(e->type);
+    rio_Type *ty = rio_type(vm, type);
+    if (ty->kind == rio_TypeKind_builder || ty->kind == rio_TypeKind_builderView)
+      rio_FAIL(, "a builder takes no if's or switch's value: declare it, then fill it in each branch");
+    if (rio_isBig(ty)) v->dst = rio_exprOf(rio_ExprKind_static, type, (int32_t)rio_allocHigh(vm, ty->size));
+    else {
+      int d = rio_allocSlots(vm, rio_typeWords(vm, type)), top = d + rio_typeWords(vm, type);
+      v->dst = rio_exprOf(rio_ExprKind_static, type, d * 4);
+      if (b->liveSlots < top) b->liveSlots = (uint16_t)top; /* (the branches after this one start above it) */
+      if (b->caseLiveSlots < top) b->caseLiveSlots = (uint16_t)top;
+    }
+  }
+  k = rio_type(vm, v->dst.type)->kind;
+  if (k != rio_TypeKind_union || e->type == v->dst.type) rio_coerce(vm, e, v->dst.type); /* (a union's member: the store wraps it) */
+  if (k == rio_TypeKind_slice || k == rio_TypeKind_builderView) {
+    if (v->how == rio_Value_return && rio_isLocalView(vm, e))
+      rio_FAIL(, "this returns a view of the proc's own memory, which the next call rewrites: make that memory global, or have the caller pass it in");
+    v->local |= (uint8_t)rio_isLocalView(vm, e);
+    v->fromParam |= (uint8_t)e->fromParam;
+  }
+  rio_store(vm, &v->dst, e);
+  v->given = 1;
+}
+
+/* a value block's branch ends (at the case, else or end after it): it gave its value, or can't get here */
+static void rio_branchEnds(rio_Vm *vm, rio_Block *b) {
+  rio_Compiler *c = vm->compiler;
+  rio_ValueBlock *v;
+  if (!b->value) return;
+  v = &c->valueBlocks[b->value - 1];
+  if (!v->given && !c->unreachable) rio_FAIL_AT_TOKEN(, "this branch has no value: its last line is its value (or it ends with return or break)");
+  v->given = 0;
+}
+
+/* a value block's end: its last branch, and a branch for every case */
+static void rio_valueEnds(rio_Vm *vm, rio_Block *b) {
+  rio_branchEnds(vm, b);
+  if (rio_failed(vm)) return;
+  if (b->kind == rio_Block_if) rio_FAIL_AT_TOKEN(, "an if as a value needs an else");
+  if (b->kind == rio_Block_switch && !(b->b & 2) && rio_type(vm, b->limit)->kind != rio_TypeKind_enum && rio_type(vm, b->limit)->kind != rio_TypeKind_union)
+    rio_FAIL_AT_TOKEN(, "a switch as a value needs an else (or, on an enum or a union, a case for each)");
+}
+
+/* after a value block, closed: a declaration's name (in the scope around it), or a return */
+static void rio_valueDone(rio_Vm *vm, int index) {
+  rio_Compiler *c = vm->compiler;
+  rio_ValueBlock *v = &c->valueBlocks[index];
+  c->valueBlockCount = index;
+  if (v->how == rio_Value_declare) {
+    int type = v->dst.type, k = rio_type(vm, type)->kind;
+    if (type == rio_TypeId_void) rio_FAIL(, "no branch gives a value, so this has no type: write it (x: T = if ...)");
+    if ((k == rio_TypeKind_slice || k == rio_TypeKind_builderView) && c->curProc >= 0 && v->dst.value < rio_SLOTS_END) {
+      rio_markLocalView(vm, (uint32_t)v->dst.value, rio_typeWords(vm, type), v->local);
+      rio_markParamView(vm, (uint32_t)v->dst.value, rio_typeWords(vm, type), v->fromParam);
+    }
+    c->syms[v->sym].nameLen = (uint16_t)v->nameLen;
+    c->syms[v->sym].type = (uint16_t)type;
+    c->syms[v->sym].value = v->dst.value;
+  } else if (v->how == rio_Value_return) {
+    rio_emit(vm, rio_Op_ret, 0, 0, 0);
+    c->unreachable = 1;
+  }
 }
 
 /* ------------------------------------------------------------------ expression statements */
@@ -765,9 +909,17 @@ static void rio_assignNarrowed(rio_Vm *vm, rio_Expr *l) {
 /* an expression, maybe assigned to: x = v, x op= v */
 static void rio_expressionStatement(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  rio_Expr l = rio_parseExpr(vm), r, current;
+  rio_Block *top = rio_topBlock(vm);
+  rio_Expr l, r, current;
   int op, k;
+  if (top && top->value && c->valueBlocks[top->value - 1].dst.type != rio_TypeId_void)
+    c->targetType = c->valueBlocks[top->value - 1].dst.type; /* (a branch's value, maybe: {1, 2}, .small, nil) */
+  l = rio_parseExpr(vm);
   if (c->tok.kind != '=' && c->tok.kind != rio_Tok_opAssign) {
+    if (top && top->value && c->tok.newline && (c->tok.kind == rio_Tok_case || c->tok.kind == rio_Tok_else || c->tok.kind == rio_Tok_end)) {
+      rio_branchValue(vm, top, &l); /* a value block's branch's last line: its value */
+      return;
+    }
     if (vm->inRepl && c->curProc < 0 && !c->blockCount && l.kind <= rio_ExprKind_indirect) rio_autoPrint(vm, &l);
     return;
   }
@@ -780,6 +932,10 @@ static void rio_expressionStatement(rio_Vm *vm) {
     rio_FAIL(, "cannot assign to this");
   if (c->tok.kind == '=') {
     rio_next(vm);
+    if (c->tok.kind == rio_Tok_if || c->tok.kind == rio_Tok_switch) { /* x = if ...: each branch's value, into x */
+      rio_valueBlock(vm, rio_Value_place, &l, -1, 0, 0);
+      return;
+    }
     c->targetType = l.type;
     r = rio_parseExpr(vm);
     rio_store(vm, &l, &r);
@@ -884,7 +1040,11 @@ static void rio_statementAfterLabel(rio_Vm *vm, int t) {
     case rio_Tok_return: rio_returnStatement(vm); break;
     case rio_Tok_break: rio_breakStatement(vm, 1); break;
     case rio_Tok_continue: rio_breakStatement(vm, 0); break;
-    case '{': rio_destructure(vm); break;
+    case '{': /* {a, b} := s; or in a value block, maybe a branch's value: {1, 2} */
+      if (rio_topBlock(vm) && rio_topBlock(vm)->value && c->valueBlocks[rio_topBlock(vm)->value - 1].dst.type != rio_TypeId_void)
+        rio_expressionStatement(vm);
+      else rio_destructure(vm);
+      break;
     default: rio_expressionStatement(vm);
   }
 }

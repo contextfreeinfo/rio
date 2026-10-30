@@ -52,6 +52,10 @@ int main(void) {
   eval("Pt :: struct\n  x: Int\n", rio_ReplResult_more, "", 0);
   eval("Pt :: struct\n  x: Int\nend\n", 0, "", 0);
   eval("Pt{x = 5}.x\n", 0, "5\n", 0);
+  eval("switch x\ncase 40 do log(1)\n", rio_ReplResult_more, "", 0);         /* (a one-line case, unfinished, */
+  eval("switch x\ncase 40 do log(1)\nelse\n  log(2)\nend\n", 0, "1\n", 0);   /* then finished) */
+  eval("w := switch x\ncase 40 do 4\n", rio_ReplResult_more, "", 0);         /* switch as a value */
+  eval("w := switch x\ncase 40 do 4\nelse\n  0\nend\nw\n", 0, "4\n", 0);
   eval("Ab :: enum\n  a\n", rio_ReplResult_more, "", 0);
   eval("Un :: union\n  Int\n", rio_ReplResult_more, "", 0);
   eval("z := nope\n", -1, "", "undefined name");                  /* a compile error... */

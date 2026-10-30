@@ -1238,6 +1238,105 @@ sign :: proc(n: Int) -> Int
 end
 check(sign(5) + sign(-5) + sign(0) == 0, "every case returns")
 
+# ---- if and switch as values: right after :=, = or return, each branch's last line its value
+VSize :: enum
+  small, big, huge
+end
+vk := VSize.big
+vsz := switch vk
+case .small
+  1
+case .big
+  vt := 10
+  vt * 2
+case .huge
+  100
+end
+check(vsz == 20, "switch as a value, over an enum, every value covered")
+vn := 7
+vlabel := if vn < 5
+  "low"
+case vn < 10
+  "mid"
+else
+  "high"
+end
+check(vlabel == "mid", "if as a value, with case")
+vsz = switch vn
+case 1, 2 do 0
+else
+  vn * 3
+end
+check(vsz == 21, "assigned, a one-line case among them")
+vpt: [2]Float = if vn > 3
+  {1, 2}
+else
+  {3, 4}
+end
+check(vpt.y == 2, "a literal taking the variable's type")
+VPair :: struct
+  a: Int
+  b: String
+end
+vpair: VPair = switch vn
+case 7
+  {a = 5, b = "five"}
+else
+  {}
+end
+check(vpair.a == 5 and vpair.b == "five", "a struct literal")
+vsign :: proc(x: Int) -> Int
+  return if x > 0
+    1
+  case x < 0
+    -1
+  else
+    0
+  end
+end
+check(vsign(5) == 1 and vsign(-5) == -1 and vsign(0) == 0, "returned")
+vword :: proc(x: Int) -> String
+  w := if x > 0
+    "pos"
+  case x < 0
+    return "neg, early"
+  else
+    "zero"
+  end
+  return w
+end
+check(vword(1) == "pos" and vword(-1) == "neg, early" and vword(0) == "zero", "a branch that returns has no value")
+vnest := if vn > 0
+  vy := switch vn
+  case 7 do 70
+  else
+    0
+  end
+  vy + 1
+else
+  0
+end
+check(vnest == 71, "nested")
+VU :: union
+  Int, String
+end
+vu: VU = if vn > 1
+  5
+else
+  "s"
+end
+check(vu is Int and vu == 5, "into a union")
+vtotal := 0
+for vi in 0..<4
+  vstep := switch vi
+  case 0 do 5
+  else
+    vi
+  end
+  vtotal += vstep
+end
+check(vtotal == 5 + 1 + 2 + 3, "in a loop")
+
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1

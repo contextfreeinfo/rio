@@ -317,6 +317,52 @@ log(area(Box{w = 2, h = 3}), area(Circle{r = 1}))
 
 `break` and `continue` in a switch are about the loop around it.
 
+## if and switch as values
+
+Right after `:=`, `=` or `return`, an `if` or a `switch` is a value: each branch's last line is its
+value, and the rest of the branch runs before it as usual. Every branch needs one, so an `if` needs an
+`else`, and so does a `switch`, unless it has a case for every value of an enum or every type of a
+union (adding one later is then a compile error there, rather than a wrong default). A branch that
+ends in `return` or `break` gives none. With `:=`, the variable takes its first branch's type unless
+its type is written:
+
+```rio
+Size :: enum
+  small, medium, large
+end
+size := Size.medium
+width := switch size
+case .small do 8
+case .medium
+  base := 12
+  base + 4
+case .large do 24
+end
+n := 7
+label := if n < 5
+  "low"
+case n < 10
+  "mid"
+else
+  "high"
+end
+sign :: proc(x: Int) -> Int
+  return if x < 0
+    -1
+  else
+    1
+  end
+end
+log(width, label, sign(-3))
+```
+
+```output
+16 mid -1
+```
+
+It's only ever the whole value, never part of an expression (`x := 1 + if ...` is an error), so a block
+never sits inside an expression.
+
 ## One-line blocks
 
 `do` puts a block's one statement on the line that starts it, and the block ends with the line. It

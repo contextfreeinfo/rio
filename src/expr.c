@@ -905,6 +905,7 @@ typedef struct {
   int opBase, valueBase; /* the stacks' heights when this expression started */
   int depth;             /* its brackets still open */
   int whole;             /* the type the whole expression is for, or -1 */
+  int bareBrace;         /* a { with its type from where it's going: its literal opens next (a line's first, too) */
 } rio_ExprState;
 
 /* what a step of the parser expects next */
@@ -1105,6 +1106,7 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
     if (k != rio_TypeKind_struct && k != rio_TypeKind_array && k != rio_TypeKind_builder)
       rio_FAIL_AT_TOKEN(rio_Expect_failed, "can't tell which struct or array this is; write Type{...} or [N]T{...}");
     rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
+    x->bareBrace = 1;
     return rio_Expect_operator; /* the '{' is next: the literal itself */
   } else if (t == '[') { /* [N]T{...}, [..N]T{...}; or after is, any type: x is []Int */
     int type = rio_parseType(vm), k = rio_type(vm, type)->kind;
@@ -1119,7 +1121,9 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
       rio_FAIL_AT_TOKEN(rio_Expect_failed, "only arrays and builders have literals here: [N]T{a, b} or [..N]T{a, b}");
     rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
     return rio_Expect_operator;
-  } else rio_FAIL_AT_TOKEN(rio_Expect_failed, rio_msgExpectedExpr);
+  } else if (t == rio_Tok_if || t == rio_Tok_switch)
+    rio_FAIL_AT_TOKEN(rio_Expect_failed, "an if or switch is a value only as all of one, right after :=, = or return");
+  else rio_FAIL_AT_TOKEN(rio_Expect_failed, rio_msgExpectedExpr);
   rio_pushResult(vm, e, tempStart);
   rio_next(vm);
   return rio_Expect_operator;
@@ -1249,8 +1253,9 @@ static int rio_binaryOperator(rio_Vm *vm, int t, int prec) {
 /* after an operand: postfix (calls, indexing, members, literals), separators, binary operators */
 static int rio_parseOperator(rio_Vm *vm, rio_ExprState *x) {
   rio_Compiler *c = vm->compiler;
-  int t = c->tok.kind, prec;
-  if (c->tok.newline && !x->depth) return rio_Expect_done; /* a new line ends it, outside brackets */
+  int t = c->tok.kind, prec, bare = x->bareBrace;
+  x->bareBrace = 0;
+  if (c->tok.newline && !x->depth && !(bare && t == '{')) return rio_Expect_done; /* a new line ends it, outside brackets */
   if (t == '(') return rio_openCall(vm, x);
   if (t == '[') {
     rio_pushOp(vm, rio_Pending_index, 0, 0);
@@ -1314,6 +1319,7 @@ rio_Expr rio_parseExpr(rio_Vm *vm) {
   x.opBase = c->opCount;
   x.valueBase = c->valueCount;
   x.depth = 0;
+  x.bareBrace = 0;
   x.whole = c->targetType;
   c->targetType = -1;
   for (;;) {

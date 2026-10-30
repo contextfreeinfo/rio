@@ -19,19 +19,7 @@ Rinc's and Studio's apps, would change with it.
 
 ## Next
 
-- **if and switch as values, only to set a variable:** this form works only right after `:=`, `=` or
-  `return`. The value of each branch is its last line. An `else` is required, except in a switch with a
-  case for every value of an enum or every type of a union, so adding one later is a compile error
-  there, where a new case is needed, rather than a wrong default:
-  ```
-  size := switch kind
-  case .small
-    1
-  else
-    4
-  end
-  ```
-  It never puts a block inside an expression.
+Nothing open: see Leaning yes.
 
 ## Leaning yes
 
@@ -171,6 +159,10 @@ Rinc's and Studio's apps, would change with it.
     procs if they come.
 
 ## Done recently
+
+- **if and switch as values:** right after `:=`, `=` or `return`, each branch's last line its value;
+  an `else` required, except in a switch with a case for every value of an enum or type of a union.
+  Never part of an expression.
 
 - **No more arithmetic on structs:** only arrays of numbers do arithmetic as wholes (a struct's is a
   compile error pointing to `[2]Float` and its swizzles), so a vector has one way to be written.

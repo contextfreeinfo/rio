@@ -208,6 +208,7 @@ void rio_setupCompiler(rio_Vm *vm, int sources) {
   c->lastLabel = rio_NONE;
   c->targetType = -1;
   c->switchCount = 0;
+  c->valueBlockCount = 0;
   c->curModule = 0;
   c->moduleCount = 2;
   memset(c->modules, 0, 2 * sizeof(rio_Module));
