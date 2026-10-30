@@ -932,6 +932,9 @@ static int rio_targetType(rio_Vm *vm, const rio_ExprState *x) {
     return rio_type(vm, c->values[m->valueBase].type)->elem;
   if (m->kind == rio_Pending_call && m->a == rio_ExprKind_builtin && m->b == rio_Builtin_format && m->argCount == 1)
     return rio_TypeId_format; /* b.format({width = 4}, ...) */
+  if (m->kind == rio_Pending_binary && (m->op == '+' || m->op == '-' || m->op == '*' || m->op == '/' || m->op == '%') &&
+      c->valueCount > x->valueBase && rio_type(vm, c->values[c->valueCount - 1].type)->kind == rio_TypeKind_array)
+    return c->values[c->valueCount - 1].type; /* p + {1, 0}: an array's partner, of its type */
   return -1;
 }
 

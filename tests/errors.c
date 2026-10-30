@@ -372,6 +372,8 @@ static const Case cases[] = {
   {"S :: struct\n  a: Int\nend\nfor x in S{}\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 12, 1, "for needs a range, array, slice or builder, or a struct with next() -> ?T"},
   {"S :: struct\n  a: Int\nend\nS.next :: proc() -> Int\n  return 1\nend\nfor x in S{}\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, 12, 1, "a loop's next returns a maybe: next :: proc() -> ?T"},
   {"S :: struct\n  a: Int\nend\nS.next :: proc(k: Int) -> ?Int\n  return nil\nend\nfor x in S{}\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, 12, 1, "a loop calls next with nothing: its parameters are optional, or none"},
+  {"a := [2]Int{1, 4}\nlog(sqrt(a))\n", 0, 0, 0, rio_ErrorKind_compile, 2, 11, 1, "this takes Floats: convert an Int array with .toFloat()"},
+  {"a := [2]Float{1, 4}\nb := [3]Float{1, 2, 3}\nlog(min(a, b))\n", 0, 0, 0, rio_ErrorKind_compile, 3, 13, 1, "type mismatch"},
   {"s := 1.5.asString()\n", 0, 0, 0, rio_ErrorKind_compile, 1, 19, 1, "no such conversion"},
   {"x := \"1\".toInt(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 17, 1, "the base is 2 to 36"},
   {"x := \"1\".toFloat(2)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 19, 1, "toInt takes a base or nothing, toFloat nothing"},
@@ -454,7 +456,7 @@ int main(void) {
     static const char *many = "a := 1\nb := 2\nc := 3\nd := 4\ne := 5\nf := 6\ng := 7\nh := 8\n";
     rio_Limits l = rio_limitsFor(sizeof scratch);
     rio_Error e;
-    l.symbols = 41; /* the builtins take 36 (core too), so the 6th global is one too many */
+    l.symbols = 42; /* the builtins take 37 (core too), so the 6th global is one too many */
     rio_init(&vm, mem, sizeof mem, code, 4096);
     if (!rio_compileWith(&vm, many, (uint32_t)strlen(many), scratch, sizeof scratch, &l) ||
         !strstr((e = rio_errorInfo(&vm)).msg, "too many symbols") || e.line != 6) {

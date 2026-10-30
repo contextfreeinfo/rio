@@ -5,7 +5,7 @@
 #ifndef rio_NO_COMPILER
 
 const char *const rio_builtinNames[rio_Builtin_count] = {
-  "log", "len", "min", "max", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
+  "log", "len", "min", "max", "clamp", "abs", "sqrt", "sin", "cos", "tan", "asin", "acos",
   "atan", "exp", "ln", "floor", "ceil", "round", "atan2", "pow", "fmod", "assert",
   "push", "pop", "clear", "cap", "remove", "swapRemove", "pushAll", "format", "print",
   "pack", "unpack", "getInt", "setInt",
@@ -266,6 +266,80 @@ static void rio_finishFormat(rio_Vm *vm, rio_PendingOp *call) {
 
 /* ------------------------------------------------------------------ math and len */
 
+/* an array of Ints or Floats (or arrays of them): its numbers' type, and how many in *count; else 0 */
+static int rio_numbersIn(rio_Vm *vm, int type, int *count) {
+  rio_Type *ty = rio_type(vm, type);
+  uint32_t n = 1;
+  if (ty->kind != rio_TypeKind_array) return 0;
+  while (ty->kind == rio_TypeKind_array) {
+    n *= ty->count;
+    ty = rio_type(vm, ty->elem);
+  }
+  if (ty->kind != rio_TypeKind_int && ty->kind != rio_TypeKind_float) return 0;
+  *count = (int)n;
+  return ty->kind == rio_TypeKind_float ? rio_TypeId_float : rio_TypeId_int;
+}
+
+/* the same shape of array as type (arrays of arrays too), of numbers of type elem */
+static int rio_reshaped(rio_Vm *vm, int type, int elem) {
+  int inner = rio_type(vm, type)->elem;
+  uint32_t count = rio_type(vm, type)->count;
+  if (rio_type(vm, type)->kind != rio_TypeKind_array) return elem;
+  return rio_arrayOf(vm, rio_reshaped(vm, inner, elem), count);
+}
+
+/* a math builtin, toInt or toFloat on number arrays: element by element, a number argument used for every
+   element, into a new temporary array. Each element is one scalar instruction (instr, its x which), as
+   for numbers, so native loops have them too (clamp's three arguments: two, min then max). to: the
+   result's numbers' type */
+static void rio_mathElements(rio_Vm *vm, rio_PendingOp *call, int instr, int which, int to) {
+  rio_Compiler *c = vm->compiler;
+  rio_Expr *a = &c->values[call->valueBase];
+  int n = rio_argCount(vm, call), count = 0, k, i, d, m, type = -1, elem = 0, s[3] = {0, 0, 0};
+  for (k = 0; k < n; k++) {
+    int e;
+    rio_needValue(vm, a + k);
+    if ((e = rio_numbersIn(vm, a[k].type, &m)) != 0) {
+      if (type >= 0 && a[k].type != type) rio_FAIL(, "type mismatch");
+      type = a[k].type;
+      elem = e;
+      count = m;
+    }
+  }
+  if (count > rio_SMALL_WORDS) rio_FAIL(, "too big for a temporary (over 16 words)");
+  if (instr == rio_Op_m1 || instr == rio_Op_m2 || instr == rio_Op_ftoi) {
+    if (elem != rio_TypeId_float) rio_FAIL(, "this takes Floats: convert an Int array with .toFloat()");
+  }
+  for (k = 0; k < n; k++)
+    if (!rio_numbersIn(vm, a[k].type, &m)) { /* a number, for every element */
+      if (a[k].kind == rio_ExprKind_const && rio_valueType(a[k].type) == rio_TypeId_int && elem == rio_TypeId_float)
+        rio_coerce(vm, a + k, rio_TypeId_float);
+      if (rio_valueType(a[k].type) != elem) rio_FAIL(, "type mismatch");
+      s[k] = rio_toSlot(vm, a + k, 1);
+    }
+  d = rio_allocSlots(vm, count);
+  for (i = 0; i < count; i++) {
+    uint32_t keep = c->freeSlot;
+    for (k = 0; k < n; k++)
+      if (rio_numbersIn(vm, a[k].type, &m)) {
+        rio_Expr e = a[k];
+        rio_offsetPlace(&e, 4 * i);
+        e.type = (uint16_t)elem;
+        s[k] = rio_toSlot(vm, &e, 0); /* (not into its address's slot: the next element needs it) */
+      }
+    if (n == 3) { /* clamp(x, lo, hi): max(lo, min(x, hi)) */
+      rio_emit(vm, elem == rio_TypeId_int ? rio_Op_imin : rio_Op_fmin, d + i, s[0], s[2]);
+      rio_emit(vm, elem == rio_TypeId_int ? rio_Op_imax : rio_Op_fmax, d + i, d + i, s[1]);
+    } else {
+      rio_emit(vm, instr, d + i, s[0], n > 1 ? s[1] : 0);
+      vm->code[vm->codeLen - 1].x = (uint8_t)which;
+    }
+    c->freeSlot = keep;
+  }
+  c->valueCount = call->valueBase;
+  rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, to == elem ? type : rio_reshaped(vm, type, to), d * 4), call->freeAtStart);
+}
+
 /* len, abs and the math functions (log ends its line) */
 static void rio_mathCall(rio_Vm *vm, rio_PendingOp *call) {
   rio_Compiler *c = vm->compiler;
@@ -296,6 +370,17 @@ static void rio_mathCall(rio_Vm *vm, rio_PendingOp *call) {
     } else rio_FAIL(, "len() is for arrays, slices, builders and strings");
     rio_callResult(vm, call, r);
     return;
+  }
+  { /* on number arrays: element by element */
+    int m, e = rio_numbersIn(vm, a->type, &m);
+    if (!e && n == 2) e = rio_numbersIn(vm, a[1].type, &m);
+    if (e) {
+      if (id == rio_Builtin_abs && e == rio_TypeId_int) rio_mathElements(vm, call, rio_Op_iabs, 0, rio_TypeId_int);
+      else if (id == rio_Builtin_abs || (id >= rio_Builtin_sqrt && id <= rio_Builtin_round))
+        rio_mathElements(vm, call, rio_Op_m1, id == rio_Builtin_abs ? rio_Math1_abs : rio_Math1_sqrt + (id - rio_Builtin_sqrt), rio_TypeId_float);
+      else rio_mathElements(vm, call, rio_Op_m2, rio_Math2_atan2 + (id - rio_Builtin_atan2), rio_TypeId_float);
+      return;
+    }
   }
   t = rio_valueType(a->type);
   if (id == rio_Builtin_abs && t == rio_TypeId_int) {
@@ -358,6 +443,14 @@ static void rio_minMaxCall(rio_Vm *vm, rio_PendingOp *call) {
   if (rio_argCount(vm, call) != 2) rio_FAIL(, "wrong number of arguments");
   rio_needValue(vm, a);
   rio_needValue(vm, a + 1);
+  { /* on number arrays: element by element */
+    int m, e = rio_numbersIn(vm, a->type, &m);
+    if (!e) e = rio_numbersIn(vm, a[1].type, &m);
+    if (e) {
+      rio_mathElements(vm, call, e == rio_TypeId_int ? (isMax ? rio_Op_imax : rio_Op_imin) : (isMax ? rio_Op_fmax : rio_Op_fmin), 0, e);
+      return;
+    }
+  }
   if (a[0].kind == rio_ExprKind_const && rio_valueType(a[1].type) == rio_TypeId_float) rio_coerce(vm, a, rio_TypeId_float);
   if (a[1].kind == rio_ExprKind_const && rio_valueType(a[0].type) == rio_TypeId_float) rio_coerce(vm, a + 1, rio_TypeId_float);
   t = rio_valueType(a->type);
@@ -367,6 +460,33 @@ static void rio_minMaxCall(rio_Vm *vm, rio_PendingOp *call) {
   d = rio_resultSlot(vm, call);
   if (t == rio_TypeId_int) rio_emit(vm, isMax ? rio_Op_imax : rio_Op_imin, d, s1, s2);
   else rio_emit(vm, isMax ? rio_Op_fmax : rio_Op_fmin, d, s1, s2);
+  rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, t, d * 4), call->freeAtStart);
+}
+
+/* clamp(x, lo, hi): x kept between lo and hi, as max(lo, min(x, hi)) (so lo, when lo > hi): Ints, Floats,
+   or number arrays element by element, a number used for every element */
+static void rio_clampCall(rio_Vm *vm, rio_PendingOp *call) {
+  rio_Compiler *c = vm->compiler;
+  rio_Expr *a = &c->values[call->valueBase];
+  int k, m, t = rio_TypeId_int, s[3], d;
+  if (rio_argCount(vm, call) != 3) rio_FAIL(, "clamp takes x, lo and hi");
+  for (k = 0; k < 3; k++) {
+    rio_needValue(vm, a + k);
+    if (rio_numbersIn(vm, a[k].type, &m)) {
+      rio_mathElements(vm, call, 0, 0, rio_numbersIn(vm, a[k].type, &m));
+      return;
+    }
+    if (rio_valueType(a[k].type) == rio_TypeId_float) t = rio_TypeId_float;
+  }
+  for (k = 0; k < 3; k++) {
+    if (a[k].kind == rio_ExprKind_const && t == rio_TypeId_float) rio_coerce(vm, a + k, rio_TypeId_float);
+    if (rio_valueType(a[k].type) != t) rio_FAIL(, "type mismatch");
+    s[k] = rio_toSlot(vm, a + k, 1);
+  }
+  d = rio_allocSlots(vm, 1); /* (a new one: lo may be in a temporary, still to be read) */
+  rio_emit(vm, t == rio_TypeId_int ? rio_Op_imin : rio_Op_fmin, d, s[0], s[2]);
+  rio_emit(vm, t == rio_TypeId_int ? rio_Op_imax : rio_Op_fmax, d, d, s[1]);
+  c->valueCount = call->valueBase;
   rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, t, d * 4), call->freeAtStart);
 }
 
@@ -760,6 +880,17 @@ static void rio_convertCall(rio_Vm *vm, rio_PendingOp *call) {
     rio_parseCall(vm, call, to);
     return;
   }
+  if (n == 1 && (to == rio_TypeId_int || to == rio_TypeId_float)) { /* number arrays: element by element */
+    int m, e = rio_numbersIn(vm, from, &m);
+    if (e == to) {
+      rio_callResult(vm, call, *a);
+      return;
+    }
+    if (e) {
+      rio_mathElements(vm, call, to == rio_TypeId_float ? rio_Op_itof : rio_Op_ftoi, 0, to);
+      return;
+    }
+  }
   if (n != 1) rio_FAIL(, text ? "toInt takes a base or nothing, toFloat nothing" : "conversions take no arguments");
   r = *a;
   if (to == from) { /* nothing to do */
@@ -832,6 +963,7 @@ void rio_finishBuiltinCall(rio_Vm *vm, rio_PendingOp *call) {
   int id = call->b;
   if (id == rio_Builtin_rangeLen || id == rio_Builtin_rangeHas) rio_rangeCall(vm, call);
   else if (id == rio_Builtin_min || id == rio_Builtin_max) rio_minMaxCall(vm, call);
+  else if (id == rio_Builtin_clamp) rio_clampCall(vm, call);
   else if (id == rio_Builtin_assert) rio_assertCall(vm, call);
   else if (id == rio_Builtin_format || id == rio_Builtin_print) rio_finishFormat(vm, call);
   else if (id == rio_Builtin_hexBlob) rio_hexBlobCall(vm, call);

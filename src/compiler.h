@@ -532,7 +532,7 @@ int32_t rio_parsePositiveConst(rio_Vm *vm);
 
 /* the builtins, in the order of rio_builtinNames */
 typedef enum {
-  rio_Builtin_log, rio_Builtin_len, rio_Builtin_min, rio_Builtin_max, rio_Builtin_abs,
+  rio_Builtin_log, rio_Builtin_len, rio_Builtin_min, rio_Builtin_max, rio_Builtin_clamp, rio_Builtin_abs,
   rio_Builtin_sqrt, rio_Builtin_sin, rio_Builtin_cos, rio_Builtin_tan, rio_Builtin_asin, rio_Builtin_acos,
   rio_Builtin_atan, rio_Builtin_exp, rio_Builtin_ln, rio_Builtin_floor, rio_Builtin_ceil, rio_Builtin_round,
   rio_Builtin_atan2, rio_Builtin_pow, rio_Builtin_fmod, /* (from here on, two arguments) */

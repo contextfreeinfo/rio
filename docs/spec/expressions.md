@@ -475,6 +475,24 @@ log(p.x, p.y, grid[1][1], (p - 1.0).x)
 
 A result that isn't stored in place is limited to 16 numbers; update bigger arrays in place.
 
+An array literal with no type written takes its partner's type, on the right of an operator whose left
+side is an array, or after `+=` and the like: `p + {1, 0}`, `p *= {2, 1}`.
+
+The math builtins (`abs`, `min`, `max`, `sqrt`, `floor`, `round`, `atan2`, `pow` and the rest), and
+`toInt` and `toFloat`, work on arrays of numbers element by element too, with a plain number used for
+every element, so clamping a point is one line. `toInt` and `toFloat` give an array of the same shape:
+
+```rio
+Point :: [2]Float
+p: Point = {12.6, -3.2}
+p = max(Point{0, 0}, min(p, 10.0))
+log(p, abs(Point{-1.5, 2}), round(p + {0.5, 0}), p.toInt(), [3]Int{1, -2, 3}.toFloat())
+```
+
+```output
+[10.0, 0.0] [1.5, 2.0] [11.0, 0.0] [10, 0] [1.0, -2.0, 3.0]
+```
+
 ## References
 
 `&place` is a reference to a place: a variable, field or element that can be changed. It's passed to

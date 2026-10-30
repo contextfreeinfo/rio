@@ -824,6 +824,35 @@ check(vo.x == -3 and vo.y == -6, "inside a proc, and returned")
 vr := &mv.vel
 vr *= 2.0
 check(mv.vel.x == 4, "through a reference")
+mp: [2]Float = {3.5, -2.5}
+mq := abs(mp) + floor(mp) + round(mp)
+check(mq.x == 3.5 + 3 + 4 and mq.y == 2.5 - 3 - 3, "math builtins on arrays")
+mq = max(0.0, min(mp, 3.0))
+check(mq.x == 3 and mq.y == 0, "min and max on arrays, a number spread")
+mq = max([2]Float{1, 1}, mp)
+check(mq.x == 3.5 and mq.y == 1 and pow(mp, 2.0).y == 6.25, "two arrays, and two-argument math")
+mi := mp.toInt()
+check(mi.x == 3 and mi.y == -2 and mi.toFloat().x == 3 and abs(mi).y == 2 and min(mi, 0).x == 0, "toInt and toFloat on arrays")
+mg: [2][2]Float
+mg[1] = {-1.5, 2.5}
+check(abs(mg)[1][0] == 1.5 and mg.toInt()[1][1] == 2, "nested arrays")
+mp = mp + {1, 1}
+mp *= {2, 0}
+mp -= {1, 0} * 2.0
+check(mp.x == 7 and mp.y == 0, "an untyped array literal takes its partner's type")
+mpts: [..4][2]Float
+mpok := mpts.push({10, 20})
+mpok = mpts.push({-5, 7})
+for pt in mpts
+  pt = max([2]Float{0, 0}, min(pt, 8.0))
+end
+check(mpts[0].y == 8 and mpts[1].x == 0 and mpts[1].y == 7, "clamped through a loop's element")
+clo := 2
+chi := 5
+check(clamp(9, clo, chi) == 5 and clamp(-1, clo, chi) == 2 and clamp(3, clo, chi) == 3 and clamp(1.5, 0, 1) == 1, "clamp")
+check(clamp(4, clo + chi, 6) == 7, "clamp: lo when lo > hi, a computed lo kept")
+mq = clamp([2]Float{-3, 9}, 0, [2]Float{4, 5})
+check(mq.x == 0 and mq.y == 5 and clamp([3]Int{-1, 3, 8}, 0, 5)[2] == 5, "clamp on arrays")
 
 # ---- swizzles: .x .y .z .w / .r .g .b .a on arrays of 1-4 numbers or Bools
 sv: [3]Float

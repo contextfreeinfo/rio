@@ -412,6 +412,48 @@ void rio_elementwiseOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r, rio_Expr *i
   which = op == '+' ? 0 : op == '-' ? 1 : op == '*' ? 2 : op == '/' ? 3 : op == '%' ? 4 : -1;
   if (which < 0) rio_FAIL(, "arrays and number structs only do + - * / %");
   if (which == 4 && elem == rio_TypeId_float) rio_FAIL(, "integer operator on floats");
+  if (n <= 4) { /* a point, a color: an instruction an element, as for numbers (so native loops have them too) */
+    rio_Expr lone = *l, rone = *r, dst;
+    int i, base = (int)c->freeSlot, scratch;
+    if (!lElem) lone = rio_exprOf(rio_ExprKind_static, elem, rio_toSlot(vm, l, 1) * 4); /* (a number: read once) */
+    if (!rElem) rone = rio_exprOf(rio_ExprKind_static, elem, rio_toSlot(vm, r, 1) * 4);
+    if (!into) { /* at or below every operand's temporaries: safe, since elements are done in order */
+      c->freeSlot = l->tempStart < r->tempStart ? l->tempStart : r->tempStart;
+      d = rio_allocSlots(vm, n);
+    }
+    scratch = (int)c->freeSlot > base ? (int)c->freeSlot : base;
+    for (i = 0; i < 2; i++) { /* a number in the result's slots: moved above them first (each element reads it) */
+      rio_Expr *one = i ? &rone : &lone;
+      if ((i ? rElem : lElem) || into || one->kind != rio_ExprKind_static || one->value / 4 < d || one->value / 4 >= d + n) continue;
+      rio_emit(vm, rio_Op_mov, scratch, one->value / 4, 0);
+      one->value = scratch++ * 4;
+    }
+    for (i = 0; i < n; i++) {
+      rio_Expr le = lone, re = rone;
+      c->freeSlot = (uint32_t)scratch;
+      if (lElem) { rio_offsetPlace(&le, 4 * i); le.type = (uint16_t)elem; le.access = 0; }
+      if (rElem) { rio_offsetPlace(&re, 4 * i); re.type = (uint16_t)elem; re.access = 0; }
+      le.tempStart = re.tempStart = (uint16_t)scratch;
+      rio_binaryOp(vm, op, &le, &re);
+      if (into) {
+        dst = *into;
+        rio_offsetPlace(&dst, 4 * i);
+        dst.type = (uint16_t)elem;
+      } else dst = rio_exprOf(rio_ExprKind_static, elem, (d + i) * 4);
+      rio_store(vm, &dst, &le);
+    }
+    c->freeSlot = (uint32_t)scratch;
+    if (!into) {
+      c->freeSlot = (uint32_t)(d + n);
+      l->kind = rio_ExprKind_static;
+      l->value = d * 4;
+      l->offset = 0;
+      l->type = (uint16_t)type;
+      l->access = 0;
+      l->tempStart = (uint16_t)d;
+    }
+    return;
+  }
   instr = (elem == rio_TypeId_float ? rio_Op_fvadd : rio_Op_vadd) + which;
   scalars = (lElem ? 0 : 16) | (rElem ? 0 : 32);
   ls = lElem ? rio_toAddrSlot(vm, l) : rio_toSlot(vm, l, 1);

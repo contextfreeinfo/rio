@@ -19,6 +19,11 @@ log(abs(-3), core.abs(-3))
 its types, and the tests check those declarations against the compiler. The ones that would need
 generics are written there in comments for now.
 
+Builtins may take more than one type under one name: `abs` takes an `Int` or a `Float`, `log` any
+values, `len` any sequence, and the math builtins arrays of numbers too. That's for builtins only. A
+program's own procs have one name each, one set of parameter types, so a name always means one proc
+(for proc values, images and host procs alike); give the variants names of their own.
+
 ## log
 
 `log(a, b, ...)` writes its arguments as text on one line, with spaces between, to the host's log (the
@@ -112,18 +117,22 @@ How values become text, in `log`, `print` and `format` (unless format's settings
 | `atan2(y, x)`, `pow(x, y)`, `fmod(x, y)` | `(Float, Float) -> Float` |
 | `abs(x)` | `Int` or `Float` |
 | `min(a, b)`, `max(a, b)` | two `Int`s or two `Float`s |
+| `clamp(x, lo, hi)` | three `Int`s or three `Float`s: `x` kept between `lo` and `hi`, as `max(lo, min(x, hi))` |
 
 `ln` is the natural log; `round` rounds halves away from zero; `fmod` is the `Float` remainder, with
 the sign of `x`. A number literal argument becomes a `Float` where one is needed, so `min(2, 3.5)` is
 `2.0`. Results are as from the C library's single-precision functions, so the last digit may differ
-between hosts.
+between hosts. Each also works on arrays of numbers, element by element (see
+[arithmetic on arrays](expressions.md#arithmetic-on-arrays-and-structs)).
 
 ```rio
 log(sqrt(16), floor(-2.5), round(2.5), round(-2.5), abs(-3), min(2, 3.5), pow(2, 10))
+log(clamp(15, 0, 10), clamp(-2.5, 0, 1), clamp([2]Float{-1, 7}, 0, 5))
 ```
 
 ```output
 4.0 -3.0 3.0 -3.0 3 2.0 1024.0
+10 0.0 [0.0, 5.0]
 ```
 
 ## assert

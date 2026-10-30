@@ -172,6 +172,14 @@ Rinc's and Studio's apps, would change with it.
 
 ## Done recently
 
+- **Math on arrays:** the math builtins, `min` and `max`, and `toInt` and `toFloat`, element by element
+  on arrays of numbers, a number spread over every element, and `clamp(x, lo, hi)` for numbers and
+  arrays alike (`clamp(p, 0, hi)`). An array literal
+  with no type takes its partner's in arithmetic (`p + {1, 0}`, `p *= {2, 1}`). Arithmetic on arrays
+  and number structs of up to 4 numbers compiles to an instruction an element, so native loops have
+  it (on the Fruit Jam, 256 balls' physics with `[2]Float` points: 0.52 ms a frame before, 0.25 after,
+  against 0.19 with separate x and y).
+
 - **Iterator structs:** `for x in it` (and `for x, i in it`, the turn from 0) over any struct with a
   method `next() -> ?T`, until it gives nil: a variable stepped in place, so a `break` leaves it where it
   stopped; anything else kept for the loop. A `next` giving text (`-> ?String`, the next word of a line)

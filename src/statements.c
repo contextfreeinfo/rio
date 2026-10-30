@@ -789,6 +789,7 @@ static void rio_expressionStatement(rio_Vm *vm) {
   k = rio_type(vm, l.type)->kind;
   rio_next(vm);
   if (k == rio_TypeKind_array || k == rio_TypeKind_struct) { /* element by element, in place */
+    c->targetType = l.type; /* (p += {1, 0}) */
     r = rio_parseExpr(vm);
     rio_elementwiseOp(vm, op, &l, &r, &l);
     return;

@@ -38,6 +38,8 @@ min* :: host proc(a, b: Int) -> Int
 min* :: host proc(a, b: Float) -> Float
 max* :: host proc(a, b: Int) -> Int
 max* :: host proc(a, b: Float) -> Float
+clamp* :: host proc(x, lo, hi: Int) -> Int      # max(lo, min(x, hi))
+clamp* :: host proc(x, lo, hi: Float) -> Float
 
 sqrt* :: host proc(x: Float) -> Float
 sin* :: host proc(x: Float) -> Float
