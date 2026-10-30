@@ -123,7 +123,7 @@ How values become text, in `log`, `print` and `format` (unless format's settings
 the sign of `x`. A number literal argument becomes a `Float` where one is needed, so `min(2, 3.5)` is
 `2.0`. Results are as from the C library's single-precision functions, so the last digit may differ
 between hosts. Each also works on arrays of numbers, element by element (see
-[arithmetic on arrays](expressions.md#arithmetic-on-arrays-and-structs)).
+[arithmetic on arrays](expressions.md#arithmetic-on-arrays)).
 
 ```rio
 log(sqrt(16), floor(-2.5), round(2.5), round(-2.5), abs(-3), min(2, 3.5), pow(2, 10))

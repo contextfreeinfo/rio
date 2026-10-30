@@ -5,13 +5,13 @@ microcontrollers: one C99 library that runs in a single block of memory, with no
 garbage collector and no recursion.
 
 ```rio
-Vec :: struct
-  x, y: Float
+Point :: [2]Float
+Ball :: struct
+  pos, vel: Point
 end
-pos := Vec{x = 1, y = 2}
-vel := Vec{x = 3, y = 4}
-pos += vel * 0.5
-log("at", pos.x, pos.y)
+b := Ball{pos = {1, 2}, vel = {3, 4}}
+b.pos += b.vel * 0.5
+log("at", b.pos.x, b.pos.y)
 ```
 
 ```output

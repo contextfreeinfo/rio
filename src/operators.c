@@ -1,5 +1,5 @@
 /* operators.c - unary and binary operators: constant folding, typed instructions, element-by-element
-   arithmetic on arrays and structs of numbers, and unions' `is` with the narrowing it allows (see
+   arithmetic on arrays of numbers, and unions' `is` with the narrowing it allows (see
    docs/spec/expressions.md). */
 #include "compiler.h"
 #ifndef rio_NO_COMPILER
@@ -363,26 +363,18 @@ void rio_binaryOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
   l->tempStart = (uint16_t)d;
 }
 
-/* An array or struct made of one number type (Int or Float, any array nesting): that type, and how many
-   numbers in *count; 0 if type is anything else. */
+/* An array of one number type (Int or Float, any array nesting): that type, and how many numbers in
+   *count; 0 if type is anything else. */
 int rio_numberArrayInfo(rio_Vm *vm, int type, int *count) {
   rio_Type *ty = rio_type(vm, type);
   uint32_t n = 1;
-  int k, i;
-  if (ty->kind != rio_TypeKind_array && ty->kind != rio_TypeKind_struct) return 0;
+  int k;
+  if (ty->kind != rio_TypeKind_array) return 0;
   while (ty->kind == rio_TypeKind_array) {
     n *= ty->count;
     ty = rio_type(vm, ty->elem);
   }
   k = ty->kind;
-  if (k == rio_TypeKind_struct) {
-    rio_Field *f = rio_field(vm, ty->firstField);
-    if (!ty->fieldCount || ty->size != ty->fieldCount * 4u) return 0;
-    k = rio_type(vm, f[0].type)->kind;
-    for (i = 0; i < ty->fieldCount; i++)
-      if (rio_type(vm, f[i].type)->kind != k || f[i].bits) return 0; /* (bitfields: not a vector of numbers) */
-    n *= ty->fieldCount;
-  }
   if (k != rio_TypeKind_int && k != rio_TypeKind_float) return 0;
   *count = (int)n;
   return k == rio_TypeKind_float ? rio_TypeId_float : rio_TypeId_int;
@@ -397,7 +389,13 @@ void rio_elementwiseOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r, rio_Expr *i
   rio_needValue(vm, r);
   lElem = rio_numberArrayInfo(vm, l->type, &lCount);
   rElem = rio_numberArrayInfo(vm, r->type, &rCount);
-  if (!lElem && !rElem) rio_FAIL(, "arithmetic needs numbers, or arrays and structs made of one number type");
+  if (!lElem && !rElem) {
+    int arithmetic = op == '+' || op == '-' || op == '*' || op == '/' || op == '%';
+    if (rio_type(vm, l->type)->kind == rio_TypeKind_struct || rio_type(vm, r->type)->kind == rio_TypeKind_struct)
+      rio_FAIL(, arithmetic ? "structs don't do arithmetic: use an array of numbers, such as [2]Float (its .x and .y are its elements)"
+                            : "structs don't compare as wholes: compare their fields");
+    rio_FAIL(, "arithmetic needs numbers, or arrays of them");
+  }
   type = lElem ? l->type : r->type;
   elem = lElem ? lElem : rElem;
   n = lElem ? lCount : rCount;
@@ -410,7 +408,7 @@ void rio_elementwiseOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r, rio_Expr *i
     if (rio_valueType(scalar->type) != elem) rio_FAIL(, "type mismatch");
   }
   which = op == '+' ? 0 : op == '-' ? 1 : op == '*' ? 2 : op == '/' ? 3 : op == '%' ? 4 : -1;
-  if (which < 0) rio_FAIL(, "arrays and number structs only do + - * / %");
+  if (which < 0) rio_FAIL(, "arrays only do + - * / %");
   if (which == 4 && elem == rio_TypeId_float) rio_FAIL(, "integer operator on floats");
   if (n <= 4) { /* a point, a color: an instruction an element, as for numbers (so native loops have them too) */
     rio_Expr lone = *l, rone = *r, dst;

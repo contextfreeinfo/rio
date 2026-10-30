@@ -761,10 +761,8 @@ reflocal :: proc() -> Int
 end
 check(reflocal() == 112, "references to locals inside a proc")
 
-# ---- arithmetic on arrays and on structs made of one number type: element by element, scalars spread
-V2 :: struct
-  x, y: Float
-end
+# ---- arithmetic on arrays of numbers: element by element, scalars spread (structs don't: tests/errors.c)
+V2 :: [2]Float
 Mover :: struct
   pos, vel: V2
 end
@@ -783,16 +781,16 @@ check(ve[0] == 1 and ve[2] == -1, "scalar on the left")
 vf := -va
 check(vf[1] == -1 and vf[0] == 0, "unary minus")
 check((va + vb)[1] == 11, "indexing a computed array")
-u2 := V2{x = 1, y = 2}
-w2 := V2{x = 3, y = 4}
+u2 := V2{1, 2}
+w2 := V2{3, 4}
 s2 := u2 + w2 * 2
-check(s2.x == 7 and s2.y == 10, "structs, Int literal spread as Float")
+check(s2.x == 7 and s2.y == 10, "small arrays, Int literal spread as Float")
 s2 -= u2
 s2 *= 0.5
-check(s2.x == 3 and s2.y == 4, "structs in place")
-mv: Mover = {pos = {x = 1, y = 1}, vel = {x = 2, y = 3}}
+check(s2.x == 3 and s2.y == 4, "small arrays in place")
+mv: Mover = {pos = {1, 1}, vel = {2, 3}}
 mv.pos += mv.vel * 0.5
-check(mv.pos.x == 2 and mv.pos.y == 2.5, "a struct inside a struct")
+check(mv.pos.x == 2 and mv.pos.y == 2.5, "an array inside a struct")
 ia: [4]Int
 for v, i in ia
   v = i * 3 - 4
@@ -811,7 +809,7 @@ gr += 5
 check(gr[1][1] == 5 and gr[0][0] == 5, "nested arrays")
 movers: [3]Mover
 for m in movers
-  m.vel = {x = 1, y = 1}
+  m.vel = {1, 1}
   m.pos += m.vel * 3
 end
 check(movers[2].pos.y == 3, "through a for-each element")

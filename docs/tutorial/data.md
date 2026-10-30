@@ -24,14 +24,13 @@ log(b.pos.x, b.pos.y, b.bounces)
 The literal's type can be left off where it's known, as in `pos = {x = 10}` above. Structs are values:
 `c := b` is a copy, and changing `c` leaves `b` alone.
 
-Structs made of numbers do math a field at a time, which suits vectors:
+For vectors, use an array of numbers: it does math an element at a time, and `.x` and `.y` name its
+first two elements:
 
 ```rio
-Vec :: struct
-  x, y: Float
-end
-pos := Vec{x = 1, y = 1}
-vel := Vec{x = 3, y = 4}
+Point :: [2]Float
+pos := Point{1, 1}
+vel := Point{3, 4}
 pos += vel * 0.5
 log(pos.x, pos.y)
 ```

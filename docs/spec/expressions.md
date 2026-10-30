@@ -451,18 +451,17 @@ end
 steps := [Dir]Int{.north = 1, 2}  # error: name each value
 ```
 
-## Arithmetic on arrays and structs
+## Arithmetic on arrays
 
-Arrays of numbers, and structs whose fields are all `Int`s or all `Float`s, do arithmetic element by
-element: `+ - * / %` and unary `-`. Both sides have the same type, or one is a plain number, used for
-every element. Nesting works too:
+Arrays of numbers do arithmetic element by element: `+ - * / %` and unary `-`. Both sides have the
+same type, or one is a plain number, used for every element. Nesting works too. Structs don't do
+arithmetic as wholes: for a vector, use an array, whose [swizzles](#members) (`.x`, `.y`) name its
+elements:
 
 ```rio
-Vec :: struct
-  x, y: Float
-end
-p := Vec{x = 1, y = 2}
-v := Vec{x = 10, y = 20}
+Point :: [2]Float
+p := Point{1, 2}
+v := Point{10, 20}
 p += v * 0.5
 grid: [2][2]Int
 grid += 3
