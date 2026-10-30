@@ -19,6 +19,7 @@ v := geo.Vec{x = 3, y = 4}
 check(v.len2() == 25, "an exported method travels with its type")
 w: Vec = {x = 1, y = 1}
 check(plus(v, w).x == 4, "selective import, renamed with as")
+check(geo.Vec.zero().x == 0 and Vec.zero().y == 0, "an exported static proc travels with its type")
 check(geo.add(v, w).y == 5, "qualified call")
 check(UNIT == 1 and geo.UNIT == 1, "exported constant")
 sized: [geo.UNIT * 4 + 1][UNIT + 1]Int

@@ -225,7 +225,7 @@ static void rio_forNext(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
   p = &c->procDefs[c->syms[k].value];
   if (!p->defined) rio_FAIL(, "recursion is not allowed");
   rt = rio_type(vm, p->resultType);
-  if (p->resultType == rio_TypeId_void || rt->kind != rio_TypeKind_union || !rt->elem) rio_FAIL(, "a loop's next returns a maybe: next :: proc() -> ?T");
+  if (p->isStatic || p->resultType == rio_TypeId_void || rt->kind != rio_TypeKind_union || !rt->elem) rio_FAIL(, "a loop's next returns a maybe: next :: proc() -> ?T");
   if (p->paramCount - 1 > p->optional) rio_FAIL(, "a loop calls next with nothing: its parameters are optional, or none");
   if (rio_isTemp(vm, e) || e->access) { /* (not a place it can step: a copy of its own, for the loop) */
     rio_Expr held = rio_exprOf(rio_ExprKind_static, type, rio_allocSlots(vm, rio_typeWords(vm, type)) * 4);
@@ -1001,8 +1001,9 @@ static void rio_constantDecl(rio_Vm *vm) {
     rio_hostDecl(vm, name, nameLen, -1, line, col);
     return;
   }
+  if (rio_tokIs(vm, "static", 6) && c->peek.kind == rio_Tok_proc) rio_FAIL_AT_TOKEN(, "static is for a proc on a type: T.name :: static proc");
   switch (c->tok.kind) {
-  case rio_Tok_proc: rio_procDef(vm, name, nameLen, -1); return;
+  case rio_Tok_proc: rio_procDef(vm, name, nameLen, -1, 0); return;
   case rio_Tok_struct: rio_structDef(vm, name, nameLen); return;
   case rio_Tok_enum: rio_enumDef(vm, name, nameLen); return;
   case rio_Tok_union: rio_unionDef(vm, name, nameLen); return;

@@ -125,6 +125,7 @@ typedef struct {
   uint32_t bigTop;     /* its big locals are below this */
   uint8_t defined;     /* its end has been compiled: a call to it isn't recursion */
   uint8_t selfByRef;   /* a method on a struct: self is the receiver's address */
+  uint8_t isStatic;    /* T.name :: static proc: on its type, with no self (called T.name()) */
   uint8_t shared;
   uint8_t callsValues; /* it calls through a proc value, itself or through procs it calls (so it can't
                           be a value: that could recurse) */
@@ -593,10 +594,10 @@ void rio_finishBuiltinCall(rio_Vm *vm, rio_PendingOp *call);
 /* ------------------------------------------------------------------ decls.c */
 
 int rio_parseType(rio_Vm *vm);
-void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver);
+void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int isStatic);
 int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver);
 void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type, int how);
-int rio_beginProcAt(rio_Vm *vm, int at, const char *name, int nameLen, int receiver);
+int rio_beginProcAt(rio_Vm *vm, int at, const char *name, int nameLen, int receiver, int isStatic);
 void rio_ffiProcValue(rio_Vm *vm, rio_Expr *e, int type);
 void rio_makeThunks(rio_Vm *vm);
 void rio_setProcResult(rio_Vm *vm, int proc, int type);

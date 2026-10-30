@@ -1448,6 +1448,33 @@ nfTwo :: proc(m, n: ?Int) -> Int
 end
 check(nfTwo(1, 2) == 3 and nfTwo(nil, 2) == 0 and nfTwo(1, nil) == 0, "two, or-ed")
 
+# ---- static procs: on a type, with no self
+SpR :: struct
+  pos, size: [2]Float
+end
+SpR.of :: static proc(x, y, w, h: Float) -> SpR
+  return SpR{pos = {x, y}, size = {w, h}}
+end
+SpR.area :: proc() -> Float
+  return self.size.x * self.size.y
+end
+spR := SpR.of(1, 2, 3, 4)
+check(spR.area() == 12 and spR.pos.y == 2, "T.name(...) calls a static proc")
+spMake := SpR.of
+check(spMake(0, 0, 2, 2).area() == 4, "a static proc as a proc value")
+SpDir :: enum
+  north, east
+end
+SpDir.last :: static proc() -> SpDir
+  return .east
+end
+Int.parsed :: static proc(s: String) -> Int
+  return s.toInt() or 0
+end
+check(SpDir.last() == .east and SpDir.north == .north and Int.parsed("12") == 12, "on an enum, and on Int")
+static := 3
+check(static == 3, "static is a word only before proc, in a method's declaration")
+
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1

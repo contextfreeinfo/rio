@@ -278,6 +278,29 @@ log(s.x, s.hurt(5), 21.double())
 Each type has its own method names, apart from plain procs. A method can't have the same name as a
 field of its type. Fields are always `self.x`; a plain `x` is never a field.
 
+`Type.name :: static proc` declares a static proc: one called on the type, `Type.name(...)`, with no
+`self`, as a constructor is (`static` is a word only there). It's one of the type's method names, and
+travels with the type as its methods do, but a value can't call it, and the type can't call a method:
+
+```rio
+Rect :: struct
+  pos, size: [2]Float
+end
+Rect.of :: static proc(x, y, w, h: Float) -> Rect
+  return Rect{pos = {x, y}, size = {w, h}}
+end
+Rect.area :: proc() -> Float
+  return self.size.x * self.size.y
+end
+r := Rect.of(1, 2, 3, 4)
+make := Rect.of  # a proc value, as any proc's name is
+log(r.area(), make(0, 0, 2, 2).area())
+```
+
+```output
+12.0 4.0
+```
+
 ## Structs, enums and unions
 
 ```rio fragment

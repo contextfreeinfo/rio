@@ -340,7 +340,7 @@ void rio_makeThunks(rio_Vm *vm) {
     char call[256];
     rio_Expr e;
     c->exporting = 0;
-    if (rio_beginProcAt(vm, proc, "", 0, -1) < 0) return;
+    if (rio_beginProcAt(vm, proc, "", 0, -1, 0) < 0) return;
     for (i = 0; i < def->paramCount && !rio_failed(vm); i++) {
       char param[16];
       int len = rio_appendText(param, 0, "a");

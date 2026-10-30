@@ -189,10 +189,11 @@ static void rio_addParam(rio_Vm *vm, int type, int refType, int addr) {
 
 /* The start of a proc (receiver: a method's type, or -1): a jump for top-level code to go around it, its
    entry, and its frame, with self first for a method. Returns the proc, or -1. */
-int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver) { return rio_beginProcAt(vm, -1, name, nameLen, receiver); }
+int rio_beginProc(rio_Vm *vm, const char *name, int nameLen, int receiver) { return rio_beginProcAt(vm, -1, name, nameLen, receiver, 0); }
 
-/* the same, at index at, kept for it already (a host proc's, used as a value: rio_ffiProcValue), or -1 */
-int rio_beginProcAt(rio_Vm *vm, int at, const char *name, int nameLen, int receiver) {
+/* the same, at index at, kept for it already (a host proc's, used as a value: rio_ffiProcValue), or -1;
+   isStatic: a method with no self */
+int rio_beginProcAt(rio_Vm *vm, int at, const char *name, int nameLen, int receiver, int isStatic) {
   rio_Compiler *c = vm->compiler;
   rio_ProcDef *p;
   rio_Block *b;
@@ -209,7 +210,9 @@ int rio_beginProcAt(rio_Vm *vm, int at, const char *name, int nameLen, int recei
   p->bigTop = vm->top;
   p->callsValues = p->usedAsValue = 0;
   p->optional = 0;
+  p->isStatic = (uint8_t)isStatic;
   rio_addSymbol(vm, name, nameLen, receiver < 0 ? rio_SymKind_proc : rio_SymKind_method, receiver < 0 ? 0 : receiver, index);
+  if (isStatic) receiver = -1; /* (no self) */
   p->selfByRef = (uint8_t)(receiver >= 0 && rio_type(vm, receiver)->kind == rio_TypeKind_struct);
   b = rio_pushBlock(vm, rio_Block_proc);
   b->a = (uint16_t)skip;
@@ -274,16 +277,16 @@ void rio_beginBody(rio_Vm *vm, int proc) {
   c->procDefs[proc].entry = (uint16_t)rio_label(vm);
 }
 
-/* name :: proc(params) -> result, after the name and ::; receiver: a method's type, or -1. The body
-   follows as statements, until its end (in rio_statement). */
-void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver) {
+/* name :: proc(params) -> result, after the name and ::; receiver: a method's type, or -1 (isStatic: one
+   with no self). The body follows as statements, until its end (in rio_statement). */
+void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int isStatic) {
   rio_Compiler *c = vm->compiler;
   int index;
   if (c->blockCount || c->curProc >= 0) rio_FAIL(, "procs must be top-level");
   if (vm->procCount >= (int)c->limits.procs) rio_FAIL(, "too many procs");
   rio_next(vm);
   rio_expect(vm, '(', "'(' expected");
-  if ((index = rio_beginProc(vm, name, nameLen, receiver)) < 0) return;
+  if ((index = rio_beginProcAt(vm, -1, name, nameLen, receiver, isStatic)) < 0) return;
   while (c->tok.kind != ')' && !rio_failed(vm)) { /* a, b: T  or  a: &T */
     const char *names[16];
     int lens[16], opt, n = rio_parseNames(vm, names, lens, &opt), isRef = c->tok.kind == '&', t, j;
@@ -303,11 +306,11 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver) {
   rio_beginBody(vm, index);
 }
 
-/* Type.name :: proc(...) */
+/* Type.name :: proc(...), or :: static proc(...) for one called on the type, with no self */
 void rio_methodDef(rio_Vm *vm, int receiver) {
   rio_Compiler *c = vm->compiler;
   const char *name;
-  int nameLen, line, col, width;
+  int nameLen, line, col, width, isStatic;
   rio_next(vm);
   rio_next(vm);
   if (c->tok.kind != rio_Tok_id) rio_FAIL(, "method name expected");
@@ -324,6 +327,8 @@ void rio_methodDef(rio_Vm *vm, int receiver) {
     rio_next(vm);
   }
   rio_expect(vm, rio_Tok_colonColon, "'::' expected");
+  isStatic = rio_tokIs(vm, "static", 6) && c->peek.kind == rio_Tok_proc; /* (static: a word only there) */
+  if (isStatic) rio_next(vm);
   if (rio_atHost(vm)) { /* Int.toFloat :: host proc() -> Float: a builtin method, declared */
     rio_hostDecl(vm, name, nameLen, receiver, line, col);
     return;
@@ -333,7 +338,7 @@ void rio_methodDef(rio_Vm *vm, int receiver) {
     return;
   }
   if (c->tok.kind != rio_Tok_proc) rio_FAIL(, "'proc' expected");
-  rio_procDef(vm, name, nameLen, receiver);
+  rio_procDef(vm, name, nameLen, receiver, isStatic);
 }
 
 /* ------------------------------------------------------------------ structs, unions and enums */

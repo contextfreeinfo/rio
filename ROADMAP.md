@@ -23,11 +23,6 @@ Nothing open: see Leaning yes.
 
 ## Leaning yes
 
-- **Static procs on types:** `P.make :: static proc(x: Int) -> P`, called as `P.make(3)`, as the
-  builtin `E.fromInt(n)` already is. Today that call is "not a value". Methods stay as they are, with an
-  implicit `self`, since they're the common case: the marker goes on the rare kind. Deciding from
-  whether a body uses `self` would let a body change what callers may do. (Builtins about a type are
-  procs taking it, `sizeOf(T)`, which leaves `T.name` for these.)
 - **Generic procs:** `swap :: proc[T](a, b: &T)`, `find :: proc[T](xs: []T, x: T) -> Int`. The type
   parameters are listed in brackets after `proc`, where nothing else can go.
   - **Inferred at every call:** `find(xs[], 3)`. There's no `find[Int](...)`, which would read like
@@ -138,6 +133,10 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **Static procs on types:** `Rect.of :: static proc(...) -> Rect`, called as `Rect.of(...)`, with no
+  `self`, and a proc value as any proc. `static` is a word only there, so it reserves nothing. Methods
+  keep their implicit `self`: the marker goes on the rare kind.
 
 - **Narrowing when a test is false:** for a maybe or a union of two types, `not n`, `n is nil` and
   `not (u is A)` narrow on the right of `or`, in the branches after (`case`, `else`), and after an `if`

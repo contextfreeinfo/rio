@@ -329,6 +329,14 @@ static void rio_member(rio_Vm *vm) {
     e->tempStart = tempStart;
     return;
   }
+  if (e->kind == rio_ExprKind_type && (i = rio_lookupMethod(vm, e->type, t->text, t->len)) >= 0) { /* T.make(...): a static proc */
+    uint16_t tempStart = e->tempStart;
+    if (!c->procDefs[c->syms[i].value].isStatic) rio_FAIL_AT_TOKEN(, "a method is called on a value (x.name()); one on its type is a static proc");
+    if (!c->procDefs[c->syms[i].value].defined) rio_FAIL_AT_TOKEN(, "recursion is not allowed");
+    *e = rio_exprOf(rio_ExprKind_proc, 0, c->syms[i].value);
+    e->tempStart = tempStart;
+    return;
+  }
   if (e->kind == rio_ExprKind_type && rio_type(vm, e->type)->kind == rio_TypeKind_enum) { /* Enum.value, Enum.fromInt, Enum.has */
     int32_t v;
     uint16_t tempStart = e->tempStart;
@@ -390,6 +398,7 @@ static void rio_member(rio_Vm *vm) {
                  : ty->kind == rio_TypeKind_array ? "no such method (swizzles like .x .zy .rgba need 1-4 letters, on arrays of 1-4 numbers)"
                                                    : "no such method");
     if (!c->procDefs[c->syms[i].value].defined) rio_FAIL(, "recursion is not allowed");
+    if (c->procDefs[c->syms[i].value].isStatic) rio_FAIL_AT_TOKEN(, "a static proc is called on its type (T.name()), not a value");
     method = rio_exprOf(rio_ExprKind_proc, 0, c->syms[i].value);
   }
   if (c->peek.kind != '(') rio_FAIL(, "method calls need ()");

@@ -8,6 +8,9 @@ end
 Vec.len2* :: proc() -> Float
   return sq(self.x) + sq(self.y)
 end
+Vec.zero* :: static proc() -> Vec   # called on the type: Vec.zero()
+  return {x = 0, y = 0}
+end
 add* :: proc(a: Vec, b: Vec) -> Vec
   return {x = a.x + b.x, y = a.y + b.y}
 end
