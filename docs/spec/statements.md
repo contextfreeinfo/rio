@@ -143,6 +143,11 @@ through 2
   it started.
 - **Enums:** `for d in E` visits the enum's values in the order listed (`for d, i in E` adds the
   index). Over an `[E]T` array, the index is the enum value.
+- **Iterators:** `for x in it`, where `it` is a struct with a method `next() -> ?T`, calls `it.next()`
+  before each turn and ends at the first nil; `x` is the value inside (a new `T` variable). A variable
+  (or a field, or a place a `&T` reaches) is stepped in place, so after a `break` it carries on where it
+  stopped; anything else, such as a struct literal or a call's result, is kept for the loop. `for x, i
+  in it` adds the turn, from 0. `next` takes nothing, unless its parameters are optional.
 
 ```rio
 xs: [3]Int
@@ -166,6 +171,38 @@ log(total)
 north
 east
 30
+```
+
+```rio
+Countdown :: struct
+  at: Int
+end
+Countdown.next :: proc() -> ?Int
+  if self.at == 0 do return nil
+  self.at -= 1
+  return self.at + 1
+end
+for n in Countdown{at = 3}
+  log(n)
+end
+c := Countdown{at = 5}
+for n, i in c
+  if i == 1 do break
+end
+log("left:", c.at)
+for n in c
+  log("then", n)
+end
+```
+
+```output
+3
+2
+1
+left: 3
+then 3
+then 2
+then 1
 ```
 
 ## break and continue

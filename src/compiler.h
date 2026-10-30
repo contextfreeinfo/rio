@@ -222,13 +222,13 @@ typedef struct {
 
 /* loops last: break and continue look for kind >= rio_Block_loop */
 typedef enum {
-  rio_Block_proc, rio_Block_if, rio_Block_else, rio_Block_switch, rio_Block_do, rio_Block_loop, rio_Block_for, rio_Block_each
+  rio_Block_proc, rio_Block_if, rio_Block_else, rio_Block_switch, rio_Block_do, rio_Block_loop, rio_Block_for, rio_Block_each, rio_Block_next
 } rio_BlockKind;
 
 /* a and b by kind:
      proc     a: the jump over its body; b: the proc
      if/else  a: the jump to the next branch, when the condition is false; b: the jumps to the end
-     loops    a: the pc of the top; each with an index: b is the index's slot (else rio_NONE)
+     loops    a: the pc of the top; each and next with an index: b is the index's slot (else rio_NONE)
      switch   a: the slot of the union variable cases narrow (or rio_NONE); b: 1 once a case is seen,
               2 once the else is */
 /* what a block knows about reaching its end, for missing returns (docs/spec/declarations.md#procs) */

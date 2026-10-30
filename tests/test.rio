@@ -635,6 +635,63 @@ sumhp :: proc(ss: []Ship) -> Int
 end
 check(sumhp(squad[]) == 10 + 11 + 12 + 13, "inside a proc, over a slice parameter")
 
+# ---- for x in it: a struct with next() -> ?T, until nil; a variable is stepped in place
+Upto :: struct
+  at: Int
+  last: Int
+end
+Upto.next :: proc() -> ?Int
+  if self.at > self.last do return nil
+  self.at += 1
+  return self.at - 1
+end
+itSum := 0
+for n in Upto{at = 1, last = 4}
+  itSum += n
+end
+check(itSum == 10, "for over a struct's next, a literal")
+upto := Upto{at = 1, last = 9}
+itSum = 0
+for n, i in upto
+  check(i == n - 1, "for over next: the index counts from 0")
+  if n == 3 do break
+end
+check(upto.at == 4, "for over next: a variable stepped in place, so a break leaves it where it stopped")
+for n in upto
+  if n % 2 == 0 do continue
+  itSum += n
+end
+check(itSum == 5 + 7 + 9 and upto.at == 10, "for over next: carrying on, with continue")
+for n in Upto{at = 3, last = 1}
+  check(false, "for over next: nothing, when the first is nil")
+end
+Cell :: struct
+  x: Int
+  y: Int
+end
+Cells :: struct
+  i: Int
+end
+Cells.next :: proc() -> ?Cell
+  if self.i >= 4 do return nil
+  self.i += 1
+  return Cell{x = (self.i - 1) % 2, y = (self.i - 1) / 2}
+end
+itSum = 0
+for cell in Cells{}
+  itSum += cell.x + 10 * cell.y
+end
+check(itSum == 22, "for over next: a struct each time")
+stepAll :: proc(u: &Upto) -> Int
+  t := 0
+  for n in u
+    t += n
+  end
+  return t
+end
+upto = Upto{at = 1, last = 3}
+check(stepAll(&upto) == 6 and upto.at == 4, "for over next: through a &T, inside a proc")
+
 # ---- references: &T parameters and name := &place (never stored, returned or re-pointed)
 swapvx :: proc(a: &Ship, b: &Ship)
   t := a.vx

@@ -181,6 +181,53 @@ static void rio_forEach(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
   b->a = (uint16_t)rio_label(vm);
 }
 
+/* for x in it, for x, i in it: it is a struct with a method next() -> ?T, called before each turn; the
+   loop ends at its first nil, and x is its value. A variable (or a field, or what a &T reaches) is
+   stepped in place, so after a break it carries on where it stopped; anything else, such as a literal or
+   a call's result, is kept for the loop. i counts the turns from 0 */
+static void rio_forNext(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name, int nameLen, const char *indexName, int indexLen,
+                        int index) {
+  rio_Compiler *c = vm->compiler;
+  int type = rio_valueType(e->type), k, addr, res, i;
+  rio_ProcDef *p;
+  rio_Type *rt;
+  rio_needValue(vm, e);
+  if ((k = rio_lookupMethod(vm, type, "next", 4)) < 0) rio_FAIL(, "for needs a range, array, slice or builder, or a struct with next() -> ?T");
+  p = &c->procDefs[c->syms[k].value];
+  if (!p->defined) rio_FAIL(, "recursion is not allowed");
+  rt = rio_type(vm, p->resultType);
+  if (p->resultType == rio_TypeId_void || rt->kind != rio_TypeKind_union || !rt->elem) rio_FAIL(, "a loop's next returns a maybe: next :: proc() -> ?T");
+  if (p->paramCount - 1 > p->optional) rio_FAIL(, "a loop calls next with nothing: its parameters are optional, or none");
+  if (rio_isTemp(vm, e) || e->access) { /* (not a place it can step: a copy of its own, for the loop) */
+    rio_Expr held = rio_exprOf(rio_ExprKind_static, type, rio_allocSlots(vm, rio_typeWords(vm, type)) * 4);
+    rio_store(vm, &held, e);
+    *e = held;
+  }
+  addr = rio_allocSlots(vm, 1); /* (where it is, kept: each turn passes it as self) */
+  rio_emit(vm, rio_Op_mov, addr, rio_toAddrSlot(vm, e), 0);
+  res = rio_allocSlots(vm, rio_typeWords(vm, p->resultType));
+  if (indexName) rio_emit(vm, rio_Op_mov, index, rio_constSlot(vm, 0), 0);
+  c->liveSlots = c->freeSlot;
+  b->a = (uint16_t)rio_label(vm);
+  rio_emit(vm, rio_Op_mov, (int)(c->params[p->firstParam].addr / 4), addr, 0);
+  for (i = 1; i < p->paramCount; i++) { /* (its optional parameters: zero) */
+    rio_Param *param = &c->params[p->firstParam + i];
+    int w, words = rio_typeWords(vm, param->type);
+    for (w = 0; w < words; w++) rio_emit(vm, rio_Op_mov, (int)(param->addr / 4) + w, rio_constSlot(vm, 0), 0);
+  }
+  rio_emit(vm, rio_Op_call, 0, 0, p->entry);
+  if (p->callsValues && c->curProc >= 0) c->procDefs[c->curProc].callsValues = 1;
+  { /* its result, copied out (the next call would overwrite it): nil ends the loop */
+    rio_Expr src = rio_exprOf(rio_ExprKind_static, p->resultType, (int32_t)p->resultAt), dst = rio_exprOf(rio_ExprKind_static, p->resultType, res * 4);
+    rio_store(vm, &dst, &src);
+  }
+  b->kind = rio_Block_next;
+  b->b = (uint16_t)index;
+  b->breaks = (uint16_t)rio_emit(vm, rio_Op_jz, res, 0, rio_NONE);
+  rio_addSymbol(vm, name, nameLen, rio_SymKind_var, rt->elem, (res + 1) * 4);
+  if (indexName) rio_addSymbol(vm, indexName, indexLen, rio_SymKind_var, rio_TypeId_int, index * 4);
+}
+
 /* the loop over [counter, limit), both stored already: name is the counter, of type (an Int, or an enum) */
 static void rio_countUp(rio_Vm *vm, rio_Block *b, const char *name, int nameLen, int type, int counter, int limit) {
   rio_addSymbol(vm, name, nameLen, rio_SymKind_var, type, counter * 4);
@@ -335,7 +382,9 @@ static void rio_forIn(rio_Vm *vm) {
     return;
   }
   if (c->tok.kind != rio_Tok_rangeExcl && c->tok.kind != rio_Tok_rangeIncl) {
-    rio_forEach(vm, b, &e, name, nameLen, indexName, indexLen, counter, limit, index);
+    if (e.kind != rio_ExprKind_type && rio_type(vm, rio_valueType(e.type))->kind == rio_TypeKind_struct) /* for x in it: it.next() */
+      rio_forNext(vm, b, &e, name, nameLen, indexName, indexLen, index);
+    else rio_forEach(vm, b, &e, name, nameLen, indexName, indexLen, counter, limit, index);
     return;
   }
   if (indexName) rio_FAIL(, "a range loop has no index: its variable is the index");
@@ -436,6 +485,10 @@ static void rio_endBlock(rio_Vm *vm, int line, int col) {
     rio_patchJumps(vm, b->continues, rio_label(vm));
     if (b->b != rio_NONE) rio_emit(vm, rio_Op_add, b->b, b->b, rio_constSlot(vm, 1)); /* the index */
     rio_emit(vm, rio_Op_each, b->counter, b->limit, b->a);
+  } else if (b->kind == rio_Block_next) {
+    rio_patchJumps(vm, b->continues, rio_label(vm));
+    if (b->b != rio_NONE) rio_emit(vm, rio_Op_add, b->b, b->b, rio_constSlot(vm, 1)); /* the index */
+    rio_emit(vm, rio_Op_jmp, 0, 0, b->a);
   } else rio_patchJumps(vm, b->b, rio_label(vm)); /* if/else: the earlier branches' jumps to the end */
   rio_patchJumps(vm, b->kind >= rio_Block_loop ? b->breaks : b->a, rio_label(vm));
   if (b->kind < rio_Block_loop) rio_endBranches(c, b);

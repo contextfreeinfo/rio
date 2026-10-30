@@ -19,26 +19,6 @@ Rinc's and Studio's apps, would change with it.
 
 ## Next
 
-- **Iterator structs,** instead of generators: `for x in it` takes any struct with a `next` method
-  returning `?T`, and runs until it returns nil. A lazy sequence costs one small struct and no saved
-  frames. It needs no generics: each loop knows its struct's type, so `next` and T are known there, as
-  for a call written out. Generics would only add procs that take any iterator, such as `map` and
-  `filter`.
-  ```
-  Words :: struct
-    text: String
-    at: Int
-  end
-  Words.next :: proc() -> ?String   # the next word, or nil
-  for w in Words{text = line}
-    log(w)
-  end
-  ```
-  - **The struct:** a variable is stepped in place, so after a `break` it carries on where it stopped
-    (for a parser, say); any other value, such as a literal or a call's result, is kept for the loop.
-  - **Views:** a `next` that returns a view of the struct's text follows the usual rules for what a
-    method returns, so nothing new.
-  - **An index too:** whether `for i, x in it` counts from 0, as it does for slices.
 - **if and switch as values, only to set a variable:** this form works only right after `:=`, `=` or
   `return`. The value of each branch is its last line. An `else` is required, except in a switch with a
   case for every value of an enum or every type of a union, so adding one later is a compile error
@@ -191,6 +171,11 @@ Rinc's and Studio's apps, would change with it.
     procs if they come.
 
 ## Done recently
+
+- **Iterator structs:** `for x in it` (and `for x, i in it`, the turn from 0) over any struct with a
+  method `next() -> ?T`, until it gives nil: a variable stepped in place, so a `break` leaves it where it
+  stopped; anything else kept for the loop. A `next` giving text (`-> ?String`, the next word of a line)
+  waits on values holding views, under Returning any value.
 
 - **Text as numbers:** `s.toInt()`, `s.toInt(base)` (2 to 36) and `s.toFloat()`, on Strings, Blobs and
   byte builders, each a maybe: nil when the text isn't a number (images are version 13). A Float reads
