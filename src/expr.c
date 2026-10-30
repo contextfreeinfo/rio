@@ -329,6 +329,9 @@ static void rio_member(rio_Vm *vm) {
   } else if (ty->kind != rio_TypeKind_struct && ty->kind != rio_TypeKind_builder && ty->kind != rio_TypeKind_builderView &&
              (k = rio_builtinNamed(t->text, t->len, rio_Builtin_toInt, rio_Builtin_asString)) >= 0) {
     method = rio_exprOf(rio_ExprKind_builtin, 0, k); /* conversions */
+  } else if ((ty->kind == rio_TypeKind_builder || ty->kind == rio_TypeKind_builderView) && ty->elem == rio_TypeId_byte &&
+             (k = rio_builtinNamed(t->text, t->len, rio_Builtin_toInt, rio_Builtin_toFloat)) >= 0) {
+    method = rio_exprOf(rio_ExprKind_builtin, 0, k); /* a byte builder's text as a number */
   } else if (ty->kind == rio_TypeKind_builder || ty->kind == rio_TypeKind_builderView) {
     if ((k = rio_builtinNamed(t->text, t->len, rio_Builtin_push, rio_Builtin_setInt)) < 0) rio_FAIL(, "no such method");
     method = rio_exprOf(rio_ExprKind_builtin, 0, k);

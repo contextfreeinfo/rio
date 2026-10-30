@@ -28,6 +28,23 @@ check(x * y == 3.0, "float mul")
 check(x + 1 == 2.5, "const coercion")
 check(a.toFloat() / 2 == 3.5, "itof")
 check(3.9.toInt() == 3 and (-3.9).toInt() == -3, "ftoi")
+parsedIs :: proc(n: ?Int, want: Int) -> Bool
+  return n is Int and n == want
+end
+parsedFloatIs :: proc(f: ?Float, want: Float) -> Bool
+  return f is Float and f == want
+end
+check(parsedIs("42".toInt(), 42) and parsedIs("-17".toInt(), -17) and parsedIs("+5".toInt(), 5), "text to Int")
+check(parsedIs("ff".toInt(16), 255) and parsedIs("ffffffff".toInt(16), -1) and parsedIs("Zz".toInt(36), 1295), "text to Int, bases")
+check(parsedIs("-2147483648".toInt(), -2147483647 - 1) and "2147483648".toInt() is nil, "text to Int, range")
+check("".toInt() is nil and "-".toInt() is nil and " 1".toInt() is nil and "1_0".toInt() is nil and "12".toInt(2) is nil, "text to Int, bad")
+check("100000000".toInt(16) is nil and parsedIs("17".toInt(0), 17), "text to Int, 32 bits; base 0")
+parseBase := 8
+pb: Blob[..8]
+check(pb.pushAll("17") and parsedIs("17".toInt(parseBase), 15) and parsedIs(pb.toInt(), 17) and parsedIs(pb[0..<1].toInt(), 1), "text to Int, at runtime")
+check(parsedFloatIs("1.5".toFloat(), 1.5) and parsedFloatIs("-2e-3".toFloat(), -2e-3) and parsedFloatIs("0.1".toFloat(), 0.1), "text to Float")
+check(parsedFloatIs("3.4028235e38".toFloat(), 3.4028235e38) and parsedFloatIs("7".toFloat(), 7), "text to Float, as literals")
+check("1.".toFloat() is nil and ".5".toFloat() is nil and "1e".toFloat() is nil and "nan".toFloat() is nil, "text to Float, bad")
 c := 10
 c += 5
 c -= 1

@@ -118,6 +118,8 @@ Conversions are methods. `to` makes a new value; `as` views the same bytes:
 | `b.toInt()` | 1 or 0 |
 | `e.toInt()`, `E.fromInt(n)` | an enum's value; `fromInt` is a runtime error if `n` isn't one |
 | `blob.asString()` | the same bytes, read-only |
+| `s.toInt()`, `s.toInt(base)` | text as an `Int`, a `?Int`: nil if it isn't one |
+| `s.toFloat()` | text as a `Float`, a `?Float`: nil if it isn't one |
 
 ```rio
 log(3.9.toInt(), (-3.9).toInt(), (1e20).toInt(), 5.toBool(), true.toInt())
@@ -125,6 +127,53 @@ log(3.9.toInt(), (-3.9).toInt(), (1e20).toInt(), 5.toBool(), true.toInt())
 
 ```output
 3 -3 2147483647 true 1
+```
+
+### Text as numbers
+
+A `String`, a `Blob` or a byte builder's text becomes a number with `toInt` or `toFloat`. The result
+is a maybe, nil when the text isn't a number, so bad input is never a wrong number:
+
+```rio
+n := "42".toInt()
+if n is Int
+  log(n + 1)
+end
+log("-17".toInt(), "4x".toInt(), "".toInt(), " 1".toInt())
+```
+
+```output
+43
+-17 nil nil nil
+```
+
+The text is a sign or none, then digits, and nothing else: no spaces, no `_`, and no `0x`. Letters
+are digits past 9 in either case. `toInt` reads base 10 unless given a base from 2 to 36 (a base of
+0 is 10, as leaving it out is; any other is an error). Base 10 must be in the `Int` range; any other
+base is the bits, up to 32 of them, so `ffffffff` in base 16 is -1, as `format` writes it:
+
+```rio
+log("ff".toInt(16), "FF".toInt(16), "ffffffff".toInt(16), "1010".toInt(2), "z".toInt(36))
+log("2147483647".toInt(), "-2147483648".toInt(), "2147483648".toInt(), "12".toInt(2))
+```
+
+```output
+255 255 -1 10 35
+2147483647 -2147483648 nil nil
+```
+
+`toFloat` reads what a `Float` literal is, in base 10, with a sign or none: digits, then a point and
+more digits if any, then an exponent if any. It gives the same `Float` as that literal would:
+
+```rio
+log("1.5".toFloat(), "-2e-3".toFloat(), "7".toFloat(), "3.25E2".toFloat())
+log("1.".toFloat(), ".5".toFloat(), "1e".toFloat(), "inf".toFloat())
+assert("0.1".toFloat() is Float)
+```
+
+```output
+1.5 -0.002 7.0 325.0
+nil nil nil nil
 ```
 
 ## Calls

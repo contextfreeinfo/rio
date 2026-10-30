@@ -89,6 +89,8 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      bchk                   fail unless each value at a (address, bytes: c bytes each) holds only what
                             its type can, by the descriptor in constant b (print.h: enums, Bools,
                             union tags), as unpack leaves them
+     pnum                   a, a+1 = the text b (address, length) as a number, a maybe (rio_parseNumber):
+                            x 0, an Int in base c (0: 10; fail unless 2 to 36); x 1, a Float
    Jumps go to pc c.
      jmp jz jnz             always / if a == 0 / if a != 0
      jeq jne jlt jle        if a op b (Int)
@@ -119,7 +121,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
   X(mov2) X(ldw2) X(stw) X(stb) X(stw2) X(stx) X(stxb) X(idx) X(slice) X(copy) X(movn) X(zero)       \
   X(enumck) X(enumname)                                                                              \
   X(vadd) X(vsub) X(vmul) X(vdiv) X(vmod) X(fvadd) X(fvsub) X(fvmul) X(fvdiv)                        \
-  X(lidx) X(pusha) X(pushs) X(pusht) X(pushv) X(pushf) X(popa) X(lrem) X(lswap) X(lview) X(bpack) X(geti) X(seti) X(bchk) \
+  X(lidx) X(pusha) X(pushs) X(pusht) X(pushv) X(pushf) X(popa) X(lrem) X(lswap) X(lview) X(bpack) X(geti) X(seti) X(bchk) X(pnum) \
   X(jmp) X(jz) X(jnz) X(jeq) X(jne) X(jlt) X(jle) X(jfeq) X(jfne) X(jflt) X(jfle) X(jfnlt) X(jfnle)  \
   X(each) X(fori) X(forby)                                                                                    \
   X(call) X(ret) X(calli) X(getret) X(ffi) X(logi) X(logf) X(logs) X(logb) X(logn) X(logv) X(loge)   \

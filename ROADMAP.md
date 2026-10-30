@@ -11,33 +11,14 @@ with the reasons, are in [REJECTED.md](REJECTED.md).
 
 ## Decide first: changes that would break existing source
 
-Everything else here only adds, so existing programs keep working. These would change programs
-already written, such as Rinc's and Studio's apps, so they come first.
-
-- **Full-slice syntax:** `a[]` matches the type `[]T`, but it can look like an empty slice.
-  Alternatives include `a[..=]` and `a[..]`. `a[..]` looks too much like a builder view type
-  (`Blob[..]`), so it's out. Leaning: keep `a[]` unless it misleads in practice. A change would be a mechanical migration, like the one
-  that removed `:`.
-- **Open-ended slices:** `a[i..]` is the only spelling today. `a[i..<]` and `a[i..=]` are errors.
-  Both would mean the same thing, since nothing past the end is ever taken. Leaning: keep one
-  spelling, so there's nothing for a formatter to standardize. If a second one ever comes in, fmt
-  rewrites it to `a[i..]`.
-- **How `end` in index brackets is spelled:** `xs[end]` is the last index now, as in Julia and MATLAB,
-  but they count from 1, where the last index is the length; with indexes from 0, some will read
-  `end` as one past the last, as C++'s `end()` and Swift's `endIndex` are. `end` also already closes
-  blocks. The other way is C#'s: `xs[^1]` the last, `xs[^0]` past it, `xs[^3..]` the last three, with
-  no question which is which. Against it: `^` is xor in Rio too (C# lives with that, mostly called
-  cryptic at first), `^0` surprises, and it counts from the end, so a loop's `xs[end - i]` becomes
-  `xs[^(i + 1)]`. Leaning: keep `end`. A wrong guess is a bounds error, not a misread, and a change
-  later is mechanical while few programs use it.
-- **Formatters as values:** if `hex(n)` and `pad(s, 8)` cover what `b.format(settings, ...)` does,
-  `format` could go, which changes every call to it. No Rinc or Studio app calls it yet, so the change
-  is cheap now and costly later. Leaning: decide whether `format` stays before building the formatters.
+Nothing open. Each change here was decided against, keeping Rio as it is: `a[]` for a whole slice,
+`a[i..]` the one spelling of an open-ended slice, `end` for the last index (not C#'s `^1`), and
+`format` staying, beside the formatters to come. [REJECTED.md](REJECTED.md) has the reasons. A
+change that would break existing source goes here first, since programs already written, such as
+Rinc's and Studio's apps, would change with it.
 
 ## Next
 
-- **Number parsing from text:** String to Int in any base from 2 to 36, and String to Float, with bad
-  input reported. Without it, no program can read numbers safely.
 - **Iterator structs,** instead of generators: `for x in it` takes any struct with a `next` method
   returning `?T`, and runs until it returns nil. A lazy sequence costs one small struct and no saved
   frames. It needs no generics: each loop knows its struct's type, so `next` and T are known there, as
@@ -58,6 +39,19 @@ already written, such as Rinc's and Studio's apps, so they come first.
   - **Views:** a `next` that returns a view of the struct's text follows the usual rules for what a
     method returns, so nothing new.
   - **An index too:** whether `for i, x in it` counts from 0, as it does for slices.
+- **if and switch as values, only to set a variable:** this form works only right after `:=`, `=` or
+  `return`. The value of each branch is its last line. An `else` is required, except in a switch with a
+  case for every value of an enum or every type of a union, so adding one later is a compile error
+  there, where a new case is needed, rather than a wrong default:
+  ```
+  size := switch kind
+  case .small
+    1
+  else
+    4
+  end
+  ```
+  It never puts a block inside an expression.
 
 ## Leaning yes
 
@@ -100,7 +94,34 @@ already written, such as Rinc's and Studio's apps, so they come first.
 - **Constant tables:** `[N]T` constants built while compiling and kept in the read-only image, so a
   lookup table costs no RAM on small boards.
 - **Formatters as values:** `hex(n)`, `pad(s, 8)` and the like, returning `Fmt` values that work
-  anywhere a value can print. Whether they replace `format` is under Decide first.
+  anywhere a value can print, beside `b.format(settings, ...)`, which stays.
+- **Bool as a maybe of nothing:** `true` a value of a type with nothing in it, `false` nil. Then the
+  boolean operators are what maybes need, as Rust's `and_then` and `unwrap_or` are, with no new
+  operators (as Kotlin's `?:` or C#'s `??` would be):
+
+  | | for Bools | for maybes | as in Rust |
+  |---|---|---|---|
+  | `x or y` | true if either | x's value if it's there, else y | `unwrap_or`, `or_else` |
+  | `x and e` | e if x, else false | e if x is there (x its value inside e), else nil | `and_then`, `map` |
+  | `not x` | the other | true when nil | `is_none` |
+  | `if x` | when true | when x is there, x its value in the body | `if let Some(x)` |
+
+  - **Types:** a `?T` `or` a `T` is a `T` (so `n := x or 0` needs no `is` after it); `or` another `?T`,
+    a `?T`. A `?T` `and` a `U` or a `?U` is a `?U`. A Bool mixes in as a maybe: `flag and x` is a
+    `?Int`, false becoming nil.
+  - **Narrowing does the work:** `x and x.size` sees x's value on the right, as `x is T and ...` does
+    now.
+  - **Only Bools and maybes:** an Int, a String or anything else is still no condition, so `if count`
+    stays an error (no zero as false).
+  - **`??T` too, for uniformity:** a maybe of a maybe, as `?Bool` (a maybe of a maybe of nothing)
+    already would be. `if x` for a `?Bool` tests whether it's there, as for any maybe, and `x or false`
+    its truth. Open: how a program writes the inner nil (the outer is plain `nil`), and how `is` and
+    printing tell the two apart.
+  - **The cost:** `and` and `or` giving something other than a Bool surprises people from C, Java or
+    Rust (not those from Python, Lua or JavaScript), though typed, a surprise is a compile error,
+    not a wrong value.
+- **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
+  both are errors, and `x is nil` is the way to test for nil.
 
 ## Maybe
 
@@ -122,17 +143,6 @@ already written, such as Rinc's and Studio's apps, so they come first.
     slower walk than code written for one type; and a reflection API frozen in the 1.0 spec, which
     every implementation must build. So it waits for a real use, such as a serializer, and builtins
     on descriptors (printing, `==`, pack, hashing) may cover most of what it would.
-- **if and switch as values, only to set a variable:** this form works only right after `:=`, `=` or
-  `return`. The value of each branch is its last line, and an `else` is required:
-  ```
-  size := switch kind
-  case .small
-    1
-  else
-    4
-  end
-  ```
-  It never puts a block inside an expression.
 - **A very limited lifetime marker on `&` parameters:** one marker, nothing more, saying a `&T`
   parameter may point at the caller's locals, so views read through it count as borrowed. Unmarked
   `&T` keeps today's meaning (views read through it are global), so nothing breaks. It would let `&`
@@ -142,15 +152,11 @@ already written, such as Rinc's and Studio's apps, so they come first.
   name and what it is, as host procs' sigs give it), to keep in a file's header, so reading records
   saved by another version of a program is an error, not misread fields. `sizeOf(T)` in the header
   covers only a change of size.
-- **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
-  both are errors, and `x is nil` is the way to test for nil.
 - **Compile-time `when`:** today, `if CONST` still type-checks a body it never runs. Only if
   differences between hosts need it.
 - **A `sys` module for scripting,** in the Rio repo but not standard Rio: a separate `rio` build whose
   host module has files, directories, running programs, the environment and arguments, so scripts
   (tools such as `tools/stats.py`) can be Rio. Built on hosts registering their modules' sources.
-- **A foreign-call table supplied by the host:** a fixed array of host procs that programs can call
-  without a `host proc` declaration for each.
 - **Host procs calling back into Rio while they run:** a sort with a comparison, a parser handing back
   each element, a physics step calling back on each collision. Today a host proc is a leaf: it can't
   call into the program while it runs. What allowing it would take:
@@ -185,6 +191,10 @@ already written, such as Rinc's and Studio's apps, so they come first.
     procs if they come.
 
 ## Done recently
+
+- **Text as numbers:** `s.toInt()`, `s.toInt(base)` (2 to 36) and `s.toFloat()`, on Strings, Blobs and
+  byte builders, each a maybe: nil when the text isn't a number (images are version 13). A Float reads
+  as its literal would.
 
 - **`>>>`:** an unsigned right shift, and `>>>=` (images are version 12). Unsigned compare, divide and
   remainder, if they come, would be builtins rather than operators.

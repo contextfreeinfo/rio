@@ -284,6 +284,43 @@ static void rio_outFormatted(const uint8_t *M, rio_Out *o, uint32_t spec, int ki
   rio_outBytes(o, s, len);                                                                                \
   if (width < 0) rio_outPad(o, -width - (int32_t)len);                                                    \
 }                                                                                                         \
+/* text as a number, for s.toInt(base) and s.toFloat() (docs/spec/builtins.md#conversions): a sign or     \
+   none, digits, and nothing else, into *out (an Int, or a Float's bits); 0 if it isn't one. base 2 to   \
+   36 for an Int: base 10 within an Int's range, any other up to 32 bits (ffffffff is -1, as format       \
+   writes it). base 0 for a Float, as a literal's digits: 1.5, 2e-3, 7, worked out as the lexer does */   \
+static int rio_parseNumber(const uint8_t *s, uint32_t n, int base, uint32_t *out) {                       \
+  uint32_t i = 0, v = 0, digits = 0; int negative = 0, k, x = 0, down = 0; double d = 0, scale = 1;       \
+  if (n && (s[0] == '-' || s[0] == '+')) negative = s[i++] == '-';                                        \
+  for (; i < n; i++, digits++) {                                                                          \
+    k = s[i] >= '0' && s[i] <= '9' ? s[i] - '0' : (s[i] | 32) >= 'a' && (s[i] | 32) <= 'z' ? (s[i] | 32) - 'a' + 10 : 99; \
+    if (k >= (base ? base : 10)) break;                                                                   \
+    if (!base) d = d * 10 + k;                                                                            \
+    else if ((uint64_t)v * (uint32_t)base + (uint32_t)k > 0xFFFFFFFFu) return 0;                          \
+    else v = v * (uint32_t)base + (uint32_t)k;                                                            \
+  }                                                                                                       \
+  if (!digits) return 0;                                                                                  \
+  if (base) {                                                                                             \
+    if (i < n || (base == 10 && v > (negative ? 0x80000000u : 0x7FFFFFFFu))) return 0;                    \
+    *out = negative ? 0u - v : v;                                                                         \
+    return 1;                                                                                             \
+  }                                                                                                       \
+  if (i + 1 < n && s[i] == '.' && s[i + 1] >= '0' && s[i + 1] <= '9')                                     \
+    for (i++; i < n && s[i] >= '0' && s[i] <= '9'; i++) d += (s[i] - '0') * (scale /= 10);                \
+  if (i < n && (s[i] | 32) == 'e') {                                                                      \
+    if (++i < n && (s[i] == '-' || s[i] == '+')) down = s[i++] == '-';                                    \
+    if (i >= n || s[i] < '0' || s[i] > '9') return 0;                                                     \
+    for (; i < n && s[i] >= '0' && s[i] <= '9'; i++)                                                      \
+      if (x < 1000) x = x * 10 + (s[i] - '0'); /* (past 1000 it's inf or 0 anyway) */                     \
+    while (x--) d = down ? d / 10 : d * 10;                                                               \
+  }                                                                                                       \
+  if (i < n) return 0;                                                                                    \
+  {                                                                                                       \
+    float f = (float)d;                                                                                   \
+    if (negative) f = -f;                                                                                 \
+    memcpy(out, &f, 4);                                                                                   \
+  }                                                                                                       \
+  return 1;                                                                                               \
+}                                                                                                         \
 )
 
 #define rio_PRINT_CODE(...) __VA_ARGS__

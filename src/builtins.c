@@ -714,18 +714,53 @@ static void rio_enumCall(rio_Vm *vm, rio_PendingOp *call) {
   }
 }
 
+/* s.toInt(base?) s.toFloat(): text (a String, a Blob or a byte builder's) as a number, a maybe: nil if
+   it isn't one (rio_parseNumber) */
+static void rio_parseCall(rio_Vm *vm, rio_PendingOp *call, int to) {
+  rio_Compiler *c = vm->compiler;
+  rio_Expr *a = &c->values[call->valueBase];
+  int k = rio_type(vm, rio_valueType(a->type))->kind, maybe = rio_maybeOf(vm, to), s, base = 0, d;
+  if (rio_failed(vm)) return;
+  if (k == rio_TypeKind_builder || k == rio_TypeKind_builderView) { /* (its live bytes) */
+    int b = rio_toSlot3(vm, a);
+    s = rio_allocSlots(vm, 2);
+    rio_emit(vm, rio_Op_lview, s, b, 0);
+  } else s = rio_toSlot2(vm, a);
+  if (rio_argCount(vm, call) == 2) { /* (toInt's base: left out, or 0, is 10) */
+    rio_needValue(vm, a + 1);
+    rio_coerce(vm, a + 1, rio_TypeId_int);
+    if (rio_valueType(a[1].type) != rio_TypeId_int) rio_FAIL(, "the base is an Int");
+    if (a[1].kind == rio_ExprKind_const && a[1].value && (a[1].value < 2 || a[1].value > 36)) rio_FAIL(, "the base is 2 to 36");
+    base = rio_toSlot(vm, a + 1, 1);
+  } else if (to == rio_TypeId_int) base = rio_constSlot(vm, 10);
+  c->valueCount = call->valueBase;
+  c->freeSlot = call->freeAtStart;
+  d = rio_allocSlots(vm, 2);
+  rio_emit(vm, rio_Op_pnum, d, s, base);
+  vm->code[vm->codeLen - 1].x = to == rio_TypeId_float;
+  rio_pushResult(vm, rio_exprOf(rio_ExprKind_static, maybe, d * 4), call->freeAtStart);
+}
+
 /* x.toInt() x.toFloat() x.toBool() b.asString() */
 static void rio_convertCall(rio_Vm *vm, rio_PendingOp *call) {
   rio_Compiler *c = vm->compiler;
   rio_Expr *a = &c->values[call->valueBase], r;
-  int from, s, d;
+  rio_Type *ft;
+  int from, s, d, text, n = rio_argCount(vm, call);
   int to = call->b == rio_Builtin_toInt ? rio_TypeId_int
            : call->b == rio_Builtin_toFloat ? rio_TypeId_float
            : call->b == rio_Builtin_toBool ? rio_TypeId_bool
                                            : rio_TypeId_string;
-  if (rio_argCount(vm, call) != 1) rio_FAIL(, "conversions take no arguments");
   rio_needValue(vm, a);
   from = rio_valueType(a->type);
+  ft = rio_type(vm, from);
+  text = (to == rio_TypeId_int || to == rio_TypeId_float) && ft->elem == rio_TypeId_byte &&
+         (ft->kind == rio_TypeKind_slice || ft->kind == rio_TypeKind_builder || ft->kind == rio_TypeKind_builderView);
+  if (text && (n == 1 || (n == 2 && to == rio_TypeId_int))) {
+    rio_parseCall(vm, call, to);
+    return;
+  }
+  if (n != 1) rio_FAIL(, text ? "toInt takes a base or nothing, toFloat nothing" : "conversions take no arguments");
   r = *a;
   if (to == from) { /* nothing to do */
   } else if (to == rio_TypeId_string && from == rio_TypeId_blob) { /* the same bytes, read-only */

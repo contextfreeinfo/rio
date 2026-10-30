@@ -323,6 +323,12 @@ static void rio_instruction(rio_Aot *a, int pc) {
     else rio_print(a, "for (i_ = 0; i_ < n_; i_++) p_[i_] = (uint8_t)(v_ >> (8 * i_)); }\n");
     break;
   }
+  case rio_Op_pnum:
+    rio_print(a, "{ int32_t base_ = %s; uint32_t v_ = 0; int has_; ", in->x ? "0" : rio_V(C, 'i'));
+    if (!in->x) rio_print(a, "if (!base_) base_ = 10; if (base_ < 2 || base_ > 36) rio_RT_ERROR(\"toInt's base is 2 to 36\"); ");
+    rio_print(a, "has_ = rio_parseNumber(rio_M + %s, %s, base_, &v_); ", rio_V(B, 'u'), rio_V(B + 1, 'u'));
+    rio_print(a, "%s = has_; %s = has_ ? v_ : 0u; }\n", rio_V(A, 'i'), rio_V(A + 1, 'u'));
+    break;
   case rio_Op_jmp: rio_print(a, "goto L%d;\n", C); break;
   case rio_Op_jz: rio_print(a, "if (!%s) goto L%d;\n", rio_V(A, 'i'), C); break;
   case rio_Op_jnz: rio_print(a, "if (%s) goto L%d;\n", rio_V(A, 'i'), C); break;

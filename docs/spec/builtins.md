@@ -383,4 +383,5 @@ wall false 1
 
 ## Conversions
 
-`toInt`, `toFloat`, `toBool` and `asString`: see [conversions](expressions.md#conversions).
+`toInt`, `toFloat`, `toBool` and `asString`: see [conversions](expressions.md#conversions), and
+[text as numbers](expressions.md#text-as-numbers) for `toInt` and `toFloat` on text.

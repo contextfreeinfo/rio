@@ -494,6 +494,16 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     for (i = 0; i < n; i++) p[i] = (uint8_t)(v >> (8 * i));
     rio_NEXT();
   }
+  rio_CASE(pnum) {
+    int32_t base = ip->x ? 0 : R[ip->c].i ? R[ip->c].i : 10;
+    uint32_t v = 0;
+    int has;
+    if (!ip->x && (base < 2 || base > 36)) return rio_runtimeError(vm, "toInt's base is 2 to 36", rio_PC);
+    has = rio_parseNumber(M + R[ip->b].u, R[ip->b + 1].u, base, &v);
+    R[ip->a].i = has;
+    R[ip->a + 1].u = has ? v : 0;
+    rio_NEXT();
+  }
 
   rio_CASE(jmp) rio_JUMP();
   rio_CASE(jz) if (!R[ip->a].i) rio_JUMP(); rio_NEXT();

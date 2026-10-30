@@ -69,6 +69,15 @@ Float.toInt* :: host proc() -> Int       # toward zero; saturates; NaN is 0
 Bool.toInt* :: host proc() -> Int        # 0 or 1
 Blob.asString* :: host proc() -> String  # the same bytes, read-only
 
+# text as a number: nil if it isn't one (docs/spec/expressions.md#text-as-numbers); base 2 to 36, left
+# out or 0 for 10
+String.toInt* :: host proc(base?: Int) -> ?Int
+String.toFloat* :: host proc() -> ?Float
+Blob.toInt* :: host proc(base?: Int) -> ?Int
+Blob.toFloat* :: host proc() -> ?Float
+(Blob[..]).toInt* :: host proc(base?: Int) -> ?Int
+(Blob[..]).toFloat* :: host proc() -> ?Float
+
 # ---------------------------------------------------------------- bytes
 
 String.len* :: host proc() -> Int

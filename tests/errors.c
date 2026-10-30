@@ -369,7 +369,11 @@ static const Case cases[] = {
   {"{x} := 5\n", 0, 0, 0, rio_ErrorKind_compile, 1, 8, 1, "only a struct can be destructured"},
   {"V :: struct\n  x, y: Int\nend\nv: V\n{x, z} := v\n", 0, 0, 0, rio_ErrorKind_compile, 5, 11, 1, "no such field to destructure"},
   {"x := Float(3)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 11, 1, "convert with x.toInt()"},
-  {"s := \"a\".toFloat()\n", 0, 0, 0, rio_ErrorKind_compile, 1, 18, 1, "no such conversion"},
+  {"s := 1.5.asString()\n", 0, 0, 0, rio_ErrorKind_compile, 1, 19, 1, "no such conversion"},
+  {"x := \"1\".toInt(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 17, 1, "the base is 2 to 36"},
+  {"x := \"1\".toFloat(2)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 19, 1, "toInt takes a base or nothing, toFloat nothing"},
+  {"x := \"1\".toInt(2, 3)\n", 0, 0, 0, rio_ErrorKind_compile, 1, 20, 1, "toInt takes a base or nothing, toFloat nothing"},
+  {"b := 37\nlog(\"1\".toInt(b))\n", 0, 0, 0, rio_ErrorKind_runtime, 2, 0, 0, "toInt's base is 2 to 36"},
   {"Int.toFloat :: proc() -> Float\n  return 0\nend\n", 0, 0, 0, rio_ErrorKind_compile, 1, 5, 7, "that conversion is built in"},
   /* ...or at the last token of an expression that can only be judged once it's complete */
   {"x := 1\n  y := 2.0 + \"s\"\n", 0, 0, 0, rio_ErrorKind_compile, 2, 14, 3, "type mismatch"},
