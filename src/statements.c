@@ -20,6 +20,8 @@ rio_Block *rio_pushBlock(rio_Vm *vm, int kind) {
   b->a = b->b = b->breaks = b->continues = b->condJump = rio_NONE;
   b->labelLen = 0;
   b->value = 0;
+  b->knownCount = 0;
+  b->knownAfter = 255;
   return b;
 }
 
@@ -80,11 +82,25 @@ static void rio_condition(rio_Vm *vm, rio_Block *b) {
   rio_Compiler *c = vm->compiler;
   rio_Expr e, cond;
   c->isTestCount = 0;
+  b->knownBefore = b->knownCount;
   e = rio_parseExpr(vm);
   rio_maybeTest(vm, &e, 1); /* (if x, for a maybe x: x is its value inside) */
   cond = e;
   b->a = (uint16_t)rio_jumpIfFalse(vm, &e);
-  rio_narrowIsTests(vm, &cond);
+  rio_narrowIsTests(vm, &cond, b);
+}
+
+/* what the first n conditions being false says (if not x, if x is nil: x its value), for a branch after
+   them, or for after the if */
+static void rio_narrowKnown(rio_Vm *vm, const rio_Block *b, int n) {
+  int i;
+  for (i = 0; i < n && i < b->knownCount; i++) rio_narrow(vm, b->knownAt[i], b->knownMember[i], 0);
+}
+
+/* a branch of an if ends: if it gets to its end, after the if is known only what the conditions before
+   it said (knownAfter: of the first such branch; an else, or none, has them all) */
+static void rio_knownAfter(rio_Compiler *c, rio_Block *b, int isElse) {
+  if (!c->unreachable && b->knownAfter == 255) b->knownAfter = isElse ? b->knownCount : b->knownBefore;
 }
 
 /* the branch before ends: a jump from it to the end, and its failed test lands here */
@@ -92,9 +108,11 @@ static void rio_nextBranch(rio_Vm *vm, rio_Block *b) {
   rio_Compiler *c = vm->compiler;
   rio_next(vm);
   rio_endScope(vm, b);
+  rio_knownAfter(c, b, 0);
   rio_endBranch(c, b);
   b->b = (uint16_t)rio_jumpListAdd(vm, b->b, rio_emit(vm, rio_Op_jmp, 0, 0, rio_NONE));
   rio_patchJumps(vm, b->a, rio_label(vm));
+  rio_narrowKnown(vm, b, b->knownCount);
 }
 
 static void rio_ifStatement(rio_Vm *vm) {
@@ -503,7 +521,11 @@ static void rio_endBlock(rio_Vm *vm, int line, int col) {
     rio_patchJumps(vm, b->continues, rio_label(vm));
     if (b->b != rio_NONE) rio_emit(vm, rio_Op_add, b->b, b->b, rio_constSlot(vm, 1)); /* the index */
     rio_emit(vm, rio_Op_jmp, 0, 0, b->a);
-  } else rio_patchJumps(vm, b->b, rio_label(vm)); /* if/else: the earlier branches' jumps to the end */
+  } else { /* if/else: the earlier branches' jumps to the end */
+    rio_knownAfter(c, b, b->kind == rio_Block_else);
+    if (b->knownAfter == 255) b->knownAfter = b->knownCount; /* (no else: when no condition was true) */
+    rio_patchJumps(vm, b->b, rio_label(vm));
+  }
   rio_patchJumps(vm, b->kind >= rio_Block_loop ? b->breaks : b->a, rio_label(vm));
   if (b->kind < rio_Block_loop) rio_endBranches(c, b);
   else c->unreachable = (int16_t)((b->flow & rio_Flow_startUnreachable) || /* (a loop with no condition, never broken) */
@@ -511,6 +533,8 @@ static void rio_endBlock(rio_Vm *vm, int line, int col) {
   rio_endScope(vm, b);
   c->blockCount--;
   if (value) rio_valueDone(vm, value - 1);
+  if ((b->kind == rio_Block_if || b->kind == rio_Block_else) && !c->unreachable)
+    rio_narrowKnown(vm, b, b->knownAfter); /* (if not x do return: x its value from here) */
 }
 
 static void rio_endStatement(rio_Vm *vm) {

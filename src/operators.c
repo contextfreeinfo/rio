@@ -99,14 +99,29 @@ int rio_storeIntoUnion(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
 }
 
 /* Narrowing in an if: an `x is T` holds inside the block if it's one of the and-ed parts of the
-   condition. Each one's result is followed: and carries it on to its own result (carry), anything else
-   using it drops it (carry -1). */
+   condition, and its opposite (x is the union's other type, for one of two) in the branches after, if
+   it's one of the or-ed parts. Each one's result is followed: and carries it on to its own result
+   (carry: what's known when it's true), anything else using it drops it (carry -1). */
 void rio_isTestUsed(rio_Vm *vm, const rio_Expr *e, int carry) {
+  rio_isTestCarry(vm, e, carry, rio_Tok_and);
+}
+
+/* how: and, or (to their result, what's known when it's true, or when it's false) or '!' (both, swapped) */
+void rio_isTestCarry(rio_Vm *vm, const rio_Expr *e, int to, int how) {
   rio_Compiler *c = vm->compiler;
-  int i;
+  int i, t;
   if (e->kind != rio_ExprKind_static) return;
   for (i = 0; i < c->isTestCount; i++)
-    if (c->isTests[i].resultAt == e->value) c->isTests[i].resultAt = carry;
+    if (c->isTests[i].resultAt == e->value) {
+      if (how == rio_Tok_and) c->isTests[i].onFalse = -1;
+      else if (how == rio_Tok_or) c->isTests[i].onTrue = -1;
+      else {
+        t = c->isTests[i].onTrue;
+        c->isTests[i].onTrue = c->isTests[i].onFalse;
+        c->isTests[i].onFalse = (int16_t)t;
+      }
+      c->isTests[i].resultAt = c->isTests[i].onTrue < 0 && c->isTests[i].onFalse < 0 ? -1 : to;
+    }
 }
 
 /* x is T where x is narrowed already (if x is A and x is B): known while compiling, from the union it
@@ -135,12 +150,13 @@ static int rio_isNarrowedOp(rio_Vm *vm, rio_Expr *l, const rio_Expr *r) {
 /* u is T, u is nil: compare the tag */
 static void rio_isOp(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
   rio_Compiler *c = vm->compiler;
-  int member;
+  int member, two;
   int32_t varAt;
   rio_Expr tag, tagValue;
   rio_needValue(vm, l);
   if (rio_isNarrowedOp(vm, l, r)) return;
   if (rio_type(vm, l->type)->kind != rio_TypeKind_union) rio_FAIL(, "is tests which type a union holds");
+  two = rio_type(vm, l->type)->fieldCount == 2; /* (x isn't one: it's the other) */
   if (r->kind == rio_ExprKind_type || (r->kind == rio_ExprKind_const && r->type == l->type)) member = rio_unionMember(vm, l->type, r);
   else rio_FAIL(, "is needs a type (or nil)");
   if (member < 0) rio_FAIL(, "not one of this union's types");
@@ -155,7 +171,8 @@ static void rio_isOp(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
   if (varAt >= 0 && l->kind == rio_ExprKind_static && c->isTestCount < 8) { /* a variable: it can be narrowed */
     c->isTests[c->isTestCount].resultAt = l->value;
     c->isTests[c->isTestCount].varAt = varAt;
-    c->isTests[c->isTestCount].member = member;
+    c->isTests[c->isTestCount].onTrue = (int16_t)member;
+    c->isTests[c->isTestCount].onFalse = (int16_t)(two ? 1 - member : -1);
     c->isTestCount++;
   }
 }
@@ -190,23 +207,32 @@ void rio_maybeTest(rio_Vm *vm, rio_Expr *e, int narrow) {
   rio_binaryOp(vm, rio_Tok_notEq, e, &t);
 }
 
-/* after the condition of an if: narrows each x is T its result still carries */
-void rio_narrowIsTests(rio_Vm *vm, const rio_Expr *cond) {
+/* after the condition of an if: narrows each x is T its result still carries, and keeps in b what its
+   being false says (for the branches after) */
+void rio_narrowIsTests(rio_Vm *vm, const rio_Expr *cond, rio_Block *b) {
   rio_Compiler *c = vm->compiler;
   int i;
   for (i = 0; i < c->isTestCount; i++)
-    if (cond->kind == rio_ExprKind_static && c->isTests[i].resultAt == cond->value)
-      rio_narrow(vm, c->isTests[i].varAt, c->isTests[i].member, 0);
+    if (cond->kind == rio_ExprKind_static && c->isTests[i].resultAt == cond->value) {
+      if (c->isTests[i].onTrue >= 0) rio_narrow(vm, c->isTests[i].varAt, c->isTests[i].onTrue, 0);
+      if (c->isTests[i].onFalse >= 0 && b->knownCount < 3) {
+        b->knownAt[b->knownCount] = c->isTests[i].varAt;
+        b->knownMember[b->knownCount++] = (uint8_t)c->isTests[i].onFalse;
+      }
+    }
   c->isTestCount = 0;
 }
 
-/* the right side of an and, which runs only when the left side (its result at resultAt) is true: each
-   x is T the left side carries narrows x there, from a temporary copy (the and's end drops the names) */
-void rio_narrowRight(rio_Vm *vm, int resultAt) {
+/* the right side of an and (or an or), which runs only when the left side (its result at resultAt) is
+   true (false, whenFalse): each x is T the left side carries narrows x there, from a temporary copy
+   (the and's end drops the names) */
+void rio_narrowRight(rio_Vm *vm, int resultAt, int whenFalse) {
   rio_Compiler *c = vm->compiler;
-  int i;
-  for (i = 0; i < c->isTestCount; i++)
-    if (c->isTests[i].resultAt == resultAt) rio_narrow(vm, c->isTests[i].varAt, c->isTests[i].member, 1);
+  int i, m;
+  for (i = 0; i < c->isTestCount; i++) {
+    m = whenFalse ? c->isTests[i].onFalse : c->isTests[i].onTrue;
+    if (c->isTests[i].resultAt == resultAt && m >= 0) rio_narrow(vm, c->isTests[i].varAt, m, 1);
+  }
 }
 
 /* a union e that `is` or a switch can narrow, as rio_narrow knows it: a variable's address, or a
@@ -510,7 +536,8 @@ void rio_elementwiseOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r, rio_Expr *i
 void rio_unaryOp(rio_Vm *vm, int op, rio_Expr *e) {
   rio_Compiler *c = vm->compiler;
   int t, s, d;
-  rio_isTestUsed(vm, e, -1);
+  rio_Expr was;
+  if (op != '!') rio_isTestUsed(vm, e, -1);
   rio_needValue(vm, e);
   if (op == '&') { /* a reference to a place, for a & parameter or name := &place */
     if (e->bits) rio_FAIL(, "a bitfield has no address of its own: & can't take it");
@@ -527,7 +554,8 @@ void rio_unaryOp(rio_Vm *vm, int op, rio_Expr *e) {
     *e = zero;
     return;
   }
-  if (op == '!' && rio_isMaybe(vm, e->type)) rio_maybeTest(vm, e, 0); /* not x: true when x is nil */
+  if (op == '!' && rio_isMaybe(vm, e->type)) rio_maybeTest(vm, e, 1); /* not x: true when x is nil (as not (x is T)) */
+  was = *e;
   t = rio_valueType(e->type);
   if (op == '!' ? t != rio_TypeId_bool : t != rio_TypeId_int && !(t == rio_TypeId_float && op == '-'))
     rio_FAIL(, "bad operand for unary operator");
@@ -544,6 +572,7 @@ void rio_unaryOp(rio_Vm *vm, int op, rio_Expr *e) {
   c->freeSlot = e->tempStart;
   d = rio_allocSlots(vm, 1);
   rio_emit(vm, op == '-' ? (t == rio_TypeId_float ? rio_Op_fneg : rio_Op_neg) : op == '!' ? rio_Op_not : rio_Op_bnot, d, s, 0);
+  if (op == '!') rio_isTestCarry(vm, &was, d * 4, '!'); /* (not (x is T): what's known, swapped) */
   e->kind = rio_ExprKind_static;
   e->value = d * 4;
   e->type = (uint16_t)t;

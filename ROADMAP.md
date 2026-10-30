@@ -63,9 +63,6 @@ Nothing open: see Leaning yes.
   lookup table costs no RAM on small boards.
 - **Formatters as values:** `hex(n)`, `pad(s, 8)` and the like, returning `Fmt` values that work
   anywhere a value can print, beside `b.format(settings, ...)`, which stays.
-- **Narrowing after a check that leaves, and in else:** after `if not n do return` (or `if n is nil`,
-  with a block that always returns, breaks or continues), n is its value for the rest of the block, as
-  Swift's `guard let`; and in the `else` of `if not n`, `if n is nil`. For maybes and `is` alike.
 - **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
   both are errors, and `x is nil` is the way to test for nil.
 
@@ -141,6 +138,10 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **Narrowing when a test is false:** for a maybe or a union of two types, `not n`, `n is nil` and
+  `not (u is A)` narrow on the right of `or`, in the branches after (`case`, `else`), and after an `if`
+  whose branch leaves (`if not n do return`: n its value from there, as Swift's `guard let`).
 
 - **Bool as a maybe of nothing:** maybes work where Bools do: `if x` (x its value inside), `not x`, `x and e`
   (e if x is there, x its value in e; a maybe of e, unless e is a Bool: `t and t.x`), and `x or y` (x's

@@ -1390,6 +1390,64 @@ bmDouble :: proc(k: ?Int) -> Int
 end
 check(bmDouble(bmM) == 14 and bmDouble(nil) == -1, "and then or, inside a proc")
 
+# ---- narrowing when a test is false: else, the cases after, or's right side, after an if that leaves
+nfF :: proc(m: ?Int) -> Int
+  if m is nil do return 0
+  return m + 1
+end
+check(nfF(4) == 5 and nfF(nil) == 0, "after an if that returns")
+nfE :: proc(m: ?Int) -> Int
+  if not m
+    return 0
+  else
+    return m + 10
+  end
+end
+check(nfE(1) == 11 and nfE(nil) == 0, "in the else of if not x")
+nfOr :: proc(m: ?Int) -> Bool
+  return not m or m > 5
+end
+check(nfOr(nil) and not nfOr(3) and nfOr(9), "the right side of or")
+NfU :: union
+  Int, String
+end
+nfS :: proc(x: NfU) -> Int
+  if x is Int
+    return x
+  case x.len() > 3
+    return 99
+  end
+  return x.len()
+end
+check(nfS(7) == 7 and nfS("hello") == 99 and nfS("ab") == 2, "a union of two: the other type, in the cases after and after")
+nfWords := [3]String{"1", "x", "30"}
+nfTotal := 0
+for w in nfWords
+  n := w.toInt()
+  if not n do continue
+  nfTotal += n
+end
+check(nfTotal == 31, "after an if that continues")
+nfC :: proc(m: ?Int, a: Bool) -> Int
+  if not m
+    return 0
+  case a
+    nfTotal += 1
+  end
+  return m + 1
+end
+check(nfC(4, true) == 5 and nfC(5, false) == 6 and nfC(nil, true) == 0, "a later branch that gets to its end")
+nfN :: proc(m: ?Int) -> Int
+  if not (m and m > 3) do return 0
+  return m
+end
+check(nfN(5) == 5 and nfN(2) == 0 and nfN(nil) == 0, "not (x and ...)")
+nfTwo :: proc(m, n: ?Int) -> Int
+  if not m or n is nil do return 0
+  return m + n
+end
+check(nfTwo(1, 2) == 3 and nfTwo(nil, 2) == 0 and nfTwo(1, nil) == 0, "two, or-ed")
+
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1

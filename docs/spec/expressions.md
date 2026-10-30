@@ -606,3 +606,36 @@ log(n is Int and n > 2)
 true
 true
 ```
+
+A test that's false narrows too, when it leaves one type: for a union of two types (a maybe is one, of
+`nil` and `T`), `u is A` being false means u holds the other. So `not u` (for a maybe), `u is nil` or
+`not (u is A)` narrows u where it's known to be false: on the right side of an `or` it's the left side
+of; in the branches after it (`case`, `else`), when it's one of an `if` condition's `or`-joined parts;
+and after the `if`, to the end of the block holding it, when its branch and any before it leave (with
+`return`, `break` or `continue`), as Swift's `guard let`:
+
+```rio
+first :: proc(xs: []String) -> Int
+  for x in xs
+    n := x.toInt()
+    if not n do continue
+    return n  # n is the Int: the if left when it was nil
+  end
+  return -1
+end
+twice :: proc(s: String) -> Int
+  n := s.toInt()
+  if n is nil
+    return 0
+  else
+    return n * 2
+  end
+end
+words := [3]String{"a", "12", "7"}
+m := "5".toInt()
+log(first(words[]), twice("21"), twice("x"), not m or m > 3)
+```
+
+```output
+12 42 0 true
+```

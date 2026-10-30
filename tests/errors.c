@@ -203,11 +203,11 @@ static const Case cases[] = {
   {"f :: proc()\n  b: [..4]String\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a builder holding slices or strings must be global"},
   /* only x is T parts joined by && narrow: not under ||, !, or a comparison */
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif t or u is A\n  log(u.x)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "a union's value is reachable"},
-  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif not (u is B)\n  log(u.x)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "a union's value is reachable"},
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  nil\n  A, B\nend\nu: U\nt := true\nif not (u is B)\n  log(u.x)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 14, -1, -1, "a union's value is reachable"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif (u is A) == true\n  log(u.x)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "a union's value is reachable"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := true\nif (u is A and t) or t\n  log(u.x)\nend\n", 0, 0, 0, rio_ErrorKind_compile, 13, -1, -1, "a union's value is reachable"},
   /* the right side of an and is narrowed by the left side's x is T, but not an or's, and not past the and */
-  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := u is A or u.x > 0\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "a union's value is reachable"},
+  {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  nil\n  A, B\nend\nu: U\nt := u is A or u.x > 0\n", 0, 0, 0, rio_ErrorKind_compile, 12, -1, -1, "a union's value is reachable"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := u is A and u.x > 0\nlog(u.x)\n", 0, 0, 0, rio_ErrorKind_compile, 12, -1, -1, "a union's value is reachable"},
   {"A :: struct\n  x: Int\nend\nB :: struct\n  y: Float\nend\nU :: union\n  A, B\nend\nu: U\nt := u is A and (u.x > 0 or true) and u is Int\n", 0, 0, 0, rio_ErrorKind_compile, 11, -1, -1, "not one of this union's types"},
   /* [Enum]T */
@@ -386,6 +386,11 @@ static const Case cases[] = {
   {"c := 0\nc += if c > 0\n  1\nelse\n  2\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 6, -1, "an if or switch is a value only as all of one, right after :=, = or return"},
   {"x: ?Int = 2\ny := x or \"s\"\n", 0, 0, 0, rio_ErrorKind_compile, 2, 11, -1, "x or y gives x's value if it's there, else y: y is of x's value's type, or a maybe of it"},
   {"m: ?Int = 7\nlog((m and m > 5) and not (m and m > 50))\n", 0, 0, 0, rio_ErrorKind_compile, 2, 30, -1, "this maybe is known to hold its value here (it was checked before): use it as one"},
+  {"f :: proc(m: ?Int) -> Int\n  if not m do log(1)\n  return m + 1\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, 14, -1, "this may be nil: check first (if x is T, then x is a T there)"},
+  {"f :: proc(m: ?Int, a: Bool) -> Int\n  if a and not m do return 0\n  return m + 1\nend\n", 0, 0, 0, rio_ErrorKind_compile, 3, 14, -1, "this may be nil: check first (if x is T, then x is a T there)"},
+  {"f :: proc(m: ?Int, a: Bool) -> Int\n  if a\n    log(2)\n  case not m\n    return 0\n  end\n  return m + 1\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, 14, -1, "this may be nil: check first (if x is T, then x is a T there)"},
+  {"f :: proc(m: ?Int) -> Int\n  if not m do return 0\n  m = nil\n  return m + 1\nend\n", 0, 0, 0, rio_ErrorKind_compile, 4, 14, -1, "this may be nil: check first (if x is T, then x is a T there)"},
+  {"U :: union\n  nil\n  Int, String\nend\nf :: proc(x: U) -> Int\n  if x is nil do return 0\n  return x + 1\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, 14, -1, "type mismatch"},
   {"f := true\ng := f or 3\n", 0, 0, 0, rio_ErrorKind_compile, 2, 11, -1, "expected Bool (or, after and, any value)"},
   {"b: ?Bool = true\nif b\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, 4, 1, "a ?Bool isn't a condition: x or false is whether it's true, x is Bool whether it's there"},
   {"b: ?Bool\nlog(not b)\n", 0, 0, 0, rio_ErrorKind_compile, 2, 10, -1, "a ?Bool isn't a condition: x or false is whether it's true, x is Bool whether it's there"},

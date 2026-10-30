@@ -131,7 +131,7 @@ static void rio_reduceOne(rio_Vm *vm) {
     rio_maybeOpEnd(vm, &o, &r);
     return;
   }
-  rio_isTestUsed(vm, &r, o.kind == rio_Pending_and ? d * 4 : -1);
+  rio_isTestCarry(vm, &r, d * 4, o.kind == rio_Pending_and ? rio_Tok_and : rio_Tok_or);
   if (r.type != rio_TypeId_bool) rio_FAIL(, "expected Bool (or, after and, any value)");
   s = rio_toSlot(vm, &r, 1);
   c->freeSlot = (uint32_t)d + 1;
@@ -1300,14 +1300,14 @@ static int rio_binaryOperator(rio_Vm *vm, int t, int prec) {
     c->freeSlot = l->tempStart;
     d = rio_allocSlots(vm, 1);
     if (s != d) rio_emit(vm, rio_Op_mov, d, s, 0);
-    rio_isTestUsed(vm, l, t == rio_Tok_and ? d * 4 : -1);
+    rio_isTestCarry(vm, l, d * 4, t);
     o = rio_pushOp(vm, t == rio_Tok_and ? rio_Pending_and : rio_Pending_or, prec, t);
     o->a = rio_emit(vm, t == rio_Tok_and ? rio_Op_jz : rio_Op_jnz, d, 0, rio_NONE);
     o->b = d;
     o->c = c->symCount;
     o->argCount = (int32_t)c->nameBytes;
     o->punAt = 0;
-    if (t == rio_Tok_and) rio_narrowRight(vm, d * 4);
+    rio_narrowRight(vm, d * 4, t == rio_Tok_or); /* (or: the right side runs when the left is false) */
     l->kind = rio_ExprKind_static;
     l->value = d * 4;
     l->type = rio_TypeId_bool;

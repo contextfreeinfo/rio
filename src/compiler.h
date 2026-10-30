@@ -250,6 +250,12 @@ typedef struct {
   uint16_t switchIndex; /* switch: its row in switchCases */
   uint16_t labelLen;    /* a loop's label (outer: for ...): its length (0: none) */
   uint8_t value;        /* an if or switch as a value (x := if ...): its row in valueBlocks + 1 (0: none) */
+  uint8_t knownCount;   /* if: what its conditions being false says of union variables (if not x, if
+                           x is nil): narrowed so in the branches after, and after the if, the first
+                           knownAfter of them (255: not yet known); knownAt as isTests' varAt */
+  uint8_t knownBefore, knownAfter; /* (knownBefore: knownCount before the current branch's condition) */
+  uint8_t knownMember[3];
+  int32_t knownAt[3];
   char label[24];
 } rio_Block;
 
@@ -342,7 +348,9 @@ typedef struct rio_Compiler {
   int descCount;
   struct {
     int32_t resultAt; /* the slot carrying its result (-1 once used by anything but and) */
-    int32_t varAt, member; /* x is T: x's address and T's index in the union */
+    int32_t varAt;        /* x is T: x's address */
+    int16_t onTrue, onFalse; /* the type x holds (its index in the union) when the result is true, and
+                                when it's false (-1: not known) */
   } isTests[8];           /* the `x is T`s in an if's condition */
   int16_t isTestCount;
   int16_t unreachable;    /* the code here can't run: after a return, break or continue (rio_Flow) */
@@ -524,9 +532,10 @@ int rio_numberArrayInfo(rio_Vm *vm, int type, int *count);
 int rio_unionMember(rio_Vm *vm, int unionType, const rio_Expr *e);
 int rio_storeIntoUnion(rio_Vm *vm, rio_Expr *dst, rio_Expr *src);
 void rio_isTestUsed(rio_Vm *vm, const rio_Expr *e, int carry);
-void rio_narrowIsTests(rio_Vm *vm, const rio_Expr *cond);
+void rio_isTestCarry(rio_Vm *vm, const rio_Expr *e, int to, int how);
+void rio_narrowIsTests(rio_Vm *vm, const rio_Expr *cond, rio_Block *b);
 void rio_narrow(rio_Vm *vm, int32_t varAt, int member, int temp);
-void rio_narrowRight(rio_Vm *vm, int resultAt);
+void rio_narrowRight(rio_Vm *vm, int resultAt, int whenFalse);
 int rio_isMaybe(rio_Vm *vm, int type);
 void rio_maybeTest(rio_Vm *vm, rio_Expr *e, int narrow);
 #define rio_REF_AT 0x40000000 /* (in a varAt: a reference's slot, such as a loop's element, not a variable's address) */
