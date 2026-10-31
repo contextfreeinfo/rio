@@ -354,6 +354,7 @@ typedef struct rio_Compiler {
   uint8_t *paramViews;    /* local slots that hold a view that came in through a parameter */
   int storingArgs;        /* storing call arguments: views may go to a callee */
   int namingType;         /* parsing Name :: ...: a generic proc type may be named, proc[T](...) */
+  int hostTypeParams;     /* in ([..]T).push :: host proc[T](...): its Ts already stand for types, so [T] is skipped */
   struct {
     uint16_t proc, ffi;
   } thunks[16];           /* host procs used as proc values: the proc that calls each (rio_makeThunks) */

@@ -28,28 +28,16 @@ Nothing open: see Leaning yes.
 ## Leaning yes
 
 - **Generic procs, the rest:** reference-only generics are done (see Done recently): a T is reached
-  only through `&T` and `[]T`, like C's `void*` with its size, but typed. Still to come, if wanted:
-  - **More on a `[]T`:** `for x in xs` and slicing, and `[..]T` builder views (push, pop).
-  - **`core.rio` declared for real:** with generic methods, the list builtins could be checked
-    declarations: `([..]T).push :: host proc[T](value: T) -> Bool`, the receiver a built-in generic type
-    and a T by value allowed in a host declaration (it's a signature only; the builtin is compiled as
-    now). `print`, `format` and `pack` need constraints, so they stay comments.
-  - **Where to stop:** no T by value and no constraints. Generic structs did make `tests/map.rio` read
-    clearly better (`putIn(&pointTable, &key, &p)`, not seven arguments).
+  only through `&T` and `[]T`, like C's `void*` with its size, but typed. Left, if wanted:
+  - **`[..]T` builder views:** `push` and `pop` in a generic body need a T by value, so they'd take
+    `&T` (`xs.push(&x)`) or copy into the next slot.
   - **The descriptor:** each call already passes the address of (T's size, its descriptor), with the
     descriptor 0 for now. Comparing, hashing and printing come in as procs instead, so nothing needs
     it yet; it's kept for reflection (see Maybe).
-  - **Generic struct literals typed by their fields:** `Table{keys = ks[], values = vs[], eq = intEq}` is
-  a `Table[Int, Point]`, each field's value finding the Ts in its type, in order (as `[_]{...}` takes its
-  element type from its values). Every T must be found; a `{...}` into a field not yet known is an error.
-- **Generic methods:** `([..]T).push :: proc[T](value: T) -> Bool`, the receiver's T bound by the
-    proc's list. The receiver comes first in the source, before T is named, so it needs reading after.
-  - **No constraints and no traits:** anything type-specific, like `<`, comes in as a proc argument:
-    `sort(xs[], less)`.
-  - **Builtins declared for real:** this would let core.rio declare its generic builtins as
-    `([]T).len` and `([..]T).push`. Their rules, like what can be packed or printed, stay in comments.
-  - **Sort and find:** these could then be written in Rio. Without generics, they'd be host builtins
-    taking a less proc.
+  - **Where to stop:** no T by value and no constraints (no traits): anything type-specific comes in
+    as a proc. `log`, `print`, `format`, `pack`, `sizeOf` and the enum builtins stay comments in
+    `core.rio`, since declaring them would need constraints.
+  - **Sort and find in Rio:** a small library of them, now that they can be written.
 - **Returning any value:** a proc returns a value of up to 16 words, views in it or not (host procs
   return no views). What's left, when something needs it:
   - **Big values** (over 16 words): the caller passes an address for the proc to fill in, and `return`
@@ -137,6 +125,11 @@ Nothing open: see Leaning yes.
 
 ## Done recently
 
+- **More on generics:** `for x in xs` and slicing over a `[]T` (T's size from its slot, with no new
+  instructions); `core.rio`'s list builtins declared for real (`([..]T).push* :: host proc[T](value:
+  T) -> Bool`), each checked with T standing for a type of its own; and generic struct literals typed
+  by their fields (`Table{keys = ks[], ...}` is a `Table[Int, Point]`). The ways a generic body could
+  let a view outlive what it views were audited and each is refused, with error rows for them.
 - **Generic methods:** `Table.put :: proc[K, V](key: &K, value: &V)`, the struct's Ts first, then any
   more; static ones (`Table.make(...)`, or `Table[Int, Point].make(...)`); and generic methods on any type.
   `tests/map.rio`'s table reads `pointTable.put(&key, &p)`.

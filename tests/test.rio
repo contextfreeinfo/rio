@@ -1664,6 +1664,23 @@ gnPs[0].y = 99
 gnSortList(&gnList)
 gnOther: GnList[GnP] = gnList
 check(gnPs[2].y == 99 and gnFirst(gnOther) == 3 and gnOther.items[0].y == 20, "a generic struct, filled in and passed to generic procs")
+gnCountIf :: proc[T](xs: []T, keep: proc(a: &T) -> Bool) -> Int
+  n := 0
+  for x in xs
+    if keep(&x) do n += 1
+  end
+  return n
+end
+gnCopyIn :: proc[T](to: []T, from: []T)
+  for x, i in from do to[i] = x
+end
+gnTail :: proc[T](xs: []T, from: Int) -> []T do return xs[from..]
+gnBig :: proc(p: &GnP) -> Bool do return p.y > 25
+gnQs: [4]Int
+gnCopyIn(gnQs[], gnInts[])
+gnT := gnTail(gnPs[], 1)
+check(gnCountIf(gnPs[], gnBig) == 2 and gnQs[3] == gnInts[3] and gnT.len() == 2 and gnT[1].y == 99 and gnTail(gnPs[], 3).len() == 0 and
+      gnCountIf(gnPs[0..<2], gnBig) == 1, "for over a []T, and slicing one")
 gnPs[0].y = 50
 gnL2 := GnList.of(gnPs[], gnByY)
 gnWasSorted := gnL2.isSorted()

@@ -41,6 +41,11 @@ static int rio_typeParamsOfType(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   int k = 0, exporting = c->exporting;
   if (c->tok.kind != '[' || c->tok.newline) return 0;
+  if (c->hostTypeParams) { /* (named already: rio_typeMethodDecl) */
+    while (c->tok.kind != ']' && c->tok.kind != rio_Tok_eof) rio_next(vm);
+    rio_next(vm);
+    return 0;
+  }
   if (!c->namingType) rio_FAIL_AT_TOKEN(0, "a generic proc type is only named: Less :: (proc[T](a, b: &T) -> Bool)");
   c->exporting = 0; /* (that's the type's name, after) */
   rio_next(vm);

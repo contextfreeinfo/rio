@@ -411,9 +411,10 @@ is only ever reached through a reference or a slice, never held:
 - **Where a T goes:** `x: &T` and `xs: []T`, as parameters, in a proc type's parameters
   (`less: proc(a, b: &T) -> Bool`), and in a variable as `[]T`.
 - **What a T does:** it's copied from place to place (`xs[i] = x`, `a = b`), swapped
-  (`xs.swap(i, j)`), and passed on, to a generic proc or a proc value as `&xs[i]`. Anything else is an
-  error: comparing (pass in a proc that compares), arithmetic, printing, keeping one in a variable, a
-  `for` over a `[]T` (index it), slicing a `[]T`. A generic proc can't return a T, or be a proc value.
+  (`xs.swap(i, j)`), and passed on, to a generic proc or a proc value as `&xs[i]`. A `[]T` is indexed,
+  sliced and walked with `for x in xs` (x is the element itself, as for any slice). Anything else is an
+  error: comparing (pass in a proc that compares), arithmetic, printing, keeping one in a variable. A
+  generic proc can't return a T, or be a proc value.
 - **What a call checks:** each T found agrees everywhere it's found. And a proc that copies its T into
   memory it was given can't take a T holding views (a `String`, a struct with one): it could keep a
   view past what it views, as any proc could by storing a borrowed view (`xs.swap` is fine, since both

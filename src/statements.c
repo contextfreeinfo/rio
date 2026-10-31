@@ -170,7 +170,7 @@ static void rio_forEach(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
                         int pointer, int end, int index) {
   rio_Compiler *c = vm->compiler;
   rio_Type *ty;
-  int s, size, readOnly, indexType = rio_TypeId_int, local, fromParam;
+  int s, size, sizeSlot, readOnly, indexType = rio_TypeId_int, local, fromParam;
   rio_needValue(vm, e);
   ty = rio_type(vm, e->type);
   local = ty->kind == rio_TypeKind_array && rio_isViewKind(rio_type(vm, ty->elem)->kind) /* (what reading through */
@@ -184,17 +184,17 @@ static void rio_forEach(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
   }
   if (ty->kind != rio_TypeKind_array && ty->kind != rio_TypeKind_slice) rio_FAIL(, "for needs a range, array, slice or builder");
   if (ty->kind == rio_TypeKind_array && rio_isTemp(vm, e)) rio_FAIL(, "a computed array has no home to view: store it in a variable first");
-  if (rio_type(vm, ty->elem)->kind == rio_TypeKind_param) rio_FAIL(, "for x in a []T isn't ready yet: for i in 0..<xs.len(), and xs[i]");
   size = (int)rio_type(vm, ty->elem)->size;
+  sizeSlot = rio_type(vm, ty->elem)->kind == rio_TypeKind_param ? rio_typeSizeSlot(vm, ty->elem) : rio_constSlot(vm, size); /* (a []T's: known while running) */
   readOnly = e->access || e->type == rio_TypeId_string;
   if (ty->kind == rio_TypeKind_array && ty->firstField) indexType = ty->firstField; /* for v, d in counts: d is the enum */
   s = rio_toSlot2(vm, e);
   rio_emit(vm, rio_Op_mov, pointer, s, 0);
   if (size != 1) { /* end = address + length * size */
-    rio_emit(vm, rio_Op_mul, end, s + 1, rio_constSlot(vm, size));
+    rio_emit(vm, rio_Op_mul, end, s + 1, sizeSlot);
     rio_emit(vm, rio_Op_add, end, s, end);
   } else rio_emit(vm, rio_Op_add, end, s, s + 1);
-  rio_emit(vm, rio_Op_mov, end + 1, rio_constSlot(vm, size), 0);
+  rio_emit(vm, rio_Op_mov, end + 1, sizeSlot, 0);
   if (indexName) rio_emit(vm, rio_Op_mov, index, rio_constSlot(vm, 0), 0);
   c->freeSlot = c->liveSlots;
   if (c->curProc >= 0) {

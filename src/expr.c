@@ -497,7 +497,6 @@ static void rio_slice(rio_Vm *vm, rio_Expr *o, rio_Expr *lo, rio_Expr *hi, int i
     ty = rio_type(vm, o->type);
   }
   if (ty->kind != rio_TypeKind_array && ty->kind != rio_TypeKind_slice) rio_FAIL(, "cannot slice this");
-  if (rio_type(vm, ty->elem)->kind == rio_TypeKind_param) rio_FAIL(, "slicing a []T isn't ready yet");
   if (ty->kind == rio_TypeKind_array && rio_isTemp(vm, o)) rio_FAIL(, "a computed array has no home to view: store it in a variable first");
   if (ty->kind == rio_TypeKind_array && ty->firstField) { /* counts[.east..<.west]: bounds are the enum's values, which are the positions */
     int loLeftOut = lo->kind == rio_ExprKind_const && lo->type == rio_TypeId_int && lo->offset == 1;
@@ -519,8 +518,17 @@ static void rio_slice(rio_Vm *vm, rio_Expr *o, rio_Expr *lo, rio_Expr *hi, int i
   }
   c->freeSlot = o->tempStart;
   d = rio_allocSlots(vm, 2);
-  rio_emit(vm, rio_Op_slice, d, s, l);
-  rio_emitData(vm, h, rio_type(vm, ty->elem)->size);
+  if (rio_type(vm, ty->elem)->kind == rio_TypeKind_param) { /* a []T: bounds and length by slice, the start by T's size */
+    int at = rio_allocSlots(vm, 1);
+    while (at == s || at == s + 1 || at == l || at == h) at = rio_allocSlots(vm, 1); /* (written before slice reads them) */
+    rio_emit(vm, rio_Op_mul, at, l, rio_typeSizeSlot(vm, ty->elem));
+    rio_emit(vm, rio_Op_slice, d, s, l);
+    rio_emitData(vm, h, 0);
+    rio_emit(vm, rio_Op_add, d, d, at);
+  } else {
+    rio_emit(vm, rio_Op_slice, d, s, l);
+    rio_emitData(vm, h, rio_type(vm, ty->elem)->size);
+  }
   o->kind = rio_ExprKind_static;
   o->value = d * 4;
   o->offset = 0;
