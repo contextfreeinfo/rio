@@ -5,8 +5,24 @@ end with it.
 
 ## Expressions as statements
 
-Any expression can be a statement, usually a call. Its value, if any, is dropped (the REPL prints
-it).
+Any expression can be a statement, usually a call. If it has a value, that value must be used: one
+left over is an error, so a result isn't dropped by accident. `_ = f()` drops it on purpose. (The
+REPL prints a value left over instead.)
+
+```rio
+b: Blob[..8]
+_ = b.print("hi")            # print says whether it fit: dropped on purpose
+log(b.len())
+```
+
+```output
+2
+```
+
+```rio
+b: Blob[..8]
+b.print("hi")  # error: this value isn't used: write _ = ... to drop it
+```
 
 ## Assignment
 
@@ -138,7 +154,8 @@ through 2
   `b` is evaluated once, before the loop. `a..=b` is `a..<b + 1`. `i` is a new `Int` variable; changing
   it changes the next value.
 - **Sequences:** `for x in xs` visits each element of an array, slice, builder, `String` or `Blob`, and
-  `for x, i in xs` adds the index. `x` is the element itself, not a copy, so changing it changes `xs`
+  `for x, i in xs` adds the index. Either name can be `_` for one not wanted: `for _ in 0..<n`,
+  `for _, i in xs`. `x` is the element itself, not a copy, so changing it changes `xs`
   (unless `xs` is a `String`, which is read-only). Over a builder, the loop visits the elements it had when
   it started.
 - **Enums:** `for d in E` visits the enum's values in the order listed (`for d, i in E` adds the

@@ -12,11 +12,6 @@ with the reasons, are in [REJECTED.md](REJECTED.md).
 
 ## Decide first: changes that would break existing source
 
-- **`_` for "ignore this", not a name:** `_ := 3` and `_ :: 3` are legal today. Instead, `_` is never
-  a name, and means what's left out: `[_]T{...}` sized by its values (as now), `for _ in 0..<n` with no
-  variable, and `_ = f()` dropping a result on purpose. Then a call's result left unused is an error,
-  so it can't be dropped by accident: `b.push(x)` alone becomes `_ = b.push(x)` (or the `ok := ...`
-  apps write today, which `_ =` replaces). This breaks existing source, rinc's included.
 - **Procs marked to be values:** only a proc declared for it, `f :: callback proc(...)` (the word open,
   contextual as `static` is), can be used as a proc value, and its own body is checked as one: it can't
   call through proc values, whether or not anything uses it as a value yet. Today that's checked
@@ -34,7 +29,6 @@ Rinc's and Studio's apps, would change with it.
 
 In this order:
 
-- **`_`:** as above, under Decide first.
 - **Host static procs:** `Color.rgb :: static host proc(r, g, b: Int) -> Color` in a host module, a host
   proc named inside its type (C name `module_Color_rgb`), with `rio -H` writing it. Static only at
   first; host methods with `self` only if wanted.
@@ -162,6 +156,11 @@ In this order:
     procs if they come.
 
 ## Done recently
+
+- **`_` for what's left out:** `_` is never a name. `_ = f()` drops a value on purpose, and a value
+  left unused by a statement is an error (the REPL still prints one); `for _ in 0..<n` and `for _, i in
+  xs` have no variable; `[_]T{...}` is sized by its values, as before. Rinc's apps and docs got `_ =`
+  where they dropped results (91 places); Studio needed none.
 
 - **Ordering Strings:** `<`, `<=`, `>` and `>=` on Strings and Blobs, byte by byte, a prefix first
   (`scmp`; images are version 15). UTF-8's bytes order as its code points do, so that's code point
