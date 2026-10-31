@@ -131,6 +131,13 @@ typedef struct {
                           be a value: that could recurse) */
   uint8_t usedAsValue;
   uint16_t optional;   /* how many of its last parameters are optional (name?: T): left out, they're zero */
+  /* a generic proc, proc[T, U](...): its type parameters, types firstTypeParam on; each a hidden last
+     parameter, the address of a constant (T's size, its descriptor or 0), and T's size loaded into a slot
+     of sizeSlots on at its start */
+  uint8_t typeParams;
+  uint8_t viewTypes;   /* the ones it copies into memory it was given (bit j): a T holding views can't go there */
+  uint16_t firstTypeParam, sizeSlots;
+  uint16_t selfType;   /* a generic struct's method: self's type, the struct filled in with the first Ts */
 } rio_ProcDef;
 
 typedef struct {
@@ -346,7 +353,8 @@ typedef struct rio_Compiler {
   uint8_t *localViews;    /* local slots that hold a view of their proc's own memory */
   uint8_t *paramViews;    /* local slots that hold a view that came in through a parameter */
   int storingArgs;        /* storing call arguments: views may go to a callee */
-  int hostProcType;       /* parsing a host proc's declaration: its proc type may take &T parameters */
+  int namingType;         /* parsing Name :: ...: a generic proc type may be named, proc[T](...) */
+  int hostTypeParams;     /* in ([..]T).push :: host proc[T](...): its Ts already stand for types, so [T] is skipped */
   struct {
     uint16_t proc, ffi;
   } thunks[16];           /* host procs used as proc values: the proc that calls each (rio_makeThunks) */
@@ -521,6 +529,13 @@ uint32_t rio_expose(rio_Vm *vm, uint32_t addr, uint32_t bytes);
 int rio_addrConst(rio_Vm *vm, uint32_t addr, uint32_t bytes);
 int rio_retarget(rio_Vm *vm, int from, int to);
 int rio_isTemp(rio_Vm *vm, const rio_Expr *e);
+extern const char rio_msgOpaque[];
+int rio_typeSizeSlot(rio_Vm *vm, int t);
+void rio_emitElemSize(rio_Vm *vm, int elem);
+int rio_mentions(rio_Vm *vm, int t, int type);
+int rio_bindType(rio_Vm *vm, int p, int t, const int *bound);
+int rio_paramPattern(rio_Vm *vm, int proc, int i);
+int rio_genericOf(rio_Vm *vm, int tmpl);
 void rio_openLiteral(rio_Vm *vm);
 void rio_constLiteral(rio_Vm *vm, rio_Expr *e);
 int rio_literalData(rio_Vm *vm, rio_Expr *e);
@@ -590,7 +605,7 @@ typedef enum {
   rio_Builtin_assert,
   /* builder methods */
   rio_Builtin_push, rio_Builtin_pop, rio_Builtin_clear, rio_Builtin_cap, rio_Builtin_remove,
-  rio_Builtin_swapRemove, rio_Builtin_pushAll, rio_Builtin_format, rio_Builtin_print,
+  rio_Builtin_swapRemove, rio_Builtin_pushAll, rio_Builtin_swap, rio_Builtin_format, rio_Builtin_print,
   /* byte methods (Blobs, byte builders) */
   rio_Builtin_pack, rio_Builtin_unpack, rio_Builtin_getInt, rio_Builtin_setInt,
   /* conversion methods */

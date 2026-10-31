@@ -383,6 +383,8 @@ void rio_binaryOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
     rio_FAIL(, "this may be nil: check first (if x is T, then x is a T there)");
   if (lt != rt) rio_FAIL(, "type mismatch");
   isCompare = rio_isCompare(op);
+  if (rio_type(vm, lt)->kind == rio_TypeKind_param)
+    rio_FAIL(, rio_isCompare(op) ? "a T can't be compared: pass in a proc that compares, eq: proc(a, b: &T) -> Bool" : rio_msgOpaque);
   if ((lt == rio_TypeId_string || lt == rio_TypeId_blob) && (op == rio_Tok_eqEq || op == rio_Tok_notEq)) {
     ls = rio_toSlot2(vm, l);
     rs = rio_toSlot2(vm, r);

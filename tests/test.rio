@@ -1592,6 +1592,142 @@ ilFirst :: proc(k: Int) -> Int
 end
 check(ilFirst(1) == 115 and ilFirst(2) == 119, "in a proc, built each call")
 
+# ---- generic procs: proc[T], compiled once, each call passing T's size; a T only by &T or []T
+GnP :: struct
+  x, y: Int
+  name: String
+end
+gnFind :: proc[T](xs: []T, x: &T, eq: proc(a, b: &T) -> Bool) -> Int
+  for i in 0..<xs.len()
+    if eq(&xs[i], &x) do return i
+  end
+  return -1
+end
+gnReverse :: proc[T](xs: []T)
+  n := xs.len()
+  for i in 0..<n / 2 do xs.swap(i, n - 1 - i)
+end
+GnLess :: (proc[T](a, b: &T) -> Bool)
+gnSortBy :: proc[T](xs: []T, less: GnLess[T])
+  for i in 1..<xs.len()
+    j := i
+    for j > 0 and less(&xs[j], &xs[j - 1])
+      xs.swap(j, j - 1)
+      j -= 1
+    end
+  end
+end
+gnFill :: proc[T](xs: []T, x: &T)
+  for i in 0..<xs.len() do xs[i] = x
+end
+gnByY :: proc(a, b: &GnP) -> Bool do return a.y < b.y
+gnLessP: GnLess[GnP] = gnByY
+gnIntEq :: proc(a, b: &Int) -> Bool do return a == b
+gnFloatEq :: proc(a, b: &Float) -> Bool do return a == b
+gnStrLess :: proc(a, b: &String) -> Bool do return a[0] < b[0]
+gnInts := [_]{5, 3, 9, 1}
+gnReverse(gnInts[])
+gn9 := 9
+gn7 := 7
+check(gnInts[0] == 1 and gnInts[3] == 5 and gnFind(gnInts[], &gn9, gnIntEq) == 1 and gnFind(gnInts[], &gn7, gnIntEq) == -1, "reverse and find, on Ints")
+gnPs := [_]{GnP{x = 1, y = 30, name = "c"}, GnP{x = 2, y = 10, name = "a"}, GnP{x = 3, y = 20, name = "b"}}
+gnSortBy(gnPs[], gnLessP)
+check(gnPs[0].x == 2 and gnPs[1].x == 3 and gnPs[2].name == "c", "sort by a proc, on structs holding Strings")
+gnFs := [4]Float{}
+gnHalf := 2.5
+gnFill(gnFs[], &gnHalf)
+gnNames := [_]{"y", "z", "x"}
+gnSortBy(gnNames[], gnStrLess)
+gnNames.swap(0, 0)
+check(gnFs[0] == 2.5 and gnFs[3] == 2.5 and gnFind(gnFs[], &gnHalf, gnFloatEq) == 0 and gnNames[0] == "x" and gnNames[2] == "z", "fill, and Strings sorted")
+gnB: [..4]Int
+ok := gnB.push(1) and gnB.push(2)
+gnB.swap(0, 1)
+check(gnB[0] == 2 and gnB[1] == 1, "swap on a builder")
+GnList :: struct[T]
+  items: []T
+  less: GnLess[T]
+end
+gnSortList :: proc[T](l: &GnList[T]) do gnSortBy(l.items, l.less)
+GnList.of :: static proc[T](items: []T, less: GnLess[T]) -> GnList[T] do return GnList{items, less}
+GnList.sort :: proc[T]() do gnSortBy(self.items, self.less)
+GnList.isSorted :: proc[T]() -> Bool
+  for i in 1..<self.items.len()
+    if self.less(&self.items[i], &self.items[i - 1]) do return false
+  end
+  return true
+end
+Int.pickFrom :: proc[T](xs: []T) -> Int do return self % xs.len()
+gnFirst :: proc[T](l: GnList[T]) -> Int do return l.items.len()
+gnList := GnList{items = gnPs[], less = gnByY}
+gnPs[0].y = 99
+gnSortList(&gnList)
+gnOther: GnList[GnP] = gnList
+check(gnPs[2].y == 99 and gnFirst(gnOther) == 3 and gnOther.items[0].y == 20, "a generic struct, filled in and passed to generic procs")
+gnCountIf :: proc[T](xs: []T, keep: proc(a: &T) -> Bool) -> Int
+  n := 0
+  for x in xs
+    if keep(&x) do n += 1
+  end
+  return n
+end
+gnCopyIn :: proc[T](to: []T, from: []T)
+  for x, i in from do to[i] = x
+end
+gnTail :: proc[T](xs: []T, from: Int) -> []T do return xs[from..]
+gnBig :: proc(p: &GnP) -> Bool do return p.y > 25
+gnQs: [4]Int
+gnCopyIn(gnQs[], gnInts[])
+gnT := gnTail(gnPs[], 1)
+check(gnCountIf(gnPs[], gnBig) == 2 and gnQs[3] == gnInts[3] and gnT.len() == 2 and gnT[1].y == 99 and gnTail(gnPs[], 3).len() == 0 and
+      gnCountIf(gnPs[0..<2], gnBig) == 1, "for over a []T, and slicing one")
+GnUndo :: struct[T]
+  done: [..]T
+  undone: [..]T
+end
+GnUndo.record :: proc[T](step: &T) -> Bool
+  self.undone.clear()
+  return self.done.push(step)
+end
+GnUndo.undo :: proc[T](into: &T) -> Bool
+  if self.done.len() == 0 do return false
+  into = self.done.pop()
+  return self.undone.push(into)
+end
+gnMoveAll :: proc[T](to, from: [..]T) -> Bool
+  for from.len() > 0
+    if not to.push(from.pop()) do return false
+  end
+  return true
+end
+gnSumAt :: proc[T](xs: [..]T, at: proc(a: &T) -> Int) -> Int
+  n := 0
+  for x in xs do n += at(&x)
+  return n + at(&xs[0])
+end
+GnS :: struct
+  x: Int
+end
+gnX :: proc(s: &GnS) -> Int do return s.x
+gnSteps: [..4]GnS
+gnRedo: [..4]GnS
+gnU := GnUndo{done = gnSteps, undone = gnRedo}
+for i in 1..=3
+  s := GnS{x = i}
+  ok := gnU.record(&s)
+end
+gnLast: GnS
+gnA := gnU.undo(&gnLast)
+gnB2 := gnU.undo(&gnLast)
+gnAll: [..8]GnS
+gnMoved := gnMoveAll(gnAll, gnSteps)
+check(gnA and gnB2 and gnLast.x == 2 and gnRedo.len() == 2 and gnMoved and gnSteps.len() == 0 and gnAll.len() == 1 and
+      gnSumAt(gnRedo, gnX) == 8, "[..]T in generic code: push a place, pop and copy, for, index")
+gnPs[0].y = 50
+gnL2 := GnList.of(gnPs[], gnByY)
+gnWasSorted := gnL2.isSorted()
+gnL2.sort()
+check(not gnWasSorted and gnL2.isSorted() and gnPs[1].y == 50 and 5.pickFrom(gnPs[]) == 2, "generic methods, a generic static proc, and a generic method on Int")
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1

@@ -21,7 +21,8 @@ and being stopped by the host.
 ## What the host can find
 
 The host can find `main`, and the main file's top-level procs and globals marked with `*`, the same
-mark modules use for exports:
+mark modules use for exports. A [generic proc](declarations.md#generic-procs) isn't found, even marked:
+the host couldn't say what its T is (other modules can still use it).
 
 ```rio fragment
 score* := 0                 # the host can read and change it

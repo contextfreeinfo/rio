@@ -304,6 +304,19 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     rio_NEXT2();
   }
   rio_CASE(copy) memmove(M + R[ip->a].i, M + R[ip->b].i, ip->c); rio_NEXT();
+  rio_CASE(copyv) memmove(M + R[ip->a].u, M + R[ip->b].u, R[ip->c].u); rio_NEXT();
+  rio_CASE(idxv) {
+    uint32_t i = R[ip->c].u;
+    if (i >= R[ip->b + 1].u) return rio_runtimeError(vm, "index out of bounds", rio_PC);
+    R[ip->a].u = R[ip->b].u + i * R[ip->a].u;
+    rio_NEXT();
+  }
+  rio_CASE(swapv) {
+    uint8_t *x = M + R[ip->a].u, *y = M + R[ip->b].u, t;
+    uint32_t n = R[ip->c].u;
+    while (n--) t = *x, *x++ = *y, *y++ = t;
+    rio_NEXT();
+  }
   rio_CASE(movn) memmove(R + ip->a, R + ip->b, ip->c * sizeof(rio_Val)); rio_NEXT();
   rio_CASE(enumname) { /* a, a+1 = the name of value b (values 0 to n - 1): their names at data a */
     uint32_t n = rio_dataSize(ip + 1), i = R[ip->b].u, names = ip[1].a;
@@ -359,10 +372,12 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
 /* a builder view in slots s..s+2: (address of the length word, address of the data, capacity); its length,
    never above its capacity */
 #define rio_LIST_LEN(s) (rio_WORD(R[s].u).u < R[(s) + 2].u ? rio_WORD(R[s].u).u : R[(s) + 2].u)
+  /* (a builder's element size: its data's, or a slot's when the data names one, for a generic proc's T) */
+#define rio_ELEM_SIZE(ip) ((ip)[1].a ? R[(ip)[1].a].u : rio_dataSize((ip) + 1))
   rio_CASE(lidx) {
     uint32_t i = R[ip->c].u;
     if (i >= rio_LIST_LEN(ip->b)) return rio_runtimeError(vm, "index out of bounds", rio_PC);
-    R[ip->a].u = R[ip->b + 1].u + i * rio_dataSize(ip + 1);
+    R[ip->a].u = R[ip->b + 1].u + i * rio_ELEM_SIZE(ip);
     rio_NEXT2();
   }
   rio_CASE(pusha) {
@@ -370,13 +385,13 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     if (n >= cap) R[ip->a].u = 0;
     else {
       rio_WORD(lenAt).u = n + 1;
-      R[ip->a].u = R[ip->b + 1].u + n * rio_dataSize(ip + 1);
+      R[ip->a].u = R[ip->b + 1].u + n * rio_ELEM_SIZE(ip);
     }
     rio_NEXT2();
   }
   rio_CASE(pushs) {
     uint32_t lenAt = R[ip->b].u, cap = R[ip->b + 2].u, n = rio_LIST_LEN(ip->b);
-    uint32_t from = R[ip->c].u, k = R[ip->c + 1].u, size = rio_dataSize(ip + 1);
+    uint32_t from = R[ip->c].u, k = R[ip->c + 1].u, size = rio_ELEM_SIZE(ip);
     if (k > cap - n) R[ip->a].i = 0;
     else {
       memmove(M + R[ip->b + 1].u + n * size, M + from, k * size);
@@ -430,18 +445,18 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     uint32_t n = rio_LIST_LEN(ip->b);
     if (!n) return rio_runtimeError(vm, "pop from empty builder", rio_PC);
     rio_WORD(R[ip->b].u).u = --n;
-    R[ip->a].u = R[ip->b + 1].u + n * rio_dataSize(ip + 1);
+    R[ip->a].u = R[ip->b + 1].u + n * rio_ELEM_SIZE(ip);
     rio_NEXT2();
   }
   rio_CASE(lrem) {
-    uint32_t data = R[ip->a + 1].u, n = rio_LIST_LEN(ip->a), i = R[ip->b].u, size = rio_dataSize(ip + 1);
+    uint32_t data = R[ip->a + 1].u, n = rio_LIST_LEN(ip->a), i = R[ip->b].u, size = rio_ELEM_SIZE(ip);
     if (i >= n) return rio_runtimeError(vm, "index out of bounds", rio_PC);
     memmove(M + data + i * size, M + data + (i + 1) * size, (n - i - 1) * size);
     rio_WORD(R[ip->a].u).u = n - 1;
     rio_NEXT2();
   }
   rio_CASE(lswap) {
-    uint32_t data = R[ip->a + 1].u, n = rio_LIST_LEN(ip->a), i = R[ip->b].u, size = rio_dataSize(ip + 1);
+    uint32_t data = R[ip->a + 1].u, n = rio_LIST_LEN(ip->a), i = R[ip->b].u, size = rio_ELEM_SIZE(ip);
     if (i >= n) return rio_runtimeError(vm, "index out of bounds", rio_PC);
     if (i != --n) memmove(M + data + i * size, M + data + n * size, size);
     rio_WORD(R[ip->a].u).u = n;

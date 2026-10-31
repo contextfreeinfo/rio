@@ -401,6 +401,125 @@ update* :: proc()
 end
 ```
 
+## Generic procs
+
+`proc[T, U](...)` names types a proc works on whatever they are. Each is found at every call, from
+the arguments, so each must be in a parameter's type. The proc is compiled once, for every T: a call
+passes, unseen, what T is, and so its size. In the body a T's size is known only while running, so a T
+is only ever reached through a reference or a slice, never held:
+
+- **Where a T goes:** `x: &T`, `xs: []T` and `xs: [..]T`, as parameters, in a proc type's parameters
+  (`less: proc(a, b: &T) -> Bool`), and in a variable as `[]T` or `[..]T`.
+- **What a T does:** it's copied from place to place (`xs[i] = x`, `a = b`), swapped
+  (`xs.swap(i, j)`), and passed on, to a generic proc or a proc value as `&xs[i]`. A `[]T` is indexed,
+  sliced and walked with `for x in xs` (x is the element itself, as for any slice). A `[..]T` has its
+  builder methods too: `xs.push(x)` copies from a place, and `xs.pop()` gives the last one's place to
+  copy from (`out[i] = xs.pop()`, `ys.push(xs.pop())`). Anything else is an
+  error: comparing (pass in a proc that compares), arithmetic, printing, keeping one in a variable. A
+  generic proc can't return a T, or be a proc value.
+- **What a call checks:** each T found agrees everywhere it's found. And a proc that copies its T into
+  memory it was given can't take a T holding views (a `String`, a struct with one): it could keep a
+  view past what it views, as any proc could by storing a borrowed view (`xs.swap` is fine, since both
+  places are in `xs`).
+
+```rio
+sortBy :: proc[T](xs: []T, less: proc(a, b: &T) -> Bool)
+  for i in 1..<xs.len()
+    j := i
+    for j > 0 and less(&xs[j], &xs[j - 1])
+      xs.swap(j, j - 1)
+      j -= 1
+    end
+  end
+end
+find :: proc[T](xs: []T, x: &T, eq: proc(a, b: &T) -> Bool) -> Int
+  for i in 0..<xs.len()
+    if eq(&xs[i], &x) do return i
+  end
+  return -1
+end
+Player :: struct
+  name: String
+  score: Int
+end
+byScore :: proc(a, b: &Player) -> Bool do return a.score < b.score
+intEq :: proc(a, b: &Int) -> Bool do return a == b
+players := [_]{Player{name = "ann", score = 30}, Player{name = "bo", score = 10}}
+sortBy(players[], byScore)
+nums := [_]{4, 8, 15}
+eight := 8
+nine := 9
+log(players[0].name, find(nums[], &eight, intEq), find(nums[], &nine, intEq))
+```
+
+```output
+bo 1 -1
+```
+
+A proc type can take types too, named and then filled in where it's used: `Less :: (proc[T](a, b:
+&T) -> Bool)`, then `Less[Point]`, or `Less[T]` in a generic proc. It's the same type as one written
+out, so `sortBy :: proc[T](xs: []T, less: Less[T])` reads as the one above.
+
+A struct can take types the same way, `Table :: struct[K, V]`, filled in where it's named:
+`Table[Int, Point]`, or `Table[K, V]` in a generic proc, which finds K and V through it. A T goes in a
+field only in a `[]T` or a proc type, so every field's size is the same whatever T is: each filled-in
+struct is its own type, laid out as the others are, and no code is made per type. Each type parameter
+must be in some field's type. A literal can leave the types out, `Table{keys = ks[], ...}`: each field's
+value finds the ones its type has, in the order they're written, and every one must be found by the
+end. A `{...}` going into a field whose type isn't known yet is an error: name the types then.
+
+A generic struct's methods name its types first, in order, as a generic proc does: `Table.put ::
+proc[K, V](key: &K, value: &V)`, with `self` a `Table[K, V]`, found from the value it's called on. More
+can follow (`proc[K, V, U]`), found from the arguments. A static proc on one is generic the same way,
+found from its arguments, `Table.make(ks[], vs[], eq)`, or named, `Table[Int, Point].make(...)`. Any
+type's methods can be generic too: `Int.pick :: proc[T](xs: []T) -> T`.
+
+```rio
+Table :: struct[K, V]
+  keys: []K
+  values: []V
+  eq: proc(a, b: &K) -> Bool
+end
+find :: proc[K, V](t: &Table[K, V], key: &K) -> Int
+  for i in 0..<t.keys.len()
+    if t.eq(&t.keys[i], &key) do return i
+  end
+  return -1
+end
+intEq :: proc(a, b: &Int) -> Bool do return a == b
+ks := [_]{7, 3}
+names := [_]{"seven", "three"}
+t := Table{keys = ks[], values = names[], eq = intEq}  # a Table[Int, String]
+three := 3
+log(t.values[find(&t, &three)], t)
+```
+
+```output
+three {keys = [7, 3], values = ["seven", "three"], eq = proc}
+```
+### The ideas behind them
+
+Generics follow from the rest of Rio, and these are worth checking new code against:
+
+1. **Storage gives places; computation gives values.** `for x in xs`, a `&T` parameter, `self`,
+   `xs[i]` and `p.f` are places. A call's result, a `next()` result and `xs.pop()` are computed: they're
+   copied, not borrowed (`&xs.pop()` is an error, since the next push reuses its slot). A T is always a
+   place, since a generic body can't give one a home of its own.
+2. **Copies are visible.** `a = b` copies, so does `xs.push(x)`, and every T copy is from place to
+   place.
+3. **A proc stores only what it owns.** A view or T that came in borrowed can't be stored where it
+   outlives the call. A generic proc that copies its T into memory it was given takes no T holding
+   views; moving within one sequence (`swap`, `remove`, `swapRemove`) is fine.
+4. **What depends on the type comes in as a proc:** comparing, ordering, hashing (`less`, `eq`,
+   `hash`). There are no constraints on a T.
+5. **Values decide types, in the order written:** `[_]{...}`, a generic call's arguments, and a generic
+   struct's fields, `Table{...}`. The first that settles a type wins, and the rest must agree.
+6. **Type parameters go on the keyword and are filled in by name:** `proc[T]`, `struct[K, V]`,
+   `Name[...]`. A call never names them, so `[...]` after a value is always indexing.
+
+A generic container gives its elements as slices to walk, not through `next()`, which would return a
+T by value.
+
 ## Host procs
 
 `host proc` and `host struct` declare something the host provides: see

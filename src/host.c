@@ -499,9 +499,7 @@ void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int l
     return;
   }
   if (c->tok.kind != rio_Tok_proc) rio_FAIL(, "'proc' or 'struct' expected after host");
-  c->hostProcType = 1;
   procType = rio_parseType(vm); /* a proc type, as for proc values: proc(x: Int) -> Int (and &T parameters) */
-  c->hostProcType = 0;
   if (rio_failed(vm)) return;
   if (receiver < 0) { /* this module's host proc, a global one, or a builtin */
     char prefix[256];
@@ -540,12 +538,38 @@ int rio_atTypeMethod(rio_Vm *vm) {
   return p + 1 < e && p[0] == ':' && p[1] == ':'; /* (no expression goes on with ::) */
 }
 
-/* (type).name* :: host proc(...) */
+/* ([..]T).push* :: host proc[T](...): a builtin's Ts are named after the receiver that has them, so
+   they're found on the line first. Each stands for a type of its own while the declaration is read and
+   checked (an empty struct: nothing else is it), then its name goes. Where the symbols start, or -1. */
+static int rio_hostTypeParams(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  const char *p = rio_lookAhead(vm), *e = c->srcEnd, *at = 0;
+  int symAt = c->symCount;
+  for (; p + 5 < e && *p != '\n'; p++)
+    if (!memcmp(p, "proc[", 5)) {
+      at = p + 5;
+      break;
+    }
+  if (!at) return -1;
+  while (at < e && *at != ']' && *at != '\n') {
+    const char *s;
+    for (; at < e && (*at == ' ' || *at == ','); at++) {}
+    for (s = at; at < e && (rio_isAlpha(*at) || rio_isDigit(*at)); at++) {}
+    if (at == s) break;
+    rio_addSymbol(vm, s, (int)(at - s), rio_SymKind_type, rio_newType(vm, rio_TypeKind_struct, 0, 0, 0), 0);
+  }
+  c->hostTypeParams = 1;
+  return symAt;
+}
+
+/* (type).name* :: host proc(...), or ([..]T).name* :: host proc[T](...) for a generic builtin */
 void rio_typeMethodDecl(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
   const char *name;
-  int receiver, nameLen, line, col;
+  int receiver, nameLen, line, col, symAt, end, k;
   if (c->curProc >= 0 || c->blockCount) rio_FAIL(, "host declarations go at the top level");
+  symAt = rio_hostTypeParams(vm);
+  end = c->symCount;
   rio_next(vm);
   receiver = rio_parseType(vm);
   rio_expect(vm, ')', "')' expected");
@@ -563,6 +587,8 @@ void rio_typeMethodDecl(rio_Vm *vm) {
   rio_expect(vm, rio_Tok_colonColon, "'::' expected");
   if (!rio_atHost(vm)) rio_FAIL(, "a method on a type without a name is a builtin: write host proc(...)");
   rio_hostDecl(vm, name, nameLen, receiver, line, col);
+  c->hostTypeParams = 0;
+  for (k = symAt; k >= 0 && k < end; k++) c->syms[k].nameLen = 0; /* (its Ts: named only in it) */
 }
 
 #endif

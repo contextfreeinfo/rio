@@ -11,7 +11,11 @@ with the reasons, are in [REJECTED.md](REJECTED.md).
 
 ## Decide first: changes that would break existing source
 
-Nothing open. Each change here was decided against, keeping Rio as it is: `a[]` for a whole slice,
+- **`_` not a name:** `_ := 3` and `_ :: 3` are legal today, and `[_]` already means a literal sized by
+  its values. Making `_` illegal as a name keeps it free for that and for any later "ignore this"
+  use (`for _ in 0..<n`, say).
+
+Each other change here was decided against, keeping Rio as it is: `a[]` for a whole slice,
 `a[i..]` the one spelling of an open-ended slice, `end` for the last index (not C#'s `^1`), and
 `format` staying, with no formatters. [REJECTED.md](REJECTED.md) has the reasons. A
 change that would break existing source goes here first, since programs already written, such as
@@ -23,23 +27,27 @@ Nothing open: see Leaning yes.
 
 ## Leaning yes
 
-- **Generic procs:** `swap :: proc[T](a, b: &T)`, `find :: proc[T](xs: []T, x: T) -> Int`. The type
-  parameters are listed in brackets after `proc`, where nothing else can go.
-  - **Inferred at every call:** `find(xs[], 3)`. There's no `find[Int](...)`, which would read like
-    indexing.
-  - **One compiled copy each,** never a copy per type (no monomorphization). Each call passes T's
-    descriptor as a hidden argument: the same descriptors that print structs now, kept in the image.
-  - **What the body can do:** in the body, a T value can only be passed, stored, copied, compared
-    with `==`, and indexed in `[]T` and `[..]T`. Builtins that read the descriptor work on it too:
-    `log` and `format` print it, `==` compares Strings by their text, `pack` and `unpack` take it (a
-    T that can't be packed is a compile error at the call, where T is known), and a hash builtin would
-    serve a generic map.
-  - **No constraints and no traits:** anything type-specific, like `<`, comes in as a proc argument:
-    `sort(xs[], less)`.
-  - **Builtins declared for real:** this would let core.rio declare its generic builtins as
-    `([]T).len` and `([..]T).push`. Their rules, like what can be packed or printed, stay in comments.
-  - **Sort and find:** these could then be written in Rio. Without generics, they'd be host builtins
-    taking a less proc.
+- **Generic procs, the rest:** reference-only generics are done (see Done recently): a T is reached
+  only through `&T` and `[]T`, like C's `void*` with its size, but typed. Left, if wanted:
+  - **Generic host procs:** a host module declaring `sortBy* :: host proc[T](xs: []T, less: proc(a, b:
+    &T) -> Bool)`, implemented in C. The C function gets each T's hidden word (its size, and the
+    descriptor once there is one) after the other arguments, and calls proc values through
+    `rio_callValue`. The view flag can't see into C, so a host proc must say if it stores Ts it's given
+    (or the rule is that it never keeps them past the call, as with views now). Waits on two things:
+    host parameters that are slices or `&T` of any type (today only `String`, `Blob`, structs and
+    `&Int`/`&Float`/`&struct`), and host procs calling back (below), without which a host generic proc
+    can only work on bytes (reverse, fill, rotate, hash), not sort or find.
+  - **Host static procs:** `Color.rgb :: static host proc(r, g, b: Int) -> Color` in a host module, a
+    host proc named inside its type (C name `module_Color_rgb`), with the header helper writing it.
+    Static only at first; host methods with `self` later, if wanted.
+  - **The descriptor:** each call already passes the address of (T's size, its descriptor), with the
+    descriptor 0 for now. Comparing, hashing and printing come in as procs instead, so nothing needs
+    it yet; it's kept for reflection (see Maybe).
+  - **Where to stop:** no T by value and no constraints (no traits): anything type-specific comes in
+    as a proc. `log`, `print`, `format`, `pack`, `sizeOf` and the enum builtins stay comments in
+    `core.rio`, since declaring them would need constraints.
+  - **Sort and find in Rio:** a small library of them, now that they can be written. Not yet.
+  - **No constraints, ever:** decided. Type-specific behavior comes in as procs.
 - **Returning any value:** a proc returns a value of up to 16 words, views in it or not (host procs
   return no views). What's left, when something needs it:
   - **Big values** (over 16 words): the caller passes an address for the proc to fill in, and `return`
@@ -47,7 +55,15 @@ Nothing open: see Leaning yes.
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
 - **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
-  both are errors, and `x is nil` is the way to test for nil.
+  both are errors, and `x is nil` is the way to test for nil. Then `is` is only for types, and `is nil`
+  goes (nil isn't a type), so this one breaks source: decide it with the others above.
+- **Ordering Strings:** `<`, `<=`, `>` and `>=` on Strings, byte by byte, a shorter prefix first.
+  UTF-8's bytes order as its code points do, so that's code point order too, with nothing decoded.
+
+- **Steadier bench times:** VM times move by 10% or more between rows from one machine, though each is
+  already the best of 3 runs. `tools/stats.py` could take more (`--runs N`, for `--backfill` too), and
+  backfilling a commit again could add samples to its row rather than a second row, so a jump in the
+  chart is a real one.
 
 ## Maybe
 
@@ -55,9 +71,6 @@ Nothing open: see Leaning yes.
   a proc with no result, and a branch with no value a `Void` (as JavaScript's `undefined` or Python's
   `None`). With it, `??T`: a program writing the inner nil, and `is` and printing telling the two
   apart. Until then, an empty struct names a second nothing in a union.
-- **Generic types,** in brackets as generic procs are: `Pair :: struct[T]`, used as `Pair[Int]`, only if
-  they stay simple. They're what generic maps would need. Some of a type's parameters may be constant
-  Ints rather than types, as the builtins' already are (`Blob[16]`, `[..N]T`). Unsure for now.
 - **Reflection, through generics:** not now, but designed so generic procs leave room for it. A generic
   proc's hidden descriptor is all reflection needs, so it works on any value at any call, locals
   included, with no stored `Any`: the caller knows the type, as with any generic call.
@@ -121,6 +134,35 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **`[..]T` in generic code:** builder views of T as parameters, variables and generic struct fields.
+  `xs.push(x)` copies from a place and `xs.pop()` gives a place to copy from (and `&xs.pop()` is now an
+  error everywhere, since the next push reuses its slot). The builder instructions take T's size from a
+  slot named in their data word, so there are no new instructions. The spec lists the ideas generics
+  follow, to check new work against.
+- **More on generics:** `for x in xs` and slicing over a `[]T` (T's size from its slot, with no new
+  instructions); `core.rio`'s list builtins declared for real (`([..]T).push* :: host proc[T](value:
+  T) -> Bool`), each checked with T standing for a type of its own; and generic struct literals typed
+  by their fields (`Table{keys = ks[], ...}` is a `Table[Int, Point]`). The ways a generic body could
+  let a view outlive what it views were audited and each is refused, with error rows for them.
+- **Generic methods:** `Table.put :: proc[K, V](key: &K, value: &V)`, the struct's Ts first, then any
+  more; static ones (`Table.make(...)`, or `Table[Int, Point].make(...)`); and generic methods on any type.
+  `tests/map.rio`'s table reads `pointTable.put(&key, &p)`.
+- **Generic types:** proc types, `Less :: (proc[T](a, b: &T) -> Bool)`, and structs, `Table :: struct[K,
+  V]`, filled in where they're named (`Less[Point]`, `Table[Int, Point]`, or with a generic proc's Ts).
+  A T goes in a field only in a `[]T` or a proc type, so a generic struct has one layout for every T,
+  and a call finds T through one (`put(&m, &k, &v)` from `m: &Table[K, V]`). Only the compiler knows
+  them: no VM change. The host doesn't find generic procs, even marked `*`.
+
+- **Generic procs, reference-only:** `sortBy :: proc[T](xs: []T, less: proc(a, b: &T) -> Bool)`, each
+  T found from the arguments at every call (no `sortBy[Int](...)`, which would read like indexing).
+  One compiled copy for every T: a call passes, as a hidden argument, the address of the constant
+  (T's size, descriptor), and instructions take a size from a slot (`idxv`, `copyv`, `swapv`; images
+  are version 14). A T is only reached through `&T` and `[]T`, never held, so every slot's size is
+  fixed: it's copied from place to place, swapped, and passed on, and comparing comes in as a proc. A
+  proc that copies a T into memory it was given can't take a T holding views (it could keep a borrowed
+  view). With it: `xs.swap(i, j)` on arrays, slices and builders, and `&T` parameters in proc types.
+  `tests/map.rio`'s second map is generic procs over arrays the caller keeps.
 
 - **Literals sized and typed by their values:** `[_]T{...}` takes its size from its values, `[_]{...}`
   its element type from the first too, and slice literals, `[]T{...}`, `[]{...}`, and `{...}` where a

@@ -171,6 +171,10 @@ Every array, slice, builder, builder view, `String` and `Blob` has:
 - `xs.len()`: how many elements (for a builder or builder view, how many it has now).
 - `xs.cap()`: how many it can hold (the same as `len` for the fixed-length kinds).
 
+And every one that can change (not a `String`) has `xs.swap(i, j)`: elements `i` and `j` trade places,
+whatever they are (in a [generic proc](declarations.md#generic-procs) too). An `i` or `j` outside it is
+a runtime error.
+
 ## Builders
 
 These change a builder `[..N]T` or a builder view `[..]T` (`Blob[..N]` and `Blob[..]` too):
@@ -179,7 +183,7 @@ These change a builder `[..N]T` or a builder view `[..]T` (`Blob[..N]` and `Blob
 |---|---|
 | `xs.push(x) -> Bool` | adds one element at the end; `false`, and no change, when full |
 | `xs.pushAll(ys) -> Bool` | adds every element of an array, slice or builder of the same type (a `String` for byte builders): all or none |
-| `xs.pop() -> T` | removes the last element and gives it; a runtime error when empty |
+| `xs.pop() -> T` | removes the last element and gives it, to copy (not `&xs.pop()`: the next push reuses its slot); a runtime error when empty |
 | `xs.clear()` | removes them all |
 | `xs.remove(i)` | removes element `i`, keeping the order of the rest |
 | `xs.swapRemove(i)` | removes element `i`, moving the last one into its place |

@@ -620,7 +620,8 @@ void rio_needValue(rio_Vm *vm, rio_Expr *e) {
 void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
   rio_Compiler *c = vm->compiler;
   rio_ProcDef *p = &c->procDefs[e->value];
-  int params[16], i;
+  int params[16], i, refs = 0;
+  if (e->kind == rio_ExprKind_proc && p->typeParams) rio_FAIL(, "a generic proc can't be a proc value: there'd be no T to give it");
   if (e->kind == rio_ExprKind_ffi) { /* (a host proc: through a proc of its own) */
     rio_ffiProcValue(vm, e, type);
     return;
@@ -628,10 +629,10 @@ void rio_toProcValue(rio_Vm *vm, rio_Expr *e, int type) {
   if (p->paramCount > 16) rio_FAIL(, "too many parameters for a proc value");
   for (i = 0; i < p->paramCount; i++) {
     rio_Param *param = &c->params[p->firstParam + i];
-    if (param->refType) rio_FAIL(, "a proc with & parameters can't be a value");
-    params[i] = param->type;
+    params[i] = param->refType ? param->refType : param->type;
+    refs |= (param->refType != 0) << i;
   }
-  i = rio_procTypeOf(vm, params, p->paramCount, p->resultType, p->optional, 0);
+  i = rio_procTypeOf(vm, params, p->paramCount, p->resultType, p->optional, refs);
   if (type >= 0 && i != type) rio_FAIL(, "this proc's parameters or result don't match");
   if (p->callsValues) rio_FAIL(, "this proc calls procs through values, so it can't be a value itself (that could recurse)");
   p->usedAsValue = 1;
@@ -725,9 +726,24 @@ static void rio_storeBits(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
 
 /* A scalar value: the slot holding it. reuse: e's own temporary slot may be written (fusing an index
    with its load). */
+const char rio_msgOpaque[] = "a T can only be copied, compared with ==, taken from a []T, and passed on (its size is known only while running)";
+
+/* the slot holding the size of type parameter t, in its generic proc */
+/* a builder op's data: its element's size, or the slot holding it for a generic proc's T */
+void rio_emitElemSize(rio_Vm *vm, int elem) {
+  if (rio_type(vm, elem)->kind == rio_TypeKind_param) rio_emitData(vm, rio_typeSizeSlot(vm, elem), 0);
+  else rio_emitData(vm, 0, rio_type(vm, elem)->size);
+}
+
+int rio_typeSizeSlot(rio_Vm *vm, int t) {
+  rio_Type *y = rio_type(vm, t);
+  return vm->compiler->procDefs[y->elem].sizeSlots + (int)y->count;
+}
+
 int rio_toSlot(rio_Vm *vm, rio_Expr *e, int reuse) {
   int k, d;
   rio_needValue(vm, e);
+  if (rio_type(vm, e->type)->kind == rio_TypeKind_param) rio_FAIL(0, rio_msgOpaque);
   if (e->bits) { /* (loaded: it's the value now, not the place, as its holder goes on to be) */
     d = rio_loadBits(vm, e);
     *e = rio_bitsWord(e);
@@ -906,6 +922,12 @@ void rio_store(rio_Vm *vm, rio_Expr *dst, rio_Expr *src) {
   if (k == rio_TypeKind_slice || k == rio_TypeKind_builderView || (rio_isAggregate(k) && ty->hasRefs)) rio_storeView(vm, dst, src);
   if (k == rio_TypeKind_union && rio_storeIntoUnion(vm, dst, src)) return; /* a value of one of its types: wrapped */
   rio_coerce(vm, src, dst->type);
+  if (k == rio_TypeKind_param) { /* a T: its bytes, as many as it has, into memory it was given (calls check) */
+    int s = rio_toAddrSlot(vm, src), d = rio_toAddrSlot(vm, dst);
+    vm->compiler->procDefs[ty->elem].viewTypes |= (uint8_t)(1u << ty->count);
+    rio_emit(vm, rio_Op_copyv, d, s, rio_typeSizeSlot(vm, dst->type));
+    return;
+  }
   if (dst->bits) rio_storeBits(vm, dst, src);
   else if (rio_isAggregate(k)) rio_storeAggregate(vm, dst, src, ty);
   else if (k == rio_TypeKind_builderView) rio_storeBuilder(vm, dst, src);

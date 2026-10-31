@@ -105,21 +105,29 @@ Blob.setInt* :: host proc(at: Int, bits: Int, value: Int)   # its low bits
 (Blob[..]).getInt* :: host proc(at: Int, bits: Int) -> Int
 (Blob[..]).setInt* :: host proc(at: Int, bits: Int, value: Int)
 
-# ---------------------------------------------------------------- generic, once rio has generics
+# ---------------------------------------------------------------- sequences, for any element type T
 #
-# These take any element type T, any enum E, or any number of values, so they can't be declared yet.
-# Written in a pretend syntax: [T] after a name makes it generic, and ..T is any number of Ts.
+# Each is checked as the others are, with T standing for a type of its own. A T by value is fine here:
+# these are signatures only, and the builtins are compiled as they always were.
+
+([]T).len* :: host proc[T]() -> Int                  # also on [N]T, [..N]T and [..]T
+([..]T).cap* :: host proc[T]() -> Int                # also on [N]T and []T
+([..]T).push* :: host proc[T](value: T) -> Bool       # false when full
+([..]T).pushAll* :: host proc[T](values: []T) -> Bool # all or nothing
+([..]T).pop* :: host proc[T]() -> T                  # a runtime error when empty
+([..]T).clear* :: host proc[T]()
+([..]T).remove* :: host proc[T](i: Int)              # keeps the order
+([..]T).swapRemove* :: host proc[T](i: Int)          # the last element takes its place
+([]T).swap* :: host proc[T](i, j: Int)               # also on [N]T, [..N]T and [..]T; not String
+
+# ---------------------------------------------------------------- not declarable yet
+#
+# These take any printable or packable value, any enum E, a type, or any number of values: they'd need
+# constraints, which generics don't have. Written in a pretend syntax: [T: C] after a name makes it
+# generic over types meeting C, and ..T is any number of Ts.
 #
 #   log*[T: Printable] :: host proc(values: ..T)     # any values; one line, spaces
 #                                                     # between
-#   ([]T).len*[T] :: host proc() -> Int              # also on [N]T, [..N]T and [..]T
-#   ([..]T).cap*[T] :: host proc() -> Int            # also on [N]T and []T
-#   ([..]T).push*[T] :: host proc(value: T) -> Bool
-#   ([..]T).pushAll*[T] :: host proc(values: []T) -> Bool
-#   ([..]T).pop*[T] :: host proc() -> T
-#   ([..]T).clear*[T] :: host proc()
-#   ([..]T).remove*[T] :: host proc(i: Int)
-#   ([..]T).swapRemove*[T] :: host proc(i: Int)
 #   (Blob[..]).print*[T: Printable] :: host proc(values: ..T) -> Bool   # as text, all or nothing
 #   (Blob[..]).format*[T: Printable] :: host proc(settings: Format, values: ..T) -> Bool
 #                                                     # as print, as settings say, inside values too

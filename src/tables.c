@@ -72,7 +72,17 @@ int rio_lookupMethod(rio_Vm *vm, int type, const char *s, int n) {
         rio_nameIs(vm, y->name, y->nameLen, s, n))
       return i;
   }
+  if (rio_type(vm, type)->kind == rio_TypeKind_struct && rio_type(vm, type)->elem) /* (a generic struct filled in: its template's) */
+    return rio_lookupMethod(vm, rio_genericOf(vm, rio_type(vm, type)->elem), s, n);
   return -1;
+}
+
+/* the generic type whose template is tmpl */
+int rio_genericOf(rio_Vm *vm, int tmpl) {
+  int i;
+  for (i = rio_TypeId_builtinCount; i < vm->compiler->typeCount; i++)
+    if (rio_type(vm, i)->kind == rio_TypeKind_generic && rio_type(vm, i)->elem == tmpl) return i;
+  return 0;
 }
 
 /* ------------------------------------------------------------------ types */

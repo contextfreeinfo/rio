@@ -80,6 +80,8 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
                             slot data a says; x: 0 Int, 1 Float, 2 Bool, 3 text (c, c+1: a slice)
      popa                   a = address of the removed last element of builder view b
      lrem lswap             remove element b of builder view a, keeping order / moving the last into it
+                         (lidx, pusha, pushs, popa, lrem, lswap: the element size is the data's, or
+                         slot data.a's when it names one: a generic proc's T)
      lview                  a, a+1 = slice of builder view b's live elements
    Bytes: a Blob is 2 slots (address, length), as a slice; at is a byte offset in it (bounds-checked).
      bpack                  x 0: copy bytes c (address, how many) into Blob a at b; x 1: from it
@@ -111,7 +113,11 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      loge                   end the log line
      fail                   a failed assert: a = its message (0: none); x 1: a runtime error, a its message
      halt                   stop
-     jit                    run native loop a (rio_jit), then carry on where it says */
+     jit                    run native loop a (rio_jit), then carry on where it says
+   A size known only while running (a generic proc's T), in a slot (idxv finds it in a, then writes a).
+     idxv                   a = address of element c of slice b, each a bytes (bounds-checked)
+     copyv                  c bytes from address b to address a, c a slot
+     swapv                  swap c bytes at address a with those at address b, c a slot */
 #define rio_OPS(X)                                                                                   \
   X(mov) X(add) X(sub) X(mul) X(div) X(mod) X(and) X(or) X(xor) X(shl) X(shr) X(ushr)               \
   X(neg) X(bnot) X(not) X(fadd) X(fsub) X(fmul) X(fdiv) X(fneg)                                      \
@@ -125,7 +131,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
   X(jmp) X(jz) X(jnz) X(jeq) X(jne) X(jlt) X(jle) X(jfeq) X(jfne) X(jflt) X(jfle) X(jfnlt) X(jfnle)  \
   X(each) X(fori) X(forby)                                                                                    \
   X(call) X(ret) X(calli) X(getret) X(ffi) X(logi) X(logf) X(logs) X(logb) X(logn) X(logv) X(loge)   \
-  X(fail) X(halt) X(jit)
+  X(fail) X(halt) X(jit) X(idxv) X(copyv) X(swapv)
 
 #define rio_OP_ENUM(o) rio_Op_##o,
 typedef enum {
@@ -171,8 +177,14 @@ typedef enum {
 typedef enum {
   rio_TypeKind_void, rio_TypeKind_int, rio_TypeKind_float, rio_TypeKind_byte, rio_TypeKind_slice,
   rio_TypeKind_array, rio_TypeKind_struct, rio_TypeKind_bool, rio_TypeKind_builder, rio_TypeKind_builderView,
-  rio_TypeKind_enum, rio_TypeKind_union, rio_TypeKind_proc
+  rio_TypeKind_enum, rio_TypeKind_union, rio_TypeKind_proc,
+  rio_TypeKind_param, /* a generic proc's T (elem: the proc, or rio_NO_PROC for a generic type's; count:
+                         which of its type parameters), its size known only while running */
+  rio_TypeKind_generic /* a generic type, Less :: (proc[T](...)), filled in where it's named, Less[Point]
+                          (elem: the type with its Ts in it; count: how many; size: the first T's type) */
 } rio_TypeKind;
+
+#define rio_NO_PROC 0xFFFF
 
 /* the built-in types, first in every type table */
 typedef enum {
