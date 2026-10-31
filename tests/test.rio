@@ -36,15 +36,15 @@ parsedFloatIs :: proc(f: ?Float, want: Float) -> Bool
 end
 check(parsedIs("42".toInt(), 42) and parsedIs("-17".toInt(), -17) and parsedIs("+5".toInt(), 5), "text to Int")
 check(parsedIs("ff".toInt(16), 255) and parsedIs("ffffffff".toInt(16), -1) and parsedIs("Zz".toInt(36), 1295), "text to Int, bases")
-check(parsedIs("-2147483648".toInt(), -2147483647 - 1) and "2147483648".toInt() is nil, "text to Int, range")
-check("".toInt() is nil and "-".toInt() is nil and " 1".toInt() is nil and "1_0".toInt() is nil and "12".toInt(2) is nil, "text to Int, bad")
-check("100000000".toInt(16) is nil and parsedIs("17".toInt(0), 17), "text to Int, 32 bits; base 0")
+check(parsedIs("-2147483648".toInt(), -2147483647 - 1) and "2147483648".toInt() == nil, "text to Int, range")
+check("".toInt() == nil and "-".toInt() == nil and " 1".toInt() == nil and "1_0".toInt() == nil and "12".toInt(2) == nil, "text to Int, bad")
+check("100000000".toInt(16) == nil and parsedIs("17".toInt(0), 17), "text to Int, 32 bits; base 0")
 parseBase := 8
 pb: Blob[..8]
 check(pb.pushAll("17") and parsedIs("17".toInt(parseBase), 15) and parsedIs(pb.toInt(), 17) and parsedIs(pb[0..<1].toInt(), 1), "text to Int, at runtime")
 check(parsedFloatIs("1.5".toFloat(), 1.5) and parsedFloatIs("-2e-3".toFloat(), -2e-3) and parsedFloatIs("0.1".toFloat(), 0.1), "text to Float")
 check(parsedFloatIs("3.4028235e38".toFloat(), 3.4028235e38) and parsedFloatIs("7".toFloat(), 7), "text to Float, as literals")
-check("1.".toFloat() is nil and ".5".toFloat() is nil and "1e".toFloat() is nil and "nan".toFloat() is nil, "text to Float, bad")
+check("1.".toFloat() == nil and ".5".toFloat() == nil and "1e".toFloat() == nil and "nan".toFloat() == nil, "text to Float, bad")
 c := 10
 c += 5
 c -= 1
@@ -1128,7 +1128,7 @@ uarea :: proc(s: Shape) -> Float
   return 0
 end
 ua: Shape
-check(ua is nil and uarea(ua) == -1, "nil first is the zero")
+check(ua == nil and uarea(ua) == -1, "nil first is the zero")
 ua = Circle{r = 2}
 check(ua is Circle and not (ua is Box) and uarea(ua) == 12, "a value of one of its types")
 ub: Shape = Box{w = 3, h = 4}
@@ -1354,10 +1354,10 @@ bmTwice := bmM and bmM * 2
 check((bmTwice or 0) == 14, "x and a value: a maybe of it")
 bmNone: ?Int
 bmNil := bmNone and bmNone * 2
-check(bmNil is nil and (bmNone or 9) == 9, "nil and e: nil")
+check(bmNil == nil and (bmNone or 9) == 9, "nil and e: nil")
 bmF := true and 3
 bmG := false and 3
-check(bmF is Int and bmG is nil, "a Bool and a value: a maybe, false nil")
+check(bmF is Int and bmG == nil, "a Bool and a value: a maybe, false nil")
 bmB: ?Bool = false
 check(not (bmB or false) and bmB is Bool, "a ?Bool: x or false its truth, is whether it's there")
 bmP: ?[2]Float
@@ -1392,7 +1392,7 @@ check(bmDouble(bmM) == 14 and bmDouble(nil) == -1, "and then or, inside a proc")
 
 # ---- narrowing when a test is false: else, the cases after, or's right side, after an if that leaves
 nfF :: proc(m: ?Int) -> Int
-  if m is nil do return 0
+  if m == nil do return 0
   return m + 1
 end
 check(nfF(4) == 5 and nfF(nil) == 0, "after an if that returns")
@@ -1443,7 +1443,7 @@ nfN :: proc(m: ?Int) -> Int
 end
 check(nfN(5) == 5 and nfN(2) == 0 and nfN(nil) == 0, "not (x and ...)")
 nfTwo :: proc(m, n: ?Int) -> Int
-  if not m or n is nil do return 0
+  if not m or n == nil do return 0
   return m + n
 end
 check(nfTwo(1, 2) == 3 and nfTwo(nil, 2) == 0 and nfTwo(1, nil) == 0, "two, or-ed")
@@ -1955,9 +1955,9 @@ check(foundAt is Int, "a maybe returned, holding a value")
 if foundAt is Int
   check(foundAt == 2, "narrowed to its Int")
 end
-check(findAt(maybeNums[], 4) is nil, "a maybe returned, nil")
+check(findAt(maybeNums[], 4) == nil, "a maybe returned, nil")
 chaser: Chaser
-check(chaser.target is nil and chaser.speed is nil and chaser.after == 0, "maybe fields start nil")
+check(chaser.target == nil and chaser.speed == nil and chaser.after == 0, "maybe fields start nil")
 chaser.target = MaybePoint{x = 3, y = 4}
 chaser.speed = 2
 chaser.after = 9
@@ -1976,10 +1976,10 @@ end
 check(speedSaid == 2, "a switch on a maybe (an Int constant made a ?Float's Float)")
 maybeGrid: [3]?Int
 maybeGrid[1] = 5
-check(maybeGrid[0] is nil and maybeGrid[1] is Int, "an array of maybes")
+check(maybeGrid[0] == nil and maybeGrid[1] is Int, "an array of maybes")
 check(doubled(4) == 8 and doubled(nil) == -1, "maybe parameters: a value, nil")
 nestedMaybe: ?[]?Int
-check(nestedMaybe is nil, "?[]?Int: a maybe slice of maybes")
+check(nestedMaybe == nil, "?[]?Int: a maybe slice of maybes")
 nestedMaybe = maybeGrid[]
 if nestedMaybe is []?Int
   check(nestedMaybe.len() == 3 and nestedMaybe[1] is Int, "is with a written-out type, narrowed")

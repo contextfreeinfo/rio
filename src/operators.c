@@ -147,8 +147,8 @@ static int rio_isNarrowedOp(rio_Vm *vm, rio_Expr *l, const rio_Expr *r) {
   return 1;
 }
 
-/* u is T, u is nil: compare the tag */
-static void rio_isOp(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
+/* u is T, and u == nil (r nil): compare the tag */
+static void rio_isTest(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
   rio_Compiler *c = vm->compiler;
   int member, two;
   int32_t varAt;
@@ -175,6 +175,84 @@ static void rio_isOp(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
     c->isTests[c->isTestCount].onFalse = (int16_t)(two ? 1 - member : -1);
     c->isTestCount++;
   }
+}
+
+/* u is T: nil isn't a type, so u == nil tests for it */
+static void rio_isOp(rio_Vm *vm, rio_Expr *l, rio_Expr *r) {
+  if (r->kind == rio_ExprKind_const && r->type == l->type && rio_type(vm, l->type)->kind == rio_TypeKind_union)
+    rio_FAIL(, "nil isn't a type: x == nil, or x != nil");
+  rio_isTest(vm, l, r);
+}
+
+/* a maybe compared: in slots, so its tag and value are read where they are (a computed one, or one
+   through an address: copied to temporaries first) */
+static void rio_maybeHeld(rio_Vm *vm, rio_Expr *e) {
+  rio_Expr held;
+  if (e->kind == rio_ExprKind_static && (uint32_t)e->value < vm->top) return;
+  held = rio_exprOf(rio_ExprKind_static, rio_valueType(e->type), rio_allocSlots(vm, rio_typeWords(vm, e->type)) * 4);
+  rio_store(vm, &held, e);
+  held.tempStart = e->tempStart;
+  *e = held;
+}
+
+/* u == nil, u != nil: its tag, narrowing as is does (x != nil: x is its value after, for a maybe). A
+   maybe == a value: it's there, and equal. Two maybes: both nil, or both there and equal. */
+static void rio_unionCompare(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
+  rio_Compiler *c = vm->compiler;
+  int u = rio_valueType(l->type), elem, there, both, d, n, tempStart = l->tempStart < r->tempStart ? l->tempStart : r->tempStart;
+  rio_Expr lv, rv, typeOf;
+  if (r->kind == rio_ExprKind_const && r->type == l->type) { /* (nil: the union's, as a constant) */
+    int before = c->isTestCount;
+    rio_isTest(vm, l, r);
+    if (rio_failed(vm) || op == rio_Tok_eqEq) return;
+    if (l->kind == rio_ExprKind_const) l->value = !l->value;
+    else {
+      rio_emit(vm, rio_Op_not, l->value / 4, l->value / 4, 0);
+      if (c->isTestCount > before) { /* (what it says when true and when false: swapped) */
+        int16_t on = c->isTests[before].onTrue;
+        c->isTests[before].onTrue = c->isTests[before].onFalse;
+        c->isTests[before].onFalse = on;
+      }
+    }
+    return;
+  }
+  if (!rio_isMaybe(vm, u)) rio_FAIL(, "a union compares only with nil (x == nil); is tests which type it holds");
+  elem = rio_type(vm, u)->elem;
+  typeOf = rio_exprOf(rio_ExprKind_type, elem, 0);
+  there = rio_unionMember(vm, u, &typeOf);
+  both = rio_valueType(r->type) == u;
+  rio_maybeHeld(vm, l);
+  if (both) rio_maybeHeld(vm, r);
+  lv = *l; /* (its value: after its tag) */
+  lv.type = (uint16_t)elem;
+  lv.access = 0;
+  rio_offsetPlace(&lv, 4);
+  lv.tempStart = (uint16_t)c->freeSlot; /* (its tag stays where it is) */
+  if (both) {
+    rv = *r;
+    rv.type = (uint16_t)elem;
+    rv.access = 0;
+    rio_offsetPlace(&rv, 4);
+    rv.tempStart = (uint16_t)c->freeSlot;
+  } else {
+    rv = *r;
+    rio_coerce(vm, &rv, elem);
+    if (rio_failed(vm)) return;
+    if (rio_valueType(rv.type) != elem) rio_FAIL(, "type mismatch");
+  }
+  rio_binaryOp(vm, rio_Tok_eqEq, &lv, &rv); /* (the values, there or not: a nil's are zeros) */
+  if (rio_failed(vm)) return;
+  d = rio_allocSlots(vm, 1);
+  if (both) { /* the same tag, and nil or equal */
+    rio_emit(vm, rio_Op_eq, d, l->value / 4, r->value / 4);
+    n = rio_allocSlots(vm, 1);
+    rio_emit(vm, rio_Op_eq, n, l->value / 4, rio_constSlot(vm, (uint32_t)(1 - there)));
+    rio_emit(vm, rio_Op_or, lv.value / 4, lv.value / 4, n);
+  } else rio_emit(vm, rio_Op_eq, d, l->value / 4, rio_constSlot(vm, (uint32_t)there));
+  rio_emit(vm, rio_Op_and, d, d, lv.value / 4);
+  if (op == rio_Tok_notEq) rio_emit(vm, rio_Op_not, d, d, 0);
+  *l = rio_exprOf(rio_ExprKind_static, rio_TypeId_bool, d * 4);
+  l->tempStart = (uint16_t)tempStart;
 }
 
 /* ------------------------------------------------------------------ maybes as conditions */
@@ -367,6 +445,10 @@ void rio_binaryOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
       rio_elementwiseOp(vm, op, l, r, 0);
       return;
     }
+    if (lk == rio_TypeKind_union && (op == rio_Tok_eqEq || op == rio_Tok_notEq)) {
+      rio_unionCompare(vm, op, l, r);
+      return;
+    }
   }
   lt = rio_valueType(l->type);
   rt = rio_valueType(r->type);
@@ -380,7 +462,7 @@ void rio_binaryOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
   }
   if (lt != rt && (rio_type(vm, lt)->elem == rt || rio_type(vm, rt)->elem == lt) &&
       (rio_type(vm, lt)->kind == rio_TypeKind_union || rio_type(vm, rt)->kind == rio_TypeKind_union))
-    rio_FAIL(, "this may be nil: check first (if x is T, then x is a T there)");
+    rio_FAIL(, "this may be nil: check first (if x != nil, then x is its value there)");
   if (lt != rt) rio_FAIL(, "type mismatch");
   isCompare = rio_isCompare(op);
   if (rio_type(vm, lt)->kind == rio_TypeKind_param)

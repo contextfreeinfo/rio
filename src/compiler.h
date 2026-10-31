@@ -265,7 +265,7 @@ typedef struct {
   uint16_t labelLen;    /* a loop's label (outer: for ...): its length (0: none) */
   uint8_t value;        /* an if or switch as a value (x := if ...): its row in valueBlocks + 1 (0: none) */
   uint8_t knownCount;   /* if: what its conditions being false says of union variables (if not x, if
-                           x is nil): narrowed so in the branches after, and after the if, the first
+                           x == nil): narrowed so in the branches after, and after the if, the first
                            knownAfter of them (255: not yet known); knownAt as isTests' varAt */
   uint8_t knownBefore, knownAfter; /* (knownBefore: knownCount before the current branch's condition) */
   uint8_t knownMember[3];

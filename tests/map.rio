@@ -104,7 +104,7 @@ for c in text
   word.clear()
 end
 check(getOr("the", 0) == 4 and getOr("cat", 0) == 2, "the: 4, cat: 2")
-check(get("bird") is Int and get("fish") is nil, "bird yes, fish no")
+check(get("bird") is Int and get("fish") == nil, "bird yes, fish no")
 check(count == 6, "6 different words")
 
 # many keys, colliding often, then half removed: the rest still found
@@ -132,7 +132,7 @@ for i in 0..<40
 end
 check(found == 20, "20 left")
 check(not remove("k0"), "removed already")
-check(remove("the") and get("the") is nil and get("cat") is Int, "remove a word")
+check(remove("the") and get("the") == nil and get("cat") is Int, "remove a word")
 
 # ------------------------------------------------------------------ Int -> struct
 
@@ -191,6 +191,6 @@ end
 for k in 0..<10 do putPoint(k * 1000, {x = k, y = k * k})
 p := getPoint(7000)
 if p is Point do check(p.y == 49, "point 7000")
-check(p is Point and getPoint(7001) is nil, "no point 7001")
+check(p is Point and getPoint(7001) == nil, "no point 7001")
 
 if fails == 0 do log("all map tests passed")

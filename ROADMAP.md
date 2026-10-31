@@ -54,9 +54,6 @@ Nothing open: see Leaning yes.
     writes through it. `x := f()` and `x = f()` fill x itself, so nothing is copied (and no type need
     be written to copy it); elsewhere, the result goes in a temporary kept in the caller's frame, one
     for each such call.
-- **Comparing a maybe with `==`:** `x == 4` for a `?Int`, false when x is nil, and `x == nil`. Today
-  both are errors, and `x is nil` is the way to test for nil. Then `is` is only for types, and `is nil`
-  goes (nil isn't a type), so this one breaks source: decide it with the others above.
 - **Ordering Strings:** `<`, `<=`, `>` and `>=` on Strings, byte by byte, a shorter prefix first.
   UTF-8's bytes order as its code points do, so that's code point order too, with nothing decoded.
 
@@ -134,6 +131,12 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **Comparing maybes with `==`:** `x == nil` and `x != nil` test a union or maybe for nil, narrowing
+  as `is` did (`if x != nil` makes x its value; `if x == nil do return` makes it its value after).
+  `x == 4` compares a maybe's value, false when nil, and two maybes are equal when both are nil or
+  both hold equal values. `is` is only for types now: `x is nil` is an error saying to write `x ==
+  nil`.
 
 - **`[..]T` in generic code:** builder views of T as parameters, variables and generic struct fields.
   `xs.push(x)` copies from a place and `xs.pop()` gives a place to copy from (and `&xs.pop()` is now an

@@ -195,7 +195,7 @@ Shape :: union
   Circle, Box
 end
 s: Shape
-log(s is nil)
+log(s == nil)
 s = Box{w = 2, h = 3}
 log(s is Box)
 ```
@@ -230,7 +230,8 @@ true 84
 ## Maybes
 
 `?T` is a maybe: nil, or a `T`. It's a union of `nil` and `T` (a tag word, then the `T`), so it starts
-as nil and works as unions do: a `T` or `nil` can be stored in it, `is` tests it and narrows it, and a
+as nil and works as unions do: a `T` or `nil` can be stored in it, `x == nil` and `x != nil` test it and
+narrow it (`x == 4` compares its value, false when nil), and a
 `switch` takes `case nil` and `case T`. It can be written anywhere a type can, and every `?T` is the
 same type, wherever it's written:
 

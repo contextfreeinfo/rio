@@ -596,7 +596,10 @@ west true
 ## Unions and `is`
 
 A value of one of a union's types can be used as the union. `u is T` tests which type it holds (any
-type can be written there, `u is [3]Int` too, as in a `case`). To
+type can be written there, `u is [3]Int` too, as in a `case`). `nil` isn't a type: `u == nil` and
+`u != nil` test for it, and narrow as `is` does (for a maybe, `if x != nil` makes x its value). A maybe
+also compares with a value, `x == 4` (false when x is nil), or with another maybe of its type (equal
+when both are nil, or both hold equal values). To
 reach the value inside, narrow it: in the body of an `if` whose condition has `u is T` as one of
 its `and`-joined parts, or in a `case` naming one type, a union variable `u` (or a loop's element, or a
 `&` parameter) means its `T` value (a read-only copy). The right side of an `and` is narrowed the
@@ -632,7 +635,7 @@ true
 ```
 
 A test that's false narrows too, when it leaves one type: for a union of two types (a maybe is one, of
-`nil` and `T`), `u is A` being false means u holds the other. So `not u` (for a maybe), `u is nil` or
+`nil` and `T`), `u is A` being false means u holds the other. So `not u` (for a maybe), `u == nil` or
 `not (u is A)` narrows u where it's known to be false: on the right side of an `or` it's the left side
 of; in the branches after it (`case`, `else`), when it's one of an `if` condition's `or`-joined parts;
 and after the `if`, to the end of the block holding it, when its branch and any before it leave (with
@@ -649,7 +652,7 @@ first :: proc(xs: []String) -> Int
 end
 twice :: proc(s: String) -> Int
   n := s.toInt()
-  if n is nil
+  if n == nil
     return 0
   else
     return n * 2

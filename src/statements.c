@@ -90,7 +90,7 @@ static void rio_condition(rio_Vm *vm, rio_Block *b) {
   rio_narrowIsTests(vm, &cond, b);
 }
 
-/* what the first n conditions being false says (if not x, if x is nil: x its value), for a branch after
+/* what the first n conditions being false says (if not x, if x == nil: x its value), for a branch after
    them, or for after the if */
 static void rio_narrowKnown(rio_Vm *vm, const rio_Block *b, int n) {
   int i;
