@@ -40,3 +40,4 @@ date,commit,machine,arm_vm,arm_compiler,src_lines,rio_exe,compile_ms,test_img,ca
 2026-10-31,fc829ff,puddle,31412,173983,14275,288256,26.2,79860,0.651,0.007,0.54,0.005,0.49,0.012,0.647,0.119,"backfilled: Infer array/slice size/type"
 2026-10-31,567ec3e,puddle,31572,179104,14561,295936,31.8,81724,0.675,0.006,0.542,0.004,0.407,0.014,0.612,0.139,"backfilled: Start generics"
 2026-10-31,567ec3e+,puddle,31708,179329,14576,296448,28.8,82180,0.608,0.006,0.552,0.005,0.406,0.014,0.61,0.131,"Make generics reference-only"
+2026-10-31,5cdefa8+,puddle,31708,179977,14627,296960,24.4,82188,0.594,0.008,0.535,0.005,0.394,0.014,0.591,0.121,"Add generic proc types"

@@ -119,6 +119,11 @@ static const Case cases[] = {
   {"g :: proc[T](a: []T, x: &T) do a[0] = x\nh :: proc[U](a: []U, x: &U) do g(a, &x)\nn := [_]{\"a\"}\ns := \"b\"\nh(n[], &s)\n", 0, 0, 0, rio_ErrorKind_compile, 5, -1, -1, "this proc copies its T into memory it was given"},
   {"g :: proc[T](a: []T) do a.swap(0, 1)\nn := [_]{\"a\", \"b\"}\ng(n[])\nassert(n[0] == \"b\")\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"xs := [_]{1, 2}\nxs.swap(0, 2)\n", 0, 0, 0, rio_ErrorKind_runtime, 2, -1, -1, "index out of bounds"},
+  {"L :: (proc[T](a: T) -> Bool)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a T goes here only as &T or []T"},
+  {"L :: (proc[T](a: &T) -> Bool)\nx: L\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "this type takes types: Name[T]"},
+  {"L :: (proc[T](a: &T) -> Bool)\nx: L[Int, Int]\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "wrong number of types"},
+  {"f :: proc(l: proc[T](a: &T)) do log(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a generic proc type is only named"},
+  {"L :: (proc[T](a: &T) -> Bool)\nlt :: proc(a: &Int) -> Bool do return a < 0\nf: L[Int] = lt\nT :: Float\nx: T = 2\nn := -1\nassert(f(&n) and x == 2.0)\n", 0, 0, 0, rio_ErrorKind_none, 0, 0, 0, ""},
   {"g :: proc[T](a: []T, x: &T) do a[0] = x\nn := [_]{1}\nf := 2.5\ng(n[], &f)\n", 0, 0, 0, rio_ErrorKind_compile, 4, -1, -1, "type mismatch"},
   /* literals sized and typed by their values */
   {"x := [_]{}\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "[_]{} has no values to size it"},

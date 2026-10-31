@@ -1607,7 +1607,8 @@ gnReverse :: proc[T](xs: []T)
   n := xs.len()
   for i in 0..<n / 2 do xs.swap(i, n - 1 - i)
 end
-gnSortBy :: proc[T](xs: []T, less: proc(a, b: &T) -> Bool)
+GnLess :: (proc[T](a, b: &T) -> Bool)
+gnSortBy :: proc[T](xs: []T, less: GnLess[T])
   for i in 1..<xs.len()
     j := i
     for j > 0 and less(&xs[j], &xs[j - 1])
@@ -1620,6 +1621,7 @@ gnFill :: proc[T](xs: []T, x: &T)
   for i in 0..<xs.len() do xs[i] = x
 end
 gnByY :: proc(a, b: &GnP) -> Bool do return a.y < b.y
+gnLessP: GnLess[GnP] = gnByY
 gnIntEq :: proc(a, b: &Int) -> Bool do return a == b
 gnFloatEq :: proc(a, b: &Float) -> Bool do return a == b
 gnStrLess :: proc(a, b: &String) -> Bool do return a[0] < b[0]
@@ -1629,7 +1631,7 @@ gn9 := 9
 gn7 := 7
 check(gnInts[0] == 1 and gnInts[3] == 5 and gnFind(gnInts[], &gn9, gnIntEq) == 1 and gnFind(gnInts[], &gn7, gnIntEq) == -1, "reverse and find, on Ints")
 gnPs := [_]{GnP{x = 1, y = 30, name = "c"}, GnP{x = 2, y = 10, name = "a"}, GnP{x = 3, y = 20, name = "b"}}
-gnSortBy(gnPs[], gnByY)
+gnSortBy(gnPs[], gnLessP)
 check(gnPs[0].x == 2 and gnPs[1].x == 3 and gnPs[2].name == "c", "sort by a proc, on structs holding Strings")
 gnFs := [4]Float{}
 gnHalf := 2.5

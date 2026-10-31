@@ -352,7 +352,7 @@ typedef struct rio_Compiler {
   uint8_t *localViews;    /* local slots that hold a view of their proc's own memory */
   uint8_t *paramViews;    /* local slots that hold a view that came in through a parameter */
   int storingArgs;        /* storing call arguments: views may go to a callee */
-  int hostProcType;       /* parsing a host proc's declaration: its proc type may take &T parameters */
+  int namingType;         /* parsing Name :: ...: a generic proc type may be named, proc[T](...) */
   struct {
     uint16_t proc, ffi;
   } thunks[16];           /* host procs used as proc values: the proc that calls each (rio_makeThunks) */
@@ -530,6 +530,7 @@ int rio_isTemp(rio_Vm *vm, const rio_Expr *e);
 extern const char rio_msgOpaque[];
 int rio_typeSizeSlot(rio_Vm *vm, int t);
 int rio_mentions(rio_Vm *vm, int t, int type);
+int rio_bindType(rio_Vm *vm, int p, int t, const int *bound);
 void rio_openLiteral(rio_Vm *vm);
 void rio_constLiteral(rio_Vm *vm, rio_Expr *e);
 int rio_literalData(rio_Vm *vm, rio_Expr *e);

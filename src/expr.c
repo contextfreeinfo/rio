@@ -927,7 +927,7 @@ static int rio_unify(rio_Vm *vm, int p, int pattern, int actual, int *bound) {
 }
 
 /* a generic parameter's type with what each T was found to be */
-static int rio_bindType(rio_Vm *vm, int p, int t, const int *bound) {
+int rio_bindType(rio_Vm *vm, int p, int t, const int *bound) {
   rio_Type *y = rio_type(vm, t);
   int params[16], refs = 0;
   uint32_t i;

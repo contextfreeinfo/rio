@@ -176,9 +176,13 @@ typedef enum {
   rio_TypeKind_void, rio_TypeKind_int, rio_TypeKind_float, rio_TypeKind_byte, rio_TypeKind_slice,
   rio_TypeKind_array, rio_TypeKind_struct, rio_TypeKind_bool, rio_TypeKind_builder, rio_TypeKind_builderView,
   rio_TypeKind_enum, rio_TypeKind_union, rio_TypeKind_proc,
-  rio_TypeKind_param /* a generic proc's T (elem: the proc; count: which of its type parameters), its size
-                        known only while running */
+  rio_TypeKind_param, /* a generic proc's T (elem: the proc, or rio_NO_PROC for a generic type's; count:
+                         which of its type parameters), its size known only while running */
+  rio_TypeKind_generic /* a generic type, Less :: (proc[T](...)), filled in where it's named, Less[Point]
+                          (elem: the type with its Ts in it; count: how many) */
 } rio_TypeKind;
+
+#define rio_NO_PROC 0xFFFF
 
 /* the built-in types, first in every type table */
 typedef enum {

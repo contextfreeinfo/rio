@@ -1016,7 +1016,9 @@ static void rio_constantDecl(rio_Vm *vm) {
     if (!rio_failed(vm)) rio_addSymbol(vm, name, nameLen, rio_SymKind_type, k, 0);
     return;
   }
+  c->namingType = 1;
   e = rio_parseExpr(vm);
+  c->namingType = 0;
   if (c->curProc < 0 && !c->blockCount && (e.kind == rio_ExprKind_const || e.type == rio_TypeId_string)) {
     int define = rio_lookup(vm, name, nameLen) - c->firstDefine;
     if (define >= 0 && define < vm->defineCount) e = rio_defineValue(vm, define, e.type);

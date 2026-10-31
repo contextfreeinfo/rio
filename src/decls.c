@@ -33,11 +33,38 @@ static int rio_paramNames(rio_Vm *vm) {
   }
 }
 
+static int rio_genericOk(rio_Vm *vm, int t, int top);
+
+/* proc[T, U](...) after Name ::, a generic proc type: its Ts named while it's read (each a type of a
+   proc that isn't one). How many, or 0 for none. */
+static int rio_typeParamsOfType(rio_Vm *vm) {
+  rio_Compiler *c = vm->compiler;
+  int k = 0, exporting = c->exporting;
+  if (c->tok.kind != '[' || c->tok.newline) return 0;
+  if (!c->namingType) rio_FAIL_AT_TOKEN(0, "a generic proc type is only named: Less :: (proc[T](a, b: &T) -> Bool)");
+  c->exporting = 0; /* (that's the type's name, after) */
+  rio_next(vm);
+  while (c->tok.kind == rio_Tok_id && !rio_failed(vm)) {
+    if (k >= 8) rio_FAIL(0, "too many type parameters");
+    rio_addSymbol(vm, c->tok.text, c->tok.len, rio_SymKind_type, rio_newType(vm, rio_TypeKind_param, rio_NO_PROC, (uint32_t)k, 0), 0);
+    k++;
+    rio_next(vm);
+    if (c->tok.kind != ',') break;
+    rio_next(vm);
+  }
+  c->exporting = exporting;
+  if (!k) rio_FAIL_AT_TOKEN(0, "a type parameter's name expected: proc[T](...)");
+  rio_expect(vm, ']', "']' expected");
+  return k;
+}
+
 int rio_parseType(rio_Vm *vm) {
   rio_Compiler *c = vm->compiler;
-  int params[16], n = 0, result = rio_TypeId_void, optional = 0, refs = 0, ref;
+  int params[16], n = 0, result = rio_TypeId_void, optional = 0, refs = 0, ref, symAt = c->symCount, generic, made;
   if (c->tok.kind != rio_Tok_proc) return rio_parseValueType(vm);
   rio_next(vm);
+  generic = rio_typeParamsOfType(vm);
+  c->namingType = 0;
   rio_expect(vm, '(', "'(' expected");
   while (c->tok.kind != ')' && !rio_failed(vm)) {
     int names = rio_paramNames(vm), t, j, opt = 0; /* a, b: T, c?: T, or just T */
@@ -70,7 +97,11 @@ int rio_parseType(rio_Vm *vm) {
     if (c->tok.kind == rio_Tok_proc) rio_FAIL_AT_TOKEN(0, "a proc type can't take or return procs");
     result = rio_parseValueType(vm);
   }
-  return rio_procTypeOf(vm, params, n, result, optional, refs);
+  made = rio_procTypeOf(vm, params, n, result, optional, refs);
+  if (!generic) return made;
+  c->symCount = symAt; /* (its Ts were named only in it) */
+  if (!rio_genericOk(vm, made, 0)) rio_FAIL(0, "a T goes here only as &T or []T, in a proc type too (its size is known only while running)");
+  return rio_newType(vm, rio_TypeKind_generic, made, (uint32_t)generic, 0);
 }
 
 /* a type by its name, maybe through modules (mod.Type), and Blob[N], Blob[..N], Blob[..] */
@@ -89,6 +120,21 @@ static int rio_parseTypeName(rio_Vm *vm) {
   if (c->syms[i].kind != rio_SymKind_type) rio_FAIL_AT_TOKEN(0, "type expected");
   t = c->syms[i].type;
   rio_next(vm);
+  if (rio_type(vm, t)->kind == rio_TypeKind_generic) { /* Less[Point]: filled in */
+    int args[8], n = 0;
+    if (c->tok.kind != '[' || c->tok.newline) rio_FAIL(0, "this type takes types: Name[T]");
+    rio_next(vm);
+    while (!rio_failed(vm)) {
+      if (n >= 8) rio_FAIL(0, "too many types");
+      args[n++] = rio_parseType(vm);
+      if (c->tok.kind != ',') break;
+      rio_next(vm);
+    }
+    rio_expect(vm, ']', "']' expected");
+    if (rio_failed(vm)) return 0;
+    if ((uint32_t)n != rio_type(vm, t)->count) rio_FAIL(0, "wrong number of types");
+    return rio_bindType(vm, -1, rio_type(vm, t)->elem, args);
+  }
   if ((t == rio_TypeId_int || t == rio_TypeId_bool || rio_type(vm, t)->kind == rio_TypeKind_enum) && c->tok.kind == '(' && !c->tok.newline)
     rio_FAIL(0, "a bitfield (Int(n), Bool(1), or an enum's E(n)) is only a struct's field");
   if (t == rio_TypeId_blob && c->tok.kind == '[' && !c->tok.newline) { /* Blob[N], Blob[..N], Blob[..] */

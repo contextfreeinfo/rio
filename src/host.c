@@ -499,9 +499,7 @@ void rio_hostDecl(rio_Vm *vm, const char *name, int nameLen, int receiver, int l
     return;
   }
   if (c->tok.kind != rio_Tok_proc) rio_FAIL(, "'proc' or 'struct' expected after host");
-  c->hostProcType = 1;
   procType = rio_parseType(vm); /* a proc type, as for proc values: proc(x: Int) -> Int (and &T parameters) */
-  c->hostProcType = 0;
   if (rio_failed(vm)) return;
   if (receiver < 0) { /* this module's host proc, a global one, or a builtin */
     char prefix[256];

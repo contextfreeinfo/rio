@@ -30,6 +30,17 @@ Nothing open: see Leaning yes.
 - **Generic procs, the rest:** reference-only generics are done (see Done recently): a T is reached
   only through `&T` and `[]T`, like C's `void*` with its size, but typed. Still to come, if wanted:
   - **More on a `[]T`:** `for x in xs` and slicing, and `[..]T` builder views (push, pop).
+  - **Generic proc types:** `Less :: (proc[T](a, b: &T) -> Bool)`, used as `Less[Point]`, and `Less[T]`
+    in a generic proc. Only a type: filled in while compiling, the same type as one written out.
+  - **Generic structs,** under the same rule: `Map :: struct[K, V]`, with a T only in `[]T` and proc
+    types (not `x: T` or `[4]T`), so every field's size is the same whatever T is. `Map[Int, Point]` and
+    `Map[String, Player]` are different types with one layout, and no code is per type. A struct of
+    slices and procs (keys, values, `eq`, `hash`) makes a real generic map; one of procs alone, a set
+    of operations. A call finds T through them (`put(&m, &k, &v)` from `m: &Map[K, V]`).
+  - **Generic methods,** likely, static ones too (`Map.make :: static proc[K, V](...)`), on generic
+    structs and for `core.rio`'s declarations.
+  - **Where to stop:** no T by value and no constraints. If generic types don't make `tests/map.rio`
+    read clearly better, stop there.
   - **The descriptor:** each call already passes the address of (T's size, its descriptor), with the
     descriptor 0 for now. Comparing, hashing and printing come in as procs instead, so nothing needs
     it yet; it's kept for reflection (see Maybe).
@@ -59,9 +70,6 @@ Nothing open: see Leaning yes.
   a proc with no result, and a branch with no value a `Void` (as JavaScript's `undefined` or Python's
   `None`). With it, `??T`: a program writing the inner nil, and `is` and printing telling the two
   apart. Until then, an empty struct names a second nothing in a union.
-- **Generic types,** in brackets as generic procs are: `Pair :: struct[T]`, used as `Pair[Int]`, only if
-  they stay simple. They're what generic maps would need. Some of a type's parameters may be constant
-  Ints rather than types, as the builtins' already are (`Blob[16]`, `[..N]T`). Unsure for now.
 - **Reflection, through generics:** not now, but designed so generic procs leave room for it. A generic
   proc's hidden descriptor is all reflection needs, so it works on any value at any call, locals
   included, with no stored `Any`: the caller knows the type, as with any generic call.

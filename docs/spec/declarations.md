@@ -452,6 +452,10 @@ log(players[0].name, find(nums[], &eight, intEq), find(nums[], &nine, intEq))
 ```output
 bo 1 -1
 ```
+
+A proc type can take types too, named and then filled in where it's used: `Less :: (proc[T](a, b:
+&T) -> Bool)`, then `Less[Point]`, or `Less[T]` in a generic proc. It's the same type as one written
+out, so `sortBy :: proc[T](xs: []T, less: Less[T])` reads as the one above.
 ## Host procs
 
 `host proc` and `host struct` declare something the host provides: see

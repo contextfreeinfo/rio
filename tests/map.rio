@@ -139,7 +139,8 @@ check(remove("the") and get("the") is nil and get("cat") is Int, "remove a word"
 # The table as generic procs: the caller keeps its keys, values and which slots are used (each a power
 # of 2 long), and gives each key's hash and how keys compare. One copy of the code serves every key and
 # value type that holds no views (a stored String key would have to be copied into an arena, as above).
-slotIn :: proc[K](keys: []K, used: []Bool, key: &K, hash: Int, eq: proc(a, b: &K) -> Bool) -> Int
+Eq :: (proc[T](a, b: &T) -> Bool)
+slotIn :: proc[K](keys: []K, used: []Bool, key: &K, hash: Int, eq: Eq[K]) -> Int
   i := hash & (keys.len() - 1)
   for used[i] and not eq(&keys[i], &key)
     i = (i + 1) & (keys.len() - 1)
@@ -147,7 +148,7 @@ slotIn :: proc[K](keys: []K, used: []Bool, key: &K, hash: Int, eq: proc(a, b: &K
   return i
 end
 
-putIn :: proc[K, V](keys: []K, values: []V, used: []Bool, key: &K, hash: Int, eq: proc(a, b: &K) -> Bool, value: &V)
+putIn :: proc[K, V](keys: []K, values: []V, used: []Bool, key: &K, hash: Int, eq: Eq[K], value: &V)
   i := slotIn(keys, used, &key, hash, eq)
   used[i] = true
   keys[i] = key
@@ -155,7 +156,7 @@ putIn :: proc[K, V](keys: []K, values: []V, used: []Bool, key: &K, hash: Int, eq
 end
 
 # the slot holding key, or -1
-findIn :: proc[K](keys: []K, used: []Bool, key: &K, hash: Int, eq: proc(a, b: &K) -> Bool) -> Int
+findIn :: proc[K](keys: []K, used: []Bool, key: &K, hash: Int, eq: Eq[K]) -> Int
   i := slotIn(keys, used, &key, hash, eq)
   if not used[i] do return -1
   return i
