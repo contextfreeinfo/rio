@@ -1,8 +1,8 @@
 # A hash map written in Rio, to show what user code can do without a builtin one: String keys to Int
 # values, then Int keys to struct values. Open addressing with linear probing, and deletion by moving
 # later entries back (no tombstones). Views passed in are borrowed, so the map copies each key's bytes
-# into a global arena of its own. The second map's table is generic procs over arrays the caller keeps,
-# for any key and value holding no views, with the caller's hash and compare procs.
+# into a global arena of its own. The second map is a generic Table over arrays the caller keeps, for any
+# key and value holding no views, with the caller's hash and compare procs.
 fails := 0
 check :: proc(ok: Bool, what: String)
   if not ok
@@ -136,31 +136,41 @@ check(remove("the") and get("the") is nil and get("cat") is Int, "remove a word"
 
 # ------------------------------------------------------------------ Int -> struct
 
-# The table as generic procs: the caller keeps its keys, values and which slots are used (each a power
-# of 2 long), and gives each key's hash and how keys compare. One copy of the code serves every key and
-# value type that holds no views (a stored String key would have to be copied into an arena, as above).
-Eq :: (proc[T](a, b: &T) -> Bool)
-slotIn :: proc[K](keys: []K, used: []Bool, key: &K, hash: Int, eq: Eq[K]) -> Int
-  i := hash & (keys.len() - 1)
-  for used[i] and not eq(&keys[i], &key)
-    i = (i + 1) & (keys.len() - 1)
+# The table as a generic struct: the caller's arrays for its keys, values and which slots are used (each
+# a power of 2 long), and its procs for how keys hash and compare. One copy of the code serves every key
+# and value type that holds no views (a stored String key would have to be copied into an arena, as above).
+Table :: struct[K, V]
+  keys: []K
+  values: []V
+  used: []Bool
+  eq: proc(a, b: &K) -> Bool
+  hash: proc(key: &K) -> Int
+end
+
+# the slot holding key, or else the empty slot where it would go
+slotIn :: proc[K, V](m: &Table[K, V], key: &K) -> Int
+  mask := m.keys.len() - 1
+  i := m.hash(&key) & mask
+  for m.used[i] and not m.eq(&m.keys[i], &key)
+    i = (i + 1) & mask
   end
   return i
 end
 
-putIn :: proc[K, V](keys: []K, values: []V, used: []Bool, key: &K, hash: Int, eq: Eq[K], value: &V)
-  i := slotIn(keys, used, &key, hash, eq)
-  used[i] = true
-  keys[i] = key
-  values[i] = value
+putIn :: proc[K, V](m: &Table[K, V], key: &K, value: &V)
+  i := slotIn(&m, &key)
+  m.used[i] = true
+  m.keys[i] = key
+  m.values[i] = value
 end
 
 # the slot holding key, or -1
-findIn :: proc[K](keys: []K, used: []Bool, key: &K, hash: Int, eq: Eq[K]) -> Int
-  i := slotIn(keys, used, &key, hash, eq)
-  if not used[i] do return -1
+findIn :: proc[K, V](m: &Table[K, V], key: &K) -> Int
+  i := slotIn(&m, &key)
+  if not m.used[i] do return -1
   return i
 end
+
 Point :: struct
   x, y: Int
 end
@@ -168,17 +178,17 @@ PCAP :: 16
 pointUsed: [PCAP]Bool
 pointKey: [PCAP]Int
 points: [PCAP]Point
-
-intHash :: proc(key: Int) -> Int do return (key * -1640531535) >> 28 # (Fibonacci hashing: the top bits)
+intHash :: proc(key: &Int) -> Int do return (key * -1640531535) >> 28 # (Fibonacci hashing: the top bits)
 intEq :: proc(a, b: &Int) -> Bool do return a == b
-putPoint :: proc(key: Int, p: Point) do putIn(pointKey[], points[], pointUsed[], &key, intHash(key), intEq, &p)
+pointTable := Table[Int, Point]{keys = pointKey[], values = points[], used = pointUsed[], eq = intEq, hash = intHash}
+
+putPoint :: proc(key: Int, p: Point) do putIn(&pointTable, &key, &p)
 
 getPoint :: proc(key: Int) -> ?Point
-  i := findIn(pointKey[], pointUsed[], &key, intHash(key), intEq)
+  i := findIn(&pointTable, &key)
   if i < 0 do return nil
   return points[i]
 end
-
 for k in 0..<10 do putPoint(k * 1000, {x = k, y = k * k})
 p := getPoint(7000)
 if p is Point do check(p.y == 49, "point 7000")

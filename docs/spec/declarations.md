@@ -456,6 +456,36 @@ bo 1 -1
 A proc type can take types too, named and then filled in where it's used: `Less :: (proc[T](a, b:
 &T) -> Bool)`, then `Less[Point]`, or `Less[T]` in a generic proc. It's the same type as one written
 out, so `sortBy :: proc[T](xs: []T, less: Less[T])` reads as the one above.
+
+A struct can take types the same way, `Table :: struct[K, V]`, filled in where it's named:
+`Table[Int, Point]`, or `Table[K, V]` in a generic proc, which finds K and V through it. A T goes in a
+field only in a `[]T` or a proc type, so every field's size is the same whatever T is: each filled-in
+struct is its own type, laid out as the others are, and no code is made per type. Each type parameter
+must be in some field's type. A generic struct can't have methods yet; generic procs take it instead.
+
+```rio
+Table :: struct[K, V]
+  keys: []K
+  values: []V
+  eq: proc(a, b: &K) -> Bool
+end
+find :: proc[K, V](t: &Table[K, V], key: &K) -> Int
+  for i in 0..<t.keys.len()
+    if t.eq(&t.keys[i], &key) do return i
+  end
+  return -1
+end
+intEq :: proc(a, b: &Int) -> Bool do return a == b
+ks := [_]{7, 3}
+names := [_]{"seven", "three"}
+t := Table[Int, String]{keys = ks[], values = names[], eq = intEq}
+three := 3
+log(t.values[find(&t, &three)], t)
+```
+
+```output
+three {keys = [7, 3], values = ["seven", "three"], eq = proc}
+```
 ## Host procs
 
 `host proc` and `host struct` declare something the host provides: see

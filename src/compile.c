@@ -554,9 +554,11 @@ static uint32_t rio_packLines(rio_Compiler *c) {
 }
 
 /* the names the host can look up (rio_findProc, rio_findGlobal): main and the main file's names marked
-   name*, or when built with rio_EXPORTS_ALL every top-level proc and global of the main file */
+   name*, or when built with rio_EXPORTS_ALL every top-level proc and global of the main file. Not a
+   generic proc: the host couldn't say what its T is (Rio modules can still use it). */
 static int rio_isHostName(rio_Compiler *c, rio_Symbol *y) {
   if ((y->kind != rio_SymKind_proc && y->kind != rio_SymKind_var) || y->module != 1) return 0;
+  if (y->kind == rio_SymKind_proc && c->procDefs[y->value].typeParams) return 0;
 #ifdef rio_EXPORTS_ALL
   (void)c;
   return 1;

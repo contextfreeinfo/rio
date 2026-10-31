@@ -30,17 +30,10 @@ Nothing open: see Leaning yes.
 - **Generic procs, the rest:** reference-only generics are done (see Done recently): a T is reached
   only through `&T` and `[]T`, like C's `void*` with its size, but typed. Still to come, if wanted:
   - **More on a `[]T`:** `for x in xs` and slicing, and `[..]T` builder views (push, pop).
-  - **Generic proc types:** `Less :: (proc[T](a, b: &T) -> Bool)`, used as `Less[Point]`, and `Less[T]`
-    in a generic proc. Only a type: filled in while compiling, the same type as one written out.
-  - **Generic structs,** under the same rule: `Map :: struct[K, V]`, with a T only in `[]T` and proc
-    types (not `x: T` or `[4]T`), so every field's size is the same whatever T is. `Map[Int, Point]` and
-    `Map[String, Player]` are different types with one layout, and no code is per type. A struct of
-    slices and procs (keys, values, `eq`, `hash`) makes a real generic map; one of procs alone, a set
-    of operations. A call finds T through them (`put(&m, &k, &v)` from `m: &Map[K, V]`).
-  - **Generic methods,** likely, static ones too (`Map.make :: static proc[K, V](...)`), on generic
-    structs and for `core.rio`'s declarations.
-  - **Where to stop:** no T by value and no constraints. If generic types don't make `tests/map.rio`
-    read clearly better, stop there.
+  - **Generic methods,** likely, static ones too (`Table.make :: static proc[K, V](...)`), on generic
+    structs (an error for now) and for `core.rio`'s declarations.
+  - **Where to stop:** no T by value and no constraints. Generic structs did make `tests/map.rio` read
+    clearly better (`putIn(&pointTable, &key, &p)`, not seven arguments).
   - **The descriptor:** each call already passes the address of (T's size, its descriptor), with the
     descriptor 0 for now. Comparing, hashing and printing come in as procs instead, so nothing needs
     it yet; it's kept for reflection (see Maybe).
@@ -63,6 +56,11 @@ Nothing open: see Leaning yes.
   goes (nil isn't a type), so this one breaks source: decide it with the others above.
 - **Ordering Strings:** `<`, `<=`, `>` and `>=` on Strings, byte by byte, a shorter prefix first.
   UTF-8's bytes order as its code points do, so that's code point order too, with nothing decoded.
+
+- **Steadier bench times:** VM times move by 10% or more between rows from one machine, though each is
+  already the best of 3 runs. `tools/stats.py` could take more (`--runs N`, for `--backfill` too), and
+  backfilling a commit again could add samples to its row rather than a second row, so a jump in the
+  chart is a real one.
 
 ## Maybe
 
@@ -133,6 +131,12 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **Generic types:** proc types, `Less :: (proc[T](a, b: &T) -> Bool)`, and structs, `Table :: struct[K,
+  V]`, filled in where they're named (`Less[Point]`, `Table[Int, Point]`, or with a generic proc's Ts).
+  A T goes in a field only in a `[]T` or a proc type, so a generic struct has one layout for every T,
+  and a call finds T through one (`put(&m, &k, &v)` from `m: &Table[K, V]`). Only the compiler knows
+  them: no VM change. The host doesn't find generic procs, even marked `*`.
 
 - **Generic procs, reference-only:** `sortBy :: proc[T](xs: []T, less: proc(a, b: &T) -> Bool)`, each
   T found from the arguments at every call (no `sortBy[Int](...)`, which would read like indexing).

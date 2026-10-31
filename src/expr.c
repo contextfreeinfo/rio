@@ -919,11 +919,44 @@ static int rio_unify(rio_Vm *vm, int p, int pattern, int actual, int *bound) {
     return bound[y->count] == actual;
   }
   if (y->kind == rio_TypeKind_slice) return (a->kind == rio_TypeKind_slice || a->kind == rio_TypeKind_array) && rio_unify(vm, p, y->elem, a->elem, bound);
+  if (y->kind == rio_TypeKind_struct) { /* a generic struct filled in: the same one, field by field */
+    if (a->kind != rio_TypeKind_struct || !y->elem || a->elem != y->elem) return 0;
+    for (i = 0; i < y->fieldCount; i++)
+      if (!rio_unify(vm, p, rio_field(vm, y->firstField + i)->type, rio_field(vm, a->firstField + i)->type, bound)) return 0;
+    return 1;
+  }
   if (y->kind != rio_TypeKind_proc || a->kind != rio_TypeKind_proc || a->fieldCount != y->fieldCount || a->count != y->count) return 0;
   for (i = 0; i < y->fieldCount; i++)
     if (rio_field(vm, y->firstField + i)->offset != rio_field(vm, a->firstField + i)->offset ||
         !rio_unify(vm, p, rio_field(vm, y->firstField + i)->type, rio_field(vm, a->firstField + i)->type, bound)) return 0;
   return rio_unify(vm, p, y->elem, a->elem, bound);
+}
+
+/* A generic struct (from: its template, or one filled in with a generic proc's Ts), filled in: made once
+   for each set of field types, elem its template. Every field is the same size whatever T is, so it's
+   laid out as the template is. */
+static int rio_structOf(rio_Vm *vm, int from, const int *bound) {
+  rio_Compiler *c = vm->compiler;
+  int types[64], tmpl = rio_type(vm, from)->elem ? rio_type(vm, from)->elem : from, n = rio_type(vm, from)->fieldCount, i, j, made;
+  if (n > 64) rio_FAIL(0, "too many fields in a generic struct");
+  for (j = 0; j < n; j++) types[j] = rio_bindType(vm, -1, rio_field(vm, rio_type(vm, from)->firstField + j)->type, bound);
+  for (i = rio_TypeId_builtinCount; i < c->typeCount; i++) {
+    rio_Type *y = rio_type(vm, i);
+    if (y->kind != rio_TypeKind_struct || y->elem != tmpl) continue;
+    for (j = 0; j < n && rio_field(vm, y->firstField + j)->type == types[j]; j++) {}
+    if (j == n) return i;
+  }
+  made = rio_newType(vm, rio_TypeKind_struct, tmpl, 0, rio_type(vm, tmpl)->size);
+  rio_type(vm, made)->firstField = (uint16_t)c->fieldCount;
+  for (j = 0; j < n; j++) {
+    int f = rio_newField(vm);
+    if (f < 0) return 0;
+    *rio_field(vm, f) = *rio_field(vm, rio_type(vm, tmpl)->firstField + j);
+    rio_field(vm, f)->type = (uint16_t)types[j];
+  }
+  rio_type(vm, made)->fieldCount = (uint16_t)n;
+  rio_type(vm, made)->hasRefs = rio_type(vm, tmpl)->hasRefs;
+  return made;
 }
 
 /* a generic parameter's type with what each T was found to be */
@@ -934,6 +967,7 @@ int rio_bindType(rio_Vm *vm, int p, int t, const int *bound) {
   if (!rio_mentions(vm, t, -1)) return t;
   if (y->kind == rio_TypeKind_param) return bound[y->count];
   if (y->kind == rio_TypeKind_slice) return rio_sliceOf(vm, rio_bindType(vm, p, y->elem, bound));
+  if (y->kind == rio_TypeKind_struct) return rio_structOf(vm, t, bound);
   for (i = 0; i < y->fieldCount && i < 16; i++) {
     params[i] = rio_bindType(vm, p, rio_field(vm, y->firstField + i)->type, bound);
     refs |= rio_field(vm, y->firstField + i)->offset << i;
@@ -1316,6 +1350,15 @@ static int rio_parseOperand(rio_Vm *vm, rio_ExprState *x) {
       rio_opTop(vm)->b == rio_Builtin_sizeOf && rio_opTop(vm)->argCount == 0) { /* sizeOf(Blob[4]): a whole type */
     int i = rio_lookup(vm, c->tok.text, c->tok.len);
     if (i >= 0 && c->syms[i].kind == rio_SymKind_type) {
+      int type = rio_parseType(vm);
+      if (rio_failed(vm)) return rio_Expect_failed;
+      rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);
+      return rio_Expect_operator;
+    }
+  }
+  if (t == rio_Tok_id) { /* Map[Int, Point]: a generic type, filled in */
+    int i = rio_lookup(vm, c->tok.text, c->tok.len);
+    if (i >= 0 && c->syms[i].kind == rio_SymKind_type && rio_type(vm, c->syms[i].type)->kind == rio_TypeKind_generic) {
       int type = rio_parseType(vm);
       if (rio_failed(vm)) return rio_Expect_failed;
       rio_pushResult(vm, rio_exprOf(rio_ExprKind_type, type, 0), tempStart);

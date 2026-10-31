@@ -1644,6 +1644,17 @@ gnB: [..4]Int
 ok := gnB.push(1) and gnB.push(2)
 gnB.swap(0, 1)
 check(gnB[0] == 2 and gnB[1] == 1, "swap on a builder")
+GnList :: struct[T]
+  items: []T
+  less: GnLess[T]
+end
+gnSortList :: proc[T](l: &GnList[T]) do gnSortBy(l.items, l.less)
+gnFirst :: proc[T](l: GnList[T]) -> Int do return l.items.len()
+gnList := GnList[GnP]{items = gnPs[], less = gnByY}
+gnPs[0].y = 99
+gnSortList(&gnList)
+gnOther: GnList[GnP] = gnList
+check(gnPs[2].y == 99 and gnFirst(gnOther) == 3 and gnOther.items[0].y == 20, "a generic struct, filled in and passed to generic procs")
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1
