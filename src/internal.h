@@ -111,7 +111,11 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
      loge                   end the log line
      fail                   a failed assert: a = its message (0: none); x 1: a runtime error, a its message
      halt                   stop
-     jit                    run native loop a (rio_jit), then carry on where it says */
+     jit                    run native loop a (rio_jit), then carry on where it says
+   Generic procs: a T's size is only known while running, in a slot (idxv and eqv find it in a, then write a).
+     idxv                   a = address of element c of slice b, each a bytes (bounds-checked)
+     copyv                  c bytes from address b to address a, c a slot
+     eqv                    a = whether the a bytes at addresses b and c are the same */
 #define rio_OPS(X)                                                                                   \
   X(mov) X(add) X(sub) X(mul) X(div) X(mod) X(and) X(or) X(xor) X(shl) X(shr) X(ushr)               \
   X(neg) X(bnot) X(not) X(fadd) X(fsub) X(fmul) X(fdiv) X(fneg)                                      \
@@ -125,7 +129,7 @@ rio_PRINT_KINDS /* (the kinds of value print.h prints: descriptors start with on
   X(jmp) X(jz) X(jnz) X(jeq) X(jne) X(jlt) X(jle) X(jfeq) X(jfne) X(jflt) X(jfle) X(jfnlt) X(jfnle)  \
   X(each) X(fori) X(forby)                                                                                    \
   X(call) X(ret) X(calli) X(getret) X(ffi) X(logi) X(logf) X(logs) X(logb) X(logn) X(logv) X(loge)   \
-  X(fail) X(halt) X(jit)
+  X(fail) X(halt) X(jit) X(idxv) X(copyv) X(eqv)
 
 #define rio_OP_ENUM(o) rio_Op_##o,
 typedef enum {
@@ -171,7 +175,9 @@ typedef enum {
 typedef enum {
   rio_TypeKind_void, rio_TypeKind_int, rio_TypeKind_float, rio_TypeKind_byte, rio_TypeKind_slice,
   rio_TypeKind_array, rio_TypeKind_struct, rio_TypeKind_bool, rio_TypeKind_builder, rio_TypeKind_builderView,
-  rio_TypeKind_enum, rio_TypeKind_union, rio_TypeKind_proc
+  rio_TypeKind_enum, rio_TypeKind_union, rio_TypeKind_proc,
+  rio_TypeKind_param /* a generic proc's T (elem: the proc; count: which of its type parameters), its size
+                        known only while running */
 } rio_TypeKind;
 
 /* the built-in types, first in every type table */

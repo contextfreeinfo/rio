@@ -304,6 +304,14 @@ rio_HOT static int rio_interpret(rio_Vm *vm, uint32_t pc) {
     rio_NEXT2();
   }
   rio_CASE(copy) memmove(M + R[ip->a].i, M + R[ip->b].i, ip->c); rio_NEXT();
+  rio_CASE(copyv) memmove(M + R[ip->a].u, M + R[ip->b].u, R[ip->c].u); rio_NEXT();
+  rio_CASE(idxv) {
+    uint32_t i = R[ip->c].u;
+    if (i >= R[ip->b + 1].u) return rio_runtimeError(vm, "index out of bounds", rio_PC);
+    R[ip->a].u = R[ip->b].u + i * R[ip->a].u;
+    rio_NEXT();
+  }
+  rio_CASE(eqv) R[ip->a].i = !memcmp(M + R[ip->b].u, M + R[ip->c].u, R[ip->a].u); rio_NEXT();
   rio_CASE(movn) memmove(R + ip->a, R + ip->b, ip->c * sizeof(rio_Val)); rio_NEXT();
   rio_CASE(enumname) { /* a, a+1 = the name of value b (values 0 to n - 1): their names at data a */
     uint32_t n = rio_dataSize(ip + 1), i = R[ip->b].u, names = ip[1].a;

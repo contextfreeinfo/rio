@@ -104,6 +104,15 @@ static const Case cases[] = {
   {"P :: struct\n  s: String\nend\ng :: proc(s: String) -> P do return P{s = s}\nf :: proc() -> P\n  b: Blob[4]\n  p := g(b[].asString())\n  return p\nend\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "this holds a view of the proc's own memory"}, /* (a call's result views what went in) */
   {"P :: struct\n  s: String\nend\ng :: proc(s: String) -> P do return P{s = s}\ngp: P\nf :: proc()\n  b: Blob[4]\n  gp = g(b[].asString())\nend\n", 0, 0, 0, rio_ErrorKind_compile, 8, -1, -1, "this holds a view of the proc's own memory, which would outlive the call"},
   {"B :: struct\n  b: Blob[4]\nend\nB.view :: proc() -> String do return self.b[].asString()\nf :: proc() -> String\n  x: B\n  return x.view()\nend\n", 0, 0, 0, rio_ErrorKind_compile, 7, -1, -1, "this returns a view of the proc's own memory"}, /* (self has memory of its own) */
+  /* generic procs */
+  {"g :: proc[T](x: T) -> T do return x\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a generic proc can't return a T yet"},
+  {"g :: proc[T]() do log(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "each type parameter is in a parameter's type"},
+  {"g :: proc[T](x: T) do log(x)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a T can't be printed yet"},
+  {"g :: proc[T](xs: [..]T) do log(1)\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "a T goes here only as T, &T or []T"},
+  {"g :: proc[T](x: T)\n  ys: [2]T\nend\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a T goes in a variable only as T or []T"},
+  {"g :: proc[T](x: &T) do x = x\nf := g\n", 0, 0, 0, rio_ErrorKind_compile, 2, -1, -1, "a generic proc can't be a proc value"},
+  {"g :: proc[T](a: []T, x: T) -> Bool do return a[0] == x\nn := [_]{\"a\"}\nb := g(n[], \"a\")\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "a T holding views (a String) can't be compared so"},
+  {"g :: proc[T](a: []T, x: T) do a[0] = x\nn := [_]{1}\ng(n[], 2.5)\n", 0, 0, 0, rio_ErrorKind_compile, 3, -1, -1, "type mismatch"},
   /* literals sized and typed by their values */
   {"x := [_]{}\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "[_]{} has no values to size it"},
   {"x := []{}\n", 0, 0, 0, rio_ErrorKind_compile, 1, -1, -1, "[]{} has no values to type it"},

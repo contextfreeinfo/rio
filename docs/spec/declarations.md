@@ -401,6 +401,61 @@ update* :: proc()
 end
 ```
 
+## Generic procs
+
+`proc[T, U](...)` names types a proc works on whatever they are. Each is found at every call, from
+the arguments, so each must be in a parameter's type. The proc is compiled once, for every T: a call
+passes, unseen, where T's size is. So in the body a T's size is known only while running, and what can
+be done with one is what needs no more than that:
+
+- **Where a T goes:** a parameter `x: T` (read-only, as a copy would be), `x: &T`, `xs: []T`, and a
+  proc type's `[]T` (`less: proc(xs: []T, i, j: Int) -> Bool`), and a variable, `t := x`.
+- **What a T does:** it's copied (`a = b`, `xs[i] = x`), taken from a `[]T` (`xs[i]`), compared with
+  `==` and `!=` by its bytes, and passed on, to a generic proc or as `&xs[i]`. Anything else on a T is
+  an error: arithmetic, printing it, a `for` over a `[]T` (index it), slicing a `[]T`.
+- **What a call checks:** each T found agrees everywhere it's found. A T the body compares with `==`
+  can't hold views (a String: compare by your own proc), and a T it keeps in a variable can be at most
+  16 words. A generic proc can't return a T, or be a proc value.
+
+```rio
+swap :: proc[T](a, b: &T)
+  t := a
+  a = b
+  b = t
+end
+find :: proc[T](xs: []T, x: T) -> Int
+  for i in 0..<xs.len()
+    if xs[i] == x do return i
+  end
+  return -1
+end
+sortBy :: proc[T](xs: []T, less: proc(xs: []T, i, j: Int) -> Bool)
+  for i in 1..<xs.len()
+    j := i
+    for j > 0 and less(xs, j, j - 1)
+      swap(&xs[j], &xs[j - 1])
+      j -= 1
+    end
+  end
+end
+Player :: struct
+  name: String
+  score: Int
+end
+byScore :: proc(ps: []Player, i, j: Int) -> Bool do return ps[i].score < ps[j].score
+players := [_]{Player{name = "ann", score = 30}, Player{name = "bo", score = 10}}
+sortBy(players[], byScore)
+nums := [_]{4, 8, 15}
+a := "left"
+b := "right"
+swap(&a, &b)
+log(players[0].name, find(nums[], 8), find(nums[], 9), a)
+```
+
+```output
+bo 1 -1 right
+```
+
 ## Host procs
 
 `host proc` and `host struct` declare something the host provides: see

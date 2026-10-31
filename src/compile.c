@@ -370,7 +370,10 @@ void rio_fillRuntimeProc(rio_Vm *vm, rio_Proc *out, int proc) {
   rio_ProcDef *p = &c->procDefs[proc];
   uint32_t paramWords = 0;
   int j;
-  for (j = 0; j < p->paramCount; j++) paramWords += (uint32_t)rio_typeWords(vm, c->params[p->firstParam + j].type);
+  for (j = 0; j < p->paramCount; j++) { /* (a generic's x: T is its address) */
+    int t = c->params[p->firstParam + j].type;
+    paramWords += rio_type(vm, t)->kind == rio_TypeKind_param ? 1u : (uint32_t)rio_typeWords(vm, t);
+  }
   out->entry = p->entry;
   out->end = p->end;
   out->frameStart = p->frameStart;

@@ -131,6 +131,13 @@ typedef struct {
                           be a value: that could recurse) */
   uint8_t usedAsValue;
   uint16_t optional;   /* how many of its last parameters are optional (name?: T): left out, they're zero */
+  /* a generic proc, proc[T, U](...): its type parameters, types firstTypeParam on; each a hidden last
+     parameter, the address of a constant (T's size, its descriptor or 0), and T's size loaded into a slot
+     of sizeSlots on at its start */
+  uint8_t typeParams;
+  uint8_t eqTypes;     /* the ones it compares with == (bit j): a T holding views can't go there */
+  uint8_t localTypes;  /* the ones it keeps in variables (bit j): a T over 16 words can't go there */
+  uint16_t firstTypeParam, sizeSlots;
 } rio_ProcDef;
 
 typedef struct {
@@ -521,6 +528,9 @@ uint32_t rio_expose(rio_Vm *vm, uint32_t addr, uint32_t bytes);
 int rio_addrConst(rio_Vm *vm, uint32_t addr, uint32_t bytes);
 int rio_retarget(rio_Vm *vm, int from, int to);
 int rio_isTemp(rio_Vm *vm, const rio_Expr *e);
+extern const char rio_msgOpaque[];
+int rio_typeSizeSlot(rio_Vm *vm, int t);
+int rio_mentions(rio_Vm *vm, int t, int type);
 void rio_openLiteral(rio_Vm *vm);
 void rio_constLiteral(rio_Vm *vm, rio_Expr *e);
 int rio_literalData(rio_Vm *vm, rio_Expr *e);

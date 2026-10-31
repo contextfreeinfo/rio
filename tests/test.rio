@@ -1592,6 +1592,54 @@ ilFirst :: proc(k: Int) -> Int
 end
 check(ilFirst(1) == 115 and ilFirst(2) == 119, "in a proc, built each call")
 
+# ---- generic procs: proc[T], compiled once, each call passing where T's size is
+GnP :: struct
+  x, y: Int
+  name: String
+end
+gnSwap :: proc[T](a, b: &T)
+  t := a
+  a = b
+  b = t
+end
+gnFind :: proc[T](xs: []T, x: T) -> Int
+  for i in 0..<xs.len()
+    if xs[i] == x do return i
+  end
+  return -1
+end
+gnReverse :: proc[T](xs: []T)
+  n := xs.len()
+  for i in 0..<n / 2 do gnSwap(&xs[i], &xs[n - 1 - i])
+end
+gnSortBy :: proc[T](xs: []T, less: proc(xs: []T, i, j: Int) -> Bool)
+  for i in 1..<xs.len()
+    j := i
+    for j > 0 and less(xs, j, j - 1)
+      gnSwap(&xs[j], &xs[j - 1])
+      j -= 1
+    end
+  end
+end
+gnFill :: proc[T](xs: []T, x: T)
+  for i in 0..<xs.len() do xs[i] = x
+end
+gnByY :: proc(ps: []GnP, i, j: Int) -> Bool do return ps[i].y < ps[j].y
+gnInts := [_]{5, 3, 9, 1}
+gnReverse(gnInts[])
+check(gnInts[0] == 1 and gnInts[3] == 5 and gnFind(gnInts[], 9) == 1 and gnFind(gnInts[], 7) == -1, "reverse and find, on Ints")
+gnA := 1
+gnB := 2
+gnSwap(&gnA, &gnB)
+gnPs := [_]{GnP{x = 1, y = 30, name = "c"}, GnP{x = 2, y = 10, name = "a"}, GnP{x = 3, y = 20, name = "b"}}
+gnSortBy(gnPs[], gnByY)
+check(gnA == 2 and gnB == 1 and gnPs[0].x == 2 and gnPs[1].x == 3 and gnPs[2].name == "c", "swap, and sort by a proc, on structs")
+gnFs := [4]Float{}
+gnFill(gnFs[], 2.5)
+gnNames := [_]{"x", "y"}
+gnSwap(&gnNames[0], &gnNames[1])
+check(gnFs[0] == 2.5 and gnFs[3] == 2.5 and gnNames[0] == "y" and gnFind(gnFs[], 2.5) == 0, "fill with a constant, Strings swapped")
+
 # ---- an if starting an else block is nested (found by tests/difftest.py)
 nest := 0
 if nest == 1

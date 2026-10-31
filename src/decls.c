@@ -249,6 +249,17 @@ void rio_procParam(rio_Vm *vm, int proc, const char *name, int nameLen, int type
   if (ty->kind == rio_TypeKind_void) rio_FAIL(, "invalid parameter type");
   if (!isRef && ty->kind == rio_TypeKind_builder) rio_FAIL(, "invalid parameter type (pass builders as [..]T)");
   if (!isRef && rio_isBig(ty)) rio_FAIL(, "a big value (over 16 words) goes by reference: use &T, or []T for an array");
+  if (ty->kind == rio_TypeKind_param && !isRef) { /* a generic proc's x: T, by its address (its size known only
+                                                     while running), and read-only: as a copy would be */
+    if (how & 2) rio_FAIL(, "a T parameter can't be optional");
+    addr = rio_allocSlots(vm, 1) * 4;
+    if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
+    rio_addParam(vm, type, 0, addr);
+    rio_markParamView(vm, (uint32_t)addr, 1, 1);
+    rio_addSymbol(vm, name, nameLen, rio_SymKind_readOnlyRef, type, addr / 4);
+    c->procDefs[proc].paramCount++;
+    return;
+  }
   addr = rio_allocSlots(vm, isRef ? 1 : rio_typeWords(vm, type)) * 4; /* a & parameter is one word holding the address,
                                                                      read through like self */
   if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
@@ -278,16 +289,106 @@ void rio_beginBody(rio_Vm *vm, int proc) {
   c->procDefs[proc].entry = (uint16_t)rio_label(vm);
 }
 
+/* type t mentions a generic proc's type parameter (which: type, or any if type < 0) */
+int rio_mentions(rio_Vm *vm, int t, int type) {
+  rio_Type *y = rio_type(vm, t);
+  uint32_t i;
+  switch (y->kind) {
+  case rio_TypeKind_param: return type < 0 || t == type;
+  case rio_TypeKind_slice: case rio_TypeKind_array: case rio_TypeKind_builder: case rio_TypeKind_builderView: return rio_mentions(vm, y->elem, type);
+  case rio_TypeKind_union: case rio_TypeKind_proc:
+    for (i = 0; i < y->fieldCount; i++)
+      if (rio_mentions(vm, rio_field(vm, y->firstField + i)->type, type)) return 1;
+    return y->kind == rio_TypeKind_proc && rio_mentions(vm, y->elem, type);
+  default: return 0;
+  }
+}
+
+/* A type a generic proc may name, inside its parameters' types and its result's: a T's size is known
+   only while running, so a T is only somewhere (top: a parameter itself, T or &T), in a []T, or behind
+   one in a proc type's parameters */
+static int rio_genericOk(rio_Vm *vm, int t, int top) {
+  rio_Type *y = rio_type(vm, t);
+  uint32_t i;
+  if (!rio_mentions(vm, t, -1)) return 1;
+  if (y->kind == rio_TypeKind_param) return top;
+  if (y->kind == rio_TypeKind_slice) return rio_type(vm, y->elem)->kind == rio_TypeKind_param || rio_genericOk(vm, y->elem, 0);
+  if (y->kind != rio_TypeKind_proc) return 0;
+  for (i = 0; i < y->fieldCount; i++)
+    if (!rio_genericOk(vm, rio_field(vm, y->firstField + i)->type, 0)) return 0;
+  return rio_genericOk(vm, y->elem, 0);
+}
+
+/* After a generic proc's parameters and result: each checked, each T given by one (so a call can tell
+   what it is), and a hidden parameter for each T: where its size is */
+static void rio_genericParams(rio_Vm *vm, int proc) {
+  rio_Compiler *c = vm->compiler;
+  rio_ProcDef *p = &c->procDefs[proc];
+  int i, j;
+  for (i = 0; i < p->paramCount; i++) {
+    rio_Param *q = &c->params[p->firstParam + i];
+    if (!rio_genericOk(vm, q->refType ? q->refType : q->type, 1))
+      rio_FAIL(, "a T goes here only as T, &T or []T, or in a proc type as []T (its size is known only while running)");
+  }
+  for (j = 0; j < p->typeParams; j++) {
+    int t = p->firstTypeParam + j, found = 0;
+    for (i = 0; i < p->paramCount && !found; i++) {
+      rio_Param *q = &c->params[p->firstParam + i];
+      found = rio_mentions(vm, q->refType ? q->refType : q->type, t);
+    }
+    if (!found) rio_FAIL(, "each type parameter is in a parameter's type, so a call can tell what it is");
+  }
+  for (j = 0; j < p->typeParams; j++) {
+    int addr = rio_allocSlots(vm, 1) * 4;
+    if (c->paramCount >= (int)c->limits.params) rio_FAIL(, "too many parameters");
+    rio_addParam(vm, rio_TypeId_int, 0, addr);
+    p->paramCount++;
+  }
+}
+
+/* at a generic proc's start: each T's size, from where its hidden parameter says, into a slot */
+static void rio_loadTypeSizes(rio_Vm *vm, int proc) {
+  rio_Compiler *c = vm->compiler;
+  rio_ProcDef *p = &c->procDefs[proc];
+  int j, s = rio_allocSlots(vm, p->typeParams), hidden = p->paramCount - p->typeParams;
+  c->liveSlots = c->freeSlot;
+  p->sizeSlots = (uint16_t)s;
+  for (j = 0; j < p->typeParams; j++) rio_emit(vm, rio_Op_ldw, s + j, (int)(c->params[p->firstParam + hidden + j].addr / 4), 0);
+}
+
 /* name :: proc(params) -> result, after the name and ::; receiver: a method's type, or -1 (isStatic: one
    with no self). The body follows as statements, until its end (in rio_statement). */
 void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int isStatic) {
   rio_Compiler *c = vm->compiler;
-  int index;
+  const char *typeNames[8];
+  int index, typeLens[8], typeCount = 0, k;
   if (c->blockCount || c->curProc >= 0) rio_FAIL(, "procs must be top-level");
   if (vm->procCount >= (int)c->limits.procs) rio_FAIL(, "too many procs");
   rio_next(vm);
+  if (c->tok.kind == '[' && !c->tok.newline) { /* proc[T, U]: generic, the types named for the proc */
+    rio_next(vm);
+    while (c->tok.kind == rio_Tok_id && !rio_failed(vm)) {
+      if (typeCount >= 8) rio_FAIL(, "too many type parameters");
+      for (k = 0; k < typeCount; k++)
+        if (typeLens[k] == c->tok.len && !memcmp(typeNames[k], c->tok.text, (size_t)c->tok.len)) rio_FAIL_AT_TOKEN(, "type parameter named twice");
+      typeNames[typeCount] = rio_keep(vm, c->tok.text, c->tok.len);
+      typeLens[typeCount++] = c->tok.len;
+      rio_next(vm);
+      if (c->tok.kind != ',') break;
+      rio_next(vm);
+    }
+    if (!typeCount) rio_FAIL_AT_TOKEN(, "a type parameter's name expected: proc[T](...)");
+    rio_expect(vm, ']', "']' expected");
+    if (receiver >= 0) rio_FAIL(, "a method can't be generic yet");
+  }
   rio_expect(vm, '(', "'(' expected");
   if ((index = rio_beginProcAt(vm, -1, name, nameLen, receiver, isStatic)) < 0) return;
+  for (k = 0; k < typeCount; k++) { /* (in the proc's scope: they go at its end) */
+    int t = rio_newType(vm, rio_TypeKind_param, index, (uint32_t)k, 0);
+    if (!k) c->procDefs[index].firstTypeParam = (uint16_t)t;
+    rio_addSymbol(vm, typeNames[k], typeLens[k], rio_SymKind_type, t, 0);
+  }
+  c->procDefs[index].typeParams = (uint8_t)typeCount;
   while (c->tok.kind != ')' && !rio_failed(vm)) { /* a, b: T  or  a: &T */
     const char *names[16];
     int lens[16], opt, n = rio_parseNames(vm, names, lens, &opt), isRef = c->tok.kind == '&', t, j;
@@ -299,12 +400,15 @@ void rio_procDef(rio_Vm *vm, const char *name, int nameLen, int receiver, int is
     rio_next(vm);
   }
   rio_expect(vm, ')', "')' expected");
+  if (typeCount) rio_genericParams(vm, index); /* (its hidden parameters, right after the others) */
   if (c->tok.kind == rio_Tok_arrow) {
     rio_next(vm);
     rio_setProcResult(vm, index, rio_parseType(vm));
     if (rio_failed(vm)) return;
+    if (typeCount && !rio_genericOk(vm, c->procDefs[index].resultType, 0)) rio_FAIL(, "a generic proc can't return a T yet: fill in a &T parameter");
   }
   rio_beginBody(vm, index);
+  if (typeCount) rio_loadTypeSizes(vm, index);
 }
 
 /* Type.name :: proc(...), or :: static proc(...) for one called on the type, with no self */
@@ -637,6 +741,16 @@ static void rio_declare(rio_Vm *vm, const char *name, int nameLen, int type, rio
   ty = rio_type(vm, type);
   k = ty->kind;
   if (k == rio_TypeKind_void) rio_FAIL(, "variable has no type");
+  if (k == rio_TypeKind_param) { /* a generic proc's T: room for the most a T may be (calls check) */
+    rio_Expr d;
+    c->procDefs[ty->elem].localTypes |= (uint8_t)(1u << ty->count);
+    d = rio_exprOf(rio_ExprKind_static, type, (int32_t)rio_allocHigh(vm, rio_SMALL_WORDS * 4));
+    if (has) rio_store(vm, &d, &e);
+    else rio_emit(vm, rio_Op_zero, rio_addrConst(vm, (uint32_t)d.value, rio_SMALL_WORDS * 4), rio_SMALL_WORDS * 4, 0);
+    rio_addSymbol(vm, name, nameLen, rio_SymKind_var, type, d.value);
+    return;
+  }
+  if (rio_mentions(vm, type, -1) && k != rio_TypeKind_slice && k != rio_TypeKind_proc) rio_FAIL(, "a T goes in a variable only as T or []T (for now)");
   if (has && (e.access & rio_Access_literal) && e.type == type && c->curProc < 0 && !c->blockCount && !vm->inRepl &&
       rio_literalData(vm, &e)) { /* a top-level variable from a literal of constants: its starting value */
     rio_addSymbol(vm, name, nameLen, rio_SymKind_var, type, e.value);

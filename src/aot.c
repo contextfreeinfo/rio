@@ -249,6 +249,14 @@ static void rio_instruction(rio_Aot *a, int pc) {
     else rio_print(a, "%s = (int32_t)(i_ < %uu); }\n", rio_V(A, 'i'), rio_dataSize(data));
     break;
   case rio_Op_copy: rio_print(a, "memmove(rio_M + %s, rio_M + %s, %d);\n", rio_V(A, 'u'), rio_V(B, 'u'), C); break;
+  case rio_Op_copyv: rio_print(a, "memmove(rio_M + %s, rio_M + %s, %s);\n", rio_V(A, 'u'), rio_V(B, 'u'), rio_V(C, 'u')); break;
+  case rio_Op_idxv:
+    rio_print(a, "{ uint32_t i_ = %s; if (i_ >= %s) rio_RT_ERROR(\"index out of bounds\"); %s = %s + i_ * %s; }\n", rio_V(C, 'u'),
+              rio_V(B + 1, 'u'), rio_V(A, 'u'), rio_V(B, 'u'), rio_V(A, 'u'));
+    break;
+  case rio_Op_eqv:
+    rio_print(a, "%s = !memcmp(rio_M + %s, rio_M + %s, %s);\n", rio_V(A, 'i'), rio_V(B, 'u'), rio_V(C, 'u'), rio_V(A, 'u'));
+    break;
   case rio_Op_vadd: case rio_Op_vsub: case rio_Op_vmul: case rio_Op_vdiv: case rio_Op_vmod:
   case rio_Op_fvadd: case rio_Op_fvsub: case rio_Op_fvmul: case rio_Op_fvdiv: { /* a loop over the numbers; a scalar side is read once */
     int isFloat = in->op >= rio_Op_fvadd, which = isFloat ? in->op - rio_Op_fvadd : in->op - rio_Op_vadd, view = isFloat ? 'f' : 'u';

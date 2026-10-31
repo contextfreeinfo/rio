@@ -184,6 +184,7 @@ static void rio_forEach(rio_Vm *vm, rio_Block *b, rio_Expr *e, const char *name,
   }
   if (ty->kind != rio_TypeKind_array && ty->kind != rio_TypeKind_slice) rio_FAIL(, "for needs a range, array, slice or builder");
   if (ty->kind == rio_TypeKind_array && rio_isTemp(vm, e)) rio_FAIL(, "a computed array has no home to view: store it in a variable first");
+  if (rio_type(vm, ty->elem)->kind == rio_TypeKind_param) rio_FAIL(, "for x in a []T isn't ready yet: for i in 0..<xs.len(), and xs[i]");
   size = (int)rio_type(vm, ty->elem)->size;
   readOnly = e->access || e->type == rio_TypeId_string;
   if (ty->kind == rio_TypeKind_array && ty->firstField) indexType = ty->firstField; /* for v, d in counts: d is the enum */

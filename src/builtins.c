@@ -64,6 +64,7 @@ int rio_descriptor(rio_Vm *vm, int type) {
   rio_Type *ty = rio_type(vm, type);
   int k = ty->kind, i, slot, names = 0, n = ty->fieldCount;
   uint32_t v[4], text;
+  if (rio_mentions(vm, type, -1)) rio_FAIL(0, "a T can't be printed yet");
   for (i = 0; i < c->descCount; i++)
     if (c->descType[i] == type) return c->descSlot[i];
   if (type == rio_TypeId_range) { /* first..=last */

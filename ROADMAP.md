@@ -11,7 +11,11 @@ with the reasons, are in [REJECTED.md](REJECTED.md).
 
 ## Decide first: changes that would break existing source
 
-Nothing open. Each change here was decided against, keeping Rio as it is: `a[]` for a whole slice,
+- **`_` not a name:** `_ := 3` and `_ :: 3` are legal today, and `[_]` already means a literal sized by
+  its values. Making `_` illegal as a name keeps it free for that and for any later "ignore this"
+  use (`for _ in 0..<n`, say).
+
+Each other change here was decided against, keeping Rio as it is: `a[]` for a whole slice,
 `a[i..]` the one spelling of an open-ended slice, `end` for the last index (not C#'s `^1`), and
 `format` staying, with no formatters. [REJECTED.md](REJECTED.md) has the reasons. A
 change that would break existing source goes here first, since programs already written, such as
@@ -23,17 +27,15 @@ Nothing open: see Leaning yes.
 
 ## Leaning yes
 
-- **Generic procs:** `swap :: proc[T](a, b: &T)`, `find :: proc[T](xs: []T, x: T) -> Int`. The type
-  parameters are listed in brackets after `proc`, where nothing else can go.
-  - **Inferred at every call:** `find(xs[], 3)`. There's no `find[Int](...)`, which would read like
-    indexing.
-  - **One compiled copy each,** never a copy per type (no monomorphization). Each call passes T's
-    descriptor as a hidden argument: the same descriptors that print structs now, kept in the image.
-  - **What the body can do:** in the body, a T value can only be passed, stored, copied, compared
-    with `==`, and indexed in `[]T` and `[..]T`. Builtins that read the descriptor work on it too:
-    `log` and `format` print it, `==` compares Strings by their text, `pack` and `unpack` take it (a
-    T that can't be packed is a compile error at the call, where T is known), and a hash builtin would
-    serve a generic map.
+- **Generic procs, the rest:** the first pass is done (see Done recently). Still to come:
+  - **More on a T:** `for x in xs` and slicing over a `[]T`, `[..]T` builder views (push, pop),
+    returning a T, and a T by value in a proc type (`less: proc(a, b: T) -> Bool`).
+  - **The descriptor:** each call already passes the address of (T's size, its descriptor), with the
+    descriptor 0 for now. Builtins that read it would work on a T: `log` and `format` print it, `==`
+    compares Strings by their text, `pack` and `unpack` take it (a T that can't be packed is a compile
+    error at the call, where T is known), and a hash builtin would serve a generic map.
+  - **Generic methods:** `([..]T).push :: proc[T](value: T) -> Bool`, the receiver's T bound by the
+    proc's list. The receiver comes first in the source, before T is named, so it needs reading after.
   - **No constraints and no traits:** anything type-specific, like `<`, comes in as a proc argument:
     `sort(xs[], less)`.
   - **Builtins declared for real:** this would let core.rio declare its generic builtins as
@@ -121,6 +123,14 @@ Nothing open: see Leaning yes.
     procs if they come.
 
 ## Done recently
+
+- **Generic procs, a first pass:** `swap :: proc[T](a, b: &T)`, `find :: proc[T](xs: []T, x: T) -> Int`,
+  each T found from the arguments at every call (no `find[Int](...)`, which would read like indexing).
+  One compiled copy for every T: a call passes, as a hidden argument, the address of the constant
+  (T's size, descriptor), and three instructions take a size from a slot (`idxv`, `copyv`, `eqv`; images
+  are version 14). In the body a T is copied, taken from a `[]T`, compared with `==` by its bytes, and
+  passed on; a call checks a compared T holds no views and a T kept in a variable is at most 16 words.
+  `tests/map.rio`'s second map is generic procs over arrays the caller keeps.
 
 - **Literals sized and typed by their values:** `[_]T{...}` takes its size from its values, `[_]{...}`
   its element type from the first too, and slice literals, `[]T{...}`, `[]{...}`, and `{...}` where a

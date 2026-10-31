@@ -383,6 +383,22 @@ void rio_binaryOp(rio_Vm *vm, int op, rio_Expr *l, rio_Expr *r) {
     rio_FAIL(, "this may be nil: check first (if x is T, then x is a T there)");
   if (lt != rt) rio_FAIL(, "type mismatch");
   isCompare = rio_isCompare(op);
+  if (rio_type(vm, lt)->kind == rio_TypeKind_param) { /* a T: the same bytes (calls check it holds no views) */
+    rio_Type *y = rio_type(vm, lt);
+    if (op != rio_Tok_eqEq && op != rio_Tok_notEq) rio_FAIL(, rio_msgOpaque);
+    c->procDefs[y->elem].eqTypes |= (uint8_t)(1u << y->count);
+    ls = rio_toAddrSlot(vm, l);
+    rs = rio_toAddrSlot(vm, r);
+    c->freeSlot = l->tempStart < r->tempStart ? l->tempStart : r->tempStart;
+    d = rio_allocSlots(vm, 1);
+    while (d == ls || d == rs) d = rio_allocSlots(vm, 1); /* (the size goes in first: not over them) */
+    rio_emit(vm, rio_Op_mov, d, rio_typeSizeSlot(vm, lt), 0);
+    rio_emit(vm, rio_Op_eqv, d, ls, rs);
+    if (op == rio_Tok_notEq) rio_emit(vm, rio_Op_not, d, d, 0);
+    *l = rio_exprOf(rio_ExprKind_static, rio_TypeId_bool, d * 4);
+    l->tempStart = (uint16_t)d;
+    return;
+  }
   if ((lt == rio_TypeId_string || lt == rio_TypeId_blob) && (op == rio_Tok_eqEq || op == rio_Tok_notEq)) {
     ls = rio_toSlot2(vm, l);
     rs = rio_toSlot2(vm, r);
